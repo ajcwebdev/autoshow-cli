@@ -1,0 +1,2465 @@
+{
+  "schemaVersion": 2,
+  "kind": "image-provider-comparison",
+  "category": "image",
+  "runDir": "/Users/ajc/c/as/autoshow-cli/docs/benchmarks/image/2026-05-21_10-35-24-459_image-gen",
+  "runName": "2026-05-21_10-35-24-459_image-gen",
+  "generatedAt": "2026-06-10T17:42:25.124Z",
+  "metric": "image-quality-price-speed",
+  "scoreFormula": "Automated quality ranking uses OpenAI image quality score; price and speed surfaces remain independent.",
+  "tiering": null,
+  "duplicateGroups": [],
+  "normalization": null,
+  "providerCount": 13,
+  "providerGroups": {
+    "local": {
+      "count": 0,
+      "providers": []
+    },
+    "service": {
+      "count": 13,
+      "providers": [
+        {
+          "rank": 2,
+          "providerKey": "bfl/flux-2-flex",
+          "provider": "bfl/flux-2-flex",
+          "model": null,
+          "group": "service",
+          "processingTimeMs": 16181,
+          "actualProcessingTimeMs": 16181,
+          "costCents": 5,
+          "actualCostCents": 5,
+          "qualityScore": 88,
+          "qualityMetric": "image quality score",
+          "qualityValue": 88,
+          "qualityLabel": "88.00/100",
+          "metrics": {
+            "wer": null,
+            "cer": null,
+            "speakerAwareWER": null,
+            "textOnlyWER": null,
+            "roundtripWER": null,
+            "contentCoverage": null,
+            "qualityScore": 88
+          },
+          "supportsDiarization": null,
+          "diarizationSupport": null,
+          "tierGroup": null,
+          "groupOverallRank": null,
+          "groupTier": null,
+          "qualityWarnings": [],
+          "segmentStats": null,
+          "duplicateGroupId": null,
+          "imageQuality": {
+            "judgeModel": "gpt-5.5",
+            "qualityScore": 88,
+            "averageScore10": 8.8,
+            "criterionScores": {
+              "promptAdherence": 9,
+              "visualQuality": 9,
+              "artifactControl": 8,
+              "composition": 9,
+              "detailTextHandling": 9
+            },
+            "imageCount": 1,
+            "imageFiles": [
+              "generated-image-bfl-flux-2-flex.jpg"
+            ],
+            "evidence": {
+              "summary": "generated-image-bfl-flux-2-flex.jpg: A highly detailed grayscale pencil-style drawing that clearly depicts a recursive scene of a person drawing a person drawing a person drawing. The concept is readable and aesthetically strong, with convincing pencil texture and good framing.",
+              "strengths": [
+                "Strong adherence to the recursive drawing prompt",
+                "Excellent pencil shading, texture, and tonal control",
+                "Clear composition with the artist and nested drawings easy to understand",
+                "Good fine detail in hair, clothing, easel, and paper surfaces"
+              ],
+              "issues": [
+                "Some hand and pencil anatomy/positioning looks slightly awkward",
+                "The deepest recursive level becomes small and less distinct",
+                "A few object edges and perspective details on the easel/table are mildly inconsistent"
+              ]
+            }
+          }
+        },
+        {
+          "rank": 5,
+          "providerKey": "bfl/flux-2-max",
+          "provider": "bfl/flux-2-max",
+          "model": null,
+          "group": "service",
+          "processingTimeMs": 41685,
+          "actualProcessingTimeMs": 41685,
+          "costCents": 7.000000000000001,
+          "actualCostCents": 7.000000000000001,
+          "qualityScore": 86,
+          "qualityMetric": "image quality score",
+          "qualityValue": 86,
+          "qualityLabel": "86.00/100",
+          "metrics": {
+            "wer": null,
+            "cer": null,
+            "speakerAwareWER": null,
+            "textOnlyWER": null,
+            "roundtripWER": null,
+            "contentCoverage": null,
+            "qualityScore": 86
+          },
+          "supportsDiarization": null,
+          "diarizationSupport": null,
+          "tierGroup": null,
+          "groupOverallRank": null,
+          "groupTier": null,
+          "qualityWarnings": [],
+          "segmentStats": null,
+          "duplicateGroupId": null,
+          "imageQuality": {
+            "judgeModel": "gpt-5.5",
+            "qualityScore": 86,
+            "averageScore10": 8.6,
+            "criterionScores": {
+              "promptAdherence": 9,
+              "visualQuality": 9,
+              "artifactControl": 8,
+              "composition": 9,
+              "detailTextHandling": 8
+            },
+            "imageCount": 1,
+            "imageFiles": [
+              "generated-image-bfl-flux-2-max.jpg"
+            ],
+            "evidence": {
+              "summary": "generated-image-bfl-flux-2-max.jpg: Strong recursive pencil-drawing concept with convincing graphite texture and high detail. The nested person-drawing-person structure is clear, though the deepest levels become less readable and there are minor hand/pencil artifacts.",
+              "strengths": [
+                "Excellent pencil drawing style with realistic shading and paper texture",
+                "Clear main subject of a person drawing a recursive scene",
+                "Good perspective, framing, and visual hierarchy",
+                "Fine details in hair, hands, wood grain, and nested drawing"
+              ],
+              "issues": [
+                "Deepest recursive levels are small and somewhat indistinct",
+                "Minor artifacting around the pencil tip/hand area",
+                "Some anatomy and object edges are slightly softened or ambiguous"
+              ]
+            }
+          }
+        },
+        {
+          "rank": 9,
+          "providerKey": "bfl/flux-2-pro",
+          "provider": "bfl/flux-2-pro",
+          "model": null,
+          "group": "service",
+          "processingTimeMs": 11518,
+          "actualProcessingTimeMs": 11518,
+          "costCents": 3,
+          "actualCostCents": 3,
+          "qualityScore": 82,
+          "qualityMetric": "image quality score",
+          "qualityValue": 82,
+          "qualityLabel": "82.00/100",
+          "metrics": {
+            "wer": null,
+            "cer": null,
+            "speakerAwareWER": null,
+            "textOnlyWER": null,
+            "roundtripWER": null,
+            "contentCoverage": null,
+            "qualityScore": 82
+          },
+          "supportsDiarization": null,
+          "diarizationSupport": null,
+          "tierGroup": null,
+          "groupOverallRank": null,
+          "groupTier": null,
+          "qualityWarnings": [],
+          "segmentStats": null,
+          "duplicateGroupId": null,
+          "imageQuality": {
+            "judgeModel": "gpt-5.5",
+            "qualityScore": 82,
+            "averageScore10": 8.2,
+            "criterionScores": {
+              "promptAdherence": 7,
+              "visualQuality": 9,
+              "artifactControl": 8,
+              "composition": 9,
+              "detailTextHandling": 8
+            },
+            "imageCount": 1,
+            "imageFiles": [
+              "generated-image-bfl-flux-2-pro.jpg"
+            ],
+            "evidence": {
+              "summary": "generated-image-bfl-flux-2-pro.jpg: A highly polished grayscale pencil-drawing-style image of an artist drawing a recursive scene. It captures the main concept well, but the nested “person drawing a person drawing...” structure is only clearly visible for the first inner level and becomes indistinct beyond that.",
+              "strengths": [
+                "Convincing pencil sketch texture with rich shading and fine linework",
+                "Clear main subject: a person drawing at a desk",
+                "Strong composition and readable focal hierarchy",
+                "Good environmental detail with pencils, desk, shelves, and studio setting"
+              ],
+              "issues": [
+                "Prompt asks for multiple recursive drawing levels; only one inner person drawing is clearly legible",
+                "The deepest nested drawings are too small/unclear to confirm the full chain",
+                "Some minor hand and tool details look slightly artificial on close inspection"
+              ]
+            }
+          }
+        },
+        {
+          "rank": 10,
+          "providerKey": "gemini/gemini-3.1-flash-image-preview",
+          "provider": "gemini/gemini-3.1-flash-image-preview",
+          "model": null,
+          "group": "service",
+          "processingTimeMs": 25019,
+          "actualProcessingTimeMs": 25019,
+          "costCents": 6.7,
+          "actualCostCents": 6.7,
+          "qualityScore": 82,
+          "qualityMetric": "image quality score",
+          "qualityValue": 82,
+          "qualityLabel": "82.00/100",
+          "metrics": {
+            "wer": null,
+            "cer": null,
+            "speakerAwareWER": null,
+            "textOnlyWER": null,
+            "roundtripWER": null,
+            "contentCoverage": null,
+            "qualityScore": 82
+          },
+          "supportsDiarization": null,
+          "diarizationSupport": null,
+          "tierGroup": null,
+          "groupOverallRank": null,
+          "groupTier": null,
+          "qualityWarnings": [],
+          "segmentStats": null,
+          "duplicateGroupId": null,
+          "imageQuality": {
+            "judgeModel": "gpt-5.5",
+            "qualityScore": 82,
+            "averageScore10": 8.2,
+            "criterionScores": {
+              "promptAdherence": 8,
+              "visualQuality": 9,
+              "artifactControl": 8,
+              "composition": 8,
+              "detailTextHandling": 8
+            },
+            "imageCount": 1,
+            "imageFiles": [
+              "generated-image-gemini-gemini-3.1-flash-image-preview.png"
+            ],
+            "evidence": {
+              "summary": "generated-image-gemini-gemini-3.1-flash-image-preview.png: Highly detailed pencil-style image with strong recursive drawing concept, especially in the right panel. The split composition and extra scenes make it less singular and clean than the prompt, but it fits the requested subject and style well.",
+              "strengths": [
+                "Excellent pencil shading, crosshatching, and grayscale texture",
+                "Clear depiction of people drawing with nested drawings inside drawings",
+                "Strong visual detail and studio/art desk atmosphere"
+              ],
+              "issues": [
+                "Two-panel layout feels unprompted and slightly distracts from the recursive concept",
+                "Left panel does not clearly show the full recursive person-drawing-person structure",
+                "Some small nested figures and hands become less coherent at fine scale",
+                "Minor pseudo-text on pencil is not meaningful, though text was not required"
+              ]
+            }
+          }
+        },
+        {
+          "rank": 11,
+          "providerKey": "grok/grok-imagine-image",
+          "provider": "grok/grok-imagine-image",
+          "model": null,
+          "group": "service",
+          "processingTimeMs": 6010,
+          "actualProcessingTimeMs": 6010,
+          "costCents": 2,
+          "actualCostCents": 2,
+          "qualityScore": 80,
+          "qualityMetric": "image quality score",
+          "qualityValue": 80,
+          "qualityLabel": "80.00/100",
+          "metrics": {
+            "wer": null,
+            "cer": null,
+            "speakerAwareWER": null,
+            "textOnlyWER": null,
+            "roundtripWER": null,
+            "contentCoverage": null,
+            "qualityScore": 80
+          },
+          "supportsDiarization": null,
+          "diarizationSupport": null,
+          "tierGroup": null,
+          "groupOverallRank": null,
+          "groupTier": null,
+          "qualityWarnings": [],
+          "segmentStats": null,
+          "duplicateGroupId": null,
+          "imageQuality": {
+            "judgeModel": "gpt-5.5",
+            "qualityScore": 80,
+            "averageScore10": 8,
+            "criterionScores": {
+              "promptAdherence": 7,
+              "visualQuality": 9,
+              "artifactControl": 8,
+              "composition": 8,
+              "detailTextHandling": 8
+            },
+            "imageCount": 1,
+            "imageFiles": [
+              "generated-image-grok-grok-imagine-image.jpg"
+            ],
+            "evidence": {
+              "summary": "generated-image-grok-grok-imagine-image.jpg: Strong pencil-drawing aesthetic with detailed figures drawing recursive scenes, though it reads more like multiple people in a drawing class than a clean single person drawing a person drawing a person drawing a person.",
+              "strengths": [
+                "Excellent pencil/graphite texture, shading, and linework",
+                "Clear depiction of people actively drawing with nested imagery on the paper",
+                "High visual clarity and strong lighting/composition",
+                "Fine details in faces, hands, clothing, and paper sketches are well rendered"
+              ],
+              "issues": [
+                "Prompt asks for a singular recursive chain; image includes many people and a classroom-like repetition, reducing conceptual precision",
+                "The recursive structure is only partially clear and stops visually after a couple of levels",
+                "Some hands/fingers and pencil interactions show minor AI distortions",
+                "Nested drawings are small and not fully readable as the exact requested chain"
+              ]
+            }
+          }
+        },
+        {
+          "rank": 8,
+          "providerKey": "grok/grok-imagine-image-quality",
+          "provider": "grok/grok-imagine-image-quality",
+          "model": null,
+          "group": "service",
+          "processingTimeMs": 5048,
+          "actualProcessingTimeMs": 5048,
+          "costCents": 5,
+          "actualCostCents": 5,
+          "qualityScore": 84,
+          "qualityMetric": "image quality score",
+          "qualityValue": 84,
+          "qualityLabel": "84.00/100",
+          "metrics": {
+            "wer": null,
+            "cer": null,
+            "speakerAwareWER": null,
+            "textOnlyWER": null,
+            "roundtripWER": null,
+            "contentCoverage": null,
+            "qualityScore": 84
+          },
+          "supportsDiarization": null,
+          "diarizationSupport": null,
+          "tierGroup": null,
+          "groupOverallRank": null,
+          "groupTier": null,
+          "qualityWarnings": [],
+          "segmentStats": null,
+          "duplicateGroupId": null,
+          "imageQuality": {
+            "judgeModel": "gpt-5.5",
+            "qualityScore": 84,
+            "averageScore10": 8.4,
+            "criterionScores": {
+              "promptAdherence": 9,
+              "visualQuality": 9,
+              "artifactControl": 8,
+              "composition": 9,
+              "detailTextHandling": 7
+            },
+            "imageCount": 1,
+            "imageFiles": [
+              "generated-image-grok-grok-imagine-image-quality.jpg"
+            ],
+            "evidence": {
+              "summary": "generated-image-grok-grok-imagine-image-quality.jpg: Highly detailed pencil-style recursive drawing that closely matches the prompt, with strong composition and clear nested drawing-within-drawing structure. Minor issues include extra characters, slightly odd small-scale details, and some imperfect/irrelevant text.",
+              "strengths": [
+                "Excellent pencil sketch style with rich shading and texture",
+                "Strong recursive composition clearly showing drawings within drawings",
+                "High level of visible detail in tools, hands, faces, and workspace",
+                "Readable overall hierarchy and framing"
+              ],
+              "issues": [
+                "Includes multiple people rather than a simpler singular person-recursion structure",
+                "Some small nested details become distorted or less coherent",
+                "Visible text is partly unnecessary and not perfectly handled",
+                "Minor hand/detail artifacts at smaller scales"
+              ]
+            }
+          }
+        },
+        {
+          "rank": 1,
+          "providerKey": "openai/gpt-image-2",
+          "provider": "openai/gpt-image-2",
+          "model": null,
+          "group": "service",
+          "processingTimeMs": 152338,
+          "actualProcessingTimeMs": 152338,
+          "costCents": 5.3,
+          "actualCostCents": 5.3,
+          "qualityScore": 90,
+          "qualityMetric": "image quality score",
+          "qualityValue": 90,
+          "qualityLabel": "90.00/100",
+          "metrics": {
+            "wer": null,
+            "cer": null,
+            "speakerAwareWER": null,
+            "textOnlyWER": null,
+            "roundtripWER": null,
+            "contentCoverage": null,
+            "qualityScore": 90
+          },
+          "supportsDiarization": null,
+          "diarizationSupport": null,
+          "tierGroup": null,
+          "groupOverallRank": null,
+          "groupTier": null,
+          "qualityWarnings": [],
+          "segmentStats": null,
+          "duplicateGroupId": null,
+          "imageQuality": {
+            "judgeModel": "gpt-5.5",
+            "qualityScore": 90,
+            "averageScore10": 9,
+            "criterionScores": {
+              "promptAdherence": 10,
+              "visualQuality": 9,
+              "artifactControl": 9,
+              "composition": 9,
+              "detailTextHandling": 8
+            },
+            "imageCount": 1,
+            "imageFiles": [
+              "generated-image-openai-gpt-image-2.png"
+            ],
+            "evidence": {
+              "summary": "generated-image-openai-gpt-image-2.png: Excellent prompt fit: a highly detailed graphite-style recursive scene of a person drawing a person drawing the same scene. The image is clear, well-composed, and convincingly pencil-rendered, with only minor softness/gibberish in tiny background notes.",
+              "strengths": [
+                "Strong recursive structure with multiple nested drawings",
+                "Convincing pencil drawing texture and shading",
+                "High level of detail in hair, clothing, desk objects, and paper edges",
+                "Balanced composition that guides the eye inward"
+              ],
+              "issues": [
+                "Tiny background writing is illegible/gibberish",
+                "Some small nested details become soft at deeper recursion levels"
+              ]
+            }
+          }
+        },
+        {
+          "rank": 6,
+          "providerKey": "recraft/recraftv4_1",
+          "provider": "recraft/recraftv4_1",
+          "model": null,
+          "group": "service",
+          "processingTimeMs": 7690,
+          "actualProcessingTimeMs": 7690,
+          "costCents": 4,
+          "actualCostCents": 4,
+          "qualityScore": 86,
+          "qualityMetric": "image quality score",
+          "qualityValue": 86,
+          "qualityLabel": "86.00/100",
+          "metrics": {
+            "wer": null,
+            "cer": null,
+            "speakerAwareWER": null,
+            "textOnlyWER": null,
+            "roundtripWER": null,
+            "contentCoverage": null,
+            "qualityScore": 86
+          },
+          "supportsDiarization": null,
+          "diarizationSupport": null,
+          "tierGroup": null,
+          "groupOverallRank": null,
+          "groupTier": null,
+          "qualityWarnings": [],
+          "segmentStats": null,
+          "duplicateGroupId": null,
+          "imageQuality": {
+            "judgeModel": "gpt-5.5",
+            "qualityScore": 86,
+            "averageScore10": 8.6,
+            "criterionScores": {
+              "promptAdherence": 8,
+              "visualQuality": 9,
+              "artifactControl": 8,
+              "composition": 9,
+              "detailTextHandling": 9
+            },
+            "imageCount": 1,
+            "imageFiles": [
+              "generated-image-recraft-recraftv4_1.webp"
+            ],
+            "evidence": {
+              "summary": "generated-image-recraft-recraftv4_1.webp: A strong, detailed pencil-style image that clearly depicts a recursive drawing scene with multiple nested figures drawing. The hand-drawn graphite texture and fine shading fit the prompt very well, though the deepest recursion is somewhat hard to read and a few anatomy/details are slightly distorted.",
+              "strengths": [
+                "Excellent pencil drawing style with rich graphite shading and linework",
+                "Clearly shows a person drawing a nested image of another person drawing",
+                "Strong composition with readable hierarchy from outer figure to inner drawing",
+                "High level of fine detail in hair, hands, desk, paper, and background"
+              ],
+              "issues": [
+                "The full recursive chain is not perfectly clear at the smallest level",
+                "Some hand and finger anatomy appears slightly awkward",
+                "Inner nested figures lose clarity due to scale and dense sketch texture"
+              ]
+            }
+          }
+        },
+        {
+          "rank": 3,
+          "providerKey": "recraft/recraftv4_1_pro",
+          "provider": "recraft/recraftv4_1_pro",
+          "model": null,
+          "group": "service",
+          "processingTimeMs": 12018,
+          "actualProcessingTimeMs": 12018,
+          "costCents": 25,
+          "actualCostCents": 25,
+          "qualityScore": 88,
+          "qualityMetric": "image quality score",
+          "qualityValue": 88,
+          "qualityLabel": "88.00/100",
+          "metrics": {
+            "wer": null,
+            "cer": null,
+            "speakerAwareWER": null,
+            "textOnlyWER": null,
+            "roundtripWER": null,
+            "contentCoverage": null,
+            "qualityScore": 88
+          },
+          "supportsDiarization": null,
+          "diarizationSupport": null,
+          "tierGroup": null,
+          "groupOverallRank": null,
+          "groupTier": null,
+          "qualityWarnings": [],
+          "segmentStats": null,
+          "duplicateGroupId": null,
+          "imageQuality": {
+            "judgeModel": "gpt-5.5",
+            "qualityScore": 88,
+            "averageScore10": 8.8,
+            "criterionScores": {
+              "promptAdherence": 9,
+              "visualQuality": 9,
+              "artifactControl": 8,
+              "composition": 9,
+              "detailTextHandling": 9
+            },
+            "imageCount": 1,
+            "imageFiles": [
+              "generated-image-recraft-recraftv4_1_pro.webp"
+            ],
+            "evidence": {
+              "summary": "generated-image-recraft-recraftv4_1_pro.webp: Highly successful detailed pencil-style recursive drawing matching the prompt, with clear nested figures and strong draftsmanship. Minor anatomical and perspective oddities are present but do not significantly reduce readability.",
+              "strengths": [
+                "Clearly depicts a person drawing a person drawing a person, with multiple recursive levels visible.",
+                "Convincing pencil drawing style with rich graphite shading, crosshatching, and fine detail.",
+                "Strong central composition and readable hierarchy from large figure to smaller nested drawings.",
+                "Excellent texture detail in hair, clothing folds, shoes, and paper edges."
+              ],
+              "issues": [
+                "Some hand and pencil anatomy is slightly awkward or ambiguous.",
+                "The smallest recursive levels lose clarity due to scale.",
+                "A few proportions and perspective details feel stylized or mildly distorted."
+              ]
+            }
+          }
+        },
+        {
+          "rank": 7,
+          "providerKey": "recraft/recraftv4_1_utility",
+          "provider": "recraft/recraftv4_1_utility",
+          "model": null,
+          "group": "service",
+          "processingTimeMs": 10089,
+          "actualProcessingTimeMs": 10089,
+          "costCents": 4,
+          "actualCostCents": 4,
+          "qualityScore": 86,
+          "qualityMetric": "image quality score",
+          "qualityValue": 86,
+          "qualityLabel": "86.00/100",
+          "metrics": {
+            "wer": null,
+            "cer": null,
+            "speakerAwareWER": null,
+            "textOnlyWER": null,
+            "roundtripWER": null,
+            "contentCoverage": null,
+            "qualityScore": 86
+          },
+          "supportsDiarization": null,
+          "diarizationSupport": null,
+          "tierGroup": null,
+          "groupOverallRank": null,
+          "groupTier": null,
+          "qualityWarnings": [],
+          "segmentStats": null,
+          "duplicateGroupId": null,
+          "imageQuality": {
+            "judgeModel": "gpt-5.5",
+            "qualityScore": 86,
+            "averageScore10": 8.6,
+            "criterionScores": {
+              "promptAdherence": 8,
+              "visualQuality": 9,
+              "artifactControl": 8,
+              "composition": 9,
+              "detailTextHandling": 9
+            },
+            "imageCount": 1,
+            "imageFiles": [
+              "generated-image-recraft-recraftv4_1_utility.webp"
+            ],
+            "evidence": {
+              "summary": "generated-image-recraft-recraftv4_1_utility.webp: Strong pencil-style recursive drawing with clear nesting and rich graphite detail. It fits the prompt well, though the innermost levels become less clearly readable as actual people drawing people.",
+              "strengths": [
+                "Convincing pencil drawing texture and shading",
+                "Clear main figure actively drawing with pencil",
+                "Effective recursive composition with multiple nested figures",
+                "High detail in hair, clothing, hands, and paper area"
+              ],
+              "issues": [
+                "Recursive action becomes ambiguous in the smallest nested figures",
+                "Some hand and pencil details are slightly distorted",
+                "The paper/drawing boundaries are not always perfectly clear"
+              ]
+            }
+          }
+        },
+        {
+          "rank": 4,
+          "providerKey": "recraft/recraftv4_1_utility_pro",
+          "provider": "recraft/recraftv4_1_utility_pro",
+          "model": null,
+          "group": "service",
+          "processingTimeMs": 14481,
+          "actualProcessingTimeMs": 14481,
+          "costCents": 25,
+          "actualCostCents": 25,
+          "qualityScore": 88,
+          "qualityMetric": "image quality score",
+          "qualityValue": 88,
+          "qualityLabel": "88.00/100",
+          "metrics": {
+            "wer": null,
+            "cer": null,
+            "speakerAwareWER": null,
+            "textOnlyWER": null,
+            "roundtripWER": null,
+            "contentCoverage": null,
+            "qualityScore": 88
+          },
+          "supportsDiarization": null,
+          "diarizationSupport": null,
+          "tierGroup": null,
+          "groupOverallRank": null,
+          "groupTier": null,
+          "qualityWarnings": [],
+          "segmentStats": null,
+          "duplicateGroupId": null,
+          "imageQuality": {
+            "judgeModel": "gpt-5.5",
+            "qualityScore": 88,
+            "averageScore10": 8.8,
+            "criterionScores": {
+              "promptAdherence": 9,
+              "visualQuality": 9,
+              "artifactControl": 8,
+              "composition": 9,
+              "detailTextHandling": 9
+            },
+            "imageCount": 1,
+            "imageFiles": [
+              "generated-image-recraft-recraftv4_1_utility_pro.webp"
+            ],
+            "evidence": {
+              "summary": "generated-image-recraft-recraftv4_1_utility_pro.webp: Highly effective pencil-style recursive drawing that clearly depicts a person drawing a person drawing another person drawing, with strong graphite texture and detail.",
+              "strengths": [
+                "Clear recursive structure matching the prompt",
+                "Convincing pencil drawing aesthetic with rich shading and linework",
+                "Strong composition with readable hierarchy from large figure to smaller drawings",
+                "High level of detail in faces, hands, clothing, and paper surfaces"
+              ],
+              "issues": [
+                "Some hand and pencil geometry is slightly distorted",
+                "The smallest recursion level is less detailed and slightly harder to read",
+                "A few areas are overly dark or smudged, reducing clarity"
+              ]
+            }
+          }
+        },
+        {
+          "rank": 13,
+          "providerKey": "reve/latest",
+          "provider": "reve/latest",
+          "model": null,
+          "group": "service",
+          "processingTimeMs": 6119,
+          "actualProcessingTimeMs": 6119,
+          "costCents": 2.4,
+          "actualCostCents": 2.4,
+          "qualityScore": 76,
+          "qualityMetric": "image quality score",
+          "qualityValue": 76,
+          "qualityLabel": "76.00/100",
+          "metrics": {
+            "wer": null,
+            "cer": null,
+            "speakerAwareWER": null,
+            "textOnlyWER": null,
+            "roundtripWER": null,
+            "contentCoverage": null,
+            "qualityScore": 76
+          },
+          "supportsDiarization": null,
+          "diarizationSupport": null,
+          "tierGroup": null,
+          "groupOverallRank": null,
+          "groupTier": null,
+          "qualityWarnings": [],
+          "segmentStats": null,
+          "duplicateGroupId": null,
+          "imageQuality": {
+            "judgeModel": "gpt-5.5",
+            "qualityScore": 76,
+            "averageScore10": 7.6,
+            "criterionScores": {
+              "promptAdherence": 7,
+              "visualQuality": 8,
+              "artifactControl": 7,
+              "composition": 8,
+              "detailTextHandling": 8
+            },
+            "imageCount": 1,
+            "imageFiles": [
+              "generated-image-reve-latest.png"
+            ],
+            "evidence": {
+              "summary": "generated-image-reve-latest.png: A clean pencil-style recursive drawing scene with multiple easels and figures, but the nested concept is only partially clear and not all levels show a full person drawing another person.",
+              "strengths": [
+                "Convincing pencil sketch texture and monochrome style",
+                "Good overall composition with clear foreground and recursive smaller easels",
+                "Detailed rendering of the main figure, hair, hands, and drawing tools"
+              ],
+              "issues": [
+                "Recursive prompt is not fully realized as a clear chain of person drawing person drawing person",
+                "Some nested levels show only hands or partial figures rather than complete people drawing",
+                "Minor anatomical and object distortions in hands, small figures, and easel structures"
+              ]
+            }
+          }
+        },
+        {
+          "rank": 12,
+          "providerKey": "reve/reve-create@20250915",
+          "provider": "reve/reve-create@20250915",
+          "model": null,
+          "group": "service",
+          "processingTimeMs": 6295,
+          "actualProcessingTimeMs": 6295,
+          "costCents": 2.4,
+          "actualCostCents": 2.4,
+          "qualityScore": 80,
+          "qualityMetric": "image quality score",
+          "qualityValue": 80,
+          "qualityLabel": "80.00/100",
+          "metrics": {
+            "wer": null,
+            "cer": null,
+            "speakerAwareWER": null,
+            "textOnlyWER": null,
+            "roundtripWER": null,
+            "contentCoverage": null,
+            "qualityScore": 80
+          },
+          "supportsDiarization": null,
+          "diarizationSupport": null,
+          "tierGroup": null,
+          "groupOverallRank": null,
+          "groupTier": null,
+          "qualityWarnings": [],
+          "segmentStats": null,
+          "duplicateGroupId": null,
+          "imageQuality": {
+            "judgeModel": "gpt-5.5",
+            "qualityScore": 80,
+            "averageScore10": 8,
+            "criterionScores": {
+              "promptAdherence": 7,
+              "visualQuality": 9,
+              "artifactControl": 8,
+              "composition": 8,
+              "detailTextHandling": 8
+            },
+            "imageCount": 1,
+            "imageFiles": [
+              "generated-image-reve-reve-create@20250915.png"
+            ],
+            "evidence": {
+              "summary": "generated-image-reve-reve-create@20250915.png: High-quality image with a convincing pencil-sketch recursion of a person drawing another person drawing, though it is framed as a photorealistic scene with a real hand/pencil rather than purely an extremely detailed pencil drawing. The recursive structure is present but only reaches the requested concept somewhat loosely.",
+              "strengths": [
+                "Strong pencil texture and linework with believable shading.",
+                "Clear recursive drawing-within-drawing composition.",
+                "High overall clarity and appealing desk/paper presentation.",
+                "Few obvious artifacts; hand and pencil are mostly realistic."
+              ],
+              "issues": [
+                "Includes photorealistic hand, pencil, desk, and sharpener, which conflicts with the prompt's request for a pencil drawing style.",
+                "The recursion is not fully explicit through all requested nested levels.",
+                "Some fine anatomical/detail areas in the sketch are simplified rather than extremely detailed."
+              ]
+            }
+          }
+        }
+      ]
+    }
+  },
+  "providers": [
+    {
+      "rank": 2,
+      "providerKey": "bfl/flux-2-flex",
+      "provider": "bfl/flux-2-flex",
+      "model": null,
+      "group": "service",
+      "processingTimeMs": 16181,
+      "actualProcessingTimeMs": 16181,
+      "costCents": 5,
+      "actualCostCents": 5,
+      "qualityScore": 88,
+      "qualityMetric": "image quality score",
+      "qualityValue": 88,
+      "qualityLabel": "88.00/100",
+      "metrics": {
+        "wer": null,
+        "cer": null,
+        "speakerAwareWER": null,
+        "textOnlyWER": null,
+        "roundtripWER": null,
+        "contentCoverage": null,
+        "qualityScore": 88
+      },
+      "supportsDiarization": null,
+      "diarizationSupport": null,
+      "tierGroup": null,
+      "groupOverallRank": null,
+      "groupTier": null,
+      "qualityWarnings": [],
+      "segmentStats": null,
+      "duplicateGroupId": null,
+      "imageQuality": {
+        "judgeModel": "gpt-5.5",
+        "qualityScore": 88,
+        "averageScore10": 8.8,
+        "criterionScores": {
+          "promptAdherence": 9,
+          "visualQuality": 9,
+          "artifactControl": 8,
+          "composition": 9,
+          "detailTextHandling": 9
+        },
+        "imageCount": 1,
+        "imageFiles": [
+          "generated-image-bfl-flux-2-flex.jpg"
+        ],
+        "evidence": {
+          "summary": "generated-image-bfl-flux-2-flex.jpg: A highly detailed grayscale pencil-style drawing that clearly depicts a recursive scene of a person drawing a person drawing a person drawing. The concept is readable and aesthetically strong, with convincing pencil texture and good framing.",
+          "strengths": [
+            "Strong adherence to the recursive drawing prompt",
+            "Excellent pencil shading, texture, and tonal control",
+            "Clear composition with the artist and nested drawings easy to understand",
+            "Good fine detail in hair, clothing, easel, and paper surfaces"
+          ],
+          "issues": [
+            "Some hand and pencil anatomy/positioning looks slightly awkward",
+            "The deepest recursive level becomes small and less distinct",
+            "A few object edges and perspective details on the easel/table are mildly inconsistent"
+          ]
+        }
+      }
+    },
+    {
+      "rank": 5,
+      "providerKey": "bfl/flux-2-max",
+      "provider": "bfl/flux-2-max",
+      "model": null,
+      "group": "service",
+      "processingTimeMs": 41685,
+      "actualProcessingTimeMs": 41685,
+      "costCents": 7.000000000000001,
+      "actualCostCents": 7.000000000000001,
+      "qualityScore": 86,
+      "qualityMetric": "image quality score",
+      "qualityValue": 86,
+      "qualityLabel": "86.00/100",
+      "metrics": {
+        "wer": null,
+        "cer": null,
+        "speakerAwareWER": null,
+        "textOnlyWER": null,
+        "roundtripWER": null,
+        "contentCoverage": null,
+        "qualityScore": 86
+      },
+      "supportsDiarization": null,
+      "diarizationSupport": null,
+      "tierGroup": null,
+      "groupOverallRank": null,
+      "groupTier": null,
+      "qualityWarnings": [],
+      "segmentStats": null,
+      "duplicateGroupId": null,
+      "imageQuality": {
+        "judgeModel": "gpt-5.5",
+        "qualityScore": 86,
+        "averageScore10": 8.6,
+        "criterionScores": {
+          "promptAdherence": 9,
+          "visualQuality": 9,
+          "artifactControl": 8,
+          "composition": 9,
+          "detailTextHandling": 8
+        },
+        "imageCount": 1,
+        "imageFiles": [
+          "generated-image-bfl-flux-2-max.jpg"
+        ],
+        "evidence": {
+          "summary": "generated-image-bfl-flux-2-max.jpg: Strong recursive pencil-drawing concept with convincing graphite texture and high detail. The nested person-drawing-person structure is clear, though the deepest levels become less readable and there are minor hand/pencil artifacts.",
+          "strengths": [
+            "Excellent pencil drawing style with realistic shading and paper texture",
+            "Clear main subject of a person drawing a recursive scene",
+            "Good perspective, framing, and visual hierarchy",
+            "Fine details in hair, hands, wood grain, and nested drawing"
+          ],
+          "issues": [
+            "Deepest recursive levels are small and somewhat indistinct",
+            "Minor artifacting around the pencil tip/hand area",
+            "Some anatomy and object edges are slightly softened or ambiguous"
+          ]
+        }
+      }
+    },
+    {
+      "rank": 9,
+      "providerKey": "bfl/flux-2-pro",
+      "provider": "bfl/flux-2-pro",
+      "model": null,
+      "group": "service",
+      "processingTimeMs": 11518,
+      "actualProcessingTimeMs": 11518,
+      "costCents": 3,
+      "actualCostCents": 3,
+      "qualityScore": 82,
+      "qualityMetric": "image quality score",
+      "qualityValue": 82,
+      "qualityLabel": "82.00/100",
+      "metrics": {
+        "wer": null,
+        "cer": null,
+        "speakerAwareWER": null,
+        "textOnlyWER": null,
+        "roundtripWER": null,
+        "contentCoverage": null,
+        "qualityScore": 82
+      },
+      "supportsDiarization": null,
+      "diarizationSupport": null,
+      "tierGroup": null,
+      "groupOverallRank": null,
+      "groupTier": null,
+      "qualityWarnings": [],
+      "segmentStats": null,
+      "duplicateGroupId": null,
+      "imageQuality": {
+        "judgeModel": "gpt-5.5",
+        "qualityScore": 82,
+        "averageScore10": 8.2,
+        "criterionScores": {
+          "promptAdherence": 7,
+          "visualQuality": 9,
+          "artifactControl": 8,
+          "composition": 9,
+          "detailTextHandling": 8
+        },
+        "imageCount": 1,
+        "imageFiles": [
+          "generated-image-bfl-flux-2-pro.jpg"
+        ],
+        "evidence": {
+          "summary": "generated-image-bfl-flux-2-pro.jpg: A highly polished grayscale pencil-drawing-style image of an artist drawing a recursive scene. It captures the main concept well, but the nested “person drawing a person drawing...” structure is only clearly visible for the first inner level and becomes indistinct beyond that.",
+          "strengths": [
+            "Convincing pencil sketch texture with rich shading and fine linework",
+            "Clear main subject: a person drawing at a desk",
+            "Strong composition and readable focal hierarchy",
+            "Good environmental detail with pencils, desk, shelves, and studio setting"
+          ],
+          "issues": [
+            "Prompt asks for multiple recursive drawing levels; only one inner person drawing is clearly legible",
+            "The deepest nested drawings are too small/unclear to confirm the full chain",
+            "Some minor hand and tool details look slightly artificial on close inspection"
+          ]
+        }
+      }
+    },
+    {
+      "rank": 10,
+      "providerKey": "gemini/gemini-3.1-flash-image-preview",
+      "provider": "gemini/gemini-3.1-flash-image-preview",
+      "model": null,
+      "group": "service",
+      "processingTimeMs": 25019,
+      "actualProcessingTimeMs": 25019,
+      "costCents": 6.7,
+      "actualCostCents": 6.7,
+      "qualityScore": 82,
+      "qualityMetric": "image quality score",
+      "qualityValue": 82,
+      "qualityLabel": "82.00/100",
+      "metrics": {
+        "wer": null,
+        "cer": null,
+        "speakerAwareWER": null,
+        "textOnlyWER": null,
+        "roundtripWER": null,
+        "contentCoverage": null,
+        "qualityScore": 82
+      },
+      "supportsDiarization": null,
+      "diarizationSupport": null,
+      "tierGroup": null,
+      "groupOverallRank": null,
+      "groupTier": null,
+      "qualityWarnings": [],
+      "segmentStats": null,
+      "duplicateGroupId": null,
+      "imageQuality": {
+        "judgeModel": "gpt-5.5",
+        "qualityScore": 82,
+        "averageScore10": 8.2,
+        "criterionScores": {
+          "promptAdherence": 8,
+          "visualQuality": 9,
+          "artifactControl": 8,
+          "composition": 8,
+          "detailTextHandling": 8
+        },
+        "imageCount": 1,
+        "imageFiles": [
+          "generated-image-gemini-gemini-3.1-flash-image-preview.png"
+        ],
+        "evidence": {
+          "summary": "generated-image-gemini-gemini-3.1-flash-image-preview.png: Highly detailed pencil-style image with strong recursive drawing concept, especially in the right panel. The split composition and extra scenes make it less singular and clean than the prompt, but it fits the requested subject and style well.",
+          "strengths": [
+            "Excellent pencil shading, crosshatching, and grayscale texture",
+            "Clear depiction of people drawing with nested drawings inside drawings",
+            "Strong visual detail and studio/art desk atmosphere"
+          ],
+          "issues": [
+            "Two-panel layout feels unprompted and slightly distracts from the recursive concept",
+            "Left panel does not clearly show the full recursive person-drawing-person structure",
+            "Some small nested figures and hands become less coherent at fine scale",
+            "Minor pseudo-text on pencil is not meaningful, though text was not required"
+          ]
+        }
+      }
+    },
+    {
+      "rank": 11,
+      "providerKey": "grok/grok-imagine-image",
+      "provider": "grok/grok-imagine-image",
+      "model": null,
+      "group": "service",
+      "processingTimeMs": 6010,
+      "actualProcessingTimeMs": 6010,
+      "costCents": 2,
+      "actualCostCents": 2,
+      "qualityScore": 80,
+      "qualityMetric": "image quality score",
+      "qualityValue": 80,
+      "qualityLabel": "80.00/100",
+      "metrics": {
+        "wer": null,
+        "cer": null,
+        "speakerAwareWER": null,
+        "textOnlyWER": null,
+        "roundtripWER": null,
+        "contentCoverage": null,
+        "qualityScore": 80
+      },
+      "supportsDiarization": null,
+      "diarizationSupport": null,
+      "tierGroup": null,
+      "groupOverallRank": null,
+      "groupTier": null,
+      "qualityWarnings": [],
+      "segmentStats": null,
+      "duplicateGroupId": null,
+      "imageQuality": {
+        "judgeModel": "gpt-5.5",
+        "qualityScore": 80,
+        "averageScore10": 8,
+        "criterionScores": {
+          "promptAdherence": 7,
+          "visualQuality": 9,
+          "artifactControl": 8,
+          "composition": 8,
+          "detailTextHandling": 8
+        },
+        "imageCount": 1,
+        "imageFiles": [
+          "generated-image-grok-grok-imagine-image.jpg"
+        ],
+        "evidence": {
+          "summary": "generated-image-grok-grok-imagine-image.jpg: Strong pencil-drawing aesthetic with detailed figures drawing recursive scenes, though it reads more like multiple people in a drawing class than a clean single person drawing a person drawing a person drawing a person.",
+          "strengths": [
+            "Excellent pencil/graphite texture, shading, and linework",
+            "Clear depiction of people actively drawing with nested imagery on the paper",
+            "High visual clarity and strong lighting/composition",
+            "Fine details in faces, hands, clothing, and paper sketches are well rendered"
+          ],
+          "issues": [
+            "Prompt asks for a singular recursive chain; image includes many people and a classroom-like repetition, reducing conceptual precision",
+            "The recursive structure is only partially clear and stops visually after a couple of levels",
+            "Some hands/fingers and pencil interactions show minor AI distortions",
+            "Nested drawings are small and not fully readable as the exact requested chain"
+          ]
+        }
+      }
+    },
+    {
+      "rank": 8,
+      "providerKey": "grok/grok-imagine-image-quality",
+      "provider": "grok/grok-imagine-image-quality",
+      "model": null,
+      "group": "service",
+      "processingTimeMs": 5048,
+      "actualProcessingTimeMs": 5048,
+      "costCents": 5,
+      "actualCostCents": 5,
+      "qualityScore": 84,
+      "qualityMetric": "image quality score",
+      "qualityValue": 84,
+      "qualityLabel": "84.00/100",
+      "metrics": {
+        "wer": null,
+        "cer": null,
+        "speakerAwareWER": null,
+        "textOnlyWER": null,
+        "roundtripWER": null,
+        "contentCoverage": null,
+        "qualityScore": 84
+      },
+      "supportsDiarization": null,
+      "diarizationSupport": null,
+      "tierGroup": null,
+      "groupOverallRank": null,
+      "groupTier": null,
+      "qualityWarnings": [],
+      "segmentStats": null,
+      "duplicateGroupId": null,
+      "imageQuality": {
+        "judgeModel": "gpt-5.5",
+        "qualityScore": 84,
+        "averageScore10": 8.4,
+        "criterionScores": {
+          "promptAdherence": 9,
+          "visualQuality": 9,
+          "artifactControl": 8,
+          "composition": 9,
+          "detailTextHandling": 7
+        },
+        "imageCount": 1,
+        "imageFiles": [
+          "generated-image-grok-grok-imagine-image-quality.jpg"
+        ],
+        "evidence": {
+          "summary": "generated-image-grok-grok-imagine-image-quality.jpg: Highly detailed pencil-style recursive drawing that closely matches the prompt, with strong composition and clear nested drawing-within-drawing structure. Minor issues include extra characters, slightly odd small-scale details, and some imperfect/irrelevant text.",
+          "strengths": [
+            "Excellent pencil sketch style with rich shading and texture",
+            "Strong recursive composition clearly showing drawings within drawings",
+            "High level of visible detail in tools, hands, faces, and workspace",
+            "Readable overall hierarchy and framing"
+          ],
+          "issues": [
+            "Includes multiple people rather than a simpler singular person-recursion structure",
+            "Some small nested details become distorted or less coherent",
+            "Visible text is partly unnecessary and not perfectly handled",
+            "Minor hand/detail artifacts at smaller scales"
+          ]
+        }
+      }
+    },
+    {
+      "rank": 1,
+      "providerKey": "openai/gpt-image-2",
+      "provider": "openai/gpt-image-2",
+      "model": null,
+      "group": "service",
+      "processingTimeMs": 152338,
+      "actualProcessingTimeMs": 152338,
+      "costCents": 5.3,
+      "actualCostCents": 5.3,
+      "qualityScore": 90,
+      "qualityMetric": "image quality score",
+      "qualityValue": 90,
+      "qualityLabel": "90.00/100",
+      "metrics": {
+        "wer": null,
+        "cer": null,
+        "speakerAwareWER": null,
+        "textOnlyWER": null,
+        "roundtripWER": null,
+        "contentCoverage": null,
+        "qualityScore": 90
+      },
+      "supportsDiarization": null,
+      "diarizationSupport": null,
+      "tierGroup": null,
+      "groupOverallRank": null,
+      "groupTier": null,
+      "qualityWarnings": [],
+      "segmentStats": null,
+      "duplicateGroupId": null,
+      "imageQuality": {
+        "judgeModel": "gpt-5.5",
+        "qualityScore": 90,
+        "averageScore10": 9,
+        "criterionScores": {
+          "promptAdherence": 10,
+          "visualQuality": 9,
+          "artifactControl": 9,
+          "composition": 9,
+          "detailTextHandling": 8
+        },
+        "imageCount": 1,
+        "imageFiles": [
+          "generated-image-openai-gpt-image-2.png"
+        ],
+        "evidence": {
+          "summary": "generated-image-openai-gpt-image-2.png: Excellent prompt fit: a highly detailed graphite-style recursive scene of a person drawing a person drawing the same scene. The image is clear, well-composed, and convincingly pencil-rendered, with only minor softness/gibberish in tiny background notes.",
+          "strengths": [
+            "Strong recursive structure with multiple nested drawings",
+            "Convincing pencil drawing texture and shading",
+            "High level of detail in hair, clothing, desk objects, and paper edges",
+            "Balanced composition that guides the eye inward"
+          ],
+          "issues": [
+            "Tiny background writing is illegible/gibberish",
+            "Some small nested details become soft at deeper recursion levels"
+          ]
+        }
+      }
+    },
+    {
+      "rank": 6,
+      "providerKey": "recraft/recraftv4_1",
+      "provider": "recraft/recraftv4_1",
+      "model": null,
+      "group": "service",
+      "processingTimeMs": 7690,
+      "actualProcessingTimeMs": 7690,
+      "costCents": 4,
+      "actualCostCents": 4,
+      "qualityScore": 86,
+      "qualityMetric": "image quality score",
+      "qualityValue": 86,
+      "qualityLabel": "86.00/100",
+      "metrics": {
+        "wer": null,
+        "cer": null,
+        "speakerAwareWER": null,
+        "textOnlyWER": null,
+        "roundtripWER": null,
+        "contentCoverage": null,
+        "qualityScore": 86
+      },
+      "supportsDiarization": null,
+      "diarizationSupport": null,
+      "tierGroup": null,
+      "groupOverallRank": null,
+      "groupTier": null,
+      "qualityWarnings": [],
+      "segmentStats": null,
+      "duplicateGroupId": null,
+      "imageQuality": {
+        "judgeModel": "gpt-5.5",
+        "qualityScore": 86,
+        "averageScore10": 8.6,
+        "criterionScores": {
+          "promptAdherence": 8,
+          "visualQuality": 9,
+          "artifactControl": 8,
+          "composition": 9,
+          "detailTextHandling": 9
+        },
+        "imageCount": 1,
+        "imageFiles": [
+          "generated-image-recraft-recraftv4_1.webp"
+        ],
+        "evidence": {
+          "summary": "generated-image-recraft-recraftv4_1.webp: A strong, detailed pencil-style image that clearly depicts a recursive drawing scene with multiple nested figures drawing. The hand-drawn graphite texture and fine shading fit the prompt very well, though the deepest recursion is somewhat hard to read and a few anatomy/details are slightly distorted.",
+          "strengths": [
+            "Excellent pencil drawing style with rich graphite shading and linework",
+            "Clearly shows a person drawing a nested image of another person drawing",
+            "Strong composition with readable hierarchy from outer figure to inner drawing",
+            "High level of fine detail in hair, hands, desk, paper, and background"
+          ],
+          "issues": [
+            "The full recursive chain is not perfectly clear at the smallest level",
+            "Some hand and finger anatomy appears slightly awkward",
+            "Inner nested figures lose clarity due to scale and dense sketch texture"
+          ]
+        }
+      }
+    },
+    {
+      "rank": 3,
+      "providerKey": "recraft/recraftv4_1_pro",
+      "provider": "recraft/recraftv4_1_pro",
+      "model": null,
+      "group": "service",
+      "processingTimeMs": 12018,
+      "actualProcessingTimeMs": 12018,
+      "costCents": 25,
+      "actualCostCents": 25,
+      "qualityScore": 88,
+      "qualityMetric": "image quality score",
+      "qualityValue": 88,
+      "qualityLabel": "88.00/100",
+      "metrics": {
+        "wer": null,
+        "cer": null,
+        "speakerAwareWER": null,
+        "textOnlyWER": null,
+        "roundtripWER": null,
+        "contentCoverage": null,
+        "qualityScore": 88
+      },
+      "supportsDiarization": null,
+      "diarizationSupport": null,
+      "tierGroup": null,
+      "groupOverallRank": null,
+      "groupTier": null,
+      "qualityWarnings": [],
+      "segmentStats": null,
+      "duplicateGroupId": null,
+      "imageQuality": {
+        "judgeModel": "gpt-5.5",
+        "qualityScore": 88,
+        "averageScore10": 8.8,
+        "criterionScores": {
+          "promptAdherence": 9,
+          "visualQuality": 9,
+          "artifactControl": 8,
+          "composition": 9,
+          "detailTextHandling": 9
+        },
+        "imageCount": 1,
+        "imageFiles": [
+          "generated-image-recraft-recraftv4_1_pro.webp"
+        ],
+        "evidence": {
+          "summary": "generated-image-recraft-recraftv4_1_pro.webp: Highly successful detailed pencil-style recursive drawing matching the prompt, with clear nested figures and strong draftsmanship. Minor anatomical and perspective oddities are present but do not significantly reduce readability.",
+          "strengths": [
+            "Clearly depicts a person drawing a person drawing a person, with multiple recursive levels visible.",
+            "Convincing pencil drawing style with rich graphite shading, crosshatching, and fine detail.",
+            "Strong central composition and readable hierarchy from large figure to smaller nested drawings.",
+            "Excellent texture detail in hair, clothing folds, shoes, and paper edges."
+          ],
+          "issues": [
+            "Some hand and pencil anatomy is slightly awkward or ambiguous.",
+            "The smallest recursive levels lose clarity due to scale.",
+            "A few proportions and perspective details feel stylized or mildly distorted."
+          ]
+        }
+      }
+    },
+    {
+      "rank": 7,
+      "providerKey": "recraft/recraftv4_1_utility",
+      "provider": "recraft/recraftv4_1_utility",
+      "model": null,
+      "group": "service",
+      "processingTimeMs": 10089,
+      "actualProcessingTimeMs": 10089,
+      "costCents": 4,
+      "actualCostCents": 4,
+      "qualityScore": 86,
+      "qualityMetric": "image quality score",
+      "qualityValue": 86,
+      "qualityLabel": "86.00/100",
+      "metrics": {
+        "wer": null,
+        "cer": null,
+        "speakerAwareWER": null,
+        "textOnlyWER": null,
+        "roundtripWER": null,
+        "contentCoverage": null,
+        "qualityScore": 86
+      },
+      "supportsDiarization": null,
+      "diarizationSupport": null,
+      "tierGroup": null,
+      "groupOverallRank": null,
+      "groupTier": null,
+      "qualityWarnings": [],
+      "segmentStats": null,
+      "duplicateGroupId": null,
+      "imageQuality": {
+        "judgeModel": "gpt-5.5",
+        "qualityScore": 86,
+        "averageScore10": 8.6,
+        "criterionScores": {
+          "promptAdherence": 8,
+          "visualQuality": 9,
+          "artifactControl": 8,
+          "composition": 9,
+          "detailTextHandling": 9
+        },
+        "imageCount": 1,
+        "imageFiles": [
+          "generated-image-recraft-recraftv4_1_utility.webp"
+        ],
+        "evidence": {
+          "summary": "generated-image-recraft-recraftv4_1_utility.webp: Strong pencil-style recursive drawing with clear nesting and rich graphite detail. It fits the prompt well, though the innermost levels become less clearly readable as actual people drawing people.",
+          "strengths": [
+            "Convincing pencil drawing texture and shading",
+            "Clear main figure actively drawing with pencil",
+            "Effective recursive composition with multiple nested figures",
+            "High detail in hair, clothing, hands, and paper area"
+          ],
+          "issues": [
+            "Recursive action becomes ambiguous in the smallest nested figures",
+            "Some hand and pencil details are slightly distorted",
+            "The paper/drawing boundaries are not always perfectly clear"
+          ]
+        }
+      }
+    },
+    {
+      "rank": 4,
+      "providerKey": "recraft/recraftv4_1_utility_pro",
+      "provider": "recraft/recraftv4_1_utility_pro",
+      "model": null,
+      "group": "service",
+      "processingTimeMs": 14481,
+      "actualProcessingTimeMs": 14481,
+      "costCents": 25,
+      "actualCostCents": 25,
+      "qualityScore": 88,
+      "qualityMetric": "image quality score",
+      "qualityValue": 88,
+      "qualityLabel": "88.00/100",
+      "metrics": {
+        "wer": null,
+        "cer": null,
+        "speakerAwareWER": null,
+        "textOnlyWER": null,
+        "roundtripWER": null,
+        "contentCoverage": null,
+        "qualityScore": 88
+      },
+      "supportsDiarization": null,
+      "diarizationSupport": null,
+      "tierGroup": null,
+      "groupOverallRank": null,
+      "groupTier": null,
+      "qualityWarnings": [],
+      "segmentStats": null,
+      "duplicateGroupId": null,
+      "imageQuality": {
+        "judgeModel": "gpt-5.5",
+        "qualityScore": 88,
+        "averageScore10": 8.8,
+        "criterionScores": {
+          "promptAdherence": 9,
+          "visualQuality": 9,
+          "artifactControl": 8,
+          "composition": 9,
+          "detailTextHandling": 9
+        },
+        "imageCount": 1,
+        "imageFiles": [
+          "generated-image-recraft-recraftv4_1_utility_pro.webp"
+        ],
+        "evidence": {
+          "summary": "generated-image-recraft-recraftv4_1_utility_pro.webp: Highly effective pencil-style recursive drawing that clearly depicts a person drawing a person drawing another person drawing, with strong graphite texture and detail.",
+          "strengths": [
+            "Clear recursive structure matching the prompt",
+            "Convincing pencil drawing aesthetic with rich shading and linework",
+            "Strong composition with readable hierarchy from large figure to smaller drawings",
+            "High level of detail in faces, hands, clothing, and paper surfaces"
+          ],
+          "issues": [
+            "Some hand and pencil geometry is slightly distorted",
+            "The smallest recursion level is less detailed and slightly harder to read",
+            "A few areas are overly dark or smudged, reducing clarity"
+          ]
+        }
+      }
+    },
+    {
+      "rank": 13,
+      "providerKey": "reve/latest",
+      "provider": "reve/latest",
+      "model": null,
+      "group": "service",
+      "processingTimeMs": 6119,
+      "actualProcessingTimeMs": 6119,
+      "costCents": 2.4,
+      "actualCostCents": 2.4,
+      "qualityScore": 76,
+      "qualityMetric": "image quality score",
+      "qualityValue": 76,
+      "qualityLabel": "76.00/100",
+      "metrics": {
+        "wer": null,
+        "cer": null,
+        "speakerAwareWER": null,
+        "textOnlyWER": null,
+        "roundtripWER": null,
+        "contentCoverage": null,
+        "qualityScore": 76
+      },
+      "supportsDiarization": null,
+      "diarizationSupport": null,
+      "tierGroup": null,
+      "groupOverallRank": null,
+      "groupTier": null,
+      "qualityWarnings": [],
+      "segmentStats": null,
+      "duplicateGroupId": null,
+      "imageQuality": {
+        "judgeModel": "gpt-5.5",
+        "qualityScore": 76,
+        "averageScore10": 7.6,
+        "criterionScores": {
+          "promptAdherence": 7,
+          "visualQuality": 8,
+          "artifactControl": 7,
+          "composition": 8,
+          "detailTextHandling": 8
+        },
+        "imageCount": 1,
+        "imageFiles": [
+          "generated-image-reve-latest.png"
+        ],
+        "evidence": {
+          "summary": "generated-image-reve-latest.png: A clean pencil-style recursive drawing scene with multiple easels and figures, but the nested concept is only partially clear and not all levels show a full person drawing another person.",
+          "strengths": [
+            "Convincing pencil sketch texture and monochrome style",
+            "Good overall composition with clear foreground and recursive smaller easels",
+            "Detailed rendering of the main figure, hair, hands, and drawing tools"
+          ],
+          "issues": [
+            "Recursive prompt is not fully realized as a clear chain of person drawing person drawing person",
+            "Some nested levels show only hands or partial figures rather than complete people drawing",
+            "Minor anatomical and object distortions in hands, small figures, and easel structures"
+          ]
+        }
+      }
+    },
+    {
+      "rank": 12,
+      "providerKey": "reve/reve-create@20250915",
+      "provider": "reve/reve-create@20250915",
+      "model": null,
+      "group": "service",
+      "processingTimeMs": 6295,
+      "actualProcessingTimeMs": 6295,
+      "costCents": 2.4,
+      "actualCostCents": 2.4,
+      "qualityScore": 80,
+      "qualityMetric": "image quality score",
+      "qualityValue": 80,
+      "qualityLabel": "80.00/100",
+      "metrics": {
+        "wer": null,
+        "cer": null,
+        "speakerAwareWER": null,
+        "textOnlyWER": null,
+        "roundtripWER": null,
+        "contentCoverage": null,
+        "qualityScore": 80
+      },
+      "supportsDiarization": null,
+      "diarizationSupport": null,
+      "tierGroup": null,
+      "groupOverallRank": null,
+      "groupTier": null,
+      "qualityWarnings": [],
+      "segmentStats": null,
+      "duplicateGroupId": null,
+      "imageQuality": {
+        "judgeModel": "gpt-5.5",
+        "qualityScore": 80,
+        "averageScore10": 8,
+        "criterionScores": {
+          "promptAdherence": 7,
+          "visualQuality": 9,
+          "artifactControl": 8,
+          "composition": 8,
+          "detailTextHandling": 8
+        },
+        "imageCount": 1,
+        "imageFiles": [
+          "generated-image-reve-reve-create@20250915.png"
+        ],
+        "evidence": {
+          "summary": "generated-image-reve-reve-create@20250915.png: High-quality image with a convincing pencil-sketch recursion of a person drawing another person drawing, though it is framed as a photorealistic scene with a real hand/pencil rather than purely an extremely detailed pencil drawing. The recursive structure is present but only reaches the requested concept somewhat loosely.",
+          "strengths": [
+            "Strong pencil texture and linework with believable shading.",
+            "Clear recursive drawing-within-drawing composition.",
+            "High overall clarity and appealing desk/paper presentation.",
+            "Few obvious artifacts; hand and pencil are mostly realistic."
+          ],
+          "issues": [
+            "Includes photorealistic hand, pencil, desk, and sharpener, which conflicts with the prompt's request for a pencil drawing style.",
+            "The recursion is not fully explicit through all requested nested levels.",
+            "Some fine anatomical/detail areas in the sketch are simplified rather than extremely detailed."
+          ]
+        }
+      }
+    }
+  ],
+  "rankingSurfaces": {
+    "local": {
+      "fastest": [],
+      "cheapest": [],
+      "highestQuality": [],
+      "fastestUnavailableReason": "No providers were found.",
+      "cheapestUnavailableReason": "No providers were found.",
+      "highestQualityUnavailableReason": "No providers were found.",
+      "price": [],
+      "speed": [],
+      "automatedQuality": [],
+      "humanQuality": [],
+      "priceUnavailableReason": "No providers were found.",
+      "speedUnavailableReason": "No providers were found.",
+      "automatedQualityUnavailableReason": "No providers were found.",
+      "humanQualityUnavailableReason": "No providers were found."
+    },
+    "service": {
+      "fastest": [
+        {
+          "rank": 1,
+          "providerKey": "grok/grok-imagine-image-quality",
+          "provider": "grok/grok-imagine-image-quality",
+          "model": null,
+          "group": "service",
+          "metric": "processingTimeMs",
+          "value": 5048,
+          "label": "5.05s"
+        },
+        {
+          "rank": 2,
+          "providerKey": "grok/grok-imagine-image",
+          "provider": "grok/grok-imagine-image",
+          "model": null,
+          "group": "service",
+          "metric": "processingTimeMs",
+          "value": 6010,
+          "label": "6.01s"
+        },
+        {
+          "rank": 3,
+          "providerKey": "reve/latest",
+          "provider": "reve/latest",
+          "model": null,
+          "group": "service",
+          "metric": "processingTimeMs",
+          "value": 6119,
+          "label": "6.12s"
+        },
+        {
+          "rank": 4,
+          "providerKey": "reve/reve-create@20250915",
+          "provider": "reve/reve-create@20250915",
+          "model": null,
+          "group": "service",
+          "metric": "processingTimeMs",
+          "value": 6295,
+          "label": "6.29s"
+        },
+        {
+          "rank": 5,
+          "providerKey": "recraft/recraftv4_1",
+          "provider": "recraft/recraftv4_1",
+          "model": null,
+          "group": "service",
+          "metric": "processingTimeMs",
+          "value": 7690,
+          "label": "7.69s"
+        },
+        {
+          "rank": 6,
+          "providerKey": "recraft/recraftv4_1_utility",
+          "provider": "recraft/recraftv4_1_utility",
+          "model": null,
+          "group": "service",
+          "metric": "processingTimeMs",
+          "value": 10089,
+          "label": "10.09s"
+        },
+        {
+          "rank": 7,
+          "providerKey": "bfl/flux-2-pro",
+          "provider": "bfl/flux-2-pro",
+          "model": null,
+          "group": "service",
+          "metric": "processingTimeMs",
+          "value": 11518,
+          "label": "11.52s"
+        },
+        {
+          "rank": 8,
+          "providerKey": "recraft/recraftv4_1_pro",
+          "provider": "recraft/recraftv4_1_pro",
+          "model": null,
+          "group": "service",
+          "metric": "processingTimeMs",
+          "value": 12018,
+          "label": "12.02s"
+        },
+        {
+          "rank": 9,
+          "providerKey": "recraft/recraftv4_1_utility_pro",
+          "provider": "recraft/recraftv4_1_utility_pro",
+          "model": null,
+          "group": "service",
+          "metric": "processingTimeMs",
+          "value": 14481,
+          "label": "14.48s"
+        },
+        {
+          "rank": 10,
+          "providerKey": "bfl/flux-2-flex",
+          "provider": "bfl/flux-2-flex",
+          "model": null,
+          "group": "service",
+          "metric": "processingTimeMs",
+          "value": 16181,
+          "label": "16.18s"
+        },
+        {
+          "rank": 11,
+          "providerKey": "gemini/gemini-3.1-flash-image-preview",
+          "provider": "gemini/gemini-3.1-flash-image-preview",
+          "model": null,
+          "group": "service",
+          "metric": "processingTimeMs",
+          "value": 25019,
+          "label": "25.02s"
+        },
+        {
+          "rank": 12,
+          "providerKey": "bfl/flux-2-max",
+          "provider": "bfl/flux-2-max",
+          "model": null,
+          "group": "service",
+          "metric": "processingTimeMs",
+          "value": 41685,
+          "label": "41.69s"
+        },
+        {
+          "rank": 13,
+          "providerKey": "openai/gpt-image-2",
+          "provider": "openai/gpt-image-2",
+          "model": null,
+          "group": "service",
+          "metric": "processingTimeMs",
+          "value": 152338,
+          "label": "152.34s"
+        }
+      ],
+      "cheapest": [
+        {
+          "rank": 1,
+          "providerKey": "grok/grok-imagine-image",
+          "provider": "grok/grok-imagine-image",
+          "model": null,
+          "group": "service",
+          "metric": "costCents",
+          "value": 2,
+          "label": "$0.0200"
+        },
+        {
+          "rank": 2,
+          "providerKey": "reve/latest",
+          "provider": "reve/latest",
+          "model": null,
+          "group": "service",
+          "metric": "costCents",
+          "value": 2.4,
+          "label": "$0.0240"
+        },
+        {
+          "rank": 3,
+          "providerKey": "reve/reve-create@20250915",
+          "provider": "reve/reve-create@20250915",
+          "model": null,
+          "group": "service",
+          "metric": "costCents",
+          "value": 2.4,
+          "label": "$0.0240"
+        },
+        {
+          "rank": 4,
+          "providerKey": "bfl/flux-2-pro",
+          "provider": "bfl/flux-2-pro",
+          "model": null,
+          "group": "service",
+          "metric": "costCents",
+          "value": 3,
+          "label": "$0.0300"
+        },
+        {
+          "rank": 5,
+          "providerKey": "recraft/recraftv4_1",
+          "provider": "recraft/recraftv4_1",
+          "model": null,
+          "group": "service",
+          "metric": "costCents",
+          "value": 4,
+          "label": "$0.0400"
+        },
+        {
+          "rank": 6,
+          "providerKey": "recraft/recraftv4_1_utility",
+          "provider": "recraft/recraftv4_1_utility",
+          "model": null,
+          "group": "service",
+          "metric": "costCents",
+          "value": 4,
+          "label": "$0.0400"
+        },
+        {
+          "rank": 7,
+          "providerKey": "bfl/flux-2-flex",
+          "provider": "bfl/flux-2-flex",
+          "model": null,
+          "group": "service",
+          "metric": "costCents",
+          "value": 5,
+          "label": "$0.0500"
+        },
+        {
+          "rank": 8,
+          "providerKey": "grok/grok-imagine-image-quality",
+          "provider": "grok/grok-imagine-image-quality",
+          "model": null,
+          "group": "service",
+          "metric": "costCents",
+          "value": 5,
+          "label": "$0.0500"
+        },
+        {
+          "rank": 9,
+          "providerKey": "openai/gpt-image-2",
+          "provider": "openai/gpt-image-2",
+          "model": null,
+          "group": "service",
+          "metric": "costCents",
+          "value": 5.3,
+          "label": "$0.0530"
+        },
+        {
+          "rank": 10,
+          "providerKey": "gemini/gemini-3.1-flash-image-preview",
+          "provider": "gemini/gemini-3.1-flash-image-preview",
+          "model": null,
+          "group": "service",
+          "metric": "costCents",
+          "value": 6.7,
+          "label": "$0.0670"
+        },
+        {
+          "rank": 11,
+          "providerKey": "bfl/flux-2-max",
+          "provider": "bfl/flux-2-max",
+          "model": null,
+          "group": "service",
+          "metric": "costCents",
+          "value": 7.000000000000001,
+          "label": "$0.0700"
+        },
+        {
+          "rank": 12,
+          "providerKey": "recraft/recraftv4_1_pro",
+          "provider": "recraft/recraftv4_1_pro",
+          "model": null,
+          "group": "service",
+          "metric": "costCents",
+          "value": 25,
+          "label": "$0.2500"
+        },
+        {
+          "rank": 13,
+          "providerKey": "recraft/recraftv4_1_utility_pro",
+          "provider": "recraft/recraftv4_1_utility_pro",
+          "model": null,
+          "group": "service",
+          "metric": "costCents",
+          "value": 25,
+          "label": "$0.2500"
+        }
+      ],
+      "highestQuality": [
+        {
+          "rank": 1,
+          "providerKey": "openai/gpt-image-2",
+          "provider": "openai/gpt-image-2",
+          "model": null,
+          "group": "service",
+          "metric": "qualityScore",
+          "value": 90,
+          "label": "90.00/100"
+        },
+        {
+          "rank": 2,
+          "providerKey": "bfl/flux-2-flex",
+          "provider": "bfl/flux-2-flex",
+          "model": null,
+          "group": "service",
+          "metric": "qualityScore",
+          "value": 88,
+          "label": "88.00/100"
+        },
+        {
+          "rank": 3,
+          "providerKey": "recraft/recraftv4_1_pro",
+          "provider": "recraft/recraftv4_1_pro",
+          "model": null,
+          "group": "service",
+          "metric": "qualityScore",
+          "value": 88,
+          "label": "88.00/100"
+        },
+        {
+          "rank": 4,
+          "providerKey": "recraft/recraftv4_1_utility_pro",
+          "provider": "recraft/recraftv4_1_utility_pro",
+          "model": null,
+          "group": "service",
+          "metric": "qualityScore",
+          "value": 88,
+          "label": "88.00/100"
+        },
+        {
+          "rank": 5,
+          "providerKey": "bfl/flux-2-max",
+          "provider": "bfl/flux-2-max",
+          "model": null,
+          "group": "service",
+          "metric": "qualityScore",
+          "value": 86,
+          "label": "86.00/100"
+        },
+        {
+          "rank": 6,
+          "providerKey": "recraft/recraftv4_1",
+          "provider": "recraft/recraftv4_1",
+          "model": null,
+          "group": "service",
+          "metric": "qualityScore",
+          "value": 86,
+          "label": "86.00/100"
+        },
+        {
+          "rank": 7,
+          "providerKey": "recraft/recraftv4_1_utility",
+          "provider": "recraft/recraftv4_1_utility",
+          "model": null,
+          "group": "service",
+          "metric": "qualityScore",
+          "value": 86,
+          "label": "86.00/100"
+        },
+        {
+          "rank": 8,
+          "providerKey": "grok/grok-imagine-image-quality",
+          "provider": "grok/grok-imagine-image-quality",
+          "model": null,
+          "group": "service",
+          "metric": "qualityScore",
+          "value": 84,
+          "label": "84.00/100"
+        },
+        {
+          "rank": 9,
+          "providerKey": "bfl/flux-2-pro",
+          "provider": "bfl/flux-2-pro",
+          "model": null,
+          "group": "service",
+          "metric": "qualityScore",
+          "value": 82,
+          "label": "82.00/100"
+        },
+        {
+          "rank": 10,
+          "providerKey": "gemini/gemini-3.1-flash-image-preview",
+          "provider": "gemini/gemini-3.1-flash-image-preview",
+          "model": null,
+          "group": "service",
+          "metric": "qualityScore",
+          "value": 82,
+          "label": "82.00/100"
+        },
+        {
+          "rank": 11,
+          "providerKey": "grok/grok-imagine-image",
+          "provider": "grok/grok-imagine-image",
+          "model": null,
+          "group": "service",
+          "metric": "qualityScore",
+          "value": 80,
+          "label": "80.00/100"
+        },
+        {
+          "rank": 12,
+          "providerKey": "reve/reve-create@20250915",
+          "provider": "reve/reve-create@20250915",
+          "model": null,
+          "group": "service",
+          "metric": "qualityScore",
+          "value": 80,
+          "label": "80.00/100"
+        },
+        {
+          "rank": 13,
+          "providerKey": "reve/latest",
+          "provider": "reve/latest",
+          "model": null,
+          "group": "service",
+          "metric": "qualityScore",
+          "value": 76,
+          "label": "76.00/100"
+        }
+      ],
+      "fastestUnavailableReason": null,
+      "cheapestUnavailableReason": null,
+      "highestQualityUnavailableReason": null,
+      "price": [
+        {
+          "rank": 1,
+          "providerKey": "grok/grok-imagine-image",
+          "provider": "grok/grok-imagine-image",
+          "model": null,
+          "group": "service",
+          "metric": "costCents",
+          "value": 2,
+          "label": "$0.0200"
+        },
+        {
+          "rank": 2,
+          "providerKey": "reve/latest",
+          "provider": "reve/latest",
+          "model": null,
+          "group": "service",
+          "metric": "costCents",
+          "value": 2.4,
+          "label": "$0.0240"
+        },
+        {
+          "rank": 3,
+          "providerKey": "reve/reve-create@20250915",
+          "provider": "reve/reve-create@20250915",
+          "model": null,
+          "group": "service",
+          "metric": "costCents",
+          "value": 2.4,
+          "label": "$0.0240"
+        },
+        {
+          "rank": 4,
+          "providerKey": "bfl/flux-2-pro",
+          "provider": "bfl/flux-2-pro",
+          "model": null,
+          "group": "service",
+          "metric": "costCents",
+          "value": 3,
+          "label": "$0.0300"
+        },
+        {
+          "rank": 5,
+          "providerKey": "recraft/recraftv4_1",
+          "provider": "recraft/recraftv4_1",
+          "model": null,
+          "group": "service",
+          "metric": "costCents",
+          "value": 4,
+          "label": "$0.0400"
+        },
+        {
+          "rank": 6,
+          "providerKey": "recraft/recraftv4_1_utility",
+          "provider": "recraft/recraftv4_1_utility",
+          "model": null,
+          "group": "service",
+          "metric": "costCents",
+          "value": 4,
+          "label": "$0.0400"
+        },
+        {
+          "rank": 7,
+          "providerKey": "bfl/flux-2-flex",
+          "provider": "bfl/flux-2-flex",
+          "model": null,
+          "group": "service",
+          "metric": "costCents",
+          "value": 5,
+          "label": "$0.0500"
+        },
+        {
+          "rank": 8,
+          "providerKey": "grok/grok-imagine-image-quality",
+          "provider": "grok/grok-imagine-image-quality",
+          "model": null,
+          "group": "service",
+          "metric": "costCents",
+          "value": 5,
+          "label": "$0.0500"
+        },
+        {
+          "rank": 9,
+          "providerKey": "openai/gpt-image-2",
+          "provider": "openai/gpt-image-2",
+          "model": null,
+          "group": "service",
+          "metric": "costCents",
+          "value": 5.3,
+          "label": "$0.0530"
+        },
+        {
+          "rank": 10,
+          "providerKey": "gemini/gemini-3.1-flash-image-preview",
+          "provider": "gemini/gemini-3.1-flash-image-preview",
+          "model": null,
+          "group": "service",
+          "metric": "costCents",
+          "value": 6.7,
+          "label": "$0.0670"
+        },
+        {
+          "rank": 11,
+          "providerKey": "bfl/flux-2-max",
+          "provider": "bfl/flux-2-max",
+          "model": null,
+          "group": "service",
+          "metric": "costCents",
+          "value": 7.000000000000001,
+          "label": "$0.0700"
+        },
+        {
+          "rank": 12,
+          "providerKey": "recraft/recraftv4_1_pro",
+          "provider": "recraft/recraftv4_1_pro",
+          "model": null,
+          "group": "service",
+          "metric": "costCents",
+          "value": 25,
+          "label": "$0.2500"
+        },
+        {
+          "rank": 13,
+          "providerKey": "recraft/recraftv4_1_utility_pro",
+          "provider": "recraft/recraftv4_1_utility_pro",
+          "model": null,
+          "group": "service",
+          "metric": "costCents",
+          "value": 25,
+          "label": "$0.2500"
+        }
+      ],
+      "speed": [
+        {
+          "rank": 1,
+          "providerKey": "grok/grok-imagine-image-quality",
+          "provider": "grok/grok-imagine-image-quality",
+          "model": null,
+          "group": "service",
+          "metric": "processingTimeMs",
+          "value": 5048,
+          "label": "5.05s"
+        },
+        {
+          "rank": 2,
+          "providerKey": "grok/grok-imagine-image",
+          "provider": "grok/grok-imagine-image",
+          "model": null,
+          "group": "service",
+          "metric": "processingTimeMs",
+          "value": 6010,
+          "label": "6.01s"
+        },
+        {
+          "rank": 3,
+          "providerKey": "reve/latest",
+          "provider": "reve/latest",
+          "model": null,
+          "group": "service",
+          "metric": "processingTimeMs",
+          "value": 6119,
+          "label": "6.12s"
+        },
+        {
+          "rank": 4,
+          "providerKey": "reve/reve-create@20250915",
+          "provider": "reve/reve-create@20250915",
+          "model": null,
+          "group": "service",
+          "metric": "processingTimeMs",
+          "value": 6295,
+          "label": "6.29s"
+        },
+        {
+          "rank": 5,
+          "providerKey": "recraft/recraftv4_1",
+          "provider": "recraft/recraftv4_1",
+          "model": null,
+          "group": "service",
+          "metric": "processingTimeMs",
+          "value": 7690,
+          "label": "7.69s"
+        },
+        {
+          "rank": 6,
+          "providerKey": "recraft/recraftv4_1_utility",
+          "provider": "recraft/recraftv4_1_utility",
+          "model": null,
+          "group": "service",
+          "metric": "processingTimeMs",
+          "value": 10089,
+          "label": "10.09s"
+        },
+        {
+          "rank": 7,
+          "providerKey": "bfl/flux-2-pro",
+          "provider": "bfl/flux-2-pro",
+          "model": null,
+          "group": "service",
+          "metric": "processingTimeMs",
+          "value": 11518,
+          "label": "11.52s"
+        },
+        {
+          "rank": 8,
+          "providerKey": "recraft/recraftv4_1_pro",
+          "provider": "recraft/recraftv4_1_pro",
+          "model": null,
+          "group": "service",
+          "metric": "processingTimeMs",
+          "value": 12018,
+          "label": "12.02s"
+        },
+        {
+          "rank": 9,
+          "providerKey": "recraft/recraftv4_1_utility_pro",
+          "provider": "recraft/recraftv4_1_utility_pro",
+          "model": null,
+          "group": "service",
+          "metric": "processingTimeMs",
+          "value": 14481,
+          "label": "14.48s"
+        },
+        {
+          "rank": 10,
+          "providerKey": "bfl/flux-2-flex",
+          "provider": "bfl/flux-2-flex",
+          "model": null,
+          "group": "service",
+          "metric": "processingTimeMs",
+          "value": 16181,
+          "label": "16.18s"
+        },
+        {
+          "rank": 11,
+          "providerKey": "gemini/gemini-3.1-flash-image-preview",
+          "provider": "gemini/gemini-3.1-flash-image-preview",
+          "model": null,
+          "group": "service",
+          "metric": "processingTimeMs",
+          "value": 25019,
+          "label": "25.02s"
+        },
+        {
+          "rank": 12,
+          "providerKey": "bfl/flux-2-max",
+          "provider": "bfl/flux-2-max",
+          "model": null,
+          "group": "service",
+          "metric": "processingTimeMs",
+          "value": 41685,
+          "label": "41.69s"
+        },
+        {
+          "rank": 13,
+          "providerKey": "openai/gpt-image-2",
+          "provider": "openai/gpt-image-2",
+          "model": null,
+          "group": "service",
+          "metric": "processingTimeMs",
+          "value": 152338,
+          "label": "152.34s"
+        }
+      ],
+      "automatedQuality": [
+        {
+          "rank": 1,
+          "providerKey": "openai/gpt-image-2",
+          "provider": "openai/gpt-image-2",
+          "model": null,
+          "group": "service",
+          "metric": "qualityScore",
+          "value": 90,
+          "label": "90.00/100"
+        },
+        {
+          "rank": 2,
+          "providerKey": "bfl/flux-2-flex",
+          "provider": "bfl/flux-2-flex",
+          "model": null,
+          "group": "service",
+          "metric": "qualityScore",
+          "value": 88,
+          "label": "88.00/100"
+        },
+        {
+          "rank": 3,
+          "providerKey": "recraft/recraftv4_1_pro",
+          "provider": "recraft/recraftv4_1_pro",
+          "model": null,
+          "group": "service",
+          "metric": "qualityScore",
+          "value": 88,
+          "label": "88.00/100"
+        },
+        {
+          "rank": 4,
+          "providerKey": "recraft/recraftv4_1_utility_pro",
+          "provider": "recraft/recraftv4_1_utility_pro",
+          "model": null,
+          "group": "service",
+          "metric": "qualityScore",
+          "value": 88,
+          "label": "88.00/100"
+        },
+        {
+          "rank": 5,
+          "providerKey": "bfl/flux-2-max",
+          "provider": "bfl/flux-2-max",
+          "model": null,
+          "group": "service",
+          "metric": "qualityScore",
+          "value": 86,
+          "label": "86.00/100"
+        },
+        {
+          "rank": 6,
+          "providerKey": "recraft/recraftv4_1",
+          "provider": "recraft/recraftv4_1",
+          "model": null,
+          "group": "service",
+          "metric": "qualityScore",
+          "value": 86,
+          "label": "86.00/100"
+        },
+        {
+          "rank": 7,
+          "providerKey": "recraft/recraftv4_1_utility",
+          "provider": "recraft/recraftv4_1_utility",
+          "model": null,
+          "group": "service",
+          "metric": "qualityScore",
+          "value": 86,
+          "label": "86.00/100"
+        },
+        {
+          "rank": 8,
+          "providerKey": "grok/grok-imagine-image-quality",
+          "provider": "grok/grok-imagine-image-quality",
+          "model": null,
+          "group": "service",
+          "metric": "qualityScore",
+          "value": 84,
+          "label": "84.00/100"
+        },
+        {
+          "rank": 9,
+          "providerKey": "bfl/flux-2-pro",
+          "provider": "bfl/flux-2-pro",
+          "model": null,
+          "group": "service",
+          "metric": "qualityScore",
+          "value": 82,
+          "label": "82.00/100"
+        },
+        {
+          "rank": 10,
+          "providerKey": "gemini/gemini-3.1-flash-image-preview",
+          "provider": "gemini/gemini-3.1-flash-image-preview",
+          "model": null,
+          "group": "service",
+          "metric": "qualityScore",
+          "value": 82,
+          "label": "82.00/100"
+        },
+        {
+          "rank": 11,
+          "providerKey": "grok/grok-imagine-image",
+          "provider": "grok/grok-imagine-image",
+          "model": null,
+          "group": "service",
+          "metric": "qualityScore",
+          "value": 80,
+          "label": "80.00/100"
+        },
+        {
+          "rank": 12,
+          "providerKey": "reve/reve-create@20250915",
+          "provider": "reve/reve-create@20250915",
+          "model": null,
+          "group": "service",
+          "metric": "qualityScore",
+          "value": 80,
+          "label": "80.00/100"
+        },
+        {
+          "rank": 13,
+          "providerKey": "reve/latest",
+          "provider": "reve/latest",
+          "model": null,
+          "group": "service",
+          "metric": "qualityScore",
+          "value": 76,
+          "label": "76.00/100"
+        }
+      ],
+      "humanQuality": [],
+      "priceUnavailableReason": null,
+      "speedUnavailableReason": null,
+      "automatedQualityUnavailableReason": null,
+      "humanQualityUnavailableReason": "No explicit humanQualityScore was available for these providers. Generic quality scores, cost, speed, and artifact metadata are not used as human quality proxies."
+    }
+  },
+  "combinedLeaderboardPolicy": "omitted: local and service providers are not ranked against each other",
+  "notes": [
+    "Automated quality rankings use explicit image judge scores from image-quality-report.json.",
+    "Price and speed surfaces are evidence-only and do not affect image quality scores.",
+    "Image mode evaluates existing generated images only; it does not generate new images."
+  ]
+}

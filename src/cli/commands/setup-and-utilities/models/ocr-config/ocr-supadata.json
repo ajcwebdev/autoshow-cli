@@ -1,0 +1,25 @@
+{
+  "supadata": {
+    "description": "Supadata hosted article extraction",
+    "type": "api",
+    "models": {
+      "supadata": {
+        "description": "Supadata Web Reader /web/scrape extraction at 1 credit per request using the Basic/Pro auto-recharge rate ($10 / 1,000 credits)",
+        "pricingSourceUrl": "https://supadata.ai/pricing",
+        "pricingCheckedAt": "2026-05-31",
+        "pricingCurrency": "USD",
+        "pricingTier": "Basic/Pro auto-recharge reference rate",
+        "pricingNotes": "Supadata lists 1 URL scrape as 1 credit. The default reference rate is Basic/Pro auto-recharge at $10 per 1,000 credits. Free plan credits, yearly discounts, larger-plan auto-recharge rates, enterprise pricing, taxes, and provider credits are ignored.",
+        "costPer1kPagesUSD": 10,
+        "costPer1kPagesCents": 1000,
+        "limits": {
+          "notes": "Supadata Web Reader charges 1 credit per scrape request. Actual plan pricing can differ from the reference auto-recharge rate."
+        },
+        "estimation": {
+          "costMultiplier": 1,
+          "msPerPage": 2500
+        }
+      }
+    }
+  }
+}

@@ -1,0 +1,1 @@
+This is a short test passage used by AutoShow to demonstrate text-to-speech generation.

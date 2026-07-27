@@ -1,0 +1,28 @@
+{
+  "deepgram": {
+    "description": "Deepgram cloud speech-to-text",
+    "type": "api",
+    "models": {
+      "nova-3": {
+        "description": "Nova-3 — diarization-inclusive pre-recorded transcription",
+        "pricingSourceUrl": "https://deepgram.com/pricing",
+        "pricingCheckedAt": "2026-05-31",
+        "pricingCurrency": "USD",
+        "pricingTier": "Pay As You Go",
+        "pricingNotes": "Nova-3 Monolingual pre-recorded pricing is $0.0077/min and Speaker Diarization is $0.0020/min. AutoShow always sends diarize=true, so estimates use $0.0097/min ($0.582/hr). Free credits, Growth discounts, enterprise pricing, taxes, and provider credits are ignored.",
+        "costPerHourUSD": 0.582,
+        "costPerHourCents": 58.2,
+        "limits": {
+          "effectiveBytes": 2147483648,
+          "directUploadBytes": 2147483648,
+          "remoteUrlBytes": 2147483648,
+          "notes": "Deepgram's current docs publish a 2 GB file cap and separately state no limits to audio length for batch transcription, with a 10-minute processing-time cap for Nova/Base/Enhanced requests."
+        },
+        "estimation": {
+          "costMultiplier": 1,
+          "msPerSecond": 27
+        }
+      }
+    }
+  }
+}

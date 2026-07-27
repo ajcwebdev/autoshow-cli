@@ -1,0 +1,25 @@
+{
+  "schemaVersion": 1,
+  "runDir": "/Users/ajc/c/autoshow-cli/docs/benchmarks/ocr/2026-06-14_01-28-18-115_document",
+  "thresholds": {
+    "majorLengthDrift": 0.3,
+    "highDisagreementFloor": 0.18,
+    "highDisagreementIqrMultiplier": 1.5,
+    "werCerDivergence": 0.16,
+    "lowConfidence": 0.72,
+    "repeatedDominantLineShare": 0.5,
+    "repeatedDominantLineMinimum": 4,
+    "repeatedTokenWindowSize": 8,
+    "repeatedTokenWindowMinimum": 6,
+    "repeatedTokenWindowShare": 0.35,
+    "highDisagreement": 0.18,
+    "pageDisagreementQ1": 0.021003,
+    "pageDisagreementQ3": 0.021003
+  },
+  "blankOutputPages": [],
+  "repeatedTextPages": [],
+  "majorLengthDriftPages": [],
+  "highDisagreementPages": [],
+  "werCerDivergencePages": [],
+  "lowConfidencePages": []
+}

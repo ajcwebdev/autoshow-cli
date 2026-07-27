@@ -1,0 +1,11 @@
+const TTS_PROVIDERS = ['kitten', 'elevenlabs', 'minimax', 'groq', 'grok', 'mistral', 'openai', 'gemini', 'deepgram', 'speechify', 'hume', 'cartesia'] as const
+export type TtsProvider = typeof TTS_PROVIDERS[number]
+
+const IMAGE_PROVIDERS = ['gemini', 'openai', 'grok', 'bfl', 'reve', 'recraft', 'replicate', 'lumalabs'] as const
+export type ImageProvider = typeof IMAGE_PROVIDERS[number]
+
+const VIDEO_PROVIDERS = ['gemini', 'minimax', 'glm', 'grok', 'runway', 'ltx', 'replicate', 'lumalabs'] as const
+export type VideoProvider = typeof VIDEO_PROVIDERS[number]
+
+const MUSIC_PROVIDERS = ['elevenlabs', 'minimax', 'gemini'] as const
+export type MusicProvider = typeof MUSIC_PROVIDERS[number]

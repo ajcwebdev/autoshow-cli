@@ -1,0 +1,29 @@
+{
+  "gladia": {
+    "description": "Gladia cloud pre-recorded speech-to-text",
+    "type": "api",
+    "models": {
+      "default": {
+        "description": "Default pre-recorded STT — diarization-enabled async transcription",
+        "pricingSourceUrl": "https://support.gladia.io/article/understanding-our-transcription-pricing-pv1atikh8y9c8sw7sudm3rcy",
+        "pricingCheckedAt": "2026-05-31",
+        "pricingCurrency": "USD",
+        "pricingTier": "Gladia public transcription pricing",
+        "pricingNotes": "Gladia pre-recorded transcription is estimated at $0.61/hour. Free trial credits, custom plans, enterprise pricing, taxes, and provider credits are ignored.",
+        "costPerHourUSD": 0.61,
+        "costPerHourCents": 61,
+        "limits": {
+          "effectiveBytes": 1048576000,
+          "directUploadBytes": 1048576000,
+          "remoteUrlBytes": 1048576000,
+          "durationSeconds": 8100,
+          "notes": "Direct YouTube links are limited to 120 minutes. Current CLI uploads files instead. Enterprise plans can raise the audio-length cap to 4 hours 15 minutes."
+        },
+        "estimation": {
+          "costMultiplier": 1,
+          "msPerSecond": 284
+        }
+      }
+    }
+  }
+}

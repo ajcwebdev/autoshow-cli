@@ -1,0 +1,21 @@
+A HISTORY OF NAVIGATION                                        18
+
+Instruments of the Period
+
+The pilots of the age relied on a small number of instru ments, each
+suited to a different prob1em of position-finding. The principal tools
+are summarized below.
+
+Instrument    Measures        Introduced
+Astrolabe     Latitude        c. 1480
+Cross-staff   Star altitude   c. 1515
+Log and line  Speed           c. 1570
+
+Among these, three deserves particular mention:
+
+- the astrolabe, for latitude at noon
+- the cross-staff, for altitude of stars
+- the log and line, for reckoning of speed
+
+These were rarely accu-
+rate, but in skilled hands they were enough.

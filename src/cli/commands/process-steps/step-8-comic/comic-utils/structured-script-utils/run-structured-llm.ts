@@ -1,0 +1,79 @@
+import { collectLlmTargets } from '~/cli/commands/process-steps/step-3-write/run-llm'
+import { resolveStructuredStrategy, shouldApplyStrictMode } from '~/cli/commands/process-steps/step-3-write/structured-output/capabilities'
+import { runCompatFallback } from '~/cli/commands/process-steps/step-3-write/structured-output/compat-fallback'
+import { findRegistryServiceForModel } from '~/cli/commands/setup-and-utilities/models/model-loader/registry'
+import { CLIUsageError, InternalError } from '~/utils/error-handler'
+import type { ComicStructuredLlmResult, ComicStructuredSchema, LLMOptions, LLMTarget, ResolvedStructuredSchema, StructuredRequestOptions, StructuredValidationContext } from '~/types'
+
+// Maps a central registry LLM service name onto the matching LLMOptions model field
+// that collectLlmTargets reads.
+const SERVICE_TO_LLM_OPTION_FIELD: Record<string, keyof LLMOptions> = {
+  openai: 'openaiModels',
+  groq: 'groqModels',
+  gemini: 'geminiModels',
+  anthropic: 'anthropicModels',
+  minimax: 'minimaxModels',
+  grok: 'grokModels',
+  glm: 'glmModels',
+  kimi: 'kimiModels',
+  together: 'togetherModels',
+  cerebras: 'cerebrasModels',
+  'llama.cpp': 'llamaModels',
+  llamafile: 'llamafileModels',
+}
+
+// Resolves a single central LLM model id to one shared dispatch target. Validation
+// against the central registry replaces comic's removed per-provider type guards.
+export const resolveComicLlmTarget = (modelId: string): LLMTarget => {
+  const service = findRegistryServiceForModel('llm', modelId)
+  if (!service) {
+    throw CLIUsageError(`Unknown LLM model "${modelId}". It is not present in the central LLM registry.`)
+  }
+
+  const field = SERVICE_TO_LLM_OPTION_FIELD[service]
+  if (!field) {
+    throw CLIUsageError(`LLM provider "${service}" for model "${modelId}" is not supported by comic.`)
+  }
+
+  const targets = collectLlmTargets({ [field]: [modelId] } as Partial<LLMOptions> as LLMOptions)
+  const target = targets[0]
+  if (!target) {
+    throw InternalError(`Failed to build an LLM target for "${modelId}"`, { stage: 'comic:llm' })
+  }
+
+  return target
+}
+
+// Runs a structured-JSON prompt through the shared LLM dispatch, returning the raw
+// model text plus token metadata. Callers keep their own JSON normalization and
+// schema validation. Native-structured providers send the JSON schema server-side;
+// schema-guided providers (minimax, llama.cpp, llamafile) embed it via runCompatFallback.
+export const runComicStructuredLlm = async (
+  prompt: string,
+  schema: ComicStructuredSchema,
+  modelId: string
+): Promise<ComicStructuredLlmResult> => {
+  const target = resolveComicLlmTarget(modelId)
+  const validationContext: StructuredValidationContext = { leafPromptNames: [], presetNames: [] }
+
+  if (resolveStructuredStrategy(target.service) === 'schema-guided') {
+    const resolvedSchema: ResolvedStructuredSchema = {
+      schemaName: schema.schemaName,
+      leafPromptNames: [],
+      presetNames: [],
+      schema: schema.valibotSchema,
+      jsonSchema: schema.jsonSchema,
+    }
+    const compat = await runCompatFallback(target, prompt, target.model, resolvedSchema, 2, validationContext)
+    return { text: compat.rawResponse, metadata: compat.metadata }
+  }
+
+  const structuredOpts: StructuredRequestOptions = {
+    schemaName: schema.schemaName,
+    schema: schema.jsonSchema,
+    strict: shouldApplyStrictMode(target.service, true),
+    strategy: 'native',
+  }
+  const response = await target.run(prompt, target.model, structuredOpts)
+  return { text: response.result, metadata: response.metadata }
+}

@@ -1,0 +1,531 @@
+import { estimateVideoCost } from '~/cli/commands/process-steps/step-6-video/video-utils/video-pricing'
+import { getModelRegistry } from './model-loader'
+import { InternalError } from '~/utils/error-handler'
+import type { CheapestVideoSelection } from '~/types'
+import { DEFAULT_DEEPINFRA_OCR_MODEL } from './ocr-models'
+
+const PERFORMANCE_TIE_BREAKERS = ['mini', 'nano', 'micro', 'flash', 'turbo', 'fast', 'small']
+
+const DEFAULT_LOCAL_MODEL_BY_FLAG = {
+  whisper: 'tiny',
+  llama: 'ggml-org/gemma-3-270m-it-GGUF',
+  'kitten-tts': 'kitten-tts-nano-0.8-int8',
+} as const satisfies Record<string, string>
+
+const DEFAULT_OCR_INPUT_TOKENS_PER_PAGE = 4000
+const DEFAULT_OCR_OUTPUT_TOKENS_PER_PAGE = 1000
+
+const runtimeRank = (model: string): number => {
+  const lower = model.toLowerCase()
+  const idx = PERFORMANCE_TIE_BREAKERS.findIndex(token => lower.includes(token))
+  return idx === -1 ? PERFORMANCE_TIE_BREAKERS.length : idx
+}
+
+const pickCheapestModel = (
+  modelNames: string[],
+  costForModel: (model: string) => number
+): string => {
+  const firstModel = modelNames[0]
+  if (!firstModel) {
+    throw InternalError('No models available to select from', { stage: 'models:cheapest' })
+  }
+
+  return modelNames
+    .slice()
+    .sort((a, b) => {
+      const costDelta = costForModel(a) - costForModel(b)
+      if (costDelta !== 0) return costDelta
+
+      const rankDelta = runtimeRank(a) - runtimeRank(b)
+      if (rankDelta !== 0) return rankDelta
+
+      return a.localeCompare(b)
+    })[0] ?? firstModel
+}
+
+const selectCheapestRegistryModel = <T extends Record<string, unknown>>(
+  models: Record<string, T>,
+  costForModel: (model: T) => number
+): string =>
+  pickCheapestModel(Object.keys(models), (modelName) => {
+    const meta = models[modelName]
+    return meta ? costForModel(meta) : Number.POSITIVE_INFINITY
+  })
+
+const sttHourlyCost = (model: {
+  costPerHourUSD?: number | undefined
+  costPerHourCents?: number | undefined
+  costPerThreeHours?: number | undefined
+}): number => {
+  if (typeof model.costPerHourCents === 'number') {
+    return model.costPerHourCents
+  }
+  if (typeof model.costPerHourUSD === 'number') {
+    return model.costPerHourUSD * 100
+  }
+  if (typeof model.costPerThreeHours === 'number') {
+    return (model.costPerThreeHours * 100) / 3
+  }
+  return Number.POSITIVE_INFINITY
+}
+
+const qualityRank = (selection: { size?: string | undefined, resolution?: string | undefined }): number => {
+  if (selection.size === '1024x1792' || selection.size === '1792x1024') return 2
+  if (selection.resolution === '1080p') return 2
+  return 1
+}
+
+const isDefaultVideoSelectionModel = (
+  provider: 'gemini' | 'minimax' | 'glm' | 'grok' | 'runway' | 'ltx' | 'replicate' | 'lumalabs',
+  model: string
+): boolean => {
+  if (provider === 'minimax') {
+    return model === 'MiniMax-Hailuo-2.3'
+      || model === 'T2V-01-Director'
+      || model === 'T2V-01'
+  }
+
+  if (provider === 'glm') {
+    return model === 'cogvideox-3' || model === 'viduq1-text'
+  }
+
+  return true
+}
+
+const selectCheapestSttModel = (service: string): string => {
+  const serviceConfig = getModelRegistry().stt[service]
+  if (!serviceConfig) {
+    throw InternalError(`Missing STT service config: ${service}`, { stage: 'models:cheapest' })
+  }
+
+  return selectCheapestRegistryModel(serviceConfig.models, sttHourlyCost)
+}
+
+const selectCheapestExtractModel = (service: 'mistral' | 'glm' | 'kimi' | 'openai' | 'grok' | 'anthropic' | 'gemini' | 'deepinfra'): string => {
+  const serviceConfig = getModelRegistry().extract[service]
+  if (!serviceConfig) {
+    throw InternalError(`Missing extract service config: ${service}`, { stage: 'models:cheapest' })
+  }
+
+  return selectCheapestRegistryModel(serviceConfig.models, (model) => {
+    if (typeof model.costPer1kPagesCents === 'number') {
+      return model.costPer1kPagesCents / 1000
+    }
+    if (typeof model.costPer1kPagesUSD === 'number') {
+      return (model.costPer1kPagesUSD * 100) / 1000
+    }
+    if (typeof model.costPerMInputTokensCents === 'number' && typeof model.costPerMOutputTokensCents === 'number') {
+      const promptTokensPerPage = model.estimation?.promptTokensPerPage ?? DEFAULT_OCR_INPUT_TOKENS_PER_PAGE
+      const completionTokensPerPage = model.estimation?.completionTokensPerPage ?? DEFAULT_OCR_OUTPUT_TOKENS_PER_PAGE
+      return (promptTokensPerPage / 1_000_000) * model.costPerMInputTokensCents
+        + (completionTokensPerPage / 1_000_000) * model.costPerMOutputTokensCents
+    }
+    if (typeof model.costPerMInputTokensUSD === 'number' && typeof model.costPerMOutputTokensUSD === 'number') {
+      const promptTokensPerPage = model.estimation?.promptTokensPerPage ?? DEFAULT_OCR_INPUT_TOKENS_PER_PAGE
+      const completionTokensPerPage = model.estimation?.completionTokensPerPage ?? DEFAULT_OCR_OUTPUT_TOKENS_PER_PAGE
+      return (promptTokensPerPage / 1_000_000) * (model.costPerMInputTokensUSD * 100)
+        + (completionTokensPerPage / 1_000_000) * (model.costPerMOutputTokensUSD * 100)
+    }
+    return Number.POSITIVE_INFINITY
+  })
+}
+
+const selectCheapestLlmModel = (service: string): string => {
+  const serviceConfig = getModelRegistry().llm[service]
+  if (!serviceConfig) {
+    throw InternalError(`Missing LLM service config: ${service}`, { stage: 'models:cheapest' })
+  }
+
+  return selectCheapestRegistryModel(serviceConfig.models, (model) =>
+    model.inputCostPer1MCents + model.outputCostPer1MCents
+  )
+}
+
+const selectCheapestTtsModel = (service: string): string => {
+  const serviceConfig = getModelRegistry().tts[service]
+  if (!serviceConfig) {
+    throw InternalError(`Missing TTS service config: ${service}`, { stage: 'models:cheapest' })
+  }
+
+  return selectCheapestRegistryModel(serviceConfig.models, (model) => {
+    if (typeof model.costPer1kCharsCents === 'number') {
+      return model.costPer1kCharsCents
+    }
+    if (typeof model.costPer1kCharsUSD === 'number') {
+      return model.costPer1kCharsUSD * 100
+    }
+    if (typeof model.inputCostPer1MCharsCents === 'number' && typeof model.outputCostPer1MCharsCents === 'number') {
+      return (model.inputCostPer1MCharsCents + model.outputCostPer1MCharsCents) / 1000
+    }
+    if (typeof model.inputCostPer1MCharsUSD === 'number' && typeof model.outputCostPer1MCharsUSD === 'number') {
+      return ((model.inputCostPer1MCharsUSD + model.outputCostPer1MCharsUSD) * 100) / 1000
+    }
+    return Number.POSITIVE_INFINITY
+  })
+}
+
+const selectCheapestImageModel = (service: string): string => {
+  const serviceConfig = getModelRegistry().image[service]
+  if (!serviceConfig) {
+    throw InternalError(`Missing image service config: ${service}`, { stage: 'models:cheapest' })
+  }
+
+  return selectCheapestRegistryModel(serviceConfig.models, (model) =>
+    typeof model.costPerImageCents === 'number'
+      ? model.costPerImageCents
+      : model.costPerImageUSD * 100
+  )
+}
+
+const selectCheapestMusicModel = (service: string): string => {
+  const serviceConfig = getModelRegistry().music[service]
+  if (!serviceConfig) {
+    throw InternalError(`Missing music service config: ${service}`, { stage: 'models:cheapest' })
+  }
+
+  return selectCheapestRegistryModel(serviceConfig.models, (model) => {
+    if (typeof model.costPerTrackCents === 'number') {
+      return model.costPerTrackCents
+    }
+    if (typeof model.costPerTrackUSD === 'number') {
+      return model.costPerTrackUSD * 100
+    }
+    if (typeof model.costPerMinuteCents === 'number') {
+      return model.costPerMinuteCents
+    }
+    if (typeof model.costPerMinuteUSD === 'number') {
+      return model.costPerMinuteUSD * 100
+    }
+    return Number.POSITIVE_INFINITY
+  })
+}
+
+export const selectCheapestVideoSelection = (
+  provider: 'gemini' | 'minimax' | 'glm' | 'grok' | 'runway' | 'ltx' | 'replicate' | 'lumalabs'
+): CheapestVideoSelection => {
+  const serviceConfig = getModelRegistry().video[provider]
+  if (!serviceConfig) {
+    throw InternalError(`Missing video service config: ${provider}`, { stage: 'models:cheapest' })
+  }
+
+  const models = Object.keys(serviceConfig.models).filter((model) => isDefaultVideoSelectionModel(provider, model))
+  const durations = serviceConfig.billedDurations && serviceConfig.billedDurations.length > 0
+    ? serviceConfig.billedDurations
+    : [4]
+  const sizes = [undefined]
+  const resolutions = serviceConfig.resolutions && serviceConfig.resolutions.length > 0
+    ? serviceConfig.resolutions
+    : ['720p']
+
+  let best: CheapestVideoSelection | null = null
+
+  if (provider === 'replicate') {
+    for (const model of models) {
+      let estimate: ReturnType<typeof estimateVideoCost>
+      try {
+        estimate = estimateVideoCost(providerVideoEstimateOptions(provider, model))
+      } catch {
+        continue
+      }
+
+      const candidate: CheapestVideoSelection = {
+        provider,
+        model,
+        duration: estimate.durationSeconds,
+        totalCost: estimate.totalCost
+      }
+
+      if (
+        !best
+        || candidate.totalCost < best.totalCost
+        || (candidate.totalCost === best.totalCost && runtimeRank(candidate.model) < runtimeRank(best.model))
+        || (candidate.totalCost === best.totalCost
+          && runtimeRank(candidate.model) === runtimeRank(best.model)
+          && candidate.model.localeCompare(best.model) < 0)
+      ) {
+        best = candidate
+      }
+    }
+
+    if (!best) {
+      throw InternalError(`No video candidates available for ${provider}`, { stage: 'models:cheapest' })
+    }
+    return best
+  }
+
+  for (const model of models) {
+    for (const duration of durations) {
+      for (const size of sizes) {
+        for (const resolution of resolutions) {
+          let estimate: ReturnType<typeof estimateVideoCost>
+          try {
+            estimate = estimateVideoCost({
+              ...(provider === 'gemini' ? { geminiVideoModel: model } : {}),
+              ...(provider === 'minimax' ? { minimaxVideoModel: model } : {}),
+              ...(provider === 'glm' ? { glmVideoModel: model } : {}),
+              ...(provider === 'grok' ? { grokVideoModel: model } : {}),
+              ...(provider === 'runway' ? { runwayVideoModel: model } : {}),
+              ...(provider === 'ltx' ? { ltxVideoModel: model } : {}),
+              ...(provider === 'lumalabs' ? { lumalabsVideoModel: model } : {}),
+              videoDuration: duration,
+              videoResolution: resolution
+            })
+          } catch {
+            continue
+          }
+
+          const candidate: CheapestVideoSelection = {
+            provider,
+            model,
+            duration,
+            ...(size ? { size } : {}),
+            ...(resolution ? { resolution } : {}),
+            totalCost: estimate.totalCost
+          }
+
+          if (!best) {
+            best = candidate
+            continue
+          }
+
+          const candidateWinsByCost = candidate.totalCost < best.totalCost
+          const candidateWinsByDuration = candidate.totalCost === best.totalCost && candidate.duration < best.duration
+          const candidateWinsByQuality = candidate.totalCost === best.totalCost
+            && candidate.duration === best.duration
+            && qualityRank(candidate) < qualityRank(best)
+          const candidateWinsBySpeedHint = candidate.totalCost === best.totalCost
+            && candidate.duration === best.duration
+            && qualityRank(candidate) === qualityRank(best)
+            && runtimeRank(candidate.model) < runtimeRank(best.model)
+          const candidateWinsByName = candidate.totalCost === best.totalCost
+            && candidate.duration === best.duration
+            && qualityRank(candidate) === qualityRank(best)
+            && runtimeRank(candidate.model) === runtimeRank(best.model)
+            && candidate.model.localeCompare(best.model) < 0
+
+          if (candidateWinsByCost || candidateWinsByDuration || candidateWinsByQuality || candidateWinsBySpeedHint || candidateWinsByName) {
+            best = candidate
+          }
+        }
+      }
+    }
+  }
+
+  if (!best) {
+    throw InternalError(`No video candidates available for ${provider}`, { stage: 'models:cheapest' })
+  }
+
+  return best
+}
+
+const selectCheapestVideoModel = (
+  provider: 'gemini' | 'minimax' | 'glm' | 'grok' | 'runway' | 'ltx' | 'replicate' | 'lumalabs'
+): string => selectCheapestVideoSelection(provider).model
+
+const TEXT_VIDEO_PROVIDERS = ['gemini', 'minimax', 'glm', 'grok', 'runway', 'ltx', 'replicate', 'lumalabs'] as const
+
+const providerVideoEstimateOptions = (
+  provider: typeof TEXT_VIDEO_PROVIDERS[number],
+  model: string
+): Parameters<typeof estimateVideoCost>[0] => ({
+  ...(provider === 'gemini' ? { geminiVideoModel: model } : {}),
+  ...(provider === 'minimax' ? { minimaxVideoModel: model } : {}),
+  ...(provider === 'glm' ? { glmVideoModel: model } : {}),
+  ...(provider === 'grok' ? { grokVideoModel: model } : {}),
+  ...(provider === 'runway' ? { runwayVideoModel: model } : {}),
+  ...(provider === 'ltx' ? { ltxVideoModel: model } : {}),
+  ...(provider === 'replicate' ? { replicateVideoModel: model } : {}),
+  ...(provider === 'lumalabs' ? { lumalabsVideoModel: model } : {}),
+  videoMode: 'text'
+})
+
+export const selectCheapestDefaultTextVideoSelection = (): CheapestVideoSelection => {
+  let best: CheapestVideoSelection | null = null
+
+  for (const provider of TEXT_VIDEO_PROVIDERS) {
+    const serviceConfig = getModelRegistry().video[provider]
+    if (!serviceConfig) {
+      continue
+    }
+
+    const models = Object.keys(serviceConfig.models).filter((model) => isDefaultVideoSelectionModel(provider, model))
+    for (const model of models) {
+      let estimate: ReturnType<typeof estimateVideoCost>
+      try {
+        estimate = estimateVideoCost(providerVideoEstimateOptions(provider, model))
+      } catch {
+        continue
+      }
+
+      const candidate: CheapestVideoSelection = {
+        provider,
+        model,
+        duration: estimate.durationSeconds,
+        totalCost: estimate.totalCost
+      }
+
+      if (!best) {
+        best = candidate
+        continue
+      }
+
+      const candidateWinsByCost = candidate.totalCost < best.totalCost
+      const candidateWinsByDuration = candidate.totalCost === best.totalCost && candidate.duration < best.duration
+      const candidateWinsBySpeedHint = candidate.totalCost === best.totalCost
+        && candidate.duration === best.duration
+        && runtimeRank(candidate.model) < runtimeRank(best.model)
+      const candidateWinsByName = candidate.totalCost === best.totalCost
+        && candidate.duration === best.duration
+        && runtimeRank(candidate.model) === runtimeRank(best.model)
+        && `${candidate.provider}/${candidate.model}`.localeCompare(`${best.provider}/${best.model}`) < 0
+
+      if (candidateWinsByCost || candidateWinsByDuration || candidateWinsBySpeedHint || candidateWinsByName) {
+        best = candidate
+      }
+    }
+  }
+
+  if (!best) {
+    throw InternalError('No default text-to-video candidates available', { stage: 'models:cheapest' })
+  }
+
+  return best
+}
+
+export const resolveCheapestModelForFlag = (flagName: string): string | undefined => {
+  const localDefault = DEFAULT_LOCAL_MODEL_BY_FLAG[flagName as keyof typeof DEFAULT_LOCAL_MODEL_BY_FLAG]
+  if (localDefault) {
+    return localDefault
+  }
+
+  switch (flagName) {
+    case 'deepinfra-stt':
+      return selectCheapestSttModel('deepinfra')
+    case 'deepgram-stt':
+      return selectCheapestSttModel('deepgram')
+    case 'soniox-stt':
+      return selectCheapestSttModel('soniox')
+    case 'speechmatics-stt':
+      return selectCheapestSttModel('speechmatics')
+    case 'rev-stt':
+      return selectCheapestSttModel('rev')
+    case 'groq-stt':
+      return selectCheapestSttModel('groq')
+    case 'grok-stt':
+      return selectCheapestSttModel('grok')
+    case 'mistral-stt':
+      return selectCheapestSttModel('mistral')
+    case 'assemblyai-stt':
+      return selectCheapestSttModel('assemblyai')
+    case 'gladia-stt':
+      return selectCheapestSttModel('gladia')
+    case 'happyscribe-stt':
+      return selectCheapestSttModel('happyscribe')
+    case 'supadata-stt':
+      return 'auto'
+    case 'scrapecreators-stt':
+      return 'youtube-transcript'
+    case 'gemini-stt':
+      return selectCheapestSttModel('gemini-stt')
+    case 'together-stt':
+      return selectCheapestSttModel('together')
+    case 'mistral-ocr':
+      return selectCheapestExtractModel('mistral')
+    case 'glm-ocr':
+      return selectCheapestExtractModel('glm')
+    case 'kimi-ocr':
+      return selectCheapestExtractModel('kimi')
+    case 'openai-ocr':
+      return selectCheapestExtractModel('openai')
+    case 'grok-ocr':
+      return 'grok-4.3'
+    case 'anthropic-ocr':
+      return selectCheapestExtractModel('anthropic')
+    case 'gemini-ocr':
+      return selectCheapestExtractModel('gemini')
+    case 'deepinfra-ocr':
+      return DEFAULT_DEEPINFRA_OCR_MODEL
+    case 'openai':
+      return selectCheapestLlmModel('openai')
+    case 'groq':
+      return selectCheapestLlmModel('groq')
+    case 'gemini':
+      return selectCheapestLlmModel('gemini')
+    case 'anthropic':
+      return selectCheapestLlmModel('anthropic')
+    case 'minimax':
+      return selectCheapestLlmModel('minimax')
+    case 'grok':
+      return 'grok-4.3'
+    case 'glm':
+      return selectCheapestLlmModel('glm')
+    case 'kimi':
+      return selectCheapestLlmModel('kimi')
+    case 'together':
+      return 'glm-5.1'
+    case 'cerebras':
+      return selectCheapestLlmModel('cerebras')
+    case 'elevenlabs-tts':
+      return selectCheapestTtsModel('elevenlabs')
+    case 'minimax-tts':
+      return selectCheapestTtsModel('minimax')
+    case 'groq-tts':
+      return selectCheapestTtsModel('groq')
+    case 'grok-tts':
+      return selectCheapestTtsModel('grok')
+    case 'mistral-tts':
+      return selectCheapestTtsModel('mistral')
+    case 'openai-tts':
+      return selectCheapestTtsModel('openai')
+    case 'gemini-tts':
+      return selectCheapestTtsModel('gemini')
+    case 'deepgram-tts':
+      return selectCheapestTtsModel('deepgram')
+    case 'speechify-tts':
+      return selectCheapestTtsModel('speechify')
+    case 'hume-tts':
+      return selectCheapestTtsModel('hume')
+    case 'cartesia-tts':
+      return selectCheapestTtsModel('cartesia')
+    case 'gemini-image':
+      return selectCheapestImageModel('gemini')
+    case 'openai-image':
+      return selectCheapestImageModel('openai')
+    case 'grok-image':
+      return selectCheapestImageModel('grok')
+    case 'bfl-image':
+      return selectCheapestImageModel('bfl')
+    case 'reve-image':
+      return selectCheapestImageModel('reve')
+    case 'recraft-image':
+      return selectCheapestImageModel('recraft')
+    case 'replicate-image':
+      return selectCheapestImageModel('replicate')
+    case 'lumalabs-image':
+      return selectCheapestImageModel('lumalabs')
+    case 'elevenlabs-music':
+      return selectCheapestMusicModel('elevenlabs')
+    case 'minimax-music':
+      return selectCheapestMusicModel('minimax')
+    case 'gemini-music':
+      return selectCheapestMusicModel('gemini')
+    case 'gemini-video':
+      return selectCheapestVideoModel('gemini')
+    case 'minimax-video':
+      return selectCheapestVideoModel('minimax')
+    case 'glm-video':
+      return selectCheapestVideoModel('glm')
+    case 'grok-video':
+      return selectCheapestVideoModel('grok')
+    case 'runway-video':
+      return selectCheapestVideoModel('runway')
+    case 'ltx-video':
+      return selectCheapestVideoModel('ltx')
+    case 'replicate-video':
+      return selectCheapestVideoModel('replicate')
+    case 'lumalabs-video':
+      return selectCheapestVideoModel('lumalabs')
+    default:
+      return undefined
+  }
+}

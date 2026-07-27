@@ -1,0 +1,14 @@
+{
+  "schemaVersion": 1,
+  "pageCount": 1,
+  "pages": [
+    {
+      "pageNumber": 1,
+      "reason": [
+        "page-outlier"
+      ],
+      "replacedProviderKey": "gemini/gemini-3.5-flash",
+      "replacedConfidence": 0.911733
+    }
+  ]
+}

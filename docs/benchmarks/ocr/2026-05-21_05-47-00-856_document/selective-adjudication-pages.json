@@ -1,0 +1,48 @@
+{
+  "schemaVersion": 1,
+  "pageCount": 5,
+  "pages": [
+    {
+      "pageNumber": 0,
+      "reason": [
+        "low-confidence-selected-provider",
+        "page-outlier"
+      ],
+      "replacedProviderKey": "mistral/mistral-ocr-4-0",
+      "replacedConfidence": 0.45
+    },
+    {
+      "pageNumber": 1,
+      "reason": [
+        "page-outlier"
+      ],
+      "replacedProviderKey": "anthropic/claude-haiku-4-5",
+      "replacedConfidence": 0.782899
+    },
+    {
+      "pageNumber": 2,
+      "reason": [
+        "page-outlier"
+      ],
+      "replacedProviderKey": "grok/grok-4.20-0309-non-reasoning",
+      "replacedConfidence": 0.797211
+    },
+    {
+      "pageNumber": 3,
+      "reason": [
+        "low-confidence-selected-provider",
+        "page-outlier"
+      ],
+      "replacedProviderKey": "mistral/mistral-ocr-4-0",
+      "replacedConfidence": 0
+    },
+    {
+      "pageNumber": 4,
+      "reason": [
+        "page-outlier"
+      ],
+      "replacedProviderKey": "anthropic/claude-sonnet-5",
+      "replacedConfidence": 0.788409
+    }
+  ]
+}

@@ -1,0 +1,32 @@
+{
+  "glm": {
+    "description": "ZhipuAI GLM cloud OCR",
+    "type": "api",
+    "models": {
+      "glm-ocr": {
+        "description": "GLM OCR",
+        "pricingSourceUrl": "https://docs.z.ai/guides/overview/pricing",
+        "pricingCheckedAt": "2026-05-31",
+        "pricingCurrency": "USD",
+        "pricingTier": "Z.AI standard token pricing",
+        "pricingNotes": "Z.AI lists GLM OCR token pricing at $0.03/1M input tokens and $0.03/1M output tokens. OCR estimates multiply observed or heuristic token usage by these rates; cache discounts, batch discounts, enterprise pricing, taxes, and provider credits are ignored.",
+        "costPerMInputTokensUSD": 0.03,
+        "costPerMOutputTokensUSD": 0.03,
+        "costPerMInputTokensCents": 3,
+        "costPerMOutputTokensCents": 3,
+        "limits": {
+          "imageBytes": 10485760,
+          "pdfBytes": 52428800,
+          "pageCount": 100,
+          "notes": "project/links/glm-all-links.md documents GLM OCR input caps of 10 MB per image, 50 MB per PDF, and a maximum of 100 pages."
+        },
+        "estimation": {
+          "costMultiplier": 1,
+          "msPerPage": 4127,
+          "promptTokensPerPage": 2403,
+          "completionTokensPerPage": 434.5
+        }
+      }
+    }
+  }
+}

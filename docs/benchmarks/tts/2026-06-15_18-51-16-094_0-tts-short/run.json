@@ -1,0 +1,1010 @@
+{
+  "schemaVersion": 2,
+  "kind": "tts",
+  "metadata": {
+    "tts": [
+      {
+        "ttsService": "elevenlabs",
+        "ttsModel": "eleven_v3",
+        "speaker": "hpp4J3VqNfWAUOO0d1Us",
+        "processingTime": 987,
+        "audioFileName": "speech-elevenlabs-eleven_v3.wav",
+        "audioFileSize": 33358,
+        "chunkCount": 1
+      },
+      {
+        "ttsService": "minimax",
+        "ttsModel": "speech-2.8-hd",
+        "speaker": "English_expressive_narrator",
+        "processingTime": 24044,
+        "audioFileName": "speech-minimax-speech-2.8-hd.wav",
+        "audioFileSize": 59982,
+        "chunkCount": 1
+      },
+      {
+        "ttsService": "minimax",
+        "ttsModel": "speech-2.8-turbo",
+        "speaker": "English_expressive_narrator",
+        "processingTime": 48529,
+        "audioFileName": "speech-minimax-speech-2.8-turbo.wav",
+        "audioFileSize": 51918,
+        "chunkCount": 1
+      },
+      {
+        "ttsService": "groq",
+        "ttsModel": "canopylabs/orpheus-v1-english",
+        "speaker": "troy",
+        "processingTime": 525,
+        "audioFileName": "speech-groq-canopylabs-orpheus-v1-english.wav",
+        "audioFileSize": 64074,
+        "chunkCount": 1
+      },
+      {
+        "ttsService": "grok",
+        "ttsModel": "grok-tts",
+        "speaker": "eve",
+        "processingTime": 751,
+        "audioFileName": "speech-grok-grok-tts.wav",
+        "audioFileSize": 34318,
+        "chunkCount": 1
+      },
+      {
+        "ttsService": "mistral",
+        "ttsModel": "voxtral-mini-tts-2603",
+        "speaker": "ref_audio:anthony-voice.mp3",
+        "processingTime": 1617,
+        "audioFileName": "speech-mistral-voxtral-mini-tts-2603.wav",
+        "audioFileSize": 69198,
+        "chunkCount": 1
+      },
+      {
+        "ttsService": "openai",
+        "ttsModel": "gpt-4o-mini-tts",
+        "speaker": "alloy",
+        "processingTime": 1252,
+        "audioFileName": "speech-openai-gpt-4o-mini-tts.wav",
+        "audioFileSize": 62478,
+        "chunkCount": 1
+      },
+      {
+        "ttsService": "openai",
+        "ttsModel": "tts-1",
+        "speaker": "alloy",
+        "processingTime": 1472,
+        "audioFileName": "speech-openai-tts-1.wav",
+        "audioFileSize": 30878,
+        "chunkCount": 1
+      },
+      {
+        "ttsService": "openai",
+        "ttsModel": "tts-1-hd",
+        "speaker": "alloy",
+        "processingTime": 2575,
+        "audioFileName": "speech-openai-tts-1-hd.wav",
+        "audioFileSize": 31278,
+        "chunkCount": 1
+      },
+      {
+        "ttsService": "gemini",
+        "ttsModel": "gemini-3.1-flash-tts-preview",
+        "speaker": "Kore",
+        "processingTime": 2064,
+        "audioFileName": "speech-gemini-gemini-3.1-flash-tts-preview.wav",
+        "audioFileSize": 56398,
+        "chunkCount": 1
+      },
+      {
+        "ttsService": "deepgram",
+        "ttsModel": "aura-2-thalia-en",
+        "speaker": "aura-2-thalia-en",
+        "processingTime": 913,
+        "audioFileName": "speech-deepgram-aura-2-thalia-en.wav",
+        "audioFileSize": 41550,
+        "chunkCount": 1
+      },
+      {
+        "ttsService": "speechify",
+        "ttsModel": "simba-english",
+        "speaker": "george",
+        "processingTime": 2011,
+        "audioFileName": "speech-speechify-simba-english.wav",
+        "audioFileSize": 40782,
+        "chunkCount": 1
+      },
+      {
+        "ttsService": "hume",
+        "ttsModel": "octave-2",
+        "speaker": "Male English Actor",
+        "processingTime": 1147,
+        "audioFileName": "speech-hume-octave-2.wav",
+        "audioFileSize": 46158,
+        "chunkCount": 1
+      },
+      {
+        "ttsService": "cartesia",
+        "ttsModel": "sonic-3",
+        "speaker": "f786b574-daa5-4673-aa0c-cbe3e8534c02",
+        "processingTime": 499,
+        "audioFileName": "speech-cartesia-sonic-3.wav",
+        "audioFileSize": 34258,
+        "chunkCount": 1
+      },
+      {
+        "ttsService": "cartesia",
+        "ttsModel": "sonic-3.5",
+        "speaker": "f786b574-daa5-4673-aa0c-cbe3e8534c02",
+        "processingTime": 381,
+        "audioFileName": "speech-cartesia-sonic-3.5.wav",
+        "audioFileSize": 35918,
+        "chunkCount": 1
+      }
+    ],
+    "cost": {
+      "estimated": {
+        "totalCost": 1.115795,
+        "steps": [
+          {
+            "step": "tts",
+            "provider": "elevenlabs",
+            "model": "eleven_v3",
+            "cost": 0.17,
+            "costMultiplier": 1,
+            "costPer1kCharactersCents": 10
+          },
+          {
+            "step": "tts",
+            "provider": "minimax",
+            "model": "speech-2.8-hd",
+            "cost": 0.17,
+            "costMultiplier": 1,
+            "costPer1kCharactersCents": 10
+          },
+          {
+            "step": "tts",
+            "provider": "minimax",
+            "model": "speech-2.8-turbo",
+            "cost": 0.10200000000000001,
+            "costMultiplier": 1,
+            "costPer1kCharactersCents": 6
+          },
+          {
+            "step": "tts",
+            "provider": "groq",
+            "model": "canopylabs/orpheus-v1-english",
+            "cost": 0.0374,
+            "costMultiplier": 1,
+            "costPer1kCharactersCents": 2.2
+          },
+          {
+            "step": "tts",
+            "provider": "grok",
+            "model": "grok-tts",
+            "cost": 0.025500000000000002,
+            "costMultiplier": 1,
+            "costPer1kCharactersCents": 1.5
+          },
+          {
+            "step": "tts",
+            "provider": "mistral",
+            "model": "voxtral-mini-tts-2603",
+            "cost": 0.0272,
+            "costMultiplier": 1,
+            "inputCostPer1MCharactersCents": 0,
+            "outputCostPer1MCharactersCents": 1600
+          },
+          {
+            "step": "tts",
+            "provider": "openai",
+            "model": "gpt-4o-mini-tts",
+            "cost": 0.02142,
+            "costMultiplier": 1,
+            "inputCostPer1MCharactersCents": 60,
+            "outputCostPer1MCharactersCents": 1200
+          },
+          {
+            "step": "tts",
+            "provider": "openai",
+            "model": "tts-1",
+            "cost": 0.0255,
+            "costMultiplier": 1,
+            "inputCostPer1MCharactersCents": 0,
+            "outputCostPer1MCharactersCents": 1500
+          },
+          {
+            "step": "tts",
+            "provider": "openai",
+            "model": "tts-1-hd",
+            "cost": 0.051,
+            "costMultiplier": 1,
+            "inputCostPer1MCharactersCents": 0,
+            "outputCostPer1MCharactersCents": 3000
+          },
+          {
+            "step": "tts",
+            "provider": "gemini",
+            "model": "gemini-3.1-flash-tts-preview",
+            "cost": 0.0357,
+            "costMultiplier": 1,
+            "inputCostPer1MCharactersCents": 100,
+            "outputCostPer1MCharactersCents": 2000
+          },
+          {
+            "step": "tts",
+            "provider": "deepgram",
+            "model": "aura-2-thalia-en",
+            "cost": 0.051000000000000004,
+            "costMultiplier": 1,
+            "costPer1kCharactersCents": 3
+          },
+          {
+            "step": "tts",
+            "provider": "speechify",
+            "model": "simba-english",
+            "cost": 0.017,
+            "costMultiplier": 1,
+            "costPer1kCharactersCents": 1
+          },
+          {
+            "step": "tts",
+            "provider": "hume",
+            "model": "octave-2",
+            "cost": 0.255,
+            "costMultiplier": 1,
+            "costPer1kCharactersCents": 15
+          },
+          {
+            "step": "tts",
+            "provider": "cartesia",
+            "model": "sonic-3",
+            "cost": 0.0635375,
+            "costMultiplier": 1,
+            "costPer1kCharactersCents": 3.7375
+          },
+          {
+            "step": "tts",
+            "provider": "cartesia",
+            "model": "sonic-3.5",
+            "cost": 0.0635375,
+            "costMultiplier": 1,
+            "costPer1kCharactersCents": 3.7375
+          }
+        ]
+      },
+      "observedEstimate": {
+        "totalCost": 1.115795,
+        "steps": [
+          {
+            "step": "tts",
+            "provider": "elevenlabs",
+            "model": "eleven_v3",
+            "cost": 0.17,
+            "costMultiplier": 1,
+            "costPer1kCharactersCents": 10
+          },
+          {
+            "step": "tts",
+            "provider": "minimax",
+            "model": "speech-2.8-hd",
+            "cost": 0.17,
+            "costMultiplier": 1,
+            "costPer1kCharactersCents": 10
+          },
+          {
+            "step": "tts",
+            "provider": "minimax",
+            "model": "speech-2.8-turbo",
+            "cost": 0.10200000000000001,
+            "costMultiplier": 1,
+            "costPer1kCharactersCents": 6
+          },
+          {
+            "step": "tts",
+            "provider": "groq",
+            "model": "canopylabs/orpheus-v1-english",
+            "cost": 0.0374,
+            "costMultiplier": 1,
+            "costPer1kCharactersCents": 2.2
+          },
+          {
+            "step": "tts",
+            "provider": "grok",
+            "model": "grok-tts",
+            "cost": 0.025500000000000002,
+            "costMultiplier": 1,
+            "costPer1kCharactersCents": 1.5
+          },
+          {
+            "step": "tts",
+            "provider": "mistral",
+            "model": "voxtral-mini-tts-2603",
+            "cost": 0.0272,
+            "costMultiplier": 1,
+            "inputCostPer1MCharactersCents": 0,
+            "outputCostPer1MCharactersCents": 1600
+          },
+          {
+            "step": "tts",
+            "provider": "openai",
+            "model": "gpt-4o-mini-tts",
+            "cost": 0.02142,
+            "costMultiplier": 1,
+            "inputCostPer1MCharactersCents": 60,
+            "outputCostPer1MCharactersCents": 1200
+          },
+          {
+            "step": "tts",
+            "provider": "openai",
+            "model": "tts-1",
+            "cost": 0.0255,
+            "costMultiplier": 1,
+            "inputCostPer1MCharactersCents": 0,
+            "outputCostPer1MCharactersCents": 1500
+          },
+          {
+            "step": "tts",
+            "provider": "openai",
+            "model": "tts-1-hd",
+            "cost": 0.051,
+            "costMultiplier": 1,
+            "inputCostPer1MCharactersCents": 0,
+            "outputCostPer1MCharactersCents": 3000
+          },
+          {
+            "step": "tts",
+            "provider": "gemini",
+            "model": "gemini-3.1-flash-tts-preview",
+            "cost": 0.0357,
+            "costMultiplier": 1,
+            "inputCostPer1MCharactersCents": 100,
+            "outputCostPer1MCharactersCents": 2000
+          },
+          {
+            "step": "tts",
+            "provider": "deepgram",
+            "model": "aura-2-thalia-en",
+            "cost": 0.051000000000000004,
+            "costMultiplier": 1,
+            "costPer1kCharactersCents": 3
+          },
+          {
+            "step": "tts",
+            "provider": "speechify",
+            "model": "simba-english",
+            "cost": 0.017,
+            "costMultiplier": 1,
+            "costPer1kCharactersCents": 1
+          },
+          {
+            "step": "tts",
+            "provider": "hume",
+            "model": "octave-2",
+            "cost": 0.255,
+            "costMultiplier": 1,
+            "costPer1kCharactersCents": 15
+          },
+          {
+            "step": "tts",
+            "provider": "cartesia",
+            "model": "sonic-3",
+            "cost": 0.0635375,
+            "costMultiplier": 1,
+            "costPer1kCharactersCents": 3.7375
+          },
+          {
+            "step": "tts",
+            "provider": "cartesia",
+            "model": "sonic-3.5",
+            "cost": 0.0635375,
+            "costMultiplier": 1,
+            "costPer1kCharactersCents": 3.7375
+          }
+        ]
+      },
+      "actual": {
+        "totalCost": 1.115795,
+        "steps": [
+          {
+            "step": "tts",
+            "provider": "elevenlabs",
+            "model": "eleven_v3",
+            "cost": 0.17,
+            "costSource": "computed_usage",
+            "inputMetric": "characters",
+            "inputValue": 17
+          },
+          {
+            "step": "tts",
+            "provider": "minimax",
+            "model": "speech-2.8-hd",
+            "cost": 0.17,
+            "costSource": "computed_usage",
+            "inputMetric": "characters",
+            "inputValue": 17
+          },
+          {
+            "step": "tts",
+            "provider": "minimax",
+            "model": "speech-2.8-turbo",
+            "cost": 0.10200000000000001,
+            "costSource": "computed_usage",
+            "inputMetric": "characters",
+            "inputValue": 17
+          },
+          {
+            "step": "tts",
+            "provider": "groq",
+            "model": "canopylabs/orpheus-v1-english",
+            "cost": 0.0374,
+            "costSource": "computed_usage",
+            "inputMetric": "characters",
+            "inputValue": 17
+          },
+          {
+            "step": "tts",
+            "provider": "grok",
+            "model": "grok-tts",
+            "cost": 0.025500000000000002,
+            "costSource": "computed_usage",
+            "inputMetric": "characters",
+            "inputValue": 17
+          },
+          {
+            "step": "tts",
+            "provider": "mistral",
+            "model": "voxtral-mini-tts-2603",
+            "cost": 0.0272,
+            "costSource": "computed_usage",
+            "inputMetric": "characters",
+            "inputValue": 17
+          },
+          {
+            "step": "tts",
+            "provider": "openai",
+            "model": "gpt-4o-mini-tts",
+            "cost": 0.02142,
+            "costSource": "computed_usage",
+            "inputMetric": "characters",
+            "inputValue": 17
+          },
+          {
+            "step": "tts",
+            "provider": "openai",
+            "model": "tts-1",
+            "cost": 0.0255,
+            "costSource": "computed_usage",
+            "inputMetric": "characters",
+            "inputValue": 17
+          },
+          {
+            "step": "tts",
+            "provider": "openai",
+            "model": "tts-1-hd",
+            "cost": 0.051,
+            "costSource": "computed_usage",
+            "inputMetric": "characters",
+            "inputValue": 17
+          },
+          {
+            "step": "tts",
+            "provider": "gemini",
+            "model": "gemini-3.1-flash-tts-preview",
+            "cost": 0.0357,
+            "costSource": "computed_usage",
+            "inputMetric": "characters",
+            "inputValue": 17
+          },
+          {
+            "step": "tts",
+            "provider": "deepgram",
+            "model": "aura-2-thalia-en",
+            "cost": 0.051000000000000004,
+            "costSource": "computed_usage",
+            "inputMetric": "characters",
+            "inputValue": 17
+          },
+          {
+            "step": "tts",
+            "provider": "speechify",
+            "model": "simba-english",
+            "cost": 0.017,
+            "costSource": "computed_usage",
+            "inputMetric": "characters",
+            "inputValue": 17
+          },
+          {
+            "step": "tts",
+            "provider": "hume",
+            "model": "octave-2",
+            "cost": 0.255,
+            "costSource": "computed_usage",
+            "inputMetric": "characters",
+            "inputValue": 17
+          },
+          {
+            "step": "tts",
+            "provider": "cartesia",
+            "model": "sonic-3",
+            "cost": 0.0635375,
+            "costSource": "computed_usage",
+            "inputMetric": "characters",
+            "inputValue": 17
+          },
+          {
+            "step": "tts",
+            "provider": "cartesia",
+            "model": "sonic-3.5",
+            "cost": 0.0635375,
+            "costSource": "computed_usage",
+            "inputMetric": "characters",
+            "inputValue": 17
+          }
+        ]
+      }
+    },
+    "timing": {
+      "estimated": {
+        "totalProcessingTimeMs": 11732,
+        "steps": [
+          {
+            "step": "tts",
+            "provider": "elevenlabs",
+            "model": "eleven_v3",
+            "processingTimeMs": 610,
+            "inputMetric": "characters",
+            "inputValue": 17,
+            "rateBasis": "1KCharacters",
+            "msPerUnit": 35882.353,
+            "throughputValue": 27.869,
+            "throughputUnit": "charactersPerSecond",
+            "timingScope": "estimated"
+          },
+          {
+            "step": "tts",
+            "provider": "minimax",
+            "model": "speech-2.8-hd",
+            "processingTimeMs": 3801,
+            "inputMetric": "characters",
+            "inputValue": 17,
+            "rateBasis": "1KCharacters",
+            "msPerUnit": 223588.235,
+            "throughputValue": 4.473,
+            "throughputUnit": "charactersPerSecond",
+            "timingScope": "estimated"
+          },
+          {
+            "step": "tts",
+            "provider": "minimax",
+            "model": "speech-2.8-turbo",
+            "processingTimeMs": 2656,
+            "inputMetric": "characters",
+            "inputValue": 17,
+            "rateBasis": "1KCharacters",
+            "msPerUnit": 156235.294,
+            "throughputValue": 6.401,
+            "throughputUnit": "charactersPerSecond",
+            "timingScope": "estimated"
+          },
+          {
+            "step": "tts",
+            "provider": "groq",
+            "model": "canopylabs/orpheus-v1-english",
+            "processingTimeMs": 261,
+            "inputMetric": "characters",
+            "inputValue": 17,
+            "rateBasis": "1KCharacters",
+            "msPerUnit": 15352.941,
+            "throughputValue": 65.134,
+            "throughputUnit": "charactersPerSecond",
+            "timingScope": "estimated"
+          },
+          {
+            "step": "tts",
+            "provider": "grok",
+            "model": "grok-tts",
+            "processingTimeMs": 355,
+            "inputMetric": "characters",
+            "inputValue": 17,
+            "rateBasis": "1KCharacters",
+            "msPerUnit": 20882.353,
+            "throughputValue": 47.887,
+            "throughputUnit": "charactersPerSecond",
+            "timingScope": "estimated"
+          },
+          {
+            "step": "tts",
+            "provider": "mistral",
+            "model": "voxtral-mini-tts-2603",
+            "processingTimeMs": 863,
+            "inputMetric": "characters",
+            "inputValue": 17,
+            "rateBasis": "1KCharacters",
+            "msPerUnit": 50764.706,
+            "throughputValue": 19.699,
+            "throughputUnit": "charactersPerSecond",
+            "timingScope": "estimated"
+          },
+          {
+            "step": "tts",
+            "provider": "openai",
+            "model": "gpt-4o-mini-tts",
+            "processingTimeMs": 342,
+            "inputMetric": "characters",
+            "inputValue": 17,
+            "rateBasis": "1KCharacters",
+            "msPerUnit": 20117.647,
+            "throughputValue": 49.708,
+            "throughputUnit": "charactersPerSecond",
+            "timingScope": "estimated"
+          },
+          {
+            "step": "tts",
+            "provider": "openai",
+            "model": "tts-1",
+            "processingTimeMs": 342,
+            "inputMetric": "characters",
+            "inputValue": 17,
+            "rateBasis": "1KCharacters",
+            "msPerUnit": 20117.647,
+            "throughputValue": 49.708,
+            "throughputUnit": "charactersPerSecond",
+            "timingScope": "estimated"
+          },
+          {
+            "step": "tts",
+            "provider": "openai",
+            "model": "tts-1-hd",
+            "processingTimeMs": 342,
+            "inputMetric": "characters",
+            "inputValue": 17,
+            "rateBasis": "1KCharacters",
+            "msPerUnit": 20117.647,
+            "throughputValue": 49.708,
+            "throughputUnit": "charactersPerSecond",
+            "timingScope": "estimated"
+          },
+          {
+            "step": "tts",
+            "provider": "gemini",
+            "model": "gemini-3.1-flash-tts-preview",
+            "processingTimeMs": 1073,
+            "inputMetric": "characters",
+            "inputValue": 17,
+            "rateBasis": "1KCharacters",
+            "msPerUnit": 63117.647,
+            "throughputValue": 15.843,
+            "throughputUnit": "charactersPerSecond",
+            "timingScope": "estimated"
+          },
+          {
+            "step": "tts",
+            "provider": "deepgram",
+            "model": "aura-2-thalia-en",
+            "processingTimeMs": 871,
+            "inputMetric": "characters",
+            "inputValue": 17,
+            "rateBasis": "1KCharacters",
+            "msPerUnit": 51235.294,
+            "throughputValue": 19.518,
+            "throughputUnit": "charactersPerSecond",
+            "timingScope": "estimated"
+          },
+          {
+            "step": "tts",
+            "provider": "speechify",
+            "model": "simba-english",
+            "processingTimeMs": 72,
+            "inputMetric": "characters",
+            "inputValue": 17,
+            "rateBasis": "1KCharacters",
+            "msPerUnit": 4235.294,
+            "throughputValue": 236.111,
+            "throughputUnit": "charactersPerSecond",
+            "timingScope": "estimated"
+          },
+          {
+            "step": "tts",
+            "provider": "hume",
+            "model": "octave-2",
+            "processingTimeMs": 48,
+            "inputMetric": "characters",
+            "inputValue": 17,
+            "rateBasis": "1KCharacters",
+            "msPerUnit": 2823.529,
+            "throughputValue": 354.167,
+            "throughputUnit": "charactersPerSecond",
+            "timingScope": "estimated"
+          },
+          {
+            "step": "tts",
+            "provider": "cartesia",
+            "model": "sonic-3",
+            "processingTimeMs": 48,
+            "inputMetric": "characters",
+            "inputValue": 17,
+            "rateBasis": "1KCharacters",
+            "msPerUnit": 2823.529,
+            "throughputValue": 354.167,
+            "throughputUnit": "charactersPerSecond",
+            "timingScope": "estimated"
+          },
+          {
+            "step": "tts",
+            "provider": "cartesia",
+            "model": "sonic-3.5",
+            "processingTimeMs": 48,
+            "inputMetric": "characters",
+            "inputValue": 17,
+            "rateBasis": "1KCharacters",
+            "msPerUnit": 2823.529,
+            "throughputValue": 354.167,
+            "throughputUnit": "charactersPerSecond",
+            "timingScope": "estimated"
+          }
+        ]
+      },
+      "actual": {
+        "totalProcessingTimeMs": 88767,
+        "steps": [
+          {
+            "step": "tts",
+            "provider": "elevenlabs",
+            "model": "eleven_v3",
+            "processingTimeMs": 987,
+            "inputMetric": "characters",
+            "inputValue": 17,
+            "rateBasis": "1KCharacters",
+            "msPerUnit": 58058.824,
+            "throughputValue": 17.224,
+            "throughputUnit": "charactersPerSecond",
+            "timingScope": "wall"
+          },
+          {
+            "step": "tts",
+            "provider": "minimax",
+            "model": "speech-2.8-hd",
+            "processingTimeMs": 24044,
+            "inputMetric": "characters",
+            "inputValue": 17,
+            "rateBasis": "1KCharacters",
+            "msPerUnit": 1414352.941,
+            "throughputValue": 0.707,
+            "throughputUnit": "charactersPerSecond",
+            "timingScope": "wall"
+          },
+          {
+            "step": "tts",
+            "provider": "minimax",
+            "model": "speech-2.8-turbo",
+            "processingTimeMs": 48529,
+            "inputMetric": "characters",
+            "inputValue": 17,
+            "rateBasis": "1KCharacters",
+            "msPerUnit": 2854647.059,
+            "throughputValue": 0.35,
+            "throughputUnit": "charactersPerSecond",
+            "timingScope": "wall"
+          },
+          {
+            "step": "tts",
+            "provider": "groq",
+            "model": "canopylabs/orpheus-v1-english",
+            "processingTimeMs": 525,
+            "inputMetric": "characters",
+            "inputValue": 17,
+            "rateBasis": "1KCharacters",
+            "msPerUnit": 30882.353,
+            "throughputValue": 32.381,
+            "throughputUnit": "charactersPerSecond",
+            "timingScope": "wall"
+          },
+          {
+            "step": "tts",
+            "provider": "grok",
+            "model": "grok-tts",
+            "processingTimeMs": 751,
+            "inputMetric": "characters",
+            "inputValue": 17,
+            "rateBasis": "1KCharacters",
+            "msPerUnit": 44176.471,
+            "throughputValue": 22.636,
+            "throughputUnit": "charactersPerSecond",
+            "timingScope": "wall"
+          },
+          {
+            "step": "tts",
+            "provider": "mistral",
+            "model": "voxtral-mini-tts-2603",
+            "processingTimeMs": 1617,
+            "inputMetric": "characters",
+            "inputValue": 17,
+            "rateBasis": "1KCharacters",
+            "msPerUnit": 95117.647,
+            "throughputValue": 10.513,
+            "throughputUnit": "charactersPerSecond",
+            "timingScope": "wall"
+          },
+          {
+            "step": "tts",
+            "provider": "openai",
+            "model": "gpt-4o-mini-tts",
+            "processingTimeMs": 1252,
+            "inputMetric": "characters",
+            "inputValue": 17,
+            "rateBasis": "1KCharacters",
+            "msPerUnit": 73647.059,
+            "throughputValue": 13.578,
+            "throughputUnit": "charactersPerSecond",
+            "timingScope": "wall"
+          },
+          {
+            "step": "tts",
+            "provider": "openai",
+            "model": "tts-1",
+            "processingTimeMs": 1472,
+            "inputMetric": "characters",
+            "inputValue": 17,
+            "rateBasis": "1KCharacters",
+            "msPerUnit": 86588.235,
+            "throughputValue": 11.549,
+            "throughputUnit": "charactersPerSecond",
+            "timingScope": "wall"
+          },
+          {
+            "step": "tts",
+            "provider": "openai",
+            "model": "tts-1-hd",
+            "processingTimeMs": 2575,
+            "inputMetric": "characters",
+            "inputValue": 17,
+            "rateBasis": "1KCharacters",
+            "msPerUnit": 151470.588,
+            "throughputValue": 6.602,
+            "throughputUnit": "charactersPerSecond",
+            "timingScope": "wall"
+          },
+          {
+            "step": "tts",
+            "provider": "gemini",
+            "model": "gemini-3.1-flash-tts-preview",
+            "processingTimeMs": 2064,
+            "inputMetric": "characters",
+            "inputValue": 17,
+            "rateBasis": "1KCharacters",
+            "msPerUnit": 121411.765,
+            "throughputValue": 8.236,
+            "throughputUnit": "charactersPerSecond",
+            "timingScope": "wall"
+          },
+          {
+            "step": "tts",
+            "provider": "deepgram",
+            "model": "aura-2-thalia-en",
+            "processingTimeMs": 913,
+            "inputMetric": "characters",
+            "inputValue": 17,
+            "rateBasis": "1KCharacters",
+            "msPerUnit": 53705.882,
+            "throughputValue": 18.62,
+            "throughputUnit": "charactersPerSecond",
+            "timingScope": "wall"
+          },
+          {
+            "step": "tts",
+            "provider": "speechify",
+            "model": "simba-english",
+            "processingTimeMs": 2011,
+            "inputMetric": "characters",
+            "inputValue": 17,
+            "rateBasis": "1KCharacters",
+            "msPerUnit": 118294.118,
+            "throughputValue": 8.454,
+            "throughputUnit": "charactersPerSecond",
+            "timingScope": "wall"
+          },
+          {
+            "step": "tts",
+            "provider": "hume",
+            "model": "octave-2",
+            "processingTimeMs": 1147,
+            "inputMetric": "characters",
+            "inputValue": 17,
+            "rateBasis": "1KCharacters",
+            "msPerUnit": 67470.588,
+            "throughputValue": 14.821,
+            "throughputUnit": "charactersPerSecond",
+            "timingScope": "wall"
+          },
+          {
+            "step": "tts",
+            "provider": "cartesia",
+            "model": "sonic-3",
+            "processingTimeMs": 499,
+            "inputMetric": "characters",
+            "inputValue": 17,
+            "rateBasis": "1KCharacters",
+            "msPerUnit": 29352.941,
+            "throughputValue": 34.068,
+            "throughputUnit": "charactersPerSecond",
+            "timingScope": "wall"
+          },
+          {
+            "step": "tts",
+            "provider": "cartesia",
+            "model": "sonic-3.5",
+            "processingTimeMs": 381,
+            "inputMetric": "characters",
+            "inputValue": 17,
+            "rateBasis": "1KCharacters",
+            "msPerUnit": 22411.765,
+            "throughputValue": 44.619,
+            "throughputUnit": "charactersPerSecond",
+            "timingScope": "wall"
+          }
+        ]
+      }
+    },
+    "input": "Short test line.\n",
+    "requestedProviders": [
+      {
+        "service": "elevenlabs",
+        "model": "eleven_v3"
+      },
+      {
+        "service": "minimax",
+        "model": "speech-2.8-hd"
+      },
+      {
+        "service": "minimax",
+        "model": "speech-2.8-turbo"
+      },
+      {
+        "service": "groq",
+        "model": "canopylabs/orpheus-v1-english"
+      },
+      {
+        "service": "grok",
+        "model": "grok-tts"
+      },
+      {
+        "service": "mistral",
+        "model": "voxtral-mini-tts-2603"
+      },
+      {
+        "service": "openai",
+        "model": "gpt-4o-mini-tts"
+      },
+      {
+        "service": "openai",
+        "model": "tts-1"
+      },
+      {
+        "service": "openai",
+        "model": "tts-1-hd"
+      },
+      {
+        "service": "gemini",
+        "model": "gemini-3.1-flash-tts-preview"
+      },
+      {
+        "service": "deepgram",
+        "model": "aura-2-thalia-en"
+      },
+      {
+        "service": "speechify",
+        "model": "simba-english"
+      },
+      {
+        "service": "hume",
+        "model": "octave-2"
+      },
+      {
+        "service": "cartesia",
+        "model": "sonic-3"
+      },
+      {
+        "service": "cartesia",
+        "model": "sonic-3.5"
+      }
+    ]
+  }
+}

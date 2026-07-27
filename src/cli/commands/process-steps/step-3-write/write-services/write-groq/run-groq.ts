@@ -1,0 +1,39 @@
+import * as l from '~/utils/app-logger/app-logger'
+import { readEnv } from '~/utils/validate/env-utils'
+import { InternalError, hintsForMissingEnv } from '~/utils/error-handler'
+import { GROQ_DEFAULT_BASE_URL } from '~/utils/base-urls'
+import type { Step3Metadata, StructuredRequestOptions } from '~/types'
+import { runOpenAICompatibleChatModel } from '../openai-compatible-chat'
+
+const getGroqClientConfig = (): { apiKey: string, baseURL: string } => {
+  const apiKey = readEnv('GROQ_API_KEY')
+  if (!apiKey) {
+    l.error('GROQ_API_KEY not found in environment for Groq model')
+    throw InternalError('GROQ_API_KEY environment variable is required for --groq models', { stage: 'write:groq', hints: hintsForMissingEnv('GROQ_API_KEY') })
+  }
+
+  return { apiKey, baseURL: GROQ_DEFAULT_BASE_URL }
+}
+
+export const runGroqModel = async (
+  prompt: string,
+  model: string,
+  structuredOpts?: StructuredRequestOptions
+): Promise<{ result: string, metadata: Step3Metadata }> => {
+  const config = getGroqClientConfig()
+
+  return await runOpenAICompatibleChatModel({
+    prompt,
+    model,
+    structuredOpts,
+    config,
+    service: 'groq',
+    providerLabel: 'Groq',
+    operationName: 'groq-llm',
+    customizeRequestBody: (requestBody, currentModel) => {
+      if (currentModel.startsWith('openai/gpt-oss-')) {
+        requestBody['reasoning_effort'] = 'low'
+      }
+    }
+  })
+}

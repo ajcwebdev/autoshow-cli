@@ -1,0 +1,19 @@
+{
+  "DeAPI": {
+    "Models": [
+      "https://docs.deapi.ai/models.md"
+    ],
+    "STT": [
+      "https://docs.deapi.ai/api/v2/audio/transcriptions.md",
+      "https://docs.deapi.ai/quickstart.md",
+      "https://docs.deapi.ai/pricing.md",
+      "https://docs.deapi.ai/architecture-and-security.md",
+      "https://docs.deapi.ai/limits-and-quotas.md",
+      "https://docs.deapi.ai/execution-modes-and-integrations/execution-modes-and-http-queue.md",
+      "https://docs.deapi.ai/execution-modes-and-integrations/webhooks.md",
+      "https://docs.deapi.ai/other/faq-frequently-asked-questions.md",
+      "https://docs.deapi.ai/api/v2/overview",
+      "https://docs.deapi.ai/api/v2/errors.md"
+    ]
+  }
+}

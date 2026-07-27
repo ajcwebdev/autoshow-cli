@@ -1,0 +1,40 @@
+{
+  "schemaVersion": 1,
+  "runDir": "/Users/ajc/c/autoshow-cli/output/2026-06-14_01-28-27-392_document",
+  "generatedAt": "2026-06-14T10:06:58.610Z",
+  "pageAligned": false,
+  "variants": [
+    {
+      "variantId": "status-quo-consensus",
+      "source": "current consensus extraction",
+      "charCount": 1340,
+      "wordCount": 26,
+      "pageCount": 1
+    },
+    {
+      "variantId": "page-level-hybrid",
+      "source": "deterministic selected provider pages",
+      "charCount": 2681,
+      "wordCount": 52,
+      "pageCount": 2,
+      "selectedPageSourceCounts": {
+        "anthropic/claude-sonnet-4-6": 1,
+        "mistral/mistral-ocr-2512": 1
+      },
+      "lowConfidencePageCount": 2,
+      "outlierPageCount": 2
+    }
+  ],
+  "pairwiseDistances": [
+    {
+      "referenceVariantId": "status-quo-consensus",
+      "candidateVariantId": "page-level-hybrid",
+      "wer": 1,
+      "cer": 1.000758,
+      "wordDistance": 26,
+      "wordReferenceCount": 26,
+      "charDistance": 1321,
+      "charReferenceCount": 1320
+    }
+  ]
+}

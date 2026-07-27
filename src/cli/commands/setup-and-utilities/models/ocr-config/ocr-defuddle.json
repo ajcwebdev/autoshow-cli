@@ -1,0 +1,20 @@
+{
+  "defuddle": {
+    "description": "Local Defuddle article extraction",
+    "type": "local",
+    "models": {
+      "defuddle": {
+        "description": "Local Defuddle HTML-to-markdown extraction",
+        "costPer1kPagesUSD": 0,
+        "costPer1kPagesCents": 0,
+        "limits": {
+          "notes": "Defuddle runs locally and has no third-party API billing."
+        },
+        "estimation": {
+          "costMultiplier": 1,
+          "msPerPage": 626
+        }
+      }
+    }
+  }
+}

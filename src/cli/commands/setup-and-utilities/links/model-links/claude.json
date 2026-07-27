@@ -1,0 +1,41 @@
+{
+  "Claude": {
+    "General": [
+      "https://platform.claude.com/docs/en/about-claude/pricing.md",
+      "https://platform.claude.com/docs/en/build-with-claude/overview.md",
+      "https://platform.claude.com/docs/en/api/overview.md",
+      "https://platform.claude.com/docs/en/api/errors.md"
+    ],
+    "Models": [
+      "https://platform.claude.com/docs/en/api/typescript/models/list.md",
+      "https://platform.claude.com/docs/en/api/typescript/models/retrieve.md",
+      "https://platform.claude.com/docs/en/about-claude/models/whats-new-opus-5.md",
+      "https://platform.claude.com/docs/en/about-claude/models/whats-new-claude-4-8.md",
+      "https://platform.claude.com/docs/en/about-claude/models/overview.md",
+      "https://platform.claude.com/docs/en/about-claude/models/model-ids-and-versions.md",
+      "https://platform.claude.com/docs/en/about-claude/models/choosing-a-model.md",
+      "https://platform.claude.com/docs/en/about-claude/models/migration-guide.md",
+      "https://platform.claude.com/docs/en/about-claude/model-deprecations.md",
+      "https://platform.claude.com/docs/en/about-claude/models/introducing-claude-fable-5-and-claude-mythos-5.md",
+      "https://platform.claude.com/docs/en/about-claude/models/whats-new-sonnet-5.md",
+      "https://platform.claude.com/docs/en/resources/overview.md"
+    ],
+    "Text": [
+      "https://platform.claude.com/docs/en/build-with-claude/working-with-messages.md",
+      "https://platform.claude.com/docs/en/build-with-claude/structured-outputs.md",
+      "https://platform.claude.com/docs/en/build-with-claude/prompt-caching.md",
+      "https://platform.claude.com/docs/en/build-with-claude/extended-thinking.md",
+      "https://platform.claude.com/docs/en/build-with-claude/adaptive-thinking.md",
+      "https://platform.claude.com/docs/en/build-with-claude/effort.md",
+      "https://platform.claude.com/docs/en/build-with-claude/context-windows.md",
+      "https://platform.claude.com/docs/en/build-with-claude/token-counting.md",
+      "https://platform.claude.com/docs/en/build-with-claude/streaming.md",
+      "https://platform.claude.com/docs/en/build-with-claude/prompt-engineering/claude-prompting-best-practices.md"
+    ],
+    "OCR": [
+      "https://platform.claude.com/docs/en/build-with-claude/pdf-support.md",
+      "https://platform.claude.com/docs/en/build-with-claude/files.md",
+      "https://platform.claude.com/docs/en/build-with-claude/vision.md"
+    ]
+  }
+}

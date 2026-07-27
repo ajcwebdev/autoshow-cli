@@ -1,0 +1,100 @@
+import type { DiarizationOptions, ProviderSpec, RuntimeOptions, Step2ProviderSelectionFilter, SttDiarizationFlagOptions, TranscribeEngine, TranscribeEngineCapabilities } from '~/types'
+import { collectStep2ProviderSpecs } from '../step-2-shared/provider-registry'
+
+
+const STT_ENGINE_CAPABILITIES = {
+  reverb: { diarizationByDefault: true, supportsSpeakerCountHint: false },
+  deepinfra: { diarizationByDefault: false, supportsSpeakerCountHint: false },
+  deepgram: { diarizationByDefault: true, supportsSpeakerCountHint: false },
+  soniox: { diarizationByDefault: true, supportsSpeakerCountHint: false },
+  speechmatics: { diarizationByDefault: true, supportsSpeakerCountHint: false },
+  rev: { diarizationByDefault: true, supportsSpeakerCountHint: false },
+  groq: { diarizationByDefault: false, supportsSpeakerCountHint: false },
+  grok: { diarizationByDefault: true, supportsSpeakerCountHint: false },
+  mistral: { diarizationByDefault: true, supportsSpeakerCountHint: false },
+  assemblyai: { diarizationByDefault: true, supportsSpeakerCountHint: true },
+  gladia: { diarizationByDefault: true, supportsSpeakerCountHint: true },
+  happyscribe: { diarizationByDefault: true, supportsSpeakerCountHint: false },
+  supadata: { diarizationByDefault: false, supportsSpeakerCountHint: false },
+  scrapecreators: { diarizationByDefault: false, supportsSpeakerCountHint: false },
+  'gemini-stt': { diarizationByDefault: false, supportsSpeakerCountHint: false },
+  together: { diarizationByDefault: false, supportsSpeakerCountHint: false },
+  whisper: { diarizationByDefault: false, supportsSpeakerCountHint: false },
+  whisperfile: { diarizationByDefault: false, supportsSpeakerCountHint: false },
+  'youtube-captions': { diarizationByDefault: false, supportsSpeakerCountHint: false }
+} as const satisfies Record<TranscribeEngine, TranscribeEngineCapabilities>
+
+export const getSttEngineCapabilities = (
+  engine: TranscribeEngine
+): TranscribeEngineCapabilities => STT_ENGINE_CAPABILITIES[engine]
+
+export const resolveDiarizationOptions = (
+  options: SttDiarizationFlagOptions,
+  engine: TranscribeEngine
+): DiarizationOptions | undefined => {
+  const speakerCount = options.diarizationSpeakerCount
+  const capabilities = STT_ENGINE_CAPABILITIES[engine]
+  const diarizationOptions: DiarizationOptions = capabilities.diarizationByDefault
+    ? { enabled: true }
+    : {}
+
+  if (speakerCount === undefined) {
+    return Object.keys(diarizationOptions).length > 0 ? diarizationOptions : undefined
+  }
+
+  if (!capabilities.supportsSpeakerCountHint) {
+    return Object.keys(diarizationOptions).length > 0 ? diarizationOptions : undefined
+  }
+
+  diarizationOptions.speakerCount = speakerCount
+  return diarizationOptions
+}
+
+export const collectSttProviderSpecs = (
+  options: Pick<
+    RuntimeOptions,
+    | 'useReverb'
+    | 'step2SelectionOrigins'
+    | 'whisperModel'
+    | 'whisperModels'
+    | 'deepinfraSttModel'
+    | 'deepinfraSttModels'
+    | 'deepgramSttModel'
+    | 'deepgramSttModels'
+    | 'sonioxSttModel'
+    | 'sonioxSttModels'
+    | 'speechmaticsSttModel'
+    | 'speechmaticsSttModels'
+    | 'revSttModel'
+    | 'revSttModels'
+    | 'groqSttModel'
+    | 'groqSttModels'
+    | 'grokSttModel'
+    | 'grokSttModels'
+    | 'mistralSttModel'
+    | 'mistralSttModels'
+    | 'assemblyaiSttModel'
+    | 'assemblyaiSttModels'
+    | 'gladiaSttModel'
+    | 'gladiaSttModels'
+    | 'happyscribeSttModel'
+    | 'happyscribeSttModels'
+    | 'supadataSttModel'
+    | 'supadataSttModels'
+    | 'scrapecreatorsSttModel'
+    | 'scrapecreatorsSttModels'
+    | 'geminiSttModel'
+    | 'geminiSttModels'
+    | 'togetherSttModel'
+    | 'togetherSttModels'
+  >,
+  filter?: Step2ProviderSelectionFilter
+): ProviderSpec[] => {
+  const specs = collectStep2ProviderSpecs('stt', options as Record<string, unknown>, filter)
+
+  if (specs.length === 0 && !filter?.includeOrigins) {
+    specs.push({ provider: 'whisper', model: options.whisperModel })
+  }
+
+  return specs
+}

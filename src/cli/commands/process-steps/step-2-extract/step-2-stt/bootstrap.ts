@@ -1,0 +1,47 @@
+import type { SttTarget } from '~/types'
+import { ensureProviderReady } from '~/utils/bootstrap-broker'
+import { getStep2BootstrapProviderId } from '../step-2-shared/provider-registry'
+
+export {
+  downloadWhisperModel
+} from './stt-local/whisper/whisper'
+
+const toBootstrapProviderId = (
+  target: Pick<SttTarget, 'service' | 'model'>
+): string => {
+  switch (target.service) {
+    case 'whisper':
+      return `whisper:${target.model}`
+    case 'whisperfile':
+      return `whisperfile:${target.model}`
+    case 'reverb':
+    case 'deepinfra':
+    case 'deepgram':
+    case 'soniox':
+    case 'speechmatics':
+    case 'rev':
+    case 'groq':
+    case 'grok':
+    case 'mistral':
+    case 'assemblyai':
+    case 'gladia':
+    case 'happyscribe':
+    case 'supadata':
+    case 'scrapecreators':
+    case 'gemini-stt':
+    case 'together':
+      return getStep2BootstrapProviderId('stt', target.service) ?? ''
+    case 'youtube-captions':
+      return ''
+  }
+}
+
+export const ensureSttTargetSetup = async (
+  target: Pick<SttTarget, 'service' | 'model'>
+): Promise<void> => {
+  if (target.service === 'youtube-captions') {
+    return
+  }
+
+  await ensureProviderReady(toBootstrapProviderId(target))
+}

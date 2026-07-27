@@ -1,0 +1,202 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Combined URL Provider Comparison</title>
+<style>
+:root { color-scheme: light dark; }
+body {
+  --page: #f9f9f7; --surface: #fcfcfb; --ink: #0b0b0b; --ink-2: #52514e;
+  --muted: #898781; --grid: #e1e0d9; --border: rgba(11, 11, 11, 0.10);
+  --accent: #2a78d6;
+  margin: 0; background: var(--page); color: var(--ink);
+  font: 14px/1.5 system-ui, -apple-system, "Segoe UI", sans-serif;
+}
+@media (prefers-color-scheme: dark) {
+  body {
+    --page: #0d0d0d; --surface: #1a1a19; --ink: #ffffff; --ink-2: #c3c2b7;
+    --muted: #898781; --grid: #2c2c2a; --border: rgba(255, 255, 255, 0.10);
+    --accent: #3987e5;
+  }
+}
+main { max-width: 1100px; margin: 0 auto; padding: 24px 20px 48px; }
+h1 { font-size: 22px; margin: 0 0 4px; }
+h2 { font-size: 17px; margin: 36px 0 12px; padding-top: 16px; border-top: 1px solid var(--grid); }
+h3 { font-size: 13px; margin: 20px 0 8px; color: var(--ink-2); text-transform: uppercase; letter-spacing: 0.04em; }
+.meta { color: var(--muted); font-size: 12px; margin: 0 0 20px; }
+.meta code { font-size: 11px; }
+code { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 12px; }
+.tiles { display: flex; flex-wrap: wrap; gap: 10px; margin: 0 0 12px; }
+.tile { background: var(--surface); border: 1px solid var(--border); border-radius: 8px; padding: 10px 14px; min-width: 110px; }
+.tile .v { font-size: 20px; font-weight: 600; }
+.tile .l { font-size: 12px; color: var(--ink-2); }
+details { margin: 10px 0; }
+summary { cursor: pointer; color: var(--ink-2); font-size: 13px; }
+details[open] summary { margin-bottom: 8px; }
+.tiers { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 10px; margin: 0 0 16px; }
+.tier-card { background: var(--surface); border: 1px solid var(--border); border-radius: 8px; padding: 10px 12px; }
+.tier-card .desc { font-size: 11px; color: var(--muted); margin-top: 8px; }
+.chip { display: inline-block; margin: 2px 4px 2px 0; padding: 1px 8px; border-radius: 10px; font-size: 12px; background: color-mix(in srgb, var(--ink) 5%, transparent); }
+.chip .n { color: var(--muted); font-size: 11px; }
+.tbadge { display: inline-block; min-width: 2.1em; text-align: center; padding: 0 6px; border-radius: 10px; font-size: 11px; font-weight: 600; }
+.tbadge.t1 { background: color-mix(in srgb, var(--accent) 26%, transparent); border: 1px solid color-mix(in srgb, var(--accent) 45%, transparent); }
+.tbadge.t2 { background: color-mix(in srgb, var(--accent) 12%, transparent); border: 1px solid color-mix(in srgb, var(--accent) 24%, transparent); }
+.tbadge.t3 { background: color-mix(in srgb, var(--ink) 6%, transparent); border: 1px solid var(--border); }
+.weights { display: flex; flex-wrap: wrap; gap: 6px; margin: 0 0 10px; }
+.weights button {
+  font: inherit; font-size: 12px; padding: 3px 10px; border-radius: 14px; cursor: pointer;
+  background: var(--surface); color: var(--ink-2); border: 1px solid var(--border);
+}
+.weights button[aria-pressed="true"] {
+  background: color-mix(in srgb, var(--accent) 16%, transparent);
+  border-color: color-mix(in srgb, var(--accent) 55%, transparent); color: var(--ink);
+}
+.tablewrap { overflow-x: auto; background: var(--surface); border: 1px solid var(--border); border-radius: 8px; }
+table { border-collapse: collapse; width: 100%; font-size: 13px; }
+th, td { padding: 6px 10px; text-align: left; white-space: nowrap; }
+thead th { position: sticky; top: 0; background: var(--surface); color: var(--ink-2); font-size: 11px; text-transform: uppercase; letter-spacing: 0.04em; border-bottom: 1px solid var(--grid); }
+tbody td { border-bottom: 1px solid var(--grid); }
+tbody tr:last-child td { border-bottom: none; }
+td.num, th.num { text-align: right; font-variant-numeric: tabular-nums; }
+.rk { display: inline-block; min-width: 1.7em; text-align: center; border-radius: 6px; font-size: 11px; color: var(--ink-2); background: color-mix(in srgb, var(--ink) 6%, transparent); margin-left: 6px; }
+.rk.top { border: 1px solid color-mix(in srgb, var(--accent) 55%, transparent); color: var(--ink); }
+.bar { width: 72px; height: 6px; border-radius: 0 4px 4px 0; background: color-mix(in srgb, var(--accent) 16%, transparent); overflow: hidden; }
+.bar > i { display: block; height: 100%; border-radius: 0 4px 4px 0; background: var(--accent); }
+.cellbar { display: flex; align-items: center; gap: 8px; justify-content: flex-end; }
+.heat { text-align: right; font-variant-numeric: tabular-nums; background: color-mix(in srgb, var(--accent) calc(var(--h, 0) * 0.5%), transparent); }
+.footnotes { font-size: 12px; color: var(--muted); margin: 8px 2px; }
+.footnotes p { margin: 2px 0; }
+.empty { color: var(--muted); font-style: italic; }
+.notes { color: var(--ink-2); font-size: 12px; }
+.run-link { color: var(--accent); text-decoration-thickness: 1px; text-underline-offset: 2px; }
+.wtable td, .wtable th { font-size: 12px; }
+caption { caption-side: bottom; text-align: left; color: var(--muted); font-size: 11px; padding: 6px 10px; }
+</style>
+</head>
+<body>
+<main>
+<h1>Combined URL Provider Comparison</h1>
+<p class="meta">Generated 2026-07-18T10:24:03.246Z &middot; <code>/Users/ajc/c/autoshow-cli/docs/benchmarks/url</code></p>
+<div class="tiles">
+<div class="tile"><div class="v">7</div><div class="l">Runs</div></div>
+<div class="tile"><div class="v">6</div><div class="l">Providers</div></div>
+<div class="tile"><div class="v">37</div><div class="l">Provider rows</div></div>
+<div class="tile"><div class="v">37</div><div class="l">Automated quality rows</div></div>
+<div class="tile"><div class="v">0</div><div class="l">Human quality rows</div></div>
+</div>
+<details><summary>Runs (7)</summary><div class="tablewrap"><table class="wtable"><thead><tr><th>Key</th><th>Run</th><th>Detail</th><th>Article</th><th>Source URL</th><th>Best local quality</th><th>Best service quality</th><th>Cheapest service</th><th>Fastest service</th></tr></thead><tbody><tr><td>R1</td><td><code>2026-05-21_09-38-31-367_anthony-campolos-home-page</code></td><td>1 local / 5 service</td><td><a class="run-link" href="https://ajcwebdev.com/" rel="noreferrer">Anthony Campolo's Home Page</a></td><td><a class="run-link" href="https://ajcwebdev.com/" rel="noreferrer">https://ajcwebdev.com/</a></td><td>defuddle (97.17)</td><td>firecrawl (97.35)</td><td>firecrawl ($0.0008)</td><td>firecrawl (0.95s)</td></tr>
+<tr><td>R2</td><td><code>2026-05-21_09-38-58-898_autogenerate-show-notes-with-whisper-cpp-llama-cpp-and-node-js</code></td><td>1 local / 5 service</td><td><a class="run-link" href="https://ajcwebdev.com/autogen-shownotes/" rel="noreferrer">Autogenerate Show Notes with Whisper-cpp, Llama-cpp, and Node-js</a></td><td><a class="run-link" href="https://ajcwebdev.com/autogen-shownotes/" rel="noreferrer">https://ajcwebdev.com/autogen-shownotes/</a></td><td>defuddle (99.40)</td><td>spider (93.09)</td><td>firecrawl ($0.0008)</td><td>firecrawl (1.81s)</td></tr>
+<tr><td>R3</td><td><code>2026-07-18_01-28-32-062_promise-javascript-mdn</code></td><td>0 local / 5 service</td><td><a class="run-link" href="https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Promise" rel="noreferrer">Promise - JavaScript | MDN</a></td><td><a class="run-link" href="https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Promise" rel="noreferrer">https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Promise</a></td><td>n/a</td><td>spider (98.30)</td><td>firecrawl ($0.0008)</td><td>firecrawl (0.93s)</td></tr>
+<tr><td>R4</td><td><code>2026-07-18_01-28-41-200_apollo-11-wikipedia</code></td><td>0 local / 5 service</td><td><a class="run-link" href="https://en.wikipedia.org/wiki/Apollo_11" rel="noreferrer">Apollo 11 - Wikipedia</a></td><td><a class="run-link" href="https://en.wikipedia.org/wiki/Apollo_11" rel="noreferrer">https://en.wikipedia.org/wiki/Apollo_11</a></td><td>n/a</td><td>spider (69.40)</td><td>firecrawl ($0.0008)</td><td>firecrawl (0.92s)</td></tr>
+<tr><td>R5</td><td><code>2026-07-18_01-28-50-262_rfc-9110-http-semantics</code></td><td>0 local / 5 service</td><td><a class="run-link" href="https://www.rfc-editor.org/rfc/rfc9110.html" rel="noreferrer">RFC 9110: HTTP Semantics</a></td><td><a class="run-link" href="https://www.rfc-editor.org/rfc/rfc9110.html" rel="noreferrer">https://www.rfc-editor.org/rfc/rfc9110.html</a></td><td>n/a</td><td>firecrawl (99.83)</td><td>firecrawl ($0.0008)</td><td>firecrawl (1.05s)</td></tr>
+<tr><td>R6</td><td><code>2026-07-18_01-28-55-132_pride-and-prejudice-project-gutenberg</code></td><td>0 local / 5 service</td><td><a class="run-link" href="https://www.gutenberg.org/files/1342/1342-h/1342-h.htm" rel="noreferrer">Pride and prejudice | Project Gutenberg</a></td><td><a class="run-link" href="https://www.gutenberg.org/files/1342/1342-h/1342-h.htm" rel="noreferrer">https://www.gutenberg.org/files/1342/1342-h/1342-h.htm</a></td><td>n/a</td><td>zyte (99.78)</td><td>firecrawl ($0.0008)</td><td>spider (2.65s)</td></tr>
+<tr><td>R7</td><td><code>2026-07-18_01-29-01-024_thinking-in-react-react</code></td><td>0 local / 5 service</td><td><a class="run-link" href="https://react.dev/learn/thinking-in-react" rel="noreferrer">Thinking in React – React</a></td><td><a class="run-link" href="https://react.dev/learn/thinking-in-react" rel="noreferrer">https://react.dev/learn/thinking-in-react</a></td><td>n/a</td><td>spider (93.61)</td><td>firecrawl ($0.0008)</td><td>firecrawl (0.54s)</td></tr></tbody></table></div></details>
+<section class="group">
+<h2>Local</h2>
+<h3>Quality-cost terciles</h3>
+<div class="tiers"><div class="tier-card"><div><span class="tbadge t1">T1</span> <strong>Tier 1</strong></div><div><span class="chip"><code>defuddle</code> <span class="n">#1 · 100.00</span></span></div><div class="desc">Highest quality-cost tercile (rank 1).</div></div>
+<div class="tier-card"><div><span class="tbadge t2">T2</span> <strong>Tier 2</strong></div><div><span class="empty">none</span></div><div class="desc">Middle quality-cost tercile; no models fall in this tier for this group size.</div></div>
+<div class="tier-card"><div><span class="tbadge t3">T3</span> <strong>Tier 3</strong></div><div><span class="empty">none</span></div><div class="desc">Lower quality-cost tercile; no models fall in this tier for this group size.</div></div></div>
+<h3>Providers</h3>
+<div class="weights" hidden role="group" aria-label="Composite weight set"><button type="button" data-set="balanced" aria-pressed="true">Balanced</button>
+<button type="button" data-set="strongquality" aria-pressed="false">Strong quality</button>
+<button type="button" data-set="moderatequality" aria-pressed="false">Moderate quality</button>
+<button type="button" data-set="strongspeed" aria-pressed="false">Strong speed</button>
+<button type="button" data-set="moderatespeed" aria-pressed="false">Moderate speed</button>
+<button type="button" data-set="strongcost" aria-pressed="false">Strong cost</button>
+<button type="button" data-set="moderatecost" aria-pressed="false">Moderate cost</button>
+<button type="button" data-set="qualitycost" aria-pressed="false">Quality + cost</button>
+<button type="button" data-set="costspeed" aria-pressed="false">Cost + speed</button></div>
+<div class="tablewrap"><table class="providers"><thead><tr><th class="num rankhead">#</th><th>Tier</th><th>Provider</th><th class="num">Coverage</th><th class="num">Auto quality /100</th><th class="num">Mean time</th><th class="num">Mean cost</th><th class="num">Composite (<span class="comp-label">Balanced</span>)</th><th class="num">Avg WER</th><th class="num">Avg CER</th><th class="num">Avg coverage</th></tr></thead><tbody><tr data-r-balanced="1" data-c-balanced="100.00" data-r-strongquality="1" data-c-strongquality="100.00" data-r-moderatequality="1" data-c-moderatequality="100.00" data-r-strongspeed="1" data-c-strongspeed="100.00" data-r-moderatespeed="1" data-c-moderatespeed="100.00" data-r-strongcost="1" data-c-strongcost="100.00" data-r-moderatecost="1" data-c-moderatecost="100.00" data-r-qualitycost="1" data-c-qualitycost="100.00" data-r-costspeed="1" data-c-costspeed="100.00"><td class="num rankcell">1</td><td><span class="tbadge t1">T1</span></td><td><code title="defuddle">defuddle</code></td><td class="num">2/7</td><td class="num">98.28<span class="rk top">1</span></td><td class="num">0.71s<span class="rk top">1</span></td><td class="num">$0.0000<span class="rk top">1</span></td><td class="num"><span class="cellbar"><span class="compval">100.00</span><span class="bar"><i class="compfill" style="width:100%"></i></span></span></td><td class="num">1.72%</td><td class="num">1.54%</td><td class="num">98.11%</td></tr></tbody></table></div>
+<details><summary>All weighted rankings (rank and composite per weight set)</summary><div class="tablewrap"><table class="wtable"><thead><tr><th>Provider</th><th class="num">Strong quality</th><th class="num">Moderate quality</th><th class="num">Strong speed</th><th class="num">Moderate speed</th><th class="num">Strong cost</th><th class="num">Moderate cost</th><th class="num">Quality + cost</th><th class="num">Cost + speed</th></tr></thead><tbody><tr><td><code>defuddle</code></td><td class="num">1 <span class="n">(100.00)</span></td><td class="num">1 <span class="n">(100.00)</span></td><td class="num">1 <span class="n">(100.00)</span></td><td class="num">1 <span class="n">(100.00)</span></td><td class="num">1 <span class="n">(100.00)</span></td><td class="num">1 <span class="n">(100.00)</span></td><td class="num">1 <span class="n">(100.00)</span></td><td class="num">1 <span class="n">(100.00)</span></td></tr></tbody></table></div></details>
+<h3>Per-run automated quality</h3>
+<div class="tablewrap"><table><thead><tr><th>Provider</th><th class="num">Mean</th><th class="num" title="2026-05-21_09-38-31-367_anthony-campolos-home-page">R1</th><th class="num" title="2026-05-21_09-38-58-898_autogenerate-show-notes-with-whisper-cpp-llama-cpp-and-node-js">R2</th><th class="num" title="2026-07-18_01-28-32-062_promise-javascript-mdn">R3</th><th class="num" title="2026-07-18_01-28-41-200_apollo-11-wikipedia">R4</th><th class="num" title="2026-07-18_01-28-50-262_rfc-9110-http-semantics">R5</th><th class="num" title="2026-07-18_01-28-55-132_pride-and-prejudice-project-gutenberg">R6</th><th class="num" title="2026-07-18_01-29-01-024_thinking-in-react-react">R7</th></tr></thead><tbody><tr><td><code>defuddle</code></td><td class="num">98.28</td><td class="heat" style="--h:0">97.17</td><td class="heat" style="--h:100">99.40</td><td class="num">—</td><td class="num">—</td><td class="num">—</td><td class="num">—</td><td class="num">—</td></tr></tbody><caption>Shading is relative within this table (stronger blue = higher score); run columns are listed under Runs above.</caption></table></div>
+</section>
+<section class="group">
+<h2>Service</h2>
+<h3>Quality-cost terciles</h3>
+<div class="tiers"><div class="tier-card"><div><span class="tbadge t1">T1</span> <strong>Tier 1</strong></div><div><span class="chip"><code>spider</code> <span class="n">#1 · 94.55</span></span> <span class="chip"><code>firecrawl</code> <span class="n">#2 · 84.01</span></span></div><div class="desc">Highest quality-cost tercile (ranks 1-2).</div></div>
+<div class="tier-card"><div><span class="tbadge t2">T2</span> <strong>Tier 2</strong></div><div><span class="chip"><code>zyte</code> <span class="n">#3 · 61.27</span></span> <span class="chip"><code>glm-reader</code> <span class="n">#4 · 33.81</span></span></div><div class="desc">Middle quality-cost tercile (ranks 3-4).</div></div>
+<div class="tier-card"><div><span class="tbadge t3">T3</span> <strong>Tier 3</strong></div><div><span class="chip"><code>supadata</code> <span class="n">#5 · 29.34</span></span></div><div class="desc">Lower quality-cost tercile (rank 5).</div></div></div>
+<h3>Providers</h3>
+<div class="weights" hidden role="group" aria-label="Composite weight set"><button type="button" data-set="balanced" aria-pressed="true">Balanced</button>
+<button type="button" data-set="strongquality" aria-pressed="false">Strong quality</button>
+<button type="button" data-set="moderatequality" aria-pressed="false">Moderate quality</button>
+<button type="button" data-set="strongspeed" aria-pressed="false">Strong speed</button>
+<button type="button" data-set="moderatespeed" aria-pressed="false">Moderate speed</button>
+<button type="button" data-set="strongcost" aria-pressed="false">Strong cost</button>
+<button type="button" data-set="moderatecost" aria-pressed="false">Moderate cost</button>
+<button type="button" data-set="qualitycost" aria-pressed="false">Quality + cost</button>
+<button type="button" data-set="costspeed" aria-pressed="false">Cost + speed</button></div>
+<div class="tablewrap"><table class="providers"><thead><tr><th class="num rankhead">#</th><th>Tier</th><th>Provider</th><th class="num">Coverage</th><th class="num">Auto quality /100</th><th class="num">Mean time</th><th class="num">Mean cost</th><th class="num">Composite (<span class="comp-label">Balanced</span>)</th><th class="num">Avg WER</th><th class="num">Avg CER</th><th class="num">Avg coverage</th></tr></thead><tbody><tr data-r-balanced="1" data-c-balanced="94.63" data-r-strongquality="1" data-c-strongquality="93.53" data-r-moderatequality="1" data-c-moderatequality="94.00" data-r-strongspeed="1" data-c-strongspeed="94.80" data-r-moderatespeed="1" data-c-moderatespeed="94.73" data-r-strongcost="2" data-c-strongcost="95.56" data-r-moderatecost="1" data-c-moderatecost="95.16" data-r-qualitycost="1" data-c-qualitycost="94.55" data-r-costspeed="1" data-c-costspeed="95.18"><td class="num rankcell">1</td><td><span class="tbadge t1">T1</span></td><td><code title="spider">spider</code></td><td class="num">7/7</td><td class="num">92.42<span class="rk top">1</span></td><td class="num">1.79s<span class="rk top">2</span></td><td class="num">$0.0012<span class="rk top">2</span></td><td class="num"><span class="cellbar"><span class="compval">94.63</span><span class="bar"><i class="compfill" style="width:95%"></i></span></span></td><td class="num">9.89%</td><td class="num">9.78%</td><td class="num">99.27%</td></tr>
+<tr data-r-balanced="2" data-c-balanced="86.77" data-r-strongquality="2" data-c-strongquality="71.99" data-r-moderatequality="2" data-c-moderatequality="78.32" data-r-strongspeed="2" data-c-strongspeed="92.28" data-r-moderatespeed="2" data-c-moderatespeed="89.92" data-r-strongcost="1" data-c-strongcost="96.03" data-r-moderatecost="2" data-c-moderatecost="92.06" data-r-qualitycost="2" data-c-qualitycost="84.01" data-r-costspeed="2" data-c-costspeed="94.15"><td class="num rankcell">2</td><td><span class="tbadge t1">T1</span></td><td><code title="firecrawl">firecrawl</code></td><td class="num">7/7</td><td class="num">80.45<span class="rk top">2</span></td><td class="num">1.73s<span class="rk top">1</span></td><td class="num">$0.0008<span class="rk top">1</span></td><td class="num"><span class="cellbar"><span class="compval">86.77</span><span class="bar"><i class="compfill" style="width:87%"></i></span></span></td><td class="num">25.68%</td><td class="num">26.47%</td><td class="num">99.65%</td></tr>
+<tr data-r-balanced="3" data-c-balanced="46.15" data-r-strongquality="5" data-c-strongquality="44.58" data-r-moderatequality="4" data-c-moderatequality="45.25" data-r-strongspeed="5" data-c-strongspeed="15.90" data-r-moderatespeed="5" data-c-moderatespeed="28.86" data-r-strongcost="3" data-c-strongcost="77.97" data-r-moderatecost="3" data-c-moderatecost="64.33" data-r-qualitycost="3" data-c-qualitycost="61.27" data-r-costspeed="3" data-c-costspeed="46.93"><td class="num rankcell">3</td><td><span class="tbadge t2">T2</span></td><td><code title="zyte">zyte</code></td><td class="num">7/7</td><td class="num">52.99<span class="rk">5</span></td><td class="num">10.48s<span class="rk">5</span></td><td class="num">$0.0016<span class="rk top">3</span></td><td class="num"><span class="cellbar"><span class="compval">46.15</span><span class="bar"><i class="compfill" style="width:46%"></i></span></span></td><td class="num">52.00%</td><td class="num">53.47%</td><td class="num">69.40%</td></tr>
+<tr data-r-balanced="4" data-c-balanced="43.84" data-r-strongquality="3" data-c-strongquality="54.48" data-r-moderatequality="3" data-c-moderatequality="49.92" data-r-strongspeed="3" data-c-strongspeed="63.90" data-r-moderatespeed="3" data-c-moderatespeed="55.30" data-r-strongcost="4" data-c-strongcost="13.15" data-r-moderatecost="4" data-c-moderatecost="26.30" data-r-qualitycost="4" data-c-qualitycost="33.81" data-r-costspeed="4" data-c-costspeed="38.52"><td class="num rankcell">4</td><td><span class="tbadge t2">T2</span></td><td><code title="glm-reader">glm-reader</code></td><td class="num">7/7</td><td class="num">68.77<span class="rk">4</span></td><td class="num">4.04s<span class="rk top">3</span></td><td class="num">$0.0100<span class="rk">5</span></td><td class="num"><span class="cellbar"><span class="compval">43.84</span><span class="bar"><i class="compfill" style="width:44%"></i></span></span></td><td class="num">35.59%</td><td class="num">33.95%</td><td class="num">80.21%</td></tr>
+<tr data-r-balanced="5" data-c-balanced="36.77" data-r-strongquality="4" data-c-strongquality="47.66" data-r-moderatequality="5" data-c-moderatequality="42.99" data-r-strongspeed="4" data-c-strongspeed="51.61" data-r-moderatespeed="4" data-c-moderatespeed="45.25" data-r-strongcost="5" data-c-strongcost="11.03" data-r-moderatecost="5" data-c-moderatecost="22.06" data-r-qualitycost="5" data-c-qualitycost="29.34" data-r-costspeed="5" data-c-costspeed="31.32"><td class="num rankcell">5</td><td><span class="tbadge t3">T3</span></td><td><code title="supadata">supadata</code></td><td class="num">7/7</td><td class="num">75.39<span class="rk top">3</span></td><td class="num">5.52s<span class="rk">4</span></td><td class="num">$0.0100<span class="rk">4</span></td><td class="num"><span class="cellbar"><span class="compval">36.77</span><span class="bar"><i class="compfill" style="width:37%"></i></span></span></td><td class="num">29.22%</td><td class="num">39.14%</td><td class="num">99.11%</td></tr></tbody></table></div>
+<details><summary>All weighted rankings (rank and composite per weight set)</summary><div class="tablewrap"><table class="wtable"><thead><tr><th>Provider</th><th class="num">Strong quality</th><th class="num">Moderate quality</th><th class="num">Strong speed</th><th class="num">Moderate speed</th><th class="num">Strong cost</th><th class="num">Moderate cost</th><th class="num">Quality + cost</th><th class="num">Cost + speed</th></tr></thead><tbody><tr><td><code>spider</code></td><td class="num">1 <span class="n">(93.53)</span></td><td class="num">1 <span class="n">(94.00)</span></td><td class="num">1 <span class="n">(94.80)</span></td><td class="num">1 <span class="n">(94.73)</span></td><td class="num">2 <span class="n">(95.56)</span></td><td class="num">1 <span class="n">(95.16)</span></td><td class="num">1 <span class="n">(94.55)</span></td><td class="num">1 <span class="n">(95.18)</span></td></tr>
+<tr><td><code>firecrawl</code></td><td class="num">2 <span class="n">(71.99)</span></td><td class="num">2 <span class="n">(78.32)</span></td><td class="num">2 <span class="n">(92.28)</span></td><td class="num">2 <span class="n">(89.92)</span></td><td class="num">1 <span class="n">(96.03)</span></td><td class="num">2 <span class="n">(92.06)</span></td><td class="num">2 <span class="n">(84.01)</span></td><td class="num">2 <span class="n">(94.15)</span></td></tr>
+<tr><td><code>supadata</code></td><td class="num">4 <span class="n">(47.66)</span></td><td class="num">5 <span class="n">(42.99)</span></td><td class="num">4 <span class="n">(51.61)</span></td><td class="num">4 <span class="n">(45.25)</span></td><td class="num">5 <span class="n">(11.03)</span></td><td class="num">5 <span class="n">(22.06)</span></td><td class="num">5 <span class="n">(29.34)</span></td><td class="num">5 <span class="n">(31.32)</span></td></tr>
+<tr><td><code>glm-reader</code></td><td class="num">3 <span class="n">(54.48)</span></td><td class="num">3 <span class="n">(49.92)</span></td><td class="num">3 <span class="n">(63.90)</span></td><td class="num">3 <span class="n">(55.30)</span></td><td class="num">4 <span class="n">(13.15)</span></td><td class="num">4 <span class="n">(26.30)</span></td><td class="num">4 <span class="n">(33.81)</span></td><td class="num">4 <span class="n">(38.52)</span></td></tr>
+<tr><td><code>zyte</code></td><td class="num">5 <span class="n">(44.58)</span></td><td class="num">4 <span class="n">(45.25)</span></td><td class="num">5 <span class="n">(15.90)</span></td><td class="num">5 <span class="n">(28.86)</span></td><td class="num">3 <span class="n">(77.97)</span></td><td class="num">3 <span class="n">(64.33)</span></td><td class="num">3 <span class="n">(61.27)</span></td><td class="num">3 <span class="n">(46.93)</span></td></tr></tbody></table></div></details>
+<h3>Per-run automated quality</h3>
+<div class="tablewrap"><table><thead><tr><th>Provider</th><th class="num">Mean</th><th class="num" title="2026-05-21_09-38-31-367_anthony-campolos-home-page">R1</th><th class="num" title="2026-05-21_09-38-58-898_autogenerate-show-notes-with-whisper-cpp-llama-cpp-and-node-js">R2</th><th class="num" title="2026-07-18_01-28-32-062_promise-javascript-mdn">R3</th><th class="num" title="2026-07-18_01-28-41-200_apollo-11-wikipedia">R4</th><th class="num" title="2026-07-18_01-28-50-262_rfc-9110-http-semantics">R5</th><th class="num" title="2026-07-18_01-28-55-132_pride-and-prejudice-project-gutenberg">R6</th><th class="num" title="2026-07-18_01-29-01-024_thinking-in-react-react">R7</th></tr></thead><tbody><tr><td><code>spider</code></td><td class="num">92.42</td><td class="heat" style="--h:95">94.70</td><td class="heat" style="--h:93">93.09</td><td class="heat" style="--h:98">98.30</td><td class="heat" style="--h:67">69.40</td><td class="heat" style="--h:98">98.31</td><td class="heat" style="--h:100">99.56</td><td class="heat" style="--h:93">93.61</td></tr>
+<tr><td><code>firecrawl</code></td><td class="num">80.45</td><td class="heat" style="--h:97">97.35</td><td class="heat" style="--h:92">92.35</td><td class="heat" style="--h:50">53.15</td><td class="heat" style="--h:58">60.70</td><td class="heat" style="--h:100">99.83</td><td class="heat" style="--h:99">99.26</td><td class="heat" style="--h:58">60.52</td></tr>
+<tr><td><code>supadata</code></td><td class="num">75.39</td><td class="heat" style="--h:95">94.75</td><td class="heat" style="--h:8">13.58</td><td class="heat" style="--h:97">96.76</td><td class="heat" style="--h:48">51.02</td><td class="heat" style="--h:96">96.28</td><td class="heat" style="--h:99">99.25</td><td class="heat" style="--h:74">76.05</td></tr>
+<tr><td><code>glm-reader</code></td><td class="num">68.77</td><td class="heat" style="--h:37">41.09</td><td class="heat" style="--h:83">83.73</td><td class="heat" style="--h:0">6.58</td><td class="heat" style="--h:67">69.03</td><td class="heat" style="--h:97">96.76</td><td class="heat" style="--h:100">99.48</td><td class="heat" style="--h:84">84.76</td></tr>
+<tr><td><code>zyte</code></td><td class="num">52.99</td><td class="heat" style="--h:50">53.66</td><td class="heat" style="--h:60">62.84</td><td class="heat" style="--h:65">67.15</td><td class="heat" style="--h:59">61.50</td><td class="heat" style="--h:0">6.80</td><td class="heat" style="--h:100">99.78</td><td class="heat" style="--h:13">19.16</td></tr></tbody><caption>Shading is relative within this table (stronger blue = higher score); run columns are listed under Runs above.</caption></table></div>
+</section>
+<h2>Method &amp; notes</h2>
+<details><summary>Method</summary><p>Providers are matched by <code>providerKey</code> within <code>local</code> or <code>service</code>; present-value means are computed independently per group.</p>
+<p>Automated quality comes directly from source <code>rankingSurfaces.*.automatedQuality</code> values. Speed is mean processing time. Cost converts mean source cents to USD and remains zero for local providers. WER, CER, and coverage are supporting evidence. Missing values sort last; ties break deterministically.</p>
+<p><strong>Weighted composites</strong> are built separately for each provider group in three steps:</p>
+<p>1. Within each run and provider group, every provider gets three 0-100 subscores. <strong>Q</strong> = <code>100 * (value - min) / (max - min)</code> over quality score (higher is better). <strong>S</strong> and <strong>C</strong> = <code>100 * (1 - (value - min) / (max - min))</code> over processing time and cost (lower is better). If a dimension has identical min/max values, every pooled provider receives 100 for that dimension.</p>
+<p>2. Each provider's Q, S, and C are averaged across the runs it participated in. A provider missing a value in a run is excluded from that run's normalization pool for that dimension; a dimension missing in every covered run scores 0 and is flagged under the affected tables.</p>
+<p>3. Composite = <code>w_q*Q + w_s*S + w_c*C</code> for each weight set below.</p>
+<p><strong>Model tiers</strong> are computed per group with <code>quality-cost-terciles-v1</code> from the group's <code>qualityCost</code> weighted ranking only; groups are never compared against each other. That ranking orders composite descending, then quality subscore descending, then provider key. Its models are divided into three contiguous tiers of <code>floor(n / 3)</code> models, with remainder models assigned to Tier 1 and then Tier 2. Every model appears exactly once.</p>
+<div class="tablewrap"><table class="wtable"><thead><tr><th>Weight set</th><th class="num">Quality</th><th class="num">Speed</th><th class="num">Cost</th></tr></thead><tbody><tr><td>Strong quality</td><td class="num">0.8</td><td class="num">0.1</td><td class="num">0.1</td></tr>
+<tr><td>Moderate quality</td><td class="num">0.6</td><td class="num">0.2</td><td class="num">0.2</td></tr>
+<tr><td>Strong speed</td><td class="num">0.1</td><td class="num">0.8</td><td class="num">0.1</td></tr>
+<tr><td>Moderate speed</td><td class="num">0.2</td><td class="num">0.6</td><td class="num">0.2</td></tr>
+<tr><td>Strong cost</td><td class="num">0.1</td><td class="num">0.1</td><td class="num">0.8</td></tr>
+<tr><td>Moderate cost</td><td class="num">0.2</td><td class="num">0.2</td><td class="num">0.6</td></tr>
+<tr><td>Quality + cost</td><td class="num">0.45</td><td class="num">0.1</td><td class="num">0.45</td></tr>
+<tr><td>Cost + speed</td><td class="num">0.1</td><td class="num">0.45</td><td class="num">0.45</td></tr></tbody></table></div></details>
+<ul class="notes">
+<li>Each provider is aggregated by providerKey within its source group; present-value means do not impute missing rows or metrics.</li>
+<li>Local and service providers are never normalized, ranked, or tiered together; local monetary cost remains zero.</li>
+<li>No human-quality ranking is emitted because explicit human-quality rows are absent from the current source reports.</li>
+<li>Weighted composite rankings and quality-cost tercile tiers are precomputed per group; the HTML performs no runtime metric or composite calculation.</li>
+<li>5 of 7 source reports declare deterministic long-sequence distance handling; combined values are not recomputed.</li>
+<li>No explicit human quality rows are present, so no human-quality ranking is emitted.</li>
+</ul>
+</main>
+<script>
+for (const sec of document.querySelectorAll("section.group")) {
+  const strip = sec.querySelector(".weights");
+  const tbody = sec.querySelector("table.providers tbody");
+  if (!strip || !tbody) continue;
+  strip.hidden = false;
+  for (const btn of strip.querySelectorAll("button")) {
+    btn.addEventListener("click", () => {
+      const set = btn.dataset.set;
+      for (const other of strip.querySelectorAll("button")) {
+        other.setAttribute("aria-pressed", String(other === btn));
+      }
+      const rows = Array.from(tbody.rows);
+      rows.sort((a, b) => Number(a.getAttribute("data-r-" + set)) - Number(b.getAttribute("data-r-" + set)));
+      for (const row of rows) {
+        const composite = row.getAttribute("data-c-" + set);
+        row.querySelector(".rankcell").textContent = row.getAttribute("data-r-" + set);
+        row.querySelector(".compval").textContent = composite;
+        row.querySelector(".compfill").style.width = Math.round(Number(composite)) + "%";
+        tbody.appendChild(row);
+      }
+      const label = sec.querySelector(".comp-label");
+      if (label) label.textContent = btn.textContent;
+    });
+  }
+}
+</script>
+</body>
+</html>

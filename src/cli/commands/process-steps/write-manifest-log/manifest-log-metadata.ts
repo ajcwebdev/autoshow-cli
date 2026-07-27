@@ -1,0 +1,154 @@
+import type { ActualCostBreakdown, CostSource, EstimatedCostBreakdown, ExtractionMetadata, ManifestLogCostEntryLike, PartialExtractionMetadata, Step2Metadata, Step3Metadata, Step4Metadata, Step5Metadata, Step6VideoMetadata, Step7MusicMetadata, TimingEntryLike, WriteManifestMetadata, WriteStepKind } from '~/types'
+import { buildMatchKey } from './manifest-log-formatting'
+
+export const isRecord = (value: unknown): value is Record<string, unknown> =>
+  typeof value === 'object' && value !== null && !Array.isArray(value)
+
+export const isStep2Metadata = (value: unknown): value is Step2Metadata =>
+  isRecord(value)
+  && typeof value['transcriptionService'] === 'string'
+  && typeof value['transcriptionModel'] === 'string'
+
+export const isExtractionMetadata = (value: unknown): value is ExtractionMetadata =>
+  isRecord(value)
+  && typeof value['extractionMethod'] === 'string'
+  && typeof value['processingTime'] === 'number'
+
+export const isPartialExtractionMetadata = (value: unknown): value is PartialExtractionMetadata => {
+  if (!isRecord(value)) {
+    return false
+  }
+  const record: Record<string, unknown> = value
+  if (!isExtractionMetadata(value)) {
+    return false
+  }
+  return record['status'] === 'failed_partial'
+    && typeof record['artifactDir'] === 'string'
+    && typeof record['completedPages'] === 'number'
+    && typeof record['failedPages'] === 'number'
+}
+
+export const isStep3Metadata = (value: unknown): value is Step3Metadata =>
+  isRecord(value)
+  && typeof value['llmService'] === 'string'
+  && typeof value['llmModel'] === 'string'
+
+export const isStep4Metadata = (value: unknown): value is Step4Metadata =>
+  isRecord(value)
+  && typeof value['ttsService'] === 'string'
+  && typeof value['ttsModel'] === 'string'
+
+export const isStep5Metadata = (value: unknown): value is Step5Metadata =>
+  isRecord(value)
+  && typeof value['imageService'] === 'string'
+  && typeof value['imageModel'] === 'string'
+
+export const isStep6Metadata = (value: unknown): value is Step6VideoMetadata =>
+  isRecord(value)
+  && typeof value['videoGenService'] === 'string'
+  && typeof value['videoGenModel'] === 'string'
+
+export const isStep7Metadata = (value: unknown): value is Step7MusicMetadata =>
+  isRecord(value)
+  && typeof value['musicService'] === 'string'
+  && typeof value['musicModel'] === 'string'
+
+const isCostEntry = (value: unknown): value is ManifestLogCostEntryLike =>
+  isRecord(value)
+  && typeof value['step'] === 'string'
+  && typeof value['provider'] === 'string'
+  && typeof value['model'] === 'string'
+  && typeof value['cost'] === 'number'
+
+const isTimingEntry = (value: unknown): value is TimingEntryLike =>
+  isRecord(value)
+  && typeof value['step'] === 'string'
+  && typeof value['provider'] === 'string'
+  && typeof value['model'] === 'string'
+  && typeof value['processingTimeMs'] === 'number'
+
+const COST_SOURCES = new Set<CostSource>([
+  'provider_usage',
+  'provider_quote',
+  'response_header',
+  'computed_usage',
+  'registry_fallback',
+  'partial_provider_usage',
+  'heuristic',
+  'local_zero'
+])
+
+const normalizeManifestCostSource = (value: unknown): CostSource =>
+  typeof value === 'string' && COST_SOURCES.has(value as CostSource)
+    ? value as CostSource
+    : 'registry_fallback'
+
+export const toArray = <T,>(value: unknown, guard: (candidate: unknown) => candidate is T): T[] => {
+  if (Array.isArray(value)) {
+    return value.filter(guard)
+  }
+
+  return guard(value) ? [value] : []
+}
+
+export const getPartialStep2Entries = (metadata: WriteManifestMetadata): PartialExtractionMetadata[] =>
+  toArray(metadata['partialStep2'], isPartialExtractionMetadata)
+
+export const getEstimatedCostBreakdown = (metadata: WriteManifestMetadata): EstimatedCostBreakdown | undefined => {
+  const cost = metadata['cost']
+  if (!isRecord(cost) || !isRecord(cost['estimated'])) {
+    return undefined
+  }
+
+  const estimated = cost['estimated']
+  const steps = Array.isArray(estimated['steps']) ? estimated['steps'].filter(isCostEntry) : []
+  return typeof estimated['totalCost'] === 'number'
+    ? { totalCost: estimated['totalCost'], steps }
+    : undefined
+}
+
+export const getActualCostBreakdown = (metadata: WriteManifestMetadata): ActualCostBreakdown | undefined => {
+  const cost = metadata['cost']
+  if (!isRecord(cost) || !isRecord(cost['actual'])) {
+    return undefined
+  }
+
+  const actual = cost['actual']
+  const steps = Array.isArray(actual['steps'])
+    ? actual['steps'].filter(isCostEntry).map((entry) => ({
+        ...entry,
+        costSource: normalizeManifestCostSource(entry.costSource)
+      }))
+    : []
+  return typeof actual['totalCost'] === 'number'
+    ? { totalCost: actual['totalCost'], steps }
+    : undefined
+}
+
+export const getTimingEntries = (
+  metadata: WriteManifestMetadata,
+  kind: 'estimated' | 'actual'
+): TimingEntryLike[] => {
+  const timing = metadata['timing']
+  if (!isRecord(timing) || !isRecord(timing[kind])) {
+    return []
+  }
+
+  const section = timing[kind]
+  return Array.isArray(section['steps']) ? section['steps'].filter(isTimingEntry) : []
+}
+
+export const indexRows = <T extends { step: WriteStepKind, provider: string, model: string },>(
+  rows: readonly T[]
+): Map<string, T[]> => {
+  const indexed = new Map<string, T[]>()
+
+  for (const row of rows) {
+    const key = buildMatchKey(row.step, row.provider, row.model)
+    const existing = indexed.get(key) ?? []
+    existing.push(row)
+    indexed.set(key, existing)
+  }
+
+  return indexed
+}

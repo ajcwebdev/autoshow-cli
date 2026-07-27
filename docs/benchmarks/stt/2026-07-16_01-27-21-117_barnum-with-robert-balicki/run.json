@@ -1,0 +1,2080 @@
+{
+  "schemaVersion": 2,
+  "kind": "extract",
+  "metadata": {
+    "step1": {
+      "title": "Barnum with Robert Balicki",
+      "duration": "2:30:00",
+      "channel": "Anthony Campolo",
+      "description": "00:00:03 - Robert Balicki Introduces Pinterest, Relay, and GraphQL Migration\n00:03:38 - Learning to Code Through Automation, Math, and Statistics\n00:06:00 - Rust NYC, Meta Hiring, and Joining the Relay Team\n00:10:17 - Conference Talks, Relay Education, and Public Speaking\n00:14:20 - Why Speaking Helps Careers and Community Connections\n00:17:26 - Early AI Interest and the Path Toward Barnum\n00:21:17 - Barnum as a TypeScript DSL Executed by Rust\n00:25:30 - Code Mode and Tool-Calling Through Generated Programs\n00:28:07 - Reliability, Unit Tests, and Keeping Agents Inside Guardrails\n00:32:24 - Demo Setup and the Case for a TypeScript Workflow DSL\n00:36:27 - Automated Refactor PRs and Barnum Demo Goals\n00:38:19 - Cataloging Refactors Across Large Codebases\n00:41:08 - Using AI Workshops and Refactor Pipelines at Scale\n00:43:01 - Stacked PRs, Rebasing, and Barnum Babysitting\n00:45:02 - Barnum Quick Start and Workflow Structure\n00:48:11 - Running a Refactor Workflow from the CLI\n00:51:38 - Extracting Refactors Before Implementation\n00:54:05 - Loops, Queues, and Barnum Control Flow\n00:57:41 - Schema-Checked Agent Output for Refactor Instructions\n01:00:00 - File Scope, Cross-File Context, and Refactor Heuristics\n01:03:24 - Splitting Large Framework Migrations into Focused Agent Tasks\n01:06:35 - Agents, Code Mods, and Narrow Tool Permissions\n01:08:23 - Implementation Queues and Categorizing PRs\n01:12:16 - Fixing Failed Checks with Controlled Retry Loops\n01:14:30 - Deterministic Outer Loops and Prompted Inner Work\n01:16:27 - Concurrency, Worktrees, and Resource Limits for Agents\n01:21:21 - Barnum Portability and Future Workflow Patterns\n01:23:01 - Code Mode Limitations and Resumable Execution\n01:27:15 - Handler Isolation and Multi-Language Workflow Targets\n01:30:48 - Why Barnum Uses Rust and an Intermediate A-Step\n01:34:40 - Temporal Comparisons and Durable Execution Tradeoffs\n01:36:46 - Introducing Isograph and the Value of GraphQL Fragments\n01:40:21 - GraphQL Versus REST and Local Reasoning for Humans and LLMs\n01:42:32 - Fragments, Components, and Isograph’s Compile-Time Connection\n01:45:22 - Selecting UI Fields Through Isograph Schema Augmentation\n01:48:03 - Generated Queries, Artifacts, and Low-Boilerplate Components\n01:49:37 - Loadable Data and JavaScript for Deferred UI\n01:51:08 - Discoverability, Directives, and Extending GraphQL Syntax\n01:53:18 - UI-Specific Schema Fields and Server-Side Execution Plans\n01:58:21 - Server Execution, Security, and React Server Component Comparisons\n02:00:16 - Isograph Adoption and Bolt Foundry Usage\n02:02:20 - Compiler Behavior, Isograph Literals, and Build Steps\n02:05:07 - Generated Resolver Files and Backend Target Possibilities\n02:08:16 - Caching, Normalized Stores, and Suspense Navigation\n02:12:06 - Minimal Recalculation and Fine-Grained Rendering\n02:13:38 - Why Solid Could Fit Isograph’s Model\n02:17:16 - Performance Through Dependency-Aware Rerenders\n02:20:20 - Build-Time Component Splitting and Future Isograph Ideas\n02:22:05 - Pet Demo Setup and Cached Navigation Behavior\n02:24:18 - Instant Revisited Pages and Local Store Reads\n02:26:13 - Granular Rerenders and Final Demo Takeaways\n02:27:22 - Wrap-Up, Socials, and Getting Started with Barnum",
+      "url": "https://www.youtube.com/watch?v=XOKqH0kne_M",
+      "publishDate": "2026-06-30",
+      "thumbnail": "https://i.ytimg.com/vi/XOKqH0kne_M/maxresdefault.jpg",
+      "channelURL": "https://www.youtube.com/channel/UCpdzti0GURPfMjKzYK5FVSA",
+      "chapters": [
+        {
+          "startTime": 0,
+          "endTime": 3,
+          "title": "<Untitled Chapter 1>"
+        },
+        {
+          "startTime": 3,
+          "endTime": 218,
+          "title": "Robert Balicki Introduces Pinterest, Relay, and GraphQL Migration"
+        },
+        {
+          "startTime": 218,
+          "endTime": 360,
+          "title": "Learning to Code Through Automation, Math, and Statistics"
+        },
+        {
+          "startTime": 360,
+          "endTime": 617,
+          "title": "Rust NYC, Meta Hiring, and Joining the Relay Team"
+        },
+        {
+          "startTime": 617,
+          "endTime": 860,
+          "title": "Conference Talks, Relay Education, and Public Speaking"
+        },
+        {
+          "startTime": 860,
+          "endTime": 1046,
+          "title": "Why Speaking Helps Careers and Community Connections"
+        },
+        {
+          "startTime": 1046,
+          "endTime": 1277,
+          "title": "Early AI Interest and the Path Toward Barnum"
+        },
+        {
+          "startTime": 1277,
+          "endTime": 1530,
+          "title": "Barnum as a TypeScript DSL Executed by Rust"
+        },
+        {
+          "startTime": 1530,
+          "endTime": 1687,
+          "title": "Code Mode and Tool-Calling Through Generated Programs"
+        },
+        {
+          "startTime": 1687,
+          "endTime": 1944,
+          "title": "Reliability, Unit Tests, and Keeping Agents Inside Guardrails"
+        },
+        {
+          "startTime": 1944,
+          "endTime": 2187,
+          "title": "Demo Setup and the Case for a TypeScript Workflow DSL"
+        },
+        {
+          "startTime": 2187,
+          "endTime": 2299,
+          "title": "Automated Refactor PRs and Barnum Demo Goals"
+        },
+        {
+          "startTime": 2299,
+          "endTime": 2468,
+          "title": "Cataloging Refactors Across Large Codebases"
+        },
+        {
+          "startTime": 2468,
+          "endTime": 2581,
+          "title": "Using AI Workshops and Refactor Pipelines at Scale"
+        },
+        {
+          "startTime": 2581,
+          "endTime": 2702,
+          "title": "Stacked PRs, Rebasing, and Barnum Babysitting"
+        },
+        {
+          "startTime": 2702,
+          "endTime": 2891,
+          "title": "Barnum Quick Start and Workflow Structure"
+        },
+        {
+          "startTime": 2891,
+          "endTime": 3098,
+          "title": "Running a Refactor Workflow from the CLI"
+        },
+        {
+          "startTime": 3098,
+          "endTime": 3245,
+          "title": "Extracting Refactors Before Implementation"
+        },
+        {
+          "startTime": 3245,
+          "endTime": 3461,
+          "title": "Loops, Queues, and Barnum Control Flow"
+        },
+        {
+          "startTime": 3461,
+          "endTime": 3600,
+          "title": "Schema-Checked Agent Output for Refactor Instructions"
+        },
+        {
+          "startTime": 3600,
+          "endTime": 3804,
+          "title": "File Scope, Cross-File Context, and Refactor Heuristics"
+        },
+        {
+          "startTime": 3804,
+          "endTime": 3995,
+          "title": "Splitting Large Framework Migrations into Focused Agent Tasks"
+        },
+        {
+          "startTime": 3995,
+          "endTime": 4103,
+          "title": "Agents, Code Mods, and Narrow Tool Permissions"
+        },
+        {
+          "startTime": 4103,
+          "endTime": 4336,
+          "title": "Implementation Queues and Categorizing PRs"
+        },
+        {
+          "startTime": 4336,
+          "endTime": 4470,
+          "title": "Fixing Failed Checks with Controlled Retry Loops"
+        },
+        {
+          "startTime": 4470,
+          "endTime": 4587,
+          "title": "Deterministic Outer Loops and Prompted Inner Work"
+        },
+        {
+          "startTime": 4587,
+          "endTime": 4881,
+          "title": "Concurrency, Worktrees, and Resource Limits for Agents"
+        },
+        {
+          "startTime": 4881,
+          "endTime": 4981,
+          "title": "Barnum Portability and Future Workflow Patterns"
+        },
+        {
+          "startTime": 4981,
+          "endTime": 5235,
+          "title": "Code Mode Limitations and Resumable Execution"
+        },
+        {
+          "startTime": 5235,
+          "endTime": 5448,
+          "title": "Handler Isolation and Multi-Language Workflow Targets"
+        },
+        {
+          "startTime": 5448,
+          "endTime": 5680,
+          "title": "Why Barnum Uses Rust and an Intermediate A-Step"
+        },
+        {
+          "startTime": 5680,
+          "endTime": 5806,
+          "title": "Temporal Comparisons and Durable Execution Tradeoffs"
+        },
+        {
+          "startTime": 5806,
+          "endTime": 6021,
+          "title": "Introducing Isograph and the Value of GraphQL Fragments"
+        },
+        {
+          "startTime": 6021,
+          "endTime": 6152,
+          "title": "GraphQL Versus REST and Local Reasoning for Humans and LLMs"
+        },
+        {
+          "startTime": 6152,
+          "endTime": 6322,
+          "title": "Fragments, Components, and Isograph’s Compile-Time Connection"
+        },
+        {
+          "startTime": 6322,
+          "endTime": 6483,
+          "title": "Selecting UI Fields Through Isograph Schema Augmentation"
+        },
+        {
+          "startTime": 6483,
+          "endTime": 6577,
+          "title": "Generated Queries, Artifacts, and Low-Boilerplate Components"
+        },
+        {
+          "startTime": 6577,
+          "endTime": 6668,
+          "title": "Loadable Data and JavaScript for Deferred UI"
+        },
+        {
+          "startTime": 6668,
+          "endTime": 6798,
+          "title": "Discoverability, Directives, and Extending GraphQL Syntax"
+        },
+        {
+          "startTime": 6798,
+          "endTime": 7101,
+          "title": "UI-Specific Schema Fields and Server-Side Execution Plans"
+        },
+        {
+          "startTime": 7101,
+          "endTime": 7216,
+          "title": "Server Execution, Security, and React Server Component Comparisons"
+        },
+        {
+          "startTime": 7216,
+          "endTime": 7340,
+          "title": "Isograph Adoption and Bolt Foundry Usage"
+        },
+        {
+          "startTime": 7340,
+          "endTime": 7507,
+          "title": "Compiler Behavior, Isograph Literals, and Build Steps"
+        },
+        {
+          "startTime": 7507,
+          "endTime": 7696,
+          "title": "Generated Resolver Files and Backend Target Possibilities"
+        },
+        {
+          "startTime": 7696,
+          "endTime": 7926,
+          "title": "Caching, Normalized Stores, and Suspense Navigation"
+        },
+        {
+          "startTime": 7926,
+          "endTime": 8018,
+          "title": "Minimal Recalculation and Fine-Grained Rendering"
+        },
+        {
+          "startTime": 8018,
+          "endTime": 8236,
+          "title": "Why Solid Could Fit Isograph’s Model"
+        },
+        {
+          "startTime": 8236,
+          "endTime": 8420,
+          "title": "Performance Through Dependency-Aware Rerenders"
+        },
+        {
+          "startTime": 8420,
+          "endTime": 8525,
+          "title": "Build-Time Component Splitting and Future Isograph Ideas"
+        },
+        {
+          "startTime": 8525,
+          "endTime": 8658,
+          "title": "Pet Demo Setup and Cached Navigation Behavior"
+        },
+        {
+          "startTime": 8658,
+          "endTime": 8773,
+          "title": "Instant Revisited Pages and Local Store Reads"
+        },
+        {
+          "startTime": 8773,
+          "endTime": 8842,
+          "title": "Granular Rerenders and Final Demo Takeaways"
+        },
+        {
+          "startTime": 8842,
+          "endTime": 9000,
+          "title": "Wrap-Up, Socials, and Getting Started with Barnum"
+        }
+      ],
+      "slug": "2026-06-30-barnum-with-robert-balicki",
+      "audioFileName": "2026-06-30-barnum-with-robert-balicki.mp3",
+      "audioFileSize": 108000909,
+      "durationSeconds": 9000
+    },
+    "step2": [
+      {
+        "transcriptionService": "deepinfra",
+        "transcriptionModel": "openai/whisper-large-v3-turbo",
+        "processingTime": 76558,
+        "tokenCount": 24243
+      },
+      {
+        "transcriptionService": "deepinfra",
+        "transcriptionModel": "openai/whisper-large-v3",
+        "processingTime": 143723,
+        "tokenCount": 24534
+      },
+      {
+        "transcriptionService": "deepgram",
+        "transcriptionModel": "nova-3",
+        "processingTime": 41430,
+        "tokenCount": 25127,
+        "timings": {
+          "transcribeMs": 41409,
+          "remoteProcessingMs": 21,
+          "requestCount": 1
+        }
+      },
+      {
+        "transcriptionService": "soniox",
+        "transcriptionModel": "stt-async-v4",
+        "processingTime": 402959,
+        "tokenCount": 24689,
+        "timings": {
+          "uploadMs": 12672,
+          "createMs": 96,
+          "createCount": 1,
+          "pollMs": 2061,
+          "pollSleepMs": 385078,
+          "pollCount": 41,
+          "transcriptMs": 2983,
+          "remoteProcessingMs": 384963,
+          "cleanupMs": 184,
+          "requestCount": 44
+        },
+        "runtime": {
+          "mode": "fresh",
+          "stage": "cleanup-complete",
+          "remoteJobId": "6201d1cf-e009-4793-918c-a2796a2898bc",
+          "remoteAssetId": "b6a5f035-71b0-41d3-9d41-0e2981c25393",
+          "createCompletedAt": "2026-07-16T06:28:39.894Z",
+          "lastPollAt": "2026-07-16T06:35:07.085Z",
+          "completedAt": "2026-07-16T06:35:10.085Z",
+          "cleanupCompletedAt": "2026-07-16T06:35:10.270Z",
+          "cleanup": {
+            "remoteJobDeleted": true,
+            "remoteAssetDeleted": true
+          }
+        }
+      },
+      {
+        "transcriptionService": "speechmatics",
+        "transcriptionModel": "enhanced",
+        "processingTime": 339916,
+        "tokenCount": 25758,
+        "timings": {
+          "createMs": 26212,
+          "createCount": 1,
+          "pollMs": 7483,
+          "pollSleepMs": 305066,
+          "pollCount": 33,
+          "transcriptMs": 1119,
+          "remoteProcessingMs": 304965,
+          "cleanupMs": 137,
+          "requestCount": 35
+        },
+        "runtime": {
+          "mode": "fresh",
+          "stage": "cleanup-complete",
+          "remoteJobId": "2s2iq30fy3",
+          "createCompletedAt": "2026-07-16T06:28:53.378Z",
+          "lastPollAt": "2026-07-16T06:34:05.962Z",
+          "completedAt": "2026-07-16T06:34:05.963Z",
+          "cleanupCompletedAt": "2026-07-16T06:34:07.233Z",
+          "cleanup": {
+            "remoteJobDeleted": true
+          }
+        }
+      },
+      {
+        "transcriptionService": "rev",
+        "transcriptionModel": "machine",
+        "processingTime": 164789,
+        "tokenCount": 25350,
+        "timings": {
+          "createMs": 18505,
+          "createCount": 1,
+          "pollMs": 1248,
+          "pollSleepMs": 144027,
+          "pollCount": 16,
+          "transcriptMs": 991,
+          "remoteProcessingMs": 143949,
+          "cleanupMs": 96,
+          "requestCount": 18
+        },
+        "runtime": {
+          "mode": "fresh",
+          "stage": "cleanup-complete",
+          "remoteJobId": "5BBR4iZ5uhs9Bqjc",
+          "createCompletedAt": "2026-07-16T06:28:45.611Z",
+          "lastPollAt": "2026-07-16T06:31:10.903Z",
+          "completedAt": "2026-07-16T06:31:10.904Z",
+          "cleanupCompletedAt": "2026-07-16T06:31:12.001Z",
+          "cleanup": {
+            "remoteJobDeleted": true
+          }
+        }
+      },
+      {
+        "transcriptionService": "rev",
+        "transcriptionModel": "low_cost",
+        "processingTime": 303143,
+        "tokenCount": 25311,
+        "timings": {
+          "createMs": 16287,
+          "createCount": 1,
+          "pollMs": 2096,
+          "pollSleepMs": 284051,
+          "pollCount": 30,
+          "transcriptMs": 674,
+          "remoteProcessingMs": 283983,
+          "cleanupMs": 103,
+          "requestCount": 32
+        },
+        "runtime": {
+          "mode": "fresh",
+          "stage": "cleanup-complete",
+          "remoteJobId": "vcnI3PykGpFI6eNb",
+          "createCompletedAt": "2026-07-16T06:28:43.473Z",
+          "lastPollAt": "2026-07-16T06:33:29.655Z",
+          "completedAt": "2026-07-16T06:33:29.655Z",
+          "cleanupCompletedAt": "2026-07-16T06:33:30.441Z",
+          "cleanup": {
+            "remoteJobDeleted": true
+          }
+        }
+      },
+      {
+        "transcriptionService": "groq",
+        "transcriptionModel": "whisper-large-v3-turbo",
+        "processingTime": 54913,
+        "tokenCount": 24557
+      },
+      {
+        "transcriptionService": "groq",
+        "transcriptionModel": "whisper-large-v3",
+        "processingTime": 85575,
+        "tokenCount": 24360
+      },
+      {
+        "transcriptionService": "mistral",
+        "transcriptionModel": "voxtral-mini-2602",
+        "processingTime": 90668,
+        "tokenCount": 24096,
+        "timings": {
+          "transcribeMs": 90651
+        }
+      },
+      {
+        "transcriptionService": "assemblyai",
+        "transcriptionModel": "universal-3-pro",
+        "processingTime": 103935,
+        "tokenCount": 24441,
+        "timings": {
+          "uploadMs": 15313,
+          "createMs": 100,
+          "createCount": 1,
+          "pollMs": 3481,
+          "pollSleepMs": 85013,
+          "pollCount": 11,
+          "remoteProcessingMs": 85041,
+          "requestCount": 13
+        },
+        "runtime": {
+          "mode": "fresh",
+          "stage": "completed",
+          "remoteJobId": "afcc9778-6336-4ea6-94c5-0ea6bd52e1ae",
+          "remoteAssetUrl": "https://cdn.assemblyai.com/upload/0fced84216059f16d582bcfa74774600aefd275b7e1f5b876a47afa8a44e1e9c/3e9a7564-7a34-44ac-89f3-a054204ee6d0",
+          "createCompletedAt": "2026-07-16T06:28:42.508Z",
+          "lastPollAt": "2026-07-16T06:30:11.026Z",
+          "completedAt": "2026-07-16T06:30:11.027Z"
+        }
+      },
+      {
+        "transcriptionService": "gladia",
+        "transcriptionModel": "default",
+        "processingTime": 10324,
+        "tokenCount": 24340,
+        "timings": {
+          "pollMs": 10260,
+          "pollCount": 5,
+          "remoteProcessingMs": 64,
+          "requestCount": 5,
+          "backfillCount": 5
+        }
+      },
+      {
+        "transcriptionService": "happyscribe",
+        "transcriptionModel": "auto",
+        "processingTime": 165512,
+        "tokenCount": 24247,
+        "timings": {
+          "uploadMs": 13040,
+          "createMs": 711,
+          "createCount": 1,
+          "pollMs": 3977,
+          "pollSleepMs": 145036,
+          "pollCount": 17,
+          "transcriptMs": 1082,
+          "remoteProcessingMs": 146702,
+          "requestCount": 21
+        },
+        "runtime": {
+          "mode": "fresh",
+          "stage": "completed",
+          "remoteJobId": "4f085a547a064018a0c2e83e3b3b9020",
+          "remoteAssetUrl": "https://media2.happyscribe.com/uploads/814638f9-4c3e-4687-b467-aa58a6f39e1c/source_media.mp3?x-amz-acl=public-read&x-amz-meta-user_id=17600298&x-amz-meta-generated_by=happyscribe-api&x-amz-sdk-checksum-algorithm=CRC32&x-amz-checksum-crc32=AAAAAA%3D%3D&X-Amz-Algorithm=AWS4-HMAC-SHA256&X-Amz-Credential=AKIA3QN374LNFOXT7QML%2F20260716%2Feu-west-1%2Fs3%2Faws4_request&X-Amz-Date=20260716T062827Z&X-Amz-Expires=86400&X-Amz-SignedHeaders=host&X-Amz-Signature=d909cb4b7fd206f000a3767f3f4db4dbcaa02e4ad0df1d3f95fd84289bd6632b",
+          "createCompletedAt": "2026-07-16T06:28:41.300Z",
+          "lastPollAt": "2026-07-16T06:31:10.331Z",
+          "completedAt": "2026-07-16T06:31:11.414Z"
+        },
+        "billing": {
+          "creditsUsed": 0,
+          "totalCost": 0,
+          "source": "provider_quote",
+          "mode": "order"
+        }
+      },
+      {
+        "transcriptionService": "supadata",
+        "transcriptionModel": "auto",
+        "processingTime": 11232,
+        "tokenCount": 26249,
+        "timings": {
+          "createMs": 11224,
+          "createCount": 1,
+          "requestCount": 1
+        },
+        "billing": {
+          "creditsUsed": 1,
+          "creditRateCents": 1,
+          "source": "response-header"
+        }
+      },
+      {
+        "transcriptionService": "scrapecreators",
+        "transcriptionModel": "youtube-transcript",
+        "processingTime": 3059,
+        "tokenCount": 26249,
+        "captionLanguage": "en",
+        "timings": {
+          "createMs": 3060,
+          "createCount": 1,
+          "requestCount": 1
+        },
+        "billing": {
+          "creditsUsed": 1,
+          "creditRateCents": 0.188,
+          "totalCost": 0.188,
+          "source": "fallback-estimate",
+          "mode": "url"
+        }
+      },
+      {
+        "transcriptionService": "gemini-stt",
+        "transcriptionModel": "gemini-3-flash-preview",
+        "processingTime": 735345,
+        "tokenCount": 22180,
+        "timings": {
+          "requestCount": 6
+        },
+        "billing": {
+          "inputTokens": 225526,
+          "outputTokens": 192020,
+          "totalTokens": 417546,
+          "audioInputTokens": 224999,
+          "textInputTokens": 527,
+          "totalCost": 80.13225,
+          "source": "provider_usage",
+          "mode": "segment_sum"
+        }
+      },
+      {
+        "transcriptionService": "together",
+        "transcriptionModel": "openai/whisper-large-v3",
+        "processingTime": 56834,
+        "tokenCount": 24314
+      }
+    ],
+    "resolvedStep2": {
+      "route": "stt",
+      "sourceKind": "media",
+      "providers": [
+        {
+          "service": "deepinfra",
+          "model": "openai/whisper-large-v3-turbo"
+        },
+        {
+          "service": "deepinfra",
+          "model": "openai/whisper-large-v3"
+        },
+        {
+          "service": "deepgram",
+          "model": "nova-3"
+        },
+        {
+          "service": "soniox",
+          "model": "stt-async-v4"
+        },
+        {
+          "service": "speechmatics",
+          "model": "enhanced"
+        },
+        {
+          "service": "rev",
+          "model": "machine"
+        },
+        {
+          "service": "rev",
+          "model": "low_cost"
+        },
+        {
+          "service": "groq",
+          "model": "whisper-large-v3-turbo",
+          "origin": "explicit"
+        },
+        {
+          "service": "groq",
+          "model": "whisper-large-v3",
+          "origin": "explicit"
+        },
+        {
+          "service": "mistral",
+          "model": "voxtral-mini-2602"
+        },
+        {
+          "service": "assemblyai",
+          "model": "universal-3-pro"
+        },
+        {
+          "service": "gladia",
+          "model": "default",
+          "origin": "explicit"
+        },
+        {
+          "service": "happyscribe",
+          "model": "auto"
+        },
+        {
+          "service": "supadata",
+          "model": "auto"
+        },
+        {
+          "service": "scrapecreators",
+          "model": "youtube-transcript"
+        },
+        {
+          "service": "gemini-stt",
+          "model": "gemini-3-flash-preview"
+        },
+        {
+          "service": "together",
+          "model": "openai/whisper-large-v3",
+          "origin": "explicit"
+        }
+      ]
+    },
+    "completionStatus": "full",
+    "requestedProviders": [
+      {
+        "service": "deepinfra",
+        "model": "openai/whisper-large-v3-turbo",
+        "local": false
+      },
+      {
+        "service": "deepinfra",
+        "model": "openai/whisper-large-v3",
+        "local": false
+      },
+      {
+        "service": "deepgram",
+        "model": "nova-3",
+        "local": false,
+        "diarizationOptions": {
+          "enabled": true
+        }
+      },
+      {
+        "service": "soniox",
+        "model": "stt-async-v4",
+        "local": false,
+        "diarizationOptions": {
+          "enabled": true
+        }
+      },
+      {
+        "service": "speechmatics",
+        "model": "enhanced",
+        "local": false,
+        "diarizationOptions": {
+          "enabled": true
+        }
+      },
+      {
+        "service": "rev",
+        "model": "machine",
+        "local": false,
+        "diarizationOptions": {
+          "enabled": true
+        }
+      },
+      {
+        "service": "rev",
+        "model": "low_cost",
+        "local": false,
+        "diarizationOptions": {
+          "enabled": true
+        }
+      },
+      {
+        "service": "groq",
+        "model": "whisper-large-v3-turbo",
+        "local": false
+      },
+      {
+        "service": "groq",
+        "model": "whisper-large-v3",
+        "local": false
+      },
+      {
+        "service": "mistral",
+        "model": "voxtral-mini-2602",
+        "local": false,
+        "diarizationOptions": {
+          "enabled": true
+        }
+      },
+      {
+        "service": "assemblyai",
+        "model": "universal-3-pro",
+        "local": false,
+        "diarizationOptions": {
+          "enabled": true
+        }
+      },
+      {
+        "service": "gladia",
+        "model": "default",
+        "local": false,
+        "diarizationOptions": {
+          "enabled": true
+        }
+      },
+      {
+        "service": "happyscribe",
+        "model": "auto",
+        "local": false,
+        "diarizationOptions": {
+          "enabled": true
+        }
+      },
+      {
+        "service": "supadata",
+        "model": "auto",
+        "local": false
+      },
+      {
+        "service": "scrapecreators",
+        "model": "youtube-transcript",
+        "local": false
+      },
+      {
+        "service": "gemini-stt",
+        "model": "gemini-3-flash-preview",
+        "local": false
+      },
+      {
+        "service": "together",
+        "model": "openai/whisper-large-v3",
+        "local": false
+      }
+    ],
+    "providerStates": [
+      {
+        "service": "deepinfra",
+        "model": "openai/whisper-large-v3-turbo",
+        "local": false,
+        "artifactDir": "providers/deepinfra-openai_whisper-large-v3-turbo",
+        "status": "succeeded",
+        "attempts": 1
+      },
+      {
+        "service": "deepinfra",
+        "model": "openai/whisper-large-v3",
+        "local": false,
+        "artifactDir": "providers/deepinfra-openai_whisper-large-v3",
+        "status": "succeeded",
+        "attempts": 1
+      },
+      {
+        "service": "deepgram",
+        "model": "nova-3",
+        "local": false,
+        "artifactDir": "providers/deepgram-nova-3",
+        "status": "succeeded",
+        "attempts": 1
+      },
+      {
+        "service": "soniox",
+        "model": "stt-async-v4",
+        "local": false,
+        "artifactDir": "providers/soniox-stt-async-v4",
+        "status": "succeeded",
+        "attempts": 1
+      },
+      {
+        "service": "speechmatics",
+        "model": "enhanced",
+        "local": false,
+        "artifactDir": "providers/speechmatics-enhanced",
+        "status": "succeeded",
+        "attempts": 1
+      },
+      {
+        "service": "rev",
+        "model": "machine",
+        "local": false,
+        "artifactDir": "providers/rev-machine",
+        "status": "succeeded",
+        "attempts": 1
+      },
+      {
+        "service": "rev",
+        "model": "low_cost",
+        "local": false,
+        "artifactDir": "providers/rev-low_cost",
+        "status": "succeeded",
+        "attempts": 1
+      },
+      {
+        "service": "groq",
+        "model": "whisper-large-v3-turbo",
+        "local": false,
+        "artifactDir": "providers/groq-whisper-large-v3-turbo",
+        "status": "succeeded",
+        "attempts": 3
+      },
+      {
+        "service": "groq",
+        "model": "whisper-large-v3",
+        "local": false,
+        "artifactDir": "providers/groq-whisper-large-v3",
+        "status": "succeeded",
+        "attempts": 3
+      },
+      {
+        "service": "mistral",
+        "model": "voxtral-mini-2602",
+        "local": false,
+        "artifactDir": "providers/mistral-voxtral-mini-2602",
+        "status": "succeeded",
+        "attempts": 1
+      },
+      {
+        "service": "assemblyai",
+        "model": "universal-3-pro",
+        "local": false,
+        "artifactDir": "providers/assemblyai-universal-3-pro",
+        "status": "succeeded",
+        "attempts": 1
+      },
+      {
+        "service": "gladia",
+        "model": "default",
+        "local": false,
+        "artifactDir": "providers/gladia-default",
+        "status": "succeeded",
+        "attempts": 3
+      },
+      {
+        "service": "happyscribe",
+        "model": "auto",
+        "local": false,
+        "artifactDir": "providers/happyscribe-auto",
+        "status": "succeeded",
+        "attempts": 1
+      },
+      {
+        "service": "supadata",
+        "model": "auto",
+        "local": false,
+        "artifactDir": "providers/supadata-auto",
+        "status": "succeeded",
+        "attempts": 1
+      },
+      {
+        "service": "scrapecreators",
+        "model": "youtube-transcript",
+        "local": false,
+        "artifactDir": "providers/scrapecreators-youtube-transcript",
+        "status": "succeeded",
+        "attempts": 1
+      },
+      {
+        "service": "gemini-stt",
+        "model": "gemini-3-flash-preview",
+        "local": false,
+        "artifactDir": "providers/gemini-stt-gemini-3-flash-preview",
+        "status": "succeeded",
+        "attempts": 1
+      },
+      {
+        "service": "together",
+        "model": "openai/whisper-large-v3",
+        "local": false,
+        "artifactDir": "providers/together-openai_whisper-large-v3",
+        "status": "succeeded",
+        "attempts": 3
+      }
+    ],
+    "missingProviders": [],
+    "cost": {
+      "estimated": {
+        "totalCost": 1216.988,
+        "steps": [
+          {
+            "step": "stt",
+            "provider": "deepinfra",
+            "model": "openai/whisper-large-v3-turbo",
+            "cost": 3,
+            "costMultiplier": 1,
+            "durationSeconds": 9000
+          },
+          {
+            "step": "stt",
+            "provider": "deepinfra",
+            "model": "openai/whisper-large-v3",
+            "cost": 6.75,
+            "costMultiplier": 1,
+            "durationSeconds": 9000
+          },
+          {
+            "step": "stt",
+            "provider": "deepgram",
+            "model": "nova-3",
+            "cost": 145.5,
+            "costMultiplier": 1,
+            "durationSeconds": 9000
+          },
+          {
+            "step": "stt",
+            "provider": "soniox",
+            "model": "stt-async-v4",
+            "cost": 25,
+            "costMultiplier": 1,
+            "durationSeconds": 9000
+          },
+          {
+            "step": "stt",
+            "provider": "speechmatics",
+            "model": "enhanced",
+            "cost": 187.5,
+            "costMultiplier": 1,
+            "durationSeconds": 9000
+          },
+          {
+            "step": "stt",
+            "provider": "rev",
+            "model": "machine",
+            "cost": 50,
+            "costMultiplier": 1,
+            "durationSeconds": 9000
+          },
+          {
+            "step": "stt",
+            "provider": "rev",
+            "model": "low_cost",
+            "cost": 25,
+            "costMultiplier": 1,
+            "durationSeconds": 9000
+          },
+          {
+            "step": "stt",
+            "provider": "groq",
+            "model": "whisper-large-v3-turbo",
+            "cost": 10,
+            "costMultiplier": 1,
+            "durationSeconds": 9000
+          },
+          {
+            "step": "stt",
+            "provider": "groq",
+            "model": "whisper-large-v3",
+            "cost": 27.75,
+            "costMultiplier": 1,
+            "durationSeconds": 9000
+          },
+          {
+            "step": "stt",
+            "provider": "mistral",
+            "model": "voxtral-mini-2602",
+            "cost": 30,
+            "costMultiplier": 1,
+            "durationSeconds": 9000
+          },
+          {
+            "step": "stt",
+            "provider": "assemblyai",
+            "model": "universal-3-pro",
+            "cost": 52.5,
+            "costMultiplier": 1,
+            "durationSeconds": 9000
+          },
+          {
+            "step": "stt",
+            "provider": "gladia",
+            "model": "default",
+            "cost": 152.5,
+            "costMultiplier": 1,
+            "durationSeconds": 9000
+          },
+          {
+            "step": "stt",
+            "provider": "happyscribe",
+            "model": "auto",
+            "cost": 150,
+            "costMultiplier": 1,
+            "durationSeconds": 9000
+          },
+          {
+            "step": "stt",
+            "provider": "supadata",
+            "model": "auto",
+            "cost": 300,
+            "costMultiplier": 1,
+            "durationSeconds": 9000
+          },
+          {
+            "step": "stt",
+            "provider": "scrapecreators",
+            "model": "youtube-transcript",
+            "cost": 0.188,
+            "costMultiplier": 1,
+            "durationSeconds": 0
+          },
+          {
+            "step": "stt",
+            "provider": "gemini-stt",
+            "model": "gemini-3-flash-preview",
+            "cost": 28.799999999999997,
+            "costMultiplier": 1,
+            "durationSeconds": 9000
+          },
+          {
+            "step": "stt",
+            "provider": "together",
+            "model": "openai/whisper-large-v3",
+            "cost": 22.5,
+            "costMultiplier": 1,
+            "durationSeconds": 9000
+          }
+        ]
+      },
+      "observedEstimate": {
+        "totalCost": 1216.988,
+        "steps": [
+          {
+            "step": "stt",
+            "provider": "deepinfra",
+            "model": "openai/whisper-large-v3-turbo",
+            "cost": 3,
+            "costMultiplier": 1,
+            "durationSeconds": 9000
+          },
+          {
+            "step": "stt",
+            "provider": "deepinfra",
+            "model": "openai/whisper-large-v3",
+            "cost": 6.75,
+            "costMultiplier": 1,
+            "durationSeconds": 9000
+          },
+          {
+            "step": "stt",
+            "provider": "deepgram",
+            "model": "nova-3",
+            "cost": 145.5,
+            "costMultiplier": 1,
+            "durationSeconds": 9000
+          },
+          {
+            "step": "stt",
+            "provider": "soniox",
+            "model": "stt-async-v4",
+            "cost": 25,
+            "costMultiplier": 1,
+            "durationSeconds": 9000
+          },
+          {
+            "step": "stt",
+            "provider": "speechmatics",
+            "model": "enhanced",
+            "cost": 187.5,
+            "costMultiplier": 1,
+            "durationSeconds": 9000
+          },
+          {
+            "step": "stt",
+            "provider": "rev",
+            "model": "machine",
+            "cost": 50,
+            "costMultiplier": 1,
+            "durationSeconds": 9000
+          },
+          {
+            "step": "stt",
+            "provider": "rev",
+            "model": "low_cost",
+            "cost": 25,
+            "costMultiplier": 1,
+            "durationSeconds": 9000
+          },
+          {
+            "step": "stt",
+            "provider": "groq",
+            "model": "whisper-large-v3-turbo",
+            "cost": 10,
+            "costMultiplier": 1,
+            "durationSeconds": 9000
+          },
+          {
+            "step": "stt",
+            "provider": "groq",
+            "model": "whisper-large-v3",
+            "cost": 27.75,
+            "costMultiplier": 1,
+            "durationSeconds": 9000
+          },
+          {
+            "step": "stt",
+            "provider": "mistral",
+            "model": "voxtral-mini-2602",
+            "cost": 30,
+            "costMultiplier": 1,
+            "durationSeconds": 9000
+          },
+          {
+            "step": "stt",
+            "provider": "assemblyai",
+            "model": "universal-3-pro",
+            "cost": 52.5,
+            "costMultiplier": 1,
+            "durationSeconds": 9000
+          },
+          {
+            "step": "stt",
+            "provider": "gladia",
+            "model": "default",
+            "cost": 152.5,
+            "costMultiplier": 1,
+            "durationSeconds": 9000
+          },
+          {
+            "step": "stt",
+            "provider": "happyscribe",
+            "model": "auto",
+            "cost": 150,
+            "costMultiplier": 1,
+            "durationSeconds": 9000
+          },
+          {
+            "step": "stt",
+            "provider": "supadata",
+            "model": "auto",
+            "cost": 300,
+            "costMultiplier": 1,
+            "durationSeconds": 9000
+          },
+          {
+            "step": "stt",
+            "provider": "scrapecreators",
+            "model": "youtube-transcript",
+            "cost": 0.188,
+            "costMultiplier": 1,
+            "durationSeconds": 0
+          },
+          {
+            "step": "stt",
+            "provider": "gemini-stt",
+            "model": "gemini-3-flash-preview",
+            "cost": 28.799999999999997,
+            "costMultiplier": 1,
+            "durationSeconds": 9000
+          },
+          {
+            "step": "stt",
+            "provider": "together",
+            "model": "openai/whisper-large-v3",
+            "cost": 22.5,
+            "costMultiplier": 1,
+            "durationSeconds": 9000
+          }
+        ]
+      },
+      "actual": {
+        "totalCost": 819.32025,
+        "steps": [
+          {
+            "step": "stt",
+            "provider": "deepinfra",
+            "model": "openai/whisper-large-v3-turbo",
+            "cost": 3,
+            "costSource": "computed_usage",
+            "inputMetric": "durationSeconds",
+            "inputValue": 9000
+          },
+          {
+            "step": "stt",
+            "provider": "deepinfra",
+            "model": "openai/whisper-large-v3",
+            "cost": 6.75,
+            "costSource": "computed_usage",
+            "inputMetric": "durationSeconds",
+            "inputValue": 9000
+          },
+          {
+            "step": "stt",
+            "provider": "deepgram",
+            "model": "nova-3",
+            "cost": 145.5,
+            "costSource": "computed_usage",
+            "inputMetric": "durationSeconds",
+            "inputValue": 9000
+          },
+          {
+            "step": "stt",
+            "provider": "soniox",
+            "model": "stt-async-v4",
+            "cost": 25,
+            "costSource": "computed_usage",
+            "inputMetric": "durationSeconds",
+            "inputValue": 9000
+          },
+          {
+            "step": "stt",
+            "provider": "speechmatics",
+            "model": "enhanced",
+            "cost": 187.5,
+            "costSource": "computed_usage",
+            "inputMetric": "durationSeconds",
+            "inputValue": 9000
+          },
+          {
+            "step": "stt",
+            "provider": "rev",
+            "model": "machine",
+            "cost": 50,
+            "costSource": "computed_usage",
+            "inputMetric": "durationSeconds",
+            "inputValue": 9000
+          },
+          {
+            "step": "stt",
+            "provider": "rev",
+            "model": "low_cost",
+            "cost": 25,
+            "costSource": "computed_usage",
+            "inputMetric": "durationSeconds",
+            "inputValue": 9000
+          },
+          {
+            "step": "stt",
+            "provider": "groq",
+            "model": "whisper-large-v3-turbo",
+            "cost": 10,
+            "costSource": "computed_usage",
+            "inputMetric": "durationSeconds",
+            "inputValue": 9000
+          },
+          {
+            "step": "stt",
+            "provider": "groq",
+            "model": "whisper-large-v3",
+            "cost": 27.75,
+            "costSource": "computed_usage",
+            "inputMetric": "durationSeconds",
+            "inputValue": 9000
+          },
+          {
+            "step": "stt",
+            "provider": "mistral",
+            "model": "voxtral-mini-2602",
+            "cost": 30,
+            "costSource": "computed_usage",
+            "inputMetric": "durationSeconds",
+            "inputValue": 9000
+          },
+          {
+            "step": "stt",
+            "provider": "assemblyai",
+            "model": "universal-3-pro",
+            "cost": 52.5,
+            "costSource": "computed_usage",
+            "inputMetric": "durationSeconds",
+            "inputValue": 9000
+          },
+          {
+            "step": "stt",
+            "provider": "gladia",
+            "model": "default",
+            "cost": 152.5,
+            "costSource": "computed_usage",
+            "inputMetric": "durationSeconds",
+            "inputValue": 9000
+          },
+          {
+            "step": "stt",
+            "provider": "happyscribe",
+            "model": "auto",
+            "cost": 0,
+            "costSource": "provider_quote",
+            "inputMetric": "durationSeconds",
+            "inputValue": 9000
+          },
+          {
+            "step": "stt",
+            "provider": "supadata",
+            "model": "auto",
+            "cost": 1,
+            "costSource": "response_header",
+            "inputMetric": "credits",
+            "inputValue": 1
+          },
+          {
+            "step": "stt",
+            "provider": "scrapecreators",
+            "model": "youtube-transcript",
+            "cost": 0.188,
+            "costSource": "registry_fallback",
+            "inputMetric": "credits",
+            "inputValue": 1
+          },
+          {
+            "step": "stt",
+            "provider": "gemini-stt",
+            "model": "gemini-3-flash-preview",
+            "cost": 80.13225,
+            "costSource": "provider_usage",
+            "inputMetric": "tokens",
+            "inputValue": 417546,
+            "promptTokens": 225526,
+            "completionTokens": 192020
+          },
+          {
+            "step": "stt",
+            "provider": "together",
+            "model": "openai/whisper-large-v3",
+            "cost": 22.5,
+            "costSource": "computed_usage",
+            "inputMetric": "durationSeconds",
+            "inputValue": 9000
+          }
+        ]
+      },
+      "aggregate": {
+        "estimatedTotalCost": 1216.988,
+        "actualTotalCost": 819.32025
+      }
+    },
+    "timing": {
+      "estimated": {
+        "totalProcessingTimeMs": 30762000,
+        "steps": [
+          {
+            "step": "stt",
+            "provider": "deepinfra",
+            "model": "openai/whisper-large-v3-turbo",
+            "processingTimeMs": 1503000,
+            "inputMetric": "durationSeconds",
+            "inputValue": 9000,
+            "rateBasis": "durationSecond",
+            "msPerUnit": 167,
+            "throughputValue": 5.988,
+            "throughputUnit": "x",
+            "timingScope": "estimated"
+          },
+          {
+            "step": "stt",
+            "provider": "deepinfra",
+            "model": "openai/whisper-large-v3",
+            "processingTimeMs": 567000,
+            "inputMetric": "durationSeconds",
+            "inputValue": 9000,
+            "rateBasis": "durationSecond",
+            "msPerUnit": 63,
+            "throughputValue": 15.873,
+            "throughputUnit": "x",
+            "timingScope": "estimated"
+          },
+          {
+            "step": "stt",
+            "provider": "deepgram",
+            "model": "nova-3",
+            "processingTimeMs": 243000,
+            "inputMetric": "durationSeconds",
+            "inputValue": 9000,
+            "rateBasis": "durationSecond",
+            "msPerUnit": 27,
+            "throughputValue": 37.037,
+            "throughputUnit": "x",
+            "timingScope": "estimated"
+          },
+          {
+            "step": "stt",
+            "provider": "soniox",
+            "model": "stt-async-v4",
+            "processingTimeMs": 1251000,
+            "inputMetric": "durationSeconds",
+            "inputValue": 9000,
+            "rateBasis": "durationSecond",
+            "msPerUnit": 139,
+            "throughputValue": 7.194,
+            "throughputUnit": "x",
+            "timingScope": "estimated"
+          },
+          {
+            "step": "stt",
+            "provider": "speechmatics",
+            "model": "enhanced",
+            "processingTimeMs": 1962000,
+            "inputMetric": "durationSeconds",
+            "inputValue": 9000,
+            "rateBasis": "durationSecond",
+            "msPerUnit": 218,
+            "throughputValue": 4.587,
+            "throughputUnit": "x",
+            "timingScope": "estimated"
+          },
+          {
+            "step": "stt",
+            "provider": "rev",
+            "model": "machine",
+            "processingTimeMs": 3879000,
+            "inputMetric": "durationSeconds",
+            "inputValue": 9000,
+            "rateBasis": "durationSecond",
+            "msPerUnit": 431,
+            "throughputValue": 2.32,
+            "throughputUnit": "x",
+            "timingScope": "estimated"
+          },
+          {
+            "step": "stt",
+            "provider": "rev",
+            "model": "low_cost",
+            "processingTimeMs": 4464000,
+            "inputMetric": "durationSeconds",
+            "inputValue": 9000,
+            "rateBasis": "durationSecond",
+            "msPerUnit": 496,
+            "throughputValue": 2.016,
+            "throughputUnit": "x",
+            "timingScope": "estimated"
+          },
+          {
+            "step": "stt",
+            "provider": "groq",
+            "model": "whisper-large-v3-turbo",
+            "processingTimeMs": 234000,
+            "inputMetric": "durationSeconds",
+            "inputValue": 9000,
+            "rateBasis": "durationSecond",
+            "msPerUnit": 26,
+            "throughputValue": 38.462,
+            "throughputUnit": "x",
+            "timingScope": "estimated"
+          },
+          {
+            "step": "stt",
+            "provider": "groq",
+            "model": "whisper-large-v3",
+            "processingTimeMs": 225000,
+            "inputMetric": "durationSeconds",
+            "inputValue": 9000,
+            "rateBasis": "durationSecond",
+            "msPerUnit": 25,
+            "throughputValue": 40,
+            "throughputUnit": "x",
+            "timingScope": "estimated"
+          },
+          {
+            "step": "stt",
+            "provider": "mistral",
+            "model": "voxtral-mini-2602",
+            "processingTimeMs": 909000,
+            "inputMetric": "durationSeconds",
+            "inputValue": 9000,
+            "rateBasis": "durationSecond",
+            "msPerUnit": 101,
+            "throughputValue": 9.901,
+            "throughputUnit": "x",
+            "timingScope": "estimated"
+          },
+          {
+            "step": "stt",
+            "provider": "assemblyai",
+            "model": "universal-3-pro",
+            "processingTimeMs": 1692000,
+            "inputMetric": "durationSeconds",
+            "inputValue": 9000,
+            "rateBasis": "durationSecond",
+            "msPerUnit": 188,
+            "throughputValue": 5.319,
+            "throughputUnit": "x",
+            "timingScope": "estimated"
+          },
+          {
+            "step": "stt",
+            "provider": "gladia",
+            "model": "default",
+            "processingTimeMs": 2556000,
+            "inputMetric": "durationSeconds",
+            "inputValue": 9000,
+            "rateBasis": "durationSecond",
+            "msPerUnit": 284,
+            "throughputValue": 3.521,
+            "throughputUnit": "x",
+            "timingScope": "estimated"
+          },
+          {
+            "step": "stt",
+            "provider": "happyscribe",
+            "model": "auto",
+            "processingTimeMs": 2160000,
+            "inputMetric": "durationSeconds",
+            "inputValue": 9000,
+            "rateBasis": "durationSecond",
+            "msPerUnit": 240,
+            "throughputValue": 4.167,
+            "throughputUnit": "x",
+            "timingScope": "estimated"
+          },
+          {
+            "step": "stt",
+            "provider": "supadata",
+            "model": "auto",
+            "processingTimeMs": 414000,
+            "inputMetric": "durationSeconds",
+            "inputValue": 9000,
+            "rateBasis": "durationSecond",
+            "msPerUnit": 46,
+            "throughputValue": 21.739,
+            "throughputUnit": "x",
+            "timingScope": "estimated"
+          },
+          {
+            "step": "stt",
+            "provider": "scrapecreators",
+            "model": "youtube-transcript",
+            "processingTimeMs": 324000,
+            "inputMetric": "durationSeconds",
+            "inputValue": 9000,
+            "rateBasis": "durationSecond",
+            "msPerUnit": 36,
+            "throughputValue": 27.778,
+            "throughputUnit": "x",
+            "timingScope": "estimated"
+          },
+          {
+            "step": "stt",
+            "provider": "gemini-stt",
+            "model": "gemini-3-flash-preview",
+            "processingTimeMs": 8028000,
+            "inputMetric": "durationSeconds",
+            "inputValue": 9000,
+            "rateBasis": "durationSecond",
+            "msPerUnit": 892,
+            "throughputValue": 1.121,
+            "throughputUnit": "x",
+            "timingScope": "estimated"
+          },
+          {
+            "step": "stt",
+            "provider": "together",
+            "model": "openai/whisper-large-v3",
+            "processingTimeMs": 351000,
+            "inputMetric": "durationSeconds",
+            "inputValue": 9000,
+            "rateBasis": "durationSecond",
+            "msPerUnit": 39,
+            "throughputValue": 25.641,
+            "throughputUnit": "x",
+            "timingScope": "estimated"
+          }
+        ],
+        "estimateConfidence": "registry",
+        "likelyGatingTargets": [
+          {
+            "step": "stt",
+            "provider": "gemini-stt",
+            "model": "gemini-3-flash-preview",
+            "processingTimeMs": 8028000
+          }
+        ]
+      },
+      "actual": {
+        "totalProcessingTimeMs": 2789915,
+        "steps": [
+          {
+            "step": "stt",
+            "provider": "deepinfra",
+            "model": "openai/whisper-large-v3-turbo",
+            "processingTimeMs": 76558,
+            "inputMetric": "durationSeconds",
+            "inputValue": 9000,
+            "rateBasis": "durationSecond",
+            "msPerUnit": 8.506,
+            "throughputValue": 117.558,
+            "throughputUnit": "x",
+            "timingScope": "wall"
+          },
+          {
+            "step": "stt",
+            "provider": "deepinfra",
+            "model": "openai/whisper-large-v3",
+            "processingTimeMs": 143723,
+            "inputMetric": "durationSeconds",
+            "inputValue": 9000,
+            "rateBasis": "durationSecond",
+            "msPerUnit": 15.969,
+            "throughputValue": 62.62,
+            "throughputUnit": "x",
+            "timingScope": "wall"
+          },
+          {
+            "step": "stt",
+            "provider": "deepgram",
+            "model": "nova-3",
+            "processingTimeMs": 41430,
+            "timingBreakdown": {
+              "transcribeMs": 41409,
+              "remoteProcessingMs": 21
+            },
+            "inputMetric": "durationSeconds",
+            "inputValue": 9000,
+            "rateBasis": "durationSecond",
+            "msPerUnit": 4.603,
+            "throughputValue": 217.234,
+            "throughputUnit": "x",
+            "timingScope": "wall"
+          },
+          {
+            "step": "stt",
+            "provider": "soniox",
+            "model": "stt-async-v4",
+            "processingTimeMs": 402959,
+            "timingBreakdown": {
+              "uploadMs": 12672,
+              "createMs": 96,
+              "pollMs": 2061,
+              "pollSleepMs": 385078,
+              "transcriptMs": 2983,
+              "remoteProcessingMs": 384963,
+              "cleanupMs": 184
+            },
+            "inputMetric": "durationSeconds",
+            "inputValue": 9000,
+            "rateBasis": "durationSecond",
+            "msPerUnit": 44.773,
+            "throughputValue": 22.335,
+            "throughputUnit": "x",
+            "timingScope": "wall"
+          },
+          {
+            "step": "stt",
+            "provider": "speechmatics",
+            "model": "enhanced",
+            "processingTimeMs": 339916,
+            "timingBreakdown": {
+              "createMs": 26212,
+              "pollMs": 7483,
+              "pollSleepMs": 305066,
+              "transcriptMs": 1119,
+              "remoteProcessingMs": 304965,
+              "cleanupMs": 137
+            },
+            "inputMetric": "durationSeconds",
+            "inputValue": 9000,
+            "rateBasis": "durationSecond",
+            "msPerUnit": 37.768,
+            "throughputValue": 26.477,
+            "throughputUnit": "x",
+            "timingScope": "wall"
+          },
+          {
+            "step": "stt",
+            "provider": "rev",
+            "model": "machine",
+            "processingTimeMs": 164789,
+            "timingBreakdown": {
+              "createMs": 18505,
+              "pollMs": 1248,
+              "pollSleepMs": 144027,
+              "transcriptMs": 991,
+              "remoteProcessingMs": 143949,
+              "cleanupMs": 96
+            },
+            "inputMetric": "durationSeconds",
+            "inputValue": 9000,
+            "rateBasis": "durationSecond",
+            "msPerUnit": 18.31,
+            "throughputValue": 54.615,
+            "throughputUnit": "x",
+            "timingScope": "wall"
+          },
+          {
+            "step": "stt",
+            "provider": "rev",
+            "model": "low_cost",
+            "processingTimeMs": 303143,
+            "timingBreakdown": {
+              "createMs": 16287,
+              "pollMs": 2096,
+              "pollSleepMs": 284051,
+              "transcriptMs": 674,
+              "remoteProcessingMs": 283983,
+              "cleanupMs": 103
+            },
+            "inputMetric": "durationSeconds",
+            "inputValue": 9000,
+            "rateBasis": "durationSecond",
+            "msPerUnit": 33.683,
+            "throughputValue": 29.689,
+            "throughputUnit": "x",
+            "timingScope": "wall"
+          },
+          {
+            "step": "stt",
+            "provider": "groq",
+            "model": "whisper-large-v3-turbo",
+            "processingTimeMs": 54913,
+            "inputMetric": "durationSeconds",
+            "inputValue": 9000,
+            "rateBasis": "durationSecond",
+            "msPerUnit": 6.101,
+            "throughputValue": 163.896,
+            "throughputUnit": "x",
+            "timingScope": "wall"
+          },
+          {
+            "step": "stt",
+            "provider": "groq",
+            "model": "whisper-large-v3",
+            "processingTimeMs": 85575,
+            "inputMetric": "durationSeconds",
+            "inputValue": 9000,
+            "rateBasis": "durationSecond",
+            "msPerUnit": 9.508,
+            "throughputValue": 105.171,
+            "throughputUnit": "x",
+            "timingScope": "wall"
+          },
+          {
+            "step": "stt",
+            "provider": "mistral",
+            "model": "voxtral-mini-2602",
+            "processingTimeMs": 90668,
+            "timingBreakdown": {
+              "transcribeMs": 90651
+            },
+            "inputMetric": "durationSeconds",
+            "inputValue": 9000,
+            "rateBasis": "durationSecond",
+            "msPerUnit": 10.074,
+            "throughputValue": 99.263,
+            "throughputUnit": "x",
+            "timingScope": "wall"
+          },
+          {
+            "step": "stt",
+            "provider": "assemblyai",
+            "model": "universal-3-pro",
+            "processingTimeMs": 103935,
+            "timingBreakdown": {
+              "uploadMs": 15313,
+              "createMs": 100,
+              "pollMs": 3481,
+              "pollSleepMs": 85013,
+              "remoteProcessingMs": 85041
+            },
+            "inputMetric": "durationSeconds",
+            "inputValue": 9000,
+            "rateBasis": "durationSecond",
+            "msPerUnit": 11.548,
+            "throughputValue": 86.593,
+            "throughputUnit": "x",
+            "timingScope": "wall"
+          },
+          {
+            "step": "stt",
+            "provider": "gladia",
+            "model": "default",
+            "processingTimeMs": 10324,
+            "timingBreakdown": {
+              "pollMs": 10260,
+              "remoteProcessingMs": 64
+            },
+            "inputMetric": "durationSeconds",
+            "inputValue": 9000,
+            "rateBasis": "durationSecond",
+            "msPerUnit": 1.147,
+            "throughputValue": 871.755,
+            "throughputUnit": "x",
+            "timingScope": "wall"
+          },
+          {
+            "step": "stt",
+            "provider": "happyscribe",
+            "model": "auto",
+            "processingTimeMs": 165512,
+            "timingBreakdown": {
+              "uploadMs": 13040,
+              "createMs": 711,
+              "pollMs": 3977,
+              "pollSleepMs": 145036,
+              "transcriptMs": 1082,
+              "remoteProcessingMs": 146702
+            },
+            "inputMetric": "durationSeconds",
+            "inputValue": 9000,
+            "rateBasis": "durationSecond",
+            "msPerUnit": 18.39,
+            "throughputValue": 54.377,
+            "throughputUnit": "x",
+            "timingScope": "wall"
+          },
+          {
+            "step": "stt",
+            "provider": "supadata",
+            "model": "auto",
+            "processingTimeMs": 11232,
+            "timingBreakdown": {
+              "createMs": 11224
+            },
+            "inputMetric": "durationSeconds",
+            "inputValue": 9000,
+            "rateBasis": "durationSecond",
+            "msPerUnit": 1.248,
+            "throughputValue": 801.282,
+            "throughputUnit": "x",
+            "timingScope": "wall"
+          },
+          {
+            "step": "stt",
+            "provider": "scrapecreators",
+            "model": "youtube-transcript",
+            "processingTimeMs": 3059,
+            "timingBreakdown": {
+              "createMs": 3060
+            },
+            "inputMetric": "durationSeconds",
+            "inputValue": 9000,
+            "rateBasis": "durationSecond",
+            "msPerUnit": 0.34,
+            "throughputValue": 2942.138,
+            "throughputUnit": "x",
+            "timingScope": "wall"
+          },
+          {
+            "step": "stt",
+            "provider": "gemini-stt",
+            "model": "gemini-3-flash-preview",
+            "processingTimeMs": 735345,
+            "inputMetric": "durationSeconds",
+            "inputValue": 9000,
+            "rateBasis": "durationSecond",
+            "msPerUnit": 81.705,
+            "throughputValue": 12.239,
+            "throughputUnit": "x",
+            "timingScope": "wall"
+          },
+          {
+            "step": "stt",
+            "provider": "together",
+            "model": "openai/whisper-large-v3",
+            "processingTimeMs": 56834,
+            "inputMetric": "durationSeconds",
+            "inputValue": 9000,
+            "rateBasis": "durationSecond",
+            "msPerUnit": 6.315,
+            "throughputValue": 158.356,
+            "throughputUnit": "x",
+            "timingScope": "wall"
+          }
+        ]
+      },
+      "aggregate": {
+        "wallTimeMs": 85923,
+        "scheduler": {
+          "hostedProviderCount": 17,
+          "itemProviderConcurrency": 10,
+          "coordinatedAcrossBatch": false
+        },
+        "providers": [
+          {
+            "service": "deepinfra",
+            "model": "openai/whisper-large-v3-turbo",
+            "processingTimeMs": 76558
+          },
+          {
+            "service": "deepinfra",
+            "model": "openai/whisper-large-v3",
+            "processingTimeMs": 143723
+          },
+          {
+            "service": "deepgram",
+            "model": "nova-3",
+            "processingTimeMs": 41430,
+            "timings": {
+              "transcribeMs": 41409,
+              "remoteProcessingMs": 21,
+              "requestCount": 1
+            }
+          },
+          {
+            "service": "soniox",
+            "model": "stt-async-v4",
+            "processingTimeMs": 402959,
+            "timings": {
+              "uploadMs": 12672,
+              "createMs": 96,
+              "createCount": 1,
+              "pollMs": 2061,
+              "pollSleepMs": 385078,
+              "pollCount": 41,
+              "transcriptMs": 2983,
+              "remoteProcessingMs": 384963,
+              "cleanupMs": 184,
+              "requestCount": 44
+            }
+          },
+          {
+            "service": "speechmatics",
+            "model": "enhanced",
+            "processingTimeMs": 339916,
+            "timings": {
+              "createMs": 26212,
+              "createCount": 1,
+              "pollMs": 7483,
+              "pollSleepMs": 305066,
+              "pollCount": 33,
+              "transcriptMs": 1119,
+              "remoteProcessingMs": 304965,
+              "cleanupMs": 137,
+              "requestCount": 35
+            }
+          },
+          {
+            "service": "rev",
+            "model": "machine",
+            "processingTimeMs": 164789,
+            "timings": {
+              "createMs": 18505,
+              "createCount": 1,
+              "pollMs": 1248,
+              "pollSleepMs": 144027,
+              "pollCount": 16,
+              "transcriptMs": 991,
+              "remoteProcessingMs": 143949,
+              "cleanupMs": 96,
+              "requestCount": 18
+            }
+          },
+          {
+            "service": "rev",
+            "model": "low_cost",
+            "processingTimeMs": 303143,
+            "timings": {
+              "createMs": 16287,
+              "createCount": 1,
+              "pollMs": 2096,
+              "pollSleepMs": 284051,
+              "pollCount": 30,
+              "transcriptMs": 674,
+              "remoteProcessingMs": 283983,
+              "cleanupMs": 103,
+              "requestCount": 32
+            }
+          },
+          {
+            "service": "groq",
+            "model": "whisper-large-v3-turbo",
+            "processingTimeMs": 54913
+          },
+          {
+            "service": "groq",
+            "model": "whisper-large-v3",
+            "processingTimeMs": 85575
+          },
+          {
+            "service": "mistral",
+            "model": "voxtral-mini-2602",
+            "processingTimeMs": 90668,
+            "timings": {
+              "transcribeMs": 90651
+            }
+          },
+          {
+            "service": "assemblyai",
+            "model": "universal-3-pro",
+            "processingTimeMs": 103935,
+            "timings": {
+              "uploadMs": 15313,
+              "createMs": 100,
+              "createCount": 1,
+              "pollMs": 3481,
+              "pollSleepMs": 85013,
+              "pollCount": 11,
+              "remoteProcessingMs": 85041,
+              "requestCount": 13
+            }
+          },
+          {
+            "service": "gladia",
+            "model": "default",
+            "processingTimeMs": 10324,
+            "timings": {
+              "pollMs": 10260,
+              "pollCount": 5,
+              "remoteProcessingMs": 64,
+              "requestCount": 5,
+              "backfillCount": 5
+            }
+          },
+          {
+            "service": "happyscribe",
+            "model": "auto",
+            "processingTimeMs": 165512,
+            "timings": {
+              "uploadMs": 13040,
+              "createMs": 711,
+              "createCount": 1,
+              "pollMs": 3977,
+              "pollSleepMs": 145036,
+              "pollCount": 17,
+              "transcriptMs": 1082,
+              "remoteProcessingMs": 146702,
+              "requestCount": 21
+            }
+          },
+          {
+            "service": "supadata",
+            "model": "auto",
+            "processingTimeMs": 11232,
+            "timings": {
+              "createMs": 11224,
+              "createCount": 1,
+              "requestCount": 1
+            }
+          },
+          {
+            "service": "scrapecreators",
+            "model": "youtube-transcript",
+            "processingTimeMs": 3059,
+            "timings": {
+              "createMs": 3060,
+              "createCount": 1,
+              "requestCount": 1
+            }
+          },
+          {
+            "service": "gemini-stt",
+            "model": "gemini-3-flash-preview",
+            "processingTimeMs": 735345,
+            "timings": {
+              "requestCount": 6
+            }
+          },
+          {
+            "service": "together",
+            "model": "openai/whisper-large-v3",
+            "processingTimeMs": 56834
+          }
+        ]
+      }
+    },
+    "extractRoute": "media"
+  }
+}

@@ -1,0 +1,12 @@
+export type MusicRuntimeOptionKey =
+  | 'musicProviderConcurrency'
+  | 'musicLocalConcurrency'
+  | 'elevenlabsMusicModels'
+  | 'elevenlabsMusicModel'
+  | 'minimaxMusicModels'
+  | 'minimaxMusicModel'
+  | 'geminiMusicModels'
+  | 'geminiMusicModel'
+  | 'musicDuration'
+  | 'musicLyricsFile'
+  | 'musicInstrumental'

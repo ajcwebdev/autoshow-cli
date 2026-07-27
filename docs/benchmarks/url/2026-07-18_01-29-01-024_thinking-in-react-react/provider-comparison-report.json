@@ -1,0 +1,576 @@
+{
+  "schemaVersion": 2,
+  "kind": "url-provider-comparison",
+  "category": "url",
+  "runDir": "/Users/ajc/c/autoshow-cli/docs/benchmarks/url/2026-07-18_01-29-01-024_thinking-in-react-react",
+  "runName": "2026-07-18_01-29-01-024_thinking-in-react-react",
+  "generatedAt": "2026-07-18T10:24:03.206Z",
+  "metric": null,
+  "scoreFormula": null,
+  "duplicateGroups": [],
+  "normalization": {
+    "exactLevenshteinElementLimit": 10000,
+    "longSequenceDistance": "bounded-wavefront-content-anchors-v2",
+    "longSequenceDistanceMethods": [
+      "bounded-wavefront-content-anchors-v2"
+    ],
+    "providerLongSequenceDistance": {
+      "spider": "bounded-wavefront-content-anchors-v2",
+      "firecrawl": "bounded-wavefront-content-anchors-v2",
+      "glm-reader": "bounded-wavefront-content-anchors-v2",
+      "supadata": "bounded-wavefront-content-anchors-v2",
+      "zyte": "bounded-wavefront-content-anchors-v2"
+    }
+  },
+  "providerCount": 5,
+  "providerGroups": {
+    "local": {
+      "count": 0,
+      "providers": []
+    },
+    "service": {
+      "count": 5,
+      "providers": [
+        {
+          "providerKey": "firecrawl",
+          "provider": "firecrawl",
+          "model": "firecrawl",
+          "group": "service",
+          "processingTimeMs": 537,
+          "msPerUnit": null,
+          "costCents": 0.083,
+          "qualityMetric": "WER/CER/coverage",
+          "qualityValue": 0.5060465116279069,
+          "qualityLabel": "50.60% WER, 56.72% CER, 100.00% coverage",
+          "metrics": {
+            "inputTokenCount": null,
+            "outputTokenCount": null,
+            "totalTokenCount": null,
+            "msPerUnit": null,
+            "wer": 0.5060465116279069,
+            "cer": 0.5671924920127795,
+            "speakerAwareWER": null,
+            "textOnlyWER": null,
+            "roundtripWER": null,
+            "contentCoverage": 1,
+            "qualityScore": null,
+            "automatedQualityScore": null,
+            "textQualityScore": null,
+            "humanQualityScore": null,
+            "humanSpeechScore": null
+          },
+          "supportsDiarization": null,
+          "diarizationSupport": null,
+          "qualityWarnings": [],
+          "segmentStats": null,
+          "duplicateGroupId": null,
+          "distanceMethod": "bounded-wavefront-content-anchors-v2",
+          "distanceSource": "recomputed",
+          "tierGroup": null,
+          "groupOverallRank": null,
+          "groupTier": 1
+        },
+        {
+          "providerKey": "glm-reader",
+          "provider": "glm-reader",
+          "model": "glm-reader",
+          "group": "service",
+          "processingTimeMs": 1795,
+          "msPerUnit": null,
+          "costCents": 1,
+          "qualityMetric": "WER/CER/coverage",
+          "qualityValue": 0.19116279069767442,
+          "qualityLabel": "19.12% WER, 22.32% CER, 99.58% coverage",
+          "metrics": {
+            "inputTokenCount": null,
+            "outputTokenCount": null,
+            "totalTokenCount": null,
+            "msPerUnit": null,
+            "wer": 0.19116279069767442,
+            "cer": 0.22324281150159744,
+            "speakerAwareWER": null,
+            "textOnlyWER": null,
+            "roundtripWER": null,
+            "contentCoverage": 0.9958246346555324,
+            "qualityScore": null,
+            "automatedQualityScore": null,
+            "textQualityScore": null,
+            "humanQualityScore": null,
+            "humanSpeechScore": null
+          },
+          "supportsDiarization": null,
+          "diarizationSupport": null,
+          "qualityWarnings": [],
+          "segmentStats": null,
+          "duplicateGroupId": null,
+          "distanceMethod": "bounded-wavefront-content-anchors-v2",
+          "distanceSource": "recomputed",
+          "tierGroup": null,
+          "groupOverallRank": null,
+          "groupTier": 2
+        },
+        {
+          "providerKey": "spider",
+          "provider": "spider",
+          "model": "spider",
+          "group": "service",
+          "processingTimeMs": 1478,
+          "msPerUnit": null,
+          "costCents": 0.12,
+          "qualityMetric": "WER/CER/coverage",
+          "qualityValue": 0.08093023255813954,
+          "qualityLabel": "8.09% WER, 8.97% CER, 99.58% coverage",
+          "metrics": {
+            "inputTokenCount": null,
+            "outputTokenCount": null,
+            "totalTokenCount": null,
+            "msPerUnit": null,
+            "wer": 0.08093023255813954,
+            "cer": 0.08965654952076678,
+            "speakerAwareWER": null,
+            "textOnlyWER": null,
+            "roundtripWER": null,
+            "contentCoverage": 0.9958246346555324,
+            "qualityScore": null,
+            "automatedQualityScore": null,
+            "textQualityScore": null,
+            "humanQualityScore": null,
+            "humanSpeechScore": null
+          },
+          "supportsDiarization": null,
+          "diarizationSupport": null,
+          "qualityWarnings": [],
+          "segmentStats": null,
+          "duplicateGroupId": null,
+          "distanceMethod": "bounded-wavefront-content-anchors-v2",
+          "distanceSource": "recomputed",
+          "tierGroup": null,
+          "groupOverallRank": null,
+          "groupTier": 1
+        },
+        {
+          "providerKey": "supadata",
+          "provider": "supadata",
+          "model": "supadata",
+          "group": "service",
+          "processingTimeMs": 893,
+          "msPerUnit": null,
+          "costCents": 1,
+          "qualityMetric": "WER/CER/coverage",
+          "qualityValue": 0.2804651162790698,
+          "qualityLabel": "28.05% WER, 39.72% CER, 100.00% coverage",
+          "metrics": {
+            "inputTokenCount": null,
+            "outputTokenCount": null,
+            "totalTokenCount": null,
+            "msPerUnit": null,
+            "wer": 0.2804651162790698,
+            "cer": 0.39716453674121405,
+            "speakerAwareWER": null,
+            "textOnlyWER": null,
+            "roundtripWER": null,
+            "contentCoverage": 1,
+            "qualityScore": null,
+            "automatedQualityScore": null,
+            "textQualityScore": null,
+            "humanQualityScore": null,
+            "humanSpeechScore": null
+          },
+          "supportsDiarization": null,
+          "diarizationSupport": null,
+          "qualityWarnings": [],
+          "segmentStats": null,
+          "duplicateGroupId": null,
+          "distanceMethod": "bounded-wavefront-content-anchors-v2",
+          "distanceSource": "recomputed",
+          "tierGroup": null,
+          "groupOverallRank": null,
+          "groupTier": 2
+        },
+        {
+          "providerKey": "zyte",
+          "provider": "zyte",
+          "model": "zyte",
+          "group": "service",
+          "processingTimeMs": 12166,
+          "msPerUnit": null,
+          "costCents": 0.16,
+          "qualityMetric": "WER/CER/coverage",
+          "qualityValue": 0.847906976744186,
+          "qualityLabel": "84.79% WER, 84.67% CER, 30.90% coverage",
+          "metrics": {
+            "inputTokenCount": null,
+            "outputTokenCount": null,
+            "totalTokenCount": null,
+            "msPerUnit": null,
+            "wer": 0.847906976744186,
+            "cer": 0.8467452076677316,
+            "speakerAwareWER": null,
+            "textOnlyWER": null,
+            "roundtripWER": null,
+            "contentCoverage": 0.3089770354906054,
+            "qualityScore": null,
+            "automatedQualityScore": null,
+            "textQualityScore": null,
+            "humanQualityScore": null,
+            "humanSpeechScore": null
+          },
+          "supportsDiarization": null,
+          "diarizationSupport": null,
+          "qualityWarnings": [],
+          "segmentStats": null,
+          "duplicateGroupId": null,
+          "distanceMethod": "bounded-wavefront-content-anchors-v2",
+          "distanceSource": "recomputed",
+          "tierGroup": null,
+          "groupOverallRank": null,
+          "groupTier": 3
+        }
+      ]
+    }
+  },
+  "rankingSurfaces": {
+    "local": {
+      "fastest": [],
+      "cheapest": [],
+      "highestQuality": [],
+      "fastestUnavailableReason": "No local providers were found.",
+      "cheapestUnavailableReason": "No local providers were found.",
+      "highestQualityUnavailableReason": "No local providers were found.",
+      "price": [],
+      "speed": [],
+      "automatedQuality": [],
+      "humanQuality": [],
+      "priceUnavailableReason": "No local providers were found.",
+      "speedUnavailableReason": "No local providers were found.",
+      "automatedQualityUnavailableReason": "No local providers were found.",
+      "humanQualityUnavailableReason": "No local providers were found."
+    },
+    "service": {
+      "fastest": [
+        {
+          "rank": 1,
+          "providerKey": "firecrawl",
+          "provider": "firecrawl",
+          "model": "firecrawl",
+          "group": "service",
+          "metric": "processingTimeMs",
+          "value": 537,
+          "label": "0.54s"
+        },
+        {
+          "rank": 2,
+          "providerKey": "supadata",
+          "provider": "supadata",
+          "model": "supadata",
+          "group": "service",
+          "metric": "processingTimeMs",
+          "value": 893,
+          "label": "0.89s"
+        },
+        {
+          "rank": 3,
+          "providerKey": "spider",
+          "provider": "spider",
+          "model": "spider",
+          "group": "service",
+          "metric": "processingTimeMs",
+          "value": 1478,
+          "label": "1.48s"
+        },
+        {
+          "rank": 4,
+          "providerKey": "glm-reader",
+          "provider": "glm-reader",
+          "model": "glm-reader",
+          "group": "service",
+          "metric": "processingTimeMs",
+          "value": 1795,
+          "label": "1.79s"
+        },
+        {
+          "rank": 5,
+          "providerKey": "zyte",
+          "provider": "zyte",
+          "model": "zyte",
+          "group": "service",
+          "metric": "processingTimeMs",
+          "value": 12166,
+          "label": "12.17s"
+        }
+      ],
+      "cheapest": [
+        {
+          "rank": 1,
+          "providerKey": "firecrawl",
+          "provider": "firecrawl",
+          "model": "firecrawl",
+          "group": "service",
+          "metric": "costCents",
+          "value": 0.083,
+          "label": "$0.0008"
+        },
+        {
+          "rank": 2,
+          "providerKey": "spider",
+          "provider": "spider",
+          "model": "spider",
+          "group": "service",
+          "metric": "costCents",
+          "value": 0.12,
+          "label": "$0.0012"
+        },
+        {
+          "rank": 3,
+          "providerKey": "zyte",
+          "provider": "zyte",
+          "model": "zyte",
+          "group": "service",
+          "metric": "costCents",
+          "value": 0.16,
+          "label": "$0.0016"
+        },
+        {
+          "rank": 4,
+          "providerKey": "glm-reader",
+          "provider": "glm-reader",
+          "model": "glm-reader",
+          "group": "service",
+          "metric": "costCents",
+          "value": 1,
+          "label": "$0.0100"
+        },
+        {
+          "rank": 5,
+          "providerKey": "supadata",
+          "provider": "supadata",
+          "model": "supadata",
+          "group": "service",
+          "metric": "costCents",
+          "value": 1,
+          "label": "$0.0100"
+        }
+      ],
+      "highestQuality": [
+        {
+          "rank": 1,
+          "providerKey": "spider",
+          "provider": "spider",
+          "model": "spider",
+          "group": "service",
+          "metric": "WER/CER/coverage accuracy",
+          "value": 93.60769050046216,
+          "label": "93.61 accuracy (8.09% WER, 8.97% CER, 99.58% coverage)"
+        },
+        {
+          "rank": 2,
+          "providerKey": "glm-reader",
+          "provider": "glm-reader",
+          "model": "glm-reader",
+          "group": "service",
+          "metric": "WER/CER/coverage accuracy",
+          "value": 84.75640604396466,
+          "label": "84.76 accuracy (19.12% WER, 22.32% CER, 99.58% coverage)"
+        },
+        {
+          "rank": 3,
+          "providerKey": "supadata",
+          "provider": "supadata",
+          "model": "supadata",
+          "group": "service",
+          "metric": "WER/CER/coverage accuracy",
+          "value": 76.04763076751617,
+          "label": "76.05 accuracy (28.05% WER, 39.72% CER, 100.00% coverage)"
+        },
+        {
+          "rank": 4,
+          "providerKey": "firecrawl",
+          "provider": "firecrawl",
+          "model": "firecrawl",
+          "group": "service",
+          "metric": "WER/CER/coverage accuracy",
+          "value": 60.51786211828516,
+          "label": "60.52 accuracy (50.60% WER, 56.72% CER, 100.00% coverage)"
+        },
+        {
+          "rank": 5,
+          "providerKey": "zyte",
+          "provider": "zyte",
+          "model": "zyte",
+          "group": "service",
+          "metric": "WER/CER/coverage accuracy",
+          "value": 19.160446858362544,
+          "label": "19.16 accuracy (84.79% WER, 84.67% CER, 30.90% coverage)"
+        }
+      ],
+      "fastestUnavailableReason": null,
+      "cheapestUnavailableReason": null,
+      "highestQualityUnavailableReason": null,
+      "price": [
+        {
+          "rank": 1,
+          "providerKey": "firecrawl",
+          "provider": "firecrawl",
+          "model": "firecrawl",
+          "group": "service",
+          "metric": "costCents",
+          "value": 0.083,
+          "label": "$0.0008"
+        },
+        {
+          "rank": 2,
+          "providerKey": "spider",
+          "provider": "spider",
+          "model": "spider",
+          "group": "service",
+          "metric": "costCents",
+          "value": 0.12,
+          "label": "$0.0012"
+        },
+        {
+          "rank": 3,
+          "providerKey": "zyte",
+          "provider": "zyte",
+          "model": "zyte",
+          "group": "service",
+          "metric": "costCents",
+          "value": 0.16,
+          "label": "$0.0016"
+        },
+        {
+          "rank": 4,
+          "providerKey": "glm-reader",
+          "provider": "glm-reader",
+          "model": "glm-reader",
+          "group": "service",
+          "metric": "costCents",
+          "value": 1,
+          "label": "$0.0100"
+        },
+        {
+          "rank": 5,
+          "providerKey": "supadata",
+          "provider": "supadata",
+          "model": "supadata",
+          "group": "service",
+          "metric": "costCents",
+          "value": 1,
+          "label": "$0.0100"
+        }
+      ],
+      "speed": [
+        {
+          "rank": 1,
+          "providerKey": "firecrawl",
+          "provider": "firecrawl",
+          "model": "firecrawl",
+          "group": "service",
+          "metric": "processingTimeMs",
+          "value": 537,
+          "label": "0.54s"
+        },
+        {
+          "rank": 2,
+          "providerKey": "supadata",
+          "provider": "supadata",
+          "model": "supadata",
+          "group": "service",
+          "metric": "processingTimeMs",
+          "value": 893,
+          "label": "0.89s"
+        },
+        {
+          "rank": 3,
+          "providerKey": "spider",
+          "provider": "spider",
+          "model": "spider",
+          "group": "service",
+          "metric": "processingTimeMs",
+          "value": 1478,
+          "label": "1.48s"
+        },
+        {
+          "rank": 4,
+          "providerKey": "glm-reader",
+          "provider": "glm-reader",
+          "model": "glm-reader",
+          "group": "service",
+          "metric": "processingTimeMs",
+          "value": 1795,
+          "label": "1.79s"
+        },
+        {
+          "rank": 5,
+          "providerKey": "zyte",
+          "provider": "zyte",
+          "model": "zyte",
+          "group": "service",
+          "metric": "processingTimeMs",
+          "value": 12166,
+          "label": "12.17s"
+        }
+      ],
+      "automatedQuality": [
+        {
+          "rank": 1,
+          "providerKey": "spider",
+          "provider": "spider",
+          "model": "spider",
+          "group": "service",
+          "metric": "WER/CER/coverage accuracy",
+          "value": 93.60769050046216,
+          "label": "93.61 accuracy (8.09% WER, 8.97% CER, 99.58% coverage)"
+        },
+        {
+          "rank": 2,
+          "providerKey": "glm-reader",
+          "provider": "glm-reader",
+          "model": "glm-reader",
+          "group": "service",
+          "metric": "WER/CER/coverage accuracy",
+          "value": 84.75640604396466,
+          "label": "84.76 accuracy (19.12% WER, 22.32% CER, 99.58% coverage)"
+        },
+        {
+          "rank": 3,
+          "providerKey": "supadata",
+          "provider": "supadata",
+          "model": "supadata",
+          "group": "service",
+          "metric": "WER/CER/coverage accuracy",
+          "value": 76.04763076751617,
+          "label": "76.05 accuracy (28.05% WER, 39.72% CER, 100.00% coverage)"
+        },
+        {
+          "rank": 4,
+          "providerKey": "firecrawl",
+          "provider": "firecrawl",
+          "model": "firecrawl",
+          "group": "service",
+          "metric": "WER/CER/coverage accuracy",
+          "value": 60.51786211828516,
+          "label": "60.52 accuracy (50.60% WER, 56.72% CER, 100.00% coverage)"
+        },
+        {
+          "rank": 5,
+          "providerKey": "zyte",
+          "provider": "zyte",
+          "model": "zyte",
+          "group": "service",
+          "metric": "WER/CER/coverage accuracy",
+          "value": 19.160446858362544,
+          "label": "19.16 accuracy (84.79% WER, 84.67% CER, 30.90% coverage)"
+        }
+      ],
+      "humanQuality": [],
+      "priceUnavailableReason": null,
+      "speedUnavailableReason": null,
+      "automatedQualityUnavailableReason": null,
+      "humanQualityUnavailableReason": "No explicit humanQualityScore was available for service providers. Generic quality scores, cost, speed, and artifact metadata are not used as human quality proxies."
+    }
+  },
+  "combinedLeaderboardPolicy": "omitted: local and service providers are not ranked against each other",
+  "notes": [
+    "WER and CER use exact Levenshtein distance through 10,000 normalized elements; longer sequences trim common edges, use bounded exact wavefront alignment, then order-preserving token or content anchors with exact gap scoring and conservative edit lower bounds."
+  ]
+}

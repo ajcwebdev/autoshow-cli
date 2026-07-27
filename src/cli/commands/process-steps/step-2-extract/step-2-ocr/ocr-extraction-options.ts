@@ -1,0 +1,58 @@
+import type { ExtractionOptions, PreparedDocument } from '~/types'
+import { ExtractionOptionsSchema } from '~/types'
+import { DEFAULT_OCR_CONCURRENCY } from '~/utils/concurrency-defaults'
+import { validateData } from '~/utils/validate/validation'
+
+export const resolveOcrExtractionOptions = (
+  filePath: string,
+  rawOpts: Partial<ExtractionOptions>,
+  outputDir: string,
+  ocrConcurrencyMode: 'auto' | 'fixed',
+  preparedDocument?: PreparedDocument
+): ExtractionOptions & { ocrConcurrencyMode: 'auto' | 'fixed' } => ({
+  ...validateData(ExtractionOptionsSchema, {
+    filePath,
+    outputDir,
+    dpi: rawOpts.dpi ?? 300,
+    languages: rawOpts.languages ?? 'eng',
+    outputFormat: rawOpts.outputFormat ?? 'text',
+    password: rawOpts.password,
+    renderConcurrency: rawOpts.renderConcurrency,
+    ocrConcurrency: rawOpts.ocrConcurrency,
+    ocrConcurrencyMode,
+    ocrProviderConcurrency: rawOpts.ocrProviderConcurrency ?? DEFAULT_OCR_CONCURRENCY,
+    ocrLocalConcurrency: rawOpts.ocrLocalConcurrency ?? DEFAULT_OCR_CONCURRENCY,
+    keepOcrPageInputs: rawOpts.keepOcrPageInputs === true,
+    ...(rawOpts.useTesseract ? { useTesseract: true } : {}),
+    ...(rawOpts.mistralOcrModel ? { mistralOcrModel: rawOpts.mistralOcrModel } : {}),
+    ...(rawOpts.mistralOcrModels ? { mistralOcrModels: rawOpts.mistralOcrModels } : {}),
+    ...(rawOpts.glmOcrModel ? { glmOcrModel: rawOpts.glmOcrModel } : {}),
+    ...(rawOpts.glmOcrModels ? { glmOcrModels: rawOpts.glmOcrModels } : {}),
+    ...(rawOpts.kimiOcrModel ? { kimiOcrModel: rawOpts.kimiOcrModel } : {}),
+    ...(rawOpts.kimiOcrModels ? { kimiOcrModels: rawOpts.kimiOcrModels } : {}),
+    ...(rawOpts.openaiOcrModel ? { openaiOcrModel: rawOpts.openaiOcrModel } : {}),
+    ...(rawOpts.openaiOcrModels ? { openaiOcrModels: rawOpts.openaiOcrModels } : {}),
+    ...(rawOpts.grokOcrModel ? { grokOcrModel: rawOpts.grokOcrModel } : {}),
+    ...(rawOpts.grokOcrModels ? { grokOcrModels: rawOpts.grokOcrModels } : {}),
+    ...(rawOpts.anthropicOcrModel ? { anthropicOcrModel: rawOpts.anthropicOcrModel } : {}),
+    ...(rawOpts.anthropicOcrModels ? { anthropicOcrModels: rawOpts.anthropicOcrModels } : {}),
+    ...(rawOpts.geminiOcrModel ? { geminiOcrModel: rawOpts.geminiOcrModel } : {}),
+    ...(rawOpts.geminiOcrModels ? { geminiOcrModels: rawOpts.geminiOcrModels } : {}),
+    ...(rawOpts.deepinfraOcrModel ? { deepinfraOcrModel: rawOpts.deepinfraOcrModel } : {}),
+    ...(rawOpts.deepinfraOcrModels ? { deepinfraOcrModels: rawOpts.deepinfraOcrModels } : {}),
+    ...(rawOpts.configPath ? { configPath: rawOpts.configPath } : {}),
+    ...(rawOpts.primaryOcr ? { primaryOcr: rawOpts.primaryOcr } : {}),
+    ...(typeof rawOpts.epubChapterFiles === 'boolean' ? { epubChapterFiles: rawOpts.epubChapterFiles } : {}),
+    ...(typeof rawOpts.epubChunkLimitChars === 'number' ? { epubChunkLimitChars: rawOpts.epubChunkLimitChars } : {}),
+    pdfChapterMode: rawOpts.pdfChapterMode ?? 'local',
+    ...(rawOpts.pdfChapterLlmService ? { pdfChapterLlmService: rawOpts.pdfChapterLlmService } : {}),
+    ...(rawOpts.pdfChapterLlmModel ? { pdfChapterLlmModel: rawOpts.pdfChapterLlmModel } : {}),
+    ...(rawOpts.useEpubBun ? { useEpubBun: true } : {}),
+    ...(rawOpts.useEpubCalibre ? { useEpubCalibre: true } : {}),
+    ...(rawOpts.step2SelectionOrigins ? { step2SelectionOrigins: rawOpts.step2SelectionOrigins } : {}),
+    ...(preparedDocument?.preparedMarkdown ? { preparedMarkdown: preparedDocument.preparedMarkdown } : {}),
+    ...(typeof preparedDocument?.htmlArticleProcessingTimeMs === 'number' ? { htmlArticleProcessingTimeMs: preparedDocument.htmlArticleProcessingTimeMs } : {}),
+    ...(preparedDocument?.htmlArticleBackend ? { htmlArticleBackend: preparedDocument.htmlArticleBackend } : {})
+  }, 'document extraction options'),
+  ocrConcurrencyMode
+})

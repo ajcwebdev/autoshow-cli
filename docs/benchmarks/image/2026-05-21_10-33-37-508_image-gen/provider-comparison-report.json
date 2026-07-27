@@ -1,0 +1,2495 @@
+{
+  "schemaVersion": 2,
+  "kind": "image-provider-comparison",
+  "category": "image",
+  "runDir": "/Users/ajc/c/as/autoshow-cli/docs/benchmarks/image/2026-05-21_10-33-37-508_image-gen",
+  "runName": "2026-05-21_10-33-37-508_image-gen",
+  "generatedAt": "2026-06-10T17:40:51.383Z",
+  "metric": "image-quality-price-speed",
+  "scoreFormula": "Automated quality ranking uses OpenAI image quality score; price and speed surfaces remain independent.",
+  "tiering": null,
+  "duplicateGroups": [],
+  "normalization": null,
+  "providerCount": 13,
+  "providerGroups": {
+    "local": {
+      "count": 0,
+      "providers": []
+    },
+    "service": {
+      "count": 13,
+      "providers": [
+        {
+          "rank": 8,
+          "providerKey": "bfl/flux-2-flex",
+          "provider": "bfl/flux-2-flex",
+          "model": null,
+          "group": "service",
+          "processingTimeMs": 16646,
+          "actualProcessingTimeMs": 16646,
+          "costCents": 5,
+          "actualCostCents": 5,
+          "qualityScore": 76,
+          "qualityMetric": "image quality score",
+          "qualityValue": 76,
+          "qualityLabel": "76.00/100",
+          "metrics": {
+            "wer": null,
+            "cer": null,
+            "speakerAwareWER": null,
+            "textOnlyWER": null,
+            "roundtripWER": null,
+            "contentCoverage": null,
+            "qualityScore": 76
+          },
+          "supportsDiarization": null,
+          "diarizationSupport": null,
+          "tierGroup": null,
+          "groupOverallRank": null,
+          "groupTier": null,
+          "qualityWarnings": [],
+          "segmentStats": null,
+          "duplicateGroupId": null,
+          "imageQuality": {
+            "judgeModel": "gpt-5.5",
+            "qualityScore": 76,
+            "averageScore10": 7.6,
+            "criterionScores": {
+              "promptAdherence": 7,
+              "visualQuality": 8,
+              "artifactControl": 8,
+              "composition": 8,
+              "detailTextHandling": 7
+            },
+            "imageCount": 1,
+            "imageFiles": [
+              "generated-image-bfl-flux-2-flex.jpg"
+            ],
+            "evidence": {
+              "summary": "generated-image-bfl-flux-2-flex.jpg: Clean, readable dark-background infographic with the requested pipeline structure and color palette, but it has a key numbering/stage error: Image appears twice as Stage 5 and the right output has the wrong icon for Image instead of a paintbrush. Overall visually strong and legible.",
+              "strengths": [
+                "Dark navy background with flat geometric design matches the requested style.",
+                "Top-to-bottom pipeline with arrows and a central gold AI brain node is clear.",
+                "Most labels are readable, with minimal technical infographic styling.",
+                "Good color separation: teal inputs, gold AI stage, coral/purple outputs."
+              ],
+              "issues": [
+                "Seven stages are not correctly represented: Stage 5 Image is duplicated, causing an extra output label inconsistency.",
+                "Right-side '5. Image' uses a music/note-like icon rather than the requested paintbrush.",
+                "Output structure includes five output boxes visually instead of four distinct requested outputs due to duplicated Image.",
+                "Text is clean but not especially monospace in appearance."
+              ]
+            }
+          }
+        },
+        {
+          "rank": 10,
+          "providerKey": "bfl/flux-2-max",
+          "provider": "bfl/flux-2-max",
+          "model": null,
+          "group": "service",
+          "processingTimeMs": 47130,
+          "actualProcessingTimeMs": 47130,
+          "costCents": 7.000000000000001,
+          "actualCostCents": 7.000000000000001,
+          "qualityScore": 74,
+          "qualityMetric": "image quality score",
+          "qualityValue": 74,
+          "qualityLabel": "74.00/100",
+          "metrics": {
+            "wer": null,
+            "cer": null,
+            "speakerAwareWER": null,
+            "textOnlyWER": null,
+            "roundtripWER": null,
+            "contentCoverage": null,
+            "qualityScore": 74
+          },
+          "supportsDiarization": null,
+          "diarizationSupport": null,
+          "tierGroup": null,
+          "groupOverallRank": null,
+          "groupTier": null,
+          "qualityWarnings": [],
+          "segmentStats": null,
+          "duplicateGroupId": null,
+          "imageQuality": {
+            "judgeModel": "gpt-5.5",
+            "qualityScore": 74,
+            "averageScore10": 7.4,
+            "criterionScores": {
+              "promptAdherence": 7,
+              "visualQuality": 8,
+              "artifactControl": 8,
+              "composition": 7,
+              "detailTextHandling": 7
+            },
+            "imageCount": 1,
+            "imageFiles": [
+              "generated-image-bfl-flux-2-max.jpg"
+            ],
+            "evidence": {
+              "summary": "generated-image-bfl-flux-2-max.jpg: Clean, polished dark-background infographic with the requested pipeline elements and color coding, but the stage structure is not truly top-to-bottom and numbering/labels are imperfect.",
+              "strengths": [
+                "Strong flat geometric infographic style on dark navy background",
+                "Includes cloud download, extract paths, central gold AI node, and four output categories with appropriate icons",
+                "Good color separation: teal inputs, gold AI, coral/purple outputs",
+                "Readable main labels with generally clean rendering"
+              ],
+              "issues": [
+                "Seven numbered stages are not laid out top-to-bottom; outputs fan along bottom and left-side stage markers are incomplete/misplaced",
+                "Stage 2 Extract is not clearly represented as a single splitting stage; icons and arrows are somewhat confusing",
+                "Central node says AI rather than clearly depicting a brain",
+                "Numbering has an erroneous standalone 7 on the left and lacks clear left markers for stages 4–6",
+                "Text is not particularly monospace, and some labels/structure deviate from the prompt"
+              ]
+            }
+          }
+        },
+        {
+          "rank": 12,
+          "providerKey": "bfl/flux-2-pro",
+          "provider": "bfl/flux-2-pro",
+          "model": null,
+          "group": "service",
+          "processingTimeMs": 16794,
+          "actualProcessingTimeMs": 16794,
+          "costCents": 3,
+          "actualCostCents": 3,
+          "qualityScore": 72,
+          "qualityMetric": "image quality score",
+          "qualityValue": 72,
+          "qualityLabel": "72.00/100",
+          "metrics": {
+            "wer": null,
+            "cer": null,
+            "speakerAwareWER": null,
+            "textOnlyWER": null,
+            "roundtripWER": null,
+            "contentCoverage": null,
+            "qualityScore": 72
+          },
+          "supportsDiarization": null,
+          "diarizationSupport": null,
+          "tierGroup": null,
+          "groupOverallRank": null,
+          "groupTier": null,
+          "qualityWarnings": [],
+          "segmentStats": null,
+          "duplicateGroupId": null,
+          "imageQuality": {
+            "judgeModel": "gpt-5.5",
+            "qualityScore": 72,
+            "averageScore10": 7.2,
+            "criterionScores": {
+              "promptAdherence": 6,
+              "visualQuality": 8,
+              "artifactControl": 8,
+              "composition": 7,
+              "detailTextHandling": 7
+            },
+            "imageCount": 1,
+            "imageFiles": [
+              "generated-image-bfl-flux-2-pro.jpg"
+            ],
+            "evidence": {
+              "summary": "generated-image-bfl-flux-2-pro.jpg: Clean, attractive flat infographic with good colors and readable labels, but the pipeline numbering/structure deviates from the prompt: speech-to-text and OCR are incorrectly numbered as stages 5 and 7 instead of subpaths under Stage 2, creating duplicate numbering with output stages.",
+              "strengths": [
+                "Dark navy background and flat geometric infographic style match the prompt well.",
+                "Clear central gold AI brain node labeled Write and four output arrows to TTS, Image, Video, and Music.",
+                "Icons are recognizable and color palette generally follows teal/gold/coral/purple directions.",
+                "Text is mostly legible and minimal."
+              ],
+              "issues": [
+                "Seven numbered stages are not correctly represented top-to-bottom; speech-to-text and OCR are numbered as 5 and 7, conflicting with output stages.",
+                "Stage 2 Extract does not clearly split into unnumbered speech-to-text and OCR paths feeding Stage 3; arrows point awkwardly back toward Extract.",
+                "Flow hierarchy is somewhat confusing due to side nodes and arrow directions.",
+                "Labels appear sans-serif rather than distinctly monospace/developer documentation style."
+              ]
+            }
+          }
+        },
+        {
+          "rank": 2,
+          "providerKey": "gemini/gemini-3.1-flash-image-preview",
+          "provider": "gemini/gemini-3.1-flash-image-preview",
+          "model": null,
+          "group": "service",
+          "processingTimeMs": 16107,
+          "actualProcessingTimeMs": 16107,
+          "costCents": 6.7,
+          "actualCostCents": 6.7,
+          "qualityScore": 88,
+          "qualityMetric": "image quality score",
+          "qualityValue": 88,
+          "qualityLabel": "88.00/100",
+          "metrics": {
+            "wer": null,
+            "cer": null,
+            "speakerAwareWER": null,
+            "textOnlyWER": null,
+            "roundtripWER": null,
+            "contentCoverage": null,
+            "qualityScore": 88
+          },
+          "supportsDiarization": null,
+          "diarizationSupport": null,
+          "tierGroup": null,
+          "groupOverallRank": null,
+          "groupTier": null,
+          "qualityWarnings": [],
+          "segmentStats": null,
+          "duplicateGroupId": null,
+          "imageQuality": {
+            "judgeModel": "gpt-5.5",
+            "qualityScore": 88,
+            "averageScore10": 8.8,
+            "criterionScores": {
+              "promptAdherence": 9,
+              "visualQuality": 9,
+              "artifactControl": 9,
+              "composition": 9,
+              "detailTextHandling": 8
+            },
+            "imageCount": 1,
+            "imageFiles": [
+              "generated-image-gemini-gemini-3.1-flash-image-preview.png"
+            ],
+            "evidence": {
+              "summary": "generated-image-gemini-gemini-3.1-flash-image-preview.png: Strong technical infographic matching the requested pipeline, colors, icons, dark navy background, and minimal developer-doc style. Text is mostly clear, with only a notable typo in Stage 3: “WRITE” appears as “WRITTE.”",
+              "strengths": [
+                "Accurately depicts seven numbered stages with top-to-bottom flow and branching paths.",
+                "Uses appropriate icons: cloud, brain, speaker, paintbrush, film/video, music note.",
+                "Color palette closely follows prompt: teal inputs, gold AI stage, coral/purple outputs on dark navy.",
+                "Clean flat geometric style with good readability and balanced layout."
+              ],
+              "issues": [
+                "Stage 3 label is misspelled as “WRITTE” instead of “WRITE.”",
+                "The AI brain is slightly less large/central than requested, though still clearly central.",
+                "Speech-to-text and OCR paths are labels only rather than distinct boxed stages, but the structure remains understandable."
+              ]
+            }
+          }
+        },
+        {
+          "rank": 9,
+          "providerKey": "grok/grok-imagine-image",
+          "provider": "grok/grok-imagine-image",
+          "model": null,
+          "group": "service",
+          "processingTimeMs": 5487,
+          "actualProcessingTimeMs": 5487,
+          "costCents": 2,
+          "actualCostCents": 2,
+          "qualityScore": 76,
+          "qualityMetric": "image quality score",
+          "qualityValue": 76,
+          "qualityLabel": "76.00/100",
+          "metrics": {
+            "wer": null,
+            "cer": null,
+            "speakerAwareWER": null,
+            "textOnlyWER": null,
+            "roundtripWER": null,
+            "contentCoverage": null,
+            "qualityScore": 76
+          },
+          "supportsDiarization": null,
+          "diarizationSupport": null,
+          "tierGroup": null,
+          "groupOverallRank": null,
+          "groupTier": null,
+          "qualityWarnings": [],
+          "segmentStats": null,
+          "duplicateGroupId": null,
+          "imageQuality": {
+            "judgeModel": "gpt-5.5",
+            "qualityScore": 76,
+            "averageScore10": 7.6,
+            "criterionScores": {
+              "promptAdherence": 7,
+              "visualQuality": 8,
+              "artifactControl": 8,
+              "composition": 7,
+              "detailTextHandling": 8
+            },
+            "imageCount": 1,
+            "imageFiles": [
+              "generated-image-grok-grok-imagine-image.jpg"
+            ],
+            "evidence": {
+              "summary": "generated-image-grok-grok-imagine-image.jpg: Clean, readable dark technical infographic that mostly follows the requested pipeline, colors, and flat developer style. However, the central AI brain is rendered more like a gold medallion, the cloud icon is missing, some output icons are misplaced or absent, and there is an extra/incorrect video output label.",
+              "strengths": [
+                "Dark navy background with strong teal, gold, coral, and purple color coding",
+                "Legible monospace-style labels and numbered stages",
+                "Flat geometric infographic style is well matched",
+                "Overall clean rendering with minimal noise or distortion"
+              ],
+              "issues": [
+                "Central Stage 3 does not clearly look like an AI brain node",
+                "Stage 1 lacks the requested cloud icon",
+                "Stage 6 Video and Stage 7 Music icons are not correctly paired; an extra purple Video label appears",
+                "Arrow flow is somewhat confusing and not strictly top-to-bottom",
+                "Some stage hierarchy and output fan-out structure are ambiguous"
+              ]
+            }
+          }
+        },
+        {
+          "rank": 5,
+          "providerKey": "grok/grok-imagine-image-quality",
+          "provider": "grok/grok-imagine-image-quality",
+          "model": null,
+          "group": "service",
+          "processingTimeMs": 4709,
+          "actualProcessingTimeMs": 4709,
+          "costCents": 5,
+          "actualCostCents": 5,
+          "qualityScore": 84,
+          "qualityMetric": "image quality score",
+          "qualityValue": 84,
+          "qualityLabel": "84.00/100",
+          "metrics": {
+            "wer": null,
+            "cer": null,
+            "speakerAwareWER": null,
+            "textOnlyWER": null,
+            "roundtripWER": null,
+            "contentCoverage": null,
+            "qualityScore": 84
+          },
+          "supportsDiarization": null,
+          "diarizationSupport": null,
+          "tierGroup": null,
+          "groupOverallRank": null,
+          "groupTier": null,
+          "qualityWarnings": [],
+          "segmentStats": null,
+          "duplicateGroupId": null,
+          "imageQuality": {
+            "judgeModel": "gpt-5.5",
+            "qualityScore": 84,
+            "averageScore10": 8.4,
+            "criterionScores": {
+              "promptAdherence": 9,
+              "visualQuality": 9,
+              "artifactControl": 8,
+              "composition": 8,
+              "detailTextHandling": 8
+            },
+            "imageCount": 1,
+            "imageFiles": [
+              "generated-image-grok-grok-imagine-image-quality.jpg"
+            ],
+            "evidence": {
+              "summary": "generated-image-grok-grok-imagine-image-quality.jpg: Strong technical infographic that closely matches the requested media processing pipeline, with clear stage numbering, appropriate icons, colors, and developer-documentation styling.",
+              "strengths": [
+                "All seven stages are present with correct numbering and mostly correct labels.",
+                "Dark navy background, teal inputs, gold AI core, and coral/purple outputs match the prompt well.",
+                "Central AI brain node is prominent and readable.",
+                "Icons for cloud, OCR, speaker, image, video, and music are clear.",
+                "Monospace typography and geometric flat design fit the requested style."
+              ],
+              "issues": [
+                "Output flow is not perfectly top-to-bottom and the fan-out arrows are a bit uneven, especially around video/music.",
+                "Some tiny file-extension text and micro-labels are slightly garbled or hard to read.",
+                "A few connector lines and arrows feel decorative rather than functionally clear.",
+                "Minor icon/detail artifacts, especially in the image and small document elements."
+              ]
+            }
+          }
+        },
+        {
+          "rank": 3,
+          "providerKey": "openai/gpt-image-2",
+          "provider": "openai/gpt-image-2",
+          "model": null,
+          "group": "service",
+          "processingTimeMs": 59035,
+          "actualProcessingTimeMs": 59035,
+          "costCents": 5.3,
+          "actualCostCents": 5.3,
+          "qualityScore": 88,
+          "qualityMetric": "image quality score",
+          "qualityValue": 88,
+          "qualityLabel": "88.00/100",
+          "metrics": {
+            "wer": null,
+            "cer": null,
+            "speakerAwareWER": null,
+            "textOnlyWER": null,
+            "roundtripWER": null,
+            "contentCoverage": null,
+            "qualityScore": 88
+          },
+          "supportsDiarization": null,
+          "diarizationSupport": null,
+          "tierGroup": null,
+          "groupOverallRank": null,
+          "groupTier": null,
+          "qualityWarnings": [],
+          "segmentStats": null,
+          "duplicateGroupId": null,
+          "imageQuality": {
+            "judgeModel": "gpt-5.5",
+            "qualityScore": 88,
+            "averageScore10": 8.8,
+            "criterionScores": {
+              "promptAdherence": 9,
+              "visualQuality": 9,
+              "artifactControl": 9,
+              "composition": 9,
+              "detailTextHandling": 8
+            },
+            "imageCount": 1,
+            "imageFiles": [
+              "generated-image-openai-gpt-image-2.png"
+            ],
+            "evidence": {
+              "summary": "generated-image-openai-gpt-image-2.png: Excellent technical infographic that closely follows the requested media processing pipeline, color scheme, flat geometric style, and top-to-bottom flow. Text is mostly clean and readable, with only minor redundancy in the OCR label area.",
+              "strengths": [
+                "Clear seven-stage pipeline with correct numbering and arrows",
+                "Accurate icons for cloud download, AI brain, speaker, paintbrush, film reel, and music note",
+                "Strong dark navy background with teal, gold, coral, and purple color coding",
+                "Clean flat developer-documentation style with readable monospace labels",
+                "Balanced composition and clear hierarchy from inputs to AI stage to outputs"
+              ],
+              "issues": [
+                "OCR branch includes duplicated OCR text/icon labeling, slightly reducing polish",
+                "Stage 2 split paths are well shown but add extra unnumbered boxes, making the seven-stage structure a little more complex than specified"
+              ]
+            }
+          }
+        },
+        {
+          "rank": 1,
+          "providerKey": "recraft/recraftv4_1",
+          "provider": "recraft/recraftv4_1",
+          "model": null,
+          "group": "service",
+          "processingTimeMs": 9510,
+          "actualProcessingTimeMs": 9510,
+          "costCents": 4,
+          "actualCostCents": 4,
+          "qualityScore": 90,
+          "qualityMetric": "image quality score",
+          "qualityValue": 90,
+          "qualityLabel": "90.00/100",
+          "metrics": {
+            "wer": null,
+            "cer": null,
+            "speakerAwareWER": null,
+            "textOnlyWER": null,
+            "roundtripWER": null,
+            "contentCoverage": null,
+            "qualityScore": 90
+          },
+          "supportsDiarization": null,
+          "diarizationSupport": null,
+          "tierGroup": null,
+          "groupOverallRank": null,
+          "groupTier": null,
+          "qualityWarnings": [],
+          "segmentStats": null,
+          "duplicateGroupId": null,
+          "imageQuality": {
+            "judgeModel": "gpt-5.5",
+            "qualityScore": 90,
+            "averageScore10": 9,
+            "criterionScores": {
+              "promptAdherence": 9,
+              "visualQuality": 9,
+              "artifactControl": 9,
+              "composition": 9,
+              "detailTextHandling": 9
+            },
+            "imageCount": 1,
+            "imageFiles": [
+              "generated-image-recraft-recraftv4_1.webp"
+            ],
+            "evidence": {
+              "summary": "generated-image-recraft-recraftv4_1.webp: Strong clean technical infographic matching the requested media pipeline, with seven numbered stages, dark navy background, arrows, icons, and appropriate teal/gold/coral/purple color coding. Text is legible and mostly minimal/monospace as requested.",
+              "strengths": [
+                "Accurately includes all seven stages with correct labels and icons",
+                "Clear top-to-bottom flow with four output arrows fanning from the AI brain node",
+                "Good flat geometric developer-documentation style",
+                "Strong color separation: teal inputs, gold AI stage, coral/purple outputs",
+                "Readable labels and clean composition"
+              ],
+              "issues": [
+                "Stage 2 split is represented somewhat abstractly rather than clearly branching into two paths",
+                "Central AI node is labeled Write but the number 3 is not visibly shown near it",
+                "Some arrow routing from the central node is slightly tight/overlapping at the top"
+              ]
+            }
+          }
+        },
+        {
+          "rank": 7,
+          "providerKey": "recraft/recraftv4_1_pro",
+          "provider": "recraft/recraftv4_1_pro",
+          "model": null,
+          "group": "service",
+          "processingTimeMs": 13281,
+          "actualProcessingTimeMs": 13281,
+          "costCents": 25,
+          "actualCostCents": 25,
+          "qualityScore": 82,
+          "qualityMetric": "image quality score",
+          "qualityValue": 82,
+          "qualityLabel": "82.00/100",
+          "metrics": {
+            "wer": null,
+            "cer": null,
+            "speakerAwareWER": null,
+            "textOnlyWER": null,
+            "roundtripWER": null,
+            "contentCoverage": null,
+            "qualityScore": 82
+          },
+          "supportsDiarization": null,
+          "diarizationSupport": null,
+          "tierGroup": null,
+          "groupOverallRank": null,
+          "groupTier": null,
+          "qualityWarnings": [],
+          "segmentStats": null,
+          "duplicateGroupId": null,
+          "imageQuality": {
+            "judgeModel": "gpt-5.5",
+            "qualityScore": 82,
+            "averageScore10": 8.2,
+            "criterionScores": {
+              "promptAdherence": 7,
+              "visualQuality": 9,
+              "artifactControl": 9,
+              "composition": 8,
+              "detailTextHandling": 8
+            },
+            "imageCount": 1,
+            "imageFiles": [
+              "generated-image-recraft-recraftv4_1_pro.webp"
+            ],
+            "evidence": {
+              "summary": "generated-image-recraft-recraftv4_1_pro.webp: Clean, readable flat infographic with the requested dark background, monospace labels, icons, and color palette. It captures the general media pipeline structure, but the flow logic is imperfect and Stage 7 is missing due to duplicated numbering for Music.",
+              "strengths": [
+                "Strong flat technical style on a dark navy background",
+                "Legible monospace text and clean iconography",
+                "Good use of teal for inputs, gold for AI brain, and coral/purple outputs",
+                "Central AI brain node is visually clear and prominent"
+              ],
+              "issues": [
+                "Music is labeled as Stage 6 instead of Stage 7, so the seven-stage requirement is not fully met",
+                "Extract split into speech-to-text and OCR is visually confusing, with odd arrow directions and a horizontal arrow between the paths",
+                "Output arrows mostly fan out, but some arrow directions/placements reduce pipeline clarity",
+                "Output labels and icons are somewhat separated, making associations less immediate"
+              ]
+            }
+          }
+        },
+        {
+          "rank": 4,
+          "providerKey": "recraft/recraftv4_1_utility",
+          "provider": "recraft/recraftv4_1_utility",
+          "model": null,
+          "group": "service",
+          "processingTimeMs": 24134,
+          "actualProcessingTimeMs": 24134,
+          "costCents": 4,
+          "actualCostCents": 4,
+          "qualityScore": 86,
+          "qualityMetric": "image quality score",
+          "qualityValue": 86,
+          "qualityLabel": "86.00/100",
+          "metrics": {
+            "wer": null,
+            "cer": null,
+            "speakerAwareWER": null,
+            "textOnlyWER": null,
+            "roundtripWER": null,
+            "contentCoverage": null,
+            "qualityScore": 86
+          },
+          "supportsDiarization": null,
+          "diarizationSupport": null,
+          "tierGroup": null,
+          "groupOverallRank": null,
+          "groupTier": null,
+          "qualityWarnings": [],
+          "segmentStats": null,
+          "duplicateGroupId": null,
+          "imageQuality": {
+            "judgeModel": "gpt-5.5",
+            "qualityScore": 86,
+            "averageScore10": 8.6,
+            "criterionScores": {
+              "promptAdherence": 8,
+              "visualQuality": 9,
+              "artifactControl": 9,
+              "composition": 8,
+              "detailTextHandling": 9
+            },
+            "imageCount": 1,
+            "imageFiles": [
+              "generated-image-recraft-recraftv4_1_utility.webp"
+            ],
+            "evidence": {
+              "summary": "generated-image-recraft-recraftv4_1_utility.webp: Clean, readable dark technical infographic that matches most requested stages, icons, colors, and flat developer-doc style. Main shortcomings are incomplete/ambiguous arrow flow and missing visible numbering for Stage 3.",
+              "strengths": [
+                "Strong dark navy background with teal, gold, coral, and purple accents matching the prompt.",
+                "All major output stages and icons are present and clearly labeled.",
+                "Speech-to-text and OCR split is represented cleanly.",
+                "Minimal monospace text is legible and stylistically appropriate."
+              ],
+              "issues": [
+                "Stage 3 is not visibly numbered, despite the prompt requesting seven numbered stages.",
+                "Flow arrows are incomplete or ambiguous, especially between Download and Extract and around Stage 2.",
+                "AI brain node is somewhat small rather than a large central node."
+              ]
+            }
+          }
+        },
+        {
+          "rank": 6,
+          "providerKey": "recraft/recraftv4_1_utility_pro",
+          "provider": "recraft/recraftv4_1_utility_pro",
+          "model": null,
+          "group": "service",
+          "processingTimeMs": 16891,
+          "actualProcessingTimeMs": 16891,
+          "costCents": 25,
+          "actualCostCents": 25,
+          "qualityScore": 84,
+          "qualityMetric": "image quality score",
+          "qualityValue": 84,
+          "qualityLabel": "84.00/100",
+          "metrics": {
+            "wer": null,
+            "cer": null,
+            "speakerAwareWER": null,
+            "textOnlyWER": null,
+            "roundtripWER": null,
+            "contentCoverage": null,
+            "qualityScore": 84
+          },
+          "supportsDiarization": null,
+          "diarizationSupport": null,
+          "tierGroup": null,
+          "groupOverallRank": null,
+          "groupTier": null,
+          "qualityWarnings": [],
+          "segmentStats": null,
+          "duplicateGroupId": null,
+          "imageQuality": {
+            "judgeModel": "gpt-5.5",
+            "qualityScore": 84,
+            "averageScore10": 8.4,
+            "criterionScores": {
+              "promptAdherence": 8,
+              "visualQuality": 8,
+              "artifactControl": 9,
+              "composition": 8,
+              "detailTextHandling": 9
+            },
+            "imageCount": 1,
+            "imageFiles": [
+              "generated-image-recraft-recraftv4_1_utility_pro.webp"
+            ],
+            "evidence": {
+              "summary": "generated-image-recraft-recraftv4_1_utility_pro.webp: Clean, readable technical infographic matching most requested stages, icons, colors, and dark developer-documentation style. Main issue is arrow direction from Stage 3 to outputs appears reversed/ambiguous, with arrowheads pointing toward the AI node rather than out to outputs.",
+              "strengths": [
+                "All seven numbered stages are present with correct labels and appropriate icons.",
+                "Dark navy background, flat geometric style, and monospace labels match the prompt well.",
+                "Teal inputs, gold AI stage, and coral/purple outputs are clearly differentiated.",
+                "Text is legible and mostly accurate, including speech-to-text and OCR side paths."
+              ],
+              "issues": [
+                "Four output arrows from Stage 3 appear to point back into the AI node instead of fanning outward to output stages.",
+                "Stage 2 split paths are present but not strongly integrated as a true fork in the main flow.",
+                "Large vertical canvas has some empty space and the bottom outputs are partly close to the lower edge."
+              ]
+            }
+          }
+        },
+        {
+          "rank": 11,
+          "providerKey": "reve/latest",
+          "provider": "reve/latest",
+          "model": null,
+          "group": "service",
+          "processingTimeMs": 6873,
+          "actualProcessingTimeMs": 6873,
+          "costCents": 2.4,
+          "actualCostCents": 2.4,
+          "qualityScore": 74,
+          "qualityMetric": "image quality score",
+          "qualityValue": 74,
+          "qualityLabel": "74.00/100",
+          "metrics": {
+            "wer": null,
+            "cer": null,
+            "speakerAwareWER": null,
+            "textOnlyWER": null,
+            "roundtripWER": null,
+            "contentCoverage": null,
+            "qualityScore": 74
+          },
+          "supportsDiarization": null,
+          "diarizationSupport": null,
+          "tierGroup": null,
+          "groupOverallRank": null,
+          "groupTier": null,
+          "qualityWarnings": [],
+          "segmentStats": null,
+          "duplicateGroupId": null,
+          "imageQuality": {
+            "judgeModel": "gpt-5.5",
+            "qualityScore": 74,
+            "averageScore10": 7.4,
+            "criterionScores": {
+              "promptAdherence": 6,
+              "visualQuality": 8,
+              "artifactControl": 8,
+              "composition": 7,
+              "detailTextHandling": 8
+            },
+            "imageCount": 1,
+            "imageFiles": [
+              "generated-image-reve-latest.png"
+            ],
+            "evidence": {
+              "summary": "generated-image-reve-latest.png: Clean, readable flat infographic with good colors and icons, but the pipeline structure does not fully match the requested top-to-bottom seven-stage flow and arrow directions are confusing.",
+              "strengths": [
+                "Dark navy background with teal, gold, coral, and purple palette close to prompt",
+                "All seven numbered output stages are visible and labels are mostly legible",
+                "Central gold AI brain node is clear and visually prominent",
+                "Flat geometric developer-doc style is generally achieved"
+              ],
+              "issues": [
+                "Stages do not flow top-to-bottom; stages 1–3 are arranged horizontally at the top",
+                "Stage 3 appears both as a top icon labeled Write and as the central brain node, creating duplication/confusion",
+                "Arrow directions are inconsistent and often appear to point toward earlier stages or into the AI node rather than outward",
+                "Extract split into speech-to-text and OCR is suggested but not clearly connected as a proper branching path",
+                "Typography is bold sans rather than clearly monospace"
+              ]
+            }
+          }
+        },
+        {
+          "rank": 13,
+          "providerKey": "reve/reve-create@20250915",
+          "provider": "reve/reve-create@20250915",
+          "model": null,
+          "group": "service",
+          "processingTimeMs": 6339,
+          "actualProcessingTimeMs": 6339,
+          "costCents": 2.4,
+          "actualCostCents": 2.4,
+          "qualityScore": 60,
+          "qualityMetric": "image quality score",
+          "qualityValue": 60,
+          "qualityLabel": "60.00/100",
+          "metrics": {
+            "wer": null,
+            "cer": null,
+            "speakerAwareWER": null,
+            "textOnlyWER": null,
+            "roundtripWER": null,
+            "contentCoverage": null,
+            "qualityScore": 60
+          },
+          "supportsDiarization": null,
+          "diarizationSupport": null,
+          "tierGroup": null,
+          "groupOverallRank": null,
+          "groupTier": null,
+          "qualityWarnings": [],
+          "segmentStats": null,
+          "duplicateGroupId": null,
+          "imageQuality": {
+            "judgeModel": "gpt-5.5",
+            "qualityScore": 60,
+            "averageScore10": 6,
+            "criterionScores": {
+              "promptAdherence": 5,
+              "visualQuality": 8,
+              "artifactControl": 7,
+              "composition": 7,
+              "detailTextHandling": 3
+            },
+            "imageCount": 1,
+            "imageFiles": [
+              "generated-image-reve-reve-create@20250915.png"
+            ],
+            "evidence": {
+              "summary": "generated-image-reve-reve-create@20250915.png: Clean, attractive flat infographic with the requested dark navy palette, teal/gold/coral/purple colors, central brain, and output icons, but it only partially matches the specified pipeline structure and labels.",
+              "strengths": [
+                "Strong flat-design aesthetic with good color separation on dark background.",
+                "Central gold AI brain is clear and visually dominant.",
+                "Four output nodes are balanced and recognizable overall.",
+                "Arrows and geometric shapes create a technical infographic feel."
+              ],
+              "issues": [
+                "Pipeline is not a clear top-to-bottom seven-stage flow.",
+                "Stage labels and numbering are incorrect or misplaced; Stage 3 is not the central brain node.",
+                "Stage 2/3 are confused, with misspelled 'EXTREIT' and unclear extract split.",
+                "TTS output is mislabeled as Image, and Stage 5 should be TTS.",
+                "Visible text handling is weak, with misspellings and garbled small text.",
+                "Download cloud icon contains a music note rather than a simple cloud/download cue."
+              ]
+            }
+          }
+        }
+      ]
+    }
+  },
+  "providers": [
+    {
+      "rank": 8,
+      "providerKey": "bfl/flux-2-flex",
+      "provider": "bfl/flux-2-flex",
+      "model": null,
+      "group": "service",
+      "processingTimeMs": 16646,
+      "actualProcessingTimeMs": 16646,
+      "costCents": 5,
+      "actualCostCents": 5,
+      "qualityScore": 76,
+      "qualityMetric": "image quality score",
+      "qualityValue": 76,
+      "qualityLabel": "76.00/100",
+      "metrics": {
+        "wer": null,
+        "cer": null,
+        "speakerAwareWER": null,
+        "textOnlyWER": null,
+        "roundtripWER": null,
+        "contentCoverage": null,
+        "qualityScore": 76
+      },
+      "supportsDiarization": null,
+      "diarizationSupport": null,
+      "tierGroup": null,
+      "groupOverallRank": null,
+      "groupTier": null,
+      "qualityWarnings": [],
+      "segmentStats": null,
+      "duplicateGroupId": null,
+      "imageQuality": {
+        "judgeModel": "gpt-5.5",
+        "qualityScore": 76,
+        "averageScore10": 7.6,
+        "criterionScores": {
+          "promptAdherence": 7,
+          "visualQuality": 8,
+          "artifactControl": 8,
+          "composition": 8,
+          "detailTextHandling": 7
+        },
+        "imageCount": 1,
+        "imageFiles": [
+          "generated-image-bfl-flux-2-flex.jpg"
+        ],
+        "evidence": {
+          "summary": "generated-image-bfl-flux-2-flex.jpg: Clean, readable dark-background infographic with the requested pipeline structure and color palette, but it has a key numbering/stage error: Image appears twice as Stage 5 and the right output has the wrong icon for Image instead of a paintbrush. Overall visually strong and legible.",
+          "strengths": [
+            "Dark navy background with flat geometric design matches the requested style.",
+            "Top-to-bottom pipeline with arrows and a central gold AI brain node is clear.",
+            "Most labels are readable, with minimal technical infographic styling.",
+            "Good color separation: teal inputs, gold AI stage, coral/purple outputs."
+          ],
+          "issues": [
+            "Seven stages are not correctly represented: Stage 5 Image is duplicated, causing an extra output label inconsistency.",
+            "Right-side '5. Image' uses a music/note-like icon rather than the requested paintbrush.",
+            "Output structure includes five output boxes visually instead of four distinct requested outputs due to duplicated Image.",
+            "Text is clean but not especially monospace in appearance."
+          ]
+        }
+      }
+    },
+    {
+      "rank": 10,
+      "providerKey": "bfl/flux-2-max",
+      "provider": "bfl/flux-2-max",
+      "model": null,
+      "group": "service",
+      "processingTimeMs": 47130,
+      "actualProcessingTimeMs": 47130,
+      "costCents": 7.000000000000001,
+      "actualCostCents": 7.000000000000001,
+      "qualityScore": 74,
+      "qualityMetric": "image quality score",
+      "qualityValue": 74,
+      "qualityLabel": "74.00/100",
+      "metrics": {
+        "wer": null,
+        "cer": null,
+        "speakerAwareWER": null,
+        "textOnlyWER": null,
+        "roundtripWER": null,
+        "contentCoverage": null,
+        "qualityScore": 74
+      },
+      "supportsDiarization": null,
+      "diarizationSupport": null,
+      "tierGroup": null,
+      "groupOverallRank": null,
+      "groupTier": null,
+      "qualityWarnings": [],
+      "segmentStats": null,
+      "duplicateGroupId": null,
+      "imageQuality": {
+        "judgeModel": "gpt-5.5",
+        "qualityScore": 74,
+        "averageScore10": 7.4,
+        "criterionScores": {
+          "promptAdherence": 7,
+          "visualQuality": 8,
+          "artifactControl": 8,
+          "composition": 7,
+          "detailTextHandling": 7
+        },
+        "imageCount": 1,
+        "imageFiles": [
+          "generated-image-bfl-flux-2-max.jpg"
+        ],
+        "evidence": {
+          "summary": "generated-image-bfl-flux-2-max.jpg: Clean, polished dark-background infographic with the requested pipeline elements and color coding, but the stage structure is not truly top-to-bottom and numbering/labels are imperfect.",
+          "strengths": [
+            "Strong flat geometric infographic style on dark navy background",
+            "Includes cloud download, extract paths, central gold AI node, and four output categories with appropriate icons",
+            "Good color separation: teal inputs, gold AI, coral/purple outputs",
+            "Readable main labels with generally clean rendering"
+          ],
+          "issues": [
+            "Seven numbered stages are not laid out top-to-bottom; outputs fan along bottom and left-side stage markers are incomplete/misplaced",
+            "Stage 2 Extract is not clearly represented as a single splitting stage; icons and arrows are somewhat confusing",
+            "Central node says AI rather than clearly depicting a brain",
+            "Numbering has an erroneous standalone 7 on the left and lacks clear left markers for stages 4–6",
+            "Text is not particularly monospace, and some labels/structure deviate from the prompt"
+          ]
+        }
+      }
+    },
+    {
+      "rank": 12,
+      "providerKey": "bfl/flux-2-pro",
+      "provider": "bfl/flux-2-pro",
+      "model": null,
+      "group": "service",
+      "processingTimeMs": 16794,
+      "actualProcessingTimeMs": 16794,
+      "costCents": 3,
+      "actualCostCents": 3,
+      "qualityScore": 72,
+      "qualityMetric": "image quality score",
+      "qualityValue": 72,
+      "qualityLabel": "72.00/100",
+      "metrics": {
+        "wer": null,
+        "cer": null,
+        "speakerAwareWER": null,
+        "textOnlyWER": null,
+        "roundtripWER": null,
+        "contentCoverage": null,
+        "qualityScore": 72
+      },
+      "supportsDiarization": null,
+      "diarizationSupport": null,
+      "tierGroup": null,
+      "groupOverallRank": null,
+      "groupTier": null,
+      "qualityWarnings": [],
+      "segmentStats": null,
+      "duplicateGroupId": null,
+      "imageQuality": {
+        "judgeModel": "gpt-5.5",
+        "qualityScore": 72,
+        "averageScore10": 7.2,
+        "criterionScores": {
+          "promptAdherence": 6,
+          "visualQuality": 8,
+          "artifactControl": 8,
+          "composition": 7,
+          "detailTextHandling": 7
+        },
+        "imageCount": 1,
+        "imageFiles": [
+          "generated-image-bfl-flux-2-pro.jpg"
+        ],
+        "evidence": {
+          "summary": "generated-image-bfl-flux-2-pro.jpg: Clean, attractive flat infographic with good colors and readable labels, but the pipeline numbering/structure deviates from the prompt: speech-to-text and OCR are incorrectly numbered as stages 5 and 7 instead of subpaths under Stage 2, creating duplicate numbering with output stages.",
+          "strengths": [
+            "Dark navy background and flat geometric infographic style match the prompt well.",
+            "Clear central gold AI brain node labeled Write and four output arrows to TTS, Image, Video, and Music.",
+            "Icons are recognizable and color palette generally follows teal/gold/coral/purple directions.",
+            "Text is mostly legible and minimal."
+          ],
+          "issues": [
+            "Seven numbered stages are not correctly represented top-to-bottom; speech-to-text and OCR are numbered as 5 and 7, conflicting with output stages.",
+            "Stage 2 Extract does not clearly split into unnumbered speech-to-text and OCR paths feeding Stage 3; arrows point awkwardly back toward Extract.",
+            "Flow hierarchy is somewhat confusing due to side nodes and arrow directions.",
+            "Labels appear sans-serif rather than distinctly monospace/developer documentation style."
+          ]
+        }
+      }
+    },
+    {
+      "rank": 2,
+      "providerKey": "gemini/gemini-3.1-flash-image-preview",
+      "provider": "gemini/gemini-3.1-flash-image-preview",
+      "model": null,
+      "group": "service",
+      "processingTimeMs": 16107,
+      "actualProcessingTimeMs": 16107,
+      "costCents": 6.7,
+      "actualCostCents": 6.7,
+      "qualityScore": 88,
+      "qualityMetric": "image quality score",
+      "qualityValue": 88,
+      "qualityLabel": "88.00/100",
+      "metrics": {
+        "wer": null,
+        "cer": null,
+        "speakerAwareWER": null,
+        "textOnlyWER": null,
+        "roundtripWER": null,
+        "contentCoverage": null,
+        "qualityScore": 88
+      },
+      "supportsDiarization": null,
+      "diarizationSupport": null,
+      "tierGroup": null,
+      "groupOverallRank": null,
+      "groupTier": null,
+      "qualityWarnings": [],
+      "segmentStats": null,
+      "duplicateGroupId": null,
+      "imageQuality": {
+        "judgeModel": "gpt-5.5",
+        "qualityScore": 88,
+        "averageScore10": 8.8,
+        "criterionScores": {
+          "promptAdherence": 9,
+          "visualQuality": 9,
+          "artifactControl": 9,
+          "composition": 9,
+          "detailTextHandling": 8
+        },
+        "imageCount": 1,
+        "imageFiles": [
+          "generated-image-gemini-gemini-3.1-flash-image-preview.png"
+        ],
+        "evidence": {
+          "summary": "generated-image-gemini-gemini-3.1-flash-image-preview.png: Strong technical infographic matching the requested pipeline, colors, icons, dark navy background, and minimal developer-doc style. Text is mostly clear, with only a notable typo in Stage 3: “WRITE” appears as “WRITTE.”",
+          "strengths": [
+            "Accurately depicts seven numbered stages with top-to-bottom flow and branching paths.",
+            "Uses appropriate icons: cloud, brain, speaker, paintbrush, film/video, music note.",
+            "Color palette closely follows prompt: teal inputs, gold AI stage, coral/purple outputs on dark navy.",
+            "Clean flat geometric style with good readability and balanced layout."
+          ],
+          "issues": [
+            "Stage 3 label is misspelled as “WRITTE” instead of “WRITE.”",
+            "The AI brain is slightly less large/central than requested, though still clearly central.",
+            "Speech-to-text and OCR paths are labels only rather than distinct boxed stages, but the structure remains understandable."
+          ]
+        }
+      }
+    },
+    {
+      "rank": 9,
+      "providerKey": "grok/grok-imagine-image",
+      "provider": "grok/grok-imagine-image",
+      "model": null,
+      "group": "service",
+      "processingTimeMs": 5487,
+      "actualProcessingTimeMs": 5487,
+      "costCents": 2,
+      "actualCostCents": 2,
+      "qualityScore": 76,
+      "qualityMetric": "image quality score",
+      "qualityValue": 76,
+      "qualityLabel": "76.00/100",
+      "metrics": {
+        "wer": null,
+        "cer": null,
+        "speakerAwareWER": null,
+        "textOnlyWER": null,
+        "roundtripWER": null,
+        "contentCoverage": null,
+        "qualityScore": 76
+      },
+      "supportsDiarization": null,
+      "diarizationSupport": null,
+      "tierGroup": null,
+      "groupOverallRank": null,
+      "groupTier": null,
+      "qualityWarnings": [],
+      "segmentStats": null,
+      "duplicateGroupId": null,
+      "imageQuality": {
+        "judgeModel": "gpt-5.5",
+        "qualityScore": 76,
+        "averageScore10": 7.6,
+        "criterionScores": {
+          "promptAdherence": 7,
+          "visualQuality": 8,
+          "artifactControl": 8,
+          "composition": 7,
+          "detailTextHandling": 8
+        },
+        "imageCount": 1,
+        "imageFiles": [
+          "generated-image-grok-grok-imagine-image.jpg"
+        ],
+        "evidence": {
+          "summary": "generated-image-grok-grok-imagine-image.jpg: Clean, readable dark technical infographic that mostly follows the requested pipeline, colors, and flat developer style. However, the central AI brain is rendered more like a gold medallion, the cloud icon is missing, some output icons are misplaced or absent, and there is an extra/incorrect video output label.",
+          "strengths": [
+            "Dark navy background with strong teal, gold, coral, and purple color coding",
+            "Legible monospace-style labels and numbered stages",
+            "Flat geometric infographic style is well matched",
+            "Overall clean rendering with minimal noise or distortion"
+          ],
+          "issues": [
+            "Central Stage 3 does not clearly look like an AI brain node",
+            "Stage 1 lacks the requested cloud icon",
+            "Stage 6 Video and Stage 7 Music icons are not correctly paired; an extra purple Video label appears",
+            "Arrow flow is somewhat confusing and not strictly top-to-bottom",
+            "Some stage hierarchy and output fan-out structure are ambiguous"
+          ]
+        }
+      }
+    },
+    {
+      "rank": 5,
+      "providerKey": "grok/grok-imagine-image-quality",
+      "provider": "grok/grok-imagine-image-quality",
+      "model": null,
+      "group": "service",
+      "processingTimeMs": 4709,
+      "actualProcessingTimeMs": 4709,
+      "costCents": 5,
+      "actualCostCents": 5,
+      "qualityScore": 84,
+      "qualityMetric": "image quality score",
+      "qualityValue": 84,
+      "qualityLabel": "84.00/100",
+      "metrics": {
+        "wer": null,
+        "cer": null,
+        "speakerAwareWER": null,
+        "textOnlyWER": null,
+        "roundtripWER": null,
+        "contentCoverage": null,
+        "qualityScore": 84
+      },
+      "supportsDiarization": null,
+      "diarizationSupport": null,
+      "tierGroup": null,
+      "groupOverallRank": null,
+      "groupTier": null,
+      "qualityWarnings": [],
+      "segmentStats": null,
+      "duplicateGroupId": null,
+      "imageQuality": {
+        "judgeModel": "gpt-5.5",
+        "qualityScore": 84,
+        "averageScore10": 8.4,
+        "criterionScores": {
+          "promptAdherence": 9,
+          "visualQuality": 9,
+          "artifactControl": 8,
+          "composition": 8,
+          "detailTextHandling": 8
+        },
+        "imageCount": 1,
+        "imageFiles": [
+          "generated-image-grok-grok-imagine-image-quality.jpg"
+        ],
+        "evidence": {
+          "summary": "generated-image-grok-grok-imagine-image-quality.jpg: Strong technical infographic that closely matches the requested media processing pipeline, with clear stage numbering, appropriate icons, colors, and developer-documentation styling.",
+          "strengths": [
+            "All seven stages are present with correct numbering and mostly correct labels.",
+            "Dark navy background, teal inputs, gold AI core, and coral/purple outputs match the prompt well.",
+            "Central AI brain node is prominent and readable.",
+            "Icons for cloud, OCR, speaker, image, video, and music are clear.",
+            "Monospace typography and geometric flat design fit the requested style."
+          ],
+          "issues": [
+            "Output flow is not perfectly top-to-bottom and the fan-out arrows are a bit uneven, especially around video/music.",
+            "Some tiny file-extension text and micro-labels are slightly garbled or hard to read.",
+            "A few connector lines and arrows feel decorative rather than functionally clear.",
+            "Minor icon/detail artifacts, especially in the image and small document elements."
+          ]
+        }
+      }
+    },
+    {
+      "rank": 3,
+      "providerKey": "openai/gpt-image-2",
+      "provider": "openai/gpt-image-2",
+      "model": null,
+      "group": "service",
+      "processingTimeMs": 59035,
+      "actualProcessingTimeMs": 59035,
+      "costCents": 5.3,
+      "actualCostCents": 5.3,
+      "qualityScore": 88,
+      "qualityMetric": "image quality score",
+      "qualityValue": 88,
+      "qualityLabel": "88.00/100",
+      "metrics": {
+        "wer": null,
+        "cer": null,
+        "speakerAwareWER": null,
+        "textOnlyWER": null,
+        "roundtripWER": null,
+        "contentCoverage": null,
+        "qualityScore": 88
+      },
+      "supportsDiarization": null,
+      "diarizationSupport": null,
+      "tierGroup": null,
+      "groupOverallRank": null,
+      "groupTier": null,
+      "qualityWarnings": [],
+      "segmentStats": null,
+      "duplicateGroupId": null,
+      "imageQuality": {
+        "judgeModel": "gpt-5.5",
+        "qualityScore": 88,
+        "averageScore10": 8.8,
+        "criterionScores": {
+          "promptAdherence": 9,
+          "visualQuality": 9,
+          "artifactControl": 9,
+          "composition": 9,
+          "detailTextHandling": 8
+        },
+        "imageCount": 1,
+        "imageFiles": [
+          "generated-image-openai-gpt-image-2.png"
+        ],
+        "evidence": {
+          "summary": "generated-image-openai-gpt-image-2.png: Excellent technical infographic that closely follows the requested media processing pipeline, color scheme, flat geometric style, and top-to-bottom flow. Text is mostly clean and readable, with only minor redundancy in the OCR label area.",
+          "strengths": [
+            "Clear seven-stage pipeline with correct numbering and arrows",
+            "Accurate icons for cloud download, AI brain, speaker, paintbrush, film reel, and music note",
+            "Strong dark navy background with teal, gold, coral, and purple color coding",
+            "Clean flat developer-documentation style with readable monospace labels",
+            "Balanced composition and clear hierarchy from inputs to AI stage to outputs"
+          ],
+          "issues": [
+            "OCR branch includes duplicated OCR text/icon labeling, slightly reducing polish",
+            "Stage 2 split paths are well shown but add extra unnumbered boxes, making the seven-stage structure a little more complex than specified"
+          ]
+        }
+      }
+    },
+    {
+      "rank": 1,
+      "providerKey": "recraft/recraftv4_1",
+      "provider": "recraft/recraftv4_1",
+      "model": null,
+      "group": "service",
+      "processingTimeMs": 9510,
+      "actualProcessingTimeMs": 9510,
+      "costCents": 4,
+      "actualCostCents": 4,
+      "qualityScore": 90,
+      "qualityMetric": "image quality score",
+      "qualityValue": 90,
+      "qualityLabel": "90.00/100",
+      "metrics": {
+        "wer": null,
+        "cer": null,
+        "speakerAwareWER": null,
+        "textOnlyWER": null,
+        "roundtripWER": null,
+        "contentCoverage": null,
+        "qualityScore": 90
+      },
+      "supportsDiarization": null,
+      "diarizationSupport": null,
+      "tierGroup": null,
+      "groupOverallRank": null,
+      "groupTier": null,
+      "qualityWarnings": [],
+      "segmentStats": null,
+      "duplicateGroupId": null,
+      "imageQuality": {
+        "judgeModel": "gpt-5.5",
+        "qualityScore": 90,
+        "averageScore10": 9,
+        "criterionScores": {
+          "promptAdherence": 9,
+          "visualQuality": 9,
+          "artifactControl": 9,
+          "composition": 9,
+          "detailTextHandling": 9
+        },
+        "imageCount": 1,
+        "imageFiles": [
+          "generated-image-recraft-recraftv4_1.webp"
+        ],
+        "evidence": {
+          "summary": "generated-image-recraft-recraftv4_1.webp: Strong clean technical infographic matching the requested media pipeline, with seven numbered stages, dark navy background, arrows, icons, and appropriate teal/gold/coral/purple color coding. Text is legible and mostly minimal/monospace as requested.",
+          "strengths": [
+            "Accurately includes all seven stages with correct labels and icons",
+            "Clear top-to-bottom flow with four output arrows fanning from the AI brain node",
+            "Good flat geometric developer-documentation style",
+            "Strong color separation: teal inputs, gold AI stage, coral/purple outputs",
+            "Readable labels and clean composition"
+          ],
+          "issues": [
+            "Stage 2 split is represented somewhat abstractly rather than clearly branching into two paths",
+            "Central AI node is labeled Write but the number 3 is not visibly shown near it",
+            "Some arrow routing from the central node is slightly tight/overlapping at the top"
+          ]
+        }
+      }
+    },
+    {
+      "rank": 7,
+      "providerKey": "recraft/recraftv4_1_pro",
+      "provider": "recraft/recraftv4_1_pro",
+      "model": null,
+      "group": "service",
+      "processingTimeMs": 13281,
+      "actualProcessingTimeMs": 13281,
+      "costCents": 25,
+      "actualCostCents": 25,
+      "qualityScore": 82,
+      "qualityMetric": "image quality score",
+      "qualityValue": 82,
+      "qualityLabel": "82.00/100",
+      "metrics": {
+        "wer": null,
+        "cer": null,
+        "speakerAwareWER": null,
+        "textOnlyWER": null,
+        "roundtripWER": null,
+        "contentCoverage": null,
+        "qualityScore": 82
+      },
+      "supportsDiarization": null,
+      "diarizationSupport": null,
+      "tierGroup": null,
+      "groupOverallRank": null,
+      "groupTier": null,
+      "qualityWarnings": [],
+      "segmentStats": null,
+      "duplicateGroupId": null,
+      "imageQuality": {
+        "judgeModel": "gpt-5.5",
+        "qualityScore": 82,
+        "averageScore10": 8.2,
+        "criterionScores": {
+          "promptAdherence": 7,
+          "visualQuality": 9,
+          "artifactControl": 9,
+          "composition": 8,
+          "detailTextHandling": 8
+        },
+        "imageCount": 1,
+        "imageFiles": [
+          "generated-image-recraft-recraftv4_1_pro.webp"
+        ],
+        "evidence": {
+          "summary": "generated-image-recraft-recraftv4_1_pro.webp: Clean, readable flat infographic with the requested dark background, monospace labels, icons, and color palette. It captures the general media pipeline structure, but the flow logic is imperfect and Stage 7 is missing due to duplicated numbering for Music.",
+          "strengths": [
+            "Strong flat technical style on a dark navy background",
+            "Legible monospace text and clean iconography",
+            "Good use of teal for inputs, gold for AI brain, and coral/purple outputs",
+            "Central AI brain node is visually clear and prominent"
+          ],
+          "issues": [
+            "Music is labeled as Stage 6 instead of Stage 7, so the seven-stage requirement is not fully met",
+            "Extract split into speech-to-text and OCR is visually confusing, with odd arrow directions and a horizontal arrow between the paths",
+            "Output arrows mostly fan out, but some arrow directions/placements reduce pipeline clarity",
+            "Output labels and icons are somewhat separated, making associations less immediate"
+          ]
+        }
+      }
+    },
+    {
+      "rank": 4,
+      "providerKey": "recraft/recraftv4_1_utility",
+      "provider": "recraft/recraftv4_1_utility",
+      "model": null,
+      "group": "service",
+      "processingTimeMs": 24134,
+      "actualProcessingTimeMs": 24134,
+      "costCents": 4,
+      "actualCostCents": 4,
+      "qualityScore": 86,
+      "qualityMetric": "image quality score",
+      "qualityValue": 86,
+      "qualityLabel": "86.00/100",
+      "metrics": {
+        "wer": null,
+        "cer": null,
+        "speakerAwareWER": null,
+        "textOnlyWER": null,
+        "roundtripWER": null,
+        "contentCoverage": null,
+        "qualityScore": 86
+      },
+      "supportsDiarization": null,
+      "diarizationSupport": null,
+      "tierGroup": null,
+      "groupOverallRank": null,
+      "groupTier": null,
+      "qualityWarnings": [],
+      "segmentStats": null,
+      "duplicateGroupId": null,
+      "imageQuality": {
+        "judgeModel": "gpt-5.5",
+        "qualityScore": 86,
+        "averageScore10": 8.6,
+        "criterionScores": {
+          "promptAdherence": 8,
+          "visualQuality": 9,
+          "artifactControl": 9,
+          "composition": 8,
+          "detailTextHandling": 9
+        },
+        "imageCount": 1,
+        "imageFiles": [
+          "generated-image-recraft-recraftv4_1_utility.webp"
+        ],
+        "evidence": {
+          "summary": "generated-image-recraft-recraftv4_1_utility.webp: Clean, readable dark technical infographic that matches most requested stages, icons, colors, and flat developer-doc style. Main shortcomings are incomplete/ambiguous arrow flow and missing visible numbering for Stage 3.",
+          "strengths": [
+            "Strong dark navy background with teal, gold, coral, and purple accents matching the prompt.",
+            "All major output stages and icons are present and clearly labeled.",
+            "Speech-to-text and OCR split is represented cleanly.",
+            "Minimal monospace text is legible and stylistically appropriate."
+          ],
+          "issues": [
+            "Stage 3 is not visibly numbered, despite the prompt requesting seven numbered stages.",
+            "Flow arrows are incomplete or ambiguous, especially between Download and Extract and around Stage 2.",
+            "AI brain node is somewhat small rather than a large central node."
+          ]
+        }
+      }
+    },
+    {
+      "rank": 6,
+      "providerKey": "recraft/recraftv4_1_utility_pro",
+      "provider": "recraft/recraftv4_1_utility_pro",
+      "model": null,
+      "group": "service",
+      "processingTimeMs": 16891,
+      "actualProcessingTimeMs": 16891,
+      "costCents": 25,
+      "actualCostCents": 25,
+      "qualityScore": 84,
+      "qualityMetric": "image quality score",
+      "qualityValue": 84,
+      "qualityLabel": "84.00/100",
+      "metrics": {
+        "wer": null,
+        "cer": null,
+        "speakerAwareWER": null,
+        "textOnlyWER": null,
+        "roundtripWER": null,
+        "contentCoverage": null,
+        "qualityScore": 84
+      },
+      "supportsDiarization": null,
+      "diarizationSupport": null,
+      "tierGroup": null,
+      "groupOverallRank": null,
+      "groupTier": null,
+      "qualityWarnings": [],
+      "segmentStats": null,
+      "duplicateGroupId": null,
+      "imageQuality": {
+        "judgeModel": "gpt-5.5",
+        "qualityScore": 84,
+        "averageScore10": 8.4,
+        "criterionScores": {
+          "promptAdherence": 8,
+          "visualQuality": 8,
+          "artifactControl": 9,
+          "composition": 8,
+          "detailTextHandling": 9
+        },
+        "imageCount": 1,
+        "imageFiles": [
+          "generated-image-recraft-recraftv4_1_utility_pro.webp"
+        ],
+        "evidence": {
+          "summary": "generated-image-recraft-recraftv4_1_utility_pro.webp: Clean, readable technical infographic matching most requested stages, icons, colors, and dark developer-documentation style. Main issue is arrow direction from Stage 3 to outputs appears reversed/ambiguous, with arrowheads pointing toward the AI node rather than out to outputs.",
+          "strengths": [
+            "All seven numbered stages are present with correct labels and appropriate icons.",
+            "Dark navy background, flat geometric style, and monospace labels match the prompt well.",
+            "Teal inputs, gold AI stage, and coral/purple outputs are clearly differentiated.",
+            "Text is legible and mostly accurate, including speech-to-text and OCR side paths."
+          ],
+          "issues": [
+            "Four output arrows from Stage 3 appear to point back into the AI node instead of fanning outward to output stages.",
+            "Stage 2 split paths are present but not strongly integrated as a true fork in the main flow.",
+            "Large vertical canvas has some empty space and the bottom outputs are partly close to the lower edge."
+          ]
+        }
+      }
+    },
+    {
+      "rank": 11,
+      "providerKey": "reve/latest",
+      "provider": "reve/latest",
+      "model": null,
+      "group": "service",
+      "processingTimeMs": 6873,
+      "actualProcessingTimeMs": 6873,
+      "costCents": 2.4,
+      "actualCostCents": 2.4,
+      "qualityScore": 74,
+      "qualityMetric": "image quality score",
+      "qualityValue": 74,
+      "qualityLabel": "74.00/100",
+      "metrics": {
+        "wer": null,
+        "cer": null,
+        "speakerAwareWER": null,
+        "textOnlyWER": null,
+        "roundtripWER": null,
+        "contentCoverage": null,
+        "qualityScore": 74
+      },
+      "supportsDiarization": null,
+      "diarizationSupport": null,
+      "tierGroup": null,
+      "groupOverallRank": null,
+      "groupTier": null,
+      "qualityWarnings": [],
+      "segmentStats": null,
+      "duplicateGroupId": null,
+      "imageQuality": {
+        "judgeModel": "gpt-5.5",
+        "qualityScore": 74,
+        "averageScore10": 7.4,
+        "criterionScores": {
+          "promptAdherence": 6,
+          "visualQuality": 8,
+          "artifactControl": 8,
+          "composition": 7,
+          "detailTextHandling": 8
+        },
+        "imageCount": 1,
+        "imageFiles": [
+          "generated-image-reve-latest.png"
+        ],
+        "evidence": {
+          "summary": "generated-image-reve-latest.png: Clean, readable flat infographic with good colors and icons, but the pipeline structure does not fully match the requested top-to-bottom seven-stage flow and arrow directions are confusing.",
+          "strengths": [
+            "Dark navy background with teal, gold, coral, and purple palette close to prompt",
+            "All seven numbered output stages are visible and labels are mostly legible",
+            "Central gold AI brain node is clear and visually prominent",
+            "Flat geometric developer-doc style is generally achieved"
+          ],
+          "issues": [
+            "Stages do not flow top-to-bottom; stages 1–3 are arranged horizontally at the top",
+            "Stage 3 appears both as a top icon labeled Write and as the central brain node, creating duplication/confusion",
+            "Arrow directions are inconsistent and often appear to point toward earlier stages or into the AI node rather than outward",
+            "Extract split into speech-to-text and OCR is suggested but not clearly connected as a proper branching path",
+            "Typography is bold sans rather than clearly monospace"
+          ]
+        }
+      }
+    },
+    {
+      "rank": 13,
+      "providerKey": "reve/reve-create@20250915",
+      "provider": "reve/reve-create@20250915",
+      "model": null,
+      "group": "service",
+      "processingTimeMs": 6339,
+      "actualProcessingTimeMs": 6339,
+      "costCents": 2.4,
+      "actualCostCents": 2.4,
+      "qualityScore": 60,
+      "qualityMetric": "image quality score",
+      "qualityValue": 60,
+      "qualityLabel": "60.00/100",
+      "metrics": {
+        "wer": null,
+        "cer": null,
+        "speakerAwareWER": null,
+        "textOnlyWER": null,
+        "roundtripWER": null,
+        "contentCoverage": null,
+        "qualityScore": 60
+      },
+      "supportsDiarization": null,
+      "diarizationSupport": null,
+      "tierGroup": null,
+      "groupOverallRank": null,
+      "groupTier": null,
+      "qualityWarnings": [],
+      "segmentStats": null,
+      "duplicateGroupId": null,
+      "imageQuality": {
+        "judgeModel": "gpt-5.5",
+        "qualityScore": 60,
+        "averageScore10": 6,
+        "criterionScores": {
+          "promptAdherence": 5,
+          "visualQuality": 8,
+          "artifactControl": 7,
+          "composition": 7,
+          "detailTextHandling": 3
+        },
+        "imageCount": 1,
+        "imageFiles": [
+          "generated-image-reve-reve-create@20250915.png"
+        ],
+        "evidence": {
+          "summary": "generated-image-reve-reve-create@20250915.png: Clean, attractive flat infographic with the requested dark navy palette, teal/gold/coral/purple colors, central brain, and output icons, but it only partially matches the specified pipeline structure and labels.",
+          "strengths": [
+            "Strong flat-design aesthetic with good color separation on dark background.",
+            "Central gold AI brain is clear and visually dominant.",
+            "Four output nodes are balanced and recognizable overall.",
+            "Arrows and geometric shapes create a technical infographic feel."
+          ],
+          "issues": [
+            "Pipeline is not a clear top-to-bottom seven-stage flow.",
+            "Stage labels and numbering are incorrect or misplaced; Stage 3 is not the central brain node.",
+            "Stage 2/3 are confused, with misspelled 'EXTREIT' and unclear extract split.",
+            "TTS output is mislabeled as Image, and Stage 5 should be TTS.",
+            "Visible text handling is weak, with misspellings and garbled small text.",
+            "Download cloud icon contains a music note rather than a simple cloud/download cue."
+          ]
+        }
+      }
+    }
+  ],
+  "rankingSurfaces": {
+    "local": {
+      "fastest": [],
+      "cheapest": [],
+      "highestQuality": [],
+      "fastestUnavailableReason": "No providers were found.",
+      "cheapestUnavailableReason": "No providers were found.",
+      "highestQualityUnavailableReason": "No providers were found.",
+      "price": [],
+      "speed": [],
+      "automatedQuality": [],
+      "humanQuality": [],
+      "priceUnavailableReason": "No providers were found.",
+      "speedUnavailableReason": "No providers were found.",
+      "automatedQualityUnavailableReason": "No providers were found.",
+      "humanQualityUnavailableReason": "No providers were found."
+    },
+    "service": {
+      "fastest": [
+        {
+          "rank": 1,
+          "providerKey": "grok/grok-imagine-image-quality",
+          "provider": "grok/grok-imagine-image-quality",
+          "model": null,
+          "group": "service",
+          "metric": "processingTimeMs",
+          "value": 4709,
+          "label": "4.71s"
+        },
+        {
+          "rank": 2,
+          "providerKey": "grok/grok-imagine-image",
+          "provider": "grok/grok-imagine-image",
+          "model": null,
+          "group": "service",
+          "metric": "processingTimeMs",
+          "value": 5487,
+          "label": "5.49s"
+        },
+        {
+          "rank": 3,
+          "providerKey": "reve/reve-create@20250915",
+          "provider": "reve/reve-create@20250915",
+          "model": null,
+          "group": "service",
+          "metric": "processingTimeMs",
+          "value": 6339,
+          "label": "6.34s"
+        },
+        {
+          "rank": 4,
+          "providerKey": "reve/latest",
+          "provider": "reve/latest",
+          "model": null,
+          "group": "service",
+          "metric": "processingTimeMs",
+          "value": 6873,
+          "label": "6.87s"
+        },
+        {
+          "rank": 5,
+          "providerKey": "recraft/recraftv4_1",
+          "provider": "recraft/recraftv4_1",
+          "model": null,
+          "group": "service",
+          "metric": "processingTimeMs",
+          "value": 9510,
+          "label": "9.51s"
+        },
+        {
+          "rank": 6,
+          "providerKey": "recraft/recraftv4_1_pro",
+          "provider": "recraft/recraftv4_1_pro",
+          "model": null,
+          "group": "service",
+          "metric": "processingTimeMs",
+          "value": 13281,
+          "label": "13.28s"
+        },
+        {
+          "rank": 7,
+          "providerKey": "gemini/gemini-3.1-flash-image-preview",
+          "provider": "gemini/gemini-3.1-flash-image-preview",
+          "model": null,
+          "group": "service",
+          "metric": "processingTimeMs",
+          "value": 16107,
+          "label": "16.11s"
+        },
+        {
+          "rank": 8,
+          "providerKey": "bfl/flux-2-flex",
+          "provider": "bfl/flux-2-flex",
+          "model": null,
+          "group": "service",
+          "metric": "processingTimeMs",
+          "value": 16646,
+          "label": "16.65s"
+        },
+        {
+          "rank": 9,
+          "providerKey": "bfl/flux-2-pro",
+          "provider": "bfl/flux-2-pro",
+          "model": null,
+          "group": "service",
+          "metric": "processingTimeMs",
+          "value": 16794,
+          "label": "16.79s"
+        },
+        {
+          "rank": 10,
+          "providerKey": "recraft/recraftv4_1_utility_pro",
+          "provider": "recraft/recraftv4_1_utility_pro",
+          "model": null,
+          "group": "service",
+          "metric": "processingTimeMs",
+          "value": 16891,
+          "label": "16.89s"
+        },
+        {
+          "rank": 11,
+          "providerKey": "recraft/recraftv4_1_utility",
+          "provider": "recraft/recraftv4_1_utility",
+          "model": null,
+          "group": "service",
+          "metric": "processingTimeMs",
+          "value": 24134,
+          "label": "24.13s"
+        },
+        {
+          "rank": 12,
+          "providerKey": "bfl/flux-2-max",
+          "provider": "bfl/flux-2-max",
+          "model": null,
+          "group": "service",
+          "metric": "processingTimeMs",
+          "value": 47130,
+          "label": "47.13s"
+        },
+        {
+          "rank": 13,
+          "providerKey": "openai/gpt-image-2",
+          "provider": "openai/gpt-image-2",
+          "model": null,
+          "group": "service",
+          "metric": "processingTimeMs",
+          "value": 59035,
+          "label": "59.03s"
+        }
+      ],
+      "cheapest": [
+        {
+          "rank": 1,
+          "providerKey": "grok/grok-imagine-image",
+          "provider": "grok/grok-imagine-image",
+          "model": null,
+          "group": "service",
+          "metric": "costCents",
+          "value": 2,
+          "label": "$0.0200"
+        },
+        {
+          "rank": 2,
+          "providerKey": "reve/latest",
+          "provider": "reve/latest",
+          "model": null,
+          "group": "service",
+          "metric": "costCents",
+          "value": 2.4,
+          "label": "$0.0240"
+        },
+        {
+          "rank": 3,
+          "providerKey": "reve/reve-create@20250915",
+          "provider": "reve/reve-create@20250915",
+          "model": null,
+          "group": "service",
+          "metric": "costCents",
+          "value": 2.4,
+          "label": "$0.0240"
+        },
+        {
+          "rank": 4,
+          "providerKey": "bfl/flux-2-pro",
+          "provider": "bfl/flux-2-pro",
+          "model": null,
+          "group": "service",
+          "metric": "costCents",
+          "value": 3,
+          "label": "$0.0300"
+        },
+        {
+          "rank": 5,
+          "providerKey": "recraft/recraftv4_1",
+          "provider": "recraft/recraftv4_1",
+          "model": null,
+          "group": "service",
+          "metric": "costCents",
+          "value": 4,
+          "label": "$0.0400"
+        },
+        {
+          "rank": 6,
+          "providerKey": "recraft/recraftv4_1_utility",
+          "provider": "recraft/recraftv4_1_utility",
+          "model": null,
+          "group": "service",
+          "metric": "costCents",
+          "value": 4,
+          "label": "$0.0400"
+        },
+        {
+          "rank": 7,
+          "providerKey": "bfl/flux-2-flex",
+          "provider": "bfl/flux-2-flex",
+          "model": null,
+          "group": "service",
+          "metric": "costCents",
+          "value": 5,
+          "label": "$0.0500"
+        },
+        {
+          "rank": 8,
+          "providerKey": "grok/grok-imagine-image-quality",
+          "provider": "grok/grok-imagine-image-quality",
+          "model": null,
+          "group": "service",
+          "metric": "costCents",
+          "value": 5,
+          "label": "$0.0500"
+        },
+        {
+          "rank": 9,
+          "providerKey": "openai/gpt-image-2",
+          "provider": "openai/gpt-image-2",
+          "model": null,
+          "group": "service",
+          "metric": "costCents",
+          "value": 5.3,
+          "label": "$0.0530"
+        },
+        {
+          "rank": 10,
+          "providerKey": "gemini/gemini-3.1-flash-image-preview",
+          "provider": "gemini/gemini-3.1-flash-image-preview",
+          "model": null,
+          "group": "service",
+          "metric": "costCents",
+          "value": 6.7,
+          "label": "$0.0670"
+        },
+        {
+          "rank": 11,
+          "providerKey": "bfl/flux-2-max",
+          "provider": "bfl/flux-2-max",
+          "model": null,
+          "group": "service",
+          "metric": "costCents",
+          "value": 7.000000000000001,
+          "label": "$0.0700"
+        },
+        {
+          "rank": 12,
+          "providerKey": "recraft/recraftv4_1_pro",
+          "provider": "recraft/recraftv4_1_pro",
+          "model": null,
+          "group": "service",
+          "metric": "costCents",
+          "value": 25,
+          "label": "$0.2500"
+        },
+        {
+          "rank": 13,
+          "providerKey": "recraft/recraftv4_1_utility_pro",
+          "provider": "recraft/recraftv4_1_utility_pro",
+          "model": null,
+          "group": "service",
+          "metric": "costCents",
+          "value": 25,
+          "label": "$0.2500"
+        }
+      ],
+      "highestQuality": [
+        {
+          "rank": 1,
+          "providerKey": "recraft/recraftv4_1",
+          "provider": "recraft/recraftv4_1",
+          "model": null,
+          "group": "service",
+          "metric": "qualityScore",
+          "value": 90,
+          "label": "90.00/100"
+        },
+        {
+          "rank": 2,
+          "providerKey": "gemini/gemini-3.1-flash-image-preview",
+          "provider": "gemini/gemini-3.1-flash-image-preview",
+          "model": null,
+          "group": "service",
+          "metric": "qualityScore",
+          "value": 88,
+          "label": "88.00/100"
+        },
+        {
+          "rank": 3,
+          "providerKey": "openai/gpt-image-2",
+          "provider": "openai/gpt-image-2",
+          "model": null,
+          "group": "service",
+          "metric": "qualityScore",
+          "value": 88,
+          "label": "88.00/100"
+        },
+        {
+          "rank": 4,
+          "providerKey": "recraft/recraftv4_1_utility",
+          "provider": "recraft/recraftv4_1_utility",
+          "model": null,
+          "group": "service",
+          "metric": "qualityScore",
+          "value": 86,
+          "label": "86.00/100"
+        },
+        {
+          "rank": 5,
+          "providerKey": "grok/grok-imagine-image-quality",
+          "provider": "grok/grok-imagine-image-quality",
+          "model": null,
+          "group": "service",
+          "metric": "qualityScore",
+          "value": 84,
+          "label": "84.00/100"
+        },
+        {
+          "rank": 6,
+          "providerKey": "recraft/recraftv4_1_utility_pro",
+          "provider": "recraft/recraftv4_1_utility_pro",
+          "model": null,
+          "group": "service",
+          "metric": "qualityScore",
+          "value": 84,
+          "label": "84.00/100"
+        },
+        {
+          "rank": 7,
+          "providerKey": "recraft/recraftv4_1_pro",
+          "provider": "recraft/recraftv4_1_pro",
+          "model": null,
+          "group": "service",
+          "metric": "qualityScore",
+          "value": 82,
+          "label": "82.00/100"
+        },
+        {
+          "rank": 8,
+          "providerKey": "bfl/flux-2-flex",
+          "provider": "bfl/flux-2-flex",
+          "model": null,
+          "group": "service",
+          "metric": "qualityScore",
+          "value": 76,
+          "label": "76.00/100"
+        },
+        {
+          "rank": 9,
+          "providerKey": "grok/grok-imagine-image",
+          "provider": "grok/grok-imagine-image",
+          "model": null,
+          "group": "service",
+          "metric": "qualityScore",
+          "value": 76,
+          "label": "76.00/100"
+        },
+        {
+          "rank": 10,
+          "providerKey": "bfl/flux-2-max",
+          "provider": "bfl/flux-2-max",
+          "model": null,
+          "group": "service",
+          "metric": "qualityScore",
+          "value": 74,
+          "label": "74.00/100"
+        },
+        {
+          "rank": 11,
+          "providerKey": "reve/latest",
+          "provider": "reve/latest",
+          "model": null,
+          "group": "service",
+          "metric": "qualityScore",
+          "value": 74,
+          "label": "74.00/100"
+        },
+        {
+          "rank": 12,
+          "providerKey": "bfl/flux-2-pro",
+          "provider": "bfl/flux-2-pro",
+          "model": null,
+          "group": "service",
+          "metric": "qualityScore",
+          "value": 72,
+          "label": "72.00/100"
+        },
+        {
+          "rank": 13,
+          "providerKey": "reve/reve-create@20250915",
+          "provider": "reve/reve-create@20250915",
+          "model": null,
+          "group": "service",
+          "metric": "qualityScore",
+          "value": 60,
+          "label": "60.00/100"
+        }
+      ],
+      "fastestUnavailableReason": null,
+      "cheapestUnavailableReason": null,
+      "highestQualityUnavailableReason": null,
+      "price": [
+        {
+          "rank": 1,
+          "providerKey": "grok/grok-imagine-image",
+          "provider": "grok/grok-imagine-image",
+          "model": null,
+          "group": "service",
+          "metric": "costCents",
+          "value": 2,
+          "label": "$0.0200"
+        },
+        {
+          "rank": 2,
+          "providerKey": "reve/latest",
+          "provider": "reve/latest",
+          "model": null,
+          "group": "service",
+          "metric": "costCents",
+          "value": 2.4,
+          "label": "$0.0240"
+        },
+        {
+          "rank": 3,
+          "providerKey": "reve/reve-create@20250915",
+          "provider": "reve/reve-create@20250915",
+          "model": null,
+          "group": "service",
+          "metric": "costCents",
+          "value": 2.4,
+          "label": "$0.0240"
+        },
+        {
+          "rank": 4,
+          "providerKey": "bfl/flux-2-pro",
+          "provider": "bfl/flux-2-pro",
+          "model": null,
+          "group": "service",
+          "metric": "costCents",
+          "value": 3,
+          "label": "$0.0300"
+        },
+        {
+          "rank": 5,
+          "providerKey": "recraft/recraftv4_1",
+          "provider": "recraft/recraftv4_1",
+          "model": null,
+          "group": "service",
+          "metric": "costCents",
+          "value": 4,
+          "label": "$0.0400"
+        },
+        {
+          "rank": 6,
+          "providerKey": "recraft/recraftv4_1_utility",
+          "provider": "recraft/recraftv4_1_utility",
+          "model": null,
+          "group": "service",
+          "metric": "costCents",
+          "value": 4,
+          "label": "$0.0400"
+        },
+        {
+          "rank": 7,
+          "providerKey": "bfl/flux-2-flex",
+          "provider": "bfl/flux-2-flex",
+          "model": null,
+          "group": "service",
+          "metric": "costCents",
+          "value": 5,
+          "label": "$0.0500"
+        },
+        {
+          "rank": 8,
+          "providerKey": "grok/grok-imagine-image-quality",
+          "provider": "grok/grok-imagine-image-quality",
+          "model": null,
+          "group": "service",
+          "metric": "costCents",
+          "value": 5,
+          "label": "$0.0500"
+        },
+        {
+          "rank": 9,
+          "providerKey": "openai/gpt-image-2",
+          "provider": "openai/gpt-image-2",
+          "model": null,
+          "group": "service",
+          "metric": "costCents",
+          "value": 5.3,
+          "label": "$0.0530"
+        },
+        {
+          "rank": 10,
+          "providerKey": "gemini/gemini-3.1-flash-image-preview",
+          "provider": "gemini/gemini-3.1-flash-image-preview",
+          "model": null,
+          "group": "service",
+          "metric": "costCents",
+          "value": 6.7,
+          "label": "$0.0670"
+        },
+        {
+          "rank": 11,
+          "providerKey": "bfl/flux-2-max",
+          "provider": "bfl/flux-2-max",
+          "model": null,
+          "group": "service",
+          "metric": "costCents",
+          "value": 7.000000000000001,
+          "label": "$0.0700"
+        },
+        {
+          "rank": 12,
+          "providerKey": "recraft/recraftv4_1_pro",
+          "provider": "recraft/recraftv4_1_pro",
+          "model": null,
+          "group": "service",
+          "metric": "costCents",
+          "value": 25,
+          "label": "$0.2500"
+        },
+        {
+          "rank": 13,
+          "providerKey": "recraft/recraftv4_1_utility_pro",
+          "provider": "recraft/recraftv4_1_utility_pro",
+          "model": null,
+          "group": "service",
+          "metric": "costCents",
+          "value": 25,
+          "label": "$0.2500"
+        }
+      ],
+      "speed": [
+        {
+          "rank": 1,
+          "providerKey": "grok/grok-imagine-image-quality",
+          "provider": "grok/grok-imagine-image-quality",
+          "model": null,
+          "group": "service",
+          "metric": "processingTimeMs",
+          "value": 4709,
+          "label": "4.71s"
+        },
+        {
+          "rank": 2,
+          "providerKey": "grok/grok-imagine-image",
+          "provider": "grok/grok-imagine-image",
+          "model": null,
+          "group": "service",
+          "metric": "processingTimeMs",
+          "value": 5487,
+          "label": "5.49s"
+        },
+        {
+          "rank": 3,
+          "providerKey": "reve/reve-create@20250915",
+          "provider": "reve/reve-create@20250915",
+          "model": null,
+          "group": "service",
+          "metric": "processingTimeMs",
+          "value": 6339,
+          "label": "6.34s"
+        },
+        {
+          "rank": 4,
+          "providerKey": "reve/latest",
+          "provider": "reve/latest",
+          "model": null,
+          "group": "service",
+          "metric": "processingTimeMs",
+          "value": 6873,
+          "label": "6.87s"
+        },
+        {
+          "rank": 5,
+          "providerKey": "recraft/recraftv4_1",
+          "provider": "recraft/recraftv4_1",
+          "model": null,
+          "group": "service",
+          "metric": "processingTimeMs",
+          "value": 9510,
+          "label": "9.51s"
+        },
+        {
+          "rank": 6,
+          "providerKey": "recraft/recraftv4_1_pro",
+          "provider": "recraft/recraftv4_1_pro",
+          "model": null,
+          "group": "service",
+          "metric": "processingTimeMs",
+          "value": 13281,
+          "label": "13.28s"
+        },
+        {
+          "rank": 7,
+          "providerKey": "gemini/gemini-3.1-flash-image-preview",
+          "provider": "gemini/gemini-3.1-flash-image-preview",
+          "model": null,
+          "group": "service",
+          "metric": "processingTimeMs",
+          "value": 16107,
+          "label": "16.11s"
+        },
+        {
+          "rank": 8,
+          "providerKey": "bfl/flux-2-flex",
+          "provider": "bfl/flux-2-flex",
+          "model": null,
+          "group": "service",
+          "metric": "processingTimeMs",
+          "value": 16646,
+          "label": "16.65s"
+        },
+        {
+          "rank": 9,
+          "providerKey": "bfl/flux-2-pro",
+          "provider": "bfl/flux-2-pro",
+          "model": null,
+          "group": "service",
+          "metric": "processingTimeMs",
+          "value": 16794,
+          "label": "16.79s"
+        },
+        {
+          "rank": 10,
+          "providerKey": "recraft/recraftv4_1_utility_pro",
+          "provider": "recraft/recraftv4_1_utility_pro",
+          "model": null,
+          "group": "service",
+          "metric": "processingTimeMs",
+          "value": 16891,
+          "label": "16.89s"
+        },
+        {
+          "rank": 11,
+          "providerKey": "recraft/recraftv4_1_utility",
+          "provider": "recraft/recraftv4_1_utility",
+          "model": null,
+          "group": "service",
+          "metric": "processingTimeMs",
+          "value": 24134,
+          "label": "24.13s"
+        },
+        {
+          "rank": 12,
+          "providerKey": "bfl/flux-2-max",
+          "provider": "bfl/flux-2-max",
+          "model": null,
+          "group": "service",
+          "metric": "processingTimeMs",
+          "value": 47130,
+          "label": "47.13s"
+        },
+        {
+          "rank": 13,
+          "providerKey": "openai/gpt-image-2",
+          "provider": "openai/gpt-image-2",
+          "model": null,
+          "group": "service",
+          "metric": "processingTimeMs",
+          "value": 59035,
+          "label": "59.03s"
+        }
+      ],
+      "automatedQuality": [
+        {
+          "rank": 1,
+          "providerKey": "recraft/recraftv4_1",
+          "provider": "recraft/recraftv4_1",
+          "model": null,
+          "group": "service",
+          "metric": "qualityScore",
+          "value": 90,
+          "label": "90.00/100"
+        },
+        {
+          "rank": 2,
+          "providerKey": "gemini/gemini-3.1-flash-image-preview",
+          "provider": "gemini/gemini-3.1-flash-image-preview",
+          "model": null,
+          "group": "service",
+          "metric": "qualityScore",
+          "value": 88,
+          "label": "88.00/100"
+        },
+        {
+          "rank": 3,
+          "providerKey": "openai/gpt-image-2",
+          "provider": "openai/gpt-image-2",
+          "model": null,
+          "group": "service",
+          "metric": "qualityScore",
+          "value": 88,
+          "label": "88.00/100"
+        },
+        {
+          "rank": 4,
+          "providerKey": "recraft/recraftv4_1_utility",
+          "provider": "recraft/recraftv4_1_utility",
+          "model": null,
+          "group": "service",
+          "metric": "qualityScore",
+          "value": 86,
+          "label": "86.00/100"
+        },
+        {
+          "rank": 5,
+          "providerKey": "grok/grok-imagine-image-quality",
+          "provider": "grok/grok-imagine-image-quality",
+          "model": null,
+          "group": "service",
+          "metric": "qualityScore",
+          "value": 84,
+          "label": "84.00/100"
+        },
+        {
+          "rank": 6,
+          "providerKey": "recraft/recraftv4_1_utility_pro",
+          "provider": "recraft/recraftv4_1_utility_pro",
+          "model": null,
+          "group": "service",
+          "metric": "qualityScore",
+          "value": 84,
+          "label": "84.00/100"
+        },
+        {
+          "rank": 7,
+          "providerKey": "recraft/recraftv4_1_pro",
+          "provider": "recraft/recraftv4_1_pro",
+          "model": null,
+          "group": "service",
+          "metric": "qualityScore",
+          "value": 82,
+          "label": "82.00/100"
+        },
+        {
+          "rank": 8,
+          "providerKey": "bfl/flux-2-flex",
+          "provider": "bfl/flux-2-flex",
+          "model": null,
+          "group": "service",
+          "metric": "qualityScore",
+          "value": 76,
+          "label": "76.00/100"
+        },
+        {
+          "rank": 9,
+          "providerKey": "grok/grok-imagine-image",
+          "provider": "grok/grok-imagine-image",
+          "model": null,
+          "group": "service",
+          "metric": "qualityScore",
+          "value": 76,
+          "label": "76.00/100"
+        },
+        {
+          "rank": 10,
+          "providerKey": "bfl/flux-2-max",
+          "provider": "bfl/flux-2-max",
+          "model": null,
+          "group": "service",
+          "metric": "qualityScore",
+          "value": 74,
+          "label": "74.00/100"
+        },
+        {
+          "rank": 11,
+          "providerKey": "reve/latest",
+          "provider": "reve/latest",
+          "model": null,
+          "group": "service",
+          "metric": "qualityScore",
+          "value": 74,
+          "label": "74.00/100"
+        },
+        {
+          "rank": 12,
+          "providerKey": "bfl/flux-2-pro",
+          "provider": "bfl/flux-2-pro",
+          "model": null,
+          "group": "service",
+          "metric": "qualityScore",
+          "value": 72,
+          "label": "72.00/100"
+        },
+        {
+          "rank": 13,
+          "providerKey": "reve/reve-create@20250915",
+          "provider": "reve/reve-create@20250915",
+          "model": null,
+          "group": "service",
+          "metric": "qualityScore",
+          "value": 60,
+          "label": "60.00/100"
+        }
+      ],
+      "humanQuality": [],
+      "priceUnavailableReason": null,
+      "speedUnavailableReason": null,
+      "automatedQualityUnavailableReason": null,
+      "humanQualityUnavailableReason": "No explicit humanQualityScore was available for these providers. Generic quality scores, cost, speed, and artifact metadata are not used as human quality proxies."
+    }
+  },
+  "combinedLeaderboardPolicy": "omitted: local and service providers are not ranked against each other",
+  "notes": [
+    "Automated quality rankings use explicit image judge scores from image-quality-report.json.",
+    "Price and speed surfaces are evidence-only and do not affect image quality scores.",
+    "Image mode evaluates existing generated images only; it does not generate new images."
+  ]
+}

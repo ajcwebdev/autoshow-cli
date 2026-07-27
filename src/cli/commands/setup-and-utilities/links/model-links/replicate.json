@@ -1,0 +1,33 @@
+{
+  "Replicate": {
+    "General": [
+      "https://replicate.com/docs/topics/predictions.md",
+      "https://replicate.com/docs/topics/predictions/lifecycle.md",
+      "https://replicate.com/docs/topics/predictions/rate-limits.md",
+      "https://replicate.com/docs/topics/predictions/create-a-prediction.md",
+      "https://replicate.com/docs/topics/predictions/input-files.md",
+      "https://replicate.com/docs/topics/predictions/output-files.md",
+      "https://replicate.com/docs/topics/security/api-tokens.md",
+      "https://replicate.com/docs/reference/how-does-replicate-work.md",
+      "https://replicate.com/docs/reference/http.md",
+      "https://replicate.com/docs/llms.txt"
+    ],
+    "Models": [
+      "https://replicate.com/docs/topics/models.md",
+      "https://replicate.com/docs/topics/models/run-a-model.md",
+      "https://replicate.com/docs/topics/models/versions.md",
+      "https://replicate.com/docs/topics/models/official-models.md",
+      "https://replicate.com/docs/topics/models/community-models.md",
+      "https://replicate.com/alibaba/happyhorse-1.0/llms.txt",
+      "https://replicate.com/bytedance/seedance-2.0/llms.txt",
+      "https://replicate.com/bytedance/seedance-2.0-fast/llms.txt",
+      "https://replicate.com/wan-video/wan-2.7-t2v/llms.txt",
+      "https://replicate.com/bytedance/seedream-4.5/llms.txt",
+      "https://replicate.com/bytedance/seedream-5-lite/llms.txt",
+      "https://replicate.com/qwen/qwen-image-2-pro/llms.txt",
+      "https://replicate.com/qwen/qwen-image-2/llms.txt",
+      "https://replicate.com/wan-video/wan-2.7-image-pro/llms.txt",
+      "https://replicate.com/wan-video/wan-2.7-image/llms.txt"
+    ]
+  }
+}

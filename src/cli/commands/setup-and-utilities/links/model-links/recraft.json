@@ -1,0 +1,15 @@
+{
+  "Recraft": {
+    "Image": [
+      "https://www.recraft.ai/docs/.md",
+      "https://www.recraft.ai/docs/api-reference/getting-started.md",
+      "https://www.recraft.ai/docs/api-reference/endpoints.md",
+      "https://www.recraft.ai/docs/api-reference/examples.md",
+      "https://www.recraft.ai/docs/api-reference/pricing.md",
+      "https://www.recraft.ai/docs/api-reference/styles.md",
+      "https://www.recraft.ai/docs/api-reference/swagger.md",
+      "https://www.recraft.ai/docs/api-reference/appendix.md",
+      "https://www.recraft.ai/docs/best-practices/prompting-and-image-generation.md"
+    ]
+  }
+}

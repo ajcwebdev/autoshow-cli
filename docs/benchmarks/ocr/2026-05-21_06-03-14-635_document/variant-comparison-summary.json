@@ -1,0 +1,44 @@
+{
+  "schemaVersion": 1,
+  "runDir": "/Users/ajc/c/autoshow-cli/docs/benchmarks/ocr/2026-05-21_06-03-14-635_document",
+  "generatedAt": "2026-07-01T20:11:50.331Z",
+  "pageAligned": true,
+  "variants": [
+    {
+      "variantId": "status-quo-consensus",
+      "source": "current consensus extraction",
+      "charCount": 11937,
+      "wordCount": 1312,
+      "pageCount": 10
+    },
+    {
+      "variantId": "page-level-hybrid",
+      "source": "deterministic selected provider pages",
+      "charCount": 12041,
+      "wordCount": 1473,
+      "pageCount": 10,
+      "selectedPageSourceCounts": {
+        "anthropic/claude-haiku-4-5": 1,
+        "anthropic/claude-opus-4-8": 3,
+        "anthropic/claude-sonnet-5": 1,
+        "gemini/gemini-3.5-flash": 1,
+        "grok/grok-4.20-0309-non-reasoning": 1,
+        "openai/gpt-5.4-mini": 3
+      },
+      "lowConfidencePageCount": 8,
+      "outlierPageCount": 10
+    }
+  ],
+  "pairwiseDistances": [
+    {
+      "referenceVariantId": "status-quo-consensus",
+      "candidateVariantId": "page-level-hybrid",
+      "wer": 0.371189,
+      "cer": 0.612292,
+      "wordDistance": 487,
+      "wordReferenceCount": 1312,
+      "charDistance": 5559,
+      "charReferenceCount": 9079
+    }
+  ]
+}

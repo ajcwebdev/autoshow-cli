@@ -1,0 +1,367 @@
+{
+  "schemaVersion": 1,
+  "runDir": "/Users/ajc/c/autoshow-cli/docs/benchmarks/ocr/2026-05-21_06-13-18-792_document",
+  "thresholds": {
+    "majorLengthDrift": 0.3,
+    "highDisagreementFloor": 0.18,
+    "highDisagreementIqrMultiplier": 1.5,
+    "werCerDivergence": 0.16,
+    "lowConfidence": 0.72,
+    "repeatedDominantLineShare": 0.5,
+    "repeatedDominantLineMinimum": 4,
+    "repeatedTokenWindowSize": 8,
+    "repeatedTokenWindowMinimum": 6,
+    "repeatedTokenWindowShare": 0.35,
+    "highDisagreement": 1.19607,
+    "pageDisagreementQ1": 0.306638,
+    "pageDisagreementQ3": 0.662411
+  },
+  "blankOutputPages": [],
+  "repeatedTextPages": [],
+  "majorLengthDriftPages": [
+    {
+      "pageNumber": 1,
+      "providers": [
+        {
+          "providerKey": "anthropic/claude-sonnet-5",
+          "lengthDrift": 0.880137,
+          "tokenCount": 35
+        }
+      ]
+    },
+    {
+      "pageNumber": 3,
+      "providers": [
+        {
+          "providerKey": "anthropic/claude-sonnet-5",
+          "lengthDrift": 0.737589,
+          "tokenCount": 37
+        }
+      ]
+    },
+    {
+      "pageNumber": 6,
+      "providers": [
+        {
+          "providerKey": "anthropic/claude-haiku-4-5",
+          "lengthDrift": 0.506173,
+          "tokenCount": 40
+        },
+        {
+          "providerKey": "anthropic/claude-sonnet-5",
+          "lengthDrift": 0.740741,
+          "tokenCount": 141
+        }
+      ]
+    },
+    {
+      "pageNumber": 7,
+      "providers": [
+        {
+          "providerKey": "anthropic/claude-sonnet-5",
+          "lengthDrift": 0.42735,
+          "tokenCount": 67
+        }
+      ]
+    },
+    {
+      "pageNumber": 8,
+      "providers": [
+        {
+          "providerKey": "anthropic/claude-sonnet-5",
+          "lengthDrift": 0.328358,
+          "tokenCount": 180
+        }
+      ]
+    },
+    {
+      "pageNumber": 9,
+      "providers": [
+        {
+          "providerKey": "anthropic/claude-sonnet-5",
+          "lengthDrift": 0.659686,
+          "tokenCount": 65
+        }
+      ]
+    }
+  ],
+  "highDisagreementPages": [
+    {
+      "pageNumber": 1,
+      "pageDisagreement": 2.190119,
+      "selectedProviderKey": "anthropic/claude-sonnet-5",
+      "selectedConfidence": 0
+    }
+  ],
+  "werCerDivergencePages": [
+    {
+      "pageNumber": 1,
+      "providers": [
+        {
+          "providerKey": "anthropic/claude-haiku-4-5",
+          "wer": 1.372577,
+          "cer": 4.318445
+        },
+        {
+          "providerKey": "anthropic/claude-opus-4-8",
+          "wer": 1.372577,
+          "cer": 4.318445
+        },
+        {
+          "providerKey": "gemini/gemini-3.5-flash",
+          "wer": 1.372577,
+          "cer": 4.318445
+        },
+        {
+          "providerKey": "grok/grok-4.20-0309-non-reasoning",
+          "wer": 1.347586,
+          "cer": 4.165357
+        },
+        {
+          "providerKey": "mistral/mistral-ocr-4-0",
+          "wer": 1.372577,
+          "cer": 4.318445
+        },
+        {
+          "providerKey": "openai/gpt-5.4-mini",
+          "wer": 1.372577,
+          "cer": 4.318445
+        }
+      ]
+    },
+    {
+      "pageNumber": 2,
+      "providers": [
+        {
+          "providerKey": "anthropic/claude-sonnet-5",
+          "wer": 1.136969,
+          "cer": 0.96668
+        }
+      ]
+    },
+    {
+      "pageNumber": 3,
+      "providers": [
+        {
+          "providerKey": "anthropic/claude-haiku-4-5",
+          "wer": 0.636758,
+          "cer": 1.619613
+        },
+        {
+          "providerKey": "anthropic/claude-opus-4-8",
+          "wer": 0.636758,
+          "cer": 1.619613
+        },
+        {
+          "providerKey": "gemini/gemini-3.5-flash",
+          "wer": 0.636758,
+          "cer": 1.619613
+        },
+        {
+          "providerKey": "grok/grok-4.20-0309-non-reasoning",
+          "wer": 0.637659,
+          "cer": 1.58157
+        },
+        {
+          "providerKey": "mistral/mistral-ocr-4-0",
+          "wer": 0.636758,
+          "cer": 1.619613
+        },
+        {
+          "providerKey": "openai/gpt-5.4-mini",
+          "wer": 0.636758,
+          "cer": 1.619613
+        }
+      ]
+    },
+    {
+      "pageNumber": 4,
+      "providers": [
+        {
+          "providerKey": "anthropic/claude-sonnet-5",
+          "wer": 1.192122,
+          "cer": 0.805428
+        }
+      ]
+    },
+    {
+      "pageNumber": 5,
+      "providers": [
+        {
+          "providerKey": "anthropic/claude-haiku-4-5",
+          "wer": 0.224711,
+          "cer": 0.590879
+        },
+        {
+          "providerKey": "anthropic/claude-opus-4-8",
+          "wer": 0.224711,
+          "cer": 0.590879
+        },
+        {
+          "providerKey": "gemini/gemini-3.5-flash",
+          "wer": 0.224711,
+          "cer": 0.590879
+        },
+        {
+          "providerKey": "grok/grok-4.20-0309-non-reasoning",
+          "wer": 0.253708,
+          "cer": 0.591704
+        },
+        {
+          "providerKey": "mistral/mistral-ocr-4-0",
+          "wer": 0.224711,
+          "cer": 0.590879
+        },
+        {
+          "providerKey": "openai/gpt-5.4-mini",
+          "wer": 0.224711,
+          "cer": 0.590879
+        }
+      ]
+    },
+    {
+      "pageNumber": 6,
+      "providers": [
+        {
+          "providerKey": "anthropic/claude-sonnet-5",
+          "wer": 2.011739,
+          "cer": 1.827127
+        }
+      ]
+    },
+    {
+      "pageNumber": 7,
+      "providers": [
+        {
+          "providerKey": "anthropic/claude-haiku-4-5",
+          "wer": 0.484661,
+          "cer": 0.82029
+        },
+        {
+          "providerKey": "anthropic/claude-opus-4-8",
+          "wer": 0.323804,
+          "cer": 0.527949
+        },
+        {
+          "providerKey": "gemini/gemini-3.5-flash",
+          "wer": 0.323804,
+          "cer": 0.527949
+        },
+        {
+          "providerKey": "grok/grok-4.20-0309-non-reasoning",
+          "wer": 0.347434,
+          "cer": 0.533814
+        },
+        {
+          "providerKey": "mistral/mistral-ocr-4-0",
+          "wer": 0.323804,
+          "cer": 0.527949
+        },
+        {
+          "providerKey": "openai/gpt-5.4-mini",
+          "wer": 0.323804,
+          "cer": 0.527949
+        }
+      ]
+    },
+    {
+      "pageNumber": 8,
+      "providers": [
+        {
+          "providerKey": "anthropic/claude-sonnet-5",
+          "wer": 0.914594,
+          "cer": 0.701295
+        }
+      ]
+    },
+    {
+      "pageNumber": 9,
+      "providers": [
+        {
+          "providerKey": "anthropic/claude-haiku-4-5",
+          "wer": 0.494465,
+          "cer": 0.84677
+        },
+        {
+          "providerKey": "anthropic/claude-opus-4-8",
+          "wer": 0.494465,
+          "cer": 0.84677
+        },
+        {
+          "providerKey": "gemini/gemini-3.5-flash",
+          "wer": 0.494465,
+          "cer": 0.84677
+        },
+        {
+          "providerKey": "grok/grok-4.20-0309-non-reasoning",
+          "wer": 0.501571,
+          "cer": 0.837985
+        },
+        {
+          "providerKey": "mistral/mistral-ocr-4-0",
+          "wer": 0.494465,
+          "cer": 0.84677
+        },
+        {
+          "providerKey": "openai/gpt-5.4-mini",
+          "wer": 0.494465,
+          "cer": 0.84677
+        }
+      ]
+    },
+    {
+      "pageNumber": 10,
+      "providers": [
+        {
+          "providerKey": "anthropic/claude-sonnet-5",
+          "wer": 0.987174,
+          "cer": 0.790392
+        }
+      ]
+    }
+  ],
+  "lowConfidencePages": [
+    {
+      "pageNumber": 1,
+      "selectedProviderKey": "anthropic/claude-sonnet-5",
+      "selectedConfidence": 0,
+      "pageDisagreement": 2.190119
+    },
+    {
+      "pageNumber": 3,
+      "selectedProviderKey": "gemini/gemini-3.5-flash",
+      "selectedConfidence": 0,
+      "pageDisagreement": 0.977901
+    },
+    {
+      "pageNumber": 5,
+      "selectedProviderKey": "gemini/gemini-3.5-flash",
+      "selectedConfidence": 0.423625,
+      "pageDisagreement": 0.43234
+    },
+    {
+      "pageNumber": 6,
+      "selectedProviderKey": "anthropic/claude-opus-4-8",
+      "selectedConfidence": 0.489261,
+      "pageDisagreement": 0.648111
+    },
+    {
+      "pageNumber": 7,
+      "selectedProviderKey": "anthropic/claude-opus-4-8",
+      "selectedConfidence": 0.366406,
+      "pageDisagreement": 0.503749
+    },
+    {
+      "pageNumber": 9,
+      "selectedProviderKey": "anthropic/claude-opus-4-8",
+      "selectedConfidence": 0.066008,
+      "pageDisagreement": 0.667178
+    },
+    {
+      "pageNumber": 10,
+      "selectedProviderKey": "openai/gpt-5.4-mini",
+      "selectedConfidence": 0.683386,
+      "pageDisagreement": 0.336906
+    }
+  ]
+}

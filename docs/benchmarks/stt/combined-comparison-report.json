@@ -1,0 +1,4441 @@
+{
+  "schemaVersion": 3,
+  "kind": "stt-combined-comparison-report",
+  "category": "stt",
+  "rootDir": "/Users/ajc/c/autoshow-cli/docs/benchmarks/stt",
+  "generatedAt": "2026-07-18T05:18:38.923Z",
+  "metric": "speaker-aware WER-derived quality score, aggregated as the mean across runs",
+  "runCount": 5,
+  "runs": [
+    {
+      "runName": "2026-06-15_14-29-11-559_1-audio",
+      "runDir": "/Users/ajc/c/autoshow-cli/docs/benchmarks/stt/2026-06-15_14-29-11-559_1-audio",
+      "providerCount": 17
+    },
+    {
+      "runName": "2026-06-15_14-34-10-342_2023-04-05-jsjam-react-miami-2023-10-minutes",
+      "runDir": "/Users/ajc/c/autoshow-cli/docs/benchmarks/stt/2026-06-15_14-34-10-342_2023-04-05-jsjam-react-miami-2023-10-minutes",
+      "providerCount": 17
+    },
+    {
+      "runName": "2026-06-15_14-43-25-724_2022-09-30-widgets-fsjam-40-minutes",
+      "runDir": "/Users/ajc/c/autoshow-cli/docs/benchmarks/stt/2026-06-15_14-43-25-724_2022-09-30-widgets-fsjam-40-minutes",
+      "providerCount": 17
+    },
+    {
+      "runName": "2026-07-16_01-20-11-985_2024-04-10-autogen-shownotes-jenn-junod",
+      "runDir": "/Users/ajc/c/autoshow-cli/output/2026-07-16_01-20-11-985_2024-04-10-autogen-shownotes-jenn-junod",
+      "providerCount": 16
+    },
+    {
+      "runName": "2026-07-16_01-27-21-117_barnum-with-robert-balicki",
+      "runDir": "/Users/ajc/c/autoshow-cli/output/2026-07-16_01-27-21-117_barnum-with-robert-balicki",
+      "providerCount": 18
+    }
+  ],
+  "providerCount": 18,
+  "metricRankings": {
+    "local": {
+      "price": [],
+      "speed": [],
+      "qualityScore": []
+    },
+    "thirdPartyServiceNonDiarization": {
+      "price": [
+        {
+          "rank": 1,
+          "providerKey": "scrapecreators/youtube-transcript",
+          "provider": "scrapecreators-youtube-transcript",
+          "model": "youtube-transcript",
+          "group": "thirdPartyServiceNonDiarization",
+          "metric": "price",
+          "value": 0.188,
+          "label": "$0.0019",
+          "runsCovered": 1,
+          "meanQualityScore": 93.3920704845815,
+          "meanSpeakerAwareWER": 0.06607929515418502,
+          "meanTextOnlyWER": 0.05512452478857941,
+          "meanProcessingTimeMs": 3059,
+          "meanCostCents": 0.188,
+          "totalCostCents": 0.188,
+          "supportsDiarization": false,
+          "diarizationSupport": "not-supported"
+        },
+        {
+          "rank": 2,
+          "providerKey": "deepinfra/openai/whisper-large-v3-turbo",
+          "provider": "deepinfra-openai_whisper-large-v3-turbo",
+          "model": "openai/whisper-large-v3-turbo",
+          "group": "thirdPartyServiceNonDiarization",
+          "metric": "price",
+          "value": 1.0777750204,
+          "label": "$0.0108",
+          "runsCovered": 5,
+          "meanQualityScore": 89.07121476378936,
+          "meanSpeakerAwareWER": 0.10928785236210636,
+          "meanTextOnlyWER": 0.09769258385969729,
+          "meanProcessingTimeMs": 34529.4,
+          "meanCostCents": 1.0777750204,
+          "totalCostCents": 5.388875102,
+          "supportsDiarization": false,
+          "diarizationSupport": "not-supported"
+        },
+        {
+          "rank": 3,
+          "providerKey": "supadata/auto",
+          "provider": "supadata-auto",
+          "model": "auto",
+          "group": "thirdPartyServiceNonDiarization",
+          "metric": "price",
+          "value": 1.75,
+          "label": "$0.0175",
+          "runsCovered": 4,
+          "meanQualityScore": 87.24192909976114,
+          "meanSpeakerAwareWER": 0.12758070900238858,
+          "meanTextOnlyWER": 0.11708779911289484,
+          "meanProcessingTimeMs": 24464,
+          "meanCostCents": 1.75,
+          "totalCostCents": 7,
+          "supportsDiarization": false,
+          "diarizationSupport": "not-supported"
+        },
+        {
+          "rank": 4,
+          "providerKey": "deepinfra/openai/whisper-large-v3",
+          "provider": "deepinfra-openai_whisper-large-v3",
+          "model": "openai/whisper-large-v3",
+          "group": "thirdPartyServiceNonDiarization",
+          "metric": "price",
+          "value": 2.4249937959,
+          "label": "$0.0242",
+          "runsCovered": 5,
+          "meanQualityScore": 94.08763510657148,
+          "meanSpeakerAwareWER": 0.05912364893428519,
+          "meanTextOnlyWER": 0.04562818609399259,
+          "meanProcessingTimeMs": 58953.2,
+          "meanCostCents": 2.4249937959,
+          "totalCostCents": 12.1249689795,
+          "supportsDiarization": false,
+          "diarizationSupport": "not-supported"
+        },
+        {
+          "rank": 5,
+          "providerKey": "groq/whisper-large-v3-turbo",
+          "provider": "groq-whisper-large-v3-turbo",
+          "model": "whisper-large-v3-turbo",
+          "group": "thirdPartyServiceNonDiarization",
+          "metric": "price",
+          "value": 3.592583401333333,
+          "label": "$0.0359",
+          "runsCovered": 5,
+          "meanQualityScore": 93.44300132432087,
+          "meanSpeakerAwareWER": 0.06556998675679117,
+          "meanTextOnlyWER": 0.0526091596758743,
+          "meanProcessingTimeMs": 41921.4,
+          "meanCostCents": 3.592583401333333,
+          "totalCostCents": 17.962917006666665,
+          "supportsDiarization": false,
+          "diarizationSupport": "not-supported"
+        },
+        {
+          "rank": 6,
+          "providerKey": "together/openai/whisper-large-v3",
+          "provider": "together-openai_whisper-large-v3",
+          "model": "openai/whisper-large-v3",
+          "group": "thirdPartyServiceNonDiarization",
+          "metric": "price",
+          "value": 8.083312653,
+          "label": "$0.0808",
+          "runsCovered": 5,
+          "meanQualityScore": 93.63780320990418,
+          "meanSpeakerAwareWER": 0.06362196790095813,
+          "meanTextOnlyWER": 0.050448313539997416,
+          "meanProcessingTimeMs": 15413.4,
+          "meanCostCents": 8.083312653,
+          "totalCostCents": 40.416563265,
+          "supportsDiarization": false,
+          "diarizationSupport": "not-supported"
+        },
+        {
+          "rank": 7,
+          "providerKey": "groq/whisper-large-v3",
+          "provider": "groq-whisper-large-v3",
+          "model": "whisper-large-v3",
+          "group": "thirdPartyServiceNonDiarization",
+          "metric": "price",
+          "value": 9.969418938699999,
+          "label": "$0.0997",
+          "runsCovered": 5,
+          "meanQualityScore": 93.33112051621714,
+          "meanSpeakerAwareWER": 0.0666887948378285,
+          "meanTextOnlyWER": 0.053503078957927344,
+          "meanProcessingTimeMs": 34908,
+          "meanCostCents": 9.969418938699999,
+          "totalCostCents": 49.8470946935,
+          "supportsDiarization": false,
+          "diarizationSupport": "not-supported"
+        },
+        {
+          "rank": 8,
+          "providerKey": "gemini-stt/gemini-3-flash-preview",
+          "provider": "gemini-stt-gemini-3-flash-preview",
+          "model": "gemini-3-flash-preview",
+          "group": "thirdPartyServiceNonDiarization",
+          "metric": "price",
+          "value": 27.592660000000002,
+          "label": "$0.2759",
+          "runsCovered": 5,
+          "meanQualityScore": 86.77004217230379,
+          "meanSpeakerAwareWER": 0.13229957827696226,
+          "meanTextOnlyWER": 0.12141892404051906,
+          "meanProcessingTimeMs": 261778.8,
+          "meanCostCents": 27.592660000000002,
+          "totalCostCents": 137.9633,
+          "supportsDiarization": false,
+          "diarizationSupport": "not-supported"
+        }
+      ],
+      "speed": [
+        {
+          "rank": 1,
+          "providerKey": "scrapecreators/youtube-transcript",
+          "provider": "scrapecreators-youtube-transcript",
+          "model": "youtube-transcript",
+          "group": "thirdPartyServiceNonDiarization",
+          "metric": "speed",
+          "value": 3059,
+          "label": "3.06s",
+          "runsCovered": 1,
+          "meanQualityScore": 93.3920704845815,
+          "meanSpeakerAwareWER": 0.06607929515418502,
+          "meanTextOnlyWER": 0.05512452478857941,
+          "meanProcessingTimeMs": 3059,
+          "meanCostCents": 0.188,
+          "totalCostCents": 0.188,
+          "supportsDiarization": false,
+          "diarizationSupport": "not-supported"
+        },
+        {
+          "rank": 2,
+          "providerKey": "together/openai/whisper-large-v3",
+          "provider": "together-openai_whisper-large-v3",
+          "model": "openai/whisper-large-v3",
+          "group": "thirdPartyServiceNonDiarization",
+          "metric": "speed",
+          "value": 15413.4,
+          "label": "15.41s",
+          "runsCovered": 5,
+          "meanQualityScore": 93.63780320990418,
+          "meanSpeakerAwareWER": 0.06362196790095813,
+          "meanTextOnlyWER": 0.050448313539997416,
+          "meanProcessingTimeMs": 15413.4,
+          "meanCostCents": 8.083312653,
+          "totalCostCents": 40.416563265,
+          "supportsDiarization": false,
+          "diarizationSupport": "not-supported"
+        },
+        {
+          "rank": 3,
+          "providerKey": "supadata/auto",
+          "provider": "supadata-auto",
+          "model": "auto",
+          "group": "thirdPartyServiceNonDiarization",
+          "metric": "speed",
+          "value": 24464,
+          "label": "24.46s",
+          "runsCovered": 4,
+          "meanQualityScore": 87.24192909976114,
+          "meanSpeakerAwareWER": 0.12758070900238858,
+          "meanTextOnlyWER": 0.11708779911289484,
+          "meanProcessingTimeMs": 24464,
+          "meanCostCents": 1.75,
+          "totalCostCents": 7,
+          "supportsDiarization": false,
+          "diarizationSupport": "not-supported"
+        },
+        {
+          "rank": 4,
+          "providerKey": "deepinfra/openai/whisper-large-v3-turbo",
+          "provider": "deepinfra-openai_whisper-large-v3-turbo",
+          "model": "openai/whisper-large-v3-turbo",
+          "group": "thirdPartyServiceNonDiarization",
+          "metric": "speed",
+          "value": 34529.4,
+          "label": "34.53s",
+          "runsCovered": 5,
+          "meanQualityScore": 89.07121476378936,
+          "meanSpeakerAwareWER": 0.10928785236210636,
+          "meanTextOnlyWER": 0.09769258385969729,
+          "meanProcessingTimeMs": 34529.4,
+          "meanCostCents": 1.0777750204,
+          "totalCostCents": 5.388875102,
+          "supportsDiarization": false,
+          "diarizationSupport": "not-supported"
+        },
+        {
+          "rank": 5,
+          "providerKey": "groq/whisper-large-v3",
+          "provider": "groq-whisper-large-v3",
+          "model": "whisper-large-v3",
+          "group": "thirdPartyServiceNonDiarization",
+          "metric": "speed",
+          "value": 34908,
+          "label": "34.91s",
+          "runsCovered": 5,
+          "meanQualityScore": 93.33112051621714,
+          "meanSpeakerAwareWER": 0.0666887948378285,
+          "meanTextOnlyWER": 0.053503078957927344,
+          "meanProcessingTimeMs": 34908,
+          "meanCostCents": 9.969418938699999,
+          "totalCostCents": 49.8470946935,
+          "supportsDiarization": false,
+          "diarizationSupport": "not-supported"
+        },
+        {
+          "rank": 6,
+          "providerKey": "groq/whisper-large-v3-turbo",
+          "provider": "groq-whisper-large-v3-turbo",
+          "model": "whisper-large-v3-turbo",
+          "group": "thirdPartyServiceNonDiarization",
+          "metric": "speed",
+          "value": 41921.4,
+          "label": "41.92s",
+          "runsCovered": 5,
+          "meanQualityScore": 93.44300132432087,
+          "meanSpeakerAwareWER": 0.06556998675679117,
+          "meanTextOnlyWER": 0.0526091596758743,
+          "meanProcessingTimeMs": 41921.4,
+          "meanCostCents": 3.592583401333333,
+          "totalCostCents": 17.962917006666665,
+          "supportsDiarization": false,
+          "diarizationSupport": "not-supported"
+        },
+        {
+          "rank": 7,
+          "providerKey": "deepinfra/openai/whisper-large-v3",
+          "provider": "deepinfra-openai_whisper-large-v3",
+          "model": "openai/whisper-large-v3",
+          "group": "thirdPartyServiceNonDiarization",
+          "metric": "speed",
+          "value": 58953.2,
+          "label": "58.95s",
+          "runsCovered": 5,
+          "meanQualityScore": 94.08763510657148,
+          "meanSpeakerAwareWER": 0.05912364893428519,
+          "meanTextOnlyWER": 0.04562818609399259,
+          "meanProcessingTimeMs": 58953.2,
+          "meanCostCents": 2.4249937959,
+          "totalCostCents": 12.1249689795,
+          "supportsDiarization": false,
+          "diarizationSupport": "not-supported"
+        },
+        {
+          "rank": 8,
+          "providerKey": "gemini-stt/gemini-3-flash-preview",
+          "provider": "gemini-stt-gemini-3-flash-preview",
+          "model": "gemini-3-flash-preview",
+          "group": "thirdPartyServiceNonDiarization",
+          "metric": "speed",
+          "value": 261778.8,
+          "label": "261.78s",
+          "runsCovered": 5,
+          "meanQualityScore": 86.77004217230379,
+          "meanSpeakerAwareWER": 0.13229957827696226,
+          "meanTextOnlyWER": 0.12141892404051906,
+          "meanProcessingTimeMs": 261778.8,
+          "meanCostCents": 27.592660000000002,
+          "totalCostCents": 137.9633,
+          "supportsDiarization": false,
+          "diarizationSupport": "not-supported"
+        }
+      ],
+      "qualityScore": [
+        {
+          "rank": 1,
+          "providerKey": "deepinfra/openai/whisper-large-v3",
+          "provider": "deepinfra-openai_whisper-large-v3",
+          "model": "openai/whisper-large-v3",
+          "group": "thirdPartyServiceNonDiarization",
+          "metric": "qualityScore",
+          "value": 94.08763510657148,
+          "label": "94.09/100 quality score",
+          "runsCovered": 5,
+          "meanQualityScore": 94.08763510657148,
+          "meanSpeakerAwareWER": 0.05912364893428519,
+          "meanTextOnlyWER": 0.04562818609399259,
+          "meanProcessingTimeMs": 58953.2,
+          "meanCostCents": 2.4249937959,
+          "totalCostCents": 12.1249689795,
+          "supportsDiarization": false,
+          "diarizationSupport": "not-supported"
+        },
+        {
+          "rank": 2,
+          "providerKey": "together/openai/whisper-large-v3",
+          "provider": "together-openai_whisper-large-v3",
+          "model": "openai/whisper-large-v3",
+          "group": "thirdPartyServiceNonDiarization",
+          "metric": "qualityScore",
+          "value": 93.63780320990418,
+          "label": "93.64/100 quality score",
+          "runsCovered": 5,
+          "meanQualityScore": 93.63780320990418,
+          "meanSpeakerAwareWER": 0.06362196790095813,
+          "meanTextOnlyWER": 0.050448313539997416,
+          "meanProcessingTimeMs": 15413.4,
+          "meanCostCents": 8.083312653,
+          "totalCostCents": 40.416563265,
+          "supportsDiarization": false,
+          "diarizationSupport": "not-supported"
+        },
+        {
+          "rank": 3,
+          "providerKey": "groq/whisper-large-v3-turbo",
+          "provider": "groq-whisper-large-v3-turbo",
+          "model": "whisper-large-v3-turbo",
+          "group": "thirdPartyServiceNonDiarization",
+          "metric": "qualityScore",
+          "value": 93.44300132432087,
+          "label": "93.44/100 quality score",
+          "runsCovered": 5,
+          "meanQualityScore": 93.44300132432087,
+          "meanSpeakerAwareWER": 0.06556998675679117,
+          "meanTextOnlyWER": 0.0526091596758743,
+          "meanProcessingTimeMs": 41921.4,
+          "meanCostCents": 3.592583401333333,
+          "totalCostCents": 17.962917006666665,
+          "supportsDiarization": false,
+          "diarizationSupport": "not-supported"
+        },
+        {
+          "rank": 4,
+          "providerKey": "scrapecreators/youtube-transcript",
+          "provider": "scrapecreators-youtube-transcript",
+          "model": "youtube-transcript",
+          "group": "thirdPartyServiceNonDiarization",
+          "metric": "qualityScore",
+          "value": 93.3920704845815,
+          "label": "93.39/100 quality score",
+          "runsCovered": 1,
+          "meanQualityScore": 93.3920704845815,
+          "meanSpeakerAwareWER": 0.06607929515418502,
+          "meanTextOnlyWER": 0.05512452478857941,
+          "meanProcessingTimeMs": 3059,
+          "meanCostCents": 0.188,
+          "totalCostCents": 0.188,
+          "supportsDiarization": false,
+          "diarizationSupport": "not-supported"
+        },
+        {
+          "rank": 5,
+          "providerKey": "groq/whisper-large-v3",
+          "provider": "groq-whisper-large-v3",
+          "model": "whisper-large-v3",
+          "group": "thirdPartyServiceNonDiarization",
+          "metric": "qualityScore",
+          "value": 93.33112051621714,
+          "label": "93.33/100 quality score",
+          "runsCovered": 5,
+          "meanQualityScore": 93.33112051621714,
+          "meanSpeakerAwareWER": 0.0666887948378285,
+          "meanTextOnlyWER": 0.053503078957927344,
+          "meanProcessingTimeMs": 34908,
+          "meanCostCents": 9.969418938699999,
+          "totalCostCents": 49.8470946935,
+          "supportsDiarization": false,
+          "diarizationSupport": "not-supported"
+        },
+        {
+          "rank": 6,
+          "providerKey": "deepinfra/openai/whisper-large-v3-turbo",
+          "provider": "deepinfra-openai_whisper-large-v3-turbo",
+          "model": "openai/whisper-large-v3-turbo",
+          "group": "thirdPartyServiceNonDiarization",
+          "metric": "qualityScore",
+          "value": 89.07121476378936,
+          "label": "89.07/100 quality score",
+          "runsCovered": 5,
+          "meanQualityScore": 89.07121476378936,
+          "meanSpeakerAwareWER": 0.10928785236210636,
+          "meanTextOnlyWER": 0.09769258385969729,
+          "meanProcessingTimeMs": 34529.4,
+          "meanCostCents": 1.0777750204,
+          "totalCostCents": 5.388875102,
+          "supportsDiarization": false,
+          "diarizationSupport": "not-supported"
+        },
+        {
+          "rank": 7,
+          "providerKey": "supadata/auto",
+          "provider": "supadata-auto",
+          "model": "auto",
+          "group": "thirdPartyServiceNonDiarization",
+          "metric": "qualityScore",
+          "value": 87.24192909976114,
+          "label": "87.24/100 quality score",
+          "runsCovered": 4,
+          "meanQualityScore": 87.24192909976114,
+          "meanSpeakerAwareWER": 0.12758070900238858,
+          "meanTextOnlyWER": 0.11708779911289484,
+          "meanProcessingTimeMs": 24464,
+          "meanCostCents": 1.75,
+          "totalCostCents": 7,
+          "supportsDiarization": false,
+          "diarizationSupport": "not-supported"
+        },
+        {
+          "rank": 8,
+          "providerKey": "gemini-stt/gemini-3-flash-preview",
+          "provider": "gemini-stt-gemini-3-flash-preview",
+          "model": "gemini-3-flash-preview",
+          "group": "thirdPartyServiceNonDiarization",
+          "metric": "qualityScore",
+          "value": 86.77004217230379,
+          "label": "86.77/100 quality score",
+          "runsCovered": 5,
+          "meanQualityScore": 86.77004217230379,
+          "meanSpeakerAwareWER": 0.13229957827696226,
+          "meanTextOnlyWER": 0.12141892404051906,
+          "meanProcessingTimeMs": 261778.8,
+          "meanCostCents": 27.592660000000002,
+          "totalCostCents": 137.9633,
+          "supportsDiarization": false,
+          "diarizationSupport": "not-supported"
+        }
+      ]
+    },
+    "thirdPartyServiceDiarization": {
+      "price": [
+        {
+          "rank": 1,
+          "providerKey": "grok/speech-to-text",
+          "provider": "grok-speech-to-text",
+          "model": "speech-to-text",
+          "group": "thirdPartyServiceDiarization",
+          "metric": "price",
+          "value": 4.976823129166666,
+          "label": "$0.0498",
+          "runsCovered": 5,
+          "meanQualityScore": 89.70797414585074,
+          "meanSpeakerAwareWER": 0.10292025854149252,
+          "meanTextOnlyWER": 0.09794044603922403,
+          "meanProcessingTimeMs": 55474.2,
+          "meanCostCents": 4.976823129166666,
+          "totalCostCents": 19.907292516666665,
+          "supportsDiarization": true,
+          "diarizationSupport": "supported"
+        },
+        {
+          "rank": 2,
+          "providerKey": "soniox/stt-async-v4",
+          "provider": "soniox-stt-async-v4",
+          "model": "stt-async-v4",
+          "group": "thirdPartyServiceDiarization",
+          "metric": "price",
+          "value": 8.981458503333332,
+          "label": "$0.0898",
+          "runsCovered": 5,
+          "meanQualityScore": 95.29534132581858,
+          "meanSpeakerAwareWER": 0.0470465867418142,
+          "meanTextOnlyWER": 0.042355191576034984,
+          "meanProcessingTimeMs": 141708.8,
+          "meanCostCents": 8.981458503333332,
+          "totalCostCents": 44.907292516666665,
+          "supportsDiarization": true,
+          "diarizationSupport": "supported"
+        },
+        {
+          "rank": 3,
+          "providerKey": "rev/low_cost",
+          "provider": "rev-low_cost",
+          "model": "low_cost",
+          "group": "thirdPartyServiceDiarization",
+          "metric": "price",
+          "value": 8.982222222222223,
+          "label": "$0.0898",
+          "runsCovered": 5,
+          "meanQualityScore": 92.06770236708398,
+          "meanSpeakerAwareWER": 0.07932297632916016,
+          "meanTextOnlyWER": 0.0731287139701163,
+          "meanProcessingTimeMs": 179744.8,
+          "meanCostCents": 8.982222222222223,
+          "totalCostCents": 44.91111111111111,
+          "supportsDiarization": true,
+          "diarizationSupport": "supported"
+        },
+        {
+          "rank": 4,
+          "providerKey": "happyscribe/auto",
+          "provider": "happyscribe-auto",
+          "model": "auto",
+          "group": "thirdPartyServiceDiarization",
+          "metric": "price",
+          "value": 10.275417686666668,
+          "label": "$0.1028",
+          "runsCovered": 5,
+          "meanQualityScore": 96.25414583688416,
+          "meanSpeakerAwareWER": 0.03745854163115836,
+          "meanTextOnlyWER": 0.03431320351248625,
+          "meanProcessingTimeMs": 93791,
+          "meanCostCents": 10.275417686666668,
+          "totalCostCents": 51.377088433333334,
+          "supportsDiarization": true,
+          "diarizationSupport": "supported"
+        },
+        {
+          "rank": 5,
+          "providerKey": "mistral/voxtral-mini-2602",
+          "provider": "mistral-voxtral-mini-2602",
+          "model": "voxtral-mini-2602",
+          "group": "thirdPartyServiceDiarization",
+          "metric": "price",
+          "value": 10.777750204,
+          "label": "$0.1078",
+          "runsCovered": 5,
+          "meanQualityScore": 95.16011071515514,
+          "meanSpeakerAwareWER": 0.04839889284844856,
+          "meanTextOnlyWER": 0.04493846952598285,
+          "meanProcessingTimeMs": 34796.8,
+          "meanCostCents": 10.777750204,
+          "totalCostCents": 53.88875102,
+          "supportsDiarization": true,
+          "diarizationSupport": "supported"
+        },
+        {
+          "rank": 6,
+          "providerKey": "rev/machine",
+          "provider": "rev-machine",
+          "model": "machine",
+          "group": "thirdPartyServiceDiarization",
+          "metric": "price",
+          "value": 17.964444444444446,
+          "label": "$0.1796",
+          "runsCovered": 5,
+          "meanQualityScore": 92.7124504665571,
+          "meanSpeakerAwareWER": 0.07287549533442898,
+          "meanTextOnlyWER": 0.06661466109755594,
+          "meanProcessingTimeMs": 101585.2,
+          "meanCostCents": 17.964444444444446,
+          "totalCostCents": 89.82222222222222,
+          "supportsDiarization": true,
+          "diarizationSupport": "supported"
+        },
+        {
+          "rank": 7,
+          "providerKey": "assemblyai/universal-3-pro",
+          "provider": "assemblyai-universal-3-pro",
+          "model": "universal-3-pro",
+          "group": "thirdPartyServiceDiarization",
+          "metric": "price",
+          "value": 18.861062857,
+          "label": "$0.1886",
+          "runsCovered": 5,
+          "meanQualityScore": 96.5924368195953,
+          "meanSpeakerAwareWER": 0.03407563180404692,
+          "meanTextOnlyWER": 0.030961821626270637,
+          "meanProcessingTimeMs": 40774.6,
+          "meanCostCents": 18.861062857,
+          "totalCostCents": 94.305314285,
+          "supportsDiarization": true,
+          "diarizationSupport": "supported"
+        },
+        {
+          "rank": 8,
+          "providerKey": "deepgram/nova-3",
+          "provider": "deepgram-nova-3",
+          "model": "nova-3",
+          "group": "thirdPartyServiceDiarization",
+          "metric": "price",
+          "value": 52.27208848939999,
+          "label": "$0.5227",
+          "runsCovered": 5,
+          "meanQualityScore": 92.71131575246599,
+          "meanSpeakerAwareWER": 0.07288684247534002,
+          "meanTextOnlyWER": 0.06182847075198159,
+          "meanProcessingTimeMs": 15576.6,
+          "meanCostCents": 52.27208848939999,
+          "totalCostCents": 261.36044244699997,
+          "supportsDiarization": true,
+          "diarizationSupport": "supported"
+        },
+        {
+          "rank": 9,
+          "providerKey": "gladia/default",
+          "provider": "gladia-default",
+          "model": "default",
+          "group": "thirdPartyServiceDiarization",
+          "metric": "price",
+          "value": 54.78689687033334,
+          "label": "$0.5479",
+          "runsCovered": 5,
+          "meanQualityScore": 79.51122576970765,
+          "meanSpeakerAwareWER": 0.20488774230292348,
+          "meanTextOnlyWER": 0.1993827826264333,
+          "meanProcessingTimeMs": 27253.6,
+          "meanCostCents": 54.78689687033334,
+          "totalCostCents": 273.9344843516667,
+          "supportsDiarization": true,
+          "diarizationSupport": "supported"
+        },
+        {
+          "rank": 10,
+          "providerKey": "speechmatics/enhanced",
+          "provider": "speechmatics-enhanced",
+          "model": "enhanced",
+          "group": "thirdPartyServiceDiarization",
+          "metric": "price",
+          "value": 67.360938775,
+          "label": "$0.6736",
+          "runsCovered": 5,
+          "meanQualityScore": 94.52917803636358,
+          "meanSpeakerAwareWER": 0.05470821963636424,
+          "meanTextOnlyWER": 0.050194951896685915,
+          "meanProcessingTimeMs": 148163.8,
+          "meanCostCents": 67.360938775,
+          "totalCostCents": 336.804693875,
+          "supportsDiarization": true,
+          "diarizationSupport": "supported"
+        }
+      ],
+      "speed": [
+        {
+          "rank": 1,
+          "providerKey": "deepgram/nova-3",
+          "provider": "deepgram-nova-3",
+          "model": "nova-3",
+          "group": "thirdPartyServiceDiarization",
+          "metric": "speed",
+          "value": 15576.6,
+          "label": "15.58s",
+          "runsCovered": 5,
+          "meanQualityScore": 92.71131575246599,
+          "meanSpeakerAwareWER": 0.07288684247534002,
+          "meanTextOnlyWER": 0.06182847075198159,
+          "meanProcessingTimeMs": 15576.6,
+          "meanCostCents": 52.27208848939999,
+          "totalCostCents": 261.36044244699997,
+          "supportsDiarization": true,
+          "diarizationSupport": "supported"
+        },
+        {
+          "rank": 2,
+          "providerKey": "gladia/default",
+          "provider": "gladia-default",
+          "model": "default",
+          "group": "thirdPartyServiceDiarization",
+          "metric": "speed",
+          "value": 27253.6,
+          "label": "27.25s",
+          "runsCovered": 5,
+          "meanQualityScore": 79.51122576970765,
+          "meanSpeakerAwareWER": 0.20488774230292348,
+          "meanTextOnlyWER": 0.1993827826264333,
+          "meanProcessingTimeMs": 27253.6,
+          "meanCostCents": 54.78689687033334,
+          "totalCostCents": 273.9344843516667,
+          "supportsDiarization": true,
+          "diarizationSupport": "supported"
+        },
+        {
+          "rank": 3,
+          "providerKey": "mistral/voxtral-mini-2602",
+          "provider": "mistral-voxtral-mini-2602",
+          "model": "voxtral-mini-2602",
+          "group": "thirdPartyServiceDiarization",
+          "metric": "speed",
+          "value": 34796.8,
+          "label": "34.80s",
+          "runsCovered": 5,
+          "meanQualityScore": 95.16011071515514,
+          "meanSpeakerAwareWER": 0.04839889284844856,
+          "meanTextOnlyWER": 0.04493846952598285,
+          "meanProcessingTimeMs": 34796.8,
+          "meanCostCents": 10.777750204,
+          "totalCostCents": 53.88875102,
+          "supportsDiarization": true,
+          "diarizationSupport": "supported"
+        },
+        {
+          "rank": 4,
+          "providerKey": "assemblyai/universal-3-pro",
+          "provider": "assemblyai-universal-3-pro",
+          "model": "universal-3-pro",
+          "group": "thirdPartyServiceDiarization",
+          "metric": "speed",
+          "value": 40774.6,
+          "label": "40.77s",
+          "runsCovered": 5,
+          "meanQualityScore": 96.5924368195953,
+          "meanSpeakerAwareWER": 0.03407563180404692,
+          "meanTextOnlyWER": 0.030961821626270637,
+          "meanProcessingTimeMs": 40774.6,
+          "meanCostCents": 18.861062857,
+          "totalCostCents": 94.305314285,
+          "supportsDiarization": true,
+          "diarizationSupport": "supported"
+        },
+        {
+          "rank": 5,
+          "providerKey": "grok/speech-to-text",
+          "provider": "grok-speech-to-text",
+          "model": "speech-to-text",
+          "group": "thirdPartyServiceDiarization",
+          "metric": "speed",
+          "value": 55474.2,
+          "label": "55.47s",
+          "runsCovered": 5,
+          "meanQualityScore": 89.70797414585074,
+          "meanSpeakerAwareWER": 0.10292025854149252,
+          "meanTextOnlyWER": 0.09794044603922403,
+          "meanProcessingTimeMs": 55474.2,
+          "meanCostCents": 4.976823129166666,
+          "totalCostCents": 19.907292516666665,
+          "supportsDiarization": true,
+          "diarizationSupport": "supported"
+        },
+        {
+          "rank": 6,
+          "providerKey": "happyscribe/auto",
+          "provider": "happyscribe-auto",
+          "model": "auto",
+          "group": "thirdPartyServiceDiarization",
+          "metric": "speed",
+          "value": 93791,
+          "label": "93.79s",
+          "runsCovered": 5,
+          "meanQualityScore": 96.25414583688416,
+          "meanSpeakerAwareWER": 0.03745854163115836,
+          "meanTextOnlyWER": 0.03431320351248625,
+          "meanProcessingTimeMs": 93791,
+          "meanCostCents": 10.275417686666668,
+          "totalCostCents": 51.377088433333334,
+          "supportsDiarization": true,
+          "diarizationSupport": "supported"
+        },
+        {
+          "rank": 7,
+          "providerKey": "rev/machine",
+          "provider": "rev-machine",
+          "model": "machine",
+          "group": "thirdPartyServiceDiarization",
+          "metric": "speed",
+          "value": 101585.2,
+          "label": "101.59s",
+          "runsCovered": 5,
+          "meanQualityScore": 92.7124504665571,
+          "meanSpeakerAwareWER": 0.07287549533442898,
+          "meanTextOnlyWER": 0.06661466109755594,
+          "meanProcessingTimeMs": 101585.2,
+          "meanCostCents": 17.964444444444446,
+          "totalCostCents": 89.82222222222222,
+          "supportsDiarization": true,
+          "diarizationSupport": "supported"
+        },
+        {
+          "rank": 8,
+          "providerKey": "soniox/stt-async-v4",
+          "provider": "soniox-stt-async-v4",
+          "model": "stt-async-v4",
+          "group": "thirdPartyServiceDiarization",
+          "metric": "speed",
+          "value": 141708.8,
+          "label": "141.71s",
+          "runsCovered": 5,
+          "meanQualityScore": 95.29534132581858,
+          "meanSpeakerAwareWER": 0.0470465867418142,
+          "meanTextOnlyWER": 0.042355191576034984,
+          "meanProcessingTimeMs": 141708.8,
+          "meanCostCents": 8.981458503333332,
+          "totalCostCents": 44.907292516666665,
+          "supportsDiarization": true,
+          "diarizationSupport": "supported"
+        },
+        {
+          "rank": 9,
+          "providerKey": "speechmatics/enhanced",
+          "provider": "speechmatics-enhanced",
+          "model": "enhanced",
+          "group": "thirdPartyServiceDiarization",
+          "metric": "speed",
+          "value": 148163.8,
+          "label": "148.16s",
+          "runsCovered": 5,
+          "meanQualityScore": 94.52917803636358,
+          "meanSpeakerAwareWER": 0.05470821963636424,
+          "meanTextOnlyWER": 0.050194951896685915,
+          "meanProcessingTimeMs": 148163.8,
+          "meanCostCents": 67.360938775,
+          "totalCostCents": 336.804693875,
+          "supportsDiarization": true,
+          "diarizationSupport": "supported"
+        },
+        {
+          "rank": 10,
+          "providerKey": "rev/low_cost",
+          "provider": "rev-low_cost",
+          "model": "low_cost",
+          "group": "thirdPartyServiceDiarization",
+          "metric": "speed",
+          "value": 179744.8,
+          "label": "179.74s",
+          "runsCovered": 5,
+          "meanQualityScore": 92.06770236708398,
+          "meanSpeakerAwareWER": 0.07932297632916016,
+          "meanTextOnlyWER": 0.0731287139701163,
+          "meanProcessingTimeMs": 179744.8,
+          "meanCostCents": 8.982222222222223,
+          "totalCostCents": 44.91111111111111,
+          "supportsDiarization": true,
+          "diarizationSupport": "supported"
+        }
+      ],
+      "qualityScore": [
+        {
+          "rank": 1,
+          "providerKey": "assemblyai/universal-3-pro",
+          "provider": "assemblyai-universal-3-pro",
+          "model": "universal-3-pro",
+          "group": "thirdPartyServiceDiarization",
+          "metric": "qualityScore",
+          "value": 96.5924368195953,
+          "label": "96.59/100 quality score",
+          "runsCovered": 5,
+          "meanQualityScore": 96.5924368195953,
+          "meanSpeakerAwareWER": 0.03407563180404692,
+          "meanTextOnlyWER": 0.030961821626270637,
+          "meanProcessingTimeMs": 40774.6,
+          "meanCostCents": 18.861062857,
+          "totalCostCents": 94.305314285,
+          "supportsDiarization": true,
+          "diarizationSupport": "supported"
+        },
+        {
+          "rank": 2,
+          "providerKey": "happyscribe/auto",
+          "provider": "happyscribe-auto",
+          "model": "auto",
+          "group": "thirdPartyServiceDiarization",
+          "metric": "qualityScore",
+          "value": 96.25414583688416,
+          "label": "96.25/100 quality score",
+          "runsCovered": 5,
+          "meanQualityScore": 96.25414583688416,
+          "meanSpeakerAwareWER": 0.03745854163115836,
+          "meanTextOnlyWER": 0.03431320351248625,
+          "meanProcessingTimeMs": 93791,
+          "meanCostCents": 10.275417686666668,
+          "totalCostCents": 51.377088433333334,
+          "supportsDiarization": true,
+          "diarizationSupport": "supported"
+        },
+        {
+          "rank": 3,
+          "providerKey": "soniox/stt-async-v4",
+          "provider": "soniox-stt-async-v4",
+          "model": "stt-async-v4",
+          "group": "thirdPartyServiceDiarization",
+          "metric": "qualityScore",
+          "value": 95.29534132581858,
+          "label": "95.30/100 quality score",
+          "runsCovered": 5,
+          "meanQualityScore": 95.29534132581858,
+          "meanSpeakerAwareWER": 0.0470465867418142,
+          "meanTextOnlyWER": 0.042355191576034984,
+          "meanProcessingTimeMs": 141708.8,
+          "meanCostCents": 8.981458503333332,
+          "totalCostCents": 44.907292516666665,
+          "supportsDiarization": true,
+          "diarizationSupport": "supported"
+        },
+        {
+          "rank": 4,
+          "providerKey": "mistral/voxtral-mini-2602",
+          "provider": "mistral-voxtral-mini-2602",
+          "model": "voxtral-mini-2602",
+          "group": "thirdPartyServiceDiarization",
+          "metric": "qualityScore",
+          "value": 95.16011071515514,
+          "label": "95.16/100 quality score",
+          "runsCovered": 5,
+          "meanQualityScore": 95.16011071515514,
+          "meanSpeakerAwareWER": 0.04839889284844856,
+          "meanTextOnlyWER": 0.04493846952598285,
+          "meanProcessingTimeMs": 34796.8,
+          "meanCostCents": 10.777750204,
+          "totalCostCents": 53.88875102,
+          "supportsDiarization": true,
+          "diarizationSupport": "supported"
+        },
+        {
+          "rank": 5,
+          "providerKey": "speechmatics/enhanced",
+          "provider": "speechmatics-enhanced",
+          "model": "enhanced",
+          "group": "thirdPartyServiceDiarization",
+          "metric": "qualityScore",
+          "value": 94.52917803636358,
+          "label": "94.53/100 quality score",
+          "runsCovered": 5,
+          "meanQualityScore": 94.52917803636358,
+          "meanSpeakerAwareWER": 0.05470821963636424,
+          "meanTextOnlyWER": 0.050194951896685915,
+          "meanProcessingTimeMs": 148163.8,
+          "meanCostCents": 67.360938775,
+          "totalCostCents": 336.804693875,
+          "supportsDiarization": true,
+          "diarizationSupport": "supported"
+        },
+        {
+          "rank": 6,
+          "providerKey": "rev/machine",
+          "provider": "rev-machine",
+          "model": "machine",
+          "group": "thirdPartyServiceDiarization",
+          "metric": "qualityScore",
+          "value": 92.7124504665571,
+          "label": "92.71/100 quality score",
+          "runsCovered": 5,
+          "meanQualityScore": 92.7124504665571,
+          "meanSpeakerAwareWER": 0.07287549533442898,
+          "meanTextOnlyWER": 0.06661466109755594,
+          "meanProcessingTimeMs": 101585.2,
+          "meanCostCents": 17.964444444444446,
+          "totalCostCents": 89.82222222222222,
+          "supportsDiarization": true,
+          "diarizationSupport": "supported"
+        },
+        {
+          "rank": 7,
+          "providerKey": "deepgram/nova-3",
+          "provider": "deepgram-nova-3",
+          "model": "nova-3",
+          "group": "thirdPartyServiceDiarization",
+          "metric": "qualityScore",
+          "value": 92.71131575246599,
+          "label": "92.71/100 quality score",
+          "runsCovered": 5,
+          "meanQualityScore": 92.71131575246599,
+          "meanSpeakerAwareWER": 0.07288684247534002,
+          "meanTextOnlyWER": 0.06182847075198159,
+          "meanProcessingTimeMs": 15576.6,
+          "meanCostCents": 52.27208848939999,
+          "totalCostCents": 261.36044244699997,
+          "supportsDiarization": true,
+          "diarizationSupport": "supported"
+        },
+        {
+          "rank": 8,
+          "providerKey": "rev/low_cost",
+          "provider": "rev-low_cost",
+          "model": "low_cost",
+          "group": "thirdPartyServiceDiarization",
+          "metric": "qualityScore",
+          "value": 92.06770236708398,
+          "label": "92.07/100 quality score",
+          "runsCovered": 5,
+          "meanQualityScore": 92.06770236708398,
+          "meanSpeakerAwareWER": 0.07932297632916016,
+          "meanTextOnlyWER": 0.0731287139701163,
+          "meanProcessingTimeMs": 179744.8,
+          "meanCostCents": 8.982222222222223,
+          "totalCostCents": 44.91111111111111,
+          "supportsDiarization": true,
+          "diarizationSupport": "supported"
+        },
+        {
+          "rank": 9,
+          "providerKey": "grok/speech-to-text",
+          "provider": "grok-speech-to-text",
+          "model": "speech-to-text",
+          "group": "thirdPartyServiceDiarization",
+          "metric": "qualityScore",
+          "value": 89.70797414585074,
+          "label": "89.71/100 quality score",
+          "runsCovered": 5,
+          "meanQualityScore": 89.70797414585074,
+          "meanSpeakerAwareWER": 0.10292025854149252,
+          "meanTextOnlyWER": 0.09794044603922403,
+          "meanProcessingTimeMs": 55474.2,
+          "meanCostCents": 4.976823129166666,
+          "totalCostCents": 19.907292516666665,
+          "supportsDiarization": true,
+          "diarizationSupport": "supported"
+        },
+        {
+          "rank": 10,
+          "providerKey": "gladia/default",
+          "provider": "gladia-default",
+          "model": "default",
+          "group": "thirdPartyServiceDiarization",
+          "metric": "qualityScore",
+          "value": 79.51122576970765,
+          "label": "79.51/100 quality score",
+          "runsCovered": 5,
+          "meanQualityScore": 79.51122576970765,
+          "meanSpeakerAwareWER": 0.20488774230292348,
+          "meanTextOnlyWER": 0.1993827826264333,
+          "meanProcessingTimeMs": 27253.6,
+          "meanCostCents": 54.78689687033334,
+          "totalCostCents": 273.9344843516667,
+          "supportsDiarization": true,
+          "diarizationSupport": "supported"
+        }
+      ]
+    }
+  },
+  "weightSets": {
+    "strongQuality": {
+      "label": "Strong quality (0.8 quality / 0.1 speed / 0.1 cost)",
+      "quality": 0.8,
+      "speed": 0.1,
+      "cost": 0.1
+    },
+    "moderateQuality": {
+      "label": "Moderate quality (0.6 quality / 0.2 speed / 0.2 cost)",
+      "quality": 0.6,
+      "speed": 0.2,
+      "cost": 0.2
+    },
+    "strongSpeed": {
+      "label": "Strong speed (0.1 quality / 0.8 speed / 0.1 cost)",
+      "quality": 0.1,
+      "speed": 0.8,
+      "cost": 0.1
+    },
+    "moderateSpeed": {
+      "label": "Moderate speed (0.2 quality / 0.6 speed / 0.2 cost)",
+      "quality": 0.2,
+      "speed": 0.6,
+      "cost": 0.2
+    },
+    "strongCost": {
+      "label": "Strong cost (0.1 quality / 0.1 speed / 0.8 cost)",
+      "quality": 0.1,
+      "speed": 0.1,
+      "cost": 0.8
+    },
+    "moderateCost": {
+      "label": "Moderate cost (0.2 quality / 0.2 speed / 0.6 cost)",
+      "quality": 0.2,
+      "speed": 0.2,
+      "cost": 0.6
+    },
+    "qualityCost": {
+      "label": "Quality + cost (0.45 quality / 0.10 speed / 0.45 cost)",
+      "quality": 0.45,
+      "speed": 0.1,
+      "cost": 0.45
+    },
+    "costSpeed": {
+      "label": "Cost + speed (0.10 quality / 0.45 speed / 0.45 cost)",
+      "quality": 0.1,
+      "speed": 0.45,
+      "cost": 0.45
+    }
+  },
+  "weightedRankings": {
+    "local": {
+      "strongQuality": [],
+      "moderateQuality": [],
+      "strongSpeed": [],
+      "moderateSpeed": [],
+      "strongCost": [],
+      "moderateCost": [],
+      "qualityCost": [],
+      "costSpeed": []
+    },
+    "thirdPartyServiceNonDiarization": {
+      "strongQuality": [
+        {
+          "rank": 1,
+          "providerKey": "scrapecreators/youtube-transcript",
+          "provider": "scrapecreators-youtube-transcript",
+          "model": "youtube-transcript",
+          "group": "thirdPartyServiceNonDiarization",
+          "weightSet": "strongQuality",
+          "runsCovered": 1,
+          "composite": 100,
+          "subscores": {
+            "quality": 100,
+            "speed": 100,
+            "cost": 100
+          },
+          "subscoreRunCounts": {
+            "quality": 1,
+            "speed": 1,
+            "cost": 1
+          },
+          "missingDimensions": []
+        },
+        {
+          "rank": 2,
+          "providerKey": "deepinfra/openai/whisper-large-v3",
+          "provider": "deepinfra-openai_whisper-large-v3",
+          "model": "openai/whisper-large-v3",
+          "group": "thirdPartyServiceNonDiarization",
+          "weightSet": "strongQuality",
+          "runsCovered": 5,
+          "composite": 95.97288165421338,
+          "subscores": {
+            "quality": 98.72208199287283,
+            "speed": 75.8891521335477,
+            "cost": 94.06300846560342
+          },
+          "subscoreRunCounts": {
+            "quality": 5,
+            "speed": 5,
+            "cost": 5
+          },
+          "missingDimensions": []
+        },
+        {
+          "rank": 3,
+          "providerKey": "groq/whisper-large-v3-turbo",
+          "provider": "groq-whisper-large-v3-turbo",
+          "model": "whisper-large-v3-turbo",
+          "group": "thirdPartyServiceNonDiarization",
+          "weightSet": "strongQuality",
+          "runsCovered": 5,
+          "composite": 90.1491867340658,
+          "subscores": {
+            "quality": 90.74066325124774,
+            "speed": 85.47534560851982,
+            "cost": 90.09121572215622
+          },
+          "subscoreRunCounts": {
+            "quality": 5,
+            "speed": 5,
+            "cost": 5
+          },
+          "missingDimensions": []
+        },
+        {
+          "rank": 4,
+          "providerKey": "groq/whisper-large-v3",
+          "provider": "groq-whisper-large-v3",
+          "model": "whisper-large-v3",
+          "group": "thirdPartyServiceNonDiarization",
+          "weightSet": "strongQuality",
+          "runsCovered": 5,
+          "composite": 86.55709008404719,
+          "subscores": {
+            "quality": 88.8474387726094,
+            "speed": 86.39227376703676,
+            "cost": 68.39911689255997
+          },
+          "subscoreRunCounts": {
+            "quality": 5,
+            "speed": 5,
+            "cost": 5
+          },
+          "missingDimensions": []
+        },
+        {
+          "rank": 5,
+          "providerKey": "together/openai/whisper-large-v3",
+          "provider": "together-openai_whisper-large-v3",
+          "model": "openai/whisper-large-v3",
+          "group": "thirdPartyServiceNonDiarization",
+          "weightSet": "strongQuality",
+          "runsCovered": 5,
+          "composite": 85.88469951785179,
+          "subscores": {
+            "quality": 85.74451476537097,
+            "speed": 98.07578726972926,
+            "cost": 74.81508978582083
+          },
+          "subscoreRunCounts": {
+            "quality": 5,
+            "speed": 5,
+            "cost": 5
+          },
+          "missingDimensions": []
+        },
+        {
+          "rank": 6,
+          "providerKey": "gemini-stt/gemini-3-flash-preview",
+          "provider": "gemini-stt-gemini-3-flash-preview",
+          "model": "gemini-3-flash-preview",
+          "group": "thirdPartyServiceNonDiarization",
+          "weightSet": "strongQuality",
+          "runsCovered": 5,
+          "composite": 51.35249038419881,
+          "subscores": {
+            "quality": 62.75589787693296,
+            "speed": 0,
+            "cost": 11.47772082652438
+          },
+          "subscoreRunCounts": {
+            "quality": 5,
+            "speed": 5,
+            "cost": 5
+          },
+          "missingDimensions": []
+        },
+        {
+          "rank": 7,
+          "providerKey": "deepinfra/openai/whisper-large-v3-turbo",
+          "provider": "deepinfra-openai_whisper-large-v3-turbo",
+          "model": "openai/whisper-large-v3-turbo",
+          "group": "thirdPartyServiceNonDiarization",
+          "weightSet": "strongQuality",
+          "runsCovered": 5,
+          "composite": 49.8191831600206,
+          "subscores": {
+            "quality": 39.8456224793445,
+            "speed": 80.78100551894593,
+            "cost": 98.64584624650404
+          },
+          "subscoreRunCounts": {
+            "quality": 5,
+            "speed": 5,
+            "cost": 5
+          },
+          "missingDimensions": []
+        },
+        {
+          "rank": 8,
+          "providerKey": "supadata/auto",
+          "provider": "supadata-auto",
+          "model": "auto",
+          "group": "thirdPartyServiceNonDiarization",
+          "weightSet": "strongQuality",
+          "runsCovered": 4,
+          "composite": 45.15431296675863,
+          "subscores": {
+            "quality": 40.27777777777774,
+            "speed": 79.57483440071138,
+            "cost": 49.74607304465299
+          },
+          "subscoreRunCounts": {
+            "quality": 4,
+            "speed": 4,
+            "cost": 4
+          },
+          "missingDimensions": []
+        }
+      ],
+      "moderateQuality": [
+        {
+          "rank": 1,
+          "providerKey": "scrapecreators/youtube-transcript",
+          "provider": "scrapecreators-youtube-transcript",
+          "model": "youtube-transcript",
+          "group": "thirdPartyServiceNonDiarization",
+          "weightSet": "moderateQuality",
+          "runsCovered": 1,
+          "composite": 100,
+          "subscores": {
+            "quality": 100,
+            "speed": 100,
+            "cost": 100
+          },
+          "subscoreRunCounts": {
+            "quality": 1,
+            "speed": 1,
+            "cost": 1
+          },
+          "missingDimensions": []
+        },
+        {
+          "rank": 2,
+          "providerKey": "deepinfra/openai/whisper-large-v3",
+          "provider": "deepinfra-openai_whisper-large-v3",
+          "model": "openai/whisper-large-v3",
+          "group": "thirdPartyServiceNonDiarization",
+          "weightSet": "moderateQuality",
+          "runsCovered": 5,
+          "composite": 93.22368131555392,
+          "subscores": {
+            "quality": 98.72208199287283,
+            "speed": 75.8891521335477,
+            "cost": 94.06300846560342
+          },
+          "subscoreRunCounts": {
+            "quality": 5,
+            "speed": 5,
+            "cost": 5
+          },
+          "missingDimensions": []
+        },
+        {
+          "rank": 3,
+          "providerKey": "groq/whisper-large-v3-turbo",
+          "provider": "groq-whisper-large-v3-turbo",
+          "model": "whisper-large-v3-turbo",
+          "group": "thirdPartyServiceNonDiarization",
+          "weightSet": "moderateQuality",
+          "runsCovered": 5,
+          "composite": 89.55771021688386,
+          "subscores": {
+            "quality": 90.74066325124774,
+            "speed": 85.47534560851982,
+            "cost": 90.09121572215622
+          },
+          "subscoreRunCounts": {
+            "quality": 5,
+            "speed": 5,
+            "cost": 5
+          },
+          "missingDimensions": []
+        },
+        {
+          "rank": 4,
+          "providerKey": "together/openai/whisper-large-v3",
+          "provider": "together-openai_whisper-large-v3",
+          "model": "openai/whisper-large-v3",
+          "group": "thirdPartyServiceNonDiarization",
+          "weightSet": "moderateQuality",
+          "runsCovered": 5,
+          "composite": 86.02488427033259,
+          "subscores": {
+            "quality": 85.74451476537097,
+            "speed": 98.07578726972926,
+            "cost": 74.81508978582083
+          },
+          "subscoreRunCounts": {
+            "quality": 5,
+            "speed": 5,
+            "cost": 5
+          },
+          "missingDimensions": []
+        },
+        {
+          "rank": 5,
+          "providerKey": "groq/whisper-large-v3",
+          "provider": "groq-whisper-large-v3",
+          "model": "whisper-large-v3",
+          "group": "thirdPartyServiceNonDiarization",
+          "weightSet": "moderateQuality",
+          "runsCovered": 5,
+          "composite": 84.26674139548498,
+          "subscores": {
+            "quality": 88.8474387726094,
+            "speed": 86.39227376703676,
+            "cost": 68.39911689255997
+          },
+          "subscoreRunCounts": {
+            "quality": 5,
+            "speed": 5,
+            "cost": 5
+          },
+          "missingDimensions": []
+        },
+        {
+          "rank": 6,
+          "providerKey": "deepinfra/openai/whisper-large-v3-turbo",
+          "provider": "deepinfra-openai_whisper-large-v3-turbo",
+          "model": "openai/whisper-large-v3-turbo",
+          "group": "thirdPartyServiceNonDiarization",
+          "weightSet": "moderateQuality",
+          "runsCovered": 5,
+          "composite": 59.792743840696694,
+          "subscores": {
+            "quality": 39.8456224793445,
+            "speed": 80.78100551894593,
+            "cost": 98.64584624650404
+          },
+          "subscoreRunCounts": {
+            "quality": 5,
+            "speed": 5,
+            "cost": 5
+          },
+          "missingDimensions": []
+        },
+        {
+          "rank": 7,
+          "providerKey": "supadata/auto",
+          "provider": "supadata-auto",
+          "model": "auto",
+          "group": "thirdPartyServiceNonDiarization",
+          "weightSet": "moderateQuality",
+          "runsCovered": 4,
+          "composite": 50.03084815573952,
+          "subscores": {
+            "quality": 40.27777777777774,
+            "speed": 79.57483440071138,
+            "cost": 49.74607304465299
+          },
+          "subscoreRunCounts": {
+            "quality": 4,
+            "speed": 4,
+            "cost": 4
+          },
+          "missingDimensions": []
+        },
+        {
+          "rank": 8,
+          "providerKey": "gemini-stt/gemini-3-flash-preview",
+          "provider": "gemini-stt-gemini-3-flash-preview",
+          "model": "gemini-3-flash-preview",
+          "group": "thirdPartyServiceNonDiarization",
+          "weightSet": "moderateQuality",
+          "runsCovered": 5,
+          "composite": 39.94908289146465,
+          "subscores": {
+            "quality": 62.75589787693296,
+            "speed": 0,
+            "cost": 11.47772082652438
+          },
+          "subscoreRunCounts": {
+            "quality": 5,
+            "speed": 5,
+            "cost": 5
+          },
+          "missingDimensions": []
+        }
+      ],
+      "strongSpeed": [
+        {
+          "rank": 1,
+          "providerKey": "scrapecreators/youtube-transcript",
+          "provider": "scrapecreators-youtube-transcript",
+          "model": "youtube-transcript",
+          "group": "thirdPartyServiceNonDiarization",
+          "weightSet": "strongSpeed",
+          "runsCovered": 1,
+          "composite": 100,
+          "subscores": {
+            "quality": 100,
+            "speed": 100,
+            "cost": 100
+          },
+          "subscoreRunCounts": {
+            "quality": 1,
+            "speed": 1,
+            "cost": 1
+          },
+          "missingDimensions": []
+        },
+        {
+          "rank": 2,
+          "providerKey": "together/openai/whisper-large-v3",
+          "provider": "together-openai_whisper-large-v3",
+          "model": "openai/whisper-large-v3",
+          "group": "thirdPartyServiceNonDiarization",
+          "weightSet": "strongSpeed",
+          "runsCovered": 5,
+          "composite": 94.5165902709026,
+          "subscores": {
+            "quality": 85.74451476537097,
+            "speed": 98.07578726972926,
+            "cost": 74.81508978582083
+          },
+          "subscoreRunCounts": {
+            "quality": 5,
+            "speed": 5,
+            "cost": 5
+          },
+          "missingDimensions": []
+        },
+        {
+          "rank": 3,
+          "providerKey": "groq/whisper-large-v3-turbo",
+          "provider": "groq-whisper-large-v3-turbo",
+          "model": "whisper-large-v3-turbo",
+          "group": "thirdPartyServiceNonDiarization",
+          "weightSet": "strongSpeed",
+          "runsCovered": 5,
+          "composite": 86.46346438415625,
+          "subscores": {
+            "quality": 90.74066325124774,
+            "speed": 85.47534560851982,
+            "cost": 90.09121572215622
+          },
+          "subscoreRunCounts": {
+            "quality": 5,
+            "speed": 5,
+            "cost": 5
+          },
+          "missingDimensions": []
+        },
+        {
+          "rank": 4,
+          "providerKey": "groq/whisper-large-v3",
+          "provider": "groq-whisper-large-v3",
+          "model": "whisper-large-v3",
+          "group": "thirdPartyServiceNonDiarization",
+          "weightSet": "strongSpeed",
+          "runsCovered": 5,
+          "composite": 84.83847458014635,
+          "subscores": {
+            "quality": 88.8474387726094,
+            "speed": 86.39227376703676,
+            "cost": 68.39911689255997
+          },
+          "subscoreRunCounts": {
+            "quality": 5,
+            "speed": 5,
+            "cost": 5
+          },
+          "missingDimensions": []
+        },
+        {
+          "rank": 5,
+          "providerKey": "deepinfra/openai/whisper-large-v3",
+          "provider": "deepinfra-openai_whisper-large-v3",
+          "model": "openai/whisper-large-v3",
+          "group": "thirdPartyServiceNonDiarization",
+          "weightSet": "strongSpeed",
+          "runsCovered": 5,
+          "composite": 79.98983075268579,
+          "subscores": {
+            "quality": 98.72208199287283,
+            "speed": 75.8891521335477,
+            "cost": 94.06300846560342
+          },
+          "subscoreRunCounts": {
+            "quality": 5,
+            "speed": 5,
+            "cost": 5
+          },
+          "missingDimensions": []
+        },
+        {
+          "rank": 6,
+          "providerKey": "deepinfra/openai/whisper-large-v3-turbo",
+          "provider": "deepinfra-openai_whisper-large-v3-turbo",
+          "model": "openai/whisper-large-v3-turbo",
+          "group": "thirdPartyServiceNonDiarization",
+          "weightSet": "strongSpeed",
+          "runsCovered": 5,
+          "composite": 78.4739512877416,
+          "subscores": {
+            "quality": 39.8456224793445,
+            "speed": 80.78100551894593,
+            "cost": 98.64584624650404
+          },
+          "subscoreRunCounts": {
+            "quality": 5,
+            "speed": 5,
+            "cost": 5
+          },
+          "missingDimensions": []
+        },
+        {
+          "rank": 7,
+          "providerKey": "supadata/auto",
+          "provider": "supadata-auto",
+          "model": "auto",
+          "group": "thirdPartyServiceNonDiarization",
+          "weightSet": "strongSpeed",
+          "runsCovered": 4,
+          "composite": 72.66225260281217,
+          "subscores": {
+            "quality": 40.27777777777774,
+            "speed": 79.57483440071138,
+            "cost": 49.74607304465299
+          },
+          "subscoreRunCounts": {
+            "quality": 4,
+            "speed": 4,
+            "cost": 4
+          },
+          "missingDimensions": []
+        },
+        {
+          "rank": 8,
+          "providerKey": "gemini-stt/gemini-3-flash-preview",
+          "provider": "gemini-stt-gemini-3-flash-preview",
+          "model": "gemini-3-flash-preview",
+          "group": "thirdPartyServiceNonDiarization",
+          "weightSet": "strongSpeed",
+          "runsCovered": 5,
+          "composite": 7.423361870345735,
+          "subscores": {
+            "quality": 62.75589787693296,
+            "speed": 0,
+            "cost": 11.47772082652438
+          },
+          "subscoreRunCounts": {
+            "quality": 5,
+            "speed": 5,
+            "cost": 5
+          },
+          "missingDimensions": []
+        }
+      ],
+      "moderateSpeed": [
+        {
+          "rank": 1,
+          "providerKey": "scrapecreators/youtube-transcript",
+          "provider": "scrapecreators-youtube-transcript",
+          "model": "youtube-transcript",
+          "group": "thirdPartyServiceNonDiarization",
+          "weightSet": "moderateSpeed",
+          "runsCovered": 1,
+          "composite": 100,
+          "subscores": {
+            "quality": 100,
+            "speed": 100,
+            "cost": 100
+          },
+          "subscoreRunCounts": {
+            "quality": 1,
+            "speed": 1,
+            "cost": 1
+          },
+          "missingDimensions": []
+        },
+        {
+          "rank": 2,
+          "providerKey": "together/openai/whisper-large-v3",
+          "provider": "together-openai_whisper-large-v3",
+          "model": "openai/whisper-large-v3",
+          "group": "thirdPartyServiceNonDiarization",
+          "weightSet": "moderateSpeed",
+          "runsCovered": 5,
+          "composite": 90.95739327207592,
+          "subscores": {
+            "quality": 85.74451476537097,
+            "speed": 98.07578726972926,
+            "cost": 74.81508978582083
+          },
+          "subscoreRunCounts": {
+            "quality": 5,
+            "speed": 5,
+            "cost": 5
+          },
+          "missingDimensions": []
+        },
+        {
+          "rank": 3,
+          "providerKey": "groq/whisper-large-v3-turbo",
+          "provider": "groq-whisper-large-v3-turbo",
+          "model": "whisper-large-v3-turbo",
+          "group": "thirdPartyServiceNonDiarization",
+          "weightSet": "moderateSpeed",
+          "runsCovered": 5,
+          "composite": 87.45158315979268,
+          "subscores": {
+            "quality": 90.74066325124774,
+            "speed": 85.47534560851982,
+            "cost": 90.09121572215622
+          },
+          "subscoreRunCounts": {
+            "quality": 5,
+            "speed": 5,
+            "cost": 5
+          },
+          "missingDimensions": []
+        },
+        {
+          "rank": 4,
+          "providerKey": "deepinfra/openai/whisper-large-v3",
+          "provider": "deepinfra-openai_whisper-large-v3",
+          "model": "openai/whisper-large-v3",
+          "group": "thirdPartyServiceNonDiarization",
+          "weightSet": "moderateSpeed",
+          "runsCovered": 5,
+          "composite": 84.09050937182387,
+          "subscores": {
+            "quality": 98.72208199287283,
+            "speed": 75.8891521335477,
+            "cost": 94.06300846560342
+          },
+          "subscoreRunCounts": {
+            "quality": 5,
+            "speed": 5,
+            "cost": 5
+          },
+          "missingDimensions": []
+        },
+        {
+          "rank": 5,
+          "providerKey": "groq/whisper-large-v3",
+          "provider": "groq-whisper-large-v3",
+          "model": "whisper-large-v3",
+          "group": "thirdPartyServiceNonDiarization",
+          "weightSet": "moderateSpeed",
+          "runsCovered": 5,
+          "composite": 83.28467539325592,
+          "subscores": {
+            "quality": 88.8474387726094,
+            "speed": 86.39227376703676,
+            "cost": 68.39911689255997
+          },
+          "subscoreRunCounts": {
+            "quality": 5,
+            "speed": 5,
+            "cost": 5
+          },
+          "missingDimensions": []
+        },
+        {
+          "rank": 6,
+          "providerKey": "deepinfra/openai/whisper-large-v3-turbo",
+          "provider": "deepinfra-openai_whisper-large-v3-turbo",
+          "model": "openai/whisper-large-v3-turbo",
+          "group": "thirdPartyServiceNonDiarization",
+          "weightSet": "moderateSpeed",
+          "runsCovered": 5,
+          "composite": 76.16689705653727,
+          "subscores": {
+            "quality": 39.8456224793445,
+            "speed": 80.78100551894593,
+            "cost": 98.64584624650404
+          },
+          "subscoreRunCounts": {
+            "quality": 5,
+            "speed": 5,
+            "cost": 5
+          },
+          "missingDimensions": []
+        },
+        {
+          "rank": 7,
+          "providerKey": "supadata/auto",
+          "provider": "supadata-auto",
+          "model": "auto",
+          "group": "thirdPartyServiceNonDiarization",
+          "weightSet": "moderateSpeed",
+          "runsCovered": 4,
+          "composite": 65.74967080491298,
+          "subscores": {
+            "quality": 40.27777777777774,
+            "speed": 79.57483440071138,
+            "cost": 49.74607304465299
+          },
+          "subscoreRunCounts": {
+            "quality": 4,
+            "speed": 4,
+            "cost": 4
+          },
+          "missingDimensions": []
+        },
+        {
+          "rank": 8,
+          "providerKey": "gemini-stt/gemini-3-flash-preview",
+          "provider": "gemini-stt-gemini-3-flash-preview",
+          "model": "gemini-3-flash-preview",
+          "group": "thirdPartyServiceNonDiarization",
+          "weightSet": "moderateSpeed",
+          "runsCovered": 5,
+          "composite": 14.84672374069147,
+          "subscores": {
+            "quality": 62.75589787693296,
+            "speed": 0,
+            "cost": 11.47772082652438
+          },
+          "subscoreRunCounts": {
+            "quality": 5,
+            "speed": 5,
+            "cost": 5
+          },
+          "missingDimensions": []
+        }
+      ],
+      "strongCost": [
+        {
+          "rank": 1,
+          "providerKey": "scrapecreators/youtube-transcript",
+          "provider": "scrapecreators-youtube-transcript",
+          "model": "youtube-transcript",
+          "group": "thirdPartyServiceNonDiarization",
+          "weightSet": "strongCost",
+          "runsCovered": 1,
+          "composite": 100,
+          "subscores": {
+            "quality": 100,
+            "speed": 100,
+            "cost": 100
+          },
+          "subscoreRunCounts": {
+            "quality": 1,
+            "speed": 1,
+            "cost": 1
+          },
+          "missingDimensions": []
+        },
+        {
+          "rank": 2,
+          "providerKey": "deepinfra/openai/whisper-large-v3",
+          "provider": "deepinfra-openai_whisper-large-v3",
+          "model": "openai/whisper-large-v3",
+          "group": "thirdPartyServiceNonDiarization",
+          "weightSet": "strongCost",
+          "runsCovered": 5,
+          "composite": 92.71153018512479,
+          "subscores": {
+            "quality": 98.72208199287283,
+            "speed": 75.8891521335477,
+            "cost": 94.06300846560342
+          },
+          "subscoreRunCounts": {
+            "quality": 5,
+            "speed": 5,
+            "cost": 5
+          },
+          "missingDimensions": []
+        },
+        {
+          "rank": 3,
+          "providerKey": "deepinfra/openai/whisper-large-v3-turbo",
+          "provider": "deepinfra-openai_whisper-large-v3-turbo",
+          "model": "openai/whisper-large-v3-turbo",
+          "group": "thirdPartyServiceNonDiarization",
+          "weightSet": "strongCost",
+          "runsCovered": 5,
+          "composite": 90.97933979703228,
+          "subscores": {
+            "quality": 39.8456224793445,
+            "speed": 80.78100551894593,
+            "cost": 98.64584624650404
+          },
+          "subscoreRunCounts": {
+            "quality": 5,
+            "speed": 5,
+            "cost": 5
+          },
+          "missingDimensions": []
+        },
+        {
+          "rank": 4,
+          "providerKey": "groq/whisper-large-v3-turbo",
+          "provider": "groq-whisper-large-v3-turbo",
+          "model": "whisper-large-v3-turbo",
+          "group": "thirdPartyServiceNonDiarization",
+          "weightSet": "strongCost",
+          "runsCovered": 5,
+          "composite": 89.69457346370174,
+          "subscores": {
+            "quality": 90.74066325124774,
+            "speed": 85.47534560851982,
+            "cost": 90.09121572215622
+          },
+          "subscoreRunCounts": {
+            "quality": 5,
+            "speed": 5,
+            "cost": 5
+          },
+          "missingDimensions": []
+        },
+        {
+          "rank": 5,
+          "providerKey": "together/openai/whisper-large-v3",
+          "provider": "together-openai_whisper-large-v3",
+          "model": "openai/whisper-large-v3",
+          "group": "thirdPartyServiceNonDiarization",
+          "weightSet": "strongCost",
+          "runsCovered": 5,
+          "composite": 78.2341020321667,
+          "subscores": {
+            "quality": 85.74451476537097,
+            "speed": 98.07578726972926,
+            "cost": 74.81508978582083
+          },
+          "subscoreRunCounts": {
+            "quality": 5,
+            "speed": 5,
+            "cost": 5
+          },
+          "missingDimensions": []
+        },
+        {
+          "rank": 6,
+          "providerKey": "groq/whisper-large-v3",
+          "provider": "groq-whisper-large-v3",
+          "model": "whisper-large-v3",
+          "group": "thirdPartyServiceNonDiarization",
+          "weightSet": "strongCost",
+          "runsCovered": 5,
+          "composite": 72.24326476801261,
+          "subscores": {
+            "quality": 88.8474387726094,
+            "speed": 86.39227376703676,
+            "cost": 68.39911689255997
+          },
+          "subscoreRunCounts": {
+            "quality": 5,
+            "speed": 5,
+            "cost": 5
+          },
+          "missingDimensions": []
+        },
+        {
+          "rank": 7,
+          "providerKey": "supadata/auto",
+          "provider": "supadata-auto",
+          "model": "auto",
+          "group": "thirdPartyServiceNonDiarization",
+          "weightSet": "strongCost",
+          "runsCovered": 4,
+          "composite": 51.7821196535713,
+          "subscores": {
+            "quality": 40.27777777777774,
+            "speed": 79.57483440071138,
+            "cost": 49.74607304465299
+          },
+          "subscoreRunCounts": {
+            "quality": 4,
+            "speed": 4,
+            "cost": 4
+          },
+          "missingDimensions": []
+        },
+        {
+          "rank": 8,
+          "providerKey": "gemini-stt/gemini-3-flash-preview",
+          "provider": "gemini-stt-gemini-3-flash-preview",
+          "model": "gemini-3-flash-preview",
+          "group": "thirdPartyServiceNonDiarization",
+          "weightSet": "strongCost",
+          "runsCovered": 5,
+          "composite": 15.4577664489128,
+          "subscores": {
+            "quality": 62.75589787693296,
+            "speed": 0,
+            "cost": 11.47772082652438
+          },
+          "subscoreRunCounts": {
+            "quality": 5,
+            "speed": 5,
+            "cost": 5
+          },
+          "missingDimensions": []
+        }
+      ],
+      "moderateCost": [
+        {
+          "rank": 1,
+          "providerKey": "scrapecreators/youtube-transcript",
+          "provider": "scrapecreators-youtube-transcript",
+          "model": "youtube-transcript",
+          "group": "thirdPartyServiceNonDiarization",
+          "weightSet": "moderateCost",
+          "runsCovered": 1,
+          "composite": 100,
+          "subscores": {
+            "quality": 100,
+            "speed": 100,
+            "cost": 100
+          },
+          "subscoreRunCounts": {
+            "quality": 1,
+            "speed": 1,
+            "cost": 1
+          },
+          "missingDimensions": []
+        },
+        {
+          "rank": 2,
+          "providerKey": "deepinfra/openai/whisper-large-v3",
+          "provider": "deepinfra-openai_whisper-large-v3",
+          "model": "openai/whisper-large-v3",
+          "group": "thirdPartyServiceNonDiarization",
+          "weightSet": "moderateCost",
+          "runsCovered": 5,
+          "composite": 91.36005190464616,
+          "subscores": {
+            "quality": 98.72208199287283,
+            "speed": 75.8891521335477,
+            "cost": 94.06300846560342
+          },
+          "subscoreRunCounts": {
+            "quality": 5,
+            "speed": 5,
+            "cost": 5
+          },
+          "missingDimensions": []
+        },
+        {
+          "rank": 3,
+          "providerKey": "groq/whisper-large-v3-turbo",
+          "provider": "groq-whisper-large-v3-turbo",
+          "model": "whisper-large-v3-turbo",
+          "group": "thirdPartyServiceNonDiarization",
+          "weightSet": "moderateCost",
+          "runsCovered": 5,
+          "composite": 89.29793120524724,
+          "subscores": {
+            "quality": 90.74066325124774,
+            "speed": 85.47534560851982,
+            "cost": 90.09121572215622
+          },
+          "subscoreRunCounts": {
+            "quality": 5,
+            "speed": 5,
+            "cost": 5
+          },
+          "missingDimensions": []
+        },
+        {
+          "rank": 4,
+          "providerKey": "deepinfra/openai/whisper-large-v3-turbo",
+          "provider": "deepinfra-openai_whisper-large-v3-turbo",
+          "model": "openai/whisper-large-v3-turbo",
+          "group": "thirdPartyServiceNonDiarization",
+          "weightSet": "moderateCost",
+          "runsCovered": 5,
+          "composite": 83.3128333475605,
+          "subscores": {
+            "quality": 39.8456224793445,
+            "speed": 80.78100551894593,
+            "cost": 98.64584624650404
+          },
+          "subscoreRunCounts": {
+            "quality": 5,
+            "speed": 5,
+            "cost": 5
+          },
+          "missingDimensions": []
+        },
+        {
+          "rank": 5,
+          "providerKey": "together/openai/whisper-large-v3",
+          "provider": "together-openai_whisper-large-v3",
+          "model": "openai/whisper-large-v3",
+          "group": "thirdPartyServiceNonDiarization",
+          "weightSet": "moderateCost",
+          "runsCovered": 5,
+          "composite": 81.65311427851256,
+          "subscores": {
+            "quality": 85.74451476537097,
+            "speed": 98.07578726972926,
+            "cost": 74.81508978582083
+          },
+          "subscoreRunCounts": {
+            "quality": 5,
+            "speed": 5,
+            "cost": 5
+          },
+          "missingDimensions": []
+        },
+        {
+          "rank": 6,
+          "providerKey": "groq/whisper-large-v3",
+          "provider": "groq-whisper-large-v3",
+          "model": "whisper-large-v3",
+          "group": "thirdPartyServiceNonDiarization",
+          "weightSet": "moderateCost",
+          "runsCovered": 5,
+          "composite": 76.08741264346523,
+          "subscores": {
+            "quality": 88.8474387726094,
+            "speed": 86.39227376703676,
+            "cost": 68.39911689255997
+          },
+          "subscoreRunCounts": {
+            "quality": 5,
+            "speed": 5,
+            "cost": 5
+          },
+          "missingDimensions": []
+        },
+        {
+          "rank": 7,
+          "providerKey": "supadata/auto",
+          "provider": "supadata-auto",
+          "model": "auto",
+          "group": "thirdPartyServiceNonDiarization",
+          "weightSet": "moderateCost",
+          "runsCovered": 4,
+          "composite": 53.81816626248961,
+          "subscores": {
+            "quality": 40.27777777777774,
+            "speed": 79.57483440071138,
+            "cost": 49.74607304465299
+          },
+          "subscoreRunCounts": {
+            "quality": 4,
+            "speed": 4,
+            "cost": 4
+          },
+          "missingDimensions": []
+        },
+        {
+          "rank": 8,
+          "providerKey": "gemini-stt/gemini-3-flash-preview",
+          "provider": "gemini-stt-gemini-3-flash-preview",
+          "model": "gemini-3-flash-preview",
+          "group": "thirdPartyServiceNonDiarization",
+          "weightSet": "moderateCost",
+          "runsCovered": 5,
+          "composite": 19.43781207130122,
+          "subscores": {
+            "quality": 62.75589787693296,
+            "speed": 0,
+            "cost": 11.47772082652438
+          },
+          "subscoreRunCounts": {
+            "quality": 5,
+            "speed": 5,
+            "cost": 5
+          },
+          "missingDimensions": []
+        }
+      ],
+      "qualityCost": [
+        {
+          "rank": 1,
+          "providerKey": "scrapecreators/youtube-transcript",
+          "provider": "scrapecreators-youtube-transcript",
+          "model": "youtube-transcript",
+          "group": "thirdPartyServiceNonDiarization",
+          "weightSet": "qualityCost",
+          "runsCovered": 1,
+          "composite": 100,
+          "subscores": {
+            "quality": 100,
+            "speed": 100,
+            "cost": 100
+          },
+          "subscoreRunCounts": {
+            "quality": 1,
+            "speed": 1,
+            "cost": 1
+          },
+          "missingDimensions": []
+        },
+        {
+          "rank": 2,
+          "providerKey": "deepinfra/openai/whisper-large-v3",
+          "provider": "deepinfra-openai_whisper-large-v3",
+          "model": "openai/whisper-large-v3",
+          "group": "thirdPartyServiceNonDiarization",
+          "weightSet": "qualityCost",
+          "runsCovered": 5,
+          "composite": 94.34220591966908,
+          "subscores": {
+            "quality": 98.72208199287283,
+            "speed": 75.8891521335477,
+            "cost": 94.06300846560342
+          },
+          "subscoreRunCounts": {
+            "quality": 5,
+            "speed": 5,
+            "cost": 5
+          },
+          "missingDimensions": []
+        },
+        {
+          "rank": 3,
+          "providerKey": "groq/whisper-large-v3-turbo",
+          "provider": "groq-whisper-large-v3-turbo",
+          "model": "whisper-large-v3-turbo",
+          "group": "thirdPartyServiceNonDiarization",
+          "weightSet": "qualityCost",
+          "runsCovered": 5,
+          "composite": 89.92188009888378,
+          "subscores": {
+            "quality": 90.74066325124774,
+            "speed": 85.47534560851982,
+            "cost": 90.09121572215622
+          },
+          "subscoreRunCounts": {
+            "quality": 5,
+            "speed": 5,
+            "cost": 5
+          },
+          "missingDimensions": []
+        },
+        {
+          "rank": 4,
+          "providerKey": "together/openai/whisper-large-v3",
+          "provider": "together-openai_whisper-large-v3",
+          "model": "openai/whisper-large-v3",
+          "group": "thirdPartyServiceNonDiarization",
+          "weightSet": "qualityCost",
+          "runsCovered": 5,
+          "composite": 82.05940077500924,
+          "subscores": {
+            "quality": 85.74451476537097,
+            "speed": 98.07578726972926,
+            "cost": 74.81508978582083
+          },
+          "subscoreRunCounts": {
+            "quality": 5,
+            "speed": 5,
+            "cost": 5
+          },
+          "missingDimensions": []
+        },
+        {
+          "rank": 5,
+          "providerKey": "groq/whisper-large-v3",
+          "provider": "groq-whisper-large-v3",
+          "model": "whisper-large-v3",
+          "group": "thirdPartyServiceNonDiarization",
+          "weightSet": "qualityCost",
+          "runsCovered": 5,
+          "composite": 79.4001774260299,
+          "subscores": {
+            "quality": 88.8474387726094,
+            "speed": 86.39227376703676,
+            "cost": 68.39911689255997
+          },
+          "subscoreRunCounts": {
+            "quality": 5,
+            "speed": 5,
+            "cost": 5
+          },
+          "missingDimensions": []
+        },
+        {
+          "rank": 6,
+          "providerKey": "deepinfra/openai/whisper-large-v3-turbo",
+          "provider": "deepinfra-openai_whisper-large-v3-turbo",
+          "model": "openai/whisper-large-v3-turbo",
+          "group": "thirdPartyServiceNonDiarization",
+          "weightSet": "qualityCost",
+          "runsCovered": 5,
+          "composite": 70.39926147852643,
+          "subscores": {
+            "quality": 39.8456224793445,
+            "speed": 80.78100551894593,
+            "cost": 98.64584624650404
+          },
+          "subscoreRunCounts": {
+            "quality": 5,
+            "speed": 5,
+            "cost": 5
+          },
+          "missingDimensions": []
+        },
+        {
+          "rank": 7,
+          "providerKey": "supadata/auto",
+          "provider": "supadata-auto",
+          "model": "auto",
+          "group": "thirdPartyServiceNonDiarization",
+          "weightSet": "qualityCost",
+          "runsCovered": 4,
+          "composite": 48.46821631016497,
+          "subscores": {
+            "quality": 40.27777777777774,
+            "speed": 79.57483440071138,
+            "cost": 49.74607304465299
+          },
+          "subscoreRunCounts": {
+            "quality": 4,
+            "speed": 4,
+            "cost": 4
+          },
+          "missingDimensions": []
+        },
+        {
+          "rank": 8,
+          "providerKey": "gemini-stt/gemini-3-flash-preview",
+          "provider": "gemini-stt-gemini-3-flash-preview",
+          "model": "gemini-3-flash-preview",
+          "group": "thirdPartyServiceNonDiarization",
+          "weightSet": "qualityCost",
+          "runsCovered": 5,
+          "composite": 33.405128416555804,
+          "subscores": {
+            "quality": 62.75589787693296,
+            "speed": 0,
+            "cost": 11.47772082652438
+          },
+          "subscoreRunCounts": {
+            "quality": 5,
+            "speed": 5,
+            "cost": 5
+          },
+          "missingDimensions": []
+        }
+      ],
+      "costSpeed": [
+        {
+          "rank": 1,
+          "providerKey": "scrapecreators/youtube-transcript",
+          "provider": "scrapecreators-youtube-transcript",
+          "model": "youtube-transcript",
+          "group": "thirdPartyServiceNonDiarization",
+          "weightSet": "costSpeed",
+          "runsCovered": 1,
+          "composite": 100,
+          "subscores": {
+            "quality": 100,
+            "speed": 100,
+            "cost": 100
+          },
+          "subscoreRunCounts": {
+            "quality": 1,
+            "speed": 1,
+            "cost": 1
+          },
+          "missingDimensions": []
+        },
+        {
+          "rank": 2,
+          "providerKey": "groq/whisper-large-v3-turbo",
+          "provider": "groq-whisper-large-v3-turbo",
+          "model": "whisper-large-v3-turbo",
+          "group": "thirdPartyServiceNonDiarization",
+          "weightSet": "costSpeed",
+          "runsCovered": 5,
+          "composite": 88.079018923929,
+          "subscores": {
+            "quality": 90.74066325124774,
+            "speed": 85.47534560851982,
+            "cost": 90.09121572215622
+          },
+          "subscoreRunCounts": {
+            "quality": 5,
+            "speed": 5,
+            "cost": 5
+          },
+          "missingDimensions": []
+        },
+        {
+          "rank": 3,
+          "providerKey": "together/openai/whisper-large-v3",
+          "provider": "together-openai_whisper-large-v3",
+          "model": "openai/whisper-large-v3",
+          "group": "thirdPartyServiceNonDiarization",
+          "weightSet": "costSpeed",
+          "runsCovered": 5,
+          "composite": 86.37534615153464,
+          "subscores": {
+            "quality": 85.74451476537097,
+            "speed": 98.07578726972926,
+            "cost": 74.81508978582083
+          },
+          "subscoreRunCounts": {
+            "quality": 5,
+            "speed": 5,
+            "cost": 5
+          },
+          "missingDimensions": []
+        },
+        {
+          "rank": 4,
+          "providerKey": "deepinfra/openai/whisper-large-v3",
+          "provider": "deepinfra-openai_whisper-large-v3",
+          "model": "openai/whisper-large-v3",
+          "group": "thirdPartyServiceNonDiarization",
+          "weightSet": "costSpeed",
+          "runsCovered": 5,
+          "composite": 86.3506804689053,
+          "subscores": {
+            "quality": 98.72208199287283,
+            "speed": 75.8891521335477,
+            "cost": 94.06300846560342
+          },
+          "subscoreRunCounts": {
+            "quality": 5,
+            "speed": 5,
+            "cost": 5
+          },
+          "missingDimensions": []
+        },
+        {
+          "rank": 5,
+          "providerKey": "deepinfra/openai/whisper-large-v3-turbo",
+          "provider": "deepinfra-openai_whisper-large-v3-turbo",
+          "model": "openai/whisper-large-v3-turbo",
+          "group": "thirdPartyServiceNonDiarization",
+          "weightSet": "costSpeed",
+          "runsCovered": 5,
+          "composite": 84.72664554238693,
+          "subscores": {
+            "quality": 39.8456224793445,
+            "speed": 80.78100551894593,
+            "cost": 98.64584624650404
+          },
+          "subscoreRunCounts": {
+            "quality": 5,
+            "speed": 5,
+            "cost": 5
+          },
+          "missingDimensions": []
+        },
+        {
+          "rank": 6,
+          "providerKey": "groq/whisper-large-v3",
+          "provider": "groq-whisper-large-v3",
+          "model": "whisper-large-v3",
+          "group": "thirdPartyServiceNonDiarization",
+          "weightSet": "costSpeed",
+          "runsCovered": 5,
+          "composite": 78.54086967407946,
+          "subscores": {
+            "quality": 88.8474387726094,
+            "speed": 86.39227376703676,
+            "cost": 68.39911689255997
+          },
+          "subscoreRunCounts": {
+            "quality": 5,
+            "speed": 5,
+            "cost": 5
+          },
+          "missingDimensions": []
+        },
+        {
+          "rank": 7,
+          "providerKey": "supadata/auto",
+          "provider": "supadata-auto",
+          "model": "auto",
+          "group": "thirdPartyServiceNonDiarization",
+          "weightSet": "costSpeed",
+          "runsCovered": 4,
+          "composite": 62.222186128191744,
+          "subscores": {
+            "quality": 40.27777777777774,
+            "speed": 79.57483440071138,
+            "cost": 49.74607304465299
+          },
+          "subscoreRunCounts": {
+            "quality": 4,
+            "speed": 4,
+            "cost": 4
+          },
+          "missingDimensions": []
+        },
+        {
+          "rank": 8,
+          "providerKey": "gemini-stt/gemini-3-flash-preview",
+          "provider": "gemini-stt-gemini-3-flash-preview",
+          "model": "gemini-3-flash-preview",
+          "group": "thirdPartyServiceNonDiarization",
+          "weightSet": "costSpeed",
+          "runsCovered": 5,
+          "composite": 11.440564159629268,
+          "subscores": {
+            "quality": 62.75589787693296,
+            "speed": 0,
+            "cost": 11.47772082652438
+          },
+          "subscoreRunCounts": {
+            "quality": 5,
+            "speed": 5,
+            "cost": 5
+          },
+          "missingDimensions": []
+        }
+      ]
+    },
+    "thirdPartyServiceDiarization": {
+      "strongQuality": [
+        {
+          "rank": 1,
+          "providerKey": "assemblyai/universal-3-pro",
+          "provider": "assemblyai-universal-3-pro",
+          "model": "universal-3-pro",
+          "group": "thirdPartyServiceDiarization",
+          "weightSet": "strongQuality",
+          "runsCovered": 5,
+          "composite": 92.19483262443367,
+          "subscores": {
+            "quality": 94.73897256589564,
+            "speed": 85.39039187101758,
+            "cost": 78.64615384615385
+          },
+          "subscoreRunCounts": {
+            "quality": 5,
+            "speed": 5,
+            "cost": 5
+          },
+          "missingDimensions": []
+        },
+        {
+          "rank": 2,
+          "providerKey": "happyscribe/auto",
+          "provider": "happyscribe-auto",
+          "model": "auto",
+          "group": "thirdPartyServiceDiarization",
+          "weightSet": "strongQuality",
+          "runsCovered": 5,
+          "composite": 84.36886452584864,
+          "subscores": {
+            "quality": 93.15088131410737,
+            "speed": 44.63544089947344,
+            "cost": 53.84615384615385
+          },
+          "subscoreRunCounts": {
+            "quality": 5,
+            "speed": 5,
+            "cost": 5
+          },
+          "missingDimensions": []
+        },
+        {
+          "rank": 3,
+          "providerKey": "mistral/voxtral-mini-2602",
+          "provider": "mistral-voxtral-mini-2602",
+          "model": "voxtral-mini-2602",
+          "group": "thirdPartyServiceDiarization",
+          "weightSet": "strongQuality",
+          "runsCovered": 5,
+          "composite": 76.44240114669917,
+          "subscores": {
+            "quality": 72.89156540304816,
+            "speed": 89.5376420887602,
+            "cost": 91.75384615384615
+          },
+          "subscoreRunCounts": {
+            "quality": 5,
+            "speed": 5,
+            "cost": 5
+          },
+          "missingDimensions": []
+        },
+        {
+          "rank": 4,
+          "providerKey": "soniox/stt-async-v4",
+          "provider": "soniox-stt-async-v4",
+          "model": "stt-async-v4",
+          "group": "thirdPartyServiceDiarization",
+          "weightSet": "strongQuality",
+          "runsCovered": 5,
+          "composite": 74.6383517664329,
+          "subscores": {
+            "quality": 75.15582095403434,
+            "speed": 50.470283365387544,
+            "cost": 94.66666666666667
+          },
+          "subscoreRunCounts": {
+            "quality": 5,
+            "speed": 5,
+            "cost": 5
+          },
+          "missingDimensions": []
+        },
+        {
+          "rank": 5,
+          "providerKey": "speechmatics/enhanced",
+          "provider": "speechmatics-enhanced",
+          "model": "enhanced",
+          "group": "thirdPartyServiceDiarization",
+          "weightSet": "strongQuality",
+          "runsCovered": 5,
+          "composite": 58.40444013643326,
+          "subscores": {
+            "quality": 68.41486836801666,
+            "speed": 36.72545442019931,
+            "cost": 0
+          },
+          "subscoreRunCounts": {
+            "quality": 5,
+            "speed": 5,
+            "cost": 5
+          },
+          "missingDimensions": []
+        },
+        {
+          "rank": 6,
+          "providerKey": "rev/machine",
+          "provider": "rev-machine",
+          "model": "machine",
+          "group": "thirdPartyServiceDiarization",
+          "weightSet": "strongQuality",
+          "runsCovered": 5,
+          "composite": 55.41945969211346,
+          "subscores": {
+            "quality": 54.06683566032147,
+            "speed": 41.602614399971586,
+            "cost": 80.05729723859122
+          },
+          "subscoreRunCounts": {
+            "quality": 5,
+            "speed": 5,
+            "cost": 5
+          },
+          "missingDimensions": []
+        },
+        {
+          "rank": 7,
+          "providerKey": "deepgram/nova-3",
+          "provider": "deepgram-nova-3",
+          "model": "nova-3",
+          "group": "thirdPartyServiceDiarization",
+          "weightSet": "strongQuality",
+          "runsCovered": 5,
+          "composite": 53.59170600549207,
+          "subscores": {
+            "quality": 51.70544220595161,
+            "speed": 97.80583009961542,
+            "cost": 24.467692307692307
+          },
+          "subscoreRunCounts": {
+            "quality": 5,
+            "speed": 5,
+            "cost": 5
+          },
+          "missingDimensions": []
+        },
+        {
+          "rank": 8,
+          "providerKey": "rev/low_cost",
+          "provider": "rev-low_cost",
+          "model": "low_cost",
+          "group": "thirdPartyServiceDiarization",
+          "weightSet": "strongQuality",
+          "runsCovered": 5,
+          "composite": 47.81824376037092,
+          "subscores": {
+            "quality": 46.7865255267031,
+            "speed": 9.246200155404171,
+            "cost": 94.64403323468022
+          },
+          "subscoreRunCounts": {
+            "quality": 5,
+            "speed": 5,
+            "cost": 5
+          },
+          "missingDimensions": []
+        },
+        {
+          "rank": 9,
+          "providerKey": "gladia/default",
+          "provider": "gladia-default",
+          "model": "default",
+          "group": "thirdPartyServiceDiarization",
+          "weightSet": "strongQuality",
+          "runsCovered": 5,
+          "composite": 39.81804589022317,
+          "subscores": {
+            "quality": 36.562127979315726,
+            "speed": 85.29369147796226,
+            "cost": 20.389743589743595
+          },
+          "subscoreRunCounts": {
+            "quality": 5,
+            "speed": 5,
+            "cost": 5
+          },
+          "missingDimensions": []
+        },
+        {
+          "rank": 10,
+          "providerKey": "grok/speech-to-text",
+          "provider": "grok-speech-to-text",
+          "model": "speech-to-text",
+          "group": "thirdPartyServiceDiarization",
+          "weightSet": "strongQuality",
+          "runsCovered": 5,
+          "composite": 34.2313784400277,
+          "subscores": {
+            "quality": 20.169948298570812,
+            "speed": 84.28753134504379,
+            "cost": 96.66666666666667
+          },
+          "subscoreRunCounts": {
+            "quality": 5,
+            "speed": 5,
+            "cost": 4
+          },
+          "missingDimensions": []
+        }
+      ],
+      "moderateQuality": [
+        {
+          "rank": 1,
+          "providerKey": "assemblyai/universal-3-pro",
+          "provider": "assemblyai-universal-3-pro",
+          "model": "universal-3-pro",
+          "group": "thirdPartyServiceDiarization",
+          "weightSet": "moderateQuality",
+          "runsCovered": 5,
+          "composite": 89.65069268297167,
+          "subscores": {
+            "quality": 94.73897256589564,
+            "speed": 85.39039187101758,
+            "cost": 78.64615384615385
+          },
+          "subscoreRunCounts": {
+            "quality": 5,
+            "speed": 5,
+            "cost": 5
+          },
+          "missingDimensions": []
+        },
+        {
+          "rank": 2,
+          "providerKey": "mistral/voxtral-mini-2602",
+          "provider": "mistral-voxtral-mini-2602",
+          "model": "voxtral-mini-2602",
+          "group": "thirdPartyServiceDiarization",
+          "weightSet": "moderateQuality",
+          "runsCovered": 5,
+          "composite": 79.99323689035018,
+          "subscores": {
+            "quality": 72.89156540304816,
+            "speed": 89.5376420887602,
+            "cost": 91.75384615384615
+          },
+          "subscoreRunCounts": {
+            "quality": 5,
+            "speed": 5,
+            "cost": 5
+          },
+          "missingDimensions": []
+        },
+        {
+          "rank": 3,
+          "providerKey": "happyscribe/auto",
+          "provider": "happyscribe-auto",
+          "model": "auto",
+          "group": "thirdPartyServiceDiarization",
+          "weightSet": "moderateQuality",
+          "runsCovered": 5,
+          "composite": 75.58684773758988,
+          "subscores": {
+            "quality": 93.15088131410737,
+            "speed": 44.63544089947344,
+            "cost": 53.84615384615385
+          },
+          "subscoreRunCounts": {
+            "quality": 5,
+            "speed": 5,
+            "cost": 5
+          },
+          "missingDimensions": []
+        },
+        {
+          "rank": 4,
+          "providerKey": "soniox/stt-async-v4",
+          "provider": "soniox-stt-async-v4",
+          "model": "stt-async-v4",
+          "group": "thirdPartyServiceDiarization",
+          "weightSet": "moderateQuality",
+          "runsCovered": 5,
+          "composite": 74.12088257883144,
+          "subscores": {
+            "quality": 75.15582095403434,
+            "speed": 50.470283365387544,
+            "cost": 94.66666666666667
+          },
+          "subscoreRunCounts": {
+            "quality": 5,
+            "speed": 5,
+            "cost": 5
+          },
+          "missingDimensions": []
+        },
+        {
+          "rank": 5,
+          "providerKey": "rev/machine",
+          "provider": "rev-machine",
+          "model": "machine",
+          "group": "thirdPartyServiceDiarization",
+          "weightSet": "moderateQuality",
+          "runsCovered": 5,
+          "composite": 56.772083723905446,
+          "subscores": {
+            "quality": 54.06683566032147,
+            "speed": 41.602614399971586,
+            "cost": 80.05729723859122
+          },
+          "subscoreRunCounts": {
+            "quality": 5,
+            "speed": 5,
+            "cost": 5
+          },
+          "missingDimensions": []
+        },
+        {
+          "rank": 6,
+          "providerKey": "deepgram/nova-3",
+          "provider": "deepgram-nova-3",
+          "model": "nova-3",
+          "group": "thirdPartyServiceDiarization",
+          "weightSet": "moderateQuality",
+          "runsCovered": 5,
+          "composite": 55.477969805032515,
+          "subscores": {
+            "quality": 51.70544220595161,
+            "speed": 97.80583009961542,
+            "cost": 24.467692307692307
+          },
+          "subscoreRunCounts": {
+            "quality": 5,
+            "speed": 5,
+            "cost": 5
+          },
+          "missingDimensions": []
+        },
+        {
+          "rank": 7,
+          "providerKey": "rev/low_cost",
+          "provider": "rev-low_cost",
+          "model": "low_cost",
+          "group": "thirdPartyServiceDiarization",
+          "weightSet": "moderateQuality",
+          "runsCovered": 5,
+          "composite": 48.84996199403874,
+          "subscores": {
+            "quality": 46.7865255267031,
+            "speed": 9.246200155404171,
+            "cost": 94.64403323468022
+          },
+          "subscoreRunCounts": {
+            "quality": 5,
+            "speed": 5,
+            "cost": 5
+          },
+          "missingDimensions": []
+        },
+        {
+          "rank": 8,
+          "providerKey": "speechmatics/enhanced",
+          "provider": "speechmatics-enhanced",
+          "model": "enhanced",
+          "group": "thirdPartyServiceDiarization",
+          "weightSet": "moderateQuality",
+          "runsCovered": 5,
+          "composite": 48.394011904849854,
+          "subscores": {
+            "quality": 68.41486836801666,
+            "speed": 36.72545442019931,
+            "cost": 0
+          },
+          "subscoreRunCounts": {
+            "quality": 5,
+            "speed": 5,
+            "cost": 5
+          },
+          "missingDimensions": []
+        },
+        {
+          "rank": 9,
+          "providerKey": "grok/speech-to-text",
+          "provider": "grok-speech-to-text",
+          "model": "speech-to-text",
+          "group": "thirdPartyServiceDiarization",
+          "weightSet": "moderateQuality",
+          "runsCovered": 5,
+          "composite": 48.29280858148458,
+          "subscores": {
+            "quality": 20.169948298570812,
+            "speed": 84.28753134504379,
+            "cost": 96.66666666666667
+          },
+          "subscoreRunCounts": {
+            "quality": 5,
+            "speed": 5,
+            "cost": 4
+          },
+          "missingDimensions": []
+        },
+        {
+          "rank": 10,
+          "providerKey": "gladia/default",
+          "provider": "gladia-default",
+          "model": "default",
+          "group": "thirdPartyServiceDiarization",
+          "weightSet": "moderateQuality",
+          "runsCovered": 5,
+          "composite": 43.07396380113061,
+          "subscores": {
+            "quality": 36.562127979315726,
+            "speed": 85.29369147796226,
+            "cost": 20.389743589743595
+          },
+          "subscoreRunCounts": {
+            "quality": 5,
+            "speed": 5,
+            "cost": 5
+          },
+          "missingDimensions": []
+        }
+      ],
+      "strongSpeed": [
+        {
+          "rank": 1,
+          "providerKey": "mistral/voxtral-mini-2602",
+          "provider": "mistral-voxtral-mini-2602",
+          "model": "voxtral-mini-2602",
+          "group": "thirdPartyServiceDiarization",
+          "weightSet": "strongSpeed",
+          "runsCovered": 5,
+          "composite": 88.09465482669759,
+          "subscores": {
+            "quality": 72.89156540304816,
+            "speed": 89.5376420887602,
+            "cost": 91.75384615384615
+          },
+          "subscoreRunCounts": {
+            "quality": 5,
+            "speed": 5,
+            "cost": 5
+          },
+          "missingDimensions": []
+        },
+        {
+          "rank": 2,
+          "providerKey": "deepgram/nova-3",
+          "provider": "deepgram-nova-3",
+          "model": "nova-3",
+          "group": "thirdPartyServiceDiarization",
+          "weightSet": "strongSpeed",
+          "runsCovered": 5,
+          "composite": 85.86197753105674,
+          "subscores": {
+            "quality": 51.70544220595161,
+            "speed": 97.80583009961542,
+            "cost": 24.467692307692307
+          },
+          "subscoreRunCounts": {
+            "quality": 5,
+            "speed": 5,
+            "cost": 5
+          },
+          "missingDimensions": []
+        },
+        {
+          "rank": 3,
+          "providerKey": "assemblyai/universal-3-pro",
+          "provider": "assemblyai-universal-3-pro",
+          "model": "universal-3-pro",
+          "group": "thirdPartyServiceDiarization",
+          "weightSet": "strongSpeed",
+          "runsCovered": 5,
+          "composite": 85.65082613801903,
+          "subscores": {
+            "quality": 94.73897256589564,
+            "speed": 85.39039187101758,
+            "cost": 78.64615384615385
+          },
+          "subscoreRunCounts": {
+            "quality": 5,
+            "speed": 5,
+            "cost": 5
+          },
+          "missingDimensions": []
+        },
+        {
+          "rank": 4,
+          "providerKey": "grok/speech-to-text",
+          "provider": "grok-speech-to-text",
+          "model": "speech-to-text",
+          "group": "thirdPartyServiceDiarization",
+          "weightSet": "strongSpeed",
+          "runsCovered": 5,
+          "composite": 79.11368657255879,
+          "subscores": {
+            "quality": 20.169948298570812,
+            "speed": 84.28753134504379,
+            "cost": 96.66666666666667
+          },
+          "subscoreRunCounts": {
+            "quality": 5,
+            "speed": 5,
+            "cost": 4
+          },
+          "missingDimensions": []
+        },
+        {
+          "rank": 5,
+          "providerKey": "gladia/default",
+          "provider": "gladia-default",
+          "model": "default",
+          "group": "thirdPartyServiceDiarization",
+          "weightSet": "strongSpeed",
+          "runsCovered": 5,
+          "composite": 73.93014033927574,
+          "subscores": {
+            "quality": 36.562127979315726,
+            "speed": 85.29369147796226,
+            "cost": 20.389743589743595
+          },
+          "subscoreRunCounts": {
+            "quality": 5,
+            "speed": 5,
+            "cost": 5
+          },
+          "missingDimensions": []
+        },
+        {
+          "rank": 6,
+          "providerKey": "soniox/stt-async-v4",
+          "provider": "soniox-stt-async-v4",
+          "model": "stt-async-v4",
+          "group": "thirdPartyServiceDiarization",
+          "weightSet": "strongSpeed",
+          "runsCovered": 5,
+          "composite": 57.35847545438014,
+          "subscores": {
+            "quality": 75.15582095403434,
+            "speed": 50.470283365387544,
+            "cost": 94.66666666666667
+          },
+          "subscoreRunCounts": {
+            "quality": 5,
+            "speed": 5,
+            "cost": 5
+          },
+          "missingDimensions": []
+        },
+        {
+          "rank": 7,
+          "providerKey": "happyscribe/auto",
+          "provider": "happyscribe-auto",
+          "model": "auto",
+          "group": "thirdPartyServiceDiarization",
+          "weightSet": "strongSpeed",
+          "runsCovered": 5,
+          "composite": 50.408056235604874,
+          "subscores": {
+            "quality": 93.15088131410737,
+            "speed": 44.63544089947344,
+            "cost": 53.84615384615385
+          },
+          "subscoreRunCounts": {
+            "quality": 5,
+            "speed": 5,
+            "cost": 5
+          },
+          "missingDimensions": []
+        },
+        {
+          "rank": 8,
+          "providerKey": "rev/machine",
+          "provider": "rev-machine",
+          "model": "machine",
+          "group": "thirdPartyServiceDiarization",
+          "weightSet": "strongSpeed",
+          "runsCovered": 5,
+          "composite": 46.69450480986855,
+          "subscores": {
+            "quality": 54.06683566032147,
+            "speed": 41.602614399971586,
+            "cost": 80.05729723859122
+          },
+          "subscoreRunCounts": {
+            "quality": 5,
+            "speed": 5,
+            "cost": 5
+          },
+          "missingDimensions": []
+        },
+        {
+          "rank": 9,
+          "providerKey": "speechmatics/enhanced",
+          "provider": "speechmatics-enhanced",
+          "model": "enhanced",
+          "group": "thirdPartyServiceDiarization",
+          "weightSet": "strongSpeed",
+          "runsCovered": 5,
+          "composite": 36.221850372961114,
+          "subscores": {
+            "quality": 68.41486836801666,
+            "speed": 36.72545442019931,
+            "cost": 0
+          },
+          "subscoreRunCounts": {
+            "quality": 5,
+            "speed": 5,
+            "cost": 5
+          },
+          "missingDimensions": []
+        },
+        {
+          "rank": 10,
+          "providerKey": "rev/low_cost",
+          "provider": "rev-low_cost",
+          "model": "low_cost",
+          "group": "thirdPartyServiceDiarization",
+          "weightSet": "strongSpeed",
+          "runsCovered": 5,
+          "composite": 21.54001600046167,
+          "subscores": {
+            "quality": 46.7865255267031,
+            "speed": 9.246200155404171,
+            "cost": 94.64403323468022
+          },
+          "subscoreRunCounts": {
+            "quality": 5,
+            "speed": 5,
+            "cost": 5
+          },
+          "missingDimensions": []
+        }
+      ],
+      "moderateSpeed": [
+        {
+          "rank": 1,
+          "providerKey": "mistral/voxtral-mini-2602",
+          "provider": "mistral-voxtral-mini-2602",
+          "model": "voxtral-mini-2602",
+          "group": "thirdPartyServiceDiarization",
+          "weightSet": "moderateSpeed",
+          "runsCovered": 5,
+          "composite": 86.65166756463498,
+          "subscores": {
+            "quality": 72.89156540304816,
+            "speed": 89.5376420887602,
+            "cost": 91.75384615384615
+          },
+          "subscoreRunCounts": {
+            "quality": 5,
+            "speed": 5,
+            "cost": 5
+          },
+          "missingDimensions": []
+        },
+        {
+          "rank": 2,
+          "providerKey": "assemblyai/universal-3-pro",
+          "provider": "assemblyai-universal-3-pro",
+          "model": "universal-3-pro",
+          "group": "thirdPartyServiceDiarization",
+          "weightSet": "moderateSpeed",
+          "runsCovered": 5,
+          "composite": 85.91126040502044,
+          "subscores": {
+            "quality": 94.73897256589564,
+            "speed": 85.39039187101758,
+            "cost": 78.64615384615385
+          },
+          "subscoreRunCounts": {
+            "quality": 5,
+            "speed": 5,
+            "cost": 5
+          },
+          "missingDimensions": []
+        },
+        {
+          "rank": 3,
+          "providerKey": "grok/speech-to-text",
+          "provider": "grok-speech-to-text",
+          "model": "speech-to-text",
+          "group": "thirdPartyServiceDiarization",
+          "weightSet": "moderateSpeed",
+          "runsCovered": 5,
+          "composite": 73.93984180007376,
+          "subscores": {
+            "quality": 20.169948298570812,
+            "speed": 84.28753134504379,
+            "cost": 96.66666666666667
+          },
+          "subscoreRunCounts": {
+            "quality": 5,
+            "speed": 5,
+            "cost": 4
+          },
+          "missingDimensions": []
+        },
+        {
+          "rank": 4,
+          "providerKey": "deepgram/nova-3",
+          "provider": "deepgram-nova-3",
+          "model": "nova-3",
+          "group": "thirdPartyServiceDiarization",
+          "weightSet": "moderateSpeed",
+          "runsCovered": 5,
+          "composite": 73.91812496249804,
+          "subscores": {
+            "quality": 51.70544220595161,
+            "speed": 97.80583009961542,
+            "cost": 24.467692307692307
+          },
+          "subscoreRunCounts": {
+            "quality": 5,
+            "speed": 5,
+            "cost": 5
+          },
+          "missingDimensions": []
+        },
+        {
+          "rank": 5,
+          "providerKey": "soniox/stt-async-v4",
+          "provider": "soniox-stt-async-v4",
+          "model": "stt-async-v4",
+          "group": "thirdPartyServiceDiarization",
+          "weightSet": "moderateSpeed",
+          "runsCovered": 5,
+          "composite": 64.24666754337272,
+          "subscores": {
+            "quality": 75.15582095403434,
+            "speed": 50.470283365387544,
+            "cost": 94.66666666666667
+          },
+          "subscoreRunCounts": {
+            "quality": 5,
+            "speed": 5,
+            "cost": 5
+          },
+          "missingDimensions": []
+        },
+        {
+          "rank": 6,
+          "providerKey": "gladia/default",
+          "provider": "gladia-default",
+          "model": "default",
+          "group": "thirdPartyServiceDiarization",
+          "weightSet": "moderateSpeed",
+          "runsCovered": 5,
+          "composite": 62.56658920058922,
+          "subscores": {
+            "quality": 36.562127979315726,
+            "speed": 85.29369147796226,
+            "cost": 20.389743589743595
+          },
+          "subscoreRunCounts": {
+            "quality": 5,
+            "speed": 5,
+            "cost": 5
+          },
+          "missingDimensions": []
+        },
+        {
+          "rank": 7,
+          "providerKey": "happyscribe/auto",
+          "provider": "happyscribe-auto",
+          "model": "auto",
+          "group": "thirdPartyServiceDiarization",
+          "weightSet": "moderateSpeed",
+          "runsCovered": 5,
+          "composite": 56.18067157173631,
+          "subscores": {
+            "quality": 93.15088131410737,
+            "speed": 44.63544089947344,
+            "cost": 53.84615384615385
+          },
+          "subscoreRunCounts": {
+            "quality": 5,
+            "speed": 5,
+            "cost": 5
+          },
+          "missingDimensions": []
+        },
+        {
+          "rank": 8,
+          "providerKey": "rev/machine",
+          "provider": "rev-machine",
+          "model": "machine",
+          "group": "thirdPartyServiceDiarization",
+          "weightSet": "moderateSpeed",
+          "runsCovered": 5,
+          "composite": 51.78639521976549,
+          "subscores": {
+            "quality": 54.06683566032147,
+            "speed": 41.602614399971586,
+            "cost": 80.05729723859122
+          },
+          "subscoreRunCounts": {
+            "quality": 5,
+            "speed": 5,
+            "cost": 5
+          },
+          "missingDimensions": []
+        },
+        {
+          "rank": 9,
+          "providerKey": "speechmatics/enhanced",
+          "provider": "speechmatics-enhanced",
+          "model": "enhanced",
+          "group": "thirdPartyServiceDiarization",
+          "weightSet": "moderateSpeed",
+          "runsCovered": 5,
+          "composite": 35.718246325722916,
+          "subscores": {
+            "quality": 68.41486836801666,
+            "speed": 36.72545442019931,
+            "cost": 0
+          },
+          "subscoreRunCounts": {
+            "quality": 5,
+            "speed": 5,
+            "cost": 5
+          },
+          "missingDimensions": []
+        },
+        {
+          "rank": 10,
+          "providerKey": "rev/low_cost",
+          "provider": "rev-low_cost",
+          "model": "low_cost",
+          "group": "thirdPartyServiceDiarization",
+          "weightSet": "moderateSpeed",
+          "runsCovered": 5,
+          "composite": 33.83383184551917,
+          "subscores": {
+            "quality": 46.7865255267031,
+            "speed": 9.246200155404171,
+            "cost": 94.64403323468022
+          },
+          "subscoreRunCounts": {
+            "quality": 5,
+            "speed": 5,
+            "cost": 5
+          },
+          "missingDimensions": []
+        }
+      ],
+      "strongCost": [
+        {
+          "rank": 1,
+          "providerKey": "mistral/voxtral-mini-2602",
+          "provider": "mistral-voxtral-mini-2602",
+          "model": "voxtral-mini-2602",
+          "group": "thirdPartyServiceDiarization",
+          "weightSet": "strongCost",
+          "runsCovered": 5,
+          "composite": 89.64599767225776,
+          "subscores": {
+            "quality": 72.89156540304816,
+            "speed": 89.5376420887602,
+            "cost": 91.75384615384615
+          },
+          "subscoreRunCounts": {
+            "quality": 5,
+            "speed": 5,
+            "cost": 5
+          },
+          "missingDimensions": []
+        },
+        {
+          "rank": 2,
+          "providerKey": "soniox/stt-async-v4",
+          "provider": "soniox-stt-async-v4",
+          "model": "stt-async-v4",
+          "group": "thirdPartyServiceDiarization",
+          "weightSet": "strongCost",
+          "runsCovered": 5,
+          "composite": 88.29594376527552,
+          "subscores": {
+            "quality": 75.15582095403434,
+            "speed": 50.470283365387544,
+            "cost": 94.66666666666667
+          },
+          "subscoreRunCounts": {
+            "quality": 5,
+            "speed": 5,
+            "cost": 5
+          },
+          "missingDimensions": []
+        },
+        {
+          "rank": 3,
+          "providerKey": "grok/speech-to-text",
+          "provider": "grok-speech-to-text",
+          "model": "speech-to-text",
+          "group": "thirdPartyServiceDiarization",
+          "weightSet": "strongCost",
+          "runsCovered": 5,
+          "composite": 87.7790812976948,
+          "subscores": {
+            "quality": 20.169948298570812,
+            "speed": 84.28753134504379,
+            "cost": 96.66666666666667
+          },
+          "subscoreRunCounts": {
+            "quality": 5,
+            "speed": 5,
+            "cost": 4
+          },
+          "missingDimensions": []
+        },
+        {
+          "rank": 4,
+          "providerKey": "rev/low_cost",
+          "provider": "rev-low_cost",
+          "model": "low_cost",
+          "group": "thirdPartyServiceDiarization",
+          "weightSet": "strongCost",
+          "runsCovered": 5,
+          "composite": 81.31849915595491,
+          "subscores": {
+            "quality": 46.7865255267031,
+            "speed": 9.246200155404171,
+            "cost": 94.64403323468022
+          },
+          "subscoreRunCounts": {
+            "quality": 5,
+            "speed": 5,
+            "cost": 5
+          },
+          "missingDimensions": []
+        },
+        {
+          "rank": 5,
+          "providerKey": "assemblyai/universal-3-pro",
+          "provider": "assemblyai-universal-3-pro",
+          "model": "universal-3-pro",
+          "group": "thirdPartyServiceDiarization",
+          "weightSet": "strongCost",
+          "runsCovered": 5,
+          "composite": 80.9298595206144,
+          "subscores": {
+            "quality": 94.73897256589564,
+            "speed": 85.39039187101758,
+            "cost": 78.64615384615385
+          },
+          "subscoreRunCounts": {
+            "quality": 5,
+            "speed": 5,
+            "cost": 5
+          },
+          "missingDimensions": []
+        },
+        {
+          "rank": 6,
+          "providerKey": "rev/machine",
+          "provider": "rev-machine",
+          "model": "machine",
+          "group": "thirdPartyServiceDiarization",
+          "weightSet": "strongCost",
+          "runsCovered": 5,
+          "composite": 73.61278279690228,
+          "subscores": {
+            "quality": 54.06683566032147,
+            "speed": 41.602614399971586,
+            "cost": 80.05729723859122
+          },
+          "subscoreRunCounts": {
+            "quality": 5,
+            "speed": 5,
+            "cost": 5
+          },
+          "missingDimensions": []
+        },
+        {
+          "rank": 7,
+          "providerKey": "happyscribe/auto",
+          "provider": "happyscribe-auto",
+          "model": "auto",
+          "group": "thirdPartyServiceDiarization",
+          "weightSet": "strongCost",
+          "runsCovered": 5,
+          "composite": 56.85555529828116,
+          "subscores": {
+            "quality": 93.15088131410737,
+            "speed": 44.63544089947344,
+            "cost": 53.84615384615385
+          },
+          "subscoreRunCounts": {
+            "quality": 5,
+            "speed": 5,
+            "cost": 5
+          },
+          "missingDimensions": []
+        },
+        {
+          "rank": 8,
+          "providerKey": "deepgram/nova-3",
+          "provider": "deepgram-nova-3",
+          "model": "nova-3",
+          "group": "thirdPartyServiceDiarization",
+          "weightSet": "strongCost",
+          "runsCovered": 5,
+          "composite": 34.525281076710556,
+          "subscores": {
+            "quality": 51.70544220595161,
+            "speed": 97.80583009961542,
+            "cost": 24.467692307692307
+          },
+          "subscoreRunCounts": {
+            "quality": 5,
+            "speed": 5,
+            "cost": 5
+          },
+          "missingDimensions": []
+        },
+        {
+          "rank": 9,
+          "providerKey": "gladia/default",
+          "provider": "gladia-default",
+          "model": "default",
+          "group": "thirdPartyServiceDiarization",
+          "weightSet": "strongCost",
+          "runsCovered": 5,
+          "composite": 28.497376817522678,
+          "subscores": {
+            "quality": 36.562127979315726,
+            "speed": 85.29369147796226,
+            "cost": 20.389743589743595
+          },
+          "subscoreRunCounts": {
+            "quality": 5,
+            "speed": 5,
+            "cost": 5
+          },
+          "missingDimensions": []
+        },
+        {
+          "rank": 10,
+          "providerKey": "speechmatics/enhanced",
+          "provider": "speechmatics-enhanced",
+          "model": "enhanced",
+          "group": "thirdPartyServiceDiarization",
+          "weightSet": "strongCost",
+          "runsCovered": 5,
+          "composite": 10.514032278821597,
+          "subscores": {
+            "quality": 68.41486836801666,
+            "speed": 36.72545442019931,
+            "cost": 0
+          },
+          "subscoreRunCounts": {
+            "quality": 5,
+            "speed": 5,
+            "cost": 5
+          },
+          "missingDimensions": []
+        }
+      ],
+      "moderateCost": [
+        {
+          "rank": 1,
+          "providerKey": "mistral/voxtral-mini-2602",
+          "provider": "mistral-voxtral-mini-2602",
+          "model": "voxtral-mini-2602",
+          "group": "thirdPartyServiceDiarization",
+          "weightSet": "moderateCost",
+          "runsCovered": 5,
+          "composite": 87.53814919066937,
+          "subscores": {
+            "quality": 72.89156540304816,
+            "speed": 89.5376420887602,
+            "cost": 91.75384615384615
+          },
+          "subscoreRunCounts": {
+            "quality": 5,
+            "speed": 5,
+            "cost": 5
+          },
+          "missingDimensions": []
+        },
+        {
+          "rank": 2,
+          "providerKey": "assemblyai/universal-3-pro",
+          "provider": "assemblyai-universal-3-pro",
+          "model": "universal-3-pro",
+          "group": "thirdPartyServiceDiarization",
+          "weightSet": "moderateCost",
+          "runsCovered": 5,
+          "composite": 83.21356519507495,
+          "subscores": {
+            "quality": 94.73897256589564,
+            "speed": 85.39039187101758,
+            "cost": 78.64615384615385
+          },
+          "subscoreRunCounts": {
+            "quality": 5,
+            "speed": 5,
+            "cost": 5
+          },
+          "missingDimensions": []
+        },
+        {
+          "rank": 3,
+          "providerKey": "soniox/stt-async-v4",
+          "provider": "soniox-stt-async-v4",
+          "model": "stt-async-v4",
+          "group": "thirdPartyServiceDiarization",
+          "weightSet": "moderateCost",
+          "runsCovered": 5,
+          "composite": 81.92522086388439,
+          "subscores": {
+            "quality": 75.15582095403434,
+            "speed": 50.470283365387544,
+            "cost": 94.66666666666667
+          },
+          "subscoreRunCounts": {
+            "quality": 5,
+            "speed": 5,
+            "cost": 5
+          },
+          "missingDimensions": []
+        },
+        {
+          "rank": 4,
+          "providerKey": "grok/speech-to-text",
+          "provider": "grok-speech-to-text",
+          "model": "speech-to-text",
+          "group": "thirdPartyServiceDiarization",
+          "weightSet": "moderateCost",
+          "runsCovered": 5,
+          "composite": 78.89149592872292,
+          "subscores": {
+            "quality": 20.169948298570812,
+            "speed": 84.28753134504379,
+            "cost": 96.66666666666667
+          },
+          "subscoreRunCounts": {
+            "quality": 5,
+            "speed": 5,
+            "cost": 4
+          },
+          "missingDimensions": []
+        },
+        {
+          "rank": 5,
+          "providerKey": "rev/low_cost",
+          "provider": "rev-low_cost",
+          "model": "low_cost",
+          "group": "thirdPartyServiceDiarization",
+          "weightSet": "moderateCost",
+          "runsCovered": 5,
+          "composite": 67.99296507722958,
+          "subscores": {
+            "quality": 46.7865255267031,
+            "speed": 9.246200155404171,
+            "cost": 94.64403323468022
+          },
+          "subscoreRunCounts": {
+            "quality": 5,
+            "speed": 5,
+            "cost": 5
+          },
+          "missingDimensions": []
+        },
+        {
+          "rank": 6,
+          "providerKey": "rev/machine",
+          "provider": "rev-machine",
+          "model": "machine",
+          "group": "thirdPartyServiceDiarization",
+          "weightSet": "moderateCost",
+          "runsCovered": 5,
+          "composite": 67.16826835521334,
+          "subscores": {
+            "quality": 54.06683566032147,
+            "speed": 41.602614399971586,
+            "cost": 80.05729723859122
+          },
+          "subscoreRunCounts": {
+            "quality": 5,
+            "speed": 5,
+            "cost": 5
+          },
+          "missingDimensions": []
+        },
+        {
+          "rank": 7,
+          "providerKey": "happyscribe/auto",
+          "provider": "happyscribe-auto",
+          "model": "auto",
+          "group": "thirdPartyServiceDiarization",
+          "weightSet": "moderateCost",
+          "runsCovered": 5,
+          "composite": 59.86495675040847,
+          "subscores": {
+            "quality": 93.15088131410737,
+            "speed": 44.63544089947344,
+            "cost": 53.84615384615385
+          },
+          "subscoreRunCounts": {
+            "quality": 5,
+            "speed": 5,
+            "cost": 5
+          },
+          "missingDimensions": []
+        },
+        {
+          "rank": 8,
+          "providerKey": "deepgram/nova-3",
+          "provider": "deepgram-nova-3",
+          "model": "nova-3",
+          "group": "thirdPartyServiceDiarization",
+          "weightSet": "moderateCost",
+          "runsCovered": 5,
+          "composite": 44.582869845728794,
+          "subscores": {
+            "quality": 51.70544220595161,
+            "speed": 97.80583009961542,
+            "cost": 24.467692307692307
+          },
+          "subscoreRunCounts": {
+            "quality": 5,
+            "speed": 5,
+            "cost": 5
+          },
+          "missingDimensions": []
+        },
+        {
+          "rank": 9,
+          "providerKey": "gladia/default",
+          "provider": "gladia-default",
+          "model": "default",
+          "group": "thirdPartyServiceDiarization",
+          "weightSet": "moderateCost",
+          "runsCovered": 5,
+          "composite": 36.60501004530175,
+          "subscores": {
+            "quality": 36.562127979315726,
+            "speed": 85.29369147796226,
+            "cost": 20.389743589743595
+          },
+          "subscoreRunCounts": {
+            "quality": 5,
+            "speed": 5,
+            "cost": 5
+          },
+          "missingDimensions": []
+        },
+        {
+          "rank": 10,
+          "providerKey": "speechmatics/enhanced",
+          "provider": "speechmatics-enhanced",
+          "model": "enhanced",
+          "group": "thirdPartyServiceDiarization",
+          "weightSet": "moderateCost",
+          "runsCovered": 5,
+          "composite": 21.028064557643194,
+          "subscores": {
+            "quality": 68.41486836801666,
+            "speed": 36.72545442019931,
+            "cost": 0
+          },
+          "subscoreRunCounts": {
+            "quality": 5,
+            "speed": 5,
+            "cost": 5
+          },
+          "missingDimensions": []
+        }
+      ],
+      "qualityCost": [
+        {
+          "rank": 1,
+          "providerKey": "assemblyai/universal-3-pro",
+          "provider": "assemblyai-universal-3-pro",
+          "model": "universal-3-pro",
+          "group": "thirdPartyServiceDiarization",
+          "weightSet": "qualityCost",
+          "runsCovered": 5,
+          "composite": 86.56234607252404,
+          "subscores": {
+            "quality": 94.73897256589564,
+            "speed": 85.39039187101758,
+            "cost": 78.64615384615385
+          },
+          "subscoreRunCounts": {
+            "quality": 5,
+            "speed": 5,
+            "cost": 5
+          },
+          "missingDimensions": []
+        },
+        {
+          "rank": 2,
+          "providerKey": "mistral/voxtral-mini-2602",
+          "provider": "mistral-voxtral-mini-2602",
+          "model": "voxtral-mini-2602",
+          "group": "thirdPartyServiceDiarization",
+          "weightSet": "qualityCost",
+          "runsCovered": 5,
+          "composite": 83.04419940947847,
+          "subscores": {
+            "quality": 72.89156540304816,
+            "speed": 89.5376420887602,
+            "cost": 91.75384615384615
+          },
+          "subscoreRunCounts": {
+            "quality": 5,
+            "speed": 5,
+            "cost": 5
+          },
+          "missingDimensions": []
+        },
+        {
+          "rank": 3,
+          "providerKey": "soniox/stt-async-v4",
+          "provider": "soniox-stt-async-v4",
+          "model": "stt-async-v4",
+          "group": "thirdPartyServiceDiarization",
+          "weightSet": "qualityCost",
+          "runsCovered": 5,
+          "composite": 81.46714776585421,
+          "subscores": {
+            "quality": 75.15582095403434,
+            "speed": 50.470283365387544,
+            "cost": 94.66666666666667
+          },
+          "subscoreRunCounts": {
+            "quality": 5,
+            "speed": 5,
+            "cost": 5
+          },
+          "missingDimensions": []
+        },
+        {
+          "rank": 4,
+          "providerKey": "happyscribe/auto",
+          "provider": "happyscribe-auto",
+          "model": "auto",
+          "group": "thirdPartyServiceDiarization",
+          "weightSet": "qualityCost",
+          "runsCovered": 5,
+          "composite": 70.61220991206488,
+          "subscores": {
+            "quality": 93.15088131410737,
+            "speed": 44.63544089947344,
+            "cost": 53.84615384615385
+          },
+          "subscoreRunCounts": {
+            "quality": 5,
+            "speed": 5,
+            "cost": 5
+          },
+          "missingDimensions": []
+        },
+        {
+          "rank": 5,
+          "providerKey": "rev/low_cost",
+          "provider": "rev-low_cost",
+          "model": "low_cost",
+          "group": "thirdPartyServiceDiarization",
+          "weightSet": "qualityCost",
+          "runsCovered": 5,
+          "composite": 64.56837145816291,
+          "subscores": {
+            "quality": 46.7865255267031,
+            "speed": 9.246200155404171,
+            "cost": 94.64403323468022
+          },
+          "subscoreRunCounts": {
+            "quality": 5,
+            "speed": 5,
+            "cost": 5
+          },
+          "missingDimensions": []
+        },
+        {
+          "rank": 6,
+          "providerKey": "rev/machine",
+          "provider": "rev-machine",
+          "model": "machine",
+          "group": "thirdPartyServiceDiarization",
+          "weightSet": "qualityCost",
+          "runsCovered": 5,
+          "composite": 64.51612124450787,
+          "subscores": {
+            "quality": 54.06683566032147,
+            "speed": 41.602614399971586,
+            "cost": 80.05729723859122
+          },
+          "subscoreRunCounts": {
+            "quality": 5,
+            "speed": 5,
+            "cost": 5
+          },
+          "missingDimensions": []
+        },
+        {
+          "rank": 7,
+          "providerKey": "grok/speech-to-text",
+          "provider": "grok-speech-to-text",
+          "model": "speech-to-text",
+          "group": "thirdPartyServiceDiarization",
+          "weightSet": "qualityCost",
+          "runsCovered": 5,
+          "composite": 61.00522986886125,
+          "subscores": {
+            "quality": 20.169948298570812,
+            "speed": 84.28753134504379,
+            "cost": 96.66666666666667
+          },
+          "subscoreRunCounts": {
+            "quality": 5,
+            "speed": 5,
+            "cost": 4
+          },
+          "missingDimensions": []
+        },
+        {
+          "rank": 8,
+          "providerKey": "deepgram/nova-3",
+          "provider": "deepgram-nova-3",
+          "model": "nova-3",
+          "group": "thirdPartyServiceDiarization",
+          "weightSet": "qualityCost",
+          "runsCovered": 5,
+          "composite": 44.05849354110131,
+          "subscores": {
+            "quality": 51.70544220595161,
+            "speed": 97.80583009961542,
+            "cost": 24.467692307692307
+          },
+          "subscoreRunCounts": {
+            "quality": 5,
+            "speed": 5,
+            "cost": 5
+          },
+          "missingDimensions": []
+        },
+        {
+          "rank": 9,
+          "providerKey": "speechmatics/enhanced",
+          "provider": "speechmatics-enhanced",
+          "model": "enhanced",
+          "group": "thirdPartyServiceDiarization",
+          "weightSet": "qualityCost",
+          "runsCovered": 5,
+          "composite": 34.45923620762743,
+          "subscores": {
+            "quality": 68.41486836801666,
+            "speed": 36.72545442019931,
+            "cost": 0
+          },
+          "subscoreRunCounts": {
+            "quality": 5,
+            "speed": 5,
+            "cost": 5
+          },
+          "missingDimensions": []
+        },
+        {
+          "rank": 10,
+          "providerKey": "gladia/default",
+          "provider": "gladia-default",
+          "model": "default",
+          "group": "thirdPartyServiceDiarization",
+          "weightSet": "qualityCost",
+          "runsCovered": 5,
+          "composite": 34.15771135387293,
+          "subscores": {
+            "quality": 36.562127979315726,
+            "speed": 85.29369147796226,
+            "cost": 20.389743589743595
+          },
+          "subscoreRunCounts": {
+            "quality": 5,
+            "speed": 5,
+            "cost": 5
+          },
+          "missingDimensions": []
+        }
+      ],
+      "costSpeed": [
+        {
+          "rank": 1,
+          "providerKey": "mistral/voxtral-mini-2602",
+          "provider": "mistral-voxtral-mini-2602",
+          "model": "voxtral-mini-2602",
+          "group": "thirdPartyServiceDiarization",
+          "weightSet": "costSpeed",
+          "runsCovered": 5,
+          "composite": 88.87032624947767,
+          "subscores": {
+            "quality": 72.89156540304816,
+            "speed": 89.5376420887602,
+            "cost": 91.75384615384615
+          },
+          "subscoreRunCounts": {
+            "quality": 5,
+            "speed": 5,
+            "cost": 5
+          },
+          "missingDimensions": []
+        },
+        {
+          "rank": 2,
+          "providerKey": "grok/speech-to-text",
+          "provider": "grok-speech-to-text",
+          "model": "speech-to-text",
+          "group": "thirdPartyServiceDiarization",
+          "weightSet": "costSpeed",
+          "runsCovered": 5,
+          "composite": 83.44638393512679,
+          "subscores": {
+            "quality": 20.169948298570812,
+            "speed": 84.28753134504379,
+            "cost": 96.66666666666667
+          },
+          "subscoreRunCounts": {
+            "quality": 5,
+            "speed": 5,
+            "cost": 4
+          },
+          "missingDimensions": []
+        },
+        {
+          "rank": 3,
+          "providerKey": "assemblyai/universal-3-pro",
+          "provider": "assemblyai-universal-3-pro",
+          "model": "universal-3-pro",
+          "group": "thirdPartyServiceDiarization",
+          "weightSet": "costSpeed",
+          "runsCovered": 5,
+          "composite": 83.29034282931673,
+          "subscores": {
+            "quality": 94.73897256589564,
+            "speed": 85.39039187101758,
+            "cost": 78.64615384615385
+          },
+          "subscoreRunCounts": {
+            "quality": 5,
+            "speed": 5,
+            "cost": 5
+          },
+          "missingDimensions": []
+        },
+        {
+          "rank": 4,
+          "providerKey": "soniox/stt-async-v4",
+          "provider": "soniox-stt-async-v4",
+          "model": "stt-async-v4",
+          "group": "thirdPartyServiceDiarization",
+          "weightSet": "costSpeed",
+          "runsCovered": 5,
+          "composite": 72.82720960982783,
+          "subscores": {
+            "quality": 75.15582095403434,
+            "speed": 50.470283365387544,
+            "cost": 94.66666666666667
+          },
+          "subscoreRunCounts": {
+            "quality": 5,
+            "speed": 5,
+            "cost": 5
+          },
+          "missingDimensions": []
+        },
+        {
+          "rank": 5,
+          "providerKey": "deepgram/nova-3",
+          "provider": "deepgram-nova-3",
+          "model": "nova-3",
+          "group": "thirdPartyServiceDiarization",
+          "weightSet": "costSpeed",
+          "runsCovered": 5,
+          "composite": 60.19362930388364,
+          "subscores": {
+            "quality": 51.70544220595161,
+            "speed": 97.80583009961542,
+            "cost": 24.467692307692307
+          },
+          "subscoreRunCounts": {
+            "quality": 5,
+            "speed": 5,
+            "cost": 5
+          },
+          "missingDimensions": []
+        },
+        {
+          "rank": 6,
+          "providerKey": "rev/machine",
+          "provider": "rev-machine",
+          "model": "machine",
+          "group": "thirdPartyServiceDiarization",
+          "weightSet": "costSpeed",
+          "runsCovered": 5,
+          "composite": 60.15364380338541,
+          "subscores": {
+            "quality": 54.06683566032147,
+            "speed": 41.602614399971586,
+            "cost": 80.05729723859122
+          },
+          "subscoreRunCounts": {
+            "quality": 5,
+            "speed": 5,
+            "cost": 5
+          },
+          "missingDimensions": []
+        },
+        {
+          "rank": 7,
+          "providerKey": "happyscribe/auto",
+          "provider": "happyscribe-auto",
+          "model": "auto",
+          "group": "thirdPartyServiceDiarization",
+          "weightSet": "costSpeed",
+          "runsCovered": 5,
+          "composite": 53.63180576694302,
+          "subscores": {
+            "quality": 93.15088131410737,
+            "speed": 44.63544089947344,
+            "cost": 53.84615384615385
+          },
+          "subscoreRunCounts": {
+            "quality": 5,
+            "speed": 5,
+            "cost": 5
+          },
+          "missingDimensions": []
+        },
+        {
+          "rank": 8,
+          "providerKey": "rev/low_cost",
+          "provider": "rev-low_cost",
+          "model": "low_cost",
+          "group": "thirdPartyServiceDiarization",
+          "weightSet": "costSpeed",
+          "runsCovered": 5,
+          "composite": 51.42925757820829,
+          "subscores": {
+            "quality": 46.7865255267031,
+            "speed": 9.246200155404171,
+            "cost": 94.64403323468022
+          },
+          "subscoreRunCounts": {
+            "quality": 5,
+            "speed": 5,
+            "cost": 5
+          },
+          "missingDimensions": []
+        },
+        {
+          "rank": 9,
+          "providerKey": "gladia/default",
+          "provider": "gladia-default",
+          "model": "default",
+          "group": "thirdPartyServiceDiarization",
+          "weightSet": "costSpeed",
+          "runsCovered": 5,
+          "composite": 51.21375857839921,
+          "subscores": {
+            "quality": 36.562127979315726,
+            "speed": 85.29369147796226,
+            "cost": 20.389743589743595
+          },
+          "subscoreRunCounts": {
+            "quality": 5,
+            "speed": 5,
+            "cost": 5
+          },
+          "missingDimensions": []
+        },
+        {
+          "rank": 10,
+          "providerKey": "speechmatics/enhanced",
+          "provider": "speechmatics-enhanced",
+          "model": "enhanced",
+          "group": "thirdPartyServiceDiarization",
+          "weightSet": "costSpeed",
+          "runsCovered": 5,
+          "composite": 23.36794132589136,
+          "subscores": {
+            "quality": 68.41486836801666,
+            "speed": 36.72545442019931,
+            "cost": 0
+          },
+          "subscoreRunCounts": {
+            "quality": 5,
+            "speed": 5,
+            "cost": 5
+          },
+          "missingDimensions": []
+        }
+      ]
+    }
+  },
+  "tiering": {
+    "local": {
+      "method": "quality-cost-terciles-v1",
+      "ranking": "qualityCost",
+      "providerCount": 0,
+      "tieBreak": "composite-desc, quality-subscore-desc, providerKey-asc",
+      "tiers": [
+        {
+          "tier": 1,
+          "label": "Tier 1",
+          "description": "Highest quality-cost tercile; no models fall in this tier for this group size.",
+          "count": 0,
+          "providers": []
+        },
+        {
+          "tier": 2,
+          "label": "Tier 2",
+          "description": "Middle quality-cost tercile; no models fall in this tier for this group size.",
+          "count": 0,
+          "providers": []
+        },
+        {
+          "tier": 3,
+          "label": "Tier 3",
+          "description": "Lower quality-cost tercile; no models fall in this tier for this group size.",
+          "count": 0,
+          "providers": []
+        }
+      ]
+    },
+    "thirdPartyServiceNonDiarization": {
+      "method": "quality-cost-terciles-v1",
+      "ranking": "qualityCost",
+      "providerCount": 8,
+      "tieBreak": "composite-desc, quality-subscore-desc, providerKey-asc",
+      "tiers": [
+        {
+          "tier": 1,
+          "label": "Tier 1",
+          "description": "Highest quality-cost tercile (ranks 1-3).",
+          "count": 3,
+          "providers": [
+            {
+              "providerKey": "scrapecreators/youtube-transcript",
+              "provider": "scrapecreators-youtube-transcript",
+              "model": "youtube-transcript",
+              "qualityCostRank": 1,
+              "qualityCostComposite": 100
+            },
+            {
+              "providerKey": "deepinfra/openai/whisper-large-v3",
+              "provider": "deepinfra-openai_whisper-large-v3",
+              "model": "openai/whisper-large-v3",
+              "qualityCostRank": 2,
+              "qualityCostComposite": 94.34220591966908
+            },
+            {
+              "providerKey": "groq/whisper-large-v3-turbo",
+              "provider": "groq-whisper-large-v3-turbo",
+              "model": "whisper-large-v3-turbo",
+              "qualityCostRank": 3,
+              "qualityCostComposite": 89.92188009888378
+            }
+          ]
+        },
+        {
+          "tier": 2,
+          "label": "Tier 2",
+          "description": "Middle quality-cost tercile (ranks 4-6).",
+          "count": 3,
+          "providers": [
+            {
+              "providerKey": "together/openai/whisper-large-v3",
+              "provider": "together-openai_whisper-large-v3",
+              "model": "openai/whisper-large-v3",
+              "qualityCostRank": 4,
+              "qualityCostComposite": 82.05940077500924
+            },
+            {
+              "providerKey": "groq/whisper-large-v3",
+              "provider": "groq-whisper-large-v3",
+              "model": "whisper-large-v3",
+              "qualityCostRank": 5,
+              "qualityCostComposite": 79.4001774260299
+            },
+            {
+              "providerKey": "deepinfra/openai/whisper-large-v3-turbo",
+              "provider": "deepinfra-openai_whisper-large-v3-turbo",
+              "model": "openai/whisper-large-v3-turbo",
+              "qualityCostRank": 6,
+              "qualityCostComposite": 70.39926147852643
+            }
+          ]
+        },
+        {
+          "tier": 3,
+          "label": "Tier 3",
+          "description": "Lower quality-cost tercile (ranks 7-8).",
+          "count": 2,
+          "providers": [
+            {
+              "providerKey": "supadata/auto",
+              "provider": "supadata-auto",
+              "model": "auto",
+              "qualityCostRank": 7,
+              "qualityCostComposite": 48.46821631016497
+            },
+            {
+              "providerKey": "gemini-stt/gemini-3-flash-preview",
+              "provider": "gemini-stt-gemini-3-flash-preview",
+              "model": "gemini-3-flash-preview",
+              "qualityCostRank": 8,
+              "qualityCostComposite": 33.405128416555804
+            }
+          ]
+        }
+      ]
+    },
+    "thirdPartyServiceDiarization": {
+      "method": "quality-cost-terciles-v1",
+      "ranking": "qualityCost",
+      "providerCount": 10,
+      "tieBreak": "composite-desc, quality-subscore-desc, providerKey-asc",
+      "tiers": [
+        {
+          "tier": 1,
+          "label": "Tier 1",
+          "description": "Highest quality-cost tercile (ranks 1-4).",
+          "count": 4,
+          "providers": [
+            {
+              "providerKey": "assemblyai/universal-3-pro",
+              "provider": "assemblyai-universal-3-pro",
+              "model": "universal-3-pro",
+              "qualityCostRank": 1,
+              "qualityCostComposite": 86.56234607252404
+            },
+            {
+              "providerKey": "mistral/voxtral-mini-2602",
+              "provider": "mistral-voxtral-mini-2602",
+              "model": "voxtral-mini-2602",
+              "qualityCostRank": 2,
+              "qualityCostComposite": 83.04419940947847
+            },
+            {
+              "providerKey": "soniox/stt-async-v4",
+              "provider": "soniox-stt-async-v4",
+              "model": "stt-async-v4",
+              "qualityCostRank": 3,
+              "qualityCostComposite": 81.46714776585421
+            },
+            {
+              "providerKey": "happyscribe/auto",
+              "provider": "happyscribe-auto",
+              "model": "auto",
+              "qualityCostRank": 4,
+              "qualityCostComposite": 70.61220991206488
+            }
+          ]
+        },
+        {
+          "tier": 2,
+          "label": "Tier 2",
+          "description": "Middle quality-cost tercile (ranks 5-7).",
+          "count": 3,
+          "providers": [
+            {
+              "providerKey": "rev/low_cost",
+              "provider": "rev-low_cost",
+              "model": "low_cost",
+              "qualityCostRank": 5,
+              "qualityCostComposite": 64.56837145816291
+            },
+            {
+              "providerKey": "rev/machine",
+              "provider": "rev-machine",
+              "model": "machine",
+              "qualityCostRank": 6,
+              "qualityCostComposite": 64.51612124450787
+            },
+            {
+              "providerKey": "grok/speech-to-text",
+              "provider": "grok-speech-to-text",
+              "model": "speech-to-text",
+              "qualityCostRank": 7,
+              "qualityCostComposite": 61.00522986886125
+            }
+          ]
+        },
+        {
+          "tier": 3,
+          "label": "Tier 3",
+          "description": "Lower quality-cost tercile (ranks 8-10).",
+          "count": 3,
+          "providers": [
+            {
+              "providerKey": "deepgram/nova-3",
+              "provider": "deepgram-nova-3",
+              "model": "nova-3",
+              "qualityCostRank": 8,
+              "qualityCostComposite": 44.05849354110131
+            },
+            {
+              "providerKey": "speechmatics/enhanced",
+              "provider": "speechmatics-enhanced",
+              "model": "enhanced",
+              "qualityCostRank": 9,
+              "qualityCostComposite": 34.45923620762743
+            },
+            {
+              "providerKey": "gladia/default",
+              "provider": "gladia-default",
+              "model": "default",
+              "qualityCostRank": 10,
+              "qualityCostComposite": 34.15771135387293
+            }
+          ]
+        }
+      ]
+    }
+  },
+  "rankingPolicy": {
+    "price": "mean per-run monetary cost ascending; local providers at zero; missing cost sorts last; ties break by quality descending then providerKey",
+    "speed": "mean processing time ascending; missing timing sorts last; ties break by providerKey",
+    "qualityScore": "mean speaker-aware WER-derived score descending; missing score sorts last; ties break by providerKey",
+    "weightedComposite": "per-run per-group min-max 0-100 subscores (Q higher-better; S/C lower-better; identical min/max => 100), averaged across covered runs; composite = w_q*Q + w_s*S + w_c*C",
+    "missingData": "provider missing a value in a run is excluded from that run's normalization pool for that dimension; a dimension missing in all covered runs scores 0 and is listed in missingDimensions"
+  },
+  "notes": [
+    "Each provider is aggregated by providerKey across the runs it appears in; the mean is taken over present values only.",
+    "Groups follow the single-run STT contract: local, thirdPartyServiceNonDiarization, thirdPartyServiceDiarization.",
+    "Weighted composite rankings and quality-cost tercile model tiers are emitted per group; no cross-group overall or rankingSurfaces leaderboard is emitted, and single-run reports remain tier-free."
+  ]
+}

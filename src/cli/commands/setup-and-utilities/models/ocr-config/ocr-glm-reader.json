@@ -1,0 +1,25 @@
+{
+  "glm-reader": {
+    "description": "Z.AI GLM Reader hosted article extraction",
+    "type": "api",
+    "models": {
+      "glm-reader": {
+        "description": "GLM Reader URL-to-markdown extraction estimated from Z.AI built-in web tool per-use pricing",
+        "pricingSourceUrl": "https://docs.z.ai/guides/overview/pricing",
+        "pricingCheckedAt": "2026-05-31",
+        "pricingCurrency": "USD",
+        "pricingTier": "Z.AI built-in web tool reference pricing",
+        "pricingNotes": "GLM Reader estimates use the Z.AI built-in web-search/tool reference of $0.01 per use as a per-page/request heuristic. Provider-specific quote paths, free quotas, discounts, enterprise pricing, taxes, and provider credits are ignored.",
+        "costPer1kPagesUSD": 10,
+        "costPer1kPagesCents": 1000,
+        "limits": {
+          "notes": "Z.AI publishes built-in Web Search at $0.01/use; GLM Reader-specific request pricing was not listed in the local docs."
+        },
+        "estimation": {
+          "costMultiplier": 1,
+          "msPerPage": 2145
+        }
+      }
+    }
+  }
+}

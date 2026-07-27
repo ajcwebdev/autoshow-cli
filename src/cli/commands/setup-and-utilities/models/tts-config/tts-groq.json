@@ -1,0 +1,30 @@
+{
+  "groq": {
+    "description": "Groq cloud text-to-speech",
+    "type": "api",
+    "voices": [
+      "autumn",
+      "diana",
+      "hannah",
+      "austin",
+      "daniel",
+      "troy"
+    ],
+    "models": {
+      "canopylabs/orpheus-v1-english": {
+        "description": "Orpheus v1 English — expressive low-latency cloud TTS",
+        "pricingSourceUrl": "https://console.groq.com/docs/text-to-speech/orpheus",
+        "pricingCheckedAt": "2026-05-31",
+        "pricingCurrency": "USD",
+        "pricingTier": "On-demand pay-as-you-go",
+        "pricingNotes": "Groq lists canopylabs/orpheus-v1-english Text-To-Speech as billed at $22 / 1M characters. Stored as a single character rate to avoid double-counting input text.",
+        "costPer1kCharsUSD": 0.022,
+        "costPer1kCharsCents": 2.2,
+        "estimation": {
+          "costMultiplier": 1,
+          "msPer1KChars": 16316
+        }
+      }
+    }
+  }
+}

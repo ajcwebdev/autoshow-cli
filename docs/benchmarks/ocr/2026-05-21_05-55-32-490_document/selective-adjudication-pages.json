@@ -1,0 +1,67 @@
+{
+  "schemaVersion": 1,
+  "pageCount": 5,
+  "pages": [
+    {
+      "pageNumber": 1,
+      "selectedProviderKey": "mistral/mistral-ocr-4-0",
+      "selectedConfidence": 0.637658,
+      "pageDisagreement": 0.256234,
+      "reason": "blank provider output",
+      "reasons": [
+        "blank provider output",
+        "major provider length drift",
+        "word/character disagreement divergence",
+        "low selected-page confidence"
+      ]
+    },
+    {
+      "pageNumber": 2,
+      "selectedProviderKey": "mistral/mistral-ocr-4-0",
+      "selectedConfidence": 0.690187,
+      "pageDisagreement": 0.226748,
+      "reason": "blank provider output",
+      "reasons": [
+        "blank provider output",
+        "major provider length drift",
+        "low selected-page confidence"
+      ]
+    },
+    {
+      "pageNumber": 3,
+      "selectedProviderKey": "anthropic/claude-opus-4-8",
+      "selectedConfidence": 0.689012,
+      "pageDisagreement": 0.230361,
+      "reason": "blank provider output",
+      "reasons": [
+        "blank provider output",
+        "major provider length drift",
+        "low selected-page confidence"
+      ]
+    },
+    {
+      "pageNumber": 4,
+      "selectedProviderKey": "anthropic/claude-haiku-4-5",
+      "selectedConfidence": 0.684846,
+      "pageDisagreement": 0.233447,
+      "reason": "blank provider output",
+      "reasons": [
+        "blank provider output",
+        "major provider length drift",
+        "low selected-page confidence"
+      ]
+    },
+    {
+      "pageNumber": 5,
+      "selectedProviderKey": "anthropic/claude-haiku-4-5",
+      "selectedConfidence": 0.186934,
+      "pageDisagreement": 0.602271,
+      "reason": "major provider length drift",
+      "reasons": [
+        "major provider length drift",
+        "high provider disagreement",
+        "low selected-page confidence"
+      ]
+    }
+  ]
+}

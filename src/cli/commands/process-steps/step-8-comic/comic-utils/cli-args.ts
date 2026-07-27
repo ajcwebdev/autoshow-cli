@@ -1,0 +1,538 @@
+import {
+  IMAGE_GENERATION_QUALITIES,
+} from '~/types'
+import { CLIUsageError } from '~/utils/error-handler'
+import { findRegistryServiceForModel } from '~/cli/commands/setup-and-utilities/models/model-loader/registry'
+import { DEFAULT_CLI_CONCURRENCY } from '~/utils/concurrency-defaults'
+
+// Comic's default text model. Validated against the central LLM registry at parse time.
+export const DEFAULT_LLM_MODEL = 'gpt-5.5'
+// Comic's default vision judge. Keep QA independent from the drafting model.
+export const DEFAULT_QA_MODEL = 'gpt-5.6-sol'
+import {
+  validateImageSizeForModels,
+} from './image-size'
+import {
+  parseImagePromptVariations,
+} from '../comic-commands/generate-images/prompt-variations'
+import {
+  COMIC_GRID_PANEL_SIZE,
+  DEFAULT_PANELS_PER_IMAGE,
+  DEFAULT_FINAL_PANELS_PER_IMAGE,
+  parseComicGridSpec,
+  parsePanelSelector,
+  validateComicGridOptions,
+} from '../comic-commands/generate-images/comic-page-utils'
+import type { ParsedCharacterSketchArgs, ParsedDraftCommandArgs, ParsedGenerateBaseArgs, ParsedGenerateImagesArgs, ParsedImageModel, ParsedImageQuality, ParsedImageSize, ParsedLlmModel, ParsedReferenceSketchArgs } from '~/types'
+
+
+export const CHARACTER_SKETCH_COMMAND = 'character-sketch'
+export const REFERENCE_SKETCH_COMMAND = 'reference-sketch'
+export const DRAFT_SCENES_COMMAND = 'draft-scenes'
+export const GENERATE_IMAGES_COMMAND = 'generate-images'
+const DRAFT_SCENES_ONLY_VALUES = ['structure', 'prompt', 'scene', 'panel-prompts'] as const
+const GENERATE_IMAGES_TARGET_VALUES = ['images', 'sketches', 'both'] as const
+const PANEL_PROMPTS_TARGET_MIGRATION =
+  'The generate-images "prompts" target was removed. Use: bun autoshow comic draft-scenes <script-path> --only panel-prompts'
+
+const IMAGE_QUALITY_OPTIONS = new Set<string>(IMAGE_GENERATION_QUALITIES)
+const DRAFT_SCENES_ONLY_OPTIONS = new Set<string>(DRAFT_SCENES_ONLY_VALUES)
+const GENERATE_IMAGES_TARGET_OPTIONS = new Set<string>(GENERATE_IMAGES_TARGET_VALUES)
+
+const readFlagValue = (args: string[], index: number, flag: string): string => {
+  const value = args[index + 1]
+  if (!value || value.startsWith('-')) {
+    throw CLIUsageError(`Missing value for ${flag}`)
+  }
+
+  return value
+}
+
+const isPositiveInteger = (value: string): boolean => {
+  return /^\d+$/.test(value) && Number(value) > 0
+}
+
+const parseConcurrencyValue = (value: string): number => {
+  if (!isPositiveInteger(value)) {
+    throw CLIUsageError(`Invalid concurrency "${value}". Expected a positive integer like 1 or ${DEFAULT_CLI_CONCURRENCY}`)
+  }
+
+  return Number(value)
+}
+
+const parseImageModels = (value: string): ParsedImageModel[] => {
+  const rawModels = value.split(',').map(model => model.trim())
+  if (rawModels.some(model => model.length === 0)) {
+    throw CLIUsageError(
+      `Invalid image model list "${value}". Expected one or more comma-separated image model ids from the central image registry.`
+    )
+  }
+
+  const parsedModels: ParsedImageModel[] = []
+  const seenModels = new Set<string>()
+
+  for (const model of rawModels) {
+    if (!findRegistryServiceForModel('image', model)) {
+      throw CLIUsageError(
+        `Invalid image model "${model}". It is not present in the central image registry.`
+      )
+    }
+
+    if (seenModels.has(model)) {
+      throw CLIUsageError(`Duplicate image model "${model}" is not allowed`)
+    }
+
+    seenModels.add(model)
+    parsedModels.push(model as ParsedImageModel)
+  }
+
+  return parsedModels
+}
+
+export const parseDraftScenesArgs = (args: string[]): ParsedDraftCommandArgs => {
+  const parsed: ParsedDraftCommandArgs = { showHelp: false }
+
+  for (let index = 0; index < args.length; index++) {
+    const argument = args[index]
+
+    switch (argument) {
+      case '-h':
+      case '--help':
+        parsed.showHelp = true
+        break
+      case '--price':
+        parsed.price = true
+        break
+      case '--llm-model': {
+        if (parsed.llmModel) {
+          throw CLIUsageError('LLM model can only be specified once')
+        }
+
+        const llmModel = readFlagValue(args, index, argument)
+        if (!findRegistryServiceForModel('llm', llmModel)) {
+          throw CLIUsageError(
+            `Invalid llm model "${llmModel}". It is not present in the central LLM registry.`
+          )
+        }
+
+        parsed.llmModel = llmModel as ParsedLlmModel
+        index++
+        break
+      }
+      case '--only': {
+        if (parsed.only) {
+          throw CLIUsageError('Only can only be specified once')
+        }
+
+        const only = readFlagValue(args, index, argument)
+        if (!DRAFT_SCENES_ONLY_OPTIONS.has(only)) {
+          throw CLIUsageError(
+            `Invalid only "${only}". Expected one of: ${DRAFT_SCENES_ONLY_VALUES.join(', ')}`
+          )
+        }
+
+        parsed.only = only as NonNullable<ParsedDraftCommandArgs['only']>
+        index++
+        break
+      }
+      case '-e':
+      case '--episode':
+        throw CLIUsageError('--episode was removed. Pass a script file path or NN-SC shorthand: bun autoshow comic draft-scenes 05-01')
+      case '--script':
+        throw CLIUsageError('--script was removed. Pass a script file path or NN-SC shorthand: bun autoshow comic draft-scenes 05-01')
+      case '--concurrency': {
+        if (parsed.concurrency !== undefined) {
+          throw CLIUsageError('Concurrency can only be specified once')
+        }
+
+        parsed.concurrency = parseConcurrencyValue(readFlagValue(args, index, argument))
+        index++
+        break
+      }
+      default: {
+        if (argument && argument.startsWith('-')) {
+          throw CLIUsageError(`Unknown argument: ${argument}`)
+        }
+        if (parsed.scriptPath) {
+          throw CLIUsageError('Script path can only be specified once')
+        }
+        if (argument) {
+          parsed.scriptPath = argument
+        }
+        break
+      }
+    }
+  }
+
+  return parsed
+}
+
+export const parseReferenceSketchArgs = (args: string[], compatibilityCharacterAlias = false): ParsedReferenceSketchArgs => {
+  const parsed: ParsedReferenceSketchArgs = { showHelp: false }
+
+  for (let index = 0; index < args.length; index++) {
+    const argument = args[index]
+
+    switch (argument) {
+      case '-h':
+      case '--help':
+        parsed.showHelp = true
+        break
+      case '--price':
+        parsed.price = true
+        break
+      case '--image':
+        throw CLIUsageError('--image was removed from comic character-sketch. Use --character <key>; legacy sketch directories are not imported.')
+      case '--character': {
+        if (parsed.character) throw CLIUsageError('Character can only be specified once')
+        parsed.character = readFlagValue(args, index, argument)
+        index++
+        break
+      }
+      case '--location': {
+        if (compatibilityCharacterAlias) throw CLIUsageError('comic character-sketch only supports --character; use comic reference-sketch --location <key>')
+        if (parsed.location) throw CLIUsageError('Location can only be specified once')
+        parsed.location = readFlagValue(args, index, argument)
+        index++
+        break
+      }
+      case '--llm-model':
+      case '--qa-model': {
+        const field = argument === '--llm-model' ? 'llmModel' : 'qaModel'
+        if (parsed[field]) throw CLIUsageError(`${argument} can only be specified once`)
+        const model = readFlagValue(args, index, argument)
+        if (!findRegistryServiceForModel('llm', model)) throw CLIUsageError(`Invalid llm model "${model}". It is not present in the central LLM registry.`)
+        parsed[field] = model as ParsedLlmModel
+        index++
+        break
+      }
+      case '--qa':
+        if (parsed.qa !== undefined) throw CLIUsageError('QA can only be specified once')
+        parsed.qa = true
+        break
+      case '--no-qa':
+        if (parsed.qa !== undefined) throw CLIUsageError('QA can only be specified once')
+        parsed.qa = false
+        break
+      case '--max-repairs': {
+        if (parsed.maxRepairs !== undefined) throw CLIUsageError('Max repairs can only be specified once')
+        const value = readFlagValue(args, index, argument)
+        if (!/^\d+$/.test(value)) throw CLIUsageError(`Invalid max repairs "${value}". Expected a non-negative integer.`)
+        parsed.maxRepairs = Number(value)
+        index++
+        break
+      }
+      case '--image-model': {
+        if (parsed.imageModels) {
+          throw CLIUsageError('Image model can only be specified once')
+        }
+
+        parsed.imageModels = parseImageModels(readFlagValue(args, index, argument))
+        if (parsed.imageModels.length !== 1) {
+          throw CLIUsageError('comic reference-sketch accepts exactly one --image-model')
+        }
+        index++
+        break
+      }
+      case '--size': {
+        if (parsed.size) {
+          throw CLIUsageError('Size can only be specified once')
+        }
+
+        const size = readFlagValue(args, index, argument)
+        parsed.size = size as ParsedImageSize
+        index++
+        break
+      }
+      case '--quality': {
+        if (parsed.quality) {
+          throw CLIUsageError('Quality can only be specified once')
+        }
+
+        const quality = readFlagValue(args, index, argument)
+        if (!IMAGE_QUALITY_OPTIONS.has(quality)) {
+          throw CLIUsageError(`Invalid quality "${quality}". Expected one of: low, medium, high, auto`)
+        }
+
+        parsed.quality = quality as ParsedImageQuality
+        index++
+        break
+      }
+      case '-r':
+      case '--revise': {
+        if (parsed.revise) {
+          throw CLIUsageError('Revise can only be specified once')
+        }
+
+        parsed.revise = true
+        break
+      }
+      case '--notes': {
+        if (parsed.notes) {
+          throw CLIUsageError('Notes can only be specified once')
+        }
+
+        parsed.notes = readFlagValue(args, index, argument)
+        index++
+        break
+      }
+      case '--concurrency': {
+        if (parsed.concurrency !== undefined) {
+          throw CLIUsageError('Concurrency can only be specified once')
+        }
+
+        parsed.concurrency = parseConcurrencyValue(readFlagValue(args, index, argument))
+        index++
+        break
+      }
+      default:
+        throw CLIUsageError(`Unknown argument: ${argument}`)
+    }
+  }
+
+  if (!parsed.showHelp && Number(Boolean(parsed.character)) + Number(Boolean(parsed.location)) !== 1) {
+    throw CLIUsageError('Exactly one of --character or --location is required')
+  }
+
+  validateImageSizeForModels(parsed.size, parsed.imageModels)
+
+  if (parsed.revise && !parsed.notes) {
+    throw CLIUsageError('--notes is required when using --revise')
+  }
+
+  if (parsed.notes && !parsed.revise) {
+    throw CLIUsageError('--notes requires --revise')
+  }
+
+  return parsed
+}
+
+export const parseCharacterSketchArgs = (args: string[]): ParsedCharacterSketchArgs =>
+  parseReferenceSketchArgs(args, true) as ParsedCharacterSketchArgs
+
+export const parseGenerateImagesArgs = (args: string[]): ParsedGenerateImagesArgs => {
+  const parsed: ParsedGenerateBaseArgs = { showHelp: false }
+
+  for (let index = 0; index < args.length; index++) {
+    const argument = args[index]
+
+    switch (argument) {
+      case '-h':
+      case '--help':
+        parsed.showHelp = true
+        break
+      case '--price':
+        parsed.price = true
+        break
+      case '--page-qa':
+      case '--qa':
+        if (parsed.qa !== undefined) throw CLIUsageError('QA can only be specified once')
+        parsed.qa = true
+        break
+      case '--no-qa':
+        if (parsed.qa !== undefined) throw CLIUsageError('QA can only be specified once')
+        parsed.qa = false
+        break
+      case '--page-qa-model':
+      case '--qa-model': {
+        if (parsed.qaModel) throw CLIUsageError('QA model can only be specified once')
+        const model = readFlagValue(args, index, argument)
+        if (findRegistryServiceForModel('llm', model) !== 'openai') throw CLIUsageError(`Invalid QA model "${model}". QA currently requires an OpenAI vision-capable LLM.`)
+        parsed.qaModel = model as ParsedLlmModel
+        index++
+        break
+      }
+      case '--max-repairs': {
+        if (parsed.maxRepairs !== undefined) throw CLIUsageError('Max repairs can only be specified once')
+        const value = readFlagValue(args, index, argument)
+        if (!/^\d+$/.test(value)) throw CLIUsageError(`Invalid max repairs "${value}". Expected a non-negative integer.`)
+        parsed.maxRepairs = Number(value)
+        index++
+        break
+      }
+      case '--target': {
+        if (parsed.target) {
+          throw CLIUsageError('Target can only be specified once')
+        }
+
+        const target = readFlagValue(args, index, argument)
+        if (target === 'prompts') {
+          throw CLIUsageError(PANEL_PROMPTS_TARGET_MIGRATION)
+        }
+
+        if (!GENERATE_IMAGES_TARGET_OPTIONS.has(target)) {
+          throw CLIUsageError(
+            `Invalid target "${target}". Expected one of: ${GENERATE_IMAGES_TARGET_VALUES.join(', ')}`
+          )
+        }
+
+        parsed.target = target as NonNullable<ParsedGenerateBaseArgs['target']>
+        index++
+        break
+      }
+      case '--skip-panel-prompts':
+        throw CLIUsageError('--skip-panel-prompts was removed. Panel prompts are now auto-detected and only rebuilt when missing. Use --force to rebuild during image generation, or run "bun autoshow comic draft-scenes <script-path> --only panel-prompts" explicitly.')
+      case '--draft-scenes':
+        throw CLIUsageError('--draft-scenes was removed. Scene drafts are now auto-detected and only rebuilt when missing. Use --force to rebuild existing scene drafts.')
+      case '--llm-model': {
+        if (parsed.llmModel) {
+          throw CLIUsageError('LLM model can only be specified once')
+        }
+
+        const llmModel = readFlagValue(args, index, argument)
+        if (!findRegistryServiceForModel('llm', llmModel)) {
+          throw CLIUsageError(
+            `Invalid llm model "${llmModel}". It is not present in the central LLM registry.`
+          )
+        }
+
+        parsed.llmModel = llmModel as ParsedLlmModel
+        index++
+        break
+      }
+      case '-e':
+      case '--episode':
+        throw CLIUsageError('--episode was removed. Pass a script file path or NN-SC shorthand: bun autoshow comic generate-images 05-01')
+      case '-s':
+      case '--scene':
+        throw CLIUsageError('--scene was removed. Pass a script file path or NN-SC shorthand: bun autoshow comic generate-images 05-01')
+      case '--concurrency': {
+        if (parsed.concurrency !== undefined) {
+          throw CLIUsageError('Concurrency can only be specified once')
+        }
+
+        parsed.concurrency = parseConcurrencyValue(readFlagValue(args, index, argument))
+        index++
+        break
+      }
+      case '--panel':
+        throw CLIUsageError('--panel was removed. Use --panels <n> to select a single panel.')
+      case '--panels': {
+        if (parsed.panels !== undefined) {
+          throw CLIUsageError('Panels can only be specified once')
+        }
+
+        parsed.panels = parsePanelSelector(readFlagValue(args, index, argument))
+        index++
+        break
+      }
+      case '--panel-limit':
+        throw CLIUsageError('--panel-limit was removed. Use --panels <range> to select an explicit range (e.g. --panels 1-4).')
+      case '--panels-per-image': {
+        if (parsed.panelsPerImage !== undefined) {
+          throw CLIUsageError('Panels per image can only be specified once')
+        }
+
+        const panelsPerImage = readFlagValue(args, index, argument)
+        if (!isPositiveInteger(panelsPerImage)) {
+          throw CLIUsageError(`Invalid panels per image "${panelsPerImage}". Expected a positive integer like 1 or ${DEFAULT_PANELS_PER_IMAGE}`)
+        }
+
+        parsed.panelsPerImage = Number(panelsPerImage)
+        index++
+        break
+      }
+      case '--grid': {
+        if (parsed.grid !== undefined) {
+          throw CLIUsageError('Grid can only be specified once')
+        }
+
+        parsed.grid = parseComicGridSpec(readFlagValue(args, index, argument))
+        index++
+        break
+      }
+      case '--chunk':
+        throw CLIUsageError('--chunk was removed. Use --panels <range> with --target sketches instead (e.g. --panels 5-8).')
+      case '--sketch-group-size':
+        throw CLIUsageError(`--sketch-group-size was removed. Sketches are grouped in chunks of ${DEFAULT_PANELS_PER_IMAGE} by default. Use --panels-per-image <n> to change the chunk size or --panels <range> to select specific panels.`)
+      case '--sketch-panels':
+        throw CLIUsageError('--sketch-panels was removed. Use --panels <range> instead (e.g. --panels 1-4).')
+      case '--image-model': {
+        if (parsed.imageModels) {
+          throw CLIUsageError('Image model can only be specified once')
+        }
+
+        parsed.imageModels = parseImageModels(readFlagValue(args, index, argument))
+        index++
+        break
+      }
+      case '--variation': {
+        if (parsed.variations) {
+          throw CLIUsageError('Variation can only be specified once')
+        }
+
+        parsed.variations = parseImagePromptVariations(readFlagValue(args, index, argument))
+        index++
+        break
+      }
+      case '--size': {
+        if (parsed.size) {
+          throw CLIUsageError('Size can only be specified once')
+        }
+
+        const size = readFlagValue(args, index, argument)
+        parsed.size = size as ParsedImageSize
+        index++
+        break
+      }
+      case '--quality': {
+        if (parsed.quality) {
+          throw CLIUsageError('Quality can only be specified once')
+        }
+
+        const quality = readFlagValue(args, index, argument)
+        if (!IMAGE_QUALITY_OPTIONS.has(quality)) {
+          throw CLIUsageError(`Invalid quality "${quality}". Expected one of: low, medium, high, auto`)
+        }
+
+        parsed.quality = quality as ParsedImageQuality
+        index++
+        break
+      }
+      case '-f':
+      case '--force': {
+        if (parsed.force) {
+          throw CLIUsageError('Force can only be specified once')
+        }
+
+        parsed.force = true
+        break
+      }
+      default: {
+        if (argument && argument.startsWith('-')) {
+          throw CLIUsageError(`Unknown argument: ${argument}`)
+        }
+        if (parsed.scriptPath) {
+          throw CLIUsageError('Script path can only be specified once')
+        }
+        if (argument) {
+          parsed.scriptPath = argument
+        }
+        break
+      }
+    }
+  }
+
+  const target = parsed.target ?? 'images'
+  const targetRunsFinalImages = target === 'images' || target === 'both'
+
+  if ((parsed.qa !== undefined || parsed.qaModel || parsed.maxRepairs !== undefined) && !targetRunsFinalImages) throw CLIUsageError('QA options only apply when --target is images or both')
+  if (parsed.grid && parsed.panelsPerImage === undefined) throw CLIUsageError('--grid requires --panels-per-image 1')
+
+  parsed.qa ??= true
+  parsed.qaModel ??= DEFAULT_QA_MODEL as ParsedLlmModel
+  parsed.maxRepairs ??= 2
+
+  if (parsed.variations !== undefined && !targetRunsFinalImages) {
+    throw CLIUsageError('--variation only applies when --target is images or both')
+  }
+
+  validateImageSizeForModels(parsed.size, parsed.imageModels)
+  validateComicGridOptions(parsed.grid, {
+    target,
+    size: parsed.size ?? COMIC_GRID_PANEL_SIZE,
+    panelsPerImage: parsed.panelsPerImage ?? DEFAULT_FINAL_PANELS_PER_IMAGE,
+  })
+
+  return parsed as ParsedGenerateImagesArgs
+}

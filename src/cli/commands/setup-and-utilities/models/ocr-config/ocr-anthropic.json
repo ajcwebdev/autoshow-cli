@@ -1,0 +1,118 @@
+{
+  "anthropic": {
+    "description": "Anthropic Claude OCR via Messages API",
+    "type": "api",
+    "models": {
+      "claude-fable-5": {
+        "description": "Claude Fable 5 OCR",
+        "pricingSourceUrl": "https://platform.claude.com/docs/en/about-claude/pricing?hsLang=en",
+        "pricingCheckedAt": "2026-07-13",
+        "pricingCurrency": "USD",
+        "pricingTier": "Claude API standard token pricing",
+        "pricingNotes": "Anthropic lists Claude Fable 5 at $10/1M input tokens and $50/1M output tokens. Claude Fable 5 requires 30-day data retention and is not available under zero data retention arrangements. Requests without a thinking field run with always-on adaptive thinking. OCR estimates multiply observed token usage by published input/output rates; prompt caching, batch discounts, fast mode, enterprise pricing, taxes, and provider credits are ignored.",
+        "costPerMInputTokensUSD": 10,
+        "costPerMOutputTokensUSD": 50,
+        "costPerMInputTokensCents": 1000,
+        "costPerMOutputTokensCents": 5000,
+        "limits": {
+          "imageBytes": 5242880,
+          "notes": "project/links/claude-general-ocr-text-links.md documents standard unencrypted PDF support, image support for JPEG/PNG/GIF/WebP, Messages/Token Counting request limits, Files API uploads up to 500 MB, and uploaded files persisting until deleted. AutoShow Anthropic OCR uses a conservative 5 MB direct-image cap, sends eligible PDFs through the Files API, falls back to rendered page OCR for larger or failing documents, and rejects encrypted/password-protected PDFs."
+        },
+        "estimation": {
+          "promptTokensPerPage": 2024,
+          "completionTokensPerPage": 869,
+          "costMultiplier": 1,
+          "msPerPage": 11827
+        }
+      },
+      "claude-opus-4-8": {
+        "description": "Claude Opus 4.8 OCR",
+        "pricingSourceUrl": "https://platform.claude.com/docs/en/about-claude/pricing?hsLang=en",
+        "pricingCheckedAt": "2026-05-31",
+        "pricingCurrency": "USD",
+        "pricingTier": "Claude API standard token pricing",
+        "pricingNotes": "Anthropic lists Claude Opus 4.8 at $5/1M input tokens and $25/1M output tokens. OCR estimates multiply observed token usage by these published rates; prompt caching, batch discounts, fast mode, enterprise pricing, taxes, and provider credits are ignored.",
+        "costPerMInputTokensUSD": 5,
+        "costPerMOutputTokensUSD": 25,
+        "costPerMInputTokensCents": 500,
+        "costPerMOutputTokensCents": 2500,
+        "limits": {
+          "imageBytes": 5242880,
+          "notes": "project/links/claude-general-ocr-text-links.md documents standard unencrypted PDF support, image support for JPEG/PNG/GIF/WebP, Messages/Token Counting request limits, Files API uploads up to 500 MB, and uploaded files persisting until deleted. AutoShow Anthropic OCR uses a conservative 5 MB direct-image cap, sends eligible PDFs through the Files API, falls back to rendered page OCR for larger or failing documents, and rejects encrypted/password-protected PDFs."
+        },
+        "estimation": {
+          "costMultiplier": 1,
+          "msPerPage": 7914,
+          "promptTokensPerPage": 1657.5,
+          "completionTokensPerPage": 474.5
+        }
+      },
+      "claude-sonnet-5": {
+        "description": "Claude Sonnet 5 OCR",
+        "pricingSourceUrl": "https://platform.claude.com/docs/en/about-claude/pricing?hsLang=en",
+        "pricingCheckedAt": "2026-07-13",
+        "pricingCurrency": "USD",
+        "pricingTier": "Claude API introductory token pricing through 2026-08-31",
+        "pricingNotes": "Anthropic lists Claude Sonnet 5 introductory pricing at $2/1M input tokens and $10/1M output tokens through 2026-08-31, with standard pricing of $3/1M input tokens and $15/1M output tokens beginning 2026-09-01. OCR estimates currently use the introductory rates; prompt caching, batch discounts, fast mode, enterprise pricing, taxes, and provider credits are ignored.",
+        "costPerMInputTokensUSD": 2,
+        "costPerMOutputTokensUSD": 10,
+        "costPerMInputTokensCents": 200,
+        "costPerMOutputTokensCents": 1000,
+        "limits": {
+          "imageBytes": 5242880,
+          "notes": "project/links/claude-general-ocr-text-links.md documents standard unencrypted PDF support, image support for JPEG/PNG/GIF/WebP, Messages/Token Counting request limits, Files API uploads up to 500 MB, and uploaded files persisting until deleted. AutoShow Anthropic OCR uses a conservative 5 MB direct-image cap, sends eligible PDFs through the Files API, falls back to rendered page OCR for larger or failing documents, and rejects encrypted/password-protected PDFs."
+        },
+        "estimation": {
+          "costMultiplier": 1,
+          "msPerPage": 8679,
+          "promptTokensPerPage": 1657.5,
+          "completionTokensPerPage": 474.5
+        }
+      },
+      "claude-haiku-4-5": {
+        "description": "Claude Haiku 4.5 OCR",
+        "pricingSourceUrl": "https://platform.claude.com/docs/en/about-claude/pricing?hsLang=en",
+        "pricingCheckedAt": "2026-06-30",
+        "pricingCurrency": "USD",
+        "pricingTier": "Claude API standard token pricing",
+        "pricingNotes": "Anthropic lists Claude Haiku 4.5 at $1/1M input tokens and $5/1M output tokens. OCR estimates multiply observed token usage by these published rates; prompt caching, batch discounts, fast mode, enterprise pricing, taxes, and provider credits are ignored.",
+        "costPerMInputTokensUSD": 1,
+        "costPerMOutputTokensUSD": 5,
+        "costPerMInputTokensCents": 100,
+        "costPerMOutputTokensCents": 500,
+        "limits": {
+          "imageBytes": 5242880,
+          "notes": "project/links/claude-general-ocr-text-links.md documents standard unencrypted PDF support, image support for JPEG/PNG/GIF/WebP, Messages/Token Counting request limits, Files API uploads up to 500 MB, and uploaded files persisting until deleted. AutoShow Anthropic OCR uses a conservative 5 MB direct-image cap, sends eligible PDFs through the Files API, falls back to rendered page OCR for larger or failing documents, and rejects encrypted/password-protected PDFs."
+        },
+        "estimation": {
+          "costMultiplier": 1,
+          "msPerPage": 8679,
+          "promptTokensPerPage": 1657.5,
+          "completionTokensPerPage": 474.5
+        }
+      },
+      "claude-opus-5": {
+        "description": "Claude Opus 5 OCR",
+        "pricingSourceUrl": "https://platform.claude.com/docs/en/about-claude/pricing?hsLang=en",
+        "pricingCheckedAt": "2026-07-24",
+        "pricingCurrency": "USD",
+        "pricingTier": "Claude API standard token pricing",
+        "pricingNotes": "Anthropic lists Claude Opus 5 at $5/1M input tokens and $25/1M output tokens, unchanged from Claude Opus 4.8. OCR estimates multiply observed token usage by these published rates. Claude Opus 5 runs with thinking on by default, so the reused Claude Opus 4.8 page heuristics are provisional until a separately approved paid calibration is available. Prompt caching, batch discounts, fast mode, enterprise pricing, taxes, and provider credits are ignored.",
+        "costPerMInputTokensUSD": 5,
+        "costPerMOutputTokensUSD": 25,
+        "costPerMInputTokensCents": 500,
+        "costPerMOutputTokensCents": 2500,
+        "limits": {
+          "imageBytes": 5242880,
+          "notes": "project/links/claude-general-ocr-text-links.md documents standard unencrypted PDF support, image support for JPEG/PNG/GIF/WebP, Messages/Token Counting request limits, Files API uploads up to 500 MB, and uploaded files persisting until deleted. AutoShow Anthropic OCR uses a conservative 5 MB direct-image cap, sends eligible PDFs through the Files API, falls back to rendered page OCR for larger or failing documents, and rejects encrypted/password-protected PDFs."
+        },
+        "estimation": {
+          "costMultiplier": 1,
+          "msPerPage": 7914,
+          "promptTokensPerPage": 1657.5,
+          "completionTokensPerPage": 474.5
+        }
+      }
+    }
+  }
+}

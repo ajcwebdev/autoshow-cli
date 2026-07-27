@@ -1,0 +1,286 @@
+import { mkdir, readdir } from 'node:fs/promises'
+import { dirname, join } from 'node:path'
+import { StructuredScriptDataSchema } from '../schemas/schemas'
+import { parseJsonFile } from './json-prompt-utils'
+import { getPanelPromptCoverageReportPath, getPanelPromptsDirectory, getStructuredScriptPath } from './project-paths'
+import { ValidationError } from '~/utils/error-handler'
+import type { ScenePromptData, SourceCoverageItem, SourceCoverageReport, SourcePromptFile, StructuredScriptSourceSegment } from '~/types'
+const PANEL_DIRECTORY_PATTERN = /^panel-\d+$/
+
+const formatExcerpt = (text: string): string => {
+  const normalized = text.replace(/\s+/g, ' ').trim()
+  return normalized.length > 140 ? `${normalized.slice(0, 137)}...` : normalized
+}
+
+const getSourceCoverageItems = (
+  segment: StructuredScriptSourceSegment
+): SourceCoverageItem[] => {
+  const items: SourceCoverageItem[] = []
+
+  if (segment.speakerLabel) {
+    items.push({
+      id: segment.id,
+      type: segment.type,
+      field: 'speakerLabel',
+      text: segment.speakerLabel,
+    })
+  }
+
+  if (segment.delivery) {
+    items.push({
+      id: segment.id,
+      type: segment.type,
+      field: 'delivery',
+      text: segment.delivery,
+    })
+  }
+
+  items.push({
+    id: segment.id,
+    type: segment.type,
+    field: 'text',
+    text: segment.text,
+  })
+
+  return items.filter(item => item.text.trim().length > 0)
+}
+
+export const validateSceneSourceSegmentCoverage = (
+  sceneData: ScenePromptData,
+  sourceSegments: StructuredScriptSourceSegment[]
+): void => {
+  const validSourceSegmentIds = new Set(sourceSegments.map(segment => segment.id))
+  const coveredSourceSegmentIds = new Set<string>()
+  const unknownSourceSegmentRefs: Array<{ id: string; panelNumber: number }> = []
+
+  for (const panel of sceneData.panels) {
+    const panelSegments: StructuredScriptSourceSegment[] = []
+    for (const sourceSegmentId of panel.sourceSegmentIds) {
+      if (!validSourceSegmentIds.has(sourceSegmentId)) {
+        unknownSourceSegmentRefs.push({ id: sourceSegmentId, panelNumber: panel.number })
+        continue
+      }
+
+      coveredSourceSegmentIds.add(sourceSegmentId)
+      const segment = sourceSegments.find(item => item.id === sourceSegmentId)
+      if (segment) panelSegments.push(segment)
+    }
+    if (sceneData.schemaVersion === 4) {
+      const locationKeys = Array.from(new Set(panelSegments.map(segment => segment.location?.key).filter((key): key is string => Boolean(key))))
+      if (locationKeys.length > 1) {
+        throw ValidationError(`Panel ${panel.number} spans multiple locations (${locationKeys.join(', ')}). Split it at the location transition.`, { stage: 'comic:source-coverage' })
+      }
+      if (locationKeys.length !== 1 || panel.locationKey !== locationKeys[0]) {
+        throw ValidationError(`Panel ${panel.number} locationKey "${panel.locationKey ?? ''}" does not match its source segment location "${locationKeys[0] ?? 'missing'}".`, { stage: 'comic:source-coverage' })
+      }
+    }
+  }
+
+  if (unknownSourceSegmentRefs.length > 0) {
+    const details = unknownSourceSegmentRefs
+      .map(ref => `${ref.id} (panel ${ref.panelNumber})`)
+      .join(', ')
+    throw ValidationError(`Scene JSON references unknown source segment ID(s): ${details}`, { stage: 'comic:source-coverage' })
+  }
+
+  const missingSegments = sourceSegments.filter(segment => !coveredSourceSegmentIds.has(segment.id))
+  if (missingSegments.length > 0) {
+    const details = missingSegments
+      .slice(0, 8)
+      .map(segment => `${segment.id} "${formatExcerpt(segment.text)}"`)
+      .join('; ')
+    const suffix = missingSegments.length > 8 ? `; and ${missingSegments.length - 8} more` : ''
+
+    throw ValidationError(
+      `Scene JSON source coverage incomplete: missing ${missingSegments.length} ` +
+      `source segment(s): ${details}${suffix}`,
+      { stage: 'comic:source-coverage' }
+    )
+  }
+}
+
+export const resolvePanelSourceSegments = (
+  sourceSegmentIds: string[],
+  sourceSegments: StructuredScriptSourceSegment[]
+): StructuredScriptSourceSegment[] => {
+  const segmentById = new Map(sourceSegments.map(segment => [segment.id, segment]))
+
+  return sourceSegmentIds.map(sourceSegmentId => {
+    const sourceSegment = segmentById.get(sourceSegmentId)
+    if (!sourceSegment) {
+      throw ValidationError(`Panel references unknown source segment ID "${sourceSegmentId}"`, { stage: 'comic:source-coverage' })
+    }
+
+    return sourceSegment
+  })
+}
+
+// Each segment reaches the image model with an explicit instruction about whether its
+// text is lettered into the artwork. Without this, staging prose is drawn as caption
+// boxes because a bare type name like "narration" reads as a lettering instruction.
+const LETTERED_SOURCE_SEGMENT_GUIDANCE: Partial<Record<StructuredScriptSourceSegment['type'], string>> = {
+  dialogue: 'Spoken line. Letter this text verbatim in a speech balloon.',
+  narration: 'Authored caption. Letter this text verbatim in a caption box.',
+}
+
+const STAGING_SOURCE_SEGMENT_GUIDANCE = 'Staging direction. Draw what it describes. Never letter any of this text in the image.'
+
+export const getSourceSegmentLetteringGuidance = (
+  type: StructuredScriptSourceSegment['type']
+): string => {
+  return LETTERED_SOURCE_SEGMENT_GUIDANCE[type] ?? STAGING_SOURCE_SEGMENT_GUIDANCE
+}
+
+export const formatSourceSegmentsMarkdown = (
+  sourceSegments: StructuredScriptSourceSegment[]
+): string => {
+  const sections = [
+    '## Source Segments',
+    [
+      'These source-authored script segments must be represented by this panel.',
+      'Follow each segment\'s lettering instruction exactly: text marked as a spoken line or an authored caption is lettered verbatim, and everything else is staging that must be drawn but never written anywhere in the image.',
+    ].join(' '),
+  ]
+
+  if (sourceSegments.length === 0) {
+    sections.push('No source segments are assigned to this panel.')
+    return sections.join('\n\n')
+  }
+
+  for (const segment of sourceSegments) {
+    const headingParts = [
+      `### ${segment.id}`,
+      `Type: ${segment.type}`,
+      ...(segment.beatIndex ? [`Beat: ${segment.beatIndex}`] : []),
+    ]
+    const metadata = [
+      `Lettering: ${getSourceSegmentLetteringGuidance(segment.type)}`,
+      ...(segment.speakerLabel ? [`Speaker Label: ${segment.speakerLabel}`] : []),
+      ...(segment.delivery ? [`Delivery: ${segment.delivery} (acting note — never lettered)`] : []),
+    ]
+
+    sections.push([
+      headingParts.join('\n'),
+      ...metadata,
+      '',
+      '```text',
+      segment.text,
+      '```',
+    ].join('\n'))
+  }
+
+  return sections.join('\n\n')
+}
+
+export const verifySourceSegmentCoverageInPromptFiles = (
+  sourceSegments: StructuredScriptSourceSegment[],
+  promptFiles: SourcePromptFile[]
+): SourceCoverageReport => {
+  const combinedPromptContent = promptFiles.map(promptFile => promptFile.content).join('\n\n')
+  const missingItems = sourceSegments
+    .flatMap(getSourceCoverageItems)
+    .filter(item => !combinedPromptContent.includes(item.text))
+    .map(item => ({
+      id: item.id,
+      type: item.type,
+      field: item.field,
+      excerpt: formatExcerpt(item.text),
+    }))
+
+  const missingSegmentIds = new Set(missingItems.map(item => item.id))
+  const missingSegments = sourceSegments
+    .filter(segment => missingSegmentIds.has(segment.id))
+    .map(segment => ({
+      id: segment.id,
+      type: segment.type,
+      excerpt: formatExcerpt(segment.text),
+    }))
+
+  return {
+    complete: missingItems.length === 0,
+    totalSegments: sourceSegments.length,
+    coveredSegments: sourceSegments.length - missingSegments.length,
+    missingSegments,
+    missingItems,
+    promptFiles: promptFiles.map(promptFile => promptFile.path),
+  }
+}
+
+const formatPromptCoverageError = (report: SourceCoverageReport): string => {
+  const details = report.missingItems
+    .slice(0, 8)
+    .map(item => `${item.id}.${item.field} "${item.excerpt}"`)
+    .join('; ')
+  const suffix = report.missingItems.length > 8
+    ? `; and ${report.missingItems.length - 8} more`
+    : ''
+
+  return (
+    `Panel prompt source coverage incomplete: missing ${report.missingItems.length} ` +
+    `source text item(s): ${details}${suffix}`
+  )
+}
+
+export const assertSourceCoverageReportComplete = (
+  report: SourceCoverageReport
+): void => {
+  if (!report.complete) {
+    throw ValidationError(formatPromptCoverageError(report), { stage: 'comic:source-coverage' })
+  }
+}
+
+const readPanelPromptFiles = async (sceneSlug: string): Promise<SourcePromptFile[]> => {
+  const panelPromptsDirectory = getPanelPromptsDirectory(sceneSlug)
+  const sceneEntries = await readdir(panelPromptsDirectory, { withFileTypes: true })
+  const panelDirectories = sceneEntries
+    .filter(entry => entry.isDirectory() && PANEL_DIRECTORY_PATTERN.test(entry.name))
+    .sort((left, right) => left.name.localeCompare(right.name))
+  const promptFiles: SourcePromptFile[] = []
+
+  for (const panelDirectoryEntry of panelDirectories) {
+    const panelDirectory = join(panelPromptsDirectory, panelDirectoryEntry.name)
+    const panelEntries = await readdir(panelDirectory, { withFileTypes: true })
+    const markdownFiles = panelEntries
+      .filter(entry => entry.isFile() && entry.name.endsWith('.md'))
+      .sort((left, right) => left.name.localeCompare(right.name))
+
+    for (const markdownFile of markdownFiles) {
+      const promptPath = join(panelDirectory, markdownFile.name)
+      promptFiles.push({
+        path: promptPath,
+        content: await Bun.file(promptPath).text(),
+      })
+    }
+  }
+
+  return promptFiles
+}
+
+const verifyPanelPromptSourceCoverage = async (
+  sceneSlug: string
+): Promise<SourceCoverageReport> => {
+  const structuredScript = await parseJsonFile(
+    getStructuredScriptPath(sceneSlug),
+    StructuredScriptDataSchema,
+  )
+  const promptFiles = await readPanelPromptFiles(sceneSlug)
+  return verifySourceSegmentCoverageInPromptFiles(structuredScript.sourceSegments, promptFiles)
+}
+
+export const writePanelPromptCoverageReport = async (
+  sceneSlug: string,
+  report: SourceCoverageReport
+): Promise<void> => {
+  const reportPath = getPanelPromptCoverageReportPath(sceneSlug)
+  await mkdir(dirname(reportPath), { recursive: true })
+  await Bun.write(reportPath, JSON.stringify(report, null, 2))
+}
+
+export const assertPanelPromptSourceCoverage = async (
+  sceneSlug: string
+): Promise<SourceCoverageReport> => {
+  const report = await verifyPanelPromptSourceCoverage(sceneSlug)
+  await writePanelPromptCoverageReport(sceneSlug, report)
+  assertSourceCoverageReportComplete(report)
+  return report
+}

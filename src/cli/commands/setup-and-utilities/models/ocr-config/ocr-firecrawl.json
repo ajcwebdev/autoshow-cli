@@ -1,0 +1,25 @@
+{
+  "firecrawl": {
+    "description": "Firecrawl hosted article extraction",
+    "type": "api",
+    "models": {
+      "firecrawl": {
+        "description": "Firecrawl /scrape markdown extraction estimated at the Standard plan effective credit rate",
+        "pricingSourceUrl": "https://www.firecrawl.dev/pricing",
+        "pricingCheckedAt": "2026-05-31",
+        "pricingCurrency": "USD",
+        "pricingTier": "Standard monthly credit reference rate",
+        "pricingNotes": "Firecrawl Standard is $83/month for 100,000 credits and /scrape uses 1 credit/page for the base markdown scrape. The estimate is a base/reference heuristic because advanced formats, enhanced mode, agents, browser actions, and other options can consume extra credits. Free credits, annual discounts, enterprise pricing, taxes, and provider credits are ignored.",
+        "costPer1kPagesUSD": 0.83,
+        "costPer1kPagesCents": 83,
+        "limits": {
+          "notes": "No Firecrawl article-extraction file-size or page-count limits were found in project/links/all-all-links.md."
+        },
+        "estimation": {
+          "costMultiplier": 1,
+          "msPerPage": 315
+        }
+      }
+    }
+  }
+}

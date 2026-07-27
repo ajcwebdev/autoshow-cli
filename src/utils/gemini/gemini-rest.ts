@@ -1,0 +1,538 @@
+import { basename } from 'node:path'
+import type { GeminiContent, GeminiFile, GeminiGenerateContentResponse, GeminiGeneratedVideo, GeminiInlineMedia, GeminiPart, GeminiVideo, GeminiVideoImageMedia, GeminiVideoOperation, GeminiVideoReferenceImage } from '~/types'
+import { buildCaptureMetadata, redactPayloadPreview } from '~/utils/bounded-capture'
+import { AppError, InfraError, ValidationError } from '~/utils/error-handler'
+import { sanitizeLogText } from '~/utils/app-logger/redaction'
+import { readRestResponseText } from '~/utils/rest-client'
+
+const GEMINI_API_BASE_URL = 'https://generativelanguage.googleapis.com'
+const GEMINI_API_VERSION = 'v1beta'
+const GEMINI_UPLOAD_CHUNK_BYTES = 8 * 1024 * 1024
+
+export class GeminiRestError extends Error {
+  status: number
+  headers: Headers
+  body: unknown
+  bodyBytes?: number | undefined
+  bodyTruncated?: boolean | undefined
+  bodyPreview?: string | undefined
+
+  constructor(message: string, status: number, headers: Headers, body: unknown) {
+    super(message)
+    this.name = 'GeminiRestError'
+    this.status = status
+    this.headers = headers
+    this.body = body
+  }
+}
+
+const isRecord = (value: unknown): value is Record<string, unknown> =>
+  typeof value === 'object' && value !== null
+
+const parseJsonOrText = (text: string): unknown => {
+  if (text.trim().length === 0) {
+    return {}
+  }
+  try {
+    return JSON.parse(text) as unknown
+  } catch {
+    return text
+  }
+}
+
+const buildGeminiUrl = (path: string, params?: Record<string, string>): string => {
+  const normalizedPath = path.startsWith('/') ? path.slice(1) : path
+  const url = new URL(`${GEMINI_API_BASE_URL}/${normalizedPath}`)
+  for (const [key, value] of Object.entries(params ?? {})) {
+    url.searchParams.set(key, value)
+  }
+  return url.toString()
+}
+
+const buildV1BetaUrl = (path: string, params?: Record<string, string>): string =>
+  buildGeminiUrl(`${GEMINI_API_VERSION}/${path}`, params)
+
+const createGeminiRestError = (
+  parsed: unknown,
+  status: number,
+  headers: Headers,
+  captured: Awaited<ReturnType<typeof readRestResponseText>>
+): GeminiRestError => {
+  const error = new GeminiRestError(
+    formatGeminiErrorMessage(parsed, status),
+    status,
+    headers,
+    redactPayloadPreview(parsed)
+  )
+  error.bodyBytes = captured.totalBytes
+  error.bodyTruncated = captured.truncated
+  error.bodyPreview = captured.sanitizedPreview
+  Object.assign(error, buildCaptureMetadata(captured))
+  return error
+}
+
+const geminiJsonRequest = async (
+  apiKey: string,
+  path: string,
+  init: {
+    method: 'GET' | 'POST' | 'DELETE'
+    body?: unknown
+    headers?: ConstructorParameters<typeof Headers>[0] | undefined
+    query?: Record<string, string> | undefined
+    apiVersionPath?: boolean | undefined
+    abortSignal?: AbortSignal | undefined
+  }
+): Promise<{ json: unknown, headers: Headers, status: number }> => {
+  const url = init.apiVersionPath === false
+    ? buildGeminiUrl(path, init.query)
+    : buildV1BetaUrl(path, init.query)
+  const headers = new Headers(init.headers)
+  headers.set('x-goog-api-key', apiKey)
+  if (init.body !== undefined && !headers.has('content-type')) {
+    headers.set('content-type', 'application/json')
+  }
+
+  const response = await fetch(url, {
+    method: init.method,
+    headers,
+    ...(init.body !== undefined ? { body: typeof init.body === 'string' ? init.body : JSON.stringify(init.body) } : {}),
+    ...(init.abortSignal ? { signal: init.abortSignal } : {})
+  })
+  const captured = await readRestResponseText(response)
+  const text = captured.text
+  const parsed = captured.truncated ? captured.sanitizedPreview : parseJsonOrText(text)
+  if (!response.ok) {
+    throw createGeminiRestError(parsed, response.status, response.headers, captured)
+  }
+  if (captured.truncated) {
+    throw new AppError(`Gemini API response exceeded the ${captured.retainedBytes.toLocaleString()} byte response capture limit`, {
+      kind: 'validation',
+      status: response.status,
+      metadata: buildCaptureMetadata(captured)
+    })
+  }
+  if (typeof parsed === 'string') {
+    throw new AppError(`Gemini API returned invalid JSON: ${sanitizeLogText(parsed.slice(0, 500))}`, {
+      kind: 'validation',
+      status: response.status,
+      metadata: buildCaptureMetadata(captured)
+    })
+  }
+  return { json: parsed, headers: response.headers, status: response.status }
+}
+
+const geminiBinaryRequest = async (
+  apiKey: string,
+  path: string,
+  query?: Record<string, string>
+): Promise<{ bytes: Uint8Array, headers: Headers, status: number }> => {
+  const url = buildV1BetaUrl(path, query)
+  const response = await fetch(url, {
+    method: 'GET',
+    headers: {
+      'x-goog-api-key': apiKey
+    }
+  })
+  if (!response.ok) {
+    const captured = await readRestResponseText(response)
+    const parsed = captured.truncated ? captured.sanitizedPreview : parseJsonOrText(captured.text)
+    throw createGeminiRestError(parsed, response.status, response.headers, captured)
+  }
+  return {
+    bytes: new Uint8Array(await response.arrayBuffer()),
+    headers: response.headers,
+    status: response.status
+  }
+}
+
+const formatGeminiErrorMessage = (body: unknown, status: number): string => {
+  if (isRecord(body) && isRecord(body['error'])) {
+    const error = body['error']
+    const message = typeof error['message'] === 'string' ? error['message'] : JSON.stringify(body)
+    const code = typeof error['code'] === 'number' ? error['code'] : status
+    return `Gemini API request failed with status ${code}: ${sanitizeLogText(message)}`
+  }
+  if (typeof body === 'string' && body.length > 0) {
+    return `Gemini API request failed with status ${status}: ${sanitizeLogText(body)}`
+  }
+  return `Gemini API request failed with status ${status}`
+}
+
+const normalizeGeminiModelPath = (model: string): string => {
+  if (!model || model.includes('..') || model.includes('?') || model.includes('&')) {
+    throw ValidationError('invalid Gemini model parameter', { stage: 'gemini:rest' })
+  }
+  return model.startsWith('models/') || model.startsWith('tunedModels/')
+    ? model
+    : `models/${model}`
+}
+
+const encodePath = (path: string): string =>
+  path.split('/').map((part) => encodeURIComponent(part)).join('/')
+
+export const geminiFileDataPart = (uri: string, mimeType: string): GeminiPart => ({
+  fileData: {
+    fileUri: uri,
+    mimeType
+  }
+})
+
+export const geminiUserContent = (parts: Array<GeminiPart | string>): GeminiContent => ({
+  role: 'user',
+  parts: parts.map((part) => typeof part === 'string' ? { text: part } : part)
+})
+
+const normalizeGeminiContents = (
+  contents: string | GeminiPart | GeminiContent | Array<string | GeminiPart | GeminiContent>
+): GeminiContent[] => {
+  if (typeof contents === 'string') {
+    return [geminiUserContent([contents])]
+  }
+  if (isRecord(contents) && Array.isArray(contents['parts'])) {
+    return [contents as GeminiContent]
+  }
+  if (!Array.isArray(contents)) {
+    return [geminiUserContent([contents as GeminiPart])]
+  }
+  if (contents.length > 0 && isRecord(contents[0]) && Array.isArray((contents[0] as Record<string, unknown>)['parts'])) {
+    return contents as GeminiContent[]
+  }
+  return [geminiUserContent(contents as Array<string | GeminiPart>)]
+}
+
+const extractGeminiResponseText = (response: GeminiGenerateContentResponse): string | undefined => {
+  const parts = response.candidates?.[0]?.content?.parts ?? []
+  let text = ''
+  let found = false
+  for (const part of parts) {
+    if (part.thought === true || typeof part.text !== 'string') {
+      continue
+    }
+    found = true
+    text += part.text
+  }
+  return found ? text : undefined
+}
+
+export const geminiGenerateContent = async (
+  apiKey: string,
+  params: {
+    model: string
+    contents: string | GeminiPart | GeminiContent | Array<string | GeminiPart | GeminiContent>
+    generationConfig?: Record<string, unknown> | undefined
+    tools?: unknown[] | undefined
+    systemInstruction?: string | GeminiContent | undefined
+    abortSignal?: AbortSignal | undefined
+  }
+): Promise<GeminiGenerateContentResponse> => {
+  const body: Record<string, unknown> = {
+    contents: normalizeGeminiContents(params.contents)
+  }
+  if (params.generationConfig) {
+    body['generationConfig'] = params.generationConfig
+  }
+  if (params.tools) {
+    body['tools'] = params.tools
+  }
+  if (params.systemInstruction) {
+    body['systemInstruction'] = typeof params.systemInstruction === 'string'
+      ? { parts: [{ text: params.systemInstruction }] }
+      : params.systemInstruction
+  }
+  const modelPath = normalizeGeminiModelPath(params.model)
+  const { json, headers, status } = await geminiJsonRequest(apiKey, `${encodePath(modelPath)}:generateContent`, {
+    method: 'POST',
+    body,
+    ...(params.abortSignal ? { abortSignal: params.abortSignal } : {})
+  })
+  const response = isRecord(json) ? json as GeminiGenerateContentResponse : {}
+  response.text = extractGeminiResponseText(response)
+  response.sdkHttpResponse = { headers, status }
+  return response
+}
+
+export const geminiPredictLongRunning = async (
+  apiKey: string,
+  params: {
+    model: string
+    prompt?: string | undefined
+    numberOfVideos: number
+    durationSeconds: number
+    resolution: string
+    aspectRatio?: string | undefined
+    image?: GeminiVideoImageMedia | undefined
+    lastFrame?: GeminiInlineMedia | undefined
+    referenceImages?: GeminiVideoReferenceImage[] | undefined
+    video?: GeminiInlineMedia | undefined
+  }
+): Promise<GeminiVideoOperation> => {
+  const body: Record<string, unknown> = {
+    instances: [{
+      ...(params.prompt !== undefined ? { prompt: params.prompt } : {}),
+      ...(params.image ? { image: params.image } : {}),
+      ...(params.lastFrame ? { lastFrame: params.lastFrame } : {}),
+      ...(params.referenceImages && params.referenceImages.length > 0 ? { referenceImages: params.referenceImages } : {}),
+      ...(params.video ? { video: params.video } : {})
+    }],
+    parameters: {
+      sampleCount: params.numberOfVideos,
+      durationSeconds: params.durationSeconds,
+      resolution: params.resolution,
+      ...(params.aspectRatio ? { aspectRatio: params.aspectRatio } : {})
+    }
+  }
+  const modelPath = normalizeGeminiModelPath(params.model)
+  const { json } = await geminiJsonRequest(apiKey, `${encodePath(modelPath)}:predictLongRunning`, {
+    method: 'POST',
+    body
+  })
+  return normalizeGeminiVideoOperation(json)
+}
+
+export const geminiGetOperation = async (
+  apiKey: string,
+  operationName: string
+): Promise<GeminiVideoOperation> => {
+  const { json } = await geminiJsonRequest(apiKey, encodePath(operationName), {
+    method: 'GET'
+  })
+  return normalizeGeminiVideoOperation(json)
+}
+
+const normalizeGeminiVideoOperation = (value: unknown): GeminiVideoOperation => {
+  const raw = isRecord(value) ? value : {}
+  const operation: GeminiVideoOperation = {
+    ...(typeof raw['name'] === 'string' ? { name: raw['name'] } : {}),
+    ...(typeof raw['done'] === 'boolean' ? { done: raw['done'] } : {}),
+    ...(raw['metadata'] !== undefined ? { metadata: raw['metadata'] } : {}),
+    ...(raw['error'] !== undefined ? { error: raw['error'] } : {})
+  }
+  const response = isRecord(raw['response']) ? raw['response'] : undefined
+  const generateVideoResponse = response && isRecord(response['generateVideoResponse'])
+    ? response['generateVideoResponse']
+    : response
+  if (generateVideoResponse) {
+    const samples = Array.isArray(generateVideoResponse['generatedSamples'])
+      ? generateVideoResponse['generatedSamples']
+      : Array.isArray(generateVideoResponse['generatedVideos'])
+        ? generateVideoResponse['generatedVideos']
+        : []
+    operation.response = {
+      generatedVideos: samples
+        .map((sample): GeminiGeneratedVideo | undefined => {
+          if (!isRecord(sample)) return undefined
+          if (isRecord(sample['video'])) {
+            return { video: normalizeGeminiVideo(sample['video']) }
+          }
+          if (isRecord(sample['_self'])) {
+            return { video: normalizeGeminiVideo(sample['_self']) }
+          }
+          return undefined
+        })
+        .filter((video): video is GeminiGeneratedVideo => video !== undefined),
+      ...(generateVideoResponse['raiMediaFilteredCount'] !== undefined ? { raiMediaFilteredCount: generateVideoResponse['raiMediaFilteredCount'] } : {}),
+      ...(generateVideoResponse['raiMediaFilteredReasons'] !== undefined ? { raiMediaFilteredReasons: generateVideoResponse['raiMediaFilteredReasons'] } : {})
+    }
+  }
+  return operation
+}
+
+const normalizeGeminiVideo = (raw: Record<string, unknown>): GeminiVideo => ({
+  ...(typeof raw['uri'] === 'string' ? { uri: raw['uri'] } : {}),
+  ...(typeof raw['encodedVideo'] === 'string' ? { videoBytes: raw['encodedVideo'] } : {}),
+  ...(typeof raw['videoBytes'] === 'string' ? { videoBytes: raw['videoBytes'] } : {}),
+  ...(typeof raw['encoding'] === 'string' ? { mimeType: raw['encoding'] } : {}),
+  ...(typeof raw['mimeType'] === 'string' ? { mimeType: raw['mimeType'] } : {})
+})
+
+export const geminiUploadFile = async (
+  apiKey: string,
+  filePath: string,
+  config: {
+    mimeType: string
+    displayName?: string | undefined
+    name?: string | undefined
+    abortSignal?: AbortSignal | undefined
+  }
+): Promise<GeminiFile> => {
+  const file = Bun.file(filePath)
+  const sizeBytes = file.size
+  const uploadFileName = basename(filePath)
+  const fileMetadata: Record<string, unknown> = {
+    mimeType: config.mimeType,
+    sizeBytes: String(sizeBytes),
+    ...(config.displayName ? { displayName: config.displayName } : {}),
+    ...(config.name ? { name: config.name.startsWith('files/') ? config.name : `files/${config.name}` } : {})
+  }
+  const startUrl = buildGeminiUrl('upload/v1beta/files')
+  const startResponse = await fetch(startUrl, {
+    method: 'POST',
+    headers: {
+      'content-type': 'application/json',
+      'x-goog-api-key': apiKey,
+      'x-goog-upload-protocol': 'resumable',
+      'x-goog-upload-command': 'start',
+      'x-goog-upload-header-content-length': String(sizeBytes),
+      'x-goog-upload-header-content-type': config.mimeType,
+      ...(uploadFileName ? { 'x-goog-upload-file-name': uploadFileName } : {})
+    },
+    body: JSON.stringify({ file: fileMetadata }),
+    ...(config.abortSignal ? { signal: config.abortSignal } : {})
+  })
+  if (!startResponse.ok) {
+    const captured = await readRestResponseText(startResponse)
+    const parsed = captured.truncated ? captured.sanitizedPreview : parseJsonOrText(captured.text)
+    throw createGeminiRestError(parsed, startResponse.status, startResponse.headers, captured)
+  }
+  const uploadUrl = startResponse.headers.get('x-goog-upload-url')
+  if (!uploadUrl) {
+    throw InfraError('Failed to get Gemini upload URL. Server did not return x-goog-upload-url.', { stage: 'gemini:rest' })
+  }
+
+  let offset = 0
+  let finalResponse: Response | undefined
+  while (offset < sizeBytes) {
+    const chunkSize = Math.min(GEMINI_UPLOAD_CHUNK_BYTES, sizeBytes - offset)
+    const command = offset + chunkSize >= sizeBytes ? 'upload, finalize' : 'upload'
+    const chunk = await file.slice(offset, offset + chunkSize).arrayBuffer()
+    finalResponse = await fetch(uploadUrl, {
+      method: 'POST',
+      headers: {
+        'x-goog-api-key': apiKey,
+        'x-goog-upload-command': command,
+        'x-goog-upload-offset': String(offset),
+        'x-goog-upload-file-name': uploadFileName,
+        'content-length': String(chunkSize)
+      },
+      body: chunk,
+      ...(config.abortSignal ? { signal: config.abortSignal } : {})
+    })
+    if (!finalResponse.ok) {
+      const captured = await readRestResponseText(finalResponse)
+      const parsed = captured.truncated ? captured.sanitizedPreview : parseJsonOrText(captured.text)
+      throw createGeminiRestError(parsed, finalResponse.status, finalResponse.headers, captured)
+    }
+    offset += chunkSize
+    const uploadStatus = finalResponse.headers.get('x-goog-upload-status')
+    if (uploadStatus !== 'active') {
+      break
+    }
+  }
+
+  if (!finalResponse) {
+    throw InfraError('Gemini Files API upload did not upload any content.', { stage: 'gemini:rest' })
+  }
+  const uploadStatus = finalResponse.headers.get('x-goog-upload-status')
+  const captured = await readRestResponseText(finalResponse)
+  const parsed = captured.truncated ? captured.sanitizedPreview : parseJsonOrText(captured.text)
+  if (uploadStatus !== 'final') {
+    throw InfraError('Failed to upload Gemini file: upload status is not finalized.', { stage: 'gemini:rest' })
+  }
+  if (captured.truncated) {
+    throw new AppError(`Gemini Files API upload response exceeded the ${captured.retainedBytes.toLocaleString()} byte response capture limit`, {
+      kind: 'validation',
+      status: finalResponse.status,
+      metadata: buildCaptureMetadata(captured)
+    })
+  }
+  if (typeof parsed === 'string') {
+    throw new AppError(`Gemini Files API upload returned invalid JSON: ${sanitizeLogText(parsed.slice(0, 500))}`, {
+      kind: 'validation',
+      status: finalResponse.status,
+      metadata: buildCaptureMetadata(captured)
+    })
+  }
+  if (isRecord(parsed) && isRecord(parsed['file'])) {
+    return parsed['file'] as GeminiFile
+  }
+  throw ValidationError('Gemini Files API upload did not return file metadata.', { stage: 'gemini:rest' })
+}
+
+export const getGeminiFileState = (file: unknown): string | undefined => {
+  if (!isRecord(file)) {
+    return undefined
+  }
+  const state = file['state']
+  if (typeof state === 'string') {
+    return state.toUpperCase()
+  }
+  if (isRecord(state) && typeof state['name'] === 'string') {
+    return state['name'].toUpperCase()
+  }
+  return undefined
+}
+
+export const geminiGetFile = async (
+  apiKey: string,
+  name: string
+): Promise<GeminiFile> => {
+  const { json } = await geminiJsonRequest(apiKey, `files/${encodeURIComponent(extractGeminiFileName(name))}`, {
+    method: 'GET'
+  })
+  return isRecord(json) ? json as GeminiFile : {}
+}
+
+export const geminiDeleteFile = async (
+  apiKey: string,
+  name: string
+): Promise<void> => {
+  await geminiJsonRequest(apiKey, `files/${encodeURIComponent(extractGeminiFileName(name))}`, {
+    method: 'DELETE'
+  })
+}
+
+export const geminiDownloadFile = async (
+  apiKey: string,
+  file: string | GeminiVideo | GeminiGeneratedVideo,
+  downloadPath: string
+): Promise<void> => {
+  const inlineVideoBytes = extractInlineVideoBytes(file)
+  if (inlineVideoBytes) {
+    await Bun.write(downloadPath, Buffer.from(inlineVideoBytes, 'base64'))
+    return
+  }
+  const name = extractGeminiFileNameFromFile(file)
+  const response = await geminiBinaryRequest(apiKey, `files/${encodeURIComponent(name)}:download`, { alt: 'media' })
+  await Bun.write(downloadPath, response.bytes)
+}
+
+const extractInlineVideoBytes = (file: string | GeminiVideo | GeminiGeneratedVideo): string | undefined => {
+  if (typeof file === 'string') {
+    return undefined
+  }
+  if ('videoBytes' in file && typeof file.videoBytes === 'string') {
+    return file.videoBytes
+  }
+  if ('video' in file && isRecord(file.video) && typeof file.video['videoBytes'] === 'string') {
+    return file.video['videoBytes']
+  }
+  return undefined
+}
+
+const extractGeminiFileNameFromFile = (file: string | GeminiVideo | GeminiGeneratedVideo): string => {
+  if (typeof file === 'string') {
+    return extractGeminiFileName(file)
+  }
+  if ('uri' in file && typeof file.uri === 'string') {
+    return extractGeminiFileName(file.uri)
+  }
+  if ('video' in file && isRecord(file.video) && typeof file.video['uri'] === 'string') {
+    return extractGeminiFileName(file.video['uri'])
+  }
+  throw ValidationError('Could not extract Gemini file name from generated media.', { stage: 'gemini:rest' })
+}
+
+const extractGeminiFileName = (name: string): string => {
+  if (name.startsWith('https://')) {
+    const suffix = name.split('files/')[1]
+    const match = suffix?.match(/^[A-Za-z0-9_-]+/)
+    if (!match) {
+      throw ValidationError(`Could not extract Gemini file name from URI ${name}`, { stage: 'gemini:rest' })
+    }
+    return match[0] as string
+  }
+  if (name.startsWith('files/')) {
+    return name.slice('files/'.length)
+  }
+  return name
+}

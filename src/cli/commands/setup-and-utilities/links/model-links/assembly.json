@@ -1,0 +1,11 @@
+{
+  "Assembly": {
+    "Models": [
+      "https://www.assemblyai.com/docs/pre-recorded-audio/universal-3-pro.md"
+    ],
+    "STT": [
+      "https://www.assemblyai.com/docs/api-reference/transcripts/submit.md",
+      "https://www.assemblyai.com/docs/api-reference/transcripts/get.md"
+    ]
+  }
+}

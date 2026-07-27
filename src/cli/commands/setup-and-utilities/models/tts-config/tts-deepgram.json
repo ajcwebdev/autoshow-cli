@@ -1,0 +1,78 @@
+{
+  "deepgram": {
+    "description": "Deepgram Aura cloud text-to-speech",
+    "type": "api",
+    "models": {
+      "aura-2-thalia-en": {
+        "description": "Aura-2 Thalia English voice",
+        "pricingSourceUrl": "https://deepgram.com/pricing",
+        "pricingCheckedAt": "2026-05-31",
+        "pricingCurrency": "USD",
+        "pricingTier": "Deepgram Aura API pay-as-you-go TTS pricing",
+        "pricingNotes": "Deepgram Aura-2 TTS estimates use the published $0.03/1K characters rate. Free credits, committed-use discounts, enterprise pricing, taxes, and provider credits are ignored.",
+        "costPer1kCharsUSD": 0.03,
+        "costPer1kCharsCents": 3,
+        "estimation": {
+          "costMultiplier": 1,
+          "msPer1KChars": 54432
+        }
+      },
+      "aura-2-andromeda-en": {
+        "description": "Aura-2 Andromeda English voice",
+        "pricingSourceUrl": "https://deepgram.com/pricing",
+        "pricingCheckedAt": "2026-05-31",
+        "pricingCurrency": "USD",
+        "pricingTier": "Deepgram Aura API pay-as-you-go TTS pricing",
+        "pricingNotes": "Deepgram Aura-2 TTS estimates use the published $0.03/1K characters rate. Free credits, committed-use discounts, enterprise pricing, taxes, and provider credits are ignored.",
+        "costPer1kCharsUSD": 0.03,
+        "costPer1kCharsCents": 3,
+        "estimation": {
+          "costMultiplier": 1,
+          "msPer1KChars": 34494
+        }
+      },
+      "aura-2-apollo-en": {
+        "description": "Aura-2 Apollo English voice",
+        "pricingSourceUrl": "https://deepgram.com/pricing",
+        "pricingCheckedAt": "2026-05-31",
+        "pricingCurrency": "USD",
+        "pricingTier": "Deepgram Aura API pay-as-you-go TTS pricing",
+        "pricingNotes": "Deepgram Aura-2 TTS estimates use the published $0.03/1K characters rate. Free credits, committed-use discounts, enterprise pricing, taxes, and provider credits are ignored.",
+        "costPer1kCharsUSD": 0.03,
+        "costPer1kCharsCents": 3,
+        "estimation": {
+          "costMultiplier": 1,
+          "msPer1KChars": 36224
+        }
+      },
+      "aura-2-luna-en": {
+        "description": "Aura-2 Luna English voice",
+        "pricingSourceUrl": "https://deepgram.com/pricing",
+        "pricingCheckedAt": "2026-05-31",
+        "pricingCurrency": "USD",
+        "pricingTier": "Deepgram Aura API pay-as-you-go TTS pricing",
+        "pricingNotes": "Deepgram Aura-2 TTS estimates use the published $0.03/1K characters rate. Free credits, committed-use discounts, enterprise pricing, taxes, and provider credits are ignored.",
+        "costPer1kCharsUSD": 0.03,
+        "costPer1kCharsCents": 3,
+        "estimation": {
+          "costMultiplier": 1,
+          "msPer1KChars": 35297
+        }
+      },
+      "aura-2-orion-en": {
+        "description": "Aura-2 Orion English voice",
+        "pricingSourceUrl": "https://deepgram.com/pricing",
+        "pricingCheckedAt": "2026-05-31",
+        "pricingCurrency": "USD",
+        "pricingTier": "Deepgram Aura API pay-as-you-go TTS pricing",
+        "pricingNotes": "Deepgram Aura-2 TTS estimates use the published $0.03/1K characters rate. Free credits, committed-use discounts, enterprise pricing, taxes, and provider credits are ignored.",
+        "costPer1kCharsUSD": 0.03,
+        "costPer1kCharsCents": 3,
+        "estimation": {
+          "costMultiplier": 1,
+          "msPer1KChars": 37747
+        }
+      }
+    }
+  }
+}

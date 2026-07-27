@@ -1,0 +1,142 @@
+{
+  "schemaVersion": 1,
+  "runDir": "/Users/ajc/c/autoshow-cli/docs/benchmarks/ocr/2026-05-21_05-55-32-490_document",
+  "thresholds": {
+    "majorLengthDrift": 0.3,
+    "highDisagreementFloor": 0.18,
+    "highDisagreementIqrMultiplier": 1.5,
+    "werCerDivergence": 0.16,
+    "lowConfidence": 0.72,
+    "repeatedDominantLineShare": 0.5,
+    "repeatedDominantLineMinimum": 4,
+    "repeatedTokenWindowSize": 8,
+    "repeatedTokenWindowMinimum": 6,
+    "repeatedTokenWindowShare": 0.35,
+    "highDisagreement": 0.2950435,
+    "pageDisagreementQ1": 0.230361,
+    "pageDisagreementQ3": 0.256234
+  },
+  "blankOutputPages": [
+    {
+      "pageNumber": 1,
+      "selectedProviderKey": "mistral/mistral-ocr-4-0",
+      "selectedConfidence": 0.637658,
+      "pageDisagreement": 0.256234,
+      "reason": "blank provider output"
+    },
+    {
+      "pageNumber": 2,
+      "selectedProviderKey": "mistral/mistral-ocr-4-0",
+      "selectedConfidence": 0.690187,
+      "pageDisagreement": 0.226748,
+      "reason": "blank provider output"
+    },
+    {
+      "pageNumber": 3,
+      "selectedProviderKey": "anthropic/claude-opus-4-8",
+      "selectedConfidence": 0.689012,
+      "pageDisagreement": 0.230361,
+      "reason": "blank provider output"
+    },
+    {
+      "pageNumber": 4,
+      "selectedProviderKey": "anthropic/claude-haiku-4-5",
+      "selectedConfidence": 0.684846,
+      "pageDisagreement": 0.233447,
+      "reason": "blank provider output"
+    }
+  ],
+  "repeatedTextPages": [],
+  "majorLengthDriftPages": [
+    {
+      "pageNumber": 1,
+      "selectedProviderKey": "mistral/mistral-ocr-4-0",
+      "selectedConfidence": 0.637658,
+      "pageDisagreement": 0.256234,
+      "reason": "major provider length drift"
+    },
+    {
+      "pageNumber": 2,
+      "selectedProviderKey": "mistral/mistral-ocr-4-0",
+      "selectedConfidence": 0.690187,
+      "pageDisagreement": 0.226748,
+      "reason": "major provider length drift"
+    },
+    {
+      "pageNumber": 3,
+      "selectedProviderKey": "anthropic/claude-opus-4-8",
+      "selectedConfidence": 0.689012,
+      "pageDisagreement": 0.230361,
+      "reason": "major provider length drift"
+    },
+    {
+      "pageNumber": 4,
+      "selectedProviderKey": "anthropic/claude-haiku-4-5",
+      "selectedConfidence": 0.684846,
+      "pageDisagreement": 0.233447,
+      "reason": "major provider length drift"
+    },
+    {
+      "pageNumber": 5,
+      "selectedProviderKey": "anthropic/claude-haiku-4-5",
+      "selectedConfidence": 0.186934,
+      "pageDisagreement": 0.602271,
+      "reason": "major provider length drift"
+    }
+  ],
+  "highDisagreementPages": [
+    {
+      "pageNumber": 5,
+      "selectedProviderKey": "anthropic/claude-haiku-4-5",
+      "selectedConfidence": 0.186934,
+      "pageDisagreement": 0.602271,
+      "reason": "high provider disagreement"
+    }
+  ],
+  "werCerDivergencePages": [
+    {
+      "pageNumber": 1,
+      "selectedProviderKey": "mistral/mistral-ocr-4-0",
+      "selectedConfidence": 0.637658,
+      "pageDisagreement": 0.256234,
+      "reason": "word/character disagreement divergence"
+    }
+  ],
+  "lowConfidencePages": [
+    {
+      "pageNumber": 1,
+      "selectedProviderKey": "mistral/mistral-ocr-4-0",
+      "selectedConfidence": 0.637658,
+      "pageDisagreement": 0.256234,
+      "reason": "low selected-page confidence"
+    },
+    {
+      "pageNumber": 2,
+      "selectedProviderKey": "mistral/mistral-ocr-4-0",
+      "selectedConfidence": 0.690187,
+      "pageDisagreement": 0.226748,
+      "reason": "low selected-page confidence"
+    },
+    {
+      "pageNumber": 3,
+      "selectedProviderKey": "anthropic/claude-opus-4-8",
+      "selectedConfidence": 0.689012,
+      "pageDisagreement": 0.230361,
+      "reason": "low selected-page confidence"
+    },
+    {
+      "pageNumber": 4,
+      "selectedProviderKey": "anthropic/claude-haiku-4-5",
+      "selectedConfidence": 0.684846,
+      "pageDisagreement": 0.233447,
+      "reason": "low selected-page confidence"
+    },
+    {
+      "pageNumber": 5,
+      "selectedProviderKey": "anthropic/claude-haiku-4-5",
+      "selectedConfidence": 0.186934,
+      "pageDisagreement": 0.602271,
+      "reason": "low selected-page confidence"
+    }
+  ]
+}

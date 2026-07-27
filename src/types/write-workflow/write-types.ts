@@ -1,0 +1,147 @@
+import type * as v from 'valibot'
+import type { JsonObject, ProcessingOptions, RateEstimateBase, Step3Metadata } from '~/types'
+export type LLMOptions = Pick<ProcessingOptions,
+  | 'outputDir'
+  | 'prompts'
+  | 'promptFile'
+  | 'promptMd'
+  | 'openaiModels'
+  | 'openaiModel'
+  | 'groqModels'
+  | 'groqModel'
+  | 'geminiModels'
+  | 'geminiModel'
+  | 'anthropicModels'
+  | 'anthropicModel'
+  | 'minimaxModels'
+  | 'minimaxModel'
+  | 'grokModels'
+  | 'grokModel'
+  | 'glmModels'
+  | 'glmModel'
+  | 'kimiModels'
+  | 'kimiModel'
+  | 'togetherModels'
+  | 'togetherModel'
+  | 'cerebrasModels'
+  | 'cerebrasModel'
+  | 'llamaModels'
+  | 'llamaModel'
+  | 'llamafileModels'
+  | 'llamafileModel'
+  | 'llmProviderConcurrency'
+  | 'llmLocalConcurrency'
+> & {
+  promptBuilder?: ((instruction: string) => string) | undefined
+  structuredContext?: {
+    songLyricsTitle?: string | undefined
+  } | undefined
+}
+
+
+export type LlamaServerTarget =
+  | {
+    mode: 'repo'
+    requestedModel: string
+    expectedRepo: string
+    startupArgs: string[]
+  }
+  | {
+    mode: 'path'
+    requestedModel: string
+    expectedPath: string
+    startupArgs: string[]
+  }
+
+export type LlamaServerIdentity = {
+  source: 'props' | 'models'
+  modelId: string | null
+  aliases: string[]
+  modelPath: string | null
+}
+
+
+export type DownloadInfo = {
+  sourceUrl: string
+  destinationPath: string
+}
+
+export type StructuredStrategy = 'native' | 'schema-guided'
+
+export type StructuredRequestOptions = {
+  schemaName: string
+  schema: JsonObject
+  strict: boolean
+  strategy: StructuredStrategy
+}
+
+export type StructuredValidationContext = {
+  leafPromptNames: string[]
+  presetNames: string[]
+  songLyricsTitle?: string | undefined
+}
+
+export type StructuredRunResult = {
+  metadata: Step3Metadata
+  renderedText: string
+  parsedJson: unknown
+}
+
+export type ValibotSchema = v.BaseSchema<unknown, unknown, v.BaseIssue<unknown>>
+
+export type ResolvedStructuredSchema = {
+  schemaName: string
+  leafPromptNames: string[]
+  presetNames: string[]
+  schema: ValibotSchema
+  jsonSchema: JsonObject
+}
+
+
+export type StructuredValidationResult = {
+  success: boolean
+  value?: unknown
+  issue?: string
+}
+
+export type LLMService = Step3Metadata['llmService']
+
+export type StructuredPresetName =
+  | 'shortSummary'
+  | 'longSummary'
+  | 'bulletPoints'
+  | 'takeaways'
+  | 'quotes'
+  | 'titles'
+  | 'metadata'
+  | 'faq'
+  | 'questions'
+  | 'chapterTitles'
+  | 'chapterTitlesAndQuotes'
+  | 'shortChapters'
+  | 'mediumChapters'
+  | 'longChapters'
+  | 'keyMoments'
+  | 'blog'
+  | 'youtubeDescription'
+  | 'seoArticle'
+  | 'contentStrategy'
+  | 'emailNewsletter'
+  | 'pdfChapterBoundaries'
+  | 'x'
+  | 'tiktok'
+  | 'facebook'
+  | 'instagram'
+  | 'linkedin'
+  | 'standardSongLyrics'
+  | 'rapSongLyrics'
+  | 'rapSongLongLyrics'
+  | 'poetryCollection'
+  | 'screenplay'
+  | 'shortStory'
+
+
+export type LlmRateEstimate = RateEstimateBase & {
+  inputCostPer1MCents: number
+  outputCostPer1MCents: number
+}

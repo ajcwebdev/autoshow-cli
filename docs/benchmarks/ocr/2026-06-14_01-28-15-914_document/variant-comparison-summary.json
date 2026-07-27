@@ -1,0 +1,37 @@
+{
+  "schemaVersion": 1,
+  "runDir": "/Users/ajc/c/autoshow-cli/output/2026-06-14_01-28-15-914_document",
+  "generatedAt": "2026-06-14T06:45:52.006Z",
+  "pageAligned": false,
+  "variants": [
+    {
+      "variantId": "status-quo-consensus",
+      "source": "current consensus extraction",
+      "charCount": 94,
+      "wordCount": 20,
+      "pageCount": 1
+    },
+    {
+      "variantId": "page-level-hybrid",
+      "source": "deterministic selected provider pages",
+      "charCount": 98,
+      "wordCount": 20,
+      "pageCount": 2,
+      "selectedPageSourceCounts": {},
+      "lowConfidencePageCount": 1,
+      "outlierPageCount": 2
+    }
+  ],
+  "pairwiseDistances": [
+    {
+      "referenceVariantId": "status-quo-consensus",
+      "candidateVariantId": "page-level-hybrid",
+      "wer": 0,
+      "cer": 0,
+      "wordDistance": 0,
+      "wordReferenceCount": 20,
+      "charDistance": 0,
+      "charReferenceCount": 89
+    }
+  ]
+}

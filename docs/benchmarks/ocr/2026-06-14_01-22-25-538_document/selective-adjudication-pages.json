@@ -1,0 +1,16 @@
+{
+  "schemaVersion": 1,
+  "pageCount": 1,
+  "pages": [
+    {
+      "pageNumber": 1,
+      "reason": [
+        "low-confidence-selected-provider",
+        "page-outlier",
+        "high-disagreement"
+      ],
+      "replacedProviderKey": "mistral/mistral-ocr-4-0",
+      "replacedConfidence": 0.574134
+    }
+  ]
+}

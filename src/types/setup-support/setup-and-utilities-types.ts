@@ -1,0 +1,136 @@
+import type { InferOutput } from 'valibot'
+import {
+SUPPORTED_BFL_IMAGE_MODELS,
+SUPPORTED_GEMINI_IMAGE_MODELS,
+SUPPORTED_GROK_IMAGE_MODELS,
+SUPPORTED_LUMALABS_IMAGE_MODELS,
+SUPPORTED_OPENAI_IMAGE_MODELS,
+SUPPORTED_RECRAFT_IMAGE_MODELS,
+SUPPORTED_REPLICATE_IMAGE_MODELS,
+SUPPORTED_REVE_IMAGE_MODELS
+} from '~/cli/commands/setup-and-utilities/models/image-models'
+import {
+SUPPORTED_GROQ_MODELS
+} from '~/cli/commands/setup-and-utilities/models/llm-models'
+import { ModelRegistrySchema } from '~/cli/commands/setup-and-utilities/models/model-loader'
+import {
+SUPPORTED_ELEVENLABS_MUSIC_MODELS,
+SUPPORTED_GEMINI_MUSIC_MODELS,
+SUPPORTED_MINIMAX_MUSIC_MODELS
+} from '~/cli/commands/setup-and-utilities/models/music-models'
+import {
+SUPPORTED_CARTESIA_TTS_MODELS,
+SUPPORTED_DEEPGRAM_TTS_MODELS,
+SUPPORTED_ELEVENLABS_TTS_MODELS,
+SUPPORTED_GEMINI_TTS_MODELS,
+SUPPORTED_GROK_TTS_MODELS,
+SUPPORTED_GROQ_TTS_MODELS,
+SUPPORTED_HUME_TTS_MODELS,
+SUPPORTED_KITTEN_TTS_MODELS,
+SUPPORTED_MINIMAX_TTS_MODELS,
+SUPPORTED_MISTRAL_TTS_MODELS,
+SUPPORTED_OPENAI_TTS_MODELS,
+SUPPORTED_SPEECHIFY_TTS_MODELS
+} from '~/cli/commands/setup-and-utilities/models/tts-models'
+import {
+SUPPORTED_GEMINI_VIDEO_MODELS,
+SUPPORTED_GLM_VIDEO_MODELS,
+SUPPORTED_GROK_VIDEO_MODELS,
+SUPPORTED_LTX_VIDEO_MODELS,
+SUPPORTED_LUMALABS_VIDEO_MODELS,
+SUPPORTED_MINIMAX_VIDEO_MODELS,
+SUPPORTED_REPLICATE_VIDEO_MODELS,
+SUPPORTED_RUNWAY_VIDEO_MODELS
+} from '~/cli/commands/setup-and-utilities/models/video-models'
+import type { AutoshowConfigSchema, CommandResultBase } from '~/types'
+
+export type AutoshowConfig = InferOutput<typeof AutoshowConfigSchema>
+
+export type ModelRegistry = InferOutput<typeof ModelRegistrySchema>
+
+export type RunResult = CommandResultBase
+
+export type RunOptions = {
+  cwd?: string
+  env?: Record<string, string | undefined>
+  allowFailure?: boolean
+}
+
+
+export type ModelLinksData = Record<string, Record<string, string[]>>
+
+
+export type FetchFn = (input: string | URL | Request, init?: RequestInit) => Promise<Response>
+
+
+export type GroqModel = typeof SUPPORTED_GROQ_MODELS[number]
+export type KittenTtsModel = typeof SUPPORTED_KITTEN_TTS_MODELS[number]
+export type ElevenlabsTtsModel = typeof SUPPORTED_ELEVENLABS_TTS_MODELS[number]
+export type MinimaxTtsModel = typeof SUPPORTED_MINIMAX_TTS_MODELS[number]
+export type GroqTtsModel = typeof SUPPORTED_GROQ_TTS_MODELS[number]
+export type GrokTtsModel = typeof SUPPORTED_GROK_TTS_MODELS[number]
+export type MistralTtsModel = typeof SUPPORTED_MISTRAL_TTS_MODELS[number]
+export type OpenAITtsModel = typeof SUPPORTED_OPENAI_TTS_MODELS[number]
+export type GeminiTtsModel = typeof SUPPORTED_GEMINI_TTS_MODELS[number]
+export type DeepgramTtsModel = typeof SUPPORTED_DEEPGRAM_TTS_MODELS[number]
+export type SpeechifyTtsModel = typeof SUPPORTED_SPEECHIFY_TTS_MODELS[number]
+export type HumeTtsModel = typeof SUPPORTED_HUME_TTS_MODELS[number]
+export type CartesiaTtsModel = typeof SUPPORTED_CARTESIA_TTS_MODELS[number]
+export type ElevenlabsMusicModel = typeof SUPPORTED_ELEVENLABS_MUSIC_MODELS[number]
+export type MinimaxMusicModel = typeof SUPPORTED_MINIMAX_MUSIC_MODELS[number]
+export type GeminiMusicModel = typeof SUPPORTED_GEMINI_MUSIC_MODELS[number]
+export type GeminiImageModel = typeof SUPPORTED_GEMINI_IMAGE_MODELS[number]
+export type OpenAIImageModel = typeof SUPPORTED_OPENAI_IMAGE_MODELS[number]
+export type GrokImageModel = typeof SUPPORTED_GROK_IMAGE_MODELS[number]
+export type BflImageModel = typeof SUPPORTED_BFL_IMAGE_MODELS[number]
+export type ReveImageModel = typeof SUPPORTED_REVE_IMAGE_MODELS[number]
+export type RecraftImageModel = typeof SUPPORTED_RECRAFT_IMAGE_MODELS[number]
+export type ReplicateImageModel = typeof SUPPORTED_REPLICATE_IMAGE_MODELS[number]
+export type LumalabsImageModel = typeof SUPPORTED_LUMALABS_IMAGE_MODELS[number]
+export type GeminiVideoModel = typeof SUPPORTED_GEMINI_VIDEO_MODELS[number]
+export type MinimaxVideoModel = typeof SUPPORTED_MINIMAX_VIDEO_MODELS[number]
+export type GlmVideoModel = typeof SUPPORTED_GLM_VIDEO_MODELS[number]
+export type GrokVideoModel = typeof SUPPORTED_GROK_VIDEO_MODELS[number]
+export type RunwayVideoModel = typeof SUPPORTED_RUNWAY_VIDEO_MODELS[number]
+export type LtxVideoModel = typeof SUPPORTED_LTX_VIDEO_MODELS[number]
+export type ReplicateVideoModel = typeof SUPPORTED_REPLICATE_VIDEO_MODELS[number]
+export type LumalabsVideoModel = typeof SUPPORTED_LUMALABS_VIDEO_MODELS[number]
+
+
+export type SttBilling = {
+  roundingIncrementSeconds?: number
+  minimumSeconds?: number
+}
+
+
+export type CheapestVideoSelection = {
+  provider: 'gemini' | 'minimax' | 'glm' | 'grok' | 'runway' | 'ltx' | 'replicate' | 'lumalabs'
+  model: string
+  duration: number
+  size?: string | undefined
+  resolution?: string | undefined
+  totalCost: number
+}
+
+export type CheckResult = {
+  label: string
+  ok: boolean
+  detail: string
+}
+
+export type SetupToolStatus = {
+  tool: string
+  status: string
+  detail?: string
+}
+
+// Order is the order shown by `bun autoshow setup --help`; every id must have a case in
+// executeStepOnce, and the exhaustiveness check there fails if one is missing.
+export const SETUP_STEP_IDS = [
+  'uv', 'yt-dlp', 'defuddle', 'whisper-binary', 'whisper-model', 'whisperfile',
+  'llama-binary', 'llamafile',
+  'reverb', 'calibre', 'acsm', 'acsm-authorize', 'all',
+  'transcription', 'write', 'tts', 'image', 'video', 'music'
+] as const
+
+export type SetupStepId = typeof SETUP_STEP_IDS[number]

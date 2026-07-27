@@ -1,0 +1,25 @@
+{
+  "LTX": {
+    "Models": [
+      "https://docs.ltx.video/models.md"
+    ],
+    "Video": [
+      "https://docs.ltx.video/welcome.md",
+      "https://docs.ltx.video/quickstart.md",
+      "https://docs.ltx.video/authentication.md",
+      "https://docs.ltx.video/input-formats.md",
+      "https://docs.ltx.video/api-documentation/implementation-guides/prompting-guide.md",
+      "https://docs.ltx.video/async-jobs.md",
+      "https://docs.ltx.video/rate-limits.md",
+      "https://docs.ltx.video/errors.md",
+      "https://docs.ltx.video/debugging.md",
+      "https://docs.ltx.video/pricing.md",
+      "https://docs.ltx.video/auto-top-up.md",
+      "https://docs.ltx.video/api-documentation/api-reference/video-generation/text-to-video.md",
+      "https://docs.ltx.video/api-documentation/api-reference/video-generation/image-to-video.md",
+      "https://docs.ltx.video/api-documentation/api-reference/video-generation/audio-to-video.md",
+      "https://docs.ltx.video/api-documentation/api-reference/video-generation/retake.md",
+      "https://docs.ltx.video/api-documentation/api-reference/video-generation/extend.md"
+    ]
+  }
+}

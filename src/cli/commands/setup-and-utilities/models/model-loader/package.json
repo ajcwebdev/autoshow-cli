@@ -1,0 +1,4 @@
+{
+  "main": "./model-loader-barrel.ts",
+  "exports": "./model-loader-barrel.ts"
+}

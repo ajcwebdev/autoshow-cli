@@ -1,0 +1,62 @@
+{
+  "schemaVersion": 1,
+  "runDir": "/Users/ajc/c/autoshow-cli/docs/benchmarks/ocr/2026-06-14_01-28-29-201_document",
+  "generatedAt": "2026-07-01T20:20:14.013Z",
+  "pageAligned": false,
+  "variants": [
+    {
+      "variantId": "status-quo-consensus",
+      "source": "current consensus extraction",
+      "charCount": 857,
+      "wordCount": 135,
+      "pageCount": 1
+    },
+    {
+      "variantId": "page-level-hybrid",
+      "source": "deterministic selected provider pages",
+      "charCount": 1764,
+      "wordCount": 248,
+      "pageCount": 2,
+      "selectedPageSourceCounts": {
+        "anthropic/claude-opus-4-8": 1,
+        "mistral/mistral-ocr-2512": 1
+      },
+      "lowConfidencePageCount": 1,
+      "outlierPageCount": 2
+    },
+    {
+      "variantId": "page-level-hybrid-new-provider-files",
+      "source": "deterministic selected provider pages from newly discovered provider result files",
+      "charCount": 855,
+      "wordCount": 121,
+      "pageCount": 1,
+      "selectedPageSourceCounts": {
+        "gemini/gemini-3.5-flash": 1
+      },
+      "lowConfidencePageCount": 0,
+      "outlierPageCount": 1
+    }
+  ],
+  "pairwiseDistances": [
+    {
+      "referenceVariantId": "status-quo-consensus",
+      "candidateVariantId": "page-level-hybrid",
+      "wer": 1.2,
+      "cer": 1.081582,
+      "wordDistance": 162,
+      "wordReferenceCount": 135,
+      "charDistance": 875,
+      "charReferenceCount": 809
+    },
+    {
+      "referenceVariantId": "status-quo-consensus",
+      "candidateVariantId": "page-level-hybrid-new-provider-files",
+      "wer": 0.259259,
+      "cer": 0.032138,
+      "wordDistance": 35,
+      "wordReferenceCount": 135,
+      "charDistance": 26,
+      "charReferenceCount": 809
+    }
+  ]
+}

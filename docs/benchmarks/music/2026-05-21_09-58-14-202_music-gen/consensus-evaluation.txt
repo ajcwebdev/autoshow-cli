@@ -1,0 +1,41 @@
+# Consensus Evaluation
+
+Run directory: docs/benchmarks/music/2026-05-21_09-58-14-202_music-gen
+Category: music generation
+Provider count: 4
+
+This evaluation uses only measurable run metadata from the generated consensus packet. It does not assess musical quality and does not claim that the audio was listened to.
+
+All referenced MP3 artifacts exist in the run directory. Cost, processing time, file size, duration, lyrics source, MIME type, and output format were available from run metadata. No provider exposed an explicit qualityScore or humanQualityScore, so automated quality and human quality rankings are unavailable from the evidence.
+
+## Providers
+
+- elevenlabs/music_v1: generated-music-elevenlabs-music_v1.mp3, 960,097 bytes, 60.00s duration, 16.63s processing time, 28.0000 cents, generated lyrics, audio/mpeg, mp3_44100_128, 44.1 kHz, 128 kbps.
+- minimax/music-2.6: generated-music-minimax-music-2.6.mp3, 5,667,686 bytes, 176.88s duration, 115.97s processing time, 16.0000 cents, generated lyrics, audio/mpeg, mp3, 44.1 kHz, 2 channels, 256 kbps.
+- gemini/lyria-3-clip-preview: generated-music-gemini-lyria-3-clip-preview.mp3, 744,609 bytes, 30.00s duration, 20.05s processing time, 4.0000 cents, generated lyrics, audio/mpeg, mp3.
+- gemini/lyria-3-pro-preview: generated-music-gemini-lyria-3-pro-preview.mp3, 1,485,651 bytes, 60.00s duration, 36.49s processing time, 8.0000 cents, generated lyrics, audio/mpeg, mp3.
+
+## Price Ranking
+
+1. gemini/lyria-3-clip-preview: 4.0000 cents
+2. gemini/lyria-3-pro-preview: 8.0000 cents
+3. minimax/music-2.6: 16.0000 cents
+4. elevenlabs/music_v1: 28.0000 cents
+
+## Speed Ranking
+
+1. elevenlabs/music_v1: 16.63s
+2. gemini/lyria-3-clip-preview: 20.05s
+3. gemini/lyria-3-pro-preview: 36.49s
+4. minimax/music-2.6: 115.97s
+
+## Duration Ranking
+
+1. minimax/music-2.6: 176.88s
+2. elevenlabs/music_v1: 60.00s
+3. gemini/lyria-3-pro-preview: 60.00s
+4. gemini/lyria-3-clip-preview: 30.00s
+
+## Quality Evidence
+
+Automated quality is unavailable because no explicit qualityScore values were present. Human quality is unavailable because no explicit humanQualityScore values were present. File size, duration, bitrate, cost, and processing speed are retained as metadata only and are not used as quality proxies.

@@ -1,0 +1,24 @@
+{
+  "schemaVersion": 1,
+  "pageCount": 2,
+  "pages": [
+    {
+      "pageNumber": 0,
+      "reason": [
+        "low-confidence-selected-provider",
+        "page-outlier"
+      ],
+      "replacedProviderKey": "mistral/mistral-ocr-2512",
+      "replacedConfidence": 0.45
+    },
+    {
+      "pageNumber": 1,
+      "reason": [
+        "low-confidence-selected-provider",
+        "page-outlier"
+      ],
+      "replacedProviderKey": "grok/grok-4.3",
+      "replacedConfidence": 0.464203
+    }
+  ]
+}

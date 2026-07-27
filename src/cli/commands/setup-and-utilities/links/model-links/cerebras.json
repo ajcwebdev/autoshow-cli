@@ -1,0 +1,28 @@
+{
+  "Cerebras": {
+    "General": [
+      "https://inference-docs.cerebras.ai/introduction.md",
+      "https://inference-docs.cerebras.ai/support/rate-limits.md",
+      "https://inference-docs.cerebras.ai/console/overview.md",
+      "https://inference-docs.cerebras.ai/console/api-keys.md",
+      "https://inference-docs.cerebras.ai/console/usage-monitoring.md",
+      "https://inference-docs.cerebras.ai/console/account-billing.md"
+    ],
+    "Models": [
+      "https://inference-docs.cerebras.ai/models/choose-a-model.md",
+      "https://inference-docs.cerebras.ai/models/overview.md",
+      "https://inference-docs.cerebras.ai/models/openai-oss.md",
+      "https://inference-docs.cerebras.ai/models/zai-glm-47.md",
+      "https://inference-docs.cerebras.ai/api-reference/models/list-models.md",
+      "https://inference-docs.cerebras.ai/api-reference/models/retrieve-model.md",
+      "https://inference-docs.cerebras.ai/api-reference/models/public-models.md"
+    ],
+    "Text": [
+      "https://inference-docs.cerebras.ai/capabilities/structured-outputs.md",
+      "https://inference-docs.cerebras.ai/capabilities/payload-optimization.md",
+      "https://inference-docs.cerebras.ai/api-reference/chat-completions.md",
+      "https://inference-docs.cerebras.ai/api-reference/authentication.md",
+      "https://inference-docs.cerebras.ai/api-reference/versions.md"
+    ]
+  }
+}

@@ -1,0 +1,28 @@
+{
+  "Lumalabs": {
+    "General": [
+      "https://docs.agents.lumalabs.ai/index.md",
+      "https://docs.agents.lumalabs.ai/api/resources/generations/methods/create/index.md",
+      "https://docs.agents.lumalabs.ai/api/resources/generations/methods/get/index.md",
+      "https://docs.agents.lumalabs.ai/guides/pricing/index.md",
+      "https://docs.agents.lumalabs.ai/guides/rate-limits/index.md",
+      "https://docs.agents.lumalabs.ai/guides/error-handling/index.md",
+      "https://docs.agents.lumalabs.ai/guides/faq/index.md"
+    ],
+    "Models": [
+      "https://docs.agents.lumalabs.ai/guides/model/index.md"
+    ],
+    "Video": [
+      "https://docs.agents.lumalabs.ai/guides/videos/index.md",
+      "https://docs.agents.lumalabs.ai/guides/videos/generation/index.md",
+      "https://docs.agents.lumalabs.ai/guides/videos/editing/index.md",
+      "https://docs.agents.lumalabs.ai/guides/videos/reframing/index.md"
+    ],
+    "Image": [
+      "https://docs.agents.lumalabs.ai/guides/images/index.md",
+      "https://docs.agents.lumalabs.ai/guides/images/generation/index.md",
+      "https://docs.agents.lumalabs.ai/guides/images/editing/index.md",
+      "https://docs.agents.lumalabs.ai/guides/images/prompt-guide/index.md"
+    ]
+  }
+}

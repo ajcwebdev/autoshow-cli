@@ -1,0 +1,35 @@
+{
+  "Together": {
+    "General": [
+      "https://docs.together.ai/docs/introduction",
+      "https://docs.together.ai/intro.md",
+      "https://docs.together.ai/docs/quickstart.md",
+      "https://docs.together.ai/docs/inference/overview.md",
+      "https://docs.together.ai/docs/inference/pricing.md",
+      "https://docs.together.ai/docs/serverless/rate-limits.md"
+    ],
+    "Models": [
+      "https://docs.together.ai/docs/inference/recommended-models.md",
+      "https://docs.together.ai/docs/serverless/models.md",
+      "https://www.together.ai/models/openai-whisper-large-v3",
+      "https://raw.githubusercontent.com/togethercomputer/skills/refs/heads/main/skills/together-audio/references/stt-models.md",
+      "https://docs.together.ai/docs/dedicated-endpoints/models.md"
+    ],
+    "STT": [
+      "https://docs.together.ai/reference/audio-transcriptions",
+      "https://docs.together.ai/docs/speech-to-text.md",
+      "https://raw.githubusercontent.com/togethercomputer/skills/refs/heads/main/skills/together-audio/SKILL.md",
+      "https://raw.githubusercontent.com/togethercomputer/skills/refs/heads/main/skills/together-audio/scripts/stt_transcribe.ts",
+      "https://docs.together.ai/reference/audio-transcriptions.md"
+    ],
+    "Text": [
+      "https://docs.together.ai/docs/dedicated-endpoints/overview.md",
+      "https://docs.together.ai/docs/dedicated-endpoints/quickstart.md",
+      "https://docs.together.ai/docs/dedicated-endpoints/manage.md",
+      "https://docs.together.ai/docs/dedicated-endpoints/settings.md",
+      "https://docs.together.ai/docs/inference/chat/overview.md",
+      "https://docs.together.ai/docs/inference/chat/parameters.md",
+      "https://docs.together.ai/docs/inference/chat/structured-outputs.md"
+    ]
+  }
+}

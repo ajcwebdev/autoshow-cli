@@ -1,0 +1,44 @@
+import { join } from 'node:path'
+
+export const LOCAL_SHORT_AUDIO_PATH = join('input/examples/audio', '0-audio-short.mp3')
+
+export const LOCAL_AUDIO_PATH = join('input/examples/audio', '1-audio.mp3')
+
+export const waitForCondition = async (
+  predicate: () => boolean,
+  message: string
+): Promise<void> => {
+  for (let attempt = 0; attempt < 200; attempt += 1) {
+    if (predicate()) return
+    await Bun.sleep(5)
+  }
+  throw new Error(message)
+}
+
+export const readWavSamples = async (path: string): Promise<number[]> => {
+  const buffer = Buffer.from(await Bun.file(path).arrayBuffer())
+  let offset = 12
+  while (offset + 8 <= buffer.byteLength) {
+    const chunkId = buffer.toString('ascii', offset, offset + 4)
+    const chunkSize = buffer.readUInt32LE(offset + 4)
+    const chunkDataOffset = offset + 8
+    if (chunkId === 'data') {
+      const samples: number[] = []
+      for (let sampleOffset = chunkDataOffset; sampleOffset + 1 < chunkDataOffset + chunkSize; sampleOffset += 2) {
+        samples.push(buffer.readInt16LE(sampleOffset))
+      }
+      return samples
+    }
+    offset = chunkDataOffset + chunkSize + (chunkSize % 2)
+  }
+  throw new Error(`No data chunk found in WAV file: ${path}`)
+}
+
+export const segmentRms = (samples: number[], segmentIndex: number, segmentCount: number): number => {
+  const segmentLength = Math.floor(samples.length / segmentCount)
+  const start = segmentIndex * segmentLength + Math.floor(segmentLength * 0.25)
+  const end = (segmentIndex + 1) * segmentLength - Math.floor(segmentLength * 0.25)
+  const selected = samples.slice(start, end)
+  const meanSquare = selected.reduce((sum, sample) => sum + sample * sample, 0) / Math.max(1, selected.length)
+  return Math.sqrt(meanSquare)
+}

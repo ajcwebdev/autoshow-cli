@@ -1,0 +1,204 @@
+import { expect, test } from 'bun:test'
+import {
+  chmod,
+  mkdtemp,
+  rm,
+  writeFile
+} from 'node:fs/promises'
+import { tmpdir } from 'node:os'
+import { join } from 'node:path'
+import {
+  runLinksWithArgv
+} from '~/cli/commands/setup-and-utilities/links/define-links-command'
+import { configureBinDir, getConfiguredBinDir } from '~/utils/runtime-paths'
+import { SCRAPECREATORS_STT_LINK, linksTestOutputPath } from './shared'
+
+const SCRAPECREATORS_FETCH_STT_LINK = 'https://docs.scrapecreators.com/de495975-7e82-4fd9-953a-2fe2c257845e'
+
+const LINKS_RETRY_TEST_URL = 'https://elevenlabs.io/docs/overview/models.md'
+
+const writeLinksFakeDefuddleBin = async (): Promise<{ dir: string, bin: string }> => {
+  const dir = await mkdtemp(join(tmpdir(), 'autoshow-links-fake-defuddle-'))
+  const bin = join(dir, 'defuddle')
+  await writeFile(bin, [
+    '#!/usr/bin/env bun',
+    "import { readFileSync } from 'node:fs'",
+    'const args = process.argv.slice(2)',
+    "if (args[0] === '--version') { console.log('0.17.0'); process.exit(0) }",
+    "if (process.env.AUTOSHOW_FAKE_DEFUDDLE_STDERR) console.error(process.env.AUTOSHOW_FAKE_DEFUDDLE_STDERR)",
+    "const html = readFileSync(args[1], 'utf8')",
+    "const text = html.replace(/<[^>]+>/g, ' ').replace(/\\s+/g, ' ').trim()",
+    "console.log(JSON.stringify({ contentMarkdown: text, title: 'Links Defuddle Fixture', wordCount: text.split(/\\s+/).filter(Boolean).length }))"
+  ].join('\n'))
+  await chmod(bin, 0o755)
+  return { dir, bin }
+}
+
+test('links retries transient network failures before writing output', async () => {
+  const outputPath = linksTestOutputPath('socket-retry')
+  const attempts = new Map<string, number>()
+
+  const fetchImpl = async (input: string | URL | Request): Promise<Response> => {
+    const url = String(input)
+    const attempt = (attempts.get(url) ?? 0) + 1
+    attempts.set(url, attempt)
+
+    if (url === LINKS_RETRY_TEST_URL && attempt === 1) {
+      throw new Error('The socket connection was closed unexpectedly')
+    }
+
+    return new Response(`# docs for ${url}\n`, {
+      headers: { 'content-type': 'text/markdown' }
+    })
+  }
+
+  await runLinksWithArgv([
+    'bun',
+    'src/cli/create-cli.ts',
+    'links',
+    '--elevenlabs',
+    'models'
+  ], { outputPath, fetchImpl })
+
+  const output = await Bun.file(outputPath).text()
+  expect(attempts.get(LINKS_RETRY_TEST_URL)).toBe(2)
+  expect(output).toContain(`<!-- Source: ${LINKS_RETRY_TEST_URL} -->`)
+  expect(output).not.toContain(`<!-- Failed to fetch ${LINKS_RETRY_TEST_URL} -->`)
+})
+
+test('links retries retryable HTTP status failures before writing output', async () => {
+  const outputPath = linksTestOutputPath('status-retry')
+  const attempts = new Map<string, number>()
+
+  const fetchImpl = async (input: string | URL | Request): Promise<Response> => {
+    const url = String(input)
+    const attempt = (attempts.get(url) ?? 0) + 1
+    attempts.set(url, attempt)
+
+    if (url === LINKS_RETRY_TEST_URL && attempt === 1) {
+      return new Response('temporary outage', { status: 503, statusText: 'Service Unavailable' })
+    }
+
+    return new Response(`# docs for ${url}\n`, {
+      headers: { 'content-type': 'text/markdown' }
+    })
+  }
+
+  await runLinksWithArgv([
+    'bun',
+    'src/cli/create-cli.ts',
+    'links',
+    '--elevenlabs',
+    'models'
+  ], { outputPath, fetchImpl })
+
+  const output = await Bun.file(outputPath).text()
+  expect(attempts.get(LINKS_RETRY_TEST_URL)).toBe(2)
+  expect(output).toContain(`<!-- Source: ${LINKS_RETRY_TEST_URL} -->`)
+  expect(output).not.toContain(`<!-- Failed to fetch ${LINKS_RETRY_TEST_URL} -->`)
+})
+
+test('links does not retry non-retryable HTTP status failures', async () => {
+  const outputPath = linksTestOutputPath('non-retryable-status')
+  const attempts = new Map<string, number>()
+
+  const fetchImpl = async (input: string | URL | Request): Promise<Response> => {
+    const url = String(input)
+    attempts.set(url, (attempts.get(url) ?? 0) + 1)
+
+    if (url === LINKS_RETRY_TEST_URL) {
+      return new Response('missing', { status: 404, statusText: 'Not Found' })
+    }
+
+    return new Response(`# docs for ${url}\n`, {
+      headers: { 'content-type': 'text/markdown' }
+    })
+  }
+
+  await runLinksWithArgv([
+    'bun',
+    'src/cli/create-cli.ts',
+    'links',
+    '--elevenlabs',
+    'models'
+  ], { outputPath, fetchImpl })
+
+  const output = await Bun.file(outputPath).text()
+  expect(attempts.get(LINKS_RETRY_TEST_URL)).toBe(1)
+  expect(output).toContain(`<!-- Failed to fetch ${LINKS_RETRY_TEST_URL} -->`)
+  expect(output).not.toContain(`<!-- Source: ${LINKS_RETRY_TEST_URL} -->`)
+})
+
+test('links strips blob prefix when fetching scrapecreators documentation', async () => {
+  const outputPath = linksTestOutputPath('scrapecreators-blob')
+  const fetchedUrls: string[] = []
+
+  const fetchImpl = async (input: string | URL | Request): Promise<Response> => {
+    const url = String(input)
+    fetchedUrls.push(url)
+
+    return new Response(`# docs for ${url}\n`, {
+      headers: { 'content-type': 'text/markdown' }
+    })
+  }
+
+  const result = await runLinksWithArgv([
+    'bun',
+    'src/cli/create-cli.ts',
+    'links',
+    '--scrapecreators',
+    'stt'
+  ], { outputPath, fetchImpl })
+
+  const output = await Bun.file(outputPath).text()
+  expect(result.urlCount).toBe(1)
+  expect(fetchedUrls).toEqual([SCRAPECREATORS_FETCH_STT_LINK])
+  expect(output).toContain(`<!-- Source: ${SCRAPECREATORS_STT_LINK} -->`)
+  expect(output).toContain(`# docs for ${SCRAPECREATORS_FETCH_STT_LINK}`)
+  expect(output).not.toContain(`<!-- Source: ${SCRAPECREATORS_FETCH_STT_LINK} -->`)
+})
+
+test('links captures defuddle CLI diagnostics for scrapecreators html', async () => {
+  const outputPath = linksTestOutputPath('scrapecreators-defuddle-diagnostic')
+  const words = Array.from({ length: 40 }, (_, index) => `word${index}`).join(' ')
+  const html = `<!doctype html><html><body><div class="hidden bad[">${words}</div></body></html>`
+  const consoleErrors: string[] = []
+  const originalConsoleError = console.error
+  const previousBinDir = getConfiguredBinDir()
+  const previousDefuddleStderr = process.env['AUTOSHOW_FAKE_DEFUDDLE_STDERR']
+  const fakeDefuddle = await writeLinksFakeDefuddleBin()
+  console.error = (...args: Parameters<typeof console.error>): void => {
+    consoleErrors.push(args.map(String).join(' '))
+  }
+  configureBinDir(fakeDefuddle.dir)
+  process.env['AUTOSHOW_FAKE_DEFUDDLE_STDERR'] = 'Defuddle Error processing document: captured by wrapper'
+
+  try {
+    await runLinksWithArgv([
+      'bun',
+      'src/cli/create-cli.ts',
+      'links',
+      '--scrapecreators',
+      'stt'
+    ], {
+      outputPath,
+      fetchImpl: async (): Promise<Response> => new Response(html, {
+        headers: { 'content-type': 'text/html' }
+      })
+    })
+  } finally {
+    console.error = originalConsoleError
+    configureBinDir(previousBinDir ?? '')
+    if (previousDefuddleStderr === undefined) {
+      delete process.env['AUTOSHOW_FAKE_DEFUDDLE_STDERR']
+    } else {
+      process.env['AUTOSHOW_FAKE_DEFUDDLE_STDERR'] = previousDefuddleStderr
+    }
+    await rm(fakeDefuddle.dir, { recursive: true, force: true })
+  }
+
+  const output = await Bun.file(outputPath).text()
+  expect(output).toContain(`<!-- Source: ${SCRAPECREATORS_STT_LINK} -->`)
+  expect(output).toContain('word0 word1 word2')
+  expect(consoleErrors.join('\n')).not.toContain('Defuddle Error processing document')
+})

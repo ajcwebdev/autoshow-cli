@@ -1,0 +1,44 @@
+{
+  "Grok": {
+    "General": [
+      "https://docs.x.ai/developers/rate-limits.md"
+    ],
+    "Models": [
+      "https://docs.x.ai/developers/migration/may-15-retirement.md",
+      "https://docs.x.ai/developers/models.md",
+      "https://docs.x.ai/developers/models/grok-4.3.md",
+      "https://docs.x.ai/developers/models/grok-4.5.md"
+    ],
+    "Text": [
+      "https://docs.x.ai/developers/rest-api-reference/inference/chat.md",
+      "https://docs.x.ai/developers/advanced-api-usage/prompt-caching.md",
+      "https://docs.x.ai/developers/advanced-api-usage/context-compaction.md",
+      "https://docs.x.ai/developers/model-capabilities/text/generate-text.md",
+      "https://docs.x.ai/developers/model-capabilities/text/structured-outputs.md",
+      "https://docs.x.ai/developers/model-capabilities/text/reasoning.md",
+      "https://docs.x.ai/developers/model-capabilities/text/streaming.md",
+      "https://docs.x.ai/developers/model-capabilities/text/comparison.md"
+    ],
+    "STT": [
+      "https://docs.x.ai/developers/model-capabilities/audio/speech-to-text.md"
+    ],
+    "Image": [
+      "https://docs.x.ai/developers/rest-api-reference/inference/images.md",
+      "https://docs.x.ai/developers/model-capabilities/images/generation.md",
+      "https://docs.x.ai/developers/models/grok-imagine-image-quality.md",
+      "https://docs.x.ai/developers/model-capabilities/images/editing.md",
+      "https://docs.x.ai/developers/model-capabilities/images/multi-image-editing.md"
+    ],
+    "Video": [
+      "https://docs.x.ai/developers/rest-api-reference/inference/videos.md",
+      "https://docs.x.ai/developers/model-capabilities/video/generation.md",
+      "https://docs.x.ai/developers/models/grok-imagine-video.md"
+    ],
+    "TTS": [
+      "https://docs.x.ai/developers/rest-api-reference/inference/voice.md",
+      "https://docs.x.ai/developers/model-capabilities/audio/text-to-speech.md",
+      "https://docs.x.ai/developers/model-capabilities/audio/voice.md",
+      "https://docs.x.ai/developers/model-capabilities/audio/custom-voices.md"
+    ]
+  }
+}

@@ -1,0 +1,22 @@
+This TTS consensus evaluation used existing AutoShow run metadata, local audio probing from the consensus workflow, and roundtrip speech-to-text transcription. No generated audio was subjectively listened to or judged during this evaluation.
+
+Evidence sources:
+- run.json metadata for the 16 requested providers: cost (actual computed usage), processing timing (wall), speaker, audio file size, and chunk count.
+- Local ffprobe audio probing to measure each output's duration and derive characters-per-second speaking rate. All 16 audio files were present and probed successfully (durations 28.0s to 45.9s).
+- Roundtrip STT transcription performed on 2026-06-15 using groq/whisper-large-v3 as a single consistent recognizer for all 16 clips. Each generated WAV was transcribed back to text and timestamps were stripped before comparison.
+
+Automated quality:
+- Automated quality uses roundtrip WER (Word Error Rate): each provider's generated audio was transcribed via STT and compared token-by-token against the original input text. Lower roundtrip WER indicates more intelligible synthesis under this recognizer. A single STT model was used across all providers so the metric is comparable between them.
+- The input is a deliberately difficult passage (numerals, proper nouns, tongue-twisters, and accented loanwords), so every provider's roundtrip WER is nonzero even for clean audio; the score is meaningful only relatively, across providers using the same recognizer.
+
+Human quality:
+- Human quality is unavailable for this run. No humanSpeechScore or human listening ratings were supplied, and no voice-quality-report.json exists. Human-quality rankings are therefore reported as unavailable rather than inferred from duration, bitrate, file size, cost, speed, or subjective judgment.
+
+Provider groups:
+- All 16 providers in this run are third-party hosted services (elevenlabs, minimax, groq, grok, openai, gemini, deepgram, speechify, hume, cartesia, mistral). There are no local models, so the local-model group is empty and price/speed/quality rankings for it are reported as unavailable.
+
+Rankings exposed in the comparison report:
+- Price: zero monetary cost for local models (none here) and reported monetary cost for services.
+- Speed: processing time from run.json metadata.
+- Automated quality: roundtrip WER-derived accuracy (described above).
+- Human quality: unavailable, with reason.

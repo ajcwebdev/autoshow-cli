@@ -1,0 +1,39 @@
+{
+  "schemaVersion": 1,
+  "runDir": "/Users/ajc/c/autoshow-cli/docs/benchmarks/ocr/2026-06-14_01-22-25-538_document",
+  "generatedAt": "2026-07-01T20:23:54.918Z",
+  "pageAligned": true,
+  "variants": [
+    {
+      "variantId": "status-quo-consensus",
+      "source": "current consensus extraction",
+      "charCount": 748,
+      "wordCount": 196,
+      "pageCount": 1
+    },
+    {
+      "variantId": "page-level-hybrid",
+      "source": "deterministic selected provider pages",
+      "charCount": 1167,
+      "wordCount": 206,
+      "pageCount": 1,
+      "selectedPageSourceCounts": {
+        "mistral/mistral-ocr-4-0": 1
+      },
+      "lowConfidencePageCount": 1,
+      "outlierPageCount": 1
+    }
+  ],
+  "pairwiseDistances": [
+    {
+      "referenceVariantId": "status-quo-consensus",
+      "candidateVariantId": "page-level-hybrid",
+      "wer": 0.163265,
+      "cer": 0.064912,
+      "wordDistance": 32,
+      "wordReferenceCount": 196,
+      "charDistance": 37,
+      "charReferenceCount": 570
+    }
+  ]
+}

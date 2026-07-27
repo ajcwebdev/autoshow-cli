@@ -1,0 +1,19 @@
+{
+  "Solidbase": {
+    "General": [
+      "https://solidbase.dev/guide/quickstart.md",
+      "https://solidbase.dev/guide/add-to-existing.md",
+      "https://solidbase.dev/guide/config.md",
+      "https://solidbase.dev/guide/structure.md",
+      "https://solidbase.dev/guide/deploy.md",
+      "https://solidbase.dev/guide/customization/custom-themes.md",
+      "https://solidbase.dev/guide/customization/extending-themes.md",
+      "https://solidbase.dev/guide/features/markdown.md",
+      "https://solidbase.dev/guide/features/language-switcher.md",
+      "https://solidbase.dev/guide/features/i18n.md",
+      "https://solidbase.dev/guide/features/llms.md",
+      "https://solidbase.dev/guide/features/sitemap-and-robots.md",
+      "https://solidbase.dev/guide/features/dev.md"
+    ]
+  }
+}

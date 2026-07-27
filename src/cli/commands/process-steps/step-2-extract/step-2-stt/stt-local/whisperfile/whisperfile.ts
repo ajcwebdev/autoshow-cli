@@ -1,0 +1,81 @@
+import { mkdir } from 'node:fs/promises'
+import { pathExists, runCapture, whisperfileBinaryPath, whisperfileDir } from '~/cli/commands/setup-and-utilities/setup/run-complete-setup'
+import * as l from '~/utils/app-logger/app-logger'
+import { downloadFile } from '~/cli/commands/setup-and-utilities/setup/setup-download/download'
+import { withRetry } from '~/utils/retries'
+import { makeExecutable } from '~/utils/filesystem'
+import { InternalError } from '~/utils/error-handler'
+
+// Prebuilt packaged whisperfiles (binary + embedded GGML weights) live at
+// huggingface.co/Mozilla/whisperfile. Each supported model maps to a single
+// self-contained whisper-<model>.llamafile artifact that runs with no toolchain.
+const WHISPERFILE_BASE_URL = 'https://huggingface.co/Mozilla/whisperfile/resolve/main'
+
+const artifactFileName = (modelName: string): string => `whisper-${modelName}.llamafile`
+
+// whisperfiles are Cosmopolitan APE binaries. macOS posix_spawn cannot exec the
+// APE format directly (ENOEXEC), so they must be launched through a shell, which
+// reads the file as a self-extracting shell script. See the whisperfile
+// troubleshooting docs ("try saying `sh -c ./llamafile`").
+const verifyWhisperfileBinary = async (binaryPath: string): Promise<boolean> => {
+  const result = await runCapture('sh', [binaryPath, '--help'], { allowFailure: true })
+  return result.exitCode === 0
+}
+
+export const downloadWhisperfileBinary = async (modelName: string): Promise<void> => {
+  await mkdir(whisperfileDir, { recursive: true })
+
+  const destination = whisperfileBinaryPath(modelName)
+
+  if (await pathExists(destination)) {
+    await makeExecutable(destination)
+    return
+  }
+
+  l.write('info', `Downloading whisperfile model: ${modelName}`)
+
+  const url = `${WHISPERFILE_BASE_URL}/${artifactFileName(modelName)}`
+
+  await withRetry(
+    { retryClass: 'setup_download', operationName: `whisperfile-${modelName}` },
+    async () => {
+      await downloadFile({
+        url,
+        destination,
+        expectedMinBytes: 1000,
+        flowId: 'whisperfile-binary'
+      })
+    }
+  )
+
+  await makeExecutable(destination)
+
+  l.write('success', `Whisperfile model ${modelName} downloaded`)
+}
+
+export const setupWhisperfile = async (modelName: string): Promise<void> => {
+  await downloadWhisperfileBinary(modelName)
+
+  if (!await verifyWhisperfileBinary(whisperfileBinaryPath(modelName))) {
+    l.warn('Whisperfile installation may have issues, but continuing')
+  }
+}
+
+export const ensureWhisperfileReady = async (modelName: string): Promise<void> => {
+  if (!modelName) {
+    l.error('Model name required')
+    throw InternalError('Model name required', { stage: 'setup:whisperfile' })
+  }
+
+  const binaryPath = whisperfileBinaryPath(modelName)
+
+  if (await pathExists(binaryPath)) {
+    await makeExecutable(binaryPath)
+    if (await verifyWhisperfileBinary(binaryPath)) {
+      return
+    }
+    l.write('info', 'Whisperfile binary found but not working, re-downloading')
+  }
+
+  await setupWhisperfile(modelName)
+}

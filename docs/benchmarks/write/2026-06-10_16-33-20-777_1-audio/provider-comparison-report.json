@@ -1,0 +1,2898 @@
+{
+  "schemaVersion": 2,
+  "kind": "text-provider-comparison",
+  "category": "text",
+  "runDir": "/Users/ajc/c/as/autoshow-cli/docs/benchmarks/write/2026-06-10_16-33-20-777_1-audio",
+  "runName": "2026-06-10_16-33-20-777_1-audio",
+  "generatedAt": "2026-06-10T21:44:13.117Z",
+  "metric": "metadata-only price-speed",
+  "providerCount": 17,
+  "providerGroups": {
+    "local": {
+      "count": 2,
+      "providers": [
+        {
+          "providerKey": "llama.cpp/ggml-org/gemma-3-270m-it-GGUF",
+          "provider": "llama.cpp",
+          "model": "ggml-org/gemma-3-270m-it-GGUF",
+          "group": "local",
+          "llmService": "llama.cpp",
+          "llmModel": "ggml-org/gemma-3-270m-it-GGUF",
+          "processingTimeMs": 239,
+          "actualProcessingTimeMs": 239,
+          "estimatedProcessingTimeMs": null,
+          "msPerUnit": 606.599,
+          "throughputValue": 1648.536,
+          "throughputUnit": "tokensPerSecond",
+          "rateBasis": "1KTokens",
+          "timingScope": "wall",
+          "timingSource": "actual",
+          "inputMetric": "tokens",
+          "inputValue": 394,
+          "costCents": 0,
+          "actualCostCents": 0,
+          "estimatedCostCents": null,
+          "costSource": "actual",
+          "inputTokenCount": 360,
+          "outputTokenCount": 34,
+          "totalTokenCount": 394,
+          "tokenCountSource": "local_count",
+          "providerReturnedModel": null,
+          "providerUsage": null,
+          "rawProviderUsage": null,
+          "structuredMode": "schema-guided",
+          "structuredPresetNames": [
+            "shortSummary"
+          ],
+          "outputFormat": "json",
+          "outputFileName": "text-ggml-org-gemma-3-270m-it-GGUF.json",
+          "outputExists": true,
+          "outputByteSize": 110,
+          "automatedQualityScore": null,
+          "humanQualityScore": null,
+          "qualityMetric": null,
+          "qualityValue": null,
+          "qualityLabel": null,
+          "metrics": {
+            "inputTokenCount": 360,
+            "outputTokenCount": 34,
+            "totalTokenCount": 394,
+            "msPerUnit": 606.599,
+            "throughputValue": 1648.536
+          }
+        },
+        {
+          "providerKey": "llama.cpp/ggml-org/Qwen3-0.6B-GGUF",
+          "provider": "llama.cpp",
+          "model": "ggml-org/Qwen3-0.6B-GGUF",
+          "group": "local",
+          "llmService": "llama.cpp",
+          "llmModel": "ggml-org/Qwen3-0.6B-GGUF",
+          "processingTimeMs": 325,
+          "actualProcessingTimeMs": 325,
+          "estimatedProcessingTimeMs": null,
+          "msPerUnit": 837.629,
+          "throughputValue": 1193.846,
+          "throughputUnit": "tokensPerSecond",
+          "rateBasis": "1KTokens",
+          "timingScope": "wall",
+          "timingSource": "actual",
+          "inputMetric": "tokens",
+          "inputValue": 388,
+          "costCents": 0,
+          "actualCostCents": 0,
+          "estimatedCostCents": null,
+          "costSource": "actual",
+          "inputTokenCount": 360,
+          "outputTokenCount": 28,
+          "totalTokenCount": 388,
+          "tokenCountSource": "local_count",
+          "providerReturnedModel": null,
+          "providerUsage": null,
+          "rawProviderUsage": null,
+          "structuredMode": "schema-guided",
+          "structuredPresetNames": [
+            "shortSummary"
+          ],
+          "outputFormat": "json",
+          "outputFileName": "text-ggml-org-Qwen3-0.6B-GGUF.json",
+          "outputExists": true,
+          "outputByteSize": 121,
+          "automatedQualityScore": null,
+          "humanQualityScore": null,
+          "qualityMetric": null,
+          "qualityValue": null,
+          "qualityLabel": null,
+          "metrics": {
+            "inputTokenCount": 360,
+            "outputTokenCount": 28,
+            "totalTokenCount": 388,
+            "msPerUnit": 837.629,
+            "throughputValue": 1193.846
+          }
+        }
+      ]
+    },
+    "service": {
+      "count": 15,
+      "providers": [
+        {
+          "providerKey": "anthropic/claude-haiku-4-5",
+          "provider": "anthropic",
+          "model": "claude-haiku-4-5",
+          "group": "service",
+          "llmService": "anthropic",
+          "llmModel": "claude-haiku-4-5",
+          "processingTimeMs": 1725,
+          "actualProcessingTimeMs": 1725,
+          "estimatedProcessingTimeMs": null,
+          "msPerUnit": 2570.79,
+          "throughputValue": 388.986,
+          "throughputUnit": "tokensPerSecond",
+          "rateBasis": "1KTokens",
+          "timingScope": "wall",
+          "timingSource": "actual",
+          "inputMetric": "tokens",
+          "inputValue": 671,
+          "costCents": 0.0815,
+          "actualCostCents": 0.0815,
+          "estimatedCostCents": null,
+          "costSource": "actual",
+          "inputTokenCount": 635,
+          "outputTokenCount": 36,
+          "totalTokenCount": 671,
+          "tokenCountSource": "provider_usage",
+          "providerReturnedModel": "claude-haiku-4-5-20251001",
+          "providerUsage": {
+            "inputTokenCount": 635,
+            "outputTokenCount": 36
+          },
+          "rawProviderUsage": {
+            "input_tokens": 635,
+            "cache_creation_input_tokens": 0,
+            "cache_read_input_tokens": 0,
+            "cache_creation": {
+              "ephemeral_5m_input_tokens": 0,
+              "ephemeral_1h_input_tokens": 0
+            },
+            "output_tokens": 36,
+            "service_tier": "standard",
+            "inference_geo": "not_available"
+          },
+          "structuredMode": "native",
+          "structuredPresetNames": [
+            "shortSummary"
+          ],
+          "outputFormat": "json",
+          "outputFileName": "text-claude-haiku-4-5.json",
+          "outputExists": true,
+          "outputByteSize": 169,
+          "automatedQualityScore": null,
+          "humanQualityScore": null,
+          "qualityMetric": null,
+          "qualityValue": null,
+          "qualityLabel": null,
+          "metrics": {
+            "inputTokenCount": 635,
+            "outputTokenCount": 36,
+            "totalTokenCount": 671,
+            "msPerUnit": 2570.79,
+            "throughputValue": 388.986
+          }
+        },
+        {
+          "providerKey": "anthropic/claude-opus-4-8",
+          "provider": "anthropic",
+          "model": "claude-opus-4-8",
+          "group": "service",
+          "llmService": "anthropic",
+          "llmModel": "claude-opus-4-8",
+          "processingTimeMs": 3065,
+          "actualProcessingTimeMs": 3065,
+          "estimatedProcessingTimeMs": null,
+          "msPerUnit": 3401.776,
+          "throughputValue": 293.964,
+          "throughputUnit": "tokensPerSecond",
+          "rateBasis": "1KTokens",
+          "timingScope": "wall",
+          "timingSource": "actual",
+          "inputMetric": "tokens",
+          "inputValue": 901,
+          "costCents": 0.5605,
+          "actualCostCents": 0.5605,
+          "estimatedCostCents": null,
+          "costSource": "actual",
+          "inputTokenCount": 846,
+          "outputTokenCount": 55,
+          "totalTokenCount": 901,
+          "tokenCountSource": "provider_usage",
+          "providerReturnedModel": "claude-opus-4-8",
+          "providerUsage": {
+            "inputTokenCount": 846,
+            "outputTokenCount": 55
+          },
+          "rawProviderUsage": {
+            "input_tokens": 846,
+            "cache_creation_input_tokens": 0,
+            "cache_read_input_tokens": 0,
+            "cache_creation": {
+              "ephemeral_5m_input_tokens": 0,
+              "ephemeral_1h_input_tokens": 0
+            },
+            "output_tokens": 55,
+            "output_tokens_details": {
+              "thinking_tokens": 0
+            },
+            "service_tier": "standard",
+            "inference_geo": "global"
+          },
+          "structuredMode": "native",
+          "structuredPresetNames": [
+            "shortSummary"
+          ],
+          "outputFormat": "json",
+          "outputFileName": "text-claude-opus-4-8.json",
+          "outputExists": true,
+          "outputByteSize": 196,
+          "automatedQualityScore": null,
+          "humanQualityScore": null,
+          "qualityMetric": null,
+          "qualityValue": null,
+          "qualityLabel": null,
+          "metrics": {
+            "inputTokenCount": 846,
+            "outputTokenCount": 55,
+            "totalTokenCount": 901,
+            "msPerUnit": 3401.776,
+            "throughputValue": 293.964
+          }
+        },
+        {
+          "providerKey": "anthropic/claude-sonnet-4-6",
+          "provider": "anthropic",
+          "model": "claude-sonnet-4-6",
+          "group": "service",
+          "llmService": "anthropic",
+          "llmModel": "claude-sonnet-4-6",
+          "processingTimeMs": 3611,
+          "actualProcessingTimeMs": 3611,
+          "estimatedProcessingTimeMs": null,
+          "msPerUnit": 5349.63,
+          "throughputValue": 186.929,
+          "throughputUnit": "tokensPerSecond",
+          "rateBasis": "1KTokens",
+          "timingScope": "wall",
+          "timingSource": "actual",
+          "inputMetric": "tokens",
+          "inputValue": 675,
+          "costCents": 0.2493,
+          "actualCostCents": 0.2493,
+          "estimatedCostCents": null,
+          "costSource": "actual",
+          "inputTokenCount": 636,
+          "outputTokenCount": 39,
+          "totalTokenCount": 675,
+          "tokenCountSource": "provider_usage",
+          "providerReturnedModel": "claude-sonnet-4-6",
+          "providerUsage": {
+            "inputTokenCount": 636,
+            "outputTokenCount": 39
+          },
+          "rawProviderUsage": {
+            "input_tokens": 636,
+            "cache_creation_input_tokens": 0,
+            "cache_read_input_tokens": 0,
+            "cache_creation": {
+              "ephemeral_5m_input_tokens": 0,
+              "ephemeral_1h_input_tokens": 0
+            },
+            "output_tokens": 39,
+            "service_tier": "standard",
+            "inference_geo": "global"
+          },
+          "structuredMode": "native",
+          "structuredPresetNames": [
+            "shortSummary"
+          ],
+          "outputFormat": "json",
+          "outputFileName": "text-claude-sonnet-4-6.json",
+          "outputExists": true,
+          "outputByteSize": 181,
+          "automatedQualityScore": null,
+          "humanQualityScore": null,
+          "qualityMetric": null,
+          "qualityValue": null,
+          "qualityLabel": null,
+          "metrics": {
+            "inputTokenCount": 636,
+            "outputTokenCount": 39,
+            "totalTokenCount": 675,
+            "msPerUnit": 5349.63,
+            "throughputValue": 186.929
+          }
+        },
+        {
+          "providerKey": "gemini/gemini-3.1-flash-lite",
+          "provider": "gemini",
+          "model": "gemini-3.1-flash-lite",
+          "group": "service",
+          "llmService": "gemini",
+          "llmModel": "gemini-3.1-flash-lite",
+          "processingTimeMs": 823,
+          "actualProcessingTimeMs": 823,
+          "estimatedProcessingTimeMs": null,
+          "msPerUnit": 1616.896,
+          "throughputValue": 618.469,
+          "throughputUnit": "tokensPerSecond",
+          "rateBasis": "1KTokens",
+          "timingScope": "wall",
+          "timingSource": "actual",
+          "inputMetric": "tokens",
+          "inputValue": 509,
+          "costCents": 0.016975,
+          "actualCostCents": 0.016975,
+          "estimatedCostCents": null,
+          "costSource": "actual",
+          "inputTokenCount": 475,
+          "outputTokenCount": 34,
+          "totalTokenCount": 509,
+          "tokenCountSource": "provider_usage",
+          "providerReturnedModel": "gemini-3.1-flash-lite",
+          "providerUsage": {
+            "inputTokenCount": 475,
+            "outputTokenCount": 34,
+            "totalTokenCount": 509
+          },
+          "rawProviderUsage": {
+            "promptTokenCount": 475,
+            "candidatesTokenCount": 34,
+            "totalTokenCount": 509,
+            "promptTokensDetails": [
+              {
+                "modality": "TEXT",
+                "tokenCount": 475
+              }
+            ],
+            "serviceTier": "standard"
+          },
+          "structuredMode": "native",
+          "structuredPresetNames": [
+            "shortSummary"
+          ],
+          "outputFormat": "json",
+          "outputFileName": "text-gemini-3.1-flash-lite.json",
+          "outputExists": true,
+          "outputByteSize": 194,
+          "automatedQualityScore": null,
+          "humanQualityScore": null,
+          "qualityMetric": null,
+          "qualityValue": null,
+          "qualityLabel": null,
+          "metrics": {
+            "inputTokenCount": 475,
+            "outputTokenCount": 34,
+            "totalTokenCount": 509,
+            "msPerUnit": 1616.896,
+            "throughputValue": 618.469
+          }
+        },
+        {
+          "providerKey": "gemini/gemini-3.1-flash-lite-preview",
+          "provider": "gemini",
+          "model": "gemini-3.1-flash-lite-preview",
+          "group": "service",
+          "llmService": "gemini",
+          "llmModel": "gemini-3.1-flash-lite-preview",
+          "processingTimeMs": 844,
+          "actualProcessingTimeMs": 844,
+          "estimatedProcessingTimeMs": null,
+          "msPerUnit": 1635.659,
+          "throughputValue": 611.374,
+          "throughputUnit": "tokensPerSecond",
+          "rateBasis": "1KTokens",
+          "timingScope": "wall",
+          "timingSource": "actual",
+          "inputMetric": "tokens",
+          "inputValue": 516,
+          "costCents": 0.018025,
+          "actualCostCents": 0.018025,
+          "estimatedCostCents": null,
+          "costSource": "actual",
+          "inputTokenCount": 475,
+          "outputTokenCount": 41,
+          "totalTokenCount": 516,
+          "tokenCountSource": "provider_usage",
+          "providerReturnedModel": "gemini-3.1-flash-lite",
+          "providerUsage": {
+            "inputTokenCount": 475,
+            "outputTokenCount": 41,
+            "totalTokenCount": 516
+          },
+          "rawProviderUsage": {
+            "promptTokenCount": 475,
+            "candidatesTokenCount": 41,
+            "totalTokenCount": 516,
+            "promptTokensDetails": [
+              {
+                "modality": "TEXT",
+                "tokenCount": 475
+              }
+            ],
+            "serviceTier": "standard"
+          },
+          "structuredMode": "native",
+          "structuredPresetNames": [
+            "shortSummary"
+          ],
+          "outputFormat": "json",
+          "outputFileName": "text-gemini-3.1-flash-lite-preview.json",
+          "outputExists": true,
+          "outputByteSize": 202,
+          "automatedQualityScore": null,
+          "humanQualityScore": null,
+          "qualityMetric": null,
+          "qualityValue": null,
+          "qualityLabel": null,
+          "metrics": {
+            "inputTokenCount": 475,
+            "outputTokenCount": 41,
+            "totalTokenCount": 516,
+            "msPerUnit": 1635.659,
+            "throughputValue": 611.374
+          }
+        },
+        {
+          "providerKey": "gemini/gemini-3.1-pro-preview",
+          "provider": "gemini",
+          "model": "gemini-3.1-pro-preview",
+          "group": "service",
+          "llmService": "gemini",
+          "llmModel": "gemini-3.1-pro-preview",
+          "processingTimeMs": 7097,
+          "actualProcessingTimeMs": 7097,
+          "estimatedProcessingTimeMs": null,
+          "msPerUnit": 13780.583,
+          "throughputValue": 72.566,
+          "throughputUnit": "tokensPerSecond",
+          "rateBasis": "1KTokens",
+          "timingScope": "wall",
+          "timingSource": "actual",
+          "inputMetric": "tokens",
+          "inputValue": 515,
+          "costCents": 0.14300000000000002,
+          "actualCostCents": 0.14300000000000002,
+          "estimatedCostCents": null,
+          "costSource": "actual",
+          "inputTokenCount": 475,
+          "outputTokenCount": 40,
+          "totalTokenCount": 515,
+          "tokenCountSource": "provider_usage",
+          "providerReturnedModel": "gemini-3.1-pro-preview",
+          "providerUsage": {
+            "inputTokenCount": 475,
+            "outputTokenCount": 40,
+            "totalTokenCount": 1085
+          },
+          "rawProviderUsage": {
+            "promptTokenCount": 475,
+            "candidatesTokenCount": 40,
+            "totalTokenCount": 1085,
+            "promptTokensDetails": [
+              {
+                "modality": "TEXT",
+                "tokenCount": 475
+              }
+            ],
+            "thoughtsTokenCount": 570,
+            "serviceTier": "standard"
+          },
+          "structuredMode": "native",
+          "structuredPresetNames": [
+            "shortSummary"
+          ],
+          "outputFormat": "json",
+          "outputFileName": "text-gemini-3.1-pro-preview.json",
+          "outputExists": true,
+          "outputByteSize": 195,
+          "automatedQualityScore": null,
+          "humanQualityScore": null,
+          "qualityMetric": null,
+          "qualityValue": null,
+          "qualityLabel": null,
+          "metrics": {
+            "inputTokenCount": 475,
+            "outputTokenCount": 40,
+            "totalTokenCount": 515,
+            "msPerUnit": 13780.583,
+            "throughputValue": 72.566
+          }
+        },
+        {
+          "providerKey": "glm/glm-5.1",
+          "provider": "glm",
+          "model": "glm-5.1",
+          "group": "service",
+          "llmService": "glm",
+          "llmModel": "glm-5.1",
+          "processingTimeMs": 2012,
+          "actualProcessingTimeMs": 2012,
+          "estimatedProcessingTimeMs": null,
+          "msPerUnit": 3760.748,
+          "throughputValue": 265.905,
+          "throughputUnit": "tokensPerSecond",
+          "rateBasis": "1KTokens",
+          "timingScope": "wall",
+          "timingSource": "actual",
+          "inputMetric": "tokens",
+          "inputValue": 535,
+          "costCents": 0.0863,
+          "actualCostCents": 0.0863,
+          "estimatedCostCents": null,
+          "costSource": "actual",
+          "inputTokenCount": 497,
+          "outputTokenCount": 38,
+          "totalTokenCount": 535,
+          "tokenCountSource": "provider_usage",
+          "providerReturnedModel": "glm-5.1",
+          "providerUsage": {
+            "inputTokenCount": 497,
+            "outputTokenCount": 38,
+            "totalTokenCount": 535
+          },
+          "rawProviderUsage": {
+            "completion_tokens": 38,
+            "completion_tokens_details": {
+              "reasoning_tokens": 0
+            },
+            "prompt_tokens": 497,
+            "prompt_tokens_details": {
+              "cached_tokens": 0
+            },
+            "total_tokens": 535
+          },
+          "structuredMode": "native",
+          "structuredPresetNames": [
+            "shortSummary"
+          ],
+          "outputFormat": "json",
+          "outputFileName": "text-glm-5.1.json",
+          "outputExists": true,
+          "outputByteSize": 165,
+          "automatedQualityScore": null,
+          "humanQualityScore": null,
+          "qualityMetric": null,
+          "qualityValue": null,
+          "qualityLabel": null,
+          "metrics": {
+            "inputTokenCount": 497,
+            "outputTokenCount": 38,
+            "totalTokenCount": 535,
+            "msPerUnit": 3760.748,
+            "throughputValue": 265.905
+          }
+        },
+        {
+          "providerKey": "grok/grok-4.3",
+          "provider": "grok",
+          "model": "grok-4.3",
+          "group": "service",
+          "llmService": "grok",
+          "llmModel": "grok-4.3",
+          "processingTimeMs": 5660,
+          "actualProcessingTimeMs": 5660,
+          "estimatedProcessingTimeMs": null,
+          "msPerUnit": 8885.4,
+          "throughputValue": 112.544,
+          "throughputUnit": "tokensPerSecond",
+          "rateBasis": "1KTokens",
+          "timingScope": "wall",
+          "timingSource": "actual",
+          "inputMetric": "tokens",
+          "inputValue": 637,
+          "costCents": 0.08399999999999999,
+          "actualCostCents": 0.08399999999999999,
+          "estimatedCostCents": null,
+          "costSource": "actual",
+          "inputTokenCount": 602,
+          "outputTokenCount": 35,
+          "totalTokenCount": 637,
+          "tokenCountSource": "provider_usage",
+          "providerReturnedModel": "grok-4.3",
+          "providerUsage": {
+            "inputTokenCount": 602,
+            "outputTokenCount": 35,
+            "totalTokenCount": 1106
+          },
+          "rawProviderUsage": {
+            "prompt_tokens": 602,
+            "completion_tokens": 35,
+            "total_tokens": 1106,
+            "prompt_tokens_details": {
+              "text_tokens": 602,
+              "audio_tokens": 0,
+              "image_tokens": 0,
+              "cached_tokens": 128
+            },
+            "completion_tokens_details": {
+              "reasoning_tokens": 469,
+              "audio_tokens": 0,
+              "accepted_prediction_tokens": 0,
+              "rejected_prediction_tokens": 0
+            },
+            "num_sources_used": 0,
+            "cost_in_usd_ticks": 18781000
+          },
+          "structuredMode": "native",
+          "structuredPresetNames": [
+            "shortSummary"
+          ],
+          "outputFormat": "json",
+          "outputFileName": "text-grok-4.3.json",
+          "outputExists": true,
+          "outputByteSize": 180,
+          "automatedQualityScore": null,
+          "humanQualityScore": null,
+          "qualityMetric": null,
+          "qualityValue": null,
+          "qualityLabel": null,
+          "metrics": {
+            "inputTokenCount": 602,
+            "outputTokenCount": 35,
+            "totalTokenCount": 637,
+            "msPerUnit": 8885.4,
+            "throughputValue": 112.544
+          }
+        },
+        {
+          "providerKey": "groq/openai/gpt-oss-120b",
+          "provider": "groq",
+          "model": "openai/gpt-oss-120b",
+          "group": "service",
+          "llmService": "groq",
+          "llmModel": "openai/gpt-oss-120b",
+          "processingTimeMs": 404,
+          "actualProcessingTimeMs": 404,
+          "estimatedProcessingTimeMs": null,
+          "msPerUnit": 663.383,
+          "throughputValue": 1507.426,
+          "throughputUnit": "tokensPerSecond",
+          "rateBasis": "1KTokens",
+          "timingScope": "wall",
+          "timingSource": "actual",
+          "inputMetric": "tokens",
+          "inputValue": 609,
+          "costCents": 0.012195000000000001,
+          "actualCostCents": 0.012195000000000001,
+          "estimatedCostCents": null,
+          "costSource": "actual",
+          "inputTokenCount": 541,
+          "outputTokenCount": 68,
+          "totalTokenCount": 609,
+          "tokenCountSource": "provider_usage",
+          "providerReturnedModel": "openai/gpt-oss-120b",
+          "providerUsage": {
+            "inputTokenCount": 541,
+            "outputTokenCount": 68,
+            "totalTokenCount": 609
+          },
+          "rawProviderUsage": {
+            "queue_time": 0.056092453,
+            "prompt_tokens": 541,
+            "prompt_time": 0.028960506,
+            "completion_tokens": 68,
+            "completion_time": 0.150548234,
+            "total_tokens": 609,
+            "total_time": 0.17950874,
+            "completion_tokens_details": {
+              "reasoning_tokens": 18
+            }
+          },
+          "structuredMode": "native",
+          "structuredPresetNames": [
+            "shortSummary"
+          ],
+          "outputFormat": "json",
+          "outputFileName": "text-openai-gpt-oss-120b.json",
+          "outputExists": true,
+          "outputByteSize": 173,
+          "automatedQualityScore": null,
+          "humanQualityScore": null,
+          "qualityMetric": null,
+          "qualityValue": null,
+          "qualityLabel": null,
+          "metrics": {
+            "inputTokenCount": 541,
+            "outputTokenCount": 68,
+            "totalTokenCount": 609,
+            "msPerUnit": 663.383,
+            "throughputValue": 1507.426
+          }
+        },
+        {
+          "providerKey": "groq/openai/gpt-oss-20b",
+          "provider": "groq",
+          "model": "openai/gpt-oss-20b",
+          "group": "service",
+          "llmService": "groq",
+          "llmModel": "openai/gpt-oss-20b",
+          "processingTimeMs": 439,
+          "actualProcessingTimeMs": 439,
+          "estimatedProcessingTimeMs": null,
+          "msPerUnit": 739.057,
+          "throughputValue": 1353.075,
+          "throughputUnit": "tokensPerSecond",
+          "rateBasis": "1KTokens",
+          "timingScope": "wall",
+          "timingSource": "actual",
+          "inputMetric": "tokens",
+          "inputValue": 594,
+          "costCents": 0.005647500000000001,
+          "actualCostCents": 0.005647500000000001,
+          "estimatedCostCents": null,
+          "costSource": "actual",
+          "inputTokenCount": 541,
+          "outputTokenCount": 53,
+          "totalTokenCount": 594,
+          "tokenCountSource": "provider_usage",
+          "providerReturnedModel": "openai/gpt-oss-20b",
+          "providerUsage": {
+            "inputTokenCount": 541,
+            "outputTokenCount": 53,
+            "totalTokenCount": 594
+          },
+          "rawProviderUsage": {
+            "queue_time": 0.053541654,
+            "prompt_tokens": 541,
+            "prompt_time": 0.027726911,
+            "completion_tokens": 53,
+            "completion_time": 0.084931188,
+            "total_tokens": 594,
+            "total_time": 0.112658099,
+            "completion_tokens_details": {
+              "reasoning_tokens": 8
+            }
+          },
+          "structuredMode": "native",
+          "structuredPresetNames": [
+            "shortSummary"
+          ],
+          "outputFormat": "json",
+          "outputFileName": "text-openai-gpt-oss-20b.json",
+          "outputExists": true,
+          "outputByteSize": 176,
+          "automatedQualityScore": null,
+          "humanQualityScore": null,
+          "qualityMetric": null,
+          "qualityValue": null,
+          "qualityLabel": null,
+          "metrics": {
+            "inputTokenCount": 541,
+            "outputTokenCount": 53,
+            "totalTokenCount": 594,
+            "msPerUnit": 739.057,
+            "throughputValue": 1353.075
+          }
+        },
+        {
+          "providerKey": "kimi/kimi-k2.6",
+          "provider": "kimi",
+          "model": "kimi-k2.6",
+          "group": "service",
+          "llmService": "kimi",
+          "llmModel": "kimi-k2.6",
+          "processingTimeMs": 2097,
+          "actualProcessingTimeMs": 2097,
+          "estimatedProcessingTimeMs": null,
+          "msPerUnit": 4509.677,
+          "throughputValue": 221.745,
+          "throughputUnit": "tokensPerSecond",
+          "rateBasis": "1KTokens",
+          "timingScope": "wall",
+          "timingSource": "actual",
+          "inputMetric": "tokens",
+          "inputValue": 465,
+          "costCents": 0.054545,
+          "actualCostCents": 0.054545,
+          "estimatedCostCents": null,
+          "costSource": "actual",
+          "inputTokenCount": 431,
+          "outputTokenCount": 34,
+          "totalTokenCount": 465,
+          "tokenCountSource": "provider_usage",
+          "providerReturnedModel": "kimi-k2.6",
+          "providerUsage": {
+            "inputTokenCount": 431,
+            "outputTokenCount": 34,
+            "totalTokenCount": 465
+          },
+          "rawProviderUsage": {
+            "prompt_tokens": 431,
+            "completion_tokens": 34,
+            "total_tokens": 465
+          },
+          "structuredMode": "native",
+          "structuredPresetNames": [
+            "shortSummary"
+          ],
+          "outputFormat": "json",
+          "outputFileName": "text-kimi-k2.6.json",
+          "outputExists": true,
+          "outputByteSize": 182,
+          "automatedQualityScore": null,
+          "humanQualityScore": null,
+          "qualityMetric": null,
+          "qualityValue": null,
+          "qualityLabel": null,
+          "metrics": {
+            "inputTokenCount": 431,
+            "outputTokenCount": 34,
+            "totalTokenCount": 465,
+            "msPerUnit": 4509.677,
+            "throughputValue": 221.745
+          }
+        },
+        {
+          "providerKey": "minimax/MiniMax-M3",
+          "provider": "minimax",
+          "model": "MiniMax-M3",
+          "group": "service",
+          "llmService": "minimax",
+          "llmModel": "MiniMax-M3",
+          "processingTimeMs": 4731,
+          "actualProcessingTimeMs": 4731,
+          "estimatedProcessingTimeMs": null,
+          "msPerUnit": 5958.438,
+          "throughputValue": 167.829,
+          "throughputUnit": "tokensPerSecond",
+          "rateBasis": "1KTokens",
+          "timingScope": "wall",
+          "timingSource": "actual",
+          "inputMetric": "tokens",
+          "inputValue": 794,
+          "costCents": 0.06546,
+          "actualCostCents": 0.06546,
+          "estimatedCostCents": null,
+          "costSource": "actual",
+          "inputTokenCount": 695,
+          "outputTokenCount": 99,
+          "totalTokenCount": 794,
+          "tokenCountSource": "provider_usage",
+          "providerReturnedModel": "MiniMax-M3",
+          "providerUsage": {
+            "inputTokenCount": 695,
+            "outputTokenCount": 99,
+            "totalTokenCount": 794
+          },
+          "rawProviderUsage": {
+            "total_tokens": 794,
+            "total_characters": 0,
+            "prompt_tokens": 695,
+            "completion_tokens": 99,
+            "completion_tokens_details": {
+              "reasoning_tokens": 77
+            },
+            "prompt_tokens_details": {
+              "cached_tokens": 114
+            }
+          },
+          "structuredMode": "schema-guided",
+          "structuredPresetNames": [
+            "shortSummary"
+          ],
+          "outputFormat": "json",
+          "outputFileName": "text-MiniMax-M3.json",
+          "outputExists": true,
+          "outputByteSize": 198,
+          "automatedQualityScore": null,
+          "humanQualityScore": null,
+          "qualityMetric": null,
+          "qualityValue": null,
+          "qualityLabel": null,
+          "metrics": {
+            "inputTokenCount": 695,
+            "outputTokenCount": 99,
+            "totalTokenCount": 794,
+            "msPerUnit": 5958.438,
+            "throughputValue": 167.829
+          }
+        },
+        {
+          "providerKey": "openai/gpt-5.4-mini",
+          "provider": "openai",
+          "model": "gpt-5.4-mini",
+          "group": "service",
+          "llmService": "openai",
+          "llmModel": "gpt-5.4-mini",
+          "processingTimeMs": 1215,
+          "actualProcessingTimeMs": 1215,
+          "estimatedProcessingTimeMs": null,
+          "msPerUnit": 2474.542,
+          "throughputValue": 404.115,
+          "throughputUnit": "tokensPerSecond",
+          "rateBasis": "1KTokens",
+          "timingScope": "wall",
+          "timingSource": "actual",
+          "inputMetric": "tokens",
+          "inputValue": 491,
+          "costCents": 0.051449999999999996,
+          "actualCostCents": 0.051449999999999996,
+          "estimatedCostCents": null,
+          "costSource": "actual",
+          "inputTokenCount": 452,
+          "outputTokenCount": 39,
+          "totalTokenCount": 491,
+          "tokenCountSource": "provider_usage",
+          "providerReturnedModel": "gpt-5.4-mini-2026-03-17",
+          "providerUsage": {
+            "inputTokenCount": 452,
+            "outputTokenCount": 39,
+            "totalTokenCount": 491
+          },
+          "rawProviderUsage": {
+            "input_tokens": 452,
+            "input_tokens_details": {
+              "cached_tokens": 0
+            },
+            "output_tokens": 39,
+            "output_tokens_details": {
+              "reasoning_tokens": 0
+            },
+            "total_tokens": 491
+          },
+          "structuredMode": "native",
+          "structuredPresetNames": [
+            "shortSummary"
+          ],
+          "outputFormat": "json",
+          "outputFileName": "text-gpt-5.4-mini.json",
+          "outputExists": true,
+          "outputByteSize": 151,
+          "automatedQualityScore": null,
+          "humanQualityScore": null,
+          "qualityMetric": null,
+          "qualityValue": null,
+          "qualityLabel": null,
+          "metrics": {
+            "inputTokenCount": 452,
+            "outputTokenCount": 39,
+            "totalTokenCount": 491,
+            "msPerUnit": 2474.542,
+            "throughputValue": 404.115
+          }
+        },
+        {
+          "providerKey": "openai/gpt-5.4-nano",
+          "provider": "openai",
+          "model": "gpt-5.4-nano",
+          "group": "service",
+          "llmService": "openai",
+          "llmModel": "gpt-5.4-nano",
+          "processingTimeMs": 1096,
+          "actualProcessingTimeMs": 1096,
+          "estimatedProcessingTimeMs": null,
+          "msPerUnit": 2205.231,
+          "throughputValue": 453.467,
+          "throughputUnit": "tokensPerSecond",
+          "rateBasis": "1KTokens",
+          "timingScope": "wall",
+          "timingSource": "actual",
+          "inputMetric": "tokens",
+          "inputValue": 497,
+          "costCents": 0.014665000000000001,
+          "actualCostCents": 0.014665000000000001,
+          "estimatedCostCents": null,
+          "costSource": "actual",
+          "inputTokenCount": 452,
+          "outputTokenCount": 45,
+          "totalTokenCount": 497,
+          "tokenCountSource": "provider_usage",
+          "providerReturnedModel": "gpt-5.4-nano-2026-03-17",
+          "providerUsage": {
+            "inputTokenCount": 452,
+            "outputTokenCount": 45,
+            "totalTokenCount": 497
+          },
+          "rawProviderUsage": {
+            "input_tokens": 452,
+            "input_tokens_details": {
+              "cached_tokens": 0
+            },
+            "output_tokens": 45,
+            "output_tokens_details": {
+              "reasoning_tokens": 0
+            },
+            "total_tokens": 497
+          },
+          "structuredMode": "native",
+          "structuredPresetNames": [
+            "shortSummary"
+          ],
+          "outputFormat": "json",
+          "outputFileName": "text-gpt-5.4-nano.json",
+          "outputExists": true,
+          "outputByteSize": 187,
+          "automatedQualityScore": null,
+          "humanQualityScore": null,
+          "qualityMetric": null,
+          "qualityValue": null,
+          "qualityLabel": null,
+          "metrics": {
+            "inputTokenCount": 452,
+            "outputTokenCount": 45,
+            "totalTokenCount": 497,
+            "msPerUnit": 2205.231,
+            "throughputValue": 453.467
+          }
+        },
+        {
+          "providerKey": "openai/gpt-5.5",
+          "provider": "openai",
+          "model": "gpt-5.5",
+          "group": "service",
+          "llmService": "openai",
+          "llmModel": "gpt-5.5",
+          "processingTimeMs": 1620,
+          "actualProcessingTimeMs": 1620,
+          "estimatedProcessingTimeMs": null,
+          "msPerUnit": 3319.672,
+          "throughputValue": 301.235,
+          "throughputUnit": "tokensPerSecond",
+          "rateBasis": "1KTokens",
+          "timingScope": "wall",
+          "timingSource": "actual",
+          "inputMetric": "tokens",
+          "inputValue": 488,
+          "costCents": 0.33399999999999996,
+          "actualCostCents": 0.33399999999999996,
+          "estimatedCostCents": null,
+          "costSource": "actual",
+          "inputTokenCount": 452,
+          "outputTokenCount": 36,
+          "totalTokenCount": 488,
+          "tokenCountSource": "provider_usage",
+          "providerReturnedModel": "gpt-5.5-2026-04-23",
+          "providerUsage": {
+            "inputTokenCount": 452,
+            "outputTokenCount": 36,
+            "totalTokenCount": 488
+          },
+          "rawProviderUsage": {
+            "input_tokens": 452,
+            "input_tokens_details": {
+              "cached_tokens": 0
+            },
+            "output_tokens": 36,
+            "output_tokens_details": {
+              "reasoning_tokens": 0
+            },
+            "total_tokens": 488
+          },
+          "structuredMode": "native",
+          "structuredPresetNames": [
+            "shortSummary"
+          ],
+          "outputFormat": "json",
+          "outputFileName": "text-gpt-5.5.json",
+          "outputExists": true,
+          "outputByteSize": 166,
+          "automatedQualityScore": null,
+          "humanQualityScore": null,
+          "qualityMetric": null,
+          "qualityValue": null,
+          "qualityLabel": null,
+          "metrics": {
+            "inputTokenCount": 452,
+            "outputTokenCount": 36,
+            "totalTokenCount": 488,
+            "msPerUnit": 3319.672,
+            "throughputValue": 301.235
+          }
+        }
+      ]
+    }
+  },
+  "providers": [
+    {
+      "providerKey": "llama.cpp/ggml-org/gemma-3-270m-it-GGUF",
+      "provider": "llama.cpp",
+      "model": "ggml-org/gemma-3-270m-it-GGUF",
+      "group": "local",
+      "llmService": "llama.cpp",
+      "llmModel": "ggml-org/gemma-3-270m-it-GGUF",
+      "processingTimeMs": 239,
+      "actualProcessingTimeMs": 239,
+      "estimatedProcessingTimeMs": null,
+      "msPerUnit": 606.599,
+      "throughputValue": 1648.536,
+      "throughputUnit": "tokensPerSecond",
+      "rateBasis": "1KTokens",
+      "timingScope": "wall",
+      "timingSource": "actual",
+      "inputMetric": "tokens",
+      "inputValue": 394,
+      "costCents": 0,
+      "actualCostCents": 0,
+      "estimatedCostCents": null,
+      "costSource": "actual",
+      "inputTokenCount": 360,
+      "outputTokenCount": 34,
+      "totalTokenCount": 394,
+      "tokenCountSource": "local_count",
+      "providerReturnedModel": null,
+      "providerUsage": null,
+      "rawProviderUsage": null,
+      "structuredMode": "schema-guided",
+      "structuredPresetNames": [
+        "shortSummary"
+      ],
+      "outputFormat": "json",
+      "outputFileName": "text-ggml-org-gemma-3-270m-it-GGUF.json",
+      "outputExists": true,
+      "outputByteSize": 110,
+      "automatedQualityScore": null,
+      "humanQualityScore": null,
+      "qualityMetric": null,
+      "qualityValue": null,
+      "qualityLabel": null,
+      "metrics": {
+        "inputTokenCount": 360,
+        "outputTokenCount": 34,
+        "totalTokenCount": 394,
+        "msPerUnit": 606.599,
+        "throughputValue": 1648.536
+      }
+    },
+    {
+      "providerKey": "llama.cpp/ggml-org/Qwen3-0.6B-GGUF",
+      "provider": "llama.cpp",
+      "model": "ggml-org/Qwen3-0.6B-GGUF",
+      "group": "local",
+      "llmService": "llama.cpp",
+      "llmModel": "ggml-org/Qwen3-0.6B-GGUF",
+      "processingTimeMs": 325,
+      "actualProcessingTimeMs": 325,
+      "estimatedProcessingTimeMs": null,
+      "msPerUnit": 837.629,
+      "throughputValue": 1193.846,
+      "throughputUnit": "tokensPerSecond",
+      "rateBasis": "1KTokens",
+      "timingScope": "wall",
+      "timingSource": "actual",
+      "inputMetric": "tokens",
+      "inputValue": 388,
+      "costCents": 0,
+      "actualCostCents": 0,
+      "estimatedCostCents": null,
+      "costSource": "actual",
+      "inputTokenCount": 360,
+      "outputTokenCount": 28,
+      "totalTokenCount": 388,
+      "tokenCountSource": "local_count",
+      "providerReturnedModel": null,
+      "providerUsage": null,
+      "rawProviderUsage": null,
+      "structuredMode": "schema-guided",
+      "structuredPresetNames": [
+        "shortSummary"
+      ],
+      "outputFormat": "json",
+      "outputFileName": "text-ggml-org-Qwen3-0.6B-GGUF.json",
+      "outputExists": true,
+      "outputByteSize": 121,
+      "automatedQualityScore": null,
+      "humanQualityScore": null,
+      "qualityMetric": null,
+      "qualityValue": null,
+      "qualityLabel": null,
+      "metrics": {
+        "inputTokenCount": 360,
+        "outputTokenCount": 28,
+        "totalTokenCount": 388,
+        "msPerUnit": 837.629,
+        "throughputValue": 1193.846
+      }
+    },
+    {
+      "providerKey": "anthropic/claude-haiku-4-5",
+      "provider": "anthropic",
+      "model": "claude-haiku-4-5",
+      "group": "service",
+      "llmService": "anthropic",
+      "llmModel": "claude-haiku-4-5",
+      "processingTimeMs": 1725,
+      "actualProcessingTimeMs": 1725,
+      "estimatedProcessingTimeMs": null,
+      "msPerUnit": 2570.79,
+      "throughputValue": 388.986,
+      "throughputUnit": "tokensPerSecond",
+      "rateBasis": "1KTokens",
+      "timingScope": "wall",
+      "timingSource": "actual",
+      "inputMetric": "tokens",
+      "inputValue": 671,
+      "costCents": 0.0815,
+      "actualCostCents": 0.0815,
+      "estimatedCostCents": null,
+      "costSource": "actual",
+      "inputTokenCount": 635,
+      "outputTokenCount": 36,
+      "totalTokenCount": 671,
+      "tokenCountSource": "provider_usage",
+      "providerReturnedModel": "claude-haiku-4-5-20251001",
+      "providerUsage": {
+        "inputTokenCount": 635,
+        "outputTokenCount": 36
+      },
+      "rawProviderUsage": {
+        "input_tokens": 635,
+        "cache_creation_input_tokens": 0,
+        "cache_read_input_tokens": 0,
+        "cache_creation": {
+          "ephemeral_5m_input_tokens": 0,
+          "ephemeral_1h_input_tokens": 0
+        },
+        "output_tokens": 36,
+        "service_tier": "standard",
+        "inference_geo": "not_available"
+      },
+      "structuredMode": "native",
+      "structuredPresetNames": [
+        "shortSummary"
+      ],
+      "outputFormat": "json",
+      "outputFileName": "text-claude-haiku-4-5.json",
+      "outputExists": true,
+      "outputByteSize": 169,
+      "automatedQualityScore": null,
+      "humanQualityScore": null,
+      "qualityMetric": null,
+      "qualityValue": null,
+      "qualityLabel": null,
+      "metrics": {
+        "inputTokenCount": 635,
+        "outputTokenCount": 36,
+        "totalTokenCount": 671,
+        "msPerUnit": 2570.79,
+        "throughputValue": 388.986
+      }
+    },
+    {
+      "providerKey": "anthropic/claude-opus-4-8",
+      "provider": "anthropic",
+      "model": "claude-opus-4-8",
+      "group": "service",
+      "llmService": "anthropic",
+      "llmModel": "claude-opus-4-8",
+      "processingTimeMs": 3065,
+      "actualProcessingTimeMs": 3065,
+      "estimatedProcessingTimeMs": null,
+      "msPerUnit": 3401.776,
+      "throughputValue": 293.964,
+      "throughputUnit": "tokensPerSecond",
+      "rateBasis": "1KTokens",
+      "timingScope": "wall",
+      "timingSource": "actual",
+      "inputMetric": "tokens",
+      "inputValue": 901,
+      "costCents": 0.5605,
+      "actualCostCents": 0.5605,
+      "estimatedCostCents": null,
+      "costSource": "actual",
+      "inputTokenCount": 846,
+      "outputTokenCount": 55,
+      "totalTokenCount": 901,
+      "tokenCountSource": "provider_usage",
+      "providerReturnedModel": "claude-opus-4-8",
+      "providerUsage": {
+        "inputTokenCount": 846,
+        "outputTokenCount": 55
+      },
+      "rawProviderUsage": {
+        "input_tokens": 846,
+        "cache_creation_input_tokens": 0,
+        "cache_read_input_tokens": 0,
+        "cache_creation": {
+          "ephemeral_5m_input_tokens": 0,
+          "ephemeral_1h_input_tokens": 0
+        },
+        "output_tokens": 55,
+        "output_tokens_details": {
+          "thinking_tokens": 0
+        },
+        "service_tier": "standard",
+        "inference_geo": "global"
+      },
+      "structuredMode": "native",
+      "structuredPresetNames": [
+        "shortSummary"
+      ],
+      "outputFormat": "json",
+      "outputFileName": "text-claude-opus-4-8.json",
+      "outputExists": true,
+      "outputByteSize": 196,
+      "automatedQualityScore": null,
+      "humanQualityScore": null,
+      "qualityMetric": null,
+      "qualityValue": null,
+      "qualityLabel": null,
+      "metrics": {
+        "inputTokenCount": 846,
+        "outputTokenCount": 55,
+        "totalTokenCount": 901,
+        "msPerUnit": 3401.776,
+        "throughputValue": 293.964
+      }
+    },
+    {
+      "providerKey": "anthropic/claude-sonnet-4-6",
+      "provider": "anthropic",
+      "model": "claude-sonnet-4-6",
+      "group": "service",
+      "llmService": "anthropic",
+      "llmModel": "claude-sonnet-4-6",
+      "processingTimeMs": 3611,
+      "actualProcessingTimeMs": 3611,
+      "estimatedProcessingTimeMs": null,
+      "msPerUnit": 5349.63,
+      "throughputValue": 186.929,
+      "throughputUnit": "tokensPerSecond",
+      "rateBasis": "1KTokens",
+      "timingScope": "wall",
+      "timingSource": "actual",
+      "inputMetric": "tokens",
+      "inputValue": 675,
+      "costCents": 0.2493,
+      "actualCostCents": 0.2493,
+      "estimatedCostCents": null,
+      "costSource": "actual",
+      "inputTokenCount": 636,
+      "outputTokenCount": 39,
+      "totalTokenCount": 675,
+      "tokenCountSource": "provider_usage",
+      "providerReturnedModel": "claude-sonnet-4-6",
+      "providerUsage": {
+        "inputTokenCount": 636,
+        "outputTokenCount": 39
+      },
+      "rawProviderUsage": {
+        "input_tokens": 636,
+        "cache_creation_input_tokens": 0,
+        "cache_read_input_tokens": 0,
+        "cache_creation": {
+          "ephemeral_5m_input_tokens": 0,
+          "ephemeral_1h_input_tokens": 0
+        },
+        "output_tokens": 39,
+        "service_tier": "standard",
+        "inference_geo": "global"
+      },
+      "structuredMode": "native",
+      "structuredPresetNames": [
+        "shortSummary"
+      ],
+      "outputFormat": "json",
+      "outputFileName": "text-claude-sonnet-4-6.json",
+      "outputExists": true,
+      "outputByteSize": 181,
+      "automatedQualityScore": null,
+      "humanQualityScore": null,
+      "qualityMetric": null,
+      "qualityValue": null,
+      "qualityLabel": null,
+      "metrics": {
+        "inputTokenCount": 636,
+        "outputTokenCount": 39,
+        "totalTokenCount": 675,
+        "msPerUnit": 5349.63,
+        "throughputValue": 186.929
+      }
+    },
+    {
+      "providerKey": "gemini/gemini-3.1-flash-lite",
+      "provider": "gemini",
+      "model": "gemini-3.1-flash-lite",
+      "group": "service",
+      "llmService": "gemini",
+      "llmModel": "gemini-3.1-flash-lite",
+      "processingTimeMs": 823,
+      "actualProcessingTimeMs": 823,
+      "estimatedProcessingTimeMs": null,
+      "msPerUnit": 1616.896,
+      "throughputValue": 618.469,
+      "throughputUnit": "tokensPerSecond",
+      "rateBasis": "1KTokens",
+      "timingScope": "wall",
+      "timingSource": "actual",
+      "inputMetric": "tokens",
+      "inputValue": 509,
+      "costCents": 0.016975,
+      "actualCostCents": 0.016975,
+      "estimatedCostCents": null,
+      "costSource": "actual",
+      "inputTokenCount": 475,
+      "outputTokenCount": 34,
+      "totalTokenCount": 509,
+      "tokenCountSource": "provider_usage",
+      "providerReturnedModel": "gemini-3.1-flash-lite",
+      "providerUsage": {
+        "inputTokenCount": 475,
+        "outputTokenCount": 34,
+        "totalTokenCount": 509
+      },
+      "rawProviderUsage": {
+        "promptTokenCount": 475,
+        "candidatesTokenCount": 34,
+        "totalTokenCount": 509,
+        "promptTokensDetails": [
+          {
+            "modality": "TEXT",
+            "tokenCount": 475
+          }
+        ],
+        "serviceTier": "standard"
+      },
+      "structuredMode": "native",
+      "structuredPresetNames": [
+        "shortSummary"
+      ],
+      "outputFormat": "json",
+      "outputFileName": "text-gemini-3.1-flash-lite.json",
+      "outputExists": true,
+      "outputByteSize": 194,
+      "automatedQualityScore": null,
+      "humanQualityScore": null,
+      "qualityMetric": null,
+      "qualityValue": null,
+      "qualityLabel": null,
+      "metrics": {
+        "inputTokenCount": 475,
+        "outputTokenCount": 34,
+        "totalTokenCount": 509,
+        "msPerUnit": 1616.896,
+        "throughputValue": 618.469
+      }
+    },
+    {
+      "providerKey": "gemini/gemini-3.1-flash-lite-preview",
+      "provider": "gemini",
+      "model": "gemini-3.1-flash-lite-preview",
+      "group": "service",
+      "llmService": "gemini",
+      "llmModel": "gemini-3.1-flash-lite-preview",
+      "processingTimeMs": 844,
+      "actualProcessingTimeMs": 844,
+      "estimatedProcessingTimeMs": null,
+      "msPerUnit": 1635.659,
+      "throughputValue": 611.374,
+      "throughputUnit": "tokensPerSecond",
+      "rateBasis": "1KTokens",
+      "timingScope": "wall",
+      "timingSource": "actual",
+      "inputMetric": "tokens",
+      "inputValue": 516,
+      "costCents": 0.018025,
+      "actualCostCents": 0.018025,
+      "estimatedCostCents": null,
+      "costSource": "actual",
+      "inputTokenCount": 475,
+      "outputTokenCount": 41,
+      "totalTokenCount": 516,
+      "tokenCountSource": "provider_usage",
+      "providerReturnedModel": "gemini-3.1-flash-lite",
+      "providerUsage": {
+        "inputTokenCount": 475,
+        "outputTokenCount": 41,
+        "totalTokenCount": 516
+      },
+      "rawProviderUsage": {
+        "promptTokenCount": 475,
+        "candidatesTokenCount": 41,
+        "totalTokenCount": 516,
+        "promptTokensDetails": [
+          {
+            "modality": "TEXT",
+            "tokenCount": 475
+          }
+        ],
+        "serviceTier": "standard"
+      },
+      "structuredMode": "native",
+      "structuredPresetNames": [
+        "shortSummary"
+      ],
+      "outputFormat": "json",
+      "outputFileName": "text-gemini-3.1-flash-lite-preview.json",
+      "outputExists": true,
+      "outputByteSize": 202,
+      "automatedQualityScore": null,
+      "humanQualityScore": null,
+      "qualityMetric": null,
+      "qualityValue": null,
+      "qualityLabel": null,
+      "metrics": {
+        "inputTokenCount": 475,
+        "outputTokenCount": 41,
+        "totalTokenCount": 516,
+        "msPerUnit": 1635.659,
+        "throughputValue": 611.374
+      }
+    },
+    {
+      "providerKey": "gemini/gemini-3.1-pro-preview",
+      "provider": "gemini",
+      "model": "gemini-3.1-pro-preview",
+      "group": "service",
+      "llmService": "gemini",
+      "llmModel": "gemini-3.1-pro-preview",
+      "processingTimeMs": 7097,
+      "actualProcessingTimeMs": 7097,
+      "estimatedProcessingTimeMs": null,
+      "msPerUnit": 13780.583,
+      "throughputValue": 72.566,
+      "throughputUnit": "tokensPerSecond",
+      "rateBasis": "1KTokens",
+      "timingScope": "wall",
+      "timingSource": "actual",
+      "inputMetric": "tokens",
+      "inputValue": 515,
+      "costCents": 0.14300000000000002,
+      "actualCostCents": 0.14300000000000002,
+      "estimatedCostCents": null,
+      "costSource": "actual",
+      "inputTokenCount": 475,
+      "outputTokenCount": 40,
+      "totalTokenCount": 515,
+      "tokenCountSource": "provider_usage",
+      "providerReturnedModel": "gemini-3.1-pro-preview",
+      "providerUsage": {
+        "inputTokenCount": 475,
+        "outputTokenCount": 40,
+        "totalTokenCount": 1085
+      },
+      "rawProviderUsage": {
+        "promptTokenCount": 475,
+        "candidatesTokenCount": 40,
+        "totalTokenCount": 1085,
+        "promptTokensDetails": [
+          {
+            "modality": "TEXT",
+            "tokenCount": 475
+          }
+        ],
+        "thoughtsTokenCount": 570,
+        "serviceTier": "standard"
+      },
+      "structuredMode": "native",
+      "structuredPresetNames": [
+        "shortSummary"
+      ],
+      "outputFormat": "json",
+      "outputFileName": "text-gemini-3.1-pro-preview.json",
+      "outputExists": true,
+      "outputByteSize": 195,
+      "automatedQualityScore": null,
+      "humanQualityScore": null,
+      "qualityMetric": null,
+      "qualityValue": null,
+      "qualityLabel": null,
+      "metrics": {
+        "inputTokenCount": 475,
+        "outputTokenCount": 40,
+        "totalTokenCount": 515,
+        "msPerUnit": 13780.583,
+        "throughputValue": 72.566
+      }
+    },
+    {
+      "providerKey": "glm/glm-5.1",
+      "provider": "glm",
+      "model": "glm-5.1",
+      "group": "service",
+      "llmService": "glm",
+      "llmModel": "glm-5.1",
+      "processingTimeMs": 2012,
+      "actualProcessingTimeMs": 2012,
+      "estimatedProcessingTimeMs": null,
+      "msPerUnit": 3760.748,
+      "throughputValue": 265.905,
+      "throughputUnit": "tokensPerSecond",
+      "rateBasis": "1KTokens",
+      "timingScope": "wall",
+      "timingSource": "actual",
+      "inputMetric": "tokens",
+      "inputValue": 535,
+      "costCents": 0.0863,
+      "actualCostCents": 0.0863,
+      "estimatedCostCents": null,
+      "costSource": "actual",
+      "inputTokenCount": 497,
+      "outputTokenCount": 38,
+      "totalTokenCount": 535,
+      "tokenCountSource": "provider_usage",
+      "providerReturnedModel": "glm-5.1",
+      "providerUsage": {
+        "inputTokenCount": 497,
+        "outputTokenCount": 38,
+        "totalTokenCount": 535
+      },
+      "rawProviderUsage": {
+        "completion_tokens": 38,
+        "completion_tokens_details": {
+          "reasoning_tokens": 0
+        },
+        "prompt_tokens": 497,
+        "prompt_tokens_details": {
+          "cached_tokens": 0
+        },
+        "total_tokens": 535
+      },
+      "structuredMode": "native",
+      "structuredPresetNames": [
+        "shortSummary"
+      ],
+      "outputFormat": "json",
+      "outputFileName": "text-glm-5.1.json",
+      "outputExists": true,
+      "outputByteSize": 165,
+      "automatedQualityScore": null,
+      "humanQualityScore": null,
+      "qualityMetric": null,
+      "qualityValue": null,
+      "qualityLabel": null,
+      "metrics": {
+        "inputTokenCount": 497,
+        "outputTokenCount": 38,
+        "totalTokenCount": 535,
+        "msPerUnit": 3760.748,
+        "throughputValue": 265.905
+      }
+    },
+    {
+      "providerKey": "grok/grok-4.3",
+      "provider": "grok",
+      "model": "grok-4.3",
+      "group": "service",
+      "llmService": "grok",
+      "llmModel": "grok-4.3",
+      "processingTimeMs": 5660,
+      "actualProcessingTimeMs": 5660,
+      "estimatedProcessingTimeMs": null,
+      "msPerUnit": 8885.4,
+      "throughputValue": 112.544,
+      "throughputUnit": "tokensPerSecond",
+      "rateBasis": "1KTokens",
+      "timingScope": "wall",
+      "timingSource": "actual",
+      "inputMetric": "tokens",
+      "inputValue": 637,
+      "costCents": 0.08399999999999999,
+      "actualCostCents": 0.08399999999999999,
+      "estimatedCostCents": null,
+      "costSource": "actual",
+      "inputTokenCount": 602,
+      "outputTokenCount": 35,
+      "totalTokenCount": 637,
+      "tokenCountSource": "provider_usage",
+      "providerReturnedModel": "grok-4.3",
+      "providerUsage": {
+        "inputTokenCount": 602,
+        "outputTokenCount": 35,
+        "totalTokenCount": 1106
+      },
+      "rawProviderUsage": {
+        "prompt_tokens": 602,
+        "completion_tokens": 35,
+        "total_tokens": 1106,
+        "prompt_tokens_details": {
+          "text_tokens": 602,
+          "audio_tokens": 0,
+          "image_tokens": 0,
+          "cached_tokens": 128
+        },
+        "completion_tokens_details": {
+          "reasoning_tokens": 469,
+          "audio_tokens": 0,
+          "accepted_prediction_tokens": 0,
+          "rejected_prediction_tokens": 0
+        },
+        "num_sources_used": 0,
+        "cost_in_usd_ticks": 18781000
+      },
+      "structuredMode": "native",
+      "structuredPresetNames": [
+        "shortSummary"
+      ],
+      "outputFormat": "json",
+      "outputFileName": "text-grok-4.3.json",
+      "outputExists": true,
+      "outputByteSize": 180,
+      "automatedQualityScore": null,
+      "humanQualityScore": null,
+      "qualityMetric": null,
+      "qualityValue": null,
+      "qualityLabel": null,
+      "metrics": {
+        "inputTokenCount": 602,
+        "outputTokenCount": 35,
+        "totalTokenCount": 637,
+        "msPerUnit": 8885.4,
+        "throughputValue": 112.544
+      }
+    },
+    {
+      "providerKey": "groq/openai/gpt-oss-120b",
+      "provider": "groq",
+      "model": "openai/gpt-oss-120b",
+      "group": "service",
+      "llmService": "groq",
+      "llmModel": "openai/gpt-oss-120b",
+      "processingTimeMs": 404,
+      "actualProcessingTimeMs": 404,
+      "estimatedProcessingTimeMs": null,
+      "msPerUnit": 663.383,
+      "throughputValue": 1507.426,
+      "throughputUnit": "tokensPerSecond",
+      "rateBasis": "1KTokens",
+      "timingScope": "wall",
+      "timingSource": "actual",
+      "inputMetric": "tokens",
+      "inputValue": 609,
+      "costCents": 0.012195000000000001,
+      "actualCostCents": 0.012195000000000001,
+      "estimatedCostCents": null,
+      "costSource": "actual",
+      "inputTokenCount": 541,
+      "outputTokenCount": 68,
+      "totalTokenCount": 609,
+      "tokenCountSource": "provider_usage",
+      "providerReturnedModel": "openai/gpt-oss-120b",
+      "providerUsage": {
+        "inputTokenCount": 541,
+        "outputTokenCount": 68,
+        "totalTokenCount": 609
+      },
+      "rawProviderUsage": {
+        "queue_time": 0.056092453,
+        "prompt_tokens": 541,
+        "prompt_time": 0.028960506,
+        "completion_tokens": 68,
+        "completion_time": 0.150548234,
+        "total_tokens": 609,
+        "total_time": 0.17950874,
+        "completion_tokens_details": {
+          "reasoning_tokens": 18
+        }
+      },
+      "structuredMode": "native",
+      "structuredPresetNames": [
+        "shortSummary"
+      ],
+      "outputFormat": "json",
+      "outputFileName": "text-openai-gpt-oss-120b.json",
+      "outputExists": true,
+      "outputByteSize": 173,
+      "automatedQualityScore": null,
+      "humanQualityScore": null,
+      "qualityMetric": null,
+      "qualityValue": null,
+      "qualityLabel": null,
+      "metrics": {
+        "inputTokenCount": 541,
+        "outputTokenCount": 68,
+        "totalTokenCount": 609,
+        "msPerUnit": 663.383,
+        "throughputValue": 1507.426
+      }
+    },
+    {
+      "providerKey": "groq/openai/gpt-oss-20b",
+      "provider": "groq",
+      "model": "openai/gpt-oss-20b",
+      "group": "service",
+      "llmService": "groq",
+      "llmModel": "openai/gpt-oss-20b",
+      "processingTimeMs": 439,
+      "actualProcessingTimeMs": 439,
+      "estimatedProcessingTimeMs": null,
+      "msPerUnit": 739.057,
+      "throughputValue": 1353.075,
+      "throughputUnit": "tokensPerSecond",
+      "rateBasis": "1KTokens",
+      "timingScope": "wall",
+      "timingSource": "actual",
+      "inputMetric": "tokens",
+      "inputValue": 594,
+      "costCents": 0.005647500000000001,
+      "actualCostCents": 0.005647500000000001,
+      "estimatedCostCents": null,
+      "costSource": "actual",
+      "inputTokenCount": 541,
+      "outputTokenCount": 53,
+      "totalTokenCount": 594,
+      "tokenCountSource": "provider_usage",
+      "providerReturnedModel": "openai/gpt-oss-20b",
+      "providerUsage": {
+        "inputTokenCount": 541,
+        "outputTokenCount": 53,
+        "totalTokenCount": 594
+      },
+      "rawProviderUsage": {
+        "queue_time": 0.053541654,
+        "prompt_tokens": 541,
+        "prompt_time": 0.027726911,
+        "completion_tokens": 53,
+        "completion_time": 0.084931188,
+        "total_tokens": 594,
+        "total_time": 0.112658099,
+        "completion_tokens_details": {
+          "reasoning_tokens": 8
+        }
+      },
+      "structuredMode": "native",
+      "structuredPresetNames": [
+        "shortSummary"
+      ],
+      "outputFormat": "json",
+      "outputFileName": "text-openai-gpt-oss-20b.json",
+      "outputExists": true,
+      "outputByteSize": 176,
+      "automatedQualityScore": null,
+      "humanQualityScore": null,
+      "qualityMetric": null,
+      "qualityValue": null,
+      "qualityLabel": null,
+      "metrics": {
+        "inputTokenCount": 541,
+        "outputTokenCount": 53,
+        "totalTokenCount": 594,
+        "msPerUnit": 739.057,
+        "throughputValue": 1353.075
+      }
+    },
+    {
+      "providerKey": "kimi/kimi-k2.6",
+      "provider": "kimi",
+      "model": "kimi-k2.6",
+      "group": "service",
+      "llmService": "kimi",
+      "llmModel": "kimi-k2.6",
+      "processingTimeMs": 2097,
+      "actualProcessingTimeMs": 2097,
+      "estimatedProcessingTimeMs": null,
+      "msPerUnit": 4509.677,
+      "throughputValue": 221.745,
+      "throughputUnit": "tokensPerSecond",
+      "rateBasis": "1KTokens",
+      "timingScope": "wall",
+      "timingSource": "actual",
+      "inputMetric": "tokens",
+      "inputValue": 465,
+      "costCents": 0.054545,
+      "actualCostCents": 0.054545,
+      "estimatedCostCents": null,
+      "costSource": "actual",
+      "inputTokenCount": 431,
+      "outputTokenCount": 34,
+      "totalTokenCount": 465,
+      "tokenCountSource": "provider_usage",
+      "providerReturnedModel": "kimi-k2.6",
+      "providerUsage": {
+        "inputTokenCount": 431,
+        "outputTokenCount": 34,
+        "totalTokenCount": 465
+      },
+      "rawProviderUsage": {
+        "prompt_tokens": 431,
+        "completion_tokens": 34,
+        "total_tokens": 465
+      },
+      "structuredMode": "native",
+      "structuredPresetNames": [
+        "shortSummary"
+      ],
+      "outputFormat": "json",
+      "outputFileName": "text-kimi-k2.6.json",
+      "outputExists": true,
+      "outputByteSize": 182,
+      "automatedQualityScore": null,
+      "humanQualityScore": null,
+      "qualityMetric": null,
+      "qualityValue": null,
+      "qualityLabel": null,
+      "metrics": {
+        "inputTokenCount": 431,
+        "outputTokenCount": 34,
+        "totalTokenCount": 465,
+        "msPerUnit": 4509.677,
+        "throughputValue": 221.745
+      }
+    },
+    {
+      "providerKey": "minimax/MiniMax-M3",
+      "provider": "minimax",
+      "model": "MiniMax-M3",
+      "group": "service",
+      "llmService": "minimax",
+      "llmModel": "MiniMax-M3",
+      "processingTimeMs": 4731,
+      "actualProcessingTimeMs": 4731,
+      "estimatedProcessingTimeMs": null,
+      "msPerUnit": 5958.438,
+      "throughputValue": 167.829,
+      "throughputUnit": "tokensPerSecond",
+      "rateBasis": "1KTokens",
+      "timingScope": "wall",
+      "timingSource": "actual",
+      "inputMetric": "tokens",
+      "inputValue": 794,
+      "costCents": 0.06546,
+      "actualCostCents": 0.06546,
+      "estimatedCostCents": null,
+      "costSource": "actual",
+      "inputTokenCount": 695,
+      "outputTokenCount": 99,
+      "totalTokenCount": 794,
+      "tokenCountSource": "provider_usage",
+      "providerReturnedModel": "MiniMax-M3",
+      "providerUsage": {
+        "inputTokenCount": 695,
+        "outputTokenCount": 99,
+        "totalTokenCount": 794
+      },
+      "rawProviderUsage": {
+        "total_tokens": 794,
+        "total_characters": 0,
+        "prompt_tokens": 695,
+        "completion_tokens": 99,
+        "completion_tokens_details": {
+          "reasoning_tokens": 77
+        },
+        "prompt_tokens_details": {
+          "cached_tokens": 114
+        }
+      },
+      "structuredMode": "schema-guided",
+      "structuredPresetNames": [
+        "shortSummary"
+      ],
+      "outputFormat": "json",
+      "outputFileName": "text-MiniMax-M3.json",
+      "outputExists": true,
+      "outputByteSize": 198,
+      "automatedQualityScore": null,
+      "humanQualityScore": null,
+      "qualityMetric": null,
+      "qualityValue": null,
+      "qualityLabel": null,
+      "metrics": {
+        "inputTokenCount": 695,
+        "outputTokenCount": 99,
+        "totalTokenCount": 794,
+        "msPerUnit": 5958.438,
+        "throughputValue": 167.829
+      }
+    },
+    {
+      "providerKey": "openai/gpt-5.4-mini",
+      "provider": "openai",
+      "model": "gpt-5.4-mini",
+      "group": "service",
+      "llmService": "openai",
+      "llmModel": "gpt-5.4-mini",
+      "processingTimeMs": 1215,
+      "actualProcessingTimeMs": 1215,
+      "estimatedProcessingTimeMs": null,
+      "msPerUnit": 2474.542,
+      "throughputValue": 404.115,
+      "throughputUnit": "tokensPerSecond",
+      "rateBasis": "1KTokens",
+      "timingScope": "wall",
+      "timingSource": "actual",
+      "inputMetric": "tokens",
+      "inputValue": 491,
+      "costCents": 0.051449999999999996,
+      "actualCostCents": 0.051449999999999996,
+      "estimatedCostCents": null,
+      "costSource": "actual",
+      "inputTokenCount": 452,
+      "outputTokenCount": 39,
+      "totalTokenCount": 491,
+      "tokenCountSource": "provider_usage",
+      "providerReturnedModel": "gpt-5.4-mini-2026-03-17",
+      "providerUsage": {
+        "inputTokenCount": 452,
+        "outputTokenCount": 39,
+        "totalTokenCount": 491
+      },
+      "rawProviderUsage": {
+        "input_tokens": 452,
+        "input_tokens_details": {
+          "cached_tokens": 0
+        },
+        "output_tokens": 39,
+        "output_tokens_details": {
+          "reasoning_tokens": 0
+        },
+        "total_tokens": 491
+      },
+      "structuredMode": "native",
+      "structuredPresetNames": [
+        "shortSummary"
+      ],
+      "outputFormat": "json",
+      "outputFileName": "text-gpt-5.4-mini.json",
+      "outputExists": true,
+      "outputByteSize": 151,
+      "automatedQualityScore": null,
+      "humanQualityScore": null,
+      "qualityMetric": null,
+      "qualityValue": null,
+      "qualityLabel": null,
+      "metrics": {
+        "inputTokenCount": 452,
+        "outputTokenCount": 39,
+        "totalTokenCount": 491,
+        "msPerUnit": 2474.542,
+        "throughputValue": 404.115
+      }
+    },
+    {
+      "providerKey": "openai/gpt-5.4-nano",
+      "provider": "openai",
+      "model": "gpt-5.4-nano",
+      "group": "service",
+      "llmService": "openai",
+      "llmModel": "gpt-5.4-nano",
+      "processingTimeMs": 1096,
+      "actualProcessingTimeMs": 1096,
+      "estimatedProcessingTimeMs": null,
+      "msPerUnit": 2205.231,
+      "throughputValue": 453.467,
+      "throughputUnit": "tokensPerSecond",
+      "rateBasis": "1KTokens",
+      "timingScope": "wall",
+      "timingSource": "actual",
+      "inputMetric": "tokens",
+      "inputValue": 497,
+      "costCents": 0.014665000000000001,
+      "actualCostCents": 0.014665000000000001,
+      "estimatedCostCents": null,
+      "costSource": "actual",
+      "inputTokenCount": 452,
+      "outputTokenCount": 45,
+      "totalTokenCount": 497,
+      "tokenCountSource": "provider_usage",
+      "providerReturnedModel": "gpt-5.4-nano-2026-03-17",
+      "providerUsage": {
+        "inputTokenCount": 452,
+        "outputTokenCount": 45,
+        "totalTokenCount": 497
+      },
+      "rawProviderUsage": {
+        "input_tokens": 452,
+        "input_tokens_details": {
+          "cached_tokens": 0
+        },
+        "output_tokens": 45,
+        "output_tokens_details": {
+          "reasoning_tokens": 0
+        },
+        "total_tokens": 497
+      },
+      "structuredMode": "native",
+      "structuredPresetNames": [
+        "shortSummary"
+      ],
+      "outputFormat": "json",
+      "outputFileName": "text-gpt-5.4-nano.json",
+      "outputExists": true,
+      "outputByteSize": 187,
+      "automatedQualityScore": null,
+      "humanQualityScore": null,
+      "qualityMetric": null,
+      "qualityValue": null,
+      "qualityLabel": null,
+      "metrics": {
+        "inputTokenCount": 452,
+        "outputTokenCount": 45,
+        "totalTokenCount": 497,
+        "msPerUnit": 2205.231,
+        "throughputValue": 453.467
+      }
+    },
+    {
+      "providerKey": "openai/gpt-5.5",
+      "provider": "openai",
+      "model": "gpt-5.5",
+      "group": "service",
+      "llmService": "openai",
+      "llmModel": "gpt-5.5",
+      "processingTimeMs": 1620,
+      "actualProcessingTimeMs": 1620,
+      "estimatedProcessingTimeMs": null,
+      "msPerUnit": 3319.672,
+      "throughputValue": 301.235,
+      "throughputUnit": "tokensPerSecond",
+      "rateBasis": "1KTokens",
+      "timingScope": "wall",
+      "timingSource": "actual",
+      "inputMetric": "tokens",
+      "inputValue": 488,
+      "costCents": 0.33399999999999996,
+      "actualCostCents": 0.33399999999999996,
+      "estimatedCostCents": null,
+      "costSource": "actual",
+      "inputTokenCount": 452,
+      "outputTokenCount": 36,
+      "totalTokenCount": 488,
+      "tokenCountSource": "provider_usage",
+      "providerReturnedModel": "gpt-5.5-2026-04-23",
+      "providerUsage": {
+        "inputTokenCount": 452,
+        "outputTokenCount": 36,
+        "totalTokenCount": 488
+      },
+      "rawProviderUsage": {
+        "input_tokens": 452,
+        "input_tokens_details": {
+          "cached_tokens": 0
+        },
+        "output_tokens": 36,
+        "output_tokens_details": {
+          "reasoning_tokens": 0
+        },
+        "total_tokens": 488
+      },
+      "structuredMode": "native",
+      "structuredPresetNames": [
+        "shortSummary"
+      ],
+      "outputFormat": "json",
+      "outputFileName": "text-gpt-5.5.json",
+      "outputExists": true,
+      "outputByteSize": 166,
+      "automatedQualityScore": null,
+      "humanQualityScore": null,
+      "qualityMetric": null,
+      "qualityValue": null,
+      "qualityLabel": null,
+      "metrics": {
+        "inputTokenCount": 452,
+        "outputTokenCount": 36,
+        "totalTokenCount": 488,
+        "msPerUnit": 3319.672,
+        "throughputValue": 301.235
+      }
+    }
+  ],
+  "rankingSurfaces": {
+    "local": {
+      "fastest": [
+        {
+          "rank": 1,
+          "providerKey": "llama.cpp/ggml-org/gemma-3-270m-it-GGUF",
+          "provider": "llama.cpp",
+          "model": "ggml-org/gemma-3-270m-it-GGUF",
+          "group": "local",
+          "metric": "msPerUnit",
+          "value": 606.599,
+          "label": "606.599 ms/1K tokens"
+        },
+        {
+          "rank": 2,
+          "providerKey": "llama.cpp/ggml-org/Qwen3-0.6B-GGUF",
+          "provider": "llama.cpp",
+          "model": "ggml-org/Qwen3-0.6B-GGUF",
+          "group": "local",
+          "metric": "msPerUnit",
+          "value": 837.629,
+          "label": "837.629 ms/1K tokens"
+        }
+      ],
+      "cheapest": [
+        {
+          "rank": 1,
+          "providerKey": "llama.cpp/ggml-org/gemma-3-270m-it-GGUF",
+          "provider": "llama.cpp",
+          "model": "ggml-org/gemma-3-270m-it-GGUF",
+          "group": "local",
+          "metric": "local monetary cost",
+          "value": 0,
+          "label": "$0.00 local monetary cost"
+        },
+        {
+          "rank": 2,
+          "providerKey": "llama.cpp/ggml-org/Qwen3-0.6B-GGUF",
+          "provider": "llama.cpp",
+          "model": "ggml-org/Qwen3-0.6B-GGUF",
+          "group": "local",
+          "metric": "local monetary cost",
+          "value": 0,
+          "label": "$0.00 local monetary cost"
+        }
+      ],
+      "highestQuality": [],
+      "fastestUnavailableReason": null,
+      "cheapestUnavailableReason": null,
+      "highestQualityUnavailableReason": "No explicit text quality scores were available. Text benchmark quality is not inferred from length, speed, cost, schema validity, output existence, or subjective judgment.",
+      "price": [
+        {
+          "rank": 1,
+          "providerKey": "llama.cpp/ggml-org/gemma-3-270m-it-GGUF",
+          "provider": "llama.cpp",
+          "model": "ggml-org/gemma-3-270m-it-GGUF",
+          "group": "local",
+          "metric": "local monetary cost",
+          "value": 0,
+          "label": "$0.00 local monetary cost"
+        },
+        {
+          "rank": 2,
+          "providerKey": "llama.cpp/ggml-org/Qwen3-0.6B-GGUF",
+          "provider": "llama.cpp",
+          "model": "ggml-org/Qwen3-0.6B-GGUF",
+          "group": "local",
+          "metric": "local monetary cost",
+          "value": 0,
+          "label": "$0.00 local monetary cost"
+        }
+      ],
+      "speed": [
+        {
+          "rank": 1,
+          "providerKey": "llama.cpp/ggml-org/gemma-3-270m-it-GGUF",
+          "provider": "llama.cpp",
+          "model": "ggml-org/gemma-3-270m-it-GGUF",
+          "group": "local",
+          "metric": "msPerUnit",
+          "value": 606.599,
+          "label": "606.599 ms/1K tokens"
+        },
+        {
+          "rank": 2,
+          "providerKey": "llama.cpp/ggml-org/Qwen3-0.6B-GGUF",
+          "provider": "llama.cpp",
+          "model": "ggml-org/Qwen3-0.6B-GGUF",
+          "group": "local",
+          "metric": "msPerUnit",
+          "value": 837.629,
+          "label": "837.629 ms/1K tokens"
+        }
+      ],
+      "automatedQuality": [],
+      "humanQuality": [],
+      "priceUnavailableReason": null,
+      "speedUnavailableReason": null,
+      "automatedQualityUnavailableReason": "No explicit text quality scores were available. Text benchmark quality is not inferred from length, speed, cost, schema validity, output existence, or subjective judgment.",
+      "humanQualityUnavailableReason": "No explicit humanQualityScore was available. Text benchmark human quality is not inferred from length, speed, cost, schema validity, output existence, or subjective judgment."
+    },
+    "service": {
+      "fastest": [
+        {
+          "rank": 1,
+          "providerKey": "groq/openai/gpt-oss-120b",
+          "provider": "groq",
+          "model": "openai/gpt-oss-120b",
+          "group": "service",
+          "metric": "msPerUnit",
+          "value": 663.383,
+          "label": "663.383 ms/1K tokens"
+        },
+        {
+          "rank": 2,
+          "providerKey": "groq/openai/gpt-oss-20b",
+          "provider": "groq",
+          "model": "openai/gpt-oss-20b",
+          "group": "service",
+          "metric": "msPerUnit",
+          "value": 739.057,
+          "label": "739.057 ms/1K tokens"
+        },
+        {
+          "rank": 3,
+          "providerKey": "gemini/gemini-3.1-flash-lite",
+          "provider": "gemini",
+          "model": "gemini-3.1-flash-lite",
+          "group": "service",
+          "metric": "msPerUnit",
+          "value": 1616.896,
+          "label": "1616.896 ms/1K tokens"
+        },
+        {
+          "rank": 4,
+          "providerKey": "gemini/gemini-3.1-flash-lite-preview",
+          "provider": "gemini",
+          "model": "gemini-3.1-flash-lite-preview",
+          "group": "service",
+          "metric": "msPerUnit",
+          "value": 1635.659,
+          "label": "1635.659 ms/1K tokens"
+        },
+        {
+          "rank": 5,
+          "providerKey": "openai/gpt-5.4-nano",
+          "provider": "openai",
+          "model": "gpt-5.4-nano",
+          "group": "service",
+          "metric": "msPerUnit",
+          "value": 2205.231,
+          "label": "2205.231 ms/1K tokens"
+        },
+        {
+          "rank": 6,
+          "providerKey": "openai/gpt-5.4-mini",
+          "provider": "openai",
+          "model": "gpt-5.4-mini",
+          "group": "service",
+          "metric": "msPerUnit",
+          "value": 2474.542,
+          "label": "2474.542 ms/1K tokens"
+        },
+        {
+          "rank": 7,
+          "providerKey": "anthropic/claude-haiku-4-5",
+          "provider": "anthropic",
+          "model": "claude-haiku-4-5",
+          "group": "service",
+          "metric": "msPerUnit",
+          "value": 2570.79,
+          "label": "2570.790 ms/1K tokens"
+        },
+        {
+          "rank": 8,
+          "providerKey": "openai/gpt-5.5",
+          "provider": "openai",
+          "model": "gpt-5.5",
+          "group": "service",
+          "metric": "msPerUnit",
+          "value": 3319.672,
+          "label": "3319.672 ms/1K tokens"
+        },
+        {
+          "rank": 9,
+          "providerKey": "anthropic/claude-opus-4-8",
+          "provider": "anthropic",
+          "model": "claude-opus-4-8",
+          "group": "service",
+          "metric": "msPerUnit",
+          "value": 3401.776,
+          "label": "3401.776 ms/1K tokens"
+        },
+        {
+          "rank": 10,
+          "providerKey": "glm/glm-5.1",
+          "provider": "glm",
+          "model": "glm-5.1",
+          "group": "service",
+          "metric": "msPerUnit",
+          "value": 3760.748,
+          "label": "3760.748 ms/1K tokens"
+        },
+        {
+          "rank": 11,
+          "providerKey": "kimi/kimi-k2.6",
+          "provider": "kimi",
+          "model": "kimi-k2.6",
+          "group": "service",
+          "metric": "msPerUnit",
+          "value": 4509.677,
+          "label": "4509.677 ms/1K tokens"
+        },
+        {
+          "rank": 12,
+          "providerKey": "anthropic/claude-sonnet-4-6",
+          "provider": "anthropic",
+          "model": "claude-sonnet-4-6",
+          "group": "service",
+          "metric": "msPerUnit",
+          "value": 5349.63,
+          "label": "5349.630 ms/1K tokens"
+        },
+        {
+          "rank": 13,
+          "providerKey": "minimax/MiniMax-M3",
+          "provider": "minimax",
+          "model": "MiniMax-M3",
+          "group": "service",
+          "metric": "msPerUnit",
+          "value": 5958.438,
+          "label": "5958.438 ms/1K tokens"
+        },
+        {
+          "rank": 14,
+          "providerKey": "grok/grok-4.3",
+          "provider": "grok",
+          "model": "grok-4.3",
+          "group": "service",
+          "metric": "msPerUnit",
+          "value": 8885.4,
+          "label": "8885.400 ms/1K tokens"
+        },
+        {
+          "rank": 15,
+          "providerKey": "gemini/gemini-3.1-pro-preview",
+          "provider": "gemini",
+          "model": "gemini-3.1-pro-preview",
+          "group": "service",
+          "metric": "msPerUnit",
+          "value": 13780.583,
+          "label": "13780.583 ms/1K tokens"
+        }
+      ],
+      "cheapest": [
+        {
+          "rank": 1,
+          "providerKey": "groq/openai/gpt-oss-20b",
+          "provider": "groq",
+          "model": "openai/gpt-oss-20b",
+          "group": "service",
+          "metric": "costCents",
+          "value": 0.005647500000000001,
+          "label": "$0.0001"
+        },
+        {
+          "rank": 2,
+          "providerKey": "groq/openai/gpt-oss-120b",
+          "provider": "groq",
+          "model": "openai/gpt-oss-120b",
+          "group": "service",
+          "metric": "costCents",
+          "value": 0.012195000000000001,
+          "label": "$0.0001"
+        },
+        {
+          "rank": 3,
+          "providerKey": "openai/gpt-5.4-nano",
+          "provider": "openai",
+          "model": "gpt-5.4-nano",
+          "group": "service",
+          "metric": "costCents",
+          "value": 0.014665000000000001,
+          "label": "$0.0001"
+        },
+        {
+          "rank": 4,
+          "providerKey": "gemini/gemini-3.1-flash-lite",
+          "provider": "gemini",
+          "model": "gemini-3.1-flash-lite",
+          "group": "service",
+          "metric": "costCents",
+          "value": 0.016975,
+          "label": "$0.0002"
+        },
+        {
+          "rank": 5,
+          "providerKey": "gemini/gemini-3.1-flash-lite-preview",
+          "provider": "gemini",
+          "model": "gemini-3.1-flash-lite-preview",
+          "group": "service",
+          "metric": "costCents",
+          "value": 0.018025,
+          "label": "$0.0002"
+        },
+        {
+          "rank": 6,
+          "providerKey": "openai/gpt-5.4-mini",
+          "provider": "openai",
+          "model": "gpt-5.4-mini",
+          "group": "service",
+          "metric": "costCents",
+          "value": 0.051449999999999996,
+          "label": "$0.0005"
+        },
+        {
+          "rank": 7,
+          "providerKey": "kimi/kimi-k2.6",
+          "provider": "kimi",
+          "model": "kimi-k2.6",
+          "group": "service",
+          "metric": "costCents",
+          "value": 0.054545,
+          "label": "$0.0005"
+        },
+        {
+          "rank": 8,
+          "providerKey": "minimax/MiniMax-M3",
+          "provider": "minimax",
+          "model": "MiniMax-M3",
+          "group": "service",
+          "metric": "costCents",
+          "value": 0.06546,
+          "label": "$0.0007"
+        },
+        {
+          "rank": 9,
+          "providerKey": "anthropic/claude-haiku-4-5",
+          "provider": "anthropic",
+          "model": "claude-haiku-4-5",
+          "group": "service",
+          "metric": "costCents",
+          "value": 0.0815,
+          "label": "$0.0008"
+        },
+        {
+          "rank": 10,
+          "providerKey": "grok/grok-4.3",
+          "provider": "grok",
+          "model": "grok-4.3",
+          "group": "service",
+          "metric": "costCents",
+          "value": 0.08399999999999999,
+          "label": "$0.0008"
+        },
+        {
+          "rank": 11,
+          "providerKey": "glm/glm-5.1",
+          "provider": "glm",
+          "model": "glm-5.1",
+          "group": "service",
+          "metric": "costCents",
+          "value": 0.0863,
+          "label": "$0.0009"
+        },
+        {
+          "rank": 12,
+          "providerKey": "gemini/gemini-3.1-pro-preview",
+          "provider": "gemini",
+          "model": "gemini-3.1-pro-preview",
+          "group": "service",
+          "metric": "costCents",
+          "value": 0.14300000000000002,
+          "label": "$0.0014"
+        },
+        {
+          "rank": 13,
+          "providerKey": "anthropic/claude-sonnet-4-6",
+          "provider": "anthropic",
+          "model": "claude-sonnet-4-6",
+          "group": "service",
+          "metric": "costCents",
+          "value": 0.2493,
+          "label": "$0.0025"
+        },
+        {
+          "rank": 14,
+          "providerKey": "openai/gpt-5.5",
+          "provider": "openai",
+          "model": "gpt-5.5",
+          "group": "service",
+          "metric": "costCents",
+          "value": 0.33399999999999996,
+          "label": "$0.0033"
+        },
+        {
+          "rank": 15,
+          "providerKey": "anthropic/claude-opus-4-8",
+          "provider": "anthropic",
+          "model": "claude-opus-4-8",
+          "group": "service",
+          "metric": "costCents",
+          "value": 0.5605,
+          "label": "$0.0056"
+        }
+      ],
+      "highestQuality": [],
+      "fastestUnavailableReason": null,
+      "cheapestUnavailableReason": null,
+      "highestQualityUnavailableReason": "No explicit text quality scores were available. Text benchmark quality is not inferred from length, speed, cost, schema validity, output existence, or subjective judgment.",
+      "price": [
+        {
+          "rank": 1,
+          "providerKey": "groq/openai/gpt-oss-20b",
+          "provider": "groq",
+          "model": "openai/gpt-oss-20b",
+          "group": "service",
+          "metric": "costCents",
+          "value": 0.005647500000000001,
+          "label": "$0.0001"
+        },
+        {
+          "rank": 2,
+          "providerKey": "groq/openai/gpt-oss-120b",
+          "provider": "groq",
+          "model": "openai/gpt-oss-120b",
+          "group": "service",
+          "metric": "costCents",
+          "value": 0.012195000000000001,
+          "label": "$0.0001"
+        },
+        {
+          "rank": 3,
+          "providerKey": "openai/gpt-5.4-nano",
+          "provider": "openai",
+          "model": "gpt-5.4-nano",
+          "group": "service",
+          "metric": "costCents",
+          "value": 0.014665000000000001,
+          "label": "$0.0001"
+        },
+        {
+          "rank": 4,
+          "providerKey": "gemini/gemini-3.1-flash-lite",
+          "provider": "gemini",
+          "model": "gemini-3.1-flash-lite",
+          "group": "service",
+          "metric": "costCents",
+          "value": 0.016975,
+          "label": "$0.0002"
+        },
+        {
+          "rank": 5,
+          "providerKey": "gemini/gemini-3.1-flash-lite-preview",
+          "provider": "gemini",
+          "model": "gemini-3.1-flash-lite-preview",
+          "group": "service",
+          "metric": "costCents",
+          "value": 0.018025,
+          "label": "$0.0002"
+        },
+        {
+          "rank": 6,
+          "providerKey": "openai/gpt-5.4-mini",
+          "provider": "openai",
+          "model": "gpt-5.4-mini",
+          "group": "service",
+          "metric": "costCents",
+          "value": 0.051449999999999996,
+          "label": "$0.0005"
+        },
+        {
+          "rank": 7,
+          "providerKey": "kimi/kimi-k2.6",
+          "provider": "kimi",
+          "model": "kimi-k2.6",
+          "group": "service",
+          "metric": "costCents",
+          "value": 0.054545,
+          "label": "$0.0005"
+        },
+        {
+          "rank": 8,
+          "providerKey": "minimax/MiniMax-M3",
+          "provider": "minimax",
+          "model": "MiniMax-M3",
+          "group": "service",
+          "metric": "costCents",
+          "value": 0.06546,
+          "label": "$0.0007"
+        },
+        {
+          "rank": 9,
+          "providerKey": "anthropic/claude-haiku-4-5",
+          "provider": "anthropic",
+          "model": "claude-haiku-4-5",
+          "group": "service",
+          "metric": "costCents",
+          "value": 0.0815,
+          "label": "$0.0008"
+        },
+        {
+          "rank": 10,
+          "providerKey": "grok/grok-4.3",
+          "provider": "grok",
+          "model": "grok-4.3",
+          "group": "service",
+          "metric": "costCents",
+          "value": 0.08399999999999999,
+          "label": "$0.0008"
+        },
+        {
+          "rank": 11,
+          "providerKey": "glm/glm-5.1",
+          "provider": "glm",
+          "model": "glm-5.1",
+          "group": "service",
+          "metric": "costCents",
+          "value": 0.0863,
+          "label": "$0.0009"
+        },
+        {
+          "rank": 12,
+          "providerKey": "gemini/gemini-3.1-pro-preview",
+          "provider": "gemini",
+          "model": "gemini-3.1-pro-preview",
+          "group": "service",
+          "metric": "costCents",
+          "value": 0.14300000000000002,
+          "label": "$0.0014"
+        },
+        {
+          "rank": 13,
+          "providerKey": "anthropic/claude-sonnet-4-6",
+          "provider": "anthropic",
+          "model": "claude-sonnet-4-6",
+          "group": "service",
+          "metric": "costCents",
+          "value": 0.2493,
+          "label": "$0.0025"
+        },
+        {
+          "rank": 14,
+          "providerKey": "openai/gpt-5.5",
+          "provider": "openai",
+          "model": "gpt-5.5",
+          "group": "service",
+          "metric": "costCents",
+          "value": 0.33399999999999996,
+          "label": "$0.0033"
+        },
+        {
+          "rank": 15,
+          "providerKey": "anthropic/claude-opus-4-8",
+          "provider": "anthropic",
+          "model": "claude-opus-4-8",
+          "group": "service",
+          "metric": "costCents",
+          "value": 0.5605,
+          "label": "$0.0056"
+        }
+      ],
+      "speed": [
+        {
+          "rank": 1,
+          "providerKey": "groq/openai/gpt-oss-120b",
+          "provider": "groq",
+          "model": "openai/gpt-oss-120b",
+          "group": "service",
+          "metric": "msPerUnit",
+          "value": 663.383,
+          "label": "663.383 ms/1K tokens"
+        },
+        {
+          "rank": 2,
+          "providerKey": "groq/openai/gpt-oss-20b",
+          "provider": "groq",
+          "model": "openai/gpt-oss-20b",
+          "group": "service",
+          "metric": "msPerUnit",
+          "value": 739.057,
+          "label": "739.057 ms/1K tokens"
+        },
+        {
+          "rank": 3,
+          "providerKey": "gemini/gemini-3.1-flash-lite",
+          "provider": "gemini",
+          "model": "gemini-3.1-flash-lite",
+          "group": "service",
+          "metric": "msPerUnit",
+          "value": 1616.896,
+          "label": "1616.896 ms/1K tokens"
+        },
+        {
+          "rank": 4,
+          "providerKey": "gemini/gemini-3.1-flash-lite-preview",
+          "provider": "gemini",
+          "model": "gemini-3.1-flash-lite-preview",
+          "group": "service",
+          "metric": "msPerUnit",
+          "value": 1635.659,
+          "label": "1635.659 ms/1K tokens"
+        },
+        {
+          "rank": 5,
+          "providerKey": "openai/gpt-5.4-nano",
+          "provider": "openai",
+          "model": "gpt-5.4-nano",
+          "group": "service",
+          "metric": "msPerUnit",
+          "value": 2205.231,
+          "label": "2205.231 ms/1K tokens"
+        },
+        {
+          "rank": 6,
+          "providerKey": "openai/gpt-5.4-mini",
+          "provider": "openai",
+          "model": "gpt-5.4-mini",
+          "group": "service",
+          "metric": "msPerUnit",
+          "value": 2474.542,
+          "label": "2474.542 ms/1K tokens"
+        },
+        {
+          "rank": 7,
+          "providerKey": "anthropic/claude-haiku-4-5",
+          "provider": "anthropic",
+          "model": "claude-haiku-4-5",
+          "group": "service",
+          "metric": "msPerUnit",
+          "value": 2570.79,
+          "label": "2570.790 ms/1K tokens"
+        },
+        {
+          "rank": 8,
+          "providerKey": "openai/gpt-5.5",
+          "provider": "openai",
+          "model": "gpt-5.5",
+          "group": "service",
+          "metric": "msPerUnit",
+          "value": 3319.672,
+          "label": "3319.672 ms/1K tokens"
+        },
+        {
+          "rank": 9,
+          "providerKey": "anthropic/claude-opus-4-8",
+          "provider": "anthropic",
+          "model": "claude-opus-4-8",
+          "group": "service",
+          "metric": "msPerUnit",
+          "value": 3401.776,
+          "label": "3401.776 ms/1K tokens"
+        },
+        {
+          "rank": 10,
+          "providerKey": "glm/glm-5.1",
+          "provider": "glm",
+          "model": "glm-5.1",
+          "group": "service",
+          "metric": "msPerUnit",
+          "value": 3760.748,
+          "label": "3760.748 ms/1K tokens"
+        },
+        {
+          "rank": 11,
+          "providerKey": "kimi/kimi-k2.6",
+          "provider": "kimi",
+          "model": "kimi-k2.6",
+          "group": "service",
+          "metric": "msPerUnit",
+          "value": 4509.677,
+          "label": "4509.677 ms/1K tokens"
+        },
+        {
+          "rank": 12,
+          "providerKey": "anthropic/claude-sonnet-4-6",
+          "provider": "anthropic",
+          "model": "claude-sonnet-4-6",
+          "group": "service",
+          "metric": "msPerUnit",
+          "value": 5349.63,
+          "label": "5349.630 ms/1K tokens"
+        },
+        {
+          "rank": 13,
+          "providerKey": "minimax/MiniMax-M3",
+          "provider": "minimax",
+          "model": "MiniMax-M3",
+          "group": "service",
+          "metric": "msPerUnit",
+          "value": 5958.438,
+          "label": "5958.438 ms/1K tokens"
+        },
+        {
+          "rank": 14,
+          "providerKey": "grok/grok-4.3",
+          "provider": "grok",
+          "model": "grok-4.3",
+          "group": "service",
+          "metric": "msPerUnit",
+          "value": 8885.4,
+          "label": "8885.400 ms/1K tokens"
+        },
+        {
+          "rank": 15,
+          "providerKey": "gemini/gemini-3.1-pro-preview",
+          "provider": "gemini",
+          "model": "gemini-3.1-pro-preview",
+          "group": "service",
+          "metric": "msPerUnit",
+          "value": 13780.583,
+          "label": "13780.583 ms/1K tokens"
+        }
+      ],
+      "automatedQuality": [],
+      "humanQuality": [],
+      "priceUnavailableReason": null,
+      "speedUnavailableReason": null,
+      "automatedQualityUnavailableReason": "No explicit text quality scores were available. Text benchmark quality is not inferred from length, speed, cost, schema validity, output existence, or subjective judgment.",
+      "humanQualityUnavailableReason": "No explicit humanQualityScore was available. Text benchmark human quality is not inferred from length, speed, cost, schema validity, output existence, or subjective judgment."
+    }
+  },
+  "combinedLeaderboardPolicy": "omitted: local and service providers are not ranked against each other",
+  "qualityPolicy": "Text benchmark quality is unavailable unless explicit future quality fields are present. Length, speed, cost, output existence, schema validity, and subjective judgment are not quality proxies.",
+  "notes": [
+    "Text mode scores existing write outputs only and does not call LLM providers.",
+    "Price rankings use local zero monetary cost and reported actual or estimated service costs from run.json.",
+    "Speed rankings prefer normalized msPerUnit timing when present, falling back to wall-clock processing time.",
+    "Automated and human quality rankings require explicit quality fields and are otherwise unavailable."
+  ]
+}

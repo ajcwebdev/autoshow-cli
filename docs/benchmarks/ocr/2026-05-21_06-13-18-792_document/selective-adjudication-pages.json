@@ -1,0 +1,94 @@
+{
+  "schemaVersion": 1,
+  "pageCount": 10,
+  "pages": [
+    {
+      "pageNumber": 1,
+      "reason": [
+        "low-confidence-selected-provider",
+        "page-outlier",
+        "high-disagreement"
+      ],
+      "replacedProviderKey": "anthropic/claude-sonnet-5",
+      "replacedConfidence": 0
+    },
+    {
+      "pageNumber": 2,
+      "reason": [
+        "page-outlier"
+      ],
+      "replacedProviderKey": "gemini/gemini-3.5-flash",
+      "replacedConfidence": 0.811423
+    },
+    {
+      "pageNumber": 3,
+      "reason": [
+        "low-confidence-selected-provider",
+        "page-outlier"
+      ],
+      "replacedProviderKey": "gemini/gemini-3.5-flash",
+      "replacedConfidence": 0
+    },
+    {
+      "pageNumber": 4,
+      "reason": [
+        "page-outlier"
+      ],
+      "replacedProviderKey": "anthropic/claude-opus-4-8",
+      "replacedConfidence": 0.796396
+    },
+    {
+      "pageNumber": 5,
+      "reason": [
+        "low-confidence-selected-provider",
+        "page-outlier"
+      ],
+      "replacedProviderKey": "gemini/gemini-3.5-flash",
+      "replacedConfidence": 0.423625
+    },
+    {
+      "pageNumber": 6,
+      "reason": [
+        "low-confidence-selected-provider",
+        "page-outlier"
+      ],
+      "replacedProviderKey": "anthropic/claude-opus-4-8",
+      "replacedConfidence": 0.489261
+    },
+    {
+      "pageNumber": 7,
+      "reason": [
+        "low-confidence-selected-provider",
+        "page-outlier"
+      ],
+      "replacedProviderKey": "anthropic/claude-opus-4-8",
+      "replacedConfidence": 0.366406
+    },
+    {
+      "pageNumber": 8,
+      "reason": [
+        "page-outlier"
+      ],
+      "replacedProviderKey": "mistral/mistral-ocr-4-0",
+      "replacedConfidence": 0.724126
+    },
+    {
+      "pageNumber": 9,
+      "reason": [
+        "low-confidence-selected-provider",
+        "page-outlier"
+      ],
+      "replacedProviderKey": "anthropic/claude-opus-4-8",
+      "replacedConfidence": 0.066008
+    },
+    {
+      "pageNumber": 10,
+      "reason": [
+        "low-confidence-selected-provider",
+        "page-outlier"
+      ],
+      "replacedProviderKey": "openai/gpt-5.4-mini",
+      "replacedConfidence": 0.683386
+    }
+  ]
+}

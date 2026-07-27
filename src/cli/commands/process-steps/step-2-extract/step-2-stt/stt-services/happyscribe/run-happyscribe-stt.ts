@@ -1,0 +1,466 @@
+import * as l from '~/utils/app-logger/app-logger'
+import type { AsyncSttLifecycleHooks, HappyScribeExport, HappyScribeOrder, HappyScribeTranscription, RetryClass, Step2Metadata, Step2RuntimeMetadata, TranscriptionResult } from '~/types'
+import { logSttAsyncJobLifecycle, logSttSegmentLifecycle } from '~/cli/commands/process-steps/step-2-extract/step-2-stt/stt-logging'
+import {
+  buildTranscriptionOutputBase,
+  countTokens,
+  formatTranscriptText
+} from '~/cli/commands/process-steps/step-2-extract/step-2-stt/stt-utils/stt-utils'
+import {
+  createAsyncSttJobReadyNotifier,
+  createAsyncSttProgressMetadataPersister,
+  pollAsyncSttJobUntilComplete,
+  readPersistedAsyncSttRuntime,
+} from '~/cli/commands/process-steps/step-2-extract/step-2-stt/async-lifecycle'
+import { buildStep2TimingMetadata } from '~/cli/commands/process-steps/step-2-extract/step-2-stt/stt-timing-metadata'
+import {
+  buildHappyScribeOrganizationResolutionError,
+  getHappyScribeApiKey,
+  getHappyScribeBaseUrl,
+  resolveHappyScribeOrganizationSelection
+} from './happyscribe'
+import { createHappyScribeApiClient } from './happyscribe-api'
+import { buildHappyScribeRegistryEstimate } from './happyscribe-pricing'
+import {
+  buildHappyScribeOrderFailureMessage,
+  resolveHappyScribeOrderTranscriptionId
+} from './happyscribe-response-parsers'
+import {
+  attachHappyScribeErrorContext,
+  getHappyScribeErrorStatus
+} from './happyscribe-utils'
+import { parseHappyScribeTranscriptPayload } from './parse-happyscribe-transcript'
+import { InfraError, InternalError, ValidationError, hintsForMissingEnv } from '~/utils/error-handler'
+
+const INITIAL_POLL_INTERVAL_MS = 1_000
+const MAX_POLL_INTERVAL_MS = 10_000
+
+const buildPollingDeadlineError = (
+  orderId: string,
+  pollDeadlineMs: number
+): never => {
+  const error = Object.assign(
+    new Error(`Happy Scribe timed out waiting for transcription completion for ${orderId} (deadline exceeded after ${pollDeadlineMs}ms)`),
+    {
+      stage: 'poll',
+      retryClass: 'runtime_http_read' as RetryClass,
+      retryable: true
+    }
+  )
+  throw error
+}
+
+const buildExportDeadlineError = (
+  exportId: string,
+  pollDeadlineMs: number
+): never => {
+  const error = Object.assign(
+    new Error(`Happy Scribe timed out waiting for export completion for ${exportId} (deadline exceeded after ${pollDeadlineMs}ms)`),
+    {
+      stage: 'result',
+      retryClass: 'runtime_http_read' as RetryClass,
+      retryable: true
+    }
+  )
+  throw error
+}
+
+const buildResumeProbeError = (
+  orderId: string,
+  probeCount: number,
+  totalWaitMs: number
+): never => {
+  const error = Object.assign(
+    new Error(`Happy Scribe order ${orderId} is still pending after ${probeCount} resume status checks (${totalWaitMs}ms total backoff). Retry the command later.`),
+    {
+      stage: 'poll',
+      retryClass: 'runtime_http_read' as RetryClass,
+      retryable: true
+    }
+  )
+  throw error
+}
+
+const buildBillingMetadata = (
+  modelName: string,
+  audioDurationSeconds: number | undefined,
+  order: HappyScribeOrder,
+  transcription: HappyScribeTranscription
+): Step2Metadata['billing'] | undefined => {
+  const totalCost = order.details?.currency === 'usd'
+    ? order.details.totalCents ?? transcription.costInCents
+    : undefined
+  const creditsUsed = order.details?.currency === 'usd'
+    ? order.details.totalCredits
+    : undefined
+
+  if (typeof totalCost === 'number' && Number.isFinite(totalCost) && totalCost >= 0) {
+    const billing: NonNullable<Step2Metadata['billing']> = {
+      totalCost,
+      source: 'provider_quote',
+      mode: 'order'
+    }
+    if (typeof creditsUsed === 'number' && Number.isFinite(creditsUsed) && creditsUsed >= 0) {
+      billing.creditsUsed = creditsUsed
+      if (creditsUsed > 0) {
+        billing.creditRateCents = totalCost / creditsUsed
+      }
+    }
+    return billing
+  }
+
+  if (typeof audioDurationSeconds === 'number' && Number.isFinite(audioDurationSeconds) && audioDurationSeconds >= 0) {
+    return {
+      totalCost: buildHappyScribeRegistryEstimate(modelName, audioDurationSeconds),
+      source: 'registry_fallback',
+      mode: 'duration'
+    }
+  }
+
+  return undefined
+}
+
+export const runHappyScribeStt = async (
+  audioPath: string,
+  outputDir: string,
+  options: {
+    model: string
+    happyscribeOrganizationId?: string | undefined
+    segmentOffsetMinutes: number
+    segmentNumber?: number | undefined
+    totalSegments?: number | undefined
+    audioDurationSeconds?: number | undefined
+    runMode?: 'initial' | 'backfill' | undefined
+    lifecycle?: AsyncSttLifecycleHooks | undefined
+  }
+): Promise<{ result: TranscriptionResult, metadata: Step2Metadata }> => {
+  const {
+    model: modelName,
+    happyscribeOrganizationId,
+    segmentOffsetMinutes = 0,
+    segmentNumber,
+    totalSegments,
+    audioDurationSeconds,
+    runMode,
+    lifecycle
+  } = options
+  const apiKey = getHappyScribeApiKey()
+  if (!apiKey) {
+    throw InternalError('HAPPYSCRIBE_API_KEY environment variable is required for Happy Scribe transcription', { stage: 'stt:happyscribe', hints: hintsForMissingEnv('HAPPYSCRIBE_API_KEY') })
+  }
+
+  const baseURL = getHappyScribeBaseUrl()
+  const offsetSeconds = segmentOffsetMinutes * 60
+  const outputBase = buildTranscriptionOutputBase(outputDir, segmentNumber)
+  const startTime = Date.now()
+  let uploadMs = 0
+  let createMs = 0
+  let pollMs = 0
+  let pollSleepMs = 0
+  let transcriptMs = 0
+  let createCount = 0
+  let pollCount = 0
+  let requestCount = 0
+  let retryCount = 0
+  let rateLimitCount = 0
+  const backfillCount = runMode === 'backfill' ? 1 : 0
+  let billing: Step2Metadata['billing'] | undefined
+
+  const apiClient = createHappyScribeApiClient({
+    apiKey,
+    baseURL,
+    onRequest: () => {
+      requestCount += 1
+    },
+    onRetry: (error) => {
+      retryCount += 1
+      if (getHappyScribeErrorStatus(error) === 429) {
+        rateLimitCount += 1
+      }
+    }
+  })
+
+  if (segmentNumber && totalSegments) {
+    logSttSegmentLifecycle(l, { provider: 'happyscribe', action: 'started', segmentNumber, totalSegments, model: modelName })
+  }
+
+  const organizationSelection = await resolveHappyScribeOrganizationSelection({
+    preferredOrganizationId: happyscribeOrganizationId
+  })
+  if (!organizationSelection.selected) {
+    throw buildHappyScribeOrganizationResolutionError(organizationSelection)
+  }
+  if (organizationSelection.selected.currency && organizationSelection.selected.currency !== 'usd') {
+    throw InfraError([
+      `Happy Scribe organization ${organizationSelection.selected.id}${organizationSelection.selected.name ? ` (${organizationSelection.selected.name})` : ''} reports currency ${organizationSelection.selected.currency}, but v1 execution supports exact-cost capture only for usd organizations.`,
+      `Organizations: ${organizationSelection.organizations.length > 0 ? organizationSelection.organizations.map((organization) => `${organization.id}${organization.name ? ` "${organization.name}"` : ''}${organization.currency ? ` currency=${organization.currency}` : ''}`).join(', ') : 'none'}.`,
+      'Pass --stt-happyscribe-organization-id <id> or save defaults.extract.stt.happyscribeOrganizationId with bun autoshow config.'
+    ].join(' '), { stage: 'stt:happyscribe' })
+  }
+
+  let runtime = await readPersistedAsyncSttRuntime(outputDir, {
+    transcriptionService: 'happyscribe',
+    transcriptionModel: modelName
+  })
+  let orderId = runtime?.remoteJobId
+  let uploadUrl = runtime?.remoteAssetUrl
+  let resumedExistingOrder = false
+
+  const buildTimingMetadata = (remoteProcessingMs = 0): Step2Metadata['timings'] =>
+    buildStep2TimingMetadata({
+      uploadMs,
+      createMs,
+      createCount,
+      pollMs,
+      pollSleepMs,
+      pollCount,
+      transcriptMs,
+      remoteProcessingMs,
+      requestCount,
+      retryCount,
+      rateLimitCount,
+      backfillCount
+    })
+
+  const buildProgressMetadata = (nextRuntime: Step2RuntimeMetadata): Step2Metadata => ({
+    transcriptionService: 'happyscribe',
+    transcriptionModel: modelName,
+    processingTime: Date.now() - startTime,
+    tokenCount: 0,
+    ...(billing ? { billing } : {}),
+    timings: buildTimingMetadata() ?? {},
+    runtime: nextRuntime
+  })
+
+  const persistProgressMetadata = createAsyncSttProgressMetadataPersister(
+    outputDir,
+    buildProgressMetadata,
+    (nextRuntime) => { runtime = nextRuntime }
+  )
+  const notifyJobReady = createAsyncSttJobReadyNotifier(lifecycle?.onJobReady)
+
+  if (runtime && (runtime.stage === 'created' || runtime.stage === 'polling')) {
+    resumedExistingOrder = true
+    runtime = {
+      ...runtime,
+      mode: 'resumed',
+      stage: 'polling'
+    }
+    orderId = runtime.remoteJobId
+    uploadUrl = runtime.remoteAssetUrl
+    await persistProgressMetadata(runtime)
+    await notifyJobReady(runtime)
+  } else {
+    try {
+      const uploadStartedAt = Date.now()
+      uploadUrl = await apiClient.getSignedUploadUrl(audioPath)
+      await apiClient.uploadMedia(uploadUrl, audioPath)
+      uploadMs += Date.now() - uploadStartedAt
+    } catch (error) {
+      attachHappyScribeErrorContext(error, 'upload', 'runtime_http_create_conservative')
+    }
+
+    if (!uploadUrl) {
+      throw ValidationError('Happy Scribe signed upload response missing signedUrl', { stage: 'stt:happyscribe' })
+    }
+
+    let createdOrder: HappyScribeOrder | undefined
+    try {
+      const createStartedAt = Date.now()
+      createdOrder = await apiClient.createOrder({
+        audioPath,
+        uploadUrl,
+        organizationId: organizationSelection.selected.id
+      })
+      createMs += Date.now() - createStartedAt
+      createCount += 1
+    } catch (error) {
+      attachHappyScribeErrorContext(error, 'create', 'runtime_http_create_conservative')
+    }
+
+    if (!createdOrder) {
+      throw ValidationError('Happy Scribe order creation did not return an order id', { stage: 'stt:happyscribe' })
+    }
+    orderId = createdOrder.id
+
+    const createdRuntime: Step2RuntimeMetadata = {
+      mode: 'fresh',
+      stage: 'polling',
+      remoteJobId: orderId,
+      remoteAssetUrl: uploadUrl,
+      createCompletedAt: new Date().toISOString()
+    }
+    await persistProgressMetadata(createdRuntime)
+    await notifyJobReady(createdRuntime)
+  }
+
+  if (!orderId) {
+    throw ValidationError('Happy Scribe order creation did not return an order id', { stage: 'stt:happyscribe' })
+  }
+  const activeOrderId = orderId
+
+  logSttAsyncJobLifecycle(l, {
+    provider: `happyscribe/${modelName}`,
+    action: resumedExistingOrder ? 'resumed' : 'created',
+    remoteId: activeOrderId,
+    state: 'polling'
+  })
+
+  const orderPollResult = await pollAsyncSttJobUntilComplete({
+    jobId: activeOrderId,
+    initialPollIntervalMs: INITIAL_POLL_INTERVAL_MS,
+    maxPollIntervalMs: MAX_POLL_INTERVAL_MS,
+    audioDurationSeconds,
+    pollMode: resumedExistingOrder ? 'resume-probe' : 'fresh',
+    buildDeadlineError: (jobId, pollDeadlineMs) => buildPollingDeadlineError(jobId, pollDeadlineMs),
+    buildResumeProbeError: (jobId, probeCount, totalWaitMs) => buildResumeProbeError(jobId, probeCount, totalWaitMs),
+    poll: async () => {
+      const pollStartedAt = Date.now()
+      const result = await apiClient.pollOrder(activeOrderId)
+      pollMs += Date.now() - pollStartedAt
+      return result
+    },
+    isComplete: (order) => order.state === 'fulfilled',
+    isFailed: (order) =>
+      order.state === 'failed' || order.state === 'locked'
+        ? buildHappyScribeOrderFailureMessage(order)
+        : undefined,
+    onProgress: async () => {
+      await persistProgressMetadata({
+        ...(runtime ?? {
+          mode: 'fresh',
+          stage: 'polling',
+          remoteJobId: activeOrderId
+        }),
+        mode: runtime?.mode ?? 'fresh',
+        stage: 'polling',
+        remoteJobId: activeOrderId,
+        ...(uploadUrl ? { remoteAssetUrl: uploadUrl } : {}),
+        ...(runtime?.createCompletedAt ? { createCompletedAt: runtime.createCompletedAt } : {}),
+        lastPollAt: new Date().toISOString()
+      })
+    },
+    withPollSlot: lifecycle?.withPollSlot
+  })
+
+  pollSleepMs += orderPollResult.pollSleepMs
+  pollCount += orderPollResult.pollCount
+  const completedOrder = orderPollResult.status
+
+  const transcriptionId = resolveHappyScribeOrderTranscriptionId(completedOrder)
+  if (!transcriptionId) {
+    throw ValidationError('Happy Scribe order completed without a transcription identifier', { stage: 'stt:happyscribe' })
+  }
+
+  let transcription: HappyScribeTranscription | undefined
+  try {
+    const transcriptStartedAt = Date.now()
+    transcription = await apiClient.getTranscription(transcriptionId)
+    transcriptMs += Date.now() - transcriptStartedAt
+  } catch (error) {
+    attachHappyScribeErrorContext(error, 'result', 'runtime_http_read')
+  }
+  if (!transcription) {
+    throw InfraError('Happy Scribe transcription lookup did not return transcription metadata', { stage: 'stt:happyscribe' })
+  }
+
+  const completedRuntime: Step2RuntimeMetadata = {
+    ...(runtime ?? {
+      mode: 'fresh',
+      stage: 'completed',
+      remoteJobId: activeOrderId
+    }),
+    mode: runtime?.mode ?? 'fresh',
+    stage: 'completed',
+    remoteJobId: activeOrderId,
+    ...(uploadUrl ? { remoteAssetUrl: uploadUrl } : {}),
+    ...(runtime?.createCompletedAt ? { createCompletedAt: runtime.createCompletedAt } : {}),
+    ...(runtime?.lastPollAt ? { lastPollAt: runtime.lastPollAt } : {}),
+    completedAt: new Date().toISOString()
+  }
+  billing = buildBillingMetadata(modelName, audioDurationSeconds, completedOrder, transcription)
+  await persistProgressMetadata(completedRuntime)
+
+  let result: TranscriptionResult | undefined
+  const tryDirectDownload = async (): Promise<TranscriptionResult | undefined> => {
+    if (!transcription.downloadUrl) {
+      return undefined
+    }
+
+    try {
+      const structuredPayload = await apiClient.fetchDownloadPayload(transcription.downloadUrl)
+      return parseHappyScribeTranscriptPayload(structuredPayload, { offsetSeconds })
+    } catch {
+      return undefined
+    }
+  }
+
+  result = await tryDirectDownload()
+
+  if (!result) {
+    let exportRecord: HappyScribeExport | undefined
+    try {
+      const transcriptStartedAt = Date.now()
+      exportRecord = await apiClient.createExport(transcription.id ?? transcriptionId)
+      const activeExportId = exportRecord.id
+      createCount += 1
+
+      const exportPollResult = await pollAsyncSttJobUntilComplete({
+        jobId: activeExportId,
+        initialPollIntervalMs: INITIAL_POLL_INTERVAL_MS,
+        maxPollIntervalMs: MAX_POLL_INTERVAL_MS,
+        audioDurationSeconds,
+        buildDeadlineError: (jobId, pollDeadlineMs) => buildExportDeadlineError(jobId, pollDeadlineMs),
+        poll: async () => apiClient.pollExport(activeExportId),
+        isComplete: (exportStatus) => exportStatus.state === 'ready',
+        isFailed: (exportStatus) =>
+          exportStatus.state === 'failed' || exportStatus.state === 'expired'
+            ? `Happy Scribe export ${exportStatus.id} failed in state "${exportStatus.state}"`
+            : undefined,
+        withPollSlot: lifecycle?.withPollSlot
+      })
+
+      pollSleepMs += exportPollResult.pollSleepMs
+      pollCount += exportPollResult.pollCount
+      exportRecord = exportPollResult.status
+      if (!exportRecord.downloadLink) {
+        throw ValidationError('Happy Scribe export completed without download_link', { stage: 'stt:happyscribe' })
+      }
+
+      const structuredPayload = await apiClient.fetchDownloadPayload(exportRecord.downloadLink)
+      result = parseHappyScribeTranscriptPayload(structuredPayload, { offsetSeconds })
+      transcriptMs += Date.now() - transcriptStartedAt
+    } catch (error) {
+      attachHappyScribeErrorContext(error, 'result', 'runtime_http_read')
+    }
+  }
+
+  if (!result) {
+    throw InfraError('Happy Scribe transcript retrieval did not produce a transcript', { stage: 'stt:happyscribe' })
+  }
+
+  const formattedTranscriptPath = `${outputBase}.txt`
+  await Bun.write(formattedTranscriptPath, formatTranscriptText(result.segments))
+
+  const processingTime = Date.now() - startTime
+  const remoteProcessingMs = Math.max(0, processingTime - uploadMs - createMs - pollMs - transcriptMs)
+  const timings = buildTimingMetadata(remoteProcessingMs)
+  const metadata: Step2Metadata = {
+    transcriptionService: 'happyscribe',
+    transcriptionModel: modelName,
+    processingTime,
+    tokenCount: countTokens(result.text),
+    runtime: completedRuntime,
+    ...(billing ? { billing } : {}),
+    ...(timings ? { timings } : {})
+  }
+
+  if (segmentNumber && totalSegments) {
+    logSttSegmentLifecycle(l, { provider: 'happyscribe', action: 'completed', segmentNumber, totalSegments, model: modelName, processingTimeMs: processingTime })
+  }
+
+  return {
+    result,
+    metadata
+  }
+}

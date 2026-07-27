@@ -1,0 +1,52 @@
+{
+  "deepinfra": {
+    "description": "DeepInfra OpenAI-compatible vision/OCR models",
+    "type": "api",
+    "models": {
+      "Qwen/Qwen3-VL-235B-A22B-Instruct": {
+        "description": "Qwen3 VL 235B A22B Instruct via DeepInfra",
+        "pricingSourceUrl": "https://deepinfra.com/Qwen/Qwen3-VL-235B-A22B-Instruct",
+        "pricingCheckedAt": "2026-05-31",
+        "pricingCurrency": "USD",
+        "pricingTier": "DeepInfra public per-token model pricing",
+        "pricingNotes": "DeepInfra lists Qwen/Qwen3-VL-235B-A22B-Instruct at $0.20/1M input tokens, $0.11/1M cached input tokens, and $0.88/1M output tokens. OCR estimates use non-cached token rates; discounts, enterprise pricing, taxes, and provider credits are ignored.",
+        "costPerMInputTokensUSD": 0.2,
+        "costPerMOutputTokensUSD": 0.88,
+        "costPerMInputTokensCents": 20,
+        "costPerMOutputTokensCents": 88,
+        "limits": {
+          "imageBytes": 20971520,
+          "notes": "DeepInfra Vision & OCR docs document OpenAI vision API format, supported image uploads as JPG/PNG/WebP, 20 MB maximum image size, and no detail parameter support. AutoShow renders PDF and EPUB-derived PDF pages to PNG images before calling DeepInfra OCR."
+        },
+        "estimation": {
+          "costMultiplier": 1,
+          "msPerPage": 20000,
+          "promptTokensPerPage": 4081,
+          "completionTokensPerPage": 526
+        }
+      },
+      "Qwen/Qwen3-VL-30B-A3B-Instruct": {
+        "description": "Qwen3 VL 30B A3B Instruct via DeepInfra",
+        "pricingSourceUrl": "https://deepinfra.com/Qwen/Qwen3-VL-30B-A3B-Instruct",
+        "pricingCheckedAt": "2026-05-31",
+        "pricingCurrency": "USD",
+        "pricingTier": "DeepInfra public per-token model pricing",
+        "pricingNotes": "DeepInfra lists Qwen/Qwen3-VL-30B-A3B-Instruct at $0.15/1M input tokens and $0.60/1M output tokens. OCR estimates use these public rates; discounts, enterprise pricing, taxes, and provider credits are ignored.",
+        "costPerMInputTokensUSD": 0.15,
+        "costPerMOutputTokensUSD": 0.6,
+        "costPerMInputTokensCents": 15,
+        "costPerMOutputTokensCents": 60,
+        "limits": {
+          "imageBytes": 20971520,
+          "notes": "DeepInfra Vision & OCR docs document OpenAI vision API format, supported image uploads as JPG/PNG/WebP, 20 MB maximum image size, and no detail parameter support. AutoShow renders PDF and EPUB-derived PDF pages to PNG images before calling DeepInfra OCR."
+        },
+        "estimation": {
+          "costMultiplier": 0.7802,
+          "msPerPage": 12618,
+          "promptTokensPerPage": 7981,
+          "completionTokensPerPage": 471.5
+        }
+      }
+    }
+  }
+}
