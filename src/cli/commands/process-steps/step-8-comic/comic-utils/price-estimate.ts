@@ -69,7 +69,7 @@ const estimateSceneDraftPrice = async (options: DraftScenesCommandOptions): Prom
   const model = options.llmModel ?? DEFAULT_LLM_MODEL
   const { sceneSlug } = options
 
-  l(`${bold('USS Acampo')} - Price Estimate: draft-scenes --only scene`)
+  l(`${bold('Comic')} - Price Estimate: draft-scenes --only scene`)
   l(`${cyan('='.repeat(50))}\n`)
   l(`  Model: ${model}`)
   l('')
@@ -110,7 +110,7 @@ const estimateSceneDraftPrice = async (options: DraftScenesCommandOptions): Prom
 }
 
 const estimatePanelPromptsPrice = (): void => {
-  l(`${bold('USS Acampo')} - Price Estimate: draft-scenes --only panel-prompts`)
+  l(`${bold('Comic')} - Price Estimate: draft-scenes --only panel-prompts`)
   l(`${cyan('='.repeat(50))}\n`)
   l('  The panel-prompt stage makes no LLM or image generation API calls.')
   l('')
@@ -184,7 +184,7 @@ export const estimateDraftScenesPrice = async (options: DraftScenesCommandOption
   }
 
   if (stages.includes('prompt')) {
-    l(`${bold('USS Acampo')} - Price Estimate: draft-scenes --only prompt`)
+    l(`${bold('Comic')} - Price Estimate: draft-scenes --only prompt`)
     l(`${cyan('='.repeat(50))}\n`)
     l('  The prompt-bundle stage makes no LLM or image generation API calls.')
     l('')
@@ -200,7 +200,7 @@ export const estimateDraftScenesPrice = async (options: DraftScenesCommandOption
 }
 
 const estimateStructureScriptsPrice = async (options: StructureScriptsCommandOptions): Promise<void> => {
-  l(`${bold('USS Acampo')} - Price Estimate: draft-scenes --only structure`)
+  l(`${bold('Comic')} - Price Estimate: draft-scenes --only structure`)
   l(`${cyan('='.repeat(50))}\n`)
 
   if (!options.llmModel) {
@@ -343,7 +343,7 @@ export const estimateCharacterSketchPrice = async (
     await requireCurrentCharacterSketch(key, character)
   }
 
-  l(`${bold('USS Acampo')} - Price Estimate: character-sketch`)
+  l(`${bold('Comic')} - Price Estimate: character-sketch`)
   l(`${cyan('='.repeat(50))}\n`)
   l(`  Character: ${key}`)
   l(`  Source:    ${character.sourcePath}`)
@@ -364,7 +364,7 @@ export const estimateLocationReferencePrice = async (
   const qaEnabled = options.qa ?? true
   const maxRepairs = options.maxRepairs ?? 2
   validateImageSizeForModels(size, [model])
-  l(`${bold('USS Acampo')} - Price Estimate: reference-sketch --location`)
+  l(`${bold('Comic')} - Price Estimate: reference-sketch --location`)
   l(`${cyan('='.repeat(50))}\n`)
   l(`  Location-spec aggregation (${options.llmModel ?? DEFAULT_LLM_MODEL}): ${options.revise ? 0 : 1} call${options.revise ? 's' : ''}`)
   l('  Initial location-reference image calls: 3')
@@ -414,7 +414,7 @@ const estimateFinalPanelImagesPrice = async (options: GenerateImagesCommandOptio
     panelsPerImage,
   })
 
-  l(`${bold('USS Acampo')} - Price Estimate: generate-images${useGridMode ? ' (grid mode)' : usePageMode ? ' (page mode)' : ''}`)
+  l(`${bold('Comic')} - Price Estimate: generate-images${useGridMode ? ' (grid mode)' : usePageMode ? ' (page mode)' : ''}`)
   l(`${cyan('='.repeat(50))}\n`)
   l(`  Models:  ${models.join(', ')}`)
   if (options.variations !== undefined) {
@@ -659,7 +659,7 @@ const estimateGenerateSketchesPrice = async (
   const useModelSpecificFilenames = models.length > 1
   validateImageSizeForModels(size, models)
 
-  l(`${bold('USS Acampo')} - Price Estimate: generate-images --target sketches`)
+  l(`${bold('Comic')} - Price Estimate: generate-images --target sketches`)
   l(`${cyan('='.repeat(50))}\n`)
   l(`  Models:  ${models.join(', ')}`)
   l(`  Size:    ${size}  Quality: ${quality}`)
@@ -775,7 +775,7 @@ export const estimateGenerateImagesPrice = async (
   }
 
   if (!sceneJsonExists) {
-    l(`${bold('USS Acampo')} - Price Estimate: generate-images`)
+    l(`${bold('Comic')} - Price Estimate: generate-images`)
     l(`${cyan('='.repeat(50))}\n`)
     l('  Reviewed schemaVersion 4 scene and panel bundles are required. Run draft-scenes explicitly; generate-images price mode never drafts or upgrades artifacts.')
     return
@@ -783,7 +783,7 @@ export const estimateGenerateImagesPrice = async (
   try {
     v.parse(ScenePromptDataSchema, JSON.parse(readFileSync(getSceneJsonPath(sceneSlug), 'utf8')))
   } catch {
-    l(`${bold('USS Acampo')} - Price Estimate: generate-images`)
+    l(`${bold('Comic')} - Price Estimate: generate-images`)
     l(`${cyan('='.repeat(50))}\n`)
     l('  The scene is not reviewed schemaVersion 4. Run draft-scenes explicitly; older scene artifacts cannot enter controlled image generation.')
     return

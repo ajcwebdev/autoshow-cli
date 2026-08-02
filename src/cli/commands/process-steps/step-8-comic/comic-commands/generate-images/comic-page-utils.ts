@@ -224,11 +224,10 @@ export const getComicGridCapacity = (grid: ComicGridSpec): number => {
   return capacity
 }
 
-export const USS_ACAMPO_HOUSE_STYLE = [
-  'USS Acampo house style: crisp dark ink outlines, softly painted/cel-shaded surfaces, warm practical lights, and a clean illustrated composition.',
-  'Use simplified expressive faces and anatomy, readable shapes, and colors derived from the subject, location specification, and canonical references.',
-  'Follow the established illustrated workplace-comedy look shown by the canonical character and location art.',
-  'Do not use photorealism, semi-photorealism, painterly realism, 3D rendering, photographic textures, cinematic depth of field, volumetric lighting, or realistic skin rendering.',
+export const COMIC_STYLE_GUIDANCE = [
+  'Treat the canonical character and location references as the authority for the comic\'s visual style as well as its depicted content.',
+  'Match their linework, rendering medium, shape language, anatomy, palette, lighting, texture, and level of detail consistently across every panel.',
+  'Do not introduce a different visual medium or degree of realism unless the canonical references explicitly establish it.',
 ].join(' ')
 
 export const chunkComicGridPanels = <T extends { panelNumber: number }>(
@@ -336,7 +335,7 @@ export const buildComicPagePrompt = (
   }).join('\n')
 
   return [
-    'Create one final USS Acampo comic page image from the ordered panel data below.',
+    'Create one final comic page image from the ordered panel data below.',
     [
       'Page requirements:',
       `- Render exactly ${panelCount} ${subPanelLabel}, one sub-panel for each source panel, in the listed order.`,
@@ -347,7 +346,7 @@ export const buildComicPagePrompt = (
           ? '- This is a trailing single-panel page. Make its one panel fill the canvas; do not leave an empty second panel.'
           : '- Use an ordered, clearly separated multi-panel page layout matching the explicit panels-per-image override.',
       '- Treat every immutable canonical location reference listed in the location legend as canon for its mapped sub-panels. It defines location identity, persistent spatial geometry, fixed features, palette, and art style.',
-      `- ${USS_ACAMPO_HOUSE_STYLE}`,
+      `- ${COMIC_STYLE_GUIDANCE}`,
       '- The ordered canonical character reference images are authoritative for both character design and the simplified 2D rendering language. Never reinterpret them as realistic people.',
       '- The canonical character reference images and catalog appearance descriptions have highest visual precedence for identity, physical embodiment, projection/display medium, anatomy, costume, and character-specific required props. If script-derived staging or a shot plan contradicts them, preserve the narrative action but reinterpret the contradictory character depiction to obey canon.',
       '- A source phrase such as interface, screen, monitor, avatar, or body is never permission to change a referenced character\'s canonical embodiment. Apply such wording to nearby equipment or UI only when canon allows it.',

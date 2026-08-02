@@ -4,7 +4,6 @@ import { mkdir, mkdtemp, rm } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
 import { dirname, join, resolve } from 'node:path'
 import { configureCharactersRoot } from '~/cli/commands/process-steps/characters-root'
-import { loadCharacterCatalog } from '~/cli/commands/process-steps/step-8-comic/comic-utils/character-reference-config'
 import {
   createLocationReferenceSnapshots,
   loadAndVerifyLocationReferenceSnapshots,
@@ -127,19 +126,28 @@ describe('multi-location comic contracts', () => {
     expect((await loadAndVerifyLocationReferenceSnapshots(legacyRun))[0]?.snapshotId).toBe('legacy')
   })
 
-  test('parses the real Scene 2 script into quarters then hallway segments', async () => {
-    const project = resolve('../uss-acampo')
-    const charactersRoot = join(project, 'input', 'characters')
-    const scriptPath = join(project, 'input', 'episode-scripts', '02-script', '02-first-attempt.md')
-    configureCharactersRoot(charactersRoot)
-    const realCatalog = JSON.parse(await Bun.file(join(project, 'input', 'locations', 'locations-reference.json')).text()) as LocationReferenceCatalog
-    const structured = parseScriptMarkdownToStructuredData(await Bun.file(scriptPath).text(), scriptPath, {
-      locationCatalog: realCatalog,
-      characterCatalog: loadCharacterCatalog(charactersRoot),
+  test('parses a complete script into ordered location segments without an external project fixture', () => {
+    const structured = parseScriptMarkdownToStructuredData([
+      '# Episode',
+      '',
+      '## Scene: "A Change of Venue"',
+      '',
+      '**INT. SHIP CREW QUARTERS - NIGHT**',
+      '',
+      'A crew member closes a locker.',
+      '',
+      '**CUT TO: INT. SHIP UPPER DECK HALLWAY - MOMENTS LATER**',
+      '',
+      'Footsteps cross the long corridor.',
+      '',
+      'A warning light begins to flash.',
+    ].join('\n'), 'input/episode-scripts/01-script/02-change-of-venue.md', {
+      locationCatalog: catalog,
+      characterCatalog: emptyCharacterCatalog,
     })
     const keys = structured.sourceSegments.map(segment => segment.location.key)
-    expect(Array.from(new Set(keys))).toEqual(['seamus-quarters', 'upper-deck-hallway'])
-    expect(keys.indexOf('upper-deck-hallway')).toBeGreaterThan(0)
-    expect(keys.slice(keys.indexOf('upper-deck-hallway')).every(key => key === 'upper-deck-hallway')).toBe(true)
+    expect(Array.from(new Set(keys))).toEqual(['quarters', 'hallway'])
+    expect(keys.indexOf('hallway')).toBeGreaterThan(0)
+    expect(keys.slice(keys.indexOf('hallway')).every(key => key === 'hallway')).toBe(true)
   })
 })

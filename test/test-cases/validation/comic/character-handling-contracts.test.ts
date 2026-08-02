@@ -1,13 +1,13 @@
 import { afterEach, describe, expect, test } from 'bun:test'
 import { mkdtemp, rm, writeFile } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
-import { join, resolve } from 'node:path'
+import { join } from 'node:path'
 import * as v from 'valibot'
 import { configureOutputRoot } from '~/cli/commands/process-steps/output-root'
 import { configureCharactersRoot } from '~/cli/commands/process-steps/characters-root'
 import { loadCharacterCatalog } from '~/cli/commands/process-steps/step-8-comic/comic-utils/character-reference-config'
 import { createCharacterReferenceSnapshot, loadAndVerifyCharacterReferenceSnapshot, compileCharacterReferences } from '~/cli/commands/process-steps/step-8-comic/comic-utils/character-reference-snapshot'
-import { checksumFile, getCharacterSketchManifestPath, readCharacterSketchManifest, requireCurrentCharacterSketch } from '~/cli/commands/process-steps/step-8-comic/comic-commands/process-scenes/character-utils'
+import { checksumFile, getCharacterSketchManifestPath, requireCurrentCharacterSketch } from '~/cli/commands/process-steps/step-8-comic/comic-commands/process-scenes/character-utils'
 import { buildSceneJsonSchema, buildStructuredScriptJsonSchema, PanelBundleDataSchema, ScenePromptDataSchema, StructuredScriptDataSchema, validateSceneCharacters } from '~/cli/commands/process-steps/step-8-comic/schemas/schemas'
 import { parseCharacterSketchArgs } from '~/cli/commands/process-steps/step-8-comic/comic-utils/cli-args'
 import { getReferenceImageCapabilities, trimOptionalContinuityReferences } from '~/cli/commands/process-steps/step-8-comic/comic-utils/reference-capabilities'
@@ -85,25 +85,6 @@ describe('comic character handling flat-reference contracts', () => {
     const catalog = loadCharacterCatalog(root)
     const hero = catalog.get(catalog.requireKey('hero'))
     expect(hero.sourcePath).toBe(hero.outlineSheetPath)
-  })
-
-  test('migration registers the exact twelve legacy sheets', async () => {
-    const migratedRoot = resolve('../uss-acampo/input/characters')
-    configureCharactersRoot(migratedRoot)
-    const catalog = loadCharacterCatalog(migratedRoot)
-    const manifest = await readCharacterSketchManifest(migratedRoot)
-    const legacySketches = manifest.sketches.filter(sketch => sketch.origin === 'legacy-import')
-    expect(legacySketches.map(sketch => sketch.outlineSheet)).toEqual([
-      '01-peaches--outline-sheet.png', '02-bishop--outline-sheet.png', '03-duco--outline-sheet.png',
-      '04-geebee--outline-sheet.png', '05-seamus--outline-sheet.png', '06-gulp--outline-sheet.png',
-      '07-paddy--outline-sheet.png', '08-specter--outline-sheet.png', '09-ironhand-1--outline-sheet.png',
-      '10-ironhand-2--outline-sheet.png', '11-ironhand-3--outline-sheet.png', '12-chat--outline-sheet.png',
-    ])
-    expect(legacySketches.every(sketch => sketch.model === null)).toBe(true)
-    expect(manifest.sketches.filter(sketch => sketch.origin === 'generated').map(sketch => sketch.characterKey).sort()).toEqual([
-      'buoy-4-and-6', 'guards', 'podcast-host', 'wilhelm-speaking-villagers',
-    ])
-    await Promise.all(manifest.sketches.map(sketch => requireCurrentCharacterSketch(catalog.requireKey(sketch.characterKey), catalog.get(catalog.requireKey(sketch.characterKey)))))
   })
 
   test('panel-prompt preflight aggregates every unregistered visible character', async () => {

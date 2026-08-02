@@ -91,7 +91,7 @@ const judgeView = async (input: { imagePath: string; view: LocationView; specifi
   }, required: ['pass', 'stableFeaturesMatch', 'crossViewGeometryMatch', 'houseStyleMatch', 'noPeople', 'noCopiedStyleContent', 'failedChecks', 'editInstructions', 'summary'] } as const
   const paths = [input.imagePath, ...(input.acceptedEstablishing ? [input.acceptedEstablishing] : []), input.styleReference]
   const response = await createOpenAIResponse(getOpenAIClientConfig(), { model: input.model, input: [{ role: 'user', content: [
-    { type: 'input_text', text: `Strictly judge this ${input.view} canonical location view. It must match stable features and USS Acampo house style, contain no people, copy no character/text/content from the style reference, and preserve cross-view geometry. Specification:\n${input.specification}` },
+    { type: 'input_text', text: `Strictly judge this ${input.view} canonical location view. It must match the stable features and visual language established by the supplied style reference, contain no people, copy no character/text/content from the style reference, and preserve cross-view geometry. Specification:\n${input.specification}` },
     ...(await Promise.all(paths.map(async path => ({ type: 'input_image' as const, image_url: await dataUrl(path), detail: 'high' as const })))),
   ] }], text: { verbosity: 'low', format: { type: 'json_schema', name: 'location_view_qa_v1', schema, strict: true } } })
   const text = extractOpenAIResponseText(response)
@@ -102,7 +102,7 @@ const judgeView = async (input: { imagePath: string; view: LocationView; specifi
 const viewPrompt = (entry: LocationReferenceEntry, view: LocationView, revisionNotes?: string): string => [
   `Create an empty ${view} view of the canonical location "${entry.name}".`,
   `Stable specification:\n${entry.specification}`,
-  view === 'establishing' ? 'Use the Duco reference strictly for clean-line 2D rendering style. Do not copy its character, pose, panels, labels, text, or content.' : 'Use the accepted establishing view as the geometry authority. Show the same fixed space from this requested angle; do not redesign it.',
+  view === 'establishing' ? 'Use the configured style reference strictly for its visual language. Do not copy its character, pose, setting, panels, labels, text, or narrative content.' : 'Use the accepted establishing view as the geometry authority. Show the same fixed space from this requested angle; do not redesign it.',
   'No people, humanoids, silhouettes, temporary props, action, damage, dialogue, captions, labels, or invented text.',
   revisionNotes ? `Revision notes: ${revisionNotes}` : undefined,
 ].filter(Boolean).join('\n\n')

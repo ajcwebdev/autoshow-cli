@@ -3,6 +3,7 @@ import { existsSync, readFileSync } from 'node:fs'
 import { copyFile, mkdir, rename } from 'node:fs/promises'
 import { basename, dirname, join, relative, resolve } from 'node:path'
 import { getCharactersRoot } from '~/cli/commands/process-steps/characters-root'
+import { loadCharacterCatalog } from './character-reference-config'
 import { checksumFile } from '../comic-commands/process-scenes/character-utils'
 import { InfraError, ValidationError } from '~/utils/error-handler'
 
@@ -42,6 +43,18 @@ export const getLocationsRoot = (): string => join(dirname(getCharactersRoot()),
 export const getLocationReferencePath = (): string => join(getLocationsRoot(), LOCATION_REFERENCE_FILENAME)
 export const getLocationSketchManifestPath = (): string => join(getLocationsRoot(), LOCATION_SKETCH_MANIFEST_FILENAME)
 
+const createEmptyLocationCatalog = (): LocationReferenceCatalog => {
+  const styleCharacter = loadCharacterCatalog().characters[0]
+  if (!styleCharacter) {
+    throw ValidationError('A location catalog requires styleImage, or at least one catalog character whose image can supply the initial comic style', { stage: 'comic:location-reference' })
+  }
+  return {
+    schemaVersion: 1,
+    styleImage: relative(getLocationsRoot(), styleCharacter.sourcePath).replace(/\\/g, '/'),
+    locations: [],
+  }
+}
+
 export const normalizeLocationKey = (value: string): string => value
   .normalize('NFKC').toLowerCase()
   .replace(/^\s*(?:(?:cut|smash cut|match cut|dissolve|fade)\s+to|later|moments later)\s*:\s*/i, '')
@@ -66,7 +79,7 @@ const parseCatalog = (value: unknown, path: string): LocationReferenceCatalog =>
 export const readLocationReferenceCatalog = async (): Promise<LocationReferenceCatalog> => {
   const path = getLocationReferencePath()
   if (!(await Bun.file(path).exists())) {
-    return { schemaVersion: 1, styleImage: 'input/characters/03-duco.webp', locations: [] }
+    return createEmptyLocationCatalog()
   }
   try { return parseCatalog(JSON.parse(await Bun.file(path).text()), path) }
   catch (error) {
@@ -77,7 +90,7 @@ export const readLocationReferenceCatalog = async (): Promise<LocationReferenceC
 
 export const readLocationReferenceCatalogSync = (): LocationReferenceCatalog => {
   const path = getLocationReferencePath()
-  if (!existsSync(path)) return { schemaVersion: 1, styleImage: 'input/characters/03-duco.webp', locations: [] }
+  if (!existsSync(path)) return createEmptyLocationCatalog()
   try { return parseCatalog(JSON.parse(readFileSync(path, 'utf8')), path) }
   catch (error) {
     if (error instanceof ValidationError) throw error

@@ -45,7 +45,14 @@ const buildJsonPromptTemplate = (
   characterNames: readonly string[],
   aliases: Record<string, string>,
   characterCanon: string,
-): string => `# Convert Structured Script to Comic Panel JSON
+): string => {
+  const exampleCharacterKey = characterNames[0]
+  const exampleCharacterKeys = exampleCharacterKey ? JSON.stringify([exampleCharacterKey]) : '[]'
+  const exampleSpeaker = exampleCharacterKey
+    ? `{ "kind": "character", "characterKey": ${JSON.stringify(exampleCharacterKey)}, "offscreen": false }`
+    : '{ "kind": "caption" }'
+
+  return `# Convert Structured Script to Comic Panel JSON
 
 Return only schemaVersion 4 scene JSON. Preserve beat order, exact dialogue, and every source segment ID. Convert direction, transition, and panel-note text into visual staging, never speech. Use \`delivery\` only as optional tone.
 
@@ -74,10 +81,10 @@ ${formatCharacterAliasGuidance(aliases)}
       "number": 1,
       "description": "Visual staging only.",
       "shotPlan": "Exhaustive prose camera, composition, blocking, acting, eyeline, props, balloon placement, and exclusions plan.",
-      "characterKeys": ["peaches"],
+      "characterKeys": ${exampleCharacterKeys},
       "speech": [
         {
-          "speaker": { "kind": "character", "characterKey": "peaches", "offscreen": false },
+          "speaker": ${exampleSpeaker},
           "line": "Exact dialogue from the script"
         }
       ],
@@ -89,6 +96,7 @@ ${formatCharacterAliasGuidance(aliases)}
 \`\`\`
 
 Speaker invariants: an on-screen character speaker must be in \`characterKeys\`; an offscreen character speaker must not be. Use \`{ "kind": "caption" }\` for narration and \`{ "kind": "voice", "label": "..." }\` for uncatalogued voices. Each panel may contain only one character's dialogue; split sequential speakers across panels. Every source segment ID must appear at least once.`
+}
 
 const formatPromptExcerpt = (text: string): string => {
   const normalized = text.replace(/\s+/g, ' ').trim()

@@ -8,7 +8,7 @@ Draft comic scene JSON with exhaustive shot plans, build reviewed v4 panel bundl
 - [Setup](#setup)
 - [Runtime Paths](#runtime-paths)
 - [Usage](#usage)
-- [Walkthrough: 01-co-work-smarter](#walkthrough-01-co-work-smarter)
+- [Walkthrough: 01-opening](#walkthrough-01-opening)
 - [draft-scenes](#draft-scenes)
 - [generate-images](#generate-images)
 - [reference-sketch](#reference-sketch)
@@ -58,6 +58,8 @@ Every comic command requires `input/characters/characters-reference.json`, or th
 
 Character paths must stay within the character root, use PNG/WebP/JPG/JPEG files, remain exclusive to one catalog character, and all group targets must exist. The two fields may name the same file for a one-image character or distinct files for the legacy source-plus-sheet layout. Canonical source images must exist when the catalog loads. A distinct declared sheet may be missing during structure and scene drafting; character revision, panel-prompt creation, and relevant price preflight require a matching checksummed registration in `character-sketches.json`.
 
+Location configuration is project-defined too. Set `styleImage` in `input/locations/locations-reference.json` to any project image whose visual language should guide new location sheets. When that file does not exist yet, the comic command uses the first character catalog image as the initial style reference and writes that portable relative path into the new location catalog.
+
 ## Runtime Paths
 
 Canonical project-root paths:
@@ -79,44 +81,44 @@ bun autoshow comic reference-sketch (--character <key> | --location <key>) [--re
 bun autoshow comic character-sketch --character <key> [--image-model <model>] [--revise --notes <text>] [--price]
 ```
 
-The `<script-path>` argument also accepts strict episode-scene shorthand: `02-01` resolves to the single Markdown file in `input/episode-scripts/02-script/` whose filename starts with `01-`.
+The `<script-path>` argument also accepts strict episode-scene shorthand: `01-01` resolves to the single Markdown file in `input/episode-scripts/02-script/` whose filename starts with `01-`.
 
-## Walkthrough: 01-co-work-smarter
+## Walkthrough: 01-opening
 
 This walkthrough starts from:
 
 ```text
-input/episode-scripts/02-script/01-co-work-smarter.md
+input/episode-scripts/01-script/01-opening.md
 ```
 
-The equivalent shorthand is `02-01`.
+The equivalent shorthand is `01-01`.
 
 To run the complete script-to-page pipeline:
 
 ```bash
-bun autoshow comic draft-scenes input/episode-scripts/02-script/01-co-work-smarter.md
-bun autoshow comic generate-images input/episode-scripts/02-script/01-co-work-smarter.md --target images --panels 1-16
-bun autoshow comic generate-images input/episode-scripts/02-script/01-co-work-smarter.md --target sketches --panels 1-4
+bun autoshow comic draft-scenes input/episode-scripts/01-script/01-opening.md
+bun autoshow comic generate-images input/episode-scripts/01-script/01-opening.md --target images --panels 1-16
+bun autoshow comic generate-images input/episode-scripts/01-script/01-opening.md --target sketches --panels 1-4
 ```
 
-`draft-scenes` is required first because `generate-images` only consumes newly reviewed v4 scene artifacts. This writes final panel images under the scene's run directory, e.g. `output/<timestamp>_01-co-work-smarter/panels/`; grouped page images land in `pages/` when `--panels-per-image` is above one or `--grid` is used. Existing single-location v3 panel bundles and their singular location manifests remain readable by image generation.
+`draft-scenes` is required first because `generate-images` only consumes newly reviewed v4 scene artifacts. This writes final panel images under the scene's run directory, e.g. `output/<timestamp>_01-opening/panels/`; grouped page images land in `pages/` when `--panels-per-image` is above one or `--grid` is used. Existing single-location v3 panel bundles and their singular location manifests remain readable by image generation.
 
 ### 1. Create structured script JSON
 
 ```bash
-bun autoshow comic draft-scenes input/episode-scripts/02-script/01-co-work-smarter.md --only structure
+bun autoshow comic draft-scenes input/episode-scripts/01-script/01-opening.md --only structure
 ```
 
 ### 2. Build the scene-drafting prompt
 
 ```bash
-bun autoshow comic draft-scenes input/episode-scripts/02-script/01-co-work-smarter.md --only prompt
+bun autoshow comic draft-scenes input/episode-scripts/01-script/01-opening.md --only prompt
 ```
 
 ### 3. Draft scene JSON
 
 ```bash
-bun autoshow comic draft-scenes input/episode-scripts/02-script/01-co-work-smarter.md --only scene
+bun autoshow comic draft-scenes input/episode-scripts/01-script/01-opening.md --only scene
 ```
 
 This stage calls the selected text model. Use `--price` first when you want a side-effect-free cost estimate.
@@ -126,14 +128,14 @@ This stage calls the selected text model. Use `--price` first when you want a si
 Panel prompts require a registered canonical image for every visible character and a registered reference image for the scene's canonical location:
 
 ```bash
-bun autoshow comic reference-sketch --character duco
+bun autoshow comic reference-sketch --character hero
 bun autoshow comic reference-sketch --location cargo-bay
 ```
 
 ### 5. Build stable panel prompt bundles
 
 ```bash
-bun autoshow comic draft-scenes input/episode-scripts/02-script/01-co-work-smarter.md --only panel-prompts
+bun autoshow comic draft-scenes input/episode-scripts/01-script/01-opening.md --only panel-prompts
 ```
 
 Review these prompt bundles before spending image-generation cost.
@@ -141,7 +143,7 @@ Review these prompt bundles before spending image-generation cost.
 ### 6. Generate review sketches
 
 ```bash
-bun autoshow comic generate-images input/episode-scripts/02-script/01-co-work-smarter.md --target sketches
+bun autoshow comic generate-images input/episode-scripts/01-script/01-opening.md --target sketches
 ```
 
 Panel prompt bundles from the previous step are detected automatically and reused. Rebuild them with `draft-scenes --only panel-prompts`; `--force` on `generate-images` only regenerates image outputs.
@@ -149,13 +151,13 @@ Panel prompt bundles from the previous step are detected automatically and reuse
 ### 7. Generate final panel images
 
 ```bash
-bun autoshow comic generate-images input/episode-scripts/02-script/01-co-work-smarter.md --target images
+bun autoshow comic generate-images input/episode-scripts/01-script/01-opening.md --target images
 ```
 
 To generate review sketches and final panel images in one run after panel prompt bundles exist, use:
 
 ```bash
-bun autoshow comic generate-images input/episode-scripts/02-script/01-co-work-smarter.md --target both
+bun autoshow comic generate-images input/episode-scripts/01-script/01-opening.md --target both
 ```
 
 ## draft-scenes
@@ -179,11 +181,11 @@ bun autoshow comic generate-images input/episode-scripts/02-script/01-co-work-sm
 ### Examples
 
 ```bash
-bun autoshow comic draft-scenes input/episode-scripts/02-script/01-co-work-smarter.md
-bun autoshow comic draft-scenes input/episode-scripts/02-script/01-co-work-smarter.md --only structure
-bun autoshow comic draft-scenes input/episode-scripts/02-script/01-co-work-smarter.md --only prompt
-bun autoshow comic draft-scenes input/episode-scripts/02-script/01-co-work-smarter.md --only scene
-bun autoshow comic draft-scenes input/episode-scripts/02-script/01-co-work-smarter.md --only panel-prompts
+bun autoshow comic draft-scenes input/episode-scripts/01-script/01-opening.md
+bun autoshow comic draft-scenes input/episode-scripts/01-script/01-opening.md --only structure
+bun autoshow comic draft-scenes input/episode-scripts/01-script/01-opening.md --only prompt
+bun autoshow comic draft-scenes input/episode-scripts/01-script/01-opening.md --only scene
+bun autoshow comic draft-scenes input/episode-scripts/01-script/01-opening.md --only panel-prompts
 ```
 
 ### Behavior
@@ -231,17 +233,17 @@ bun autoshow comic draft-scenes input/episode-scripts/02-script/01-co-work-smart
 ### Examples
 
 ```bash
-bun autoshow comic generate-images input/episode-scripts/02-script/01-co-work-smarter.md --target sketches
-bun autoshow comic generate-images input/episode-scripts/02-script/01-co-work-smarter.md --target images
-bun autoshow comic generate-images input/episode-scripts/02-script/01-co-work-smarter.md --target both
-bun autoshow comic generate-images input/episode-scripts/02-script/01-co-work-smarter.md --target images --panels 1-16
-bun autoshow comic generate-images input/episode-scripts/02-script/01-co-work-smarter.md --target images --panels 1,3,7
-bun autoshow comic generate-images input/episode-scripts/02-script/01-co-work-smarter.md --target images --panels 1-16 --panels-per-image 1 --grid 2x3
-bun autoshow comic generate-images input/episode-scripts/02-script/01-co-work-smarter.md --target sketches --panels 5-8
-bun autoshow comic generate-images input/episode-scripts/02-script/01-co-work-smarter.md --target sketches --panels-per-image 6 --quality high
-bun autoshow comic generate-images input/episode-scripts/02-script/01-co-work-smarter.md --target images --image-model gpt-image-2
-bun autoshow comic generate-images input/episode-scripts/02-script/01-co-work-smarter.md --target images --image-model gpt-image-2,gemini-3.1-flash-image-preview
-bun autoshow comic generate-images input/episode-scripts/02-script/01-co-work-smarter.md --target images --variation animation-polish,cinematic-depth
+bun autoshow comic generate-images input/episode-scripts/01-script/01-opening.md --target sketches
+bun autoshow comic generate-images input/episode-scripts/01-script/01-opening.md --target images
+bun autoshow comic generate-images input/episode-scripts/01-script/01-opening.md --target both
+bun autoshow comic generate-images input/episode-scripts/01-script/01-opening.md --target images --panels 1-16
+bun autoshow comic generate-images input/episode-scripts/01-script/01-opening.md --target images --panels 1,3,7
+bun autoshow comic generate-images input/episode-scripts/01-script/01-opening.md --target images --panels 1-16 --panels-per-image 1 --grid 2x3
+bun autoshow comic generate-images input/episode-scripts/01-script/01-opening.md --target sketches --panels 5-8
+bun autoshow comic generate-images input/episode-scripts/01-script/01-opening.md --target sketches --panels-per-image 6 --quality high
+bun autoshow comic generate-images input/episode-scripts/01-script/01-opening.md --target images --image-model gpt-image-2
+bun autoshow comic generate-images input/episode-scripts/01-script/01-opening.md --target images --image-model gpt-image-2,gemini-3.1-flash-image-preview
+bun autoshow comic generate-images input/episode-scripts/01-script/01-opening.md --target images --variation animation-polish,cinematic-depth
 ```
 
 ### Behavior
@@ -290,9 +292,9 @@ bun autoshow comic generate-images input/episode-scripts/02-script/01-co-work-sm
 ### Examples
 
 ```bash
-bun autoshow comic character-sketch --character duco
-bun autoshow comic character-sketch --character peaches --price
-bun autoshow comic character-sketch --character duco --revise --notes "Correct the eye shape"
+bun autoshow comic character-sketch --character hero
+bun autoshow comic character-sketch --character sidekick --price
+bun autoshow comic character-sketch --character hero --revise --notes "Correct the eye shape"
 ```
 
 ### Behavior
@@ -308,7 +310,7 @@ bun autoshow comic character-sketch --character duco --revise --notes "Correct t
 Each top-level invocation resolves a single timestamped run directory under `output/`, following the project-wide `YYYY-MM-DD_HH-MM-SS-mmm_<slug>` convention, so consecutive runs are preserved instead of overwriting one another. All stages of that invocation write into the same directory:
 
 ```text
-output/<YYYY-MM-DD_HH-MM-SS-mmm>_01-co-work-smarter/
+output/<YYYY-MM-DD_HH-MM-SS-mmm>_01-opening/
   structured-script.json
   draft-prompt.md
   scene.json
@@ -353,7 +355,7 @@ Legacy catalogs, unversioned structured/scene/panel artifacts, `character-sketch
 3. Regenerate structured scripts and scene JSON.
 4. Rebuild panel prompts to create a checksummed run snapshot.
 
-The bundled USS Acampo migration imports twelve sheets (including revised Duco and `12-chat--outline-sheet.png`). Generate the four missing keys with `bun autoshow comic character-sketch --character podcast-host`, `buoy-4-and-6`, `wilhelm-speaking-villagers`, and `guards`. These commands can spend provider credits; run them only after reviewing `--price` and explicitly choosing to proceed.
+Migration is entirely project-defined: register every catalog character using its configured key and paths. No external project directory or built-in cast is consulted. Commands that generate missing sheets can spend provider credits; run `bun autoshow comic character-sketch --character <key> --price` before explicitly choosing to proceed.
 
 ## Supported Models
 

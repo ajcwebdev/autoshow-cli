@@ -18,7 +18,7 @@ type ComicSubcommandHelpDefinition = Omit<CliCommandDefinition, 'handler'>
 
 const SCRIPT_PATH_PARAMETER = {
   key: '<script-path>',
-  description: 'Path to a script markdown file, or NN-SC shorthand (e.g. 05-01 or input/episode-scripts/05-script/01-paddy-goes-on-vacation.md)'
+  description: 'Path to a script markdown file, or NN-SC shorthand (e.g. 01-01 or input/episode-scripts/01-script/01-opening.md)'
 } as const
 
 const ARTIFACT_NOTE = 'Comic artifacts are read from input and written under output.'
@@ -36,7 +36,7 @@ const draftScenesHelp: ComicSubcommandHelpDefinition = {
   help: {
     examples: [
       [`bun autoshow comic ${DRAFT_SCENES_COMMAND} 05-01`, 'Run every drafting stage for a scene'],
-      [`bun autoshow comic ${DRAFT_SCENES_COMMAND} input/episode-scripts/05-script/01-paddy-goes-on-vacation.md`, 'Run every drafting stage from an explicit script path'],
+      [`bun autoshow comic ${DRAFT_SCENES_COMMAND} input/episode-scripts/01-script/01-opening.md`, 'Run every drafting stage from an explicit script path'],
       [`bun autoshow comic ${DRAFT_SCENES_COMMAND} 05-01 --only panel-prompts`, 'Build only the panel prompt bundles'],
       [`bun autoshow comic ${DRAFT_SCENES_COMMAND} 05-01 --price`, 'Estimate the drafting cost without calling any provider']
     ],
@@ -75,9 +75,9 @@ const referenceSketchHelp: ComicSubcommandHelpDefinition = {
   flags: referenceSketchFlags,
   help: {
     examples: [
-      [`bun autoshow comic ${REFERENCE_SKETCH_COMMAND} --character duco`, 'Generate a character reference sheet'],
+      [`bun autoshow comic ${REFERENCE_SKETCH_COMMAND} --character hero`, 'Generate a character reference sheet'],
       [`bun autoshow comic ${REFERENCE_SKETCH_COMMAND} --location cargo-bay`, 'Generate a canonical location reference'],
-      [`bun autoshow comic ${REFERENCE_SKETCH_COMMAND} --character duco --revise --notes "shorter jacket"`, 'Revise an existing sheet'],
+      [`bun autoshow comic ${REFERENCE_SKETCH_COMMAND} --character hero --revise --notes "shorter jacket"`, 'Revise an existing sheet'],
       [`bun autoshow comic ${REFERENCE_SKETCH_COMMAND} --location cargo-bay --price`, 'Estimate the sheet cost without calling any provider']
     ],
     notes: [
@@ -94,8 +94,8 @@ const characterSketchHelp: ComicSubcommandHelpDefinition = {
   flags: characterSketchFlags,
   help: {
     examples: [
-      [`bun autoshow comic ${CHARACTER_SKETCH_COMMAND} --character duco`, 'Generate a character sketch reference'],
-      [`bun autoshow comic ${CHARACTER_SKETCH_COMMAND} --character duco --price`, 'Estimate the sketch cost without calling any provider']
+      [`bun autoshow comic ${CHARACTER_SKETCH_COMMAND} --character hero`, 'Generate a character sketch reference'],
+      [`bun autoshow comic ${CHARACTER_SKETCH_COMMAND} --character hero --price`, 'Estimate the sketch cost without calling any provider']
     ],
     notes: [
       `Compatibility alias for bun autoshow comic ${REFERENCE_SKETCH_COMMAND} --character <key>.`,
