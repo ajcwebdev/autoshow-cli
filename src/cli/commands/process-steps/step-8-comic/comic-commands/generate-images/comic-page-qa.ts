@@ -17,6 +17,7 @@ export type PageQaResult = {
     identityMatch: boolean
     identityIssueKind?: 'none' | 'minor-variance' | 'unmistakable-mismatch'
     locationMatch?: boolean
+    setContinuityMatch?: boolean
     sourcePrecedence?: boolean
     shotPlanMatch?: boolean
     dialogueAccuracy: boolean
@@ -64,6 +65,7 @@ export type PageQaRequest = {
   identityCards: string[]
   locationSheets: string[]
   characterReferences?: Array<{ key: string; description: string }> | undefined
+  locationReferences?: Array<{ key: string; specification: string }> | undefined
   model: string
 }
 
@@ -74,8 +76,8 @@ const PAGE_QA_SCHEMA = {
       pass: { type: 'boolean' }, observedPanelCount: { type: 'integer' }, observedPanelOrder: { type: 'array', items: { type: 'integer' } }, issues: { type: 'array', items: { type: 'string' } },
     }, required: ['pass', 'observedPanelCount', 'observedPanelOrder', 'issues'] },
     panels: { type: 'array', items: { type: 'object', additionalProperties: false, properties: {
-      panelNumber: { type: 'integer' }, requiredCastPresent: { type: 'boolean' }, unexpectedCastAbsent: { type: 'boolean' }, identityMatch: { type: 'boolean' }, identityIssueKind: { type: 'string', enum: ['none', 'minor-variance', 'unmistakable-mismatch'] }, locationMatch: { type: 'boolean' }, sourcePrecedence: { type: 'boolean' }, shotPlanMatch: { type: 'boolean' }, dialogueAccuracy: { type: 'boolean' }, dialogueIssueKind: { type: 'string', enum: ['none', 'typography-only', 'content'] }, speakerAttribution: { type: 'boolean' }, artifacts: { type: 'array', items: { type: 'string' } }, visualQualityScore: { type: 'number', minimum: 1, maximum: 10 }, compositionScore: { type: 'number', minimum: 1, maximum: 10 }, issues: { type: 'array', items: { type: 'string' } }, editInstructions: { type: 'string' },
-    }, required: ['panelNumber', 'requiredCastPresent', 'unexpectedCastAbsent', 'identityMatch', 'identityIssueKind', 'locationMatch', 'sourcePrecedence', 'shotPlanMatch', 'dialogueAccuracy', 'dialogueIssueKind', 'speakerAttribution', 'artifacts', 'visualQualityScore', 'compositionScore', 'issues', 'editInstructions'] } },
+      panelNumber: { type: 'integer' }, requiredCastPresent: { type: 'boolean' }, unexpectedCastAbsent: { type: 'boolean' }, identityMatch: { type: 'boolean' }, identityIssueKind: { type: 'string', enum: ['none', 'minor-variance', 'unmistakable-mismatch'] }, locationMatch: { type: 'boolean' }, setContinuityMatch: { type: 'boolean' }, sourcePrecedence: { type: 'boolean' }, shotPlanMatch: { type: 'boolean' }, dialogueAccuracy: { type: 'boolean' }, dialogueIssueKind: { type: 'string', enum: ['none', 'typography-only', 'content'] }, speakerAttribution: { type: 'boolean' }, artifacts: { type: 'array', items: { type: 'string' } }, visualQualityScore: { type: 'number', minimum: 1, maximum: 10 }, compositionScore: { type: 'number', minimum: 1, maximum: 10 }, issues: { type: 'array', items: { type: 'string' } }, editInstructions: { type: 'string' },
+    }, required: ['panelNumber', 'requiredCastPresent', 'unexpectedCastAbsent', 'identityMatch', 'identityIssueKind', 'locationMatch', 'setContinuityMatch', 'sourcePrecedence', 'shotPlanMatch', 'dialogueAccuracy', 'dialogueIssueKind', 'speakerAttribution', 'artifacts', 'visualQualityScore', 'compositionScore', 'issues', 'editInstructions'] } },
     summary: { type: 'string' },
   }, required: ['panelStructure', 'panels', 'summary'],
 } as const
@@ -108,10 +110,10 @@ export const parseComicPageQaResult = (text: string, expectedPanels: number[]): 
     throw ValidationError('Page QA result panels do not exactly match the requested source-panel order.', { stage: 'comic:page-qa' })
   }
   for (const panel of result.panels) {
-    if (!panel || typeof panel !== 'object' || !hasExactKeys(panel as unknown as Record<string, unknown>, ['panelNumber', 'requiredCastPresent', 'unexpectedCastAbsent', 'identityMatch', 'identityIssueKind', 'locationMatch', 'sourcePrecedence', 'shotPlanMatch', 'dialogueAccuracy', 'dialogueIssueKind', 'speakerAttribution', 'artifacts', 'visualQualityScore', 'compositionScore', 'issues', 'editInstructions'])) {
+    if (!panel || typeof panel !== 'object' || !hasExactKeys(panel as unknown as Record<string, unknown>, ['panelNumber', 'requiredCastPresent', 'unexpectedCastAbsent', 'identityMatch', 'identityIssueKind', 'locationMatch', 'setContinuityMatch', 'sourcePrecedence', 'shotPlanMatch', 'dialogueAccuracy', 'dialogueIssueKind', 'speakerAttribution', 'artifacts', 'visualQualityScore', 'compositionScore', 'issues', 'editInstructions'])) {
       throw ValidationError('Page QA panel has missing or unexpected fields.', { stage: 'comic:page-qa' })
     }
-    for (const key of ['requiredCastPresent', 'unexpectedCastAbsent', 'identityMatch', 'locationMatch', 'sourcePrecedence', 'shotPlanMatch', 'dialogueAccuracy', 'speakerAttribution'] as const) {
+    for (const key of ['requiredCastPresent', 'unexpectedCastAbsent', 'identityMatch', 'locationMatch', 'setContinuityMatch', 'sourcePrecedence', 'shotPlanMatch', 'dialogueAccuracy', 'speakerAttribution'] as const) {
       if (typeof panel[key] !== 'boolean') throw ValidationError(`Page QA panel ${panel.panelNumber} field ${key} must be boolean.`, { stage: 'comic:page-qa' })
     }
     if (!['none', 'minor-variance', 'unmistakable-mismatch'].includes(panel.identityIssueKind ?? '') || !['none', 'typography-only', 'content'].includes(panel.dialogueIssueKind ?? '')) {
@@ -135,7 +137,7 @@ export const applyPageQaTolerancePolicy = (result: PageQaResult): PageQaResult =
 
 export const hasHardPageQaFailure = (result: PageQaResult, options: { waiveShotPlanMatch?: boolean } = {}): boolean =>
   !result.panelStructure.pass || result.panels.some(panel =>
-    !panel.requiredCastPresent || !panel.unexpectedCastAbsent || panel.identityIssueKind === 'unmistakable-mismatch' || (panel.identityIssueKind === undefined && !panel.identityMatch) || panel.locationMatch === false || panel.sourcePrecedence === false || (!options.waiveShotPlanMatch && panel.shotPlanMatch === false) || panel.dialogueIssueKind === 'content' || (panel.dialogueIssueKind === undefined && !panel.dialogueAccuracy) || !panel.speakerAttribution
+    !panel.requiredCastPresent || !panel.unexpectedCastAbsent || panel.identityIssueKind === 'unmistakable-mismatch' || (panel.identityIssueKind === undefined && !panel.identityMatch) || panel.locationMatch === false || panel.setContinuityMatch === false || panel.sourcePrecedence === false || (!options.waiveShotPlanMatch && panel.shotPlanMatch === false) || panel.dialogueIssueKind === 'content' || (panel.dialogueIssueKind === undefined && !panel.dialogueAccuracy) || !panel.speakerAttribution
   )
 
 export const applyPageQaRepairPolicy = (entry: PageQaEntry, completedRepairRounds: number): PageQaEntry => {
@@ -170,6 +172,7 @@ export const getPageQaHardFailureKeys = (entry: PageQaEntry): string[] => {
     if (!panel.unexpectedCastAbsent) failures.push(`${prefix}unexpectedCastAbsent`)
     if (panel.identityIssueKind === 'unmistakable-mismatch' || (panel.identityIssueKind === undefined && !panel.identityMatch)) failures.push(`${prefix}identityMatch`)
     if (panel.locationMatch === false) failures.push(`${prefix}locationMatch`)
+    if (panel.setContinuityMatch === false) failures.push(`${prefix}setContinuityMatch`)
     if (panel.sourcePrecedence === false) failures.push(`${prefix}sourcePrecedence`)
     const shotPlanWaived = entry.waivedChecks?.some(check => check.panelNumber === panel.panelNumber && check.check === 'shotPlanMatch') ?? false
     if (panel.shotPlanMatch === false && !shotPlanWaived) failures.push(`${prefix}shotPlanMatch`)
@@ -207,21 +210,24 @@ export const advancePageQaRepairStagnation = (
 export const buildComicPageQaPrompt = (
   panelData: PanelBundleData,
   characterReferences: Array<{ key: string; description: string }> = [],
+  locationReferences: Array<{ key: string; specification: string }> = [],
 ): string => [
   'Judge this generated comic output strictly. The first image is the generated output. Following images are ordered canonical character references, followed by every immutable canonical location reference in first-panel-appearance order.',
   `Location mapping: ${panelData.panels.map(panel => `panel ${panel.number} -> ${panel.locationKey ?? 'legacy single location'}`).join('; ')}. Judge each panel only against its mapped location reference.`,
-  'Evaluate panels left-to-right. Location match, source-instruction precedence, shot-plan framing/staging, exact cast, dialogue wording and completeness, and bubble-tail/speaker attribution are hard requirements. Artifacts, harmless typography substitutions, minor identity stylization variance, and aesthetic scores are advisory only. For every failed panel return concise actionable editInstructions in this same response.',
+  'Evaluate panels left-to-right. Location identity, set continuity, source-instruction precedence, shot-plan framing/staging, exact cast, dialogue wording and completeness, and bubble-tail/speaker attribution are hard requirements. Artifacts, harmless typography substitutions, minor identity stylization variance, and aesthetic scores are advisory only. For every failed panel return concise actionable editInstructions in this same response.',
+  'Set setContinuityMatch=false when permanent architecture, fixed furniture, installed equipment, or other recurring spatial anchors defined by the mapped location reference/specification are visibly relocated, removed, duplicated, mirrored, or redesigned without an explicit source-authored story event. Judge world-space topology and relative relationships, not screen coordinates. A different camera side, angle, distance, elevation, perspective, character blocking, or crop is desirable shot variation and must not fail set continuity. An anchor that is genuinely outside the frame or naturally occluded is not missing. Do not demand the canonical reference camera or a repeated composition.',
   'Canonical character references and their catalog descriptions have highest visual precedence for identity, physical embodiment, projection/display medium, anatomy, costume, and character-specific required props. A generated image that violates this canon is a hard identity failure even when the source panel description or shot plan repeats the same contradiction. Set identityIssueKind=unmistakable-mismatch and provide repair instructions that restore the canonical embodiment.',
   'Dialogue accuracy is about legible wording, completeness, order, and meaning. Treat a Unicode ellipsis (…) and three consecutive periods (...), straight and curly quotation marks or apostrophes, and em/en dashes and hyphens as equivalent when the substitution does not change wording, meaning, speaker, or pacing. Set dialogueAccuracy=false for missing, added, illegible, or reordered words; wrong wording or speaker; or punctuation changes that materially change meaning or timing. Never fail dialogueAccuracy for a harmless typography-only substitution.',
   'Identity must remain clearly recognizable from the canonical character references. Set identityMatch=false only for an unmistakably wrong person, missing defining facial/costume/color features, or a major medium reinterpretation that prevents a clear canonical match. Minor body-width or proportion variance, pose-induced shape changes, shading/detail differences, and ordinary stylization variance are advisory when the character remains recognizable and preserves the canonical design cues. Do not also mark sourcePrecedence=false for the same identity concern unless the image independently contradicts an explicit source instruction.',
   'For each panel classify identityIssueKind as none, minor-variance, or unmistakable-mismatch, and classify dialogueIssueKind as none, typography-only, or content. These classifications must follow the tolerance rules above even when the corresponding raw boolean would otherwise be stricter.',
   `Canonical character catalog descriptions: ${characterReferences.length > 0 ? characterReferences.map(reference => `${reference.key}: ${reference.description}`).join(' | ') : 'none supplied; rely on the ordered canonical reference images.'}`,
+  `Canonical location specifications: ${locationReferences.length > 0 ? locationReferences.map(reference => `${reference.key}: ${reference.specification}`).join(' | ') : 'none supplied; rely on the ordered canonical location images.'}`,
   'Source panel data:', JSON.stringify(panelData, null, 2),
   'Return only the requested JSON.',
 ].join('\n\n')
 
 export const judgeComicPage = async (request: PageQaRequest): Promise<PageQaEntry> => {
-  const prompt = buildComicPageQaPrompt(request.panelData, request.characterReferences ?? [])
+  const prompt = buildComicPageQaPrompt(request.panelData, request.characterReferences ?? [], request.locationReferences ?? [])
   const imagePaths = [request.pagePath, ...request.identityCards, ...request.locationSheets]
   const response = await createOpenAIResponse(getOpenAIClientConfig(), {
     model: request.model,

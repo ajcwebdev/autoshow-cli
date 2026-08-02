@@ -127,6 +127,7 @@ export type ResolvedReferenceImages = {
   locationReferences?: Array<{
     key: string
     snapshotId: string
+    specification: string
     referenceIndex: number
     path: string
   }>

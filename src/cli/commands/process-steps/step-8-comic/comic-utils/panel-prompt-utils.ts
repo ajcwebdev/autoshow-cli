@@ -92,6 +92,7 @@ export const resolvePrimaryCharacterReferences = (panelDirectory: string, entrie
 export type ResolvedLocationReference = {
   key: string
   snapshotId: string
+  specification: string
   path: string
 }
 
@@ -132,7 +133,7 @@ export const resolveLocationReferencesAcrossPanels = (panels: PanelPrimaryRefere
     const actual = createHash('sha256').update(readFileSync(sheetPath)).digest('hex')
     if (actual !== snapshot.sheet.sha256) throw ValidationError(`Location snapshot asset was modified: ${snapshot.sheet.path}`, { stage: 'comic:location-reference' })
     seen.add(snapshotId)
-    ordered.push({ key: snapshot.locationKey, snapshotId, path: sheetPath })
+    ordered.push({ key: snapshot.locationKey, snapshotId, specification: snapshot.specification, path: sheetPath })
   }
   return ordered
 }

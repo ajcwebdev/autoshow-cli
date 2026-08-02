@@ -294,7 +294,7 @@ export const buildComicPagePromptData = (
 export const buildComicPagePrompt = (
   pagePromptData: PanelBundleData,
   characterReferences: Array<{ key: string; referenceIndex: number; description: string }> = [],
-  locationReferences: Array<{ key: string; referenceIndex: number }> = [],
+  locationReferences: Array<{ key: string; referenceIndex: number; specification: string }> = [],
 ): string => {
   const panelCount = pagePromptData.panels.length
   const subPanelLabel = panelCount === 1 ? 'sub-panel' : 'sub-panels'
@@ -345,15 +345,16 @@ export const buildComicPagePrompt = (
         : panelCount === 1
           ? '- This is a trailing single-panel page. Make its one panel fill the canvas; do not leave an empty second panel.'
           : '- Use an ordered, clearly separated multi-panel page layout matching the explicit panels-per-image override.',
-      '- Treat every immutable canonical location reference listed in the location legend as canon for its mapped sub-panels. It defines location identity, persistent spatial geometry, fixed features, palette, and art style.',
+      '- Treat every immutable canonical location reference and its specification as canon for its mapped sub-panels. They define location identity, persistent world-space geometry, permanent architecture, fixed furniture and installed equipment, recurring spatial anchors, palette, and art style.',
+      '- Preserve location topology, not a frozen composition: permanent anchors must keep the same relationships to the room and to one another unless the source explicitly changes the set as a story event. A new camera angle may crop, occlude, foreshorten, or reveal different anchors, but it must not relocate, remove, duplicate, or redesign them.',
       `- ${COMIC_STYLE_GUIDANCE}`,
       '- The ordered canonical character reference images are authoritative for both character design and the simplified 2D rendering language. Never reinterpret them as realistic people.',
       '- The canonical character reference images and catalog appearance descriptions have highest visual precedence for identity, physical embodiment, projection/display medium, anatomy, costume, and character-specific required props. If script-derived staging or a shot plan contradicts them, preserve the narrative action but reinterpret the contradictory character depiction to obey canon.',
       '- A source phrase such as interface, screen, monitor, avatar, or body is never permission to change a referenced character\'s canonical embodiment. Apply such wording to nearby equipment or UI only when canon allows it.',
-      '- Do not copy a location-sheet view as the panel camera unless the authored staging or shot plan explicitly requires it.',
+      '- Do not copy a location-sheet view as the panel camera unless the authored staging or shot plan explicitly requires it. The reference is a map of the set, not a mandatory camera template.',
       '- For every sub-panel, preserve that source panel\'s own staging, setting, and action and choose visually distinct framing appropriate to its specific story beat.',
       '- The `characterKeys` array in each source panel is exact and authoritative: show every listed character and no unlisted character in that sub-panel. Never carry a character forward from the location sheet or another sub-panel.',
-      '- Vary camera distance, angle, blocking, and composition between story beats; do not repeat a location-sheet view or another sub-panel\'s screen, terminal, cast arrangement, or opening composition unless that source panel explicitly requires it.',
+      '- Create shot diversity through camera distance, camera side, elevation, lens feel, foreground/background layering, character blocking, pose, expression, eyeline, and selective cropping. Do not create diversity by moving permanent set anchors. Do not flatten a sequence into repeated near-identical compositions merely to preserve continuity.',
       '- Include every speech bubble exactly as written in the JSON.',
       '- Do not paraphrase, correct, translate, or omit speech text.',
       '- Place speech text only in the matching source panel.',
@@ -367,7 +368,10 @@ export const buildComicPagePrompt = (
       ? 'Location reference legend: legacy single-location bundle; use the final reference image for every sub-panel.'
       : [
           'Location reference legend (after all character references, in first-panel-appearance order):',
-          ...locationReferences.map(reference => `- Reference ${reference.referenceIndex}: locationKey=${reference.key}; use only for sub-panels ${pagePromptData.panels.filter(panel => (panel.locationKey ?? locationReferences[0]?.key) === reference.key).map(panel => panel.number).join(', ')}.`),
+          ...locationReferences.flatMap(reference => [
+            `- Reference ${reference.referenceIndex}: locationKey=${reference.key}; use only for sub-panels ${pagePromptData.panels.filter(panel => (panel.locationKey ?? locationReferences[0]?.key) === reference.key).map(panel => panel.number).join(', ')}.`,
+            `  Canonical location specification: ${reference.specification}`,
+          ]),
         ].join('\n'),
     `Exact per-panel execution contract:\n${panelDirectives}`,
     `Ordered page data:\n\`\`\`json\n${JSON.stringify(pagePromptData, null, 2)}\n\`\`\``,

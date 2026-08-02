@@ -12,6 +12,7 @@ import {
   buildComicPageQaPrompt,
   createPageQaRepairStagnationState,
   hasHardPageQaFailure,
+  parseComicPageQaResult,
 } from '~/cli/commands/process-steps/step-8-comic/comic-commands/generate-images/comic-page-qa'
 import { beginSceneRun, resetSceneRunContext } from '~/cli/commands/process-steps/step-8-comic/comic-utils/scene-run-context'
 import type { ComicImageRequestInput, PanelBundleData } from '~/types'
@@ -42,7 +43,7 @@ const createSceneFixture = async (sceneSlug: string): Promise<{ runDirectory: st
   const locationSheet = join(runDirectory, 'location-references', 'location-snapshot', 'cargo-bay.png')
   await mkdir(dirname(locationSheet), { recursive: true })
   await Bun.write(locationSheet, tinyPng)
-  await Bun.write(join(runDirectory, 'location-reference.json'), JSON.stringify({ schemaVersion: 1, snapshotId: 'location-snapshot', locationKey: 'cargo-bay', specification: 'Fixed cargo bay.', sourceScripts: ['episode-scripts/02-script/01.md'], sourceGenerationId: 'v1', sheet: { path: 'location-references/location-snapshot/cargo-bay.png', sha256: sha } }))
+  await Bun.write(join(runDirectory, 'location-reference.json'), JSON.stringify({ schemaVersion: 1, snapshotId: 'location-snapshot', locationKey: 'cargo-bay', specification: 'A loading door stays left of a fixed control booth; camera angles and crops may vary.', sourceScripts: ['episode-scripts/02-script/01.md'], sourceGenerationId: 'v1', sheet: { path: 'location-references/location-snapshot/cargo-bay.png', sha256: sha } }))
   for (const panelNumber of [1, 2]) {
     const directory = join(runDirectory, 'panel-prompts', `panel-${String(panelNumber).padStart(2, '0')}`)
     await mkdir(directory, { recursive: true })
@@ -110,19 +111,22 @@ describe('canonical location references and grouped QA repairs', () => {
     const sceneSlug = `multi-location-${crypto.randomUUID()}`
     const { locationSheets } = await createMultiLocationFixture(sceneSlug)
     const calls: ComicImageRequestInput[] = []
-    const qaRequests: Array<{ locationSheets: string[] }> = []
+    const qaRequests: Array<{ locationSheets: string[]; locationSpecifications: string[] }> = []
     await generateComicPages(sceneSlug, { models: ['gpt-image-2'], size: '1536x1024', quality: 'high', force: false, runId: 'pages', concurrency: 1, panels: [1, 2], panelsPerImage: 2, qa: true, maxRepairs: 0 }, {
       requestImage: async input => { calls.push(input); return { mode: 'generate', result: { imageBase64: tinyPng.toString('base64') } } },
       writeImage: async outputPath => { await mkdir(dirname(outputPath), { recursive: true }); await Bun.write(outputPath, tinyPng) },
       judgePage: async request => {
-        qaRequests.push({ locationSheets: request.locationSheets })
+        qaRequests.push({ locationSheets: request.locationSheets, locationSpecifications: request.locationReferences?.map(reference => reference.specification) ?? [] })
         return { pageNumber: 1, panelNumbers: [1, 2], outputFile: 'page.png', judgeModel: request.model, hardFailure: false, result: { panelStructure: { pass: true, observedPanelCount: 2, observedPanelOrder: [1, 2], issues: [] }, panels: [1, 2].map(panelNumber => ({ panelNumber, requiredCastPresent: true, unexpectedCastAbsent: true, identityMatch: true, locationMatch: true, sourcePrecedence: true, shotPlanMatch: true, dialogueAccuracy: true, speakerAttribution: true, artifacts: [], visualQualityScore: 8, compositionScore: 8, issues: [], editInstructions: '' })), summary: 'Pass.' }, usage: { inputTokens: 0, outputTokens: 0, totalTokens: 0, costUsd: 0 } }
       },
     })
     expect(calls[0]?.referenceImages.slice(-2)).toEqual(locationSheets)
     expect(calls[0]?.normalizedPrompt).toContain('locationKey=quarters; use only for sub-panels 1')
     expect(calls[0]?.normalizedPrompt).toContain('locationKey=hallway; use only for sub-panels 2')
+    expect(calls[0]?.normalizedPrompt).toContain('Canonical location specification: quarters')
+    expect(calls[0]?.normalizedPrompt).toContain('Canonical location specification: hallway')
     expect(qaRequests[0]?.locationSheets).toEqual(locationSheets)
+    expect(qaRequests[0]?.locationSpecifications).toEqual(['quarters', 'hallway'])
 
     await generatePanelImages(sceneSlug, { models: ['gpt-image-2'], size: '1536x1024', quality: 'high', force: false, runId: 'panels', concurrency: 1, panels: [2], qa: false }, {
       requestImage: async input => { calls.push(input); return { mode: 'generate', result: { imageBase64: tinyPng.toString('base64') } } },
@@ -146,6 +150,7 @@ describe('canonical location references and grouped QA repairs', () => {
     expect(calls[0]?.referenceImages).toHaveLength(2)
     expect(calls[0]?.normalizedPrompt).toContain('Exhaustive prose shot plan')
     expect(calls[0]?.normalizedPrompt).toContain('immutable canonical location reference')
+    expect(calls[0]?.normalizedPrompt).toContain('A loading door stays left of a fixed control booth; camera angles and crops may vary.')
     expect(await Bun.file(join(runDirectory, 'panels', 'test-run', 'environment-anchor.png')).exists()).toBe(false)
     expect(stats.imagesGenerated).toBe(1)
   })
@@ -249,7 +254,7 @@ describe('canonical location references and grouped QA repairs', () => {
   })
 
   test('treats harmless typography substitutions and minor recognizable identity variance as advisory', () => {
-    const prompt = buildComicPageQaPrompt(panelBundle(1), [{ key: 'hero', description: 'A free-standing hologram above a projector base.' }])
+    const prompt = buildComicPageQaPrompt(panelBundle(1), [{ key: 'hero', description: 'A free-standing hologram above a projector base.' }], [{ key: 'cargo-bay', specification: 'The loading door remains left of the control booth.' }])
     expect(prompt).toContain('Unicode ellipsis (…) and three consecutive periods (...)')
     expect(prompt).toContain('Never fail dialogueAccuracy for a harmless typography-only substitution.')
     expect(prompt).toContain('Minor body-width or proportion variance')
@@ -257,6 +262,8 @@ describe('canonical location references and grouped QA repairs', () => {
     expect(prompt).toContain('highest visual precedence for identity, physical embodiment, projection/display medium')
     expect(prompt).toContain('violates this canon is a hard identity failure')
     expect(prompt).toContain('hero: A free-standing hologram above a projector base.')
+    expect(prompt).toContain('cargo-bay: The loading door remains left of the control booth.')
+    expect(prompt).toContain('A different camera side, angle, distance, elevation, perspective, character blocking, or crop is desirable shot variation')
     const tolerantResult = applyPageQaTolerancePolicy({
       panelStructure: { pass: true, observedPanelCount: 1, observedPanelOrder: [1], issues: [] },
       panels: [{ panelNumber: 1, requiredCastPresent: true, unexpectedCastAbsent: true, identityMatch: false, identityIssueKind: 'minor-variance', locationMatch: true, sourcePrecedence: true, shotPlanMatch: true, dialogueAccuracy: false, dialogueIssueKind: 'typography-only', speakerAttribution: true, artifacts: [], visualQualityScore: 8, compositionScore: 8, issues: ['minor proportions', 'ellipsis glyph'], editInstructions: '' }],
@@ -273,6 +280,26 @@ describe('canonical location references and grouped QA repairs', () => {
     expect(strictResult.panels[0]?.identityMatch).toBe(false)
     expect(strictResult.panels[0]?.dialogueAccuracy).toBe(false)
     expect(hasHardPageQaFailure(strictResult)).toBe(true)
+  })
+
+  test('keeps set continuity strict without treating camera variation as a failure', () => {
+    const setDrift = {
+      panelStructure: { pass: true, observedPanelCount: 1, observedPanelOrder: [1], issues: [] },
+      panels: [{ panelNumber: 1, requiredCastPresent: true, unexpectedCastAbsent: true, identityMatch: true, locationMatch: true, setContinuityMatch: false, sourcePrecedence: true, shotPlanMatch: true, dialogueAccuracy: true, speakerAttribution: true, artifacts: [], visualQualityScore: 8, compositionScore: 8, issues: ['The fixed control booth moved to the other side of the loading door.'], editInstructions: 'Restore the canonical world-space relationship while retaining this camera angle.' }],
+      summary: 'The location identity is recognizable, but its permanent topology drifted.',
+    }
+    expect(hasHardPageQaFailure(setDrift)).toBe(true)
+    const entry: PageQaEntry = { pageNumber: 1, panelNumbers: [1], outputFile: 'attempt.png', judgeModel: 'gpt-5.5', hardFailure: true, result: setDrift, usage: { inputTokens: 1, outputTokens: 1, totalTokens: 2, costUsd: 0 } }
+    expect(applyPageQaRepairPolicy(entry, 1).hardFailure).toBe(true)
+    expect(advancePageQaRepairStagnation(createPageQaRepairStagnationState(), entry).state.consecutiveFailures).toEqual({ 'panel-1:setContinuityMatch': 1 })
+
+    const variedCamera = { ...setDrift, panels: [{ ...setDrift.panels[0]!, setContinuityMatch: true, issues: [], editInstructions: '' }], summary: 'A different crop preserves the canonical set topology.' }
+    expect(hasHardPageQaFailure(variedCamera)).toBe(false)
+
+    const strictPayload = { ...setDrift, panels: [{ ...setDrift.panels[0]!, identityIssueKind: 'none' as const, dialogueIssueKind: 'none' as const }] }
+    expect(parseComicPageQaResult(JSON.stringify(strictPayload), [1]).panels[0]?.setContinuityMatch).toBe(false)
+    const { setContinuityMatch: _omitted, ...missingContinuityField } = strictPayload.panels[0]!
+    expect(() => parseComicPageQaResult(JSON.stringify({ ...strictPayload, panels: [missingContinuityField] }), [1])).toThrow('missing or unexpected fields')
   })
 
   test('restarts once and then stops when the same hard check keeps stagnating', () => {
