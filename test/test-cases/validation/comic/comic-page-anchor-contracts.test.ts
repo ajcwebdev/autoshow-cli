@@ -264,6 +264,12 @@ describe('canonical location references and grouped QA repairs', () => {
     expect(prompt).toContain('hero: A free-standing hologram above a projector base.')
     expect(prompt).toContain('cargo-bay: The loading door remains left of the control booth.')
     expect(prompt).toContain('A different camera side, angle, distance, elevation, perspective, character blocking, or crop is desirable shot variation')
+    expect(prompt).toContain('Perform a mandatory anchor-by-anchor continuity audit')
+    expect(prompt).toContain('Use physically-occluded only when a visible foreground object geometrically covers the anchor\'s entire expected silhouette')
+    expect(prompt).toContain('If any part of the anchor\'s support surface, wall zone, footprint, or expected silhouette is exposed')
+    expect(prompt).toContain('explicitly compare footprint, silhouette, connectedness, orientation, visible edge geometry, and wall relationships')
+    expect(prompt).toContain('may not turn a straight run into a corner, L-shaped, wraparound, split, or freestanding form')
+    expect(prompt).toContain('A wide or otherwise revealing view that shows an anchor\'s canonical region but omits the anchor is a hard failure')
     const tolerantResult = applyPageQaTolerancePolicy({
       panelStructure: { pass: true, observedPanelCount: 1, observedPanelOrder: [1], issues: [] },
       panels: [{ panelNumber: 1, requiredCastPresent: true, unexpectedCastAbsent: true, identityMatch: false, identityIssueKind: 'minor-variance', locationMatch: true, sourcePrecedence: true, shotPlanMatch: true, dialogueAccuracy: false, dialogueIssueKind: 'typography-only', speakerAttribution: true, artifacts: [], visualQualityScore: 8, compositionScore: 8, issues: ['minor proportions', 'ellipsis glyph'], editInstructions: '' }],
@@ -285,7 +291,7 @@ describe('canonical location references and grouped QA repairs', () => {
   test('keeps set continuity strict without treating camera variation as a failure', () => {
     const setDrift = {
       panelStructure: { pass: true, observedPanelCount: 1, observedPanelOrder: [1], issues: [] },
-      panels: [{ panelNumber: 1, requiredCastPresent: true, unexpectedCastAbsent: true, identityMatch: true, locationMatch: true, setContinuityMatch: false, sourcePrecedence: true, shotPlanMatch: true, dialogueAccuracy: true, speakerAttribution: true, artifacts: [], visualQualityScore: 8, compositionScore: 8, issues: ['The fixed control booth moved to the other side of the loading door.'], editInstructions: 'Restore the canonical world-space relationship while retaining this camera angle.' }],
+      panels: [{ panelNumber: 1, requiredCastPresent: true, unexpectedCastAbsent: true, identityMatch: true, locationMatch: true, setContinuityMatch: false, setContinuityAudit: [{ anchor: 'fixed control booth', status: 'relocated' as const, evidence: 'It appears on the opposite side of the loading door.' }], sourcePrecedence: true, shotPlanMatch: true, dialogueAccuracy: true, speakerAttribution: true, artifacts: [], visualQualityScore: 8, compositionScore: 8, issues: ['The fixed control booth moved to the other side of the loading door.'], editInstructions: 'Restore the canonical world-space relationship while retaining this camera angle.' }],
       summary: 'The location identity is recognizable, but its permanent topology drifted.',
     }
     expect(hasHardPageQaFailure(setDrift)).toBe(true)
@@ -293,13 +299,18 @@ describe('canonical location references and grouped QA repairs', () => {
     expect(applyPageQaRepairPolicy(entry, 1).hardFailure).toBe(true)
     expect(advancePageQaRepairStagnation(createPageQaRepairStagnationState(), entry).state.consecutiveFailures).toEqual({ 'panel-1:setContinuityMatch': 1 })
 
-    const variedCamera = { ...setDrift, panels: [{ ...setDrift.panels[0]!, setContinuityMatch: true, issues: [], editInstructions: '' }], summary: 'A different crop preserves the canonical set topology.' }
+    const variedCamera = { ...setDrift, panels: [{ ...setDrift.panels[0]!, setContinuityMatch: true, setContinuityAudit: [{ anchor: 'fixed control booth', status: 'outside-crop' as const, evidence: 'The entire booth wall is beyond the right frame edge.' }], issues: [], editInstructions: '' }], summary: 'A different crop preserves the canonical set topology.' }
     expect(hasHardPageQaFailure(variedCamera)).toBe(false)
+
+    const inconsistentAudit = { ...variedCamera, panels: [{ ...variedCamera.panels[0]!, setContinuityAudit: [{ anchor: 'fixed control booth', status: 'missing' as const, evidence: 'Its wall zone is visible and empty.' }] }] }
+    expect(hasHardPageQaFailure(inconsistentAudit)).toBe(true)
 
     const strictPayload = { ...setDrift, panels: [{ ...setDrift.panels[0]!, identityIssueKind: 'none' as const, dialogueIssueKind: 'none' as const }] }
     expect(parseComicPageQaResult(JSON.stringify(strictPayload), [1]).panels[0]?.setContinuityMatch).toBe(false)
     const { setContinuityMatch: _omitted, ...missingContinuityField } = strictPayload.panels[0]!
     expect(() => parseComicPageQaResult(JSON.stringify({ ...strictPayload, panels: [missingContinuityField] }), [1])).toThrow('missing or unexpected fields')
+    const { setContinuityAudit: _auditOmitted, ...missingAuditField } = strictPayload.panels[0]!
+    expect(() => parseComicPageQaResult(JSON.stringify({ ...strictPayload, panels: [missingAuditField] }), [1])).toThrow('missing or unexpected fields')
   })
 
   test('restarts once and then stops when the same hard check keeps stagnating', () => {
