@@ -184,7 +184,7 @@ export const generatePanelImages = async (
 
               let qaEntry = outputExists ? await readReusablePageQaEntry(outputPath, judgeModel) : undefined
               if (outputExists && !qaEntry) {
-                qaEntry = await judge({ pageNumber: panelNumber, pagePath: outputPath, panelData: bundleData, identityCards: resolvedReferences.primaryCharacterRefs, locationSheets: resolvedReferences.secondaryRefs, model: judgeModel })
+                qaEntry = await judge({ pageNumber: panelNumber, pagePath: outputPath, panelData: bundleData, identityCards: resolvedReferences.primaryCharacterRefs, locationSheets: resolvedReferences.secondaryRefs, characterReferences: resolvedReferences.characterReferences, model: judgeModel })
                 stats.totalInputTokens += qaEntry.usage.inputTokens
                 stats.totalOutputTokens += qaEntry.usage.outputTokens
                 stats.totalCost += qaEntry.usage.costUsd
@@ -246,7 +246,7 @@ export const generatePanelImages = async (
                 stats.imagesGenerated++
                 if (!qaEnabled) { await copyFile(attemptPath, outputPath); break }
                 try {
-                  qaEntry = await judge({ pageNumber: panelNumber, pagePath: attemptPath, panelData: bundleData, identityCards: resolvedReferences.primaryCharacterRefs, locationSheets: resolvedReferences.secondaryRefs, model: judgeModel })
+                  qaEntry = await judge({ pageNumber: panelNumber, pagePath: attemptPath, panelData: bundleData, identityCards: resolvedReferences.primaryCharacterRefs, locationSheets: resolvedReferences.secondaryRefs, characterReferences: resolvedReferences.characterReferences, model: judgeModel })
                   stats.totalInputTokens += qaEntry.usage.inputTokens
                   stats.totalOutputTokens += qaEntry.usage.outputTokens
                   stats.totalCost += qaEntry.usage.costUsd

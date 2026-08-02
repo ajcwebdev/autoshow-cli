@@ -522,9 +522,17 @@ describe('comic source coverage contracts', () => {
     const sceneSlug = `comic-source-checklist-${Date.now()}`
     const sceneOutputDirectory = getSceneOutputDirectory(sceneSlug)
     const charactersRoot = await mkdtemp(join(tmpdir(), 'autoshow-source-checklist-characters-'))
+    await writeFile(join(charactersRoot, 'chat.png'), redDotPng)
     await writeFile(join(charactersRoot, 'characters-reference.json'), JSON.stringify({
       schemaVersion: 3,
-      characters: [],
+      characters: [{
+        key: 'chat', name: 'Chat', aliases: ['CHAT'], image: 'chat.png', outlineSheet: 'chat.png',
+        description: 'A free-standing blue hologram above a small projector base; never inside a screen.',
+        sceneTextRules: [
+          { kind: 'required', pattern: '\\bhologram\\b', description: 'Every Chat panel must identify him as a hologram.' },
+          { kind: 'forbidden', pattern: '\\bchat\\b.{0,80}\\bon\\b.{0,40}\\bscreen\\b', description: 'Chat must never appear on a screen.' },
+        ],
+      }],
       groupAliases: [],
     }))
     configureCharactersRoot(charactersRoot)
@@ -561,6 +569,10 @@ describe('comic source coverage contracts', () => {
       expect(prompt).toContain('verify that every exact ID below appears in at least one panel')
       expect(prompt).toContain('no arbitrary per-panel cast-count ceiling')
       expect(prompt).not.toContain('no more than five unique keys per panel')
+      expect(prompt).toContain('Canonical character canon is non-negotiable and has highest visual precedence')
+      expect(prompt).toContain('chat: A free-standing blue hologram above a small projector base')
+      expect(prompt).toContain('REQUIRED: Every Chat panel must identify him as a hologram.')
+      expect(prompt).toContain('FORBIDDEN: Chat must never appear on a screen.')
     } finally {
       configureCharactersRoot('input/characters')
       await rm(sceneOutputDirectory, { recursive: true, force: true })

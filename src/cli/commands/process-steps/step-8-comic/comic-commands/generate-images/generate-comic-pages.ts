@@ -275,7 +275,7 @@ export const generateComicPages = async (
 
             let entry = qaEnabled && outputExists && !options.force ? await readReusablePageQaEntry(outputPath, judgeModel) : undefined
             if (qaEnabled && outputExists && !options.force && !entry) {
-              entry = await judgePage({ pageNumber: pageChunk.pageNumber, pagePath: outputPath, panelData: pagePromptData, identityCards: resolvedReferences.primaryCharacterRefs, locationSheets: resolvedReferences.secondaryRefs, model: judgeModel })
+              entry = await judgePage({ pageNumber: pageChunk.pageNumber, pagePath: outputPath, panelData: pagePromptData, identityCards: resolvedReferences.primaryCharacterRefs, locationSheets: resolvedReferences.secondaryRefs, characterReferences: resolvedReferences.characterReferences, model: judgeModel })
               stats.totalInputTokens += entry.usage.inputTokens
               stats.totalOutputTokens += entry.usage.outputTokens
               stats.totalCost += entry.usage.costUsd
@@ -330,7 +330,7 @@ export const generateComicPages = async (
                 stats.imagesGenerated++
                 if (!qaEnabled) { await copyFile(attemptPath, outputPath); break }
                 try {
-                  entry = await judgePage({ pageNumber: pageChunk.pageNumber, pagePath: attemptPath, panelData: pagePromptData, identityCards: resolvedReferences.primaryCharacterRefs, locationSheets: resolvedReferences.secondaryRefs, model: judgeModel })
+                  entry = await judgePage({ pageNumber: pageChunk.pageNumber, pagePath: attemptPath, panelData: pagePromptData, identityCards: resolvedReferences.primaryCharacterRefs, locationSheets: resolvedReferences.secondaryRefs, characterReferences: resolvedReferences.characterReferences, model: judgeModel })
                   stats.totalInputTokens += entry.usage.inputTokens
                   stats.totalOutputTokens += entry.usage.outputTokens
                   stats.totalCost += entry.usage.costUsd

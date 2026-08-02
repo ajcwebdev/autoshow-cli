@@ -349,6 +349,8 @@ export const buildComicPagePrompt = (
       '- Treat every immutable canonical location reference listed in the location legend as canon for its mapped sub-panels. It defines location identity, persistent spatial geometry, fixed features, palette, and art style.',
       `- ${USS_ACAMPO_HOUSE_STYLE}`,
       '- The ordered canonical character reference images are authoritative for both character design and the simplified 2D rendering language. Never reinterpret them as realistic people.',
+      '- The canonical character reference images and catalog appearance descriptions have highest visual precedence for identity, physical embodiment, projection/display medium, anatomy, costume, and character-specific required props. If script-derived staging or a shot plan contradicts them, preserve the narrative action but reinterpret the contradictory character depiction to obey canon.',
+      '- A source phrase such as interface, screen, monitor, avatar, or body is never permission to change a referenced character\'s canonical embodiment. Apply such wording to nearby equipment or UI only when canon allows it.',
       '- Do not copy a location-sheet view as the panel camera unless the authored staging or shot plan explicitly requires it.',
       '- For every sub-panel, preserve that source panel\'s own staging, setting, and action and choose visually distinct framing appropriate to its specific story beat.',
       '- The `characterKeys` array in each source panel is exact and authoritative: show every listed character and no unlisted character in that sub-panel. Never carry a character forward from the location sheet or another sub-panel.',

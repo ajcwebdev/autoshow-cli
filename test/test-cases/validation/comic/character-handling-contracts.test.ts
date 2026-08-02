@@ -140,6 +140,55 @@ describe('comic character handling flat-reference contracts', () => {
     expect(() => validateSceneCharacters({ ...valid, panels: [{ ...valid.panels[0]!, sourceSegmentIds: ['beat-0001', 'beat-0001'] }] }, catalog)).toThrow(/Duplicate source segment ID/)
   })
 
+  test('catalog scene-text rules deterministically reject canonical character depiction conflicts', async () => {
+    const root = await makeCatalog({
+      characters: [{
+        key: 'hero', name: 'Hologram Hero', aliases: ['HERO'], image: 'hero.webp', outlineSheet: 'hero.webp',
+        description: 'A free-standing hologram above a projector base; never shown on a monitor.',
+        sceneTextRules: [
+          { kind: 'required', pattern: '\\bhologram\\b', description: 'Hero must be identified as a hologram.' },
+          { kind: 'required', pattern: '\\bprojector(?:\\s+base)?\\b', description: 'Hero must include a projector base.' },
+          { kind: 'forbidden', pattern: '\\bhero\\b.{0,80}\\bon\\b.{0,40}\\bmonitor\\b', description: 'Hero must not appear on a monitor.' },
+        ],
+      }],
+      groupAliases: [],
+    })
+    const catalog = loadCharacterCatalog(root)
+    const scene = (description: string, shotPlan: string) => v.parse(ScenePromptDataSchema, {
+      schemaVersion: 4, title: 'Test', location: 'Bridge', panels: [{
+        number: 1, description, shotPlan, characterKeys: ['hero'], speech: [], sourceSegmentIds: ['beat-0001'], locationKey: 'bridge',
+      }],
+    })
+
+    expect(() => validateSceneCharacters(
+      scene('Hero is a hologram.', 'The free-standing hologram shines above a small projector base.'),
+      catalog,
+    )).not.toThrow()
+    expect(() => validateSceneCharacters(
+      scene('Hero is a hologram.', 'The hologram shines above a projector base. Exclude any monitor showing Hero.'),
+      catalog,
+    )).not.toThrow()
+    expect(() => validateSceneCharacters(
+      scene('Hero appears on a monitor.', 'Medium shot of the monitor.'),
+      catalog,
+    )).toThrow(/must satisfy canonical rule: Hero must be identified as a hologram/)
+    expect(() => validateSceneCharacters(
+      scene('Hero is a hologram on a monitor.', 'The monitor sits beside a projector base.'),
+      catalog,
+    )).toThrow(/must not violate canonical rule: Hero must not appear on a monitor/)
+  })
+
+  test('catalog rejects invalid canonical scene-text regular expressions', async () => {
+    const root = await makeCatalog({
+      characters: [{
+        key: 'hero', name: 'Hero', aliases: [], image: 'hero.webp', outlineSheet: 'hero.webp', description: 'Hero.',
+        sceneTextRules: [{ kind: 'required', pattern: '[', description: 'Invalid regex.' }],
+      }],
+      groupAliases: [],
+    })
+    expect(() => loadCharacterCatalog(root)).toThrow(/invalid regular expression/)
+  })
+
   test('scene validation accepts panels with more than five visible characters', async () => {
     const charactersRoot = await mkdtemp(join(tmpdir(), 'autoshow-large-cast-catalog-'))
     temporaryRoots.push(charactersRoot)

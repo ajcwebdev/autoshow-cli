@@ -249,11 +249,14 @@ describe('canonical location references and grouped QA repairs', () => {
   })
 
   test('treats harmless typography substitutions and minor recognizable identity variance as advisory', () => {
-    const prompt = buildComicPageQaPrompt(panelBundle(1))
+    const prompt = buildComicPageQaPrompt(panelBundle(1), [{ key: 'hero', description: 'A free-standing hologram above a projector base.' }])
     expect(prompt).toContain('Unicode ellipsis (…) and three consecutive periods (...)')
     expect(prompt).toContain('Never fail dialogueAccuracy for a harmless typography-only substitution.')
     expect(prompt).toContain('Minor body-width or proportion variance')
     expect(prompt).toContain('Set identityMatch=false only for an unmistakably wrong person')
+    expect(prompt).toContain('highest visual precedence for identity, physical embodiment, projection/display medium')
+    expect(prompt).toContain('violates this canon is a hard identity failure')
+    expect(prompt).toContain('hero: A free-standing hologram above a projector base.')
     const tolerantResult = applyPageQaTolerancePolicy({
       panelStructure: { pass: true, observedPanelCount: 1, observedPanelOrder: [1], issues: [] },
       panels: [{ panelNumber: 1, requiredCastPresent: true, unexpectedCastAbsent: true, identityMatch: false, identityIssueKind: 'minor-variance', locationMatch: true, sourcePrecedence: true, shotPlanMatch: true, dialogueAccuracy: false, dialogueIssueKind: 'typography-only', speakerAttribution: true, artifacts: [], visualQualityScore: 8, compositionScore: 8, issues: ['minor proportions', 'ellipsis glyph'], editInstructions: '' }],

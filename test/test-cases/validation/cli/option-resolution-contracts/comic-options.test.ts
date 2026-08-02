@@ -443,6 +443,8 @@ describe('option resolution contracts', () => {
       expect(prompt).toContain('immutable canonical location reference')
       expect(prompt).toContain('persistent spatial geometry')
       expect(prompt).toContain('The `characterKeys` array in each source panel is exact and authoritative')
+      expect(prompt).toContain('highest visual precedence for identity, physical embodiment, projection/display medium')
+      expect(prompt).toContain('interface, screen, monitor, avatar, or body is never permission')
       expect(prompt).toContain('Never carry a character forward from')
       expect(prompt).toContain('Vary camera distance, angle, blocking, and composition between story beats')
       expect(prompt).toContain('Exhaustive prose shot plan')

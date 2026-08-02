@@ -63,6 +63,7 @@ export type PageQaRequest = {
   panelData: PanelBundleData
   identityCards: string[]
   locationSheets: string[]
+  characterReferences?: Array<{ key: string; description: string }> | undefined
   model: string
 }
 
@@ -203,19 +204,24 @@ export const advancePageQaRepairStagnation = (
   }
 }
 
-export const buildComicPageQaPrompt = (panelData: PanelBundleData): string => [
+export const buildComicPageQaPrompt = (
+  panelData: PanelBundleData,
+  characterReferences: Array<{ key: string; description: string }> = [],
+): string => [
   'Judge this generated comic output strictly. The first image is the generated output. Following images are ordered canonical character references, followed by every immutable canonical location reference in first-panel-appearance order.',
   `Location mapping: ${panelData.panels.map(panel => `panel ${panel.number} -> ${panel.locationKey ?? 'legacy single location'}`).join('; ')}. Judge each panel only against its mapped location reference.`,
   'Evaluate panels left-to-right. Location match, source-instruction precedence, shot-plan framing/staging, exact cast, dialogue wording and completeness, and bubble-tail/speaker attribution are hard requirements. Artifacts, harmless typography substitutions, minor identity stylization variance, and aesthetic scores are advisory only. For every failed panel return concise actionable editInstructions in this same response.',
+  'Canonical character references and their catalog descriptions have highest visual precedence for identity, physical embodiment, projection/display medium, anatomy, costume, and character-specific required props. A generated image that violates this canon is a hard identity failure even when the source panel description or shot plan repeats the same contradiction. Set identityIssueKind=unmistakable-mismatch and provide repair instructions that restore the canonical embodiment.',
   'Dialogue accuracy is about legible wording, completeness, order, and meaning. Treat a Unicode ellipsis (…) and three consecutive periods (...), straight and curly quotation marks or apostrophes, and em/en dashes and hyphens as equivalent when the substitution does not change wording, meaning, speaker, or pacing. Set dialogueAccuracy=false for missing, added, illegible, or reordered words; wrong wording or speaker; or punctuation changes that materially change meaning or timing. Never fail dialogueAccuracy for a harmless typography-only substitution.',
   'Identity must remain clearly recognizable from the canonical character references. Set identityMatch=false only for an unmistakably wrong person, missing defining facial/costume/color features, or a major medium reinterpretation that prevents a clear canonical match. Minor body-width or proportion variance, pose-induced shape changes, shading/detail differences, and ordinary stylization variance are advisory when the character remains recognizable and preserves the canonical design cues. Do not also mark sourcePrecedence=false for the same identity concern unless the image independently contradicts an explicit source instruction.',
   'For each panel classify identityIssueKind as none, minor-variance, or unmistakable-mismatch, and classify dialogueIssueKind as none, typography-only, or content. These classifications must follow the tolerance rules above even when the corresponding raw boolean would otherwise be stricter.',
+  `Canonical character catalog descriptions: ${characterReferences.length > 0 ? characterReferences.map(reference => `${reference.key}: ${reference.description}`).join(' | ') : 'none supplied; rely on the ordered canonical reference images.'}`,
   'Source panel data:', JSON.stringify(panelData, null, 2),
   'Return only the requested JSON.',
 ].join('\n\n')
 
 export const judgeComicPage = async (request: PageQaRequest): Promise<PageQaEntry> => {
-  const prompt = buildComicPageQaPrompt(request.panelData)
+  const prompt = buildComicPageQaPrompt(request.panelData, request.characterReferences ?? [])
   const imagePaths = [request.pagePath, ...request.identityCards, ...request.locationSheets]
   const response = await createOpenAIResponse(getOpenAIClientConfig(), {
     model: request.model,

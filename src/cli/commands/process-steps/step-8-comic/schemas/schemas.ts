@@ -12,6 +12,11 @@ const CharacterReferenceImagePathSchema = v.pipe(
   v.string(),
   v.regex(/\.(?:png|webp|jpg|jpeg)$/i, 'Expected a PNG, WebP, JPG, or JPEG character image')
 )
+const CharacterSceneTextRuleSchema = v.strictObject({
+  kind: v.picklist(['required', 'forbidden']),
+  pattern: v.string(),
+  description: v.string(),
+})
 
 const AuthoredCharacterDetailsSchema = v.strictObject({
   key: CharacterKeySchema,
@@ -20,6 +25,7 @@ const AuthoredCharacterDetailsSchema = v.strictObject({
   image: CharacterReferenceImagePathSchema,
   outlineSheet: CharacterReferenceImagePathSchema,
   description: v.string(),
+  sceneTextRules: v.optional(v.array(CharacterSceneTextRuleSchema)),
 })
 
 const ScenePromptsSchema = v.object({
@@ -251,6 +257,11 @@ const assertKnownUniqueKeys = (values: readonly string[], catalog: CharacterCata
   }
 }
 
+const positiveDepictionText = (value: string): string => value
+  .split(/(?<=[.!?;])\s+/)
+  .filter(sentence => !/^\s*(?:exclude|never|no\b|do not\b|don't\b|without\b)/iu.test(sentence))
+  .join(' ')
+
 export const validateStructuredScriptCharacters = (data: v.InferOutput<typeof StructuredScriptDataSchema>, catalog: CharacterCatalogService): void => {
   assertKnownUniqueKeys(data.characterKeys, catalog, 'structured script characterKeys')
   for (const beat of data.beats) {
@@ -269,6 +280,21 @@ export const validateSceneCharacters = (data: v.InferOutput<typeof ScenePromptDa
       throw ValidationError(`Duplicate source segment ID in panel ${panel.number} sourceSegmentIds`, { stage: 'comic:schema' })
     }
     const visible = new Set(panel.characterKeys)
+    const visualText = `${panel.description}\n${panel.shotPlan}`.normalize('NFKC').replace(/[\u2018\u2019]/g, "'")
+    for (const characterKey of panel.characterKeys) {
+      const character = catalog.get(catalog.requireKey(characterKey))
+      for (const rule of character.sceneTextRules ?? []) {
+        const testedText = rule.kind === 'forbidden' ? positiveDepictionText(visualText) : visualText
+        const matches = new RegExp(rule.pattern, 'iu').test(testedText)
+        if ((rule.kind === 'required' && !matches) || (rule.kind === 'forbidden' && matches)) {
+          const expectation = rule.kind === 'required' ? 'must satisfy' : 'must not violate'
+          throw ValidationError(
+            `Panel ${panel.number} depiction of "${characterKey}" ${expectation} canonical rule: ${rule.description}`,
+            { stage: 'comic:schema' }
+          )
+        }
+      }
+    }
     for (const item of panel.speech) {
       if (item.speaker.kind !== 'character') continue
       catalog.requireKey(item.speaker.characterKey)
