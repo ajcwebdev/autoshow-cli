@@ -151,6 +151,10 @@ describe('canonical location references and grouped QA repairs', () => {
     expect(calls[0]?.normalizedPrompt).toContain('Exhaustive prose shot plan')
     expect(calls[0]?.normalizedPrompt).toContain('immutable canonical location reference')
     expect(calls[0]?.normalizedPrompt).toContain('A loading door stays left of a fixed control booth; camera angles and crops may vary.')
+    expect(calls[0]?.normalizedPrompt).toContain('Preserve canonical anchor assemblies component by component.')
+    expect(calls[0]?.normalizedPrompt).toContain('Loose tools, generic clutter, speakers, lamps, or other plausible props never substitute for a named computer, keyboard')
+    expect(calls[0]?.normalizedPrompt).toContain('Occlusion is not an allowed continuity outcome')
+    expect(calls[0]?.normalizedPrompt).toContain('move its entire canonical region outside the crop instead of hiding it')
     expect(await Bun.file(join(runDirectory, 'panels', 'test-run', 'environment-anchor.png')).exists()).toBe(false)
     expect(stats.imagesGenerated).toBe(1)
   })
@@ -263,10 +267,13 @@ describe('canonical location references and grouped QA repairs', () => {
     expect(prompt).toContain('violates this canon is a hard identity failure')
     expect(prompt).toContain('hero: A free-standing hologram above a projector base.')
     expect(prompt).toContain('cargo-bay: The loading door remains left of the control booth.')
-    expect(prompt).toContain('A different camera side, angle, distance, elevation, perspective, character blocking, or crop is desirable shot variation')
+    expect(prompt).toContain('A different camera side, angle, distance, elevation, perspective, or crop is desirable shot variation')
     expect(prompt).toContain('Perform a mandatory anchor-by-anchor continuity audit')
-    expect(prompt).toContain('Use physically-occluded only when a visible foreground object geometrically covers the anchor\'s entire expected silhouette')
-    expect(prompt).toContain('If any part of the anchor\'s support surface, wall zone, footprint, or expected silhouette is exposed')
+    expect(prompt).toContain('Audit canonical assemblies component by component')
+    expect(prompt).toContain('There is no occluded status')
+    expect(prompt).toContain('character or prop blocking never excuses an unverifiable anchor')
+    expect(prompt).toContain('absent, hidden, or replaced by generic clutter, status is missing')
+    expect(prompt).not.toContain('physically-occluded')
     expect(prompt).toContain('explicitly compare footprint, silhouette, connectedness, orientation, visible edge geometry, and wall relationships')
     expect(prompt).toContain('may not turn a straight run into a corner, L-shaped, wraparound, split, or freestanding form')
     expect(prompt).toContain('A wide or otherwise revealing view that shows an anchor\'s canonical region but omits the anchor is a hard failure')
@@ -297,16 +304,22 @@ describe('canonical location references and grouped QA repairs', () => {
     expect(hasHardPageQaFailure(setDrift)).toBe(true)
     const entry: PageQaEntry = { pageNumber: 1, panelNumbers: [1], outputFile: 'attempt.png', judgeModel: 'gpt-5.5', hardFailure: true, result: setDrift, usage: { inputTokens: 1, outputTokens: 1, totalTokens: 2, costUsd: 0 } }
     expect(applyPageQaRepairPolicy(entry, 1).hardFailure).toBe(true)
-    expect(advancePageQaRepairStagnation(createPageQaRepairStagnationState(), entry).state.consecutiveFailures).toEqual({ 'panel-1:setContinuityMatch': 1 })
+    expect(advancePageQaRepairStagnation(createPageQaRepairStagnationState(), entry).state.consecutiveFailures).toEqual({ 'panel-1:setContinuityMatch': 1, 'panel-1:setContinuityAudit': 1 })
 
     const variedCamera = { ...setDrift, panels: [{ ...setDrift.panels[0]!, setContinuityMatch: true, setContinuityAudit: [{ anchor: 'fixed control booth', status: 'outside-crop' as const, evidence: 'The entire booth wall is beyond the right frame edge.' }], issues: [], editInstructions: '' }], summary: 'A different crop preserves the canonical set topology.' }
     expect(hasHardPageQaFailure(variedCamera)).toBe(false)
 
     const inconsistentAudit = { ...variedCamera, panels: [{ ...variedCamera.panels[0]!, setContinuityAudit: [{ anchor: 'fixed control booth', status: 'missing' as const, evidence: 'Its wall zone is visible and empty.' }] }] }
     expect(hasHardPageQaFailure(inconsistentAudit)).toBe(true)
+    const normalizedInconsistentAudit = applyPageQaTolerancePolicy(inconsistentAudit)
+    expect(normalizedInconsistentAudit.panels[0]?.setContinuityMatch).toBe(false)
+    const inconsistentEntry: PageQaEntry = { pageNumber: 1, panelNumbers: [1], outputFile: 'attempt.png', judgeModel: 'gpt-5.5', hardFailure: true, result: normalizedInconsistentAudit, usage: { inputTokens: 1, outputTokens: 1, totalTokens: 2, costUsd: 0 } }
+    expect(advancePageQaRepairStagnation(createPageQaRepairStagnationState(), inconsistentEntry).state.consecutiveFailures).toEqual({ 'panel-1:setContinuityMatch': 1, 'panel-1:setContinuityAudit': 1 })
 
     const strictPayload = { ...setDrift, panels: [{ ...setDrift.panels[0]!, identityIssueKind: 'none' as const, dialogueIssueKind: 'none' as const }] }
     expect(parseComicPageQaResult(JSON.stringify(strictPayload), [1]).panels[0]?.setContinuityMatch).toBe(false)
+    const legacyOcclusionPayload = { ...strictPayload, panels: [{ ...strictPayload.panels[0]!, setContinuityAudit: [{ anchor: 'fixed control booth', status: 'physically-occluded', evidence: 'A character covers it.' }] }] }
+    expect(() => parseComicPageQaResult(JSON.stringify(legacyOcclusionPayload), [1])).toThrow('invalid setContinuityAudit')
     const { setContinuityMatch: _omitted, ...missingContinuityField } = strictPayload.panels[0]!
     expect(() => parseComicPageQaResult(JSON.stringify({ ...strictPayload, panels: [missingContinuityField] }), [1])).toThrow('missing or unexpected fields')
     const { setContinuityAudit: _auditOmitted, ...missingAuditField } = strictPayload.panels[0]!
