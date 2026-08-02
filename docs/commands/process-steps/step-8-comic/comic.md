@@ -176,7 +176,7 @@ bun autoshow comic generate-images input/episode-scripts/01-script/01-opening.md
 
 | Flag | Description | Default |
 |------|-------------|---------|
-| `--llm-model <model>` | Use a supported OpenAI, Gemini, or Grok text model | `gpt-5.5` |
+| `--llm-model <model>` | Use a supported OpenAI, Gemini, or Grok text model | `gpt-5.6-sol` |
 
 ### Examples
 
@@ -222,7 +222,7 @@ bun autoshow comic draft-scenes input/episode-scripts/01-script/01-opening.md --
 
 | Flag | Description | Default |
 |------|-------------|---------|
-| `--llm-model <model>` | Use a supported text model (see [Supported Models](#supported-models)) | `gpt-5.5` |
+| `--llm-model <model>` | Use a supported text model (see [Supported Models](#supported-models)) | `gpt-5.6-sol` |
 | `--image-model <model[,model...]>` | Use one or more supported image models (see [Supported Models](#supported-models)) | `gpt-image-2` |
 | `--variation <name[,name...]>` | Generate final images with one or more prompt variations: `canonical`, `animation-polish`, `cinematic-depth` | none |
 | `--size <size>` | Image size such as `1536x1024`, `1024x1024`, `1024x1536`, or `auto` | `1536x1024` |
@@ -382,14 +382,14 @@ Pass multiple models with `--image-model` to generate each panel with every mode
 
 `--llm-model` accepts any model id in the project's central LLM registry (`src/cli/commands/setup-and-utilities/models/llm-config.json`), the same source of truth used by the `write` step. Comic resolves the id to its provider at runtime and routes generation through the shared LLM dispatch, so every centrally-registered provider (OpenAI, Groq, Gemini, Anthropic, MiniMax, Grok, GLM, Kimi, Together, Cerebras, llama.cpp, Llamafile) is available and pricing comes from the registry.
 
-The default is `gpt-5.5`. Inspect `llm-config.json` for the full list of available text models. Common choices:
+The default is `gpt-5.6-sol`. Inspect `llm-config.json` for the full list of available text models. Common choices:
 
 | Model | Provider | Notes |
 |-------|----------|-------|
-| `gpt-5.6-sol` | OpenAI | Current flagship GPT-5.6 tier. |
+| `gpt-5.6-sol` | OpenAI | Default. Current flagship GPT-5.6 tier used for scene drafting and panel prompts. |
 | `gpt-5.6-terra` | OpenAI | Current balanced GPT-5.6 tier. |
 | `gpt-5.6-luna` | OpenAI | Current efficient GPT-5.6 tier. |
-| `gpt-5.5` | OpenAI | Default. Used for scene drafting and panel prompts. |
+| `gpt-5.5` | OpenAI | Previous flagship tier. |
 | `gpt-5.4-mini` | OpenAI | Faster and cheaper, slightly lower quality. |
 | `gpt-5.4-nano` | OpenAI | Fastest and cheapest. |
 | `gemini-3.1-pro-preview` | Google | Gemini pro-tier text model. |

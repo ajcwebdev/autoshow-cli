@@ -6,7 +6,7 @@ import { findRegistryServiceForModel } from '~/cli/commands/setup-and-utilities/
 import { DEFAULT_CLI_CONCURRENCY } from '~/utils/concurrency-defaults'
 
 // Comic's default text model. Validated against the central LLM registry at parse time.
-export const DEFAULT_LLM_MODEL = 'gpt-5.5'
+export const DEFAULT_LLM_MODEL = 'gpt-5.6-sol'
 // Comic's default vision judge. Keep QA independent from the drafting model.
 export const DEFAULT_QA_MODEL = 'gpt-5.6-sol'
 import {

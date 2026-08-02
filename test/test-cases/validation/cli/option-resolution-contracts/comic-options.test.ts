@@ -25,7 +25,7 @@ import {
   resolveSketchChunks,
   selectSketchPanelRange
 } from '~/cli/commands/process-steps/step-8-comic/comic-commands/generate-sketches/generate-scene-sketches'
-import { parseCharacterSketchArgs, parseDraftScenesArgs, parseGenerateImagesArgs, parseReferenceSketchArgs } from '~/cli/commands/process-steps/step-8-comic/comic-utils/cli-args'
+import { DEFAULT_LLM_MODEL, parseCharacterSketchArgs, parseDraftScenesArgs, parseGenerateImagesArgs, parseReferenceSketchArgs } from '~/cli/commands/process-steps/step-8-comic/comic-utils/cli-args'
 import {
   characterSketchFlags,
   draftScenesFlags,
@@ -46,6 +46,10 @@ import {
 import type { PanelBundleData, PromptsConfig } from '~/types'
 
 describe('option resolution contracts', () => {
+  test('comic scene drafting defaults to gpt-5.6-sol', () => {
+    expect(DEFAULT_LLM_MODEL).toBe('gpt-5.6-sol')
+  })
+
   test('comic reference-sketch requires exactly one reference mode', () => {
     expect(parseReferenceSketchArgs(['--location', 'cargo-bay']).location).toBe('cargo-bay')
     expect(parseReferenceSketchArgs(['--character', 'engineer']).character).toBe('engineer')
