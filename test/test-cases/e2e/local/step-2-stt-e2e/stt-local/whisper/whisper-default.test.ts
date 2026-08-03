@@ -33,7 +33,7 @@ budgetedTest('transcribe-whisper-tiny', 'default transcribe processes local audi
 
     const transcriptContent = await Bun.file(`${outputDir}/transcription.txt`).text()
     expect(transcriptContent.length).toBeGreaterThan(0)
-    expect(transcriptContent).toMatch(/\[\d{2}:\d{2}:\d{2}\]/)
+    expect(transcriptContent).toMatch(/\[\d{2}:\d{2}:\d{2}(?:\.\d{3})?\]/)
 
     const promptExists = await fileExists(`${outputDir}/prompt.md`)
     expect(promptExists).toBe(true)
@@ -96,7 +96,7 @@ for (const modelCase of [
       const transcriptFile = Bun.file(`${outputDir}/transcription.txt`)
       const transcriptContent = await transcriptFile.text()
       expect(transcriptContent.length).toBeGreaterThan(0)
-      expect(transcriptContent).toMatch(/\[\d{2}:\d{2}:\d{2}\]/)
+      expect(transcriptContent).toMatch(/\[\d{2}:\d{2}:\d{2}(?:\.\d{3})?\]/)
 
       const metadata = await readRunMetadata(outputDir) as {
         step2?: { transcriptionModel?: string }
@@ -137,7 +137,7 @@ budgetedTest('transcribe-whisper-split', 'split mode processes audio in segments
     const transcriptFile = Bun.file(`${outputDir}/transcription.txt`)
     const transcriptContent = await transcriptFile.text()
     expect(transcriptContent.length).toBeGreaterThan(0)
-    expect(transcriptContent).toMatch(/\[\d{2}:\d{2}:\d{2}\]/)
+    expect(transcriptContent).toMatch(/\[\d{2}:\d{2}:\d{2}(?:\.\d{3})?\]/)
 
     const summaryExists = await fileExists(`${outputDir}/text.json`)
     expect(summaryExists).toBe(false)

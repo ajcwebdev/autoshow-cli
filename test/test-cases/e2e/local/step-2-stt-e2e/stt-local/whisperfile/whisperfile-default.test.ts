@@ -31,7 +31,7 @@ budgetedTest('transcribe-whisperfile-tiny', 'whisperfile transcribes local audio
 
     const transcriptContent = await Bun.file(`${outputDir}/transcription.txt`).text()
     expect(transcriptContent.length).toBeGreaterThan(0)
-    expect(transcriptContent).toMatch(/\[\d{2}:\d{2}:\d{2}\]/)
+    expect(transcriptContent).toMatch(/\[\d{2}:\d{2}:\d{2}(?:\.\d{3})?\]/)
 
     const promptExists = await fileExists(`${outputDir}/prompt.md`)
     expect(promptExists).toBe(true)

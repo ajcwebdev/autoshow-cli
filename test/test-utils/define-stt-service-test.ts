@@ -81,7 +81,7 @@ export const defineSTTServiceTest = ({
 
         const transcriptContent = await Bun.file(`${outputDir}/transcription.txt`).text()
         expect(transcriptContent.length).toBeGreaterThan(0)
-        expect(transcriptContent).toMatch(/\[\d{2}:\d{2}:\d{2}\]/)
+        expect(transcriptContent).toMatch(/\[\d{2}:\d{2}:\d{2}(?:\.\d{3})?\]/)
 
         expect(await fileExists(`${outputDir}/result.json`)).toBe(true)
         expect(await fileExists(`${outputDir}/transcription.evidence.json`)).toBe(false)
