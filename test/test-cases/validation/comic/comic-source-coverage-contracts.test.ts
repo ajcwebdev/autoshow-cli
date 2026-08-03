@@ -483,8 +483,8 @@ describe('comic source coverage contracts', () => {
   })
 
   test('recap montage resolver maps Episode 4 scripts to Episode 3 scripts', () => {
-    expect(resolvePreviousEpisodeScriptsDirectory('input/example/episode-scripts/04-script/01-recap.md'))
-      .toBe(join('input', 'example', 'episode-scripts', '03-script'))
+    expect(resolvePreviousEpisodeScriptsDirectory('input/example/scripts/04-script/01-recap.md'))
+      .toBe(join('input', 'example', 'scripts', '03-script'))
   })
 
   test('recap montage cue detection requires both episode and montage in the same beat', () => {

@@ -58,6 +58,7 @@ export type ParsedCharacterSketchArgs = CharacterSketchCommandOptions & { showHe
 export type ReferenceSketchCommandOptions = Omit<ComicImageCommandOptionsBase, 'force'> & ComicLlmCommandOptionsBase & {
   character?: string
   location?: string
+  view?: 'establishing' | 'reverse' | 'side'
   revise?: boolean
   notes?: string
   qa?: boolean

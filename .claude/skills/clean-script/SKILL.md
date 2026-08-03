@@ -1,6 +1,6 @@
 ---
 name: clean-script
-description: Normalize AutoShow episode script Markdown without changing story content. Use when Codex needs to clean, format, or validate AutoShow script files, especially Markdown under input/episode-scripts/**, by enforcing the project script shell, speaker/delivery spacing, parenthetical formatting, line whitespace, and final-newline rules.
+description: Normalize AutoShow episode script Markdown without changing story content. Use when Codex needs to clean, format, or validate AutoShow script files, especially Markdown under input/scripts/**, by enforcing the project script shell, speaker/delivery spacing, parenthetical formatting, line whitespace, and final-newline rules.
 ---
 
 # Clean Script
@@ -17,6 +17,6 @@ description: Normalize AutoShow episode script Markdown without changing story c
 
 ## Scope
 
-- Use this skill for AutoShow episode script Markdown, especially under `input/episode-scripts/**`.
+- Use this skill for AutoShow episode script Markdown, especially under `input/scripts/**`.
 - Preserve outline tables and script structure.
 - Preserve content intent, wording, jokes, dialogue, and story beats unless the user explicitly asks for rewriting.

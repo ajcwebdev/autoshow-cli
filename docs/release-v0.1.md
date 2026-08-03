@@ -225,7 +225,7 @@ bun autoshow music "bright 90s pop rock with a huge chorus" --provider gemini=ly
 [`comic`](./commands/process-steps/step-8-comic/comic.md) runs staged episode-script-to-comic workflows.
 
 - Primary inputs/providers:
-  - episode script Markdown files under `input/episode-scripts/NN-script/*.md`, or strict episode-scene shorthands such as `02-01`
+  - episode script Markdown files under `input/scripts/NN-script/*.md`, or strict episode-scene shorthands such as `02-01`
   - character source images under `input/characters/`, typically `.png`, `.jpg`, `.jpeg`, or `.webp`
   - configured writing and image providers for staged comic generation
   - reusable character sketches and panel prompt bundles

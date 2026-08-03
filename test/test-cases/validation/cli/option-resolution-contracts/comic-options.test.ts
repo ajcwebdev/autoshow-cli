@@ -52,7 +52,11 @@ describe('option resolution contracts', () => {
 
   test('comic reference-sketch requires exactly one reference mode', () => {
     expect(parseReferenceSketchArgs(['--location', 'cargo-bay']).location).toBe('cargo-bay')
+    expect(parseReferenceSketchArgs(['--location', 'cargo-bay']).view).toBeUndefined()
+    expect(parseReferenceSketchArgs(['--location', 'cargo-bay', '--view', 'reverse']).view).toBe('reverse')
     expect(parseReferenceSketchArgs(['--character', 'engineer']).character).toBe('engineer')
+    expect(() => parseReferenceSketchArgs(['--character', 'engineer', '--view', 'side'])).toThrow('--view is only valid with --location')
+    expect(() => parseReferenceSketchArgs(['--location', 'cargo-bay', '--view', 'diagonal'])).toThrow('Expected one of')
     expect(() => parseReferenceSketchArgs([])).toThrow('Exactly one')
     expect(() => parseReferenceSketchArgs(['--character', 'engineer', '--location', 'cargo-bay'])).toThrow('Exactly one')
   })
@@ -69,7 +73,7 @@ describe('option resolution contracts', () => {
   })
   test('comic generate-images args parse page image options', () => {
       const opts = parseGenerateImagesArgs([
-        'input/episode-scripts/02-script/01-co-work-smarter.md',
+        'input/scripts/02-script/01-co-work-smarter.md',
         '--image-model', 'gpt-image-2,gemini-3.1-flash-image-preview',
         '--panels', '1-4,9',
         '--panels-per-image', String(DEFAULT_PANELS_PER_IMAGE),
@@ -79,7 +83,7 @@ describe('option resolution contracts', () => {
         '--force'
       ])
 
-      expect(opts.scriptPath).toBe('input/episode-scripts/02-script/01-co-work-smarter.md')
+      expect(opts.scriptPath).toBe('input/scripts/02-script/01-co-work-smarter.md')
       expect(opts.imageModels).toEqual(['gpt-image-2', 'gemini-3.1-flash-image-preview'])
       expect(opts.panels).toEqual([1, 2, 3, 4, 9])
       expect(opts.panelsPerImage).toBe(DEFAULT_PANELS_PER_IMAGE)
@@ -91,7 +95,7 @@ describe('option resolution contracts', () => {
 
   test('comic generate-images args parse grid page composition options', () => {
       const opts = parseGenerateImagesArgs([
-        'input/episode-scripts/02-script/01-co-work-smarter.md',
+        'input/scripts/02-script/01-co-work-smarter.md',
         '--target', 'images',
         '--panels', '1-6',
         '--panels-per-image', '1',
@@ -127,19 +131,19 @@ describe('option resolution contracts', () => {
 
   test('comic draft-scenes args parse llm model and panel prompt stage', () => {
       const opts = parseDraftScenesArgs([
-        'input/episode-scripts/05-script/01-mechanic-goes-on-vacation.md',
+        'input/scripts/05-script/01-mechanic-goes-on-vacation.md',
         '--llm-model', 'gpt-5.5',
         '--only', 'panel-prompts',
       ])
       const grokOpts = parseDraftScenesArgs([
-        'input/episode-scripts/05-script/01-mechanic-goes-on-vacation.md',
+        'input/scripts/05-script/01-mechanic-goes-on-vacation.md',
         '--llm-model', 'grok-4.5'
       ])
 
       // --llm-model now resolves against the central LLM registry instead of a comic-local list.
       expect(findRegistryServiceForModel('llm', 'gpt-5.5')).toBe('openai')
       expect(findRegistryServiceForModel('llm', 'grok-4.5')).toBe('grok')
-      expect(opts.scriptPath).toBe('input/episode-scripts/05-script/01-mechanic-goes-on-vacation.md')
+      expect(opts.scriptPath).toBe('input/scripts/05-script/01-mechanic-goes-on-vacation.md')
       expect(opts.llmModel).toBe('gpt-5.5')
       expect(opts.only).toBe('panel-prompts')
       expect(grokOpts.llmModel).toBe('grok-4.5')
@@ -147,13 +151,13 @@ describe('option resolution contracts', () => {
 
   test('comic generate-images args parse target', () => {
       const opts = parseGenerateImagesArgs([
-        'input/episode-scripts/05-script/01-mechanic-goes-on-vacation.md',
+        'input/scripts/05-script/01-mechanic-goes-on-vacation.md',
         '--target', 'sketches',
         '--panels-per-image', String(DEFAULT_PANELS_PER_IMAGE),
         '--quality', 'high',
       ])
 
-      expect(opts.scriptPath).toBe('input/episode-scripts/05-script/01-mechanic-goes-on-vacation.md')
+      expect(opts.scriptPath).toBe('input/scripts/05-script/01-mechanic-goes-on-vacation.md')
       expect(opts.target).toBe('sketches')
       expect(opts.panelsPerImage).toBe(DEFAULT_PANELS_PER_IMAGE)
       expect(opts.quality).toBe('high')
@@ -164,7 +168,7 @@ describe('option resolution contracts', () => {
 
   test('comic generate-images args parse page image options with target', () => {
       const opts = parseGenerateImagesArgs([
-        'input/episode-scripts/02-script/01-co-work-smarter.md',
+        'input/scripts/02-script/01-co-work-smarter.md',
         '--target', 'images',
         '--panels', '1-6',
         '--panels-per-image', String(DEFAULT_PANELS_PER_IMAGE),
@@ -174,7 +178,7 @@ describe('option resolution contracts', () => {
         '--force'
       ])
 
-      expect(opts.scriptPath).toBe('input/episode-scripts/02-script/01-co-work-smarter.md')
+      expect(opts.scriptPath).toBe('input/scripts/02-script/01-co-work-smarter.md')
       expect(opts.target).toBe('images')
       expect(opts.panels).toEqual([1, 2, 3, 4, 5, 6])
       expect(opts.panelsPerImage).toBe(DEFAULT_PANELS_PER_IMAGE)
@@ -187,7 +191,7 @@ describe('option resolution contracts', () => {
   test('comic script shorthand resolves only strict NN-SC references', async () => {
       const tempDir = await mkdtemp(join(tmpdir(), 'autoshow-comic-script-ref-'))
       const episodeDir = join(tempDir, '02-script')
-      const fullPath = 'input/episode-scripts/02-script/01-co-work-smarter.md'
+      const fullPath = 'input/scripts/02-script/01-co-work-smarter.md'
 
       try {
         await mkdir(episodeDir, { recursive: true })

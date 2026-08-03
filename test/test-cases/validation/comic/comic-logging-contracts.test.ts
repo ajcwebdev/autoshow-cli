@@ -117,7 +117,7 @@ describe('comic compact logging contracts', () => {
   test('draft-scenes runs all stages with one header and final summary', async () => {
     const captured = await captureConsole(async () => {
       await draftScenesCommand({
-        scriptPath: 'input/episode-scripts/01-script/01-co-work-smarter.md',
+        scriptPath: 'input/scripts/01-script/01-co-work-smarter.md',
         sceneSlug: '01-co-work-smarter',
       }, {
         runStructureScripts: async () => comicLog.line('structured-script generated', ['path=structured-script.json']),
@@ -141,7 +141,7 @@ describe('comic compact logging contracts', () => {
   test('generate-images target sketches logs compact prep, per-sketch output, and summary', async () => {
     const captured = await captureConsole(async () => {
       await generateImagesCommand({
-        scriptPath: 'input/episode-scripts/01-script/01-co-work-smarter.md',
+        scriptPath: 'input/scripts/01-script/01-co-work-smarter.md',
         sceneSlug: '01-co-work-smarter',
         target: 'sketches',
         panelsPerImage: 4,
@@ -172,7 +172,7 @@ describe('comic compact logging contracts', () => {
     })
 
     expect(captured.stdout).toContain('comic generate-images scene=01-co-work-smarter target=sketches')
-    expect(captured.stdout).toContain('inputs ready draft=reviewed-v3 prompts=reviewed-v3 coverage=4/4')
+    expect(captured.stdout).toContain('inputs ready draft=reviewed-v4 prompts=reviewed-v4 coverage=4/4')
     expect(captured.stdout).toContain('config target=sketches')
     expect(captured.stdout).toContain('generated sketch id=panels-01-04')
     expect(captured.stdout).toContain('summary generated=1 skipped=0 tokens=30 cost=$0.02 api=200ms')
@@ -183,7 +183,7 @@ describe('comic compact logging contracts', () => {
   test('existing-output skips stay concise', async () => {
     const captured = await captureConsole(async () => {
       await generateImagesCommand({
-        scriptPath: 'input/episode-scripts/01-script/01-co-work-smarter.md',
+        scriptPath: 'input/scripts/01-script/01-co-work-smarter.md',
         sceneSlug: '01-co-work-smarter',
         target: 'sketches',
       }, {
@@ -216,7 +216,7 @@ describe('comic compact logging contracts', () => {
     await captureConsole(async () => {
       try {
         await generateImagesCommand({
-          scriptPath: 'input/episode-scripts/01-script/01-co-work-smarter.md',
+          scriptPath: 'input/scripts/01-script/01-co-work-smarter.md',
           sceneSlug: '01-co-work-smarter',
           target: 'sketches',
         }, {

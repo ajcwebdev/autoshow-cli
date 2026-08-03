@@ -36,6 +36,7 @@ import { ScenePromptDataSchema } from '../schemas/schemas'
 import { bold, cyan, l } from './comic-logger'
 import { loadCharacterCatalog } from './character-reference-config'
 import { validateReferenceImageCount } from './reference-capabilities'
+import { LOCATION_VIEWS, readLocationReferenceCatalog, readLocationSketchManifest, requireCurrentLocationReference } from './location-reference'
 import {
 PANEL_DIRECTORY_PATTERN,
 applyReferenceImageLimits,
@@ -363,16 +364,33 @@ export const estimateLocationReferencePrice = async (
   const quality: ImageGenerationQuality = options.quality ?? 'high'
   const qaEnabled = options.qa ?? true
   const maxRepairs = options.maxRepairs ?? 2
+  const view = options.view ?? 'establishing'
   validateImageSizeForModels(size, [model])
+  const catalog = await readLocationReferenceCatalog()
+  const manifest = await readLocationSketchManifest()
+  const entry = catalog.locations.find(item => item.key === options.location)
+  const registration = manifest.sketches.find(item => item.locationKey === options.location)
+  const target = registration?.views.find(item => item.view === view)
+  if (!LOCATION_VIEWS.includes(view)) throw CLIUsageError(`--view must be one of: ${LOCATION_VIEWS.join(', ')}`)
+  if (view !== 'establishing' && !registration?.views.some(item => item.view === 'establishing')) throw CLIUsageError(`Cannot generate ${view} view before the establishing view`)
+  if (options.revise && (!entry || !target)) throw CLIUsageError(`Cannot revise unregistered ${view} view for location "${options.location}"`)
   l(`${bold('Comic')} - Price Estimate: reference-sketch --location`)
   l(`${cyan('='.repeat(50))}\n`)
-  l(`  Location-spec aggregation (${options.llmModel ?? DEFAULT_LLM_MODEL}): ${options.revise ? 0 : 1} call${options.revise ? 's' : ''}`)
-  l('  Initial location-reference image calls: 3')
-  printImageEstimateTable([model], quality, size, 3, 'initial location view')
-  l(`  Initial judge calls (${options.qaModel ?? DEFAULT_PAGE_QA_MODEL}): ${qaEnabled ? 3 : 0}`)
-  l(`  Maximum additional GPT-Image edits: ${qaEnabled ? 3 * maxRepairs : 0}`)
-  l(`  Maximum additional judge calls: ${qaEnabled ? 3 * maxRepairs : 0}`)
-  if (qaEnabled && maxRepairs > 0) printImageEstimateTable([DEFAULT_IMAGE_MODEL], quality, size, 3 * maxRepairs, 'maximum location repair')
+  l(`  Location: ${options.location}  View: ${view}`)
+  if (!options.revise && target) {
+    await requireCurrentLocationReference(options.location!)
+    l('  Existing validated view: no provider calls.')
+    l.dim('  Dry run: no provider calls and no files written.')
+    return
+  }
+  const aggregationCalls = entry ? 0 : 1
+  l(`  Location-spec aggregation (${options.llmModel ?? DEFAULT_LLM_MODEL}): ${aggregationCalls} call${aggregationCalls === 1 ? '' : 's'}`)
+  l('  Initial location-reference image calls: 1')
+  printImageEstimateTable([model], quality, size, 1, 'initial location view')
+  l(`  Initial judge calls (${options.qaModel ?? DEFAULT_PAGE_QA_MODEL}): ${qaEnabled ? 1 : 0}`)
+  l(`  Maximum additional image repairs or fresh camera retries: ${qaEnabled ? maxRepairs : 0}`)
+  l(`  Maximum additional judge calls: ${qaEnabled ? maxRepairs : 0}`)
+  if (qaEnabled && maxRepairs > 0) printImageEstimateTable([DEFAULT_IMAGE_MODEL], quality, size, maxRepairs, 'maximum location retry')
   l.dim('  Dry run: no provider calls and no files written.')
 }
 

@@ -261,7 +261,7 @@ export const fileExists = async (filePath: string): Promise<boolean> => {
     const code = error instanceof Error && 'code' in error
       ? (error as NodeJS.ErrnoException).code
       : undefined
-    if (code === 'ENOENT' || code === 'ENOTDIR') {
+    if (code === 'ENOENT' || code === 'ENOTDIR' || code === 'ENAMETOOLONG') {
       return false
     }
     throw error

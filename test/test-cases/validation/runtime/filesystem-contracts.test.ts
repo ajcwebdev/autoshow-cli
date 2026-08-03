@@ -3,6 +3,7 @@ import { mkdir, mkdtemp, rm, stat, writeFile } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { findDirectoriesBySuffix, listImmediateDirectories, makeExecutable, walkPaths } from '~/utils/filesystem'
+import { fileExists } from '~/utils/cli-utils'
 
 const tempDirs: string[] = []
 
@@ -17,6 +18,10 @@ afterEach(async () => {
 })
 
 describe('filesystem helpers', () => {
+  test('fileExists treats an overlong non-path string as missing', async () => {
+    expect(await fileExists('not-a-path '.repeat(1024))).toBe(false)
+  })
+
   test('walkPaths honors kind and maxDepth', async () => {
     const root = await makeTempDir()
     await mkdir(join(root, 'one', 'two'), { recursive: true })

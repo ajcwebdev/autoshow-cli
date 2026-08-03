@@ -58,7 +58,7 @@ Every comic command requires `input/characters/characters-reference.json`, or th
 
 Character paths must stay within the character root, use PNG/WebP/JPG/JPEG files, remain exclusive to one catalog character, and all group targets must exist. The two fields may name the same file for a one-image character or distinct files for the legacy source-plus-sheet layout. Canonical source images must exist when the catalog loads. A distinct declared sheet may be missing during structure and scene drafting; character revision, panel-prompt creation, and relevant price preflight require a matching checksummed registration in `character-sketches.json`.
 
-Location configuration is project-defined too. Set `styleImage` in `input/locations/locations-reference.json` to any project image whose visual language should guide new location sheets. When that file does not exist yet, the comic command uses the first character catalog image as the initial style reference and writes that portable relative path into the new location catalog.
+Location configuration is project-defined too. Set `styleImage` in `input/locations/locations-reference.json` to any project image whose visual language should guide new location views. A location entry may set a safe root-relative `referenceDirectory`, a lowercase kebab-case establishing `referenceFilename` ending in `--reference.png`, or both to control its canonical promotion path. Reverse and side filenames are derived by inserting `-reverse` or `-side` before `.png`. Legacy `--reference-sheet.png` catalog filenames remain readable and normalize to the establishing path. When the catalog does not exist yet, the comic command uses the first character catalog image as the initial style reference and writes that portable relative path into the new location catalog.
 
 ## Runtime Paths
 
@@ -66,29 +66,29 @@ Canonical project-root paths:
 
 | Artifact | Path |
 |----------|------|
-| Episode scripts | `input/episode-scripts/NN-script/*.md` |
+| Episode scripts | `input/scripts/NN-script/*.md` |
 | Character source images | `input/characters/` |
 | Per-run scene workspace (prompts, scenes, panels, pages, sketches) | `output/<YYYY-MM-DD_HH-MM-SS-mmm>_<scene-slug>/` |
 | Character outline sheets and provenance | `input/characters/<source-stem>--outline-sheet.png`, `input/characters/character-sketches.json` |
-| Canonical location specs, sheets, and provenance | `input/locations/locations-reference.json`, `input/locations/<key>--reference-sheet.png`, `input/locations/location-sketches.json` |
+| Canonical location specs, per-view images, and provenance | `input/locations/locations-reference.json`, `input/locations/<key>--reference.png`, `input/locations/<key>--reference-{reverse,side}.png`, `input/locations/location-sketches.json` |
 
 ## Usage
 
 ```bash
 bun autoshow comic draft-scenes <script-path> [--only structure|prompt|scene|panel-prompts] [--price]
 bun autoshow comic generate-images <script-path> [--target images|sketches|both] [--panels <all|range|list>] [--panels-per-image <n>] [--no-qa] [--max-repairs <n>] [--force] [--price]
-bun autoshow comic reference-sketch (--character <key> | --location <key>) [--revise --notes <text>] [--price]
+bun autoshow comic reference-sketch (--character <key> | --location <key> [--view establishing|reverse|side]) [--revise --notes <text>] [--price]
 bun autoshow comic character-sketch --character <key> [--image-model <model>] [--revise --notes <text>] [--price]
 ```
 
-The `<script-path>` argument also accepts strict episode-scene shorthand: `01-01` resolves to the single Markdown file in `input/episode-scripts/02-script/` whose filename starts with `01-`.
+The `<script-path>` argument also accepts strict episode-scene shorthand: `01-01` resolves to the single Markdown file in `input/scripts/02-script/` whose filename starts with `01-`.
 
 ## Walkthrough: 01-opening
 
 This walkthrough starts from:
 
 ```text
-input/episode-scripts/01-script/01-opening.md
+input/scripts/01-script/01-opening.md
 ```
 
 The equivalent shorthand is `01-01`.
@@ -96,9 +96,9 @@ The equivalent shorthand is `01-01`.
 To run the complete script-to-page pipeline:
 
 ```bash
-bun autoshow comic draft-scenes input/episode-scripts/01-script/01-opening.md
-bun autoshow comic generate-images input/episode-scripts/01-script/01-opening.md --target images --panels 1-16
-bun autoshow comic generate-images input/episode-scripts/01-script/01-opening.md --target sketches --panels 1-4
+bun autoshow comic draft-scenes input/scripts/01-script/01-opening.md
+bun autoshow comic generate-images input/scripts/01-script/01-opening.md --target images --panels 1-16
+bun autoshow comic generate-images input/scripts/01-script/01-opening.md --target sketches --panels 1-4
 ```
 
 `draft-scenes` is required first because `generate-images` only consumes newly reviewed v4 scene artifacts. This writes final panel images under the scene's run directory, e.g. `output/<timestamp>_01-opening/panels/`; grouped page images land in `pages/` when `--panels-per-image` is above one or `--grid` is used. Existing single-location v3 panel bundles and their singular location manifests remain readable by image generation.
@@ -106,19 +106,19 @@ bun autoshow comic generate-images input/episode-scripts/01-script/01-opening.md
 ### 1. Create structured script JSON
 
 ```bash
-bun autoshow comic draft-scenes input/episode-scripts/01-script/01-opening.md --only structure
+bun autoshow comic draft-scenes input/scripts/01-script/01-opening.md --only structure
 ```
 
 ### 2. Build the scene-drafting prompt
 
 ```bash
-bun autoshow comic draft-scenes input/episode-scripts/01-script/01-opening.md --only prompt
+bun autoshow comic draft-scenes input/scripts/01-script/01-opening.md --only prompt
 ```
 
 ### 3. Draft scene JSON
 
 ```bash
-bun autoshow comic draft-scenes input/episode-scripts/01-script/01-opening.md --only scene
+bun autoshow comic draft-scenes input/scripts/01-script/01-opening.md --only scene
 ```
 
 This stage calls the selected text model. Use `--price` first when you want a side-effect-free cost estimate.
@@ -135,7 +135,7 @@ bun autoshow comic reference-sketch --location cargo-bay
 ### 5. Build stable panel prompt bundles
 
 ```bash
-bun autoshow comic draft-scenes input/episode-scripts/01-script/01-opening.md --only panel-prompts
+bun autoshow comic draft-scenes input/scripts/01-script/01-opening.md --only panel-prompts
 ```
 
 Review these prompt bundles before spending image-generation cost.
@@ -143,7 +143,7 @@ Review these prompt bundles before spending image-generation cost.
 ### 6. Generate review sketches
 
 ```bash
-bun autoshow comic generate-images input/episode-scripts/01-script/01-opening.md --target sketches
+bun autoshow comic generate-images input/scripts/01-script/01-opening.md --target sketches
 ```
 
 Panel prompt bundles from the previous step are detected automatically and reused. Rebuild them with `draft-scenes --only panel-prompts`; `--force` on `generate-images` only regenerates image outputs.
@@ -151,13 +151,13 @@ Panel prompt bundles from the previous step are detected automatically and reuse
 ### 7. Generate final panel images
 
 ```bash
-bun autoshow comic generate-images input/episode-scripts/01-script/01-opening.md --target images
+bun autoshow comic generate-images input/scripts/01-script/01-opening.md --target images
 ```
 
 To generate review sketches and final panel images in one run after panel prompt bundles exist, use:
 
 ```bash
-bun autoshow comic generate-images input/episode-scripts/01-script/01-opening.md --target both
+bun autoshow comic generate-images input/scripts/01-script/01-opening.md --target both
 ```
 
 ## draft-scenes
@@ -181,11 +181,11 @@ bun autoshow comic generate-images input/episode-scripts/01-script/01-opening.md
 ### Examples
 
 ```bash
-bun autoshow comic draft-scenes input/episode-scripts/01-script/01-opening.md
-bun autoshow comic draft-scenes input/episode-scripts/01-script/01-opening.md --only structure
-bun autoshow comic draft-scenes input/episode-scripts/01-script/01-opening.md --only prompt
-bun autoshow comic draft-scenes input/episode-scripts/01-script/01-opening.md --only scene
-bun autoshow comic draft-scenes input/episode-scripts/01-script/01-opening.md --only panel-prompts
+bun autoshow comic draft-scenes input/scripts/01-script/01-opening.md
+bun autoshow comic draft-scenes input/scripts/01-script/01-opening.md --only structure
+bun autoshow comic draft-scenes input/scripts/01-script/01-opening.md --only prompt
+bun autoshow comic draft-scenes input/scripts/01-script/01-opening.md --only scene
+bun autoshow comic draft-scenes input/scripts/01-script/01-opening.md --only panel-prompts
 ```
 
 ### Behavior
@@ -233,17 +233,17 @@ bun autoshow comic draft-scenes input/episode-scripts/01-script/01-opening.md --
 ### Examples
 
 ```bash
-bun autoshow comic generate-images input/episode-scripts/01-script/01-opening.md --target sketches
-bun autoshow comic generate-images input/episode-scripts/01-script/01-opening.md --target images
-bun autoshow comic generate-images input/episode-scripts/01-script/01-opening.md --target both
-bun autoshow comic generate-images input/episode-scripts/01-script/01-opening.md --target images --panels 1-16
-bun autoshow comic generate-images input/episode-scripts/01-script/01-opening.md --target images --panels 1,3,7
-bun autoshow comic generate-images input/episode-scripts/01-script/01-opening.md --target images --panels 1-16 --panels-per-image 1 --grid 2x3
-bun autoshow comic generate-images input/episode-scripts/01-script/01-opening.md --target sketches --panels 5-8
-bun autoshow comic generate-images input/episode-scripts/01-script/01-opening.md --target sketches --panels-per-image 6 --quality high
-bun autoshow comic generate-images input/episode-scripts/01-script/01-opening.md --target images --image-model gpt-image-2
-bun autoshow comic generate-images input/episode-scripts/01-script/01-opening.md --target images --image-model gpt-image-2,gemini-3.1-flash-image-preview
-bun autoshow comic generate-images input/episode-scripts/01-script/01-opening.md --target images --variation animation-polish,cinematic-depth
+bun autoshow comic generate-images input/scripts/01-script/01-opening.md --target sketches
+bun autoshow comic generate-images input/scripts/01-script/01-opening.md --target images
+bun autoshow comic generate-images input/scripts/01-script/01-opening.md --target both
+bun autoshow comic generate-images input/scripts/01-script/01-opening.md --target images --panels 1-16
+bun autoshow comic generate-images input/scripts/01-script/01-opening.md --target images --panels 1,3,7
+bun autoshow comic generate-images input/scripts/01-script/01-opening.md --target images --panels 1-16 --panels-per-image 1 --grid 2x3
+bun autoshow comic generate-images input/scripts/01-script/01-opening.md --target sketches --panels 5-8
+bun autoshow comic generate-images input/scripts/01-script/01-opening.md --target sketches --panels-per-image 6 --quality high
+bun autoshow comic generate-images input/scripts/01-script/01-opening.md --target images --image-model gpt-image-2
+bun autoshow comic generate-images input/scripts/01-script/01-opening.md --target images --image-model gpt-image-2,gemini-3.1-flash-image-preview
+bun autoshow comic generate-images input/scripts/01-script/01-opening.md --target images --variation animation-polish,cinematic-depth
 ```
 
 ### Behavior
@@ -267,7 +267,9 @@ bun autoshow comic generate-images input/episode-scripts/01-script/01-opening.md
 
 ## reference-sketch
 
-`reference-sketch --character` runs the existing character-sheet workflow. `reference-sketch --location` scans all scripts matching the normalized location only on first registration, asks GPT-5.5 for stable location facts, creates empty establishing/reverse/side views with per-view QA and repairs, composes a deterministic sheet, and registers it atomically. Revision reuses the immutable specification and requires `--revise --notes`. `character-sketch` is a compatibility alias for character mode.
+`reference-sketch --character` runs the existing character-sheet workflow. `reference-sketch --location` targets exactly one view: `establishing` by default, or deterministic `--view reverse|side`. The first establishing run scans matching scripts and asks the configured text model (`gpt-5.6-sol` by default) for stable location facts; reverse and side require establishing and may be added independently. Each successful view is immediately promoted and atomically registered. An existing target is a validated no-op unless `--revise --notes` is supplied. QA enforces the named camera contract and material distinction from existing views; camera failures restart fresh from canonical references, while style, feature, and geometry repairs edit the candidate. `character-sketch` is a compatibility alias and rejects `--view`.
+
+Location `--price` preflight uses the same target and retry arguments as generation. A new or revised view estimates one initial image and one initial judgment plus that view's permitted retries and judgments; a current validated no-op reports zero provider calls. The initial location-specification call is included only when the catalog entry does not yet exist.
 
 ## character-sketch
 
@@ -331,7 +333,9 @@ input/characters/
 input/locations/
   locations-reference.json
   location-sketches.json
-  <key>--reference-sheet.png
+  <key>--reference.png
+  <key>--reference-reverse.png       # optional
+  <key>--reference-side.png          # optional
 ```
 
 Resume and pinning:
@@ -344,7 +348,7 @@ Resume and pinning:
 
 `draft-scenes --only panel-prompts` first validates the union of visible character keys. Every visible character must have a registered canonical reference whose catalog paths and checksums match `character-sketches.json`. For a one-image character, the source and sheet fields intentionally have the same path and checksum. The command then copies one physical reference file per one-image character into `character-references/<snapshot-id>/<key>/`, records SHA-256 checksums and the registration generation ID, and atomically writes `character-references.json` last. Panel bundles contain the snapshot ID and keys only; no character images are copied into panel directories.
 
-The same stage snapshots every distinct panel location once. Each location must resolve deterministically by key, catalog name, or declared alias and have a registered sheet in `location-sketches.json` whose specification and sheet checksums still match. The stage copies each sheet into `location-references/<snapshot-id>/` and writes the plural schema-version-2 `location-references.json` manifest. Each v4 bundled panel records its own `locationKey` and `locationSnapshotId`. The legacy singular `location-reference.json` manifest remains readable with a single-location v3 panel bundle.
+The same stage snapshots every distinct panel location once. Each location must resolve deterministically by key, catalog name, or declared alias and have an ordered schema-version-2 registration in `location-sketches.json` whose specification and per-view checksums still match. The stage composes all available views horizontally in establishing/reverse/side order into `location-references/<snapshot-id>/<key>--reference-sheet.png`; a one-view location is copied directly and does not require ImageMagick. Each schema-version-2 snapshot records source-view generation IDs and checksums alongside the composed-sheet checksum, and the plural `location-references.json` outer manifest remains schema version 2. Legacy schema-version-1 registrations and location snapshots remain readable so existing projects and immutable historical runs continue to work.
 
 Image generation rejects missing, mismatched, stale, tampered, or over-limit required references before a provider call. Rebuilding panel prompts creates new snapshots. Existing run directories keep using their immutable snapshots even if live files later change. References are compiled in first-appearance order, with exactly one direct image for each one-image character followed by each distinct location used by the request. Optional continuity images come afterward. Legacy two-image characters remain compatible through a single derived identity card.
 

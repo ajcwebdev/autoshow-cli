@@ -126,6 +126,45 @@ describe('multi-location comic contracts', () => {
     expect((await loadAndVerifyLocationReferenceSnapshots(legacyRun))[0]?.snapshotId).toBe('legacy')
   })
 
+  test('composes schema-version-2 views in canonical order and records source provenance', async () => {
+    const root = await mkdtemp(join(tmpdir(), 'autoshow-multi-view-location-'))
+    roots.push(root)
+    const characters = join(root, 'input', 'characters')
+    const locations = join(root, 'input', 'locations')
+    await mkdir(characters, { recursive: true })
+    await mkdir(locations, { recursive: true })
+    configureCharactersRoot(characters)
+    const location = catalog.locations[0]!
+    const establishing = join(locations, 'quarters--reference.png')
+    const reverse = join(locations, 'quarters--reference-reverse.png')
+    const command = Bun.which('magick') ?? Bun.which('convert')
+    if (!command) throw new Error('ImageMagick is required for multi-view location snapshot coverage')
+    for (const [path, color] of [[establishing, 'red'], [reverse, 'blue']] as const) {
+      const result = Bun.spawnSync([command, '-size', '1x1', `xc:${color}`, path])
+      if (result.exitCode !== 0) throw new Error(result.stderr.toString())
+    }
+    const bytes = async (path: string) => Buffer.from(await Bun.file(path).arrayBuffer())
+    await Bun.write(join(locations, 'locations-reference.json'), JSON.stringify({ ...catalog, locations: [location] }))
+    await Bun.write(join(locations, 'location-sketches.json'), JSON.stringify({ schemaVersion: 2, sketches: [{
+      locationKey: location.key,
+      specificationSha256: createHash('sha256').update(location.specification).digest('hex'),
+      views: [
+        { view: 'establishing', generationId: 'establishing-generation', image: 'quarters--reference.png', imageSha256: createHash('sha256').update(await bytes(establishing)).digest('hex'), model: 'fixture', createdAt: '2026-01-01T00:00:00.000Z' },
+        { view: 'reverse', generationId: 'reverse-generation', image: 'quarters--reference-reverse.png', imageSha256: createHash('sha256').update(await bytes(reverse)).digest('hex'), model: 'fixture', createdAt: '2026-01-02T00:00:00.000Z' },
+      ],
+    }] }))
+    const run = join(root, 'run')
+    const snapshot = (await createLocationReferenceSnapshots(run, ['quarters'])).snapshots[0]!
+    expect(snapshot.schemaVersion).toBe(2)
+    expect(snapshot.sourceViews.map(view => [view.view, view.generationId])).toEqual([['establishing', 'establishing-generation'], ['reverse', 'reverse-generation']])
+    expect(snapshot.sheet.path).toEndWith('/quarters--reference-sheet.png')
+    const identify = Bun.which('identify')
+    if (!identify) throw new Error('ImageMagick identify is required for multi-view location snapshot coverage')
+    const identified = Bun.spawnSync([identify, '-format', '%wx%h', resolve(run, snapshot.sheet.path)])
+    expect(identified.exitCode).toBe(0)
+    expect(identified.stdout.toString()).toBe('2x1')
+  })
+
   test('parses a complete script into ordered location segments without an external project fixture', () => {
     const structured = parseScriptMarkdownToStructuredData([
       '# Episode',
@@ -141,7 +180,7 @@ describe('multi-location comic contracts', () => {
       'Footsteps cross the long corridor.',
       '',
       'A warning light begins to flash.',
-    ].join('\n'), 'input/episode-scripts/01-script/02-change-of-venue.md', {
+    ].join('\n'), 'input/scripts/01-script/02-change-of-venue.md', {
       locationCatalog: catalog,
       characterCatalog: emptyCharacterCatalog,
     })

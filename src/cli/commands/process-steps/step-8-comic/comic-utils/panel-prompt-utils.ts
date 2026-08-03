@@ -7,7 +7,7 @@ import type { PanelBundleData, ImageGenerationModel, PanelPrimaryReferenceInput,
 import { ReadablePanelBundleDataSchema } from '../schemas/schemas'
 import { CharacterReferenceManifestSchema, getCharacterReferenceManifestPath } from './character-reference-snapshot'
 import { resolveCharacterIdentityReferences } from './character-identity-card'
-import { getLocationReferenceSnapshotPath, getLocationReferenceSnapshotsPath, type LocationReferenceSnapshot, type LocationReferenceSnapshotManifest } from './location-reference'
+import { getLocationReferenceSnapshotPath, getLocationReferenceSnapshotsPath, LOCATION_VIEWS, type AnyLocationReferenceSnapshot, type LocationReferenceSnapshotManifest } from './location-reference'
 import { trimOptionalContinuityReferences } from './reference-capabilities'
 import { l } from './comic-logger'
 import { InfraError, ValidationError } from '~/utils/error-handler'
@@ -104,13 +104,13 @@ export const resolveLocationReferencesAcrossPanels = (panels: PanelPrimaryRefere
   const runDirectory = [...runDirectories][0]!
   const pluralPath = getLocationReferenceSnapshotsPath(runDirectory)
   const legacyPath = getLocationReferenceSnapshotPath(runDirectory)
-  let snapshots: LocationReferenceSnapshot[]
+  let snapshots: AnyLocationReferenceSnapshot[]
   if (existsSync(pluralPath)) {
     const manifest = JSON.parse(readFileSync(pluralPath, 'utf8')) as LocationReferenceSnapshotManifest
     if (manifest.schemaVersion !== 2 || !Array.isArray(manifest.snapshots)) throw ValidationError(`Invalid location snapshot manifest: ${pluralPath}`, { stage: 'comic:location-reference' })
     snapshots = manifest.snapshots
   } else if (existsSync(legacyPath)) {
-    snapshots = [JSON.parse(readFileSync(legacyPath, 'utf8')) as LocationReferenceSnapshot]
+    snapshots = [JSON.parse(readFileSync(legacyPath, 'utf8')) as AnyLocationReferenceSnapshot]
   } else {
     throw InfraError('Missing location-references.json or legacy location-reference.json. Run draft-scenes explicitly.', { stage: 'comic:location-reference' })
   }
@@ -124,7 +124,9 @@ export const resolveLocationReferencesAcrossPanels = (panels: PanelPrimaryRefere
     const expectedKey = input.bundleData.schemaVersion === 3 ? undefined : panel.locationKey
     if (!snapshotId) throw ValidationError('Panel bundle omits its location snapshot ID', { stage: 'comic:location-reference' })
     const snapshot = byId.get(snapshotId)
-    if (!snapshot || snapshot.schemaVersion !== 1 || !snapshot.sheet?.path || (expectedKey && snapshot.locationKey !== expectedKey)) {
+    const sourceViewIndices = snapshot?.schemaVersion === 2 ? snapshot.sourceViews?.map(view => LOCATION_VIEWS.indexOf(view.view)) ?? [] : []
+    const invalidV2Provenance = snapshot?.schemaVersion === 2 && (!Array.isArray(snapshot.sourceViews) || snapshot.sourceViews.length === 0 || snapshot.sourceViews[0]?.view !== 'establishing' || !snapshot.sourceViews.every(view => LOCATION_VIEWS.includes(view.view) && !!view.generationId && /^[a-f0-9]{64}$/.test(view.imageSha256)) || new Set(sourceViewIndices).size !== sourceViewIndices.length || sourceViewIndices.some((index, position) => position > 0 && index <= sourceViewIndices[position - 1]!))
+    if (!snapshot || (snapshot.schemaVersion !== 1 && snapshot.schemaVersion !== 2) || !snapshot.sheet?.path || invalidV2Provenance || (expectedKey && snapshot.locationKey !== expectedKey)) {
       throw ValidationError(`Panel location snapshot ${snapshotId} does not match its manifest entry`, { stage: 'comic:location-reference' })
     }
     if (seen.has(snapshotId)) continue

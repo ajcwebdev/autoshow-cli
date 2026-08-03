@@ -6,6 +6,7 @@ import { locationReferenceSketchCommand } from './location-reference-command'
 export const referenceSketchCommand = async (options: ReferenceSketchCommandOptions): Promise<void> => {
   if (Number(Boolean(options.character)) + Number(Boolean(options.location)) !== 1) throw CLIUsageError('Exactly one of --character or --location is required')
   if (options.character) {
+    if (options.view) throw CLIUsageError('--view is only valid with --location')
     await characterSketchCommand({
       character: options.character,
       ...(options.imageModels ? { imageModels: options.imageModels } : {}),

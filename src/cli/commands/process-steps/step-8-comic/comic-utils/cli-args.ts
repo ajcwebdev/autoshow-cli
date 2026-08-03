@@ -196,6 +196,14 @@ export const parseReferenceSketchArgs = (args: string[], compatibilityCharacterA
         index++
         break
       }
+      case '--view': {
+        if (parsed.view) throw CLIUsageError('View can only be specified once')
+        const view = readFlagValue(args, index, argument)
+        if (view !== 'establishing' && view !== 'reverse' && view !== 'side') throw CLIUsageError(`Invalid location view "${view}". Expected one of: establishing, reverse, side`)
+        parsed.view = view
+        index++
+        break
+      }
       case '--llm-model':
       case '--qa-model': {
         const field = argument === '--llm-model' ? 'llmModel' : 'qaModel'
@@ -293,6 +301,8 @@ export const parseReferenceSketchArgs = (args: string[], compatibilityCharacterA
   if (!parsed.showHelp && Number(Boolean(parsed.character)) + Number(Boolean(parsed.location)) !== 1) {
     throw CLIUsageError('Exactly one of --character or --location is required')
   }
+
+  if (parsed.character && parsed.view) throw CLIUsageError('--view is only valid with --location')
 
   validateImageSizeForModels(parsed.size, parsed.imageModels)
 

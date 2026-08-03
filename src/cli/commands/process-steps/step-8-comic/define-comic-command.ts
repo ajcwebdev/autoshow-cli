@@ -168,7 +168,7 @@ export const comicCommand = defineCliCommand({
     subcommands: COMIC_SUBCOMMAND_SUMMARIES,
     examples: [
       ['bun autoshow comic draft-scenes 05-01', 'Draft structured scene JSON'],
-      ['bun autoshow comic draft-scenes input/episode-scripts/01-script/01-opening.md --only panel-prompts', 'Build panel prompt bundles'],
+      ['bun autoshow comic draft-scenes input/scripts/01-script/01-opening.md --only panel-prompts', 'Build panel prompt bundles'],
       ['bun autoshow comic generate-images 05-01 --panels-per-image 6', 'Generate page images'],
       ['bun autoshow comic character-sketch --character hero', 'Generate character sketch references'],
       ['bun autoshow comic reference-sketch --location cargo-bay', 'Generate a canonical location reference'],

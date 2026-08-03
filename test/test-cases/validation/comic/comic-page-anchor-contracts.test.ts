@@ -43,7 +43,7 @@ const createSceneFixture = async (sceneSlug: string): Promise<{ runDirectory: st
   const locationSheet = join(runDirectory, 'location-references', 'location-snapshot', 'cargo-bay.png')
   await mkdir(dirname(locationSheet), { recursive: true })
   await Bun.write(locationSheet, tinyPng)
-  await Bun.write(join(runDirectory, 'location-reference.json'), JSON.stringify({ schemaVersion: 1, snapshotId: 'location-snapshot', locationKey: 'cargo-bay', specification: 'A loading door stays left of a fixed control booth; camera angles and crops may vary.', sourceScripts: ['episode-scripts/02-script/01.md'], sourceGenerationId: 'v1', sheet: { path: 'location-references/location-snapshot/cargo-bay.png', sha256: sha } }))
+  await Bun.write(join(runDirectory, 'location-reference.json'), JSON.stringify({ schemaVersion: 1, snapshotId: 'location-snapshot', locationKey: 'cargo-bay', specification: 'A loading door stays left of a fixed control booth; camera angles and crops may vary.', sourceScripts: ['scripts/02-script/01.md'], sourceGenerationId: 'v1', sheet: { path: 'location-references/location-snapshot/cargo-bay.png', sha256: sha } }))
   for (const panelNumber of [1, 2]) {
     const directory = join(runDirectory, 'panel-prompts', `panel-${String(panelNumber).padStart(2, '0')}`)
     await mkdir(directory, { recursive: true })
