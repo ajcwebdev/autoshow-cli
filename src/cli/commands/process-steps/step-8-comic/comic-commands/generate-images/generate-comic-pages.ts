@@ -23,6 +23,7 @@ getPromptBundleFilename,
 normalizePromptBundle,
 resolvePrimaryCharacterReferencesAcrossPanels,
 resolveLocationReferencesAcrossPanels,
+resolveDesignReferencesAcrossPanels,
 resolveScenePanelDirectories,
 } from '../../comic-utils/panel-prompt-utils'
 import { getPagesDirectory, getPanelPromptsDirectory } from '../../comic-utils/project-paths'
@@ -108,9 +109,12 @@ const resolvePageReferences = async (
 
   const locationReferences = resolveLocationReferencesAcrossPanels(panels.map(panel => ({ panelDirectory: panel.panelDirectory, entries: panel.panelEntries, bundleData: panel.bundleData })))
   const sceneAnchorRefs = locationReferences.map(reference => reference.path)
+  const designReferences = resolveDesignReferencesAcrossPanels(panels.map(panel => ({ panelDirectory: panel.panelDirectory, entries: panel.panelEntries, bundleData: panel.bundleData })))
+  const designPaths = designReferences.map(reference => reference.path)
   const orderedReferences = [
     ...primaryCharacterReferenceState.primaryCharacterRefs,
     ...sceneAnchorRefs,
+    ...designPaths,
   ]
 
   const resolved = applyReferenceImageLimits(
@@ -119,7 +123,7 @@ const resolvePageReferences = async (
     primaryCharacterReferenceState.sketchCharacterRefs,
     primaryCharacterReferenceState.canonicalCharacterRefs,
     [],
-    sceneAnchorRefs,
+    [...sceneAnchorRefs, ...designPaths],
     primaryCharacterReferenceState.missingPrimaryCharacterRefs,
     model,
   )
@@ -133,6 +137,10 @@ const resolvePageReferences = async (
     locationReferences: locationReferences.map((reference, index) => ({
       ...reference,
       referenceIndex: primaryCharacterReferenceState.primaryCharacterRefs.length + index + 1,
+    })),
+    designReferences: designReferences.map((reference, index) => ({
+      ...reference,
+      referenceIndex: primaryCharacterReferenceState.primaryCharacterRefs.length + locationReferences.length + index + 1,
     })),
   }
 }
@@ -259,7 +267,7 @@ export const generateComicPages = async (
               model,
             )
             const pagePromptData = buildComicPagePromptData(pageChunk.panels.map(panel => panel.bundleData))
-            const normalizedPrompt = buildComicPagePrompt(pagePromptData, resolvedReferences.characterReferences ?? [], resolvedReferences.locationReferences ?? [])
+            const normalizedPrompt = buildComicPagePrompt(pagePromptData, resolvedReferences.characterReferences ?? [], resolvedReferences.locationReferences ?? [], resolvedReferences.designReferences ?? [])
             const promptForVariation = prompts
               ? applyImagePromptVariation(normalizedPrompt, variation, prompts)
               : normalizedPrompt
@@ -275,7 +283,7 @@ export const generateComicPages = async (
 
             let entry = qaEnabled && outputExists && !options.force ? await readReusablePageQaEntry(outputPath, judgeModel) : undefined
             if (qaEnabled && outputExists && !options.force && !entry) {
-              entry = await judgePage({ pageNumber: pageChunk.pageNumber, pagePath: outputPath, panelData: pagePromptData, identityCards: resolvedReferences.primaryCharacterRefs, locationSheets: resolvedReferences.secondaryRefs, characterReferences: resolvedReferences.characterReferences, locationReferences: resolvedReferences.locationReferences, model: judgeModel })
+              entry = await judgePage({ pageNumber: pageChunk.pageNumber, pagePath: outputPath, panelData: pagePromptData, identityCards: resolvedReferences.primaryCharacterRefs, locationSheets: resolvedReferences.secondaryRefs, designSheets: resolvedReferences.designReferences?.map(reference => reference.path), characterReferences: resolvedReferences.characterReferences, locationReferences: resolvedReferences.locationReferences, designReferences: resolvedReferences.designReferences, model: judgeModel })
               stats.totalInputTokens += entry.usage.inputTokens
               stats.totalOutputTokens += entry.usage.outputTokens
               stats.totalCost += entry.usage.costUsd
@@ -330,7 +338,7 @@ export const generateComicPages = async (
                 stats.imagesGenerated++
                 if (!qaEnabled) { await copyFile(attemptPath, outputPath); break }
                 try {
-                  entry = await judgePage({ pageNumber: pageChunk.pageNumber, pagePath: attemptPath, panelData: pagePromptData, identityCards: resolvedReferences.primaryCharacterRefs, locationSheets: resolvedReferences.secondaryRefs, characterReferences: resolvedReferences.characterReferences, locationReferences: resolvedReferences.locationReferences, model: judgeModel })
+                  entry = await judgePage({ pageNumber: pageChunk.pageNumber, pagePath: attemptPath, panelData: pagePromptData, identityCards: resolvedReferences.primaryCharacterRefs, locationSheets: resolvedReferences.secondaryRefs, designSheets: resolvedReferences.designReferences?.map(reference => reference.path), characterReferences: resolvedReferences.characterReferences, locationReferences: resolvedReferences.locationReferences, designReferences: resolvedReferences.designReferences, model: judgeModel })
                   stats.totalInputTokens += entry.usage.inputTokens
                   stats.totalOutputTokens += entry.usage.outputTokens
                   stats.totalCost += entry.usage.costUsd

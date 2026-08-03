@@ -45,6 +45,7 @@ getPanelNumberFromName,
 getPromptBundleFilename,
 resolvePrimaryCharacterReferencesAcrossPanels,
 resolveLocationReferencesAcrossPanels,
+resolveDesignReferencesAcrossPanels,
 } from './panel-prompt-utils'
 import {
 getDraftPromptPath,
@@ -406,11 +407,13 @@ const validatePriceReferenceGroup = async (panelPromptsDir: string, panelNumbers
   const panels = await Promise.all(panelNumbers.map(number => readPricePanelInput(panelPromptsDir, number)))
   const primary = resolvePrimaryCharacterReferencesAcrossPanels(panels, { composeDerived: false })
   const locations = resolveLocationReferencesAcrossPanels(panels)
+  const designs = resolveDesignReferencesAcrossPanels(panels)
   const locationPlaceholders = locations.map((_, index) => `__location-${index + 1}__`)
+  const designPlaceholders = designs.map((_, index) => `__design-${index + 1}__`)
   for (const model of models) {
-    applyReferenceImageLimits([...primary.primaryCharacterRefs, ...locationPlaceholders], [...primary.primaryCharacterRefs, ...locationPlaceholders], primary.sketchCharacterRefs, primary.canonicalCharacterRefs, [], locationPlaceholders, primary.missingPrimaryCharacterRefs, model)
+    applyReferenceImageLimits([...primary.primaryCharacterRefs, ...locationPlaceholders, ...designPlaceholders], [...primary.primaryCharacterRefs, ...locationPlaceholders, ...designPlaceholders], primary.sketchCharacterRefs, primary.canonicalCharacterRefs, [], [...locationPlaceholders, ...designPlaceholders], primary.missingPrimaryCharacterRefs, model)
   }
-  return primary.primaryCharacterRefs.length + locations.length
+  return primary.primaryCharacterRefs.length + locations.length + designs.length
 }
 
 const estimateFinalPanelImagesPrice = async (options: GenerateImagesCommandOptions): Promise<void> => {

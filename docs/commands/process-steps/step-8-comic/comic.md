@@ -322,6 +322,8 @@ output/<YYYY-MM-DD_HH-MM-SS-mmm>_01-opening/
   character-references/<snapshot-id>/<key>/
   location-references.json
   location-references/<snapshot-id>/
+  design-references.json             # only when reviewed panels declare designReferences
+  design-references/<snapshot-id>/
   panel-prompts/
   panels/
   pages/
@@ -344,13 +346,15 @@ Resume and pinning:
 - A full `draft-scenes` run or `--only structure` starts a **fresh** run directory. `generate-images` resumes only a run that already contains `scene.json`; without one it fails instead of drafting, and `--force` never changes which run directory is used.
 - Pass the global `--output-dir <path>` to pin an explicit run directory for both reading and writing.
 
-### Run-level character and location snapshots
+### Run-level character, location, and design snapshots
 
 `draft-scenes --only panel-prompts` first validates the union of visible character keys. Every visible character must have a registered canonical reference whose catalog paths and checksums match `character-sketches.json`. For a one-image character, the source and sheet fields intentionally have the same path and checksum. The command then copies one physical reference file per one-image character into `character-references/<snapshot-id>/<key>/`, records SHA-256 checksums and the registration generation ID, and atomically writes `character-references.json` last. Panel bundles contain the snapshot ID and keys only; no character images are copied into panel directories.
 
 The same stage snapshots every distinct panel location once. Each location must resolve deterministically by key, catalog name, or declared alias and have an ordered schema-version-2 registration in `location-sketches.json` whose specification and per-view checksums still match. The stage composes all available views horizontally in establishing/reverse/side order into `location-references/<snapshot-id>/<key>--reference-sheet.png`; a one-view location is copied directly and does not require ImageMagick. Each schema-version-2 snapshot records source-view generation IDs and checksums alongside the composed-sheet checksum, and the plural `location-references.json` outer manifest remains schema version 2. Legacy schema-version-1 registrations and location snapshots remain readable so existing projects and immutable historical runs continue to work.
 
-Image generation rejects missing, mismatched, stale, tampered, or over-limit required references before a provider call. Rebuilding panel prompts creates new snapshots. Existing run directories keep using their immutable snapshots even if live files later change. References are compiled in first-appearance order, with exactly one direct image for each one-image character followed by each distinct location used by the request. Optional continuity images come afterward. Legacy two-image characters remain compatible through a single derived identity card.
+Reviewed schema-version-4 panels may optionally declare `designReferences` entries with a lowercase kebab-case `key`, a safe project-relative image `sourcePath` below `input/`, and a nonblank `usage` description. Automated scene drafting emits an empty array; reviewers attach designs before rebuilding panel prompts. The panel-prompt stage validates consistent key/path/usage mappings, checksums and copies each distinct design into `design-references/<snapshot-id>/`, atomically writes `design-references.json`, and binds only the mapped panels to the snapshot and keys. Generation, repair restarts, capability preflight, grouped pages, sketches, and QA receive designs after character and location references in first-panel-appearance order. Missing, mixed, unsafe, duplicated, stale, or tampered design references fail before provider calls, and QA treats an unmistakable mapped redesign as a hard source-precedence failure.
+
+Image generation rejects missing, mismatched, stale, tampered, or over-limit required references before a provider call. Rebuilding panel prompts creates new snapshots. Existing run directories keep using their immutable snapshots even if live files later change. References are compiled in first-appearance order, with exactly one direct image for each one-image character followed by each distinct location and then each mapped design used by the request. Optional continuity images come afterward. Legacy two-image characters remain compatible through a single derived identity card.
 
 ## Clean-break migration
 

@@ -131,6 +131,12 @@ export type ResolvedReferenceImages = {
     referenceIndex: number
     path: string
   }>
+  designReferences?: Array<{
+    key: string
+    usage: string
+    referenceIndex: number
+    path: string
+  }>
 }
 
 export type PrimaryCharacterReferenceState = Pick<

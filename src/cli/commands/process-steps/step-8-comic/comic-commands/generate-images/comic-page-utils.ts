@@ -295,6 +295,7 @@ export const buildComicPagePrompt = (
   pagePromptData: PanelBundleData,
   characterReferences: Array<{ key: string; referenceIndex: number; description: string }> = [],
   locationReferences: Array<{ key: string; referenceIndex: number; specification: string }> = [],
+  designReferences: Array<{ key: string; referenceIndex: number; usage: string }> = [],
 ): string => {
   const panelCount = pagePromptData.panels.length
   const subPanelLabel = panelCount === 1 ? 'sub-panel' : 'sub-panels'
@@ -310,6 +311,8 @@ export const buildComicPagePrompt = (
     const forbidden = allReferencedKeys.filter(key => !panel.characterKeys.includes(key))
     const locationKey = panel.locationKey ?? locationReferences[0]?.key
     const locationReference = locationReferences.find(reference => reference.key === locationKey)
+    const panelDesignKeys = panel.designReferenceKeys ?? panel.designReferences?.map(reference => reference.key) ?? []
+    const panelDesignReferences = designReferences.filter(reference => panelDesignKeys.includes(reference.key))
     const speech = panel.speech.length === 0
       ? ['  - Dialogue: none. Do not add a bubble or caption.']
       : panel.speech.flatMap(item => {
@@ -330,6 +333,7 @@ export const buildComicPagePrompt = (
       `  - Script-derived visual description: ${panel.description}`,
       `  - Exhaustive prose shot plan: ${panel.shotPlan ?? 'Legacy bundle: rebuild with draft-scenes before generation.'}`,
       `  - Canonical location: ${locationKey ?? 'legacy single location'}${locationReference ? ` (Reference ${locationReference.referenceIndex})` : ''}.`,
+      `  - Canonical design references: ${panelDesignReferences.length > 0 ? panelDesignReferences.map(reference => `${reference.key} (Reference ${reference.referenceIndex}; ${reference.usage})`).join('; ') : 'none'}. Do not use a design reference in any sub-panel to which it is not mapped.`,
       ...speech,
     ].join('\n')
   }).join('\n')
@@ -346,6 +350,7 @@ export const buildComicPagePrompt = (
           ? '- This is a trailing single-panel page. Make its one panel fill the canvas; do not leave an empty second panel.'
           : '- Use an ordered, clearly separated multi-panel page layout matching the explicit panels-per-image override.',
       '- Treat every immutable canonical location reference and its specification as canon for its mapped sub-panels. They define location identity, persistent world-space geometry, permanent architecture, fixed furniture and installed equipment, recurring spatial anchors, palette, and art style.',
+      '- Treat every mapped immutable canonical design reference as exact visual canon for the named logo, prop, insignia, screen design, or other reusable graphic. Preserve its recognizable geometry, composition, and specified usage; do not redesign, relabel, or leak it into unmapped sub-panels.',
       '- Preserve location topology, not a frozen composition: permanent anchors must keep the same relationships to the room and to one another unless the source explicitly changes the set as a story event. A new camera angle may crop, foreshorten, or reveal different anchors, but it must not relocate, remove, hide, duplicate, or redesign them.',
       '- Before rendering, mentally map each permanent anchor from the canonical location image/specification into the requested camera. If the composition reveals an anchor\'s canonical part of the set, render that anchor there; cropping is not permission to leave an exposed canonical region empty or fill it with a relocated anchor.',
       '- Treat every named fixed anchor as a presence-and-geometry requirement whenever any of its support surface, wall zone, footprint, or expected silhouette is visible. Preserve fixed furniture footprint, silhouette, connectedness, orientation, edge count, and relationship to walls; perspective may foreshorten those properties but may not turn a straight run into a corner, L-shaped, wraparound, split, or freestanding form. Do not call a major anchor hidden merely because a character stands near it: either show the visible remainder around the character or frame its entire canonical region outside the image. Preserve each portable-but-recurring anchor on the same support surface and in the same world-space relationship to the fixed furniture; foreground placement caused by a new camera is allowed, physical relocation is not.',
@@ -375,6 +380,12 @@ export const buildComicPagePrompt = (
             `- Reference ${reference.referenceIndex}: locationKey=${reference.key}; use only for sub-panels ${pagePromptData.panels.filter(panel => (panel.locationKey ?? locationReferences[0]?.key) === reference.key).map(panel => panel.number).join(', ')}.`,
             `  Canonical location specification: ${reference.specification}`,
           ]),
+        ].join('\n'),
+    designReferences.length === 0
+      ? 'Design reference legend: none.'
+      : [
+          'Design reference legend (after character and location references, in first-panel-appearance order):',
+          ...designReferences.map(reference => `- Reference ${reference.referenceIndex}: designKey=${reference.key}; usage=${reference.usage}; use only for sub-panels ${pagePromptData.panels.filter(panel => (panel.designReferenceKeys ?? panel.designReferences?.map(item => item.key) ?? []).includes(reference.key)).map(panel => panel.number).join(', ')}.`),
         ].join('\n'),
     `Exact per-panel execution contract:\n${panelDirectives}`,
     `Ordered page data:\n\`\`\`json\n${JSON.stringify(pagePromptData, null, 2)}\n\`\`\``,

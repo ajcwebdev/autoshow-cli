@@ -69,8 +69,10 @@ export type PageQaRequest = {
   panelData: PanelBundleData
   identityCards: string[]
   locationSheets: string[]
+  designSheets?: string[] | undefined
   characterReferences?: Array<{ key: string; description: string }> | undefined
   locationReferences?: Array<{ key: string; specification: string }> | undefined
+  designReferences?: Array<{ key: string; usage: string }> | undefined
   model: string
 }
 
@@ -227,8 +229,9 @@ export const buildComicPageQaPrompt = (
   panelData: PanelBundleData,
   characterReferences: Array<{ key: string; description: string }> = [],
   locationReferences: Array<{ key: string; specification: string }> = [],
+  designReferences: Array<{ key: string; usage: string }> = [],
 ): string => [
-  'Judge this generated comic output strictly. The first image is the generated output. Following images are ordered canonical character references, followed by every immutable canonical location reference in first-panel-appearance order.',
+  'Judge this generated comic output strictly. The first image is the generated output. Following images are ordered canonical character references, followed by every immutable canonical location reference, then every mapped immutable canonical design reference, each in first-panel-appearance order.',
   `Location mapping: ${panelData.panels.map(panel => `panel ${panel.number} -> ${panel.locationKey ?? 'legacy single location'}`).join('; ')}. Judge each panel only against its mapped location reference.`,
   'Evaluate panels left-to-right. Location identity, set continuity, source-instruction precedence, shot-plan framing/staging, exact cast, dialogue wording and completeness, and bubble-tail/speaker attribution are hard requirements. Artifacts, harmless typography substitutions, minor identity stylization variance, and aesthetic scores are advisory only. For every failed panel return concise actionable editInstructions in this same response.',
   'Perform a mandatory anchor-by-anchor continuity audit before setting setContinuityMatch. Identify permanent architecture, fixed furniture, installed equipment, and every recurring spatial anchor named or visibly established by the mapped canonical location reference/specification. Emit one setContinuityAudit entry for every such anchor, with concrete visual evidence and exactly one allowed status. Presence alone is insufficient: for fixed furniture and architecture, explicitly compare footprint, silhouette, connectedness, orientation, visible edge geometry, and wall relationships. Perspective may foreshorten them but may not turn a straight run into a corner, L-shaped, wraparound, split, or freestanding form; classify that as redesigned. There is no occluded status and character or prop blocking never excuses an unverifiable anchor. If the anchor\'s canonical region is inside the image but the anchor is not visibly identifiable, status is missing, even when a foreground object covers that region. Use outside-crop only when the anchor\'s entire canonical region is beyond the image boundary. Set setContinuityMatch=false if any anchor is missing, relocated, duplicated, mirrored, or redesigned without an explicit source-authored story event. A wide or otherwise revealing view that shows an anchor\'s canonical region but omits the anchor is a hard failure; do not infer that it was intentionally cropped. Judge world-space topology and relative relationships, not screen coordinates. A different camera side, angle, distance, elevation, perspective, or crop is desirable shot variation and must not fail set continuity, but characters and foreground props must be composed around a recognizable visible remainder of every anchor whose canonical region is in frame. Do not demand the canonical reference camera or a repeated composition.',
@@ -239,13 +242,15 @@ export const buildComicPageQaPrompt = (
   'For each panel classify identityIssueKind as none, minor-variance, or unmistakable-mismatch, and classify dialogueIssueKind as none, typography-only, or content. These classifications must follow the tolerance rules above even when the corresponding raw boolean would otherwise be stricter.',
   `Canonical character catalog descriptions: ${characterReferences.length > 0 ? characterReferences.map(reference => `${reference.key}: ${reference.description}`).join(' | ') : 'none supplied; rely on the ordered canonical reference images.'}`,
   `Canonical location specifications: ${locationReferences.length > 0 ? locationReferences.map(reference => `${reference.key}: ${reference.specification}`).join(' | ') : 'none supplied; rely on the ordered canonical location images.'}`,
+  `Canonical design requirements: ${designReferences.length > 0 ? designReferences.map(reference => `${reference.key}: ${reference.usage}`).join(' | ') : 'none supplied.'}`,
+  'A mapped canonical design reference is a hard source-precedence requirement. Fail sourcePrecedence when the generated panel unmistakably redesigns, replaces, relabels, or omits a design whose usage requires it to be visible. Do not require a design in panels to which it is not mapped.',
   'Source panel data:', JSON.stringify(panelData, null, 2),
   'Return only the requested JSON.',
 ].join('\n\n')
 
 export const judgeComicPage = async (request: PageQaRequest): Promise<PageQaEntry> => {
-  const prompt = buildComicPageQaPrompt(request.panelData, request.characterReferences ?? [], request.locationReferences ?? [])
-  const imagePaths = [request.pagePath, ...request.identityCards, ...request.locationSheets]
+  const prompt = buildComicPageQaPrompt(request.panelData, request.characterReferences ?? [], request.locationReferences ?? [], request.designReferences ?? [])
+  const imagePaths = [request.pagePath, ...request.identityCards, ...request.locationSheets, ...(request.designSheets ?? [])]
   const response = await createOpenAIResponse(getOpenAIClientConfig(), {
     model: request.model,
     input: [{ role: 'user', content: [

@@ -8,6 +8,8 @@ import { ReadablePanelBundleDataSchema } from '../schemas/schemas'
 import { CharacterReferenceManifestSchema, getCharacterReferenceManifestPath } from './character-reference-snapshot'
 import { resolveCharacterIdentityReferences } from './character-identity-card'
 import { getLocationReferenceSnapshotPath, getLocationReferenceSnapshotsPath, LOCATION_VIEWS, type AnyLocationReferenceSnapshot, type LocationReferenceSnapshotManifest } from './location-reference'
+import { resolveDesignReferencesAcrossPanels } from './design-reference'
+export { resolveDesignReferencesAcrossPanels } from './design-reference'
 import { trimOptionalContinuityReferences } from './reference-capabilities'
 import { l } from './comic-logger'
 import { InfraError, ValidationError } from '~/utils/error-handler'
@@ -181,12 +183,14 @@ export const resolveReferenceImages = (
     : []
   // Arbitrary images in panel directories are never promoted into identity refs.
   const locations = resolveLocationReferencesAcrossPanels([{ panelDirectory, entries, bundleData }])
-  const required = [...primary.primaryCharacterRefs, ...locations.map(location => location.path)]
+  const designs = resolveDesignReferencesAcrossPanels([{ panelDirectory, entries, bundleData }])
+  const required = [...primary.primaryCharacterRefs, ...locations.map(location => location.path), ...designs.map(design => design.path)]
   const limited = trimOptionalContinuityReferences(model, required, prior)
   return {
     ...buildResolved(limited.references, primary.primaryCharacterRefs, prior, locations.map(location => location.path), primary.missingPrimaryCharacterRefs),
     ...(primary.characterReferences ? { characterReferences: primary.characterReferences } : {}),
     locationReferences: locations.map((location, index) => ({ ...location, referenceIndex: primary.primaryCharacterRefs.length + index + 1 })),
+    designReferences: designs.map((design, index) => ({ ...design, referenceIndex: primary.primaryCharacterRefs.length + locations.length + index + 1 })),
   }
 }
 
