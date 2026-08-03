@@ -193,7 +193,7 @@ export const getLocationViewPath = (key: string, view: LocationView, referenceDi
   if (referenceFilename !== undefined) validateReferenceFilename(referenceFilename, `Location "${key}" referenceFilename`)
   const filename = establishingFilename(key, referenceFilename)
   const viewFilename = view === 'establishing' ? filename : filename.replace(/--reference\.png$/, `--reference-${view}.png`)
-  return join(getLocationsRoot(), referenceDirectory ?? '', viewFilename)
+  return resolve(getLocationsRoot(), referenceDirectory ?? '', viewFilename)
 }
 
 /** @deprecated Legacy sheet path helper retained for schema-version-1 compatibility. */

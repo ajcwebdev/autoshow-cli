@@ -2,7 +2,7 @@ import { afterEach, describe, expect, test } from 'bun:test'
 import { createHash } from 'node:crypto'
 import { mkdir, mkdtemp, rm } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
-import { dirname, join } from 'node:path'
+import { dirname, join, relative } from 'node:path'
 import { configureCharactersRoot } from '~/cli/commands/process-steps/characters-root'
 import { locationReferenceSketchCommand, type LocationViewQaResult } from '~/cli/commands/process-steps/step-8-comic/comic-commands/reference-sketch/location-reference-command'
 import { getLocationReferencePath, getLocationSketchManifestPath, readLocationReferenceCatalog, readLocationSketchManifest } from '~/cli/commands/process-steps/step-8-comic/comic-utils/location-reference'
@@ -197,6 +197,24 @@ describe('canonical location reference registration', () => {
     expect(Buffer.from(await Bun.file(canonical).arrayBuffer())).toEqual(oldImage)
     expect(JSON.parse(await Bun.file(getLocationSketchManifestPath()).text())).toEqual(manifest)
     expect(await Bun.file(join(locations, '.attempts', 'cargo-bay', 'rollback', 'establishing-attempt-0.png')).exists()).toBe(true)
+  })
+
+  test('revises a canonical view when the configured characters root is relative to the working directory', async () => {
+    const { locations } = await fixture()
+    configureCharactersRoot(relative(process.cwd(), dirname(locations) + '/characters'))
+    const specification = 'Fixed loading door.'
+    const canonical = join(locations, 'cargo-bay--reference.png')
+    const oldImage = Buffer.from('old-canonical')
+    await Bun.write(canonical, oldImage)
+    await Bun.write(getLocationReferencePath(), JSON.stringify({ schemaVersion: 1, styleImage: 'input/characters/style-guide.webp', locations: [{ key: 'cargo-bay', name: 'Cargo Bay', specification, sourceScripts: [] }] }))
+    await Bun.write(getLocationSketchManifestPath(), JSON.stringify({ schemaVersion: 2, sketches: [{ locationKey: 'cargo-bay', specificationSha256: sha(specification), views: [{ view: 'establishing', generationId: 'old', image: 'cargo-bay--reference.png', imageSha256: sha(oldImage), model: 'fixture', createdAt: '2026-01-01T00:00:00.000Z' }] }] }))
+    await expect(locationReferenceSketchCommand({ location: 'cargo-bay', revise: true, notes: 'Revise.', qa: false }, {
+      requestImage: async () => ({ mode: 'generate', result: { imageBase64: image.toString('base64') } }),
+      writeImage: async path => { await Bun.write(path, image) },
+      generationId: () => 'relative-root',
+    })).resolves.toBeUndefined()
+    expect(Buffer.from(await Bun.file(canonical).arrayBuffer())).toEqual(image)
+    expect((await readLocationSketchManifest()).sketches[0]?.views[0]?.priorGenerationId).toBe('old')
   })
 
   test('rejects location asset directories that escape the locations root', async () => {

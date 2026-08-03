@@ -248,22 +248,30 @@ export const locationReferenceSketchCommand = async (options: ReferenceSketchCom
   await Bun.write(manifestTemporary, `${JSON.stringify(nextManifest, null, 2)}\n`)
   const hadCatalog = await Bun.file(catalogPath).exists()
   const hadManifest = await Bun.file(manifestPath).exists()
+  const targetExisted = await Bun.file(targetImage).exists()
+  let priorImageMoved = false
+  let targetImageMoved = false
+  let catalogMoved = false
+  let manifestMoved = false
   try {
-    if (priorImage && await Bun.file(priorImage).exists()) await rename(priorImage, priorBackup!)
-    if (targetBackup) await rename(targetImage, targetBackup)
-    if (hadCatalog) await rename(catalogPath, catalogBackup)
-    if (hadManifest) await rename(manifestPath, manifestBackup)
+    if (priorImage && await Bun.file(priorImage).exists()) { await rename(priorImage, priorBackup!); priorImageMoved = true }
+    if (targetBackup) { await rename(targetImage, targetBackup); targetImageMoved = true }
+    if (hadCatalog) { await rename(catalogPath, catalogBackup); catalogMoved = true }
+    if (hadManifest) { await rename(manifestPath, manifestBackup); manifestMoved = true }
     await (dependencies.promoteImage ?? rename)(current, targetImage)
     await rename(catalogTemporary, catalogPath)
     await rename(manifestTemporary, manifestPath)
     await Promise.all([priorBackup, targetBackup, catalogBackup, manifestBackup].filter((path): path is string => !!path).map(path => rm(path, { force: true })))
     await rm(attemptsRoot, { recursive: true, force: true })
   } catch (error) {
-    await Promise.all([catalogTemporary, manifestTemporary, targetImage, catalogPath, manifestPath].map(path => rm(path, { force: true }).catch(() => undefined)))
-    if (priorImage && priorBackup) await rename(priorBackup, priorImage).catch(() => undefined)
-    if (targetBackup) await rename(targetBackup, targetImage).catch(() => undefined)
-    if (hadCatalog) await rename(catalogBackup, catalogPath).catch(() => undefined)
-    if (hadManifest) await rename(manifestBackup, manifestPath).catch(() => undefined)
+    await Promise.all([catalogTemporary, manifestTemporary].map(path => rm(path, { force: true }).catch(() => undefined)))
+    if (!targetExisted || priorImageMoved || targetImageMoved) await rm(targetImage, { force: true }).catch(() => undefined)
+    if (catalogMoved) await rm(catalogPath, { force: true }).catch(() => undefined)
+    if (manifestMoved) await rm(manifestPath, { force: true }).catch(() => undefined)
+    if (priorImage && priorBackup && priorImageMoved) await rename(priorBackup, priorImage).catch(() => undefined)
+    if (targetBackup && targetImageMoved) await rename(targetBackup, targetImage).catch(() => undefined)
+    if (catalogMoved) await rename(catalogBackup, catalogPath).catch(() => undefined)
+    if (manifestMoved) await rename(manifestBackup, manifestPath).catch(() => undefined)
     throw InfraError(`Atomic location ${view} registration failed; the prior registration was restored and attempts remain at ${attemptsRoot}`, { stage: 'comic:location-reference', cause: error instanceof Error ? error : undefined })
   }
 }
