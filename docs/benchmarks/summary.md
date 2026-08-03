@@ -11,11 +11,11 @@ Costs are lower-is-better and converted from cents to USD. Speeds are lower-is-b
 | image | 2 | 26 | local, service |
 | music | 4 | 16 | local, service |
 | ocr | 14 | 305 | local, thirdPartyService |
-| stt | 5 | 118 | local, thirdPartyServiceDiarization, thirdPartyServiceNonDiarization |
+| stt | 5 | 125 | local, thirdPartyServiceDiarization, thirdPartyServiceNonDiarization |
 | tts | 4 | 60 | local, service |
 | url | 2 | 12 | local, service |
 | video | 2 | 17 | local, service |
-| **Total** | **33** | **554** | **5 groups** |
+| **Total** | **33** | **561** | **5 groups** |
 
 ## Method
 
@@ -365,55 +365,58 @@ _Unavailable: no humanQuality entries are present for `stt/thirdPartyServiceNonD
 | 4 | rev/low_cost | 5/5 runs | $0.0898 |
 | 5 | happyscribe/auto | 5/5 runs | $0.1028 |
 | 6 | mistral/voxtral-mini-2602 | 5/5 runs | $0.1078 |
-| 7 | assemblyai/universal-2 | 5/5 runs | $0.1527 |
-| 8 | rev/machine | 5/5 runs | $0.1796 |
-| 9 | assemblyai/universal-3-pro | 5/5 runs | $0.1886 |
-| 10 | assemblyai/universal-3-5-pro | 5/5 runs | $0.2066 |
-| 11 | gladia/solaria-3 | 4/5 runs | $0.3036 |
-| 12 | gladia/solaria-1 | 4/5 runs | $0.3036 |
-| 13 | deepgram/nova-3 | 5/5 runs | $0.5227 |
-| 14 | gladia/default | 5/5 runs | $0.5479 |
-| 15 | speechmatics/enhanced | 5/5 runs | $0.6736 |
+| 7 | speechmatics/melia-1 | 5/5 runs | $0.1159 |
+| 8 | assemblyai/universal-2 | 5/5 runs | $0.1527 |
+| 9 | rev/machine | 5/5 runs | $0.1796 |
+| 10 | assemblyai/universal-3-pro | 5/5 runs | $0.1886 |
+| 11 | assemblyai/universal-3-5-pro | 5/5 runs | $0.2066 |
+| 12 | deepgram/nova-3 | 5/5 runs | $0.5227 |
+| 13 | gladia/solaria-3 | 5/5 runs | $0.5479 |
+| 14 | gladia/solaria-1 | 5/5 runs | $0.5479 |
+| 15 | gladia/default | 5/5 runs | $0.5479 |
+| 16 | speechmatics/enhanced | 5/5 runs | $0.6736 |
 
 #### Speed Ranking
 
 | Rank | Provider/model | Runs | Average |
 | ---: | --- | ---: | ---: |
 | 1 | deepgram/nova-3 | 5/5 runs | 15.58s |
-| 2 | gladia/solaria-1 | 4/5 runs | 25.02s |
-| 3 | gladia/solaria-3 | 4/5 runs | 25.98s |
-| 4 | gladia/default | 5/5 runs | 27.25s |
-| 5 | assemblyai/universal-2 | 5/5 runs | 31.04s |
-| 6 | assemblyai/universal-3-5-pro | 5/5 runs | 33.87s |
-| 7 | mistral/voxtral-mini-2602 | 5/5 runs | 34.80s |
-| 8 | assemblyai/universal-3-pro | 5/5 runs | 40.77s |
-| 9 | grok/speech-to-text | 5/5 runs | 55.47s |
-| 10 | happyscribe/auto | 5/5 runs | 93.79s |
-| 11 | rev/machine | 5/5 runs | 101.59s |
-| 12 | soniox/stt-async-v4 | 5/5 runs | 141.71s |
-| 13 | speechmatics/enhanced | 5/5 runs | 148.16s |
-| 14 | rev/low_cost | 5/5 runs | 179.74s |
-| 15 | soniox/stt-async-v5 | 5/5 runs | 208.90s |
+| 2 | speechmatics/melia-1 | 5/5 runs | 21.26s |
+| 3 | gladia/default | 5/5 runs | 27.25s |
+| 4 | assemblyai/universal-2 | 5/5 runs | 31.04s |
+| 5 | assemblyai/universal-3-5-pro | 5/5 runs | 33.87s |
+| 6 | mistral/voxtral-mini-2602 | 5/5 runs | 34.80s |
+| 7 | assemblyai/universal-3-pro | 5/5 runs | 40.77s |
+| 8 | gladia/solaria-3 | 5/5 runs | 44.09s |
+| 9 | gladia/solaria-1 | 5/5 runs | 44.16s |
+| 10 | grok/speech-to-text | 5/5 runs | 55.47s |
+| 11 | happyscribe/auto | 5/5 runs | 93.79s |
+| 12 | rev/machine | 5/5 runs | 101.59s |
+| 13 | soniox/stt-async-v4 | 5/5 runs | 141.71s |
+| 14 | speechmatics/enhanced | 5/5 runs | 148.16s |
+| 15 | rev/low_cost | 5/5 runs | 179.74s |
+| 16 | soniox/stt-async-v5 | 5/5 runs | 208.90s |
 
 #### Realtime Throughput Ranking
 
 | Rank | Provider/model | Runs | Average |
 | ---: | --- | ---: | ---: |
 | 1 | deepgram/nova-3 | 5/5 runs | 207.58× realtime |
-| 2 | gladia/default | 5/5 runs | 118.64× realtime |
-| 3 | assemblyai/universal-2 | 5/5 runs | 104.18× realtime |
-| 4 | assemblyai/universal-3-5-pro | 5/5 runs | 95.47× realtime |
-| 5 | mistral/voxtral-mini-2602 | 5/5 runs | 92.92× realtime |
-| 6 | assemblyai/universal-3-pro | 5/5 runs | 79.30× realtime |
-| 7 | gladia/solaria-1 | 4/5 runs | 71.61× realtime |
-| 8 | gladia/solaria-3 | 4/5 runs | 68.97× realtime |
-| 9 | grok/speech-to-text | 5/5 runs | 58.29× realtime |
-| 10 | happyscribe/auto | 5/5 runs | 34.47× realtime |
-| 11 | rev/machine | 5/5 runs | 31.83× realtime |
-| 12 | soniox/stt-async-v4 | 5/5 runs | 22.82× realtime |
-| 13 | speechmatics/enhanced | 5/5 runs | 21.82× realtime |
-| 14 | rev/low_cost | 5/5 runs | 17.99× realtime |
-| 15 | soniox/stt-async-v5 | 5/5 runs | 15.48× realtime |
+| 2 | speechmatics/melia-1 | 5/5 runs | 152.09× realtime |
+| 3 | gladia/default | 5/5 runs | 118.64× realtime |
+| 4 | assemblyai/universal-2 | 5/5 runs | 104.18× realtime |
+| 5 | assemblyai/universal-3-5-pro | 5/5 runs | 95.47× realtime |
+| 6 | mistral/voxtral-mini-2602 | 5/5 runs | 92.92× realtime |
+| 7 | assemblyai/universal-3-pro | 5/5 runs | 79.30× realtime |
+| 8 | gladia/solaria-3 | 5/5 runs | 73.33× realtime |
+| 9 | gladia/solaria-1 | 5/5 runs | 73.21× realtime |
+| 10 | grok/speech-to-text | 5/5 runs | 58.29× realtime |
+| 11 | happyscribe/auto | 5/5 runs | 34.47× realtime |
+| 12 | rev/machine | 5/5 runs | 31.83× realtime |
+| 13 | soniox/stt-async-v4 | 5/5 runs | 22.82× realtime |
+| 14 | speechmatics/enhanced | 5/5 runs | 21.82× realtime |
+| 15 | rev/low_cost | 5/5 runs | 17.99× realtime |
+| 16 | soniox/stt-async-v5 | 5/5 runs | 15.48× realtime |
 
 #### Auto-Quality Ranking
 
@@ -425,15 +428,16 @@ _Unavailable: no humanQuality entries are present for `stt/thirdPartyServiceNonD
 | 4 | soniox/stt-async-v5 | 5/5 runs | 95.46/100 quality score |
 | 5 | soniox/stt-async-v4 | 5/5 runs | 95.30/100 quality score |
 | 6 | mistral/voxtral-mini-2602 | 5/5 runs | 95.16/100 quality score |
-| 7 | gladia/solaria-3 | 4/5 runs | 94.69/100 quality score |
-| 8 | speechmatics/enhanced | 5/5 runs | 94.53/100 quality score |
+| 7 | speechmatics/enhanced | 5/5 runs | 94.53/100 quality score |
+| 8 | gladia/solaria-3 | 5/5 runs | 94.52/100 quality score |
 | 9 | assemblyai/universal-2 | 5/5 runs | 94.24/100 quality score |
-| 10 | gladia/solaria-1 | 4/5 runs | 93.89/100 quality score |
-| 11 | rev/machine | 5/5 runs | 92.71/100 quality score |
-| 12 | deepgram/nova-3 | 5/5 runs | 92.71/100 quality score |
-| 13 | rev/low_cost | 5/5 runs | 92.07/100 quality score |
-| 14 | grok/speech-to-text | 5/5 runs | 89.71/100 quality score |
-| 15 | gladia/default | 5/5 runs | 79.51/100 quality score |
+| 10 | speechmatics/melia-1 | 5/5 runs | 94.21/100 quality score |
+| 11 | gladia/solaria-1 | 5/5 runs | 93.44/100 quality score |
+| 12 | rev/machine | 5/5 runs | 92.71/100 quality score |
+| 13 | deepgram/nova-3 | 5/5 runs | 92.71/100 quality score |
+| 14 | rev/low_cost | 5/5 runs | 92.07/100 quality score |
+| 15 | grok/speech-to-text | 5/5 runs | 89.71/100 quality score |
+| 16 | gladia/default | 5/5 runs | 79.51/100 quality score |
 
 #### Human Quality Ranking
 

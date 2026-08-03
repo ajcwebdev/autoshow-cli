@@ -4,7 +4,7 @@
   "category": "stt",
   "runDir": "/Users/ajc/c/autoshow-cli/docs/benchmarks/stt/2026-06-15_14-29-11-559_1-audio",
   "runName": "2026-06-15_14-29-11-559_1-audio",
-  "generatedAt": "2026-08-03T09:24:39.235Z",
+  "generatedAt": "2026-08-03T10:49:18.914Z",
   "metric": "speaker-aware-wer",
   "scoreFormula": "max(0, 100 * (1 - speakerAwareWER))",
   "referenceTranscriptPath": "/Users/ajc/c/autoshow-cli/docs/benchmarks/stt/2026-06-15_14-29-11-559_1-audio/consensus-transcription.txt",
@@ -17,7 +17,7 @@
     "fillerWordsRemoved": true
   },
   "duplicateGroups": [],
-  "providerCount": 24,
+  "providerCount": 25,
   "audioDurationSeconds": 59.585306,
   "providerGroups": {
     "local": {
@@ -624,7 +624,7 @@
       ]
     },
     "thirdPartyServiceDiarization": {
-      "count": 15,
+      "count": 16,
       "providers": [
         {
           "providerKey": "assemblyai/universal-2",
@@ -1615,6 +1615,72 @@
             "insertions": 4,
             "referenceWordCount": 214
           }
+        },
+        {
+          "providerKey": "speechmatics/melia-1",
+          "provider": "speechmatics-melia-1",
+          "model": "melia-1",
+          "group": "thirdPartyServiceDiarization",
+          "processingTimeMs": 2770,
+          "msPerUnit": null,
+          "costCents": 0.21351401316666668,
+          "audioDurationSeconds": 59.585306,
+          "realtimeFactor": 21.510940794223828,
+          "qualityMetric": "speaker-aware WER",
+          "qualityValue": 0.028037383177570093,
+          "qualityLabel": "2.80% speaker-aware WER",
+          "metrics": {
+            "inputTokenCount": null,
+            "outputTokenCount": null,
+            "totalTokenCount": null,
+            "msPerUnit": null,
+            "wer": null,
+            "cer": null,
+            "speakerAwareWER": 0.028037383177570093,
+            "textOnlyWER": 0.02857142857142857,
+            "roundtripWER": null,
+            "contentCoverage": null,
+            "score": 97.19626168224299,
+            "qualityScore": null,
+            "automatedQualityScore": null,
+            "textQualityScore": null,
+            "humanQualityScore": null,
+            "humanSpeechScore": null
+          },
+          "supportsDiarization": true,
+          "diarizationSupport": "supported",
+          "qualityWarnings": [],
+          "segmentStats": {
+            "segmentCount": 16,
+            "timedSegmentCount": 16,
+            "zeroDurationSegmentCount": 0,
+            "negativeDurationSegmentCount": 0,
+            "monotonicStarts": true,
+            "firstStartSeconds": 0.13,
+            "lastEndSeconds": 59.45,
+            "totalSegmentDurationSeconds": 57.96000000000001,
+            "coverageSeconds": 59.32,
+            "durationCoverageRatio": 0.9955474593014593,
+            "timingQuality": "native_word",
+            "hasSpeakerLabels": true
+          },
+          "duplicateGroupId": null,
+          "tokenEstimate": null,
+          "tokenCount": 208,
+          "werBreakdown": null,
+          "cerBreakdown": null,
+          "textOnlyBreakdown": {
+            "substitutions": 1,
+            "deletions": 0,
+            "insertions": 5,
+            "referenceWordCount": 210
+          },
+          "speakerAwareBreakdown": {
+            "substitutions": 1,
+            "deletions": 0,
+            "insertions": 5,
+            "referenceWordCount": 214
+          }
         }
       ]
     }
@@ -2309,6 +2375,27 @@
         },
         {
           "rank": 6,
+          "providerKey": "speechmatics/melia-1",
+          "provider": "speechmatics-melia-1",
+          "model": "melia-1",
+          "group": "thirdPartyServiceDiarization",
+          "metric": "price",
+          "value": 0.21351401316666668,
+          "label": "$0.0021",
+          "actualCostCents": 0.21351401316666668,
+          "processingTimeMs": 2770,
+          "audioDurationSeconds": 59.585306,
+          "realtimeFactor": 21.510940794223828,
+          "score": 97.19626168224299,
+          "wer": null,
+          "cer": null,
+          "speakerAwareWER": 0.028037383177570093,
+          "textOnlyWER": 0.02857142857142857,
+          "supportsDiarization": true,
+          "diarizationSupport": "supported"
+        },
+        {
+          "rank": 7,
           "providerKey": "assemblyai/universal-2",
           "provider": "assemblyai-universal-2",
           "model": "universal-2",
@@ -2329,7 +2416,7 @@
           "diarizationSupport": "supported"
         },
         {
-          "rank": 7,
+          "rank": 8,
           "providerKey": "rev/machine",
           "provider": "rev-machine",
           "model": "machine",
@@ -2350,7 +2437,7 @@
           "diarizationSupport": "supported"
         },
         {
-          "rank": 8,
+          "rank": 9,
           "providerKey": "assemblyai/universal-3-pro",
           "provider": "assemblyai-universal-3-pro",
           "model": "universal-3-pro",
@@ -2371,7 +2458,7 @@
           "diarizationSupport": "supported"
         },
         {
-          "rank": 9,
+          "rank": 10,
           "providerKey": "assemblyai/universal-3-5-pro",
           "provider": "assemblyai-universal-3-5-pro",
           "model": "universal-3-5-pro",
@@ -2392,7 +2479,7 @@
           "diarizationSupport": "supported"
         },
         {
-          "rank": 10,
+          "rank": 11,
           "providerKey": "deepgram/nova-3",
           "provider": "deepgram-nova-3",
           "model": "nova-3",
@@ -2413,7 +2500,7 @@
           "diarizationSupport": "supported"
         },
         {
-          "rank": 11,
+          "rank": 12,
           "providerKey": "happyscribe/auto",
           "provider": "happyscribe-auto",
           "model": "auto",
@@ -2434,7 +2521,7 @@
           "diarizationSupport": "supported"
         },
         {
-          "rank": 12,
+          "rank": 13,
           "providerKey": "gladia/default",
           "provider": "gladia-default",
           "model": "default",
@@ -2455,7 +2542,7 @@
           "diarizationSupport": "supported"
         },
         {
-          "rank": 13,
+          "rank": 14,
           "providerKey": "gladia/solaria-1",
           "provider": "gladia-solaria-1",
           "model": "solaria-1",
@@ -2476,7 +2563,7 @@
           "diarizationSupport": "supported"
         },
         {
-          "rank": 14,
+          "rank": 15,
           "providerKey": "gladia/solaria-3",
           "provider": "gladia-solaria-3",
           "model": "solaria-3",
@@ -2497,7 +2584,7 @@
           "diarizationSupport": "supported"
         },
         {
-          "rank": 15,
+          "rank": 16,
           "providerKey": "speechmatics/enhanced",
           "provider": "speechmatics-enhanced",
           "model": "enhanced",
@@ -2542,6 +2629,27 @@
         },
         {
           "rank": 2,
+          "providerKey": "speechmatics/melia-1",
+          "provider": "speechmatics-melia-1",
+          "model": "melia-1",
+          "group": "thirdPartyServiceDiarization",
+          "metric": "speed",
+          "value": 2770,
+          "label": "2.77s",
+          "actualCostCents": 0.21351401316666668,
+          "processingTimeMs": 2770,
+          "audioDurationSeconds": 59.585306,
+          "realtimeFactor": 21.510940794223828,
+          "score": 97.19626168224299,
+          "wer": null,
+          "cer": null,
+          "speakerAwareWER": 0.028037383177570093,
+          "textOnlyWER": 0.02857142857142857,
+          "supportsDiarization": true,
+          "diarizationSupport": "supported"
+        },
+        {
+          "rank": 3,
           "providerKey": "deepgram/nova-3",
           "provider": "deepgram-nova-3",
           "model": "nova-3",
@@ -2562,7 +2670,7 @@
           "diarizationSupport": "supported"
         },
         {
-          "rank": 3,
+          "rank": 4,
           "providerKey": "assemblyai/universal-2",
           "provider": "assemblyai-universal-2",
           "model": "universal-2",
@@ -2583,7 +2691,7 @@
           "diarizationSupport": "supported"
         },
         {
-          "rank": 4,
+          "rank": 5,
           "providerKey": "mistral/voxtral-mini-2602",
           "provider": "mistral-voxtral-mini-2602",
           "model": "voxtral-mini-2602",
@@ -2604,7 +2712,7 @@
           "diarizationSupport": "supported"
         },
         {
-          "rank": 5,
+          "rank": 6,
           "providerKey": "soniox/stt-async-v4",
           "provider": "soniox-stt-async-v4",
           "model": "stt-async-v4",
@@ -2625,7 +2733,7 @@
           "diarizationSupport": "supported"
         },
         {
-          "rank": 6,
+          "rank": 7,
           "providerKey": "soniox/stt-async-v5",
           "provider": "soniox-stt-async-v5",
           "model": "stt-async-v5",
@@ -2646,7 +2754,7 @@
           "diarizationSupport": "supported"
         },
         {
-          "rank": 7,
+          "rank": 8,
           "providerKey": "assemblyai/universal-3-5-pro",
           "provider": "assemblyai-universal-3-5-pro",
           "model": "universal-3-5-pro",
@@ -2667,7 +2775,7 @@
           "diarizationSupport": "supported"
         },
         {
-          "rank": 8,
+          "rank": 9,
           "providerKey": "assemblyai/universal-3-pro",
           "provider": "assemblyai-universal-3-pro",
           "model": "universal-3-pro",
@@ -2688,7 +2796,7 @@
           "diarizationSupport": "supported"
         },
         {
-          "rank": 9,
+          "rank": 10,
           "providerKey": "gladia/solaria-3",
           "provider": "gladia-solaria-3",
           "model": "solaria-3",
@@ -2709,7 +2817,7 @@
           "diarizationSupport": "supported"
         },
         {
-          "rank": 10,
+          "rank": 11,
           "providerKey": "gladia/default",
           "provider": "gladia-default",
           "model": "default",
@@ -2730,7 +2838,7 @@
           "diarizationSupport": "supported"
         },
         {
-          "rank": 11,
+          "rank": 12,
           "providerKey": "gladia/solaria-1",
           "provider": "gladia-solaria-1",
           "model": "solaria-1",
@@ -2751,7 +2859,7 @@
           "diarizationSupport": "supported"
         },
         {
-          "rank": 12,
+          "rank": 13,
           "providerKey": "speechmatics/enhanced",
           "provider": "speechmatics-enhanced",
           "model": "enhanced",
@@ -2772,7 +2880,7 @@
           "diarizationSupport": "supported"
         },
         {
-          "rank": 13,
+          "rank": 14,
           "providerKey": "rev/machine",
           "provider": "rev-machine",
           "model": "machine",
@@ -2793,7 +2901,7 @@
           "diarizationSupport": "supported"
         },
         {
-          "rank": 14,
+          "rank": 15,
           "providerKey": "rev/low_cost",
           "provider": "rev-low_cost",
           "model": "low_cost",
@@ -2814,7 +2922,7 @@
           "diarizationSupport": "supported"
         },
         {
-          "rank": 15,
+          "rank": 16,
           "providerKey": "happyscribe/auto",
           "provider": "happyscribe-auto",
           "model": "auto",
@@ -2901,6 +3009,27 @@
         },
         {
           "rank": 4,
+          "providerKey": "speechmatics/melia-1",
+          "provider": "speechmatics-melia-1",
+          "model": "melia-1",
+          "group": "thirdPartyServiceDiarization",
+          "metric": "qualityScore",
+          "value": 97.19626168224299,
+          "label": "97.20/100 quality score",
+          "actualCostCents": 0.21351401316666668,
+          "processingTimeMs": 2770,
+          "audioDurationSeconds": 59.585306,
+          "realtimeFactor": 21.510940794223828,
+          "score": 97.19626168224299,
+          "wer": null,
+          "cer": null,
+          "speakerAwareWER": 0.028037383177570093,
+          "textOnlyWER": 0.02857142857142857,
+          "supportsDiarization": true,
+          "diarizationSupport": "supported"
+        },
+        {
+          "rank": 5,
           "providerKey": "speechmatics/enhanced",
           "provider": "speechmatics-enhanced",
           "model": "enhanced",
@@ -2921,7 +3050,7 @@
           "diarizationSupport": "supported"
         },
         {
-          "rank": 5,
+          "rank": 6,
           "providerKey": "assemblyai/universal-2",
           "provider": "assemblyai-universal-2",
           "model": "universal-2",
@@ -2942,7 +3071,7 @@
           "diarizationSupport": "supported"
         },
         {
-          "rank": 6,
+          "rank": 7,
           "providerKey": "assemblyai/universal-3-pro",
           "provider": "assemblyai-universal-3-pro",
           "model": "universal-3-pro",
@@ -2963,7 +3092,7 @@
           "diarizationSupport": "supported"
         },
         {
-          "rank": 7,
+          "rank": 8,
           "providerKey": "assemblyai/universal-3-5-pro",
           "provider": "assemblyai-universal-3-5-pro",
           "model": "universal-3-5-pro",
@@ -2984,7 +3113,7 @@
           "diarizationSupport": "supported"
         },
         {
-          "rank": 8,
+          "rank": 9,
           "providerKey": "happyscribe/auto",
           "provider": "happyscribe-auto",
           "model": "auto",
@@ -3005,7 +3134,7 @@
           "diarizationSupport": "supported"
         },
         {
-          "rank": 9,
+          "rank": 10,
           "providerKey": "gladia/default",
           "provider": "gladia-default",
           "model": "default",
@@ -3026,7 +3155,7 @@
           "diarizationSupport": "supported"
         },
         {
-          "rank": 10,
+          "rank": 11,
           "providerKey": "gladia/solaria-1",
           "provider": "gladia-solaria-1",
           "model": "solaria-1",
@@ -3047,7 +3176,7 @@
           "diarizationSupport": "supported"
         },
         {
-          "rank": 11,
+          "rank": 12,
           "providerKey": "gladia/solaria-3",
           "provider": "gladia-solaria-3",
           "model": "solaria-3",
@@ -3068,7 +3197,7 @@
           "diarizationSupport": "supported"
         },
         {
-          "rank": 12,
+          "rank": 13,
           "providerKey": "deepgram/nova-3",
           "provider": "deepgram-nova-3",
           "model": "nova-3",
@@ -3089,7 +3218,7 @@
           "diarizationSupport": "supported"
         },
         {
-          "rank": 13,
+          "rank": 14,
           "providerKey": "rev/machine",
           "provider": "rev-machine",
           "model": "machine",
@@ -3110,7 +3239,7 @@
           "diarizationSupport": "supported"
         },
         {
-          "rank": 14,
+          "rank": 15,
           "providerKey": "rev/low_cost",
           "provider": "rev-low_cost",
           "model": "low_cost",
@@ -3131,7 +3260,7 @@
           "diarizationSupport": "supported"
         },
         {
-          "rank": 15,
+          "rank": 16,
           "providerKey": "grok/speech-to-text",
           "provider": "grok-speech-to-text",
           "model": "speech-to-text",

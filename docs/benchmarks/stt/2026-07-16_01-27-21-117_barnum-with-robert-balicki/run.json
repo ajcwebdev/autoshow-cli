@@ -289,6 +289,19 @@
         "transcriptionModel": "stt-async-v5",
         "processingTime": 543337,
         "tokenCount": 24634,
+        "timings": {
+          "uploadMs": 2556,
+          "createMs": 122,
+          "createCount": 1,
+          "pollMs": 2598,
+          "pollSleepMs": 535060,
+          "pollCount": 56,
+          "transcriptMs": 2943,
+          "remoteProcessingMs": 534940,
+          "cleanupMs": 178,
+          "requestCount": 59,
+          "backfillCount": 1
+        },
         "runtime": {
           "mode": "fresh",
           "stage": "cleanup-complete",
@@ -302,18 +315,35 @@
             "remoteJobDeleted": true,
             "remoteAssetDeleted": true
           }
+        }
+      },
+      {
+        "transcriptionService": "speechmatics",
+        "transcriptionModel": "melia-1",
+        "processingTime": 53337,
+        "tokenCount": 24257,
+        "runtime": {
+          "mode": "fresh",
+          "stage": "cleanup-complete",
+          "remoteJobId": "81k3aq2wul",
+          "createCompletedAt": "2026-08-03T10:44:48.128Z",
+          "lastPollAt": "2026-08-03T10:45:24.216Z",
+          "completedAt": "2026-08-03T10:45:24.217Z",
+          "cleanupCompletedAt": "2026-08-03T10:45:25.496Z",
+          "cleanup": {
+            "remoteJobDeleted": true
+          }
         },
         "timings": {
-          "uploadMs": 2556,
-          "createMs": 122,
+          "createMs": 16153,
           "createCount": 1,
-          "pollMs": 2598,
-          "pollSleepMs": 535060,
-          "pollCount": 56,
-          "transcriptMs": 2943,
-          "remoteProcessingMs": 534940,
-          "cleanupMs": 178,
-          "requestCount": 59,
+          "pollMs": 1074,
+          "pollSleepMs": 35009,
+          "pollCount": 6,
+          "transcriptMs": 1095,
+          "remoteProcessingMs": 34844,
+          "cleanupMs": 171,
+          "requestCount": 8,
           "backfillCount": 1
         }
       },
@@ -322,15 +352,6 @@
         "transcriptionModel": "universal-3-5-pro",
         "processingTime": 86778,
         "tokenCount": 24469,
-        "runtime": {
-          "mode": "fresh",
-          "stage": "completed",
-          "remoteJobId": "63dce360-103e-453c-8144-5e8937014414",
-          "remoteAssetUrl": "https://cdn.assemblyai.com/upload/7d2faa81ba7eb12328c09b38bb154b90c06a732f124ff05c0ba64088d2313bf0/f0a610a3-ad34-4c32-b0b0-7da002d76cc7",
-          "createCompletedAt": "2026-08-03T08:32:33.729Z",
-          "lastPollAt": "2026-08-03T08:33:56.583Z",
-          "completedAt": "2026-08-03T08:33:56.583Z"
-        },
         "timings": {
           "uploadMs": 3809,
           "createMs": 111,
@@ -341,6 +362,15 @@
           "remoteProcessingMs": 75041,
           "requestCount": 12,
           "backfillCount": 1
+        },
+        "runtime": {
+          "mode": "fresh",
+          "stage": "completed",
+          "remoteJobId": "63dce360-103e-453c-8144-5e8937014414",
+          "remoteAssetUrl": "https://cdn.assemblyai.com/upload/7d2faa81ba7eb12328c09b38bb154b90c06a732f124ff05c0ba64088d2313bf0/f0a610a3-ad34-4c32-b0b0-7da002d76cc7",
+          "createCompletedAt": "2026-08-03T08:32:33.729Z",
+          "lastPollAt": "2026-08-03T08:33:56.583Z",
+          "completedAt": "2026-08-03T08:33:56.583Z"
         }
       },
       {
@@ -348,15 +378,6 @@
         "transcriptionModel": "universal-2",
         "processingTime": 72947,
         "tokenCount": 24045,
-        "runtime": {
-          "mode": "fresh",
-          "stage": "completed",
-          "remoteJobId": "9fad8658-a668-47c7-809f-b835290f9e50",
-          "remoteAssetUrl": "https://cdn.assemblyai.com/upload/d5783a59354658f9f4841ac9c165ca3e187157fce081ce180c6379145ca76194/e1403e87-4d49-4aa1-a7af-e162423b1dd7",
-          "createCompletedAt": "2026-08-03T08:32:33.698Z",
-          "lastPollAt": "2026-08-03T08:33:42.767Z",
-          "completedAt": "2026-08-03T08:33:42.767Z"
-        },
         "timings": {
           "uploadMs": 3763,
           "createMs": 110,
@@ -367,6 +388,49 @@
           "remoteProcessingMs": 65032,
           "requestCount": 11,
           "backfillCount": 1
+        },
+        "runtime": {
+          "mode": "fresh",
+          "stage": "completed",
+          "remoteJobId": "9fad8658-a668-47c7-809f-b835290f9e50",
+          "remoteAssetUrl": "https://cdn.assemblyai.com/upload/d5783a59354658f9f4841ac9c165ca3e187157fce081ce180c6379145ca76194/e1403e87-4d49-4aa1-a7af-e162423b1dd7",
+          "createCompletedAt": "2026-08-03T08:32:33.698Z",
+          "lastPollAt": "2026-08-03T08:33:42.767Z",
+          "completedAt": "2026-08-03T08:33:42.767Z"
+        }
+      },
+      {
+        "transcriptionService": "gladia",
+        "transcriptionModel": "solaria-1",
+        "processingTime": 120731,
+        "tokenCount": 24507,
+        "timings": {
+          "uploadMs": 37049,
+          "createMs": 1726,
+          "createCount": 5,
+          "pollMs": 6878,
+          "pollSleepMs": 75029,
+          "pollCount": 20,
+          "remoteProcessingMs": 75078,
+          "requestCount": 30,
+          "backfillCount": 5
+        }
+      },
+      {
+        "transcriptionService": "gladia",
+        "transcriptionModel": "solaria-3",
+        "processingTime": 116540,
+        "tokenCount": 25026,
+        "timings": {
+          "uploadMs": 32695,
+          "createMs": 1831,
+          "createCount": 5,
+          "pollMs": 6921,
+          "pollSleepMs": 75029,
+          "pollCount": 20,
+          "remoteProcessingMs": 75093,
+          "requestCount": 30,
+          "backfillCount": 5
         }
       },
       {
@@ -378,12 +442,12 @@
           "requestCount": 6
         },
         "billing": {
-          "totalCost": 144.0999,
           "inputTokens": 225526,
           "outputTokens": 147028,
           "totalTokens": 372554,
           "audioInputTokens": 224999,
           "textInputTokens": 527,
+          "totalCost": 144.0999,
           "source": "provider_usage",
           "mode": "segment_sum"
         }
@@ -469,8 +533,7 @@
         },
         {
           "service": "soniox",
-          "model": "stt-async-v5",
-          "origin": "explicit"
+          "model": "stt-async-v5"
         },
         {
           "service": "speechmatics",
@@ -479,13 +542,11 @@
         },
         {
           "service": "assemblyai",
-          "model": "universal-3-5-pro",
-          "origin": "explicit"
+          "model": "universal-3-5-pro"
         },
         {
           "service": "assemblyai",
-          "model": "universal-2",
-          "origin": "explicit"
+          "model": "universal-2"
         },
         {
           "service": "gladia",
@@ -499,17 +560,15 @@
         },
         {
           "service": "gemini-stt",
-          "model": "gemini-3.6-flash",
-          "origin": "explicit"
+          "model": "gemini-3.6-flash"
         },
         {
           "service": "together",
-          "model": "nvidia/parakeet-tdt-0.6b-v3",
-          "origin": "explicit"
+          "model": "nvidia/parakeet-tdt-0.6b-v3"
         }
       ]
     },
-    "completionStatus": "incomplete",
+    "completionStatus": "full",
     "requestedProviders": [
       {
         "service": "deepinfra",
@@ -832,13 +891,8 @@
         "model": "melia-1",
         "local": false,
         "artifactDir": "providers/speechmatics-melia-1",
-        "status": "failed",
-        "attempts": 2,
-        "lastError": {
-          "message": "Speechmatics create failed (400): {\"code\":400,\"detail\":\"Job config JSON is invalid. Error: error validating v3 job config JSON: invalid input: transcription_config: language is required\",\"error\":\"Job rejected\"}\n",
-          "stage": "create",
-          "status": 400
-        }
+        "status": "succeeded",
+        "attempts": 3
       },
       {
         "service": "assemblyai",
@@ -861,24 +915,16 @@
         "model": "solaria-1",
         "local": false,
         "artifactDir": "providers/gladia-solaria-1",
-        "status": "failed",
-        "attempts": 1,
-        "lastError": {
-          "message": "Invalidated after validation: split segments reused the first segment async checkpoint; rerun required.",
-          "stage": "validation"
-        }
+        "status": "succeeded",
+        "attempts": 2
       },
       {
         "service": "gladia",
         "model": "solaria-3",
         "local": false,
         "artifactDir": "providers/gladia-solaria-3",
-        "status": "failed",
-        "attempts": 1,
-        "lastError": {
-          "message": "Invalidated after validation: split segments reused the first segment async checkpoint; rerun required.",
-          "stage": "validation"
-        }
+        "status": "succeeded",
+        "attempts": 2
       },
       {
         "service": "gemini-stt",
@@ -897,32 +943,7 @@
         "attempts": 1
       }
     ],
-    "missingProviders": [
-      {
-        "service": "gladia",
-        "model": "solaria-1",
-        "local": false,
-        "diarizationOptions": {
-          "enabled": true
-        }
-      },
-      {
-        "service": "gladia",
-        "model": "solaria-3",
-        "local": false,
-        "diarizationOptions": {
-          "enabled": true
-        }
-      },
-      {
-        "service": "speechmatics",
-        "model": "melia-1",
-        "local": false,
-        "diarizationOptions": {
-          "enabled": true
-        }
-      }
-    ],
+    "missingProviders": [],
     "cost": {
       "estimated": {
         "totalCost": 1398.6380000000001,
@@ -1335,13 +1356,22 @@
         ]
       },
       "actual": {
-        "totalCost": 596.5998999999999,
+        "totalCost": 628.8498999999999,
         "steps": [
           {
             "step": "stt",
             "provider": "soniox",
             "model": "stt-async-v5",
             "cost": 25,
+            "costSource": "computed_usage",
+            "inputMetric": "durationSeconds",
+            "inputValue": 9000
+          },
+          {
+            "step": "stt",
+            "provider": "speechmatics",
+            "model": "melia-1",
+            "cost": 32.25,
             "costSource": "computed_usage",
             "inputMetric": "durationSeconds",
             "inputValue": 9000
@@ -1406,7 +1436,7 @@
       },
       "aggregate": {
         "estimatedTotalCost": 1398.6380000000001,
-        "actualTotalCost": 596.5998999999999
+        "actualTotalCost": 628.8498999999999
       }
     },
     "timing": {
@@ -1750,7 +1780,7 @@
         ]
       },
       "actual": {
-        "totalProcessingTimeMs": 1431195,
+        "totalProcessingTimeMs": 1670176,
         "steps": [
           {
             "step": "stt",
@@ -1771,6 +1801,27 @@
             "rateBasis": "durationSecond",
             "msPerUnit": 60.371,
             "throughputValue": 16.564,
+            "throughputUnit": "x",
+            "timingScope": "wall"
+          },
+          {
+            "step": "stt",
+            "provider": "speechmatics",
+            "model": "melia-1",
+            "processingTimeMs": 53337,
+            "timingBreakdown": {
+              "createMs": 16153,
+              "pollMs": 1074,
+              "pollSleepMs": 35009,
+              "transcriptMs": 1095,
+              "remoteProcessingMs": 34844,
+              "cleanupMs": 171
+            },
+            "inputMetric": "durationSeconds",
+            "inputValue": 9000,
+            "rateBasis": "durationSecond",
+            "msPerUnit": 5.926,
+            "throughputValue": 168.738,
             "throughputUnit": "x",
             "timingScope": "wall"
           },
@@ -1818,19 +1869,19 @@
             "step": "stt",
             "provider": "gladia",
             "model": "solaria-1",
-            "processingTimeMs": 27063,
+            "processingTimeMs": 120731,
             "timingBreakdown": {
-              "uploadMs": 8685,
-              "createMs": 480,
-              "pollMs": 2821,
-              "pollSleepMs": 15007,
-              "remoteProcessingMs": 15077
+              "uploadMs": 37049,
+              "createMs": 1726,
+              "pollMs": 6878,
+              "pollSleepMs": 75029,
+              "remoteProcessingMs": 75078
             },
             "inputMetric": "durationSeconds",
             "inputValue": 9000,
             "rateBasis": "durationSecond",
-            "msPerUnit": 3.007,
-            "throughputValue": 332.557,
+            "msPerUnit": 13.415,
+            "throughputValue": 74.546,
             "throughputUnit": "x",
             "timingScope": "wall"
           },
@@ -1838,19 +1889,19 @@
             "step": "stt",
             "provider": "gladia",
             "model": "solaria-3",
-            "processingTimeMs": 24564,
+            "processingTimeMs": 116540,
             "timingBreakdown": {
-              "uploadMs": 6443,
-              "createMs": 302,
-              "pollMs": 2755,
-              "pollSleepMs": 15005,
-              "remoteProcessingMs": 15064
+              "uploadMs": 32695,
+              "createMs": 1831,
+              "pollMs": 6921,
+              "pollSleepMs": 75029,
+              "remoteProcessingMs": 75093
             },
             "inputMetric": "durationSeconds",
             "inputValue": 9000,
             "rateBasis": "durationSecond",
-            "msPerUnit": 2.729,
-            "throughputValue": 366.39,
+            "msPerUnit": 12.949,
+            "throughputValue": 77.227,
             "throughputUnit": "x",
             "timingScope": "wall"
           },
@@ -1883,10 +1934,10 @@
         ]
       },
       "aggregate": {
-        "wallTimeMs": 824744,
+        "wallTimeMs": 186484,
         "scheduler": {
           "hostedProviderCount": 25,
-          "itemProviderConcurrency": 2,
+          "itemProviderConcurrency": 3,
           "coordinatedAcrossBatch": false
         },
         "providers": [
@@ -1905,6 +1956,23 @@
               "remoteProcessingMs": 534940,
               "cleanupMs": 178,
               "requestCount": 59,
+              "backfillCount": 1
+            }
+          },
+          {
+            "service": "speechmatics",
+            "model": "melia-1",
+            "processingTimeMs": 53337,
+            "timings": {
+              "createMs": 16153,
+              "createCount": 1,
+              "pollMs": 1074,
+              "pollSleepMs": 35009,
+              "pollCount": 6,
+              "transcriptMs": 1095,
+              "remoteProcessingMs": 34844,
+              "cleanupMs": 171,
+              "requestCount": 8,
               "backfillCount": 1
             }
           },
@@ -1943,32 +2011,32 @@
           {
             "service": "gladia",
             "model": "solaria-1",
-            "processingTimeMs": 27063,
+            "processingTimeMs": 120731,
             "timings": {
-              "uploadMs": 8685,
-              "createMs": 480,
-              "createCount": 1,
-              "pollMs": 2821,
-              "pollSleepMs": 15007,
-              "pollCount": 8,
-              "remoteProcessingMs": 15077,
-              "requestCount": 10,
+              "uploadMs": 37049,
+              "createMs": 1726,
+              "createCount": 5,
+              "pollMs": 6878,
+              "pollSleepMs": 75029,
+              "pollCount": 20,
+              "remoteProcessingMs": 75078,
+              "requestCount": 30,
               "backfillCount": 5
             }
           },
           {
             "service": "gladia",
             "model": "solaria-3",
-            "processingTimeMs": 24564,
+            "processingTimeMs": 116540,
             "timings": {
-              "uploadMs": 6443,
-              "createMs": 302,
-              "createCount": 1,
-              "pollMs": 2755,
-              "pollSleepMs": 15005,
-              "pollCount": 8,
-              "remoteProcessingMs": 15064,
-              "requestCount": 10,
+              "uploadMs": 32695,
+              "createMs": 1831,
+              "createCount": 5,
+              "pollMs": 6921,
+              "pollSleepMs": 75029,
+              "pollCount": 20,
+              "remoteProcessingMs": 75093,
+              "requestCount": 30,
               "backfillCount": 5
             }
           },
@@ -1988,27 +2056,6 @@
         ]
       }
     },
-    "errors": [
-      {
-        "service": "gladia",
-        "model": "solaria-1",
-        "message": "Invalidated after validation: split segments reused the first segment async checkpoint; rerun required.",
-        "stage": "validation"
-      },
-      {
-        "service": "gladia",
-        "model": "solaria-3",
-        "message": "Invalidated after validation: split segments reused the first segment async checkpoint; rerun required.",
-        "stage": "validation"
-      },
-      {
-        "service": "speechmatics",
-        "model": "melia-1",
-        "message": "Speechmatics create failed (400): {\"code\":400,\"detail\":\"Job config JSON is invalid. Error: error validating v3 job config JSON: invalid input: transcription_config: language is required\",\"error\":\"Job rejected\"}\n",
-        "stage": "create",
-        "status": 400
-      }
-    ],
     "extractRoute": "media"
   }
 }

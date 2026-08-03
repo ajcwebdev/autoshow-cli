@@ -3,37 +3,37 @@
   "kind": "stt-combined-comparison-report",
   "category": "stt",
   "rootDir": "/Users/ajc/c/autoshow-cli/docs/benchmarks/stt",
-  "generatedAt": "2026-08-03T09:25:37.833Z",
+  "generatedAt": "2026-08-03T10:50:39.355Z",
   "metric": "speaker-aware WER-derived quality score, aggregated as the mean across runs",
   "runCount": 5,
   "runs": [
     {
       "runName": "2026-06-15_14-29-11-559_1-audio",
       "runDir": "/Users/ajc/c/autoshow-cli/docs/benchmarks/stt/2026-06-15_14-29-11-559_1-audio",
-      "providerCount": 24
+      "providerCount": 25
     },
     {
       "runName": "2026-06-15_14-34-10-342_2023-04-05-jsjam-react-miami-2023-10-minutes",
       "runDir": "/Users/ajc/c/autoshow-cli/docs/benchmarks/stt/2026-06-15_14-34-10-342_2023-04-05-jsjam-react-miami-2023-10-minutes",
-      "providerCount": 24
+      "providerCount": 25
     },
     {
       "runName": "2026-06-15_14-43-25-724_2022-09-30-widgets-fsjam-40-minutes",
       "runDir": "/Users/ajc/c/autoshow-cli/docs/benchmarks/stt/2026-06-15_14-43-25-724_2022-09-30-widgets-fsjam-40-minutes",
-      "providerCount": 24
+      "providerCount": 25
     },
     {
       "runName": "2026-07-16_01-20-11-985_2024-04-10-autogen-shownotes-jenn-junod",
       "runDir": "/Users/ajc/c/autoshow-cli/docs/benchmarks/stt/2026-07-16_01-20-11-985_2024-04-10-autogen-shownotes-jenn-junod",
-      "providerCount": 23
+      "providerCount": 24
     },
     {
       "runName": "2026-07-16_01-27-21-117_barnum-with-robert-balicki",
       "runDir": "/Users/ajc/c/autoshow-cli/docs/benchmarks/stt/2026-07-16_01-27-21-117_barnum-with-robert-balicki",
-      "providerCount": 23
+      "providerCount": 26
     }
   ],
-  "providerCount": 25,
+  "providerCount": 26,
   "metricRankings": {
     "local": {
       "price": [],
@@ -772,6 +772,26 @@
         },
         {
           "rank": 7,
+          "providerKey": "speechmatics/melia-1",
+          "provider": "speechmatics-melia-1",
+          "model": "melia-1",
+          "group": "thirdPartyServiceDiarization",
+          "metric": "price",
+          "value": 11.5860814693,
+          "label": "$0.1159",
+          "runsCovered": 5,
+          "meanQualityScore": 94.20622983253114,
+          "meanSpeakerAwareWER": 0.05793770167468879,
+          "meanTextOnlyWER": 0.05408247584138304,
+          "meanProcessingTimeMs": 21259.4,
+          "aggregateRealtimeFactor": 152.0891963649021,
+          "meanCostCents": 11.5860814693,
+          "totalCostCents": 57.9304073465,
+          "supportsDiarization": true,
+          "diarizationSupport": "supported"
+        },
+        {
+          "rank": 8,
           "providerKey": "assemblyai/universal-2",
           "provider": "assemblyai-universal-2",
           "model": "universal-2",
@@ -791,7 +811,7 @@
           "diarizationSupport": "supported"
         },
         {
-          "rank": 8,
+          "rank": 9,
           "providerKey": "rev/machine",
           "provider": "rev-machine",
           "model": "machine",
@@ -811,7 +831,7 @@
           "diarizationSupport": "supported"
         },
         {
-          "rank": 9,
+          "rank": 10,
           "providerKey": "assemblyai/universal-3-pro",
           "provider": "assemblyai-universal-3-pro",
           "model": "universal-3-pro",
@@ -831,7 +851,7 @@
           "diarizationSupport": "supported"
         },
         {
-          "rank": 10,
+          "rank": 11,
           "providerKey": "assemblyai/universal-3-5-pro",
           "provider": "assemblyai-universal-3-5-pro",
           "model": "universal-3-5-pro",
@@ -851,47 +871,7 @@
           "diarizationSupport": "supported"
         },
         {
-          "rank": 11,
-          "providerKey": "gladia/solaria-3",
-          "provider": "gladia-solaria-3",
-          "model": "solaria-3",
-          "group": "thirdPartyServiceDiarization",
-          "metric": "price",
-          "value": 30.358621087916667,
-          "label": "$0.3036",
-          "runsCovered": 4,
-          "meanQualityScore": 94.6862924919039,
-          "meanSpeakerAwareWER": 0.053137075080960924,
-          "meanTextOnlyWER": 0.04926209749346626,
-          "meanProcessingTimeMs": 25977.5,
-          "aggregateRealtimeFactor": 68.9695438937542,
-          "meanCostCents": 30.358621087916667,
-          "totalCostCents": 121.43448435166667,
-          "supportsDiarization": true,
-          "diarizationSupport": "supported"
-        },
-        {
           "rank": 12,
-          "providerKey": "gladia/solaria-1",
-          "provider": "gladia-solaria-1",
-          "model": "solaria-1",
-          "group": "thirdPartyServiceDiarization",
-          "metric": "price",
-          "value": 30.358621087916667,
-          "label": "$0.3036",
-          "runsCovered": 4,
-          "meanQualityScore": 93.88667325043056,
-          "meanSpeakerAwareWER": 0.06113326749569439,
-          "meanTextOnlyWER": 0.054013281241909794,
-          "meanProcessingTimeMs": 25020.5,
-          "aggregateRealtimeFactor": 71.60753488139726,
-          "meanCostCents": 30.358621087916667,
-          "totalCostCents": 121.43448435166667,
-          "supportsDiarization": true,
-          "diarizationSupport": "supported"
-        },
-        {
-          "rank": 13,
           "providerKey": "deepgram/nova-3",
           "provider": "deepgram-nova-3",
           "model": "nova-3",
@@ -911,7 +891,47 @@
           "diarizationSupport": "supported"
         },
         {
+          "rank": 13,
+          "providerKey": "gladia/solaria-3",
+          "provider": "gladia-solaria-3",
+          "model": "solaria-3",
+          "group": "thirdPartyServiceDiarization",
+          "metric": "price",
+          "value": 54.78689687033334,
+          "label": "$0.5479",
+          "runsCovered": 5,
+          "meanQualityScore": 94.5247474583766,
+          "meanSpeakerAwareWER": 0.054752525416233974,
+          "meanTextOnlyWER": 0.049550107818653835,
+          "meanProcessingTimeMs": 44090,
+          "aggregateRealtimeFactor": 73.33465777273759,
+          "meanCostCents": 54.78689687033334,
+          "totalCostCents": 273.9344843516667,
+          "supportsDiarization": true,
+          "diarizationSupport": "supported"
+        },
+        {
           "rank": 14,
+          "providerKey": "gladia/solaria-1",
+          "provider": "gladia-solaria-1",
+          "model": "solaria-1",
+          "group": "thirdPartyServiceDiarization",
+          "metric": "price",
+          "value": 54.78689687033334,
+          "label": "$0.5479",
+          "runsCovered": 5,
+          "meanQualityScore": 93.43609592652717,
+          "meanSpeakerAwareWER": 0.06563904073472829,
+          "meanTextOnlyWER": 0.057928601562695345,
+          "meanProcessingTimeMs": 44162.6,
+          "aggregateRealtimeFactor": 73.21410109912007,
+          "meanCostCents": 54.78689687033334,
+          "totalCostCents": 273.9344843516667,
+          "supportsDiarization": true,
+          "diarizationSupport": "supported"
+        },
+        {
+          "rank": 15,
           "providerKey": "gladia/default",
           "provider": "gladia-default",
           "model": "default",
@@ -931,7 +951,7 @@
           "diarizationSupport": "supported"
         },
         {
-          "rank": 15,
+          "rank": 16,
           "providerKey": "speechmatics/enhanced",
           "provider": "speechmatics-enhanced",
           "model": "enhanced",
@@ -974,46 +994,26 @@
         },
         {
           "rank": 2,
-          "providerKey": "gladia/solaria-1",
-          "provider": "gladia-solaria-1",
-          "model": "solaria-1",
+          "providerKey": "speechmatics/melia-1",
+          "provider": "speechmatics-melia-1",
+          "model": "melia-1",
           "group": "thirdPartyServiceDiarization",
           "metric": "speed",
-          "value": 25020.5,
-          "label": "25.02s",
-          "runsCovered": 4,
-          "meanQualityScore": 93.88667325043056,
-          "meanSpeakerAwareWER": 0.06113326749569439,
-          "meanTextOnlyWER": 0.054013281241909794,
-          "meanProcessingTimeMs": 25020.5,
-          "aggregateRealtimeFactor": 71.60753488139726,
-          "meanCostCents": 30.358621087916667,
-          "totalCostCents": 121.43448435166667,
+          "value": 21259.4,
+          "label": "21.26s",
+          "runsCovered": 5,
+          "meanQualityScore": 94.20622983253114,
+          "meanSpeakerAwareWER": 0.05793770167468879,
+          "meanTextOnlyWER": 0.05408247584138304,
+          "meanProcessingTimeMs": 21259.4,
+          "aggregateRealtimeFactor": 152.0891963649021,
+          "meanCostCents": 11.5860814693,
+          "totalCostCents": 57.9304073465,
           "supportsDiarization": true,
           "diarizationSupport": "supported"
         },
         {
           "rank": 3,
-          "providerKey": "gladia/solaria-3",
-          "provider": "gladia-solaria-3",
-          "model": "solaria-3",
-          "group": "thirdPartyServiceDiarization",
-          "metric": "speed",
-          "value": 25977.5,
-          "label": "25.98s",
-          "runsCovered": 4,
-          "meanQualityScore": 94.6862924919039,
-          "meanSpeakerAwareWER": 0.053137075080960924,
-          "meanTextOnlyWER": 0.04926209749346626,
-          "meanProcessingTimeMs": 25977.5,
-          "aggregateRealtimeFactor": 68.9695438937542,
-          "meanCostCents": 30.358621087916667,
-          "totalCostCents": 121.43448435166667,
-          "supportsDiarization": true,
-          "diarizationSupport": "supported"
-        },
-        {
-          "rank": 4,
           "providerKey": "gladia/default",
           "provider": "gladia-default",
           "model": "default",
@@ -1033,7 +1033,7 @@
           "diarizationSupport": "supported"
         },
         {
-          "rank": 5,
+          "rank": 4,
           "providerKey": "assemblyai/universal-2",
           "provider": "assemblyai-universal-2",
           "model": "universal-2",
@@ -1053,7 +1053,7 @@
           "diarizationSupport": "supported"
         },
         {
-          "rank": 6,
+          "rank": 5,
           "providerKey": "assemblyai/universal-3-5-pro",
           "provider": "assemblyai-universal-3-5-pro",
           "model": "universal-3-5-pro",
@@ -1073,7 +1073,7 @@
           "diarizationSupport": "supported"
         },
         {
-          "rank": 7,
+          "rank": 6,
           "providerKey": "mistral/voxtral-mini-2602",
           "provider": "mistral-voxtral-mini-2602",
           "model": "voxtral-mini-2602",
@@ -1093,7 +1093,7 @@
           "diarizationSupport": "supported"
         },
         {
-          "rank": 8,
+          "rank": 7,
           "providerKey": "assemblyai/universal-3-pro",
           "provider": "assemblyai-universal-3-pro",
           "model": "universal-3-pro",
@@ -1113,7 +1113,47 @@
           "diarizationSupport": "supported"
         },
         {
+          "rank": 8,
+          "providerKey": "gladia/solaria-3",
+          "provider": "gladia-solaria-3",
+          "model": "solaria-3",
+          "group": "thirdPartyServiceDiarization",
+          "metric": "speed",
+          "value": 44090,
+          "label": "44.09s",
+          "runsCovered": 5,
+          "meanQualityScore": 94.5247474583766,
+          "meanSpeakerAwareWER": 0.054752525416233974,
+          "meanTextOnlyWER": 0.049550107818653835,
+          "meanProcessingTimeMs": 44090,
+          "aggregateRealtimeFactor": 73.33465777273759,
+          "meanCostCents": 54.78689687033334,
+          "totalCostCents": 273.9344843516667,
+          "supportsDiarization": true,
+          "diarizationSupport": "supported"
+        },
+        {
           "rank": 9,
+          "providerKey": "gladia/solaria-1",
+          "provider": "gladia-solaria-1",
+          "model": "solaria-1",
+          "group": "thirdPartyServiceDiarization",
+          "metric": "speed",
+          "value": 44162.6,
+          "label": "44.16s",
+          "runsCovered": 5,
+          "meanQualityScore": 93.43609592652717,
+          "meanSpeakerAwareWER": 0.06563904073472829,
+          "meanTextOnlyWER": 0.057928601562695345,
+          "meanProcessingTimeMs": 44162.6,
+          "aggregateRealtimeFactor": 73.21410109912007,
+          "meanCostCents": 54.78689687033334,
+          "totalCostCents": 273.9344843516667,
+          "supportsDiarization": true,
+          "diarizationSupport": "supported"
+        },
+        {
+          "rank": 10,
           "providerKey": "grok/speech-to-text",
           "provider": "grok-speech-to-text",
           "model": "speech-to-text",
@@ -1133,7 +1173,7 @@
           "diarizationSupport": "supported"
         },
         {
-          "rank": 10,
+          "rank": 11,
           "providerKey": "happyscribe/auto",
           "provider": "happyscribe-auto",
           "model": "auto",
@@ -1153,7 +1193,7 @@
           "diarizationSupport": "supported"
         },
         {
-          "rank": 11,
+          "rank": 12,
           "providerKey": "rev/machine",
           "provider": "rev-machine",
           "model": "machine",
@@ -1173,7 +1213,7 @@
           "diarizationSupport": "supported"
         },
         {
-          "rank": 12,
+          "rank": 13,
           "providerKey": "soniox/stt-async-v4",
           "provider": "soniox-stt-async-v4",
           "model": "stt-async-v4",
@@ -1193,7 +1233,7 @@
           "diarizationSupport": "supported"
         },
         {
-          "rank": 13,
+          "rank": 14,
           "providerKey": "speechmatics/enhanced",
           "provider": "speechmatics-enhanced",
           "model": "enhanced",
@@ -1213,7 +1253,7 @@
           "diarizationSupport": "supported"
         },
         {
-          "rank": 14,
+          "rank": 15,
           "providerKey": "rev/low_cost",
           "provider": "rev-low_cost",
           "model": "low_cost",
@@ -1233,7 +1273,7 @@
           "diarizationSupport": "supported"
         },
         {
-          "rank": 15,
+          "rank": 16,
           "providerKey": "soniox/stt-async-v5",
           "provider": "soniox-stt-async-v5",
           "model": "stt-async-v5",
@@ -1376,26 +1416,6 @@
         },
         {
           "rank": 7,
-          "providerKey": "gladia/solaria-3",
-          "provider": "gladia-solaria-3",
-          "model": "solaria-3",
-          "group": "thirdPartyServiceDiarization",
-          "metric": "qualityScore",
-          "value": 94.6862924919039,
-          "label": "94.69/100 quality score",
-          "runsCovered": 4,
-          "meanQualityScore": 94.6862924919039,
-          "meanSpeakerAwareWER": 0.053137075080960924,
-          "meanTextOnlyWER": 0.04926209749346626,
-          "meanProcessingTimeMs": 25977.5,
-          "aggregateRealtimeFactor": 68.9695438937542,
-          "meanCostCents": 30.358621087916667,
-          "totalCostCents": 121.43448435166667,
-          "supportsDiarization": true,
-          "diarizationSupport": "supported"
-        },
-        {
-          "rank": 8,
           "providerKey": "speechmatics/enhanced",
           "provider": "speechmatics-enhanced",
           "model": "enhanced",
@@ -1411,6 +1431,26 @@
           "aggregateRealtimeFactor": 21.822638601331768,
           "meanCostCents": 67.360938775,
           "totalCostCents": 336.804693875,
+          "supportsDiarization": true,
+          "diarizationSupport": "supported"
+        },
+        {
+          "rank": 8,
+          "providerKey": "gladia/solaria-3",
+          "provider": "gladia-solaria-3",
+          "model": "solaria-3",
+          "group": "thirdPartyServiceDiarization",
+          "metric": "qualityScore",
+          "value": 94.5247474583766,
+          "label": "94.52/100 quality score",
+          "runsCovered": 5,
+          "meanQualityScore": 94.5247474583766,
+          "meanSpeakerAwareWER": 0.054752525416233974,
+          "meanTextOnlyWER": 0.049550107818653835,
+          "meanProcessingTimeMs": 44090,
+          "aggregateRealtimeFactor": 73.33465777273759,
+          "meanCostCents": 54.78689687033334,
+          "totalCostCents": 273.9344843516667,
           "supportsDiarization": true,
           "diarizationSupport": "supported"
         },
@@ -1436,26 +1476,46 @@
         },
         {
           "rank": 10,
-          "providerKey": "gladia/solaria-1",
-          "provider": "gladia-solaria-1",
-          "model": "solaria-1",
+          "providerKey": "speechmatics/melia-1",
+          "provider": "speechmatics-melia-1",
+          "model": "melia-1",
           "group": "thirdPartyServiceDiarization",
           "metric": "qualityScore",
-          "value": 93.88667325043056,
-          "label": "93.89/100 quality score",
-          "runsCovered": 4,
-          "meanQualityScore": 93.88667325043056,
-          "meanSpeakerAwareWER": 0.06113326749569439,
-          "meanTextOnlyWER": 0.054013281241909794,
-          "meanProcessingTimeMs": 25020.5,
-          "aggregateRealtimeFactor": 71.60753488139726,
-          "meanCostCents": 30.358621087916667,
-          "totalCostCents": 121.43448435166667,
+          "value": 94.20622983253114,
+          "label": "94.21/100 quality score",
+          "runsCovered": 5,
+          "meanQualityScore": 94.20622983253114,
+          "meanSpeakerAwareWER": 0.05793770167468879,
+          "meanTextOnlyWER": 0.05408247584138304,
+          "meanProcessingTimeMs": 21259.4,
+          "aggregateRealtimeFactor": 152.0891963649021,
+          "meanCostCents": 11.5860814693,
+          "totalCostCents": 57.9304073465,
           "supportsDiarization": true,
           "diarizationSupport": "supported"
         },
         {
           "rank": 11,
+          "providerKey": "gladia/solaria-1",
+          "provider": "gladia-solaria-1",
+          "model": "solaria-1",
+          "group": "thirdPartyServiceDiarization",
+          "metric": "qualityScore",
+          "value": 93.43609592652717,
+          "label": "93.44/100 quality score",
+          "runsCovered": 5,
+          "meanQualityScore": 93.43609592652717,
+          "meanSpeakerAwareWER": 0.06563904073472829,
+          "meanTextOnlyWER": 0.057928601562695345,
+          "meanProcessingTimeMs": 44162.6,
+          "aggregateRealtimeFactor": 73.21410109912007,
+          "meanCostCents": 54.78689687033334,
+          "totalCostCents": 273.9344843516667,
+          "supportsDiarization": true,
+          "diarizationSupport": "supported"
+        },
+        {
+          "rank": 12,
           "providerKey": "rev/machine",
           "provider": "rev-machine",
           "model": "machine",
@@ -1475,7 +1535,7 @@
           "diarizationSupport": "supported"
         },
         {
-          "rank": 12,
+          "rank": 13,
           "providerKey": "deepgram/nova-3",
           "provider": "deepgram-nova-3",
           "model": "nova-3",
@@ -1495,7 +1555,7 @@
           "diarizationSupport": "supported"
         },
         {
-          "rank": 13,
+          "rank": 14,
           "providerKey": "rev/low_cost",
           "provider": "rev-low_cost",
           "model": "low_cost",
@@ -1515,7 +1575,7 @@
           "diarizationSupport": "supported"
         },
         {
-          "rank": 14,
+          "rank": 15,
           "providerKey": "grok/speech-to-text",
           "provider": "grok-speech-to-text",
           "model": "speech-to-text",
@@ -1535,7 +1595,7 @@
           "diarizationSupport": "supported"
         },
         {
-          "rank": 15,
+          "rank": 16,
           "providerKey": "gladia/default",
           "provider": "gladia-default",
           "model": "default",
@@ -3446,6 +3506,27 @@
         },
         {
           "rank": 7,
+          "providerKey": "speechmatics/melia-1",
+          "provider": "speechmatics-melia-1",
+          "model": "melia-1",
+          "group": "thirdPartyServiceDiarization",
+          "weightSet": "strongQuality",
+          "runsCovered": 5,
+          "composite": 69.00331034603333,
+          "subscores": {
+            "quality": 62.93676193676746,
+            "speed": 96.09593104311668,
+            "cost": 90.44307692307692
+          },
+          "subscoreRunCounts": {
+            "quality": 5,
+            "speed": 5,
+            "cost": 5
+          },
+          "missingDimensions": []
+        },
+        {
+          "rank": 8,
           "providerKey": "soniox/stt-async-v5",
           "provider": "soniox-stt-async-v5",
           "model": "stt-async-v5",
@@ -3466,28 +3547,28 @@
           "missingDimensions": []
         },
         {
-          "rank": 8,
+          "rank": 9,
           "providerKey": "gladia/solaria-3",
           "provider": "gladia-solaria-3",
           "model": "solaria-3",
           "group": "thirdPartyServiceDiarization",
           "weightSet": "strongQuality",
-          "runsCovered": 4,
-          "composite": 61.66663181216115,
+          "runsCovered": 5,
+          "composite": 66.94845406954128,
           "subscores": {
-            "quality": 63.447018980383724,
-            "speed": 88.26965345802881,
-            "cost": 20.82051282051283
+            "quality": 70.30807101580652,
+            "speed": 86.63022897921711,
+            "cost": 20.389743589743595
           },
           "subscoreRunCounts": {
-            "quality": 4,
-            "speed": 4,
-            "cost": 4
+            "quality": 5,
+            "speed": 5,
+            "cost": 5
           },
           "missingDimensions": []
         },
         {
-          "rank": 9,
+          "rank": 10,
           "providerKey": "speechmatics/enhanced",
           "provider": "speechmatics-enhanced",
           "model": "enhanced",
@@ -3508,7 +3589,28 @@
           "missingDimensions": []
         },
         {
-          "rank": 10,
+          "rank": 11,
+          "providerKey": "gladia/solaria-1",
+          "provider": "gladia-solaria-1",
+          "model": "solaria-1",
+          "group": "thirdPartyServiceDiarization",
+          "weightSet": "strongQuality",
+          "runsCovered": 5,
+          "composite": 55.6888773579265,
+          "subscores": {
+            "quality": 56.29079610151839,
+            "speed": 86.17266117737431,
+            "cost": 20.389743589743595
+          },
+          "subscoreRunCounts": {
+            "quality": 5,
+            "speed": 5,
+            "cost": 5
+          },
+          "missingDimensions": []
+        },
+        {
+          "rank": 12,
           "providerKey": "rev/machine",
           "provider": "rev-machine",
           "model": "machine",
@@ -3529,7 +3631,7 @@
           "missingDimensions": []
         },
         {
-          "rank": 11,
+          "rank": 13,
           "providerKey": "deepgram/nova-3",
           "provider": "deepgram-nova-3",
           "model": "nova-3",
@@ -3550,28 +3652,7 @@
           "missingDimensions": []
         },
         {
-          "rank": 12,
-          "providerKey": "gladia/solaria-1",
-          "provider": "gladia-solaria-1",
-          "model": "solaria-1",
-          "group": "thirdPartyServiceDiarization",
-          "weightSet": "strongQuality",
-          "runsCovered": 4,
-          "composite": 48.22588070543239,
-          "subscores": {
-            "quality": 46.6930036671893,
-            "speed": 87.89426489629665,
-            "cost": 20.82051282051283
-          },
-          "subscoreRunCounts": {
-            "quality": 4,
-            "speed": 4,
-            "cost": 4
-          },
-          "missingDimensions": []
-        },
-        {
-          "rank": 13,
+          "rank": 14,
           "providerKey": "rev/low_cost",
           "provider": "rev-low_cost",
           "model": "low_cost",
@@ -3592,7 +3673,7 @@
           "missingDimensions": []
         },
         {
-          "rank": 14,
+          "rank": 15,
           "providerKey": "gladia/default",
           "provider": "gladia-default",
           "model": "default",
@@ -3613,7 +3694,7 @@
           "missingDimensions": []
         },
         {
-          "rank": 15,
+          "rank": 16,
           "providerKey": "grok/speech-to-text",
           "provider": "grok-speech-to-text",
           "model": "speech-to-text",
@@ -3700,6 +3781,27 @@
         },
         {
           "rank": 4,
+          "providerKey": "speechmatics/melia-1",
+          "provider": "speechmatics-melia-1",
+          "model": "melia-1",
+          "group": "thirdPartyServiceDiarization",
+          "weightSet": "moderateQuality",
+          "runsCovered": 5,
+          "composite": 75.0698587552992,
+          "subscores": {
+            "quality": 62.93676193676746,
+            "speed": 96.09593104311668,
+            "cost": 90.44307692307692
+          },
+          "subscoreRunCounts": {
+            "quality": 5,
+            "speed": 5,
+            "cost": 5
+          },
+          "missingDimensions": []
+        },
+        {
+          "rank": 5,
           "providerKey": "happyscribe/auto",
           "provider": "happyscribe-auto",
           "model": "auto",
@@ -3720,7 +3822,7 @@
           "missingDimensions": []
         },
         {
-          "rank": 5,
+          "rank": 6,
           "providerKey": "soniox/stt-async-v4",
           "provider": "soniox-stt-async-v4",
           "model": "stt-async-v4",
@@ -3741,7 +3843,7 @@
           "missingDimensions": []
         },
         {
-          "rank": 6,
+          "rank": 7,
           "providerKey": "assemblyai/universal-2",
           "provider": "assemblyai-universal-2",
           "model": "universal-2",
@@ -3762,7 +3864,7 @@
           "missingDimensions": []
         },
         {
-          "rank": 7,
+          "rank": 8,
           "providerKey": "soniox/stt-async-v5",
           "provider": "soniox-stt-async-v5",
           "model": "stt-async-v5",
@@ -3783,28 +3885,28 @@
           "missingDimensions": []
         },
         {
-          "rank": 8,
+          "rank": 9,
           "providerKey": "gladia/solaria-3",
           "provider": "gladia-solaria-3",
           "model": "solaria-3",
           "group": "thirdPartyServiceDiarization",
           "weightSet": "moderateQuality",
-          "runsCovered": 4,
-          "composite": 59.886244643938554,
+          "runsCovered": 5,
+          "composite": 63.58883712327606,
           "subscores": {
-            "quality": 63.447018980383724,
-            "speed": 88.26965345802881,
-            "cost": 20.82051282051283
+            "quality": 70.30807101580652,
+            "speed": 86.63022897921711,
+            "cost": 20.389743589743595
           },
           "subscoreRunCounts": {
-            "quality": 4,
-            "speed": 4,
-            "cost": 4
+            "quality": 5,
+            "speed": 5,
+            "cost": 5
           },
           "missingDimensions": []
         },
         {
-          "rank": 9,
+          "rank": 10,
           "providerKey": "rev/machine",
           "provider": "rev-machine",
           "model": "machine",
@@ -3825,7 +3927,28 @@
           "missingDimensions": []
         },
         {
-          "rank": 10,
+          "rank": 11,
+          "providerKey": "gladia/solaria-1",
+          "provider": "gladia-solaria-1",
+          "model": "solaria-1",
+          "group": "thirdPartyServiceDiarization",
+          "weightSet": "moderateQuality",
+          "runsCovered": 5,
+          "composite": 55.08695861433461,
+          "subscores": {
+            "quality": 56.29079610151839,
+            "speed": 86.17266117737431,
+            "cost": 20.389743589743595
+          },
+          "subscoreRunCounts": {
+            "quality": 5,
+            "speed": 5,
+            "cost": 5
+          },
+          "missingDimensions": []
+        },
+        {
+          "rank": 12,
           "providerKey": "deepgram/nova-3",
           "provider": "deepgram-nova-3",
           "model": "nova-3",
@@ -3846,28 +3969,7 @@
           "missingDimensions": []
         },
         {
-          "rank": 11,
-          "providerKey": "gladia/solaria-1",
-          "provider": "gladia-solaria-1",
-          "model": "solaria-1",
-          "group": "thirdPartyServiceDiarization",
-          "weightSet": "moderateQuality",
-          "runsCovered": 4,
-          "composite": 49.758757743675474,
-          "subscores": {
-            "quality": 46.6930036671893,
-            "speed": 87.89426489629665,
-            "cost": 20.82051282051283
-          },
-          "subscoreRunCounts": {
-            "quality": 4,
-            "speed": 4,
-            "cost": 4
-          },
-          "missingDimensions": []
-        },
-        {
-          "rank": 12,
+          "rank": 13,
           "providerKey": "rev/low_cost",
           "provider": "rev-low_cost",
           "model": "low_cost",
@@ -3888,7 +3990,7 @@
           "missingDimensions": []
         },
         {
-          "rank": 13,
+          "rank": 14,
           "providerKey": "grok/speech-to-text",
           "provider": "grok-speech-to-text",
           "model": "speech-to-text",
@@ -3909,7 +4011,7 @@
           "missingDimensions": []
         },
         {
-          "rank": 14,
+          "rank": 15,
           "providerKey": "speechmatics/enhanced",
           "provider": "speechmatics-enhanced",
           "model": "enhanced",
@@ -3930,7 +4032,7 @@
           "missingDimensions": []
         },
         {
-          "rank": 15,
+          "rank": 16,
           "providerKey": "gladia/default",
           "provider": "gladia-default",
           "model": "default",
@@ -3954,6 +4056,27 @@
       "strongSpeed": [
         {
           "rank": 1,
+          "providerKey": "speechmatics/melia-1",
+          "provider": "speechmatics-melia-1",
+          "model": "melia-1",
+          "group": "thirdPartyServiceDiarization",
+          "weightSet": "strongSpeed",
+          "runsCovered": 5,
+          "composite": 92.2147287204778,
+          "subscores": {
+            "quality": 62.93676193676746,
+            "speed": 96.09593104311668,
+            "cost": 90.44307692307692
+          },
+          "subscoreRunCounts": {
+            "quality": 5,
+            "speed": 5,
+            "cost": 5
+          },
+          "missingDimensions": []
+        },
+        {
+          "rank": 2,
           "providerKey": "mistral/voxtral-mini-2602",
           "provider": "mistral-voxtral-mini-2602",
           "model": "voxtral-mini-2602",
@@ -3974,7 +4097,7 @@
           "missingDimensions": []
         },
         {
-          "rank": 2,
+          "rank": 3,
           "providerKey": "assemblyai/universal-2",
           "provider": "assemblyai-universal-2",
           "model": "universal-2",
@@ -3995,7 +4118,7 @@
           "missingDimensions": []
         },
         {
-          "rank": 3,
+          "rank": 4,
           "providerKey": "assemblyai/universal-3-5-pro",
           "provider": "assemblyai-universal-3-5-pro",
           "model": "universal-3-5-pro",
@@ -4016,7 +4139,7 @@
           "missingDimensions": []
         },
         {
-          "rank": 4,
+          "rank": 5,
           "providerKey": "assemblyai/universal-3-pro",
           "provider": "assemblyai-universal-3-pro",
           "model": "universal-3-pro",
@@ -4037,7 +4160,7 @@
           "missingDimensions": []
         },
         {
-          "rank": 5,
+          "rank": 6,
           "providerKey": "deepgram/nova-3",
           "provider": "deepgram-nova-3",
           "model": "nova-3",
@@ -4058,7 +4181,7 @@
           "missingDimensions": []
         },
         {
-          "rank": 6,
+          "rank": 7,
           "providerKey": "grok/speech-to-text",
           "provider": "grok-speech-to-text",
           "model": "speech-to-text",
@@ -4079,49 +4202,49 @@
           "missingDimensions": []
         },
         {
-          "rank": 7,
+          "rank": 8,
           "providerKey": "gladia/solaria-3",
           "provider": "gladia-solaria-3",
           "model": "solaria-3",
           "group": "thirdPartyServiceDiarization",
           "weightSet": "strongSpeed",
-          "runsCovered": 4,
-          "composite": 79.0424759465127,
+          "runsCovered": 5,
+          "composite": 78.3739646439287,
           "subscores": {
-            "quality": 63.447018980383724,
-            "speed": 88.26965345802881,
-            "cost": 20.82051282051283
+            "quality": 70.30807101580652,
+            "speed": 86.63022897921711,
+            "cost": 20.389743589743595
           },
           "subscoreRunCounts": {
-            "quality": 4,
-            "speed": 4,
-            "cost": 4
-          },
-          "missingDimensions": []
-        },
-        {
-          "rank": 8,
-          "providerKey": "gladia/solaria-1",
-          "provider": "gladia-solaria-1",
-          "model": "solaria-1",
-          "group": "thirdPartyServiceDiarization",
-          "weightSet": "strongSpeed",
-          "runsCovered": 4,
-          "composite": 77.06676356580753,
-          "subscores": {
-            "quality": 46.6930036671893,
-            "speed": 87.89426489629665,
-            "cost": 20.82051282051283
-          },
-          "subscoreRunCounts": {
-            "quality": 4,
-            "speed": 4,
-            "cost": 4
+            "quality": 5,
+            "speed": 5,
+            "cost": 5
           },
           "missingDimensions": []
         },
         {
           "rank": 9,
+          "providerKey": "gladia/solaria-1",
+          "provider": "gladia-solaria-1",
+          "model": "solaria-1",
+          "group": "thirdPartyServiceDiarization",
+          "weightSet": "strongSpeed",
+          "runsCovered": 5,
+          "composite": 76.60618291102564,
+          "subscores": {
+            "quality": 56.29079610151839,
+            "speed": 86.17266117737431,
+            "cost": 20.389743589743595
+          },
+          "subscoreRunCounts": {
+            "quality": 5,
+            "speed": 5,
+            "cost": 5
+          },
+          "missingDimensions": []
+        },
+        {
+          "rank": 10,
           "providerKey": "gladia/default",
           "provider": "gladia-default",
           "model": "default",
@@ -4142,7 +4265,7 @@
           "missingDimensions": []
         },
         {
-          "rank": 10,
+          "rank": 11,
           "providerKey": "soniox/stt-async-v4",
           "provider": "soniox-stt-async-v4",
           "model": "stt-async-v4",
@@ -4163,7 +4286,7 @@
           "missingDimensions": []
         },
         {
-          "rank": 11,
+          "rank": 12,
           "providerKey": "happyscribe/auto",
           "provider": "happyscribe-auto",
           "model": "auto",
@@ -4184,7 +4307,7 @@
           "missingDimensions": []
         },
         {
-          "rank": 12,
+          "rank": 13,
           "providerKey": "rev/machine",
           "provider": "rev-machine",
           "model": "machine",
@@ -4205,7 +4328,7 @@
           "missingDimensions": []
         },
         {
-          "rank": 13,
+          "rank": 14,
           "providerKey": "soniox/stt-async-v5",
           "provider": "soniox-stt-async-v5",
           "model": "stt-async-v5",
@@ -4226,7 +4349,7 @@
           "missingDimensions": []
         },
         {
-          "rank": 14,
+          "rank": 15,
           "providerKey": "speechmatics/enhanced",
           "provider": "speechmatics-enhanced",
           "model": "enhanced",
@@ -4247,7 +4370,7 @@
           "missingDimensions": []
         },
         {
-          "rank": 15,
+          "rank": 16,
           "providerKey": "rev/low_cost",
           "provider": "rev-low_cost",
           "model": "low_cost",
@@ -4271,6 +4394,27 @@
       "moderateSpeed": [
         {
           "rank": 1,
+          "providerKey": "speechmatics/melia-1",
+          "provider": "speechmatics-melia-1",
+          "model": "melia-1",
+          "group": "thirdPartyServiceDiarization",
+          "weightSet": "moderateSpeed",
+          "runsCovered": 5,
+          "composite": 88.33352639783888,
+          "subscores": {
+            "quality": 62.93676193676746,
+            "speed": 96.09593104311668,
+            "cost": 90.44307692307692
+          },
+          "subscoreRunCounts": {
+            "quality": 5,
+            "speed": 5,
+            "cost": 5
+          },
+          "missingDimensions": []
+        },
+        {
+          "rank": 2,
           "providerKey": "mistral/voxtral-mini-2602",
           "provider": "mistral-voxtral-mini-2602",
           "model": "voxtral-mini-2602",
@@ -4291,7 +4435,7 @@
           "missingDimensions": []
         },
         {
-          "rank": 2,
+          "rank": 3,
           "providerKey": "assemblyai/universal-3-pro",
           "provider": "assemblyai-universal-3-pro",
           "model": "universal-3-pro",
@@ -4312,7 +4456,7 @@
           "missingDimensions": []
         },
         {
-          "rank": 3,
+          "rank": 4,
           "providerKey": "assemblyai/universal-3-5-pro",
           "provider": "assemblyai-universal-3-5-pro",
           "model": "universal-3-5-pro",
@@ -4333,7 +4477,7 @@
           "missingDimensions": []
         },
         {
-          "rank": 4,
+          "rank": 5,
           "providerKey": "assemblyai/universal-2",
           "provider": "assemblyai-universal-2",
           "model": "universal-2",
@@ -4354,7 +4498,7 @@
           "missingDimensions": []
         },
         {
-          "rank": 5,
+          "rank": 6,
           "providerKey": "grok/speech-to-text",
           "provider": "grok-speech-to-text",
           "model": "speech-to-text",
@@ -4375,7 +4519,7 @@
           "missingDimensions": []
         },
         {
-          "rank": 6,
+          "rank": 7,
           "providerKey": "deepgram/nova-3",
           "provider": "deepgram-nova-3",
           "model": "nova-3",
@@ -4396,28 +4540,28 @@
           "missingDimensions": []
         },
         {
-          "rank": 7,
+          "rank": 8,
           "providerKey": "gladia/solaria-3",
           "provider": "gladia-solaria-3",
           "model": "solaria-3",
           "group": "thirdPartyServiceDiarization",
           "weightSet": "moderateSpeed",
-          "runsCovered": 4,
-          "composite": 69.8152984349966,
+          "runsCovered": 5,
+          "composite": 70.11770030864028,
           "subscores": {
-            "quality": 63.447018980383724,
-            "speed": 88.26965345802881,
-            "cost": 20.82051282051283
+            "quality": 70.30807101580652,
+            "speed": 86.63022897921711,
+            "cost": 20.389743589743595
           },
           "subscoreRunCounts": {
-            "quality": 4,
-            "speed": 4,
-            "cost": 4
+            "quality": 5,
+            "speed": 5,
+            "cost": 5
           },
           "missingDimensions": []
         },
         {
-          "rank": 8,
+          "rank": 9,
           "providerKey": "soniox/stt-async-v4",
           "provider": "soniox-stt-async-v4",
           "model": "stt-async-v4",
@@ -4438,28 +4582,28 @@
           "missingDimensions": []
         },
         {
-          "rank": 9,
+          "rank": 10,
           "providerKey": "gladia/solaria-1",
           "provider": "gladia-solaria-1",
           "model": "solaria-1",
           "group": "thirdPartyServiceDiarization",
           "weightSet": "moderateSpeed",
-          "runsCovered": 4,
-          "composite": 66.2392622353184,
+          "runsCovered": 5,
+          "composite": 67.03970464467697,
           "subscores": {
-            "quality": 46.6930036671893,
-            "speed": 87.89426489629665,
-            "cost": 20.82051282051283
+            "quality": 56.29079610151839,
+            "speed": 86.17266117737431,
+            "cost": 20.389743589743595
           },
           "subscoreRunCounts": {
-            "quality": 4,
-            "speed": 4,
-            "cost": 4
+            "quality": 5,
+            "speed": 5,
+            "cost": 5
           },
           "missingDimensions": []
         },
         {
-          "rank": 10,
+          "rank": 11,
           "providerKey": "gladia/default",
           "provider": "gladia-default",
           "model": "default",
@@ -4480,7 +4624,7 @@
           "missingDimensions": []
         },
         {
-          "rank": 11,
+          "rank": 12,
           "providerKey": "happyscribe/auto",
           "provider": "happyscribe-auto",
           "model": "auto",
@@ -4501,7 +4645,7 @@
           "missingDimensions": []
         },
         {
-          "rank": 12,
+          "rank": 13,
           "providerKey": "rev/machine",
           "provider": "rev-machine",
           "model": "machine",
@@ -4522,7 +4666,7 @@
           "missingDimensions": []
         },
         {
-          "rank": 13,
+          "rank": 14,
           "providerKey": "soniox/stt-async-v5",
           "provider": "soniox-stt-async-v5",
           "model": "stt-async-v5",
@@ -4543,7 +4687,7 @@
           "missingDimensions": []
         },
         {
-          "rank": 14,
+          "rank": 15,
           "providerKey": "speechmatics/enhanced",
           "provider": "speechmatics-enhanced",
           "model": "enhanced",
@@ -4564,7 +4708,7 @@
           "missingDimensions": []
         },
         {
-          "rank": 15,
+          "rank": 16,
           "providerKey": "rev/low_cost",
           "provider": "rev-low_cost",
           "model": "low_cost",
@@ -4630,6 +4774,27 @@
         },
         {
           "rank": 3,
+          "providerKey": "speechmatics/melia-1",
+          "provider": "speechmatics-melia-1",
+          "model": "melia-1",
+          "group": "thirdPartyServiceDiarization",
+          "weightSet": "strongCost",
+          "runsCovered": 5,
+          "composite": 88.25773083644995,
+          "subscores": {
+            "quality": 62.93676193676746,
+            "speed": 96.09593104311668,
+            "cost": 90.44307692307692
+          },
+          "subscoreRunCounts": {
+            "quality": 5,
+            "speed": 5,
+            "cost": 5
+          },
+          "missingDimensions": []
+        },
+        {
+          "rank": 4,
           "providerKey": "grok/speech-to-text",
           "provider": "grok-speech-to-text",
           "model": "speech-to-text",
@@ -4650,7 +4815,7 @@
           "missingDimensions": []
         },
         {
-          "rank": 4,
+          "rank": 5,
           "providerKey": "soniox/stt-async-v5",
           "provider": "soniox-stt-async-v5",
           "model": "stt-async-v5",
@@ -4671,7 +4836,7 @@
           "missingDimensions": []
         },
         {
-          "rank": 5,
+          "rank": 6,
           "providerKey": "assemblyai/universal-2",
           "provider": "assemblyai-universal-2",
           "model": "universal-2",
@@ -4692,7 +4857,7 @@
           "missingDimensions": []
         },
         {
-          "rank": 6,
+          "rank": 7,
           "providerKey": "rev/low_cost",
           "provider": "rev-low_cost",
           "model": "low_cost",
@@ -4713,7 +4878,7 @@
           "missingDimensions": []
         },
         {
-          "rank": 7,
+          "rank": 8,
           "providerKey": "assemblyai/universal-3-pro",
           "provider": "assemblyai-universal-3-pro",
           "model": "universal-3-pro",
@@ -4734,7 +4899,7 @@
           "missingDimensions": []
         },
         {
-          "rank": 8,
+          "rank": 9,
           "providerKey": "assemblyai/universal-3-5-pro",
           "provider": "assemblyai-universal-3-5-pro",
           "model": "universal-3-5-pro",
@@ -4755,7 +4920,7 @@
           "missingDimensions": []
         },
         {
-          "rank": 9,
+          "rank": 10,
           "providerKey": "rev/machine",
           "provider": "rev-machine",
           "model": "machine",
@@ -4776,7 +4941,7 @@
           "missingDimensions": []
         },
         {
-          "rank": 10,
+          "rank": 11,
           "providerKey": "happyscribe/auto",
           "provider": "happyscribe-auto",
           "model": "auto",
@@ -4797,7 +4962,7 @@
           "missingDimensions": []
         },
         {
-          "rank": 11,
+          "rank": 12,
           "providerKey": "deepgram/nova-3",
           "provider": "deepgram-nova-3",
           "model": "nova-3",
@@ -4818,49 +4983,49 @@
           "missingDimensions": []
         },
         {
-          "rank": 12,
+          "rank": 13,
           "providerKey": "gladia/solaria-3",
           "provider": "gladia-solaria-3",
           "model": "solaria-3",
           "group": "thirdPartyServiceDiarization",
           "weightSet": "strongCost",
-          "runsCovered": 4,
-          "composite": 31.828077500251517,
+          "runsCovered": 5,
+          "composite": 32.00562487129724,
           "subscores": {
-            "quality": 63.447018980383724,
-            "speed": 88.26965345802881,
-            "cost": 20.82051282051283
+            "quality": 70.30807101580652,
+            "speed": 86.63022897921711,
+            "cost": 20.389743589743595
           },
           "subscoreRunCounts": {
-            "quality": 4,
-            "speed": 4,
-            "cost": 4
-          },
-          "missingDimensions": []
-        },
-        {
-          "rank": 13,
-          "providerKey": "gladia/solaria-1",
-          "provider": "gladia-solaria-1",
-          "model": "solaria-1",
-          "group": "thirdPartyServiceDiarization",
-          "weightSet": "strongCost",
-          "runsCovered": 4,
-          "composite": 30.11513711275886,
-          "subscores": {
-            "quality": 46.6930036671893,
-            "speed": 87.89426489629665,
-            "cost": 20.82051282051283
-          },
-          "subscoreRunCounts": {
-            "quality": 4,
-            "speed": 4,
-            "cost": 4
+            "quality": 5,
+            "speed": 5,
+            "cost": 5
           },
           "missingDimensions": []
         },
         {
           "rank": 14,
+          "providerKey": "gladia/solaria-1",
+          "provider": "gladia-solaria-1",
+          "model": "solaria-1",
+          "group": "thirdPartyServiceDiarization",
+          "weightSet": "strongCost",
+          "runsCovered": 5,
+          "composite": 30.558140599684148,
+          "subscores": {
+            "quality": 56.29079610151839,
+            "speed": 86.17266117737431,
+            "cost": 20.389743589743595
+          },
+          "subscoreRunCounts": {
+            "quality": 5,
+            "speed": 5,
+            "cost": 5
+          },
+          "missingDimensions": []
+        },
+        {
+          "rank": 15,
           "providerKey": "gladia/default",
           "provider": "gladia-default",
           "model": "default",
@@ -4881,7 +5046,7 @@
           "missingDimensions": []
         },
         {
-          "rank": 15,
+          "rank": 16,
           "providerKey": "speechmatics/enhanced",
           "provider": "speechmatics-enhanced",
           "model": "enhanced",
@@ -4926,6 +5091,27 @@
         },
         {
           "rank": 2,
+          "providerKey": "speechmatics/melia-1",
+          "provider": "speechmatics-melia-1",
+          "model": "melia-1",
+          "group": "thirdPartyServiceDiarization",
+          "weightSet": "moderateCost",
+          "runsCovered": 5,
+          "composite": 86.07238474982299,
+          "subscores": {
+            "quality": 62.93676193676746,
+            "speed": 96.09593104311668,
+            "cost": 90.44307692307692
+          },
+          "subscoreRunCounts": {
+            "quality": 5,
+            "speed": 5,
+            "cost": 5
+          },
+          "missingDimensions": []
+        },
+        {
+          "rank": 3,
           "providerKey": "assemblyai/universal-3-pro",
           "provider": "assemblyai-universal-3-pro",
           "model": "universal-3-pro",
@@ -4946,7 +5132,7 @@
           "missingDimensions": []
         },
         {
-          "rank": 3,
+          "rank": 4,
           "providerKey": "soniox/stt-async-v4",
           "provider": "soniox-stt-async-v4",
           "model": "stt-async-v4",
@@ -4967,7 +5153,7 @@
           "missingDimensions": []
         },
         {
-          "rank": 4,
+          "rank": 5,
           "providerKey": "assemblyai/universal-2",
           "provider": "assemblyai-universal-2",
           "model": "universal-2",
@@ -4988,7 +5174,7 @@
           "missingDimensions": []
         },
         {
-          "rank": 5,
+          "rank": 6,
           "providerKey": "assemblyai/universal-3-5-pro",
           "provider": "assemblyai-universal-3-5-pro",
           "model": "universal-3-5-pro",
@@ -5009,7 +5195,7 @@
           "missingDimensions": []
         },
         {
-          "rank": 6,
+          "rank": 7,
           "providerKey": "grok/speech-to-text",
           "provider": "grok-speech-to-text",
           "model": "speech-to-text",
@@ -5030,7 +5216,7 @@
           "missingDimensions": []
         },
         {
-          "rank": 7,
+          "rank": 8,
           "providerKey": "soniox/stt-async-v5",
           "provider": "soniox-stt-async-v5",
           "model": "stt-async-v5",
@@ -5051,7 +5237,7 @@
           "missingDimensions": []
         },
         {
-          "rank": 8,
+          "rank": 9,
           "providerKey": "rev/low_cost",
           "provider": "rev-low_cost",
           "model": "low_cost",
@@ -5072,7 +5258,7 @@
           "missingDimensions": []
         },
         {
-          "rank": 9,
+          "rank": 10,
           "providerKey": "rev/machine",
           "provider": "rev-machine",
           "model": "machine",
@@ -5093,7 +5279,7 @@
           "missingDimensions": []
         },
         {
-          "rank": 10,
+          "rank": 11,
           "providerKey": "happyscribe/auto",
           "provider": "happyscribe-auto",
           "model": "auto",
@@ -5114,7 +5300,7 @@
           "missingDimensions": []
         },
         {
-          "rank": 11,
+          "rank": 12,
           "providerKey": "deepgram/nova-3",
           "provider": "deepgram-nova-3",
           "model": "nova-3",
@@ -5135,49 +5321,49 @@
           "missingDimensions": []
         },
         {
-          "rank": 12,
+          "rank": 13,
           "providerKey": "gladia/solaria-3",
           "provider": "gladia-solaria-3",
           "model": "solaria-3",
           "group": "thirdPartyServiceDiarization",
           "weightSet": "moderateCost",
-          "runsCovered": 4,
-          "composite": 42.8356421799902,
+          "runsCovered": 5,
+          "composite": 43.621506152850884,
           "subscores": {
-            "quality": 63.447018980383724,
-            "speed": 88.26965345802881,
-            "cost": 20.82051282051283
+            "quality": 70.30807101580652,
+            "speed": 86.63022897921711,
+            "cost": 20.389743589743595
           },
           "subscoreRunCounts": {
-            "quality": 4,
-            "speed": 4,
-            "cost": 4
-          },
-          "missingDimensions": []
-        },
-        {
-          "rank": 13,
-          "providerKey": "gladia/solaria-1",
-          "provider": "gladia-solaria-1",
-          "model": "solaria-1",
-          "group": "thirdPartyServiceDiarization",
-          "weightSet": "moderateCost",
-          "runsCovered": 4,
-          "composite": 39.409761405004886,
-          "subscores": {
-            "quality": 46.6930036671893,
-            "speed": 87.89426489629665,
-            "cost": 20.82051282051283
-          },
-          "subscoreRunCounts": {
-            "quality": 4,
-            "speed": 4,
-            "cost": 4
+            "quality": 5,
+            "speed": 5,
+            "cost": 5
           },
           "missingDimensions": []
         },
         {
           "rank": 14,
+          "providerKey": "gladia/solaria-1",
+          "provider": "gladia-solaria-1",
+          "model": "solaria-1",
+          "group": "thirdPartyServiceDiarization",
+          "weightSet": "moderateCost",
+          "runsCovered": 5,
+          "composite": 40.7265376096247,
+          "subscores": {
+            "quality": 56.29079610151839,
+            "speed": 86.17266117737431,
+            "cost": 20.389743589743595
+          },
+          "subscoreRunCounts": {
+            "quality": 5,
+            "speed": 5,
+            "cost": 5
+          },
+          "missingDimensions": []
+        },
+        {
+          "rank": 15,
           "providerKey": "gladia/default",
           "provider": "gladia-default",
           "model": "default",
@@ -5198,7 +5384,7 @@
           "missingDimensions": []
         },
         {
-          "rank": 15,
+          "rank": 16,
           "providerKey": "speechmatics/enhanced",
           "provider": "speechmatics-enhanced",
           "model": "enhanced",
@@ -5306,6 +5492,27 @@
         },
         {
           "rank": 5,
+          "providerKey": "speechmatics/melia-1",
+          "provider": "speechmatics-melia-1",
+          "model": "melia-1",
+          "group": "thirdPartyServiceDiarization",
+          "weightSet": "qualityCost",
+          "runsCovered": 5,
+          "composite": 78.63052059124163,
+          "subscores": {
+            "quality": 62.93676193676746,
+            "speed": 96.09593104311668,
+            "cost": 90.44307692307692
+          },
+          "subscoreRunCounts": {
+            "quality": 5,
+            "speed": 5,
+            "cost": 5
+          },
+          "missingDimensions": []
+        },
+        {
+          "rank": 6,
           "providerKey": "soniox/stt-async-v5",
           "provider": "soniox-stt-async-v5",
           "model": "stt-async-v5",
@@ -5326,7 +5533,7 @@
           "missingDimensions": []
         },
         {
-          "rank": 6,
+          "rank": 7,
           "providerKey": "assemblyai/universal-2",
           "provider": "assemblyai-universal-2",
           "model": "universal-2",
@@ -5347,7 +5554,7 @@
           "missingDimensions": []
         },
         {
-          "rank": 7,
+          "rank": 8,
           "providerKey": "happyscribe/auto",
           "provider": "happyscribe-auto",
           "model": "auto",
@@ -5368,7 +5575,7 @@
           "missingDimensions": []
         },
         {
-          "rank": 8,
+          "rank": 9,
           "providerKey": "rev/low_cost",
           "provider": "rev-low_cost",
           "model": "low_cost",
@@ -5389,7 +5596,7 @@
           "missingDimensions": []
         },
         {
-          "rank": 9,
+          "rank": 10,
           "providerKey": "rev/machine",
           "provider": "rev-machine",
           "model": "machine",
@@ -5410,7 +5617,7 @@
           "missingDimensions": []
         },
         {
-          "rank": 10,
+          "rank": 11,
           "providerKey": "grok/speech-to-text",
           "provider": "grok-speech-to-text",
           "model": "speech-to-text",
@@ -5431,28 +5638,28 @@
           "missingDimensions": []
         },
         {
-          "rank": 11,
+          "rank": 12,
           "providerKey": "gladia/solaria-3",
           "provider": "gladia-solaria-3",
           "model": "solaria-3",
           "group": "thirdPartyServiceDiarization",
           "weightSet": "qualityCost",
-          "runsCovered": 4,
-          "composite": 46.74735465620633,
+          "runsCovered": 5,
+          "composite": 49.47703947041927,
           "subscores": {
-            "quality": 63.447018980383724,
-            "speed": 88.26965345802881,
-            "cost": 20.82051282051283
+            "quality": 70.30807101580652,
+            "speed": 86.63022897921711,
+            "cost": 20.389743589743595
           },
           "subscoreRunCounts": {
-            "quality": 4,
-            "speed": 4,
-            "cost": 4
+            "quality": 5,
+            "speed": 5,
+            "cost": 5
           },
           "missingDimensions": []
         },
         {
-          "rank": 12,
+          "rank": 13,
           "providerKey": "deepgram/nova-3",
           "provider": "deepgram-nova-3",
           "model": "nova-3",
@@ -5473,28 +5680,28 @@
           "missingDimensions": []
         },
         {
-          "rank": 13,
+          "rank": 14,
           "providerKey": "gladia/solaria-1",
           "provider": "gladia-solaria-1",
           "model": "solaria-1",
           "group": "thirdPartyServiceDiarization",
           "weightSet": "qualityCost",
-          "runsCovered": 4,
-          "composite": 39.17050890909562,
+          "runsCovered": 5,
+          "composite": 43.12350897880532,
           "subscores": {
-            "quality": 46.6930036671893,
-            "speed": 87.89426489629665,
-            "cost": 20.82051282051283
+            "quality": 56.29079610151839,
+            "speed": 86.17266117737431,
+            "cost": 20.389743589743595
           },
           "subscoreRunCounts": {
-            "quality": 4,
-            "speed": 4,
-            "cost": 4
+            "quality": 5,
+            "speed": 5,
+            "cost": 5
           },
           "missingDimensions": []
         },
         {
-          "rank": 14,
+          "rank": 15,
           "providerKey": "speechmatics/enhanced",
           "provider": "speechmatics-enhanced",
           "model": "enhanced",
@@ -5515,7 +5722,7 @@
           "missingDimensions": []
         },
         {
-          "rank": 15,
+          "rank": 16,
           "providerKey": "gladia/default",
           "provider": "gladia-default",
           "model": "default",
@@ -5539,6 +5746,27 @@
       "costSpeed": [
         {
           "rank": 1,
+          "providerKey": "speechmatics/melia-1",
+          "provider": "speechmatics-melia-1",
+          "model": "melia-1",
+          "group": "thirdPartyServiceDiarization",
+          "weightSet": "costSpeed",
+          "runsCovered": 5,
+          "composite": 90.23622977846387,
+          "subscores": {
+            "quality": 62.93676193676746,
+            "speed": 96.09593104311668,
+            "cost": 90.44307692307692
+          },
+          "subscoreRunCounts": {
+            "quality": 5,
+            "speed": 5,
+            "cost": 5
+          },
+          "missingDimensions": []
+        },
+        {
+          "rank": 2,
           "providerKey": "mistral/voxtral-mini-2602",
           "provider": "mistral-voxtral-mini-2602",
           "model": "voxtral-mini-2602",
@@ -5559,7 +5787,7 @@
           "missingDimensions": []
         },
         {
-          "rank": 2,
+          "rank": 3,
           "providerKey": "assemblyai/universal-2",
           "provider": "assemblyai-universal-2",
           "model": "universal-2",
@@ -5580,7 +5808,7 @@
           "missingDimensions": []
         },
         {
-          "rank": 3,
+          "rank": 4,
           "providerKey": "grok/speech-to-text",
           "provider": "grok-speech-to-text",
           "model": "speech-to-text",
@@ -5601,7 +5829,7 @@
           "missingDimensions": []
         },
         {
-          "rank": 4,
+          "rank": 5,
           "providerKey": "assemblyai/universal-3-pro",
           "provider": "assemblyai-universal-3-pro",
           "model": "universal-3-pro",
@@ -5622,7 +5850,7 @@
           "missingDimensions": []
         },
         {
-          "rank": 5,
+          "rank": 6,
           "providerKey": "assemblyai/universal-3-5-pro",
           "provider": "assemblyai-universal-3-5-pro",
           "model": "universal-3-5-pro",
@@ -5643,7 +5871,7 @@
           "missingDimensions": []
         },
         {
-          "rank": 6,
+          "rank": 7,
           "providerKey": "soniox/stt-async-v4",
           "provider": "soniox-stt-async-v4",
           "model": "stt-async-v4",
@@ -5664,7 +5892,7 @@
           "missingDimensions": []
         },
         {
-          "rank": 7,
+          "rank": 8,
           "providerKey": "soniox/stt-async-v5",
           "provider": "soniox-stt-async-v5",
           "model": "stt-async-v5",
@@ -5685,7 +5913,7 @@
           "missingDimensions": []
         },
         {
-          "rank": 8,
+          "rank": 9,
           "providerKey": "rev/machine",
           "provider": "rev-machine",
           "model": "machine",
@@ -5706,7 +5934,7 @@
           "missingDimensions": []
         },
         {
-          "rank": 9,
+          "rank": 10,
           "providerKey": "deepgram/nova-3",
           "provider": "deepgram-nova-3",
           "model": "nova-3",
@@ -5727,28 +5955,28 @@
           "missingDimensions": []
         },
         {
-          "rank": 10,
+          "rank": 11,
           "providerKey": "gladia/solaria-3",
           "provider": "gladia-solaria-3",
           "model": "solaria-3",
           "group": "thirdPartyServiceDiarization",
           "weightSet": "costSpeed",
-          "runsCovered": 4,
-          "composite": 55.43527672338212,
+          "runsCovered": 5,
+          "composite": 55.18979475761297,
           "subscores": {
-            "quality": 63.447018980383724,
-            "speed": 88.26965345802881,
-            "cost": 20.82051282051283
+            "quality": 70.30807101580652,
+            "speed": 86.63022897921711,
+            "cost": 20.389743589743595
           },
           "subscoreRunCounts": {
-            "quality": 4,
-            "speed": 4,
-            "cost": 4
+            "quality": 5,
+            "speed": 5,
+            "cost": 5
           },
           "missingDimensions": []
         },
         {
-          "rank": 11,
+          "rank": 12,
           "providerKey": "happyscribe/auto",
           "provider": "happyscribe-auto",
           "model": "auto",
@@ -5769,7 +5997,7 @@
           "missingDimensions": []
         },
         {
-          "rank": 12,
+          "rank": 13,
           "providerKey": "rev/low_cost",
           "provider": "rev-low_cost",
           "model": "low_cost",
@@ -5790,28 +6018,28 @@
           "missingDimensions": []
         },
         {
-          "rank": 13,
+          "rank": 14,
           "providerKey": "gladia/solaria-1",
           "provider": "gladia-solaria-1",
           "model": "solaria-1",
           "group": "thirdPartyServiceDiarization",
           "weightSet": "costSpeed",
-          "runsCovered": 4,
-          "composite": 53.5909503392832,
+          "runsCovered": 5,
+          "composite": 53.5821617553549,
           "subscores": {
-            "quality": 46.6930036671893,
-            "speed": 87.89426489629665,
-            "cost": 20.82051282051283
+            "quality": 56.29079610151839,
+            "speed": 86.17266117737431,
+            "cost": 20.389743589743595
           },
           "subscoreRunCounts": {
-            "quality": 4,
-            "speed": 4,
-            "cost": 4
+            "quality": 5,
+            "speed": 5,
+            "cost": 5
           },
           "missingDimensions": []
         },
         {
-          "rank": 14,
+          "rank": 15,
           "providerKey": "gladia/default",
           "provider": "gladia-default",
           "model": "default",
@@ -5832,7 +6060,7 @@
           "missingDimensions": []
         },
         {
-          "rank": 15,
+          "rank": 16,
           "providerKey": "speechmatics/enhanced",
           "provider": "speechmatics-enhanced",
           "model": "enhanced",
@@ -5990,14 +6218,14 @@
     "thirdPartyServiceDiarization": {
       "method": "quality-cost-terciles-v1",
       "ranking": "qualityCost",
-      "providerCount": 15,
+      "providerCount": 16,
       "tieBreak": "composite-desc, quality-subscore-desc, providerKey-asc",
       "tiers": [
         {
           "tier": 1,
           "label": "Tier 1",
-          "description": "Highest quality-cost tercile (ranks 1-5).",
-          "count": 5,
+          "description": "Highest quality-cost tercile (ranks 1-6).",
+          "count": 6,
           "providers": [
             {
               "providerKey": "assemblyai/universal-3-pro",
@@ -6028,10 +6256,17 @@
               "qualityCostComposite": 81.35934299444835
             },
             {
+              "providerKey": "speechmatics/melia-1",
+              "provider": "speechmatics-melia-1",
+              "model": "melia-1",
+              "qualityCostRank": 5,
+              "qualityCostComposite": 78.63052059124163
+            },
+            {
               "providerKey": "soniox/stt-async-v5",
               "provider": "soniox-stt-async-v5",
               "model": "stt-async-v5",
-              "qualityCostRank": 5,
+              "qualityCostRank": 6,
               "qualityCostComposite": 77.17353434285742
             }
           ]
@@ -6039,42 +6274,42 @@
         {
           "tier": 2,
           "label": "Tier 2",
-          "description": "Middle quality-cost tercile (ranks 6-10).",
+          "description": "Middle quality-cost tercile (ranks 7-11).",
           "count": 5,
           "providers": [
             {
               "providerKey": "assemblyai/universal-2",
               "provider": "assemblyai-universal-2",
               "model": "universal-2",
-              "qualityCostRank": 6,
+              "qualityCostRank": 7,
               "qualityCostComposite": 76.25754778991144
             },
             {
               "providerKey": "happyscribe/auto",
               "provider": "happyscribe-auto",
               "model": "auto",
-              "qualityCostRank": 7,
+              "qualityCostRank": 8,
               "qualityCostComposite": 70.0416971446093
             },
             {
               "providerKey": "rev/low_cost",
               "provider": "rev-low_cost",
               "model": "low_cost",
-              "qualityCostRank": 8,
+              "qualityCostRank": 9,
               "qualityCostComposite": 64.55660113614698
             },
             {
               "providerKey": "rev/machine",
               "provider": "rev-machine",
               "model": "machine",
-              "qualityCostRank": 9,
+              "qualityCostRank": 10,
               "qualityCostComposite": 64.15653647689606
             },
             {
               "providerKey": "grok/speech-to-text",
               "provider": "grok-speech-to-text",
               "model": "speech-to-text",
-              "qualityCostRank": 10,
+              "qualityCostRank": 11,
               "qualityCostComposite": 61.162725897078786
             }
           ]
@@ -6082,42 +6317,42 @@
         {
           "tier": 3,
           "label": "Tier 3",
-          "description": "Lower quality-cost tercile (ranks 11-15).",
+          "description": "Lower quality-cost tercile (ranks 12-16).",
           "count": 5,
           "providers": [
             {
               "providerKey": "gladia/solaria-3",
               "provider": "gladia-solaria-3",
               "model": "solaria-3",
-              "qualityCostRank": 11,
-              "qualityCostComposite": 46.74735465620633
+              "qualityCostRank": 12,
+              "qualityCostComposite": 49.47703947041927
             },
             {
               "providerKey": "deepgram/nova-3",
               "provider": "deepgram-nova-3",
               "model": "nova-3",
-              "qualityCostRank": 12,
+              "qualityCostRank": 13,
               "qualityCostComposite": 43.56184391551638
             },
             {
               "providerKey": "gladia/solaria-1",
               "provider": "gladia-solaria-1",
               "model": "solaria-1",
-              "qualityCostRank": 13,
-              "qualityCostComposite": 39.17050890909562
+              "qualityCostRank": 14,
+              "qualityCostComposite": 43.12350897880532
             },
             {
               "providerKey": "speechmatics/enhanced",
               "provider": "speechmatics-enhanced",
               "model": "enhanced",
-              "qualityCostRank": 14,
+              "qualityCostRank": 15,
               "qualityCostComposite": 34.3038972401538
             },
             {
               "providerKey": "gladia/default",
               "provider": "gladia-default",
               "model": "default",
-              "qualityCostRank": 15,
+              "qualityCostRank": 16,
               "qualityCostComposite": 33.90431278488235
             }
           ]

@@ -1,5 +1,5 @@
 import { describe, expect, test } from 'bun:test'
-import { mkdir, mkdtemp, rm } from 'node:fs/promises'
+import { mkdir, mkdtemp, rm, writeFile } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { getGenerationTargetKey } from '~/cli/commands/process-steps/generation-command-utils'
@@ -15,6 +15,7 @@ import { hasResumableOcrTargetWork } from '~/cli/commands/setup-and-utilities/re
 import { writeOcrRunManifest } from '~/cli/commands/process-steps/step-2-extract/step-2-ocr/ocr-manifest'
 import { hasResumableSttTargetWork, priceSttTarget } from '~/cli/commands/setup-and-utilities/resume/extract/stt-resume'
 import { writeSttRunManifest } from '~/cli/commands/process-steps/step-2-extract/step-2-stt/stt-manifest'
+import { readExistingSttRun } from '~/cli/commands/process-steps/step-2-extract/step-2-stt/stt-batch/stt-run-state'
 import type { BatchManifestEntry, OcrTarget, ProviderBatchResumeConfig, ProviderIdentity, ResumeFakeMetadata, ResumeFakeProviderResumeEntry, ResumeTarget, RuntimeOptions, SttTarget } from '~/types'
 
 const isRecord = (value: unknown): value is Record<string, unknown> =>
@@ -403,6 +404,52 @@ describe('additive resume provider selection', () => {
           { youtubeCaptions: false } as RuntimeOptions
         )).rejects.toThrow(expected)
       }
+    })
+  })
+
+  test('STT resume reconstructs compacted successes from provider result artifacts', async () => {
+    await withTempDir('autoshow-stt-compacted-resume-', async (dir) => {
+      const target: SttTarget = { service: 'assemblyai', model: 'universal-2', local: false }
+      const providerDir = join(dir, 'providers', 'assemblyai-universal-2')
+      await mkdir(providerDir, { recursive: true })
+      await writeSttRunManifest(dir, {
+        step1: { url: 'file:///tmp/audio.mp3' },
+        completionStatus: 'incomplete',
+        requestedProviders: [target, { service: 'speechmatics', model: 'melia-1', local: false }],
+        missingProviders: [{ service: 'speechmatics', model: 'melia-1', local: false }],
+        providerStates: [{
+          ...target,
+          status: 'succeeded',
+          artifactDir: 'providers/assemblyai-universal-2',
+          attempts: 1
+        }]
+      })
+      await writeFile(join(providerDir, 'result.json'), `${JSON.stringify({
+        schemaVersion: 2,
+        kind: 'provider-result',
+        provider: target.service,
+        model: target.model,
+        metadata: {
+          transcriptionService: target.service,
+          transcriptionModel: target.model,
+          processingTime: 10,
+          tokenCount: 2
+        },
+        result: {
+          text: 'Compacted transcript.',
+          segments: [{ start: '00:00:00', end: '00:00:01', text: 'Compacted transcript.' }],
+          evidence: { timingQuality: 'coarse' }
+        }
+      })}\n`)
+
+      const existing = await readExistingSttRun(dir, [target])
+
+      expect(existing.successes[0]?.result).toEqual({
+        text: 'Compacted transcript.',
+        segments: [{ start: '00:00:00', end: '00:00:01', text: 'Compacted transcript.' }],
+        evidence: { timingQuality: 'coarse' }
+      })
+      expect(await Bun.file(join(providerDir, 'transcription.txt')).exists()).toBe(false)
     })
   })
 

@@ -2,10 +2,10 @@
 
 ## Status
 
-- **Decision Status:** Proposed
+- **Decision Status:** Accepted
 - **Date Created:** 2026-08-03
 - **Date Updated:** 2026-08-03
-- **Verification Status:** Pending
+- **Verification Status:** Passed
 
 ## Context
 
@@ -259,23 +259,18 @@ Phase 6's Speechmatics implementation is complete. The registry, service discove
 
 Phase 7's Together implementation is complete. The registry, service discovery, help, documentation, pricing, and service-test discovery now retain `openai/whisper-large-v3` and add `nvidia/parakeet-tdt-0.6b-v3`. Both use the existing multipart batch transcription lifecycle and request verbose segment timestamps. The request-field builder retains an optional decoding prompt only for Whisper and omits it for Parakeet, which Together documents as ignoring prompts. Current public pricing is `$0.0015/audio minute`, equivalent to `$0.09/hour`, for each model. Live Parakeet benchmarking rejected a 103 MB multipart request despite the published 500 MB batch limit and succeeded after adaptive splitting, so its operational split cap is conservatively set to 20 MiB. The reused Whisper timing estimate remains provisional.
 
-The curated refresh fetched seven sources with two new and five unchanged, zero failures, and 11,072 `o200k_base` tokens. The approved paid run produced all five Parakeet outputs; the 150-minute source recovered through adaptive splitting after its initial 103 MB multipart request was rejected. All seven implementation phases are complete. Across the refresh, 33 of 40 planned outputs are currently trustworthy, five corrected Melia outputs and two clean long-source Gladia outputs remain, and ADR acceptance remains gated on that explicitly approved rerun plus synchronized per-run reports, combined JSON and Markdown, the self-contained HTML dashboard, and the repository benchmark summary.
+The curated refresh fetched seven sources with two new and five unchanged, zero failures, and 11,072 `o200k_base` tokens. The approved paid run produced all five Parakeet outputs; the 150-minute source recovered through adaptive splitting after its initial 103 MB multipart request was rejected. All seven implementation phases are complete.
 
-The 33 trustworthy results were compacted and promoted into all five per-run reference-report pairs while preserving historical rows whose original provider results had already been cleaned. Per-run reports now record audio duration and observed realtime throughput; the combined JSON, Markdown, self-contained HTML dashboard, and repository benchmark summary promote the same timing, cost, and quality evidence. The combined dashboard currently aggregates 25 historical/current provider identities across five runs. The two invalid long-source Gladia results were removed and marked failed/missing, all five Melia errors remain recorded in manifests without dangling artifact paths, and 117 transient provider files totaling 513,133,527 bytes were deleted. Exactly 33 compacted `providers/*/result.json` files remain, with zero non-result files under the five provider trees. Reports must be regenerated once more after the corrected seven-output rerun before acceptance.
+The first explicitly approved `$3.63` corrected rerun attempt stopped locally before provider dispatch because STT resume reconstructed historical successes from removed `transcription.txt` files even though compaction preserved the complete transcript in each provider `result.json`. Resume now prefers the structured result envelope and retains the legacy transcript-file fallback. The targeted compacted-resume contract passes all 12 tests, including the new regression, and `bun run check` and `git diff --check` pass.
+
+The renewed explicitly approved rerun completed all seven remaining targets: five corrected Speechmatics Melia 1 results and clean five-segment Gladia Solaria 1 and Solaria 3 results for the 150-minute source. Every Gladia segment used a distinct remote job identity, and the five normalized 30-minute transcript buckets for each model have distinct SHA-256 hashes. All five manifests are full with every requested provider succeeded and zero failed providers. The refresh therefore has 40 trustworthy current outputs across five runs.
+
+All 40 current provider results were compacted and promoted into the five per-run `reference-comparison-report.{json,md}` pairs while preserving intentionally retained historical rows. The combined `combined-comparison-report.{json,md,html}` artifacts and `docs/benchmarks/summary.md` were regenerated from those compacted reports and now aggregate 26 historical/current provider identities across five runs. The final cleanup removed 42 derived transcript, checkpoint, and split-audio files totaling 217,251,567 bytes; exactly 40 compacted `providers/*/result.json` files remain with zero non-result files under the five provider trees. Single-run reports expose all nine grouped metric-ranking arrays and omit the retired overall/ranking/tiering fields; the combined report exposes per-group metric rankings, weighted rankings, and tiers with no cross-group leaderboard.
 
 ## Follow-up Actions
 
 | Action | Owner | Current State |
 |---|---|---|
-| Complete Phase 1 local verification and curated-link refresh | STT maintainers | Complete |
-| Run the Phase 1 no-cost preflight and record its authoritative estimate | Benchmark maintainers | Complete; `$1.80` |
-| Regenerate all five per-run report pairs after compaction, combined STT JSON/Markdown/HTML dashboard, and repository benchmark summary | Benchmark maintainers | Current 33 trustworthy results promoted and transient files removed; final refresh pending corrected seven-output rerun |
-| Audit Deepgram under the general-purpose rule | STT maintainers | Phase 2 complete; no paid or report work required |
-| Regenerate reports for completed Gemini 3.6 Flash outputs | Benchmark maintainers | Five outputs succeeded |
-| Obtain explicit approval and cleanly rerun the two invalid long-source Gladia outputs | Benchmark maintainers | Pending approval; estimated `$3.05` |
-| Regenerate reports for completed Soniox v5 outputs | Benchmark maintainers | Five outputs succeeded |
-| Obtain explicit approval and run the corrected Phase 6 Speechmatics Melia 1 retry | Benchmark maintainers | Pending approval; estimate `57.93¢` |
-| Regenerate reports for completed Together Parakeet outputs | Benchmark maintainers | Five outputs succeeded |
 | Evaluate deAPI and OpenAI STT as separate provider integrations | STT maintainers | Deferred; outside this refresh |
 | Design streaming and dedicated-endpoint support before exposing transport-specific models | STT maintainers | Deferred; separate architecture decision |
 

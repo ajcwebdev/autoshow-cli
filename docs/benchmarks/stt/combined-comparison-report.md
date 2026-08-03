@@ -4,12 +4,12 @@
 
 - Root directory: `/Users/ajc/c/autoshow-cli/docs/benchmarks/stt`
 - Runs aggregated: 5
-  - `2026-06-15_14-29-11-559_1-audio` (24 providers)
-  - `2026-06-15_14-34-10-342_2023-04-05-jsjam-react-miami-2023-10-minutes` (24 providers)
-  - `2026-06-15_14-43-25-724_2022-09-30-widgets-fsjam-40-minutes` (24 providers)
-  - `2026-07-16_01-20-11-985_2024-04-10-autogen-shownotes-jenn-junod` (23 providers)
-  - `2026-07-16_01-27-21-117_barnum-with-robert-balicki` (23 providers)
-- Distinct providers: 25 (0 local, 10 third-party non-diarization, 15 third-party diarization)
+  - `2026-06-15_14-29-11-559_1-audio` (25 providers)
+  - `2026-06-15_14-34-10-342_2023-04-05-jsjam-react-miami-2023-10-minutes` (25 providers)
+  - `2026-06-15_14-43-25-724_2022-09-30-widgets-fsjam-40-minutes` (25 providers)
+  - `2026-07-16_01-20-11-985_2024-04-10-autogen-shownotes-jenn-junod` (24 providers)
+  - `2026-07-16_01-27-21-117_barnum-with-robert-balicki` (26 providers)
+- Distinct providers: 26 (0 local, 10 third-party non-diarization, 16 third-party diarization)
 - Quality score aggregates the per-run speaker-aware WER-derived score as a mean across runs; price and speed aggregate per-run cost and processing time as means.
 
 ## Method
@@ -297,35 +297,37 @@ Q, S, and C are each provider's per-run normalized quality, speed, and cost subs
 | 4 | <code>rev-low_cost</code> | $0.0898 | 5 | 92.07 | 7.93% | 7.31% | supported | 179.74s | 17.99× | $0.0898 |
 | 5 | <code>happyscribe-auto</code> | $0.1028 | 5 | 96.25 | 3.75% | 3.43% | supported | 93.79s | 34.47× | $0.1028 |
 | 6 | <code>mistral-voxtral-mini-2602</code> | $0.1078 | 5 | 95.16 | 4.84% | 4.49% | supported | 34.80s | 92.92× | $0.1078 |
-| 7 | <code>assemblyai-universal-2</code> | $0.1527 | 5 | 94.24 | 5.76% | 5.24% | supported | 31.04s | 104.18× | $0.1527 |
-| 8 | <code>rev-machine</code> | $0.1796 | 5 | 92.71 | 7.29% | 6.66% | supported | 101.59s | 31.83× | $0.1796 |
-| 9 | <code>assemblyai-universal-3-pro</code> | $0.1886 | 5 | 96.59 | 3.41% | 3.10% | supported | 40.77s | 79.30× | $0.1886 |
-| 10 | <code>assemblyai-universal-3-5-pro</code> | $0.2066 | 5 | 95.80 | 4.20% | 3.75% | supported | 33.87s | 95.47× | $0.2066 |
-| 11 | <code>gladia-solaria-3</code> | $0.3036 | 4 | 94.69 | 5.31% | 4.93% | supported | 25.98s | 68.97× | $0.3036 |
-| 12 | <code>gladia-solaria-1</code> | $0.3036 | 4 | 93.89 | 6.11% | 5.40% | supported | 25.02s | 71.61× | $0.3036 |
-| 13 | <code>deepgram-nova-3</code> | $0.5227 | 5 | 92.71 | 7.29% | 6.18% | supported | 15.58s | 207.58× | $0.5227 |
-| 14 | <code>gladia-default</code> | $0.5479 | 5 | 79.51 | 20.49% | 19.94% | supported | 27.25s | 118.64× | $0.5479 |
-| 15 | <code>speechmatics-enhanced</code> | $0.6736 | 5 | 94.53 | 5.47% | 5.02% | supported | 148.16s | 21.82× | $0.6736 |
+| 7 | <code>speechmatics-melia-1</code> | $0.1159 | 5 | 94.21 | 5.79% | 5.41% | supported | 21.26s | 152.09× | $0.1159 |
+| 8 | <code>assemblyai-universal-2</code> | $0.1527 | 5 | 94.24 | 5.76% | 5.24% | supported | 31.04s | 104.18× | $0.1527 |
+| 9 | <code>rev-machine</code> | $0.1796 | 5 | 92.71 | 7.29% | 6.66% | supported | 101.59s | 31.83× | $0.1796 |
+| 10 | <code>assemblyai-universal-3-pro</code> | $0.1886 | 5 | 96.59 | 3.41% | 3.10% | supported | 40.77s | 79.30× | $0.1886 |
+| 11 | <code>assemblyai-universal-3-5-pro</code> | $0.2066 | 5 | 95.80 | 4.20% | 3.75% | supported | 33.87s | 95.47× | $0.2066 |
+| 12 | <code>deepgram-nova-3</code> | $0.5227 | 5 | 92.71 | 7.29% | 6.18% | supported | 15.58s | 207.58× | $0.5227 |
+| 13 | <code>gladia-solaria-3</code> | $0.5479 | 5 | 94.52 | 5.48% | 4.96% | supported | 44.09s | 73.33× | $0.5479 |
+| 14 | <code>gladia-solaria-1</code> | $0.5479 | 5 | 93.44 | 6.56% | 5.79% | supported | 44.16s | 73.21× | $0.5479 |
+| 15 | <code>gladia-default</code> | $0.5479 | 5 | 79.51 | 20.49% | 19.94% | supported | 27.25s | 118.64× | $0.5479 |
+| 16 | <code>speechmatics-enhanced</code> | $0.6736 | 5 | 94.53 | 5.47% | 5.02% | supported | 148.16s | 21.82× | $0.6736 |
 
 #### Speed
 
 | Rank | Provider | Value | Runs | Mean Score / 100 | Mean Speaker-aware WER | Mean Text-only WER | Diarization | Mean Speed | Throughput | Mean Cost |
 | ---: | --- | ---: | ---: | ---: | ---: | ---: | --- | ---: | ---: | ---: |
 | 1 | <code>deepgram-nova-3</code> | 15.58s | 5 | 92.71 | 7.29% | 6.18% | supported | 15.58s | 207.58× | $0.5227 |
-| 2 | <code>gladia-solaria-1</code> | 25.02s | 4 | 93.89 | 6.11% | 5.40% | supported | 25.02s | 71.61× | $0.3036 |
-| 3 | <code>gladia-solaria-3</code> | 25.98s | 4 | 94.69 | 5.31% | 4.93% | supported | 25.98s | 68.97× | $0.3036 |
-| 4 | <code>gladia-default</code> | 27.25s | 5 | 79.51 | 20.49% | 19.94% | supported | 27.25s | 118.64× | $0.5479 |
-| 5 | <code>assemblyai-universal-2</code> | 31.04s | 5 | 94.24 | 5.76% | 5.24% | supported | 31.04s | 104.18× | $0.1527 |
-| 6 | <code>assemblyai-universal-3-5-pro</code> | 33.87s | 5 | 95.80 | 4.20% | 3.75% | supported | 33.87s | 95.47× | $0.2066 |
-| 7 | <code>mistral-voxtral-mini-2602</code> | 34.80s | 5 | 95.16 | 4.84% | 4.49% | supported | 34.80s | 92.92× | $0.1078 |
-| 8 | <code>assemblyai-universal-3-pro</code> | 40.77s | 5 | 96.59 | 3.41% | 3.10% | supported | 40.77s | 79.30× | $0.1886 |
-| 9 | <code>grok-speech-to-text</code> | 55.47s | 5 | 89.71 | 10.29% | 9.79% | supported | 55.47s | 58.29× | $0.0498 |
-| 10 | <code>happyscribe-auto</code> | 93.79s | 5 | 96.25 | 3.75% | 3.43% | supported | 93.79s | 34.47× | $0.1028 |
-| 11 | <code>rev-machine</code> | 101.59s | 5 | 92.71 | 7.29% | 6.66% | supported | 101.59s | 31.83× | $0.1796 |
-| 12 | <code>soniox-stt-async-v4</code> | 141.71s | 5 | 95.30 | 4.70% | 4.24% | supported | 141.71s | 22.82× | $0.0898 |
-| 13 | <code>speechmatics-enhanced</code> | 148.16s | 5 | 94.53 | 5.47% | 5.02% | supported | 148.16s | 21.82× | $0.6736 |
-| 14 | <code>rev-low_cost</code> | 179.74s | 5 | 92.07 | 7.93% | 7.31% | supported | 179.74s | 17.99× | $0.0898 |
-| 15 | <code>soniox-stt-async-v5</code> | 208.90s | 5 | 95.46 | 4.54% | 4.17% | supported | 208.90s | 15.48× | $0.0898 |
+| 2 | <code>speechmatics-melia-1</code> | 21.26s | 5 | 94.21 | 5.79% | 5.41% | supported | 21.26s | 152.09× | $0.1159 |
+| 3 | <code>gladia-default</code> | 27.25s | 5 | 79.51 | 20.49% | 19.94% | supported | 27.25s | 118.64× | $0.5479 |
+| 4 | <code>assemblyai-universal-2</code> | 31.04s | 5 | 94.24 | 5.76% | 5.24% | supported | 31.04s | 104.18× | $0.1527 |
+| 5 | <code>assemblyai-universal-3-5-pro</code> | 33.87s | 5 | 95.80 | 4.20% | 3.75% | supported | 33.87s | 95.47× | $0.2066 |
+| 6 | <code>mistral-voxtral-mini-2602</code> | 34.80s | 5 | 95.16 | 4.84% | 4.49% | supported | 34.80s | 92.92× | $0.1078 |
+| 7 | <code>assemblyai-universal-3-pro</code> | 40.77s | 5 | 96.59 | 3.41% | 3.10% | supported | 40.77s | 79.30× | $0.1886 |
+| 8 | <code>gladia-solaria-3</code> | 44.09s | 5 | 94.52 | 5.48% | 4.96% | supported | 44.09s | 73.33× | $0.5479 |
+| 9 | <code>gladia-solaria-1</code> | 44.16s | 5 | 93.44 | 6.56% | 5.79% | supported | 44.16s | 73.21× | $0.5479 |
+| 10 | <code>grok-speech-to-text</code> | 55.47s | 5 | 89.71 | 10.29% | 9.79% | supported | 55.47s | 58.29× | $0.0498 |
+| 11 | <code>happyscribe-auto</code> | 93.79s | 5 | 96.25 | 3.75% | 3.43% | supported | 93.79s | 34.47× | $0.1028 |
+| 12 | <code>rev-machine</code> | 101.59s | 5 | 92.71 | 7.29% | 6.66% | supported | 101.59s | 31.83× | $0.1796 |
+| 13 | <code>soniox-stt-async-v4</code> | 141.71s | 5 | 95.30 | 4.70% | 4.24% | supported | 141.71s | 22.82× | $0.0898 |
+| 14 | <code>speechmatics-enhanced</code> | 148.16s | 5 | 94.53 | 5.47% | 5.02% | supported | 148.16s | 21.82× | $0.6736 |
+| 15 | <code>rev-low_cost</code> | 179.74s | 5 | 92.07 | 7.93% | 7.31% | supported | 179.74s | 17.99× | $0.0898 |
+| 16 | <code>soniox-stt-async-v5</code> | 208.90s | 5 | 95.46 | 4.54% | 4.17% | supported | 208.90s | 15.48× | $0.0898 |
 
 #### Quality Score
 
@@ -337,15 +339,16 @@ Q, S, and C are each provider's per-run normalized quality, speed, and cost subs
 | 4 | <code>soniox-stt-async-v5</code> | 95.46/100 quality score | 5 | 95.46 | 4.54% | 4.17% | supported | 208.90s | 15.48× | $0.0898 |
 | 5 | <code>soniox-stt-async-v4</code> | 95.30/100 quality score | 5 | 95.30 | 4.70% | 4.24% | supported | 141.71s | 22.82× | $0.0898 |
 | 6 | <code>mistral-voxtral-mini-2602</code> | 95.16/100 quality score | 5 | 95.16 | 4.84% | 4.49% | supported | 34.80s | 92.92× | $0.1078 |
-| 7 | <code>gladia-solaria-3</code> | 94.69/100 quality score | 4 | 94.69 | 5.31% | 4.93% | supported | 25.98s | 68.97× | $0.3036 |
-| 8 | <code>speechmatics-enhanced</code> | 94.53/100 quality score | 5 | 94.53 | 5.47% | 5.02% | supported | 148.16s | 21.82× | $0.6736 |
+| 7 | <code>speechmatics-enhanced</code> | 94.53/100 quality score | 5 | 94.53 | 5.47% | 5.02% | supported | 148.16s | 21.82× | $0.6736 |
+| 8 | <code>gladia-solaria-3</code> | 94.52/100 quality score | 5 | 94.52 | 5.48% | 4.96% | supported | 44.09s | 73.33× | $0.5479 |
 | 9 | <code>assemblyai-universal-2</code> | 94.24/100 quality score | 5 | 94.24 | 5.76% | 5.24% | supported | 31.04s | 104.18× | $0.1527 |
-| 10 | <code>gladia-solaria-1</code> | 93.89/100 quality score | 4 | 93.89 | 6.11% | 5.40% | supported | 25.02s | 71.61× | $0.3036 |
-| 11 | <code>rev-machine</code> | 92.71/100 quality score | 5 | 92.71 | 7.29% | 6.66% | supported | 101.59s | 31.83× | $0.1796 |
-| 12 | <code>deepgram-nova-3</code> | 92.71/100 quality score | 5 | 92.71 | 7.29% | 6.18% | supported | 15.58s | 207.58× | $0.5227 |
-| 13 | <code>rev-low_cost</code> | 92.07/100 quality score | 5 | 92.07 | 7.93% | 7.31% | supported | 179.74s | 17.99× | $0.0898 |
-| 14 | <code>grok-speech-to-text</code> | 89.71/100 quality score | 5 | 89.71 | 10.29% | 9.79% | supported | 55.47s | 58.29× | $0.0498 |
-| 15 | <code>gladia-default</code> | 79.51/100 quality score | 5 | 79.51 | 20.49% | 19.94% | supported | 27.25s | 118.64× | $0.5479 |
+| 10 | <code>speechmatics-melia-1</code> | 94.21/100 quality score | 5 | 94.21 | 5.79% | 5.41% | supported | 21.26s | 152.09× | $0.1159 |
+| 11 | <code>gladia-solaria-1</code> | 93.44/100 quality score | 5 | 93.44 | 6.56% | 5.79% | supported | 44.16s | 73.21× | $0.5479 |
+| 12 | <code>rev-machine</code> | 92.71/100 quality score | 5 | 92.71 | 7.29% | 6.66% | supported | 101.59s | 31.83× | $0.1796 |
+| 13 | <code>deepgram-nova-3</code> | 92.71/100 quality score | 5 | 92.71 | 7.29% | 6.18% | supported | 15.58s | 207.58× | $0.5227 |
+| 14 | <code>rev-low_cost</code> | 92.07/100 quality score | 5 | 92.07 | 7.93% | 7.31% | supported | 179.74s | 17.99× | $0.0898 |
+| 15 | <code>grok-speech-to-text</code> | 89.71/100 quality score | 5 | 89.71 | 10.29% | 9.79% | supported | 55.47s | 58.29× | $0.0498 |
+| 16 | <code>gladia-default</code> | 79.51/100 quality score | 5 | 79.51 | 20.49% | 19.94% | supported | 27.25s | 118.64× | $0.5479 |
 
 #### Weighted Rankings
 
@@ -361,15 +364,16 @@ Q, S, and C are each provider's per-run normalized quality, speed, and cost subs
 | 4 | <code>mistral-voxtral-mini-2602</code> | 5/5 | 75.42 | 71.46 | 90.73 | 91.75 |
 | 5 | <code>soniox-stt-async-v4</code> | 5/5 | 73.96 | 73.52 | 56.76 | 94.67 |
 | 6 | <code>assemblyai-universal-2</code> | 5/5 | 69.29 | 64.57 | 91.87 | 84.47 |
-| 7 | <code>soniox-stt-async-v5</code> | 5/5 | 68.50 | 69.87 | 31.31 | 94.67 |
-| 8 | <code>gladia-solaria-3</code> | 4/5 | 61.67 | 63.45 | 88.27 | 20.82 |
-| 9 | <code>speechmatics-enhanced</code> | 5/5 | 57.73 | 66.94 | 41.79 | 0.00 |
-| 10 | <code>rev-machine</code> | 5/5 | 54.57 | 52.67 | 44.27 | 80.06 |
-| 11 | <code>deepgram-nova-3</code> | 5/5 | 52.68 | 50.51 | 98.22 | 24.47 |
-| 12 | <code>gladia-solaria-1</code> | 4/5 | 48.23 | 46.69 | 87.89 | 20.82 |
-| 13 | <code>rev-low_cost</code> | 5/5 | 47.39 | 45.59 | 14.49 | 94.64 |
-| 14 | <code>gladia-default</code> | 5/5 | 39.36 | 35.97 | 85.43 | 20.39 |
-| 15 | <code>grok-speech-to-text</code> | 5/5 | 34.33 | 20.01 | 86.57 | 96.67 |
+| 7 | <code>speechmatics-melia-1</code> | 5/5 | 69.00 | 62.94 | 96.10 | 90.44 |
+| 8 | <code>soniox-stt-async-v5</code> | 5/5 | 68.50 | 69.87 | 31.31 | 94.67 |
+| 9 | <code>gladia-solaria-3</code> | 5/5 | 66.95 | 70.31 | 86.63 | 20.39 |
+| 10 | <code>speechmatics-enhanced</code> | 5/5 | 57.73 | 66.94 | 41.79 | 0.00 |
+| 11 | <code>gladia-solaria-1</code> | 5/5 | 55.69 | 56.29 | 86.17 | 20.39 |
+| 12 | <code>rev-machine</code> | 5/5 | 54.57 | 52.67 | 44.27 | 80.06 |
+| 13 | <code>deepgram-nova-3</code> | 5/5 | 52.68 | 50.51 | 98.22 | 24.47 |
+| 14 | <code>rev-low_cost</code> | 5/5 | 47.39 | 45.59 | 14.49 | 94.64 |
+| 15 | <code>gladia-default</code> | 5/5 | 39.36 | 35.97 | 85.43 | 20.39 |
+| 16 | <code>grok-speech-to-text</code> | 5/5 | 34.33 | 20.01 | 86.57 | 96.67 |
 
 ##### Moderate quality (0.6 quality / 0.2 speed / 0.2 cost)
 
@@ -378,58 +382,61 @@ Q, S, and C are each provider's per-run normalized quality, speed, and cost subs
 | 1 | <code>assemblyai-universal-3-pro</code> | 5/5 | 88.89 | 93.01 | 86.77 | 78.65 |
 | 2 | <code>assemblyai-universal-3-5-pro</code> | 5/5 | 84.76 | 86.33 | 89.07 | 75.73 |
 | 3 | <code>mistral-voxtral-mini-2602</code> | 5/5 | 79.37 | 71.46 | 90.73 | 91.75 |
-| 4 | <code>happyscribe-auto</code> | 5/5 | 75.00 | 91.31 | 47.23 | 53.85 |
-| 5 | <code>soniox-stt-async-v4</code> | 5/5 | 74.40 | 73.52 | 56.76 | 94.67 |
-| 6 | <code>assemblyai-universal-2</code> | 5/5 | 74.01 | 64.57 | 91.87 | 84.47 |
-| 7 | <code>soniox-stt-async-v5</code> | 5/5 | 67.12 | 69.87 | 31.31 | 94.67 |
-| 8 | <code>gladia-solaria-3</code> | 4/5 | 59.89 | 63.45 | 88.27 | 20.82 |
-| 9 | <code>rev-machine</code> | 5/5 | 56.47 | 52.67 | 44.27 | 80.06 |
-| 10 | <code>deepgram-nova-3</code> | 5/5 | 54.84 | 50.51 | 98.22 | 24.47 |
-| 11 | <code>gladia-solaria-1</code> | 4/5 | 49.76 | 46.69 | 87.89 | 20.82 |
-| 12 | <code>rev-low_cost</code> | 5/5 | 49.18 | 45.59 | 14.49 | 94.64 |
-| 13 | <code>grok-speech-to-text</code> | 5/5 | 48.66 | 20.01 | 86.57 | 96.67 |
-| 14 | <code>speechmatics-enhanced</code> | 5/5 | 48.52 | 66.94 | 41.79 | 0.00 |
-| 15 | <code>gladia-default</code> | 5/5 | 42.75 | 35.97 | 85.43 | 20.39 |
+| 4 | <code>speechmatics-melia-1</code> | 5/5 | 75.07 | 62.94 | 96.10 | 90.44 |
+| 5 | <code>happyscribe-auto</code> | 5/5 | 75.00 | 91.31 | 47.23 | 53.85 |
+| 6 | <code>soniox-stt-async-v4</code> | 5/5 | 74.40 | 73.52 | 56.76 | 94.67 |
+| 7 | <code>assemblyai-universal-2</code> | 5/5 | 74.01 | 64.57 | 91.87 | 84.47 |
+| 8 | <code>soniox-stt-async-v5</code> | 5/5 | 67.12 | 69.87 | 31.31 | 94.67 |
+| 9 | <code>gladia-solaria-3</code> | 5/5 | 63.59 | 70.31 | 86.63 | 20.39 |
+| 10 | <code>rev-machine</code> | 5/5 | 56.47 | 52.67 | 44.27 | 80.06 |
+| 11 | <code>gladia-solaria-1</code> | 5/5 | 55.09 | 56.29 | 86.17 | 20.39 |
+| 12 | <code>deepgram-nova-3</code> | 5/5 | 54.84 | 50.51 | 98.22 | 24.47 |
+| 13 | <code>rev-low_cost</code> | 5/5 | 49.18 | 45.59 | 14.49 | 94.64 |
+| 14 | <code>grok-speech-to-text</code> | 5/5 | 48.66 | 20.01 | 86.57 | 96.67 |
+| 15 | <code>speechmatics-enhanced</code> | 5/5 | 48.52 | 66.94 | 41.79 | 0.00 |
+| 16 | <code>gladia-default</code> | 5/5 | 42.75 | 35.97 | 85.43 | 20.39 |
 
 ##### Strong speed (0.1 quality / 0.8 speed / 0.1 cost)
 
 | Rank | Provider | Coverage | Composite | Q | S | C |
 | ---: | --- | ---: | ---: | ---: | ---: | ---: |
-| 1 | <code>mistral-voxtral-mini-2602</code> | 5/5 | 88.90 | 71.46 | 90.73 | 91.75 |
-| 2 | <code>assemblyai-universal-2</code> | 5/5 | 88.40 | 64.57 | 91.87 | 84.47 |
-| 3 | <code>assemblyai-universal-3-5-pro</code> | 5/5 | 87.46 | 86.33 | 89.07 | 75.73 |
-| 4 | <code>assemblyai-universal-3-pro</code> | 5/5 | 86.58 | 93.01 | 86.77 | 78.65 |
-| 5 | <code>deepgram-nova-3</code> | 5/5 | 86.08 | 50.51 | 98.22 | 24.47 |
-| 6 | <code>grok-speech-to-text</code> | 5/5 | 80.93 | 20.01 | 86.57 | 96.67 |
-| 7 | <code>gladia-solaria-3</code> | 4/5 | 79.04 | 63.45 | 88.27 | 20.82 |
-| 8 | <code>gladia-solaria-1</code> | 4/5 | 77.07 | 46.69 | 87.89 | 20.82 |
-| 9 | <code>gladia-default</code> | 5/5 | 73.98 | 35.97 | 85.43 | 20.39 |
-| 10 | <code>soniox-stt-async-v4</code> | 5/5 | 62.23 | 73.52 | 56.76 | 94.67 |
-| 11 | <code>happyscribe-auto</code> | 5/5 | 52.30 | 91.31 | 47.23 | 53.85 |
-| 12 | <code>rev-machine</code> | 5/5 | 48.69 | 52.67 | 44.27 | 80.06 |
-| 13 | <code>soniox-stt-async-v5</code> | 5/5 | 41.50 | 69.87 | 31.31 | 94.67 |
-| 14 | <code>speechmatics-enhanced</code> | 5/5 | 40.13 | 66.94 | 41.79 | 0.00 |
-| 15 | <code>rev-low_cost</code> | 5/5 | 25.62 | 45.59 | 14.49 | 94.64 |
+| 1 | <code>speechmatics-melia-1</code> | 5/5 | 92.21 | 62.94 | 96.10 | 90.44 |
+| 2 | <code>mistral-voxtral-mini-2602</code> | 5/5 | 88.90 | 71.46 | 90.73 | 91.75 |
+| 3 | <code>assemblyai-universal-2</code> | 5/5 | 88.40 | 64.57 | 91.87 | 84.47 |
+| 4 | <code>assemblyai-universal-3-5-pro</code> | 5/5 | 87.46 | 86.33 | 89.07 | 75.73 |
+| 5 | <code>assemblyai-universal-3-pro</code> | 5/5 | 86.58 | 93.01 | 86.77 | 78.65 |
+| 6 | <code>deepgram-nova-3</code> | 5/5 | 86.08 | 50.51 | 98.22 | 24.47 |
+| 7 | <code>grok-speech-to-text</code> | 5/5 | 80.93 | 20.01 | 86.57 | 96.67 |
+| 8 | <code>gladia-solaria-3</code> | 5/5 | 78.37 | 70.31 | 86.63 | 20.39 |
+| 9 | <code>gladia-solaria-1</code> | 5/5 | 76.61 | 56.29 | 86.17 | 20.39 |
+| 10 | <code>gladia-default</code> | 5/5 | 73.98 | 35.97 | 85.43 | 20.39 |
+| 11 | <code>soniox-stt-async-v4</code> | 5/5 | 62.23 | 73.52 | 56.76 | 94.67 |
+| 12 | <code>happyscribe-auto</code> | 5/5 | 52.30 | 91.31 | 47.23 | 53.85 |
+| 13 | <code>rev-machine</code> | 5/5 | 48.69 | 52.67 | 44.27 | 80.06 |
+| 14 | <code>soniox-stt-async-v5</code> | 5/5 | 41.50 | 69.87 | 31.31 | 94.67 |
+| 15 | <code>speechmatics-enhanced</code> | 5/5 | 40.13 | 66.94 | 41.79 | 0.00 |
+| 16 | <code>rev-low_cost</code> | 5/5 | 25.62 | 45.59 | 14.49 | 94.64 |
 
 ##### Moderate speed (0.2 quality / 0.6 speed / 0.2 cost)
 
 | Rank | Provider | Coverage | Composite | Q | S | C |
 | ---: | --- | ---: | ---: | ---: | ---: | ---: |
-| 1 | <code>mistral-voxtral-mini-2602</code> | 5/5 | 87.08 | 71.46 | 90.73 | 91.75 |
-| 2 | <code>assemblyai-universal-3-pro</code> | 5/5 | 86.39 | 93.01 | 86.77 | 78.65 |
-| 3 | <code>assemblyai-universal-3-5-pro</code> | 5/5 | 85.86 | 86.33 | 89.07 | 75.73 |
-| 4 | <code>assemblyai-universal-2</code> | 5/5 | 84.93 | 64.57 | 91.87 | 84.47 |
-| 5 | <code>grok-speech-to-text</code> | 5/5 | 75.28 | 20.01 | 86.57 | 96.67 |
-| 6 | <code>deepgram-nova-3</code> | 5/5 | 73.93 | 50.51 | 98.22 | 24.47 |
-| 7 | <code>gladia-solaria-3</code> | 4/5 | 69.82 | 63.45 | 88.27 | 20.82 |
-| 8 | <code>soniox-stt-async-v4</code> | 5/5 | 67.69 | 73.52 | 56.76 | 94.67 |
-| 9 | <code>gladia-solaria-1</code> | 4/5 | 66.24 | 46.69 | 87.89 | 20.82 |
-| 10 | <code>gladia-default</code> | 5/5 | 62.53 | 35.97 | 85.43 | 20.39 |
-| 11 | <code>happyscribe-auto</code> | 5/5 | 57.37 | 91.31 | 47.23 | 53.85 |
-| 12 | <code>rev-machine</code> | 5/5 | 53.11 | 52.67 | 44.27 | 80.06 |
-| 13 | <code>soniox-stt-async-v5</code> | 5/5 | 51.70 | 69.87 | 31.31 | 94.67 |
-| 14 | <code>speechmatics-enhanced</code> | 5/5 | 38.46 | 66.94 | 41.79 | 0.00 |
-| 15 | <code>rev-low_cost</code> | 5/5 | 36.74 | 45.59 | 14.49 | 94.64 |
+| 1 | <code>speechmatics-melia-1</code> | 5/5 | 88.33 | 62.94 | 96.10 | 90.44 |
+| 2 | <code>mistral-voxtral-mini-2602</code> | 5/5 | 87.08 | 71.46 | 90.73 | 91.75 |
+| 3 | <code>assemblyai-universal-3-pro</code> | 5/5 | 86.39 | 93.01 | 86.77 | 78.65 |
+| 4 | <code>assemblyai-universal-3-5-pro</code> | 5/5 | 85.86 | 86.33 | 89.07 | 75.73 |
+| 5 | <code>assemblyai-universal-2</code> | 5/5 | 84.93 | 64.57 | 91.87 | 84.47 |
+| 6 | <code>grok-speech-to-text</code> | 5/5 | 75.28 | 20.01 | 86.57 | 96.67 |
+| 7 | <code>deepgram-nova-3</code> | 5/5 | 73.93 | 50.51 | 98.22 | 24.47 |
+| 8 | <code>gladia-solaria-3</code> | 5/5 | 70.12 | 70.31 | 86.63 | 20.39 |
+| 9 | <code>soniox-stt-async-v4</code> | 5/5 | 67.69 | 73.52 | 56.76 | 94.67 |
+| 10 | <code>gladia-solaria-1</code> | 5/5 | 67.04 | 56.29 | 86.17 | 20.39 |
+| 11 | <code>gladia-default</code> | 5/5 | 62.53 | 35.97 | 85.43 | 20.39 |
+| 12 | <code>happyscribe-auto</code> | 5/5 | 57.37 | 91.31 | 47.23 | 53.85 |
+| 13 | <code>rev-machine</code> | 5/5 | 53.11 | 52.67 | 44.27 | 80.06 |
+| 14 | <code>soniox-stt-async-v5</code> | 5/5 | 51.70 | 69.87 | 31.31 | 94.67 |
+| 15 | <code>speechmatics-enhanced</code> | 5/5 | 38.46 | 66.94 | 41.79 | 0.00 |
+| 16 | <code>rev-low_cost</code> | 5/5 | 36.74 | 45.59 | 14.49 | 94.64 |
 
 ##### Strong cost (0.1 quality / 0.1 speed / 0.8 cost)
 
@@ -437,39 +444,41 @@ Q, S, and C are each provider's per-run normalized quality, speed, and cost subs
 | ---: | --- | ---: | ---: | ---: | ---: | ---: |
 | 1 | <code>mistral-voxtral-mini-2602</code> | 5/5 | 89.62 | 71.46 | 90.73 | 91.75 |
 | 2 | <code>soniox-stt-async-v4</code> | 5/5 | 88.76 | 73.52 | 56.76 | 94.67 |
-| 3 | <code>grok-speech-to-text</code> | 5/5 | 87.99 | 20.01 | 86.57 | 96.67 |
-| 4 | <code>soniox-stt-async-v5</code> | 5/5 | 85.85 | 69.87 | 31.31 | 94.67 |
-| 5 | <code>assemblyai-universal-2</code> | 5/5 | 83.22 | 64.57 | 91.87 | 84.47 |
-| 6 | <code>rev-low_cost</code> | 5/5 | 81.72 | 45.59 | 14.49 | 94.64 |
-| 7 | <code>assemblyai-universal-3-pro</code> | 5/5 | 80.90 | 93.01 | 86.77 | 78.65 |
-| 8 | <code>assemblyai-universal-3-5-pro</code> | 5/5 | 78.13 | 86.33 | 89.07 | 75.73 |
-| 9 | <code>rev-machine</code> | 5/5 | 73.74 | 52.67 | 44.27 | 80.06 |
-| 10 | <code>happyscribe-auto</code> | 5/5 | 56.93 | 91.31 | 47.23 | 53.85 |
-| 11 | <code>deepgram-nova-3</code> | 5/5 | 34.45 | 50.51 | 98.22 | 24.47 |
-| 12 | <code>gladia-solaria-3</code> | 4/5 | 31.83 | 63.45 | 88.27 | 20.82 |
-| 13 | <code>gladia-solaria-1</code> | 4/5 | 30.12 | 46.69 | 87.89 | 20.82 |
-| 14 | <code>gladia-default</code> | 5/5 | 28.45 | 35.97 | 85.43 | 20.39 |
-| 15 | <code>speechmatics-enhanced</code> | 5/5 | 10.87 | 66.94 | 41.79 | 0.00 |
+| 3 | <code>speechmatics-melia-1</code> | 5/5 | 88.26 | 62.94 | 96.10 | 90.44 |
+| 4 | <code>grok-speech-to-text</code> | 5/5 | 87.99 | 20.01 | 86.57 | 96.67 |
+| 5 | <code>soniox-stt-async-v5</code> | 5/5 | 85.85 | 69.87 | 31.31 | 94.67 |
+| 6 | <code>assemblyai-universal-2</code> | 5/5 | 83.22 | 64.57 | 91.87 | 84.47 |
+| 7 | <code>rev-low_cost</code> | 5/5 | 81.72 | 45.59 | 14.49 | 94.64 |
+| 8 | <code>assemblyai-universal-3-pro</code> | 5/5 | 80.90 | 93.01 | 86.77 | 78.65 |
+| 9 | <code>assemblyai-universal-3-5-pro</code> | 5/5 | 78.13 | 86.33 | 89.07 | 75.73 |
+| 10 | <code>rev-machine</code> | 5/5 | 73.74 | 52.67 | 44.27 | 80.06 |
+| 11 | <code>happyscribe-auto</code> | 5/5 | 56.93 | 91.31 | 47.23 | 53.85 |
+| 12 | <code>deepgram-nova-3</code> | 5/5 | 34.45 | 50.51 | 98.22 | 24.47 |
+| 13 | <code>gladia-solaria-3</code> | 5/5 | 32.01 | 70.31 | 86.63 | 20.39 |
+| 14 | <code>gladia-solaria-1</code> | 5/5 | 30.56 | 56.29 | 86.17 | 20.39 |
+| 15 | <code>gladia-default</code> | 5/5 | 28.45 | 35.97 | 85.43 | 20.39 |
+| 16 | <code>speechmatics-enhanced</code> | 5/5 | 10.87 | 66.94 | 41.79 | 0.00 |
 
 ##### Moderate cost (0.2 quality / 0.2 speed / 0.6 cost)
 
 | Rank | Provider | Coverage | Composite | Q | S | C |
 | ---: | --- | ---: | ---: | ---: | ---: | ---: |
 | 1 | <code>mistral-voxtral-mini-2602</code> | 5/5 | 87.49 | 71.46 | 90.73 | 91.75 |
-| 2 | <code>assemblyai-universal-3-pro</code> | 5/5 | 83.14 | 93.01 | 86.77 | 78.65 |
-| 3 | <code>soniox-stt-async-v4</code> | 5/5 | 82.86 | 73.52 | 56.76 | 94.67 |
-| 4 | <code>assemblyai-universal-2</code> | 5/5 | 81.97 | 64.57 | 91.87 | 84.47 |
-| 5 | <code>assemblyai-universal-3-5-pro</code> | 5/5 | 80.52 | 86.33 | 89.07 | 75.73 |
-| 6 | <code>grok-speech-to-text</code> | 5/5 | 79.32 | 20.01 | 86.57 | 96.67 |
-| 7 | <code>soniox-stt-async-v5</code> | 5/5 | 77.04 | 69.87 | 31.31 | 94.67 |
-| 8 | <code>rev-low_cost</code> | 5/5 | 68.80 | 45.59 | 14.49 | 94.64 |
-| 9 | <code>rev-machine</code> | 5/5 | 67.42 | 52.67 | 44.27 | 80.06 |
-| 10 | <code>happyscribe-auto</code> | 5/5 | 60.01 | 91.31 | 47.23 | 53.85 |
-| 11 | <code>deepgram-nova-3</code> | 5/5 | 44.43 | 50.51 | 98.22 | 24.47 |
-| 12 | <code>gladia-solaria-3</code> | 4/5 | 42.84 | 63.45 | 88.27 | 20.82 |
-| 13 | <code>gladia-solaria-1</code> | 4/5 | 39.41 | 46.69 | 87.89 | 20.82 |
-| 14 | <code>gladia-default</code> | 5/5 | 36.51 | 35.97 | 85.43 | 20.39 |
-| 15 | <code>speechmatics-enhanced</code> | 5/5 | 21.75 | 66.94 | 41.79 | 0.00 |
+| 2 | <code>speechmatics-melia-1</code> | 5/5 | 86.07 | 62.94 | 96.10 | 90.44 |
+| 3 | <code>assemblyai-universal-3-pro</code> | 5/5 | 83.14 | 93.01 | 86.77 | 78.65 |
+| 4 | <code>soniox-stt-async-v4</code> | 5/5 | 82.86 | 73.52 | 56.76 | 94.67 |
+| 5 | <code>assemblyai-universal-2</code> | 5/5 | 81.97 | 64.57 | 91.87 | 84.47 |
+| 6 | <code>assemblyai-universal-3-5-pro</code> | 5/5 | 80.52 | 86.33 | 89.07 | 75.73 |
+| 7 | <code>grok-speech-to-text</code> | 5/5 | 79.32 | 20.01 | 86.57 | 96.67 |
+| 8 | <code>soniox-stt-async-v5</code> | 5/5 | 77.04 | 69.87 | 31.31 | 94.67 |
+| 9 | <code>rev-low_cost</code> | 5/5 | 68.80 | 45.59 | 14.49 | 94.64 |
+| 10 | <code>rev-machine</code> | 5/5 | 67.42 | 52.67 | 44.27 | 80.06 |
+| 11 | <code>happyscribe-auto</code> | 5/5 | 60.01 | 91.31 | 47.23 | 53.85 |
+| 12 | <code>deepgram-nova-3</code> | 5/5 | 44.43 | 50.51 | 98.22 | 24.47 |
+| 13 | <code>gladia-solaria-3</code> | 5/5 | 43.62 | 70.31 | 86.63 | 20.39 |
+| 14 | <code>gladia-solaria-1</code> | 5/5 | 40.73 | 56.29 | 86.17 | 20.39 |
+| 15 | <code>gladia-default</code> | 5/5 | 36.51 | 35.97 | 85.43 | 20.39 |
+| 16 | <code>speechmatics-enhanced</code> | 5/5 | 21.75 | 66.94 | 41.79 | 0.00 |
 
 ##### Quality + cost (0.45 quality / 0.10 speed / 0.45 cost)
 
@@ -479,37 +488,39 @@ Q, S, and C are each provider's per-run normalized quality, speed, and cost subs
 | 2 | <code>mistral-voxtral-mini-2602</code> | 5/5 | 82.52 | 71.46 | 90.73 | 91.75 |
 | 3 | <code>assemblyai-universal-3-5-pro</code> | 5/5 | 81.84 | 86.33 | 89.07 | 75.73 |
 | 4 | <code>soniox-stt-async-v4</code> | 5/5 | 81.36 | 73.52 | 56.76 | 94.67 |
-| 5 | <code>soniox-stt-async-v5</code> | 5/5 | 77.17 | 69.87 | 31.31 | 94.67 |
-| 6 | <code>assemblyai-universal-2</code> | 5/5 | 76.26 | 64.57 | 91.87 | 84.47 |
-| 7 | <code>happyscribe-auto</code> | 5/5 | 70.04 | 91.31 | 47.23 | 53.85 |
-| 8 | <code>rev-low_cost</code> | 5/5 | 64.56 | 45.59 | 14.49 | 94.64 |
-| 9 | <code>rev-machine</code> | 5/5 | 64.16 | 52.67 | 44.27 | 80.06 |
-| 10 | <code>grok-speech-to-text</code> | 5/5 | 61.16 | 20.01 | 86.57 | 96.67 |
-| 11 | <code>gladia-solaria-3</code> | 4/5 | 46.75 | 63.45 | 88.27 | 20.82 |
-| 12 | <code>deepgram-nova-3</code> | 5/5 | 43.56 | 50.51 | 98.22 | 24.47 |
-| 13 | <code>gladia-solaria-1</code> | 4/5 | 39.17 | 46.69 | 87.89 | 20.82 |
-| 14 | <code>speechmatics-enhanced</code> | 5/5 | 34.30 | 66.94 | 41.79 | 0.00 |
-| 15 | <code>gladia-default</code> | 5/5 | 33.90 | 35.97 | 85.43 | 20.39 |
+| 5 | <code>speechmatics-melia-1</code> | 5/5 | 78.63 | 62.94 | 96.10 | 90.44 |
+| 6 | <code>soniox-stt-async-v5</code> | 5/5 | 77.17 | 69.87 | 31.31 | 94.67 |
+| 7 | <code>assemblyai-universal-2</code> | 5/5 | 76.26 | 64.57 | 91.87 | 84.47 |
+| 8 | <code>happyscribe-auto</code> | 5/5 | 70.04 | 91.31 | 47.23 | 53.85 |
+| 9 | <code>rev-low_cost</code> | 5/5 | 64.56 | 45.59 | 14.49 | 94.64 |
+| 10 | <code>rev-machine</code> | 5/5 | 64.16 | 52.67 | 44.27 | 80.06 |
+| 11 | <code>grok-speech-to-text</code> | 5/5 | 61.16 | 20.01 | 86.57 | 96.67 |
+| 12 | <code>gladia-solaria-3</code> | 5/5 | 49.48 | 70.31 | 86.63 | 20.39 |
+| 13 | <code>deepgram-nova-3</code> | 5/5 | 43.56 | 50.51 | 98.22 | 24.47 |
+| 14 | <code>gladia-solaria-1</code> | 5/5 | 43.12 | 56.29 | 86.17 | 20.39 |
+| 15 | <code>speechmatics-enhanced</code> | 5/5 | 34.30 | 66.94 | 41.79 | 0.00 |
+| 16 | <code>gladia-default</code> | 5/5 | 33.90 | 35.97 | 85.43 | 20.39 |
 
 ##### Cost + speed (0.10 quality / 0.45 speed / 0.45 cost)
 
 | Rank | Provider | Coverage | Composite | Q | S | C |
 | ---: | --- | ---: | ---: | ---: | ---: | ---: |
-| 1 | <code>mistral-voxtral-mini-2602</code> | 5/5 | 89.26 | 71.46 | 90.73 | 91.75 |
-| 2 | <code>assemblyai-universal-2</code> | 5/5 | 85.81 | 64.57 | 91.87 | 84.47 |
-| 3 | <code>grok-speech-to-text</code> | 5/5 | 84.46 | 20.01 | 86.57 | 96.67 |
-| 4 | <code>assemblyai-universal-3-pro</code> | 5/5 | 83.74 | 93.01 | 86.77 | 78.65 |
-| 5 | <code>assemblyai-universal-3-5-pro</code> | 5/5 | 82.79 | 86.33 | 89.07 | 75.73 |
-| 6 | <code>soniox-stt-async-v4</code> | 5/5 | 75.49 | 73.52 | 56.76 | 94.67 |
-| 7 | <code>soniox-stt-async-v5</code> | 5/5 | 63.68 | 69.87 | 31.31 | 94.67 |
-| 8 | <code>rev-machine</code> | 5/5 | 61.22 | 52.67 | 44.27 | 80.06 |
-| 9 | <code>deepgram-nova-3</code> | 5/5 | 60.26 | 50.51 | 98.22 | 24.47 |
-| 10 | <code>gladia-solaria-3</code> | 4/5 | 55.44 | 63.45 | 88.27 | 20.82 |
-| 11 | <code>happyscribe-auto</code> | 5/5 | 54.61 | 91.31 | 47.23 | 53.85 |
-| 12 | <code>rev-low_cost</code> | 5/5 | 53.67 | 45.59 | 14.49 | 94.64 |
-| 13 | <code>gladia-solaria-1</code> | 4/5 | 53.59 | 46.69 | 87.89 | 20.82 |
-| 14 | <code>gladia-default</code> | 5/5 | 51.22 | 35.97 | 85.43 | 20.39 |
-| 15 | <code>speechmatics-enhanced</code> | 5/5 | 25.50 | 66.94 | 41.79 | 0.00 |
+| 1 | <code>speechmatics-melia-1</code> | 5/5 | 90.24 | 62.94 | 96.10 | 90.44 |
+| 2 | <code>mistral-voxtral-mini-2602</code> | 5/5 | 89.26 | 71.46 | 90.73 | 91.75 |
+| 3 | <code>assemblyai-universal-2</code> | 5/5 | 85.81 | 64.57 | 91.87 | 84.47 |
+| 4 | <code>grok-speech-to-text</code> | 5/5 | 84.46 | 20.01 | 86.57 | 96.67 |
+| 5 | <code>assemblyai-universal-3-pro</code> | 5/5 | 83.74 | 93.01 | 86.77 | 78.65 |
+| 6 | <code>assemblyai-universal-3-5-pro</code> | 5/5 | 82.79 | 86.33 | 89.07 | 75.73 |
+| 7 | <code>soniox-stt-async-v4</code> | 5/5 | 75.49 | 73.52 | 56.76 | 94.67 |
+| 8 | <code>soniox-stt-async-v5</code> | 5/5 | 63.68 | 69.87 | 31.31 | 94.67 |
+| 9 | <code>rev-machine</code> | 5/5 | 61.22 | 52.67 | 44.27 | 80.06 |
+| 10 | <code>deepgram-nova-3</code> | 5/5 | 60.26 | 50.51 | 98.22 | 24.47 |
+| 11 | <code>gladia-solaria-3</code> | 5/5 | 55.19 | 70.31 | 86.63 | 20.39 |
+| 12 | <code>happyscribe-auto</code> | 5/5 | 54.61 | 91.31 | 47.23 | 53.85 |
+| 13 | <code>rev-low_cost</code> | 5/5 | 53.67 | 45.59 | 14.49 | 94.64 |
+| 14 | <code>gladia-solaria-1</code> | 5/5 | 53.58 | 56.29 | 86.17 | 20.39 |
+| 15 | <code>gladia-default</code> | 5/5 | 51.22 | 35.97 | 85.43 | 20.39 |
+| 16 | <code>speechmatics-enhanced</code> | 5/5 | 25.50 | 66.94 | 41.79 | 0.00 |
 
 ## Per-Run Quality Score
 
@@ -540,10 +551,11 @@ Speaker-aware WER-derived quality score per provider in each run, sorted by mean
 | <code>soniox-stt-async-v5</code> | 95.46 | 98.13 | 94.04 | 97.08 | 92.53 | 95.52 |
 | <code>soniox-stt-async-v4</code> | 95.30 | 97.20 | 95.52 | 96.40 | 92.45 | 94.92 |
 | <code>mistral-voxtral-mini-2602</code> | 95.16 | 97.66 | 94.75 | 97.31 | 91.85 | 94.22 |
-| <code>gladia-solaria-3</code> | 94.69 | 93.93 | 95.63 | 96.91 | 92.27 | — |
 | <code>speechmatics-enhanced</code> | 94.53 | 96.26 | 95.10 | 96.57 | 90.84 | 93.87 |
+| <code>gladia-solaria-3</code> | 94.52 | 93.93 | 95.63 | 96.91 | 92.27 | 93.88 |
 | <code>assemblyai-universal-2</code> | 94.24 | 95.79 | 94.40 | 96.74 | 91.57 | 92.69 |
-| <code>gladia-solaria-1</code> | 93.89 | 93.93 | 93.22 | 96.90 | 91.51 | — |
+| <code>speechmatics-melia-1</code> | 94.21 | 97.20 | 94.28 | 96.19 | 90.89 | 92.47 |
+| <code>gladia-solaria-1</code> | 93.44 | 93.93 | 93.22 | 96.90 | 91.51 | 91.63 |
 | <code>rev-machine</code> | 92.71 | 91.59 | 95.58 | 94.29 | 89.16 | 92.95 |
 | <code>deepgram-nova-3</code> | 92.71 | 92.99 | 94.69 | 95.37 | 87.93 | 92.58 |
 | <code>rev-low_cost</code> | 92.07 | 90.65 | 95.04 | 93.59 | 88.61 | 92.44 |
@@ -574,9 +586,9 @@ Tiers are `quality-cost-terciles-v1`: contiguous, near-equal slices of each grou
 
 | Tier | Models (quality-cost rank · composite) | Basis |
 | --- | --- | --- |
-| Tier 1 | <code>assemblyai-universal-3-pro</code> (#1 · 85.92), <code>mistral-voxtral-mini-2602</code> (#2 · 82.52), <code>assemblyai-universal-3-5-pro</code> (#3 · 81.84), <code>soniox-stt-async-v4</code> (#4 · 81.36), <code>soniox-stt-async-v5</code> (#5 · 77.17) | Highest quality-cost tercile (ranks 1-5). |
-| Tier 2 | <code>assemblyai-universal-2</code> (#6 · 76.26), <code>happyscribe-auto</code> (#7 · 70.04), <code>rev-low_cost</code> (#8 · 64.56), <code>rev-machine</code> (#9 · 64.16), <code>grok-speech-to-text</code> (#10 · 61.16) | Middle quality-cost tercile (ranks 6-10). |
-| Tier 3 | <code>gladia-solaria-3</code> (#11 · 46.75), <code>deepgram-nova-3</code> (#12 · 43.56), <code>gladia-solaria-1</code> (#13 · 39.17), <code>speechmatics-enhanced</code> (#14 · 34.30), <code>gladia-default</code> (#15 · 33.90) | Lower quality-cost tercile (ranks 11-15). |
+| Tier 1 | <code>assemblyai-universal-3-pro</code> (#1 · 85.92), <code>mistral-voxtral-mini-2602</code> (#2 · 82.52), <code>assemblyai-universal-3-5-pro</code> (#3 · 81.84), <code>soniox-stt-async-v4</code> (#4 · 81.36), <code>speechmatics-melia-1</code> (#5 · 78.63), <code>soniox-stt-async-v5</code> (#6 · 77.17) | Highest quality-cost tercile (ranks 1-6). |
+| Tier 2 | <code>assemblyai-universal-2</code> (#7 · 76.26), <code>happyscribe-auto</code> (#8 · 70.04), <code>rev-low_cost</code> (#9 · 64.56), <code>rev-machine</code> (#10 · 64.16), <code>grok-speech-to-text</code> (#11 · 61.16) | Middle quality-cost tercile (ranks 7-11). |
+| Tier 3 | <code>gladia-solaria-3</code> (#12 · 49.48), <code>deepgram-nova-3</code> (#13 · 43.56), <code>gladia-solaria-1</code> (#14 · 43.12), <code>speechmatics-enhanced</code> (#15 · 34.30), <code>gladia-default</code> (#16 · 33.90) | Lower quality-cost tercile (ranks 12-16). |
 
 ## Notes
 
