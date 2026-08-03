@@ -33,13 +33,13 @@ bun t test/test-cases/e2e/service/step-4-tts-e2e/tts-services/
 ## Price Preflight
 
 ```bash
-bun t test/test-cases/e2e/service/step-4-tts-e2e/tts-services/ --test-price
+bun t test/test-cases/e2e/service/step-4-tts-e2e/tts-services/ --price
 bun t test/test-cases/e2e/service/step-4-tts-e2e/tts-services/ --budget 2500
 ```
 
 ElevenLabs IVC, Speechify custom voice, Hume, and Cartesia have side-effect-free price coverage. ElevenLabs IVC adds a 0 cent setup cost and 10000 ms setup time to the first ElevenLabs clone target. Speechify custom voice adds a 0 cent setup cost and 10000 ms setup time to the first Speechify custom-voice target.
 
-The Kitten pipeline mapping is selected with `bun t test/test-cases/e2e/service/step-4-tts-e2e/tts-services/kitten-tts-pipeline.test.ts --test-price`; budget preflight still maps the live e2e file.
+The Kitten pipeline mapping is selected with `bun t test/test-cases/e2e/service/step-4-tts-e2e/tts-services/kitten-tts-pipeline.test.ts --price`; budget preflight still maps the live e2e file.
 
 ## Related Docs
 

@@ -27,11 +27,11 @@ bun t test/test-cases/e2e/service/step-3-write-e2e/write-services/
 ## Price Preflight
 
 ```bash
-bun t test/test-cases/e2e/service/step-3-write-e2e/write-services/ --test-price
+bun t test/test-cases/e2e/service/step-3-write-e2e/write-services/ --price
 bun t test/test-cases/e2e/service/step-3-write-e2e/write-services/ --budget 2500
 ```
 
-The directory-wide `--test-price` selection resolves OpenAI, Anthropic, Gemini, Groq, MiniMax, Grok, GLM, and Kimi price mappings. Unit pricing contracts cover Together serverless estimates and Cerebras public endpoint estimates. Live service tests skip providers whose API key is not configured.
+The directory-wide `--price` selection resolves OpenAI, Anthropic, Gemini, Groq, MiniMax, Grok, GLM, and Kimi price mappings. Unit pricing contracts cover Together serverless estimates and Cerebras public endpoint estimates. Live service tests skip providers whose API key is not configured.
 
 ## Related Docs
 

@@ -604,13 +604,6 @@ test('resume rejects provider-named option flags', async () => {
   )
 })
 
-test('music lyric-video mode rejects price mode', async () => {
-  await expectUsageExit(
-    ['music', '--audio', STABLE_EXAMPLE_AUDIO_URL, '--price'],
-    'Do not combine hosted music flags'
-  )
-})
-
 test('comic generate-images rejects invalid page selection flags', async () => {
   await expectUsageExit(
     ['comic', 'generate-images', 'input/scripts/02-script/01-co-work-smarter.md','--panels', '4-2', '--price'],

@@ -27,8 +27,8 @@ bun t test/test-cases/e2e/service/step-7-music-gen-e2e/
 ## Price Preflight
 
 ```bash
-bun t test/test-cases/e2e/service/step-7-music-gen-e2e/ --test-price
-bun t test/test-cases/e2e/service/step-7-music-gen-e2e/gemini-lyria-3-pro-preview.test.ts --test-price
+bun t test/test-cases/e2e/service/step-7-music-gen-e2e/ --price
+bun t test/test-cases/e2e/service/step-7-music-gen-e2e/gemini-lyria-3-pro-preview.test.ts --price
 bun t test/test-cases/e2e/service/step-7-music-gen-e2e/ --budget 2500
 ```
 

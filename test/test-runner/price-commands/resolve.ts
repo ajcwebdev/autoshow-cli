@@ -35,8 +35,8 @@ const rejectLegacyPriceSelectors = (pathFilters: string[]): void => {
   }
 
   throw new Error(
-    `--test-price now uses normal test paths, not test/test-price selectors: ${legacyPriceFilters.join(', ')}. ` +
-    'Use the matching test/test-cases/e2e/... path and append --test-price.'
+    `--price uses normal test paths, not test/test-price selectors: ${legacyPriceFilters.join(', ')}. ` +
+    'Use the matching test/test-cases/e2e/... path and append --price.'
   )
 }
 

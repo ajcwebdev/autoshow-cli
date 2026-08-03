@@ -25,7 +25,7 @@ bun t test/test-cases/e2e/service/step-6-video-gen-e2e/
 ## Price Preflight
 
 ```bash
-bun t test/test-cases/e2e/service/step-6-video-gen-e2e/ --test-price
+bun t test/test-cases/e2e/service/step-6-video-gen-e2e/ --price
 ```
 
 The price checks cover:

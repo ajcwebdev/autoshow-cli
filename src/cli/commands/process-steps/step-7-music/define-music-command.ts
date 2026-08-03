@@ -26,8 +26,7 @@ const HOSTED_MUSIC_FLAGS = [
   'duration',
   'lyrics-file',
   'instrumental',
-  'output-dir',
-  'price'
+  'output-dir'
 ] as const
 
 const LYRIC_VIDEO_FLAGS = [

@@ -70,7 +70,7 @@ export const sttRegistry: PriceSelectionEntry[] = [
     command('transcribe-scrapecreators-youtube-transcript', 'transcribe-scrapecreators-youtube-transcript', ['src/cli/create-cli.ts', 'extract', 'https://www.youtube.com/watch?v=u1-WHqATSQU', '--provider', 'scrapecreators=youtube-transcript', '--price']),
   ]),
   ...exact('test/test-cases/e2e/local/step-7-music-lyrics-video-e2e/music-lyrics-video.test.ts', [
-    command('transcribe-whisper-tiny', 'transcribe-whisper-tiny', ['src/cli/create-cli.ts', 'extract', 'https://ajc.pics/autoshow/examples/0-audio-short.mp3', '--provider', 'whisper=tiny', '--price']),
-    command('transcribe-whisper-large-v3-turbo', 'transcribe-whisper-large-v3-turbo', ['src/cli/create-cli.ts', 'extract', 'input/examples/lyrics/01-example-song.mp3', '--provider', 'whisper=large-v3-turbo', '--price']),
+    command('transcribe-whisper-tiny', 'transcribe-whisper-tiny', ['src/cli/create-cli.ts', 'music', '--audio', 'input/examples/audio/0-audio-short.mp3', '--model', 'tiny', '--price']),
+    command('transcribe-whisper-large-v3-turbo', 'transcribe-whisper-large-v3-turbo', ['src/cli/create-cli.ts', 'music', '--audio', 'input/examples/lyrics/01-example-song.mp3', '--price']),
   ]),
 ]

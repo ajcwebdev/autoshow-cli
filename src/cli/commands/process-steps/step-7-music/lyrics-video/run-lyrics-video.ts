@@ -313,6 +313,7 @@ export const runMusicLyricVideo = async (flags: Record<string, unknown>): Promis
   const modelRaw = typeof flags['model'] === 'string' ? flags['model'] : 'large-v3-turbo'
   const font = typeof flags['font'] === 'string' && flags['font'].trim().length > 0 ? flags['font'] : 'DejaVu Sans'
   const keepTmp = flags['keep-tmp'] === true
+  const price = flags['price'] === true
 
   if (batch) {
     if (audioFlag) {
@@ -331,6 +332,16 @@ export const runMusicLyricVideo = async (flags: Record<string, unknown>): Promis
     const files = await findAudioFiles(inputRoot)
     if (files.length === 0) {
       throw InfraError(`No audio files found in ${toProjectDisplayPath(inputRoot)}`, { stage: 'music:lyrics-video' })
+    }
+
+    if (price) {
+      l.report.estimate({
+        steps: [],
+        totalEstimatedCost: 0,
+        notes: [`Local lyric-video batch rendering for ${files.length} audio file(s) has no provider cost.`]
+      })
+      l.report.expectedOutput('./output/<timestamp>_music-lyrics-batch/', ['batch.json', '<item>/run.json', '<item>/<name>.mp4', '<item>/<name>.vtt', '<item>/<name>.srt'])
+      return
     }
 
     await ensureDirectory(outputRoot)
@@ -415,6 +426,16 @@ export const runMusicLyricVideo = async (flags: Record<string, unknown>): Promis
   }
 
   const outputLabel = captionsPath ? baseStem(captionsPath) : baseStem(audioPath)
+  if (price) {
+    l.report.estimate({
+      steps: [],
+      totalEstimatedCost: 0,
+      notes: ['Local lyric-video transcription and rendering have no provider cost.']
+    })
+    l.report.expectedOutput('./output/<timestamp>_music-lyrics-<label>/', ['run.json', `${outputLabel}.mp4`, `${outputLabel}.vtt`, `${outputLabel}.srt`])
+    return
+  }
+
   const outputDirRelative = resolveRunDirectory(getOutputRoot(), `music-lyrics-${outputLabel}`, 'music-lyrics')
   const outputDirAbsolute = resolve(PROJECT_ROOT, outputDirRelative)
   await ensureDirectory(outputDirAbsolute)

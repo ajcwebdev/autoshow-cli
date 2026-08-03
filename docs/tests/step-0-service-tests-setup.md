@@ -21,11 +21,11 @@ bun t test/test-cases/setup/tts-models/tts-setup.test.ts
 
 - `test/test-cases/setup/tts-models/tts-setup.test.ts` validates the Kitten TTS setup module and runtime virtualenv checks.
 - No-cost setup validation coverage lives in `test/test-cases/validation/setup/` (`setup-command-contracts.test.ts` and `native-setup-download-contracts.test.ts`). No standalone step 0 price-only suite currently exists.
-- These setup files do not currently resolve mapped `--test-price` or `--budget` commands.
+- These setup files do not currently resolve mapped `--price` or `--budget` commands.
 
 ## Price Preflight
 
-Setup does not currently add any mapped price commands. `--test-price` and `--budget` do not provide step-specific setup preflight coverage today.
+Setup does not currently add any mapped price commands. `--price` and `--budget` do not provide step-specific setup preflight coverage today.
 
 ## Related Docs
 
