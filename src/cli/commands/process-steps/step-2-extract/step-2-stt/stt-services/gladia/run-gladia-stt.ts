@@ -23,6 +23,23 @@ const POLL_REQUEST_TIMEOUT_MS = 60 * 1000
 const buildGladiaUrl = (baseURL: string, path: string): string =>
   new URL(path.replace(/^\/+/, ''), baseURL.endsWith('/') ? baseURL : `${baseURL}/`).toString()
 
+export const buildGladiaCreateRequest = (
+  audioUrl: string,
+  model: string,
+  diarizationOptions?: { enabled?: boolean | undefined, speakerCount?: number | undefined }
+): Record<string, unknown> => ({
+  audio_url: audioUrl,
+  model,
+  diarization: diarizationOptions?.enabled ?? true,
+  ...(diarizationOptions?.speakerCount !== undefined
+    ? {
+        diarization_config: {
+          number_of_speakers: diarizationOptions.speakerCount
+        }
+      }
+    : {})
+})
+
 const attachGladiaErrorContext = (
   error: unknown,
   stage: 'upload' | 'create' | 'poll',
@@ -293,15 +310,7 @@ export const runGladiaStt = async (
     uploadUrl = uploadRecord.audio_url
     uploadAssetId = uploadRecord.audio_metadata.id
 
-    const createBody: Record<string, unknown> = {
-      audio_url: uploadUrl,
-      diarization: diarizationOptions?.enabled ?? true
-    }
-    if (diarizationOptions?.speakerCount !== undefined) {
-      createBody['diarization_config'] = {
-        number_of_speakers: diarizationOptions.speakerCount
-      }
-    }
+    const createBody = buildGladiaCreateRequest(uploadUrl, modelName, diarizationOptions)
 
     let createPayload: unknown
     try {

@@ -62,7 +62,7 @@ export const extractCommand = defineCliCommand({
   help: {
     examples: [
       ['bun autoshow extract https://youtube.com/watch?v=abc', 'Transcribe media with the default Whisper tiny STT model'],
-      ['bun autoshow extract file.mp3 --provider assemblyai=universal-3-pro', 'Transcribe media with AssemblyAI STT'],
+      ['bun autoshow extract file.mp3 --provider assemblyai=universal-3-5-pro', 'Transcribe media with AssemblyAI STT'],
       ['bun autoshow extract document.pdf --provider mistral=mistral-ocr-2512', 'Extract text from a document with Mistral OCR'],
       ['bun autoshow extract https://example.com/article --url-provider spider', 'Extract a remote article with a URL backend'],
       ['bun autoshow extract output/<extract-run-dir> --transcript-video', 'Render a synced speaker transcript video from a media extract run'],

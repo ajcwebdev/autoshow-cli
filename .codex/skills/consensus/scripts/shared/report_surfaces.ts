@@ -25,6 +25,8 @@ interface ProviderSummary {
   processingTimeMs: number | null;
   msPerUnit: number | null;
   costCents: number | null;
+  audioDurationSeconds: number | null;
+  realtimeFactor: number | null;
   quality: QualityEvidence | null;
   metrics: Record<string, number | null>;
   source: Record<string, unknown>;
@@ -60,6 +62,8 @@ interface MetricRankingEntry {
   label: string;
   actualCostCents: number | null;
   processingTimeMs: number | null;
+  audioDurationSeconds: number | null;
+  realtimeFactor: number | null;
   score: number | null;
   wer: number | null;
   cer: number | null;
@@ -300,6 +304,8 @@ function addRecords(
       processingTimeMs: firstNumber(record, ["processingTimeMs", "actualProcessingTimeMs", "processingTime"]),
       msPerUnit: firstNumber(record, ["msPerUnit"]) ?? asNumber(nestedMetrics.msPerUnit),
       costCents: firstNumber(record, ["costCents", "actualCostCents"]),
+      audioDurationSeconds: firstNumber(record, ["audioDurationSeconds"]),
+      realtimeFactor: firstNumber(record, ["realtimeFactor"]),
       quality: null,
       metrics: {
         inputTokenCount: asNumber(record.inputTokenCount) ?? asNumber(nestedMetrics.inputTokenCount),
@@ -544,6 +550,8 @@ function metricRankingEntry(
     label,
     actualCostCents: provider.group === "local" ? 0 : provider.costCents,
     processingTimeMs: provider.processingTimeMs,
+    audioDurationSeconds: provider.audioDurationSeconds,
+    realtimeFactor: provider.realtimeFactor,
     score: provider.metrics.score ?? null,
     wer: provider.metrics.wer ?? null,
     cer: provider.metrics.cer ?? null,
@@ -954,6 +962,8 @@ function providerDetail(category: ConsensusCategory, provider: ProviderSummary):
     processingTimeMs: provider.processingTimeMs,
     msPerUnit: provider.msPerUnit,
     costCents: provider.group === "local" ? 0 : provider.costCents,
+    audioDurationSeconds: provider.audioDurationSeconds,
+    realtimeFactor: provider.realtimeFactor,
     qualityMetric: provider.quality?.metric ?? null,
     qualityValue: provider.quality?.value ?? null,
     qualityLabel: provider.quality?.label ?? null,
@@ -1052,6 +1062,7 @@ function buildJsonReport(
       normalization: sourceReport.normalization ?? null,
       duplicateGroups: sourceReport.duplicateGroups ?? [],
       providerCount: providers.length,
+      ...(sourceReport.audioDurationSeconds ? { audioDurationSeconds: sourceReport.audioDurationSeconds } : {}),
       providerGroups,
       metricRankings,
       ...(category === "ocr" && sourceReport.consensusSkillArtifacts
@@ -1118,10 +1129,10 @@ function metricMarkdownTable(category: ConsensusCategory, entries: MetricRanking
     ].join("\n");
   }
 
-  const header = "| Rank | Provider | Value | Score / 100 | Speaker-aware WER | Text-only WER | Diarization | Processing Time | Actual Cost |";
-  const alignment = "| ---: | --- | ---: | ---: | ---: | ---: | --- | ---: | ---: |";
+  const header = "| Rank | Provider | Value | Score / 100 | Speaker-aware WER | Text-only WER | Diarization | Processing Time | Throughput | Actual Cost |";
+  const alignment = "| ---: | --- | ---: | ---: | ---: | ---: | --- | ---: | ---: | ---: |";
   if (entries.length === 0) {
-    return [header, alignment, "| n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | No providers in this group. |"].join("\n");
+    return [header, alignment, "| n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | No providers in this group. |"].join("\n");
   }
 
   return [
@@ -1137,6 +1148,7 @@ function metricMarkdownTable(category: ConsensusCategory, entries: MetricRanking
         formatPercent(entry.textOnlyWER),
         entry.diarizationSupport ?? "n/a",
         formatDurationMs(entry.processingTimeMs),
+        entry.realtimeFactor === null ? "n/a" : `${entry.realtimeFactor.toFixed(2)}× realtime`,
         formatCents(entry.actualCostCents),
       ])
     ),
@@ -1198,8 +1210,8 @@ function ocrProviderDetailTable(providers: ProviderSummary[]): string {
 
 function sttProviderDetailTable(providers: ProviderSummary[]): string {
   return [
-    "| Provider | Group | Diarization | Score / 100 | Speaker-aware WER | Text-only WER | Processing Time | Actual Cost |",
-    "| --- | --- | --- | ---: | ---: | ---: | ---: | ---: |",
+    "| Provider | Group | Diarization | Score / 100 | Speaker-aware WER | Text-only WER | Processing Time | Throughput | Actual Cost |",
+    "| --- | --- | --- | ---: | ---: | ---: | ---: | ---: | ---: |",
     ...providers.map((provider) => {
       const cost = provider.group === "local" ? "$0.00" : formatCents(provider.costCents);
       return markdownRow([
@@ -1210,6 +1222,7 @@ function sttProviderDetailTable(providers: ProviderSummary[]): string {
         formatPercent(provider.metrics.speakerAwareWER),
         formatPercent(provider.metrics.textOnlyWER),
         formatDurationMs(provider.processingTimeMs),
+        provider.realtimeFactor === null ? "n/a" : `${provider.realtimeFactor.toFixed(2)}× realtime`,
         cost,
       ]);
     }),

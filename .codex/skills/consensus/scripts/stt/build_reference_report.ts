@@ -1,6 +1,6 @@
 #!/usr/bin/env bun
 
-import { writeFileSync } from "node:fs";
+import { existsSync, readFileSync, writeFileSync } from "node:fs";
 import { createHash } from "node:crypto";
 import { resolve } from "node:path";
 
@@ -23,11 +23,12 @@ interface ParsedArgs {
   referencePath: string | null;
   markdownOut: string | null;
   jsonOut: string | null;
+  preserveExisting: boolean;
 }
 
 function helpText(): string {
   return [
-    "Usage: bun build_reference_report.ts <run_dir> [--reference <path>] [--markdown-out <path>] [--json-out <path>]",
+    "Usage: bun build_reference_report.ts <run_dir> [--reference <path>] [--markdown-out <path>] [--json-out <path>] [--preserve-existing]",
     "",
     "Generate comparison reports scoring each provider against a consensus transcript.",
     "",
@@ -35,6 +36,7 @@ function helpText(): string {
     "  --reference <path>      Path to consensus transcript (default: <run_dir>/consensus-transcription.txt)",
     "  --markdown-out <path>   Write markdown report to <path> (default: <run_dir>/reference-comparison-report.md)",
     "  --json-out <path>       Write JSON report to <path> (default: <run_dir>/reference-comparison-report.json)",
+    "  --preserve-existing     Preserve scored rows whose result.json source is no longer present",
     "  --help, -h              Show this help message",
     "",
     "Examples:",
@@ -53,6 +55,7 @@ function parseArgs(argv: string[]): ParsedArgs {
   let referencePath: string | null = null;
   let markdownOut: string | null = null;
   let jsonOut: string | null = null;
+  let preserveExisting = false;
 
   for (let index = 0; index < argv.length; index += 1) {
     const arg = argv[index];
@@ -83,6 +86,10 @@ function parseArgs(argv: string[]): ParsedArgs {
       index += 1;
       continue;
     }
+    if (arg === "--preserve-existing") {
+      preserveExisting = true;
+      continue;
+    }
     if (arg.startsWith("--")) {
       throw new Error(`Unknown flag: ${arg}`);
     }
@@ -101,6 +108,7 @@ function parseArgs(argv: string[]): ParsedArgs {
     referencePath,
     markdownOut,
     jsonOut,
+    preserveExisting,
   };
 }
 
@@ -696,6 +704,69 @@ interface SttMetricProvider {
   duplicateGroupId?: string;
 }
 
+function finiteNumber(value: unknown): number | null {
+  return typeof value === "number" && Number.isFinite(value) ? value : null;
+}
+
+function preservedProvidersFromReport(reportPath: string): SttMetricProvider[] {
+  if (!existsSync(reportPath)) {
+    return [];
+  }
+  const report = JSON.parse(readFileSync(reportPath, "utf8")) as Record<string, unknown>;
+  const groups = isRecord(report["providerGroups"]) ? report["providerGroups"] : {};
+  const providers: SttMetricProvider[] = [];
+  for (const groupValue of Object.values(groups)) {
+    if (!isRecord(groupValue) || !Array.isArray(groupValue["providers"])) {
+      continue;
+    }
+    for (const value of groupValue["providers"]) {
+      if (!isRecord(value) || typeof value["providerKey"] !== "string") {
+        continue;
+      }
+      const metrics = isRecord(value["metrics"]) ? value["metrics"] : {};
+      const score = finiteNumber(value["score"]) ?? finiteNumber(metrics["score"]);
+      const speakerAwareWER = finiteNumber(value["speakerAwareWER"]) ?? finiteNumber(metrics["speakerAwareWER"]);
+      const textOnlyWER = finiteNumber(value["textOnlyWER"]) ?? finiteNumber(metrics["textOnlyWER"]);
+      if (score === null || speakerAwareWER === null || textOnlyWER === null) {
+        continue;
+      }
+      const textOnlyBreakdown = isRecord(value["textOnlyBreakdown"])
+        ? value["textOnlyBreakdown"] as SttMetricProvider["textOnlyBreakdown"]
+        : { substitutions: 0, deletions: 0, insertions: 0, referenceWordCount: 0 };
+      const speakerAwareBreakdown = isRecord(value["speakerAwareBreakdown"])
+        ? value["speakerAwareBreakdown"] as SttMetricProvider["speakerAwareBreakdown"]
+        : { substitutions: 0, deletions: 0, insertions: 0, referenceWordCount: 0 };
+      const speakerMapValue = isRecord(value["speakerMap"]) ? value["speakerMap"] : {};
+      const supports = value["supportsDiarization"] === true;
+      const diarizationSupport: DiarizationSupport = supports ? "supported" : "not-supported";
+      providers.push({
+        provider: typeof value["provider"] === "string" ? value["provider"] : value["providerKey"],
+        providerKey: value["providerKey"],
+        group: value["group"] === "local" ? "local" : "cloud",
+        supportsDiarization: supports,
+        diarizationSupport,
+        tokenCount: finiteNumber(value["tokenCount"]),
+        transcriptTextHash: typeof value["transcriptTextHash"] === "string" ? value["transcriptTextHash"] : "",
+        segmentStats: value["segmentStats"] as ReturnType<typeof computeProviderSegmentStats>,
+        score,
+        speakerAwareWER,
+        textOnlyWER,
+        textOnlyBreakdown,
+        speakerAwareBreakdown,
+        actualProcessingTimeMs: finiteNumber(value["actualProcessingTimeMs"]) ?? finiteNumber(value["processingTimeMs"]),
+        actualCostCents: finiteNumber(value["actualCostCents"]) ?? finiteNumber(value["costCents"]),
+        speakerPenalty: finiteNumber(value["speakerPenalty"]) ?? speakerAwareWER - textOnlyWER,
+        speakerMap: new Map(Object.entries(speakerMapValue).filter((entry): entry is [string, string] => typeof entry[1] === "string")),
+        qualityWarnings: Array.isArray(value["qualityWarnings"])
+          ? value["qualityWarnings"].filter((warning): warning is string => typeof warning === "string")
+          : [],
+        ...(typeof value["duplicateGroupId"] === "string" ? { duplicateGroupId: value["duplicateGroupId"] } : {}),
+      });
+    }
+  }
+  return providers;
+}
+
 interface MetricRankingEntry {
   rank: number;
   providerKey: string;
@@ -707,6 +778,8 @@ interface MetricRankingEntry {
   label: string;
   actualCostCents: number | null;
   processingTimeMs: number | null;
+  audioDurationSeconds: number;
+  realtimeFactor: number | null;
   score: number;
   speakerAwareWER: number;
   textOnlyWER: number;
@@ -747,6 +820,7 @@ function metricRankingEntry(
   metric: MetricName,
   value: number | null,
   label: string,
+  runDurationSeconds: number,
 ): MetricRankingEntry {
   return {
     rank,
@@ -759,6 +833,10 @@ function metricRankingEntry(
     label,
     actualCostCents: provider.group === "local" ? 0 : provider.actualCostCents,
     processingTimeMs: provider.actualProcessingTimeMs,
+    audioDurationSeconds: runDurationSeconds,
+    realtimeFactor: provider.actualProcessingTimeMs === null || provider.actualProcessingTimeMs <= 0
+      ? null
+      : (runDurationSeconds * 1000) / provider.actualProcessingTimeMs,
     score: provider.score,
     speakerAwareWER: provider.speakerAwareWER,
     textOnlyWER: provider.textOnlyWER,
@@ -767,7 +845,7 @@ function metricRankingEntry(
   };
 }
 
-function buildMetricGroupRankings(providers: SttMetricProvider[]): Record<MetricName, MetricRankingEntry[]> {
+function buildMetricGroupRankings(providers: SttMetricProvider[], runDurationSeconds: number): Record<MetricName, MetricRankingEntry[]> {
   const price = [...providers]
     .sort((left, right) => {
       const leftCost = left.group === "local" ? 0 : left.actualCostCents;
@@ -777,13 +855,13 @@ function buildMetricGroupRankings(providers: SttMetricProvider[]): Record<Metric
     .map((provider, index) => {
       const value = provider.group === "local" ? 0 : provider.actualCostCents;
       const label = provider.group === "local" ? "$0.00 local monetary cost" : formatCents(value);
-      return metricRankingEntry(provider, index + 1, "price", value, label);
+      return metricRankingEntry(provider, index + 1, "price", value, label, runDurationSeconds);
     });
 
   const speed = [...providers]
     .sort((left, right) => compareNullableAscending(left.actualProcessingTimeMs, right.actualProcessingTimeMs) || left.providerKey.localeCompare(right.providerKey))
     .map((provider, index) =>
-      metricRankingEntry(provider, index + 1, "speed", provider.actualProcessingTimeMs, formatProcessingSeconds(provider.actualProcessingTimeMs))
+      metricRankingEntry(provider, index + 1, "speed", provider.actualProcessingTimeMs, formatProcessingSeconds(provider.actualProcessingTimeMs), runDurationSeconds)
     );
 
   const qualityScore = [...providers]
@@ -800,20 +878,22 @@ function buildMetricGroupRankings(providers: SttMetricProvider[]): Record<Metric
       return left.providerKey.localeCompare(right.providerKey);
     })
     .map((provider, index) =>
-      metricRankingEntry(provider, index + 1, "qualityScore", provider.score, `${provider.score.toFixed(2)}/100 quality score`)
+      metricRankingEntry(provider, index + 1, "qualityScore", provider.score, `${provider.score.toFixed(2)}/100 quality score`, runDurationSeconds)
     );
 
   return { price, speed, qualityScore };
 }
 
-function buildMetricRankings(providers: SttMetricProvider[]): SttMetricRankings {
+function buildMetricRankings(providers: SttMetricProvider[], runDurationSeconds: number): SttMetricRankings {
   return {
-    local: buildMetricGroupRankings(providers.filter((provider) => metricGroupForProvider(provider) === "local")),
+    local: buildMetricGroupRankings(providers.filter((provider) => metricGroupForProvider(provider) === "local"), runDurationSeconds),
     thirdPartyServiceNonDiarization: buildMetricGroupRankings(
       providers.filter((provider) => metricGroupForProvider(provider) === "thirdPartyServiceNonDiarization"),
+      runDurationSeconds,
     ),
     thirdPartyServiceDiarization: buildMetricGroupRankings(
       providers.filter((provider) => metricGroupForProvider(provider) === "thirdPartyServiceDiarization"),
+      runDurationSeconds,
     ),
   };
 }
@@ -826,7 +906,7 @@ function metricRankingTable(entries: MetricRankingEntry[]): string {
     "| Rank | Provider | Value | Evidence |",
     "| ---: | --- | ---: | --- |",
     ...entries.map((entry) =>
-      `| ${entry.rank} | \`${entry.providerKey}\` | ${entry.label} | score ${entry.score.toFixed(2)}<br>speaker-aware WER ${percentage(entry.speakerAwareWER)}<br>text-only WER ${percentage(entry.textOnlyWER)}<br>diarization ${entry.diarizationSupport}<br>time ${formatProcessingSeconds(entry.processingTimeMs)}<br>cost ${formatCents(entry.actualCostCents)} |`
+      `| ${entry.rank} | \`${entry.providerKey}\` | ${entry.label} | score ${entry.score.toFixed(2)}<br>speaker-aware WER ${percentage(entry.speakerAwareWER)}<br>text-only WER ${percentage(entry.textOnlyWER)}<br>diarization ${entry.diarizationSupport}<br>time ${formatProcessingSeconds(entry.processingTimeMs)}<br>throughput ${entry.realtimeFactor === null ? "n/a" : `${entry.realtimeFactor.toFixed(2)}× realtime`}<br>cost ${formatCents(entry.actualCostCents)} |`
     ),
   ].join("\n");
 }
@@ -879,7 +959,7 @@ function metricRankingsBlock(metricRankings: SttMetricRankings): string {
   ].join("\n");
 }
 
-function providerDetail(provider: SttMetricProvider): Record<string, unknown> {
+function providerDetail(provider: SttMetricProvider, runDurationSeconds: number): Record<string, unknown> {
   return {
     providerKey: provider.providerKey,
     provider: provider.provider,
@@ -897,6 +977,10 @@ function providerDetail(provider: SttMetricProvider): Record<string, unknown> {
     speakerAwareBreakdown: provider.speakerAwareBreakdown,
     actualProcessingTimeMs: provider.actualProcessingTimeMs,
     actualCostCents: provider.group === "local" ? 0 : provider.actualCostCents,
+    audioDurationSeconds: runDurationSeconds,
+    realtimeFactor: provider.actualProcessingTimeMs === null || provider.actualProcessingTimeMs <= 0
+      ? null
+      : (runDurationSeconds * 1000) / provider.actualProcessingTimeMs,
     speakerPenalty: provider.speakerPenalty,
     speakerMap: provider.speakerMap,
     qualityWarnings: provider.qualityWarnings,
@@ -909,7 +993,7 @@ function providerDetail(provider: SttMetricProvider): Record<string, unknown> {
   };
 }
 
-function buildProviderGroups(providers: SttMetricProvider[]) {
+function buildProviderGroups(providers: SttMetricProvider[], runDurationSeconds: number) {
   const local = providers.filter((provider) => metricGroupForProvider(provider) === "local");
   const thirdPartyServiceNonDiarization = providers.filter(
     (provider) => metricGroupForProvider(provider) === "thirdPartyServiceNonDiarization",
@@ -918,19 +1002,19 @@ function buildProviderGroups(providers: SttMetricProvider[]) {
     (provider) => metricGroupForProvider(provider) === "thirdPartyServiceDiarization",
   );
   return {
-    local: { count: local.length, providers: local.map(providerDetail) },
+    local: { count: local.length, providers: local.map((provider) => providerDetail(provider, runDurationSeconds)) },
     thirdPartyServiceNonDiarization: {
       count: thirdPartyServiceNonDiarization.length,
-      providers: thirdPartyServiceNonDiarization.map(providerDetail),
+      providers: thirdPartyServiceNonDiarization.map((provider) => providerDetail(provider, runDurationSeconds)),
     },
     thirdPartyServiceDiarization: {
       count: thirdPartyServiceDiarization.length,
-      providers: thirdPartyServiceDiarization.map(providerDetail),
+      providers: thirdPartyServiceDiarization.map((provider) => providerDetail(provider, runDurationSeconds)),
     },
   };
 }
 
-export function buildReport(runDir: string, referencePath: string) {
+export function buildReport(runDir: string, referencePath: string, preservedProviders: SttMetricProvider[] = []) {
   const runJson = loadRunJson(runDir);
   const { providers, warnings } = loadProviderRuns(runDir);
   if (providers.length === 0) {
@@ -1001,7 +1085,10 @@ export function buildReport(runDir: string, referencePath: string) {
     };
   });
 
-  const reportProviders = providersWithQuality as SttMetricProvider[];
+  const currentProviders = providersWithQuality as SttMetricProvider[];
+  const reportProviders = [...new Map(
+    [...preservedProviders, ...currentProviders].map((provider) => [provider.providerKey, provider]),
+  ).values()];
   const rankedProviders = [...reportProviders]
     .sort((left, right) => {
       if (left.speakerAwareWER !== right.speakerAwareWER) {
@@ -1016,8 +1103,8 @@ export function buildReport(runDir: string, referencePath: string) {
       ...provider,
       rank: index + 1,
     }));
-  const metricRankings = buildMetricRankings(reportProviders);
-  const providerGroups = buildProviderGroups(reportProviders);
+  const metricRankings = buildMetricRankings(reportProviders, runDurationSeconds);
+  const providerGroups = buildProviderGroups(reportProviders, runDurationSeconds);
 
   const bestProvider = rankedProviders[0];
   if (!bestProvider) {
@@ -1083,6 +1170,7 @@ export function buildReport(runDir: string, referencePath: string) {
 	    },
 	    duplicateGroups,
 	    providerCount: reportProviders.length,
+	    audioDurationSeconds: runDurationSeconds,
 	    providerGroups,
 	    metricRankings,
 	    notes,
@@ -1128,7 +1216,7 @@ ${providerList}
 - The consolidated transcript in \`${referenceName}\` was treated as the gold reference.
 - Timestamps were used to map provider speaker labels onto canonical gold speakers by segment overlap.
 - Gold segment end times were derived from the next gold segment start, with the final segment ending at the run duration from \`run.json\`.
-- Provider scoring used \`result.json.result.segments\` for all discovered providers under \`providers/\`; \`transcription.txt\` and any pre-existing comparison reports were ignored.
+- Provider scoring used \`result.json.result.segments\` for all discovered providers under \`providers/\`; \`transcription.txt\` was ignored.${preservedProviders.length > 0 ? " Previously scored rows whose source result is no longer retained were preserved explicitly." : " Pre-existing comparison reports were ignored."}
 - Text normalization applied before tokenization: lowercasing, curly quote/dash normalization, contraction expansion (it's -> it is), abbreviation expansion (mr. -> mister), currency symbol conversion ($50 -> 50 dollars), filler word removal (um, uh, etc.), and remaining punctuation stripping.
 - Tokenization used a word/number regex, so punctuation-only tokens were ignored.
 - Text-only WER compares the provider's full ordered word stream against the gold transcript word stream.
@@ -1169,8 +1257,9 @@ function main(): number {
   const referencePath = args.referencePath ?? resolve(args.runDir, "consensus-transcription.txt");
   const markdownOut = args.markdownOut ?? resolve(args.runDir, "reference-comparison-report.md");
   const jsonOut = args.jsonOut ?? resolve(args.runDir, "reference-comparison-report.json");
+  const preservedProviders = args.preserveExisting ? preservedProvidersFromReport(jsonOut) : [];
 
-  const { reportJson, markdown, warnings } = buildReport(args.runDir, referencePath);
+  const { reportJson, markdown, warnings } = buildReport(args.runDir, referencePath, preservedProviders);
 
   for (const warning of warnings) {
     console.error(`[warn] ${warning}`);

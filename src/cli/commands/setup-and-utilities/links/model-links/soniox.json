@@ -3,7 +3,10 @@
     "STT": [
       "https://soniox.com/docs/stt/api-reference/transcriptions/create_transcription.mdx",
       "https://soniox.com/docs/stt/api-reference/transcriptions/get_transcription.mdx",
-      "https://soniox.com/docs/stt/async/async-transcription.mdx"
+      "https://soniox.com/docs/stt/async/async-transcription.mdx",
+      "https://soniox.com/docs/stt/models",
+      "https://soniox.com/docs/stt/async/limits-and-quotas",
+      "https://soniox.com/pricing"
     ]
   }
 }

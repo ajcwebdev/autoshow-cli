@@ -18,6 +18,17 @@ const MAX_POLL_INTERVAL_MS = 10000
 const REQUEST_TIMEOUT_MS = 20 * 60 * 1000
 const POLL_REQUEST_TIMEOUT_MS = 60 * 1000
 
+export const buildAssemblyAiTranscriptRequest = (
+  audioUrl: string,
+  model: string,
+  speakerCount?: number | undefined
+): Record<string, unknown> => ({
+  audio_url: audioUrl,
+  speech_models: [model],
+  speaker_labels: true,
+  ...(speakerCount === undefined ? {} : { speakers_expected: speakerCount })
+})
+
 const formatSpeaker = (speaker: string | undefined): string | undefined => {
   if (speaker === undefined || speaker.length === 0) return undefined
   return `speaker-${speaker}`
@@ -236,14 +247,11 @@ export const runAssemblyAiTranscribe = async (
     }
     uploadUrl = uploadRecord['upload_url']
 
-    const transcriptBody: Record<string, unknown> = {
-      audio_url: uploadUrl,
-      speech_models: [modelName],
-      speaker_labels: true
-    }
-    if (diarizationOptions?.speakerCount !== undefined) {
-      transcriptBody['speakers_expected'] = diarizationOptions.speakerCount
-    }
+    const transcriptBody = buildAssemblyAiTranscriptRequest(
+      uploadUrl,
+      modelName,
+      diarizationOptions?.speakerCount
+    )
 
     let createResult: unknown
     try {

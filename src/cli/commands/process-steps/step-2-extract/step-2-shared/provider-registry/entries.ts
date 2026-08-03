@@ -23,6 +23,16 @@ export const getStep2ProviderEntries = (
 ): Step2ProviderRegistryEntry[] =>
   STEP2_PROVIDER_REGISTRY.filter((entry) => entry.step === step)
 
+export const getStep2ActiveModelsForService = (
+  step: Step2Command,
+  targetService: string
+): readonly string[] | undefined => {
+  const entry = getStep2ProviderEntries(step).find((candidate) =>
+    candidate.targetService === targetService && candidate.selection.type === 'models'
+  )
+  return entry?.selection.type === 'models' ? entry.selection.supportedModels : undefined
+}
+
 export const getStep2ProviderEntry = (
   flagName: string
 ): Step2ProviderRegistryEntry | undefined => STEP2_PROVIDER_ENTRY_BY_FLAG.get(flagName)

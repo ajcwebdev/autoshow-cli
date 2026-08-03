@@ -12,12 +12,15 @@
       "https://docs.together.ai/docs/inference/recommended-models.md",
       "https://docs.together.ai/docs/serverless/models.md",
       "https://www.together.ai/models/openai-whisper-large-v3",
+      "https://www.together.ai/models/parakeet-tdt-0-6b-v3",
       "https://raw.githubusercontent.com/togethercomputer/skills/refs/heads/main/skills/together-audio/references/stt-models.md",
       "https://docs.together.ai/docs/dedicated-endpoints/models.md"
     ],
     "STT": [
       "https://docs.together.ai/reference/audio-transcriptions",
       "https://docs.together.ai/docs/speech-to-text.md",
+      "https://www.together.ai/models/parakeet-tdt-0-6b-v3",
+      "https://www.together.ai/pricing",
       "https://raw.githubusercontent.com/togethercomputer/skills/refs/heads/main/skills/together-audio/SKILL.md",
       "https://raw.githubusercontent.com/togethercomputer/skills/refs/heads/main/skills/together-audio/scripts/stt_transcribe.ts",
       "https://docs.together.ai/reference/audio-transcriptions.md"

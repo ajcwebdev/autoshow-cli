@@ -85,7 +85,7 @@ describe('voice quality CLI report generation contracts', () => {
           dnsmosMos: 4,
           paidAudioJudge: { naturalnessScore: 82, confidence: 0.8 },
           stt: {
-            'assemblyai/universal-3-pro': inputText
+            'assemblyai/universal-2': inputText
           }
         },
         'openai/gpt-4o-mini-tts': {
@@ -95,7 +95,7 @@ describe('voice quality CLI report generation contracts', () => {
           dnsmosMos: 4.6,
           paidAudioJudge: { naturalnessScore: 93, confidence: 0.9 },
           stt: {
-            'assemblyai/universal-3-pro': inputText
+            'assemblyai/universal-2': inputText
           }
         },
         'elevenlabs/eleven_v3': {
@@ -105,7 +105,7 @@ describe('voice quality CLI report generation contracts', () => {
           dnsmosMos: 2.8,
           paidAudioJudge: { naturalnessScore: 45, confidence: 0.7 },
           stt: {
-            'assemblyai/universal-3-pro': 'Hello world this sample missed several important words.'
+            'assemblyai/universal-2': 'Hello world this sample missed several important words.'
           }
         }
       }

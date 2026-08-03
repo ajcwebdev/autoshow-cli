@@ -66,7 +66,7 @@ Unified command shape:
 
 ```bash
 bun scripts/run.ts <category> build-packet <run_dir> [--input-text <path>] [--out <path>]
-bun scripts/run.ts <category> build-report <run_dir> [--input-text <path>] [--roundtrip-dir <path>]
+bun scripts/run.ts <category> build-report <run_dir> [--input-text <path>] [--roundtrip-dir <path>] [--preserve-existing]
 bun scripts/run.ts stt compact-results <run_dir>
 bun scripts/run.ts stt build-combined-report <root_dir>
 bun scripts/run.ts ocr build-combined-report <root_dir>
@@ -77,7 +77,9 @@ TTS packet and report generation require `--input-text <path>`.
 
 STT `compact-results` shrinks `providers/*/result.json` files in place (drops the unused `evidence.words` arrays and non-consumer `evidence.rawResponse` blobs) so a run can be committed to git. It preserves every field the packet and report read, is idempotent, and leaves report output byte-identical aside from the `generatedAt` timestamp. See `references/stt.md` for details. Run it before committing benchmark runs.
 
-`build-combined-report` (STT, OCR, and URL) aggregates every per-run report JSON under a root directory into generated `combined-comparison-report.{json,md,html}` artifacts, matching providers by `providerKey` and ranking pure quality, price, and speed within the same category groups. URL reads committed `provider-comparison-report.json` files and optional sibling `run.json` metadata; it uses source `rankingSurfaces.*.automatedQuality` values instead of recomputing quality. The `.html` is a self-contained zero-dependency dashboard consolidating the same per-group data. Combined reports also emit, per group, eight weighted composite rankings (strong/moderate quality, speed, and cost, plus quality + cost and cost + speed) and deterministic `quality-cost-terciles-v1` model tiers: three contiguous, near-equal slices of the `qualityCost` ranking with remainder models assigned to higher tiers first. Groups are never ranked against each other. See `references/stt.md`, `references/ocr.md`, and `references/url.md` for details.
+STT `build-report --preserve-existing` retains already-scored historical report rows when their original `result.json` artifacts are no longer present, while newly discovered result rows replace matching provider identities. Use it only for benchmark archives that intentionally preserve historical report comparisons after source-result cleanup. Current `result.json` files remain authoritative for matching provider keys.
+
+`build-combined-report` (STT, OCR, and URL) aggregates every per-run report JSON under a root directory into generated `combined-comparison-report.{json,md,html}` artifacts, matching providers by `providerKey` and ranking pure quality, price, and speed within the same category groups. STT also promotes observed realtime throughput, computed as total covered audio duration divided by total covered processing time, into its JSON, Markdown, HTML dashboard, and repository benchmark summary. URL reads committed `provider-comparison-report.json` files and optional sibling `run.json` metadata; it uses source `rankingSurfaces.*.automatedQuality` values instead of recomputing quality. The `.html` is a self-contained zero-dependency dashboard consolidating the same per-group data. Combined reports also emit, per group, eight weighted composite rankings (strong/moderate quality, speed, and cost, plus quality + cost and cost + speed) and deterministic `quality-cost-terciles-v1` model tiers: three contiguous, near-equal slices of the `qualityCost` ranking with remainder models assigned to higher tiers first. Groups are never ranked against each other. See `references/stt.md`, `references/ocr.md`, and `references/url.md` for details.
 
 Text/write packet and report generation read existing `kind: "write"` run metadata only:
 

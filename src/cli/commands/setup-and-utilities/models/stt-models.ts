@@ -26,6 +26,9 @@ export const SUPPORTED_WHISPERFILE_MODELS = [
 export const DEFAULT_WHISPERFILE_MODEL = 'tiny'
 
 export const SUPPORTED_DEEPGRAM_STT_MODELS = [
+  // Keep the concrete general-purpose family selector only. Domain and
+  // specialization variants such as nova-3-medical and nova-3-general are
+  // intentionally outside the hosted STT refresh scope.
   'nova-3'
 ] as const satisfies readonly string[]
 
@@ -35,11 +38,12 @@ export const SUPPORTED_DEEPINFRA_STT_MODELS = [
 ] as const satisfies readonly string[]
 
 export const SUPPORTED_SONIOX_STT_MODELS = [
-  'stt-async-v4'
+  'stt-async-v5'
 ] as const satisfies readonly string[]
 
 export const SUPPORTED_SPEECHMATICS_STT_MODELS = [
-  'enhanced'
+  'enhanced',
+  'melia-1'
 ] as const satisfies readonly string[]
 
 export const SUPPORTED_REV_STT_MODELS = [
@@ -61,11 +65,13 @@ export const SUPPORTED_MISTRAL_STT_MODELS = [
 ] as const satisfies readonly string[]
 
 export const SUPPORTED_ASSEMBLYAI_STT_MODELS = [
-  'universal-3-pro'
+  'universal-3-5-pro',
+  'universal-2'
 ] as const satisfies readonly string[]
 
 export const SUPPORTED_GLADIA_STT_MODELS = [
-  'default'
+  'solaria-1',
+  'solaria-3'
 ] as const satisfies readonly string[]
 
 export const SUPPORTED_HAPPYSCRIBE_STT_MODELS = [
@@ -81,11 +87,12 @@ export const SUPPORTED_SCRAPECREATORS_STT_MODELS = [
 ] as const satisfies readonly string[]
 
 export const SUPPORTED_GEMINI_STT_MODELS = [
-  'gemini-3-flash-preview'
+  'gemini-3.6-flash'
 ] as const satisfies readonly string[]
 
 export const SUPPORTED_TOGETHER_STT_MODELS = [
-  'openai/whisper-large-v3'
+  'openai/whisper-large-v3',
+  'nvidia/parakeet-tdt-0.6b-v3'
 ] as const satisfies readonly string[]
 
 export const validateWhisperModel = createModelValidator(SUPPORTED_WHISPER_MODELS, 'whisper', 'This flag uses local whisper.cpp models.')
@@ -104,4 +111,4 @@ export const validateHappyscribeSttModel = createModelValidator(SUPPORTED_HAPPYS
 export const validateSupadataSttModel = createModelValidator(SUPPORTED_SUPADATA_STT_MODELS, 'supadata-stt')
 export const validateScrapeCreatorsSttModel = createModelValidator(SUPPORTED_SCRAPECREATORS_STT_MODELS, 'scrapecreators-stt')
 export const validateGeminiSttModel = createModelValidator(SUPPORTED_GEMINI_STT_MODELS, 'gemini-stt')
-export const validateTogetherSttModel = createModelValidator(SUPPORTED_TOGETHER_STT_MODELS, 'together-stt', 'This flag only accepts Together OpenAI-compatible Whisper models.')
+export const validateTogetherSttModel = createModelValidator(SUPPORTED_TOGETHER_STT_MODELS, 'together-stt', 'This flag accepts concrete Together serverless batch transcription models.')

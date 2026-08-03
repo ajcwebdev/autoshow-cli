@@ -24,6 +24,16 @@ const buildUploadForm = (
   return form
 }
 
+export const buildSonioxCreateRequest = (
+  modelName: string,
+  fileId: string,
+  diarizationOptions?: Pick<DiarizationOptions, 'enabled'> | undefined
+): Record<string, unknown> => ({
+  model: modelName,
+  file_id: fileId,
+  enable_speaker_diarization: diarizationOptions?.enabled !== false
+})
+
 export const uploadAudio = async (
   baseURL: string,
   apiKey: string,
@@ -86,11 +96,7 @@ export const createTranscription = async (
   diarizationOptions: DiarizationOptions | undefined,
   metrics?: SttRequestMetrics | undefined
 ): Promise<string> => {
-  const body = {
-    model: modelName,
-    file_id: fileId,
-    enable_speaker_diarization: diarizationOptions?.enabled !== false
-  }
+  const body = buildSonioxCreateRequest(modelName, fileId, diarizationOptions)
 
   let rawPayload: unknown
   try {

@@ -23,7 +23,7 @@
  * to the root directory.
  */
 
-import { readFileSync, writeFileSync } from "node:fs";
+import { existsSync, readFileSync, writeFileSync } from "node:fs";
 import { join, resolve } from "node:path";
 import {
   MISSING_DATA_POLICY,
@@ -69,7 +69,11 @@ interface ReportProviderDetail {
   model?: string;
   group?: string;
   processingTimeMs?: number | null;
+  actualProcessingTimeMs?: number | null;
   costCents?: number | null;
+  actualCostCents?: number | null;
+  audioDurationSeconds?: number | null;
+  realtimeFactor?: number | null;
   supportsDiarization?: boolean | null;
   diarizationSupport?: string | null;
   metrics?: {
@@ -96,6 +100,8 @@ interface ProviderSample {
   textOnlyWER: number | null;
   processingTimeMs: number | null;
   costCents: number | null;
+  audioDurationSeconds: number | null;
+  realtimeFactor: number | null;
   supportsDiarization: boolean | null;
   diarizationSupport: string | null;
 }
@@ -110,6 +116,7 @@ interface AggregatedProvider {
   meanSpeakerAwareWER: number | null;
   meanTextOnlyWER: number | null;
   meanProcessingTimeMs: number | null;
+  aggregateRealtimeFactor: number | null;
   meanCostCents: number | null;
   totalCostCents: number | null;
   supportsDiarization: boolean | null;
@@ -131,6 +138,7 @@ interface RankingEntry {
   meanSpeakerAwareWER: number | null;
   meanTextOnlyWER: number | null;
   meanProcessingTimeMs: number | null;
+  aggregateRealtimeFactor: number | null;
   meanCostCents: number | null;
   totalCostCents: number | null;
   supportsDiarization: boolean | null;
@@ -190,8 +198,10 @@ function collectSamples(runs: RunRef[]): Map<string, { provider: string; model: 
           score: detail.metrics?.score ?? null,
           speakerAwareWER: detail.metrics?.speakerAwareWER ?? null,
           textOnlyWER: detail.metrics?.textOnlyWER ?? null,
-          processingTimeMs: detail.processingTimeMs ?? null,
-          costCents: detail.costCents ?? null,
+          processingTimeMs: detail.actualProcessingTimeMs ?? detail.processingTimeMs ?? null,
+          costCents: detail.actualCostCents ?? detail.costCents ?? null,
+          audioDurationSeconds: detail.audioDurationSeconds ?? null,
+          realtimeFactor: detail.realtimeFactor ?? null,
           supportsDiarization: detail.supportsDiarization ?? null,
           diarizationSupport: detail.diarizationSupport ?? null,
         });
@@ -242,6 +252,15 @@ function aggregate(
       meanSpeakerAwareWER: mean(samples.map((sample) => sample.speakerAwareWER)),
       meanTextOnlyWER: mean(samples.map((sample) => sample.textOnlyWER)),
       meanProcessingTimeMs: mean(samples.map((sample) => sample.processingTimeMs)),
+      aggregateRealtimeFactor: (() => {
+        const timed = samples.filter((sample) => isFiniteNumber(sample.processingTimeMs) && sample.processingTimeMs > 0);
+        const durationSeconds = sum(timed.map((sample) => sample.audioDurationSeconds));
+        const processingTimeMs = sum(timed.map((sample) => sample.processingTimeMs));
+        if (durationSeconds !== null && processingTimeMs !== null && processingTimeMs > 0) {
+          return (durationSeconds * 1000) / processingTimeMs;
+        }
+        return mean(samples.map((sample) => sample.realtimeFactor));
+      })(),
       meanCostCents: mean(samples.map((sample) => sample.costCents)),
       totalCostCents: sum(samples.map((sample) => sample.costCents)),
       supportsDiarization: latest?.supportsDiarization ?? null,
@@ -306,6 +325,7 @@ function buildEntry(provider: AggregatedProvider, metric: MetricName, value: num
     meanSpeakerAwareWER: provider.meanSpeakerAwareWER,
     meanTextOnlyWER: provider.meanTextOnlyWER,
     meanProcessingTimeMs: provider.meanProcessingTimeMs,
+    aggregateRealtimeFactor: provider.aggregateRealtimeFactor,
     meanCostCents: provider.meanCostCents,
     totalCostCents: provider.totalCostCents,
     supportsDiarization: provider.supportsDiarization,
@@ -359,16 +379,93 @@ function rankGroup(providers: AggregatedProvider[]): Record<MetricName, RankingE
 
 function metricTable(entries: RankingEntry[]): string {
   const header =
-    "| Rank | Provider | Value | Runs | Mean Score / 100 | Mean Speaker-aware WER | Mean Text-only WER | Diarization | Mean Speed | Mean Cost |\n" +
-    "| ---: | --- | ---: | ---: | ---: | ---: | ---: | --- | ---: | ---: |";
+    "| Rank | Provider | Value | Runs | Mean Score / 100 | Mean Speaker-aware WER | Mean Text-only WER | Diarization | Mean Speed | Throughput | Mean Cost |\n" +
+    "| ---: | --- | ---: | ---: | ---: | ---: | ---: | --- | ---: | ---: | ---: |";
   if (entries.length === 0) {
-    return `${header}\n| n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | No providers in this group. |`;
+    return `${header}\n| n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | No providers in this group. |`;
   }
   const rows = entries.map((entry) => {
     const diar = entry.supportsDiarization === null ? "n/a" : entry.diarizationSupport ?? (entry.supportsDiarization ? "supported" : "unsupported");
-    return `| ${entry.rank} | <code>${entry.provider}</code> | ${entry.label} | ${entry.runsCovered} | ${entry.meanQualityScore === null ? "n/a" : entry.meanQualityScore.toFixed(2)} | ${formatPercent(entry.meanSpeakerAwareWER)} | ${formatPercent(entry.meanTextOnlyWER)} | ${diar} | ${formatSpeed(entry.meanProcessingTimeMs)} | ${formatPrice(entry.meanCostCents)} |`;
+    return `| ${entry.rank} | <code>${entry.provider}</code> | ${entry.label} | ${entry.runsCovered} | ${entry.meanQualityScore === null ? "n/a" : entry.meanQualityScore.toFixed(2)} | ${formatPercent(entry.meanSpeakerAwareWER)} | ${formatPercent(entry.meanTextOnlyWER)} | ${diar} | ${formatSpeed(entry.meanProcessingTimeMs)} | ${entry.aggregateRealtimeFactor === null ? "n/a" : `${entry.aggregateRealtimeFactor.toFixed(2)}×`} | ${formatPrice(entry.meanCostCents)} |`;
   });
   return `${header}\n${rows.join("\n")}`;
+}
+
+function benchmarkSummaryRankingTable(
+  entries: RankingEntry[],
+  value: (entry: RankingEntry) => string,
+  totalRuns: number,
+): string {
+  if (entries.length === 0) {
+    return "_Unavailable: no entries are present in the current STT report files._";
+  }
+  return [
+    "| Rank | Provider/model | Runs | Average |",
+    "| ---: | --- | ---: | ---: |",
+    ...entries.map((entry) => `| ${entry.rank} | ${entry.providerKey} | ${entry.runsCovered}/${totalRuns} runs | ${value(entry)} |`),
+  ].join("\n");
+}
+
+function benchmarkSttSection(
+  metricRankings: Record<GroupKey, Record<MetricName, RankingEntry[]>>,
+  groupedProviders: Record<GroupKey, AggregatedProvider[]>,
+  totalRuns: number,
+): string {
+  const lines = ["## STT", ""];
+  for (const group of GROUPS) {
+    lines.push(`### ${group}`, "", "#### Cost Ranking", "");
+    lines.push(benchmarkSummaryRankingTable(metricRankings[group].price, (entry) => formatPrice(entry.value), totalRuns));
+    lines.push("", "#### Speed Ranking", "");
+    lines.push(benchmarkSummaryRankingTable(metricRankings[group].speed, (entry) => formatSpeed(entry.value), totalRuns));
+    lines.push("", "#### Realtime Throughput Ranking", "");
+    const throughput = [...groupedProviders[group]]
+      .filter((provider) => provider.aggregateRealtimeFactor !== null)
+      .sort((left, right) => (right.aggregateRealtimeFactor ?? -1) - (left.aggregateRealtimeFactor ?? -1) || left.providerKey.localeCompare(right.providerKey))
+      .map((provider, index) => buildEntry(provider, "speed", provider.meanProcessingTimeMs, formatSpeed(provider.meanProcessingTimeMs), index + 1));
+    lines.push(benchmarkSummaryRankingTable(
+      throughput,
+      (entry) => entry.aggregateRealtimeFactor === null ? "n/a" : `${entry.aggregateRealtimeFactor.toFixed(2)}× realtime`,
+      totalRuns,
+    ));
+    lines.push("", "#### Auto-Quality Ranking", "");
+    lines.push(benchmarkSummaryRankingTable(metricRankings[group].qualityScore, (entry) => formatQuality(entry.value), totalRuns));
+    lines.push("", "#### Human Quality Ranking", "");
+    lines.push(`_Unavailable: no humanQuality entries are present for \`stt/${group}\` in the current report files._`, "");
+  }
+  return lines.join("\n").trimEnd();
+}
+
+function updateBenchmarkSummary(
+  rootDir: string,
+  metricRankings: Record<GroupKey, Record<MetricName, RankingEntry[]>>,
+  groupedProviders: Record<GroupKey, AggregatedProvider[]>,
+  runs: RunRef[],
+): void {
+  const summaryPath = resolve(rootDir, "..", "summary.md");
+  if (!existsSync(summaryPath)) {
+    return;
+  }
+  let summary = readFileSync(summaryPath, "utf8");
+  const inventoryMatch = summary.match(/^\| stt \| (\d+) \| (\d+) \| ([^\n]+) \|$/m);
+  const totalMatch = summary.match(/^\| \*\*Total\*\* \| \*\*(\d+)\*\* \| \*\*(\d+)\*\* \| \*\*([^\n]+)\*\* \|$/m);
+  const providerRows = runs.reduce((total, run) => total + run.providerCount, 0);
+  if (inventoryMatch) {
+    const previousReports = Number(inventoryMatch[1]);
+    const previousRows = Number(inventoryMatch[2]);
+    summary = summary.replace(
+      inventoryMatch[0],
+      `| stt | ${runs.length} | ${providerRows} | local, thirdPartyServiceDiarization, thirdPartyServiceNonDiarization |`,
+    );
+    if (totalMatch) {
+      const reports = Number(totalMatch[1]) + runs.length - previousReports;
+      const rows = Number(totalMatch[2]) + providerRows - previousRows;
+      summary = summary.replace(totalMatch[0], `| **Total** | **${reports}** | **${rows}** | **${totalMatch[3]}** |`);
+    }
+  }
+  const section = benchmarkSttSection(metricRankings, groupedProviders, runs.length);
+  summary = summary.replace(/## STT\n[\s\S]*?\n## TTS\n/, `${section}\n\n## TTS\n`);
+  writeFileSync(summaryPath, summary);
+  console.log(`Wrote ${summaryPath}`);
 }
 
 function perRunMatrix(providers: AggregatedProvider[], runs: RunRef[]): string {
@@ -434,7 +531,12 @@ function buildDashboardGroup(
       display: provider.meanQualityScore === null ? "n/a" : provider.meanQualityScore.toFixed(2),
       rank: qualityRank.get(provider.providerKey) ?? null,
     },
-    speed: { display: formatSpeed(provider.meanProcessingTimeMs), rank: speedRank.get(provider.providerKey) ?? null },
+    speed: {
+      display: provider.aggregateRealtimeFactor === null
+        ? formatSpeed(provider.meanProcessingTimeMs)
+        : `${formatSpeed(provider.meanProcessingTimeMs)} · ${provider.aggregateRealtimeFactor.toFixed(2)}×`,
+      rank: speedRank.get(provider.providerKey) ?? null,
+    },
     cost: { display: formatPrice(priceValue(provider)), rank: priceRank.get(provider.providerKey) ?? null },
     balanced: balanced.get(provider.providerKey) ?? { rank: providers.length, composite: 0 },
     weighted: Object.fromEntries(
@@ -469,7 +571,7 @@ function buildDashboardGroup(
         qualityCostComposite: provider.qualityCostComposite,
       })),
     })),
-    metricColumns: { quality: "Quality /100", speed: "Mean time", cost: "Mean cost" },
+    metricColumns: { quality: "Quality /100", speed: "Mean time · throughput", cost: "Mean cost" },
     evidenceColumns: ["Mean SA-WER", "Mean text WER", "Diarization"],
     providers: rows,
   };
@@ -542,13 +644,13 @@ function main(): number {
     tiering,
     rankingPolicy: {
       price: "mean per-run monetary cost ascending; local providers at zero; missing cost sorts last; ties break by quality descending then providerKey",
-      speed: "mean processing time ascending; missing timing sorts last; ties break by providerKey",
+      speed: "mean processing time ascending; observed aggregate realtime throughput is retained as evidence; missing timing sorts last; ties break by providerKey",
       qualityScore: "mean speaker-aware WER-derived score descending; missing score sorts last; ties break by providerKey",
       weightedComposite: WEIGHTED_COMPOSITE_POLICY,
       missingData: MISSING_DATA_POLICY,
     },
     notes: [
-      "Each provider is aggregated by providerKey across the runs it appears in; the mean is taken over present values only.",
+      "Each provider is aggregated by providerKey across the runs it appears in; the mean is taken over present values only. Aggregate realtime throughput is total covered audio duration divided by total covered processing time.",
       "Groups follow the single-run STT contract: local, thirdPartyServiceNonDiarization, thirdPartyServiceDiarization.",
       "Weighted composite rankings and quality-cost tercile model tiers are emitted per group; no cross-group overall or rankingSurfaces leaderboard is emitted, and single-run reports remain tier-free.",
     ],
@@ -676,6 +778,7 @@ function main(): number {
   };
   const htmlPath = join(rootDir, "combined-comparison-report.html");
   writeFileSync(htmlPath, renderCombinedDashboard(dashboardModel));
+  updateBenchmarkSummary(rootDir, metricRankings, groupedProviders, runs);
 
   console.log(`Wrote ${jsonPath}`);
   console.log(`Wrote ${markdownPath}`);

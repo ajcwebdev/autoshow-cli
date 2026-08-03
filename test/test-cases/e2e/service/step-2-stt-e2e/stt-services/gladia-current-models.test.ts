@@ -1,10 +1,10 @@
 import { defineSTTServiceTest } from '../../../../../test-utils/define-stt-service-test'
-import { speechmaticsTranscription } from './cases'
+import { gladiaTranscription } from './cases'
 
 defineSTTServiceTest({
-  ...speechmaticsTranscription,
-  models: ['enhanced'],
-  sttService: 'speechmatics',
+  ...gladiaTranscription,
+  models: ['solaria-1', 'solaria-3'],
+  sttService: 'gladia',
   inputPath: 'input/examples/audio/0-audio-short.mp3',
   inputTitle: '0-audio-short',
 })

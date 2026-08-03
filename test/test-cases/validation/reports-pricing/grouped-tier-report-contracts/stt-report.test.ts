@@ -152,11 +152,12 @@ describe('grouped report contracts', () => {
   	      overallWeights?: unknown
   	      tiering?: unknown
   	      providers?: unknown
+	      audioDurationSeconds: number
   	      metricRankings: Record<'local' | 'thirdPartyServiceNonDiarization' | 'thirdPartyServiceDiarization', Record<MetricName, MetricRankingEntry[]>>
   	      providerGroups: {
   	        local: { count: number, providers: Array<{ supportsDiarization: boolean, diarizationSupport: string }> }
   	        thirdPartyServiceNonDiarization: { count: number, providers: Array<{ supportsDiarization: boolean, diarizationSupport: string }> }
-  	        thirdPartyServiceDiarization: { count: number, providers: Array<{ supportsDiarization: boolean, diarizationSupport: string }> }
+	        thirdPartyServiceDiarization: { count: number, providers: Array<{ supportsDiarization: boolean, diarizationSupport: string, audioDurationSeconds: number, realtimeFactor: number | null }> }
   	      }
   	    }
 
@@ -168,11 +169,14 @@ describe('grouped report contracts', () => {
   	    expect(report.overallWeights).toBeUndefined()
   	    expect(report.tiering).toBeUndefined()
   	    expect(report.providers).toBeUndefined()
+	    expect(report.audioDurationSeconds).toBe(8)
   	    expectMetricRankings(report.metricRankings, ['local', 'thirdPartyServiceNonDiarization', 'thirdPartyServiceDiarization'] as const)
   	    expect(report.providerGroups.local.count).toBe(1)
   	    expect(report.providerGroups.thirdPartyServiceDiarization.count).toBe(2)
   	    expect(report.providerGroups.thirdPartyServiceNonDiarization.count).toBe(2)
   	    expect(report.providerGroups.thirdPartyServiceDiarization.providers.every((provider) => provider.supportsDiarization === true && provider.diarizationSupport === 'supported')).toBe(true)
+	    expect(report.providerGroups.thirdPartyServiceDiarization.providers.map((provider) => provider.realtimeFactor)).toEqual([8, 4])
+	    expect(report.providerGroups.thirdPartyServiceDiarization.providers.every((provider) => provider.audioDurationSeconds === 8)).toBe(true)
   	    expect(report.providerGroups.thirdPartyServiceNonDiarization.providers.every((provider) => provider.supportsDiarization === false && provider.diarizationSupport === 'not-supported')).toBe(true)
   	    expect(report.metricRankings.local.price).toHaveLength(1)
   	    expect(report.metricRankings.local.speed).toHaveLength(1)
@@ -198,6 +202,7 @@ describe('grouped report contracts', () => {
   	    expect(markdown).toContain('#### Price')
   	    expect(markdown).toContain('#### Speed')
   	    expect(markdown).toContain('#### Quality Score')
+	    expect(markdown).toContain('8.00× realtime')
   	    expect(markdown).not.toContain('## Overall Ranking')
   	    expect(markdown).not.toContain('## Tier Breakdown')
   	    expect(markdown).not.toContain('## Ranking')

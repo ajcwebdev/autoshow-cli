@@ -3,13 +3,13 @@
     "description": "Soniox cloud speech-to-text",
     "type": "api",
     "models": {
-      "stt-async-v4": {
-        "description": "Async v4 — diarized asynchronous transcription with token timestamps",
+      "stt-async-v5": {
+        "description": "Async v5 — diarized asynchronous transcription with token timestamps",
         "pricingSourceUrl": "https://soniox.com/pricing",
-        "pricingCheckedAt": "2026-05-31",
+        "pricingCheckedAt": "2026-08-03",
         "pricingCurrency": "USD",
         "pricingTier": "Soniox API pay-as-you-go speech-to-text pricing",
-        "pricingNotes": "Soniox async speech-to-text is estimated at $0.10/hour. Free plan usage, subscriptions, enterprise pricing, taxes, and provider credits are ignored.",
+        "pricingNotes": "Soniox async speech-to-text is estimated at approximately $0.10/hour from its token-based public pricing, with speaker diarization, language identification, and smart formatting included. The reused timing estimate is provisional until Phase 5 benchmarking completes. Free plan usage, subscriptions, enterprise pricing, taxes, and provider credits are ignored.",
         "costPerHourUSD": 0.1,
         "costPerHourCents": 10,
         "limits": {
@@ -19,7 +19,7 @@
           "notes": "Soniox's Files API documents a maximum uploaded file size of 524288000 bytes. Async docs separately cap file duration at 300 minutes. The transcription API also accepts audio_url, but no explicit remote URL size cap is currently published."
         },
         "estimation": {
-          "costMultiplier": 0.9902,
+          "costMultiplier": 1,
           "msPerSecond": 139
         }
       }

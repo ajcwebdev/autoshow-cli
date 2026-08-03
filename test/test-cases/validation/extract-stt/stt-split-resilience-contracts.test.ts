@@ -8,6 +8,7 @@ import {
   shouldRetrySplitTranscriptionAfterError
 } from '~/cli/commands/process-steps/step-2-extract/step-2-stt/orchestrator'
 import { planAudioSplitSegments } from '~/cli/commands/process-steps/step-2-extract/step-2-stt/stt-utils/audio-splitter'
+import { resolveSplitSegmentOutputDir } from '~/cli/commands/process-steps/step-2-extract/step-2-stt/run-stt/split-execution'
 import type { SplitPolicyTarget } from '~/types'
 
 const GROQ = {
@@ -17,7 +18,7 @@ const GROQ = {
 
 const GLADIA = {
   service: 'gladia',
-  model: 'default'
+  model: 'solaria-1'
 } satisfies SplitPolicyTarget
 
 const expectValidSegmentPlan = (segments: ReturnType<typeof planAudioSplitSegments>): void => {
@@ -33,6 +34,11 @@ const expectValidSegmentPlan = (segments: ReturnType<typeof planAudioSplitSegmen
 }
 
 describe('STT split resilience contracts', () => {
+  test('split segments isolate provider checkpoints by segment identity', () => {
+    expect(resolveSplitSegmentOutputDir('/tmp/pass_001', 1)).toBe('/tmp/pass_001/segment-runs/segment_001')
+    expect(resolveSplitSegmentOutputDir('/tmp/pass_001', 12)).toBe('/tmp/pass_001/segment-runs/segment_012')
+  })
+
   test('audio split planning does not create a tail segment on exact duration boundaries', () => {
     const segments = planAudioSplitSegments(9000, 1800)
 
@@ -90,7 +96,7 @@ describe('STT split resilience contracts', () => {
     const error = new Error('AssemblyAI transcription failed (413): {"error":"file too large"}')
     const target = {
       service: 'assemblyai',
-      model: 'universal-3-pro'
+      model: 'universal-3-5-pro'
     } satisfies SplitPolicyTarget
 
     expect(classifySttSplitLimitError(target, error)).toEqual({ reason: 'attachment_cap' })

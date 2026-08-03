@@ -43,7 +43,7 @@ bun autoshow extract https://ajc.pics/autoshow/examples/1-audio.mp3 --provider h
 bun autoshow extract https://ajc.pics/autoshow/examples/1-audio.mp3 --provider deepgram=nova-3
 
 # extract with AssemblyAI STT
-bun autoshow extract https://ajc.pics/autoshow/examples/1-audio.mp3 --provider assemblyai=universal-3-pro
+bun autoshow extract https://ajc.pics/autoshow/examples/1-audio.mp3 --provider assemblyai=universal-3-5-pro
 
 # document OCR/extraction only
 bun autoshow extract input/examples/document/1-document.pdf

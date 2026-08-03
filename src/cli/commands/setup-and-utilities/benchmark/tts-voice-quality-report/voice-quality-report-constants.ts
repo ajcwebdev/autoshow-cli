@@ -18,5 +18,5 @@ export const HUMAN_SPEECH_WEIGHTS = {
 } as const;
 
 export const PAID_STT_ENGINES = [
-  { key: "assemblyai/universal-3-pro", service: "assemblyai", model: "universal-3-pro" },
+  { key: "assemblyai/universal-2", service: "assemblyai", model: "universal-2" },
 ] as const;

@@ -15,6 +15,7 @@ import {
   parseStoredRequestedTargets
 } from '~/cli/commands/process-steps/step-2-extract/step-2-stt/stt-batch/stt-run-state'
 import { collectSttTargets, formatSttTargetLabel } from '~/cli/commands/process-steps/step-2-extract/step-2-stt/stt-targets'
+import { getStep2ActiveModelsForService } from '~/cli/commands/process-steps/step-2-extract/step-2-shared/provider-registry'
 import { readSttRunManifestEntry, writeSttBatchManifest, writeSttRunManifest } from '~/cli/commands/process-steps/step-2-extract/step-2-stt/stt-manifest'
 import { YOUTUBE_CAPTIONS_SERVICE } from '~/cli/commands/process-steps/step-2-extract/step-2-stt/youtube-captions'
 import { resolveAdditiveResumeProviderSelection } from '../resume-provider-selection'
@@ -24,6 +25,47 @@ import { buildSttEstimatesForTargets } from '~/utils/pricing/aggregate-pricing/s
 
 const isRecord = (value: unknown): value is Record<string, unknown> =>
   typeof value === 'object' && value !== null && !Array.isArray(value)
+
+const RETIRED_STT_MODEL_REPLACEMENTS: Record<string, {
+  selectorProvider: string
+  models: readonly string[]
+}> = {
+  'assemblyai:universal-3-pro': {
+    selectorProvider: 'assemblyai',
+    models: ['universal-3-5-pro', 'universal-2']
+  },
+  'gemini-stt:gemini-3-flash-preview': {
+    selectorProvider: 'gemini',
+    models: ['gemini-3.6-flash']
+  },
+  'gladia:default': {
+    selectorProvider: 'gladia',
+    models: ['solaria-1', 'solaria-3']
+  },
+  'soniox:stt-async-v4': {
+    selectorProvider: 'soniox',
+    models: ['stt-async-v5']
+  }
+}
+
+const assertStoredMissingSttTargetsAreActive = (
+  targets: readonly SttTarget[]
+): void => {
+  for (const target of targets) {
+    const activeModels = getStep2ActiveModelsForService('stt', target.service)
+    if (!activeModels || activeModels.includes(target.model)) {
+      continue
+    }
+
+    const replacement = RETIRED_STT_MODEL_REPLACEMENTS[`${target.service}:${target.model}`]
+    const replacementHint = replacement && replacement.models.length > 0
+      ? ` Start a new target with ${replacement.models.map((model) => `--provider ${replacement.selectorProvider}=${model}`).join(' or ')}.`
+      : ` Start a new target with an active ${target.service} model.`
+    throw CLIUsageError(
+      `Stored STT target ${formatSttTargetLabel(target)} is incomplete, but that model is no longer in the active registry. AutoShow will not substitute a different model because that would change the stored target identity.${replacementHint}`
+    )
+  }
+}
 
 const toSourceFromStep1 = (entry: Record<string, unknown>): { url?: string, filePath?: string } => {
   const step1 = isRecord(entry['step1']) ? entry['step1'] : undefined
@@ -98,6 +140,7 @@ const parseResumeEntry = async (
   }
 
   const storedMissingTargets = buildMissingTargetsFromEntry(entry, requestedBaseTargets)
+  assertStoredMissingSttTargetsAreActive(storedMissingTargets)
   const resolvedTargets = resolveAdditiveResumeProviderSelection({
     storedProviders: requestedBaseTargets,
     runnableStoredProviders: storedMissingTargets,

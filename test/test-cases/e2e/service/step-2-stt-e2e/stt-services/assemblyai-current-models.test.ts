@@ -1,9 +1,8 @@
 import { defineSTTServiceTest } from '../../../../../test-utils/define-stt-service-test'
-import { assemblyaiUniversal3Pro } from './cases'
+import { assemblyaiTranscription } from './cases'
 
 defineSTTServiceTest({
-  ...assemblyaiUniversal3Pro,
-  models: ['universal-3-pro'],
+  ...assemblyaiTranscription,
+  models: ['universal-3-5-pro', 'universal-2'],
   sttService: 'assemblyai',
 })
-

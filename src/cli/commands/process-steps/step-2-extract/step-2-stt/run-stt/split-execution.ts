@@ -20,6 +20,11 @@ import { classifySttSplitLimitError, resolveAdaptiveSplitSegmentDurationMinutes 
 
 const MAX_ADAPTIVE_SPLIT_PASSES = 4
 
+export const resolveSplitSegmentOutputDir = (
+  segmentOutputDir: string,
+  segmentNumber: number
+): string => `${segmentOutputDir}/segment-runs/segment_${String(segmentNumber).padStart(3, '0')}`
+
 const persistTranscriptionStructuredArtifact = async (
   outputDir: string,
   result: TranscriptionResult,
@@ -155,12 +160,14 @@ const runSplitTranscription = async (
 
       const segmentDescriptor = segmentDescriptors[currentIndex]!
       const offsetMinutes = segmentDescriptor.startSeconds / 60
+      const segmentRunOutputDir = resolveSplitSegmentOutputDir(segmentOutputDir, segmentDescriptor.segmentNumber)
 
       try {
+        await mkdir(segmentRunOutputDir, { recursive: true })
         const data = await dispatchStt(
           target,
           segmentDescriptor.path,
-          segmentOutputDir,
+          segmentRunOutputDir,
           offsetMinutes,
           {
             ...options,

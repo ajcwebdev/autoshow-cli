@@ -145,7 +145,7 @@ function parseArgs(argv: string[]): ParsedArgs {
   const flags = new Map<string, string | true>();
   for (let index = 0; index < rest.length; index += 1) {
     const arg = rest[index];
-    if (arg === "--skip-ffprobe") {
+    if (arg === "--skip-ffprobe" || arg === "--preserve-existing") {
       flags.set(arg, true);
       continue;
     }
@@ -224,6 +224,7 @@ function reportArgs(category: ConsensusCategory, runDir: string, flags: Map<stri
   const previousReport = flagString(flags, "--previous-report");
   const markdownOut = flagString(flags, "--markdown-out");
   const jsonOut = flagString(flags, "--json-out");
+  const preserveExisting = flags.get("--preserve-existing") === true;
 
   if (category === "tts") {
     if (!inputText) {
@@ -257,6 +258,12 @@ function reportArgs(category: ConsensusCategory, runDir: string, flags: Map<stri
   }
   if (jsonOut) {
     args.push("--json-out", resolve(jsonOut));
+  }
+  if (preserveExisting) {
+    if (category !== "stt") {
+      throw new Error("--preserve-existing is only supported for stt build-report");
+    }
+    args.push("--preserve-existing");
   }
 
   return args;

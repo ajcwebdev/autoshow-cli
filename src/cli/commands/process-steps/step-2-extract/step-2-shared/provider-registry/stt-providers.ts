@@ -274,7 +274,7 @@ export const STEP2_STT_PROVIDER_REGISTRY = [
     runtimeModelKey: 'togetherSttModel',
     supportedModels: SUPPORTED_TOGETHER_STT_MODELS,
     validateModel: validateTogetherSttModel,
-    description: buildModelDescription('Together Whisper STT model (API, billed)', SUPPORTED_TOGETHER_STT_MODELS)
+    description: buildModelDescription('Together batch STT model (API, billed)', SUPPORTED_TOGETHER_STT_MODELS)
   }),
   modelProvider({
     step: 'stt',

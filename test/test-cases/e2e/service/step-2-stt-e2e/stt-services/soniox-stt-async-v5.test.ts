@@ -1,9 +1,8 @@
 import { defineSTTServiceTest } from '../../../../../test-utils/define-stt-service-test'
-import { sonioxAsyncV4 } from './cases'
+import { sonioxTranscription } from './cases'
 
 defineSTTServiceTest({
-  ...sonioxAsyncV4,
-  models: ['stt-async-v4'],
+  ...sonioxTranscription,
+  models: ['stt-async-v5'],
   sttService: 'soniox',
 })
-

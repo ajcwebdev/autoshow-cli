@@ -326,6 +326,12 @@ describe('option resolution contracts', () => {
       const togetherDefault = resolveCheapestModelForFlag('together')
       const cerebrasDefault = resolveCheapestModelForFlag('cerebras')
       const deepgramDefault = resolveCheapestModelForFlag('deepgram-stt')
+      const assemblyaiDefault = resolveCheapestModelForFlag('assemblyai-stt')
+      const gladiaDefault = resolveCheapestModelForFlag('gladia-stt')
+      const geminiSttDefault = resolveCheapestModelForFlag('gemini-stt')
+      const sonioxDefault = resolveCheapestModelForFlag('soniox-stt')
+      const speechmaticsDefault = resolveCheapestModelForFlag('speechmatics-stt')
+      const togetherSttDefault = resolveCheapestModelForFlag('together-stt')
       const scrapeCreatorsDefault = resolveCheapestModelForFlag('scrapecreators-stt')
       const openaiOcrDefault = resolveCheapestModelForFlag('openai-ocr')
       const grokOcrDefault = resolveCheapestModelForFlag('grok-ocr')
@@ -342,6 +348,11 @@ describe('option resolution contracts', () => {
         together: true,
         cerebras: true,
         'deepgram-stt': true,
+        'assemblyai-stt': true,
+        'gladia-stt': true,
+        'gemini-stt': true,
+        'soniox-stt': true,
+        'speechmatics-stt': true,
         'scrapecreators-stt': true,
         'openai-ocr': true,
         'grok-ocr': true,
@@ -359,6 +370,12 @@ describe('option resolution contracts', () => {
       expect(togetherDefault).toBe('glm-5.1')
       expect(cerebrasDefault).toBe('gpt-oss-120b')
       expect(deepgramDefault).toBeDefined()
+      expect(assemblyaiDefault).toBe('universal-2')
+      expect(gladiaDefault).toBe('solaria-1')
+      expect(geminiSttDefault).toBe('gemini-3.6-flash')
+      expect(sonioxDefault).toBe('stt-async-v5')
+      expect(speechmaticsDefault).toBe('melia-1')
+      expect(togetherSttDefault).toBe('nvidia/parakeet-tdt-0.6b-v3')
       expect(scrapeCreatorsDefault).toBe('youtube-transcript')
       expect(openaiOcrDefault).toBe('gpt-5.4-nano')
       expect(grokOcrDefault).toBe('grok-4.3')
@@ -374,6 +391,11 @@ describe('option resolution contracts', () => {
       expect(opts.togetherModel).toBe(togetherDefault)
       expect(opts.cerebrasModel).toBe(cerebrasDefault)
       expect(opts.deepgramSttModel).toBe(deepgramDefault)
+      expect(opts.assemblyaiSttModel).toBe(assemblyaiDefault)
+      expect(opts.gladiaSttModel).toBe(gladiaDefault)
+      expect(opts.geminiSttModel).toBe(geminiSttDefault)
+      expect(opts.sonioxSttModel).toBe(sonioxDefault)
+      expect(opts.speechmaticsSttModel).toBe(speechmaticsDefault)
       expect(opts.scrapecreatorsSttModel).toBe(scrapeCreatorsDefault)
       expect(opts.openaiOcrModel).toBe(openaiOcrDefault)
       expect(opts.grokOcrModel).toBe(grokOcrDefault)
@@ -435,8 +457,15 @@ describe('option resolution contracts', () => {
       const localOcrOpts = buildOptsFromFlags(false, { 'all-local-ocr': true })
 
       expect(expansions['deepgram-stt']?.shortcut).toBe('all-stt')
+      expect(expansions['deepgram-stt']?.supported).toEqual(['nova-3'])
       expect(expansions['grok-stt']?.shortcut).toBe('all-stt')
       expect(expansions['mistral-stt']?.shortcut).toBe('all-stt')
+      expect(expansions['assemblyai-stt']?.supported).toEqual(['universal-3-5-pro', 'universal-2'])
+      expect(expansions['gladia-stt']?.supported).toEqual(['solaria-1', 'solaria-3'])
+      expect(expansions['gemini-stt']?.supported).toEqual(['gemini-3.6-flash'])
+      expect(expansions['soniox-stt']?.supported).toEqual(['stt-async-v5'])
+      expect(expansions['speechmatics-stt']?.supported).toEqual(['enhanced', 'melia-1'])
+      expect(expansions['together-stt']?.supported).toEqual(['openai/whisper-large-v3', 'nvidia/parakeet-tdt-0.6b-v3'])
       expect(expansions['whisper-stt']?.shortcut).toBe('all-local-stt')
       expect(expansions['scrapecreators-stt']).toBeUndefined()
       expect(expansions['cloudflare-stt']).toBeUndefined()

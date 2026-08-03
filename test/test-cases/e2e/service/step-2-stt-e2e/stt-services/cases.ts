@@ -1,4 +1,4 @@
-export const assemblyaiUniversal3Pro = {
+export const assemblyaiTranscription = {
   provider: 'assemblyai',
   sttService: 'assemblyai',
   envVarKey: 'ASSEMBLYAI_API_KEY',
@@ -19,14 +19,14 @@ export const deepinfraWhisper = {
   envVarDescription: 'DeepInfra transcription',
 } as const
 
-export const togetherWhisperLargeV3 = {
+export const togetherTranscription = {
   provider: 'together',
   sttService: 'together',
   envVarKey: 'TOGETHER_API_KEY',
   envVarDescription: 'Together transcription',
 } as const
 
-export const gladiaDefault = {
+export const gladiaTranscription = {
   provider: 'gladia',
   sttService: 'gladia',
   envVarKey: 'GLADIA_API_KEY',
@@ -63,7 +63,7 @@ export const revTranscription = {
   inputTitle: '0-audio-short',
 } as const
 
-export const sonioxAsyncV4 = {
+export const sonioxTranscription = {
   provider: 'soniox',
   sttService: 'soniox',
   envVarKey: 'SONIOX_API_KEY',
