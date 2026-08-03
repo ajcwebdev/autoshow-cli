@@ -20,7 +20,7 @@ export const runConsensusBuildReport = async (
 ): Promise<{ stdout: string, stderr: string }> => {
   const proc = Bun.spawn([
     process.execPath,
-    '.claude/skills/consensus/scripts/run.ts',
+    '.codex/skills/consensus/scripts/run.ts',
     category,
     'build-report',
     runDir,

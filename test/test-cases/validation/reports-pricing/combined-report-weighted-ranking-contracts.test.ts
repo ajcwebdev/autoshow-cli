@@ -16,7 +16,7 @@ import {
   qualityCostTercileSizes,
   type ProviderSubscores,
   type WeightedRankingEntry
-} from '../../../../.claude/skills/consensus/scripts/shared/combined_report_lib'
+} from '../../../../.codex/skills/consensus/scripts/shared/combined_report_lib'
 import type { ArtifactReport } from '~/types'
 
 const provider = (
