@@ -1,11 +1,11 @@
 import { mkdir } from 'node:fs/promises'
-import { dirname, join } from 'node:path'
+import { join } from 'node:path'
 import * as v from 'valibot'
 import type { ProcessSceneOptions, ProcessSceneResult } from '~/types'
 import { PanelBundleDataSchema, ScenePromptDataSchema, StructuredScriptDataSchema, validateSceneCharacters, validateStructuredScriptCharacters } from '../../schemas/schemas'
 import { parseJsonFile } from '../../comic-utils/json-prompt-utils'
 import { comicLog, err } from '../../comic-utils/comic-logger'
-import { getStructuredScriptPath } from '../../comic-utils/project-paths'
+import { getSceneWorkspaceDirectoryForPanelPrompt, getStructuredScriptPath } from '../../comic-utils/project-paths'
 import { validateSceneRecapMontageExpansion } from '../../comic-utils/recap-montage-utils'
 import { getPanelPromptTemplate, loadPromptsConfig, validatePanelNumberSequence } from '../../comic-utils/scene-utils'
 import { mapWithConcurrency } from '../../comic-utils/run-with-concurrency'
@@ -35,11 +35,12 @@ export const processScene = async ({ sceneSlug, sceneJsonPath, outputDir, concur
 
     // Validate every required live asset before writing a single panel bundle.
     const visibleKeys = sceneData.panels.flatMap(panel => panel.characterKeys.map(key => catalog.requireKey(key)))
-    const manifest = await createCharacterReferenceSnapshot(dirname(outputDir), visibleKeys, catalog)
+    const workspaceDirectory = getSceneWorkspaceDirectoryForPanelPrompt(join(outputDir, getPanelDirectoryName(1)))
+    const manifest = await createCharacterReferenceSnapshot(workspaceDirectory, visibleKeys, catalog)
     const locationKeys = Array.from(new Set(sceneData.panels.map(panel => panel.locationKey)))
-    const locationManifest = await createLocationReferenceSnapshots(dirname(outputDir), locationKeys)
+    const locationManifest = await createLocationReferenceSnapshots(workspaceDirectory, locationKeys)
     const locationSnapshotByKey = new Map(locationManifest.snapshots.map(snapshot => [snapshot.locationKey, snapshot]))
-    const designManifest = await createDesignReferenceSnapshot(dirname(outputDir), sceneData.panels.flatMap(panel => panel.designReferences ?? []))
+    const designManifest = await createDesignReferenceSnapshot(workspaceDirectory, sceneData.panels.flatMap(panel => panel.designReferences ?? []))
     const prompts = await loadPromptsConfig()
     const scenePrompts = prompts['Scene Prompts']
     const prefix = scenePrompts.Prefix || ''

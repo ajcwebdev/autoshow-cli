@@ -36,16 +36,16 @@ const createSceneFixture = async (sceneSlug: string): Promise<{ runDirectory: st
   const runDirectory = await mkdtemp(join(tmpdir(), 'autoshow-comic-location-'))
   temporaryDirectories.push(runDirectory)
   beginSceneRun(sceneSlug, { outputDir: runDirectory })
-  const characterRoot = join(runDirectory, 'character-references', 'character-snapshot', 'hero')
+  const characterRoot = join(runDirectory, 'assets', 'character-references', 'character-snapshot', 'hero')
   await mkdir(characterRoot, { recursive: true })
   await Bun.write(join(characterRoot, 'reference.png'), tinyPng)
-  await Bun.write(join(runDirectory, 'character-references.json'), JSON.stringify({ schemaVersion: 2, snapshotId: 'character-snapshot', catalogHash: 'test', createdAt: '2026-01-01T00:00:00.000Z', characters: [{ key: 'hero', name: 'Hero', description: 'Test hero', sourceSketchVersion: 'v1', assets: [{ role: 'sketch-sheet', path: 'character-references/character-snapshot/hero/reference.png', sha256: sha }, { role: 'source-image', path: 'character-references/character-snapshot/hero/reference.png', sha256: sha }] }] }))
-  const locationSheet = join(runDirectory, 'location-references', 'location-snapshot', 'cargo-bay.png')
+  await Bun.write(join(runDirectory, 'assets', 'character-references.json'), JSON.stringify({ schemaVersion: 2, snapshotId: 'character-snapshot', catalogHash: 'test', createdAt: '2026-01-01T00:00:00.000Z', characters: [{ key: 'hero', name: 'Hero', description: 'Test hero', sourceSketchVersion: 'v1', assets: [{ role: 'sketch-sheet', path: 'assets/character-references/character-snapshot/hero/reference.png', sha256: sha }, { role: 'source-image', path: 'assets/character-references/character-snapshot/hero/reference.png', sha256: sha }] }] }))
+  const locationSheet = join(runDirectory, 'assets', 'location-references', 'location-snapshot', 'cargo-bay.png')
   await mkdir(dirname(locationSheet), { recursive: true })
   await Bun.write(locationSheet, tinyPng)
-  await Bun.write(join(runDirectory, 'location-reference.json'), JSON.stringify({ schemaVersion: 1, snapshotId: 'location-snapshot', locationKey: 'cargo-bay', specification: 'A loading door stays left of a fixed control booth; camera angles and crops may vary.', sourceScripts: ['scripts/02-script/01.md'], sourceGenerationId: 'v1', sheet: { path: 'location-references/location-snapshot/cargo-bay.png', sha256: sha } }))
+  await Bun.write(join(runDirectory, 'assets', 'location-reference.json'), JSON.stringify({ schemaVersion: 1, snapshotId: 'location-snapshot', locationKey: 'cargo-bay', specification: 'A loading door stays left of a fixed control booth; camera angles and crops may vary.', sourceScripts: ['scripts/02-script/01.md'], sourceGenerationId: 'v1', sheet: { path: 'assets/location-references/location-snapshot/cargo-bay.png', sha256: sha } }))
   for (const panelNumber of [1, 2]) {
-    const directory = join(runDirectory, 'panel-prompts', `panel-${String(panelNumber).padStart(2, '0')}`)
+    const directory = join(runDirectory, 'metadata', 'panel-prompts', `panel-${String(panelNumber).padStart(2, '0')}`)
     await mkdir(directory, { recursive: true })
     await Bun.write(join(directory, 'prompt.md'), `Generate panel independently.\n\n\`\`\`json\n${JSON.stringify(panelBundle(panelNumber), null, 2)}\n\`\`\`\n`)
   }
@@ -56,10 +56,10 @@ const createMultiLocationFixture = async (sceneSlug: string): Promise<{ runDirec
   const runDirectory = await mkdtemp(join(tmpdir(), 'autoshow-comic-multi-location-'))
   temporaryDirectories.push(runDirectory)
   beginSceneRun(sceneSlug, { outputDir: runDirectory })
-  const characterRoot = join(runDirectory, 'character-references', 'character-snapshot', 'hero')
+  const characterRoot = join(runDirectory, 'assets', 'character-references', 'character-snapshot', 'hero')
   await mkdir(characterRoot, { recursive: true })
   await Bun.write(join(characterRoot, 'reference.png'), tinyPng)
-  await Bun.write(join(runDirectory, 'character-references.json'), JSON.stringify({ schemaVersion: 2, snapshotId: 'character-snapshot', catalogHash: 'test', createdAt: '2026-01-01T00:00:00.000Z', characters: [{ key: 'hero', name: 'Hero', description: 'Test hero', sourceSketchVersion: 'v1', assets: [{ role: 'sketch-sheet', path: 'character-references/character-snapshot/hero/reference.png', sha256: sha }, { role: 'source-image', path: 'character-references/character-snapshot/hero/reference.png', sha256: sha }] }] }))
+  await Bun.write(join(runDirectory, 'assets', 'character-references.json'), JSON.stringify({ schemaVersion: 2, snapshotId: 'character-snapshot', catalogHash: 'test', createdAt: '2026-01-01T00:00:00.000Z', characters: [{ key: 'hero', name: 'Hero', description: 'Test hero', sourceSketchVersion: 'v1', assets: [{ role: 'sketch-sheet', path: 'assets/character-references/character-snapshot/hero/reference.png', sha256: sha }, { role: 'source-image', path: 'assets/character-references/character-snapshot/hero/reference.png', sha256: sha }] }] }))
   const locations = [
     { key: 'quarters', snapshotId: 'location-quarters' },
     { key: 'hallway', snapshotId: 'location-hallway' },
@@ -67,16 +67,16 @@ const createMultiLocationFixture = async (sceneSlug: string): Promise<{ runDirec
   const locationSheets: string[] = []
   const snapshots = []
   for (const location of locations) {
-    const path = join(runDirectory, 'location-references', location.snapshotId, `${location.key}.png`)
+    const path = join(runDirectory, 'assets', 'location-references', location.snapshotId, `${location.key}.png`)
     await mkdir(dirname(path), { recursive: true })
     await Bun.write(path, tinyPng)
     locationSheets.push(path)
-    snapshots.push({ schemaVersion: 1, snapshotId: location.snapshotId, locationKey: location.key, specification: location.key, sourceScripts: [], sourceGenerationId: 'v1', sheet: { path: `location-references/${location.snapshotId}/${location.key}.png`, sha256: sha } })
+    snapshots.push({ schemaVersion: 1, snapshotId: location.snapshotId, locationKey: location.key, specification: location.key, sourceScripts: [], sourceGenerationId: 'v1', sheet: { path: `assets/location-references/${location.snapshotId}/${location.key}.png`, sha256: sha } })
   }
-  await Bun.write(join(runDirectory, 'location-references.json'), JSON.stringify({ schemaVersion: 2, snapshots }))
+  await Bun.write(join(runDirectory, 'assets', 'location-references.json'), JSON.stringify({ schemaVersion: 2, snapshots }))
   for (const [index, location] of locations.entries()) {
     const panelNumber = index + 1
-    const directory = join(runDirectory, 'panel-prompts', `panel-0${panelNumber}`)
+    const directory = join(runDirectory, 'metadata', 'panel-prompts', `panel-0${panelNumber}`)
     await mkdir(directory, { recursive: true })
     const locationData = { key: location.key, raw: location.key }
     const bundle: PanelBundleData = {

@@ -87,7 +87,7 @@ const estimateSceneDraftPrice = async (options: DraftScenesCommandOptions): Prom
   const tokens = estimateTokens(content)
 
   l('  Prompt files:')
-  l(`    ${sceneSlug}/draft-prompt.md`.padEnd(50, ' ') + `  ~${tokens.toLocaleString()} tokens`)
+  l(`    ${sceneSlug}/metadata/draft-prompt.md`.padEnd(50, ' ') + `  ~${tokens.toLocaleString()} tokens`)
   l('')
 
   const totalInputTokens = tokens

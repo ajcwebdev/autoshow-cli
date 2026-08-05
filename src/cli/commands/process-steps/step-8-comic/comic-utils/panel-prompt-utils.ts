@@ -1,7 +1,7 @@
 import { createHash } from 'node:crypto'
 import type { Dirent } from 'node:fs'
 import { existsSync, readFileSync } from 'node:fs'
-import { basename, dirname, extname, join, resolve } from 'node:path'
+import { basename, extname, join, resolve } from 'node:path'
 import * as v from 'valibot'
 import type { PanelBundleData, ImageGenerationModel, PanelPrimaryReferenceInput, PrimaryCharacterReferenceState, ResolvedReferenceImages } from '~/types'
 import { ReadablePanelBundleDataSchema } from '../schemas/schemas'
@@ -13,6 +13,7 @@ export { resolveDesignReferencesAcrossPanels } from './design-reference'
 import { trimOptionalContinuityReferences } from './reference-capabilities'
 import { l } from './comic-logger'
 import { InfraError, ValidationError } from '~/utils/error-handler'
+import { getSceneWorkspaceDirectoryForPanelPrompt } from './project-paths'
 
 export const PANEL_DIRECTORY_PATTERN = /^panel-(\d+)$/
 const PRIOR_PANEL_REFERENCE_PATTERN = /^panel-(\d+)(?:--(.+))?\.png$/
@@ -44,7 +45,6 @@ export const getPromptBundleFilename = (panelDirectory: string, entries: Dirent[
   return files[0]
 }
 
-const runDirectoryForPanel = (panelDirectory: string): string => dirname(dirname(panelDirectory))
 const loadVerifiedManifestSync = (runDirectory: string, snapshotId: string) => {
   const path = getCharacterReferenceManifestPath(runDirectory)
   if (!existsSync(path)) throw InfraError(`Missing character-references.json. Rebuild panel prompts.`, { stage: 'comic:reference-snapshot' })
@@ -71,7 +71,7 @@ const orderedKeys = (panels: PanelPrimaryReferenceInput[]): string[] => {
 export const resolvePrimaryCharacterReferencesAcrossPanels = (panels: PanelPrimaryReferenceInput[], options: { composeDerived?: boolean } = {}): PrimaryCharacterReferenceState => {
   if (panels.length === 0) return { primaryCharacterRefs: [], sketchCharacterRefs: [], canonicalCharacterRefs: [], missingPrimaryCharacterRefs: [] }
   const snapshotIds = new Set(panels.map(panel => panel.bundleData.snapshotId))
-  const runDirectories = new Set(panels.map(panel => runDirectoryForPanel(panel.panelDirectory)))
+  const runDirectories = new Set(panels.map(panel => getSceneWorkspaceDirectoryForPanelPrompt(panel.panelDirectory)))
   if (snapshotIds.size !== 1 || runDirectories.size !== 1) throw ValidationError('Mixed snapshot IDs or run directories are not allowed in one image request', { stage: 'comic:reference-snapshot' })
   const runDirectory = [...runDirectories][0]!
   const snapshotId = [...snapshotIds][0]!
@@ -100,7 +100,7 @@ export type ResolvedLocationReference = {
 
 export const resolveLocationReferencesAcrossPanels = (panels: PanelPrimaryReferenceInput[]): ResolvedLocationReference[] => {
   if (panels.length === 0) throw ValidationError('A location reference requires at least one panel', { stage: 'comic:location-reference' })
-  const runDirectories = new Set(panels.map(panel => runDirectoryForPanel(panel.panelDirectory)))
+  const runDirectories = new Set(panels.map(panel => getSceneWorkspaceDirectoryForPanelPrompt(panel.panelDirectory)))
   if (panels.some(panel => panel.bundleData.schemaVersion === 2)) throw ValidationError('Legacy v2 panel bundles cannot enter image generation. Run draft-scenes explicitly to rebuild reviewed artifacts.', { stage: 'comic:location-reference' })
   if (runDirectories.size !== 1) throw ValidationError('Mixed run directories are not allowed in one image request', { stage: 'comic:location-reference' })
   const runDirectory = [...runDirectories][0]!

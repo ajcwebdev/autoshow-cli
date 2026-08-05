@@ -255,6 +255,7 @@ describe('comic character handling flat-reference contracts', () => {
     }] }))
     const runDirectory = join(outputRoot, 'run')
     const manifest = await createCharacterReferenceSnapshot(runDirectory, [key, key], catalog)
+    expect(manifest.characters[0]?.assets.every(asset => asset.path.startsWith('assets/character-references/'))).toBe(true)
     expect(manifest.characters).toHaveLength(1)
     expect(manifest.characters[0]?.assets.map(asset => asset.role)).toEqual(['sketch-sheet', 'source-image'])
     const references = compileCharacterReferences(runDirectory, manifest, [key])
@@ -293,7 +294,7 @@ describe('comic character handling flat-reference contracts', () => {
     const references = compileCharacterReferences(runDirectory, manifest, [key])
     expect(references).toEqual([join(runDirectory, manifest.characters[0]!.assets[0]!.path)])
     expect(references[0]).toEndWith('/hero/reference.webp')
-    expect(await Bun.file(join(runDirectory, 'character-references', manifest.snapshotId, 'identity-cards', '01-hero-identity-card.png')).exists()).toBe(false)
+    expect(await Bun.file(join(runDirectory, 'assets', 'character-references', manifest.snapshotId, 'identity-cards', '01-hero-identity-card.png')).exists()).toBe(false)
   })
 
   test('registry capabilities never trim required references and trim optional continuity deterministically', () => {

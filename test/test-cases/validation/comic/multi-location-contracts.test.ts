@@ -111,6 +111,7 @@ describe('multi-location comic contracts', () => {
     await Bun.write(join(locations, 'location-sketches.json'), JSON.stringify({ schemaVersion: 1, sketches }))
     const run = join(root, 'run')
     const manifest = await createLocationReferenceSnapshots(run, ['quarters', 'hallway', 'quarters'])
+    expect(manifest.snapshots.every(snapshot => snapshot.sheet.path.startsWith('assets/location-references/'))).toBe(true)
     expect(manifest.snapshots.map(snapshot => snapshot.locationKey)).toEqual(['quarters', 'hallway'])
     expect(await loadAndVerifyLocationReferenceSnapshots(run)).toHaveLength(2)
     const firstAsset = resolve(run, manifest.snapshots[0]!.sheet.path)
@@ -118,11 +119,11 @@ describe('multi-location comic contracts', () => {
     await expect(loadAndVerifyLocationReferenceSnapshots(run)).rejects.toThrow(/missing or modified/)
 
     const legacyRun = join(root, 'legacy-run')
-    const legacyAsset = join(legacyRun, 'location.png')
+    const legacyAsset = join(legacyRun, 'assets', 'location.png')
     await mkdir(dirname(legacyAsset), { recursive: true })
     await Bun.write(legacyAsset, 'legacy')
     const legacyHash = createHash('sha256').update('legacy').digest('hex')
-    await Bun.write(join(legacyRun, 'location-reference.json'), JSON.stringify({ schemaVersion: 1, snapshotId: 'legacy', locationKey: 'quarters', specification: 'Quarters.', sourceScripts: [], sourceGenerationId: 'old', sheet: { path: 'location.png', sha256: legacyHash } }))
+    await Bun.write(join(legacyRun, 'assets', 'location-reference.json'), JSON.stringify({ schemaVersion: 1, snapshotId: 'legacy', locationKey: 'quarters', specification: 'Quarters.', sourceScripts: [], sourceGenerationId: 'old', sheet: { path: 'assets/location.png', sha256: legacyHash } }))
     expect((await loadAndVerifyLocationReferenceSnapshots(legacyRun))[0]?.snapshotId).toBe('legacy')
   })
 

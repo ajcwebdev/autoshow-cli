@@ -6,6 +6,7 @@ import type { CharacterCatalogService, CharacterKey } from '~/types'
 import { checksumFile, requireCurrentCharacterSketch } from '../comic-commands/process-scenes/character-utils'
 import { InfraError, ValidationError } from '~/utils/error-handler'
 import { resolveCharacterIdentityReferences } from './character-identity-card'
+import { getCharacterReferencesDirectory, getSceneAssetsDirectory } from './project-paths'
 
 const SnapshotAssetSchema = v.strictObject({
   role: v.picklist(['sketch-sheet', 'source-image']),
@@ -20,7 +21,7 @@ export const CharacterReferenceManifestSchema = v.strictObject({
 })
 export type CharacterReferenceManifest = v.InferOutput<typeof CharacterReferenceManifestSchema>
 
-export const getCharacterReferenceManifestPath = (runDirectory: string): string => join(runDirectory, 'character-references.json')
+export const getCharacterReferenceManifestPath = (runDirectory: string): string => join(getSceneAssetsDirectory(runDirectory), 'character-references.json')
 
 const atomicWriteJson = async (path: string, value: unknown): Promise<void> => {
   const temp = `${path}.tmp-${randomUUID()}`
@@ -51,7 +52,7 @@ export const createCharacterReferenceSnapshot = async (
   const prepared = preparedResults.flatMap(result => result.status === 'fulfilled' ? [result.value] : [])
 
   const snapshotId = `${Date.now()}-${createHash('sha256').update(`${catalog.hash}:${uniqueKeys.join(',')}:${randomUUID()}`).digest('hex').slice(0, 12)}`
-  const snapshotRoot = join(runDirectory, 'character-references', snapshotId)
+  const snapshotRoot = join(getCharacterReferencesDirectory(runDirectory), snapshotId)
   const characters: CharacterReferenceManifest['characters'] = []
 
   for (const { character, registration } of prepared) {

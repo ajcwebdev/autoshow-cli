@@ -5,6 +5,7 @@ import { dirname, extname, join, relative, resolve, sep } from 'node:path'
 import * as v from 'valibot'
 import type { PanelPrimaryReferenceInput } from '~/types'
 import { InfraError, ValidationError } from '~/utils/error-handler'
+import { getDesignReferencesDirectory, getSceneAssetsDirectory, getSceneWorkspaceDirectoryForPanelPrompt } from './project-paths'
 
 const SHA256_PATTERN = /^[a-f0-9]{64}$/
 const DesignReferenceSnapshotItemSchema = v.strictObject({ key: v.string(), usage: v.string(), sourcePath: v.string(), path: v.string(), sha256: v.string() })
@@ -12,7 +13,7 @@ export const DesignReferenceSnapshotManifestSchema = v.strictObject({ schemaVers
 export type DesignReferenceSnapshotManifest = v.InferOutput<typeof DesignReferenceSnapshotManifestSchema>
 type SceneDesignReference = { key: string; sourcePath: string; usage: string }
 
-export const getDesignReferenceManifestPath = (runDirectory: string): string => join(runDirectory, 'design-references.json')
+export const getDesignReferenceManifestPath = (runDirectory: string): string => join(getSceneAssetsDirectory(runDirectory), 'design-references.json')
 
 const checksum = async (path: string): Promise<string> => createHash('sha256').update(Buffer.from(await Bun.file(path).arrayBuffer())).digest('hex')
 const atomicWriteJson = async (path: string, value: unknown): Promise<void> => {
@@ -45,7 +46,7 @@ export const createDesignReferenceSnapshot = async (runDirectory: string, refere
   const snapshotId = `${Date.now()}-${createHash('sha256').update(`${[...byKey.keys()].join(',')}:${randomUUID()}`).digest('hex').slice(0, 12)}`
   const designs: DesignReferenceSnapshotManifest['designs'] = []
   for (const { reference, source } of prepared) {
-    const destination = join(runDirectory, 'design-references', snapshotId, `${reference.key}${extname(source).toLowerCase()}`)
+    const destination = join(getDesignReferencesDirectory(runDirectory), snapshotId, `${reference.key}${extname(source).toLowerCase()}`)
     await mkdir(dirname(destination), { recursive: true })
     await copyFile(source, destination)
     designs.push({ key: reference.key, usage: reference.usage, sourcePath: reference.sourcePath, path: relative(runDirectory, destination).replace(/\\/g, '/'), sha256: await checksum(destination) })
@@ -55,13 +56,12 @@ export const createDesignReferenceSnapshot = async (runDirectory: string, refere
   return manifest
 }
 
-const runDirectoryForPanel = (panelDirectory: string): string => dirname(dirname(panelDirectory))
 export type ResolvedDesignReference = { key: string; usage: string; path: string }
 
 export const resolveDesignReferencesAcrossPanels = (panels: PanelPrimaryReferenceInput[]): ResolvedDesignReference[] => {
   const requested = panels.flatMap(input => input.bundleData.panels.flatMap(panel => panel.designReferenceKeys ?? panel.designReferences?.map(reference => reference.key) ?? []))
   if (requested.length === 0) return []
-  const runDirectories = new Set(panels.map(panel => runDirectoryForPanel(panel.panelDirectory)))
+  const runDirectories = new Set(panels.map(panel => getSceneWorkspaceDirectoryForPanelPrompt(panel.panelDirectory)))
   const snapshotIds = new Set(panels.flatMap(input => input.bundleData.panels.flatMap(panel => panel.designReferenceKeys?.length ? [panel.designSnapshotId] : [])))
   if (runDirectories.size !== 1 || snapshotIds.size !== 1 || snapshotIds.has(undefined)) throw ValidationError('Mixed or missing design reference snapshot IDs are not allowed in one image request', { stage: 'comic:design-reference' })
   const runDirectory = [...runDirectories][0]!

@@ -1,5 +1,5 @@
 import { access, readdir } from 'node:fs/promises'
-import { basename, extname, join } from 'node:path'
+import { basename, dirname, extname, join } from 'node:path'
 import type { ResolveComicScriptReferenceOptions } from '~/types'
 import { InfraError, ValidationError } from '~/utils/error-handler'
 import { getSceneRunDirectory } from './scene-run-context'
@@ -16,20 +16,47 @@ const COMIC_SCRIPT_SHORTHAND_PATTERN = /^(\d{2})-(\d{2})$/
 export const getSceneOutputDirectory = (sceneSlug: string): string =>
   getSceneRunDirectory(sceneSlug)
 
+export const getSceneMetadataDirectoryForWorkspace = (sceneDirectory: string): string =>
+  join(sceneDirectory, 'metadata')
+
+export const getSceneAssetsDirectory = (sceneDirectory: string): string =>
+  join(sceneDirectory, 'assets')
+
+export const getSceneWorkspaceDirectoryForPanelPrompt = (panelDirectory: string): string => {
+  const panelPromptsDirectory = dirname(panelDirectory)
+  if (basename(panelPromptsDirectory) !== 'panel-prompts' || basename(dirname(panelPromptsDirectory)) !== 'metadata') {
+    throw ValidationError(
+      `Panel prompt directory "${normalizeProjectPath(panelDirectory)}" is not inside metadata/panel-prompts/. ` +
+      'Flat legacy comic workspaces must be migrated to the panel-first layout before use.',
+      { stage: 'comic:project-paths' }
+    )
+  }
+  return dirname(dirname(panelPromptsDirectory))
+}
+
+export const getCharacterReferencesDirectory = (sceneDirectory: string): string =>
+  join(getSceneAssetsDirectory(sceneDirectory), 'character-references')
+
+export const getLocationReferencesDirectory = (sceneDirectory: string): string =>
+  join(getSceneAssetsDirectory(sceneDirectory), 'location-references')
+
+export const getDesignReferencesDirectory = (sceneDirectory: string): string =>
+  join(getSceneAssetsDirectory(sceneDirectory), 'design-references')
+
 export const getStructuredScriptPath = (sceneSlug: string): string =>
-  join(getSceneOutputDirectory(sceneSlug), 'structured-script.json')
+  join(getSceneMetadataDirectoryForWorkspace(getSceneOutputDirectory(sceneSlug)), 'structured-script.json')
 
 export const getDraftPromptPath = (sceneSlug: string): string =>
-  join(getSceneOutputDirectory(sceneSlug), 'draft-prompt.md')
+  join(getSceneMetadataDirectoryForWorkspace(getSceneOutputDirectory(sceneSlug)), 'draft-prompt.md')
 
 export const getSceneJsonPath = (sceneSlug: string): string =>
-  join(getSceneOutputDirectory(sceneSlug), 'scene.json')
+  join(getSceneMetadataDirectoryForWorkspace(getSceneOutputDirectory(sceneSlug)), 'scene.json')
 
 export const getInvalidSceneJsonPath = (sceneSlug: string): string =>
-  join(getSceneOutputDirectory(sceneSlug), 'scene.invalid.json')
+  join(getSceneMetadataDirectoryForWorkspace(getSceneOutputDirectory(sceneSlug)), 'scene.invalid.json')
 
 export const getPanelPromptsDirectory = (sceneSlug: string): string =>
-  join(getSceneOutputDirectory(sceneSlug), 'panel-prompts')
+  join(getSceneMetadataDirectoryForWorkspace(getSceneOutputDirectory(sceneSlug)), 'panel-prompts')
 
 export const getPanelPromptCoverageReportPath = (sceneSlug: string): string =>
   join(getPanelPromptsDirectory(sceneSlug), 'source-coverage.json')

@@ -315,16 +315,22 @@ Each top-level invocation resolves a single timestamped run directory under `out
 
 ```text
 output/<YYYY-MM-DD_HH-MM-SS-mmm>_01-opening/
-  structured-script.json
-  draft-prompt.md
-  scene.json
-  character-references.json
-  character-references/<snapshot-id>/<key>/
-  location-references.json
-  location-references/<snapshot-id>/
-  design-references.json             # only when reviewed panels declare designReferences
-  design-references/<snapshot-id>/
-  panel-prompts/
+  metadata/
+    structured-script.json
+    draft-prompt.md
+    scene.json
+    scene.invalid.json               # only when validation preserves invalid model output
+    panel-prompts/
+      source-coverage.json
+      panel-NN/<bundle>.md
+  assets/
+    character-references.json
+    character-references/<snapshot-id>/<key>/
+    location-reference.json          # legacy schema when applicable
+    location-references.json
+    location-references/<snapshot-id>/
+    design-references.json           # only when reviewed panels declare designReferences
+    design-references/<snapshot-id>/
   panels/
   pages/
   sketches/
@@ -343,20 +349,23 @@ input/locations/
 Resume and pinning:
 
 - A later stage (e.g. `generate-images` after `draft-scenes`, or `draft-scenes --only prompt|scene|panel-prompts`) automatically resumes the **latest** existing run directory for the scene, so the multi-stage pipeline still finds prior-stage outputs.
-- A full `draft-scenes` run or `--only structure` starts a **fresh** run directory. `generate-images` resumes only a run that already contains `scene.json`; without one it fails instead of drafting, and `--force` never changes which run directory is used.
+- A full `draft-scenes` run or `--only structure` starts a **fresh** run directory. `generate-images` resumes only a run that already contains `metadata/scene.json`; without one it fails instead of drafting, and `--force` never changes which run directory is used.
 - Pass the global `--output-dir <path>` to pin an explicit run directory for both reading and writing.
+- The panel-first layout is strict for fresh, resumed, and pinned workspaces. A flat legacy workspace fails with migration instructions; AutoShow does not fall back to flat reads, migrate it automatically, or provide a migration command.
 
 ### Run-level character, location, and design snapshots
 
-`draft-scenes --only panel-prompts` first validates the union of visible character keys. Every visible character must have a registered canonical reference whose catalog paths and checksums match `character-sketches.json`. For a one-image character, the source and sheet fields intentionally have the same path and checksum. The command then copies one physical reference file per one-image character into `character-references/<snapshot-id>/<key>/`, records SHA-256 checksums and the registration generation ID, and atomically writes `character-references.json` last. Panel bundles contain the snapshot ID and keys only; no character images are copied into panel directories.
+`draft-scenes --only panel-prompts` first validates the union of visible character keys. Every visible character must have a registered canonical reference whose catalog paths and checksums match `character-sketches.json`. For a one-image character, the source and sheet fields intentionally have the same path and checksum. The command then copies one physical reference file per one-image character into `assets/character-references/<snapshot-id>/<key>/`, records scene-root-relative `assets/...` paths, SHA-256 checksums, and the registration generation ID, and atomically writes `assets/character-references.json` last. Panel bundles contain the snapshot ID and keys only; no character images are copied into panel directories.
 
-The same stage snapshots every distinct panel location once. Each location must resolve deterministically by key, catalog name, or declared alias and have an ordered schema-version-2 registration in `location-sketches.json` whose specification and per-view checksums still match. The stage composes all available views horizontally in establishing/reverse/side order into `location-references/<snapshot-id>/<key>--reference-sheet.png`; a one-view location is copied directly and does not require ImageMagick. Each schema-version-2 snapshot records source-view generation IDs and checksums alongside the composed-sheet checksum, and the plural `location-references.json` outer manifest remains schema version 2. Legacy schema-version-1 registrations and location snapshots remain readable so existing projects and immutable historical runs continue to work.
+The same stage snapshots every distinct panel location once. Each location must resolve deterministically by key, catalog name, or declared alias and have an ordered schema-version-2 registration in `location-sketches.json` whose specification and per-view checksums still match. The stage composes all available views horizontally in establishing/reverse/side order into `assets/location-references/<snapshot-id>/<key>--reference-sheet.png`; a one-view location is copied directly and does not require ImageMagick. Each schema-version-2 snapshot records source-view generation IDs and checksums alongside the composed-sheet checksum, and the plural `assets/location-references.json` outer manifest remains schema version 2. Legacy schema-version-1 registrations and location snapshots remain readable only within the strict `assets/` layout so existing schemas remain compatible without flat-workspace compatibility.
 
-Reviewed schema-version-4 panels may optionally declare `designReferences` entries with a lowercase kebab-case `key`, a safe project-relative image `sourcePath` below `input/`, and a nonblank `usage` description. Automated scene drafting emits an empty array; reviewers attach designs before rebuilding panel prompts. The panel-prompt stage validates consistent key/path/usage mappings, checksums and copies each distinct design into `design-references/<snapshot-id>/`, atomically writes `design-references.json`, and binds only the mapped panels to the snapshot and keys. Generation, repair restarts, capability preflight, grouped pages, sketches, and QA receive designs after character and location references in first-panel-appearance order. Missing, mixed, unsafe, duplicated, stale, or tampered design references fail before provider calls, and QA treats an unmistakable mapped redesign as a hard source-precedence failure.
+Reviewed schema-version-4 panels may optionally declare `designReferences` entries with a lowercase kebab-case `key`, a safe project-relative image `sourcePath` below `input/`, and a nonblank `usage` description. Automated scene drafting emits an empty array; reviewers attach designs before rebuilding panel prompts. The panel-prompt stage validates consistent key/path/usage mappings, checksums and copies each distinct design into `assets/design-references/<snapshot-id>/`, atomically writes `assets/design-references.json`, and binds only the mapped panels to the snapshot and keys. Generation, repair restarts, capability preflight, grouped pages, sketches, and QA receive designs after character and location references in first-panel-appearance order. Missing, mixed, unsafe, duplicated, stale, or tampered design references fail before provider calls, and QA treats an unmistakable mapped redesign as a hard source-precedence failure.
 
 Image generation rejects missing, mismatched, stale, tampered, or over-limit required references before a provider call. Rebuilding panel prompts creates new snapshots. Existing run directories keep using their immutable snapshots even if live files later change. References are compiled in first-appearance order, with exactly one direct image for each one-image character followed by each distinct location and then each mapped design used by the request. Optional continuity images come afterward. Legacy two-image characters remain compatible through a single derived identity card.
 
 ## Clean-break migration
+
+Flat scene workspaces are intentionally unsupported. Project owners must move drafting files and `panel-prompts/` below `metadata/`, move reference manifests and immutable snapshot directories below `assets/`, rewrite manifest asset paths to scene-root-relative `assets/...` paths, and rewrite coverage prompt paths to `metadata/panel-prompts/...` before invoking AutoShow. The CLI rejects a flat workspace with an actionable migration-required error and never performs this project-specific move itself.
 
 Legacy catalogs, unversioned structured/scene/panel artifacts, `character-sketch --image`, basename-keyed identity, version directories, and per-panel reference copies are no longer read. To migrate:
 

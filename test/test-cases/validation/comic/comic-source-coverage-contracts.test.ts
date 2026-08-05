@@ -1,7 +1,7 @@
 import { describe, expect, test } from 'bun:test'
 import { mkdir, mkdtemp, readdir, rm, writeFile } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
-import { join } from 'node:path'
+import { dirname, join } from 'node:path'
 import {
   getDraftPromptPath,
   getPanelPromptsDirectory,
@@ -557,7 +557,7 @@ describe('comic source coverage contracts', () => {
     }
 
     try {
-      await mkdir(sceneOutputDirectory, { recursive: true })
+      await mkdir(dirname(getStructuredScriptPath(sceneSlug)), { recursive: true })
       await writeFile(getStructuredScriptPath(sceneSlug), JSON.stringify(structuredScript, null, 2))
 
       await generateJsonPrompt(sceneSlug)

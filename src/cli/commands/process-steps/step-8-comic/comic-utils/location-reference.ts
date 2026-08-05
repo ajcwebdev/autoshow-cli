@@ -7,6 +7,7 @@ import { combineCharacterSketchSheet } from '../comic-commands/character-sketch/
 import { checksumFile } from '../comic-commands/process-scenes/character-utils'
 import { loadCharacterCatalog } from './character-reference-config'
 import { AppValidationError, InfraError, ValidationError } from '~/utils/error-handler'
+import { getLocationReferencesDirectory, getSceneAssetsDirectory } from './project-paths'
 
 export const LOCATION_VIEWS = ['establishing', 'reverse', 'side'] as const
 export type LocationView = typeof LOCATION_VIEWS[number]
@@ -248,13 +249,13 @@ export type LocationReferenceSnapshot = {
 }
 
 export type AnyLocationReferenceSnapshot = LegacyLocationReferenceSnapshot | LocationReferenceSnapshot
-export const getLocationReferenceSnapshotPath = (runDirectory: string): string => join(runDirectory, 'location-reference.json')
-export const getLocationReferenceSnapshotsPath = (runDirectory: string): string => join(runDirectory, LOCATION_SNAPSHOTS_FILENAME)
+export const getLocationReferenceSnapshotPath = (runDirectory: string): string => join(getSceneAssetsDirectory(runDirectory), 'location-reference.json')
+export const getLocationReferenceSnapshotsPath = (runDirectory: string): string => join(getSceneAssetsDirectory(runDirectory), LOCATION_SNAPSHOTS_FILENAME)
 export type LocationReferenceSnapshotManifest = { schemaVersion: 2; snapshots: LocationReferenceSnapshot[] }
 
 const snapshotCurrentLocationReference = async (runDirectory: string, current: CurrentLocationReference): Promise<LocationReferenceSnapshot> => {
   const snapshotId = `${Date.now()}-${randomUUID().slice(0, 12)}`
-  const destination = join(runDirectory, 'location-references', snapshotId, `${current.entry.key}--reference-sheet.png`)
+  const destination = join(getLocationReferencesDirectory(runDirectory), snapshotId, `${current.entry.key}--reference-sheet.png`)
   await mkdir(dirname(destination), { recursive: true })
   if (current.views.length === 1) await copyFile(current.views[0]!.imagePath, destination)
   else await combineCharacterSketchSheet({ outputPath: destination, sources: current.views.map(view => ({ view: view.view as never, path: view.imagePath })) })
