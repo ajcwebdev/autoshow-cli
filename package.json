@@ -9,6 +9,7 @@
     "check": "bun src/tools/unique-source-name-check.ts && bunx tsc --noEmit",
     "t": "bun test/test-runner.ts",
     "autoshow": "bun src/cli/create-cli.ts",
+    "as": "bun autoshow",
     "setup": "bun autoshow setup"
   },
   "dependencies": {

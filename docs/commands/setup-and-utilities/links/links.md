@@ -2,6 +2,8 @@
 
 Fetch curated or ad hoc documentation pages and write one combined markdown file under `project/links/`.
 
+`bun autoshow` is the canonical command used throughout this guide. `bun as` is an equivalent shorthand, so `bun as links --help` and `bun autoshow links --help` invoke the same command.
+
 ## Outline
 
 - [Usage](#usage)

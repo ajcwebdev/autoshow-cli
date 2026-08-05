@@ -6,6 +6,8 @@ It supports both local and API-backed engines across STT, OCR, LLM, TTS, image, 
 
 For command-specific details, use `bun autoshow help <command>` or browse the docs in [`docs/`](./docs/).
 
+`bun autoshow` is the canonical command. `bun as <command>` is available as a shorter equivalent, for example `bun as links --help`.
+
 ## Quick Start
 
 ```bash
