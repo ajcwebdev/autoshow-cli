@@ -1,4 +1,4 @@
-import { articleFlags, batchFlags } from './shared-flags'
+import { articleFlags, batchFlags, priceFlag } from './shared-flags'
 import { withHelpGroup } from './flag-utils'
 import type { CliFlagsDefinition } from '~/types'
 
@@ -32,4 +32,5 @@ export const downloadFlags = {
   ...withHelpGroup(mediaDownloadFlags, 'media-download'),
   ...withHelpGroup(articleFlags, 'article-extraction'),
   ...withHelpGroup(batchFlags, 'batch-processing'),
+  ...withHelpGroup(priceFlag, 'pricing'),
 } as const satisfies CliFlagsDefinition

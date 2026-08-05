@@ -96,7 +96,8 @@ export const CLAUDE_MODELS_LINKS = [
 ]
 
 export const ASSEMBLY_MODELS_LINKS = [
-  'https://www.assemblyai.com/docs/pre-recorded-audio/universal-3-pro.md'
+  'https://www.assemblyai.com/docs/pre-recorded-audio/universal-3-5-pro.md',
+  'https://www.assemblyai.com/docs/pre-recorded-audio/universal-2.md'
 ]
 
 export const BFL_MODELS_LINKS = [

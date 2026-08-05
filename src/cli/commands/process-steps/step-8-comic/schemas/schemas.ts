@@ -12,6 +12,11 @@ const CharacterReferenceImagePathSchema = v.pipe(
   v.string(),
   v.regex(/\.(?:png|webp|jpg|jpeg)$/i, 'Expected a PNG, WebP, JPG, or JPEG character image')
 )
+const CharacterSceneTextRuleSchema = v.strictObject({
+  kind: v.picklist(['required', 'forbidden']),
+  pattern: v.string(),
+  description: v.string(),
+})
 
 const AuthoredCharacterDetailsSchema = v.strictObject({
   key: CharacterKeySchema,
@@ -20,6 +25,7 @@ const AuthoredCharacterDetailsSchema = v.strictObject({
   image: CharacterReferenceImagePathSchema,
   outlineSheet: CharacterReferenceImagePathSchema,
   description: v.string(),
+  sceneTextRules: v.optional(v.array(CharacterSceneTextRuleSchema)),
 })
 
 const ScenePromptsSchema = v.object({
@@ -83,6 +89,11 @@ const SpeechItemSchema = v.strictObject({
   line: v.string(),
   tone: v.optional(v.string()),
 })
+const DesignReferenceSchema = v.strictObject({
+  key: v.pipe(v.string(), v.regex(/^[a-z0-9]+(?:-[a-z0-9]+)*$/, 'Expected a lowercase kebab-case design key')),
+  sourcePath: v.pipe(v.string(), v.regex(/^input\/(?!.*(?:^|\/)\.\.(?:\/|$)).+\.(?:png|webp|jpg|jpeg)$/i, 'Expected a safe project-relative image path below input/')),
+  usage: v.string(),
+})
 const PanelSchema = v.strictObject({
   number: v.number(),
   description: v.string(),
@@ -91,6 +102,7 @@ const PanelSchema = v.strictObject({
   speech: v.array(SpeechItemSchema),
   sourceSegmentIds: v.array(v.string()),
   locationKey: v.string(),
+  designReferences: v.optional(v.array(DesignReferenceSchema)),
 })
 const LegacyPanelSchema = v.strictObject({
   number: v.number(), description: v.string(), characterKeys: v.array(CharacterKeySchema),
@@ -106,6 +118,9 @@ const PanelBundlePanelSchema = v.strictObject({
   sourceSegments: v.array(StructuredScriptSourceSegmentSchema),
   locationKey: v.string(),
   locationSnapshotId: v.string(),
+  designReferences: v.optional(v.array(DesignReferenceSchema)),
+  designSnapshotId: v.optional(v.string()),
+  designReferenceKeys: v.optional(v.array(v.string())),
 })
 const LegacyV3PanelBundlePanelSchema = v.strictObject({
   number: v.number(),
@@ -237,8 +252,9 @@ export const buildSceneJsonSchema = (characterKeys: readonly string[]) => ({
     schemaVersion: { type: 'integer', enum: [4] }, title: { type: 'string' }, location: { type: 'string' },
     panels: { type: 'array', items: { type: 'object', properties: {
       number: { type: 'integer' }, description: { type: 'string' }, shotPlan: { type: 'string' }, characterKeys: characterArray(characterKeys), sourceSegmentIds: { type: 'array', items: { type: 'string' } }, locationKey: { type: 'string' },
+      designReferences: { type: 'array', items: { type: 'object', properties: { key: { type: 'string', pattern: '^[a-z0-9]+(?:-[a-z0-9]+)*$' }, sourcePath: { type: 'string', pattern: '^input/.+\\.(?:png|webp|jpg|jpeg)$' }, usage: { type: 'string' } }, required: ['key', 'sourcePath', 'usage'], additionalProperties: false } },
       speech: { type: 'array', items: { type: 'object', properties: { speaker: speakerJsonSchema(characterKeys), line: { type: 'string' }, tone: nullable({ type: 'string' }) }, required: ['speaker', 'line', 'tone'], additionalProperties: false } },
-    }, required: ['number', 'description', 'shotPlan', 'characterKeys', 'speech', 'sourceSegmentIds', 'locationKey'], additionalProperties: false } },
+    }, required: ['number', 'description', 'shotPlan', 'characterKeys', 'speech', 'sourceSegmentIds', 'locationKey', 'designReferences'], additionalProperties: false } },
   }, required: ['schemaVersion', 'title', 'location', 'panels'], additionalProperties: false },
 })
 
@@ -250,6 +266,11 @@ const assertKnownUniqueKeys = (values: readonly string[], catalog: CharacterCata
     seen.add(value)
   }
 }
+
+const positiveDepictionText = (value: string): string => value
+  .split(/(?<=[.!?;])\s+/)
+  .filter(sentence => !/^\s*(?:exclude|never|no\b|do not\b|don't\b|without\b)/iu.test(sentence))
+  .join(' ')
 
 export const validateStructuredScriptCharacters = (data: v.InferOutput<typeof StructuredScriptDataSchema>, catalog: CharacterCatalogService): void => {
   assertKnownUniqueKeys(data.characterKeys, catalog, 'structured script characterKeys')
@@ -265,10 +286,28 @@ export const validateSceneCharacters = (data: v.InferOutput<typeof ScenePromptDa
   for (const panel of data.panels) {
     if (!panel.shotPlan.trim()) throw ValidationError(`Panel ${panel.number} shotPlan must be exhaustive prose, not blank`, { stage: 'comic:schema' })
     assertKnownUniqueKeys(panel.characterKeys, catalog, `panel ${panel.number} characterKeys`)
+    const designKeys = panel.designReferences?.map(reference => reference.key) ?? []
+    if (new Set(designKeys).size !== designKeys.length) throw ValidationError(`Duplicate design reference key in panel ${panel.number}`, { stage: 'comic:schema' })
+    for (const reference of panel.designReferences ?? []) if (!reference.usage.trim()) throw ValidationError(`Panel ${panel.number} design reference "${reference.key}" usage must not be blank`, { stage: 'comic:schema' })
     if (new Set(panel.sourceSegmentIds).size !== panel.sourceSegmentIds.length) {
       throw ValidationError(`Duplicate source segment ID in panel ${panel.number} sourceSegmentIds`, { stage: 'comic:schema' })
     }
     const visible = new Set(panel.characterKeys)
+    const visualText = `${panel.description}\n${panel.shotPlan}`.normalize('NFKC').replace(/[\u2018\u2019]/g, "'")
+    for (const characterKey of panel.characterKeys) {
+      const character = catalog.get(catalog.requireKey(characterKey))
+      for (const rule of character.sceneTextRules ?? []) {
+        const testedText = rule.kind === 'forbidden' ? positiveDepictionText(visualText) : visualText
+        const matches = new RegExp(rule.pattern, 'iu').test(testedText)
+        if ((rule.kind === 'required' && !matches) || (rule.kind === 'forbidden' && matches)) {
+          const expectation = rule.kind === 'required' ? 'must satisfy' : 'must not violate'
+          throw ValidationError(
+            `Panel ${panel.number} depiction of "${characterKey}" ${expectation} canonical rule: ${rule.description}`,
+            { stage: 'comic:schema' }
+          )
+        }
+      }
+    }
     for (const item of panel.speech) {
       if (item.speaker.kind !== 'character') continue
       catalog.requireKey(item.speaker.characterKey)

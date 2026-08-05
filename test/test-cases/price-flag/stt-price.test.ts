@@ -19,7 +19,7 @@ for (const model of ['tiny', 'base', 'small', 'medium', 'large-v3-turbo'] as con
 }
 
 defineSTTServicePriceTests({
-  models: ['universal-3-pro'],
+  models: ['universal-3-5-pro', 'universal-2'],
   provider: 'assemblyai',
   sttService: 'assemblyai',
 })
@@ -37,15 +37,21 @@ defineSTTServicePriceTests({
 })
 
 defineSTTServicePriceTests({
-  models: ['openai/whisper-large-v3'],
+  models: ['openai/whisper-large-v3', 'nvidia/parakeet-tdt-0.6b-v3'],
   provider: 'together',
   sttService: 'together',
 })
 
 defineSTTServicePriceTests({
-  models: ['default'],
+  models: ['solaria-1', 'solaria-3'],
   provider: 'gladia',
   sttService: 'gladia',
+})
+
+defineSTTServicePriceTests({
+  models: ['gemini-3.6-flash'],
+  provider: 'gemini',
+  sttService: 'gemini-stt',
 })
 
 defineSTTServicePriceTests({
@@ -73,13 +79,13 @@ defineSTTServicePriceTests({
 })
 
 defineSTTServicePriceTests({
-  models: ['stt-async-v4'],
+  models: ['stt-async-v5'],
   provider: 'soniox',
   sttService: 'soniox',
 })
 
 defineSTTServicePriceTests({
-  models: ['enhanced'],
+  models: ['enhanced', 'melia-1'],
   provider: 'speechmatics',
   sttService: 'speechmatics',
 })

@@ -92,7 +92,7 @@ test('STT media acquisition keeps local and hosted staging profiles distinct', a
   })
   const hostedPrepared = await prepareSttMedia({
     source,
-    targets: [{ service: 'gladia', model: 'default', local: false }],
+    targets: [{ service: 'gladia', model: 'solaria-1', local: false }],
     outputDir: await makeTempDir('autoshow-stt-acquire-hosted-')
   })
 

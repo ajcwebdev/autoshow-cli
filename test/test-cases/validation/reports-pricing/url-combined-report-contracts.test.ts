@@ -19,10 +19,10 @@ import {
   rankUrlProviderGroup,
   type AggregatedUrlProvider,
   type UrlMetricRankingEntry
-} from '../../../../.claude/skills/consensus/scripts/url/build_combined_report'
+} from '../../../../.codex/skills/consensus/scripts/url/build_combined_report'
 import {
   LONG_SEQUENCE_DISTANCE_METHOD
-} from '../../../../.claude/skills/consensus/scripts/url/url_consensus_lib'
+} from '../../../../.codex/skills/consensus/scripts/url/url_consensus_lib'
 import type { UrlCombinedArtifact, UrlCombinedFixtureProvider } from '~/types'
 
 const tempRoots: string[] = []
@@ -144,7 +144,7 @@ const sampleAggregate = (
 
 describe('URL combined-report aggregation', () => {
   test('exposes URL combined reports through unified help', () => {
-    const runner = resolve(import.meta.dir, '../../../../.claude/skills/consensus/scripts/run.ts')
+    const runner = resolve(import.meta.dir, '../../../../.codex/skills/consensus/scripts/run.ts')
     const result = spawnSync('bun', [runner, 'url', '--help'], { encoding: 'utf8' })
 
     expect(result.status).toBe(0)
@@ -303,7 +303,7 @@ describe('URL combined-report aggregation', () => {
       }
     }))
 
-    const runner = resolve(import.meta.dir, '../../../../.claude/skills/consensus/scripts/run.ts')
+    const runner = resolve(import.meta.dir, '../../../../.codex/skills/consensus/scripts/run.ts')
     const result = spawnSync('bun', [runner, 'url', 'build-report', root], { encoding: 'utf8' })
     expect(result.status).toBe(0)
 

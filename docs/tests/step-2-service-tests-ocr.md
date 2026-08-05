@@ -33,13 +33,13 @@ bun t test/test-cases/e2e/service/step-2-ocr-e2e/ocr-services/
 ## Price Preflight
 
 ```bash
-bun t test/test-cases/e2e/service/step-2-ocr-e2e/ocr-services/ --test-price
+bun t test/test-cases/e2e/service/step-2-ocr-e2e/ocr-services/ --price
 bun t test/test-cases/e2e/service/step-2-ocr-e2e/ocr-services/ --budget 2500
-bun t test/test-cases/e2e/service/step-2-ocr-e2e/ocr-services/ocr-supadata.test.ts --test-price
+bun t test/test-cases/e2e/service/step-2-ocr-e2e/ocr-services/ocr-supadata.test.ts --price
 bun t test/test-cases/e2e/service/step-2-ocr-e2e/ocr-services/ocr-supadata.test.ts --budget 2500
-bun t test/test-cases/e2e/service/step-2-ocr-e2e/ocr-services/ocr-firecrawl.test.ts --test-price
+bun t test/test-cases/e2e/service/step-2-ocr-e2e/ocr-services/ocr-firecrawl.test.ts --price
 bun t test/test-cases/e2e/service/step-2-ocr-e2e/ocr-services/ocr-firecrawl.test.ts --budget 2500
-bun t test/test-cases/e2e/service/step-2-ocr-e2e/ocr-services/ocr-glm-reader.test.ts --test-price
+bun t test/test-cases/e2e/service/step-2-ocr-e2e/ocr-services/ocr-glm-reader.test.ts --price
 bun t test/test-cases/e2e/service/step-2-ocr-e2e/ocr-services/ocr-glm-reader.test.ts --budget 2500
 ```
 

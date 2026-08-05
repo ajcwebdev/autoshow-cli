@@ -10,9 +10,15 @@ import { buildTranscriptionOutputBase, countTokens, formatTranscriptText, resolv
 import { detectCompressedTimingCoverage } from '../../stt-utils/stt-timing-quality'
 const GEMINI_INLINE_AUDIO_BYTES = 14 * 1024 * 1024
 const GEMINI_FILE_UPLOAD_BYTES = 2 * 1024 * 1024 * 1024
-const GEMINI_3_FLASH_TEXT_INPUT_COST_PER_1M_CENTS = 50
-const GEMINI_3_FLASH_AUDIO_INPUT_COST_PER_1M_CENTS = 100
-const GEMINI_3_FLASH_OUTPUT_COST_PER_1M_CENTS = 300
+const GEMINI_STT_PRICING_BY_MODEL: Record<string, {
+  inputCostPer1MTokensCents: number
+  outputCostPer1MTokensCents: number
+}> = {
+  'gemini-3.6-flash': {
+    inputCostPer1MTokensCents: 150,
+    outputCostPer1MTokensCents: 750
+  }
+}
 
 const GEMINI_STT_JSON_SCHEMA = {
   type: 'object',
@@ -59,10 +65,16 @@ const getGeminiModalityTokenCount = (
 }
 
 export const computeGeminiSttBillingFromUsage = (
+  model: string,
   usage: GeminiGenerateContentUsageMetadata | undefined
 ): NonNullable<Step2Metadata['billing']> | undefined => {
   if (!usage) {
     return undefined
+  }
+
+  const pricing = GEMINI_STT_PRICING_BY_MODEL[model]
+  if (!pricing) {
+    throw InternalError(`Missing Gemini STT usage pricing for model ${model}`, { stage: 'stt:gemini' })
   }
 
   const promptTokens = isFiniteNumber(usage.promptTokenCount) ? usage.promptTokenCount : undefined
@@ -79,9 +91,8 @@ export const computeGeminiSttBillingFromUsage = (
   const totalTokens = isFiniteNumber(usage.totalTokenCount)
     ? usage.totalTokenCount
     : inputTokens + outputTokens
-  const totalCost = (audioInputTokens / 1_000_000) * GEMINI_3_FLASH_AUDIO_INPUT_COST_PER_1M_CENTS
-    + (textInputTokens / 1_000_000) * GEMINI_3_FLASH_TEXT_INPUT_COST_PER_1M_CENTS
-    + (outputTokens / 1_000_000) * GEMINI_3_FLASH_OUTPUT_COST_PER_1M_CENTS
+  const totalCost = (inputTokens / 1_000_000) * pricing.inputCostPer1MTokensCents
+    + (outputTokens / 1_000_000) * pricing.outputCostPer1MTokensCents
 
   return {
     inputTokens,
@@ -326,7 +337,7 @@ export const runGeminiStt = async (
   }
 
   const usage = response.usageMetadata
-  const billing = computeGeminiSttBillingFromUsage(usage)
+  const billing = computeGeminiSttBillingFromUsage(model, usage)
   return {
     result: {
       text: finalText,

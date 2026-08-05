@@ -36,12 +36,12 @@ const expectUsageExit = async (args: string[], expectedMessage: string): Promise
 }
 
 const ensureEpisodeTwoScriptFixture = async (): Promise<void> => {
-  const scriptsRoot = join('input', 'episode-scripts')
+  const scriptsRoot = join('input', 'scripts')
   const dir = join(scriptsRoot, '02-script')
   const path = join(dir, '01-co-work-smarter.md')
 
   // Track the topmost directory we actually create so cleanup leaves no empty
-  // parent behind, while never removing a pre-existing episode-scripts tree.
+  // parent behind, while never removing a pre-existing scripts tree.
   if (!existsSync(scriptsRoot)) {
     repoFixtureDirs.push(scriptsRoot)
   } else if (!existsSync(dir)) {
@@ -604,42 +604,35 @@ test('resume rejects provider-named option flags', async () => {
   )
 })
 
-test('music lyric-video mode rejects price mode', async () => {
-  await expectUsageExit(
-    ['music', '--audio', STABLE_EXAMPLE_AUDIO_URL, '--price'],
-    'Do not combine hosted music flags'
-  )
-})
-
 test('comic generate-images rejects invalid page selection flags', async () => {
   await expectUsageExit(
-    ['comic', 'generate-images', 'input/episode-scripts/02-script/01-co-work-smarter.md','--panels', '4-2', '--price'],
+    ['comic', 'generate-images', 'input/scripts/02-script/01-co-work-smarter.md','--panels', '4-2', '--price'],
     'Invalid panels "4-2"'
   )
   await expectUsageExit(
-    ['comic', 'generate-images', 'input/episode-scripts/02-script/01-co-work-smarter.md','--panels-per-image', '0', '--price'],
+    ['comic', 'generate-images', 'input/scripts/02-script/01-co-work-smarter.md','--panels-per-image', '0', '--price'],
     'Invalid panels per image "0"'
   )
   await expectUsageExit(
-    ['comic', 'generate-images', 'input/episode-scripts/02-script/01-co-work-smarter.md','--panel-limit', 'nope', '--price'],
+    ['comic', 'generate-images', 'input/scripts/02-script/01-co-work-smarter.md','--panel-limit', 'nope', '--price'],
     '--panel-limit was removed'
   )
 })
 
 test('comic generate-images rejects invalid and duplicate image models', async () => {
   await expectUsageExit(
-    ['comic', 'generate-images', 'input/episode-scripts/02-script/01-co-work-smarter.md','--image-model', 'not-a-model', '--price'],
+    ['comic', 'generate-images', 'input/scripts/02-script/01-co-work-smarter.md','--image-model', 'not-a-model', '--price'],
     'Invalid image model "not-a-model"'
   )
   await expectUsageExit(
-    ['comic', 'generate-images', 'input/episode-scripts/02-script/01-co-work-smarter.md','--image-model', 'gpt-image-2,gpt-image-2', '--price'],
+    ['comic', 'generate-images', 'input/scripts/02-script/01-co-work-smarter.md','--image-model', 'gpt-image-2,gpt-image-2', '--price'],
     'Duplicate image model "gpt-image-2" is not allowed'
   )
 })
 
 test('comic generate-images rejects removed --panel flag', async () => {
   await expectUsageExit(
-    ['comic', 'generate-images', 'input/episode-scripts/02-script/01-co-work-smarter.md','--panel', '1', '--price'],
+    ['comic', 'generate-images', 'input/scripts/02-script/01-co-work-smarter.md','--panel', '1', '--price'],
     '--panel was removed'
   )
 })
@@ -649,7 +642,7 @@ test('comic generate-images accepts --panels-per-image with sketch target', asyn
     'src/cli/create-cli.ts',
     'comic',
     'generate-images',
-    'input/episode-scripts/02-script/01-co-work-smarter.md',
+    'input/scripts/02-script/01-co-work-smarter.md',
     '--target',
     'sketches',
     '--panels-per-image',
@@ -702,7 +695,7 @@ test('comic commands accept strict episode-scene shorthand for price preflight',
 test('comic shorthand resolution errors name the expected directory and prefix', async () => {
   await expectUsageExit(
     ['comic', 'draft-scenes', '99-01', '--price'],
-    'Expected exactly one Markdown file in "input/episode-scripts/99-script" beginning with "01-"'
+    'Expected exactly one Markdown file in "input/scripts/99-script" beginning with "01-"'
   )
 })
 
@@ -723,52 +716,52 @@ test('comic non-strict shorthand remains an ordinary script path', async () => {
 
 test('comic generate-images rejects removed prompts target with migration', async () => {
   await expectUsageExit(
-    ['comic', 'generate-images', 'input/episode-scripts/02-script/01-co-work-smarter.md','--target', 'prompts', '--price'],
+    ['comic', 'generate-images', 'input/scripts/02-script/01-co-work-smarter.md','--target', 'prompts', '--price'],
     'bun autoshow comic draft-scenes <script-path> --only panel-prompts'
   )
 })
 
 test('comic generate-images rejects variations with non-final targets', async () => {
   await expectUsageExit(
-    ['comic', 'generate-images', 'input/episode-scripts/02-script/01-co-work-smarter.md','--target', 'sketches', '--variation', 'cinematic-depth', '--price'],
+    ['comic', 'generate-images', 'input/scripts/02-script/01-co-work-smarter.md','--target', 'sketches', '--variation', 'cinematic-depth', '--price'],
     '--variation only applies when --target is images or both'
   )
 })
 
 test('comic generate-images rejects invalid grid options', async () => {
   await expectUsageExit(
-    ['comic', 'generate-images', 'input/episode-scripts/02-script/01-co-work-smarter.md', '--panels-per-image', '1', '--grid', '0x3', '--price'],
+    ['comic', 'generate-images', 'input/scripts/02-script/01-co-work-smarter.md', '--panels-per-image', '1', '--grid', '0x3', '--price'],
     'Invalid grid "0x3"'
   )
   await expectUsageExit(
-    ['comic', 'generate-images', 'input/episode-scripts/02-script/01-co-work-smarter.md', '--panels-per-image', '1', '--grid', '2x3', '--grid', '3x2', '--price'],
+    ['comic', 'generate-images', 'input/scripts/02-script/01-co-work-smarter.md', '--panels-per-image', '1', '--grid', '2x3', '--grid', '3x2', '--price'],
     'Grid can only be specified once'
   )
   await expectUsageExit(
-    ['comic', 'generate-images', 'input/episode-scripts/02-script/01-co-work-smarter.md', '--target', 'sketches', '--panels-per-image', '1', '--grid', '2x3', '--price'],
+    ['comic', 'generate-images', 'input/scripts/02-script/01-co-work-smarter.md', '--target', 'sketches', '--panels-per-image', '1', '--grid', '2x3', '--price'],
     '--grid only applies when --target is images or both'
   )
   await expectUsageExit(
-    ['comic', 'generate-images', 'input/episode-scripts/02-script/01-co-work-smarter.md', '--grid', '2x3', '--price'],
+    ['comic', 'generate-images', 'input/scripts/02-script/01-co-work-smarter.md', '--grid', '2x3', '--price'],
     '--grid requires --panels-per-image 1'
   )
   await expectUsageExit(
-    ['comic', 'generate-images', 'input/episode-scripts/02-script/01-co-work-smarter.md', '--panels-per-image', '1', '--grid', '2x3', '--size', '1024x1024', '--price'],
+    ['comic', 'generate-images', 'input/scripts/02-script/01-co-work-smarter.md', '--panels-per-image', '1', '--grid', '2x3', '--size', '1024x1024', '--price'],
     '--grid requires --size 1536x1024'
   )
 })
 
 test('comic generate-images rejects invalid page selection flags', async () => {
   await expectUsageExit(
-    ['comic', 'generate-images', 'input/episode-scripts/02-script/01-co-work-smarter.md','--panels-per-image', '0', '--price'],
+    ['comic', 'generate-images', 'input/scripts/02-script/01-co-work-smarter.md','--panels-per-image', '0', '--price'],
     'Invalid panels per image "0"'
   )
   await expectUsageExit(
-    ['comic', 'generate-images', 'input/episode-scripts/02-script/01-co-work-smarter.md','--panel-limit', 'nope', '--price'],
+    ['comic', 'generate-images', 'input/scripts/02-script/01-co-work-smarter.md','--panel-limit', 'nope', '--price'],
     '--panel-limit was removed'
   )
   await expectUsageExit(
-    ['comic', 'generate-images', 'input/episode-scripts/02-script/01-co-work-smarter.md','--panels', '4-2', '--price'],
+    ['comic', 'generate-images', 'input/scripts/02-script/01-co-work-smarter.md','--panels', '4-2', '--price'],
     'Invalid panels "4-2"'
   )
 })

@@ -11,7 +11,7 @@ describe('voice quality full-mode audio judge contracts', () => {
       providers: {
         'openai/gpt-4o-mini-tts': {
           stt: {
-            'assemblyai/universal-3-pro': inputText
+            'assemblyai/universal-2': inputText
           }
         }
       }
@@ -65,7 +65,7 @@ describe('voice quality full-mode audio judge contracts', () => {
       providers: {
         'openai/gpt-4o-mini-tts': {
           stt: {
-            'assemblyai/universal-3-pro': inputText
+            'assemblyai/universal-2': inputText
           }
         }
       }
@@ -137,7 +137,7 @@ describe('voice quality full-mode audio judge contracts', () => {
       providers: {
         'openai/gpt-4o-mini-tts': {
           stt: {
-            'assemblyai/universal-3-pro': inputText
+            'assemblyai/universal-2': inputText
           }
         }
       }

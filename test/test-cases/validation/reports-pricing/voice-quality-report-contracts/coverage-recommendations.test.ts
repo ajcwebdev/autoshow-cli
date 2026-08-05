@@ -66,7 +66,7 @@ describe('voice quality coverage recommendation contracts', () => {
           dnsmosMos: 4.4,
           paidAudioJudge: { naturalnessScore: 92, confidence: 0.9 },
           stt: {
-            'assemblyai/universal-3-pro': inputText
+            'assemblyai/universal-2': inputText
           }
         }
       }

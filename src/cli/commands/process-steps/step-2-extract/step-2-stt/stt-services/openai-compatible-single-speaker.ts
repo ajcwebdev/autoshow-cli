@@ -172,6 +172,7 @@ export const runOpenAICompatibleSingleSpeakerStt = async (
     segmentNumber?: number | undefined
     totalSegments?: number | undefined
     audioDurationSeconds?: number | undefined
+    formFields?: Record<string, string> | undefined
   }
 ): Promise<{ result: TranscriptionResult, metadata: Step2Metadata }> => {
   const {
@@ -183,7 +184,11 @@ export const runOpenAICompatibleSingleSpeakerStt = async (
     segmentOffsetMinutes = 0,
     segmentNumber,
     totalSegments,
-    audioDurationSeconds
+    audioDurationSeconds,
+    formFields = {
+      response_format: 'verbose_json',
+      'timestamp_granularities[]': 'segment'
+    }
   } = options
 
   if (segmentNumber && totalSegments) {
@@ -197,8 +202,9 @@ export const runOpenAICompatibleSingleSpeakerStt = async (
   const buildForm = (): FormData => {
     const form = new FormData()
     form.append('model', model)
-    form.append('response_format', 'verbose_json')
-    form.append('timestamp_granularities[]', 'segment')
+    for (const [key, value] of Object.entries(formFields)) {
+      form.append(key, value)
+    }
     form.append('file', Bun.file(audioPath))
     return form
   }

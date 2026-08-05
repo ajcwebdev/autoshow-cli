@@ -28,25 +28,25 @@ bun t test/test-cases/e2e/local/step-1-download-e2e/download-input-types-feed-or
 
 # service command suites
 bun t test/test-cases/e2e/service/step-2-ocr-e2e/ocr-services/
-bun t test/test-cases/e2e/service/step-2-ocr-e2e/ocr-services/ --test-price
+bun t test/test-cases/e2e/service/step-2-ocr-e2e/ocr-services/ --price
 
 bun t test/test-cases/e2e/service/step-2-stt-e2e/stt-services/
-bun t test/test-cases/e2e/service/step-2-stt-e2e/stt-services/ --test-price
+bun t test/test-cases/e2e/service/step-2-stt-e2e/stt-services/ --price
 
 bun t test/test-cases/e2e/service/step-3-write-e2e/write-services/
-bun t test/test-cases/e2e/service/step-3-write-e2e/write-services/ --test-price
+bun t test/test-cases/e2e/service/step-3-write-e2e/write-services/ --price
 
 bun t test/test-cases/e2e/service/step-4-tts-e2e/tts-services/
-bun t test/test-cases/e2e/service/step-4-tts-e2e/tts-services/ --test-price
+bun t test/test-cases/e2e/service/step-4-tts-e2e/tts-services/ --price
 
 bun t test/test-cases/e2e/service/step-5-image-gen-e2e/
-bun t test/test-cases/e2e/service/step-5-image-gen-e2e/ --test-price
+bun t test/test-cases/e2e/service/step-5-image-gen-e2e/ --price
 
 bun t test/test-cases/e2e/service/step-6-video-gen-e2e/
-bun t test/test-cases/e2e/service/step-6-video-gen-e2e/ --test-price
+bun t test/test-cases/e2e/service/step-6-video-gen-e2e/ --price
 
 bun t test/test-cases/e2e/service/step-7-music-gen-e2e/
-bun t test/test-cases/e2e/service/step-7-music-gen-e2e/ --test-price
+bun t test/test-cases/e2e/service/step-7-music-gen-e2e/ --price
 ```
 
 ## Step Pages
@@ -67,4 +67,4 @@ bun t test/test-cases/e2e/service/step-7-music-gen-e2e/ --test-price
 - `test/test-cases/validation/providers/video-provider-contracts/`, `test/test-cases/validation/providers/image-provider-rest-contracts.test.ts`, `test/test-cases/validation/providers/tts-provider-contracts/`, `test/test-cases/validation/providers/music-provider-contracts.test.ts`, and `test/test-cases/validation/resume-manifests/resume-additive-provider-contracts.test.ts` cover mocked REST and provider-contract behavior across their respective generation command families. Provider-specific REST contract suites such as `test/test-cases/validation/providers/anthropic-rest-contracts.test.ts`, `test/test-cases/validation/providers/gemini-rest-contracts.test.ts`, `test/test-cases/validation/providers/openai-rest-contracts/`, and `test/test-cases/validation/providers/mistral-rest-contracts.test.ts` cover write/OCR service request payloads.
 - `test/test-cases/price-flag/` contains focused `--price` coverage for STT, OCR, write, TTS, image, video, and music command families.
 - Cross-provider CLI flow coverage now lives in the step-specific service suites plus no-cost validation contracts.
-- `--test-price` with no path filters still resolves all mapped test price commands across both local and service coverage.
+- `--price` with no path filters still resolves all mapped test price commands across both local and service coverage.

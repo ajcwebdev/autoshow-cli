@@ -32,7 +32,10 @@
       "https://ai.google.dev/gemini-api/docs/files.md.txt"
     ],
     "STT": [
-      "https://ai.google.dev/gemini-api/docs/audio.md.txt"
+      "https://ai.google.dev/gemini-api/docs/audio.md.txt",
+      "https://ai.google.dev/gemini-api/docs/models/gemini-3.6-flash.md.txt",
+      "https://ai.google.dev/gemini-api/docs/pricing.md.txt",
+      "https://ai.google.dev/gemini-api/docs/tokens.md.txt"
     ],
     "TTS": [
       "https://ai.google.dev/gemini-api/docs/models/gemini-3.1-flash-tts-preview.md.txt",

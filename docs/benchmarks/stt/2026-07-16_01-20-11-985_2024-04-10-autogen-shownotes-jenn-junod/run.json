@@ -10,291 +10,203 @@
       "url": "file:///Users/ajc/c/autoshow-cli/input/2024-04-10-autogen-shownotes-jenn-junod.mp4",
       "slug": "2024-04-10-autogen-shownotes-jenn-junod",
       "audioFileName": "2024-04-10-autogen-shownotes-jenn-junod.mp3",
-      "audioFileSize": 49012864,
+      "audioFileSize": 49012551,
       "durationSeconds": 4084
     },
     "step2": [
       {
-        "transcriptionService": "deepinfra",
-        "transcriptionModel": "openai/whisper-large-v3-turbo",
-        "processingTime": 66178,
-        "tokenCount": 10692
-      },
-      {
-        "transcriptionService": "deepinfra",
-        "transcriptionModel": "openai/whisper-large-v3",
-        "processingTime": 76255,
-        "tokenCount": 10533
-      },
-      {
-        "transcriptionService": "deepgram",
-        "transcriptionModel": "nova-3",
-        "processingTime": 21964,
-        "tokenCount": 10592,
-        "timings": {
-          "transcribeMs": 21954,
-          "remoteProcessingMs": 10,
-          "requestCount": 1
-        }
-      },
-      {
         "transcriptionService": "soniox",
-        "transcriptionModel": "stt-async-v4",
-        "processingTime": 193760,
-        "tokenCount": 10760,
+        "transcriptionModel": "stt-async-v5",
+        "processingTime": 259005,
+        "tokenCount": 10788,
+        "timings": {
+          "uploadMs": 1435,
+          "createMs": 68,
+          "createCount": 1,
+          "pollMs": 1230,
+          "pollSleepMs": 255042,
+          "pollCount": 28,
+          "transcriptMs": 1186,
+          "remoteProcessingMs": 254885,
+          "cleanupMs": 201,
+          "requestCount": 31,
+          "backfillCount": 1
+        },
         "runtime": {
           "mode": "fresh",
           "stage": "cleanup-complete",
-          "remoteJobId": "38e17f23-b63b-415a-8aff-098793f7eb05",
-          "remoteAssetId": "bfbd1eb6-b9f2-4859-96db-422cd31ed6be",
-          "createCompletedAt": "2026-07-16T06:20:31.064Z",
-          "lastPollAt": "2026-07-16T06:23:37.119Z",
-          "completedAt": "2026-07-16T06:23:38.549Z",
-          "cleanupCompletedAt": "2026-07-16T06:23:38.710Z",
+          "remoteJobId": "d055f7e0-1781-453d-9ac7-d9aeef7acb96",
+          "remoteAssetId": "00da27ed-cf6c-442e-9788-39354d6fe808",
+          "createCompletedAt": "2026-08-03T08:26:51.571Z",
+          "lastPollAt": "2026-08-03T08:31:07.874Z",
+          "completedAt": "2026-08-03T08:31:09.073Z",
+          "cleanupCompletedAt": "2026-08-03T08:31:09.276Z",
           "cleanup": {
             "remoteJobDeleted": true,
             "remoteAssetDeleted": true
           }
-        },
-        "timings": {
-          "uploadMs": 6202,
-          "createMs": 73,
-          "createCount": 1,
-          "pollMs": 998,
-          "pollSleepMs": 185034,
-          "pollCount": 21,
-          "transcriptMs": 1419,
-          "remoteProcessingMs": 184907,
-          "cleanupMs": 161,
-          "requestCount": 24
         }
       },
       {
         "transcriptionService": "speechmatics",
-        "transcriptionModel": "enhanced",
-        "processingTime": 130129,
-        "tokenCount": 10873,
+        "transcriptionModel": "melia-1",
+        "processingTime": 24204,
+        "tokenCount": 10834,
         "runtime": {
           "mode": "fresh",
           "stage": "cleanup-complete",
-          "remoteJobId": "ffuw66gl80",
-          "createCompletedAt": "2026-07-16T06:20:35.714Z",
-          "lastPollAt": "2026-07-16T06:22:34.021Z",
-          "completedAt": "2026-07-16T06:22:34.022Z",
-          "cleanupCompletedAt": "2026-07-16T06:22:35.073Z",
+          "remoteJobId": "lth2t9rs9s",
+          "createCompletedAt": "2026-08-03T10:43:11.685Z",
+          "lastPollAt": "2026-08-03T10:43:27.216Z",
+          "completedAt": "2026-08-03T10:43:27.216Z",
+          "cleanupCompletedAt": "2026-08-03T10:43:28.228Z",
           "cleanup": {
             "remoteJobDeleted": true
           }
         },
         "timings": {
-          "createMs": 10914,
+          "createMs": 7815,
           "createCount": 1,
-          "pollMs": 3260,
-          "pollSleepMs": 115028,
-          "pollCount": 14,
-          "transcriptMs": 907,
-          "remoteProcessingMs": 114914,
-          "cleanupMs": 134,
-          "requestCount": 16
-        }
-      },
-      {
-        "transcriptionService": "rev",
-        "transcriptionModel": "machine",
-        "processingTime": 122273,
-        "tokenCount": 11011,
-        "runtime": {
-          "mode": "fresh",
-          "stage": "cleanup-complete",
-          "remoteJobId": "kxP7wD5dcs8kCVHd",
-          "createCompletedAt": "2026-07-16T06:20:31.536Z",
-          "lastPollAt": "2026-07-16T06:22:26.435Z",
-          "completedAt": "2026-07-16T06:22:26.436Z",
-          "cleanupCompletedAt": "2026-07-16T06:22:27.205Z",
-          "cleanup": {
-            "remoteJobDeleted": true
-          }
-        },
-        "timings": {
-          "createMs": 6699,
-          "createCount": 1,
-          "pollMs": 855,
-          "pollSleepMs": 114024,
-          "pollCount": 13,
-          "transcriptMs": 674,
-          "remoteProcessingMs": 113959,
-          "cleanupMs": 86,
-          "requestCount": 15
-        }
-      },
-      {
-        "transcriptionService": "rev",
-        "transcriptionModel": "low_cost",
-        "processingTime": 243360,
-        "tokenCount": 10957,
-        "runtime": {
-          "mode": "fresh",
-          "stage": "cleanup-complete",
-          "remoteJobId": "aBdQ7nDcfQT7tk74",
-          "createCompletedAt": "2026-07-16T06:20:31.722Z",
-          "lastPollAt": "2026-07-16T06:24:27.476Z",
-          "completedAt": "2026-07-16T06:24:27.477Z",
-          "cleanupCompletedAt": "2026-07-16T06:24:28.226Z",
-          "cleanup": {
-            "remoteJobDeleted": true
-          }
-        },
-        "timings": {
-          "createMs": 6953,
-          "createCount": 1,
-          "pollMs": 1679,
-          "pollSleepMs": 234045,
-          "pollCount": 25,
-          "transcriptMs": 652,
-          "remoteProcessingMs": 233986,
-          "cleanupMs": 90,
-          "requestCount": 27
-        }
-      },
-      {
-        "transcriptionService": "groq",
-        "transcriptionModel": "whisper-large-v3-turbo",
-        "processingTime": 24110,
-        "tokenCount": 10675
-      },
-      {
-        "transcriptionService": "groq",
-        "transcriptionModel": "whisper-large-v3",
-        "processingTime": 41431,
-        "tokenCount": 10612
-      },
-      {
-        "transcriptionService": "grok",
-        "transcriptionModel": "speech-to-text",
-        "processingTime": 68098,
-        "tokenCount": 10703,
-        "timings": {
-          "transcribeMs": 68080,
-          "remoteProcessingMs": 18,
-          "requestCount": 1
-        }
-      },
-      {
-        "transcriptionService": "mistral",
-        "transcriptionModel": "voxtral-mini-2602",
-        "processingTime": 40511,
-        "tokenCount": 10578,
-        "timings": {
-          "transcribeMs": 40498
+          "pollMs": 522,
+          "pollSleepMs": 15007,
+          "pollCount": 4,
+          "transcriptMs": 858,
+          "remoteProcessingMs": 14863,
+          "cleanupMs": 146,
+          "requestCount": 6,
+          "backfillCount": 1
         }
       },
       {
         "transcriptionService": "assemblyai",
-        "transcriptionModel": "universal-3-pro",
-        "processingTime": 43130,
-        "tokenCount": 10743,
+        "transcriptionModel": "universal-3-5-pro",
+        "processingTime": 30396,
+        "tokenCount": 10741,
+        "timings": {
+          "uploadMs": 2173,
+          "createMs": 544,
+          "createCount": 1,
+          "pollMs": 2658,
+          "pollSleepMs": 25008,
+          "pollCount": 5,
+          "remoteProcessingMs": 25021,
+          "requestCount": 7,
+          "backfillCount": 1
+        },
         "runtime": {
           "mode": "fresh",
           "stage": "completed",
-          "remoteJobId": "eb23c45f-b9db-4c72-b222-c3aa52f36a3d",
-          "remoteAssetUrl": "https://cdn.assemblyai.com/upload/177069add066a68f0a998823b30bfdfb5e7d4c868a7987fd9a0e7eb8138d12dc/6e226996-ac39-4bcd-a979-4447ec862ed7",
-          "createCompletedAt": "2026-07-16T06:20:30.978Z",
-          "lastPollAt": "2026-07-16T06:21:07.886Z",
-          "completedAt": "2026-07-16T06:21:07.886Z"
-        },
+          "remoteJobId": "bf4996f9-9623-41e6-a9f9-89923153a359",
+          "remoteAssetUrl": "https://cdn.assemblyai.com/upload/fa889ba54e5bb437a7a307e35e3f5be27ae9c53e1139a93d6696fbf6a5f0f08e/2a6276c2-a736-4866-9f2d-c0a920b43a91",
+          "createCompletedAt": "2026-08-03T08:24:45.745Z",
+          "lastPollAt": "2026-08-03T08:25:13.422Z",
+          "completedAt": "2026-08-03T08:25:13.422Z"
+        }
+      },
+      {
+        "transcriptionService": "assemblyai",
+        "transcriptionModel": "universal-2",
+        "processingTime": 31751,
+        "tokenCount": 10494,
         "timings": {
-          "uploadMs": 6104,
-          "createMs": 115,
+          "uploadMs": 2077,
+          "createMs": 110,
           "createCount": 1,
-          "pollMs": 1875,
-          "pollSleepMs": 35013,
-          "pollCount": 6,
-          "remoteProcessingMs": 35036,
-          "requestCount": 8
+          "pollMs": 4540,
+          "pollSleepMs": 25007,
+          "pollCount": 5,
+          "remoteProcessingMs": 25024,
+          "requestCount": 7,
+          "backfillCount": 1
+        },
+        "runtime": {
+          "mode": "fresh",
+          "stage": "completed",
+          "remoteJobId": "c0207382-eef1-4e55-b004-ab169736f4d1",
+          "remoteAssetUrl": "https://cdn.assemblyai.com/upload/f6de16540bf15c24c81f0b436e8866ed6d98345cf9d6e7ae96c224d6e90a3a4b/abc945d9-e36c-4e9a-b541-60a5d573cd66",
+          "createCompletedAt": "2026-08-03T08:24:45.226Z",
+          "lastPollAt": "2026-08-03T08:25:14.787Z",
+          "completedAt": "2026-08-03T08:25:14.788Z"
         }
       },
       {
         "transcriptionService": "gladia",
-        "transcriptionModel": "default",
-        "processingTime": 45529,
-        "tokenCount": 10648,
+        "transcriptionModel": "solaria-1",
+        "processingTime": 42309,
+        "tokenCount": 10633,
+        "timings": {
+          "uploadMs": 15130,
+          "createMs": 273,
+          "createCount": 1,
+          "pollMs": 1874,
+          "pollSleepMs": 25009,
+          "pollCount": 5,
+          "remoteProcessingMs": 25032,
+          "requestCount": 7,
+          "backfillCount": 1
+        },
         "runtime": {
           "mode": "fresh",
           "stage": "completed",
-          "remoteJobId": "68f6c727-f785-4e55-bb3c-37dfcbbf25a2",
-          "remoteAssetId": "017f3836-f69e-4f1b-bc31-f99cfad3db69",
-          "remoteAssetUrl": "https://api.gladia.io/file/017f3836-f69e-4f1b-bc31-f99cfad3db69",
-          "createCompletedAt": "2026-07-16T06:20:43.644Z",
-          "lastPollAt": "2026-07-16T06:21:10.374Z",
-          "completedAt": "2026-07-16T06:21:10.375Z"
-        },
-        "timings": {
-          "uploadMs": 18441,
-          "createMs": 351,
-          "createCount": 1,
-          "pollMs": 1698,
-          "pollSleepMs": 25011,
-          "pollCount": 5,
-          "remoteProcessingMs": 25039,
-          "requestCount": 7
+          "remoteJobId": "a3850f9c-9fca-47fa-80b1-50fcc1ba26c7",
+          "remoteAssetId": "6f5e141b-d604-44d5-812b-e2b29d64f849",
+          "remoteAssetUrl": "https://api.gladia.io/file/6f5e141b-d604-44d5-812b-e2b29d64f849",
+          "createCompletedAt": "2026-08-03T08:25:30.218Z",
+          "lastPollAt": "2026-08-03T08:25:57.118Z",
+          "completedAt": "2026-08-03T08:25:57.118Z"
         }
       },
       {
-        "transcriptionService": "happyscribe",
-        "transcriptionModel": "auto",
-        "processingTime": 107653,
-        "tokenCount": 10685,
+        "transcriptionService": "gladia",
+        "transcriptionModel": "solaria-3",
+        "processingTime": 50136,
+        "tokenCount": 10849,
+        "timings": {
+          "uploadMs": 12670,
+          "createMs": 362,
+          "createCount": 1,
+          "pollMs": 2065,
+          "pollSleepMs": 35010,
+          "pollCount": 6,
+          "remoteProcessingMs": 35039,
+          "requestCount": 8,
+          "backfillCount": 1
+        },
         "runtime": {
           "mode": "fresh",
           "stage": "completed",
-          "remoteJobId": "06aee6aa8c6e4d7f9b9d09dd823c9187",
-          "remoteAssetUrl": "https://media2.happyscribe.com/uploads/8d603c9a-eab7-4384-96d3-e67f124e90c1/source_media.mp3?x-amz-acl=public-read&x-amz-meta-user_id=17600298&x-amz-meta-generated_by=happyscribe-api&x-amz-sdk-checksum-algorithm=CRC32&x-amz-checksum-crc32=AAAAAA%3D%3D&X-Amz-Algorithm=AWS4-HMAC-SHA256&X-Amz-Credential=AKIA3QN374LNFOXT7QML%2F20260716%2Feu-west-1%2Fs3%2Faws4_request&X-Amz-Date=20260716T062025Z&X-Amz-Expires=86400&X-Amz-SignedHeaders=host&X-Amz-Signature=3314807edc761a4234e747b2f15dfd4c4e3bca8222d6d76e8f294d9be06fe559",
-          "createCompletedAt": "2026-07-16T06:20:31.725Z",
-          "lastPollAt": "2026-07-16T06:22:10.620Z",
-          "completedAt": "2026-07-16T06:22:11.356Z"
-        },
-        "billing": {
-          "totalCost": 0,
-          "source": "provider_quote",
-          "mode": "order",
-          "creditsUsed": 0
-        },
-        "timings": {
-          "uploadMs": 6001,
-          "createMs": 458,
-          "createCount": 1,
-          "pollMs": 3858,
-          "pollSleepMs": 95022,
-          "pollCount": 12,
-          "transcriptMs": 735,
-          "remoteProcessingMs": 96601,
-          "requestCount": 16
+          "remoteJobId": "ab8e2240-9714-4728-b200-c71c1a5f3e1a",
+          "remoteAssetId": "2b53c248-9481-487d-9779-95321999dd10",
+          "remoteAssetUrl": "https://api.gladia.io/file/2b53c248-9481-487d-9779-95321999dd10",
+          "createCompletedAt": "2026-08-03T08:26:10.200Z",
+          "lastPollAt": "2026-08-03T08:26:47.297Z",
+          "completedAt": "2026-08-03T08:26:47.298Z"
         }
       },
       {
         "transcriptionService": "gemini-stt",
-        "transcriptionModel": "gemini-3-flash-preview",
-        "processingTime": 255737,
-        "tokenCount": 11154,
+        "transcriptionModel": "gemini-3.6-flash",
+        "processingTime": 269110,
+        "tokenCount": 10445,
         "timings": {
           "requestCount": 3
         },
         "billing": {
-          "totalCost": 28.26935,
           "inputTokens": 102369,
-          "outputTokens": 60152,
-          "totalTokens": 162521,
+          "outputTokens": 64897,
+          "totalTokens": 167266,
           "audioInputTokens": 102106,
           "textInputTokens": 263,
+          "totalCost": 64.0281,
           "source": "provider_usage",
           "mode": "segment_sum"
         }
       },
       {
         "transcriptionService": "together",
-        "transcriptionModel": "openai/whisper-large-v3",
-        "processingTime": 11644,
-        "tokenCount": 10493
+        "transcriptionModel": "nvidia/parakeet-tdt-0.6b-v3",
+        "processingTime": 4500,
+        "tokenCount": 10984
       }
     ],
     "resolvedStep2": {
@@ -303,83 +215,98 @@
       "providers": [
         {
           "service": "deepinfra",
-          "model": "openai/whisper-large-v3-turbo",
-          "origin": "all-shortcut"
+          "model": "openai/whisper-large-v3-turbo"
         },
         {
           "service": "deepinfra",
-          "model": "openai/whisper-large-v3",
-          "origin": "all-shortcut"
+          "model": "openai/whisper-large-v3"
         },
         {
           "service": "deepgram",
-          "model": "nova-3",
-          "origin": "all-shortcut"
+          "model": "nova-3"
         },
         {
           "service": "soniox",
-          "model": "stt-async-v4",
-          "origin": "all-shortcut"
+          "model": "stt-async-v4"
         },
         {
           "service": "speechmatics",
-          "model": "enhanced",
-          "origin": "all-shortcut"
+          "model": "enhanced"
         },
         {
           "service": "rev",
-          "model": "machine",
-          "origin": "all-shortcut"
+          "model": "machine"
         },
         {
           "service": "rev",
-          "model": "low_cost",
-          "origin": "all-shortcut"
+          "model": "low_cost"
         },
         {
           "service": "groq",
-          "model": "whisper-large-v3-turbo",
-          "origin": "all-shortcut"
+          "model": "whisper-large-v3-turbo"
         },
         {
           "service": "groq",
-          "model": "whisper-large-v3",
-          "origin": "all-shortcut"
-        },
-        {
-          "service": "grok",
-          "model": "speech-to-text",
-          "origin": "all-shortcut"
+          "model": "whisper-large-v3"
         },
         {
           "service": "mistral",
-          "model": "voxtral-mini-2602",
-          "origin": "all-shortcut"
+          "model": "voxtral-mini-2602"
         },
         {
           "service": "assemblyai",
-          "model": "universal-3-pro",
-          "origin": "all-shortcut"
+          "model": "universal-3-pro"
         },
         {
           "service": "gladia",
-          "model": "default",
-          "origin": "all-shortcut"
+          "model": "default"
         },
         {
           "service": "happyscribe",
-          "model": "auto",
-          "origin": "all-shortcut"
+          "model": "auto"
         },
         {
           "service": "gemini-stt",
-          "model": "gemini-3-flash-preview",
-          "origin": "all-shortcut"
+          "model": "gemini-3-flash-preview"
         },
         {
           "service": "together",
-          "model": "openai/whisper-large-v3",
-          "origin": "all-shortcut"
+          "model": "openai/whisper-large-v3"
+        },
+        {
+          "service": "soniox",
+          "model": "stt-async-v5"
+        },
+        {
+          "service": "speechmatics",
+          "model": "melia-1",
+          "origin": "explicit"
+        },
+        {
+          "service": "assemblyai",
+          "model": "universal-3-5-pro"
+        },
+        {
+          "service": "assemblyai",
+          "model": "universal-2"
+        },
+        {
+          "service": "gladia",
+          "model": "solaria-1",
+          "origin": "explicit"
+        },
+        {
+          "service": "gladia",
+          "model": "solaria-3",
+          "origin": "explicit"
+        },
+        {
+          "service": "gemini-stt",
+          "model": "gemini-3.6-flash"
+        },
+        {
+          "service": "together",
+          "model": "nvidia/parakeet-tdt-0.6b-v3"
         }
       ]
     },
@@ -446,14 +373,6 @@
         "local": false
       },
       {
-        "service": "grok",
-        "model": "speech-to-text",
-        "local": false,
-        "diarizationOptions": {
-          "enabled": true
-        }
-      },
-      {
         "service": "mistral",
         "model": "voxtral-mini-2602",
         "local": false,
@@ -493,6 +412,64 @@
       {
         "service": "together",
         "model": "openai/whisper-large-v3",
+        "local": false
+      },
+      {
+        "service": "soniox",
+        "model": "stt-async-v5",
+        "local": false,
+        "diarizationOptions": {
+          "enabled": true
+        }
+      },
+      {
+        "service": "speechmatics",
+        "model": "melia-1",
+        "local": false,
+        "diarizationOptions": {
+          "enabled": true
+        }
+      },
+      {
+        "service": "assemblyai",
+        "model": "universal-3-5-pro",
+        "local": false,
+        "diarizationOptions": {
+          "enabled": true
+        }
+      },
+      {
+        "service": "assemblyai",
+        "model": "universal-2",
+        "local": false,
+        "diarizationOptions": {
+          "enabled": true
+        }
+      },
+      {
+        "service": "gladia",
+        "model": "solaria-1",
+        "local": false,
+        "diarizationOptions": {
+          "enabled": true
+        }
+      },
+      {
+        "service": "gladia",
+        "model": "solaria-3",
+        "local": false,
+        "diarizationOptions": {
+          "enabled": true
+        }
+      },
+      {
+        "service": "gemini-stt",
+        "model": "gemini-3.6-flash",
+        "local": false
+      },
+      {
+        "service": "together",
+        "model": "nvidia/parakeet-tdt-0.6b-v3",
         "local": false
       }
     ],
@@ -570,14 +547,6 @@
         "attempts": 1
       },
       {
-        "service": "grok",
-        "model": "speech-to-text",
-        "local": false,
-        "artifactDir": "providers/grok-speech-to-text",
-        "status": "succeeded",
-        "attempts": 1
-      },
-      {
         "service": "mistral",
         "model": "voxtral-mini-2602",
         "local": false,
@@ -624,12 +593,76 @@
         "artifactDir": "providers/together-openai_whisper-large-v3",
         "status": "succeeded",
         "attempts": 1
+      },
+      {
+        "service": "soniox",
+        "model": "stt-async-v5",
+        "local": false,
+        "artifactDir": "providers/soniox-stt-async-v5",
+        "status": "succeeded",
+        "attempts": 1
+      },
+      {
+        "service": "speechmatics",
+        "model": "melia-1",
+        "local": false,
+        "artifactDir": "providers/speechmatics-melia-1",
+        "status": "succeeded",
+        "attempts": 3
+      },
+      {
+        "service": "assemblyai",
+        "model": "universal-3-5-pro",
+        "local": false,
+        "artifactDir": "providers/assemblyai-universal-3-5-pro",
+        "status": "succeeded",
+        "attempts": 1
+      },
+      {
+        "service": "assemblyai",
+        "model": "universal-2",
+        "local": false,
+        "artifactDir": "providers/assemblyai-universal-2",
+        "status": "succeeded",
+        "attempts": 1
+      },
+      {
+        "service": "gladia",
+        "model": "solaria-1",
+        "local": false,
+        "artifactDir": "providers/gladia-solaria-1",
+        "status": "succeeded",
+        "attempts": 1
+      },
+      {
+        "service": "gladia",
+        "model": "solaria-3",
+        "local": false,
+        "artifactDir": "providers/gladia-solaria-3",
+        "status": "succeeded",
+        "attempts": 1
+      },
+      {
+        "service": "gemini-stt",
+        "model": "gemini-3.6-flash",
+        "local": false,
+        "artifactDir": "providers/gemini-stt-gemini-3.6-flash",
+        "status": "succeeded",
+        "attempts": 1
+      },
+      {
+        "service": "together",
+        "model": "nvidia/parakeet-tdt-0.6b-v3",
+        "local": false,
+        "artifactDir": "providers/together-nvidia_parakeet-tdt-0.6b-v3",
+        "status": "succeeded",
+        "attempts": 1
       }
     ],
     "missingProviders": [],
     "cost": {
       "estimated": {
-        "totalCost": 427.3679111111111,
+        "totalCost": 498.45220000000006,
         "steps": [
           {
             "step": "stt",
@@ -659,7 +692,7 @@
             "step": "stt",
             "provider": "soniox",
             "model": "stt-async-v4",
-            "cost": 11.344444444444443,
+            "cost": 0,
             "costMultiplier": 1,
             "durationSeconds": 4084
           },
@@ -667,7 +700,7 @@
             "step": "stt",
             "provider": "speechmatics",
             "model": "enhanced",
-            "cost": 85.08333333333333,
+            "cost": 45.37777777777777,
             "costMultiplier": 1,
             "durationSeconds": 4084
           },
@@ -705,14 +738,6 @@
           },
           {
             "step": "stt",
-            "provider": "grok",
-            "model": "speech-to-text",
-            "cost": 11.344444444444443,
-            "costMultiplier": 1,
-            "durationSeconds": 4084
-          },
-          {
-            "step": "stt",
             "provider": "mistral",
             "model": "voxtral-mini-2602",
             "cost": 13.613333333333333,
@@ -723,7 +748,7 @@
             "step": "stt",
             "provider": "assemblyai",
             "model": "universal-3-pro",
-            "cost": 23.82333333333333,
+            "cost": 0,
             "costMultiplier": 1,
             "durationSeconds": 4084
           },
@@ -731,7 +756,7 @@
             "step": "stt",
             "provider": "gladia",
             "model": "default",
-            "cost": 69.2011111111111,
+            "cost": 0,
             "costMultiplier": 1,
             "durationSeconds": 4084
           },
@@ -747,7 +772,7 @@
             "step": "stt",
             "provider": "gemini-stt",
             "model": "gemini-3-flash-preview",
-            "cost": 13.068799999999998,
+            "cost": 0,
             "costMultiplier": 1,
             "durationSeconds": 4084
           },
@@ -755,6 +780,70 @@
             "step": "stt",
             "provider": "together",
             "model": "openai/whisper-large-v3",
+            "cost": 10.209999999999999,
+            "costMultiplier": 1,
+            "durationSeconds": 4084
+          },
+          {
+            "step": "stt",
+            "provider": "soniox",
+            "model": "stt-async-v5",
+            "cost": 11.344444444444443,
+            "costMultiplier": 1,
+            "durationSeconds": 4084
+          },
+          {
+            "step": "stt",
+            "provider": "speechmatics",
+            "model": "melia-1",
+            "cost": 14.634333333333332,
+            "costMultiplier": 1,
+            "durationSeconds": 4084
+          },
+          {
+            "step": "stt",
+            "provider": "assemblyai",
+            "model": "universal-3-5-pro",
+            "cost": 26.09222222222222,
+            "costMultiplier": 1,
+            "durationSeconds": 4084
+          },
+          {
+            "step": "stt",
+            "provider": "assemblyai",
+            "model": "universal-2",
+            "cost": 19.285555555555554,
+            "costMultiplier": 1,
+            "durationSeconds": 4084
+          },
+          {
+            "step": "stt",
+            "provider": "gladia",
+            "model": "solaria-1",
+            "cost": 69.2011111111111,
+            "costMultiplier": 1,
+            "durationSeconds": 4084
+          },
+          {
+            "step": "stt",
+            "provider": "gladia",
+            "model": "solaria-3",
+            "cost": 69.2011111111111,
+            "costMultiplier": 1,
+            "durationSeconds": 4084
+          },
+          {
+            "step": "stt",
+            "provider": "gemini-stt",
+            "model": "gemini-3.6-flash",
+            "cost": 19.6032,
+            "costMultiplier": 1,
+            "durationSeconds": 4084
+          },
+          {
+            "step": "stt",
+            "provider": "together",
+            "model": "nvidia/parakeet-tdt-0.6b-v3",
             "cost": 10.209999999999999,
             "costMultiplier": 1,
             "durationSeconds": 4084
@@ -762,7 +851,7 @@
         ]
       },
       "observedEstimate": {
-        "totalCost": 427.3679111111111,
+        "totalCost": 498.45220000000006,
         "steps": [
           {
             "step": "stt",
@@ -792,7 +881,7 @@
             "step": "stt",
             "provider": "soniox",
             "model": "stt-async-v4",
-            "cost": 11.344444444444443,
+            "cost": 0,
             "costMultiplier": 1,
             "durationSeconds": 4084
           },
@@ -800,7 +889,7 @@
             "step": "stt",
             "provider": "speechmatics",
             "model": "enhanced",
-            "cost": 85.08333333333333,
+            "cost": 45.37777777777777,
             "costMultiplier": 1,
             "durationSeconds": 4084
           },
@@ -838,14 +927,6 @@
           },
           {
             "step": "stt",
-            "provider": "grok",
-            "model": "speech-to-text",
-            "cost": 11.344444444444443,
-            "costMultiplier": 1,
-            "durationSeconds": 4084
-          },
-          {
-            "step": "stt",
             "provider": "mistral",
             "model": "voxtral-mini-2602",
             "cost": 13.613333333333333,
@@ -856,7 +937,7 @@
             "step": "stt",
             "provider": "assemblyai",
             "model": "universal-3-pro",
-            "cost": 23.82333333333333,
+            "cost": 0,
             "costMultiplier": 1,
             "durationSeconds": 4084
           },
@@ -864,7 +945,7 @@
             "step": "stt",
             "provider": "gladia",
             "model": "default",
-            "cost": 69.2011111111111,
+            "cost": 0,
             "costMultiplier": 1,
             "durationSeconds": 4084
           },
@@ -880,7 +961,7 @@
             "step": "stt",
             "provider": "gemini-stt",
             "model": "gemini-3-flash-preview",
-            "cost": 13.068799999999998,
+            "cost": 0,
             "costMultiplier": 1,
             "durationSeconds": 4084
           },
@@ -891,43 +972,80 @@
             "cost": 10.209999999999999,
             "costMultiplier": 1,
             "durationSeconds": 4084
-          }
-        ]
-      },
-      "actual": {
-        "totalCost": 374.5017944444444,
-        "steps": [
-          {
-            "step": "stt",
-            "provider": "deepinfra",
-            "model": "openai/whisper-large-v3-turbo",
-            "cost": 1.3613333333333333,
-            "costSource": "computed_usage",
-            "inputMetric": "durationSeconds",
-            "inputValue": 4084
-          },
-          {
-            "step": "stt",
-            "provider": "deepinfra",
-            "model": "openai/whisper-large-v3",
-            "cost": 3.063,
-            "costSource": "computed_usage",
-            "inputMetric": "durationSeconds",
-            "inputValue": 4084
-          },
-          {
-            "step": "stt",
-            "provider": "deepgram",
-            "model": "nova-3",
-            "cost": 66.02466666666666,
-            "costSource": "computed_usage",
-            "inputMetric": "durationSeconds",
-            "inputValue": 4084
           },
           {
             "step": "stt",
             "provider": "soniox",
-            "model": "stt-async-v4",
+            "model": "stt-async-v5",
+            "cost": 11.344444444444443,
+            "costMultiplier": 1,
+            "durationSeconds": 4084
+          },
+          {
+            "step": "stt",
+            "provider": "speechmatics",
+            "model": "melia-1",
+            "cost": 14.634333333333332,
+            "costMultiplier": 1,
+            "durationSeconds": 4084
+          },
+          {
+            "step": "stt",
+            "provider": "assemblyai",
+            "model": "universal-3-5-pro",
+            "cost": 26.09222222222222,
+            "costMultiplier": 1,
+            "durationSeconds": 4084
+          },
+          {
+            "step": "stt",
+            "provider": "assemblyai",
+            "model": "universal-2",
+            "cost": 19.285555555555554,
+            "costMultiplier": 1,
+            "durationSeconds": 4084
+          },
+          {
+            "step": "stt",
+            "provider": "gladia",
+            "model": "solaria-1",
+            "cost": 69.2011111111111,
+            "costMultiplier": 1,
+            "durationSeconds": 4084
+          },
+          {
+            "step": "stt",
+            "provider": "gladia",
+            "model": "solaria-3",
+            "cost": 69.2011111111111,
+            "costMultiplier": 1,
+            "durationSeconds": 4084
+          },
+          {
+            "step": "stt",
+            "provider": "gemini-stt",
+            "model": "gemini-3.6-flash",
+            "cost": 19.6032,
+            "costMultiplier": 1,
+            "durationSeconds": 4084
+          },
+          {
+            "step": "stt",
+            "provider": "together",
+            "model": "nvidia/parakeet-tdt-0.6b-v3",
+            "cost": 10.209999999999999,
+            "costMultiplier": 1,
+            "durationSeconds": 4084
+          }
+        ]
+      },
+      "actual": {
+        "totalCost": 283.99687777777774,
+        "steps": [
+          {
+            "step": "stt",
+            "provider": "soniox",
+            "model": "stt-async-v5",
             "cost": 11.344444444444443,
             "costSource": "computed_usage",
             "inputMetric": "durationSeconds",
@@ -936,62 +1054,8 @@
           {
             "step": "stt",
             "provider": "speechmatics",
-            "model": "enhanced",
-            "cost": 85.08333333333333,
-            "costSource": "computed_usage",
-            "inputMetric": "durationSeconds",
-            "inputValue": 4084
-          },
-          {
-            "step": "stt",
-            "provider": "rev",
-            "model": "machine",
-            "cost": 22.688888888888886,
-            "costSource": "computed_usage",
-            "inputMetric": "durationSeconds",
-            "inputValue": 4084
-          },
-          {
-            "step": "stt",
-            "provider": "rev",
-            "model": "low_cost",
-            "cost": 11.344444444444443,
-            "costSource": "computed_usage",
-            "inputMetric": "durationSeconds",
-            "inputValue": 4084
-          },
-          {
-            "step": "stt",
-            "provider": "groq",
-            "model": "whisper-large-v3-turbo",
-            "cost": 4.5377777777777775,
-            "costSource": "computed_usage",
-            "inputMetric": "durationSeconds",
-            "inputValue": 4084
-          },
-          {
-            "step": "stt",
-            "provider": "groq",
-            "model": "whisper-large-v3",
-            "cost": 12.592333333333332,
-            "costSource": "computed_usage",
-            "inputMetric": "durationSeconds",
-            "inputValue": 4084
-          },
-          {
-            "step": "stt",
-            "provider": "grok",
-            "model": "speech-to-text",
-            "cost": 11.344444444444443,
-            "costSource": "computed_usage",
-            "inputMetric": "durationSeconds",
-            "inputValue": 4084
-          },
-          {
-            "step": "stt",
-            "provider": "mistral",
-            "model": "voxtral-mini-2602",
-            "cost": 13.613333333333333,
+            "model": "melia-1",
+            "cost": 14.634333333333332,
             "costSource": "computed_usage",
             "inputMetric": "durationSeconds",
             "inputValue": 4084
@@ -999,8 +1063,17 @@
           {
             "step": "stt",
             "provider": "assemblyai",
-            "model": "universal-3-pro",
-            "cost": 23.82333333333333,
+            "model": "universal-3-5-pro",
+            "cost": 26.09222222222222,
+            "costSource": "computed_usage",
+            "inputMetric": "durationSeconds",
+            "inputValue": 4084
+          },
+          {
+            "step": "stt",
+            "provider": "assemblyai",
+            "model": "universal-2",
+            "cost": 19.285555555555554,
             "costSource": "computed_usage",
             "inputMetric": "durationSeconds",
             "inputValue": 4084
@@ -1008,7 +1081,7 @@
           {
             "step": "stt",
             "provider": "gladia",
-            "model": "default",
+            "model": "solaria-1",
             "cost": 69.2011111111111,
             "costSource": "computed_usage",
             "inputMetric": "durationSeconds",
@@ -1016,28 +1089,28 @@
           },
           {
             "step": "stt",
-            "provider": "happyscribe",
-            "model": "auto",
-            "cost": 0,
-            "costSource": "provider_quote",
+            "provider": "gladia",
+            "model": "solaria-3",
+            "cost": 69.2011111111111,
+            "costSource": "computed_usage",
             "inputMetric": "durationSeconds",
             "inputValue": 4084
           },
           {
             "step": "stt",
             "provider": "gemini-stt",
-            "model": "gemini-3-flash-preview",
-            "cost": 28.26935,
+            "model": "gemini-3.6-flash",
+            "cost": 64.0281,
             "costSource": "provider_usage",
             "inputMetric": "tokens",
-            "inputValue": 162521,
+            "inputValue": 167266,
             "promptTokens": 102369,
-            "completionTokens": 60152
+            "completionTokens": 64897
           },
           {
             "step": "stt",
             "provider": "together",
-            "model": "openai/whisper-large-v3",
+            "model": "nvidia/parakeet-tdt-0.6b-v3",
             "cost": 10.209999999999999,
             "costSource": "computed_usage",
             "inputMetric": "durationSeconds",
@@ -1046,13 +1119,13 @@
         ]
       },
       "aggregate": {
-        "estimatedTotalCost": 427.3679111111111,
-        "actualTotalCost": 374.5017944444444
+        "estimatedTotalCost": 498.45220000000006,
+        "actualTotalCost": 283.99687777777774
       }
     },
     "timing": {
       "estimated": {
-        "totalProcessingTimeMs": 13758996,
+        "totalProcessingTimeMs": 31303860,
         "steps": [
           {
             "step": "stt",
@@ -1097,12 +1170,12 @@
             "step": "stt",
             "provider": "soniox",
             "model": "stt-async-v4",
-            "processingTimeMs": 567676,
+            "processingTimeMs": 3675600,
             "inputMetric": "durationSeconds",
             "inputValue": 4084,
             "rateBasis": "durationSecond",
-            "msPerUnit": 139,
-            "throughputValue": 7.194,
+            "msPerUnit": 900,
+            "throughputValue": 1.111,
             "throughputUnit": "x",
             "timingScope": "estimated"
           },
@@ -1173,19 +1246,6 @@
           },
           {
             "step": "stt",
-            "provider": "grok",
-            "model": "speech-to-text",
-            "processingTimeMs": 134772,
-            "inputMetric": "durationSeconds",
-            "inputValue": 4084,
-            "rateBasis": "durationSecond",
-            "msPerUnit": 33,
-            "throughputValue": 30.303,
-            "throughputUnit": "x",
-            "timingScope": "estimated"
-          },
-          {
-            "step": "stt",
             "provider": "mistral",
             "model": "voxtral-mini-2602",
             "processingTimeMs": 412484,
@@ -1201,12 +1261,12 @@
             "step": "stt",
             "provider": "assemblyai",
             "model": "universal-3-pro",
-            "processingTimeMs": 767792,
+            "processingTimeMs": 3675600,
             "inputMetric": "durationSeconds",
             "inputValue": 4084,
             "rateBasis": "durationSecond",
-            "msPerUnit": 188,
-            "throughputValue": 5.319,
+            "msPerUnit": 900,
+            "throughputValue": 1.111,
             "throughputUnit": "x",
             "timingScope": "estimated"
           },
@@ -1214,12 +1274,12 @@
             "step": "stt",
             "provider": "gladia",
             "model": "default",
-            "processingTimeMs": 1159856,
+            "processingTimeMs": 3675600,
             "inputMetric": "durationSeconds",
             "inputValue": 4084,
             "rateBasis": "durationSecond",
-            "msPerUnit": 284,
-            "throughputValue": 3.521,
+            "msPerUnit": 900,
+            "throughputValue": 1.111,
             "throughputUnit": "x",
             "timingScope": "estimated"
           },
@@ -1240,12 +1300,12 @@
             "step": "stt",
             "provider": "gemini-stt",
             "model": "gemini-3-flash-preview",
-            "processingTimeMs": 3642928,
+            "processingTimeMs": 3675600,
             "inputMetric": "durationSeconds",
             "inputValue": 4084,
             "rateBasis": "durationSecond",
-            "msPerUnit": 892,
-            "throughputValue": 1.121,
+            "msPerUnit": 900,
+            "throughputValue": 1.111,
             "throughputUnit": "x",
             "timingScope": "estimated"
           },
@@ -1261,476 +1321,395 @@
             "throughputValue": 25.641,
             "throughputUnit": "x",
             "timingScope": "estimated"
+          },
+          {
+            "step": "stt",
+            "provider": "soniox",
+            "model": "stt-async-v5",
+            "processingTimeMs": 567676,
+            "inputMetric": "durationSeconds",
+            "inputValue": 4084,
+            "rateBasis": "durationSecond",
+            "msPerUnit": 139,
+            "throughputValue": 7.194,
+            "throughputUnit": "x",
+            "timingScope": "estimated"
+          },
+          {
+            "step": "stt",
+            "provider": "speechmatics",
+            "model": "melia-1",
+            "processingTimeMs": 890312,
+            "inputMetric": "durationSeconds",
+            "inputValue": 4084,
+            "rateBasis": "durationSecond",
+            "msPerUnit": 218,
+            "throughputValue": 4.587,
+            "throughputUnit": "x",
+            "timingScope": "estimated"
+          },
+          {
+            "step": "stt",
+            "provider": "assemblyai",
+            "model": "universal-3-5-pro",
+            "processingTimeMs": 767792,
+            "inputMetric": "durationSeconds",
+            "inputValue": 4084,
+            "rateBasis": "durationSecond",
+            "msPerUnit": 188,
+            "throughputValue": 5.319,
+            "throughputUnit": "x",
+            "timingScope": "estimated"
+          },
+          {
+            "step": "stt",
+            "provider": "assemblyai",
+            "model": "universal-2",
+            "processingTimeMs": 767792,
+            "inputMetric": "durationSeconds",
+            "inputValue": 4084,
+            "rateBasis": "durationSecond",
+            "msPerUnit": 188,
+            "throughputValue": 5.319,
+            "throughputUnit": "x",
+            "timingScope": "estimated"
+          },
+          {
+            "step": "stt",
+            "provider": "gladia",
+            "model": "solaria-1",
+            "processingTimeMs": 1159856,
+            "inputMetric": "durationSeconds",
+            "inputValue": 4084,
+            "rateBasis": "durationSecond",
+            "msPerUnit": 284,
+            "throughputValue": 3.521,
+            "throughputUnit": "x",
+            "timingScope": "estimated"
+          },
+          {
+            "step": "stt",
+            "provider": "gladia",
+            "model": "solaria-3",
+            "processingTimeMs": 1159856,
+            "inputMetric": "durationSeconds",
+            "inputValue": 4084,
+            "rateBasis": "durationSecond",
+            "msPerUnit": 284,
+            "throughputValue": 3.521,
+            "throughputUnit": "x",
+            "timingScope": "estimated"
+          },
+          {
+            "step": "stt",
+            "provider": "gemini-stt",
+            "model": "gemini-3.6-flash",
+            "processingTimeMs": 3642928,
+            "inputMetric": "durationSeconds",
+            "inputValue": 4084,
+            "rateBasis": "durationSecond",
+            "msPerUnit": 892,
+            "throughputValue": 1.121,
+            "throughputUnit": "x",
+            "timingScope": "estimated"
+          },
+          {
+            "step": "stt",
+            "provider": "together",
+            "model": "nvidia/parakeet-tdt-0.6b-v3",
+            "processingTimeMs": 159276,
+            "inputMetric": "durationSeconds",
+            "inputValue": 4084,
+            "rateBasis": "durationSecond",
+            "msPerUnit": 39,
+            "throughputValue": 25.641,
+            "throughputUnit": "x",
+            "timingScope": "estimated"
           }
         ],
         "estimateConfidence": "registry",
         "likelyGatingTargets": [
           {
             "step": "stt",
-            "provider": "gemini-stt",
-            "model": "gemini-3-flash-preview",
-            "processingTimeMs": 3642928
+            "provider": "soniox",
+            "model": "stt-async-v4",
+            "processingTimeMs": 3675600
           }
         ]
       },
       "actual": {
-        "totalProcessingTimeMs": 1491762,
+        "totalProcessingTimeMs": 711411,
         "steps": [
           {
             "step": "stt",
-            "provider": "deepinfra",
-            "model": "openai/whisper-large-v3-turbo",
-            "processingTimeMs": 66178,
-            "inputMetric": "durationSeconds",
-            "inputValue": 4084,
-            "rateBasis": "durationSecond",
-            "msPerUnit": 16.204,
-            "throughputValue": 61.712,
-            "throughputUnit": "x",
-            "timingScope": "wall"
-          },
-          {
-            "step": "stt",
-            "provider": "deepinfra",
-            "model": "openai/whisper-large-v3",
-            "processingTimeMs": 76255,
-            "inputMetric": "durationSeconds",
-            "inputValue": 4084,
-            "rateBasis": "durationSecond",
-            "msPerUnit": 18.672,
-            "throughputValue": 53.557,
-            "throughputUnit": "x",
-            "timingScope": "wall"
-          },
-          {
-            "step": "stt",
-            "provider": "deepgram",
-            "model": "nova-3",
-            "processingTimeMs": 21964,
-            "timingBreakdown": {
-              "transcribeMs": 21954,
-              "remoteProcessingMs": 10
-            },
-            "inputMetric": "durationSeconds",
-            "inputValue": 4084,
-            "rateBasis": "durationSecond",
-            "msPerUnit": 5.378,
-            "throughputValue": 185.941,
-            "throughputUnit": "x",
-            "timingScope": "wall"
-          },
-          {
-            "step": "stt",
             "provider": "soniox",
-            "model": "stt-async-v4",
-            "processingTimeMs": 193760,
+            "model": "stt-async-v5",
+            "processingTimeMs": 259005,
             "timingBreakdown": {
-              "uploadMs": 6202,
-              "createMs": 73,
-              "pollMs": 998,
-              "pollSleepMs": 185034,
-              "transcriptMs": 1419,
-              "remoteProcessingMs": 184907,
-              "cleanupMs": 161
+              "uploadMs": 1435,
+              "createMs": 68,
+              "pollMs": 1230,
+              "pollSleepMs": 255042,
+              "transcriptMs": 1186,
+              "remoteProcessingMs": 254885,
+              "cleanupMs": 201
             },
             "inputMetric": "durationSeconds",
             "inputValue": 4084,
             "rateBasis": "durationSecond",
-            "msPerUnit": 47.444,
-            "throughputValue": 21.078,
+            "msPerUnit": 63.419,
+            "throughputValue": 15.768,
             "throughputUnit": "x",
             "timingScope": "wall"
           },
           {
             "step": "stt",
             "provider": "speechmatics",
-            "model": "enhanced",
-            "processingTimeMs": 130129,
+            "model": "melia-1",
+            "processingTimeMs": 24204,
             "timingBreakdown": {
-              "createMs": 10914,
-              "pollMs": 3260,
-              "pollSleepMs": 115028,
-              "transcriptMs": 907,
-              "remoteProcessingMs": 114914,
-              "cleanupMs": 134
+              "createMs": 7815,
+              "pollMs": 522,
+              "pollSleepMs": 15007,
+              "transcriptMs": 858,
+              "remoteProcessingMs": 14863,
+              "cleanupMs": 146
             },
             "inputMetric": "durationSeconds",
             "inputValue": 4084,
             "rateBasis": "durationSecond",
-            "msPerUnit": 31.863,
-            "throughputValue": 31.384,
-            "throughputUnit": "x",
-            "timingScope": "wall"
-          },
-          {
-            "step": "stt",
-            "provider": "rev",
-            "model": "machine",
-            "processingTimeMs": 122273,
-            "timingBreakdown": {
-              "createMs": 6699,
-              "pollMs": 855,
-              "pollSleepMs": 114024,
-              "transcriptMs": 674,
-              "remoteProcessingMs": 113959,
-              "cleanupMs": 86
-            },
-            "inputMetric": "durationSeconds",
-            "inputValue": 4084,
-            "rateBasis": "durationSecond",
-            "msPerUnit": 29.94,
-            "throughputValue": 33.401,
-            "throughputUnit": "x",
-            "timingScope": "wall"
-          },
-          {
-            "step": "stt",
-            "provider": "rev",
-            "model": "low_cost",
-            "processingTimeMs": 243360,
-            "timingBreakdown": {
-              "createMs": 6953,
-              "pollMs": 1679,
-              "pollSleepMs": 234045,
-              "transcriptMs": 652,
-              "remoteProcessingMs": 233986,
-              "cleanupMs": 90
-            },
-            "inputMetric": "durationSeconds",
-            "inputValue": 4084,
-            "rateBasis": "durationSecond",
-            "msPerUnit": 59.589,
-            "throughputValue": 16.782,
-            "throughputUnit": "x",
-            "timingScope": "wall"
-          },
-          {
-            "step": "stt",
-            "provider": "groq",
-            "model": "whisper-large-v3-turbo",
-            "processingTimeMs": 24110,
-            "inputMetric": "durationSeconds",
-            "inputValue": 4084,
-            "rateBasis": "durationSecond",
-            "msPerUnit": 5.904,
-            "throughputValue": 169.39,
-            "throughputUnit": "x",
-            "timingScope": "wall"
-          },
-          {
-            "step": "stt",
-            "provider": "groq",
-            "model": "whisper-large-v3",
-            "processingTimeMs": 41431,
-            "inputMetric": "durationSeconds",
-            "inputValue": 4084,
-            "rateBasis": "durationSecond",
-            "msPerUnit": 10.145,
-            "throughputValue": 98.574,
-            "throughputUnit": "x",
-            "timingScope": "wall"
-          },
-          {
-            "step": "stt",
-            "provider": "grok",
-            "model": "speech-to-text",
-            "processingTimeMs": 68098,
-            "timingBreakdown": {
-              "transcribeMs": 68080,
-              "remoteProcessingMs": 18
-            },
-            "inputMetric": "durationSeconds",
-            "inputValue": 4084,
-            "rateBasis": "durationSecond",
-            "msPerUnit": 16.674,
-            "throughputValue": 59.972,
-            "throughputUnit": "x",
-            "timingScope": "wall"
-          },
-          {
-            "step": "stt",
-            "provider": "mistral",
-            "model": "voxtral-mini-2602",
-            "processingTimeMs": 40511,
-            "timingBreakdown": {
-              "transcribeMs": 40498
-            },
-            "inputMetric": "durationSeconds",
-            "inputValue": 4084,
-            "rateBasis": "durationSecond",
-            "msPerUnit": 9.919,
-            "throughputValue": 100.812,
+            "msPerUnit": 5.927,
+            "throughputValue": 168.732,
             "throughputUnit": "x",
             "timingScope": "wall"
           },
           {
             "step": "stt",
             "provider": "assemblyai",
-            "model": "universal-3-pro",
-            "processingTimeMs": 43130,
+            "model": "universal-3-5-pro",
+            "processingTimeMs": 30396,
             "timingBreakdown": {
-              "uploadMs": 6104,
-              "createMs": 115,
-              "pollMs": 1875,
-              "pollSleepMs": 35013,
-              "remoteProcessingMs": 35036
+              "uploadMs": 2173,
+              "createMs": 544,
+              "pollMs": 2658,
+              "pollSleepMs": 25008,
+              "remoteProcessingMs": 25021
             },
             "inputMetric": "durationSeconds",
             "inputValue": 4084,
             "rateBasis": "durationSecond",
-            "msPerUnit": 10.561,
-            "throughputValue": 94.69,
+            "msPerUnit": 7.443,
+            "throughputValue": 134.36,
+            "throughputUnit": "x",
+            "timingScope": "wall"
+          },
+          {
+            "step": "stt",
+            "provider": "assemblyai",
+            "model": "universal-2",
+            "processingTimeMs": 31751,
+            "timingBreakdown": {
+              "uploadMs": 2077,
+              "createMs": 110,
+              "pollMs": 4540,
+              "pollSleepMs": 25007,
+              "remoteProcessingMs": 25024
+            },
+            "inputMetric": "durationSeconds",
+            "inputValue": 4084,
+            "rateBasis": "durationSecond",
+            "msPerUnit": 7.774,
+            "throughputValue": 128.626,
             "throughputUnit": "x",
             "timingScope": "wall"
           },
           {
             "step": "stt",
             "provider": "gladia",
-            "model": "default",
-            "processingTimeMs": 45529,
+            "model": "solaria-1",
+            "processingTimeMs": 42309,
             "timingBreakdown": {
-              "uploadMs": 18441,
-              "createMs": 351,
-              "pollMs": 1698,
-              "pollSleepMs": 25011,
-              "remoteProcessingMs": 25039
+              "uploadMs": 15130,
+              "createMs": 273,
+              "pollMs": 1874,
+              "pollSleepMs": 25009,
+              "remoteProcessingMs": 25032
             },
             "inputMetric": "durationSeconds",
             "inputValue": 4084,
             "rateBasis": "durationSecond",
-            "msPerUnit": 11.148,
-            "throughputValue": 89.701,
+            "msPerUnit": 10.36,
+            "throughputValue": 96.528,
             "throughputUnit": "x",
             "timingScope": "wall"
           },
           {
             "step": "stt",
-            "provider": "happyscribe",
-            "model": "auto",
-            "processingTimeMs": 107653,
+            "provider": "gladia",
+            "model": "solaria-3",
+            "processingTimeMs": 50136,
             "timingBreakdown": {
-              "uploadMs": 6001,
-              "createMs": 458,
-              "pollMs": 3858,
-              "pollSleepMs": 95022,
-              "transcriptMs": 735,
-              "remoteProcessingMs": 96601
+              "uploadMs": 12670,
+              "createMs": 362,
+              "pollMs": 2065,
+              "pollSleepMs": 35010,
+              "remoteProcessingMs": 35039
             },
             "inputMetric": "durationSeconds",
             "inputValue": 4084,
             "rateBasis": "durationSecond",
-            "msPerUnit": 26.36,
-            "throughputValue": 37.937,
+            "msPerUnit": 12.276,
+            "throughputValue": 81.458,
             "throughputUnit": "x",
             "timingScope": "wall"
           },
           {
             "step": "stt",
             "provider": "gemini-stt",
-            "model": "gemini-3-flash-preview",
-            "processingTimeMs": 255737,
+            "model": "gemini-3.6-flash",
+            "processingTimeMs": 269110,
             "inputMetric": "durationSeconds",
             "inputValue": 4084,
             "rateBasis": "durationSecond",
-            "msPerUnit": 62.619,
-            "throughputValue": 15.97,
+            "msPerUnit": 65.894,
+            "throughputValue": 15.176,
             "throughputUnit": "x",
             "timingScope": "wall"
           },
           {
             "step": "stt",
             "provider": "together",
-            "model": "openai/whisper-large-v3",
-            "processingTimeMs": 11644,
+            "model": "nvidia/parakeet-tdt-0.6b-v3",
+            "processingTimeMs": 4500,
             "inputMetric": "durationSeconds",
             "inputValue": 4084,
             "rateBasis": "durationSecond",
-            "msPerUnit": 2.851,
-            "throughputValue": 350.739,
+            "msPerUnit": 1.102,
+            "throughputValue": 907.556,
             "throughputUnit": "x",
             "timingScope": "wall"
           }
         ]
       },
       "aggregate": {
-        "wallTimeMs": 256298,
+        "wallTimeMs": 38106,
         "scheduler": {
-          "hostedProviderCount": 16,
-          "itemProviderConcurrency": 10,
+          "hostedProviderCount": 23,
+          "itemProviderConcurrency": 3,
           "coordinatedAcrossBatch": false
         },
         "providers": [
           {
-            "service": "deepinfra",
-            "model": "openai/whisper-large-v3-turbo",
-            "processingTimeMs": 66178
-          },
-          {
-            "service": "deepinfra",
-            "model": "openai/whisper-large-v3",
-            "processingTimeMs": 76255
-          },
-          {
-            "service": "deepgram",
-            "model": "nova-3",
-            "processingTimeMs": 21964,
-            "timings": {
-              "transcribeMs": 21954,
-              "remoteProcessingMs": 10,
-              "requestCount": 1
-            }
-          },
-          {
             "service": "soniox",
-            "model": "stt-async-v4",
-            "processingTimeMs": 193760,
+            "model": "stt-async-v5",
+            "processingTimeMs": 259005,
             "timings": {
-              "uploadMs": 6202,
-              "createMs": 73,
+              "uploadMs": 1435,
+              "createMs": 68,
               "createCount": 1,
-              "pollMs": 998,
-              "pollSleepMs": 185034,
-              "pollCount": 21,
-              "transcriptMs": 1419,
-              "remoteProcessingMs": 184907,
-              "cleanupMs": 161,
-              "requestCount": 24
+              "pollMs": 1230,
+              "pollSleepMs": 255042,
+              "pollCount": 28,
+              "transcriptMs": 1186,
+              "remoteProcessingMs": 254885,
+              "cleanupMs": 201,
+              "requestCount": 31,
+              "backfillCount": 1
             }
           },
           {
             "service": "speechmatics",
-            "model": "enhanced",
-            "processingTimeMs": 130129,
+            "model": "melia-1",
+            "processingTimeMs": 24204,
             "timings": {
-              "createMs": 10914,
+              "createMs": 7815,
               "createCount": 1,
-              "pollMs": 3260,
-              "pollSleepMs": 115028,
-              "pollCount": 14,
-              "transcriptMs": 907,
-              "remoteProcessingMs": 114914,
-              "cleanupMs": 134,
-              "requestCount": 16
-            }
-          },
-          {
-            "service": "rev",
-            "model": "machine",
-            "processingTimeMs": 122273,
-            "timings": {
-              "createMs": 6699,
-              "createCount": 1,
-              "pollMs": 855,
-              "pollSleepMs": 114024,
-              "pollCount": 13,
-              "transcriptMs": 674,
-              "remoteProcessingMs": 113959,
-              "cleanupMs": 86,
-              "requestCount": 15
-            }
-          },
-          {
-            "service": "rev",
-            "model": "low_cost",
-            "processingTimeMs": 243360,
-            "timings": {
-              "createMs": 6953,
-              "createCount": 1,
-              "pollMs": 1679,
-              "pollSleepMs": 234045,
-              "pollCount": 25,
-              "transcriptMs": 652,
-              "remoteProcessingMs": 233986,
-              "cleanupMs": 90,
-              "requestCount": 27
-            }
-          },
-          {
-            "service": "groq",
-            "model": "whisper-large-v3-turbo",
-            "processingTimeMs": 24110
-          },
-          {
-            "service": "groq",
-            "model": "whisper-large-v3",
-            "processingTimeMs": 41431
-          },
-          {
-            "service": "grok",
-            "model": "speech-to-text",
-            "processingTimeMs": 68098,
-            "timings": {
-              "transcribeMs": 68080,
-              "remoteProcessingMs": 18,
-              "requestCount": 1
-            }
-          },
-          {
-            "service": "mistral",
-            "model": "voxtral-mini-2602",
-            "processingTimeMs": 40511,
-            "timings": {
-              "transcribeMs": 40498
+              "pollMs": 522,
+              "pollSleepMs": 15007,
+              "pollCount": 4,
+              "transcriptMs": 858,
+              "remoteProcessingMs": 14863,
+              "cleanupMs": 146,
+              "requestCount": 6,
+              "backfillCount": 1
             }
           },
           {
             "service": "assemblyai",
-            "model": "universal-3-pro",
-            "processingTimeMs": 43130,
+            "model": "universal-3-5-pro",
+            "processingTimeMs": 30396,
             "timings": {
-              "uploadMs": 6104,
-              "createMs": 115,
+              "uploadMs": 2173,
+              "createMs": 544,
               "createCount": 1,
-              "pollMs": 1875,
-              "pollSleepMs": 35013,
-              "pollCount": 6,
-              "remoteProcessingMs": 35036,
-              "requestCount": 8
+              "pollMs": 2658,
+              "pollSleepMs": 25008,
+              "pollCount": 5,
+              "remoteProcessingMs": 25021,
+              "requestCount": 7,
+              "backfillCount": 1
+            }
+          },
+          {
+            "service": "assemblyai",
+            "model": "universal-2",
+            "processingTimeMs": 31751,
+            "timings": {
+              "uploadMs": 2077,
+              "createMs": 110,
+              "createCount": 1,
+              "pollMs": 4540,
+              "pollSleepMs": 25007,
+              "pollCount": 5,
+              "remoteProcessingMs": 25024,
+              "requestCount": 7,
+              "backfillCount": 1
             }
           },
           {
             "service": "gladia",
-            "model": "default",
-            "processingTimeMs": 45529,
+            "model": "solaria-1",
+            "processingTimeMs": 42309,
             "timings": {
-              "uploadMs": 18441,
-              "createMs": 351,
+              "uploadMs": 15130,
+              "createMs": 273,
               "createCount": 1,
-              "pollMs": 1698,
-              "pollSleepMs": 25011,
+              "pollMs": 1874,
+              "pollSleepMs": 25009,
               "pollCount": 5,
-              "remoteProcessingMs": 25039,
-              "requestCount": 7
+              "remoteProcessingMs": 25032,
+              "requestCount": 7,
+              "backfillCount": 1
             }
           },
           {
-            "service": "happyscribe",
-            "model": "auto",
-            "processingTimeMs": 107653,
+            "service": "gladia",
+            "model": "solaria-3",
+            "processingTimeMs": 50136,
             "timings": {
-              "uploadMs": 6001,
-              "createMs": 458,
+              "uploadMs": 12670,
+              "createMs": 362,
               "createCount": 1,
-              "pollMs": 3858,
-              "pollSleepMs": 95022,
-              "pollCount": 12,
-              "transcriptMs": 735,
-              "remoteProcessingMs": 96601,
-              "requestCount": 16
+              "pollMs": 2065,
+              "pollSleepMs": 35010,
+              "pollCount": 6,
+              "remoteProcessingMs": 35039,
+              "requestCount": 8,
+              "backfillCount": 1
             }
           },
           {
             "service": "gemini-stt",
-            "model": "gemini-3-flash-preview",
-            "processingTimeMs": 255737,
+            "model": "gemini-3.6-flash",
+            "processingTimeMs": 269110,
             "timings": {
               "requestCount": 3
             }
           },
           {
             "service": "together",
-            "model": "openai/whisper-large-v3",
-            "processingTimeMs": 11644
+            "model": "nvidia/parakeet-tdt-0.6b-v3",
+            "processingTimeMs": 4500
           }
         ]
       }

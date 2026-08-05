@@ -25,6 +25,7 @@ getPanelNumberFromName,
 getPromptBundleFilename,
 resolvePrimaryCharacterReferencesAcrossPanels,
 resolveLocationReferencesAcrossPanels,
+resolveDesignReferencesAcrossPanels,
 resolveScenePanelDirectories,
 } from '../../comic-utils/panel-prompt-utils'
 import { getPanelPromptsDirectory, getSketchesDirectory } from '../../comic-utils/project-paths'
@@ -290,14 +291,16 @@ const resolveSketchChunkReferences = (
   const priorSketchRefs = priorSketchPaths
   const locationReferences = resolveLocationReferencesAcrossPanels(panels.map(panel => ({ panelDirectory: panel.panelDirectory, entries: panel.panelEntries, bundleData: panel.bundleData })))
   const locationPaths = locationReferences.map(reference => reference.path)
+  const designReferences = resolveDesignReferencesAcrossPanels(panels.map(panel => ({ panelDirectory: panel.panelDirectory, entries: panel.panelEntries, bundleData: panel.bundleData })))
+  const designPaths = designReferences.map(reference => reference.path)
 
   const resolved = applyReferenceImageLimits(
-    [...preferredPrimaryCharacterRefs, ...locationPaths, ...priorSketchRefs],
-    [...preferredPrimaryCharacterRefs, ...locationPaths],
+    [...preferredPrimaryCharacterRefs, ...locationPaths, ...designPaths, ...priorSketchRefs],
+    [...preferredPrimaryCharacterRefs, ...locationPaths, ...designPaths],
     primaryCharacterReferenceState.sketchCharacterRefs,
     primaryCharacterReferenceState.canonicalCharacterRefs,
     priorSketchRefs,
-    locationPaths,
+    [...locationPaths, ...designPaths],
     primaryCharacterReferenceState.missingPrimaryCharacterRefs,
     model,
   )
@@ -309,6 +312,7 @@ const resolveSketchChunkReferences = (
       ...reference,
       referenceIndex: preferredPrimaryCharacterRefs.length + index + 1,
     })),
+    designReferences: designReferences.map((reference, index) => ({ ...reference, referenceIndex: preferredPrimaryCharacterRefs.length + locationReferences.length + index + 1 })),
   }
 }
 

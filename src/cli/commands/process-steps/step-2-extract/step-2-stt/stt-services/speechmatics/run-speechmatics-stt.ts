@@ -49,20 +49,24 @@ const toSpeechmaticsHttpError = (
   }
 )
 
+export const buildSpeechmaticsTranscriptionConfig = (
+  modelName: string
+): Record<string, unknown> => ({
+  type: 'transcription',
+  transcription_config: {
+    model: modelName,
+    language: modelName === 'melia-1' ? 'multi' : 'auto',
+    diarization: 'speaker'
+  }
+})
+
 const buildCreateForm = (
   audioPath: string,
   modelName: string
 ): FormData => {
   const form = new FormData()
   form.append('data_file', Bun.file(audioPath), basename(audioPath))
-  form.append('config', JSON.stringify({
-    type: 'transcription',
-    transcription_config: {
-      language: 'auto',
-      operating_point: modelName,
-      diarization: 'speaker'
-    }
-  }))
+  form.append('config', JSON.stringify(buildSpeechmaticsTranscriptionConfig(modelName)))
   return form
 }
 

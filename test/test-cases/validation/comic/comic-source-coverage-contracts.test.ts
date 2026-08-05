@@ -1,7 +1,7 @@
 import { describe, expect, test } from 'bun:test'
 import { mkdir, mkdtemp, readdir, rm, writeFile } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
-import { join } from 'node:path'
+import { dirname, join } from 'node:path'
 import {
   getDraftPromptPath,
   getPanelPromptsDirectory,
@@ -41,15 +41,15 @@ const testLocationCatalog = {
   schemaVersion: 1 as const,
   styleImage: 'style.png',
   locations: [
-    { key: 'cargo-bay', name: 'Cargo Bay', aliases: ['USS Acampo Fabrication Bay'], specification: 'Test.', sourceScripts: [] },
+    { key: 'cargo-bay', name: 'Cargo Bay', aliases: ['Starship Horizon Fabrication Bay'], specification: 'Test.', sourceScripts: [] },
     { key: 'stone-cell', name: 'Stone Cell', specification: 'Test.', sourceScripts: [] },
     { key: 'clearing', name: 'Clearing', specification: 'Test.', sourceScripts: [] },
     { key: 'shuttle-bay', name: 'Shuttle Bay', specification: 'Test.', sourceScripts: [] },
   ],
 }
 const characterAliases = new Map<string, string>([
-  ['BISHOP', 'bishop'], ['DUCO', 'duco'], ['GULP', 'gulp'], ['GEEBEE', 'geebee'],
-  ['PEACHES', 'peaches'], ['CHAT', 'hr-hologram'],
+  ['CAPTAIN', 'captain'], ['ENGINEER', 'engineer'], ['PILOT', 'pilot'], ['NAVIGATOR', 'navigator'],
+  ['COMMANDER', 'commander'], ['GUIDE', 'virtual-guide'],
 ])
 const normalizeTestCharacter = (value: string) => value.toUpperCase().replace(/\s*\((?:V\.?O\.?|O\.?S\.?)\)\s*$/, '').trim()
 const testCharacterCatalog = {
@@ -110,8 +110,8 @@ const sampleSourceSegments: StructuredScriptSourceSegment[] = [
     type: 'dialogue',
     text: 'C’mon man, wake up, your vacation doesn’t start until tomorrow.',
     beatIndex: 2,
-    speakerKey: 'duco',
-    speakerLabel: 'DUCO',
+    speakerKey: 'engineer',
+    speakerLabel: 'ENGINEER',
     delivery: 'chuckling',
     location: testLocation,
   },
@@ -120,10 +120,10 @@ const sampleSourceSegments: StructuredScriptSourceSegment[] = [
 const buildSceneData = (sourceSegmentIds: string[]): ScenePromptData => ({
   schemaVersion: 2,
   title: 'Coverage Test',
-  location: 'USS ACAMPO',
+  location: 'STARSHIP HORIZON',
   panels: [{
     number: 1,
-    description: 'Paddy works through a quiet ship corridor.',
+    description: 'Mechanic works through a quiet ship corridor.',
     characterKeys: [],
     speech: [],
     sourceSegmentIds,
@@ -249,42 +249,42 @@ describe('comic source coverage contracts', () => {
     }
   })
 
-  test('structured parser maps CHAT script labels and mentions to the HR Hologram reference', () => {
+  test('structured parser maps GUIDE script labels and mentions to the HR Hologram reference', () => {
     const structured = parseScriptMarkdownToStructuredData([
       '# Episode Test',
       '',
-      '**USS ACAMPO**',
+      '**STARSHIP HORIZON**',
       '',
       '---',
       '',
       '## Hologram Check',
       '',
-      '**INT. USS ACAMPO – FABRICATION BAY**',
+      '**INT. STARSHIP HORIZON – FABRICATION BAY**',
       '',
-      'CHAT’s interface flickers rapidly on the wall panel.',
+      'GUIDE’s interface flickers rapidly on the wall panel.',
       '',
-      '**CHAT (V.O.)**',
+      '**GUIDE (V.O.)**',
       'I am only mostly broken.',
-    ].join('\n'), 'input/test-chat-alias.md')
+    ].join('\n'), 'input/test-guide-alias.md')
 
     const narrationBeat = structured.beats.find(beat => beat.text.includes('interface flickers'))
     const dialogueBeat = structured.beats.find(beat => beat.text === 'I am only mostly broken.')
 
-    expect(structured.characterKeys).toContain('hr-hologram')
-    expect(narrationBeat?.characterKeys).toEqual(['hr-hologram'])
+    expect(structured.characterKeys).toContain('virtual-guide')
+    expect(narrationBeat?.characterKeys).toEqual(['virtual-guide'])
     expect(narrationBeat?.rawMentions).toEqual([{
-      raw: 'CHAT',
-      characterKeys: ['hr-hologram'],
+      raw: 'GUIDE',
+      characterKeys: ['virtual-guide'],
     }])
-    expect(dialogueBeat?.speakerKey).toBe('hr-hologram')
-    expect(dialogueBeat?.speakerLabel).toBe('CHAT (V.O.)')
+    expect(dialogueBeat?.speakerKey).toBe('virtual-guide')
+    expect(dialogueBeat?.speakerLabel).toBe('GUIDE (V.O.)')
   })
 
   test('structured parser treats lowercase action after a character label as direction', () => {
     const structured = parseScriptMarkdownToStructuredData([
       '# Episode Test',
       '',
-      '**USS ACAMPO**',
+      '**STARSHIP HORIZON**',
       '',
       '---',
       '',
@@ -292,13 +292,13 @@ describe('comic source coverage contracts', () => {
       '',
       '**INT. STONE CELL - LATE NIGHT**',
       '',
-      '**DUCO**',
+      '**ENGINEER**',
       'walks up to the inside of the cell door. There, embedded just beside it, is a small **metallic horn**.',
       '',
-      '**DUCO**',
+      '**ENGINEER**',
       'Alright. Who here thinks they can scream like a prophet?',
       '',
-      '**GULP**',
+      '**PILOT**',
       '(softly)',
       'no it is not like that.',
     ].join('\n'), 'input/test-action-label.md')
@@ -309,16 +309,16 @@ describe('comic source coverage contracts', () => {
     const actionSegment = structured.sourceSegments.find(segment => segment.text.includes('metallic horn'))
 
     expect(actionBeat?.type).toBe('direction')
-    expect(actionBeat?.characterKeys).toContain('duco')
+    expect(actionBeat?.characterKeys).toContain('engineer')
     expect(actionBeat?.speakerKey).toBeUndefined()
     expect(actionBeat?.speakerLabel).toBeUndefined()
     expect(actionSegment?.type).toBe('direction')
     expect(actionSegment?.speakerLabel).toBeUndefined()
     expect(dialogueBeat?.type).toBe('dialogue')
-    expect(dialogueBeat?.speakerKey).toBe('duco')
-    expect(dialogueBeat?.speakerLabel).toBe('DUCO')
+    expect(dialogueBeat?.speakerKey).toBe('engineer')
+    expect(dialogueBeat?.speakerLabel).toBe('ENGINEER')
     expect(lowercaseDialogueBeat?.type).toBe('dialogue')
-    expect(lowercaseDialogueBeat?.speakerKey).toBe('gulp')
+    expect(lowercaseDialogueBeat?.speakerKey).toBe('pilot')
     expect(lowercaseDialogueBeat?.delivery).toBe('softly')
   })
 
@@ -326,7 +326,7 @@ describe('comic source coverage contracts', () => {
     const structured = parseScriptMarkdownToStructuredData([
       '# Episode Test',
       '',
-      '**USS ACAMPO**',
+      '**STARSHIP HORIZON**',
       '',
       '---',
       '',
@@ -334,26 +334,26 @@ describe('comic source coverage contracts', () => {
       '',
       '**INT. CARGO BAY - MORNING**',
       '',
-      '**BISHOP**',
+      '**CAPTAIN**',
       'Respectfully, sir, that doesn’t matter. (beat) We have five cycles.',
       '',
-      '**DUCO**',
+      '**ENGINEER**',
       '(pause)',
       'Hire a doctor?',
       '',
-      '**PEACHES**',
+      '**COMMANDER**',
       'Something strong. (a long pause) Something hot.',
     ].join('\n'), 'input/test-timing-notation.md')
 
-    const bishopBeat = structured.beats.find(beat => beat.speakerKey === 'bishop')
-    const ducoBeat = structured.beats.find(beat => beat.speakerKey === 'duco')
-    const peachesBeat = structured.beats.find(beat => beat.speakerKey === 'peaches')
+    const captainBeat = structured.beats.find(beat => beat.speakerKey === 'captain')
+    const engineerBeat = structured.beats.find(beat => beat.speakerKey === 'engineer')
+    const commanderBeat = structured.beats.find(beat => beat.speakerKey === 'commander')
 
-    expect(bishopBeat?.text).toBe('Respectfully, sir, that doesn’t matter. We have five cycles.')
-    expect(peachesBeat?.text).toBe('Something strong. Something hot.')
+    expect(captainBeat?.text).toBe('Respectfully, sir, that doesn’t matter. We have five cycles.')
+    expect(commanderBeat?.text).toBe('Something strong. Something hot.')
     // "(pause)" is pacing, not an acting note, so it must not become a speech tone.
-    expect(ducoBeat?.text).toBe('Hire a doctor?')
-    expect(ducoBeat?.delivery).toBeUndefined()
+    expect(engineerBeat?.text).toBe('Hire a doctor?')
+    expect(engineerBeat?.delivery).toBeUndefined()
     expect(structured.sourceSegments.some(segment => segment.text.includes('beat'))).toBe(false)
   })
 
@@ -361,7 +361,7 @@ describe('comic source coverage contracts', () => {
     const structured = parseScriptMarkdownToStructuredData([
       '# Episode Test',
       '',
-      '**USS ACAMPO**',
+      '**STARSHIP HORIZON**',
       '',
       '---',
       '',
@@ -376,8 +376,8 @@ describe('comic source coverage contracts', () => {
       '**CAPTION**',
       'Three cycles later.',
       '',
-      '**GULP**',
-      'What about CHAT?',
+      '**PILOT**',
+      'What about GUIDE?',
     ].join('\n'), 'input/test-staging-caption.md')
 
     const silenceBeat = structured.beats.find(beat => beat.text.startsWith('Silence again'))
@@ -400,8 +400,8 @@ describe('comic source coverage contracts', () => {
         type: 'dialogue',
         text: 'Also too expensive.',
         beatIndex: 33,
-        speakerKey: 'bishop',
-        speakerLabel: 'BISHOP',
+        speakerKey: 'captain',
+        speakerLabel: 'CAPTAIN',
         location: testLocation,
       },
       {
@@ -430,7 +430,7 @@ describe('comic source coverage contracts', () => {
     const structured = parseScriptMarkdownToStructuredData([
       '# Episode Test',
       '',
-      '**USS ACAMPO**',
+      '**STARSHIP HORIZON**',
       '',
       '---',
       '',
@@ -438,7 +438,7 @@ describe('comic source coverage contracts', () => {
       '',
       '**EXT. CLEARING - DAY**',
       '',
-      '**GULP AND GEEBEE**',
+      '**PILOT AND NAVIGATOR**',
       '(in unison, not looking up)',
       'Almost done!',
     ].join('\n'), 'input/test-compound-speaker.md')
@@ -448,18 +448,18 @@ describe('comic source coverage contracts', () => {
 
     expect(beat?.type).toBe('dialogue')
     expect(beat?.speakerKey).toBeUndefined()
-    expect(beat?.speakerLabel).toBe('GULP AND GEEBEE')
-    expect(beat?.characterKeys).toEqual(['gulp', 'geebee'])
+    expect(beat?.speakerLabel).toBe('PILOT AND NAVIGATOR')
+    expect(beat?.characterKeys).toEqual(['pilot', 'navigator'])
     expect(beat?.delivery).toBe('in unison, not looking up')
     expect(segment?.type).toBe('dialogue')
-    expect(segment?.speakerLabel).toBe('GULP AND GEEBEE')
+    expect(segment?.speakerLabel).toBe('PILOT AND NAVIGATOR')
   })
 
   test('structured parser keeps uncatalogued spoken labels as dialogue without inventing characters', () => {
     const structured = parseScriptMarkdownToStructuredData([
       '# Episode Test',
       '',
-      '**USS ACAMPO**',
+      '**STARSHIP HORIZON**',
       '',
       '---',
       '',
@@ -483,8 +483,8 @@ describe('comic source coverage contracts', () => {
   })
 
   test('recap montage resolver maps Episode 4 scripts to Episode 3 scripts', () => {
-    expect(resolvePreviousEpisodeScriptsDirectory('input/example/episode-scripts/04-script/01-recap.md'))
-      .toBe(join('input', 'example', 'episode-scripts', '03-script'))
+    expect(resolvePreviousEpisodeScriptsDirectory('input/example/scripts/04-script/01-recap.md'))
+      .toBe(join('input', 'example', 'scripts', '03-script'))
   })
 
   test('recap montage cue detection requires both episode and montage in the same beat', () => {
@@ -522,9 +522,17 @@ describe('comic source coverage contracts', () => {
     const sceneSlug = `comic-source-checklist-${Date.now()}`
     const sceneOutputDirectory = getSceneOutputDirectory(sceneSlug)
     const charactersRoot = await mkdtemp(join(tmpdir(), 'autoshow-source-checklist-characters-'))
+    await writeFile(join(charactersRoot, 'guide.png'), redDotPng)
     await writeFile(join(charactersRoot, 'characters-reference.json'), JSON.stringify({
       schemaVersion: 3,
-      characters: [],
+      characters: [{
+        key: 'guide', name: 'Guide', aliases: ['GUIDE'], image: 'guide.png', outlineSheet: 'guide.png',
+        description: 'A free-standing blue hologram above a small projector base; never inside a screen.',
+        sceneTextRules: [
+          { kind: 'required', pattern: '\\bhologram\\b', description: 'Every Guide panel must identify him as a hologram.' },
+          { kind: 'forbidden', pattern: '\\bguide\\b.{0,80}\\bon\\b.{0,40}\\bscreen\\b', description: 'Guide must never appear on a screen.' },
+        ],
+      }],
       groupAliases: [],
     }))
     configureCharactersRoot(charactersRoot)
@@ -535,13 +543,13 @@ describe('comic source coverage contracts', () => {
       document: {
         heading: 'Episode Test',
         title: 'Episode Test',
-        metadata: [{ label: 'USS ACAMPO', raw: 'USS ACAMPO' }],
+        metadata: [{ label: 'STARSHIP HORIZON', raw: 'STARSHIP HORIZON' }],
       },
       scene: {
         heading: 'COLD OPEN: "Coverage Test"',
         section: 'COLD OPEN',
         title: 'Coverage Test',
-        location: { key: 'cargo-bay', raw: 'USS ACAMPO' },
+        location: { key: 'cargo-bay', raw: 'STARSHIP HORIZON' },
       },
       characterKeys: [],
       beats: [],
@@ -549,7 +557,7 @@ describe('comic source coverage contracts', () => {
     }
 
     try {
-      await mkdir(sceneOutputDirectory, { recursive: true })
+      await mkdir(dirname(getStructuredScriptPath(sceneSlug)), { recursive: true })
       await writeFile(getStructuredScriptPath(sceneSlug), JSON.stringify(structuredScript, null, 2))
 
       await generateJsonPrompt(sceneSlug)
@@ -561,6 +569,12 @@ describe('comic source coverage contracts', () => {
       expect(prompt).toContain('verify that every exact ID below appears in at least one panel')
       expect(prompt).toContain('no arbitrary per-panel cast-count ceiling')
       expect(prompt).not.toContain('no more than five unique keys per panel')
+      expect(prompt).toContain('Canonical character canon is non-negotiable and has highest visual precedence')
+      expect(prompt).toContain('"characterKeys": ["guide"]')
+      expect(prompt).toContain('"characterKey": "guide"')
+      expect(prompt).toContain('guide: A free-standing blue hologram above a small projector base')
+      expect(prompt).toContain('REQUIRED: Every Guide panel must identify him as a hologram.')
+      expect(prompt).toContain('FORBIDDEN: Guide must never appear on a screen.')
     } finally {
       configureCharactersRoot('input/characters')
       await rm(sceneOutputDirectory, { recursive: true, force: true })

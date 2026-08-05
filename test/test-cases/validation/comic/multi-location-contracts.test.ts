@@ -4,7 +4,6 @@ import { mkdir, mkdtemp, rm } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
 import { dirname, join, resolve } from 'node:path'
 import { configureCharactersRoot } from '~/cli/commands/process-steps/characters-root'
-import { loadCharacterCatalog } from '~/cli/commands/process-steps/step-8-comic/comic-utils/character-reference-config'
 import {
   createLocationReferenceSnapshots,
   loadAndVerifyLocationReferenceSnapshots,
@@ -112,6 +111,7 @@ describe('multi-location comic contracts', () => {
     await Bun.write(join(locations, 'location-sketches.json'), JSON.stringify({ schemaVersion: 1, sketches }))
     const run = join(root, 'run')
     const manifest = await createLocationReferenceSnapshots(run, ['quarters', 'hallway', 'quarters'])
+    expect(manifest.snapshots.every(snapshot => snapshot.sheet.path.startsWith('assets/location-references/'))).toBe(true)
     expect(manifest.snapshots.map(snapshot => snapshot.locationKey)).toEqual(['quarters', 'hallway'])
     expect(await loadAndVerifyLocationReferenceSnapshots(run)).toHaveLength(2)
     const firstAsset = resolve(run, manifest.snapshots[0]!.sheet.path)
@@ -119,27 +119,75 @@ describe('multi-location comic contracts', () => {
     await expect(loadAndVerifyLocationReferenceSnapshots(run)).rejects.toThrow(/missing or modified/)
 
     const legacyRun = join(root, 'legacy-run')
-    const legacyAsset = join(legacyRun, 'location.png')
+    const legacyAsset = join(legacyRun, 'assets', 'location.png')
     await mkdir(dirname(legacyAsset), { recursive: true })
     await Bun.write(legacyAsset, 'legacy')
     const legacyHash = createHash('sha256').update('legacy').digest('hex')
-    await Bun.write(join(legacyRun, 'location-reference.json'), JSON.stringify({ schemaVersion: 1, snapshotId: 'legacy', locationKey: 'quarters', specification: 'Quarters.', sourceScripts: [], sourceGenerationId: 'old', sheet: { path: 'location.png', sha256: legacyHash } }))
+    await Bun.write(join(legacyRun, 'assets', 'location-reference.json'), JSON.stringify({ schemaVersion: 1, snapshotId: 'legacy', locationKey: 'quarters', specification: 'Quarters.', sourceScripts: [], sourceGenerationId: 'old', sheet: { path: 'assets/location.png', sha256: legacyHash } }))
     expect((await loadAndVerifyLocationReferenceSnapshots(legacyRun))[0]?.snapshotId).toBe('legacy')
   })
 
-  test('parses the real Scene 2 script into quarters then hallway segments', async () => {
-    const project = resolve('../uss-acampo')
-    const charactersRoot = join(project, 'input', 'characters')
-    const scriptPath = join(project, 'input', 'episode-scripts', '02-script', '02-first-attempt.md')
-    configureCharactersRoot(charactersRoot)
-    const realCatalog = JSON.parse(await Bun.file(join(project, 'input', 'locations', 'locations-reference.json')).text()) as LocationReferenceCatalog
-    const structured = parseScriptMarkdownToStructuredData(await Bun.file(scriptPath).text(), scriptPath, {
-      locationCatalog: realCatalog,
-      characterCatalog: loadCharacterCatalog(charactersRoot),
+  test('composes schema-version-2 views in canonical order and records source provenance', async () => {
+    const root = await mkdtemp(join(tmpdir(), 'autoshow-multi-view-location-'))
+    roots.push(root)
+    const characters = join(root, 'input', 'characters')
+    const locations = join(root, 'input', 'locations')
+    await mkdir(characters, { recursive: true })
+    await mkdir(locations, { recursive: true })
+    configureCharactersRoot(characters)
+    const location = catalog.locations[0]!
+    const establishing = join(locations, 'quarters--reference.png')
+    const reverse = join(locations, 'quarters--reference-reverse.png')
+    const command = Bun.which('magick') ?? Bun.which('convert')
+    if (!command) throw new Error('ImageMagick is required for multi-view location snapshot coverage')
+    for (const [path, color] of [[establishing, 'red'], [reverse, 'blue']] as const) {
+      const result = Bun.spawnSync([command, '-size', '1x1', `xc:${color}`, path])
+      if (result.exitCode !== 0) throw new Error(result.stderr.toString())
+    }
+    const bytes = async (path: string) => Buffer.from(await Bun.file(path).arrayBuffer())
+    await Bun.write(join(locations, 'locations-reference.json'), JSON.stringify({ ...catalog, locations: [location] }))
+    await Bun.write(join(locations, 'location-sketches.json'), JSON.stringify({ schemaVersion: 2, sketches: [{
+      locationKey: location.key,
+      specificationSha256: createHash('sha256').update(location.specification).digest('hex'),
+      views: [
+        { view: 'establishing', generationId: 'establishing-generation', image: 'quarters--reference.png', imageSha256: createHash('sha256').update(await bytes(establishing)).digest('hex'), model: 'fixture', createdAt: '2026-01-01T00:00:00.000Z' },
+        { view: 'reverse', generationId: 'reverse-generation', image: 'quarters--reference-reverse.png', imageSha256: createHash('sha256').update(await bytes(reverse)).digest('hex'), model: 'fixture', createdAt: '2026-01-02T00:00:00.000Z' },
+      ],
+    }] }))
+    const run = join(root, 'run')
+    const snapshot = (await createLocationReferenceSnapshots(run, ['quarters'])).snapshots[0]!
+    expect(snapshot.schemaVersion).toBe(2)
+    expect(snapshot.sourceViews.map(view => [view.view, view.generationId])).toEqual([['establishing', 'establishing-generation'], ['reverse', 'reverse-generation']])
+    expect(snapshot.sheet.path).toEndWith('/quarters--reference-sheet.png')
+    const identify = Bun.which('identify')
+    if (!identify) throw new Error('ImageMagick identify is required for multi-view location snapshot coverage')
+    const identified = Bun.spawnSync([identify, '-format', '%wx%h', resolve(run, snapshot.sheet.path)])
+    expect(identified.exitCode).toBe(0)
+    expect(identified.stdout.toString()).toBe('2x1')
+  })
+
+  test('parses a complete script into ordered location segments without an external project fixture', () => {
+    const structured = parseScriptMarkdownToStructuredData([
+      '# Episode',
+      '',
+      '## Scene: "A Change of Venue"',
+      '',
+      '**INT. SHIP CREW QUARTERS - NIGHT**',
+      '',
+      'A crew member closes a locker.',
+      '',
+      '**CUT TO: INT. SHIP UPPER DECK HALLWAY - MOMENTS LATER**',
+      '',
+      'Footsteps cross the long corridor.',
+      '',
+      'A warning light begins to flash.',
+    ].join('\n'), 'input/scripts/01-script/02-change-of-venue.md', {
+      locationCatalog: catalog,
+      characterCatalog: emptyCharacterCatalog,
     })
     const keys = structured.sourceSegments.map(segment => segment.location.key)
-    expect(Array.from(new Set(keys))).toEqual(['seamus-quarters', 'upper-deck-hallway'])
-    expect(keys.indexOf('upper-deck-hallway')).toBeGreaterThan(0)
-    expect(keys.slice(keys.indexOf('upper-deck-hallway')).every(key => key === 'upper-deck-hallway')).toBe(true)
+    expect(Array.from(new Set(keys))).toEqual(['quarters', 'hallway'])
+    expect(keys.indexOf('hallway')).toBeGreaterThan(0)
+    expect(keys.slice(keys.indexOf('hallway')).every(key => key === 'hallway')).toBe(true)
   })
 })

@@ -224,11 +224,10 @@ export const getComicGridCapacity = (grid: ComicGridSpec): number => {
   return capacity
 }
 
-export const USS_ACAMPO_HOUSE_STYLE = [
-  'USS Acampo house style: crisp dark ink outlines, softly painted/cel-shaded surfaces, warm practical lights, and a clean illustrated composition.',
-  'Use simplified expressive faces and anatomy, readable shapes, and colors derived from the subject, location specification, and canonical references.',
-  'Follow the established illustrated workplace-comedy look shown by the canonical character and location art.',
-  'Do not use photorealism, semi-photorealism, painterly realism, 3D rendering, photographic textures, cinematic depth of field, volumetric lighting, or realistic skin rendering.',
+export const COMIC_STYLE_GUIDANCE = [
+  'Treat the canonical character and location references as the authority for the comic\'s visual style as well as its depicted content.',
+  'Match their linework, rendering medium, shape language, anatomy, palette, lighting, texture, and level of detail consistently across every panel.',
+  'Do not introduce a different visual medium or degree of realism unless the canonical references explicitly establish it.',
 ].join(' ')
 
 export const chunkComicGridPanels = <T extends { panelNumber: number }>(
@@ -295,7 +294,8 @@ export const buildComicPagePromptData = (
 export const buildComicPagePrompt = (
   pagePromptData: PanelBundleData,
   characterReferences: Array<{ key: string; referenceIndex: number; description: string }> = [],
-  locationReferences: Array<{ key: string; referenceIndex: number }> = [],
+  locationReferences: Array<{ key: string; referenceIndex: number; specification: string }> = [],
+  designReferences: Array<{ key: string; referenceIndex: number; usage: string }> = [],
 ): string => {
   const panelCount = pagePromptData.panels.length
   const subPanelLabel = panelCount === 1 ? 'sub-panel' : 'sub-panels'
@@ -311,6 +311,8 @@ export const buildComicPagePrompt = (
     const forbidden = allReferencedKeys.filter(key => !panel.characterKeys.includes(key))
     const locationKey = panel.locationKey ?? locationReferences[0]?.key
     const locationReference = locationReferences.find(reference => reference.key === locationKey)
+    const panelDesignKeys = panel.designReferenceKeys ?? panel.designReferences?.map(reference => reference.key) ?? []
+    const panelDesignReferences = designReferences.filter(reference => panelDesignKeys.includes(reference.key))
     const speech = panel.speech.length === 0
       ? ['  - Dialogue: none. Do not add a bubble or caption.']
       : panel.speech.flatMap(item => {
@@ -331,12 +333,13 @@ export const buildComicPagePrompt = (
       `  - Script-derived visual description: ${panel.description}`,
       `  - Exhaustive prose shot plan: ${panel.shotPlan ?? 'Legacy bundle: rebuild with draft-scenes before generation.'}`,
       `  - Canonical location: ${locationKey ?? 'legacy single location'}${locationReference ? ` (Reference ${locationReference.referenceIndex})` : ''}.`,
+      `  - Canonical design references: ${panelDesignReferences.length > 0 ? panelDesignReferences.map(reference => `${reference.key} (Reference ${reference.referenceIndex}; ${reference.usage})`).join('; ') : 'none'}. Do not use a design reference in any sub-panel to which it is not mapped.`,
       ...speech,
     ].join('\n')
   }).join('\n')
 
   return [
-    'Create one final USS Acampo comic page image from the ordered panel data below.',
+    'Create one final comic page image from the ordered panel data below.',
     [
       'Page requirements:',
       `- Render exactly ${panelCount} ${subPanelLabel}, one sub-panel for each source panel, in the listed order.`,
@@ -346,13 +349,20 @@ export const buildComicPagePrompt = (
         : panelCount === 1
           ? '- This is a trailing single-panel page. Make its one panel fill the canvas; do not leave an empty second panel.'
           : '- Use an ordered, clearly separated multi-panel page layout matching the explicit panels-per-image override.',
-      '- Treat every immutable canonical location reference listed in the location legend as canon for its mapped sub-panels. It defines location identity, persistent spatial geometry, fixed features, palette, and art style.',
-      `- ${USS_ACAMPO_HOUSE_STYLE}`,
+      '- Treat every immutable canonical location reference and its specification as canon for its mapped sub-panels. They define location identity, persistent world-space geometry, permanent architecture, fixed furniture and installed equipment, recurring spatial anchors, palette, and art style.',
+      '- Treat every mapped immutable canonical design reference as exact visual canon for the named logo, prop, insignia, screen design, or other reusable graphic. Preserve its recognizable geometry, composition, and specified usage; do not redesign, relabel, or leak it into unmapped sub-panels.',
+      '- Preserve location topology, not a frozen composition: permanent anchors must keep the same relationships to the room and to one another unless the source explicitly changes the set as a story event. A new camera angle may crop, foreshorten, or reveal different anchors, but it must not relocate, remove, hide, duplicate, or redesign them.',
+      '- Before rendering, mentally map each permanent anchor from the canonical location image/specification into the requested camera. If the composition reveals an anchor\'s canonical part of the set, render that anchor there; cropping is not permission to leave an exposed canonical region empty or fill it with a relocated anchor.',
+      '- Treat every named fixed anchor as a presence-and-geometry requirement whenever any of its support surface, wall zone, footprint, or expected silhouette is visible. Preserve fixed furniture footprint, silhouette, connectedness, orientation, edge count, and relationship to walls; perspective may foreshorten those properties but may not turn a straight run into a corner, L-shaped, wraparound, split, or freestanding form. Do not call a major anchor hidden merely because a character stands near it: either show the visible remainder around the character or frame its entire canonical region outside the image. Preserve each portable-but-recurring anchor on the same support surface and in the same world-space relationship to the fixed furniture; foreground placement caused by a new camera is allowed, physical relocation is not.',
+      '- Preserve canonical anchor assemblies component by component. When a fixed support such as a desk, console, shelf, rack, berth, or counter is visible, render every named installed or recurring component whose canonical footprint falls on the visible portion of that support. Loose tools, generic clutter, speakers, lamps, or other plausible props never substitute for a named computer, keyboard, control unit, appliance, instrument, or other anchor. Occlusion is not an allowed continuity outcome: block characters and foreground props around a recognizable visible remainder of every anchor whose canonical region is in frame. If the composition cannot keep an anchor visibly identifiable, move its entire canonical region outside the crop instead of hiding it.',
+      `- ${COMIC_STYLE_GUIDANCE}`,
       '- The ordered canonical character reference images are authoritative for both character design and the simplified 2D rendering language. Never reinterpret them as realistic people.',
-      '- Do not copy a location-sheet view as the panel camera unless the authored staging or shot plan explicitly requires it.',
+      '- The canonical character reference images and catalog appearance descriptions have highest visual precedence for identity, physical embodiment, projection/display medium, anatomy, costume, and character-specific required props. If script-derived staging or a shot plan contradicts them, preserve the narrative action but reinterpret the contradictory character depiction to obey canon.',
+      '- A source phrase such as interface, screen, monitor, avatar, or body is never permission to change a referenced character\'s canonical embodiment. Apply such wording to nearby equipment or UI only when canon allows it.',
+      '- Do not copy a location-sheet view as the panel camera unless the authored staging or shot plan explicitly requires it. The reference is a map of the set, not a mandatory camera template.',
       '- For every sub-panel, preserve that source panel\'s own staging, setting, and action and choose visually distinct framing appropriate to its specific story beat.',
       '- The `characterKeys` array in each source panel is exact and authoritative: show every listed character and no unlisted character in that sub-panel. Never carry a character forward from the location sheet or another sub-panel.',
-      '- Vary camera distance, angle, blocking, and composition between story beats; do not repeat a location-sheet view or another sub-panel\'s screen, terminal, cast arrangement, or opening composition unless that source panel explicitly requires it.',
+      '- Create shot diversity through camera distance, camera side, elevation, lens feel, foreground/background layering, character blocking, pose, expression, eyeline, and selective cropping. Do not create diversity by moving permanent set anchors. Do not flatten a sequence into repeated near-identical compositions merely to preserve continuity.',
       '- Include every speech bubble exactly as written in the JSON.',
       '- Do not paraphrase, correct, translate, or omit speech text.',
       '- Place speech text only in the matching source panel.',
@@ -366,7 +376,16 @@ export const buildComicPagePrompt = (
       ? 'Location reference legend: legacy single-location bundle; use the final reference image for every sub-panel.'
       : [
           'Location reference legend (after all character references, in first-panel-appearance order):',
-          ...locationReferences.map(reference => `- Reference ${reference.referenceIndex}: locationKey=${reference.key}; use only for sub-panels ${pagePromptData.panels.filter(panel => (panel.locationKey ?? locationReferences[0]?.key) === reference.key).map(panel => panel.number).join(', ')}.`),
+          ...locationReferences.flatMap(reference => [
+            `- Reference ${reference.referenceIndex}: locationKey=${reference.key}; use only for sub-panels ${pagePromptData.panels.filter(panel => (panel.locationKey ?? locationReferences[0]?.key) === reference.key).map(panel => panel.number).join(', ')}.`,
+            `  Canonical location specification: ${reference.specification}`,
+          ]),
+        ].join('\n'),
+    designReferences.length === 0
+      ? 'Design reference legend: none.'
+      : [
+          'Design reference legend (after character and location references, in first-panel-appearance order):',
+          ...designReferences.map(reference => `- Reference ${reference.referenceIndex}: designKey=${reference.key}; usage=${reference.usage}; use only for sub-panels ${pagePromptData.panels.filter(panel => (panel.designReferenceKeys ?? panel.designReferences?.map(item => item.key) ?? []).includes(reference.key)).map(panel => panel.number).join(', ')}.`),
         ].join('\n'),
     `Exact per-panel execution contract:\n${panelDirectives}`,
     `Ordered page data:\n\`\`\`json\n${JSON.stringify(pagePromptData, null, 2)}\n\`\`\``,

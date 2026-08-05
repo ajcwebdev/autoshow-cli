@@ -175,7 +175,7 @@ describe('input classification contracts', () => {
       '--stt',
       'whisper=tiny',
       '--stt',
-      'assemblyai=universal-3-pro',
+      'assemblyai=universal-3-5-pro',
       '--price'
     ])
 

@@ -25,7 +25,7 @@ import {
   resolveSketchChunks,
   selectSketchPanelRange
 } from '~/cli/commands/process-steps/step-8-comic/comic-commands/generate-sketches/generate-scene-sketches'
-import { parseCharacterSketchArgs, parseDraftScenesArgs, parseGenerateImagesArgs, parseReferenceSketchArgs } from '~/cli/commands/process-steps/step-8-comic/comic-utils/cli-args'
+import { DEFAULT_LLM_MODEL, parseCharacterSketchArgs, parseDraftScenesArgs, parseGenerateImagesArgs, parseReferenceSketchArgs } from '~/cli/commands/process-steps/step-8-comic/comic-utils/cli-args'
 import {
   characterSketchFlags,
   draftScenesFlags,
@@ -46,11 +46,19 @@ import {
 import type { PanelBundleData, PromptsConfig } from '~/types'
 
 describe('option resolution contracts', () => {
+  test('comic scene drafting defaults to gpt-5.6-sol', () => {
+    expect(DEFAULT_LLM_MODEL).toBe('gpt-5.6-sol')
+  })
+
   test('comic reference-sketch requires exactly one reference mode', () => {
     expect(parseReferenceSketchArgs(['--location', 'cargo-bay']).location).toBe('cargo-bay')
-    expect(parseReferenceSketchArgs(['--character', 'duco']).character).toBe('duco')
+    expect(parseReferenceSketchArgs(['--location', 'cargo-bay']).view).toBeUndefined()
+    expect(parseReferenceSketchArgs(['--location', 'cargo-bay', '--view', 'reverse']).view).toBe('reverse')
+    expect(parseReferenceSketchArgs(['--character', 'engineer']).character).toBe('engineer')
+    expect(() => parseReferenceSketchArgs(['--character', 'engineer', '--view', 'side'])).toThrow('--view is only valid with --location')
+    expect(() => parseReferenceSketchArgs(['--location', 'cargo-bay', '--view', 'diagonal'])).toThrow('Expected one of')
     expect(() => parseReferenceSketchArgs([])).toThrow('Exactly one')
-    expect(() => parseReferenceSketchArgs(['--character', 'duco', '--location', 'cargo-bay'])).toThrow('Exactly one')
+    expect(() => parseReferenceSketchArgs(['--character', 'engineer', '--location', 'cargo-bay'])).toThrow('Exactly one')
   })
   test('comic final images default to one panel while sketch chunks remain six', () => {
     expect(DEFAULT_FINAL_PANELS_PER_IMAGE).toBe(1)
@@ -65,7 +73,7 @@ describe('option resolution contracts', () => {
   })
   test('comic generate-images args parse page image options', () => {
       const opts = parseGenerateImagesArgs([
-        'input/episode-scripts/02-script/01-co-work-smarter.md',
+        'input/scripts/02-script/01-co-work-smarter.md',
         '--image-model', 'gpt-image-2,gemini-3.1-flash-image-preview',
         '--panels', '1-4,9',
         '--panels-per-image', String(DEFAULT_PANELS_PER_IMAGE),
@@ -75,7 +83,7 @@ describe('option resolution contracts', () => {
         '--force'
       ])
 
-      expect(opts.scriptPath).toBe('input/episode-scripts/02-script/01-co-work-smarter.md')
+      expect(opts.scriptPath).toBe('input/scripts/02-script/01-co-work-smarter.md')
       expect(opts.imageModels).toEqual(['gpt-image-2', 'gemini-3.1-flash-image-preview'])
       expect(opts.panels).toEqual([1, 2, 3, 4, 9])
       expect(opts.panelsPerImage).toBe(DEFAULT_PANELS_PER_IMAGE)
@@ -87,7 +95,7 @@ describe('option resolution contracts', () => {
 
   test('comic generate-images args parse grid page composition options', () => {
       const opts = parseGenerateImagesArgs([
-        'input/episode-scripts/02-script/01-co-work-smarter.md',
+        'input/scripts/02-script/01-co-work-smarter.md',
         '--target', 'images',
         '--panels', '1-6',
         '--panels-per-image', '1',
@@ -123,19 +131,19 @@ describe('option resolution contracts', () => {
 
   test('comic draft-scenes args parse llm model and panel prompt stage', () => {
       const opts = parseDraftScenesArgs([
-        'input/episode-scripts/05-script/01-paddy-goes-on-vacation.md',
+        'input/scripts/05-script/01-mechanic-goes-on-vacation.md',
         '--llm-model', 'gpt-5.5',
         '--only', 'panel-prompts',
       ])
       const grokOpts = parseDraftScenesArgs([
-        'input/episode-scripts/05-script/01-paddy-goes-on-vacation.md',
+        'input/scripts/05-script/01-mechanic-goes-on-vacation.md',
         '--llm-model', 'grok-4.5'
       ])
 
       // --llm-model now resolves against the central LLM registry instead of a comic-local list.
       expect(findRegistryServiceForModel('llm', 'gpt-5.5')).toBe('openai')
       expect(findRegistryServiceForModel('llm', 'grok-4.5')).toBe('grok')
-      expect(opts.scriptPath).toBe('input/episode-scripts/05-script/01-paddy-goes-on-vacation.md')
+      expect(opts.scriptPath).toBe('input/scripts/05-script/01-mechanic-goes-on-vacation.md')
       expect(opts.llmModel).toBe('gpt-5.5')
       expect(opts.only).toBe('panel-prompts')
       expect(grokOpts.llmModel).toBe('grok-4.5')
@@ -143,13 +151,13 @@ describe('option resolution contracts', () => {
 
   test('comic generate-images args parse target', () => {
       const opts = parseGenerateImagesArgs([
-        'input/episode-scripts/05-script/01-paddy-goes-on-vacation.md',
+        'input/scripts/05-script/01-mechanic-goes-on-vacation.md',
         '--target', 'sketches',
         '--panels-per-image', String(DEFAULT_PANELS_PER_IMAGE),
         '--quality', 'high',
       ])
 
-      expect(opts.scriptPath).toBe('input/episode-scripts/05-script/01-paddy-goes-on-vacation.md')
+      expect(opts.scriptPath).toBe('input/scripts/05-script/01-mechanic-goes-on-vacation.md')
       expect(opts.target).toBe('sketches')
       expect(opts.panelsPerImage).toBe(DEFAULT_PANELS_PER_IMAGE)
       expect(opts.quality).toBe('high')
@@ -160,7 +168,7 @@ describe('option resolution contracts', () => {
 
   test('comic generate-images args parse page image options with target', () => {
       const opts = parseGenerateImagesArgs([
-        'input/episode-scripts/02-script/01-co-work-smarter.md',
+        'input/scripts/02-script/01-co-work-smarter.md',
         '--target', 'images',
         '--panels', '1-6',
         '--panels-per-image', String(DEFAULT_PANELS_PER_IMAGE),
@@ -170,7 +178,7 @@ describe('option resolution contracts', () => {
         '--force'
       ])
 
-      expect(opts.scriptPath).toBe('input/episode-scripts/02-script/01-co-work-smarter.md')
+      expect(opts.scriptPath).toBe('input/scripts/02-script/01-co-work-smarter.md')
       expect(opts.target).toBe('images')
       expect(opts.panels).toEqual([1, 2, 3, 4, 5, 6])
       expect(opts.panelsPerImage).toBe(DEFAULT_PANELS_PER_IMAGE)
@@ -183,7 +191,7 @@ describe('option resolution contracts', () => {
   test('comic script shorthand resolves only strict NN-SC references', async () => {
       const tempDir = await mkdtemp(join(tmpdir(), 'autoshow-comic-script-ref-'))
       const episodeDir = join(tempDir, '02-script')
-      const fullPath = 'input/episode-scripts/02-script/01-co-work-smarter.md'
+      const fullPath = 'input/scripts/02-script/01-co-work-smarter.md'
 
       try {
         await mkdir(episodeDir, { recursive: true })
@@ -394,18 +402,18 @@ describe('option resolution contracts', () => {
           location: 'Engineering Bay',
           panels: [{
             number: 1,
-            description: 'Peaches points at the dashboard.',
-            shotPlan: 'Medium eye-level shot; Peaches stands screen left and points right.',
-            characterKeys: ['peaches'],
-            speech: [{ speaker: { kind: 'character', characterKey: 'peaches', offscreen: false }, line: 'We need the exact text.', tone: 'firm' }],
+            description: 'Commander points at the dashboard.',
+            shotPlan: 'Medium eye-level shot; Commander stands screen left and points right.',
+            characterKeys: ['commander'],
+            speech: [{ speaker: { kind: 'character', characterKey: 'commander', offscreen: false }, line: 'We need the exact text.', tone: 'firm' }],
             sourceSegmentIds: ['beat-0001'],
             sourceSegments: [{
               id: 'beat-0001',
               type: 'dialogue',
               text: 'We need the exact text.',
               beatIndex: 1,
-              speakerKey: 'peaches',
-              speakerLabel: 'PEACHES',
+              speakerKey: 'commander',
+              speakerLabel: 'COMMANDER',
             }]
           }]
         },
@@ -417,40 +425,48 @@ describe('option resolution contracts', () => {
           location: 'Engineering Bay',
           panels: [{
             number: 3,
-            description: 'Duco nods.',
-            shotPlan: 'Close shot from screen right; Duco faces left and nods.',
-            characterKeys: ['duco'],
-            speech: [{ speaker: { kind: 'character', characterKey: 'duco', offscreen: false }, line: 'Then do not rewrite it.', tone: 'dry' }],
+            description: 'Engineer nods.',
+            shotPlan: 'Close shot from screen right; Engineer faces left and nods.',
+            characterKeys: ['engineer'],
+            speech: [{ speaker: { kind: 'character', characterKey: 'engineer', offscreen: false }, line: 'Then do not rewrite it.', tone: 'dry' }],
             sourceSegmentIds: ['beat-0002'],
             sourceSegments: [{
               id: 'beat-0002',
               type: 'dialogue',
               text: 'Then do not rewrite it.',
               beatIndex: 2,
-              speakerKey: 'duco',
-              speakerLabel: 'DUCO',
+              speakerKey: 'engineer',
+              speakerLabel: 'ENGINEER',
             }]
           }]
         }
       ])
       const prompt = buildComicPagePrompt(promptData, [
-        { key: 'peaches', referenceIndex: 1, description: 'Peach-colored captain with a blue uniform.' },
-        { key: 'duco', referenceIndex: 2, description: 'Tall engineer with a red visor.' },
+        { key: 'commander', referenceIndex: 1, description: 'Peach-colored captain with a blue uniform.' },
+        { key: 'engineer', referenceIndex: 2, description: 'Tall engineer with a red visor.' },
       ])
 
       expect(promptData.panels.map(panel => panel.number)).toEqual([1, 3])
       expect(prompt).toContain('Render exactly 2 sub-panels')
       expect(prompt).toContain('immutable canonical location reference')
-      expect(prompt).toContain('persistent spatial geometry')
+      expect(prompt).toContain('persistent world-space geometry')
       expect(prompt).toContain('The `characterKeys` array in each source panel is exact and authoritative')
+      expect(prompt).toContain('highest visual precedence for identity, physical embodiment, projection/display medium')
+      expect(prompt).toContain('interface, screen, monitor, avatar, or body is never permission')
       expect(prompt).toContain('Never carry a character forward from')
-      expect(prompt).toContain('Vary camera distance, angle, blocking, and composition between story beats')
+      expect(prompt).toContain('Preserve location topology, not a frozen composition')
+      expect(prompt).toContain('If the composition reveals an anchor\'s canonical part of the set, render that anchor there')
+      expect(prompt).toContain('Treat every named fixed anchor as a presence-and-geometry requirement')
+      expect(prompt).toContain('Preserve fixed furniture footprint, silhouette, connectedness, orientation, edge count, and relationship to walls')
+      expect(prompt).toContain('foreground placement caused by a new camera is allowed, physical relocation is not')
+      expect(prompt).toContain('Create shot diversity through camera distance, camera side, elevation, lens feel')
+      expect(prompt).toContain('Do not flatten a sequence into repeated near-identical compositions')
       expect(prompt).toContain('Exhaustive prose shot plan')
-      expect(prompt).toContain('Reference 1: characterKey=peaches; catalog appearance=Peach-colored captain')
-      expect(prompt).toContain('Reference 2: characterKey=duco; catalog appearance=Tall engineer')
-      expect(prompt).toContain('Exact required visible characters: peaches')
-      expect(prompt).toContain('Referenced characters forbidden from this sub-panel: duco')
-      expect(prompt).toContain('Bubble tail must visibly point to peaches')
+      expect(prompt).toContain('Reference 1: characterKey=commander; catalog appearance=Peach-colored captain')
+      expect(prompt).toContain('Reference 2: characterKey=engineer; catalog appearance=Tall engineer')
+      expect(prompt).toContain('Exact required visible characters: commander')
+      expect(prompt).toContain('Referenced characters forbidden from this sub-panel: engineer')
+      expect(prompt).toContain('Bubble tail must visibly point to commander')
       expect(prompt).toContain('Never substitute one referenced identity for another')
       expect(prompt).toContain('Never copy a character key, filename, reference-sheet label')
       expect(prompt).toContain('strict left-to-right two-panel layout')
@@ -463,21 +479,21 @@ describe('option resolution contracts', () => {
       const promptData: PanelBundleData = {
         schemaVersion: 2,
         snapshotId: 'test-snapshot',
-        title: 'Paddy Repairs Everything',
+        title: 'Mechanic Repairs Everything',
         location: 'Engineering Bay',
         panels: [{
           number: 4,
-          description: 'Paddy kicks the laser cutter panel as steam escapes.',
+          description: 'Mechanic kicks the laser cutter panel as steam escapes.',
           characterKeys: [],
-          speech: [{ speaker: { kind: 'character', characterKey: 'paddy', offscreen: false }, line: 'I need the exact text.', tone: 'muttering' }],
+          speech: [{ speaker: { kind: 'character', characterKey: 'mechanic', offscreen: false }, line: 'I need the exact text.', tone: 'muttering' }],
           sourceSegmentIds: ['beat-0004'],
           sourceSegments: [{
             id: 'beat-0004',
             type: 'dialogue',
             text: 'I need the exact text.',
             beatIndex: 4,
-            speakerKey: 'paddy',
-            speakerLabel: 'PADDY',
+            speakerKey: 'mechanic',
+            speakerLabel: 'MECHANIC',
           }]
         }]
       }

@@ -7,7 +7,7 @@ import { DEFAULT_IMAGE_MODEL, validateImageSizeForModels } from '../../comic-uti
 import { InfraError } from '~/utils/error-handler'
 import { ScenePromptDataSchema } from '../../schemas/schemas'
 import { comicLog, err, formatCompactCost, formatDuration, suppressSharedPipelineLogs } from '../../comic-utils/comic-logger'
-import { getPanelPromptsDirectory, getSceneJsonPath, getSceneOutputDirectory } from '../../comic-utils/project-paths'
+import { getPanelPromptsDirectory, getSceneJsonPath, getSceneMetadataDirectoryForWorkspace, getSceneOutputDirectory } from '../../comic-utils/project-paths'
 import { beginSceneRun, findLatestSceneRunDirectory } from '../../comic-utils/scene-run-context'
 import { createComicRunId } from '../../comic-utils/comic-run-id'
 import { DEFAULT_CLI_CONCURRENCY } from '~/utils/concurrency-defaults'
@@ -172,7 +172,7 @@ export const generateImagesCommand = async (
   // never drafts, upgrades, or rewrites scene/panel artifacts. --force is image-only.
   const latestRunDir = findLatestSceneRunDirectory(sceneSlug)
   const resumeLatest = latestRunDir !== undefined
-    && existsSync(join(latestRunDir, 'scene.json'))
+    && existsSync(join(getSceneMetadataDirectoryForWorkspace(latestRunDir), 'scene.json'))
   beginSceneRun(sceneSlug, resumeLatest && latestRunDir
     ? { outputDir: latestRunDir }
     : {})

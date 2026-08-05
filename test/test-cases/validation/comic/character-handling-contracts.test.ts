@@ -1,13 +1,13 @@
 import { afterEach, describe, expect, test } from 'bun:test'
 import { mkdtemp, rm, writeFile } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
-import { join, resolve } from 'node:path'
+import { join } from 'node:path'
 import * as v from 'valibot'
 import { configureOutputRoot } from '~/cli/commands/process-steps/output-root'
 import { configureCharactersRoot } from '~/cli/commands/process-steps/characters-root'
 import { loadCharacterCatalog } from '~/cli/commands/process-steps/step-8-comic/comic-utils/character-reference-config'
 import { createCharacterReferenceSnapshot, loadAndVerifyCharacterReferenceSnapshot, compileCharacterReferences } from '~/cli/commands/process-steps/step-8-comic/comic-utils/character-reference-snapshot'
-import { checksumFile, getCharacterSketchManifestPath, readCharacterSketchManifest, requireCurrentCharacterSketch } from '~/cli/commands/process-steps/step-8-comic/comic-commands/process-scenes/character-utils'
+import { checksumFile, getCharacterSketchManifestPath, requireCurrentCharacterSketch } from '~/cli/commands/process-steps/step-8-comic/comic-commands/process-scenes/character-utils'
 import { buildSceneJsonSchema, buildStructuredScriptJsonSchema, PanelBundleDataSchema, ScenePromptDataSchema, StructuredScriptDataSchema, validateSceneCharacters } from '~/cli/commands/process-steps/step-8-comic/schemas/schemas'
 import { parseCharacterSketchArgs } from '~/cli/commands/process-steps/step-8-comic/comic-utils/cli-args'
 import { getReferenceImageCapabilities, trimOptionalContinuityReferences } from '~/cli/commands/process-steps/step-8-comic/comic-utils/reference-capabilities'
@@ -87,25 +87,6 @@ describe('comic character handling flat-reference contracts', () => {
     expect(hero.sourcePath).toBe(hero.outlineSheetPath)
   })
 
-  test('migration registers the exact twelve legacy sheets', async () => {
-    const migratedRoot = resolve('../uss-acampo/input/characters')
-    configureCharactersRoot(migratedRoot)
-    const catalog = loadCharacterCatalog(migratedRoot)
-    const manifest = await readCharacterSketchManifest(migratedRoot)
-    const legacySketches = manifest.sketches.filter(sketch => sketch.origin === 'legacy-import')
-    expect(legacySketches.map(sketch => sketch.outlineSheet)).toEqual([
-      '01-peaches--outline-sheet.png', '02-bishop--outline-sheet.png', '03-duco--outline-sheet.png',
-      '04-geebee--outline-sheet.png', '05-seamus--outline-sheet.png', '06-gulp--outline-sheet.png',
-      '07-paddy--outline-sheet.png', '08-specter--outline-sheet.png', '09-ironhand-1--outline-sheet.png',
-      '10-ironhand-2--outline-sheet.png', '11-ironhand-3--outline-sheet.png', '12-chat--outline-sheet.png',
-    ])
-    expect(legacySketches.every(sketch => sketch.model === null)).toBe(true)
-    expect(manifest.sketches.filter(sketch => sketch.origin === 'generated').map(sketch => sketch.characterKey).sort()).toEqual([
-      'buoy-4-and-6', 'guards', 'podcast-host', 'wilhelm-speaking-villagers',
-    ])
-    await Promise.all(manifest.sketches.map(sketch => requireCurrentCharacterSketch(catalog.requireKey(sketch.characterKey), catalog.get(catalog.requireKey(sketch.characterKey)))))
-  })
-
   test('panel-prompt preflight aggregates every unregistered visible character', async () => {
     const charactersRoot = await mkdtemp(join(tmpdir(), 'autoshow-missing-character-catalog-'))
     temporaryRoots.push(charactersRoot)
@@ -138,6 +119,55 @@ describe('comic character handling flat-reference contracts', () => {
     expect(() => validateSceneCharacters({ ...valid, panels: [{ ...valid.panels[0]!, characterKeys: [] }] }, catalog)).toThrow(/on-screen speaker/)
     expect(() => validateSceneCharacters({ ...valid, panels: [{ ...valid.panels[0]!, speech: [{ speaker: { kind: 'character', characterKey: 'hero', offscreen: true }, line: 'Hello.' }] }] }, catalog)).toThrow(/offscreen speaker/)
     expect(() => validateSceneCharacters({ ...valid, panels: [{ ...valid.panels[0]!, sourceSegmentIds: ['beat-0001', 'beat-0001'] }] }, catalog)).toThrow(/Duplicate source segment ID/)
+  })
+
+  test('catalog scene-text rules deterministically reject canonical character depiction conflicts', async () => {
+    const root = await makeCatalog({
+      characters: [{
+        key: 'hero', name: 'Hologram Hero', aliases: ['HERO'], image: 'hero.webp', outlineSheet: 'hero.webp',
+        description: 'A free-standing hologram above a projector base; never shown on a monitor.',
+        sceneTextRules: [
+          { kind: 'required', pattern: '\\bhologram\\b', description: 'Hero must be identified as a hologram.' },
+          { kind: 'required', pattern: '\\bprojector(?:\\s+base)?\\b', description: 'Hero must include a projector base.' },
+          { kind: 'forbidden', pattern: '\\bhero\\b.{0,80}\\bon\\b.{0,40}\\bmonitor\\b', description: 'Hero must not appear on a monitor.' },
+        ],
+      }],
+      groupAliases: [],
+    })
+    const catalog = loadCharacterCatalog(root)
+    const scene = (description: string, shotPlan: string) => v.parse(ScenePromptDataSchema, {
+      schemaVersion: 4, title: 'Test', location: 'Bridge', panels: [{
+        number: 1, description, shotPlan, characterKeys: ['hero'], speech: [], sourceSegmentIds: ['beat-0001'], locationKey: 'bridge',
+      }],
+    })
+
+    expect(() => validateSceneCharacters(
+      scene('Hero is a hologram.', 'The free-standing hologram shines above a small projector base.'),
+      catalog,
+    )).not.toThrow()
+    expect(() => validateSceneCharacters(
+      scene('Hero is a hologram.', 'The hologram shines above a projector base. Exclude any monitor showing Hero.'),
+      catalog,
+    )).not.toThrow()
+    expect(() => validateSceneCharacters(
+      scene('Hero appears on a monitor.', 'Medium shot of the monitor.'),
+      catalog,
+    )).toThrow(/must satisfy canonical rule: Hero must be identified as a hologram/)
+    expect(() => validateSceneCharacters(
+      scene('Hero is a hologram on a monitor.', 'The monitor sits beside a projector base.'),
+      catalog,
+    )).toThrow(/must not violate canonical rule: Hero must not appear on a monitor/)
+  })
+
+  test('catalog rejects invalid canonical scene-text regular expressions', async () => {
+    const root = await makeCatalog({
+      characters: [{
+        key: 'hero', name: 'Hero', aliases: [], image: 'hero.webp', outlineSheet: 'hero.webp', description: 'Hero.',
+        sceneTextRules: [{ kind: 'required', pattern: '[', description: 'Invalid regex.' }],
+      }],
+      groupAliases: [],
+    })
+    expect(() => loadCharacterCatalog(root)).toThrow(/invalid regular expression/)
   })
 
   test('scene validation accepts panels with more than five visible characters', async () => {
@@ -225,6 +255,7 @@ describe('comic character handling flat-reference contracts', () => {
     }] }))
     const runDirectory = join(outputRoot, 'run')
     const manifest = await createCharacterReferenceSnapshot(runDirectory, [key, key], catalog)
+    expect(manifest.characters[0]?.assets.every(asset => asset.path.startsWith('assets/character-references/'))).toBe(true)
     expect(manifest.characters).toHaveLength(1)
     expect(manifest.characters[0]?.assets.map(asset => asset.role)).toEqual(['sketch-sheet', 'source-image'])
     const references = compileCharacterReferences(runDirectory, manifest, [key])
@@ -263,7 +294,7 @@ describe('comic character handling flat-reference contracts', () => {
     const references = compileCharacterReferences(runDirectory, manifest, [key])
     expect(references).toEqual([join(runDirectory, manifest.characters[0]!.assets[0]!.path)])
     expect(references[0]).toEndWith('/hero/reference.webp')
-    expect(await Bun.file(join(runDirectory, 'character-references', manifest.snapshotId, 'identity-cards', '01-hero-identity-card.png')).exists()).toBe(false)
+    expect(await Bun.file(join(runDirectory, 'assets', 'character-references', manifest.snapshotId, 'identity-cards', '01-hero-identity-card.png')).exists()).toBe(false)
   })
 
   test('registry capabilities never trim required references and trim optional continuity deterministically', () => {

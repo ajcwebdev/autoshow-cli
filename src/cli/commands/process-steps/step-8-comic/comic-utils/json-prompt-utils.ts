@@ -3,7 +3,7 @@ import { basename, dirname } from 'node:path'
 import * as v from 'valibot'
 import { err, comicLog } from './comic-logger'
 import { StructuredScriptDataSchema } from '../schemas/schemas'
-import { getCharacterKeys, getCharacterReferenceAliases } from './character-reference-config'
+import { getCharacterReferenceAliases, loadCharacterCatalog } from './character-reference-config'
 import { getStructuredScriptPath, getDraftPromptPath } from './project-paths'
 import { formatRecapMontagePromptSection, resolveRecapMontageExpansions } from './recap-montage-utils'
 import { ValidationError } from '~/utils/error-handler'
@@ -35,16 +35,37 @@ const formatCharacterAliasGuidance = (aliases: Record<string, string>): string =
     .map(([alias, character]) => `- ${alias} -> ${character}`)
     .join('\n')
 
+const formatCharacterCanon = (catalog: ReturnType<typeof loadCharacterCatalog>): string =>
+  catalog.characters.map(character => [
+    `- ${character.key}: ${character.description}`,
+    ...(character.sceneTextRules ?? []).map(rule => `  - ${rule.kind === 'required' ? 'REQUIRED' : 'FORBIDDEN'}: ${rule.description}`),
+  ].join('\n')).join('\n')
+
 const buildJsonPromptTemplate = (
   characterNames: readonly string[],
-  aliases: Record<string, string>
-): string => `# Convert Structured Script to Comic Panel JSON
+  aliases: Record<string, string>,
+  characterCanon: string,
+): string => {
+  const exampleCharacterKey = characterNames[0]
+  const exampleCharacterKeys = exampleCharacterKey ? JSON.stringify([exampleCharacterKey]) : '[]'
+  const exampleSpeaker = exampleCharacterKey
+    ? `{ "kind": "character", "characterKey": ${JSON.stringify(exampleCharacterKey)}, "offscreen": false }`
+    : '{ "kind": "caption" }'
+
+  return `# Convert Structured Script to Comic Panel JSON
 
 Return only schemaVersion 4 scene JSON. Preserve beat order, exact dialogue, and every source segment ID. Convert direction, transition, and panel-note text into visual staging, never speech. Use \`delivery\` only as optional tone.
 
 Copy each panel's \`locationKey\` exactly from its assigned source segments. A panel may contain source segments from exactly one location. Split the panel at every location transition; never combine segments carrying different location keys.
 
-Write an exhaustive prose \`shotPlan\` for every panel. It must explicitly specify camera distance, camera angle and position, composition, every visible character's screen position, depth, facing, pose, expression, eyeline, relationships to other characters and fixed location features, props, balloon placement, and exclusions. Precedence is strict: (1) script-authored staging and framing, (2) exact script cast, dialogue, and speaker requirements, (3) inferred shot-plan details only where the script is silent, and (4) canonical location geometry. Never let an inferred detail override authored source text.
+Set each panel's \`designReferences\` to an empty array during automated scene drafting. Reviewed projects may later attach safe project-relative immutable design references before rebuilding panel bundles.
+
+Write an exhaustive prose \`shotPlan\` for every panel. It must explicitly specify camera distance, camera angle and position, composition, every visible character's position within the comic frame, depth, facing, pose, expression, eyeline, relationships to other characters and fixed location features, props, balloon placement, and exclusions.
+
+Canonical character canon is non-negotiable and has highest visual precedence for identity, physical embodiment, projection/display medium, anatomy, costume, and character-specific required props. If source staging contradicts character canon, preserve the narrative action but reinterpret the contradictory depiction so it obeys canon. Never repeat the contradiction in a panel description or shotPlan. After character canon, precedence is: (1) script-authored action, staging, and framing that does not contradict character canon, (2) exact script cast, dialogue, and speaker requirements, (3) inferred shot-plan details only where the script is silent, and (4) canonical location geometry.
+
+Canonical character descriptions and enforceable depiction rules:
+${characterCanon}
 
 \`panel.characterKeys\` is the sole authority for visible characters. Never infer or add visible characters from descriptions, dialogue text, or source segments. Include every script-required visible character, with no arbitrary per-panel cast-count ceiling. Keys must be unique and chosen only from this catalog:
 ${formatValidCharacterNames(characterNames)}
@@ -62,21 +83,23 @@ ${formatCharacterAliasGuidance(aliases)}
       "number": 1,
       "description": "Visual staging only.",
       "shotPlan": "Exhaustive prose camera, composition, blocking, acting, eyeline, props, balloon placement, and exclusions plan.",
-      "characterKeys": ["peaches"],
+      "characterKeys": ${exampleCharacterKeys},
       "speech": [
         {
-          "speaker": { "kind": "character", "characterKey": "peaches", "offscreen": false },
+          "speaker": ${exampleSpeaker},
           "line": "Exact dialogue from the script"
         }
       ],
       "sourceSegmentIds": ["beat-0001"],
-      "locationKey": "canonical-location-key"
+      "locationKey": "canonical-location-key",
+      "designReferences": []
     }
   ]
 }
 \`\`\`
 
 Speaker invariants: an on-screen character speaker must be in \`characterKeys\`; an offscreen character speaker must not be. Use \`{ "kind": "caption" }\` for narration and \`{ "kind": "voice", "label": "..." }\` for uncatalogued voices. Each panel may contain only one character's dialogue; split sequential speakers across panels. Every source segment ID must appear at least once.`
+}
 
 const formatPromptExcerpt = (text: string): string => {
   const normalized = text.replace(/\s+/g, ' ').trim()
@@ -97,6 +120,7 @@ const formatStructuredScriptPrompt = (
   recapMontageExpansions: RecapMontageExpansion[]
 ): string => {
   const recapMontageSection = formatRecapMontagePromptSection(recapMontageExpansions)
+  const catalog = loadCharacterCatalog()
 
   return [
     '# Structured Script JSON',
@@ -107,7 +131,7 @@ const formatStructuredScriptPrompt = (
     '',
     '---',
     '',
-    buildJsonPromptTemplate(getCharacterKeys(), getCharacterReferenceAliases()),
+    buildJsonPromptTemplate(catalog.characterKeys, getCharacterReferenceAliases(), formatCharacterCanon(catalog)),
     '',
     '## Required Source Segment ID Checklist',
     'Before returning JSON, verify that every exact ID below appears in at least one panel `sourceSegmentIds` array.',

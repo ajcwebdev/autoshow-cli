@@ -6,16 +6,35 @@
       "enhanced": {
         "description": "Batch enhanced accuracy — highest accuracy for file transcription",
         "pricingSourceUrl": "https://www.speechmatics.com/pricing",
-        "pricingCheckedAt": "2026-05-31",
+        "pricingCheckedAt": "2026-08-03",
         "pricingCurrency": "USD",
         "pricingTier": "Speechmatics batch transcription public pricing",
-        "pricingNotes": "Speechmatics batch transcription estimates use published per-hour pricing for the selected accuracy tier. Free allowance, volume discounts, enterprise pricing, taxes, and provider credits are ignored.",
-        "costPerHourUSD": 0.75,
-        "costPerHourCents": 75,
+        "pricingNotes": "Speechmatics Batch Enhanced is billed at $0.40/hour with speaker diarization included. Free allowance, model-training discounts, volume discounts, enterprise pricing, taxes, and provider credits are ignored.",
+        "costPerHourUSD": 0.4,
+        "costPerHourCents": 40,
         "limits": {
           "effectiveBytes": 1073741824,
           "directUploadBytes": 1073741824,
           "notes": "Current Speechmatics docs publish a 1 GB limit for multipart uploads and explicitly suggest fetch-by-URL for larger files. They do not publish a current remote URL size cap or a batch-audio duration cap."
+        },
+        "estimation": {
+          "costMultiplier": 1,
+          "msPerSecond": 218
+        }
+      },
+      "melia-1": {
+        "description": "Batch Melia 1 — multilingual transcription with automatic code-switching",
+        "pricingSourceUrl": "https://www.speechmatics.com/pricing",
+        "pricingCheckedAt": "2026-08-03",
+        "pricingCurrency": "USD",
+        "pricingTier": "Speechmatics batch transcription public pricing",
+        "pricingNotes": "Speechmatics Batch Melia 1 is billed at $0.129/hour with speaker diarization included. The reused timing estimate is provisional until Phase 6 benchmarking completes. Free allowance, model-training discounts, volume discounts, enterprise pricing, taxes, and provider credits are ignored.",
+        "costPerHourUSD": 0.129,
+        "costPerHourCents": 12.9,
+        "limits": {
+          "effectiveBytes": 1073741824,
+          "directUploadBytes": 1073741824,
+          "notes": "Current Speechmatics docs publish a 1 GB limit for multipart uploads and explicitly suggest fetch-by-URL for larger files. They do not publish a current remote URL size cap or a batch-audio duration cap. Melia 1 requires language multi for automatic multilingual detection and code-switching; it does not accept language auto or translation."
         },
         "estimation": {
           "costMultiplier": 1,

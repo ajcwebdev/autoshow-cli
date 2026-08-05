@@ -5,6 +5,7 @@ import { basename, dirname, join, resolve } from 'node:path'
 import { spawnSync } from 'node:child_process'
 import type { CharacterReferenceManifest } from './character-reference-snapshot'
 import { InfraError, ValidationError } from '~/utils/error-handler'
+import { getCharacterReferencesDirectory } from './project-paths'
 
 export type CharacterIdentityReference = {
   key: string
@@ -74,8 +75,7 @@ export const getCharacterIdentityCardPath = (
     throw ValidationError(`Snapshot ${manifest.snapshotId} does not contain required character "${characterKey}"`, { stage: 'comic:identity-card' })
   }
   return join(
-    runDirectory,
-    'character-references',
+    getCharacterReferencesDirectory(runDirectory),
     manifest.snapshotId,
     'identity-cards',
     `${String(characterIndex + 1).padStart(2, '0')}-${characterKey}-identity-card.png`,

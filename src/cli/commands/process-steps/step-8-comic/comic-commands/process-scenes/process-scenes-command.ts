@@ -1,11 +1,11 @@
 import { mkdir } from 'node:fs/promises'
-import { dirname, join } from 'node:path'
+import { join } from 'node:path'
 import * as v from 'valibot'
 import type { ProcessSceneOptions, ProcessSceneResult } from '~/types'
 import { PanelBundleDataSchema, ScenePromptDataSchema, StructuredScriptDataSchema, validateSceneCharacters, validateStructuredScriptCharacters } from '../../schemas/schemas'
 import { parseJsonFile } from '../../comic-utils/json-prompt-utils'
 import { comicLog, err } from '../../comic-utils/comic-logger'
-import { getStructuredScriptPath } from '../../comic-utils/project-paths'
+import { getSceneWorkspaceDirectoryForPanelPrompt, getStructuredScriptPath } from '../../comic-utils/project-paths'
 import { validateSceneRecapMontageExpansion } from '../../comic-utils/recap-montage-utils'
 import { getPanelPromptTemplate, loadPromptsConfig, validatePanelNumberSequence } from '../../comic-utils/scene-utils'
 import { mapWithConcurrency } from '../../comic-utils/run-with-concurrency'
@@ -13,6 +13,7 @@ import { assertSourceCoverageReportComplete, formatSourceSegmentsMarkdown, resol
 import { loadCharacterCatalog } from '../../comic-utils/character-reference-config'
 import { createCharacterReferenceSnapshot } from '../../comic-utils/character-reference-snapshot'
 import { createLocationReferenceSnapshots } from '../../comic-utils/location-reference'
+import { createDesignReferenceSnapshot } from '../../comic-utils/design-reference'
 import { ValidationError } from '~/utils/error-handler'
 
 const getPanelDirectoryName = (panelNumber: number): string => `panel-${String(panelNumber).padStart(2, '0')}`
@@ -34,10 +35,12 @@ export const processScene = async ({ sceneSlug, sceneJsonPath, outputDir, concur
 
     // Validate every required live asset before writing a single panel bundle.
     const visibleKeys = sceneData.panels.flatMap(panel => panel.characterKeys.map(key => catalog.requireKey(key)))
-    const manifest = await createCharacterReferenceSnapshot(dirname(outputDir), visibleKeys, catalog)
+    const workspaceDirectory = getSceneWorkspaceDirectoryForPanelPrompt(join(outputDir, getPanelDirectoryName(1)))
+    const manifest = await createCharacterReferenceSnapshot(workspaceDirectory, visibleKeys, catalog)
     const locationKeys = Array.from(new Set(sceneData.panels.map(panel => panel.locationKey)))
-    const locationManifest = await createLocationReferenceSnapshots(dirname(outputDir), locationKeys)
+    const locationManifest = await createLocationReferenceSnapshots(workspaceDirectory, locationKeys)
     const locationSnapshotByKey = new Map(locationManifest.snapshots.map(snapshot => [snapshot.locationKey, snapshot]))
+    const designManifest = await createDesignReferenceSnapshot(workspaceDirectory, sceneData.panels.flatMap(panel => panel.designReferences ?? []))
     const prompts = await loadPromptsConfig()
     const scenePrompts = prompts['Scene Prompts']
     const prefix = scenePrompts.Prefix || ''
@@ -57,7 +60,7 @@ export const processScene = async ({ sceneSlug, sceneJsonPath, outputDir, concur
         snapshotId: manifest.snapshotId,
         title: sceneData.title,
         location: sceneData.location,
-        panels: [{ ...currentPanel, number: panelNum, sourceSegments, locationSnapshotId: locationSnapshot.snapshotId }],
+        panels: [{ ...currentPanel, number: panelNum, sourceSegments, locationSnapshotId: locationSnapshot.snapshotId, ...(currentPanel.designReferences?.length ? { designSnapshotId: designManifest?.snapshotId, designReferenceKeys: currentPanel.designReferences.map(reference => reference.key) } : {}) }],
       })
       panelContent += `${formatSourceSegmentsMarkdown(sourceSegments)}\n\n`
       panelContent += `\`\`\`json\n${JSON.stringify(bundle, null, 2)}\n\`\`\``
@@ -71,7 +74,7 @@ export const processScene = async ({ sceneSlug, sceneJsonPath, outputDir, concur
     assertSourceCoverageReportComplete(coverageReport)
     stats.coverageReport = coverageReport
     stats.success++
-    comicLog.line('panel-prompts generated', [`panels=${sceneData.panels.length}`, `snapshot=${manifest.snapshotId}`, `locationSnapshots=${locationManifest.snapshots.length}`, `characters=${manifest.characters.length}`, `coverage=${coverageReport.coveredSegments}/${coverageReport.totalSegments}`])
+    comicLog.line('panel-prompts generated', [`panels=${sceneData.panels.length}`, `snapshot=${manifest.snapshotId}`, `locationSnapshots=${locationManifest.snapshots.length}`, `designs=${designManifest?.designs.length ?? 0}`, `characters=${manifest.characters.length}`, `coverage=${coverageReport.coveredSegments}/${coverageReport.totalSegments}`])
   } catch (error) {
     stats.errors++
     err('Panel prompt generation failed:', error instanceof Error ? error.message : String(error))

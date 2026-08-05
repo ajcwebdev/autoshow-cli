@@ -30,7 +30,15 @@ describe('provider selection contracts', () => {
       ['glm-video', 'viduq1-' + 'start-end'],
       ['gemini-image', 'imagen-4.0-generate-001'],
       ['bfl-image', 'flux-2-pro-preview'],
-      ['bfl-image', 'flux-2-klein-4b']
+      ['bfl-image', 'flux-2-klein-4b'],
+      ['assemblyai-stt', 'universal-3-pro'],
+      ['gemini-stt', 'gemini-3-flash-preview'],
+      ['gladia-stt', 'default'],
+      ['soniox-stt', 'stt-async-v4'],
+      ['deepgram-stt', 'nova-3-general'],
+      ['deepgram-stt', 'nova-3-medical'],
+      ['together-stt', 'nvidia/parakeet-tdt-0.6b-v3-realtime'],
+      ['together-stt', 'nvidia/nemotron-3-asr-streaming-0.6b']
     ]
 
     for (const [flag, model] of cases) {
@@ -170,7 +178,7 @@ describe('provider selection contracts', () => {
   test('target collection preserves provider ordering and deduplicates repeated models', () => {
     const sttOpts = buildOptsFromFlags(false, {
       'whisper-stt': ['base', 'base'],
-      'assemblyai-stt': ['universal-3-pro', 'universal-3-pro']
+      'assemblyai-stt': ['universal-3-5-pro', 'universal-3-5-pro', 'universal-2']
     })
     const ocrSpecs = collectStep2ProviderSpecs('ocr', {
       useTesseract: true,
@@ -184,7 +192,8 @@ describe('provider selection contracts', () => {
     })
 
     expect(collectSttTargets(sttOpts).map((target) => `${target.service}:${target.model}`)).toEqual([
-      'assemblyai:universal-3-pro',
+      'assemblyai:universal-3-5-pro',
+      'assemblyai:universal-2',
       'whisper:base'
     ])
     expect(ocrSpecs).toEqual([
@@ -217,6 +226,15 @@ describe('provider selection contracts', () => {
       local: false
     }])
     expect(scrapeCreatorsTargets).toEqual([])
+    expect(collectSttTargets(opts).filter((target) => target.service === 'deepgram').map((target) => target.model)).toEqual(['nova-3'])
+    expect(collectSttTargets(opts).filter((target) => target.service === 'assemblyai').map((target) => target.model)).toEqual([
+      'universal-3-5-pro',
+      'universal-2'
+    ])
+    expect(collectSttTargets(opts).filter((target) => target.service === 'together').map((target) => target.model)).toEqual([
+      'openai/whisper-large-v3',
+      'nvidia/parakeet-tdt-0.6b-v3'
+    ])
 
     const explicitOpts = buildOptsFromFlags(false, {
       'scrapecreators-stt': 'youtube-transcript'

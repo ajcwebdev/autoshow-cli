@@ -11,6 +11,7 @@
       "https://docs.speechmatics.com/speech-to-text/batch/batch-diarization.md",
       "https://docs.speechmatics.com/speech-to-text/batch/speaker-identification.md",
       "https://docs.speechmatics.com/speech-to-text/languages.md",
+      "https://docs.speechmatics.com/speech-to-text/models.md",
       "https://docs.speechmatics.com/speech-to-text/features/diarization.md",
       "https://docs.speechmatics.com/speech-to-text/features/speaker-identification.md",
       "https://raw.githubusercontent.com/speechmatics/speechmatics-js-sdk/refs/heads/main/packages/batch-client/README.md",
@@ -18,7 +19,8 @@
       "https://docs.speechmatics.com/api-ref/batch/create-a-new-job.md",
       "https://docs.speechmatics.com/api-ref/batch/get-job-details.md",
       "https://docs.speechmatics.com/api-ref/batch/get-the-transcript-for-a-transcription-job.md",
-      "https://docs.speechmatics.com/api-ref/batch/get-usage-statistics.md"
+      "https://docs.speechmatics.com/api-ref/batch/get-usage-statistics.md",
+      "https://www.speechmatics.com/pricing"
     ]
   }
 }

@@ -133,14 +133,14 @@ bun autoshow extract --transcript-video --audio input/examples/audio/1-audio.mp3
 bun autoshow extract --transcript-video --audio input/examples/audio/1-audio.mp3 --transcript-text output/transcript-demo/transcription.txt
 ```
 
-A multi-provider run writes one result per provider under `providers/<service>-<model>/` and no root `result.json`, so pick the diarized provider result explicitly. `--provider soniox` resolves to the cheapest supported Soniox model, `stt-async-v4`, which is what names the directory.
+A multi-provider run writes one result per provider under `providers/<service>-<model>/` and no root `result.json`, so pick the diarized provider result explicitly. `--provider soniox` resolves to the supported Soniox model, `stt-async-v5`, which is what names the directory.
 
 ```bash
 # one hosted diarized provider and one local provider over the same example file
 bun autoshow extract input/examples/audio/1-audio.mp3 --provider soniox --provider whisper=tiny --output-dir output/transcript-demo-multi
 
 # choose the diarized provider result from that multi-provider run
-bun autoshow extract output/transcript-demo-multi --transcript-video --transcript-result output/transcript-demo-multi/providers/soniox-stt-async-v4/result.json
+bun autoshow extract output/transcript-demo-multi --transcript-video --transcript-result output/transcript-demo-multi/providers/soniox-stt-async-v5/result.json
 ```
 
 Without `--output-dir` each command creates its own timestamped directory (`output/<timestamp>_1-audio`, `output/<timestamp>_transcript-video-<label>`). The output directory contains `<label>.mp4`, `<label>.vtt`, `<label>.srt`, and `run.json`. When the STT result carries native per-word timings, cues are built from those words rather than from segment stamps, so the on-screen line matches the audio. The active line is drawn between the previous and next lines, with the speaker shown as a colour-coded label on the active line only; `.vtt`/`.srt` keep the speaker inline. Cues also fall back to `result.json` segments or `[HH:MM:SS.mmm] [speaker] text` transcript lines when a provider reports no word timings. The renderer uses the same fixed 1920x1080 local ffmpeg pipeline as lyric videos, with `--font` and `--keep-tmp` available for transcript-video rendering.
@@ -204,13 +204,15 @@ ScrapeCreators is transcript retrieval, not general audio transcription. AutoSho
 | Option | Value |
 |--------|-------|
 | Selector | `--provider gladia[=<model>]` |
-| Models | `default` |
+| Models | `solaria-1`, `solaria-3` |
 | Diarization | Supports exact `--speaker-count` hints |
 
 ```bash
-bun autoshow extract https://ajc.pics/autoshow/examples/1-audio.mp3 --provider gladia=default
+bun autoshow extract https://ajc.pics/autoshow/examples/1-audio.mp3 --provider gladia=solaria-3
 bun autoshow extract https://ajc.pics/autoshow/examples/1-audio.mp3 --provider gladia --speaker-count 2
 ```
+
+Bare `--provider gladia` selects the tied cheapest model `solaria-1`; `--all-providers` includes both active Solaria models. Select `solaria-3` explicitly when its supported-language profile fits the source.
 
 ## Non-diarized STT
 
@@ -271,23 +273,27 @@ bun autoshow extract https://ajc.pics/autoshow/examples/1-audio.mp3 --provider d
 | Option | Value |
 |--------|-------|
 | Selector | `--provider together[=<model>]` |
-| Models | `openai/whisper-large-v3` |
+| Models | `openai/whisper-large-v3`, `nvidia/parakeet-tdt-0.6b-v3` |
 
 ```bash
 bun autoshow extract https://ajc.pics/autoshow/examples/1-audio.mp3 --provider together
 ```
+
+Both models use Together's serverless batch transcription endpoint at `$0.0015` per audio minute. The bare selector chooses Parakeet under the standard cheapest-model tie-breaker. AutoShow requests verbose segment timestamps from both models, and its request builder keeps optional decoding prompts model-aware because Together supports them only on Whisper.
 
 ### Gemini STT
 
 | Option | Value |
 |--------|-------|
 | Selector | `--provider gemini[=<model>]` |
-| Models | `gemini-3-flash-preview` |
+| Models | `gemini-3.6-flash` |
 | Behavior | Prompted JSON transcription via Gemini multimodal input |
 
 ```bash
 bun autoshow extract https://ajc.pics/autoshow/examples/1-audio.mp3 --provider gemini
 ```
+
+The retired `gemini-3-flash-preview` selector remains readable in completed historical benchmark artifacts but cannot be selected for new work.
 
 ### Mistral
 
@@ -343,12 +349,14 @@ Grok STT sends `format=true`, `language=en`, and `diarize=true` to xAI's REST ST
 bun autoshow extract https://ajc.pics/autoshow/examples/1-audio.mp3 --provider deepgram=nova-3
 ```
 
+AutoShow exposes only Deepgram's concrete general-purpose `nova-3` family selector. The redundant `nova-3-general` specialization and domain-specific `nova-3-medical` model are intentionally excluded from the general-purpose hosted STT registry.
+
 ### Soniox
 
 | Option | Value |
 |--------|-------|
 | Selector | `--provider soniox[=<model>]` |
-| Models | `stt-async-v4` |
+| Models | `stt-async-v5` |
 
 ```bash
 bun autoshow extract https://ajc.pics/autoshow/examples/1-audio.mp3 --provider soniox
@@ -359,11 +367,14 @@ bun autoshow extract https://ajc.pics/autoshow/examples/1-audio.mp3 --provider s
 | Option | Value |
 |--------|-------|
 | Selector | `--provider speechmatics[=<model>]` |
-| Models | `enhanced` |
+| Models | `enhanced`, `melia-1` |
 
 ```bash
 bun autoshow extract https://ajc.pics/autoshow/examples/1-audio.mp3 --provider speechmatics=enhanced
+bun autoshow extract https://ajc.pics/autoshow/examples/1-audio.mp3 --provider speechmatics=melia-1
 ```
+
+Bare `--provider speechmatics` selects the cheaper `melia-1` model. Melia uses Speechmatics' required `language: "multi"` selector for multilingual detection and code-switching; `enhanced` retains `language: "auto"` for automatic single-language identification and remains available explicitly for maximum per-language accuracy.
 
 ### Rev
 
@@ -381,12 +392,14 @@ bun autoshow extract https://ajc.pics/autoshow/examples/1-audio.mp3 --provider r
 | Option | Value |
 |--------|-------|
 | Selector | `--provider assemblyai[=<model>]` |
-| Models | `universal-3-pro` |
+| Models | `universal-3-5-pro`, `universal-2` |
 | Diarization | Supports `--speaker-count` |
 
 ```bash
 bun autoshow extract https://ajc.pics/autoshow/examples/1-audio.mp3 --provider assemblyai
 ```
+
+The bare AssemblyAI selector uses the lowest-cost active model, `universal-2`. Select `universal-3-5-pro` explicitly for the flagship model. `--all-providers` includes both models in the order shown above.
 
 ## STT Pricing And Manifests
 

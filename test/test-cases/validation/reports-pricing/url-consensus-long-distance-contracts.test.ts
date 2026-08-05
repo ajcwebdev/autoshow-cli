@@ -2,7 +2,7 @@ import { describe, expect, test } from 'bun:test'
 
 import {
   levenshteinBreakdown
-} from '../../../../.claude/skills/consensus/scripts/url/url_consensus_lib'
+} from '../../../../.codex/skills/consensus/scripts/url/url_consensus_lib'
 
 describe('URL consensus long-distance contracts', () => {
   test('keeps long identical, edited, inserted, and truncated sequences deterministic', () => {

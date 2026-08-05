@@ -4,6 +4,21 @@ import { readEnv } from '~/utils/validate/env-utils'
 import { InternalError, hintsForMissingEnv } from '~/utils/error-handler'
 import { runOpenAICompatibleSingleSpeakerStt } from '../openai-compatible-single-speaker'
 
+export const buildTogetherSttFormFields = (
+  model: string,
+  prompt?: string | undefined
+): Record<string, string> => {
+  const fields: Record<string, string> = {
+    response_format: 'verbose_json',
+    'timestamp_granularities[]': 'segment'
+  }
+  const normalizedPrompt = prompt?.trim()
+  if (model === 'openai/whisper-large-v3' && normalizedPrompt) {
+    fields['prompt'] = normalizedPrompt
+  }
+  return fields
+}
+
 export const runTogetherStt = async (
   audioPath: string,
   outputDir: string,
@@ -27,6 +42,7 @@ export const runTogetherStt = async (
     apiKey,
     baseURL: TOGETHER_DEFAULT_BASE_URL,
     model,
+    formFields: buildTogetherSttFormFields(model),
     segmentOffsetMinutes,
     segmentNumber,
     totalSegments,

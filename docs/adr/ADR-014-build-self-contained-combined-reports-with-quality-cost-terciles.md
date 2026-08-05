@@ -93,11 +93,11 @@ The current combined JSON schema versions are OCR v2, STT v3, and URL v1. Those 
 
 The architecture is implemented in:
 
-- `.claude/skills/consensus/scripts/shared/combined_report_lib.ts` for the shared weight registry, composite ordering, tercile construction, and Markdown tier rendering;
-- `.claude/skills/consensus/scripts/shared/combined_report_html.ts` for the pure self-contained dashboard renderer;
-- `.claude/skills/consensus/scripts/stt/build_combined_report.ts` for STT schema v3 and category-specific aggregation/view-model assembly;
-- `.claude/skills/consensus/scripts/ocr/build_combined_report.ts` for OCR schema v2 and category-specific aggregation/view-model assembly; and
-- `.claude/skills/consensus/scripts/url/build_combined_report.ts` for URL schema v1, source inventory metadata, and source-ranking aggregation/view-model assembly.
+- `.codex/skills/consensus/scripts/shared/combined_report_lib.ts` for the shared weight registry, composite ordering, tercile construction, and Markdown tier rendering;
+- `.codex/skills/consensus/scripts/shared/combined_report_html.ts` for the pure self-contained dashboard renderer;
+- `.codex/skills/consensus/scripts/stt/build_combined_report.ts` for STT schema v3 and category-specific aggregation/view-model assembly;
+- `.codex/skills/consensus/scripts/ocr/build_combined_report.ts` for OCR schema v2 and category-specific aggregation/view-model assembly; and
+- `.codex/skills/consensus/scripts/url/build_combined_report.ts` for URL schema v1, source inventory metadata, and source-ranking aggregation/view-model assembly.
 
 The focused combined-report contract test checks the exact eight-set registry, weighted ordering and tie-breaks, tercile sizes, JSON fields, schema versions, and rank/composite parity in the committed Markdown and HTML artifacts.
 
@@ -153,11 +153,11 @@ Negative outcomes:
 ## References
 
 - Related ADR: [ADR-012](ADR-012-add-price-preflight-to-resume.md) (benchmark-driven pricing surfaces)
-- `.claude/skills/consensus/scripts/shared/combined_report_lib.ts`
-- `.claude/skills/consensus/scripts/shared/combined_report_html.ts`
-- `.claude/skills/consensus/scripts/stt/build_combined_report.ts`
-- `.claude/skills/consensus/scripts/ocr/build_combined_report.ts`
-- `.claude/skills/consensus/scripts/url/build_combined_report.ts`
+- `.codex/skills/consensus/scripts/shared/combined_report_lib.ts`
+- `.codex/skills/consensus/scripts/shared/combined_report_html.ts`
+- `.codex/skills/consensus/scripts/stt/build_combined_report.ts`
+- `.codex/skills/consensus/scripts/ocr/build_combined_report.ts`
+- `.codex/skills/consensus/scripts/url/build_combined_report.ts`
 - `test/test-cases/validation/reports-pricing/combined-report-weighted-ranking-contracts.test.ts`
 - `docs/benchmarks/stt/combined-comparison-report.{json,md,html}`
 - `docs/benchmarks/ocr/combined-comparison-report.{json,md,html}`

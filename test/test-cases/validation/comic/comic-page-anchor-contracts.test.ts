@@ -12,6 +12,7 @@ import {
   buildComicPageQaPrompt,
   createPageQaRepairStagnationState,
   hasHardPageQaFailure,
+  parseComicPageQaResult,
 } from '~/cli/commands/process-steps/step-8-comic/comic-commands/generate-images/comic-page-qa'
 import { beginSceneRun, resetSceneRunContext } from '~/cli/commands/process-steps/step-8-comic/comic-utils/scene-run-context'
 import type { ComicImageRequestInput, PanelBundleData } from '~/types'
@@ -35,16 +36,16 @@ const createSceneFixture = async (sceneSlug: string): Promise<{ runDirectory: st
   const runDirectory = await mkdtemp(join(tmpdir(), 'autoshow-comic-location-'))
   temporaryDirectories.push(runDirectory)
   beginSceneRun(sceneSlug, { outputDir: runDirectory })
-  const characterRoot = join(runDirectory, 'character-references', 'character-snapshot', 'hero')
+  const characterRoot = join(runDirectory, 'assets', 'character-references', 'character-snapshot', 'hero')
   await mkdir(characterRoot, { recursive: true })
   await Bun.write(join(characterRoot, 'reference.png'), tinyPng)
-  await Bun.write(join(runDirectory, 'character-references.json'), JSON.stringify({ schemaVersion: 2, snapshotId: 'character-snapshot', catalogHash: 'test', createdAt: '2026-01-01T00:00:00.000Z', characters: [{ key: 'hero', name: 'Hero', description: 'Test hero', sourceSketchVersion: 'v1', assets: [{ role: 'sketch-sheet', path: 'character-references/character-snapshot/hero/reference.png', sha256: sha }, { role: 'source-image', path: 'character-references/character-snapshot/hero/reference.png', sha256: sha }] }] }))
-  const locationSheet = join(runDirectory, 'location-references', 'location-snapshot', 'cargo-bay.png')
+  await Bun.write(join(runDirectory, 'assets', 'character-references.json'), JSON.stringify({ schemaVersion: 2, snapshotId: 'character-snapshot', catalogHash: 'test', createdAt: '2026-01-01T00:00:00.000Z', characters: [{ key: 'hero', name: 'Hero', description: 'Test hero', sourceSketchVersion: 'v1', assets: [{ role: 'sketch-sheet', path: 'assets/character-references/character-snapshot/hero/reference.png', sha256: sha }, { role: 'source-image', path: 'assets/character-references/character-snapshot/hero/reference.png', sha256: sha }] }] }))
+  const locationSheet = join(runDirectory, 'assets', 'location-references', 'location-snapshot', 'cargo-bay.png')
   await mkdir(dirname(locationSheet), { recursive: true })
   await Bun.write(locationSheet, tinyPng)
-  await Bun.write(join(runDirectory, 'location-reference.json'), JSON.stringify({ schemaVersion: 1, snapshotId: 'location-snapshot', locationKey: 'cargo-bay', specification: 'Fixed cargo bay.', sourceScripts: ['episode-scripts/02-script/01.md'], sourceGenerationId: 'v1', sheet: { path: 'location-references/location-snapshot/cargo-bay.png', sha256: sha } }))
+  await Bun.write(join(runDirectory, 'assets', 'location-reference.json'), JSON.stringify({ schemaVersion: 1, snapshotId: 'location-snapshot', locationKey: 'cargo-bay', specification: 'A loading door stays left of a fixed control booth; camera angles and crops may vary.', sourceScripts: ['scripts/02-script/01.md'], sourceGenerationId: 'v1', sheet: { path: 'assets/location-references/location-snapshot/cargo-bay.png', sha256: sha } }))
   for (const panelNumber of [1, 2]) {
-    const directory = join(runDirectory, 'panel-prompts', `panel-${String(panelNumber).padStart(2, '0')}`)
+    const directory = join(runDirectory, 'metadata', 'panel-prompts', `panel-${String(panelNumber).padStart(2, '0')}`)
     await mkdir(directory, { recursive: true })
     await Bun.write(join(directory, 'prompt.md'), `Generate panel independently.\n\n\`\`\`json\n${JSON.stringify(panelBundle(panelNumber), null, 2)}\n\`\`\`\n`)
   }
@@ -55,10 +56,10 @@ const createMultiLocationFixture = async (sceneSlug: string): Promise<{ runDirec
   const runDirectory = await mkdtemp(join(tmpdir(), 'autoshow-comic-multi-location-'))
   temporaryDirectories.push(runDirectory)
   beginSceneRun(sceneSlug, { outputDir: runDirectory })
-  const characterRoot = join(runDirectory, 'character-references', 'character-snapshot', 'hero')
+  const characterRoot = join(runDirectory, 'assets', 'character-references', 'character-snapshot', 'hero')
   await mkdir(characterRoot, { recursive: true })
   await Bun.write(join(characterRoot, 'reference.png'), tinyPng)
-  await Bun.write(join(runDirectory, 'character-references.json'), JSON.stringify({ schemaVersion: 2, snapshotId: 'character-snapshot', catalogHash: 'test', createdAt: '2026-01-01T00:00:00.000Z', characters: [{ key: 'hero', name: 'Hero', description: 'Test hero', sourceSketchVersion: 'v1', assets: [{ role: 'sketch-sheet', path: 'character-references/character-snapshot/hero/reference.png', sha256: sha }, { role: 'source-image', path: 'character-references/character-snapshot/hero/reference.png', sha256: sha }] }] }))
+  await Bun.write(join(runDirectory, 'assets', 'character-references.json'), JSON.stringify({ schemaVersion: 2, snapshotId: 'character-snapshot', catalogHash: 'test', createdAt: '2026-01-01T00:00:00.000Z', characters: [{ key: 'hero', name: 'Hero', description: 'Test hero', sourceSketchVersion: 'v1', assets: [{ role: 'sketch-sheet', path: 'assets/character-references/character-snapshot/hero/reference.png', sha256: sha }, { role: 'source-image', path: 'assets/character-references/character-snapshot/hero/reference.png', sha256: sha }] }] }))
   const locations = [
     { key: 'quarters', snapshotId: 'location-quarters' },
     { key: 'hallway', snapshotId: 'location-hallway' },
@@ -66,16 +67,16 @@ const createMultiLocationFixture = async (sceneSlug: string): Promise<{ runDirec
   const locationSheets: string[] = []
   const snapshots = []
   for (const location of locations) {
-    const path = join(runDirectory, 'location-references', location.snapshotId, `${location.key}.png`)
+    const path = join(runDirectory, 'assets', 'location-references', location.snapshotId, `${location.key}.png`)
     await mkdir(dirname(path), { recursive: true })
     await Bun.write(path, tinyPng)
     locationSheets.push(path)
-    snapshots.push({ schemaVersion: 1, snapshotId: location.snapshotId, locationKey: location.key, specification: location.key, sourceScripts: [], sourceGenerationId: 'v1', sheet: { path: `location-references/${location.snapshotId}/${location.key}.png`, sha256: sha } })
+    snapshots.push({ schemaVersion: 1, snapshotId: location.snapshotId, locationKey: location.key, specification: location.key, sourceScripts: [], sourceGenerationId: 'v1', sheet: { path: `assets/location-references/${location.snapshotId}/${location.key}.png`, sha256: sha } })
   }
-  await Bun.write(join(runDirectory, 'location-references.json'), JSON.stringify({ schemaVersion: 2, snapshots }))
+  await Bun.write(join(runDirectory, 'assets', 'location-references.json'), JSON.stringify({ schemaVersion: 2, snapshots }))
   for (const [index, location] of locations.entries()) {
     const panelNumber = index + 1
-    const directory = join(runDirectory, 'panel-prompts', `panel-0${panelNumber}`)
+    const directory = join(runDirectory, 'metadata', 'panel-prompts', `panel-0${panelNumber}`)
     await mkdir(directory, { recursive: true })
     const locationData = { key: location.key, raw: location.key }
     const bundle: PanelBundleData = {
@@ -110,19 +111,22 @@ describe('canonical location references and grouped QA repairs', () => {
     const sceneSlug = `multi-location-${crypto.randomUUID()}`
     const { locationSheets } = await createMultiLocationFixture(sceneSlug)
     const calls: ComicImageRequestInput[] = []
-    const qaRequests: Array<{ locationSheets: string[] }> = []
+    const qaRequests: Array<{ locationSheets: string[]; locationSpecifications: string[] }> = []
     await generateComicPages(sceneSlug, { models: ['gpt-image-2'], size: '1536x1024', quality: 'high', force: false, runId: 'pages', concurrency: 1, panels: [1, 2], panelsPerImage: 2, qa: true, maxRepairs: 0 }, {
       requestImage: async input => { calls.push(input); return { mode: 'generate', result: { imageBase64: tinyPng.toString('base64') } } },
       writeImage: async outputPath => { await mkdir(dirname(outputPath), { recursive: true }); await Bun.write(outputPath, tinyPng) },
       judgePage: async request => {
-        qaRequests.push({ locationSheets: request.locationSheets })
+        qaRequests.push({ locationSheets: request.locationSheets, locationSpecifications: request.locationReferences?.map(reference => reference.specification) ?? [] })
         return { pageNumber: 1, panelNumbers: [1, 2], outputFile: 'page.png', judgeModel: request.model, hardFailure: false, result: { panelStructure: { pass: true, observedPanelCount: 2, observedPanelOrder: [1, 2], issues: [] }, panels: [1, 2].map(panelNumber => ({ panelNumber, requiredCastPresent: true, unexpectedCastAbsent: true, identityMatch: true, locationMatch: true, sourcePrecedence: true, shotPlanMatch: true, dialogueAccuracy: true, speakerAttribution: true, artifacts: [], visualQualityScore: 8, compositionScore: 8, issues: [], editInstructions: '' })), summary: 'Pass.' }, usage: { inputTokens: 0, outputTokens: 0, totalTokens: 0, costUsd: 0 } }
       },
     })
     expect(calls[0]?.referenceImages.slice(-2)).toEqual(locationSheets)
     expect(calls[0]?.normalizedPrompt).toContain('locationKey=quarters; use only for sub-panels 1')
     expect(calls[0]?.normalizedPrompt).toContain('locationKey=hallway; use only for sub-panels 2')
+    expect(calls[0]?.normalizedPrompt).toContain('Canonical location specification: quarters')
+    expect(calls[0]?.normalizedPrompt).toContain('Canonical location specification: hallway')
     expect(qaRequests[0]?.locationSheets).toEqual(locationSheets)
+    expect(qaRequests[0]?.locationSpecifications).toEqual(['quarters', 'hallway'])
 
     await generatePanelImages(sceneSlug, { models: ['gpt-image-2'], size: '1536x1024', quality: 'high', force: false, runId: 'panels', concurrency: 1, panels: [2], qa: false }, {
       requestImage: async input => { calls.push(input); return { mode: 'generate', result: { imageBase64: tinyPng.toString('base64') } } },
@@ -146,6 +150,11 @@ describe('canonical location references and grouped QA repairs', () => {
     expect(calls[0]?.referenceImages).toHaveLength(2)
     expect(calls[0]?.normalizedPrompt).toContain('Exhaustive prose shot plan')
     expect(calls[0]?.normalizedPrompt).toContain('immutable canonical location reference')
+    expect(calls[0]?.normalizedPrompt).toContain('A loading door stays left of a fixed control booth; camera angles and crops may vary.')
+    expect(calls[0]?.normalizedPrompt).toContain('Preserve canonical anchor assemblies component by component.')
+    expect(calls[0]?.normalizedPrompt).toContain('Loose tools, generic clutter, speakers, lamps, or other plausible props never substitute for a named computer, keyboard')
+    expect(calls[0]?.normalizedPrompt).toContain('Occlusion is not an allowed continuity outcome')
+    expect(calls[0]?.normalizedPrompt).toContain('move its entire canonical region outside the crop instead of hiding it')
     expect(await Bun.file(join(runDirectory, 'panels', 'test-run', 'environment-anchor.png')).exists()).toBe(false)
     expect(stats.imagesGenerated).toBe(1)
   })
@@ -249,11 +258,25 @@ describe('canonical location references and grouped QA repairs', () => {
   })
 
   test('treats harmless typography substitutions and minor recognizable identity variance as advisory', () => {
-    const prompt = buildComicPageQaPrompt(panelBundle(1))
+    const prompt = buildComicPageQaPrompt(panelBundle(1), [{ key: 'hero', description: 'A free-standing hologram above a projector base.' }], [{ key: 'cargo-bay', specification: 'The loading door remains left of the control booth.' }])
     expect(prompt).toContain('Unicode ellipsis (…) and three consecutive periods (...)')
     expect(prompt).toContain('Never fail dialogueAccuracy for a harmless typography-only substitution.')
     expect(prompt).toContain('Minor body-width or proportion variance')
     expect(prompt).toContain('Set identityMatch=false only for an unmistakably wrong person')
+    expect(prompt).toContain('highest visual precedence for identity, physical embodiment, projection/display medium')
+    expect(prompt).toContain('violates this canon is a hard identity failure')
+    expect(prompt).toContain('hero: A free-standing hologram above a projector base.')
+    expect(prompt).toContain('cargo-bay: The loading door remains left of the control booth.')
+    expect(prompt).toContain('A different camera side, angle, distance, elevation, perspective, or crop is desirable shot variation')
+    expect(prompt).toContain('Perform a mandatory anchor-by-anchor continuity audit')
+    expect(prompt).toContain('Audit canonical assemblies component by component')
+    expect(prompt).toContain('There is no occluded status')
+    expect(prompt).toContain('character or prop blocking never excuses an unverifiable anchor')
+    expect(prompt).toContain('absent, hidden, or replaced by generic clutter, status is missing')
+    expect(prompt).not.toContain('physically-occluded')
+    expect(prompt).toContain('explicitly compare footprint, silhouette, connectedness, orientation, visible edge geometry, and wall relationships')
+    expect(prompt).toContain('may not turn a straight run into a corner, L-shaped, wraparound, split, or freestanding form')
+    expect(prompt).toContain('A wide or otherwise revealing view that shows an anchor\'s canonical region but omits the anchor is a hard failure')
     const tolerantResult = applyPageQaTolerancePolicy({
       panelStructure: { pass: true, observedPanelCount: 1, observedPanelOrder: [1], issues: [] },
       panels: [{ panelNumber: 1, requiredCastPresent: true, unexpectedCastAbsent: true, identityMatch: false, identityIssueKind: 'minor-variance', locationMatch: true, sourcePrecedence: true, shotPlanMatch: true, dialogueAccuracy: false, dialogueIssueKind: 'typography-only', speakerAttribution: true, artifacts: [], visualQualityScore: 8, compositionScore: 8, issues: ['minor proportions', 'ellipsis glyph'], editInstructions: '' }],
@@ -270,6 +293,37 @@ describe('canonical location references and grouped QA repairs', () => {
     expect(strictResult.panels[0]?.identityMatch).toBe(false)
     expect(strictResult.panels[0]?.dialogueAccuracy).toBe(false)
     expect(hasHardPageQaFailure(strictResult)).toBe(true)
+  })
+
+  test('keeps set continuity strict without treating camera variation as a failure', () => {
+    const setDrift = {
+      panelStructure: { pass: true, observedPanelCount: 1, observedPanelOrder: [1], issues: [] },
+      panels: [{ panelNumber: 1, requiredCastPresent: true, unexpectedCastAbsent: true, identityMatch: true, locationMatch: true, setContinuityMatch: false, setContinuityAudit: [{ anchor: 'fixed control booth', status: 'relocated' as const, evidence: 'It appears on the opposite side of the loading door.' }], sourcePrecedence: true, shotPlanMatch: true, dialogueAccuracy: true, speakerAttribution: true, artifacts: [], visualQualityScore: 8, compositionScore: 8, issues: ['The fixed control booth moved to the other side of the loading door.'], editInstructions: 'Restore the canonical world-space relationship while retaining this camera angle.' }],
+      summary: 'The location identity is recognizable, but its permanent topology drifted.',
+    }
+    expect(hasHardPageQaFailure(setDrift)).toBe(true)
+    const entry: PageQaEntry = { pageNumber: 1, panelNumbers: [1], outputFile: 'attempt.png', judgeModel: 'gpt-5.5', hardFailure: true, result: setDrift, usage: { inputTokens: 1, outputTokens: 1, totalTokens: 2, costUsd: 0 } }
+    expect(applyPageQaRepairPolicy(entry, 1).hardFailure).toBe(true)
+    expect(advancePageQaRepairStagnation(createPageQaRepairStagnationState(), entry).state.consecutiveFailures).toEqual({ 'panel-1:setContinuityMatch': 1, 'panel-1:setContinuityAudit': 1 })
+
+    const variedCamera = { ...setDrift, panels: [{ ...setDrift.panels[0]!, setContinuityMatch: true, setContinuityAudit: [{ anchor: 'fixed control booth', status: 'outside-crop' as const, evidence: 'The entire booth wall is beyond the right frame edge.' }], issues: [], editInstructions: '' }], summary: 'A different crop preserves the canonical set topology.' }
+    expect(hasHardPageQaFailure(variedCamera)).toBe(false)
+
+    const inconsistentAudit = { ...variedCamera, panels: [{ ...variedCamera.panels[0]!, setContinuityAudit: [{ anchor: 'fixed control booth', status: 'missing' as const, evidence: 'Its wall zone is visible and empty.' }] }] }
+    expect(hasHardPageQaFailure(inconsistentAudit)).toBe(true)
+    const normalizedInconsistentAudit = applyPageQaTolerancePolicy(inconsistentAudit)
+    expect(normalizedInconsistentAudit.panels[0]?.setContinuityMatch).toBe(false)
+    const inconsistentEntry: PageQaEntry = { pageNumber: 1, panelNumbers: [1], outputFile: 'attempt.png', judgeModel: 'gpt-5.5', hardFailure: true, result: normalizedInconsistentAudit, usage: { inputTokens: 1, outputTokens: 1, totalTokens: 2, costUsd: 0 } }
+    expect(advancePageQaRepairStagnation(createPageQaRepairStagnationState(), inconsistentEntry).state.consecutiveFailures).toEqual({ 'panel-1:setContinuityMatch': 1, 'panel-1:setContinuityAudit': 1 })
+
+    const strictPayload = { ...setDrift, panels: [{ ...setDrift.panels[0]!, identityIssueKind: 'none' as const, dialogueIssueKind: 'none' as const }] }
+    expect(parseComicPageQaResult(JSON.stringify(strictPayload), [1]).panels[0]?.setContinuityMatch).toBe(false)
+    const legacyOcclusionPayload = { ...strictPayload, panels: [{ ...strictPayload.panels[0]!, setContinuityAudit: [{ anchor: 'fixed control booth', status: 'physically-occluded', evidence: 'A character covers it.' }] }] }
+    expect(() => parseComicPageQaResult(JSON.stringify(legacyOcclusionPayload), [1])).toThrow('invalid setContinuityAudit')
+    const { setContinuityMatch: _omitted, ...missingContinuityField } = strictPayload.panels[0]!
+    expect(() => parseComicPageQaResult(JSON.stringify({ ...strictPayload, panels: [missingContinuityField] }), [1])).toThrow('missing or unexpected fields')
+    const { setContinuityAudit: _auditOmitted, ...missingAuditField } = strictPayload.panels[0]!
+    expect(() => parseComicPageQaResult(JSON.stringify({ ...strictPayload, panels: [missingAuditField] }), [1])).toThrow('missing or unexpected fields')
   })
 
   test('restarts once and then stops when the same hard check keeps stagnating', () => {

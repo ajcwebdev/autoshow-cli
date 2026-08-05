@@ -147,7 +147,7 @@ describe('STT normalization contracts', () => {
 
     const proc = Bun.spawn([
       process.execPath,
-      '.claude/skills/consensus/scripts/run.ts',
+      '.codex/skills/consensus/scripts/run.ts',
       'stt',
       'build-report',
       runDir

@@ -182,7 +182,7 @@ describe('Gemini REST contracts', () => {
       }))
 
       const result = await runGeminiStt(audioPath, dir, {
-        model: 'gemini-3-flash-preview',
+        model: 'gemini-3.6-flash',
         segmentOffsetMinutes: 0,
         audioDurationSeconds: 1
       })
@@ -412,7 +412,7 @@ describe('Gemini REST contracts', () => {
       })
 
       const result = await runGeminiStt(audioPath, dir, {
-        model: 'gemini-3-flash-preview',
+        model: 'gemini-3.6-flash',
         segmentOffsetMinutes: 0,
         audioDurationSeconds: 1
       })

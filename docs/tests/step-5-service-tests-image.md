@@ -38,7 +38,7 @@ Live image generation tests run only when their provider key is configured: `OPE
 ## Price Preflight
 
 ```bash
-bun t test/test-cases/e2e/service/step-5-image-gen-e2e/ --test-price
+bun t test/test-cases/e2e/service/step-5-image-gen-e2e/ --price
 bun t test/test-cases/e2e/service/step-5-image-gen-e2e/ --budget 2500
 ```
 

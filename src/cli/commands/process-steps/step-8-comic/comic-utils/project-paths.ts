@@ -1,11 +1,12 @@
-import { readdir } from 'node:fs/promises'
-import { basename, extname, join } from 'node:path'
+import { access, readdir } from 'node:fs/promises'
+import { basename, dirname, extname, join } from 'node:path'
 import type { ResolveComicScriptReferenceOptions } from '~/types'
 import { InfraError, ValidationError } from '~/utils/error-handler'
 import { getSceneRunDirectory } from './scene-run-context'
 
 const INPUT_ROOT = 'input'
-const EPISODE_SCRIPTS_ROOT = join(INPUT_ROOT, 'episode-scripts')
+const EPISODE_SCRIPTS_ROOT = join(INPUT_ROOT, 'scripts')
+const LEGACY_EPISODE_SCRIPTS_ROOT = join(INPUT_ROOT, 'episode-scripts')
 
 const COMIC_SCRIPT_SHORTHAND_PATTERN = /^(\d{2})-(\d{2})$/
 
@@ -15,20 +16,47 @@ const COMIC_SCRIPT_SHORTHAND_PATTERN = /^(\d{2})-(\d{2})$/
 export const getSceneOutputDirectory = (sceneSlug: string): string =>
   getSceneRunDirectory(sceneSlug)
 
+export const getSceneMetadataDirectoryForWorkspace = (sceneDirectory: string): string =>
+  join(sceneDirectory, 'metadata')
+
+export const getSceneAssetsDirectory = (sceneDirectory: string): string =>
+  join(sceneDirectory, 'assets')
+
+export const getSceneWorkspaceDirectoryForPanelPrompt = (panelDirectory: string): string => {
+  const panelPromptsDirectory = dirname(panelDirectory)
+  if (basename(panelPromptsDirectory) !== 'panel-prompts' || basename(dirname(panelPromptsDirectory)) !== 'metadata') {
+    throw ValidationError(
+      `Panel prompt directory "${normalizeProjectPath(panelDirectory)}" is not inside metadata/panel-prompts/. ` +
+      'Flat legacy comic workspaces must be migrated to the panel-first layout before use.',
+      { stage: 'comic:project-paths' }
+    )
+  }
+  return dirname(dirname(panelPromptsDirectory))
+}
+
+export const getCharacterReferencesDirectory = (sceneDirectory: string): string =>
+  join(getSceneAssetsDirectory(sceneDirectory), 'character-references')
+
+export const getLocationReferencesDirectory = (sceneDirectory: string): string =>
+  join(getSceneAssetsDirectory(sceneDirectory), 'location-references')
+
+export const getDesignReferencesDirectory = (sceneDirectory: string): string =>
+  join(getSceneAssetsDirectory(sceneDirectory), 'design-references')
+
 export const getStructuredScriptPath = (sceneSlug: string): string =>
-  join(getSceneOutputDirectory(sceneSlug), 'structured-script.json')
+  join(getSceneMetadataDirectoryForWorkspace(getSceneOutputDirectory(sceneSlug)), 'structured-script.json')
 
 export const getDraftPromptPath = (sceneSlug: string): string =>
-  join(getSceneOutputDirectory(sceneSlug), 'draft-prompt.md')
+  join(getSceneMetadataDirectoryForWorkspace(getSceneOutputDirectory(sceneSlug)), 'draft-prompt.md')
 
 export const getSceneJsonPath = (sceneSlug: string): string =>
-  join(getSceneOutputDirectory(sceneSlug), 'scene.json')
+  join(getSceneMetadataDirectoryForWorkspace(getSceneOutputDirectory(sceneSlug)), 'scene.json')
 
 export const getInvalidSceneJsonPath = (sceneSlug: string): string =>
-  join(getSceneOutputDirectory(sceneSlug), 'scene.invalid.json')
+  join(getSceneMetadataDirectoryForWorkspace(getSceneOutputDirectory(sceneSlug)), 'scene.invalid.json')
 
 export const getPanelPromptsDirectory = (sceneSlug: string): string =>
-  join(getSceneOutputDirectory(sceneSlug), 'panel-prompts')
+  join(getSceneMetadataDirectoryForWorkspace(getSceneOutputDirectory(sceneSlug)), 'panel-prompts')
 
 export const getPanelPromptCoverageReportPath = (sceneSlug: string): string =>
   join(getPanelPromptsDirectory(sceneSlug), 'source-coverage.json')
@@ -47,6 +75,18 @@ export const resolveSceneSlug = (scriptPath: string): string =>
 
 export const normalizeProjectPath = (path: string): string => path.replace(/\\/g, '/')
 
+const resolveDefaultEpisodeScriptsRoot = async (episode: string): Promise<string> => {
+  for (const root of [EPISODE_SCRIPTS_ROOT, LEGACY_EPISODE_SCRIPTS_ROOT]) {
+    try {
+      await access(join(root, `${episode}-script`))
+      return root
+    } catch {
+      // Prefer input/scripts in the eventual error while retaining compatibility with legacy projects.
+    }
+  }
+  return EPISODE_SCRIPTS_ROOT
+}
+
 export const resolveComicScriptReference = async (
   scriptReference: string,
   options: ResolveComicScriptReferenceOptions = {}
@@ -58,7 +98,7 @@ export const resolveComicScriptReference = async (
 
   const episode = match[1]
   const scene = match[2]
-  const episodeScriptsRoot = options.episodeScriptsRoot ?? EPISODE_SCRIPTS_ROOT
+  const episodeScriptsRoot = options.episodeScriptsRoot ?? await resolveDefaultEpisodeScriptsRoot(episode)
   const episodeDirectory = join(episodeScriptsRoot, `${episode}-script`)
   const expectedPrefix = `${scene}-`
 

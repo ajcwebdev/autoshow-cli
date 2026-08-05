@@ -47,7 +47,13 @@ Example JSON output:
 }
 
 Transcript:
-[00:00:00] [speaker-A] James Perkins, welcome to the show.
-[00:00:02] [speaker-B] Thanks for having me. I really appreciate you guys having me on. I know we've kind of had this planned in the previous time and now we finally managed to get here and I'm super excited to be on the show. Thank you for having me.
-[00:00:12] [speaker-A] Yeah, you have such an awesome story where you were— I mean, it's awesome and bad at the same time. You got fired, you got laid off, not fired, because of Tina CMS. They were downsizing, recession, we're seeing layoffs kind of across the board here. And you being a very very professional commensurate DevRel person. You had so many connections that you had a job within 12 hours, I believe.
-[00:00:34] [speaker-B] Yeah, I had, uh, worked with Clerk previously and, uh, on some stuff and some freelance stuff for, for Colin and a bunch of other stuff. And I, uh, sent him a message and said, hey, like, I lost my job and want to know if you guys are looking for DevRel. And, and then 12 hours later, the piece of paper was signed and we were all set and ready to go. It was Certainly not what I expected to happen, and I, I think I'm probably the luckiest person
+[00:00:00] [1] James Perkins, welcome to the show.
+[00:00:02] [2] Thanks for having me. I really appreciate you guys having me on. I know we've kind of had this planned in the previous time, and now we've finally managed to get here, and I'm super excited to be on the show.
+[00:00:11] [2] Thank you for having me.
+[00:00:12] [1] Yeah, you have such an awesome story where you were— I mean, it's awesome and bad at the same time.
+[00:00:18] [1] You got fired, you got laid off, not fired, because of Tina CMS. They were downsizing, recession.
+[00:00:23] [1] We're seeing layoffs kind of across the board here. And you being a very professional, commensurate, DevRel person, you had so many connections that you had a job within 12 hours, I believe.
+[00:00:34] [2] Yeah, I had worked with Clark previously and on some stuff and some freelance stuff for Colin and a bunch of other stuff.
+[00:00:43] [2] And I sent him a message and said, "Hey, I lost my job and want to know if you guys are looking for DevRel.
+[00:00:49] [2] " And then, 12 hours later, the piece of paper was signed and we were all set and ready to go.
+[00:00:54] [2] It was certainly not what I expected to happen, and I think I'm probably the luckiest person.

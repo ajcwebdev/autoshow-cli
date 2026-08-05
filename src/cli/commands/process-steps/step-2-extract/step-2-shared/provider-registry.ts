@@ -1,4 +1,5 @@
 export {
+  getStep2ActiveModelsForService,
   getStep2AllShortcutModelExpansions,
   getStep2BootstrapProviderId,
   getStep2ProviderConfigPathEntries,

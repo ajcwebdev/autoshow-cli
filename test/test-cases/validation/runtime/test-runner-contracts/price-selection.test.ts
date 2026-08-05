@@ -62,7 +62,7 @@ describe('test-runner contracts', () => {
     })
 
   test('price config isolation leaves non-CLI runner commands unchanged', () => {
-      const args = ['test/test-runner.ts', 'test/test-cases/e2e/local/step-3-write-e2e', '--test-price']
+      const args = ['test/test-runner.ts', 'test/test-cases/e2e/local/step-3-write-e2e', '--price']
 
       expect(withEmptyPriceConfig(args)).toEqual(args)
     })
@@ -159,7 +159,7 @@ describe('test-runner contracts', () => {
 
       expect(() => resolvePriceSelection(allFiles, [
         'test/test-price/step-4-tts/services'
-      ])).toThrow('--test-price now uses normal test paths')
+      ])).toThrow('--price uses normal test paths')
     })
 
   test('price path selections match path boundaries', () => {

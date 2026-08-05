@@ -1,5 +1,5 @@
 import { describe, expect, test } from 'bun:test'
-import { mkdir, mkdtemp, rm } from 'node:fs/promises'
+import { mkdir, mkdtemp, rm, writeFile } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { getGenerationTargetKey } from '~/cli/commands/process-steps/generation-command-utils'
@@ -15,6 +15,7 @@ import { hasResumableOcrTargetWork } from '~/cli/commands/setup-and-utilities/re
 import { writeOcrRunManifest } from '~/cli/commands/process-steps/step-2-extract/step-2-ocr/ocr-manifest'
 import { hasResumableSttTargetWork, priceSttTarget } from '~/cli/commands/setup-and-utilities/resume/extract/stt-resume'
 import { writeSttRunManifest } from '~/cli/commands/process-steps/step-2-extract/step-2-stt/stt-manifest'
+import { readExistingSttRun } from '~/cli/commands/process-steps/step-2-extract/step-2-stt/stt-batch/stt-run-state'
 import type { BatchManifestEntry, OcrTarget, ProviderBatchResumeConfig, ProviderIdentity, ResumeFakeMetadata, ResumeFakeProviderResumeEntry, ResumeTarget, RuntimeOptions, SttTarget } from '~/types'
 
 const isRecord = (value: unknown): value is Record<string, unknown> =>
@@ -316,6 +317,139 @@ describe('additive resume provider selection', () => {
         { ...openai, processingTime: 10 },
         { ...gemini, processingTime: 1 }
       ])
+    })
+  })
+
+  test('STT resume keeps completed retired models readable but blocks unfinished retired targets', async () => {
+    await withTempDir('autoshow-stt-retired-model-resume-', async (dir) => {
+      const completeDir = join(dir, 'complete')
+      const incompleteDir = join(dir, 'incomplete')
+      const retired = { service: 'assemblyai' as const, model: 'universal-3-pro' }
+      await Promise.all([
+        mkdir(completeDir, { recursive: true }),
+        mkdir(incompleteDir, { recursive: true })
+      ])
+      await writeSttRunManifest(completeDir, {
+        step1: { url: 'file:///tmp/historical.mp3' },
+        completionStatus: 'full',
+        requestedProviders: [retired],
+        missingProviders: [],
+        providerStates: [{ ...retired, status: 'succeeded', artifactDir: 'providers/assemblyai-universal-3-pro', attempts: 1 }]
+      })
+      await writeSttRunManifest(incompleteDir, {
+        step1: { url: 'file:///tmp/historical.mp3' },
+        completionStatus: 'incomplete',
+        requestedProviders: [retired],
+        missingProviders: [retired],
+        providerStates: [{ ...retired, status: 'missing', artifactDir: 'providers/assemblyai-universal-3-pro', attempts: 0 }]
+      })
+
+      const completeTarget: ResumeTarget = {
+        kind: 'extract',
+        extractRoute: 'media',
+        scope: 'single',
+        dir: completeDir,
+        manifestPath: join(completeDir, 'run.json')
+      }
+      const incompleteTarget: ResumeTarget = {
+        ...completeTarget,
+        dir: incompleteDir,
+        manifestPath: join(incompleteDir, 'run.json')
+      }
+
+      await expect(hasResumableSttTargetWork(
+        completeTarget,
+        undefined,
+        { youtubeCaptions: false, currentTargets: [] }
+      )).resolves.toBe(false)
+      await expect(priceSttTarget(
+        incompleteTarget,
+        { youtubeCaptions: false } as RuntimeOptions
+      )).rejects.toThrow('Stored STT target assemblyai/universal-3-pro is incomplete')
+      await expect(priceSttTarget(
+        incompleteTarget,
+        { youtubeCaptions: false } as RuntimeOptions
+      )).rejects.toThrow('--provider assemblyai=universal-3-5-pro or --provider assemblyai=universal-2')
+
+      const replacementCases = [
+        {
+          retired: { service: 'gemini-stt' as const, model: 'gemini-3-flash-preview' },
+          expected: '--provider gemini=gemini-3.6-flash'
+        },
+        {
+          retired: { service: 'gladia' as const, model: 'default' },
+          expected: '--provider gladia=solaria-1 or --provider gladia=solaria-3'
+        },
+        {
+          retired: { service: 'soniox' as const, model: 'stt-async-v4' },
+          expected: '--provider soniox=stt-async-v5'
+        }
+      ]
+      for (const { retired: replacedTarget, expected } of replacementCases) {
+        const replacedDir = join(dir, replacedTarget.service)
+        await mkdir(replacedDir, { recursive: true })
+        await writeSttRunManifest(replacedDir, {
+          step1: { url: 'file:///tmp/historical.mp3' },
+          completionStatus: 'incomplete',
+          requestedProviders: [replacedTarget],
+          missingProviders: [replacedTarget],
+          providerStates: [{ ...replacedTarget, status: 'missing', artifactDir: `providers/${replacedTarget.service}-retired`, attempts: 0 }]
+        })
+        await expect(priceSttTarget(
+          {
+            ...incompleteTarget,
+            dir: replacedDir,
+            manifestPath: join(replacedDir, 'run.json')
+          },
+          { youtubeCaptions: false } as RuntimeOptions
+        )).rejects.toThrow(expected)
+      }
+    })
+  })
+
+  test('STT resume reconstructs compacted successes from provider result artifacts', async () => {
+    await withTempDir('autoshow-stt-compacted-resume-', async (dir) => {
+      const target: SttTarget = { service: 'assemblyai', model: 'universal-2', local: false }
+      const providerDir = join(dir, 'providers', 'assemblyai-universal-2')
+      await mkdir(providerDir, { recursive: true })
+      await writeSttRunManifest(dir, {
+        step1: { url: 'file:///tmp/audio.mp3' },
+        completionStatus: 'incomplete',
+        requestedProviders: [target, { service: 'speechmatics', model: 'melia-1', local: false }],
+        missingProviders: [{ service: 'speechmatics', model: 'melia-1', local: false }],
+        providerStates: [{
+          ...target,
+          status: 'succeeded',
+          artifactDir: 'providers/assemblyai-universal-2',
+          attempts: 1
+        }]
+      })
+      await writeFile(join(providerDir, 'result.json'), `${JSON.stringify({
+        schemaVersion: 2,
+        kind: 'provider-result',
+        provider: target.service,
+        model: target.model,
+        metadata: {
+          transcriptionService: target.service,
+          transcriptionModel: target.model,
+          processingTime: 10,
+          tokenCount: 2
+        },
+        result: {
+          text: 'Compacted transcript.',
+          segments: [{ start: '00:00:00', end: '00:00:01', text: 'Compacted transcript.' }],
+          evidence: { timingQuality: 'coarse' }
+        }
+      })}\n`)
+
+      const existing = await readExistingSttRun(dir, [target])
+
+      expect(existing.successes[0]?.result).toEqual({
+        text: 'Compacted transcript.',
+        segments: [{ start: '00:00:00', end: '00:00:01', text: 'Compacted transcript.' }],
+        evidence: { timingQuality: 'coarse' }
+      })
+      expect(await Bun.file(join(providerDir, 'transcription.txt')).exists()).toBe(false)
     })
   })
 

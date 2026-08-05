@@ -41,7 +41,7 @@ budgetedTest('transcribe-whisper-large-v3-turbo', 'whisper large-v3-turbo model 
     const transcriptFile = Bun.file(`${outputDir}/transcription.txt`)
     const transcriptContent = await transcriptFile.text()
     expect(transcriptContent.length).toBeGreaterThan(0)
-    expect(transcriptContent).toMatch(/\[\d{2}:\d{2}:\d{2}\]/)
+    expect(transcriptContent).toMatch(/\[\d{2}:\d{2}:\d{2}(?:\.\d{3})?\]/)
 
     const metadata = await readRunMetadata(outputDir) as {
       step2?: { transcriptionModel?: string }
@@ -79,7 +79,7 @@ budgetedTest('transcribe-whisper-tiny-split', 'whisper tiny with split processes
 
     const transcriptContent = await Bun.file(`${outputDir}/transcription.txt`).text()
     expect(transcriptContent.length).toBeGreaterThan(0)
-    expect(transcriptContent).toMatch(/\[\d{2}:\d{2}:\d{2}\]/)
+    expect(transcriptContent).toMatch(/\[\d{2}:\d{2}:\d{2}(?:\.\d{3})?\]/)
 
     const metadata = await readRunMetadata(outputDir) as {
       step2?: { transcriptionModel?: string }

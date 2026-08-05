@@ -44,6 +44,9 @@ const fail = (configPath: string, detail: string): never => {
 const freezeEntry = (entry: CharacterCatalogEntry): CharacterCatalogEntry => Object.freeze({
   ...entry,
   aliases: Object.freeze([...entry.aliases]) as unknown as string[],
+  ...(entry.sceneTextRules
+    ? { sceneTextRules: Object.freeze(entry.sceneTextRules.map(rule => Object.freeze({ ...rule }))) as unknown as CharacterCatalogEntry['sceneTextRules'] }
+    : {}),
 })
 
 export const loadCharacterCatalog = (charactersRoot = getCharactersRoot()): CharacterCatalogService => {
@@ -104,6 +107,14 @@ export const loadCharacterCatalog = (charactersRoot = getCharactersRoot()): Char
     if (byKey.has(key)) fail(configPath, `duplicate character key "${key}"`)
     if (!authored.name.trim()) fail(configPath, `character "${key}" has an empty display name`)
     if (!authored.description.trim()) fail(configPath, `character "${key}" has an empty description`)
+    for (const [index, rule] of (authored.sceneTextRules ?? []).entries()) {
+      if (!rule.pattern.trim() || !rule.description.trim()) fail(configPath, `character "${key}" sceneTextRules[${index}] must have a non-empty pattern and description`)
+      try {
+        new RegExp(rule.pattern, 'iu')
+      } catch (error) {
+        fail(configPath, `character "${key}" sceneTextRules[${index}] has an invalid regular expression: ${error instanceof Error ? error.message : String(error)}`)
+      }
+    }
     const sourcePath = resolveCatalogAsset(key, 'image', authored.image)
     const outlineSheetPath = resolveCatalogAsset(key, 'outlineSheet', authored.outlineSheet)
     const normalizedSourcePath = sourcePath.replace(/\\/g, '/')

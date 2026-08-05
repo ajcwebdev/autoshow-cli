@@ -51,11 +51,13 @@ export const parseRunnerArgs = (argv: string[]): RunnerArgs => {
       case '--cleanup':            break
       case '--no-cleanup':         preserveTestOutput = true; break
       case '--no-adaptive-concurrency': adaptiveConcurrency = false; break
-      case '--test-price':         priceMode = true; break
+      case '--price':              priceMode = true; break
+      case '--test-price':
+        throw new Error('Error: --test-price has been replaced by --price for test-runner price mode.')
       case UNSUPPORTED_CONCURRENCY_FLAG:
         throw new Error(unsupportedConcurrencyMessage)
       case '--testprice':
-        throw new Error('Error: --testprice is not supported. Use --test-price for test-runner price mode.')
+        throw new Error('Error: --testprice is not supported. Use --price for test-runner price mode.')
       case '--budget': {
         const value = argv[++i]
         if (!value) {
@@ -71,8 +73,6 @@ export const parseRunnerArgs = (argv: string[]): RunnerArgs => {
         budgetHundredthCents = parsed
         break
       }
-      case '--price':
-        throw new Error('Error: --price is a runtime CLI flag. Use --test-price for test-runner price mode.')
       case '--':                   break
       default:
         if (arg.startsWith(`${UNSUPPORTED_CONCURRENCY_FLAG}=`)) {

@@ -31,9 +31,9 @@ bun t \
 ## Price Preflight
 
 ```bash
-bun t test/test-cases/e2e/local/step-1-download-e2e/download-input-types-direct-url.test.ts --test-price
-bun t test/test-cases/e2e/local/step-1-download-e2e/download-input-types-streaming.test.ts --test-price
-bun t test/test-cases/e2e/local/step-1-download-e2e/download-input-types-feed-or-channel.test.ts --test-price
+bun t test/test-cases/e2e/local/step-1-download-e2e/download-input-types-direct-url.test.ts --price
+bun t test/test-cases/e2e/local/step-1-download-e2e/download-input-types-streaming.test.ts --price
+bun t test/test-cases/e2e/local/step-1-download-e2e/download-input-types-feed-or-channel.test.ts --price
 ```
 
 These download mappings are report-only entries in `test/test-runner/price-commands/registry/download.ts`. `--budget` does not currently skip step 1 download tests.

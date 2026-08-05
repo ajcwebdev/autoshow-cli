@@ -25,7 +25,7 @@ describe('test-runner contracts', () => {
         'bun',
         'test/test-runner.ts',
         'test/test-cases/validation-next/',
-        '--test-price',
+        '--price',
         '--budget',
         '500',
         '--bail'
@@ -38,12 +38,18 @@ describe('test-runner contracts', () => {
       expect(parsed.passthroughArgs).toEqual(['--bail'])
     })
 
-  test('arg parsing rejects the --testprice typo', () => {
+  test('arg parsing rejects legacy test price spellings', () => {
+      expect(() => parseRunnerArgs([
+        'bun',
+        'test/test-runner.ts',
+        '--test-price',
+      ])).toThrow('replaced by --price')
+
       expect(() => parseRunnerArgs([
         'bun',
         'test/test-runner.ts',
         '--testprice',
-      ])).toThrow('Use --test-price')
+      ])).toThrow('Use --price')
     })
 
   test('arg parsing rejects legacy --concurrency spelling', () => {

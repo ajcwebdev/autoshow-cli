@@ -173,6 +173,10 @@ const referenceSketchSheetFlags = {
     description: colorizeHelpDescription('Canonical location key (mutually exclusive with --character)'),
     type: String
   },
+  view: {
+    description: colorizeHelpDescription('Location camera view: establishing|reverse|side (default: establishing)'),
+    type: String
+  },
   revise: {
     description: colorizeHelpDescription('Revision mode; requires --notes'),
     type: Boolean,
@@ -200,5 +204,5 @@ export const referenceSketchFlags = {
 
 export const characterSketchFlags: CliFlagsDefinition = {
   ...withHelpGroup(characterSketchCharacterFlag, 'comic-reference'),
-  ...omitFlags(referenceSketchFlags, ['character', 'location'])
+  ...omitFlags(referenceSketchFlags, ['character', 'location', 'view'])
 }

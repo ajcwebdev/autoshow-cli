@@ -4,10 +4,10 @@
 
 - **Decision Status:** Accepted
 - **Date Created:** 2026-07-13
-- **Date Updated:** 2026-07-24
+- **Date Updated:** 2026-08-03
 - **Verification Status:** Passed
 
-The 2026-07-24 Google Gemini, Moonshot Kimi, and Claude Opus 5 additions are implemented and verified against `bun run check` and the targeted local contract suites. Two gaps remain and are tracked in Follow-up Actions: the hosted OCR `--price` subprocess contracts could not run in an unprovisioned `runtime/` tree, and the Kimi K3 request shape cannot be proven without a paid call.
+The 2026-07-24 Google Gemini, Moonshot Kimi, and Claude Opus 5 additions are implemented and verified against `bun run check` and the targeted local contract suites. The previously blocked hosted OCR `--price` subprocess contracts were rerun successfully on 2026-08-03 after `runtime/` was provisioned. An approved one-page Kimi K3 write probe also confirmed the request shape and provider usage reporting. Provisional Gemini, Claude, and Kimi heuristics remain deferred pending separately approved calibration.
 
 ## Context
 
@@ -173,6 +173,9 @@ Negative outcomes:
 
 - Kimi K3's `pricingNotes` records that always-on thinking at the default `max` reasoning effort makes the reused Kimi K2.6 output-token and latency heuristics optimistic.
 - Selector, expansion, comic registry, CLI help, local price-only, provenance, and estimated/actual pricing contracts cover the public behavior.
+- After the repository `runtime/` tree was provisioned, `bun test test/test-cases/validation/cli/cli-usage-errors.test.ts` passed all 64 contracts and `bun test test/test-cases/validation/reports-pricing/price-mode-contracts/cli-price-mode.test.ts` passed all 31 contracts. These local `--price` subprocess runs included current Kimi, Grok, OpenAI, and Anthropic OCR selectors plus hosted OCR PDF page detection and made no provider calls.
+- The explicitly approved `bun autoshow write input/examples/document/1-document.pdf --llm kimi=kimi-k3 --prompt shortSummary` probe completed successfully on 2026-08-03. Kimi reported 661 input tokens and 159 output tokens, producing an actual provider-usage cost of `0.437¢` against the `0.540¢` estimate and confirming that the K3 request succeeds without the rejected K2.x `thinking` field.
+- The cross-provider thinking and reasoning-effort configuration decision is recorded separately in [ADR-017](ADR-017-normalize-cross-provider-reasoning-configuration.md); its implementation and calibration remain outside this accepted model-refresh decision.
 
 ## Follow-up Actions
 
@@ -180,9 +183,7 @@ Negative outcomes:
 |---|---|---|
 | Calibrate Grok 4.5 OCR page timing and token heuristics from a paid run | OCR maintainers | Deferred until the exact paid provider run is separately approved |
 | Calibrate Gemini 3.6/3.5, Claude Opus 5, and Kimi K3 write and OCR heuristics from a paid run | Model registry maintainers | Deferred until the exact paid provider run is separately approved |
-| Record a separate ADR for a cross-provider thinking and reasoning-effort configuration flag, covering effort levels on reasoning models and `disabled` on non-reasoning models, and absorbing the hardcoded Kimi `thinking` handling | CLI maintainers | Pending |
 | Re-evaluate the cheapest Gemini write and OCR default before `gemini-3.1-flash-lite` shuts down on 2027-05-07 | Model registry maintainers | Pending |
-| Re-run the hosted OCR `--price` subprocess contracts on a provisioned `runtime/` tree, and confirm the Kimi K3 request shape with one approved paid `--llm kimi=kimi-k3` call | Model registry maintainers | Pending |
 
 ## Verification
 
@@ -216,6 +217,7 @@ Do not run paid provider, smoke, e2e, or full-suite tests for this ADR. The Kimi
 - `src/cli/commands/process-steps/step-2-extract/step-2-ocr/ocr-services/kimi-ocr/run-kimi-ocr.ts`
 - Related ADR: [ADR-007](ADR-007-integrate-comic-with-central-llm-and-image-model-configs.md)
 - Related ADR: [ADR-012](ADR-012-add-price-preflight-to-resume.md)
+- Related ADR: [ADR-017](ADR-017-normalize-cross-provider-reasoning-configuration.md)
 - [OpenAI latest model guide](https://developers.openai.com/api/docs/guides/latest-model.md)
 - [OpenAI API pricing](https://developers.openai.com/api/docs/pricing)
 - [Anthropic models overview](https://platform.claude.com/docs/en/about-claude/models/overview)
