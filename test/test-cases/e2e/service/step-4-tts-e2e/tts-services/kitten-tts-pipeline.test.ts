@@ -66,7 +66,7 @@ describe("kitten-tts pipeline", () => {
       }
     })
 
-    budgetedTest(['write-openai-gpt-5.5', 'tts-kitten-mini', 'tts-openai-gpt-4o-mini-tts'], 'write can emit multiple speech artifacts from one summary', async () => {
+    budgetedTest(['write-openai-gpt-5.5', 'tts-kitten-mini', 'tts-openai-gpt-4o-mini-tts-2025-12-15'], 'write can emit multiple speech artifacts from one summary', async () => {
       await requireConfiguredEnvVar('OPENAI_API_KEY', 'OPENAI_API_KEY is required for multi-provider write TTS coverage')
 
       const result = await runCommand([
@@ -78,7 +78,7 @@ describe("kitten-tts pipeline", () => {
         '--tts',
         'kitten=kitten-tts-mini',
         '--tts',
-        'openai=gpt-4o-mini-tts',
+        'openai=gpt-4o-mini-tts-2025-12-15',
         '--prompt',
         'shortSummary',
       ])
@@ -90,7 +90,7 @@ describe("kitten-tts pipeline", () => {
 
       if (outputDir) {
         expect(await fileExists(`${outputDir}/speech-kitten-kitten-tts-mini.wav`)).toBe(true)
-        expect(await fileExists(`${outputDir}/speech-openai-gpt-4o-mini-tts.wav`)).toBe(true)
+        expect(await fileExists(`${outputDir}/speech-openai-gpt-4o-mini-tts-2025-12-15.wav`)).toBe(true)
 
         const metadata = await readRunMetadata(outputDir)
         const step3 = isRecord(metadata['step3']) ? metadata['step3'] : null

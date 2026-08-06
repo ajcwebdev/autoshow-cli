@@ -91,7 +91,7 @@ bun autoshow resume ./output/2026-04-22_12-00-00-000_batch --url-provider supada
 # Retry or append TTS providers
 bun autoshow resume ./output/2026-04-22_12-00-00-000_run --provider elevenlabs=eleven_v3
 bun autoshow resume ./output/2026-04-22_12-00-00-000_run --provider hume=octave-2 --tts-voice "Male English Actor"
-bun autoshow resume ./output/2026-04-22_12-00-00-000_run --provider cartesia=sonic-3.5 --tts-voice f786b574-daa5-4673-aa0c-cbe3e8534c02
+bun autoshow resume ./output/2026-04-22_12-00-00-000_run --provider cartesia=sonic-3.5-2026-05-04 --tts-voice f786b574-daa5-4673-aa0c-cbe3e8534c02
 
 # Retry or append image, video, and music providers
 bun autoshow resume ./output/2026-04-22_12-00-00-000_run --provider gemini=gemini-3.1-flash-image-preview

@@ -99,10 +99,10 @@ bun autoshow write https://ajc.pics/autoshow/examples/1-audio.mp3 --llm cerebras
 bun autoshow write https://ajc.pics/autoshow/examples/1-audio.mp3 --llm cerebras=zai-glm-4.7
 
 # Standalone text-to-speech from local text
-bun autoshow tts input/examples/tts/1-tts.md --provider openai=gpt-4o-mini-tts
+bun autoshow tts input/examples/tts/1-tts.md --provider openai=gpt-4o-mini-tts-2025-12-15
 
 # OpenAI custom voice from reference audio and an existing consent recording
-bun autoshow tts input/examples/tts/1-tts.md --provider openai=gpt-4o-mini-tts --tts-ref-audio input/examples/audio/anthony-voice.mp3 --openai-tts-consent-id cons_123
+bun autoshow tts input/examples/tts/1-tts.md --provider openai=gpt-4o-mini-tts-2025-12-15 --tts-ref-audio input/examples/audio/anthony-voice.mp3 --openai-tts-consent-id cons_123
 
 # ElevenLabs Instant Voice Cloning
 bun autoshow tts input/examples/tts/1-tts.md --provider elevenlabs=eleven_v3 --tts-ref-audio input/examples/audio/anthony-voice.mp3
@@ -120,7 +120,7 @@ bun autoshow tts input/examples/tts/1-tts.md --provider minimax=speech-2.8-turbo
 bun autoshow tts input/examples/tts/1-tts.md --provider hume=octave-2 --tts-voice "Male English Actor"
 
 # Cartesia Sonic text-to-speech
-bun autoshow tts input/examples/tts/1-tts.md --provider cartesia=sonic-3.5 --tts-voice f786b574-daa5-4673-aa0c-cbe3e8534c02
+bun autoshow tts input/examples/tts/1-tts.md --provider cartesia=sonic-3.5-2026-05-04 --tts-voice f786b574-daa5-4673-aa0c-cbe3e8534c02
 
 # Prompt-driven generation, then edit/reference the generated image; run this block in order
 bun autoshow image "a clean studio product photo of a red enamel camping mug on white seamless" --provider openai=gpt-image-1.5 --size 1024x1024 --format png --output-dir output/mug-base
@@ -223,7 +223,7 @@ bun autoshow config --llm openai=gpt-5.5 --batch-limit 20 --max-cents 50
 bun autoshow config --tts elevenlabs=eleven_v3 --tts-ref-audio input/examples/audio/anthony-voice.mp3
 bun autoshow config --tts minimax=speech-2.8-turbo --tts-voice English_expressive_narrator
 bun autoshow config --tts hume=octave-2 --tts-voice "Male English Actor"
-bun autoshow config --tts cartesia=sonic-3.5 --tts-voice f786b574-daa5-4673-aa0c-cbe3e8534c02
+bun autoshow config --tts cartesia=sonic-3.5-2026-05-04 --tts-voice f786b574-daa5-4673-aa0c-cbe3e8534c02
 bun autoshow config --reset
 ```
 

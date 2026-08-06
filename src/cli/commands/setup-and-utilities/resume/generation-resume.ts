@@ -112,6 +112,7 @@ export const hasResumableGenerationWork = async <TTarget extends { service: stri
   const storedMissingProviders = parsed.requestedProviders.filter(
     (provider) => !successKeys.has(getGenerationTargetKey(provider.service, provider.model))
   )
+  config.assertStoredMissingProvidersAreActive?.(storedMissingProviders)
   const selectedTargets = hasExplicitGenerationProviderSelection(config.providerFlags, explicitFlags)
     ? config.collectTargets(opts)
     : []
@@ -156,6 +157,7 @@ export const resumeGenerationTarget = async <TTarget extends { service: string, 
   const storedMissingProviders = parsed.requestedProviders.filter(
     (provider) => !successKeys.has(getGenerationTargetKey(provider.service, provider.model))
   )
+  config.assertStoredMissingProvidersAreActive?.(storedMissingProviders)
   const selectedTargets = hasExplicitGenerationProviderSelection(config.providerFlags, explicitFlags)
     ? config.collectTargets(opts)
     : []
@@ -314,6 +316,7 @@ export const priceGenerationTarget = async <TTarget extends { service: string, m
   const storedMissingProviders = parsed.requestedProviders.filter(
     (provider) => !successKeys.has(getGenerationTargetKey(provider.service, provider.model))
   )
+  config.assertStoredMissingProvidersAreActive?.(storedMissingProviders)
   const selectedTargets = hasExplicitGenerationProviderSelection(config.providerFlags, explicitFlags)
     ? config.collectTargets(opts)
     : []

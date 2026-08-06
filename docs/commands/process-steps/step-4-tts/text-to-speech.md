@@ -99,7 +99,7 @@ AutoShow splits TTS text into 2000-character chunks for every provider except Gr
 ```bash
 bun autoshow tts input/examples/tts/1-tts.md \
   --provider kitten=kitten-tts-mini \
-  --provider openai=gpt-4o-mini-tts \
+  --provider openai=gpt-4o-mini-tts-2025-12-15 \
   --tts-voice alloy
 
 bun autoshow tts input/examples/tts/1-tts.md --provider elevenlabs=eleven_v3
@@ -127,7 +127,7 @@ Kitten strips markdown, splits local text into 2000-character chunks, and synthe
 | Option | Value |
 |--------|-------|
 | Selector | `--provider elevenlabs[=<model>]` |
-| Models | `eleven_v3` |
+| Models | `eleven_v3`, `eleven_multilingual_v2`, `eleven_flash_v2_5` |
 | Existing voice | `--tts-voice <id>`, default `hpp4J3VqNfWAUOO0d1Us` |
 | Instant Voice Cloning | `--tts-ref-audio <path>`, `--tts-voice-name <name>`, `--elevenlabs-tts-clone-remove-background-noise` |
 | Output and synthesis controls | `--tts-output-format <format>`, `--tts-language <code>`, `--elevenlabs-tts-stability <0..1>`, `--elevenlabs-tts-similarity-boost <0..1>`, `--elevenlabs-tts-style <0..1>`, `--elevenlabs-tts-use-speaker-boost`, `--tts-speed <0.7..1.2>`, `--elevenlabs-tts-seed <n>`, `--tts-text-normalization auto\|on\|off`, repeatable `--elevenlabs-tts-pronunciation-dictionary-locator <id[:version]>`, `--elevenlabs-tts-optimize-streaming-latency <0..4>` |
@@ -138,7 +138,7 @@ bun autoshow tts input/examples/tts/1-tts.md --provider elevenlabs=eleven_v3 --t
 bun autoshow tts input/examples/tts/1-tts.md --provider elevenlabs=eleven_v3 --tts-ref-audio input/examples/audio/anthony-voice.mp3 --price
 ```
 
-ElevenLabs TTS uses existing voices by default. Text is split into 2000-character chunks, and each chunk uses the same voice and synthesis controls. Add `--tts-ref-audio` to create one persistent ElevenLabs Instant Voice Clone before synthesis and reuse the returned `voice_id` for every selected ElevenLabs model in that run. `--tts-voice-name` labels the created voice and defaults to `AutoShow_<timestamp>`. Do not combine clone mode with `--tts-voice`; if ElevenLabs returns `requires_verification`, AutoShow stops with the created `voice_id` so you can verify it in ElevenLabs and rerun with `--tts-voice <id>`.
+ElevenLabs TTS uses existing voices by default. Text uses the registered model limit: 5,000 characters for `eleven_v3`, 10,000 for `eleven_multilingual_v2`, and 40,000 for `eleven_flash_v2_5`; each chunk uses the same voice and synthesis controls. Add `--tts-ref-audio` to create one persistent ElevenLabs Instant Voice Clone before synthesis and reuse the returned `voice_id` for every selected ElevenLabs model in that run. `--tts-voice-name` labels the created voice and defaults to `AutoShow_<timestamp>`. Do not combine clone mode with `--tts-voice`; if ElevenLabs returns `requires_verification`, AutoShow stops with the created `voice_id` so you can verify it in ElevenLabs and rerun with `--tts-voice <id>`.
 
 ### MiniMax
 
@@ -217,13 +217,13 @@ Dialogue mode works with every TTS provider, not just Mistral. `--tts-speaker SP
 | Option | Value |
 |--------|-------|
 | Selector | `--provider openai[=<model>]` |
-| Models | `gpt-4o-mini-tts`, `tts-1`, `tts-1-hd` |
+| Models | `gpt-4o-mini-tts-2025-12-15`, `tts-1`, `tts-1-hd` |
 | Voice | `--tts-voice <id>`, default `alloy` |
-| Synthesis controls | `--tts-instructions <text>` (`gpt-4o-mini-tts` only; ignored with a warning for `tts-1`/`tts-1-hd`), `--tts-speed <0.25..4>` |
+| Synthesis controls | `--tts-instructions <text>` (`gpt-4o-mini-tts-2025-12-15` only; rejected with `tts-1`/`tts-1-hd`), `--tts-speed <0.25..4>` |
 
 ```bash
-bun autoshow tts input/examples/tts/1-tts.md --provider openai=gpt-4o-mini-tts --tts-voice alloy
-bun autoshow tts input/examples/tts/1-tts.md --provider openai=gpt-4o-mini-tts --tts-instructions "Warm documentary narration" --tts-speed 1.1
+bun autoshow tts input/examples/tts/1-tts.md --provider openai=gpt-4o-mini-tts-2025-12-15 --tts-voice alloy
+bun autoshow tts input/examples/tts/1-tts.md --provider openai=gpt-4o-mini-tts-2025-12-15 --tts-instructions "Warm documentary narration" --tts-speed 1.1
 ```
 
 ### Gemini
@@ -267,21 +267,22 @@ bun autoshow tts input/examples/tts/1-tts.md --provider deepgram=aura-2-thalia-e
 | Option | Value |
 |--------|-------|
 | Selector | `--provider speechify[=<model>]` |
-| Models | `simba-english` |
-| Voice | `--tts-voice <id>`, default `george` |
+| Models | `simba-3.2`, `simba-3.0` |
+| Voice | `--tts-voice <id>`, default `geffen_32` |
 | Audio/language controls | `--tts-output-format mp3\|ogg\|aac\|wav\|pcm`, `--tts-language <tag>` |
 | Custom voice creation | `--tts-ref-audio <path>`, `--tts-voice-name <name>`, `--tts-consent-name <name>`, `--tts-consent-email <email>`, `--speechify-tts-voice-locale <tag>`, `--speechify-tts-voice-gender <gender>` |
 
 ```bash
-bun autoshow tts input/examples/tts/1-tts.md --provider speechify=simba-english --tts-voice george --tts-output-format mp3
-bun autoshow tts input/examples/tts/1-tts.md --provider speechify=simba-english --tts-ref-audio input/voices/my-10-to-30-second-sample.mp3 --tts-consent-name "Anthony Example" --tts-consent-email anthony@example.com --tts-voice-name AutoShowAnthony --speechify-tts-voice-locale en-US --speechify-tts-voice-gender notSpecified --price
-bun autoshow tts input/examples/tts/1-tts.md --provider speechify=simba-english --tts-voice speechify_custom_voice_123
-bun autoshow config --tts speechify=simba-english --tts-voice speechify_custom_voice_123
+bun autoshow tts input/examples/tts/1-tts.md --provider speechify=simba-3.2 --tts-voice geffen_32 --tts-language en-US --tts-output-format mp3
+bun autoshow tts input/examples/tts/1-tts.md --provider speechify=simba-3.0 --tts-language fr-FR
+bun autoshow tts input/examples/tts/1-tts.md --provider speechify=simba-3.0 --tts-ref-audio input/voices/my-10-to-30-second-sample.mp3 --tts-consent-name "Anthony Example" --tts-consent-email anthony@example.com --tts-voice-name AutoShowAnthony --speechify-tts-voice-locale en-US --speechify-tts-voice-gender notSpecified --price
+bun autoshow tts input/examples/tts/1-tts.md --provider speechify=simba-3.2 --tts-voice speechify_custom_voice_123
+bun autoshow config --tts speechify=simba-3.2 --tts-voice speechify_custom_voice_123
 ```
 
-Speechify TTS sends text chunks to `POST /v1/audio/speech` and requests the selected output format, MP3 by default, before AutoShow converts the final result to `speech.wav`. `--tts-voice` accepts any non-empty Speechify voice ID, including custom voice IDs created by Speechify or by a previous AutoShow run.
+Speechify TTS sends text chunks to `POST /v1/audio/speech` and requests the selected output format, MP3 by default, before AutoShow converts the final result to `speech.wav`. Simba 3.2 is English-only and accepts the curated built-ins `beatrice_32`, `dominic_32`, `edmund_32`, `geffen_32`, `harper_32`, `hugh_32`, `imogen_32`, and `wyatt_32`; an unknown explicit ID is permitted because it may be a clone that Speechify manually approved. Simba 3.0 supports `en`/`en-*`, `de-DE`, `es-ES`, `es-MX`, `fr-FR`, `it-IT`, and `pt-BR` and accepts the full voice catalog.
 
-To create a Speechify custom voice as part of `tts`, add `--tts-ref-audio` plus consent flags. AutoShow calls Speechify `POST /v1/voices` once, reuses the returned `id` for every selected Speechify model in that run, and records `speaker: ref_audio:<basename>`, `clonedVoiceId`, and `cloneCostCents: 0` in metadata. Do not combine custom voice creation with `--tts-voice`.
+To create a Speechify custom voice as part of `tts`, select `simba-3.0` and add `--tts-ref-audio` plus consent flags. AutoShow calls Speechify `POST /v1/voices` once, reuses the returned `id` for the Simba 3.0 target, and records `speaker: ref_audio:<basename>`, `clonedVoiceId`, and `cloneCostCents: 0` in metadata. Immediate clone creation is rejected with Simba 3.2 because that model requires prior manual Speechify approval; pass an already approved clone ID with `--tts-voice` instead. Do not combine custom voice creation with `--tts-voice`.
 
 The reference sample must be non-empty audio with a supported extension (`mp3`/`mpeg`, `wav`, `m4a`/`mp4`, `ogg`, `flac`, `aac`, or `webm`), provided as a local path or HTTP(S) URL, and at most 5 MiB. When `ffprobe` can detect duration, AutoShow requires 10-30 seconds to match Speechify's cloning guidance. `--speechify-tts-voice-locale` defaults to `en-US`; `--speechify-tts-voice-gender` defaults to `notSpecified` and accepts `male`, `female`, or `notSpecified`.
 
@@ -309,30 +310,30 @@ Hume TTS uses Octave 2 through `POST /v0/tts/file`, sends `version: "2"`, reques
 | Option | Value |
 |--------|-------|
 | Selector | `--provider cartesia[=<model>]` |
-| Models | `sonic-3`, `sonic-3.5` |
+| Models | `sonic-3.5-2026-05-04` |
 | Voice | `--tts-voice <voice-id>`, default `f786b574-daa5-4673-aa0c-cbe3e8534c02` |
 | Language | `--tts-language <code>` |
 | API settings | `CARTESIA_API_KEY` |
 
 ```bash
-bun autoshow tts input/examples/tts/1-tts.md --provider cartesia=sonic-3
-bun autoshow tts input/examples/tts/1-tts.md --provider cartesia=sonic-3.5 --tts-voice f786b574-daa5-4673-aa0c-cbe3e8534c02
-bun autoshow tts input/examples/tts/1-tts.md --provider cartesia=sonic-3.5 --tts-language en
-bun autoshow config --tts cartesia=sonic-3.5 --tts-voice f786b574-daa5-4673-aa0c-cbe3e8534c02
+bun autoshow tts input/examples/tts/1-tts.md --provider cartesia=sonic-3.5-2026-05-04 --tts-voice f786b574-daa5-4673-aa0c-cbe3e8534c02
+bun autoshow tts input/examples/tts/1-tts.md --provider cartesia=sonic-3.5-2026-05-04 --tts-language en
+bun autoshow config --tts cartesia=sonic-3.5-2026-05-04 --tts-voice f786b574-daa5-4673-aa0c-cbe3e8534c02
 ```
 
 Cartesia TTS uses `POST /tts/bytes`, sends the `Cartesia-Version` header, requests 24000 Hz `pcm_s16le` WAV bytes, and converts the final output to `speech.wav`. Text is split into 2000-character chunks. Voice selection currently uses Cartesia voice IDs; cloning, localization, pronunciation dictionaries, speed, volume, and emotion controls are not exposed in this pass.
 
 ## Pricing Notes
 
-- ElevenLabs API pricing is 10 cents / 1K characters for `eleven_v3`. IVC setup adds a one-time 0 cent setup estimate and a 10000 ms setup timing estimate.
+- ElevenLabs API pricing is 10 cents / 1K characters for `eleven_v3` and `eleven_multilingual_v2`, and 5 cents / 1K characters for `eleven_flash_v2_5`. The two added models use an explicitly provisional 35885 ms / 1K characters timing estimate. IVC setup adds a one-time 0 cent setup estimate and a 10000 ms setup timing estimate.
 - MiniMax synthesis estimates are 6 cents / 1K characters for `speech-2.8-turbo` and 10 cents / 1K characters for `speech-2.8-hd`.
 - Groq English Orpheus estimates use $22 / 1M characters, stored as a single character rate to avoid double-counting input text.
 - Mistral `voxtral-mini-tts-2603` is priced at $0 input and $16 per 1M output characters, equivalent to 1.6 cents per 1K characters. AutoShow uses a 53926 ms / 1K characters timing heuristic.
-- OpenAI `gpt-4o-mini-tts` estimates use 60 cents / 1M input characters plus 1200 cents / 1M output characters, equivalent to 1.26 cents per 1K characters in AutoShow's character estimator. `tts-1` and `tts-1-hd` bill per character at $15 and $30 per 1M characters, equivalent to 1.5 and 3 cents per 1K characters.
-- Speechify Simba estimates use 1 cent / 1K characters for `simba-english`, with a 4500 ms / 1K characters timing heuristic. Custom voice creation adds a one-time 0 cent setup estimate and a 10000 ms setup timing estimate.
+- OpenAI `gpt-4o-mini-tts-2025-12-15` estimates use 60 cents / 1M input characters plus 1200 cents / 1M output characters, equivalent to 1.26 cents per 1K characters in AutoShow's character estimator. `tts-1` and `tts-1-hd` bill per character at $15 and $30 per 1M characters, equivalent to 1.5 and 3 cents per 1K characters.
+- Deepgram's three added Aura 2 voices use 3 cents / 1K characters and an explicitly provisional 39639 ms / 1K characters timing estimate.
+- Speechify Simba estimates use 1 cent / 1K characters for `simba-3.2` and `simba-3.0`, with a 4500 ms / 1K characters timing heuristic. Simba 3.0 custom voice creation adds a one-time 0 cent setup estimate and a 10000 ms setup timing estimate.
 - Hume `octave-2` estimates use the conservative public overage rate of 15 cents / 1K characters.
-- Cartesia Sonic estimates use 3.7375 cents / 1K characters for `sonic-3` and `sonic-3.5`, with a 3000 ms / 1K characters timing heuristic.
+- Cartesia Sonic estimates use 3.7375 cents / 1K characters for `sonic-3.5-2026-05-04`, with a 3000 ms / 1K characters timing heuristic.
 
 ## Output
 

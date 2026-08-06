@@ -299,11 +299,11 @@ describe('option resolution contracts', () => {
         __autoshowConfigInjectedFlags: ['tts-chunk-concurrency']
       })
       const openaiOnly = buildOptsFromFlags(false, {
-        'openai-tts': 'gpt-4o-mini-tts'
+        'openai-tts': 'gpt-4o-mini-tts-2025-12-15'
       })
       const grokAndOpenai = buildOptsFromFlags(false, {
         'grok-tts': 'grok-tts',
-        'openai-tts': 'gpt-4o-mini-tts'
+        'openai-tts': 'gpt-4o-mini-tts-2025-12-15'
       })
       const allTts = buildOptsFromFlags(false, { 'all-tts': true })
 
@@ -338,6 +338,10 @@ describe('option resolution contracts', () => {
       const deepinfraOcrDefault = resolveCheapestModelForFlag('deepinfra-ocr')
       const kimiOcrDefault = resolveCheapestModelForFlag('kimi-ocr')
       const speechifyTtsDefault = resolveCheapestModelForFlag('speechify-tts')
+      const elevenlabsTtsDefault = resolveCheapestModelForFlag('elevenlabs-tts')
+      const groqTtsDefault = resolveCheapestModelForFlag('groq-tts')
+      const openaiTtsDefault = resolveCheapestModelForFlag('openai-tts')
+      const deepgramTtsDefault = resolveCheapestModelForFlag('deepgram-tts')
       const humeTtsDefault = resolveCheapestModelForFlag('hume-tts')
       const cartesiaTtsDefault = resolveCheapestModelForFlag('cartesia-tts')
       const opts = buildOptsFromFlags(false, {
@@ -359,6 +363,10 @@ describe('option resolution contracts', () => {
         'deepinfra-ocr': true,
         'kimi-ocr': true,
         'speechify-tts': true,
+        'elevenlabs-tts': true,
+        'groq-tts': true,
+        'openai-tts': true,
+        'deepgram-tts': true,
         'hume-tts': true,
         'cartesia-tts': true
       })
@@ -381,9 +389,13 @@ describe('option resolution contracts', () => {
       expect(grokOcrDefault).toBe('grok-4.3')
       expect(deepinfraOcrDefault).toBe('Qwen/Qwen3-VL-30B-A3B-Instruct')
       expect(kimiOcrDefault).toBe('kimi-k2.6')
-      expect(speechifyTtsDefault).toBe('simba-english')
+      expect(speechifyTtsDefault).toBe('simba-3.2')
+      expect(elevenlabsTtsDefault).toBe('eleven_v3')
+      expect(groqTtsDefault).toBe('canopylabs/orpheus-v1-english')
+      expect(openaiTtsDefault).toBe('gpt-4o-mini-tts-2025-12-15')
+      expect(deepgramTtsDefault).toBe('aura-2-thalia-en')
       expect(humeTtsDefault).toBe('octave-2')
-      expect(cartesiaTtsDefault).toBe('sonic-3')
+      expect(cartesiaTtsDefault).toBe('sonic-3.5-2026-05-04')
       expect(opts.openaiModel).toBe(openaiDefault)
       expect(opts.grokModel).toBe(grokDefault)
       expect(opts.glmModel).toBe(glmDefault)
@@ -402,6 +414,10 @@ describe('option resolution contracts', () => {
       expect(opts.deepinfraOcrModel).toBe(deepinfraOcrDefault)
       expect(opts.kimiOcrModel).toBe(kimiOcrDefault)
       expect(opts.speechifyTtsModel).toBe(speechifyTtsDefault)
+      expect(opts.elevenlabsTtsModel).toBe(elevenlabsTtsDefault)
+      expect(opts.groqTtsModel).toBe(groqTtsDefault)
+      expect(opts.openaiTtsModel).toBe(openaiTtsDefault)
+      expect(opts.deepgramTtsModel).toBe(deepgramTtsDefault)
       expect(opts.humeTtsModel).toBe(humeTtsDefault)
       expect(opts.cartesiaTtsModel).toBe(cartesiaTtsDefault)
     })

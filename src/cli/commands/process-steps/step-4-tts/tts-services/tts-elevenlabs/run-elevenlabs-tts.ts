@@ -3,7 +3,7 @@ import { concatAndConvertToWav, runTtsChunks, splitTextIntoChunks } from '~/cli/
 import { finalizeTtsRun } from '~/cli/commands/process-steps/step-4-tts/tts-utils/finalize-tts-run'
 import { withHostedTtsRetry } from '~/cli/commands/process-steps/step-4-tts/tts-utils/hosted-tts-retry'
 import { logTtsConfig } from '~/cli/commands/process-steps/step-4-tts/tts-utils/log-tts-config'
-import { TTS_CHUNK_CHARACTER_LIMITS } from '~/cli/commands/process-steps/step-4-tts/tts-utils/tts-chunking'
+import { resolveTtsChunkCharacterLimit } from '~/cli/commands/process-steps/step-4-tts/tts-utils/tts-chunking'
 import { ELEVENLABS_DEFAULT_VOICE_ID } from '~/cli/commands/setup-and-utilities/models/setup-model-options'
 import type { ElevenLabsTtsIvcOptions, ElevenlabsTtsModel, ElevenLabsTtsRequestControls, ElevenLabsTtsVoiceSettings, HostedTtsChunkScheduler, Step4Metadata } from '~/types'
 import { ELEVENLABS_DEFAULT_BASE_URL } from '~/utils/base-urls'
@@ -47,7 +47,7 @@ export const runElevenLabsTts = async (
   }
 
   const baseURL = ELEVENLABS_DEFAULT_BASE_URL
-  const chunks = splitTextIntoChunks(text, TTS_CHUNK_CHARACTER_LIMITS.elevenlabs)
+  const chunks = splitTextIntoChunks(text, resolveTtsChunkCharacterLimit('elevenlabs', options.model) ?? 2000)
   if (chunks.length === 0) {
     throw ValidationError('ElevenLabs TTS input text is empty', { stage: 'tts:elevenlabs' })
   }

@@ -3,23 +3,10 @@
     "description": "Cartesia Sonic cloud text-to-speech",
     "type": "api",
     "models": {
-      "sonic-3": {
-        "description": "Cartesia Sonic 3 text-to-speech",
+      "sonic-3.5-2026-05-04": {
+        "description": "Cartesia Sonic 3.5 dated 2026-05-04 text-to-speech snapshot",
         "pricingSourceUrl": "https://cartesia.ai/pricing",
-        "pricingCheckedAt": "2026-05-31",
-        "pricingCurrency": "USD",
-        "pricingTier": "Cartesia API pay-as-you-go TTS pricing",
-        "pricingNotes": "Cartesia Sonic TTS estimates use the published character-based API reference rate. Subscription inclusions, voice-cloning add-ons, enterprise pricing, taxes, and provider credits are ignored.",
-        "costPer1kCharsCents": 3.7375,
-        "estimation": {
-          "costMultiplier": 1,
-          "msPer1KChars": 3000
-        }
-      },
-      "sonic-3.5": {
-        "description": "Cartesia Sonic 3.5 text-to-speech",
-        "pricingSourceUrl": "https://cartesia.ai/pricing",
-        "pricingCheckedAt": "2026-05-31",
+        "pricingCheckedAt": "2026-08-06",
         "pricingCurrency": "USD",
         "pricingTier": "Cartesia API pay-as-you-go TTS pricing",
         "pricingNotes": "Cartesia Sonic TTS estimates use the published character-based API reference rate. Subscription inclusions, voice-cloning add-ons, enterprise pricing, taxes, and provider credits are ignored.",

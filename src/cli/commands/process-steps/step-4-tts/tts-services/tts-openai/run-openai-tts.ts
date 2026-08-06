@@ -1,5 +1,4 @@
 import type { HostedTtsChunkScheduler, OpenAITtsModel, Step4Metadata } from '~/types'
-import * as l from '~/utils/app-logger/app-logger'
 import { logTtsConfig } from '~/cli/commands/process-steps/step-4-tts/tts-utils/log-tts-config'
 import { splitTextIntoChunks, concatAndConvertToWav, runTtsChunks } from '~/cli/commands/process-steps/step-4-tts/tts-utils/audio-utils'
 import { TTS_CHUNK_CHARACTER_LIMITS } from '~/cli/commands/process-steps/step-4-tts/tts-utils/tts-chunking'
@@ -34,10 +33,7 @@ export const runOpenAITts = async (
   const speaker = voiceId
   const speechVoice = voiceId
 
-  const supportsInstructions = options.model === 'gpt-4o-mini-tts'
-  if (options.instructions && !supportsInstructions) {
-    l.warn(`OpenAI ${options.model} does not support instructions; ignoring --openai-tts-instructions`)
-  }
+  const supportsInstructions = options.model === 'gpt-4o-mini-tts-2025-12-15'
   const includeInstructions = Boolean(options.instructions) && supportsInstructions
 
   logTtsConfig('OpenAI', [

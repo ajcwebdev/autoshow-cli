@@ -5,7 +5,7 @@ import { describe, expect, test } from 'bun:test'
 import { TTS_CHUNK_CHARACTER_LIMITS } from '~/cli/commands/process-steps/step-4-tts/tts-utils/tts-chunking'
 import { estimateTtsCosts } from '~/cli/commands/process-steps/step-4-tts/tts-utils/tts-pricing'
 import { SPEECHIFY_TTS_CUSTOM_VOICE_SETUP_MS } from '~/cli/commands/process-steps/step-4-tts/tts-services/speechify/speechify-custom-voices'
-import { getTtsEstimation } from '~/cli/commands/setup-and-utilities/models/model-loader'
+import { getTtsEstimation, getTtsPricing } from '~/cli/commands/setup-and-utilities/models/model-loader'
 import { computeActualCosts } from '~/utils/pricing/compute-actual-costs'
 import { computeEstimatedProcessingTimes } from '~/utils/pricing/compute-processing-time'
 import { buildTtsBatchEstimateSummary, computeSuccessfulTtsBatchActualCost } from '~/cli/commands/process-steps/step-4-tts/tts-batch-summary'
@@ -114,7 +114,7 @@ describe('price mode contracts', () => {
         .toBe(Math.round((200 / 1000) * getTtsEstimation('groq', model).msPer1KChars))
     })
 
-  test('ElevenLabs TTS estimates use chunk concurrency for wall-clock time', () => {
+  test('ElevenLabs TTS estimates use model-aware chunk limits for wall-clock time', () => {
       const model = 'eleven_v3'
       const characterCount = 4_666
       const timing = computeEstimatedProcessingTimes({
@@ -125,7 +125,7 @@ describe('price mode contracts', () => {
       })
 
       expect(timing.steps[0]?.processingTimeMs)
-        .toBe(Math.round((2666 / 1000) * getTtsEstimation('elevenlabs', model).msPer1KChars))
+        .toBe(Math.round((characterCount / 1000) * getTtsEstimation('elevenlabs', model).msPer1KChars))
     })
 
   test('Kitten TTS chunking remains sequential in timing estimates', () => {
@@ -151,7 +151,7 @@ describe('price mode contracts', () => {
     })
 
   test('chunked TTS setup time is added once before parallel synthesis', () => {
-      const model = 'gpt-4o-mini-tts'
+      const model = 'gpt-4o-mini-tts-2025-12-15'
       const setupTimeMs = 10_000
       const rate = getTtsEstimation('openai', model).msPer1KChars
       const timing = computeEstimatedProcessingTimes({
@@ -248,7 +248,7 @@ describe('price mode contracts', () => {
     })
 
   test('tts hosted batch estimate summary simulates the provider-wide chunk queue', () => {
-      const model = 'gpt-4o-mini-tts'
+      const model = 'gpt-4o-mini-tts-2025-12-15'
       const rate = getTtsEstimation('openai', model).msPer1KChars
       const preparedInputs: PreparedTtsInput[] = [
         {
@@ -299,6 +299,26 @@ describe('price mode contracts', () => {
       })
     })
 
+  test('tts batch summaries use ElevenLabs model-specific limits', () => {
+    const preparedInputs: PreparedTtsInput[] = [{
+      inputPath: 'elevenlabs.md',
+      text: 'a'.repeat(6000),
+      ttsCharacterCount: 6000,
+      ttsTimingInputText: 'a'.repeat(6000),
+      dialogueRequested: false
+    }]
+    const estimate: AggregatedPriceEstimate = { steps: [], totalEstimatedCost: 1, timing: { totalProcessingTimeMs: 1, steps: [] } }
+    const targetFor = (model: string): TtsTarget => ({
+      service: 'elevenlabs',
+      model,
+      run: async () => ({ audioPath: 'speech.wav', metadata: buildTtsMetadata({ ttsService: 'elevenlabs', ttsModel: model }) })
+    })
+    const rate = getTtsEstimation('elevenlabs', 'eleven_v3').msPer1KChars
+
+    expect(buildTtsBatchEstimateSummary([estimate], 1, 2, { preparedInputs, targets: [targetFor('eleven_v3')] }).estimatedWallTimeMs).toBe(Math.round(5 * rate))
+    expect(buildTtsBatchEstimateSummary([estimate], 1, 2, { preparedInputs, targets: [targetFor('eleven_flash_v2_5')] }).estimatedWallTimeMs).toBe(Math.round(6 * rate))
+  })
+
   test('tts batch actual total cost sums successful child runs by child character count', () => {
       const first = buildTtsMetadata({ audioFileName: 'first.wav' })
       const second = buildTtsMetadata({ audioFileName: 'second.wav' })
@@ -317,10 +337,10 @@ describe('price mode contracts', () => {
   test('Speechify TTS estimates use registry pricing and timing defaults', () => {
       const costs = [
         ...estimateTtsCosts({
-          speechifyTtsModels: ['simba-english']
+          speechifyTtsModels: ['simba-3.2']
         } as Parameters<typeof estimateTtsCosts>[0], 1000),
         ...estimateTtsCosts({
-          speechifyTtsModels: ['simba-english'],
+          speechifyTtsModels: ['simba-3.0'],
           speechifyTtsRefAudio: 'input/voices/my-voice-sample.mp3',
           speechifyTtsConsentName: 'Anthony Example',
           speechifyTtsConsentEmail: 'anthony@example.com'
@@ -335,13 +355,13 @@ describe('price mode contracts', () => {
         setupTimeMs: cost.setupTimeMs,
         totalCost: cost.totalCost
       }))).toEqual([
-        { provider: 'speechify', model: 'simba-english', costPer1kCharactersCents: 1, setupCostCents: undefined, setupTimeMs: undefined, totalCost: 1 },
-        { provider: 'speechify', model: 'simba-english', costPer1kCharactersCents: 1, setupCostCents: 0, setupTimeMs: SPEECHIFY_TTS_CUSTOM_VOICE_SETUP_MS, totalCost: 1 }
+        { provider: 'speechify', model: 'simba-3.2', costPer1kCharactersCents: 1, setupCostCents: undefined, setupTimeMs: undefined, totalCost: 1 },
+        { provider: 'speechify', model: 'simba-3.0', costPer1kCharactersCents: 1, setupCostCents: 0, setupTimeMs: SPEECHIFY_TTS_CUSTOM_VOICE_SETUP_MS, totalCost: 1 }
       ])
 
       const timing = computeEstimatedProcessingTimes({
         ttsTargets: [
-          { service: 'speechify', model: 'simba-english' }
+          { service: 'speechify', model: 'simba-3.2' }
         ],
         ttsCharacterCount: 1000
       })
@@ -351,7 +371,7 @@ describe('price mode contracts', () => {
         model: step.model,
         processingTimeMs: step.processingTimeMs
       }))).toEqual([
-        { provider: 'speechify', model: 'simba-english', processingTimeMs: 4_500 }
+        { provider: 'speechify', model: 'simba-3.2', processingTimeMs: 4_500 }
       ])
     })
 
@@ -403,9 +423,26 @@ describe('price mode contracts', () => {
         model: step.model,
         processingTimeMs: step.processingTimeMs
       }))).toEqual([
-        { provider: 'elevenlabs', model: 'eleven_v3', processingTimeMs: Math.round(10_000 + (2666 / 1000) * rate) },
-        { provider: 'elevenlabs', model: 'eleven_v3', processingTimeMs: Math.round((2666 / 1000) * rate) }
+        { provider: 'elevenlabs', model: 'eleven_v3', processingTimeMs: Math.round(10_000 + (4666 / 1000) * rate) },
+        { provider: 'elevenlabs', model: 'eleven_v3', processingTimeMs: Math.round((4666 / 1000) * rate) }
       ])
 
     })
+
+  test('revised TTS models expose approved pricing, provisional timing, and historical aliases', () => {
+    for (const model of ['aura-2-helena-en', 'aura-2-arcas-en', 'aura-2-aries-en']) {
+      expect(getTtsPricing('deepgram', model).costPer1kCharsCents).toBe(3)
+      expect(getTtsEstimation('deepgram', model).msPer1KChars).toBe(39_639)
+    }
+    expect(getTtsPricing('elevenlabs', 'eleven_multilingual_v2').costPer1kCharsCents).toBe(10)
+    expect(getTtsPricing('elevenlabs', 'eleven_flash_v2_5').costPer1kCharsCents).toBe(5)
+    expect(getTtsEstimation('elevenlabs', 'eleven_multilingual_v2').msPer1KChars).toBe(35_885)
+    expect(getTtsEstimation('elevenlabs', 'eleven_flash_v2_5').msPer1KChars).toBe(35_885)
+
+    expect(getTtsPricing('cartesia', 'sonic-3')).toEqual(getTtsPricing('cartesia', 'sonic-3.5-2026-05-04'))
+    expect(getTtsPricing('cartesia', 'sonic-3.5')).toEqual(getTtsPricing('cartesia', 'sonic-3.5-2026-05-04'))
+    expect(getTtsPricing('openai', 'gpt-4o-mini-tts')).toEqual(getTtsPricing('openai', 'gpt-4o-mini-tts-2025-12-15'))
+    expect(getTtsPricing('speechify', 'simba-english')).toEqual(getTtsPricing('speechify', 'simba-3.2'))
+    expect(getTtsEstimation('openai', 'gpt-4o-mini-tts')).toEqual(getTtsEstimation('openai', 'gpt-4o-mini-tts-2025-12-15'))
+  })
 })

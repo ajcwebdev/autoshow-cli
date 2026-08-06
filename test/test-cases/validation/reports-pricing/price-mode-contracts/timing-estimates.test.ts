@@ -19,7 +19,7 @@ describe('price mode contracts', () => {
         audioDurationSeconds: 10,
         extractTargets: [{ provider: 'kimi', model: 'kimi-k2.6', pageCount: 2 }],
         llmTargets: [{ service: 'openai', model: 'gpt-5.4-nano', inputTokens: 600, outputTokens: 400 }],
-        ttsTargets: [{ service: 'openai', model: 'gpt-4o-mini-tts' }],
+        ttsTargets: [{ service: 'openai', model: 'gpt-4o-mini-tts-2025-12-15' }],
         ttsCharacterCount: 1000,
         imageTargets: [{ service: 'openai', model: 'gpt-image-2', count: 2 }],
         videoTargets: [{ service: 'gemini', model: 'veo-3.1-lite-generate-preview', durationSeconds: 4 }],

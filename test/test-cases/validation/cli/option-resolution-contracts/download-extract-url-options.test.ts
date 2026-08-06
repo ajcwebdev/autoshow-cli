@@ -47,14 +47,14 @@ describe('option resolution contracts', () => {
         'deepgram-tts-bit-rate': '128000',
         'deepgram-tts-sample-rate': '24000',
         'deepgram-tts-speed': '1.1',
-        'speechify-tts': 'simba-english',
+        'speechify-tts': 'simba-3.2',
         'speechify-voice': 'narrator_voice',
         'speechify-tts-audio-format': 'wav',
         'speechify-tts-language': 'en-US',
         'hume-tts': 'octave-2',
         'hume-tts-voice': 'Studio Voice',
         'hume-tts-voice-provider': 'CUSTOM_VOICE',
-        'cartesia-tts': 'sonic-3.5',
+        'cartesia-tts': 'sonic-3.5-2026-05-04',
         'cartesia-tts-voice': 'cartesia-voice-id',
         'cartesia-tts-language': 'en',
         'elevenlabs-tts': 'eleven_v3',
@@ -108,14 +108,14 @@ describe('option resolution contracts', () => {
       expect(opts.deepgramTtsBitRate).toBe(128000)
       expect(opts.deepgramTtsSampleRate).toBe(24000)
       expect(opts.deepgramTtsSpeed).toBe(1.1)
-      expect(opts.speechifyTtsModel).toBe('simba-english')
+      expect(opts.speechifyTtsModel).toBe('simba-3.2')
       expect(opts.speechifyVoice).toBe('narrator_voice')
       expect(opts.speechifyTtsAudioFormat).toBe('wav')
       expect(opts.speechifyTtsLanguage).toBe('en-US')
       expect(opts.humeTtsModel).toBe('octave-2')
       expect(opts.humeTtsVoice).toBe('Studio Voice')
       expect(opts.humeTtsVoiceProvider).toBe('CUSTOM_VOICE')
-      expect(opts.cartesiaTtsModel).toBe('sonic-3.5')
+      expect(opts.cartesiaTtsModel).toBe('sonic-3.5-2026-05-04')
       expect(opts.cartesiaTtsVoice).toBe('cartesia-voice-id')
       expect(opts.cartesiaTtsLanguage).toBe('en')
       expect(opts.elevenlabsTtsModel).toBe('eleven_v3')

@@ -419,7 +419,7 @@ describe('test-runner contracts', () => {
   test('TTS service budget preflight includes remaining service entries', () => {
       const allFiles = [
         'test/test-cases/e2e/service/step-4-tts-e2e/tts-services/groq-canopylabs-orpheus-v1-english.test.ts',
-        'test/test-cases/e2e/service/step-4-tts-e2e/tts-services/cartesia-sonic-3.test.ts',
+        'test/test-cases/e2e/service/step-4-tts-e2e/tts-services/cartesia-sonic-3.5-2026-05-04.test.ts',
         'test/test-cases/e2e/service/step-4-tts-e2e/tts-services/deepgram-aura-2-thalia-en.test.ts',
         'test/test-cases/e2e/service/step-4-tts-e2e/tts-services/minimax-speech-2.8-turbo.test.ts',
       ]
@@ -430,7 +430,7 @@ describe('test-runner contracts', () => {
 
       expect(keys).toContain('tts-groq-canopylabs/orpheus-v1-english')
       expect(keys).not.toContain(['tts-groq-canopylabs/orpheus', 'arabic-saudi'].join('-'))
-      expect(keys).toContain('tts-cartesia-sonic-3')
+      expect(keys).toContain('tts-cartesia-sonic-3.5-2026-05-04')
       expect(keys.filter((key) => key.startsWith('tts-deepgram-'))).toEqual([`tts-deepgram-${DEEPGRAM_DEFAULT_VOICE}`])
       expect(keys).not.toContain('tts-minimax-speech-2.8-turbo-clone')
     })

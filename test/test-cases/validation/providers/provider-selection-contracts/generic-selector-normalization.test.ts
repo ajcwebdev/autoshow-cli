@@ -17,7 +17,7 @@ import type { Step3Metadata } from '~/types'
 describe('provider selection contracts', () => {
   test('dedicated command generic provider selectors normalize to existing runtime option keys', () => {
     const ttsNormalized = normalizeGenericProviderSelectorFlags({
-      provider: ['openai=gpt-4o-mini-tts', 'elevenlabs=eleven_v3']
+      provider: ['openai=gpt-4o-mini-tts-2025-12-15', 'elevenlabs=eleven_v3']
     }, new Set(['provider']), 'provider', STANDALONE_TTS_PROVIDER_TARGETS, { allProvidersTarget: 'all-tts' })
     const imageNormalized = normalizeGenericProviderSelectorFlags({
       provider: ['openai=gpt-image-2', 'grok=grok-imagine-image', 'reve=latest', 'recraft=recraftv4_1_vector', 'replicate=wan-video/wan-2.7-image']
@@ -46,7 +46,7 @@ describe('provider selection contracts', () => {
     const musicOpts = buildOptsFromFlags(false, musicNormalized.flags, [], {}, musicNormalized.explicitFlags)
     const ttsAllLocalOpts = buildOptsFromFlags(false, ttsAllLocalNormalized.flags, [], {}, ttsAllLocalNormalized.explicitFlags)
 
-    expect(ttsOpts.openaiTtsModels).toEqual(['gpt-4o-mini-tts'])
+    expect(ttsOpts.openaiTtsModels).toEqual(['gpt-4o-mini-tts-2025-12-15'])
     expect(ttsOpts.elevenlabsTtsModels).toEqual(['eleven_v3'])
     expect([...new Set(collectTtsTargets(ttsAllLocalOpts).map((target) => target.service))]).toEqual(['kitten'])
     expect(collectImageTargets(imageOpts).map((target) => `${target.service}:${target.model}`)).toEqual([

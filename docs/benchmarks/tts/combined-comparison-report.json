@@ -2,9 +2,9 @@
   "schemaVersion": 2,
   "kind": "tts-combined-comparison",
   "category": "tts",
-  "generatedAt": "2026-06-16",
+  "generatedAt": "2026-08-06",
   "aggregation": "meanRankPerMetric",
-  "providerCount": 15,
+  "providerCount": 21,
   "combinedLeaderboardPolicy": "omitted: price, speed, and quality are not blended into a single overall rank",
   "runs": [
     {
@@ -23,13 +23,13 @@
       "runName": "2026-06-15_18-28-56-715_tts-long",
       "runDir": "docs/benchmarks/tts/2026-06-15_18-28-56-715_tts-long",
       "inputFile": "tts-long.md",
-      "inputChars": 466
+      "inputChars": 452
     },
     {
       "runName": "2026-06-15_18-24-36-993_tts-hard",
       "runDir": "docs/benchmarks/tts/2026-06-15_18-24-36-993_tts-hard",
       "inputFile": "tts-hard.txt",
-      "inputChars": 1706
+      "inputChars": 1612
     }
   ],
   "metrics": {
@@ -44,8 +44,8 @@
       "ranking": [
         {
           "rank": 1,
-          "providerKey": "speechify/simba-english",
-          "meanRank": 1.0,
+          "providerKey": "speechify/simba-3.0",
+          "meanRank": 1,
           "perRunRanks": {
             "0-tts-short": 1,
             "1-tts": 1,
@@ -67,13 +67,59 @@
         },
         {
           "rank": 2,
-          "providerKey": "openai/gpt-4o-mini-tts",
-          "meanRank": 3.0,
+          "providerKey": "speechify/simba-3.2",
+          "meanRank": 2,
+          "perRunRanks": {
+            "0-tts-short": 2,
+            "1-tts": 2,
+            "long": 2,
+            "hard": 2
+          },
+          "perRunValues": {
+            "0-tts-short": 0.017,
+            "1-tts": 0.087,
+            "long": 0.453,
+            "hard": 1.613
+          },
+          "perRunLabels": {
+            "0-tts-short": "$0.0002",
+            "1-tts": "$0.0009",
+            "long": "$0.0045",
+            "hard": "$0.0161"
+          }
+        },
+        {
+          "rank": 3,
+          "providerKey": "speechify/simba-english",
+          "meanRank": 3,
           "perRunRanks": {
             "0-tts-short": 3,
             "1-tts": 3,
             "long": 3,
             "hard": 3
+          },
+          "perRunValues": {
+            "0-tts-short": 0.017,
+            "1-tts": 0.087,
+            "long": 0.453,
+            "hard": 1.613
+          },
+          "perRunLabels": {
+            "0-tts-short": "$0.0002",
+            "1-tts": "$0.0009",
+            "long": "$0.0045",
+            "hard": "$0.0161"
+          }
+        },
+        {
+          "rank": 4,
+          "providerKey": "openai/gpt-4o-mini-tts",
+          "meanRank": 4,
+          "perRunRanks": {
+            "0-tts-short": 4,
+            "1-tts": 4,
+            "long": 4,
+            "hard": 4
           },
           "perRunValues": {
             "0-tts-short": 0.02142,
@@ -89,14 +135,37 @@
           }
         },
         {
-          "rank": 3,
-          "providerKey": "grok/grok-tts",
-          "meanRank": 4.25,
+          "rank": 5,
+          "providerKey": "openai/gpt-4o-mini-tts-2025-12-15",
+          "meanRank": 5,
           "perRunRanks": {
             "0-tts-short": 5,
-            "1-tts": 4,
-            "long": 4,
-            "hard": 4
+            "1-tts": 5,
+            "long": 5,
+            "hard": 5
+          },
+          "perRunValues": {
+            "0-tts-short": 0.02142,
+            "1-tts": 0.10962,
+            "long": 0.57078,
+            "hard": 2.0323800000000003
+          },
+          "perRunLabels": {
+            "0-tts-short": "$0.0002",
+            "1-tts": "$0.0011",
+            "long": "$0.0057",
+            "hard": "$0.0203"
+          }
+        },
+        {
+          "rank": 6,
+          "providerKey": "grok/grok-tts",
+          "meanRank": 6.25,
+          "perRunRanks": {
+            "0-tts-short": 7,
+            "1-tts": 6,
+            "long": 6,
+            "hard": 6
           },
           "perRunValues": {
             "0-tts-short": 0.025500000000000002,
@@ -112,14 +181,14 @@
           }
         },
         {
-          "rank": 4,
+          "rank": 7,
           "providerKey": "openai/tts-1",
-          "meanRank": 4.75,
+          "meanRank": 6.75,
           "perRunRanks": {
-            "0-tts-short": 4,
-            "1-tts": 5,
-            "long": 5,
-            "hard": 5
+            "0-tts-short": 6,
+            "1-tts": 7,
+            "long": 7,
+            "hard": 7
           },
           "perRunValues": {
             "0-tts-short": 0.0255,
@@ -135,14 +204,14 @@
           }
         },
         {
-          "rank": 5,
+          "rank": 8,
           "providerKey": "mistral/voxtral-mini-tts-2603",
-          "meanRank": 6.0,
+          "meanRank": 8,
           "perRunRanks": {
-            "0-tts-short": 6,
-            "1-tts": 6,
-            "long": 6,
-            "hard": 6
+            "0-tts-short": 8,
+            "1-tts": 8,
+            "long": 8,
+            "hard": 8
           },
           "perRunValues": {
             "0-tts-short": 0.0272,
@@ -158,14 +227,14 @@
           }
         },
         {
-          "rank": 6,
+          "rank": 9,
           "providerKey": "gemini/gemini-3.1-flash-tts-preview",
-          "meanRank": 7.0,
+          "meanRank": 9,
           "perRunRanks": {
-            "0-tts-short": 7,
-            "1-tts": 7,
-            "long": 7,
-            "hard": 7
+            "0-tts-short": 9,
+            "1-tts": 9,
+            "long": 9,
+            "hard": 9
           },
           "perRunValues": {
             "0-tts-short": 0.0357,
@@ -181,14 +250,14 @@
           }
         },
         {
-          "rank": 7,
+          "rank": 10,
           "providerKey": "groq/canopylabs/orpheus-v1-english",
-          "meanRank": 8.0,
+          "meanRank": 10,
           "perRunRanks": {
-            "0-tts-short": 8,
-            "1-tts": 8,
-            "long": 8,
-            "hard": 8
+            "0-tts-short": 10,
+            "1-tts": 10,
+            "long": 10,
+            "hard": 10
           },
           "perRunValues": {
             "0-tts-short": 0.0374,
@@ -204,14 +273,14 @@
           }
         },
         {
-          "rank": 8,
+          "rank": 11,
           "providerKey": "deepgram/aura-2-thalia-en",
-          "meanRank": 9.25,
+          "meanRank": 11.25,
           "perRunRanks": {
-            "0-tts-short": 10,
-            "1-tts": 9,
-            "long": 9,
-            "hard": 9
+            "0-tts-short": 12,
+            "1-tts": 11,
+            "long": 11,
+            "hard": 11
           },
           "perRunValues": {
             "0-tts-short": 0.051000000000000004,
@@ -227,14 +296,14 @@
           }
         },
         {
-          "rank": 9,
+          "rank": 12,
           "providerKey": "openai/tts-1-hd",
-          "meanRank": 9.75,
+          "meanRank": 11.75,
           "perRunRanks": {
-            "0-tts-short": 9,
-            "1-tts": 10,
-            "long": 10,
-            "hard": 10
+            "0-tts-short": 11,
+            "1-tts": 12,
+            "long": 12,
+            "hard": 12
           },
           "perRunValues": {
             "0-tts-short": 0.051,
@@ -250,60 +319,106 @@
           }
         },
         {
-          "rank": 10,
+          "rank": 13,
           "providerKey": "cartesia/sonic-3",
-          "meanRank": 11.0,
-          "perRunRanks": {
-            "0-tts-short": 11,
-            "1-tts": 11,
-            "long": 11,
-            "hard": 11
-          },
-          "perRunValues": {
-            "0-tts-short": 0.0635375,
-            "1-tts": 0.32516249999999997,
-            "long": 1.6930875,
-            "hard": 6.0285874999999995
-          },
-          "perRunLabels": {
-            "0-tts-short": "$0.0006",
-            "1-tts": "$0.0033",
-            "long": "$0.0169",
-            "hard": "$0.0603"
-          }
-        },
-        {
-          "rank": 11,
-          "providerKey": "cartesia/sonic-3.5",
-          "meanRank": 12.0,
-          "perRunRanks": {
-            "0-tts-short": 12,
-            "1-tts": 12,
-            "long": 12,
-            "hard": 12
-          },
-          "perRunValues": {
-            "0-tts-short": 0.0635375,
-            "1-tts": 0.32516249999999997,
-            "long": 1.6930875,
-            "hard": 6.0285874999999995
-          },
-          "perRunLabels": {
-            "0-tts-short": "$0.0006",
-            "1-tts": "$0.0033",
-            "long": "$0.0169",
-            "hard": "$0.0603"
-          }
-        },
-        {
-          "rank": 12,
-          "providerKey": "minimax/speech-2.8-turbo",
-          "meanRank": 13.0,
+          "meanRank": 13,
           "perRunRanks": {
             "0-tts-short": 13,
             "1-tts": 13,
             "long": 13,
             "hard": 13
+          },
+          "perRunValues": {
+            "0-tts-short": 0.0635375,
+            "1-tts": 0.32516249999999997,
+            "long": 1.6930875,
+            "hard": 6.0285874999999995
+          },
+          "perRunLabels": {
+            "0-tts-short": "$0.0006",
+            "1-tts": "$0.0033",
+            "long": "$0.0169",
+            "hard": "$0.0603"
+          }
+        },
+        {
+          "rank": 14,
+          "providerKey": "cartesia/sonic-3.5",
+          "meanRank": 14,
+          "perRunRanks": {
+            "0-tts-short": 14,
+            "1-tts": 14,
+            "long": 14,
+            "hard": 14
+          },
+          "perRunValues": {
+            "0-tts-short": 0.0635375,
+            "1-tts": 0.32516249999999997,
+            "long": 1.6930875,
+            "hard": 6.0285874999999995
+          },
+          "perRunLabels": {
+            "0-tts-short": "$0.0006",
+            "1-tts": "$0.0033",
+            "long": "$0.0169",
+            "hard": "$0.0603"
+          }
+        },
+        {
+          "rank": 15,
+          "providerKey": "cartesia/sonic-3.5-2026-05-04",
+          "meanRank": 15,
+          "perRunRanks": {
+            "0-tts-short": 15,
+            "1-tts": 15,
+            "long": 15,
+            "hard": 15
+          },
+          "perRunValues": {
+            "0-tts-short": 0.0635375,
+            "1-tts": 0.32516249999999997,
+            "long": 1.6930875,
+            "hard": 6.0285874999999995
+          },
+          "perRunLabels": {
+            "0-tts-short": "$0.0006",
+            "1-tts": "$0.0033",
+            "long": "$0.0169",
+            "hard": "$0.0603"
+          }
+        },
+        {
+          "rank": 16,
+          "providerKey": "elevenlabs/eleven_flash_v2_5",
+          "meanRank": 16,
+          "perRunRanks": {
+            "0-tts-short": 16,
+            "1-tts": 16,
+            "long": 16,
+            "hard": 16
+          },
+          "perRunValues": {
+            "0-tts-short": 0.085,
+            "1-tts": 0.43499999999999994,
+            "long": 2.265,
+            "hard": 8.065
+          },
+          "perRunLabels": {
+            "0-tts-short": "$0.0009",
+            "1-tts": "$0.0043",
+            "long": "$0.0226",
+            "hard": "$0.0806"
+          }
+        },
+        {
+          "rank": 17,
+          "providerKey": "minimax/speech-2.8-turbo",
+          "meanRank": 17,
+          "perRunRanks": {
+            "0-tts-short": 17,
+            "1-tts": 17,
+            "long": 17,
+            "hard": 17
           },
           "perRunValues": {
             "0-tts-short": 0.10200000000000001,
@@ -319,14 +434,37 @@
           }
         },
         {
-          "rank": 13,
+          "rank": 18,
+          "providerKey": "elevenlabs/eleven_multilingual_v2",
+          "meanRank": 18,
+          "perRunRanks": {
+            "0-tts-short": 18,
+            "1-tts": 18,
+            "long": 18,
+            "hard": 18
+          },
+          "perRunValues": {
+            "0-tts-short": 0.17,
+            "1-tts": 0.8699999999999999,
+            "long": 4.53,
+            "hard": 16.13
+          },
+          "perRunLabels": {
+            "0-tts-short": "$0.0017",
+            "1-tts": "$0.0087",
+            "long": "$0.0453",
+            "hard": "$0.1613"
+          }
+        },
+        {
+          "rank": 19,
           "providerKey": "elevenlabs/eleven_v3",
-          "meanRank": 14.0,
+          "meanRank": 19,
           "perRunRanks": {
-            "0-tts-short": 14,
-            "1-tts": 14,
-            "long": 14,
-            "hard": 14
+            "0-tts-short": 19,
+            "1-tts": 19,
+            "long": 19,
+            "hard": 19
           },
           "perRunValues": {
             "0-tts-short": 0.17,
@@ -342,14 +480,14 @@
           }
         },
         {
-          "rank": 14,
+          "rank": 20,
           "providerKey": "minimax/speech-2.8-hd",
-          "meanRank": 15.0,
+          "meanRank": 20,
           "perRunRanks": {
-            "0-tts-short": 15,
-            "1-tts": 15,
-            "long": 15,
-            "hard": 15
+            "0-tts-short": 20,
+            "1-tts": 20,
+            "long": 20,
+            "hard": 20
           },
           "perRunValues": {
             "0-tts-short": 0.17,
@@ -365,14 +503,14 @@
           }
         },
         {
-          "rank": 15,
+          "rank": 21,
           "providerKey": "hume/octave-2",
-          "meanRank": 16.0,
+          "meanRank": 21,
           "perRunRanks": {
-            "0-tts-short": 16,
-            "1-tts": 16,
-            "long": 16,
-            "hard": 16
+            "0-tts-short": 21,
+            "1-tts": 21,
+            "long": 21,
+            "hard": 21
           },
           "perRunValues": {
             "0-tts-short": 0.255,
@@ -400,13 +538,59 @@
       "ranking": [
         {
           "rank": 1,
-          "providerKey": "cartesia/sonic-3.5",
-          "meanRank": 2.25,
+          "providerKey": "elevenlabs/eleven_flash_v2_5",
+          "meanRank": 1,
           "perRunRanks": {
             "0-tts-short": 1,
             "1-tts": 1,
             "long": 1,
-            "hard": 6
+            "hard": 1
+          },
+          "perRunValues": {
+            "0-tts-short": 154,
+            "1-tts": 342,
+            "long": 967,
+            "hard": 4284
+          },
+          "perRunLabels": {
+            "0-tts-short": "0.15s",
+            "1-tts": "0.34s",
+            "long": "0.97s",
+            "hard": "4.28s"
+          }
+        },
+        {
+          "rank": 2,
+          "providerKey": "cartesia/sonic-3.5-2026-05-04",
+          "meanRank": 3.75,
+          "perRunRanks": {
+            "0-tts-short": 2,
+            "1-tts": 6,
+            "long": 2,
+            "hard": 5
+          },
+          "perRunValues": {
+            "0-tts-short": 250,
+            "1-tts": 1233,
+            "long": 3480,
+            "hard": 13137
+          },
+          "perRunLabels": {
+            "0-tts-short": "0.25s",
+            "1-tts": "1.23s",
+            "long": "3.48s",
+            "hard": "13.14s"
+          }
+        },
+        {
+          "rank": 3,
+          "providerKey": "cartesia/sonic-3.5",
+          "meanRank": 4.75,
+          "perRunRanks": {
+            "0-tts-short": 3,
+            "1-tts": 2,
+            "long": 5,
+            "hard": 9
           },
           "perRunValues": {
             "0-tts-short": 381,
@@ -422,37 +606,83 @@
           }
         },
         {
-          "rank": 2,
-          "providerKey": "hume/octave-2",
-          "meanRank": 5.0,
+          "rank": 4,
+          "providerKey": "speechify/simba-3.2",
+          "meanRank": 4.75,
           "perRunRanks": {
-            "0-tts-short": 7,
-            "1-tts": 4,
-            "long": 2,
+            "0-tts-short": 6,
+            "1-tts": 3,
+            "long": 3,
             "hard": 7
           },
           "perRunValues": {
-            "0-tts-short": 1147,
-            "1-tts": 1635,
-            "long": 5403,
-            "hard": 18602
+            "0-tts-short": 594,
+            "1-tts": 960,
+            "long": 3701,
+            "hard": 14514
           },
           "perRunLabels": {
-            "0-tts-short": "1.15s",
-            "1-tts": "1.64s",
-            "long": "5.40s",
-            "hard": "18.60s"
+            "0-tts-short": "0.59s",
+            "1-tts": "0.96s",
+            "long": "3.70s",
+            "hard": "14.51s"
           }
         },
         {
-          "rank": 3,
-          "providerKey": "cartesia/sonic-3",
-          "meanRank": 5.25,
+          "rank": 5,
+          "providerKey": "speechify/simba-3.0",
+          "meanRank": 5.75,
           "perRunRanks": {
-            "0-tts-short": 2,
-            "1-tts": 3,
-            "long": 7,
-            "hard": 9
+            "0-tts-short": 7,
+            "1-tts": 4,
+            "long": 4,
+            "hard": 8
+          },
+          "perRunValues": {
+            "0-tts-short": 697,
+            "1-tts": 1117,
+            "long": 4378,
+            "hard": 15024
+          },
+          "perRunLabels": {
+            "0-tts-short": "0.70s",
+            "1-tts": "1.12s",
+            "long": "4.38s",
+            "hard": "15.02s"
+          }
+        },
+        {
+          "rank": 6,
+          "providerKey": "elevenlabs/eleven_multilingual_v2",
+          "meanRank": 7.5,
+          "perRunRanks": {
+            "0-tts-short": 9,
+            "1-tts": 5,
+            "long": 6,
+            "hard": 10
+          },
+          "perRunValues": {
+            "0-tts-short": 870,
+            "1-tts": 1131,
+            "long": 4700,
+            "hard": 17130
+          },
+          "perRunLabels": {
+            "0-tts-short": "0.87s",
+            "1-tts": "1.13s",
+            "long": "4.70s",
+            "hard": "17.13s"
+          }
+        },
+        {
+          "rank": 7,
+          "providerKey": "cartesia/sonic-3",
+          "meanRank": 9.25,
+          "perRunRanks": {
+            "0-tts-short": 4,
+            "1-tts": 7,
+            "long": 12,
+            "hard": 14
           },
           "perRunValues": {
             "0-tts-short": 499,
@@ -468,14 +698,37 @@
           }
         },
         {
-          "rank": 4,
-          "providerKey": "groq/canopylabs/orpheus-v1-english",
-          "meanRank": 6.5,
+          "rank": 8,
+          "providerKey": "hume/octave-2",
+          "meanRank": 9.5,
           "perRunRanks": {
-            "0-tts-short": 3,
-            "1-tts": 7,
-            "long": 8,
-            "hard": 8
+            "0-tts-short": 12,
+            "1-tts": 8,
+            "long": 7,
+            "hard": 11
+          },
+          "perRunValues": {
+            "0-tts-short": 1147,
+            "1-tts": 1635,
+            "long": 5403,
+            "hard": 18602
+          },
+          "perRunLabels": {
+            "0-tts-short": "1.15s",
+            "1-tts": "1.64s",
+            "long": "5.40s",
+            "hard": "18.60s"
+          }
+        },
+        {
+          "rank": 9,
+          "providerKey": "groq/canopylabs/orpheus-v1-english",
+          "meanRank": 10.5,
+          "perRunRanks": {
+            "0-tts-short": 5,
+            "1-tts": 11,
+            "long": 13,
+            "hard": 13
           },
           "perRunValues": {
             "0-tts-short": 525,
@@ -491,14 +744,14 @@
           }
         },
         {
-          "rank": 5,
+          "rank": 10,
           "providerKey": "mistral/voxtral-mini-tts-2603",
-          "meanRank": 6.75,
+          "meanRank": 10.5,
           "perRunRanks": {
-            "0-tts-short": 10,
-            "1-tts": 10,
-            "long": 5,
-            "hard": 2
+            "0-tts-short": 15,
+            "1-tts": 14,
+            "long": 10,
+            "hard": 3
           },
           "perRunValues": {
             "0-tts-short": 1617,
@@ -514,14 +767,14 @@
           }
         },
         {
-          "rank": 6,
+          "rank": 11,
           "providerKey": "speechify/simba-english",
-          "meanRank": 7.0,
+          "meanRank": 10.5,
           "perRunRanks": {
-            "0-tts-short": 12,
-            "1-tts": 5,
-            "long": 6,
-            "hard": 5
+            "0-tts-short": 16,
+            "1-tts": 9,
+            "long": 11,
+            "hard": 6
           },
           "perRunValues": {
             "0-tts-short": 2011,
@@ -537,14 +790,14 @@
           }
         },
         {
-          "rank": 7,
+          "rank": 12,
           "providerKey": "grok/grok-tts",
-          "meanRank": 8.0,
+          "meanRank": 12.5,
           "perRunRanks": {
-            "0-tts-short": 4,
-            "1-tts": 8,
-            "long": 10,
-            "hard": 10
+            "0-tts-short": 8,
+            "1-tts": 12,
+            "long": 15,
+            "hard": 15
           },
           "perRunValues": {
             "0-tts-short": 751,
@@ -560,37 +813,14 @@
           }
         },
         {
-          "rank": 8,
-          "providerKey": "openai/gpt-4o-mini-tts",
-          "meanRank": 8.5,
-          "perRunRanks": {
-            "0-tts-short": 8,
-            "1-tts": 6,
-            "long": 4,
-            "hard": 16
-          },
-          "perRunValues": {
-            "0-tts-short": 1252,
-            "1-tts": 1885,
-            "long": 5912,
-            "hard": 520218
-          },
-          "perRunLabels": {
-            "0-tts-short": "1.25s",
-            "1-tts": "1.89s",
-            "long": "5.91s",
-            "hard": "520.22s"
-          }
-        },
-        {
-          "rank": 9,
+          "rank": 13,
           "providerKey": "openai/tts-1-hd",
-          "meanRank": 9.0,
+          "meanRank": 12.75,
           "perRunRanks": {
-            "0-tts-short": 14,
-            "1-tts": 12,
-            "long": 9,
-            "hard": 1
+            "0-tts-short": 18,
+            "1-tts": 17,
+            "long": 14,
+            "hard": 2
           },
           "perRunValues": {
             "0-tts-short": 2575,
@@ -606,13 +836,36 @@
           }
         },
         {
-          "rank": 10,
-          "providerKey": "openai/tts-1",
-          "meanRank": 9.5,
+          "rank": 14,
+          "providerKey": "openai/gpt-4o-mini-tts",
+          "meanRank": 13,
           "perRunRanks": {
-            "0-tts-short": 9,
-            "1-tts": 9,
-            "long": 16,
+            "0-tts-short": 13,
+            "1-tts": 10,
+            "long": 8,
+            "hard": 21
+          },
+          "perRunValues": {
+            "0-tts-short": 1252,
+            "1-tts": 1885,
+            "long": 5912,
+            "hard": 520218
+          },
+          "perRunLabels": {
+            "0-tts-short": "1.25s",
+            "1-tts": "1.89s",
+            "long": "5.91s",
+            "hard": "520.22s"
+          }
+        },
+        {
+          "rank": 15,
+          "providerKey": "openai/tts-1",
+          "meanRank": 13,
+          "perRunRanks": {
+            "0-tts-short": 14,
+            "1-tts": 13,
+            "long": 21,
             "hard": 4
           },
           "perRunValues": {
@@ -629,14 +882,37 @@
           }
         },
         {
-          "rank": 11,
-          "providerKey": "deepgram/aura-2-thalia-en",
-          "meanRank": 9.75,
+          "rank": 16,
+          "providerKey": "openai/gpt-4o-mini-tts-2025-12-15",
+          "meanRank": 13.75,
           "perRunRanks": {
-            "0-tts-short": 5,
-            "1-tts": 11,
-            "long": 11,
+            "0-tts-short": 19,
+            "1-tts": 15,
+            "long": 9,
             "hard": 12
+          },
+          "perRunValues": {
+            "0-tts-short": 2876,
+            "1-tts": 2638,
+            "long": 5927,
+            "hard": 19149
+          },
+          "perRunLabels": {
+            "0-tts-short": "2.88s",
+            "1-tts": "2.64s",
+            "long": "5.93s",
+            "hard": "19.15s"
+          }
+        },
+        {
+          "rank": 17,
+          "providerKey": "deepgram/aura-2-thalia-en",
+          "meanRank": 14.75,
+          "perRunRanks": {
+            "0-tts-short": 10,
+            "1-tts": 16,
+            "long": 16,
+            "hard": 17
           },
           "perRunValues": {
             "0-tts-short": 913,
@@ -652,14 +928,14 @@
           }
         },
         {
-          "rank": 12,
+          "rank": 18,
           "providerKey": "elevenlabs/eleven_v3",
-          "meanRank": 11.25,
+          "meanRank": 16.25,
           "perRunRanks": {
-            "0-tts-short": 6,
-            "1-tts": 13,
-            "long": 12,
-            "hard": 14
+            "0-tts-short": 11,
+            "1-tts": 18,
+            "long": 17,
+            "hard": 19
           },
           "perRunValues": {
             "0-tts-short": 987,
@@ -675,14 +951,14 @@
           }
         },
         {
-          "rank": 13,
+          "rank": 19,
           "providerKey": "gemini/gemini-3.1-flash-tts-preview",
-          "meanRank": 13.25,
+          "meanRank": 18,
           "perRunRanks": {
-            "0-tts-short": 13,
-            "1-tts": 14,
-            "long": 13,
-            "hard": 13
+            "0-tts-short": 17,
+            "1-tts": 19,
+            "long": 18,
+            "hard": 18
           },
           "perRunValues": {
             "0-tts-short": 2064,
@@ -698,14 +974,14 @@
           }
         },
         {
-          "rank": 14,
+          "rank": 20,
           "providerKey": "minimax/speech-2.8-turbo",
-          "meanRank": 14.0,
+          "meanRank": 19,
           "perRunRanks": {
-            "0-tts-short": 16,
-            "1-tts": 15,
-            "long": 14,
-            "hard": 11
+            "0-tts-short": 21,
+            "1-tts": 20,
+            "long": 19,
+            "hard": 16
           },
           "perRunValues": {
             "0-tts-short": 48529,
@@ -721,14 +997,14 @@
           }
         },
         {
-          "rank": 15,
+          "rank": 21,
           "providerKey": "minimax/speech-2.8-hd",
-          "meanRank": 15.25,
+          "meanRank": 20.25,
           "perRunRanks": {
-            "0-tts-short": 15,
-            "1-tts": 16,
-            "long": 15,
-            "hard": 15
+            "0-tts-short": 20,
+            "1-tts": 21,
+            "long": 20,
+            "hard": 20
           },
           "perRunValues": {
             "0-tts-short": 24044,
@@ -756,7 +1032,7 @@
         {
           "rank": 1,
           "providerKey": "cartesia/sonic-3.5",
-          "meanRank": 3.0,
+          "meanRank": 3,
           "perRunRanks": {
             "0-tts-short": 1,
             "long": 6,
@@ -775,8 +1051,28 @@
         },
         {
           "rank": 2,
+          "providerKey": "elevenlabs/eleven_v3",
+          "meanRank": 5.333333333333333,
+          "perRunRanks": {
+            "0-tts-short": 3,
+            "long": 12,
+            "hard": 1
+          },
+          "perRunValues": {
+            "0-tts-short": 100,
+            "long": 69.73684210526316,
+            "hard": 89.27335640138409
+          },
+          "perRunLabels": {
+            "0-tts-short": "100.00 accuracy (0.00% roundtrip WER)",
+            "long": "69.74 accuracy (30.26% roundtrip WER)",
+            "hard": "89.27 accuracy (10.73% roundtrip WER)"
+          }
+        },
+        {
+          "rank": 3,
           "providerKey": "gemini/gemini-3.1-flash-tts-preview",
-          "meanRank": 5.33,
+          "meanRank": 5.333333333333333,
           "perRunRanks": {
             "0-tts-short": 4,
             "long": 7,
@@ -794,29 +1090,9 @@
           }
         },
         {
-          "rank": 3,
-          "providerKey": "elevenlabs/eleven_v3",
-          "meanRank": 5.67,
-          "perRunRanks": {
-            "0-tts-short": 3,
-            "long": 13,
-            "hard": 1
-          },
-          "perRunValues": {
-            "0-tts-short": 100,
-            "long": 69.73684210526316,
-            "hard": 89.27335640138409
-          },
-          "perRunLabels": {
-            "0-tts-short": "100.00 accuracy (0.00% roundtrip WER)",
-            "long": "69.74 accuracy (30.26% roundtrip WER)",
-            "hard": "89.27 accuracy (10.73% roundtrip WER)"
-          }
-        },
-        {
           "rank": 4,
           "providerKey": "grok/grok-tts",
-          "meanRank": 6.33,
+          "meanRank": 6.333333333333333,
           "perRunRanks": {
             "0-tts-short": 5,
             "long": 5,
@@ -836,7 +1112,7 @@
         {
           "rank": 5,
           "providerKey": "openai/gpt-4o-mini-tts",
-          "meanRank": 6.67,
+          "meanRank": 6.666666666666667,
           "perRunRanks": {
             "0-tts-short": 10,
             "long": 3,
@@ -856,7 +1132,7 @@
         {
           "rank": 6,
           "providerKey": "hume/octave-2",
-          "meanRank": 7.0,
+          "meanRank": 7,
           "perRunRanks": {
             "0-tts-short": 7,
             "long": 8,
@@ -876,7 +1152,7 @@
         {
           "rank": 7,
           "providerKey": "minimax/speech-2.8-hd",
-          "meanRank": 7.67,
+          "meanRank": 7.666666666666667,
           "perRunRanks": {
             "0-tts-short": 8,
             "long": 2,
@@ -896,7 +1172,7 @@
         {
           "rank": 8,
           "providerKey": "minimax/speech-2.8-turbo",
-          "meanRank": 8.33,
+          "meanRank": 8.333333333333334,
           "perRunRanks": {
             "0-tts-short": 9,
             "long": 1,
@@ -916,7 +1192,7 @@
         {
           "rank": 9,
           "providerKey": "speechify/simba-english",
-          "meanRank": 8.33,
+          "meanRank": 8.333333333333334,
           "perRunRanks": {
             "0-tts-short": 13,
             "long": 9,
@@ -936,7 +1212,7 @@
         {
           "rank": 10,
           "providerKey": "openai/tts-1-hd",
-          "meanRank": 8.67,
+          "meanRank": 8.666666666666666,
           "perRunRanks": {
             "0-tts-short": 12,
             "long": 4,
@@ -956,9 +1232,9 @@
         {
           "rank": 11,
           "providerKey": "cartesia/sonic-3",
-          "meanRank": 9.67,
+          "meanRank": 9.333333333333334,
           "perRunRanks": {
-            "0-tts-short": 15,
+            "0-tts-short": 14,
             "long": 10,
             "hard": 4
           },
@@ -976,10 +1252,10 @@
         {
           "rank": 12,
           "providerKey": "deepgram/aura-2-thalia-en",
-          "meanRank": 9.67,
+          "meanRank": 9.333333333333334,
           "perRunRanks": {
             "0-tts-short": 2,
-            "long": 16,
+            "long": 15,
             "hard": 11
           },
           "perRunValues": {
@@ -996,7 +1272,7 @@
         {
           "rank": 13,
           "providerKey": "groq/canopylabs/orpheus-v1-english",
-          "meanRank": 10.33,
+          "meanRank": 10.333333333333334,
           "perRunRanks": {
             "0-tts-short": 6,
             "long": 11,
@@ -1016,10 +1292,10 @@
         {
           "rank": 14,
           "providerKey": "openai/tts-1",
-          "meanRank": 11.33,
+          "meanRank": 11,
           "perRunRanks": {
             "0-tts-short": 11,
-            "long": 15,
+            "long": 14,
             "hard": 8
           },
           "perRunValues": {
@@ -1036,10 +1312,10 @@
         {
           "rank": 15,
           "providerKey": "mistral/voxtral-mini-tts-2603",
-          "meanRank": 14.0,
+          "meanRank": 13.333333333333334,
           "perRunRanks": {
-            "0-tts-short": 16,
-            "long": 14,
+            "0-tts-short": 15,
+            "long": 13,
             "hard": 12
           },
           "perRunValues": {
@@ -1064,7 +1340,7 @@
         {
           "rank": 1,
           "providerKey": "openai/tts-1-hd",
-          "meanRank": 1.0,
+          "meanRank": 1,
           "perRunRanks": {
             "0-tts-short": 1
           },
@@ -1078,9 +1354,9 @@
         {
           "rank": 2,
           "providerKey": "speechify/simba-english",
-          "meanRank": 3.0,
+          "meanRank": 2,
           "perRunRanks": {
-            "0-tts-short": 3
+            "0-tts-short": 2
           },
           "perRunValues": {
             "0-tts-short": 91.7179062181757
@@ -1092,9 +1368,9 @@
         {
           "rank": 3,
           "providerKey": "hume/octave-2",
-          "meanRank": 4.0,
+          "meanRank": 3,
           "perRunRanks": {
-            "0-tts-short": 4
+            "0-tts-short": 3
           },
           "perRunValues": {
             "0-tts-short": 91.35404629421781
@@ -1106,9 +1382,9 @@
         {
           "rank": 4,
           "providerKey": "minimax/speech-2.8-turbo",
-          "meanRank": 5.0,
+          "meanRank": 4,
           "perRunRanks": {
-            "0-tts-short": 5
+            "0-tts-short": 4
           },
           "perRunValues": {
             "0-tts-short": 90.71246369147497
@@ -1120,9 +1396,9 @@
         {
           "rank": 5,
           "providerKey": "deepgram/aura-2-thalia-en",
-          "meanRank": 6.0,
+          "meanRank": 5,
           "perRunRanks": {
-            "0-tts-short": 6
+            "0-tts-short": 5
           },
           "perRunValues": {
             "0-tts-short": 89.07624730132616
@@ -1134,9 +1410,9 @@
         {
           "rank": 6,
           "providerKey": "openai/tts-1",
-          "meanRank": 7.0,
+          "meanRank": 6,
           "perRunRanks": {
-            "0-tts-short": 7
+            "0-tts-short": 6
           },
           "perRunValues": {
             "0-tts-short": 88.96186908365605
@@ -1148,9 +1424,9 @@
         {
           "rank": 7,
           "providerKey": "minimax/speech-2.8-hd",
-          "meanRank": 8.0,
+          "meanRank": 7,
           "perRunRanks": {
-            "0-tts-short": 8
+            "0-tts-short": 7
           },
           "perRunValues": {
             "0-tts-short": 87.63772090657349
@@ -1162,9 +1438,9 @@
         {
           "rank": 8,
           "providerKey": "grok/grok-tts",
-          "meanRank": 9.0,
+          "meanRank": 8,
           "perRunRanks": {
-            "0-tts-short": 9
+            "0-tts-short": 8
           },
           "perRunValues": {
             "0-tts-short": 85.82532106121715
@@ -1176,9 +1452,9 @@
         {
           "rank": 9,
           "providerKey": "groq/canopylabs/orpheus-v1-english",
-          "meanRank": 10.0,
+          "meanRank": 9,
           "perRunRanks": {
-            "0-tts-short": 10
+            "0-tts-short": 9
           },
           "perRunValues": {
             "0-tts-short": 84.50437893365626
@@ -1190,9 +1466,9 @@
         {
           "rank": 10,
           "providerKey": "elevenlabs/eleven_v3",
-          "meanRank": 11.0,
+          "meanRank": 10,
           "perRunRanks": {
-            "0-tts-short": 11
+            "0-tts-short": 10
           },
           "perRunValues": {
             "0-tts-short": 84.16822016931157
@@ -1204,9 +1480,9 @@
         {
           "rank": 11,
           "providerKey": "gemini/gemini-3.1-flash-tts-preview",
-          "meanRank": 12.0,
+          "meanRank": 11,
           "perRunRanks": {
-            "0-tts-short": 12
+            "0-tts-short": 11
           },
           "perRunValues": {
             "0-tts-short": 83.30787559912409
@@ -1218,9 +1494,9 @@
         {
           "rank": 12,
           "providerKey": "cartesia/sonic-3.5",
-          "meanRank": 13.0,
+          "meanRank": 12,
           "perRunRanks": {
-            "0-tts-short": 13
+            "0-tts-short": 12
           },
           "perRunValues": {
             "0-tts-short": 82.67831326019827
@@ -1232,9 +1508,9 @@
         {
           "rank": 13,
           "providerKey": "cartesia/sonic-3",
-          "meanRank": 14.0,
+          "meanRank": 13,
           "perRunRanks": {
-            "0-tts-short": 14
+            "0-tts-short": 13
           },
           "perRunValues": {
             "0-tts-short": 80.14723990787125
@@ -1246,9 +1522,9 @@
         {
           "rank": 14,
           "providerKey": "openai/gpt-4o-mini-tts",
-          "meanRank": 15.0,
+          "meanRank": 14,
           "perRunRanks": {
-            "0-tts-short": 15
+            "0-tts-short": 14
           },
           "perRunValues": {
             "0-tts-short": 77.77907216052466
@@ -1260,9 +1536,9 @@
         {
           "rank": 15,
           "providerKey": "mistral/voxtral-mini-tts-2603",
-          "meanRank": 16.0,
+          "meanRank": 15,
           "perRunRanks": {
-            "0-tts-short": 16
+            "0-tts-short": 15
           },
           "perRunValues": {
             "0-tts-short": 75.83946546030148
@@ -1275,9 +1551,8 @@
     }
   },
   "notes": [
-    "All 15 providers are third-party service models; no local models present.",
-    "Mean rank averages within-run ranks over runs where the metric is available; lower is better.",
-    "Automated quality excludes the 1-tts run (no roundtrip WER). Human quality is from the 0-tts-short run only.",
-    "Duration, bitrate, and file size are not used as quality, speed, or price proxies."
+    "All providers are third-party services; local ranking surfaces are empty.",
+    "Price and speed cover all four runs and all 21 historical/current provider identities.",
+    "Automated and human quality rankings use only retained historical evidence; the six models added on 2026-08-06 remain quality-unscored until separately approved evaluation."
   ]
 }

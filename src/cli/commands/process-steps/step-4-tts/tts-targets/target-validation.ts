@@ -79,6 +79,12 @@ export const validateTtsTargetSelection = (
   if ((selection.openaiInstructions || typeof selection.openaiSpeed === 'number') && selection.openaiModels.length === 0) {
     throw CLIUsageError(requireProviderSelectionMessage('OpenAI TTS', 'openai', 'request control flags'))
   }
+  if (selection.openaiInstructions) {
+    const incompatibleModels = selection.openaiModels.filter((model) => model !== 'gpt-4o-mini-tts-2025-12-15')
+    if (incompatibleModels.length > 0) {
+      throw CLIUsageError(`OpenAI TTS instructions are supported only by gpt-4o-mini-tts-2025-12-15; incompatible selected models: ${incompatibleModels.join(', ')}.`)
+    }
+  }
 
   if ((selection.grokLanguage || selection.grokTextNormalization) && selection.grokModels.length === 0) {
     throw CLIUsageError(requireProviderSelectionMessage('Grok TTS', 'grok', 'request control flags'))
@@ -148,6 +154,9 @@ export const validateTtsTargetSelection = (
 
   if (selection.hasSpeechifyCustomVoiceFlags && selection.speechifyModels.length === 0) {
     throw CLIUsageError(requireProviderSelectionMessage('Speechify TTS', 'speechify', 'custom voice flags'))
+  }
+  if (selection.hasSpeechifyCustomVoiceFlags && selection.speechifyModels.includes('simba-3.2')) {
+    throw CLIUsageError('Speechify simba-3.2 does not support immediate custom-voice creation because each clone requires prior manual approval. Use simba-3.0 for self-serve cloning or pass an already approved voice ID.')
   }
   if ((selection.speechifyAudioFormat || selection.speechifyLanguage) && selection.speechifyModels.length === 0) {
     throw CLIUsageError(requireProviderSelectionMessage('Speechify TTS', 'speechify', 'request control flags'))

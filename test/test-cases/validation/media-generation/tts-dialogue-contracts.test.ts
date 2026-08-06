@@ -41,7 +41,7 @@ describe('TTS dialogue contracts', () => {
     // Multi-provider multi-speaker is now allowed
     const targets = collectTtsTargets(buildOptsFromFlags(false, {
       'mistral-tts': 'voxtral-mini-tts-2603',
-      'openai-tts': 'gpt-4o-mini-tts',
+      'openai-tts': 'gpt-4o-mini-tts-2025-12-15',
       'tts-dialogue-format': 'labeled',
       'tts-speaker': ['DUCO=alloy', 'CHAT=onyx']
     }))
@@ -72,7 +72,7 @@ describe('TTS dialogue contracts', () => {
 
   test('new --tts-speaker flag works with voice IDs for multi-speaker', () => {
     const targets = collectTtsTargets(buildOptsFromFlags(false, {
-      'openai-tts': 'gpt-4o-mini-tts',
+      'openai-tts': 'gpt-4o-mini-tts-2025-12-15',
       'tts-dialogue-format': 'labeled',
       'tts-speaker': ['Alice=alloy', 'Bob=onyx']
     }))
@@ -107,7 +107,7 @@ describe('TTS dialogue contracts', () => {
         'Bob: Bravo turn.',
         'Alice: Charlie turn.'
       ].join('\n'), dir, buildOptsFromFlags(false, {
-        'openai-tts': 'gpt-4o-mini-tts',
+        'openai-tts': 'gpt-4o-mini-tts-2025-12-15',
         'tts-dialogue-format': 'labeled',
         'tts-speaker': ['Alice=alloy', 'Bob=onyx']
       }))

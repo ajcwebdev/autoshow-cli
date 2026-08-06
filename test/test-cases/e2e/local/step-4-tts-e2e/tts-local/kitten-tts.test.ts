@@ -72,7 +72,7 @@ describe('kitten-tts', () => {
       }, E2E_TEST_TIMEOUT_MS)
     }
 
-    budgetedTest(['tts-kitten-mini', 'tts-openai-gpt-4o-mini-tts'], 'multi-provider run succeeds when one local and one API target are both available', async () => {
+    budgetedTest(['tts-kitten-mini', 'tts-openai-gpt-4o-mini-tts-2025-12-15'], 'multi-provider run succeeds when one local and one API target are both available', async () => {
       await requireConfiguredEnvVar('OPENAI_API_KEY', 'OPENAI_API_KEY is required for multi-provider TTS success coverage')
 
       await cleanupTestOutput(STABLE_TTS_MD_TITLE)
@@ -86,7 +86,7 @@ describe('kitten-tts', () => {
         '--tts-voice',
         'kitten=Luna',
         '--provider',
-        'openai=gpt-4o-mini-tts'
+        'openai=gpt-4o-mini-tts-2025-12-15'
       ])
 
       expect(result.exitCode).toBe(0)
@@ -96,7 +96,7 @@ describe('kitten-tts', () => {
 
       if (outputDir) {
         expect(await fileExists(`${outputDir}/speech-kitten-kitten-tts-mini.wav`)).toBe(true)
-        expect(await fileExists(`${outputDir}/speech-openai-gpt-4o-mini-tts.wav`)).toBe(true)
+        expect(await fileExists(`${outputDir}/speech-openai-gpt-4o-mini-tts-2025-12-15.wav`)).toBe(true)
 
         const metadata = await readRunMetadata(outputDir)
         const ttsEntries = toRecordArray(metadata['tts'])
@@ -105,8 +105,8 @@ describe('kitten-tts', () => {
         expect(ttsEntries[0]?.['ttsModel']).toBe('kitten-tts-mini')
         expect(ttsEntries[0]?.['audioFileName']).toBe('speech-kitten-kitten-tts-mini.wav')
         expect(ttsEntries[1]?.['ttsService']).toBe('openai')
-        expect(ttsEntries[1]?.['ttsModel']).toBe('gpt-4o-mini-tts')
-        expect(ttsEntries[1]?.['audioFileName']).toBe('speech-openai-gpt-4o-mini-tts.wav')
+        expect(ttsEntries[1]?.['ttsModel']).toBe('gpt-4o-mini-tts-2025-12-15')
+        expect(ttsEntries[1]?.['audioFileName']).toBe('speech-openai-gpt-4o-mini-tts-2025-12-15.wav')
 
         const cost = isRecord(metadata['cost']) ? metadata['cost'] : null
         const actualCost = cost && isRecord(cost['actual']) ? cost['actual'] : null
@@ -130,7 +130,7 @@ describe('kitten-tts', () => {
           '--provider',
           'kitten=kitten-tts-mini',
           '--provider',
-          'openai=gpt-4o-mini-tts'
+          'openai=gpt-4o-mini-tts-2025-12-15'
         ],
         {
           env: {
@@ -146,7 +146,7 @@ describe('kitten-tts', () => {
 
       if (outputDir) {
         expect(await fileExists(`${outputDir}/speech-kitten-kitten-tts-mini.wav`)).toBe(true)
-        expect(await fileExists(`${outputDir}/speech-openai-gpt-4o-mini-tts.wav`)).toBe(false)
+        expect(await fileExists(`${outputDir}/speech-openai-gpt-4o-mini-tts-2025-12-15.wav`)).toBe(false)
 
         const metadata = await readRunMetadata(outputDir)
         const ttsEntries = toRecordArray(metadata['tts'])
@@ -163,7 +163,7 @@ describe('kitten-tts', () => {
           'tts',
           STABLE_TTS_MD_PATH,
           '--provider',
-          'openai=gpt-4o-mini-tts',
+          'openai=gpt-4o-mini-tts-2025-12-15',
           '--provider',
           'gemini=gemini-3.1-flash-tts-preview'
         ],

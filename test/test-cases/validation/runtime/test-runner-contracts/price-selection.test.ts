@@ -27,7 +27,7 @@ describe('test-runner contracts', () => {
     })
 
   test('price config isolation appends empty config to mapped tts price commands', () => {
-      const args = ['src/cli/create-cli.ts', 'tts', 'input/examples/tts/1-tts.md', '--openai', 'gpt-4o-mini-tts', '--price']
+      const args = ['src/cli/create-cli.ts', 'tts', 'input/examples/tts/1-tts.md', '--openai', 'gpt-4o-mini-tts-2025-12-15', '--price']
 
       expect(withEmptyPriceConfig(args)).toEqual([
         ...args,
@@ -52,7 +52,7 @@ describe('test-runner contracts', () => {
         'tts',
         'input/examples/tts/1-tts.md',
         '--openai',
-        'gpt-4o-mini-tts',
+        'gpt-4o-mini-tts-2025-12-15',
         '--price',
         '--config-path=config/custom-autoshow.json',
       ]
@@ -110,7 +110,7 @@ describe('test-runner contracts', () => {
       expect(selected.suiteName).toBe('All mapped tests')
       expect(keys).toContain('extract-firecrawl-url')
       expect(keys).toContain('music-elevenlabs-music_v1')
-      expect(keys).toContain('tts-openai-gpt-4o-mini-tts')
+      expect(keys).toContain('tts-openai-gpt-4o-mini-tts-2025-12-15')
     })
 
   test('extract price registry commands use public selector flags', () => {
@@ -154,7 +154,7 @@ describe('test-runner contracts', () => {
 
   test('price mode rejects legacy test-price selectors', () => {
       const allFiles = [
-        'test/test-cases/e2e/service/step-4-tts-e2e/tts-services/openai-gpt-4o-mini-tts.test.ts'
+        'test/test-cases/e2e/service/step-4-tts-e2e/tts-services/openai-gpt-4o-mini-tts-2025-12-15.test.ts'
       ]
 
       expect(() => resolvePriceSelection(allFiles, [

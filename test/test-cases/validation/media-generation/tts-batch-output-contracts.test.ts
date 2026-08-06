@@ -114,11 +114,11 @@ describe('tts batch output contracts', () => {
       'guinea-00-preface',
       buildTtsMetadata({
         ttsService: 'openai',
-        ttsModel: 'gpt-4o-mini-tts',
-        audioFileName: 'speech-openai-gpt-4o-mini-tts.wav'
+        ttsModel: 'gpt-4o-mini-tts-2025-12-15',
+        audioFileName: 'speech-openai-gpt-4o-mini-tts-2025-12-15.wav'
       }),
       false
-    )).toBe('guinea-00-preface-openai-gpt-4o-mini-tts.wav')
+    )).toBe('guinea-00-preface-openai-gpt-4o-mini-tts-2025-12-15.wav')
 
     expect(getTtsBatchAudioFileName(
       'guinea-00-preface',
@@ -198,8 +198,8 @@ describe('tts batch output contracts', () => {
   test('batch run metadata includes hosted TTS scheduler telemetry when provided', () => {
     const metadataEntry = buildTtsMetadata({
       ttsService: 'openai',
-      ttsModel: 'gpt-4o-mini-tts',
-      audioFileName: 'chapter-openai-gpt-4o-mini-tts.wav'
+      ttsModel: 'gpt-4o-mini-tts-2025-12-15',
+      audioFileName: 'chapter-openai-gpt-4o-mini-tts-2025-12-15.wav'
     })
     const telemetry: HostedTtsSchedulerTelemetry = {
       providers: [{
@@ -254,7 +254,7 @@ describe('tts batch output contracts', () => {
         partial: 0,
         fail: 0,
         wallTimeMs: 300,
-        requestedProviders: [{ service: 'openai', model: 'gpt-4o-mini-tts' }]
+        requestedProviders: [{ service: 'openai', model: 'gpt-4o-mini-tts-2025-12-15' }]
       },
       telemetry
     )

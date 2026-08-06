@@ -487,7 +487,7 @@ test('tts rejects non-text single files', async () => {
 
 test('tts rejects ambiguous generic TTS options with multiple providers', async () => {
   await expectUsageExit(
-    ['tts', 'input/examples/tts/1-tts.md', '--provider', 'openai=gpt-4o-mini-tts', '--provider', 'elevenlabs=eleven_v3', '--tts-voice', 'alloy', '--price'],
+    ['tts', 'input/examples/tts/1-tts.md', '--provider', 'openai=gpt-4o-mini-tts-2025-12-15', '--provider', 'elevenlabs=eleven_v3', '--tts-voice', 'alloy', '--price'],
     '--tts-voice requires provider=value when multiple TTS providers are selected.'
   )
 })

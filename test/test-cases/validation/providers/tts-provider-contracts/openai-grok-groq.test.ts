@@ -92,7 +92,7 @@ describe('TTS provider service contracts', () => {
       }) as typeof fetch
 
       const result = await runOpenAITts('OpenAI control synthesis.', dir, {
-        model: 'gpt-4o-mini-tts',
+        model: 'gpt-4o-mini-tts-2025-12-15',
         voiceId: 'alloy',
         instructions: 'Speak with a warm documentary narration style.',
         speed: 1.25
@@ -105,7 +105,7 @@ describe('TTS provider service contracts', () => {
         method: 'POST',
         authorization: 'Bearer openai-key',
         body: {
-          model: 'gpt-4o-mini-tts',
+          model: 'gpt-4o-mini-tts-2025-12-15',
           voice: 'alloy',
           input: 'OpenAI control synthesis.',
           response_format: 'wav',

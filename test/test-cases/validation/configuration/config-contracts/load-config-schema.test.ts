@@ -35,7 +35,7 @@ describe('config load schema contracts', () => {
         },
         post: {
           tts: {
-            speechifyTts: ['simba-english'],
+            speechifyTts: ['simba-3.2'],
             speechifyVoice: 'narrator_voice',
             speechifyTtsAudioFormat: 'wav',
             speechifyTtsLanguage: 'en-US',
@@ -48,7 +48,7 @@ describe('config load schema contracts', () => {
             deepgramTtsBitRate: 128000,
             deepgramTtsSampleRate: 24000,
             deepgramTtsSpeed: 1.1,
-            openaiTts: ['gpt-4o-mini-tts'],
+            openaiTts: ['gpt-4o-mini-tts-2025-12-15'],
             openaiVoice: 'alloy',
             elevenlabsTts: ['eleven_v3'],
             elevenlabsTtsRefAudio: 'input/examples/audio/anthony-voice.mp3',
@@ -121,7 +121,7 @@ describe('config load schema contracts', () => {
         },
         post: {
           tts: {
-            speechifyTts: ['simba-english'],
+            speechifyTts: ['simba-3.2'],
             speechifyVoice: 'narrator_voice',
             speechifyTtsAudioFormat: 'wav',
             speechifyTtsLanguage: 'en-US',
@@ -134,7 +134,7 @@ describe('config load schema contracts', () => {
             deepgramTtsBitRate: 128000,
             deepgramTtsSampleRate: 24000,
             deepgramTtsSpeed: 1.1,
-            openaiTts: ['gpt-4o-mini-tts'],
+            openaiTts: ['gpt-4o-mini-tts-2025-12-15'],
             openaiVoice: 'alloy',
             elevenlabsTts: ['eleven_v3'],
             elevenlabsTtsRefAudio: 'input/examples/audio/anthony-voice.mp3',

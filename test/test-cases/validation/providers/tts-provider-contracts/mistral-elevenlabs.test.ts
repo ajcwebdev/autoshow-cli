@@ -11,6 +11,7 @@ import { join } from 'node:path'
 import { runElevenLabsTts } from '~/cli/commands/process-steps/step-4-tts/tts-services/tts-elevenlabs/run-elevenlabs-tts'
 import { runMistralTts } from '~/cli/commands/process-steps/step-4-tts/tts-services/tts-mistral/run-mistral-tts'
 import { runTts } from '~/cli/commands/process-steps/step-4-tts/run-tts'
+import { resolveTtsChunkCharacterLimit } from '~/cli/commands/process-steps/step-4-tts/tts-utils/tts-chunking'
 import type { TtsOptions } from '~/types'
 import { createMockWavBase64, createSyntheticWavBytes } from '../../../../test-utils/media-fixtures'
 import { LOCAL_AUDIO_PATH, LOCAL_SHORT_AUDIO_PATH, readWavSamples, segmentRms, waitForCondition } from './shared'
@@ -346,6 +347,26 @@ describe('TTS provider service contracts', () => {
       expect(result.metadata.chunkCount).toBe(1)
     }, 10_000)
 
+  test('ElevenLabs sends new model IDs and resolves model-specific character limits', async () => {
+    const dir = await makeTempDir('autoshow-elevenlabs-new-models-')
+    const audioBytes = await Bun.file(LOCAL_SHORT_AUDIO_PATH).arrayBuffer()
+    const bodies: Array<Record<string, unknown>> = []
+    process.env['ELEVENLABS_API_KEY'] = 'elevenlabs-key'
+    globalThis.fetch = (async (_input: Parameters<typeof fetch>[0], init?: Parameters<typeof fetch>[1]): Promise<Response> => {
+      bodies.push(JSON.parse(String(init?.body ?? '{}')) as Record<string, unknown>)
+      return new Response(audioBytes, { status: 200, headers: { 'content-type': 'audio/mpeg' } })
+    }) as typeof fetch
+
+    for (const model of ['eleven_multilingual_v2', 'eleven_flash_v2_5'] as const) {
+      await runElevenLabsTts('New ElevenLabs model.', dir, { model, voiceId: 'voice_existing123' })
+    }
+
+    expect(bodies.map((body) => body['model_id'])).toEqual(['eleven_multilingual_v2', 'eleven_flash_v2_5'])
+    expect(resolveTtsChunkCharacterLimit('elevenlabs', 'eleven_v3')).toBe(5000)
+    expect(resolveTtsChunkCharacterLimit('elevenlabs', 'eleven_multilingual_v2')).toBe(10000)
+    expect(resolveTtsChunkCharacterLimit('elevenlabs', 'eleven_flash_v2_5')).toBe(40000)
+  }, 10_000)
+
   test('ElevenLabs TTS splits long text into multiple API calls', async () => {
       const dir = await makeTempDir('autoshow-elevenlabs-tts-chunks-')
       const audioBytes = await Bun.file(LOCAL_SHORT_AUDIO_PATH).arrayBuffer()
@@ -361,7 +382,7 @@ describe('TTS provider service contracts', () => {
         return new Response(audioBytes, { status: 200, headers: { 'content-type': 'audio/mpeg' } })
       }) as typeof fetch
 
-      const result = await runElevenLabsTts(`${'A'.repeat(2000)} ${'B'.repeat(100)}`, dir, {
+      const result = await runElevenLabsTts(`${'A'.repeat(5000)} ${'B'.repeat(100)}`, dir, {
         model: 'eleven_v3',
         voiceId: 'voice_existing123'
       })
@@ -375,7 +396,7 @@ describe('TTS provider service contracts', () => {
       })
       expect(calls).toHaveLength(2)
       expect(calls.every((call) => call.url === 'https://api.elevenlabs.io/v1/text-to-speech/voice_existing123?output_format=mp3_44100_128')).toBe(true)
-      expect(calls.map((call) => String(call.body['text']).length)).toEqual([2000, 100])
+      expect(calls.map((call) => String(call.body['text']).length)).toEqual([5000, 100])
     }, 10_000)
 
   test('ElevenLabs TTS runs chunks concurrently and concatenates in chunk order', async () => {
@@ -409,7 +430,7 @@ describe('TTS provider service contracts', () => {
         })
       }) as typeof fetch
 
-      const runPromise = runElevenLabsTts(`${'A'.repeat(2000)} ${'B'.repeat(2000)} ${'C'.repeat(100)}`, dir, {
+      const runPromise = runElevenLabsTts(`${'A'.repeat(5000)} ${'B'.repeat(5000)} ${'C'.repeat(100)}`, dir, {
         model: 'eleven_v3',
         voiceId: 'voice_existing123',
         chunkConcurrency: 3
@@ -477,7 +498,7 @@ describe('TTS provider service contracts', () => {
         throw new Error(`Unexpected ElevenLabs IVC chunk mock fetch: ${method} ${url}`)
       }) as typeof fetch
 
-      const result = await runElevenLabsTts(`${'A'.repeat(2000)} ${'B'.repeat(100)}`, dir, {
+      const result = await runElevenLabsTts(`${'A'.repeat(5000)} ${'B'.repeat(100)}`, dir, {
         model: 'eleven_v3',
         clone: {
           refAudioPath: LOCAL_SHORT_AUDIO_PATH,
@@ -501,7 +522,7 @@ describe('TTS provider service contracts', () => {
       }))).toEqual([
         {
           url: 'https://api.elevenlabs.io/v1/text-to-speech/voice_cloned_once?output_format=mp3_44100_128',
-          textLength: 2000
+          textLength: 5000
         },
         {
           url: 'https://api.elevenlabs.io/v1/text-to-speech/voice_cloned_once?output_format=mp3_44100_128',

@@ -7,6 +7,7 @@ import {
   DEEPGRAM_DEFAULT_VOICE,
   GROK_DEFAULT_TTS_VOICE,
   SUPPORTED_ELEVENLABS_TTS_MODELS,
+  SUPPORTED_DEEPGRAM_TTS_MODELS,
   SUPPORTED_GEMINI_TTS_MODELS,
   SUPPORTED_GROK_TTS_MODELS,
   SUPPORTED_GROQ_TTS_MODELS,
@@ -25,6 +26,42 @@ const REMOVED_GROQ_TTS_MODEL = ['canopylabs/orpheus', 'arabic-saudi'].join('-')
 const REMOVED_GROQ_TTS_VOICE = ['no', 'ura'].join('')
 
 describe('option resolution contracts', () => {
+  test('hosted TTS exposes exactly 24 active selectors and rejects all retired IDs', () => {
+    const hostedSelectors = [
+      ...SUPPORTED_ELEVENLABS_TTS_MODELS,
+      ...SUPPORTED_MINIMAX_TTS_MODELS,
+      ...SUPPORTED_GROQ_TTS_MODELS,
+      ...SUPPORTED_GROK_TTS_MODELS,
+      ...SUPPORTED_MISTRAL_TTS_MODELS,
+      ...SUPPORTED_OPENAI_TTS_MODELS,
+      ...SUPPORTED_GEMINI_TTS_MODELS,
+      ...SUPPORTED_DEEPGRAM_TTS_MODELS,
+      ...SUPPORTED_SPEECHIFY_TTS_MODELS,
+      ...SUPPORTED_HUME_TTS_MODELS,
+      ...SUPPORTED_CARTESIA_TTS_MODELS
+    ]
+    expect(hostedSelectors).toHaveLength(24)
+    expect(hostedSelectors).toEqual(expect.arrayContaining([
+      'sonic-3.5-2026-05-04',
+      'gpt-4o-mini-tts-2025-12-15',
+      'simba-3.2',
+      'simba-3.0',
+      'aura-2-helena-en',
+      'aura-2-arcas-en',
+      'aura-2-aries-en',
+      'eleven_multilingual_v2',
+      'eleven_flash_v2_5'
+    ]))
+    for (const [flag, model] of [
+      ['cartesia-tts', 'sonic-3'],
+      ['cartesia-tts', 'sonic-3.5'],
+      ['openai-tts', 'gpt-4o-mini-tts'],
+      ['speechify-tts', 'simba-english']
+    ] as const) {
+      expect(() => buildOptsFromFlags(false, { [flag]: model })).toThrow(`Invalid --${flag} model "${model}"`)
+    }
+  })
+
   test('buildOptsFromFlags maps repeatable dialogue speaker reference audio flags', () => {
       const opts = buildOptsFromFlags(false, {
         'mistral-tts': 'voxtral-mini-tts-2603',
@@ -48,7 +85,7 @@ describe('option resolution contracts', () => {
         'grok-tts-voice': 'AB12CD34',
         'grok-tts-language': 'pt-br',
         'grok-tts-text-normalization': true,
-        'openai-tts': 'gpt-4o-mini-tts',
+        'openai-tts': 'gpt-4o-mini-tts-2025-12-15',
         'openai-tts-instructions': 'Speak with calm narration.',
         'openai-tts-speed': '1.25',
         'minimax-tts': 'speech-2.8-hd',
@@ -65,7 +102,7 @@ describe('option resolution contracts', () => {
         'deepgram-tts-bit-rate': '128000',
         'deepgram-tts-sample-rate': '24000',
         'deepgram-tts-speed': '1.1',
-        'speechify-tts': 'simba-english',
+        'speechify-tts': 'simba-3.0',
         'speechify-tts-audio-format': 'PCM',
         'speechify-tts-language': 'es-ES',
         'elevenlabs-tts': 'eleven_v3',
@@ -165,12 +202,44 @@ describe('option resolution contracts', () => {
 
     })
 
+  test('OpenAI classic models reject instructions before pricing or dispatch', () => {
+    expect(() => collectTtsTargets(buildOptsFromFlags(false, {
+      'openai-tts': 'tts-1',
+      'openai-tts-instructions': 'Warm narration'
+    }))).toThrow('instructions are supported only by gpt-4o-mini-tts-2025-12-15')
+  })
+
+  test('Speechify validates model-specific languages, curated voices, and cloning', () => {
+    expect(() => collectTtsTargets(buildOptsFromFlags(false, {
+      'speechify-tts': 'simba-3.2',
+      'speechify-tts-language': 'es-ES'
+    }))).toThrow('supports only en or en-*')
+    expect(() => collectTtsTargets(buildOptsFromFlags(false, {
+      'speechify-tts': 'simba-3.2',
+      'speechify-voice': 'george'
+    }))).toThrow('not compatible with simba-3.2')
+    expect(collectTtsTargets(buildOptsFromFlags(false, {
+      'speechify-tts': 'simba-3.2',
+      'speechify-voice': 'approved_clone_123'
+    }))[0]?.voice).toBe('approved_clone_123')
+    expect(() => collectTtsTargets(buildOptsFromFlags(false, {
+      'speechify-tts': 'simba-3.2',
+      'speechify-tts-ref-audio': 'sample.mp3',
+      'speechify-tts-consent-name': 'Owner',
+      'speechify-tts-consent-email': 'owner@example.com'
+    }))).toThrow('does not support immediate custom-voice creation')
+    expect(() => collectTtsTargets(buildOptsFromFlags(false, {
+      'speechify-tts': 'simba-3.0',
+      'speechify-tts-language': 'ja-JP'
+    }))).toThrow('does not support language')
+  })
+
   test('Hume and Cartesia TTS target collection preserves model and voice controls', () => {
       const targets = collectTtsTargets(buildOptsFromFlags(false, {
         'hume-tts': 'octave-2',
         'hume-tts-voice': 'Studio Voice',
         'hume-tts-voice-provider': 'CUSTOM_VOICE',
-        'cartesia-tts': 'sonic-3.5',
+        'cartesia-tts': 'sonic-3.5-2026-05-04',
         'cartesia-tts-voice': 'cartesia-voice-id',
         'cartesia-tts-language': 'en'
       }))
@@ -187,7 +256,7 @@ describe('option resolution contracts', () => {
         },
         {
           service: 'cartesia',
-          model: 'sonic-3.5',
+          model: 'sonic-3.5-2026-05-04',
           voice: 'cartesia-voice-id'
         }
       ])

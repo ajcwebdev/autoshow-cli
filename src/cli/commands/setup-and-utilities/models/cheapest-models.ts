@@ -12,6 +12,15 @@ const DEFAULT_LOCAL_MODEL_BY_FLAG = {
   'kitten-tts': 'kitten-tts-nano-0.8-int8',
 } as const satisfies Record<string, string>
 
+const DEFAULT_HOSTED_TTS_MODEL_BY_FLAG = {
+  'elevenlabs-tts': 'eleven_v3',
+  'groq-tts': 'canopylabs/orpheus-v1-english',
+  'openai-tts': 'gpt-4o-mini-tts-2025-12-15',
+  'deepgram-tts': 'aura-2-thalia-en',
+  'speechify-tts': 'simba-3.2',
+  'cartesia-tts': 'sonic-3.5-2026-05-04'
+} as const satisfies Record<string, string>
+
 const DEFAULT_OCR_INPUT_TOKENS_PER_PAGE = 4000
 const DEFAULT_OCR_OUTPUT_TOKENS_PER_PAGE = 1000
 
@@ -396,6 +405,10 @@ export const resolveCheapestModelForFlag = (flagName: string): string | undefine
   const localDefault = DEFAULT_LOCAL_MODEL_BY_FLAG[flagName as keyof typeof DEFAULT_LOCAL_MODEL_BY_FLAG]
   if (localDefault) {
     return localDefault
+  }
+  const hostedTtsDefault = DEFAULT_HOSTED_TTS_MODEL_BY_FLAG[flagName as keyof typeof DEFAULT_HOSTED_TTS_MODEL_BY_FLAG]
+  if (hostedTtsDefault) {
+    return hostedTtsDefault
   }
 
   switch (flagName) {

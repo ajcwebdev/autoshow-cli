@@ -132,7 +132,7 @@ bun autoshow tts input/examples/tts/1-tts.md --provider minimax=speech-2.8-turbo
 bun autoshow tts input/examples/tts/1-tts.md --provider hume=octave-2 --tts-voice "Male English Actor"
 
 # text-to-speech with Cartesia Sonic
-bun autoshow tts input/examples/tts/1-tts.md --provider cartesia=sonic-3.5 --tts-voice f786b574-daa5-4673-aa0c-cbe3e8534c02
+bun autoshow tts input/examples/tts/1-tts.md --provider cartesia=sonic-3.5-2026-05-04 --tts-voice f786b574-daa5-4673-aa0c-cbe3e8534c02
 
 # image generation, then edit/reference the generated image; run this block in order
 bun autoshow image "a clean studio product photo of a red enamel camping mug on white seamless" --provider openai=gpt-image-2 --size 1024x1024 --format png --output-dir output/mug-base
@@ -249,9 +249,9 @@ bun autoshow tts input/examples/tts/1-tts.md --provider grok=grok-tts --price
 bun autoshow tts input/examples/tts/1-tts.md --provider mistral=voxtral-mini-tts-2603 --price
 bun autoshow tts input/examples/tts/1-tts.md --provider minimax=speech-2.8-turbo --price
 bun autoshow tts input/examples/tts/1-tts.md --provider hume=octave-2 --price
-bun autoshow tts input/examples/tts/1-tts.md --provider cartesia=sonic-3.5 --price
-bun autoshow tts input/examples/tts/1-tts.md --provider openai=gpt-4o-mini-tts --price
-bun autoshow tts input/examples/tts/1-tts.md --provider openai=gpt-4o-mini-tts --tts-instructions "Warm documentary narration" --tts-speed 1.1 --price
+bun autoshow tts input/examples/tts/1-tts.md --provider cartesia=sonic-3.5-2026-05-04 --price
+bun autoshow tts input/examples/tts/1-tts.md --provider openai=gpt-4o-mini-tts-2025-12-15 --price
+bun autoshow tts input/examples/tts/1-tts.md --provider openai=gpt-4o-mini-tts-2025-12-15 --tts-instructions "Warm documentary narration" --tts-speed 1.1 --price
 bun autoshow image "a sunset" --provider openai=gpt-image-2 --size 1024x1024 --quality low --price
 bun autoshow image "a sunset" --provider bfl=flux-2-pro --price
 bun autoshow image "a sunset" --provider reve=latest --price
