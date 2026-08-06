@@ -508,8 +508,6 @@ export const resolveCheapestModelForFlag = (flagName: string): string | undefine
       return selectCheapestImageModel('grok')
     case 'bfl-image':
       return selectCheapestImageModel('bfl')
-    case 'reve-image':
-      return selectCheapestImageModel('reve')
     case 'recraft-image':
       return selectCheapestImageModel('recraft')
     case 'replicate-image':

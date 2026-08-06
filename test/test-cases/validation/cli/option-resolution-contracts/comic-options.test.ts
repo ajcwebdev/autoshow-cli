@@ -74,7 +74,7 @@ describe('option resolution contracts', () => {
   test('comic generate-images args parse page image options', () => {
       const opts = parseGenerateImagesArgs([
         'input/scripts/02-script/01-co-work-smarter.md',
-        '--image-model', 'gpt-image-2,gemini-3.1-flash-image-preview',
+        '--image-model', 'gpt-image-2,gemini-3.1-flash-lite-image',
         '--panels', '1-4,9',
         '--panels-per-image', String(DEFAULT_PANELS_PER_IMAGE),
         '--variation', 'animation-polish,cinematic-depth',
@@ -84,7 +84,7 @@ describe('option resolution contracts', () => {
       ])
 
       expect(opts.scriptPath).toBe('input/scripts/02-script/01-co-work-smarter.md')
-      expect(opts.imageModels).toEqual(['gpt-image-2', 'gemini-3.1-flash-image-preview'])
+      expect(opts.imageModels).toEqual(['gpt-image-2', 'gemini-3.1-flash-lite-image'])
       expect(opts.panels).toEqual([1, 2, 3, 4, 9])
       expect(opts.panelsPerImage).toBe(DEFAULT_PANELS_PER_IMAGE)
       expect(opts.variations).toEqual(['animation-polish', 'cinematic-depth'])

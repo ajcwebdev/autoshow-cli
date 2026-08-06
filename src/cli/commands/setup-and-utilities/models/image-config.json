@@ -2,17 +2,47 @@
   "gemini": {
     "description": "Google Gemini image generation",
     "type": "api",
-    "referenceImages": { "supported": true, "maxInputs": 10 },
+    "referenceImages": { "supported": true, "maxInputs": 14 },
     "models": {
-      "gemini-3.1-flash-image-preview": {
-        "description": "Gemini 3.1 Flash Image Preview — native multimodal image generation and editing",
+      "gemini-3.1-flash-lite-image": {
+        "description": "Gemini 3.1 Flash Lite Image — low-latency native image generation and editing",
         "pricingSourceUrl": "https://ai.google.dev/gemini-api/docs/pricing",
-        "pricingCheckedAt": "2026-05-31",
+        "pricingCheckedAt": "2026-08-06",
         "pricingCurrency": "USD",
         "pricingTier": "Paid tier standard pay-as-you-go",
-        "pricingNotes": "Default registry rate is the published Gemini 3.1 Flash Image 1K output-image estimate. Text/image input tokens and other output resolutions are not estimated locally.",
+        "pricingNotes": "Default registry rate is the published 1K output-image estimate. Text/image input tokens are not estimated locally.",
+        "costPerImageUSD": 0.0336,
+        "costPerImageCents": 3.36,
+        "nativeGeminiImage": true,
+        "estimation": {
+          "costMultiplier": 1,
+          "msPerImage": 19416
+        }
+      },
+      "gemini-3.1-flash-image": {
+        "description": "Gemini 3.1 Flash Image — native multimodal image generation and editing",
+        "pricingSourceUrl": "https://ai.google.dev/gemini-api/docs/pricing",
+        "pricingCheckedAt": "2026-08-06",
+        "pricingCurrency": "USD",
+        "pricingTier": "Paid tier standard pay-as-you-go",
+        "pricingNotes": "Default registry rate is the published 1K output-image estimate. Text/image input tokens and other output resolutions are not estimated locally.",
         "costPerImageUSD": 0.067,
         "costPerImageCents": 6.7,
+        "nativeGeminiImage": true,
+        "estimation": {
+          "costMultiplier": 1,
+          "msPerImage": 19416
+        }
+      },
+      "gemini-3-pro-image": {
+        "description": "Gemini 3 Pro Image — highest-quality native image generation and editing",
+        "pricingSourceUrl": "https://ai.google.dev/gemini-api/docs/pricing",
+        "pricingCheckedAt": "2026-08-06",
+        "pricingCurrency": "USD",
+        "pricingTier": "Paid tier standard pay-as-you-go",
+        "pricingNotes": "Default registry rate is the published 1K/2K output-image estimate. Text/image input tokens and 4K output are not estimated locally.",
+        "costPerImageUSD": 0.134,
+        "costPerImageCents": 13.4,
         "nativeGeminiImage": true,
         "estimation": {
           "costMultiplier": 1,
@@ -83,6 +113,36 @@
     "type": "api",
     "referenceImages": { "supported": true, "maxInputs": 8 },
     "models": {
+      "flux-2-klein-4b": {
+        "referenceImages": { "supported": true, "maxInputs": 4 },
+        "description": "FLUX.2 Klein 4B fixed snapshot for real-time, high-volume generation and editing",
+        "pricingSourceUrl": "https://docs.bfl.ai/quick_start/pricing",
+        "pricingCheckedAt": "2026-08-06",
+        "pricingCurrency": "USD",
+        "pricingTier": "BFL FLUX.2 API megapixel pricing reference",
+        "pricingNotes": "Published starting price for the first output megapixel. Additional output megapixels increase the exact provider cost; provider quotes override this registry estimate when available.",
+        "costPerImageUSD": 0.014,
+        "costPerImageCents": 1.4,
+        "estimation": {
+          "costMultiplier": 1,
+          "msPerImage": 1000
+        }
+      },
+      "flux-2-klein-9b": {
+        "referenceImages": { "supported": true, "maxInputs": 4 },
+        "description": "FLUX.2 Klein 9B fixed snapshot balancing quality and speed",
+        "pricingSourceUrl": "https://docs.bfl.ai/quick_start/pricing",
+        "pricingCheckedAt": "2026-08-06",
+        "pricingCurrency": "USD",
+        "pricingTier": "BFL FLUX.2 API megapixel pricing reference",
+        "pricingNotes": "Published starting price for the first output megapixel. Additional output megapixels increase the exact provider cost; provider quotes override this registry estimate when available.",
+        "costPerImageUSD": 0.015,
+        "costPerImageCents": 1.5,
+        "estimation": {
+          "costMultiplier": 1,
+          "msPerImage": 1000
+        }
+      },
       "flux-2-pro": {
         "description": "FLUX.2 Pro fixed snapshot text-to-image generation",
         "pricingSourceUrl": "https://docs.bfl.ai/quick_start/pricing",
@@ -123,41 +183,6 @@
         "estimation": {
           "costMultiplier": 1,
           "msPerImage": 23549
-        }
-      }
-    }
-  },
-  "reve": {
-    "description": "Reve image generation",
-    "type": "api",
-    "referenceImages": { "supported": true, "maxInputs": 6 },
-    "models": {
-      "latest": {
-        "description": "Reve latest image creation model",
-        "pricingSourceUrl": "https://app.reve.com/faq",
-        "pricingCheckedAt": "2026-05-31",
-        "pricingCurrency": "USD",
-        "pricingTier": "Reve API credit reference heuristic",
-        "pricingNotes": "$10 / 7500 credits; provider usage headers override this fallback when returned",
-        "costPerImageUSD": 0.0013333333333333333,
-        "costPerImageCents": 0.13333333333333333,
-        "estimation": {
-          "costMultiplier": 1,
-          "msPerImage": 30000
-        }
-      },
-      "reve-create@20250915": {
-        "description": "Reve Create fixed text-to-image snapshot",
-        "pricingSourceUrl": "https://app.reve.com/faq",
-        "pricingCheckedAt": "2026-05-31",
-        "pricingCurrency": "USD",
-        "pricingTier": "Reve API credit reference heuristic",
-        "pricingNotes": "$10 / 7500 credits; provider usage headers override this fallback when returned",
-        "costPerImageUSD": 0.0013333333333333333,
-        "costPerImageCents": 0.13333333333333333,
-        "estimation": {
-          "costMultiplier": 1,
-          "msPerImage": 30000
         }
       }
     }

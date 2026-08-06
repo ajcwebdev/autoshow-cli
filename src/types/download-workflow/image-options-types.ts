@@ -9,8 +9,6 @@ export type ImageRuntimeOptionKey =
   | 'grokImageModel'
   | 'bflImageModels'
   | 'bflImageModel'
-  | 'reveImageModels'
-  | 'reveImageModel'
   | 'recraftImageModels'
   | 'recraftImageModel'
   | 'replicateImageModels'

@@ -7,6 +7,7 @@ import { readRunManifest, writeRunManifest } from '~/cli/commands/process-steps/
 import { writeOcrRunManifest } from '~/cli/commands/process-steps/step-2-extract/step-2-ocr/ocr-manifest'
 import { writeSttRunManifest } from '~/cli/commands/process-steps/step-2-extract/step-2-stt/stt-manifest'
 import { hasResumableTtsWork, priceTtsTarget } from '~/cli/commands/setup-and-utilities/resume/generation/tts-resume'
+import { hasResumableImageWork, priceImageTarget } from '~/cli/commands/setup-and-utilities/resume/generation/image-resume'
 import type { ResumeTarget, RuntimeOptions, Step3Metadata } from '~/types'
 
 const tempDirs: string[] = []
@@ -302,6 +303,57 @@ test('TTS resume preserves completed retired identities and rejects incomplete r
     await expect(priceTtsTarget(incompleteTarget, {} as RuntimeOptions)).rejects.toThrow(`Stored TTS target ${entry.service}/${entry.model} is incomplete`)
     await expect(priceTtsTarget(incompleteTarget, {} as RuntimeOptions)).rejects.toThrow(`--provider ${entry.replacement}`)
     expect((await readRunManifest(completeDir, 'tts'))?.metadata['requestedProviders']).toEqual([{ service: entry.service, model: entry.model }])
+  }
+})
+
+test('image resume preserves completed retired identities and rejects incomplete Gemini and Reve targets', async () => {
+  const root = await makeTempRoot('autoshow-retired-image-resume-')
+  const cases = [
+    {
+      service: 'gemini',
+      model: 'gemini-3.1-flash-image-preview',
+      expected: '--provider gemini=gemini-3.1-flash-lite-image'
+    },
+    {
+      service: 'reve',
+      model: 'latest',
+      expected: "Reve's public API is sunset on 2026-08-14"
+    },
+    {
+      service: 'reve',
+      model: 'reve-create@20250915',
+      expected: "Reve's public API is sunset on 2026-08-14"
+    }
+  ] as const
+
+  for (const entry of cases) {
+    const completeDir = join(root, `${entry.service}-${entry.model}-complete`)
+    const incompleteDir = join(root, `${entry.service}-${entry.model}-incomplete`)
+    await Promise.all([mkdir(completeDir, { recursive: true }), mkdir(incompleteDir, { recursive: true })])
+    const requestedProviders = [{ service: entry.service, model: entry.model }]
+    await writeRunManifest(completeDir, 'image', {
+      input: 'Historical image.',
+      requestedProviders,
+      image: [{
+        imageService: entry.service,
+        imageModel: entry.model,
+        processingTime: 1,
+        imageCount: 1,
+        imageFileNames: ['generated-image.png'],
+        imageFileSize: 1
+      }]
+    })
+    await writeRunManifest(incompleteDir, 'image', {
+      input: 'Historical image.',
+      requestedProviders,
+      image: []
+    })
+    const completeTarget: ResumeTarget = { kind: 'image', scope: 'single', dir: completeDir, manifestPath: join(completeDir, 'run.json') }
+    const incompleteTarget: ResumeTarget = { kind: 'image', scope: 'single', dir: incompleteDir, manifestPath: join(incompleteDir, 'run.json') }
+
+    await expect(hasResumableImageWork(completeTarget, {} as RuntimeOptions)).resolves.toBe(false)
+    await expect(priceImageTarget(incompleteTarget, {} as RuntimeOptions)).rejects.toThrow(entry.expected)
+    expect((await readRunManifest(completeDir, 'image'))?.metadata['requestedProviders']).toEqual(requestedProviders)
   }
 })
 

@@ -161,7 +161,6 @@ const VALUE_FLAGS = new Set([
   'openai-image',
   'grok-image',
   'bfl-image',
-  'reve-image',
   'recraft-image',
   'gemini-video',
   'minimax-video',
@@ -195,7 +194,6 @@ const IMAGE_SELECTOR_FLAGS: Record<string, string> = {
   'openai-image': 'openai',
   'grok-image': 'grok',
   'bfl-image': 'bfl',
-  'reve-image': 'reve',
   'recraft-image': 'recraft',
 }
 

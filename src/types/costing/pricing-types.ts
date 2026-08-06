@@ -197,7 +197,6 @@ export type ComputeEstimatedCostsInput = {
   openaiImageModel?: string | undefined
   grokImageModel?: string | undefined
   bflImageModel?: string | undefined
-  reveImageModel?: string | undefined
   recraftImageModel?: string | undefined
   replicateImageModel?: string | undefined
   lumalabsImageModel?: string | undefined

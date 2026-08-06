@@ -56,7 +56,6 @@ import {
   validateGrokImageModel,
   validateOpenAIImageModel,
   validateBflImageModel,
-  validateReveImageModel,
   validateRecraftImageModel,
   validateReplicateImageModel,
   validateLumalabsImageModel,
@@ -210,7 +209,6 @@ export const readRuntimeModelOptions = (
   const openaiImageModels = readValidatedMany('openai-image', validateOpenAIImageModel)
   const grokImageModels = readValidatedMany('grok-image', validateGrokImageModel)
   const bflImageModels = readValidatedMany('bfl-image', validateBflImageModel)
-  const reveImageModels = readValidatedMany('reve-image', validateReveImageModel)
   const recraftImageModels = readValidatedMany('recraft-image', validateRecraftImageModel)
   const replicateImageModels = readValidatedMany('replicate-image', validateReplicateImageModel)
   const lumalabsImageModels = readValidatedMany('lumalabs-image', validateLumalabsImageModel)
@@ -333,8 +331,6 @@ export const readRuntimeModelOptions = (
     grokImageModel: first(grokImageModels),
     bflImageModels,
     bflImageModel: first(bflImageModels),
-    reveImageModels,
-    reveImageModel: first(reveImageModels),
     recraftImageModels,
     recraftImageModel: first(recraftImageModels),
     replicateImageModels,

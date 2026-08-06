@@ -226,9 +226,6 @@ bun autoshow links --recraft image
 # Fetch Replicate general and model docs
 bun autoshow links --replicate general models
 
-# Fetch Reve image API docs
-bun autoshow links --reve image
-
 # Mix a global section with provider-specific sections
 bun autoshow links tts --openai general text --minimax video
 ```

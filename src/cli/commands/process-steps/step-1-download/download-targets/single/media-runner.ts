@@ -176,8 +176,6 @@ export const processMediaSingle = async (
     grokImageModel: llmDefaults.grokImageModel,
     bflImageModels: llmDefaults.bflImageModels,
     bflImageModel: llmDefaults.bflImageModel,
-    reveImageModels: llmDefaults.reveImageModels,
-    reveImageModel: llmDefaults.reveImageModel,
     recraftImageModels: llmDefaults.recraftImageModels,
     recraftImageModel: llmDefaults.recraftImageModel,
     replicateImageModels: llmDefaults.replicateImageModels,

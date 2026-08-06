@@ -9,7 +9,9 @@ export const imageRegistry: PriceSelectionEntry[] = [
     command('image-openai-gpt-image-2', 'image-openai-gpt-image-2', ['src/cli/create-cli.ts', 'image', 'a sunset', '--provider', 'openai=gpt-image-2', '--size', '1024x1536', '--quality', 'low', '--price']),
   ]),
   ...exact('test/test-cases/e2e/service/step-5-image-gen-e2e/gemini-image-gen.test.ts', [
-    command('image-gemini-gemini-3.1-flash-image-preview', 'image-gemini-gemini-3.1-flash-image-preview', ['src/cli/create-cli.ts', 'image', 'a tiny purple circle on white background', '--provider', 'gemini=gemini-3.1-flash-image-preview', '--size', '1K', '--aspect-ratio', '1:1', '--price']),
+    command('image-gemini-gemini-3.1-flash-lite-image', 'image-gemini-gemini-3.1-flash-lite-image', ['src/cli/create-cli.ts', 'image', 'a tiny purple circle on white background', '--provider', 'gemini=gemini-3.1-flash-lite-image', '--size', '1K', '--aspect-ratio', '1:1', '--price']),
+    command('image-gemini-gemini-3.1-flash-image', 'image-gemini-gemini-3.1-flash-image', ['src/cli/create-cli.ts', 'image', 'a tiny purple circle on white background', '--provider', 'gemini=gemini-3.1-flash-image', '--size', '1K', '--aspect-ratio', '1:1', '--price']),
+    command('image-gemini-gemini-3-pro-image', 'image-gemini-gemini-3-pro-image', ['src/cli/create-cli.ts', 'image', 'a tiny purple circle on white background', '--provider', 'gemini=gemini-3-pro-image', '--size', '1K', '--aspect-ratio', '1:1', '--price']),
   ]),
   ...exact('test/test-cases/e2e/service/step-5-image-gen-e2e/grok-imagine-image.test.ts', [
     command('image-grok-grok-imagine-image', 'image-grok-grok-imagine-image', ['src/cli/create-cli.ts', 'image', 'a sunset', '--provider', 'grok=grok-imagine-image', '--price']),
@@ -27,6 +29,10 @@ export const imageRegistry: PriceSelectionEntry[] = [
   ]),
   ...exact('test/test-cases/e2e/service/step-5-image-gen-e2e/bfl-flux-2-pro.test.ts', [
     command('image-bfl-flux-2-pro', 'image-bfl-flux-2-pro', ['src/cli/create-cli.ts', 'image', 'A tiny blue square on a white background', '--provider', 'bfl=flux-2-pro', '--size', '64x64', '--format', 'jpeg', '--price']),
+  ]),
+  ...exact('test/test-cases/e2e/service/step-5-image-gen-e2e/bfl-flux-2-klein.test.ts', [
+    command('image-bfl-flux-2-klein-4b', 'image-bfl-flux-2-klein-4b', ['src/cli/create-cli.ts', 'image', 'a tiny blue square on a white background', '--provider', 'bfl=flux-2-klein-4b', '--size', '1024x1024', '--format', 'jpeg', '--price']),
+    command('image-bfl-flux-2-klein-9b', 'image-bfl-flux-2-klein-9b', ['src/cli/create-cli.ts', 'image', 'a tiny blue square on a white background', '--provider', 'bfl=flux-2-klein-9b', '--size', '1024x1024', '--format', 'jpeg', '--price']),
   ]),
   ...exact('test/test-cases/e2e/service/step-5-image-gen-e2e/bfl-flux-2-max.test.ts', [
     command('image-bfl-flux-2-max', 'image-bfl-flux-2-max', ['src/cli/create-cli.ts', 'image', 'A tiny blue square on a white background', '--provider', 'bfl=flux-2-max', '--size', '64x64', '--format', 'jpeg', '--price']),

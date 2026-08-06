@@ -27,7 +27,7 @@ export const GEMINI_MODELS_LINKS = [
   'https://ai.google.dev/gemini-api/docs/models/gemini-3.1-flash-lite.md.txt',
   'https://ai.google.dev/gemini-api/docs/models/gemini-3.1-pro-preview.md.txt',
   'https://ai.google.dev/gemini-api/docs/models/gemini-3.1-flash-tts-preview.md.txt',
-  'https://ai.google.dev/gemini-api/docs/models/gemini-3.1-flash-image-preview.md.txt',
+  'https://ai.google.dev/gemini-api/docs/models/gemini-3.1-flash-lite-image.md.txt',
   'https://ai.google.dev/gemini-api/docs/models/veo-3.1-generate-preview.md.txt',
   'https://ai.google.dev/gemini-api/docs/models/veo-3.1-lite-generate-preview.md.txt',
   'https://ai.google.dev/gemini-api/docs/models/lyria-3-clip-preview.md.txt',

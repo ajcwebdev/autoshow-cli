@@ -14,7 +14,9 @@ defineImageServicePriceTests({
 
 defineImageServicePriceTests({
   models: [
-    { model: 'gemini-3.1-flash-image-preview', prompt: 'a simple green square on white background' },
+    { model: 'gemini-3.1-flash-lite-image', prompt: 'a simple green square on white background' },
+    { model: 'gemini-3.1-flash-image', prompt: 'a simple green square on white background' },
+    { model: 'gemini-3-pro-image', prompt: 'a simple green square on white background' },
   ],
   provider: 'gemini',
   imageService: 'gemini',
@@ -36,6 +38,16 @@ defineImageServicePriceTests({
   imageService: 'bfl',
   provider: 'bfl',
   models: [
+    {
+      model: 'flux-2-klein-4b',
+      prompt: 'A clean product photo of a red enamel camping mug',
+      extraArgs: ['--size', '1024x1024']
+    },
+    {
+      model: 'flux-2-klein-9b',
+      prompt: 'A clean product photo of a red enamel camping mug',
+      extraArgs: ['--size', '1024x1024']
+    },
     {
       model: 'flux-2-pro',
       prompt: 'A clean product photo of a red enamel camping mug',
@@ -105,14 +117,14 @@ test('--price allows multiple image providers and reports each image step', asyn
 
 test('--price allows Gemini with another image provider', async () => {
   const result = await runCommand(
-    ['src/cli/create-cli.ts', 'image', 'a sunset', '--provider', 'gemini=gemini-3.1-flash-image-preview', '--provider', 'openai=gpt-image-2', '--price'],
+    ['src/cli/create-cli.ts', 'image', 'a sunset', '--provider', 'gemini=gemini-3.1-flash-lite-image', '--provider', 'openai=gpt-image-2', '--price'],
   )
   const output = `${result.stdout}\n${result.stderr}`
   expect(result.exitCode).toBe(0)
   expect(output).toContain('Cost Estimate')
   expect(output).toContain('gemini')
   expect(output).toContain('openai')
-  expect(output).toContain('generated-image-gemini-gemini-3.1-flash-image-preview.png')
+  expect(output).toContain('generated-image-gemini-gemini-3.1-flash-lite-image.png')
   expect(output).toContain('generated-image-openai-gpt-image-2.png')
 })
 

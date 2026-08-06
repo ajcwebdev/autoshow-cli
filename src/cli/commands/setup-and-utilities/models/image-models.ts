@@ -1,9 +1,11 @@
 import { createModelValidator } from '~/cli/commands/setup-and-utilities/models/model-validation'
 import { isNativeGeminiImage } from '~/cli/commands/setup-and-utilities/models/model-loader'
-import type { BflImageModel, GeminiImageModel, GrokImageModel, LumalabsImageModel, OpenAIImageModel, RecraftImageModel, ReplicateImageModel, ReveImageModel } from '~/types'
+import type { BflImageModel, GeminiImageModel, GrokImageModel, LumalabsImageModel, OpenAIImageModel, RecraftImageModel, ReplicateImageModel } from '~/types'
 
 export const SUPPORTED_GEMINI_IMAGE_MODELS = [
-  'gemini-3.1-flash-image-preview'
+  'gemini-3.1-flash-lite-image',
+  'gemini-3.1-flash-image',
+  'gemini-3-pro-image'
 ] as const satisfies readonly string[]
 
 export const validateGeminiImageModel = createModelValidator<GeminiImageModel>(SUPPORTED_GEMINI_IMAGE_MODELS, 'gemini-image')
@@ -28,19 +30,14 @@ export const SUPPORTED_GROK_IMAGE_MODELS = [
 export const validateGrokImageModel = createModelValidator<GrokImageModel>(SUPPORTED_GROK_IMAGE_MODELS, 'grok-image')
 
 export const SUPPORTED_BFL_IMAGE_MODELS = [
+  'flux-2-klein-4b',
+  'flux-2-klein-9b',
   'flux-2-pro',
   'flux-2-max',
   'flux-2-flex'
 ] as const satisfies readonly string[]
 
 export const validateBflImageModel = createModelValidator<BflImageModel>(SUPPORTED_BFL_IMAGE_MODELS, 'bfl-image')
-
-export const SUPPORTED_REVE_IMAGE_MODELS = [
-  'latest',
-  'reve-create@20250915'
-] as const satisfies readonly string[]
-
-export const validateReveImageModel = createModelValidator<ReveImageModel>(SUPPORTED_REVE_IMAGE_MODELS, 'reve-image')
 
 export const SUPPORTED_LUMALABS_IMAGE_MODELS = [
   'uni-1',

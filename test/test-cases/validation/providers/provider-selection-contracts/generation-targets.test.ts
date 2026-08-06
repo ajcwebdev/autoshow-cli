@@ -5,10 +5,9 @@ import { collectVideoTargets } from '~/cli/commands/process-steps/step-6-video/v
 import { collectMusicTargets } from '~/cli/commands/process-steps/step-7-music/music-targets'
 
 describe('provider selection contracts', () => {
-  test('BFL/Reve/Recraft/Replicate image and remaining video flags select targets and participate in all-provider shortcuts', () => {
+  test('BFL/Recraft/Replicate image and remaining video flags select targets and participate in all-provider shortcuts', () => {
     const explicitOpts = buildOptsFromFlags(false, {
       'bfl-image': ['flux-2-pro'],
-      'reve-image': ['latest'],
       'recraft-image': ['recraftv4_1'],
       'replicate-image': ['wan-video/wan-2.7-image'],
       'runway-video': ['gen4.5'],
@@ -17,7 +16,6 @@ describe('provider selection contracts', () => {
     })
 
     expect(explicitOpts.bflImageModels).toEqual(['flux-2-pro'])
-    expect(explicitOpts.reveImageModels).toEqual(['latest'])
     expect(explicitOpts.recraftImageModels).toEqual(['recraftv4_1'])
     expect(explicitOpts.replicateImageModels).toEqual(['wan-video/wan-2.7-image'])
     expect(explicitOpts.runwayVideoModels).toEqual(['gen4.5'])
@@ -25,7 +23,6 @@ describe('provider selection contracts', () => {
     expect(explicitOpts.replicateVideoModels).toEqual(['wan-video/wan-2.7-t2v'])
     expect(collectImageTargets(explicitOpts).map((target) => `${target.service}:${target.model}`)).toEqual([
       'bfl:flux-2-pro',
-      'reve:latest',
       'recraft:recraftv4_1',
       'replicate:wan-video/wan-2.7-image'
     ])
@@ -46,19 +43,19 @@ describe('provider selection contracts', () => {
       'veo-3.1-lite-generate-preview'
     ])
     expect(allOpts.geminiImageModels).toEqual([
-      'gemini-3.1-flash-image-preview'
+      'gemini-3.1-flash-lite-image',
+      'gemini-3.1-flash-image',
+      'gemini-3-pro-image'
     ])
     expect(allOpts.openaiImageModels).toEqual([
       'gpt-image-2'
     ])
     expect(allOpts.bflImageModels).toEqual([
+      'flux-2-klein-4b',
+      'flux-2-klein-9b',
       'flux-2-pro',
       'flux-2-max',
       'flux-2-flex'
-    ])
-    expect(allOpts.reveImageModels).toEqual([
-      'latest',
-      'reve-create@20250915'
     ])
     expect(allOpts.recraftImageModels).toEqual([
       'recraftv4_1',

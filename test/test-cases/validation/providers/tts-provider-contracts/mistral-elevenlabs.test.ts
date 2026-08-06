@@ -261,8 +261,10 @@ describe('TTS provider service contracts', () => {
         expect(String(call.body['ref_audio']).length).toBeGreaterThan(0)
         expect(call.body['voice_id']).toBeUndefined()
       }
-      expect(calls[0]?.body['input']).toBe('Welcome to the reference audio test.')
-      expect(calls[1]?.body['input']).toBe('Thanks. I should use the guest sample.')
+      expect(calls.map((call) => call.body['input']).sort()).toEqual([
+        'Thanks. I should use the guest sample.',
+        'Welcome to the reference audio test.'
+      ])
 
       expect(await Bun.file(join(dir, 'speech.wav')).exists()).toBe(true)
       expect(await Bun.file(join(dir, 'dialogue-normalized.txt')).exists()).toBe(true)

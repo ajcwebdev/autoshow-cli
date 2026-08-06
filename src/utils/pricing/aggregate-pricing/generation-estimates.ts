@@ -19,8 +19,6 @@ export const buildImageEstimates = (opts: RuntimeOptions): ImageStepEstimate[] =
     || !!opts.grokImageModel
     || (opts.bflImageModels?.length ?? 0) > 0
     || !!opts.bflImageModel
-    || (opts.reveImageModels?.length ?? 0) > 0
-    || !!opts.reveImageModel
     || (opts.recraftImageModels?.length ?? 0) > 0
     || !!opts.recraftImageModel
     || (opts.replicateImageModels?.length ?? 0) > 0
@@ -38,8 +36,6 @@ export const buildImageEstimates = (opts: RuntimeOptions): ImageStepEstimate[] =
     grokImageModel: opts.grokImageModel,
     bflImageModels: opts.bflImageModels,
     bflImageModel: opts.bflImageModel,
-    reveImageModels: opts.reveImageModels,
-    reveImageModel: opts.reveImageModel,
     recraftImageModels: opts.recraftImageModels,
     recraftImageModel: opts.recraftImageModel,
     replicateImageModels: opts.replicateImageModels,

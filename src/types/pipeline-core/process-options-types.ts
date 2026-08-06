@@ -188,8 +188,6 @@ export const ProcessingOptionsSchema = v.pipe(
     grokImageModel: v.optional(v.string(), undefined),
     bflImageModels: v.optional(v.array(v.string()), undefined),
     bflImageModel: v.optional(v.string(), undefined),
-    reveImageModels: v.optional(v.array(v.string()), undefined),
-    reveImageModel: v.optional(v.string(), undefined),
     recraftImageModels: v.optional(v.array(v.string()), undefined),
     recraftImageModel: v.optional(v.string(), undefined),
     replicateImageModels: v.optional(v.array(v.string()), undefined),

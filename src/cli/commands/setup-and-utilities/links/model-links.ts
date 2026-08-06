@@ -27,7 +27,6 @@ import openaiLinks from './model-links/openai.json'
 import recraftLinks from './model-links/recraft.json'
 import replicateLinks from './model-links/replicate.json'
 import resendLinks from './model-links/resend.json'
-import reveLinks from './model-links/reve.json'
 import revLinks from './model-links/rev.json'
 import runwayLinks from './model-links/runway.json'
 import scrapecreatorsLinks from './model-links/scrapecreators.json'
@@ -75,7 +74,6 @@ const providerLinks = [
   revLinks,
   recraftLinks,
   replicateLinks,
-  reveLinks,
   runwayLinks,
   resendLinks,
   happyscribeLinks,

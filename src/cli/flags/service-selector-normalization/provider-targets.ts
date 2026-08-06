@@ -18,7 +18,6 @@ export const STANDALONE_IMAGE_PROVIDER_TARGETS = {
   openai: 'openai-image',
   grok: 'grok-image',
   bfl: 'bfl-image',
-  reve: 'reve-image',
   recraft: 'recraft-image',
   replicate: 'replicate-image',
   lumalabs: 'lumalabs-image'

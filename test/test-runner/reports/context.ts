@@ -54,6 +54,7 @@ const ARG_SERVICE_FLAGS: Record<string, ReportArgServiceFlag> = {
   '--gemini-image': { service: 'gemini', kind: 'image' },
   '--grok-image': { service: 'grok', kind: 'image' },
   '--bfl-image': { service: 'bfl', kind: 'image' },
+  // Historical reports may contain this retired selector even though new runs cannot select it.
   '--reve-image': { service: 'reve', kind: 'image' },
   '--gemini-video': { service: 'gemini', kind: 'video' },
   '--minimax-video': { service: 'minimax', kind: 'video' },

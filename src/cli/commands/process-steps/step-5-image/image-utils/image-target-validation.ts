@@ -57,8 +57,6 @@ export const IMAGE_OPTION_LABELS: Record<keyof ImageGenOptions, string> = {
   grokImageModel: '--grok-image',
   bflImageModels: '--bfl-image',
   bflImageModel: '--bfl-image',
-  reveImageModels: '--reve-image',
-  reveImageModel: '--reve-image',
   recraftImageModels: '--recraft-image',
   recraftImageModel: '--recraft-image',
   replicateImageModels: '--replicate-image',

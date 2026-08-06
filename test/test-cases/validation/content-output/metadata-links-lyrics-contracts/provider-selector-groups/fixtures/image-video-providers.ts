@@ -67,13 +67,3 @@ export const REPLICATE_ALL_LINKS = [
   ...REPLICATE_GENERAL_LINKS,
   ...REPLICATE_MODELS_LINKS
 ]
-
-export const REVE_IMAGE_LINKS = [
-  'https://www.reve.ai/llms.txt',
-  'https://api.reve.com/console/docs',
-  'https://api.reve.com/console/docs/create',
-  'https://api.reve.com/console/docs/edit',
-  'https://api.reve.com/console/docs/remix',
-  'https://api.reve.com/console/docs/layout',
-  'https://api.reve.com/console/pricing'
-]

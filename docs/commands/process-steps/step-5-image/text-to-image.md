@@ -14,7 +14,6 @@ Generate images from a text prompt with the hosted image providers.
   - [OpenAI](#openai)
   - [Grok](#grok)
   - [BFL](#bfl)
-  - [Reve](#reve)
   - [Recraft](#recraft)
   - [Replicate](#replicate)
   - [Luma Labs](#luma-labs)
@@ -38,7 +37,6 @@ OPENAI_API_KEY=...
 GEMINI_API_KEY=...
 XAI_API_KEY=...
 BFL_API_KEY=...
-REVE_API_KEY=...
 RECRAFT_API_TOKEN=...
 REPLICATE_API_TOKEN=...
 LUMA_AGENTS_API_KEY=...
@@ -60,12 +58,12 @@ bun autoshow image <prompt> [flags]
 | `--provider-concurrency <n>` | Hosted image providers/models to run concurrently per item; default `10` |
 | `--local-concurrency <n>` | Local image providers to run concurrently per item; default `10` |
 | `--aspect-ratio <ratio>` | Provider-dependent aspect ratio control; Recraft sends this as its `size` value when `--size` is absent |
-| `--size <size>` | Provider-dependent size or resolution control; Reve treats `WIDTHxHEIGHT` as a fit-within postprocess; Recraft sends this as its `size` value |
+| `--size <size>` | Provider-dependent size or resolution control; Recraft sends this as its `size` value |
 | `--quality <q>` | OpenAI quality: `low`, `medium`, `high`, or `auto` |
-| `--format <fmt>` | OpenAI/BFL/Reve output format: `png`, `jpeg`, or `webp`; Replicate `seedream-5-lite` accepts `png` or `jpeg` |
+| `--format <fmt>` | OpenAI/BFL output format: `png`, `jpeg`, or `webp`; Replicate `seedream-5-lite` accepts `png` or `jpeg` |
 | `--background <bg>` | OpenAI background mode: `transparent`, `opaque`, or `auto` |
 | `--count <n>` | Number of images in one request for OpenAI/Grok `1-10`, Recraft `1-6`, or Replicate Wan `1-4` |
-| `--input <path-or-url>` | Repeatable source/reference image for OpenAI, Grok, native Gemini, BFL, Reve, or Replicate edits/references |
+| `--input <path-or-url>` | Repeatable source/reference image for OpenAI, Grok, native Gemini, BFL, or Replicate edits/references |
 | `--mask <path>` | OpenAI mask image for inpainting/edit workflows |
 | `--compression <0-100>` | OpenAI JPEG/WebP output compression |
 | `--response-mode <image\|text-image>` | Native Gemini response mode |
@@ -90,13 +88,12 @@ bun autoshow image "a clean studio product photo of a red enamel camping mug on 
 bun autoshow image "make the mug matte black, keep the same camera angle, and place it on a walnut desk" --provider openai=gpt-image-2 --input output/mug-base/generated-image.png --format webp --compression 80 --output-dir output/mug-edit
 ```
 
-The same generated file can also be used as a reference input for native Gemini, Grok, BFL, Reve, or Replicate workflows:
+The same generated file can also be used as a reference input for native Gemini, Grok, BFL, or Replicate workflows:
 
 ```bash
-bun autoshow image "restyle this product image as a 1960s travel poster" --provider gemini=gemini-3.1-flash-image-preview --input output/mug-base/generated-image.png --output-dir output/mug-gemini
+bun autoshow image "restyle this product image as a 1960s travel poster" --provider gemini=gemini-3.1-flash-lite-image --input output/mug-base/generated-image.png --output-dir output/mug-gemini
 bun autoshow image "turn this into a glossy magazine ad on a warm kitchen counter" --provider grok=grok-imagine-image-quality --input output/mug-base/generated-image.png --size 1K --output-dir output/mug-grok
-bun autoshow image "place the same mug on a rustic breakfast table" --provider bfl=flux-2-pro --input output/mug-base/generated-image.png --size 1024x1024 --output-dir output/mug-bfl
-bun autoshow image "place the same mug in a minimalist editorial product scene" --provider reve=latest --input output/mug-base/generated-image.png --size 1024x1024 --output-dir output/mug-reve
+bun autoshow image "place the same mug on a rustic breakfast table" --provider bfl=flux-2-klein-4b --input output/mug-base/generated-image.png --size 1024x1024 --output-dir output/mug-bfl
 bun autoshow image "place the same mug on a rustic breakfast table" --provider replicate=bytedance/seedream-4.5 --input output/mug-base/generated-image.png --output-dir output/mug-replicate
 ```
 
@@ -109,16 +106,17 @@ Each service example below that edits or references an image first generates the
 | Option | Value |
 |--------|-------|
 | Selector | `--provider gemini[=<model>]` |
-| Models | `gemini-3.1-flash-image-preview` |
-| Size | `--size 1K\|2K\|4K` |
-| Aspect ratio | `1:1`, `2:3`, `3:2`, `3:4`, `4:3`, `9:16`, `16:9`, or `21:9` |
+| Models | `gemini-3.1-flash-lite-image`, `gemini-3.1-flash-image`, `gemini-3-pro-image` |
+| Size | `gemini-3.1-flash-lite-image`: `1K`; other models: `1K\|2K\|4K` |
+| Aspect ratio | Standard models: `1:1`, `2:3`, `3:2`, `3:4`, `4:3`, `4:5`, `5:4`, `9:16`, `16:9`, or `21:9`; Flash also supports `1:4`, `4:1`, `1:8`, and `8:1` |
 | Count | Native Gemini returns one image per request |
-| References | `--input` |
+| References | Repeatable `--input`; up to 14 images |
 
 ```bash
-bun autoshow image "a serene mountain lake at dawn" --provider gemini=gemini-3.1-flash-image-preview --size 1K --aspect-ratio 16:9
-bun autoshow image "a clean studio product photo of a red enamel camping mug on white seamless" --provider gemini=gemini-3.1-flash-image-preview --output-dir output/mug-base
-bun autoshow image "restyle the generated mug as a 1960s travel poster" --provider gemini=gemini-3.1-flash-image-preview --input output/mug-base/generated-image.png --output-dir output/mug-gemini-edit
+bun autoshow image "a serene mountain lake at dawn" --provider gemini=gemini-3.1-flash-lite-image --size 1K --aspect-ratio 16:9
+bun autoshow image "a clean studio product photo of a red enamel camping mug on white seamless" --provider gemini=gemini-3.1-flash-lite-image --output-dir output/mug-base
+bun autoshow image "restyle the generated mug as a 1960s travel poster" --provider gemini=gemini-3.1-flash-lite-image --input output/mug-base/generated-image.png --output-dir output/mug-gemini-edit
+bun autoshow image "a detailed editorial data visualization" --provider gemini=gemini-3-pro-image --size 4K --search-grounding
 ```
 
 ### OpenAI
@@ -165,36 +163,17 @@ Grok responses include provider-reported billed cost when available, and that ac
 | Option | Value |
 |--------|-------|
 | Selector | `--provider bfl[=<model>]` |
-| Models | `flux-2-pro`, `flux-2-max`, `flux-2-flex` |
+| Models | `flux-2-klein-4b`, `flux-2-klein-9b`, `flux-2-pro`, `flux-2-max`, `flux-2-flex` |
 | Size | `--size WIDTHxHEIGHT` |
 | Format | `--format jpeg\|png\|webp` |
-| References | Repeatable `--input`; up to eight images |
+| References | Repeatable `--input`; up to four images for Klein or eight for Pro/Max/Flex |
 
 ```bash
-bun autoshow image "a cinematic product photo of a red enamel camping mug" --provider bfl=flux-2-pro --size 1024x1024 --format png --output-dir output/mug-base
-bun autoshow image "place the same mug in a cozy cabin kitchen" --provider bfl=flux-2-pro --input output/mug-base/generated-image.png --size 1024x1024 --output-dir output/mug-bfl
+bun autoshow image "a cinematic product photo of a red enamel camping mug" --provider bfl=flux-2-klein-4b --size 1024x1024 --format png --output-dir output/mug-base
+bun autoshow image "place the same mug in a cozy cabin kitchen" --provider bfl=flux-2-klein-9b --input output/mug-base/generated-image.png --size 1024x1024 --output-dir output/mug-bfl
 ```
 
 BFL rejects `--aspect-ratio`, `--quality`, `--background`, `--mask`, and `--count`.
-
-### Reve
-
-| Option | Value |
-|--------|-------|
-| Selector | `--provider reve[=<model>]` |
-| Models | `latest`, `reve-create@20250915` |
-| Aspect ratio | `16:9`, `9:16`, `3:2`, `2:3`, `4:3`, `3:4`, or `1:1` |
-| Size | `--size WIDTHxHEIGHT` as a fit-within resize after generation |
-| Format | `--format png\|jpeg\|webp`; default `png` |
-| References | one PNG/JPEG/WebP `--input` uses edit; two to six inputs use remix |
-
-```bash
-bun autoshow image "a quiet editorial product photo of a red enamel camping mug" --provider reve=latest --aspect-ratio 1:1 --format png --output-dir output/mug-base
-bun autoshow image "make the mug matte black and keep the same camera angle" --provider reve=latest --input output/mug-base/generated-image.png --format webp --output-dir output/mug-reve-edit
-bun autoshow image "combine the mug shape with the lighting and surface from these references" --provider reve=latest --input output/mug-base/generated-image.png --input input/examples/document/1-document.png --size 1024x1024 --output-dir output/mug-reve-remix
-```
-
-`--provider reve` with no model resolves to `latest`. `reve-create@20250915` is create-only in this command and rejects `--input`; use `--provider reve=latest` for edit or remix workflows. Reve rejects `--count`, `--quality`, `--background`, `--mask`, `--compression`, `--response-mode`, and `--search-grounding`. When Reve returns usage headers, AutoShow records provider-reported credits as cost at `$10 / 7500 credits`.
 
 ### Recraft
 
@@ -263,7 +242,6 @@ Luma Labs runs against the Luma Agents API (`POST /v1/generations`, polled until
 - OpenAI writes `generated-image.<format>`, plus numbered variants for `--count`.
 - Grok writes `generated-image.jpg`, plus numbered variants for `--count`.
 - BFL writes `generated-image.jpg`, `generated-image.png`, or `generated-image.webp`.
-- Reve writes `generated-image.png`, `generated-image.jpg`, or `generated-image.webp`.
 - Recraft writes `generated-image.png` for raster models or `generated-image.svg` for vector models, plus numbered variants for `--count`.
 - Replicate writes `generated-image.jpg` for `seedream-4.5`, `generated-image.png` or `generated-image.jpg` for `seedream-5-lite`, and `generated-image.png` for Qwen and Wan models, plus numbered variants for Wan `--count`.
 - Luma Labs writes `generated-image.png` or `generated-image.jpg`.
@@ -275,5 +253,4 @@ Luma Labs runs against the Luma Agents API (`POST /v1/generations`, polled until
 
 - OpenAI documents these latency caveats for GPT Image models: low quality is fastest, square images are typically fastest, JPEG is faster than PNG, and complex prompts can take up to about 2 minutes.
 - `gpt-image-2` estimate table: `1024x1024` costs about `0.6¢` low, `5.3¢` medium, `21.1¢` high; `1024x1536` and `1536x1024` cost about `0.5¢` low, `4.1¢` medium, `16.5¢` high. `auto` estimates as `1024x1024` medium; other valid flexible sizes use the `5.3¢` fallback and should be checked with OpenAI's calculator.
-- Reve `--size WIDTHxHEIGHT` uses Reve's `fit_image` postprocessor, so it constrains the output within the requested bounds rather than guaranteeing an exact canvas size.
 - Recraft prices are per generated image and vary by raster/vector generation and model family; use `--price` to inspect the local estimate before running.

@@ -20,7 +20,7 @@ describe('provider selection contracts', () => {
       provider: ['openai=gpt-4o-mini-tts-2025-12-15', 'elevenlabs=eleven_v3']
     }, new Set(['provider']), 'provider', STANDALONE_TTS_PROVIDER_TARGETS, { allProvidersTarget: 'all-tts' })
     const imageNormalized = normalizeGenericProviderSelectorFlags({
-      provider: ['openai=gpt-image-2', 'grok=grok-imagine-image', 'reve=latest', 'recraft=recraftv4_1_vector', 'replicate=wan-video/wan-2.7-image']
+      provider: ['openai=gpt-image-2', 'grok=grok-imagine-image', 'recraft=recraftv4_1_vector', 'replicate=wan-video/wan-2.7-image']
     }, new Set(['provider']), 'provider', STANDALONE_IMAGE_PROVIDER_TARGETS, { allProvidersTarget: 'all-image' })
     const videoNormalized = normalizeGenericProviderSelectorFlags({
       provider: ['gemini=veo-3.1-lite-generate-preview', 'runway=gen4.5', 'ltx=ltx-2-3-fast', 'replicate=wan-video/wan-2.7-t2v']
@@ -52,7 +52,6 @@ describe('provider selection contracts', () => {
     expect(collectImageTargets(imageOpts).map((target) => `${target.service}:${target.model}`)).toEqual([
       'openai:gpt-image-2',
       'grok:grok-imagine-image',
-      'reve:latest',
       'recraft:recraftv4_1_vector',
       'replicate:wan-video/wan-2.7-image'
     ])
@@ -90,9 +89,7 @@ describe('provider selection contracts', () => {
           'a sunset',
           '--provider',
           'openai=gpt-image-2',
-          '--provider=gemini=gemini-3.1-flash-image-preview',
-          '--provider',
-          'reve=latest',
+          '--provider=gemini=gemini-3.1-flash-lite-image',
           '--provider',
           'recraft',
           '--provider',
@@ -106,9 +103,7 @@ describe('provider selection contracts', () => {
       '--openai-image',
       'gpt-image-2',
       '--gemini-image',
-      'gemini-3.1-flash-image-preview',
-      '--reve-image',
-      'latest',
+      'gemini-3.1-flash-lite-image',
       '--recraft-image',
       '--replicate-image',
       'wan-video/wan-2.7-image'

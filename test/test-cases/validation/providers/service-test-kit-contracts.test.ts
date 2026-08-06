@@ -40,11 +40,11 @@ describe('classifyLiveProviderAvailabilityFailure', () => {
         expected: 'DeepInfra openai/whisper-large-v3 transcription timed out'
       },
       {
-        output: 'Retry Attempt\noperation gemini-image-generate\nreason retryable status 503\nFailed to run Gemini image model gemini-3.1-flash-image-preview: gemini-image-generate failed after 3/3 attempts (max attempts reached, 2100ms elapsed)\nGemini API request failed with status 503: service unavailable',
+        output: 'Retry Attempt\noperation gemini-image-generate\nreason retryable status 503\nFailed to run Gemini image model gemini-3.1-flash-lite-image: gemini-image-generate failed after 3/3 attempts (max attempts reached, 2100ms elapsed)\nGemini API request failed with status 503: service unavailable',
         expected: 'Gemini image provider is temporarily unavailable or rate limited'
       },
       {
-        output: 'gemini/gemini-3.1-flash-image-preview Gemini API request failed with status 429: Resource exhausted',
+        output: 'gemini/gemini-3.1-flash-lite-image Gemini API request failed with status 429: Resource exhausted',
         expected: 'Gemini image provider is temporarily unavailable or rate limited'
       },
       {
@@ -77,7 +77,7 @@ describe('classifyLiveProviderAvailabilityFailure', () => {
     expect(classifyLiveProviderAvailabilityFailure('DeepInfra openai/whisper-large-v3-turbo command timed out')).toBeNull()
     expect(classifyLiveProviderAvailabilityFailure('Gemini image validation failed because output was malformed')).toBeNull()
     expect(classifyLiveProviderAvailabilityFailure('Failed to run Gemini model: Gemini API request failed with status 503')).toBeNull()
-    expect(classifyLiveProviderAvailabilityFailure('Gemini API request failed with status 400 for gemini-3.1-flash-image-preview: invalid prompt')).toBeNull()
+    expect(classifyLiveProviderAvailabilityFailure('Gemini API request failed with status 400 for gemini-3.1-flash-lite-image: invalid prompt')).toBeNull()
     expect(classifyLiveProviderAvailabilityFailure('BFL image request failed (400): invalid prompt')).toBeNull()
     expect(classifyLiveProviderAvailabilityFailure('flux-2-flex bfl-image-result-download failed after 2/4 attempts (non-retryable status 400, 1200ms elapsed)')).toBeNull()
     expect(classifyLiveProviderAvailabilityFailure('Together validation failed because transcript was empty')).toBeNull()

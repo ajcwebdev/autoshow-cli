@@ -28,7 +28,7 @@ export const collectBflImageTargets = (options: ImageGenOptions): ImageTarget[] 
       provider: 'BFL',
       model,
       allowedMimeTypes: BFL_IMAGE_INPUT_MIME_TYPES,
-      maxInputs: 8
+      maxInputs: model.startsWith('flux-2-klein-') ? 4 : 8
     })
     normalizeBflImageSize(options.imageSize)
     normalizeBflImageOutputFormat(options.imageFormat)

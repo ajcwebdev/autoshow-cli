@@ -7,6 +7,30 @@ import { computeActualProcessingTimes } from '~/utils/pricing/compute-processing
 import { aggregateExplicitPriceEstimate } from '~/utils/pricing/aggregate-pricing'
 import { buildImageEstimates } from '~/utils/pricing/aggregate-pricing/generation-estimates'
 import type { AggregatedPriceEstimate, ImageTarget, ResumeDisplayOptions, ResumeResult, ResumeTarget, RuntimeOptions, Step5Metadata } from '~/types'
+import { CLIUsageError } from '~/utils/error-handler'
+
+const RETIRED_GEMINI_IMAGE_MODEL_REPLACEMENTS: Readonly<Record<string, string>> = {
+  'gemini/gemini-3.1-flash-image-preview': 'gemini=gemini-3.1-flash-lite-image'
+}
+
+const RETIRED_REVE_IMAGE_MODELS = new Set(['latest', 'reve-create@20250915'])
+
+const assertStoredMissingImageProvidersAreActive = (
+  providers: Array<{ service: string, model: string }>
+): void => {
+  for (const provider of providers) {
+    if (provider.service === 'reve' && RETIRED_REVE_IMAGE_MODELS.has(provider.model)) {
+      throw CLIUsageError(
+        `Stored Image target reve/${provider.model} is incomplete, but Reve's public API is sunset on 2026-08-14 and the provider has been removed from AutoShow. The stored target cannot be resumed or substituted without changing its identity. Start a new image target with an active provider.`
+      )
+    }
+    const replacement = RETIRED_GEMINI_IMAGE_MODEL_REPLACEMENTS[`${provider.service}/${provider.model}`]
+    if (!replacement) continue
+    throw CLIUsageError(
+      `Stored Image target ${provider.service}/${provider.model} is incomplete, but that model is no longer in the active registry. AutoShow will not substitute a different model because that would change the stored target identity. Start a new target with --provider ${replacement}.`
+    )
+  }
+}
 
 const IMAGE_PROVIDER_FLAGS = [
   'all-image',
@@ -14,7 +38,6 @@ const IMAGE_PROVIDER_FLAGS = [
   'openai-image',
   'grok-image',
   'bfl-image',
-  'reve-image',
   'recraft-image',
   'replicate-image',
   'lumalabs-image'
@@ -25,7 +48,6 @@ const IMAGE_MODEL_FIELDS = {
   openai: ['openaiImageModels', 'openaiImageModel'],
   grok: ['grokImageModels', 'grokImageModel'],
   bfl: ['bflImageModels', 'bflImageModel'],
-  reve: ['reveImageModels', 'reveImageModel'],
   recraft: ['recraftImageModels', 'recraftImageModel'],
   replicate: ['replicateImageModels', 'replicateImageModel'],
   lumalabs: ['lumalabsImageModels', 'lumalabsImageModel']
@@ -41,8 +63,6 @@ const clearImageProviderModels = (opts: RuntimeOptions): RuntimeOptions => ({
   grokImageModel: undefined,
   bflImageModels: undefined,
   bflImageModel: undefined,
-  reveImageModels: undefined,
-  reveImageModel: undefined,
   recraftImageModels: undefined,
   recraftImageModel: undefined,
   replicateImageModels: undefined,
@@ -89,7 +109,6 @@ const buildImagePriceOptions = (
   openaiImageModels: imageModelsForService(targets, 'openai'),
   grokImageModels: imageModelsForService(targets, 'grok'),
   bflImageModels: imageModelsForService(targets, 'bfl'),
-  reveImageModels: imageModelsForService(targets, 'reve'),
   recraftImageModels: imageModelsForService(targets, 'recraft'),
   replicateImageModels: imageModelsForService(targets, 'replicate'),
   lumalabsImageModels: imageModelsForService(targets, 'lumalabs')
@@ -109,6 +128,7 @@ const imageResumeConfig = {
   metadataKey: 'image',
   stepLabel: 'Image',
   providerFlags: IMAGE_PROVIDER_FLAGS,
+  assertStoredMissingProvidersAreActive: assertStoredMissingImageProvidersAreActive,
   getSuccessKey: (entry: Step5Metadata) =>
     getGenerationTargetKey(entry.imageService, entry.imageModel),
   collectTargets: (opts: RuntimeOptions) => collectImageTargets(opts),

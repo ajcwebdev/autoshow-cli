@@ -1,5 +1,5 @@
 import { getImageCost } from '~/cli/commands/setup-and-utilities/models/model-loader'
-import { validateBflImageModel, validateGeminiImageModel, validateGrokImageModel, validateLumalabsImageModel, validateOpenAIImageModel, validateRecraftImageModel, validateReplicateImageModel, validateReveImageModel } from '~/cli/commands/setup-and-utilities/models/setup-model-options'
+import { validateBflImageModel, validateGeminiImageModel, validateGrokImageModel, validateLumalabsImageModel, validateOpenAIImageModel, validateRecraftImageModel, validateReplicateImageModel } from '~/cli/commands/setup-and-utilities/models/setup-model-options'
 import type { EstimateImageCostOptions, ImageCostEstimate, OpenAIImageOutputPricing, OpenAIImageQuality } from '~/types'
 import * as l from '~/utils/app-logger/app-logger'
 import { createKeyValueTable } from '~/utils/app-logger/human-table/human-table'
@@ -31,6 +31,12 @@ const OPENAI_IMAGE_OUTPUT_PRICE_CENTS: Partial<Record<string, OpenAIImageOutputP
 
 const OPENAI_IMAGE_LATENCY_NOTE = 'Low quality is fastest; square images are typically fastest; JPEG is faster than PNG; complex prompts can take up to about 2 minutes.'
 const OPENAI_IMAGE_INPUT_COST_NOTE = 'Estimate covers image output only; OpenAI also bills text and image input tokens when present.'
+
+const GEMINI_IMAGE_OUTPUT_PRICE_CENTS: Readonly<Record<string, Readonly<Record<string, number>>>> = {
+  'gemini-3.1-flash-lite-image': { '1K': 3.36 },
+  'gemini-3.1-flash-image': { '1K': 6.7, '2K': 10.1, '4K': 15.1 },
+  'gemini-3-pro-image': { '1K': 13.4, '2K': 13.4, '4K': 24 }
+}
 
 const normalizeOpenAIQualityForEstimate = (quality: string | undefined): OpenAIImageQuality => {
   const normalized = quality?.toLowerCase()
@@ -86,21 +92,21 @@ export const estimateImageCosts = (options: EstimateImageCostOptions): ImageCost
   const openaiModels = options.openaiImageModels ?? (options.openaiImageModel ? [options.openaiImageModel] : [])
   const grokModels = options.grokImageModels ?? (options.grokImageModel ? [options.grokImageModel] : [])
   const bflModels = options.bflImageModels ?? (options.bflImageModel ? [options.bflImageModel] : [])
-  const reveModels = options.reveImageModels ?? (options.reveImageModel ? [options.reveImageModel] : [])
   const recraftModels = options.recraftImageModels ?? (options.recraftImageModel ? [options.recraftImageModel] : [])
   const replicateModels = options.replicateImageModels ?? (options.replicateImageModel ? [options.replicateImageModel] : [])
   const lumalabsModels = options.lumalabsImageModels ?? (options.lumalabsImageModel ? [options.lumalabsImageModel] : [])
 
   for (const rawModel of geminiModels) {
     const model = validateGeminiImageModel(rawModel)
-    const costPerImageCents = getImageCost('gemini', model) || 4
+    const imageSize = options.imageSize ?? '1K'
+    const costPerImageCents = GEMINI_IMAGE_OUTPUT_PRICE_CENTS[model]?.[imageSize] ?? (getImageCost('gemini', model) || 4)
     estimates.push({
       provider: 'gemini',
       model,
       imageCount: 1,
       costPerImageCents,
       totalCost: costPerImageCents,
-      note: 'Approximate cost; see Google AI pricing for exact rates'
+      note: `Published Gemini standard-tier ${imageSize} output-image estimate; text/image input tokens and optional Search grounding are not included`
     })
   }
 
@@ -142,19 +148,6 @@ export const estimateImageCosts = (options: EstimateImageCostOptions): ImageCost
       costPerImageCents,
       totalCost: costPerImageCents,
       note: 'Approximate from BFL published FLUX.2 starting prices; exact cost varies by output resolution and provider quote is used when returned'
-    })
-  }
-
-  for (const rawModel of reveModels) {
-    const model = validateReveImageModel(rawModel)
-    const costPerImageCents = getImageCost('reve', model)
-    estimates.push({
-      provider: 'reve',
-      model,
-      imageCount: 1,
-      costPerImageCents,
-      totalCost: costPerImageCents,
-      note: 'Approximate fallback based on $10 / 7500 Reve credits; provider usage headers are used when returned'
     })
   }
 

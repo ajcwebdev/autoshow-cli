@@ -82,10 +82,10 @@ Media-input modes are explicit. Passing media flags without `--mode` is rejected
 Create reusable image inputs:
 
 ```bash
-bun autoshow image "a clean studio product photo of a red enamel camping mug on white seamless" --provider gemini=gemini-3.1-flash-image-preview --output-dir output/video-demo-product
-bun autoshow image "the same red enamel camping mug on a moonlit blue studio background" --provider gemini=gemini-3.1-flash-image-preview --output-dir output/video-demo-product-night
-bun autoshow image "a high-fashion crimson jacket on a mannequin, plain white background" --provider gemini=gemini-3.1-flash-image-preview --output-dir output/video-demo-jacket
-bun autoshow image "pink heart-shaped sunglasses on a plain white background" --provider gemini=gemini-3.1-flash-image-preview --output-dir output/video-demo-sunglasses
+bun autoshow image "a clean studio product photo of a red enamel camping mug on white seamless" --provider gemini=gemini-3.1-flash-lite-image --output-dir output/video-demo-product
+bun autoshow image "the same red enamel camping mug on a moonlit blue studio background" --provider gemini=gemini-3.1-flash-lite-image --output-dir output/video-demo-product-night
+bun autoshow image "a high-fashion crimson jacket on a mannequin, plain white background" --provider gemini=gemini-3.1-flash-lite-image --output-dir output/video-demo-jacket
+bun autoshow image "pink heart-shaped sunglasses on a plain white background" --provider gemini=gemini-3.1-flash-lite-image --output-dir output/video-demo-sunglasses
 ```
 
 Animate an image, then reuse that generated video for extension and editing:
@@ -186,7 +186,7 @@ GLM `cogvideox-3` supports text, image-to-video, and interpolation with `image_u
 ```bash
 bun autoshow video "a cat playing piano" --provider grok=grok-imagine-video --duration 8 --resolution 720p
 bun autoshow video "a sunset timelapse" --provider grok=grok-imagine-video --price
-bun autoshow image "a close product photo of a red enamel camping mug on white seamless" --provider gemini=gemini-3.1-flash-image-preview --output-dir output/grok-video-input-image
+bun autoshow image "a close product photo of a red enamel camping mug on white seamless" --provider gemini=gemini-3.1-flash-lite-image --output-dir output/grok-video-input-image
 bun autoshow video "animate the mug with a slow tabletop camera slide" --provider grok=grok-imagine-video --mode image-to-video --input-image output/grok-video-input-image/generated-image.png --output-dir output/grok-video-base
 bun autoshow video "extend with a wider camera reveal of the tabletop set" --provider grok=grok-imagine-video --mode extend --input-video output/grok-video-base/generated-video.mp4 --duration 6 --output-dir output/grok-video-extended
 ```

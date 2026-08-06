@@ -15,8 +15,7 @@ import {
   RECRAFT_IMAGE_LINKS,
   REPLICATE_ALL_LINKS,
   REPLICATE_GENERAL_LINKS,
-  REPLICATE_MODELS_LINKS,
-  REVE_IMAGE_LINKS
+  REPLICATE_MODELS_LINKS
 } from './fixtures/index'
 
 test('links selector accepts bfl provider with models and image sections', async () => {
@@ -230,44 +229,4 @@ test('links selector accepts replicate provider with general and models sections
     '--replicate',
     'image'
   ])).rejects.toThrow('Unknown links section(s) for --replicate: image')
-})
-
-test('links selector accepts reve provider with only image section', async () => {
-  const reveSelection = parseLinksArgv([
-    'bun',
-    'src/cli/create-cli.ts',
-    'links',
-    '--reve'
-  ])
-
-  expect(reveSelection.serviceSelections.get('reve')).toEqual([])
-  expect(collectLinks(
-    reveSelection.serviceSelections,
-    reveSelection.globalSections
-  )).toEqual(REVE_IMAGE_LINKS)
-  expect(getDefaultLinksOutputFileName(
-    reveSelection.serviceSelections,
-    reveSelection.globalSections
-  )).toBe('reve-all-links.md')
-
-  const reveImageSelection = parseLinksArgv([
-    'bun',
-    'src/cli/create-cli.ts',
-    'links',
-    '--reve',
-    'image'
-  ])
-
-  expect(collectLinks(
-    reveImageSelection.serviceSelections,
-    reveImageSelection.globalSections
-  )).toEqual(REVE_IMAGE_LINKS)
-
-  await expect(runLinksWithArgv([
-    'bun',
-    'src/cli/create-cli.ts',
-    'links',
-    '--reve',
-    'video'
-  ])).rejects.toThrow('Unknown links section(s) for --reve: video')
 })

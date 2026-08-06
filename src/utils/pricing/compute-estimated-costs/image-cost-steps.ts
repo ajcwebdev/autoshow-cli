@@ -21,14 +21,14 @@ const estimateImageTargetCost = (
         return estimateImageCosts({ ...sharedOptions, grokImageModel: target.model })[0]
       case 'bfl':
         return estimateImageCosts({ ...sharedOptions, bflImageModel: target.model })[0]
-      case 'reve':
-        return estimateImageCosts({ ...sharedOptions, reveImageModel: target.model })[0]
       case 'recraft':
         return estimateImageCosts({ ...sharedOptions, recraftImageModel: target.model })[0]
       case 'replicate':
         return estimateImageCosts({ ...sharedOptions, replicateImageModel: target.model })[0]
       case 'lumalabs':
         return estimateImageCosts({ ...sharedOptions, lumalabsImageModel: target.model })[0]
+      default:
+        return undefined
     }
   })()
   const costPerImageCents = estimate?.costPerImageCents ?? getImageCost(target.service, target.model)
@@ -48,7 +48,6 @@ export const buildImageCostSteps = (input: ComputeEstimatedCostsInput): CostStep
         openaiImageModel: input.openaiImageModel,
         grokImageModel: input.grokImageModel,
         bflImageModel: input.bflImageModel,
-        reveImageModel: input.reveImageModel,
         recraftImageModel: input.recraftImageModel,
         replicateImageModel: input.replicateImageModel,
         lumalabsImageModel: input.lumalabsImageModel,

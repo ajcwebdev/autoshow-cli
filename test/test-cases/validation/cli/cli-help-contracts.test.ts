@@ -425,7 +425,7 @@ test('write and config help expose shared selectors and concurrency flags', asyn
   expect(writeResult.stdout).toContain('grok=grok-4.5')
   expect(writeResult.stdout).toContain('--tts')
   expect(writeResult.stdout).toContain('--image')
-  expect(writeResult.stdout).toContain('gemini|openai|grok|bfl|reve|recraft|replicate')
+  expect(writeResult.stdout).toContain('gemini|openai|grok|bfl|recraft|replicate')
   expect(writeResult.stdout).toContain('--video')
   expect(writeResult.stdout).toContain('--music')
   expect(writeResult.stdout).toContain('--all-providers')
@@ -438,7 +438,7 @@ test('write and config help expose shared selectors and concurrency flags', asyn
   expect(configResult.stdout).toContain('--ocr')
   expect(configResult.stdout).toContain('--llm')
   expect(configResult.stdout).toContain('--tts')
-  expect(configResult.stdout).toContain('gemini|openai|grok|bfl|reve|recraft|replicate')
+  expect(configResult.stdout).toContain('gemini|openai|grok|bfl|recraft|replicate')
   expect(configResult.stdout).toContain('--tts-chunk-concurrency')
   expect(writeResult.stdout).toContain('Grok-only default 50')
   expect(configResult.stdout).toContain('Grok-only default 50')
@@ -486,7 +486,7 @@ test('music help includes hosted generation and lyric-video flags', async () => 
   expect(result.stdout).not.toContain('--track-list')
 })
 
-test('image and video help expose BFL/Reve/Recraft/Replicate and remaining video provider flags', async () => {
+test('image and video help expose BFL/Recraft/Replicate and remaining video provider flags', async () => {
   const imageResult = await runCommand(['src/cli/create-cli.ts', 'image', '--help'], { env: helpEnv })
   const videoResult = await runCommand(['src/cli/create-cli.ts', 'video', '--help'], { env: helpEnv })
 

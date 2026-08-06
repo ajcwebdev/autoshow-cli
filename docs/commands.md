@@ -139,17 +139,13 @@ bun autoshow image "a clean studio product photo of a red enamel camping mug on 
 bun autoshow image "make the mug matte black, keep the same camera angle, and place it on a walnut desk" --provider openai=gpt-image-2 --input output/mug-base/generated-image.png --format webp --compression 80 --output-dir output/mug-edit
 
 # image reference with native Gemini
-bun autoshow image "restyle the generated mug as a 1960s travel poster" --provider gemini=gemini-3.1-flash-image-preview --input output/mug-base/generated-image.png --output-dir output/mug-gemini
+bun autoshow image "restyle the generated mug as a 1960s travel poster" --provider gemini=gemini-3.1-flash-lite-image --input output/mug-base/generated-image.png --output-dir output/mug-gemini
 
-# image references with BFL and Reve
-bun autoshow image "place the same mug on a rustic breakfast table" --provider bfl=flux-2-pro --input output/mug-base/generated-image.png --size 1024x1024 --output-dir output/mug-bfl
-bun autoshow image "place the same mug in a minimalist editorial product scene" --provider reve=latest --input output/mug-base/generated-image.png --size 1024x1024 --output-dir output/mug-reve
+# image references with BFL
+bun autoshow image "place the same mug on a rustic breakfast table" --provider bfl=flux-2-klein-4b --input output/mug-base/generated-image.png --size 1024x1024 --output-dir output/mug-bfl
 
 # image generation with BFL
-bun autoshow image "a sunset over mountains" --provider bfl=flux-2-pro --size 1024x1024
-
-# image generation with Reve
-bun autoshow image "a sunset over mountains" --provider reve=latest --aspect-ratio 16:9 --format webp
+bun autoshow image "a sunset over mountains" --provider bfl=flux-2-klein-4b --size 1024x1024
 
 # image generation with Recraft
 bun autoshow image "a clean vector mark of a mountain observatory" --provider recraft=recraftv4_1_vector --aspect-ratio 1:1
@@ -216,7 +212,7 @@ bun autoshow benchmark docs/benchmarks/tts/<run> --tts --tts-mode local
 - Use `download` for downloading media/documents, X Space audio, and collecting metadata.
 - Use `extract` when you only need step-2 extraction or transcription without LLM writing, to create an X Space report, or to render transcript videos from an extract run or explicit audio/transcript files.
 - Use `write` for full summary pipeline with optional TTS/image/video generation, and for lyric draft generation from `./output/<name>/text`.
-- Use standalone `tts`, `image`, `video`, and `music` commands for direct generation workflows. Standalone image generation supports `gemini`, `openai`, `grok`, `bfl`, `reve`, `recraft`, `replicate`, and `lumalabs`; Recraft is generation-only in this CLI surface and writes SVG for vector models.
+- Use standalone `tts`, `image`, `video`, and `music` commands for direct generation workflows. Standalone image generation supports `gemini`, `openai`, `grok`, `bfl`, `recraft`, `replicate`, and `lumalabs`; Recraft is generation-only in this CLI surface and writes SVG for vector models.
 - Use `music --audio`, `music --captions`, or `music --batch` for local lyric-video rendering from repo audio under `input/`; hosted music generation uses a prompt or local text file plus `--provider`.
 - Use `comic` for staged or complete episode-script to comic workflows: scene drafting, character sketch references, panel prompt bundles, review sketches, final panel images, and grouped page images.
 - Use `resume` to backfill missing extract, write LLM, TTS, image, video, or music providers in an existing output directory, including `extract` parent batches.
@@ -253,8 +249,7 @@ bun autoshow tts input/examples/tts/1-tts.md --provider cartesia=sonic-3.5-2026-
 bun autoshow tts input/examples/tts/1-tts.md --provider openai=gpt-4o-mini-tts-2025-12-15 --price
 bun autoshow tts input/examples/tts/1-tts.md --provider openai=gpt-4o-mini-tts-2025-12-15 --tts-instructions "Warm documentary narration" --tts-speed 1.1 --price
 bun autoshow image "a sunset" --provider openai=gpt-image-2 --size 1024x1024 --quality low --price
-bun autoshow image "a sunset" --provider bfl=flux-2-pro --price
-bun autoshow image "a sunset" --provider reve=latest --price
+bun autoshow image "a sunset" --provider bfl=flux-2-klein-4b --price
 bun autoshow image "a geometric fox logo in clean vector shapes" --provider recraft=recraftv4_1_vector --aspect-ratio 1:1 --price
 bun autoshow image "a premium product photo" --provider recraft=recraftv4_1 --size 1024x1024 --count 3 --price
 bun autoshow image "a sunset" --provider lumalabs=uni-1 --aspect-ratio 16:9 --price

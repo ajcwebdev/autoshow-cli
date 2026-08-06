@@ -43,7 +43,6 @@ export const resolveTargetCounts = (modelOptions: RuntimeModelOptions): TargetCo
     + countSelectedTargets(modelOptions.openaiImageModels, modelOptions.openaiImageModel)
     + countSelectedTargets(modelOptions.grokImageModels, modelOptions.grokImageModel)
     + countSelectedTargets(modelOptions.bflImageModels, modelOptions.bflImageModel)
-    + countSelectedTargets(modelOptions.reveImageModels, modelOptions.reveImageModel)
     + countSelectedTargets(modelOptions.recraftImageModels, modelOptions.recraftImageModel)
     + countSelectedTargets(modelOptions.replicateImageModels, modelOptions.replicateImageModel)
     + countSelectedTargets(modelOptions.lumalabsImageModels, modelOptions.lumalabsImageModel)

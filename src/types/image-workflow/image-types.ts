@@ -9,8 +9,6 @@ export type ImageGenOptions = Pick<
   | 'grokImageModel'
   | 'bflImageModels'
   | 'bflImageModel'
-  | 'reveImageModels'
-  | 'reveImageModel'
   | 'recraftImageModels'
   | 'recraftImageModel'
   | 'replicateImageModels'
@@ -57,8 +55,6 @@ export type EstimateImageCostOptions = {
   grokImageModel?: string | undefined
   bflImageModels?: string[] | undefined
   bflImageModel?: string | undefined
-  reveImageModels?: string[] | undefined
-  reveImageModel?: string | undefined
   recraftImageModels?: string[] | undefined
   recraftImageModel?: string | undefined
   replicateImageModels?: string[] | undefined

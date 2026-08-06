@@ -21,7 +21,7 @@ export const resumeCommand = defineCliCommand({
       ['bun autoshow resume ./output/2026-04-22_12-00-00-000_batch --provider deepinfra', 'Retry or add DeepInfra STT outputs'],
       ['bun autoshow resume ./output/2026-04-22_12-00-00-000_batch --provider glm=glm-ocr', 'Retry or add GLM OCR outputs'],
       ['bun autoshow resume ./output/2026-04-22_12-00-00-000_run --provider elevenlabs=eleven_v3', 'Retry or add ElevenLabs TTS outputs'],
-      ['bun autoshow resume ./output/2026-04-22_12-00-00-000_run --provider gemini=gemini-3.1-flash-image-preview', 'Retry or add Gemini image outputs'],
+      ['bun autoshow resume ./output/2026-04-22_12-00-00-000_run --provider gemini=gemini-3.1-flash-lite-image', 'Retry or add Gemini image outputs'],
       ['bun autoshow resume ./output/2026-04-22_12-00-00-000_run --provider runway=gen4.5', 'Retry or add Runway video outputs'],
       ['bun autoshow resume ./output/2026-04-22_12-00-00-000_run --provider minimax=music-2.6', 'Retry or add MiniMax music outputs']
     ]

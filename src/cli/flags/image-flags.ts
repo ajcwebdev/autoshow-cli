@@ -7,7 +7,6 @@ import { GEMINI_IMAGE_RESPONSE_MODES, GEMINI_IMAGE_SIZE_VALUES, GEMINI_NATIVE_AS
 import { GROK_IMAGE_ASPECT_RATIO_VALUES, GROK_IMAGE_COUNT_RANGE, GROK_IMAGE_SIZE_VALUES } from '~/cli/commands/process-steps/step-5-image/image-generation-services/image-grok/grok-image-targets'
 import { OPENAI_FIXED_IMAGE_SIZE_VALUES, OPENAI_IMAGE_BACKGROUND_VALUES, OPENAI_IMAGE_COMPRESSION_RANGE, OPENAI_IMAGE_COUNT_RANGE, OPENAI_IMAGE_FORMAT_VALUES } from '~/cli/commands/process-steps/step-5-image/image-generation-services/image-openai/openai-image-targets'
 import { BFL_OUTPUT_FORMATS } from '~/cli/commands/process-steps/step-5-image/image-generation-services/bfl/run-bfl-image-gen'
-import { REVE_ASPECT_RATIOS } from '~/cli/commands/process-steps/step-5-image/image-generation-services/reve/run-reve-image-gen'
 import { LUMALABS_ASPECT_RATIOS } from '~/cli/commands/process-steps/step-5-image/image-generation-services/lumalabs/run-lumalabs-image-gen'
 import { LUMALABS_MAX_IMAGE_INPUTS } from '~/cli/commands/process-steps/step-5-image/image-generation-services/lumalabs/lumalabs-image-targets'
 import { RECRAFT_ASPECT_RATIOS, RECRAFT_IMAGE_COUNT_RANGE } from '~/cli/commands/process-steps/step-5-image/image-generation-services/recraft/run-recraft-image-gen'
@@ -19,7 +18,6 @@ const imageAspectRatioLists = [
   GROK_IMAGE_ASPECT_RATIO_VALUES,
   GEMINI_NATIVE_ASPECT_RATIO_VALUES,
   LUMALABS_ASPECT_RATIOS,
-  REVE_ASPECT_RATIOS,
   RECRAFT_ASPECT_RATIOS,
   REPLICATE_QWEN_ASPECT_RATIO_VALUES
 ] as const
@@ -33,7 +31,6 @@ export const IMAGE_COMMAND_SELECTOR_FLAGS = {
   'openai-image': 'openai',
   'grok-image': 'grok',
   'bfl-image': 'bfl',
-  'reve-image': 'reve',
   'recraft-image': 'recraft',
   'replicate-image': 'replicate',
   'lumalabs-image': 'lumalabs'
@@ -45,7 +42,7 @@ export const imageGenFlags = {
     type: String
   },
   'image-size': {
-    description: `Image size/resolution: ${formatValueList(GEMINI_IMAGE_SIZE_VALUES)} (Gemini/Replicate Wan), ${formatValueList(OPENAI_FIXED_IMAGE_SIZE_VALUES)} or flexible WIDTHxHEIGHT for OpenAI gpt-image-2, ${formatValueList(GROK_IMAGE_SIZE_VALUES)} (Grok), WIDTHxHEIGHT for BFL/Reve/Replicate custom sizing, or Recraft model-specific WIDTHxHEIGHT/aspect ratio values`,
+    description: `Image size/resolution: ${formatValueList(GEMINI_IMAGE_SIZE_VALUES)} (Gemini/Replicate Wan), ${formatValueList(OPENAI_FIXED_IMAGE_SIZE_VALUES)} or flexible WIDTHxHEIGHT for OpenAI gpt-image-2, ${formatValueList(GROK_IMAGE_SIZE_VALUES)} (Grok), WIDTHxHEIGHT for BFL/Replicate custom sizing, or Recraft model-specific WIDTHxHEIGHT/aspect ratio values`,
     type: String
   },
   'image-quality': {
@@ -53,7 +50,7 @@ export const imageGenFlags = {
     type: String
   },
   'image-format': {
-    description: `Image output format: ${formatUniqueValueList(OPENAI_IMAGE_FORMAT_VALUES, BFL_OUTPUT_FORMATS)} (OpenAI/Reve default: png; BFL default: jpeg; Replicate seedream-5-lite supports png|jpeg)`,
+    description: `Image output format: ${formatUniqueValueList(OPENAI_IMAGE_FORMAT_VALUES, BFL_OUTPUT_FORMATS)} (OpenAI default: png; BFL default: jpeg; Replicate seedream-5-lite supports png|jpeg)`,
     type: String
   },
   'image-background': {
@@ -70,7 +67,7 @@ export const imageGenFlags = {
     type: String
   },
   'image-input': {
-    description: `Reference/source image path or URL for edit/reference workflows (repeatable; OpenAI, Grok, Gemini native, BFL, Reve, Replicate, Luma Labs; Luma Labs supports up to ${LUMALABS_MAX_IMAGE_INPUTS})`,
+    description: `Reference/source image path or URL for edit/reference workflows (repeatable; OpenAI, Grok, Gemini native, BFL, Replicate, Luma Labs; Luma Labs supports up to ${LUMALABS_MAX_IMAGE_INPUTS})`,
     type: [String] as [StringConstructor]
   },
   'image-mask': {

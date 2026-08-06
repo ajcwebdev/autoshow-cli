@@ -66,7 +66,7 @@ test('removed setup command is not registered', async () => {
 
 test('image command rejects removed imagen-count flag', async () => {
   await expectUsageExit(
-    ['image', 'a sunset', '--provider', 'gemini=gemini-3.1-flash-image-preview', '--imagen-count', '2', '--price'],
+    ['image', 'a sunset', '--provider', 'gemini=gemini-3.1-flash-lite-image', '--imagen-count', '2', '--price'],
     'Unexpected flag: imagenCount'
   )
 })

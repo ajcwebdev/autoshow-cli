@@ -191,7 +191,6 @@ export const mergeConfigIntoRawFlags = (
       ['gemini-image', d.post.image.geminiImage], ['openai-image', d.post.image.openaiImage],
       ['grok-image', d.post.image.grokImage],
       ['bfl-image', d.post.image.bflImage],
-      ['reve-image', d.post.image.reveImage],
       ['recraft-image', d.post.image.recraftImage],
       ['replicate-image', d.post.image.replicateImage],
       ['lumalabs-image', d.post.image.lumalabsImage],

@@ -5,17 +5,15 @@ describe('config image and TTS default contracts', () => {
   test('buildConfigPatchFromFlags saves hosted image defaults', () => {
     expect(buildConfigPatchFromFlags({
       'bfl-image': ['flux-2-pro'],
-      'reve-image': ['latest'],
       'recraft-image': ['recraftv4_1'],
       'replicate-image': ['wan-video/wan-2.7-image'],
       'image-size': '1024x1024',
       'image-format': 'webp'
-    }, new Set(['bfl-image', 'reve-image', 'recraft-image', 'replicate-image', 'image-size', 'image-format']))).toEqual({
+    }, new Set(['bfl-image', 'recraft-image', 'replicate-image', 'image-size', 'image-format']))).toEqual({
       defaults: {
         post: {
           image: {
             bflImage: ['flux-2-pro'],
-            reveImage: ['latest'],
             recraftImage: ['recraftv4_1'],
             replicateImage: ['wan-video/wan-2.7-image'],
             imageSize: '1024x1024',

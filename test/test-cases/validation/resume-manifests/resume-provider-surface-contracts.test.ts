@@ -426,9 +426,9 @@ describe('resume target-aware provider selectors', () => {
 
     expect(() => normalizeResumeSelectorFlagsForTarget(
       target('image'),
-      { 'gemini-image': 'gemini-3.1-flash-image-preview' },
+      { 'gemini-image': 'gemini-3.1-flash-lite-image' },
       new Set(['gemini-image']),
-      ['resume', 'out', '--gemini-image', 'gemini-3.1-flash-image-preview']
+      ['resume', 'out', '--gemini-image', 'gemini-3.1-flash-lite-image']
     )).toThrow('--gemini-image is no longer supported for resume')
 
     expect(() => normalizeResumeSelectorFlagsForTarget(
@@ -557,10 +557,10 @@ describe('resume all-shortcut additive selection', () => {
         {
           kind: 'image' as const,
           metadataKey: 'image',
-          requestedProvider: { service: 'gemini', model: 'gemini-3.1-flash-image-preview' },
+          requestedProvider: { service: 'gemini', model: 'gemini-3.1-flash-lite-image' },
           metadata: {
             imageService: 'gemini',
-            imageModel: 'gemini-3.1-flash-image-preview',
+            imageModel: 'gemini-3.1-flash-lite-image',
             processingTime: 1,
             imageFileNames: ['generated-image.png'],
             imageCount: 1,

@@ -136,7 +136,7 @@ These variables mirror `HOSTED_PROVIDER_ENV_CHECKS`.
 | Luma Labs | `LUMA_AGENTS_API_KEY` for image. |
 | Replicate | `REPLICATE_API_TOKEN` for image/video. |
 | Mistral | `MISTRAL_API_KEY` for STT/OCR/TTS. |
-| Image-only | `BFL_API_KEY`, `REVE_API_KEY`, `RECRAFT_API_TOKEN`. |
+| Image-only | `BFL_API_KEY`, `RECRAFT_API_TOKEN`. |
 | Anthropic | `ANTHROPIC_API_KEY` for write/OCR. |
 | Groq | `GROQ_API_KEY` for write/STT/TTS. |
 | DeepInfra | `DEEPINFRA_API_KEY` for STT/OCR. |

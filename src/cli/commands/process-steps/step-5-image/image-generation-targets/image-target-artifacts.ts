@@ -2,7 +2,6 @@ import { extname } from 'node:path'
 import type { ImageGenOptions, ImageTarget, Step5Metadata } from '~/types'
 import { sanitizeModelName } from '~/cli/commands/process-steps/target-runner'
 import { getBflImageExtension } from '../image-generation-services/bfl/run-bfl-image-gen'
-import { getReveImageExtension } from '../image-generation-services/reve/run-reve-image-gen'
 import { getRecraftImageExtension } from '../image-generation-services/recraft/run-recraft-image-gen'
 import { getReplicateImageExtension } from '../image-generation-services/replicate/run-replicate-image-gen'
 import { getLumalabsImageExtension } from '../image-generation-services/lumalabs/run-lumalabs-image-gen'
@@ -39,10 +38,6 @@ const getExpectedImageExtension = (
 
   if (target.service === 'bfl') {
     return getBflImageExtension(options.imageFormat)
-  }
-
-  if (target.service === 'reve') {
-    return getReveImageExtension(options.imageFormat)
   }
 
   if (target.service === 'recraft') {

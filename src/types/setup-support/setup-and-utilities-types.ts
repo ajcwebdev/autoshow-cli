@@ -7,7 +7,6 @@ SUPPORTED_LUMALABS_IMAGE_MODELS,
 SUPPORTED_OPENAI_IMAGE_MODELS,
 SUPPORTED_RECRAFT_IMAGE_MODELS,
 SUPPORTED_REPLICATE_IMAGE_MODELS,
-SUPPORTED_REVE_IMAGE_MODELS
 } from '~/cli/commands/setup-and-utilities/models/image-models'
 import {
 SUPPORTED_GROQ_MODELS
@@ -83,7 +82,6 @@ export type GeminiImageModel = typeof SUPPORTED_GEMINI_IMAGE_MODELS[number]
 export type OpenAIImageModel = typeof SUPPORTED_OPENAI_IMAGE_MODELS[number]
 export type GrokImageModel = typeof SUPPORTED_GROK_IMAGE_MODELS[number]
 export type BflImageModel = typeof SUPPORTED_BFL_IMAGE_MODELS[number]
-export type ReveImageModel = typeof SUPPORTED_REVE_IMAGE_MODELS[number]
 export type RecraftImageModel = typeof SUPPORTED_RECRAFT_IMAGE_MODELS[number]
 export type ReplicateImageModel = typeof SUPPORTED_REPLICATE_IMAGE_MODELS[number]
 export type LumalabsImageModel = typeof SUPPORTED_LUMALABS_IMAGE_MODELS[number]

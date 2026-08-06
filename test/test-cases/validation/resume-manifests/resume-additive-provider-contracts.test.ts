@@ -182,7 +182,7 @@ const fakeProviderResumeConfig = (
 describe('additive resume provider selection', () => {
   test('shared resolver preserves stored order and appends new selected providers', () => {
     const openai = { service: 'openai', model: 'gpt-image-2' }
-    const gemini = { service: 'gemini', model: 'gemini-3.1-flash-image-preview' }
+    const gemini = { service: 'gemini', model: 'gemini-3.1-flash-lite-image' }
     const runway = { service: 'runway', model: 'gen4.5' }
 
     const resolved = resolveAdditiveResumeProviderSelection({
@@ -292,7 +292,7 @@ describe('additive resume provider selection', () => {
   test('generation resume without provider flags retries stored missing providers', async () => {
     await withTempDir('autoshow-generation-additive-missing-', async (dir) => {
       const openai = { service: 'openai', model: 'gpt-image-2' }
-      const gemini = { service: 'gemini', model: 'gemini-3.1-flash-image-preview' }
+      const gemini = { service: 'gemini', model: 'gemini-3.1-flash-lite-image' }
       const ranTargets: ProviderIdentity[] = []
       await writeFakeImageRun(dir, [openai, gemini], [{ ...openai, processingTime: 10 }])
 
@@ -456,7 +456,7 @@ describe('additive resume provider selection', () => {
   test('generation resume appends explicit new providers to a full run', async () => {
     await withTempDir('autoshow-generation-additive-new-', async (dir) => {
       const openai = { service: 'openai', model: 'gpt-image-2' }
-      const gemini = { service: 'gemini', model: 'gemini-3.1-flash-image-preview' }
+      const gemini = { service: 'gemini', model: 'gemini-3.1-flash-lite-image' }
       const ranTargets: ProviderIdentity[] = []
       await writeFakeImageRun(dir, [openai], [{ ...openai, processingTime: 10 }])
 
@@ -476,7 +476,7 @@ describe('additive resume provider selection', () => {
   test('generation resume price reconstructs targets without running providers', async () => {
     await withTempDir('autoshow-generation-price-targets-', async (dir) => {
       const openai = { service: 'openai', model: 'gpt-image-2' }
-      const gemini = { service: 'gemini', model: 'gemini-3.1-flash-image-preview' }
+      const gemini = { service: 'gemini', model: 'gemini-3.1-flash-lite-image' }
       const pricedTargets: ProviderIdentity[] = []
       await writeFakeImageRun(dir, [openai, gemini], [{ ...openai, processingTime: 10 }])
 
@@ -493,7 +493,7 @@ describe('additive resume provider selection', () => {
               steps: [{
                 step: 'image',
                 provider: 'gemini',
-                model: 'gemini-3.1-flash-image-preview',
+                model: 'gemini-3.1-flash-lite-image',
                 imageCount: 1,
                 totalCost: 1
               }],
@@ -537,7 +537,7 @@ describe('additive resume provider selection', () => {
   test('generation resume treats selected providers as complete while unrelated providers remain missing', async () => {
     await withTempDir('autoshow-generation-selected-complete-', async (dir) => {
       const openai = { service: 'openai', model: 'gpt-image-2' }
-      const gemini = { service: 'gemini', model: 'gemini-3.1-flash-image-preview' }
+      const gemini = { service: 'gemini', model: 'gemini-3.1-flash-lite-image' }
       const ranTargets: ProviderIdentity[] = []
       await writeFakeImageRun(dir, [openai, gemini], [{ ...openai, processingTime: 10 }])
 
