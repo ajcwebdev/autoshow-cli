@@ -19,25 +19,10 @@ export const computeTtsCost = (
 ): {
   cost: number
   costPer1kCharactersCents?: number
-  characterBillingBlockSize?: number
-  characterBillingBlockCostCents?: number
   inputCostPer1MCharactersCents?: number
   outputCostPer1MCharactersCents?: number
 } => {
   const pricing = getTtsPricing(service, model)
-  if (
-    pricing.characterBillingBlockSize !== undefined
-    && pricing.characterBillingBlockCostCents !== undefined
-  ) {
-    const blockSize = Math.max(1, pricing.characterBillingBlockSize)
-    return {
-      cost: Math.ceil(Math.max(0, characterCount) / blockSize) * pricing.characterBillingBlockCostCents,
-      ...(pricing.costPer1kCharsCents !== undefined ? { costPer1kCharactersCents: pricing.costPer1kCharsCents } : {}),
-      characterBillingBlockSize: blockSize,
-      characterBillingBlockCostCents: pricing.characterBillingBlockCostCents
-    }
-  }
-
   if (
     pricing.inputCostPer1MCharsCents !== undefined
     && pricing.outputCostPer1MCharsCents !== undefined

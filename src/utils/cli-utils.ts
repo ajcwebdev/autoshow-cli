@@ -5,40 +5,7 @@ import { readBoundedTextStream } from '~/utils/bounded-capture'
 import * as l from './app-logger/app-logger'
 
 let envFileLoaded = false
-const DEFAULT_EXEC_HEARTBEAT_MS = 60_000
 const DEFAULT_LINE_BUFFER_CHARS = 64 * 1024
-
-const resolveHeartbeatMs = (value: number | undefined): number =>
-  typeof value === 'number' && Number.isFinite(value) && value > 0
-    ? Math.max(1, Math.floor(value))
-    : DEFAULT_EXEC_HEARTBEAT_MS
-
-const formatElapsedSeconds = (elapsedMs: number): string =>
-  `${Math.max(1, Math.ceil(elapsedMs / 1000))}s`
-
-const startExecHeartbeat = (
-  command: string,
-  opts: ExecOptions | undefined
-): ReturnType<typeof setInterval> | undefined => {
-  if (!opts?.progressLabel && !opts?.onHeartbeat) {
-    return undefined
-  }
-
-  const label = opts.progressLabel ?? command
-  const startedAt = Date.now()
-  const heartbeat = setInterval(() => {
-    const elapsedMs = Date.now() - startedAt
-    const message = `${label} still running after ${formatElapsedSeconds(elapsedMs)}`
-    if (opts.onHeartbeat) {
-      opts.onHeartbeat(elapsedMs, message)
-      return
-    }
-    l.write('info', message)
-  }, resolveHeartbeatMs(opts.heartbeatMs))
-
-  ;(heartbeat as { unref?: () => void }).unref?.()
-  return heartbeat
-}
 
 const readStreamText = async (
   stream: ReadableStream<Uint8Array> | null,
@@ -123,26 +90,19 @@ const execOnce = async (
     stderr: 'pipe',
     ...(env ? { env: env as Record<string, string | undefined> } : {})
   })
-  const heartbeat = startExecHeartbeat(command, opts)
-  try {
-    const [stdout, stderr, exitCode] = await Promise.all([
-      readStreamText(proc.stdout, opts?.onStdoutLine, opts?.maxBufferBytes),
-      readStreamText(proc.stderr, opts?.onStderrLine, opts?.maxBufferBytes),
-      proc.exited
-    ])
-    return {
-      stdout: stdout.text,
-      stderr: stderr.text,
-      exitCode,
-      stdoutBytes: stdout.totalBytes,
-      stderrBytes: stderr.totalBytes,
-      stdoutTruncated: stdout.truncated,
-      stderrTruncated: stderr.truncated
-    }
-  } finally {
-    if (heartbeat) {
-      clearInterval(heartbeat)
-    }
+  const [stdout, stderr, exitCode] = await Promise.all([
+    readStreamText(proc.stdout, undefined, opts?.maxBufferBytes),
+    readStreamText(proc.stderr, opts?.onStderrLine, opts?.maxBufferBytes),
+    proc.exited
+  ])
+  return {
+    stdout: stdout.text,
+    stderr: stderr.text,
+    exitCode,
+    stdoutBytes: stdout.totalBytes,
+    stderrBytes: stderr.totalBytes,
+    stdoutTruncated: stdout.truncated,
+    stderrTruncated: stderr.truncated
   }
 }
 
@@ -189,9 +149,6 @@ export const exec = async (
       category: 'pipeline',
       metadata: { command, attempt, maxAttempts, failureReason, delayMs }
     })
-    if (retry.onBeforeRetry) {
-      await retry.onBeforeRetry()
-    }
     await Bun.sleep(delayMs)
   }
 

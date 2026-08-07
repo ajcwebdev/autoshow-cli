@@ -144,8 +144,6 @@ export const detectCompressedTimingCoverage = (
   options: {
     knownStartSeconds?: number | undefined
     knownEndSeconds?: number | undefined
-    thresholdRatio?: number | undefined
-    minimumKnownDurationSeconds?: number | undefined
   }
 ): SttTimingCoverageAssessment | undefined => {
   const knownStartSeconds = options.knownStartSeconds ?? 0
@@ -155,7 +153,7 @@ export const detectCompressedTimingCoverage = (
   }
 
   const knownDurationSeconds = knownEndSeconds - knownStartSeconds
-  const minimumKnownDurationSeconds = options.minimumKnownDurationSeconds ?? 60
+  const minimumKnownDurationSeconds = 60
   if (knownDurationSeconds < minimumKnownDurationSeconds || segments.length < 3) {
     return undefined
   }
@@ -169,7 +167,7 @@ export const detectCompressedTimingCoverage = (
   }
 
   const coverageRatio = (latestEndSeconds - knownStartSeconds) / knownDurationSeconds
-  const thresholdRatio = options.thresholdRatio ?? 0.75
+  const thresholdRatio = 0.75
   return {
     compressed: coverageRatio < thresholdRatio,
     coverageRatio,

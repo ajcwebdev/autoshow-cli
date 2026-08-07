@@ -1,4 +1,4 @@
-import { readdir, rm } from 'node:fs/promises'
+import { readdir } from 'node:fs/promises'
 import { homedir } from 'node:os'
 import { join } from 'node:path'
 
@@ -37,8 +37,3 @@ export const resolveLlamaCacheClearPaths = async (model: string): Promise<string
   ...await listLlamaCacheEntries(model),
   manifestPath(model)
 ]
-
-export const clearCachedLlamaModel = async (model: string): Promise<void> => {
-  const targets = await resolveLlamaCacheClearPaths(model)
-  await Promise.all(targets.map((path) => rm(path, { recursive: true, force: true })))
-}

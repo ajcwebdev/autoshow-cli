@@ -1,6 +1,6 @@
 import { extname } from 'node:path'
 import type { BunImageReaderConstructor } from '~/types'
-import { InfraError, InternalError } from '~/utils/error-handler'
+import { InternalError } from '~/utils/error-handler'
 
 const BUN_IMAGE_PNG_NORMALIZABLE_FORMATS = new Set(['bmp', 'gif', 'webp'])
 
@@ -30,17 +30,4 @@ export const normalizeImageToPngWithBun = async (
   const Image = getBunImageConstructor()
   const pngBytes = await new Image(await Bun.file(imagePath).arrayBuffer()).png().bytes()
   await Bun.write(pngPath, pngBytes)
-}
-
-export const readImageDimensionsWithBun = async (
-  imagePath: string
-): Promise<{ width: number, height: number }> => {
-  const Image = getBunImageConstructor()
-  const metadata = await new Image(await Bun.file(imagePath).arrayBuffer()).metadata()
-  const { width, height } = metadata
-  if (!width || !height) {
-    throw InfraError(`Could not read dimensions for ${imagePath}`, { stage: 'ocr:bun-image' })
-  }
-
-  return { width, height }
 }

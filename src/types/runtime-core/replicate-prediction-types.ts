@@ -24,7 +24,5 @@ export type RunReplicatePredictionOptions = {
   version?: string | undefined
   input: Record<string, unknown>
   operationName: string
-  waitSeconds?: number | undefined
-  cancelAfter?: string | undefined
   onStatus?: ((prediction: ReplicatePrediction) => void) | undefined
 }

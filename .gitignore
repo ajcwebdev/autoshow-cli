@@ -32,7 +32,6 @@ input/examples/video
 !input/examples/comic/
 !input/examples/comic/*.md
 output/
-plans/**/*.md
 Library/
 runtime/
 runtime/auth/
@@ -42,7 +41,6 @@ test-output
 project/test-output
 new-llm-*.md
 TODO.md
-project/benchmark
 project/links
 project/plans
 config
@@ -50,7 +48,6 @@ config
 
 .projects/cache
 .projects/vault
-.env
 .env.local
 
 todo

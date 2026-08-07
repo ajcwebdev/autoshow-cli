@@ -4,7 +4,7 @@ FROM ${BUN_BASE_IMAGE} AS deps
 
 WORKDIR /app
 
-COPY package.json bun.lock* bunfig.toml tsconfig.json ./
+COPY package.json bun.lock* bunfig.toml ./
 
 RUN bun install --frozen-lockfile --production
 

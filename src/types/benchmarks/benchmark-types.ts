@@ -109,7 +109,6 @@ export type BenchmarkFlags = {
   'tts-roundtrip-dir'?: string | undefined
   'tts-metric-fixtures'?: string | undefined
   'tts-audio-judge-model'?: string | undefined
-  'tts-content-type'?: string | undefined
   'tts-keep-temp'?: boolean | undefined
   'image-judge-model'?: string | undefined
   'video-judge-model'?: string | undefined

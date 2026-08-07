@@ -106,7 +106,7 @@ const stripMarkdownExamplePrefix = (example: string): string => {
 }
 
 const stripJsonExamplePrefix = (example: string): string =>
-  example.replace(/^\s*Example JSON output:\s*/u, '').trim()
+  example.trim()
 
 const normalizeExampleText = (
   example: string,
@@ -298,8 +298,7 @@ export const resolvePromptTokenEstimate = async (
 
   return {
     estimatedInputTokens,
-    estimatedOutputTokens,
-    resolvedLeafPromptNames: leaves.map(leaf => leaf.name)
+    estimatedOutputTokens
   }
 }
 

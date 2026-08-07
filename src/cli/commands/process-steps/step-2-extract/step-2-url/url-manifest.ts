@@ -1,5 +1,4 @@
-import type { BatchManifestEntry } from '~/types'
-import { readRunManifestEntry, writeBatchManifest, writeRunManifest } from '../../manifest-utils'
+import { readRunManifestEntry, writeRunManifest } from '../../manifest-utils'
 
 const isRecord = (value: unknown): value is Record<string, unknown> =>
   typeof value === 'object' && value !== null && !Array.isArray(value)
@@ -23,12 +22,4 @@ export const readUrlRunManifestEntry = async (
 ): Promise<Record<string, unknown> | undefined> => {
   const metadata = await readRunManifestEntry(outputDir, 'extract')
   return metadata && isUrlArticleManifestEntry(metadata) ? metadata : undefined
-}
-
-export const writeUrlBatchManifest = async (
-  batchDir: string,
-  items: BatchManifestEntry[],
-  source?: Record<string, unknown>
-): Promise<void> => {
-  await writeBatchManifest(batchDir, 'extract', items, source)
 }

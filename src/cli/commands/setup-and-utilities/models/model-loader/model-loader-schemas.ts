@@ -50,7 +50,6 @@ const SttModelSchema = v.object({
   ...PricingProvenanceFields,
   costPerHourUSD: v.optional(v.number(), undefined),
   costPerHourCents: v.optional(v.number(), undefined),
-  costPerThreeHours: v.optional(v.number(), undefined),
   billing: v.optional(SttBillingSchema, undefined),
   estimation: v.optional(SttEstimationSchema, undefined),
   limits: v.optional(SttLimitsSchema, undefined)
@@ -121,7 +120,6 @@ const LlmModelSchema = v.object({
 const LlmServiceSchema = v.object({
   description: v.string(),
   type: v.picklist(['local', 'api']),
-  maxTokens: v.optional(v.number(), undefined),
   models: v.record(v.string(), LlmModelSchema)
 })
 
@@ -130,8 +128,6 @@ const TtsModelSchema = v.object({
   ...PricingProvenanceFields,
   costPer1kCharsUSD: v.optional(v.number(), undefined),
   costPer1kCharsCents: v.optional(v.number(), undefined),
-  characterBillingBlockSize: v.optional(v.number(), undefined),
-  characterBillingBlockCostCents: v.optional(v.number(), undefined),
   inputCostPer1MCharsUSD: v.optional(v.number(), undefined),
   inputCostPer1MCharsCents: v.optional(v.number(), undefined),
   outputCostPer1MCharsUSD: v.optional(v.number(), undefined),
@@ -239,7 +235,6 @@ const VideoModelSchema = v.object({
 const VideoServiceSchema = v.object({
   description: v.string(),
   type: v.picklist(['local', 'api']),
-  sizes: v.optional(v.array(v.string()), undefined),
   resolutions: v.optional(v.array(v.string()), undefined),
   billedDurations: v.optional(v.array(v.number()), undefined),
   models: v.record(v.string(), VideoModelSchema)

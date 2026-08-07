@@ -5,7 +5,7 @@ import type { DurationBilledEstimation, SttBilling, SttLimits } from '~/types'
 export const getSttCost = (
   service: string,
   model: string
-): { costPerHourCents?: number, costPerThreeHoursCents?: number } => {
+): { costPerHourCents?: number } => {
   const sttModel = getModelRegistry().stt[service]?.models[model]
   if (!sttModel) return {}
   return {
@@ -13,8 +13,7 @@ export const getSttCost = (
       ? { costPerHourCents: sttModel.costPerHourCents }
       : sttModel.costPerHourUSD !== undefined
         ? { costPerHourCents: sttModel.costPerHourUSD * 100 }
-        : {}),
-    ...(sttModel.costPerThreeHours !== undefined ? { costPerThreeHoursCents: sttModel.costPerThreeHours * 100 } : {})
+        : {})
   }
 }
 

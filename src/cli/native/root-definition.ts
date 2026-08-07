@@ -68,7 +68,6 @@ export const HELP_FLAG_GROUPS = [
 export const HELP_COMMAND_GROUP_DEFINITIONS: [string, string][] = HELP_COMMAND_GROUPS.map(([key, label]) => [key, label])
 
 export const createNativeRootDefinition = (): CliRootDefinition => ({
-  name: 'AutoShow CLI',
   scriptName: 'bun autoshow',
   description: 'Extract and write content, generate speech, images, video, and music, and build comic workflows',
   version: CLI_VERSION,

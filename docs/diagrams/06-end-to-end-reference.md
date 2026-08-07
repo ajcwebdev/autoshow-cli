@@ -150,13 +150,13 @@ These variables mirror `HOSTED_PROVIDER_ENV_CHECKS`.
 
 ## Base URL Overrides
 
-**Removed (ADR-005).** The per-provider base-URL / endpoint override env vars (`OPENAI_BASE_URL`, `ANTHROPIC_BASE_URL`, `GROQ_BASE_URL`, `MISTRAL_BASE_URL`, `XAI_BASE_URL`, `ZAI_BASE_URL`/GLM, `KIMI_BASE_URL`, `TOGETHER_BASE_URL`, `CEREBRAS_BASE_URL`, `MINIMAX_BASE_URL`, `DEEPGRAM_BASE_URL`, `DEEPINFRA_BASE_URL`, `ASSEMBLYAI_BASE_URL`, `GLADIA_BASE_URL`, `SONIOX_BASE_URL`, `SPEECHMATICS_BASE_URL`, `HAPPYSCRIBE_BASE_URL`, `REVAI_BASE_URL`, `SUPADATA_BASE_URL`, `SCRAPECREATORS_BASE_URL`, `ELEVENLABS_BASE_URL`, `CARTESIA_BASE_URL`, `HUME_BASE_URL`, `SPEECHIFY_BASE_URL`, `FIRECRAWL_API_URL`, `SPIDER_API_URL`, `ZYTE_API_URL`, `UNSTRUCTURED_API_URL`, `BFL_BASE_URL`, `REVE_BASE_URL`, `RECRAFT_BASE_URL`, …) are **no longer read.** Every provider resolves to a fixed default endpoint in [`base-urls.ts`](../../src/utils/base-urls.ts); contract tests inject a typed `baseUrl` parameter in-process instead. See `docs/report/env-vars-report.md` §2.2.
+**Removed (ADR-005).** The per-provider base-URL / endpoint override env vars (`OPENAI_BASE_URL`, `ANTHROPIC_BASE_URL`, `GROQ_BASE_URL`, `MISTRAL_BASE_URL`, `XAI_BASE_URL`, `ZAI_BASE_URL`/GLM, `KIMI_BASE_URL`, `TOGETHER_BASE_URL`, `CEREBRAS_BASE_URL`, `MINIMAX_BASE_URL`, `DEEPGRAM_BASE_URL`, `DEEPINFRA_BASE_URL`, `ASSEMBLYAI_BASE_URL`, `GLADIA_BASE_URL`, `SONIOX_BASE_URL`, `SPEECHMATICS_BASE_URL`, `HAPPYSCRIBE_BASE_URL`, `REVAI_BASE_URL`, `SUPADATA_BASE_URL`, `SCRAPECREATORS_BASE_URL`, `ELEVENLABS_BASE_URL`, `CARTESIA_BASE_URL`, `HUME_BASE_URL`, `SPEECHIFY_BASE_URL`, `FIRECRAWL_API_URL`, `SPIDER_API_URL`, `ZYTE_API_URL`, `UNSTRUCTURED_API_URL`, `BFL_BASE_URL`, `REVE_BASE_URL`, `RECRAFT_BASE_URL`, …) are **no longer read.** Every provider resolves to a fixed default endpoint in [`base-urls.ts`](../../src/utils/base-urls.ts); contract tests inject a typed `baseUrl` parameter in-process instead.
 
 Runway and LTX video clients use their provider API endpoints with `RUNWAYML_API_SECRET` and `LTXV_API_KEY`.
 
 ## Provider Defaults and Runtime Env
 
-Runtime configuration is **flag-driven**: the shipped CLI reads no `AUTOSHOW_*` runtime-config, base-URL, timeout, or TTS-tuning env vars — they were removed or replaced by flags. The only environment input is provider API keys (above), `HUGGINGFACE_TOKEN`, and the `NO_COLOR` / `FORCE_COLOR` conventions. See `docs/report/env-vars-report.md`.
+Runtime configuration is **flag-driven**: the shipped CLI reads no `AUTOSHOW_*` runtime-config, base-URL, timeout, or TTS-tuning env vars — they were removed or replaced by flags. The only environment input is provider API keys (above), `HUGGINGFACE_TOKEN`, and the `NO_COLOR` / `FORCE_COLOR` conventions.
 
 | Area | Mechanism |
 |------|-----------|

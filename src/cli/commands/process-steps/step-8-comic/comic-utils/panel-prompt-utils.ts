@@ -1,7 +1,7 @@
 import { createHash } from 'node:crypto'
 import type { Dirent } from 'node:fs'
 import { existsSync, readFileSync } from 'node:fs'
-import { extname, join, resolve } from 'node:path'
+import { resolve } from 'node:path'
 import * as v from 'valibot'
 import type { PanelBundleData, ImageGenerationModel, PanelPrimaryReferenceInput, PrimaryCharacterReferenceState, ResolvedReferenceImages } from '~/types'
 import { PanelBundleDataSchema } from '../schemas/schemas'
@@ -16,8 +16,6 @@ import { InfraError, ValidationError } from '~/utils/error-handler'
 import { getSceneWorkspaceDirectoryForPanelPrompt } from './project-paths'
 
 export const PANEL_DIRECTORY_PATTERN = /^panel-(\d+)$/
-const PRIOR_PANEL_REFERENCE_PATTERN = /^panel-(\d+)(?:--(.+))?\.png$/
-const SUPPORTED_REFERENCE_EXTENSIONS = new Set(['.png', '.webp', '.jpg', '.jpeg'])
 
 export const formatPanelDirectoryName = (panelNumber: number): string => `panel-${String(panelNumber).padStart(2, '0')}`
 export const getPanelNumberFromName = (value: string, pattern: RegExp = PANEL_DIRECTORY_PATTERN): number | null => {
@@ -154,14 +152,10 @@ export const findMissingReferenceImageFiles = async (paths: string[]): Promise<s
 }
 
 export const resolveReferenceImages = (
-  panelDirectory: string, entries: Dirent[], bundleData: PanelBundleData, model: ImageGenerationModel,
-  options: { includePriorPanelRefs?: boolean; includeSecondaryRefs?: boolean } = {}
+  panelDirectory: string, entries: Dirent[], bundleData: PanelBundleData, model: ImageGenerationModel
 ): ResolvedReferenceImages => {
   const primary = resolvePrimaryCharacterReferences(panelDirectory, entries, bundleData)
-  const prior = (options.includePriorPanelRefs ?? false)
-    ? entries.filter(entry => entry.isFile() && SUPPORTED_REFERENCE_EXTENSIONS.has(extname(entry.name).toLowerCase()) && PRIOR_PANEL_REFERENCE_PATTERN.test(entry.name))
-      .map(entry => join(panelDirectory, entry.name)).sort()
-    : []
+  const prior: string[] = []
   // Arbitrary images in panel directories are never promoted into identity refs.
   const locations = resolveLocationReferencesAcrossPanels([{ panelDirectory, entries, bundleData }])
   const designs = resolveDesignReferencesAcrossPanels([{ panelDirectory, entries, bundleData }])

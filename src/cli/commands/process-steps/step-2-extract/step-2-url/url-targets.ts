@@ -7,16 +7,7 @@ export const isLocalUrlBackend = (backend: HtmlArticleBackend): boolean => backe
 export const isHtmlArticleBackend = (value: unknown): value is HtmlArticleBackend =>
   typeof value === 'string' && (URL_ARTICLE_BACKENDS as readonly string[]).includes(value)
 
-export const getUrlTargetKey = (target: Pick<UrlArticleTarget, 'service' | 'model'>): string =>
-  `${target.service}:${target.model}`
-
-export const formatUrlTargetLabel = (target: Pick<UrlArticleTarget, 'service' | 'model'>): string =>
-  target.service === target.model ? target.service : `${target.service}/${target.model}`
-
 export const getUrlProviderDirectoryName = (backend: HtmlArticleBackend): string => backend
-
-export const getUrlTargetDirectoryName = (target: Pick<UrlArticleTarget, 'service'>): string =>
-  getUrlProviderDirectoryName(target.service)
 
 export const getUrlProviderArtifactDir = (backend: HtmlArticleBackend): string =>
   `providers/${getUrlProviderDirectoryName(backend)}`

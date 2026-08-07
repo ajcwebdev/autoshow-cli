@@ -7,7 +7,6 @@ const SERVICE_DEFINITIONS: {
   service: TranscribeEngine
   models: readonly string[]
   envVar: string | undefined
-  checkAvailable?: () => boolean
 }[] = [
   { service: 'whisper', models: ['tiny', 'base', 'small', 'medium', 'large-v3-turbo'], envVar: undefined },
   { service: 'deepgram', models: ['nova-3'], envVar: 'DEEPGRAM_API_KEY' },
@@ -26,7 +25,6 @@ const SERVICE_DEFINITIONS: {
 ]
 
 const isServiceAvailable = (def: typeof SERVICE_DEFINITIONS[number]): boolean => {
-  if (def.checkAvailable) return def.checkAvailable()
   if (def.envVar) return readEnv(def.envVar) !== undefined
   if (def.service === 'whisper') return commandExists('whisper-cpp')
   return true

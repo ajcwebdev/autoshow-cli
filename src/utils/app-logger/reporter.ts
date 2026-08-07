@@ -319,7 +319,6 @@ export const createReporter = (logger: Logger): Reporter => {
     },
     complete: (outputDir, files, options) => {
       const tables = buildHumanCompletionTables(outputDir, files, options)
-      const hiddenSections = new Set(options?.hideHumanSections ?? [])
       const includeOutputDir = options?.includeOutputDir ?? true
       const humanSections = [
         ...(includeOutputDir
@@ -328,10 +327,10 @@ export const createReporter = (logger: Logger): Reporter => {
               table: createLocationsTable([{ artifact: 'outputDir', path: outputDir }])
             }]
           : []),
-        ...(tables.artifacts && !hiddenSections.has('artifacts') ? [{ title: 'Artifacts', table: tables.artifacts }] : []),
-        ...(tables.metrics && !hiddenSections.has('metrics') ? [{ title: 'Metrics', table: tables.metrics }] : []),
-        ...(tables.providers && !hiddenSections.has('providers') ? [{ title: 'Providers', table: tables.providers }] : []),
-        ...(tables.timing && !hiddenSections.has('timing') ? [{ title: 'Timing', table: tables.timing }] : [])
+        ...(tables.artifacts ? [{ title: 'Artifacts', table: tables.artifacts }] : []),
+        ...(tables.metrics ? [{ title: 'Metrics', table: tables.metrics }] : []),
+        ...(tables.providers ? [{ title: 'Providers', table: tables.providers }] : []),
+        ...(tables.timing ? [{ title: 'Timing', table: tables.timing }] : [])
       ]
 
       logger.write('success', options?.summaryMessage ?? 'Complete', {

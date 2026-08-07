@@ -7,8 +7,6 @@ export const getTtsPricing = (
   model: string
 ): {
   costPer1kCharsCents?: number
-  characterBillingBlockSize?: number
-  characterBillingBlockCostCents?: number
   inputCostPer1MCharsCents?: number
   outputCostPer1MCharsCents?: number
 } => {
@@ -20,12 +18,6 @@ export const getTtsPricing = (
       : ttsModel.costPer1kCharsUSD !== undefined
         ? { costPer1kCharsCents: ttsModel.costPer1kCharsUSD * 100 }
         : {}),
-    ...(ttsModel.characterBillingBlockSize !== undefined
-      ? { characterBillingBlockSize: ttsModel.characterBillingBlockSize }
-      : {}),
-    ...(ttsModel.characterBillingBlockCostCents !== undefined
-      ? { characterBillingBlockCostCents: ttsModel.characterBillingBlockCostCents }
-      : {}),
     ...(ttsModel.inputCostPer1MCharsCents !== undefined
       ? { inputCostPer1MCharsCents: ttsModel.inputCostPer1MCharsCents }
       : ttsModel.inputCostPer1MCharsUSD !== undefined

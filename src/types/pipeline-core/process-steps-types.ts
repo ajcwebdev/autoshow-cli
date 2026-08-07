@@ -5,7 +5,6 @@ export type WriteManifestMetadata = JsonObject
 
 export type WriteManifestSourceRefs = {
   promptArtifact?: string
-  extractPromptSource?: string
   step3RenderedOutput?: string
 }
 

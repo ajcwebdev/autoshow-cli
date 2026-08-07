@@ -77,16 +77,11 @@ const geminiJsonRequest = async (
   init: {
     method: 'GET' | 'POST' | 'DELETE'
     body?: unknown
-    headers?: ConstructorParameters<typeof Headers>[0] | undefined
-    query?: Record<string, string> | undefined
-    apiVersionPath?: boolean | undefined
     abortSignal?: AbortSignal | undefined
   }
 ): Promise<{ json: unknown, headers: Headers, status: number }> => {
-  const url = init.apiVersionPath === false
-    ? buildGeminiUrl(path, init.query)
-    : buildV1BetaUrl(path, init.query)
-  const headers = new Headers(init.headers)
+  const url = buildV1BetaUrl(path)
+  const headers = new Headers()
   headers.set('x-goog-api-key', apiKey)
   if (init.body !== undefined && !headers.has('content-type')) {
     headers.set('content-type', 'application/json')

@@ -107,7 +107,6 @@ const variadicCommand = defineCliCommand({
 const commands = [runCommand, linksCommand, subcommandsCommand, variadicCommand] as const satisfies readonly CliCommandDefinition[]
 
 const root: CliRootDefinition = {
-  name: 'Test CLI',
   scriptName: 'bun test-cli',
   description: 'Parser fixture',
   version: '0.0.0-test',

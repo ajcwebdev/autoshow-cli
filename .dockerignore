@@ -18,6 +18,5 @@ todo
 .codex
 
 Dockerfile*
-docker-compose*
 .dockerignore
 README.md

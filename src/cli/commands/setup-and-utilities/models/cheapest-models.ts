@@ -64,16 +64,12 @@ const selectCheapestRegistryModel = <T extends Record<string, unknown>>(
 const sttHourlyCost = (model: {
   costPerHourUSD?: number | undefined
   costPerHourCents?: number | undefined
-  costPerThreeHours?: number | undefined
 }): number => {
   if (typeof model.costPerHourCents === 'number') {
     return model.costPerHourCents
   }
   if (typeof model.costPerHourUSD === 'number') {
     return model.costPerHourUSD * 100
-  }
-  if (typeof model.costPerThreeHours === 'number') {
-    return (model.costPerThreeHours * 100) / 3
   }
   return Number.POSITIVE_INFINITY
 }

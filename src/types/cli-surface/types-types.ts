@@ -34,9 +34,7 @@ export type CliRawParsed = {
 }
 
 export type CliParameterValues = Record<string, string | string[]> & {
-  action: string
   input: string
-  outputDir: string
   outputDirs: string[]
   prompt: string
 }
@@ -44,8 +42,6 @@ export type CliParameterValues = Record<string, string | string[]> & {
 export type CliFlagValues = Record<string, unknown> & {
   doctor?: unknown
   models?: unknown
-  out?: unknown
-  refresh?: unknown
   repeat?: unknown
   step?: unknown
 }
@@ -80,7 +76,6 @@ export type CliCommandDefinition = {
 }
 
 export type CliRootDefinition = {
-  name: string
   scriptName: string
   description: string
   version: string

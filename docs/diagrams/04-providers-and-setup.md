@@ -74,7 +74,7 @@ Current hosted/local provider families:
 | Step | Providers |
 |------|-----------|
 | STT | Local: `whisper`, `whisperfile`, `reverb`. Hosted: `deepinfra`, `deepgram`, `soniox`, `speechmatics`, `rev`, `groq`, `grok`, `mistral`, `assemblyai`, `gladia`, `happyscribe`, `supadata`, `scrapecreators`, `gemini`, `together`. |
-| OCR | Local/native: `tesseract` plus native document extractors. Hosted: `mistral`, `glm`, `kimi`, `openai`, `grok`, `anthropic`, `gemini`, `deepinfra`, `unstructured`. |
+| OCR | Local/native: `tesseract` plus native document extractors. Hosted: `mistral`, `glm`, `kimi`, `openai`, `grok`, `anthropic`, `gemini`, `deepinfra`. |
 | URL | Local: `defuddle`. Hosted: `firecrawl`, `glm-reader`, `spider`, `supadata`, `zyte`. |
 | TTS | Local: `kitten`. Hosted: `elevenlabs`, `minimax`, `groq`, `grok`, `mistral`, `openai`, `gemini`, `deepgram`, `speechify`, `hume`, `cartesia`. |
 | Image | `gemini`, `openai`, `grok`, `bfl`, `recraft`, `replicate`, `lumalabs`, `fal`. |
@@ -141,7 +141,6 @@ These checks come from `HOSTED_PROVIDER_ENV_CHECKS`:
 | `RUNWAYML_API_SECRET` | Runway video |
 | `LTXV_API_KEY` | LTX video |
 | `MISTRAL_API_KEY` | Mistral STT/OCR/TTS |
-| `UNSTRUCTURED_API_KEY` | Unstructured OCR |
 | `BFL_API_KEY` | BFL image |
 | `RECRAFT_API_TOKEN` | Recraft image |
 | `REPLICATE_API_TOKEN` | Replicate image/video |

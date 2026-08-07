@@ -632,7 +632,6 @@
   "llama": {
     "description": "Local LLM inference via llama.cpp",
     "type": "local",
-    "maxTokens": 4096,
     "models": {
       "ggml-org/gemma-3-270m-it-GGUF": {
         "description": "Gemma 3 270M Instruct — ultra-lightweight",
@@ -659,7 +658,6 @@
   "llamafile": {
     "description": "Local LLM inference via prebuilt single-file llamafiles",
     "type": "local",
-    "maxTokens": 4096,
     "models": {
       "Qwen3.5-0.8B-Q8_0": {
         "description": "Qwen3.5 0.8B Q8_0 llamafile — smallest prebuilt bundle (~1.6 GB)",

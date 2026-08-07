@@ -84,7 +84,7 @@ export const buildPromptUsage = (
 ): PromptUsageSection | undefined => {
   const rows: WritePromptUsageRow[] = []
   const promptArtifact = refs.promptArtifact ?? 'prompt.md'
-  const extractPromptSource = refs.extractPromptSource ?? 'inline source'
+  const extractPromptSource = 'inline source'
   const step3RenderedOutput = refs.step3RenderedOutput ?? 'step3 rendered output'
 
   for (const entry of toArray(metadata['step2'], isExtractionMetadata)) {

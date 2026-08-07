@@ -3,7 +3,7 @@ import { basename, isAbsolute, resolve } from 'node:path'
 import type { ParsedCommandMetric, ParsedJunitCase, TestRunArtifacts } from '~/types'
 import type { MetricContext, ReportTestContext, ServiceModelPair } from '~/types'
 
-const COMMAND_KIND_NAMES = new Set(['setup', 'download', 'transcribe', 'extract', 'write', 'tts', 'image', 'video', 'music'])
+const COMMAND_KIND_NAMES = new Set(['setup', 'download', 'extract', 'write', 'tts', 'image', 'video', 'music'])
 
 const MEDIA_INPUT_PATTERN = /\.(?:mp3|m4a|aac|wav|flac|ogg|opus|webm|mp4|mov|mkv|avi|m4v)(?:[?#]|$)/i
 const DOCUMENT_INPUT_PATTERN = /\.(?:pdf|epub|mobi|prc|azw3?|fb2|lit|docx|pptx|xlsx|odt|ods|odp|rtf|csv|cbz|png|jpe?g|tiff?|webp|bmp|gif)(?:[?#]|$)/i
@@ -129,8 +129,6 @@ export const isE2ETestFile = (file: string): boolean => file.startsWith('test/te
 export const isControlE2ETest = (name: string): boolean => {
   return /^rejects\b/i.test(name)
     || /^requires\b/i.test(name)
-    || /^all output files\b/i.test(name)
-    || /^selects exactly one model\b/i.test(name)
 }
 
 // Only resolves kinds the CLI actually names. `resume` is deliberately absent, so provider
@@ -466,7 +464,6 @@ export const inferTestKind = (testCase: ParsedJunitCase): string | null => {
   if (/\bimage\b/i.test(testCase.name) || /generated-image/i.test(testCase.name)) return 'image'
   if (/\bvideo\b/i.test(testCase.name) || /\bveo\b/i.test(testCase.name)) return 'video'
   if (/\bmusic\b/i.test(testCase.name) || /generated music/i.test(testCase.name)) return 'music'
-  if (/uses cheapest model/i.test(testCase.name)) return 'write'
   return null
 }
 
@@ -494,14 +491,7 @@ const inferModelHints = (testCase: ParsedJunitCase): Set<string> => {
   const models = new Set<string>()
   const name = testCase.name
 
-  addModelHint(models, name.match(/uses cheapest model (.+?)(?: at minimal cost settings)?$/i)?.[1])
-  addModelHint(models, name.match(/with --mistral-ocr ([A-Za-z0-9./_-]+)/i)?.[1])
-  addModelHint(models, name.match(/with --glm-ocr ([A-Za-z0-9./_-]+)/i)?.[1])
-  addModelHint(models, name.match(/with --kimi-ocr ([A-Za-z0-9./_-]+)/i)?.[1])
-  addModelHint(models, name.match(/with --openai-ocr ([A-Za-z0-9./_-]+)/i)?.[1])
-  addModelHint(models, name.match(/with --anthropic-ocr ([A-Za-z0-9./_-]+)/i)?.[1])
-  addModelHint(models, name.match(/with --gemini-ocr ([A-Za-z0-9./_-]+)/i)?.[1])
-  addModelHint(models, name.match(/^([A-Za-z0-9./_-]+) (?:model generates|generates|runs in parallel|uses cheapest model)/i)?.[1])
+  addModelHint(models, name.match(/^([A-Za-z0-9./_-]+) (?:model generates|generates|runs in parallel)/i)?.[1])
 
   for (const match of name.matchAll(/--[a-z-]+\s+([A-Za-z0-9./_-]+)/gi)) {
     addModelHint(models, match[1])

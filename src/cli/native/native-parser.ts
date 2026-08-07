@@ -166,7 +166,7 @@ const parseShortFlag = (
 ): number => {
   const arg = argv[index] as string
   const short = arg.slice(1)
-  const name = shortFlags.get(short) ?? (short === 'V' ? 'version' : undefined)
+  const name = shortFlags.get(short)
   if (name === undefined) {
     unknown[short] = true
     return index

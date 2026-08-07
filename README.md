@@ -242,13 +242,10 @@ bun autoshow write https://ajc.pics/autoshow/examples/1-audio.mp3 --quiet
 bun autoshow write https://ajc.pics/autoshow/examples/1-audio.mp3 --json
 
 # Environment variables
-AUTOSHOW_LOG_FORMAT=auto   # auto | human | json | both
-AUTOSHOW_LOG_LEVEL=info    # debug | info | success | warn | error
 NO_COLOR=1                 # disable ANSI color in human logs and help
 FORCE_COLOR=1              # force ANSI color in redirected output
 ```
 
-- `AUTOSHOW_LOG_FORMAT=auto` uses JSON logs when `NODE_ENV=production`, otherwise human-readable logs.
 - Human-readable logs color table columns and log prefixes when output is a TTY; `NO_COLOR` disables this and `FORCE_COLOR` enables it for captured output.
 - JSON logs and `--json` output stay machine-readable and uncolored.
 - Secrets and credentials are redacted from logger output.

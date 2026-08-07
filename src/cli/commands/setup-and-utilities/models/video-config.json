@@ -205,15 +205,6 @@
   "glm": {
     "description": "GLM/Z.AI video generation",
     "type": "api",
-    "sizes": [
-      "1280x720",
-      "720x1280",
-      "1024x1024",
-      "1920x1080",
-      "1080x1920",
-      "2048x1080",
-      "3840x2160"
-    ],
     "billedDurations": [
       5,
       10
@@ -374,14 +365,6 @@
   "ltx": {
     "description": "LTX video generation",
     "type": "api",
-    "sizes": [
-      "1920x1080",
-      "1080x1920",
-      "2560x1440",
-      "1440x2560",
-      "3840x2160",
-      "2160x3840"
-    ],
     "resolutions": [
       "1080p",
       "4k"

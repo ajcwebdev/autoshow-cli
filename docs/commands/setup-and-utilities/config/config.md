@@ -260,8 +260,6 @@ Model-selecting fields are arrays of models, not single strings.
 | `providerConcurrency`, `localConcurrency` | `--provider-concurrency`, `--local-concurrency` |
 | `segmentConcurrency`, `preflightConcurrency` | `--stt-segment-concurrency`, `--stt-preflight-concurrency` |
 
-`--stt together` appears in generated config help through the shared STT registry, but the current persisted config schema does not validate `defaults.extract.stt.togetherStt`. Use it on `extract` or `write` directly until schema support is added.
-
 ### defaults.extract.ocr
 
 | Field | Flag |

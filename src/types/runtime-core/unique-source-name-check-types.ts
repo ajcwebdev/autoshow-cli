@@ -5,8 +5,3 @@ export type SourceNameViolation = {
   name: string
   paths: string[]
 }
-
-export type SourceNameCheckOptions = {
-  sourceRoot?: string
-  allowedIndexPath?: string
-}
