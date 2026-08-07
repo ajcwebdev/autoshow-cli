@@ -1,4 +1,4 @@
-import { canonicalizeProcessCommand, isExtractCommand } from '~/cli/commands/process-steps/process-command-kinds'
+import { isExtractCommand } from '~/cli/commands/process-steps/process-command-kinds'
 import { getYtDlpBinary, hasYtDlpBinary } from '~/cli/commands/process-steps/shared/shared-yt-dlp-binary'
 import { isHtmlArticleTarget, isLikelyUrl } from '~/cli/commands/process-steps/step-0-metadata/metadata-targets/metadata-input-classifier'
 import { classifyTopLevelTarget } from '~/cli/commands/process-steps/step-0-metadata/metadata-targets/metadata-input-collection'
@@ -35,8 +35,6 @@ export const resolveProcessTargetDoubleDash = (
   target: string | undefined,
   doubleDash: string[] = []
 ): ResolvedProcessTargetDoubleDash => {
-  const displayCommand = canonicalizeProcessCommand(command)
-
   if (typeof target === 'string' && target.length > 0) {
     if (doubleDash.length > 0) {
       if (!isDownloadCommand(command)) {
@@ -59,10 +57,10 @@ export const resolveProcessTargetDoubleDash = (
   }
 
   if (doubleDash.length > 1) {
-    throw CLIUsageError(`Too many positional inputs for "${displayCommand}": ${doubleDash.join(' ')}. Run: bun autoshow help ${displayCommand}`)
+    throw CLIUsageError(`Too many positional inputs for "${command}": ${doubleDash.join(' ')}. Run: bun autoshow help ${command}`)
   }
 
-  throw CLIUsageError(`Missing input for "${displayCommand}". Run: bun autoshow help ${displayCommand}`)
+  throw CLIUsageError(`Missing input for "${command}". Run: bun autoshow help ${command}`)
 }
 
 const runRawYtDlp = async (args: string[]): Promise<void> => {

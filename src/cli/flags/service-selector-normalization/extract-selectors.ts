@@ -2,7 +2,7 @@ import { readInjectedConfigFlags } from '~/cli/commands/process-steps/step-1-dow
 import { URL_ARTICLE_BACKENDS } from '~/cli/commands/process-steps/step-2-extract/step-2-shared/provider-registry'
 import type { ExtractPublicSelectorTarget, ExtractSelectorInputRoutes, SelectorNormalizationResult } from '~/types'
 import { CLIUsageError } from '~/utils/error-handler'
-import { appendFlagValue, normalizeProviderAliases, occurrenceValues, parseLongFlagArg, parseProviderSelectorValue, setBooleanFlag } from './flag-helpers'
+import { appendFlagValue, occurrenceValues, parseLongFlagArg, parseProviderSelectorValue, setBooleanFlag } from './flag-helpers'
 
 export const EXTRACT_PUBLIC_SELECTOR_FLAGS: Record<string, ExtractPublicSelectorTarget> = {
   reverb: { stt: 'reverb-stt' },
@@ -35,11 +35,10 @@ const extractBooleanSelectorTargetFlags = new Set(['reverb-stt', 'tesseract-ocr'
 const extractUrlProviderNames = new Set<string>(URL_ARTICLE_BACKENDS)
 
 const selectExtractGenericTargets = (
-  rawProviderName: string,
+  providerName: string,
   value: string | boolean,
   routes: ExtractSelectorInputRoutes
 ): Array<{ target: string, value: string | boolean }> => {
-  const providerName = normalizeProviderAliases(rawProviderName)
   const targets: Array<{ target: string, value: string | boolean }> = []
   const target = EXTRACT_PUBLIC_SELECTOR_FLAGS[providerName as keyof typeof EXTRACT_PUBLIC_SELECTOR_FLAGS]
 
@@ -52,13 +51,13 @@ const selectExtractGenericTargets = (
 
   if (routes.article && extractUrlProviderNames.has(providerName)) {
     if (value !== true) {
-      throw CLIUsageError(`--provider ${rawProviderName} does not accept a model for article extract inputs.`)
+      throw CLIUsageError(`--provider ${providerName} does not accept a model for article extract inputs.`)
     }
     targets.push({ target: 'url-provider', value: providerName })
   }
 
   if (targets.length === 0) {
-    throw CLIUsageError(`--provider ${rawProviderName} does not apply to ${describeRoutes(routes)} extract inputs.`)
+    throw CLIUsageError(`--provider ${providerName} does not apply to ${describeRoutes(routes)} extract inputs.`)
   }
 
   const selectedModelTargets = targets.filter((entry) =>
@@ -66,13 +65,13 @@ const selectExtractGenericTargets = (
   )
   if (typeof value === 'string' && selectedModelTargets.length > 1) {
     throw CLIUsageError(
-      `--provider ${rawProviderName}=<model> is ambiguous for ${describeRoutes(routes)} extract inputs. Split the batch by input type or omit the model to use route-specific defaults.`
+      `--provider ${providerName}=<model> is ambiguous for ${describeRoutes(routes)} extract inputs. Split the batch by input type or omit the model to use route-specific defaults.`
     )
   }
 
   for (const entry of targets) {
     if (typeof value === 'string' && extractBooleanSelectorTargetFlags.has(entry.target)) {
-      throw CLIUsageError(`--provider ${rawProviderName} does not accept a model for ${describeRoutes(routes)} extract inputs.`)
+      throw CLIUsageError(`--provider ${providerName} does not accept a model for ${describeRoutes(routes)} extract inputs.`)
     }
   }
 

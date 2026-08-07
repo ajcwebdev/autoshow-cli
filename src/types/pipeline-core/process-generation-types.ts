@@ -26,7 +26,7 @@ export const TtsScriptOutputSchema = v.object({
 })
 
 export type Step5Metadata = {
-  imageService: ImageProvider | 'reve'
+  imageService: ImageProvider
   imageModel: string
   processingTime: number
   imageFileNames: string[]

@@ -43,18 +43,6 @@ const ltxFastOnlyDurations = LTX_FAST_1080P_DURATION_SECONDS.filter(
   (seconds) => !(LTX_DURATION_SECONDS as readonly number[]).includes(seconds)
 )
 
-export const VIDEO_COMMAND_SELECTOR_FLAGS = {
-  'gemini-video': 'gemini',
-  'minimax-video': 'minimax',
-  'glm-video': 'glm',
-  'grok-video': 'grok',
-  'runway-video': 'runway',
-  'ltx-video': 'ltx',
-  'replicate-video': 'replicate',
-  'lumalabs-video': 'lumalabs',
-  'fal-video': 'fal'
-} as const satisfies Record<string, string>
-
 export const videoGenFlags = {
   'video-mode': {
     description: `Video generation mode: ${formatValueList(VIDEO_MODES)} (default: text)`,
@@ -189,42 +177,6 @@ const videoCommandOptionNames = {
 const videoProviderSelectionFlags = {
   provider: {
     description: `Video provider[=model]: ${formatProviderList(STANDALONE_VIDEO_PROVIDER_TARGETS)}; repeatable`,
-    type: [String] as [StringConstructor]
-  },
-  'gemini-video': {
-    description: 'Gemini video model; repeatable',
-    type: [String] as [StringConstructor]
-  },
-  'minimax-video': {
-    description: 'MiniMax video model; repeatable',
-    type: [String] as [StringConstructor]
-  },
-  'glm-video': {
-    description: 'GLM video model; repeatable',
-    type: [String] as [StringConstructor]
-  },
-  'grok-video': {
-    description: 'Grok video model; repeatable',
-    type: [String] as [StringConstructor]
-  },
-  'runway-video': {
-    description: 'Runway video model; repeatable',
-    type: [String] as [StringConstructor]
-  },
-  'ltx-video': {
-    description: 'LTX video model; repeatable',
-    type: [String] as [StringConstructor]
-  },
-  'replicate-video': {
-    description: 'Replicate video model; repeatable',
-    type: [String] as [StringConstructor]
-  },
-  'lumalabs-video': {
-    description: 'Luma Labs video model; repeatable',
-    type: [String] as [StringConstructor]
-  },
-  'fal-video': {
-    description: 'fal.ai video model; repeatable',
     type: [String] as [StringConstructor]
   },
   ...booleanAllProvidersFlag,

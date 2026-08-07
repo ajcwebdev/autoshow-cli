@@ -186,7 +186,7 @@ Passing `--llm anthropic` keeps the cheaper `claude-haiku-4-5` default. Claude O
 | Option | Value |
 |--------|-------|
 | Selector | `--llm gemini[=<model>]` |
-| Models | `gemini-3.1-pro-preview`, `gemini-3.1-flash-lite`, `gemini-3.1-flash-lite-preview` (compatibility alias for `gemini-3.1-flash-lite`), `gemini-3.6-flash`, `gemini-3.5-flash`, `gemini-3.5-flash-lite` |
+| Models | `gemini-3.1-pro-preview`, `gemini-3.1-flash-lite`, `gemini-3.6-flash`, `gemini-3.5-flash`, `gemini-3.5-flash-lite` |
 
 ```bash
 bun autoshow write https://ajc.pics/autoshow/examples/1-audio.mp3 --llm gemini=gemini-3.1-flash-lite

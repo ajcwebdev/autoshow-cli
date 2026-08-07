@@ -7,7 +7,7 @@ import { isTextInputPath } from '~/cli/commands/process-steps/step-3-write/text-
 import { fileExists } from '~/utils/cli-utils'
 import { CLIUsageError } from '~/utils/error-handler'
 import type { AggregatedPriceEstimate, BatchChildRunContext, BatchItem, BatchItemProcessResult, ProcessCommand, RuntimeOptions, SttBatchCoordinator } from '~/types'
-import { canonicalizeProcessCommand, isExtractCommand } from '~/cli/commands/process-steps/process-command-kinds'
+import { isExtractCommand } from '~/cli/commands/process-steps/process-command-kinds'
 import { classifyInputFamily, classifyUrlInput, isDocumentByExtension, isHtmlDocumentPath, isLikelyUrl } from '~/cli/commands/process-steps/step-0-metadata/metadata-targets/metadata-input-classifier'
 import { throwUnrecognizedExtractInput, throwUnsupportedProcessInput } from './single-target-errors'
 import { processDownloadMedia, processMediaSingle, processMetadataMedia } from './media-runner'
@@ -35,7 +35,6 @@ export const processSingleTarget = async (
   },
   batchItem?: BatchItem
 ): Promise<BatchItemProcessResult | void> => {
-  const displayCommand = canonicalizeProcessCommand(command)
   const batchChildContext = runOptions?.batchChildContext
   baseDir = baseDir && baseDir.trim().length > 0 ? baseDir : opts.outputRootDir
 
@@ -214,7 +213,7 @@ export const processSingleTarget = async (
         return await runXSpaceWrite(item, baseDir, opts, preflightEstimate, batchChildContext)
       }
     }
-    throw CLIUsageError(`Input does not exist: ${item}. Run: bun autoshow help ${displayCommand}`)
+    throw CLIUsageError(`Input does not exist: ${item}. Run: bun autoshow help ${command}`)
   }
 
   if (isHtmlDocumentPath(item)) {

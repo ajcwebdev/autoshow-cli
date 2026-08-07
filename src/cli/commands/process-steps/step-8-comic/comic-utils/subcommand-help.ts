@@ -1,5 +1,4 @@
 import {
-  characterSketchFlags,
   draftScenesFlags,
   generateImagesFlags,
   referenceSketchFlags
@@ -7,7 +6,6 @@ import {
 import { renderCommandHelp } from '~/cli/native/help-renderer'
 import { createNativeRootDefinition } from '~/cli/native/root-definition'
 import {
-  CHARACTER_SKETCH_COMMAND,
   DRAFT_SCENES_COMMAND,
   GENERATE_IMAGES_COMMAND,
   REFERENCE_SKETCH_COMMAND
@@ -26,7 +24,6 @@ const ARTIFACT_NOTE = 'Comic artifacts are read from input and written under out
 export const DRAFT_SCENES_DESCRIPTION = 'Run script markdown to structured script JSON to draft prompt bundles to scene JSON to panel prompt bundles'
 export const GENERATE_IMAGES_DESCRIPTION = 'Run panel prompt bundles to review sketches and/or final panel images'
 export const REFERENCE_SKETCH_DESCRIPTION = 'Generate and register a character sheet or one canonical location view'
-export const CHARACTER_SKETCH_DESCRIPTION = 'Generate and register a flat three-view character outline sheet'
 
 const draftScenesHelp: ComicSubcommandHelpDefinition = {
   name: `comic ${DRAFT_SCENES_COMMAND}`,
@@ -90,28 +87,10 @@ const referenceSketchHelp: ComicSubcommandHelpDefinition = {
   }
 }
 
-const characterSketchHelp: ComicSubcommandHelpDefinition = {
-  name: `comic ${CHARACTER_SKETCH_COMMAND}`,
-  description: CHARACTER_SKETCH_DESCRIPTION,
-  flags: characterSketchFlags,
-  help: {
-    examples: [
-      [`bun autoshow comic ${CHARACTER_SKETCH_COMMAND} --character hero`, 'Generate a character sketch reference'],
-      [`bun autoshow comic ${CHARACTER_SKETCH_COMMAND} --character hero --price`, 'Estimate the sketch cost without calling any provider']
-    ],
-    notes: [
-      `Compatibility alias for bun autoshow comic ${REFERENCE_SKETCH_COMMAND} --character <key>.`,
-      `--location is not accepted here; use bun autoshow comic ${REFERENCE_SKETCH_COMMAND} --location <key>.`,
-      ARTIFACT_NOTE
-    ]
-  }
-}
-
 const COMIC_SUBCOMMAND_HELP: Readonly<Record<string, ComicSubcommandHelpDefinition>> = {
   [DRAFT_SCENES_COMMAND]: draftScenesHelp,
   [GENERATE_IMAGES_COMMAND]: generateImagesHelp,
-  [REFERENCE_SKETCH_COMMAND]: referenceSketchHelp,
-  [CHARACTER_SKETCH_COMMAND]: characterSketchHelp
+  [REFERENCE_SKETCH_COMMAND]: referenceSketchHelp
 }
 
 export const COMIC_SUBCOMMAND_SUMMARIES: ReadonlyArray<readonly [name: string, description: string]> =

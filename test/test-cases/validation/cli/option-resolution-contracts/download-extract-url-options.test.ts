@@ -35,7 +35,7 @@ describe('option resolution contracts', () => {
         'together-stt': 'openai/whisper-large-v3',
         'deepgram-stt': 'nova-3',
         'scrapecreators-stt': 'youtube-transcript',
-        'scrapecreators-lang': 'fr',
+        'stt-scrapecreators-lang': 'fr',
         'grok-tts': 'grok-tts',
         'grok-tts-voice': 'EVE',
         'mistral-tts': 'voxtral-mini-tts-2603',

@@ -26,28 +26,6 @@ import { buildSttEstimatesForTargets } from '~/utils/pricing/aggregate-pricing/s
 const isRecord = (value: unknown): value is Record<string, unknown> =>
   typeof value === 'object' && value !== null && !Array.isArray(value)
 
-const RETIRED_STT_MODEL_REPLACEMENTS: Record<string, {
-  selectorProvider: string
-  models: readonly string[]
-}> = {
-  'assemblyai:universal-3-pro': {
-    selectorProvider: 'assemblyai',
-    models: ['universal-3-5-pro', 'universal-2']
-  },
-  'gemini-stt:gemini-3-flash-preview': {
-    selectorProvider: 'gemini',
-    models: ['gemini-3.6-flash']
-  },
-  'gladia:default': {
-    selectorProvider: 'gladia',
-    models: ['solaria-1', 'solaria-3']
-  },
-  'soniox:stt-async-v4': {
-    selectorProvider: 'soniox',
-    models: ['stt-async-v5']
-  }
-}
-
 const assertStoredMissingSttTargetsAreActive = (
   targets: readonly SttTarget[]
 ): void => {
@@ -57,12 +35,8 @@ const assertStoredMissingSttTargetsAreActive = (
       continue
     }
 
-    const replacement = RETIRED_STT_MODEL_REPLACEMENTS[`${target.service}:${target.model}`]
-    const replacementHint = replacement && replacement.models.length > 0
-      ? ` Start a new target with ${replacement.models.map((model) => `--provider ${replacement.selectorProvider}=${model}`).join(' or ')}.`
-      : ` Start a new target with an active ${target.service} model.`
     throw CLIUsageError(
-      `Stored STT target ${formatSttTargetLabel(target)} is incomplete, but that model is no longer in the active registry. AutoShow will not substitute a different model because that would change the stored target identity.${replacementHint}`
+      `Stored STT target ${formatSttTargetLabel(target)} is incomplete, but that model is no longer in the active registry. AutoShow will not substitute a different model because that would change the stored target identity. Start a new target with an active ${target.service} model.`
     )
   }
 }

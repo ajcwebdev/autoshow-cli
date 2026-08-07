@@ -30,4 +30,3 @@ export type OcrRuntimeOptionKey =
   | 'epubChunkLimitChars'
   | 'pdfChapterMode'
   | 'useEpubBun'
-  | 'useEpubCalibre'

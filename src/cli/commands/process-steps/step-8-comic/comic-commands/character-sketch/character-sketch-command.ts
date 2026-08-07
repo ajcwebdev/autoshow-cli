@@ -57,14 +57,14 @@ export const characterSketchCommand = async (
   dependencies: CharacterSketchCommandDependencies = {},
 ): Promise<void> => {
   if (!options.character) throw CLIUsageError('--character is required')
-  if ((options.imageModels?.length ?? 1) !== 1) throw CLIUsageError('character-sketch accepts exactly one --image-model')
+  if ((options.imageModels?.length ?? 1) !== 1) throw CLIUsageError('comic reference-sketch accepts exactly one --image-model')
 
   suppressSharedPipelineLogs()
   const catalog = loadCharacterCatalog()
   const key = catalog.requireKey(options.character)
   const character = catalog.get(key)
   const model = options.imageModels?.[0] ?? DEFAULT_IMAGE_MODEL
-  if (!model) throw CLIUsageError('character-sketch requires one image model')
+  if (!model) throw CLIUsageError('comic reference-sketch --character requires one image model')
   const size = options.size ?? DEFAULT_IMAGE_SIZE
   const quality = options.quality ?? DEFAULT_CHARACTER_SKETCH_QUALITY
   validateImageSizeForModels(size, [model])
@@ -82,7 +82,7 @@ export const characterSketchCommand = async (
   await mkdir(catalog.root, { recursive: true })
   const temporaryDirectory = await mkdtemp(join(catalog.root, '.character-sketch-tmp-'))
   const startTime = Date.now()
-  comicLog.header('comic character-sketch', [`character=${key}`, `generation=${generationId}`])
+  comicLog.header('comic reference-sketch --character', [`character=${key}`, `generation=${generationId}`])
   comicLog.line('config', [`model=${model}`, `size=${size}`, `quality=${quality}`, options.revise ? 'revise=true' : undefined])
 
   try {

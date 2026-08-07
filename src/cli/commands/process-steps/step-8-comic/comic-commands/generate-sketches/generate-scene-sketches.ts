@@ -35,12 +35,12 @@ loadPromptsConfig,
 PANEL_FILENAME_PADDING,
 } from '../../comic-utils/scene-utils'
 import {
-DEFAULT_PANELS_PER_IMAGE,
+DEFAULT_SKETCH_PANELS_PER_IMAGE,
 hasOnlyTrailingPanelSelectionMisses,
 } from '../generate-images/comic-page-utils'
 import { runWithConcurrency } from '../../comic-utils/run-with-concurrency'
 
-const SKETCH_CHUNK_SIZE = DEFAULT_PANELS_PER_IMAGE
+const SKETCH_CHUNK_SIZE = DEFAULT_SKETCH_PANELS_PER_IMAGE
 
 
 const formatSketchChunkLabel = (startPanelNumber: number, endPanelNumber: number): string => {
@@ -213,17 +213,6 @@ const buildSketchPromptData = (
   })
 }
 
-const preferSketchRefsOverCanonicalRefs = (
-  _panels: Array<Pick<ComicPanelSource, 'bundleData'>>,
-  primaryCharacterRefs: string[],
-  sketchCharacterRefs: string[],
-  canonicalCharacterRefs: string[]
-): string[] => {
-  void sketchCharacterRefs
-  void canonicalCharacterRefs
-  return primaryCharacterRefs
-}
-
 export const buildSketchPrompt = (
   sketchPromptData: PanelBundleData,
   sketchPrompts: PromptsConfig['Sketch Prompts']
@@ -278,12 +267,7 @@ const resolveSketchChunkReferences = (
       bundleData: panel.bundleData,
     }))
   )
-  const preferredPrimaryCharacterRefs = preferSketchRefsOverCanonicalRefs(
-    panels,
-    primaryCharacterReferenceState.primaryCharacterRefs,
-    primaryCharacterReferenceState.sketchCharacterRefs,
-    primaryCharacterReferenceState.canonicalCharacterRefs,
-  )
+  const preferredPrimaryCharacterRefs = primaryCharacterReferenceState.primaryCharacterRefs
 
   // Already-generated sketches lead the reference list so recurring characters carry
   // their established design forward; character refs alone let a face drift between

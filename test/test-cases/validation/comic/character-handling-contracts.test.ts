@@ -9,7 +9,7 @@ import { loadCharacterCatalog } from '~/cli/commands/process-steps/step-8-comic/
 import { createCharacterReferenceSnapshot, loadAndVerifyCharacterReferenceSnapshot, compileCharacterReferences } from '~/cli/commands/process-steps/step-8-comic/comic-utils/character-reference-snapshot'
 import { checksumFile, getCharacterSketchManifestPath, requireCurrentCharacterSketch } from '~/cli/commands/process-steps/step-8-comic/comic-commands/process-scenes/character-utils'
 import { buildSceneJsonSchema, buildStructuredScriptJsonSchema, PanelBundleDataSchema, ScenePromptDataSchema, StructuredScriptDataSchema, validateSceneCharacters } from '~/cli/commands/process-steps/step-8-comic/schemas/schemas'
-import { parseCharacterSketchArgs } from '~/cli/commands/process-steps/step-8-comic/comic-utils/cli-args'
+import { parseReferenceSketchArgs } from '~/cli/commands/process-steps/step-8-comic/comic-utils/cli-args'
 import { getReferenceImageCapabilities, trimOptionalContinuityReferences } from '~/cli/commands/process-steps/step-8-comic/comic-utils/reference-capabilities'
 import { characterSketchCommand } from '~/cli/commands/process-steps/step-8-comic/comic-commands/character-sketch/character-sketch-command'
 
@@ -233,11 +233,11 @@ describe('comic character handling flat-reference contracts', () => {
     expect(() => v.parse(PanelBundleDataSchema, { title: 'legacy', location: '', panels: [] })).toThrow()
   })
 
-  test('character-sketch parsing removes --image and enforces one model', () => {
-    expect(() => parseCharacterSketchArgs(['--image', 'hero.webp'])).toThrow(/--image was removed/)
-    expect(() => parseCharacterSketchArgs(['--character', 'hero', '--image-model', 'gpt-image-2,grok-imagine-image'])).toThrow(/exactly one/)
-    expect(() => parseCharacterSketchArgs(['--character', 'hero', '--force'])).toThrow(/Unknown argument/)
-    expect(parseCharacterSketchArgs(['--character', 'hero', '--revise', '--notes', 'Fix eyes']).character).toBe('hero')
+  test('reference-sketch character parsing rejects --image and enforces one model', () => {
+    expect(() => parseReferenceSketchArgs(['--character', 'hero', '--image', 'hero.webp'])).toThrow(/Unknown argument: --image/)
+    expect(() => parseReferenceSketchArgs(['--character', 'hero', '--image-model', 'gpt-image-2,grok-imagine-image'])).toThrow(/exactly one/)
+    expect(() => parseReferenceSketchArgs(['--character', 'hero', '--force'])).toThrow(/Unknown argument/)
+    expect(parseReferenceSketchArgs(['--character', 'hero', '--revise', '--notes', 'Fix eyes']).character).toBe('hero')
   })
 
   test('snapshot copies each character once, orders sheet before source, and detects tampering', async () => {

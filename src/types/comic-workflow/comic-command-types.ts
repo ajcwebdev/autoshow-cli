@@ -40,10 +40,6 @@ type ComicPanelGenerationOptionsBase = {
   qa?: boolean
   qaModel?: LlmModel
   maxRepairs?: number
-  /** @deprecated Use qa. */
-  pageQa?: boolean
-  /** @deprecated Use qaModel. */
-  pageQaModel?: LlmModel
 }
 
 export type CharacterSketchCommandOptions = Omit<ComicImageCommandOptionsBase, 'force'> & {
@@ -52,8 +48,6 @@ export type CharacterSketchCommandOptions = Omit<ComicImageCommandOptionsBase, '
   notes?: string
   concurrency?: number
 }
-
-export type ParsedCharacterSketchArgs = CharacterSketchCommandOptions & { showHelp: boolean; price?: boolean }
 
 export type ReferenceSketchCommandOptions = Omit<ComicImageCommandOptionsBase, 'force'> & ComicLlmCommandOptionsBase & {
   character?: string
@@ -129,8 +123,6 @@ export type GenerateComicPagesOptions = ComicImageRunOptionsBase & {
   panels: ComicPanelSelection
   panelsPerImage: number
   variations?: ImagePromptVariation[]
-  pageQa?: boolean
-  pageQaModel?: LlmModel
   qa?: boolean
   qaModel?: LlmModel
   maxRepairs?: number

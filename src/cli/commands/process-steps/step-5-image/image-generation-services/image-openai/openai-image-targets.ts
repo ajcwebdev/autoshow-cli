@@ -125,7 +125,7 @@ export const collectOpenAIImageTargets = (options: ImageGenOptions): ImageTarget
     if (options.imageResponseMode !== undefined || options.geminiSearchGrounding === true) {
       const unsupported: string[] = []
       if (options.imageResponseMode !== undefined) unsupported.push('--image-response-mode')
-      if (options.geminiSearchGrounding === true) unsupported.push('--gemini-search-grounding')
+      if (options.geminiSearchGrounding === true) unsupported.push('--image-search-grounding')
       throw unsupportedFlagError('OpenAI', model, unsupported, 'These flags are Gemini-only.')
     }
     validateImageInputReferences(options.imageInputs, {

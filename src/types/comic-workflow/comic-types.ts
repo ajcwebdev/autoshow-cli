@@ -71,8 +71,6 @@ export type ParsedGenerateBaseArgs = {
   quality?: ParsedImageQuality
   force?: boolean
   concurrency?: number
-  pageQa?: boolean
-  pageQaModel?: ParsedLlmModel
   qa?: boolean
   qaModel?: ParsedLlmModel
   maxRepairs?: number

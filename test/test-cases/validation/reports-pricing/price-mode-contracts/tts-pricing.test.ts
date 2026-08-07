@@ -429,7 +429,7 @@ describe('price mode contracts', () => {
 
     })
 
-  test('revised TTS models expose approved pricing, provisional timing, and historical aliases', () => {
+  test('revised TTS models expose approved pricing and provisional timing', () => {
     for (const model of ['aura-2-helena-en', 'aura-2-arcas-en', 'aura-2-aries-en']) {
       expect(getTtsPricing('deepgram', model).costPer1kCharsCents).toBe(3)
       expect(getTtsEstimation('deepgram', model).msPer1KChars).toBe(39_639)
@@ -438,11 +438,5 @@ describe('price mode contracts', () => {
     expect(getTtsPricing('elevenlabs', 'eleven_flash_v2_5').costPer1kCharsCents).toBe(5)
     expect(getTtsEstimation('elevenlabs', 'eleven_multilingual_v2').msPer1KChars).toBe(35_885)
     expect(getTtsEstimation('elevenlabs', 'eleven_flash_v2_5').msPer1KChars).toBe(35_885)
-
-    expect(getTtsPricing('cartesia', 'sonic-3')).toEqual(getTtsPricing('cartesia', 'sonic-3.5-2026-05-04'))
-    expect(getTtsPricing('cartesia', 'sonic-3.5')).toEqual(getTtsPricing('cartesia', 'sonic-3.5-2026-05-04'))
-    expect(getTtsPricing('openai', 'gpt-4o-mini-tts')).toEqual(getTtsPricing('openai', 'gpt-4o-mini-tts-2025-12-15'))
-    expect(getTtsPricing('speechify', 'simba-english')).toEqual(getTtsPricing('speechify', 'simba-3.2'))
-    expect(getTtsEstimation('openai', 'gpt-4o-mini-tts')).toEqual(getTtsEstimation('openai', 'gpt-4o-mini-tts-2025-12-15'))
   })
 })

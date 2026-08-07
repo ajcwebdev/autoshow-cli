@@ -119,7 +119,6 @@ Accepted provider selectors are the lowercase names below.
 | `--replicate` | `general`, `models` |
 | `--resend` | `general` |
 | `--rev` | `general`, `stt` |
-| `--reve` | `image` |
 | `--runway` | `general`, `models` |
 | `--scrapecreators` | `general`, `stt`, `url` |
 | `--solidbase` | `general` |

@@ -93,7 +93,7 @@ export const buildExpectedFilesList = async (
     const ocrArtifact = getExpectedOcrArtifact(opts)
     const ocrExportArtifacts = getExpectedOcrExportArtifacts(opts, routing)
     const htmlArticleInput = routing?.family === 'html_article'
-    if (opts.useEpubBun || opts.useEpubCalibre) {
+    if (opts.useEpubBun) {
       return ['run.json (includes EPUB inspection payload)', 'Extracted text (non-EPUB fallback inputs only)', ...ocrExportArtifacts]
     }
     if (htmlArticleInput && opts.urlBackends) {
@@ -164,7 +164,7 @@ export const buildExpectedFilesList = async (
     && (routing?.family === 'document' || routing?.family === 'html_article')
   if (documentWrite) {
     const htmlArticleInput = routing?.family === 'html_article'
-    const files = opts.useEpubBun || opts.useEpubCalibre
+    const files = opts.useEpubBun
       ? [summaryFile, 'run.json (includes EPUB inspection payload)']
       : htmlArticleInput && opts.urlBackends
         ? ['providers/<backend>/result.json', 'providers/<backend>/extraction.txt', summaryFile]

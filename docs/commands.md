@@ -268,7 +268,7 @@ bun autoshow video "a sunset timelapse" --all-providers --price
 bun autoshow music "an ambient piano instrumental" --provider minimax=music-3.0 --instrumental --price
 bun autoshow music "an ambient piano instrumental" --provider gemini=lyria-3-pro-preview --duration 120 --price
 bun autoshow comic draft-scenes input/scripts/02-script/01-co-work-smarter.md --price
-bun autoshow comic character-sketch --character peaches --price
+bun autoshow comic reference-sketch --character peaches --price
 bun autoshow comic generate-images input/scripts/02-script/01-co-work-smarter.md --target images --price
 bun autoshow comic generate-images 02-01 --target images --panels 1-16 --price
 ```

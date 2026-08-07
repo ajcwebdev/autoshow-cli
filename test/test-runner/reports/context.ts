@@ -54,8 +54,6 @@ const ARG_SERVICE_FLAGS: Record<string, ReportArgServiceFlag> = {
   '--gemini-image': { service: 'gemini', kind: 'image' },
   '--grok-image': { service: 'grok', kind: 'image' },
   '--bfl-image': { service: 'bfl', kind: 'image' },
-  // Historical reports may contain this retired selector even though new runs cannot select it.
-  '--reve-image': { service: 'reve', kind: 'image' },
   '--gemini-video': { service: 'gemini', kind: 'video' },
   '--minimax-video': { service: 'minimax', kind: 'video' },
   '--glm-video': { service: 'glm', kind: 'video' },
@@ -319,7 +317,8 @@ const buildPairsFromMetricArgs = (metric: ParsedCommandMetric): ServiceModelPair
     const arg = metric.args[index]
     if (!arg) continue
 
-    if (arg === '--url-backend') {
+    // `--url-provider` is current; `--url-backend` is the retired spelling historical reports may still record.
+    if (arg === '--url-provider' || arg === '--url-backend') {
       const next = metric.args[index + 1]
       if (next === 'firecrawl') {
         pushPair(pairs, 'extract', 'firecrawl', 'firecrawl')

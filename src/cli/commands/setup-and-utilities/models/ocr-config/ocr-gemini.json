@@ -97,30 +97,6 @@
           "completionTokensPerPage": 1626
         }
       },
-      "gemini-3.1-flash-lite-preview": {
-        "description": "Compatibility alias for Gemini 3.1 Flash-Lite OCR",
-        "pricingSourceUrl": "https://ai.google.dev/gemini-api/docs/pricing",
-        "pricingCheckedAt": "2026-05-31",
-        "pricingCurrency": "USD",
-        "pricingTier": "Gemini API paid Standard",
-        "pricingNotes": "Gemini 3.1 Flash-Lite Standard pricing is $0.25/1M text/image/video input tokens and $1.50/1M output tokens. OCR estimates multiply observed token usage by these published rates; free tier, batch/flex prices, taxes, and provider credits are ignored.",
-        "costPerMInputTokensUSD": 0.25,
-        "costPerMOutputTokensUSD": 1.5,
-        "costPerMInputTokensCents": 25,
-        "costPerMOutputTokensCents": 150,
-        "limits": {
-          "pdfBytes": 2147483648,
-          "imageBytes": 2147483648,
-          "pageCount": 1000,
-          "notes": "project/links/gemini-general-ocr-text-links.md documents inline PDF input up to 50 MB, inline non-PDF payloads up to 100 MB, Files API uploads up to 2 GB per file, and document understanding up to 1000 PDF pages."
-        },
-        "estimation": {
-          "costMultiplier": 0.4492,
-          "msPerPage": 2921,
-          "promptTokensPerPage": 1157,
-          "completionTokensPerPage": 1626
-        }
-      },
       "gemini-3.6-flash": {
         "description": "Gemini 3.6 Flash OCR",
         "pricingSourceUrl": "https://ai.google.dev/gemini-api/docs/pricing",

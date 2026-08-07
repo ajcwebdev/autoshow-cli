@@ -1,5 +1,5 @@
 import { expect, test } from 'bun:test'
-import { createReader, inspectEpubWithReader, runEpubCalibreInspect } from './shared'
+import { createReader, inspectEpubWithReader } from './shared'
 
 test('EPUB TOC heading matching uses cleaned HTML fragments', async () => {
   const inspected = await inspectEpubWithReader(createReader({
@@ -87,12 +87,4 @@ test('EPUB nav TOC titles use cleaned HTML fragments', async () => {
   expect(inspected.payload.toc.source).toBe('nav')
   expect(inspected.payload.toc.items[0]?.title).toBe('Chapter One')
   expect(inspected.payload.chapters[0]?.title).toBe('Chapter One')
-})
-
-test('--epub-calibre compatibility path uses the native Bun EPUB reader', async () => {
-  const inspected = await runEpubCalibreInspect('input/examples/document/1-epub.epub')
-
-  expect(inspected.payload.engine).toBe('calibre')
-  expect(inspected.payload.diagnostics.adapter).toBe('bun-zip')
-  expect(inspected.payload.chapters.length).toBeGreaterThan(0)
 })

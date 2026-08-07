@@ -57,7 +57,7 @@ export const buildImageOptions = (ctx: BuildDomainOptionsContext): Pick<RuntimeO
     imageInputs: readOptionalStringListFlag(mergedFlags, 'image-input'),
     imageMask: readOptionalStringFlag(mergedFlags, 'image-mask'),
     imageResponseMode: readOptionalStringFlag(mergedFlags, 'image-response-mode'),
-    geminiSearchGrounding: (readBooleanFlag(mergedFlags, 'image-search-grounding') || readBooleanFlag(mergedFlags, 'gemini-search-grounding')) ? true : undefined,
+    geminiSearchGrounding: readBooleanFlag(mergedFlags, 'image-search-grounding') ? true : undefined,
     imageCompression: parseOptionalNumberFlag(readOptionalStringFlag(mergedFlags, 'image-compression'), 'image-compression', {
       min: 0,
       max: 100,

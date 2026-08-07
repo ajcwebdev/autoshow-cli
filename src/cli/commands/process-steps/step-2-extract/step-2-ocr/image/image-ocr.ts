@@ -1,8 +1,7 @@
 import { mkdir } from 'node:fs/promises'
 import { basename, dirname, extname, join } from 'node:path'
-import type { ExtractionOptions, LocalExtractOcrEngine, PageResult } from '~/types'
+import type { ExtractionOptions, PageResult } from '~/types'
 import * as l from '~/utils/app-logger/app-logger'
-import { assertNever } from '~/utils/validate/assert-never'
 import { ensureTesseractSetup, ocrImage } from '../ocr-utils/tesseract-utils'
 import { openZip, readZipEntryData } from '~/cli/commands/process-steps/step-1-download/document/zip-xml-utils'
 import { normalizeImageToPngWithBun } from '../ocr-utils/bun-image-utils'
@@ -86,23 +85,16 @@ export const ocrSingleImage = async (
   imagePath: string,
   pageNumber: number,
   opts: ExtractionOptions,
-  engine: LocalExtractOcrEngine,
   tempDir: string
 ): Promise<PageResult> => {
   const normalizedPath = await normalizeImageForOcr(imagePath, tempDir)
 
-  switch (engine) {
-    case 'tesseract': {
-      await ensureTesseractSetup()
-      const ocr = await ocrImage(normalizedPath, opts.languages, 'text')
-      return {
-        pageNumber,
-        method: 'ocr',
-        text: ocr.text,
-        ...(ocr.confidence !== undefined ? { confidence: ocr.confidence } : {})
-      }
-    }
-    default:
-      assertNever(engine)
+  await ensureTesseractSetup()
+  const ocr = await ocrImage(normalizedPath, opts.languages, 'text')
+  return {
+    pageNumber,
+    method: 'ocr',
+    text: ocr.text,
+    ...(ocr.confidence !== undefined ? { confidence: ocr.confidence } : {})
   }
 }

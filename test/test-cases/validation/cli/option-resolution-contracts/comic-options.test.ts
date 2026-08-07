@@ -12,7 +12,7 @@ import {
   buildComicPagePromptData,
   chunkComicGridPanels,
   chunkComicPagePanels,
-  DEFAULT_PANELS_PER_IMAGE,
+  DEFAULT_SKETCH_PANELS_PER_IMAGE,
   DEFAULT_FINAL_PANELS_PER_IMAGE,
   parseComicGridSpec,
   panelSelectionToSketchRange,
@@ -25,9 +25,8 @@ import {
   resolveSketchChunks,
   selectSketchPanelRange
 } from '~/cli/commands/process-steps/step-8-comic/comic-commands/generate-sketches/generate-scene-sketches'
-import { DEFAULT_LLM_MODEL, parseCharacterSketchArgs, parseDraftScenesArgs, parseGenerateImagesArgs, parseReferenceSketchArgs } from '~/cli/commands/process-steps/step-8-comic/comic-utils/cli-args'
+import { DEFAULT_LLM_MODEL, parseDraftScenesArgs, parseGenerateImagesArgs, parseReferenceSketchArgs } from '~/cli/commands/process-steps/step-8-comic/comic-utils/cli-args'
 import {
-  characterSketchFlags,
   draftScenesFlags,
   generateImagesFlags,
   referenceSketchFlags
@@ -62,21 +61,21 @@ describe('option resolution contracts', () => {
   })
   test('comic final images default to one panel while sketch chunks remain six', () => {
     expect(DEFAULT_FINAL_PANELS_PER_IMAGE).toBe(1)
-    expect(DEFAULT_PANELS_PER_IMAGE).toBe(6)
+    expect(DEFAULT_SKETCH_PANELS_PER_IMAGE).toBe(6)
     const chunks = chunkComicPagePanels(Array.from({ length: 29 }, (_, index) => ({ panelNumber: index + 1 })), DEFAULT_FINAL_PANELS_PER_IMAGE)
     expect(chunks).toHaveLength(29)
     expect(chunks.at(-1)?.panelNumbers).toEqual([29])
-    const qa = parseGenerateImagesArgs(['script.md', '--page-qa'])
+    const qa = parseGenerateImagesArgs(['script.md', '--qa'])
     expect(qa.qa).toBe(true)
     expect(qa.qaModel).toBe('gpt-5.6-sol')
-    expect(parseGenerateImagesArgs(['script.md', '--page-qa-model', 'gpt-5.5']).qaModel).toBe('gpt-5.5')
+    expect(parseGenerateImagesArgs(['script.md', '--qa-model', 'gpt-5.5']).qaModel).toBe('gpt-5.5')
   })
   test('comic generate-images args parse page image options', () => {
       const opts = parseGenerateImagesArgs([
         'input/scripts/02-script/01-co-work-smarter.md',
         '--image-model', 'gpt-image-2,gemini-3.1-flash-lite-image',
         '--panels', '1-4,9',
-        '--panels-per-image', String(DEFAULT_PANELS_PER_IMAGE),
+        '--panels-per-image', String(DEFAULT_SKETCH_PANELS_PER_IMAGE),
         '--variation', 'animation-polish,cinematic-depth',
         '--size', '1536x1024',
         '--quality', 'high',
@@ -86,7 +85,7 @@ describe('option resolution contracts', () => {
       expect(opts.scriptPath).toBe('input/scripts/02-script/01-co-work-smarter.md')
       expect(opts.imageModels).toEqual(['gpt-image-2', 'gemini-3.1-flash-lite-image'])
       expect(opts.panels).toEqual([1, 2, 3, 4, 9])
-      expect(opts.panelsPerImage).toBe(DEFAULT_PANELS_PER_IMAGE)
+      expect(opts.panelsPerImage).toBe(DEFAULT_SKETCH_PANELS_PER_IMAGE)
       expect(opts.variations).toEqual(['animation-polish', 'cinematic-depth'])
       expect(opts.size).toBe('1536x1024')
       expect(opts.quality).toBe('high')
@@ -116,12 +115,12 @@ describe('option resolution contracts', () => {
       expect(() => parseGenerateImagesArgs(['script.md', '--panels-per-image', '1', '--grid', '2x3', '--size', '1024x1024'])).toThrow('--grid requires --size 1536x1024')
     })
 
-  test('comic generate-images removed options throw deprecation errors', () => {
-      expect(() => parseGenerateImagesArgs(['script.md', '--panel-limit', '3'])).toThrow('--panel-limit was removed')
-      expect(() => parseGenerateImagesArgs(['script.md', '--panel', '2'])).toThrow('--panel was removed')
-      expect(() => parseGenerateImagesArgs(['script.md', '--chunk', '2'])).toThrow('--chunk was removed')
-      expect(() => parseGenerateImagesArgs(['script.md', '--sketch-group-size', '8'])).toThrow('--sketch-group-size was removed')
-      expect(() => parseGenerateImagesArgs(['script.md', '--sketch-panels', '1-4'])).toThrow('--sketch-panels was removed')
+  test('comic generate-images rejects removed option spellings as unknown arguments', () => {
+      expect(() => parseGenerateImagesArgs(['script.md', '--panel-limit', '3'])).toThrow('Unknown argument: --panel-limit')
+      expect(() => parseGenerateImagesArgs(['script.md', '--panel', '2'])).toThrow('Unknown argument: --panel')
+      expect(() => parseGenerateImagesArgs(['script.md', '--chunk', '2'])).toThrow('Unknown argument: --chunk')
+      expect(() => parseGenerateImagesArgs(['script.md', '--sketch-group-size', '8'])).toThrow('Unknown argument: --sketch-group-size')
+      expect(() => parseGenerateImagesArgs(['script.md', '--sketch-panels', '1-4'])).toThrow('Unknown argument: --sketch-panels')
     })
 
   test('comic generate-images variation args reject duplicates and unknown values', () => {
@@ -153,17 +152,15 @@ describe('option resolution contracts', () => {
       const opts = parseGenerateImagesArgs([
         'input/scripts/05-script/01-mechanic-goes-on-vacation.md',
         '--target', 'sketches',
-        '--panels-per-image', String(DEFAULT_PANELS_PER_IMAGE),
+        '--panels-per-image', String(DEFAULT_SKETCH_PANELS_PER_IMAGE),
         '--quality', 'high',
       ])
 
       expect(opts.scriptPath).toBe('input/scripts/05-script/01-mechanic-goes-on-vacation.md')
       expect(opts.target).toBe('sketches')
-      expect(opts.panelsPerImage).toBe(DEFAULT_PANELS_PER_IMAGE)
+      expect(opts.panelsPerImage).toBe(DEFAULT_SKETCH_PANELS_PER_IMAGE)
       expect(opts.quality).toBe('high')
-      expect(() => parseGenerateImagesArgs(['script.md', '--target', 'prompts'])).toThrow(
-        'bun autoshow comic draft-scenes <script-path> --only panel-prompts'
-      )
+      expect(() => parseGenerateImagesArgs(['script.md', '--target', 'prompts'])).toThrow('Invalid target "prompts". Expected one of: images, sketches, both')
     })
 
   test('comic generate-images args parse page image options with target', () => {
@@ -171,7 +168,7 @@ describe('option resolution contracts', () => {
         'input/scripts/02-script/01-co-work-smarter.md',
         '--target', 'images',
         '--panels', '1-6',
-        '--panels-per-image', String(DEFAULT_PANELS_PER_IMAGE),
+        '--panels-per-image', String(DEFAULT_SKETCH_PANELS_PER_IMAGE),
         '--image-model', 'gpt-image-2',
         '--size', '1536x1024',
         '--quality', 'high',
@@ -181,7 +178,7 @@ describe('option resolution contracts', () => {
       expect(opts.scriptPath).toBe('input/scripts/02-script/01-co-work-smarter.md')
       expect(opts.target).toBe('images')
       expect(opts.panels).toEqual([1, 2, 3, 4, 5, 6])
-      expect(opts.panelsPerImage).toBe(DEFAULT_PANELS_PER_IMAGE)
+      expect(opts.panelsPerImage).toBe(DEFAULT_SKETCH_PANELS_PER_IMAGE)
       expect(opts.imageModels).toEqual(['gpt-image-2'])
       expect(opts.size).toBe('1536x1024')
       expect(opts.quality).toBe('high')
@@ -277,7 +274,7 @@ describe('option resolution contracts', () => {
         panels,
         {
           sketchPanels: { startPanelNumber: 1, endPanelNumber: 12 },
-          panelsPerImage: DEFAULT_PANELS_PER_IMAGE,
+          panelsPerImage: DEFAULT_SKETCH_PANELS_PER_IMAGE,
         },
         'ep02/scene'
       )
@@ -545,8 +542,7 @@ describe('documented comic flags are accepted by the comic parsers', () => {
   const cases = [
     ['draft-scenes', draftScenesFlags as CliFlagsDefinition, parseDraftScenesArgs],
     ['generate-images', generateImagesFlags as CliFlagsDefinition, parseGenerateImagesArgs],
-    ['reference-sketch', referenceSketchFlags as CliFlagsDefinition, parseReferenceSketchArgs],
-    ['character-sketch', characterSketchFlags as CliFlagsDefinition, parseCharacterSketchArgs]
+    ['reference-sketch', referenceSketchFlags as CliFlagsDefinition, parseReferenceSketchArgs]
   ] as const
 
   for (const [subcommand, flags, parse] of cases) {
@@ -558,9 +554,4 @@ describe('documented comic flags are accepted by the comic parsers', () => {
       }
     })
   }
-
-  test('comic character-sketch documents no flag it rejects outright', () => {
-    expect(Object.keys(characterSketchFlags)).not.toContain('location')
-    expect(() => parseCharacterSketchArgs(['--location', 'cargo-bay'])).toThrow('only supports --character')
-  })
 })

@@ -160,28 +160,6 @@ export const transcriptionFlags = {
     type: String,
     default: DEFAULT_CONCURRENCY_FLAG_VALUE
   },
-  'reverb-verbatimicity': {
-    description: 'Reverb output style 0-1',
-    type: String,
-    default: '0.5',
-    help: { hidden: true }
-  },
-  'happyscribe-organization-id': {
-    description: 'Happy Scribe organization/workspace ID',
-    type: String,
-    help: { hidden: true }
-  },
-  'supadata-lang': {
-    description: 'Supadata preferred transcript language (ISO 639-1)',
-    type: String,
-    help: { hidden: true }
-  },
-  'scrapecreators-lang': {
-    description: 'ScrapeCreators YouTube transcript language code',
-    type: String,
-    default: 'en',
-    help: { hidden: true }
-  }
 } as const satisfies CliFlagsDefinition
 
 export const llmProviderFlags = {

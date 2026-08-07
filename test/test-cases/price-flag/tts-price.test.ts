@@ -254,7 +254,7 @@ test('rejects removed Groq voice before API request in price mode', async () => 
 
   expect(result.exitCode).not.toBe(0)
   expect(result.outputDir).toBeNull()
-  expect(`${result.stdout}\n${result.stderr}`).toContain(`Invalid --groq-voice "${REMOVED_GROQ_TTS_VOICE}"`)
+  expect(`${result.stdout}\n${result.stderr}`).toContain(`Invalid --tts-voice groq="${REMOVED_GROQ_TTS_VOICE}"`)
 })
 
 test('rejects removed Groq model before API request in price mode', async () => {

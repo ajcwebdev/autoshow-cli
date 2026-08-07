@@ -69,7 +69,6 @@ const IMAGE_REMOTE_PROVIDERS = [
   'openai',
   'grok',
   'bfl',
-  'reve',
   'recraft',
 ] as const
 

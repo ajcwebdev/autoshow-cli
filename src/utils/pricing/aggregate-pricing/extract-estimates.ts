@@ -1,10 +1,12 @@
-import type { ExtractStepEstimate, HostedOcrEstimateHandler, HostedOcrPricingService, LocalExtractOcrEngine, OcrCostEstimate, ResolvedStep2Execution, RuntimeOptions } from '~/types'
+import type { ExtractStepEstimate, HostedOcrEstimateHandler, HostedOcrPricingService, OcrCostEstimate, ResolvedStep2Execution, RuntimeOptions } from '~/types'
 import { GEMINI_OCR_PRICE_NOTE, GLM_OCR_PRICE_NOTE, estimateAnthropicOcrCost, estimateDeepinfraOcrCost, estimateGeminiOcrCost, estimateGlmOcrCost, estimateGrokOcrCost, estimateKimiOcrCost, estimateMistralOcrCost, estimateOpenAIOcrCost, resolveExtractInputPageCountForPricing } from '~/cli/commands/process-steps/step-2-extract/step-2-ocr/ocr-utils/extract-pricing'
 import { getExtractEstimation } from '~/cli/commands/setup-and-utilities/models/model-loader'
 import { applyCostMultiplier } from '~/utils/pricing/cost-helpers'
 const LOCAL_OCR_NOTES = {
   tesseract: 'Local Tesseract OCR runs on local CPU and is not billed by AutoShow.'
-} as const satisfies Record<LocalExtractOcrEngine, string>
+} as const
+
+type LocalOcrService = keyof typeof LOCAL_OCR_NOTES
 
 const HOSTED_OCR_HANDLERS = {
   mistral: {
@@ -41,14 +43,14 @@ const HOSTED_OCR_HANDLERS = {
   }
 } as const satisfies Record<HostedOcrPricingService, HostedOcrEstimateHandler>
 
-const isLocalOcrService = (service: string): service is LocalExtractOcrEngine =>
+const isLocalOcrService = (service: string): service is LocalOcrService =>
   service in LOCAL_OCR_NOTES
 
 const isHostedOcrService = (service: string): service is HostedOcrPricingService =>
   service in HOSTED_OCR_HANDLERS
 
 const buildLocalExtractEstimate = async (
-  provider: LocalExtractOcrEngine,
+  provider: LocalOcrService,
   model: string,
   input: string
 ): Promise<ExtractStepEstimate> => ({

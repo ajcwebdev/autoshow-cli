@@ -1,5 +1,5 @@
 import type { LlmStepEstimate, RuntimeOptions } from '~/types'
-import { resolveLLMDefaults } from '~/cli/commands/process-steps/step-1-download/download-targets/download-llm-defaults'
+import { resolveLLMDefaults } from '~/cli/commands/process-steps/step-1-download/download-targets/options/model-option-llm-defaults'
 import { estimateLlmRates } from '~/cli/commands/process-steps/step-3-write/write-utils/llm-pricing'
 import { estimatePromptTokensFromText, readPromptFileText } from '~/cli/commands/process-steps/step-3-write/text-input-utils'
 import { getLlmCost, getLlmEstimation } from '~/cli/commands/setup-and-utilities/models/model-loader'

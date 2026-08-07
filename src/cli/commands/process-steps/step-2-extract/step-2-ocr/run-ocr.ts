@@ -14,15 +14,12 @@ import {
 import { buildEpubTextOutput } from './ebook/epub/export'
 import { EPUB_UNREADABLE_CONTENT_REASON } from './ebook/epub/inspect-core'
 import { runEpubBunInspect } from './ebook/epub/run-epub-bun-inspect'
-import { runEpubCalibreInspect } from './ebook/epub/run-epub-calibre-inspect'
 import {
   countSelectedOcrEngines,
-  engineSuffix,
   getHostedOcrEngine,
   hasEpubExportFlags,
   hasHostedOcr,
-  hasOcrFlag,
-  resolveExtractEngine
+  hasOcrFlag
 } from './ocr-engine-selection'
 import {
   getHostedDirectImageSupportError,
@@ -158,24 +155,19 @@ export const runOcr = async (
   }
 
   const useEpubBun = opts.useEpubBun === true
-  const useEpubCalibre = opts.useEpubCalibre === true
-  const useEpubInspect = step1Metadata.format === 'epub' && (useEpubBun || useEpubCalibre)
+  const useEpubInspect = step1Metadata.format === 'epub' && useEpubBun
   const ocrEngineCount = countSelectedOcrEngines(opts)
 
   if (!hasPreparedMarkdownInput(opts) && ocrEngineCount > 1) {
     throw CLIUsageError('Use at most one OCR provider at a time. Select one with --provider provider[=model].')
   }
 
-  if (useEpubBun && useEpubCalibre) {
-    throw CLIUsageError('Cannot use both EPUB inspect engines at the same time (--epub-bun, --epub-calibre).')
-  }
-
-  if (step1Metadata.format !== 'epub' && (useEpubBun || useEpubCalibre)) {
+  if (step1Metadata.format !== 'epub' && useEpubBun) {
     l.write('info', EPUB_INSPECT_NON_EPUB_INFO)
   }
 
   const writeExtractionTextCheckpoint = async (): Promise<void> => {
-    if (opts.outputFormat !== 'text' || extractionMethod === 'epub-bun' || extractionMethod === 'epub-calibre') {
+    if (opts.outputFormat !== 'text' || extractionMethod === 'epub-bun') {
       return
     }
 
@@ -214,37 +206,20 @@ export const runOcr = async (
     if (epubExportFlagsActive) {
       l.warn(EPUB_EXPORT_FLAGS_IGNORED_INSPECT_WARNING)
     }
-    if (useEpubCalibre) {
-      l.write('info', 'Inspecting EPUB with Bun ZIP/XML parser (--epub-calibre compatibility alias)')
-      const inspected = await inspectEpubWithAcsmHandoff(
-        filePath,
-        step1Metadata,
-        opts.outputDir,
-        async () => await runEpubCalibreInspect(filePath)
-      )
-      pages = inspected.payload.chapters.map((chapter) => ({
-        pageNumber: chapter.index,
-        method: 'text',
-        text: chapter.text
-      }))
-      extractionMethod = 'epub-calibre'
-      epubPayload = inspected.payload as Record<string, unknown>
-    } else {
-      l.write('info', 'Inspecting EPUB with Bun ZIP/XML parser')
-      const inspected = await inspectEpubWithAcsmHandoff(
-        filePath,
-        step1Metadata,
-        opts.outputDir,
-        async () => await runEpubBunInspect(filePath)
-      )
-      pages = inspected.payload.chapters.map((chapter) => ({
-        pageNumber: chapter.index,
-        method: 'text',
-        text: chapter.text
-      }))
-      extractionMethod = 'epub-bun'
-      epubPayload = inspected.payload as Record<string, unknown>
-    }
+    l.write('info', 'Inspecting EPUB with Bun ZIP/XML parser')
+    const inspected = await inspectEpubWithAcsmHandoff(
+      filePath,
+      step1Metadata,
+      opts.outputDir,
+      async () => await runEpubBunInspect(filePath)
+    )
+    pages = inspected.payload.chapters.map((chapter) => ({
+      pageNumber: chapter.index,
+      method: 'text',
+      text: chapter.text
+    }))
+    extractionMethod = 'epub-bun'
+    epubPayload = inspected.payload as Record<string, unknown>
   } else if (inputAdapter.family === 'epub' && !hasOcrFlag(opts)) {
     l.write('info', 'Extracting EPUB chapter text with Bun ZIP/XML parser')
     const inspected = await inspectEpubWithAcsmHandoff(
@@ -294,7 +269,7 @@ export const runOcr = async (
         completionTokens = run.completionTokens
         mergeHostedProviderCost(run)
       } else {
-        const run = await runPdfOcr(pdfPath, tempMeta, opts, resolveExtractEngine(opts))
+        const run = await runPdfOcr(pdfPath, tempMeta, opts)
         pages = run.pages
         extractionMethod = run.extractionMethod
       }
@@ -373,19 +348,16 @@ export const runOcr = async (
         if (totalPromptTokens > 0) promptTokens = totalPromptTokens
         if (totalCompletionTokens > 0) completionTokens = totalCompletionTokens
       } else {
-        const engine = resolveExtractEngine(opts)
-
-
         const ocrNormDir = await mkdtemp(join(tmpdir(), 'autoshow-cbz-ocr-'))
         try {
           const imagePages: PageResult[] = []
           for (let i = 0; i < images.length; i++) {
             const imgPath = images[i]!
-            const result = await ocrSingleImage(imgPath, i + 1, opts, engine, ocrNormDir)
+            const result = await ocrSingleImage(imgPath, i + 1, opts, ocrNormDir)
             imagePages.push(result)
           }
           pages = imagePages
-          extractionMethod = `cbz+${engineSuffix(engine)}`
+          extractionMethod = 'cbz+tesseract'
         } finally {
           await rm(ocrNormDir, { recursive: true, force: true })
         }
@@ -421,13 +393,11 @@ export const runOcr = async (
         await rm(hostedNormDir, { recursive: true, force: true })
       }
     } else {
-      const engine = resolveExtractEngine(opts)
-
       const tempDir = await mkdtemp(join(tmpdir(), 'autoshow-img-ocr-'))
       try {
-        const result = await ocrSingleImage(filePath, 1, opts, engine, tempDir)
+        const result = await ocrSingleImage(filePath, 1, opts, tempDir)
         pages = [result]
-        extractionMethod = `image+${engineSuffix(engine)}`
+        extractionMethod = 'image+tesseract'
       } finally {
         await rm(tempDir, { recursive: true, force: true })
       }
@@ -450,9 +420,7 @@ export const runOcr = async (
       completionTokens = run.completionTokens
       mergeHostedProviderCost(run)
     } else {
-      const engine = resolveExtractEngine(opts)
-
-      const run = await runLocalPdfOcr(filePath, step1Metadata, opts, engine)
+      const run = await runLocalPdfOcr(filePath, step1Metadata, opts)
       pages = run.pages
       extractionMethod = run.extractionMethod
     }

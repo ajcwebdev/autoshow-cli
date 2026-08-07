@@ -97,8 +97,8 @@ export const validateTtsTargetSelection = (
     )
     throw CLIUsageError(
       matchingModel
-        ? `Groq TTS --groq-voice "${voice}" matches only ${matchingModel}; select --provider/--tts groq=${matchingModel}.`
-        : `Groq TTS --groq-voice "${voice}" requires selecting a Groq TTS model with --provider/--tts groq[=model].`
+        ? `Groq TTS --tts-voice groq="${voice}" matches only ${matchingModel}; select --provider/--tts groq=${matchingModel}.`
+        : `Groq TTS --tts-voice groq="${voice}" requires selecting a Groq TTS model with --provider/--tts groq[=model].`
     )
   }
 

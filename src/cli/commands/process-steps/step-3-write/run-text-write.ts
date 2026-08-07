@@ -9,7 +9,7 @@ import { ensureDirectory } from '~/utils/cli-utils'
 import { reserveBatchChildOutputDir } from '~/cli/commands/process-steps/batch-child-output'
 import { resolveRunDirectory } from '~/cli/commands/process-steps/run-dir'
 import { sanitizeTitleSlug } from '~/cli/commands/process-steps/step-1-download/audio/metadata-utils'
-import { buildLLMModelOptions, resolveLLMDefaults } from '~/cli/commands/process-steps/step-1-download/download-targets/download-llm-defaults'
+import { buildLLMModelOptions, resolveLLMDefaults } from '~/cli/commands/process-steps/step-1-download/download-targets/options/model-option-llm-defaults'
 import { runLLM } from './run-llm'
 import {
   buildTextInputPrompt,

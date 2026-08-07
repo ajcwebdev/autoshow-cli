@@ -80,7 +80,6 @@ export const resolveInputRoutingForCommand = async (
     | 'deepinfraOcrModel'
     | 'deepinfraOcrModels'
     | 'useEpubBun'
-    | 'useEpubCalibre'
   >
 ): Promise<ResolvedInputRouting> => {
   const family = await classifyInputFamily(target, opts)

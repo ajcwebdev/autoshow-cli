@@ -7,12 +7,6 @@ import { ELEVENLABS_MAX_DURATION_SECONDS, ELEVENLABS_MIN_DURATION_SECONDS } from
 import { GEMINI_CLIP_DURATION_SECONDS, GEMINI_PRO_DEFAULT_DURATION_SECONDS } from '~/cli/commands/process-steps/step-7-music/music-services/music-gemini/run-gemini-music-gen'
 import { DEFAULT_ELEVENLABS_MUSIC_DURATION_SECONDS } from '~/cli/commands/process-steps/step-7-music/music-utils/music-pricing'
 
-export const MUSIC_COMMAND_SELECTOR_FLAGS = {
-  'elevenlabs-music': 'elevenlabs',
-  'minimax-music': 'minimax',
-  'gemini-music': 'gemini'
-} as const satisfies Record<string, string>
-
 export const musicGenFlags = {
   'music-duration': {
     description: `Music duration in seconds: ElevenLabs configurable from ${formatRange([ELEVENLABS_MIN_DURATION_SECONDS, ELEVENLABS_MAX_DURATION_SECONDS])} (default ${DEFAULT_ELEVENLABS_MUSIC_DURATION_SECONDS}); MiniMax currently ignores this flag and controls duration; Gemini Lyria Clip is fixed at ${GEMINI_CLIP_DURATION_SECONDS} seconds; Gemini Lyria Pro uses the requested duration (default ${GEMINI_PRO_DEFAULT_DURATION_SECONDS})`,

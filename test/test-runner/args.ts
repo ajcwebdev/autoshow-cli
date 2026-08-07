@@ -52,12 +52,8 @@ export const parseRunnerArgs = (argv: string[]): RunnerArgs => {
       case '--no-cleanup':         preserveTestOutput = true; break
       case '--no-adaptive-concurrency': adaptiveConcurrency = false; break
       case '--price':              priceMode = true; break
-      case '--test-price':
-        throw new Error('Error: --test-price has been replaced by --price for test-runner price mode.')
       case UNSUPPORTED_CONCURRENCY_FLAG:
         throw new Error(unsupportedConcurrencyMessage)
-      case '--testprice':
-        throw new Error('Error: --testprice is not supported. Use --price for test-runner price mode.')
       case '--budget': {
         const value = argv[++i]
         if (!value) {

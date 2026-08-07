@@ -19,7 +19,7 @@ export const collectBflImageTargets = (options: ImageGenOptions): ImageTarget[] 
     if (options.imageCount !== undefined) unsupported.push('--image-count')
     if (options.imageMask !== undefined) unsupported.push('--image-mask')
     if (options.imageResponseMode !== undefined) unsupported.push('--image-response-mode')
-    if (options.geminiSearchGrounding === true) unsupported.push('--gemini-search-grounding')
+    if (options.geminiSearchGrounding === true) unsupported.push('--image-search-grounding')
     if (options.imageCompression !== undefined) unsupported.push('--image-compression')
     if (unsupported.length > 0) {
       throw unsupportedFlagError('BFL', model, unsupported, 'Use --image-size WIDTHxHEIGHT for BFL dimensions, --image-format jpeg|png|webp for output format, and --image-input references.')

@@ -24,7 +24,7 @@ export const collectRecraftImageTargets = (options: ImageGenOptions): ImageTarge
     ], IMAGE_OPTION_LABELS)
     if ((options.imageInputs?.length ?? 0) > 0) unsupported.push('--image-input')
     if (options.imageMask !== undefined) unsupported.push('--image-mask')
-    if (options.geminiSearchGrounding === true) unsupported.push('--gemini-search-grounding')
+    if (options.geminiSearchGrounding === true) unsupported.push('--image-search-grounding')
     if (unsupported.length > 0) {
       throw unsupportedFlagError('Recraft', model, unsupported, `Supported Recraft image options: --image-count ${RECRAFT_IMAGE_COUNT_RANGE[0]}-${RECRAFT_IMAGE_COUNT_RANGE[1]} and either --image-size or --image-aspect-ratio using Recraft-supported values.`)
     }

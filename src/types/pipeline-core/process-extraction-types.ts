@@ -72,7 +72,6 @@ export const ExtractionOptionsSchema = v.object({
   pdfChapterLlmService: v.optional(v.string(), undefined),
   pdfChapterLlmModel: v.optional(v.string(), undefined),
   useEpubBun: v.optional(v.boolean(), undefined),
-  useEpubCalibre: v.optional(v.boolean(), undefined),
   step2SelectionOrigins: v.optional(v.record(
     v.string(),
     v.picklist(['default', 'explicit', 'all-shortcut'])
@@ -121,7 +120,7 @@ const ChapterExportSummarySchema = v.object({
 
 export const ExtractionMetadataSchema = v.object({
   extractionMethod: v.picklist([
-    'docx', 'pptx', 'xlsx', 'odf', 'tesseract', 'mutool+tesseract', 'mistral-ocr', 'openai-ocr', 'grok-ocr', 'epub-bun', 'epub-calibre',
+    'docx', 'pptx', 'xlsx', 'odf', 'tesseract', 'mutool+tesseract', 'mistral-ocr', 'openai-ocr', 'grok-ocr', 'epub-bun',
     'epub-text',
     'pdf-text', 'pdf+tesseract', 'pdf+mistral-ocr', 'pdf+glm-ocr', 'pdf+kimi-ocr', 'pdf+openai-ocr', 'pdf+grok-ocr', 'pdf+anthropic-ocr', 'pdf+gemini-ocr', 'pdf+deepinfra-ocr',
     'office-native', 'rtf-native',

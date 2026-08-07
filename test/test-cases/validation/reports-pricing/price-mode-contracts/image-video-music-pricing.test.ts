@@ -336,26 +336,4 @@ describe('price mode contracts', () => {
         { provider: 'gemini', model: 'lyria-3-pro-preview', totalCost: 8 }
       ])
     })
-
-  test('historical MiniMax Music 2.6 results retain registry fallback pricing', () => {
-      const costs = computeActualCosts({
-        step7: {
-          musicService: 'minimax',
-          musicModel: 'music-2.6',
-          processingTime: 1,
-          musicFileName: 'historical-music.mp3',
-          musicFileSize: 1,
-          musicDurationMs: undefined,
-          lyricsSource: 'generated'
-        }
-      })
-
-      expect(costs.steps[0]).toMatchObject({
-        step: 'music',
-        provider: 'minimax',
-        model: 'music-2.6',
-        cost: 16,
-        costSource: 'registry_fallback'
-      })
-    })
 })

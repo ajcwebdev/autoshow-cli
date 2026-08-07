@@ -97,6 +97,5 @@ export const buildOcrOptions = (ctx: BuildDomainOptionsContext): Pick<RuntimeOpt
     epubChunkLimitChars: epubLengthThousands === undefined ? undefined : epubLengthThousands * 1000,
     pdfChapterMode,
     useEpubBun: readBooleanFlag(mergedFlags, 'epub-bun'),
-    useEpubCalibre: readBooleanFlag(mergedFlags, 'epub-calibre'),
   }
 }

@@ -36,21 +36,6 @@ import { STANDALONE_TTS_PROVIDER_TARGETS } from './service-selector-normalizatio
 import { DEFAULT_CONCURRENCY_FLAG_VALUE, DEFAULT_TTS_CHUNK_CONCURRENCY_FLAG_VALUE } from '~/utils/concurrency-defaults'
 import type { CliFlagsDefinition } from '~/types'
 
-export const TTS_COMMAND_SELECTOR_FLAGS = {
-  'kitten-tts': 'kitten',
-  'elevenlabs-tts': 'elevenlabs',
-  'minimax-tts': 'minimax',
-  'groq-tts': 'groq',
-  'grok-tts': 'grok',
-  'mistral-tts': 'mistral',
-  'openai-tts': 'openai',
-  'gemini-tts': 'gemini',
-  'deepgram-tts': 'deepgram',
-  'speechify-tts': 'speechify',
-  'hume-tts': 'hume',
-  'cartesia-tts': 'cartesia'
-} as const satisfies Record<string, string>
-
 export const ttsFlags = {
   'all-tts': {
     description: 'Enable every supported TTS provider/model for this command',
@@ -453,10 +438,6 @@ const humeTtsCommandOptionNames = [
   'hume-tts-voice-provider'
 ] as const
 
-const groqTtsCommandOptionNames = [
-  'groq-voice'
-] as const
-
 const geminiTtsCommandOptionNames = [
   'gemini-speaker-1-name',
   'gemini-speaker-1-voice',
@@ -489,7 +470,6 @@ export const ttsCommandFlags = {
   ...withHelpGroup(pickFlags(ttsFlags, deepgramTtsCommandOptionNames), 'tts-deepgram'),
   ...withHelpGroup(pickFlags(ttsFlags, speechifyTtsCommandOptionNames), 'tts-speechify'),
   ...withHelpGroup(pickFlags(ttsFlags, humeTtsCommandOptionNames), 'tts-hume'),
-  ...withHelpGroup(pickFlags(ttsFlags, groqTtsCommandOptionNames), 'tts-groq'),
   ...withHelpGroup(pickFlags(ttsFlags, geminiTtsCommandOptionNames), 'tts-gemini'),
   ...withHelpGroup(pickFlags(ttsFlags, dialogueTtsCommandOptionNames), 'tts-dialogue'),
   ...withHelpGroup(pickFlags(ttsFlags, elevenlabsTtsCommandOptionNames), 'tts-elevenlabs'),

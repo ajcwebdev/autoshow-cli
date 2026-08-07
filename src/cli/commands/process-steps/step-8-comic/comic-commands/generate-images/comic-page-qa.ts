@@ -2,11 +2,8 @@ import { basename, dirname, join } from 'node:path'
 import { getOpenAIClientConfig } from '~/cli/commands/process-steps/step-3-write/write-services/write-openai/openai-utils'
 import { createOpenAIResponse, extractOpenAIResponseText } from '~/utils/openai/openai-client'
 import { estimateLlmCostFromRegistry } from '../../comic-utils/structured-script-utils/llm-cost'
-import { DEFAULT_QA_MODEL } from '../../comic-utils/cli-args'
 import { InfraError, ValidationError } from '~/utils/error-handler'
 import type { PanelBundleData } from '~/types'
-
-export const DEFAULT_PAGE_QA_MODEL = DEFAULT_QA_MODEL
 
 export type PageQaResult = {
   panelStructure: { pass: boolean; observedPanelCount: number; observedPanelOrder: number[]; issues: string[] }

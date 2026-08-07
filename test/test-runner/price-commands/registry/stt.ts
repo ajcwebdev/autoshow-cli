@@ -15,7 +15,7 @@ export const sttRegistry: PriceSelectionEntry[] = [
     command('transcribe-whisper-tiny-split', 'transcribe-whisper-tiny-split', ['src/cli/create-cli.ts', 'extract', 'https://ajc.pics/autoshow/examples/2-video.mp4', '--provider', 'whisper=tiny', '--split', '--price']),
   ]),
   ...prefix('test/test-cases/e2e/local/step-2-stt-e2e/stt-local/reverb/', [
-    command('transcribe-reverb', 'transcribe-reverb', ['src/cli/create-cli.ts', 'extract', 'https://ajc.pics/autoshow/examples/1-audio.mp3', '--provider', 'reverb', '--reverb-verbatimicity', '0.5', '--price']),
+    command('transcribe-reverb', 'transcribe-reverb', ['src/cli/create-cli.ts', 'extract', 'https://ajc.pics/autoshow/examples/1-audio.mp3', '--provider', 'reverb', '--stt-reverb-verbatimicity', '0.5', '--price']),
   ]),
   ...exact('test/test-cases/e2e/service/step-2-stt-e2e/stt-services/assemblyai-current-models.test.ts', [
     command('transcribe-assemblyai-universal-3-5-pro', 'transcribe-assemblyai-universal-3-5-pro', ['src/cli/create-cli.ts', 'extract', 'https://ajc.pics/autoshow/examples/1-audio.mp3', '--provider', 'assemblyai=universal-3-5-pro', '--price']),

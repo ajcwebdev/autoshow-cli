@@ -38,20 +38,6 @@ describe('test-runner contracts', () => {
       expect(parsed.passthroughArgs).toEqual(['--bail'])
     })
 
-  test('arg parsing rejects legacy test price spellings', () => {
-      expect(() => parseRunnerArgs([
-        'bun',
-        'test/test-runner.ts',
-        '--test-price',
-      ])).toThrow('replaced by --price')
-
-      expect(() => parseRunnerArgs([
-        'bun',
-        'test/test-runner.ts',
-        '--testprice',
-      ])).toThrow('Use --price')
-    })
-
   test('arg parsing rejects legacy --concurrency spelling', () => {
       for (const args of [
         ['--concurrency', '50'],

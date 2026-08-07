@@ -104,10 +104,6 @@ const PanelSchema = v.strictObject({
   locationKey: v.string(),
   designReferences: v.optional(v.array(DesignReferenceSchema)),
 })
-const LegacyPanelSchema = v.strictObject({
-  number: v.number(), description: v.string(), characterKeys: v.array(CharacterKeySchema),
-  speech: v.array(SpeechItemSchema), sourceSegmentIds: v.array(v.string()),
-})
 const PanelBundlePanelSchema = v.strictObject({
   number: v.number(),
   description: v.string(),
@@ -192,10 +188,6 @@ export const LegacyV3PanelBundleDataSchema = v.strictObject({
   location: v.string(),
   panels: v.array(LegacyV3PanelBundlePanelSchema),
 })
-export const LegacyScenePromptDataSchema = v.strictObject({
-  schemaVersion: v.literal(2), title: v.string(), location: v.string(), panels: v.array(LegacyPanelSchema),
-})
-export const ReadableScenePromptDataSchema = v.union([ScenePromptDataSchema, LegacyScenePromptDataSchema])
 export const LegacyPanelBundleDataSchema = v.strictObject({
   schemaVersion: v.literal(2), snapshotId: v.string(), title: v.string(), location: v.string(), panels: v.array(LegacyPanelBundlePanelSchema),
 })

@@ -129,7 +129,7 @@ const formatQuotedChoiceList = (choices: readonly string[]): string => {
   return `${quotedChoices.slice(0, -1).join(', ')}, or ${quotedChoices[quotedChoices.length - 1]}`
 }
 
-export const parseUrlBackend = (value: string | undefined, flagName = 'url-provider'): HtmlArticleBackend => {
+export const parseUrlBackend = (value: string | undefined): HtmlArticleBackend => {
   const normalized = value?.trim().toLowerCase()
   if (!normalized) {
     return 'defuddle'
@@ -137,7 +137,7 @@ export const parseUrlBackend = (value: string | undefined, flagName = 'url-provi
   if ((URL_ARTICLE_BACKENDS as readonly string[]).includes(normalized)) {
     return normalized as HtmlArticleBackend
   }
-  throw CLIUsageError(`Invalid --${flagName} value "${value}". Expected ${formatQuotedChoiceList(URL_ARTICLE_BACKENDS)}.`)
+  throw CLIUsageError(`Invalid --url-provider value "${value}". Expected ${formatQuotedChoiceList(URL_ARTICLE_BACKENDS)}.`)
 }
 
 export const PDF_CHAPTER_MODES = ['local', 'auto', 'llm'] as const

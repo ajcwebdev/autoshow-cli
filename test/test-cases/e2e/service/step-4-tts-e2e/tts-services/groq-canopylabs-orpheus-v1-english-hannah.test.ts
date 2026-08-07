@@ -11,7 +11,7 @@ import { requireConfiguredEnvVar } from '../../../../../test-utils/service-test-
 const SHORT_TTS_INPUT_PATH = 'input/examples/tts/0-tts-short.txt'
 const SHORT_TTS_INPUT_TITLE = '0-tts-short'
 
-budgetedTest('tts-groq-canopylabs/orpheus-v1-english', 'orpheus english with --groq-voice hannah generates speech.wav', async () => {
+budgetedTest('tts-groq-canopylabs/orpheus-v1-english', 'orpheus english with --tts-voice groq=hannah generates speech.wav', async () => {
   await requireConfiguredEnvVar('GROQ_API_KEY', 'GROQ_API_KEY is required for Groq TTS test')
 
   const result = await runCommand([
@@ -20,8 +20,8 @@ budgetedTest('tts-groq-canopylabs/orpheus-v1-english', 'orpheus english with --g
     SHORT_TTS_INPUT_PATH,
     '--provider',
     'groq=canopylabs/orpheus-v1-english',
-    '--groq-voice',
-    'hannah'
+    '--tts-voice',
+    'groq=hannah'
   ])
 
   expect(result.exitCode).toBe(0)

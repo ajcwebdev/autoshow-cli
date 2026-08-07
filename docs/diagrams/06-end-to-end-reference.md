@@ -163,7 +163,7 @@ Runtime configuration is **flag-driven**: the shipped CLI reads no `AUTOSHOW_*` 
 | Local model selection | `--model-path` flag (`configureModelPath`); `HUGGINGFACE_TOKEN` env for gated asset downloads. |
 | TTS voices / reference audio / API versions | Per-run flags only (`--tts-voice`, `--tts-ref-audio`, `--hume-tts-voice-provider`, …); defaults are code constants in [`tts-models.ts`](../../src/cli/commands/setup-and-utilities/models/tts-models.ts). The Cartesia `Cartesia-Version` and Hume `version` headers are fixed constants. |
 | Output / external binaries | `--output-root`, `--bin-dir` flags. |
-| URL backend | `--url-backend` flag. |
+| URL backend | `--url-provider` flag. |
 | Logging / color | `--log-level`, `--log-format` (plus `--verbose` / `--quiet` / `--json`); `NO_COLOR` / `FORCE_COLOR` honored, with `--color` / `--no-color` taking precedence. |
 | Timeouts | Fixed code constants (no env overrides). |
 | yt-dlp auth/cookies | `--cookies` and `--cookies-from-browser` flags. |

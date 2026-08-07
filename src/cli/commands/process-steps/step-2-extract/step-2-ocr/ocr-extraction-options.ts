@@ -48,7 +48,6 @@ export const resolveOcrExtractionOptions = (
     ...(rawOpts.pdfChapterLlmService ? { pdfChapterLlmService: rawOpts.pdfChapterLlmService } : {}),
     ...(rawOpts.pdfChapterLlmModel ? { pdfChapterLlmModel: rawOpts.pdfChapterLlmModel } : {}),
     ...(rawOpts.useEpubBun ? { useEpubBun: true } : {}),
-    ...(rawOpts.useEpubCalibre ? { useEpubCalibre: true } : {}),
     ...(rawOpts.step2SelectionOrigins ? { step2SelectionOrigins: rawOpts.step2SelectionOrigins } : {}),
     ...(preparedDocument?.preparedMarkdown ? { preparedMarkdown: preparedDocument.preparedMarkdown } : {}),
     ...(typeof preparedDocument?.htmlArticleProcessingTimeMs === 'number' ? { htmlArticleProcessingTimeMs: preparedDocument.htmlArticleProcessingTimeMs } : {}),

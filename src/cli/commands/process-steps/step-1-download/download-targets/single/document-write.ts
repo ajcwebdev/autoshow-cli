@@ -141,9 +141,6 @@ export const buildExtractionCallOpts = (target: string, baseDir: string, opts: R
   if (opts.useEpubBun) {
     extractionOpts.useEpubBun = true
   }
-  if (opts.useEpubCalibre) {
-    extractionOpts.useEpubCalibre = true
-  }
   if (step2SelectionOrigins) {
     extractionOpts.step2SelectionOrigins = step2SelectionOrigins
   }

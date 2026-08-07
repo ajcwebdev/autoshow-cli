@@ -391,41 +391,7 @@ describe('additive resume provider selection', () => {
       await expect(priceSttTarget(
         incompleteTarget,
         { youtubeCaptions: false } as RuntimeOptions
-      )).rejects.toThrow('--provider assemblyai=universal-3-5-pro or --provider assemblyai=universal-2')
-
-      const replacementCases = [
-        {
-          retired: { service: 'gemini-stt' as const, model: 'gemini-3-flash-preview' },
-          expected: '--provider gemini=gemini-3.6-flash'
-        },
-        {
-          retired: { service: 'gladia' as const, model: 'default' },
-          expected: '--provider gladia=solaria-1 or --provider gladia=solaria-3'
-        },
-        {
-          retired: { service: 'soniox' as const, model: 'stt-async-v4' },
-          expected: '--provider soniox=stt-async-v5'
-        }
-      ]
-      for (const { retired: replacedTarget, expected } of replacementCases) {
-        const replacedDir = join(dir, replacedTarget.service)
-        await mkdir(replacedDir, { recursive: true })
-        await writeSttRunManifest(replacedDir, {
-          step1: { url: 'file:///tmp/historical.mp3' },
-          completionStatus: 'incomplete',
-          requestedProviders: [replacedTarget],
-          missingProviders: [replacedTarget],
-          providerStates: [{ ...replacedTarget, status: 'missing', artifactDir: `providers/${replacedTarget.service}-retired`, attempts: 0 }]
-        })
-        await expect(priceSttTarget(
-          {
-            ...incompleteTarget,
-            dir: replacedDir,
-            manifestPath: join(replacedDir, 'run.json')
-          },
-          { youtubeCaptions: false } as RuntimeOptions
-        )).rejects.toThrow(expected)
-      }
+      )).rejects.toThrow('Start a new target with an active assemblyai model.')
     })
   })
 

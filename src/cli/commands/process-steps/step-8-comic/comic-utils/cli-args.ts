@@ -17,23 +17,20 @@ import {
 } from '../comic-commands/generate-images/prompt-variations'
 import {
   COMIC_GRID_PANEL_SIZE,
-  DEFAULT_PANELS_PER_IMAGE,
+  DEFAULT_SKETCH_PANELS_PER_IMAGE,
   DEFAULT_FINAL_PANELS_PER_IMAGE,
   parseComicGridSpec,
   parsePanelSelector,
   validateComicGridOptions,
 } from '../comic-commands/generate-images/comic-page-utils'
-import type { ParsedCharacterSketchArgs, ParsedDraftCommandArgs, ParsedGenerateBaseArgs, ParsedGenerateImagesArgs, ParsedImageModel, ParsedImageQuality, ParsedImageSize, ParsedLlmModel, ParsedReferenceSketchArgs } from '~/types'
+import type { ParsedDraftCommandArgs, ParsedGenerateBaseArgs, ParsedGenerateImagesArgs, ParsedImageModel, ParsedImageQuality, ParsedImageSize, ParsedLlmModel, ParsedReferenceSketchArgs } from '~/types'
 
 
-export const CHARACTER_SKETCH_COMMAND = 'character-sketch'
 export const REFERENCE_SKETCH_COMMAND = 'reference-sketch'
 export const DRAFT_SCENES_COMMAND = 'draft-scenes'
 export const GENERATE_IMAGES_COMMAND = 'generate-images'
 const DRAFT_SCENES_ONLY_VALUES = ['structure', 'prompt', 'scene', 'panel-prompts'] as const
 const GENERATE_IMAGES_TARGET_VALUES = ['images', 'sketches', 'both'] as const
-const PANEL_PROMPTS_TARGET_MIGRATION =
-  'The generate-images "prompts" target was removed. Use: bun autoshow comic draft-scenes <script-path> --only panel-prompts'
 
 const IMAGE_QUALITY_OPTIONS = new Set<string>(IMAGE_GENERATION_QUALITIES)
 const DRAFT_SCENES_ONLY_OPTIONS = new Set<string>(DRAFT_SCENES_ONLY_VALUES)
@@ -135,11 +132,6 @@ export const parseDraftScenesArgs = (args: string[]): ParsedDraftCommandArgs => 
         index++
         break
       }
-      case '-e':
-      case '--episode':
-        throw CLIUsageError('--episode was removed. Pass a script file path or NN-SC shorthand: bun autoshow comic draft-scenes 05-01')
-      case '--script':
-        throw CLIUsageError('--script was removed. Pass a script file path or NN-SC shorthand: bun autoshow comic draft-scenes 05-01')
       case '--concurrency': {
         if (parsed.concurrency !== undefined) {
           throw CLIUsageError('Concurrency can only be specified once')
@@ -167,7 +159,7 @@ export const parseDraftScenesArgs = (args: string[]): ParsedDraftCommandArgs => 
   return parsed
 }
 
-export const parseReferenceSketchArgs = (args: string[], compatibilityCharacterAlias = false): ParsedReferenceSketchArgs => {
+export const parseReferenceSketchArgs = (args: string[]): ParsedReferenceSketchArgs => {
   const parsed: ParsedReferenceSketchArgs = { showHelp: false }
 
   for (let index = 0; index < args.length; index++) {
@@ -181,8 +173,6 @@ export const parseReferenceSketchArgs = (args: string[], compatibilityCharacterA
       case '--price':
         parsed.price = true
         break
-      case '--image':
-        throw CLIUsageError('--image was removed from comic character-sketch. Use --character <key>; legacy sketch directories are not imported.')
       case '--character': {
         if (parsed.character) throw CLIUsageError('Character can only be specified once')
         parsed.character = readFlagValue(args, index, argument)
@@ -190,7 +180,6 @@ export const parseReferenceSketchArgs = (args: string[], compatibilityCharacterA
         break
       }
       case '--location': {
-        if (compatibilityCharacterAlias) throw CLIUsageError('comic character-sketch only supports --character; use comic reference-sketch --location <key>')
         if (parsed.location) throw CLIUsageError('Location can only be specified once')
         parsed.location = readFlagValue(args, index, argument)
         index++
@@ -317,9 +306,6 @@ export const parseReferenceSketchArgs = (args: string[], compatibilityCharacterA
   return parsed
 }
 
-export const parseCharacterSketchArgs = (args: string[]): ParsedCharacterSketchArgs =>
-  parseReferenceSketchArgs(args, true) as ParsedCharacterSketchArgs
-
 export const parseGenerateImagesArgs = (args: string[]): ParsedGenerateImagesArgs => {
   const parsed: ParsedGenerateBaseArgs = { showHelp: false }
 
@@ -334,7 +320,6 @@ export const parseGenerateImagesArgs = (args: string[]): ParsedGenerateImagesArg
       case '--price':
         parsed.price = true
         break
-      case '--page-qa':
       case '--qa':
         if (parsed.qa !== undefined) throw CLIUsageError('QA can only be specified once')
         parsed.qa = true
@@ -343,7 +328,6 @@ export const parseGenerateImagesArgs = (args: string[]): ParsedGenerateImagesArg
         if (parsed.qa !== undefined) throw CLIUsageError('QA can only be specified once')
         parsed.qa = false
         break
-      case '--page-qa-model':
       case '--qa-model': {
         if (parsed.qaModel) throw CLIUsageError('QA model can only be specified once')
         const model = readFlagValue(args, index, argument)
@@ -366,10 +350,6 @@ export const parseGenerateImagesArgs = (args: string[]): ParsedGenerateImagesArg
         }
 
         const target = readFlagValue(args, index, argument)
-        if (target === 'prompts') {
-          throw CLIUsageError(PANEL_PROMPTS_TARGET_MIGRATION)
-        }
-
         if (!GENERATE_IMAGES_TARGET_OPTIONS.has(target)) {
           throw CLIUsageError(
             `Invalid target "${target}". Expected one of: ${GENERATE_IMAGES_TARGET_VALUES.join(', ')}`
@@ -380,10 +360,6 @@ export const parseGenerateImagesArgs = (args: string[]): ParsedGenerateImagesArg
         index++
         break
       }
-      case '--skip-panel-prompts':
-        throw CLIUsageError('--skip-panel-prompts was removed. Panel prompts are now auto-detected and only rebuilt when missing. Use --force to rebuild during image generation, or run "bun autoshow comic draft-scenes <script-path> --only panel-prompts" explicitly.')
-      case '--draft-scenes':
-        throw CLIUsageError('--draft-scenes was removed. Scene drafts are now auto-detected and only rebuilt when missing. Use --force to rebuild existing scene drafts.')
       case '--llm-model': {
         if (parsed.llmModel) {
           throw CLIUsageError('LLM model can only be specified once')
@@ -400,12 +376,6 @@ export const parseGenerateImagesArgs = (args: string[]): ParsedGenerateImagesArg
         index++
         break
       }
-      case '-e':
-      case '--episode':
-        throw CLIUsageError('--episode was removed. Pass a script file path or NN-SC shorthand: bun autoshow comic generate-images 05-01')
-      case '-s':
-      case '--scene':
-        throw CLIUsageError('--scene was removed. Pass a script file path or NN-SC shorthand: bun autoshow comic generate-images 05-01')
       case '--concurrency': {
         if (parsed.concurrency !== undefined) {
           throw CLIUsageError('Concurrency can only be specified once')
@@ -415,8 +385,6 @@ export const parseGenerateImagesArgs = (args: string[]): ParsedGenerateImagesArg
         index++
         break
       }
-      case '--panel':
-        throw CLIUsageError('--panel was removed. Use --panels <n> to select a single panel.')
       case '--panels': {
         if (parsed.panels !== undefined) {
           throw CLIUsageError('Panels can only be specified once')
@@ -426,8 +394,6 @@ export const parseGenerateImagesArgs = (args: string[]): ParsedGenerateImagesArg
         index++
         break
       }
-      case '--panel-limit':
-        throw CLIUsageError('--panel-limit was removed. Use --panels <range> to select an explicit range (e.g. --panels 1-4).')
       case '--panels-per-image': {
         if (parsed.panelsPerImage !== undefined) {
           throw CLIUsageError('Panels per image can only be specified once')
@@ -435,7 +401,7 @@ export const parseGenerateImagesArgs = (args: string[]): ParsedGenerateImagesArg
 
         const panelsPerImage = readFlagValue(args, index, argument)
         if (!isPositiveInteger(panelsPerImage)) {
-          throw CLIUsageError(`Invalid panels per image "${panelsPerImage}". Expected a positive integer like 1 or ${DEFAULT_PANELS_PER_IMAGE}`)
+          throw CLIUsageError(`Invalid panels per image "${panelsPerImage}". Expected a positive integer like 1 or ${DEFAULT_SKETCH_PANELS_PER_IMAGE}`)
         }
 
         parsed.panelsPerImage = Number(panelsPerImage)
@@ -451,12 +417,6 @@ export const parseGenerateImagesArgs = (args: string[]): ParsedGenerateImagesArg
         index++
         break
       }
-      case '--chunk':
-        throw CLIUsageError('--chunk was removed. Use --panels <range> with --target sketches instead (e.g. --panels 5-8).')
-      case '--sketch-group-size':
-        throw CLIUsageError(`--sketch-group-size was removed. Sketches are grouped in chunks of ${DEFAULT_PANELS_PER_IMAGE} by default. Use --panels-per-image <n> to change the chunk size or --panels <range> to select specific panels.`)
-      case '--sketch-panels':
-        throw CLIUsageError('--sketch-panels was removed. Use --panels <range> instead (e.g. --panels 1-4).')
       case '--image-model': {
         if (parsed.imageModels) {
           throw CLIUsageError('Image model can only be specified once')

@@ -197,7 +197,6 @@ const buildResumeExtractionOpts = (
     pdfChapterMode: opts.pdfChapterMode,
     configPath: opts.configPath,
     ...(opts.useEpubBun ? { useEpubBun: true } : {}),
-    ...(opts.useEpubCalibre ? { useEpubCalibre: true } : {}),
     ...(step2SelectionOrigins ? { step2SelectionOrigins } : {})
   }
 }

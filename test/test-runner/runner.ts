@@ -521,10 +521,7 @@ const runStandardTestMode = async (
   let budgetSkipKeys: string[] = []
   let budgetEvaluatedKeys: string[] = []
   if (args.budgetHundredthCents !== undefined) {
-    const resolved = resolvePriceSelection(allFiles, args.pathFilters, {
-      mode: 'budget',
-      budgetSkippableOnly: true
-    })
+    const resolved = resolvePriceSelection(allFiles, args.pathFilters, { budgetSkippableOnly: true })
     if (resolved.commands.length === 0) {
       l.write('info', 'No budget-skippable pricing commands resolved for --budget preflight; any selected budgeted tests will fail closed as unevaluated')
       budgetSummary = buildEmptyBudgetSummary(resolved.suiteName, args.budgetHundredthCents)
@@ -585,7 +582,7 @@ const runPriceMode = async (
   let budgetSummary: BudgetPreflightSummary | undefined
   let exitCode = 0
 
-  const resolved = resolvePriceSelection(allFiles, args.pathFilters, { mode: 'price' })
+  const resolved = resolvePriceSelection(allFiles, args.pathFilters)
   suiteName = resolved.suiteName
 
   if (resolved.commands.length === 0) {

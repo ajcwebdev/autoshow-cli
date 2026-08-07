@@ -51,7 +51,7 @@ export const collectGeminiImageTargets = (options: ImageGenOptions): ImageTarget
       throw unsupportedFlagError('Gemini', model, ['--image-mask'], 'Gemini native image editing supports reference images via --image-input, not masks.')
     }
     if (model === 'gemini-3.1-flash-lite-image' && options.geminiSearchGrounding === true) {
-      throw unsupportedFlagError('Gemini', model, ['--gemini-search-grounding'], 'Use gemini-3.1-flash-image or gemini-3-pro-image for Search-grounded image generation.')
+      throw unsupportedFlagError('Gemini', model, ['--image-search-grounding'], 'Use gemini-3.1-flash-image or gemini-3-pro-image for Search-grounded image generation.')
     }
     validateImageInputReferences(options.imageInputs, {
       provider: 'Gemini',
@@ -60,7 +60,7 @@ export const collectGeminiImageTargets = (options: ImageGenOptions): ImageTarget
     })
     const unsupportedCommon = collectUnsupportedCommonFlags(options, ['imageQuality', 'imageFormat', 'imageBackground', 'imageCompression'], IMAGE_OPTION_LABELS)
     if (unsupportedCommon.length > 0) {
-      throw unsupportedFlagError('Gemini', model, unsupportedCommon, 'Supported Gemini image options are --image-aspect-ratio, --image-size, --image-response-mode, --image-input references, and --gemini-search-grounding.')
+      throw unsupportedFlagError('Gemini', model, unsupportedCommon, 'Supported Gemini image options are --image-aspect-ratio, --image-size, --image-response-mode, --image-input references, and --image-search-grounding.')
     }
 
     return [{

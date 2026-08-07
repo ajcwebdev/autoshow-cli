@@ -41,7 +41,7 @@ export const collectReplicateImageTargets = (options: ImageGenOptions): ImageTar
       'imageCompression'
     ], IMAGE_OPTION_LABELS)
     if (options.imageMask !== undefined) unsupported.push('--image-mask')
-    if (options.geminiSearchGrounding === true) unsupported.push('--gemini-search-grounding')
+    if (options.geminiSearchGrounding === true) unsupported.push('--image-search-grounding')
     if (unsupported.length > 0) {
       throw unsupportedFlagError(
         'Replicate',

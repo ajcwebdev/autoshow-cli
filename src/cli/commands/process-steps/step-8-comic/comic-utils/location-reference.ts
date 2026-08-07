@@ -197,11 +197,7 @@ export const getLocationViewPath = (key: string, view: LocationView, referenceDi
   return resolve(getLocationsRoot(), referenceDirectory ?? '', viewFilename)
 }
 
-/** @deprecated Legacy sheet path helper retained for schema-version-1 compatibility. */
-export const getLocationSheetPath = (key: string, referenceDirectory?: string, referenceFilename?: string): string => getLocationViewPath(key, 'establishing', referenceDirectory, referenceFilename)
 export const resolveRegisteredLocationImagePath = (image: string): string => resolveLocationAssetPath(image, 'Registered location image')
-/** @deprecated Legacy alias retained for callers that read schema-version-1 registrations. */
-export const resolveRegisteredLocationSheetPath = resolveRegisteredLocationImagePath
 export const specificationHash = (specification: string): string => createHash('sha256').update(specification).digest('hex')
 
 export type CurrentLocationReference = {

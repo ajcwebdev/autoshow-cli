@@ -1,9 +1,8 @@
 import { stat } from 'node:fs/promises'
 import { join } from 'node:path'
 import { convertDocumentToPdf, getDocumentInfo, isPdfEncryptedViaQpdf, showPdfObject } from '~/cli/commands/process-steps/step-1-download/document/mutool-utils'
-import type { DocumentMetadata, ExtractionOptions, LocalExtractOcrEngine, PageResult } from '~/types'
+import type { DocumentMetadata, ExtractionOptions, PageResult } from '~/types'
 import { InfraError } from '~/utils/error-handler'
-import { assertNever } from '~/utils/validate/assert-never'
 import { processPages } from '../ocr-utils/page-processor'
 
 export const convertEpubToPdfForOcr = async (
@@ -83,31 +82,17 @@ export const buildHostedUploadMetadata = async (
 export const runLocalPdfOcr = async (
   filePath: string,
   step1Metadata: DocumentMetadata,
-  opts: ExtractionOptions,
-  engine: LocalExtractOcrEngine
+  opts: ExtractionOptions
 ): Promise<{ pages: PageResult[], extractionMethod: string }> => {
-  switch (engine) {
-    case 'tesseract': {
-      const pages = await processPages(filePath, step1Metadata.pageCount, opts)
-      return { pages, extractionMethod: 'mutool+tesseract' }
-    }
-    default:
-      assertNever(engine)
-  }
+  const pages = await processPages(filePath, step1Metadata.pageCount, opts)
+  return { pages, extractionMethod: 'mutool+tesseract' }
 }
 
 export const runPdfOcr = async (
   pdfPath: string,
   tempMeta: DocumentMetadata,
-  opts: ExtractionOptions,
-  engine: LocalExtractOcrEngine
+  opts: ExtractionOptions
 ): Promise<{ pages: PageResult[], extractionMethod: string }> => {
-  switch (engine) {
-    case 'tesseract': {
-      const pages = await processPages(pdfPath, tempMeta.pageCount, opts)
-      return { pages, extractionMethod: 'pdf+tesseract' }
-    }
-    default:
-      assertNever(engine)
-  }
+  const pages = await processPages(pdfPath, tempMeta.pageCount, opts)
+  return { pages, extractionMethod: 'pdf+tesseract' }
 }

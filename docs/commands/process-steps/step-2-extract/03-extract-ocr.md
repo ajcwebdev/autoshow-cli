@@ -345,7 +345,7 @@ Claude Fable 5 OCR price mode uses the post-run calibrated page heuristic from t
 | Option | Value |
 |--------|-------|
 | Selector | `--provider gemini[=<model>]` |
-| Models | `gemini-3.1-pro-preview`, `gemini-3.5-flash`, `gemini-3.1-flash-lite`, `gemini-3.1-flash-lite-preview`, `gemini-3.6-flash`, `gemini-3.5-flash-lite` |
+| Models | `gemini-3.1-pro-preview`, `gemini-3.5-flash`, `gemini-3.1-flash-lite`, `gemini-3.6-flash`, `gemini-3.5-flash-lite` |
 | Direct input support | PDF plus `PNG`, `JPG`, `WEBP`, and `BMP` |
 
 ```bash

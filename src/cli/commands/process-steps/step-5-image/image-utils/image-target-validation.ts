@@ -74,7 +74,7 @@ export const IMAGE_OPTION_LABELS: Record<keyof ImageGenOptions, string> = {
   imageInputs: '--image-input',
   imageMask: '--image-mask',
   imageResponseMode: '--image-response-mode',
-  geminiSearchGrounding: '--gemini-search-grounding',
+  geminiSearchGrounding: '--image-search-grounding',
   imageCompression: '--image-compression',
   imageProviderConcurrency: '--image-provider-concurrency',
   imageLocalConcurrency: '--image-local-concurrency',

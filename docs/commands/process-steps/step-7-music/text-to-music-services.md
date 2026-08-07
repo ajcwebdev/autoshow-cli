@@ -134,7 +134,7 @@ bun autoshow music "ambient piano instrumental with soft tape saturation" --prov
 bun autoshow music "indie pop, nostalgic summer road trip vibe" --provider minimax=music-3.0 --price
 ```
 
-MiniMax auto-generates lyrics when `--lyrics-file` is omitted. Price estimation includes the extra lyrics-generation cost when lyrics are auto-generated. `music-3.0` supports instrumental mode; when instrumental mode is omitted, it generates with lyrics or auto-generated lyrics. `--duration` is currently ignored by MiniMax. The previous-generation `music-2.6` identity remains readable in historical benchmark results but is rejected for new runs.
+MiniMax auto-generates lyrics when `--lyrics-file` is omitted. Price estimation includes the extra lyrics-generation cost when lyrics are auto-generated. `music-3.0` supports instrumental mode; when instrumental mode is omitted, it generates with lyrics or auto-generated lyrics. `--duration` is currently ignored by MiniMax. The previous-generation `music-2.6` identity is rejected for new runs and no longer resolves against the model registry, so historical benchmark artifacts re-priced today fall back to default estimates.
 
 ### Gemini
 

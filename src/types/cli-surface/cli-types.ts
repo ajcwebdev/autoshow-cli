@@ -132,7 +132,6 @@ export type RuntimeOptions = {
   epubChunkLimitChars: number | undefined
   pdfChapterMode: 'local' | 'auto' | 'llm'
   useEpubBun: boolean
-  useEpubCalibre: boolean
   urlBackend: HtmlArticleBackend
   urlBackendExplicit: boolean
   urlBackends: HtmlArticleBackend[] | undefined

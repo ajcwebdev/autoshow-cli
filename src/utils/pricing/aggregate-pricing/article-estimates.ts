@@ -73,7 +73,7 @@ export const buildArticleEstimates = (
   }
 
   if (!isRemoteTarget && opts.urlBackend !== 'defuddle') {
-    notes.push(`Local HTML inputs always use the defuddle backend; --url-backend ${opts.urlBackend} is ignored.`)
+    notes.push(`Local HTML inputs always use the defuddle backend; --url-provider ${opts.urlBackend} is ignored.`)
   }
 
   if (hasConfiguredOcrProviderSelection(opts)) {

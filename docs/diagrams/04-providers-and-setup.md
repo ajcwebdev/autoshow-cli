@@ -49,7 +49,7 @@ Current LLM models:
 |----------|--------|
 | `openai` | `gpt-5.6-sol`, `gpt-5.6-terra`, `gpt-5.6-luna`, `gpt-5.5`, `gpt-5.4-mini`, `gpt-5.4-nano` |
 | `groq` | `openai/gpt-oss-20b`, `openai/gpt-oss-120b` |
-| `gemini` | `gemini-3.1-pro-preview`, `gemini-3.1-flash-lite`, `gemini-3.1-flash-lite-preview` compatibility alias, `gemini-3.6-flash`, `gemini-3.5-flash`, `gemini-3.5-flash-lite` |
+| `gemini` | `gemini-3.1-pro-preview`, `gemini-3.1-flash-lite`, `gemini-3.6-flash`, `gemini-3.5-flash`, `gemini-3.5-flash-lite` |
 | `anthropic` | `claude-fable-5`, `claude-opus-4-8`, `claude-sonnet-5`, `claude-sonnet-4-6`, `claude-haiku-4-5`, `claude-opus-5` |
 | `minimax` | `MiniMax-M3` |
 | `grok` | `grok-4.3`, `grok-4.5` |

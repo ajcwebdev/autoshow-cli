@@ -352,12 +352,10 @@ test('public commands reject removed provider selector aliases', async () => {
     ['image', 'a sunset', '--openai', 'gpt-image-2', '--price'],
     'Unexpected flag: openai'
   )
-  const videoResult = await runCommand(
-    ['src/cli/create-cli.ts', 'video', 'a sunset timelapse', '--gemini-video', 'veo-3.1-fast-generate-preview', '--price'],
-    { env: { NO_COLOR: '1' } }
+  await expectUsageExit(
+    ['video', 'a sunset timelapse', '--gemini-video', 'veo-3.1-fast-generate-preview', '--price'],
+    'Unexpected flag: geminiVideo'
   )
-  expect(videoResult.exitCode).toBe(0)
-  expect(`${videoResult.stdout}\n${videoResult.stderr}`).toContain('veo-3.1-fast-generate-preview')
   await expectUsageExit(
     ['music', 'ambient piano', '--elevenlabs', 'music_v1', '--price'],
     'Unexpected flag: elevenlabs'
@@ -591,10 +589,6 @@ test('resume rejects provider-named option flags', async () => {
     'Unexpected flag: grokVideoStorageFilename'
   )
   await expectUsageExit(
-    ['resume', 'output/nonexistent', '--gemini-search-grounding'],
-    'Unexpected flag: geminiSearchGrounding'
-  )
-  await expectUsageExit(
     ['resume', 'output/nonexistent', '--stt-happyscribe-organization-id', 'org_123'],
     'Unexpected flag: sttHappyscribeOrganizationId'
   )
@@ -615,7 +609,7 @@ test('comic generate-images rejects invalid page selection flags', async () => {
   )
   await expectUsageExit(
     ['comic', 'generate-images', 'input/scripts/02-script/01-co-work-smarter.md','--panel-limit', 'nope', '--price'],
-    '--panel-limit was removed'
+    'Unknown argument: --panel-limit'
   )
 })
 
@@ -630,10 +624,10 @@ test('comic generate-images rejects invalid and duplicate image models', async (
   )
 })
 
-test('comic generate-images rejects removed --panel flag', async () => {
+test('comic generate-images rejects removed --panel flag as unknown argument', async () => {
   await expectUsageExit(
     ['comic', 'generate-images', 'input/scripts/02-script/01-co-work-smarter.md','--panel', '1', '--price'],
-    '--panel was removed'
+    'Unknown argument: --panel'
   )
 })
 
@@ -714,10 +708,10 @@ test('comic non-strict shorthand remains an ordinary script path', async () => {
   expect(`${result.stdout}\n${result.stderr}`).toContain('Price Estimate: draft-scenes')
 })
 
-test('comic generate-images rejects removed prompts target with migration', async () => {
+test('comic generate-images rejects the prompts target as invalid', async () => {
   await expectUsageExit(
     ['comic', 'generate-images', 'input/scripts/02-script/01-co-work-smarter.md','--target', 'prompts', '--price'],
-    'bun autoshow comic draft-scenes <script-path> --only panel-prompts'
+    'Invalid target "prompts"'
   )
 })
 
@@ -758,7 +752,7 @@ test('comic generate-images rejects invalid page selection flags', async () => {
   )
   await expectUsageExit(
     ['comic', 'generate-images', 'input/scripts/02-script/01-co-work-smarter.md','--panel-limit', 'nope', '--price'],
-    '--panel-limit was removed'
+    'Unknown argument: --panel-limit'
   )
   await expectUsageExit(
     ['comic', 'generate-images', 'input/scripts/02-script/01-co-work-smarter.md','--panels', '4-2', '--price'],
@@ -766,10 +760,10 @@ test('comic generate-images rejects invalid page selection flags', async () => {
   )
 })
 
-test('comic draft-scenes rejects removed flags', async () => {
+test('comic draft-scenes rejects removed --episode flag as unknown argument', async () => {
   await expectUsageExit(
     ['comic', 'draft-scenes', '--episode', 'ep02', '--price'],
-    '--episode was removed'
+    'Unknown argument: --episode'
   )
 })
 

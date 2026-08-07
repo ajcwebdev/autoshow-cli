@@ -36,7 +36,7 @@ export const collectGrokImageTargets = (options: ImageGenOptions): ImageTarget[]
       'imageCompression'
     ], IMAGE_OPTION_LABELS)
     if (options.imageMask !== undefined) unsupported.push('--image-mask')
-    if (options.geminiSearchGrounding === true) unsupported.push('--gemini-search-grounding')
+    if (options.geminiSearchGrounding === true) unsupported.push('--image-search-grounding')
     if (unsupported.length > 0) {
       throw unsupportedFlagError('Grok', model, unsupported, 'Supported Grok image options: --image-count, --image-aspect-ratio, --image-size 1K|2K, and up to three --image-input references.')
     }

@@ -153,16 +153,6 @@ describe('test-runner contracts', () => {
       expect(firecrawlKeys).toEqual(['extract-firecrawl-url'])
     })
 
-  test('price mode rejects legacy test-price selectors', () => {
-      const allFiles = [
-        'test/test-cases/e2e/service/step-4-tts-e2e/tts-services/openai-gpt-4o-mini-tts-2025-12-15.test.ts'
-      ]
-
-      expect(() => resolvePriceSelection(allFiles, [
-        'test/test-price/step-4-tts/services'
-      ])).toThrow('--price uses normal test paths')
-    })
-
   test('price path selections match path boundaries', () => {
       const allFiles = [
         'test/test-cases/e2e/service/step-7-music-gen-e2e/elevenlabs-music.test.ts',

@@ -8,9 +8,6 @@ const GRID_SPEC_PATTERN = /^([1-9]\d*)x([1-9]\d*)$/i
 
 export const DEFAULT_FINAL_PANELS_PER_IMAGE = 1
 export const DEFAULT_SKETCH_PANELS_PER_IMAGE = 6
-// Kept as the public sketch/default chunk constant for compatibility with callers
-// that explicitly pass a shared override.
-export const DEFAULT_PANELS_PER_IMAGE = DEFAULT_SKETCH_PANELS_PER_IMAGE
 export const COMIC_GRID_PANEL_SIZE: ImageGenerationSize = '1536x1024'
 
 const assertPositiveInteger = (value: number, label: string): void => {

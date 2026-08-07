@@ -129,7 +129,7 @@ export const resolveOcrStep2ExecutionFromFormat = (
     { format },
     {
       preparedMarkdown: options.preparedMarkdown,
-      epubInspect: format === 'epub' && (options.useEpubBun === true || options.useEpubCalibre === true),
+      epubInspect: format === 'epub' && options.useEpubBun === true,
       forceOcr: providers.length > 0
     }
   )

@@ -1,6 +1,6 @@
 import { CLIUsageError } from '~/utils/error-handler'
 import type { SelectorNormalizationResult } from '~/types'
-import { appendFlagValue, normalizeProviderAliases, occurrenceValues } from './flag-helpers'
+import { appendFlagValue, occurrenceValues } from './flag-helpers'
 import { STANDALONE_TTS_PROVIDER_TARGETS } from './provider-targets'
 
 const TTS_PROVIDER_BY_TARGET = Object.fromEntries(
@@ -106,7 +106,7 @@ const parseGenericTtsOptionValue = (
 
   const eqIndex = rawValue.indexOf('=')
   if (eqIndex > 0) {
-    const possibleProvider = normalizeProviderAliases(rawValue.slice(0, eqIndex).trim().toLowerCase())
+    const possibleProvider = rawValue.slice(0, eqIndex).trim().toLowerCase()
     if (possibleProvider in STANDALONE_TTS_PROVIDER_TARGETS) {
       const value = rawValue.slice(eqIndex + 1)
       if (value.length === 0) {

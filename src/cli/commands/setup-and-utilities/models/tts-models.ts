@@ -171,7 +171,7 @@ export const validateGroqTtsVoice = (voice: string): string => {
   const normalized = voice.trim().toLowerCase()
   if (!SUPPORTED_GROQ_TTS_VOICES.includes(normalized)) {
     throw CLIUsageError(
-      `Invalid --groq-voice "${voice}". Allowed values: ${formatAllowedValues(SUPPORTED_GROQ_TTS_VOICES)}`
+      `Invalid --tts-voice groq="${voice}". Allowed values: ${formatAllowedValues(SUPPORTED_GROQ_TTS_VOICES)}`
     )
   }
   return normalized
@@ -188,7 +188,7 @@ export const validateGroqTtsVoiceForModel = (model: GroqTtsModel, voice: string)
   const allowedValues = getGroqTtsVoicesForModel(model)
   if (!allowedValues.includes(normalized)) {
     throw CLIUsageError(
-      `Invalid --groq-voice "${voice}" for ${model}. Allowed values: ${formatAllowedValues(allowedValues)}`
+      `Invalid --tts-voice groq="${voice}" for ${model}. Allowed values: ${formatAllowedValues(allowedValues)}`
     )
   }
   return normalized

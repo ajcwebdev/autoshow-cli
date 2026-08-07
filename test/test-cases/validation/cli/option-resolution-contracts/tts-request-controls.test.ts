@@ -325,7 +325,7 @@ describe('option resolution contracts', () => {
       expect(() => collectTtsTargets(buildOptsFromFlags(false, {
         'all-tts': true,
         'groq-voice': REMOVED_GROQ_TTS_VOICE
-      }))).toThrow(`Invalid --groq-voice "${REMOVED_GROQ_TTS_VOICE}"`)
+      }))).toThrow(`Invalid --tts-voice groq="${REMOVED_GROQ_TTS_VOICE}"`)
 
       expect(() => collectTtsTargets(buildOptsFromFlags(false, {
         'all-tts': true,
@@ -353,7 +353,7 @@ describe('option resolution contracts', () => {
       expect(() => collectTtsTargets(buildOptsFromFlags(false, {
         'groq-tts': 'canopylabs/orpheus-v1-english',
         'groq-voice': REMOVED_GROQ_TTS_VOICE
-      }))).toThrow(`Invalid --groq-voice "${REMOVED_GROQ_TTS_VOICE}"`)
+      }))).toThrow(`Invalid --tts-voice groq="${REMOVED_GROQ_TTS_VOICE}"`)
     })
 
   test('grok tts voice validation normalizes case', () => {

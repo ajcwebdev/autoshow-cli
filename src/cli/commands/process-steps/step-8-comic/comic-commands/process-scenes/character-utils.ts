@@ -119,7 +119,7 @@ export const requireCurrentCharacterSketch = async (
   const registration = await readRegisteredCharacterSketch(key, character)
   if (!registration) {
     throw InfraError(
-      `Character "${key}" has no registered outline sheet. Run: bun autoshow comic character-sketch --character ${key}`,
+      `Character "${key}" has no registered outline sheet. Run: bun autoshow comic reference-sketch --character ${key}`,
       { stage: 'comic:character-sketch' }
     )
   }

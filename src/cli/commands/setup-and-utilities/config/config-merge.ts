@@ -16,7 +16,7 @@ const URL_PROVIDER_FLAGS = getStep2ProviderSelectionFlagNames('url')
 const URL_PROVIDER_DEFAULT_GROUP_FLAGS = [...URL_PROVIDER_FLAGS, 'all-url', 'all-local-url', 'all-providers', 'all-local'] as const
 const LLM_PROVIDER_FLAGS = ['llama', 'openai', 'groq', 'gemini', 'anthropic', 'minimax', 'grok', 'glm', 'kimi', 'together', 'cerebras'] as const
 const TTS_PROVIDER_FLAGS = ['kitten-tts', 'elevenlabs-tts', 'minimax-tts', 'groq-tts', 'grok-tts', 'mistral-tts', 'openai-tts', 'gemini-tts', 'deepgram-tts', 'speechify-tts', 'hume-tts', 'cartesia-tts'] as const
-const IMAGE_PROVIDER_FLAGS = ['gemini-image', 'openai-image', 'grok-image', 'bfl-image', 'reve-image', 'recraft-image', 'replicate-image', 'lumalabs-image', 'fal-image'] as const
+const IMAGE_PROVIDER_FLAGS = ['gemini-image', 'openai-image', 'grok-image', 'bfl-image', 'recraft-image', 'replicate-image', 'lumalabs-image', 'fal-image'] as const
 const VIDEO_PROVIDER_FLAGS = ['gemini-video', 'minimax-video', 'glm-video', 'grok-video', 'runway-video', 'ltx-video', 'replicate-video', 'lumalabs-video', 'fal-video'] as const
 const MUSIC_PROVIDER_FLAGS = ['elevenlabs-music', 'minimax-music', 'gemini-music'] as const
 const REPEATABLE_CONFIG_MODEL_FLAG_SET = new Set<string>(REPEATABLE_MODEL_FLAGS)
@@ -393,7 +393,6 @@ const FLAG_TO_CONFIG_PATH: Record<string, string[]> = {
   'openai-image':      ['defaults', 'post', 'image', 'openaiImage'],
   'grok-image':        ['defaults', 'post', 'image', 'grokImage'],
   'bfl-image':         ['defaults', 'post', 'image', 'bflImage'],
-  'reve-image':        ['defaults', 'post', 'image', 'reveImage'],
   'recraft-image':     ['defaults', 'post', 'image', 'recraftImage'],
   'replicate-image':   ['defaults', 'post', 'image', 'replicateImage'],
   'lumalabs-image':    ['defaults', 'post', 'image', 'lumalabsImage'],
@@ -503,7 +502,7 @@ const parseConfigValue = (flagName: string, rawValue: unknown): unknown => {
   }
   if (typeof rawValue !== 'string') return rawValue
   const numericFlags = new Set([
-    'speaker-count', 'stt-reverb-verbatimicity', 'reverb-verbatimicity', 'image-count', 'video-duration',
+    'speaker-count', 'stt-reverb-verbatimicity', 'image-count', 'video-duration',
     'music-duration', 'dpi', 'ocr-dpi', 'length', 'batch-limit', 'batch-concurrency',
     'max-cents',
     'provider-concurrency', 'local-concurrency',
