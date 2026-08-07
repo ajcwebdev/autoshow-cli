@@ -22,10 +22,23 @@ export const imageRegistry: PriceSelectionEntry[] = [
   ...exact('test/test-cases/e2e/service/step-5-image-gen-e2e/replicate-image.test.ts', [
     command('image-replicate-bytedance/seedream-4.5', 'image-replicate-bytedance/seedream-4.5', ['src/cli/create-cli.ts', 'image', 'A tiny blue square icon centered on a white background', '--provider', 'replicate=bytedance/seedream-4.5', '--size', '2K', '--aspect-ratio', '1:1', '--price']),
     command('image-replicate-bytedance/seedream-5-lite', 'image-replicate-bytedance/seedream-5-lite', ['src/cli/create-cli.ts', 'image', 'A tiny green circle icon centered on a white background', '--provider', 'replicate=bytedance/seedream-5-lite', '--size', '2K', '--aspect-ratio', '1:1', '--format', 'png', '--price']),
+    command('image-replicate-bytedance/seedream-5-pro', 'image-replicate-bytedance/seedream-5-pro', ['src/cli/create-cli.ts', 'image', 'A tiny cyan pentagon icon centered on a white background', '--provider', 'replicate=bytedance/seedream-5-pro', '--size', '1K', '--aspect-ratio', '1:1', '--format', 'png', '--price']),
+    command('image-replicate-ideogram-ai/ideogram-v4-turbo', 'image-replicate-ideogram-ai/ideogram-v4-turbo', ['src/cli/create-cli.ts', 'image', 'The word TURBO centered in a clean typographic poster', '--provider', 'replicate=ideogram-ai/ideogram-v4-turbo', '--size', '1024x1024', '--price']),
+    command('image-replicate-ideogram-ai/ideogram-v4-balanced', 'image-replicate-ideogram-ai/ideogram-v4-balanced', ['src/cli/create-cli.ts', 'image', 'The word BALANCED centered in a clean typographic poster', '--provider', 'replicate=ideogram-ai/ideogram-v4-balanced', '--size', '1024x1024', '--price']),
+    command('image-replicate-ideogram-ai/ideogram-v4-quality', 'image-replicate-ideogram-ai/ideogram-v4-quality', ['src/cli/create-cli.ts', 'image', 'The word QUALITY centered in a clean typographic poster', '--provider', 'replicate=ideogram-ai/ideogram-v4-quality', '--size', '1024x1024', '--price']),
+    command('image-replicate-prunaai/ernie-image', 'image-replicate-prunaai/ernie-image', ['src/cli/create-cli.ts', 'image', 'A tiny silver crescent icon centered on a white background', '--provider', 'replicate=prunaai/ernie-image', '--size', '1024x1024', '--format', 'jpeg', '--price']),
+    command('image-replicate-prunaai/ernie-image-turbo', 'image-replicate-prunaai/ernie-image-turbo', ['src/cli/create-cli.ts', 'image', 'A tiny gold sun icon centered on a white background', '--provider', 'replicate=prunaai/ernie-image-turbo', '--size', '1024x1024', '--format', 'jpeg', '--price']),
     command('image-replicate-qwen/qwen-image-2-pro', 'image-replicate-qwen/qwen-image-2-pro', ['src/cli/create-cli.ts', 'image', 'A tiny red triangle icon centered on a white background', '--provider', 'replicate=qwen/qwen-image-2-pro', '--aspect-ratio', '1:1', '--price']),
     command('image-replicate-qwen/qwen-image-2', 'image-replicate-qwen/qwen-image-2', ['src/cli/create-cli.ts', 'image', 'A tiny yellow star icon centered on a white background', '--provider', 'replicate=qwen/qwen-image-2', '--aspect-ratio', '1:1', '--price']),
     command('image-replicate-wan-video/wan-2.7-image-pro', 'image-replicate-wan-video/wan-2.7-image-pro', ['src/cli/create-cli.ts', 'image', 'A tiny purple diamond icon centered on a white background', '--provider', 'replicate=wan-video/wan-2.7-image-pro', '--size', '1K', '--price']),
     command('image-replicate-wan-video/wan-2.7-image', 'image-replicate-wan-video/wan-2.7-image', ['src/cli/create-cli.ts', 'image', 'A tiny orange hexagon icon centered on a white background', '--provider', 'replicate=wan-video/wan-2.7-image', '--size', '1K', '--price']),
+  ]),
+  ...exact('test/test-cases/e2e/service/step-5-image-gen-e2e/fal-image.test.ts', [
+    command('image-fal-fal-ai/hidream-o1-image', 'image-fal-fal-ai/hidream-o1-image', ['src/cli/create-cli.ts', 'image', 'A tiny blue square icon centered on a white background', '--provider', 'fal=fal-ai/hidream-o1-image', '--size', '1024x1024', '--price']),
+    command('image-fal-microsoft/mai-image-2.5', 'image-fal-microsoft/mai-image-2.5', ['src/cli/create-cli.ts', 'image', 'A tiny green circle icon centered on a white background', '--provider', 'fal=microsoft/mai-image-2.5', '--aspect-ratio', '1:1', '--price']),
+    command('image-fal-microsoft/mai-image-2.5-pro', 'image-fal-microsoft/mai-image-2.5-pro', ['src/cli/create-cli.ts', 'image', 'A tiny red triangle icon centered on a white background', '--provider', 'fal=microsoft/mai-image-2.5-pro', '--aspect-ratio', '1:1', '--price']),
+    command('image-fal-alibaba/qwen-image-3', 'image-fal-alibaba/qwen-image-3', ['src/cli/create-cli.ts', 'image', 'The word QWEN centered in a clean typographic poster', '--provider', 'fal=alibaba/qwen-image-3', '--size', '1024x1024', '--price']),
+    command('image-fal-reve/2.1', 'image-fal-reve/2.1', ['src/cli/create-cli.ts', 'image', 'A tiny yellow star icon centered on a white background', '--provider', 'fal=reve/2.1', '--aspect-ratio', '1:1', '--price']),
   ]),
   ...exact('test/test-cases/e2e/service/step-5-image-gen-e2e/bfl-flux-2-pro.test.ts', [
     command('image-bfl-flux-2-pro', 'image-bfl-flux-2-pro', ['src/cli/create-cli.ts', 'image', 'A tiny blue square on a white background', '--provider', 'bfl=flux-2-pro', '--size', '64x64', '--format', 'jpeg', '--price']),
@@ -39,9 +52,6 @@ export const imageRegistry: PriceSelectionEntry[] = [
   ]),
   ...exact('test/test-cases/e2e/service/step-5-image-gen-e2e/bfl-flux-2-flex.test.ts', [
     command('image-bfl-flux-2-flex', 'image-bfl-flux-2-flex', ['src/cli/create-cli.ts', 'image', 'A tiny blue square on a white background', '--provider', 'bfl=flux-2-flex', '--size', '64x64', '--format', 'jpeg', '--price']),
-  ]),
-  ...exact('test/test-cases/e2e/service/step-5-image-gen-e2e/recraft-recraftv4_1-vector.test.ts', [
-    command('image-recraft-recraftv4_1_vector', 'image-recraft-recraftv4_1_vector', ['src/cli/create-cli.ts', 'image', 'A simple blue square vector icon on a white background', '--provider', 'recraft=recraftv4_1_vector', '--aspect-ratio', '1:1', '--price']),
   ]),
   ...exact('test/test-cases/e2e/service/step-5-image-gen-e2e/lumalabs-uni-1.test.ts', [
     command('image-lumalabs-uni-1', 'image-lumalabs-uni-1', ['src/cli/create-cli.ts', 'image', 'a sunset', '--provider', 'lumalabs=uni-1', '--aspect-ratio', '16:9', '--format', 'png', '--price']),

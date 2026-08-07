@@ -15,6 +15,8 @@ export type ImageGenOptions = Pick<
   | 'replicateImageModel'
   | 'lumalabsImageModels'
   | 'lumalabsImageModel'
+  | 'falImageModels'
+  | 'falImageModel'
   | 'imageAspectRatio'
   | 'imageSize'
   | 'imageQuality'
@@ -61,6 +63,8 @@ export type EstimateImageCostOptions = {
   replicateImageModel?: string | undefined
   lumalabsImageModels?: string[] | undefined
   lumalabsImageModel?: string | undefined
+  falImageModels?: string[] | undefined
+  falImageModel?: string | undefined
   imageSize?: string | undefined
   imageQuality?: string | undefined
   imageCount?: number | undefined

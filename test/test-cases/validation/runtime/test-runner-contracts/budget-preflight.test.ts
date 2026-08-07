@@ -341,13 +341,19 @@ describe('test-runner contracts', () => {
       expect(uninspectable).toEqual([])
     })
 
-  test('Replicate image live tests resolve all six exact budget keys', () => {
+  test('Replicate image live tests resolve all twelve exact budget keys', () => {
       const file = 'test/test-cases/e2e/service/step-5-image-gen-e2e/replicate-image.test.ts'
       const keys = resolvePriceSelection([file], [file], true).commands.map(command => command.key)
 
       expect(keys).toEqual([
         'image-replicate-bytedance/seedream-4.5',
         'image-replicate-bytedance/seedream-5-lite',
+        'image-replicate-bytedance/seedream-5-pro',
+        'image-replicate-ideogram-ai/ideogram-v4-turbo',
+        'image-replicate-ideogram-ai/ideogram-v4-balanced',
+        'image-replicate-ideogram-ai/ideogram-v4-quality',
+        'image-replicate-prunaai/ernie-image',
+        'image-replicate-prunaai/ernie-image-turbo',
         'image-replicate-qwen/qwen-image-2-pro',
         'image-replicate-qwen/qwen-image-2',
         'image-replicate-wan-video/wan-2.7-image-pro',
@@ -355,7 +361,7 @@ describe('test-runner contracts', () => {
       ])
     })
 
-  test('a 0.10 cent threshold marks all six Replicate image keys over budget', async () => {
+  test('a 0.10 cent threshold marks all twelve Replicate image keys over budget', async () => {
       const file = 'test/test-cases/e2e/service/step-5-image-gen-e2e/replicate-image.test.ts'
       const commands = resolvePriceSelection([file], [file], true).commands
       const observations = await Promise.all(commands.map(async command => {
@@ -381,7 +387,7 @@ describe('test-runner contracts', () => {
 
       const evaluation = evaluatePriceObservations('Replicate images', observations, 10)
       expect([...(evaluation.budgetSummary?.skipKeys ?? [])].sort()).toEqual(commands.map(command => command.key).sort())
-      expect(evaluation.budgetSummary?.commandsSkipped).toBe(6)
+      expect(evaluation.budgetSummary?.commandsSkipped).toBe(12)
     })
 
   test('unevaluated and malformed budget handshakes never execute test callbacks', async () => {

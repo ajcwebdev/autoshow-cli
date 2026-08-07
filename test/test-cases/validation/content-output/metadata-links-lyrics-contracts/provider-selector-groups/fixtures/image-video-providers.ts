@@ -1,5 +1,25 @@
 import { BFL_MODELS_LINKS, LTX_MODELS_LINKS, REPLICATE_MODELS_LINKS } from './model-providers'
 
+export const FAL_IMAGE_LINKS = [
+  'https://fal.ai/models/fal-ai/hidream-o1-image/api',
+  'https://fal.ai/models/microsoft/mai-image-2.5/api',
+  'https://fal.ai/models/microsoft/mai-image-2.5-pro/api',
+  'https://fal.ai/models/alibaba/qwen-image-3/text-to-image/api',
+  'https://fal.ai/models/alibaba/qwen-image-3/edit/api',
+  'https://fal.ai/models/reve/2.1/text-to-image/api',
+  'https://fal.ai/models/reve/2.1/edit/api'
+]
+
+export const FAL_VIDEO_LINKS = [
+  'https://fal.ai/models/minimax/h3/text-to-video/api',
+  'https://fal.ai/models/minimax/h3/image-to-video/api',
+  'https://fal.ai/models/minimax/h3/reference-to-video/api',
+  'https://fal.ai/models/fal-ai/pixverse/c1/text-to-video/api',
+  'https://fal.ai/models/fal-ai/pixverse/c1/image-to-video/api',
+  'https://fal.ai/models/fal-ai/pixverse/c1/reference-to-video/api',
+  'https://fal.ai/models/fal-ai/pixverse/c1/transition/api'
+]
+
 export const BFL_IMAGE_LINKS = [
   'https://docs.bfl.ml/quick_start/introduction.md',
   'https://docs.bfl.ml/quick_start/get_started.md',

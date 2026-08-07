@@ -194,45 +194,6 @@ describe('image provider REST contracts', () => {
     ])
   })
 
-  test('Recraft vector downloads infer svg output extension from content type', async () => {
-    process.env['RECRAFT_API_TOKEN'] = 'recraft-token'
-    const svgBytes = new TextEncoder().encode('<svg xmlns="http://www.w3.org/2000/svg"></svg>')
-    const calls = installMockFetch((call) => {
-      if (call.method === 'POST') {
-        return jsonResponse({
-          data: [{ url: 'https://mock.recraft.local/images/vector-result' }]
-        })
-      }
-      return imageResponse(svgBytes, 'image/svg+xml')
-    })
-
-    await withTempDir(async (dir) => {
-      const result = await runRecraftImageGen('A clean vector fox logo', dir, {
-        model: 'recraftv4_1_vector',
-        aspectRatio: '1:1',
-        baseUrl: 'https://mock.recraft.local/v1'
-      })
-
-      expect(result.imagePaths[0]?.endsWith('generated-image.svg')).toBe(true)
-      expect(result.metadata).toMatchObject({
-        imageService: 'recraft',
-        imageModel: 'recraftv4_1_vector',
-        imageFileNames: ['generated-image.svg'],
-        imageFormat: 'svg',
-        imageSize: '1:1'
-      })
-      expect(await Bun.file(result.imagePaths[0] as string).text()).toContain('<svg')
-    })
-
-    expect(calls[0]?.bodyJson).toEqual({
-      prompt: 'A clean vector fox logo',
-      model: 'recraftv4_1_vector',
-      response_format: 'url',
-      n: 1,
-      size: '1:1'
-    })
-  })
-
   test('Replicate Seedream creates a synchronous prediction and downloads the returned image', async () => {
     process.env['REPLICATE_API_TOKEN'] = 'replicate-token'
     const calls = installMockFetch((call) => {
@@ -421,6 +382,101 @@ describe('image provider REST contracts', () => {
       'https://mock.replicate.local/out/two.png',
       'https://mock.replicate.local/out/three.png'
     ])
+  })
+
+  test('Replicate Seedream 5 Pro maps resolution, format, and reference images', async () => {
+    process.env['REPLICATE_API_TOKEN'] = 'replicate-token'
+    const calls = installMockFetch((call) => {
+      if (call.method === 'POST') {
+        return jsonResponse({
+          id: 'pred-seedream-pro',
+          status: 'succeeded',
+          output: ['https://mock.replicate.local/out/seedream-pro.png']
+        })
+      }
+      return imageResponse(new Uint8Array([1, 3, 5]), 'image/png')
+    })
+
+    await withTempDir(async (dir) => {
+      const refPath = join(dir, 'reference.png')
+      await writeFile(refPath, new Uint8Array([9, 8, 7]))
+      const result = await runReplicateImageGen('Preserve this product design', dir, {
+        model: 'bytedance/seedream-5-pro',
+        inputs: [refPath],
+        imageSize: '2K',
+        aspectRatio: '1:1',
+        outputFormat: 'png',
+        baseUrl: 'https://mock.replicate.local/v1'
+      })
+      expect(result.metadata).toMatchObject({ imageModel: 'bytedance/seedream-5-pro', imageSize: '2K', imageFormat: 'png', requestMode: 'edit', providerCostCents: 9 })
+    })
+
+    expect(calls[0]?.url).toBe('https://mock.replicate.local/v1/models/bytedance/seedream-5-pro/predictions')
+    expect(calls[0]?.bodyJson).toEqual({
+      input: {
+        prompt: 'Preserve this product design',
+        sequential_image_generation: 'disabled',
+        max_images: 1,
+        image_input: [`data:image/png;base64,${Buffer.from(new Uint8Array([9, 8, 7])).toString('base64')}`],
+        size: '2K',
+        aspect_ratio: '1:1',
+        output_format: 'png'
+      }
+    })
+  })
+
+  test('Replicate Ideogram V4 maps custom resolution to its text-only endpoint', async () => {
+    process.env['REPLICATE_API_TOKEN'] = 'replicate-token'
+    const calls = installMockFetch((call) => call.method === 'POST'
+      ? jsonResponse({ id: 'pred-ideogram', status: 'succeeded', output: 'https://mock.replicate.local/out/ideogram.png' })
+      : imageResponse(new Uint8Array([2, 4, 6]), 'image/png'))
+
+    await withTempDir(async (dir) => {
+      const result = await runReplicateImageGen('A typographic launch poster', dir, {
+        model: 'ideogram-ai/ideogram-v4-balanced',
+        imageSize: '1024x768',
+        baseUrl: 'https://mock.replicate.local/v1'
+      })
+      expect(result.metadata).toMatchObject({ imageModel: 'ideogram-ai/ideogram-v4-balanced', imageSize: '1024x768', imageFormat: 'png', requestMode: 'generation', providerCostCents: 6 })
+    })
+
+    expect(calls[0]?.bodyJson).toEqual({ input: { prompt: 'A typographic launch poster', resolution: '1024x768' } })
+  })
+
+  test('Replicate ERNIE uses the generic version-pinned endpoint and normalizes output options', async () => {
+    process.env['REPLICATE_API_TOKEN'] = 'replicate-token'
+    const calls = installMockFetch((call) => call.method === 'POST'
+      ? jsonResponse({
+          id: 'pred-ernie',
+          version: 'fb19aa909fb366cdbdc06a87be3753aea6954346780bac847cccf8f32ad2626f',
+          status: 'succeeded',
+          output: ['https://mock.replicate.local/out/ernie-one.jpg', 'https://mock.replicate.local/out/ernie-two.jpg']
+        })
+      : imageResponse(new Uint8Array([7, 7, 7]), 'image/jpeg'))
+
+    await withTempDir(async (dir) => {
+      const result = await runReplicateImageGen('A detailed city illustration', dir, {
+        model: 'prunaai/ernie-image-turbo',
+        imageSize: '1264x848',
+        count: 2,
+        outputFormat: 'jpeg',
+        baseUrl: 'https://mock.replicate.local/v1'
+      })
+      expect(result.metadata).toMatchObject({ imageModel: 'prunaai/ernie-image-turbo', imageCount: 2, imageSize: '1264x848', imageFormat: 'jpg', providerCostCents: 2.3 })
+      expect(result.metadata.providerReturnedModel).toBeUndefined()
+    })
+
+    expect(calls[0]?.url).toBe('https://mock.replicate.local/v1/predictions')
+    expect(calls[0]?.bodyJson).toEqual({
+      version: 'prunaai/ernie-image-turbo:fb19aa909fb366cdbdc06a87be3753aea6954346780bac847cccf8f32ad2626f',
+      input: {
+        prompt: 'A detailed city illustration',
+        width: 1264,
+        height: 848,
+        num_outputs: 2,
+        output_format: 'jpg'
+      }
+    })
   })
 
   test('Replicate terminal failures surface prediction errors without polling', async () => {

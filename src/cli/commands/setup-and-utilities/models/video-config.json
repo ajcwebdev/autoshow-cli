@@ -284,7 +284,8 @@
     "type": "api",
     "resolutions": [
       "480p",
-      "720p"
+      "720p",
+      "1080p"
     ],
     "billedDurations": [
       1,
@@ -321,6 +322,24 @@
         "estimation": {
           "costMultiplier": 1,
           "msPerSecond": 10833
+        }
+      },
+      "grok-imagine-video-1.5": {
+        "description": "Grok Imagine Video 1.5 text, image, and reference video generation model",
+        "pricingSourceUrl": "https://docs.x.ai/developers/models/grok-imagine-video-1.5",
+        "pricingCheckedAt": "2026-08-06",
+        "pricingCurrency": "USD",
+        "pricingTier": "xAI public Imagine API video pricing",
+        "pricingNotes": "Grok Imagine Video 1.5 output costs $0.08/s at 480p, $0.14/s at 720p, and $0.25/s at 1080p. Each input image costs $0.01. Reference-to-video is capped at 720p. Discounts, regional differences, enterprise pricing, taxes, and provider credits are ignored unless provider usage is returned.",
+        "baseCostPerSecondUSD": 0.08,
+        "baseCostPerSecondCents": 8,
+        "resolutionMultiplier720p": 1.75,
+        "resolutionMultiplier1080p": 3.125,
+        "inputImageCostUSD": 0.01,
+        "inputImageCostCents": 1,
+        "estimation": {
+          "costMultiplier": 1,
+          "msPerSecond": 10000
         }
       }
     }
@@ -412,9 +431,12 @@
     "description": "Replicate video generation",
     "type": "api",
     "resolutions": [
+      "360p",
       "480p",
+      "540p",
       "720p",
-      "1080p"
+      "1080p",
+      "4k"
     ],
     "billedDurations": [
       2,
@@ -433,21 +455,65 @@
       15
     ],
     "models": {
-      "alibaba/happyhorse-1.0": {
-        "description": "Alibaba Happy Horse 1.0 text-to-video and image-to-video model",
-        "pricingSourceUrl": "https://replicate.com/alibaba/happyhorse-1.0",
-        "pricingCheckedAt": "2026-06-13",
+      "alibaba/happyhorse-1.1": {
+        "description": "Alibaba Happy Horse 1.1 text, image, and reference-to-video model",
+        "pricingSourceUrl": "https://replicate.com/alibaba/happyhorse-1.1",
+        "pricingCheckedAt": "2026-08-06",
         "pricingCurrency": "USD",
         "pricingTier": "Replicate public model pricing",
-        "pricingNotes": "Replicate Happy Horse estimates use per-second output pricing. The CLI sends an explicit 720p default resolution for provider-default selection.",
+        "pricingNotes": "Replicate Happy Horse 1.1 estimates use published per-second output pricing. The CLI sends an explicit 720p default resolution for provider-default selection.",
         "costPerSecondByResolutionCents": {
           "720p": 14,
-          "1080p": 28
+          "1080p": 18
         },
         "estimation": {
           "costMultiplier": 1,
           "msPerSecond": 12000
         }
+      },
+      "kwaivgi/kling-v3-video": {
+        "description": "Kling Video 3.0 text, image, interpolation, multi-shot, and native-audio model",
+        "pricingSourceUrl": "https://replicate.com/kwaivgi/kling-v3-video",
+        "pricingCheckedAt": "2026-08-06",
+        "pricingCurrency": "USD",
+        "pricingTier": "Replicate public model pricing",
+        "pricingNotes": "Published per-second prices vary by standard (720p), pro (1080p), or 4K mode and native-audio selection.",
+        "costPerSecondByResolutionCents": { "720p": 16.8, "1080p": 22.4, "4k": 42 },
+        "audioCostPerSecondByResolutionCents": { "720p": 25.2, "1080p": 33.6, "4k": 42 },
+        "estimation": { "costMultiplier": 1, "msPerSecond": 30000 }
+      },
+      "kwaivgi/kling-v3-omni-video": {
+        "description": "Kling Video 3.0 Omni multimodal generation and editing model",
+        "pricingSourceUrl": "https://replicate.com/kwaivgi/kling-v3-omni-video",
+        "pricingCheckedAt": "2026-08-06",
+        "pricingCurrency": "USD",
+        "pricingTier": "Replicate public model pricing",
+        "pricingNotes": "Published per-second prices vary by standard (720p), pro (1080p), or 4K mode and native-audio selection.",
+        "costPerSecondByResolutionCents": { "720p": 16.8, "1080p": 22.4, "4k": 42 },
+        "audioCostPerSecondByResolutionCents": { "720p": 22.4, "1080p": 28, "4k": 42 },
+        "estimation": { "costMultiplier": 1, "msPerSecond": 30000 }
+      },
+      "pixverse/pixverse-v6": {
+        "description": "PixVerse V6 text, image, transition, multi-shot, and native-audio model",
+        "pricingSourceUrl": "https://replicate.com/pixverse/pixverse-v6",
+        "pricingCheckedAt": "2026-08-06",
+        "pricingCurrency": "USD",
+        "pricingTier": "Replicate public model pricing",
+        "pricingNotes": "Published per-second prices vary by output resolution and native-audio selection.",
+        "costPerSecondByResolutionCents": { "360p": 5, "540p": 7, "720p": 9, "1080p": 18 },
+        "audioCostPerSecondByResolutionCents": { "360p": 7, "540p": 9, "720p": 12, "1080p": 23 },
+        "estimation": { "costMultiplier": 1, "msPerSecond": 20000 }
+      },
+      "runwayml/aleph-2": {
+        "description": "Runway Aleph 2.0 prompt-based video editing model",
+        "pricingSourceUrl": "https://replicate.com/runwayml/aleph-2",
+        "pricingCheckedAt": "2026-08-06",
+        "pricingCurrency": "USD",
+        "pricingTier": "Replicate public early-access model pricing",
+        "pricingNotes": "Replicate charges $0.336 per second of output video. Input clips must be 2-30 seconds and under 16MB; early-access pricing may change.",
+        "baseCostPerSecondUSD": 0.336,
+        "baseCostPerSecondCents": 33.6,
+        "estimation": { "costMultiplier": 1, "msPerSecond": 120000 }
       },
       "bytedance/seedance-2.0": {
         "description": "ByteDance Seedance 2.0 multimodal video generation model",
@@ -550,6 +616,41 @@
             "10": 360
           }
         },
+        "estimation": {
+          "costMultiplier": 1,
+          "msPerSecond": 12000
+        }
+      }
+    }
+  },
+  "fal": {
+    "description": "fal.ai hosted video generation",
+    "type": "api",
+    "billedDurations": [5],
+    "models": {
+      "minimax/h3": {
+        "description": "MiniMax H3 multimodal video generation with native audio",
+        "pricingSourceUrl": "https://fal.ai/models/minimax/h3/api",
+        "pricingCheckedAt": "2026-08-06",
+        "pricingCurrency": "USD",
+        "pricingTier": "fal.ai public model pricing",
+        "pricingNotes": "fal.ai lists MiniMax H3 at $0.26 per generated second.",
+        "baseCostPerSecondUSD": 0.26,
+        "baseCostPerSecondCents": 26,
+        "estimation": {
+          "costMultiplier": 1,
+          "msPerSecond": 12000
+        }
+      },
+      "fal-ai/pixverse/c1": {
+        "description": "PixVerse C1 production video generation",
+        "pricingSourceUrl": "https://fal.ai/models/fal-ai/pixverse/c1/api",
+        "pricingCheckedAt": "2026-08-06",
+        "pricingCurrency": "USD",
+        "pricingTier": "fal.ai public model pricing",
+        "pricingNotes": "fal.ai lists PixVerse C1 at $0.005 per generated second.",
+        "baseCostPerSecondUSD": 0.005,
+        "baseCostPerSecondCents": 0.5,
         "estimation": {
           "costMultiplier": 1,
           "msPerSecond": 12000

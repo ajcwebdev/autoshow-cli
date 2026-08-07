@@ -210,7 +210,7 @@ describe('price mode contracts', () => {
       expect(resolveCheapestModelForFlag('minimax-video')).toBe('T2V-01')
       expect(resolveCheapestModelForFlag('glm-video')).toBe('cogvideox-3')
       expect(resolveCheapestModelForFlag('ltx-video')).toBe('ltx-2-3-fast')
-      expect(resolveCheapestModelForFlag('replicate-video')).toBe('wan-video/wan-2.7-t2v')
+      expect(resolveCheapestModelForFlag('replicate-video')).toBe('pixverse/pixverse-v6')
       expect(selectCheapestVideoSelection('gemini')).toMatchObject({
         provider: 'gemini',
         model: 'veo-3.1-lite-generate-preview'
@@ -229,7 +229,7 @@ describe('price mode contracts', () => {
       })
       expect(selectCheapestVideoSelection('replicate')).toMatchObject({
         provider: 'replicate',
-        model: 'wan-video/wan-2.7-t2v'
+        model: 'pixverse/pixverse-v6'
       })
     })
 
@@ -266,14 +266,6 @@ describe('price mode contracts', () => {
         imageCount: 3,
         costPerImageCents: 4,
         totalCost: 12
-      })
-      expect(estimateImageCosts({
-        recraftImageModel: 'recraftv4_1_vector'
-      })[0]).toMatchObject({
-        provider: 'recraft',
-        model: 'recraftv4_1_vector',
-        costPerImageCents: 8,
-        totalCost: 8
       })
     })
 

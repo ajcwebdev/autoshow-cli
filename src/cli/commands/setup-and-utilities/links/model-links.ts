@@ -10,6 +10,7 @@ import deepinfraLinks from './model-links/deepinfra.json'
 import driveLinks from './model-links/drive.json'
 import elevenlabsLinks from './model-links/elevenlabs.json'
 import firecrawlLinks from './model-links/firecrawl.json'
+import falLinks from './model-links/fal.json'
 import geminiLinks from './model-links/gemini.json'
 import gladiaLinks from './model-links/gladia.json'
 import glmLinks from './model-links/glm.json'
@@ -82,6 +83,7 @@ const providerLinks = [
   scrapecreatorsLinks,
   zyteLinks,
   firecrawlLinks,
+  falLinks,
   spiderLinks
 ] as const satisfies readonly ModelLinksData[]
 

@@ -8,6 +8,7 @@ import { collectRunwayVideoTargets } from '../video-services/runway/runway-video
 import { collectLtxVideoTargets } from '../video-services/ltx/ltx-video-targets'
 import { collectReplicateVideoTargets } from '../video-services/replicate-video/replicate-video-targets'
 import { collectLumalabsVideoTargets } from '../video-services/video-lumalabs/lumalabs-video-targets'
+import { collectFalVideoTargets } from '../video-services/fal-video-service/fal-video-targets'
 
 export const collectVideoTargets = (options: VideoGenOptions): VideoTarget[] => {
   const mode = resolveVideoMode(options.videoMode)
@@ -21,6 +22,7 @@ export const collectVideoTargets = (options: VideoGenOptions): VideoTarget[] => 
     ...collectRunwayVideoTargets(options, mode),
     ...collectLtxVideoTargets(options, mode),
     ...collectReplicateVideoTargets(options, mode),
-    ...collectLumalabsVideoTargets(options, mode)
+    ...collectLumalabsVideoTargets(options, mode),
+    ...collectFalVideoTargets(options, mode)
   ]
 }

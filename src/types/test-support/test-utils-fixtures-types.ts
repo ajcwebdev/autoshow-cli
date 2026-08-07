@@ -38,4 +38,4 @@ export type MusicServiceModelCase = {
 
 export type TtsExtraArgs = readonly string[] | ((model: string) => readonly string[] | Promise<readonly string[]>)
 
-export type VideoTestService = 'gemini' | 'minimax' | 'glm' | 'grok' | 'runway' | 'ltx' | 'replicate' | 'lumalabs'
+export type VideoTestService = 'gemini' | 'minimax' | 'glm' | 'grok' | 'runway' | 'ltx' | 'replicate' | 'lumalabs' | 'fal'

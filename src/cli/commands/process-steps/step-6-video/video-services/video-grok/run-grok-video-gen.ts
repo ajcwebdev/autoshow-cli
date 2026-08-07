@@ -81,7 +81,7 @@ export const runGrokVideoGen = async (
     ? normalizeGrokVideoExtensionDuration(options.durationSeconds)
     : normalizeGrokVideoDuration(options.durationSeconds)
   const aspectRatio = mode === 'edit' || mode === 'extend' ? undefined : normalizeGrokVideoAspectRatio(options.aspectRatio)
-  const resolution = mode === 'edit' || mode === 'extend' ? undefined : normalizeGrokVideoResolution(options.resolution)
+  const resolution = mode === 'edit' || mode === 'extend' ? undefined : normalizeGrokVideoResolution(options.resolution, options.model)
   const storageOptions = options.storageFilename || options.storageExpiresAfter !== undefined
     ? {
         ...(options.storageFilename ? { filename: options.storageFilename } : {}),

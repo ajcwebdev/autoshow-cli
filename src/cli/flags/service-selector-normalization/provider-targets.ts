@@ -20,7 +20,8 @@ export const STANDALONE_IMAGE_PROVIDER_TARGETS = {
   bfl: 'bfl-image',
   recraft: 'recraft-image',
   replicate: 'replicate-image',
-  lumalabs: 'lumalabs-image'
+  lumalabs: 'lumalabs-image',
+  fal: 'fal-image'
 } as const satisfies Record<string, string>
 
 export const STANDALONE_VIDEO_PROVIDER_TARGETS = {
@@ -31,7 +32,8 @@ export const STANDALONE_VIDEO_PROVIDER_TARGETS = {
   runway: 'runway-video',
   ltx: 'ltx-video',
   replicate: 'replicate-video',
-  lumalabs: 'lumalabs-video'
+  lumalabs: 'lumalabs-video',
+  fal: 'fal-video'
 } as const satisfies Record<string, string>
 
 export const STANDALONE_MUSIC_PROVIDER_TARGETS = {

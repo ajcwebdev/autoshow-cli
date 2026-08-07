@@ -44,9 +44,10 @@ export const imageCommand = defineCliCommand({
       ['bun autoshow image "a futuristic observatory at sunset" --provider grok=grok-imagine-image-quality --size 1K --count 4', 'Generate multiple Grok outputs'],
       ['bun autoshow image "place the same mug on a rustic breakfast table" --provider bfl=flux-2-pro --input output/mug-base/generated-image.png --size 1024x1024 --output-dir output/mug-bfl', 'Generate with BFL reference input'],
       ['bun autoshow image "a handmade ceramic espresso cup on a marble counter" --provider bfl=flux-2-klein-4b --size 1024x1024 --format webp', 'Generate with FLUX.2 Klein'],
-      ['bun autoshow image "a geometric fox logo in clean vector shapes" --provider recraft=recraftv4_1_vector --aspect-ratio 1:1', 'Generate with Recraft'],
+      ['bun autoshow image "a premium product photo" --provider recraft=recraftv4_1 --size 1024x1024', 'Generate with Recraft'],
       ['bun autoshow image "a polished launch poster for a sci-fi audio drama" --provider replicate=wan-video/wan-2.7-image --size 2K --count 2', 'Generate with Replicate Wan'],
-      ['bun autoshow image "a glass of iced coffee on a marble countertop in morning light" --provider lumalabs=uni-1 --aspect-ratio 16:9 --format png', 'Generate with Luma Labs']
+      ['bun autoshow image "a glass of iced coffee on a marble countertop in morning light" --provider lumalabs=uni-1 --aspect-ratio 16:9 --format png', 'Generate with Luma Labs'],
+      ['bun autoshow image "a launch poster with crisp typography" --provider fal=alibaba/qwen-image-3 --count 2', 'Generate with fal.ai']
     ]
   }
 }, async (ctx) => {
@@ -68,7 +69,7 @@ export const imageCommand = defineCliCommand({
   const imageOpts = buildOptsFromFlags(true, providerNormalized.flags, [], {}, providerNormalized.explicitFlags, providerNormalized.rawArgs ?? optionNormalizedArgs)
   const imageTargets = collectImageTargets(imageOpts)
   if (imageTargets.length === 0) {
-    throw CLIUsageError('No image provider specified. Use --provider gemini|openai|grok|bfl|recraft|replicate|lumalabs[=model].')
+    throw CLIUsageError('No image provider specified. Use --provider gemini|openai|grok|bfl|recraft|replicate|lumalabs|fal[=model].')
   }
 
   const { estimate: preflightEstimate, shouldExit: imageShouldExit } = await runPreflight('image', prompt, imageOpts, imageMaxCents)

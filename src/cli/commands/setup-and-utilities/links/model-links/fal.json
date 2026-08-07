@@ -1,0 +1,27 @@
+{
+  "Fal": {
+    "General": [
+      "https://docs.fal.ai/model-apis/model-endpoints/queue",
+      "https://docs.fal.ai/model-apis/model-endpoints/webhooks",
+      "https://docs.fal.ai/model-apis/model-endpoints/files"
+    ],
+    "Image": [
+      "https://fal.ai/models/fal-ai/hidream-o1-image/api",
+      "https://fal.ai/models/microsoft/mai-image-2.5/api",
+      "https://fal.ai/models/microsoft/mai-image-2.5-pro/api",
+      "https://fal.ai/models/alibaba/qwen-image-3/text-to-image/api",
+      "https://fal.ai/models/alibaba/qwen-image-3/edit/api",
+      "https://fal.ai/models/reve/2.1/text-to-image/api",
+      "https://fal.ai/models/reve/2.1/edit/api"
+    ],
+    "Video": [
+      "https://fal.ai/models/minimax/h3/text-to-video/api",
+      "https://fal.ai/models/minimax/h3/image-to-video/api",
+      "https://fal.ai/models/minimax/h3/reference-to-video/api",
+      "https://fal.ai/models/fal-ai/pixverse/c1/text-to-video/api",
+      "https://fal.ai/models/fal-ai/pixverse/c1/image-to-video/api",
+      "https://fal.ai/models/fal-ai/pixverse/c1/reference-to-video/api",
+      "https://fal.ai/models/fal-ai/pixverse/c1/transition/api"
+    ]
+  }
+}

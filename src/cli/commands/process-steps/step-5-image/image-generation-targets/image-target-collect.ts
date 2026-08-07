@@ -7,6 +7,7 @@ import { collectBflImageTargets } from '../image-generation-services/bfl/bfl-ima
 import { collectRecraftImageTargets } from '../image-generation-services/recraft/recraft-image-targets'
 import { collectReplicateImageTargets } from '../image-generation-services/replicate/replicate-image-targets'
 import { collectLumalabsImageTargets } from '../image-generation-services/lumalabs/lumalabs-image-targets'
+import { collectFalImageTargets } from '../image-generation-services/fal-image-service/fal-image-targets'
 import { validateImageReferenceCapabilities } from '~/cli/commands/setup-and-utilities/models/image-reference-capabilities'
 
 export const collectImageTargets = (options: ImageGenOptions): ImageTarget[] => {
@@ -21,7 +22,8 @@ export const collectImageTargets = (options: ImageGenOptions): ImageTarget[] => 
     ...collectBflImageTargets(options),
     ...collectRecraftImageTargets(options),
     ...collectReplicateImageTargets(options),
-    ...collectLumalabsImageTargets(options)
+    ...collectLumalabsImageTargets(options),
+    ...collectFalImageTargets(options)
   ]
   const referenceCount = options.imageInputs?.length ?? 0
   for (const target of targets) validateImageReferenceCapabilities(target.model, referenceCount)

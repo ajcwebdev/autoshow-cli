@@ -16,6 +16,8 @@ export const validateModeInputs = (options: VideoGenOptions, mode: VideoMode): v
   const referenceImages = options.videoReferenceImages ?? []
   const replicateReferenceVideos = options.replicateVideoReferenceVideos ?? []
   const replicateReferenceAudios = options.replicateVideoReferenceAudios ?? []
+  const falReferenceVideos = options.falVideoReferenceVideos ?? []
+  const falReferenceAudios = options.falVideoReferenceAudios ?? []
 
   const unexpected: string[] = []
   const addUnexpected = (condition: boolean, flagName: string): void => {
@@ -33,8 +35,8 @@ export const validateModeInputs = (options: VideoGenOptions, mode: VideoMode): v
     addUnexpected(referenceImages.length > 0, '--video-reference-image')
     addUnexpected(hasValue(options.videoInputVideo), '--video-input-video')
   } else if (mode === 'reference-to-video') {
-    if (referenceImages.length === 0 && replicateReferenceVideos.length === 0 && replicateReferenceAudios.length === 0) {
-      throw CLIUsageError('--video-mode reference-to-video requires at least one --video-reference-image or --replicate-video-reference-video.')
+    if (referenceImages.length === 0 && replicateReferenceVideos.length === 0 && replicateReferenceAudios.length === 0 && falReferenceVideos.length === 0 && falReferenceAudios.length === 0) {
+      throw CLIUsageError('--video-mode reference-to-video requires at least one image, video, or audio reference.')
     }
     addUnexpected(hasValue(options.videoInputImage), '--video-input-image')
     addUnexpected(hasValue(options.videoLastFrame), '--video-last-frame')

@@ -40,7 +40,8 @@ const IMAGE_PROVIDER_FLAGS = [
   'bfl-image',
   'recraft-image',
   'replicate-image',
-  'lumalabs-image'
+  'lumalabs-image',
+  'fal-image'
 ] as const
 
 const IMAGE_MODEL_FIELDS = {
@@ -50,7 +51,8 @@ const IMAGE_MODEL_FIELDS = {
   bfl: ['bflImageModels', 'bflImageModel'],
   recraft: ['recraftImageModels', 'recraftImageModel'],
   replicate: ['replicateImageModels', 'replicateImageModel'],
-  lumalabs: ['lumalabsImageModels', 'lumalabsImageModel']
+  lumalabs: ['lumalabsImageModels', 'lumalabsImageModel'],
+  fal: ['falImageModels', 'falImageModel']
 } as const
 
 const clearImageProviderModels = (opts: RuntimeOptions): RuntimeOptions => ({
@@ -68,7 +70,9 @@ const clearImageProviderModels = (opts: RuntimeOptions): RuntimeOptions => ({
   replicateImageModels: undefined,
   replicateImageModel: undefined,
   lumalabsImageModels: undefined,
-  lumalabsImageModel: undefined
+  lumalabsImageModel: undefined,
+  falImageModels: undefined,
+  falImageModel: undefined
 })
 
 const collectImageTargetsForProviders = (
@@ -111,7 +115,8 @@ const buildImagePriceOptions = (
   bflImageModels: imageModelsForService(targets, 'bfl'),
   recraftImageModels: imageModelsForService(targets, 'recraft'),
   replicateImageModels: imageModelsForService(targets, 'replicate'),
-  lumalabsImageModels: imageModelsForService(targets, 'lumalabs')
+  lumalabsImageModels: imageModelsForService(targets, 'lumalabs'),
+  falImageModels: imageModelsForService(targets, 'fal')
 })
 
 const priceImageTargets = async (

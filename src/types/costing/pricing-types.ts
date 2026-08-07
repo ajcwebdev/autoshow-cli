@@ -200,6 +200,7 @@ export type ComputeEstimatedCostsInput = {
   recraftImageModel?: string | undefined
   replicateImageModel?: string | undefined
   lumalabsImageModel?: string | undefined
+  falImageModel?: string | undefined
   imageSize?: string | undefined
   imageQuality?: string | undefined
   imageCount?: number | undefined
@@ -211,6 +212,7 @@ export type ComputeEstimatedCostsInput = {
   ltxVideoModel?: string | undefined
   replicateVideoModel?: string | undefined
   lumalabsVideoModel?: string | undefined
+  falVideoModel?: string | undefined
   videoTargets?: VideoPricingTarget[] | undefined
   videoDuration?: number | undefined
   videoSize?: string | undefined

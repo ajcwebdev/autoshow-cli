@@ -239,6 +239,7 @@ const VideoModelSchema = v.object({
   inputVideoCostPerSecondUSD: v.optional(v.number(), undefined),
   inputVideoCostPerSecondCents: v.optional(v.number(), undefined),
   costPerSecondByResolutionCents: v.optional(VideoCostPerSecondByResolutionSchema, undefined),
+  audioCostPerSecondByResolutionCents: v.optional(VideoCostPerSecondByResolutionSchema, undefined),
   videoInputCostPerSecondByResolutionCents: v.optional(VideoCostPerSecondByResolutionSchema, undefined),
   estimation: v.optional(v.object({
     costMultiplier: v.optional(v.number(), undefined),

@@ -232,8 +232,8 @@ Provider unions:
 | Type | Values |
 |------|--------|
 | `TtsProvider` | `kitten`, `elevenlabs`, `minimax`, `groq`, `grok`, `mistral`, `openai`, `gemini`, `deepgram`, `speechify`, `hume`, `cartesia` |
-| `ImageProvider` | `gemini`, `openai`, `grok`, `bfl`, `reve`, `recraft`, `replicate`, `lumalabs` |
-| `VideoProvider` | `gemini`, `minimax`, `glm`, `grok`, `runway`, `ltx`, `replicate`, `lumalabs` |
+| `ImageProvider` | `gemini`, `openai`, `grok`, `bfl`, `recraft`, `replicate`, `lumalabs`, `fal` |
+| `VideoProvider` | `gemini`, `minimax`, `glm`, `grok`, `runway`, `ltx`, `replicate`, `lumalabs`, `fal` |
 | `MusicProvider` | `elevenlabs`, `minimax`, `gemini` |
 | `OcrProvider` | `tesseract`, `mistral`, `glm`, `kimi`, `openai`, `grok`, `anthropic`, `gemini`, `deepinfra` |
 

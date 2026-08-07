@@ -77,8 +77,8 @@ Current hosted/local provider families:
 | OCR | Local/native: `tesseract` plus native document extractors. Hosted: `mistral`, `glm`, `kimi`, `openai`, `grok`, `anthropic`, `gemini`, `deepinfra`, `unstructured`. |
 | URL | Local: `defuddle`. Hosted: `firecrawl`, `glm-reader`, `spider`, `supadata`, `zyte`. |
 | TTS | Local: `kitten`. Hosted: `elevenlabs`, `minimax`, `groq`, `grok`, `mistral`, `openai`, `gemini`, `deepgram`, `speechify`, `hume`, `cartesia`. |
-| Image | `gemini`, `openai`, `grok`, `bfl`, `recraft`, `replicate`, `lumalabs`. |
-| Video | `gemini`, `minimax`, `glm`, `grok`, `runway`, `ltx`, `replicate`, `lumalabs`. |
+| Image | `gemini`, `openai`, `grok`, `bfl`, `recraft`, `replicate`, `lumalabs`, `fal`. |
+| Video | `gemini`, `minimax`, `glm`, `grok`, `runway`, `ltx`, `replicate`, `lumalabs`, `fal`. |
 | Music | `elevenlabs`, `minimax`, `gemini`. |
 
 Image model examples include Gemini `gemini-3.1-flash-lite-image`/`gemini-3.1-flash-image`/`gemini-3-pro-image`, OpenAI `gpt-image-2`, Grok `grok-imagine-image-quality` and `grok-imagine-image`, BFL `flux-2-klein-4b`/`flux-2-klein-9b`/`flux-2-pro`/`flux-2-max`/`flux-2-flex`, Recraft `recraftv4_1*` variants, Replicate `bytedance/seedream-4.5`, `qwen/qwen-image-2`, and `wan-video/wan-2.7-image` families, and Luma Labs `uni-1`/`uni-1-max`.

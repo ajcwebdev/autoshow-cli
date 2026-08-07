@@ -292,15 +292,6 @@ describe('resume target-aware provider selectors', () => {
     expect(image.flags['openai-image']).toBe('gpt-image-2')
     expect(buildOpts(image.flags, image.explicitFlags, image.rawArgs).openaiImageModels).toEqual(['gpt-image-2'])
 
-    const recraftImage = normalizeResumeSelectorFlagsForTarget(
-      target('image'),
-      { provider: ['recraft=recraftv4_1_vector'] },
-      new Set(['provider']),
-      ['resume', 'out', '--provider', 'recraft=recraftv4_1_vector']
-    )
-    expect(recraftImage.flags['recraft-image']).toBe('recraftv4_1_vector')
-    expect(buildOpts(recraftImage.flags, recraftImage.explicitFlags, recraftImage.rawArgs).recraftImageModels).toEqual(['recraftv4_1_vector'])
-
     const video = normalizeResumeSelectorFlagsForTarget(
       target('video'),
       { provider: ['runway=gen4.5'] },

@@ -163,7 +163,7 @@ describe('video provider REST contracts', () => {
     for (const status of ['failed', 'canceled', 'aborted'] as const) {
       process.env['REPLICATE_API_TOKEN'] = 'replicate-token'
       installMockFetch((call) => {
-        if (call.url === 'https://api.replicate.com/v1/models/alibaba/happyhorse-1.0/predictions' && call.method === 'POST') {
+        if (call.url === 'https://api.replicate.com/v1/models/alibaba/happyhorse-1.1/predictions' && call.method === 'POST') {
           return jsonResponse({
             id: `pred-${status}`,
             status,
@@ -175,9 +175,54 @@ describe('video provider REST contracts', () => {
 
       await withTempDir(async (dir) => {
         await expect(runReplicateVideoGen('A failed request', dir, {
-          model: 'alibaba/happyhorse-1.0'
+          model: 'alibaba/happyhorse-1.1'
         })).rejects.toThrow(`${status} by provider`)
       })
     }
+  })
+
+  test('Replicate current video families send their model-specific request shapes', async () => {
+    process.env['REPLICATE_API_TOKEN'] = 'replicate-token'
+    await withTempDir(async (dir) => {
+      const { imagePath, lastFramePath, videoPath } = await writeMediaFixtures(dir)
+      const cases = [
+        {
+          model: 'alibaba/happyhorse-1.1' as const,
+          options: { mode: 'reference-to-video' as const, referenceImages: [imagePath, lastFramePath], durationSeconds: 6, resolution: '1080p' },
+          expected: { images: [expect.stringContaining('data:image/png'), expect.stringContaining('data:image/webp')], duration: 6, resolution: '1080p', aspect_ratio: '16:9' }
+        },
+        {
+          model: 'kwaivgi/kling-v3-video' as const,
+          options: { mode: 'interpolate' as const, inputImage: imagePath, lastFrameImage: lastFramePath, durationSeconds: 8, resolution: '4k', generateAudio: true, negativePrompt: 'blur', multiPrompt: '[{"prompt":"first","duration":3},{"prompt":"second","duration":5}]' },
+          expected: { mode: '4k', start_image: expect.stringContaining('data:image/png'), end_image: expect.stringContaining('data:image/webp'), duration: 8, generate_audio: true, negative_prompt: 'blur', multi_prompt: '[{"prompt":"first","duration":3},{"prompt":"second","duration":5}]' }
+        },
+        {
+          model: 'kwaivgi/kling-v3-omni-video' as const,
+          options: { mode: 'edit' as const, inputVideo: videoPath, resolution: '1080p' },
+          expected: { mode: 'pro', reference_video: expect.stringContaining('data:video/mp4'), video_reference_type: 'base' }
+        },
+        {
+          model: 'pixverse/pixverse-v6' as const,
+          options: { mode: 'interpolate' as const, inputImage: imagePath, lastFrameImage: lastFramePath, durationSeconds: 10, resolution: '540p', generateAudio: true, multiClip: false, seed: 7 },
+          expected: { quality: '540p', image: expect.stringContaining('data:image/png'), last_frame_image: expect.stringContaining('data:image/webp'), duration: 10, generate_audio_switch: true, generate_multi_clip_switch: false, seed: 7 }
+        },
+        {
+          model: 'runwayml/aleph-2' as const,
+          options: { mode: 'edit' as const, inputVideo: videoPath, seed: 9 },
+          expected: { video: expect.stringContaining('data:video/mp4'), seed: 9 }
+        }
+      ]
+
+      for (const testCase of cases) {
+        const calls = installMockFetch((call) => {
+          if (call.method === 'POST') return jsonResponse({ id: `pred-${testCase.model}`, status: 'succeeded', output: 'https://replicate.delivery/example/current.mp4' })
+          if (call.url === 'https://replicate.delivery/example/current.mp4') return videoResponse()
+          throw new Error(`Unexpected Replicate fetch: ${call.method} ${call.url}`)
+        })
+        await runReplicateVideoGen('Make a cinematic change', dir, { model: testCase.model, ...testCase.options })
+        expect(calls[0]?.url).toBe(`https://api.replicate.com/v1/models/${testCase.model}/predictions`)
+        expect(calls[0]?.bodyJson).toEqual({ input: expect.objectContaining({ prompt: 'Make a cinematic change', ...testCase.expected }) })
+      }
+    })
   })
 })

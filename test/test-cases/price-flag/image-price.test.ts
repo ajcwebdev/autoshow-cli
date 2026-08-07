@@ -64,11 +64,6 @@ defineImageServicePriceTests({
       model: 'recraftv4_1',
       prompt: 'A clean product photo of a red enamel camping mug',
       extraArgs: ['--aspect-ratio', '1:1']
-    },
-    {
-      model: 'recraftv4_1_vector',
-      prompt: 'A clean vector fox logo',
-      extraArgs: ['--aspect-ratio', '1:1']
     }
   ]
 })

@@ -9,12 +9,15 @@ export type VideoGenOptions = Pick<
   | 'ltxVideoModels' | 'ltxVideoModel'
   | 'replicateVideoModels' | 'replicateVideoModel'
   | 'lumalabsVideoModels' | 'lumalabsVideoModel'
+  | 'falVideoModels' | 'falVideoModel'
   | 'allVideo'
   | 'videoDuration' | 'videoSize' | 'videoAspectRatio' | 'videoResolution'
   | 'videoMode' | 'videoInputImage' | 'videoLastFrame' | 'videoReferenceImages' | 'videoInputVideo'
   | 'replicateVideoSeed' | 'replicateVideoGenerateAudio'
   | 'replicateVideoReferenceVideos' | 'replicateVideoReferenceAudios'
   | 'replicateVideoNegativePrompt' | 'replicateVideoAudio' | 'replicateVideoPromptExpansion'
+  | 'replicateVideoMultiPrompt' | 'replicateVideoMultiClip'
+  | 'falVideoGenerateAudio' | 'falVideoReferenceVideos' | 'falVideoReferenceAudios'
   | 'grokVideoStorageFilename' | 'grokVideoStorageExpiresAfter'
   | 'videoProviderConcurrency' | 'videoLocalConcurrency'
 > & {
@@ -58,6 +61,8 @@ export type EstimateVideoCostOptions = {
   replicateVideoModel?: string | undefined
   lumalabsVideoModels?: string[] | undefined
   lumalabsVideoModel?: string | undefined
+  falVideoModels?: string[] | undefined
+  falVideoModel?: string | undefined
   videoDuration?: number | undefined
   videoSize?: string | undefined
   videoAspectRatio?: string | undefined
@@ -66,4 +71,6 @@ export type EstimateVideoCostOptions = {
   grokInputImageCount?: number | undefined
   grokInputVideoDurationSeconds?: number | undefined
   replicateVideoReferenceVideoCount?: number | undefined
+  replicateVideoGenerateAudio?: boolean | undefined
+  replicateInputVideoDurationSeconds?: number | undefined
 }

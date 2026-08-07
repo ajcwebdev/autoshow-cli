@@ -11,6 +11,7 @@ import { LUMALABS_ASPECT_RATIOS } from '~/cli/commands/process-steps/step-5-imag
 import { LUMALABS_MAX_IMAGE_INPUTS } from '~/cli/commands/process-steps/step-5-image/image-generation-services/lumalabs/lumalabs-image-targets'
 import { RECRAFT_ASPECT_RATIOS, RECRAFT_IMAGE_COUNT_RANGE } from '~/cli/commands/process-steps/step-5-image/image-generation-services/recraft/run-recraft-image-gen'
 import { REPLICATE_QWEN_ASPECT_RATIO_VALUES, REPLICATE_SEEDREAM_ASPECT_RATIO_VALUES, REPLICATE_WAN_IMAGE_COUNT_RANGE } from '~/cli/commands/process-steps/step-5-image/image-generation-services/replicate/run-replicate-image-gen'
+import { FAL_IMAGE_COUNT_RANGE, FAL_MAI_ASPECT_RATIOS, FAL_REVE_ASPECT_RATIOS } from '~/cli/commands/process-steps/step-5-image/image-generation-services/fal-image-service/run-fal-image-gen'
 
 // Values Seedream accepts that no other image provider does, so the clause stays right
 // if the shared ratios change.
@@ -19,7 +20,9 @@ const imageAspectRatioLists = [
   GEMINI_NATIVE_ASPECT_RATIO_VALUES,
   LUMALABS_ASPECT_RATIOS,
   RECRAFT_ASPECT_RATIOS,
-  REPLICATE_QWEN_ASPECT_RATIO_VALUES
+  REPLICATE_QWEN_ASPECT_RATIO_VALUES,
+  FAL_MAI_ASPECT_RATIOS,
+  FAL_REVE_ASPECT_RATIOS
 ] as const
 const sharedImageAspectRatios = new Set<string>(imageAspectRatioLists.flat())
 const seedreamOnlyAspectRatios = REPLICATE_SEEDREAM_ASPECT_RATIO_VALUES.filter(
@@ -33,7 +36,8 @@ export const IMAGE_COMMAND_SELECTOR_FLAGS = {
   'bfl-image': 'bfl',
   'recraft-image': 'recraft',
   'replicate-image': 'replicate',
-  'lumalabs-image': 'lumalabs'
+  'lumalabs-image': 'lumalabs',
+  'fal-image': 'fal'
 } as const satisfies Record<string, string>
 
 export const imageGenFlags = {
@@ -50,7 +54,7 @@ export const imageGenFlags = {
     type: String
   },
   'image-format': {
-    description: `Image output format: ${formatUniqueValueList(OPENAI_IMAGE_FORMAT_VALUES, BFL_OUTPUT_FORMATS)} (OpenAI default: png; BFL default: jpeg; Replicate seedream-5-lite supports png|jpeg)`,
+    description: `Image output format: ${formatUniqueValueList(OPENAI_IMAGE_FORMAT_VALUES, BFL_OUTPUT_FORMATS)} (OpenAI/fal.ai default: png; BFL default: jpeg; Replicate seedream-5-lite supports png|jpeg)`,
     type: String
   },
   'image-background': {
@@ -62,12 +66,13 @@ export const imageGenFlags = {
       { provider: 'OpenAI', values: [formatRange(OPENAI_IMAGE_COUNT_RANGE)] },
       { provider: 'Grok', values: [formatRange(GROK_IMAGE_COUNT_RANGE)] },
       { provider: 'Recraft', values: [formatRange(RECRAFT_IMAGE_COUNT_RANGE)] },
-      { provider: 'Replicate Wan', values: [formatRange(REPLICATE_WAN_IMAGE_COUNT_RANGE)] }
+      { provider: 'Replicate Wan', values: [formatRange(REPLICATE_WAN_IMAGE_COUNT_RANGE)] },
+      { provider: 'fal.ai', values: [formatRange(FAL_IMAGE_COUNT_RANGE)] }
     ])}; default: 1`,
     type: String
   },
   'image-input': {
-    description: `Reference/source image path or URL for edit/reference workflows (repeatable; OpenAI, Grok, Gemini native, BFL, Replicate, Luma Labs; Luma Labs supports up to ${LUMALABS_MAX_IMAGE_INPUTS})`,
+    description: `Reference/source image path or URL for edit/reference workflows (repeatable; OpenAI, Grok, Gemini native, BFL, Replicate, Luma Labs, fal.ai; Luma Labs supports up to ${LUMALABS_MAX_IMAGE_INPUTS})`,
     type: [String] as [StringConstructor]
   },
   'image-mask': {

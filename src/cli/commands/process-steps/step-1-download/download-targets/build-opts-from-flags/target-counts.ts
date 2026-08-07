@@ -46,6 +46,7 @@ export const resolveTargetCounts = (modelOptions: RuntimeModelOptions): TargetCo
     + countSelectedTargets(modelOptions.recraftImageModels, modelOptions.recraftImageModel)
     + countSelectedTargets(modelOptions.replicateImageModels, modelOptions.replicateImageModel)
     + countSelectedTargets(modelOptions.lumalabsImageModels, modelOptions.lumalabsImageModel)
+    + countSelectedTargets(modelOptions.falImageModels, modelOptions.falImageModel)
   const hostedVideoTargetCount =
     countSelectedTargets(modelOptions.geminiVideoModels, modelOptions.geminiVideoModel)
     + countSelectedTargets(modelOptions.minimaxVideoModels, modelOptions.minimaxVideoModel)
@@ -54,6 +55,8 @@ export const resolveTargetCounts = (modelOptions: RuntimeModelOptions): TargetCo
     + countSelectedTargets(modelOptions.runwayVideoModels, modelOptions.runwayVideoModel)
     + countSelectedTargets(modelOptions.ltxVideoModels, modelOptions.ltxVideoModel)
     + countSelectedTargets(modelOptions.replicateVideoModels, modelOptions.replicateVideoModel)
+    + countSelectedTargets(modelOptions.lumalabsVideoModels, modelOptions.lumalabsVideoModel)
+    + countSelectedTargets(modelOptions.falVideoModels, modelOptions.falVideoModel)
   const hostedMusicTargetCount =
     countSelectedTargets(modelOptions.elevenlabsMusicModels, modelOptions.elevenlabsMusicModel)
     + countSelectedTargets(modelOptions.minimaxMusicModels, modelOptions.minimaxMusicModel)

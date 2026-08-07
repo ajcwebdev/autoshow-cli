@@ -100,6 +100,7 @@ Accepted provider selectors are the lowercase names below.
 | `--drive` | `general` |
 | `--elevenlabs` | `models`, `music`, `tts` |
 | `--firecrawl` | `general`, `url` |
+| `--fal` | `general`, `image`, `video` |
 | `--gemini` | `general`, `image`, `models`, `music`, `ocr`, `stt`, `text`, `tts`, `video` |
 | `--gladia` | `general`, `stt` |
 | `--glm` | `general`, `models`, `ocr`, `text`, `url` |
@@ -219,6 +220,7 @@ bun autoshow links --ltx video
 
 # Fetch Luma Labs image and video docs
 bun autoshow links --lumalabs image video
+bun autoshow links --fal image video
 
 # Fetch Recraft image API docs
 bun autoshow links --recraft image

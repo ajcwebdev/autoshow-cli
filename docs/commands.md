@@ -148,11 +148,13 @@ bun autoshow image "place the same mug on a rustic breakfast table" --provider b
 bun autoshow image "a sunset over mountains" --provider bfl=flux-2-klein-4b --size 1024x1024
 
 # image generation with Recraft
-bun autoshow image "a clean vector mark of a mountain observatory" --provider recraft=recraftv4_1_vector --aspect-ratio 1:1
 bun autoshow image "a premium product photo of a red enamel camping mug on white seamless" --provider recraft=recraftv4_1 --size 1024x1024 --count 3
 
 # image generation with Luma Labs
 bun autoshow image "a sunset over mountains" --provider lumalabs=uni-1 --aspect-ratio 16:9
+
+# image generation with fal.ai
+bun autoshow image "a launch poster with crisp typography" --provider fal=alibaba/qwen-image-3 --count 2
 
 # video from the generated image, then extend/edit the generated video; run this block after output/mug-base exists
 bun autoshow video "animate the red enamel mug on a slow turntable with glossy highlights" --provider gemini=veo-3.1-fast-generate-preview --mode image-to-video --input-image output/mug-base/generated-image.png --output-dir output/mug-video-base
@@ -161,6 +163,9 @@ bun autoshow video "make the lighting moonlit blue while keeping the mug motion 
 
 # video generation
 bun autoshow video "a cinematic mountain sunrise" --provider gemini=veo-3.1-lite-generate-preview
+
+# video generation with fal.ai
+bun autoshow video "a cinematic mountain sunrise with synchronized ambience" --provider fal=minimax/h3 --duration 5 --resolution 2k
 
 # video generation with multiple providers
 bun autoshow video "a timelapse storm over downtown chicago" --provider gemini=veo-3.1-lite-generate-preview --provider runway=gen4.5 --provider ltx=ltx-2-3-fast --provider lumalabs=ray-3.2
@@ -212,7 +217,7 @@ bun autoshow benchmark docs/benchmarks/tts/<run> --tts --tts-mode local
 - Use `download` for downloading media/documents, X Space audio, and collecting metadata.
 - Use `extract` when you only need step-2 extraction or transcription without LLM writing, to create an X Space report, or to render transcript videos from an extract run or explicit audio/transcript files.
 - Use `write` for full summary pipeline with optional TTS/image/video generation, and for lyric draft generation from `./output/<name>/text`.
-- Use standalone `tts`, `image`, `video`, and `music` commands for direct generation workflows. Standalone image generation supports `gemini`, `openai`, `grok`, `bfl`, `recraft`, `replicate`, and `lumalabs`; Recraft is generation-only in this CLI surface and writes SVG for vector models.
+- Use standalone `tts`, `image`, `video`, and `music` commands for direct generation workflows. Standalone image generation supports `gemini`, `openai`, `grok`, `bfl`, `recraft`, `replicate`, `lumalabs`, and `fal`; Recraft is raster generation-only in this CLI surface.
 - Use `music --audio`, `music --captions`, or `music --batch` for local lyric-video rendering from repo audio under `input/`; hosted music generation uses a prompt or local text file plus `--provider`.
 - Use `comic` for staged or complete episode-script to comic workflows: scene drafting, character sketch references, panel prompt bundles, review sketches, final panel images, and grouped page images.
 - Use `resume` to backfill missing extract, write LLM, TTS, image, video, or music providers in an existing output directory, including `extract` parent batches.
@@ -250,7 +255,6 @@ bun autoshow tts input/examples/tts/1-tts.md --provider openai=gpt-4o-mini-tts-2
 bun autoshow tts input/examples/tts/1-tts.md --provider openai=gpt-4o-mini-tts-2025-12-15 --tts-instructions "Warm documentary narration" --tts-speed 1.1 --price
 bun autoshow image "a sunset" --provider openai=gpt-image-2 --size 1024x1024 --quality low --price
 bun autoshow image "a sunset" --provider bfl=flux-2-klein-4b --price
-bun autoshow image "a geometric fox logo in clean vector shapes" --provider recraft=recraftv4_1_vector --aspect-ratio 1:1 --price
 bun autoshow image "a premium product photo" --provider recraft=recraftv4_1 --size 1024x1024 --count 3 --price
 bun autoshow image "a sunset" --provider lumalabs=uni-1 --aspect-ratio 16:9 --price
 bun autoshow video "a sunset timelapse" --provider gemini=veo-3.1-lite-generate-preview --price

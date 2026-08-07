@@ -27,6 +27,8 @@ const estimateImageTargetCost = (
         return estimateImageCosts({ ...sharedOptions, replicateImageModel: target.model })[0]
       case 'lumalabs':
         return estimateImageCosts({ ...sharedOptions, lumalabsImageModel: target.model })[0]
+      case 'fal':
+        return estimateImageCosts({ ...sharedOptions, falImageModel: target.model })[0]
       default:
         return undefined
     }
@@ -51,6 +53,7 @@ export const buildImageCostSteps = (input: ComputeEstimatedCostsInput): CostStep
         recraftImageModel: input.recraftImageModel,
         replicateImageModel: input.replicateImageModel,
         lumalabsImageModel: input.lumalabsImageModel,
+        falImageModel: input.falImageModel,
         imageSize: input.imageSize,
         imageQuality: input.imageQuality,
         imageCount: input.imageCount

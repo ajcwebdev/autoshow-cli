@@ -15,8 +15,18 @@ import {
   RECRAFT_IMAGE_LINKS,
   REPLICATE_ALL_LINKS,
   REPLICATE_GENERAL_LINKS,
-  REPLICATE_MODELS_LINKS
+  REPLICATE_MODELS_LINKS,
+  FAL_IMAGE_LINKS,
+  FAL_VIDEO_LINKS
 } from './fixtures/index'
+
+test('links selector accepts separate fal image and video sections', () => {
+  const imageSelection = parseLinksArgv(['bun', 'src/cli/create-cli.ts', 'links', '--fal', 'image'])
+  expect(collectLinks(imageSelection.serviceSelections, imageSelection.globalSections)).toEqual(FAL_IMAGE_LINKS)
+
+  const videoSelection = parseLinksArgv(['bun', 'src/cli/create-cli.ts', 'links', '--fal', 'video'])
+  expect(collectLinks(videoSelection.serviceSelections, videoSelection.globalSections)).toEqual(FAL_VIDEO_LINKS)
+})
 
 test('links selector accepts bfl provider with models and image sections', async () => {
   const bflSelection = parseLinksArgv([

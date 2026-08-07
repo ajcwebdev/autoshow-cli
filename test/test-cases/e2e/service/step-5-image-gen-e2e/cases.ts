@@ -35,3 +35,9 @@ export const lumalabsImage = {
   imageService: 'lumalabs',
   envVarKey: 'LUMA_AGENTS_API_KEY',
 } as const
+
+export const falImage = {
+  provider: 'fal',
+  imageService: 'fal',
+  envVarKey: 'FAL_API_KEY',
+} as const

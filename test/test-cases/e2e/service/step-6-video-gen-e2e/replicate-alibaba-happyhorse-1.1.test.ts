@@ -3,8 +3,6 @@ import { replicateVideo } from './cases'
 
 defineVideoServiceTest({
   ...replicateVideo,
-  models: [
-    { model: 'alibaba/happyhorse-1.0', extraArgs: ['--duration', '3', '--resolution', '720p'] },
-  ],
+  models: [{ model: 'alibaba/happyhorse-1.1', extraArgs: ['--duration', '3', '--resolution', '720p'] }],
   videoService: 'replicate',
 })

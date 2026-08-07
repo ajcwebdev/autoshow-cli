@@ -85,7 +85,7 @@ const qualityRank = (selection: { size?: string | undefined, resolution?: string
 }
 
 const isDefaultVideoSelectionModel = (
-  provider: 'gemini' | 'minimax' | 'glm' | 'grok' | 'runway' | 'ltx' | 'replicate' | 'lumalabs',
+  provider: 'gemini' | 'minimax' | 'glm' | 'grok' | 'runway' | 'ltx' | 'replicate' | 'lumalabs' | 'fal',
   model: string
 ): boolean => {
   if (provider === 'minimax') {
@@ -210,7 +210,7 @@ const selectCheapestMusicModel = (service: string): string => {
 }
 
 export const selectCheapestVideoSelection = (
-  provider: 'gemini' | 'minimax' | 'glm' | 'grok' | 'runway' | 'ltx' | 'replicate' | 'lumalabs'
+  provider: 'gemini' | 'minimax' | 'glm' | 'grok' | 'runway' | 'ltx' | 'replicate' | 'lumalabs' | 'fal'
 ): CheapestVideoSelection => {
   const serviceConfig = getModelRegistry().video[provider]
   if (!serviceConfig) {
@@ -276,6 +276,7 @@ export const selectCheapestVideoSelection = (
               ...(provider === 'runway' ? { runwayVideoModel: model } : {}),
               ...(provider === 'ltx' ? { ltxVideoModel: model } : {}),
               ...(provider === 'lumalabs' ? { lumalabsVideoModel: model } : {}),
+              ...(provider === 'fal' ? { falVideoModel: model } : {}),
               videoDuration: duration,
               videoResolution: resolution
             })
@@ -328,10 +329,10 @@ export const selectCheapestVideoSelection = (
 }
 
 const selectCheapestVideoModel = (
-  provider: 'gemini' | 'minimax' | 'glm' | 'grok' | 'runway' | 'ltx' | 'replicate' | 'lumalabs'
+  provider: 'gemini' | 'minimax' | 'glm' | 'grok' | 'runway' | 'ltx' | 'replicate' | 'lumalabs' | 'fal'
 ): string => selectCheapestVideoSelection(provider).model
 
-const TEXT_VIDEO_PROVIDERS = ['gemini', 'minimax', 'glm', 'grok', 'runway', 'ltx', 'replicate', 'lumalabs'] as const
+const TEXT_VIDEO_PROVIDERS = ['gemini', 'minimax', 'glm', 'grok', 'runway', 'ltx', 'replicate', 'lumalabs', 'fal'] as const
 
 const providerVideoEstimateOptions = (
   provider: typeof TEXT_VIDEO_PROVIDERS[number],
@@ -345,6 +346,7 @@ const providerVideoEstimateOptions = (
   ...(provider === 'ltx' ? { ltxVideoModel: model } : {}),
   ...(provider === 'replicate' ? { replicateVideoModel: model } : {}),
   ...(provider === 'lumalabs' ? { lumalabsVideoModel: model } : {}),
+  ...(provider === 'fal' ? { falVideoModel: model } : {}),
   videoMode: 'text'
 })
 
@@ -514,6 +516,8 @@ export const resolveCheapestModelForFlag = (flagName: string): string | undefine
       return selectCheapestImageModel('replicate')
     case 'lumalabs-image':
       return selectCheapestImageModel('lumalabs')
+    case 'fal-image':
+      return selectCheapestImageModel('fal')
     case 'elevenlabs-music':
       return selectCheapestMusicModel('elevenlabs')
     case 'minimax-music':
@@ -536,6 +540,8 @@ export const resolveCheapestModelForFlag = (flagName: string): string | undefine
       return selectCheapestVideoModel('replicate')
     case 'lumalabs-video':
       return selectCheapestVideoModel('lumalabs')
+    case 'fal-video':
+      return selectCheapestVideoModel('fal')
     default:
       return undefined
   }

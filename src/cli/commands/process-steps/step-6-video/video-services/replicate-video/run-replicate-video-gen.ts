@@ -1,11 +1,16 @@
 import * as l from '~/utils/app-logger/app-logger'
 import { mkdir } from 'node:fs/promises'
+import { existsSync } from 'node:fs'
 import type { ReplicatePrediction, ReplicateVideoBuildResult, ReplicateVideoModel, Step6VideoMetadata, VideoMode } from '~/types'
 import { CLIUsageError, InfraError } from '~/utils/error-handler'
 import { logMediaGenerationStatus } from '~/cli/commands/process-steps/generation-command-utils'
 import { estimateReplicateCost, logVideoEstimate } from '~/cli/commands/process-steps/step-6-video/video-utils/video-pricing'
 import {
   isReplicateHappyHorseVideoModel,
+  isReplicateAlephVideoModel,
+  isReplicateKlingOmniVideoModel,
+  isReplicateKlingVideoModel,
+  isReplicatePixVerseVideoModel,
   isReplicateSeedanceVideoModel,
   isReplicateWanVideoModel,
   normalizeReplicateVideoAspectRatio,
@@ -32,6 +37,34 @@ const requirePrompt = (prompt: string | undefined, label: string): string => {
     throw CLIUsageError(`${label} video prompt cannot be empty.`)
   }
   return prompt
+}
+
+const normalizeKlingMultiPrompt = (value: string | undefined, duration: number): string | undefined => {
+  if (!hasText(value)) return undefined
+  let parsed: unknown
+  try {
+    parsed = JSON.parse(value)
+  } catch {
+    throw CLIUsageError('--replicate-video-multi-prompt must be a valid JSON array.')
+  }
+  if (!Array.isArray(parsed) || parsed.length < 1 || parsed.length > 6) {
+    throw CLIUsageError('--replicate-video-multi-prompt must contain 1 through 6 shots.')
+  }
+  let totalDuration = 0
+  for (const shot of parsed) {
+    if (typeof shot !== 'object' || shot === null || typeof (shot as { prompt?: unknown }).prompt !== 'string') {
+      throw CLIUsageError('Each --replicate-video-multi-prompt shot must contain a string prompt and integer duration.')
+    }
+    const shotDuration = (shot as { duration?: unknown }).duration
+    if (typeof shotDuration !== 'number' || !Number.isInteger(shotDuration) || shotDuration < 1) {
+      throw CLIUsageError('Each --replicate-video-multi-prompt shot duration must be an integer of at least 1 second.')
+    }
+    totalDuration += shotDuration
+  }
+  if (totalDuration !== duration) {
+    throw CLIUsageError(`--replicate-video-multi-prompt shot durations must total --video-duration (${duration}).`)
+  }
+  return JSON.stringify(parsed)
 }
 
 const statusTimingFromPrediction = (
@@ -88,32 +121,161 @@ const buildHappyHorseInput = async (
     resolution?: string | undefined
     aspectRatio?: string | undefined
     inputImage?: string | undefined
+    referenceImages?: string[] | undefined
     seed?: number | undefined
   }
 ): Promise<ReplicateVideoBuildResult> => {
   const durationForApi = normalizeReplicateVideoDuration(options.model, options.durationSeconds)
   const resolution = normalizeReplicateVideoResolution(options.model, options.resolution)
   const aspectRatio = normalizeReplicateVideoAspectRatio(options.model, options.aspectRatio)
-  const image = options.inputImage
-    ? await videoMediaReferenceToUrlOrDataUrl(options.inputImage, 'image')
+  const imageInputs = options.mode === 'reference-to-video'
+    ? (options.referenceImages ?? [])
+    : options.inputImage ? [options.inputImage] : []
+  const images = imageInputs.length > 0
+    ? await Promise.all(imageInputs.map(async image => await videoMediaReferenceToUrlOrDataUrl(image, 'image')))
     : undefined
-  if (!image) {
+  if (!images || images.length !== 1) {
     requirePrompt(prompt, `Replicate/${options.model}`)
   }
 
   return {
     input: {
       ...(hasText(prompt) ? { prompt } : {}),
-      ...(image ? { image } : {}),
+      ...(images ? { images } : {}),
       resolution,
       duration: durationForApi,
-      ...(!image ? { aspect_ratio: aspectRatio } : {}),
+      ...(images?.length !== 1 ? { aspect_ratio: aspectRatio } : {}),
       ...(options.seed !== undefined ? { seed: options.seed } : {})
     },
-    requestMode: image ? 'image-to-video' : 'text',
+    requestMode: options.mode,
+    durationForApi,
+    resolution,
+    ...(images?.length !== 1 ? { aspectRatio } : {})
+  }
+}
+
+const buildKlingInput = async (
+  prompt: string | undefined,
+  options: {
+    model: ReplicateVideoModel
+    mode: VideoMode
+    durationSeconds?: number | undefined
+    resolution?: string | undefined
+    aspectRatio?: string | undefined
+    inputImage?: string | undefined
+    lastFrameImage?: string | undefined
+    referenceImages?: string[] | undefined
+    inputVideo?: string | undefined
+    referenceVideos?: string[] | undefined
+    negativePrompt?: string | undefined
+    generateAudio?: boolean | undefined
+    multiPrompt?: string | undefined
+  }
+): Promise<ReplicateVideoBuildResult> => {
+  const resolvedPrompt = requirePrompt(prompt, `Replicate/${options.model}`)
+  const durationForApi = normalizeReplicateVideoDuration(options.model, options.durationSeconds)
+  const resolution = normalizeReplicateVideoResolution(options.model, options.resolution)
+  const aspectRatio = normalizeReplicateVideoAspectRatio(options.model, options.aspectRatio)
+  const providerMode = resolution === '4k' ? '4k' : resolution === '1080p' ? 'pro' : 'standard'
+  const startImage = options.inputImage ? await videoMediaReferenceToUrlOrDataUrl(options.inputImage, 'image') : undefined
+  const endImage = options.lastFrameImage ? await videoMediaReferenceToUrlOrDataUrl(options.lastFrameImage, 'image') : undefined
+  const referenceImages = options.referenceImages?.length
+    ? await Promise.all(options.referenceImages.map(async image => await videoMediaReferenceToUrlOrDataUrl(image, 'image')))
+    : undefined
+  const videoInput = options.mode === 'edit'
+    ? options.inputVideo
+    : options.referenceVideos?.[0]
+  const referenceVideo = videoInput ? await videoMediaReferenceToUrlOrDataUrl(videoInput, 'video') : undefined
+  const inputVideoDurationSeconds = videoInput ? await tryResolveLocalVideoDurationSeconds(videoInput) : undefined
+  const multiPrompt = normalizeKlingMultiPrompt(options.multiPrompt, durationForApi)
+
+  return {
+    input: {
+      prompt: resolvedPrompt,
+      mode: providerMode,
+      duration: durationForApi,
+      ...(!startImage && options.mode !== 'edit' ? { aspect_ratio: aspectRatio } : {}),
+      ...(startImage ? { start_image: startImage } : {}),
+      ...(endImage ? { end_image: endImage } : {}),
+      ...(isReplicateKlingOmniVideoModel(options.model) && referenceImages ? { reference_images: referenceImages } : {}),
+      ...(isReplicateKlingOmniVideoModel(options.model) && referenceVideo ? {
+        reference_video: referenceVideo,
+        video_reference_type: options.mode === 'edit' ? 'base' : 'feature'
+      } : {}),
+      ...(!referenceVideo && options.generateAudio !== undefined ? { generate_audio: options.generateAudio } : {}),
+      ...(multiPrompt ? { multi_prompt: multiPrompt } : {}),
+      ...(!isReplicateKlingOmniVideoModel(options.model) && hasText(options.negativePrompt) ? { negative_prompt: options.negativePrompt } : {})
+    },
+    requestMode: options.mode,
+    durationForApi,
+    resolution,
+    ...(!startImage && options.mode !== 'edit' ? { aspectRatio } : {}),
+    ...(inputVideoDurationSeconds !== undefined ? { inputVideoDurationSeconds } : {})
+  }
+}
+
+const buildPixVerseInput = async (
+  prompt: string | undefined,
+  options: {
+    model: ReplicateVideoModel
+    mode: VideoMode
+    durationSeconds?: number | undefined
+    resolution?: string | undefined
+    aspectRatio?: string | undefined
+    inputImage?: string | undefined
+    lastFrameImage?: string | undefined
+    negativePrompt?: string | undefined
+    generateAudio?: boolean | undefined
+    seed?: number | undefined
+    multiClip?: boolean | undefined
+  }
+): Promise<ReplicateVideoBuildResult> => {
+  const resolvedPrompt = requirePrompt(prompt, `Replicate/${options.model}`)
+  const durationForApi = normalizeReplicateVideoDuration(options.model, options.durationSeconds)
+  const resolution = normalizeReplicateVideoResolution(options.model, options.resolution)
+  const aspectRatio = normalizeReplicateVideoAspectRatio(options.model, options.aspectRatio)
+  const image = options.inputImage ? await videoMediaReferenceToUrlOrDataUrl(options.inputImage, 'image') : undefined
+  const lastFrameImage = options.lastFrameImage ? await videoMediaReferenceToUrlOrDataUrl(options.lastFrameImage, 'image') : undefined
+  return {
+    input: {
+      prompt: resolvedPrompt,
+      quality: resolution,
+      duration: durationForApi,
+      ...(!image ? { aspect_ratio: aspectRatio } : {}),
+      ...(image ? { image } : {}),
+      ...(lastFrameImage ? { last_frame_image: lastFrameImage } : {}),
+      ...(hasText(options.negativePrompt) ? { negative_prompt: options.negativePrompt } : {}),
+      ...(options.generateAudio !== undefined ? { generate_audio_switch: options.generateAudio } : {}),
+      ...(options.multiClip !== undefined ? { generate_multi_clip_switch: options.multiClip } : {}),
+      ...(options.seed !== undefined ? { seed: options.seed } : {})
+    },
+    requestMode: options.mode,
     durationForApi,
     resolution,
     ...(!image ? { aspectRatio } : {})
+  }
+}
+
+const buildAlephInput = async (
+  prompt: string | undefined,
+  options: { model: ReplicateVideoModel, inputVideo?: string | undefined, seed?: number | undefined }
+): Promise<ReplicateVideoBuildResult> => {
+  const resolvedPrompt = requirePrompt(prompt, `Replicate/${options.model}`)
+  if (!options.inputVideo) throw CLIUsageError('Replicate/runwayml/aleph-2 requires --video-input-video.')
+  if (existsSync(options.inputVideo) && Bun.file(options.inputVideo).size > 16 * 1024 * 1024) {
+    throw CLIUsageError('Replicate/runwayml/aleph-2 input video must be 16MB or smaller.')
+  }
+  const video = await videoMediaReferenceToUrlOrDataUrl(options.inputVideo, 'video')
+  const inputVideoDurationSeconds = await tryResolveLocalVideoDurationSeconds(options.inputVideo)
+  if (inputVideoDurationSeconds !== undefined && (inputVideoDurationSeconds < 2 || inputVideoDurationSeconds > 30)) {
+    throw CLIUsageError('Replicate/runwayml/aleph-2 input video duration must be between 2 and 30 seconds.')
+  }
+  return {
+    input: { prompt: resolvedPrompt, video, ...(options.seed !== undefined ? { seed: options.seed } : {}) },
+    requestMode: 'edit',
+    durationForApi: inputVideoDurationSeconds ?? 5,
+    resolution: 'source',
+    ...(inputVideoDurationSeconds !== undefined ? { inputVideoDurationSeconds } : {})
   }
 }
 
@@ -248,6 +410,8 @@ const buildReplicateVideoInput = async (
     promptExpansion?: boolean | undefined
     generateAudio?: boolean | undefined
     seed?: number | undefined
+    multiPrompt?: string | undefined
+    multiClip?: boolean | undefined
   }
 ): Promise<ReplicateVideoBuildResult> => {
   const mode = options.mode ?? 'text'
@@ -256,6 +420,15 @@ const buildReplicateVideoInput = async (
   }
   if (isReplicateSeedanceVideoModel(options.model)) {
     return await buildSeedanceInput(prompt, { ...options, mode })
+  }
+  if (isReplicateKlingVideoModel(options.model)) {
+    return await buildKlingInput(prompt, { ...options, mode })
+  }
+  if (isReplicatePixVerseVideoModel(options.model)) {
+    return await buildPixVerseInput(prompt, { ...options, mode })
+  }
+  if (isReplicateAlephVideoModel(options.model)) {
+    return await buildAlephInput(prompt, options)
   }
   if (isReplicateWanVideoModel(options.model)) {
     return await buildWanInput(prompt, options)
@@ -283,6 +456,8 @@ export const runReplicateVideoGen = async (
     promptExpansion?: boolean | undefined
     generateAudio?: boolean | undefined
     seed?: number | undefined
+    multiPrompt?: string | undefined
+    multiClip?: boolean | undefined
   }
 ): Promise<{ videoPath: string, metadata: Step6VideoMetadata }> => {
   const apiToken = await ensureReplicateSetup('Replicate video generation')
@@ -293,7 +468,9 @@ export const runReplicateVideoGen = async (
     videoDuration: options.durationSeconds,
     videoResolution: options.resolution,
     videoMode: request.requestMode,
-    replicateVideoReferenceVideoCount: referenceVideoCount
+    replicateVideoReferenceVideoCount: referenceVideoCount,
+    replicateVideoGenerateAudio: options.generateAudio,
+    ...(request.inputVideoDurationSeconds !== undefined ? { replicateInputVideoDurationSeconds: request.inputVideoDurationSeconds } : {})
   })
   logVideoEstimate(estimate)
 

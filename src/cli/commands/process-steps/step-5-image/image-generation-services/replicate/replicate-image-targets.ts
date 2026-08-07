@@ -3,11 +3,15 @@ import { CLIUsageError } from '~/utils/error-handler'
 import { validateReplicateImageModel } from '~/cli/commands/setup-and-utilities/models/setup-model-options'
 import { ensureReplicateImageGenSetup } from './replicate-image-gen'
 import {
+  isReplicateErnieModel,
+  isReplicateIdeogramModel,
   isReplicateQwenModel,
   isReplicateSeedreamModel,
   isReplicateWanModel,
   normalizeReplicateImageCount,
   normalizeReplicateImageOutputFormat,
+  normalizeReplicateErnieSize,
+  normalizeReplicateIdeogramSize,
   normalizeReplicateQwenAspectRatio,
   normalizeReplicateSeedreamAspectRatio,
   normalizeReplicateSeedreamSize,
@@ -43,7 +47,7 @@ export const collectReplicateImageTargets = (options: ImageGenOptions): ImageTar
         'Replicate',
         model,
         unsupported,
-        'Supported Replicate image options vary by model family: Seedream uses --image-size, --image-aspect-ratio, --image-format on seedream-5-lite, and --image-input; Qwen uses --image-aspect-ratio and one --image-input; Wan uses --image-size, --image-count 1-4, and --image-input references.'
+        'Supported Replicate image options vary by model family: Seedream uses --image-size, --image-aspect-ratio, optional --image-format on Seedream 5, and --image-input; Ideogram uses --image-size WIDTHxHEIGHT; ERNIE uses --image-size WIDTHxHEIGHT, --image-count 1-4, and --image-format; Qwen uses --image-aspect-ratio and one --image-input; Wan uses --image-size, --image-count 1-4, and --image-input references.'
       )
     }
 
@@ -56,7 +60,7 @@ export const collectReplicateImageTargets = (options: ImageGenOptions): ImageTar
         provider: 'Replicate',
         model,
         allowedMimeTypes: REPLICATE_SEEDREAM_IMAGE_INPUT_MIME_TYPES,
-        maxInputs: 14
+        maxInputs: model === 'bytedance/seedream-5-pro' ? 10 : 14
       })
     } else if (isReplicateQwenModel(model)) {
       if (options.imageSize !== undefined) {
@@ -71,6 +75,26 @@ export const collectReplicateImageTargets = (options: ImageGenOptions): ImageTar
         allowedMimeTypes: REPLICATE_QWEN_IMAGE_INPUT_MIME_TYPES,
         maxInputs: 1
       })
+    } else if (isReplicateIdeogramModel(model)) {
+      if (options.imageAspectRatio !== undefined) {
+        throw unsupportedFlagError('Replicate', model, ['--image-aspect-ratio'], 'Use --image-size WIDTHxHEIGHT or omit it for automatic Ideogram sizing.')
+      }
+      if ((options.imageInputs?.length ?? 0) > 0) {
+        throw unsupportedFlagError('Replicate', model, ['--image-input'], 'Replicate Ideogram V4 endpoints are text-to-image only.')
+      }
+      normalizeReplicateIdeogramSize(model, options.imageSize)
+      normalizeReplicateImageOutputFormat(model, options.imageFormat)
+      normalizeReplicateImageCount(model, options.imageCount)
+    } else if (isReplicateErnieModel(model)) {
+      if (options.imageAspectRatio !== undefined) {
+        throw unsupportedFlagError('Replicate', model, ['--image-aspect-ratio'], 'Use --image-size WIDTHxHEIGHT for Replicate ERNIE dimensions.')
+      }
+      if ((options.imageInputs?.length ?? 0) > 0) {
+        throw unsupportedFlagError('Replicate', model, ['--image-input'], 'Replicate ERNIE Image endpoints are text-to-image only.')
+      }
+      normalizeReplicateErnieSize(model, options.imageSize)
+      normalizeReplicateImageOutputFormat(model, options.imageFormat)
+      normalizeReplicateImageCount(model, options.imageCount)
     } else if (isReplicateWanModel(model)) {
       if (options.imageAspectRatio !== undefined) {
         throw unsupportedFlagError('Replicate', model, ['--image-aspect-ratio'], 'Use --image-size 1K|2K|4K or WIDTHxHEIGHT for Replicate Wan dimensions.')

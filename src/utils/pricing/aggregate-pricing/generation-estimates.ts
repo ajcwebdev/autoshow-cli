@@ -25,6 +25,8 @@ export const buildImageEstimates = (opts: RuntimeOptions): ImageStepEstimate[] =
     || !!opts.replicateImageModel
     || (opts.lumalabsImageModels?.length ?? 0) > 0
     || !!opts.lumalabsImageModel
+    || (opts.falImageModels?.length ?? 0) > 0
+    || !!opts.falImageModel
   if (!hasImage) return []
 
   return estimateImageCosts({
@@ -42,6 +44,8 @@ export const buildImageEstimates = (opts: RuntimeOptions): ImageStepEstimate[] =
     replicateImageModel: opts.replicateImageModel,
     lumalabsImageModels: opts.lumalabsImageModels,
     lumalabsImageModel: opts.lumalabsImageModel,
+    falImageModels: opts.falImageModels,
+    falImageModel: opts.falImageModel,
     imageSize: opts.imageSize,
     imageQuality: opts.imageQuality,
     imageCount: opts.imageCount
@@ -81,10 +85,15 @@ export const buildVideoEstimates = async (opts: RuntimeOptions): Promise<VideoSt
     || !!opts.replicateVideoModel
     || (opts.lumalabsVideoModels?.length ?? 0) > 0
     || !!opts.lumalabsVideoModel
+    || (opts.falVideoModels?.length ?? 0) > 0
+    || !!opts.falVideoModel
   if (!hasVideo) return []
 
   const hasGrokVideo = (opts.grokVideoModels?.length ?? 0) > 0 || !!opts.grokVideoModel
   const grokInputVideoDurationSeconds = hasGrokVideo && opts.videoInputVideo
+    ? await tryResolveLocalVideoDurationSeconds(opts.videoInputVideo)
+    : undefined
+  const replicateInputVideoDurationSeconds = opts.videoInputVideo
     ? await tryResolveLocalVideoDurationSeconds(opts.videoInputVideo)
     : undefined
 
@@ -105,6 +114,8 @@ export const buildVideoEstimates = async (opts: RuntimeOptions): Promise<VideoSt
     replicateVideoModel: opts.replicateVideoModel,
     lumalabsVideoModels: opts.lumalabsVideoModels,
     lumalabsVideoModel: opts.lumalabsVideoModel,
+    falVideoModels: opts.falVideoModels,
+    falVideoModel: opts.falVideoModel,
     videoDuration: opts.videoDuration,
     videoSize: opts.videoSize,
     videoAspectRatio: opts.videoAspectRatio,
@@ -112,7 +123,9 @@ export const buildVideoEstimates = async (opts: RuntimeOptions): Promise<VideoSt
     videoMode: opts.videoMode,
     ...(hasGrokVideo ? { grokInputImageCount: countGrokInputImages(opts) } : {}),
     ...(grokInputVideoDurationSeconds !== undefined ? { grokInputVideoDurationSeconds } : {}),
-    replicateVideoReferenceVideoCount: countReplicateInputVideos(opts)
+    replicateVideoReferenceVideoCount: countReplicateInputVideos(opts),
+    replicateVideoGenerateAudio: opts.replicateVideoGenerateAudio,
+    ...(replicateInputVideoDurationSeconds !== undefined ? { replicateInputVideoDurationSeconds } : {})
   }).map((estimate) => {
     const estimation = getVideoEstimation(estimate.provider, estimate.model)
     return {

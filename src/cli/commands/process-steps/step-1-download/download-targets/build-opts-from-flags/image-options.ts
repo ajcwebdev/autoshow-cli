@@ -25,6 +25,8 @@ export const buildImageOptions = (ctx: BuildDomainOptionsContext): Pick<RuntimeO
     replicateImageModel,
     lumalabsImageModels,
     lumalabsImageModel,
+    falImageModels,
+    falImageModel,
   } = modelOptions
 
   return {
@@ -44,6 +46,8 @@ export const buildImageOptions = (ctx: BuildDomainOptionsContext): Pick<RuntimeO
     replicateImageModel,
     lumalabsImageModels,
     lumalabsImageModel,
+    falImageModels,
+    falImageModel,
     imageAspectRatio: readOptionalStringFlag(mergedFlags, 'image-aspect-ratio'),
     imageSize: readOptionalStringFlag(mergedFlags, 'image-size'),
     imageQuality: readOptionalStringFlag(mergedFlags, 'image-quality'),

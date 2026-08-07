@@ -179,19 +179,20 @@ GLM `cogvideox-3` supports text, image-to-video, and interpolation with `image_u
 | Option | Value |
 |--------|-------|
 | Selector | `--provider grok[=<model>]` |
-| Models | `grok-imagine-video` |
-| Duration/resolution | `--duration <seconds>`, `--resolution 480p\|720p` for generation modes |
+| Models | `grok-imagine-video`, `grok-imagine-video-1.5` |
+| Duration/resolution | `--duration <seconds>`, `--resolution 480p\|720p`; Video 1.5 also supports `1080p` for text and image generation |
 | Storage | `--grok-video-storage-filename`, `--grok-video-storage-expires-after` |
 
 ```bash
 bun autoshow video "a cat playing piano" --provider grok=grok-imagine-video --duration 8 --resolution 720p
+bun autoshow video "a cinematic moonlit coastline" --provider grok=grok-imagine-video-1.5 --duration 8 --resolution 1080p
 bun autoshow video "a sunset timelapse" --provider grok=grok-imagine-video --price
 bun autoshow image "a close product photo of a red enamel camping mug on white seamless" --provider gemini=gemini-3.1-flash-lite-image --output-dir output/grok-video-input-image
 bun autoshow video "animate the mug with a slow tabletop camera slide" --provider grok=grok-imagine-video --mode image-to-video --input-image output/grok-video-input-image/generated-image.png --output-dir output/grok-video-base
 bun autoshow video "extend with a wider camera reveal of the tabletop set" --provider grok=grok-imagine-video --mode extend --input-video output/grok-video-base/generated-video.mp4 --duration 6 --output-dir output/grok-video-extended
 ```
 
-Grok text, image-to-video, and reference-to-video durations are clamped to `1` through `15` seconds and default to `8`. Extension durations are clamped to `1` through `10` seconds and default to `6`. Grok estimates include the published input image/reference-image fee when image inputs are selected, and include input-video seconds when local input duration can be probed. When xAI returns `usage.cost_in_usd_ticks`, the run metadata uses that provider cost for actual-cost reporting.
+Grok text, image-to-video, and reference-to-video durations are clamped to `1` through `15` seconds and default to `8`. `grok-imagine-video-1.5` supports text, image, and reference generation; reference generation is capped at 720p. The retained `grok-imagine-video` selector also supports editing and extension, whose durations clamp to `1` through `10` seconds and default to `6`. Grok estimates include the published input image/reference-image fee when image inputs are selected, and include input-video seconds when local input duration can be probed. When xAI returns `usage.cost_in_usd_ticks`, the run metadata uses that provider cost for actual-cost reporting.
 
 ### Runway
 
@@ -234,19 +235,21 @@ LTX text and image generation estimates use per-second 1080p pricing, with 1440p
 | Option | Value |
 |--------|-------|
 | Selector | `--provider replicate[=<model>]` |
-| Models | `alibaba/happyhorse-1.0`, `bytedance/seedance-2.0`, `bytedance/seedance-2.0-fast`, `wan-video/wan-2.7-t2v` |
-| Duration | `--duration <seconds>`; Happy Horse `3` through `15`, Seedance `-1` through `15` (`-1` requests intelligent duration), Wan `2` through `15`; default `5` |
-| Resolution | `--resolution`; Happy Horse and Wan `720p\|1080p`, Seedance `480p\|720p\|1080p`, Seedance Fast `480p\|720p`; default `720p` |
-| Aspect ratio | `16:9`, `9:16`, `1:1`, `4:3`, `3:4`; Seedance adds `21:9`, `9:21`, and `adaptive`; default `16:9` |
+| Models | `alibaba/happyhorse-1.1`, `bytedance/seedance-2.0`, `bytedance/seedance-2.0-fast`, `kwaivgi/kling-v3-video`, `kwaivgi/kling-v3-omni-video`, `pixverse/pixverse-v6`, `runwayml/aleph-2`, `wan-video/wan-2.7-t2v` |
+| Duration | `--duration <seconds>`; Happy Horse and Kling `3` through `15`, PixVerse `5\|8\|10\|15`, Seedance `-1` through `15`, Wan `2` through `15`; default `5`. Aleph uses the input clip duration. |
+| Resolution | `--resolution`; Kling `720p\|1080p\|4k`, PixVerse `360p\|540p\|720p\|1080p`, Happy Horse and Wan `720p\|1080p`, Seedance `480p\|720p\|1080p`, Seedance Fast `480p\|720p`; default `720p` |
+| Aspect ratio | Happy Horse `16:9`, `9:16`, `1:1`, `4:3`, `3:4`; Kling and PixVerse `16:9`, `9:16`, `1:1`; Seedance additionally supports `21:9`, `9:21`, and `adaptive`; default `16:9` |
 
 ```bash
 bun autoshow video "a cinematic mountain sunrise" --provider replicate=wan-video/wan-2.7-t2v
 bun autoshow video "animate the product photo with a slow dolly move" --provider replicate=bytedance/seedance-2.0 --mode image-to-video --input-image output/video-demo-product/generated-image.png
 bun autoshow video "keep these references consistent in the generated shot" --provider replicate=bytedance/seedance-2.0 --mode reference-to-video --reference-image output/video-demo-jacket/generated-image.png --reference-image output/video-demo-sunglasses/generated-image.png
 bun autoshow video "a sunset timelapse" --provider replicate=bytedance/seedance-2.0-fast --price
+bun autoshow video "a three-shot product launch" --provider replicate=kwaivgi/kling-v3-video --duration 8 --resolution 1080p --replicate-video-generate-audio --replicate-video-multi-prompt '[{"prompt":"macro product detail","duration":3},{"prompt":"wide studio reveal","duration":5}]'
+bun autoshow video "add moonlit lighting while preserving the action" --provider replicate=runwayml/aleph-2 --mode edit --input-video output/source/generated-video.mp4
 ```
 
-Happy Horse supports text and image-to-video. Seedance models support text, image-to-video, interpolate, reference-to-video, extend, and edit; they accept up to 9 reference images, up to 3 reference videos (including `--input-video`) via `--replicate-video-reference-video`, up to 3 reference audio files via `--replicate-video-reference-audio`, and a `--replicate-video-generate-audio` toggle. Wan is text-only and supports `--replicate-video-negative-prompt`, `--replicate-video-audio`, and `--replicate-video-prompt-expansion`. All Replicate models accept `--replicate-video-seed` (an integer from 0 to 2147483647). Estimates use per-second output pricing by resolution; Seedance uses higher video-input rates when input or reference videos are present, and intelligent duration (`-1`) is estimated as 5 seconds.
+Happy Horse 1.1 supports text, image, and up to nine reference images. Kling Video 3.0 supports text, image, first/last-frame interpolation, optional native audio, negative prompts, and up to six JSON-defined shots through `--replicate-video-multi-prompt`. Kling Video 3.0 Omni adds reference images, reference video, and prompt-driven video editing. PixVerse V6 supports text, image, first/last-frame transitions, native audio, negative prompts, and `--replicate-video-multi-clip`. Aleph 2.0 is edit-only and requires `--input-video`; input clips must be 2–30 seconds and under 16MB. Seedance models support text, image-to-video, interpolation, reference-to-video, extension, and editing. Wan remains text-only. All Replicate models accept `--replicate-video-seed`. Estimates use the published model-, resolution-, audio-, and video-input-aware rates.
 
 ### Luma Labs
 
@@ -265,6 +268,24 @@ bun autoshow video "a sunset timelapse" --provider lumalabs=ray-3.2 --duration 5
 ```
 
 Luma Labs `ray-3.2` runs against the Luma Agents API (`POST /v1/generations`, polled until `completed`). It supports `text` and `image-to-video` (via `video.start_frame`). Standard dynamic range generation is priced per clip by resolution and duration: 720p is $0.30 for 5s and $0.90 for 10s.
+
+### fal.ai
+
+| Option | Value |
+|--------|-------|
+| Selector | `--provider fal[=<model>]` |
+| Models | `minimax/h3`, `fal-ai/pixverse/c1` |
+| Modes | Both support `text`, `image-to-video`, `reference-to-video`, and `interpolate` |
+| Duration | H3 `5-15`; PixVerse C1 `1-15`; default `5` |
+| Resolution | H3 `768p\|2k`; PixVerse C1 `360p\|540p\|720p\|1080p` |
+
+```bash
+bun autoshow video "a rain-soaked detective enters a neon diner" --provider fal=minimax/h3 --duration 5 --resolution 2k
+bun autoshow video "a controlled product turntable shot" --provider fal=fal-ai/pixverse/c1 --mode image-to-video --input-image output/mug-base/generated-image.png --fal-video-generate-audio
+bun autoshow video "preserve the subject and camera language" --provider fal=minimax/h3 --mode reference-to-video --reference-image output/mug-base/generated-image.png --fal-video-reference-video input/reference.mp4
+```
+
+fal.ai uses `FAL_API_KEY` and mode-specific queued endpoints. MiniMax H3 accepts up to nine image, three video, and three audio references, with at most twelve combined references; audio references require an image or video reference. PixVerse C1 accepts up to seven image references and supports `--fal-video-generate-audio`; its interpolation mode routes the first and last frames through the transition endpoint. Local estimates use fal.ai's published per-second rates.
 
 ```bash
 # Same provider, multiple models

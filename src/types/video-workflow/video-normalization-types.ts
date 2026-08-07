@@ -6,13 +6,13 @@ export type GlmVideoFps = 30 | 60
 
 export type GlmVideoQuality = 'speed' | 'quality'
 
-export type GrokVideoResolution = '480p' | '720p'
+export type GrokVideoResolution = '480p' | '720p' | '1080p'
 
 export type LtxVideoFps = 24
 
 export type RunwayRatio = '1280:720' | '720:1280'
 
-export type ReplicateVideoResolution = '480p' | '720p' | '1080p'
+export type ReplicateVideoResolution = '360p' | '480p' | '540p' | '720p' | '1080p' | '4k'
 
 export type LumaVideoResolution = '540p' | '720p' | '1080p'
 

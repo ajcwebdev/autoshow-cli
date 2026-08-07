@@ -15,6 +15,8 @@ export type ImageRuntimeOptionKey =
   | 'replicateImageModel'
   | 'lumalabsImageModels'
   | 'lumalabsImageModel'
+  | 'falImageModels'
+  | 'falImageModel'
   | 'imageAspectRatio'
   | 'imageSize'
   | 'imageQuality'

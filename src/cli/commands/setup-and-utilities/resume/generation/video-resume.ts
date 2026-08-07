@@ -17,7 +17,8 @@ const VIDEO_PROVIDER_FLAGS = [
   'runway-video',
   'ltx-video',
   'replicate-video',
-  'lumalabs-video'
+  'lumalabs-video',
+  'fal-video'
 ] as const
 
 const VIDEO_MODEL_FIELDS = {
@@ -28,7 +29,8 @@ const VIDEO_MODEL_FIELDS = {
   runway: ['runwayVideoModels', 'runwayVideoModel'],
   ltx: ['ltxVideoModels', 'ltxVideoModel'],
   replicate: ['replicateVideoModels', 'replicateVideoModel'],
-  lumalabs: ['lumalabsVideoModels', 'lumalabsVideoModel']
+  lumalabs: ['lumalabsVideoModels', 'lumalabsVideoModel'],
+  fal: ['falVideoModels', 'falVideoModel']
 } as const
 
 const clearVideoProviderModels = (opts: RuntimeOptions): RuntimeOptions => ({
@@ -48,7 +50,9 @@ const clearVideoProviderModels = (opts: RuntimeOptions): RuntimeOptions => ({
   replicateVideoModels: undefined,
   replicateVideoModel: undefined,
   lumalabsVideoModels: undefined,
-  lumalabsVideoModel: undefined
+  lumalabsVideoModel: undefined,
+  falVideoModels: undefined,
+  falVideoModel: undefined
 })
 
 const collectVideoTargetsForProviders = (
@@ -92,7 +96,8 @@ const buildVideoPriceOptions = (
   runwayVideoModels: videoModelsForService(targets, 'runway'),
   ltxVideoModels: videoModelsForService(targets, 'ltx'),
   replicateVideoModels: videoModelsForService(targets, 'replicate'),
-  lumalabsVideoModels: videoModelsForService(targets, 'lumalabs')
+  lumalabsVideoModels: videoModelsForService(targets, 'lumalabs'),
+  falVideoModels: videoModelsForService(targets, 'fal')
 })
 
 const priceVideoTargets = async (

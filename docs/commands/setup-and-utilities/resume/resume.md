@@ -48,8 +48,8 @@ Examples of provider names:
 | URL extract | `defuddle`, `firecrawl`, `glm-reader`, `spider`, `supadata`, `zyte` |
 | Write LLM | `llama`, `llamafile`, `openai`, `groq`, `gemini`, `anthropic`, `minimax`, `grok`, `glm`, `kimi`, `together`, `cerebras` |
 | TTS | `kitten`, `elevenlabs`, `minimax`, `groq`, `grok`, `mistral`, `openai`, `gemini`, `deepgram`, `speechify`, `hume`, `cartesia` |
-| Image | `gemini`, `openai`, `grok`, `bfl`, `recraft`, `replicate`, `lumalabs` |
-| Video | `gemini`, `minimax`, `glm`, `grok`, `runway`, `ltx`, `replicate`, `lumalabs` |
+| Image | `gemini`, `openai`, `grok`, `bfl`, `recraft`, `replicate`, `lumalabs`, `fal` |
+| Video | `gemini`, `minimax`, `glm`, `grok`, `runway`, `ltx`, `replicate`, `lumalabs`, `fal` |
 | Music | `elevenlabs`, `minimax`, `gemini` |
 
 ## Examples

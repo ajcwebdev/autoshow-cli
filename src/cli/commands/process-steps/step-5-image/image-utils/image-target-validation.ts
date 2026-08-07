@@ -63,6 +63,8 @@ export const IMAGE_OPTION_LABELS: Record<keyof ImageGenOptions, string> = {
   replicateImageModel: '--replicate-image',
   lumalabsImageModels: '--lumalabs-image',
   lumalabsImageModel: '--lumalabs-image',
+  falImageModels: '--fal-image',
+  falImageModel: '--fal-image',
   imageAspectRatio: '--image-aspect-ratio',
   imageSize: '--image-size',
   imageQuality: '--image-quality',

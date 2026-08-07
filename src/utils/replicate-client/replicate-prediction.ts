@@ -153,7 +153,9 @@ const fetchReplicateJson = async (
 export const runReplicatePrediction = async (
   options: RunReplicatePredictionOptions
 ): Promise<ReplicatePrediction> => {
-  const requestUrl = buildModelPredictionUrl(options.baseUrl, options.model)
+  const requestUrl = options.version
+    ? joinRestUrl(options.baseUrl, '/predictions', REPLICATE_DEFAULT_BASE_URL, { collapseVersionPrefix: 'v1' })
+    : buildModelPredictionUrl(options.baseUrl, options.model)
   const waitSeconds = options.waitSeconds ?? REPLICATE_SYNC_WAIT_SECONDS
 
   const createPrediction = async (signal?: AbortSignal): Promise<ReplicatePrediction> => {
@@ -170,7 +172,10 @@ export const runReplicatePrediction = async (
       {
         method: 'POST',
         headers,
-        body: JSON.stringify({ input: options.input }),
+        body: JSON.stringify({
+          ...(options.version ? { version: `${options.model}:${options.version}` } : {}),
+          input: options.input
+        }),
         ...(signal ? { signal } : {})
       },
       'prediction create',
