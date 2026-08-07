@@ -132,31 +132,29 @@ bun autoshow tts input/examples/tts/1-tts.md --provider minimax=speech-2.8-turbo
 bun autoshow tts input/examples/tts/1-tts.md --provider hume=octave-2 --tts-voice "Male English Actor"
 
 # text-to-speech with Cartesia Sonic
-bun autoshow tts input/examples/tts/1-tts.md --provider cartesia=sonic-3.5 --tts-voice f786b574-daa5-4673-aa0c-cbe3e8534c02
+bun autoshow tts input/examples/tts/1-tts.md --provider cartesia=sonic-3.5-2026-05-04 --tts-voice f786b574-daa5-4673-aa0c-cbe3e8534c02
 
 # image generation, then edit/reference the generated image; run this block in order
 bun autoshow image "a clean studio product photo of a red enamel camping mug on white seamless" --provider openai=gpt-image-2 --size 1024x1024 --format png --output-dir output/mug-base
 bun autoshow image "make the mug matte black, keep the same camera angle, and place it on a walnut desk" --provider openai=gpt-image-2 --input output/mug-base/generated-image.png --format webp --compression 80 --output-dir output/mug-edit
 
 # image reference with native Gemini
-bun autoshow image "restyle the generated mug as a 1960s travel poster" --provider gemini=gemini-3.1-flash-image-preview --input output/mug-base/generated-image.png --output-dir output/mug-gemini
+bun autoshow image "restyle the generated mug as a 1960s travel poster" --provider gemini=gemini-3.1-flash-lite-image --input output/mug-base/generated-image.png --output-dir output/mug-gemini
 
-# image references with BFL and Reve
-bun autoshow image "place the same mug on a rustic breakfast table" --provider bfl=flux-2-pro --input output/mug-base/generated-image.png --size 1024x1024 --output-dir output/mug-bfl
-bun autoshow image "place the same mug in a minimalist editorial product scene" --provider reve=latest --input output/mug-base/generated-image.png --size 1024x1024 --output-dir output/mug-reve
+# image references with BFL
+bun autoshow image "place the same mug on a rustic breakfast table" --provider bfl=flux-2-klein-4b --input output/mug-base/generated-image.png --size 1024x1024 --output-dir output/mug-bfl
 
 # image generation with BFL
-bun autoshow image "a sunset over mountains" --provider bfl=flux-2-pro --size 1024x1024
-
-# image generation with Reve
-bun autoshow image "a sunset over mountains" --provider reve=latest --aspect-ratio 16:9 --format webp
+bun autoshow image "a sunset over mountains" --provider bfl=flux-2-klein-4b --size 1024x1024
 
 # image generation with Recraft
-bun autoshow image "a clean vector mark of a mountain observatory" --provider recraft=recraftv4_1_vector --aspect-ratio 1:1
 bun autoshow image "a premium product photo of a red enamel camping mug on white seamless" --provider recraft=recraftv4_1 --size 1024x1024 --count 3
 
 # image generation with Luma Labs
 bun autoshow image "a sunset over mountains" --provider lumalabs=uni-1 --aspect-ratio 16:9
+
+# image generation with fal.ai
+bun autoshow image "a launch poster with crisp typography" --provider fal=alibaba/qwen-image-3 --count 2
 
 # video from the generated image, then extend/edit the generated video; run this block after output/mug-base exists
 bun autoshow video "animate the red enamel mug on a slow turntable with glossy highlights" --provider gemini=veo-3.1-fast-generate-preview --mode image-to-video --input-image output/mug-base/generated-image.png --output-dir output/mug-video-base
@@ -165,6 +163,9 @@ bun autoshow video "make the lighting moonlit blue while keeping the mug motion 
 
 # video generation
 bun autoshow video "a cinematic mountain sunrise" --provider gemini=veo-3.1-lite-generate-preview
+
+# video generation with fal.ai
+bun autoshow video "a cinematic mountain sunrise with synchronized ambience" --provider fal=minimax/h3 --duration 5 --resolution 2k
 
 # video generation with multiple providers
 bun autoshow video "a timelapse storm over downtown chicago" --provider gemini=veo-3.1-lite-generate-preview --provider runway=gen4.5 --provider ltx=ltx-2-3-fast --provider lumalabs=ray-3.2
@@ -177,7 +178,7 @@ bun autoshow music --audio input/examples/lyrics/01-example-song.mp3 --captions 
 bun autoshow music --input-dir input/examples/lyrics --batch --model small
 
 # music generation
-bun autoshow music "an ambient piano instrumental with soft strings" --provider minimax=music-2.6 --instrumental
+bun autoshow music "an ambient piano instrumental with soft strings" --provider minimax=music-3.0 --instrumental
 bun autoshow music "bright 90s pop rock with a huge chorus" --provider gemini=lyria-3-clip-preview
 
 # inspect or set persistent defaults
@@ -216,7 +217,7 @@ bun autoshow benchmark docs/benchmarks/tts/<run> --tts --tts-mode local
 - Use `download` for downloading media/documents, X Space audio, and collecting metadata.
 - Use `extract` when you only need step-2 extraction or transcription without LLM writing, to create an X Space report, or to render transcript videos from an extract run or explicit audio/transcript files.
 - Use `write` for full summary pipeline with optional TTS/image/video generation, and for lyric draft generation from `./output/<name>/text`.
-- Use standalone `tts`, `image`, `video`, and `music` commands for direct generation workflows. Standalone image generation supports `gemini`, `openai`, `grok`, `bfl`, `reve`, `recraft`, `replicate`, and `lumalabs`; Recraft is generation-only in this CLI surface and writes SVG for vector models.
+- Use standalone `tts`, `image`, `video`, and `music` commands for direct generation workflows. Standalone image generation supports `gemini`, `openai`, `grok`, `bfl`, `recraft`, `replicate`, `lumalabs`, and `fal`; Recraft is raster generation-only in this CLI surface.
 - Use `music --audio`, `music --captions`, or `music --batch` for local lyric-video rendering from repo audio under `input/`; hosted music generation uses a prompt or local text file plus `--provider`.
 - Use `comic` for staged or complete episode-script to comic workflows: scene drafting, character sketch references, panel prompt bundles, review sketches, final panel images, and grouped page images.
 - Use `resume` to backfill missing extract, write LLM, TTS, image, video, or music providers in an existing output directory, including `extract` parent batches.
@@ -249,13 +250,11 @@ bun autoshow tts input/examples/tts/1-tts.md --provider grok=grok-tts --price
 bun autoshow tts input/examples/tts/1-tts.md --provider mistral=voxtral-mini-tts-2603 --price
 bun autoshow tts input/examples/tts/1-tts.md --provider minimax=speech-2.8-turbo --price
 bun autoshow tts input/examples/tts/1-tts.md --provider hume=octave-2 --price
-bun autoshow tts input/examples/tts/1-tts.md --provider cartesia=sonic-3.5 --price
-bun autoshow tts input/examples/tts/1-tts.md --provider openai=gpt-4o-mini-tts --price
-bun autoshow tts input/examples/tts/1-tts.md --provider openai=gpt-4o-mini-tts --tts-instructions "Warm documentary narration" --tts-speed 1.1 --price
+bun autoshow tts input/examples/tts/1-tts.md --provider cartesia=sonic-3.5-2026-05-04 --price
+bun autoshow tts input/examples/tts/1-tts.md --provider openai=gpt-4o-mini-tts-2025-12-15 --price
+bun autoshow tts input/examples/tts/1-tts.md --provider openai=gpt-4o-mini-tts-2025-12-15 --tts-instructions "Warm documentary narration" --tts-speed 1.1 --price
 bun autoshow image "a sunset" --provider openai=gpt-image-2 --size 1024x1024 --quality low --price
-bun autoshow image "a sunset" --provider bfl=flux-2-pro --price
-bun autoshow image "a sunset" --provider reve=latest --price
-bun autoshow image "a geometric fox logo in clean vector shapes" --provider recraft=recraftv4_1_vector --aspect-ratio 1:1 --price
+bun autoshow image "a sunset" --provider bfl=flux-2-klein-4b --price
 bun autoshow image "a premium product photo" --provider recraft=recraftv4_1 --size 1024x1024 --count 3 --price
 bun autoshow image "a sunset" --provider lumalabs=uni-1 --aspect-ratio 16:9 --price
 bun autoshow video "a sunset timelapse" --provider gemini=veo-3.1-lite-generate-preview --price
@@ -266,7 +265,7 @@ bun autoshow video "a sunset timelapse" --provider runway=gen4.5 --duration 5 --
 bun autoshow video "a sunset timelapse" --provider ltx=ltx-2-3-fast --duration 6 --resolution 1080p --price
 bun autoshow video "a sunset timelapse" --provider lumalabs=ray-3.2 --duration 5 --resolution 720p --price
 bun autoshow video "a sunset timelapse" --all-providers --price
-bun autoshow music "an ambient piano instrumental" --provider minimax=music-2.6 --instrumental --price
+bun autoshow music "an ambient piano instrumental" --provider minimax=music-3.0 --instrumental --price
 bun autoshow music "an ambient piano instrumental" --provider gemini=lyria-3-pro-preview --duration 120 --price
 bun autoshow comic draft-scenes input/scripts/02-script/01-co-work-smarter.md --price
 bun autoshow comic character-sketch --character peaches --price

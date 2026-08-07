@@ -75,12 +75,7 @@ const RECRAFT_PRO_RASTER_MODELS = new Set<RecraftImageModel>([
   'recraftv4_1_utility_pro'
 ])
 
-export const isRecraftVectorImageModel = (model: string): boolean => model.endsWith('_vector')
-
 const supportedSizeValuesForModel = (model: RecraftImageModel): readonly string[] => {
-  if (isRecraftVectorImageModel(model)) {
-    return RECRAFT_ASPECT_RATIOS
-  }
   if (RECRAFT_STANDARD_RASTER_MODELS.has(model)) {
     return [...RECRAFT_ASPECT_RATIOS, ...RECRAFT_STANDARD_RASTER_SIZES]
   }
@@ -116,9 +111,6 @@ export const normalizeRecraftImageSize = (
   )
 }
 
-export const getRecraftImageExtension = (model: string): string =>
-  isRecraftVectorImageModel(model) ? 'svg' : 'png'
-
 export const runRecraftImageGen = async (
   prompt: string,
   outputDir: string,
@@ -133,7 +125,7 @@ export const runRecraftImageGen = async (
   const apiToken = await ensureRecraftImageGenSetup()
   const count = Math.max(1, options.count ?? 1)
   const size = normalizeRecraftImageSize(options.model, options.imageSize, options.aspectRatio)
-  const fallbackExt = getRecraftImageExtension(options.model)
+  const fallbackExt = 'png'
 
   const estimate = estimateImageCosts({ recraftImageModel: options.model, imageCount: count })[0]
   if (estimate) {

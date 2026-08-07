@@ -84,7 +84,7 @@ const priceCases: Array<{ label: string; args: string[]; expected: string | stri
   },
   {
     label: 'tts',
-    args: ['tts', STABLE_TTS_MD_PATH, '--provider', 'openai=gpt-4o-mini-tts', '--price'],
+    args: ['tts', STABLE_TTS_MD_PATH, '--provider', 'openai=gpt-4o-mini-tts-2025-12-15', '--price'],
     expected: 'speech'
   },
   {
@@ -94,12 +94,12 @@ const priceCases: Array<{ label: string; args: string[]; expected: string | stri
   },
   {
     label: 'Speechify TTS',
-    args: ['tts', STABLE_TTS_MD_PATH, '--provider', 'speechify=simba-english', '--price'],
+    args: ['tts', STABLE_TTS_MD_PATH, '--provider', 'speechify=simba-3.2', '--price'],
     expected: 'speech'
   },
   {
     label: 'Speechify custom voice TTS',
-    args: ['tts', STABLE_TTS_MD_PATH, '--provider', 'speechify=simba-english', '--tts-ref-audio', 'input/voices/my-voice-sample.mp3', '--tts-consent-name', 'Anthony Example', '--tts-consent-email', 'anthony@example.com', '--price'],
+    args: ['tts', STABLE_TTS_MD_PATH, '--provider', 'speechify=simba-3.0', '--tts-ref-audio', 'input/voices/my-voice-sample.mp3', '--tts-consent-name', 'Anthony Example', '--tts-consent-email', 'anthony@example.com', '--price'],
     expected: 'speech'
   },
   {
@@ -135,7 +135,7 @@ const priceCases: Array<{ label: string; args: string[]; expected: string | stri
   },
   {
     label: 'music',
-    args: ['music', 'an ambient piano song', '--provider', 'minimax=music-2.6', '--price'],
+    args: ['music', 'an ambient piano song', '--provider', 'minimax=music-3.0', '--price'],
     expected: 'music'
   },
   {

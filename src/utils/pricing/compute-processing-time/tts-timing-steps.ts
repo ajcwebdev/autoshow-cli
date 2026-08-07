@@ -21,6 +21,7 @@ export const buildTtsTimingSteps = (input: ComputeEstimatedProcessingTimesInput)
       model: ttsTarget.model,
       processingTimeMs: roundMs(estimateTtsSynthesisProcessingTimeMs({
         provider: ttsTarget.service,
+        model: ttsTarget.model,
         text: input.ttsInputText,
         characterCount,
         msPer1KChars: estimation.msPer1KChars,

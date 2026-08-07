@@ -32,7 +32,19 @@ const normalizeReplicateAspectRatioFrom = (
 }
 
 export const isReplicateHappyHorseVideoModel = (model: ReplicateVideoModel): boolean =>
-  model === 'alibaba/happyhorse-1.0'
+  model === 'alibaba/happyhorse-1.1'
+
+export const isReplicateKlingVideoModel = (model: ReplicateVideoModel): boolean =>
+  model === 'kwaivgi/kling-v3-video' || model === 'kwaivgi/kling-v3-omni-video'
+
+export const isReplicateKlingOmniVideoModel = (model: ReplicateVideoModel): boolean =>
+  model === 'kwaivgi/kling-v3-omni-video'
+
+export const isReplicatePixVerseVideoModel = (model: ReplicateVideoModel): boolean =>
+  model === 'pixverse/pixverse-v6'
+
+export const isReplicateAlephVideoModel = (model: ReplicateVideoModel): boolean =>
+  model === 'runwayml/aleph-2'
 
 export const isReplicateWanVideoModel = (model: ReplicateVideoModel): boolean =>
   model === 'wan-video/wan-2.7-t2v'
@@ -57,6 +69,17 @@ export const normalizeReplicateVideoDuration = (
   if (isReplicateSeedanceVideoModel(model)) {
     return clampIntegerDuration(duration, 5, ...REPLICATE_SEEDANCE_DURATION_RANGE, `Replicate/${model}`)
   }
+  if (isReplicateKlingVideoModel(model)) {
+    return clampIntegerDuration(duration, 5, 3, 15, `Replicate/${model}`)
+  }
+  if (isReplicatePixVerseVideoModel(model)) {
+    const value = duration ?? 5
+    if (value === 5 || value === 8 || value === 10 || value === 15) return value
+    throw CLIUsageError(`Invalid --video-duration value "${String(duration)}" for Replicate/${model}. Expected 5, 8, 10, or 15.`)
+  }
+  if (isReplicateAlephVideoModel(model)) {
+    return clampIntegerDuration(duration, 5, 2, 30, `Replicate/${model}`)
+  }
   return clampIntegerDuration(duration, 5, ...REPLICATE_WAN_DURATION_RANGE, `Replicate/${model}`)
 }
 
@@ -68,13 +91,22 @@ export const resolveReplicateBilledDuration = (
   return normalized === -1 ? 5 : normalized
 }
 
-export const REPLICATE_VIDEO_RESOLUTIONS = ['480p', '720p', '1080p'] as const
+export const REPLICATE_VIDEO_RESOLUTIONS = ['360p', '480p', '540p', '720p', '1080p', '4k'] as const
 
 export const normalizeReplicateVideoResolution = (
   model: ReplicateVideoModel,
   resolution: string | undefined
 ): ReplicateVideoResolution => {
   if (resolution === undefined || resolution === '') return '720p'
+  if (isReplicateAlephVideoModel(model)) return '720p'
+  if (isReplicateKlingVideoModel(model)) {
+    if (resolution === '720p' || resolution === '1080p' || resolution === '4k') return resolution
+    throw CLIUsageError(`Invalid --video-resolution value "${resolution}" for Replicate/${model}. Expected 720p, 1080p, or 4k.`)
+  }
+  if (isReplicatePixVerseVideoModel(model)) {
+    if (resolution === '360p' || resolution === '540p' || resolution === '720p' || resolution === '1080p') return resolution
+    throw CLIUsageError(`Invalid --video-resolution value "${resolution}" for Replicate/${model}. Expected 360p, 540p, 720p, or 1080p.`)
+  }
   if (isReplicateHappyHorseVideoModel(model) || isReplicateWanVideoModel(model)) {
     if (resolution === '720p' || resolution === '1080p') return resolution
     throw CLIUsageError(`Invalid --video-resolution value "${resolution}" for Replicate/${model}. Expected 720p or 1080p.`)
@@ -93,6 +125,9 @@ export const normalizeReplicateVideoAspectRatio = (
 ): string => {
   if (isReplicateSeedanceVideoModel(model)) {
     return normalizeReplicateAspectRatioFrom(aspectRatio, REPLICATE_SEEDANCE_ASPECT_RATIOS, `Replicate/${model}`)
+  }
+  if (isReplicateKlingVideoModel(model) || isReplicatePixVerseVideoModel(model)) {
+    return normalizeReplicateAspectRatioFrom(aspectRatio, ['16:9', '9:16', '1:1'], `Replicate/${model}`)
   }
   return normalizeReplicateAspectRatioFrom(aspectRatio, REPLICATE_COMMON_ASPECT_RATIOS, `Replicate/${model}`)
 }
@@ -264,12 +299,13 @@ export const normalizeGrokVideoExtensionDuration = (duration: number | undefined
   return Math.min(10, Math.max(1, Math.floor(duration)))
 }
 
-export const GROK_VIDEO_RESOLUTIONS = ['480p', '720p'] as const
+export const GROK_VIDEO_RESOLUTIONS = ['480p', '720p', '1080p'] as const
 
-export const normalizeGrokVideoResolution = (resolution: string | undefined): GrokVideoResolution => {
+export const normalizeGrokVideoResolution = (resolution: string | undefined, model?: string | undefined): GrokVideoResolution => {
   if (resolution === undefined || resolution === '') return '480p'
   if (resolution === '480p' || resolution === '720p') return resolution
-  throw CLIUsageError(`Invalid --video-resolution value "${resolution}" for Grok. Expected ${GROK_VIDEO_RESOLUTIONS.join(' or ')}.`)
+  if (resolution === '1080p' && model === 'grok-imagine-video-1.5') return resolution
+  throw CLIUsageError(`Invalid --video-resolution value "${resolution}" for Grok/${model ?? 'video'}. Expected ${model === 'grok-imagine-video-1.5' ? GROK_VIDEO_RESOLUTIONS.join(', ') : '480p or 720p'}.`)
 }
 
 export const GROK_VIDEO_ASPECT_RATIOS = ['1:1', '16:9', '9:16', '4:3', '3:4', '3:2', '2:3'] as const

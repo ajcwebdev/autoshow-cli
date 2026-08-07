@@ -188,15 +188,17 @@ describe('price mode contracts', () => {
       expect(resolveCheapestModelForFlag('glm')).toBe('glm-5.1')
       expect(resolveCheapestModelForFlag('kimi')).toBe('kimi-k2.6')
       expect(resolveCheapestModelForFlag('openai-image')).toBe('gpt-image-2')
-      expect(resolveCheapestModelForFlag('bfl-image')).toBe('flux-2-pro')
-      expect(resolveCheapestModelForFlag('reve-image')).toBe('latest')
+      expect(resolveCheapestModelForFlag('gemini-image')).toBe('gemini-3.1-flash-lite-image')
+      expect(resolveCheapestModelForFlag('bfl-image')).toBe('flux-2-klein-4b')
       expect(resolveCheapestModelForFlag('recraft-image')).toBe('recraftv4_1')
       expect(resolveCheapestModelForFlag('gemini-music')).toBe('lyria-3-clip-preview')
+      expect(resolveCheapestModelForFlag('elevenlabs-music')).toBe('music_v1')
+      expect(resolveCheapestModelForFlag('minimax-music')).toBe('music-3.0')
       expect(resolveCheapestModelForFlag('deepgram-stt')).toBe('nova-3')
       expect(resolveCheapestModelForFlag('grok-stt')).toBe('speech-to-text')
       expect(resolveCheapestModelForFlag('grok-tts')).toBe('grok-tts')
       expect(resolveCheapestModelForFlag('mistral-tts')).toBe('voxtral-mini-tts-2603')
-      expect(resolveCheapestModelForFlag('speechify-tts')).toBe('simba-english')
+      expect(resolveCheapestModelForFlag('speechify-tts')).toBe('simba-3.2')
       expect(resolveCheapestModelForFlag('gemini-stt')).toBe('gemini-3.6-flash')
       expect(resolveCheapestModelForFlag('gladia-stt')).toBe('solaria-1')
       expect(resolveCheapestModelForFlag('supadata-stt')).toBe('auto')
@@ -210,7 +212,7 @@ describe('price mode contracts', () => {
       expect(resolveCheapestModelForFlag('minimax-video')).toBe('T2V-01')
       expect(resolveCheapestModelForFlag('glm-video')).toBe('cogvideox-3')
       expect(resolveCheapestModelForFlag('ltx-video')).toBe('ltx-2-3-fast')
-      expect(resolveCheapestModelForFlag('replicate-video')).toBe('wan-video/wan-2.7-t2v')
+      expect(resolveCheapestModelForFlag('replicate-video')).toBe('pixverse/pixverse-v6')
       expect(selectCheapestVideoSelection('gemini')).toMatchObject({
         provider: 'gemini',
         model: 'veo-3.1-lite-generate-preview'
@@ -229,7 +231,7 @@ describe('price mode contracts', () => {
       })
       expect(selectCheapestVideoSelection('replicate')).toMatchObject({
         provider: 'replicate',
-        model: 'wan-video/wan-2.7-t2v'
+        model: 'pixverse/pixverse-v6'
       })
     })
 
@@ -266,14 +268,6 @@ describe('price mode contracts', () => {
         imageCount: 3,
         costPerImageCents: 4,
         totalCost: 12
-      })
-      expect(estimateImageCosts({
-        recraftImageModel: 'recraftv4_1_vector'
-      })[0]).toMatchObject({
-        provider: 'recraft',
-        model: 'recraftv4_1_vector',
-        costPerImageCents: 8,
-        totalCost: 8
       })
     })
 
@@ -341,5 +335,27 @@ describe('price mode contracts', () => {
         { provider: 'gemini', model: 'lyria-3-clip-preview', totalCost: 4 },
         { provider: 'gemini', model: 'lyria-3-pro-preview', totalCost: 8 }
       ])
+    })
+
+  test('historical MiniMax Music 2.6 results retain registry fallback pricing', () => {
+      const costs = computeActualCosts({
+        step7: {
+          musicService: 'minimax',
+          musicModel: 'music-2.6',
+          processingTime: 1,
+          musicFileName: 'historical-music.mp3',
+          musicFileSize: 1,
+          musicDurationMs: undefined,
+          lyricsSource: 'generated'
+        }
+      })
+
+      expect(costs.steps[0]).toMatchObject({
+        step: 'music',
+        provider: 'minimax',
+        model: 'music-2.6',
+        cost: 16,
+        costSource: 'registry_fallback'
+      })
     })
 })

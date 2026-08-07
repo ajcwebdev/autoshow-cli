@@ -17,6 +17,38 @@ defineImageServiceTest({
       extraArgs: ['--size', '2K', '--aspect-ratio', '1:1', '--format', 'png']
     },
     {
+      model: 'bytedance/seedream-5-pro',
+      prompt: 'A tiny cyan pentagon icon centered on a white background',
+      extraArgs: ['--size', '1K', '--aspect-ratio', '1:1', '--format', 'png']
+    },
+    {
+      model: 'ideogram-ai/ideogram-v4-turbo',
+      prompt: 'The word TURBO centered in a clean typographic poster',
+      extraArgs: ['--size', '1024x1024']
+    },
+    {
+      model: 'ideogram-ai/ideogram-v4-balanced',
+      prompt: 'The word BALANCED centered in a clean typographic poster',
+      extraArgs: ['--size', '1024x1024']
+    },
+    {
+      model: 'ideogram-ai/ideogram-v4-quality',
+      prompt: 'The word QUALITY centered in a clean typographic poster',
+      extraArgs: ['--size', '1024x1024']
+    },
+    {
+      model: 'prunaai/ernie-image',
+      prompt: 'A tiny silver crescent icon centered on a white background',
+      extraArgs: ['--size', '1024x1024', '--format', 'jpeg'],
+      expectedExtension: 'jpg'
+    },
+    {
+      model: 'prunaai/ernie-image-turbo',
+      prompt: 'A tiny gold sun icon centered on a white background',
+      extraArgs: ['--size', '1024x1024', '--format', 'jpeg'],
+      expectedExtension: 'jpg'
+    },
+    {
       model: 'qwen/qwen-image-2-pro',
       prompt: 'A tiny red triangle icon centered on a white background',
       extraArgs: ['--aspect-ratio', '1:1']

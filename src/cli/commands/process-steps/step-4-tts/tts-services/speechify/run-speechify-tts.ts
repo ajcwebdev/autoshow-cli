@@ -5,7 +5,7 @@ import { splitTextIntoChunks, concatAndConvertToWav, runTtsChunks } from '~/cli/
 import { TTS_CHUNK_CHARACTER_LIMITS } from '~/cli/commands/process-steps/step-4-tts/tts-utils/tts-chunking'
 import { finalizeTtsRun } from '~/cli/commands/process-steps/step-4-tts/tts-utils/finalize-tts-run'
 import { withHostedTtsRetry } from '~/cli/commands/process-steps/step-4-tts/tts-utils/hosted-tts-retry'
-import { SPEECHIFY_DEFAULT_TTS_VOICE, validateSpeechifyTtsVoice } from '~/cli/commands/setup-and-utilities/models/setup-model-options'
+import { SPEECHIFY_DEFAULT_TTS_VOICE, validateSpeechifyTtsLanguageForModel, validateSpeechifyTtsVoiceForModel } from '~/cli/commands/setup-and-utilities/models/setup-model-options'
 import { readEnv } from '~/utils/validate/env-utils'
 import { SPEECHIFY_DEFAULT_BASE_URL } from '~/utils/base-urls'
 import { validateDataSafe } from '~/utils/validate/validation'
@@ -59,9 +59,9 @@ export const runSpeechifyTts = async (
   const customVoiceResult = options.customVoice
     ? await ensureSpeechifyTtsCustomVoice(baseURL, apiKey, options.customVoice)
     : undefined
-  const voice = validateSpeechifyTtsVoice(customVoiceResult?.voiceId || options.voiceId?.trim() || SPEECHIFY_DEFAULT_TTS_VOICE)
+  const voice = validateSpeechifyTtsVoiceForModel(options.model, customVoiceResult?.voiceId || options.voiceId?.trim() || SPEECHIFY_DEFAULT_TTS_VOICE)
   const audioFormat = options.audioFormat?.trim() || 'mp3'
-  const language = options.language?.trim() || undefined
+  const language = validateSpeechifyTtsLanguageForModel(options.model, options.language)
   const speaker = customVoiceResult ? `ref_audio:${customVoiceResult.sourceAudio.basename}` : voice
 
   logTtsConfig('Speechify', [

@@ -22,6 +22,11 @@
 - Only read-only git commands are allowed (e.g. `git status`, `git diff`, `git log`, `git grep`, `git show`).
 - Leave staging and committing to the user unless they explicitly ask for it.
 
+# Pull Request Rules
+
+- Always open pull requests ready for review. Never create or convert a pull request as a draft.
+- Keep pull request descriptions concise and concrete. For provider or model refreshes, include a quick rundown of every added, replaced, updated, and removed model instead of generic rationale or impact boilerplate.
+
 # Markdown
 
 ALl markdown documents should be written with unwrapped prose and not hard-wrapped Markdown.

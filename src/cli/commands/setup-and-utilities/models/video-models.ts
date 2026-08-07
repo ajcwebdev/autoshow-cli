@@ -1,5 +1,5 @@
 import { createModelValidator } from '~/cli/commands/setup-and-utilities/models/model-validation'
-import type { GeminiVideoModel, GlmVideoModel, GrokVideoModel, LtxVideoModel, LumalabsVideoModel, MinimaxVideoModel, ReplicateVideoModel, RunwayVideoModel } from '~/types'
+import type { FalVideoModel, GeminiVideoModel, GlmVideoModel, GrokVideoModel, LtxVideoModel, LumalabsVideoModel, MinimaxVideoModel, ReplicateVideoModel, RunwayVideoModel } from '~/types'
 
 export const SUPPORTED_GEMINI_VIDEO_MODELS = [
   'veo-3.1-fast-generate-preview',
@@ -33,7 +33,8 @@ export const SUPPORTED_GLM_VIDEO_MODELS = [
 export const validateGlmVideoModel = createModelValidator<GlmVideoModel>(SUPPORTED_GLM_VIDEO_MODELS, 'glm-video')
 
 export const SUPPORTED_GROK_VIDEO_MODELS = [
-  'grok-imagine-video'
+  'grok-imagine-video',
+  'grok-imagine-video-1.5'
 ] as const satisfies readonly string[]
 
 export const validateGrokVideoModel = createModelValidator<GrokVideoModel>(SUPPORTED_GROK_VIDEO_MODELS, 'grok-video')
@@ -52,9 +53,13 @@ export const SUPPORTED_LTX_VIDEO_MODELS = [
 export const validateLtxVideoModel = createModelValidator<LtxVideoModel>(SUPPORTED_LTX_VIDEO_MODELS, 'ltx-video')
 
 export const SUPPORTED_REPLICATE_VIDEO_MODELS = [
-  'alibaba/happyhorse-1.0',
+  'alibaba/happyhorse-1.1',
   'bytedance/seedance-2.0',
   'bytedance/seedance-2.0-fast',
+  'kwaivgi/kling-v3-video',
+  'kwaivgi/kling-v3-omni-video',
+  'pixverse/pixverse-v6',
+  'runwayml/aleph-2',
   'wan-video/wan-2.7-t2v'
 ] as const satisfies readonly string[]
 
@@ -65,3 +70,10 @@ export const SUPPORTED_LUMALABS_VIDEO_MODELS = [
 ] as const satisfies readonly string[]
 
 export const validateLumalabsVideoModel = createModelValidator<LumalabsVideoModel>(SUPPORTED_LUMALABS_VIDEO_MODELS, 'lumalabs-video')
+
+export const SUPPORTED_FAL_VIDEO_MODELS = [
+  'minimax/h3',
+  'fal-ai/pixverse/c1'
+] as const satisfies readonly string[]
+
+export const validateFalVideoModel = createModelValidator<FalVideoModel>(SUPPORTED_FAL_VIDEO_MODELS, 'fal-video')

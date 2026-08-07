@@ -1,9 +1,9 @@
 import { defineTTSServiceTest } from '../../../../../test-utils/define-tts-service-test'
-import { cartesiaTts } from './cases'
+import { speechifyTts } from './cases'
 
 defineTTSServiceTest({
-  ...cartesiaTts,
-  models: ['sonic-3'],
-  ttsService: 'cartesia',
+  ...speechifyTts,
+  models: ['simba-3.2'],
+  ttsService: 'speechify',
 })
 

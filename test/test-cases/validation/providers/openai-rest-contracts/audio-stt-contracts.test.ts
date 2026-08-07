@@ -20,7 +20,7 @@ describe('OpenAI REST audio and STT contracts', () => {
 
     const speech = await createOpenAISpeech(
       { apiKey: 'openai-key', baseURL: 'https://mock.openai.local/v1' },
-      { model: 'gpt-4o-mini-tts', voice: 'alloy', input: 'hello', response_format: 'wav' }
+      { model: 'gpt-4o-mini-tts-2025-12-15', voice: 'alloy', input: 'hello', response_format: 'wav' }
     )
     const form = new FormData()
     form.append('model', 'openai/whisper-large-v3')

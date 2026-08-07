@@ -27,10 +27,10 @@ import {
   SUPPORTED_GROK_IMAGE_MODELS,
   SUPPORTED_OPENAI_IMAGE_MODELS,
   SUPPORTED_BFL_IMAGE_MODELS,
-  SUPPORTED_REVE_IMAGE_MODELS,
   SUPPORTED_RECRAFT_IMAGE_MODELS,
   SUPPORTED_REPLICATE_IMAGE_MODELS,
   SUPPORTED_LUMALABS_IMAGE_MODELS,
+  SUPPORTED_FAL_IMAGE_MODELS,
   SUPPORTED_ELEVENLABS_MUSIC_MODELS,
   SUPPORTED_MINIMAX_MUSIC_MODELS,
   SUPPORTED_GEMINI_MUSIC_MODELS,
@@ -41,7 +41,8 @@ import {
   SUPPORTED_MINIMAX_VIDEO_MODELS,
   SUPPORTED_REPLICATE_VIDEO_MODELS,
   SUPPORTED_RUNWAY_VIDEO_MODELS,
-  SUPPORTED_LUMALABS_VIDEO_MODELS
+  SUPPORTED_LUMALABS_VIDEO_MODELS,
+  SUPPORTED_FAL_VIDEO_MODELS
 } from '~/cli/commands/setup-and-utilities/models/setup-model-options'
 import {
   getStep2ProviderEntries,
@@ -104,10 +105,10 @@ export const REPEATABLE_MODEL_FLAGS = [
   'openai-image',
   'grok-image',
   'bfl-image',
-  'reve-image',
   'recraft-image',
   'replicate-image',
   'lumalabs-image',
+  'fal-image',
   'elevenlabs-music',
   'minimax-music',
   'gemini-music',
@@ -118,6 +119,8 @@ export const REPEATABLE_MODEL_FLAGS = [
   'runway-video',
   'ltx-video',
   'replicate-video',
+  'lumalabs-video',
+  'fal-video',
 ] as const
 
 const REPEATABLE_MODEL_FLAG_SET = new Set<string>(REPEATABLE_MODEL_FLAGS)
@@ -156,10 +159,10 @@ const ALL_SHORTCUT_MODEL_EXPANSIONS: Partial<Record<RepeatableModelFlag, { short
   'openai-image': { shortcut: 'all-image', supported: SUPPORTED_OPENAI_IMAGE_MODELS },
   'grok-image': { shortcut: 'all-image', supported: SUPPORTED_GROK_IMAGE_MODELS },
   'bfl-image': { shortcut: 'all-image', supported: SUPPORTED_BFL_IMAGE_MODELS },
-  'reve-image': { shortcut: 'all-image', supported: SUPPORTED_REVE_IMAGE_MODELS },
   'recraft-image': { shortcut: 'all-image', supported: SUPPORTED_RECRAFT_IMAGE_MODELS },
   'replicate-image': { shortcut: 'all-image', supported: SUPPORTED_REPLICATE_IMAGE_MODELS },
   'lumalabs-image': { shortcut: 'all-image', supported: SUPPORTED_LUMALABS_IMAGE_MODELS },
+  'fal-image': { shortcut: 'all-image', supported: SUPPORTED_FAL_IMAGE_MODELS },
   'elevenlabs-music': { shortcut: 'all-music', supported: SUPPORTED_ELEVENLABS_MUSIC_MODELS },
   'minimax-music': { shortcut: 'all-music', supported: SUPPORTED_MINIMAX_MUSIC_MODELS },
   'gemini-music': { shortcut: 'all-music', supported: SUPPORTED_GEMINI_MUSIC_MODELS },
@@ -171,6 +174,7 @@ const ALL_SHORTCUT_MODEL_EXPANSIONS: Partial<Record<RepeatableModelFlag, { short
   'ltx-video': { shortcut: 'all-video', supported: SUPPORTED_LTX_VIDEO_MODELS },
   'replicate-video': { shortcut: 'all-video', supported: SUPPORTED_REPLICATE_VIDEO_MODELS },
   'lumalabs-video': { shortcut: 'all-video', supported: SUPPORTED_LUMALABS_VIDEO_MODELS },
+  'fal-video': { shortcut: 'all-video', supported: SUPPORTED_FAL_VIDEO_MODELS },
 }
 
 export const parseRepeatableModelFlagOccurrences = (

@@ -7,6 +7,26 @@ import { computeActualProcessingTimes } from '~/utils/pricing/compute-processing
 import { aggregateExplicitPriceEstimate } from '~/utils/pricing/aggregate-pricing'
 import { buildTtsEstimates } from '~/utils/pricing/aggregate-pricing/tts-estimates'
 import type { AggregatedPriceEstimate, ResumeDisplayOptions, ResumeResult, ResumeTarget, RuntimeOptions, Step4Metadata, TtsTarget } from '~/types'
+import { CLIUsageError } from '~/utils/error-handler'
+
+const RETIRED_TTS_MODEL_REPLACEMENTS: Readonly<Record<string, string>> = {
+  'cartesia/sonic-3': 'cartesia=sonic-3.5-2026-05-04',
+  'cartesia/sonic-3.5': 'cartesia=sonic-3.5-2026-05-04',
+  'openai/gpt-4o-mini-tts': 'openai=gpt-4o-mini-tts-2025-12-15',
+  'speechify/simba-english': 'speechify=simba-3.2'
+}
+
+const assertStoredMissingTtsProvidersAreActive = (
+  providers: Array<{ service: string, model: string }>
+): void => {
+  for (const provider of providers) {
+    const replacement = RETIRED_TTS_MODEL_REPLACEMENTS[`${provider.service}/${provider.model}`]
+    if (!replacement) continue
+    throw CLIUsageError(
+      `Stored TTS target ${provider.service}/${provider.model} is incomplete, but that model is no longer in the active registry. AutoShow will not substitute a different model because that would change the stored target identity. Start a new target with --provider ${replacement}.`
+    )
+  }
+}
 
 const TTS_PROVIDER_FLAGS = [
   'all-tts',
@@ -138,6 +158,7 @@ const ttsResumeConfig = {
     getGenerationTargetKey(entry.ttsService, entry.ttsModel),
   collectTargets: (opts: RuntimeOptions) => collectTtsTargets(opts),
   collectTargetsForProviders: collectTtsTargetsForProviders,
+  assertStoredMissingProvidersAreActive: assertStoredMissingTtsProvidersAreActive,
   runMissingTargets: async (
     targets: TtsTarget[],
     input: string,

@@ -1,5 +1,5 @@
 import { getImageCost } from '~/cli/commands/setup-and-utilities/models/model-loader'
-import { validateBflImageModel, validateGeminiImageModel, validateGrokImageModel, validateLumalabsImageModel, validateOpenAIImageModel, validateRecraftImageModel, validateReplicateImageModel, validateReveImageModel } from '~/cli/commands/setup-and-utilities/models/setup-model-options'
+import { validateBflImageModel, validateFalImageModel, validateGeminiImageModel, validateGrokImageModel, validateLumalabsImageModel, validateOpenAIImageModel, validateRecraftImageModel, validateReplicateImageModel } from '~/cli/commands/setup-and-utilities/models/setup-model-options'
 import type { EstimateImageCostOptions, ImageCostEstimate, OpenAIImageOutputPricing, OpenAIImageQuality } from '~/types'
 import * as l from '~/utils/app-logger/app-logger'
 import { createKeyValueTable } from '~/utils/app-logger/human-table/human-table'
@@ -31,6 +31,17 @@ const OPENAI_IMAGE_OUTPUT_PRICE_CENTS: Partial<Record<string, OpenAIImageOutputP
 
 const OPENAI_IMAGE_LATENCY_NOTE = 'Low quality is fastest; square images are typically fastest; JPEG is faster than PNG; complex prompts can take up to about 2 minutes.'
 const OPENAI_IMAGE_INPUT_COST_NOTE = 'Estimate covers image output only; OpenAI also bills text and image input tokens when present.'
+
+const GEMINI_IMAGE_OUTPUT_PRICE_CENTS: Readonly<Record<string, Readonly<Record<string, number>>>> = {
+  'gemini-3.1-flash-lite-image': { '1K': 3.36 },
+  'gemini-3.1-flash-image': { '1K': 6.7, '2K': 10.1, '4K': 15.1 },
+  'gemini-3-pro-image': { '1K': 13.4, '2K': 13.4, '4K': 24 }
+}
+
+const REPLICATE_SEEDREAM_5_PRO_PRICE_CENTS: Readonly<Record<string, number>> = {
+  '1K': 4.5,
+  '2K': 9
+}
 
 const normalizeOpenAIQualityForEstimate = (quality: string | undefined): OpenAIImageQuality => {
   const normalized = quality?.toLowerCase()
@@ -86,21 +97,22 @@ export const estimateImageCosts = (options: EstimateImageCostOptions): ImageCost
   const openaiModels = options.openaiImageModels ?? (options.openaiImageModel ? [options.openaiImageModel] : [])
   const grokModels = options.grokImageModels ?? (options.grokImageModel ? [options.grokImageModel] : [])
   const bflModels = options.bflImageModels ?? (options.bflImageModel ? [options.bflImageModel] : [])
-  const reveModels = options.reveImageModels ?? (options.reveImageModel ? [options.reveImageModel] : [])
   const recraftModels = options.recraftImageModels ?? (options.recraftImageModel ? [options.recraftImageModel] : [])
   const replicateModels = options.replicateImageModels ?? (options.replicateImageModel ? [options.replicateImageModel] : [])
   const lumalabsModels = options.lumalabsImageModels ?? (options.lumalabsImageModel ? [options.lumalabsImageModel] : [])
+  const falModels = options.falImageModels ?? (options.falImageModel ? [options.falImageModel] : [])
 
   for (const rawModel of geminiModels) {
     const model = validateGeminiImageModel(rawModel)
-    const costPerImageCents = getImageCost('gemini', model) || 4
+    const imageSize = options.imageSize ?? '1K'
+    const costPerImageCents = GEMINI_IMAGE_OUTPUT_PRICE_CENTS[model]?.[imageSize] ?? (getImageCost('gemini', model) || 4)
     estimates.push({
       provider: 'gemini',
       model,
       imageCount: 1,
       costPerImageCents,
       totalCost: costPerImageCents,
-      note: 'Approximate cost; see Google AI pricing for exact rates'
+      note: `Published Gemini standard-tier ${imageSize} output-image estimate; text/image input tokens and optional Search grounding are not included`
     })
   }
 
@@ -145,19 +157,6 @@ export const estimateImageCosts = (options: EstimateImageCostOptions): ImageCost
     })
   }
 
-  for (const rawModel of reveModels) {
-    const model = validateReveImageModel(rawModel)
-    const costPerImageCents = getImageCost('reve', model)
-    estimates.push({
-      provider: 'reve',
-      model,
-      imageCount: 1,
-      costPerImageCents,
-      totalCost: costPerImageCents,
-      note: 'Approximate fallback based on $10 / 7500 Reve credits; provider usage headers are used when returned'
-    })
-  }
-
   for (const rawModel of recraftModels) {
     const model = validateRecraftImageModel(rawModel)
     const costPerImageCents = getImageCost('recraft', model)
@@ -174,15 +173,24 @@ export const estimateImageCosts = (options: EstimateImageCostOptions): ImageCost
 
   for (const rawModel of replicateModels) {
     const model = validateReplicateImageModel(rawModel)
-    const costPerImageCents = getImageCost('replicate', model)
-    const imageCount = model.startsWith('wan-video/') ? Math.max(1, options.imageCount ?? 1) : 1
+    const normalizedSize = options.imageSize?.toUpperCase() ?? '1K'
+    const costPerImageCents = model === 'bytedance/seedream-5-pro'
+      ? (REPLICATE_SEEDREAM_5_PRO_PRICE_CENTS[normalizedSize] ?? REPLICATE_SEEDREAM_5_PRO_PRICE_CENTS['1K']!)
+      : getImageCost('replicate', model)
+    const supportsCount = model.startsWith('wan-video/') || model.startsWith('prunaai/ernie-image')
+    const imageCount = supportsCount ? Math.max(1, options.imageCount ?? 1) : 1
+    const note = model === 'bytedance/seedream-5-pro'
+      ? `Published Replicate Seedream 5 Pro ${normalizedSize} per-output-image price; provider-reported billing is used when returned`
+      : model.startsWith('prunaai/ernie-image')
+        ? 'Approximate Replicate H100 runtime estimate at the default 1024x1024 settings; actual cost varies with runtime, resolution, prompt enhancement, and output count'
+        : 'Approximate Replicate published per-output-image price; provider-reported billing is used when returned'
     estimates.push({
       provider: 'replicate',
       model,
       imageCount,
       costPerImageCents,
       totalCost: costPerImageCents * imageCount,
-      note: 'Approximate Replicate published per-output-image price; provider-reported billing is used when returned'
+      note
     })
   }
 
@@ -196,6 +204,24 @@ export const estimateImageCosts = (options: EstimateImageCostOptions): ImageCost
       costPerImageCents,
       totalCost: costPerImageCents,
       note: 'Approximate Luma Labs published per-image pricing; image edits and reference images cost slightly more per the Luma pricing table'
+    })
+  }
+
+  for (const rawModel of falModels) {
+    const model = validateFalImageModel(rawModel)
+    const costPerImageCents = getImageCost('fal', model)
+    const imageCount = Math.max(1, options.imageCount ?? 1)
+    estimates.push({
+      provider: 'fal',
+      model,
+      imageCount,
+      costPerImageCents,
+      totalCost: costPerImageCents * imageCount,
+      note: model === 'fal-ai/hidream-o1-image'
+        ? 'fal.ai bills HiDream per output megapixel; the local estimate uses the default one-megapixel output'
+        : model === 'reve/2.1'
+          ? 'fal.ai published per-image price for Reve 2.1'
+          : 'Provisional fal.ai estimate derived from the endpoint billing unit and default runtime; actual compute-based billing may vary'
     })
   }
 

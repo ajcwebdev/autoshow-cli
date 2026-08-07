@@ -15,11 +15,17 @@ export const collectGrokVideoTargets = (options: VideoGenOptions, mode: VideoMod
 
   return models.flatMap((rawModel) => {
     const model: GrokVideoModel = validateGrokVideoModel(rawModel)
-    if (!isSupportedOrSkippedForAllVideo(options, 'grok', model, mode, ['text', 'image-to-video', 'reference-to-video', 'extend', 'edit'])) {
+    const supportedModes: readonly VideoMode[] = model === 'grok-imagine-video-1.5'
+      ? ['text', 'image-to-video', 'reference-to-video']
+      : ['text', 'image-to-video', 'reference-to-video', 'extend', 'edit']
+    if (!isSupportedOrSkippedForAllVideo(options, 'grok', model, mode, supportedModes)) {
       return []
     }
     if (mode !== 'edit') {
-      normalizeGrokVideoResolution(options.videoResolution)
+      normalizeGrokVideoResolution(options.videoResolution, model)
+    }
+    if (model === 'grok-imagine-video-1.5' && mode === 'reference-to-video' && options.videoResolution === '1080p') {
+      throw CLIUsageError('Grok grok-imagine-video-1.5 reference-to-video is limited to 720p; use --video-resolution 720p or 480p.')
     }
     if (mode === 'edit' && (hasValue(options.videoDuration) || hasValue(options.videoAspectRatio) || hasValue(options.videoResolution))) {
       throw CLIUsageError('--video-duration, --video-aspect-ratio, and --video-resolution are not valid with Grok --video-mode edit.')
@@ -31,7 +37,7 @@ export const collectGrokVideoTargets = (options: VideoGenOptions, mode: VideoMod
       validateVideoMediaReferences([options.videoInputImage], { flagName: '--video-input-image', provider: 'grok', model, kind: 'image' })
     }
     if (options.videoReferenceImages) {
-      validateVideoMediaReferences(options.videoReferenceImages, { flagName: '--video-reference-image', provider: 'grok', model, kind: 'image', maxInputs: 3 })
+      validateVideoMediaReferences(options.videoReferenceImages, { flagName: '--video-reference-image', provider: 'grok', model, kind: 'image', maxInputs: model === 'grok-imagine-video-1.5' ? 5 : 3 })
     }
     if (options.videoInputVideo) {
       validateVideoMediaReferences([options.videoInputVideo], { flagName: '--video-input-video', provider: 'grok', model, kind: 'video' })

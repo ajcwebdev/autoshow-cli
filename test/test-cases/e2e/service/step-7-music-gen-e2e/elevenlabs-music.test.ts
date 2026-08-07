@@ -5,7 +5,7 @@ defineMusicServiceTest({
   ...elevenlabsMusic,
   models: [
     { model: 'music_v1', prompt: 'upbeat electronic instrumental with warm synth pads', extraArgs: ['--duration', '3', '--instrumental'] },
+    { model: 'music_v2', prompt: 'cinematic electronic instrumental with pulsing synths', extraArgs: ['--duration', '3', '--instrumental'] },
   ],
   musicService: 'elevenlabs',
 })
-

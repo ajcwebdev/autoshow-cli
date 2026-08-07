@@ -27,6 +27,8 @@ export const buildVideoOptions = (ctx: BuildDomainOptionsContext): Pick<RuntimeO
     replicateVideoModel,
     lumalabsVideoModels,
     lumalabsVideoModel,
+    falVideoModels,
+    falVideoModel,
   } = modelOptions
 
   return {
@@ -48,6 +50,8 @@ export const buildVideoOptions = (ctx: BuildDomainOptionsContext): Pick<RuntimeO
     replicateVideoModel,
     lumalabsVideoModels,
     lumalabsVideoModel,
+    falVideoModels,
+    falVideoModel,
     allVideo: allShortcutFlags['all-video'],
     videoDuration: parseOptionalIntFlag(readOptionalStringFlag(mergedFlags, 'video-duration')),
     videoSize: readOptionalStringFlag(mergedFlags, 'video-size'),
@@ -69,6 +73,11 @@ export const buildVideoOptions = (ctx: BuildDomainOptionsContext): Pick<RuntimeO
     replicateVideoNegativePrompt: readOptionalStringFlag(mergedFlags, 'replicate-video-negative-prompt'),
     replicateVideoAudio: readOptionalStringFlag(mergedFlags, 'replicate-video-audio'),
     replicateVideoPromptExpansion: readOptionalBooleanFlag(mergedFlags, 'replicate-video-prompt-expansion'),
+    replicateVideoMultiPrompt: readOptionalStringFlag(mergedFlags, 'replicate-video-multi-prompt'),
+    replicateVideoMultiClip: readOptionalBooleanFlag(mergedFlags, 'replicate-video-multi-clip'),
+    falVideoGenerateAudio: readOptionalBooleanFlag(mergedFlags, 'fal-video-generate-audio'),
+    falVideoReferenceVideos: readOptionalStringListFlag(mergedFlags, 'fal-video-reference-video'),
+    falVideoReferenceAudios: readOptionalStringListFlag(mergedFlags, 'fal-video-reference-audio'),
     grokVideoStorageFilename: readOptionalStringFlag(mergedFlags, 'grok-video-storage-filename'),
     grokVideoStorageExpiresAfter: parseOptionalNumberFlag(readOptionalStringFlag(mergedFlags, 'grok-video-storage-expires-after'), 'grok-video-storage-expires-after', {
       min: 1,

@@ -2,6 +2,8 @@
 
 Fetch curated or ad hoc documentation pages and write one combined markdown file under `project/links/`.
 
+`bun autoshow` is the canonical command used throughout this guide. `bun as` is an equivalent shorthand, so `bun as links --help` and `bun autoshow links --help` invoke the same command.
+
 ## Outline
 
 - [Usage](#usage)
@@ -98,6 +100,7 @@ Accepted provider selectors are the lowercase names below.
 | `--drive` | `general` |
 | `--elevenlabs` | `models`, `music`, `tts` |
 | `--firecrawl` | `general`, `url` |
+| `--fal` | `general`, `image`, `video` |
 | `--gemini` | `general`, `image`, `models`, `music`, `ocr`, `stt`, `text`, `tts`, `video` |
 | `--gladia` | `general`, `stt` |
 | `--glm` | `general`, `models`, `ocr`, `text`, `url` |
@@ -217,15 +220,13 @@ bun autoshow links --ltx video
 
 # Fetch Luma Labs image and video docs
 bun autoshow links --lumalabs image video
+bun autoshow links --fal image video
 
 # Fetch Recraft image API docs
 bun autoshow links --recraft image
 
 # Fetch Replicate general and model docs
 bun autoshow links --replicate general models
-
-# Fetch Reve image API docs
-bun autoshow links --reve image
 
 # Mix a global section with provider-specific sections
 bun autoshow links tts --openai general text --minimax video

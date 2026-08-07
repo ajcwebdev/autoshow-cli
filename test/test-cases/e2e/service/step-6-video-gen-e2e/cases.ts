@@ -46,3 +46,10 @@ export const replicateVideo = {
   envVarKey: 'REPLICATE_API_TOKEN',
   envVarDescription: 'Replicate video generation',
 } as const
+
+export const falVideo = {
+  provider: 'fal',
+  videoService: 'fal',
+  envVarKey: 'FAL_API_KEY',
+  envVarDescription: 'fal.ai video generation',
+} as const

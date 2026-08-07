@@ -40,7 +40,8 @@ const VIDEO_PROVIDER_FLAGS = [
   'runway-video',
   'ltx-video',
   'replicate-video',
-  'lumalabs-video'
+  'lumalabs-video',
+  'fal-video'
 ] as const
 
 const VIDEO_POSITIONAL_IMAGE_CONFLICT_FLAGS = [
@@ -94,6 +95,7 @@ const buildPricingOptionsForTargets = (
   const ltxVideoModels = providerModelsFromTargets(targets, 'ltx')
   const replicateVideoModels = providerModelsFromTargets(targets, 'replicate')
   const lumalabsVideoModels = providerModelsFromTargets(targets, 'lumalabs')
+  const falVideoModels = providerModelsFromTargets(targets, 'fal')
 
   return {
     ...opts,
@@ -113,7 +115,9 @@ const buildPricingOptionsForTargets = (
     replicateVideoModels,
     replicateVideoModel: first(replicateVideoModels),
     lumalabsVideoModels,
-    lumalabsVideoModel: first(lumalabsVideoModels)
+    lumalabsVideoModel: first(lumalabsVideoModels),
+    falVideoModels,
+    falVideoModel: first(falVideoModels)
   }
 }
 
@@ -159,7 +163,8 @@ export const videoCommand = defineCliCommand({
       ['bun autoshow video "a cinematic mountain sunrise" --provider runway=gen4.5', 'Generate video with Runway Gen-4.5'],
       ['bun autoshow video "a product reveal shot" --provider ltx=ltx-2-3-fast', 'Generate video with LTX'],
       ['bun autoshow video "a cinematic mountain sunrise" --provider replicate=wan-video/wan-2.7-t2v', 'Generate video with Replicate Wan'],
-      ['bun autoshow video "a slow dolly through a misty greenhouse" --provider lumalabs=ray-3.2', 'Generate video with Luma Labs Ray 3.2']
+      ['bun autoshow video "a slow dolly through a misty greenhouse" --provider lumalabs=ray-3.2', 'Generate video with Luma Labs Ray 3.2'],
+      ['bun autoshow video "a cinematic mountain sunrise with synchronized ambience" --provider fal=minimax/h3 --duration 5 --resolution 2k', 'Generate video with fal.ai MiniMax H3']
     ]
   }
 }, async (ctx) => {
@@ -195,7 +200,7 @@ export const videoCommand = defineCliCommand({
   const videoOpts = buildOptsFromFlags(true, providerNormalized.flags, [], {}, providerNormalized.explicitFlags, providerNormalized.rawArgs ?? optionNormalizedArgs)
     const videoTargets = collectVideoTargets(videoOpts)
   if (videoTargets.length === 0) {
-    throw CLIUsageError('Specify a video generation provider with --provider gemini|minimax|glm|grok|runway|ltx|replicate|lumalabs[=model]')
+    throw CLIUsageError('Specify a video generation provider with --provider gemini|minimax|glm|grok|runway|ltx|replicate|lumalabs|fal[=model]')
   }
 
   const pricingVideoOpts = buildPricingOptionsForTargets(videoOpts, videoTargets)

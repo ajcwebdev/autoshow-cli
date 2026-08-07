@@ -43,8 +43,9 @@
       "https://docs.cloud.google.com/text-to-speech/docs/gemini-tts.md.txt"
     ],
     "Image": [
-      "https://ai.google.dev/gemini-api/docs/models/gemini-3.1-flash-image-preview.md.txt",
       "https://ai.google.dev/gemini-api/docs/models/gemini-3.1-flash-lite-image.md.txt",
+      "https://ai.google.dev/gemini-api/docs/models/gemini-3.1-flash-image.md.txt",
+      "https://ai.google.dev/gemini-api/docs/models/gemini-3-pro-image.md.txt",
       "https://ai.google.dev/gemini-api/docs/image-generation.md.txt"
     ],
     "Video": [

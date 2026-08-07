@@ -1,5 +1,6 @@
 import type { TtsProvider } from '~/types'
 import { normalizeTtsChunkConcurrency, splitTextIntoChunks } from './audio-utils'
+import { getTtsMaxInputCharacters } from '~/cli/commands/setup-and-utilities/models/model-loader'
 
 export const TTS_CHUNK_CHARACTER_LIMITS = {
   kitten: 2000,
@@ -15,6 +16,12 @@ export const TTS_CHUNK_CHARACTER_LIMITS = {
   grok: 2000,
   minimax: 2000,
 } as const satisfies Record<TtsProvider, number | undefined>
+
+export const resolveTtsChunkCharacterLimit = (
+  provider: TtsProvider,
+  model: string | undefined
+): number | undefined =>
+  model ? getTtsMaxInputCharacters(provider, model) ?? TTS_CHUNK_CHARACTER_LIMITS[provider] : TTS_CHUNK_CHARACTER_LIMITS[provider]
 
 const SEQUENTIAL_TTS_CHUNK_PROVIDERS = new Set<TtsProvider>(['kitten'])
 
@@ -83,6 +90,7 @@ const estimateWorkerPoolWallTimeMs = (
 export const estimateTtsSynthesisProcessingTimeMs = (
   input: {
     provider: TtsProvider
+    model?: string | undefined
     text?: string | undefined
     characterCount: number
     msPer1KChars: number
@@ -94,7 +102,7 @@ export const estimateTtsSynthesisProcessingTimeMs = (
     ? Math.max(0, input.setupTimeMs)
     : 0
   const normalizedCharacterCount = Math.max(0, Math.floor(input.characterCount))
-  const chunkLimit = TTS_CHUNK_CHARACTER_LIMITS[input.provider]
+  const chunkLimit = resolveTtsChunkCharacterLimit(input.provider, input.model)
 
   if (chunkLimit === undefined || SEQUENTIAL_TTS_CHUNK_PROVIDERS.has(input.provider)) {
     return setupTimeMs + (normalizedCharacterCount / 1000) * input.msPer1KChars

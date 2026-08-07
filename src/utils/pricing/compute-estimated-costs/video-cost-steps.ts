@@ -12,6 +12,8 @@ export const buildVideoCostSteps = (input: ComputeEstimatedCostsInput): CostStep
     || input.runwayVideoModel
     || input.ltxVideoModel
     || input.replicateVideoModel
+    || input.lumalabsVideoModel
+    || input.falVideoModel
   if (!hasVideo) {
     return { steps: [], cost: 0 }
   }
@@ -31,6 +33,10 @@ export const buildVideoCostSteps = (input: ComputeEstimatedCostsInput): CostStep
     ltxVideoModel: input.ltxVideoModel,
     replicateVideoModels: input.videoTargets?.filter((target) => target.service === 'replicate').map((target) => target.model),
     replicateVideoModel: input.replicateVideoModel,
+    lumalabsVideoModels: input.videoTargets?.filter((target) => target.service === 'lumalabs').map((target) => target.model),
+    lumalabsVideoModel: input.lumalabsVideoModel,
+    falVideoModels: input.videoTargets?.filter((target) => target.service === 'fal').map((target) => target.model),
+    falVideoModel: input.falVideoModel,
     videoDuration: input.videoTargets?.find((target) => typeof target.durationSeconds === 'number')?.durationSeconds ?? input.videoDuration,
     videoSize: input.videoSize,
     videoAspectRatio: input.videoAspectRatio,

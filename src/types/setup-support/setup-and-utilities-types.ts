@@ -1,13 +1,13 @@
 import type { InferOutput } from 'valibot'
 import {
 SUPPORTED_BFL_IMAGE_MODELS,
+SUPPORTED_FAL_IMAGE_MODELS,
 SUPPORTED_GEMINI_IMAGE_MODELS,
 SUPPORTED_GROK_IMAGE_MODELS,
 SUPPORTED_LUMALABS_IMAGE_MODELS,
 SUPPORTED_OPENAI_IMAGE_MODELS,
 SUPPORTED_RECRAFT_IMAGE_MODELS,
 SUPPORTED_REPLICATE_IMAGE_MODELS,
-SUPPORTED_REVE_IMAGE_MODELS
 } from '~/cli/commands/setup-and-utilities/models/image-models'
 import {
 SUPPORTED_GROQ_MODELS
@@ -34,6 +34,7 @@ SUPPORTED_SPEECHIFY_TTS_MODELS
 } from '~/cli/commands/setup-and-utilities/models/tts-models'
 import {
 SUPPORTED_GEMINI_VIDEO_MODELS,
+SUPPORTED_FAL_VIDEO_MODELS,
 SUPPORTED_GLM_VIDEO_MODELS,
 SUPPORTED_GROK_VIDEO_MODELS,
 SUPPORTED_LTX_VIDEO_MODELS,
@@ -83,10 +84,10 @@ export type GeminiImageModel = typeof SUPPORTED_GEMINI_IMAGE_MODELS[number]
 export type OpenAIImageModel = typeof SUPPORTED_OPENAI_IMAGE_MODELS[number]
 export type GrokImageModel = typeof SUPPORTED_GROK_IMAGE_MODELS[number]
 export type BflImageModel = typeof SUPPORTED_BFL_IMAGE_MODELS[number]
-export type ReveImageModel = typeof SUPPORTED_REVE_IMAGE_MODELS[number]
 export type RecraftImageModel = typeof SUPPORTED_RECRAFT_IMAGE_MODELS[number]
 export type ReplicateImageModel = typeof SUPPORTED_REPLICATE_IMAGE_MODELS[number]
 export type LumalabsImageModel = typeof SUPPORTED_LUMALABS_IMAGE_MODELS[number]
+export type FalImageModel = typeof SUPPORTED_FAL_IMAGE_MODELS[number]
 export type GeminiVideoModel = typeof SUPPORTED_GEMINI_VIDEO_MODELS[number]
 export type MinimaxVideoModel = typeof SUPPORTED_MINIMAX_VIDEO_MODELS[number]
 export type GlmVideoModel = typeof SUPPORTED_GLM_VIDEO_MODELS[number]
@@ -95,6 +96,7 @@ export type RunwayVideoModel = typeof SUPPORTED_RUNWAY_VIDEO_MODELS[number]
 export type LtxVideoModel = typeof SUPPORTED_LTX_VIDEO_MODELS[number]
 export type ReplicateVideoModel = typeof SUPPORTED_REPLICATE_VIDEO_MODELS[number]
 export type LumalabsVideoModel = typeof SUPPORTED_LUMALABS_VIDEO_MODELS[number]
+export type FalVideoModel = typeof SUPPORTED_FAL_VIDEO_MODELS[number]
 
 
 export type SttBilling = {
@@ -104,7 +106,7 @@ export type SttBilling = {
 
 
 export type CheapestVideoSelection = {
-  provider: 'gemini' | 'minimax' | 'glm' | 'grok' | 'runway' | 'ltx' | 'replicate' | 'lumalabs'
+  provider: 'gemini' | 'minimax' | 'glm' | 'grok' | 'runway' | 'ltx' | 'replicate' | 'lumalabs' | 'fal'
   model: string
   duration: number
   size?: string | undefined

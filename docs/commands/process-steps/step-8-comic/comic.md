@@ -49,7 +49,7 @@ XAI_API_KEY=...
 - `OPENAI_API_KEY` is required for OpenAI text and image models.
 - `GEMINI_API_KEY` is required for Gemini text and image models.
 - `XAI_API_KEY` is required for Grok text and image models.
-- Text and image models resolve against the central registries, so any other centrally-registered provider you select (e.g. BFL, Reve, Recraft, Replicate, Lumalabs for images) needs its own provider key set. See the [Supported Models](#supported-models) registries for the full list.
+- Text and image models resolve against the central registries, so any other centrally-registered provider you select (e.g. BFL, Recraft, Replicate, Lumalabs for images) needs its own provider key set. See the [Supported Models](#supported-models) registries for the full list.
 - `--price` is side-effect-free and does not call image or LLM generation APIs.
 
 ### Character catalog v3
@@ -242,7 +242,7 @@ bun autoshow comic generate-images input/scripts/01-script/01-opening.md --targe
 bun autoshow comic generate-images input/scripts/01-script/01-opening.md --target sketches --panels 5-8
 bun autoshow comic generate-images input/scripts/01-script/01-opening.md --target sketches --panels-per-image 6 --quality high
 bun autoshow comic generate-images input/scripts/01-script/01-opening.md --target images --image-model gpt-image-2
-bun autoshow comic generate-images input/scripts/01-script/01-opening.md --target images --image-model gpt-image-2,gemini-3.1-flash-image-preview
+bun autoshow comic generate-images input/scripts/01-script/01-opening.md --target images --image-model gpt-image-2,gemini-3.1-flash-lite-image
 bun autoshow comic generate-images input/scripts/01-script/01-opening.md --target images --variation animation-polish,cinematic-depth
 ```
 
@@ -380,19 +380,21 @@ Migration is entirely project-defined: register every catalog character using it
 
 ### Image Models
 
-`--image-model` accepts any model id in the project's central image registry (`src/cli/commands/setup-and-utilities/models/image-config.json`), the same source of truth used by the `image` step. Comic resolves the id to its provider at runtime and routes generation through the shared image dispatch, so every centrally-registered provider (Gemini, OpenAI, Grok, BFL, Reve, Recraft, Replicate, Lumalabs) is available and pricing comes from the registry.
+`--image-model` accepts any model id in the project's central image registry (`src/cli/commands/setup-and-utilities/models/image-config.json`), the same source of truth used by the `image` step. Comic resolves the id to its provider at runtime and routes generation through the shared image dispatch, so every centrally-registered provider (Gemini, OpenAI, Grok, BFL, Recraft, Replicate, Lumalabs) is available and pricing comes from the registry.
 
 The default is `gpt-image-2`. Inspect `image-config.json` for the full list of available image models. Common choices:
 
 | Model | Provider | Notes |
 |-------|----------|-------|
 | `gpt-image-2` | OpenAI | Default. Honors `--size` and `--quality`, including custom `WIDTHxHEIGHT` sizes. |
-| `gemini-3.1-flash-image-preview` | Google | Gemini native image generation; `--size` maps to a native aspect ratio. |
+| `gemini-3.1-flash-lite-image` | Google | Low-latency Gemini native image generation at 1K. |
+| `gemini-3.1-flash-image` | Google | Gemini native image generation at 1K, 2K, or 4K with optional Search grounding. |
+| `gemini-3-pro-image` | Google | Highest-quality Gemini native image generation at 1K, 2K, or 4K with optional Search grounding. |
 
 Pass multiple models with `--image-model` to generate each panel with every model for comparison:
 
 ```bash
---image-model gpt-image-2,gemini-3.1-flash-image-preview
+--image-model gpt-image-2,gemini-3.1-flash-lite-image
 ```
 
 ### Text Models (LLM)

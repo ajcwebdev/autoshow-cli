@@ -16,6 +16,20 @@
           "costMultiplier": 1,
           "msPerSecond": 1820
         }
+      },
+      "music_v2": {
+        "description": "music_v2 — next-generation text prompt to complete song generation",
+        "pricingSourceUrl": "https://elevenlabs.io/pricing/api",
+        "pricingCheckedAt": "2026-08-06",
+        "pricingCurrency": "USD",
+        "pricingTier": "ElevenLabs API music generation pricing",
+        "pricingNotes": "ElevenLabs publishes one API music-generation rate for Music v1 and Music v2. Subscription inclusions, discounts, enterprise pricing, taxes, and provider credits are ignored.",
+        "costPerMinuteUSD": 0.15,
+        "costPerMinuteCents": 15,
+        "estimation": {
+          "costMultiplier": 1,
+          "msPerSecond": 1820
+        }
       }
     }
   },
@@ -23,13 +37,13 @@
     "description": "MiniMax music generation",
     "type": "api",
     "models": {
-      "music-2.6": {
-        "description": "music-2.6 — full song generation from prompt and lyrics with instrumental mode",
-        "pricingSourceUrl": "https://platform.minimax.io/docs/pricing/overview",
-        "pricingCheckedAt": "2026-05-31",
+      "music-3.0": {
+        "description": "music-3.0 — current full song generation from prompt and lyrics with instrumental mode",
+        "pricingSourceUrl": "https://platform.minimax.io/docs/guides/pricing-paygo#music",
+        "pricingCheckedAt": "2026-08-06",
         "pricingCurrency": "USD",
         "pricingTier": "MiniMax pay-as-you-go music pricing",
-        "pricingNotes": "MiniMax music estimates use published per-track and lyrics-generation rates for the selected model. Discounts, enterprise pricing, taxes, and provider credits are ignored.",
+        "pricingNotes": "MiniMax Music 3.0 is billed per generated track of up to five minutes. Estimates include the published lyrics-generation add-on when AutoShow generates lyrics. Free-tier aliases, discounts, enterprise pricing, taxes, and provider credits are ignored.",
         "costPerTrackUSD": 0.15,
         "costPerTrackCents": 15,
         "lyricsCostPerTrackUSD": 0.01,

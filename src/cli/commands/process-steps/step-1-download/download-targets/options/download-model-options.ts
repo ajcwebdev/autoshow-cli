@@ -56,10 +56,10 @@ import {
   validateGrokImageModel,
   validateOpenAIImageModel,
   validateBflImageModel,
-  validateReveImageModel,
   validateRecraftImageModel,
   validateReplicateImageModel,
   validateLumalabsImageModel,
+  validateFalImageModel,
   validateGeminiVideoModel,
   validateMinimaxVideoModel,
   validateGlmVideoModel,
@@ -67,7 +67,8 @@ import {
   validateLtxVideoModel,
   validateReplicateVideoModel,
   validateRunwayVideoModel,
-  validateLumalabsVideoModel
+  validateLumalabsVideoModel,
+  validateFalVideoModel
 } from '~/cli/commands/setup-and-utilities/models/setup-model-options'
 import type { AllShortcutFlag, BuildOptsDefaults, FlagOccurrenceValue, RepeatableModelFlag } from '~/types'
 import { readStringFlag } from './flag-readers'
@@ -210,10 +211,10 @@ export const readRuntimeModelOptions = (
   const openaiImageModels = readValidatedMany('openai-image', validateOpenAIImageModel)
   const grokImageModels = readValidatedMany('grok-image', validateGrokImageModel)
   const bflImageModels = readValidatedMany('bfl-image', validateBflImageModel)
-  const reveImageModels = readValidatedMany('reve-image', validateReveImageModel)
   const recraftImageModels = readValidatedMany('recraft-image', validateRecraftImageModel)
   const replicateImageModels = readValidatedMany('replicate-image', validateReplicateImageModel)
   const lumalabsImageModels = readValidatedMany('lumalabs-image', validateLumalabsImageModel)
+  const falImageModels = readValidatedMany('fal-image', validateFalImageModel)
   const elevenlabsMusicModels = readValidatedMany('elevenlabs-music', validateElevenlabsMusicModel)
   const minimaxMusicModels = readValidatedMany('minimax-music', validateMinimaxMusicModel)
   const geminiMusicModels = readValidatedMany('gemini-music', validateGeminiMusicModel)
@@ -225,6 +226,7 @@ export const readRuntimeModelOptions = (
   const ltxVideoModels = readValidatedMany('ltx-video', validateLtxVideoModel)
   const replicateVideoModels = readValidatedMany('replicate-video', validateReplicateVideoModel)
   const lumalabsVideoModels = readValidatedMany('lumalabs-video', validateLumalabsVideoModel)
+  const falVideoModels = readValidatedMany('fal-video', validateFalVideoModel)
 
   return {
     whisperModels,
@@ -333,14 +335,14 @@ export const readRuntimeModelOptions = (
     grokImageModel: first(grokImageModels),
     bflImageModels,
     bflImageModel: first(bflImageModels),
-    reveImageModels,
-    reveImageModel: first(reveImageModels),
     recraftImageModels,
     recraftImageModel: first(recraftImageModels),
     replicateImageModels,
     replicateImageModel: first(replicateImageModels),
     lumalabsImageModels,
     lumalabsImageModel: first(lumalabsImageModels),
+    falImageModels,
+    falImageModel: first(falImageModels),
     elevenlabsMusicModels,
     elevenlabsMusicModel: first(elevenlabsMusicModels),
     minimaxMusicModels,
@@ -362,6 +364,8 @@ export const readRuntimeModelOptions = (
     replicateVideoModels,
     replicateVideoModel: first(replicateVideoModels),
     lumalabsVideoModels,
-    lumalabsVideoModel: first(lumalabsVideoModels)
+    lumalabsVideoModel: first(lumalabsVideoModels),
+    falVideoModels,
+    falVideoModel: first(falVideoModels)
   }
 }

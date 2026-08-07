@@ -193,6 +193,10 @@ const countReplicateVideoInputs = (entry: Step6VideoMetadata): number =>
   (entry.inputVideo ? 1 : 0) + (entry.referenceVideos?.length ?? 0)
 
 const estimateActualVideoFallbackCost = (entry: Step6VideoMetadata): number => {
+  if (entry.videoGenService === 'replicate' && entry.videoGenModel === 'alibaba/happyhorse-1.0') {
+    const durationSeconds = typeof entry.videoDuration === 'number' ? entry.videoDuration : 5
+    return durationSeconds * (entry.videoResolution === '1080p' ? 28 : 14)
+  }
   const estimate = estimateVideoCost({
     ...(entry.videoGenService === 'gemini' ? { geminiVideoModel: entry.videoGenModel } : {}),
     ...(entry.videoGenService === 'minimax' ? { minimaxVideoModel: entry.videoGenModel } : {}),
@@ -202,6 +206,7 @@ const estimateActualVideoFallbackCost = (entry: Step6VideoMetadata): number => {
     ...(entry.videoGenService === 'ltx' ? { ltxVideoModel: entry.videoGenModel } : {}),
     ...(entry.videoGenService === 'replicate' ? { replicateVideoModel: entry.videoGenModel } : {}),
     ...(entry.videoGenService === 'lumalabs' ? { lumalabsVideoModel: entry.videoGenModel } : {}),
+    ...(entry.videoGenService === 'fal' ? { falVideoModel: entry.videoGenModel } : {}),
     ...(typeof entry.videoDuration === 'number' ? { videoDuration: entry.videoDuration } : {}),
     ...(typeof entry.videoSize === 'string' ? { videoSize: entry.videoSize } : {}),
     ...(typeof entry.videoAspectRatio === 'string' ? { videoAspectRatio: entry.videoAspectRatio } : {}),

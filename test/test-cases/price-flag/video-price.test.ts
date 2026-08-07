@@ -47,9 +47,12 @@ defineVideoServicePriceTests({
 
 defineVideoServicePriceTests({
   models: [
-    { model: 'alibaba/happyhorse-1.0' },
+    { model: 'alibaba/happyhorse-1.1' },
     { model: 'bytedance/seedance-2.0' },
     { model: 'bytedance/seedance-2.0-fast' },
+    { model: 'kwaivgi/kling-v3-video' },
+    { model: 'kwaivgi/kling-v3-omni-video' },
+    { model: 'pixverse/pixverse-v6' },
     { model: 'wan-video/wan-2.7-t2v' },
   ],
   provider: 'replicate',
@@ -128,11 +131,15 @@ test('positional image input defaults to compatible image-to-video targets with 
       'generated-video-glm-cogvideox-3.mp4',
       'generated-video-glm-vidu2-image.mp4',
       'generated-video-grok-grok-imagine-video.mp4',
+      'generated-video-grok-grok-imagine-video-1.5.mp4',
       'generated-video-ltx-ltx-2-3-fast.mp4',
       'generated-video-ltx-ltx-2-3-pro.mp4',
-      'generated-video-replicate-alibaba-happyhorse-1.0.mp4',
+      'generated-video-replicate-alibaba-happyhorse-1.1.mp4',
       'generated-video-replicate-bytedance-seedance-2.0.mp4',
       'generated-video-replicate-bytedance-seedance-2.0-fast.mp4',
+      'generated-video-replicate-kwaivgi-kling-v3-video.mp4',
+      'generated-video-replicate-kwaivgi-kling-v3-omni-video.mp4',
+      'generated-video-replicate-pixverse-pixverse-v6.mp4',
       'generated-video-lumalabs-ray-3.2.mp4'
     ]) {
       expect(output).toContain(expected)
@@ -159,8 +166,8 @@ test('positional text input defaults to cheapest text-to-video target with --pri
   )
   const output = `${result.stdout}\n${result.stderr}`
   expect(result.exitCode).toBe(0)
-  expect(output).toContain('minimax')
-  expect(output).toContain('T2V-01')
+  expect(output).toContain('fal')
+  expect(output).toContain('fal-ai/pixverse/c1')
   expect(output).toContain('generated-video.mp4')
   expect(output).not.toContain('generated-video-gemini')
   expect(output).not.toContain('generated-video-glm')
@@ -206,6 +213,7 @@ test('new video providers print price estimates', async () => {
     ['glm', 'cogvideox-3', '20.00¢'],
     ['glm', 'viduq1-text', '40.00¢'],
     ['grok', 'grok-imagine-video', '25.00¢'],
+    ['grok', 'grok-imagine-video-1.5', '40.00¢'],
     ['runway', 'gen4.5', '60.00¢'],
     ['ltx', 'ltx-2-3-fast', '36.00¢'],
     ['replicate', 'wan-video/wan-2.7-t2v', '50.00¢'],
@@ -233,8 +241,13 @@ test('new video providers print price estimates', async () => {
 test('Replicate video price estimates use model, resolution, and video-input rates', async () => {
   const videoDataUrl = `data:video/mp4;base64,${Buffer.from([7, 8, 9]).toString('base64')}`
   const cases = [
-    ['alibaba/happyhorse-1.0', ['--duration', '5', '--resolution', '720p'], '70.00¢'],
-    ['alibaba/happyhorse-1.0', ['--duration', '5', '--resolution', '1080p'], '$1.40'],
+    ['alibaba/happyhorse-1.1', ['--duration', '5', '--resolution', '720p'], '70.00¢'],
+    ['alibaba/happyhorse-1.1', ['--duration', '5', '--resolution', '1080p'], '90.00¢'],
+    ['kwaivgi/kling-v3-video', ['--duration', '5', '--resolution', '720p'], '84.00¢'],
+    ['kwaivgi/kling-v3-video', ['--duration', '5', '--resolution', '1080p', '--replicate-video-generate-audio'], '$1.68'],
+    ['kwaivgi/kling-v3-omni-video', ['--duration', '5', '--resolution', '1080p', '--replicate-video-generate-audio'], '$1.40'],
+    ['pixverse/pixverse-v6', ['--duration', '5', '--resolution', '360p'], '25.00¢'],
+    ['pixverse/pixverse-v6', ['--duration', '5', '--resolution', '1080p', '--replicate-video-generate-audio'], '$1.15'],
     ['bytedance/seedance-2.0', ['--duration', '5', '--resolution', '480p'], '40.00¢'],
     ['bytedance/seedance-2.0', ['--mode', 'edit', '--input-video', videoDataUrl, '--duration', '5', '--resolution', '720p'], '$1.10'],
     ['bytedance/seedance-2.0-fast', ['--duration=-1', '--resolution', '720p'], '75.00¢'],
@@ -374,6 +387,22 @@ test('Grok video rejects 1080p resolution with --price', async () => {
   ])
   expect(result.exitCode).not.toBe(0)
   expect(`${result.stdout}\n${result.stderr}`).toContain('Expected 480p or 720p')
+})
+
+test('Grok Imagine Video 1.5 prices 1080p and input images', async () => {
+  const imageDataUrl = `data:image/png;base64,${Buffer.from([1, 2, 3]).toString('base64')}`
+  const result = await runCommand(['src/cli/create-cli.ts', 'video', 'a cinematic sunrise', '--provider', 'grok=grok-imagine-video-1.5', '--mode', 'image-to-video', '--input-image', imageDataUrl, '--duration', '5', '--resolution', '1080p', '--price'])
+  const output = `${result.stdout}\n${result.stderr}`
+  expect(result.exitCode).toBe(0)
+  expect(output).toContain('$1.26')
+})
+
+test('Replicate Aleph 2 requires edit mode and estimates input-length output pricing', async () => {
+  const inputVideo = 'https://replicate.delivery/pbxt/PDBtfgR3ypced4Ijj1dBALbo0iIaR8jb3K2eQaiKMA1cOxrL/tmp3k1o50w7.mp4'
+  const result = await runCommand(['src/cli/create-cli.ts', 'video', 'make the scene moonlit', '--provider', 'replicate=runwayml/aleph-2', '--mode', 'edit', '--input-video', inputVideo, '--price'])
+  const output = `${result.stdout}\n${result.stderr}`
+  expect(result.exitCode).toBe(0)
+  expect(output).toContain('$1.68')
 })
 
 test('GLM and MiniMax media video models accept --price in supported modes', async () => {

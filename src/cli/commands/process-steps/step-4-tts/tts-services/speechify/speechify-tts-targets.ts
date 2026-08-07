@@ -2,7 +2,9 @@ import { basename } from 'node:path'
 import type { SpeechifyTtsModel, TtsTarget, TtsTargetSelection } from '~/types'
 import {
   validateSpeechifyTtsModel,
-  validateSpeechifyTtsVoice
+  SPEECHIFY_DEFAULT_TTS_VOICE,
+  validateSpeechifyTtsLanguageForModel,
+  validateSpeechifyTtsVoiceForModel
 } from '~/cli/commands/setup-and-utilities/models/setup-model-options'
 import { ensureSpeechifyTtsSetup } from './speechify-tts'
 import { runSpeechifyTts } from './run-speechify-tts'
@@ -21,7 +23,8 @@ export const collectSpeechifyTtsTargets = (
 
   for (const rawModel of selection.speechifyModels) {
     const model: SpeechifyTtsModel = validateSpeechifyTtsModel(rawModel)
-    const voiceId = selection.speechifyVoiceId ? validateSpeechifyTtsVoice(selection.speechifyVoiceId) : undefined
+    const voiceId = validateSpeechifyTtsVoiceForModel(model, selection.speechifyVoiceId ?? SPEECHIFY_DEFAULT_TTS_VOICE)
+    const language = validateSpeechifyTtsLanguageForModel(model, selection.speechifyLanguage)
     const customVoice = selection.speechifyCustomVoiceRefAudioPath
       ? {
           refAudioPath: selection.speechifyCustomVoiceRefAudioPath,
@@ -41,7 +44,7 @@ export const collectSpeechifyTtsTargets = (
     targets.push({
       service: 'speechify',
       model,
-      ...(customVoice ? { voice: `ref_audio:${basename(customVoice.refAudioPath)}` } : voiceId ? { voice: voiceId } : {}),
+      ...(customVoice ? { voice: `ref_audio:${basename(customVoice.refAudioPath)}` } : { voice: voiceId }),
       ...(attachCustomVoiceEstimate
         ? {
             setupCostCents: SPEECHIFY_TTS_CUSTOM_VOICE_COST_CENTS,
@@ -56,7 +59,7 @@ export const collectSpeechifyTtsTargets = (
           voiceId,
           customVoice,
           audioFormat: selection.speechifyAudioFormat,
-          language: selection.speechifyLanguage,
+          language,
           chunkConcurrency: opts.ttsChunkConcurrency,
           chunkScheduler: opts.hostedTtsChunkScheduler
         })

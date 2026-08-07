@@ -81,11 +81,6 @@ export const HOSTED_PROVIDER_ENV_CHECKS = [
     configPaths: ['defaults.post.image.bflImage']
   },
   {
-    envVar: 'REVE_API_KEY',
-    label: 'Reve image',
-    configPaths: ['defaults.post.image.reveImage']
-  },
-  {
     envVar: 'LUMA_AGENTS_API_KEY',
     label: 'Luma Labs image',
     configPaths: ['defaults.post.image.lumalabsImage']

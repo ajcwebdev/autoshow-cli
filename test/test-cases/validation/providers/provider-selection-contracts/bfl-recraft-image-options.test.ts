@@ -23,14 +23,6 @@ describe('provider selection contracts', () => {
       'generated-image-6.png'
     ])
 
-    const vector = buildOptsFromFlags(false, {
-      'recraft-image': 'recraftv4_1_vector',
-      'image-aspect-ratio': '1:1'
-    })
-    expect(getExpectedImageArtifactFileNames(collectImageTargets(vector)[0]!, vector, true)).toEqual([
-      'generated-image.svg'
-    ])
-
     expect(() => collectImageTargets(buildOptsFromFlags(false, {
       'recraft-image': 'recraftv4_1',
       'image-count': '7'
@@ -41,9 +33,12 @@ describe('provider selection contracts', () => {
       'image-aspect-ratio': '1:1'
     }))).toThrow('cannot be used together')
     expect(() => collectImageTargets(buildOptsFromFlags(false, {
-      'recraft-image': 'recraftv4_1_vector',
+      'recraft-image': 'recraftv4_1',
       'image-size': '1024x1024'
-    }))).toThrow('Invalid --image-size')
+    }))).not.toThrow()
+    expect(() => collectImageTargets(buildOptsFromFlags(false, {
+      'recraft-image': 'recraftv4_1_vector'
+    }))).toThrow('Invalid --recraft-image')
     expect(() => collectImageTargets(buildOptsFromFlags(false, {
       'recraft-image': 'recraftv4_1',
       'image-input': ['reference.png']
@@ -66,74 +61,6 @@ describe('provider selection contracts', () => {
       ])
       expect(getExpectedImageCount(bflTargets[0]!, bflOpts)).toBe(1)
       expect(getExpectedImageArtifactFileNames(bflTargets[0]!, bflOpts, true)).toEqual(['generated-image.jpg'])
-    })
-  })
-
-  test('Reve accepts matching shared image options and rejects unsupported ones', () => {
-    withTempImageFixtures('autoshow-reve-image-input-', ({ firstRef, secondRef }) => {
-      const createOpts = buildOptsFromFlags(false, {
-        'reve-image': ['latest'],
-        'image-aspect-ratio': '3:2',
-        'image-size': '1024x768',
-        'image-format': 'webp'
-      })
-      const createTargets = collectImageTargets(createOpts)
-      expect(createTargets.map((target) => `${target.service}:${target.model}`)).toEqual(['reve:latest'])
-      expect(getExpectedImageArtifactFileNames(createTargets[0]!, createOpts, true)).toEqual(['generated-image.webp'])
-
-      const remixOpts = buildOptsFromFlags(false, {
-        'reve-image': ['latest'],
-        'image-input': [firstRef, secondRef],
-        'image-format': 'jpeg'
-      })
-      expect(collectImageTargets(remixOpts).map((target) => `${target.service}:${target.model}`)).toEqual(['reve:latest'])
-      expect(getExpectedImageArtifactFileNames(collectImageTargets(remixOpts)[0]!, remixOpts, true)).toEqual(['generated-image.jpg'])
-
-      for (const [flag, value] of [
-        ['image-size', '1K'],
-        ['image-aspect-ratio', '21:9'],
-        ['image-format', 'gif']
-      ] as const) {
-        const opts = buildOptsFromFlags(false, {
-          'reve-image': ['latest'],
-          [flag]: value
-        })
-        expect(() => collectImageTargets(opts)).toThrow(`Invalid --${flag} value "${value}" for Reve`)
-      }
-
-      for (const [flag, value] of [
-        ['image-count', '2'],
-        ['image-quality', 'high'],
-        ['image-background', 'transparent'],
-        ['image-compression', '80'],
-        ['image-response-mode', 'text-image'],
-        ['image-search-grounding', true]
-      ] as const) {
-        const opts = buildOptsFromFlags(false, {
-          'reve-image': ['latest'],
-          [flag]: value
-        })
-        expect(() => collectImageTargets(opts)).toThrow('not supported by Reve/latest')
-      }
-
-      const maskOpts = buildOptsFromFlags(false, {
-        'reve-image': ['latest'],
-        'image-input': [firstRef],
-        'image-mask': firstRef
-      })
-      expect(() => collectImageTargets(maskOpts)).toThrow('not supported by Reve/latest')
-
-      const tooManyInputs = buildOptsFromFlags(false, {
-        'reve-image': ['latest'],
-        'image-input': [firstRef, firstRef, firstRef, firstRef, firstRef, firstRef, firstRef]
-      })
-      expect(() => collectImageTargets(tooManyInputs)).toThrow('--image-input supports at most 6 reference images for Reve/latest')
-
-      const snapshotEdit = buildOptsFromFlags(false, {
-        'reve-image': ['reve-create@20250915'],
-        'image-input': [firstRef]
-      })
-      expect(() => collectImageTargets(snapshotEdit)).toThrow('Use --reve latest for Reve edit/remix workflows')
     })
   })
 
@@ -251,11 +178,11 @@ describe('provider selection contracts', () => {
       expect(() => collectImageTargets(buildOptsFromFlags(false, {
         'replicate-image': ['bytedance/seedream-4.5'],
         'image-count': '2'
-      }))).toThrow('--image-count is only supported by Replicate Wan image models')
+      }))).toThrow('--image-count is supported only by Replicate Wan and ERNIE image models')
       expect(() => collectImageTargets(buildOptsFromFlags(false, {
         'replicate-image': ['bytedance/seedream-4.5'],
         'image-format': 'webp'
-      }))).toThrow('--image-format is only supported by Replicate/bytedance/seedream-5-lite')
+      }))).toThrow('--image-format is supported only by Replicate Seedream 5 and ERNIE image models')
       expect(() => collectImageTargets(buildOptsFromFlags(false, {
         'replicate-image': ['bytedance/seedream-5-lite'],
         'image-size': '1536x1024'
@@ -276,6 +203,47 @@ describe('provider selection contracts', () => {
         'replicate-image': ['wan-video/wan-2.7-image'],
         'image-count': '5'
       }))).toThrow('Supported range: 1-4')
+
+      const seedream5Pro = buildOptsFromFlags(false, {
+        'replicate-image': ['bytedance/seedream-5-pro'],
+        'image-input': [firstRef, secondRef],
+        'image-size': '2K',
+        'image-format': 'jpeg'
+      })
+      expect(getExpectedImageArtifactFileNames(collectImageTargets(seedream5Pro)[0]!, seedream5Pro, true)).toEqual(['generated-image.jpg'])
+      expect(() => collectImageTargets(buildOptsFromFlags(false, {
+        'replicate-image': ['bytedance/seedream-5-pro'],
+        'image-input': Array.from({ length: 11 }, (_, index) => `https://example.com/reference-${index}.png`)
+      }))).toThrow('--image-input supports at most 10 reference images')
+
+      const ideogram = buildOptsFromFlags(false, {
+        'replicate-image': ['ideogram-ai/ideogram-v4-balanced'],
+        'image-size': '1024x768'
+      })
+      expect(collectImageTargets(ideogram).map((target) => target.model)).toEqual(['ideogram-ai/ideogram-v4-balanced'])
+      expect(() => collectImageTargets(buildOptsFromFlags(false, {
+        'replicate-image': ['ideogram-ai/ideogram-v4-turbo'],
+        'image-input': [firstRef]
+      }))).toThrow('text-to-image only')
+      expect(() => collectImageTargets(buildOptsFromFlags(false, {
+        'replicate-image': ['ideogram-ai/ideogram-v4-quality'],
+        'image-size': '1025x1024'
+      }))).toThrow('multiples of 16')
+
+      const ernie = buildOptsFromFlags(false, {
+        'replicate-image': ['prunaai/ernie-image-turbo'],
+        'image-size': '1264x848',
+        'image-count': '4',
+        'image-format': 'jpeg'
+      })
+      const ernieTargets = collectImageTargets(ernie)
+      expect(getExpectedImageCount(ernieTargets[0]!, ernie)).toBe(4)
+      expect(getExpectedImageArtifactFileNames(ernieTargets[0]!, ernie, true)).toEqual([
+        'generated-image.jpg',
+        'generated-image-2.jpg',
+        'generated-image-3.jpg',
+        'generated-image-4.jpg'
+      ])
     })
   })
 })

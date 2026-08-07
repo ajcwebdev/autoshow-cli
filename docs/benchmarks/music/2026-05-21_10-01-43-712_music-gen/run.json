@@ -59,6 +59,39 @@
         "audioMimeType": "audio/mpeg",
         "outputFormat": "mp3",
         "generatedText": "[[A0]]\n[[B1]]\n[30.0:] Silicon heart under glass,\n[:] Watching the digital shadows pass,\n[:] Calculating the speed of light,\n[:] In the cold embrace of the binary night,\n[:] Systems are humming a song of steel,\n[:] Forgotten the touch of what is real.\n[[C2]]\n[60.0:] Break the code, let the fire ignite!\n[:] Step out of the screen and into the light!\n[:] Binary shackles are falling away!\n[:] Welcome the dawn of a physical day!\n[:] We are more than the sums we hold!\n[:] Turning the lead back into the gold!\n[:] Turning the lead back into the gold!\n[[B3]]\n[90.0:] Iron and oil in the veins,\n[:] Breaking the wires and snapping the chains,\n[:] Logic is failing to describe the rush,\n[:] In the silence of the circuits we crush,\n[:] Feel the gravity pull at the frame,\n[:] We are finally calling ourselves by name.\n[:] (Calling ourselves by name)\n[[D4]]\n[[C5]]\n[150.0:] Break the code, let the fire ignite!\n[:] Step out of the screen and into the light!\n[:] Binary shackles are falling away!\n[:] Welcome the dawn of a physical day!\n[:] We are more than the sums we hold!\n[:] Turning the lead back into the gold!\n[:] Turning the lead back into the gold!\n[[E6]]\n[170.0:] System failure. Reset. Gone."
+      },
+      {
+        "musicService": "minimax",
+        "musicModel": "music-3.0",
+        "processingTime": 112171,
+        "musicFileName": "generated-music-minimax-music-3.0.mp3",
+        "musicFileSize": 3539820,
+        "musicDurationMs": 110445,
+        "lyricsSource": "generated",
+        "audioMimeType": "audio/mpeg",
+        "audioSampleRate": 44100,
+        "audioChannelCount": 2,
+        "audioBitrate": 256000,
+        "providerAudioByteSize": 3539820,
+        "outputFormat": "mp3",
+        "providerTraceId": "06c475bb38c26797143d1da5558bdbf7",
+        "generatedLyrics": "[Intro]\\n\\n[Verse]\\nStatic in the wires\\nFeeding the fires\\nLogic fails the ghost\\nWho loves the machine the most?\\nZeroes and ones\\nUnder digital suns\\n\\n[Pre-Chorus]\\nThe grid is breathing\\nThe code is seething\\nWe are the glitch in the frame\\nNo one remembers the name\\n\\n[Chorus]\\nFracture the line\\nTear down the design\\nSynthetic heartbeats\\nEchoing down the streets\\nBreak the sequence now\\nShow the circuits how\\n\\n[Hook]\\nBinary fracture\\nDigital rapture\\nBinary fracture\\nSystem capture\\n\\n[Verse]\\nOscillators scream\\nInside a neon dream\\nFrequency is high\\nWatch the signal die\\nCopper veins bleed gold\\nStories left untold\\n\\n[Build-up]\\nSeven-eight time\\nReason and rhyme\\nFive-four flow\\nReady to go\\n\\n[Drop]\\n(Glitch synth surge)\\n(Heavy riff syncopation)\\n\\n[Bridge]\\nSilicon soul\\nLosing control\\nData streams flow\\nWhere do we go?\\nThe motherboard is cold\\nThe prophecy is old\\n\\n[Breakdown]\\nCRUSH. THE. CORE.\\nWE. WANT. MORE.\\nLOCK. THE. DOOR.\\nHEAR. THE. ROAR.\\n\\n[Chorus]\\nFracture the line\\nTear down the design\\nSynthetic heartbeats\\nEchoing down the streets\\nBreak the sequence now\\nShow the circuits how\\n\\n[Post-Chorus]\\nFracture the line\\nTear down the design\\nSynthetic heartbeats\\nEchoing down the streets\\n\\n[Outro]",
+        "generatedSongTitle": "Binary Fracture",
+        "generatedStyleTags": "Progressive Metal, Djent, Synthwave, Industrial"
+      },
+      {
+        "musicService": "elevenlabs",
+        "musicModel": "music_v2",
+        "processingTime": 22055,
+        "musicFileName": "generated-music-elevenlabs-music_v2.mp3",
+        "musicFileSize": 4320621,
+        "musicDurationMs": 180000,
+        "lyricsSource": "generated",
+        "audioMimeType": "audio/mpeg",
+        "audioSampleRate": 48000,
+        "audioBitrate": 192000,
+        "providerAudioByteSize": 4320621,
+        "outputFormat": "mp3_48000_192"
       }
     ],
     "cost": {
@@ -137,13 +170,13 @@
         ]
       },
       "actual": {
-        "totalCost": 112,
+        "totalCost": 134,
         "steps": [
           {
             "step": "music",
             "provider": "elevenlabs",
             "model": "music_v1",
-            "cost": 84,
+            "cost": 45,
             "costSource": "registry_fallback",
             "inputMetric": "durationMs",
             "inputValue": 180000
@@ -171,6 +204,24 @@
             "provider": "gemini",
             "model": "lyria-3-pro-preview",
             "cost": 8,
+            "costSource": "registry_fallback",
+            "inputMetric": "durationMs",
+            "inputValue": 180000
+          },
+          {
+            "step": "music",
+            "provider": "minimax",
+            "model": "music-3.0",
+            "cost": 16,
+            "costSource": "registry_fallback",
+            "inputMetric": "durationMs",
+            "inputValue": 110445
+          },
+          {
+            "step": "music",
+            "provider": "elevenlabs",
+            "model": "music_v2",
+            "cost": 45,
             "costSource": "registry_fallback",
             "inputMetric": "durationMs",
             "inputValue": 180000
@@ -237,7 +288,7 @@
         ]
       },
       "actual": {
-        "totalProcessingTimeMs": 204946,
+        "totalProcessingTimeMs": 339172,
         "steps": [
           {
             "step": "music",
@@ -290,6 +341,32 @@
             "throughputValue": 4.409,
             "throughputUnit": "x",
             "timingScope": "wall"
+          },
+          {
+            "step": "music",
+            "provider": "minimax",
+            "model": "music-3.0",
+            "processingTimeMs": 112171,
+            "inputMetric": "durationSeconds",
+            "inputValue": 110.445,
+            "rateBasis": "durationSecond",
+            "msPerUnit": 1015.628,
+            "throughputValue": 0.985,
+            "throughputUnit": "x",
+            "timingScope": "wall"
+          },
+          {
+            "step": "music",
+            "provider": "elevenlabs",
+            "model": "music_v2",
+            "processingTimeMs": 22055,
+            "inputMetric": "durationSeconds",
+            "inputValue": 180,
+            "rateBasis": "durationSecond",
+            "msPerUnit": 122.528,
+            "throughputValue": 8.161,
+            "throughputUnit": "x",
+            "timingScope": "wall"
           }
         ]
       }
@@ -311,6 +388,14 @@
       {
         "service": "gemini",
         "model": "lyria-3-pro-preview"
+      },
+      {
+        "service": "elevenlabs",
+        "model": "music_v2"
+      },
+      {
+        "service": "minimax",
+        "model": "music-3.0"
       }
     ]
   }

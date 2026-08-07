@@ -251,14 +251,14 @@ export type RuntimeOptions = {
   grokImageModel: string | undefined
   bflImageModels: string[] | undefined
   bflImageModel: string | undefined
-  reveImageModels: string[] | undefined
-  reveImageModel: string | undefined
   recraftImageModels: string[] | undefined
   recraftImageModel: string | undefined
   replicateImageModels: string[] | undefined
   replicateImageModel: string | undefined
   lumalabsImageModels: string[] | undefined
   lumalabsImageModel: string | undefined
+  falImageModels: string[] | undefined
+  falImageModel: string | undefined
   imageAspectRatio: string | undefined
   imageSize: string | undefined
   imageQuality: string | undefined
@@ -297,6 +297,8 @@ export type RuntimeOptions = {
   replicateVideoModel: string | undefined
   lumalabsVideoModels: string[] | undefined
   lumalabsVideoModel: string | undefined
+  falVideoModels: string[] | undefined
+  falVideoModel: string | undefined
   allVideo: boolean | undefined
   videoDuration: number | undefined
   videoSize: string | undefined
@@ -314,6 +316,11 @@ export type RuntimeOptions = {
   replicateVideoNegativePrompt: string | undefined
   replicateVideoAudio: string | undefined
   replicateVideoPromptExpansion: boolean | undefined
+  replicateVideoMultiPrompt: string | undefined
+  replicateVideoMultiClip: boolean | undefined
+  falVideoGenerateAudio: boolean | undefined
+  falVideoReferenceVideos: string[] | undefined
+  falVideoReferenceAudios: string[] | undefined
   grokVideoStorageFilename: string | undefined
   grokVideoStorageExpiresAfter: number | undefined
 

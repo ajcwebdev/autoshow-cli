@@ -21,6 +21,7 @@ export type RunReplicatePredictionOptions = {
   apiToken: string
   baseUrl: string
   model: string
+  version?: string | undefined
   input: Record<string, unknown>
   operationName: string
   waitSeconds?: number | undefined

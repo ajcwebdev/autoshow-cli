@@ -55,16 +55,20 @@ const readJsonBody = (body: RequestInit['body'] | null | undefined): Record<stri
   JSON.parse(String(body ?? '{}')) as Record<string, unknown>
 
 describe('music provider contracts', () => {
-  test('MiniMax music accepts the supported 2.6 model and rejects unsupported models', () => {
+  test('MiniMax music accepts 3.0 and rejects previous-generation and unsupported models', () => {
     const opts = buildOptsFromFlags(false, {
-      'minimax-music': ['music-2.6']
+      'minimax-music': ['music-3.0']
     })
 
-    expect(opts.minimaxMusicModels).toEqual(['music-2.6'])
+    expect(opts.minimaxMusicModels).toEqual(['music-3.0'])
     expect(collectMusicTargets(opts).map((target) => `${target.service}:${target.model}`)).toEqual([
-      'minimax:music-2.6'
+      'minimax:music-3.0'
     ])
-    const retiredFreeModel = 'music-2' + '.6-free'
+    const previousModel = 'music-2' + '.6'
+    expect(() => buildOptsFromFlags(false, {
+      'minimax-music': previousModel
+    })).toThrow(`Invalid --minimax-music model "${previousModel}"`)
+    const retiredFreeModel = previousModel + '-free'
     expect(() => buildOptsFromFlags(false, {
       'minimax-music': retiredFreeModel
     })).toThrow(`Invalid --minimax-music model "${retiredFreeModel}"`)
@@ -103,7 +107,7 @@ describe('music provider contracts', () => {
         throw new Error(`Unexpected MiniMax mock fetch: ${init?.method ?? 'GET'} ${url}`)
       }) as typeof fetch, async () => {
         const opts = buildOptsFromFlags(false, {
-          'minimax-music': 'music-2.6',
+          'minimax-music': 'music-3.0',
           'music-instrumental': true
         })
         const [target] = collectMusicTargets(opts)
@@ -113,7 +117,7 @@ describe('music provider contracts', () => {
         expect(await Bun.file(result.musicPath).exists()).toBe(true)
         expect(calls).toHaveLength(1)
         expect(calls[0]).toMatchObject({
-          model: 'music-2.6',
+          model: 'music-3.0',
           prompt: 'ambient piano instrumental',
           is_instrumental: true,
           output_format: 'hex',
@@ -126,7 +130,7 @@ describe('music provider contracts', () => {
         expect('lyrics' in calls[0]!).toBe(false)
         expect(result.metadata).toMatchObject({
           musicService: 'minimax',
-          musicModel: 'music-2.6',
+          musicModel: 'music-3.0',
           lyricsSource: 'none',
           musicDurationMs: 32100,
           providerTraceId: 'trace-instrumental',
@@ -167,7 +171,7 @@ describe('music provider contracts', () => {
         throw new Error(`Unexpected MiniMax mock fetch: ${init?.method ?? 'GET'} ${url}`)
       }) as typeof fetch, async () => {
         const result = await runMinimaxMusicGen('synth pop about neon rain', dir, {
-          model: 'music-2.6'
+          model: 'music-3.0'
         })
 
         expect(calls.map((call) => new URL(call.url).pathname)).toEqual([
@@ -175,7 +179,7 @@ describe('music provider contracts', () => {
           '/v1/music_generation'
         ])
         expect(calls[1]?.body).toMatchObject({
-          model: 'music-2.6',
+          model: 'music-3.0',
           lyrics: '[Verse]\nNeon rain on the avenue'
         })
         expect(result.metadata).toMatchObject({
@@ -207,7 +211,7 @@ describe('music provider contracts', () => {
       }) as typeof fetch, async () => {
         const longPrompt = 'x'.repeat(2001)
         await runMinimaxMusicGen(longPrompt, dir, {
-          model: 'music-2.6',
+          model: 'music-3.0',
           forceInstrumental: true
         })
 
@@ -218,7 +222,7 @@ describe('music provider contracts', () => {
         await writeFile(lyricsPath, 'y'.repeat(3501))
         const callCountBeforeLyricsValidation = calls.length
         await expect(runMinimaxMusicGen('valid prompt', dir, {
-          model: 'music-2.6',
+          model: 'music-3.0',
           lyricsFile: lyricsPath
         })).rejects.toThrow('must be 3500 characters or fewer')
 
@@ -246,8 +250,8 @@ describe('music provider contracts', () => {
     })
   })
 
-  test('ElevenLabs music metadata records output format and response headers', async () => {
-    const requests: Array<Record<string, unknown>> = []
+  test('ElevenLabs music uses model-specific output formats and records response headers', async () => {
+    const requests: Array<{ url: string, body: Record<string, unknown> }> = []
 
     await withTempDir(async (dir) => {
       await withEnvAndFetch({
@@ -255,8 +259,8 @@ describe('music provider contracts', () => {
         ELEVENLABS_BASE_URL: 'https://mock.elevenlabs.local/v1'
       }, (async (input: Parameters<typeof fetch>[0], init?: Parameters<typeof fetch>[1]): Promise<Response> => {
         const url = String(input)
-        if (url.endsWith('/music?output_format=mp3_44100_128')) {
-          requests.push(readJsonBody(init?.body))
+        if (url.endsWith('/music?output_format=mp3_44100_128') || url.endsWith('/music?output_format=mp3_48000_192')) {
+          requests.push({ url, body: readJsonBody(init?.body) })
           return new Response(audioBytes, {
             status: 200,
             headers: {
@@ -267,25 +271,52 @@ describe('music provider contracts', () => {
         }
         throw new Error(`Unexpected ElevenLabs mock fetch: ${init?.method ?? 'GET'} ${url}`)
       }) as typeof fetch, async () => {
-        const result = await runElevenLabsMusicGen('lo-fi instrumental', dir, {
+        const v1Result = await runElevenLabsMusicGen('lo-fi instrumental', dir, {
           model: 'music_v1',
           durationSeconds: 12,
           forceInstrumental: true
         })
+        const v2Result = await runElevenLabsMusicGen('cinematic instrumental', dir, {
+          model: 'music_v2',
+          durationSeconds: 15,
+          forceInstrumental: true
+        })
 
-        expect(requests).toEqual([{
-          model_id: 'music_v1',
-          prompt: 'lo-fi instrumental',
-          music_length_ms: 12000,
-          force_instrumental: true
-        }])
-        expect(result.metadata).toMatchObject({
+        expect(requests).toEqual([
+          {
+            url: 'https://api.elevenlabs.io/v1/music?output_format=mp3_44100_128',
+            body: {
+              model_id: 'music_v1',
+              prompt: 'lo-fi instrumental',
+              music_length_ms: 12000,
+              force_instrumental: true
+            }
+          },
+          {
+            url: 'https://api.elevenlabs.io/v1/music?output_format=mp3_48000_192',
+            body: {
+              model_id: 'music_v2',
+              prompt: 'cinematic instrumental',
+              music_length_ms: 15000,
+              force_instrumental: true
+            }
+          }
+        ])
+        expect(v1Result.metadata).toMatchObject({
           providerRequestId: 'eleven-request-123',
           audioMimeType: 'audio/mpeg',
           audioSampleRate: 44100,
           audioBitrate: 128000,
           providerAudioByteSize: audioBytes.byteLength,
           outputFormat: 'mp3_44100_128'
+        })
+        expect(v2Result.metadata).toMatchObject({
+          providerRequestId: 'eleven-request-123',
+          audioMimeType: 'audio/mpeg',
+          audioSampleRate: 48000,
+          audioBitrate: 192000,
+          providerAudioByteSize: audioBytes.byteLength,
+          outputFormat: 'mp3_48000_192'
         })
       })
     })

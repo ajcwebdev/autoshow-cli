@@ -66,7 +66,7 @@ test('removed setup command is not registered', async () => {
 
 test('image command rejects removed imagen-count flag', async () => {
   await expectUsageExit(
-    ['image', 'a sunset', '--provider', 'gemini=gemini-3.1-flash-image-preview', '--imagen-count', '2', '--price'],
+    ['image', 'a sunset', '--provider', 'gemini=gemini-3.1-flash-lite-image', '--imagen-count', '2', '--price'],
     'Unexpected flag: imagenCount'
   )
 })
@@ -487,7 +487,7 @@ test('tts rejects non-text single files', async () => {
 
 test('tts rejects ambiguous generic TTS options with multiple providers', async () => {
   await expectUsageExit(
-    ['tts', 'input/examples/tts/1-tts.md', '--provider', 'openai=gpt-4o-mini-tts', '--provider', 'elevenlabs=eleven_v3', '--tts-voice', 'alloy', '--price'],
+    ['tts', 'input/examples/tts/1-tts.md', '--provider', 'openai=gpt-4o-mini-tts-2025-12-15', '--provider', 'elevenlabs=eleven_v3', '--tts-voice', 'alloy', '--price'],
     '--tts-voice requires provider=value when multiple TTS providers are selected.'
   )
 })
@@ -534,7 +534,7 @@ test('music lyric-video mode rejects missing audio or batch', async () => {
 
 test('music rejects mixed hosted generation and lyric-video modes', async () => {
   await expectUsageExit(
-    ['music', '--audio', STABLE_EXAMPLE_AUDIO_URL, '--provider', 'minimax=music-2.6'],
+    ['music', '--audio', STABLE_EXAMPLE_AUDIO_URL, '--provider', 'minimax=music-3.0'],
     'Do not combine hosted music flags'
   )
   await expectUsageExit(

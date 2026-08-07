@@ -139,6 +139,9 @@ const TtsModelSchema = v.object({
   outputCostPer1MCharsCents: v.optional(v.number(), undefined),
   hfRepo: v.optional(v.string(), undefined),
   modelFamily: v.optional(v.string(), undefined),
+  limits: v.optional(v.object({
+    maxInputCharacters: v.optional(v.pipe(v.number(), v.integer(), v.minValue(1)), undefined)
+  }), undefined),
   estimation: v.optional(v.object({
     costMultiplier: v.optional(v.number(), undefined),
     msPer1KChars: v.optional(v.number(), undefined)
@@ -236,6 +239,7 @@ const VideoModelSchema = v.object({
   inputVideoCostPerSecondUSD: v.optional(v.number(), undefined),
   inputVideoCostPerSecondCents: v.optional(v.number(), undefined),
   costPerSecondByResolutionCents: v.optional(VideoCostPerSecondByResolutionSchema, undefined),
+  audioCostPerSecondByResolutionCents: v.optional(VideoCostPerSecondByResolutionSchema, undefined),
   videoInputCostPerSecondByResolutionCents: v.optional(VideoCostPerSecondByResolutionSchema, undefined),
   estimation: v.optional(v.object({
     costMultiplier: v.optional(v.number(), undefined),

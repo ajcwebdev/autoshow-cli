@@ -48,8 +48,8 @@ Examples of provider names:
 | URL extract | `defuddle`, `firecrawl`, `glm-reader`, `spider`, `supadata`, `zyte` |
 | Write LLM | `llama`, `llamafile`, `openai`, `groq`, `gemini`, `anthropic`, `minimax`, `grok`, `glm`, `kimi`, `together`, `cerebras` |
 | TTS | `kitten`, `elevenlabs`, `minimax`, `groq`, `grok`, `mistral`, `openai`, `gemini`, `deepgram`, `speechify`, `hume`, `cartesia` |
-| Image | `gemini`, `openai`, `grok`, `bfl`, `reve`, `recraft`, `replicate`, `lumalabs` |
-| Video | `gemini`, `minimax`, `glm`, `grok`, `runway`, `ltx`, `replicate`, `lumalabs` |
+| Image | `gemini`, `openai`, `grok`, `bfl`, `recraft`, `replicate`, `lumalabs`, `fal` |
+| Video | `gemini`, `minimax`, `glm`, `grok`, `runway`, `ltx`, `replicate`, `lumalabs`, `fal` |
 | Music | `elevenlabs`, `minimax`, `gemini` |
 
 ## Examples
@@ -91,14 +91,13 @@ bun autoshow resume ./output/2026-04-22_12-00-00-000_batch --url-provider supada
 # Retry or append TTS providers
 bun autoshow resume ./output/2026-04-22_12-00-00-000_run --provider elevenlabs=eleven_v3
 bun autoshow resume ./output/2026-04-22_12-00-00-000_run --provider hume=octave-2 --tts-voice "Male English Actor"
-bun autoshow resume ./output/2026-04-22_12-00-00-000_run --provider cartesia=sonic-3.5 --tts-voice f786b574-daa5-4673-aa0c-cbe3e8534c02
+bun autoshow resume ./output/2026-04-22_12-00-00-000_run --provider cartesia=sonic-3.5-2026-05-04 --tts-voice f786b574-daa5-4673-aa0c-cbe3e8534c02
 
 # Retry or append image, video, and music providers
-bun autoshow resume ./output/2026-04-22_12-00-00-000_run --provider gemini=gemini-3.1-flash-image-preview
-bun autoshow resume ./output/2026-04-22_12-00-00-000_run --provider reve=latest
+bun autoshow resume ./output/2026-04-22_12-00-00-000_run --provider gemini=gemini-3.1-flash-lite-image
 bun autoshow resume ./output/2026-04-22_12-00-00-000_run --provider runway=gen4.5
 bun autoshow resume ./output/2026-04-22_12-00-00-000_run --provider ltx=ltx-2-3-fast
-bun autoshow resume ./output/2026-04-22_12-00-00-000_run --provider minimax=music-2.6
+bun autoshow resume ./output/2026-04-22_12-00-00-000_run --provider minimax=music-3.0
 bun autoshow resume ./output/2026-04-22_12-00-00-000_run --provider gemini=lyria-3-clip-preview
 
 # Add every supported provider for the resolved target

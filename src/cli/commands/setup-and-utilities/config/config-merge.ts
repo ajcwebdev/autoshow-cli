@@ -16,8 +16,8 @@ const URL_PROVIDER_FLAGS = getStep2ProviderSelectionFlagNames('url')
 const URL_PROVIDER_DEFAULT_GROUP_FLAGS = [...URL_PROVIDER_FLAGS, 'all-url', 'all-local-url', 'all-providers', 'all-local'] as const
 const LLM_PROVIDER_FLAGS = ['llama', 'openai', 'groq', 'gemini', 'anthropic', 'minimax', 'grok', 'glm', 'kimi', 'together', 'cerebras'] as const
 const TTS_PROVIDER_FLAGS = ['kitten-tts', 'elevenlabs-tts', 'minimax-tts', 'groq-tts', 'grok-tts', 'mistral-tts', 'openai-tts', 'gemini-tts', 'deepgram-tts', 'speechify-tts', 'hume-tts', 'cartesia-tts'] as const
-const IMAGE_PROVIDER_FLAGS = ['gemini-image', 'openai-image', 'grok-image', 'bfl-image', 'reve-image', 'recraft-image', 'replicate-image', 'lumalabs-image'] as const
-const VIDEO_PROVIDER_FLAGS = ['gemini-video', 'minimax-video', 'glm-video', 'grok-video', 'runway-video', 'ltx-video', 'replicate-video', 'lumalabs-video'] as const
+const IMAGE_PROVIDER_FLAGS = ['gemini-image', 'openai-image', 'grok-image', 'bfl-image', 'reve-image', 'recraft-image', 'replicate-image', 'lumalabs-image', 'fal-image'] as const
+const VIDEO_PROVIDER_FLAGS = ['gemini-video', 'minimax-video', 'glm-video', 'grok-video', 'runway-video', 'ltx-video', 'replicate-video', 'lumalabs-video', 'fal-video'] as const
 const MUSIC_PROVIDER_FLAGS = ['elevenlabs-music', 'minimax-music', 'gemini-music'] as const
 const REPEATABLE_CONFIG_MODEL_FLAG_SET = new Set<string>(REPEATABLE_MODEL_FLAGS)
 const CONFIG_INJECTED_FLAGS_KEY = '__autoshowConfigInjectedFlags'
@@ -191,10 +191,10 @@ export const mergeConfigIntoRawFlags = (
       ['gemini-image', d.post.image.geminiImage], ['openai-image', d.post.image.openaiImage],
       ['grok-image', d.post.image.grokImage],
       ['bfl-image', d.post.image.bflImage],
-      ['reve-image', d.post.image.reveImage],
       ['recraft-image', d.post.image.recraftImage],
       ['replicate-image', d.post.image.replicateImage],
       ['lumalabs-image', d.post.image.lumalabsImage],
+      ['fal-image', d.post.image.falImage],
     ])
     inject('image-aspect-ratio', d.post.image.imageAspectRatio)
     inject('image-size', d.post.image.imageSize)
@@ -214,6 +214,7 @@ export const mergeConfigIntoRawFlags = (
       ['ltx-video', d.post.video.ltxVideo],
       ['replicate-video', d.post.video.replicateVideo],
       ['lumalabs-video', d.post.video.lumalabsVideo],
+      ['fal-video', d.post.video.falVideo],
     ])
     inject('video-duration', d.post.video.videoDuration)
     inject('video-size', d.post.video.videoSize)
@@ -231,6 +232,9 @@ export const mergeConfigIntoRawFlags = (
     inject('replicate-video-negative-prompt', d.post.video.replicateVideoNegativePrompt)
     inject('replicate-video-audio', d.post.video.replicateVideoAudio)
     inject('replicate-video-prompt-expansion', d.post.video.replicateVideoPromptExpansion)
+    inject('fal-video-generate-audio', d.post.video.falVideoGenerateAudio)
+    inject('fal-video-reference-video', d.post.video.falVideoReferenceVideos)
+    inject('fal-video-reference-audio', d.post.video.falVideoReferenceAudios)
     inject('grok-video-storage-filename', d.post.video.grokVideoStorageFilename)
     inject('grok-video-storage-expires-after', d.post.video.grokVideoStorageExpiresAfter)
     inject('video-provider-concurrency', d.post.video.providerConcurrency)
@@ -393,6 +397,7 @@ const FLAG_TO_CONFIG_PATH: Record<string, string[]> = {
   'recraft-image':     ['defaults', 'post', 'image', 'recraftImage'],
   'replicate-image':   ['defaults', 'post', 'image', 'replicateImage'],
   'lumalabs-image':    ['defaults', 'post', 'image', 'lumalabsImage'],
+  'fal-image':         ['defaults', 'post', 'image', 'falImage'],
   'image-aspect-ratio': ['defaults', 'post', 'image', 'imageAspectRatio'],
   'image-size':        ['defaults', 'post', 'image', 'imageSize'],
   'image-quality':     ['defaults', 'post', 'image', 'imageQuality'],
@@ -409,6 +414,7 @@ const FLAG_TO_CONFIG_PATH: Record<string, string[]> = {
   'ltx-video':         ['defaults', 'post', 'video', 'ltxVideo'],
   'replicate-video':   ['defaults', 'post', 'video', 'replicateVideo'],
   'lumalabs-video':    ['defaults', 'post', 'video', 'lumalabsVideo'],
+  'fal-video':         ['defaults', 'post', 'video', 'falVideo'],
   'video-duration':    ['defaults', 'post', 'video', 'videoDuration'],
   'video-size':        ['defaults', 'post', 'video', 'videoSize'],
   'video-aspect-ratio': ['defaults', 'post', 'video', 'videoAspectRatio'],
@@ -425,6 +431,9 @@ const FLAG_TO_CONFIG_PATH: Record<string, string[]> = {
   'replicate-video-negative-prompt': ['defaults', 'post', 'video', 'replicateVideoNegativePrompt'],
   'replicate-video-audio': ['defaults', 'post', 'video', 'replicateVideoAudio'],
   'replicate-video-prompt-expansion': ['defaults', 'post', 'video', 'replicateVideoPromptExpansion'],
+  'fal-video-generate-audio': ['defaults', 'post', 'video', 'falVideoGenerateAudio'],
+  'fal-video-reference-video': ['defaults', 'post', 'video', 'falVideoReferenceVideos'],
+  'fal-video-reference-audio': ['defaults', 'post', 'video', 'falVideoReferenceAudios'],
   'grok-video-storage-filename': ['defaults', 'post', 'video', 'grokVideoStorageFilename'],
   'grok-video-storage-expires-after': ['defaults', 'post', 'video', 'grokVideoStorageExpiresAfter'],
   'video-provider-concurrency': ['defaults', 'post', 'video', 'providerConcurrency'],

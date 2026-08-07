@@ -16,6 +16,7 @@ const resolveVideoTimingDurationSeconds = (
     ...(target.service === 'ltx' ? { ltxVideoModels: [target.model] } : {}),
     ...(target.service === 'replicate' ? { replicateVideoModels: [target.model] } : {}),
     ...(target.service === 'lumalabs' ? { lumalabsVideoModels: [target.model] } : {}),
+    ...(target.service === 'fal' ? { falVideoModels: [target.model] } : {}),
     videoDuration: target.durationSeconds,
     videoSize: input.videoSize,
     videoAspectRatio: input.videoAspectRatio,

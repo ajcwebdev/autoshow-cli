@@ -5,17 +5,15 @@ describe('config image and TTS default contracts', () => {
   test('buildConfigPatchFromFlags saves hosted image defaults', () => {
     expect(buildConfigPatchFromFlags({
       'bfl-image': ['flux-2-pro'],
-      'reve-image': ['latest'],
       'recraft-image': ['recraftv4_1'],
       'replicate-image': ['wan-video/wan-2.7-image'],
       'image-size': '1024x1024',
       'image-format': 'webp'
-    }, new Set(['bfl-image', 'reve-image', 'recraft-image', 'replicate-image', 'image-size', 'image-format']))).toEqual({
+    }, new Set(['bfl-image', 'recraft-image', 'replicate-image', 'image-size', 'image-format']))).toEqual({
       defaults: {
         post: {
           image: {
             bflImage: ['flux-2-pro'],
-            reveImage: ['latest'],
             recraftImage: ['recraftv4_1'],
             replicateImage: ['wan-video/wan-2.7-image'],
             imageSize: '1024x1024',
@@ -82,14 +80,14 @@ describe('config image and TTS default contracts', () => {
 
   test('buildConfigPatchFromFlags saves and merges Speechify, Hume, and Cartesia TTS defaults', () => {
     const patch = buildConfigPatchFromFlags({
-      'speechify-tts': ['simba-english'],
+      'speechify-tts': ['simba-3.2'],
       'speechify-voice': 'narrator_voice',
       'speechify-tts-audio-format': 'wav',
       'speechify-tts-language': 'en-US',
       'hume-tts': ['octave-2'],
       'hume-tts-voice': 'Studio Voice',
       'hume-tts-voice-provider': 'CUSTOM_VOICE',
-      'cartesia-tts': ['sonic-3.5'],
+      'cartesia-tts': ['sonic-3.5-2026-05-04'],
       'cartesia-tts-voice': 'cartesia-voice-id',
       'cartesia-tts-language': 'en'
     }, new Set([
@@ -109,14 +107,14 @@ describe('config image and TTS default contracts', () => {
       defaults: {
         post: {
           tts: {
-            speechifyTts: ['simba-english'],
+            speechifyTts: ['simba-3.2'],
             speechifyVoice: 'narrator_voice',
             speechifyTtsAudioFormat: 'wav',
             speechifyTtsLanguage: 'en-US',
             humeTts: ['octave-2'],
             humeTtsVoice: 'Studio Voice',
             humeTtsVoiceProvider: 'CUSTOM_VOICE',
-            cartesiaTts: ['sonic-3.5'],
+            cartesiaTts: ['sonic-3.5-2026-05-04'],
             cartesiaTtsVoice: 'cartesia-voice-id',
             cartesiaTtsLanguage: 'en'
           }
@@ -125,14 +123,14 @@ describe('config image and TTS default contracts', () => {
     })
 
     expect(mergeConfigIntoRawFlags({}, patch as Parameters<typeof mergeConfigIntoRawFlags>[1], new Set())).toMatchObject({
-      'speechify-tts': ['simba-english'],
+      'speechify-tts': ['simba-3.2'],
       'speechify-voice': 'narrator_voice',
       'speechify-tts-audio-format': 'wav',
       'speechify-tts-language': 'en-US',
       'hume-tts': ['octave-2'],
       'hume-tts-voice': 'Studio Voice',
       'hume-tts-voice-provider': 'CUSTOM_VOICE',
-      'cartesia-tts': ['sonic-3.5'],
+      'cartesia-tts': ['sonic-3.5-2026-05-04'],
       'cartesia-tts-voice': 'cartesia-voice-id',
       'cartesia-tts-language': 'en'
     })

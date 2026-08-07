@@ -56,9 +56,8 @@ describe('provider selection contracts', () => {
     ])
 
     for (const [flag, model, providerName] of [
-      ['gemini-image', 'gemini-3.1-flash-image-preview', 'Gemini'],
-      ['bfl-image', 'flux-2-pro', 'BFL'],
-      ['reve-image', 'latest', 'Reve']
+      ['gemini-image', 'gemini-3.1-flash-lite-image', 'Gemini'],
+      ['bfl-image', 'flux-2-pro', 'BFL']
     ] as const) {
       const opts = buildOptsFromFlags(false, {
         [flag]: [model],

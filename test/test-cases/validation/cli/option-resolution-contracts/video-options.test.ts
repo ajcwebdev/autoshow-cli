@@ -112,8 +112,13 @@ describe('option resolution contracts', () => {
         'minimax/S2V-01',
         'glm/vidu2-reference',
         'grok/grok-imagine-video',
+        'grok/grok-imagine-video-1.5',
+        'replicate/alibaba/happyhorse-1.1',
         'replicate/bytedance/seedance-2.0',
-        'replicate/bytedance/seedance-2.0-fast'
+        'replicate/bytedance/seedance-2.0-fast',
+        'replicate/kwaivgi/kling-v3-omni-video',
+        'fal/minimax/h3',
+        'fal/fal-ai/pixverse/c1'
       ])
     })
 

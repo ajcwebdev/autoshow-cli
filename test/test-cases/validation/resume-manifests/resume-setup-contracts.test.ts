@@ -6,7 +6,9 @@ import { runCommand } from '../../../test-utils/test-helpers'
 import { readRunManifest, writeRunManifest } from '~/cli/commands/process-steps/manifest-utils'
 import { writeOcrRunManifest } from '~/cli/commands/process-steps/step-2-extract/step-2-ocr/ocr-manifest'
 import { writeSttRunManifest } from '~/cli/commands/process-steps/step-2-extract/step-2-stt/stt-manifest'
-import type { Step3Metadata } from '~/types'
+import { hasResumableTtsWork, priceTtsTarget } from '~/cli/commands/setup-and-utilities/resume/generation/tts-resume'
+import { hasResumableImageWork, priceImageTarget } from '~/cli/commands/setup-and-utilities/resume/generation/image-resume'
+import type { ResumeTarget, RuntimeOptions, Step3Metadata } from '~/types'
 
 const tempDirs: string[] = []
 
@@ -38,7 +40,7 @@ const writeIncompleteTtsRun = async (dir: string): Promise<void> => {
     input: 'Hello from resume price mode.',
     requestedProviders: [
       { service: 'kitten', model: 'kitten-tts-nano' },
-      { service: 'openai', model: 'gpt-4o-mini-tts' }
+      { service: 'openai', model: 'gpt-4o-mini-tts-2025-12-15' }
     ],
     tts: [{
       ttsService: 'kitten',
@@ -260,8 +262,99 @@ test('resume --price reports a dry-run estimate and leaves manifests unchanged',
   expect(result.exitCode).toBe(0)
   expect(result.outputDir).toBeNull()
   expect(output).toContain('Cost Estimate')
-  expect(output).toContain('gpt-4o-mini-tts')
+  expect(output).toContain('gpt-4o-mini-tts-2025-12-15')
   expect(await Bun.file(manifestPath).text()).toBe(before)
+})
+
+test('TTS resume preserves completed retired identities and rejects incomplete retired targets with replacements', async () => {
+  const root = await makeTempRoot('autoshow-retired-tts-resume-')
+  const cases = [
+    { service: 'cartesia', model: 'sonic-3', replacement: 'cartesia=sonic-3.5-2026-05-04' },
+    { service: 'cartesia', model: 'sonic-3.5', replacement: 'cartesia=sonic-3.5-2026-05-04' },
+    { service: 'openai', model: 'gpt-4o-mini-tts', replacement: 'openai=gpt-4o-mini-tts-2025-12-15' },
+    { service: 'speechify', model: 'simba-english', replacement: 'speechify=simba-3.2' }
+  ]
+
+  for (const entry of cases) {
+    const completeDir = join(root, `${entry.service}-${entry.model}-complete`)
+    const incompleteDir = join(root, `${entry.service}-${entry.model}-incomplete`)
+    await Promise.all([mkdir(completeDir, { recursive: true }), mkdir(incompleteDir, { recursive: true })])
+    await writeRunManifest(completeDir, 'tts', {
+      input: 'Historical speech.',
+      requestedProviders: [{ service: entry.service, model: entry.model }],
+      tts: [{
+        ttsService: entry.service,
+        ttsModel: entry.model,
+        processingTime: 1,
+        audioFileName: `speech-${entry.model}.wav`,
+        audioFileSize: 1,
+        chunkCount: 1
+      }]
+    })
+    await writeRunManifest(incompleteDir, 'tts', {
+      input: 'Historical speech.',
+      requestedProviders: [{ service: entry.service, model: entry.model }],
+      tts: []
+    })
+    const completeTarget: ResumeTarget = { kind: 'tts', scope: 'single', dir: completeDir, manifestPath: join(completeDir, 'run.json') }
+    const incompleteTarget: ResumeTarget = { kind: 'tts', scope: 'single', dir: incompleteDir, manifestPath: join(incompleteDir, 'run.json') }
+
+    await expect(hasResumableTtsWork(completeTarget, {} as RuntimeOptions)).resolves.toBe(false)
+    await expect(priceTtsTarget(incompleteTarget, {} as RuntimeOptions)).rejects.toThrow(`Stored TTS target ${entry.service}/${entry.model} is incomplete`)
+    await expect(priceTtsTarget(incompleteTarget, {} as RuntimeOptions)).rejects.toThrow(`--provider ${entry.replacement}`)
+    expect((await readRunManifest(completeDir, 'tts'))?.metadata['requestedProviders']).toEqual([{ service: entry.service, model: entry.model }])
+  }
+})
+
+test('image resume preserves completed retired identities and rejects incomplete Gemini and Reve targets', async () => {
+  const root = await makeTempRoot('autoshow-retired-image-resume-')
+  const cases = [
+    {
+      service: 'gemini',
+      model: 'gemini-3.1-flash-image-preview',
+      expected: '--provider gemini=gemini-3.1-flash-lite-image'
+    },
+    {
+      service: 'reve',
+      model: 'latest',
+      expected: "Reve's public API is sunset on 2026-08-14"
+    },
+    {
+      service: 'reve',
+      model: 'reve-create@20250915',
+      expected: "Reve's public API is sunset on 2026-08-14"
+    }
+  ] as const
+
+  for (const entry of cases) {
+    const completeDir = join(root, `${entry.service}-${entry.model}-complete`)
+    const incompleteDir = join(root, `${entry.service}-${entry.model}-incomplete`)
+    await Promise.all([mkdir(completeDir, { recursive: true }), mkdir(incompleteDir, { recursive: true })])
+    const requestedProviders = [{ service: entry.service, model: entry.model }]
+    await writeRunManifest(completeDir, 'image', {
+      input: 'Historical image.',
+      requestedProviders,
+      image: [{
+        imageService: entry.service,
+        imageModel: entry.model,
+        processingTime: 1,
+        imageCount: 1,
+        imageFileNames: ['generated-image.png'],
+        imageFileSize: 1
+      }]
+    })
+    await writeRunManifest(incompleteDir, 'image', {
+      input: 'Historical image.',
+      requestedProviders,
+      image: []
+    })
+    const completeTarget: ResumeTarget = { kind: 'image', scope: 'single', dir: completeDir, manifestPath: join(completeDir, 'run.json') }
+    const incompleteTarget: ResumeTarget = { kind: 'image', scope: 'single', dir: incompleteDir, manifestPath: join(incompleteDir, 'run.json') }
+
+    await expect(hasResumableImageWork(completeTarget, {} as RuntimeOptions)).resolves.toBe(false)
+    await expect(priceImageTarget(incompleteTarget, {} as RuntimeOptions)).rejects.toThrow(entry.expected)
+    expect((await readRunManifest(completeDir, 'image'))?.metadata['requestedProviders']).toEqual(requestedProviders)
+  }
 })
 
 test('resume --price logs per-directory estimates and a suite total', async () => {

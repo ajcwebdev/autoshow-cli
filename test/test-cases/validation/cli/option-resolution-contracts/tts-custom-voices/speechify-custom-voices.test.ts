@@ -6,7 +6,7 @@ import { SPEECHIFY_TTS_CUSTOM_VOICE_SETUP_MS } from '~/cli/commands/process-step
 describe('Speechify custom voice option contracts', () => {
   test('Speechify custom voice flags build reference-audio targets and validate required consent', () => {
       const opts = buildOptsFromFlags(false, {
-        'speechify-tts': ['simba-english'],
+        'speechify-tts': ['simba-3.0'],
         'speechify-tts-ref-audio': 'input/voices/my-voice-sample.mp3',
         'speechify-tts-voice-name': 'FallbackName',
         'speechify-tts-consent-name': 'Fallback Consent',
@@ -35,7 +35,7 @@ describe('Speechify custom voice option contracts', () => {
         setupNote: target.setupNote
       }))).toEqual([
         {
-          model: 'simba-english',
+          model: 'simba-3.0',
           voice: 'ref_audio:my-voice-sample.mp3',
           setupCostCents: 0,
           setupTimeMs: SPEECHIFY_TTS_CUSTOM_VOICE_SETUP_MS,
@@ -50,14 +50,14 @@ describe('Speechify custom voice option contracts', () => {
       }))).toThrow('Speechify TTS custom voice flags require selecting speechify TTS')
 
       expect(() => collectTtsTargets(buildOptsFromFlags(false, {
-        'speechify-tts': 'simba-english',
+        'speechify-tts': 'simba-3.0',
         'speechify-tts-voice-name': 'AutoShow Anthony',
         'speechify-tts-consent-name': 'Anthony Example',
         'speechify-tts-consent-email': 'anthony@example.com'
       }))).toThrow('requires --speechify-tts-ref-audio')
 
       expect(() => collectTtsTargets(buildOptsFromFlags(false, {
-        'speechify-tts': 'simba-english',
+        'speechify-tts': 'simba-3.0',
         'speechify-voice': 'george',
         'speechify-tts-ref-audio': 'input/voices/my-voice-sample.mp3',
         'speechify-tts-consent-name': 'Anthony Example',
@@ -65,13 +65,13 @@ describe('Speechify custom voice option contracts', () => {
       }))).toThrow('cannot be combined with --speechify-voice')
 
       expect(() => collectTtsTargets(buildOptsFromFlags(false, {
-        'speechify-tts': 'simba-english',
+        'speechify-tts': 'simba-3.0',
         'speechify-tts-ref-audio': 'input/voices/my-voice-sample.mp3',
         'speechify-tts-consent-email': 'anthony@example.com'
       }))).toThrow('requires --speechify-tts-consent-name')
 
       expect(() => collectTtsTargets(buildOptsFromFlags(false, {
-        'speechify-tts': 'simba-english',
+        'speechify-tts': 'simba-3.0',
         'speechify-tts-ref-audio': 'input/voices/my-voice-sample.mp3',
         'speechify-tts-consent-name': 'Anthony Example',
         'speechify-tts-consent-email': 'anthony@example.com',

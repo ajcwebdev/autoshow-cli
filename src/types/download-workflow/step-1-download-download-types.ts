@@ -170,10 +170,10 @@ export type RepeatableModelFlag =
   | 'openai-image'
   | 'grok-image'
   | 'bfl-image'
-  | 'reve-image'
   | 'recraft-image'
   | 'replicate-image'
   | 'lumalabs-image'
+  | 'fal-image'
   | 'elevenlabs-music'
   | 'minimax-music'
   | 'gemini-music'
@@ -184,6 +184,8 @@ export type RepeatableModelFlag =
   | 'runway-video'
   | 'ltx-video'
   | 'replicate-video'
+  | 'lumalabs-video'
+  | 'fal-video'
   | 'lumalabs-video'
 
 export type FlagOccurrenceValue = string | boolean

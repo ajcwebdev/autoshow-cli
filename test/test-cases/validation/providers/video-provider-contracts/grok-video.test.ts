@@ -11,6 +11,27 @@ import {
 } from './shared'
 
 describe('video provider REST contracts', () => {
+  test('Grok Imagine Video 1.5 sends native 1080p generation requests', async () => {
+    process.env['XAI_API_KEY'] = 'xai-key'
+    const calls = installMockFetch((call) => {
+      if (call.method === 'POST') return jsonResponse({ request_id: 'grok-15' })
+      if (call.url === `${XAI_DEFAULT_BASE_URL}/videos/grok-15`) return jsonResponse({ status: 'done', model: 'grok-imagine-video-1.5', video: { url: 'https://cdn.example.com/grok-15.mp4', duration: 5, respect_moderation: true } })
+      if (call.url === 'https://cdn.example.com/grok-15.mp4') return videoResponse()
+      throw new Error(`Unexpected Grok fetch: ${call.method} ${call.url}`)
+    })
+
+    await withTempDir(async (dir) => {
+      await runGrokVideoGen('A cinematic ocean sunrise', dir, {
+        model: 'grok-imagine-video-1.5',
+        durationSeconds: 5,
+        resolution: '1080p',
+        aspectRatio: '16:9'
+      })
+    })
+
+    expect(calls[0]?.bodyJson).toEqual({ model: 'grok-imagine-video-1.5', prompt: 'A cinematic ocean sunrise', duration: 5, aspect_ratio: '16:9', resolution: '1080p' })
+  })
+
   test('Grok sends generation media, storage options, and extracts poll metadata cost', async () => {
     process.env['XAI_API_KEY'] = 'xai-key'
     const calls = installMockFetch((call) => {

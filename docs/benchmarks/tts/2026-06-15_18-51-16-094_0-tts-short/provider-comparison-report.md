@@ -3,7 +3,7 @@
 ## Summary
 
 - Run directory: `/Users/ajc/c/autoshow-cli/docs/benchmarks/tts/2026-06-15_18-51-16-094_0-tts-short`
-- Total providers: 16 (0 local, 16 service)
+- Total providers: 21 (0 local, 21 service)
 - Local models and third-party service models are intentionally not ranked against each other.
 - Reports expose complete price, speed, automated-quality, and human-quality rankings for each group.
 
@@ -43,41 +43,53 @@ No local providers were found.
 
 | Rank | Provider | Evidence |
 | ---: | --- | --- |
-| 1 | <code>speechify/simba-english</code> | $0.0002 |
-| 2 | <code>openai/gpt-4o-mini-tts</code> | $0.0002 |
-| 3 | <code>openai/tts-1</code> | $0.0003 |
-| 4 | <code>grok/grok-tts</code> | $0.0003 |
-| 5 | <code>mistral/voxtral-mini-tts-2603</code> | $0.0003 |
-| 6 | <code>gemini/gemini-3.1-flash-tts-preview</code> | $0.0004 |
-| 7 | <code>groq/canopylabs/orpheus-v1-english</code> | $0.0004 |
-| 8 | <code>openai/tts-1-hd</code> | $0.0005 |
-| 9 | <code>deepgram/aura-2-thalia-en</code> | $0.0005 |
-| 10 | <code>cartesia/sonic-3</code> | $0.0006 |
-| 11 | <code>cartesia/sonic-3.5</code> | $0.0006 |
-| 12 | <code>minimax/speech-2.8-turbo</code> | $0.0010 |
-| 13 | <code>elevenlabs/eleven_v3</code> | $0.0017 |
-| 14 | <code>minimax/speech-2.8-hd</code> | $0.0017 |
-| 15 | <code>hume/octave-2</code> | $0.0026 |
+| 1 | <code>speechify/simba-3.0</code> | $0.0002 |
+| 2 | <code>speechify/simba-3.2</code> | $0.0002 |
+| 3 | <code>speechify/simba-english</code> | $0.0002 |
+| 4 | <code>openai/gpt-4o-mini-tts</code> | $0.0002 |
+| 5 | <code>openai/gpt-4o-mini-tts-2025-12-15</code> | $0.0002 |
+| 6 | <code>openai/tts-1</code> | $0.0003 |
+| 7 | <code>grok/grok-tts</code> | $0.0003 |
+| 8 | <code>mistral/voxtral-mini-tts-2603</code> | $0.0003 |
+| 9 | <code>gemini/gemini-3.1-flash-tts-preview</code> | $0.0004 |
+| 10 | <code>groq/canopylabs/orpheus-v1-english</code> | $0.0004 |
+| 11 | <code>openai/tts-1-hd</code> | $0.0005 |
+| 12 | <code>deepgram/aura-2-thalia-en</code> | $0.0005 |
+| 13 | <code>cartesia/sonic-3</code> | $0.0006 |
+| 14 | <code>cartesia/sonic-3.5</code> | $0.0006 |
+| 15 | <code>cartesia/sonic-3.5-2026-05-04</code> | $0.0006 |
+| 16 | <code>elevenlabs/eleven_flash_v2_5</code> | $0.0009 |
+| 17 | <code>minimax/speech-2.8-turbo</code> | $0.0010 |
+| 18 | <code>elevenlabs/eleven_multilingual_v2</code> | $0.0017 |
+| 19 | <code>elevenlabs/eleven_v3</code> | $0.0017 |
+| 20 | <code>minimax/speech-2.8-hd</code> | $0.0017 |
+| 21 | <code>hume/octave-2</code> | $0.0026 |
 
 ### Speed
 
 | Rank | Provider | Evidence |
 | ---: | --- | --- |
-| 1 | <code>cartesia/sonic-3.5</code> | 0.38s |
-| 2 | <code>cartesia/sonic-3</code> | 0.50s |
-| 3 | <code>groq/canopylabs/orpheus-v1-english</code> | 0.53s |
-| 4 | <code>grok/grok-tts</code> | 0.75s |
-| 5 | <code>deepgram/aura-2-thalia-en</code> | 0.91s |
-| 6 | <code>elevenlabs/eleven_v3</code> | 0.99s |
-| 7 | <code>hume/octave-2</code> | 1.15s |
-| 8 | <code>openai/gpt-4o-mini-tts</code> | 1.25s |
-| 9 | <code>openai/tts-1</code> | 1.47s |
-| 10 | <code>mistral/voxtral-mini-tts-2603</code> | 1.62s |
-| 11 | <code>speechify/simba-english</code> | 2.01s |
-| 12 | <code>gemini/gemini-3.1-flash-tts-preview</code> | 2.06s |
-| 13 | <code>openai/tts-1-hd</code> | 2.58s |
-| 14 | <code>minimax/speech-2.8-hd</code> | 24.04s |
-| 15 | <code>minimax/speech-2.8-turbo</code> | 48.53s |
+| 1 | <code>elevenlabs/eleven_flash_v2_5</code> | 0.15s |
+| 2 | <code>cartesia/sonic-3.5-2026-05-04</code> | 0.25s |
+| 3 | <code>cartesia/sonic-3.5</code> | 0.38s |
+| 4 | <code>cartesia/sonic-3</code> | 0.50s |
+| 5 | <code>groq/canopylabs/orpheus-v1-english</code> | 0.53s |
+| 6 | <code>speechify/simba-3.2</code> | 0.59s |
+| 7 | <code>speechify/simba-3.0</code> | 0.70s |
+| 8 | <code>grok/grok-tts</code> | 0.75s |
+| 9 | <code>elevenlabs/eleven_multilingual_v2</code> | 0.87s |
+| 10 | <code>deepgram/aura-2-thalia-en</code> | 0.91s |
+| 11 | <code>elevenlabs/eleven_v3</code> | 0.99s |
+| 12 | <code>hume/octave-2</code> | 1.15s |
+| 13 | <code>openai/gpt-4o-mini-tts</code> | 1.25s |
+| 14 | <code>openai/tts-1</code> | 1.47s |
+| 15 | <code>mistral/voxtral-mini-tts-2603</code> | 1.62s |
+| 16 | <code>speechify/simba-english</code> | 2.01s |
+| 17 | <code>gemini/gemini-3.1-flash-tts-preview</code> | 2.06s |
+| 18 | <code>openai/tts-1-hd</code> | 2.58s |
+| 19 | <code>openai/gpt-4o-mini-tts-2025-12-15</code> | 2.88s |
+| 20 | <code>minimax/speech-2.8-hd</code> | 24.04s |
+| 21 | <code>minimax/speech-2.8-turbo</code> | 48.53s |
 
 ### Automated Quality
 
@@ -125,7 +137,10 @@ No local providers were found.
 | --- | --- | ---: | ---: |
 | <code>cartesia/sonic-3</code> | 80.15 humanSpeechScore | 0.50s | $0.0006 |
 | <code>cartesia/sonic-3.5</code> | 82.68 humanSpeechScore | 0.38s | $0.0006 |
+| <code>cartesia/sonic-3.5-2026-05-04</code> | n/a | 0.25s | $0.0006 |
 | <code>deepgram/aura-2-thalia-en</code> | 89.08 humanSpeechScore | 0.91s | $0.0005 |
+| <code>elevenlabs/eleven_flash_v2_5</code> | n/a | 0.15s | $0.0009 |
+| <code>elevenlabs/eleven_multilingual_v2</code> | n/a | 0.87s | $0.0017 |
 | <code>elevenlabs/eleven_v3</code> | 84.17 humanSpeechScore | 0.99s | $0.0017 |
 | <code>gemini/gemini-3.1-flash-tts-preview</code> | 83.31 humanSpeechScore | 2.06s | $0.0004 |
 | <code>grok/grok-tts</code> | 85.83 humanSpeechScore | 0.75s | $0.0003 |
@@ -135,13 +150,16 @@ No local providers were found.
 | <code>minimax/speech-2.8-turbo</code> | 90.71 humanSpeechScore | 48.53s | $0.0010 |
 | <code>mistral/voxtral-mini-tts-2603</code> | 75.84 humanSpeechScore | 1.62s | $0.0003 |
 | <code>openai/gpt-4o-mini-tts</code> | 77.78 humanSpeechScore | 1.25s | $0.0002 |
+| <code>openai/gpt-4o-mini-tts-2025-12-15</code> | n/a | 2.88s | $0.0002 |
 | <code>openai/tts-1</code> | 88.96 humanSpeechScore | 1.47s | $0.0003 |
 | <code>openai/tts-1-hd</code> | 91.75 humanSpeechScore | 2.58s | $0.0005 |
+| <code>speechify/simba-3.0</code> | n/a | 0.70s | $0.0002 |
+| <code>speechify/simba-3.2</code> | n/a | 0.59s | $0.0002 |
 | <code>speechify/simba-english</code> | 91.72 humanSpeechScore | 2.01s | $0.0002 |
 
 ## Notes
 
 - Best cloud service: `openai/tts-1-hd` scored 91.75/100.
-- The cheapest cloud provider was `speechify/simba-english` at 0.0170¢ ($0.0002).
-- Fastest cloud service: `cartesia/sonic-3.5` at 0.38s.
+- The cheapest cloud providers were `speechify/simba-english`, `speechify/simba-3.2`, and `speechify/simba-3.0` at 0.0170¢ ($0.0002).
+- Fastest cloud service: `elevenlabs/eleven_flash_v2_5` at 0.15s.
 - Voice quality scores from voice-quality-report.json were used as the primary quality metric (human speech quality: 55% naturalness + 45% speech quality).

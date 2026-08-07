@@ -97,7 +97,7 @@ describe('TTS provider service contracts', () => {
       }) as typeof fetch
 
       const result = await runSpeechifyTts('a'.repeat(2100), dir, {
-        model: 'simba-english',
+        model: 'simba-3.2',
         voiceId: 'narrator_voice',
         audioFormat: 'wav',
         language: 'en-US'
@@ -106,7 +106,7 @@ describe('TTS provider service contracts', () => {
       expect(await Bun.file(result.audioPath).exists()).toBe(true)
       expect(result.metadata).toMatchObject({
         ttsService: 'speechify',
-        ttsModel: 'simba-english',
+        ttsModel: 'simba-3.2',
         speaker: 'narrator_voice',
         chunkCount: 2
       })
@@ -129,7 +129,7 @@ describe('TTS provider service contracts', () => {
           authorization: 'Bearer speechify-key',
           voice: 'narrator_voice',
           format: 'wav',
-          model: 'simba-english',
+          model: 'simba-3.2',
           language: 'en-US',
           inputLength: 2000
         },
@@ -139,7 +139,7 @@ describe('TTS provider service contracts', () => {
           authorization: 'Bearer speechify-key',
           voice: 'narrator_voice',
           format: 'wav',
-          model: 'simba-english',
+          model: 'simba-3.2',
           language: 'en-US',
           inputLength: 2000
         },
@@ -149,7 +149,7 @@ describe('TTS provider service contracts', () => {
           authorization: 'Bearer speechify-key',
           voice: 'narrator_voice',
           format: 'wav',
-          model: 'simba-english',
+          model: 'simba-3.2',
           language: 'en-US',
           inputLength: 100
         }
@@ -184,7 +184,7 @@ describe('TTS provider service contracts', () => {
       }) as typeof fetch
 
       const runPromise = runSpeechifyTts(`${'A'.repeat(2000)} ${'B'.repeat(100)}`, dir, {
-        model: 'simba-english',
+        model: 'simba-3.2',
         voiceId: 'narrator_voice',
         audioFormat: 'wav',
         chunkConcurrency: 2
@@ -214,6 +214,24 @@ describe('TTS provider service contracts', () => {
       expect(first).toBeLessThan(second)
       expect(result.metadata.chunkCount).toBe(2)
     }, 10_000)
+
+  test('Speechify sends both current model IDs with compatible voices and languages', async () => {
+    const dir = await makeTempDir('autoshow-speechify-current-models-')
+    const bodies: Array<Record<string, unknown>> = []
+    process.env['SPEECHIFY_API_KEY'] = 'speechify-key'
+    globalThis.fetch = (async (_input: Parameters<typeof fetch>[0], init?: Parameters<typeof fetch>[1]): Promise<Response> => {
+      bodies.push(JSON.parse(String(init?.body ?? '{}')) as Record<string, unknown>)
+      return Response.json({ audio_data: createMockWavBase64() })
+    }) as typeof fetch
+
+    await runSpeechifyTts('Simba 3.2.', dir, { model: 'simba-3.2', voiceId: 'geffen_32', language: 'en-US' })
+    await runSpeechifyTts('Simba 3.0.', dir, { model: 'simba-3.0', voiceId: 'george', language: 'fr-FR' })
+
+    expect(bodies.map((body) => ({ model: body['model'], voice: body['voice_id'], language: body['language'] }))).toEqual([
+      { model: 'simba-3.2', voice: 'geffen_32', language: 'en-US' },
+      { model: 'simba-3.0', voice: 'george', language: 'fr-FR' }
+    ])
+  }, 10_000)
 
   test('Speechify custom voice creation posts multipart consent and uses the returned voice ID for synthesis', async () => {
       const dir = await makeTempDir('autoshow-speechify-custom-voice-')
@@ -269,7 +287,7 @@ describe('TTS provider service contracts', () => {
       }) as typeof fetch
 
       const result = await runSpeechifyTts('Speechify custom voice synthesis.', dir, {
-        model: 'simba-english',
+        model: 'simba-3.0',
         customVoice: {
           refAudioPath: samplePath,
           voiceName: 'AutoShow Anthony',
@@ -283,7 +301,7 @@ describe('TTS provider service contracts', () => {
       expect(await Bun.file(result.audioPath).exists()).toBe(true)
       expect(result.metadata).toMatchObject({
         ttsService: 'speechify',
-        ttsModel: 'simba-english',
+        ttsModel: 'simba-3.0',
         speaker: 'ref_audio:speechify-sample.mp3',
         clonedVoiceId: 'speechify_custom_voice_123',
         cloneCostCents: 0,
@@ -308,7 +326,7 @@ describe('TTS provider service contracts', () => {
         body: {
           voice_id: 'speechify_custom_voice_123',
           audio_format: 'mp3',
-          model: 'simba-english',
+          model: 'simba-3.0',
           input: 'Speechify custom voice synthesis.'
         }
       })
@@ -328,7 +346,7 @@ describe('TTS provider service contracts', () => {
       }) as typeof fetch
 
       await expect(runSpeechifyTts('Invalid custom voice.', dir, {
-        model: 'simba-english',
+        model: 'simba-3.0',
         customVoice: {
           refAudioPath: emptyAudio,
           consentName: 'Anthony Example',

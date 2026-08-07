@@ -77,11 +77,11 @@ Current hosted/local provider families:
 | OCR | Local/native: `tesseract` plus native document extractors. Hosted: `mistral`, `glm`, `kimi`, `openai`, `grok`, `anthropic`, `gemini`, `deepinfra`, `unstructured`. |
 | URL | Local: `defuddle`. Hosted: `firecrawl`, `glm-reader`, `spider`, `supadata`, `zyte`. |
 | TTS | Local: `kitten`. Hosted: `elevenlabs`, `minimax`, `groq`, `grok`, `mistral`, `openai`, `gemini`, `deepgram`, `speechify`, `hume`, `cartesia`. |
-| Image | `gemini`, `openai`, `grok`, `bfl`, `reve`, `recraft`, `replicate`, `lumalabs`. |
-| Video | `gemini`, `minimax`, `glm`, `grok`, `runway`, `ltx`, `replicate`, `lumalabs`. |
+| Image | `gemini`, `openai`, `grok`, `bfl`, `recraft`, `replicate`, `lumalabs`, `fal`. |
+| Video | `gemini`, `minimax`, `glm`, `grok`, `runway`, `ltx`, `replicate`, `lumalabs`, `fal`. |
 | Music | `elevenlabs`, `minimax`, `gemini`. |
 
-Image model examples include Gemini `gemini-3.1-flash-image-preview`, OpenAI `gpt-image-2`, Grok `grok-imagine-image-quality` and `grok-imagine-image`, BFL `flux-2-pro`/`flux-2-max`/`flux-2-flex`, Reve `latest`/`reve-create@20250915`, Recraft `recraftv4_1*` variants, Replicate `bytedance/seedream-4.5`, `qwen/qwen-image-2`, and `wan-video/wan-2.7-image` families, and Luma Labs `uni-1`/`uni-1-max`.
+Image model examples include Gemini `gemini-3.1-flash-lite-image`/`gemini-3.1-flash-image`/`gemini-3-pro-image`, OpenAI `gpt-image-2`, Grok `grok-imagine-image-quality` and `grok-imagine-image`, BFL `flux-2-klein-4b`/`flux-2-klein-9b`/`flux-2-pro`/`flux-2-max`/`flux-2-flex`, Recraft `recraftv4_1*` variants, Replicate `bytedance/seedream-4.5`, `qwen/qwen-image-2`, and `wan-video/wan-2.7-image` families, and Luma Labs `uni-1`/`uni-1-max`.
 
 ## Setup Pipeline
 
@@ -143,7 +143,6 @@ These checks come from `HOSTED_PROVIDER_ENV_CHECKS`:
 | `MISTRAL_API_KEY` | Mistral STT/OCR/TTS |
 | `UNSTRUCTURED_API_KEY` | Unstructured OCR |
 | `BFL_API_KEY` | BFL image |
-| `REVE_API_KEY` | Reve image |
 | `RECRAFT_API_TOKEN` | Recraft image |
 | `REPLICATE_API_TOKEN` | Replicate image/video |
 | `LUMA_AGENTS_API_KEY` | Luma Labs image/video |
@@ -188,7 +187,7 @@ These checks come from `HOSTED_PROVIDER_ENV_CHECKS`:
 | `write` | Route-specific extract dependencies plus llama.cpp or llamafile for local LLM. | Selected hosted LLM key. |
 | `write --text-input` | local `.md`/`.txt` files; llama.cpp or llamafile if using local LLM. | Selected hosted LLM/generation keys. |
 | `tts --provider kitten` | Kitten TTS Python env and models. | Hosted TTS key for hosted providers. |
-| `image` | none for hosted-only providers. | `GEMINI_API_KEY`, `OPENAI_API_KEY`, `XAI_API_KEY`, `BFL_API_KEY`, `REVE_API_KEY`, `RECRAFT_API_TOKEN`, `REPLICATE_API_TOKEN`, or `LUMA_AGENTS_API_KEY`. |
+| `image` | none for hosted-only providers. | `GEMINI_API_KEY`, `OPENAI_API_KEY`, `XAI_API_KEY`, `BFL_API_KEY`, `RECRAFT_API_TOKEN`, `REPLICATE_API_TOKEN`, or `LUMA_AGENTS_API_KEY`. |
 | `video` | local input media/image validation where used. | `GEMINI_API_KEY`, `MINIMAX_API_KEY`, `GLM_API_KEY`, `XAI_API_KEY`, `RUNWAYML_API_SECRET`, `LTXV_API_KEY`, `REPLICATE_API_TOKEN`, or `LUMA_AGENTS_API_KEY`. |
 | `music` hosted | none for hosted-only generation. | `ELEVENLABS_API_KEY`, `MINIMAX_API_KEY`, or `GEMINI_API_KEY`. |
 | `music --audio`/`--batch` | ffmpeg, ffprobe, subtitle render helpers, `whisper-cli`, local Whisper `large-v3-turbo`. | No hosted music key required for local lyric-video rendering. |

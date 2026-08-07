@@ -241,7 +241,6 @@ export const OPENAI_IMAGE_MASK_MIME_TYPES = ['image/png'] as const
 export const GROK_IMAGE_INPUT_MIME_TYPES = ['image/png', 'image/jpeg'] as const
 export const GEMINI_IMAGE_INPUT_MIME_TYPES = ['image/png', 'image/jpeg', 'image/webp', 'image/heic', 'image/heif'] as const
 export const BFL_IMAGE_INPUT_MIME_TYPES = ['image/png', 'image/jpeg', 'image/webp'] as const
-export const REVE_IMAGE_INPUT_MIME_TYPES = ['image/png', 'image/jpeg', 'image/webp'] as const
 export const LUMALABS_IMAGE_INPUT_MIME_TYPES = ['image/png', 'image/jpeg', 'image/webp'] as const
 export const REPLICATE_SEEDREAM_IMAGE_INPUT_MIME_TYPES = ['image/png', 'image/jpeg', 'image/webp'] as const
 export const REPLICATE_QWEN_IMAGE_INPUT_MIME_TYPES = ['image/png', 'image/jpeg', 'image/webp'] as const

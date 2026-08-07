@@ -19,7 +19,7 @@ describe('price mode contracts', () => {
         audioDurationSeconds: 10,
         extractTargets: [{ provider: 'kimi', model: 'kimi-k2.6', pageCount: 2 }],
         llmTargets: [{ service: 'openai', model: 'gpt-5.4-nano', inputTokens: 600, outputTokens: 400 }],
-        ttsTargets: [{ service: 'openai', model: 'gpt-4o-mini-tts' }],
+        ttsTargets: [{ service: 'openai', model: 'gpt-4o-mini-tts-2025-12-15' }],
         ttsCharacterCount: 1000,
         imageTargets: [{ service: 'openai', model: 'gpt-image-2', count: 2 }],
         videoTargets: [{ service: 'gemini', model: 'veo-3.1-lite-generate-preview', durationSeconds: 4 }],
@@ -453,8 +453,8 @@ describe('price mode contracts', () => {
   test('MiniMax music timing estimates use the provider default duration', () => {
       const timing = computeEstimatedProcessingTimes({
         musicTargets: [
-          { service: 'minimax', model: 'music-2.6' },
-          { service: 'minimax', model: 'music-2.6', durationSeconds: 15 }
+          { service: 'minimax', model: 'music-3.0' },
+          { service: 'minimax', model: 'music-3.0', durationSeconds: 15 }
         ]
       })
 
@@ -467,14 +467,14 @@ describe('price mode contracts', () => {
       expect(rows).toEqual([
         {
           provider: 'minimax',
-          model: 'music-2.6',
-          processingTimeMs: Math.round((rows[0]?.inputValue ?? 0) * getMusicEstimation('minimax', 'music-2.6').msPerSecond),
+          model: 'music-3.0',
+          processingTimeMs: Math.round((rows[0]?.inputValue ?? 0) * getMusicEstimation('minimax', 'music-3.0').msPerSecond),
           inputValue: rows[0]?.inputValue
         },
         {
           provider: 'minimax',
-          model: 'music-2.6',
-          processingTimeMs: Math.round((rows[1]?.inputValue ?? 0) * getMusicEstimation('minimax', 'music-2.6').msPerSecond),
+          model: 'music-3.0',
+          processingTimeMs: Math.round((rows[1]?.inputValue ?? 0) * getMusicEstimation('minimax', 'music-3.0').msPerSecond),
           inputValue: rows[1]?.inputValue
         }
       ])

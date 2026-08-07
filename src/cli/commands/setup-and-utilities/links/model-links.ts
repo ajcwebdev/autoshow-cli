@@ -10,6 +10,7 @@ import deepinfraLinks from './model-links/deepinfra.json'
 import driveLinks from './model-links/drive.json'
 import elevenlabsLinks from './model-links/elevenlabs.json'
 import firecrawlLinks from './model-links/firecrawl.json'
+import falLinks from './model-links/fal.json'
 import geminiLinks from './model-links/gemini.json'
 import gladiaLinks from './model-links/gladia.json'
 import glmLinks from './model-links/glm.json'
@@ -27,7 +28,6 @@ import openaiLinks from './model-links/openai.json'
 import recraftLinks from './model-links/recraft.json'
 import replicateLinks from './model-links/replicate.json'
 import resendLinks from './model-links/resend.json'
-import reveLinks from './model-links/reve.json'
 import revLinks from './model-links/rev.json'
 import runwayLinks from './model-links/runway.json'
 import scrapecreatorsLinks from './model-links/scrapecreators.json'
@@ -75,7 +75,6 @@ const providerLinks = [
   revLinks,
   recraftLinks,
   replicateLinks,
-  reveLinks,
   runwayLinks,
   resendLinks,
   happyscribeLinks,
@@ -84,6 +83,7 @@ const providerLinks = [
   scrapecreatorsLinks,
   zyteLinks,
   firecrawlLinks,
+  falLinks,
   spiderLinks
 ] as const satisfies readonly ModelLinksData[]
 

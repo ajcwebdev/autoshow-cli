@@ -176,4 +176,25 @@ describe('TTS provider service contracts', () => {
         body: { text: 'Deepgram control synthesis.' }
       }])
     }, 10_000)
+
+  test('Deepgram TTS sends each newly registered model through the existing query transport', async () => {
+    const dir = await makeTempDir('autoshow-deepgram-new-models-')
+    const audioBytes = await Bun.file(LOCAL_SHORT_AUDIO_PATH).arrayBuffer()
+    const urls: string[] = []
+    process.env['DEEPGRAM_API_KEY'] = 'deepgram-key'
+    globalThis.fetch = (async (input: Parameters<typeof fetch>[0]): Promise<Response> => {
+      urls.push(String(input))
+      return new Response(audioBytes, { status: 200, headers: { 'content-type': 'audio/mpeg' } })
+    }) as typeof fetch
+
+    for (const model of ['aura-2-helena-en', 'aura-2-arcas-en', 'aura-2-aries-en'] as const) {
+      await runDeepgramTts('New Deepgram model.', dir, { model })
+    }
+
+    expect(urls).toEqual([
+      'https://api.deepgram.com/v1/speak?model=aura-2-helena-en',
+      'https://api.deepgram.com/v1/speak?model=aura-2-arcas-en',
+      'https://api.deepgram.com/v1/speak?model=aura-2-aries-en'
+    ])
+  }, 10_000)
 })

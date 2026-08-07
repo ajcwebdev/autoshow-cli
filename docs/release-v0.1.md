@@ -166,14 +166,14 @@ bun autoshow tts input/examples/tts/1-tts.md --provider kitten=kitten-tts-mini
   - hosted image generation and editing providers
 - Key outputs:
   - default run directory `output/<timestamp>_image-gen/`, or the exact directory passed with `--output-dir`
-  - generated image files such as `generated-image.png`, `generated-image.jpg`, `generated-image.webp`, or `generated-image.svg`
+  - generated image files such as `generated-image.png`, `generated-image.jpg`, or `generated-image.webp`
   - multi-provider files named like `generated-image-<provider>-<model>.<ext>`
   - `run.json` with image, cost, and timing metadata
 
 Example:
 
 ```bash
-bun autoshow image "a clean vector mark of a mountain observatory" --provider recraft=recraftv4_1_vector --aspect-ratio 1:1
+bun autoshow image "a premium product photo of a mountain observatory brochure" --provider recraft=recraftv4_1 --aspect-ratio 1:1
 ```
 
 ### Step 6: video

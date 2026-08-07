@@ -59,6 +59,39 @@
         "audioMimeType": "audio/mpeg",
         "outputFormat": "mp3",
         "generatedText": "[[A0]]\n[[B1]]\n[12.0:] Way below the dew line, where the roots get tangled,\n[:] (Where the roots get tangled)\n[:] Ancient gold in the cold, truth is left dismantled,\n[:] (Truth is left dismantled)\n[:] We ain't dancing in the sun for your tourism,\n[:] Deep in the turf, avoid the prism, avoid the schism,\n[:] Stitch the leather, watch the weather turn to copper,\n[:] No whistle for the hunter, no help for the stopper.\n[[C2]]\n[42.0:] It's the emerald friction, the hidden conviction!\n[:] The magic is real, it ain't fiction or diction!\n[:] Yeah the magic is real, it ain't fiction or diction!\n[[B3]]\n[62.0:] He's a thief of the leaf, findin' relief in the grief,\n[:] He's a ghost in the roast, doin' the most on the coast,\n[:] He's a shadow in the meadow, light as a lead-load,\n[:] He's a king in the ring, with a sting in his wing,\n[:] Calculating the weight of the silver in the silt,\n[:] Calculating the fate of the palace that he built,\n[:] Calculating the state of the copper in the pan,\n[:] Calculating the gait of the miserable man.\n[[D4]]\n[[E5]]\n[106.0:] The pot is empty now.\n[:] Just the mud left.\n[:] (Humming dissonant notes)\n[:] Get gone."
+      },
+      {
+        "musicService": "minimax",
+        "musicModel": "music-3.0",
+        "processingTime": 183092,
+        "musicFileName": "generated-music-minimax-music-3.0.mp3",
+        "musicFileSize": 6604014,
+        "musicDurationMs": 206106,
+        "lyricsSource": "generated",
+        "audioMimeType": "audio/mpeg",
+        "audioSampleRate": 44100,
+        "audioChannelCount": 2,
+        "audioBitrate": 256000,
+        "providerAudioByteSize": 6604014,
+        "outputFormat": "mp3",
+        "providerTraceId": "06c474502bc7262c07572c728295d4b9",
+        "generatedLyrics": "[Intro]\n\n[Verse]\nGreen velvet on the dash\nCounting up the clover stash\nHidden in the briar patch\nDon't try to make a match\nBuckles on the leather shoes\nSinging all the forest blues\nI got nothing left to lose\nPick the gold that you choose\n\n[Hook]\nSeven folds in the rainbow\nWatch the heavy brass flow\nWhere did all the silver go?\nDeep inside the low glow\n\n[Verse]\nSaxophone in the morning mist\nGold coins in my fist\nNever on the guest list\nGive the pot a twist\nShort stature, long reach\nLessons that I gotta teach\nWalking on the pebble beach\nLife is just a peach\n\n[Pre-Chorus]\nShadows dancing on the pine\nEverything is looking fine\nCross the jagged border line\nWait until the stars align\n\n[Chorus]\nCatch me if you can\nI’m the lucky little man\nGot a master emerald plan\nBigger than a caravan\nSpinning on a single dime\nLiving in a different time\nClimbing up the mountain climb\nHidden in a perfect rhyme\n\n[Drop]\nGreen gold, green gold\nStories that were never told\nGreen gold, green gold\nBreaking out the heavy mold\n\n[Bridge]\nCrystalline visions in the dark\nWaiting for the sudden spark\nLeave a little muddy mark\nSinging like a meadow lark\nAbstract notes upon the scale\nChasing down the golden trail\nWind inside the tattered sail\nNever let the magic fail\n\n[Verse]\nThree wishes in the air\nDo you even really care?\nLife is never really fair\nSpot the red and curly hair\nVanished in a puff of smoke\nWas it all a cosmic joke?\nBroken is the heavy yoke\nListen to the words I spoke\n\n[Chorus]\nCatch me if you can\nI’m the lucky little man\nGot a master emerald plan\nBigger than a caravan\nSpinning on a single dime\nLiving in a different time\nClimbing up the mountain climb\nHidden in a perfect rhyme\n\n[Outro]",
+        "generatedSongTitle": "Emerald Syncopation",
+        "generatedStyleTags": "Avant-garde Jazz Rap, Abstract Hip Hop, Surrealist, Experimental Groove"
+      },
+      {
+        "musicService": "elevenlabs",
+        "musicModel": "music_v2",
+        "processingTime": 19982,
+        "musicFileName": "generated-music-elevenlabs-music_v2.mp3",
+        "musicFileSize": 2880621,
+        "musicDurationMs": 120000,
+        "lyricsSource": "generated",
+        "audioMimeType": "audio/mpeg",
+        "audioSampleRate": 48000,
+        "audioBitrate": 192000,
+        "providerAudioByteSize": 2880621,
+        "outputFormat": "mp3_48000_192"
       }
     ],
     "cost": {
@@ -137,13 +170,13 @@
         ]
       },
       "actual": {
-        "totalCost": 84,
+        "totalCost": 104,
         "steps": [
           {
             "step": "music",
             "provider": "elevenlabs",
             "model": "music_v1",
-            "cost": 56,
+            "cost": 30,
             "costSource": "registry_fallback",
             "inputMetric": "durationMs",
             "inputValue": 120000
@@ -171,6 +204,24 @@
             "provider": "gemini",
             "model": "lyria-3-pro-preview",
             "cost": 8,
+            "costSource": "registry_fallback",
+            "inputMetric": "durationMs",
+            "inputValue": 120000
+          },
+          {
+            "step": "music",
+            "provider": "minimax",
+            "model": "music-3.0",
+            "cost": 16,
+            "costSource": "registry_fallback",
+            "inputMetric": "durationMs",
+            "inputValue": 206106
+          },
+          {
+            "step": "music",
+            "provider": "elevenlabs",
+            "model": "music_v2",
+            "cost": 30,
             "costSource": "registry_fallback",
             "inputMetric": "durationMs",
             "inputValue": 120000
@@ -237,7 +288,7 @@
         ]
       },
       "actual": {
-        "totalProcessingTimeMs": 195165,
+        "totalProcessingTimeMs": 398239,
         "steps": [
           {
             "step": "music",
@@ -290,6 +341,32 @@
             "throughputValue": 2.586,
             "throughputUnit": "x",
             "timingScope": "wall"
+          },
+          {
+            "step": "music",
+            "provider": "minimax",
+            "model": "music-3.0",
+            "processingTimeMs": 183092,
+            "inputMetric": "durationSeconds",
+            "inputValue": 206.106,
+            "rateBasis": "durationSecond",
+            "msPerUnit": 888.339,
+            "throughputValue": 1.126,
+            "throughputUnit": "x",
+            "timingScope": "wall"
+          },
+          {
+            "step": "music",
+            "provider": "elevenlabs",
+            "model": "music_v2",
+            "processingTimeMs": 19982,
+            "inputMetric": "durationSeconds",
+            "inputValue": 120,
+            "rateBasis": "durationSecond",
+            "msPerUnit": 166.517,
+            "throughputValue": 6.005,
+            "throughputUnit": "x",
+            "timingScope": "wall"
           }
         ]
       }
@@ -311,6 +388,14 @@
       {
         "service": "gemini",
         "model": "lyria-3-pro-preview"
+      },
+      {
+        "service": "elevenlabs",
+        "model": "music_v2"
+      },
+      {
+        "service": "minimax",
+        "model": "music-3.0"
       }
     ]
   }

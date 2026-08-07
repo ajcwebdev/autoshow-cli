@@ -72,6 +72,39 @@
           "costMultiplier": 1,
           "msPer1KChars": 37747
         }
+      },
+      "aura-2-helena-en": {
+        "description": "Aura-2 Helena English voice",
+        "pricingSourceUrl": "https://deepgram.com/pricing",
+        "pricingCheckedAt": "2026-08-06",
+        "pricingCurrency": "USD",
+        "pricingTier": "Deepgram Aura API pay-as-you-go TTS pricing",
+        "pricingNotes": "Deepgram Aura-2 TTS estimates use the published $0.03/1K characters rate. Timing is provisional pending separately approved calibration. Free credits, committed-use discounts, enterprise pricing, taxes, and provider credits are ignored.",
+        "costPer1kCharsUSD": 0.03,
+        "costPer1kCharsCents": 3,
+        "estimation": { "costMultiplier": 1, "msPer1KChars": 39639 }
+      },
+      "aura-2-arcas-en": {
+        "description": "Aura-2 Arcas English voice",
+        "pricingSourceUrl": "https://deepgram.com/pricing",
+        "pricingCheckedAt": "2026-08-06",
+        "pricingCurrency": "USD",
+        "pricingTier": "Deepgram Aura API pay-as-you-go TTS pricing",
+        "pricingNotes": "Deepgram Aura-2 TTS estimates use the published $0.03/1K characters rate. Timing is provisional pending separately approved calibration. Free credits, committed-use discounts, enterprise pricing, taxes, and provider credits are ignored.",
+        "costPer1kCharsUSD": 0.03,
+        "costPer1kCharsCents": 3,
+        "estimation": { "costMultiplier": 1, "msPer1KChars": 39639 }
+      },
+      "aura-2-aries-en": {
+        "description": "Aura-2 Aries English voice",
+        "pricingSourceUrl": "https://deepgram.com/pricing",
+        "pricingCheckedAt": "2026-08-06",
+        "pricingCurrency": "USD",
+        "pricingTier": "Deepgram Aura API pay-as-you-go TTS pricing",
+        "pricingNotes": "Deepgram Aura-2 TTS estimates use the published $0.03/1K characters rate. Timing is provisional pending separately approved calibration. Free credits, committed-use discounts, enterprise pricing, taxes, and provider credits are ignored.",
+        "costPer1kCharsUSD": 0.03,
+        "costPer1kCharsCents": 3,
+        "estimation": { "costMultiplier": 1, "msPer1KChars": 39639 }
       }
     }
   }

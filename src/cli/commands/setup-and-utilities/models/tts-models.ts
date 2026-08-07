@@ -37,7 +37,9 @@ export const resolveKittenTtsModelId = (model: KittenTtsModel): string => {
 }
 
 export const SUPPORTED_ELEVENLABS_TTS_MODELS = [
-  'eleven_v3'
+  'eleven_v3',
+  'eleven_multilingual_v2',
+  'eleven_flash_v2_5'
 ] as const satisfies readonly string[]
 
 export const ELEVENLABS_DEFAULT_VOICE_ID = 'hpp4J3VqNfWAUOO0d1Us'
@@ -253,7 +255,7 @@ export const MISTRAL_DEFAULT_REF_AUDIO = 'input/examples/audio/anthony-voice.mp3
 export const validateMistralTtsModel = createModelValidator<MistralTtsModel>(SUPPORTED_MISTRAL_TTS_MODELS, 'mistral-tts')
 
 export const SUPPORTED_OPENAI_TTS_MODELS = [
-  'gpt-4o-mini-tts',
+  'gpt-4o-mini-tts-2025-12-15',
   'tts-1',
   'tts-1-hd'
 ] as const satisfies readonly string[]
@@ -276,6 +278,9 @@ export const SUPPORTED_DEEPGRAM_TTS_MODELS = [
   'aura-2-apollo-en',
   'aura-2-luna-en',
   'aura-2-orion-en',
+  'aura-2-helena-en',
+  'aura-2-arcas-en',
+  'aura-2-aries-en',
 ] as const satisfies readonly string[]
 
 export const DEEPGRAM_DEFAULT_VOICE = 'aura-2-thalia-en'
@@ -292,10 +297,36 @@ export const validateDeepgramTtsVoice = (voice: string): DeepgramTtsModel => {
 }
 
 export const SUPPORTED_SPEECHIFY_TTS_MODELS = [
-  'simba-english'
+  'simba-3.2',
+  'simba-3.0'
 ] as const satisfies readonly string[]
 
-export const SPEECHIFY_DEFAULT_TTS_VOICE = 'george'
+export const SPEECHIFY_DEFAULT_TTS_VOICE = 'geffen_32'
+export const SPEECHIFY_SIMBA_3_2_BUILT_IN_VOICES = [
+  'beatrice_32',
+  'dominic_32',
+  'edmund_32',
+  'geffen_32',
+  'harper_32',
+  'hugh_32',
+  'imogen_32',
+  'wyatt_32'
+] as const satisfies readonly string[]
+export const SPEECHIFY_KNOWN_INCOMPATIBLE_BUILT_IN_VOICES = [
+  'george',
+  'henry',
+  'carly',
+  'sophia'
+] as const satisfies readonly string[]
+export const SPEECHIFY_SIMBA_3_0_LANGUAGES = [
+  'en',
+  'de-DE',
+  'es-ES',
+  'es-MX',
+  'fr-FR',
+  'it-IT',
+  'pt-BR'
+] as const satisfies readonly string[]
 export const SUPPORTED_SPEECHIFY_TTS_AUDIO_FORMATS = [
   'mp3',
   'ogg',
@@ -310,6 +341,42 @@ export const validateSpeechifyTtsVoice = (voice: string): string => {
   const normalized = voice.trim()
   if (!normalized) {
     throw CLIUsageError('Invalid --speechify-voice value. Expected a non-empty Speechify voice ID.')
+  }
+  return normalized
+}
+
+export const validateSpeechifyTtsLanguageForModel = (
+  model: SpeechifyTtsModel,
+  language: string | undefined
+): string | undefined => {
+  const normalized = language?.trim()
+  if (!normalized) return undefined
+
+  const supported = model === 'simba-3.2'
+    ? normalized === 'en' || normalized.toLowerCase().startsWith('en-')
+    : SPEECHIFY_SIMBA_3_0_LANGUAGES.some((candidate) => candidate.toLowerCase() === normalized.toLowerCase())
+      || normalized.toLowerCase().startsWith('en-')
+  if (!supported) {
+    throw CLIUsageError(
+      model === 'simba-3.2'
+        ? `Speechify ${model} supports only en or en-* languages; received "${language}".`
+        : `Speechify ${model} does not support language "${language}". Allowed values: en, en-*, ${SPEECHIFY_SIMBA_3_0_LANGUAGES.slice(1).join(', ')}.`
+    )
+  }
+  return normalized
+}
+
+export const validateSpeechifyTtsVoiceForModel = (
+  model: SpeechifyTtsModel,
+  voice: string
+): string => {
+  const normalized = validateSpeechifyTtsVoice(voice)
+  if (model !== 'simba-3.2') return normalized
+  if (SPEECHIFY_SIMBA_3_2_BUILT_IN_VOICES.includes(normalized as typeof SPEECHIFY_SIMBA_3_2_BUILT_IN_VOICES[number])) {
+    return normalized
+  }
+  if (SPEECHIFY_KNOWN_INCOMPATIBLE_BUILT_IN_VOICES.includes(normalized as typeof SPEECHIFY_KNOWN_INCOMPATIBLE_BUILT_IN_VOICES[number])) {
+    throw CLIUsageError(`Speechify built-in voice "${voice}" is not compatible with simba-3.2.`)
   }
   return normalized
 }
@@ -355,8 +422,7 @@ export const validateHumeTtsVoiceProvider = (value: string): string => {
 }
 
 export const SUPPORTED_CARTESIA_TTS_MODELS = [
-  'sonic-3',
-  'sonic-3.5'
+  'sonic-3.5-2026-05-04'
 ] as const satisfies readonly string[]
 
 export const CARTESIA_DEFAULT_TTS_VOICE = 'f786b574-daa5-4673-aa0c-cbe3e8534c02'

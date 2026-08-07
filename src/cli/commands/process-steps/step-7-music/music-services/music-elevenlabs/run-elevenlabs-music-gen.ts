@@ -13,9 +13,22 @@ export const ELEVENLABS_MAX_DURATION_SECONDS = 600
 const ELEVENLABS_MIN_DURATION_MS = ELEVENLABS_MIN_DURATION_SECONDS * 1000
 const ELEVENLABS_MAX_DURATION_MS = ELEVENLABS_MAX_DURATION_SECONDS * 1000
 const REQUEST_TIMEOUT_MS = MEDIA_GENERATION_TIMEOUT_MS
-const ELEVENLABS_MUSIC_OUTPUT_FORMAT = 'mp3_44100_128'
-const ELEVENLABS_MUSIC_SAMPLE_RATE = 44100
-const ELEVENLABS_MUSIC_BITRATE = 128000
+const ELEVENLABS_MUSIC_OUTPUTS = {
+  music_v1: {
+    format: 'mp3_44100_128',
+    sampleRate: 44100,
+    bitrate: 128000
+  },
+  music_v2: {
+    format: 'mp3_48000_192',
+    sampleRate: 48000,
+    bitrate: 192000
+  }
+} as const satisfies Record<ElevenlabsMusicModel, {
+  format: string
+  sampleRate: number
+  bitrate: number
+}>
 
 const normalizeMusicDurationMs = (durationSeconds: number | undefined): number | undefined => {
   if (durationSeconds === undefined) {
@@ -58,6 +71,7 @@ export const runElevenLabsMusicGen = async (
   const musicPath = `${outputDir}/generated-music.mp3`
   const musicDurationMs = normalizeMusicDurationMs(options.durationSeconds)
   const forceInstrumental = options.forceInstrumental === true
+  const output = ELEVENLABS_MUSIC_OUTPUTS[options.model]
 
   logMediaGenerationStatus(l, {
     mediaType: 'music',
@@ -74,7 +88,7 @@ export const runElevenLabsMusicGen = async (
       const timeoutSignal = AbortSignal.timeout(REQUEST_TIMEOUT_MS)
       const combined = AbortSignal.any([...(signal ? [signal] : []), timeoutSignal])
 
-      const response = await fetch(`${baseURL}/music?output_format=${ELEVENLABS_MUSIC_OUTPUT_FORMAT}`, {
+      const response = await fetch(`${baseURL}/music?output_format=${output.format}`, {
         method: 'POST',
         headers: {
           'xi-api-key': apiKey,
@@ -133,10 +147,10 @@ export const runElevenLabsMusicGen = async (
     lyricsSource: forceInstrumental ? 'none' : 'generated',
     providerRequestId: audioResponse.requestId,
     audioMimeType: audioResponse.mimeType ?? 'audio/mpeg',
-    audioSampleRate: ELEVENLABS_MUSIC_SAMPLE_RATE,
-    audioBitrate: ELEVENLABS_MUSIC_BITRATE,
+    audioSampleRate: output.sampleRate,
+    audioBitrate: output.bitrate,
     providerAudioByteSize: audioBytes.byteLength,
-    outputFormat: ELEVENLABS_MUSIC_OUTPUT_FORMAT
+    outputFormat: output.format
   }
 
   return { musicPath, metadata }

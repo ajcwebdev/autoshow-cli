@@ -4,7 +4,6 @@ import { join } from 'node:path'
 import { runBflImageGen } from '~/cli/commands/process-steps/step-5-image/image-generation-services/bfl/run-bfl-image-gen'
 import { runRecraftImageGen } from '~/cli/commands/process-steps/step-5-image/image-generation-services/recraft/run-recraft-image-gen'
 import { runReplicateImageGen } from '~/cli/commands/process-steps/step-5-image/image-generation-services/replicate/run-replicate-image-gen'
-import { runReveImageGen } from '~/cli/commands/process-steps/step-5-image/image-generation-services/reve/run-reve-image-gen'
 import {
   bytesResponse,
   clearEnv,
@@ -20,7 +19,6 @@ const originalFetch = globalThis.fetch
 let previousEnv: EnvSnapshot = {}
 const envKeys = [
   'BFL_API_KEY',
-  'REVE_API_KEY',
   'RECRAFT_API_TOKEN',
   'REPLICATE_API_TOKEN'
 ]
@@ -48,143 +46,6 @@ afterEach(async () => {
 })
 
 describe('image provider REST contracts', () => {
-  test('Reve create sends JSON body, image accept header, and records returned version and credit cost', async () => {
-    process.env['REVE_API_KEY'] = 'reve-key'
-    const calls = installMockFetch(() =>
-      imageResponse(new Uint8Array([1, 2, 3]), 'image/webp', {
-        'x-reve-version': 'reve-create@20250915',
-        'x-reve-credits-used': '15'
-      })
-    )
-
-    await withTempDir(async (dir) => {
-      const result = await runReveImageGen('A precise product photo', dir, {
-        model: 'latest',
-        aspectRatio: '3:2',
-        imageSize: '1024x768',
-        outputFormat: 'webp',
-        baseUrl: 'https://mock.reve.local'
-      })
-
-      expect(result.imagePaths[0]?.endsWith('generated-image.webp')).toBe(true)
-      expect(result.metadata).toMatchObject({
-        imageService: 'reve',
-        imageModel: 'latest',
-        imageFileNames: ['generated-image.webp'],
-        imageFormat: 'webp',
-        imageSize: '1024x768',
-        providerReturnedModel: 'reve-create@20250915',
-        providerCostCents: 2,
-        providerCostSource: 'provider_usage',
-        usageCostRaw: 15,
-        requestMode: 'generation'
-      })
-    })
-
-    expect(calls[0]).toMatchObject({
-      url: 'https://mock.reve.local/v1/image/create',
-      method: 'POST'
-    })
-    expect(calls[0]?.headers.get('accept')).toBe('image/webp')
-    expect(calls[0]?.headers.get('authorization')).toBe('Bearer reve-key')
-    expect(calls[0]?.bodyJson).toEqual({
-      prompt: 'A precise product photo',
-      aspect_ratio: '3:2',
-      postprocessing: [{
-        process: 'fit_image',
-        max_width: 1024,
-        max_height: 768
-      }]
-    })
-  })
-
-  test('Reve edit sends one bare base64 reference image', async () => {
-    process.env['REVE_API_KEY'] = 'reve-key'
-    const calls = installMockFetch(() => imageResponse(new Uint8Array([9, 8, 7]), 'image/png'))
-
-    await withTempDir(async (dir) => {
-      const refPath = join(dir, 'reference.png')
-      const refBytes = new Uint8Array([4, 5, 6])
-      await writeFile(refPath, refBytes)
-
-      const result = await runReveImageGen('Make the object matte black', dir, {
-        model: 'latest',
-        inputs: [refPath],
-        baseUrl: 'https://mock.reve.local'
-      })
-
-      expect(result.metadata.requestMode).toBe('edit')
-      expect(calls[0]?.bodyJson).toEqual({
-        edit_instruction: 'Make the object matte black',
-        reference_image: Buffer.from(refBytes).toString('base64')
-      })
-    })
-
-    expect(calls[0]?.url).toBe('https://mock.reve.local/v1/image/edit')
-    expect(calls[0]?.headers.get('accept')).toBe('image/png')
-  })
-
-  test('Reve remix sends multiple bare base64 reference images', async () => {
-    process.env['REVE_API_KEY'] = 'reve-key'
-    const calls = installMockFetch(() => imageResponse(new Uint8Array([3, 2, 1]), 'image/jpeg'))
-
-    await withTempDir(async (dir) => {
-      const firstRef = join(dir, 'first.png')
-      const secondRef = join(dir, 'second.webp')
-      const firstBytes = new Uint8Array([1, 1, 1])
-      const secondBytes = new Uint8Array([2, 2, 2])
-      await writeFile(firstRef, firstBytes)
-      await writeFile(secondRef, secondBytes)
-
-      const result = await runReveImageGen('Combine these references', dir, {
-        model: 'latest',
-        inputs: [firstRef, secondRef],
-        outputFormat: 'jpeg',
-        baseUrl: 'https://mock.reve.local'
-      })
-
-      expect(result.imagePaths[0]?.endsWith('generated-image.jpg')).toBe(true)
-      expect(calls[0]?.bodyJson).toEqual({
-        prompt: 'Combine these references',
-        reference_images: [
-          Buffer.from(firstBytes).toString('base64'),
-          Buffer.from(secondBytes).toString('base64')
-        ]
-      })
-    })
-
-    expect(calls[0]?.url).toBe('https://mock.reve.local/v1/image/remix')
-    expect(calls[0]?.headers.get('accept')).toBe('image/jpeg')
-  })
-
-  test('Reve treats moderation and error headers as failed image runs', async () => {
-    process.env['REVE_API_KEY'] = 'reve-key'
-
-    await withTempDir(async (dir) => {
-      installMockFetch(() =>
-        imageResponse(new Uint8Array([1, 2, 3]), 'image/png', {
-          'x-reve-content-violation': 'true'
-        })
-      )
-      await expect(runReveImageGen('Unsafe prompt', dir, {
-        model: 'latest',
-        baseUrl: 'https://mock.reve.local'
-      })).rejects.toThrow('content violation')
-    })
-
-    await withTempDir(async (dir) => {
-      installMockFetch(() =>
-        imageResponse(new Uint8Array([1, 2, 3]), 'image/png', {
-          'x-reve-error-code': 'policy_blocked'
-        })
-      )
-      await expect(runReveImageGen('Another blocked prompt', dir, {
-        model: 'latest',
-        baseUrl: 'https://mock.reve.local'
-      })).rejects.toThrow('error code policy_blocked')
-    })
-  })
-
   test('BFL image generation sends numbered reference image fields', async () => {
     process.env['BFL_API_KEY'] = 'bfl-key'
     const calls = installMockFetch((call) => {
@@ -210,7 +71,7 @@ describe('image provider REST contracts', () => {
       await writeFile(refPath, new Uint8Array([1, 2, 3]))
 
       const result = await runBflImageGen('Edit with references', dir, {
-        model: 'flux-2-pro',
+        model: 'flux-2-klein-4b',
         outputFormat: 'png',
         inputs: [refPath, 'https://cdn.example.com/reference.webp'],
         baseUrl: 'https://mock.bfl.local'
@@ -221,7 +82,7 @@ describe('image provider REST contracts', () => {
     })
 
     expect(calls[0]).toMatchObject({
-      url: 'https://mock.bfl.local/v1/flux-2-pro',
+      url: 'https://mock.bfl.local/v1/flux-2-klein-4b',
       method: 'POST'
     })
     expect(calls[0]?.bodyJson).toMatchObject({
@@ -331,45 +192,6 @@ describe('image provider REST contracts', () => {
       'https://mock.recraft.local/images/one.png',
       'https://mock.recraft.local/images/two.png'
     ])
-  })
-
-  test('Recraft vector downloads infer svg output extension from content type', async () => {
-    process.env['RECRAFT_API_TOKEN'] = 'recraft-token'
-    const svgBytes = new TextEncoder().encode('<svg xmlns="http://www.w3.org/2000/svg"></svg>')
-    const calls = installMockFetch((call) => {
-      if (call.method === 'POST') {
-        return jsonResponse({
-          data: [{ url: 'https://mock.recraft.local/images/vector-result' }]
-        })
-      }
-      return imageResponse(svgBytes, 'image/svg+xml')
-    })
-
-    await withTempDir(async (dir) => {
-      const result = await runRecraftImageGen('A clean vector fox logo', dir, {
-        model: 'recraftv4_1_vector',
-        aspectRatio: '1:1',
-        baseUrl: 'https://mock.recraft.local/v1'
-      })
-
-      expect(result.imagePaths[0]?.endsWith('generated-image.svg')).toBe(true)
-      expect(result.metadata).toMatchObject({
-        imageService: 'recraft',
-        imageModel: 'recraftv4_1_vector',
-        imageFileNames: ['generated-image.svg'],
-        imageFormat: 'svg',
-        imageSize: '1:1'
-      })
-      expect(await Bun.file(result.imagePaths[0] as string).text()).toContain('<svg')
-    })
-
-    expect(calls[0]?.bodyJson).toEqual({
-      prompt: 'A clean vector fox logo',
-      model: 'recraftv4_1_vector',
-      response_format: 'url',
-      n: 1,
-      size: '1:1'
-    })
   })
 
   test('Replicate Seedream creates a synchronous prediction and downloads the returned image', async () => {
@@ -560,6 +382,101 @@ describe('image provider REST contracts', () => {
       'https://mock.replicate.local/out/two.png',
       'https://mock.replicate.local/out/three.png'
     ])
+  })
+
+  test('Replicate Seedream 5 Pro maps resolution, format, and reference images', async () => {
+    process.env['REPLICATE_API_TOKEN'] = 'replicate-token'
+    const calls = installMockFetch((call) => {
+      if (call.method === 'POST') {
+        return jsonResponse({
+          id: 'pred-seedream-pro',
+          status: 'succeeded',
+          output: ['https://mock.replicate.local/out/seedream-pro.png']
+        })
+      }
+      return imageResponse(new Uint8Array([1, 3, 5]), 'image/png')
+    })
+
+    await withTempDir(async (dir) => {
+      const refPath = join(dir, 'reference.png')
+      await writeFile(refPath, new Uint8Array([9, 8, 7]))
+      const result = await runReplicateImageGen('Preserve this product design', dir, {
+        model: 'bytedance/seedream-5-pro',
+        inputs: [refPath],
+        imageSize: '2K',
+        aspectRatio: '1:1',
+        outputFormat: 'png',
+        baseUrl: 'https://mock.replicate.local/v1'
+      })
+      expect(result.metadata).toMatchObject({ imageModel: 'bytedance/seedream-5-pro', imageSize: '2K', imageFormat: 'png', requestMode: 'edit', providerCostCents: 9 })
+    })
+
+    expect(calls[0]?.url).toBe('https://mock.replicate.local/v1/models/bytedance/seedream-5-pro/predictions')
+    expect(calls[0]?.bodyJson).toEqual({
+      input: {
+        prompt: 'Preserve this product design',
+        sequential_image_generation: 'disabled',
+        max_images: 1,
+        image_input: [`data:image/png;base64,${Buffer.from(new Uint8Array([9, 8, 7])).toString('base64')}`],
+        size: '2K',
+        aspect_ratio: '1:1',
+        output_format: 'png'
+      }
+    })
+  })
+
+  test('Replicate Ideogram V4 maps custom resolution to its text-only endpoint', async () => {
+    process.env['REPLICATE_API_TOKEN'] = 'replicate-token'
+    const calls = installMockFetch((call) => call.method === 'POST'
+      ? jsonResponse({ id: 'pred-ideogram', status: 'succeeded', output: 'https://mock.replicate.local/out/ideogram.png' })
+      : imageResponse(new Uint8Array([2, 4, 6]), 'image/png'))
+
+    await withTempDir(async (dir) => {
+      const result = await runReplicateImageGen('A typographic launch poster', dir, {
+        model: 'ideogram-ai/ideogram-v4-balanced',
+        imageSize: '1024x768',
+        baseUrl: 'https://mock.replicate.local/v1'
+      })
+      expect(result.metadata).toMatchObject({ imageModel: 'ideogram-ai/ideogram-v4-balanced', imageSize: '1024x768', imageFormat: 'png', requestMode: 'generation', providerCostCents: 6 })
+    })
+
+    expect(calls[0]?.bodyJson).toEqual({ input: { prompt: 'A typographic launch poster', resolution: '1024x768' } })
+  })
+
+  test('Replicate ERNIE uses the generic version-pinned endpoint and normalizes output options', async () => {
+    process.env['REPLICATE_API_TOKEN'] = 'replicate-token'
+    const calls = installMockFetch((call) => call.method === 'POST'
+      ? jsonResponse({
+          id: 'pred-ernie',
+          version: 'fb19aa909fb366cdbdc06a87be3753aea6954346780bac847cccf8f32ad2626f',
+          status: 'succeeded',
+          output: ['https://mock.replicate.local/out/ernie-one.jpg', 'https://mock.replicate.local/out/ernie-two.jpg']
+        })
+      : imageResponse(new Uint8Array([7, 7, 7]), 'image/jpeg'))
+
+    await withTempDir(async (dir) => {
+      const result = await runReplicateImageGen('A detailed city illustration', dir, {
+        model: 'prunaai/ernie-image-turbo',
+        imageSize: '1264x848',
+        count: 2,
+        outputFormat: 'jpeg',
+        baseUrl: 'https://mock.replicate.local/v1'
+      })
+      expect(result.metadata).toMatchObject({ imageModel: 'prunaai/ernie-image-turbo', imageCount: 2, imageSize: '1264x848', imageFormat: 'jpg', providerCostCents: 2.3 })
+      expect(result.metadata.providerReturnedModel).toBeUndefined()
+    })
+
+    expect(calls[0]?.url).toBe('https://mock.replicate.local/v1/predictions')
+    expect(calls[0]?.bodyJson).toEqual({
+      version: 'prunaai/ernie-image-turbo:fb19aa909fb366cdbdc06a87be3753aea6954346780bac847cccf8f32ad2626f',
+      input: {
+        prompt: 'A detailed city illustration',
+        width: 1264,
+        height: 848,
+        num_outputs: 2,
+        output_format: 'jpg'
+      }
+    })
   })
 
   test('Replicate terminal failures surface prediction errors without polling', async () => {

@@ -1,7 +1,7 @@
 import { computeActualCosts } from '~/utils/pricing/compute-actual-costs'
 import { getTtsEstimation } from '~/cli/commands/setup-and-utilities/models/model-loader'
 import { splitTextIntoChunks } from './tts-utils/audio-utils'
-import { TTS_CHUNK_CHARACTER_LIMITS } from './tts-utils/tts-chunking'
+import { resolveTtsChunkCharacterLimit } from './tts-utils/tts-chunking'
 import type { AggregatedPriceEstimate, HostedEstimateJob, PreparedTtsInput, SuccessfulTtsBatchItem, TtsBatchEstimateOptions, TtsBatchEstimateSummary, TtsTarget } from '~/types'
 const normalizePositiveInteger = (value: number | undefined): number =>
   typeof value === 'number' && Number.isFinite(value)
@@ -53,7 +53,7 @@ const getChunkLengths = (
   prepared: PreparedTtsInput,
   target: TtsTarget
 ): number[] => {
-  const maxChars = TTS_CHUNK_CHARACTER_LIMITS[target.service]
+  const maxChars = resolveTtsChunkCharacterLimit(target.service, target.model)
   if (target.service === 'kitten' || maxChars === undefined) {
     return [prepared.ttsCharacterCount]
   }

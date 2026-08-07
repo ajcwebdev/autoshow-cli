@@ -137,6 +137,60 @@
         "audioFileName": "speech-cartesia-sonic-3.5.wav",
         "audioFileSize": 138318,
         "chunkCount": 1
+      },
+      {
+        "ttsService": "elevenlabs",
+        "ttsModel": "eleven_multilingual_v2",
+        "speaker": "hpp4J3VqNfWAUOO0d1Us",
+        "processingTime": 1131,
+        "audioFileName": "speech-elevenlabs-eleven_multilingual_v2.wav",
+        "audioFileSize": 170978,
+        "chunkCount": 1
+      },
+      {
+        "ttsService": "elevenlabs",
+        "ttsModel": "eleven_flash_v2_5",
+        "speaker": "hpp4J3VqNfWAUOO0d1Us",
+        "processingTime": 342,
+        "audioFileName": "speech-elevenlabs-eleven_flash_v2_5.wav",
+        "audioFileSize": 178408,
+        "chunkCount": 1
+      },
+      {
+        "ttsService": "openai",
+        "ttsModel": "gpt-4o-mini-tts-2025-12-15",
+        "speaker": "alloy",
+        "processingTime": 2638,
+        "audioFileName": "speech-openai-gpt-4o-mini-tts-2025-12-15.wav",
+        "audioFileSize": 187278,
+        "chunkCount": 1
+      },
+      {
+        "ttsService": "speechify",
+        "ttsModel": "simba-3.2",
+        "speaker": "geffen_32",
+        "processingTime": 960,
+        "audioFileName": "speech-speechify-simba-3.2.wav",
+        "audioFileSize": 178254,
+        "chunkCount": 1
+      },
+      {
+        "ttsService": "speechify",
+        "ttsModel": "simba-3.0",
+        "speaker": "geffen_32",
+        "processingTime": 1117,
+        "audioFileName": "speech-speechify-simba-3.0.wav",
+        "audioFileSize": 165966,
+        "chunkCount": 1
+      },
+      {
+        "ttsService": "cartesia",
+        "ttsModel": "sonic-3.5-2026-05-04",
+        "speaker": "f786b574-daa5-4673-aa0c-cbe3e8534c02",
+        "processingTime": 1233,
+        "audioFileName": "speech-cartesia-sonic-3.5-2026-05-04.wav",
+        "audioFileSize": 148558,
+        "chunkCount": 1
       }
     ],
     "cost": {
@@ -401,7 +455,7 @@
         ]
       },
       "actual": {
-        "totalCost": 5.797245000000001,
+        "totalCost": 7.6240274999999995,
         "steps": [
           {
             "step": "tts",
@@ -533,6 +587,60 @@
             "step": "tts",
             "provider": "cartesia",
             "model": "sonic-3.5",
+            "cost": 0.32516249999999997,
+            "costSource": "computed_usage",
+            "inputMetric": "characters",
+            "inputValue": 87
+          },
+          {
+            "step": "tts",
+            "provider": "elevenlabs",
+            "model": "eleven_multilingual_v2",
+            "cost": 0.8699999999999999,
+            "costSource": "computed_usage",
+            "inputMetric": "characters",
+            "inputValue": 87
+          },
+          {
+            "step": "tts",
+            "provider": "elevenlabs",
+            "model": "eleven_flash_v2_5",
+            "cost": 0.43499999999999994,
+            "costSource": "computed_usage",
+            "inputMetric": "characters",
+            "inputValue": 87
+          },
+          {
+            "step": "tts",
+            "provider": "openai",
+            "model": "gpt-4o-mini-tts-2025-12-15",
+            "cost": 0.10962,
+            "costSource": "computed_usage",
+            "inputMetric": "characters",
+            "inputValue": 87
+          },
+          {
+            "step": "tts",
+            "provider": "speechify",
+            "model": "simba-3.2",
+            "cost": 0.087,
+            "costSource": "computed_usage",
+            "inputMetric": "characters",
+            "inputValue": 87
+          },
+          {
+            "step": "tts",
+            "provider": "speechify",
+            "model": "simba-3.0",
+            "cost": 0.087,
+            "costSource": "computed_usage",
+            "inputMetric": "characters",
+            "inputValue": 87
+          },
+          {
+            "step": "tts",
+            "provider": "cartesia",
+            "model": "sonic-3.5-2026-05-04",
             "cost": 0.32516249999999997,
             "costSource": "computed_usage",
             "inputMetric": "characters",
@@ -743,7 +851,7 @@
         ]
       },
       "actual": {
-        "totalProcessingTimeMs": 242612,
+        "totalProcessingTimeMs": 248724,
         "steps": [
           {
             "step": "tts",
@@ -939,6 +1047,84 @@
             "throughputValue": 103.081,
             "throughputUnit": "charactersPerSecond",
             "timingScope": "wall"
+          },
+          {
+            "step": "tts",
+            "provider": "elevenlabs",
+            "model": "eleven_multilingual_v2",
+            "processingTimeMs": 1131,
+            "inputMetric": "characters",
+            "inputValue": 87,
+            "rateBasis": "1KCharacters",
+            "msPerUnit": 13000,
+            "throughputValue": 76.923,
+            "throughputUnit": "charactersPerSecond",
+            "timingScope": "wall"
+          },
+          {
+            "step": "tts",
+            "provider": "elevenlabs",
+            "model": "eleven_flash_v2_5",
+            "processingTimeMs": 342,
+            "inputMetric": "characters",
+            "inputValue": 87,
+            "rateBasis": "1KCharacters",
+            "msPerUnit": 3931.034,
+            "throughputValue": 254.386,
+            "throughputUnit": "charactersPerSecond",
+            "timingScope": "wall"
+          },
+          {
+            "step": "tts",
+            "provider": "openai",
+            "model": "gpt-4o-mini-tts-2025-12-15",
+            "processingTimeMs": 2638,
+            "inputMetric": "characters",
+            "inputValue": 87,
+            "rateBasis": "1KCharacters",
+            "msPerUnit": 30321.839,
+            "throughputValue": 32.98,
+            "throughputUnit": "charactersPerSecond",
+            "timingScope": "wall"
+          },
+          {
+            "step": "tts",
+            "provider": "speechify",
+            "model": "simba-3.2",
+            "processingTimeMs": 960,
+            "inputMetric": "characters",
+            "inputValue": 87,
+            "rateBasis": "1KCharacters",
+            "msPerUnit": 11034.483,
+            "throughputValue": 90.625,
+            "throughputUnit": "charactersPerSecond",
+            "timingScope": "wall"
+          },
+          {
+            "step": "tts",
+            "provider": "speechify",
+            "model": "simba-3.0",
+            "processingTimeMs": 1117,
+            "inputMetric": "characters",
+            "inputValue": 87,
+            "rateBasis": "1KCharacters",
+            "msPerUnit": 12839.08,
+            "throughputValue": 77.887,
+            "throughputUnit": "charactersPerSecond",
+            "timingScope": "wall"
+          },
+          {
+            "step": "tts",
+            "provider": "cartesia",
+            "model": "sonic-3.5-2026-05-04",
+            "processingTimeMs": 1233,
+            "inputMetric": "characters",
+            "inputValue": 87,
+            "rateBasis": "1KCharacters",
+            "msPerUnit": 14172.414,
+            "throughputValue": 70.56,
+            "throughputUnit": "charactersPerSecond",
+            "timingScope": "wall"
           }
         ]
       }
@@ -1004,6 +1190,30 @@
       {
         "service": "cartesia",
         "model": "sonic-3.5"
+      },
+      {
+        "service": "elevenlabs",
+        "model": "eleven_multilingual_v2"
+      },
+      {
+        "service": "elevenlabs",
+        "model": "eleven_flash_v2_5"
+      },
+      {
+        "service": "openai",
+        "model": "gpt-4o-mini-tts-2025-12-15"
+      },
+      {
+        "service": "speechify",
+        "model": "simba-3.2"
+      },
+      {
+        "service": "speechify",
+        "model": "simba-3.0"
+      },
+      {
+        "service": "cartesia",
+        "model": "sonic-3.5-2026-05-04"
       }
     ]
   }

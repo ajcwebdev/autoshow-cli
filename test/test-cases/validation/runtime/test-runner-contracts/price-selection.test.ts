@@ -27,7 +27,7 @@ describe('test-runner contracts', () => {
     })
 
   test('price config isolation appends empty config to mapped tts price commands', () => {
-      const args = ['src/cli/create-cli.ts', 'tts', 'input/examples/tts/1-tts.md', '--openai', 'gpt-4o-mini-tts', '--price']
+      const args = ['src/cli/create-cli.ts', 'tts', 'input/examples/tts/1-tts.md', '--openai', 'gpt-4o-mini-tts-2025-12-15', '--price']
 
       expect(withEmptyPriceConfig(args)).toEqual([
         ...args,
@@ -52,7 +52,7 @@ describe('test-runner contracts', () => {
         'tts',
         'input/examples/tts/1-tts.md',
         '--openai',
-        'gpt-4o-mini-tts',
+        'gpt-4o-mini-tts-2025-12-15',
         '--price',
         '--config-path=config/custom-autoshow.json',
       ]
@@ -110,7 +110,8 @@ describe('test-runner contracts', () => {
       expect(selected.suiteName).toBe('All mapped tests')
       expect(keys).toContain('extract-firecrawl-url')
       expect(keys).toContain('music-elevenlabs-music_v1')
-      expect(keys).toContain('tts-openai-gpt-4o-mini-tts')
+      expect(keys).toContain('music-elevenlabs-music_v2')
+      expect(keys).toContain('tts-openai-gpt-4o-mini-tts-2025-12-15')
     })
 
   test('extract price registry commands use public selector flags', () => {
@@ -154,7 +155,7 @@ describe('test-runner contracts', () => {
 
   test('price mode rejects legacy test-price selectors', () => {
       const allFiles = [
-        'test/test-cases/e2e/service/step-4-tts-e2e/tts-services/openai-gpt-4o-mini-tts.test.ts'
+        'test/test-cases/e2e/service/step-4-tts-e2e/tts-services/openai-gpt-4o-mini-tts-2025-12-15.test.ts'
       ]
 
       expect(() => resolvePriceSelection(allFiles, [
@@ -164,8 +165,8 @@ describe('test-runner contracts', () => {
 
   test('price path selections match path boundaries', () => {
       const allFiles = [
-        'test/test-cases/e2e/service/step-7-music-gen-e2e/elevenlabs-music-v1.test.ts',
-        'test/test-cases/e2e/service/step-7-music-gen-e2e/minimax-music-2.6.test.ts',
+        'test/test-cases/e2e/service/step-7-music-gen-e2e/elevenlabs-music.test.ts',
+        'test/test-cases/e2e/service/step-7-music-gen-e2e/minimax-music-3.0.test.ts',
         'test/test-cases/e2e/service/step-7-music-gen-e2e/gemini-lyria-3-pro-preview.test.ts',
         'test/test-cases/e2e/local/step-7-music-lyrics-video-e2e/music-lyrics-video.test.ts'
       ]
@@ -176,6 +177,7 @@ describe('test-runner contracts', () => {
         .commands.map((command) => command.key)
 
       expect(musicKeys).toContain('music-elevenlabs-music_v1')
+      expect(musicKeys).toContain('music-elevenlabs-music_v2')
       expect(musicKeys).not.toContain('transcribe-whisper-large-v3-turbo')
       expect(lyricsVideoKeys).toContain('transcribe-whisper-large-v3-turbo')
       expect(lyricsVideoKeys).not.toContain('music-elevenlabs-music_v1')

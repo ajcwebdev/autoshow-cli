@@ -65,7 +65,7 @@ export const sttRegistry: PriceSelectionEntry[] = [
     command('transcribe-mistral-voxtral-mini-2602', 'transcribe-mistral-voxtral-mini-2602', ['src/cli/create-cli.ts', 'extract', 'https://ajc.pics/autoshow/examples/1-audio.mp3', '--provider', 'mistral=voxtral-mini-2602', '--price']),
   ]),
   ...exact('test/test-cases/e2e/service/step-2-stt-e2e/stt-services/gemini-3-6-flash.test.ts', [
-    command('transcribe-gemini-stt-gemini-3-6-flash', 'transcribe-gemini-stt-gemini-3-6-flash', ['src/cli/create-cli.ts', 'extract', 'https://ajc.pics/autoshow/examples/0-audio-short.mp3', '--provider', 'gemini=gemini-3.6-flash', '--price']),
+    command('transcribe-gemini-stt-gemini-3.6-flash', 'transcribe-gemini-stt-gemini-3.6-flash', ['src/cli/create-cli.ts', 'extract', 'https://ajc.pics/autoshow/examples/0-audio-short.mp3', '--provider', 'gemini=gemini-3.6-flash', '--price']),
   ]),
   ...exact('test/test-cases/e2e/service/step-2-stt-e2e/stt-services/supadata-auto-url-transcript.test.ts', [
     command('transcribe-supadata-auto', 'transcribe-supadata-auto', ['src/cli/create-cli.ts', 'extract', 'https://www.youtube.com/watch?v=u1-WHqATSQU', '--provider', 'supadata=auto', '--price']),

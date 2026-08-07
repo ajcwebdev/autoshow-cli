@@ -194,7 +194,7 @@ describe('TTS provider service contracts', () => {
       }) as typeof fetch
 
       const result = await runCartesiaTts(`${'a'.repeat(2000)} ${'b'.repeat(100)}`, dir, {
-        model: 'sonic-3.5',
+        model: 'sonic-3.5-2026-05-04',
         voiceId: 'voice-id-123',
         language: 'en'
       })
@@ -202,7 +202,7 @@ describe('TTS provider service contracts', () => {
       expect(await Bun.file(result.audioPath).exists()).toBe(true)
       expect(result.metadata).toMatchObject({
         ttsService: 'cartesia',
-        ttsModel: 'sonic-3.5',
+        ttsModel: 'sonic-3.5-2026-05-04',
         speaker: 'voice-id-123',
         chunkCount: 2
       })
@@ -214,7 +214,7 @@ describe('TTS provider service contracts', () => {
       expect(calls.every((call) => call.accept === 'application/octet-stream')).toBe(true)
       expect(calls.map((call) => String(call.body['transcript']).length)).toEqual([2000, 100])
       expect(calls[0]?.body).toMatchObject({
-        model_id: 'sonic-3.5',
+        model_id: 'sonic-3.5-2026-05-04',
         transcript: 'a'.repeat(2000),
         voice: {
           mode: 'id',
@@ -238,7 +238,7 @@ describe('TTS provider service contracts', () => {
       }) as typeof fetch
 
       await expect(runCartesiaTts('Cartesia error synthesis.', dir, {
-        model: 'sonic-3'
+        model: 'sonic-3.5-2026-05-04'
       })).rejects.toThrow('Cartesia TTS failed (400): bad cartesia')
     })
 })

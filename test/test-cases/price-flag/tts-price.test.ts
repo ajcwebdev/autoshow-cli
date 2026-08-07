@@ -107,7 +107,7 @@ const defineTTSVoicePriceTests = ({
 }
 
 defineTTSServicePriceTests({
-  models: ['gpt-4o-mini-tts'],
+  models: ['gpt-4o-mini-tts-2025-12-15'],
   provider: 'openai',
   ttsService: 'openai',
 })
@@ -149,7 +149,7 @@ defineTTSServicePriceTests({
 })
 
 defineTTSServicePriceTests({
-  models: ['simba-english'],
+  models: ['simba-3.2'],
   provider: 'speechify',
   ttsService: 'speechify',
 })
@@ -296,7 +296,7 @@ test('multi-provider --price prints both TTS targets and renamed output files', 
     '--provider',
     'kitten=kitten-tts-mini',
     '--provider',
-    'openai=gpt-4o-mini-tts',
+    'openai=gpt-4o-mini-tts-2025-12-15',
     '--price'
   ])
 
@@ -307,9 +307,9 @@ test('multi-provider --price prints both TTS targets and renamed output files', 
   expect(output).toContain('kitten')
   expect(output).toContain('kitten-tts-mini')
   expect(output).toContain('openai')
-  expect(output).toContain('gpt-4o-mini-tts')
+  expect(output).toContain('gpt-4o-mini-tts-2025-12-15')
   expect(output).toContain('speech-kitten-kitten-tts-mini.wav')
-  expect(output).toContain('speech-openai-gpt-4o-mini-tts.wav')
+  expect(output).toContain('speech-openai-gpt-4o-mini-tts-2025-12-15.wav')
 })
 
 test('write --price omits TTS estimates when multiple LLM providers are selected', async () => {
@@ -324,7 +324,7 @@ test('write --price omits TTS estimates when multiple LLM providers are selected
     '--tts',
     'kitten=kitten-tts-mini',
     '--tts',
-    'openai=gpt-4o-mini-tts',
+    'openai=gpt-4o-mini-tts-2025-12-15',
     '--price'
   ])
   const output = `${result.stdout}\n${result.stderr}`
@@ -332,5 +332,5 @@ test('write --price omits TTS estimates when multiple LLM providers are selected
   expect(result.exitCode).toBe(0)
   expect(output).not.toContain('TTS estimate omitted')
   expect(output).not.toContain('speech-kitten-kitten-tts-mini.wav')
-  expect(output).not.toContain('speech-openai-gpt-4o-mini-tts.wav')
+  expect(output).not.toContain('speech-openai-gpt-4o-mini-tts-2025-12-15.wav')
 })

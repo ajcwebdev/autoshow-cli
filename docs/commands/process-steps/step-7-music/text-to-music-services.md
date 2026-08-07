@@ -95,8 +95,8 @@ Lyric-video flags:
 One or more hosted provider selectors can be specified. Repeating the same provider runs each selected model independently and produces its own output file.
 
 ```bash
-bun autoshow music "chill lo-fi beat" --provider elevenlabs=music_v1 --provider minimax=music-2.6
-bun autoshow music "chill lo-fi beat" --provider elevenlabs=music_v1 --provider minimax=music-2.6 --price
+bun autoshow music "chill lo-fi beat" --provider elevenlabs=music_v2 --provider minimax=music-3.0
+bun autoshow music "chill lo-fi beat" --provider elevenlabs=music_v2 --provider minimax=music-3.0 --price
 ```
 
 ## Music Services And Modes
@@ -106,35 +106,35 @@ bun autoshow music "chill lo-fi beat" --provider elevenlabs=music_v1 --provider 
 | Option | Value |
 |--------|-------|
 | Selector | `--provider elevenlabs[=<model>]` |
-| Models | `music_v1` |
+| Models | `music_v1`, `music_v2` |
 | Duration | `--duration <seconds>` from `3` to `600`; defaults to 180 seconds for estimates when omitted |
 | Instrumental | `--instrumental` |
 
 ```bash
-bun autoshow music "cinematic orchestral trailer, dramatic strings and percussion" --provider elevenlabs=music_v1
-bun autoshow music "lo-fi chillhop with soft piano and vinyl texture" --provider elevenlabs=music_v1 --duration 20 --instrumental
-bun autoshow music "lo-fi chillhop with soft piano and vinyl texture" --provider elevenlabs=music_v1 --price
+bun autoshow music "cinematic orchestral trailer, dramatic strings and percussion" --provider elevenlabs=music_v2
+bun autoshow music "lo-fi chillhop with soft piano and vinyl texture" --provider elevenlabs=music_v2 --duration 20 --instrumental
+bun autoshow music "lo-fi chillhop with soft piano and vinyl texture" --provider elevenlabs=music_v2 --price
 ```
 
-ElevenLabs returns audio directly. Price estimation uses the explicit `--duration` when provided; otherwise it falls back to `180` seconds.
+ElevenLabs returns audio directly. Music v1 produces `mp3_44100_128`; Music v2 produces `mp3_48000_192`. Price estimation uses the explicit `--duration` when provided; otherwise it falls back to `180` seconds. Music v1 remains the bare-provider selection during ElevenLabs' documented API transition period; select `music_v2` explicitly for the next-generation model.
 
 ### MiniMax
 
 | Option | Value |
 |--------|-------|
 | Selector | `--provider minimax[=<model>]` |
-| Models | `music-2.6` |
+| Models | `music-3.0` |
 | Lyrics | `--lyrics-file <path>`; lyrics are auto-generated when omitted |
 | Instrumental | `--instrumental` |
 
 ```bash
-bun autoshow music "indie pop, nostalgic summer road trip vibe" --provider minimax=music-2.6
-bun autoshow music "indie pop, nostalgic summer road trip vibe" --provider minimax=music-2.6 --lyrics-file input/examples/tts/1-tts.md
-bun autoshow music "ambient piano instrumental with soft tape saturation" --provider minimax=music-2.6 --instrumental
-bun autoshow music "indie pop, nostalgic summer road trip vibe" --provider minimax=music-2.6 --price
+bun autoshow music "indie pop, nostalgic summer road trip vibe" --provider minimax=music-3.0
+bun autoshow music "indie pop, nostalgic summer road trip vibe" --provider minimax=music-3.0 --lyrics-file input/examples/tts/1-tts.md
+bun autoshow music "ambient piano instrumental with soft tape saturation" --provider minimax=music-3.0 --instrumental
+bun autoshow music "indie pop, nostalgic summer road trip vibe" --provider minimax=music-3.0 --price
 ```
 
-MiniMax auto-generates lyrics when `--lyrics-file` is omitted. Price estimation includes the extra lyrics-generation cost when lyrics are auto-generated. `music-2.6` supports instrumental mode; when instrumental mode is omitted, it generates with lyrics or auto-generated lyrics. `--duration` is currently ignored by MiniMax.
+MiniMax auto-generates lyrics when `--lyrics-file` is omitted. Price estimation includes the extra lyrics-generation cost when lyrics are auto-generated. `music-3.0` supports instrumental mode; when instrumental mode is omitted, it generates with lyrics or auto-generated lyrics. `--duration` is currently ignored by MiniMax. The previous-generation `music-2.6` identity remains readable in historical benchmark results but is rejected for new runs.
 
 ### Gemini
 
@@ -179,10 +179,10 @@ Lyric-video rendering uses local Whisper captions and ffmpeg rendering. In reren
 
 ```bash
 # Write pipeline
-bun autoshow write https://ajc.pics/autoshow/examples/1-audio.mp3 --llm openai=gpt-5.5 --music elevenlabs=music_v1 --music-duration 20
-bun autoshow write https://ajc.pics/autoshow/examples/1-audio.mp3 --music minimax=music-2.6 --music-lyrics-file input/examples/tts/1-tts.md
+bun autoshow write https://ajc.pics/autoshow/examples/1-audio.mp3 --llm openai=gpt-5.5 --music elevenlabs=music_v2 --music-duration 20
+bun autoshow write https://ajc.pics/autoshow/examples/1-audio.mp3 --music minimax=music-3.0 --music-lyrics-file input/examples/tts/1-tts.md
 bun autoshow write https://ajc.pics/autoshow/examples/1-audio.mp3 --llm openai=gpt-5.5 --music gemini=lyria-3-pro-preview --music-duration 120
-bun autoshow write https://ajc.pics/autoshow/examples/1-audio.mp3 --music minimax=music-2.6 --price
+bun autoshow write https://ajc.pics/autoshow/examples/1-audio.mp3 --music minimax=music-3.0 --price
 ```
 
 ## Output
@@ -199,8 +199,8 @@ Multi-provider runs write one file per provider:
 
 ```text
 output/YYYY-MM-DD_HH-mm-ss_music-gen/
-  generated-music-elevenlabs-music_v1.mp3
-  generated-music-minimax-music-2.6.mp3
+  generated-music-elevenlabs-music_v2.mp3
+  generated-music-minimax-music-3.0.mp3
   generated-music-gemini-lyria-3-clip-preview.mp3
   run.json
 ```

@@ -8,11 +8,11 @@ import {
 import { readRunMetadata } from '../../../../test-utils/manifest-helpers'
 import { requireConfiguredEnvVar } from '../../../../test-utils/service-test-kit'
 
-budgetedTest('music-pipeline-minimax-music-2.6', 'write with minimax music and lyrics file', async () => {
+budgetedTest('music-pipeline-minimax-music-3.0', 'write with minimax music and lyrics file', async () => {
   await requireConfiguredEnvVar('MINIMAX_API_KEY', 'MINIMAX_API_KEY required')
 
   const result = await runCommand(
-    ['src/cli/create-cli.ts', 'write', 'https://ajc.pics/autoshow/examples/1-audio.mp3', '--music', 'minimax=music-2.6', '--music-lyrics-file', 'input/examples/tts/1-tts.md'],
+    ['src/cli/create-cli.ts', 'write', 'https://ajc.pics/autoshow/examples/1-audio.mp3', '--music', 'minimax=music-3.0', '--music-lyrics-file', 'input/examples/tts/1-tts.md'],
   )
   expect(result.exitCode).toBe(0)
 
@@ -27,7 +27,7 @@ budgetedTest('music-pipeline-minimax-music-2.6', 'write with minimax music and l
     step7?: { musicService?: string; musicModel?: string; lyricsSource?: string; musicFileName?: string }
   }
   expect(metadata.step7?.musicService).toBe('minimax')
-  expect(metadata.step7?.musicModel).toBe('music-2.6')
+  expect(metadata.step7?.musicModel).toBe('music-3.0')
   expect(metadata.step7?.lyricsSource).toBe('provided')
   expect(metadata.step7?.musicFileName).toBe('generated-music.mp3')
 })

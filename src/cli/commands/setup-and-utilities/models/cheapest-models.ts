@@ -12,6 +12,15 @@ const DEFAULT_LOCAL_MODEL_BY_FLAG = {
   'kitten-tts': 'kitten-tts-nano-0.8-int8',
 } as const satisfies Record<string, string>
 
+const DEFAULT_HOSTED_TTS_MODEL_BY_FLAG = {
+  'elevenlabs-tts': 'eleven_v3',
+  'groq-tts': 'canopylabs/orpheus-v1-english',
+  'openai-tts': 'gpt-4o-mini-tts-2025-12-15',
+  'deepgram-tts': 'aura-2-thalia-en',
+  'speechify-tts': 'simba-3.2',
+  'cartesia-tts': 'sonic-3.5-2026-05-04'
+} as const satisfies Record<string, string>
+
 const DEFAULT_OCR_INPUT_TOKENS_PER_PAGE = 4000
 const DEFAULT_OCR_OUTPUT_TOKENS_PER_PAGE = 1000
 
@@ -76,7 +85,7 @@ const qualityRank = (selection: { size?: string | undefined, resolution?: string
 }
 
 const isDefaultVideoSelectionModel = (
-  provider: 'gemini' | 'minimax' | 'glm' | 'grok' | 'runway' | 'ltx' | 'replicate' | 'lumalabs',
+  provider: 'gemini' | 'minimax' | 'glm' | 'grok' | 'runway' | 'ltx' | 'replicate' | 'lumalabs' | 'fal',
   model: string
 ): boolean => {
   if (provider === 'minimax') {
@@ -201,7 +210,7 @@ const selectCheapestMusicModel = (service: string): string => {
 }
 
 export const selectCheapestVideoSelection = (
-  provider: 'gemini' | 'minimax' | 'glm' | 'grok' | 'runway' | 'ltx' | 'replicate' | 'lumalabs'
+  provider: 'gemini' | 'minimax' | 'glm' | 'grok' | 'runway' | 'ltx' | 'replicate' | 'lumalabs' | 'fal'
 ): CheapestVideoSelection => {
   const serviceConfig = getModelRegistry().video[provider]
   if (!serviceConfig) {
@@ -267,6 +276,7 @@ export const selectCheapestVideoSelection = (
               ...(provider === 'runway' ? { runwayVideoModel: model } : {}),
               ...(provider === 'ltx' ? { ltxVideoModel: model } : {}),
               ...(provider === 'lumalabs' ? { lumalabsVideoModel: model } : {}),
+              ...(provider === 'fal' ? { falVideoModel: model } : {}),
               videoDuration: duration,
               videoResolution: resolution
             })
@@ -319,10 +329,10 @@ export const selectCheapestVideoSelection = (
 }
 
 const selectCheapestVideoModel = (
-  provider: 'gemini' | 'minimax' | 'glm' | 'grok' | 'runway' | 'ltx' | 'replicate' | 'lumalabs'
+  provider: 'gemini' | 'minimax' | 'glm' | 'grok' | 'runway' | 'ltx' | 'replicate' | 'lumalabs' | 'fal'
 ): string => selectCheapestVideoSelection(provider).model
 
-const TEXT_VIDEO_PROVIDERS = ['gemini', 'minimax', 'glm', 'grok', 'runway', 'ltx', 'replicate', 'lumalabs'] as const
+const TEXT_VIDEO_PROVIDERS = ['gemini', 'minimax', 'glm', 'grok', 'runway', 'ltx', 'replicate', 'lumalabs', 'fal'] as const
 
 const providerVideoEstimateOptions = (
   provider: typeof TEXT_VIDEO_PROVIDERS[number],
@@ -336,6 +346,7 @@ const providerVideoEstimateOptions = (
   ...(provider === 'ltx' ? { ltxVideoModel: model } : {}),
   ...(provider === 'replicate' ? { replicateVideoModel: model } : {}),
   ...(provider === 'lumalabs' ? { lumalabsVideoModel: model } : {}),
+  ...(provider === 'fal' ? { falVideoModel: model } : {}),
   videoMode: 'text'
 })
 
@@ -396,6 +407,10 @@ export const resolveCheapestModelForFlag = (flagName: string): string | undefine
   const localDefault = DEFAULT_LOCAL_MODEL_BY_FLAG[flagName as keyof typeof DEFAULT_LOCAL_MODEL_BY_FLAG]
   if (localDefault) {
     return localDefault
+  }
+  const hostedTtsDefault = DEFAULT_HOSTED_TTS_MODEL_BY_FLAG[flagName as keyof typeof DEFAULT_HOSTED_TTS_MODEL_BY_FLAG]
+  if (hostedTtsDefault) {
+    return hostedTtsDefault
   }
 
   switch (flagName) {
@@ -495,14 +510,14 @@ export const resolveCheapestModelForFlag = (flagName: string): string | undefine
       return selectCheapestImageModel('grok')
     case 'bfl-image':
       return selectCheapestImageModel('bfl')
-    case 'reve-image':
-      return selectCheapestImageModel('reve')
     case 'recraft-image':
       return selectCheapestImageModel('recraft')
     case 'replicate-image':
       return selectCheapestImageModel('replicate')
     case 'lumalabs-image':
       return selectCheapestImageModel('lumalabs')
+    case 'fal-image':
+      return selectCheapestImageModel('fal')
     case 'elevenlabs-music':
       return selectCheapestMusicModel('elevenlabs')
     case 'minimax-music':
@@ -525,6 +540,8 @@ export const resolveCheapestModelForFlag = (flagName: string): string | undefine
       return selectCheapestVideoModel('replicate')
     case 'lumalabs-video':
       return selectCheapestVideoModel('lumalabs')
+    case 'fal-video':
+      return selectCheapestVideoModel('fal')
     default:
       return undefined
   }

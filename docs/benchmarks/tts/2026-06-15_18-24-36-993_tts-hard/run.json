@@ -137,6 +137,60 @@
         "audioFileName": "speech-mistral-voxtral-mini-tts-2603.wav",
         "audioFileSize": 4043918,
         "chunkCount": 1
+      },
+      {
+        "ttsService": "elevenlabs",
+        "ttsModel": "eleven_multilingual_v2",
+        "speaker": "hpp4J3VqNfWAUOO0d1Us",
+        "processingTime": 17130,
+        "audioFileName": "speech-elevenlabs-eleven_multilingual_v2.wav",
+        "audioFileSize": 3822268,
+        "chunkCount": 1
+      },
+      {
+        "ttsService": "elevenlabs",
+        "ttsModel": "eleven_flash_v2_5",
+        "speaker": "hpp4J3VqNfWAUOO0d1Us",
+        "processingTime": 4284,
+        "audioFileName": "speech-elevenlabs-eleven_flash_v2_5.wav",
+        "audioFileSize": 4247286,
+        "chunkCount": 1
+      },
+      {
+        "ttsService": "openai",
+        "ttsModel": "gpt-4o-mini-tts-2025-12-15",
+        "speaker": "alloy",
+        "processingTime": 19149,
+        "audioFileName": "speech-openai-gpt-4o-mini-tts-2025-12-15.wav",
+        "audioFileSize": 3664078,
+        "chunkCount": 1
+      },
+      {
+        "ttsService": "speechify",
+        "ttsModel": "simba-3.2",
+        "speaker": "geffen_32",
+        "processingTime": 14514,
+        "audioFileName": "speech-speechify-simba-3.2.wav",
+        "audioFileSize": 3581262,
+        "chunkCount": 1
+      },
+      {
+        "ttsService": "speechify",
+        "ttsModel": "simba-3.0",
+        "speaker": "geffen_32",
+        "processingTime": 15024,
+        "audioFileName": "speech-speechify-simba-3.0.wav",
+        "audioFileSize": 3726414,
+        "chunkCount": 1
+      },
+      {
+        "ttsService": "cartesia",
+        "ttsModel": "sonic-3.5-2026-05-04",
+        "speaker": "f786b574-daa5-4673-aa0c-cbe3e8534c02",
+        "processingTime": 13137,
+        "audioFileName": "speech-cartesia-sonic-3.5-2026-05-04.wav",
+        "audioFileSize": 3653198,
+        "chunkCount": 1
       }
     ],
     "cost": {
@@ -401,7 +455,7 @@
         ]
       },
       "actual": {
-        "totalCost": 107.482255,
+        "totalCost": 141.35122249999998,
         "steps": [
           {
             "step": "tts",
@@ -534,6 +588,60 @@
             "provider": "mistral",
             "model": "voxtral-mini-tts-2603",
             "cost": 2.5808,
+            "costSource": "computed_usage",
+            "inputMetric": "characters",
+            "inputValue": 1613
+          },
+          {
+            "step": "tts",
+            "provider": "elevenlabs",
+            "model": "eleven_multilingual_v2",
+            "cost": 16.13,
+            "costSource": "computed_usage",
+            "inputMetric": "characters",
+            "inputValue": 1613
+          },
+          {
+            "step": "tts",
+            "provider": "elevenlabs",
+            "model": "eleven_flash_v2_5",
+            "cost": 8.065,
+            "costSource": "computed_usage",
+            "inputMetric": "characters",
+            "inputValue": 1613
+          },
+          {
+            "step": "tts",
+            "provider": "openai",
+            "model": "gpt-4o-mini-tts-2025-12-15",
+            "cost": 2.0323800000000003,
+            "costSource": "computed_usage",
+            "inputMetric": "characters",
+            "inputValue": 1613
+          },
+          {
+            "step": "tts",
+            "provider": "speechify",
+            "model": "simba-3.2",
+            "cost": 1.613,
+            "costSource": "computed_usage",
+            "inputMetric": "characters",
+            "inputValue": 1613
+          },
+          {
+            "step": "tts",
+            "provider": "speechify",
+            "model": "simba-3.0",
+            "cost": 1.613,
+            "costSource": "computed_usage",
+            "inputMetric": "characters",
+            "inputValue": 1613
+          },
+          {
+            "step": "tts",
+            "provider": "cartesia",
+            "model": "sonic-3.5-2026-05-04",
+            "cost": 6.0285874999999995,
             "costSource": "computed_usage",
             "inputMetric": "characters",
             "inputValue": 1613
@@ -743,7 +851,7 @@
         ]
       },
       "actual": {
-        "totalProcessingTimeMs": 1050924,
+        "totalProcessingTimeMs": 1121699,
         "steps": [
           {
             "step": "tts",
@@ -939,11 +1047,89 @@
             "throughputValue": 132.517,
             "throughputUnit": "charactersPerSecond",
             "timingScope": "wall"
+          },
+          {
+            "step": "tts",
+            "provider": "elevenlabs",
+            "model": "eleven_multilingual_v2",
+            "processingTimeMs": 17130,
+            "inputMetric": "characters",
+            "inputValue": 1613,
+            "rateBasis": "1KCharacters",
+            "msPerUnit": 10619.963,
+            "throughputValue": 94.162,
+            "throughputUnit": "charactersPerSecond",
+            "timingScope": "wall"
+          },
+          {
+            "step": "tts",
+            "provider": "elevenlabs",
+            "model": "eleven_flash_v2_5",
+            "processingTimeMs": 4284,
+            "inputMetric": "characters",
+            "inputValue": 1613,
+            "rateBasis": "1KCharacters",
+            "msPerUnit": 2655.921,
+            "throughputValue": 376.517,
+            "throughputUnit": "charactersPerSecond",
+            "timingScope": "wall"
+          },
+          {
+            "step": "tts",
+            "provider": "openai",
+            "model": "gpt-4o-mini-tts-2025-12-15",
+            "processingTimeMs": 19149,
+            "inputMetric": "characters",
+            "inputValue": 1613,
+            "rateBasis": "1KCharacters",
+            "msPerUnit": 11871.668,
+            "throughputValue": 84.234,
+            "throughputUnit": "charactersPerSecond",
+            "timingScope": "wall"
+          },
+          {
+            "step": "tts",
+            "provider": "speechify",
+            "model": "simba-3.2",
+            "processingTimeMs": 14514,
+            "inputMetric": "characters",
+            "inputValue": 1613,
+            "rateBasis": "1KCharacters",
+            "msPerUnit": 8998.14,
+            "throughputValue": 111.134,
+            "throughputUnit": "charactersPerSecond",
+            "timingScope": "wall"
+          },
+          {
+            "step": "tts",
+            "provider": "speechify",
+            "model": "simba-3.0",
+            "processingTimeMs": 15024,
+            "inputMetric": "characters",
+            "inputValue": 1613,
+            "rateBasis": "1KCharacters",
+            "msPerUnit": 9314.321,
+            "throughputValue": 107.362,
+            "throughputUnit": "charactersPerSecond",
+            "timingScope": "wall"
+          },
+          {
+            "step": "tts",
+            "provider": "cartesia",
+            "model": "sonic-3.5-2026-05-04",
+            "processingTimeMs": 13137,
+            "inputMetric": "characters",
+            "inputValue": 1613,
+            "rateBasis": "1KCharacters",
+            "msPerUnit": 8144.451,
+            "throughputValue": 122.783,
+            "throughputUnit": "charactersPerSecond",
+            "timingScope": "wall"
           }
         ]
       }
     },
-    "input": "At 8:05 a.m. on March 4, 2026, Dr. Ana\u00efs O\u2019Connor-Smith arrived at St. John\u2019s Avenue, Suite No. 4B, carrying three and a half pounds of bass and a worn r\u00e9sum\u00e9.\n\n\u201cDid the lead engineer lead the review,\u201d asked Xi\u01ceom\u00ed Nguyen, \u201cor was the lead pipe made of lead? Should I wind the clock before the wind rises, polish the Polish table, refuse the refuse, and record a record?\u201d\n\nProfessor Jean-Luc Picard, Jr., Ph.D., looked up from his notes. \u201cThe meeting begins at noon, not midnight. The budget is $1,234,567.89, unless the London office meant \u00a31,234,567.89. Call extension 42 by 5:30 p.m., Central time.\u201d\n\nMar\u00eda-Jos\u00e9 entered with a tray and said, \u201c\u00a1Buenos d\u00edas! \u00c7a va? Gr\u00fc\u00df Gott.\u201d She offered everyone croissants, jalape\u00f1o bagels, pho, gyros, a\u00e7ai bowls, bruschetta, and quinoa salad.\n\n\u201cDo not overact this sentence,\u201d Ana\u00efs said calmly. \u201cDo not underact this one!\u201d Then she paused. \u201cAnd please do not read every ellipsis\u2026 like\u2026 a tragic\u2026 farewell.\u201d\n\nThe day\u2019s exercises were simple: read \u201cread,\u201d \u201creed,\u201d and \u201cred\u201d; explain whether \u201cNo. 6\u201d means number six or no six; distinguish \u201cUS\u201d from \u201cus\u201d; decide whether \u201cinvalid\u201d means not valid or a person who is ill; and make \u201cthe dove dove into the bushes\u201d sound natural.\n\nThen came the pronunciation list: Worcestershire, hyperbole, epitome, cache, niche, solder, colonel, segue, synecdoche, Saoirse Ronan, Chiwetel Ejiofor, Ioan Gruffudd, Ncuti Gatwa, Bj\u00f6rk, and Sean Bean.\n\nAt 2:03 p.m., the chairman read the final line aloud: \u201cA good narrator knows when to pause, when to emphasize, when to spell, when to pronounce, and when to admit that text alone is ambiguous.\u201d\n",
+    "input": "At 8:05 a.m. on March 4, 2026, Dr. Anaïs O’Connor-Smith arrived at St. John’s Avenue, Suite No. 4B, carrying three and a half pounds of bass and a worn résumé.\n\n“Did the lead engineer lead the review,” asked Xiǎomí Nguyen, “or was the lead pipe made of lead? Should I wind the clock before the wind rises, polish the Polish table, refuse the refuse, and record a record?”\n\nProfessor Jean-Luc Picard, Jr., Ph.D., looked up from his notes. “The meeting begins at noon, not midnight. The budget is $1,234,567.89, unless the London office meant £1,234,567.89. Call extension 42 by 5:30 p.m., Central time.”\n\nMaría-José entered with a tray and said, “¡Buenos días! Ça va? Grüß Gott.” She offered everyone croissants, jalapeño bagels, pho, gyros, açai bowls, bruschetta, and quinoa salad.\n\n“Do not overact this sentence,” Anaïs said calmly. “Do not underact this one!” Then she paused. “And please do not read every ellipsis… like… a tragic… farewell.”\n\nThe day’s exercises were simple: read “read,” “reed,” and “red”; explain whether “No. 6” means number six or no six; distinguish “US” from “us”; decide whether “invalid” means not valid or a person who is ill; and make “the dove dove into the bushes” sound natural.\n\nThen came the pronunciation list: Worcestershire, hyperbole, epitome, cache, niche, solder, colonel, segue, synecdoche, Saoirse Ronan, Chiwetel Ejiofor, Ioan Gruffudd, Ncuti Gatwa, Björk, and Sean Bean.\n\nAt 2:03 p.m., the chairman read the final line aloud: “A good narrator knows when to pause, when to emphasize, when to spell, when to pronounce, and when to admit that text alone is ambiguous.”\n",
     "requestedProviders": [
       {
         "service": "elevenlabs",
@@ -1004,6 +1190,30 @@
       {
         "service": "cartesia",
         "model": "sonic-3.5"
+      },
+      {
+        "service": "elevenlabs",
+        "model": "eleven_multilingual_v2"
+      },
+      {
+        "service": "elevenlabs",
+        "model": "eleven_flash_v2_5"
+      },
+      {
+        "service": "openai",
+        "model": "gpt-4o-mini-tts-2025-12-15"
+      },
+      {
+        "service": "speechify",
+        "model": "simba-3.2"
+      },
+      {
+        "service": "speechify",
+        "model": "simba-3.0"
+      },
+      {
+        "service": "cartesia",
+        "model": "sonic-3.5-2026-05-04"
       }
     ]
   }

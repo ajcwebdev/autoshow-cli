@@ -8,12 +8,12 @@ import {
 import { readRunMetadata } from '../../../../test-utils/manifest-helpers'
 import { requireConfiguredEnvVar } from '../../../../test-utils/service-test-kit'
 
-budgetedTest('music-pipeline-elevenlabs-music_v1', 'write with elevenlabs music pipeline writes music artifacts and metadata', async () => {
+budgetedTest('music-pipeline-elevenlabs-music_v2', 'write with elevenlabs music pipeline writes music artifacts and metadata', async () => {
   await requireConfiguredEnvVar('ELEVENLABS_API_KEY', 'ELEVENLABS_API_KEY required')
   await requireConfiguredEnvVar('GROQ_API_KEY', 'GROQ_API_KEY required')
 
   const result = await runCommand(
-    ['src/cli/create-cli.ts', 'write', 'https://ajc.pics/autoshow/examples/1-audio.mp3', '--llm', 'groq=openai/gpt-oss-20b', '--music', 'elevenlabs=music_v1', '--music-duration', '3'],
+    ['src/cli/create-cli.ts', 'write', 'https://ajc.pics/autoshow/examples/1-audio.mp3', '--llm', 'groq=openai/gpt-oss-20b', '--music', 'elevenlabs=music_v2', '--music-duration', '3'],
   )
 
   expect(result.exitCode).toBe(0)
@@ -29,6 +29,6 @@ budgetedTest('music-pipeline-elevenlabs-music_v1', 'write with elevenlabs music 
     step7?: { musicService?: string; musicModel?: string; lyricsSource?: string }
   }
   expect(metadata.step7?.musicService).toBe('elevenlabs')
-  expect(metadata.step7?.musicModel).toBe('music_v1')
+  expect(metadata.step7?.musicModel).toBe('music_v2')
   expect(metadata.step7?.lyricsSource).toBe('generated')
 }, E2E_TEST_TIMEOUT_MS)
