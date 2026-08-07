@@ -160,3 +160,17 @@ Negative outcomes:
 - Current metadata command: `.../step-0-metadata/define-metadata-command.ts`; current target planning/source expansion: `.../step-1-download/targets/`, `.../step-1-download/sources/`
 - OCR/STT manifest patterns: `.../step-2-ocr/manifest.ts`, `.../step-2-stt/manifest.ts`
 - Tests: `test/test-cases/validation/ingest/html-url-backends-contracts/`, `.../resume-manifests/resume-provider-surface-contracts.test.ts`, `.../cli/option-resolution-contracts/download-extract-url-options.test.ts`, `.../validation/ingest/`
+
+> Correction (2026-08-07): the module boundaries this ADR established are all intact, but several were renamed or relocated afterwards, so the paths cited above and in §"URL-local module boundaries" no longer resolve. The mapping, none of which changed any behavior:
+>
+> | Cited here | Actual |
+> |---|---|
+> | `step-2-url/cli.ts` | `step-2-url/url-cli.ts` |
+> | `step-2-url/manifest.ts` | `step-2-url/url-manifest.ts` |
+> | `.../step-2-ocr/manifest.ts` | `.../step-2-ocr/ocr-manifest.ts` |
+> | `.../step-2-stt/manifest.ts` | `.../step-2-stt/stt-manifest.ts` |
+> | `.../provider-registry/selection.ts` | `.../provider-registry/provider-registry-selection.ts` |
+> | `.../step-1-download/targets/`, `.../step-1-download/sources/` | `.../step-1-download/download-targets/` |
+> | `src/types/cli/commands/process-steps/step-2-extract/step-2-shared/step-2-shared-types.ts` | `src/types` is workflow-grouped now; the URL contracts live under `src/types/url-workflow/` and the shared pipeline contracts under `src/types/pipeline-core/`, all re-exported from the `~/types` barrel |
+>
+> The `url-` and `ocr-`/`stt-` prefixes exist because `src/tools/unique-source-name-check.ts` enforces unique basenames across `src/`, which a per-step `manifest.ts` in three step directories would violate.

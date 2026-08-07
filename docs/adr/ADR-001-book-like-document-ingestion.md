@@ -159,6 +159,8 @@ Negative outcomes:
 | Add future ebook formats only with registry and no-cost contract coverage | Extraction maintainer | Ongoing guardrail |
 | Add licensing review before vendoring or modifying GPLv3 plugin code in-repo | Maintainers | Ongoing guardrail |
 
+> Correction (2026-08-07): the two convertible-ebook registries this ADR describes were later consolidated into one, and it is the metadata-side copy that survived. `step-1-download/document/convertible-ebooks.ts` no longer exists; the single registry is `step-0-metadata/formats/metadata-convertible-ebooks.ts`, exporting `CONVERTIBLE_EBOOK_FORMATS`, `CONVERTIBLE_EBOOK_FORMAT_LABEL`, and `isConvertibleEbookFormat`, which `step-1-download/document/dl-document.ts` imports directly. The decision itself is intact — the registry is still explicit, the canonical formats are still `mobi`/`azw3`/`fb2`/`lit` with `.azw` and `.prc` as aliases, and `src/types/document-processing/convertible-ebooks-types.ts` derives its type from that one array — only the "two registries" framing and the Step 1 path are stale. Read the two References entries below as one.
+
 ## Test Plan
 
 Local/no-cost contract tests cover:

@@ -8,7 +8,7 @@ import { estimateMusicCosts } from '~/cli/commands/process-steps/step-7-music/mu
 import { resolveExtractionProviderModel } from '~/cli/commands/process-steps/step-2-extract/step-2-ocr/ocr-costs'
 import { computeActualCosts } from '~/utils/pricing/compute-actual-costs'
 import { computeActualProcessingTimes } from '~/utils/pricing/compute-processing-time'
-import type { ExtractionMetadata, Step6VideoMetadata } from '~/types'
+import type { ExtractionMetadata, Step6VideoMetadata, Step7MusicMetadata } from '~/types'
 
 const buildVideoMetadata = (overrides: Partial<Step6VideoMetadata>): Step6VideoMetadata => ({
   videoGenService: 'gemini',
@@ -335,5 +335,39 @@ describe('price mode contracts', () => {
         { provider: 'gemini', model: 'lyria-3-clip-preview', totalCost: 4 },
         { provider: 'gemini', model: 'lyria-3-pro-preview', totalCost: 8 }
       ])
+    })
+
+  // ADR-018 replaced MiniMax music-2.6 with music-3.0 and required the retired
+  // model to keep repricing in historical readers. It has no registry row, so
+  // without the retired-rate table `getMusicModelMeta` returns undefined and the
+  // four committed `docs/benchmarks/music/2026-05-21_*` runs silently reprice to
+  // $0 — a wrong number that reads exactly like a free provider.
+  test('retired MiniMax music-2.6 still reprices from historical rates', () => {
+      const archived: Step7MusicMetadata = {
+        musicService: 'minimax',
+        musicModel: 'music-2.6',
+        processingTime: 240_000,
+        musicFileName: 'music.mp3',
+        musicFileSize: 1234,
+        musicDurationMs: 176_875,
+        lyricsSource: 'generated'
+      }
+
+      expect(computeActualCosts({ step7: archived }).steps[0]).toMatchObject({
+        step: 'music',
+        provider: 'minimax',
+        model: 'music-2.6',
+        cost: 16,
+        costSource: 'registry_fallback'
+      })
+
+      expect(computeActualCosts({
+        step7: { ...archived, lyricsSource: 'provided' }
+      }).steps[0]).toMatchObject({ cost: 15 })
+
+      // A provider quote still wins over the historical rate.
+      expect(computeActualCosts({
+        step7: { ...archived, providerCostCents: 21 }
+      }).steps[0]).toMatchObject({ cost: 21 })
     })
 })

@@ -127,8 +127,8 @@ export type RuntimeOptions = {
   deepinfraOcrModels: string[] | undefined
   deepinfraOcrModel: string | undefined
   primaryOcr: string | undefined
-  epubChapterFiles: boolean | undefined
-  epubChunkLimitChars: number | undefined
+  chapterFiles: boolean | undefined
+  chapterChunkLimitChars: number | undefined
   pdfChapterMode: 'local' | 'auto' | 'llm'
   useEpubBun: boolean
   urlBackend: HtmlArticleBackend

@@ -38,7 +38,7 @@ export const hasOcrFlag = (opts: ExtractionOptions): boolean =>
   opts.useTesseract === true || hasHostedOcr(opts)
 
 export const hasEpubExportFlags = (opts: ExtractionOptions): boolean =>
-  typeof opts.epubChapterFiles === 'boolean' || typeof opts.epubChunkLimitChars === 'number'
+  typeof opts.chapterFiles === 'boolean' || typeof opts.chapterChunkLimitChars === 'number'
 
 export const countSelectedOcrEngines = (opts: ExtractionOptions): number =>
   [

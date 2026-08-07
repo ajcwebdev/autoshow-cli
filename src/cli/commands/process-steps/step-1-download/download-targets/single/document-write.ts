@@ -132,11 +132,11 @@ export const buildExtractionCallOpts = (target: string, baseDir: string, opts: R
   if (opts.deepinfraOcrModels) {
     extractionOpts.deepinfraOcrModels = opts.deepinfraOcrModels
   }
-  if (typeof opts.epubChapterFiles === 'boolean') {
-    extractionOpts.epubChapterFiles = opts.epubChapterFiles
+  if (typeof opts.chapterFiles === 'boolean') {
+    extractionOpts.chapterFiles = opts.chapterFiles
   }
-  if (typeof opts.epubChunkLimitChars === 'number') {
-    extractionOpts.epubChunkLimitChars = opts.epubChunkLimitChars
+  if (typeof opts.chapterChunkLimitChars === 'number') {
+    extractionOpts.chapterChunkLimitChars = opts.chapterChunkLimitChars
   }
   if (opts.useEpubBun) {
     extractionOpts.useEpubBun = true

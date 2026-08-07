@@ -93,8 +93,8 @@ export const buildOcrOptions = (ctx: BuildDomainOptionsContext): Pick<RuntimeOpt
     deepinfraOcrModels,
     deepinfraOcrModel,
     primaryOcr: readOptionalStringFlag(mergedFlags, 'primary-ocr'),
-    epubChapterFiles: readOptionalBooleanFlag(mergedFlags, 'chapters'),
-    epubChunkLimitChars: epubLengthThousands === undefined ? undefined : epubLengthThousands * 1000,
+    chapterFiles: readOptionalBooleanFlag(mergedFlags, 'chapters'),
+    chapterChunkLimitChars: epubLengthThousands === undefined ? undefined : epubLengthThousands * 1000,
     pdfChapterMode,
     useEpubBun: readBooleanFlag(mergedFlags, 'epub-bun'),
   }

@@ -184,7 +184,7 @@ export const runOcr = async (
   const inputAdapter = resolveOcrInputAdapter(format, opts)
   inputFamily = inputAdapter.family
   const epubExportFlagsActive = hasEpubExportFlags(opts)
-  const pdfChunkOnlyRequested = format === 'pdf' && opts.epubChapterFiles === false && typeof opts.epubChunkLimitChars === 'number'
+  const pdfChunkOnlyRequested = format === 'pdf' && opts.chapterFiles === false && typeof opts.chapterChunkLimitChars === 'number'
 
   if (format !== 'epub' && format !== 'pdf' && epubExportFlagsActive) {
     l.warn(CHAPTER_EXPORT_FLAGS_IGNORED_WARNING)
@@ -235,10 +235,10 @@ export const runOcr = async (
       )
     }
     const epubTextOutput = buildEpubTextOutput(step1Metadata.slug, inspected.payload.chapters, {
-      chapterFiles: shouldExportEpubChapters(opts.epubChapterFiles),
+      chapterFiles: shouldExportEpubChapters(opts.chapterFiles),
       ...(inspected.payload.metadata.title ? { documentTitle: inspected.payload.metadata.title } : {}),
       ...(normalizedFrom ? { normalizedFrom } : {}),
-      ...(typeof opts.epubChunkLimitChars === 'number' ? { chunkLimitChars: opts.epubChunkLimitChars } : {})
+      ...(typeof opts.chapterChunkLimitChars === 'number' ? { chunkLimitChars: opts.chapterChunkLimitChars } : {})
     })
 
     pages = epubTextOutput.pages
@@ -435,11 +435,11 @@ export const runOcr = async (
     reportedTotalPages ?? 0
   )
   const pdfChapterFilesRequested = format === 'pdf'
-    && shouldAttemptPdfChapterExport(opts.epubChapterFiles, resolvedPdfPageCount)
+    && shouldAttemptPdfChapterExport(opts.chapterFiles, resolvedPdfPageCount)
 
   if (pdfChapterFilesRequested && format === 'pdf') {
     await writeExtractionTextCheckpoint()
-    const pdfChapterMode = resolvePdfChapterDetectionMode(opts.epubChapterFiles, opts.pdfChapterMode)
+    const pdfChapterMode = resolvePdfChapterDetectionMode(opts.chapterFiles, opts.pdfChapterMode)
     l.write('info', `Detecting PDF chapters with ${pdfChapterMode} mode`)
     const pdfChapterOutput = await buildPdfChapterArtifacts({
       filePath,
@@ -448,7 +448,7 @@ export const runOcr = async (
       ...(typeof step1Metadata.title === 'string' ? { title: step1Metadata.title } : {}),
       ...(typeof step1Metadata.author === 'string' ? { author: step1Metadata.author } : {}),
       ...(typeof opts.password === 'string' ? { password: opts.password } : {}),
-      ...(typeof opts.epubChunkLimitChars === 'number' ? { chunkLimitChars: opts.epubChunkLimitChars } : {}),
+      ...(typeof opts.chapterChunkLimitChars === 'number' ? { chunkLimitChars: opts.chapterChunkLimitChars } : {}),
       ...(typeof opts.pdfChapterLlmService === 'string' ? { llmService: opts.pdfChapterLlmService } : {}),
       ...(typeof opts.pdfChapterLlmModel === 'string' ? { llmModel: opts.pdfChapterLlmModel } : {})
     })

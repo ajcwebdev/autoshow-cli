@@ -195,8 +195,8 @@ input/characters/
   <source-stem>--outline-sheet.png # registered live sheet
 
 output/<timestamp>_<scene>/
-  structured-script.json           # schemaVersion 2; characterKeys/speakerKey
-  scene.json                        # schemaVersion 2; authoritative panel.characterKeys
+  structured-script.json           # schemaVersion 3; characterKeys/speakerKey
+  scene.json                        # schemaVersion 4; authoritative panel.characterKeys
   character-references.json         # checksummed immutable snapshot manifest
   character-references/<snapshot-id>/<character-key>/
     reference.<ext>                  # one-image character

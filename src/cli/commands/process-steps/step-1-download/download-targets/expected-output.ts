@@ -52,11 +52,11 @@ const getExpectedOcrExportArtifacts = (
 ): string[] => {
   const artifacts: string[] = []
   const sourceKind = routing?.resolvedStep2.sourceKind
-  const epubChaptersAutomatic = sourceKind === 'epub' && shouldExportEpubChapters(opts.epubChapterFiles)
-  if (opts.epubChapterFiles === true || epubChaptersAutomatic) {
+  const epubChaptersAutomatic = sourceKind === 'epub' && shouldExportEpubChapters(opts.chapterFiles)
+  if (opts.chapterFiles === true || epubChaptersAutomatic) {
     artifacts.push('chapters/*.txt (EPUB native text runs, or PDF chapter autodetection)')
   }
-  if (typeof opts.epubChunkLimitChars === 'number' && !epubChaptersAutomatic && opts.epubChapterFiles !== true) {
+  if (typeof opts.chapterChunkLimitChars === 'number' && !epubChaptersAutomatic && opts.chapterFiles !== true) {
     artifacts.push('chunks/*.txt (EPUB native text runs only)')
   }
   return artifacts

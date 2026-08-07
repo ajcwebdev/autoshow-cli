@@ -186,6 +186,19 @@ const computeActualSttCharge = (
   }
 }
 
+// Music models dropped from the active registry whose benchmark artifacts are
+// still committed. ADR-018 replaced MiniMax `music-2.6` with `music-3.0` and
+// required it to survive "only in historical benchmark and result readers" —
+// this is that reader. Without a row here `getMusicModelMeta` returns undefined
+// and every archived run reprices to $0 instead of failing loudly. Rates are the
+// registry values as of the last refresh that carried the model.
+const RETIRED_MUSIC_MODEL_RATES: Readonly<Record<string, {
+  costPerTrackCents: number
+  lyricsCostPerTrackCents: number
+}>> = {
+  'minimax:music-2.6': { costPerTrackCents: 15, lyricsCostPerTrackCents: 1 }
+}
+
 const countGrokVideoInputImages = (entry: Step6VideoMetadata): number =>
   (entry.inputImage ? 1 : 0) + (entry.referenceImages?.length ?? 0)
 
@@ -433,6 +446,7 @@ export const computeActualCosts = (input: ComputeActualCostsInput): ActualCostBr
   if (input.step7) {
     for (const step7Entry of toArray(input.step7)) {
       const meta = getMusicModelMeta(step7Entry.musicService, step7Entry.musicModel)
+      const retired = RETIRED_MUSIC_MODEL_RATES[`${step7Entry.musicService}:${step7Entry.musicModel}`]
       let cost = 0
       if (typeof step7Entry.providerCostCents === 'number') {
         cost = step7Entry.providerCostCents
@@ -444,6 +458,11 @@ export const computeActualCosts = (input: ComputeActualCostsInput): ActualCostBr
           }
         } else if (typeof meta.costPerMinuteCents === 'number' && typeof step7Entry.musicDurationMs === 'number') {
           cost = meta.costPerMinuteCents * (step7Entry.musicDurationMs / 60000)
+        }
+      } else if (retired) {
+        cost = retired.costPerTrackCents
+        if (step7Entry.lyricsSource === 'generated') {
+          cost += retired.lyricsCostPerTrackCents
         }
       }
       steps.push({
