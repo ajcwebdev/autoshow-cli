@@ -1,7 +1,7 @@
 import { createHash } from 'node:crypto'
 import type { Dirent } from 'node:fs'
 import { existsSync, readFileSync } from 'node:fs'
-import { basename, extname, join, resolve } from 'node:path'
+import { extname, join, resolve } from 'node:path'
 import * as v from 'valibot'
 import type { PanelBundleData, ImageGenerationModel, PanelPrimaryReferenceInput, PrimaryCharacterReferenceState, ResolvedReferenceImages } from '~/types'
 import { PanelBundleDataSchema } from '../schemas/schemas'
@@ -68,7 +68,7 @@ const orderedKeys = (panels: PanelPrimaryReferenceInput[]): string[] => {
 }
 
 export const resolvePrimaryCharacterReferencesAcrossPanels = (panels: PanelPrimaryReferenceInput[], options: { composeDerived?: boolean } = {}): PrimaryCharacterReferenceState => {
-  if (panels.length === 0) return { primaryCharacterRefs: [], sketchCharacterRefs: [], canonicalCharacterRefs: [], missingPrimaryCharacterRefs: [] }
+  if (panels.length === 0) return { primaryCharacterRefs: [], missingPrimaryCharacterRefs: [] }
   const snapshotIds = new Set(panels.map(panel => panel.bundleData.snapshotId))
   const runDirectories = new Set(panels.map(panel => getSceneWorkspaceDirectoryForPanelPrompt(panel.panelDirectory)))
   if (snapshotIds.size !== 1 || runDirectories.size !== 1) throw ValidationError('Mixed snapshot IDs or run directories are not allowed in one image request', { stage: 'comic:reference-snapshot' })
@@ -80,8 +80,6 @@ export const resolvePrimaryCharacterReferencesAcrossPanels = (panels: PanelPrima
   const primaryCharacterRefs = characterReferences.map(reference => reference.path)
   return {
     primaryCharacterRefs,
-    sketchCharacterRefs: [],
-    canonicalCharacterRefs: [],
     missingPrimaryCharacterRefs: [],
     characterReferences,
   }
@@ -142,15 +140,13 @@ export const resolveLocationReferenceAcrossPanels = (panels: PanelPrimaryReferen
 const buildResolved = (references: string[], primary: string[], prior: string[], secondary: string[], missing: string[]): ResolvedReferenceImages => ({
   all: references,
   primaryCharacterRefs: primary,
-  sketchCharacterRefs: primary.filter(path => basename(path) === 'sketch-sheet.png'),
-  canonicalCharacterRefs: primary.filter(path => basename(path).startsWith('source.')),
   priorPanelRefs: prior.filter(path => references.includes(path)),
   secondaryRefs: secondary.filter(path => references.includes(path)),
   missingPrimaryCharacterRefs: missing,
 })
 
 export const applyReferenceImageLimits = (
-  _ordered: string[], primary: string[], _sketch: string[], _canonical: string[], prior: string[], secondary: string[], missing: string[], model: ImageGenerationModel
+  _ordered: string[], primary: string[], prior: string[], secondary: string[], missing: string[], model: ImageGenerationModel
 ): ResolvedReferenceImages => {
   const optional = [...prior, ...secondary].filter(path => !primary.includes(path))
   const limited = trimOptionalContinuityReferences(model, primary, optional)

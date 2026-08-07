@@ -265,8 +265,6 @@ const resolveSketchChunkReferences = (
   const resolved = applyReferenceImageLimits(
     [...preferredPrimaryCharacterRefs, ...locationPaths, ...designPaths, ...priorSketchRefs],
     [...preferredPrimaryCharacterRefs, ...locationPaths, ...designPaths],
-    primaryCharacterReferenceState.sketchCharacterRefs,
-    primaryCharacterReferenceState.canonicalCharacterRefs,
     priorSketchRefs,
     [...locationPaths, ...designPaths],
     primaryCharacterReferenceState.missingPrimaryCharacterRefs,

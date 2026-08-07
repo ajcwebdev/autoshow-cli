@@ -94,8 +94,6 @@ export type PanelBundleData = v.InferOutput<typeof import('~/cli/commands/proces
 export type ResolvedReferenceImages = {
   all: string[]
   primaryCharacterRefs: string[]
-  sketchCharacterRefs: string[]
-  canonicalCharacterRefs: string[]
   priorPanelRefs: string[]
   secondaryRefs: string[]
   missingPrimaryCharacterRefs: string[]
@@ -123,5 +121,5 @@ export type ResolvedReferenceImages = {
 
 export type PrimaryCharacterReferenceState = Pick<
   ResolvedReferenceImages,
-  'primaryCharacterRefs' | 'sketchCharacterRefs' | 'canonicalCharacterRefs' | 'missingPrimaryCharacterRefs' | 'characterReferences'
+  'primaryCharacterRefs' | 'missingPrimaryCharacterRefs' | 'characterReferences'
 >

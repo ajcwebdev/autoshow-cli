@@ -411,7 +411,7 @@ const validatePriceReferenceGroup = async (panelPromptsDir: string, panelNumbers
   const locationPlaceholders = locations.map((_, index) => `__location-${index + 1}__`)
   const designPlaceholders = designs.map((_, index) => `__design-${index + 1}__`)
   for (const model of models) {
-    applyReferenceImageLimits([...primary.primaryCharacterRefs, ...locationPlaceholders, ...designPlaceholders], [...primary.primaryCharacterRefs, ...locationPlaceholders, ...designPlaceholders], primary.sketchCharacterRefs, primary.canonicalCharacterRefs, [], [...locationPlaceholders, ...designPlaceholders], primary.missingPrimaryCharacterRefs, model)
+    applyReferenceImageLimits([...primary.primaryCharacterRefs, ...locationPlaceholders, ...designPlaceholders], [...primary.primaryCharacterRefs, ...locationPlaceholders, ...designPlaceholders], [], [...locationPlaceholders, ...designPlaceholders], primary.missingPrimaryCharacterRefs, model)
   }
   return primary.primaryCharacterRefs.length + locations.length + designs.length
 }

@@ -41,7 +41,7 @@ export const collectGrokImageTargets = (options: ImageGenOptions): ImageTarget[]
       throw unsupportedFlagError('Grok', model, unsupported, 'Supported Grok image options: --image-count, --image-aspect-ratio, --image-size 1K|2K, and up to three --image-input references.')
     }
     if (hasEditInputs(options) && model !== 'grok-imagine-image-quality') {
-      throw unsupportedFlagError('Grok', model, ['--image-input'], 'xAI documents image editing for grok-imagine-image-quality; use --grok grok-imagine-image-quality for edit/reference inputs.')
+      throw unsupportedFlagError('Grok', model, ['--image-input'], 'xAI documents image editing for grok-imagine-image-quality; use grok-imagine-image-quality for edit/reference inputs.')
     }
     validateImageInputReferences(options.imageInputs, {
       provider: 'Grok',

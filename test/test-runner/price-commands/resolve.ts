@@ -6,12 +6,6 @@ import {
 import { dedupeResolvedCommands, selectorMatchesFile } from './helpers'
 import { BUDGET_PRICE_SELECTION_REGISTRY } from './registry/index'
 
-const parseResolveOptions = (
-  options: ResolvePriceSelectionOptions
-): Required<ResolvePriceSelectionOptions> => ({
-  budgetSkippableOnly: options.budgetSkippableOnly ?? false
-})
-
 const resolveEntriesForSelectedFiles = (allFiles: string[], pathFilters: string[]) => {
   if (pathFilters.length === 0) {
     return BUDGET_PRICE_SELECTION_REGISTRY
@@ -28,10 +22,10 @@ export const resolvePriceSelection = (
   pathFilters: string[],
   resolveOptions: ResolvePriceSelectionOptions = {}
 ): { suiteName: string, commands: PriceCommandSpec[] } => {
-  const options = parseResolveOptions(resolveOptions)
+  const budgetSkippableOnly = resolveOptions.budgetSkippableOnly ?? false
   const matchingEntries = resolveEntriesForSelectedFiles(allFiles, pathFilters)
 
-  const filteredEntries = options.budgetSkippableOnly
+  const filteredEntries = budgetSkippableOnly
     ? matchingEntries.filter(entry => entry.budgetSkippable)
     : matchingEntries
 

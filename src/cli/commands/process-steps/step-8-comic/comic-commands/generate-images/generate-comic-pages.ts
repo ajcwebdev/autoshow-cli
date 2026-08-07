@@ -120,8 +120,6 @@ const resolvePageReferences = async (
   const resolved = applyReferenceImageLimits(
     orderedReferences,
     orderedReferences,
-    primaryCharacterReferenceState.sketchCharacterRefs,
-    primaryCharacterReferenceState.canonicalCharacterRefs,
     [],
     [...sceneAnchorRefs, ...designPaths],
     primaryCharacterReferenceState.missingPrimaryCharacterRefs,

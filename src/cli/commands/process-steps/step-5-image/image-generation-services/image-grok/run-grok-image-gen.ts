@@ -51,12 +51,9 @@ export const runGrokImageGen = async (
     detail: mode
   })
 
-  const configuredBaseURL = (options.baseUrl ?? XAI_DEFAULT_BASE_URL).trim().replace(/\/+$/, '')
   const clientConfig = {
     apiKey,
-    baseURL: configuredBaseURL.endsWith('/chat/completions')
-      ? configuredBaseURL.slice(0, -'/chat/completions'.length)
-      : configuredBaseURL
+    baseURL: (options.baseUrl ?? XAI_DEFAULT_BASE_URL).trim().replace(/\/+$/, '')
   }
   const result = mode === 'edit'
     ? await (async () => {

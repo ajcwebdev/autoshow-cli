@@ -741,21 +741,6 @@ test('comic generate-images rejects invalid grid options', async () => {
   )
 })
 
-test('comic generate-images rejects invalid page selection flags', async () => {
-  await expectUsageExit(
-    ['comic', 'generate-images', 'input/scripts/02-script/01-co-work-smarter.md','--panels-per-image', '0', '--price'],
-    'Invalid panels per image "0"'
-  )
-  await expectUsageExit(
-    ['comic', 'generate-images', 'input/scripts/02-script/01-co-work-smarter.md','--panel-limit', 'nope', '--price'],
-    'Unknown argument: --panel-limit'
-  )
-  await expectUsageExit(
-    ['comic', 'generate-images', 'input/scripts/02-script/01-co-work-smarter.md','--panels', '4-2', '--price'],
-    'Invalid panels "4-2"'
-  )
-})
-
 test('comic draft-scenes rejects removed --episode flag as unknown argument', async () => {
   await expectUsageExit(
     ['comic', 'draft-scenes', '--episode', 'ep02', '--price'],

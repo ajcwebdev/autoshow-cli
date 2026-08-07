@@ -12,12 +12,9 @@ const getGrokClientConfig = (baseUrl: string = XAI_DEFAULT_BASE_URL): { apiKey: 
     throw InternalError('XAI_API_KEY environment variable is required for --grok models', { stage: 'write:grok', hints: hintsForMissingEnv('XAI_API_KEY') })
   }
 
-  const baseURL = baseUrl.trim().replace(/\/+$/, '')
   return {
     apiKey,
-    baseURL: baseURL.endsWith('/chat/completions')
-      ? baseURL.slice(0, -'/chat/completions'.length)
-      : baseURL
+    baseURL: baseUrl.trim().replace(/\/+$/, '')
   }
 }
 
