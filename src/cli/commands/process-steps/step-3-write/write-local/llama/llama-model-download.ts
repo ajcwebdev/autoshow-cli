@@ -1,4 +1,3 @@
-import { resolveLlamaDownloadRepo } from '~/cli/commands/setup-and-utilities/models/setup-model-options'
 import * as l from '~/utils/app-logger/app-logger'
 import { withProcessLock } from '~/utils/process-lock'
 import { InfraError } from '~/utils/error-handler'
@@ -33,7 +32,7 @@ import { hasCachedLlamaModelWeights } from './llama-model-cache'
 const ensureLlamaModelDownloadedUnlocked = async (model: string): Promise<void> => {
   const llamaServerPath = resolveLlamaServerBinary()
 
-  const modelRepo = resolveLlamaDownloadRepo(model)
+  const modelRepo = model
 
   // Without this, a re-run of setup stops a llama-server the user may be using
   // and pays a full boot plus health wait only to confirm a warm cache. Both the

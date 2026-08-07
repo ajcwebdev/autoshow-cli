@@ -102,6 +102,21 @@ const configTtsFlags = omitFlags(ttsCommandFlags, [
 ])
 const configOcrInputFlags = omitFlags(ocrInputFlags, ['password'])
 
+// Per-run inputs, not defaults: each names a specific file, mask, or one-shot
+// switch for a single generation. They used to be accepted here and silently
+// dropped, because `FLAG_TO_CONFIG_PATH` never had a destination for them.
+const configImageGenFlags = omitFlags(imageGenFlags, [
+  'image-input',
+  'image-mask',
+  'image-response-mode',
+  'image-search-grounding',
+  'image-compression'
+])
+const configVideoGenFlags = omitFlags(videoGenFlags, [
+  'replicate-video-multi-prompt',
+  'replicate-video-multi-clip'
+])
+
 export const configCommandFlags = {
   ...withHelpGroup(configFlags, 'config'),
   ...withHelpGroup(pricingFlags, 'pricing'),
@@ -117,9 +132,9 @@ export const configCommandFlags = {
   ...withHelpGroup({ tts: stepProviderSelectorFlags.tts }, 'step-4-tts'),
   ...withHelpGroup(configTtsFlags, 'step-4-tts'),
   ...withHelpGroup({ image: stepProviderSelectorFlags.image }, 'step-5-image'),
-  ...withHelpGroup(imageGenFlags, 'step-5-image'),
+  ...withHelpGroup(configImageGenFlags, 'step-5-image'),
   ...withHelpGroup({ video: stepProviderSelectorFlags.video }, 'step-6-video'),
-  ...withHelpGroup(videoGenFlags, 'step-6-video'),
+  ...withHelpGroup(configVideoGenFlags, 'step-6-video'),
   ...withHelpGroup({ music: stepProviderSelectorFlags.music }, 'step-7-music'),
   ...withHelpGroup(musicGenFlags, 'step-7-music'),
   ...withHelpGroup(priceFlag, 'pricing')

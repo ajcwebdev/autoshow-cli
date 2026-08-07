@@ -241,30 +241,3 @@ export const createLocationReferenceSnapshots = async (runDirectory: string, loc
   await atomicWriteJson(getLocationReferenceSnapshotsPath(runDirectory), manifest)
   return manifest
 }
-
-const resolveSnapshotAsset = (runDirectory: string, authoredPath: string, manifestPath: string): string => {
-  const root = resolve(runDirectory)
-  const asset = resolve(root, authoredPath)
-  const fromRoot = relative(root, asset)
-  if (!authoredPath || isAbsolute(authoredPath) || fromRoot === '..' || fromRoot.startsWith(`..${sep}`)) throw ValidationError(`Invalid location snapshot asset path in ${manifestPath}`, { stage: 'comic:location-reference' })
-  return asset
-}
-
-const verifySnapshot = async (runDirectory: string, snapshot: LocationReferenceSnapshot, path: string): Promise<LocationReferenceSnapshot & { sheetPath: string }> => {
-  if (snapshot.schemaVersion !== 2 || !snapshot.snapshotId || !snapshot.locationKey || !snapshot.sheet?.path || !SHA256_PATTERN.test(snapshot.sheet.sha256)) throw ValidationError(`Invalid or mismatched location snapshot at ${path}. Rebuild panel prompts.`, { stage: 'comic:location-reference' })
-  const indices = snapshot.sourceViews?.map(view => LOCATION_VIEWS.indexOf(view.view)) ?? []
-  if (!Array.isArray(snapshot.sourceViews) || snapshot.sourceViews.length === 0 || !snapshot.sourceViews.every(view => LOCATION_VIEWS.includes(view.view) && !!view.generationId && SHA256_PATTERN.test(view.imageSha256)) || snapshot.sourceViews[0]?.view !== 'establishing' || new Set(indices).size !== indices.length || indices.some((index, position) => position > 0 && index <= indices[position - 1]!)) throw ValidationError(`Invalid source-view provenance in ${path}. Rebuild panel prompts.`, { stage: 'comic:location-reference' })
-  const sheetPath = resolveSnapshotAsset(runDirectory, snapshot.sheet.path, path)
-  if (!(await Bun.file(sheetPath).exists()) || await checksumFile(sheetPath) !== snapshot.sheet.sha256) throw ValidationError(`Location snapshot asset is missing or modified: ${snapshot.sheet.path}`, { stage: 'comic:location-reference' })
-  return { ...snapshot, sheetPath }
-}
-
-export const loadAndVerifyLocationReferenceSnapshots = async (runDirectory: string): Promise<Array<LocationReferenceSnapshot & { sheetPath: string }>> => {
-  const pluralPath = getLocationReferenceSnapshotsPath(runDirectory)
-  if (!(await Bun.file(pluralPath).exists())) throw InfraError(`Missing ${LOCATION_SNAPSHOTS_FILENAME}. Rebuild panel prompts with draft-scenes.`, { stage: 'comic:location-reference' })
-  const manifest = JSON.parse(await Bun.file(pluralPath).text()) as { schemaVersion?: number; snapshots?: LocationReferenceSnapshot[] }
-  if (manifest.schemaVersion !== 2 || !Array.isArray(manifest.snapshots)) throw ValidationError(`Invalid location snapshot manifest at ${pluralPath}`, { stage: 'comic:location-reference' })
-  const verified = await Promise.all(manifest.snapshots.map(snapshot => verifySnapshot(runDirectory, snapshot, pluralPath)))
-  if (new Set(verified.map(snapshot => snapshot.snapshotId)).size !== verified.length || new Set(verified.map(snapshot => snapshot.locationKey)).size !== verified.length) throw ValidationError(`Duplicate location key or snapshot ID in ${pluralPath}`, { stage: 'comic:location-reference' })
-  return verified
-}

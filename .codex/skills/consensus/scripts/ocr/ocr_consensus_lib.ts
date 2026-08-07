@@ -170,7 +170,7 @@ const CURRENCY_PATTERNS: Array<[RegExp, string]> = [
   [/#(\d+)/g, "number $1"],
 ];
 
-const LOCAL_SERVICES = new Set(["tesseract", "ocrmypdf", "paddle-ocr"]);
+const LOCAL_SERVICES = new Set(["tesseract"]);
 
 const PAGE_DELIMITER_RE = /^---\s*Page\s+(\d+)\s*---$/;
 const LARGE_EDIT_SEQUENCE_THRESHOLD = 10_000;

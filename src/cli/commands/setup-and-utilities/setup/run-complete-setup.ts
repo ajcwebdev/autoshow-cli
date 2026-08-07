@@ -62,7 +62,7 @@ import {
   ytDlpManagedBinaryPath
 } from '~/utils/runtime-paths'
 import { listPinnedDependencies } from './dependency-metadata'
-import { HOSTED_PROVIDER_ENV_CHECKS, logHostedProviderConfiguration } from './hosted-provider-config'
+import { getHostedProviderEnvKeysForConfigPrefix, HOSTED_PROVIDER_ENV_CHECKS, logHostedProviderConfiguration } from './hosted-provider-config'
 import { installManagedUv, managedUvxPath, resolveUvCommand } from './setup-download/managed-uv'
 
 const RUNTIME = RUNTIME_DIR
@@ -382,24 +382,9 @@ const TTS_PROVIDER_ENV_KEYS = [
   'MINIMAX_API_KEY'
 ] as const
 
-const IMAGE_PROVIDER_ENV_KEYS = [
-  'OPENAI_API_KEY',
-  'GEMINI_API_KEY',
-  'XAI_API_KEY',
-  'BFL_API_KEY',
-  'LUMA_AGENTS_API_KEY',
-  'RECRAFT_API_TOKEN',
-  'GLM_API_KEY'
-] as const
+const IMAGE_PROVIDER_ENV_KEYS = getHostedProviderEnvKeysForConfigPrefix('defaults.post.image.')
 
-const VIDEO_PROVIDER_ENV_KEYS = [
-  'GEMINI_API_KEY',
-  'MINIMAX_API_KEY',
-  'GLM_API_KEY',
-  'XAI_API_KEY',
-  'RUNWAYML_API_SECRET',
-  'LTXV_API_KEY'
-] as const
+const VIDEO_PROVIDER_ENV_KEYS = getHostedProviderEnvKeysForConfigPrefix('defaults.post.video.')
 
 const MUSIC_PROVIDER_ENV_KEYS = [
   'GEMINI_API_KEY',

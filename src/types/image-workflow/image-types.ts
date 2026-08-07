@@ -1,4 +1,4 @@
-import type { CostEstimateBase, GenerationResourceGate, ImageProvider, ProcessingOptions, ProviderTargetBase, Step5Metadata } from '~/types'
+import type { CostEstimateBase, ImageProvider, ProcessingOptions, ProviderTargetBase, ResourceGate, Step5Metadata } from '~/types'
 export type ImageGenOptions = Pick<
   ProcessingOptions,
   | 'geminiImageModels'
@@ -31,7 +31,7 @@ export type ImageGenOptions = Pick<
   | 'imageProviderConcurrency'
   | 'imageLocalConcurrency'
 > & {
-  generationResourceGate?: GenerationResourceGate | undefined
+  generationResourceGate?: ResourceGate | undefined
 }
 
 export type ImageResult = {

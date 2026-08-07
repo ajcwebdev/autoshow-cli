@@ -1,6 +1,5 @@
 import { mkdir } from 'node:fs/promises'
 import { dirname, join } from 'node:path'
-import { resolveLlamaDownloadRepo } from '~/cli/commands/setup-and-utilities/models/setup-model-options'
 import { RUNTIME_DIR } from '~/utils/runtime-paths'
 import type { LlamaSetupModelMetadata, LlamaSetupModelMetadataEntry } from '~/types'
 
@@ -64,7 +63,7 @@ export const recordSetupManagedLlamaModel = async (
   model: string,
   options: { metadataPath?: string, now?: Date } = {}
 ): Promise<void> => {
-  const repo = resolveLlamaDownloadRepo(model)
+  const repo = model
   const metadataPath = options.metadataPath ?? llamaSetupModelsMetadataPath
   const metadata = await readLlamaSetupModelMetadata(metadataPath)
   metadata.models[repo] = {
@@ -79,7 +78,7 @@ export const hasSetupManagedLlamaModel = async (
   model: string,
   metadataPath: string = llamaSetupModelsMetadataPath
 ): Promise<boolean> => {
-  const repo = resolveLlamaDownloadRepo(model)
+  const repo = model
   const metadata = await readLlamaSetupModelMetadata(metadataPath)
   return metadata.models[repo] !== undefined
 }

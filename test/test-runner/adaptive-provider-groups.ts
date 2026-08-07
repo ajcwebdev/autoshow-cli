@@ -173,86 +173,6 @@ const VALUE_FLAGS = new Set([
   'gemini-music',
 ])
 
-const TTS_SELECTOR_FLAGS: Record<string, string> = {
-  'kitten-tts': 'kitten',
-  'elevenlabs-tts': 'elevenlabs',
-  'minimax-tts': 'minimax',
-  'groq-tts': 'groq',
-  'grok-tts': 'grok',
-  'mistral-tts': 'mistral',
-  'openai-tts': 'openai',
-  'gemini-tts': 'gemini',
-  'deepgram-tts': 'deepgram',
-  'speechify-tts': 'speechify',
-  'hume-tts': 'hume',
-  'cartesia-tts': 'cartesia',
-}
-
-const IMAGE_SELECTOR_FLAGS: Record<string, string> = {
-  'gemini-image': 'gemini',
-  'openai-image': 'openai',
-  'grok-image': 'grok',
-  'bfl-image': 'bfl',
-  'recraft-image': 'recraft',
-}
-
-const VIDEO_SELECTOR_FLAGS: Record<string, string> = {
-  'gemini-video': 'gemini',
-  'minimax-video': 'minimax',
-  'glm-video': 'glm',
-  'grok-video': 'grok',
-  'runway-video': 'runway',
-  'ltx-video': 'ltx',
-  'replicate-video': 'replicate',
-}
-
-const MUSIC_SELECTOR_FLAGS: Record<string, string> = {
-  'elevenlabs-music': 'elevenlabs',
-  'minimax-music': 'minimax',
-  'gemini-music': 'gemini',
-}
-
-const STT_SELECTOR_FLAGS: Record<string, string> = {
-  'deepgram-stt': 'deepgram',
-  'soniox-stt': 'soniox',
-  'speechmatics-stt': 'speechmatics',
-  'rev-stt': 'rev',
-  'groq-stt': 'groq',
-  'grok-stt': 'grok',
-  'mistral-stt': 'mistral',
-  'assemblyai-stt': 'assemblyai',
-  'gladia-stt': 'gladia',
-  'happyscribe-stt': 'happyscribe',
-  'supadata-stt': 'supadata',
-  'scrapecreators-stt': 'scrapecreators',
-  'gemini-stt': 'gemini',
-  'together-stt': 'together',
-}
-
-const OCR_SELECTOR_FLAGS: Record<string, string> = {
-  'mistral-ocr': 'mistral',
-  'glm-ocr': 'glm',
-  'kimi-ocr': 'kimi',
-  'openai-ocr': 'openai',
-  'grok-ocr': 'grok',
-  'anthropic-ocr': 'anthropic',
-  'gemini-ocr': 'gemini',
-  'deepinfra-ocr': 'deepinfra',
-}
-
-const WRITE_LLM_SELECTOR_FLAGS: Record<string, string> = {
-  openai: 'openai',
-  groq: 'groq',
-  gemini: 'gemini',
-  anthropic: 'anthropic',
-  minimax: 'minimax',
-  grok: 'grok',
-  glm: 'glm',
-  kimi: 'kimi',
-  together: 'together',
-  cerebras: 'cerebras',
-}
-
 const MEDIA_EXTENSIONS = new Set([
   'aac',
   'aiff',
@@ -544,20 +464,6 @@ export const extractAdaptiveProviderGroups = (args: string[]): AdaptiveProviderG
         addGroup(groups, 'music', provider, MUSIC_REMOTE_SET)
       } else if (flag === 'all-providers') {
         addWriteAllProviderGroups(groups, value?.trim().toLowerCase() ?? null)
-      } else if (WRITE_LLM_SELECTOR_FLAGS[flag]) {
-        addGroup(groups, 'write', WRITE_LLM_SELECTOR_FLAGS[flag] ?? null, LLM_REMOTE_SET)
-      } else if (TTS_SELECTOR_FLAGS[flag]) {
-        addGroup(groups, 'tts', TTS_SELECTOR_FLAGS[flag] ?? null, TTS_REMOTE_SET)
-      } else if (IMAGE_SELECTOR_FLAGS[flag]) {
-        addGroup(groups, 'image', IMAGE_SELECTOR_FLAGS[flag] ?? null, IMAGE_REMOTE_SET)
-      } else if (VIDEO_SELECTOR_FLAGS[flag]) {
-        addGroup(groups, 'video', VIDEO_SELECTOR_FLAGS[flag] ?? null, VIDEO_REMOTE_SET)
-      } else if (MUSIC_SELECTOR_FLAGS[flag]) {
-        addGroup(groups, 'music', MUSIC_SELECTOR_FLAGS[flag] ?? null, MUSIC_REMOTE_SET)
-      } else if (STT_SELECTOR_FLAGS[flag]) {
-        addGroup(groups, 'transcribe', STT_SELECTOR_FLAGS[flag] ?? null, STT_REMOTE_SET)
-      } else if (OCR_SELECTOR_FLAGS[flag]) {
-        addGroup(groups, 'extract', OCR_SELECTOR_FLAGS[flag] ?? null, OCR_REMOTE_SET)
       }
     }
   } else if (command === 'tts') {
@@ -566,8 +472,6 @@ export const extractAdaptiveProviderGroups = (args: string[]): AdaptiveProviderG
         addGroup(groups, 'tts', normalizedStepValue(value), TTS_REMOTE_SET)
       } else if (flag === 'all-providers') {
         addAllGroups(groups, 'tts', TTS_REMOTE_PROVIDERS)
-      } else if (TTS_SELECTOR_FLAGS[flag]) {
-        addGroup(groups, 'tts', TTS_SELECTOR_FLAGS[flag] ?? null, TTS_REMOTE_SET)
       }
     }
   } else if (command === 'image') {
@@ -576,8 +480,6 @@ export const extractAdaptiveProviderGroups = (args: string[]): AdaptiveProviderG
         addGroup(groups, 'image', normalizedStepValue(value), IMAGE_REMOTE_SET)
       } else if (flag === 'all-providers') {
         addAllGroups(groups, 'image', IMAGE_REMOTE_PROVIDERS)
-      } else if (IMAGE_SELECTOR_FLAGS[flag]) {
-        addGroup(groups, 'image', IMAGE_SELECTOR_FLAGS[flag] ?? null, IMAGE_REMOTE_SET)
       }
     }
   } else if (command === 'video') {
@@ -586,8 +488,6 @@ export const extractAdaptiveProviderGroups = (args: string[]): AdaptiveProviderG
         addGroup(groups, 'video', normalizedStepValue(value), VIDEO_REMOTE_SET)
       } else if (flag === 'all-providers') {
         addAllGroups(groups, 'video', VIDEO_REMOTE_PROVIDERS)
-      } else if (VIDEO_SELECTOR_FLAGS[flag]) {
-        addGroup(groups, 'video', VIDEO_SELECTOR_FLAGS[flag] ?? null, VIDEO_REMOTE_SET)
       }
     }
   } else if (command === 'music') {
@@ -596,8 +496,6 @@ export const extractAdaptiveProviderGroups = (args: string[]): AdaptiveProviderG
         addGroup(groups, 'music', normalizedStepValue(value), MUSIC_REMOTE_SET)
       } else if (flag === 'all-providers') {
         addAllGroups(groups, 'music', MUSIC_REMOTE_PROVIDERS)
-      } else if (MUSIC_SELECTOR_FLAGS[flag]) {
-        addGroup(groups, 'music', MUSIC_SELECTOR_FLAGS[flag] ?? null, MUSIC_REMOTE_SET)
       }
     }
   }

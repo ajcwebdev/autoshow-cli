@@ -1,5 +1,6 @@
 import { expect, test } from 'bun:test'
-import { collectLinks, parseLinksArgv, runLinksWithArgv } from '~/cli/commands/setup-and-utilities/links/define-links-command'
+import { expectLinksUsageError } from '../links-usage-errors'
+import { collectLinks, parseLinksArgv} from '~/cli/commands/setup-and-utilities/links/define-links-command'
 import {
   FIRECRAWL_GENERAL_LINKS,
   FIRECRAWL_URL_LINKS,
@@ -115,13 +116,13 @@ test('links selector accepts supadata provider with general stt and url sections
     supadataUrlSelection.globalSections
   )).toEqual(SUPADATA_URL_LINKS)
 
-  await expect(runLinksWithArgv([
+  await expectLinksUsageError([
     'bun',
     'src/cli/create-cli.ts',
     'links',
     '--supadata',
     'tts'
-  ])).rejects.toThrow('Unknown links section(s) for --supadata: tts')
+  ], 'Unknown links section(s) for --supadata: tts')
 })
 
 test('links selector accepts scrapecreators provider with general stt and url sections', async () => {
@@ -177,13 +178,13 @@ test('links selector accepts scrapecreators provider with general stt and url se
     scrapecreatorsUrlSelection.globalSections
   )).toEqual(SCRAPECREATORS_URL_LINKS)
 
-  await expect(runLinksWithArgv([
+  await expectLinksUsageError([
     'bun',
     'src/cli/create-cli.ts',
     'links',
     '--scrapecreators',
     'tts'
-  ])).rejects.toThrow('Unknown links section(s) for --scrapecreators: tts')
+  ], 'Unknown links section(s) for --scrapecreators: tts')
 })
 
 test('links selector accepts zyte provider with general and url sections', async () => {
@@ -226,13 +227,13 @@ test('links selector accepts zyte provider with general and url sections', async
     zyteUrlSelection.globalSections
   )).toEqual(ZYTE_URL_LINKS)
 
-  await expect(runLinksWithArgv([
+  await expectLinksUsageError([
     'bun',
     'src/cli/create-cli.ts',
     'links',
     '--zyte',
     'tts'
-  ])).rejects.toThrow('Unknown links section(s) for --zyte: tts')
+  ], 'Unknown links section(s) for --zyte: tts')
 })
 
 test('links selector accepts firecrawl provider with general and url sections', async () => {
@@ -275,13 +276,13 @@ test('links selector accepts firecrawl provider with general and url sections', 
     firecrawlUrlSelection.globalSections
   )).toEqual(FIRECRAWL_URL_LINKS)
 
-  await expect(runLinksWithArgv([
+  await expectLinksUsageError([
     'bun',
     'src/cli/create-cli.ts',
     'links',
     '--firecrawl',
     'tts'
-  ])).rejects.toThrow('Unknown links section(s) for --firecrawl: tts')
+  ], 'Unknown links section(s) for --firecrawl: tts')
 })
 
 test('links selector accepts spider provider with general and url sections', async () => {
@@ -324,11 +325,11 @@ test('links selector accepts spider provider with general and url sections', asy
     spiderUrlSelection.globalSections
   )).toEqual(SPIDER_URL_LINKS)
 
-  await expect(runLinksWithArgv([
+  await expectLinksUsageError([
     'bun',
     'src/cli/create-cli.ts',
     'links',
     '--spider',
     'tts'
-  ])).rejects.toThrow('Unknown links section(s) for --spider: tts')
+  ], 'Unknown links section(s) for --spider: tts')
 })

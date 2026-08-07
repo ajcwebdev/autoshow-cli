@@ -72,7 +72,6 @@ import {
 
 export {
   createOcrPdfChunkRenderError,
-  HOSTED_OCR_PDF_PAGE_FALLBACK_MODE,
   HOSTED_OCR_PDF_PAGE_FALLBACK_THRESHOLD
 } from './pdf-chunk-fallback-shared'
 export { shouldFallbackToOcrPdfChunks } from './pdf-chunk-fallback-classifier'

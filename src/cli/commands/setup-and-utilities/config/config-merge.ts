@@ -1,4 +1,5 @@
 import type { AutoshowConfig, RepeatableModelFlag, Step2Command } from '~/types/index'
+import * as l from '~/utils/app-logger/app-logger'
 import { resolveCheapestModelForFlag } from '~/cli/commands/setup-and-utilities/models/cheapest-models'
 import {
   REPEATABLE_MODEL_FLAGS,
@@ -21,6 +22,9 @@ const VIDEO_PROVIDER_FLAGS = ['gemini-video', 'minimax-video', 'glm-video', 'gro
 const MUSIC_PROVIDER_FLAGS = ['elevenlabs-music', 'minimax-music', 'gemini-music'] as const
 const REPEATABLE_CONFIG_MODEL_FLAG_SET = new Set<string>(REPEATABLE_MODEL_FLAGS)
 const CONFIG_INJECTED_FLAGS_KEY = '__autoshowConfigInjectedFlags'
+// Written by the passes after the main loop rather than through
+// FLAG_TO_CONFIG_PATH, because each fans out to several config keys.
+const MULTI_DESTINATION_FLAGS = new Set(['provider-concurrency', 'local-concurrency', 'prompt'])
 const STEP2_PROVIDER_CONFIG_PATHS = Object.fromEntries(
   getStep2ProviderConfigPathEntries().map(({ flagName, configPath }) => [flagName, [...configPath]])
 ) as Record<string, string[]>
@@ -281,7 +285,7 @@ export const mergeConfigIntoRawFlags = (
   return merged
 }
 
-const FLAG_TO_CONFIG_PATH: Record<string, string[]> = {
+export const FLAG_TO_CONFIG_PATH: Record<string, string[]> = {
   ...STEP2_PROVIDER_CONFIG_PATHS,
   'youtube-captions':  ['defaults', 'extract', 'stt', 'youtubeCaptions'],
   'stt-happyscribe-organization-id': ['defaults', 'extract', 'stt', 'happyscribeOrganizationId'],
@@ -294,8 +298,6 @@ const FLAG_TO_CONFIG_PATH: Record<string, string[]> = {
   'stt-local-concurrency': ['defaults', 'extract', 'stt', 'localConcurrency'],
   'stt-segment-concurrency': ['defaults', 'extract', 'stt', 'segmentConcurrency'],
   'stt-preflight-concurrency': ['defaults', 'extract', 'stt', 'preflightConcurrency'],
-  'refresh-cache':     ['defaults', 'extract', 'stt', 'refreshCache'],
-  'no-cache':          ['defaults', 'extract', 'stt', 'noCache'],
   'llama':             ['defaults', 'llm', 'llama'],
   'openai':            ['defaults', 'llm', 'openai'],
   'groq':              ['defaults', 'llm', 'groq'],
@@ -356,11 +358,6 @@ const FLAG_TO_CONFIG_PATH: Record<string, string[]> = {
   'elevenlabs-tts-pronunciation-dictionary-locator': ['defaults', 'post', 'tts', 'elevenlabsTtsPronunciationDictionaryLocators'],
   'elevenlabs-tts-optimize-streaming-latency': ['defaults', 'post', 'tts', 'elevenlabsTtsOptimizeStreamingLatency'],
   'minimax-tts-voice': ['defaults', 'post', 'tts', 'minimaxTtsVoice'],
-  'minimax-tts-ref-audio': ['defaults', 'post', 'tts', 'minimaxTtsRefAudio'],
-  'minimax-tts-prompt-audio': ['defaults', 'post', 'tts', 'minimaxTtsPromptAudio'],
-  'minimax-tts-prompt-text': ['defaults', 'post', 'tts', 'minimaxTtsPromptText'],
-  'minimax-tts-clone-noise-reduction': ['defaults', 'post', 'tts', 'minimaxTtsCloneNoiseReduction'],
-  'minimax-tts-clone-volume-normalization': ['defaults', 'post', 'tts', 'minimaxTtsCloneVolumeNormalization'],
   'minimax-tts-language-boost': ['defaults', 'post', 'tts', 'minimaxTtsLanguageBoost'],
   'minimax-tts-speed': ['defaults', 'post', 'tts', 'minimaxTtsSpeed'],
   'minimax-tts-volume': ['defaults', 'post', 'tts', 'minimaxTtsVolume'],
@@ -448,7 +445,11 @@ const FLAG_TO_CONFIG_PATH: Record<string, string[]> = {
   'max-cents':         ['pricing', 'maxCents'],
 }
 
-const RUNTIME_ONLY_FLAGS = new Set([
+// Per-run inputs that are never persisted. `buildConfigPatchFromFlags` skips these
+// before the FLAG_TO_CONFIG_PATH lookup, which is also what keeps them out of the
+// "no config destination" warning. An entry here must therefore not also have a
+// config destination — pinned by explicit-runtime-exclusions.test.ts.
+export const RUNTIME_ONLY_FLAGS = new Set([
   'price',
   'allow-over-budget',
   'show',
@@ -531,11 +532,17 @@ export const buildConfigPatchFromFlags = (
 ): Record<string, unknown> => {
   const patch: Record<string, unknown> = {}
   const rawOccurrences = parseRepeatableModelFlagOccurrences(rawArgs)
+  const discardedFlags: string[] = []
 
   for (const flagName of explicitFlags) {
     if (RUNTIME_ONLY_FLAGS.has(flagName)) continue
     const configPath = FLAG_TO_CONFIG_PATH[flagName]
-    if (!configPath) continue
+    // A flag with no destination used to be dropped in silence, so `config
+    // --image-mask x` reported success and wrote nothing. Say so instead.
+    if (!configPath) {
+      if (!MULTI_DESTINATION_FLAGS.has(flagName)) discardedFlags.push(flagName)
+      continue
+    }
     let value: unknown
 
     if (REPEATABLE_CONFIG_MODEL_FLAG_SET.has(flagName)) {
@@ -550,6 +557,13 @@ export const buildConfigPatchFromFlags = (
     }
 
     setNestedValue(patch, configPath, value)
+  }
+
+  if (discardedFlags.length > 0) {
+    l.warn(
+      `These flags have no config destination and were not saved: ${discardedFlags.sort().map(flag => `--${flag}`).join(', ')}. `
+      + 'Pass them on the command that uses them instead.'
+    )
   }
 
   if (explicitFlags.has('provider-concurrency')) {

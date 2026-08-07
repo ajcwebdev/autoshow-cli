@@ -16,7 +16,3 @@ export const getImageEstimation = (service: string, model: string): ImageEstimat
     msPerImage: modelMeta?.estimation?.msPerImage ?? DEFAULT_IMAGE_MS_PER_IMAGE,
   }
 }
-
-export const isNativeGeminiImage = (model: string): boolean => {
-  return getModelRegistry().image['gemini']?.models[model]?.nativeGeminiImage === true
-}

@@ -11,9 +11,7 @@ import {
   runLinksWithArgv
 } from '~/cli/commands/setup-and-utilities/links/define-links-command'
 import { configureBinDir, getConfiguredBinDir } from '~/utils/runtime-paths'
-import { SCRAPECREATORS_STT_LINK, linksTestOutputPath } from './shared'
-
-const SCRAPECREATORS_FETCH_STT_LINK = 'https://docs.scrapecreators.com/de495975-7e82-4fd9-953a-2fe2c257845e'
+import { BLOB_PREFIXED_DOC_FETCH_LINK, BLOB_PREFIXED_DOC_LINK, linksTestOutputPath } from './shared'
 
 const LINKS_RETRY_TEST_URL = 'https://elevenlabs.io/docs/overview/models.md'
 
@@ -129,8 +127,8 @@ test('links does not retry non-retryable HTTP status failures', async () => {
   expect(output).not.toContain(`<!-- Source: ${LINKS_RETRY_TEST_URL} -->`)
 })
 
-test('links strips blob prefix when fetching scrapecreators documentation', async () => {
-  const outputPath = linksTestOutputPath('scrapecreators-blob')
+test('links strips the blob prefix when fetching but cites the original URL', async () => {
+  const outputPath = linksTestOutputPath('blob-prefix')
   const fetchedUrls: string[] = []
 
   const fetchImpl = async (input: string | URL | Request): Promise<Response> => {
@@ -146,20 +144,19 @@ test('links strips blob prefix when fetching scrapecreators documentation', asyn
     'bun',
     'src/cli/create-cli.ts',
     'links',
-    '--scrapecreators',
-    'stt'
+    BLOB_PREFIXED_DOC_LINK
   ], { outputPath, fetchImpl })
 
   const output = await Bun.file(outputPath).text()
   expect(result.urlCount).toBe(1)
-  expect(fetchedUrls).toEqual([SCRAPECREATORS_FETCH_STT_LINK])
-  expect(output).toContain(`<!-- Source: ${SCRAPECREATORS_STT_LINK} -->`)
-  expect(output).toContain(`# docs for ${SCRAPECREATORS_FETCH_STT_LINK}`)
-  expect(output).not.toContain(`<!-- Source: ${SCRAPECREATORS_FETCH_STT_LINK} -->`)
+  expect(fetchedUrls).toEqual([BLOB_PREFIXED_DOC_FETCH_LINK])
+  expect(output).toContain(`<!-- Source: ${BLOB_PREFIXED_DOC_LINK} -->`)
+  expect(output).toContain(`# docs for ${BLOB_PREFIXED_DOC_FETCH_LINK}`)
+  expect(output).not.toContain(`<!-- Source: ${BLOB_PREFIXED_DOC_FETCH_LINK} -->`)
 })
 
-test('links captures defuddle CLI diagnostics for scrapecreators html', async () => {
-  const outputPath = linksTestOutputPath('scrapecreators-defuddle-diagnostic')
+test('links captures defuddle CLI diagnostics for fetched html', async () => {
+  const outputPath = linksTestOutputPath('defuddle-diagnostic')
   const words = Array.from({ length: 40 }, (_, index) => `word${index}`).join(' ')
   const html = `<!doctype html><html><body><div class="hidden bad[">${words}</div></body></html>`
   const consoleErrors: string[] = []
@@ -178,8 +175,7 @@ test('links captures defuddle CLI diagnostics for scrapecreators html', async ()
       'bun',
       'src/cli/create-cli.ts',
       'links',
-      '--scrapecreators',
-      'stt'
+      BLOB_PREFIXED_DOC_LINK
     ], {
       outputPath,
       fetchImpl: async (): Promise<Response> => new Response(html, {
@@ -198,7 +194,7 @@ test('links captures defuddle CLI diagnostics for scrapecreators html', async ()
   }
 
   const output = await Bun.file(outputPath).text()
-  expect(output).toContain(`<!-- Source: ${SCRAPECREATORS_STT_LINK} -->`)
+  expect(output).toContain(`<!-- Source: ${BLOB_PREFIXED_DOC_LINK} -->`)
   expect(output).toContain('word0 word1 word2')
   expect(consoleErrors.join('\n')).not.toContain('Defuddle Error processing document')
 })

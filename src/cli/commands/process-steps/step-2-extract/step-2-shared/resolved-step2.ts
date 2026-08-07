@@ -61,8 +61,6 @@ const resolveArticleStep2 = (
   return {
     route: 'article',
     sourceKind: 'article',
-    backend,
-    ...(backends ? { backends } : {}),
     providers: resolveArticleProviders(options, backend, backends)
   }
 }

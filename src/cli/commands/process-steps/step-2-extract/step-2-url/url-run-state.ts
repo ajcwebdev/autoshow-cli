@@ -359,8 +359,6 @@ export const buildManifestMetadata = (
     resolvedStep2: {
       route: 'article',
       sourceKind: 'article',
-      backend: options.requestedBackends[0] ?? 'defuddle',
-      ...(options.requestedBackends.length > 1 ? { backends: options.requestedBackends } : {}),
       providers: requestedProviders
     },
     completionStatus: options.completionStatus,

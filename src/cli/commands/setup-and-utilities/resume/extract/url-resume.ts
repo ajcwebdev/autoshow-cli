@@ -337,8 +337,6 @@ const buildResolvedArticleStep = (
 ): Extract<ResolvedStep2Execution, { route: 'article' }> => ({
   route: 'article',
   sourceKind: 'article',
-  backend: backends[0] ?? 'defuddle',
-  backends,
   providers: backends.map((backend) => ({
     service: backend,
     model: backend

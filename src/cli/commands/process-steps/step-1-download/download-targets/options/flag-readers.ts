@@ -156,8 +156,6 @@ export const parsePdfChapterMode = (value: string | undefined): 'local' | 'auto'
   throw CLIUsageError(`Invalid --pdf-chapter-mode value "${value}". Expected ${formatQuotedChoiceList(PDF_CHAPTER_MODES)}.`)
 }
 
-export const TTS_DIALOGUE_FORMATS = ['screenplay', 'labeled'] as const
-
 export const parseTtsDialogueFormat = (value: string | undefined): 'screenplay' | 'labeled' | undefined => {
   const normalized = value?.trim().toLowerCase()
   if (!normalized) {

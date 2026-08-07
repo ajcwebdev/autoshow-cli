@@ -17,14 +17,12 @@ const BUN_FETCH_PROFILES: Record<DownloadProfileId, DownloadProfile> = {
   'bun-fetch-default': {
     engine: 'bun-fetch',
     profileId: 'bun-fetch-default',
-    flags: [],
     stallTimeoutMs: DEFAULT_STALL_TIMEOUT_MS,
     totalTimeoutMs: DEFAULT_TOTAL_TIMEOUT_MS
   },
   'bun-fetch-large-asset': {
     engine: 'bun-fetch',
     profileId: 'bun-fetch-large-asset',
-    flags: [],
     stallTimeoutMs: DEFAULT_STALL_TIMEOUT_MS,
     totalTimeoutMs: LARGE_ASSET_TOTAL_TIMEOUT_MS
   }

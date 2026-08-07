@@ -12,10 +12,10 @@ Costs are lower-is-better and converted from cents to USD. Speeds are lower-is-b
 | music | 4 | 16 | local, service |
 | ocr | 14 | 305 | local, thirdPartyService |
 | stt | 5 | 125 | local, thirdPartyServiceDiarization, thirdPartyServiceNonDiarization |
-| tts | 4 | 60 | local, service |
-| url | 2 | 12 | local, service |
+| tts | 4 | 84 | local, service |
+| url | 7 | 37 | local, service |
 | video | 2 | 17 | local, service |
-| **Total** | **33** | **561** | **5 groups** |
+| **Total** | **38** | **610** | **5 groups** |
 
 ## Method
 
@@ -565,19 +565,19 @@ _Unavailable: no humanQuality entries are present for `tts/local` in the current
 
 | Rank | Provider/model | Runs | Average |
 | ---: | --- | ---: | ---: |
-| 1 | defuddle | 2/2 runs | $0.00 |
+| 1 | defuddle | 2/7 runs | $0.00 |
 
 #### Speed Ranking
 
 | Rank | Provider/model | Runs | Average |
 | ---: | --- | ---: | ---: |
-| 1 | defuddle | 2/2 runs | 0.71s |
+| 1 | defuddle | 2/7 runs | 0.71s |
 
 #### Auto-Quality Ranking
 
 | Rank | Provider/model | Runs | Average |
 | ---: | --- | ---: | ---: |
-| 1 | defuddle | 2/2 runs | 98.28/100 |
+| 1 | defuddle | 2/7 runs | 98.28/100 |
 
 #### Human Quality Ranking
 
@@ -589,31 +589,31 @@ _Unavailable: no humanQuality entries are present for `url/local` in the current
 
 | Rank | Provider/model | Runs | Average |
 | ---: | --- | ---: | ---: |
-| 1 | firecrawl | 2/2 runs | $0.0008 |
-| 2 | spider | 2/2 runs | $0.0012 |
-| 3 | zyte | 2/2 runs | $0.0016 |
-| 4 | glm-reader | 2/2 runs | $0.0100 |
-| 5 | supadata | 2/2 runs | $0.0100 |
+| 1 | firecrawl | 7/7 runs | $0.0008 |
+| 2 | spider | 7/7 runs | $0.0012 |
+| 3 | zyte | 7/7 runs | $0.0016 |
+| 4 | supadata | 7/7 runs | $0.0100 |
+| 5 | glm-reader | 7/7 runs | $0.0100 |
 
 #### Speed Ranking
 
 | Rank | Provider/model | Runs | Average |
 | ---: | --- | ---: | ---: |
-| 1 | firecrawl | 2/2 runs | 1.38s |
-| 2 | spider | 2/2 runs | 2.00s |
-| 3 | supadata | 2/2 runs | 3.12s |
-| 4 | glm-reader | 2/2 runs | 4.82s |
-| 5 | zyte | 2/2 runs | 11.45s |
+| 1 | firecrawl | 7/7 runs | 1.73s |
+| 2 | spider | 7/7 runs | 1.79s |
+| 3 | glm-reader | 7/7 runs | 4.04s |
+| 4 | supadata | 7/7 runs | 5.52s |
+| 5 | zyte | 7/7 runs | 10.48s |
 
 #### Auto-Quality Ranking
 
 | Rank | Provider/model | Runs | Average |
 | ---: | --- | ---: | ---: |
-| 1 | firecrawl | 2/2 runs | 94.85/100 |
-| 2 | spider | 2/2 runs | 93.90/100 |
-| 3 | glm-reader | 2/2 runs | 62.41/100 |
-| 4 | zyte | 2/2 runs | 58.25/100 |
-| 5 | supadata | 2/2 runs | 54.16/100 |
+| 1 | spider | 7/7 runs | 92.42/100 |
+| 2 | firecrawl | 7/7 runs | 80.45/100 |
+| 3 | supadata | 7/7 runs | 75.39/100 |
+| 4 | glm-reader | 7/7 runs | 68.77/100 |
+| 5 | zyte | 7/7 runs | 52.99/100 |
 
 #### Human Quality Ranking
 

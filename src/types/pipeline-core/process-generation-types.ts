@@ -105,8 +105,6 @@ export type Step7MusicMetadata = {
   audioChannelCount?: number | undefined
   audioBitrate?: number | undefined
   providerAudioByteSize?: number | undefined
-  inferenceSteps?: number | undefined
-  guidanceScale?: number | undefined
   seed?: number | undefined
   outputFormat?: string | undefined
   generatedLyrics?: string | undefined

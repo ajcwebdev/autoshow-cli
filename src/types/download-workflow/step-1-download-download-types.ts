@@ -1,16 +1,5 @@
 import type { BatchItem, ExtractRoute, JsonObject } from '~/types'
 
-export type {
-BatchExecutionPlan,
-BatchOrder,
-DocFormat,
-ParsedEpisode,
-ResolvedInputRouting,
-ResolvedProcessTargetPlan,
-YtDlpAuthMode,
-YtDlpListOptions
-} from '../pipeline-core/metadata-types'
-
 export type DownloadAudioOptions = {
   url?: string | undefined
   filePath?: string | undefined

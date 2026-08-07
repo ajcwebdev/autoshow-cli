@@ -20,7 +20,15 @@ import {
   collectDoctorNextSteps,
   collectDoctorReport
 } from '~/cli/commands/setup-and-utilities/setup/run-doctor'
-import { HOSTED_PROVIDER_ENV_CHECKS } from '~/cli/commands/setup-and-utilities/setup/hosted-provider-config'
+import {
+  findHostedProviderEnvKeyForConfigPath,
+  getHostedProviderEnvKeysForConfigPrefix,
+  HOSTED_PROVIDER_ENV_CHECKS
+} from '~/cli/commands/setup-and-utilities/setup/hosted-provider-config'
+import {
+  STANDALONE_IMAGE_PROVIDER_TARGETS,
+  STANDALONE_VIDEO_PROVIDER_TARGETS
+} from '~/cli/flags/service-selector-normalization/provider-targets'
 import { downloadKittenTtsModel, runConcurrentSetupTasks, runInherit, shouldReportReclaimedBuildTrees } from '~/cli/commands/setup-and-utilities/setup/run-complete-setup'
 import { formatSetupElapsed, formatSetupHeartbeatLine } from '~/cli/commands/setup-and-utilities/setup/setup-heartbeat'
 import { setCompactSetupMode } from '~/utils/setup-output-mode'
@@ -120,17 +128,6 @@ const findDoctorCheck = (
 }
 
 describe('setup command contracts', () => {
-  test('setup help does not expose Cloudflare focused setup', async () => {
-    const result = await runCommand(['src/cli/create-cli.ts', 'setup', '--help'], {
-      env: { NO_COLOR: '1' }
-    })
-
-    expect(result.exitCode).toBe(0)
-    expect(result.stdout).toContain('defuddle')
-    expect(result.stdout).not.toContain('--cloudflare')
-    expect(result.stdout).not.toContain('Cloudflare')
-  })
-
   test('setup usage contracts include the defuddle step', async () => {
     const result = await runCommand(['src/cli/create-cli.ts', 'setup', '--step', 'not-real'], {
       env: { NO_COLOR: '1' }
@@ -914,9 +911,32 @@ describe('setup command contracts', () => {
     expect(findDoctorCheck(withFallback, 'music lyric-video renderer').detail).toContain('fallback renderer')
   })
 
+  // `setup --step image` / `--step video` report credentials for a derived env-key
+  // set. These pin the derivation to the provider registries, so a provider added
+  // to `provider-targets.ts` cannot silently go unreported the way fal.ai did.
+  test.each([
+    ['image', STANDALONE_IMAGE_PROVIDER_TARGETS, 'defaults.post.image.'],
+    ['video', STANDALONE_VIDEO_PROVIDER_TARGETS, 'defaults.post.video.']
+  ] as const)('%s setup env keys are derived from every registered provider', (_step, targets, prefix) => {
+    const configPathFor = (flagName: string): string =>
+      `${prefix}${flagName.replace(/-([a-z])/g, (_match, letter: string) => letter.toUpperCase())}`
+
+    const expected = new Set<string>()
+    const unmapped: string[] = []
+    for (const flagName of Object.values(targets)) {
+      const envVar = findHostedProviderEnvKeyForConfigPath(configPathFor(flagName))
+      if (envVar === undefined) unmapped.push(flagName)
+      else expected.add(envVar)
+    }
+
+    expect(unmapped).toEqual([])
+    expect([...getHostedProviderEnvKeysForConfigPrefix(prefix)].sort()).toEqual([...expected].sort())
+  })
+
   test('doctor hosted provider map covers supported env vars', () => {
     const envVars = HOSTED_PROVIDER_ENV_CHECKS.map(check => check.envVar)
     expect(envVars).toEqual(expect.arrayContaining([
+      'FAL_API_KEY',
       'TOGETHER_API_KEY',
       'HAPPYSCRIBE_API_KEY',
       'SUPADATA_API_KEY',

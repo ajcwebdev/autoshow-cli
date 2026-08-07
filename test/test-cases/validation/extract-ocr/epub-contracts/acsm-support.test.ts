@@ -19,7 +19,8 @@ import {
   writeFile,
   writeStoredZip
 } from './shared'
-import { classifyInputFamily, classifyUrlInput, resolveInputRoutingForCommand } from '~/cli/commands/process-steps/step-0-metadata/metadata-targets/metadata-target-utils'
+import { classifyInputFamily, classifyUrlInput } from '~/cli/commands/process-steps/step-0-metadata/metadata-targets/metadata-input-classifier'
+import { resolveInputRoutingForCommand } from '~/cli/commands/process-steps/step-0-metadata/metadata-targets/metadata-input-routing'
 import { ACSM_PRICE_NOTE, fulfillAcsmToDocument, resolveAcsmFulfillCommand } from '~/cli/commands/process-steps/step-1-download/document/acsm-fulfillment'
 import { buildAggregatedPriceEstimate } from '~/utils/pricing/aggregate-pricing'
 import { runCommand } from '../../../../test-utils/test-helpers'

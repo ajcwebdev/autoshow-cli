@@ -9,7 +9,6 @@ export {
 export {
   HOSTED_URL_ARTICLE_BACKENDS,
   LOCAL_URL_ARTICLE_BACKENDS,
-  STEP2_URL_PROVIDER_REGISTRY,
   URL_ARTICLE_BACKENDS
 } from './provider-registry/url-providers'
 export {

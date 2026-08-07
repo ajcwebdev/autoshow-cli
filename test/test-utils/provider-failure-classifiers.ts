@@ -70,7 +70,7 @@ const hasGeminiImageSignal = (output: string): boolean =>
   && (
     /\bgemini-image(?:-generate)?\b/i.test(output)
     || /\bGemini image\b/i.test(output)
-    || /\bgemini-[\w.\-]+-image-preview\b/i.test(output)
+    || /\bgemini-[\w.\-]+-image(?:-preview)?\b/i.test(output)
   )
 
 // Gemini image surface: transient availability on the image-generation endpoint, gated on an

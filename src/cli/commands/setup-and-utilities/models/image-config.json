@@ -13,7 +13,6 @@
         "pricingNotes": "Default registry rate is the published 1K output-image estimate. Text/image input tokens are not estimated locally.",
         "costPerImageUSD": 0.0336,
         "costPerImageCents": 3.36,
-        "nativeGeminiImage": true,
         "estimation": {
           "costMultiplier": 1,
           "msPerImage": 19416
@@ -28,7 +27,6 @@
         "pricingNotes": "Default registry rate is the published 1K output-image estimate. Text/image input tokens and other output resolutions are not estimated locally.",
         "costPerImageUSD": 0.067,
         "costPerImageCents": 6.7,
-        "nativeGeminiImage": true,
         "estimation": {
           "costMultiplier": 1,
           "msPerImage": 19416
@@ -43,7 +41,6 @@
         "pricingNotes": "Default registry rate is the published 1K/2K output-image estimate. Text/image input tokens and 4K output are not estimated locally.",
         "costPerImageUSD": 0.134,
         "costPerImageCents": 13.4,
-        "nativeGeminiImage": true,
         "estimation": {
           "costMultiplier": 1,
           "msPerImage": 19416

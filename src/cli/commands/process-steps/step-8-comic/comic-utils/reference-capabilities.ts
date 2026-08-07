@@ -36,19 +36,3 @@ export const trimOptionalContinuityReferences = (
     trimmed: optional.slice(available),
   }
 }
-
-export const preflightReferenceCounts = (
-  requests: readonly { model: ImageGenerationModel; requiredCount: number; context: string }[]
-): void => {
-  const failures: string[] = []
-  for (const request of requests) {
-    try {
-      validateReferenceImageCount(request.model, request.requiredCount, request.context)
-    } catch (error) {
-      failures.push(error instanceof Error ? error.message : String(error))
-    }
-  }
-  if (failures.length > 0) {
-    throw ValidationError(`Reference preflight failed before any provider calls:\n- ${failures.join('\n- ')}`, { stage: 'comic:reference-preflight' })
-  }
-}

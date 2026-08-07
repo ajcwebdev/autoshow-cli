@@ -1,7 +1,6 @@
 import type { VideoGenOptions, VideoMode } from '~/types'
+import { VIDEO_MODES } from '~/types'
 import { CLIUsageError } from '~/utils/error-handler'
-
-export const VIDEO_MODES = ['text', 'image-to-video', 'reference-to-video', 'interpolate', 'extend', 'edit'] as const
 
 export const resolveVideoMode = (value: string | undefined): VideoMode => {
   if (value === undefined || value.length === 0) return 'text'

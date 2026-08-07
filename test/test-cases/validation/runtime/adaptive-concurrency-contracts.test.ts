@@ -149,8 +149,8 @@ describe('adaptive provider group parser', () => {
       'src/cli/create-cli.ts',
       'tts',
       'input/examples/tts/1-tts.md',
-      '--openai-tts',
-      'gpt-4o-mini-tts-2025-12-15',
+      '--provider',
+      'openai=gpt-4o-mini-tts-2025-12-15',
       '--provider',
       'kitten=kitten-tts-mini'
     ])).toEqual(['tts/openai'])
@@ -159,8 +159,8 @@ describe('adaptive provider group parser', () => {
       'src/cli/create-cli.ts',
       'image',
       'a prompt',
-      '--gemini-image',
-      'gemini-3.1-flash-lite-image'
+      '--provider',
+      'gemini=gemini-3.1-flash-lite-image'
     ])).toEqual(['image/gemini'])
 
     expect(extractAdaptiveProviderGroups([

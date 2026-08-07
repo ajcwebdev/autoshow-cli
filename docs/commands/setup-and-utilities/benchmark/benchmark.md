@@ -137,7 +137,7 @@ bun autoshow benchmark docs/benchmarks/tts/<run> --tts --tts-mode local
 bun autoshow benchmark docs/benchmarks/tts/<run> --tts --tts-roundtrip-dir <dir>
 
 # Score an existing write run without paid calls
-bun autoshow benchmark docs/benchmarks/text/<run> --text
+bun autoshow benchmark docs/benchmarks/write/<run> --text
 
 # Score an existing image run
 bun autoshow benchmark docs/benchmarks/image/<run> --image
@@ -200,8 +200,8 @@ Text quality is not inferred from length, speed, cost, output existence, schema 
 
 Tracked benchmark workflow:
 
-1. Run `write` separately into `docs/benchmarks/text/<run>`.
-2. Run `bun autoshow benchmark docs/benchmarks/text/<run> --text`.
+1. Run `write` separately into `docs/benchmarks/write/<run>`.
+2. Run `bun autoshow benchmark docs/benchmarks/write/<run> --text`.
 3. Commit the resulting `run.json`, provider outputs, `provider-comparison-report.json`, and `provider-comparison-report.md`.
 
 ## Image quality mode

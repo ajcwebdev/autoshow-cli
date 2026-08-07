@@ -27,7 +27,7 @@ describe('OpenAI REST OCR contracts', () => {
         fileSize: 3
       }
 
-      const result = await runOpenAIOcr(imagePath, metadata, 'gpt-5.5', 'https://mock.openai.local/v1')
+      const result = await runOpenAIOcr(imagePath, metadata, 'gpt-5.5', { baseUrl: 'https://mock.openai.local/v1' })
 
       expect(result.pages).toEqual([{ pageNumber: 1, method: 'ocr', text: 'OCR text' }])
       expect(result.promptTokens).toBe(123)
@@ -65,7 +65,7 @@ describe('OpenAI REST OCR contracts', () => {
         fileSize: 3
       }
 
-      const result = await runOpenAIOcr(imagePath, metadata, 'gpt-5.5', 'https://mock.openai.local/v1')
+      const result = await runOpenAIOcr(imagePath, metadata, 'gpt-5.5', { baseUrl: 'https://mock.openai.local/v1' })
 
       expect(result.pages).toEqual([
         { pageNumber: 1, method: 'ocr', text: 'First page' },
@@ -106,7 +106,7 @@ describe('OpenAI REST OCR contracts', () => {
         fileSize: 3
       }
 
-      const result = await runOpenAIOcr(imagePath, metadata, 'gpt-5.4-mini', 'https://mock.openai.local/v1')
+      const result = await runOpenAIOcr(imagePath, metadata, 'gpt-5.4-mini', { baseUrl: 'https://mock.openai.local/v1' })
 
       expect(result.pages).toEqual([
         { pageNumber: 1, method: 'ocr', text: 'First page' },
@@ -221,7 +221,7 @@ describe('OpenAI REST OCR contracts', () => {
         fileSize: 3
       }
 
-      const result = await runOpenAIOcr(pdfPath, metadata, 'gpt-5.5', 'https://mock.openai.local/v1')
+      const result = await runOpenAIOcr(pdfPath, metadata, 'gpt-5.5', { baseUrl: 'https://mock.openai.local/v1' })
 
       expect(result.pages).toEqual([{ pageNumber: 1, method: 'ocr', text: 'Plain OCR text' }])
       const body = calls[0]?.bodyJson
@@ -254,7 +254,7 @@ describe('OpenAI REST OCR contracts', () => {
         fileSize: 3
       }
 
-      const result = await runOpenAIOcr(pdfPath, metadata, 'gpt-5.5', 'https://mock.openai.local/v1')
+      const result = await runOpenAIOcr(pdfPath, metadata, 'gpt-5.5', { baseUrl: 'https://mock.openai.local/v1' })
 
       expect(result.pages).toEqual([{ pageNumber: 1, method: 'ocr', text: '' }])
       expect(result.promptTokens).toBe(9)

@@ -133,6 +133,7 @@ export type ComputeEstimatedCostsInput = {
   sourceUrl?: string | undefined
   sttTargets?: SttPricingTarget[] | undefined
   whisperModel?: string | undefined
+  whisperfileModel?: string | undefined
   deepinfraSttModel?: string | undefined
   groqSttModel?: string | undefined
   grokSttModel?: string | undefined

@@ -1,6 +1,6 @@
 import { isNativeUsageError, nativeUsageMessage } from '~/cli/native/native-errors'
 import { sanitizeLogMetadata, sanitizeLogText } from '~/utils/app-logger/redaction'
-import type { AppErrorKind, AppErrorOptions, CliUsageHintOptions, ErrorChainEntry, RetryClass } from '~/types'
+import type { AppErrorKind, AppErrorOptions, ErrorChainEntry, RetryClass } from '~/types'
 const DEFAULT_EXIT_CODE_BY_KIND: Readonly<Record<AppErrorKind, number>> = {
   usage: 2,
   provider_http: 1,
@@ -77,28 +77,10 @@ export class AppInternalError extends AppError {
   }
 }
 
-const normalizeHints = (hintOrOptions?: string | string[] | CliUsageHintOptions): string[] | undefined => {
-  if (hintOrOptions === undefined) {
-    return undefined
-  }
-  if (typeof hintOrOptions === 'string') {
-    return [hintOrOptions]
-  }
-  if (Array.isArray(hintOrOptions)) {
-    return hintOrOptions
-  }
-
-  const hints = [
-    ...(hintOrOptions.hint ? [hintOrOptions.hint] : []),
-    ...(hintOrOptions.hints ?? [])
-  ]
-  return hints.length > 0 ? hints : undefined
-}
-
 export const CLIUsageError = (
   message: string,
-  hintOrOptions?: string | string[] | CliUsageHintOptions
-): Error => new AppUsageError(message, normalizeHints(hintOrOptions))
+  hint?: string
+): Error => new AppUsageError(message, hint ? [hint] : undefined)
 
 export const InfraError = (
   message: string,
@@ -144,9 +126,8 @@ export const hintsForMissingEnv = (key: string): string[] => [
 export const isAppError = (error: unknown): error is AppError =>
   error instanceof AppError
 
-export const isCLIUsageError = (error: unknown): boolean =>
+export const isCLIUsageError = (error: unknown): error is AppUsageError =>
   error instanceof AppUsageError
-  || (error instanceof Error && error.name === 'CLIUsageError')
 
 /**
  * Runs `fn` and re-wraps any non-usage throw as a `CLIUsageError` (usage errors pass
@@ -199,7 +180,7 @@ export const normalizeExitCode = (error: unknown): number => {
 
 export const usageMessage = (error: unknown): string => {
   if (isCLIUsageError(error)) {
-    return (error as Error).message
+    return error.message
   }
   const nativeMessage = nativeUsageMessage(error)
   if (nativeMessage !== undefined) return nativeMessage

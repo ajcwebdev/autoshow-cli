@@ -1,9 +1,5 @@
 import type * as v from 'valibot'
 
-// Character reference images are addressed relative to the configured characters
-// root, so the path is an ordinary string rather than a fixed literal union.
-export type CharacterFilePath = string
-
 export type CharacterReferenceConfig =
   v.InferOutput<typeof import('~/cli/commands/process-steps/step-8-comic/schemas/schemas').CharacterReferenceSchema>
 

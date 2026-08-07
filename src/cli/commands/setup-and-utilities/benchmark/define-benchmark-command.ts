@@ -103,7 +103,7 @@ export const benchmarkCommand = defineCliCommand({
       ['bun autoshow benchmark docs/benchmarks/tts/<run> --tts', 'Score an existing TTS run with full scoring'],
       ['bun autoshow benchmark docs/benchmarks/tts/<run> --tts --tts-mode local', 'Score a TTS run without paid calls'],
       ['bun autoshow benchmark docs/benchmarks/tts/<run> --tts --tts-roundtrip-dir <dir>', 'Use existing roundtrip STT transcripts'],
-      ['bun autoshow benchmark docs/benchmarks/text/<run> --text', 'Score an existing write run without paid calls'],
+      ['bun autoshow benchmark docs/benchmarks/write/<run> --text', 'Score an existing write run without paid calls'],
       ['bun autoshow benchmark docs/benchmarks/image/<run> --image', 'Score an existing image run with OpenAI vision judging'],
       ['bun autoshow benchmark docs/benchmarks/video/<run> --video', 'Score an existing video run with OpenAI vision judging']
     ]

@@ -134,23 +134,6 @@ function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === "object" && value !== null && !Array.isArray(value);
 }
 
-const DEAPI_TIMESTAMP_MARKER_RE = /\[\s*\d{1,2}:\d{2}(?::\d{2})?(?:[.,]\d+)?\s*-\s*\d{1,2}:\d{2}(?::\d{2})?(?:[.,]\d+)?\s*\]/;
-
-function unknownToSearchText(value: unknown): string {
-  if (typeof value === "string") {
-    return value;
-  }
-  try {
-    return JSON.stringify(value);
-  } catch {
-    return "";
-  }
-}
-
-function hasDeapiTimestampMarkers(value: unknown): boolean {
-  return DEAPI_TIMESTAMP_MARKER_RE.test(unknownToSearchText(value));
-}
-
 function parseTimestampMaybe(value: unknown): number | null {
   if (typeof value !== "string") {
     return null;
@@ -291,14 +274,6 @@ function buildQualityWarnings(
   const service = provider.providerKey.split("/")[0]?.toLowerCase() ?? "";
   const stats = provider.segmentStats;
 
-  if (service === "deapi") {
-    if (hasDeapiTimestampMarkers(provider.text)) {
-      warnings.push("deAPI transcript text still contains bracket timestamp markers.");
-    } else if (hasDeapiTimestampMarkers(provider.rawResponse)) {
-      warnings.push("deAPI raw response used bracket timestamp blocks; report uses cleaned parsed transcript text.");
-    }
-  }
-
   if (service === "gemini-stt") {
     const rawLatestEndSeconds = rawGeminiLatestEndSeconds(provider.rawResponse);
     const rawCoverageRatio = rawLatestEndSeconds !== null && runDurationSeconds > 0
@@ -307,18 +282,6 @@ function buildQualityWarnings(
     if ((stats.durationCoverageRatio !== null && stats.durationCoverageRatio < 0.75 && stats.segmentCount > 2) || (rawCoverageRatio !== null && rawCoverageRatio < 0.75)) {
       warnings.push("Gemini generated compressed timestamps relative to the known audio duration; timing should be treated as coarse/unreliable.");
     }
-  }
-
-  if (service === "glm-stt") {
-    if (stats.zeroDurationSegmentCount === stats.segmentCount && stats.segmentCount > 1) {
-      warnings.push("GLM returned all-zero-duration segment timing.");
-    } else if (stats.segmentCount > 1 && stats.timingQuality === "segment_interpolated") {
-      warnings.push("GLM segment timing is model-generated; zero-duration output is repaired with adjacent starts when detected, but no native word timing or speaker labels are available.");
-    }
-  }
-
-  if (service === "openai-stt" && (stats.timingQuality === "coarse" || stats.segmentCount === 1)) {
-    warnings.push("OpenAI STT returned coarse single-speaker transcript output without reliable segment timing or speaker labels.");
   }
 
   if (service === "supadata" && provider.duplicateGroupId) {
@@ -332,7 +295,7 @@ function buildQualityWarnings(
     }
   }
 
-  if (stats.zeroDurationSegmentCount > 0 && stats.zeroDurationSegmentCount === stats.segmentCount && service !== "glm-stt" && service !== "openai-stt") {
+  if (stats.zeroDurationSegmentCount > 0 && stats.zeroDurationSegmentCount === stats.segmentCount) {
     warnings.push("All provider segments have zero duration; timing is coarse for overlap-based speaker analysis.");
   }
 

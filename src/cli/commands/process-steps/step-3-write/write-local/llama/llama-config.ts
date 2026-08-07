@@ -1,6 +1,5 @@
 import { existsSync } from 'node:fs'
 import { resolve as resolvePath } from 'node:path'
-import { resolveLlamaDownloadRepo } from '~/cli/commands/setup-and-utilities/models/setup-model-options'
 import { llamaBinaryPath } from '~/cli/commands/setup-and-utilities/setup/run-complete-setup'
 import type { LlamaServerTarget } from '~/types'
 import { DEFAULT_LLAMA_SERVER_START_TIMEOUT_MS } from './llama-constants'
@@ -33,7 +32,7 @@ export const resolveLlamaServerTarget = (model: string): LlamaServerTarget => {
     }
   }
 
-  const modelRepo = resolveLlamaDownloadRepo(model)
+  const modelRepo = model
   return {
     mode: 'repo',
     requestedModel: model,

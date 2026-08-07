@@ -189,14 +189,6 @@ export type PanelPromptsCommandOptions = ComicSceneCommandOptionsBase & {
 
 export type CharacterSketchView = (typeof import('~/cli/commands/process-steps/step-8-comic/comic-commands/process-scenes/character-utils').CHARACTER_SKETCH_VIEWS)[number]
 
-export type CharacterDetails = {
-  name: string
-  image: string
-  description: string
-  sketchImages?: string[]
-}
-
-
 export type StructureScriptsCommandOptions = ComicScriptSceneCommandOptionsBase & ComicLlmCommandOptionsBase
 
 export type CharacterMention = StructuredScriptData['beats'][number]['rawMentions'][number]

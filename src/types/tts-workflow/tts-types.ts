@@ -1,4 +1,4 @@
-import type { GenerationResourceGate, ProcessingOptions, ProviderTargetBase, Step4Metadata, TtsProvider } from '~/types'
+import type { ProcessingOptions, ProviderTargetBase, ResourceGate, Step4Metadata, TtsProvider } from '~/types'
 export type TtsOptions = Pick<
   ProcessingOptions,
   | 'ttsSpeaker'
@@ -85,9 +85,8 @@ export type TtsOptions = Pick<
   | 'ttsLocalConcurrency'
   | 'ttsChunkConcurrency'
 > & {
-  generationResourceGate?: GenerationResourceGate | undefined
+  generationResourceGate?: ResourceGate | undefined
   hostedTtsChunkScheduler?: HostedTtsChunkScheduler | undefined
-  hostedTtsChunkJob?: HostedTtsChunkJobContext | undefined
 }
 
 export type MultiSpeakerStrategy = 'native' | 'segment-and-concat'

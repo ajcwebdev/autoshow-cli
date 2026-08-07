@@ -85,11 +85,11 @@ describe('logging contracts', () => {
         missing: 0,
         total: 2
       })).toEqual({
-        columns: ['configured', 'missing', 'detail'],
+        columns: ['present', 'missing', 'detail'],
         rows: [{
-          configured: '2/2',
+          present: '2/2',
           missing: 0,
-          detail: 'all env vars set'
+          detail: 'all env vars set (presence only, not validated)'
         }]
       })
 

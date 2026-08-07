@@ -60,7 +60,7 @@ bun scripts/run.ts stt compact-results "$RUN_DIR"
 This removes:
 
 1. `result.evidence.words` for every provider — never read by the packet or report.
-2. `result.evidence.rawResponse` for every provider except `whisper`, `gemini-stt`, and `deapi`, which are the only providers whose advisory Quality Flags read it.
+2. `result.evidence.rawResponse` for every provider except `whisper` and `gemini-stt`, which are the only providers whose advisory Quality Flags read it.
 
 Everything the packet and report consume is preserved: `provider`, `model`, `metadata.tokenCount`, `metadata.processingTime`, `result.text`, `result.segments`, `result.evidence.timingQuality`, and `result.evidence.capabilities`. Output is minified and the operation is idempotent. Regenerating `reference-comparison-report.{json,md}` after compaction produces byte-identical output aside from the `generatedAt` timestamp.
 

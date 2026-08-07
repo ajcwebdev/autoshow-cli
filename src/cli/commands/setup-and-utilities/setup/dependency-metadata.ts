@@ -107,16 +107,6 @@ export const readDependencyRef = async (name: string): Promise<string | undefine
   return metadata[name]?.ref
 }
 
-export const readDependencyUrl = async (name: string): Promise<string | undefined> => {
-  const metadata = await readDependencyMetadata()
-  return metadata[name]?.url
-}
-
-export const readDependencySha256 = async (name: string): Promise<string | undefined> => {
-  const metadata = await readDependencyMetadata()
-  return metadata[name]?.sha256
-}
-
 export const readDependencyUrlAndSha256 = async (
   name: string,
   variant?: 'linux'

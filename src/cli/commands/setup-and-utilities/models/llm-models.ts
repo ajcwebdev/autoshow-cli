@@ -1,4 +1,3 @@
-import { getLlamaDownloadRepo } from '~/cli/commands/setup-and-utilities/models/model-loader'
 import { createModelValidator } from '~/cli/commands/setup-and-utilities/models/model-validation'
 import type { GroqModel } from '~/types'
 import { CLIUsageError } from '~/utils/error-handler'
@@ -105,10 +104,6 @@ export const validateLlamaModel = (model: string): string => {
   throw CLIUsageError(
     `Invalid --llama model "${model}". Use a supported local model alias or a Hugging Face repo ID in namespace/repo_name form.`
   )
-}
-
-export const resolveLlamaDownloadRepo = (model: string): string => {
-  return getLlamaDownloadRepo(model) || model
 }
 
 export const validateLlamafileModel = createModelValidator(SUPPORTED_LLAMAFILE_MODELS, 'llamafile')

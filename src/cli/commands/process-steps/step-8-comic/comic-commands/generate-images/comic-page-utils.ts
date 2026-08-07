@@ -1,6 +1,6 @@
 import * as v from 'valibot'
 import { CLIUsageError, InternalError, ValidationError } from '~/utils/error-handler'
-import type { ComicGridChunk, ComicGridSpec, ComicPageChunk, ComicPanelSelection, PanelBundleData, GenerateImagesTarget, ImageGenerationSize, SketchPanelRange } from '~/types'
+import type { ComicGridSpec, ComicPageChunk, ComicPanelSelection, PanelBundleData, GenerateImagesTarget, ImageGenerationSize, SketchPanelRange } from '~/types'
 import { PanelBundleDataSchema } from '../../schemas/schemas'
 
 const PANEL_SELECTOR_PART_PATTERN = /^(\d+)(?:-(\d+))?$/
@@ -230,7 +230,7 @@ export const COMIC_STYLE_GUIDANCE = [
 export const chunkComicGridPanels = <T extends { panelNumber: number }>(
   panels: T[],
   grid: ComicGridSpec
-): Array<ComicGridChunk<T>> => {
+): Array<ComicPageChunk<T>> => {
   return chunkComicPagePanels(panels, getComicGridCapacity(grid))
 }
 
@@ -291,7 +291,7 @@ export const buildComicPagePrompt = (
     const forbidden = allReferencedKeys.filter(key => !panel.characterKeys.includes(key))
     const locationKey = panel.locationKey
     const locationReference = locationReferences.find(reference => reference.key === locationKey)
-    const panelDesignKeys = panel.designReferenceKeys ?? panel.designReferences?.map(reference => reference.key) ?? []
+    const panelDesignKeys = panel.designReferenceKeys ?? []
     const panelDesignReferences = designReferences.filter(reference => panelDesignKeys.includes(reference.key))
     const speech = panel.speech.length === 0
       ? ['  - Dialogue: none. Do not add a bubble or caption.']
@@ -365,7 +365,7 @@ export const buildComicPagePrompt = (
       ? 'Design reference legend: none.'
       : [
           'Design reference legend (after character and location references, in first-panel-appearance order):',
-          ...designReferences.map(reference => `- Reference ${reference.referenceIndex}: designKey=${reference.key}; usage=${reference.usage}; use only for sub-panels ${pagePromptData.panels.filter(panel => (panel.designReferenceKeys ?? panel.designReferences?.map(item => item.key) ?? []).includes(reference.key)).map(panel => panel.number).join(', ')}.`),
+          ...designReferences.map(reference => `- Reference ${reference.referenceIndex}: designKey=${reference.key}; usage=${reference.usage}; use only for sub-panels ${pagePromptData.panels.filter(panel => (panel.designReferenceKeys ?? []).includes(reference.key)).map(panel => panel.number).join(', ')}.`),
         ].join('\n'),
     `Exact per-panel execution contract:\n${panelDirectives}`,
     `Ordered page data:\n\`\`\`json\n${JSON.stringify(pagePromptData, null, 2)}\n\`\`\``,

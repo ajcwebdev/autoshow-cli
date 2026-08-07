@@ -200,7 +200,6 @@ test('extract help exposes shared batch and all-provider flags', async () => {
   expect(result.stdout).toContain('--stt-scrapecreators-lang')
   expect(result.stdout).not.toContain('--refresh-cache')
   expect(result.stdout).not.toContain('--no-cache')
-  expect(result.stdout).not.toContain('--cloudflare-stt')
   expect(result.stdout).toContain('--provider-concurrency')
   expect(result.stdout).toContain('--local-concurrency')
   expect(result.stdout).not.toContain('--ocr-provider-concurrency')
@@ -226,13 +225,6 @@ test('download help exposes media preservation flags', async () => {
   expect(result.stdout).toContain('--keep-original-media')
   expect(result.stdout).toContain('--best-quality')
   expect(result.stdout).toContain('--flat-batch')
-})
-
-test('setup help omits removed focused cloud setup flags', async () => {
-  const result = await runCommand(['src/cli/create-cli.ts', 'setup', '--help'], { env: helpEnv })
-
-  expect(result.exitCode).toBe(0)
-  expect(result.stdout).not.toContain('--cloudflare')
 })
 
 test('benchmark help exposes TTS voice-quality scoring flags', async () => {
@@ -264,7 +256,7 @@ test('benchmark help exposes text write scoring flag', async () => {
   expect(result.exitCode).toBe(0)
   expect(result.stdout).toContain('--text')
   expect(result.stdout).toContain('Score an existing write run directory without calling LLM providers')
-  expect(result.stdout).toContain('docs/benchmarks/text/<run> --text')
+  expect(result.stdout).toContain('docs/benchmarks/write/<run> --text')
   expect(result.stdout).toContain('Score an existing write run without paid calls')
 })
 

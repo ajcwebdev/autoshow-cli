@@ -1,4 +1,4 @@
-import type { BatchOrder, GenerationResourceGate, HostedTtsChunkJobContext, HostedTtsChunkScheduler, HtmlArticleBackend, OcrConcurrencyMode } from '~/types'
+import type { BatchOrder, HostedTtsChunkScheduler, HtmlArticleBackend, OcrConcurrencyMode, ResourceGate } from '~/types'
 
 const PROCESS_COMMANDS = ['metadata', 'download', 'extract', 'write', 'tts', 'image', 'video', 'music'] as const
 
@@ -92,9 +92,8 @@ export type RuntimeOptions = {
   ttsProviderConcurrency: number
   ttsLocalConcurrency: number
   ttsChunkConcurrency: number
-  generationResourceGate?: GenerationResourceGate | undefined
+  generationResourceGate?: ResourceGate | undefined
   hostedTtsChunkScheduler?: HostedTtsChunkScheduler | undefined
-  hostedTtsChunkJob?: HostedTtsChunkJobContext | undefined
   imageProviderConcurrency: number
   imageLocalConcurrency: number
   videoProviderConcurrency: number

@@ -1,9 +1,9 @@
 import { expect, test } from 'bun:test'
+import { expectLinksUsageError } from '../links-usage-errors'
 import {
   collectLinks,
   getDefaultLinksOutputFileName,
   parseLinksArgv,
-  runLinksWithArgv
 } from '~/cli/commands/setup-and-utilities/links/define-links-command'
 import {
   BETTER_AUTH_ALL_LINKS,
@@ -55,13 +55,13 @@ test('links selector accepts runway provider with general and models sections', 
     runwayModelsSelection.globalSections
   )).toEqual(RUNWAY_MODELS_LINKS)
 
-  await expect(runLinksWithArgv([
+  await expectLinksUsageError([
     'bun',
     'src/cli/create-cli.ts',
     'links',
     '--runway',
     'tts'
-  ])).rejects.toThrow('Unknown links section(s) for --runway: tts')
+  ], 'Unknown links section(s) for --runway: tts')
 })
 
 test('links selector accepts better-auth provider with general section', async () => {
@@ -112,13 +112,13 @@ test('links selector accepts better-auth provider with general section', async (
   )).toEqual(expect.arrayContaining(BETTER_AUTH_GENERAL_LINKS))
   expect(collectLinks(new Map(), [])).toEqual(expect.arrayContaining(BETTER_AUTH_GENERAL_LINKS))
 
-  await expect(runLinksWithArgv([
+  await expectLinksUsageError([
     'bun',
     'src/cli/create-cli.ts',
     'links',
     '--better-auth',
     'tts'
-  ])).rejects.toThrow('Unknown links section(s) for --better-auth: tts')
+  ], 'Unknown links section(s) for --better-auth: tts')
 })
 
 test('links selector accepts solidbase provider with general section', async () => {
@@ -156,13 +156,13 @@ test('links selector accepts solidbase provider with general section', async () 
     solidbaseGeneralSelection.globalSections
   )).toBe('solidbase-general-links.md')
 
-  await expect(runLinksWithArgv([
+  await expectLinksUsageError([
     'bun',
     'src/cli/create-cli.ts',
     'links',
     '--solidbase',
     'image'
-  ])).rejects.toThrow('Unknown links section(s) for --solidbase: image')
+  ], 'Unknown links section(s) for --solidbase: image')
 })
 
 test('links selector accepts drive provider with general section', () => {

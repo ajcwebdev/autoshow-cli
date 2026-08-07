@@ -131,12 +131,6 @@ export const resolveLocationReferencesAcrossPanels = (panels: PanelPrimaryRefere
   return ordered
 }
 
-export const resolveLocationReferenceAcrossPanels = (panels: PanelPrimaryReferenceInput[]): string => {
-  const references = resolveLocationReferencesAcrossPanels(panels)
-  if (references.length !== 1) throw ValidationError(`Expected one location reference, found ${references.length}`, { stage: 'comic:location-reference' })
-  return references[0]!.path
-}
-
 const buildResolved = (references: string[], primary: string[], prior: string[], secondary: string[], missing: string[]): ResolvedReferenceImages => ({
   all: references,
   primaryCharacterRefs: primary,

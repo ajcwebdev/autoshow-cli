@@ -464,7 +464,7 @@ describe('committed URL combined dashboard', () => {
     const urlSection = summary.split('## URL\n')[1]?.split('\n## Video')[0] ?? ''
 
     expect(summary).toContain(`| url | ${report.runCount} | ${report.providerRowCount} | local, service |`)
-    expect(summary).toContain('| **Total** | **36** | **568** | **5 groups** |')
+    expect(summary).toContain('| **Total** | **38** | **610** | **5 groups** |')
     expect(urlSection).not.toContain('2/2 runs')
 
     for (const group of ['local', 'service'] as const) {

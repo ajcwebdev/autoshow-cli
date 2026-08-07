@@ -24,14 +24,14 @@ describe('test-runner contracts', () => {
       const parsed = parseRunnerArgs([
         'bun',
         'test/test-runner.ts',
-        'test/test-cases/validation-next/',
+        'test/test-cases/validation/runtime/',
         '--price',
         '--budget',
         '500',
         '--bail'
       ])
 
-      expect(parsed.pathFilters).toEqual(['test/test-cases/validation-next/'])
+      expect(parsed.pathFilters).toEqual(['test/test-cases/validation/runtime/'])
       expect(parsed.priceMode).toBe(true)
       expect(parsed.budgetHundredthCents).toBe(500)
       expect(parsed.preserveTestOutput).toBe(false)
@@ -55,7 +55,6 @@ describe('test-runner contracts', () => {
       const parsed = parseRunnerArgs([
         'bun',
         'test/test-runner.ts',
-        '--cleanup',
         '--no-cleanup',
         'test/test-cases/validation/'
       ])
@@ -127,7 +126,7 @@ describe('test-runner contracts', () => {
     })
 
   test('path-selection labels strip the test/test-cases prefix for validation paths', () => {
-      expect(formatSelectedPathsLabel(['test/test-cases/validation-next/'])).toBe('Selected paths: validation-next')
+      expect(formatSelectedPathsLabel(['test/test-cases/validation/runtime/'])).toBe('Selected paths: validation/runtime')
       expect(formatSelectedPathsLabel(['test/test-cases/validation/'])).toBe('Selected paths: validation')
       expect(formatSelectedPathsLabel(['test/test-cases/e2e/service/step-4-tts-e2e/tts-services/'])).toBe('Selected paths: service/step-4-tts-e2e/tts-services')
     })

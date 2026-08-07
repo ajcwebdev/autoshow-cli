@@ -1,7 +1,6 @@
 import type { Step2Metadata, SttTarget, SttTargetOptions, TranscriptionResult, WhisperProgressWindow } from '~/types'
 import { assertNever } from '~/utils/validate/assert-never'
 import { InternalError } from '~/utils/error-handler'
-import { ensureSttTargetSetup as ensureSttTargetSetupViaBroker } from '../bootstrap'
 import { runReverbTranscribe } from '../stt-local/reverb/run-reverb'
 import { runWhisperTranscribe } from '../stt-local/whisper/run-whisper'
 import { runWhisperfileTranscribe } from '../stt-local/whisperfile/run-whisperfile'
@@ -20,12 +19,6 @@ import { runSonioxStt } from '../stt-services/soniox/run-soniox-stt'
 import { runSpeechmaticsStt } from '../stt-services/speechmatics/run-speechmatics-stt'
 import { runSupadataStt } from '../stt-services/stt-supadata/run-supadata-stt'
 import { runTogetherStt } from '../stt-services/together/run-together-stt'
-
-
-export const ensureSttTargetSetup = async (
-  target: Pick<SttTarget, 'service' | 'model'>
-): Promise<void> =>
-  await ensureSttTargetSetupViaBroker(target)
 
 export const dispatchStt = async (
   target: SttTarget,

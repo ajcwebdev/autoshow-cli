@@ -1,4 +1,4 @@
-import type { HtmlArticleBackend, ResolvedStep2Provider } from '~/types'
+import type { ResolvedStep2Provider } from '~/types'
 
 export type BatchItem = {
   id: string
@@ -96,8 +96,6 @@ export type ResolvedStep2Execution =
   | {
       route: 'article'
       sourceKind: 'article'
-      backend: HtmlArticleBackend
-      backends?: HtmlArticleBackend[] | undefined
       providers: ResolvedStep2Provider[]
     }
   | {

@@ -9,7 +9,7 @@
  *   - result.evidence.words      (per-word timing/confidence; never read by any
  *                                 consensus script)
  *   - result.evidence.rawResponse for providers that never consume it. Only the
- *                                 whisper / gemini-stt / deapi advisory Quality
+ *                                 whisper / gemini-stt advisory Quality
  *                                 Flags read rawResponse, so it is preserved for
  *                                 exactly those providers and dropped otherwise.
  *
@@ -17,7 +17,7 @@
  *   provider, model, metadata.tokenCount, metadata.processingTime,
  *   result.text, result.segments[{start,end,speaker,text}],
  *   result.evidence.timingQuality, result.evidence.capabilities, and
- *   result.evidence.rawResponse for whisper/gemini-stt/deapi.
+ *   result.evidence.rawResponse for whisper/gemini-stt.
  *
  * Output is written minified (generated artifacts, not hand-edited) and the
  * operation is idempotent: re-running on an already-compacted directory is a
@@ -29,7 +29,7 @@ import { basename, dirname, join, resolve } from "node:path";
 
 // Providers whose `provider` field marks them as rawResponse consumers. The
 // reference report's buildQualityWarnings reads rawResponse only for these.
-const RAW_RESPONSE_CONSUMERS = new Set(["whisper", "gemini-stt", "deapi"]);
+const RAW_RESPONSE_CONSUMERS = new Set(["whisper", "gemini-stt"]);
 
 interface CompactionStat {
   directoryName: string;

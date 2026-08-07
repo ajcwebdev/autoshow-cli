@@ -8,7 +8,7 @@ import { fileExists } from '~/utils/cli-utils'
 import { CLIUsageError, InfraError } from '~/utils/error-handler'
 import * as l from '~/utils/app-logger/app-logger'
 import { MEDIA_EXTENSIONS } from '~/cli/commands/process-steps/step-0-metadata/formats/metadata-media-extensions'
-import { DOCUMENT_EXTENSIONS, IMAGE_EXTENSIONS } from '~/cli/commands/process-steps/step-0-metadata/metadata-targets/metadata-target-utils'
+import { DOCUMENT_EXTENSIONS, IMAGE_EXTENSIONS } from '~/cli/commands/process-steps/step-0-metadata/metadata-targets/metadata-input-classifier'
 import { prepareSttMedia } from '../media'
 import type { SttTarget } from '~/types'
 

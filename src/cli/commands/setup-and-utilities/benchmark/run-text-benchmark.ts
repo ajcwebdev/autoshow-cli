@@ -16,19 +16,6 @@ const asObjectArray = (value: unknown): JsonObject[] => {
   return isRecord(value) ? [value] : []
 }
 
-const numberFromKeys = (record: JsonObject | undefined, keys: readonly string[]): number | undefined => {
-  if (!record) {
-    return undefined
-  }
-  for (const key of keys) {
-    const value = getNumber(record, key)
-    if (value !== undefined) {
-      return value
-    }
-  }
-  return undefined
-}
-
 const round3 = (value: number): number => {
   const rounded = Math.round(value * 1000) / 1000
   return Object.is(rounded, -0) ? 0 : rounded
@@ -108,8 +95,11 @@ const stepMatchesProvider = (step: JsonObject, service: string, model: string): 
 const findCostStep = (runJson: JsonObject, service: string, model: string): MatchedCostStep | null => {
   for (const source of ['actual', 'estimated'] as const) {
     const step = costSteps(runJson, source).find((candidate) => stepMatchesProvider(candidate, service, model))
-    const costCents = numberFromKeys(step, ['cost', 'costCents', 'actualCostCents', 'estimatedCostCents', 'totalCost'])
-    if (step && costCents !== undefined) {
+    if (!step) {
+      continue
+    }
+    const costCents = getNumber(step, 'cost')
+    if (costCents !== undefined) {
       return { costCents, source, raw: step }
     }
   }
@@ -123,7 +113,7 @@ const findTimingStep = (runJson: JsonObject, service: string, model: string): Ma
       continue
     }
     return {
-      processingTimeMs: numberFromKeys(step, ['processingTimeMs', 'processingTime']),
+      processingTimeMs: getNumber(step, 'processingTimeMs'),
       msPerUnit: getNumber(step, 'msPerUnit'),
       throughputValue: getNumber(step, 'throughputValue'),
       throughputUnit: getString(step, 'throughputUnit'),
@@ -206,7 +196,7 @@ const buildProviderRows = async (
     const actualCostCents = cost?.source === 'actual' ? cost.costCents : null
     const estimatedCostCents = cost?.source === 'estimated' ? cost.costCents : null
     const costCents = group === 'local' ? 0 : actualCostCents ?? estimatedCostCents
-    const explicitAutomatedQualityScore = getNumber(entry, 'automatedQualityScore') ?? getNumber(entry, 'textQualityScore')
+    const explicitAutomatedQualityScore = getNumber(entry, 'automatedQualityScore')
     const explicitHumanQualityScore = getNumber(entry, 'humanQualityScore')
 
     rows.push({

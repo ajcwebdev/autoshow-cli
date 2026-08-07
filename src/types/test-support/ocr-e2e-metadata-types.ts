@@ -25,7 +25,6 @@ export type OcrE2eExtractMetadata = {
   resolvedStep2?: {
     route?: string
     sourceKind?: string
-    backend?: string
     providers?: Array<{ service?: string; model?: string; origin?: string }>
   }
   requestedProviders?: Array<{ service?: string; model?: string }>

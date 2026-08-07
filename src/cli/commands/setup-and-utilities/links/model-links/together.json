@@ -19,7 +19,6 @@
     "STT": [
       "https://docs.together.ai/reference/audio-transcriptions",
       "https://docs.together.ai/docs/speech-to-text.md",
-      "https://www.together.ai/models/parakeet-tdt-0-6b-v3",
       "https://www.together.ai/pricing",
       "https://raw.githubusercontent.com/togethercomputer/skills/refs/heads/main/skills/together-audio/SKILL.md",
       "https://raw.githubusercontent.com/togethercomputer/skills/refs/heads/main/skills/together-audio/scripts/stt_transcribe.ts",

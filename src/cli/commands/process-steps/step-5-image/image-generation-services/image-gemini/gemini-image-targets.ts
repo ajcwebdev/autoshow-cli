@@ -1,6 +1,6 @@
 import type { GeminiImageModel, ImageGenOptions, ImageTarget } from '~/types'
 import { CLIUsageError } from '~/utils/error-handler'
-import { supportsGeminiImageSize, validateGeminiImageModel } from '~/cli/commands/setup-and-utilities/models/setup-model-options'
+import { validateGeminiImageModel } from '~/cli/commands/setup-and-utilities/models/setup-model-options'
 import { ensureGeminiImageGenSetup } from './gemini-image-gen'
 import { runGeminiImageGen } from './run-gemini-image-gen'
 import {
@@ -29,9 +29,6 @@ export const collectGeminiImageTargets = (options: ImageGenOptions): ImageTarget
   const models = options.geminiImageModels ?? []
   return models.flatMap((rawModel) => {
     const model: GeminiImageModel = validateGeminiImageModel(rawModel)
-    if (typeof options.imageSize === 'string' && options.imageSize.length > 0 && !supportsGeminiImageSize(model)) {
-      throw CLIUsageError(`--image-size is not supported by Gemini/${model}. Supported alternatives: omit --image-size or use an image-size-capable Gemini image model.`)
-    }
     validateEnumOption('Gemini', model, 'image-size', options.imageSize, GEMINI_IMAGE_SIZES)
     if (model === 'gemini-3.1-flash-lite-image' && options.imageSize !== undefined && options.imageSize !== '1K') {
       throw CLIUsageError(`--image-size ${options.imageSize} is not supported by Gemini/${model}. Supported value: 1K.`)

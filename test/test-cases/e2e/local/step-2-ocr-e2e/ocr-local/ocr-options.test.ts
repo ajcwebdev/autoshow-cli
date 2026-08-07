@@ -168,7 +168,7 @@ test('bun autoshow extract https://ajcwebdev.com --url-provider defuddle', async
     expect(metadata.resolvedStep2).toMatchObject({
       route: 'article',
       sourceKind: 'article',
-      backend: 'defuddle'
+      providers: [{ service: 'defuddle', model: 'defuddle' }]
     })
     expect(metadata.requestedProviders).toEqual([{ service: 'defuddle', model: 'defuddle' }])
   } finally {

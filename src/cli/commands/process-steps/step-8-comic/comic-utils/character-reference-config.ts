@@ -219,7 +219,6 @@ export const withCharacterCatalog = async <T>(run: (catalog: CharacterCatalogSer
 }
 
 export const getCharacterKeys = (): CharacterKey[] => [...loadCharacterCatalog().characterKeys]
-export const getCharacterKeySet = (): Set<CharacterKey> => new Set(getCharacterKeys())
 export const getCharacterReferenceAliases = (): Record<string, string> => {
   const catalog = loadCharacterCatalog()
   const aliases: Record<string, string> = {}

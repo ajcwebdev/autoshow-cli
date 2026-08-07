@@ -1,6 +1,7 @@
 import { getExtractPricing } from '~/cli/commands/setup-and-utilities/models/model-loader'
 import type { ActualCostBreakdown, AggregatedPriceEstimate, CollectEstimatedExtractTargetsOptions, EstimatedCostBreakdown, EstimatedStepEntry, ExtractEstimateProvider, ExtractEstimateTarget, ExtractionMetadata, OcrModelFallbackOptions, PartialExtractionMetadata, Step3Metadata } from '~/types'
 import { resolveExtractionProviderModel } from '~/utils/extraction-provider-model'
+import { toArray } from '~/utils/text-utils'
 import { computeObservedEstimateCosts, computePriceAlignedEstimatedCosts, preflightToEstimated } from '~/utils/pricing/compute-costs'
 import { ANTHROPIC_OCR_PRICE_NOTE, DEEPINFRA_OCR_PRICE_NOTE, FIRECRAWL_PRICE_NOTE, GEMINI_OCR_PRICE_NOTE, GLM_OCR_PRICE_NOTE, GROK_OCR_PRICE_NOTE, KIMI_OCR_PRICE_NOTE, OPENAI_OCR_PRICE_NOTE } from './ocr-utils/extract-pricing'
 import { resolveHostedOcrModeFromExtractionMethod } from './ocr-utils/hosted-ocr-token-profiles'
@@ -16,8 +17,6 @@ const OCR_DIAGNOSTIC_PROVIDERS = new Set([
   'gemini',
   'deepinfra'
 ])
-
-const toArray = <T,>(value: T | T[]): T[] => Array.isArray(value) ? value : [value]
 
 const tokenProfileCostInput = (
   opts: OcrModelFallbackOptions

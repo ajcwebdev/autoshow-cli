@@ -508,7 +508,6 @@ export const generateSceneSketches = async (
               `panels=${sketchChunk.panels.map(panel => formatPanelDirectoryName(panel.panelNumber)).join(',')}`,
               `model=${model}`,
               `mode=${imageResponse.mode}`,
-              imageResponse.inputFidelity ? `fidelity=${imageResponse.inputFidelity}` : undefined,
               `refs=${resolvedReferences.all.length}`,
               `cost=${costLabel}`,
               `duration=${formatDuration(requestDurationMs)}`,

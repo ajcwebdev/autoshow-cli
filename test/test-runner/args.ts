@@ -48,7 +48,6 @@ export const parseRunnerArgs = (argv: string[]): RunnerArgs => {
     }
 
     switch (arg) {
-      case '--cleanup':            break
       case '--no-cleanup':         preserveTestOutput = true; break
       case '--no-adaptive-concurrency': adaptiveConcurrency = false; break
       case '--price':              priceMode = true; break

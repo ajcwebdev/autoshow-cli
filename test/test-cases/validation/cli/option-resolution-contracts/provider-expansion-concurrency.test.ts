@@ -318,7 +318,7 @@ describe('option resolution contracts', () => {
       expect(allTts.ttsChunkConcurrency).toBe(DEFAULT_TTS_CHUNK_CONCURRENCY)
     })
 
-  test('bare provider flags resolve to cheapest defaults', () => {
+  test('bare provider flags resolve to their default models', () => {
       const openaiDefault = resolveCheapestModelForFlag('openai')
       const grokDefault = resolveCheapestModelForFlag('grok')
       const glmDefault = resolveCheapestModelForFlag('glm')
@@ -484,7 +484,6 @@ describe('option resolution contracts', () => {
       expect(expansions['together-stt']?.supported).toEqual(['openai/whisper-large-v3', 'nvidia/parakeet-tdt-0.6b-v3'])
       expect(expansions['whisper-stt']?.shortcut).toBe('all-local-stt')
       expect(expansions['scrapecreators-stt']).toBeUndefined()
-      expect(expansions['cloudflare-stt']).toBeUndefined()
       expect(expansions['openai-ocr']?.shortcut).toBe('all-ocr')
       expect(expansions['grok-ocr']?.shortcut).toBe('all-ocr')
       expect(expansions['kimi-ocr']?.shortcut).toBe('all-ocr')
@@ -502,7 +501,6 @@ describe('option resolution contracts', () => {
       expect(collectSttTargets(sttOpts).map((target) => target.service)).toContain('grok')
       expect(collectSttTargets(sttOpts).map((target) => target.service)).toContain('mistral')
       expect(collectSttTargets(sttOpts).map((target) => target.service)).not.toContain('scrapecreators')
-      expect(collectSttTargets(sttOpts).map((target) => target.service)).not.toContain('cloudflare')
       expect(collectSttTargets(sttOpts).map((target) => target.service)).not.toContain('whisper')
       expect(collectSttTargets(sttOpts).map((target) => target.service)).not.toContain('reverb')
       const ocrTargets = collectExplicitOcrTargets(ocrOpts)

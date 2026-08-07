@@ -11,12 +11,9 @@ export type ImageGenerationQuality = (typeof import('../image-workflow/image-ser
 
 export type GeneratedImageResponse = {
   mode: 'edit' | 'generate'
-  inputFidelity?: 'high' | 'low'
   result: {
     imageBase64: string
     mimeType?: string
-    providerSizeLabel?: string
-    providerQualityLabel?: string
   }
 }
 

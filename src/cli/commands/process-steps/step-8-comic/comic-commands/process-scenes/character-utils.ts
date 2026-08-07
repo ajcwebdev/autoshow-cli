@@ -139,13 +139,3 @@ export const withCharacterSketchManifestLock = async <T>(run: () => Promise<T>):
     release()
   }
 }
-
-export const getCharacters = async (keys: readonly string[]): Promise<CharacterCatalogEntry[]> => {
-  const catalog = loadCharacterCatalog()
-  return keys.map(value => catalog.get(catalog.requireKey(value)))
-}
-
-export const findCharacterReferenceNamesInText = (text: string): CharacterKey[] => loadCharacterCatalog().detect(text)
-export const resolveCharacterReferenceName = (value: string): string => loadCharacterCatalog().resolve(value)?.[0] ?? value
-export const stripVoiceOverSuffix = (value: string): string => value.replace(/\s*\((?:V\.?O\.?|O\.?S\.?)\)\s*$/i, '')
-export const isCharacterEntry = (value: string): boolean => Boolean(loadCharacterCatalog().resolve(value))

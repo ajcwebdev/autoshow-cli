@@ -148,8 +148,6 @@ describe('provider selection contracts', () => {
     expect(resolveOcrStep2ExecutionFromFormat('html', allUrlOpts)).toEqual({
       route: 'article',
       sourceKind: 'article',
-      backend: 'firecrawl',
-      backends: [...HOSTED_URL_ARTICLE_BACKENDS],
       providers: HOSTED_URL_ARTICLE_BACKENDS.map((backend) => ({
         service: backend,
         model: backend,
@@ -166,7 +164,6 @@ describe('provider selection contracts', () => {
     expect(resolveOcrStep2ExecutionFromFormat('html', localHtmlHostedOpts)).toEqual({
       route: 'article',
       sourceKind: 'article',
-      backend: 'defuddle',
       providers: [{
         service: 'defuddle',
         model: 'defuddle',

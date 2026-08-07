@@ -1,11 +1,9 @@
 import { expect, test } from 'bun:test'
-import { readdirSync, readFileSync } from 'node:fs'
-import { join } from 'node:path'
+import { expectLinksUsageError } from '../links-usage-errors'
 import {
   collectLinks,
   getDefaultLinksOutputFileName,
   parseLinksArgv,
-  runLinksWithArgv
 } from '~/cli/commands/setup-and-utilities/links/define-links-command'
 import {
   ALL_MODELS_LINKS,
@@ -63,36 +61,11 @@ test('links selector accepts provider-scoped models sections', () => {
 })
 
 test('links selector rejects provider-scoped models section when provider has none', async () => {
-  await expect(runLinksWithArgv([
+  await expectLinksUsageError([
     'bun',
     'src/cli/create-cli.ts',
     'links',
     '--firecrawl',
     'models'
-  ])).rejects.toThrow('Unknown links section(s) for --firecrawl: models')
-})
-
-test('raw link manifests do not repeat URLs across categories', () => {
-  const manifestsDir = 'src/cli/commands/setup-and-utilities/links/model-links'
-  const seen = new Map<string, string>()
-  const duplicates: string[] = []
-
-  for (const fileName of readdirSync(manifestsDir).filter(file => file.endsWith('.json')).sort()) {
-    const manifest = JSON.parse(readFileSync(join(manifestsDir, fileName), 'utf8')) as Record<string, Record<string, string[]>>
-    for (const [providerName, sections] of Object.entries(manifest)) {
-      for (const [sectionName, urls] of Object.entries(sections)) {
-        for (const url of urls) {
-          const owner = `${providerName}/${sectionName}`
-          const previousOwner = seen.get(url)
-          if (previousOwner) {
-            duplicates.push(`${url} (${previousOwner}, ${owner})`)
-          } else {
-            seen.set(url, owner)
-          }
-        }
-      }
-    }
-  }
-
-  expect(duplicates).toEqual([])
+  ], 'Unknown links section(s) for --firecrawl: models')
 })

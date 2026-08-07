@@ -1,7 +1,6 @@
 import { readdir, rm } from 'node:fs/promises'
 import { homedir } from 'node:os'
 import { join } from 'node:path'
-import { resolveLlamaDownloadRepo } from '~/cli/commands/setup-and-utilities/models/setup-model-options'
 
 // llama-server's `-hf` downloader owns its own cache outside runtime/, so the
 // setup-managed marker in runtime/models/llama is not evidence that weights
@@ -15,10 +14,10 @@ export const resolveLlamaCacheDir = (): string => {
 }
 
 const cacheEntryPrefix = (model: string): string =>
-  `${resolveLlamaDownloadRepo(model).replace(/\//g, '_')}_`
+  `${model.replace(/\//g, '_')}_`
 
 const manifestPath = (model: string): string =>
-  join(resolveLlamaCacheDir(), `manifest=${resolveLlamaDownloadRepo(model).replace(/\//g, '=')}=latest.json`)
+  join(resolveLlamaCacheDir(), `manifest=${model.replace(/\//g, '=')}=latest.json`)
 
 export const listLlamaCacheEntries = async (model: string): Promise<string[]> => {
   const cacheDir = resolveLlamaCacheDir()

@@ -1,9 +1,9 @@
 import { expect, test } from 'bun:test'
+import { expectLinksUsageError } from '../links-usage-errors'
 import {
   collectLinks,
   getDefaultLinksOutputFileName,
   parseLinksArgv,
-  runLinksWithArgv
 } from '~/cli/commands/setup-and-utilities/links/define-links-command'
 import {
   CEREBRAS_ALL_LINKS,
@@ -133,13 +133,13 @@ test('links selector accepts cerebras provider with general and text sections', 
     cerebrasModelsSelection.globalSections
   )).toEqual(CEREBRAS_MODELS_LINKS)
 
-  await expect(runLinksWithArgv([
+  await expectLinksUsageError([
     'bun',
     'src/cli/create-cli.ts',
     'links',
     '--cerebras',
     'ocr'
-  ])).rejects.toThrow('Unknown links section(s) for --cerebras: ocr')
+  ], 'Unknown links section(s) for --cerebras: ocr')
 })
 
 test('links selector accepts kimi provider with general text and ocr sections', async () => {
@@ -195,11 +195,11 @@ test('links selector accepts kimi provider with general text and ocr sections', 
     kimiOcrSelection.globalSections
   )).toEqual(KIMI_OCR_LINKS)
 
-  await expect(runLinksWithArgv([
+  await expectLinksUsageError([
     'bun',
     'src/cli/create-cli.ts',
     'links',
     '--kimi',
     'tts'
-  ])).rejects.toThrow('Unknown links section(s) for --kimi: tts')
+  ], 'Unknown links section(s) for --kimi: tts')
 })

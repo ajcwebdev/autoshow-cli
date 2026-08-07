@@ -1,4 +1,4 @@
-import type { GenerationResourceGate, GenerationResourceGateOptions } from '~/types'
+import type { ResourceGate, ResourceGateOptions } from '~/types'
 import { DEFAULT_CLI_CONCURRENCY } from '~/utils/concurrency-defaults'
 import { createResourceGate, normalizeResourceGateCapacity } from '~/utils/resource-gate'
 
@@ -8,8 +8,8 @@ const normalizeCapacity = (value: unknown, fallback = DEFAULT_GENERATION_RESOURC
   normalizeResourceGateCapacity(value, fallback)
 
 export const createGenerationResourceGate = (
-  options: GenerationResourceGateOptions = {}
-): GenerationResourceGate =>
+  options: ResourceGateOptions = {}
+): ResourceGate =>
   createResourceGate({ capacity: normalizeCapacity(options.capacity) })
 
 export const resolveGenerationResourceCapacity = (options: {

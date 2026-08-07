@@ -20,9 +20,4 @@ export type AppErrorOptions = {
   metadata?: Record<string, unknown>
 }
 
-export type CliUsageHintOptions = {
-  hint?: string | undefined
-  hints?: string[] | undefined
-}
-
 export type ErrorChainEntry = Error & Record<string, unknown>
