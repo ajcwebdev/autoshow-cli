@@ -179,9 +179,9 @@ Wave 1 (zero-risk deletions, no behavior change) — **implemented 2026-08-06, s
 
 Wave 2 (flag-surface break) — **implemented 2026-08-07, see §12**: §1 items, §6.1-6.2, plus the §3 retired-model maps and registry aliases. Mostly definition deletions plus test/doc updates; the tombstone removals degrade only old-input error messages.
 
-Wave 3 (artifact-format break): §2 manifest/metadata items and the §4 comic cluster as one change (schemas → branches → types → fallbacks → tombstones, with the v3-fixture test migrations), plus the deferred §4.7 filename tolerance.
+Wave 3 (artifact-format break) — **implemented 2026-08-07, see §13**: §2 manifest/metadata items and the §4 comic cluster as one change (schemas → branches → types → fallbacks → tombstones, with the v3-fixture test migrations), plus the deferred §4.7 filename tolerance.
 
-Wave 4 (gated work): §7.1 OCR config-key migration, §8 TTS multi-speaker cluster after the media-runner plumbing, and the two explicit product decisions — §7.3 two-image characters and the §7.2 full singular-field break.
+Wave 4 (gated work) — **implemented 2026-08-07, see §14**: §7.1 OCR config-key migration, §8 TTS multi-speaker cluster after the media-runner plumbing, and §7.2's narrow removal. The two product decisions were resolved by the owner: §7.2's full singular-field break and §7.3's two-image characters are both **declined** and stay.
 
 Verification bar per wave: `bun run check`, then the no-cost smoke set (`cli-help-contracts`, `cli-usage-errors`, `option-resolution-contracts/`).
 
@@ -307,3 +307,139 @@ Wave 2 only (the working tree also carries Wave 1's uncommitted −94):
 Live CLI checks, all no-cost: `resume --gemini-image …` rejects at parse (proving §1.10's shim was unreachable); `comic character-sketch` reports `Unknown comic subcommand`; `tts --tts-voice groq=<bad>` reaches the Groq voice validator with the reworded message; `--groq-voice` is absent from `tts`, `write` and `config` help.
 
 **Not run:** `budget-preflight.test.ts` (spawns real `--price` subprocesses) and every e2e service test. §1.2's edit to `test-runner/price-commands/registry/stt.ts` and §1.6's edit to the Groq e2e case both change argv that only those suites exercise, so they are unverified by execution — both were verified by reading the flag surface instead.
+
+---
+
+## 13. Wave 3 implementation record (2026-08-07)
+
+Wave 3 landed in full, including the §4.7 half that Wave 1 deferred. This is the artifact-format break: the CLI no longer reads any pre-v4 comic artifact, any pre-unification run/batch manifest, or the singular/v1 location formats. Nothing that a current run writes changed shape, except one deliberate output change (`epubExport` is no longer duplicated into `metadata.json`) and one deliberate version bump (`page-qa-report.json` is now schema version 2).
+
+### Totals
+
+Wave 3 only (the working tree also carries Wave 1's and Wave 2's uncommitted changes):
+
+| | Files | Added | Removed | Net |
+| --- | --- | ---: | ---: | ---: |
+| `src/` | 26 | 108 | 421 | **−313** |
+| `test/` | 10 | 67 | 132 | **−65** |
+| `docs/` | 3 | 6 | 7 | **−1** |
+| **Total** | **39** | **181** | **560** | **−379** |
+
+### Per-item
+
+| Item | What landed |
+| --- | --- |
+| §2.1/§2.2 Manifest tombstones | Deleted `assertSupportedRunOrBatchSchema`, `assertSupportedExtractBatchSchema`, `UnsupportedArtifactSchemaError` and the three call sites. Old run/batch manifests now parse to `undefined` (treated as absent); old extract batches fail the generic parse. Deleted the three pinning tests and their `writeJson` helper. |
+| §2.3 `epubExport` dual key | Stopped the dual write, dropped both `chapterExport ?? epubExport` fallback arms, and removed the key from `ExtractionMetadataSchema` and `OcrE2eExtractMetadata`. Migrated 7 `ocr-options.test.ts` assertions and 2 in `normalizable-ebooks.test.ts` to `chapterExport` (deduping one pair that collapsed onto an existing assertion). |
+| §2.4 OCR fallback-cache migration | Deleted `maybeMigrateLegacyFallbackArtifacts` and its call, plus the now-unused `cp`/`stat`/`basename`/`join`/`l` imports. Old-layout page caches are ignored rather than copied forward. |
+| §2.5 `whisper.cpp` normalization | Deleted the `stt` arm of `normalizeProviderForMatch`. The adjacent `llama.cpp` → `llama` arm stays (§9). |
+| §2.6 Throughput recompute | Deleted `formatWriteManifestThroughput` and both `?? formatWriteManifestThroughput(...)` arms; speed columns now come only from persisted `throughputValue`/`throughputUnit`. |
+| §2.7 `costSource` coercion | Replaced with `readManifestCostSource`, which yields `undefined` for absent/unknown values instead of asserting `registry_fallback`. Added `ManifestLogActualCostBreakdown` so `getActualCostBreakdown` returns the read-back shape; the `actualCostSource: … ?? null` consumer already renders an empty column. See deviations. |
+| §2.8 Whisper CoreML | Removed the `.pt` reclamation line from `coremlConvert`'s early return (the early return itself stays) and the two `coreml-encoder-*` candidates from `detectCoreMLEncoder`. |
+| §4.2 v2/v3 bundle schemas | Deleted `LegacyV3PanelBundlePanelSchema`, `LegacyPanelBundlePanelSchema`, `LegacyV3PanelBundleDataSchema`, `LegacyPanelBundleDataSchema` and `ReadablePanelBundleDataSchema`; `extractPanelBundleData` parses `PanelBundleDataSchema` directly and no longer needs its v2 special case or the `as PanelBundleData` cast. Deleted the all-v3 merge branches in `buildComicPagePromptData` and `buildSketchPromptData` and the v3 snapshot-id resolution in `panel-prompt-utils.ts`. |
+| §4.3 Widened union types | `ScenePromptData` and `PanelBundleData` are now the plain v4 valibot inferences. |
+| §4.4 Prompt fallbacks | Dropped the `shotPlan ?? 'Legacy bundle…'` text, the three `locationKey ?? locationReferences[0]?.key` fallbacks, the `'legacy single location'` label in the page and sketch prompts and the QA prompt, and the "legacy single-location bundle" location legend (now `Location reference legend: none.`). |
+| §4.5 Singular snapshots | Deleted `LegacyLocationReferenceSnapshot`, `AnyLocationReferenceSnapshot`, `getLocationReferenceSnapshotPath`, `createLocationReferenceSnapshot`, `loadAndVerifyLocationReferenceSnapshot`, the singular fallback in `loadAndVerifyLocationReferenceSnapshots`, the v1 tolerance in `verifySnapshot`, and the duplicate plural-then-singular read in `panel-prompt-utils.ts`. |
+| §4.6 Sketch manifest v1 | `parseSketchManifest` is v2-only; deleted `LegacyLocationSketchRegistration` and the in-memory migration. Rewrote the `multi-location-contracts.test.ts` fixture to author v2 views and inverted the dedicated `location-reference-contracts.test.ts` test to assert rejection. |
+| §4.7 Filename tolerance | Tightened `validateReferenceFilename` to `--reference.png` only and dropped the `.replace()` in `establishingFilename`. The run-directory writer's `<key>--reference-sheet.png` naming is untouched, as the audit's boundary requires. No checked-in catalog authored the old spelling. |
+| §4.8 `input/episode-scripts` | Deleted `LEGACY_EPISODE_SCRIPTS_ROOT` and `resolveDefaultEpisodeScriptsRoot` in `project-paths.ts`, and the independent reimplementation in `collectLocationSourceScripts`. Both collapse to `input/scripts`. |
+| §4.9 Flat-workspace tombstone | Deleted `LEGACY_FLAT_ARTIFACTS`, `assertPanelFirstSceneWorkspace` and its two call sites; removed the "Flat legacy" sentence from the load-bearing `project-paths.ts` structural error. Deleted the pinning test and repointed the sibling assertion to the surviving message. |
+| §4.10 `'legacy-import'` origin | Dropped the picklist member; the fixture uses `'generated'`. |
+| §4.11 Page-QA tolerance | Made the seven fields required and removed every `=== undefined` / `=== false` tolerance branch across `applyPageQaTolerancePolicy`, `hasHardPageQaFailure`, `getPageQaHardFailureKeys` and `applyPageQaRepairPolicy`. Bumped `page-qa-report.json` to schema version 2 via a shared `PAGE_QA_REPORT_SCHEMA_VERSION`, read by both the reuse path and the price estimator, so v1 reports are discarded rather than reused. |
+
+### Deviations from the audit, and why
+
+**§2.7 was implemented, not deferred, and it changes one rendered value.** The audit called it borderline and asked for an explicit decision on absent/unknown values. A manifest that omits `costSource`, or carries one outside the eight-member vocabulary, previously rendered as `registry_fallback` — the summary asserted a cost provenance the manifest never claimed. It now renders empty. `WriteRunSummaryRow.actualCostSource` was already `string | null` and the human table already prints `''` for null, so no consumer needed changing; only `getActualCostBreakdown`'s return type moved, from `ActualCostBreakdown` (whose `StepCostEntry.costSource` is required) to a new read-back type.
+
+**§4.8 was pulled into Wave 3 even though §10 does not list it.** The sequencing line names "the §4 comic cluster as one change". `LEGACY_EPISODE_SCRIPTS_ROOT` and its twin in `location-reference-command.ts` are §4 items, undocumented and untested, and leaving them would have been the only §4 survivors. Both are pure fallbacks: the canonical `input/scripts` path was already tried first, so projects on the current layout see no change.
+
+**§4.2's error strings were reworded, not just narrowed.** `extractPanelBundleData` said "not a reviewed schemaVersion 3 or 4 panel bundle" and "Legacy/unversioned bundles must be regenerated". Both now name only v4 and drop "Legacy", so the guidance matches what the parser actually accepts.
+
+**§4.11's reuse guard is a version bump, not a shape validation.** The audit allowed either. A bump is deterministic — no partially-valid old entry can slip through a hand-written predicate — and it costs one re-judge per page on the first run after the change. `price-estimate.ts` had an independent copy of the `schemaVersion === 1` check, so both now import one constant instead of two literals diverging.
+
+**§4.4's `hasHardPageQaFailure` no longer reads `identityMatch` or `dialogueAccuracy` at all.** Those booleans were only consulted when the corresponding `*IssueKind` was absent. With the kinds required, `applyPageQaTolerancePolicy` derives both booleans from the kinds, so keying hard failure off the kinds alone is the same behavior with one source of truth.
+
+**`resolvePrimaryCharacterReferencesAcrossPanels`'s dead `sketchCharacterRefs`/`canonicalCharacterRefs` were left alone.** Wave 1's record flagged them for a look during this pass. They still have three readers, all of which feed `applyReferenceImageLimits`'s `_sketch`/`_canonical` parameters — which that function ignores. The whole chain is inert, but it is §5-style dead scaffolding rather than an artifact-format item, so removing it belongs in its own change. Carried forward below.
+
+### Follow-ups this wave exposed
+
+- **The inert sketch/canonical reference chain.** `applyReferenceImageLimits` takes `_sketch` and `_canonical` and ignores both; `buildResolved` still computes them from filename prefixes. Four producers and three call sites thread values nothing reads. Deleting the two parameters and the two `ResolvedReferenceImages`/`PrimaryCharacterReferenceState` fields is a self-contained cleanup.
+- **`docs/benchmarks` combined reports are missing from the repo.** `combined-report-weighted-ranking-contracts.test.ts:172` and `url-combined-report-contracts.test.ts:466` read `docs/benchmarks/{ocr,url}/combined-comparison-report.json`, which do not exist; the second also expects counts that no longer match `summary.md`. Both fail on a clean checkout, independent of Waves 1-3 (`git diff HEAD` touches neither the tests nor `docs/benchmarks`).
+- The `ManifestLogActualCostBreakdown` type introduced for §2.7 is the only read-back-shaped cost type in `~/types`. If more manifest readers need one, they should share it rather than each widening `ActualCostBreakdown`.
+
+### Verification
+
+`bun run check` clean. No-cost test suites, no third-party API calls:
+
+- Smoke set — `cli-help-contracts` + `cli-usage-errors` + `option-resolution-contracts/`: **177 pass / 0 fail** (13 files).
+- Touched areas — `validation/comic/` + `validation/resume-manifests/` + `validation/extract-ocr/`: **264 pass / 0 fail** (32 files).
+- Adjacent areas — `validation/reports-pricing/` + `validation/configuration/` + `validation/ingest/`: **270 pass / 2 fail** (40 files), both failures the pre-existing missing-`docs/benchmarks` ones described above.
+
+Live CLI check, no-cost: `bun autoshow comic --help` exits 0 and lists the three current subcommands.
+
+**Not run:** the OCR e2e suite (`ocr-options.test.ts`), whose 7 `epubExport` → `chapterExport` assertions this wave rewrote — it spawns real `extract` subprocesses. The rename was verified by reading the writer instead: `ocr-result.ts` sets `chapterExport` from the same `input.chapterExportSummary` the deleted line used, so every migrated assertion reads the value it previously read under the other key. Also not run: `budget-preflight.test.ts` and every e2e service test.
+
+---
+
+## 14. Wave 4 implementation record (2026-08-07)
+
+Wave 4 landed the three items the owner approved: §7.1's OCR config-key migration, §7.2's narrow collector cleanup, and §8's full TTS multi-speaker break including its two prerequisites. The two product decisions the audit escalated were both declined and the code stays: §7.2's full singular-field break (the singular `<provider>ImageModel/VideoModel/MusicModel` fields remain live API for cheapest-selection and pricing) and §7.3's two-image character identity cards (a schema-valid, actively exercised catalog layout, not compat).
+
+Two findings changed the character of this wave. §7.1 is not a rename — it is a **live bug fix**. And §8's blocking gap was real and is now closed, which means `--tts-speaker` works on the write-for-media pipeline for the first time.
+
+### Totals
+
+Wave 4 only, measured as `git diff HEAD` restricted to the files this wave touched. Three of those files (`config-merge.ts`, `tts-flags.ts`, `cli-usage-errors.test.ts`) also carry uncommitted Wave 1–3 edits, so their share is included here and cannot be cleanly separated.
+
+| | Files | Added | Removed | Net |
+| --- | --- | ---: | ---: | ---: |
+| `src/` | 44 (2 deleted) | 60 | 348 | **−288** |
+| `test/` | 12 | 40 | 70 | **−30** |
+| `docs/` | 3 | 12 | 16 | **−4** |
+| **Total** | **59** | **112** | **434** | **−322** |
+
+### Per-item
+
+| Item | What landed |
+| --- | --- |
+| §7.1 OCR config keys | Switched config injection from the bare `lang`/`out`/`dpi` keys to `ocr-language`/`format`/`ocr-dpi`, deleted the three duplicate `FLAG_TO_CONFIG_PATH` rows and the bare `dpi` numeric entry, then dropped the three `??` fallbacks in `ocr-options.ts`. See deviations — this fixed a live bug. |
+| §7.2 (narrow) | Replaced `options.xModels ?? (options.xModel ? [options.xModel] : [])` with `options.xModels ?? []` in all 20 image/video/music target collectors. The three `*-pricing.ts` files keep the singular reads: `cheapest-models.ts` builds singular-only option objects and feeds them to `estimateVideoCost`/`estimateImageCost`, never to a collector. |
+| §8 step 1 — media-runner | Added `ttsSpeakers` to the options `media-runner.ts` forwards, closing the gap that made `--tts-speaker` silently no-op on the write-for-media pipeline. Removed the four `geminiSpeaker*` forwards and `ttsSpeakerRefAudios` in the same edit. |
+| §8 step 2 — `detectVoiceKind` | Widened `REF_AUDIO_EXTENSIONS` from 8 to 20 entries (`.opus`, `.oga`, `.aiff`, `.aif`, `.aifc`, `.wma`, `.amr`, `.caf`, `.m4b`, `.weba`, `.mka`, `.au`, `.pcm`), so `SPEAKER=path` covers what forced ref-audio classification used to guarantee. The audit's own example, `HOST=clip.opus`, now classifies as ref-audio. |
+| §8 step 3 — docs and e2e | Rewrote the Gemini multispeaker section of `text-to-speech.md` to the generic flags, replaced the `--tts-speaker-ref-audio` rows/examples across `text-to-speech.md`, `resume.md` and `config.md`, and migrated both e2e tests (`gemini-3.1-flash-tts-preview-multispeaker`, `mistral-dialogue-ref-audio`), the price registry entry and `cli-price-mode.test.ts`. |
+| §8 step 4 — removal | Deleted the four `--gemini-speaker-*` flags and the now-empty `tts-gemini` help group (label + color), `legacy-multi-speaker.ts` and its `define-tts-command.ts` call, `resolveGeminiMultiSpeakerConfig`/`formatGeminiSpeakerSummary`/`validateGeminiMultiSpeakerTranscript` and the `GeminiMultiSpeakerConfig` branches in `run-gemini-tts.ts`/`gemini-tts-targets.ts`, the `--tts-speaker-ref-audio` flag and all four fallback branches, the config injection + path rows + array-coercion special case, and the type fields across six type modules (`GeminiMultiSpeakerConfig`, `GeminiTtsSelectionOptions` and its whole module, the `TtsTargetSelection.geminiMultiSpeakerConfig` field, and the option-key unions). |
+
+### Deviations from the audit, and why
+
+**§7.1 was a live bug, not a migration — and the audit's stated risk was inverted.** The audit warned that "dropping the fallbacks alone silently breaks `defaults.extract.ocr.*` for current config users", treating the `??` fallbacks as "the only conduit into RuntimeOptions". The opposite was true. `native-parser.ts:187-195` materializes every flag `default` into `rawFlags` *before* config merge, and `extract`, `write`, `resume` and `config` all register `ocrInputFlags`/`ocrTuningFlags` — so `mergedFlags['ocr-language']`, `['format']` and `['ocr-dpi']` were *always* present with their defaults (`eng`/`text`/`300`), and `readOptionalStringFlag(...) ?? readStringFlag('lang', ...)` never reached the fallback arm. Verified against the real parser + config-merge + `buildOptsFromFlags` chain: a config of `{lang: 'fra', out: 'hocr', dpi: 600}` resolved to `eng`/`text`/`300` before this change and to `fra`/`hocr`/`600` after. `defaults.extract.ocr.{lang,out,dpi}` had been silently discarded on every OCR-capable command; the migration is what makes those config keys work.
+
+**§8 removed one error that has no generic equivalent.** `resolveGeminiMultiSpeakerConfig` threw `Gemini multispeaker TTS cannot be combined with --gemini-voice.` The generic path never had that guard — `run-gemini-tts` sets `voiceId` to `undefined` whenever a registry is present — so `--tts-speaker` plus `--tts-voice gemini=X` silently ignores the voice rather than erroring. That is the pre-existing behavior of the surviving mechanism, not a new regression, and the doc now states it explicitly. Adding a real conflict error is a separate change.
+
+**`parseSpeakerMappings` was collapsed, not just narrowed.** With `parseSpeakerRefAudioMappings` gone, the shared helper had exactly one caller and its three-field options object (`flagName`, `expectedShape`, `resolveVoiceKind`) had exactly one possible value. Inlined into `parseSpeakerVoiceMappings`; the error strings now read `Expected SPEAKER=VOICE or SPEAKER=path`, which is what the surviving flag actually accepts.
+
+**Regression guards naming the removed flags were deleted, not re-homed**, per §6.5's rule and Wave 2's precedent: `cli-help-contracts.test.ts`'s `Gemini TTS` group assertion (the group no longer exists), `cli-usage-errors.test.ts`'s `--gemini-speaker-1-voice` resume rejection, and the four `gemini-speaker-*` entries in `resume-provider-surface-contracts.test.ts`. Their subjects exist nowhere in the repo now.
+
+**Two tests were rewritten rather than dropped.** `tts-dialogue-contracts.test.ts`'s two `normalizeLegacyMultiSpeakerFlags` tests were the only coverage of Gemini multispeaker option resolution; they were replaced with one test that drives the generic flags end-to-end through `collectTtsTargets` and asserts the native strategy and `Host=Kore, Guest=Puck` speaker summary. `provider-concurrency-defaults.test.ts` passed a bare `dpi` flag — not a registered CLI spelling on any command — and was repointed to `ocr-dpi`.
+
+**A `detectVoiceKind` test was added for step 2.** The widened extension set is behavior the audit asked for but no test covered; the new case pins all twelve added extensions plus the two negative cases (`Kore`, and `gpt-4o.mini` — a dotted value whose suffix is not an audio extension).
+
+### Follow-ups this wave exposed
+
+- **`--tts-voice` is silently ignored in dialogue mode.** Now that the `--gemini-voice` conflict error is gone, no provider errors on the combination; the voice is just dropped for the run. A single generic guard in `createTtsTargetSelection` would cover every provider at once.
+- **`isMultiSpeakerRequested` is true whenever `--tts-dialogue-format` is set**, even with zero `--tts-speaker` mappings, which produces the downstream `requires at least one --tts-speaker` error rather than a parse-time one. Unchanged by this wave, but the two-arm predicate is now simple enough to tighten.
+- Wave 3's carried-forward item is still open: `applyReferenceImageLimits`'s ignored `_sketch`/`_canonical` parameters and the four producers feeding them. Untouched by Wave 4.
+- The pre-existing failures Waves 2 and 3 recorded are unchanged and still unrelated: `service-test-kit-contracts.test.ts` (`hasGeminiImageSignal`'s stale `-image-preview` suffix) and the missing `docs/benchmarks` combined reports.
+
+### Verification
+
+`bun run check` clean. No-cost test suites, no third-party API calls:
+
+- Smoke set — `cli-help-contracts` + `cli-usage-errors` + `option-resolution-contracts/`: **177 pass / 0 fail** (13 files).
+- Touched areas — `validation/media-generation/` + `validation/providers/` + `validation/resume-manifests/`: **242 pass / 1 fail** (49 files); the one failure is the pre-existing `service-test-kit-contracts` classifier bug, confirmed untouched by any wave (`git diff HEAD` reports no changes to either that test or `provider-failure-classifiers.ts`).
+- Adjacent areas — `validation/configuration/` + `validation/extract-ocr/` + `validation/ingest/`: **234 pass / 0 fail** (35 files).
+
+Live CLI checks, all no-cost: `tts --gemini-speaker-1-name` now exits with `Unexpected flag: geminiSpeaker1Name`; `tts --tts-speaker-ref-audio` with `Unexpected flag: ttsSpeakerRefAudio`; `tts --help` exits 0, shows no `Gemini TTS` group, and still lists `--tts-dialogue-format` and `--tts-speaker` under `Multi-Speaker / Dialogue`.
+
+Two behaviors were verified by driving the real resolution chain rather than by reading it: the §7.1 config fix (parser defaults → `mergeConfigIntoRawFlags` → `buildOptsFromFlags`, before/after), and §8 step 1 (dialogue flags → `buildOptsFromFlags` → the exact field set `media-runner.ts` forwards → `ProcessingOptionsSchema` validation → `isMultiSpeakerRequested`, which now returns `true` on that pipeline).
+
+**Not run:** every e2e service test, including the two this wave rewrote (`gemini-3.1-flash-tts-preview-multispeaker.test.ts`, `mistral-dialogue-ref-audio.test.ts`) — both spawn billable provider calls. Their argv changes are verified only by reading the flag surface. Also not run: `budget-preflight.test.ts`, and the `tts-mistral-dialogue-ref-audio` price-registry entry whose argv this wave edited.

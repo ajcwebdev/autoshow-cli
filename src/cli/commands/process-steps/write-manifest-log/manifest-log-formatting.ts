@@ -43,9 +43,6 @@ const normalizeProviderForMatch = (step: WriteStepKind, provider: string): strin
   if (step === 'llm' && provider === 'llama.cpp') {
     return 'llama'
   }
-  if (step === 'stt' && provider === 'whisper.cpp') {
-    return 'whisper'
-  }
   return provider
 }
 
@@ -69,42 +66,6 @@ export const buildProviderModelLabel = (provider: string, model: string): string
   const displayProvider = provider === 'whisper' ? 'whisper.cpp' : provider
   const displayModel = provider === 'reverb' ? resolveReverbModelLabel(model) : model
   return `${displayProvider}/${displayModel}`
-}
-
-export const formatWriteManifestThroughput = (
-  inputMetric: string | undefined,
-  inputValue: number | undefined,
-  processingTimeMs: number | undefined
-): string | null => {
-  if (
-    !inputMetric
-    || typeof inputValue !== 'number'
-    || !Number.isFinite(inputValue)
-    || inputValue <= 0
-    || typeof processingTimeMs !== 'number'
-    || !Number.isFinite(processingTimeMs)
-    || processingTimeMs <= 0
-  ) {
-    return null
-  }
-
-  switch (inputMetric) {
-    case 'durationMs':
-    case 'durationSeconds':
-      return `${formatNumber((inputMetric === 'durationMs' ? inputValue / 1000 : inputValue) / (processingTimeMs / 1000))}x`
-    case 'tokens':
-      return `${formatNumber(inputValue / (processingTimeMs / 1000))} tok/s`
-    case 'characters':
-      return `${formatNumber(inputValue / (processingTimeMs / 1000))} char/s`
-    case 'pages':
-      return `${formatNumber(inputValue / (processingTimeMs / 60000))} p/min`
-    case 'sections':
-      return `${formatNumber(inputValue / (processingTimeMs / 60000))} sections/min`
-    case 'images':
-      return `${formatNumber(inputValue / (processingTimeMs / 60000))} img/min`
-    default:
-      return null
-  }
 }
 
 export const formatPersistedWriteManifestThroughput = (

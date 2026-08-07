@@ -118,15 +118,17 @@ const sampleSourceSegments: StructuredScriptSourceSegment[] = [
 ]
 
 const buildSceneData = (sourceSegmentIds: string[]): ScenePromptData => ({
-  schemaVersion: 2,
+  schemaVersion: 4,
   title: 'Coverage Test',
   location: 'STARSHIP HORIZON',
   panels: [{
     number: 1,
     description: 'Mechanic works through a quiet ship corridor.',
+    shotPlan: 'Wide corridor shot; Mechanic moves screen left to right.',
     characterKeys: [],
     speech: [],
     sourceSegmentIds,
+    locationKey: testLocation.key,
   }],
 })
 

@@ -4,10 +4,10 @@ import { existsSync, readFileSync } from 'node:fs'
 import { basename, extname, join, resolve } from 'node:path'
 import * as v from 'valibot'
 import type { PanelBundleData, ImageGenerationModel, PanelPrimaryReferenceInput, PrimaryCharacterReferenceState, ResolvedReferenceImages } from '~/types'
-import { ReadablePanelBundleDataSchema } from '../schemas/schemas'
+import { PanelBundleDataSchema } from '../schemas/schemas'
 import { CharacterReferenceManifestSchema, getCharacterReferenceManifestPath } from './character-reference-snapshot'
 import { resolveCharacterIdentityReferences } from './character-identity-card'
-import { getLocationReferenceSnapshotPath, getLocationReferenceSnapshotsPath, LOCATION_VIEWS, type AnyLocationReferenceSnapshot, type LocationReferenceSnapshotManifest } from './location-reference'
+import { getLocationReferenceSnapshotsPath, LOCATION_SNAPSHOTS_FILENAME, LOCATION_VIEWS, type LocationReferenceSnapshotManifest } from './location-reference'
 import { resolveDesignReferencesAcrossPanels } from './design-reference'
 export { resolveDesignReferencesAcrossPanels } from './design-reference'
 import { trimOptionalContinuityReferences } from './reference-capabilities'
@@ -28,14 +28,13 @@ export const normalizePromptBundle = (content: string): string => content.replac
 
 export const extractPanelBundleData = (content: string): PanelBundleData => {
   const json = Array.from(content.matchAll(/```json\s*([\s\S]*?)\s*```/g)).at(-1)?.[1]
-  if (!json) throw ValidationError('Prompt bundle is missing a JSON block. Legacy/unversioned bundles must be regenerated.', { stage: 'comic:panel-prompt' })
+  if (!json) throw ValidationError('Prompt bundle is missing a JSON block. Unversioned bundles must be regenerated.', { stage: 'comic:panel-prompt' })
   try {
-    const value = v.parse(ReadablePanelBundleDataSchema, JSON.parse(json))
+    const value = v.parse(PanelBundleDataSchema, JSON.parse(json))
     if (value.panels.length !== 1) throw new Error(`expected one panel, found ${value.panels.length}`)
-    if (value.schemaVersion === 2) throw new Error('schemaVersion 2 bundles are not generation-safe')
-    return value as PanelBundleData
+    return value
   } catch (error) {
-    throw ValidationError(`Prompt bundle JSON is not a reviewed schemaVersion 3 or 4 panel bundle: ${error instanceof Error ? error.message : String(error)}. Run draft-scenes explicitly to rebuild it.`, { stage: 'comic:panel-prompt' })
+    throw ValidationError(`Prompt bundle JSON is not a reviewed schemaVersion 4 panel bundle: ${error instanceof Error ? error.message : String(error)}. Run draft-scenes explicitly to rebuild it.`, { stage: 'comic:panel-prompt' })
   }
 }
 
@@ -101,34 +100,26 @@ export type ResolvedLocationReference = {
 export const resolveLocationReferencesAcrossPanels = (panels: PanelPrimaryReferenceInput[]): ResolvedLocationReference[] => {
   if (panels.length === 0) throw ValidationError('A location reference requires at least one panel', { stage: 'comic:location-reference' })
   const runDirectories = new Set(panels.map(panel => getSceneWorkspaceDirectoryForPanelPrompt(panel.panelDirectory)))
-  if (panels.some(panel => panel.bundleData.schemaVersion === 2)) throw ValidationError('Legacy v2 panel bundles cannot enter image generation. Run draft-scenes explicitly to rebuild reviewed artifacts.', { stage: 'comic:location-reference' })
   if (runDirectories.size !== 1) throw ValidationError('Mixed run directories are not allowed in one image request', { stage: 'comic:location-reference' })
   const runDirectory = [...runDirectories][0]!
   const pluralPath = getLocationReferenceSnapshotsPath(runDirectory)
-  const legacyPath = getLocationReferenceSnapshotPath(runDirectory)
-  let snapshots: AnyLocationReferenceSnapshot[]
-  if (existsSync(pluralPath)) {
-    const manifest = JSON.parse(readFileSync(pluralPath, 'utf8')) as LocationReferenceSnapshotManifest
-    if (manifest.schemaVersion !== 2 || !Array.isArray(manifest.snapshots)) throw ValidationError(`Invalid location snapshot manifest: ${pluralPath}`, { stage: 'comic:location-reference' })
-    snapshots = manifest.snapshots
-  } else if (existsSync(legacyPath)) {
-    snapshots = [JSON.parse(readFileSync(legacyPath, 'utf8')) as AnyLocationReferenceSnapshot]
-  } else {
-    throw InfraError('Missing location-references.json or legacy location-reference.json. Run draft-scenes explicitly.', { stage: 'comic:location-reference' })
-  }
+  if (!existsSync(pluralPath)) throw InfraError(`Missing ${LOCATION_SNAPSHOTS_FILENAME}. Run draft-scenes explicitly.`, { stage: 'comic:location-reference' })
+  const manifest = JSON.parse(readFileSync(pluralPath, 'utf8')) as LocationReferenceSnapshotManifest
+  if (manifest.schemaVersion !== 2 || !Array.isArray(manifest.snapshots)) throw ValidationError(`Invalid location snapshot manifest: ${pluralPath}`, { stage: 'comic:location-reference' })
+  const snapshots = manifest.snapshots
   const byId = new Map(snapshots.map(snapshot => [snapshot.snapshotId, snapshot]))
   const ordered: ResolvedLocationReference[] = []
   const seen = new Set<string>()
   for (const input of panels) {
     const panel = input.bundleData.panels[0]
     if (!panel) throw ValidationError('Panel bundle is missing its panel payload', { stage: 'comic:location-reference' })
-    const snapshotId = input.bundleData.schemaVersion === 3 ? input.bundleData.locationSnapshotId : panel.locationSnapshotId
-    const expectedKey = input.bundleData.schemaVersion === 3 ? undefined : panel.locationKey
+    const snapshotId = panel.locationSnapshotId
+    const expectedKey = panel.locationKey
     if (!snapshotId) throw ValidationError('Panel bundle omits its location snapshot ID', { stage: 'comic:location-reference' })
     const snapshot = byId.get(snapshotId)
-    const sourceViewIndices = snapshot?.schemaVersion === 2 ? snapshot.sourceViews?.map(view => LOCATION_VIEWS.indexOf(view.view)) ?? [] : []
-    const invalidV2Provenance = snapshot?.schemaVersion === 2 && (!Array.isArray(snapshot.sourceViews) || snapshot.sourceViews.length === 0 || snapshot.sourceViews[0]?.view !== 'establishing' || !snapshot.sourceViews.every(view => LOCATION_VIEWS.includes(view.view) && !!view.generationId && /^[a-f0-9]{64}$/.test(view.imageSha256)) || new Set(sourceViewIndices).size !== sourceViewIndices.length || sourceViewIndices.some((index, position) => position > 0 && index <= sourceViewIndices[position - 1]!))
-    if (!snapshot || (snapshot.schemaVersion !== 1 && snapshot.schemaVersion !== 2) || !snapshot.sheet?.path || invalidV2Provenance || (expectedKey && snapshot.locationKey !== expectedKey)) {
+    const sourceViewIndices = snapshot?.sourceViews?.map(view => LOCATION_VIEWS.indexOf(view.view)) ?? []
+    const invalidProvenance = !!snapshot && (!Array.isArray(snapshot.sourceViews) || snapshot.sourceViews.length === 0 || snapshot.sourceViews[0]?.view !== 'establishing' || !snapshot.sourceViews.every(view => LOCATION_VIEWS.includes(view.view) && !!view.generationId && /^[a-f0-9]{64}$/.test(view.imageSha256)) || new Set(sourceViewIndices).size !== sourceViewIndices.length || sourceViewIndices.some((index, position) => position > 0 && index <= sourceViewIndices[position - 1]!))
+    if (!snapshot || snapshot.schemaVersion !== 2 || !snapshot.sheet?.path || invalidProvenance || (expectedKey && snapshot.locationKey !== expectedKey)) {
       throw ValidationError(`Panel location snapshot ${snapshotId} does not match its manifest entry`, { stage: 'comic:location-reference' })
     }
     if (seen.has(snapshotId)) continue

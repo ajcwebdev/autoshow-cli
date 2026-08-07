@@ -577,10 +577,6 @@ test('resume rejects provider-named option flags', async () => {
     'Unexpected flag: minimaxTtsEmotion'
   )
   await expectUsageExit(
-    ['resume', 'output/nonexistent', '--gemini-speaker-1-voice', 'Kore'],
-    'Unexpected flag: geminiSpeaker1Voice'
-  )
-  await expectUsageExit(
     ['resume', 'output/nonexistent', '--replicate-video-seed', '1'],
     'Unexpected flag: replicateVideoSeed'
   )

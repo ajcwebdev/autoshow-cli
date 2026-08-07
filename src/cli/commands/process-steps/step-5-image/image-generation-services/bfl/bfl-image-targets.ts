@@ -9,7 +9,7 @@ import {
 } from '../../image-utils/image-inputs'
 
 export const collectBflImageTargets = (options: ImageGenOptions): ImageTarget[] => {
-  const models = options.bflImageModels ?? (options.bflImageModel ? [options.bflImageModel] : [])
+  const models = options.bflImageModels ?? []
   return models.flatMap((rawModel) => {
     const model: BflImageModel = validateBflImageModel(rawModel)
     const unsupported: string[] = []

@@ -283,7 +283,7 @@ describe('comic character handling flat-reference contracts', () => {
     const key = catalog.requireKey('hero')
     const sha256 = await checksumFile(catalog.get(key).sourcePath)
     await writeFile(getCharacterSketchManifestPath(charactersRoot), JSON.stringify({ schemaVersion: 1, sketches: [{
-      characterKey: key, generationId: 'single-reference', origin: 'legacy-import', sourceImage: 'hero.webp', outlineSheet: 'hero.webp',
+      characterKey: key, generationId: 'single-reference', origin: 'generated', sourceImage: 'hero.webp', outlineSheet: 'hero.webp',
       sourceSha256: sha256, sheetSha256: sha256, model: null, createdAt: new Date().toISOString(),
     }] }))
     const runDirectory = await mkdtemp(join(tmpdir(), 'autoshow-single-character-run-'))

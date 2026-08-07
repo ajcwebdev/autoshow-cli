@@ -22,13 +22,16 @@ const temporaryDirectories: string[] = []
 const tinyPng = Buffer.from('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNk+A8AAQUBAScY42YAAAAASUVORK5CYII=', 'base64')
 const sha = createHash('sha256').update(tinyPng).digest('hex')
 
+const cargoBayLocation = { key: 'cargo-bay', raw: 'cargo-bay' }
+
 const panelBundle = (panelNumber: number): PanelBundleData => ({
-  schemaVersion: 3, snapshotId: 'character-snapshot', locationSnapshotId: 'location-snapshot',
+  schemaVersion: 4, snapshotId: 'character-snapshot',
   title: 'Location Contract', location: 'Cargo Bay', panels: [{
     number: panelNumber, description: `Authored staging ${panelNumber}.`,
     shotPlan: `Medium eye-level shot ${panelNumber}; hero is screen left, facing right; exclude all unlisted cast.`,
     characterKeys: ['hero'], speech: [], sourceSegmentIds: [`beat-${panelNumber}`],
-    sourceSegments: [{ id: `beat-${panelNumber}`, type: 'direction', text: `Authored staging ${panelNumber}.`, beatIndex: panelNumber }],
+    sourceSegments: [{ id: `beat-${panelNumber}`, type: 'direction', text: `Authored staging ${panelNumber}.`, beatIndex: panelNumber, location: cargoBayLocation }],
+    locationKey: 'cargo-bay', locationSnapshotId: 'location-snapshot',
   }],
 })
 
@@ -43,7 +46,7 @@ const createSceneFixture = async (sceneSlug: string): Promise<{ runDirectory: st
   const locationSheet = join(runDirectory, 'assets', 'location-references', 'location-snapshot', 'cargo-bay.png')
   await mkdir(dirname(locationSheet), { recursive: true })
   await Bun.write(locationSheet, tinyPng)
-  await Bun.write(join(runDirectory, 'assets', 'location-reference.json'), JSON.stringify({ schemaVersion: 1, snapshotId: 'location-snapshot', locationKey: 'cargo-bay', specification: 'A loading door stays left of a fixed control booth; camera angles and crops may vary.', sourceScripts: ['scripts/02-script/01.md'], sourceGenerationId: 'v1', sheet: { path: 'assets/location-references/location-snapshot/cargo-bay.png', sha256: sha } }))
+  await Bun.write(join(runDirectory, 'assets', 'location-references.json'), JSON.stringify({ schemaVersion: 2, snapshots: [{ schemaVersion: 2, snapshotId: 'location-snapshot', locationKey: 'cargo-bay', specification: 'A loading door stays left of a fixed control booth; camera angles and crops may vary.', sourceScripts: ['scripts/02-script/01.md'], sourceViews: [{ view: 'establishing', generationId: 'v1', imageSha256: sha }], sheet: { path: 'assets/location-references/location-snapshot/cargo-bay.png', sha256: sha } }] }))
   for (const panelNumber of [1, 2]) {
     const directory = join(runDirectory, 'metadata', 'panel-prompts', `panel-${String(panelNumber).padStart(2, '0')}`)
     await mkdir(directory, { recursive: true })
@@ -71,7 +74,7 @@ const createMultiLocationFixture = async (sceneSlug: string): Promise<{ runDirec
     await mkdir(dirname(path), { recursive: true })
     await Bun.write(path, tinyPng)
     locationSheets.push(path)
-    snapshots.push({ schemaVersion: 1, snapshotId: location.snapshotId, locationKey: location.key, specification: location.key, sourceScripts: [], sourceGenerationId: 'v1', sheet: { path: `assets/location-references/${location.snapshotId}/${location.key}.png`, sha256: sha } })
+    snapshots.push({ schemaVersion: 2, snapshotId: location.snapshotId, locationKey: location.key, specification: location.key, sourceScripts: [], sourceViews: [{ view: 'establishing', generationId: 'v1', imageSha256: sha }], sheet: { path: `assets/location-references/${location.snapshotId}/${location.key}.png`, sha256: sha } })
   }
   await Bun.write(join(runDirectory, 'assets', 'location-references.json'), JSON.stringify({ schemaVersion: 2, snapshots }))
   for (const [index, location] of locations.entries()) {
@@ -117,7 +120,7 @@ describe('canonical location references and grouped QA repairs', () => {
       writeImage: async outputPath => { await mkdir(dirname(outputPath), { recursive: true }); await Bun.write(outputPath, tinyPng) },
       judgePage: async request => {
         qaRequests.push({ locationSheets: request.locationSheets, locationSpecifications: request.locationReferences?.map(reference => reference.specification) ?? [] })
-        return { pageNumber: 1, panelNumbers: [1, 2], outputFile: 'page.png', judgeModel: request.model, hardFailure: false, result: { panelStructure: { pass: true, observedPanelCount: 2, observedPanelOrder: [1, 2], issues: [] }, panels: [1, 2].map(panelNumber => ({ panelNumber, requiredCastPresent: true, unexpectedCastAbsent: true, identityMatch: true, locationMatch: true, sourcePrecedence: true, shotPlanMatch: true, dialogueAccuracy: true, speakerAttribution: true, artifacts: [], visualQualityScore: 8, compositionScore: 8, issues: [], editInstructions: '' })), summary: 'Pass.' }, usage: { inputTokens: 0, outputTokens: 0, totalTokens: 0, costUsd: 0 } }
+        return { pageNumber: 1, panelNumbers: [1, 2], outputFile: 'page.png', judgeModel: request.model, hardFailure: false, result: { panelStructure: { pass: true, observedPanelCount: 2, observedPanelOrder: [1, 2], issues: [] }, panels: [1, 2].map(panelNumber => ({ panelNumber, requiredCastPresent: true, unexpectedCastAbsent: true, identityMatch: true, identityIssueKind: 'none' as const, locationMatch: true, setContinuityMatch: true, setContinuityAudit: [], sourcePrecedence: true, shotPlanMatch: true, dialogueAccuracy: true, dialogueIssueKind: 'none' as const, speakerAttribution: true, artifacts: [], visualQualityScore: 8, compositionScore: 8, issues: [], editInstructions: '' })), summary: 'Pass.' }, usage: { inputTokens: 0, outputTokens: 0, totalTokens: 0, costUsd: 0 } }
       },
     })
     expect(calls[0]?.referenceImages.slice(-2)).toEqual(locationSheets)
@@ -167,7 +170,7 @@ describe('canonical location references and grouped QA repairs', () => {
     const judgePage = async (): Promise<PageQaEntry> => {
       judges++
       const failed = judges === 1
-      return { pageNumber: 1, panelNumbers: [1, 2], outputFile: 'attempt.png', judgeModel: 'gpt-5.5', hardFailure: failed, result: { panelStructure: { pass: true, observedPanelCount: 2, observedPanelOrder: [1, 2], issues: [] }, panels: [1, 2].map(panelNumber => ({ panelNumber, requiredCastPresent: true, unexpectedCastAbsent: true, identityMatch: true, locationMatch: true, sourcePrecedence: true, shotPlanMatch: !failed, dialogueAccuracy: true, speakerAttribution: true, artifacts: [], visualQualityScore: 8, compositionScore: 8, issues: failed ? ['framing'] : [], editInstructions: failed ? 'Correct the framing.' : '' })), summary: failed ? 'Repair framing.' : 'Pass.' }, usage: { inputTokens: 1, outputTokens: 1, totalTokens: 2, costUsd: 0 } }
+      return { pageNumber: 1, panelNumbers: [1, 2], outputFile: 'attempt.png', judgeModel: 'gpt-5.5', hardFailure: failed, result: { panelStructure: { pass: true, observedPanelCount: 2, observedPanelOrder: [1, 2], issues: [] }, panels: [1, 2].map(panelNumber => ({ panelNumber, requiredCastPresent: true, unexpectedCastAbsent: true, identityMatch: true, identityIssueKind: 'none' as const, locationMatch: true, setContinuityMatch: true, setContinuityAudit: [], sourcePrecedence: true, shotPlanMatch: !failed, dialogueAccuracy: true, dialogueIssueKind: 'none' as const, speakerAttribution: true, artifacts: [], visualQualityScore: 8, compositionScore: 8, issues: failed ? ['framing'] : [], editInstructions: failed ? 'Correct the framing.' : '' })), summary: failed ? 'Repair framing.' : 'Pass.' }, usage: { inputTokens: 1, outputTokens: 1, totalTokens: 2, costUsd: 0 } }
     }
     await generateComicPages(sceneSlug, { models: ['gpt-image-2'], size: '1536x1024', quality: 'high', force: false, runId: 'test-run', concurrency: 1, panels: [1, 2], panelsPerImage: 2, qa: true, maxRepairs: 2 }, {
       requestImage: async input => { calls.push(input); return { mode: calls.length === 1 ? 'generate' : 'edit', result: { imageBase64: tinyPng.toString('base64') } } },
@@ -190,7 +193,7 @@ describe('canonical location references and grouped QA repairs', () => {
     const judgePage = async (): Promise<PageQaEntry> => {
       judges++
       const failed = judges === 1
-      return { pageNumber: 1, panelNumbers: [1], outputFile: 'attempt.png', judgeModel: 'gpt-5.5', hardFailure: failed, result: { panelStructure: { pass: true, observedPanelCount: 1, observedPanelOrder: [1], issues: [] }, panels: [{ panelNumber: 1, requiredCastPresent: true, unexpectedCastAbsent: true, identityMatch: true, locationMatch: true, sourcePrecedence: true, shotPlanMatch: !failed, dialogueAccuracy: true, speakerAttribution: true, artifacts: [], visualQualityScore: 8, compositionScore: 8, issues: failed ? ['angle'] : [], editInstructions: failed ? 'Use the specified angle.' : '' }], summary: failed ? 'Repair.' : 'Pass.' }, usage: { inputTokens: 1, outputTokens: 1, totalTokens: 2, costUsd: 0 } }
+      return { pageNumber: 1, panelNumbers: [1], outputFile: 'attempt.png', judgeModel: 'gpt-5.5', hardFailure: failed, result: { panelStructure: { pass: true, observedPanelCount: 1, observedPanelOrder: [1], issues: [] }, panels: [{ panelNumber: 1, requiredCastPresent: true, unexpectedCastAbsent: true, identityMatch: true, identityIssueKind: 'none' as const, locationMatch: true, setContinuityMatch: true, setContinuityAudit: [], sourcePrecedence: true, shotPlanMatch: !failed, dialogueAccuracy: true, dialogueIssueKind: 'none' as const, speakerAttribution: true, artifacts: [], visualQualityScore: 8, compositionScore: 8, issues: failed ? ['angle'] : [], editInstructions: failed ? 'Use the specified angle.' : '' }], summary: failed ? 'Repair.' : 'Pass.' }, usage: { inputTokens: 1, outputTokens: 1, totalTokens: 2, costUsd: 0 } }
     }
     await generatePanelImages(sceneSlug, { models: ['gpt-image-2'], size: '1536x1024', quality: 'high', force: false, runId: 'test-run', concurrency: 1, panels: [1], qa: true, maxRepairs: 2 }, {
       requestImage: async input => { calls.push(input); return { mode: calls.length === 1 ? 'generate' : 'edit', result: { imageBase64: tinyPng.toString('base64') } } },
@@ -209,7 +212,7 @@ describe('canonical location references and grouped QA repairs', () => {
     const calls: ComicImageRequestInput[] = []
     const judgePage = async (): Promise<PageQaEntry> => ({
       pageNumber: 1, panelNumbers: [1], outputFile: 'attempt.png', judgeModel: 'gpt-5.5', hardFailure: true,
-      result: { panelStructure: { pass: true, observedPanelCount: 1, observedPanelOrder: [1], issues: [] }, panels: [{ panelNumber: 1, requiredCastPresent: true, unexpectedCastAbsent: true, identityMatch: true, locationMatch: true, sourcePrecedence: true, shotPlanMatch: false, dialogueAccuracy: true, speakerAttribution: true, artifacts: [], visualQualityScore: 8, compositionScore: 7, issues: ['depth staging'], editInstructions: 'Move the hero deeper.' }], summary: 'Shot-plan staging remains unresolved.' },
+      result: { panelStructure: { pass: true, observedPanelCount: 1, observedPanelOrder: [1], issues: [] }, panels: [{ panelNumber: 1, requiredCastPresent: true, unexpectedCastAbsent: true, identityMatch: true, identityIssueKind: 'none' as const, locationMatch: true, setContinuityMatch: true, setContinuityAudit: [], sourcePrecedence: true, shotPlanMatch: false, dialogueAccuracy: true, dialogueIssueKind: 'none' as const, speakerAttribution: true, artifacts: [], visualQualityScore: 8, compositionScore: 7, issues: ['depth staging'], editInstructions: 'Move the hero deeper.' }], summary: 'Shot-plan staging remains unresolved.' },
       usage: { inputTokens: 1, outputTokens: 1, totalTokens: 2, costUsd: 0 },
     })
     await generatePanelImages(sceneSlug, { models: ['gpt-image-2'], size: '1536x1024', quality: 'high', force: false, runId: 'test-run', concurrency: 1, panels: [1], qa: true, maxRepairs: 4 }, {
@@ -231,7 +234,7 @@ describe('canonical location references and grouped QA repairs', () => {
     const calls: ComicImageRequestInput[] = []
     const judgePage = async (): Promise<PageQaEntry> => ({
       pageNumber: 1, panelNumbers: [1, 2], outputFile: 'attempt.png', judgeModel: 'gpt-5.5', hardFailure: true,
-      result: { panelStructure: { pass: true, observedPanelCount: 2, observedPanelOrder: [1, 2], issues: [] }, panels: [1, 2].map(panelNumber => ({ panelNumber, requiredCastPresent: true, unexpectedCastAbsent: true, identityMatch: true, locationMatch: true, sourcePrecedence: true, shotPlanMatch: false, dialogueAccuracy: true, speakerAttribution: true, artifacts: [], visualQualityScore: 8, compositionScore: 7, issues: ['framing'], editInstructions: 'Correct framing.' })), summary: 'Grouped framing remains unresolved.' },
+      result: { panelStructure: { pass: true, observedPanelCount: 2, observedPanelOrder: [1, 2], issues: [] }, panels: [1, 2].map(panelNumber => ({ panelNumber, requiredCastPresent: true, unexpectedCastAbsent: true, identityMatch: true, identityIssueKind: 'none' as const, locationMatch: true, setContinuityMatch: true, setContinuityAudit: [], sourcePrecedence: true, shotPlanMatch: false, dialogueAccuracy: true, dialogueIssueKind: 'none' as const, speakerAttribution: true, artifacts: [], visualQualityScore: 8, compositionScore: 7, issues: ['framing'], editInstructions: 'Correct framing.' })), summary: 'Grouped framing remains unresolved.' },
       usage: { inputTokens: 1, outputTokens: 1, totalTokens: 2, costUsd: 0 },
     })
     await generateComicPages(sceneSlug, { models: ['gpt-image-2'], size: '1536x1024', quality: 'high', force: false, runId: 'test-run', concurrency: 1, panels: [1, 2], panelsPerImage: 2, qa: true, maxRepairs: 4 }, {
@@ -249,7 +252,7 @@ describe('canonical location references and grouped QA repairs', () => {
   test('never waives strict identity failures', () => {
     const entry: PageQaEntry = {
       pageNumber: 1, panelNumbers: [1], outputFile: 'attempt.png', judgeModel: 'gpt-5.5', hardFailure: true,
-      result: { panelStructure: { pass: true, observedPanelCount: 1, observedPanelOrder: [1], issues: [] }, panels: [{ panelNumber: 1, requiredCastPresent: true, unexpectedCastAbsent: true, identityMatch: false, locationMatch: true, sourcePrecedence: true, shotPlanMatch: false, dialogueAccuracy: true, speakerAttribution: true, artifacts: [], visualQualityScore: 8, compositionScore: 7, issues: ['identity and framing'], editInstructions: 'Fix identity and framing.' }], summary: 'Strict identity failure.' },
+      result: { panelStructure: { pass: true, observedPanelCount: 1, observedPanelOrder: [1], issues: [] }, panels: [{ panelNumber: 1, requiredCastPresent: true, unexpectedCastAbsent: true, identityMatch: false, identityIssueKind: 'unmistakable-mismatch' as const, locationMatch: true, setContinuityMatch: true, setContinuityAudit: [], sourcePrecedence: true, shotPlanMatch: false, dialogueAccuracy: true, dialogueIssueKind: 'none' as const, speakerAttribution: true, artifacts: [], visualQualityScore: 8, compositionScore: 7, issues: ['identity and framing'], editInstructions: 'Fix identity and framing.' }], summary: 'Strict identity failure.' },
       usage: { inputTokens: 1, outputTokens: 1, totalTokens: 2, costUsd: 0 },
     }
     const repaired = applyPageQaRepairPolicy(entry, 1)
@@ -279,7 +282,7 @@ describe('canonical location references and grouped QA repairs', () => {
     expect(prompt).toContain('A wide or otherwise revealing view that shows an anchor\'s canonical region but omits the anchor is a hard failure')
     const tolerantResult = applyPageQaTolerancePolicy({
       panelStructure: { pass: true, observedPanelCount: 1, observedPanelOrder: [1], issues: [] },
-      panels: [{ panelNumber: 1, requiredCastPresent: true, unexpectedCastAbsent: true, identityMatch: false, identityIssueKind: 'minor-variance', locationMatch: true, sourcePrecedence: true, shotPlanMatch: true, dialogueAccuracy: false, dialogueIssueKind: 'typography-only', speakerAttribution: true, artifacts: [], visualQualityScore: 8, compositionScore: 8, issues: ['minor proportions', 'ellipsis glyph'], editInstructions: '' }],
+      panels: [{ panelNumber: 1, requiredCastPresent: true, unexpectedCastAbsent: true, identityMatch: false, identityIssueKind: 'minor-variance' as const, locationMatch: true, setContinuityMatch: true, setContinuityAudit: [], sourcePrecedence: true, shotPlanMatch: true, dialogueAccuracy: false, dialogueIssueKind: 'typography-only' as const, speakerAttribution: true, artifacts: [], visualQualityScore: 8, compositionScore: 8, issues: ['minor proportions', 'ellipsis glyph'], editInstructions: '' }],
       summary: 'Advisory differences only.',
     })
     expect(tolerantResult.panels[0]?.identityMatch).toBe(true)
@@ -287,7 +290,7 @@ describe('canonical location references and grouped QA repairs', () => {
     expect(hasHardPageQaFailure(tolerantResult)).toBe(false)
     const strictResult = applyPageQaTolerancePolicy({
       panelStructure: { pass: true, observedPanelCount: 1, observedPanelOrder: [1], issues: [] },
-      panels: [{ panelNumber: 1, requiredCastPresent: true, unexpectedCastAbsent: true, identityMatch: true, identityIssueKind: 'unmistakable-mismatch', locationMatch: true, sourcePrecedence: true, shotPlanMatch: true, dialogueAccuracy: true, dialogueIssueKind: 'content', speakerAttribution: true, artifacts: [], visualQualityScore: 8, compositionScore: 8, issues: ['wrong person', 'missing words'], editInstructions: 'Restore the character and dialogue.' }],
+      panels: [{ panelNumber: 1, requiredCastPresent: true, unexpectedCastAbsent: true, identityMatch: true, identityIssueKind: 'unmistakable-mismatch' as const, locationMatch: true, setContinuityMatch: true, setContinuityAudit: [], sourcePrecedence: true, shotPlanMatch: true, dialogueAccuracy: true, dialogueIssueKind: 'content' as const, speakerAttribution: true, artifacts: [], visualQualityScore: 8, compositionScore: 8, issues: ['wrong person', 'missing words'], editInstructions: 'Restore the character and dialogue.' }],
       summary: 'Material failures.',
     })
     expect(strictResult.panels[0]?.identityMatch).toBe(false)
@@ -298,7 +301,7 @@ describe('canonical location references and grouped QA repairs', () => {
   test('keeps set continuity strict without treating camera variation as a failure', () => {
     const setDrift = {
       panelStructure: { pass: true, observedPanelCount: 1, observedPanelOrder: [1], issues: [] },
-      panels: [{ panelNumber: 1, requiredCastPresent: true, unexpectedCastAbsent: true, identityMatch: true, locationMatch: true, setContinuityMatch: false, setContinuityAudit: [{ anchor: 'fixed control booth', status: 'relocated' as const, evidence: 'It appears on the opposite side of the loading door.' }], sourcePrecedence: true, shotPlanMatch: true, dialogueAccuracy: true, speakerAttribution: true, artifacts: [], visualQualityScore: 8, compositionScore: 8, issues: ['The fixed control booth moved to the other side of the loading door.'], editInstructions: 'Restore the canonical world-space relationship while retaining this camera angle.' }],
+      panels: [{ panelNumber: 1, requiredCastPresent: true, unexpectedCastAbsent: true, identityMatch: true, identityIssueKind: 'none' as const, locationMatch: true, setContinuityMatch: false, setContinuityAudit: [{ anchor: 'fixed control booth', status: 'relocated' as const, evidence: 'It appears on the opposite side of the loading door.' }], sourcePrecedence: true, shotPlanMatch: true, dialogueAccuracy: true, dialogueIssueKind: 'none' as const, speakerAttribution: true, artifacts: [], visualQualityScore: 8, compositionScore: 8, issues: ['The fixed control booth moved to the other side of the loading door.'], editInstructions: 'Restore the canonical world-space relationship while retaining this camera angle.' }],
       summary: 'The location identity is recognizable, but its permanent topology drifted.',
     }
     expect(hasHardPageQaFailure(setDrift)).toBe(true)
@@ -329,7 +332,7 @@ describe('canonical location references and grouped QA repairs', () => {
   test('restarts once and then stops when the same hard check keeps stagnating', () => {
     const failedEntry: PageQaEntry = {
       pageNumber: 1, panelNumbers: [1], outputFile: 'attempt.png', judgeModel: 'gpt-5.5', hardFailure: true,
-      result: { panelStructure: { pass: true, observedPanelCount: 1, observedPanelOrder: [1], issues: [] }, panels: [{ panelNumber: 1, requiredCastPresent: true, unexpectedCastAbsent: true, identityMatch: true, locationMatch: true, sourcePrecedence: true, shotPlanMatch: true, dialogueAccuracy: false, speakerAttribution: true, artifacts: [], visualQualityScore: 8, compositionScore: 8, issues: ['typography'], editInstructions: 'Correct dialogue.' }], summary: 'Dialogue mismatch.' },
+      result: { panelStructure: { pass: true, observedPanelCount: 1, observedPanelOrder: [1], issues: [] }, panels: [{ panelNumber: 1, requiredCastPresent: true, unexpectedCastAbsent: true, identityMatch: true, identityIssueKind: 'none' as const, locationMatch: true, setContinuityMatch: true, setContinuityAudit: [], sourcePrecedence: true, shotPlanMatch: true, dialogueAccuracy: false, dialogueIssueKind: 'content' as const, speakerAttribution: true, artifacts: [], visualQualityScore: 8, compositionScore: 8, issues: ['typography'], editInstructions: 'Correct dialogue.' }], summary: 'Dialogue mismatch.' },
       usage: { inputTokens: 1, outputTokens: 1, totalTokens: 2, costUsd: 0 },
     }
     let state = createPageQaRepairStagnationState()
@@ -354,7 +357,7 @@ describe('canonical location references and grouped QA repairs', () => {
     const calls: ComicImageRequestInput[] = []
     const failedEntry = (): PageQaEntry => ({
       pageNumber: 1, panelNumbers: [1], outputFile: 'attempt.png', judgeModel: 'gpt-5.5', hardFailure: true,
-      result: { panelStructure: { pass: true, observedPanelCount: 1, observedPanelOrder: [1], issues: [] }, panels: [{ panelNumber: 1, requiredCastPresent: true, unexpectedCastAbsent: true, identityMatch: true, locationMatch: true, sourcePrecedence: true, shotPlanMatch: true, dialogueAccuracy: false, speakerAttribution: true, artifacts: [], visualQualityScore: 8, compositionScore: 8, issues: ['wording'], editInstructions: 'Correct the wording.' }], summary: 'Persistent dialogue mismatch.' },
+      result: { panelStructure: { pass: true, observedPanelCount: 1, observedPanelOrder: [1], issues: [] }, panels: [{ panelNumber: 1, requiredCastPresent: true, unexpectedCastAbsent: true, identityMatch: true, identityIssueKind: 'none' as const, locationMatch: true, setContinuityMatch: true, setContinuityAudit: [], sourcePrecedence: true, shotPlanMatch: true, dialogueAccuracy: false, dialogueIssueKind: 'content' as const, speakerAttribution: true, artifacts: [], visualQualityScore: 8, compositionScore: 8, issues: ['wording'], editInstructions: 'Correct the wording.' }], summary: 'Persistent dialogue mismatch.' },
       usage: { inputTokens: 1, outputTokens: 1, totalTokens: 2, costUsd: 0 },
     })
     await expect(generatePanelImages(sceneSlug, { models: ['gpt-image-2'], size: '1536x1024', quality: 'high', force: false, runId: 'test-run', concurrency: 1, panels: [1], qa: true, maxRepairs: 7 }, {
@@ -382,7 +385,7 @@ describe('canonical location references and grouped QA repairs', () => {
     const calls: ComicImageRequestInput[] = []
     const failedEntry = (): PageQaEntry => ({
       pageNumber: 1, panelNumbers: [1, 2], outputFile: 'attempt.png', judgeModel: 'gpt-5.5', hardFailure: true,
-      result: { panelStructure: { pass: true, observedPanelCount: 2, observedPanelOrder: [1, 2], issues: [] }, panels: [1, 2].map(panelNumber => ({ panelNumber, requiredCastPresent: true, unexpectedCastAbsent: true, identityMatch: true, locationMatch: true, sourcePrecedence: true, shotPlanMatch: true, dialogueAccuracy: panelNumber !== 1, speakerAttribution: true, artifacts: [], visualQualityScore: 8, compositionScore: 8, issues: panelNumber === 1 ? ['wording'] : [], editInstructions: panelNumber === 1 ? 'Correct the wording.' : '' })), summary: 'Persistent grouped dialogue mismatch.' },
+      result: { panelStructure: { pass: true, observedPanelCount: 2, observedPanelOrder: [1, 2], issues: [] }, panels: [1, 2].map(panelNumber => ({ panelNumber, requiredCastPresent: true, unexpectedCastAbsent: true, identityMatch: true, identityIssueKind: 'none' as const, locationMatch: true, setContinuityMatch: true, setContinuityAudit: [], sourcePrecedence: true, shotPlanMatch: true, dialogueAccuracy: panelNumber !== 1, dialogueIssueKind: panelNumber === 1 ? ('content' as const) : ('none' as const), speakerAttribution: true, artifacts: [], visualQualityScore: 8, compositionScore: 8, issues: panelNumber === 1 ? ['wording'] : [], editInstructions: panelNumber === 1 ? 'Correct the wording.' : '' })), summary: 'Persistent grouped dialogue mismatch.' },
       usage: { inputTokens: 1, outputTokens: 1, totalTokens: 2, costUsd: 0 },
     })
     await expect(generateComicPages(sceneSlug, { models: ['gpt-image-2'], size: '1536x1024', quality: 'high', force: false, runId: 'test-run', concurrency: 1, panels: [1, 2], panelsPerImage: 2, qa: true, maxRepairs: 7 }, {

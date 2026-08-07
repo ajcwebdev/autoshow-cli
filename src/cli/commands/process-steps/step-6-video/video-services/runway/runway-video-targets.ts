@@ -5,7 +5,7 @@ import { runRunwayVideoGen } from './run-runway-video-gen'
 import { isSupportedOrSkippedForAllVideo } from '../../video-utils/video-mode-validation'
 
 export const collectRunwayVideoTargets = (options: VideoGenOptions, mode: VideoMode): VideoTarget[] => {
-  const models = options.runwayVideoModels ?? (options.runwayVideoModel ? [options.runwayVideoModel] : [])
+  const models = options.runwayVideoModels ?? []
   return models.flatMap((rawModel) => {
     const model: RunwayVideoModel = validateRunwayVideoModel(rawModel)
     if (!isSupportedOrSkippedForAllVideo(options, 'runway', model, mode, ['text'])) {

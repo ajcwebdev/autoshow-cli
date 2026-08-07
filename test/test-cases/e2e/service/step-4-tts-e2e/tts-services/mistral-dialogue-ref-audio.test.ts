@@ -39,9 +39,9 @@ budgetedTest('tts-mistral-dialogue-ref-audio', 'mistral dialogue mode generates 
       `mistral=${mistralTtsModel}`,
       '--tts-dialogue-format',
       'labeled',
-      '--tts-speaker-ref-audio',
+      '--tts-speaker',
       `Host=${mistralRefAudioPath}`,
-      '--tts-speaker-ref-audio',
+      '--tts-speaker',
       'Guest=https://ajc.pics/autoshow/examples/1-audio.mp3'
     ]
     const result = await runCommand(args)

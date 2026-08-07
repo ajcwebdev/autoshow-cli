@@ -22,7 +22,7 @@ export const GROK_IMAGE_COUNT_RANGE = [1, 10] as const
 const GROK_ASPECT_RATIOS = new Set<string>(GROK_IMAGE_ASPECT_RATIO_VALUES)
 
 export const collectGrokImageTargets = (options: ImageGenOptions): ImageTarget[] => {
-  const models = options.grokImageModels ?? (options.grokImageModel ? [options.grokImageModel] : [])
+  const models = options.grokImageModels ?? []
   return models.flatMap((rawModel) => {
     const model: GrokImageModel = validateGrokImageModel(rawModel)
     validateImageCount('Grok', model, options.imageCount, ...GROK_IMAGE_COUNT_RANGE)

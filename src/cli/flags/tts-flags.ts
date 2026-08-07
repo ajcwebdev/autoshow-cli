@@ -232,22 +232,6 @@ export const ttsFlags = {
     description: 'Cartesia TTS language code override',
     type: String
   },
-  'gemini-speaker-1-name': {
-    description: 'Gemini multispeaker speaker 1 name override (requires all Gemini speaker flags)',
-    type: String
-  },
-  'gemini-speaker-1-voice': {
-    description: 'Gemini multispeaker speaker 1 voice name override (requires all Gemini speaker flags)',
-    type: String
-  },
-  'gemini-speaker-2-name': {
-    description: 'Gemini multispeaker speaker 2 name override (requires all Gemini speaker flags)',
-    type: String
-  },
-  'gemini-speaker-2-voice': {
-    description: 'Gemini multispeaker speaker 2 voice name override (requires all Gemini speaker flags)',
-    type: String
-  },
   'groq-voice': {
     description: `Groq TTS voice ID override (default: ${GROQ_DEFAULT_TTS_VOICE})`,
     type: String
@@ -281,10 +265,6 @@ export const ttsFlags = {
   'tts-dialogue-format': {
     description: 'Dialogue input format for multi-speaker TTS: screenplay|labeled',
     type: String
-  },
-  'tts-speaker-ref-audio': {
-    description: 'Speaker reference audio mapping for dialogue TTS, SPEAKER=path; repeatable',
-    type: [String] as [StringConstructor]
   },
   'tts-speaker': {
     description: 'Multi-speaker TTS voice mapping, SPEAKER=VOICE or SPEAKER=path; repeatable',
@@ -438,16 +418,8 @@ const humeTtsCommandOptionNames = [
   'hume-tts-voice-provider'
 ] as const
 
-const geminiTtsCommandOptionNames = [
-  'gemini-speaker-1-name',
-  'gemini-speaker-1-voice',
-  'gemini-speaker-2-name',
-  'gemini-speaker-2-voice'
-] as const
-
 export const dialogueTtsCommandOptionNames = [
   'tts-dialogue-format',
-  'tts-speaker-ref-audio',
   'tts-speaker'
 ] as const
 
@@ -470,7 +442,6 @@ export const ttsCommandFlags = {
   ...withHelpGroup(pickFlags(ttsFlags, deepgramTtsCommandOptionNames), 'tts-deepgram'),
   ...withHelpGroup(pickFlags(ttsFlags, speechifyTtsCommandOptionNames), 'tts-speechify'),
   ...withHelpGroup(pickFlags(ttsFlags, humeTtsCommandOptionNames), 'tts-hume'),
-  ...withHelpGroup(pickFlags(ttsFlags, geminiTtsCommandOptionNames), 'tts-gemini'),
   ...withHelpGroup(pickFlags(ttsFlags, dialogueTtsCommandOptionNames), 'tts-dialogue'),
   ...withHelpGroup(pickFlags(ttsFlags, elevenlabsTtsCommandOptionNames), 'tts-elevenlabs'),
   ...withHelpGroup(priceFlag, 'pricing')

@@ -10,7 +10,7 @@ import {
 } from '../../image-utils/image-target-validation'
 
 export const collectRecraftImageTargets = (options: ImageGenOptions): ImageTarget[] => {
-  const models = options.recraftImageModels ?? (options.recraftImageModel ? [options.recraftImageModel] : [])
+  const models = options.recraftImageModels ?? []
   return models.flatMap((rawModel) => {
     const model: RecraftImageModel = validateRecraftImageModel(rawModel)
     validateImageCount('Recraft', model, options.imageCount, ...RECRAFT_IMAGE_COUNT_RANGE)

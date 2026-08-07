@@ -108,7 +108,7 @@ const validateOpenAIImageOptions = (
 }
 
 export const collectOpenAIImageTargets = (options: ImageGenOptions): ImageTarget[] => {
-  const models = options.openaiImageModels ?? (options.openaiImageModel ? [options.openaiImageModel] : [])
+  const models = options.openaiImageModels ?? []
   return models.flatMap((rawModel) => {
     const model: OpenAIImageModel = validateOpenAIImageModel(rawModel)
     validateImageCount('OpenAI', model, options.imageCount, ...OPENAI_IMAGE_COUNT_RANGE)

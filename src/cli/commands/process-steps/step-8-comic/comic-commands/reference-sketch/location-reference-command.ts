@@ -1,6 +1,6 @@
 import { randomUUID } from 'node:crypto'
 import * as v from 'valibot'
-import { access, mkdir, readdir, rename, rm } from 'node:fs/promises'
+import { mkdir, readdir, rename, rm } from 'node:fs/promises'
 import { dirname, join, relative, resolve } from 'node:path'
 import type { ImageGenerationQuality, ImageGenerationSize, ReferenceSketchCommandOptions } from '~/types'
 import { createImage } from '../../comic-image-services/comic-image-targets'
@@ -74,15 +74,7 @@ const collectMarkdown = async (directory: string): Promise<string[]> => {
 
 export const collectLocationSourceScripts = async (key: string): Promise<Array<{ path: string; content: string }>> => {
   const inputRoot = dirname(getLocationsRoot())
-  const scriptsRoot = join(inputRoot, 'scripts')
-  const legacyScriptsRoot = join(inputRoot, 'episode-scripts')
-  let root = scriptsRoot
-  try { await access(scriptsRoot) }
-  catch {
-    try { await access(legacyScriptsRoot); root = legacyScriptsRoot }
-    catch { /* Scan the canonical path so the eventual error names the current layout. */ }
-  }
-  const paths = await collectMarkdown(root)
+  const paths = await collectMarkdown(join(inputRoot, 'scripts'))
   const scripts = await Promise.all(paths.map(async path => ({ path, content: await Bun.file(path).text() })))
   return scripts.filter(script => normalizeLocationKey(extractSceneLocation(script.content) ?? '') === key)
 }

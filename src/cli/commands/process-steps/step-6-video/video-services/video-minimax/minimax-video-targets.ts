@@ -13,7 +13,7 @@ const getMinimaxSupportedVideoModes = (model: MinimaxVideoModel): readonly Video
 }
 
 export const collectMinimaxVideoTargets = (options: VideoGenOptions, mode: VideoMode): VideoTarget[] => {
-  const models = options.minimaxVideoModels ?? (options.minimaxVideoModel ? [options.minimaxVideoModel] : [])
+  const models = options.minimaxVideoModels ?? []
   return models.flatMap((rawModel) => {
     const model: MinimaxVideoModel = validateMinimaxVideoModel(rawModel)
     if (!isSupportedOrSkippedForAllVideo(options, 'minimax', model, mode, getMinimaxSupportedVideoModes(model))) {

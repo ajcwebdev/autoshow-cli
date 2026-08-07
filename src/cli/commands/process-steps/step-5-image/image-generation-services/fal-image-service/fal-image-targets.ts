@@ -6,7 +6,7 @@ import { FAL_IMAGE_COUNT_RANGE, normalizeFalImageAspectRatio, runFalImageGen } f
 import { CLIUsageError } from '~/utils/error-handler'
 
 export const collectFalImageTargets = (options: ImageGenOptions): ImageTarget[] => {
-  const models = options.falImageModels ?? (options.falImageModel ? [options.falImageModel] : [])
+  const models = options.falImageModels ?? []
   return models.map((rawModel) => {
     const model: FalImageModel = validateFalImageModel(rawModel)
     const unsupported: string[] = []

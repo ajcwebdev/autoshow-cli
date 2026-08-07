@@ -38,7 +38,6 @@ const HELP_GROUP_COLOR_BY_KEY: Readonly<Record<string, string>> = {
   'tts-deepgram': 'darkorange',
   'tts-speechify': 'darkorange',
   'tts-hume': 'darkorange',
-  'tts-gemini': 'darkorange',
   'tts-dialogue': 'darkorange',
   'tts-elevenlabs': 'darkorange',
   'step-5-image': 'hotpink',

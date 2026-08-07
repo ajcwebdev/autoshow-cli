@@ -162,7 +162,7 @@ Extract batch parent:
 
 Extract batch item `inputFamily` values are `media`, `document`, `html_article`, `x_space`, and `unsupported`. Extract routes are `media`, `document`, and `x-space`. Completion status values are `full`, `incomplete`, `failed`, and `skipped`.
 
-Legacy schema v1 extract batches and schema v2 run manifests with `kind: "stt"` or `kind: "ocr"` are rejected by manifest readers.
+Manifest readers accept only schema v2 run/batch manifests with a current `kind` and schema v2 extract batches. Retired shapes — schema v1 extract batches and run manifests with `kind: "stt"` or `kind: "ocr"` — no longer parse and are treated as absent; re-run `extract` to produce a current manifest.
 
 ## Runtime Layout
 

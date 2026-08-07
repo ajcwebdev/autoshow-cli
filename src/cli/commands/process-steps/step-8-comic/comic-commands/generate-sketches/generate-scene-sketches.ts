@@ -188,22 +188,6 @@ const buildSketchPromptData = (
   if (bundleDataList.some(bundle => bundle.snapshotId !== firstBundle.snapshotId)) {
     throw ValidationError('Sketch chunks cannot mix character reference snapshot IDs', { stage: 'comic:generate-sketches' })
   }
-  if (bundleDataList.every(bundle => bundle.schemaVersion === 3)) {
-    if (!firstBundle.locationSnapshotId || bundleDataList.some(bundle => bundle.locationSnapshotId !== firstBundle.locationSnapshotId)) {
-      throw ValidationError('Legacy v3 sketch chunks cannot mix or omit location reference snapshot IDs', { stage: 'comic:generate-sketches' })
-    }
-    return {
-      schemaVersion: 3,
-      snapshotId: firstBundle.snapshotId,
-      locationSnapshotId: firstBundle.locationSnapshotId,
-      title: firstBundle.title,
-      location: firstBundle.location,
-      panels,
-    }
-  }
-  if (bundleDataList.some(bundle => bundle.schemaVersion !== 4)) {
-    throw ValidationError('Sketch chunks cannot mix panel bundle schema versions', { stage: 'comic:generate-sketches' })
-  }
   return v.parse(PanelBundleDataSchema, {
     schemaVersion: 4,
     snapshotId: firstBundle.snapshotId,
@@ -229,7 +213,7 @@ export const buildSketchPrompt = (
       '- Do not add panel title cards, shot labels, descriptive headings, or caption banners such as "Wide opening shot..." or "Action panel...".',
       '- Keep visible text limited to story content explicitly present in the panel data, such as speech bubbles, signs, screens, and prop labels.',
       '- Preserve scenery and character staging for each panel.',
-      `- Location reference mapping: ${sketchPromptData.panels.map(panel => `panel ${panel.number} -> ${panel.locationKey ?? 'legacy single location'}`).join('; ')}. Location references follow all character references in this order: ${locationKeys.join(', ')}.`,
+      `- Location reference mapping: ${sketchPromptData.panels.map(panel => `panel ${panel.number} -> ${panel.locationKey}`).join('; ')}. Location references follow all character references in this order: ${locationKeys.join(', ')}.`,
       '- Include the exact speech bubble text from each panel\'s speech entries.',
       '- Keep the result at review quality, not polished final art.',
     ].join('\n'),

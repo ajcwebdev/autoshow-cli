@@ -10,7 +10,7 @@ const isGeminiStandardOrFast = (model: GeminiVideoModel): boolean =>
   model === 'veo-3.1-generate-preview' || model === 'veo-3.1-fast-generate-preview'
 
 export const collectGeminiVideoTargets = (options: VideoGenOptions, mode: VideoMode): VideoTarget[] => {
-  const models = options.geminiVideoModels ?? (options.geminiVideoModel ? [options.geminiVideoModel] : [])
+  const models = options.geminiVideoModels ?? []
   return models.flatMap((rawModel) => {
     const model: GeminiVideoModel = validateGeminiVideoModel(rawModel)
     if (!isSupportedOrSkippedForAllVideo(options, 'gemini', model, mode, ['text', 'image-to-video', 'reference-to-video', 'interpolate', 'extend'])) {

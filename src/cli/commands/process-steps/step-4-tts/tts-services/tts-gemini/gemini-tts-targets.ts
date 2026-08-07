@@ -2,7 +2,7 @@ import type { GeminiTtsModel, TtsTarget, TtsTargetSelection } from '~/types'
 import { validateGeminiTtsModel } from '~/cli/commands/setup-and-utilities/models/setup-model-options'
 import { ensureGeminiTtsSetup } from './gemini-tts'
 import { runGeminiTts } from './run-gemini-tts'
-import { formatGeminiSpeakerSummary, formatSpeakerRegistrySummary } from './gemini-tts-config'
+import { formatSpeakerRegistrySummary } from './gemini-tts-config'
 export const collectGeminiTtsTargets = (
   selection: TtsTargetSelection
 ): TtsTarget[] => {
@@ -11,12 +11,9 @@ export const collectGeminiTtsTargets = (
     const model: GeminiTtsModel = validateGeminiTtsModel(rawModel)
     const voiceId = selection.geminiVoiceId
     const registry = selection.speakerVoiceRegistry
-    const multiSpeakerConfig = selection.geminiMultiSpeakerConfig
     const speaker = registry
       ? formatSpeakerRegistrySummary(registry)
-      : multiSpeakerConfig
-        ? formatGeminiSpeakerSummary(multiSpeakerConfig)
-        : voiceId
+      : voiceId
 
     targets.push({
       service: 'gemini',
@@ -27,7 +24,6 @@ export const collectGeminiTtsTargets = (
         return await runGeminiTts(text, outputDir, {
           model,
           voiceId,
-          multiSpeakerConfig,
           speakerVoiceRegistry: registry,
           chunkConcurrency: opts.ttsChunkConcurrency,
           chunkScheduler: opts.hostedTtsChunkScheduler

@@ -44,6 +44,8 @@ import {
 } from '~/cli/commands/process-steps/step-8-comic/comic-utils/project-paths'
 import type { PanelBundleData, PromptsConfig } from '~/types'
 
+const engineeringBayLocation = { key: 'engineering-bay', raw: 'INT. ENGINEERING BAY' }
+
 describe('option resolution contracts', () => {
   test('comic scene drafting defaults to gpt-5.6-sol', () => {
     expect(DEFAULT_LLM_MODEL).toBe('gpt-5.6-sol')
@@ -392,9 +394,8 @@ describe('option resolution contracts', () => {
   test('comic final page prompt preserves panel order and speech text', () => {
       const promptData = buildComicPagePromptData([
         {
-          schemaVersion: 3,
+          schemaVersion: 4,
           snapshotId: 'test-snapshot',
-          locationSnapshotId: 'test-location',
           title: 'Co-Work Smarter',
           location: 'Engineering Bay',
           panels: [{
@@ -411,13 +412,15 @@ describe('option resolution contracts', () => {
               beatIndex: 1,
               speakerKey: 'commander',
               speakerLabel: 'COMMANDER',
-            }]
+              location: engineeringBayLocation,
+            }],
+            locationKey: 'engineering-bay',
+            locationSnapshotId: 'test-location',
           }]
         },
         {
-          schemaVersion: 3,
+          schemaVersion: 4,
           snapshotId: 'test-snapshot',
-          locationSnapshotId: 'test-location',
           title: 'Co-Work Smarter',
           location: 'Engineering Bay',
           panels: [{
@@ -434,7 +437,10 @@ describe('option resolution contracts', () => {
               beatIndex: 2,
               speakerKey: 'engineer',
               speakerLabel: 'ENGINEER',
-            }]
+              location: engineeringBayLocation,
+            }],
+            locationKey: 'engineering-bay',
+            locationSnapshotId: 'test-location',
           }]
         }
       ])
@@ -474,13 +480,14 @@ describe('option resolution contracts', () => {
 
   test('comic sketch prompt asks for numeric panel labels only', () => {
       const promptData: PanelBundleData = {
-        schemaVersion: 2,
+        schemaVersion: 4,
         snapshotId: 'test-snapshot',
         title: 'Mechanic Repairs Everything',
         location: 'Engineering Bay',
         panels: [{
           number: 4,
           description: 'Mechanic kicks the laser cutter panel as steam escapes.',
+          shotPlan: 'Wide shot; Mechanic stands screen right and kicks the panel.',
           characterKeys: [],
           speech: [{ speaker: { kind: 'character', characterKey: 'mechanic', offscreen: false }, line: 'I need the exact text.', tone: 'muttering' }],
           sourceSegmentIds: ['beat-0004'],
@@ -491,7 +498,10 @@ describe('option resolution contracts', () => {
             beatIndex: 4,
             speakerKey: 'mechanic',
             speakerLabel: 'MECHANIC',
-          }]
+            location: engineeringBayLocation,
+          }],
+          locationKey: 'engineering-bay',
+          locationSnapshotId: 'test-location',
         }]
       }
       const sketchPrompts: PromptsConfig['Sketch Prompts'] = {

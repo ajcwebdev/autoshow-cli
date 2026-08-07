@@ -5,7 +5,6 @@ import { concatAndConvertToWav } from './tts-utils/audio-utils'
 import { finalizeTtsRun } from './tts-utils/finalize-tts-run'
 import {
   normalizeDialogueText,
-  parseSpeakerRefAudioMappings,
   parseSpeakerVoiceMappings,
   resolveDialogueFormat,
   formatSpeakerVoiceSummary,
@@ -24,9 +23,7 @@ export const runMultiSpeakerTts = async (
 ): Promise<{ audioPath: string, metadata: Step4Metadata }> => {
   const strategy = target.multiSpeakerStrategy ?? 'segment-and-concat'
 
-  const registry = (options.ttsSpeakers?.length ?? 0) > 0
-    ? parseSpeakerVoiceMappings(options.ttsSpeakers)
-    : parseSpeakerRefAudioMappings(options.ttsSpeakerRefAudios)
+  const registry = parseSpeakerVoiceMappings(options.ttsSpeakers)
 
   if (strategy === 'native') {
     return await target.run(text, outputDir, options)

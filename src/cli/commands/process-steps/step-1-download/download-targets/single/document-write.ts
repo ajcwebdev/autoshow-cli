@@ -296,7 +296,7 @@ export const appendChapterExportArtifacts = async (
   outputDir: string
 ): Promise<void> => {
   const primary = Array.isArray(step2Metadata) ? step2Metadata[0] : step2Metadata
-  const exportSummary = primary?.chapterExport ?? primary?.epubExport
+  const exportSummary = primary?.chapterExport
   if (!exportSummary || !Array.isArray(exportSummary.directories)) {
     return
   }

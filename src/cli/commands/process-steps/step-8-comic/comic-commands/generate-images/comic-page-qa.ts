@@ -12,24 +12,24 @@ export type PageQaResult = {
     requiredCastPresent: boolean
     unexpectedCastAbsent: boolean
     identityMatch: boolean
-    identityIssueKind?: 'none' | 'minor-variance' | 'unmistakable-mismatch'
-    locationMatch?: boolean
-    setContinuityMatch?: boolean
-    setContinuityAudit?: Array<{
+    identityIssueKind: 'none' | 'minor-variance' | 'unmistakable-mismatch'
+    locationMatch: boolean
+    setContinuityMatch: boolean
+    setContinuityAudit: Array<{
       anchor: string
       status: 'present-correctly' | 'outside-crop' | 'missing' | 'relocated' | 'duplicated' | 'mirrored' | 'redesigned'
       evidence: string
     }>
-    sourcePrecedence?: boolean
-    shotPlanMatch?: boolean
+    sourcePrecedence: boolean
+    shotPlanMatch: boolean
     dialogueAccuracy: boolean
-    dialogueIssueKind?: 'none' | 'typography-only' | 'content'
+    dialogueIssueKind: 'none' | 'typography-only' | 'content'
     speakerAttribution: boolean
     artifacts: string[]
     visualQualityScore: number
     compositionScore: number
     issues: string[]
-    editInstructions?: string
+    editInstructions: string
   }>
   summary: string
 }
@@ -73,10 +73,14 @@ export type PageQaRequest = {
   model: string
 }
 
+// Bumped when every judge verdict field became required: v1 reports predate the
+// location/continuity/shot-plan fields, so they are discarded rather than reused.
+export const PAGE_QA_REPORT_SCHEMA_VERSION = 2
+
 const HARD_SET_CONTINUITY_STATUSES: ReadonlySet<string> = new Set(['missing', 'relocated', 'duplicated', 'mirrored', 'redesigned'])
 
 const hasHardSetContinuityAuditFailure = (panel: PageQaResult['panels'][number]): boolean =>
-  panel.setContinuityAudit?.some(item => HARD_SET_CONTINUITY_STATUSES.has(item.status)) === true
+  panel.setContinuityAudit.some(item => HARD_SET_CONTINUITY_STATUSES.has(item.status))
 
 const PAGE_QA_SCHEMA = {
   type: 'object', additionalProperties: false,
@@ -125,7 +129,7 @@ export const parseComicPageQaResult = (text: string, expectedPanels: number[]): 
     for (const key of ['requiredCastPresent', 'unexpectedCastAbsent', 'identityMatch', 'locationMatch', 'setContinuityMatch', 'sourcePrecedence', 'shotPlanMatch', 'dialogueAccuracy', 'speakerAttribution'] as const) {
       if (typeof panel[key] !== 'boolean') throw ValidationError(`Page QA panel ${panel.panelNumber} field ${key} must be boolean.`, { stage: 'comic:page-qa' })
     }
-    if (!['none', 'minor-variance', 'unmistakable-mismatch'].includes(panel.identityIssueKind ?? '') || !['none', 'typography-only', 'content'].includes(panel.dialogueIssueKind ?? '')) {
+    if (!['none', 'minor-variance', 'unmistakable-mismatch'].includes(panel.identityIssueKind) || !['none', 'typography-only', 'content'].includes(panel.dialogueIssueKind)) {
       throw ValidationError(`Page QA panel ${panel.panelNumber} has an invalid identity or dialogue issue classification.`, { stage: 'comic:page-qa' })
     }
     const validContinuityStatuses = ['present-correctly', 'outside-crop', 'missing', 'relocated', 'duplicated', 'mirrored', 'redesigned']
@@ -143,21 +147,21 @@ export const applyPageQaTolerancePolicy = (result: PageQaResult): PageQaResult =
   ...result,
   panels: result.panels.map(panel => ({
     ...panel,
-    identityMatch: panel.identityIssueKind === undefined ? panel.identityMatch : panel.identityIssueKind !== 'unmistakable-mismatch',
-    dialogueAccuracy: panel.dialogueIssueKind === undefined ? panel.dialogueAccuracy : panel.dialogueIssueKind !== 'content',
+    identityMatch: panel.identityIssueKind !== 'unmistakable-mismatch',
+    dialogueAccuracy: panel.dialogueIssueKind !== 'content',
     ...(hasHardSetContinuityAuditFailure(panel) ? { setContinuityMatch: false } : {}),
   })),
 })
 
 export const hasHardPageQaFailure = (result: PageQaResult, options: { waiveShotPlanMatch?: boolean } = {}): boolean =>
   !result.panelStructure.pass || result.panels.some(panel =>
-    !panel.requiredCastPresent || !panel.unexpectedCastAbsent || panel.identityIssueKind === 'unmistakable-mismatch' || (panel.identityIssueKind === undefined && !panel.identityMatch) || panel.locationMatch === false || panel.setContinuityMatch === false || hasHardSetContinuityAuditFailure(panel) || panel.sourcePrecedence === false || (!options.waiveShotPlanMatch && panel.shotPlanMatch === false) || panel.dialogueIssueKind === 'content' || (panel.dialogueIssueKind === undefined && !panel.dialogueAccuracy) || !panel.speakerAttribution
+    !panel.requiredCastPresent || !panel.unexpectedCastAbsent || panel.identityIssueKind === 'unmistakable-mismatch' || !panel.locationMatch || !panel.setContinuityMatch || hasHardSetContinuityAuditFailure(panel) || !panel.sourcePrecedence || (!options.waiveShotPlanMatch && !panel.shotPlanMatch) || panel.dialogueIssueKind === 'content' || !panel.speakerAttribution
   )
 
 export const applyPageQaRepairPolicy = (entry: PageQaEntry, completedRepairRounds: number): PageQaEntry => {
   if (completedRepairRounds < 1) return entry
   const waivedChecks = entry.result.panels
-    .filter(panel => panel.shotPlanMatch === false)
+    .filter(panel => !panel.shotPlanMatch)
     .map(panel => ({
       panelNumber: panel.panelNumber,
       check: 'shotPlanMatch' as const,
@@ -184,14 +188,14 @@ export const getPageQaHardFailureKeys = (entry: PageQaEntry): string[] => {
     const prefix = `panel-${panel.panelNumber}:`
     if (!panel.requiredCastPresent) failures.push(`${prefix}requiredCastPresent`)
     if (!panel.unexpectedCastAbsent) failures.push(`${prefix}unexpectedCastAbsent`)
-    if (panel.identityIssueKind === 'unmistakable-mismatch' || (panel.identityIssueKind === undefined && !panel.identityMatch)) failures.push(`${prefix}identityMatch`)
-    if (panel.locationMatch === false) failures.push(`${prefix}locationMatch`)
-    if (panel.setContinuityMatch === false) failures.push(`${prefix}setContinuityMatch`)
+    if (panel.identityIssueKind === 'unmistakable-mismatch') failures.push(`${prefix}identityMatch`)
+    if (!panel.locationMatch) failures.push(`${prefix}locationMatch`)
+    if (!panel.setContinuityMatch) failures.push(`${prefix}setContinuityMatch`)
     if (hasHardSetContinuityAuditFailure(panel)) failures.push(`${prefix}setContinuityAudit`)
-    if (panel.sourcePrecedence === false) failures.push(`${prefix}sourcePrecedence`)
+    if (!panel.sourcePrecedence) failures.push(`${prefix}sourcePrecedence`)
     const shotPlanWaived = entry.waivedChecks?.some(check => check.panelNumber === panel.panelNumber && check.check === 'shotPlanMatch') ?? false
-    if (panel.shotPlanMatch === false && !shotPlanWaived) failures.push(`${prefix}shotPlanMatch`)
-    if (panel.dialogueIssueKind === 'content' || (panel.dialogueIssueKind === undefined && !panel.dialogueAccuracy)) failures.push(`${prefix}dialogueAccuracy`)
+    if (!panel.shotPlanMatch && !shotPlanWaived) failures.push(`${prefix}shotPlanMatch`)
+    if (panel.dialogueIssueKind === 'content') failures.push(`${prefix}dialogueAccuracy`)
     if (!panel.speakerAttribution) failures.push(`${prefix}speakerAttribution`)
   }
   return failures
@@ -229,7 +233,7 @@ export const buildComicPageQaPrompt = (
   designReferences: Array<{ key: string; usage: string }> = [],
 ): string => [
   'Judge this generated comic output strictly. The first image is the generated output. Following images are ordered canonical character references, followed by every immutable canonical location reference, then every mapped immutable canonical design reference, each in first-panel-appearance order.',
-  `Location mapping: ${panelData.panels.map(panel => `panel ${panel.number} -> ${panel.locationKey ?? 'legacy single location'}`).join('; ')}. Judge each panel only against its mapped location reference.`,
+  `Location mapping: ${panelData.panels.map(panel => `panel ${panel.number} -> ${panel.locationKey}`).join('; ')}. Judge each panel only against its mapped location reference.`,
   'Evaluate panels left-to-right. Location identity, set continuity, source-instruction precedence, shot-plan framing/staging, exact cast, dialogue wording and completeness, and bubble-tail/speaker attribution are hard requirements. Artifacts, harmless typography substitutions, minor identity stylization variance, and aesthetic scores are advisory only. For every failed panel return concise actionable editInstructions in this same response.',
   'Perform a mandatory anchor-by-anchor continuity audit before setting setContinuityMatch. Identify permanent architecture, fixed furniture, installed equipment, and every recurring spatial anchor named or visibly established by the mapped canonical location reference/specification. Emit one setContinuityAudit entry for every such anchor, with concrete visual evidence and exactly one allowed status. Presence alone is insufficient: for fixed furniture and architecture, explicitly compare footprint, silhouette, connectedness, orientation, visible edge geometry, and wall relationships. Perspective may foreshorten them but may not turn a straight run into a corner, L-shaped, wraparound, split, or freestanding form; classify that as redesigned. There is no occluded status and character or prop blocking never excuses an unverifiable anchor. If the anchor\'s canonical region is inside the image but the anchor is not visibly identifiable, status is missing, even when a foreground object covers that region. Use outside-crop only when the anchor\'s entire canonical region is beyond the image boundary. Set setContinuityMatch=false if any anchor is missing, relocated, duplicated, mirrored, or redesigned without an explicit source-authored story event. A wide or otherwise revealing view that shows an anchor\'s canonical region but omits the anchor is a hard failure; do not infer that it was intentionally cropped. Judge world-space topology and relative relationships, not screen coordinates. A different camera side, angle, distance, elevation, perspective, or crop is desirable shot variation and must not fail set continuity, but characters and foreground props must be composed around a recognizable visible remainder of every anchor whose canonical region is in frame. Do not demand the canonical reference camera or a repeated composition.',
   'Audit canonical assemblies component by component: seeing a desk, console, shelf, rack, berth, or counter does not establish that its named computer, keyboard, control unit, appliance, instrument, or other co-located components are present. Loose tools, generic clutter, speakers, lamps, or plausible substitute props do not satisfy a missing named component. If the supporting desk, console, shelf, rack, berth, counter, wall zone, footprint, or expected silhouette is in frame but a named component is absent, hidden, or replaced by generic clutter, status is missing.',
@@ -278,7 +282,7 @@ export const readReusablePageQaEntry = async (pagePath: string, model: string): 
   if (!(await Bun.file(reportPath).exists())) return undefined
   try {
     const report = JSON.parse(await Bun.file(reportPath).text()) as { schemaVersion?: number; pages?: PageQaEntry[] }
-    return report.schemaVersion === 1 ? report.pages?.find(entry => entry.outputFile === basename(pagePath) && entry.judgeModel === model) : undefined
+    return report.schemaVersion === PAGE_QA_REPORT_SCHEMA_VERSION ? report.pages?.find(entry => entry.outputFile === basename(pagePath) && entry.judgeModel === model) : undefined
   } catch { return undefined }
 }
 
@@ -290,7 +294,7 @@ export const writePageQaReports = async (directory: string, entries: PageQaEntry
     totalTokens: total.totalTokens + entry.usage.totalTokens,
     costUsd: total.costUsd + entry.usage.costUsd,
   }), { inputTokens: 0, outputTokens: 0, totalTokens: 0, costUsd: 0 })
-  await Bun.write(join(directory, 'page-qa-report.json'), `${JSON.stringify({ schemaVersion: 1, usage, pages: sorted }, null, 2)}\n`)
+  await Bun.write(join(directory, 'page-qa-report.json'), `${JSON.stringify({ schemaVersion: PAGE_QA_REPORT_SCHEMA_VERSION, usage, pages: sorted }, null, 2)}\n`)
   const markdown = ['# Comic Page QA Report', '', `Hard failures: ${sorted.filter(entry => entry.hardFailure).length}`, `Waived shot-plan checks: ${sorted.reduce((count, entry) => count + (entry.waivedChecks?.length ?? 0), 0)}`, `Judge usage: ${usage.totalTokens} tokens; $${usage.costUsd.toFixed(4)}`, '', '| Page | Panels | Hard failure | Waived checks | Summary |', '|---:|:---|:---:|:---|:---|', ...sorted.map(entry => `| ${entry.pageNumber} | ${entry.panelNumbers.join(', ')} | ${entry.hardFailure ? 'yes' : 'no'} | ${entry.waivedChecks?.map(check => `panel ${check.panelNumber} ${check.check}`).join(', ') || 'none'} | ${entry.result.summary.replace(/\|/g, '\\|')} |`), '']
   await Bun.write(join(directory, 'page-qa-report.md'), markdown.join('\n'))
 }

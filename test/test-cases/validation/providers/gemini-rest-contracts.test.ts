@@ -6,6 +6,7 @@ import { runGeminiOcr } from '~/cli/commands/process-steps/step-2-extract/step-2
 import { runGeminiStt } from '~/cli/commands/process-steps/step-2-extract/step-2-stt/stt-services/gemini-stt/run-gemini-stt'
 import { runGeminiModel } from '~/cli/commands/process-steps/step-3-write/write-services/write-gemini/run-gemini'
 import { runGeminiTts } from '~/cli/commands/process-steps/step-4-tts/tts-services/tts-gemini/run-gemini-tts'
+import { parseSpeakerVoiceMappings } from '~/cli/commands/process-steps/step-4-tts/dialogue-normalizer'
 import { runGeminiVideoGen } from '~/cli/commands/process-steps/step-6-video/video-services/video-gemini/run-gemini-video-gen'
 import { runGeminiMusicGen } from '~/cli/commands/process-steps/step-7-music/music-services/music-gemini/run-gemini-music-gen'
 import { classifyGeminiRetry } from '~/cli/commands/process-steps/step-3-write/write-services/write-gemini/gemini-utils'
@@ -452,12 +453,7 @@ describe('Gemini REST contracts', () => {
     await withTempDir(async (dir) => {
       const result = await runGeminiTts('Host: Hello.\nGuest: Hi.', dir, {
         model: 'gemini-3.1-flash-tts-preview',
-        multiSpeakerConfig: {
-          speaker1Name: 'Host',
-          speaker1Voice: 'Kore',
-          speaker2Name: 'Guest',
-          speaker2Voice: 'Puck'
-        }
+        speakerVoiceRegistry: parseSpeakerVoiceMappings(['Host=Kore', 'Guest=Puck'])
       })
       expect(await Bun.file(result.audioPath).exists()).toBe(true)
     })

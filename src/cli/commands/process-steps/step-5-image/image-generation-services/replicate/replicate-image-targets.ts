@@ -31,7 +31,7 @@ import {
 } from '../../image-utils/image-inputs'
 
 export const collectReplicateImageTargets = (options: ImageGenOptions): ImageTarget[] => {
-  const models = options.replicateImageModels ?? (options.replicateImageModel ? [options.replicateImageModel] : [])
+  const models = options.replicateImageModels ?? []
   return models.flatMap((rawModel) => {
     const model: ReplicateImageModel = validateReplicateImageModel(rawModel)
     const unsupported = collectUnsupportedCommonFlags(options, [

@@ -50,11 +50,7 @@ export type StructuredScriptData = v.InferOutput<typeof import('~/cli/commands/p
 
 export type StructuredScriptSourceSegment = StructuredScriptData['sourceSegments'][number]
 
-type ScenePromptDataV4 = v.InferOutput<typeof import('~/cli/commands/process-steps/step-8-comic/schemas/schemas').ScenePromptDataSchema>
-export type ScenePromptData = Omit<ScenePromptDataV4, 'schemaVersion' | 'panels'> & {
-  schemaVersion: 2 | 3 | 4
-  panels: Array<Omit<ScenePromptDataV4['panels'][number], 'shotPlan' | 'locationKey'> & { shotPlan?: string; locationKey?: string }>
-}
+export type ScenePromptData = v.InferOutput<typeof import('~/cli/commands/process-steps/step-8-comic/schemas/schemas').ScenePromptDataSchema>
 
 export type ParsedGenerateBaseArgs = {
   showHelp: boolean
@@ -93,19 +89,7 @@ export type ParsedDraftCommandArgs = {
   concurrency?: number
 }
 
-type PanelBundleDataV4 = v.InferOutput<typeof import('~/cli/commands/process-steps/step-8-comic/schemas/schemas').PanelBundleDataSchema>
-export type PanelBundleData = Omit<PanelBundleDataV4, 'schemaVersion' | 'panels'> & {
-  schemaVersion: 2 | 3 | 4
-  locationSnapshotId?: string
-  panels: Array<Omit<PanelBundleDataV4['panels'][number], 'shotPlan' | 'locationKey' | 'locationSnapshotId' | 'sourceSegments'> & {
-    shotPlan?: string
-    locationKey?: string
-    locationSnapshotId?: string
-    sourceSegments: Array<Omit<PanelBundleDataV4['panels'][number]['sourceSegments'][number], 'location'> & {
-      location?: PanelBundleDataV4['panels'][number]['sourceSegments'][number]['location']
-    }>
-  }>
-}
+export type PanelBundleData = v.InferOutput<typeof import('~/cli/commands/process-steps/step-8-comic/schemas/schemas').PanelBundleDataSchema>
 
 export type ResolvedReferenceImages = {
   all: string[]

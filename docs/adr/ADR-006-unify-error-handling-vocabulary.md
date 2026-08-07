@@ -133,7 +133,7 @@ Both halves are **implemented**; the actions below record the completed work.
 | Add and export `InfraError`/`InternalError`/`ValidationError` factory helpers | CLI maintainers | Implemented in `error-handler.ts` |
 | Sweep plain `new Error()` calls to an appropriate kind with `stage` and `hints` | CLI maintainers | Implemented across process steps and shared runtime modules |
 | Rewrite and centralize `isCLIUsageError`; remove five local copies | CLI maintainers | Implemented in `error-handler.ts` and former importer sites |
-| Convert `UnsupportedArtifactSchemaError` to extend `AppUsageError` | CLI maintainers | Implemented in `manifest-utils.ts` |
+| Convert `UnsupportedArtifactSchemaError` to extend `AppUsageError` | CLI maintainers | Implemented in `manifest-utils.ts`, then removed with the legacy-manifest tombstones it served |
 | Retire `LEGACY_ERROR_HINTS` and move remediation to throw sites | CLI maintainers | Implemented in `error-handler.ts` and throw sites |
 | Make `pollUntil` throw a structured `AppError` | CLI maintainers | Implemented in `retries.ts` |
 | Route validator wrapping through `rethrowAsUsage` | CLI maintainers | Implemented in comic and download-model command definitions |

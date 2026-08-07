@@ -6,7 +6,7 @@ import { validateVideoMediaReferences } from '../../video-utils/video-media-inpu
 import { normalizeFalVideoAspectRatio, normalizeFalVideoDuration, normalizeFalVideoResolution, runFalVideoGen } from './run-fal-video-gen'
 
 export const collectFalVideoTargets = (options: VideoGenOptions, mode: VideoMode): VideoTarget[] => {
-  const models = options.falVideoModels ?? (options.falVideoModel ? [options.falVideoModel] : [])
+  const models = options.falVideoModels ?? []
   const hasFalSpecificOptions = options.falVideoGenerateAudio !== undefined
     || (options.falVideoReferenceVideos?.length ?? 0) > 0
     || (options.falVideoReferenceAudios?.length ?? 0) > 0

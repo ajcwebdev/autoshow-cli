@@ -27,7 +27,11 @@ const ACTION_VERBS = new Set([
   'continues'
 ])
 
-const REF_AUDIO_EXTENSIONS = new Set(['.mp3', '.wav', '.m4a', '.ogg', '.flac', '.aac', '.webm', '.mp4'])
+const REF_AUDIO_EXTENSIONS = new Set([
+  '.mp3', '.wav', '.m4a', '.m4b', '.ogg', '.oga', '.opus', '.flac', '.aac',
+  '.webm', '.weba', '.mp4', '.aiff', '.aif', '.aifc', '.wma', '.amr', '.caf',
+  '.mka', '.au', '.pcm'
+])
 
 const normalizeSpeaker = (speaker: string): string =>
   speaker.trim().replace(/\s+/g, ' ').toUpperCase()
@@ -57,13 +61,8 @@ export const detectVoiceKind = (value: string): 'id' | 'ref-audio' => {
   return 'id'
 }
 
-const parseSpeakerMappings = (
-  values: readonly string[] | undefined,
-  options: {
-    flagName: '--tts-speaker' | '--tts-speaker-ref-audio'
-    expectedShape: 'SPEAKER=VOICE' | 'SPEAKER=path'
-    resolveVoiceKind: (voice: string) => SpeakerVoiceMapping['voiceKind']
-  }
+export const parseSpeakerVoiceMappings = (
+  values: readonly string[] | undefined
 ): SpeakerVoiceRegistry => {
   const entries: SpeakerVoiceMapping[] = []
   const bySpeaker = new Map<string, SpeakerVoiceMapping>()
@@ -71,22 +70,21 @@ const parseSpeakerMappings = (
   for (const raw of values ?? []) {
     const idx = raw.indexOf('=')
     if (idx <= 0 || idx === raw.length - 1) {
-      throw CLIUsageError(`Invalid ${options.flagName} value "${raw}". Expected ${options.expectedShape}.`)
+      throw CLIUsageError(`Invalid --tts-speaker value "${raw}". Expected SPEAKER=VOICE or SPEAKER=path.`)
     }
 
     const speaker = raw.slice(0, idx).trim()
     const voice = raw.slice(idx + 1).trim()
     if (!speaker || !voice) {
-      throw CLIUsageError(`Invalid ${options.flagName} value "${raw}". Expected ${options.expectedShape}.`)
+      throw CLIUsageError(`Invalid --tts-speaker value "${raw}". Expected SPEAKER=VOICE or SPEAKER=path.`)
     }
 
     const normalizedSpeaker = normalizeSpeaker(speaker)
     if (bySpeaker.has(normalizedSpeaker)) {
-      throw CLIUsageError(`Duplicate ${options.flagName} mapping for speaker ${speaker}.`)
+      throw CLIUsageError(`Duplicate --tts-speaker mapping for speaker ${speaker}.`)
     }
 
-    const voiceKind = options.resolveVoiceKind(voice)
-    const entry: SpeakerVoiceMapping = { speaker, normalizedSpeaker, voice, voiceKind }
+    const entry: SpeakerVoiceMapping = { speaker, normalizedSpeaker, voice, voiceKind: detectVoiceKind(voice) }
     bySpeaker.set(normalizedSpeaker, entry)
     entries.push(entry)
   }
@@ -94,28 +92,9 @@ const parseSpeakerMappings = (
   return { entries, bySpeaker }
 }
 
-export const parseSpeakerVoiceMappings = (
-  values: readonly string[] | undefined
-): SpeakerVoiceRegistry =>
-  parseSpeakerMappings(values, {
-    flagName: '--tts-speaker',
-    expectedShape: 'SPEAKER=VOICE',
-    resolveVoiceKind: detectVoiceKind
-  })
-
-export const parseSpeakerRefAudioMappings = (
-  values: readonly string[] | undefined
-): SpeakerVoiceRegistry =>
-  parseSpeakerMappings(values, {
-    flagName: '--tts-speaker-ref-audio',
-    expectedShape: 'SPEAKER=path',
-    resolveVoiceKind: () => 'ref-audio'
-  })
-
 export const isMultiSpeakerRequested = (options: TtsOptions): boolean =>
   (options.ttsSpeakers?.length ?? 0) > 0
   || options.ttsDialogueFormat !== undefined
-  || (options.ttsSpeakerRefAudios?.length ?? 0) > 0
 
 export const resolveDialogueFormat = (options: TtsOptions): TtsDialogueFormat => {
   if (options.ttsDialogueFormat === 'screenplay' || options.ttsDialogueFormat === 'labeled') {
@@ -339,9 +318,7 @@ export const normalizeDialogueFromOptions = (
   text: string,
   options: TtsOptions
 ): DialogueNormalization => {
-  const registry = (options.ttsSpeakers?.length ?? 0) > 0
-    ? parseSpeakerVoiceMappings(options.ttsSpeakers)
-    : parseSpeakerRefAudioMappings(options.ttsSpeakerRefAudios)
+  const registry = parseSpeakerVoiceMappings(options.ttsSpeakers)
   return normalizeDialogueText(text, resolveDialogueFormat(options), registry)
 }
 

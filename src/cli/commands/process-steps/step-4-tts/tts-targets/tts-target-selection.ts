@@ -1,6 +1,5 @@
 import type { TtsOptions, TtsTargetSelection } from '~/types'
-import { isMultiSpeakerRequested, parseSpeakerRefAudioMappings, parseSpeakerVoiceMappings } from '../dialogue-normalizer'
-import { resolveGeminiMultiSpeakerConfig } from '../tts-services/tts-gemini/gemini-tts-config'
+import { isMultiSpeakerRequested, parseSpeakerVoiceMappings } from '../dialogue-normalizer'
 const selectModels = (
   models: string[] | undefined,
   model: string | undefined
@@ -37,9 +36,7 @@ export const createTtsTargetSelection = (options: TtsOptions): TtsTargetSelectio
 
   const multiSpeaker = isMultiSpeakerRequested(options)
   const speakerVoiceRegistry = multiSpeaker
-    ? ((options.ttsSpeakers?.length ?? 0) > 0
-      ? parseSpeakerVoiceMappings(options.ttsSpeakers)
-      : parseSpeakerRefAudioMappings(options.ttsSpeakerRefAudios))
+    ? parseSpeakerVoiceMappings(options.ttsSpeakers)
     : undefined
 
   return {
@@ -55,7 +52,6 @@ export const createTtsTargetSelection = (options: TtsOptions): TtsTargetSelectio
     speechifyModels: selectModels(options.speechifyTtsModels, options.speechifyTtsModel),
     humeModels: selectModels(options.humeTtsModels, options.humeTtsModel),
     cartesiaModels: selectModels(options.cartesiaTtsModels, options.cartesiaTtsModel),
-    geminiMultiSpeakerConfig: resolveGeminiMultiSpeakerConfig(options),
     speakerVoiceRegistry,
     multiSpeakerRequested: multiSpeaker,
     minimaxVoiceId: trimmed(options.minimaxTtsVoice),

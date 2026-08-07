@@ -4,7 +4,7 @@ import { ensureElevenLabsMusicGenSetup } from './elevenlabs-music-gen'
 import { runElevenLabsMusicGen } from './run-elevenlabs-music-gen'
 
 export const collectElevenlabsMusicTargets = (options: MusicGenOptions): MusicTarget[] => {
-  const models = options.elevenlabsMusicModels ?? (options.elevenlabsMusicModel ? [options.elevenlabsMusicModel] : [])
+  const models = options.elevenlabsMusicModels ?? []
   return models.map((rawModel) => {
     const model: ElevenlabsMusicModel = validateElevenlabsMusicModel(rawModel)
 

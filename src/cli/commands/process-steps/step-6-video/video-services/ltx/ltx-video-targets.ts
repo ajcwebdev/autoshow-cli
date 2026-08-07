@@ -12,7 +12,7 @@ const getLtxSupportedVideoModes = (model: LtxVideoModel): readonly VideoMode[] =
 }
 
 export const collectLtxVideoTargets = (options: VideoGenOptions, mode: VideoMode): VideoTarget[] => {
-  const models = options.ltxVideoModels ?? (options.ltxVideoModel ? [options.ltxVideoModel] : [])
+  const models = options.ltxVideoModels ?? []
   return models.flatMap((rawModel) => {
     const model: LtxVideoModel = validateLtxVideoModel(rawModel)
     if (!isSupportedOrSkippedForAllVideo(options, 'ltx', model, mode, getLtxSupportedVideoModes(model))) {

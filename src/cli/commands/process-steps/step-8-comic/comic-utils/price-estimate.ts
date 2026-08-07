@@ -15,6 +15,7 @@ panelSelectionToSketchRange,
 selectComicPanels,
 validateComicGridOptions,
 } from '../comic-commands/generate-images/comic-page-utils'
+import { PAGE_QA_REPORT_SCHEMA_VERSION } from '../comic-commands/generate-images/comic-page-qa'
 import {
 getImagePromptVariationLabel,
 } from '../comic-commands/generate-images/prompt-variations'
@@ -533,7 +534,7 @@ const estimateFinalPanelImagesPrice = async (options: GenerateImagesCommandOptio
         if (!force && existsSync(reportPath)) {
           try {
             const report = JSON.parse(readFileSync(reportPath, 'utf8')) as { schemaVersion?: number; pages?: Array<{ outputFile?: string; judgeModel?: string }> }
-            reusable = report.schemaVersion === 1 && report.pages?.some(entry => entry.outputFile === basename(outputPath) && entry.judgeModel === judgeModel) === true
+            reusable = report.schemaVersion === PAGE_QA_REPORT_SCHEMA_VERSION && report.pages?.some(entry => entry.outputFile === basename(outputPath) && entry.judgeModel === judgeModel) === true
           } catch {}
         }
         if (reusable) reusedReports++

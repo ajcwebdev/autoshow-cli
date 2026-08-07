@@ -72,7 +72,6 @@ export type TtsOptions = Pick<
   | 'mistralTtsRefAudio'
   | 'mistralTtsVoiceName'
   | 'ttsDialogueFormat'
-  | 'ttsSpeakerRefAudios'
   | 'ttsSpeakers'
   | 'openaiTtsModels'
   | 'openaiTtsModel'
@@ -82,10 +81,6 @@ export type TtsOptions = Pick<
   | 'geminiTtsModels'
   | 'geminiTtsModel'
   | 'geminiVoiceId'
-  | 'geminiSpeaker1Name'
-  | 'geminiSpeaker1Voice'
-  | 'geminiSpeaker2Name'
-  | 'geminiSpeaker2Voice'
   | 'ttsProviderConcurrency'
   | 'ttsLocalConcurrency'
   | 'ttsChunkConcurrency'
@@ -218,13 +213,6 @@ export type TtsTarget = ProviderTargetBase<TtsProvider> & {
   run: (text: string, outputDir: string, opts: TtsOptions) => Promise<{ audioPath: string, metadata: Step4Metadata }>
 }
 
-
-export type GeminiMultiSpeakerConfig = {
-  speaker1Name: string
-  speaker1Voice: string
-  speaker2Name: string
-  speaker2Voice: string
-}
 
 export type TtsCustomVoiceSampleAudio = {
   path: string

@@ -1,4 +1,4 @@
-import type { GeminiMultiSpeakerConfig, SpeakerVoiceRegistry } from '~/types'
+import type { SpeakerVoiceRegistry } from '~/types'
 
 export type TtsTargetSelection = {
   kittenModels: string[]
@@ -13,7 +13,6 @@ export type TtsTargetSelection = {
   speechifyModels: string[]
   humeModels: string[]
   cartesiaModels: string[]
-  geminiMultiSpeakerConfig: GeminiMultiSpeakerConfig | undefined
   speakerVoiceRegistry: SpeakerVoiceRegistry | undefined
   multiSpeakerRequested: boolean
   minimaxVoiceId: string | undefined

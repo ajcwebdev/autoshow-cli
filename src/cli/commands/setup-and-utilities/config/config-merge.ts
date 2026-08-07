@@ -135,7 +135,6 @@ export const mergeConfigIntoRawFlags = (
     inject('mistral-tts-ref-audio', d.post.tts.mistralTtsRefAudio)
     inject('mistral-tts-voice-name', d.post.tts.mistralTtsVoiceName)
     inject('tts-dialogue-format', d.post.tts.ttsDialogueFormat)
-    inject('tts-speaker-ref-audio', d.post.tts.ttsSpeakerRefAudio)
     inject('tts-speaker', d.post.tts.ttsSpeakers)
     inject('openai-voice', d.post.tts.openaiVoice)
     inject('openai-tts-instructions', d.post.tts.openaiTtsInstructions)
@@ -146,10 +145,6 @@ export const mergeConfigIntoRawFlags = (
     inject('deepgram-tts-bit-rate', d.post.tts.deepgramTtsBitRate)
     inject('deepgram-tts-sample-rate', d.post.tts.deepgramTtsSampleRate)
     inject('deepgram-tts-speed', d.post.tts.deepgramTtsSpeed)
-    inject('gemini-speaker-1-name', d.post.tts.geminiSpeaker1Name)
-    inject('gemini-speaker-1-voice', d.post.tts.geminiSpeaker1Voice)
-    inject('gemini-speaker-2-name', d.post.tts.geminiSpeaker2Name)
-    inject('gemini-speaker-2-voice', d.post.tts.geminiSpeaker2Voice)
     inject('elevenlabs-voice', d.post.tts.elevenlabsVoice)
     inject('elevenlabs-tts-ref-audio', d.post.tts.elevenlabsTtsRefAudio)
     inject('elevenlabs-tts-voice-name', d.post.tts.elevenlabsTtsVoiceName)
@@ -252,10 +247,10 @@ export const mergeConfigIntoRawFlags = (
   }
 
   if (d.extract?.ocr) {
-    inject('lang', d.extract.ocr.lang)
-    inject('out', d.extract.ocr.out)
+    inject('ocr-language', d.extract.ocr.lang)
+    inject('format', d.extract.ocr.out)
     injectProviderGroup(OCR_PROVIDER_FLAGS, resolveStep2ProviderDefaults(config, 'ocr'))
-    inject('dpi', d.extract.ocr.dpi)
+    inject('ocr-dpi', d.extract.ocr.dpi)
     inject('ocr-concurrency', d.extract.ocr.pageConcurrency)
     inject('ocr-provider-concurrency', d.extract.ocr.providerConcurrency)
     inject('ocr-local-concurrency', d.extract.ocr.localConcurrency)
@@ -335,7 +330,6 @@ const FLAG_TO_CONFIG_PATH: Record<string, string[]> = {
   'mistral-tts-ref-audio': ['defaults', 'post', 'tts', 'mistralTtsRefAudio'],
   'mistral-tts-voice-name': ['defaults', 'post', 'tts', 'mistralTtsVoiceName'],
   'tts-dialogue-format': ['defaults', 'post', 'tts', 'ttsDialogueFormat'],
-  'tts-speaker-ref-audio': ['defaults', 'post', 'tts', 'ttsSpeakerRefAudio'],
   'tts-speaker': ['defaults', 'post', 'tts', 'ttsSpeakers'],
   'openai-voice':      ['defaults', 'post', 'tts', 'openaiVoice'],
   'openai-tts-instructions': ['defaults', 'post', 'tts', 'openaiTtsInstructions'],
@@ -346,10 +340,6 @@ const FLAG_TO_CONFIG_PATH: Record<string, string[]> = {
   'deepgram-tts-bit-rate': ['defaults', 'post', 'tts', 'deepgramTtsBitRate'],
   'deepgram-tts-sample-rate': ['defaults', 'post', 'tts', 'deepgramTtsSampleRate'],
   'deepgram-tts-speed': ['defaults', 'post', 'tts', 'deepgramTtsSpeed'],
-  'gemini-speaker-1-name': ['defaults', 'post', 'tts', 'geminiSpeaker1Name'],
-  'gemini-speaker-1-voice': ['defaults', 'post', 'tts', 'geminiSpeaker1Voice'],
-  'gemini-speaker-2-name': ['defaults', 'post', 'tts', 'geminiSpeaker2Name'],
-  'gemini-speaker-2-voice': ['defaults', 'post', 'tts', 'geminiSpeaker2Voice'],
   'elevenlabs-voice':  ['defaults', 'post', 'tts', 'elevenlabsVoice'],
   'elevenlabs-tts-ref-audio': ['defaults', 'post', 'tts', 'elevenlabsTtsRefAudio'],
   'elevenlabs-tts-voice-name': ['defaults', 'post', 'tts', 'elevenlabsTtsVoiceName'],
@@ -446,9 +436,6 @@ const FLAG_TO_CONFIG_PATH: Record<string, string[]> = {
   'ocr-language':       ['defaults', 'extract', 'ocr', 'lang'],
   'format':             ['defaults', 'extract', 'ocr', 'out'],
   'ocr-dpi':            ['defaults', 'extract', 'ocr', 'dpi'],
-  'lang':              ['defaults', 'extract', 'ocr', 'lang'],
-  'out':               ['defaults', 'extract', 'ocr', 'out'],
-  'dpi':               ['defaults', 'extract', 'ocr', 'dpi'],
   'ocr-concurrency':   ['defaults', 'extract', 'ocr', 'pageConcurrency'],
   'ocr-provider-concurrency': ['defaults', 'extract', 'ocr', 'providerConcurrency'],
   'ocr-local-concurrency': ['defaults', 'extract', 'ocr', 'localConcurrency'],
@@ -497,13 +484,13 @@ const readConfigFlagValue = (
 }
 
 const parseConfigValue = (flagName: string, rawValue: unknown): unknown => {
-  if ((flagName === 'tts-speaker-ref-audio' || flagName === 'minimax-tts-pronunciation' || flagName === 'elevenlabs-tts-pronunciation-dictionary-locator') && typeof rawValue === 'string') {
+  if ((flagName === 'minimax-tts-pronunciation' || flagName === 'elevenlabs-tts-pronunciation-dictionary-locator') && typeof rawValue === 'string') {
     return [rawValue]
   }
   if (typeof rawValue !== 'string') return rawValue
   const numericFlags = new Set([
     'speaker-count', 'stt-reverb-verbatimicity', 'image-count', 'video-duration',
-    'music-duration', 'dpi', 'ocr-dpi', 'length', 'batch-limit', 'batch-concurrency',
+    'music-duration', 'ocr-dpi', 'length', 'batch-limit', 'batch-concurrency',
     'max-cents',
     'provider-concurrency', 'local-concurrency',
     'llm-provider-concurrency', 'llm-local-concurrency',

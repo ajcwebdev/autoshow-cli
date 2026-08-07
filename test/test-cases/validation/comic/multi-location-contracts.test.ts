@@ -2,7 +2,7 @@ import { afterEach, describe, expect, test } from 'bun:test'
 import { createHash } from 'node:crypto'
 import { mkdir, mkdtemp, rm } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
-import { dirname, join, resolve } from 'node:path'
+import { join, resolve } from 'node:path'
 import { configureCharactersRoot } from '~/cli/commands/process-steps/characters-root'
 import {
   createLocationReferenceSnapshots,
@@ -99,16 +99,19 @@ describe('multi-location comic contracts', () => {
       await Bun.write(join(locations, sheet), bytes)
       sketches.push({
         locationKey: entry.key,
-        generationId: `generation-${entry.key}`,
         specificationSha256: createHash('sha256').update(entry.specification).digest('hex'),
-        sheet,
-        sheetSha256: createHash('sha256').update(bytes).digest('hex'),
-        model: 'fixture',
-        createdAt: '2026-01-01T00:00:00.000Z',
+        views: [{
+          view: 'establishing',
+          generationId: `generation-${entry.key}`,
+          image: sheet,
+          imageSha256: createHash('sha256').update(bytes).digest('hex'),
+          model: 'fixture',
+          createdAt: '2026-01-01T00:00:00.000Z',
+        }],
       })
     }
     await Bun.write(join(locations, 'locations-reference.json'), JSON.stringify(catalog))
-    await Bun.write(join(locations, 'location-sketches.json'), JSON.stringify({ schemaVersion: 1, sketches }))
+    await Bun.write(join(locations, 'location-sketches.json'), JSON.stringify({ schemaVersion: 2, sketches }))
     const run = join(root, 'run')
     const manifest = await createLocationReferenceSnapshots(run, ['quarters', 'hallway', 'quarters'])
     expect(manifest.snapshots.every(snapshot => snapshot.sheet.path.startsWith('assets/location-references/'))).toBe(true)
@@ -118,13 +121,9 @@ describe('multi-location comic contracts', () => {
     await Bun.write(firstAsset, 'tampered')
     await expect(loadAndVerifyLocationReferenceSnapshots(run)).rejects.toThrow(/missing or modified/)
 
-    const legacyRun = join(root, 'legacy-run')
-    const legacyAsset = join(legacyRun, 'assets', 'location.png')
-    await mkdir(dirname(legacyAsset), { recursive: true })
-    await Bun.write(legacyAsset, 'legacy')
-    const legacyHash = createHash('sha256').update('legacy').digest('hex')
-    await Bun.write(join(legacyRun, 'assets', 'location-reference.json'), JSON.stringify({ schemaVersion: 1, snapshotId: 'legacy', locationKey: 'quarters', specification: 'Quarters.', sourceScripts: [], sourceGenerationId: 'old', sheet: { path: 'assets/location.png', sha256: legacyHash } }))
-    expect((await loadAndVerifyLocationReferenceSnapshots(legacyRun))[0]?.snapshotId).toBe('legacy')
+    const emptyRun = join(root, 'empty-run')
+    await mkdir(join(emptyRun, 'assets'), { recursive: true })
+    await expect(loadAndVerifyLocationReferenceSnapshots(emptyRun)).rejects.toThrow(/Missing location-references\.json/)
   })
 
   test('composes schema-version-2 views in canonical order and records source provenance', async () => {

@@ -44,7 +44,6 @@ export const CONFIG_COMMAND_HELP_FLAG_GROUPS = [
   ['tts-deepgram', 'Deepgram TTS'],
   ['tts-speechify', 'Speechify TTS'],
   ['tts-hume', 'Hume TTS'],
-  ['tts-gemini', 'Gemini TTS'],
   ['tts-dialogue', 'Multi-Speaker / Dialogue'],
   ['tts-elevenlabs', 'ElevenLabs TTS'],
   ['step-5-image', 'Step 5 - Image'],

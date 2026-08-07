@@ -231,9 +231,6 @@ const coremlConvert = async (modelName: string): Promise<void> => {
   const mlpackagePath = `${whisperModelsDir}/ggml-${modelName}-encoder.mlpackage`
 
   if (await fileExists(mlmodelcPath) || await fileExists(mlpackagePath)) {
-    // Reclaims the checkpoint left behind by installs that predate the cleanup
-    // below; the encoder it produced is already compiled.
-    await cleanupPath(`${whisperModelsDir}/${modelName}.pt`)
     return
   }
 

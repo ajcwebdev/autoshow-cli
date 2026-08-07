@@ -44,12 +44,12 @@ const resolveTtsCharacterCount = (metadata: WriteManifestMetadata, index: number
   return typeof costValue === 'number' && costValue > 0 ? costValue : undefined
 }
 
-const getEpubLogicalChapterCount = (entry: { extractionMethod: string, totalPages: number, chapterExport?: unknown, epubExport?: unknown }): number | undefined => {
+const getEpubLogicalChapterCount = (entry: { extractionMethod: string, totalPages: number, chapterExport?: unknown }): number | undefined => {
   if (entry.extractionMethod !== 'epub-text') {
     return undefined
   }
 
-  const summary = entry.chapterExport ?? entry.epubExport
+  const summary = entry.chapterExport
   if (
     !summary
     || typeof summary !== 'object'
@@ -66,7 +66,7 @@ const getEpubLogicalChapterCount = (entry: { extractionMethod: string, totalPage
     : undefined
 }
 
-const formatExtractUnitCount = (entry: { extractionMethod: string, totalPages: number, chapterExport?: unknown, epubExport?: unknown }): string => {
+const formatExtractUnitCount = (entry: { extractionMethod: string, totalPages: number, chapterExport?: unknown }): string => {
   if (entry.extractionMethod !== 'epub-text') {
     return formatCount(entry.totalPages, 'page', 'pages')
   }

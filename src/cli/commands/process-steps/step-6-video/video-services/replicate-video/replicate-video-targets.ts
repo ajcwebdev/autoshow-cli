@@ -72,7 +72,7 @@ const validateReplicateSeedanceReferences = (
 }
 
 export const collectReplicateVideoTargets = (options: VideoGenOptions, mode: VideoMode): VideoTarget[] => {
-  const models = options.replicateVideoModels ?? (options.replicateVideoModel ? [options.replicateVideoModel] : [])
+  const models = options.replicateVideoModels ?? []
   if (hasReplicateSpecificOptions(options) && models.length === 0) {
     throw CLIUsageError('Replicate video flags require a Replicate video provider target.')
   }

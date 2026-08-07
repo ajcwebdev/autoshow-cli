@@ -26,7 +26,7 @@ const GEMINI_IMAGE_SIZES = new Set<string>(GEMINI_IMAGE_SIZE_VALUES)
 const GEMINI_RESPONSE_MODES = new Set<string>(GEMINI_IMAGE_RESPONSE_MODES)
 
 export const collectGeminiImageTargets = (options: ImageGenOptions): ImageTarget[] => {
-  const models = options.geminiImageModels ?? (options.geminiImageModel ? [options.geminiImageModel] : [])
+  const models = options.geminiImageModels ?? []
   return models.flatMap((rawModel) => {
     const model: GeminiImageModel = validateGeminiImageModel(rawModel)
     if (typeof options.imageSize === 'string' && options.imageSize.length > 0 && !supportsGeminiImageSize(model)) {

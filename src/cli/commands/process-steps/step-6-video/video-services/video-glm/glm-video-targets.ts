@@ -14,7 +14,7 @@ const getGlmSupportedVideoModes = (model: GlmVideoModel): readonly VideoMode[] =
 }
 
 export const collectGlmVideoTargets = (options: VideoGenOptions, mode: VideoMode): VideoTarget[] => {
-  const models = options.glmVideoModels ?? (options.glmVideoModel ? [options.glmVideoModel] : [])
+  const models = options.glmVideoModels ?? []
   return models.flatMap((rawModel) => {
     const model: GlmVideoModel = validateGlmVideoModel(rawModel)
     if (!isSupportedOrSkippedForAllVideo(options, 'glm', model, mode, getGlmSupportedVideoModes(model))) {

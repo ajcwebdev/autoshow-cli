@@ -62,18 +62,18 @@ describe('option resolution contracts', () => {
     }
   })
 
-  test('buildOptsFromFlags maps repeatable dialogue speaker reference audio flags', () => {
+  test('buildOptsFromFlags maps repeatable dialogue speaker flags', () => {
       const opts = buildOptsFromFlags(false, {
         'mistral-tts': 'voxtral-mini-tts-2603',
         'tts-dialogue-format': 'screenplay',
-        'tts-speaker-ref-audio': [
+        'tts-speaker': [
           'DUCO=input/examples/audio/anthony-voice.mp3',
           'CHAT=https://ajc.pics/autoshow/examples/0-audio-short.mp3'
         ]
       })
 
       expect(opts.ttsDialogueFormat).toBe('screenplay')
-      expect(opts.ttsSpeakerRefAudios).toEqual([
+      expect(opts.ttsSpeakers).toEqual([
         'DUCO=input/examples/audio/anthony-voice.mp3',
         'CHAT=https://ajc.pics/autoshow/examples/0-audio-short.mp3'
       ])
@@ -331,7 +331,7 @@ describe('option resolution contracts', () => {
         'all-tts': true,
         'mistral-tts': 'voxtral-mini-tts-2603',
         'tts-dialogue-format': 'labeled',
-        'tts-speaker-ref-audio': ['Host=input/examples/audio/anthony-voice.mp3']
+        'tts-speaker': ['Host=input/examples/audio/anthony-voice.mp3']
       }))).toThrow('does not support reference audio for multi-speaker TTS')
     })
 

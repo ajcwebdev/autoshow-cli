@@ -36,7 +36,6 @@ export type OcrE2eExtractMetadata = {
     totalPages?: number
     epub?: Record<string, unknown>
     chapterExport?: OcrE2eEpubExportMetadata
-    epubExport?: OcrE2eEpubExportMetadata
     pdfChapterDetection?: OcrE2ePdfChapterDetectionMetadata
     outputFidelity?: string
   }

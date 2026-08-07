@@ -149,7 +149,6 @@ export const ExtractionMetadataSchema = v.object({
   completionTokens: v.optional(v.number(), undefined),
   epub: v.optional(EpubInspectionSchema, undefined),
   chapterExport: v.optional(ChapterExportSummarySchema, undefined),
-  epubExport: v.optional(ChapterExportSummarySchema, undefined),
   pdfChapterDetection: v.optional(v.record(v.string(), v.unknown()), undefined),
   inputFamily: v.optional(v.string(), undefined),
   normalizedFrom: v.optional(v.string(), undefined),

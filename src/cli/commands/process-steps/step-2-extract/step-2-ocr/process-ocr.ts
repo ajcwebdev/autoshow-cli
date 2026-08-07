@@ -1,8 +1,6 @@
-import { cp, stat } from 'node:fs/promises'
-import { basename, join } from 'node:path'
 import { getOutputRoot } from '~/cli/commands/process-steps/output-root'
 import type { AggregatedPriceEstimate, ExtractionOptions, OcrProviderRunContext, PreparedDocument, ProcessDocumentOutput, Step1SourceRef } from '~/types'
-import { l, runWithLogContext } from '~/utils/app-logger/app-logger'
+import { runWithLogContext } from '~/utils/app-logger/app-logger'
 import { downloadDocument } from '../../step-1-download/document/dl-document'
 import { buildDocumentSource } from './ocr-document-metadata'
 import { resolveOcrExtractionOptions } from './ocr-extraction-options'
@@ -13,49 +11,6 @@ import { cleanupOcrPreparationCache, createOcrPreparationCache } from './ocr-uti
 import { createHostedOcrScheduler } from './ocr-utils/hosted-ocr-scheduler'
 
 export { writeProviderArtifacts } from './ocr-artifacts'
-
-const pathExists = async (path: string): Promise<boolean> =>
-  await stat(path).then(() => true, () => false)
-
-const maybeMigrateLegacyFallbackArtifacts = async (
-  legacyDir: string,
-  outputDir: string,
-  sourceFilePath: string
-): Promise<void> => {
-  if (legacyDir === outputDir) {
-    return
-  }
-
-  const legacyStatePath = join(legacyDir, 'fallback-state.json')
-  const outputStatePath = join(outputDir, 'fallback-state.json')
-  if (!await pathExists(legacyStatePath) || await pathExists(outputStatePath)) {
-    return
-  }
-
-  let state: Record<string, unknown>
-  try {
-    state = await Bun.file(legacyStatePath).json() as Record<string, unknown>
-  } catch {
-    return
-  }
-
-  if (state['sourceFile'] !== basename(sourceFilePath)) {
-    return
-  }
-
-  await cp(legacyStatePath, outputStatePath)
-  for (const entry of ['page-results', 'page-inputs']) {
-    const sourcePath = join(legacyDir, entry)
-    if (await pathExists(sourcePath)) {
-      await cp(sourcePath, join(outputDir, entry), { recursive: true })
-    }
-  }
-  const partialPath = join(legacyDir, 'partial-extraction.txt')
-  if (await pathExists(partialPath)) {
-    await cp(partialPath, join(outputDir, 'partial-extraction.txt'))
-  }
-  l.write('info', `Migrated OCR page fallback cache into ${outputDir}`)
-}
 
 export const processOcr = async (
   filePath: string,
@@ -92,7 +47,6 @@ export const processOcr = async (
 
   const { outputDir, step1Metadata, effectiveFilePath, tempCleanup, web } = prepared
   const extractFilePath = effectiveFilePath ?? filePath
-  await maybeMigrateLegacyFallbackArtifacts(optsWithPreparationCache.outputDir, outputDir, extractFilePath)
   const effectiveOptsWithPreparationCache: ExtractionOptions = {
     ...optsWithPreparationCache,
     outputDir

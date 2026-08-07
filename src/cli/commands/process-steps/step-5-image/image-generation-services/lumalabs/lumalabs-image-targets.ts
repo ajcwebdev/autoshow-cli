@@ -11,7 +11,7 @@ import {
 export const LUMALABS_MAX_IMAGE_INPUTS = 9
 
 export const collectLumalabsImageTargets = (options: ImageGenOptions): ImageTarget[] => {
-  const models = options.lumalabsImageModels ?? (options.lumalabsImageModel ? [options.lumalabsImageModel] : [])
+  const models = options.lumalabsImageModels ?? []
   return models.flatMap((rawModel) => {
     const model: LumalabsImageModel = validateLumalabsImageModel(rawModel)
     normalizeLumalabsAspectRatio(options.imageAspectRatio)

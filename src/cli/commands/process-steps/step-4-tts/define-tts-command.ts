@@ -28,7 +28,6 @@ import { computeEstimatedCosts } from '~/utils/pricing/compute-estimated-costs'
 import { computeActualProcessingTimes, computeEstimatedProcessingTimes } from '~/utils/pricing/compute-processing-time'
 import { runPreflight } from '~/utils/pricing/preflight'
 import { isMultiSpeakerRequested, normalizeDialogueFromOptions } from './dialogue-normalizer'
-import { normalizeLegacyMultiSpeakerFlags } from './legacy-multi-speaker'
 import { runTtsForTargets } from './run-tts'
 import { buildTtsBatchEstimateSummary, computeSuccessfulTtsBatchActualCost } from './tts-batch-summary'
 import { buildEstimatedTtsTargets, buildTtsArtifactMap, collectTtsTargets, getTtsArtifactFileName } from './tts-targets'
@@ -867,16 +866,12 @@ export const ttsCommand = defineCliCommand({
     providerNormalized.explicitFlags,
     'kitten'
   )
-  const legacyNormalized = normalizeLegacyMultiSpeakerFlags(
-    ttsNormalized.flags,
-    ttsNormalized.explicitFlags
-  )
   const ttsOptions = buildOptsFromFlags(
     true,
-    legacyNormalized.flags,
+    ttsNormalized.flags,
     [],
     { defaultTtsEngine: 'kitten' },
-    legacyNormalized.explicitFlags,
+    ttsNormalized.explicitFlags,
     providerNormalized.rawArgs ?? rawArgs
   )
   const targets = collectTtsTargets(ttsOptions)

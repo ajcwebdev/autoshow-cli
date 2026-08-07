@@ -39,7 +39,7 @@ describe('panel-first comic workspace paths', () => {
     expect(getPanelPromptCoverageReportPath('scene')).toBe(join(workspace, 'metadata', 'panel-prompts', 'source-coverage.json'))
     expect(getPanelsDirectory('scene')).toBe(join(workspace, 'panels'))
     expect(getSceneWorkspaceDirectoryForPanelPrompt(join(workspace, 'metadata', 'panel-prompts', 'panel-01'))).toBe(workspace)
-    expect(() => getSceneWorkspaceDirectoryForPanelPrompt(join(workspace, 'panel-prompts', 'panel-01'))).toThrow(/must be migrated/)
+    expect(() => getSceneWorkspaceDirectoryForPanelPrompt(join(workspace, 'panel-prompts', 'panel-01'))).toThrow(/is not inside metadata\/panel-prompts\//)
   })
 
   test('resumes the latest run and honors a pinned scene workspace', async () => {
@@ -57,13 +57,6 @@ describe('panel-first comic workspace paths', () => {
     configurePinnedRunDir(pinned)
     expect(beginSceneRun('scene')).toBe(pinned)
     expect(getSceneJsonPath('scene')).toBe(join(pinned, 'metadata', 'scene.json'))
-  })
-
-  test('rejects flat legacy workspaces with migration guidance', async () => {
-    const workspace = await mkdtemp(join(tmpdir(), 'autoshow-comic-legacy-'))
-    roots.push(workspace)
-    await Bun.write(join(workspace, 'scene.json'), '{}')
-    expect(() => beginSceneRun('legacy', { outputDir: workspace })).toThrow(/unsupported flat legacy layout.*metadata\/.*assets\//)
   })
 
   test('loads assets below assets/ and still enforces registered checksums', async () => {

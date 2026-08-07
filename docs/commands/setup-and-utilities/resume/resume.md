@@ -149,7 +149,7 @@ Write resumes reuse the stored `prompt.md` and run only selected LLM providers t
 
 ## TTS Options
 
-Resume accepts only provider-neutral TTS options. Provider-named tuning flags such as `--elevenlabs-tts-stability`, `--minimax-tts-emotion`, `--deepgram-tts-container`, `--speechify-tts-voice-gender`, `--hume-tts-voice-provider`, and `--gemini-speaker-1-voice` are not part of the resume surface.
+Resume accepts only provider-neutral TTS options. Provider-named tuning flags such as `--elevenlabs-tts-stability`, `--minimax-tts-emotion`, `--deepgram-tts-container`, `--speechify-tts-voice-gender`, `--hume-tts-voice-provider`, and `--minimax-tts-pitch` are not part of the resume surface.
 
 | Flag | Description |
 |------|-------------|
@@ -165,7 +165,6 @@ Resume accepts only provider-neutral TTS options. Provider-named tuning flags su
 | `--tts-output-format <provider=value|value>` | Generic output format |
 | `--tts-chunk-concurrency <n>` | Hosted TTS chunk starts allowed in parallel per provider across the current run; default `30`, or `50` for Grok-only hosted TTS |
 | `--tts-dialogue-format <screenplay\|labeled>` | Dialogue input format for multi-speaker TTS |
-| `--tts-speaker-ref-audio <SPEAKER=path>` | Speaker reference audio mapping; repeatable |
 | `--tts-speaker <SPEAKER=VOICE\|path>` | Multi-speaker TTS voice mapping; repeatable |
 
 Use `--tts-speaker SPEAKER=VOICE` for multi-speaker resumes instead of provider-specific speaker flags. To change provider tuning on a resumed run, set it under `defaults` in `autoshow.config` or rerun the original `tts` command.
