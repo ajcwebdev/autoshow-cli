@@ -97,7 +97,7 @@ bun autoshow resume ./output/2026-04-22_12-00-00-000_run --provider cartesia=son
 bun autoshow resume ./output/2026-04-22_12-00-00-000_run --provider gemini=gemini-3.1-flash-lite-image
 bun autoshow resume ./output/2026-04-22_12-00-00-000_run --provider runway=gen4.5
 bun autoshow resume ./output/2026-04-22_12-00-00-000_run --provider ltx=ltx-2-3-fast
-bun autoshow resume ./output/2026-04-22_12-00-00-000_run --provider minimax=music-2.6
+bun autoshow resume ./output/2026-04-22_12-00-00-000_run --provider minimax=music-3.0
 bun autoshow resume ./output/2026-04-22_12-00-00-000_run --provider gemini=lyria-3-clip-preview
 
 # Add every supported provider for the resolved target

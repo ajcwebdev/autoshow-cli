@@ -318,6 +318,18 @@ describe('resume target-aware provider selectors', () => {
     )
     expect(music.flags['elevenlabs-music']).toBe('music_v1')
     expect(buildOpts(music.flags, music.explicitFlags, music.rawArgs).elevenlabsMusicModels).toEqual(['music_v1'])
+
+    const currentMusic = normalizeResumeSelectorFlagsForTarget(
+      target('music'),
+      { provider: ['elevenlabs=music_v2', 'minimax=music-3.0'] },
+      new Set(['provider']),
+      ['resume', 'out', '--provider', 'elevenlabs=music_v2', '--provider', 'minimax=music-3.0']
+    )
+    expect(currentMusic.flags['elevenlabs-music']).toBe('music_v2')
+    expect(currentMusic.flags['minimax-music']).toBe('music-3.0')
+    const currentMusicOpts = buildOpts(currentMusic.flags, currentMusic.explicitFlags, currentMusic.rawArgs)
+    expect(currentMusicOpts.elevenlabsMusicModels).toEqual(['music_v2'])
+    expect(currentMusicOpts.minimaxMusicModels).toEqual(['music-3.0'])
   })
 
   test('normalizes extract --provider selectors by route', () => {

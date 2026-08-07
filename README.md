@@ -137,7 +137,7 @@ bun autoshow video "make the lighting moonlit blue while keeping the mug motion 
 bun autoshow video "a timelapse storm over downtown chicago" --provider gemini=veo-3.1-lite-generate-preview --provider runway=gen4.5 --provider ltx=ltx-2-3-fast
 
 # Hosted music generation
-bun autoshow music "an ambient piano instrumental" --provider minimax=music-2.6
+bun autoshow music "an ambient piano instrumental" --provider minimax=music-3.0
 bun autoshow music "bright 90s pop rock with a huge chorus" --provider gemini=lyria-3-clip-preview
 
 # Local lyric-video rendering from repo audio

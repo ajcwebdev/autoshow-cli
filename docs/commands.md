@@ -178,7 +178,7 @@ bun autoshow music --audio input/examples/lyrics/01-example-song.mp3 --captions 
 bun autoshow music --input-dir input/examples/lyrics --batch --model small
 
 # music generation
-bun autoshow music "an ambient piano instrumental with soft strings" --provider minimax=music-2.6 --instrumental
+bun autoshow music "an ambient piano instrumental with soft strings" --provider minimax=music-3.0 --instrumental
 bun autoshow music "bright 90s pop rock with a huge chorus" --provider gemini=lyria-3-clip-preview
 
 # inspect or set persistent defaults
@@ -265,7 +265,7 @@ bun autoshow video "a sunset timelapse" --provider runway=gen4.5 --duration 5 --
 bun autoshow video "a sunset timelapse" --provider ltx=ltx-2-3-fast --duration 6 --resolution 1080p --price
 bun autoshow video "a sunset timelapse" --provider lumalabs=ray-3.2 --duration 5 --resolution 720p --price
 bun autoshow video "a sunset timelapse" --all-providers --price
-bun autoshow music "an ambient piano instrumental" --provider minimax=music-2.6 --instrumental --price
+bun autoshow music "an ambient piano instrumental" --provider minimax=music-3.0 --instrumental --price
 bun autoshow music "an ambient piano instrumental" --provider gemini=lyria-3-pro-preview --duration 120 --price
 bun autoshow comic draft-scenes input/scripts/02-script/01-co-work-smarter.md --price
 bun autoshow comic character-sketch --character peaches --price

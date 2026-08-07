@@ -1,6 +1,7 @@
+import { rename } from 'node:fs/promises'
 import { getGenerationTargetKey } from '~/cli/commands/process-steps/generation-command-utils'
 import { buildUpdatedGenerationCostTiming, hasResumableGenerationWork, priceGenerationTarget, resumeGenerationTarget } from '../generation-resume'
-import { collectMusicTargets } from '~/cli/commands/process-steps/step-7-music/music-targets'
+import { collectMusicTargets, getMusicArtifactFileName } from '~/cli/commands/process-steps/step-7-music/music-targets'
 import { runMusicTargets } from '~/cli/commands/process-steps/step-7-music/run-music-gen'
 import { computeActualCosts } from '~/utils/pricing/compute-actual-costs'
 import { computeActualProcessingTimes } from '~/utils/pricing/compute-processing-time'
@@ -70,6 +71,28 @@ const buildMusicPriceOptions = (
   geminiMusicModels: musicModelsForService(targets, 'gemini')
 })
 
+export const finalizeMusicResumeArtifacts = async (
+  metadata: Step7MusicMetadata[],
+  outputDir: string
+): Promise<Step7MusicMetadata[]> =>
+  await Promise.all(metadata.map(async (entry) => {
+    const finalFileName = getMusicArtifactFileName({
+      service: entry.musicService,
+      model: entry.musicModel
+    }, false)
+    if (entry.musicFileName === finalFileName) {
+      return entry
+    }
+
+    const finalPath = `${outputDir}/${finalFileName}`
+    await rename(`${outputDir}/${entry.musicFileName}`, finalPath)
+    return {
+      ...entry,
+      musicFileName: finalFileName,
+      musicFileSize: Bun.file(finalPath).size
+    }
+  }))
+
 const priceMusicTargets = async (
   targets: MusicTarget[],
   _input: string,
@@ -95,7 +118,7 @@ const musicResumeConfig = {
     opts: RuntimeOptions
   ) => {
     const { metadata } = await runMusicTargets(targets, input, outputDir, opts)
-    return metadata
+    return await finalizeMusicResumeArtifacts(metadata, outputDir)
   },
   priceTargets: priceMusicTargets,
   rebuildRunMetadata: (

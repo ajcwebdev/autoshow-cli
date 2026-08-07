@@ -192,6 +192,8 @@ describe('price mode contracts', () => {
       expect(resolveCheapestModelForFlag('bfl-image')).toBe('flux-2-klein-4b')
       expect(resolveCheapestModelForFlag('recraft-image')).toBe('recraftv4_1')
       expect(resolveCheapestModelForFlag('gemini-music')).toBe('lyria-3-clip-preview')
+      expect(resolveCheapestModelForFlag('elevenlabs-music')).toBe('music_v1')
+      expect(resolveCheapestModelForFlag('minimax-music')).toBe('music-3.0')
       expect(resolveCheapestModelForFlag('deepgram-stt')).toBe('nova-3')
       expect(resolveCheapestModelForFlag('grok-stt')).toBe('speech-to-text')
       expect(resolveCheapestModelForFlag('grok-tts')).toBe('grok-tts')
@@ -333,5 +335,27 @@ describe('price mode contracts', () => {
         { provider: 'gemini', model: 'lyria-3-clip-preview', totalCost: 4 },
         { provider: 'gemini', model: 'lyria-3-pro-preview', totalCost: 8 }
       ])
+    })
+
+  test('historical MiniMax Music 2.6 results retain registry fallback pricing', () => {
+      const costs = computeActualCosts({
+        step7: {
+          musicService: 'minimax',
+          musicModel: 'music-2.6',
+          processingTime: 1,
+          musicFileName: 'historical-music.mp3',
+          musicFileSize: 1,
+          musicDurationMs: undefined,
+          lyricsSource: 'generated'
+        }
+      })
+
+      expect(costs.steps[0]).toMatchObject({
+        step: 'music',
+        provider: 'minimax',
+        model: 'music-2.6',
+        cost: 16,
+        costSource: 'registry_fallback'
+      })
     })
 })

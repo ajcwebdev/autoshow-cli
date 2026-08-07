@@ -135,7 +135,7 @@ const priceCases: Array<{ label: string; args: string[]; expected: string | stri
   },
   {
     label: 'music',
-    args: ['music', 'an ambient piano song', '--provider', 'minimax=music-2.6', '--price'],
+    args: ['music', 'an ambient piano song', '--provider', 'minimax=music-3.0', '--price'],
     expected: 'music'
   },
   {

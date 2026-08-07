@@ -59,6 +59,39 @@
         "audioMimeType": "audio/mpeg",
         "outputFormat": "mp3",
         "generatedText": "[[A0]]\n[[B1]]\n[[C2]]"
+      },
+      {
+        "musicService": "minimax",
+        "musicModel": "music-3.0",
+        "processingTime": 178020,
+        "musicFileName": "generated-music-minimax-music-3.0.mp3",
+        "musicFileSize": 6637484,
+        "musicDurationMs": 207151,
+        "lyricsSource": "generated",
+        "audioMimeType": "audio/mpeg",
+        "audioSampleRate": 44100,
+        "audioChannelCount": 2,
+        "audioBitrate": 256000,
+        "providerAudioByteSize": 6637484,
+        "outputFormat": "mp3",
+        "providerTraceId": "06c47502445d5852214363b0ee575e40",
+        "generatedLyrics": "[Intro]\n\n[Verse]\nDusty case on the floor\nI don't play it anymore\nFingertips are feeling sore\nWaiting for a little more\nWalking through an open door\nSearching for the hidden core\n\n[Pre-Chorus]\nWait for the resonance\nFinding the evidence\nOf a love that didn't last\nEchoes from the distant past\n\n[Chorus]\nNylon heart\nTorn apart\nStrumming in the dark\nEvery spark\nLeaves a mark\nOn this hollow wood\nWish I could\nBe understood\n\n[Verse]\nSpanish cedar, ancient smell\nSecrets that I'll never tell\nTuning pegs are slipping fast\nHow long can the music last?\nPolished finish, amber glow\nWatching all the shadows grow\n\n[Pre-Chorus]\nWait for the resonance\nFinding the evidence\nOf a love that didn't last\nEchoes from the distant past\n\n[Chorus]\nNylon heart\nTorn apart\nStrumming in the dark\nEvery spark\nLeaves a mark\nOn this hollow wood\nWish I could\nBe understood\n\n[Hook]\nPluck the wire\nHigher and higher\nLight the fire\nSoul's desire\n\n[Bridge]\nFrets are worn and silver grey\nChasing notes that fly away\nThumb against the heavy bass\nTrying to find a steady pace\nTremolo and heavy sighs\nLooking through a stranger's eyes\n\n[Build-up]\nCan you hear the sound?\nLifting off the ground\nComing back around\nLost and never found\n\n[Chorus]\nNylon heart\nTorn apart\nStrumming in the dark\nEvery spark\nLeaves a mark\nOn this hollow wood\nWish I could\nBe understood\n\n[Post-Chorus]\nNylon heart\nTorn apart\nStrumming in the dark\nEvery spark\nLeaves a mark\n\n[Outro]",
+        "generatedSongTitle": "Nylon Strings & Midnight Rings",
+        "generatedStyleTags": "Acoustic, Folk-Pop, Melodic, Intimate, Instrumental-heavy"
+      },
+      {
+        "musicService": "elevenlabs",
+        "musicModel": "music_v2",
+        "processingTime": 8300,
+        "musicFileName": "generated-music-elevenlabs-music_v2.mp3",
+        "musicFileSize": 720621,
+        "musicDurationMs": 30000,
+        "lyricsSource": "generated",
+        "audioMimeType": "audio/mpeg",
+        "audioSampleRate": 48000,
+        "audioBitrate": 192000,
+        "providerAudioByteSize": 720621,
+        "outputFormat": "mp3_48000_192"
       }
     ],
     "cost": {
@@ -137,13 +170,13 @@
         ]
       },
       "actual": {
-        "totalCost": 42,
+        "totalCost": 59,
         "steps": [
           {
             "step": "music",
             "provider": "elevenlabs",
             "model": "music_v1",
-            "cost": 14,
+            "cost": 7.5,
             "costSource": "registry_fallback",
             "inputMetric": "durationMs",
             "inputValue": 30000
@@ -171,6 +204,24 @@
             "provider": "gemini",
             "model": "lyria-3-pro-preview",
             "cost": 8,
+            "costSource": "registry_fallback",
+            "inputMetric": "durationMs",
+            "inputValue": 30000
+          },
+          {
+            "step": "music",
+            "provider": "minimax",
+            "model": "music-3.0",
+            "cost": 16,
+            "costSource": "registry_fallback",
+            "inputMetric": "durationMs",
+            "inputValue": 207151
+          },
+          {
+            "step": "music",
+            "provider": "elevenlabs",
+            "model": "music_v2",
+            "cost": 7.5,
             "costSource": "registry_fallback",
             "inputMetric": "durationMs",
             "inputValue": 30000
@@ -237,7 +288,7 @@
         ]
       },
       "actual": {
-        "totalProcessingTimeMs": 161623,
+        "totalProcessingTimeMs": 347943,
         "steps": [
           {
             "step": "music",
@@ -290,6 +341,32 @@
             "throughputValue": 1.314,
             "throughputUnit": "x",
             "timingScope": "wall"
+          },
+          {
+            "step": "music",
+            "provider": "minimax",
+            "model": "music-3.0",
+            "processingTimeMs": 178020,
+            "inputMetric": "durationSeconds",
+            "inputValue": 207.151,
+            "rateBasis": "durationSecond",
+            "msPerUnit": 859.373,
+            "throughputValue": 1.164,
+            "throughputUnit": "x",
+            "timingScope": "wall"
+          },
+          {
+            "step": "music",
+            "provider": "elevenlabs",
+            "model": "music_v2",
+            "processingTimeMs": 8300,
+            "inputMetric": "durationSeconds",
+            "inputValue": 30,
+            "rateBasis": "durationSecond",
+            "msPerUnit": 276.667,
+            "throughputValue": 3.614,
+            "throughputUnit": "x",
+            "timingScope": "wall"
           }
         ]
       }
@@ -311,6 +388,14 @@
       {
         "service": "gemini",
         "model": "lyria-3-pro-preview"
+      },
+      {
+        "service": "elevenlabs",
+        "model": "music_v2"
+      },
+      {
+        "service": "minimax",
+        "model": "music-3.0"
       }
     ]
   }

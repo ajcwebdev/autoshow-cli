@@ -59,6 +59,39 @@
         "audioMimeType": "audio/mpeg",
         "outputFormat": "mp3",
         "generatedText": "[[A0]]\n[[B1]]\n[11.4:] Windows down and your tail is in the breeze,\n[:] (Tail in the breeze)\n[:] Golden light across the whiskers, feeling at ease.\n[:] (Feeling at ease)\n[:] We’re chasing the heat across the yellow lines,\n[:] Just a couple of kittens in the summer sunshine.\n[[C2]]\n[29.7:] Oh, kittens on the dashboard, chasing the sun,\n[:] Summer road trip has only just begun!\n[:] Meowing at the mountains, purring to the beat,\n[:] Life is just a bowl of cream and something sweet!\n[:] (Something sweet!)\n[[D3]]\n[48.0:] Yeah, kittens on the dashboard...\n[:] Just a couple of kittens...\n[:] Summer heat, so sweet...\n[:] Purr..."
+      },
+      {
+        "musicService": "minimax",
+        "musicModel": "music-3.0",
+        "processingTime": 185868,
+        "musicFileName": "generated-music-minimax-music-3.0.mp3",
+        "musicFileSize": 6962146,
+        "musicDurationMs": 217286,
+        "lyricsSource": "generated",
+        "audioMimeType": "audio/mpeg",
+        "audioSampleRate": 44100,
+        "audioChannelCount": 2,
+        "audioBitrate": 256000,
+        "providerAudioByteSize": 6962146,
+        "outputFormat": "mp3",
+        "providerTraceId": "06c473967ad737f53a11d6d4edd8a13d",
+        "generatedLyrics": "[Intro]\n\n[Hook]\nWindows down, paws on the dash\nSummer sun, making a splash\nTail flicking to the beat\nFeeling that asphalt heat\n\n[Verse]\nOld Honda, dusty and blue\nTuna treats, a bay view\nStaring at a bird or two\nSearching for something new\nFur against the vinyl seat\nLife is bittersweet and sweet\n\n[Chorus]\nTraveler with amber eyes\nChasing shadows, orange skies\nFour paws on the floor\nDon't need a map anymore\nPurr of the motor\nScent of the clover\nSummer isn't over\n\n[Verse]\nGas stops at half-past nine\nLooking at the neon sign\nStretch like a crescent moon\nReach the ocean fairly soon\nBoxes piled in the back\nSnacks in a paper sack\n\n[Pre-Chorus]\nThe world is wide and green\nThe best I've ever seen\nWith my best friend by my side\nEnjoying the bumpy ride\n\n[Chorus]\nTraveler with amber eyes\nChasing shadows, orange skies\nFour paws on the floor\nDon't need a map anymore\nPurr of the motor\nScent of the clover\nSummer isn't over\n\n[Bridge]\nNo collars, just open space\nWind across your face\nNap in the golden light\nEverything is alright\nMeow at passing trucks\nWe don't care about luck\n\n[Verse]\nSand in your fuzzy fur\nHear that happy motor purr\nPink tint on your nose\nStrike a little pose\nSunset on every street\nJourney is complete\n\n[Chorus]\nTraveler with amber eyes\nChasing shadows, orange skies\nFour paws on the floor\nDon't need a map anymore\nPurr of the motor\nScent of the clover\nSummer isn't over\n\n[Post-Chorus]\nSummer isn't over\nScent of the clover\nPurr of the motor\nYeah, we're taking over\n\n[Outro]",
+        "generatedSongTitle": "Whiskers in the Wind",
+        "generatedStyleTags": "Indie Pop, Nostalgic, Summer, Road Trip, Whimsical"
+      },
+      {
+        "musicService": "elevenlabs",
+        "musicModel": "music_v2",
+        "processingTime": 11685,
+        "musicFileName": "generated-music-elevenlabs-music_v2.mp3",
+        "musicFileSize": 1440621,
+        "musicDurationMs": 60000,
+        "lyricsSource": "generated",
+        "audioMimeType": "audio/mpeg",
+        "audioSampleRate": 48000,
+        "audioBitrate": 192000,
+        "providerAudioByteSize": 1440621,
+        "outputFormat": "mp3_48000_192"
       }
     ],
     "cost": {
@@ -137,13 +170,13 @@
         ]
       },
       "actual": {
-        "totalCost": 56,
+        "totalCost": 74,
         "steps": [
           {
             "step": "music",
             "provider": "elevenlabs",
             "model": "music_v1",
-            "cost": 28,
+            "cost": 15,
             "costSource": "registry_fallback",
             "inputMetric": "durationMs",
             "inputValue": 60000
@@ -171,6 +204,24 @@
             "provider": "gemini",
             "model": "lyria-3-pro-preview",
             "cost": 8,
+            "costSource": "registry_fallback",
+            "inputMetric": "durationMs",
+            "inputValue": 60000
+          },
+          {
+            "step": "music",
+            "provider": "minimax",
+            "model": "music-3.0",
+            "cost": 16,
+            "costSource": "registry_fallback",
+            "inputMetric": "durationMs",
+            "inputValue": 217286
+          },
+          {
+            "step": "music",
+            "provider": "elevenlabs",
+            "model": "music_v2",
+            "cost": 15,
             "costSource": "registry_fallback",
             "inputMetric": "durationMs",
             "inputValue": 60000
@@ -237,7 +288,7 @@
         ]
       },
       "actual": {
-        "totalProcessingTimeMs": 189136,
+        "totalProcessingTimeMs": 386689,
         "steps": [
           {
             "step": "music",
@@ -290,6 +341,32 @@
             "throughputValue": 1.644,
             "throughputUnit": "x",
             "timingScope": "wall"
+          },
+          {
+            "step": "music",
+            "provider": "minimax",
+            "model": "music-3.0",
+            "processingTimeMs": 185868,
+            "inputMetric": "durationSeconds",
+            "inputValue": 217.286,
+            "rateBasis": "durationSecond",
+            "msPerUnit": 855.407,
+            "throughputValue": 1.169,
+            "throughputUnit": "x",
+            "timingScope": "wall"
+          },
+          {
+            "step": "music",
+            "provider": "elevenlabs",
+            "model": "music_v2",
+            "processingTimeMs": 11685,
+            "inputMetric": "durationSeconds",
+            "inputValue": 60,
+            "rateBasis": "durationSecond",
+            "msPerUnit": 194.75,
+            "throughputValue": 5.135,
+            "throughputUnit": "x",
+            "timingScope": "wall"
           }
         ]
       }
@@ -311,6 +388,14 @@
       {
         "service": "gemini",
         "model": "lyria-3-pro-preview"
+      },
+      {
+        "service": "elevenlabs",
+        "model": "music_v2"
+      },
+      {
+        "service": "minimax",
+        "model": "music-3.0"
       }
     ]
   }

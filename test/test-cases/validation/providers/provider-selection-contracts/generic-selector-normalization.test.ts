@@ -26,7 +26,7 @@ describe('provider selection contracts', () => {
       provider: ['gemini=veo-3.1-lite-generate-preview', 'runway=gen4.5', 'ltx=ltx-2-3-fast', 'replicate=wan-video/wan-2.7-t2v']
     }, new Set(['provider']), 'provider', STANDALONE_VIDEO_PROVIDER_TARGETS, { allProvidersTarget: 'all-video' })
     const musicNormalized = normalizeGenericProviderSelectorFlags({
-      provider: ['minimax=music-2.6', 'gemini=lyria-3-clip-preview']
+      provider: ['minimax=music-3.0', 'gemini=lyria-3-clip-preview']
     }, new Set(['provider']), 'provider', STANDALONE_MUSIC_PROVIDER_TARGETS, { allProvidersTarget: 'all-music' })
     const ttsAllLocalNormalized = normalizeGenericProviderSelectorFlags({
       'all-local': true
@@ -62,7 +62,7 @@ describe('provider selection contracts', () => {
       'replicate:wan-video/wan-2.7-t2v'
     ])
     expect(collectMusicTargets(musicOpts).map((target) => `${target.service}:${target.model}`)).toEqual([
-      'minimax:music-2.6',
+      'minimax:music-3.0',
       'gemini:lyria-3-clip-preview'
     ])
 

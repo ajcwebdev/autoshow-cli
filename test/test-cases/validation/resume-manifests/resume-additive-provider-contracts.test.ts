@@ -14,6 +14,7 @@ import { getSelectedUrlTargets, resolveUrlArticleResumePlan } from '~/cli/comman
 import { hasResumableOcrTargetWork } from '~/cli/commands/setup-and-utilities/resume/extract/ocr-resume'
 import { writeOcrRunManifest } from '~/cli/commands/process-steps/step-2-extract/step-2-ocr/ocr-manifest'
 import { hasResumableSttTargetWork, priceSttTarget } from '~/cli/commands/setup-and-utilities/resume/extract/stt-resume'
+import { finalizeMusicResumeArtifacts } from '~/cli/commands/setup-and-utilities/resume/generation/music-resume'
 import { writeSttRunManifest } from '~/cli/commands/process-steps/step-2-extract/step-2-stt/stt-manifest'
 import { readExistingSttRun } from '~/cli/commands/process-steps/step-2-extract/step-2-stt/stt-batch/stt-run-state'
 import type { BatchManifestEntry, OcrTarget, ProviderBatchResumeConfig, ProviderIdentity, ResumeFakeMetadata, ResumeFakeProviderResumeEntry, ResumeTarget, RuntimeOptions, SttTarget } from '~/types'
@@ -180,6 +181,27 @@ const fakeProviderResumeConfig = (
 })
 
 describe('additive resume provider selection', () => {
+  test('music resume promotes a single additive output to its provider-specific filename', async () => {
+    await withTempDir('autoshow-music-resume-artifact-', async (dir) => {
+      await Bun.write(join(dir, 'generated-music.mp3'), new Uint8Array([1, 2, 3]))
+
+      const [metadata] = await finalizeMusicResumeArtifacts([{
+        musicService: 'elevenlabs',
+        musicModel: 'music_v2',
+        processingTime: 1,
+        musicFileName: 'generated-music.mp3',
+        musicFileSize: 0,
+        musicDurationMs: 3000,
+        lyricsSource: 'none'
+      }], dir)
+
+      expect(metadata?.musicFileName).toBe('generated-music-elevenlabs-music_v2.mp3')
+      expect(metadata?.musicFileSize).toBe(3)
+      expect(await Bun.file(join(dir, 'generated-music.mp3')).exists()).toBe(false)
+      expect(await Bun.file(join(dir, 'generated-music-elevenlabs-music_v2.mp3')).exists()).toBe(true)
+    })
+  })
+
   test('shared resolver preserves stored order and appends new selected providers', () => {
     const openai = { service: 'openai', model: 'gpt-image-2' }
     const gemini = { service: 'gemini', model: 'gemini-3.1-flash-lite-image' }

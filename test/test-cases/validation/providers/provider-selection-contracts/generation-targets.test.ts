@@ -156,7 +156,8 @@ describe('provider selection contracts', () => {
     ])
     expect(collectMusicTargets(allOpts).map((target) => `${target.service}:${target.model}`)).toEqual([
       'elevenlabs:music_v1',
-      'minimax:music-2.6',
+      'elevenlabs:music_v2',
+      'minimax:music-3.0',
       'gemini:lyria-3-clip-preview',
       'gemini:lyria-3-pro-preview'
     ])

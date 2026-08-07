@@ -696,7 +696,7 @@ describe('logging contracts', () => {
         {
           step: 'music',
           provider: 'minimax',
-          model: 'music-2.6',
+          model: 'music-3.0',
           durationSeconds: 180,
           lyricsSource: 'generated',
           totalCost: 500

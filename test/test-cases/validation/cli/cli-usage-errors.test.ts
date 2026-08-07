@@ -534,7 +534,7 @@ test('music lyric-video mode rejects missing audio or batch', async () => {
 
 test('music rejects mixed hosted generation and lyric-video modes', async () => {
   await expectUsageExit(
-    ['music', '--audio', STABLE_EXAMPLE_AUDIO_URL, '--provider', 'minimax=music-2.6'],
+    ['music', '--audio', STABLE_EXAMPLE_AUDIO_URL, '--provider', 'minimax=music-3.0'],
     'Do not combine hosted music flags'
   )
   await expectUsageExit(

@@ -5,7 +5,7 @@ defineMusicServiceTest({
   ...minimaxMusic,
   models: [
     {
-      model: 'music-2.6',
+      model: 'music-3.0',
       prompt: 'an ambient piano instrumental',
       extraArgs: ['--instrumental'],
       expectedLyricsSource: 'none',

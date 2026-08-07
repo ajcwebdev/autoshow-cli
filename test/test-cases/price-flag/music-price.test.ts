@@ -5,6 +5,7 @@ import { runCommand } from '../../test-utils/test-helpers'
 defineMusicServicePriceTests({
   models: [
     { model: 'music_v1', prompt: 'upbeat electronic instrumental with warm synth pads', extraArgs: ['--duration', '12', '--instrumental'] },
+    { model: 'music_v2', prompt: 'cinematic electronic instrumental with pulsing synths', extraArgs: ['--duration', '12', '--instrumental'] },
   ],
   provider: 'elevenlabs',
   musicService: 'elevenlabs',
@@ -12,7 +13,7 @@ defineMusicServicePriceTests({
 
 defineMusicServicePriceTests({
   models: [
-    { model: 'music-2.6', prompt: 'uplifting indie rock with bright guitars', extraArgs: ['--lyrics-file', 'input/examples/tts/0-tts-short.txt'] },
+    { model: 'music-3.0', prompt: 'uplifting indie rock with bright guitars', extraArgs: ['--lyrics-file', 'input/examples/tts/0-tts-short.txt'] },
   ],
   provider: 'minimax',
   musicService: 'minimax',
@@ -29,20 +30,20 @@ defineMusicServicePriceTests({
 
 test('--price with both providers shows two cost rows and per-provider filenames', async () => {
   const result = await runCommand(
-    ['src/cli/create-cli.ts', 'music', 'an ambient piano song', '--provider', 'elevenlabs=music_v1', '--provider', 'minimax=music-2.6', '--price'],
+    ['src/cli/create-cli.ts', 'music', 'an ambient piano song', '--provider', 'elevenlabs=music_v2', '--provider', 'minimax=music-3.0', '--price'],
   )
   const output = `${result.stdout}\n${result.stderr}`
   expect(result.exitCode).toBe(0)
   expect(output).toContain('Cost Estimate')
   expect(output).toContain('elevenlabs')
   expect(output).toContain('minimax')
-  expect(output).toContain('generated-music-elevenlabs-music_v1.mp3')
-  expect(output).toContain('generated-music-minimax-music-2.6.mp3')
+  expect(output).toContain('generated-music-elevenlabs-music_v2.mp3')
+  expect(output).toContain('generated-music-minimax-music-3.0.mp3')
 })
 
 test('write --price includes MiniMax music estimate for a real input', async () => {
   const result = await runCommand(
-    ['src/cli/create-cli.ts', 'write', 'https://ajc.pics/autoshow/examples/1-audio.mp3', '--music', 'minimax=music-2.6', '--price'],
+    ['src/cli/create-cli.ts', 'write', 'https://ajc.pics/autoshow/examples/1-audio.mp3', '--music', 'minimax=music-3.0', '--price'],
   )
   const output = `${result.stdout}\n${result.stderr}`
 
@@ -50,6 +51,6 @@ test('write --price includes MiniMax music estimate for a real input', async () 
   expect(output).toContain('Cost Estimate')
   expect(output).toContain('music')
   expect(output).toContain('minimax')
-  expect(output).toContain('music-2.6')
+  expect(output).toContain('music-3.0')
   expect(output).toContain('Music file')
 })
