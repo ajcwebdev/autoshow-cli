@@ -38,7 +38,7 @@ export const benchmarkCommand = defineCliCommand({
       default: '1.25,1.5,2.0,2.5,3.0'
     },
     'stt-services': {
-      description: 'Comma-separated STT services to test (default: all available)',
+      description: 'Comma-separated STT services to test, each optionally pinned as service:model (default: all available; local whisper benchmarks base only, larger sizes are opt-in)',
       type: String
     },
     'reference-stt': {
@@ -98,6 +98,7 @@ export const benchmarkCommand = defineCliCommand({
     examples: [
       ['bun autoshow benchmark input/examples/audio/1-audio.mp3', 'Run full benchmark with all available STT services'],
       ['bun autoshow benchmark audio.mp3 --stt-services whisper', 'Benchmark with local Whisper only'],
+      ['bun autoshow benchmark audio.mp3 --stt-services whisper:base,whisper:large-v3-turbo', 'Opt in to extra local Whisper model sizes'],
       ['bun autoshow benchmark audio.mp3 --stt-services deepgram,groq --skip-speed', 'Compression-only benchmark with select services'],
       ['bun autoshow benchmark audio.mp3 --bitrates 96,64,32,16 --speeds 1.5,2.0,3.0', 'Custom bitrate and speed ranges'],
       ['bun autoshow benchmark docs/benchmarks/tts/<run> --tts', 'Score an existing TTS run with full scoring'],

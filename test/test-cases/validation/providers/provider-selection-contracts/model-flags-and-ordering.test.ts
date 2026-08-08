@@ -7,10 +7,12 @@ import {
   collectStep2ProviderSpecs,
   collectUrlArticleTargets,
   HOSTED_URL_ARTICLE_BACKENDS,
+  LOCAL_URL_ARTICLE_BACKENDS,
   URL_ARTICLE_BACKENDS,
   getStep2ProviderSelectionFlagNames
 } from '~/cli/commands/process-steps/step-2-extract/step-2-shared/provider-registry'
 import { resolveOcrStep2ExecutionFromFormat } from '~/cli/commands/process-steps/step-2-extract/step-2-shared/resolved-step2'
+import { isLocalUrlBackend } from '~/cli/commands/process-steps/step-2-extract/step-2-url/url-targets'
 import { formatModelSelector } from '~/cli/commands/setup-and-utilities/models/model-validation'
 
 describe('provider selection contracts', () => {
@@ -103,6 +105,15 @@ describe('provider selection contracts', () => {
       'supadata',
       'zyte'
     ])
+    expect(LOCAL_URL_ARTICLE_BACKENDS).toEqual(['defuddle'])
+    // isLocalUrlBackend derives from the registry's all-local-url label, so local and hosted
+    // must stay a partition: an entry whose allShortcut drifts would silently move a backend
+    // between the local and hosted concurrency pools without failing anywhere else.
+    for (const backend of URL_ARTICLE_BACKENDS) {
+      expect(isLocalUrlBackend(backend)).toBe(
+        !(HOSTED_URL_ARTICLE_BACKENDS as readonly string[]).includes(backend)
+      )
+    }
     expect(getStep2ProviderSelectionFlagNames('url')).toEqual(['url-provider'])
 
     const explicitOpts = buildOptsFromFlags(false, {

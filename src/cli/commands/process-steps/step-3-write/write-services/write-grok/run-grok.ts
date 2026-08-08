@@ -5,7 +5,7 @@ import { XAI_DEFAULT_BASE_URL } from '~/utils/base-urls'
 import type { Step3Metadata, StructuredRequestOptions } from '~/types'
 import { runOpenAICompatibleChatModel } from '../openai-compatible-chat'
 
-const getGrokClientConfig = (baseUrl: string = XAI_DEFAULT_BASE_URL): { apiKey: string, baseURL: string } => {
+const getGrokClientConfig = (): { apiKey: string, baseURL: string } => {
   const apiKey = readEnv('XAI_API_KEY')
   if (!apiKey) {
     l.error('XAI_API_KEY not found in environment for Grok model')
@@ -14,17 +14,16 @@ const getGrokClientConfig = (baseUrl: string = XAI_DEFAULT_BASE_URL): { apiKey: 
 
   return {
     apiKey,
-    baseURL: baseUrl.trim().replace(/\/+$/, '')
+    baseURL: XAI_DEFAULT_BASE_URL
   }
 }
 
 export const runGrokModel = async (
   prompt: string,
   model: string,
-  structuredOpts?: StructuredRequestOptions,
-  baseUrl?: string
+  structuredOpts?: StructuredRequestOptions
 ): Promise<{ result: string, metadata: Step3Metadata }> => {
-  const config = getGrokClientConfig(baseUrl)
+  const config = getGrokClientConfig()
 
   return await runOpenAICompatibleChatModel({
     prompt,

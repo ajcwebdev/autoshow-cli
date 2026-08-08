@@ -59,7 +59,7 @@ Document OCR benchmarks are not run by `bun autoshow benchmark`. For OCR, run th
 |----------------------|--------------------------------|-------------------------------------------------|
 | `--bitrates`         | `128,96,64,48,32,24,16,8`     | Comma-separated bitrate list in kbps            |
 | `--speeds`           | `1.25,1.5,2.0,2.5,3.0`        | Comma-separated speed multipliers               |
-| `--stt-services`     | all available                  | Comma-separated STT services to test            |
+| `--stt-services`     | all available                  | Comma-separated STT services to test, each optionally pinned as `service:model` |
 | `--reference-stt`    | `deepgram:nova-3`              | Service:model pair for reference transcription  |
 | `--skip-compression` | `false`                        | Skip compression spectrum tests                 |
 | `--skip-speed`       | `false`                        | Skip speed spectrum tests                       |
@@ -109,8 +109,11 @@ Video mode calls the OpenAI Responses API once per generated video after extract
 # Full benchmark with all available STT services
 bun autoshow benchmark input/examples/audio/1-audio.mp3
 
-# Benchmark with local Whisper only (free, no API keys needed)
-bun autoshow benchmark input/examples/audio/1-audio.mp3 --stt-services whisper
+# Benchmark with local Whisper only (free, no API keys needed; requires `bun autoshow setup --step whisper-binary`)
+bun autoshow benchmark input/examples/audio/1-audio.mp3 --stt-services whisper --reference-stt whisper:base
+
+# Opt in to extra local Whisper model sizes
+bun autoshow benchmark audio.mp3 --stt-services whisper:base,whisper:large-v3-turbo
 
 # Compression-only benchmark with select cloud services
 bun autoshow benchmark audio.mp3 --stt-services deepgram,groq --skip-speed
@@ -425,11 +428,11 @@ Every scheduled service/model/variant writes `benchmark-attempt.json` before pro
 
 ## Service availability
 
-The benchmark automatically detects which STT services are available based on environment variables and installed CLI tools:
+The benchmark automatically detects which STT services are available based on environment variables and installed local binaries:
 
 | Service       | Requires                    |
 |---------------|-----------------------------|
-| whisper       | `whisper-cpp` binary        |
+| whisper       | `runtime/bin/whisper-cli`   |
 | deepgram      | `DEEPGRAM_API_KEY`          |
 | groq          | `GROQ_API_KEY`              |
 | grok          | `XAI_API_KEY`               |
@@ -446,12 +449,31 @@ The benchmark automatically detects which STT services are available based on en
 
 Services that require URLs (`youtube-captions`, `supadata`, `scrapecreators`) are excluded since the benchmark works with locally-generated audio files.
 
+Whisper is the managed `runtime/bin/whisper-cli` build, invoked by absolute path and never placed on `PATH`, so its availability is a file check on that binary. Install it with `bun autoshow setup --step whisper-binary`; until it exists, whisper is skipped with a message naming that command.
+
 Use `--stt-services` to restrict to a subset (e.g., `--stt-services whisper,deepgram,groq`).
+
+### Pinning models
+
+Each entry in `--stt-services` is either a bare service name, which benchmarks that service's default models, or a `service:model` pair, which replaces the defaults for that service. The spelling matches `--reference-stt`. Repeat a service to benchmark several of its models in one run:
+
+```bash
+# Default: one whisper model (base)
+bun autoshow benchmark audio.mp3 --stt-services whisper
+
+# Opt in to additional local model sizes
+bun autoshow benchmark audio.mp3 --stt-services whisper:base,whisper:small,whisper:large-v3-turbo
+
+# Mix a pinned local model with a hosted service's defaults
+bun autoshow benchmark audio.mp3 --stt-services whisper:tiny,deepgram
+```
+
+Every service benchmarks one model by default, whisper included. Whisper's default is `base` (~150 MB), which the first run downloads into `runtime/models/whisper` before transcribing; the accepted whisper sizes are `tiny`, `base`, `small`, `medium`, and `large-v3-turbo`. Each additional size costs another download — the repo pins `tiny` at ~78 MB and `large-v3-turbo` at ~1.6 GB, with the rest in between — and, on a CoreML-capable macOS host, another one-time CoreML conversion of that model. Each model also adds a full pass over every compression and speed variant, so wall-clock scales with the number of models, not just the number of services.
 
 ## Notes
 
 - Running all services across all variants generates many API calls. Use `--stt-services` to limit scope and control costs.
-- The benchmark reuses the project's existing `sttTarget()` dispatch infrastructure, so all service-specific behaviors (auto-splitting, retry logic, async polling) apply.
-- For a free initial test, use `--stt-services whisper` which runs entirely locally.
+- The benchmark reuses the project's existing `sttTarget()` dispatch infrastructure, so all service-specific behaviors (auto-splitting, retry logic, async polling) apply. That includes local model provisioning: a whisper model named in `--stt-services` or `--reference-stt` is downloaded on first use if it is missing.
+- For a free initial test, use `--stt-services whisper --reference-stt whisper:base`, which runs entirely locally. Budget for the one-time `base` model download (~150 MB) and for whisper being slower per variant than the hosted services.
 - The reference transcription quality matters: choose a high-quality service as the reference to ensure meaningful WER comparisons.
 - Speed variants test how well services handle faster speech, not content changes. The same words are spoken in all speed variants.

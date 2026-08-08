@@ -12,6 +12,12 @@ export type SttServiceSpec = ProviderIdentityBase<TranscribeEngine> & {
   envVar: string | undefined
 }
 
+// Mirrors ResolveRuntimeToolOptions: the filesystem probe is injectable so both arms of local
+// service availability can be pinned without depending on what is installed on the test machine.
+export type BenchmarkServiceResolutionOptions = {
+  exists?: ((path: string) => boolean) | undefined
+}
+
 export type VariantTranscription = ProviderIdentityBase & {
   variant: AudioVariant
   text: string

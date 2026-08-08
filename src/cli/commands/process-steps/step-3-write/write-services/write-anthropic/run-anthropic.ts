@@ -8,8 +8,7 @@ import { getAnthropicClientConfig } from '~/cli/commands/process-steps/step-3-wr
 export const runAnthropicModel = async (
   prompt: string,
   model: string,
-  structuredOpts?: StructuredRequestOptions,
-  baseUrl?: string
+  structuredOpts?: StructuredRequestOptions
 ): Promise<{ result: string, metadata: Step3Metadata }> => {
   const apiKey = readEnv('ANTHROPIC_API_KEY')
   if (!apiKey) {
@@ -17,7 +16,7 @@ export const runAnthropicModel = async (
     throw InternalError('ANTHROPIC_API_KEY environment variable is required', { stage: 'write:anthropic', hints: hintsForMissingEnv('ANTHROPIC_API_KEY') })
   }
 
-  const config = getAnthropicClientConfig(baseUrl)
+  const config = getAnthropicClientConfig()
 
   return await runAnthropicCompatibleModel({
     prompt,

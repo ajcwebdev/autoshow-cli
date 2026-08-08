@@ -17,9 +17,6 @@ const ensureTogetherApiKey = (): string => {
   return apiKey
 }
 
-const resolveTogetherBaseUrl = (baseUrl: string = TOGETHER_DEFAULT_BASE_URL): string =>
-  baseUrl.trim().replace(/\/+$/, '')
-
 export const resolveTogetherApiModel = (model: string): string => {
   if (!(model in TOGETHER_MODEL_BY_SELECTOR)) {
     throw CLIUsageError(`Unsupported Together model selector "${model}". Allowed values: kimi-k2.6, glm-5.1`)
@@ -31,12 +28,11 @@ export const resolveTogetherApiModel = (model: string): string => {
 export const runTogetherModel = async (
   prompt: string,
   model: string,
-  structuredOpts?: StructuredRequestOptions,
-  baseUrl?: string
+  structuredOpts?: StructuredRequestOptions
 ): Promise<{ result: string, metadata: Step3Metadata }> => {
   const config = {
     apiKey: ensureTogetherApiKey(),
-    baseURL: resolveTogetherBaseUrl(baseUrl),
+    baseURL: TOGETHER_DEFAULT_BASE_URL,
     provider: 'together'
   }
 

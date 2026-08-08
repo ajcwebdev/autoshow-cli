@@ -221,16 +221,29 @@ describe('combined-report weighted ranking contracts', () => {
       expect(report.tiering['service']?.tiers.map((tier) => tier.count)).toEqual([2, 2, 1])
     }
 
+    // Deny-list over the generated artifact, matched at key position (`"<field>":`) rather
+    // than as a bare quoted token, so a string *value* that happens to equal one of these
+    // names cannot trip it. All three builders emit `JSON.stringify(report, null, 2)`, so
+    // every real key carries the colon.
     for (const legacyField of [
+      // Tombstones. Fields of the retired placement-surface schema (ADR-014: the current
+      // versions "do not expose the former placement-surface counts, thresholds, or
+      // placement lists"). No builder can produce these any more, so they guard a revert.
       'surfaceCount',
       'topN',
       'thresholds',
       'surfaces',
       'topPlacements',
       'placementSurfaces',
+      // Not a tombstone — this is the entry guarding a live regression path.
+      // `balancedComposite` is a real in-memory field: `computeGroupSubscores` sets it on
+      // every `ProviderSubscores` row and the HTML dashboard ranks by it via
+      // `balancedCells`. It stays out of the JSON only because each builder routes
+      // `subscoresByGroup` into `buildDashboardGroup` and never into `jsonReport`.
+      // Serializing a subscore row directly would leak it, and this is what catches that.
       'balancedComposite'
     ]) {
-      expect(jsonText).not.toContain(`"${legacyField}"`)
+      expect(jsonText).not.toContain(`"${legacyField}":`)
     }
   })
 })

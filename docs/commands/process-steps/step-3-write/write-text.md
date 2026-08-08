@@ -280,7 +280,7 @@ bun autoshow write https://ajc.pics/autoshow/examples/1-audio.mp3 --llm together
 bun autoshow write https://ajc.pics/autoshow/examples/1-audio.mp3 --llm together=glm-5.1
 ```
 
-Together uses OpenAI-compatible chat completions at `https://api.together.xyz/v1` by default. AutoShow keeps the public short selectors in output metadata and maps them internally to Together model IDs: `kimi-k2.6` maps to `moonshotai/Kimi-K2.6`, and `glm-5.1` maps to `zai-org/GLM-5.1`.
+Together uses OpenAI-compatible chat completions at `https://api.together.xyz/v1`, which is fixed and not configurable. AutoShow keeps the public short selectors in output metadata and maps them internally to Together model IDs: `kimi-k2.6` maps to `moonshotai/Kimi-K2.6`, and `glm-5.1` maps to `zai-org/GLM-5.1`.
 
 Together estimates are based on the Together serverless pricing docs. Kimi K2.6 uses `$1.20 / 1M input`, `$0.20 / 1M cached input`, and `$4.50 / 1M output`; GLM-5.1 uses `$1.40 / 1M input`, `$0.26 / 1M cached input`, and `$4.40 / 1M output`. AutoShow uses uncached input/output pricing for `--price`.
 
@@ -298,7 +298,7 @@ bun autoshow write https://ajc.pics/autoshow/examples/1-audio.mp3 --llm cerebras
 bun autoshow write https://ajc.pics/autoshow/examples/1-audio.mp3 --llm cerebras=zai-glm-4.7
 ```
 
-Cerebras uses OpenAI-compatible chat completions at `https://api.cerebras.ai/v1` by default. AutoShow uses the public Cerebras model IDs directly: `gpt-oss-120b` for OpenAI GPT OSS 120B and `zai-glm-4.7` for Z.ai GLM 4.7 Preview.
+Cerebras uses OpenAI-compatible chat completions at `https://api.cerebras.ai/v1`, which is fixed and not configurable. AutoShow uses the public Cerebras model IDs directly: `gpt-oss-120b` for OpenAI GPT OSS 120B and `zai-glm-4.7` for Z.ai GLM 4.7 Preview.
 
 For structured output, Cerebras strict mode accepts a smaller JSON Schema subset than some other OpenAI-compatible providers. AutoShow removes unsupported request-side schema keywords such as string length, string pattern/format, and array length constraints before sending the Cerebras request, then still validates the returned JSON against the full local schema before writing metadata and output files.
 

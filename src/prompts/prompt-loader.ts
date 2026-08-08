@@ -311,8 +311,3 @@ export const collectLeafPrompts = async (names: string[]): Promise<ResolvedLeafP
   const registry = await loadPrompts()
   return collectLeafPromptsFromRegistry(registry, names, true)
 }
-
-export const resolvePresetNames = async (names: string[]): Promise<string[]> => {
-  const leaves = await collectLeafPrompts(names)
-  return leaves.map(({ name, entry }) => entry.structuredPreset ?? name)
-}

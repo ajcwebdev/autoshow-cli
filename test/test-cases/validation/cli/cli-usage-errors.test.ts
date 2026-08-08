@@ -308,6 +308,12 @@ test('video positional image rejects conflicting explicit text mode', async () =
   )
 })
 
+// Step 2 is one command with three modalities — `step-2-extract/` holds `step-2-stt/`,
+// `step-2-ocr/`, and `step-2-url/` — so `stt` and `ocr` are reserved names, not retired ones,
+// and `tts` being public is what makes them the two a reader would most plausibly claim next.
+// Nothing in the parser reserves them: they fall through the generic unknown-command path like
+// any other typo, so this test is the whole of the reservation rather than a check on one.
+// Deleting it is the deliberate act required to reintroduce either name as a public command.
 test('legacy step-2 command names are not public commands', async () => {
   for (const command of ['stt', 'ocr'] as const) {
     await expectUsageExit([command, STABLE_EXAMPLE_AUDIO_URL], `Unknown command "${command}`)

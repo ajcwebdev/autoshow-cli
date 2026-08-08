@@ -1,8 +1,9 @@
 import type { HtmlArticleBackend, RuntimeOptions, Step2ProviderSelectionFilter, UrlArticleBackendPlan, UrlArticleTarget } from '~/types'
-import { URL_ARTICLE_BACKENDS } from '../step-2-shared/provider-registry'
+import { LOCAL_URL_ARTICLE_BACKENDS, URL_ARTICLE_BACKENDS } from '../step-2-shared/provider-registry'
 import { collectUrlProviderSpecs } from './url-cli'
 import { isRemoteSource } from './url-utils'
-export const isLocalUrlBackend = (backend: HtmlArticleBackend): boolean => backend === 'defuddle'
+export const isLocalUrlBackend = (backend: HtmlArticleBackend): boolean =>
+  (LOCAL_URL_ARTICLE_BACKENDS as readonly string[]).includes(backend)
 
 export const isHtmlArticleBackend = (value: unknown): value is HtmlArticleBackend =>
   typeof value === 'string' && (URL_ARTICLE_BACKENDS as readonly string[]).includes(value)

@@ -190,7 +190,7 @@ bun autoshow links stt
 bun autoshow links --recraft image
 
 # local benchmark examples
-bun autoshow benchmark input/examples/audio/1-audio.mp3 --stt-services whisper --reference-stt whisper:tiny
+bun autoshow benchmark input/examples/audio/1-audio.mp3 --stt-services whisper --reference-stt whisper:base
 bun autoshow benchmark docs/benchmarks/tts/<run> --tts --tts-mode local
 ```
 

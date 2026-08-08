@@ -1,15 +1,15 @@
 import { describe, expect, test } from 'bun:test'
-import { getAvailablePromptNames, resolvePresetNames, resolvePromptNames } from '~/prompts/prompt-loader'
+import { getAvailablePromptNames, resolvePromptNames } from '~/prompts/prompt-loader'
 import { resolveStructuredSchema } from '~/cli/commands/process-steps/step-3-write/structured-output/schema-resolver'
 import { parseAndValidateStructured } from '~/cli/commands/process-steps/step-3-write/structured-output/validator'
 
-const SONG_LYRIC_PROMPTS = [
+// rockSong and rapSong are pinned by their own schema-shape tests below, so this
+// list is the remainder that would otherwise have no preset coverage at all.
+const STANDARD_SONG_LYRIC_PROMPTS = [
   'countrySong',
   'folkSong',
   'jazzSong',
-  'popSong',
-  'rapSong',
-  'rockSong'
+  'popSong'
 ]
 
 const CREATIVE_WRITING_PROMPTS = [
@@ -96,24 +96,15 @@ describe('prompt loader contracts', () => {
     expect(prompt).toContain('Create chapter titles and descriptions based on the topics discussed throughout')
   })
 
-  test('resolves song lyric prompts to standardSongLyrics or rapSongLyrics preset', async () => {
-    const presetNames = await resolvePresetNames(SONG_LYRIC_PROMPTS)
+  // Asserted through resolveStructuredSchema rather than a preset-name lookup, so a
+  // prompt whose structuredPreset is dropped and a preset deleted from preset-registry.ts
+  // both surface here as an empty presetNames array.
+  test('resolves song lyric prompts to the standardSongLyrics preset', async () => {
+    for (const promptName of STANDARD_SONG_LYRIC_PROMPTS) {
+      const schema = await resolveStructuredSchema([promptName])
 
-    expect(presetNames).toEqual([
-      'standardSongLyrics',
-      'standardSongLyrics',
-      'standardSongLyrics',
-      'standardSongLyrics',
-      'rapSongLyrics',
-      'standardSongLyrics'
-    ])
-  })
-
-  test('resolves creative writing prompts to dedicated structured presets', async () => {
-    const promptNames = CREATIVE_WRITING_PROMPTS.map(({ promptName }) => promptName)
-    const presetNames = await resolvePresetNames(promptNames)
-
-    expect(presetNames).toEqual(CREATIVE_WRITING_PROMPTS.map(({ presetName }) => presetName))
+      expect(schema.presetNames).toEqual(['standardSongLyrics'])
+    }
   })
 
   test('summary schemas match split prompt examples', async () => {
