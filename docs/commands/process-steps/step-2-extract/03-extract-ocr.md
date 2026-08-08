@@ -212,7 +212,7 @@ Tesseract language and DPI controls work on the `extract` document/OCR route and
 | Option | Value |
 |--------|-------|
 | Selector | `--provider mistral[=<model>]` |
-| Models | `mistral-ocr-2512`, `mistral-ocr-4-0`, `mistral-ocr-latest` |
+| Models | `mistral-ocr-2512`, `mistral-ocr-4-0` |
 | Direct input support | PDF and standard images (`PNG`, `JPG`, `TIF`) |
 
 ```bash
@@ -220,7 +220,7 @@ bun autoshow extract input/examples/document/1-document.pdf --provider mistral=m
 bun autoshow extract input/examples/document/1-document.pdf --provider mistral=mistral-ocr-4-0
 ```
 
-Passing `--provider mistral` keeps the cheapest Mistral OCR default, `mistral-ocr-2512`. `mistral-ocr-4-0` and `mistral-ocr-latest` use the OCR 4 page rate; AutoShow does not bill annotated-page mode because it does not request document or bbox annotations.
+Passing `--provider mistral` keeps the cheapest Mistral OCR default, `mistral-ocr-2512`. `mistral-ocr-4-0` uses the OCR 4 page rate; AutoShow does not bill annotated-page mode because it does not request document or bbox annotations. The `mistral-ocr-latest` alias is not accepted — AutoShow registers concrete model IDs only, so name `mistral-ocr-4-0` directly.
 
 No numeric Mistral OCR file-size/page-count caps were found in `project/links/mistral-general-ocr-links.md`, so this CLI does not enforce any new numeric limits for that provider from that source.
 

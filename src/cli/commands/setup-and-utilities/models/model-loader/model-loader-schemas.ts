@@ -74,8 +74,6 @@ const ExtractModelSchema = v.object({
   ...PricingProvenanceFields,
   costPer1kPagesUSD: v.optional(v.number(), undefined),
   costPer1kPagesCents: v.optional(v.number(), undefined),
-  costPer1kOutputCharsUSD: v.optional(v.number(), undefined),
-  costPer1kOutputCharsCents: v.optional(v.number(), undefined),
   costPerMInputTokensUSD: v.optional(v.number(), undefined),
   costPerMInputTokensCents: v.optional(v.number(), undefined),
   costPerMCachedInputTokensUSD: v.optional(v.number(), undefined),

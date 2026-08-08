@@ -7,7 +7,7 @@ import {
   getTtsArtifactFileName,
   validateTtsInput,
 } from './tts-targets'
-import { isMultiSpeakerRequested } from './dialogue-normalizer'
+import { assertDialogueFormatIsUsable, isMultiSpeakerRequested } from './dialogue-normalizer'
 import { runMultiSpeakerTts } from './run-multi-speaker-tts'
 import { InternalError } from '~/utils/error-handler'
 import { createHostedTtsChunkScheduler } from './tts-utils/hosted-tts-chunk-scheduler'
@@ -68,6 +68,9 @@ export const runTts = async (
   outputDir: string,
   options: TtsOptions
 ): Promise<{ audioPaths: string[], metadata: Step4Metadata[] }> => {
+  // Pipeline entry point: there are no explicit flags here, so a stored dialogue format warns and
+  // the run continues as single-speaker instead of aborting step 4 after three paid steps.
+  assertDialogueFormatIsUsable(options)
   validateTtsInput(text, options)
   const targets = collectTtsTargets(options)
 

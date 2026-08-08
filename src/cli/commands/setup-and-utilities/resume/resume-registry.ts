@@ -12,6 +12,16 @@ import { hasResumableMusicWork, priceMusicTarget, resumeMusicTarget } from './ge
 import { hasResumableWriteWork, priceWriteTarget, resumeWriteTarget } from './write/write-resume'
 import { readBatchManifest, readExtractBatchManifest, writeExtractBatchManifest } from '~/cli/commands/process-steps/manifest-utils'
 import { aggregateExplicitPriceEstimate } from '~/utils/pricing/aggregate-pricing'
+
+// The `ExtractRoute` value resume overloads to mean "URL article" (ADR-002 findings
+// 2-3): the producer reserves `'x-space'` for the `x_space` input family, while resume
+// keys `urlArticleResumeHandler` off it and infers it for all-`html_article` batches.
+// The name is local; the string is persisted, so renaming this constant is free and
+// changing its value is not (see `ExtractRoute`). The route-set validators
+// (`isExtractRoute` in `resume-dispatch.ts` and `manifest-utils.ts`) keep the bare
+// literal on purpose — they test the persisted route set, not this overload.
+export const URL_ARTICLE_ROUTE = 'x-space' as const
+
 const EXPLICIT_STEP2_SELECTION_FILTER = {
   includeOrigins: ['explicit', 'all-shortcut']
 } as const
@@ -229,7 +239,7 @@ const getExtractRouteResumeHandler = (
   if (route === 'document') {
     return ocrResumeHandler
   }
-  if (route === 'x-space') {
+  if (route === URL_ARTICLE_ROUTE) {
     return urlArticleResumeHandler
   }
   return undefined
@@ -266,8 +276,8 @@ const extractResumeHandler: ResumeHandler = {
     }
 
     if (childTargets.shouldCheckUrl) {
-      const urlTarget = buildChildResumeTarget(target.dir, 'x-space', manifest.manifest.childBatches['x-space'])
-      const urlHandler = getExtractRouteResumeHandler('x-space')
+      const urlTarget = buildChildResumeTarget(target.dir, URL_ARTICLE_ROUTE, manifest.manifest.childBatches[URL_ARTICLE_ROUTE])
+      const urlHandler = getExtractRouteResumeHandler(URL_ARTICLE_ROUTE)
       if (urlTarget && urlHandler && await urlHandler.hasResumableWork(urlTarget, opts, explicitFlags)) {
         return true
       }
@@ -305,8 +315,8 @@ const extractResumeHandler: ResumeHandler = {
     }
 
     if (childTargets.shouldCheckUrl) {
-      const urlTarget = buildChildResumeTarget(target.dir, 'x-space', manifest.manifest.childBatches['x-space'])
-      const urlHandler = getExtractRouteResumeHandler('x-space')
+      const urlTarget = buildChildResumeTarget(target.dir, URL_ARTICLE_ROUTE, manifest.manifest.childBatches[URL_ARTICLE_ROUTE])
+      const urlHandler = getExtractRouteResumeHandler(URL_ARTICLE_ROUTE)
       if (urlTarget && urlHandler) {
         totals = addResumeResult(totals, await urlHandler.resume(urlTarget, opts, explicitFlags))
       }
@@ -351,8 +361,8 @@ const extractResumeHandler: ResumeHandler = {
     }
 
     if (childTargets.shouldCheckUrl) {
-      const urlTarget = buildChildResumeTarget(target.dir, 'x-space', manifest.manifest.childBatches['x-space'])
-      const urlHandler = getExtractRouteResumeHandler('x-space')
+      const urlTarget = buildChildResumeTarget(target.dir, URL_ARTICLE_ROUTE, manifest.manifest.childBatches[URL_ARTICLE_ROUTE])
+      const urlHandler = getExtractRouteResumeHandler(URL_ARTICLE_ROUTE)
       if (urlTarget && urlHandler) {
         appendEstimate(await urlHandler.price(urlTarget, opts, explicitFlags))
       }

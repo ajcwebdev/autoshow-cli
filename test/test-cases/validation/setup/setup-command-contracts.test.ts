@@ -165,7 +165,7 @@ describe('setup command contracts', () => {
     })
 
     expect(result.exitCode).toBe(2)
-    expect(`${result.stdout}\n${result.stderr}`).toContain('Invalid --whisperfile model')
+    expect(`${result.stdout}\n${result.stderr}`).toContain('Invalid model "bogus" for --provider whisperfile[=model]')
   })
 
   test('setup --models rejects an unknown llamafile bundle before downloading', async () => {

@@ -1,16 +1,9 @@
 import * as v from 'valibot'
 import * as l from '~/utils/app-logger/app-logger'
-import type { UrlArticleProviderAdapter, UrlArticleRunOptions, UrlArticleRunResult, WebArticleMetadata } from '~/types'
+import type { UrlArticleProviderAdapter, UrlArticleRunResult, UrlRequestOptions, WebArticleMetadata } from '~/types'
 import { validateData } from '~/utils/validate/validation'
 import { ensureGlmApiKey, resolveGlmBaseUrl } from '~/cli/commands/process-steps/step-2-extract/step-2-ocr/ocr-services/glm-ocr/glm'
 import { byteLength, cleanString, countWords, createUrlProviderHttpError, ensureMeaningfulMarkdown, fallbackTitleFromSource, getUrlRequestTimeoutMs, isRecord, tryFetchRemoteHtml, withUrlProviderTimeout } from '../../url-utils'
-import { assertUrlArticleOptionsSupported } from '../../url-provider-adapter'
-
-const GLM_READER_CAPABILITIES = [
-  'remote-html',
-  'main-content',
-  'timeout'
-] as const
 
 const GlmReaderResponseSchema = v.looseObject({
   reader_result: v.looseObject({
@@ -23,14 +16,9 @@ const GlmReaderResponseSchema = v.looseObject({
 
 const runGlmReader = async (
   source: string,
-  options?: UrlArticleRunOptions,
+  options?: UrlRequestOptions,
   baseUrl?: string
 ): Promise<{ preparedMarkdown: string, web: WebArticleMetadata }> => {
-  assertUrlArticleOptionsSupported({
-    displayName: 'GLM Reader',
-    capabilities: GLM_READER_CAPABILITIES
-  }, options)
-
   const apiKey = ensureGlmApiKey('GLM Reader')
   const timeoutMs = getUrlRequestTimeoutMs(options)
   const requestOptions = { ...options, timeoutMs }
@@ -95,7 +83,7 @@ const runGlmReader = async (
 export const runGlmReaderUrl = async (
   source: string,
   sourceUrl: string | undefined,
-  options?: UrlArticleRunOptions,
+  options?: UrlRequestOptions,
   baseUrl?: string
 ): Promise<UrlArticleRunResult> => {
   l.write('info', 'Using GLM Reader backend for article extraction')
@@ -117,6 +105,5 @@ export const runGlmReaderUrl = async (
 export const glmReaderArticleAdapter: UrlArticleProviderAdapter = {
   id: 'glm-reader',
   displayName: 'GLM Reader',
-  capabilities: GLM_READER_CAPABILITIES,
   run: runGlmReaderUrl
 }

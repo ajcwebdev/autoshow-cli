@@ -66,6 +66,10 @@ const TTS_GENERIC_OPTION_TARGETS = {
   }
 } as const satisfies Record<string, Record<string, string>>
 
+// Every provider flag `--tts-voice` can normalize into. Derived so a provider added above is
+// covered without a second list to keep in step.
+export const TTS_VOICE_OPTION_TARGETS: readonly string[] = Object.values(TTS_GENERIC_OPTION_TARGETS['tts-voice'])
+
 const genericTtsOptionFlags = Object.keys(TTS_GENERIC_OPTION_TARGETS)
 const booleanTtsOptionTargets = new Set<string>(['grok-tts-text-normalization', 'minimax-tts-english-normalization'])
 

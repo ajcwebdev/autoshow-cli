@@ -12,7 +12,7 @@ import { logResumeSuiteSummary } from './resume-logging'
 import * as l from '~/utils/app-logger/app-logger'
 import type { AggregatedPriceEstimate, BatchManifest, ExtractRoute, ExtractSelectorInputRoutes, ResumeDispatchOutcome, ResumeDisplayOptions, ResumeResult, ResumeSelectorNormalizationResult, ResumeTarget, ResumeTargetKind, RunManifest } from '~/types'
 import { CLIUsageError } from '~/utils/error-handler'
-import { getResumeHandler } from './resume-registry'
+import { getResumeHandler, URL_ARTICLE_ROUTE } from './resume-registry'
 
 const SUPPORTED_RESUME_KINDS = new Set<ResumeTargetKind>(['extract', 'write', 'tts', 'image', 'video', 'music'])
 
@@ -45,7 +45,7 @@ const extractRoutesForTarget = (
 ): ExtractSelectorInputRoutes => ({
   media: target.extractRoute === undefined || target.extractRoute === 'media',
   document: target.extractRoute === undefined || target.extractRoute === 'document',
-  article: target.extractRoute === undefined || target.extractRoute === 'x-space'
+  article: target.extractRoute === undefined || target.extractRoute === URL_ARTICLE_ROUTE
 })
 
 const isExtractRoute = (value: unknown): value is ExtractRoute =>
@@ -64,7 +64,7 @@ const inferExtractRouteFromBatchManifest = (
       .filter((value): value is string => typeof value === 'string')
   )
   if (inputFamilies.size === 1 && inputFamilies.has('html_article')) {
-    return 'x-space'
+    return URL_ARTICLE_ROUTE
   }
 
   const routes = new Set<ExtractRoute>()
@@ -87,7 +87,7 @@ const inferExtractRouteFromRunManifest = (
     ? manifest.metadata['resolvedStep2'] as Record<string, unknown>
     : undefined
   if (resolvedStep2?.['route'] === 'article') {
-    return 'x-space'
+    return URL_ARTICLE_ROUTE
   }
   return isExtractRoute(manifest.metadata['extractRoute'])
     ? manifest.metadata['extractRoute']

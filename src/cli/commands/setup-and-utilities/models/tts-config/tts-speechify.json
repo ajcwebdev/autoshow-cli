@@ -2,20 +2,6 @@
   "speechify": {
     "description": "Speechify Simba cloud text-to-speech",
     "type": "api",
-    "voices": [
-      "beatrice_32",
-      "dominic_32",
-      "edmund_32",
-      "geffen_32",
-      "harper_32",
-      "hugh_32",
-      "imogen_32",
-      "wyatt_32",
-      "george",
-      "henry",
-      "carly",
-      "sophia"
-    ],
     "models": {
       "simba-3.2": {
         "description": "Speechify Simba 3.2 — recommended English streaming TTS",

@@ -40,6 +40,7 @@ const ExtractSttDefaultsSchema = v.strictObject({
 
 const LlmDefaultsSchema = v.strictObject({
   llama: ModelArraySchema,
+  llamafile: ModelArraySchema,
   openai: ModelArraySchema,
   groq: ModelArraySchema,
   gemini: ModelArraySchema,

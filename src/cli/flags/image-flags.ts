@@ -84,7 +84,11 @@ export const imageGenFlags = {
   },
 } as const satisfies CliFlagsDefinition
 
-const imageCommandOptionNames = {
+// The standalone `image` command drops the `image-` prefix every other surface keeps
+// (ADR-012). It is the single home for that mapping: `imageCommandFlags` renames the flag
+// definitions with it, `define-image-command.ts` normalizes argv and retargets usage errors
+// with it, so the two spellings cannot drift apart.
+export const imageCommandOptionNames = {
   'image-aspect-ratio': 'aspect-ratio',
   'image-size': 'size',
   'image-quality': 'quality',

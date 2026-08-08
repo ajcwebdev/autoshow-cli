@@ -157,7 +157,6 @@ export const formatRatesSummary = (record: Record<string, unknown> | undefined):
     getNumber(record, 'inputCostPer1MCents') !== undefined ? `${formatRateCost(getNumber(record, 'inputCostPer1MCents') as number)}/1M in` : null,
     getNumber(record, 'outputCostPer1MCents') !== undefined ? `${formatRateCost(getNumber(record, 'outputCostPer1MCents') as number)}/1M out` : null,
     getNumber(record, 'costPer1kPagesCents') !== undefined ? `${formatRateCost(getNumber(record, 'costPer1kPagesCents') as number)}/1k pages` : null,
-    getNumber(record, 'costPer1kOutputCharsCents') !== undefined ? `${formatRateCost(getNumber(record, 'costPer1kOutputCharsCents') as number)}/1k chars` : null,
     getNumber(record, 'costMultiplier') !== undefined ? `x${formatNumber(getNumber(record, 'costMultiplier') as number)} estimate` : null
   ].filter((value): value is string => typeof value === 'string')
   return parts.length > 0 ? parts.join(' / ') : null

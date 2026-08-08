@@ -50,15 +50,12 @@ const mapStepEstimate = (estimate: StepEstimate, mode: EstimateMode): Record<str
       if (mode === 'human') {
         if (typeof estimate.costPer1kPagesCents === 'number') {
           entry['rate'] = `${formatEstimatedCost(estimate.costPer1kPagesCents)}/1K pages`
-        } else if (typeof estimate.costPer1kOutputCharsCents === 'number') {
-          entry['rate'] = `${formatEstimatedCost(estimate.costPer1kOutputCharsCents)}/1K output chars`
         } else if (typeof estimate.inputCostPer1MCents === 'number' && typeof estimate.outputCostPer1MCents === 'number') {
           entry['inputRate'] = `${formatEstimatedCost(estimate.inputCostPer1MCents)}/1M`
           entry['outputRate'] = `${formatEstimatedCost(estimate.outputCostPer1MCents)}/1M`
         }
       } else {
         if (typeof estimate.costPer1kPagesCents === 'number') entry['costPer1kPagesCents'] = estimate.costPer1kPagesCents
-        if (typeof estimate.costPer1kOutputCharsCents === 'number') entry['costPer1kOutputCharsCents'] = estimate.costPer1kOutputCharsCents
         if (typeof estimate.inputCostPer1MCents === 'number') entry['inputCostPer1MCents'] = estimate.inputCostPer1MCents
         if (typeof estimate.outputCostPer1MCents === 'number') entry['outputCostPer1MCents'] = estimate.outputCostPer1MCents
       }

@@ -142,6 +142,7 @@ Do not run `bun run t`, `bun test/test-runner.ts`, hosted synthesis or generatio
 | Action | Owner | Current State |
 |---|---|---|
 | Revisit realtime music, music-cover, and reference-audio capabilities only through a separate decision that defines their distinct input, control, pricing, and output contracts | Music maintainers | Deliberately deferred |
+| Verify whether OpenAI has retired `tts-1` and `tts-1-hd`, and remove or retain both together based on that evidence | TTS maintainers | Open — phase 1 retained both as previous-generation selectors without checking retirement status; the same open question is recorded in each row's `pricingNotes` in `tts-config/tts-openai.json`, and it must be answered from OpenAI's published model documentation rather than by calling the API |
 
 ## References
 

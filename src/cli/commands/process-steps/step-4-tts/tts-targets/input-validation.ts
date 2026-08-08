@@ -8,7 +8,7 @@ export const validateTtsInput = (text: string, options: TtsOptions): void => {
     return
   }
 
-  if (isMultiSpeakerRequested(options) && (options.ttsSpeakers?.length ?? 0) > 0) {
+  if (isMultiSpeakerRequested(options)) {
     const registry = parseSpeakerVoiceMappings(options.ttsSpeakers)
     validateGeminiMultiSpeakerTranscriptFromRegistry(text, registry)
   }

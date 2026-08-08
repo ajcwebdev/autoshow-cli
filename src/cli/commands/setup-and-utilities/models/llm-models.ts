@@ -1,4 +1,4 @@
-import { createModelValidator } from '~/cli/commands/setup-and-utilities/models/model-validation'
+import { createModelValidator, formatModelSelector } from '~/cli/commands/setup-and-utilities/models/model-validation'
 import type { GroqModel } from '~/types'
 import { CLIUsageError } from '~/utils/error-handler'
 
@@ -102,7 +102,7 @@ export const validateLlamaModel = (model: string): string => {
   }
 
   throw CLIUsageError(
-    `Invalid --llama model "${model}". Use a supported local model alias or a Hugging Face repo ID in namespace/repo_name form.`
+    `Invalid model "${model}" for ${formatModelSelector('llama')}. Use a supported local model alias or a Hugging Face repo ID in namespace/repo_name form.`
   )
 }
 

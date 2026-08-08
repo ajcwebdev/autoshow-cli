@@ -20,6 +20,7 @@ import {
   SUPPORTED_SPEECHIFY_TTS_MODELS
 } from '~/cli/commands/setup-and-utilities/models/setup-model-options'
 import { MISTRAL_DEFAULT_REF_AUDIO } from '~/cli/commands/setup-and-utilities/models/tts-models'
+import { formatModelSelector } from '~/cli/commands/setup-and-utilities/models/model-validation'
 
 const REMOVED_GROQ_TTS_MODEL = ['canopylabs/orpheus', 'arabic-saudi'].join('-')
 
@@ -58,7 +59,8 @@ describe('option resolution contracts', () => {
       ['openai-tts', 'gpt-4o-mini-tts'],
       ['speechify-tts', 'simba-english']
     ] as const) {
-      expect(() => buildOptsFromFlags(false, { [flag]: model })).toThrow(`Invalid --${flag} model "${model}"`)
+      expect(() => buildOptsFromFlags(false, { [flag]: model }))
+        .toThrow(`Invalid model "${model}" for ${formatModelSelector(flag)}`)
     }
   })
 
@@ -159,9 +161,9 @@ describe('option resolution contracts', () => {
       expect(() => buildOptsFromFlags(false, { 'minimax-tts-pitch': '1.5' })).toThrow('Invalid --minimax-tts-pitch value "1.5"')
       expect(() => buildOptsFromFlags(false, { 'minimax-tts-emotion': 'bored' })).toThrow('Invalid --minimax-tts-emotion "bored"')
       expect(() => buildOptsFromFlags(false, { 'speechify-tts-audio-format': 'flac' })).toThrow('Invalid --speechify-tts-audio-format "flac"')
-      expect(() => buildOptsFromFlags(false, { 'hume-tts': 'octave-1' })).toThrow('Invalid --hume-tts model "octave-1"')
+      expect(() => buildOptsFromFlags(false, { 'hume-tts': 'octave-1' })).toThrow('Invalid model "octave-1" for --provider/--tts hume[=model]')
       expect(() => buildOptsFromFlags(false, { 'hume-tts-voice-provider': 'PRIVATE' })).toThrow('Invalid --hume-tts-voice-provider "PRIVATE"')
-      expect(() => buildOptsFromFlags(false, { 'cartesia-tts': 'sonic-2' })).toThrow('Invalid --cartesia-tts model "sonic-2"')
+      expect(() => buildOptsFromFlags(false, { 'cartesia-tts': 'sonic-2' })).toThrow('Invalid model "sonic-2" for --provider/--tts cartesia[=model]')
       expect(() => buildOptsFromFlags(false, { 'deepgram-tts-sample-rate': '1.5' })).toThrow('Invalid --deepgram-tts-sample-rate value "1.5"')
       expect(() => buildOptsFromFlags(false, { 'elevenlabs-tts-text-normalization': 'always' })).toThrow('Invalid --elevenlabs-tts-text-normalization "always"')
       expect(() => buildOptsFromFlags(false, { 'elevenlabs-tts-optimize-streaming-latency': '5' })).toThrow('Invalid --elevenlabs-tts-optimize-streaming-latency value "5"')
@@ -349,7 +351,7 @@ describe('option resolution contracts', () => {
       expect(explicitEnglishTargets.map((target) => target.voice)).toEqual(['hannah'])
       expect(() => collectTtsTargets(buildOptsFromFlags(false, {
         'groq-tts': REMOVED_GROQ_TTS_MODEL
-      }))).toThrow(`Invalid --groq-tts model "${REMOVED_GROQ_TTS_MODEL}"`)
+      }))).toThrow(`Invalid model "${REMOVED_GROQ_TTS_MODEL}" for --provider/--tts groq[=model]`)
       expect(() => collectTtsTargets(buildOptsFromFlags(false, {
         'groq-tts': 'canopylabs/orpheus-v1-english',
         'groq-voice': REMOVED_GROQ_TTS_VOICE

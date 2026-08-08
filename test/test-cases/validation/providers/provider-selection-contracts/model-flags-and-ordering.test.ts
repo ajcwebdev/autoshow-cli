@@ -11,6 +11,7 @@ import {
   getStep2ProviderSelectionFlagNames
 } from '~/cli/commands/process-steps/step-2-extract/step-2-shared/provider-registry'
 import { resolveOcrStep2ExecutionFromFormat } from '~/cli/commands/process-steps/step-2-extract/step-2-shared/resolved-step2'
+import { formatModelSelector } from '~/cli/commands/setup-and-utilities/models/model-validation'
 
 describe('provider selection contracts', () => {
   test('retired model flag values are rejected', () => {
@@ -41,8 +42,11 @@ describe('provider selection contracts', () => {
       ['together-stt', 'nvidia/nemotron-3-asr-streaming-0.6b']
     ]
 
+    // Cases are keyed by internal target flag, which is not a spelling a user can type;
+    // formatModelSelector maps it to the public selector the error must name.
     for (const [flag, model] of cases) {
-      expect(() => buildOptsFromFlags(false, { [flag]: model })).toThrow(`Invalid --${flag} model`)
+      expect(() => buildOptsFromFlags(false, { [flag]: model }))
+        .toThrow(`Invalid model "${model}" for ${formatModelSelector(flag)}`)
     }
   })
 

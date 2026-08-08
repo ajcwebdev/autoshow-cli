@@ -16,7 +16,7 @@ test('rejects simultaneous Recraft size and aspect-ratio flags', async () => {
   const output = `${result.stdout}\n${result.stderr}`
 
   expect(result.exitCode).not.toBe(0)
-  expect(output).toContain('--image-size and --image-aspect-ratio cannot be used together for Recraft/recraftv4_1')
+  expect(output).toContain('--size and --aspect-ratio cannot be used together for Recraft/recraftv4_1')
 })
 
 test('rejects Recraft counts above six', async () => {
@@ -32,7 +32,7 @@ test('rejects Recraft counts above six', async () => {
   const output = `${result.stdout}\n${result.stderr}`
 
   expect(result.exitCode).not.toBe(0)
-  expect(output).toContain('Invalid --image-count value "7" for Recraft/recraftv4_1')
+  expect(output).toContain('Invalid --count value "7" for Recraft/recraftv4_1')
 })
 
 test('rejects Recraft edit and output-format flags', async () => {
@@ -50,5 +50,5 @@ test('rejects Recraft edit and output-format flags', async () => {
   const output = `${result.stdout}\n${result.stderr}`
 
   expect(result.exitCode).not.toBe(0)
-  expect(output).toContain('--image-format, --image-input are not supported by Recraft/recraftv4_1')
+  expect(output).toContain('--format, --input are not supported by Recraft/recraftv4_1')
 })

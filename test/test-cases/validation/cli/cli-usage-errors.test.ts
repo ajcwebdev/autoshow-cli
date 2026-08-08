@@ -409,7 +409,6 @@ test('extract rejects removed Anthropic Sonnet 4.6 OCR model', async () => {
 test('extract accepts priority OCR model additions in price mode', async () => {
   const cases = [
     ['mistral', 'mistral-ocr-4-0'],
-    ['mistral', 'mistral-ocr-latest'],
     ['gemini', 'gemini-3.5-flash'],
     ['gemini', 'gemini-3.6-flash'],
     ['gemini', 'gemini-3.5-flash-lite'],
@@ -434,7 +433,7 @@ test('extract rejects removed Kimi Code OCR models', async () => {
   for (const model of [removedKimiCodeOcrModel, `${removedKimiCodeOcrModel}-highspeed`] as const) {
     await expectUsageExit(
       ['extract', 'input/examples/document/1-document.pdf', '--provider', `kimi=${model}`, '--price'],
-      `Invalid --kimi-ocr model "${model}". Allowed values: kimi-k2.6, kimi-k3`
+      `Invalid model "${model}" for --provider/--ocr kimi[=model]. Allowed values: kimi-k2.6, kimi-k3`
     )
   }
 })
@@ -442,7 +441,7 @@ test('extract rejects removed Kimi Code OCR models', async () => {
 test('extract rejects removed DeepInfra PaddleOCR model', async () => {
   await expectUsageExit(
     ['extract', 'input/examples/document/1-document.pdf', '--provider', 'deepinfra=PaddlePaddle/PaddleOCR-VL-0.9B', '--price'],
-    'Invalid --deepinfra-ocr model "PaddlePaddle/PaddleOCR-VL-0.9B". Allowed values: Qwen/Qwen3-VL-235B-A22B-Instruct, Qwen/Qwen3-VL-30B-A3B-Instruct'
+    'Invalid model "PaddlePaddle/PaddleOCR-VL-0.9B" for --provider/--ocr deepinfra[=model]. Allowed values: Qwen/Qwen3-VL-235B-A22B-Instruct, Qwen/Qwen3-VL-30B-A3B-Instruct'
   )
 })
 
@@ -490,21 +489,37 @@ test('tts rejects ambiguous generic TTS options with multiple providers', async 
   )
 })
 
+// Speaker mappings replace the run's voice, so a typed --tts-voice would be silently dropped.
+test('tts rejects --tts-voice combined with dialogue flags', async () => {
+  await expectUsageExit(
+    ['tts', 'input/examples/tts/1-tts.md', '--tts-voice', 'Luna', '--tts-dialogue-format', 'labeled', '--tts-speaker', 'Host=Jasper', '--price'],
+    '--tts-voice cannot be combined with --tts-speaker/--tts-dialogue-format; per-speaker voices come from --tts-speaker mappings.'
+  )
+})
+
+// Speaker mappings are the dialogue mode switch, so a typed format alone selects nothing.
+test('tts rejects --tts-dialogue-format without speaker mappings', async () => {
+  await expectUsageExit(
+    ['tts', 'input/examples/tts/1-tts.md', '--provider', 'openai=gpt-4o-mini-tts-2025-12-15', '--tts-dialogue-format', 'labeled', '--price'],
+    '--tts-dialogue-format requires at least one --tts-speaker SPEAKER=VOICE mapping. Speaker mappings select multi-speaker TTS; a dialogue format alone selects nothing.'
+  )
+})
+
 test('extract rejects removed Supadata STT modes', async () => {
   await expectUsageExit(
     ['extract', 'https://example.com/audio.mp3', '--provider', 'supadata=native', '--price'],
-    'Invalid --supadata-stt model "native". Allowed values: auto'
+    'Invalid model "native" for --provider/--stt supadata[=model]. Allowed values: auto'
   )
   await expectUsageExit(
     ['extract', 'https://example.com/audio.mp3', '--provider', 'supadata=generate', '--price'],
-    'Invalid --supadata-stt model "generate". Allowed values: auto'
+    'Invalid model "generate" for --provider/--stt supadata[=model]. Allowed values: auto'
   )
 })
 
 test('extract rejects unsupported ScrapeCreators STT modes', async () => {
   await expectUsageExit(
     ['extract', 'https://www.youtube.com/watch?v=MORMZXEaONk', '--provider', 'scrapecreators=auto', '--price'],
-    'Invalid --scrapecreators-stt model "auto". Allowed values: youtube-transcript'
+    'Invalid model "auto" for --provider/--stt scrapecreators[=model]. Allowed values: youtube-transcript'
   )
 })
 
@@ -564,6 +579,20 @@ test('standalone generation rejects removed pipeline-prefixed option aliases', a
   await expectUsageExit(
     ['music', 'ambient piano', '--provider', 'elevenlabs=music_v1', '--music-duration', '20', '--price'],
     'Unexpected flag: musicDuration'
+  )
+})
+
+// The step-5 validators are shared with write/config/resume and name the `--image-*` flags
+// those surfaces register. This command registers the short spellings, so its rejections must
+// name the flag the user can actually type here.
+test('image command rejections name the spellings the image command registers', async () => {
+  await expectUsageExit(
+    ['image', 'a sunset', '--provider', 'grok=grok-imagine-image-quality', '--search-grounding', '--price'],
+    '--search-grounding is not supported by Grok/grok-imagine-image-quality'
+  )
+  await expectUsageExit(
+    ['image', 'a sunset', '--provider', 'recraft=recraftv4_1', '--count', '7', '--price'],
+    'Invalid --count value "7" for Recraft/recraftv4_1'
   )
 })
 

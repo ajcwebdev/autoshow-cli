@@ -1,6 +1,7 @@
 import { basename } from 'node:path'
 import type { DialogueNormalization, DialogueTurn, SpeakerVoiceMapping, SpeakerVoiceRegistry, TtsDialogueFormat, TtsOptions } from '~/types'
 import { CLIUsageError } from '~/utils/error-handler'
+import * as l from '~/utils/app-logger/app-logger'
 const ACTION_VERBS = new Set([
   'freezes',
   'sits',
@@ -92,9 +93,11 @@ export const parseSpeakerVoiceMappings = (
   return { entries, bySpeaker }
 }
 
+// Speaker mappings alone are the mode switch. A dialogue format without them can only ever fail,
+// so counting it here turned a `ttsDialogueFormat` stored in config defaults into a step-4 abort
+// for every pipeline run. `assertDialogueFormatIsUsable` reports that case instead.
 export const isMultiSpeakerRequested = (options: TtsOptions): boolean =>
   (options.ttsSpeakers?.length ?? 0) > 0
-  || options.ttsDialogueFormat !== undefined
 
 export const resolveDialogueFormat = (options: TtsOptions): TtsDialogueFormat => {
   if (options.ttsDialogueFormat === 'screenplay' || options.ttsDialogueFormat === 'labeled') {
@@ -102,6 +105,27 @@ export const resolveDialogueFormat = (options: TtsOptions): TtsDialogueFormat =>
   }
 
   throw CLIUsageError('Dialogue TTS requires --tts-dialogue-format screenplay|labeled.')
+}
+
+// A format with no speaker mappings selects nothing. Typed on the command line that is a usage
+// error; inherited from config defaults it is inert, so say so rather than failing the run.
+export const assertDialogueFormatIsUsable = (
+  options: TtsOptions,
+  explicitFlags?: ReadonlySet<string>
+): void => {
+  const format = options.ttsDialogueFormat
+  if (format === undefined || isMultiSpeakerRequested(options)) {
+    return
+  }
+
+  if (explicitFlags?.has('tts-dialogue-format')) {
+    throw CLIUsageError('--tts-dialogue-format requires at least one --tts-speaker SPEAKER=VOICE mapping. Speaker mappings select multi-speaker TTS; a dialogue format alone selects nothing.')
+  }
+
+  l.warn(
+    `--tts-dialogue-format ${format} has no effect without --tts-speaker mappings and was ignored. `
+    + 'Pass --tts-speaker SPEAKER=VOICE to run multi-speaker TTS, or remove ttsDialogueFormat from your config defaults.'
+  )
 }
 
 const getSpeakerCue = (
@@ -294,10 +318,6 @@ export const normalizeDialogueText = (
   format: TtsDialogueFormat,
   registry: SpeakerVoiceRegistry
 ): DialogueNormalization => {
-  if (registry.entries.length === 0) {
-    throw CLIUsageError('Multi-speaker TTS requires at least one --tts-speaker SPEAKER=VOICE mapping.')
-  }
-
   const turns = format === 'screenplay'
     ? normalizeScreenplayDialogue(text, registry)
     : normalizeLabeledDialogue(text, registry)

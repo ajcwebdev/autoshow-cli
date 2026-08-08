@@ -56,7 +56,7 @@ export const ttsFlags = {
     type: String
   },
   'tts-dialogue-format': {
-    description: 'Dialogue input format for multi-speaker TTS: screenplay|labeled',
+    description: 'Dialogue input format for multi-speaker TTS: screenplay|labeled (requires --tts-speaker)',
     type: String
   },
   'tts-speaker': {

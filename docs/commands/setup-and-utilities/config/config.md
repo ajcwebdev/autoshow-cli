@@ -294,6 +294,8 @@ Model-selecting fields are arrays of models, not single strings.
 
 Speechify custom-voice creation fields (`--speechify-tts-ref-audio`, `--speechify-tts-voice-name`, `--speechify-tts-consent-*`, `--speechify-tts-voice-locale`, `--speechify-tts-voice-gender`) are runtime-only and are not persisted.
 
+`ttsSpeakers` is what selects multi-speaker TTS, so a saved `ttsDialogueFormat` with no saved `ttsSpeakers` is inert: runs that inherit it log a warning and continue as single-speaker rather than failing at step 4.
+
 ### defaults.post.image
 
 | Field | Flag |

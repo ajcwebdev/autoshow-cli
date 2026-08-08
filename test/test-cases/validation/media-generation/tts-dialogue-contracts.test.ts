@@ -6,7 +6,9 @@ import { buildOptsFromFlags } from '~/cli/commands/process-steps/step-1-download
 import { runTts } from '~/cli/commands/process-steps/step-4-tts/run-tts'
 import { collectTtsTargets } from '~/cli/commands/process-steps/step-4-tts/tts-targets'
 import {
+  assertDialogueFormatIsUsable,
   detectVoiceKind,
+  isMultiSpeakerRequested,
   normalizeDialogueText,
   parseSpeakerVoiceMappings
 } from '~/cli/commands/process-steps/step-4-tts/dialogue-normalizer'
@@ -33,8 +35,8 @@ describe('TTS dialogue contracts', () => {
 
     expect(() => collectTtsTargets(buildOptsFromFlags(false, {
       'mistral-tts': 'voxtral-mini-tts-2603',
-      'tts-dialogue-format': 'screenplay'
-    }))).toThrow('requires at least one --tts-speaker')
+      'tts-speaker': ['DUCO=input/examples/audio/anthony-voice.mp3']
+    }))).toThrow('Dialogue TTS requires --tts-dialogue-format screenplay|labeled.')
 
     // Multi-provider multi-speaker is now allowed
     const targets = collectTtsTargets(buildOptsFromFlags(false, {
@@ -45,6 +47,33 @@ describe('TTS dialogue contracts', () => {
     }))
     expect(targets.length).toBe(2)
     expect(targets.every((t) => t.multiSpeakerStrategy !== undefined)).toBe(true)
+  })
+
+  // Speaker mappings are the mode switch. A stored `ttsDialogueFormat` used to force dialogue mode
+  // and abort every pipeline TTS run at step 4; it must now be inert, and only a typed flag errors.
+  test('a dialogue format without speakers is inert unless it was typed explicitly', () => {
+    const opts = buildOptsFromFlags(false, {
+      'mistral-tts': 'voxtral-mini-tts-2603',
+      'tts-dialogue-format': 'screenplay'
+    })
+
+    expect(isMultiSpeakerRequested(opts)).toBe(false)
+    const targets = collectTtsTargets(opts)
+    expect(targets.length).toBe(1)
+    expect(targets[0]?.multiSpeakerStrategy).toBeUndefined()
+
+    expect(() => assertDialogueFormatIsUsable(opts)).not.toThrow()
+    expect(() => assertDialogueFormatIsUsable(opts, new Set(['tts-dialogue-format'])))
+      .toThrow('--tts-dialogue-format requires at least one --tts-speaker SPEAKER=VOICE mapping.')
+
+    // With mappings present the format is load-bearing again, so neither arm fires.
+    const dialogueOpts = buildOptsFromFlags(false, {
+      'mistral-tts': 'voxtral-mini-tts-2603',
+      'tts-dialogue-format': 'screenplay',
+      'tts-speaker': ['DUCO=input/examples/audio/anthony-voice.mp3']
+    })
+    expect(isMultiSpeakerRequested(dialogueOpts)).toBe(true)
+    expect(() => assertDialogueFormatIsUsable(dialogueOpts, new Set(['tts-dialogue-format']))).not.toThrow()
   })
 
   test('parseSpeakerVoiceMappings parses voice IDs and ref audio paths', () => {

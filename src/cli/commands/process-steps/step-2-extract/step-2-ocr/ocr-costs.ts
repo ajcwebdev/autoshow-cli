@@ -346,11 +346,6 @@ const buildRatesUsed = (
       : typeof registry.costPer1kPagesCents === 'number'
         ? { costPer1kPagesCents: registry.costPer1kPagesCents }
         : {}),
-    ...(typeof estimated?.costPer1kOutputCharsCents === 'number'
-      ? { costPer1kOutputCharsCents: estimated.costPer1kOutputCharsCents }
-      : typeof registry.costPer1kOutputCharsCents === 'number'
-        ? { costPer1kOutputCharsCents: registry.costPer1kOutputCharsCents }
-        : {}),
     ...(typeof estimated?.costMultiplier === 'number' ? { costMultiplier: estimated.costMultiplier } : {})
   }
   return Object.keys(rates).length > 0 ? rates : undefined

@@ -1,17 +1,10 @@
 import * as l from '~/utils/app-logger/app-logger'
 import { readEnv } from '~/utils/validate/env-utils'
-import type { UrlArticleProviderAdapter, UrlArticleRunOptions, UrlArticleRunResult, WebArticleMetadata } from '~/types'
+import type { UrlArticleProviderAdapter, UrlArticleRunResult, UrlRequestOptions, WebArticleMetadata } from '~/types'
 import { byteLength, cleanString, countWords, createUrlProviderHttpError, ensureMeaningfulMarkdown, fallbackTitleFromSource, getUrlRequestTimeoutMs, isRecord, normalizeMarkdown, tryFetchRemoteHtml, withUrlProviderTimeout } from '../../url-utils'
-import { assertUrlArticleOptionsSupported } from '../../url-provider-adapter'
 import { InternalError, ValidationError, hintsForMissingEnv } from '~/utils/error-handler'
 
 const ZYTE_DEFAULT_API_URL = 'https://api.zyte.com'
-const ZYTE_CAPABILITIES = [
-  'remote-html',
-  'main-content',
-  'timeout',
-  'structured-extraction'
-] as const
 
 const getZyteArticleValue = (
   article: Record<string, unknown>,
@@ -114,14 +107,9 @@ const parseZyteResponse = (payload: unknown): { markdown: string, web: WebArticl
 
 const runZyteExtract = async (
   source: string,
-  options?: UrlArticleRunOptions,
+  options?: UrlRequestOptions,
   baseUrl: string = ZYTE_DEFAULT_API_URL
 ): Promise<{ markdown: string, web: WebArticleMetadata }> => {
-  assertUrlArticleOptionsSupported({
-    displayName: 'Zyte',
-    capabilities: ZYTE_CAPABILITIES
-  }, options)
-
   const apiKey = readEnv('ZYTE_API_KEY')
   const usingHostedApi = baseUrl === ZYTE_DEFAULT_API_URL
 
@@ -172,7 +160,7 @@ const runZyteExtract = async (
 export const runZyteUrl = async (
   source: string,
   sourceUrl: string | undefined,
-  options?: UrlArticleRunOptions,
+  options?: UrlRequestOptions,
   baseUrl: string = ZYTE_DEFAULT_API_URL
 ): Promise<UrlArticleRunResult> => {
   l.write('info', 'Using Zyte backend for article extraction')
@@ -196,6 +184,5 @@ export const runZyteUrl = async (
 export const zyteArticleAdapter: UrlArticleProviderAdapter = {
   id: 'zyte',
   displayName: 'Zyte',
-  capabilities: ZYTE_CAPABILITIES,
   run: runZyteUrl
 }

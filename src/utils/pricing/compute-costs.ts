@@ -25,7 +25,6 @@ export const preflightToEstimated = (estimate: AggregatedPriceEstimate): Estimat
           cost: s.totalCost,
           ...(typeof s.costMultiplier === 'number' ? { costMultiplier: s.costMultiplier } : {}),
           ...(typeof s.costPer1kPagesCents === 'number' ? { costPer1kPagesCents: s.costPer1kPagesCents } : {}),
-          ...(typeof s.costPer1kOutputCharsCents === 'number' ? { costPer1kOutputCharsCents: s.costPer1kOutputCharsCents } : {}),
           ...(typeof s.pageCount === 'number' ? { pageCount: s.pageCount } : {}),
           ...(typeof s.rasterizedPages === 'number' ? { rasterizedPages: s.rasterizedPages } : {}),
           ...(typeof s.singlePagePdfFallbackPages === 'number' ? { singlePagePdfFallbackPages: s.singlePagePdfFallbackPages } : {}),

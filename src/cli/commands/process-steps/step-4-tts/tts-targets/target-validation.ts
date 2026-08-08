@@ -1,5 +1,5 @@
 import type { TtsOptions, TtsTargetSelection } from '~/types'
-import { CLIUsageError } from '~/utils/error-handler'
+import { CLIUsageError, InternalError } from '~/utils/error-handler'
 import {
   getGroqTtsVoicesForModel,
   validateGroqTtsVoice
@@ -21,9 +21,11 @@ export const validateTtsTargetSelection = (
 ): void => {
   if (selection.multiSpeakerRequested) {
     resolveDialogueFormat(options)
+    // multiSpeakerRequested is exactly "at least one --tts-speaker mapping parsed", so the registry
+    // is always present and non-empty here; this only narrows the optional selection field.
     const registry = selection.speakerVoiceRegistry
-    if (!registry || registry.entries.length === 0) {
-      throw CLIUsageError('Multi-speaker TTS requires at least one --tts-speaker SPEAKER=VOICE mapping.')
+    if (!registry) {
+      throw InternalError('Multi-speaker TTS selection is missing its speaker registry', { stage: 'tts:targets' })
     }
 
     const allProviderModels = [

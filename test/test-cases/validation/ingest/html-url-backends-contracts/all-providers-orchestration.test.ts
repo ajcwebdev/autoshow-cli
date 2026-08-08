@@ -14,13 +14,13 @@ import {
   URL_ARTICLE_PROVIDER_ADAPTERS,
   writeFile
 } from './shared'
-import type { HtmlArticleBackend, UrlArticleRunOptions } from './shared'
+import type { HtmlArticleBackend, UrlRequestOptions } from './shared'
 
 test('--all-providers URL orchestrator writes provider artifacts and a multi-provider run manifest', async () => {
   const tempRoot = await mkdtemp(join(tmpdir(), 'autoshow-all-url-'))
 
   try {
-    const seenOptions = new Map<HtmlArticleBackend, UrlArticleRunOptions | undefined>()
+    const seenOptions = new Map<HtmlArticleBackend, UrlRequestOptions | undefined>()
     for (const backend of URL_ARTICLE_BACKENDS) {
       URL_ARTICLE_PROVIDER_ADAPTERS[backend].run = async (source, sourceUrl, options) => {
         seenOptions.set(backend, options)

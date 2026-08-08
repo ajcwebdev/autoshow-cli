@@ -25,7 +25,7 @@ import { fallbackTitleFromSource, formatErrorMessage, isRemoteSource } from './u
 import { DocumentMetadataSchema, ExtractionMetadataSchema, ExtractionResultSchema } from '~/types'
 import { computeActualCosts } from '~/utils/pricing/compute-actual-costs'
 import { computeActualProcessingTimes, computeEstimatedProcessingTimes } from '~/utils/pricing/compute-processing-time'
-import type { AggregatedPriceEstimate, BatchChildRunContext, DocumentMetadata, ExtractionMetadata, ExtractionOptions, ExtractionResult, HtmlArticleBackend, RuntimeOptions, UrlArticleBackendPlan, UrlArticleRunOptions, UrlArticleRunResult, UrlProviderFailure, UrlProviderRunOutcome, UrlProviderState, UrlProviderSuccess, WebArticleMetadata } from '~/types'
+import type { AggregatedPriceEstimate, BatchChildRunContext, DocumentMetadata, ExtractionMetadata, ExtractionOptions, ExtractionResult, HtmlArticleBackend, RuntimeOptions, UrlArticleBackendPlan, UrlArticleRunResult, UrlProviderFailure, UrlProviderRunOutcome, UrlProviderState, UrlProviderSuccess, UrlRequestOptions, WebArticleMetadata } from '~/types'
 
 const isRecord = (value: unknown): value is Record<string, unknown> =>
   typeof value === 'object' && value !== null && !Array.isArray(value)
@@ -43,7 +43,7 @@ const readLocalHtmlFileSize = async (source: string): Promise<number | undefined
 
 const buildUrlRunOptions = (
   opts: Pick<RuntimeOptions, 'urlRequestTimeoutMs' | 'urlRequestAttempts'>
-): UrlArticleRunOptions => ({
+): UrlRequestOptions => ({
   timeoutMs: opts.urlRequestTimeoutMs,
   requestAttempts: opts.urlRequestAttempts
 })
@@ -196,7 +196,7 @@ const runSingleUrlBackend = async (
   requestedBackend: HtmlArticleBackend,
   sourceUrl: string | undefined,
   extractionOpts: Pick<ExtractionOptions, 'dpi' | 'languages' | 'outputFormat'>,
-  urlRunOptions: UrlArticleRunOptions
+  urlRunOptions: UrlRequestOptions
 ): Promise<UrlProviderSuccess> => {
   let backend = requestedBackend
   const startedAt = Date.now()
@@ -245,7 +245,7 @@ const runUrlBackendDirect = async (
   backend: HtmlArticleBackend,
   sourceUrl: string | undefined,
   extractionOpts: Pick<ExtractionOptions, 'dpi' | 'languages' | 'outputFormat'>,
-  urlRunOptions: UrlArticleRunOptions
+  urlRunOptions: UrlRequestOptions
 ): Promise<UrlProviderSuccess> => {
   const startedAt = Date.now()
   const run = await runUrlArticleProviderWithStats(backend, source, sourceUrl, urlRunOptions)

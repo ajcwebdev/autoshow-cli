@@ -9,7 +9,7 @@ import { DocumentMetadataSchema } from '~/types'
 import { getUrlArticleProviderAdapter, runUrlArticleProvider } from '~/cli/commands/process-steps/step-2-extract/step-2-url/url-provider-registry'
 import { fallbackTitleFromSource, formatErrorMessage, getLocalBaseName, isRemoteSource } from '~/cli/commands/process-steps/step-2-extract/step-2-url/url-utils'
 import { InfraError } from '~/utils/error-handler'
-import type { BatchChildRunContext, HtmlArticleBackend, PreparedDocument, UrlArticleRunOptions, UrlArticleRunResult } from '~/types'
+import type { BatchChildRunContext, HtmlArticleBackend, PreparedDocument, UrlArticleRunResult, UrlRequestOptions } from '~/types'
 
 export const buildArticleSlug = (
   source: string,
@@ -51,7 +51,7 @@ export async function prepareHtmlArticle(
   outputDir: string,
   backend: HtmlArticleBackend,
   batchChildContext?: BatchChildRunContext,
-  urlRunOptions?: UrlArticleRunOptions
+  urlRunOptions?: UrlRequestOptions
 ): Promise<PreparedDocument> {
   const remote = isRemoteSource(source)
   let resolvedBackend = backend

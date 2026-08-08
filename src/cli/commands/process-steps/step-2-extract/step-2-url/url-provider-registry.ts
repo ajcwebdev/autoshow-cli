@@ -1,4 +1,4 @@
-import type { HtmlArticleBackend, UrlArticleProviderAdapter, UrlArticleProviderRunWithStats, UrlArticleRunOptions, UrlArticleRunResult } from '~/types'
+import type { HtmlArticleBackend, UrlArticleProviderAdapter, UrlArticleProviderRunWithStats, UrlArticleRunResult, UrlRequestOptions } from '~/types'
 import { isAppError } from '~/utils/error-handler'
 import { classifyFetchRetry, withRetry } from '~/utils/retries'
 import { defuddleArticleAdapter } from './url-local/defuddle/run-defuddle-url'
@@ -66,7 +66,7 @@ export const runUrlArticleProviderWithStats = async (
   backend: HtmlArticleBackend,
   source: string,
   sourceUrl: string | undefined,
-  options?: UrlArticleRunOptions
+  options?: UrlRequestOptions
 ): Promise<UrlArticleProviderRunWithStats> => {
   const adapter = getUrlArticleProviderAdapter(backend)
   const timeoutMs = getUrlRequestTimeoutMs(options)
@@ -105,6 +105,6 @@ export const runUrlArticleProvider = async (
   backend: HtmlArticleBackend,
   source: string,
   sourceUrl: string | undefined,
-  options?: UrlArticleRunOptions
+  options?: UrlRequestOptions
 ): Promise<UrlArticleRunResult> =>
   (await runUrlArticleProviderWithStats(backend, source, sourceUrl, options)).article

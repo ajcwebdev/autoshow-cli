@@ -2,8 +2,7 @@ import { createModelValidator } from '~/cli/commands/setup-and-utilities/models/
 
 export const SUPPORTED_MISTRAL_OCR_MODELS = [
   'mistral-ocr-2512',
-  'mistral-ocr-4-0',
-  'mistral-ocr-latest'
+  'mistral-ocr-4-0'
 ] as const satisfies readonly string[]
 
 export const validateMistralOcrModel = createModelValidator(SUPPORTED_MISTRAL_OCR_MODELS, 'mistral-ocr')

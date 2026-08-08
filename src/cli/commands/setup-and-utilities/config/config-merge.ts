@@ -15,7 +15,7 @@ const STT_PROVIDER_FLAGS = getStep2ProviderSelectionFlagNames('stt')
 const OCR_PROVIDER_FLAGS = getStep2ProviderSelectionFlagNames('ocr')
 const URL_PROVIDER_FLAGS = getStep2ProviderSelectionFlagNames('url')
 const URL_PROVIDER_DEFAULT_GROUP_FLAGS = [...URL_PROVIDER_FLAGS, 'all-url', 'all-local-url', 'all-providers', 'all-local'] as const
-const LLM_PROVIDER_FLAGS = ['llama', 'openai', 'groq', 'gemini', 'anthropic', 'minimax', 'grok', 'glm', 'kimi', 'together', 'cerebras'] as const
+const LLM_PROVIDER_FLAGS = ['llama', 'llamafile', 'openai', 'groq', 'gemini', 'anthropic', 'minimax', 'grok', 'glm', 'kimi', 'together', 'cerebras'] as const
 const TTS_PROVIDER_FLAGS = ['kitten-tts', 'elevenlabs-tts', 'minimax-tts', 'groq-tts', 'grok-tts', 'mistral-tts', 'openai-tts', 'gemini-tts', 'deepgram-tts', 'speechify-tts', 'hume-tts', 'cartesia-tts'] as const
 const IMAGE_PROVIDER_FLAGS = ['gemini-image', 'openai-image', 'grok-image', 'bfl-image', 'recraft-image', 'replicate-image', 'lumalabs-image', 'fal-image'] as const
 const VIDEO_PROVIDER_FLAGS = ['gemini-video', 'minimax-video', 'glm-video', 'grok-video', 'runway-video', 'ltx-video', 'replicate-video', 'lumalabs-video', 'fal-video'] as const
@@ -111,7 +111,7 @@ export const mergeConfigIntoRawFlags = (
 
   if (d.llm) {
     injectProviderGroup(LLM_PROVIDER_FLAGS, [
-      ['llama', d.llm.llama], ['openai', d.llm.openai], ['groq', d.llm.groq],
+      ['llama', d.llm.llama], ['llamafile', d.llm.llamafile], ['openai', d.llm.openai], ['groq', d.llm.groq],
       ['gemini', d.llm.gemini], ['anthropic', d.llm.anthropic], ['minimax', d.llm.minimax],
       ['grok', d.llm.grok], ['glm', d.llm.glm], ['kimi', d.llm.kimi],
       ['together', d.llm.together], ['cerebras', d.llm.cerebras],
@@ -299,6 +299,7 @@ export const FLAG_TO_CONFIG_PATH: Record<string, string[]> = {
   'stt-segment-concurrency': ['defaults', 'extract', 'stt', 'segmentConcurrency'],
   'stt-preflight-concurrency': ['defaults', 'extract', 'stt', 'preflightConcurrency'],
   'llama':             ['defaults', 'llm', 'llama'],
+  'llamafile':         ['defaults', 'llm', 'llamafile'],
   'openai':            ['defaults', 'llm', 'openai'],
   'groq':              ['defaults', 'llm', 'groq'],
   'gemini':            ['defaults', 'llm', 'gemini'],

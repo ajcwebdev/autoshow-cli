@@ -15,8 +15,6 @@ const PRICE_FIELD_NAMES = [
   'costPerHourCents',
   'costPer1kPagesUSD',
   'costPer1kPagesCents',
-  'costPer1kOutputCharsUSD',
-  'costPer1kOutputCharsCents',
   'costPerMInputTokensUSD',
   'costPerMInputTokensCents',
   'costPerMCachedInputTokensUSD',
@@ -60,7 +58,6 @@ const PRICE_FIELD_NAMES = [
 const USD_CENTS_FIELD_PAIRS = [
   ['costPerHourUSD', 'costPerHourCents'],
   ['costPer1kPagesUSD', 'costPer1kPagesCents'],
-  ['costPer1kOutputCharsUSD', 'costPer1kOutputCharsCents'],
   ['costPerMInputTokensUSD', 'costPerMInputTokensCents'],
   ['costPerMCachedInputTokensUSD', 'costPerMCachedInputTokensCents'],
   ['costPerMOutputTokensUSD', 'costPerMOutputTokensCents'],
