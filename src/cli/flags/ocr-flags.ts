@@ -1,10 +1,6 @@
 import type { CliFlagsDefinition } from '~/types'
+import { boolFlag } from './flag-utils'
 
 export const epubInspectFlags = {
-  'epub-bun': {
-    description: 'EPUB inspect mode with Bun ZIP/XML parser (writes structured EPUB data into run.json)',
-    type: Boolean,
-    default: false,
-    negatable: false
-  }
+  'epub-bun': boolFlag('EPUB inspect mode with Bun ZIP/XML parser (writes structured EPUB data into run.json)')
 } as const satisfies CliFlagsDefinition

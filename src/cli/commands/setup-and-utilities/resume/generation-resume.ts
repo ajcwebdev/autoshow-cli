@@ -24,6 +24,58 @@ export const buildUpdatedGenerationCostTiming = (
   }
 })
 
+export type GenerationModelFieldTable = Record<string, readonly [modelsField: string, modelField: string]>
+
+export const clearProviderModelFields = (
+  opts: RuntimeOptions,
+  fields: GenerationModelFieldTable
+): RuntimeOptions => {
+  const cleared: Record<string, unknown> = { ...opts }
+  for (const [modelsField, modelField] of Object.values(fields)) {
+    cleared[modelsField] = undefined
+    cleared[modelField] = undefined
+  }
+  return cleared as RuntimeOptions
+}
+
+export const collectGenerationTargetsForProviders = <TTarget extends ProviderIdentity>(
+  providers: ProviderIdentity[],
+  opts: RuntimeOptions,
+  fields: GenerationModelFieldTable,
+  collect: (opts: RuntimeOptions) => TTarget[]
+): TTarget[] =>
+  providers.flatMap((provider) => {
+    const providerFields = fields[provider.service]
+    if (!providerFields) {
+      return []
+    }
+    const [modelsField, modelField] = providerFields
+    return collect({
+      ...clearProviderModelFields(opts, fields),
+      [modelsField]: [provider.model],
+      [modelField]: provider.model
+    } as RuntimeOptions).filter((target) =>
+      target.service === provider.service && target.model === provider.model
+    )
+  })
+
+export const buildGenerationPriceOptions = (
+  targets: ProviderIdentity[],
+  opts: RuntimeOptions,
+  fields: GenerationModelFieldTable
+): RuntimeOptions => {
+  const priceOpts: Record<string, unknown> = { ...clearProviderModelFields(opts, fields) }
+  for (const [service, [modelsField]] of Object.entries(fields)) {
+    const models = targets
+      .filter((target) => target.service === service)
+      .map((target) => target.model)
+    if (models.length > 0) {
+      priceOpts[modelsField] = models
+    }
+  }
+  return priceOpts as RuntimeOptions
+}
+
 const parseGenerationManifest = (
   metadata: Record<string, unknown>,
   metadataKey: string

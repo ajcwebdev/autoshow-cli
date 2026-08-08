@@ -1,8 +1,7 @@
-import { logMediaGenerationStatus } from '~/cli/commands/process-steps/generation-command-utils'
+import { logGenCompleted, logGenStatus } from '~/cli/commands/process-steps/generation-command-utils'
 import { readElevenLabsError } from '~/cli/commands/process-steps/step-4-tts/tts-services/tts-elevenlabs/elevenlabs-utils'
 import type { ElevenLabsMusicResponseAudio, ElevenlabsMusicModel, Step7MusicMetadata } from '~/types'
 import { ELEVENLABS_DEFAULT_BASE_URL } from '~/utils/base-urls'
-import * as l from '~/utils/app-logger/app-logger'
 import { classifyFetchRetry, withRetry } from '~/utils/retries'
 import { MEDIA_GENERATION_TIMEOUT_MS } from '~/utils/timeouts'
 import { readEnv } from '~/utils/validate/env-utils'
@@ -73,12 +72,7 @@ export const runElevenLabsMusicGen = async (
   const forceInstrumental = options.forceInstrumental === true
   const output = ELEVENLABS_MUSIC_OUTPUTS[options.model]
 
-  logMediaGenerationStatus(l, {
-    mediaType: 'music',
-    provider: 'elevenlabs',
-    model: options.model,
-    status: 'started'
-  })
+  logGenStatus('music', 'elevenlabs', options.model, 'started')
 
   const startTime = Date.now()
 
@@ -127,15 +121,7 @@ export const runElevenLabsMusicGen = async (
   const processingTime = Date.now() - startTime
   const musicFile = Bun.file(musicPath)
 
-  logMediaGenerationStatus(l, {
-    mediaType: 'music',
-    provider: 'elevenlabs',
-    model: options.model,
-    status: 'completed',
-    processingTimeMs: processingTime,
-    outputCount: 1,
-    artifacts: [{ artifact: 'music', path: musicPath }]
-  })
+  logGenCompleted('music', 'elevenlabs', options.model, processingTime, [musicPath])
 
   const metadata: Step7MusicMetadata = {
     musicService: 'elevenlabs',

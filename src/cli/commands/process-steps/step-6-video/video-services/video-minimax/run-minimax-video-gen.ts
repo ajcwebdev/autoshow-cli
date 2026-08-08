@@ -1,8 +1,7 @@
-import * as l from '~/utils/app-logger/app-logger'
 import * as v from 'valibot'
 import type { MinimaxVideoModel, Step6VideoMetadata, VideoMode } from '~/types'
 import { InfraError, InternalError, hintsForMissingEnv } from '~/utils/error-handler'
-import { logMediaGenerationStatus } from '~/cli/commands/process-steps/generation-command-utils'
+import { logGenCompleted, logGenStatus } from '~/cli/commands/process-steps/generation-command-utils'
 import { estimateVideoCost, logVideoEstimate } from '~/cli/commands/process-steps/step-6-video/video-utils/video-pricing'
 import { readEnv } from '~/utils/validate/env-utils'
 import { MINIMAX_DEFAULT_BASE_URL } from '~/utils/base-urls'
@@ -74,12 +73,7 @@ export const runMinimaxVideoGen = async (
   const resolutionForApi = normalizeMinimaxResolutionForApi(options.model, options.resolution)
   const durationForApi = normalizeMinimaxDurationForApi(options.model, resolutionForApi, options.durationSeconds)
 
-  logMediaGenerationStatus(l, {
-    mediaType: 'video',
-    provider: 'minimax',
-    model: options.model,
-    status: 'started'
-  })
+  logGenStatus('video', 'minimax', options.model, 'started')
 
   const estimate = estimateVideoCost({
     minimaxVideoModel: options.model,
@@ -164,12 +158,7 @@ export const runMinimaxVideoGen = async (
       ensureMinimaxBaseRespSuccess(data.base_resp, 'MiniMax video generation query')
 
       const status = readTaskStatus(data)
-      logMediaGenerationStatus(l, {
-        mediaType: 'video',
-        provider: 'minimax',
-        model: options.model,
-        status: String(status ?? 'processing')
-      })
+      logGenStatus('video', 'minimax', options.model, String(status ?? 'processing'))
       return data
     },
     isDone: (data) => isMinimaxTaskSuccess(readTaskStatus(data)),
@@ -217,15 +206,7 @@ export const runMinimaxVideoGen = async (
   const processingTime = Date.now() - startTime
   const videoFile = Bun.file(outputPath)
 
-  logMediaGenerationStatus(l, {
-    mediaType: 'video',
-    provider: 'minimax',
-    model: options.model,
-    status: 'completed',
-    processingTimeMs: processingTime,
-    outputCount: 1,
-    artifacts: [{ artifact: 'video', path: outputPath }]
-  })
+  logGenCompleted('video', 'minimax', options.model, processingTime, [outputPath])
 
   const metadata: Step6VideoMetadata = {
     videoGenService: 'minimax',

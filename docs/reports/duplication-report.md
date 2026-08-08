@@ -1,6 +1,6 @@
 # Duplication Extraction Report
 
-Date: 2026-08-08. Scope: entire repository (`src/`, `test/`, `scripts/` — ~129k lines of TypeScript in `src/` plus the test suite).
+Date: 2026-08-08. Scope: entire repository (`src/`, `test/`, `scripts/` — ~129k lines of TypeScript in `src/` plus the test suite). The nine strictly low-risk entries in the top 15 of the ranked summary are now an implementation plan — one wave per finding, in the style of the legacy audit's decision series — in the wave plan section below. Waves 1 (CLI-1), 2 (G-1), 3 (TE-1), 4 (R-1), and 5 (S-2) are implemented; waves 6–9 remain. The rest of the report is the reference backlog for later passes.
 
 ## Method and accounting rules
 
@@ -12,21 +12,21 @@ The analysis combined a token-based clone scan (jscpd: 375 exact clones, ~5,200 
 
 | ID | Recommendation | Net LOC | Risk |
 |---|---|---|---|
-| CLI-1 | Flag-definition builders (`strFlag`/`strListFlag`/`boolFlag`) across all flag tables | 578 | low |
+| CLI-1 | Flag-definition builders (`strFlag`/`strListFlag`/`boolFlag`) across all flag tables | 551 (actual) | low — **Wave 1 — done** |
 | X-1 | One `requireApiKey` env-guard helper for ~77 sites across steps 2–7 | ~330 | low-med |
-| G-1 | Media-generation status-log helpers across all 18 image/video/music runners | 286 | low |
-| TE-1 | Shared TTS-contract test lifecycle block (6 test files) | 265 | low |
+| G-1 | Media-generation status-log helpers across all 18 image/video/music runners | 293 (actual) | low — **Wave 2 — done** |
+| TE-1 | Shared TTS-contract test lifecycle block (6 test files) | 275 (actual) | low — **Wave 3 — done** |
 | T-1 | Invert `RuntimeOptions` vs per-domain `*RuntimeOptionKey` duplication | 230 | med (mechanical) |
 | S-1 | Shared STT stage-request helper (retry + fetch + error + metrics) | 190 | med |
-| R-1 | Table-driven provider-model-field helpers for the 4 generation resume configs | 184 | low |
-| S-2 | Shared STT polling-deadline / resume-probe error builders (7 providers) | 170 | low |
-| S-3 | Merge `run-whisper.ts` / `run-whisperfile.ts` into one whisper.cpp core | 150 | low |
+| R-1 | Table-driven provider-model-field helpers for the 4 generation resume configs | 180 (actual) | low — **Wave 4 — done** |
+| S-2 | Shared STT polling-deadline / resume-probe error builders (7 providers) | 183 (actual) | low — **Wave 5 — done** |
+| S-3 | Merge `run-whisper.ts` / `run-whisperfile.ts` into one whisper.cpp core | 150 | low — **Wave 6** |
 | TT-1 | Hosted TTS chunk-pipeline skeleton (8 provider runners) | 150 | med-low |
-| O-1 | Seven near-identical `estimate*OcrCost` functions | 140 | low |
+| O-1 | Seven near-identical `estimate*OcrCost` functions | 140 | low — **Wave 7** |
 | B-1 | Derive config-merge injection ladder from `FLAG_TO_CONFIG_PATH` | 138 | med |
-| T-2 | `TtsOptions`/`ImageGenOptions`/`VideoGenOptions` Pick lists → existing key unions | 137 | low |
+| T-2 | `TtsOptions`/`ImageGenOptions`/`VideoGenOptions` Pick lists → existing key unions | 137 | low — **Wave 8** |
 | S-4 | AssemblyAI + Gladia retry blocks onto the S-1 helper (depends on S-1) | 120 | med |
-| X-2 | One shared bounded worker pool (6 copies today) | ~120 | low |
+| X-2 | One shared bounded worker pool (6 copies today) | ~120 | low — **Wave 9** |
 | O-2 | OCR runner envelope schema + JSON schema + response parser (3 runners) | 95 | low |
 | D-1 | `pick()` passthrough for build-opts-from-flags model options | 85 (~165 compact) | low |
 | TE-2 | `load-config-schema.test.ts` 85-line literal bound once | 84 | low |
@@ -97,12 +97,36 @@ The analysis combined a token-based clone scan (jscpd: 375 exact clones, ~5,200 
 | UT-6 | `resolveTranscriptionModel` copy-pasted across pricing files | 15 | low |
 | O-6 | OCR checkpoint/finalize manifest composition (marginal) | 13 | med |
 
+## Wave plan — nine low-risk waves
+
+The nine strictly low-risk entries in the top 15 are now waves, one finding per wave, following the convention from the legacy audit's decision series: each wave is a self-contained prescription, the waves are independent — none depends on another, they can land one by one in any order — and each passes its verification set (always `bun run check`, plus the named local tests) before the next begins. No wave requires a paid-provider call to implement or verify. The six top-15 entries not promoted stay findings in the per-area sections below: X-1 (low-med), TT-1 (med-low), and the medium-risk T-1, S-1, B-1, and S-4 (which additionally depends on S-1). Everything ranked below the top 15 also stays a finding for later passes.
+
+Two conventions carry over from the legacy waves. First, re-confirm the cited duplication by re-reading the sites immediately before extracting — line numbers are anchored to commit `1938efc2` and drift as waves land. Second, when a re-read shows two copies differ where this report says they are identical, stop and surface it as a suspected divergence (see the list near the end of this report) rather than silently unifying.
+
+**Wave 1 — Flag-definition builders across all flag tables (CLI-1) — DONE (2026-08-08, actual net 551 lines).** Landed as prescribed: `strFlag(description, defaultValue?)`, `strListFlag(description)`, and `boolFlag(description)` added to `src/cli/flags/flag-utils.ts`, and every convertible entry across the 14 `src/cli/flags/*.ts` tables and `src/cli/global-flags.ts` collapsed to a one-line builder call (`ocr-flags.ts` gained its first flag-utils import). The load-bearing two-branch return in `strFlag` was implemented and commented — an omitted default omits the `default` key entirely, since `native-parser.ts:190` and `help-renderer.ts:65` test `'default' in definition`. Entries with `short:` (help/version/quiet/force/revise), `help:` (url-provider-concurrency), `negatable: true` (color/chapters/qa), `default: []` (prompt), and bare `type: Boolean` (the four replicate/fal video toggles) stayed literal as planned; multi-line template-literal descriptions (video-duration/aspect-ratio/resolution, image-count) kept their continuation lines, which is why actual savings came in at 551 rather than the estimated 578 (792 lines deleted, 241 added including the 20-line builder block). Pre-implementation re-verification confirmed no `typeof <table>` consumer relies on per-entry literal types and both concurrency default constants are strings. Verified: `bun run check` clean; `cli-help-contracts.test.ts` 25 pass; `cli-usage-errors.test.ts` 66 pass; `option-resolution-contracts/` 94 pass as an extra smoke.
+
+**Wave 2 — Media-generation status-log helpers across all 18 runners (G-1) — DONE (2026-08-08, actual net 293 lines).** Landed as prescribed: `logGenStatus(mediaType, provider, model, status, detail?)` and `logGenCompleted(mediaType, provider, model, processingTimeMs, paths, detail?)` added to `generation-command-utils.ts`, and all 47 multi-line `logMediaGenerationStatus(l, {...})` blocks (18 started, 11 poll, 18 completed — re-confirmed against the report's brace-matching scan before extracting) across the 18 image/video/music runners collapsed to one-line calls. The fal image/video one-liners stayed on `logMediaGenerationStatus`, which remains exported and is also still used by the kitten TTS runner and `finalize-tts-run.ts`. The `paths.map((path, index) => ({ artifact: index === 0 ? mediaType : ...}))` derivation reproduces the exact current artifact labels including the single-`[outputPath]` sites, `detail` spreads only when passed, and the three completed blocks that carry a detail (ltx's estimate line, the gemini/replicate video billed-cost estimates) pass it as the trailing argument. Actual savings came in at 293 rather than the estimated 286 (397 lines deleted, 104 added including the 39-line helper block) because 16 of the 18 runners used `l` only for these calls and dropped their now-unused `import * as l` lines (the minimax/gemini music runners still log directly and keep theirs). Verified: `bun run check` clean; `image-provider-rest-contracts.test.ts` 10 pass; `video-provider-contracts/` 19 pass; `music-provider-contracts.test.ts` 6 pass; `media-generation/` 18 pass.
+
+**Wave 3 — Shared TTS-contract test lifecycle block (TE-1) — DONE (2026-08-08, actual net 275 lines).** Landed as prescribed: `setupTtsContractLifecycle()` added to the directory's `shared.ts`, returning `{ makeTempDir }`, and the token-identical module-level block in all 6 test files collapsed to one call line with the identifier merged into each file's existing `./shared` import (`chunking-audio-helpers.test.ts` uses no tempdirs and calls the helper bare). Rather than moving the block verbatim, the helper is built on the `rest-contract-helpers.ts` utilities the block was reimplementing — `snapshotEnv`/`clearEnv`/`restoreEnv` over the same 10-key env list and `createTempDirTracker` for tempdir tracking — with the fetch/sleep capture+restore and hook registration kept in the helper. Actual savings came in at 275 rather than the estimated 265 (325 lines deleted, 50 added including the 37-line helper-plus-imports block in `shared.ts`) because three files dropped their now-fully-unused `node:fs/promises`/`node:os`/`node:path` import lines entirely and the other two narrowed theirs to the names still used (`join`, `writeFile`). Verified: `bun test test/test-cases/validation/providers/tts-provider-contracts/` 36 pass across all 6 files; `bun run check` clean.
+
+**Wave 4 — Table-driven provider-model-field helpers for generation resume (R-1) — DONE (2026-08-08, actual net 180 lines).** Landed as prescribed: `clearProviderModelFields(opts, fields)`, `collectGenerationTargetsForProviders(providers, opts, fields, collect)`, and `buildGenerationPriceOptions(targets, opts, fields)` added to `generation-resume.ts` (with an exported `GenerationModelFieldTable` type for the service→`[modelsField, modelField]` tables), and the four hand-written function sets (`clearXProviderModels`, `collectXTargetsForProviders`, `xModelsForService`, `buildXPriceOptions`) deleted from `image-resume.ts`, `video-resume.ts`, `music-resume.ts`, and `tts-resume.ts` — each file keeps only its `X_MODEL_FIELDS` constant (pre-implementation re-read confirmed the report's key counts: image 16 keys/8 services, music 6/3, video 18/9, tts 24/12). Each file retains a 5-line typed `collectXTargetsForProviders` wrapper (the untyped-arrow alternative would lose parameter inference in the unannotated config literal), and the per-file `priceXTargets` bodies call `buildGenerationPriceOptions` directly. Behavior preserved exactly: the generic clear sets every table field to explicit `undefined` (matching the old spreads under `exactOptionalPropertyTypes`), and the price builder only assigns a `modelsField` when the service has matching targets, reproducing `xModelsForService`'s empty→`undefined` semantics via the already-cleared keys. Accepted trade-off noted in the plan stands: a typo in a FIELDS table is no longer caught by tsc. Actual savings came in at 180 rather than the estimated 184 (244 lines deleted, 64 added including the 52-line helper block) because the retained typed wrappers cost a few more lines than the estimate assumed. Verified: `bun run check` clean; `bun test test/test-cases/validation/resume-manifests/` 43 pass across 4 files.
+
+**Wave 5 — STT polling-deadline / resume-probe error builders (S-2) — DONE (2026-08-08, actual net 183 lines).** Landed as prescribed: `buildAsyncSttPollingDeadlineError(provider, jobId, pollDeadlineMs)` and `buildAsyncSttResumeProbeError(provider, jobNoun, jobId, probeCount, totalWaitMs)` added to `async-lifecycle.ts`, and the 7 copy-pasted builder pairs deleted from rev, speechmatics, assemblyai, gladia, happyscribe, soniox-utils, and supadata-utils. Pre-implementation re-read confirmed all 14 copies identical modulo provider name and job noun (Rev/Speechmatics 'job', AssemblyAI 'transcript', Gladia/Soniox 'transcription', Happy Scribe 'order', Supadata 'transcript job'), and the pre-landing grep found no test depending on the message strings, which are preserved byte-identically. As predicted, the 5 arrow-wrapped call sites absorbed the provider/jobNoun literals at zero line cost and supadata's two point-free references became arrows on the same lines; happyscribe's divergent `buildExportDeadlineError` (stage `'result'`, export wording) stayed local as planned. `RetryClass` imports remain live in all edited files (each has other uses), and the deleted soniox/supadata exports had no other consumers. Actual savings came in at 183 rather than the estimated 170 (241 lines deleted, 58 added including the 34-line helper block) because the estimate undercounted the per-copy blank/separator lines across the 7 sites. Verified: `bun run check` clean; `bun test test/test-cases/validation/extract-stt/` 30 pass across 7 files.
+
+**Wave 6 — Merge run-whisper / run-whisperfile into one whisper.cpp core (S-3, net 150 lines).** `stt-local/whisper/run-whisper.ts` (221 lines) and `stt-local/whisperfile/run-whisperfile.ts` (199 lines) are end-to-end clones (verified line-for-line: identical `waitForWhisperJson`, progress logging, exec, JSON wait/parse, 23-line timestamp-offset shifting, evidence/metadata assembly). Deltas are deliberate platform differences: CoreML lookup + ggml path + `-m` flag vs the `sh` launcher, plus provider strings. Create `stt-local/run-whispercpp-core.ts` exporting `runWhisperCppTranscribe(audioPath, outputDir, options, provider: { name, tempPrefix, resolveInvocation })` (~195-205 lines); run-whisper shrinks to `detectCoreMLEncoder` plus its invocation builder (~50 lines), run-whisperfile to ~25. Caution from the legacy audit: `benchmark-contracts.test.ts`'s whisper-probe pin imports `whisperBinaryPath` from the module the whisper runner executes — keep that import path stable or retarget the pin in the same change. Verify: `bun run check`, then `bun test test/test-cases/validation/reports-pricing/benchmark-contracts.test.ts` and `bun test test/test-cases/validation/extract-stt/`. Do not run whisper itself to verify; transcription behavior is covered by e2e suites that stay out of scope.
+
+**Wave 7 — One token-priced OCR cost estimator (O-1, net 140 lines).** `ocr-utils/extract-pricing.ts:190-416`: the glm/openai/grok/anthropic/gemini/deepinfra/kimi estimators are line-for-line identical (221 lines) except the model validator, provider literal, two fallback cents values, and an optional `note`. Add a same-file `estimateTokenPricedOcrCost<P>(provider, validateModel, fallbackIn, fallbackOut, modelRaw, input, options, note?)`; keep the seven exports as 6–7-line wrappers preserving exact signatures (the note-bearing ones need an `as` cast, since `& { note?: string }` is not assignable to `& { note: string }`). `estimateMistralOcrCost` and `estimateFirecrawlScrapeCost` are page-priced and stay. Callers unaffected. Verify: `bun run check`, then `bun test test/test-cases/validation/reports-pricing/price-mode-contracts/ocr-pricing.test.ts`.
+
+**Wave 8 — GenOptions Pick lists onto existing key unions (T-2, net 137 lines, type-only).** `TtsOptions` (`tts-workflow/tts-types.ts:2-87`), `ImageGenOptions` (`image-workflow/image-types.ts:2-33`), and `VideoGenOptions` (`video-workflow/video-types.ts:2-23`) spell out one-key-per-line Pick lists that are exactly the corresponding `*RuntimeOptionKey` unions (full type equality proven with tsc under `exactOptionalPropertyTypes`, not just key-set equality). Replace with `Pick<ProcessingOptions, TtsRuntimeOptionKey | 'ttsProviderConcurrency' | 'ttsLocalConcurrency' | 'ttsChunkConcurrency'>` and the image/video equivalents. All three files already import from `~/types`. Compatible with T-1 in either order — after T-1's inversion the key unions become `keyof` aliases, which remain valid `Pick` keys. Subsumes the separately-found VideoGenOptions finding. Zero runtime surface. Verify: `bun run check` — tsc is the whole test — plus the no-cost smoke set as a formality.
+
+**Wave 9 — One shared bounded worker pool (X-2, net ~120 lines).** The same 25-line bounded pool (`nextIndex` counter, `runWorker` while-loop, `Promise.all` over `Math.min(concurrency, items.length)` workers) exists six times: `comic-utils/run-with-concurrency.ts` (canonical, has `runWithConcurrency` + `mapWithConcurrency`), `step-1-download/download-targets/process-target-preflight.ts:9-33` and `step-4-tts/define-tts-command.ts:614-638` (byte-identical clones), `step-1-download/.../single/write-transcription.ts:18-42` and `step-2-stt/stt-provider-pool.ts:126-150` (indices-specialized `runTargetPool`), and `links/define-links-command.ts:45-71` (`mapWithConcurrency` variant). Move `comic-utils/run-with-concurrency.ts` to `src/utils/run-with-concurrency.ts` unchanged (plain `mv`, per repo rules — no `git mv`); update the 6 comic import paths (line-neutral); delete the five other copies and import. Call sites are same-line arg reorders; `write-transcription`'s indices worker receives the index as the item; `stt-provider-pool`'s two consumers (`stt-batch-recovery.ts`, `multi-provider-batch.ts`) change import paths (+1 line in multi-provider-batch). The `Math.floor` on the limit in the canonical copy is a no-op for the integer CLI concurrency values every site passes. Do NOT fold in `audio-utils.runTtsChunks`, split-execution's segment pool, provider-target-scheduler's `runPool`, stt-batch-coordinator, or the OCR page-concurrency ordered variant — those carry deliberate fail-fast/sorting/resource-gate logic. Consolidates the lens-cross (98), lens-providers (86), and download-area (49) findings. Verify: `bun run check`, then `bun test test/test-cases/validation/comic/` and `bun test test/test-cases/validation/content-output/metadata-links-lyrics-contracts/links-fetching-retry.test.ts`.
+
 ## Sequencing notes
 
 - **X-1 first**: land `requireApiKey` in `src/utils/validate/env-utils.ts` before touching individual steps — the write (W), TTS (TT), and genmedia (G) API-key findings are consolidated into it.
 - **S-1 before S-4 and S-6**: S-4 reuses S-1's helper with zero new helper lines; S-6 shrinks from ~56 to ~32 after S-1 because S-1 already deletes `toRevHttpError`/`toSpeechmaticsHttpError`.
-- **T-1 before T-2** if both are done (after inversion the key unions become `keyof` aliases, which remain valid `Pick` keys — verified with tsc). Keep temporary `AssertEqual<old, new>` guards during type migrations.
-- **X-2 and X-3** interact slightly with O-3 and D findings: X-2 subsumes the download-area pool finding; X-3 overlaps ~8 of O-3's isRecord sites (implement either order, just don't double-count).
+- **T-1 and T-2 (Wave 8)** compose in either order (after T-1's inversion the key unions become `keyof` aliases, which remain valid `Pick` keys — verified with tsc). Keep temporary `AssertEqual<old, new>` guards during type migrations.
+- **X-2 (Wave 9) and X-3** interact slightly with O-3 and D findings: X-2 subsumes the download-area pool finding; X-3 overlaps ~8 of O-3's isRecord sites (implement either order, just don't double-count).
 - **X-5** consolidates three overlapping lens findings (path helpers, timestamp helpers, formatCueTimestamp) into one change.
 
 ---
@@ -121,13 +145,7 @@ Consolidates: lens finding (320), genmedia `requireEnvApiKey` (87), TTS `require
 
 ### X-2: One shared bounded worker pool — net ~120 lines
 
-The same 25-line bounded pool (`nextIndex` counter, `runWorker` while-loop, `Promise.all` over `Math.min(concurrency, items.length)` workers) exists six times: `comic-utils/run-with-concurrency.ts` (canonical, has `runWithConcurrency` + `mapWithConcurrency`), `step-1-download/download-targets/process-target-preflight.ts:9-33` and `step-4-tts/define-tts-command.ts:614-638` (byte-identical clones), `step-1-download/.../single/write-transcription.ts:18-42` and `step-2-stt/stt-provider-pool.ts:126-150` (indices-specialized `runTargetPool`), and `links/define-links-command.ts:45-71` (`mapWithConcurrency` variant).
-
-**Fix:** move `comic-utils/run-with-concurrency.ts` to `src/utils/run-with-concurrency.ts` unchanged; update the 6 comic import paths (line-neutral); delete the five other copies and import. Call sites are same-line arg reorders; `write-transcription`'s indices worker receives the index as the item; `stt-provider-pool`'s two consumers (`stt-batch-recovery.ts`, `multi-provider-batch.ts`) change import paths (+1 line in multi-provider-batch). The `Math.floor` on the limit in the canonical copy is a no-op for the integer CLI concurrency values every site passes.
-
-**Risk:** low. Do NOT fold in `audio-utils.runTtsChunks`, split-execution's segment pool, provider-target-scheduler's `runPool`, stt-batch-coordinator, or the OCR page-concurrency ordered variant — those carry deliberate fail-fast/sorting/resource-gate logic.
-
-Consolidates: lens-cross (98), lens-providers (86), download-area (49) findings.
+Promoted to **Wave 9** in the wave plan; prescription, exclusions, and verification live there.
 
 ### X-3: `isRecord` — 39 exact local copies — net 39 lines
 
@@ -169,13 +187,9 @@ Token-identical 18-line polling loop in `run-gemini-ocr.ts:285-302` and `run-gem
 
 ## CLI flags and native parser (CLI)
 
-### CLI-1: Flag-definition builders — net 578 lines
+### CLI-1: Flag-definition builders — net 551 lines (done)
 
-170 flag entries across `src/cli/flags/*.ts` and `src/cli/global-flags.ts` repeat three literal shapes (verified by property-key parse): 84 plain-String entries (366 lines), 35 `[String]` entries (150 lines), 30 `{ description, type: Boolean, default: false, negatable: false }` entries (180 lines), 21 String+default entries (105 lines) — 801 lines total.
-
-**Fix:** add three builders to the existing `src/cli/flags/flag-utils.ts` (every flag file except `ocr-flags.ts` already imports it): `strFlag(description, defaultValue?)`, `strListFlag(description)`, `boolFlag(description)`. **Load-bearing detail:** `strFlag` must use a two-branch return — never `default: undefined` — because `native-parser.ts:190` uses `'default' in definition`. Each entry becomes one line (`'batch-limit': strFlag('Batch: number of items to process (default 5)', '5'),`). The 14 entries with `short:`, `help:`, `negatable: true`, `default: []`, or bare `type: Boolean` stay literal; multi-line template-literal descriptions keep their continuation lines (~40 lines survive); `global-flags.ts` keeps `colorizeHelpDescription(...)` inline in the call.
-
-**Risk:** low — runtime objects identical; `CliFlagDefinition.default` is already `unknown` and no `typeof <table>` consumers rely on per-entry literal types (grepped). Run `bun test test/test-cases/validation/cli/cli-help-contracts.test.ts` after.
+Implemented as **Wave 1**; the completion record and verification results live in the wave plan.
 
 ### CLI-2: Shared long-flag argv rewriter — net 58 lines
 
@@ -199,7 +213,7 @@ Every option field appears twice: typed in `RuntimeOptions` (`src/types/cli-surf
 
 ### T-2: GenOptions Pick lists → existing key unions — net 137 lines
 
-`TtsOptions` (`tts-workflow/tts-types.ts:2-87`), `ImageGenOptions` (`image-workflow/image-types.ts:2-33`), `VideoGenOptions` (`video-workflow/video-types.ts:2-23`) spell out one-key-per-line Pick lists that are exactly the corresponding `*RuntimeOptionKey` unions (full type equality proven with tsc under `exactOptionalPropertyTypes`, not just key-set equality). Replace with `Pick<ProcessingOptions, TtsRuntimeOptionKey | 'ttsProviderConcurrency' | 'ttsLocalConcurrency' | 'ttsChunkConcurrency'>` etc. All three files already import from `~/types`. Compatible with T-1. (Subsumes the separately-found VideoGenOptions finding.)
+Promoted to **Wave 8** in the wave plan; prescription and verification live there.
 
 ### T-3: pricing-types shared fragments — net 47 lines
 
@@ -219,7 +233,7 @@ The 24 LLM model keys exist three times: `RuntimeOptions` (cli-types.ts:19-42), 
 
 ### O-1: Seven `estimate*OcrCost` functions — net 140 lines
 
-`ocr-utils/extract-pricing.ts:190-416`: glm/openai/grok/anthropic/gemini/deepinfra/kimi estimators are line-for-line identical (221 lines) except the model validator, provider literal, two fallback cents values, and an optional `note`. Add a same-file `estimateTokenPricedOcrCost<P>(provider, validateModel, fallbackIn, fallbackOut, modelRaw, input, options, note?)`; keep the seven exports as 6–7-line wrappers preserving exact signatures (note-bearing ones need an `as` cast since `& { note?: string }` is not assignable to `& { note: string }`). `estimateMistralOcrCost` and `estimateFirecrawlScrapeCost` are page-priced and stay. Callers unaffected.
+Promoted to **Wave 7** in the wave plan; prescription and verification live there.
 
 ### O-2: Envelope schema + JSON schema + parser triplicated — net 95 lines
 
@@ -253,13 +267,13 @@ Ten ~50–60-line functions across `rev/run-rev-stt.ts` (107-159, 273-327, 329-3
 
 **Risk:** medium — must preserve exact error prefixes, stage/retryClass tags, and metric increment timing (onRequest inside the attempt; onRetry only when `decision.shouldRetry`). Verified: soniox attach helpers unwrap `error.cause` identically to async-lifecycle's, so routing through the shared attach is behavior-preserving.
 
-### S-2: Polling-deadline / resume-probe error builders — net 170 lines
+### S-2: Polling-deadline / resume-probe error builders — net 183 lines (done)
 
-`buildPollingDeadlineError`/`buildResumeProbeError` copy-pasted 7× (~30 lines each) in rev, speechmatics, assemblyai, gladia, happyscribe, soniox-utils, supadata-utils — identical except provider name and job noun ('job'/'transcript'/'transcription'/'order'/'transcript job'), all attaching `{stage:'poll', retryClass:'runtime_http_read', retryable:true}`. Add `buildAsyncSttPollingDeadlineError(provider, jobId, pollDeadlineMs)` and `buildAsyncSttResumeProbeError(provider, jobNoun, jobId, probeCount, totalWaitMs)` to `async-lifecycle.ts` (already imported by 5 of 7). Verified: every consumer call site already wraps in arrows, so passing the literals adds zero lines (supadata's two point-free refs become arrows on the same lines).
+Implemented as **Wave 5**; the completion record and verification results live in the wave plan.
 
 ### S-3: Merge whisper/whisperfile runners — net 150 lines
 
-`stt-local/whisper/run-whisper.ts` (221 lines) and `stt-local/whisperfile/run-whisperfile.ts` (199 lines) are end-to-end clones (verified line-for-line: identical `waitForWhisperJson`, progress logging, exec, JSON wait/parse, 23-line timestamp-offset shifting, evidence/metadata assembly). Deltas are deliberate platform differences: CoreML lookup + ggml path + `-m` flag vs `sh` launcher, plus provider strings. New `stt-local/run-whispercpp-core.ts` exporting `runWhisperCppTranscribe(audioPath, outputDir, options, provider: { name, tempPrefix, resolveInvocation })` (~195-205 lines); run-whisper shrinks to `detectCoreMLEncoder` + invocation builder (~50 lines), run-whisperfile to ~25.
+Promoted to **Wave 6** in the wave plan; prescription and verification live there.
 
 ### S-4: AssemblyAI + Gladia onto the S-1 helper — net 120 lines (after S-1)
 
@@ -321,7 +335,7 @@ Each `build-opts-from-flags/*.ts` builder destructures N model keys from `ctx.mo
 
 `audio-normalize.ts:128-146` vs `148-165`: identical except the mp3 variant drops the aac/.m4a disjunct. Merge into `isHostedPreserveCandidate(inputPath, probe, allowAac)`; callers at 185 (`true`) and 226 (`false`). Divergence is intentional and preserved by the flag.
 
-(The download-area worker-pool finding is subsumed by X-2.)
+(The download-area worker-pool finding is subsumed by X-2 / Wave 9.)
 
 ---
 
@@ -371,9 +385,9 @@ Three identical 4-line `readXError` readers (cartesia/hume/speechify), four loca
 
 ## Image / Video / Music — steps 5-7 (G)
 
-### G-1: Status-log helpers across 18 runners — net 286 lines
+### G-1: Status-log helpers across 18 runners — net 293 lines (done)
 
-Every image/video/music runner builds `logMediaGenerationStatus(l, {...})` literals three times — verified by brace-matching scan: exactly 47 multi-line blocks (18 started, 11 poll, 18 completed) summing to exactly 363 lines; the fal runners are already one-liners. Add to `generation-command-utils.ts` (every runner already imports from it): `logGenStatus(mediaType, provider, model, status, detail?)` and `logGenCompleted(mediaType, provider, model, processingTimeMs, paths, detail?)` — the `paths.map((path, i) => ({ artifact: i === 0 ? mediaType : \`${mediaType} ${i+1}\`, path }))` derivation reproduces the exact current artifact labels for all three media types (verified). Each block becomes one call line. The optional `detail` must spread only when passed (the detail-entries builder already guards with truthiness, so behavior is identical).
+Implemented as **Wave 2**; the completion record and verification results live in the wave plan.
 
 ### G-3: Replicate video options type — net 75 lines
 
@@ -465,9 +479,9 @@ The `try { new URL(x) } catch { return false }` scaffolding is repeated in 7 fun
 
 ## Setup: setup / resume (R)
 
-### R-1: Generation-resume provider-model-field helpers — net 184 lines
+### R-1: Generation-resume provider-model-field helpers — net 180 lines (done)
 
-`image-resume.ts`, `music-resume.ts`, `video-resume.ts`, `tts-resume.ts` each hand-write four functions (`clearXProviderModels`, `collectXTargetsForProviders`, `xModelsForService`, `buildXPriceOptions`) that are identical modulo the service→field table — 240 lines total, and every enumeration exactly equals the per-file `X_MODEL_FIELDS` constant (verified: image 16 keys/8 services, music 6/3, video 18/9, tts 24/12). Add table-driven generics to `generation-resume.ts` (already imported by all four): `clearProviderModelFields(opts, fields)`, `collectGenerationTargetsForProviders(providers, opts, fields, collect)`, `buildGenerationPriceOptions(targets, opts, fields)`. Each file keeps only its FIELDS constant. Trade-off: a typo in a FIELDS table is no longer caught by tsc (it is already the source of truth for collect, so marginal).
+Implemented as **Wave 4**; the completion record and verification results live in the wave plan.
 
 ### R-2: generation-resume manifest preamble — net 50 lines
 
@@ -489,9 +503,9 @@ Four block pairs duplicated between `extract/stt-resume.ts` and `extract/ocr-res
 
 ## Tests (TE)
 
-### TE-1: TTS-contract lifecycle — net 265 lines
+### TE-1: TTS-contract lifecycle — net 275 lines (done)
 
-All 6 files in `test/test-cases/validation/providers/tts-provider-contracts/` repeat a token-identical ~44-50-line module-level block (env snapshot/clear/restore with the same 10-key list, fetch/sleep capture+restore, tempdir tracking) — also a local reimplementation of `test/test-utils/rest-contract-helpers.ts` utilities. Add `setupTtsContractLifecycle()` to the dir's `shared.ts` returning `{ makeTempDir }`; each file becomes one line (identifier merges into the existing `./shared` import) and drops its now-unused fs/bun:test import names. Hook registration from an imported function is equivalent in bun:test (verified semantics).
+Implemented as **Wave 3**; the completion record and verification results live in the wave plan.
 
 ### TE-2: load-config round-trip literal — net 84 lines
 

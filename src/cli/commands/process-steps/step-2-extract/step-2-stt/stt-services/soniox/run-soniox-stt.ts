@@ -10,6 +10,8 @@ import {
   formatTranscriptText
 } from '~/cli/commands/process-steps/step-2-extract/step-2-stt/stt-utils/stt-utils'
 import {
+  buildAsyncSttPollingDeadlineError,
+  buildAsyncSttResumeProbeError,
   createAsyncSttJobReadyNotifier,
   createAsyncSttProgressMetadataPersister,
   pollAsyncSttJobUntilComplete,
@@ -27,10 +29,6 @@ import {
   pollTranscription,
   uploadAudio
 } from './soniox-api'
-import {
-  buildSonioxPollingDeadlineError,
-  buildSonioxResumeProbeError
-} from './soniox-utils'
 import { normalizeSonioxTranscript } from './parse-soniox-transcript'
 
 const INITIAL_POLL_INTERVAL_MS = 1000
@@ -186,8 +184,8 @@ export const runSonioxStt = async (
       maxPollIntervalMs: MAX_POLL_INTERVAL_MS,
       audioDurationSeconds,
       pollMode: resumedExistingTranscription ? 'resume-probe' : 'fresh',
-      buildDeadlineError: (jobId, pollDeadlineMs) => buildSonioxPollingDeadlineError(jobId, pollDeadlineMs),
-      buildResumeProbeError: (jobId, probeCount, totalWaitMs) => buildSonioxResumeProbeError(jobId, probeCount, totalWaitMs),
+      buildDeadlineError: (jobId, pollDeadlineMs) => buildAsyncSttPollingDeadlineError('Soniox', jobId, pollDeadlineMs),
+      buildResumeProbeError: (jobId, probeCount, totalWaitMs) => buildAsyncSttResumeProbeError('Soniox', 'transcription', jobId, probeCount, totalWaitMs),
       poll: async () => {
         const pollStartedAt = Date.now()
         const result = await pollTranscription(baseURL, apiKey, activeTranscriptionId, requestMetrics)

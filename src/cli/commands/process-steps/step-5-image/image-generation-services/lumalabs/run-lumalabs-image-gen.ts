@@ -1,8 +1,7 @@
-import * as l from '~/utils/app-logger/app-logger'
 import * as v from 'valibot'
 import type { LumalabsImageModel, LumalabsImageRef, LumalabsOutputFormat, RetryClass, Step5Metadata } from '~/types'
 import { CLIUsageError, InfraError, ValidationError } from '~/utils/error-handler'
-import { logMediaGenerationStatus } from '~/cli/commands/process-steps/generation-command-utils'
+import { logGenCompleted, logGenStatus } from '~/cli/commands/process-steps/generation-command-utils'
 import { estimateImageCosts, logImageEstimate } from '~/cli/commands/process-steps/step-5-image/image-utils/image-pricing'
 import { classifyFetchRetry, isRetryableStatus, pollUntil, withRetry } from '~/utils/retries'
 import { validateData } from '~/utils/validate/validation'
@@ -159,13 +158,7 @@ export const runLumalabsImageGen = async (
     logImageEstimate(estimate)
   }
 
-  logMediaGenerationStatus(l, {
-    mediaType: 'image',
-    provider: 'lumalabs',
-    model: options.model,
-    status: 'started',
-    detail: mode
-  })
+  logGenStatus('image', 'lumalabs', options.model, 'started', mode)
 
   const startTime = Date.now()
   const imageRefs = await Promise.all(inputs.map(toImageRef))
@@ -212,12 +205,7 @@ export const runLumalabsImageGen = async (
         throw InfraError(`Luma Labs image status query failed (${response.status}): ${extractErrorMessage(payload) ?? 'Unknown error'}`, { stage: 'image:lumalabs', status: response.status })
       }
       const data = validateData(LumalabsGenerationSchema, payload, 'Luma Labs image generation poll response')
-      logMediaGenerationStatus(l, {
-        mediaType: 'image',
-        provider: 'lumalabs',
-        model: options.model,
-        status: data.state
-      })
+      logGenStatus('image', 'lumalabs', options.model, data.state)
       return data
     },
     isDone: (data) => data.state.toLowerCase() === 'completed',
@@ -245,15 +233,7 @@ export const runLumalabsImageGen = async (
   const imageFile = Bun.file(outputPath)
   const providerCostCents = estimate?.totalCost
 
-  logMediaGenerationStatus(l, {
-    mediaType: 'image',
-    provider: 'lumalabs',
-    model: options.model,
-    status: 'completed',
-    processingTimeMs: processingTime,
-    outputCount: 1,
-    artifacts: [{ artifact: 'image', path: outputPath }]
-  })
+  logGenCompleted('image', 'lumalabs', options.model, processingTime, [outputPath])
 
   return {
     imagePaths: [outputPath],

@@ -1,5 +1,5 @@
 import { getGenerationTargetKey } from '~/cli/commands/process-steps/generation-command-utils'
-import { buildUpdatedGenerationCostTiming, hasResumableGenerationWork, priceGenerationTarget, resumeGenerationTarget } from '../generation-resume'
+import { buildGenerationPriceOptions, buildUpdatedGenerationCostTiming, collectGenerationTargetsForProviders, hasResumableGenerationWork, priceGenerationTarget, resumeGenerationTarget } from '../generation-resume'
 import { collectTtsTargets } from '~/cli/commands/process-steps/step-4-tts/tts-targets'
 import { runTtsTargets } from '~/cli/commands/process-steps/step-4-tts/run-tts'
 import { computeActualCosts } from '~/utils/pricing/compute-actual-costs'
@@ -40,88 +40,18 @@ const TTS_MODEL_FIELDS = {
   cartesia: ['cartesiaTtsModels', 'cartesiaTtsModel']
 } as const
 
-const clearTtsProviderModels = (opts: RuntimeOptions): RuntimeOptions => ({
-  ...opts,
-  kittenTtsModels: undefined,
-  kittenTtsModel: undefined,
-  elevenlabsTtsModels: undefined,
-  elevenlabsTtsModel: undefined,
-  minimaxTtsModels: undefined,
-  minimaxTtsModel: undefined,
-  groqTtsModels: undefined,
-  groqTtsModel: undefined,
-  grokTtsModels: undefined,
-  grokTtsModel: undefined,
-  mistralTtsModels: undefined,
-  mistralTtsModel: undefined,
-  openaiTtsModels: undefined,
-  openaiTtsModel: undefined,
-  geminiTtsModels: undefined,
-  geminiTtsModel: undefined,
-  deepgramTtsModels: undefined,
-  deepgramTtsModel: undefined,
-  speechifyTtsModels: undefined,
-  speechifyTtsModel: undefined,
-  humeTtsModels: undefined,
-  humeTtsModel: undefined,
-  cartesiaTtsModels: undefined,
-  cartesiaTtsModel: undefined
-})
-
 const collectTtsTargetsForProviders = (
   providers: Array<{ service: string, model: string }>,
   opts: RuntimeOptions
 ): TtsTarget[] =>
-  providers.flatMap((provider) => {
-    const fields = TTS_MODEL_FIELDS[provider.service as keyof typeof TTS_MODEL_FIELDS]
-    if (!fields) {
-      return []
-    }
-    const [modelsField, modelField] = fields
-    return collectTtsTargets({
-      ...clearTtsProviderModels(opts),
-      [modelsField]: [provider.model],
-      [modelField]: provider.model
-    } as RuntimeOptions).filter((target) =>
-      target.service === provider.service && target.model === provider.model
-    )
-  })
-
-const modelsForService = (
-  targets: TtsTarget[],
-  service: TtsTarget['service']
-): string[] | undefined => {
-  const models = targets
-    .filter((target) => target.service === service)
-    .map((target) => target.model)
-  return models.length > 0 ? models : undefined
-}
-
-const buildTtsPriceOptions = (
-  targets: TtsTarget[],
-  opts: RuntimeOptions
-): RuntimeOptions => ({
-  ...clearTtsProviderModels(opts),
-  kittenTtsModels: modelsForService(targets, 'kitten'),
-  elevenlabsTtsModels: modelsForService(targets, 'elevenlabs'),
-  minimaxTtsModels: modelsForService(targets, 'minimax'),
-  groqTtsModels: modelsForService(targets, 'groq'),
-  grokTtsModels: modelsForService(targets, 'grok'),
-  mistralTtsModels: modelsForService(targets, 'mistral'),
-  openaiTtsModels: modelsForService(targets, 'openai'),
-  geminiTtsModels: modelsForService(targets, 'gemini'),
-  deepgramTtsModels: modelsForService(targets, 'deepgram'),
-  speechifyTtsModels: modelsForService(targets, 'speechify'),
-  humeTtsModels: modelsForService(targets, 'hume'),
-  cartesiaTtsModels: modelsForService(targets, 'cartesia')
-})
+  collectGenerationTargetsForProviders(providers, opts, TTS_MODEL_FIELDS, collectTtsTargets)
 
 const priceTtsTargets = async (
   targets: TtsTarget[],
   input: string,
   opts: RuntimeOptions
 ): Promise<AggregatedPriceEstimate> => {
-  const priceOpts = buildTtsPriceOptions(targets, opts)
+  const priceOpts = buildGenerationPriceOptions(targets, opts, TTS_MODEL_FIELDS)
   const steps = await buildTtsEstimates(priceOpts, input.length)
   return aggregateExplicitPriceEstimate(steps, priceOpts, {
     ttsTimingCharacterCount: input.length,

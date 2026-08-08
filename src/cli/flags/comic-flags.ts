@@ -1,4 +1,4 @@
-import { withHelpGroup } from './flag-utils'
+import { boolFlag, strFlag, withHelpGroup } from './flag-utils'
 import { colorizeHelpDescription } from '~/cli/help-colors'
 import {
   DEFAULT_LLM_MODEL,
@@ -23,34 +23,17 @@ import type { CliFlagsDefinition } from '~/types'
 // keeps every flag documented here accepted by those parsers.
 
 const comicPriceFlag = {
-  price: {
-    description: colorizeHelpDescription('Dry run: estimate API cost without making any calls'),
-    type: Boolean,
-    default: false,
-    negatable: false
-  }
+  price: boolFlag(colorizeHelpDescription('Dry run: estimate API cost without making any calls'))
 } as const satisfies CliFlagsDefinition
 
 const comicConcurrencyFlag = {
-  concurrency: {
-    description: colorizeHelpDescription(`Number of image/prompt tasks to run in parallel (default: ${DEFAULT_CLI_CONCURRENCY})`),
-    type: String
-  }
+  concurrency: strFlag(colorizeHelpDescription(`Number of image/prompt tasks to run in parallel (default: ${DEFAULT_CLI_CONCURRENCY})`))
 } as const satisfies CliFlagsDefinition
 
 const comicImageFlags = {
-  'image-model': {
-    description: colorizeHelpDescription(`Image model ID from the central image registry (default: ${DEFAULT_IMAGE_MODEL})`),
-    type: String
-  },
-  size: {
-    description: colorizeHelpDescription(`Image size: ${IMAGE_SIZE_HELP}`),
-    type: String
-  },
-  quality: {
-    description: colorizeHelpDescription(`Image quality: ${IMAGE_GENERATION_QUALITIES.join('|')}`),
-    type: String
-  }
+  'image-model': strFlag(colorizeHelpDescription(`Image model ID from the central image registry (default: ${DEFAULT_IMAGE_MODEL})`)),
+  size: strFlag(colorizeHelpDescription(`Image size: ${IMAGE_SIZE_HELP}`)),
+  quality: strFlag(colorizeHelpDescription(`Image quality: ${IMAGE_GENERATION_QUALITIES.join('|')}`))
 } as const satisfies CliFlagsDefinition
 
 const comicQaFlags = {
@@ -59,25 +42,13 @@ const comicQaFlags = {
     type: Boolean,
     negatable: true
   },
-  'qa-model': {
-    description: colorizeHelpDescription(`Vision judge model: an OpenAI vision-capable LLM (default: ${DEFAULT_QA_MODEL})`),
-    type: String
-  },
-  'max-repairs': {
-    description: colorizeHelpDescription('Maximum repair attempts after the initial image; stagnation may restart once or stop early (default: 2)'),
-    type: String
-  }
+  'qa-model': strFlag(colorizeHelpDescription(`Vision judge model: an OpenAI vision-capable LLM (default: ${DEFAULT_QA_MODEL})`)),
+  'max-repairs': strFlag(colorizeHelpDescription('Maximum repair attempts after the initial image; stagnation may restart once or stop early (default: 2)'))
 } as const satisfies CliFlagsDefinition
 
 const draftScenesStageFlags = {
-  only: {
-    description: colorizeHelpDescription('Run one stage: structure|prompt|scene|panel-prompts'),
-    type: String
-  },
-  'llm-model': {
-    description: colorizeHelpDescription(`Text model for scene drafting (default: ${DEFAULT_LLM_MODEL})`),
-    type: String
-  }
+  only: strFlag(colorizeHelpDescription('Run one stage: structure|prompt|scene|panel-prompts')),
+  'llm-model': strFlag(colorizeHelpDescription(`Text model for scene drafting (default: ${DEFAULT_LLM_MODEL})`))
 } as const satisfies CliFlagsDefinition
 
 export const draftScenesFlags = {
@@ -87,29 +58,14 @@ export const draftScenesFlags = {
 } as const satisfies CliFlagsDefinition
 
 const generateImagesPanelFlags = {
-  target: {
-    description: colorizeHelpDescription('What to generate: images|sketches|both (default: images)'),
-    type: String
-  },
-  panels: {
-    description: colorizeHelpDescription('Panels to process: all, 1-8, 1,3,7, or 1-4,9; overlong ranges clamp (default: all)'),
-    type: String
-  },
-  'panels-per-image': {
-    description: colorizeHelpDescription(`Panels drawn per generated image; overrides both stages (final default: ${DEFAULT_FINAL_PANELS_PER_IMAGE}; sketch default: ${DEFAULT_SKETCH_PANELS_PER_IMAGE})`),
-    type: String
-  },
-  grid: {
-    description: colorizeHelpDescription(`Compose individual final panels into local page grids as <columns>x<rows>; requires --panels-per-image 1 and --size ${COMIC_GRID_PANEL_SIZE}`),
-    type: String
-  }
+  target: strFlag(colorizeHelpDescription('What to generate: images|sketches|both (default: images)')),
+  panels: strFlag(colorizeHelpDescription('Panels to process: all, 1-8, 1,3,7, or 1-4,9; overlong ranges clamp (default: all)')),
+  'panels-per-image': strFlag(colorizeHelpDescription(`Panels drawn per generated image; overrides both stages (final default: ${DEFAULT_FINAL_PANELS_PER_IMAGE}; sketch default: ${DEFAULT_SKETCH_PANELS_PER_IMAGE})`)),
+  grid: strFlag(colorizeHelpDescription(`Compose individual final panels into local page grids as <columns>x<rows>; requires --panels-per-image 1 and --size ${COMIC_GRID_PANEL_SIZE}`))
 } as const satisfies CliFlagsDefinition
 
 const generateImagesVariationFlag = {
-  variation: {
-    description: colorizeHelpDescription(`Final-image prompt variations as name[,name...]: ${IMAGE_PROMPT_VARIATIONS.join('|')}`),
-    type: String
-  }
+  variation: strFlag(colorizeHelpDescription(`Final-image prompt variations as name[,name...]: ${IMAGE_PROMPT_VARIATIONS.join('|')}`))
 } as const satisfies CliFlagsDefinition
 
 const generateImagesForceFlag = {
@@ -123,10 +79,7 @@ const generateImagesForceFlag = {
 } as const satisfies CliFlagsDefinition
 
 const generateImagesLlmFlag = {
-  'llm-model': {
-    description: colorizeHelpDescription(`Text model used when scene drafts or panel prompts must be rebuilt (default: ${DEFAULT_LLM_MODEL})`),
-    type: String
-  }
+  'llm-model': strFlag(colorizeHelpDescription(`Text model used when scene drafts or panel prompts must be rebuilt (default: ${DEFAULT_LLM_MODEL})`))
 } as const satisfies CliFlagsDefinition
 
 export const generateImagesFlags = {
@@ -142,18 +95,9 @@ export const generateImagesFlags = {
 } as const satisfies CliFlagsDefinition
 
 const referenceSketchSheetFlags = {
-  character: {
-    description: colorizeHelpDescription('Catalog character key (mutually exclusive with --location)'),
-    type: String
-  },
-  location: {
-    description: colorizeHelpDescription('Canonical location key (mutually exclusive with --character)'),
-    type: String
-  },
-  view: {
-    description: colorizeHelpDescription('Location camera view: establishing|reverse|side (default: establishing)'),
-    type: String
-  },
+  character: strFlag(colorizeHelpDescription('Catalog character key (mutually exclusive with --location)')),
+  location: strFlag(colorizeHelpDescription('Canonical location key (mutually exclusive with --character)')),
+  view: strFlag(colorizeHelpDescription('Location camera view: establishing|reverse|side (default: establishing)')),
   revise: {
     description: colorizeHelpDescription('Revision mode; requires --notes'),
     type: Boolean,
@@ -161,14 +105,8 @@ const referenceSketchSheetFlags = {
     default: false,
     negatable: false
   },
-  notes: {
-    description: colorizeHelpDescription('Revision instructions (requires --revise)'),
-    type: String
-  },
-  'llm-model': {
-    description: colorizeHelpDescription(`Text model used to draft the sheet prompt (default: ${DEFAULT_LLM_MODEL})`),
-    type: String
-  }
+  notes: strFlag(colorizeHelpDescription('Revision instructions (requires --revise)')),
+  'llm-model': strFlag(colorizeHelpDescription(`Text model used to draft the sheet prompt (default: ${DEFAULT_LLM_MODEL})`))
 } as const satisfies CliFlagsDefinition
 
 export const referenceSketchFlags = {

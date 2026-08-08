@@ -1,70 +1,16 @@
 import {
-  afterEach,
-  beforeEach,
   describe,
   expect,
   test
 } from 'bun:test'
-import { mkdtemp, rm } from 'node:fs/promises'
-import { tmpdir } from 'node:os'
-import { join } from 'node:path'
 import { runGrokTts } from '~/cli/commands/process-steps/step-4-tts/tts-services/tts-grok/run-grok-tts'
 import { runGroqTts } from '~/cli/commands/process-steps/step-4-tts/tts-services/tts-groq/run-groq-tts'
 import { runOpenAITts } from '~/cli/commands/process-steps/step-4-tts/tts-services/tts-openai/run-openai-tts'
 import { createHostedTtsChunkScheduler } from '~/cli/commands/process-steps/step-4-tts/tts-utils/hosted-tts-chunk-scheduler'
 import { createMockWavBase64, createSyntheticWavBytes } from '../../../../test-utils/media-fixtures'
-import { readWavSamples, segmentRms, waitForCondition } from './shared'
+import { readWavSamples, segmentRms, setupTtsContractLifecycle, waitForCondition } from './shared'
 
-const tempDirs: string[] = []
-
-const originalFetch = globalThis.fetch
-
-const originalSleep = Bun.sleep
-
-const previousEnv: Record<string, string | undefined> = {}
-
-const envKeys = [
-  'ELEVENLABS_API_KEY',
-  'SPEECHIFY_API_KEY',
-  'HUME_API_KEY',
-  'CARTESIA_API_KEY',
-  'MISTRAL_API_KEY',
-  'OPENAI_API_KEY',
-  'GROQ_API_KEY',
-  'XAI_API_KEY',
-  'MINIMAX_API_KEY',
-  'DEEPGRAM_API_KEY'
-]
-
-const restoreEnv = (): void => {
-  for (const key of envKeys) {
-    if (previousEnv[key] === undefined) {
-      delete process.env[key]
-    } else {
-      process.env[key] = previousEnv[key]
-    }
-  }
-}
-
-const makeTempDir = async (prefix: string): Promise<string> => {
-  const dir = await mkdtemp(join(tmpdir(), prefix))
-  tempDirs.push(dir)
-  return dir
-}
-
-beforeEach(() => {
-  for (const key of envKeys) {
-    previousEnv[key] = process.env[key]
-    delete process.env[key]
-  }
-})
-
-afterEach(async () => {
-  restoreEnv()
-  globalThis.fetch = originalFetch
-  ;(Bun as typeof Bun & { sleep: typeof Bun.sleep }).sleep = originalSleep
-  await Promise.all(tempDirs.splice(0).map((dir) => rm(dir, { recursive: true, force: true })))
-})
+const { makeTempDir } = setupTtsContractLifecycle()
 
 describe('TTS provider service contracts', () => {
   test('OpenAI TTS sends instructions and speed in speech requests', async () => {

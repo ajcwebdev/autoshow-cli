@@ -1,8 +1,7 @@
-import * as l from '~/utils/app-logger/app-logger'
 import * as v from 'valibot'
 import type { LumalabsImageRef, LumalabsVideoModel, Step6VideoMetadata } from '~/types'
 import { CLIUsageError, InfraError, InternalError, hintsForMissingEnv } from '~/utils/error-handler'
-import { logMediaGenerationStatus } from '~/cli/commands/process-steps/generation-command-utils'
+import { logGenCompleted, logGenStatus } from '~/cli/commands/process-steps/generation-command-utils'
 import { estimateVideoCost, logVideoEstimate } from '~/cli/commands/process-steps/step-6-video/video-utils/video-pricing'
 import { normalizeLumaVideoAspectRatio, normalizeLumaVideoDuration, normalizeLumaVideoResolution } from '~/cli/commands/process-steps/step-6-video/video-utils/video-normalization'
 import { videoMediaReferenceToUrlOrDataUrl } from '~/cli/commands/process-steps/step-6-video/video-utils/video-media-inputs'
@@ -63,13 +62,7 @@ export const runLumalabsVideoGen = async (
   const durationSeconds = duration === '10s' ? 10 : 5
   const startFrame = options.inputImage ? await toLumalabsImageRef(options.inputImage) : undefined
 
-  logMediaGenerationStatus(l, {
-    mediaType: 'video',
-    provider: 'lumalabs',
-    model: options.model,
-    status: 'started',
-    detail: startFrame ? 'image-to-video' : 'text'
-  })
+  logGenStatus('video', 'lumalabs', options.model, 'started', startFrame ? 'image-to-video' : 'text')
 
   const estimate = estimateVideoCost({
     lumalabsVideoModel: options.model,
@@ -134,12 +127,7 @@ export const runLumalabsVideoGen = async (
         await pollResp.json() as unknown,
         'Luma Labs video generation poll response'
       )
-      logMediaGenerationStatus(l, {
-        mediaType: 'video',
-        provider: 'lumalabs',
-        model: options.model,
-        status: data.state
-      })
+      logGenStatus('video', 'lumalabs', options.model, data.state)
       return data
     },
     isDone: (data) => data.state.toLowerCase() === 'completed',
@@ -159,15 +147,7 @@ export const runLumalabsVideoGen = async (
   const processingTime = Date.now() - startTime
   const videoFile = Bun.file(outputPath)
 
-  logMediaGenerationStatus(l, {
-    mediaType: 'video',
-    provider: 'lumalabs',
-    model: options.model,
-    status: 'completed',
-    processingTimeMs: processingTime,
-    outputCount: 1,
-    artifacts: [{ artifact: 'video', path: outputPath }]
-  })
+  logGenCompleted('video', 'lumalabs', options.model, processingTime, [outputPath])
 
   return {
     videoPath: outputPath,

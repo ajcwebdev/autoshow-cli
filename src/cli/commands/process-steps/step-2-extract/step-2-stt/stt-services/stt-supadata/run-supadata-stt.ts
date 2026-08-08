@@ -11,6 +11,8 @@ import {
   formatTranscriptText
 } from '~/cli/commands/process-steps/step-2-extract/step-2-stt/stt-utils/stt-utils'
 import {
+  buildAsyncSttPollingDeadlineError,
+  buildAsyncSttResumeProbeError,
   createAsyncSttJobReadyNotifier,
   createAsyncSttProgressMetadataPersister,
   pollAsyncSttJobUntilComplete,
@@ -33,8 +35,6 @@ import {
 } from './supadata-response-parsers'
 import {
   attachSupadataErrorContext,
-  buildSupadataPollingDeadlineError,
-  buildSupadataResumeProbeError,
   buildSupadataUnsupportedSourceError,
   parsePersistedSupadataBilling,
   parseSupadataBillableRequests
@@ -292,8 +292,8 @@ export const runSupadataStt = async (
           }
           return extractSupadataErrorMessage(status.error) ?? extractSupadataErrorMessage(status.message) ?? 'Supadata transcription failed'
         },
-        buildDeadlineError: buildSupadataPollingDeadlineError,
-        buildResumeProbeError: buildSupadataResumeProbeError,
+        buildDeadlineError: (jobId, pollDeadlineMs) => buildAsyncSttPollingDeadlineError('Supadata', jobId, pollDeadlineMs),
+        buildResumeProbeError: (jobId, probeCount, totalWaitMs) => buildAsyncSttResumeProbeError('Supadata', 'transcript job', jobId, probeCount, totalWaitMs),
         onProgress: async () => {
           if (!runtime || runtime.remoteJobId !== jobId) {
             return

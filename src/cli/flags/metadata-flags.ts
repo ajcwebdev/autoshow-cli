@@ -1,24 +1,14 @@
 import { articleFlags, batchFlags, priceFlag } from './shared-flags'
-import { withHelpGroup } from './flag-utils'
+import { boolFlag, strFlag, withHelpGroup } from './flag-utils'
 import type { CliFlagsDefinition } from '~/types'
 
 const metadataDocumentFlags = {
-  password: { description: 'Password for encrypted PDFs', type: String }
+  password: strFlag('Password for encrypted PDFs')
 } as const satisfies CliFlagsDefinition
 
 const metadataOutputFlags = {
-  markdown: {
-    description: 'Output metadata as Markdown frontmatter YAML',
-    type: Boolean,
-    default: false,
-    negatable: false
-  },
-  save: {
-    description: 'Save run.json to disk (and metadata.md with --markdown)',
-    type: Boolean,
-    default: false,
-    negatable: false
-  }
+  markdown: boolFlag('Output metadata as Markdown frontmatter YAML'),
+  save: boolFlag('Save run.json to disk (and metadata.md with --markdown)')
 } as const satisfies CliFlagsDefinition
 
 export const metadataFlags = {

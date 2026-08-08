@@ -1,7 +1,6 @@
-import * as l from '~/utils/app-logger/app-logger'
 import type { GrokImageModel, OpenAIImageResponse, Step5Metadata } from '~/types'
 import { CLIUsageError, InfraError, InternalError, hintsForMissingEnv } from '~/utils/error-handler'
-import { logMediaGenerationStatus } from '~/cli/commands/process-steps/generation-command-utils'
+import { logGenCompleted, logGenStatus } from '~/cli/commands/process-steps/generation-command-utils'
 import { readEnv } from '~/utils/validate/env-utils'
 import { XAI_DEFAULT_BASE_URL } from '~/utils/base-urls'
 import { createOpenAIImage, openAIJsonRequest } from '~/utils/openai/openai-client'
@@ -43,13 +42,7 @@ export const runGrokImageGen = async (
   const count = Math.max(1, options.count ?? 1)
   const startTime = Date.now()
 
-  logMediaGenerationStatus(l, {
-    mediaType: 'image',
-    provider: 'grok',
-    model: options.model,
-    status: 'started',
-    detail: mode
-  })
+  logGenStatus('image', 'grok', options.model, 'started', mode)
 
   const clientConfig = {
     apiKey,
@@ -96,18 +89,7 @@ export const runGrokImageGen = async (
   const providerCostCents = usageCostRaw !== undefined ? usageCostRaw / 100_000_000 : undefined
   const moderation = result.data?.[0]?.['respect_moderation'] ?? result['respect_moderation']
 
-  logMediaGenerationStatus(l, {
-    mediaType: 'image',
-    provider: 'grok',
-    model: options.model,
-    status: 'completed',
-    processingTimeMs: processingTime,
-    outputCount: imagePaths.length,
-    artifacts: imagePaths.map((imagePath, index) => ({
-      artifact: index === 0 ? 'image' : `image ${index + 1}`,
-      path: imagePath
-    }))
-  })
+  logGenCompleted('image', 'grok', options.model, processingTime, imagePaths)
 
   return {
     imagePaths,

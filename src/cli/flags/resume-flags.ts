@@ -10,7 +10,7 @@ import {
   sharedConcurrencyFlags,
   transcriptionFlags
 } from './shared-flags'
-import { formatProviderList, pickFlags, withHelpGroup } from './flag-utils'
+import { formatProviderList, pickFlags, strListFlag, withHelpGroup } from './flag-utils'
 import { epubInspectFlags } from './ocr-flags'
 import { dialogueTtsCommandOptionNames, genericTtsOptionFlags, ttsFlags } from './tts-flags'
 import { imageGenFlags, imageGenerationOptionNames, imageInputOptionNames, imageProviderSpecificOptionNames } from './image-flags'
@@ -27,20 +27,17 @@ const extractProvidersFor = (kind: 'stt' | 'ocr'): Record<string, unknown> =>
 const resumeProviderSelectionFlags = {
   ...booleanAllProvidersFlag,
   ...booleanAllLocalFlag,
-  provider: {
-    description: [
-      `STT: ${formatProviderList(extractProvidersFor('stt'))} (default: whisper=tiny)`,
-      `OCR: ${formatProviderList(extractProvidersFor('ocr'))} (default: tesseract)`,
-      `URL: ${URL_ARTICLE_BACKENDS.join('|')} (default: defuddle)`,
-      `LLM: ${formatProviderList(WRITE_LLM_PROVIDER_TARGETS)} (default: llama)`,
-      `TTS: ${formatProviderList(STANDALONE_TTS_PROVIDER_TARGETS)}`,
-      `image: ${formatProviderList(STANDALONE_IMAGE_PROVIDER_TARGETS)}`,
-      `video: ${formatProviderList(STANDALONE_VIDEO_PROVIDER_TARGETS)}`,
-      `music: ${formatProviderList(STANDALONE_MUSIC_PROVIDER_TARGETS)}`,
-      'repeatable as provider[=model]'
-    ].join('\n'),
-    type: [String] as [StringConstructor]
-  },
+  provider: strListFlag([
+    `STT: ${formatProviderList(extractProvidersFor('stt'))} (default: whisper=tiny)`,
+    `OCR: ${formatProviderList(extractProvidersFor('ocr'))} (default: tesseract)`,
+    `URL: ${URL_ARTICLE_BACKENDS.join('|')} (default: defuddle)`,
+    `LLM: ${formatProviderList(WRITE_LLM_PROVIDER_TARGETS)} (default: llama)`,
+    `TTS: ${formatProviderList(STANDALONE_TTS_PROVIDER_TARGETS)}`,
+    `image: ${formatProviderList(STANDALONE_IMAGE_PROVIDER_TARGETS)}`,
+    `video: ${formatProviderList(STANDALONE_VIDEO_PROVIDER_TARGETS)}`,
+    `music: ${formatProviderList(STANDALONE_MUSIC_PROVIDER_TARGETS)}`,
+    'repeatable as provider[=model]'
+  ].join('\n')),
   ...sharedConcurrencyFlags
 } as const satisfies CliFlagsDefinition
 

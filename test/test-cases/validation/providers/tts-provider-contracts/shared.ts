@@ -1,8 +1,45 @@
+import { afterEach, beforeEach } from 'bun:test'
 import { join } from 'node:path'
+import type { EnvSnapshot } from '~/types'
+import { clearEnv, createTempDirTracker, restoreEnv, snapshotEnv } from '../../../../test-utils/rest-contract-helpers'
 
 export const LOCAL_SHORT_AUDIO_PATH = join('input/examples/audio', '0-audio-short.mp3')
 
 export const LOCAL_AUDIO_PATH = join('input/examples/audio', '1-audio.mp3')
+
+const TTS_CONTRACT_ENV_KEYS = [
+  'ELEVENLABS_API_KEY',
+  'SPEECHIFY_API_KEY',
+  'HUME_API_KEY',
+  'CARTESIA_API_KEY',
+  'MISTRAL_API_KEY',
+  'OPENAI_API_KEY',
+  'GROQ_API_KEY',
+  'XAI_API_KEY',
+  'MINIMAX_API_KEY',
+  'DEEPGRAM_API_KEY'
+]
+
+export const setupTtsContractLifecycle = (): { makeTempDir: (prefix: string) => Promise<string> } => {
+  const tempDirs = createTempDirTracker('autoshow-tts-contract-')
+  const originalFetch = globalThis.fetch
+  const originalSleep = Bun.sleep
+  let envSnapshot: EnvSnapshot = {}
+
+  beforeEach(() => {
+    envSnapshot = snapshotEnv(TTS_CONTRACT_ENV_KEYS)
+    clearEnv(TTS_CONTRACT_ENV_KEYS)
+  })
+
+  afterEach(async () => {
+    restoreEnv(envSnapshot)
+    globalThis.fetch = originalFetch
+    ;(Bun as typeof Bun & { sleep: typeof Bun.sleep }).sleep = originalSleep
+    await tempDirs.cleanup()
+  })
+
+  return { makeTempDir: tempDirs.make }
+}
 
 export const waitForCondition = async (
   predicate: () => boolean,

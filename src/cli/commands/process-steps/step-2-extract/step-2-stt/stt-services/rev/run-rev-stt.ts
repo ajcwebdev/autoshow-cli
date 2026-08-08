@@ -18,7 +18,7 @@ import {
   toTimestamp
 } from '~/cli/commands/process-steps/step-2-extract/step-2-stt/stt-utils/stt-utils'
 import { buildTranscriptionWordEvidence } from '~/cli/commands/process-steps/step-2-extract/step-2-stt/stt-utils/stt-evidence'
-import { attachAsyncSttErrorContext, attachAsyncSttValidationContext, getAsyncSttErrorStatus, runAsyncSttJobLifecycle } from '~/cli/commands/process-steps/step-2-extract/step-2-stt/async-lifecycle'
+import { attachAsyncSttErrorContext, attachAsyncSttValidationContext, buildAsyncSttPollingDeadlineError, buildAsyncSttResumeProbeError, getAsyncSttErrorStatus, runAsyncSttJobLifecycle } from '~/cli/commands/process-steps/step-2-extract/step-2-stt/async-lifecycle'
 import { getRevBaseUrl } from './rev'
 import { classifyFetchRetry, parseRetryAfterMs, withRetry } from '~/utils/retries'
 import { readEnv } from '~/utils/validate/env-utils'
@@ -59,37 +59,6 @@ const buildCreateForm = (
     remove_disfluencies: true
   }))
   return form
-}
-
-const buildPollingDeadlineError = (
-  jobId: string,
-  pollDeadlineMs: number
-): never => {
-  const error = Object.assign(
-    new Error(`Rev timed out waiting for transcription completion for ${jobId} (deadline exceeded after ${pollDeadlineMs}ms)`),
-    {
-      stage: 'poll',
-      retryClass: 'runtime_http_read' as RetryClass,
-      retryable: true
-    }
-  )
-  throw error
-}
-
-const buildResumeProbeError = (
-  jobId: string,
-  probeCount: number,
-  totalWaitMs: number
-): never => {
-  const error = Object.assign(
-    new Error(`Rev job ${jobId} is still pending after ${probeCount} resume status checks (${totalWaitMs}ms total backoff). Retry the command later.`),
-    {
-      stage: 'poll',
-      retryClass: 'runtime_http_read' as RetryClass,
-      retryable: true
-    }
-  )
-  throw error
 }
 
 const buildFailedJobMessage = (job: RevJob): string => {
@@ -446,8 +415,8 @@ export const runRevStt = async (
     }),
     isComplete: (status) => status.status === 'transcribed',
     isFailed: (status) => status.status === 'failed' ? buildFailedJobMessage(status) : undefined,
-    buildDeadlineError: (jobId, pollDeadlineMs) => buildPollingDeadlineError(jobId, pollDeadlineMs),
-    buildResumeProbeError: (jobId, probeCount, totalWaitMs) => buildResumeProbeError(jobId, probeCount, totalWaitMs),
+    buildDeadlineError: (jobId, pollDeadlineMs) => buildAsyncSttPollingDeadlineError('Rev', jobId, pollDeadlineMs),
+    buildResumeProbeError: (jobId, probeCount, totalWaitMs) => buildAsyncSttResumeProbeError('Rev', 'job', jobId, probeCount, totalWaitMs),
     deleteJob: async (jobId) => await deleteJob(baseURL, accessToken, jobId),
     shouldDeleteRemoteJob: ({ metadata, lastKnownStatus }) =>
       metadata !== undefined || lastKnownStatus?.status === 'transcribed' || lastKnownStatus?.status === 'failed',

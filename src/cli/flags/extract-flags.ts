@@ -10,17 +10,14 @@ import {
   transcriptionFlags
 } from './shared-flags'
 import { epubInspectFlags } from './ocr-flags'
-import { formatProviderList, withHelpGroup } from './flag-utils'
+import { formatProviderList, strFlag, strListFlag, withHelpGroup } from './flag-utils'
 import type { CliFlagsDefinition } from '~/types'
 import { EXTRACT_PUBLIC_SELECTOR_FLAGS } from './service-selector-normalization/extract-selectors'
 import { WRITE_OCR_PROVIDER_TARGETS } from './service-selector-normalization/provider-targets'
 import { URL_ARTICLE_BACKENDS } from '~/cli/commands/process-steps/step-2-extract/step-2-shared/provider-registry'
 
 const extractProviderSelectionFlags = {
-  provider: {
-    description: `STT/OCR: ${formatProviderList(EXTRACT_PUBLIC_SELECTOR_FLAGS)} (defaults: whisper=tiny or tesseract)\nURL: ${URL_ARTICLE_BACKENDS.join('|')} (default: defuddle)\nrepeatable as provider[=model]`,
-    type: [String] as [StringConstructor]
-  },
+  provider: strListFlag(`STT/OCR: ${formatProviderList(EXTRACT_PUBLIC_SELECTOR_FLAGS)} (defaults: whisper=tiny or tesseract)\nURL: ${URL_ARTICLE_BACKENDS.join('|')} (default: defuddle)\nrepeatable as provider[=model]`),
   ...booleanAllProvidersFlag,
   ...booleanAllLocalFlag,
   ...sharedConcurrencyFlags
@@ -29,10 +26,7 @@ const extractProviderSelectionFlags = {
 const extractDocumentFlags = {
   ...ocrInputFlags,
   ...ocrTuningFlags,
-  'primary-ocr': {
-    description: `In multi-provider OCR, write top-level extraction artifacts from one requested provider: ${formatProviderList(WRITE_OCR_PROVIDER_TARGETS)} (as service or service/model)`,
-    type: String
-  }
+  'primary-ocr': strFlag(`In multi-provider OCR, write top-level extraction artifacts from one requested provider: ${formatProviderList(WRITE_OCR_PROVIDER_TARGETS)} (as service or service/model)`)
 } as const satisfies CliFlagsDefinition
 
 export const extractStep2CommandFlags = {

@@ -1,8 +1,7 @@
-import * as l from '~/utils/app-logger/app-logger'
 import { mkdir } from 'node:fs/promises'
 import { basename } from 'node:path'
 import type { GeminiImageModel, Step5Metadata } from '~/types'
-import { logMediaGenerationStatus } from '~/cli/commands/process-steps/generation-command-utils'
+import { logGenCompleted, logGenStatus } from '~/cli/commands/process-steps/generation-command-utils'
 import { readEnv } from '~/utils/validate/env-utils'
 import { geminiGenerateContent } from '~/utils/gemini/gemini-rest'
 import { withRetry } from '~/utils/retries'
@@ -37,13 +36,7 @@ export const runGeminiImageGen = async (
 
   await mkdir(outputDir, { recursive: true })
 
-  logMediaGenerationStatus(l, {
-    mediaType: 'image',
-    provider: 'gemini',
-    model: options.model,
-    status: 'started',
-    detail: mode === 'edit' ? 'native image edit' : 'native image'
-  })
+  logGenStatus('image', 'gemini', options.model, 'started', mode === 'edit' ? 'native image edit' : 'native image')
   const inputParts = await Promise.all((options.inputs ?? []).map(imageReferenceToInlineDataPart))
   const responseModalities = options.responseMode === 'text-image' ? ['TEXT', 'IMAGE'] : ['IMAGE']
 
@@ -101,18 +94,7 @@ export const runGeminiImageGen = async (
   const primaryFile = Bun.file(primaryPath)
   const imageFileSize = primaryFile.size
 
-  logMediaGenerationStatus(l, {
-    mediaType: 'image',
-    provider: 'gemini',
-    model: options.model,
-    status: 'completed',
-    processingTimeMs: processingTime,
-    outputCount: imagePaths.length,
-    artifacts: imagePaths.map((imagePath, index) => ({
-      artifact: index === 0 ? 'image' : `image ${index + 1}`,
-      path: imagePath
-    }))
-  })
+  logGenCompleted('image', 'gemini', options.model, processingTime, imagePaths)
 
   const metadata: Step5Metadata = {
     imageService: 'gemini',

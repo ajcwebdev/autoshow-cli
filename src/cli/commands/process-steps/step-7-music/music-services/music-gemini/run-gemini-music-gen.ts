@@ -1,5 +1,5 @@
 import type { GeminiMusicModel, GeminiMusicResponsePart, Step7MusicMetadata } from '~/types'
-import { logMediaGenerationStatus } from '~/cli/commands/process-steps/generation-command-utils'
+import { logGenCompleted, logGenStatus } from '~/cli/commands/process-steps/generation-command-utils'
 import { readEnv } from '~/utils/validate/env-utils'
 import * as l from '~/utils/app-logger/app-logger'
 import { geminiGenerateContent } from '~/utils/gemini/gemini-rest'
@@ -166,12 +166,7 @@ export const runGeminiMusicGen = async (
   const { prompt: geminiPrompt, lyricsSource, intendedDurationSeconds } = await buildGeminiMusicPrompt(prompt, options)
   const musicPath = `${outputDir}/generated-music.mp3`
 
-  logMediaGenerationStatus(l, {
-    mediaType: 'music',
-    provider: 'gemini',
-    model: options.model,
-    status: 'started'
-  })
+  logGenStatus('music', 'gemini', options.model, 'started')
 
   const startTime = Date.now()
   const response = await geminiGenerateContent(apiKey, {
@@ -184,15 +179,7 @@ export const runGeminiMusicGen = async (
   const processingTime = Date.now() - startTime
   const musicFile = Bun.file(musicPath)
 
-  logMediaGenerationStatus(l, {
-    mediaType: 'music',
-    provider: 'gemini',
-    model: options.model,
-    status: 'completed',
-    processingTimeMs: processingTime,
-    outputCount: 1,
-    artifacts: [{ artifact: 'music', path: musicPath }]
-  })
+  logGenCompleted('music', 'gemini', options.model, processingTime, [musicPath])
 
   const metadata: Step7MusicMetadata = {
     musicService: 'gemini',

@@ -1,5 +1,5 @@
 import { getGenerationTargetKey } from '~/cli/commands/process-steps/generation-command-utils'
-import { buildUpdatedGenerationCostTiming, hasResumableGenerationWork, priceGenerationTarget, resumeGenerationTarget } from '../generation-resume'
+import { buildGenerationPriceOptions, buildUpdatedGenerationCostTiming, collectGenerationTargetsForProviders, hasResumableGenerationWork, priceGenerationTarget, resumeGenerationTarget } from '../generation-resume'
 import { collectVideoTargets } from '~/cli/commands/process-steps/step-6-video/video-targets'
 import { runVideoTargets } from '~/cli/commands/process-steps/step-6-video/run-video-gen'
 import { computeActualCosts } from '~/utils/pricing/compute-actual-costs'
@@ -33,79 +33,18 @@ const VIDEO_MODEL_FIELDS = {
   fal: ['falVideoModels', 'falVideoModel']
 } as const
 
-const clearVideoProviderModels = (opts: RuntimeOptions): RuntimeOptions => ({
-  ...opts,
-  geminiVideoModels: undefined,
-  geminiVideoModel: undefined,
-  minimaxVideoModels: undefined,
-  minimaxVideoModel: undefined,
-  glmVideoModels: undefined,
-  glmVideoModel: undefined,
-  grokVideoModels: undefined,
-  grokVideoModel: undefined,
-  runwayVideoModels: undefined,
-  runwayVideoModel: undefined,
-  ltxVideoModels: undefined,
-  ltxVideoModel: undefined,
-  replicateVideoModels: undefined,
-  replicateVideoModel: undefined,
-  lumalabsVideoModels: undefined,
-  lumalabsVideoModel: undefined,
-  falVideoModels: undefined,
-  falVideoModel: undefined
-})
-
 const collectVideoTargetsForProviders = (
   providers: Array<{ service: string, model: string }>,
   opts: RuntimeOptions
 ): VideoTarget[] =>
-  providers.flatMap((provider) => {
-    const fields = VIDEO_MODEL_FIELDS[provider.service as keyof typeof VIDEO_MODEL_FIELDS]
-    if (!fields) {
-      return []
-    }
-    const [modelsField, modelField] = fields
-    return collectVideoTargets({
-      ...clearVideoProviderModels(opts),
-      [modelsField]: [provider.model],
-      [modelField]: provider.model
-    } as RuntimeOptions).filter((target) =>
-      target.service === provider.service && target.model === provider.model
-    )
-  })
-
-const videoModelsForService = (
-  targets: VideoTarget[],
-  service: VideoTarget['service']
-): string[] | undefined => {
-  const models = targets
-    .filter((target) => target.service === service)
-    .map((target) => target.model)
-  return models.length > 0 ? models : undefined
-}
-
-const buildVideoPriceOptions = (
-  targets: VideoTarget[],
-  opts: RuntimeOptions
-): RuntimeOptions => ({
-  ...clearVideoProviderModels(opts),
-  geminiVideoModels: videoModelsForService(targets, 'gemini'),
-  minimaxVideoModels: videoModelsForService(targets, 'minimax'),
-  glmVideoModels: videoModelsForService(targets, 'glm'),
-  grokVideoModels: videoModelsForService(targets, 'grok'),
-  runwayVideoModels: videoModelsForService(targets, 'runway'),
-  ltxVideoModels: videoModelsForService(targets, 'ltx'),
-  replicateVideoModels: videoModelsForService(targets, 'replicate'),
-  lumalabsVideoModels: videoModelsForService(targets, 'lumalabs'),
-  falVideoModels: videoModelsForService(targets, 'fal')
-})
+  collectGenerationTargetsForProviders(providers, opts, VIDEO_MODEL_FIELDS, collectVideoTargets)
 
 const priceVideoTargets = async (
   targets: VideoTarget[],
   _input: string,
   opts: RuntimeOptions
 ): Promise<AggregatedPriceEstimate> => {
-  const priceOpts = buildVideoPriceOptions(targets, opts)
+  const priceOpts = buildGenerationPriceOptions(targets, opts, VIDEO_MODEL_FIELDS)
   return aggregateExplicitPriceEstimate(await buildVideoEstimates(priceOpts), priceOpts)
 }
 

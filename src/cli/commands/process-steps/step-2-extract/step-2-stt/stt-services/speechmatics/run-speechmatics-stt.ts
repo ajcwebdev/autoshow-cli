@@ -19,7 +19,7 @@ import {
   toTimestamp
 } from '~/cli/commands/process-steps/step-2-extract/step-2-stt/stt-utils/stt-utils'
 import { buildTranscriptionWordEvidence } from '~/cli/commands/process-steps/step-2-extract/step-2-stt/stt-utils/stt-evidence'
-import { attachAsyncSttErrorContext, attachAsyncSttValidationContext, getAsyncSttErrorStatus, runAsyncSttJobLifecycle } from '~/cli/commands/process-steps/step-2-extract/step-2-stt/async-lifecycle'
+import { attachAsyncSttErrorContext, attachAsyncSttValidationContext, buildAsyncSttPollingDeadlineError, buildAsyncSttResumeProbeError, getAsyncSttErrorStatus, runAsyncSttJobLifecycle } from '~/cli/commands/process-steps/step-2-extract/step-2-stt/async-lifecycle'
 import { getSpeechmaticsBaseUrl } from './speechmatics'
 import { classifyFetchRetry, parseRetryAfterMs, withRetry } from '~/utils/retries'
 import { readEnv } from '~/utils/validate/env-utils'
@@ -68,37 +68,6 @@ const buildCreateForm = (
   form.append('data_file', Bun.file(audioPath), basename(audioPath))
   form.append('config', JSON.stringify(buildSpeechmaticsTranscriptionConfig(modelName)))
   return form
-}
-
-const buildPollingDeadlineError = (
-  jobId: string,
-  pollDeadlineMs: number
-): never => {
-  const error = Object.assign(
-    new Error(`Speechmatics timed out waiting for transcription completion for ${jobId} (deadline exceeded after ${pollDeadlineMs}ms)`),
-    {
-      stage: 'poll',
-      retryClass: 'runtime_http_read' as RetryClass,
-      retryable: true
-    }
-  )
-  throw error
-}
-
-const buildResumeProbeError = (
-  jobId: string,
-  probeCount: number,
-  totalWaitMs: number
-): never => {
-  const error = Object.assign(
-    new Error(`Speechmatics job ${jobId} is still pending after ${probeCount} resume status checks (${totalWaitMs}ms total backoff). Retry the command later.`),
-    {
-      stage: 'poll',
-      retryClass: 'runtime_http_read' as RetryClass,
-      retryable: true
-    }
-  )
-  throw error
 }
 
 const buildRejectedJobMessage = (job: SpeechmaticsJob): string => {
@@ -497,8 +466,8 @@ export const runSpeechmaticsStt = async (
     }),
     isComplete: (status) => status.status === 'done',
     isFailed: (status) => status.status === 'rejected' ? buildRejectedJobMessage(status) : undefined,
-    buildDeadlineError: (jobId, pollDeadlineMs) => buildPollingDeadlineError(jobId, pollDeadlineMs),
-    buildResumeProbeError: (jobId, probeCount, totalWaitMs) => buildResumeProbeError(jobId, probeCount, totalWaitMs),
+    buildDeadlineError: (jobId, pollDeadlineMs) => buildAsyncSttPollingDeadlineError('Speechmatics', jobId, pollDeadlineMs),
+    buildResumeProbeError: (jobId, probeCount, totalWaitMs) => buildAsyncSttResumeProbeError('Speechmatics', 'job', jobId, probeCount, totalWaitMs),
     deleteJob: async (jobId) => await deleteJob(baseURL, apiKey, jobId),
     shouldDeleteRemoteJob: ({ metadata, lastKnownStatus }) =>
       metadata !== undefined || lastKnownStatus?.status === 'done' || lastKnownStatus?.status === 'rejected',

@@ -1,4 +1,4 @@
-import { createAsyncSttJobReadyNotifier, createAsyncSttProgressMetadataPersister, pollAsyncSttJobUntilComplete, readPersistedAsyncSttRuntime } from '~/cli/commands/process-steps/step-2-extract/step-2-stt/async-lifecycle'
+import { buildAsyncSttPollingDeadlineError, buildAsyncSttResumeProbeError, createAsyncSttJobReadyNotifier, createAsyncSttProgressMetadataPersister, pollAsyncSttJobUntilComplete, readPersistedAsyncSttRuntime } from '~/cli/commands/process-steps/step-2-extract/step-2-stt/async-lifecycle'
 import { logSttAsyncJobLifecycle, logSttDiarizationConfig, logSttSegmentLifecycle } from '~/cli/commands/process-steps/step-2-extract/step-2-stt/stt-logging'
 import { buildStep2TimingMetadata } from '~/cli/commands/process-steps/step-2-extract/step-2-stt/stt-timing-metadata'
 import { buildTranscriptionWordEvidence } from '~/cli/commands/process-steps/step-2-extract/step-2-stt/stt-utils/stt-evidence'
@@ -62,37 +62,6 @@ const attachAssemblyAiErrorContext = (
   ;(source as SttUploadJobHttpError).stage = stage
   ;(source as SttUploadJobHttpError).retryClass = retryClass
   throw source
-}
-
-const buildPollingDeadlineError = (
-  transcriptId: string,
-  pollDeadlineMs: number
-): never => {
-  const error = Object.assign(
-    new Error(`AssemblyAI timed out waiting for transcription completion for ${transcriptId} (deadline exceeded after ${pollDeadlineMs}ms)`),
-    {
-      stage: 'poll',
-      retryClass: 'runtime_http_read' as RetryClass,
-      retryable: true
-    }
-  )
-  throw error
-}
-
-const buildResumeProbeError = (
-  transcriptId: string,
-  probeCount: number,
-  totalWaitMs: number
-): never => {
-  const error = Object.assign(
-    new Error(`AssemblyAI transcript ${transcriptId} is still pending after ${probeCount} resume status checks (${totalWaitMs}ms total backoff). Retry the command later.`),
-    {
-      stage: 'poll',
-      retryClass: 'runtime_http_read' as RetryClass,
-      retryable: true
-    }
-  )
-  throw error
 }
 
 export const runAssemblyAiTranscribe = async (
@@ -328,8 +297,8 @@ export const runAssemblyAiTranscribe = async (
     maxPollIntervalMs: MAX_POLL_INTERVAL_MS,
     audioDurationSeconds,
     pollMode: resumedExistingTranscript ? 'resume-probe' : 'fresh',
-    buildDeadlineError: (jobId, pollDeadlineMs) => buildPollingDeadlineError(jobId, pollDeadlineMs),
-    buildResumeProbeError: (jobId, probeCount, totalWaitMs) => buildResumeProbeError(jobId, probeCount, totalWaitMs),
+    buildDeadlineError: (jobId, pollDeadlineMs) => buildAsyncSttPollingDeadlineError('AssemblyAI', jobId, pollDeadlineMs),
+    buildResumeProbeError: (jobId, probeCount, totalWaitMs) => buildAsyncSttResumeProbeError('AssemblyAI', 'transcript', jobId, probeCount, totalWaitMs),
     poll: async () => {
       let result!: { payload: unknown, retryAfterMs: number | null }
       try {

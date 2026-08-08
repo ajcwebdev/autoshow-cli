@@ -1,9 +1,8 @@
-import * as l from '~/utils/app-logger/app-logger'
 import { mkdir } from 'node:fs/promises'
 import { existsSync } from 'node:fs'
 import type { ReplicatePrediction, ReplicateVideoBuildResult, ReplicateVideoModel, Step6VideoMetadata, VideoMode } from '~/types'
 import { CLIUsageError, InfraError } from '~/utils/error-handler'
-import { logMediaGenerationStatus } from '~/cli/commands/process-steps/generation-command-utils'
+import { logGenCompleted, logGenStatus } from '~/cli/commands/process-steps/generation-command-utils'
 import { estimateReplicateCost, logVideoEstimate } from '~/cli/commands/process-steps/step-6-video/video-utils/video-pricing'
 import {
   isReplicateHappyHorseVideoModel,
@@ -474,13 +473,7 @@ export const runReplicateVideoGen = async (
   })
   logVideoEstimate(estimate)
 
-  logMediaGenerationStatus(l, {
-    mediaType: 'video',
-    provider: 'replicate',
-    model: options.model,
-    status: 'started',
-    detail: request.requestMode
-  })
+  logGenStatus('video', 'replicate', options.model, 'started', request.requestMode)
 
   await mkdir(outputDir, { recursive: true })
   const startTime = Date.now()
@@ -494,12 +487,7 @@ export const runReplicateVideoGen = async (
     operationName: 'replicate-video-gen',
     onStatus: (status) => {
       statusTimings.push(statusTimingFromPrediction(status, startTime))
-      logMediaGenerationStatus(l, {
-        mediaType: 'video',
-        provider: 'replicate',
-        model: options.model,
-        status: status.status
-      })
+      logGenStatus('video', 'replicate', options.model, status.status)
     }
   })
 
@@ -518,16 +506,7 @@ export const runReplicateVideoGen = async (
   const videoDuration = observedDuration ?? estimate.durationSeconds
   const providerCostCents = videoDuration * estimate.costPerSecond
 
-  logMediaGenerationStatus(l, {
-    mediaType: 'video',
-    provider: 'replicate',
-    model: options.model,
-    status: 'completed',
-    processingTimeMs: processingTime,
-    outputCount: 1,
-    detail: `Actual billed cost was not returned by the API; estimate ${providerCostCents.toFixed(3)}¢`,
-    artifacts: [{ artifact: 'video', path: outputPath }]
-  })
+  logGenCompleted('video', 'replicate', options.model, processingTime, [outputPath], `Actual billed cost was not returned by the API; estimate ${providerCostCents.toFixed(3)}¢`)
 
   return {
     videoPath: outputPath,

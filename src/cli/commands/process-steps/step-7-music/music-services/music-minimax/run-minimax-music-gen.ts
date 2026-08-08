@@ -1,5 +1,5 @@
 import * as v from 'valibot'
-import { logMediaGenerationStatus } from '~/cli/commands/process-steps/generation-command-utils'
+import { logGenCompleted, logGenStatus } from '~/cli/commands/process-steps/generation-command-utils'
 import { MinimaxBaseRespSchema, ensureMinimaxBaseRespSuccess, parseMinimaxJsonResponse } from '~/cli/commands/process-steps/step-4-tts/tts-services/tts-minimax/minimax-utils'
 import { isMinimaxInstrumentalMusicModel } from '~/cli/commands/setup-and-utilities/models/setup-model-options'
 import type { MinimaxLyricsGenerationResult, MinimaxMusicGenerationPayload, MinimaxMusicModel, MinimaxMusicResponse, Step7MusicMetadata } from '~/types'
@@ -251,12 +251,7 @@ export const runMinimaxMusicGen = async (
     ? 'none'
     : options.lyricsFile ? 'provided' : 'generated'
 
-  logMediaGenerationStatus(l, {
-    mediaType: 'music',
-    provider: 'minimax',
-    model: options.model,
-    status: 'started'
-  })
+  logGenStatus('music', 'minimax', options.model, 'started')
 
   let payload: MinimaxMusicGenerationPayload
   if (useInstrumental) {
@@ -293,15 +288,7 @@ export const runMinimaxMusicGen = async (
   const musicFile = Bun.file(musicPath)
   const musicDurationMs = generated.extra_info?.music_duration
 
-  logMediaGenerationStatus(l, {
-    mediaType: 'music',
-    provider: 'minimax',
-    model: options.model,
-    status: 'completed',
-    processingTimeMs: processingTime,
-    outputCount: 1,
-    artifacts: [{ artifact: 'music', path: musicPath }]
-  })
+  logGenCompleted('music', 'minimax', options.model, processingTime, [musicPath])
 
   const metadata: Step7MusicMetadata = {
     musicService: 'minimax',

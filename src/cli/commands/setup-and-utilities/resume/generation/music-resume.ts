@@ -1,6 +1,6 @@
 import { rename } from 'node:fs/promises'
 import { getGenerationTargetKey } from '~/cli/commands/process-steps/generation-command-utils'
-import { buildUpdatedGenerationCostTiming, hasResumableGenerationWork, priceGenerationTarget, resumeGenerationTarget } from '../generation-resume'
+import { buildGenerationPriceOptions, buildUpdatedGenerationCostTiming, collectGenerationTargetsForProviders, hasResumableGenerationWork, priceGenerationTarget, resumeGenerationTarget } from '../generation-resume'
 import { collectMusicTargets, getMusicArtifactFileName } from '~/cli/commands/process-steps/step-7-music/music-targets'
 import { runMusicTargets } from '~/cli/commands/process-steps/step-7-music/run-music-gen'
 import { computeActualCosts } from '~/utils/pricing/compute-actual-costs'
@@ -22,54 +22,11 @@ const MUSIC_MODEL_FIELDS = {
   gemini: ['geminiMusicModels', 'geminiMusicModel']
 } as const
 
-const clearMusicProviderModels = (opts: RuntimeOptions): RuntimeOptions => ({
-  ...opts,
-  elevenlabsMusicModels: undefined,
-  elevenlabsMusicModel: undefined,
-  minimaxMusicModels: undefined,
-  minimaxMusicModel: undefined,
-  geminiMusicModels: undefined,
-  geminiMusicModel: undefined
-})
-
 const collectMusicTargetsForProviders = (
   providers: Array<{ service: string, model: string }>,
   opts: RuntimeOptions
 ): MusicTarget[] =>
-  providers.flatMap((provider) => {
-    const fields = MUSIC_MODEL_FIELDS[provider.service as keyof typeof MUSIC_MODEL_FIELDS]
-    if (!fields) {
-      return []
-    }
-    const [modelsField, modelField] = fields
-    return collectMusicTargets({
-      ...clearMusicProviderModels(opts),
-      [modelsField]: [provider.model],
-      [modelField]: provider.model
-    } as RuntimeOptions).filter((target) =>
-      target.service === provider.service && target.model === provider.model
-    )
-  })
-
-const musicModelsForService = (
-  targets: MusicTarget[],
-  service: MusicTarget['service']
-): string[] | undefined => {
-  const models = targets
-    .filter((target) => target.service === service)
-    .map((target) => target.model)
-  return models.length > 0 ? models : undefined
-}
-
-const buildMusicPriceOptions = (
-  targets: MusicTarget[],
-  opts: RuntimeOptions
-): RuntimeOptions => ({
-  ...clearMusicProviderModels(opts),
-  elevenlabsMusicModels: musicModelsForService(targets, 'elevenlabs'),
-  minimaxMusicModels: musicModelsForService(targets, 'minimax'),
-  geminiMusicModels: musicModelsForService(targets, 'gemini')
-})
+  collectGenerationTargetsForProviders(providers, opts, MUSIC_MODEL_FIELDS, collectMusicTargets)
 
 export const finalizeMusicResumeArtifacts = async (
   metadata: Step7MusicMetadata[],
@@ -98,7 +55,7 @@ const priceMusicTargets = async (
   _input: string,
   opts: RuntimeOptions
 ): Promise<AggregatedPriceEstimate> => {
-  const priceOpts = buildMusicPriceOptions(targets, opts)
+  const priceOpts = buildGenerationPriceOptions(targets, opts, MUSIC_MODEL_FIELDS)
   return aggregateExplicitPriceEstimate(await buildMusicEstimates(priceOpts), priceOpts)
 }
 

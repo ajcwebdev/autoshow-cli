@@ -1,8 +1,7 @@
-import * as l from '~/utils/app-logger/app-logger'
 import * as v from 'valibot'
 import type { GlmVideoModel, Step6VideoMetadata, VideoMode } from '~/types'
 import { CLIUsageError, InfraError } from '~/utils/error-handler'
-import { logMediaGenerationStatus } from '~/cli/commands/process-steps/generation-command-utils'
+import { logGenCompleted, logGenStatus } from '~/cli/commands/process-steps/generation-command-utils'
 import { ensureGlmApiKey, resolveGlmBaseUrl } from '~/cli/commands/process-steps/step-2-extract/step-2-ocr/ocr-services/glm-ocr/glm'
 import { estimateVideoCost, logVideoEstimate } from '~/cli/commands/process-steps/step-6-video/video-utils/video-pricing'
 import {
@@ -116,12 +115,7 @@ export const runGlmVideoGen = async (
     throw CLIUsageError(`GLM video prompts must be ${GLM_PROMPT_MAX_CHARS} characters or fewer. Received ${resolvedPrompt.length}.`)
   }
 
-  logMediaGenerationStatus(l, {
-    mediaType: 'video',
-    provider: 'glm',
-    model: options.model,
-    status: 'started'
-  })
+  logGenStatus('video', 'glm', options.model, 'started')
 
   const estimate = estimateVideoCost({
     glmVideoModel: options.model,
@@ -230,12 +224,7 @@ export const runGlmVideoGen = async (
         await pollResp.json() as unknown,
         'GLM video generation query response'
       )
-      logMediaGenerationStatus(l, {
-        mediaType: 'video',
-        provider: 'glm',
-        model: options.model,
-        status: data.task_status
-      })
+      logGenStatus('video', 'glm', options.model, data.task_status)
       return data
     },
     isDone: (data) => data.task_status === 'SUCCESS',
@@ -255,15 +244,7 @@ export const runGlmVideoGen = async (
   const processingTime = Date.now() - startTime
   const videoFile = Bun.file(outputPath)
 
-  logMediaGenerationStatus(l, {
-    mediaType: 'video',
-    provider: 'glm',
-    model: options.model,
-    status: 'completed',
-    processingTimeMs: processingTime,
-    outputCount: 1,
-    artifacts: [{ artifact: 'video', path: outputPath }]
-  })
+  logGenCompleted('video', 'glm', options.model, processingTime, [outputPath])
 
   return {
     videoPath: outputPath,

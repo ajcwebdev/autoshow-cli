@@ -1,59 +1,13 @@
 import {
-  afterEach,
-  beforeEach,
   describe,
   expect,
   test
 } from 'bun:test'
-import { rm } from 'node:fs/promises'
 import { runTtsChunks, splitTextIntoUtf8ByteChunks } from '~/cli/commands/process-steps/step-4-tts/tts-utils/audio-utils'
 import { createHostedTtsBatchCoordinator, createHostedTtsChunkScheduler } from '~/cli/commands/process-steps/step-4-tts/tts-utils/hosted-tts-chunk-scheduler'
-import { waitForCondition } from './shared'
+import { setupTtsContractLifecycle, waitForCondition } from './shared'
 
-const tempDirs: string[] = []
-
-const originalFetch = globalThis.fetch
-
-const originalSleep = Bun.sleep
-
-const previousEnv: Record<string, string | undefined> = {}
-
-const envKeys = [
-  'ELEVENLABS_API_KEY',
-  'SPEECHIFY_API_KEY',
-  'HUME_API_KEY',
-  'CARTESIA_API_KEY',
-  'MISTRAL_API_KEY',
-  'OPENAI_API_KEY',
-  'GROQ_API_KEY',
-  'XAI_API_KEY',
-  'MINIMAX_API_KEY',
-  'DEEPGRAM_API_KEY'
-]
-
-const restoreEnv = (): void => {
-  for (const key of envKeys) {
-    if (previousEnv[key] === undefined) {
-      delete process.env[key]
-    } else {
-      process.env[key] = previousEnv[key]
-    }
-  }
-}
-
-beforeEach(() => {
-  for (const key of envKeys) {
-    previousEnv[key] = process.env[key]
-    delete process.env[key]
-  }
-})
-
-afterEach(async () => {
-  restoreEnv()
-  globalThis.fetch = originalFetch
-  ;(Bun as typeof Bun & { sleep: typeof Bun.sleep }).sleep = originalSleep
-  await Promise.all(tempDirs.splice(0).map((dir) => rm(dir, { recursive: true, force: true })))
-})
+setupTtsContractLifecycle()
 
 describe('TTS provider service contracts', () => {
   test('UTF-8 byte chunking respects multi-byte characters and hard byte limits', () => {

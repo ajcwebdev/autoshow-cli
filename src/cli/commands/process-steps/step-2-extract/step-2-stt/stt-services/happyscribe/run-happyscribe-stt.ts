@@ -7,6 +7,8 @@ import {
   formatTranscriptText
 } from '~/cli/commands/process-steps/step-2-extract/step-2-stt/stt-utils/stt-utils'
 import {
+  buildAsyncSttPollingDeadlineError,
+  buildAsyncSttResumeProbeError,
   createAsyncSttJobReadyNotifier,
   createAsyncSttProgressMetadataPersister,
   pollAsyncSttJobUntilComplete,
@@ -35,21 +37,6 @@ import { InfraError, InternalError, ValidationError, hintsForMissingEnv } from '
 const INITIAL_POLL_INTERVAL_MS = 1_000
 const MAX_POLL_INTERVAL_MS = 10_000
 
-const buildPollingDeadlineError = (
-  orderId: string,
-  pollDeadlineMs: number
-): never => {
-  const error = Object.assign(
-    new Error(`Happy Scribe timed out waiting for transcription completion for ${orderId} (deadline exceeded after ${pollDeadlineMs}ms)`),
-    {
-      stage: 'poll',
-      retryClass: 'runtime_http_read' as RetryClass,
-      retryable: true
-    }
-  )
-  throw error
-}
-
 const buildExportDeadlineError = (
   exportId: string,
   pollDeadlineMs: number
@@ -58,22 +45,6 @@ const buildExportDeadlineError = (
     new Error(`Happy Scribe timed out waiting for export completion for ${exportId} (deadline exceeded after ${pollDeadlineMs}ms)`),
     {
       stage: 'result',
-      retryClass: 'runtime_http_read' as RetryClass,
-      retryable: true
-    }
-  )
-  throw error
-}
-
-const buildResumeProbeError = (
-  orderId: string,
-  probeCount: number,
-  totalWaitMs: number
-): never => {
-  const error = Object.assign(
-    new Error(`Happy Scribe order ${orderId} is still pending after ${probeCount} resume status checks (${totalWaitMs}ms total backoff). Retry the command later.`),
-    {
-      stage: 'poll',
       retryClass: 'runtime_http_read' as RetryClass,
       retryable: true
     }
@@ -312,8 +283,8 @@ export const runHappyScribeStt = async (
     maxPollIntervalMs: MAX_POLL_INTERVAL_MS,
     audioDurationSeconds,
     pollMode: resumedExistingOrder ? 'resume-probe' : 'fresh',
-    buildDeadlineError: (jobId, pollDeadlineMs) => buildPollingDeadlineError(jobId, pollDeadlineMs),
-    buildResumeProbeError: (jobId, probeCount, totalWaitMs) => buildResumeProbeError(jobId, probeCount, totalWaitMs),
+    buildDeadlineError: (jobId, pollDeadlineMs) => buildAsyncSttPollingDeadlineError('Happy Scribe', jobId, pollDeadlineMs),
+    buildResumeProbeError: (jobId, probeCount, totalWaitMs) => buildAsyncSttResumeProbeError('Happy Scribe', 'order', jobId, probeCount, totalWaitMs),
     poll: async () => {
       const pollStartedAt = Date.now()
       const result = await apiClient.pollOrder(activeOrderId)

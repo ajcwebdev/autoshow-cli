@@ -274,6 +274,40 @@ export const attachAsyncSttValidationContext = <TError extends Error & { stage?:
   throw source
 }
 
+export const buildAsyncSttPollingDeadlineError = (
+  provider: string,
+  jobId: string,
+  pollDeadlineMs: number
+): never => {
+  const error = Object.assign(
+    new Error(`${provider} timed out waiting for transcription completion for ${jobId} (deadline exceeded after ${pollDeadlineMs}ms)`),
+    {
+      stage: 'poll',
+      retryClass: 'runtime_http_read' as RetryClass,
+      retryable: true
+    }
+  )
+  throw error
+}
+
+export const buildAsyncSttResumeProbeError = (
+  provider: string,
+  jobNoun: string,
+  jobId: string,
+  probeCount: number,
+  totalWaitMs: number
+): never => {
+  const error = Object.assign(
+    new Error(`${provider} ${jobNoun} ${jobId} is still pending after ${probeCount} resume status checks (${totalWaitMs}ms total backoff). Retry the command later.`),
+    {
+      stage: 'poll',
+      retryClass: 'runtime_http_read' as RetryClass,
+      retryable: true
+    }
+  )
+  throw error
+}
+
 export const runAsyncSttJobLifecycle = async <TStatus, TTranscript>(
   options: AsyncSttLifecycleOptions<TStatus, TTranscript>
 ): Promise<{ result: TranscriptionResult, metadata: Step2Metadata }> => {

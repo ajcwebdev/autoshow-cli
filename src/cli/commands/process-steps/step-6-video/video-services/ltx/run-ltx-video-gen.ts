@@ -1,8 +1,7 @@
-import * as l from '~/utils/app-logger/app-logger'
 import * as v from 'valibot'
 import type { LtxVideoModel, Step6VideoMetadata, VideoMode } from '~/types'
 import { CLIUsageError, InfraError, InternalError, hintsForMissingEnv } from '~/utils/error-handler'
-import { logMediaGenerationStatus } from '~/cli/commands/process-steps/generation-command-utils'
+import { logGenCompleted, logGenStatus } from '~/cli/commands/process-steps/generation-command-utils'
 import { estimateVideoCost, logVideoEstimate } from '~/cli/commands/process-steps/step-6-video/video-utils/video-pricing'
 import {
   normalizeLtxVideoAspectRatio,
@@ -97,12 +96,7 @@ export const runLtxVideoGen = async (
     requireLtxPrompt(resolvedPrompt)
   }
 
-  logMediaGenerationStatus(l, {
-    mediaType: 'video',
-    provider: 'ltx',
-    model: options.model,
-    status: 'started'
-  })
+  logGenStatus('video', 'ltx', options.model, 'started')
 
   const estimate = estimateVideoCost({
     ltxVideoModel: options.model,
@@ -192,12 +186,7 @@ export const runLtxVideoGen = async (
         await pollResp.json() as unknown,
         'LTX video generation query response'
       )
-      logMediaGenerationStatus(l, {
-        mediaType: 'video',
-        provider: 'ltx',
-        model: options.model,
-        status: data.status
-      })
+      logGenStatus('video', 'ltx', options.model, data.status)
       return data
     },
     isDone: (data) => data.status === 'completed',
@@ -218,16 +207,7 @@ export const runLtxVideoGen = async (
   const videoFile = Bun.file(outputPath)
   const estimateDetail = `Actual billed cost was not returned by the API; estimated ${estimate.totalCost.toFixed(2)}¢.`
 
-  logMediaGenerationStatus(l, {
-    mediaType: 'video',
-    provider: 'ltx',
-    model: options.model,
-    status: 'completed',
-    processingTimeMs: processingTime,
-    outputCount: 1,
-    detail: estimateDetail,
-    artifacts: [{ artifact: 'video', path: outputPath }]
-  })
+  logGenCompleted('video', 'ltx', options.model, processingTime, [outputPath], estimateDetail)
 
   return {
     videoPath: outputPath,

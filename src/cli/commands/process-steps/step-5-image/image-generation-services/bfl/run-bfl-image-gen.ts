@@ -1,8 +1,7 @@
-import * as l from '~/utils/app-logger/app-logger'
 import * as v from 'valibot'
 import type { BflImageModel, BflOutputFormat, RetryClass, Step5Metadata } from '~/types'
 import { CLIUsageError, InfraError, ValidationError } from '~/utils/error-handler'
-import { logMediaGenerationStatus } from '~/cli/commands/process-steps/generation-command-utils'
+import { logGenCompleted, logGenStatus } from '~/cli/commands/process-steps/generation-command-utils'
 import { estimateImageCosts, logImageEstimate } from '~/cli/commands/process-steps/step-5-image/image-utils/image-pricing'
 import { classifyFetchRetry, isRetryableStatus, pollUntil, withRetry } from '~/utils/retries'
 import { validateData } from '~/utils/validate/validation'
@@ -162,13 +161,7 @@ export const runBflImageGen = async (
     logImageEstimate(estimate)
   }
 
-  logMediaGenerationStatus(l, {
-    mediaType: 'image',
-    provider: 'bfl',
-    model: options.model,
-    status: 'started',
-    detail: mode
-  })
+  logGenStatus('image', 'bfl', options.model, 'started', mode)
 
   const startTime = Date.now()
   const inputFields = Object.fromEntries(
@@ -210,12 +203,7 @@ export const runBflImageGen = async (
         throw InfraError(`BFL image status query failed (${response.status}): ${extractErrorMessage(payload) ?? 'Unknown error'}`, { stage: 'image:bfl', status: response.status })
       }
       const data = validateData(BflPollResponseSchema, payload, 'BFL image generation poll response')
-      logMediaGenerationStatus(l, {
-        mediaType: 'image',
-        provider: 'bfl',
-        model: options.model,
-        status: data.status
-      })
+      logGenStatus('image', 'bfl', options.model, data.status)
       return data
     },
     isDone: (data) => data.status.toLowerCase() === 'ready',
@@ -248,15 +236,7 @@ export const runBflImageGen = async (
       : undefined
   const providerCostCents = providerCostCredits ?? estimate?.totalCost
 
-  logMediaGenerationStatus(l, {
-    mediaType: 'image',
-    provider: 'bfl',
-    model: options.model,
-    status: 'completed',
-    processingTimeMs: processingTime,
-    outputCount: 1,
-    artifacts: [{ artifact: 'image', path: outputPath }]
-  })
+  logGenCompleted('image', 'bfl', options.model, processingTime, [outputPath])
 
   return {
     imagePaths: [outputPath],

@@ -1,5 +1,25 @@
 import type { CliFlagDefinition, CliFlagsDefinition } from '~/types'
 
+// An omitted default must omit the `default` key entirely — native-parser and
+// help-renderer test `'default' in definition`, so `default: undefined` would
+// change parse and help behavior.
+export const strFlag = (description: string, defaultValue?: string): CliFlagDefinition =>
+  defaultValue === undefined
+    ? { description, type: String }
+    : { description, type: String, default: defaultValue }
+
+export const strListFlag = (description: string): CliFlagDefinition => ({
+  description,
+  type: [String] as [StringConstructor]
+})
+
+export const boolFlag = (description: string): CliFlagDefinition => ({
+  description,
+  type: Boolean,
+  default: false,
+  negatable: false
+})
+
 export const withHelpGroup = (flags: CliFlagsDefinition, group: string): CliFlagsDefinition => {
   const grouped: CliFlagsDefinition = {}
   for (const [name, definition] of Object.entries(flags)) {

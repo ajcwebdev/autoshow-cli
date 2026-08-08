@@ -1,5 +1,5 @@
 import { getGenerationTargetKey } from '~/cli/commands/process-steps/generation-command-utils'
-import { buildUpdatedGenerationCostTiming, hasResumableGenerationWork, priceGenerationTarget, resumeGenerationTarget } from '../generation-resume'
+import { buildGenerationPriceOptions, buildUpdatedGenerationCostTiming, collectGenerationTargetsForProviders, hasResumableGenerationWork, priceGenerationTarget, resumeGenerationTarget } from '../generation-resume'
 import { collectImageTargets } from '~/cli/commands/process-steps/step-5-image/image-generation-targets'
 import { runImageTargets } from '~/cli/commands/process-steps/step-5-image/run-image-gen'
 import { computeActualCosts } from '~/utils/pricing/compute-actual-costs'
@@ -31,76 +31,18 @@ const IMAGE_MODEL_FIELDS = {
   fal: ['falImageModels', 'falImageModel']
 } as const
 
-const clearImageProviderModels = (opts: RuntimeOptions): RuntimeOptions => ({
-  ...opts,
-  geminiImageModels: undefined,
-  geminiImageModel: undefined,
-  openaiImageModels: undefined,
-  openaiImageModel: undefined,
-  grokImageModels: undefined,
-  grokImageModel: undefined,
-  bflImageModels: undefined,
-  bflImageModel: undefined,
-  recraftImageModels: undefined,
-  recraftImageModel: undefined,
-  replicateImageModels: undefined,
-  replicateImageModel: undefined,
-  lumalabsImageModels: undefined,
-  lumalabsImageModel: undefined,
-  falImageModels: undefined,
-  falImageModel: undefined
-})
-
 const collectImageTargetsForProviders = (
   providers: Array<{ service: string, model: string }>,
   opts: RuntimeOptions
 ): ImageTarget[] =>
-  providers.flatMap((provider) => {
-    const fields = IMAGE_MODEL_FIELDS[provider.service as keyof typeof IMAGE_MODEL_FIELDS]
-    if (!fields) {
-      return []
-    }
-    const [modelsField, modelField] = fields
-    return collectImageTargets({
-      ...clearImageProviderModels(opts),
-      [modelsField]: [provider.model],
-      [modelField]: provider.model
-    } as RuntimeOptions).filter((target) =>
-      target.service === provider.service && target.model === provider.model
-    )
-  })
-
-const imageModelsForService = (
-  targets: ImageTarget[],
-  service: ImageTarget['service']
-): string[] | undefined => {
-  const models = targets
-    .filter((target) => target.service === service)
-    .map((target) => target.model)
-  return models.length > 0 ? models : undefined
-}
-
-const buildImagePriceOptions = (
-  targets: ImageTarget[],
-  opts: RuntimeOptions
-): RuntimeOptions => ({
-  ...clearImageProviderModels(opts),
-  geminiImageModels: imageModelsForService(targets, 'gemini'),
-  openaiImageModels: imageModelsForService(targets, 'openai'),
-  grokImageModels: imageModelsForService(targets, 'grok'),
-  bflImageModels: imageModelsForService(targets, 'bfl'),
-  recraftImageModels: imageModelsForService(targets, 'recraft'),
-  replicateImageModels: imageModelsForService(targets, 'replicate'),
-  lumalabsImageModels: imageModelsForService(targets, 'lumalabs'),
-  falImageModels: imageModelsForService(targets, 'fal')
-})
+  collectGenerationTargetsForProviders(providers, opts, IMAGE_MODEL_FIELDS, collectImageTargets)
 
 const priceImageTargets = async (
   targets: ImageTarget[],
   _input: string,
   opts: RuntimeOptions
 ): Promise<AggregatedPriceEstimate> => {
-  const priceOpts = buildImagePriceOptions(targets, opts)
+  const priceOpts = buildGenerationPriceOptions(targets, opts, IMAGE_MODEL_FIELDS)
   return aggregateExplicitPriceEstimate(buildImageEstimates(priceOpts), priceOpts)
 }
 

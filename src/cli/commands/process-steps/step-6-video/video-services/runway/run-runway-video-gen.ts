@@ -1,8 +1,7 @@
-import * as l from '~/utils/app-logger/app-logger'
 import * as v from 'valibot'
 import type { RunwayVideoModel, Step6VideoMetadata } from '~/types'
 import { CLIUsageError, InfraError, InternalError, hintsForMissingEnv } from '~/utils/error-handler'
-import { logMediaGenerationStatus } from '~/cli/commands/process-steps/generation-command-utils'
+import { logGenCompleted, logGenStatus } from '~/cli/commands/process-steps/generation-command-utils'
 import { estimateVideoCost, logVideoEstimate } from '~/cli/commands/process-steps/step-6-video/video-utils/video-pricing'
 import { normalizeRunwayDuration, normalizeRunwayRatio } from '~/cli/commands/process-steps/step-6-video/video-utils/video-normalization'
 import { downloadVideoOutputBytes } from '~/cli/commands/process-steps/step-6-video/video-utils/video-output-download'
@@ -66,12 +65,7 @@ export const runRunwayVideoGen = async (
   const duration = normalizeRunwayDuration(options.durationSeconds)
   const ratio = normalizeRunwayRatio(options.aspectRatio)
 
-  logMediaGenerationStatus(l, {
-    mediaType: 'video',
-    provider: 'runway',
-    model: options.model,
-    status: 'started'
-  })
+  logGenStatus('video', 'runway', options.model, 'started')
 
   const estimate = estimateVideoCost({
     runwayVideoModel: options.model,
@@ -130,12 +124,7 @@ export const runRunwayVideoGen = async (
         await pollResp.json() as unknown,
         'Runway video generation query response'
       )
-      logMediaGenerationStatus(l, {
-        mediaType: 'video',
-        provider: 'runway',
-        model: options.model,
-        status: data.status
-      })
+      logGenStatus('video', 'runway', options.model, data.status)
       return data
     },
     isDone: (data) => data.status === 'SUCCEEDED',
@@ -155,15 +144,7 @@ export const runRunwayVideoGen = async (
   const processingTime = Date.now() - startTime
   const videoFile = Bun.file(outputPath)
 
-  logMediaGenerationStatus(l, {
-    mediaType: 'video',
-    provider: 'runway',
-    model: options.model,
-    status: 'completed',
-    processingTimeMs: processingTime,
-    outputCount: 1,
-    artifacts: [{ artifact: 'video', path: outputPath }]
-  })
+  logGenCompleted('video', 'runway', options.model, processingTime, [outputPath])
 
   return {
     videoPath: outputPath,
