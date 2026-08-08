@@ -10,7 +10,6 @@ import { ensureLlamafileServerRunning, stopLlamafileServerForRecovery } from './
 const LLAMAFILE_REQUEST_TIMEOUT_MS = 1_800_000
 
 export { LLAMAFILE_PROCESS_LOCK_NAME } from './llamafile-constants'
-export { ensureLlamafileBundleDownloaded } from './llamafile-download'
 export { stopLlamafileServer } from './llamafile-server'
 
 const withLlamafileServerLock = async <T,>(fn: () => Promise<T>): Promise<T> =>

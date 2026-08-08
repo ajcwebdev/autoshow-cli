@@ -3,7 +3,6 @@ export const buildTranscriptionWordEvidence = (options: {
   words: TranscriptionEvidenceWord[]
   segments?: TranscriptionSegment[] | undefined
   evidenceSegments?: TranscriptionEvidenceSegment[] | undefined
-  emptyTimingQuality?: TranscriptionEvidenceTimingQuality | undefined
   rawResponse?: unknown
 }): TranscriptionEvidence => {
   const segments = options.segments ?? []
@@ -21,7 +20,7 @@ export const buildTranscriptionWordEvidence = (options: {
         || evidenceSegments.some((segment) => segment.speaker !== undefined)
         || segments.some((segment) => segment.speaker !== undefined)
     },
-    timingQuality: words.length > 0 ? 'native_word' : options.emptyTimingQuality ?? 'segment_interpolated',
+    timingQuality: words.length > 0 ? 'native_word' : 'segment_interpolated',
     ...(options.rawResponse !== undefined ? { rawResponse: options.rawResponse } : {})
   }
 }

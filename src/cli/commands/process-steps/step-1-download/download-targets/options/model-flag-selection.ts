@@ -79,6 +79,7 @@ export const REPEATABLE_MODEL_FLAGS = [
   'gemini-ocr',
   'deepinfra-ocr',
   'llama',
+  'llamafile',
   'openai',
   'groq',
   'gemini',

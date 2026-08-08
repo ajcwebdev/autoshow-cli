@@ -108,7 +108,7 @@ const validateOpenAIImageOptions = (
 }
 
 export const collectOpenAIImageTargets = (options: ImageGenOptions): ImageTarget[] => {
-  const models = options.openaiImageModels ?? (options.openaiImageModel ? [options.openaiImageModel] : [])
+  const models = options.openaiImageModels ?? []
   return models.flatMap((rawModel) => {
     const model: OpenAIImageModel = validateOpenAIImageModel(rawModel)
     validateImageCount('OpenAI', model, options.imageCount, ...OPENAI_IMAGE_COUNT_RANGE)
@@ -125,7 +125,7 @@ export const collectOpenAIImageTargets = (options: ImageGenOptions): ImageTarget
     if (options.imageResponseMode !== undefined || options.geminiSearchGrounding === true) {
       const unsupported: string[] = []
       if (options.imageResponseMode !== undefined) unsupported.push('--image-response-mode')
-      if (options.geminiSearchGrounding === true) unsupported.push('--gemini-search-grounding')
+      if (options.geminiSearchGrounding === true) unsupported.push('--image-search-grounding')
       throw unsupportedFlagError('OpenAI', model, unsupported, 'These flags are Gemini-only.')
     }
     validateImageInputReferences(options.imageInputs, {

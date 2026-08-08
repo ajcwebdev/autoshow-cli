@@ -1,4 +1,4 @@
-import type { GenerationResourceGate, TargetPoolKind, TargetSchedulerConcurrency } from '~/types'
+import type { ResourceGate, TargetPoolKind, TargetSchedulerConcurrency } from '~/types'
 export type ProviderTargetSchedulerEntry<TTarget> = {
   index: number
   target: TTarget
@@ -18,7 +18,7 @@ export type RunProviderTargetSchedulerOptions<TTarget, TResult> = {
   concurrency: TargetSchedulerConcurrency
   getPool: (target: TTarget) => TargetPoolKind
   runTarget: (index: number, target: TTarget) => Promise<TResult>
-  resourceGate?: GenerationResourceGate | undefined
+  resourceGate?: ResourceGate | undefined
   onLifecycle?: ((event: {
     index: number
     target: TTarget

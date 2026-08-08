@@ -59,7 +59,7 @@ export const createDesignReferenceSnapshot = async (runDirectory: string, refere
 export type ResolvedDesignReference = { key: string; usage: string; path: string }
 
 export const resolveDesignReferencesAcrossPanels = (panels: PanelPrimaryReferenceInput[]): ResolvedDesignReference[] => {
-  const requested = panels.flatMap(input => input.bundleData.panels.flatMap(panel => panel.designReferenceKeys ?? panel.designReferences?.map(reference => reference.key) ?? []))
+  const requested = panels.flatMap(input => input.bundleData.panels.flatMap(panel => panel.designReferenceKeys ?? []))
   if (requested.length === 0) return []
   const runDirectories = new Set(panels.map(panel => getSceneWorkspaceDirectoryForPanelPrompt(panel.panelDirectory)))
   const snapshotIds = new Set(panels.flatMap(input => input.bundleData.panels.flatMap(panel => panel.designReferenceKeys?.length ? [panel.designSnapshotId] : [])))

@@ -15,7 +15,6 @@ const HELP_GROUP_COLOR_BY_KEY: Readonly<Record<string, string>> = {
   pricing: 'goldenrod',
   'provider-selection': 'lightseagreen',
   pipeline: 'lightseagreen',
-  'step-1-download': 'deepskyblue',
   'batch-download': 'deepskyblue',
   'batch-processing': 'deepskyblue',
   'document-options': 'mediumaquamarine',
@@ -34,12 +33,9 @@ const HELP_GROUP_COLOR_BY_KEY: Readonly<Record<string, string>> = {
   'step-4-tts': 'darkorange',
   'tts-options': 'darkorange',
   'tts-minimax': 'darkorange',
-  'tts-openai': 'darkorange',
   'tts-deepgram': 'darkorange',
   'tts-speechify': 'darkorange',
   'tts-hume': 'darkorange',
-  'tts-groq': 'darkorange',
-  'tts-gemini': 'darkorange',
   'tts-dialogue': 'darkorange',
   'tts-elevenlabs': 'darkorange',
   'step-5-image': 'hotpink',
@@ -50,6 +46,7 @@ const HELP_GROUP_COLOR_BY_KEY: Readonly<Record<string, string>> = {
   'video-options': 'mediumpurple',
   'video-inputs': 'mediumpurple',
   'replicate-video': 'mediumpurple',
+  'fal-video': 'mediumpurple',
   'grok-storage': 'mediumpurple',
   'step-7-music': 'gold',
   'hosted-music': 'gold',
@@ -59,7 +56,6 @@ const HELP_GROUP_COLOR_BY_KEY: Readonly<Record<string, string>> = {
   'comic-qa': 'mediumpurple',
   'comic-stages': 'cornflowerblue',
   'comic-run': 'springgreen',
-  output: 'springgreen',
   'lyric-video': 'gold'
 }
 

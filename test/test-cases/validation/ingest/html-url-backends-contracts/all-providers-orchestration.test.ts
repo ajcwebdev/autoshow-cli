@@ -14,13 +14,13 @@ import {
   URL_ARTICLE_PROVIDER_ADAPTERS,
   writeFile
 } from './shared'
-import type { HtmlArticleBackend, UrlArticleRunOptions } from './shared'
+import type { HtmlArticleBackend, UrlRequestOptions } from './shared'
 
 test('--all-providers URL orchestrator writes provider artifacts and a multi-provider run manifest', async () => {
   const tempRoot = await mkdtemp(join(tmpdir(), 'autoshow-all-url-'))
 
   try {
-    const seenOptions = new Map<HtmlArticleBackend, UrlArticleRunOptions | undefined>()
+    const seenOptions = new Map<HtmlArticleBackend, UrlRequestOptions | undefined>()
     for (const backend of URL_ARTICLE_BACKENDS) {
       URL_ARTICLE_PROVIDER_ADAPTERS[backend].run = async (source, sourceUrl, options) => {
         seenOptions.set(backend, options)
@@ -62,7 +62,7 @@ test('--all-providers URL orchestrator writes provider artifacts and a multi-pro
         requestedProviders: Array<{ service: string, model: string }>
         providerStates: Array<{ service: string, model: string, status: string }>
         step2: unknown[]
-        resolvedStep2: { backends?: string[], providers?: Array<{ service: string, model: string }> }
+        resolvedStep2: { providers: Array<{ service: string, model: string }> }
       }
     }
 
@@ -79,7 +79,7 @@ test('--all-providers URL orchestrator writes provider artifacts and a multi-pro
       'succeeded'
     ])
     expect(manifest.metadata.step2).toHaveLength(HOSTED_URL_ARTICLE_BACKENDS.length)
-    expect(manifest.metadata.resolvedStep2.backends).toEqual([...HOSTED_URL_ARTICLE_BACKENDS])
+    expect(manifest.metadata.resolvedStep2.providers.map((provider) => provider.service)).toEqual([...HOSTED_URL_ARTICLE_BACKENDS])
     expect(manifest.metadata.resolvedStep2.providers).toEqual(manifest.metadata.requestedProviders)
     expect(await Bun.file(join(output.outputDir, 'providers', 'defuddle', 'result.json')).exists()).toBe(false)
     for (const backend of HOSTED_URL_ARTICLE_BACKENDS) {
@@ -111,14 +111,14 @@ test('--all-providers plus --all-local URL orchestrator preserves the full backe
     const manifest = await Bun.file(join(output.outputDir, 'run.json')).json() as {
       metadata: {
         requestedProviders: Array<{ service: string, model: string }>
-        resolvedStep2: { backends?: string[], providers?: Array<{ service: string, model: string }> }
+        resolvedStep2: { providers: Array<{ service: string, model: string }> }
       }
     }
 
     expect(manifest.metadata.requestedProviders).toEqual(
       URL_ARTICLE_BACKENDS.map((backend) => ({ service: backend, model: backend }))
     )
-    expect(manifest.metadata.resolvedStep2.backends).toEqual([...URL_ARTICLE_BACKENDS])
+    expect(manifest.metadata.resolvedStep2.providers.map((provider) => provider.service)).toEqual([...URL_ARTICLE_BACKENDS])
     expect(manifest.metadata.resolvedStep2.providers).toEqual(manifest.metadata.requestedProviders)
     for (const backend of URL_ARTICLE_BACKENDS) {
       expect(await Bun.file(join(output.outputDir, 'providers', backend, 'result.json')).exists()).toBe(true)
@@ -218,7 +218,7 @@ test('--all-providers plus --all-local URL with local HTML runs defuddle and mar
       metadata: {
         completionStatus: string
         requestedProviders: Array<{ service: string, model: string }>
-        resolvedStep2: { backends?: string[], providers?: Array<{ service: string, model: string }> }
+        resolvedStep2: { providers: Array<{ service: string, model: string }> }
         providerStates: Array<{ service: string, status: string }>
       }
     }
@@ -227,7 +227,7 @@ test('--all-providers plus --all-local URL with local HTML runs defuddle and mar
     expect(manifest.metadata.requestedProviders).toEqual(
       URL_ARTICLE_BACKENDS.map((backend) => ({ service: backend, model: backend }))
     )
-    expect(manifest.metadata.resolvedStep2.backends).toEqual([...URL_ARTICLE_BACKENDS])
+    expect(manifest.metadata.resolvedStep2.providers.map((provider) => provider.service)).toEqual([...URL_ARTICLE_BACKENDS])
     expect(manifest.metadata.resolvedStep2.providers).toEqual(manifest.metadata.requestedProviders)
     expect(manifest.metadata.providerStates).toEqual([
       { service: 'defuddle', model: 'defuddle', artifactDir: 'providers/defuddle', status: 'succeeded', attempts: 1 },
@@ -278,9 +278,12 @@ test('local HTML with a single hosted URL provider still runs and records defudd
     expect(manifest.metadata.completionStatus).toBe('full')
     expect(manifest.metadata.requestedProviders).toEqual([{ service: 'defuddle', model: 'defuddle' }])
     expect(manifest.metadata.resolvedStep2).toMatchObject({
-      backend: 'defuddle',
       providers: [{ service: 'defuddle', model: 'defuddle' }]
     })
+    // `providers` is the sole persisted backend record. The legacy `backend`/`backends`
+    // keys were write-only and are no longer emitted; resume reconstructs the backend
+    // set from `requestedProviders` instead.
+    expect(manifest.metadata.resolvedStep2.backend).toBeUndefined()
     expect(manifest.metadata.resolvedStep2.backends).toBeUndefined()
   } finally {
     await rm(tempRoot, { recursive: true, force: true })

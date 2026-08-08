@@ -1,4 +1,4 @@
-import { omitFlags, withHelpGroup } from './flag-utils'
+import { withHelpGroup } from './flag-utils'
 import { colorizeHelpDescription } from '~/cli/help-colors'
 import {
   DEFAULT_LLM_MODEL,
@@ -12,7 +12,7 @@ import { IMAGE_PROMPT_VARIATIONS } from '~/cli/commands/process-steps/step-8-com
 import {
   COMIC_GRID_PANEL_SIZE,
   DEFAULT_FINAL_PANELS_PER_IMAGE,
-  DEFAULT_PANELS_PER_IMAGE
+  DEFAULT_SKETCH_PANELS_PER_IMAGE
 } from '~/cli/commands/process-steps/step-8-comic/comic-commands/generate-images/comic-page-utils'
 import { DEFAULT_CLI_CONCURRENCY } from '~/utils/concurrency-defaults'
 import { IMAGE_GENERATION_QUALITIES } from '~/types'
@@ -96,7 +96,7 @@ const generateImagesPanelFlags = {
     type: String
   },
   'panels-per-image': {
-    description: colorizeHelpDescription(`Panels drawn per generated image; overrides both stages (final default: ${DEFAULT_FINAL_PANELS_PER_IMAGE}; sketch default: ${DEFAULT_PANELS_PER_IMAGE})`),
+    description: colorizeHelpDescription(`Panels drawn per generated image; overrides both stages (final default: ${DEFAULT_FINAL_PANELS_PER_IMAGE}; sketch default: ${DEFAULT_SKETCH_PANELS_PER_IMAGE})`),
     type: String
   },
   grid: {
@@ -108,19 +108,6 @@ const generateImagesPanelFlags = {
 const generateImagesVariationFlag = {
   variation: {
     description: colorizeHelpDescription(`Final-image prompt variations as name[,name...]: ${IMAGE_PROMPT_VARIATIONS.join('|')}`),
-    type: String
-  }
-} as const satisfies CliFlagsDefinition
-
-const generateImagesDeprecatedQaFlags = {
-  // No rendered default: QA is on unless --no-qa is passed, so "[default: false]" would misread.
-  'page-qa': {
-    description: colorizeHelpDescription('Deprecated alias for --qa'),
-    type: Boolean,
-    negatable: false
-  },
-  'page-qa-model': {
-    description: colorizeHelpDescription('Deprecated alias for --qa-model'),
     type: String
   }
 } as const satisfies CliFlagsDefinition
@@ -148,20 +135,10 @@ export const generateImagesFlags = {
   ...withHelpGroup(generateImagesVariationFlag, 'comic-image'),
   ...withHelpGroup({ size: comicImageFlags.size, quality: comicImageFlags.quality }, 'comic-image'),
   ...withHelpGroup(comicQaFlags, 'comic-qa'),
-  ...withHelpGroup(generateImagesDeprecatedQaFlags, 'comic-qa'),
   ...withHelpGroup(generateImagesLlmFlag, 'comic-stages'),
   ...withHelpGroup(generateImagesForceFlag, 'comic-run'),
   ...withHelpGroup(comicConcurrencyFlag, 'comic-run'),
   ...withHelpGroup(comicPriceFlag, 'pricing')
-} as const satisfies CliFlagsDefinition
-
-// The compatibility alias only accepts --character, so it documents the key without
-// the mutual-exclusion wording that reference-sketch needs.
-const characterSketchCharacterFlag = {
-  character: {
-    description: colorizeHelpDescription('Catalog character key'),
-    type: String
-  }
 } as const satisfies CliFlagsDefinition
 
 const referenceSketchSheetFlags = {
@@ -201,8 +178,3 @@ export const referenceSketchFlags = {
   ...withHelpGroup(comicConcurrencyFlag, 'comic-run'),
   ...withHelpGroup(comicPriceFlag, 'pricing')
 } as const satisfies CliFlagsDefinition
-
-export const characterSketchFlags: CliFlagsDefinition = {
-  ...withHelpGroup(characterSketchCharacterFlag, 'comic-reference'),
-  ...omitFlags(referenceSketchFlags, ['character', 'location', 'view'])
-}

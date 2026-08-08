@@ -18,12 +18,6 @@ export const grokImage = {
   imageExtension: 'jpg',
 } as const
 
-export const recraftImage = {
-  provider: 'recraft',
-  imageService: 'recraft',
-  envVarKey: 'RECRAFT_API_TOKEN',
-} as const
-
 export const replicateImage = {
   provider: 'replicate',
   imageService: 'replicate',

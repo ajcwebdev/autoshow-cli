@@ -1,6 +1,6 @@
 import type { GeminiImageModel, ImageGenOptions, ImageTarget } from '~/types'
 import { CLIUsageError } from '~/utils/error-handler'
-import { supportsGeminiImageSize, validateGeminiImageModel } from '~/cli/commands/setup-and-utilities/models/setup-model-options'
+import { validateGeminiImageModel } from '~/cli/commands/setup-and-utilities/models/setup-model-options'
 import { ensureGeminiImageGenSetup } from './gemini-image-gen'
 import { runGeminiImageGen } from './run-gemini-image-gen'
 import {
@@ -26,12 +26,9 @@ const GEMINI_IMAGE_SIZES = new Set<string>(GEMINI_IMAGE_SIZE_VALUES)
 const GEMINI_RESPONSE_MODES = new Set<string>(GEMINI_IMAGE_RESPONSE_MODES)
 
 export const collectGeminiImageTargets = (options: ImageGenOptions): ImageTarget[] => {
-  const models = options.geminiImageModels ?? (options.geminiImageModel ? [options.geminiImageModel] : [])
+  const models = options.geminiImageModels ?? []
   return models.flatMap((rawModel) => {
     const model: GeminiImageModel = validateGeminiImageModel(rawModel)
-    if (typeof options.imageSize === 'string' && options.imageSize.length > 0 && !supportsGeminiImageSize(model)) {
-      throw CLIUsageError(`--image-size is not supported by Gemini/${model}. Supported alternatives: omit --image-size or use an image-size-capable Gemini image model.`)
-    }
     validateEnumOption('Gemini', model, 'image-size', options.imageSize, GEMINI_IMAGE_SIZES)
     if (model === 'gemini-3.1-flash-lite-image' && options.imageSize !== undefined && options.imageSize !== '1K') {
       throw CLIUsageError(`--image-size ${options.imageSize} is not supported by Gemini/${model}. Supported value: 1K.`)
@@ -51,7 +48,7 @@ export const collectGeminiImageTargets = (options: ImageGenOptions): ImageTarget
       throw unsupportedFlagError('Gemini', model, ['--image-mask'], 'Gemini native image editing supports reference images via --image-input, not masks.')
     }
     if (model === 'gemini-3.1-flash-lite-image' && options.geminiSearchGrounding === true) {
-      throw unsupportedFlagError('Gemini', model, ['--gemini-search-grounding'], 'Use gemini-3.1-flash-image or gemini-3-pro-image for Search-grounded image generation.')
+      throw unsupportedFlagError('Gemini', model, ['--image-search-grounding'], 'Use gemini-3.1-flash-image or gemini-3-pro-image for Search-grounded image generation.')
     }
     validateImageInputReferences(options.imageInputs, {
       provider: 'Gemini',
@@ -60,7 +57,7 @@ export const collectGeminiImageTargets = (options: ImageGenOptions): ImageTarget
     })
     const unsupportedCommon = collectUnsupportedCommonFlags(options, ['imageQuality', 'imageFormat', 'imageBackground', 'imageCompression'], IMAGE_OPTION_LABELS)
     if (unsupportedCommon.length > 0) {
-      throw unsupportedFlagError('Gemini', model, unsupportedCommon, 'Supported Gemini image options are --image-aspect-ratio, --image-size, --image-response-mode, --image-input references, and --gemini-search-grounding.')
+      throw unsupportedFlagError('Gemini', model, unsupportedCommon, 'Supported Gemini image options are --image-aspect-ratio, --image-size, --image-response-mode, --image-input references, and --image-search-grounding.')
     }
 
     return [{

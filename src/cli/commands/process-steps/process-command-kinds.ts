@@ -35,9 +35,6 @@ export const isExtractCommand = (command: ProcessCommand): command is 'extract' 
 export const usesExtractInputRouting = (command: ProcessCommand): command is 'extract' | 'write' =>
   command === 'extract' || command === 'write'
 
-export const canonicalizeProcessCommand = (command: ProcessCommand): ProcessCommand =>
-  command
-
 const getProcessCommandCapabilities = (
   command: ProcessCommand
 ): ProcessCommandCapabilities => PROCESS_COMMAND_CAPABILITIES[command]

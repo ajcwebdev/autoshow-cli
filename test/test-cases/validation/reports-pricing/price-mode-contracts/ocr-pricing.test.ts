@@ -55,7 +55,6 @@ const buildHostedOcrPricingOptions = (
     urlBackend: 'defuddle',
     urlBackendExplicit: false,
     useEpubBun: false,
-    useEpubCalibre: false,
     textInput: false
   }
 
@@ -1000,12 +999,11 @@ describe('price mode contracts', () => {
 
   test('Mistral OCR additions use page pricing', () => {
       const extractTargets = [
-        { provider: 'mistral' as const, model: 'mistral-ocr-4-0', pageCount: 2, estimateType: 'exact' as const },
-        { provider: 'mistral' as const, model: 'mistral-ocr-latest', pageCount: 2, estimateType: 'exact' as const }
+        { provider: 'mistral' as const, model: 'mistral-ocr-4-0', pageCount: 2, estimateType: 'exact' as const }
       ]
       const cost = computeEstimatedCosts({ applyCostMultipliers: false, extractTargets })
 
-      expect(cost.steps).toHaveLength(2)
+      expect(cost.steps).toHaveLength(1)
       for (const step of cost.steps) {
         expect(step).toMatchObject({
           step: 'extract',
@@ -1016,6 +1014,6 @@ describe('price mode contracts', () => {
         })
         expect(step.cost).toBe(0.8)
       }
-      expect(cost.totalCost).toBe(1.6)
+      expect(cost.totalCost).toBe(0.8)
     })
 })

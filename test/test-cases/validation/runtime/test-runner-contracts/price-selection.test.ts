@@ -17,7 +17,7 @@ afterEach(async () => {
 
 describe('test-runner contracts', () => {
   test('price config isolation appends empty config to mapped write price commands', () => {
-      const args = ['src/cli/create-cli.ts', 'write', 'https://ajc.pics/autoshow/examples/1-audio.mp3', '--openai', 'gpt-5.5', '--price']
+      const args = ['src/cli/create-cli.ts', 'write', 'https://ajc.pics/autoshow/examples/1-audio.mp3', '--llm', 'openai=gpt-5.5', '--price']
 
       expect(withEmptyPriceConfig(args)).toEqual([
         ...args,
@@ -27,7 +27,7 @@ describe('test-runner contracts', () => {
     })
 
   test('price config isolation appends empty config to mapped tts price commands', () => {
-      const args = ['src/cli/create-cli.ts', 'tts', 'input/examples/tts/1-tts.md', '--openai', 'gpt-4o-mini-tts-2025-12-15', '--price']
+      const args = ['src/cli/create-cli.ts', 'tts', 'input/examples/tts/1-tts.md', '--provider', 'openai=gpt-4o-mini-tts-2025-12-15', '--price']
 
       expect(withEmptyPriceConfig(args)).toEqual([
         ...args,
@@ -41,8 +41,8 @@ describe('test-runner contracts', () => {
         'src/cli/create-cli.ts',
         'write',
         'https://ajc.pics/autoshow/examples/1-audio.mp3',
-        '--openai',
-        'gpt-5.5',
+        '--llm',
+        'openai=gpt-5.5',
         '--price',
         '--config-path',
         'config/custom-autoshow.json',
@@ -51,8 +51,8 @@ describe('test-runner contracts', () => {
         'src/cli/create-cli.ts',
         'tts',
         'input/examples/tts/1-tts.md',
-        '--openai',
-        'gpt-4o-mini-tts-2025-12-15',
+        '--provider',
+        'openai=gpt-4o-mini-tts-2025-12-15',
         '--price',
         '--config-path=config/custom-autoshow.json',
       ]
@@ -67,15 +67,15 @@ describe('test-runner contracts', () => {
       expect(withEmptyPriceConfig(args)).toEqual(args)
     })
 
-  test('validation and setup paths stay mappedless in price selection', () => {
+  test('price-flag, validation, and setup paths stay mappedless in price selection', () => {
       const allFiles = [
         'test/test-cases/setup/tts-models/tts-setup.test.ts',
-        'test/test-cases/validation-next/test-runner-contracts.test.ts',
+        'test/test-cases/price-flag/write-price.test.ts',
         'test/test-cases/validation/test-runner-contracts.test.ts'
       ]
 
-      expect(resolvePriceSelection(allFiles, ['test/test-cases/validation-next/'])).toEqual({
-        suiteName: 'Selected paths: validation-next',
+      expect(resolvePriceSelection(allFiles, ['test/test-cases/price-flag/'])).toEqual({
+        suiteName: 'Selected paths: price-flag',
         commands: []
       })
       expect(resolvePriceSelection(allFiles, ['test/test-cases/validation/'])).toEqual({
@@ -151,16 +151,6 @@ describe('test-runner contracts', () => {
       expect(serviceModelKeys).toContain('extract-mistral-mistral-ocr-2512')
       expect(serviceModelKeys).not.toContain('extract-firecrawl-url')
       expect(firecrawlKeys).toEqual(['extract-firecrawl-url'])
-    })
-
-  test('price mode rejects legacy test-price selectors', () => {
-      const allFiles = [
-        'test/test-cases/e2e/service/step-4-tts-e2e/tts-services/openai-gpt-4o-mini-tts-2025-12-15.test.ts'
-      ]
-
-      expect(() => resolvePriceSelection(allFiles, [
-        'test/test-price/step-4-tts/services'
-      ])).toThrow('--price uses normal test paths')
     })
 
   test('price path selections match path boundaries', () => {

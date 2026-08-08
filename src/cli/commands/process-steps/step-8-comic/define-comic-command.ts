@@ -1,12 +1,10 @@
 import { defineCliCommand } from '~/cli/native/native-types'
 import { CLIUsageError, rethrowAsUsage } from '~/utils/error-handler'
-import { characterSketchCommand } from './comic-commands/character-sketch/character-sketch-command'
 import { referenceSketchCommand } from './comic-commands/reference-sketch/reference-sketch-command'
 import { draftScenesCommand } from './comic-commands/draft-scenes/draft-scenes-command'
 import { generateImagesCommand } from './comic-commands/generate-images/generate-images-command'
-import { CHARACTER_SKETCH_COMMAND, DRAFT_SCENES_COMMAND, GENERATE_IMAGES_COMMAND, REFERENCE_SKETCH_COMMAND, parseCharacterSketchArgs, parseDraftScenesArgs, parseGenerateImagesArgs, parseReferenceSketchArgs } from './comic-utils/cli-args'
+import { DRAFT_SCENES_COMMAND, GENERATE_IMAGES_COMMAND, REFERENCE_SKETCH_COMMAND, parseDraftScenesArgs, parseGenerateImagesArgs, parseReferenceSketchArgs } from './comic-utils/cli-args'
 import {
-  CHARACTER_SKETCH_DESCRIPTION,
   COMIC_SUBCOMMAND_SUMMARIES,
   DRAFT_SCENES_DESCRIPTION,
   GENERATE_IMAGES_DESCRIPTION,
@@ -27,7 +25,6 @@ const PUBLIC_COMIC_COMMANDS = [
   DRAFT_SCENES_COMMAND,
   GENERATE_IMAGES_COMMAND,
   REFERENCE_SKETCH_COMMAND,
-  CHARACTER_SKETCH_COMMAND,
 ] as const
 
 const printComicHelp = (): void => {
@@ -100,21 +97,6 @@ const comicSubcommands = [
       await generateImagesCommand(options)
     },
   },
-  {
-    name: CHARACTER_SKETCH_COMMAND,
-    description: CHARACTER_SKETCH_DESCRIPTION,
-    run: async (rawArgs) => {
-      const { showHelp, price, ...options } = parseArgsOrUsage(() => parseCharacterSketchArgs(rawArgs))
-      if (showHelp) {
-        printComicSubcommandHelp(CHARACTER_SKETCH_COMMAND)
-        return
-      }
-      await withCharacterCatalog(async () => {
-        if (price) await estimateCharacterSketchPrice(options)
-        else await characterSketchCommand(options)
-      })
-    },
-  },
 ] as const satisfies readonly ComicSubcommandDefinition[]
 
 const comicSubcommandMap = new Map<string, ComicSubcommandDefinition>(
@@ -170,7 +152,7 @@ export const comicCommand = defineCliCommand({
       ['bun autoshow comic draft-scenes 05-01', 'Draft structured scene JSON'],
       ['bun autoshow comic draft-scenes input/scripts/01-script/01-opening.md --only panel-prompts', 'Build panel prompt bundles'],
       ['bun autoshow comic generate-images 05-01 --panels-per-image 6', 'Generate page images'],
-      ['bun autoshow comic character-sketch --character hero', 'Generate character sketch references'],
+      ['bun autoshow comic reference-sketch --character hero', 'Generate a character reference sheet'],
       ['bun autoshow comic reference-sketch --location cargo-bay', 'Generate a canonical location reference'],
       ['bun autoshow comic generate-images --help', 'Show the flags for one subcommand']
     ],

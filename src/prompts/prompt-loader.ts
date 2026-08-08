@@ -106,7 +106,7 @@ const stripMarkdownExamplePrefix = (example: string): string => {
 }
 
 const stripJsonExamplePrefix = (example: string): string =>
-  example.replace(/^\s*Example JSON output:\s*/u, '').trim()
+  example.trim()
 
 const normalizeExampleText = (
   example: string,
@@ -298,8 +298,7 @@ export const resolvePromptTokenEstimate = async (
 
   return {
     estimatedInputTokens,
-    estimatedOutputTokens,
-    resolvedLeafPromptNames: leaves.map(leaf => leaf.name)
+    estimatedOutputTokens
   }
 }
 
@@ -311,9 +310,4 @@ export const getAvailablePromptNames = async (): Promise<string[]> => {
 export const collectLeafPrompts = async (names: string[]): Promise<ResolvedLeafPrompt[]> => {
   const registry = await loadPrompts()
   return collectLeafPromptsFromRegistry(registry, names, true)
-}
-
-export const resolvePresetNames = async (names: string[]): Promise<string[]> => {
-  const leaves = await collectLeafPrompts(names)
-  return leaves.map(({ name, entry }) => entry.structuredPreset ?? name)
 }

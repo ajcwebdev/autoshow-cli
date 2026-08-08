@@ -254,7 +254,7 @@ test('rejects removed Groq voice before API request in price mode', async () => 
 
   expect(result.exitCode).not.toBe(0)
   expect(result.outputDir).toBeNull()
-  expect(`${result.stdout}\n${result.stderr}`).toContain(`Invalid --groq-voice "${REMOVED_GROQ_TTS_VOICE}"`)
+  expect(`${result.stdout}\n${result.stderr}`).toContain(`Invalid --tts-voice groq="${REMOVED_GROQ_TTS_VOICE}"`)
 })
 
 test('rejects removed Groq model before API request in price mode', async () => {
@@ -269,7 +269,7 @@ test('rejects removed Groq model before API request in price mode', async () => 
 
   expect(result.exitCode).not.toBe(0)
   expect(result.outputDir).toBeNull()
-  expect(`${result.stdout}\n${result.stderr}`).toContain(`Invalid --groq-tts model "${REMOVED_GROQ_TTS_MODEL}"`)
+  expect(`${result.stdout}\n${result.stderr}`).toContain(`Invalid model "${REMOVED_GROQ_TTS_MODEL}" for --provider/--tts groq[=model]`)
 })
 
 test('rejects invalid grok voice override before API request in price mode', async () => {

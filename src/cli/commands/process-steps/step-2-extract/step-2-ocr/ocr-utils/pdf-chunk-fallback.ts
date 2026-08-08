@@ -72,7 +72,6 @@ import {
 
 export {
   createOcrPdfChunkRenderError,
-  HOSTED_OCR_PDF_PAGE_FALLBACK_MODE,
   HOSTED_OCR_PDF_PAGE_FALLBACK_THRESHOLD
 } from './pdf-chunk-fallback-shared'
 export { shouldFallbackToOcrPdfChunks } from './pdf-chunk-fallback-classifier'
@@ -342,7 +341,6 @@ export const createOcrPdfChunkWithLocalFallback = async (options: {
   tools?: PdfChunkLocalTools | undefined
   splitLogMode?: PdfChunkSplitLogMode | undefined
   logLabel?: string | undefined
-  directFallbackLogMode?: PdfChunkSplitLogMode | undefined
 }): Promise<void> => {
   const tools = options.tools ?? defaultPdfChunkLocalTools
   const direct = await tryCreateDirectPdfChunk({
@@ -361,7 +359,7 @@ export const createOcrPdfChunkWithLocalFallback = async (options: {
 
   if (options.range.startPage === options.range.endPage) {
     writeDirectSplitFallbackLog(
-      options.directFallbackLogMode ?? 'warn',
+      'warn',
       options.range,
       direct.result,
       options.logLabel

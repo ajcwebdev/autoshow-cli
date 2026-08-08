@@ -35,7 +35,7 @@ describe('option resolution contracts', () => {
         'together-stt': 'openai/whisper-large-v3',
         'deepgram-stt': 'nova-3',
         'scrapecreators-stt': 'youtube-transcript',
-        'scrapecreators-lang': 'fr',
+        'stt-scrapecreators-lang': 'fr',
         'grok-tts': 'grok-tts',
         'grok-tts-voice': 'EVE',
         'mistral-tts': 'voxtral-mini-tts-2603',
@@ -151,13 +151,13 @@ describe('option resolution contracts', () => {
       const explicitChapters = buildOptsFromFlags(false, { chapters: true })
       const disabled = buildOptsFromFlags(false, { chapters: false })
 
-      expect(defaults.epubChapterFiles).toBeUndefined()
-      expect(explicitChapters.epubChapterFiles).toBe(true)
-      expect(disabled.epubChapterFiles).toBe(false)
-      expect(buildExtractionCallOpts('input.pdf', '/tmp/autoshow-output', disabled).epubChapterFiles).toBe(false)
+      expect(defaults.chapterFiles).toBeUndefined()
+      expect(explicitChapters.chapterFiles).toBe(true)
+      expect(disabled.chapterFiles).toBe(false)
+      expect(buildExtractionCallOpts('input.pdf', '/tmp/autoshow-output', disabled).chapterFiles).toBe(false)
 
-      expect(shouldExportEpubChapters(defaults.epubChapterFiles)).toBe(true)
-      expect(shouldExportEpubChapters(disabled.epubChapterFiles)).toBe(false)
+      expect(shouldExportEpubChapters(defaults.chapterFiles)).toBe(true)
+      expect(shouldExportEpubChapters(disabled.chapterFiles)).toBe(false)
       expect(shouldAttemptPdfChapterExport(undefined, AUTO_PDF_CHAPTER_EXPORT_MIN_PAGES - 1)).toBe(false)
       expect(shouldAttemptPdfChapterExport(undefined, AUTO_PDF_CHAPTER_EXPORT_MIN_PAGES)).toBe(true)
       expect(shouldAttemptPdfChapterExport(false, AUTO_PDF_CHAPTER_EXPORT_MIN_PAGES + 100)).toBe(false)

@@ -3,13 +3,13 @@ import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { describe, expect, test } from 'bun:test'
 import { buildOptsFromFlags } from '~/cli/commands/process-steps/step-1-download/download-targets/build-opts-from-flags/build-options-from-flags'
-import { normalizeLegacyMultiSpeakerFlags } from '~/cli/commands/process-steps/step-4-tts/legacy-multi-speaker'
 import { runTts } from '~/cli/commands/process-steps/step-4-tts/run-tts'
 import { collectTtsTargets } from '~/cli/commands/process-steps/step-4-tts/tts-targets'
 import {
+  assertDialogueFormatIsUsable,
   detectVoiceKind,
+  isMultiSpeakerRequested,
   normalizeDialogueText,
-  parseSpeakerRefAudioMappings,
   parseSpeakerVoiceMappings
 } from '~/cli/commands/process-steps/step-4-tts/dialogue-normalizer'
 import { createSyntheticWavBytes } from '../../../test-utils/media-fixtures'
@@ -17,7 +17,7 @@ import { readWavSamples, segmentRms } from '../providers/tts-provider-contracts/
 
 describe('TTS dialogue contracts', () => {
   test('labeled normalization accepts canonical speaker lines and rejects unknown speakers', () => {
-    const registry = parseSpeakerRefAudioMappings([
+    const registry = parseSpeakerVoiceMappings([
       'DUCO=input/examples/audio/anthony-voice.mp3'
     ])
 
@@ -30,13 +30,13 @@ describe('TTS dialogue contracts', () => {
   test('multi-speaker validates provider selection and speaker mappings', () => {
     expect(() => collectTtsTargets(buildOptsFromFlags(false, {
       'tts-dialogue-format': 'screenplay',
-      'tts-speaker-ref-audio': 'DUCO=input/examples/audio/anthony-voice.mp3'
+      'tts-speaker': ['DUCO=input/examples/audio/anthony-voice.mp3']
     }))).toThrow('requires at least one TTS provider')
 
     expect(() => collectTtsTargets(buildOptsFromFlags(false, {
       'mistral-tts': 'voxtral-mini-tts-2603',
-      'tts-dialogue-format': 'screenplay'
-    }))).toThrow('requires at least one --tts-speaker')
+      'tts-speaker': ['DUCO=input/examples/audio/anthony-voice.mp3']
+    }))).toThrow('Dialogue TTS requires --tts-dialogue-format screenplay|labeled.')
 
     // Multi-provider multi-speaker is now allowed
     const targets = collectTtsTargets(buildOptsFromFlags(false, {
@@ -47,6 +47,33 @@ describe('TTS dialogue contracts', () => {
     }))
     expect(targets.length).toBe(2)
     expect(targets.every((t) => t.multiSpeakerStrategy !== undefined)).toBe(true)
+  })
+
+  // Speaker mappings are the mode switch. A stored `ttsDialogueFormat` used to force dialogue mode
+  // and abort every pipeline TTS run at step 4; it must now be inert, and only a typed flag errors.
+  test('a dialogue format without speakers is inert unless it was typed explicitly', () => {
+    const opts = buildOptsFromFlags(false, {
+      'mistral-tts': 'voxtral-mini-tts-2603',
+      'tts-dialogue-format': 'screenplay'
+    })
+
+    expect(isMultiSpeakerRequested(opts)).toBe(false)
+    const targets = collectTtsTargets(opts)
+    expect(targets.length).toBe(1)
+    expect(targets[0]?.multiSpeakerStrategy).toBeUndefined()
+
+    expect(() => assertDialogueFormatIsUsable(opts)).not.toThrow()
+    expect(() => assertDialogueFormatIsUsable(opts, new Set(['tts-dialogue-format'])))
+      .toThrow('--tts-dialogue-format requires at least one --tts-speaker SPEAKER=VOICE mapping.')
+
+    // With mappings present the format is load-bearing again, so neither arm fires.
+    const dialogueOpts = buildOptsFromFlags(false, {
+      'mistral-tts': 'voxtral-mini-tts-2603',
+      'tts-dialogue-format': 'screenplay',
+      'tts-speaker': ['DUCO=input/examples/audio/anthony-voice.mp3']
+    })
+    expect(isMultiSpeakerRequested(dialogueOpts)).toBe(true)
+    expect(() => assertDialogueFormatIsUsable(dialogueOpts, new Set(['tts-dialogue-format']))).not.toThrow()
   })
 
   test('parseSpeakerVoiceMappings parses voice IDs and ref audio paths', () => {
@@ -68,6 +95,14 @@ describe('TTS dialogue contracts', () => {
     expect(detectVoiceKind('voice.wav')).toBe('ref-audio')
     expect(detectVoiceKind('https://example.com/audio.mp3')).toBe('ref-audio')
     expect(detectVoiceKind('C:\\audio\\voice.m4a')).toBe('ref-audio')
+  })
+
+  test('detectVoiceKind recognizes bare audio filenames beyond the common containers', () => {
+    for (const value of ['clip.opus', 'clip.oga', 'clip.aiff', 'clip.aif', 'clip.wma', 'clip.amr', 'clip.caf', 'clip.m4b', 'clip.weba', 'clip.mka', 'clip.au', 'clip.pcm']) {
+      expect(detectVoiceKind(value)).toBe('ref-audio')
+    }
+    expect(detectVoiceKind('Kore')).toBe('id')
+    expect(detectVoiceKind('gpt-4o.mini')).toBe('id')
   })
 
   test('new --tts-speaker flag works with voice IDs for multi-speaker', () => {
@@ -128,42 +163,21 @@ describe('TTS dialogue contracts', () => {
     }
   }, 10_000)
 
-  test('legacy Gemini speaker flags normalize to labeled speaker mappings', () => {
-    const normalized = normalizeLegacyMultiSpeakerFlags({
-      'gemini-speaker-1-name': 'Host',
-      'gemini-speaker-1-voice': 'Kore',
-      'gemini-speaker-2-name': 'Guest',
-      'gemini-speaker-2-voice': 'Puck'
-    }, new Set([
-      'gemini-speaker-1-name',
-      'gemini-speaker-1-voice',
-      'gemini-speaker-2-name',
-      'gemini-speaker-2-voice'
-    ]))
-    const opts = buildOptsFromFlags(false, normalized.flags, [], {}, normalized.explicitFlags)
+  test('Gemini multispeaker uses the generic speaker mappings', () => {
+    const opts = buildOptsFromFlags(false, {
+      'gemini-tts': 'gemini-3.1-flash-tts-preview',
+      'tts-dialogue-format': 'labeled',
+      'tts-speaker': ['Host=Kore', 'Guest=Puck']
+    })
 
     expect(opts.ttsSpeakers).toEqual(['Host=Kore', 'Guest=Puck'])
     expect(opts.ttsDialogueFormat).toBe('labeled')
-  })
 
-  test('legacy Gemini speaker flags preserve an explicit dialogue format', () => {
-    const normalized = normalizeLegacyMultiSpeakerFlags({
-      'tts-dialogue-format': 'screenplay',
-      'gemini-speaker-1-name': 'Host',
-      'gemini-speaker-1-voice': 'Kore',
-      'gemini-speaker-2-name': 'Guest',
-      'gemini-speaker-2-voice': 'Puck'
-    }, new Set([
-      'tts-dialogue-format',
-      'gemini-speaker-1-name',
-      'gemini-speaker-1-voice',
-      'gemini-speaker-2-name',
-      'gemini-speaker-2-voice'
-    ]))
-    const opts = buildOptsFromFlags(false, normalized.flags, [], {}, normalized.explicitFlags)
-
-    expect(opts.ttsSpeakers).toEqual(['Host=Kore', 'Guest=Puck'])
-    expect(opts.ttsDialogueFormat).toBe('screenplay')
+    const targets = collectTtsTargets(opts)
+    expect(targets.length).toBe(1)
+    expect(targets[0]?.service).toBe('gemini')
+    expect(targets[0]?.multiSpeakerStrategy).toBe('native')
+    expect(targets[0]?.voice).toBe('Host=Kore, Guest=Puck')
   })
 
   test('ref-audio speakers rejected for providers that do not support ref audio', () => {

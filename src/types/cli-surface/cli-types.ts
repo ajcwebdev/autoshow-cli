@@ -1,4 +1,4 @@
-import type { BatchOrder, GenerationResourceGate, HostedTtsChunkJobContext, HostedTtsChunkScheduler, HtmlArticleBackend, OcrConcurrencyMode } from '~/types'
+import type { BatchOrder, HostedTtsChunkScheduler, HtmlArticleBackend, OcrConcurrencyMode, ResourceGate } from '~/types'
 
 const PROCESS_COMMANDS = ['metadata', 'download', 'extract', 'write', 'tts', 'image', 'video', 'music'] as const
 
@@ -92,9 +92,8 @@ export type RuntimeOptions = {
   ttsProviderConcurrency: number
   ttsLocalConcurrency: number
   ttsChunkConcurrency: number
-  generationResourceGate?: GenerationResourceGate | undefined
+  generationResourceGate?: ResourceGate | undefined
   hostedTtsChunkScheduler?: HostedTtsChunkScheduler | undefined
-  hostedTtsChunkJob?: HostedTtsChunkJobContext | undefined
   imageProviderConcurrency: number
   imageLocalConcurrency: number
   videoProviderConcurrency: number
@@ -128,11 +127,10 @@ export type RuntimeOptions = {
   deepinfraOcrModels: string[] | undefined
   deepinfraOcrModel: string | undefined
   primaryOcr: string | undefined
-  epubChapterFiles: boolean | undefined
-  epubChunkLimitChars: number | undefined
+  chapterFiles: boolean | undefined
+  chapterChunkLimitChars: number | undefined
   pdfChapterMode: 'local' | 'auto' | 'llm'
   useEpubBun: boolean
-  useEpubCalibre: boolean
   urlBackend: HtmlArticleBackend
   urlBackendExplicit: boolean
   urlBackends: HtmlArticleBackend[] | undefined
@@ -175,7 +173,6 @@ export type RuntimeOptions = {
   mistralTtsRefAudio: string | undefined
   mistralTtsVoiceName: string | undefined
   ttsDialogueFormat: 'screenplay' | 'labeled' | undefined
-  ttsSpeakerRefAudios: string[] | undefined
   ttsSpeakers: string[] | undefined
   openaiTtsModels: string[] | undefined
   openaiTtsModel: string | undefined
@@ -185,10 +182,6 @@ export type RuntimeOptions = {
   geminiTtsModels: string[] | undefined
   geminiTtsModel: string | undefined
   geminiVoiceId: string | undefined
-  geminiSpeaker1Name: string | undefined
-  geminiSpeaker1Voice: string | undefined
-  geminiSpeaker2Name: string | undefined
-  geminiSpeaker2Voice: string | undefined
   elevenlabsTtsModels: string[] | undefined
   elevenlabsTtsModel: string | undefined
   elevenlabsVoiceId: string | undefined

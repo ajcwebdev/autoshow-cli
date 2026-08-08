@@ -460,7 +460,6 @@ export type SttSplitPolicy = {
   attachmentCapBytes?: number | undefined
   maxDurationSeconds?: number | undefined
   requestBudgetSeconds?: number | undefined
-  preferredSegmentDurationMinutes?: number | undefined
 }
 
 export type SttSplitDecisionReason =

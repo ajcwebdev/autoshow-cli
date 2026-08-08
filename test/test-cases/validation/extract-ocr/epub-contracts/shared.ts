@@ -7,7 +7,6 @@ import {
 } from '~/cli/commands/process-steps/step-1-download/document/dl-document'
 import { cleanEpubHtmlToText } from '~/cli/commands/process-steps/step-2-extract/step-2-ocr/ebook/epub/cleanup'
 import { inspectEpubWithReader } from '~/cli/commands/process-steps/step-2-extract/step-2-ocr/ebook/epub/inspect-core'
-import { runEpubCalibreInspect } from '~/cli/commands/process-steps/step-2-extract/step-2-ocr/ebook/epub/run-epub-calibre-inspect'
 import { buildEpubTextOutput } from '~/cli/commands/process-steps/step-2-extract/step-2-ocr/ebook/epub/export'
 import { runOcr } from '~/cli/commands/process-steps/step-2-extract/step-2-ocr/run-ocr'
 import { resolveOcrStep2ExecutionFromFormat } from '~/cli/commands/process-steps/step-2-extract/step-2-shared/resolved-step2'
@@ -208,7 +207,6 @@ export {
   resolveEbookConvertCommand,
   resolveOcrStep2ExecutionFromFormat,
   rm,
-  runEpubCalibreInspect,
   runOcr,
   tmpdir,
   writeFile

@@ -1,7 +1,5 @@
 import type { ParsedCommandMetric, ParsedJunitCase, ProviderIdentityBase } from '~/types'
 
-export type ReportArgServiceFlag = { service: string, kind: string }
-
 export type MatchProvenance = 'name-file' | 'name-global' | 'line-unique' | 'group-order' | 'heuristic'
 
 export type MetricMatchEntry = { metrics: ParsedCommandMetric[]; matchedBy: MatchProvenance }

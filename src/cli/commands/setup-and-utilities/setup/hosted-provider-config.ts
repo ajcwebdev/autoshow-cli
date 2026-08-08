@@ -82,8 +82,13 @@ export const HOSTED_PROVIDER_ENV_CHECKS = [
   },
   {
     envVar: 'LUMA_AGENTS_API_KEY',
-    label: 'Luma Labs image',
-    configPaths: ['defaults.post.image.lumalabsImage']
+    label: 'Luma Labs image/video',
+    configPaths: ['defaults.post.image.lumalabsImage', 'defaults.post.video.lumalabsVideo']
+  },
+  {
+    envVar: 'FAL_API_KEY',
+    label: 'fal.ai image/video',
+    configPaths: ['defaults.post.image.falImage', 'defaults.post.video.falVideo']
   },
   {
     envVar: 'RECRAFT_API_TOKEN',
@@ -223,6 +228,24 @@ export const HOSTED_PROVIDER_ENV_CHECKS = [
     configPaths: ['defaults.extract.stt.reverb']
   }
 ] as const satisfies readonly HostedProviderEnvCheck[]
+
+// `setup --step image` / `--step video` used to carry their own literal env-key
+// lists, which drifted as providers were added and removed. Derive them from the
+// config paths the master list already records, so a new provider only has to be
+// registered once. `assertHostedProviderCoverage` is the guard that the two stay
+// in step.
+export const getHostedProviderEnvKeysForConfigPrefix = (
+  configPathPrefix: string
+): string[] => [...new Set(
+  HOSTED_PROVIDER_ENV_CHECKS
+    .filter(check => check.configPaths.some(path => path.startsWith(configPathPrefix)))
+    .map(check => check.envVar)
+)]
+
+export const findHostedProviderEnvKeyForConfigPath = (
+  configPath: string
+): string | undefined =>
+  HOSTED_PROVIDER_ENV_CHECKS.find(check => (check.configPaths as readonly string[]).includes(configPath))?.envVar
 
 const configuredEnv = (env: Record<string, string | undefined>, envVar: string): boolean => {
   const value = env[envVar]

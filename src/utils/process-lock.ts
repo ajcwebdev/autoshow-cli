@@ -204,7 +204,7 @@ export const withProcessLock = async <T,>(
     heartbeatMs * 2,
     resolvePositiveInteger(options.staleMs, DEFAULT_LOCK_STALE_MS)
   )
-  const waitTimeoutMs = resolvePositiveInteger(options.waitTimeoutMs, DEFAULT_LOCK_WAIT_TIMEOUT_MS)
+  const waitTimeoutMs = DEFAULT_LOCK_WAIT_TIMEOUT_MS
   const waitMs = resolvePositiveInteger(options.waitMs, DEFAULT_LOCK_WAIT_MS)
   const startedAt = Date.now()
 

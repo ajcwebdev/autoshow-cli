@@ -162,7 +162,7 @@ Extract batch parent:
 
 Extract batch item `inputFamily` values are `media`, `document`, `html_article`, `x_space`, and `unsupported`. Extract routes are `media`, `document`, and `x-space`. Completion status values are `full`, `incomplete`, `failed`, and `skipped`.
 
-Legacy schema v1 extract batches and schema v2 run manifests with `kind: "stt"` or `kind: "ocr"` are rejected by manifest readers.
+Manifest readers accept only schema v2 run/batch manifests with a current `kind` and schema v2 extract batches. Retired shapes — schema v1 extract batches and run manifests with `kind: "stt"` or `kind: "ocr"` — no longer parse and are treated as absent; re-run `extract` to produce a current manifest.
 
 ## Runtime Layout
 
@@ -195,8 +195,8 @@ input/characters/
   <source-stem>--outline-sheet.png # registered live sheet
 
 output/<timestamp>_<scene>/
-  structured-script.json           # schemaVersion 2; characterKeys/speakerKey
-  scene.json                        # schemaVersion 2; authoritative panel.characterKeys
+  structured-script.json           # schemaVersion 3; characterKeys/speakerKey
+  scene.json                        # schemaVersion 4; authoritative panel.characterKeys
   character-references.json         # checksummed immutable snapshot manifest
   character-references/<snapshot-id>/<character-key>/
     reference.<ext>                  # one-image character
@@ -235,7 +235,7 @@ Provider unions:
 | `ImageProvider` | `gemini`, `openai`, `grok`, `bfl`, `recraft`, `replicate`, `lumalabs`, `fal` |
 | `VideoProvider` | `gemini`, `minimax`, `glm`, `grok`, `runway`, `ltx`, `replicate`, `lumalabs`, `fal` |
 | `MusicProvider` | `elevenlabs`, `minimax`, `gemini` |
-| `OcrProvider` | `tesseract`, `mistral`, `glm`, `kimi`, `openai`, `grok`, `anthropic`, `gemini`, `deepinfra` |
+| `OcrTarget['service']` | `tesseract`, `mistral`, `glm`, `kimi`, `openai`, `grok`, `anthropic`, `gemini`, `deepinfra` |
 
 `DetectResult` values:
 

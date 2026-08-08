@@ -1,9 +1,6 @@
 import type { BudgetPreflightSummary, CommandResultBase } from '~/types'
 
-export type PriceSelectionMode = 'price' | 'budget'
-
 export type ResolvePriceSelectionOptions = {
-  mode?: PriceSelectionMode
   budgetSkippableOnly?: boolean
 }
 

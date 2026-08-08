@@ -1,5 +1,4 @@
 import { existsSync } from 'node:fs'
-import { basename } from 'node:path'
 import type { BunImageMetadataReaderConstructor, CharacterSketchSheetSelection, CharacterSketchSheetSource, CharacterSketchSheetSourceMetadata, CharacterSketchView } from '~/types'
 import { commandExists, exec } from '~/utils/cli-utils'
 import { InfraError, InternalError } from '~/utils/error-handler'
@@ -114,10 +113,4 @@ export const combineCharacterSketchSheet = async (
     width: sheetWidth,
     height: sheetHeight,
   }
-}
-
-export const describeCharacterSketchSheetSources = (
-  selection: CharacterSketchSheetSelection
-): string => {
-  return selection.sources.map(source => `${source.view}: ${basename(source.path)}`).join(', ')
 }

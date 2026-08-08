@@ -64,16 +64,12 @@ const selectCheapestRegistryModel = <T extends Record<string, unknown>>(
 const sttHourlyCost = (model: {
   costPerHourUSD?: number | undefined
   costPerHourCents?: number | undefined
-  costPerThreeHours?: number | undefined
 }): number => {
   if (typeof model.costPerHourCents === 'number') {
     return model.costPerHourCents
   }
   if (typeof model.costPerHourUSD === 'number') {
     return model.costPerHourUSD * 100
-  }
-  if (typeof model.costPerThreeHours === 'number') {
-    return (model.costPerThreeHours * 100) / 3
   }
   return Number.POSITIVE_INFINITY
 }
@@ -480,28 +476,16 @@ export const resolveCheapestModelForFlag = (flagName: string): string | undefine
       return 'glm-5.1'
     case 'cerebras':
       return selectCheapestLlmModel('cerebras')
-    case 'elevenlabs-tts':
-      return selectCheapestTtsModel('elevenlabs')
     case 'minimax-tts':
       return selectCheapestTtsModel('minimax')
-    case 'groq-tts':
-      return selectCheapestTtsModel('groq')
     case 'grok-tts':
       return selectCheapestTtsModel('grok')
     case 'mistral-tts':
       return selectCheapestTtsModel('mistral')
-    case 'openai-tts':
-      return selectCheapestTtsModel('openai')
     case 'gemini-tts':
       return selectCheapestTtsModel('gemini')
-    case 'deepgram-tts':
-      return selectCheapestTtsModel('deepgram')
-    case 'speechify-tts':
-      return selectCheapestTtsModel('speechify')
     case 'hume-tts':
       return selectCheapestTtsModel('hume')
-    case 'cartesia-tts':
-      return selectCheapestTtsModel('cartesia')
     case 'gemini-image':
       return selectCheapestImageModel('gemini')
     case 'openai-image':

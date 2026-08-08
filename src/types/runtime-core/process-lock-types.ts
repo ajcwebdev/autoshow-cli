@@ -1,7 +1,6 @@
 export type ProcessLockOptions = {
   lockRoot?: string
   staleMs?: number
-  waitTimeoutMs?: number
   waitMs?: number
   heartbeatMs?: number
 }

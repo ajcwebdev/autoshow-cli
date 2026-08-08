@@ -64,11 +64,9 @@ const probeQpdf = async (info: ResolvedRuntimeTool): Promise<QpdfHealthResult> =
 
 const cacheKey = (info: ResolvedRuntimeTool): string => `${info.source}:${info.path}`
 
-export const resetQpdfHealthCache = (): void => {
+const resetQpdfHealthCache = (): void => {
   qpdfHealthCache = undefined
 }
-
-export const resetQpdfHealthCacheForTests = resetQpdfHealthCache
 
 export const resolveHealthyQpdfToolInfo = async (
   options: {

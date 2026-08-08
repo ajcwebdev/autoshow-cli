@@ -26,9 +26,7 @@ const detectCoreMLEncoder = async (modelName: string): Promise<string | null> =>
   const modelsDir = whisperModelsDir
   const candidates = [
     `${modelsDir}/ggml-${modelName}-encoder.mlmodelc`,
-    `${modelsDir}/ggml-${modelName}-encoder.mlpackage`,
-    `${modelsDir}/coreml-encoder-${modelName}.mlmodelc`,
-    `${modelsDir}/coreml-encoder-${modelName}.mlpackage`
+    `${modelsDir}/ggml-${modelName}-encoder.mlpackage`
   ]
   const lookup = Promise.all(candidates.map(p => fileExists(p))).then(checks => {
     const idx = checks.findIndex(ok => ok)

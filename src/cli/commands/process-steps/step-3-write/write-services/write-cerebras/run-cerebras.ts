@@ -52,9 +52,6 @@ const ensureCerebrasApiKey = (): string => {
   return apiKey
 }
 
-const resolveCerebrasBaseUrl = (baseUrl: string = CEREBRAS_DEFAULT_BASE_URL): string =>
-  baseUrl.trim().replace(/\/+$/, '')
-
 export const resolveCerebrasApiModel = (model: string): string => {
   if (!(model in CEREBRAS_MODEL_BY_SELECTOR)) {
     throw CLIUsageError(
@@ -69,12 +66,11 @@ export const resolveCerebrasApiModel = (model: string): string => {
 export const runCerebrasModel = async (
   prompt: string,
   model: string,
-  structuredOpts?: StructuredRequestOptions,
-  baseUrl?: string
+  structuredOpts?: StructuredRequestOptions
 ): Promise<{ result: string, metadata: Step3Metadata }> => {
   const config = {
     apiKey: ensureCerebrasApiKey(),
-    baseURL: resolveCerebrasBaseUrl(baseUrl),
+    baseURL: CEREBRAS_DEFAULT_BASE_URL,
     provider: 'cerebras'
   }
 

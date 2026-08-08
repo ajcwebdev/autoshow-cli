@@ -56,7 +56,6 @@ export const resolveUrlOptions = (
   } = {}
 ): Pick<RuntimeOptions, 'urlBackend' | 'urlBackendExplicit' | 'urlBackends' | 'urlRequestTimeoutMs' | 'urlRequestAttempts'> => {
   const publicUrlBackendFlag = readOptionalStringFlag(flags, 'url-provider')
-  const legacyUrlBackendFlag = readOptionalStringFlag(flags, 'url-backend')
   const hasRawArgs = (options.rawArgs?.length ?? 0) > 0
   const hasSelectedFlag = (flagName: string, value: string | undefined): boolean =>
     value !== undefined
@@ -66,12 +65,7 @@ export const resolveUrlOptions = (
       || !hasRawArgs
     )
   const publicSelected = hasSelectedFlag('url-provider', publicUrlBackendFlag)
-  const legacySelected = hasSelectedFlag('url-backend', legacyUrlBackendFlag)
-  const urlBackendFlag = publicSelected
-    ? publicUrlBackendFlag
-    : legacySelected
-      ? legacyUrlBackendFlag
-      : undefined
+  const urlBackendFlag = publicSelected ? publicUrlBackendFlag : undefined
   if ((allUrlSelected || allLocalUrlSelected) && urlBackendFlag !== undefined) {
     throw CLIUsageError('Cannot use --all-providers or --all-local url with --url-provider')
   }
@@ -84,7 +78,7 @@ export const resolveUrlOptions = (
     : undefined
 
   return {
-    urlBackend: parseUrlBackend(urlBackendFlag, publicUrlBackendFlag !== undefined ? 'url-provider' : 'url-backend'),
+    urlBackend: parseUrlBackend(urlBackendFlag),
     urlBackendExplicit: urlBackendFlag !== undefined,
     urlBackends: selectedUrlBackends,
     urlRequestTimeoutMs: readPositiveIntegerOption(

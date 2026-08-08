@@ -140,8 +140,8 @@ describe('Mistral REST contracts', () => {
       fileSize: 10
     }
 
-    const pdfResult = await runMistralOcr('input/examples/document/1-document.pdf', pdfMetadata, 'mistral-ocr-latest', 'https://mock.mistral.local/v1/')
-    const imageResult = await runMistralOcr('input/examples/document/1-document.png', imageMetadata, 'mistral-ocr-latest', 'https://mock.mistral.local/v1/')
+    const pdfResult = await runMistralOcr('input/examples/document/1-document.pdf', pdfMetadata, 'mistral-ocr-4-0', { baseURL: 'https://mock.mistral.local/v1/' })
+    const imageResult = await runMistralOcr('input/examples/document/1-document.png', imageMetadata, 'mistral-ocr-4-0', { baseURL: 'https://mock.mistral.local/v1/' })
 
     expect(pdfResult.pages[0]).toMatchObject({ pageNumber: 1, method: 'ocr', text: 'page 1' })
     expect(imageResult.pages[0]).toMatchObject({ pageNumber: 2, method: 'ocr', text: 'page 2' })
@@ -151,7 +151,7 @@ describe('Mistral REST contracts', () => {
       method: 'POST',
       authorization: 'Bearer mistral-key',
       body: {
-        model: 'mistral-ocr-latest',
+        model: 'mistral-ocr-4-0',
         include_image_base64: false
       }
     })

@@ -48,6 +48,9 @@ export const collectUnsupportedCommonFlags = (
   flagLabels: Record<keyof ImageGenOptions, string>
 ): string[] => flagNames.flatMap((key) => options[key] !== undefined ? [flagLabels[key]] : [])
 
+// Pipeline spellings, which `write`, `config`, and `resume` register verbatim. The standalone
+// `image` command drops the `image-` prefix, so it retargets these through
+// `imageCommandOptionNames` on the way out; write messages here in the `--image-*` form.
 export const IMAGE_OPTION_LABELS: Record<keyof ImageGenOptions, string> = {
   geminiImageModels: '--gemini-image',
   geminiImageModel: '--gemini-image',
@@ -74,7 +77,7 @@ export const IMAGE_OPTION_LABELS: Record<keyof ImageGenOptions, string> = {
   imageInputs: '--image-input',
   imageMask: '--image-mask',
   imageResponseMode: '--image-response-mode',
-  geminiSearchGrounding: '--gemini-search-grounding',
+  geminiSearchGrounding: '--image-search-grounding',
   imageCompression: '--image-compression',
   imageProviderConcurrency: '--image-provider-concurrency',
   imageLocalConcurrency: '--image-local-concurrency',

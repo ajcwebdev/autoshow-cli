@@ -453,15 +453,6 @@ describe('price mode contracts', () => {
       expect(actual.totalCost).toBeCloseTo(estimated.totalCost)
     })
 
-  test('Gemini Flash-Lite canonical model preserves the preview alias', () => {
-      expect(getLlmCost('gemini', 'gemini-3.1-flash-lite')).toEqual(
-        getLlmCost('gemini', 'gemini-3.1-flash-lite-preview')
-      )
-      expect(getExtractPricing('gemini', 'gemini-3.1-flash-lite')).toEqual(
-        getExtractPricing('gemini', 'gemini-3.1-flash-lite-preview')
-      )
-    })
-
   test('current Gemini, Claude, and Kimi additions use published flat rates without context bands', () => {
       expect(getLlmCost('gemini', 'gemini-3.6-flash')).toMatchObject({
         inputCostPer1MCents: 150,

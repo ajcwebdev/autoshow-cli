@@ -26,9 +26,9 @@ If YouTube starts challenging `yt-dlp` requests with a bot-check or sign-in prom
 
 Short version:
 
-- `YTDLP_COOKIES_FROM_BROWSER=chrome` is the easiest path when yt-dlp can read your logged-in browser profile.
-- `YTDLP_COOKIES=/absolute/path/to/cookies.txt` is the fallback when you want a dedicated Netscape cookie jar.
-- `YTDLP_COOKIES` wins when it is set and readable; otherwise AutoShow uses `YTDLP_COOKIES_FROM_BROWSER`.
+- `--cookies-from-browser chrome` is the easiest path when yt-dlp can read your logged-in browser profile.
+- `--cookies /absolute/path/to/cookies.txt` is the fallback when you want a dedicated Netscape cookie jar.
+- `--cookies` wins when both flags are present. If that file is unreadable, AutoShow reports the path, passes no cookie argument to yt-dlp, and does not fall back to `--cookies-from-browser`.
 
 ## Common Workflows
 
@@ -101,8 +101,8 @@ bun autoshow write https://ajc.pics/autoshow/examples/1-audio.mp3 --llm cerebras
 # Standalone text-to-speech from local text
 bun autoshow tts input/examples/tts/1-tts.md --provider openai=gpt-4o-mini-tts-2025-12-15
 
-# OpenAI custom voice from reference audio and an existing consent recording
-bun autoshow tts input/examples/tts/1-tts.md --provider openai=gpt-4o-mini-tts-2025-12-15 --tts-ref-audio input/examples/audio/anthony-voice.mp3 --openai-tts-consent-id cons_123
+# OpenAI text-to-speech with delivery instructions
+bun autoshow tts input/examples/tts/1-tts.md --provider openai=gpt-4o-mini-tts-2025-12-15 --tts-instructions "Warm, unhurried, conversational"
 
 # ElevenLabs Instant Voice Cloning
 bun autoshow tts input/examples/tts/1-tts.md --provider elevenlabs=eleven_v3 --tts-ref-audio input/examples/audio/anthony-voice.mp3
@@ -171,7 +171,7 @@ High-value notes:
 
 - `write` is the central orchestration command. It can summarize transcripts or extracted documents, write JSON outputs, fan out across multiple LLM providers, and optionally continue into TTS, image, video, or music generation.
 - `setup --models` lets you pre-download local runtimes without running inference, for example `bun autoshow setup --models tiny` or `bun autoshow setup --models ggml-org/gemma-3-270m-it-GGUF`.
-- If YouTube starts blocking `yt-dlp`, follow [docs/cookies.md](./docs/cookies.md) to configure `YTDLP_COOKIES_FROM_BROWSER` or `YTDLP_COOKIES`.
+- If YouTube starts blocking `yt-dlp`, follow [docs/cookies.md](./docs/cookies.md) to pass `--cookies-from-browser` or `--cookies`.
 
 ## Usage Basics
 
@@ -242,13 +242,10 @@ bun autoshow write https://ajc.pics/autoshow/examples/1-audio.mp3 --quiet
 bun autoshow write https://ajc.pics/autoshow/examples/1-audio.mp3 --json
 
 # Environment variables
-AUTOSHOW_LOG_FORMAT=auto   # auto | human | json | both
-AUTOSHOW_LOG_LEVEL=info    # debug | info | success | warn | error
 NO_COLOR=1                 # disable ANSI color in human logs and help
 FORCE_COLOR=1              # force ANSI color in redirected output
 ```
 
-- `AUTOSHOW_LOG_FORMAT=auto` uses JSON logs when `NODE_ENV=production`, otherwise human-readable logs.
 - Human-readable logs color table columns and log prefixes when output is a TTY; `NO_COLOR` disables this and `FORCE_COLOR` enables it for captured output.
 - JSON logs and `--json` output stay machine-readable and uncolored.
 - Secrets and credentials are redacted from logger output.
@@ -288,4 +285,4 @@ bun test test/test-cases/validation/cli/option-resolution-contracts/
 
 - `bun run check` is the default verification pass for docs and code changes.
 - The three targeted `bun test` commands above are the no-cost smoke set for CLI help, usage errors, and option resolution.
-- `bun t`, `bun run t`, and `AGENT=1 bun test/test-runner.ts` are full-runner commands for human service/e2e coverage. They may call paid or quota-limited providers and should only be run when that exact run is explicitly approved.
+- `bun t`, `bun run t`, and `bun test/test-runner.ts` are full-runner commands for human service/e2e coverage. They may call paid or quota-limited providers and should only be run when that exact run is explicitly approved.

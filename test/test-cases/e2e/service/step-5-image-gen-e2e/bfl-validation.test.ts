@@ -14,7 +14,7 @@ test('rejects unsupported BFL shared image flags', async () => {
   const output = `${result.stdout}\n${result.stderr}`
 
   expect(result.exitCode).not.toBe(0)
-  expect(output).toContain('--image-aspect-ratio is not supported by BFL/flux-2-pro')
+  expect(output).toContain('--aspect-ratio is not supported by BFL/flux-2-pro')
 })
 
 test('rejects invalid BFL image size values', async () => {
@@ -30,6 +30,6 @@ test('rejects invalid BFL image size values', async () => {
   const output = `${result.stdout}\n${result.stderr}`
 
   expect(result.exitCode).not.toBe(0)
-  expect(output).toContain('Invalid --image-size value "1024" for BFL')
+  expect(output).toContain('Invalid --size value "1024" for BFL')
 })
 

@@ -5,7 +5,7 @@ import { writeFile } from '~/utils/cli-utils'
 import { writeProviderResult } from '../../manifest-utils'
 
 export const isEpubInspectMode = (metadata: ExtractionMetadata): boolean =>
-  metadata.extractionMethod === 'epub-bun' || metadata.extractionMethod === 'epub-calibre'
+  metadata.extractionMethod === 'epub-bun'
 
 export const writeExtractionArtifact = async (
   outputDir: string,

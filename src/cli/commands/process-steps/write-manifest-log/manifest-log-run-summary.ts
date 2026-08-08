@@ -6,7 +6,6 @@ import {
   buildMatchKey,
   buildProviderModelLabel,
   formatPersistedWriteManifestThroughput,
-  formatWriteManifestThroughput,
   resolveWhisperModel
 } from './manifest-log-formatting'
 import {
@@ -159,18 +158,8 @@ export const buildRunSummary = (metadata: WriteManifestMetadata): SummarySection
       actualCostSource: actualCost?.costSource ?? null,
       predictedTimeMs: predictedTime?.processingTimeMs ?? null,
       actualTimeMs: actualTime?.processingTimeMs ?? null,
-      predictedSpeed: formatPersistedWriteManifestThroughput(predictedTime?.throughputValue, predictedTime?.throughputUnit)
-        ?? formatWriteManifestThroughput(
-          predictedTime?.inputMetric,
-          predictedTime?.inputValue,
-          predictedTime?.processingTimeMs
-        ),
-      actualSpeed: formatPersistedWriteManifestThroughput(actualTime?.throughputValue, actualTime?.throughputUnit)
-        ?? formatWriteManifestThroughput(
-          actualTime?.inputMetric,
-          actualTime?.inputValue,
-          actualTime?.processingTimeMs
-        ),
+      predictedSpeed: formatPersistedWriteManifestThroughput(predictedTime?.throughputValue, predictedTime?.throughputUnit),
+      actualSpeed: formatPersistedWriteManifestThroughput(actualTime?.throughputValue, actualTime?.throughputUnit),
       predictedInputMetric: predictedTime?.inputMetric ?? null,
       predictedInputValue: predictedTime?.inputValue ?? null,
       actualInputMetric: actualTime?.inputMetric ?? null,

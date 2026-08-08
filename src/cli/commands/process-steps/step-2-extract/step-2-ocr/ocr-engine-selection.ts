@@ -1,5 +1,4 @@
-import type { ExtractionOptions, HostedExtractOcrEngine, LocalExtractOcrEngine } from '~/types'
-export const resolveExtractEngine = (_opts: ExtractionOptions): LocalExtractOcrEngine => 'tesseract'
+import type { ExtractionOptions, HostedExtractOcrEngine } from '~/types'
 
 export const hasMistralOcr = (opts: ExtractionOptions): boolean =>
   typeof opts.mistralOcrModel === 'string' && opts.mistralOcrModel.length > 0
@@ -39,7 +38,7 @@ export const hasOcrFlag = (opts: ExtractionOptions): boolean =>
   opts.useTesseract === true || hasHostedOcr(opts)
 
 export const hasEpubExportFlags = (opts: ExtractionOptions): boolean =>
-  typeof opts.epubChapterFiles === 'boolean' || typeof opts.epubChunkLimitChars === 'number'
+  typeof opts.chapterFiles === 'boolean' || typeof opts.chapterChunkLimitChars === 'number'
 
 export const countSelectedOcrEngines = (opts: ExtractionOptions): number =>
   [
@@ -63,11 +62,4 @@ export const getHostedOcrEngine = (opts: ExtractionOptions): HostedExtractOcrEng
   if (hasGeminiOcr(opts)) return 'gemini-ocr'
   if (hasDeepinfraOcr(opts)) return 'deepinfra-ocr'
   return undefined
-}
-
-export const engineSuffix = (engine: LocalExtractOcrEngine): string => {
-  switch (engine) {
-    case 'tesseract':
-      return 'tesseract'
-  }
 }

@@ -13,7 +13,7 @@ export const CHARACTER_SKETCH_MANIFEST_FILENAME = 'character-sketches.json'
 const CharacterSketchRegistrationSchema = v.strictObject({
   characterKey: v.pipe(v.string(), v.regex(/^[a-z0-9]+(?:-[a-z0-9]+)*$/)),
   generationId: v.pipe(v.string(), v.minLength(1)),
-  origin: v.picklist(['generated', 'revision', 'legacy-import']),
+  origin: v.picklist(['generated', 'revision']),
   sourceImage: v.string(),
   outlineSheet: v.string(),
   sourceSha256: v.pipe(v.string(), v.regex(/^[a-f0-9]{64}$/)),
@@ -119,7 +119,7 @@ export const requireCurrentCharacterSketch = async (
   const registration = await readRegisteredCharacterSketch(key, character)
   if (!registration) {
     throw InfraError(
-      `Character "${key}" has no registered outline sheet. Run: bun autoshow comic character-sketch --character ${key}`,
+      `Character "${key}" has no registered outline sheet. Run: bun autoshow comic reference-sketch --character ${key}`,
       { stage: 'comic:character-sketch' }
     )
   }
@@ -139,13 +139,3 @@ export const withCharacterSketchManifestLock = async <T>(run: () => Promise<T>):
     release()
   }
 }
-
-export const getCharacters = async (keys: readonly string[]): Promise<CharacterCatalogEntry[]> => {
-  const catalog = loadCharacterCatalog()
-  return keys.map(value => catalog.get(catalog.requireKey(value)))
-}
-
-export const findCharacterReferenceNamesInText = (text: string): CharacterKey[] => loadCharacterCatalog().detect(text)
-export const resolveCharacterReferenceName = (value: string): string => loadCharacterCatalog().resolve(value)?.[0] ?? value
-export const stripVoiceOverSuffix = (value: string): string => value.replace(/\s*\((?:V\.?O\.?|O\.?S\.?)\)\s*$/i, '')
-export const isCharacterEntry = (value: string): boolean => Boolean(loadCharacterCatalog().resolve(value))

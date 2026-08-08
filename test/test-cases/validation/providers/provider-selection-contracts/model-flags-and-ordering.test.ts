@@ -7,10 +7,13 @@ import {
   collectStep2ProviderSpecs,
   collectUrlArticleTargets,
   HOSTED_URL_ARTICLE_BACKENDS,
+  LOCAL_URL_ARTICLE_BACKENDS,
   URL_ARTICLE_BACKENDS,
   getStep2ProviderSelectionFlagNames
 } from '~/cli/commands/process-steps/step-2-extract/step-2-shared/provider-registry'
 import { resolveOcrStep2ExecutionFromFormat } from '~/cli/commands/process-steps/step-2-extract/step-2-shared/resolved-step2'
+import { isLocalUrlBackend } from '~/cli/commands/process-steps/step-2-extract/step-2-url/url-targets'
+import { formatModelSelector } from '~/cli/commands/setup-and-utilities/models/model-validation'
 
 describe('provider selection contracts', () => {
   test('retired model flag values are rejected', () => {
@@ -41,8 +44,11 @@ describe('provider selection contracts', () => {
       ['together-stt', 'nvidia/nemotron-3-asr-streaming-0.6b']
     ]
 
+    // Cases are keyed by internal target flag, which is not a spelling a user can type;
+    // formatModelSelector maps it to the public selector the error must name.
     for (const [flag, model] of cases) {
-      expect(() => buildOptsFromFlags(false, { [flag]: model })).toThrow(`Invalid --${flag} model`)
+      expect(() => buildOptsFromFlags(false, { [flag]: model }))
+        .toThrow(`Invalid model "${model}" for ${formatModelSelector(flag)}`)
     }
   })
 
@@ -99,6 +105,15 @@ describe('provider selection contracts', () => {
       'supadata',
       'zyte'
     ])
+    expect(LOCAL_URL_ARTICLE_BACKENDS).toEqual(['defuddle'])
+    // isLocalUrlBackend derives from the registry's all-local-url label, so local and hosted
+    // must stay a partition: an entry whose allShortcut drifts would silently move a backend
+    // between the local and hosted concurrency pools without failing anywhere else.
+    for (const backend of URL_ARTICLE_BACKENDS) {
+      expect(isLocalUrlBackend(backend)).toBe(
+        !(HOSTED_URL_ARTICLE_BACKENDS as readonly string[]).includes(backend)
+      )
+    }
     expect(getStep2ProviderSelectionFlagNames('url')).toEqual(['url-provider'])
 
     const explicitOpts = buildOptsFromFlags(false, {
@@ -148,8 +163,6 @@ describe('provider selection contracts', () => {
     expect(resolveOcrStep2ExecutionFromFormat('html', allUrlOpts)).toEqual({
       route: 'article',
       sourceKind: 'article',
-      backend: 'firecrawl',
-      backends: [...HOSTED_URL_ARTICLE_BACKENDS],
       providers: HOSTED_URL_ARTICLE_BACKENDS.map((backend) => ({
         service: backend,
         model: backend,
@@ -166,7 +179,6 @@ describe('provider selection contracts', () => {
     expect(resolveOcrStep2ExecutionFromFormat('html', localHtmlHostedOpts)).toEqual({
       route: 'article',
       sourceKind: 'article',
-      backend: 'defuddle',
       providers: [{
         service: 'defuddle',
         model: 'defuddle',

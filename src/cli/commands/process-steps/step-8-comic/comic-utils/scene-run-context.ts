@@ -17,22 +17,6 @@ import { claimPinnedRunDir } from '~/cli/commands/process-steps/run-dir'
 const RUN_DIRECTORY_PREFIX = /^\d{4}-\d{2}-\d{2}_\d{2}-\d{2}-\d{2}-\d{3}_/
 
 const runDirectoryBySlug = new Map<string, string>()
-const LEGACY_FLAT_ARTIFACTS = [
-  'structured-script.json', 'draft-prompt.md', 'scene.json', 'scene.invalid.json', 'panel-prompts',
-  'character-references.json', 'character-references', 'location-reference.json', 'location-references.json',
-  'location-references', 'design-references.json', 'design-references',
-] as const
-
-export const assertPanelFirstSceneWorkspace = (directory: string): void => {
-  if (!existsSync(directory)) return
-  const legacyArtifacts = LEGACY_FLAT_ARTIFACTS.filter(name => existsSync(join(directory, name)))
-  if (legacyArtifacts.length === 0) return
-  throw ValidationError(
-    `Comic workspace "${directory}" uses the unsupported flat legacy layout (${legacyArtifacts.join(', ')}). ` +
-    'Migrate drafting files to metadata/, reference manifests and snapshots to assets/, and update manifest paths before retrying.',
-    { stage: 'comic:scene-run' }
-  )
-}
 
 const scenePartMatches = (directoryName: string, sanitizedSlug: string): boolean =>
   RUN_DIRECTORY_PREFIX.test(directoryName) &&
@@ -82,8 +66,6 @@ export const beginSceneRun = (sceneSlug: string, options: BeginSceneRunOptions =
     directory = join(outputRoot, createUniqueDirectoryName(sceneSlug))
   }
 
-  assertPanelFirstSceneWorkspace(directory)
-
   runDirectoryBySlug.set(sceneSlug, directory)
   return directory
 }
@@ -104,7 +86,6 @@ export const getSceneRunDirectory = (sceneSlug: string): string => {
   const directory = claimPinnedRunDir(`comic:${sceneSlug}`)
     ?? findLatestSceneRunDirectory(sceneSlug)
     ?? join(getOutputRoot(), createUniqueDirectoryName(sceneSlug))
-  assertPanelFirstSceneWorkspace(directory)
   runDirectoryBySlug.set(sceneSlug, directory)
   return directory
 }

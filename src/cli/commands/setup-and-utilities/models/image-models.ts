@@ -1,5 +1,4 @@
 import { createModelValidator } from '~/cli/commands/setup-and-utilities/models/model-validation'
-import { isNativeGeminiImage } from '~/cli/commands/setup-and-utilities/models/model-loader'
 import type { BflImageModel, FalImageModel, GeminiImageModel, GrokImageModel, LumalabsImageModel, OpenAIImageModel, RecraftImageModel, ReplicateImageModel } from '~/types'
 
 export const SUPPORTED_GEMINI_IMAGE_MODELS = [
@@ -9,12 +8,6 @@ export const SUPPORTED_GEMINI_IMAGE_MODELS = [
 ] as const satisfies readonly string[]
 
 export const validateGeminiImageModel = createModelValidator<GeminiImageModel>(SUPPORTED_GEMINI_IMAGE_MODELS, 'gemini-image')
-
-const isNativeGeminiImageModel = (model: GeminiImageModel): boolean =>
-  isNativeGeminiImage(model)
-
-export const supportsGeminiImageSize = (model: GeminiImageModel): boolean =>
-  isNativeGeminiImageModel(model)
 
 export const SUPPORTED_OPENAI_IMAGE_MODELS = [
   'gpt-image-2',

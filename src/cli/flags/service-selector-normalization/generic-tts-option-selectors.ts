@@ -1,6 +1,6 @@
 import { CLIUsageError } from '~/utils/error-handler'
 import type { SelectorNormalizationResult } from '~/types'
-import { appendFlagValue, normalizeProviderAliases, occurrenceValues } from './flag-helpers'
+import { appendFlagValue, occurrenceValues } from './flag-helpers'
 import { STANDALONE_TTS_PROVIDER_TARGETS } from './provider-targets'
 
 const TTS_PROVIDER_BY_TARGET = Object.fromEntries(
@@ -66,6 +66,10 @@ const TTS_GENERIC_OPTION_TARGETS = {
   }
 } as const satisfies Record<string, Record<string, string>>
 
+// Every provider flag `--tts-voice` can normalize into. Derived so a provider added above is
+// covered without a second list to keep in step.
+export const TTS_VOICE_OPTION_TARGETS: readonly string[] = Object.values(TTS_GENERIC_OPTION_TARGETS['tts-voice'])
+
 const genericTtsOptionFlags = Object.keys(TTS_GENERIC_OPTION_TARGETS)
 const booleanTtsOptionTargets = new Set<string>(['grok-tts-text-normalization', 'minimax-tts-english-normalization'])
 
@@ -106,7 +110,7 @@ const parseGenericTtsOptionValue = (
 
   const eqIndex = rawValue.indexOf('=')
   if (eqIndex > 0) {
-    const possibleProvider = normalizeProviderAliases(rawValue.slice(0, eqIndex).trim().toLowerCase())
+    const possibleProvider = rawValue.slice(0, eqIndex).trim().toLowerCase()
     if (possibleProvider in STANDALONE_TTS_PROVIDER_TARGETS) {
       const value = rawValue.slice(eqIndex + 1)
       if (value.length === 0) {

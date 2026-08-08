@@ -63,8 +63,6 @@ export const parseProviderSelectorValue = (
   return { provider, model }
 }
 
-export const normalizeProviderAliases = (provider: string): string => provider
-
 export const appendProviderSelector = (
   flags: Record<string, unknown>,
   selectorFlag: string,
@@ -73,8 +71,7 @@ export const appendProviderSelector = (
   value: string | true
 ): string => {
   const parsed = parseProviderSelectorValue(value, selectorFlag)
-  const provider = normalizeProviderAliases(parsed.provider)
-  const target = targetByProvider[provider]
+  const target = targetByProvider[parsed.provider]
   if (!target) {
     throw CLIUsageError(`Unknown provider "${parsed.provider}" for --${selectorFlag}.`)
   }
@@ -94,8 +91,7 @@ export const selectorArgToInternalArgs = (
   value: string | true
 ): string[] => {
   const parsed = parseProviderSelectorValue(value, selectorFlag)
-  const provider = normalizeProviderAliases(parsed.provider)
-  const target = targetByProvider[provider]
+  const target = targetByProvider[parsed.provider]
   if (!target) {
     throw CLIUsageError(`Unknown provider "${parsed.provider}" for --${selectorFlag}.`)
   }

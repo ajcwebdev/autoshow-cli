@@ -104,10 +104,6 @@ const PanelSchema = v.strictObject({
   locationKey: v.string(),
   designReferences: v.optional(v.array(DesignReferenceSchema)),
 })
-const LegacyPanelSchema = v.strictObject({
-  number: v.number(), description: v.string(), characterKeys: v.array(CharacterKeySchema),
-  speech: v.array(SpeechItemSchema), sourceSegmentIds: v.array(v.string()),
-})
 const PanelBundlePanelSchema = v.strictObject({
   number: v.number(),
   description: v.string(),
@@ -122,30 +118,6 @@ const PanelBundlePanelSchema = v.strictObject({
   designSnapshotId: v.optional(v.string()),
   designReferenceKeys: v.optional(v.array(v.string())),
 })
-const LegacyV3PanelBundlePanelSchema = v.strictObject({
-  number: v.number(),
-  description: v.string(),
-  shotPlan: v.string(),
-  characterKeys: v.array(CharacterKeySchema),
-  speech: v.array(SpeechItemSchema),
-  sourceSegmentIds: v.array(v.string()),
-  sourceSegments: v.array(v.strictObject({
-    id: v.string(),
-    type: v.picklist(STRUCTURED_SCRIPT_BEAT_TYPES),
-    text: v.string(),
-    rawMarkdown: v.optional(v.string()),
-    beatIndex: v.optional(v.number()),
-    speakerKey: v.optional(CharacterKeySchema),
-    speakerLabel: v.optional(v.string()),
-    delivery: v.optional(v.string()),
-  })),
-})
-const LegacyPanelBundlePanelSchema = v.strictObject({
-  number: v.number(), description: v.string(), characterKeys: v.array(CharacterKeySchema),
-  speech: v.array(SpeechItemSchema), sourceSegmentIds: v.array(v.string()),
-  sourceSegments: v.array(StructuredScriptSourceSegmentSchema),
-})
-
 export const CharacterReferenceSchema = v.strictObject({
   schemaVersion: v.literal(3),
   characters: v.array(AuthoredCharacterDetailsSchema),
@@ -184,23 +156,6 @@ export const PanelBundleDataSchema = v.strictObject({
   location: v.string(),
   panels: v.array(PanelBundlePanelSchema),
 })
-export const LegacyV3PanelBundleDataSchema = v.strictObject({
-  schemaVersion: v.literal(3),
-  snapshotId: v.string(),
-  locationSnapshotId: v.string(),
-  title: v.string(),
-  location: v.string(),
-  panels: v.array(LegacyV3PanelBundlePanelSchema),
-})
-export const LegacyScenePromptDataSchema = v.strictObject({
-  schemaVersion: v.literal(2), title: v.string(), location: v.string(), panels: v.array(LegacyPanelSchema),
-})
-export const ReadableScenePromptDataSchema = v.union([ScenePromptDataSchema, LegacyScenePromptDataSchema])
-export const LegacyPanelBundleDataSchema = v.strictObject({
-  schemaVersion: v.literal(2), snapshotId: v.string(), title: v.string(), location: v.string(), panels: v.array(LegacyPanelBundlePanelSchema),
-})
-export const ReadablePanelBundleDataSchema = v.union([PanelBundleDataSchema, LegacyV3PanelBundleDataSchema, LegacyPanelBundleDataSchema])
-
 export const STRUCTURED_SCRIPT_JSON_SCHEMA_NAME = 'structured_script_data_v3'
 const nullable = (schema: Record<string, unknown>) => ({ anyOf: [schema, { type: 'null' as const }] })
 const characterArray = (keys: readonly string[]) => ({

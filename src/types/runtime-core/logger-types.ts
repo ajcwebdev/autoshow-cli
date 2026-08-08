@@ -141,7 +141,6 @@ export type CompleteOptions = {
   totalTimeMs?: number
   totalCost?: number
   summaryMessage?: string
-  hideHumanSections?: readonly (keyof HumanCompletionTables)[]
   includeOutputDir?: boolean
 }
 

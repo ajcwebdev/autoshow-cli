@@ -5,7 +5,7 @@
   - `bun test test/test-cases/validation/cli/cli-help-contracts.test.ts`
   - `bun test test/test-cases/validation/cli/cli-usage-errors.test.ts`
   - `bun test test/test-cases/validation/cli/option-resolution-contracts/`
-- Never run `bun run t` or `AGENT=1 bun test/test-runner.ts` unless the user explicitly asks for the full suite.
+- Never run `bun run t` or `bun test/test-runner.ts` unless the user explicitly asks for the full suite.
 - Never run smoke or e2e tests that can make third-party API calls with any cost, billing, quota, or price association.
 
 # Paid Provider Execution Rules

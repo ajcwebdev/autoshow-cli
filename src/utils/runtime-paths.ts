@@ -116,8 +116,6 @@ export const getFfmpegBinary = (): string => getRuntimeToolCommand('ffmpeg')
 export const getFfprobeBinary = (): string => getRuntimeToolCommand('ffprobe')
 export const getYtDlpBinaryPath = (): string => getRuntimeToolCommand('yt-dlp')
 export const getMutoolBinary = (): string => getRuntimeToolCommand('mutool')
-export const getEbookConvertBinary = (): string => getRuntimeToolCommand('ebook-convert')
 export const getTesseractBinary = (): string => getRuntimeToolCommand('tesseract')
-export const getQpdfBinary = (): string => getRuntimeToolCommand('qpdf')
 
 export const resolveTessdataPrefix = (): string => tessdataDir

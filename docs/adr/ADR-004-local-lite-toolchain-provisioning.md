@@ -85,6 +85,11 @@ Host. Implemented on 2026-06-12. macOS setup resolves AutoShow-owned local tools
 
 Container. Debian installs Tesseract language data under `/usr/share/tesseract-ocr/5/tessdata`, while AutoShow's local OCR code passes a project-local `TESSDATA_PREFIX` under `runtime/tools/tessdata`. The Docker image therefore creates `/app/runtime/tools/tessdata` as a symlink to the Debian data directory and adds a small `/usr/local/bin/tesseract` wrapper that falls back to the Debian data directory when a bind-mounted `runtime/` hides the symlink.
 
+> Correction (2026-08-07): two things this ADR describes as shipped no longer exist, both retired by later decisions rather than by this one being reversed.
+>
+> - **OCRmyPDF is gone.** [ADR-009](ADR-009-unify-ocr-extraction-architecture-and-reliability-guardrails.md) chose Tesseract as the only local OCR engine, on the recorded finding that Tesseract was the fastest and highest-mean local engine while avoiding OCRmyPDF's dependency and maintenance cost. Every mention of OCRmyPDF above — in the local-lite tool set, the Homebrew paths this ADR removed, the managed macOS set, the packaging risks, and the `ocr-local/ocrmypdf/ocrmypdf.ts` reference below — is history. Managed Ghostscript went with it; `qpdf` is still managed.
+> - **`AUTOSHOW_BIN_DIR` is no longer a resolver input.** The precedence in `resolveRuntimeToolInfo` is unchanged in shape — explicit override, then managed artifact under `runtime/`, then `PATH` for tools AutoShow does not own — but its first tier is now fed by the global `--bin-dir` flag only. [ADR-005](ADR-005-reduce-environment-variable-surface-area.md) introduced `AUTOSHOW_BIN_DIR` in its pass 3 as the consolidation of six per-tool `AUTOSHOW_*_BIN` vars; production stopped reading it when the flag replaced it. The name survives in `test/test-utils/test-helpers.ts` as a harness convention only, and is translated into `--bin-dir` before the child process sees it. Read "`--bin-dir`/`AUTOSHOW_BIN_DIR`" above as "`--bin-dir`".
+
 ## Rationale
 
 Host provisioning:

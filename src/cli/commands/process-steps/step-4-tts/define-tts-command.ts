@@ -11,7 +11,7 @@ import { collectTextInputFiles, isTextInputPath } from '~/cli/commands/process-s
 import { extractExplicitFlags } from '~/cli/commands/setup-and-utilities/config/config-merge'
 import { ttsCommandFlags } from '~/cli/flags/tts-flags'
 import { normalizeGenericProviderSelectorFlags } from '~/cli/flags/service-selector-normalization/generic-provider-selectors'
-import { normalizeGenericTtsOptionFlags } from '~/cli/flags/service-selector-normalization/generic-tts-option-selectors'
+import { normalizeGenericTtsOptionFlags, TTS_VOICE_OPTION_TARGETS } from '~/cli/flags/service-selector-normalization/generic-tts-option-selectors'
 import { STANDALONE_TTS_PROVIDER_TARGETS } from '~/cli/flags/service-selector-normalization/provider-targets'
 import { defineCliCommand } from '~/cli/native/native-types'
 import type { ActualCostBreakdown, AggregatedPriceEstimate, BatchManifestEntry, CompletedTtsBatchItem, EstimatedCostBreakdown, HostedTtsSchedulerTelemetry, PreparedTtsInput, PreparedTtsRun, RuntimeOptions, Step4Metadata, StepTimingBreakdown, SuccessfulTtsBatchItem, TtsBatchEstimateReport, TtsBatchItemAccumulator, TtsBatchPlanItem, TtsTarget } from '~/types'
@@ -27,8 +27,7 @@ import { preflightToEstimated } from '~/utils/pricing/compute-costs'
 import { computeEstimatedCosts } from '~/utils/pricing/compute-estimated-costs'
 import { computeActualProcessingTimes, computeEstimatedProcessingTimes } from '~/utils/pricing/compute-processing-time'
 import { runPreflight } from '~/utils/pricing/preflight'
-import { isMultiSpeakerRequested, normalizeDialogueFromOptions } from './dialogue-normalizer'
-import { normalizeLegacyMultiSpeakerFlags } from './legacy-multi-speaker'
+import { assertDialogueFormatIsUsable, isMultiSpeakerRequested, normalizeDialogueFromOptions } from './dialogue-normalizer'
 import { runTtsForTargets } from './run-tts'
 import { buildTtsBatchEstimateSummary, computeSuccessfulTtsBatchActualCost } from './tts-batch-summary'
 import { buildEstimatedTtsTargets, buildTtsArtifactMap, collectTtsTargets, getTtsArtifactFileName } from './tts-targets'
@@ -867,18 +866,24 @@ export const ttsCommand = defineCliCommand({
     providerNormalized.explicitFlags,
     'kitten'
   )
-  const legacyNormalized = normalizeLegacyMultiSpeakerFlags(
-    ttsNormalized.flags,
-    ttsNormalized.explicitFlags
-  )
   const ttsOptions = buildOptsFromFlags(
     true,
-    legacyNormalized.flags,
+    ttsNormalized.flags,
     [],
     { defaultTtsEngine: 'kitten' },
-    legacyNormalized.explicitFlags,
+    ttsNormalized.explicitFlags,
     providerNormalized.rawArgs ?? rawArgs
   )
+
+  assertDialogueFormatIsUsable(ttsOptions, ttsNormalized.explicitFlags)
+
+  // Speaker mappings overwrite the resolved voice for every turn, so a typed --tts-voice would
+  // be silently discarded. Gate on explicitFlags, not on the resolved value: config defaults and
+  // kitten's always-set ttsSpeaker default must stay exempt.
+  if (isMultiSpeakerRequested(ttsOptions) && TTS_VOICE_OPTION_TARGETS.some((target) => ttsNormalized.explicitFlags.has(target))) {
+    throw CLIUsageError('--tts-voice cannot be combined with --tts-speaker/--tts-dialogue-format; per-speaker voices come from --tts-speaker mappings.')
+  }
+
   const targets = collectTtsTargets(ttsOptions)
 
   if (inputKind === 'directory') {

@@ -29,17 +29,6 @@ const seedreamOnlyAspectRatios = REPLICATE_SEEDREAM_ASPECT_RATIO_VALUES.filter(
   (ratio) => !sharedImageAspectRatios.has(ratio)
 )
 
-export const IMAGE_COMMAND_SELECTOR_FLAGS = {
-  'gemini-image': 'gemini',
-  'openai-image': 'openai',
-  'grok-image': 'grok',
-  'bfl-image': 'bfl',
-  'recraft-image': 'recraft',
-  'replicate-image': 'replicate',
-  'lumalabs-image': 'lumalabs',
-  'fal-image': 'fal'
-} as const satisfies Record<string, string>
-
 export const imageGenFlags = {
   'image-aspect-ratio': {
     description: `Image aspect ratio: ${formatUniqueValueList(...imageAspectRatioLists)} (provider-specific support; Replicate Seedream also supports ${formatValueList(seedreamOnlyAspectRatios)})`,
@@ -93,16 +82,13 @@ export const imageGenFlags = {
     description: `OpenAI output compression for jpeg/webp images, ${formatRange(OPENAI_IMAGE_COMPRESSION_RANGE)}`,
     type: String
   },
-  'gemini-search-grounding': {
-    description: 'Enable Gemini native image generation with Google Search grounding metadata',
-    type: Boolean,
-    default: false,
-    negatable: false,
-    help: { hidden: true }
-  },
 } as const satisfies CliFlagsDefinition
 
-const imageCommandOptionNames = {
+// The standalone `image` command drops the `image-` prefix every other surface keeps
+// (ADR-012). It is the single home for that mapping: `imageCommandFlags` renames the flag
+// definitions with it, `define-image-command.ts` normalizes argv and retargets usage errors
+// with it, so the two spellings cannot drift apart.
+export const imageCommandOptionNames = {
   'image-aspect-ratio': 'aspect-ratio',
   'image-size': 'size',
   'image-quality': 'quality',

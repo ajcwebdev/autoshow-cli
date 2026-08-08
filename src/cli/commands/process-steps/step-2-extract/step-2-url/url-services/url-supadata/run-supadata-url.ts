@@ -1,16 +1,9 @@
 import * as l from '~/utils/app-logger/app-logger'
 import { SUPADATA_DEFAULT_BASE_URL } from '~/utils/base-urls'
 import { readEnv } from '~/utils/validate/env-utils'
-import type { UrlArticleProviderAdapter, UrlArticleRunOptions, UrlArticleRunResult, WebArticleMetadata } from '~/types'
+import type { UrlArticleProviderAdapter, UrlArticleRunResult, UrlRequestOptions, WebArticleMetadata } from '~/types'
 import { byteLength, cleanString, countWords, createUrlProviderHttpError, ensureMeaningfulMarkdown, fallbackTitleFromSource, getUrlRequestTimeoutMs, isRecord, normalizeMarkdown, tryFetchRemoteHtml, withUrlProviderTimeout } from '../../url-utils'
-import { assertUrlArticleOptionsSupported } from '../../url-provider-adapter'
 import { InfraError, InternalError, ValidationError, hintsForMissingEnv } from '~/utils/error-handler'
-
-const SUPADATA_CAPABILITIES = [
-  'remote-html',
-  'main-content',
-  'timeout'
-] as const
 
 const parseSupadataResponse = (
   payload: unknown,
@@ -56,14 +49,9 @@ const parseSupadataResponse = (
 
 const runSupadataScrape = async (
   source: string,
-  options?: UrlArticleRunOptions,
+  options?: UrlRequestOptions,
   baseUrl: string = SUPADATA_DEFAULT_BASE_URL
 ): Promise<{ markdown: string, web: WebArticleMetadata }> => {
-  assertUrlArticleOptionsSupported({
-    displayName: 'Supadata',
-    capabilities: SUPADATA_CAPABILITIES
-  }, options)
-
   const apiKey = readEnv('SUPADATA_API_KEY')
 
   if (!apiKey) {
@@ -110,7 +98,7 @@ const runSupadataScrape = async (
 export const runSupadataUrl = async (
   source: string,
   sourceUrl: string | undefined,
-  options?: UrlArticleRunOptions,
+  options?: UrlRequestOptions,
   baseUrl: string = SUPADATA_DEFAULT_BASE_URL
 ): Promise<UrlArticleRunResult> => {
   l.write('info', 'Using Supadata backend for article extraction')
@@ -134,6 +122,5 @@ export const runSupadataUrl = async (
 export const supadataArticleAdapter: UrlArticleProviderAdapter = {
   id: 'supadata',
   displayName: 'Supadata',
-  capabilities: SUPADATA_CAPABILITIES,
   run: runSupadataUrl
 }

@@ -201,8 +201,8 @@ describe('test-runner contracts', () => {
           description: 'Mistral OCR',
           type: 'api',
           models: {
-            'mistral-ocr-latest': {
-              description: 'Mistral OCR Latest',
+            'mistral-ocr-4-0': {
+              description: 'Mistral OCR 4.0',
               costPer1kPagesCents: 100,
               estimation: {
                 costMultiplier: 1,
@@ -244,7 +244,7 @@ describe('test-runner contracts', () => {
               steps: [{
                 step: 'extract',
                 provider: 'mistral',
-                model: 'mistral-ocr-latest',
+                model: 'mistral-ocr-4-0',
                 processingTimeMs: 4500,
                 inputMetric: 'pages',
                 inputValue: 3
@@ -263,7 +263,7 @@ describe('test-runner contracts', () => {
       expect(await readFile(openaiConfigPath, 'utf8')).toBe(originalOpenaiConfig)
       expect(report.recommendations[0]?.kind).toBe('extract')
       expect(report.recommendations[0]?.service).toBe('mistral')
-      expect(report.recommendations[0]?.model).toBe('mistral-ocr-latest')
+      expect(report.recommendations[0]?.model).toBe('mistral-ocr-4-0')
       expect(report.recommendations[0]?.oldTimeValue).toBe(1000)
       expect(report.recommendations[0]?.medianTimeValue).toBe(1500)
       expect(report.recommendations[0]?.recommendedTimeValue).toBe(1175)

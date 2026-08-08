@@ -3,7 +3,6 @@ import { ExtractionMetadataSchema, ExtractionResultSchema } from '~/types'
 import { estimateTokens } from '~/utils/text-utils'
 import { validateData } from '~/utils/validate/validation'
 import { buildCombinedText } from './office/native-text-extractors'
-import { hasEpubExportFlags } from './ocr-engine-selection'
 
 export const buildOcrOutput = (
   input: OcrResultBuilderInput
@@ -94,7 +93,6 @@ export const buildOcrOutput = (
   }
   if (input.epubPayload) step2MetadataPayload['epub'] = input.epubPayload
   if (input.chapterExportSummary) step2MetadataPayload['chapterExport'] = input.chapterExportSummary
-  if (input.chapterExportSummary?.['sourceFormat'] === 'epub' && hasEpubExportFlags(input.opts)) step2MetadataPayload['epubExport'] = input.chapterExportSummary
   if (input.pdfChapterDetectionSummary) step2MetadataPayload['pdfChapterDetection'] = input.pdfChapterDetectionSummary
   if (input.inputFamily) step2MetadataPayload['inputFamily'] = input.inputFamily
   if (input.normalizedFrom) step2MetadataPayload['normalizedFrom'] = input.normalizedFrom

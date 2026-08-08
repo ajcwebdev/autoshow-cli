@@ -91,7 +91,7 @@ test('extract EPUB with default options writes cleaned text without synthetic pa
   const metadata = await readRunMetadata(outputDir) as OcrE2eExtractMetadata
   expect(metadata.step2?.extractionMethod).toBe('epub-text')
   expect(metadata.step2?.outputFidelity).toBe('cleaned-epub-text')
-  expect(metadata.step2?.epubExport).toBeUndefined()
+  expect(metadata.step2?.chapterExport).toBeUndefined()
   expect(metadata.resolvedStep2).toMatchObject({
     route: 'native-document',
     sourceKind: 'epub'
@@ -168,7 +168,7 @@ test('bun autoshow extract https://ajcwebdev.com --url-provider defuddle', async
     expect(metadata.resolvedStep2).toMatchObject({
       route: 'article',
       sourceKind: 'article',
-      backend: 'defuddle'
+      providers: [{ service: 'defuddle', model: 'defuddle' }]
     })
     expect(metadata.requestedProviders).toEqual([{ service: 'defuddle', model: 'defuddle' }])
   } finally {
@@ -222,11 +222,11 @@ test('extract EPUB writes chapter files by default and metadata summary', async 
 
   const metadata = await readRunMetadata(outputDir) as OcrE2eExtractMetadata
   expect(metadata.step2?.chapterExport?.sourceFormat).toBe('epub')
-  expect(metadata.step2?.epubExport?.mode).toBe('chapters')
-  expect(metadata.step2?.epubExport?.chunkLimitChars).toBe(5000)
-  expect(metadata.step2?.epubExport?.directories).toEqual(['chapters'])
-  expect(metadata.step2?.epubExport?.logicalChapterCount).toBeGreaterThan(0)
-  expect(metadata.step2?.epubExport?.logicalChapterSource).toMatch(/^(toc|spine|heading)$/)
+  expect(metadata.step2?.chapterExport?.mode).toBe('chapters')
+  expect(metadata.step2?.chapterExport?.chunkLimitChars).toBe(5000)
+  expect(metadata.step2?.chapterExport?.directories).toEqual(['chapters'])
+  expect(metadata.step2?.chapterExport?.logicalChapterCount).toBeGreaterThan(0)
+  expect(metadata.step2?.chapterExport?.logicalChapterSource).toMatch(/^(toc|spine|heading)$/)
 
   const firstChapter = await Bun.file(`${outputDir}/chapters/${chapterFiles[0]}`).text()
   expect(firstChapter.startsWith('Chapter 1:')).toBe(true)
@@ -246,9 +246,9 @@ test('extract EPUB with --no-chapters and --length writes chunk files and metada
 
   const metadata = await readRunMetadata(outputDir) as OcrE2eExtractMetadata
   expect(metadata.step2?.chapterExport?.sourceFormat).toBe('epub')
-  expect(metadata.step2?.epubExport?.mode).toBe('chunks')
-  expect(metadata.step2?.epubExport?.chunkLimitChars).toBe(1000)
-  expect(metadata.step2?.epubExport?.directories).toEqual(['chunks'])
+  expect(metadata.step2?.chapterExport?.mode).toBe('chunks')
+  expect(metadata.step2?.chapterExport?.chunkLimitChars).toBe(1000)
+  expect(metadata.step2?.chapterExport?.directories).toEqual(['chunks'])
 })
 
 test('extract PDF with --chapters writes chapter files and diagnostics', async () => {
@@ -283,7 +283,7 @@ test('extract EPUB inspect mode ignores chapter export flags', async () => {
 
   const metadata = await readRunMetadata(outputDir) as OcrE2eExtractMetadata
   expect(metadata.step2?.extractionMethod).toBe('epub-bun')
-  expect(metadata.step2?.epubExport).toBeUndefined()
+  expect(metadata.step2?.chapterExport).toBeUndefined()
 })
 
 test('extract non-EPUB-non-PDF ignores chapter export flags', async () => {
@@ -298,7 +298,6 @@ test('extract non-EPUB-non-PDF ignores chapter export flags', async () => {
   expect(await fileExists(`${outputDir}/chapters`)).toBe(false)
   const metadata = await readRunMetadata(outputDir) as OcrE2eExtractMetadata
   expect(metadata.step2?.chapterExport).toBeUndefined()
-  expect(metadata.step2?.epubExport).toBeUndefined()
 })
 
 test('extract rejects non-json --format with EPUB inspect mode', async () => {

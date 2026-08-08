@@ -50,7 +50,6 @@ const SttModelSchema = v.object({
   ...PricingProvenanceFields,
   costPerHourUSD: v.optional(v.number(), undefined),
   costPerHourCents: v.optional(v.number(), undefined),
-  costPerThreeHours: v.optional(v.number(), undefined),
   billing: v.optional(SttBillingSchema, undefined),
   estimation: v.optional(SttEstimationSchema, undefined),
   limits: v.optional(SttLimitsSchema, undefined)
@@ -75,8 +74,6 @@ const ExtractModelSchema = v.object({
   ...PricingProvenanceFields,
   costPer1kPagesUSD: v.optional(v.number(), undefined),
   costPer1kPagesCents: v.optional(v.number(), undefined),
-  costPer1kOutputCharsUSD: v.optional(v.number(), undefined),
-  costPer1kOutputCharsCents: v.optional(v.number(), undefined),
   costPerMInputTokensUSD: v.optional(v.number(), undefined),
   costPerMInputTokensCents: v.optional(v.number(), undefined),
   costPerMCachedInputTokensUSD: v.optional(v.number(), undefined),
@@ -112,7 +109,6 @@ const LlmModelSchema = v.object({
   outputCostPer1MCents: v.number(),
   tokenPricingBands: v.optional(v.array(TokenPricingBandSchema), undefined),
   higherContextPricing: v.optional(HigherContextPricingSchema, undefined),
-  hfDownloadRepo: v.optional(v.string(), undefined),
   estimation: v.optional(v.object({
     costMultiplier: v.optional(v.number(), undefined),
     msPer1KTokens: v.optional(v.number(), undefined)
@@ -122,7 +118,6 @@ const LlmModelSchema = v.object({
 const LlmServiceSchema = v.object({
   description: v.string(),
   type: v.picklist(['local', 'api']),
-  maxTokens: v.optional(v.number(), undefined),
   models: v.record(v.string(), LlmModelSchema)
 })
 
@@ -131,14 +126,11 @@ const TtsModelSchema = v.object({
   ...PricingProvenanceFields,
   costPer1kCharsUSD: v.optional(v.number(), undefined),
   costPer1kCharsCents: v.optional(v.number(), undefined),
-  characterBillingBlockSize: v.optional(v.number(), undefined),
-  characterBillingBlockCostCents: v.optional(v.number(), undefined),
   inputCostPer1MCharsUSD: v.optional(v.number(), undefined),
   inputCostPer1MCharsCents: v.optional(v.number(), undefined),
   outputCostPer1MCharsUSD: v.optional(v.number(), undefined),
   outputCostPer1MCharsCents: v.optional(v.number(), undefined),
   hfRepo: v.optional(v.string(), undefined),
-  modelFamily: v.optional(v.string(), undefined),
   limits: v.optional(v.object({
     maxInputCharacters: v.optional(v.pipe(v.number(), v.integer(), v.minValue(1)), undefined)
   }), undefined),
@@ -151,9 +143,6 @@ const TtsModelSchema = v.object({
 const TtsServiceSchema = v.object({
   description: v.string(),
   type: v.picklist(['local', 'api']),
-  pythonVersion: v.optional(v.string(), undefined),
-  speakers: v.optional(v.array(v.string()), undefined),
-  languages: v.optional(v.array(v.string()), undefined),
   voices: v.optional(v.array(v.string()), undefined),
   models: v.record(v.string(), TtsModelSchema)
 })
@@ -168,9 +157,6 @@ const ImageModelSchema = v.object({
   ...PricingProvenanceFields,
   costPerImageUSD: v.number(),
   costPerImageCents: v.number(),
-  costPerImage720pCents: v.optional(v.number(), undefined),
-  costPerImage1080pCents: v.optional(v.number(), undefined),
-  nativeGeminiImage: v.optional(v.boolean(), undefined),
   referenceImages: v.optional(ImageReferenceCapabilitiesSchema, undefined),
   estimation: v.optional(v.object({
     costMultiplier: v.optional(v.number(), undefined),
@@ -190,7 +176,6 @@ const MusicModelSchema = v.object({
   ...PricingProvenanceFields,
   costPerTrackUSD: v.optional(v.number(), undefined),
   costPerTrackCents: v.optional(v.number(), undefined),
-  providerPricing: v.optional(v.picklist(['quote']), undefined),
   costPerMinuteUSD: v.optional(v.number(), undefined),
   costPerMinuteCents: v.optional(v.number(), undefined),
   lyricsCostPerTrackUSD: v.optional(v.number(), undefined),
@@ -224,8 +209,6 @@ const VideoModelSchema = v.object({
   baseCostPerSecondCents: v.optional(v.number(), undefined),
   baseJobFeeUSD: v.optional(v.number(), undefined),
   baseJobFeeCents: v.optional(v.number(), undefined),
-  largeSizeMultiplier: v.optional(v.number(), undefined),
-  standardSizeMultiplier: v.optional(v.number(), undefined),
   resolutionMultiplier720p: v.optional(v.number(), undefined),
   resolutionMultiplier1080p: v.optional(v.number(), undefined),
   blockSizeSec: v.optional(v.number(), undefined),
@@ -250,7 +233,6 @@ const VideoModelSchema = v.object({
 const VideoServiceSchema = v.object({
   description: v.string(),
   type: v.picklist(['local', 'api']),
-  sizes: v.optional(v.array(v.string()), undefined),
   resolutions: v.optional(v.array(v.string()), undefined),
   billedDurations: v.optional(v.array(v.number()), undefined),
   models: v.record(v.string(), VideoModelSchema)

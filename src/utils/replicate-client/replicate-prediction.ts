@@ -156,16 +156,13 @@ export const runReplicatePrediction = async (
   const requestUrl = options.version
     ? joinRestUrl(options.baseUrl, '/predictions', REPLICATE_DEFAULT_BASE_URL, { collapseVersionPrefix: 'v1' })
     : buildModelPredictionUrl(options.baseUrl, options.model)
-  const waitSeconds = options.waitSeconds ?? REPLICATE_SYNC_WAIT_SECONDS
+  const waitSeconds = REPLICATE_SYNC_WAIT_SECONDS
 
   const createPrediction = async (signal?: AbortSignal): Promise<ReplicatePrediction> => {
     const headers = new Headers({
       'content-type': 'application/json',
       prefer: `wait=${waitSeconds}`
     })
-    if (options.cancelAfter) {
-      headers.set('cancel-after', options.cancelAfter)
-    }
     const payload = await fetchReplicateJson(
       requestUrl,
       options.apiToken,

@@ -6,8 +6,3 @@ export type PanelPrimaryReferenceInput = {
   entries: Dirent[]
   bundleData: PanelBundleData
 }
-
-export type ResolveReferenceImagesOptions = {
-  includePriorPanelRefs?: boolean
-  includeSecondaryRefs?: boolean
-}

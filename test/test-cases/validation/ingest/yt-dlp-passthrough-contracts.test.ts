@@ -6,7 +6,7 @@ import { buildOptsFromFlags } from '~/cli/commands/process-steps/step-1-download
 import { selectBatchItems } from '~/cli/commands/process-steps/step-0-metadata/metadata-batch/metadata-batch-select'
 import { resolveProcessTargetDoubleDash } from '~/cli/commands/process-steps/step-1-download/download-targets/handle-process-target'
 import { buildDownloadMediaOptions } from '~/cli/commands/process-steps/step-1-download/download-targets/single/media-runner'
-import { resolveYtDlpBinaryInfo } from '~/cli/commands/process-steps/step-1-download/audio/audio-yt-dlp-binary'
+import { resolveYtDlpBinaryInfo } from '~/cli/commands/process-steps/shared/shared-yt-dlp-binary'
 import { runCommand } from '../../../test-utils/test-helpers'
 
 const EMPTY_CONFIG_PATH = 'test/test-utils/fixtures/empty-autoshow-config.json'

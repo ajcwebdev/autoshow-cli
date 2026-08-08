@@ -11,7 +11,7 @@ import {
 export const LUMALABS_MAX_IMAGE_INPUTS = 9
 
 export const collectLumalabsImageTargets = (options: ImageGenOptions): ImageTarget[] => {
-  const models = options.lumalabsImageModels ?? (options.lumalabsImageModel ? [options.lumalabsImageModel] : [])
+  const models = options.lumalabsImageModels ?? []
   return models.flatMap((rawModel) => {
     const model: LumalabsImageModel = validateLumalabsImageModel(rawModel)
     normalizeLumalabsAspectRatio(options.imageAspectRatio)
@@ -23,7 +23,7 @@ export const collectLumalabsImageTargets = (options: ImageGenOptions): ImageTarg
     if (options.imageCount !== undefined) unsupported.push('--image-count')
     if (options.imageMask !== undefined) unsupported.push('--image-mask')
     if (options.imageResponseMode !== undefined) unsupported.push('--image-response-mode')
-    if (options.geminiSearchGrounding === true) unsupported.push('--gemini-search-grounding')
+    if (options.geminiSearchGrounding === true) unsupported.push('--image-search-grounding')
     if (options.imageCompression !== undefined) unsupported.push('--image-compression')
     if (unsupported.length > 0) {
       throw unsupportedFlagError('Luma Labs', model, unsupported, 'Supported Luma Labs image options: --image-aspect-ratio, --image-format png|jpeg, and up to nine --image-input references.')

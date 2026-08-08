@@ -1,4 +1,4 @@
-import type { GenerationResourceGate, ProcessingOptions, ProviderTargetBase, Step4Metadata, TtsProvider } from '~/types'
+import type { ProcessingOptions, ProviderTargetBase, ResourceGate, Step4Metadata, TtsProvider } from '~/types'
 export type TtsOptions = Pick<
   ProcessingOptions,
   | 'ttsSpeaker'
@@ -72,7 +72,6 @@ export type TtsOptions = Pick<
   | 'mistralTtsRefAudio'
   | 'mistralTtsVoiceName'
   | 'ttsDialogueFormat'
-  | 'ttsSpeakerRefAudios'
   | 'ttsSpeakers'
   | 'openaiTtsModels'
   | 'openaiTtsModel'
@@ -82,17 +81,12 @@ export type TtsOptions = Pick<
   | 'geminiTtsModels'
   | 'geminiTtsModel'
   | 'geminiVoiceId'
-  | 'geminiSpeaker1Name'
-  | 'geminiSpeaker1Voice'
-  | 'geminiSpeaker2Name'
-  | 'geminiSpeaker2Voice'
   | 'ttsProviderConcurrency'
   | 'ttsLocalConcurrency'
   | 'ttsChunkConcurrency'
 > & {
-  generationResourceGate?: GenerationResourceGate | undefined
+  generationResourceGate?: ResourceGate | undefined
   hostedTtsChunkScheduler?: HostedTtsChunkScheduler | undefined
-  hostedTtsChunkJob?: HostedTtsChunkJobContext | undefined
 }
 
 export type MultiSpeakerStrategy = 'native' | 'segment-and-concat'
@@ -218,13 +212,6 @@ export type TtsTarget = ProviderTargetBase<TtsProvider> & {
   run: (text: string, outputDir: string, opts: TtsOptions) => Promise<{ audioPath: string, metadata: Step4Metadata }>
 }
 
-
-export type GeminiMultiSpeakerConfig = {
-  speaker1Name: string
-  speaker1Voice: string
-  speaker2Name: string
-  speaker2Voice: string
-}
 
 export type TtsCustomVoiceSampleAudio = {
   path: string

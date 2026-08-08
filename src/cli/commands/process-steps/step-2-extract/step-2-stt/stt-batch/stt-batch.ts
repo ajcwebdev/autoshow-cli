@@ -7,7 +7,7 @@ import { SttBatchCoordinator } from './stt-batch-coordinator'
 import { runResumeSttMissingFromBatchDir } from '~/cli/commands/setup-and-utilities/resume/extract/stt-resume'
 import { logSttBatchFinalSummary } from '~/cli/commands/process-steps/step-1-download/download-targets/download-batch/download-batch-summary'
 import { processBatch } from '~/cli/commands/process-steps/step-1-download/download-targets/download-batch/process-download-batch'
-import { processSingleTarget } from '../../../step-1-download/download-targets/download-single-target'
+import { processSingleTarget } from '../../../step-1-download/download-targets/single/single-target-runner'
 import { createMistralSttPassController } from '../stt-services/stt-mistral/mistral-stt-pass-controller'
 
 class SttBatchIncompleteError extends Error {

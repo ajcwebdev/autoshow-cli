@@ -31,14 +31,12 @@ budgetedTest('tts-gemini-gemini-3.1-flash-tts-preview', 'gemini multispeaker wit
       inputPath,
       '--provider',
       'gemini=gemini-3.1-flash-tts-preview',
-      '--gemini-speaker-1-name',
-      'Host',
-      '--gemini-speaker-1-voice',
-      'Kore',
-      '--gemini-speaker-2-name',
-      'Guest',
-      '--gemini-speaker-2-voice',
-      'Puck'
+      '--tts-dialogue-format',
+      'labeled',
+      '--tts-speaker',
+      'Host=Kore',
+      '--tts-speaker',
+      'Guest=Puck'
     ])
 
     expect(result.exitCode).toBe(0)

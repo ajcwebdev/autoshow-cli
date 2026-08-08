@@ -1,21 +1,10 @@
 import * as l from '~/utils/app-logger/app-logger'
 import { readEnv } from '~/utils/validate/env-utils'
-import type { UrlArticleProviderAdapter, UrlArticleRunOptions, UrlArticleRunResult, WebArticleMetadata } from '~/types'
+import type { UrlArticleProviderAdapter, UrlArticleRunResult, UrlRequestOptions, WebArticleMetadata } from '~/types'
 import { byteLength, cleanString, countWords, createUrlProviderHttpError, ensureMeaningfulMarkdown, fallbackTitleFromSource, getUrlRequestTimeoutMs, isRecord, normalizeMarkdown, tryFetchRemoteHtml, withUrlProviderTimeout } from '../../url-utils'
-import { assertUrlArticleOptionsSupported } from '../../url-provider-adapter'
 import { InfraError, InternalError, ValidationError, hintsForMissingEnv } from '~/utils/error-handler'
 
 const FIRECRAWL_DEFAULT_API_URL = 'https://api.firecrawl.dev'
-const FIRECRAWL_CAPABILITIES = [
-  'remote-html',
-  'main-content',
-  'full-content',
-  'selectors',
-  'wait',
-  'timeout',
-  'geo',
-  'locale'
-] as const
 
 const getFirecrawlMetadataValue = (
   metadata: Record<string, unknown>,
@@ -80,14 +69,9 @@ const parseFirecrawlResponse = (payload: unknown): { markdown: string, web: WebA
 
 const runFirecrawlScrape = async (
   source: string,
-  options?: UrlArticleRunOptions,
+  options?: UrlRequestOptions,
   baseUrl: string = FIRECRAWL_DEFAULT_API_URL
 ): Promise<{ markdown: string, web: WebArticleMetadata }> => {
-  assertUrlArticleOptionsSupported({
-    displayName: 'Firecrawl',
-    capabilities: FIRECRAWL_CAPABILITIES
-  }, options)
-
   const apiKey = readEnv('FIRECRAWL_API_KEY')
   const usingHostedApi = baseUrl === FIRECRAWL_DEFAULT_API_URL
 
@@ -134,31 +118,16 @@ const runFirecrawlScrape = async (
 
 const buildFirecrawlScrapeRequest = (
   source: string,
-  options: UrlArticleRunOptions | undefined
+  options: UrlRequestOptions | undefined
 ): Record<string, unknown> => {
   const body: Record<string, unknown> = {
     url: source,
     formats: ['markdown'],
-    onlyMainContent: options?.contentScope === 'full' ? false : true
+    onlyMainContent: true
   }
 
-  if (options?.includeSelectors && options.includeSelectors.length > 0) {
-    body['includeTags'] = options.includeSelectors
-  }
-  if (options?.excludeSelectors && options.excludeSelectors.length > 0) {
-    body['excludeTags'] = options.excludeSelectors
-  }
-  if (typeof options?.waitMs === 'number') {
-    body['waitFor'] = options.waitMs
-  }
   if (typeof options?.timeoutMs === 'number') {
     body['timeout'] = options.timeoutMs
-  }
-  if (options?.geo?.country || options?.geo?.languages?.length) {
-    body['location'] = {
-      ...(options.geo.country ? { country: options.geo.country } : {}),
-      ...(options.geo.languages?.length ? { languages: options.geo.languages } : {})
-    }
   }
 
   return body
@@ -167,7 +136,7 @@ const buildFirecrawlScrapeRequest = (
 export const runFirecrawlUrl = async (
   source: string,
   sourceUrl: string | undefined,
-  options?: UrlArticleRunOptions,
+  options?: UrlRequestOptions,
   baseUrl: string = FIRECRAWL_DEFAULT_API_URL
 ): Promise<UrlArticleRunResult> => {
   l.write('info', 'Using Firecrawl backend for article extraction')
@@ -191,6 +160,5 @@ export const runFirecrawlUrl = async (
 export const firecrawlArticleAdapter: UrlArticleProviderAdapter = {
   id: 'firecrawl',
   displayName: 'Firecrawl',
-  capabilities: FIRECRAWL_CAPABILITIES,
   run: runFirecrawlUrl
 }

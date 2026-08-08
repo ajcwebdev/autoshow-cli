@@ -124,15 +124,15 @@ describe('test-runner contracts', () => {
     })
 
   test('JUnit XML parsing returns pass, fail, and skip counts', async () => {
-      const dir = await mkdtemp(join(tmpdir(), 'autoshow-validation-next-junit-'))
+      const dir = await mkdtemp(join(tmpdir(), 'autoshow-validation-junit-'))
       tempDirs.push(dir)
       const junitPath = join(dir, 'junit.xml')
       await writeFile(junitPath, `<?xml version="1.0" encoding="UTF-8"?>
   <testsuites>
-    <testsuite name="suite" file="test/test-cases/validation-next/example.test.ts">
-      <testcase name="passes" file="test/test-cases/validation-next/example.test.ts" line="1" time="0.01" />
-      <testcase name="fails" file="test/test-cases/validation-next/example.test.ts" line="2" time="0.02"><failure message="bad" /></testcase>
-      <testcase name="skips" file="test/test-cases/validation-next/example.test.ts" line="3" time="0.03"><skipped /></testcase>
+    <testsuite name="suite" file="test/test-cases/validation/runtime/example.test.ts">
+      <testcase name="passes" file="test/test-cases/validation/runtime/example.test.ts" line="1" time="0.01" />
+      <testcase name="fails" file="test/test-cases/validation/runtime/example.test.ts" line="2" time="0.02"><failure message="bad" /></testcase>
+      <testcase name="skips" file="test/test-cases/validation/runtime/example.test.ts" line="3" time="0.03"><skipped /></testcase>
     </testsuite>
   </testsuites>`)
 

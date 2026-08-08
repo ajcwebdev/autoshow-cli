@@ -1,0 +1,5585 @@
+{
+  "schemaVersion": 2,
+  "kind": "ocr-combined-comparison-report",
+  "category": "ocr",
+  "rootDir": "/Users/ajc/c/autoshow-cli/docs/benchmarks/ocr",
+  "generatedAt": "2026-08-07T10:18:28.664Z",
+  "metric": "WER-derived quality score, aggregated as the unweighted mean across runs",
+  "runCount": 14,
+  "runs": [
+    {
+      "runName": "2026-05-21_05-04-05-389_document",
+      "runDir": "/Users/ajc/c/autoshow-cli/docs/benchmarks/ocr/2026-05-21_05-04-05-389_document",
+      "providerCount": 22,
+      "pageCount": 2
+    },
+    {
+      "runName": "2026-05-21_05-43-56-514_document",
+      "runDir": "/Users/ajc/c/autoshow-cli/docs/benchmarks/ocr/2026-05-21_05-43-56-514_document",
+      "providerCount": 20,
+      "pageCount": 1
+    },
+    {
+      "runName": "2026-05-21_05-47-00-856_document",
+      "runDir": "/Users/ajc/c/autoshow-cli/docs/benchmarks/ocr/2026-05-21_05-47-00-856_document",
+      "providerCount": 22,
+      "pageCount": 5
+    },
+    {
+      "runName": "2026-05-21_05-55-32-490_document",
+      "runDir": "/Users/ajc/c/autoshow-cli/docs/benchmarks/ocr/2026-05-21_05-55-32-490_document",
+      "providerCount": 22,
+      "pageCount": 5
+    },
+    {
+      "runName": "2026-05-21_06-03-14-635_document",
+      "runDir": "/Users/ajc/c/autoshow-cli/docs/benchmarks/ocr/2026-05-21_06-03-14-635_document",
+      "providerCount": 22,
+      "pageCount": 10
+    },
+    {
+      "runName": "2026-05-21_06-13-18-792_document",
+      "runDir": "/Users/ajc/c/autoshow-cli/docs/benchmarks/ocr/2026-05-21_06-13-18-792_document",
+      "providerCount": 22,
+      "pageCount": 10
+    },
+    {
+      "runName": "2026-06-14_01-22-25-538_document",
+      "runDir": "/Users/ajc/c/autoshow-cli/docs/benchmarks/ocr/2026-06-14_01-22-25-538_document",
+      "providerCount": 22,
+      "pageCount": 1
+    },
+    {
+      "runName": "2026-06-14_01-22-40-317_document",
+      "runDir": "/Users/ajc/c/autoshow-cli/docs/benchmarks/ocr/2026-06-14_01-22-40-317_document",
+      "providerCount": 22,
+      "pageCount": 2
+    },
+    {
+      "runName": "2026-06-14_01-22-42-930_document",
+      "runDir": "/Users/ajc/c/autoshow-cli/docs/benchmarks/ocr/2026-06-14_01-22-42-930_document",
+      "providerCount": 22,
+      "pageCount": 2
+    },
+    {
+      "runName": "2026-06-14_01-28-14-268_document",
+      "runDir": "/Users/ajc/c/autoshow-cli/docs/benchmarks/ocr/2026-06-14_01-28-14-268_document",
+      "providerCount": 21,
+      "pageCount": 1
+    },
+    {
+      "runName": "2026-06-14_01-28-15-914_document",
+      "runDir": "/Users/ajc/c/autoshow-cli/docs/benchmarks/ocr/2026-06-14_01-28-15-914_document",
+      "providerCount": 22,
+      "pageCount": 2
+    },
+    {
+      "runName": "2026-06-14_01-28-18-115_document",
+      "runDir": "/Users/ajc/c/autoshow-cli/docs/benchmarks/ocr/2026-06-14_01-28-18-115_document",
+      "providerCount": 22,
+      "pageCount": 1
+    },
+    {
+      "runName": "2026-06-14_01-28-27-392_document",
+      "runDir": "/Users/ajc/c/autoshow-cli/docs/benchmarks/ocr/2026-06-14_01-28-27-392_document",
+      "providerCount": 22,
+      "pageCount": 2
+    },
+    {
+      "runName": "2026-06-14_01-28-29-201_document",
+      "runDir": "/Users/ajc/c/autoshow-cli/docs/benchmarks/ocr/2026-06-14_01-28-29-201_document",
+      "providerCount": 22,
+      "pageCount": 2
+    }
+  ],
+  "totalPages": 46,
+  "providerCount": 22,
+  "metricRankings": {
+    "local": {
+      "price": [
+        {
+          "rank": 1,
+          "providerKey": "paddle-ocr/paddle-ocr",
+          "provider": "paddle-ocr",
+          "model": "paddle-ocr",
+          "group": "local",
+          "metric": "price",
+          "value": 0,
+          "label": "$0.000",
+          "runsCovered": 14,
+          "avgQualityScore": 54.53627769843297,
+          "weightedWER": 0.44005102040816324,
+          "weightedCER": 0.35203097785518783,
+          "pagesPerMinute": 9.378217391156614,
+          "avgProcessingTimeMs": 21021.35714285714,
+          "costPer100PagesUSD": 0,
+          "meanCostCents": 0,
+          "totalCostCents": 0
+        },
+        {
+          "rank": 2,
+          "providerKey": "tesseract/tesseract",
+          "provider": "tesseract",
+          "model": "tesseract",
+          "group": "local",
+          "metric": "price",
+          "value": 0,
+          "label": "$0.000",
+          "runsCovered": 14,
+          "avgQualityScore": 54.01621874683677,
+          "weightedWER": 0.43185131195335275,
+          "weightedCER": 0.29844177656133364,
+          "pagesPerMinute": 86.6371598078915,
+          "avgProcessingTimeMs": 2275.5,
+          "costPer100PagesUSD": 0,
+          "meanCostCents": 0,
+          "totalCostCents": 0
+        },
+        {
+          "rank": 3,
+          "providerKey": "ocrmypdf/ocrmypdf",
+          "provider": "ocrmypdf",
+          "model": "ocrmypdf",
+          "group": "local",
+          "metric": "price",
+          "value": 0,
+          "label": "$0.000",
+          "runsCovered": 14,
+          "avgQualityScore": 51.55349607963549,
+          "weightedWER": 0.4545371720116618,
+          "weightedCER": 0.3189692709629261,
+          "pagesPerMinute": 29.74330236868763,
+          "avgProcessingTimeMs": 6628.142857142857,
+          "costPer100PagesUSD": 0,
+          "meanCostCents": 0,
+          "totalCostCents": 0
+        }
+      ],
+      "speed": [
+        {
+          "rank": 1,
+          "providerKey": "tesseract/tesseract",
+          "provider": "tesseract",
+          "model": "tesseract",
+          "group": "local",
+          "metric": "speed",
+          "value": 86.6371598078915,
+          "label": "86.6 pages/minute",
+          "runsCovered": 14,
+          "avgQualityScore": 54.01621874683677,
+          "weightedWER": 0.43185131195335275,
+          "weightedCER": 0.29844177656133364,
+          "pagesPerMinute": 86.6371598078915,
+          "avgProcessingTimeMs": 2275.5,
+          "costPer100PagesUSD": 0,
+          "meanCostCents": 0,
+          "totalCostCents": 0
+        },
+        {
+          "rank": 2,
+          "providerKey": "ocrmypdf/ocrmypdf",
+          "provider": "ocrmypdf",
+          "model": "ocrmypdf",
+          "group": "local",
+          "metric": "speed",
+          "value": 29.74330236868763,
+          "label": "29.7 pages/minute",
+          "runsCovered": 14,
+          "avgQualityScore": 51.55349607963549,
+          "weightedWER": 0.4545371720116618,
+          "weightedCER": 0.3189692709629261,
+          "pagesPerMinute": 29.74330236868763,
+          "avgProcessingTimeMs": 6628.142857142857,
+          "costPer100PagesUSD": 0,
+          "meanCostCents": 0,
+          "totalCostCents": 0
+        },
+        {
+          "rank": 3,
+          "providerKey": "paddle-ocr/paddle-ocr",
+          "provider": "paddle-ocr",
+          "model": "paddle-ocr",
+          "group": "local",
+          "metric": "speed",
+          "value": 9.378217391156614,
+          "label": "9.4 pages/minute",
+          "runsCovered": 14,
+          "avgQualityScore": 54.53627769843297,
+          "weightedWER": 0.44005102040816324,
+          "weightedCER": 0.35203097785518783,
+          "pagesPerMinute": 9.378217391156614,
+          "avgProcessingTimeMs": 21021.35714285714,
+          "costPer100PagesUSD": 0,
+          "meanCostCents": 0,
+          "totalCostCents": 0
+        }
+      ],
+      "qualityScore": [
+        {
+          "rank": 1,
+          "providerKey": "paddle-ocr/paddle-ocr",
+          "provider": "paddle-ocr",
+          "model": "paddle-ocr",
+          "group": "local",
+          "metric": "qualityScore",
+          "value": 54.53627769843297,
+          "label": "54.54/100 avg quality score",
+          "runsCovered": 14,
+          "avgQualityScore": 54.53627769843297,
+          "weightedWER": 0.44005102040816324,
+          "weightedCER": 0.35203097785518783,
+          "pagesPerMinute": 9.378217391156614,
+          "avgProcessingTimeMs": 21021.35714285714,
+          "costPer100PagesUSD": 0,
+          "meanCostCents": 0,
+          "totalCostCents": 0
+        },
+        {
+          "rank": 2,
+          "providerKey": "tesseract/tesseract",
+          "provider": "tesseract",
+          "model": "tesseract",
+          "group": "local",
+          "metric": "qualityScore",
+          "value": 54.01621874683677,
+          "label": "54.02/100 avg quality score",
+          "runsCovered": 14,
+          "avgQualityScore": 54.01621874683677,
+          "weightedWER": 0.43185131195335275,
+          "weightedCER": 0.29844177656133364,
+          "pagesPerMinute": 86.6371598078915,
+          "avgProcessingTimeMs": 2275.5,
+          "costPer100PagesUSD": 0,
+          "meanCostCents": 0,
+          "totalCostCents": 0
+        },
+        {
+          "rank": 3,
+          "providerKey": "ocrmypdf/ocrmypdf",
+          "provider": "ocrmypdf",
+          "model": "ocrmypdf",
+          "group": "local",
+          "metric": "qualityScore",
+          "value": 51.55349607963549,
+          "label": "51.55/100 avg quality score",
+          "runsCovered": 14,
+          "avgQualityScore": 51.55349607963549,
+          "weightedWER": 0.4545371720116618,
+          "weightedCER": 0.3189692709629261,
+          "pagesPerMinute": 29.74330236868763,
+          "avgProcessingTimeMs": 6628.142857142857,
+          "costPer100PagesUSD": 0,
+          "meanCostCents": 0,
+          "totalCostCents": 0
+        }
+      ]
+    },
+    "thirdPartyService": {
+      "price": [
+        {
+          "rank": 1,
+          "providerKey": "glm/glm-ocr",
+          "provider": "glm",
+          "model": "glm-ocr",
+          "group": "thirdPartyService",
+          "metric": "price",
+          "value": 0.009753456521739132,
+          "label": "$0.010",
+          "runsCovered": 14,
+          "avgQualityScore": 69.07981272861119,
+          "weightedWER": 0.20672376093294462,
+          "weightedCER": 0.16554180144314506,
+          "pagesPerMinute": 20.25420494907095,
+          "avgProcessingTimeMs": 9733.42857142857,
+          "costPer100PagesUSD": 0.009753456521739132,
+          "meanCostCents": 0.03204707142857143,
+          "totalCostCents": 0.44865900000000003
+        },
+        {
+          "rank": 2,
+          "providerKey": "openai/gpt-5.4-nano",
+          "provider": "openai",
+          "model": "gpt-5.4-nano",
+          "group": "thirdPartyService",
+          "metric": "price",
+          "value": 0.0656629347826087,
+          "label": "$0.066",
+          "runsCovered": 14,
+          "avgQualityScore": 69.12376263204757,
+          "weightedWER": 0.3376457725947522,
+          "weightedCER": 0.28139773575516297,
+          "pagesPerMinute": 13.729089254003073,
+          "avgProcessingTimeMs": 14359.5,
+          "costPer100PagesUSD": 0.0656629347826087,
+          "meanCostCents": 0.21574964285714288,
+          "totalCostCents": 3.0204950000000004
+        },
+        {
+          "rank": 3,
+          "providerKey": "gemini/gemini-3.1-flash-lite-preview",
+          "provider": "gemini",
+          "model": "gemini-3.1-flash-lite-preview",
+          "group": "thirdPartyService",
+          "metric": "price",
+          "value": 0.0750228260869565,
+          "label": "$0.075",
+          "runsCovered": 14,
+          "avgQualityScore": 86.08571152500247,
+          "weightedWER": 0.23815597667638483,
+          "weightedCER": 0.20435742722070166,
+          "pagesPerMinute": 35.45142769064776,
+          "avgProcessingTimeMs": 5560.928571428572,
+          "costPer100PagesUSD": 0.0750228260869565,
+          "meanCostCents": 0.24650357142857135,
+          "totalCostCents": 3.451049999999999
+        },
+        {
+          "rank": 4,
+          "providerKey": "gemini/gemini-3.1-flash-lite",
+          "provider": "gemini",
+          "model": "gemini-3.1-flash-lite",
+          "group": "thirdPartyService",
+          "metric": "price",
+          "value": 0.07568152173913043,
+          "label": "$0.076",
+          "runsCovered": 14,
+          "avgQualityScore": 77.6475171739736,
+          "weightedWER": 0.3638251582278481,
+          "weightedCER": 0.5262499142719979,
+          "pagesPerMinute": 34.98497927520249,
+          "avgProcessingTimeMs": 5635.071428571428,
+          "costPer100PagesUSD": 0.07568152173913043,
+          "meanCostCents": 0.2486678571428571,
+          "totalCostCents": 3.4813499999999995
+        },
+        {
+          "rank": 5,
+          "providerKey": "deepinfra/Qwen/Qwen3-VL-30B-A3B-Instruct",
+          "provider": "deepinfra",
+          "model": "Qwen/Qwen3-VL-30B-A3B-Instruct",
+          "group": "thirdPartyService",
+          "metric": "price",
+          "value": 0.11199130434782609,
+          "label": "$0.112",
+          "runsCovered": 14,
+          "avgQualityScore": 82.99898652239581,
+          "weightedWER": 0.15479227405247814,
+          "weightedCER": 0.125,
+          "pagesPerMinute": 3.402178133609452,
+          "avgProcessingTimeMs": 57946.07142857143,
+          "costPer100PagesUSD": 0.11199130434782609,
+          "meanCostCents": 0.36797142857142856,
+          "totalCostCents": 5.1516
+        },
+        {
+          "rank": 6,
+          "providerKey": "deepinfra/Qwen/Qwen3-VL-235B-A22B-Instruct",
+          "provider": "deepinfra",
+          "model": "Qwen/Qwen3-VL-235B-A22B-Instruct",
+          "group": "thirdPartyService",
+          "metric": "price",
+          "value": 0.15223565217391305,
+          "label": "$0.152",
+          "runsCovered": 14,
+          "avgQualityScore": 89.35740846762613,
+          "weightedWER": 0.04983600583090379,
+          "weightedCER": 0.027152276685742723,
+          "pagesPerMinute": 4.976999410333765,
+          "avgProcessingTimeMs": 39610.78571428572,
+          "costPer100PagesUSD": 0.15223565217391305,
+          "meanCostCents": 0.5002028571428572,
+          "totalCostCents": 7.002840000000001
+        },
+        {
+          "rank": 7,
+          "providerKey": "mistral/mistral-ocr-2512",
+          "provider": "mistral",
+          "model": "mistral-ocr-2512",
+          "group": "thirdPartyService",
+          "metric": "price",
+          "value": 0.1695652173913044,
+          "label": "$0.170",
+          "runsCovered": 14,
+          "avgQualityScore": 79.7674623755928,
+          "weightedWER": 0.22385204081632654,
+          "weightedCER": 0.18348780791241603,
+          "pagesPerMinute": 53.96949550254204,
+          "avgProcessingTimeMs": 3652.8571428571427,
+          "costPer100PagesUSD": 0.1695652173913044,
+          "meanCostCents": 0.5571428571428573,
+          "totalCostCents": 7.800000000000002
+        },
+        {
+          "rank": 8,
+          "providerKey": "openai/gpt-5.4-mini",
+          "provider": "openai",
+          "model": "gpt-5.4-mini",
+          "group": "thirdPartyService",
+          "metric": "price",
+          "value": 0.22873532608695651,
+          "label": "$0.229",
+          "runsCovered": 14,
+          "avgQualityScore": 77.2400065193898,
+          "weightedWER": 0.3256832682601657,
+          "weightedCER": 0.38864614311109635,
+          "pagesPerMinute": 20.206309346882296,
+          "avgProcessingTimeMs": 9756.5,
+          "costPer100PagesUSD": 0.22873532608695651,
+          "meanCostCents": 0.7515589285714286,
+          "totalCostCents": 10.521825
+        },
+        {
+          "rank": 9,
+          "providerKey": "grok/grok-4.20-0309-non-reasoning",
+          "provider": "grok",
+          "model": "grok-4.20-0309-non-reasoning",
+          "group": "thirdPartyService",
+          "metric": "price",
+          "value": 0.3356548913043477,
+          "label": "$0.336",
+          "runsCovered": 14,
+          "avgQualityScore": 88.1290904565221,
+          "weightedWER": 0.1554137701171317,
+          "weightedCER": 0.24199631174095795,
+          "pagesPerMinute": 50.951651313481875,
+          "avgProcessingTimeMs": 3869.214285714286,
+          "costPer100PagesUSD": 0.3356548913043477,
+          "meanCostCents": 1.1028660714285712,
+          "totalCostCents": 15.440124999999997
+        },
+        {
+          "rank": 10,
+          "providerKey": "grok/grok-4.3",
+          "provider": "grok",
+          "model": "grok-4.3",
+          "group": "thirdPartyService",
+          "metric": "price",
+          "value": 0.33869836956521737,
+          "label": "$0.339",
+          "runsCovered": 14,
+          "avgQualityScore": 87.93380557886924,
+          "weightedWER": 0.053480320699708456,
+          "weightedCER": 0.03533217218213486,
+          "pagesPerMinute": 4.808186460077244,
+          "avgProcessingTimeMs": 41001.5,
+          "costPer100PagesUSD": 0.33869836956521737,
+          "meanCostCents": 1.1128660714285714,
+          "totalCostCents": 15.580124999999999
+        },
+        {
+          "rank": 11,
+          "providerKey": "mistral/mistral-ocr-4-0",
+          "provider": "mistral",
+          "model": "mistral-ocr-4-0",
+          "group": "thirdPartyService",
+          "metric": "price",
+          "value": 0.3391304347826088,
+          "label": "$0.339",
+          "runsCovered": 14,
+          "avgQualityScore": 85.85112408513945,
+          "weightedWER": 0.1411294162460718,
+          "weightedCER": 0.18796830090877373,
+          "pagesPerMinute": 40.67856563840293,
+          "avgProcessingTimeMs": 4846.357142857143,
+          "costPer100PagesUSD": 0.3391304347826088,
+          "meanCostCents": 1.1142857142857145,
+          "totalCostCents": 15.600000000000003
+        },
+        {
+          "rank": 12,
+          "providerKey": "anthropic/claude-haiku-4-5",
+          "provider": "anthropic",
+          "model": "claude-haiku-4-5",
+          "group": "thirdPartyService",
+          "metric": "price",
+          "value": 0.37376304347826095,
+          "label": "$0.374",
+          "runsCovered": 14,
+          "avgQualityScore": 71.58595039223951,
+          "weightedWER": 0.3190172364536711,
+          "weightedCER": 0.37640178764267085,
+          "pagesPerMinute": 10.974678712304364,
+          "avgProcessingTimeMs": 17963.428571428572,
+          "costPer100PagesUSD": 0.37376304347826095,
+          "meanCostCents": 1.2280785714285718,
+          "totalCostCents": 17.193100000000005
+        },
+        {
+          "rank": 13,
+          "providerKey": "kimi/kimi-k2.6",
+          "provider": "kimi",
+          "model": "kimi-k2.6",
+          "group": "thirdPartyService",
+          "metric": "price",
+          "value": 0.46002869565217397,
+          "label": "$0.460",
+          "runsCovered": 14,
+          "avgQualityScore": 93.78396326130175,
+          "weightedWER": 0.033436588921282796,
+          "weightedCER": 0.009346230405573525,
+          "pagesPerMinute": 4.609087584353818,
+          "avgProcessingTimeMs": 42772.642857142855,
+          "costPer100PagesUSD": 0.46002869565217397,
+          "meanCostCents": 1.5115228571428574,
+          "totalCostCents": 21.161320000000003
+        },
+        {
+          "rank": 14,
+          "providerKey": "gemini/gemini-3.5-flash",
+          "provider": "gemini",
+          "model": "gemini-3.5-flash",
+          "group": "thirdPartyService",
+          "metric": "price",
+          "value": 0.51975,
+          "label": "$0.520",
+          "runsCovered": 14,
+          "avgQualityScore": 91.74570496749462,
+          "weightedWER": 0.08599181030378059,
+          "weightedCER": 0.15749862936319384,
+          "pagesPerMinute": 7.921928817451206,
+          "avgProcessingTimeMs": 24885.714285714286,
+          "costPer100PagesUSD": 0.51975,
+          "meanCostCents": 1.70775,
+          "totalCostCents": 23.9085
+        },
+        {
+          "rank": 15,
+          "providerKey": "gemini/gemini-3.1-pro-preview",
+          "provider": "gemini",
+          "model": "gemini-3.1-pro-preview",
+          "group": "thirdPartyService",
+          "metric": "price",
+          "value": 0.6857217391304348,
+          "label": "$0.686",
+          "runsCovered": 14,
+          "avgQualityScore": 94.12530898731966,
+          "weightedWER": 0.0356231778425656,
+          "weightedCER": 0.014758024384175167,
+          "pagesPerMinute": 5.979176866651358,
+          "avgProcessingTimeMs": 32971.57142857143,
+          "costPer100PagesUSD": 0.6857217391304348,
+          "meanCostCents": 2.253085714285714,
+          "totalCostCents": 31.5432
+        },
+        {
+          "rank": 16,
+          "providerKey": "anthropic/claude-sonnet-5",
+          "provider": "anthropic",
+          "model": "claude-sonnet-5",
+          "group": "thirdPartyService",
+          "metric": "price",
+          "value": 1.0125260869565218,
+          "label": "$1.013",
+          "runsCovered": 14,
+          "avgQualityScore": 78.57115788112108,
+          "weightedWER": 0.27740215217598324,
+          "weightedCER": 0.24756192786296954,
+          "pagesPerMinute": 6.865347160208846,
+          "avgProcessingTimeMs": 28715.64285714286,
+          "costPer100PagesUSD": 1.0125260869565218,
+          "meanCostCents": 3.3268714285714287,
+          "totalCostCents": 46.5762
+        },
+        {
+          "rank": 17,
+          "providerKey": "anthropic/claude-sonnet-4-6",
+          "provider": "anthropic",
+          "model": "claude-sonnet-4-6",
+          "group": "thirdPartyService",
+          "metric": "price",
+          "value": 1.0592931818181819,
+          "label": "$1.059",
+          "runsCovered": 12,
+          "avgQualityScore": 93.03595717923208,
+          "weightedWER": 0.11523563589412525,
+          "weightedCER": 0.09534580092311654,
+          "pagesPerMinute": 3.273671496985494,
+          "avgProcessingTimeMs": 67202.83333333333,
+          "costPer100PagesUSD": 1.0592931818181819,
+          "meanCostCents": 3.8840749999999997,
+          "totalCostCents": 46.6089
+        },
+        {
+          "rank": 18,
+          "providerKey": "anthropic/claude-opus-4-8",
+          "provider": "anthropic",
+          "model": "claude-opus-4-8",
+          "group": "thirdPartyService",
+          "metric": "price",
+          "value": 2.371355555555556,
+          "label": "$2.371",
+          "runsCovered": 13,
+          "avgQualityScore": 88.51339128855756,
+          "weightedWER": 0.16061517113783533,
+          "weightedCER": 0.3629764065335753,
+          "pagesPerMinute": 6.623897550384554,
+          "avgProcessingTimeMs": 31355,
+          "costPer100PagesUSD": 2.371355555555556,
+          "meanCostCents": 8.208538461538463,
+          "totalCostCents": 106.71100000000003
+        },
+        {
+          "rank": 19,
+          "providerKey": "openai/gpt-5.5",
+          "provider": "openai",
+          "model": "gpt-5.5",
+          "group": "thirdPartyService",
+          "metric": "price",
+          "value": 3.1042717391304344,
+          "label": "$3.104",
+          "runsCovered": 14,
+          "avgQualityScore": 86.36871604671414,
+          "weightedWER": 0.24498906705539358,
+          "weightedCER": 0.21973749688977356,
+          "pagesPerMinute": 5.790715971675846,
+          "avgProcessingTimeMs": 34044.642857142855,
+          "costPer100PagesUSD": 3.1042717391304344,
+          "meanCostCents": 10.199749999999998,
+          "totalCostCents": 142.79649999999998
+        }
+      ],
+      "speed": [
+        {
+          "rank": 1,
+          "providerKey": "mistral/mistral-ocr-2512",
+          "provider": "mistral",
+          "model": "mistral-ocr-2512",
+          "group": "thirdPartyService",
+          "metric": "speed",
+          "value": 53.96949550254204,
+          "label": "54.0 pages/minute",
+          "runsCovered": 14,
+          "avgQualityScore": 79.7674623755928,
+          "weightedWER": 0.22385204081632654,
+          "weightedCER": 0.18348780791241603,
+          "pagesPerMinute": 53.96949550254204,
+          "avgProcessingTimeMs": 3652.8571428571427,
+          "costPer100PagesUSD": 0.1695652173913044,
+          "meanCostCents": 0.5571428571428573,
+          "totalCostCents": 7.800000000000002
+        },
+        {
+          "rank": 2,
+          "providerKey": "grok/grok-4.20-0309-non-reasoning",
+          "provider": "grok",
+          "model": "grok-4.20-0309-non-reasoning",
+          "group": "thirdPartyService",
+          "metric": "speed",
+          "value": 50.951651313481875,
+          "label": "51.0 pages/minute",
+          "runsCovered": 14,
+          "avgQualityScore": 88.1290904565221,
+          "weightedWER": 0.1554137701171317,
+          "weightedCER": 0.24199631174095795,
+          "pagesPerMinute": 50.951651313481875,
+          "avgProcessingTimeMs": 3869.214285714286,
+          "costPer100PagesUSD": 0.3356548913043477,
+          "meanCostCents": 1.1028660714285712,
+          "totalCostCents": 15.440124999999997
+        },
+        {
+          "rank": 3,
+          "providerKey": "mistral/mistral-ocr-4-0",
+          "provider": "mistral",
+          "model": "mistral-ocr-4-0",
+          "group": "thirdPartyService",
+          "metric": "speed",
+          "value": 40.67856563840293,
+          "label": "40.7 pages/minute",
+          "runsCovered": 14,
+          "avgQualityScore": 85.85112408513945,
+          "weightedWER": 0.1411294162460718,
+          "weightedCER": 0.18796830090877373,
+          "pagesPerMinute": 40.67856563840293,
+          "avgProcessingTimeMs": 4846.357142857143,
+          "costPer100PagesUSD": 0.3391304347826088,
+          "meanCostCents": 1.1142857142857145,
+          "totalCostCents": 15.600000000000003
+        },
+        {
+          "rank": 4,
+          "providerKey": "gemini/gemini-3.1-flash-lite-preview",
+          "provider": "gemini",
+          "model": "gemini-3.1-flash-lite-preview",
+          "group": "thirdPartyService",
+          "metric": "speed",
+          "value": 35.45142769064776,
+          "label": "35.5 pages/minute",
+          "runsCovered": 14,
+          "avgQualityScore": 86.08571152500247,
+          "weightedWER": 0.23815597667638483,
+          "weightedCER": 0.20435742722070166,
+          "pagesPerMinute": 35.45142769064776,
+          "avgProcessingTimeMs": 5560.928571428572,
+          "costPer100PagesUSD": 0.0750228260869565,
+          "meanCostCents": 0.24650357142857135,
+          "totalCostCents": 3.451049999999999
+        },
+        {
+          "rank": 5,
+          "providerKey": "gemini/gemini-3.1-flash-lite",
+          "provider": "gemini",
+          "model": "gemini-3.1-flash-lite",
+          "group": "thirdPartyService",
+          "metric": "speed",
+          "value": 34.98497927520249,
+          "label": "35.0 pages/minute",
+          "runsCovered": 14,
+          "avgQualityScore": 77.6475171739736,
+          "weightedWER": 0.3638251582278481,
+          "weightedCER": 0.5262499142719979,
+          "pagesPerMinute": 34.98497927520249,
+          "avgProcessingTimeMs": 5635.071428571428,
+          "costPer100PagesUSD": 0.07568152173913043,
+          "meanCostCents": 0.2486678571428571,
+          "totalCostCents": 3.4813499999999995
+        },
+        {
+          "rank": 6,
+          "providerKey": "glm/glm-ocr",
+          "provider": "glm",
+          "model": "glm-ocr",
+          "group": "thirdPartyService",
+          "metric": "speed",
+          "value": 20.25420494907095,
+          "label": "20.3 pages/minute",
+          "runsCovered": 14,
+          "avgQualityScore": 69.07981272861119,
+          "weightedWER": 0.20672376093294462,
+          "weightedCER": 0.16554180144314506,
+          "pagesPerMinute": 20.25420494907095,
+          "avgProcessingTimeMs": 9733.42857142857,
+          "costPer100PagesUSD": 0.009753456521739132,
+          "meanCostCents": 0.03204707142857143,
+          "totalCostCents": 0.44865900000000003
+        },
+        {
+          "rank": 7,
+          "providerKey": "openai/gpt-5.4-mini",
+          "provider": "openai",
+          "model": "gpt-5.4-mini",
+          "group": "thirdPartyService",
+          "metric": "speed",
+          "value": 20.206309346882296,
+          "label": "20.2 pages/minute",
+          "runsCovered": 14,
+          "avgQualityScore": 77.2400065193898,
+          "weightedWER": 0.3256832682601657,
+          "weightedCER": 0.38864614311109635,
+          "pagesPerMinute": 20.206309346882296,
+          "avgProcessingTimeMs": 9756.5,
+          "costPer100PagesUSD": 0.22873532608695651,
+          "meanCostCents": 0.7515589285714286,
+          "totalCostCents": 10.521825
+        },
+        {
+          "rank": 8,
+          "providerKey": "openai/gpt-5.4-nano",
+          "provider": "openai",
+          "model": "gpt-5.4-nano",
+          "group": "thirdPartyService",
+          "metric": "speed",
+          "value": 13.729089254003073,
+          "label": "13.7 pages/minute",
+          "runsCovered": 14,
+          "avgQualityScore": 69.12376263204757,
+          "weightedWER": 0.3376457725947522,
+          "weightedCER": 0.28139773575516297,
+          "pagesPerMinute": 13.729089254003073,
+          "avgProcessingTimeMs": 14359.5,
+          "costPer100PagesUSD": 0.0656629347826087,
+          "meanCostCents": 0.21574964285714288,
+          "totalCostCents": 3.0204950000000004
+        },
+        {
+          "rank": 9,
+          "providerKey": "anthropic/claude-haiku-4-5",
+          "provider": "anthropic",
+          "model": "claude-haiku-4-5",
+          "group": "thirdPartyService",
+          "metric": "speed",
+          "value": 10.974678712304364,
+          "label": "11.0 pages/minute",
+          "runsCovered": 14,
+          "avgQualityScore": 71.58595039223951,
+          "weightedWER": 0.3190172364536711,
+          "weightedCER": 0.37640178764267085,
+          "pagesPerMinute": 10.974678712304364,
+          "avgProcessingTimeMs": 17963.428571428572,
+          "costPer100PagesUSD": 0.37376304347826095,
+          "meanCostCents": 1.2280785714285718,
+          "totalCostCents": 17.193100000000005
+        },
+        {
+          "rank": 10,
+          "providerKey": "gemini/gemini-3.5-flash",
+          "provider": "gemini",
+          "model": "gemini-3.5-flash",
+          "group": "thirdPartyService",
+          "metric": "speed",
+          "value": 7.921928817451206,
+          "label": "7.9 pages/minute",
+          "runsCovered": 14,
+          "avgQualityScore": 91.74570496749462,
+          "weightedWER": 0.08599181030378059,
+          "weightedCER": 0.15749862936319384,
+          "pagesPerMinute": 7.921928817451206,
+          "avgProcessingTimeMs": 24885.714285714286,
+          "costPer100PagesUSD": 0.51975,
+          "meanCostCents": 1.70775,
+          "totalCostCents": 23.9085
+        },
+        {
+          "rank": 11,
+          "providerKey": "anthropic/claude-sonnet-5",
+          "provider": "anthropic",
+          "model": "claude-sonnet-5",
+          "group": "thirdPartyService",
+          "metric": "speed",
+          "value": 6.865347160208846,
+          "label": "6.9 pages/minute",
+          "runsCovered": 14,
+          "avgQualityScore": 78.57115788112108,
+          "weightedWER": 0.27740215217598324,
+          "weightedCER": 0.24756192786296954,
+          "pagesPerMinute": 6.865347160208846,
+          "avgProcessingTimeMs": 28715.64285714286,
+          "costPer100PagesUSD": 1.0125260869565218,
+          "meanCostCents": 3.3268714285714287,
+          "totalCostCents": 46.5762
+        },
+        {
+          "rank": 12,
+          "providerKey": "anthropic/claude-opus-4-8",
+          "provider": "anthropic",
+          "model": "claude-opus-4-8",
+          "group": "thirdPartyService",
+          "metric": "speed",
+          "value": 6.623897550384554,
+          "label": "6.6 pages/minute",
+          "runsCovered": 13,
+          "avgQualityScore": 88.51339128855756,
+          "weightedWER": 0.16061517113783533,
+          "weightedCER": 0.3629764065335753,
+          "pagesPerMinute": 6.623897550384554,
+          "avgProcessingTimeMs": 31355,
+          "costPer100PagesUSD": 2.371355555555556,
+          "meanCostCents": 8.208538461538463,
+          "totalCostCents": 106.71100000000003
+        },
+        {
+          "rank": 13,
+          "providerKey": "gemini/gemini-3.1-pro-preview",
+          "provider": "gemini",
+          "model": "gemini-3.1-pro-preview",
+          "group": "thirdPartyService",
+          "metric": "speed",
+          "value": 5.979176866651358,
+          "label": "6.0 pages/minute",
+          "runsCovered": 14,
+          "avgQualityScore": 94.12530898731966,
+          "weightedWER": 0.0356231778425656,
+          "weightedCER": 0.014758024384175167,
+          "pagesPerMinute": 5.979176866651358,
+          "avgProcessingTimeMs": 32971.57142857143,
+          "costPer100PagesUSD": 0.6857217391304348,
+          "meanCostCents": 2.253085714285714,
+          "totalCostCents": 31.5432
+        },
+        {
+          "rank": 14,
+          "providerKey": "openai/gpt-5.5",
+          "provider": "openai",
+          "model": "gpt-5.5",
+          "group": "thirdPartyService",
+          "metric": "speed",
+          "value": 5.790715971675846,
+          "label": "5.8 pages/minute",
+          "runsCovered": 14,
+          "avgQualityScore": 86.36871604671414,
+          "weightedWER": 0.24498906705539358,
+          "weightedCER": 0.21973749688977356,
+          "pagesPerMinute": 5.790715971675846,
+          "avgProcessingTimeMs": 34044.642857142855,
+          "costPer100PagesUSD": 3.1042717391304344,
+          "meanCostCents": 10.199749999999998,
+          "totalCostCents": 142.79649999999998
+        },
+        {
+          "rank": 15,
+          "providerKey": "deepinfra/Qwen/Qwen3-VL-235B-A22B-Instruct",
+          "provider": "deepinfra",
+          "model": "Qwen/Qwen3-VL-235B-A22B-Instruct",
+          "group": "thirdPartyService",
+          "metric": "speed",
+          "value": 4.976999410333765,
+          "label": "5.0 pages/minute",
+          "runsCovered": 14,
+          "avgQualityScore": 89.35740846762613,
+          "weightedWER": 0.04983600583090379,
+          "weightedCER": 0.027152276685742723,
+          "pagesPerMinute": 4.976999410333765,
+          "avgProcessingTimeMs": 39610.78571428572,
+          "costPer100PagesUSD": 0.15223565217391305,
+          "meanCostCents": 0.5002028571428572,
+          "totalCostCents": 7.002840000000001
+        },
+        {
+          "rank": 16,
+          "providerKey": "grok/grok-4.3",
+          "provider": "grok",
+          "model": "grok-4.3",
+          "group": "thirdPartyService",
+          "metric": "speed",
+          "value": 4.808186460077244,
+          "label": "4.8 pages/minute",
+          "runsCovered": 14,
+          "avgQualityScore": 87.93380557886924,
+          "weightedWER": 0.053480320699708456,
+          "weightedCER": 0.03533217218213486,
+          "pagesPerMinute": 4.808186460077244,
+          "avgProcessingTimeMs": 41001.5,
+          "costPer100PagesUSD": 0.33869836956521737,
+          "meanCostCents": 1.1128660714285714,
+          "totalCostCents": 15.580124999999999
+        },
+        {
+          "rank": 17,
+          "providerKey": "kimi/kimi-k2.6",
+          "provider": "kimi",
+          "model": "kimi-k2.6",
+          "group": "thirdPartyService",
+          "metric": "speed",
+          "value": 4.609087584353818,
+          "label": "4.6 pages/minute",
+          "runsCovered": 14,
+          "avgQualityScore": 93.78396326130175,
+          "weightedWER": 0.033436588921282796,
+          "weightedCER": 0.009346230405573525,
+          "pagesPerMinute": 4.609087584353818,
+          "avgProcessingTimeMs": 42772.642857142855,
+          "costPer100PagesUSD": 0.46002869565217397,
+          "meanCostCents": 1.5115228571428574,
+          "totalCostCents": 21.161320000000003
+        },
+        {
+          "rank": 18,
+          "providerKey": "deepinfra/Qwen/Qwen3-VL-30B-A3B-Instruct",
+          "provider": "deepinfra",
+          "model": "Qwen/Qwen3-VL-30B-A3B-Instruct",
+          "group": "thirdPartyService",
+          "metric": "speed",
+          "value": 3.402178133609452,
+          "label": "3.4 pages/minute",
+          "runsCovered": 14,
+          "avgQualityScore": 82.99898652239581,
+          "weightedWER": 0.15479227405247814,
+          "weightedCER": 0.125,
+          "pagesPerMinute": 3.402178133609452,
+          "avgProcessingTimeMs": 57946.07142857143,
+          "costPer100PagesUSD": 0.11199130434782609,
+          "meanCostCents": 0.36797142857142856,
+          "totalCostCents": 5.1516
+        },
+        {
+          "rank": 19,
+          "providerKey": "anthropic/claude-sonnet-4-6",
+          "provider": "anthropic",
+          "model": "claude-sonnet-4-6",
+          "group": "thirdPartyService",
+          "metric": "speed",
+          "value": 3.273671496985494,
+          "label": "3.3 pages/minute",
+          "runsCovered": 12,
+          "avgQualityScore": 93.03595717923208,
+          "weightedWER": 0.11523563589412525,
+          "weightedCER": 0.09534580092311654,
+          "pagesPerMinute": 3.273671496985494,
+          "avgProcessingTimeMs": 67202.83333333333,
+          "costPer100PagesUSD": 1.0592931818181819,
+          "meanCostCents": 3.8840749999999997,
+          "totalCostCents": 46.6089
+        }
+      ],
+      "qualityScore": [
+        {
+          "rank": 1,
+          "providerKey": "gemini/gemini-3.1-pro-preview",
+          "provider": "gemini",
+          "model": "gemini-3.1-pro-preview",
+          "group": "thirdPartyService",
+          "metric": "qualityScore",
+          "value": 94.12530898731966,
+          "label": "94.13/100 avg quality score",
+          "runsCovered": 14,
+          "avgQualityScore": 94.12530898731966,
+          "weightedWER": 0.0356231778425656,
+          "weightedCER": 0.014758024384175167,
+          "pagesPerMinute": 5.979176866651358,
+          "avgProcessingTimeMs": 32971.57142857143,
+          "costPer100PagesUSD": 0.6857217391304348,
+          "meanCostCents": 2.253085714285714,
+          "totalCostCents": 31.5432
+        },
+        {
+          "rank": 2,
+          "providerKey": "kimi/kimi-k2.6",
+          "provider": "kimi",
+          "model": "kimi-k2.6",
+          "group": "thirdPartyService",
+          "metric": "qualityScore",
+          "value": 93.78396326130175,
+          "label": "93.78/100 avg quality score",
+          "runsCovered": 14,
+          "avgQualityScore": 93.78396326130175,
+          "weightedWER": 0.033436588921282796,
+          "weightedCER": 0.009346230405573525,
+          "pagesPerMinute": 4.609087584353818,
+          "avgProcessingTimeMs": 42772.642857142855,
+          "costPer100PagesUSD": 0.46002869565217397,
+          "meanCostCents": 1.5115228571428574,
+          "totalCostCents": 21.161320000000003
+        },
+        {
+          "rank": 3,
+          "providerKey": "anthropic/claude-sonnet-4-6",
+          "provider": "anthropic",
+          "model": "claude-sonnet-4-6",
+          "group": "thirdPartyService",
+          "metric": "qualityScore",
+          "value": 93.03595717923208,
+          "label": "93.04/100 avg quality score",
+          "runsCovered": 12,
+          "avgQualityScore": 93.03595717923208,
+          "weightedWER": 0.11523563589412525,
+          "weightedCER": 0.09534580092311654,
+          "pagesPerMinute": 3.273671496985494,
+          "avgProcessingTimeMs": 67202.83333333333,
+          "costPer100PagesUSD": 1.0592931818181819,
+          "meanCostCents": 3.8840749999999997,
+          "totalCostCents": 46.6089
+        },
+        {
+          "rank": 4,
+          "providerKey": "gemini/gemini-3.5-flash",
+          "provider": "gemini",
+          "model": "gemini-3.5-flash",
+          "group": "thirdPartyService",
+          "metric": "qualityScore",
+          "value": 91.74570496749462,
+          "label": "91.75/100 avg quality score",
+          "runsCovered": 14,
+          "avgQualityScore": 91.74570496749462,
+          "weightedWER": 0.08599181030378059,
+          "weightedCER": 0.15749862936319384,
+          "pagesPerMinute": 7.921928817451206,
+          "avgProcessingTimeMs": 24885.714285714286,
+          "costPer100PagesUSD": 0.51975,
+          "meanCostCents": 1.70775,
+          "totalCostCents": 23.9085
+        },
+        {
+          "rank": 5,
+          "providerKey": "deepinfra/Qwen/Qwen3-VL-235B-A22B-Instruct",
+          "provider": "deepinfra",
+          "model": "Qwen/Qwen3-VL-235B-A22B-Instruct",
+          "group": "thirdPartyService",
+          "metric": "qualityScore",
+          "value": 89.35740846762613,
+          "label": "89.36/100 avg quality score",
+          "runsCovered": 14,
+          "avgQualityScore": 89.35740846762613,
+          "weightedWER": 0.04983600583090379,
+          "weightedCER": 0.027152276685742723,
+          "pagesPerMinute": 4.976999410333765,
+          "avgProcessingTimeMs": 39610.78571428572,
+          "costPer100PagesUSD": 0.15223565217391305,
+          "meanCostCents": 0.5002028571428572,
+          "totalCostCents": 7.002840000000001
+        },
+        {
+          "rank": 6,
+          "providerKey": "anthropic/claude-opus-4-8",
+          "provider": "anthropic",
+          "model": "claude-opus-4-8",
+          "group": "thirdPartyService",
+          "metric": "qualityScore",
+          "value": 88.51339128855756,
+          "label": "88.51/100 avg quality score",
+          "runsCovered": 13,
+          "avgQualityScore": 88.51339128855756,
+          "weightedWER": 0.16061517113783533,
+          "weightedCER": 0.3629764065335753,
+          "pagesPerMinute": 6.623897550384554,
+          "avgProcessingTimeMs": 31355,
+          "costPer100PagesUSD": 2.371355555555556,
+          "meanCostCents": 8.208538461538463,
+          "totalCostCents": 106.71100000000003
+        },
+        {
+          "rank": 7,
+          "providerKey": "grok/grok-4.20-0309-non-reasoning",
+          "provider": "grok",
+          "model": "grok-4.20-0309-non-reasoning",
+          "group": "thirdPartyService",
+          "metric": "qualityScore",
+          "value": 88.1290904565221,
+          "label": "88.13/100 avg quality score",
+          "runsCovered": 14,
+          "avgQualityScore": 88.1290904565221,
+          "weightedWER": 0.1554137701171317,
+          "weightedCER": 0.24199631174095795,
+          "pagesPerMinute": 50.951651313481875,
+          "avgProcessingTimeMs": 3869.214285714286,
+          "costPer100PagesUSD": 0.3356548913043477,
+          "meanCostCents": 1.1028660714285712,
+          "totalCostCents": 15.440124999999997
+        },
+        {
+          "rank": 8,
+          "providerKey": "grok/grok-4.3",
+          "provider": "grok",
+          "model": "grok-4.3",
+          "group": "thirdPartyService",
+          "metric": "qualityScore",
+          "value": 87.93380557886924,
+          "label": "87.93/100 avg quality score",
+          "runsCovered": 14,
+          "avgQualityScore": 87.93380557886924,
+          "weightedWER": 0.053480320699708456,
+          "weightedCER": 0.03533217218213486,
+          "pagesPerMinute": 4.808186460077244,
+          "avgProcessingTimeMs": 41001.5,
+          "costPer100PagesUSD": 0.33869836956521737,
+          "meanCostCents": 1.1128660714285714,
+          "totalCostCents": 15.580124999999999
+        },
+        {
+          "rank": 9,
+          "providerKey": "openai/gpt-5.5",
+          "provider": "openai",
+          "model": "gpt-5.5",
+          "group": "thirdPartyService",
+          "metric": "qualityScore",
+          "value": 86.36871604671414,
+          "label": "86.37/100 avg quality score",
+          "runsCovered": 14,
+          "avgQualityScore": 86.36871604671414,
+          "weightedWER": 0.24498906705539358,
+          "weightedCER": 0.21973749688977356,
+          "pagesPerMinute": 5.790715971675846,
+          "avgProcessingTimeMs": 34044.642857142855,
+          "costPer100PagesUSD": 3.1042717391304344,
+          "meanCostCents": 10.199749999999998,
+          "totalCostCents": 142.79649999999998
+        },
+        {
+          "rank": 10,
+          "providerKey": "gemini/gemini-3.1-flash-lite-preview",
+          "provider": "gemini",
+          "model": "gemini-3.1-flash-lite-preview",
+          "group": "thirdPartyService",
+          "metric": "qualityScore",
+          "value": 86.08571152500247,
+          "label": "86.09/100 avg quality score",
+          "runsCovered": 14,
+          "avgQualityScore": 86.08571152500247,
+          "weightedWER": 0.23815597667638483,
+          "weightedCER": 0.20435742722070166,
+          "pagesPerMinute": 35.45142769064776,
+          "avgProcessingTimeMs": 5560.928571428572,
+          "costPer100PagesUSD": 0.0750228260869565,
+          "meanCostCents": 0.24650357142857135,
+          "totalCostCents": 3.451049999999999
+        },
+        {
+          "rank": 11,
+          "providerKey": "mistral/mistral-ocr-4-0",
+          "provider": "mistral",
+          "model": "mistral-ocr-4-0",
+          "group": "thirdPartyService",
+          "metric": "qualityScore",
+          "value": 85.85112408513945,
+          "label": "85.85/100 avg quality score",
+          "runsCovered": 14,
+          "avgQualityScore": 85.85112408513945,
+          "weightedWER": 0.1411294162460718,
+          "weightedCER": 0.18796830090877373,
+          "pagesPerMinute": 40.67856563840293,
+          "avgProcessingTimeMs": 4846.357142857143,
+          "costPer100PagesUSD": 0.3391304347826088,
+          "meanCostCents": 1.1142857142857145,
+          "totalCostCents": 15.600000000000003
+        },
+        {
+          "rank": 12,
+          "providerKey": "deepinfra/Qwen/Qwen3-VL-30B-A3B-Instruct",
+          "provider": "deepinfra",
+          "model": "Qwen/Qwen3-VL-30B-A3B-Instruct",
+          "group": "thirdPartyService",
+          "metric": "qualityScore",
+          "value": 82.99898652239581,
+          "label": "83.00/100 avg quality score",
+          "runsCovered": 14,
+          "avgQualityScore": 82.99898652239581,
+          "weightedWER": 0.15479227405247814,
+          "weightedCER": 0.125,
+          "pagesPerMinute": 3.402178133609452,
+          "avgProcessingTimeMs": 57946.07142857143,
+          "costPer100PagesUSD": 0.11199130434782609,
+          "meanCostCents": 0.36797142857142856,
+          "totalCostCents": 5.1516
+        },
+        {
+          "rank": 13,
+          "providerKey": "mistral/mistral-ocr-2512",
+          "provider": "mistral",
+          "model": "mistral-ocr-2512",
+          "group": "thirdPartyService",
+          "metric": "qualityScore",
+          "value": 79.7674623755928,
+          "label": "79.77/100 avg quality score",
+          "runsCovered": 14,
+          "avgQualityScore": 79.7674623755928,
+          "weightedWER": 0.22385204081632654,
+          "weightedCER": 0.18348780791241603,
+          "pagesPerMinute": 53.96949550254204,
+          "avgProcessingTimeMs": 3652.8571428571427,
+          "costPer100PagesUSD": 0.1695652173913044,
+          "meanCostCents": 0.5571428571428573,
+          "totalCostCents": 7.800000000000002
+        },
+        {
+          "rank": 14,
+          "providerKey": "anthropic/claude-sonnet-5",
+          "provider": "anthropic",
+          "model": "claude-sonnet-5",
+          "group": "thirdPartyService",
+          "metric": "qualityScore",
+          "value": 78.57115788112108,
+          "label": "78.57/100 avg quality score",
+          "runsCovered": 14,
+          "avgQualityScore": 78.57115788112108,
+          "weightedWER": 0.27740215217598324,
+          "weightedCER": 0.24756192786296954,
+          "pagesPerMinute": 6.865347160208846,
+          "avgProcessingTimeMs": 28715.64285714286,
+          "costPer100PagesUSD": 1.0125260869565218,
+          "meanCostCents": 3.3268714285714287,
+          "totalCostCents": 46.5762
+        },
+        {
+          "rank": 15,
+          "providerKey": "gemini/gemini-3.1-flash-lite",
+          "provider": "gemini",
+          "model": "gemini-3.1-flash-lite",
+          "group": "thirdPartyService",
+          "metric": "qualityScore",
+          "value": 77.6475171739736,
+          "label": "77.65/100 avg quality score",
+          "runsCovered": 14,
+          "avgQualityScore": 77.6475171739736,
+          "weightedWER": 0.3638251582278481,
+          "weightedCER": 0.5262499142719979,
+          "pagesPerMinute": 34.98497927520249,
+          "avgProcessingTimeMs": 5635.071428571428,
+          "costPer100PagesUSD": 0.07568152173913043,
+          "meanCostCents": 0.2486678571428571,
+          "totalCostCents": 3.4813499999999995
+        },
+        {
+          "rank": 16,
+          "providerKey": "openai/gpt-5.4-mini",
+          "provider": "openai",
+          "model": "gpt-5.4-mini",
+          "group": "thirdPartyService",
+          "metric": "qualityScore",
+          "value": 77.2400065193898,
+          "label": "77.24/100 avg quality score",
+          "runsCovered": 14,
+          "avgQualityScore": 77.2400065193898,
+          "weightedWER": 0.3256832682601657,
+          "weightedCER": 0.38864614311109635,
+          "pagesPerMinute": 20.206309346882296,
+          "avgProcessingTimeMs": 9756.5,
+          "costPer100PagesUSD": 0.22873532608695651,
+          "meanCostCents": 0.7515589285714286,
+          "totalCostCents": 10.521825
+        },
+        {
+          "rank": 17,
+          "providerKey": "anthropic/claude-haiku-4-5",
+          "provider": "anthropic",
+          "model": "claude-haiku-4-5",
+          "group": "thirdPartyService",
+          "metric": "qualityScore",
+          "value": 71.58595039223951,
+          "label": "71.59/100 avg quality score",
+          "runsCovered": 14,
+          "avgQualityScore": 71.58595039223951,
+          "weightedWER": 0.3190172364536711,
+          "weightedCER": 0.37640178764267085,
+          "pagesPerMinute": 10.974678712304364,
+          "avgProcessingTimeMs": 17963.428571428572,
+          "costPer100PagesUSD": 0.37376304347826095,
+          "meanCostCents": 1.2280785714285718,
+          "totalCostCents": 17.193100000000005
+        },
+        {
+          "rank": 18,
+          "providerKey": "openai/gpt-5.4-nano",
+          "provider": "openai",
+          "model": "gpt-5.4-nano",
+          "group": "thirdPartyService",
+          "metric": "qualityScore",
+          "value": 69.12376263204757,
+          "label": "69.12/100 avg quality score",
+          "runsCovered": 14,
+          "avgQualityScore": 69.12376263204757,
+          "weightedWER": 0.3376457725947522,
+          "weightedCER": 0.28139773575516297,
+          "pagesPerMinute": 13.729089254003073,
+          "avgProcessingTimeMs": 14359.5,
+          "costPer100PagesUSD": 0.0656629347826087,
+          "meanCostCents": 0.21574964285714288,
+          "totalCostCents": 3.0204950000000004
+        },
+        {
+          "rank": 19,
+          "providerKey": "glm/glm-ocr",
+          "provider": "glm",
+          "model": "glm-ocr",
+          "group": "thirdPartyService",
+          "metric": "qualityScore",
+          "value": 69.07981272861119,
+          "label": "69.08/100 avg quality score",
+          "runsCovered": 14,
+          "avgQualityScore": 69.07981272861119,
+          "weightedWER": 0.20672376093294462,
+          "weightedCER": 0.16554180144314506,
+          "pagesPerMinute": 20.25420494907095,
+          "avgProcessingTimeMs": 9733.42857142857,
+          "costPer100PagesUSD": 0.009753456521739132,
+          "meanCostCents": 0.03204707142857143,
+          "totalCostCents": 0.44865900000000003
+        }
+      ]
+    }
+  },
+  "weightSets": {
+    "strongQuality": {
+      "label": "Strong quality (0.8 quality / 0.1 speed / 0.1 cost)",
+      "quality": 0.8,
+      "speed": 0.1,
+      "cost": 0.1
+    },
+    "moderateQuality": {
+      "label": "Moderate quality (0.6 quality / 0.2 speed / 0.2 cost)",
+      "quality": 0.6,
+      "speed": 0.2,
+      "cost": 0.2
+    },
+    "strongSpeed": {
+      "label": "Strong speed (0.1 quality / 0.8 speed / 0.1 cost)",
+      "quality": 0.1,
+      "speed": 0.8,
+      "cost": 0.1
+    },
+    "moderateSpeed": {
+      "label": "Moderate speed (0.2 quality / 0.6 speed / 0.2 cost)",
+      "quality": 0.2,
+      "speed": 0.6,
+      "cost": 0.2
+    },
+    "strongCost": {
+      "label": "Strong cost (0.1 quality / 0.1 speed / 0.8 cost)",
+      "quality": 0.1,
+      "speed": 0.1,
+      "cost": 0.8
+    },
+    "moderateCost": {
+      "label": "Moderate cost (0.2 quality / 0.2 speed / 0.6 cost)",
+      "quality": 0.2,
+      "speed": 0.2,
+      "cost": 0.6
+    },
+    "qualityCost": {
+      "label": "Quality + cost (0.45 quality / 0.10 speed / 0.45 cost)",
+      "quality": 0.45,
+      "speed": 0.1,
+      "cost": 0.45
+    },
+    "costSpeed": {
+      "label": "Cost + speed (0.10 quality / 0.45 speed / 0.45 cost)",
+      "quality": 0.1,
+      "speed": 0.45,
+      "cost": 0.45
+    }
+  },
+  "weightedRankings": {
+    "local": {
+      "strongQuality": [
+        {
+          "rank": 1,
+          "providerKey": "tesseract/tesseract",
+          "provider": "tesseract",
+          "model": "tesseract",
+          "display": "tesseract/tesseract",
+          "group": "local",
+          "weightSet": "strongQuality",
+          "runsCovered": 14,
+          "composite": 71.42089260331258,
+          "subscores": {
+            "quality": 64.28571428571429,
+            "speed": 99.92321174741141,
+            "cost": 100
+          },
+          "subscoreRunCounts": {
+            "quality": 14,
+            "speed": 14,
+            "cost": 14
+          },
+          "missingDimensions": []
+        },
+        {
+          "rank": 2,
+          "providerKey": "ocrmypdf/ocrmypdf",
+          "provider": "ocrmypdf",
+          "model": "ocrmypdf",
+          "display": "ocrmypdf/ocrmypdf",
+          "group": "local",
+          "weightSet": "strongQuality",
+          "runsCovered": 14,
+          "composite": 58.939796569615034,
+          "subscores": {
+            "quality": 52.07562014619089,
+            "speed": 72.79300452662316,
+            "cost": 100
+          },
+          "subscoreRunCounts": {
+            "quality": 14,
+            "speed": 14,
+            "cost": 14
+          },
+          "missingDimensions": []
+        },
+        {
+          "rank": 3,
+          "providerKey": "paddle-ocr/paddle-ocr",
+          "provider": "paddle-ocr",
+          "model": "paddle-ocr",
+          "display": "paddle-ocr/paddle-ocr",
+          "group": "local",
+          "weightSet": "strongQuality",
+          "runsCovered": 14,
+          "composite": 52.142857142857146,
+          "subscores": {
+            "quality": 50,
+            "speed": 21.428571428571427,
+            "cost": 100
+          },
+          "subscoreRunCounts": {
+            "quality": 14,
+            "speed": 14,
+            "cost": 14
+          },
+          "missingDimensions": []
+        }
+      ],
+      "moderateQuality": [
+        {
+          "rank": 1,
+          "providerKey": "tesseract/tesseract",
+          "provider": "tesseract",
+          "model": "tesseract",
+          "display": "tesseract/tesseract",
+          "group": "local",
+          "weightSet": "moderateQuality",
+          "runsCovered": 14,
+          "composite": 78.55607092091086,
+          "subscores": {
+            "quality": 64.28571428571429,
+            "speed": 99.92321174741141,
+            "cost": 100
+          },
+          "subscoreRunCounts": {
+            "quality": 14,
+            "speed": 14,
+            "cost": 14
+          },
+          "missingDimensions": []
+        },
+        {
+          "rank": 2,
+          "providerKey": "ocrmypdf/ocrmypdf",
+          "provider": "ocrmypdf",
+          "model": "ocrmypdf",
+          "display": "ocrmypdf/ocrmypdf",
+          "group": "local",
+          "weightSet": "moderateQuality",
+          "runsCovered": 14,
+          "composite": 65.80397299303917,
+          "subscores": {
+            "quality": 52.07562014619089,
+            "speed": 72.79300452662316,
+            "cost": 100
+          },
+          "subscoreRunCounts": {
+            "quality": 14,
+            "speed": 14,
+            "cost": 14
+          },
+          "missingDimensions": []
+        },
+        {
+          "rank": 3,
+          "providerKey": "paddle-ocr/paddle-ocr",
+          "provider": "paddle-ocr",
+          "model": "paddle-ocr",
+          "display": "paddle-ocr/paddle-ocr",
+          "group": "local",
+          "weightSet": "moderateQuality",
+          "runsCovered": 14,
+          "composite": 54.285714285714285,
+          "subscores": {
+            "quality": 50,
+            "speed": 21.428571428571427,
+            "cost": 100
+          },
+          "subscoreRunCounts": {
+            "quality": 14,
+            "speed": 14,
+            "cost": 14
+          },
+          "missingDimensions": []
+        }
+      ],
+      "strongSpeed": [
+        {
+          "rank": 1,
+          "providerKey": "tesseract/tesseract",
+          "provider": "tesseract",
+          "model": "tesseract",
+          "display": "tesseract/tesseract",
+          "group": "local",
+          "weightSet": "strongSpeed",
+          "runsCovered": 14,
+          "composite": 96.36714082650057,
+          "subscores": {
+            "quality": 64.28571428571429,
+            "speed": 99.92321174741141,
+            "cost": 100
+          },
+          "subscoreRunCounts": {
+            "quality": 14,
+            "speed": 14,
+            "cost": 14
+          },
+          "missingDimensions": []
+        },
+        {
+          "rank": 2,
+          "providerKey": "ocrmypdf/ocrmypdf",
+          "provider": "ocrmypdf",
+          "model": "ocrmypdf",
+          "display": "ocrmypdf/ocrmypdf",
+          "group": "local",
+          "weightSet": "strongSpeed",
+          "runsCovered": 14,
+          "composite": 73.44196563591763,
+          "subscores": {
+            "quality": 52.07562014619089,
+            "speed": 72.79300452662316,
+            "cost": 100
+          },
+          "subscoreRunCounts": {
+            "quality": 14,
+            "speed": 14,
+            "cost": 14
+          },
+          "missingDimensions": []
+        },
+        {
+          "rank": 3,
+          "providerKey": "paddle-ocr/paddle-ocr",
+          "provider": "paddle-ocr",
+          "model": "paddle-ocr",
+          "display": "paddle-ocr/paddle-ocr",
+          "group": "local",
+          "weightSet": "strongSpeed",
+          "runsCovered": 14,
+          "composite": 32.14285714285714,
+          "subscores": {
+            "quality": 50,
+            "speed": 21.428571428571427,
+            "cost": 100
+          },
+          "subscoreRunCounts": {
+            "quality": 14,
+            "speed": 14,
+            "cost": 14
+          },
+          "missingDimensions": []
+        }
+      ],
+      "moderateSpeed": [
+        {
+          "rank": 1,
+          "providerKey": "tesseract/tesseract",
+          "provider": "tesseract",
+          "model": "tesseract",
+          "display": "tesseract/tesseract",
+          "group": "local",
+          "weightSet": "moderateSpeed",
+          "runsCovered": 14,
+          "composite": 92.8110699055897,
+          "subscores": {
+            "quality": 64.28571428571429,
+            "speed": 99.92321174741141,
+            "cost": 100
+          },
+          "subscoreRunCounts": {
+            "quality": 14,
+            "speed": 14,
+            "cost": 14
+          },
+          "missingDimensions": []
+        },
+        {
+          "rank": 2,
+          "providerKey": "ocrmypdf/ocrmypdf",
+          "provider": "ocrmypdf",
+          "model": "ocrmypdf",
+          "display": "ocrmypdf/ocrmypdf",
+          "group": "local",
+          "weightSet": "moderateSpeed",
+          "runsCovered": 14,
+          "composite": 74.09092674521207,
+          "subscores": {
+            "quality": 52.07562014619089,
+            "speed": 72.79300452662316,
+            "cost": 100
+          },
+          "subscoreRunCounts": {
+            "quality": 14,
+            "speed": 14,
+            "cost": 14
+          },
+          "missingDimensions": []
+        },
+        {
+          "rank": 3,
+          "providerKey": "paddle-ocr/paddle-ocr",
+          "provider": "paddle-ocr",
+          "model": "paddle-ocr",
+          "display": "paddle-ocr/paddle-ocr",
+          "group": "local",
+          "weightSet": "moderateSpeed",
+          "runsCovered": 14,
+          "composite": 42.857142857142854,
+          "subscores": {
+            "quality": 50,
+            "speed": 21.428571428571427,
+            "cost": 100
+          },
+          "subscoreRunCounts": {
+            "quality": 14,
+            "speed": 14,
+            "cost": 14
+          },
+          "missingDimensions": []
+        }
+      ],
+      "strongCost": [
+        {
+          "rank": 1,
+          "providerKey": "tesseract/tesseract",
+          "provider": "tesseract",
+          "model": "tesseract",
+          "display": "tesseract/tesseract",
+          "group": "local",
+          "weightSet": "strongCost",
+          "runsCovered": 14,
+          "composite": 96.42089260331258,
+          "subscores": {
+            "quality": 64.28571428571429,
+            "speed": 99.92321174741141,
+            "cost": 100
+          },
+          "subscoreRunCounts": {
+            "quality": 14,
+            "speed": 14,
+            "cost": 14
+          },
+          "missingDimensions": []
+        },
+        {
+          "rank": 2,
+          "providerKey": "ocrmypdf/ocrmypdf",
+          "provider": "ocrmypdf",
+          "model": "ocrmypdf",
+          "display": "ocrmypdf/ocrmypdf",
+          "group": "local",
+          "weightSet": "strongCost",
+          "runsCovered": 14,
+          "composite": 92.48686246728141,
+          "subscores": {
+            "quality": 52.07562014619089,
+            "speed": 72.79300452662316,
+            "cost": 100
+          },
+          "subscoreRunCounts": {
+            "quality": 14,
+            "speed": 14,
+            "cost": 14
+          },
+          "missingDimensions": []
+        },
+        {
+          "rank": 3,
+          "providerKey": "paddle-ocr/paddle-ocr",
+          "provider": "paddle-ocr",
+          "model": "paddle-ocr",
+          "display": "paddle-ocr/paddle-ocr",
+          "group": "local",
+          "weightSet": "strongCost",
+          "runsCovered": 14,
+          "composite": 87.14285714285714,
+          "subscores": {
+            "quality": 50,
+            "speed": 21.428571428571427,
+            "cost": 100
+          },
+          "subscoreRunCounts": {
+            "quality": 14,
+            "speed": 14,
+            "cost": 14
+          },
+          "missingDimensions": []
+        }
+      ],
+      "moderateCost": [
+        {
+          "rank": 1,
+          "providerKey": "tesseract/tesseract",
+          "provider": "tesseract",
+          "model": "tesseract",
+          "display": "tesseract/tesseract",
+          "group": "local",
+          "weightSet": "moderateCost",
+          "runsCovered": 14,
+          "composite": 92.84178520662515,
+          "subscores": {
+            "quality": 64.28571428571429,
+            "speed": 99.92321174741141,
+            "cost": 100
+          },
+          "subscoreRunCounts": {
+            "quality": 14,
+            "speed": 14,
+            "cost": 14
+          },
+          "missingDimensions": []
+        },
+        {
+          "rank": 2,
+          "providerKey": "ocrmypdf/ocrmypdf",
+          "provider": "ocrmypdf",
+          "model": "ocrmypdf",
+          "display": "ocrmypdf/ocrmypdf",
+          "group": "local",
+          "weightSet": "moderateCost",
+          "runsCovered": 14,
+          "composite": 84.97372493456281,
+          "subscores": {
+            "quality": 52.07562014619089,
+            "speed": 72.79300452662316,
+            "cost": 100
+          },
+          "subscoreRunCounts": {
+            "quality": 14,
+            "speed": 14,
+            "cost": 14
+          },
+          "missingDimensions": []
+        },
+        {
+          "rank": 3,
+          "providerKey": "paddle-ocr/paddle-ocr",
+          "provider": "paddle-ocr",
+          "model": "paddle-ocr",
+          "display": "paddle-ocr/paddle-ocr",
+          "group": "local",
+          "weightSet": "moderateCost",
+          "runsCovered": 14,
+          "composite": 74.28571428571428,
+          "subscores": {
+            "quality": 50,
+            "speed": 21.428571428571427,
+            "cost": 100
+          },
+          "subscoreRunCounts": {
+            "quality": 14,
+            "speed": 14,
+            "cost": 14
+          },
+          "missingDimensions": []
+        }
+      ],
+      "qualityCost": [
+        {
+          "rank": 1,
+          "providerKey": "tesseract/tesseract",
+          "provider": "tesseract",
+          "model": "tesseract",
+          "display": "tesseract/tesseract",
+          "group": "local",
+          "weightSet": "qualityCost",
+          "runsCovered": 14,
+          "composite": 83.92089260331258,
+          "subscores": {
+            "quality": 64.28571428571429,
+            "speed": 99.92321174741141,
+            "cost": 100
+          },
+          "subscoreRunCounts": {
+            "quality": 14,
+            "speed": 14,
+            "cost": 14
+          },
+          "missingDimensions": []
+        },
+        {
+          "rank": 2,
+          "providerKey": "ocrmypdf/ocrmypdf",
+          "provider": "ocrmypdf",
+          "model": "ocrmypdf",
+          "display": "ocrmypdf/ocrmypdf",
+          "group": "local",
+          "weightSet": "qualityCost",
+          "runsCovered": 14,
+          "composite": 75.71332951844822,
+          "subscores": {
+            "quality": 52.07562014619089,
+            "speed": 72.79300452662316,
+            "cost": 100
+          },
+          "subscoreRunCounts": {
+            "quality": 14,
+            "speed": 14,
+            "cost": 14
+          },
+          "missingDimensions": []
+        },
+        {
+          "rank": 3,
+          "providerKey": "paddle-ocr/paddle-ocr",
+          "provider": "paddle-ocr",
+          "model": "paddle-ocr",
+          "display": "paddle-ocr/paddle-ocr",
+          "group": "local",
+          "weightSet": "qualityCost",
+          "runsCovered": 14,
+          "composite": 69.64285714285714,
+          "subscores": {
+            "quality": 50,
+            "speed": 21.428571428571427,
+            "cost": 100
+          },
+          "subscoreRunCounts": {
+            "quality": 14,
+            "speed": 14,
+            "cost": 14
+          },
+          "missingDimensions": []
+        }
+      ],
+      "costSpeed": [
+        {
+          "rank": 1,
+          "providerKey": "tesseract/tesseract",
+          "provider": "tesseract",
+          "model": "tesseract",
+          "display": "tesseract/tesseract",
+          "group": "local",
+          "weightSet": "costSpeed",
+          "runsCovered": 14,
+          "composite": 96.39401671490657,
+          "subscores": {
+            "quality": 64.28571428571429,
+            "speed": 99.92321174741141,
+            "cost": 100
+          },
+          "subscoreRunCounts": {
+            "quality": 14,
+            "speed": 14,
+            "cost": 14
+          },
+          "missingDimensions": []
+        },
+        {
+          "rank": 2,
+          "providerKey": "ocrmypdf/ocrmypdf",
+          "provider": "ocrmypdf",
+          "model": "ocrmypdf",
+          "display": "ocrmypdf/ocrmypdf",
+          "group": "local",
+          "weightSet": "costSpeed",
+          "runsCovered": 14,
+          "composite": 82.96441405159952,
+          "subscores": {
+            "quality": 52.07562014619089,
+            "speed": 72.79300452662316,
+            "cost": 100
+          },
+          "subscoreRunCounts": {
+            "quality": 14,
+            "speed": 14,
+            "cost": 14
+          },
+          "missingDimensions": []
+        },
+        {
+          "rank": 3,
+          "providerKey": "paddle-ocr/paddle-ocr",
+          "provider": "paddle-ocr",
+          "model": "paddle-ocr",
+          "display": "paddle-ocr/paddle-ocr",
+          "group": "local",
+          "weightSet": "costSpeed",
+          "runsCovered": 14,
+          "composite": 59.64285714285714,
+          "subscores": {
+            "quality": 50,
+            "speed": 21.428571428571427,
+            "cost": 100
+          },
+          "subscoreRunCounts": {
+            "quality": 14,
+            "speed": 14,
+            "cost": 14
+          },
+          "missingDimensions": []
+        }
+      ]
+    },
+    "thirdPartyService": {
+      "strongQuality": [
+        {
+          "rank": 1,
+          "providerKey": "kimi/kimi-k2.6",
+          "provider": "kimi",
+          "model": "kimi-k2.6",
+          "display": "kimi/kimi-k2.6",
+          "group": "thirdPartyService",
+          "weightSet": "strongQuality",
+          "runsCovered": 14,
+          "composite": 86.9825766515832,
+          "subscores": {
+            "quality": 91.55214955987695,
+            "speed": 47.69776321660263,
+            "cost": 89.71080682021386
+          },
+          "subscoreRunCounts": {
+            "quality": 14,
+            "speed": 14,
+            "cost": 14
+          },
+          "missingDimensions": []
+        },
+        {
+          "rank": 2,
+          "providerKey": "grok/grok-4.20-0309-non-reasoning",
+          "provider": "grok",
+          "model": "grok-4.20-0309-non-reasoning",
+          "display": "grok/grok-4.20-0309-non-reasoning",
+          "group": "thirdPartyService",
+          "weightSet": "strongQuality",
+          "runsCovered": 14,
+          "composite": 86.74927284047138,
+          "subscores": {
+            "quality": 84.71367669799177,
+            "speed": 97.65138042709194,
+            "cost": 92.1319343936877
+          },
+          "subscoreRunCounts": {
+            "quality": 14,
+            "speed": 14,
+            "cost": 14
+          },
+          "missingDimensions": []
+        },
+        {
+          "rank": 3,
+          "providerKey": "gemini/gemini-3.1-pro-preview",
+          "provider": "gemini",
+          "model": "gemini-3.1-pro-preview",
+          "display": "gemini/gemini-3.1-pro-preview",
+          "group": "thirdPartyService",
+          "weightSet": "strongQuality",
+          "runsCovered": 14,
+          "composite": 86.575638963482,
+          "subscores": {
+            "quality": 89.48428751495916,
+            "speed": 69.52478285375686,
+            "cost": 80.35730666138991
+          },
+          "subscoreRunCounts": {
+            "quality": 14,
+            "speed": 14,
+            "cost": 14
+          },
+          "missingDimensions": []
+        },
+        {
+          "rank": 4,
+          "providerKey": "anthropic/claude-sonnet-4-6",
+          "provider": "anthropic",
+          "model": "claude-sonnet-4-6",
+          "display": "anthropic/claude-sonnet-4-6",
+          "group": "thirdPartyService",
+          "weightSet": "strongQuality",
+          "runsCovered": 12,
+          "composite": 83.97245395143268,
+          "subscores": {
+            "quality": 91.57056974987988,
+            "speed": 36.59646171057549,
+            "cost": 70.56351980471231
+          },
+          "subscoreRunCounts": {
+            "quality": 12,
+            "speed": 12,
+            "cost": 12
+          },
+          "missingDimensions": []
+        },
+        {
+          "rank": 5,
+          "providerKey": "gemini/gemini-3.5-flash",
+          "provider": "gemini",
+          "model": "gemini-3.5-flash",
+          "display": "gemini/gemini-3.5-flash",
+          "group": "thirdPartyService",
+          "weightSet": "strongQuality",
+          "runsCovered": 14,
+          "composite": 83.91332024451751,
+          "subscores": {
+            "quality": 88.06336935121213,
+            "speed": 49.275221247779356,
+            "cost": 85.35102638769857
+          },
+          "subscoreRunCounts": {
+            "quality": 14,
+            "speed": 14,
+            "cost": 14
+          },
+          "missingDimensions": []
+        },
+        {
+          "rank": 6,
+          "providerKey": "gemini/gemini-3.1-flash-lite-preview",
+          "provider": "gemini",
+          "model": "gemini-3.1-flash-lite-preview",
+          "display": "gemini/gemini-3.1-flash-lite-preview",
+          "group": "thirdPartyService",
+          "weightSet": "strongQuality",
+          "runsCovered": 14,
+          "composite": 83.62712658040454,
+          "subscores": {
+            "quality": 80.42165260396753,
+            "speed": 94.9199891095809,
+            "cost": 97.9780558627241
+          },
+          "subscoreRunCounts": {
+            "quality": 14,
+            "speed": 14,
+            "cost": 14
+          },
+          "missingDimensions": []
+        },
+        {
+          "rank": 7,
+          "providerKey": "grok/grok-4.3",
+          "provider": "grok",
+          "model": "grok-4.3",
+          "display": "grok/grok-4.3",
+          "group": "thirdPartyService",
+          "weightSet": "strongQuality",
+          "runsCovered": 14,
+          "composite": 82.64816609241535,
+          "subscores": {
+            "quality": 85.34855883931615,
+            "speed": 51.682787003208425,
+            "cost": 92.01040320641575
+          },
+          "subscoreRunCounts": {
+            "quality": 14,
+            "speed": 14,
+            "cost": 14
+          },
+          "missingDimensions": []
+        },
+        {
+          "rank": 8,
+          "providerKey": "deepinfra/Qwen/Qwen3-VL-235B-A22B-Instruct",
+          "provider": "deepinfra",
+          "model": "Qwen/Qwen3-VL-235B-A22B-Instruct",
+          "display": "deepinfra/Qwen/Qwen3-VL-235B-A22B-Instruct",
+          "group": "thirdPartyService",
+          "weightSet": "strongQuality",
+          "runsCovered": 14,
+          "composite": 81.42793364390315,
+          "subscores": {
+            "quality": 83.10317379753444,
+            "speed": 52.27658259652041,
+            "cost": 97.17736346223543
+          },
+          "subscoreRunCounts": {
+            "quality": 14,
+            "speed": 14,
+            "cost": 14
+          },
+          "missingDimensions": []
+        },
+        {
+          "rank": 9,
+          "providerKey": "mistral/mistral-ocr-4-0",
+          "provider": "mistral",
+          "model": "mistral-ocr-4-0",
+          "display": "mistral/mistral-ocr-4-0",
+          "group": "thirdPartyService",
+          "weightSet": "strongQuality",
+          "runsCovered": 14,
+          "composite": 80.23761809847947,
+          "subscores": {
+            "quality": 77.10115337222751,
+            "speed": 96.7315436728021,
+            "cost": 88.83541033417245
+          },
+          "subscoreRunCounts": {
+            "quality": 14,
+            "speed": 14,
+            "cost": 14
+          },
+          "missingDimensions": []
+        },
+        {
+          "rank": 10,
+          "providerKey": "mistral/mistral-ocr-2512",
+          "provider": "mistral",
+          "model": "mistral-ocr-2512",
+          "display": "mistral/mistral-ocr-2512",
+          "group": "thirdPartyService",
+          "weightSet": "strongQuality",
+          "runsCovered": 14,
+          "composite": 76.29903543207509,
+          "subscores": {
+            "quality": 71.20552582524441,
+            "speed": 98.84077419055309,
+            "cost": 94.50537352824244
+          },
+          "subscoreRunCounts": {
+            "quality": 14,
+            "speed": 14,
+            "cost": 14
+          },
+          "missingDimensions": []
+        },
+        {
+          "rank": 11,
+          "providerKey": "gemini/gemini-3.1-flash-lite",
+          "provider": "gemini",
+          "model": "gemini-3.1-flash-lite",
+          "display": "gemini/gemini-3.1-flash-lite",
+          "group": "thirdPartyService",
+          "weightSet": "strongQuality",
+          "runsCovered": 14,
+          "composite": 75.49624884499188,
+          "subscores": {
+            "quality": 70.30645533690284,
+            "speed": 94.55048081053692,
+            "cost": 97.96036494415914
+          },
+          "subscoreRunCounts": {
+            "quality": 14,
+            "speed": 14,
+            "cost": 14
+          },
+          "missingDimensions": []
+        },
+        {
+          "rank": 12,
+          "providerKey": "anthropic/claude-opus-4-8",
+          "provider": "anthropic",
+          "model": "claude-opus-4-8",
+          "display": "anthropic/claude-opus-4-8",
+          "group": "thirdPartyService",
+          "weightSet": "strongQuality",
+          "runsCovered": 13,
+          "composite": 74.91535574495353,
+          "subscores": {
+            "quality": 82.1727677681478,
+            "speed": 56.378007827832796,
+            "cost": 35.39340747652012
+          },
+          "subscoreRunCounts": {
+            "quality": 13,
+            "speed": 13,
+            "cost": 13
+          },
+          "missingDimensions": []
+        },
+        {
+          "rank": 13,
+          "providerKey": "openai/gpt-5.5",
+          "provider": "openai",
+          "model": "gpt-5.5",
+          "display": "openai/gpt-5.5",
+          "group": "thirdPartyService",
+          "weightSet": "strongQuality",
+          "runsCovered": 14,
+          "composite": 69.95632674363799,
+          "subscores": {
+            "quality": 80.93159331772338,
+            "speed": 42.46182750495642,
+            "cost": 9.648693389636419
+          },
+          "subscoreRunCounts": {
+            "quality": 14,
+            "speed": 14,
+            "cost": 14
+          },
+          "missingDimensions": []
+        },
+        {
+          "rank": 14,
+          "providerKey": "openai/gpt-5.4-mini",
+          "provider": "openai",
+          "model": "gpt-5.4-mini",
+          "display": "openai/gpt-5.4-mini",
+          "group": "thirdPartyService",
+          "weightSet": "strongQuality",
+          "runsCovered": 14,
+          "composite": 69.17129614861933,
+          "subscores": {
+            "quality": 63.27763322623823,
+            "speed": 91.72231871974351,
+            "cost": 93.76957695654392
+          },
+          "subscoreRunCounts": {
+            "quality": 14,
+            "speed": 14,
+            "cost": 14
+          },
+          "missingDimensions": []
+        },
+        {
+          "rank": 15,
+          "providerKey": "anthropic/claude-sonnet-5",
+          "provider": "anthropic",
+          "model": "claude-sonnet-5",
+          "display": "anthropic/claude-sonnet-5",
+          "group": "thirdPartyService",
+          "weightSet": "strongQuality",
+          "runsCovered": 14,
+          "composite": 68.82187339864241,
+          "subscores": {
+            "quality": 68.98238321094973,
+            "speed": 62.703150608409814,
+            "cost": 73.65651769041631
+          },
+          "subscoreRunCounts": {
+            "quality": 14,
+            "speed": 14,
+            "cost": 14
+          },
+          "missingDimensions": []
+        },
+        {
+          "rank": 16,
+          "providerKey": "deepinfra/Qwen/Qwen3-VL-30B-A3B-Instruct",
+          "provider": "deepinfra",
+          "model": "Qwen/Qwen3-VL-30B-A3B-Instruct",
+          "display": "deepinfra/Qwen/Qwen3-VL-30B-A3B-Instruct",
+          "group": "thirdPartyService",
+          "weightSet": "strongQuality",
+          "runsCovered": 14,
+          "composite": 68.57989981780406,
+          "subscores": {
+            "quality": 67.99234549632494,
+            "speed": 43.86750968258544,
+            "cost": 97.99272452485556
+          },
+          "subscoreRunCounts": {
+            "quality": 14,
+            "speed": 14,
+            "cost": 14
+          },
+          "missingDimensions": []
+        },
+        {
+          "rank": 17,
+          "providerKey": "anthropic/claude-haiku-4-5",
+          "provider": "anthropic",
+          "model": "claude-haiku-4-5",
+          "display": "anthropic/claude-haiku-4-5",
+          "group": "thirdPartyService",
+          "weightSet": "strongQuality",
+          "runsCovered": 14,
+          "composite": 66.9538470884341,
+          "subscores": {
+            "quality": 63.34159223561331,
+            "speed": 72.62013342061258,
+            "cost": 90.18559957882188
+          },
+          "subscoreRunCounts": {
+            "quality": 14,
+            "speed": 14,
+            "cost": 14
+          },
+          "missingDimensions": []
+        },
+        {
+          "rank": 18,
+          "providerKey": "glm/glm-ocr",
+          "provider": "glm",
+          "model": "glm-ocr",
+          "display": "glm/glm-ocr",
+          "group": "thirdPartyService",
+          "weightSet": "strongQuality",
+          "runsCovered": 14,
+          "composite": 59.03425020279327,
+          "subscores": {
+            "quality": 50.11019820780643,
+            "speed": 89.47482068092344,
+            "cost": 99.98609568455784
+          },
+          "subscoreRunCounts": {
+            "quality": 14,
+            "speed": 14,
+            "cost": 14
+          },
+          "missingDimensions": []
+        },
+        {
+          "rank": 19,
+          "providerKey": "openai/gpt-5.4-nano",
+          "provider": "openai",
+          "model": "gpt-5.4-nano",
+          "display": "openai/gpt-5.4-nano",
+          "group": "thirdPartyService",
+          "weightSet": "strongQuality",
+          "runsCovered": 14,
+          "composite": 56.19882206204077,
+          "subscores": {
+            "quality": 47.047275904913995,
+            "speed": 87.25468938887836,
+            "cost": 98.35532399221735
+          },
+          "subscoreRunCounts": {
+            "quality": 14,
+            "speed": 14,
+            "cost": 14
+          },
+          "missingDimensions": []
+        }
+      ],
+      "moderateQuality": [
+        {
+          "rank": 1,
+          "providerKey": "grok/grok-4.20-0309-non-reasoning",
+          "provider": "grok",
+          "model": "grok-4.20-0309-non-reasoning",
+          "display": "grok/grok-4.20-0309-non-reasoning",
+          "group": "thirdPartyService",
+          "weightSet": "moderateQuality",
+          "runsCovered": 14,
+          "composite": 88.784868982951,
+          "subscores": {
+            "quality": 84.71367669799177,
+            "speed": 97.65138042709194,
+            "cost": 92.1319343936877
+          },
+          "subscoreRunCounts": {
+            "quality": 14,
+            "speed": 14,
+            "cost": 14
+          },
+          "missingDimensions": []
+        },
+        {
+          "rank": 2,
+          "providerKey": "gemini/gemini-3.1-flash-lite-preview",
+          "provider": "gemini",
+          "model": "gemini-3.1-flash-lite-preview",
+          "display": "gemini/gemini-3.1-flash-lite-preview",
+          "group": "thirdPartyService",
+          "weightSet": "moderateQuality",
+          "runsCovered": 14,
+          "composite": 86.83260055684151,
+          "subscores": {
+            "quality": 80.42165260396753,
+            "speed": 94.9199891095809,
+            "cost": 97.9780558627241
+          },
+          "subscoreRunCounts": {
+            "quality": 14,
+            "speed": 14,
+            "cost": 14
+          },
+          "missingDimensions": []
+        },
+        {
+          "rank": 3,
+          "providerKey": "gemini/gemini-3.1-pro-preview",
+          "provider": "gemini",
+          "model": "gemini-3.1-pro-preview",
+          "display": "gemini/gemini-3.1-pro-preview",
+          "group": "thirdPartyService",
+          "weightSet": "moderateQuality",
+          "runsCovered": 14,
+          "composite": 83.66699041200485,
+          "subscores": {
+            "quality": 89.48428751495916,
+            "speed": 69.52478285375686,
+            "cost": 80.35730666138991
+          },
+          "subscoreRunCounts": {
+            "quality": 14,
+            "speed": 14,
+            "cost": 14
+          },
+          "missingDimensions": []
+        },
+        {
+          "rank": 4,
+          "providerKey": "mistral/mistral-ocr-4-0",
+          "provider": "mistral",
+          "model": "mistral-ocr-4-0",
+          "display": "mistral/mistral-ocr-4-0",
+          "group": "thirdPartyService",
+          "weightSet": "moderateQuality",
+          "runsCovered": 14,
+          "composite": 83.37408282473143,
+          "subscores": {
+            "quality": 77.10115337222751,
+            "speed": 96.7315436728021,
+            "cost": 88.83541033417245
+          },
+          "subscoreRunCounts": {
+            "quality": 14,
+            "speed": 14,
+            "cost": 14
+          },
+          "missingDimensions": []
+        },
+        {
+          "rank": 5,
+          "providerKey": "kimi/kimi-k2.6",
+          "provider": "kimi",
+          "model": "kimi-k2.6",
+          "display": "kimi/kimi-k2.6",
+          "group": "thirdPartyService",
+          "weightSet": "moderateQuality",
+          "runsCovered": 14,
+          "composite": 82.41300374328948,
+          "subscores": {
+            "quality": 91.55214955987695,
+            "speed": 47.69776321660263,
+            "cost": 89.71080682021386
+          },
+          "subscoreRunCounts": {
+            "quality": 14,
+            "speed": 14,
+            "cost": 14
+          },
+          "missingDimensions": []
+        },
+        {
+          "rank": 6,
+          "providerKey": "mistral/mistral-ocr-2512",
+          "provider": "mistral",
+          "model": "mistral-ocr-2512",
+          "display": "mistral/mistral-ocr-2512",
+          "group": "thirdPartyService",
+          "weightSet": "moderateQuality",
+          "runsCovered": 14,
+          "composite": 81.39254503890575,
+          "subscores": {
+            "quality": 71.20552582524441,
+            "speed": 98.84077419055309,
+            "cost": 94.50537352824244
+          },
+          "subscoreRunCounts": {
+            "quality": 14,
+            "speed": 14,
+            "cost": 14
+          },
+          "missingDimensions": []
+        },
+        {
+          "rank": 7,
+          "providerKey": "gemini/gemini-3.1-flash-lite",
+          "provider": "gemini",
+          "model": "gemini-3.1-flash-lite",
+          "display": "gemini/gemini-3.1-flash-lite",
+          "group": "thirdPartyService",
+          "weightSet": "moderateQuality",
+          "runsCovered": 14,
+          "composite": 80.68604235308092,
+          "subscores": {
+            "quality": 70.30645533690284,
+            "speed": 94.55048081053692,
+            "cost": 97.96036494415914
+          },
+          "subscoreRunCounts": {
+            "quality": 14,
+            "speed": 14,
+            "cost": 14
+          },
+          "missingDimensions": []
+        },
+        {
+          "rank": 8,
+          "providerKey": "grok/grok-4.3",
+          "provider": "grok",
+          "model": "grok-4.3",
+          "display": "grok/grok-4.3",
+          "group": "thirdPartyService",
+          "weightSet": "moderateQuality",
+          "runsCovered": 14,
+          "composite": 79.94777334551452,
+          "subscores": {
+            "quality": 85.34855883931615,
+            "speed": 51.682787003208425,
+            "cost": 92.01040320641575
+          },
+          "subscoreRunCounts": {
+            "quality": 14,
+            "speed": 14,
+            "cost": 14
+          },
+          "missingDimensions": []
+        },
+        {
+          "rank": 9,
+          "providerKey": "gemini/gemini-3.5-flash",
+          "provider": "gemini",
+          "model": "gemini-3.5-flash",
+          "display": "gemini/gemini-3.5-flash",
+          "group": "thirdPartyService",
+          "weightSet": "moderateQuality",
+          "runsCovered": 14,
+          "composite": 79.76327113782287,
+          "subscores": {
+            "quality": 88.06336935121213,
+            "speed": 49.275221247779356,
+            "cost": 85.35102638769857
+          },
+          "subscoreRunCounts": {
+            "quality": 14,
+            "speed": 14,
+            "cost": 14
+          },
+          "missingDimensions": []
+        },
+        {
+          "rank": 10,
+          "providerKey": "deepinfra/Qwen/Qwen3-VL-235B-A22B-Instruct",
+          "provider": "deepinfra",
+          "model": "Qwen/Qwen3-VL-235B-A22B-Instruct",
+          "display": "deepinfra/Qwen/Qwen3-VL-235B-A22B-Instruct",
+          "group": "thirdPartyService",
+          "weightSet": "moderateQuality",
+          "runsCovered": 14,
+          "composite": 79.75269349027184,
+          "subscores": {
+            "quality": 83.10317379753444,
+            "speed": 52.27658259652041,
+            "cost": 97.17736346223543
+          },
+          "subscoreRunCounts": {
+            "quality": 14,
+            "speed": 14,
+            "cost": 14
+          },
+          "missingDimensions": []
+        },
+        {
+          "rank": 11,
+          "providerKey": "anthropic/claude-sonnet-4-6",
+          "provider": "anthropic",
+          "model": "claude-sonnet-4-6",
+          "display": "anthropic/claude-sonnet-4-6",
+          "group": "thirdPartyService",
+          "weightSet": "moderateQuality",
+          "runsCovered": 12,
+          "composite": 76.37433815298549,
+          "subscores": {
+            "quality": 91.57056974987988,
+            "speed": 36.59646171057549,
+            "cost": 70.56351980471231
+          },
+          "subscoreRunCounts": {
+            "quality": 12,
+            "speed": 12,
+            "cost": 12
+          },
+          "missingDimensions": []
+        },
+        {
+          "rank": 12,
+          "providerKey": "openai/gpt-5.4-mini",
+          "provider": "openai",
+          "model": "gpt-5.4-mini",
+          "display": "openai/gpt-5.4-mini",
+          "group": "thirdPartyService",
+          "weightSet": "moderateQuality",
+          "runsCovered": 14,
+          "composite": 75.06495907100042,
+          "subscores": {
+            "quality": 63.27763322623823,
+            "speed": 91.72231871974351,
+            "cost": 93.76957695654392
+          },
+          "subscoreRunCounts": {
+            "quality": 14,
+            "speed": 14,
+            "cost": 14
+          },
+          "missingDimensions": []
+        },
+        {
+          "rank": 13,
+          "providerKey": "anthropic/claude-haiku-4-5",
+          "provider": "anthropic",
+          "model": "claude-haiku-4-5",
+          "display": "anthropic/claude-haiku-4-5",
+          "group": "thirdPartyService",
+          "weightSet": "moderateQuality",
+          "runsCovered": 14,
+          "composite": 70.56610194125489,
+          "subscores": {
+            "quality": 63.34159223561331,
+            "speed": 72.62013342061258,
+            "cost": 90.18559957882188
+          },
+          "subscoreRunCounts": {
+            "quality": 14,
+            "speed": 14,
+            "cost": 14
+          },
+          "missingDimensions": []
+        },
+        {
+          "rank": 14,
+          "providerKey": "deepinfra/Qwen/Qwen3-VL-30B-A3B-Instruct",
+          "provider": "deepinfra",
+          "model": "Qwen/Qwen3-VL-30B-A3B-Instruct",
+          "display": "deepinfra/Qwen/Qwen3-VL-30B-A3B-Instruct",
+          "group": "thirdPartyService",
+          "weightSet": "moderateQuality",
+          "runsCovered": 14,
+          "composite": 69.16745413928317,
+          "subscores": {
+            "quality": 67.99234549632494,
+            "speed": 43.86750968258544,
+            "cost": 97.99272452485556
+          },
+          "subscoreRunCounts": {
+            "quality": 14,
+            "speed": 14,
+            "cost": 14
+          },
+          "missingDimensions": []
+        },
+        {
+          "rank": 15,
+          "providerKey": "anthropic/claude-sonnet-5",
+          "provider": "anthropic",
+          "model": "claude-sonnet-5",
+          "display": "anthropic/claude-sonnet-5",
+          "group": "thirdPartyService",
+          "weightSet": "moderateQuality",
+          "runsCovered": 14,
+          "composite": 68.66136358633507,
+          "subscores": {
+            "quality": 68.98238321094973,
+            "speed": 62.703150608409814,
+            "cost": 73.65651769041631
+          },
+          "subscoreRunCounts": {
+            "quality": 14,
+            "speed": 14,
+            "cost": 14
+          },
+          "missingDimensions": []
+        },
+        {
+          "rank": 16,
+          "providerKey": "glm/glm-ocr",
+          "provider": "glm",
+          "model": "glm-ocr",
+          "display": "glm/glm-ocr",
+          "group": "thirdPartyService",
+          "weightSet": "moderateQuality",
+          "runsCovered": 14,
+          "composite": 67.95830219778011,
+          "subscores": {
+            "quality": 50.11019820780643,
+            "speed": 89.47482068092344,
+            "cost": 99.98609568455784
+          },
+          "subscoreRunCounts": {
+            "quality": 14,
+            "speed": 14,
+            "cost": 14
+          },
+          "missingDimensions": []
+        },
+        {
+          "rank": 17,
+          "providerKey": "anthropic/claude-opus-4-8",
+          "provider": "anthropic",
+          "model": "claude-opus-4-8",
+          "display": "anthropic/claude-opus-4-8",
+          "group": "thirdPartyService",
+          "weightSet": "moderateQuality",
+          "runsCovered": 13,
+          "composite": 67.65794372175927,
+          "subscores": {
+            "quality": 82.1727677681478,
+            "speed": 56.378007827832796,
+            "cost": 35.39340747652012
+          },
+          "subscoreRunCounts": {
+            "quality": 13,
+            "speed": 13,
+            "cost": 13
+          },
+          "missingDimensions": []
+        },
+        {
+          "rank": 18,
+          "providerKey": "openai/gpt-5.4-nano",
+          "provider": "openai",
+          "model": "gpt-5.4-nano",
+          "display": "openai/gpt-5.4-nano",
+          "group": "thirdPartyService",
+          "weightSet": "moderateQuality",
+          "runsCovered": 14,
+          "composite": 65.35036821916754,
+          "subscores": {
+            "quality": 47.047275904913995,
+            "speed": 87.25468938887836,
+            "cost": 98.35532399221735
+          },
+          "subscoreRunCounts": {
+            "quality": 14,
+            "speed": 14,
+            "cost": 14
+          },
+          "missingDimensions": []
+        },
+        {
+          "rank": 19,
+          "providerKey": "openai/gpt-5.5",
+          "provider": "openai",
+          "model": "gpt-5.5",
+          "display": "openai/gpt-5.5",
+          "group": "thirdPartyService",
+          "weightSet": "moderateQuality",
+          "runsCovered": 14,
+          "composite": 58.98106016955259,
+          "subscores": {
+            "quality": 80.93159331772338,
+            "speed": 42.46182750495642,
+            "cost": 9.648693389636419
+          },
+          "subscoreRunCounts": {
+            "quality": 14,
+            "speed": 14,
+            "cost": 14
+          },
+          "missingDimensions": []
+        }
+      ],
+      "strongSpeed": [
+        {
+          "rank": 1,
+          "providerKey": "grok/grok-4.20-0309-non-reasoning",
+          "provider": "grok",
+          "model": "grok-4.20-0309-non-reasoning",
+          "display": "grok/grok-4.20-0309-non-reasoning",
+          "group": "thirdPartyService",
+          "weightSet": "strongSpeed",
+          "runsCovered": 14,
+          "composite": 95.8056654508415,
+          "subscores": {
+            "quality": 84.71367669799177,
+            "speed": 97.65138042709194,
+            "cost": 92.1319343936877
+          },
+          "subscoreRunCounts": {
+            "quality": 14,
+            "speed": 14,
+            "cost": 14
+          },
+          "missingDimensions": []
+        },
+        {
+          "rank": 2,
+          "providerKey": "mistral/mistral-ocr-2512",
+          "provider": "mistral",
+          "model": "mistral-ocr-2512",
+          "display": "mistral/mistral-ocr-2512",
+          "group": "thirdPartyService",
+          "weightSet": "strongSpeed",
+          "runsCovered": 14,
+          "composite": 95.64370928779115,
+          "subscores": {
+            "quality": 71.20552582524441,
+            "speed": 98.84077419055309,
+            "cost": 94.50537352824244
+          },
+          "subscoreRunCounts": {
+            "quality": 14,
+            "speed": 14,
+            "cost": 14
+          },
+          "missingDimensions": []
+        },
+        {
+          "rank": 3,
+          "providerKey": "mistral/mistral-ocr-4-0",
+          "provider": "mistral",
+          "model": "mistral-ocr-4-0",
+          "display": "mistral/mistral-ocr-4-0",
+          "group": "thirdPartyService",
+          "weightSet": "strongSpeed",
+          "runsCovered": 14,
+          "composite": 93.97889130888169,
+          "subscores": {
+            "quality": 77.10115337222751,
+            "speed": 96.7315436728021,
+            "cost": 88.83541033417245
+          },
+          "subscoreRunCounts": {
+            "quality": 14,
+            "speed": 14,
+            "cost": 14
+          },
+          "missingDimensions": []
+        },
+        {
+          "rank": 4,
+          "providerKey": "gemini/gemini-3.1-flash-lite-preview",
+          "provider": "gemini",
+          "model": "gemini-3.1-flash-lite-preview",
+          "display": "gemini/gemini-3.1-flash-lite-preview",
+          "group": "thirdPartyService",
+          "weightSet": "strongSpeed",
+          "runsCovered": 14,
+          "composite": 93.7759621343339,
+          "subscores": {
+            "quality": 80.42165260396753,
+            "speed": 94.9199891095809,
+            "cost": 97.9780558627241
+          },
+          "subscoreRunCounts": {
+            "quality": 14,
+            "speed": 14,
+            "cost": 14
+          },
+          "missingDimensions": []
+        },
+        {
+          "rank": 5,
+          "providerKey": "gemini/gemini-3.1-flash-lite",
+          "provider": "gemini",
+          "model": "gemini-3.1-flash-lite",
+          "display": "gemini/gemini-3.1-flash-lite",
+          "group": "thirdPartyService",
+          "weightSet": "strongSpeed",
+          "runsCovered": 14,
+          "composite": 92.46706667653575,
+          "subscores": {
+            "quality": 70.30645533690284,
+            "speed": 94.55048081053692,
+            "cost": 97.96036494415914
+          },
+          "subscoreRunCounts": {
+            "quality": 14,
+            "speed": 14,
+            "cost": 14
+          },
+          "missingDimensions": []
+        },
+        {
+          "rank": 6,
+          "providerKey": "openai/gpt-5.4-mini",
+          "provider": "openai",
+          "model": "gpt-5.4-mini",
+          "display": "openai/gpt-5.4-mini",
+          "group": "thirdPartyService",
+          "weightSet": "strongSpeed",
+          "runsCovered": 14,
+          "composite": 89.08257599407304,
+          "subscores": {
+            "quality": 63.27763322623823,
+            "speed": 91.72231871974351,
+            "cost": 93.76957695654392
+          },
+          "subscoreRunCounts": {
+            "quality": 14,
+            "speed": 14,
+            "cost": 14
+          },
+          "missingDimensions": []
+        },
+        {
+          "rank": 7,
+          "providerKey": "glm/glm-ocr",
+          "provider": "glm",
+          "model": "glm-ocr",
+          "display": "glm/glm-ocr",
+          "group": "thirdPartyService",
+          "weightSet": "strongSpeed",
+          "runsCovered": 14,
+          "composite": 86.5894859339752,
+          "subscores": {
+            "quality": 50.11019820780643,
+            "speed": 89.47482068092344,
+            "cost": 99.98609568455784
+          },
+          "subscoreRunCounts": {
+            "quality": 14,
+            "speed": 14,
+            "cost": 14
+          },
+          "missingDimensions": []
+        },
+        {
+          "rank": 8,
+          "providerKey": "openai/gpt-5.4-nano",
+          "provider": "openai",
+          "model": "gpt-5.4-nano",
+          "display": "openai/gpt-5.4-nano",
+          "group": "thirdPartyService",
+          "weightSet": "strongSpeed",
+          "runsCovered": 14,
+          "composite": 84.34401150081582,
+          "subscores": {
+            "quality": 47.047275904913995,
+            "speed": 87.25468938887836,
+            "cost": 98.35532399221735
+          },
+          "subscoreRunCounts": {
+            "quality": 14,
+            "speed": 14,
+            "cost": 14
+          },
+          "missingDimensions": []
+        },
+        {
+          "rank": 9,
+          "providerKey": "anthropic/claude-haiku-4-5",
+          "provider": "anthropic",
+          "model": "claude-haiku-4-5",
+          "display": "anthropic/claude-haiku-4-5",
+          "group": "thirdPartyService",
+          "weightSet": "strongSpeed",
+          "runsCovered": 14,
+          "composite": 73.44882591793359,
+          "subscores": {
+            "quality": 63.34159223561331,
+            "speed": 72.62013342061258,
+            "cost": 90.18559957882188
+          },
+          "subscoreRunCounts": {
+            "quality": 14,
+            "speed": 14,
+            "cost": 14
+          },
+          "missingDimensions": []
+        },
+        {
+          "rank": 10,
+          "providerKey": "gemini/gemini-3.1-pro-preview",
+          "provider": "gemini",
+          "model": "gemini-3.1-pro-preview",
+          "display": "gemini/gemini-3.1-pro-preview",
+          "group": "thirdPartyService",
+          "weightSet": "strongSpeed",
+          "runsCovered": 14,
+          "composite": 72.6039857006404,
+          "subscores": {
+            "quality": 89.48428751495916,
+            "speed": 69.52478285375686,
+            "cost": 80.35730666138991
+          },
+          "subscoreRunCounts": {
+            "quality": 14,
+            "speed": 14,
+            "cost": 14
+          },
+          "missingDimensions": []
+        },
+        {
+          "rank": 11,
+          "providerKey": "anthropic/claude-sonnet-5",
+          "provider": "anthropic",
+          "model": "claude-sonnet-5",
+          "display": "anthropic/claude-sonnet-5",
+          "group": "thirdPartyService",
+          "weightSet": "strongSpeed",
+          "runsCovered": 14,
+          "composite": 64.42641057686446,
+          "subscores": {
+            "quality": 68.98238321094973,
+            "speed": 62.703150608409814,
+            "cost": 73.65651769041631
+          },
+          "subscoreRunCounts": {
+            "quality": 14,
+            "speed": 14,
+            "cost": 14
+          },
+          "missingDimensions": []
+        },
+        {
+          "rank": 12,
+          "providerKey": "deepinfra/Qwen/Qwen3-VL-235B-A22B-Instruct",
+          "provider": "deepinfra",
+          "model": "Qwen/Qwen3-VL-235B-A22B-Instruct",
+          "display": "deepinfra/Qwen/Qwen3-VL-235B-A22B-Instruct",
+          "group": "thirdPartyService",
+          "weightSet": "strongSpeed",
+          "runsCovered": 14,
+          "composite": 59.849319803193325,
+          "subscores": {
+            "quality": 83.10317379753444,
+            "speed": 52.27658259652041,
+            "cost": 97.17736346223543
+          },
+          "subscoreRunCounts": {
+            "quality": 14,
+            "speed": 14,
+            "cost": 14
+          },
+          "missingDimensions": []
+        },
+        {
+          "rank": 13,
+          "providerKey": "grok/grok-4.3",
+          "provider": "grok",
+          "model": "grok-4.3",
+          "display": "grok/grok-4.3",
+          "group": "thirdPartyService",
+          "weightSet": "strongSpeed",
+          "runsCovered": 14,
+          "composite": 59.08212580713994,
+          "subscores": {
+            "quality": 85.34855883931615,
+            "speed": 51.682787003208425,
+            "cost": 92.01040320641575
+          },
+          "subscoreRunCounts": {
+            "quality": 14,
+            "speed": 14,
+            "cost": 14
+          },
+          "missingDimensions": []
+        },
+        {
+          "rank": 14,
+          "providerKey": "anthropic/claude-opus-4-8",
+          "provider": "anthropic",
+          "model": "claude-opus-4-8",
+          "display": "anthropic/claude-opus-4-8",
+          "group": "thirdPartyService",
+          "weightSet": "strongSpeed",
+          "runsCovered": 13,
+          "composite": 56.85902378673304,
+          "subscores": {
+            "quality": 82.1727677681478,
+            "speed": 56.378007827832796,
+            "cost": 35.39340747652012
+          },
+          "subscoreRunCounts": {
+            "quality": 13,
+            "speed": 13,
+            "cost": 13
+          },
+          "missingDimensions": []
+        },
+        {
+          "rank": 15,
+          "providerKey": "gemini/gemini-3.5-flash",
+          "provider": "gemini",
+          "model": "gemini-3.5-flash",
+          "display": "gemini/gemini-3.5-flash",
+          "group": "thirdPartyService",
+          "weightSet": "strongSpeed",
+          "runsCovered": 14,
+          "composite": 56.76161657211456,
+          "subscores": {
+            "quality": 88.06336935121213,
+            "speed": 49.275221247779356,
+            "cost": 85.35102638769857
+          },
+          "subscoreRunCounts": {
+            "quality": 14,
+            "speed": 14,
+            "cost": 14
+          },
+          "missingDimensions": []
+        },
+        {
+          "rank": 16,
+          "providerKey": "kimi/kimi-k2.6",
+          "provider": "kimi",
+          "model": "kimi-k2.6",
+          "display": "kimi/kimi-k2.6",
+          "group": "thirdPartyService",
+          "weightSet": "strongSpeed",
+          "runsCovered": 14,
+          "composite": 56.28450621129119,
+          "subscores": {
+            "quality": 91.55214955987695,
+            "speed": 47.69776321660263,
+            "cost": 89.71080682021386
+          },
+          "subscoreRunCounts": {
+            "quality": 14,
+            "speed": 14,
+            "cost": 14
+          },
+          "missingDimensions": []
+        },
+        {
+          "rank": 17,
+          "providerKey": "deepinfra/Qwen/Qwen3-VL-30B-A3B-Instruct",
+          "provider": "deepinfra",
+          "model": "Qwen/Qwen3-VL-30B-A3B-Instruct",
+          "display": "deepinfra/Qwen/Qwen3-VL-30B-A3B-Instruct",
+          "group": "thirdPartyService",
+          "weightSet": "strongSpeed",
+          "runsCovered": 14,
+          "composite": 51.69251474818641,
+          "subscores": {
+            "quality": 67.99234549632494,
+            "speed": 43.86750968258544,
+            "cost": 97.99272452485556
+          },
+          "subscoreRunCounts": {
+            "quality": 14,
+            "speed": 14,
+            "cost": 14
+          },
+          "missingDimensions": []
+        },
+        {
+          "rank": 18,
+          "providerKey": "anthropic/claude-sonnet-4-6",
+          "provider": "anthropic",
+          "model": "claude-sonnet-4-6",
+          "display": "anthropic/claude-sonnet-4-6",
+          "group": "thirdPartyService",
+          "weightSet": "strongSpeed",
+          "runsCovered": 12,
+          "composite": 45.490578323919614,
+          "subscores": {
+            "quality": 91.57056974987988,
+            "speed": 36.59646171057549,
+            "cost": 70.56351980471231
+          },
+          "subscoreRunCounts": {
+            "quality": 12,
+            "speed": 12,
+            "cost": 12
+          },
+          "missingDimensions": []
+        },
+        {
+          "rank": 19,
+          "providerKey": "openai/gpt-5.5",
+          "provider": "openai",
+          "model": "gpt-5.5",
+          "display": "openai/gpt-5.5",
+          "group": "thirdPartyService",
+          "weightSet": "strongSpeed",
+          "runsCovered": 14,
+          "composite": 43.02749067470112,
+          "subscores": {
+            "quality": 80.93159331772338,
+            "speed": 42.46182750495642,
+            "cost": 9.648693389636419
+          },
+          "subscoreRunCounts": {
+            "quality": 14,
+            "speed": 14,
+            "cost": 14
+          },
+          "missingDimensions": []
+        }
+      ],
+      "moderateSpeed": [
+        {
+          "rank": 1,
+          "providerKey": "grok/grok-4.20-0309-non-reasoning",
+          "provider": "grok",
+          "model": "grok-4.20-0309-non-reasoning",
+          "display": "grok/grok-4.20-0309-non-reasoning",
+          "group": "thirdPartyService",
+          "weightSet": "moderateSpeed",
+          "runsCovered": 14,
+          "composite": 93.95995047459105,
+          "subscores": {
+            "quality": 84.71367669799177,
+            "speed": 97.65138042709194,
+            "cost": 92.1319343936877
+          },
+          "subscoreRunCounts": {
+            "quality": 14,
+            "speed": 14,
+            "cost": 14
+          },
+          "missingDimensions": []
+        },
+        {
+          "rank": 2,
+          "providerKey": "gemini/gemini-3.1-flash-lite-preview",
+          "provider": "gemini",
+          "model": "gemini-3.1-flash-lite-preview",
+          "display": "gemini/gemini-3.1-flash-lite-preview",
+          "group": "thirdPartyService",
+          "weightSet": "moderateSpeed",
+          "runsCovered": 14,
+          "composite": 92.63193515908686,
+          "subscores": {
+            "quality": 80.42165260396753,
+            "speed": 94.9199891095809,
+            "cost": 97.9780558627241
+          },
+          "subscoreRunCounts": {
+            "quality": 14,
+            "speed": 14,
+            "cost": 14
+          },
+          "missingDimensions": []
+        },
+        {
+          "rank": 3,
+          "providerKey": "mistral/mistral-ocr-2512",
+          "provider": "mistral",
+          "model": "mistral-ocr-2512",
+          "display": "mistral/mistral-ocr-2512",
+          "group": "thirdPartyService",
+          "weightSet": "moderateSpeed",
+          "runsCovered": 14,
+          "composite": 92.44664438502923,
+          "subscores": {
+            "quality": 71.20552582524441,
+            "speed": 98.84077419055309,
+            "cost": 94.50537352824244
+          },
+          "subscoreRunCounts": {
+            "quality": 14,
+            "speed": 14,
+            "cost": 14
+          },
+          "missingDimensions": []
+        },
+        {
+          "rank": 4,
+          "providerKey": "mistral/mistral-ocr-4-0",
+          "provider": "mistral",
+          "model": "mistral-ocr-4-0",
+          "display": "mistral/mistral-ocr-4-0",
+          "group": "thirdPartyService",
+          "weightSet": "moderateSpeed",
+          "runsCovered": 14,
+          "composite": 91.22623894496125,
+          "subscores": {
+            "quality": 77.10115337222751,
+            "speed": 96.7315436728021,
+            "cost": 88.83541033417245
+          },
+          "subscoreRunCounts": {
+            "quality": 14,
+            "speed": 14,
+            "cost": 14
+          },
+          "missingDimensions": []
+        },
+        {
+          "rank": 5,
+          "providerKey": "gemini/gemini-3.1-flash-lite",
+          "provider": "gemini",
+          "model": "gemini-3.1-flash-lite",
+          "display": "gemini/gemini-3.1-flash-lite",
+          "group": "thirdPartyService",
+          "weightSet": "moderateSpeed",
+          "runsCovered": 14,
+          "composite": 90.38365254253455,
+          "subscores": {
+            "quality": 70.30645533690284,
+            "speed": 94.55048081053692,
+            "cost": 97.96036494415914
+          },
+          "subscoreRunCounts": {
+            "quality": 14,
+            "speed": 14,
+            "cost": 14
+          },
+          "missingDimensions": []
+        },
+        {
+          "rank": 6,
+          "providerKey": "openai/gpt-5.4-mini",
+          "provider": "openai",
+          "model": "gpt-5.4-mini",
+          "display": "openai/gpt-5.4-mini",
+          "group": "thirdPartyService",
+          "weightSet": "moderateSpeed",
+          "runsCovered": 14,
+          "composite": 86.44283326840254,
+          "subscores": {
+            "quality": 63.27763322623823,
+            "speed": 91.72231871974351,
+            "cost": 93.76957695654392
+          },
+          "subscoreRunCounts": {
+            "quality": 14,
+            "speed": 14,
+            "cost": 14
+          },
+          "missingDimensions": []
+        },
+        {
+          "rank": 7,
+          "providerKey": "glm/glm-ocr",
+          "provider": "glm",
+          "model": "glm-ocr",
+          "display": "glm/glm-ocr",
+          "group": "thirdPartyService",
+          "weightSet": "moderateSpeed",
+          "runsCovered": 14,
+          "composite": 83.70415118702692,
+          "subscores": {
+            "quality": 50.11019820780643,
+            "speed": 89.47482068092344,
+            "cost": 99.98609568455784
+          },
+          "subscoreRunCounts": {
+            "quality": 14,
+            "speed": 14,
+            "cost": 14
+          },
+          "missingDimensions": []
+        },
+        {
+          "rank": 8,
+          "providerKey": "openai/gpt-5.4-nano",
+          "provider": "openai",
+          "model": "gpt-5.4-nano",
+          "display": "openai/gpt-5.4-nano",
+          "group": "thirdPartyService",
+          "weightSet": "moderateSpeed",
+          "runsCovered": 14,
+          "composite": 81.43333361275329,
+          "subscores": {
+            "quality": 47.047275904913995,
+            "speed": 87.25468938887836,
+            "cost": 98.35532399221735
+          },
+          "subscoreRunCounts": {
+            "quality": 14,
+            "speed": 14,
+            "cost": 14
+          },
+          "missingDimensions": []
+        },
+        {
+          "rank": 9,
+          "providerKey": "gemini/gemini-3.1-pro-preview",
+          "provider": "gemini",
+          "model": "gemini-3.1-pro-preview",
+          "display": "gemini/gemini-3.1-pro-preview",
+          "group": "thirdPartyService",
+          "weightSet": "moderateSpeed",
+          "runsCovered": 14,
+          "composite": 75.68318854752394,
+          "subscores": {
+            "quality": 89.48428751495916,
+            "speed": 69.52478285375686,
+            "cost": 80.35730666138991
+          },
+          "subscoreRunCounts": {
+            "quality": 14,
+            "speed": 14,
+            "cost": 14
+          },
+          "missingDimensions": []
+        },
+        {
+          "rank": 10,
+          "providerKey": "anthropic/claude-haiku-4-5",
+          "provider": "anthropic",
+          "model": "claude-haiku-4-5",
+          "display": "anthropic/claude-haiku-4-5",
+          "group": "thirdPartyService",
+          "weightSet": "moderateSpeed",
+          "runsCovered": 14,
+          "composite": 74.27751841525459,
+          "subscores": {
+            "quality": 63.34159223561331,
+            "speed": 72.62013342061258,
+            "cost": 90.18559957882188
+          },
+          "subscoreRunCounts": {
+            "quality": 14,
+            "speed": 14,
+            "cost": 14
+          },
+          "missingDimensions": []
+        },
+        {
+          "rank": 11,
+          "providerKey": "deepinfra/Qwen/Qwen3-VL-235B-A22B-Instruct",
+          "provider": "deepinfra",
+          "model": "Qwen/Qwen3-VL-235B-A22B-Instruct",
+          "display": "deepinfra/Qwen/Qwen3-VL-235B-A22B-Instruct",
+          "group": "thirdPartyService",
+          "weightSet": "moderateSpeed",
+          "runsCovered": 14,
+          "composite": 67.42205700986622,
+          "subscores": {
+            "quality": 83.10317379753444,
+            "speed": 52.27658259652041,
+            "cost": 97.17736346223543
+          },
+          "subscoreRunCounts": {
+            "quality": 14,
+            "speed": 14,
+            "cost": 14
+          },
+          "missingDimensions": []
+        },
+        {
+          "rank": 12,
+          "providerKey": "grok/grok-4.3",
+          "provider": "grok",
+          "model": "grok-4.3",
+          "display": "grok/grok-4.3",
+          "group": "thirdPartyService",
+          "weightSet": "moderateSpeed",
+          "runsCovered": 14,
+          "composite": 66.48146461107143,
+          "subscores": {
+            "quality": 85.34855883931615,
+            "speed": 51.682787003208425,
+            "cost": 92.01040320641575
+          },
+          "subscoreRunCounts": {
+            "quality": 14,
+            "speed": 14,
+            "cost": 14
+          },
+          "missingDimensions": []
+        },
+        {
+          "rank": 13,
+          "providerKey": "anthropic/claude-sonnet-5",
+          "provider": "anthropic",
+          "model": "claude-sonnet-5",
+          "display": "anthropic/claude-sonnet-5",
+          "group": "thirdPartyService",
+          "weightSet": "moderateSpeed",
+          "runsCovered": 14,
+          "composite": 66.1496705453191,
+          "subscores": {
+            "quality": 68.98238321094973,
+            "speed": 62.703150608409814,
+            "cost": 73.65651769041631
+          },
+          "subscoreRunCounts": {
+            "quality": 14,
+            "speed": 14,
+            "cost": 14
+          },
+          "missingDimensions": []
+        },
+        {
+          "rank": 14,
+          "providerKey": "kimi/kimi-k2.6",
+          "provider": "kimi",
+          "model": "kimi-k2.6",
+          "display": "kimi/kimi-k2.6",
+          "group": "thirdPartyService",
+          "weightSet": "moderateSpeed",
+          "runsCovered": 14,
+          "composite": 64.87124920597974,
+          "subscores": {
+            "quality": 91.55214955987695,
+            "speed": 47.69776321660263,
+            "cost": 89.71080682021386
+          },
+          "subscoreRunCounts": {
+            "quality": 14,
+            "speed": 14,
+            "cost": 14
+          },
+          "missingDimensions": []
+        },
+        {
+          "rank": 15,
+          "providerKey": "gemini/gemini-3.5-flash",
+          "provider": "gemini",
+          "model": "gemini-3.5-flash",
+          "display": "gemini/gemini-3.5-flash",
+          "group": "thirdPartyService",
+          "weightSet": "moderateSpeed",
+          "runsCovered": 14,
+          "composite": 64.24801189644975,
+          "subscores": {
+            "quality": 88.06336935121213,
+            "speed": 49.275221247779356,
+            "cost": 85.35102638769857
+          },
+          "subscoreRunCounts": {
+            "quality": 14,
+            "speed": 14,
+            "cost": 14
+          },
+          "missingDimensions": []
+        },
+        {
+          "rank": 16,
+          "providerKey": "deepinfra/Qwen/Qwen3-VL-30B-A3B-Instruct",
+          "provider": "deepinfra",
+          "model": "Qwen/Qwen3-VL-30B-A3B-Instruct",
+          "display": "deepinfra/Qwen/Qwen3-VL-30B-A3B-Instruct",
+          "group": "thirdPartyService",
+          "weightSet": "moderateSpeed",
+          "runsCovered": 14,
+          "composite": 59.517519813787366,
+          "subscores": {
+            "quality": 67.99234549632494,
+            "speed": 43.86750968258544,
+            "cost": 97.99272452485556
+          },
+          "subscoreRunCounts": {
+            "quality": 14,
+            "speed": 14,
+            "cost": 14
+          },
+          "missingDimensions": []
+        },
+        {
+          "rank": 17,
+          "providerKey": "anthropic/claude-opus-4-8",
+          "provider": "anthropic",
+          "model": "claude-opus-4-8",
+          "display": "anthropic/claude-opus-4-8",
+          "group": "thirdPartyService",
+          "weightSet": "moderateSpeed",
+          "runsCovered": 13,
+          "composite": 57.34003974563326,
+          "subscores": {
+            "quality": 82.1727677681478,
+            "speed": 56.378007827832796,
+            "cost": 35.39340747652012
+          },
+          "subscoreRunCounts": {
+            "quality": 13,
+            "speed": 13,
+            "cost": 13
+          },
+          "missingDimensions": []
+        },
+        {
+          "rank": 18,
+          "providerKey": "anthropic/claude-sonnet-4-6",
+          "provider": "anthropic",
+          "model": "claude-sonnet-4-6",
+          "display": "anthropic/claude-sonnet-4-6",
+          "group": "thirdPartyService",
+          "weightSet": "moderateSpeed",
+          "runsCovered": 12,
+          "composite": 54.38469493726373,
+          "subscores": {
+            "quality": 91.57056974987988,
+            "speed": 36.59646171057549,
+            "cost": 70.56351980471231
+          },
+          "subscoreRunCounts": {
+            "quality": 12,
+            "speed": 12,
+            "cost": 12
+          },
+          "missingDimensions": []
+        },
+        {
+          "rank": 19,
+          "providerKey": "openai/gpt-5.5",
+          "provider": "openai",
+          "model": "gpt-5.5",
+          "display": "openai/gpt-5.5",
+          "group": "thirdPartyService",
+          "weightSet": "moderateSpeed",
+          "runsCovered": 14,
+          "composite": 43.593153844445816,
+          "subscores": {
+            "quality": 80.93159331772338,
+            "speed": 42.46182750495642,
+            "cost": 9.648693389636419
+          },
+          "subscoreRunCounts": {
+            "quality": 14,
+            "speed": 14,
+            "cost": 14
+          },
+          "missingDimensions": []
+        }
+      ],
+      "strongCost": [
+        {
+          "rank": 1,
+          "providerKey": "gemini/gemini-3.1-flash-lite-preview",
+          "provider": "gemini",
+          "model": "gemini-3.1-flash-lite-preview",
+          "display": "gemini/gemini-3.1-flash-lite-preview",
+          "group": "thirdPartyService",
+          "weightSet": "strongCost",
+          "runsCovered": 14,
+          "composite": 95.91660886153413,
+          "subscores": {
+            "quality": 80.42165260396753,
+            "speed": 94.9199891095809,
+            "cost": 97.9780558627241
+          },
+          "subscoreRunCounts": {
+            "quality": 14,
+            "speed": 14,
+            "cost": 14
+          },
+          "missingDimensions": []
+        },
+        {
+          "rank": 2,
+          "providerKey": "gemini/gemini-3.1-flash-lite",
+          "provider": "gemini",
+          "model": "gemini-3.1-flash-lite",
+          "display": "gemini/gemini-3.1-flash-lite",
+          "group": "thirdPartyService",
+          "weightSet": "strongCost",
+          "runsCovered": 14,
+          "composite": 94.8539855700713,
+          "subscores": {
+            "quality": 70.30645533690284,
+            "speed": 94.55048081053692,
+            "cost": 97.96036494415914
+          },
+          "subscoreRunCounts": {
+            "quality": 14,
+            "speed": 14,
+            "cost": 14
+          },
+          "missingDimensions": []
+        },
+        {
+          "rank": 3,
+          "providerKey": "glm/glm-ocr",
+          "provider": "glm",
+          "model": "glm-ocr",
+          "display": "glm/glm-ocr",
+          "group": "thirdPartyService",
+          "weightSet": "strongCost",
+          "runsCovered": 14,
+          "composite": 93.94737843651926,
+          "subscores": {
+            "quality": 50.11019820780643,
+            "speed": 89.47482068092344,
+            "cost": 99.98609568455784
+          },
+          "subscoreRunCounts": {
+            "quality": 14,
+            "speed": 14,
+            "cost": 14
+          },
+          "missingDimensions": []
+        },
+        {
+          "rank": 4,
+          "providerKey": "mistral/mistral-ocr-2512",
+          "provider": "mistral",
+          "model": "mistral-ocr-2512",
+          "display": "mistral/mistral-ocr-2512",
+          "group": "thirdPartyService",
+          "weightSet": "strongCost",
+          "runsCovered": 14,
+          "composite": 92.60892882417372,
+          "subscores": {
+            "quality": 71.20552582524441,
+            "speed": 98.84077419055309,
+            "cost": 94.50537352824244
+          },
+          "subscoreRunCounts": {
+            "quality": 14,
+            "speed": 14,
+            "cost": 14
+          },
+          "missingDimensions": []
+        },
+        {
+          "rank": 5,
+          "providerKey": "openai/gpt-5.4-nano",
+          "provider": "openai",
+          "model": "gpt-5.4-nano",
+          "display": "openai/gpt-5.4-nano",
+          "group": "thirdPartyService",
+          "weightSet": "strongCost",
+          "runsCovered": 14,
+          "composite": 92.11445572315311,
+          "subscores": {
+            "quality": 47.047275904913995,
+            "speed": 87.25468938887836,
+            "cost": 98.35532399221735
+          },
+          "subscoreRunCounts": {
+            "quality": 14,
+            "speed": 14,
+            "cost": 14
+          },
+          "missingDimensions": []
+        },
+        {
+          "rank": 6,
+          "providerKey": "grok/grok-4.20-0309-non-reasoning",
+          "provider": "grok",
+          "model": "grok-4.20-0309-non-reasoning",
+          "display": "grok/grok-4.20-0309-non-reasoning",
+          "group": "thirdPartyService",
+          "weightSet": "strongCost",
+          "runsCovered": 14,
+          "composite": 91.94205322745854,
+          "subscores": {
+            "quality": 84.71367669799177,
+            "speed": 97.65138042709194,
+            "cost": 92.1319343936877
+          },
+          "subscoreRunCounts": {
+            "quality": 14,
+            "speed": 14,
+            "cost": 14
+          },
+          "missingDimensions": []
+        },
+        {
+          "rank": 7,
+          "providerKey": "deepinfra/Qwen/Qwen3-VL-235B-A22B-Instruct",
+          "provider": "deepinfra",
+          "model": "Qwen/Qwen3-VL-235B-A22B-Instruct",
+          "display": "deepinfra/Qwen/Qwen3-VL-235B-A22B-Instruct",
+          "group": "thirdPartyService",
+          "weightSet": "strongCost",
+          "runsCovered": 14,
+          "composite": 91.27986640919384,
+          "subscores": {
+            "quality": 83.10317379753444,
+            "speed": 52.27658259652041,
+            "cost": 97.17736346223543
+          },
+          "subscoreRunCounts": {
+            "quality": 14,
+            "speed": 14,
+            "cost": 14
+          },
+          "missingDimensions": []
+        },
+        {
+          "rank": 8,
+          "providerKey": "openai/gpt-5.4-mini",
+          "provider": "openai",
+          "model": "gpt-5.4-mini",
+          "display": "openai/gpt-5.4-mini",
+          "group": "thirdPartyService",
+          "weightSet": "strongCost",
+          "runsCovered": 14,
+          "composite": 90.5156567598333,
+          "subscores": {
+            "quality": 63.27763322623823,
+            "speed": 91.72231871974351,
+            "cost": 93.76957695654392
+          },
+          "subscoreRunCounts": {
+            "quality": 14,
+            "speed": 14,
+            "cost": 14
+          },
+          "missingDimensions": []
+        },
+        {
+          "rank": 9,
+          "providerKey": "deepinfra/Qwen/Qwen3-VL-30B-A3B-Instruct",
+          "provider": "deepinfra",
+          "model": "Qwen/Qwen3-VL-30B-A3B-Instruct",
+          "display": "deepinfra/Qwen/Qwen3-VL-30B-A3B-Instruct",
+          "group": "thirdPartyService",
+          "weightSet": "strongCost",
+          "runsCovered": 14,
+          "composite": 89.5801651377755,
+          "subscores": {
+            "quality": 67.99234549632494,
+            "speed": 43.86750968258544,
+            "cost": 97.99272452485556
+          },
+          "subscoreRunCounts": {
+            "quality": 14,
+            "speed": 14,
+            "cost": 14
+          },
+          "missingDimensions": []
+        },
+        {
+          "rank": 10,
+          "providerKey": "mistral/mistral-ocr-4-0",
+          "provider": "mistral",
+          "model": "mistral-ocr-4-0",
+          "display": "mistral/mistral-ocr-4-0",
+          "group": "thirdPartyService",
+          "weightSet": "strongCost",
+          "runsCovered": 14,
+          "composite": 88.45159797184093,
+          "subscores": {
+            "quality": 77.10115337222751,
+            "speed": 96.7315436728021,
+            "cost": 88.83541033417245
+          },
+          "subscoreRunCounts": {
+            "quality": 14,
+            "speed": 14,
+            "cost": 14
+          },
+          "missingDimensions": []
+        },
+        {
+          "rank": 11,
+          "providerKey": "grok/grok-4.3",
+          "provider": "grok",
+          "model": "grok-4.3",
+          "display": "grok/grok-4.3",
+          "group": "thirdPartyService",
+          "weightSet": "strongCost",
+          "runsCovered": 14,
+          "composite": 87.31145714938506,
+          "subscores": {
+            "quality": 85.34855883931615,
+            "speed": 51.682787003208425,
+            "cost": 92.01040320641575
+          },
+          "subscoreRunCounts": {
+            "quality": 14,
+            "speed": 14,
+            "cost": 14
+          },
+          "missingDimensions": []
+        },
+        {
+          "rank": 12,
+          "providerKey": "anthropic/claude-haiku-4-5",
+          "provider": "anthropic",
+          "model": "claude-haiku-4-5",
+          "display": "anthropic/claude-haiku-4-5",
+          "group": "thirdPartyService",
+          "weightSet": "strongCost",
+          "runsCovered": 14,
+          "composite": 85.7446522286801,
+          "subscores": {
+            "quality": 63.34159223561331,
+            "speed": 72.62013342061258,
+            "cost": 90.18559957882188
+          },
+          "subscoreRunCounts": {
+            "quality": 14,
+            "speed": 14,
+            "cost": 14
+          },
+          "missingDimensions": []
+        },
+        {
+          "rank": 13,
+          "providerKey": "kimi/kimi-k2.6",
+          "provider": "kimi",
+          "model": "kimi-k2.6",
+          "display": "kimi/kimi-k2.6",
+          "group": "thirdPartyService",
+          "weightSet": "strongCost",
+          "runsCovered": 14,
+          "composite": 85.69363673381905,
+          "subscores": {
+            "quality": 91.55214955987695,
+            "speed": 47.69776321660263,
+            "cost": 89.71080682021386
+          },
+          "subscoreRunCounts": {
+            "quality": 14,
+            "speed": 14,
+            "cost": 14
+          },
+          "missingDimensions": []
+        },
+        {
+          "rank": 14,
+          "providerKey": "gemini/gemini-3.5-flash",
+          "provider": "gemini",
+          "model": "gemini-3.5-flash",
+          "display": "gemini/gemini-3.5-flash",
+          "group": "thirdPartyService",
+          "weightSet": "strongCost",
+          "runsCovered": 14,
+          "composite": 82.014680170058,
+          "subscores": {
+            "quality": 88.06336935121213,
+            "speed": 49.275221247779356,
+            "cost": 85.35102638769857
+          },
+          "subscoreRunCounts": {
+            "quality": 14,
+            "speed": 14,
+            "cost": 14
+          },
+          "missingDimensions": []
+        },
+        {
+          "rank": 15,
+          "providerKey": "gemini/gemini-3.1-pro-preview",
+          "provider": "gemini",
+          "model": "gemini-3.1-pro-preview",
+          "display": "gemini/gemini-3.1-pro-preview",
+          "group": "thirdPartyService",
+          "weightSet": "strongCost",
+          "runsCovered": 14,
+          "composite": 80.18675236598354,
+          "subscores": {
+            "quality": 89.48428751495916,
+            "speed": 69.52478285375686,
+            "cost": 80.35730666138991
+          },
+          "subscoreRunCounts": {
+            "quality": 14,
+            "speed": 14,
+            "cost": 14
+          },
+          "missingDimensions": []
+        },
+        {
+          "rank": 16,
+          "providerKey": "anthropic/claude-sonnet-5",
+          "provider": "anthropic",
+          "model": "claude-sonnet-5",
+          "display": "anthropic/claude-sonnet-5",
+          "group": "thirdPartyService",
+          "weightSet": "strongCost",
+          "runsCovered": 14,
+          "composite": 72.093767534269,
+          "subscores": {
+            "quality": 68.98238321094973,
+            "speed": 62.703150608409814,
+            "cost": 73.65651769041631
+          },
+          "subscoreRunCounts": {
+            "quality": 14,
+            "speed": 14,
+            "cost": 14
+          },
+          "missingDimensions": []
+        },
+        {
+          "rank": 17,
+          "providerKey": "anthropic/claude-sonnet-4-6",
+          "provider": "anthropic",
+          "model": "claude-sonnet-4-6",
+          "display": "anthropic/claude-sonnet-4-6",
+          "group": "thirdPartyService",
+          "weightSet": "strongCost",
+          "runsCovered": 12,
+          "composite": 69.26751898981539,
+          "subscores": {
+            "quality": 91.57056974987988,
+            "speed": 36.59646171057549,
+            "cost": 70.56351980471231
+          },
+          "subscoreRunCounts": {
+            "quality": 12,
+            "speed": 12,
+            "cost": 12
+          },
+          "missingDimensions": []
+        },
+        {
+          "rank": 18,
+          "providerKey": "anthropic/claude-opus-4-8",
+          "provider": "anthropic",
+          "model": "claude-opus-4-8",
+          "display": "anthropic/claude-opus-4-8",
+          "group": "thirdPartyService",
+          "weightSet": "strongCost",
+          "runsCovered": 13,
+          "composite": 42.16980354081416,
+          "subscores": {
+            "quality": 82.1727677681478,
+            "speed": 56.378007827832796,
+            "cost": 35.39340747652012
+          },
+          "subscoreRunCounts": {
+            "quality": 13,
+            "speed": 13,
+            "cost": 13
+          },
+          "missingDimensions": []
+        },
+        {
+          "rank": 19,
+          "providerKey": "openai/gpt-5.5",
+          "provider": "openai",
+          "model": "gpt-5.5",
+          "display": "openai/gpt-5.5",
+          "group": "thirdPartyService",
+          "weightSet": "strongCost",
+          "runsCovered": 14,
+          "composite": 20.058296793977117,
+          "subscores": {
+            "quality": 80.93159331772338,
+            "speed": 42.46182750495642,
+            "cost": 9.648693389636419
+          },
+          "subscoreRunCounts": {
+            "quality": 14,
+            "speed": 14,
+            "cost": 14
+          },
+          "missingDimensions": []
+        }
+      ],
+      "moderateCost": [
+        {
+          "rank": 1,
+          "providerKey": "gemini/gemini-3.1-flash-lite-preview",
+          "provider": "gemini",
+          "model": "gemini-3.1-flash-lite-preview",
+          "display": "gemini/gemini-3.1-flash-lite-preview",
+          "group": "thirdPartyService",
+          "weightSet": "moderateCost",
+          "runsCovered": 14,
+          "composite": 93.85516186034415,
+          "subscores": {
+            "quality": 80.42165260396753,
+            "speed": 94.9199891095809,
+            "cost": 97.9780558627241
+          },
+          "subscoreRunCounts": {
+            "quality": 14,
+            "speed": 14,
+            "cost": 14
+          },
+          "missingDimensions": []
+        },
+        {
+          "rank": 2,
+          "providerKey": "grok/grok-4.20-0309-non-reasoning",
+          "provider": "grok",
+          "model": "grok-4.20-0309-non-reasoning",
+          "display": "grok/grok-4.20-0309-non-reasoning",
+          "group": "thirdPartyService",
+          "weightSet": "moderateCost",
+          "runsCovered": 14,
+          "composite": 91.75217206122936,
+          "subscores": {
+            "quality": 84.71367669799177,
+            "speed": 97.65138042709194,
+            "cost": 92.1319343936877
+          },
+          "subscoreRunCounts": {
+            "quality": 14,
+            "speed": 14,
+            "cost": 14
+          },
+          "missingDimensions": []
+        },
+        {
+          "rank": 3,
+          "providerKey": "gemini/gemini-3.1-flash-lite",
+          "provider": "gemini",
+          "model": "gemini-3.1-flash-lite",
+          "display": "gemini/gemini-3.1-flash-lite",
+          "group": "thirdPartyService",
+          "weightSet": "moderateCost",
+          "runsCovered": 14,
+          "composite": 91.74760619598344,
+          "subscores": {
+            "quality": 70.30645533690284,
+            "speed": 94.55048081053692,
+            "cost": 97.96036494415914
+          },
+          "subscoreRunCounts": {
+            "quality": 14,
+            "speed": 14,
+            "cost": 14
+          },
+          "missingDimensions": []
+        },
+        {
+          "rank": 4,
+          "providerKey": "mistral/mistral-ocr-2512",
+          "provider": "mistral",
+          "model": "mistral-ocr-2512",
+          "display": "mistral/mistral-ocr-2512",
+          "group": "thirdPartyService",
+          "weightSet": "moderateCost",
+          "runsCovered": 14,
+          "composite": 90.71248412010496,
+          "subscores": {
+            "quality": 71.20552582524441,
+            "speed": 98.84077419055309,
+            "cost": 94.50537352824244
+          },
+          "subscoreRunCounts": {
+            "quality": 14,
+            "speed": 14,
+            "cost": 14
+          },
+          "missingDimensions": []
+        },
+        {
+          "rank": 5,
+          "providerKey": "mistral/mistral-ocr-4-0",
+          "provider": "mistral",
+          "model": "mistral-ocr-4-0",
+          "display": "mistral/mistral-ocr-4-0",
+          "group": "thirdPartyService",
+          "weightSet": "moderateCost",
+          "runsCovered": 14,
+          "composite": 88.0677856095094,
+          "subscores": {
+            "quality": 77.10115337222751,
+            "speed": 96.7315436728021,
+            "cost": 88.83541033417245
+          },
+          "subscoreRunCounts": {
+            "quality": 14,
+            "speed": 14,
+            "cost": 14
+          },
+          "missingDimensions": []
+        },
+        {
+          "rank": 6,
+          "providerKey": "glm/glm-ocr",
+          "provider": "glm",
+          "model": "glm-ocr",
+          "display": "glm/glm-ocr",
+          "group": "thirdPartyService",
+          "weightSet": "moderateCost",
+          "runsCovered": 14,
+          "composite": 87.90866118848068,
+          "subscores": {
+            "quality": 50.11019820780643,
+            "speed": 89.47482068092344,
+            "cost": 99.98609568455784
+          },
+          "subscoreRunCounts": {
+            "quality": 14,
+            "speed": 14,
+            "cost": 14
+          },
+          "missingDimensions": []
+        },
+        {
+          "rank": 7,
+          "providerKey": "openai/gpt-5.4-mini",
+          "provider": "openai",
+          "model": "gpt-5.4-mini",
+          "display": "openai/gpt-5.4-mini",
+          "group": "thirdPartyService",
+          "weightSet": "moderateCost",
+          "runsCovered": 14,
+          "composite": 87.2617365631227,
+          "subscores": {
+            "quality": 63.27763322623823,
+            "speed": 91.72231871974351,
+            "cost": 93.76957695654392
+          },
+          "subscoreRunCounts": {
+            "quality": 14,
+            "speed": 14,
+            "cost": 14
+          },
+          "missingDimensions": []
+        },
+        {
+          "rank": 8,
+          "providerKey": "openai/gpt-5.4-nano",
+          "provider": "openai",
+          "model": "gpt-5.4-nano",
+          "display": "openai/gpt-5.4-nano",
+          "group": "thirdPartyService",
+          "weightSet": "moderateCost",
+          "runsCovered": 14,
+          "composite": 85.87358745408888,
+          "subscores": {
+            "quality": 47.047275904913995,
+            "speed": 87.25468938887836,
+            "cost": 98.35532399221735
+          },
+          "subscoreRunCounts": {
+            "quality": 14,
+            "speed": 14,
+            "cost": 14
+          },
+          "missingDimensions": []
+        },
+        {
+          "rank": 9,
+          "providerKey": "deepinfra/Qwen/Qwen3-VL-235B-A22B-Instruct",
+          "provider": "deepinfra",
+          "model": "Qwen/Qwen3-VL-235B-A22B-Instruct",
+          "display": "deepinfra/Qwen/Qwen3-VL-235B-A22B-Instruct",
+          "group": "thirdPartyService",
+          "weightSet": "moderateCost",
+          "runsCovered": 14,
+          "composite": 85.38236935615222,
+          "subscores": {
+            "quality": 83.10317379753444,
+            "speed": 52.27658259652041,
+            "cost": 97.17736346223543
+          },
+          "subscoreRunCounts": {
+            "quality": 14,
+            "speed": 14,
+            "cost": 14
+          },
+          "missingDimensions": []
+        },
+        {
+          "rank": 10,
+          "providerKey": "grok/grok-4.3",
+          "provider": "grok",
+          "model": "grok-4.3",
+          "display": "grok/grok-4.3",
+          "group": "thirdPartyService",
+          "weightSet": "moderateCost",
+          "runsCovered": 14,
+          "composite": 82.61251109235437,
+          "subscores": {
+            "quality": 85.34855883931615,
+            "speed": 51.682787003208425,
+            "cost": 92.01040320641575
+          },
+          "subscoreRunCounts": {
+            "quality": 14,
+            "speed": 14,
+            "cost": 14
+          },
+          "missingDimensions": []
+        },
+        {
+          "rank": 11,
+          "providerKey": "kimi/kimi-k2.6",
+          "provider": "kimi",
+          "model": "kimi-k2.6",
+          "display": "kimi/kimi-k2.6",
+          "group": "thirdPartyService",
+          "weightSet": "moderateCost",
+          "runsCovered": 14,
+          "composite": 81.67646664742423,
+          "subscores": {
+            "quality": 91.55214955987695,
+            "speed": 47.69776321660263,
+            "cost": 89.71080682021386
+          },
+          "subscoreRunCounts": {
+            "quality": 14,
+            "speed": 14,
+            "cost": 14
+          },
+          "missingDimensions": []
+        },
+        {
+          "rank": 12,
+          "providerKey": "anthropic/claude-haiku-4-5",
+          "provider": "anthropic",
+          "model": "claude-haiku-4-5",
+          "display": "anthropic/claude-haiku-4-5",
+          "group": "thirdPartyService",
+          "weightSet": "moderateCost",
+          "runsCovered": 14,
+          "composite": 81.30370487853831,
+          "subscores": {
+            "quality": 63.34159223561331,
+            "speed": 72.62013342061258,
+            "cost": 90.18559957882188
+          },
+          "subscoreRunCounts": {
+            "quality": 14,
+            "speed": 14,
+            "cost": 14
+          },
+          "missingDimensions": []
+        },
+        {
+          "rank": 13,
+          "providerKey": "deepinfra/Qwen/Qwen3-VL-30B-A3B-Instruct",
+          "provider": "deepinfra",
+          "model": "Qwen/Qwen3-VL-30B-A3B-Instruct",
+          "display": "deepinfra/Qwen/Qwen3-VL-30B-A3B-Instruct",
+          "group": "thirdPartyService",
+          "weightSet": "moderateCost",
+          "runsCovered": 14,
+          "composite": 81.16760575069542,
+          "subscores": {
+            "quality": 67.99234549632494,
+            "speed": 43.86750968258544,
+            "cost": 97.99272452485556
+          },
+          "subscoreRunCounts": {
+            "quality": 14,
+            "speed": 14,
+            "cost": 14
+          },
+          "missingDimensions": []
+        },
+        {
+          "rank": 14,
+          "providerKey": "gemini/gemini-3.1-pro-preview",
+          "provider": "gemini",
+          "model": "gemini-3.1-pro-preview",
+          "display": "gemini/gemini-3.1-pro-preview",
+          "group": "thirdPartyService",
+          "weightSet": "moderateCost",
+          "runsCovered": 14,
+          "composite": 80.01619807057715,
+          "subscores": {
+            "quality": 89.48428751495916,
+            "speed": 69.52478285375686,
+            "cost": 80.35730666138991
+          },
+          "subscoreRunCounts": {
+            "quality": 14,
+            "speed": 14,
+            "cost": 14
+          },
+          "missingDimensions": []
+        },
+        {
+          "rank": 15,
+          "providerKey": "gemini/gemini-3.5-flash",
+          "provider": "gemini",
+          "model": "gemini-3.5-flash",
+          "display": "gemini/gemini-3.5-flash",
+          "group": "thirdPartyService",
+          "weightSet": "moderateCost",
+          "runsCovered": 14,
+          "composite": 78.67833395241743,
+          "subscores": {
+            "quality": 88.06336935121213,
+            "speed": 49.275221247779356,
+            "cost": 85.35102638769857
+          },
+          "subscoreRunCounts": {
+            "quality": 14,
+            "speed": 14,
+            "cost": 14
+          },
+          "missingDimensions": []
+        },
+        {
+          "rank": 16,
+          "providerKey": "anthropic/claude-sonnet-5",
+          "provider": "anthropic",
+          "model": "claude-sonnet-5",
+          "display": "anthropic/claude-sonnet-5",
+          "group": "thirdPartyService",
+          "weightSet": "moderateCost",
+          "runsCovered": 14,
+          "composite": 70.53101737812169,
+          "subscores": {
+            "quality": 68.98238321094973,
+            "speed": 62.703150608409814,
+            "cost": 73.65651769041631
+          },
+          "subscoreRunCounts": {
+            "quality": 14,
+            "speed": 14,
+            "cost": 14
+          },
+          "missingDimensions": []
+        },
+        {
+          "rank": 17,
+          "providerKey": "anthropic/claude-sonnet-4-6",
+          "provider": "anthropic",
+          "model": "claude-sonnet-4-6",
+          "display": "anthropic/claude-sonnet-4-6",
+          "group": "thirdPartyService",
+          "weightSet": "moderateCost",
+          "runsCovered": 12,
+          "composite": 67.97151817491846,
+          "subscores": {
+            "quality": 91.57056974987988,
+            "speed": 36.59646171057549,
+            "cost": 70.56351980471231
+          },
+          "subscoreRunCounts": {
+            "quality": 12,
+            "speed": 12,
+            "cost": 12
+          },
+          "missingDimensions": []
+        },
+        {
+          "rank": 18,
+          "providerKey": "anthropic/claude-opus-4-8",
+          "provider": "anthropic",
+          "model": "claude-opus-4-8",
+          "display": "anthropic/claude-opus-4-8",
+          "group": "thirdPartyService",
+          "weightSet": "moderateCost",
+          "runsCovered": 13,
+          "composite": 48.94619960510819,
+          "subscores": {
+            "quality": 82.1727677681478,
+            "speed": 56.378007827832796,
+            "cost": 35.39340747652012
+          },
+          "subscoreRunCounts": {
+            "quality": 13,
+            "speed": 13,
+            "cost": 13
+          },
+          "missingDimensions": []
+        },
+        {
+          "rank": 19,
+          "providerKey": "openai/gpt-5.5",
+          "provider": "openai",
+          "model": "gpt-5.5",
+          "display": "openai/gpt-5.5",
+          "group": "thirdPartyService",
+          "weightSet": "moderateCost",
+          "runsCovered": 14,
+          "composite": 30.467900198317814,
+          "subscores": {
+            "quality": 80.93159331772338,
+            "speed": 42.46182750495642,
+            "cost": 9.648693389636419
+          },
+          "subscoreRunCounts": {
+            "quality": 14,
+            "speed": 14,
+            "cost": 14
+          },
+          "missingDimensions": []
+        }
+      ],
+      "qualityCost": [
+        {
+          "rank": 1,
+          "providerKey": "gemini/gemini-3.1-flash-lite-preview",
+          "provider": "gemini",
+          "model": "gemini-3.1-flash-lite-preview",
+          "display": "gemini/gemini-3.1-flash-lite-preview",
+          "group": "thirdPartyService",
+          "weightSet": "qualityCost",
+          "runsCovered": 14,
+          "composite": 89.77186772096933,
+          "subscores": {
+            "quality": 80.42165260396753,
+            "speed": 94.9199891095809,
+            "cost": 97.9780558627241
+          },
+          "subscoreRunCounts": {
+            "quality": 14,
+            "speed": 14,
+            "cost": 14
+          },
+          "missingDimensions": []
+        },
+        {
+          "rank": 2,
+          "providerKey": "grok/grok-4.20-0309-non-reasoning",
+          "provider": "grok",
+          "model": "grok-4.20-0309-non-reasoning",
+          "display": "grok/grok-4.20-0309-non-reasoning",
+          "group": "thirdPartyService",
+          "weightSet": "qualityCost",
+          "runsCovered": 14,
+          "composite": 89.34566303396497,
+          "subscores": {
+            "quality": 84.71367669799177,
+            "speed": 97.65138042709194,
+            "cost": 92.1319343936877
+          },
+          "subscoreRunCounts": {
+            "quality": 14,
+            "speed": 14,
+            "cost": 14
+          },
+          "missingDimensions": []
+        },
+        {
+          "rank": 3,
+          "providerKey": "deepinfra/Qwen/Qwen3-VL-235B-A22B-Instruct",
+          "provider": "deepinfra",
+          "model": "Qwen/Qwen3-VL-235B-A22B-Instruct",
+          "display": "deepinfra/Qwen/Qwen3-VL-235B-A22B-Instruct",
+          "group": "thirdPartyService",
+          "weightSet": "qualityCost",
+          "runsCovered": 14,
+          "composite": 86.35390002654849,
+          "subscores": {
+            "quality": 83.10317379753444,
+            "speed": 52.27658259652041,
+            "cost": 97.17736346223543
+          },
+          "subscoreRunCounts": {
+            "quality": 14,
+            "speed": 14,
+            "cost": 14
+          },
+          "missingDimensions": []
+        },
+        {
+          "rank": 4,
+          "providerKey": "kimi/kimi-k2.6",
+          "provider": "kimi",
+          "model": "kimi-k2.6",
+          "display": "kimi/kimi-k2.6",
+          "group": "thirdPartyService",
+          "weightSet": "qualityCost",
+          "runsCovered": 14,
+          "composite": 86.33810669270113,
+          "subscores": {
+            "quality": 91.55214955987695,
+            "speed": 47.69776321660263,
+            "cost": 89.71080682021386
+          },
+          "subscoreRunCounts": {
+            "quality": 14,
+            "speed": 14,
+            "cost": 14
+          },
+          "missingDimensions": []
+        },
+        {
+          "rank": 5,
+          "providerKey": "gemini/gemini-3.1-flash-lite",
+          "provider": "gemini",
+          "model": "gemini-3.1-flash-lite",
+          "display": "gemini/gemini-3.1-flash-lite",
+          "group": "thirdPartyService",
+          "weightSet": "qualityCost",
+          "runsCovered": 14,
+          "composite": 85.17511720753158,
+          "subscores": {
+            "quality": 70.30645533690284,
+            "speed": 94.55048081053692,
+            "cost": 97.96036494415914
+          },
+          "subscoreRunCounts": {
+            "quality": 14,
+            "speed": 14,
+            "cost": 14
+          },
+          "missingDimensions": []
+        },
+        {
+          "rank": 6,
+          "providerKey": "grok/grok-4.3",
+          "provider": "grok",
+          "model": "grok-4.3",
+          "display": "grok/grok-4.3",
+          "group": "thirdPartyService",
+          "weightSet": "qualityCost",
+          "runsCovered": 14,
+          "composite": 84.9798116209002,
+          "subscores": {
+            "quality": 85.34855883931615,
+            "speed": 51.682787003208425,
+            "cost": 92.01040320641575
+          },
+          "subscoreRunCounts": {
+            "quality": 14,
+            "speed": 14,
+            "cost": 14
+          },
+          "missingDimensions": []
+        },
+        {
+          "rank": 7,
+          "providerKey": "mistral/mistral-ocr-2512",
+          "provider": "mistral",
+          "model": "mistral-ocr-2512",
+          "display": "mistral/mistral-ocr-2512",
+          "group": "thirdPartyService",
+          "weightSet": "qualityCost",
+          "runsCovered": 14,
+          "composite": 84.4539821281244,
+          "subscores": {
+            "quality": 71.20552582524441,
+            "speed": 98.84077419055309,
+            "cost": 94.50537352824244
+          },
+          "subscoreRunCounts": {
+            "quality": 14,
+            "speed": 14,
+            "cost": 14
+          },
+          "missingDimensions": []
+        },
+        {
+          "rank": 8,
+          "providerKey": "mistral/mistral-ocr-4-0",
+          "provider": "mistral",
+          "model": "mistral-ocr-4-0",
+          "display": "mistral/mistral-ocr-4-0",
+          "group": "thirdPartyService",
+          "weightSet": "qualityCost",
+          "runsCovered": 14,
+          "composite": 84.3446080351602,
+          "subscores": {
+            "quality": 77.10115337222751,
+            "speed": 96.7315436728021,
+            "cost": 88.83541033417245
+          },
+          "subscoreRunCounts": {
+            "quality": 14,
+            "speed": 14,
+            "cost": 14
+          },
+          "missingDimensions": []
+        },
+        {
+          "rank": 9,
+          "providerKey": "gemini/gemini-3.1-pro-preview",
+          "provider": "gemini",
+          "model": "gemini-3.1-pro-preview",
+          "display": "gemini/gemini-3.1-pro-preview",
+          "group": "thirdPartyService",
+          "weightSet": "qualityCost",
+          "runsCovered": 14,
+          "composite": 83.38119566473277,
+          "subscores": {
+            "quality": 89.48428751495916,
+            "speed": 69.52478285375686,
+            "cost": 80.35730666138991
+          },
+          "subscoreRunCounts": {
+            "quality": 14,
+            "speed": 14,
+            "cost": 14
+          },
+          "missingDimensions": []
+        },
+        {
+          "rank": 10,
+          "providerKey": "gemini/gemini-3.5-flash",
+          "provider": "gemini",
+          "model": "gemini-3.5-flash",
+          "display": "gemini/gemini-3.5-flash",
+          "group": "thirdPartyService",
+          "weightSet": "qualityCost",
+          "runsCovered": 14,
+          "composite": 82.96400020728775,
+          "subscores": {
+            "quality": 88.06336935121213,
+            "speed": 49.275221247779356,
+            "cost": 85.35102638769857
+          },
+          "subscoreRunCounts": {
+            "quality": 14,
+            "speed": 14,
+            "cost": 14
+          },
+          "missingDimensions": []
+        },
+        {
+          "rank": 11,
+          "providerKey": "openai/gpt-5.4-mini",
+          "provider": "openai",
+          "model": "gpt-5.4-mini",
+          "display": "openai/gpt-5.4-mini",
+          "group": "thirdPartyService",
+          "weightSet": "qualityCost",
+          "runsCovered": 14,
+          "composite": 79.84347645422632,
+          "subscores": {
+            "quality": 63.27763322623823,
+            "speed": 91.72231871974351,
+            "cost": 93.76957695654392
+          },
+          "subscoreRunCounts": {
+            "quality": 14,
+            "speed": 14,
+            "cost": 14
+          },
+          "missingDimensions": []
+        },
+        {
+          "rank": 12,
+          "providerKey": "deepinfra/Qwen/Qwen3-VL-30B-A3B-Instruct",
+          "provider": "deepinfra",
+          "model": "Qwen/Qwen3-VL-30B-A3B-Instruct",
+          "display": "deepinfra/Qwen/Qwen3-VL-30B-A3B-Instruct",
+          "group": "thirdPartyService",
+          "weightSet": "qualityCost",
+          "runsCovered": 14,
+          "composite": 79.08003247778977,
+          "subscores": {
+            "quality": 67.99234549632494,
+            "speed": 43.86750968258544,
+            "cost": 97.99272452485556
+          },
+          "subscoreRunCounts": {
+            "quality": 14,
+            "speed": 14,
+            "cost": 14
+          },
+          "missingDimensions": []
+        },
+        {
+          "rank": 13,
+          "providerKey": "anthropic/claude-sonnet-4-6",
+          "provider": "anthropic",
+          "model": "claude-sonnet-4-6",
+          "display": "anthropic/claude-sonnet-4-6",
+          "group": "thirdPartyService",
+          "weightSet": "qualityCost",
+          "runsCovered": 12,
+          "composite": 76.61998647062404,
+          "subscores": {
+            "quality": 91.57056974987988,
+            "speed": 36.59646171057549,
+            "cost": 70.56351980471231
+          },
+          "subscoreRunCounts": {
+            "quality": 12,
+            "speed": 12,
+            "cost": 12
+          },
+          "missingDimensions": []
+        },
+        {
+          "rank": 14,
+          "providerKey": "glm/glm-ocr",
+          "provider": "glm",
+          "model": "glm-ocr",
+          "display": "glm/glm-ocr",
+          "group": "thirdPartyService",
+          "weightSet": "qualityCost",
+          "runsCovered": 14,
+          "composite": 76.49081431965627,
+          "subscores": {
+            "quality": 50.11019820780643,
+            "speed": 89.47482068092344,
+            "cost": 99.98609568455784
+          },
+          "subscoreRunCounts": {
+            "quality": 14,
+            "speed": 14,
+            "cost": 14
+          },
+          "missingDimensions": []
+        },
+        {
+          "rank": 15,
+          "providerKey": "anthropic/claude-haiku-4-5",
+          "provider": "anthropic",
+          "model": "claude-haiku-4-5",
+          "display": "anthropic/claude-haiku-4-5",
+          "group": "thirdPartyService",
+          "weightSet": "qualityCost",
+          "runsCovered": 14,
+          "composite": 76.34924965855708,
+          "subscores": {
+            "quality": 63.34159223561331,
+            "speed": 72.62013342061258,
+            "cost": 90.18559957882188
+          },
+          "subscoreRunCounts": {
+            "quality": 14,
+            "speed": 14,
+            "cost": 14
+          },
+          "missingDimensions": []
+        },
+        {
+          "rank": 16,
+          "providerKey": "openai/gpt-5.4-nano",
+          "provider": "openai",
+          "model": "gpt-5.4-nano",
+          "display": "openai/gpt-5.4-nano",
+          "group": "thirdPartyService",
+          "weightSet": "qualityCost",
+          "runsCovered": 14,
+          "composite": 74.15663889259694,
+          "subscores": {
+            "quality": 47.047275904913995,
+            "speed": 87.25468938887836,
+            "cost": 98.35532399221735
+          },
+          "subscoreRunCounts": {
+            "quality": 14,
+            "speed": 14,
+            "cost": 14
+          },
+          "missingDimensions": []
+        },
+        {
+          "rank": 17,
+          "providerKey": "anthropic/claude-sonnet-5",
+          "provider": "anthropic",
+          "model": "claude-sonnet-5",
+          "display": "anthropic/claude-sonnet-5",
+          "group": "thirdPartyService",
+          "weightSet": "qualityCost",
+          "runsCovered": 14,
+          "composite": 70.4578204664557,
+          "subscores": {
+            "quality": 68.98238321094973,
+            "speed": 62.703150608409814,
+            "cost": 73.65651769041631
+          },
+          "subscoreRunCounts": {
+            "quality": 14,
+            "speed": 14,
+            "cost": 14
+          },
+          "missingDimensions": []
+        },
+        {
+          "rank": 18,
+          "providerKey": "anthropic/claude-opus-4-8",
+          "provider": "anthropic",
+          "model": "claude-opus-4-8",
+          "display": "anthropic/claude-opus-4-8",
+          "group": "thirdPartyService",
+          "weightSet": "qualityCost",
+          "runsCovered": 13,
+          "composite": 58.542579642883844,
+          "subscores": {
+            "quality": 82.1727677681478,
+            "speed": 56.378007827832796,
+            "cost": 35.39340747652012
+          },
+          "subscoreRunCounts": {
+            "quality": 13,
+            "speed": 13,
+            "cost": 13
+          },
+          "missingDimensions": []
+        },
+        {
+          "rank": 19,
+          "providerKey": "openai/gpt-5.5",
+          "provider": "openai",
+          "model": "gpt-5.5",
+          "display": "openai/gpt-5.5",
+          "group": "thirdPartyService",
+          "weightSet": "qualityCost",
+          "runsCovered": 14,
+          "composite": 45.007311768807554,
+          "subscores": {
+            "quality": 80.93159331772338,
+            "speed": 42.46182750495642,
+            "cost": 9.648693389636419
+          },
+          "subscoreRunCounts": {
+            "quality": 14,
+            "speed": 14,
+            "cost": 14
+          },
+          "missingDimensions": []
+        }
+      ],
+      "costSpeed": [
+        {
+          "rank": 1,
+          "providerKey": "gemini/gemini-3.1-flash-lite-preview",
+          "provider": "gemini",
+          "model": "gemini-3.1-flash-lite-preview",
+          "display": "gemini/gemini-3.1-flash-lite-preview",
+          "group": "thirdPartyService",
+          "weightSet": "costSpeed",
+          "runsCovered": 14,
+          "composite": 94.84628549793402,
+          "subscores": {
+            "quality": 80.42165260396753,
+            "speed": 94.9199891095809,
+            "cost": 97.9780558627241
+          },
+          "subscoreRunCounts": {
+            "quality": 14,
+            "speed": 14,
+            "cost": 14
+          },
+          "missingDimensions": []
+        },
+        {
+          "rank": 2,
+          "providerKey": "mistral/mistral-ocr-2512",
+          "provider": "mistral",
+          "model": "mistral-ocr-2512",
+          "display": "mistral/mistral-ocr-2512",
+          "group": "thirdPartyService",
+          "weightSet": "costSpeed",
+          "runsCovered": 14,
+          "composite": 94.12631905598244,
+          "subscores": {
+            "quality": 71.20552582524441,
+            "speed": 98.84077419055309,
+            "cost": 94.50537352824244
+          },
+          "subscoreRunCounts": {
+            "quality": 14,
+            "speed": 14,
+            "cost": 14
+          },
+          "missingDimensions": []
+        },
+        {
+          "rank": 3,
+          "providerKey": "grok/grok-4.20-0309-non-reasoning",
+          "provider": "grok",
+          "model": "grok-4.20-0309-non-reasoning",
+          "display": "grok/grok-4.20-0309-non-reasoning",
+          "group": "thirdPartyService",
+          "weightSet": "costSpeed",
+          "runsCovered": 14,
+          "composite": 93.87385933915002,
+          "subscores": {
+            "quality": 84.71367669799177,
+            "speed": 97.65138042709194,
+            "cost": 92.1319343936877
+          },
+          "subscoreRunCounts": {
+            "quality": 14,
+            "speed": 14,
+            "cost": 14
+          },
+          "missingDimensions": []
+        },
+        {
+          "rank": 4,
+          "providerKey": "gemini/gemini-3.1-flash-lite",
+          "provider": "gemini",
+          "model": "gemini-3.1-flash-lite",
+          "display": "gemini/gemini-3.1-flash-lite",
+          "group": "thirdPartyService",
+          "weightSet": "costSpeed",
+          "runsCovered": 14,
+          "composite": 93.66052612330351,
+          "subscores": {
+            "quality": 70.30645533690284,
+            "speed": 94.55048081053692,
+            "cost": 97.96036494415914
+          },
+          "subscoreRunCounts": {
+            "quality": 14,
+            "speed": 14,
+            "cost": 14
+          },
+          "missingDimensions": []
+        },
+        {
+          "rank": 5,
+          "providerKey": "mistral/mistral-ocr-4-0",
+          "provider": "mistral",
+          "model": "mistral-ocr-4-0",
+          "display": "mistral/mistral-ocr-4-0",
+          "group": "thirdPartyService",
+          "weightSet": "costSpeed",
+          "runsCovered": 14,
+          "composite": 91.2152446403613,
+          "subscores": {
+            "quality": 77.10115337222751,
+            "speed": 96.7315436728021,
+            "cost": 88.83541033417245
+          },
+          "subscoreRunCounts": {
+            "quality": 14,
+            "speed": 14,
+            "cost": 14
+          },
+          "missingDimensions": []
+        },
+        {
+          "rank": 6,
+          "providerKey": "glm/glm-ocr",
+          "provider": "glm",
+          "model": "glm-ocr",
+          "display": "glm/glm-ocr",
+          "group": "thirdPartyService",
+          "weightSet": "costSpeed",
+          "runsCovered": 14,
+          "composite": 90.26843218524724,
+          "subscores": {
+            "quality": 50.11019820780643,
+            "speed": 89.47482068092344,
+            "cost": 99.98609568455784
+          },
+          "subscoreRunCounts": {
+            "quality": 14,
+            "speed": 14,
+            "cost": 14
+          },
+          "missingDimensions": []
+        },
+        {
+          "rank": 7,
+          "providerKey": "openai/gpt-5.4-mini",
+          "provider": "openai",
+          "model": "gpt-5.4-mini",
+          "display": "openai/gpt-5.4-mini",
+          "group": "thirdPartyService",
+          "weightSet": "costSpeed",
+          "runsCovered": 14,
+          "composite": 89.79911637695318,
+          "subscores": {
+            "quality": 63.27763322623823,
+            "speed": 91.72231871974351,
+            "cost": 93.76957695654392
+          },
+          "subscoreRunCounts": {
+            "quality": 14,
+            "speed": 14,
+            "cost": 14
+          },
+          "missingDimensions": []
+        },
+        {
+          "rank": 8,
+          "providerKey": "openai/gpt-5.4-nano",
+          "provider": "openai",
+          "model": "gpt-5.4-nano",
+          "display": "openai/gpt-5.4-nano",
+          "group": "thirdPartyService",
+          "weightSet": "costSpeed",
+          "runsCovered": 14,
+          "composite": 88.22923361198448,
+          "subscores": {
+            "quality": 47.047275904913995,
+            "speed": 87.25468938887836,
+            "cost": 98.35532399221735
+          },
+          "subscoreRunCounts": {
+            "quality": 14,
+            "speed": 14,
+            "cost": 14
+          },
+          "missingDimensions": []
+        },
+        {
+          "rank": 9,
+          "providerKey": "anthropic/claude-haiku-4-5",
+          "provider": "anthropic",
+          "model": "claude-haiku-4-5",
+          "display": "anthropic/claude-haiku-4-5",
+          "group": "thirdPartyService",
+          "weightSet": "costSpeed",
+          "runsCovered": 14,
+          "composite": 79.59673907330684,
+          "subscores": {
+            "quality": 63.34159223561331,
+            "speed": 72.62013342061258,
+            "cost": 90.18559957882188
+          },
+          "subscoreRunCounts": {
+            "quality": 14,
+            "speed": 14,
+            "cost": 14
+          },
+          "missingDimensions": []
+        },
+        {
+          "rank": 10,
+          "providerKey": "gemini/gemini-3.1-pro-preview",
+          "provider": "gemini",
+          "model": "gemini-3.1-pro-preview",
+          "display": "gemini/gemini-3.1-pro-preview",
+          "group": "thirdPartyService",
+          "weightSet": "costSpeed",
+          "runsCovered": 14,
+          "composite": 76.39536903331197,
+          "subscores": {
+            "quality": 89.48428751495916,
+            "speed": 69.52478285375686,
+            "cost": 80.35730666138991
+          },
+          "subscoreRunCounts": {
+            "quality": 14,
+            "speed": 14,
+            "cost": 14
+          },
+          "missingDimensions": []
+        },
+        {
+          "rank": 11,
+          "providerKey": "deepinfra/Qwen/Qwen3-VL-235B-A22B-Instruct",
+          "provider": "deepinfra",
+          "model": "Qwen/Qwen3-VL-235B-A22B-Instruct",
+          "display": "deepinfra/Qwen/Qwen3-VL-235B-A22B-Instruct",
+          "group": "thirdPartyService",
+          "weightSet": "costSpeed",
+          "runsCovered": 14,
+          "composite": 75.56459310619357,
+          "subscores": {
+            "quality": 83.10317379753444,
+            "speed": 52.27658259652041,
+            "cost": 97.17736346223543
+          },
+          "subscoreRunCounts": {
+            "quality": 14,
+            "speed": 14,
+            "cost": 14
+          },
+          "missingDimensions": []
+        },
+        {
+          "rank": 12,
+          "providerKey": "grok/grok-4.3",
+          "provider": "grok",
+          "model": "grok-4.3",
+          "display": "grok/grok-4.3",
+          "group": "thirdPartyService",
+          "weightSet": "costSpeed",
+          "runsCovered": 14,
+          "composite": 73.1967914782625,
+          "subscores": {
+            "quality": 85.34855883931615,
+            "speed": 51.682787003208425,
+            "cost": 92.01040320641575
+          },
+          "subscoreRunCounts": {
+            "quality": 14,
+            "speed": 14,
+            "cost": 14
+          },
+          "missingDimensions": []
+        },
+        {
+          "rank": 13,
+          "providerKey": "kimi/kimi-k2.6",
+          "provider": "kimi",
+          "model": "kimi-k2.6",
+          "display": "kimi/kimi-k2.6",
+          "group": "thirdPartyService",
+          "weightSet": "costSpeed",
+          "runsCovered": 14,
+          "composite": 70.98907147255512,
+          "subscores": {
+            "quality": 91.55214955987695,
+            "speed": 47.69776321660263,
+            "cost": 89.71080682021386
+          },
+          "subscoreRunCounts": {
+            "quality": 14,
+            "speed": 14,
+            "cost": 14
+          },
+          "missingDimensions": []
+        },
+        {
+          "rank": 14,
+          "providerKey": "deepinfra/Qwen/Qwen3-VL-30B-A3B-Instruct",
+          "provider": "deepinfra",
+          "model": "Qwen/Qwen3-VL-30B-A3B-Instruct",
+          "display": "deepinfra/Qwen/Qwen3-VL-30B-A3B-Instruct",
+          "group": "thirdPartyService",
+          "weightSet": "costSpeed",
+          "runsCovered": 14,
+          "composite": 70.63633994298095,
+          "subscores": {
+            "quality": 67.99234549632494,
+            "speed": 43.86750968258544,
+            "cost": 97.99272452485556
+          },
+          "subscoreRunCounts": {
+            "quality": 14,
+            "speed": 14,
+            "cost": 14
+          },
+          "missingDimensions": []
+        },
+        {
+          "rank": 15,
+          "providerKey": "gemini/gemini-3.5-flash",
+          "provider": "gemini",
+          "model": "gemini-3.5-flash",
+          "display": "gemini/gemini-3.5-flash",
+          "group": "thirdPartyService",
+          "weightSet": "costSpeed",
+          "runsCovered": 14,
+          "composite": 69.38814837108629,
+          "subscores": {
+            "quality": 88.06336935121213,
+            "speed": 49.275221247779356,
+            "cost": 85.35102638769857
+          },
+          "subscoreRunCounts": {
+            "quality": 14,
+            "speed": 14,
+            "cost": 14
+          },
+          "missingDimensions": []
+        },
+        {
+          "rank": 16,
+          "providerKey": "anthropic/claude-sonnet-5",
+          "provider": "anthropic",
+          "model": "claude-sonnet-5",
+          "display": "anthropic/claude-sonnet-5",
+          "group": "thirdPartyService",
+          "weightSet": "costSpeed",
+          "runsCovered": 14,
+          "composite": 68.26008905556674,
+          "subscores": {
+            "quality": 68.98238321094973,
+            "speed": 62.703150608409814,
+            "cost": 73.65651769041631
+          },
+          "subscoreRunCounts": {
+            "quality": 14,
+            "speed": 14,
+            "cost": 14
+          },
+          "missingDimensions": []
+        },
+        {
+          "rank": 17,
+          "providerKey": "anthropic/claude-sonnet-4-6",
+          "provider": "anthropic",
+          "model": "claude-sonnet-4-6",
+          "display": "anthropic/claude-sonnet-4-6",
+          "group": "thirdPartyService",
+          "weightSet": "costSpeed",
+          "runsCovered": 12,
+          "composite": 57.379048656867504,
+          "subscores": {
+            "quality": 91.57056974987988,
+            "speed": 36.59646171057549,
+            "cost": 70.56351980471231
+          },
+          "subscoreRunCounts": {
+            "quality": 12,
+            "speed": 12,
+            "cost": 12
+          },
+          "missingDimensions": []
+        },
+        {
+          "rank": 18,
+          "providerKey": "anthropic/claude-opus-4-8",
+          "provider": "anthropic",
+          "model": "claude-opus-4-8",
+          "display": "anthropic/claude-opus-4-8",
+          "group": "thirdPartyService",
+          "weightSet": "costSpeed",
+          "runsCovered": 13,
+          "composite": 49.514413663773595,
+          "subscores": {
+            "quality": 82.1727677681478,
+            "speed": 56.378007827832796,
+            "cost": 35.39340747652012
+          },
+          "subscoreRunCounts": {
+            "quality": 13,
+            "speed": 13,
+            "cost": 13
+          },
+          "missingDimensions": []
+        },
+        {
+          "rank": 19,
+          "providerKey": "openai/gpt-5.5",
+          "provider": "openai",
+          "model": "gpt-5.5",
+          "display": "openai/gpt-5.5",
+          "group": "thirdPartyService",
+          "weightSet": "costSpeed",
+          "runsCovered": 14,
+          "composite": 31.542893734339113,
+          "subscores": {
+            "quality": 80.93159331772338,
+            "speed": 42.46182750495642,
+            "cost": 9.648693389636419
+          },
+          "subscoreRunCounts": {
+            "quality": 14,
+            "speed": 14,
+            "cost": 14
+          },
+          "missingDimensions": []
+        }
+      ]
+    }
+  },
+  "tiering": {
+    "local": {
+      "method": "quality-cost-terciles-v1",
+      "ranking": "qualityCost",
+      "providerCount": 3,
+      "tieBreak": "composite-desc, quality-subscore-desc, providerKey-asc",
+      "tiers": [
+        {
+          "tier": 1,
+          "label": "Tier 1",
+          "description": "Highest quality-cost tercile (rank 1).",
+          "count": 1,
+          "providers": [
+            {
+              "providerKey": "tesseract/tesseract",
+              "provider": "tesseract",
+              "model": "tesseract",
+              "display": "tesseract/tesseract",
+              "qualityCostRank": 1,
+              "qualityCostComposite": 83.92089260331258
+            }
+          ]
+        },
+        {
+          "tier": 2,
+          "label": "Tier 2",
+          "description": "Middle quality-cost tercile (rank 2).",
+          "count": 1,
+          "providers": [
+            {
+              "providerKey": "ocrmypdf/ocrmypdf",
+              "provider": "ocrmypdf",
+              "model": "ocrmypdf",
+              "display": "ocrmypdf/ocrmypdf",
+              "qualityCostRank": 2,
+              "qualityCostComposite": 75.71332951844822
+            }
+          ]
+        },
+        {
+          "tier": 3,
+          "label": "Tier 3",
+          "description": "Lower quality-cost tercile (rank 3).",
+          "count": 1,
+          "providers": [
+            {
+              "providerKey": "paddle-ocr/paddle-ocr",
+              "provider": "paddle-ocr",
+              "model": "paddle-ocr",
+              "display": "paddle-ocr/paddle-ocr",
+              "qualityCostRank": 3,
+              "qualityCostComposite": 69.64285714285714
+            }
+          ]
+        }
+      ]
+    },
+    "thirdPartyService": {
+      "method": "quality-cost-terciles-v1",
+      "ranking": "qualityCost",
+      "providerCount": 19,
+      "tieBreak": "composite-desc, quality-subscore-desc, providerKey-asc",
+      "tiers": [
+        {
+          "tier": 1,
+          "label": "Tier 1",
+          "description": "Highest quality-cost tercile (ranks 1-7).",
+          "count": 7,
+          "providers": [
+            {
+              "providerKey": "gemini/gemini-3.1-flash-lite-preview",
+              "provider": "gemini",
+              "model": "gemini-3.1-flash-lite-preview",
+              "display": "gemini/gemini-3.1-flash-lite-preview",
+              "qualityCostRank": 1,
+              "qualityCostComposite": 89.77186772096933
+            },
+            {
+              "providerKey": "grok/grok-4.20-0309-non-reasoning",
+              "provider": "grok",
+              "model": "grok-4.20-0309-non-reasoning",
+              "display": "grok/grok-4.20-0309-non-reasoning",
+              "qualityCostRank": 2,
+              "qualityCostComposite": 89.34566303396497
+            },
+            {
+              "providerKey": "deepinfra/Qwen/Qwen3-VL-235B-A22B-Instruct",
+              "provider": "deepinfra",
+              "model": "Qwen/Qwen3-VL-235B-A22B-Instruct",
+              "display": "deepinfra/Qwen/Qwen3-VL-235B-A22B-Instruct",
+              "qualityCostRank": 3,
+              "qualityCostComposite": 86.35390002654849
+            },
+            {
+              "providerKey": "kimi/kimi-k2.6",
+              "provider": "kimi",
+              "model": "kimi-k2.6",
+              "display": "kimi/kimi-k2.6",
+              "qualityCostRank": 4,
+              "qualityCostComposite": 86.33810669270113
+            },
+            {
+              "providerKey": "gemini/gemini-3.1-flash-lite",
+              "provider": "gemini",
+              "model": "gemini-3.1-flash-lite",
+              "display": "gemini/gemini-3.1-flash-lite",
+              "qualityCostRank": 5,
+              "qualityCostComposite": 85.17511720753158
+            },
+            {
+              "providerKey": "grok/grok-4.3",
+              "provider": "grok",
+              "model": "grok-4.3",
+              "display": "grok/grok-4.3",
+              "qualityCostRank": 6,
+              "qualityCostComposite": 84.9798116209002
+            },
+            {
+              "providerKey": "mistral/mistral-ocr-2512",
+              "provider": "mistral",
+              "model": "mistral-ocr-2512",
+              "display": "mistral/mistral-ocr-2512",
+              "qualityCostRank": 7,
+              "qualityCostComposite": 84.4539821281244
+            }
+          ]
+        },
+        {
+          "tier": 2,
+          "label": "Tier 2",
+          "description": "Middle quality-cost tercile (ranks 8-13).",
+          "count": 6,
+          "providers": [
+            {
+              "providerKey": "mistral/mistral-ocr-4-0",
+              "provider": "mistral",
+              "model": "mistral-ocr-4-0",
+              "display": "mistral/mistral-ocr-4-0",
+              "qualityCostRank": 8,
+              "qualityCostComposite": 84.3446080351602
+            },
+            {
+              "providerKey": "gemini/gemini-3.1-pro-preview",
+              "provider": "gemini",
+              "model": "gemini-3.1-pro-preview",
+              "display": "gemini/gemini-3.1-pro-preview",
+              "qualityCostRank": 9,
+              "qualityCostComposite": 83.38119566473277
+            },
+            {
+              "providerKey": "gemini/gemini-3.5-flash",
+              "provider": "gemini",
+              "model": "gemini-3.5-flash",
+              "display": "gemini/gemini-3.5-flash",
+              "qualityCostRank": 10,
+              "qualityCostComposite": 82.96400020728775
+            },
+            {
+              "providerKey": "openai/gpt-5.4-mini",
+              "provider": "openai",
+              "model": "gpt-5.4-mini",
+              "display": "openai/gpt-5.4-mini",
+              "qualityCostRank": 11,
+              "qualityCostComposite": 79.84347645422632
+            },
+            {
+              "providerKey": "deepinfra/Qwen/Qwen3-VL-30B-A3B-Instruct",
+              "provider": "deepinfra",
+              "model": "Qwen/Qwen3-VL-30B-A3B-Instruct",
+              "display": "deepinfra/Qwen/Qwen3-VL-30B-A3B-Instruct",
+              "qualityCostRank": 12,
+              "qualityCostComposite": 79.08003247778977
+            },
+            {
+              "providerKey": "anthropic/claude-sonnet-4-6",
+              "provider": "anthropic",
+              "model": "claude-sonnet-4-6",
+              "display": "anthropic/claude-sonnet-4-6",
+              "qualityCostRank": 13,
+              "qualityCostComposite": 76.61998647062404
+            }
+          ]
+        },
+        {
+          "tier": 3,
+          "label": "Tier 3",
+          "description": "Lower quality-cost tercile (ranks 14-19).",
+          "count": 6,
+          "providers": [
+            {
+              "providerKey": "glm/glm-ocr",
+              "provider": "glm",
+              "model": "glm-ocr",
+              "display": "glm/glm-ocr",
+              "qualityCostRank": 14,
+              "qualityCostComposite": 76.49081431965627
+            },
+            {
+              "providerKey": "anthropic/claude-haiku-4-5",
+              "provider": "anthropic",
+              "model": "claude-haiku-4-5",
+              "display": "anthropic/claude-haiku-4-5",
+              "qualityCostRank": 15,
+              "qualityCostComposite": 76.34924965855708
+            },
+            {
+              "providerKey": "openai/gpt-5.4-nano",
+              "provider": "openai",
+              "model": "gpt-5.4-nano",
+              "display": "openai/gpt-5.4-nano",
+              "qualityCostRank": 16,
+              "qualityCostComposite": 74.15663889259694
+            },
+            {
+              "providerKey": "anthropic/claude-sonnet-5",
+              "provider": "anthropic",
+              "model": "claude-sonnet-5",
+              "display": "anthropic/claude-sonnet-5",
+              "qualityCostRank": 17,
+              "qualityCostComposite": 70.4578204664557
+            },
+            {
+              "providerKey": "anthropic/claude-opus-4-8",
+              "provider": "anthropic",
+              "model": "claude-opus-4-8",
+              "display": "anthropic/claude-opus-4-8",
+              "qualityCostRank": 18,
+              "qualityCostComposite": 58.542579642883844
+            },
+            {
+              "providerKey": "openai/gpt-5.5",
+              "provider": "openai",
+              "model": "gpt-5.5",
+              "display": "openai/gpt-5.5",
+              "qualityCostRank": 19,
+              "qualityCostComposite": 45.007311768807554
+            }
+          ]
+        }
+      ]
+    }
+  },
+  "rankingPolicy": {
+    "price": "USD per 100 pages ascending (sum of costCents over sum of pageCount); local providers at zero; missing cost sorts last; ties break by quality descending, then pages/minute descending, then providerKey",
+    "speed": "aggregate pages per minute descending (sum of pageCount over sum of processing time); missing timing sorts last; ties break by providerKey",
+    "qualityScore": "unweighted mean quality score descending; missing score sorts last; ties break by providerKey",
+    "weightedComposite": "per-run per-group min-max 0-100 subscores (Q higher-better; S/C lower-better; identical min/max => 100), averaged across covered runs; composite = w_q*Q + w_s*S + w_c*C",
+    "missingData": "provider missing a value in a run is excluded from that run's normalization pool for that dimension; a dimension missing in all covered runs scores 0 and is listed in missingDimensions"
+  },
+  "notes": [
+    "Each provider is aggregated by providerKey across the runs it appears in; sums and means cover present values only.",
+    "Groups follow the single-run OCR contract: local, thirdPartyService; local and service providers are never ranked against each other.",
+    "Weighted WER and weighted CER are evidence columns: summed breakdown errors divided by summed reference counts, so longer runs count proportionally more.",
+    "Weighted composite rankings and quality-cost tercile model tiers are emitted per group; no cross-group overall or rankingSurfaces leaderboard is emitted, and single-run reports remain tier-free.",
+    "Supersedes the hand-authored 2026-06-14 combined report, which is preserved as a historical record."
+  ]
+}

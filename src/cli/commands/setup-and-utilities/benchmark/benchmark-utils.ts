@@ -81,7 +81,7 @@ export const costFromRunCostSteps = (runJson: JsonObject, service: string, model
 
     for (const step of getArray(source, 'steps').filter(isRecord)) {
       if (getString(step, 'provider') === service && getString(step, 'model') === model) {
-        const value = getNumber(step, 'cost') ?? getNumber(step, 'costCents') ?? getNumber(step, 'actualCostCents')
+        const value = getNumber(step, 'cost')
         if (value !== undefined) {
           return value
         }

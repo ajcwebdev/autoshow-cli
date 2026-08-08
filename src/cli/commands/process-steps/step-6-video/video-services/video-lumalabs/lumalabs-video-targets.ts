@@ -7,7 +7,7 @@ import { validateVideoMediaReferences } from '../../video-utils/video-media-inpu
 import { normalizeLumaVideoAspectRatio, normalizeLumaVideoResolution } from '../../video-utils/video-normalization'
 
 export const collectLumalabsVideoTargets = (options: VideoGenOptions, mode: VideoMode): VideoTarget[] => {
-  const models = options.lumalabsVideoModels ?? (options.lumalabsVideoModel ? [options.lumalabsVideoModel] : [])
+  const models = options.lumalabsVideoModels ?? []
   return models.flatMap((rawModel) => {
     const model: LumalabsVideoModel = validateLumalabsVideoModel(rawModel)
     if (!isSupportedOrSkippedForAllVideo(options, 'lumalabs', model, mode, ['text', 'image-to-video'])) {

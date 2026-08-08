@@ -40,10 +40,6 @@ type ComicPanelGenerationOptionsBase = {
   qa?: boolean
   qaModel?: LlmModel
   maxRepairs?: number
-  /** @deprecated Use qa. */
-  pageQa?: boolean
-  /** @deprecated Use qaModel. */
-  pageQaModel?: LlmModel
 }
 
 export type CharacterSketchCommandOptions = Omit<ComicImageCommandOptionsBase, 'force'> & {
@@ -52,8 +48,6 @@ export type CharacterSketchCommandOptions = Omit<ComicImageCommandOptionsBase, '
   notes?: string
   concurrency?: number
 }
-
-export type ParsedCharacterSketchArgs = CharacterSketchCommandOptions & { showHelp: boolean; price?: boolean }
 
 export type ReferenceSketchCommandOptions = Omit<ComicImageCommandOptionsBase, 'force'> & ComicLlmCommandOptionsBase & {
   character?: string
@@ -129,8 +123,6 @@ export type GenerateComicPagesOptions = ComicImageRunOptionsBase & {
   panels: ComicPanelSelection
   panelsPerImage: number
   variations?: ImagePromptVariation[]
-  pageQa?: boolean
-  pageQaModel?: LlmModel
   qa?: boolean
   qaModel?: LlmModel
   maxRepairs?: number
@@ -196,14 +188,6 @@ export type PanelPromptsCommandOptions = ComicSceneCommandOptionsBase & {
 }
 
 export type CharacterSketchView = (typeof import('~/cli/commands/process-steps/step-8-comic/comic-commands/process-scenes/character-utils').CHARACTER_SKETCH_VIEWS)[number]
-
-export type CharacterDetails = {
-  name: string
-  image: string
-  description: string
-  sketchImages?: string[]
-}
-
 
 export type StructureScriptsCommandOptions = ComicScriptSceneCommandOptionsBase & ComicLlmCommandOptionsBase
 

@@ -52,11 +52,11 @@ bun as config --tts elevenlabs=eleven_v3 --tts-ref-audio input/examples/audio/an
 bun as config --tts minimax=speech-2.8-hd --minimax-tts-language-boost English --tts-speed 1.15
 bun as config --tts grok=grok-tts --tts-language auto --tts-text-normalization true
 bun as config --tts mistral=voxtral-mini-tts-2603 --tts-ref-audio input/examples/audio/anthony-voice.mp3 --tts-voice-name AutoShowAnthony
-bun as config --tts openai=gpt-4o-mini-tts --tts-instructions "Warm documentary narration" --tts-speed 1.1
+bun as config --tts openai=gpt-4o-mini-tts-2025-12-15 --tts-instructions "Warm documentary narration" --tts-speed 1.1
 bun as config --tts deepgram=aura-2-thalia-en --deepgram-tts-container wav --deepgram-tts-sample-rate 24000
-bun as config --tts speechify=simba-english --tts-voice george --tts-output-format mp3 --tts-language en-US
+bun as config --tts speechify=simba-3.2 --tts-voice george --tts-output-format mp3 --tts-language en-US
 bun as config --tts hume=octave-2 --tts-voice "Male English Actor"
-bun as config --tts cartesia=sonic-3.5 --tts-voice f786b574-daa5-4673-aa0c-cbe3e8534c02
+bun as config --tts cartesia=sonic-3.5-2026-05-04 --tts-voice f786b574-daa5-4673-aa0c-cbe3e8534c02
 bun as config --tts gemini=gemini-3.1-flash-tts-preview --tts-speaker Host=Kore --tts-speaker Guest=Puck --tts-chunk-concurrency 3
 bun as config --image recraft=recraftv4_1 --image-size 1024x1024 --image-count 2
 bun as config --video ltx=ltx-2-3-fast --video-duration 8 --video-resolution 1080p
@@ -73,7 +73,7 @@ bun as config --stt deepinfra=openai/whisper-large-v3 --stt deepinfra=openai/whi
 bun as config --llm openai=gpt-5.5 --llm openai=gpt-5.4-mini
 ```
 
-The config command only persists flags mapped by the current config merge layer. Hidden compatibility aliases may still work at runtime, but saved examples use the public names shown by `bun as config --help`.
+The config command only persists flags mapped by the current config merge layer. Saved examples use the public names shown by `bun as config --help`.
 
 ## Config Schema
 
@@ -123,7 +123,7 @@ Representative JSON shape:
         "openaiOcr": ["gpt-5.4-nano"],
         "grokOcr": ["grok-4.3"],
         "anthropicOcr": ["claude-haiku-4-5"],
-        "geminiOcr": ["gemini-3.1-flash-lite-preview"],
+        "geminiOcr": ["gemini-3.1-flash-lite"],
         "deepinfraOcr": ["Qwen/Qwen3-VL-30B-A3B-Instruct"],
         "chapters": true,
         "length": 50,
@@ -134,7 +134,7 @@ Representative JSON shape:
       "llama": ["ggml-org/gemma-3-270m-it-GGUF"],
       "openai": ["gpt-5.5", "gpt-5.4-mini"],
       "groq": ["openai/gpt-oss-20b"],
-      "gemini": ["gemini-3.1-flash-lite-preview"],
+      "gemini": ["gemini-3.1-flash-lite"],
       "anthropic": ["claude-haiku-4-5"],
       "minimax": ["MiniMax-M3"],
       "grok": ["grok-4.3"],
@@ -163,9 +163,8 @@ Representative JSON shape:
         "mistralTtsRefAudio": "input/examples/audio/anthony-voice.mp3",
         "mistralTtsVoiceName": "AutoShowAnthony",
         "ttsDialogueFormat": "screenplay",
-        "ttsSpeakerRefAudio": ["HOST=input/examples/audio/host.mp3"],
         "ttsSpeakers": ["Host=Kore", "Guest=Puck"],
-        "openaiTts": ["gpt-4o-mini-tts"],
+        "openaiTts": ["gpt-4o-mini-tts-2025-12-15"],
         "openaiTtsInstructions": "Warm documentary narration",
         "openaiTtsSpeed": 1.1,
         "geminiTts": ["gemini-3.1-flash-tts-preview"],
@@ -173,14 +172,14 @@ Representative JSON shape:
         "deepgramTts": ["aura-2-thalia-en"],
         "deepgramTtsContainer": "wav",
         "deepgramTtsSampleRate": 24000,
-        "speechifyTts": ["simba-english"],
+        "speechifyTts": ["simba-3.2"],
         "speechifyVoice": "george",
         "speechifyTtsAudioFormat": "mp3",
         "speechifyTtsLanguage": "en-US",
         "humeTts": ["octave-2"],
         "humeTtsVoice": "Male English Actor",
         "humeTtsVoiceProvider": "HUME_AI",
-        "cartesiaTts": ["sonic-3.5"],
+        "cartesiaTts": ["sonic-3.5-2026-05-04"],
         "cartesiaTtsVoice": "f786b574-daa5-4673-aa0c-cbe3e8534c02",
         "cartesiaTtsLanguage": "en",
         "providerConcurrency": 2,
@@ -192,7 +191,6 @@ Representative JSON shape:
         "openaiImage": ["gpt-image-2"],
         "grokImage": ["grok-imagine-image"],
         "bflImage": ["flux-2-pro"],
-        "reveImage": ["latest"],
         "recraftImage": ["recraftv4_1"],
         "imageAspectRatio": "16:9",
         "imageSize": "1024x1024",
@@ -226,7 +224,7 @@ Representative JSON shape:
       },
       "music": {
         "elevenlabsMusic": ["music_v1"],
-        "minimaxMusic": ["music-2.6"],
+        "minimaxMusic": ["music-3.0"],
         "geminiMusic": ["lyria-3-clip-preview"],
         "musicDuration": 30,
         "providerConcurrency": 2,
@@ -262,8 +260,6 @@ Model-selecting fields are arrays of models, not single strings.
 | `providerConcurrency`, `localConcurrency` | `--provider-concurrency`, `--local-concurrency` |
 | `segmentConcurrency`, `preflightConcurrency` | `--stt-segment-concurrency`, `--stt-preflight-concurrency` |
 
-`--stt together` appears in generated config help through the shared STT registry, but the current persisted config schema does not validate `defaults.extract.stt.togetherStt`. Use it on `extract` or `write` directly until schema support is added.
-
 ### defaults.extract.ocr
 
 | Field | Flag |
@@ -288,9 +284,9 @@ Model-selecting fields are arrays of models, not single strings.
 |-------|------|
 | `kittenTts`, `elevenlabsTts`, `minimaxTts`, `groqTts`, `grokTts`, `mistralTts`, `openaiTts`, `geminiTts`, `deepgramTts`, `speechifyTts`, `humeTts`, `cartesiaTts` | `--tts provider[=model]` |
 | `ttsSpeaker`, `groqVoice`, `grokTtsVoice`, `grokTtsLanguage`, `grokTtsTextNormalization`, `mistralTtsVoice`, `mistralTtsRefAudio`, `mistralTtsVoiceName` | generic `--tts-*` voice/reference flags or matching provider-specific controls |
-| `ttsDialogueFormat`, `ttsSpeakerRefAudio`, `ttsSpeakers` | `--tts-dialogue-format`, `--tts-speaker-ref-audio`, `--tts-speaker` |
+| `ttsDialogueFormat`, `ttsSpeakers` | `--tts-dialogue-format`, `--tts-speaker` |
 | `openaiVoice`, `openaiTtsInstructions`, `openaiTtsSpeed` | generic `--tts-*` flags |
-| `geminiVoice`, `geminiSpeaker1Name`, `geminiSpeaker1Voice`, `geminiSpeaker2Name`, `geminiSpeaker2Voice` | Gemini voice and multispeaker flags |
+| `geminiVoice` | Gemini voice flag |
 | `elevenlabsVoice`, `elevenlabsTtsRefAudio`, `elevenlabsTtsVoiceName`, `elevenlabsTtsCloneRemoveBackgroundNoise`, `elevenlabsTtsOutputFormat`, `elevenlabsTtsLanguageCode`, `elevenlabsTtsStability`, `elevenlabsTtsSimilarityBoost`, `elevenlabsTtsStyle`, `elevenlabsTtsUseSpeakerBoost`, `elevenlabsTtsSpeed`, `elevenlabsTtsSeed`, `elevenlabsTtsTextNormalization`, `elevenlabsTtsPronunciationDictionaryLocators`, `elevenlabsTtsOptimizeStreamingLatency` | ElevenLabs reusable voice/clone and synthesis flags |
 | `minimaxTtsVoice`, `minimaxTtsLanguageBoost`, `minimaxTtsSpeed`, `minimaxTtsVolume`, `minimaxTtsPitch`, `minimaxTtsEmotion`, `minimaxTtsEnglishNormalization`, `minimaxTtsPronunciations` | MiniMax voice and synthesis control flags |
 | `deepgramVoice`, `deepgramTtsEncoding`, `deepgramTtsContainer`, `deepgramTtsBitRate`, `deepgramTtsSampleRate`, `deepgramTtsSpeed`, `speechifyVoice`, `speechifyTtsAudioFormat`, `speechifyTtsLanguage`, `humeTtsVoice`, `humeTtsVoiceProvider`, `cartesiaTtsVoice`, `cartesiaTtsLanguage` | provider voice/reference, output, and reusable setup flags |
@@ -298,11 +294,13 @@ Model-selecting fields are arrays of models, not single strings.
 
 Speechify custom-voice creation fields (`--speechify-tts-ref-audio`, `--speechify-tts-voice-name`, `--speechify-tts-consent-*`, `--speechify-tts-voice-locale`, `--speechify-tts-voice-gender`) are runtime-only and are not persisted.
 
+`ttsSpeakers` is what selects multi-speaker TTS, so a saved `ttsDialogueFormat` with no saved `ttsSpeakers` is inert: runs that inherit it log a warning and continue as single-speaker rather than failing at step 4.
+
 ### defaults.post.image
 
 | Field | Flag |
 |-------|------|
-| `geminiImage`, `openaiImage`, `grokImage`, `bflImage`, `reveImage`, `recraftImage`, `replicateImage`, `lumalabsImage` | `--image provider[=model]` |
+| `geminiImage`, `openaiImage`, `grokImage`, `bflImage`, `recraftImage`, `replicateImage`, `lumalabsImage` | `--image provider[=model]` |
 | `imageAspectRatio`, `imageSize`, `imageQuality`, `imageFormat`, `imageBackground`, `imageCount` | matching reusable image option flags |
 | `providerConcurrency`, `localConcurrency` | `--provider-concurrency`, `--local-concurrency` |
 
@@ -387,7 +385,7 @@ bun as config \
   --tts minimax=speech-2.8-turbo \
   --image openai=gpt-image-2 --image-quality low \
   --video minimax=MiniMax-Hailuo-2.3 \
-  --music minimax=music-2.6
+  --music minimax=music-3.0
 ```
 
 ## Flags

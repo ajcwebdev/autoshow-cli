@@ -214,18 +214,3 @@ export const buildTranscriptionCues = (
     source: 'whisper-segments'
   }
 }
-
-export const buildLyricsCues = (
-  transcription: TranscriptionResult
-): { cues: CaptionCue[], source: LyricsCueSource } => {
-  const words = transcription.evidence?.words ?? []
-  const wordCues = buildFromWords(words, LYRICS_CUE_LIMITS)
-  if (wordCues.length > 0) {
-    return { cues: wordCues, source: 'whisper-words' }
-  }
-
-  return {
-    cues: buildFromSegments(transcription.segments),
-    source: 'whisper-segments'
-  }
-}

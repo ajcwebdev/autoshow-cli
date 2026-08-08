@@ -57,6 +57,14 @@ describe('app error contracts', () => {
     expect(extractErrorHints(legacy)).toEqual(['Run: bun autoshow help extract'])
   })
 
+  test('usage classification requires the AppUsageError class, not a matching error name', () => {
+    const impostor = Object.assign(new Error('impostor'), { name: 'CLIUsageError' })
+
+    expect(isUsageError(impostor)).toBe(false)
+    expect(normalizeExitCode(impostor)).toBe(1)
+    expect(usageMessage(impostor)).toBe('Invalid command usage. Run: bun autoshow --help')
+  })
+
   test('normalizeExitCode honors explicit positive exit codes', () => {
     const error = new AppError('Partial completion', {
       kind: 'validation',

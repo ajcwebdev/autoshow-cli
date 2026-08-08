@@ -1,9 +1,9 @@
 import { expect, test } from 'bun:test'
+import { expectLinksUsageError } from '../links-usage-errors'
 import {
   collectLinks,
   getDefaultLinksOutputFileName,
   parseLinksArgv,
-  runLinksWithArgv
 } from '~/cli/commands/setup-and-utilities/links/define-links-command'
 import {
   CARTESIA_ALL_LINKS,
@@ -15,6 +15,7 @@ import {
   DEAPI_STT_LINKS,
   GROK_ALL_LINKS,
   GROK_MODELS_LINKS,
+  GROK_STT_LINKS,
   GROK_TTS_LINKS,
   HUME_GENERAL_LINKS,
   HUME_TTS_LINKS,
@@ -98,13 +99,13 @@ test('links selector accepts cartesia provider with general models and tts secti
     cartesiaGeneralTtsSelection.globalSections
   )).toBe('cartesia-general-tts-links.md')
 
-  await expect(runLinksWithArgv([
+  await expectLinksUsageError([
     'bun',
     'src/cli/create-cli.ts',
     'links',
     '--cartesia',
     'stt'
-  ])).rejects.toThrow('Unknown links section(s) for --cartesia: stt')
+  ], 'Unknown links section(s) for --cartesia: stt')
 })
 
 test('links selector accepts speechify provider with models and tts sections', async () => {
@@ -147,13 +148,13 @@ test('links selector accepts speechify provider with models and tts sections', a
     speechifyModelsSelection.globalSections
   )).toEqual(SPEECHIFY_MODELS_LINKS)
 
-  await expect(runLinksWithArgv([
+  await expectLinksUsageError([
     'bun',
     'src/cli/create-cli.ts',
     'links',
     '--speechify',
     'general'
-  ])).rejects.toThrow('Unknown links section(s) for --speechify: general')
+  ], 'Unknown links section(s) for --speechify: general')
 })
 
 test('links selector accepts hume provider with general and tts sections', async () => {
@@ -209,13 +210,13 @@ test('links selector accepts hume provider with general and tts sections', async
     humeGeneralTtsSelection.globalSections
   )).toBe('hume-general-tts-links.md')
 
-  await expect(runLinksWithArgv([
+  await expectLinksUsageError([
     'bun',
     'src/cli/create-cli.ts',
     'links',
     '--hume',
     'stt'
-  ])).rejects.toThrow('Unknown links section(s) for --hume: stt')
+  ], 'Unknown links section(s) for --hume: stt')
 })
 
 test('links selector accepts deapi provider with models and stt sections', async () => {
@@ -266,13 +267,13 @@ test('links selector accepts deapi provider with models and stt sections', async
     deapiModelsSelection.globalSections
   )).toEqual(DEAPI_MODELS_LINKS)
 
-  await expect(runLinksWithArgv([
+  await expectLinksUsageError([
     'bun',
     'src/cli/create-cli.ts',
     'links',
     '--deapi',
     'general'
-  ])).rejects.toThrow('Unknown links section(s) for --deapi: general')
+  ], 'Unknown links section(s) for --deapi: general')
 })
 
 test('links selector accepts grok provider with models and tts sections', async () => {
@@ -315,13 +316,26 @@ test('links selector accepts grok provider with models and tts sections', async 
     grokTtsSelection.globalSections
   )).toEqual(GROK_TTS_LINKS)
 
-  await expect(runLinksWithArgv([
+  const grokSttSelection = parseLinksArgv([
     'bun',
     'src/cli/create-cli.ts',
     'links',
     '--grok',
     'stt'
-  ])).rejects.toThrow('Unknown links section(s) for --grok: stt')
+  ])
+
+  expect(collectLinks(
+    grokSttSelection.serviceSelections,
+    grokSttSelection.globalSections
+  )).toEqual(GROK_STT_LINKS)
+
+  await expectLinksUsageError([
+    'bun',
+    'src/cli/create-cli.ts',
+    'links',
+    '--grok',
+    'ocr'
+  ], 'Unknown links section(s) for --grok: ocr')
 })
 
 test('links selector accepts together provider with general models stt and text sections', async () => {
@@ -390,13 +404,13 @@ test('links selector accepts together provider with general models stt and text 
     togetherGeneralTextSelection.globalSections
   )).toBe('together-general-text-links.md')
 
-  await expect(runLinksWithArgv([
+  await expectLinksUsageError([
     'bun',
     'src/cli/create-cli.ts',
     'links',
     '--together',
     'ocr'
-  ])).rejects.toThrow('Unknown links section(s) for --together: ocr')
+  ], 'Unknown links section(s) for --together: ocr')
 })
 
 test('links selector accepts mistral provider with general models stt ocr and tts sections', () => {

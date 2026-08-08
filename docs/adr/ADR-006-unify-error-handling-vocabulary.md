@@ -81,7 +81,7 @@ Each migrated throw attaches a `stage` and, where remediation exists, structured
 | Pattern | Reason kept |
 |---|---|
 | The existing `AppError` kinds (no new `pipeline` kind) | `infrastructure`/`internal`/`validation` already cover every case and all map to exit 1 |
-| The `name='CLIUsageError'` fallback inside `isCLIUsageError` | Preserves cross-realm / opt-in semantics during the migration so no usage error silently downgrades |
+| The `name='CLIUsageError'` fallback inside `isCLIUsageError` | Preserves cross-realm / opt-in semantics during the migration so no usage error silently downgrades. **Retired 2026-08-07** — see the history note at the end of this ADR. |
 
 `test/`:
 
@@ -133,7 +133,7 @@ Both halves are **implemented**; the actions below record the completed work.
 | Add and export `InfraError`/`InternalError`/`ValidationError` factory helpers | CLI maintainers | Implemented in `error-handler.ts` |
 | Sweep plain `new Error()` calls to an appropriate kind with `stage` and `hints` | CLI maintainers | Implemented across process steps and shared runtime modules |
 | Rewrite and centralize `isCLIUsageError`; remove five local copies | CLI maintainers | Implemented in `error-handler.ts` and former importer sites |
-| Convert `UnsupportedArtifactSchemaError` to extend `AppUsageError` | CLI maintainers | Implemented in `manifest-utils.ts` |
+| Convert `UnsupportedArtifactSchemaError` to extend `AppUsageError` | CLI maintainers | Implemented in `manifest-utils.ts`, then removed with the legacy-manifest tombstones it served |
 | Retire `LEGACY_ERROR_HINTS` and move remediation to throw sites | CLI maintainers | Implemented in `error-handler.ts` and throw sites |
 | Make `pollUntil` throw a structured `AppError` | CLI maintainers | Implemented in `retries.ts` |
 | Route validator wrapping through `rethrowAsUsage` | CLI maintainers | Implemented in comic and download-model command definitions |
@@ -164,3 +164,18 @@ Both halves are **implemented**; the actions below record the completed work.
 - `test/test-utils/service-test-kit.ts`, `test/test-utils/define-llm-write-test.ts`, `test/test-runner/adaptive-concurrency.ts`, `test/test-runner.ts`, `test/test-runner/parsers.ts`
 - Precedent for adopting existing structure rather than adding machinery: [ADR-003](ADR-003-type-surface-cleanup-and-architecture-mirroring.md)
 - Prior change touching `adaptive-concurrency.ts`, and base-URL/error context: [ADR-005](ADR-005-reduce-environment-variable-surface-area.md)
+
+## History
+
+**2026-08-07 — the `name === 'CLIUsageError'` fallback was retired.**
+
+Decision item 2 above rewrote `isCLIUsageError` to `error instanceof AppUsageError || (error instanceof Error && error.name === 'CLIUsageError')`, keeping the name match "only as a cross-realm fallback", and the Keep table recorded the rationale as preserving cross-realm and opt-in semantics *during the migration*. Both justifications have since expired:
+
+- The opt-in client the fallback existed for, `UnsupportedArtifactSchemaError`, was first converted to `extends AppUsageError` (as this ADR prescribed) and then deleted outright with the legacy-manifest tombstones. Nothing in the tree assigns that name except `AppUsageError` itself, which already satisfies the `instanceof` arm.
+- There is no realm boundary in this codebase — no workers, no `node:vm`, no CommonJS `require`, and every dynamic import resolves through the same alias into one module graph, so there is no way to end up with two `AppUsageError` class identities. Errors that cross the subprocess boundary in tests are compared as exit codes and stderr text, never as objects.
+
+`isCLIUsageError` is now `instanceof`-only and returns an `error is AppUsageError` type predicate, which also retired the `as Error` cast in `usageMessage`. The verification step above that greps for `name === 'CLIUsageError'` in `src` now expects **zero** hits inside `isCLIUsageError` rather than one; the remaining occurrence is the `this.name` assignment in the `AppUsageError` constructor.
+
+That assignment stays deliberately. After this change it is a diagnostics label rather than a control-flow key — `serializeError` writes it into every diagnostic payload — so renaming it to match the class would change on-disk diagnostics for no behavioral gain. The class-name/error-name divergence is intentional, not residue.
+
+Behavior change worth naming: an arbitrary `Error` carrying `name = 'CLIUsageError'` no longer exits 2 with `Usage error: <message>`; it exits 1. That is the "lose the opt-in-by-arbitrary-class trick" consequence this ADR already accepted, now applied to the name-based escape hatch as well. It is pinned by a negative assertion in `app-error-contracts.test.ts` so the arm cannot be silently reintroduced.

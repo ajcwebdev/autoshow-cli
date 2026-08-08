@@ -121,7 +121,6 @@ export type OcrStep2ResolutionOptions = Pick<
   | 'deepinfraOcrModel'
   | 'deepinfraOcrModels'
   | 'useEpubBun'
-  | 'useEpubCalibre'
   | 'urlBackend'
   | 'urlBackendExplicit'
   | 'urlBackends'

@@ -46,7 +46,7 @@ const topLevelCommands = [
   'version', 'help', 'config', 'setup', 'links', 'resume', 'benchmark',
   'metadata', 'download', 'extract', 'write', 'tts', 'image', 'video', 'music', 'comic'
 ] as const
-const comicSubcommands = ['draft-scenes', 'generate-images', 'reference-sketch', 'character-sketch'] as const
+const comicSubcommands = ['draft-scenes', 'generate-images', 'reference-sketch'] as const
 
 const getSection = (output: string, heading: string, nextHeading?: string): string => {
   const start = output.indexOf(heading)
@@ -200,7 +200,6 @@ test('extract help exposes shared batch and all-provider flags', async () => {
   expect(result.stdout).toContain('--stt-scrapecreators-lang')
   expect(result.stdout).not.toContain('--refresh-cache')
   expect(result.stdout).not.toContain('--no-cache')
-  expect(result.stdout).not.toContain('--cloudflare-stt')
   expect(result.stdout).toContain('--provider-concurrency')
   expect(result.stdout).toContain('--local-concurrency')
   expect(result.stdout).not.toContain('--ocr-provider-concurrency')
@@ -226,13 +225,6 @@ test('download help exposes media preservation flags', async () => {
   expect(result.stdout).toContain('--keep-original-media')
   expect(result.stdout).toContain('--best-quality')
   expect(result.stdout).toContain('--flat-batch')
-})
-
-test('setup help omits removed focused cloud setup flags', async () => {
-  const result = await runCommand(['src/cli/create-cli.ts', 'setup', '--help'], { env: helpEnv })
-
-  expect(result.exitCode).toBe(0)
-  expect(result.stdout).not.toContain('--cloudflare')
 })
 
 test('benchmark help exposes TTS voice-quality scoring flags', async () => {
@@ -264,7 +256,7 @@ test('benchmark help exposes text write scoring flag', async () => {
   expect(result.exitCode).toBe(0)
   expect(result.stdout).toContain('--text')
   expect(result.stdout).toContain('Score an existing write run directory without calling LLM providers')
-  expect(result.stdout).toContain('docs/benchmarks/text/<run> --text')
+  expect(result.stdout).toContain('docs/benchmarks/write/<run> --text')
   expect(result.stdout).toContain('Score an existing write run without paid calls')
 })
 
@@ -290,8 +282,6 @@ test('tts help exposes hosted TTS provider flags', async () => {
   expect(getFlagGroupSection(result.stdout, 'Deepgram TTS')).toContain('--deepgram-tts-sample-rate')
   expect(getFlagGroupSection(result.stdout, 'Speechify TTS')).toContain('--speechify-tts-voice-locale')
   expect(getFlagGroupSection(result.stdout, 'Hume TTS')).toContain('--hume-tts-voice-provider')
-  expect(getFlagGroupSection(result.stdout, 'Groq TTS')).toContain('--groq-voice')
-  expect(getFlagGroupSection(result.stdout, 'Gemini TTS')).toContain('--gemini-speaker-1-name')
   expect(getFlagGroupSection(result.stdout, 'Multi-Speaker / Dialogue')).toContain('--tts-dialogue-format')
   expect(getFlagGroupSection(result.stdout, 'ElevenLabs TTS')).toContain('--elevenlabs-tts-stability')
   expect(getFlagGroupSection(result.stdout, 'Pricing')).toContain('--price')
@@ -486,7 +476,7 @@ test('music help includes hosted generation and lyric-video flags', async () => 
   expect(result.stdout).not.toContain('--track-list')
 })
 
-test('image and video help expose BFL/Recraft/Replicate and remaining video provider flags', async () => {
+test('image and video help expose generic provider selection plus their own option groups', async () => {
   const imageResult = await runCommand(['src/cli/create-cli.ts', 'image', '--help'], { env: helpEnv })
   const videoResult = await runCommand(['src/cli/create-cli.ts', 'video', '--help'], { env: helpEnv })
 
@@ -525,7 +515,6 @@ test('image and video help expose BFL/Recraft/Replicate and remaining video prov
   expect(imageResult.stdout).not.toContain('imagen-4.0')
   expect(imageResult.stdout).not.toContain('--glm')
   expect(imageResult.stdout).not.toContain('--bfl-image')
-  expect(imageResult.stdout).not.toContain('--reve-image')
   expect(imageResult.stdout).not.toContain('--replicate-image')
   expect(videoResult.stdout).toContain('--provider-concurrency')
   expect(videoResult.stdout).not.toContain('--local-concurrency')
@@ -722,8 +711,6 @@ test('comic generate-images help is scoped to its own page and QA flags', async 
   expect(getFlagGroupSection(result.stdout, 'Image Options')).toContain('--variation')
   expect(getFlagGroupSection(result.stdout, 'Image QA')).toContain('--qa, --no-qa')
   expect(getFlagGroupSection(result.stdout, 'Image QA')).toContain('--max-repairs')
-  expect(getFlagGroupSection(result.stdout, 'Image QA')).toContain('--page-qa')
-  expect(getFlagGroupSection(result.stdout, 'Image QA')).toContain('--page-qa-model')
   expect(result.stdout).toContain('final default: 1; sketch default: 6')
   expect(result.stdout).toContain('bun autoshow comic draft-scenes <script-path> --only panel-prompts')
   expect(result.stdout).not.toContain('[--target prompts|images|sketches|both]')
@@ -747,9 +734,8 @@ test('comic draft-scenes help is scoped to the drafting stages', async () => {
   expect(flagsSection).not.toContain('--character')
 })
 
-test('comic sketch help distinguishes reference-sketch from its character-sketch alias', async () => {
+test('comic reference-sketch help documents both reference kinds', async () => {
   const reference = await runCommand(['src/cli/create-cli.ts', 'comic', 'reference-sketch', '--help'], { env: helpEnv })
-  const character = await runCommand(['src/cli/create-cli.ts', 'comic', 'character-sketch', '--help'], { env: helpEnv })
 
   expect(reference.exitCode).toBe(0)
   expect(reference.stdout).toContain('$ bun autoshow comic reference-sketch [flags]')
@@ -757,12 +743,6 @@ test('comic sketch help distinguishes reference-sketch from its character-sketch
   expect(getFlagGroupSection(reference.stdout, 'Reference Sheet')).toContain('--location')
   expect(reference.stdout).toContain('Exactly one of --character or --location is required')
   expect(getCommandFlagsSection(reference.stdout)).not.toContain('--panels')
-
-  expect(character.exitCode).toBe(0)
-  expect(character.stdout).toContain('$ bun autoshow comic character-sketch [flags]')
-  expect(getFlagGroupSection(character.stdout, 'Reference Sheet')).toContain('--character')
-  expect(getFlagGroupSection(character.stdout, 'Reference Sheet')).not.toContain('--location')
-  expect(character.stdout).toContain('Compatibility alias for bun autoshow comic reference-sketch --character')
 })
 
 test('comic help subcommand routing matches the --help flag output', async () => {

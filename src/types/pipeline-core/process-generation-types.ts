@@ -26,7 +26,7 @@ export const TtsScriptOutputSchema = v.object({
 })
 
 export type Step5Metadata = {
-  imageService: ImageProvider | 'reve'
+  imageService: ImageProvider
   imageModel: string
   processingTime: number
   imageFileNames: string[]
@@ -105,8 +105,6 @@ export type Step7MusicMetadata = {
   audioChannelCount?: number | undefined
   audioBitrate?: number | undefined
   providerAudioByteSize?: number | undefined
-  inferenceSteps?: number | undefined
-  guidanceScale?: number | undefined
   seed?: number | undefined
   outputFormat?: string | undefined
   generatedLyrics?: string | undefined

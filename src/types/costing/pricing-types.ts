@@ -55,7 +55,6 @@ export type MusicStepEstimate = ProviderModelBase<MusicProvider> & {
 export type ExtractStepEstimate = ProviderModelBase<'tesseract' | 'mistral' | 'glm' | 'kimi' | 'openai' | 'grok' | 'anthropic' | 'gemini' | 'deepinfra' | HtmlArticleBackend> & {
   step: 'extract'
   costPer1kPagesCents?: number
-  costPer1kOutputCharsCents?: number
   inputCostPer1MCents?: number
   outputCostPer1MCents?: number
   pricingBand?: string
@@ -133,6 +132,7 @@ export type ComputeEstimatedCostsInput = {
   sourceUrl?: string | undefined
   sttTargets?: SttPricingTarget[] | undefined
   whisperModel?: string | undefined
+  whisperfileModel?: string | undefined
   deepinfraSttModel?: string | undefined
   groqSttModel?: string | undefined
   grokSttModel?: string | undefined
@@ -333,7 +333,6 @@ export type EstimatedStepEntry = {
   durationSeconds?: number
   imageCount?: number
   costPer1kPagesCents?: number
-  costPer1kOutputCharsCents?: number
   pageCount?: number
   rasterizedPages?: number
   singlePagePdfFallbackPages?: number

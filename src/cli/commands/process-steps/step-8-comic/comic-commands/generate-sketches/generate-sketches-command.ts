@@ -6,7 +6,7 @@ import { getSketchesDirectory } from '../../comic-utils/project-paths'
 import { createComicRunId } from '../../comic-utils/comic-run-id'
 import { DEFAULT_CLI_CONCURRENCY } from '~/utils/concurrency-defaults'
 import { assertPanelPromptSourceCoverage } from '../../comic-utils/source-coverage-utils'
-import { DEFAULT_PANELS_PER_IMAGE } from '../generate-images/comic-page-utils'
+import { DEFAULT_SKETCH_PANELS_PER_IMAGE } from '../generate-images/comic-page-utils'
 import { InfraError } from '~/utils/error-handler'
 import type { GenerateSceneSketchesOptions, GenerateSketchesCommandOptions, ImageRunStats } from '~/types'
 
@@ -24,7 +24,7 @@ export const generateSketchesCommand = async (
     force: options.force ?? false,
     runId: options.runId ?? createComicRunId(),
     concurrency: options.concurrency ?? DEFAULT_CLI_CONCURRENCY,
-    panelsPerImage: options.panelsPerImage ?? DEFAULT_PANELS_PER_IMAGE,
+    panelsPerImage: options.panelsPerImage ?? DEFAULT_SKETCH_PANELS_PER_IMAGE,
     ...(options.sketchPanels !== undefined ? { sketchPanels: options.sketchPanels } : {}),
   }
   validateImageSizeForModels(generationOptions.size, generationOptions.models)

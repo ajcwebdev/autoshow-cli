@@ -1,13 +1,13 @@
 import { createHash } from 'node:crypto'
 import type { Dirent } from 'node:fs'
 import { existsSync, readFileSync } from 'node:fs'
-import { basename, extname, join, resolve } from 'node:path'
+import { resolve } from 'node:path'
 import * as v from 'valibot'
 import type { PanelBundleData, ImageGenerationModel, PanelPrimaryReferenceInput, PrimaryCharacterReferenceState, ResolvedReferenceImages } from '~/types'
-import { ReadablePanelBundleDataSchema } from '../schemas/schemas'
+import { PanelBundleDataSchema } from '../schemas/schemas'
 import { CharacterReferenceManifestSchema, getCharacterReferenceManifestPath } from './character-reference-snapshot'
 import { resolveCharacterIdentityReferences } from './character-identity-card'
-import { getLocationReferenceSnapshotPath, getLocationReferenceSnapshotsPath, LOCATION_VIEWS, type AnyLocationReferenceSnapshot, type LocationReferenceSnapshotManifest } from './location-reference'
+import { getLocationReferenceSnapshotsPath, LOCATION_SNAPSHOTS_FILENAME, LOCATION_VIEWS, type LocationReferenceSnapshotManifest } from './location-reference'
 import { resolveDesignReferencesAcrossPanels } from './design-reference'
 export { resolveDesignReferencesAcrossPanels } from './design-reference'
 import { trimOptionalContinuityReferences } from './reference-capabilities'
@@ -16,8 +16,6 @@ import { InfraError, ValidationError } from '~/utils/error-handler'
 import { getSceneWorkspaceDirectoryForPanelPrompt } from './project-paths'
 
 export const PANEL_DIRECTORY_PATTERN = /^panel-(\d+)$/
-const PRIOR_PANEL_REFERENCE_PATTERN = /^panel-(\d+)(?:--(.+))?\.png$/
-const SUPPORTED_REFERENCE_EXTENSIONS = new Set(['.png', '.webp', '.jpg', '.jpeg'])
 
 export const formatPanelDirectoryName = (panelNumber: number): string => `panel-${String(panelNumber).padStart(2, '0')}`
 export const getPanelNumberFromName = (value: string, pattern: RegExp = PANEL_DIRECTORY_PATTERN): number | null => {
@@ -28,14 +26,13 @@ export const normalizePromptBundle = (content: string): string => content.replac
 
 export const extractPanelBundleData = (content: string): PanelBundleData => {
   const json = Array.from(content.matchAll(/```json\s*([\s\S]*?)\s*```/g)).at(-1)?.[1]
-  if (!json) throw ValidationError('Prompt bundle is missing a JSON block. Legacy/unversioned bundles must be regenerated.', { stage: 'comic:panel-prompt' })
+  if (!json) throw ValidationError('Prompt bundle is missing a JSON block. Unversioned bundles must be regenerated.', { stage: 'comic:panel-prompt' })
   try {
-    const value = v.parse(ReadablePanelBundleDataSchema, JSON.parse(json))
+    const value = v.parse(PanelBundleDataSchema, JSON.parse(json))
     if (value.panels.length !== 1) throw new Error(`expected one panel, found ${value.panels.length}`)
-    if (value.schemaVersion === 2) throw new Error('schemaVersion 2 bundles are not generation-safe')
-    return value as PanelBundleData
+    return value
   } catch (error) {
-    throw ValidationError(`Prompt bundle JSON is not a reviewed schemaVersion 3 or 4 panel bundle: ${error instanceof Error ? error.message : String(error)}. Run draft-scenes explicitly to rebuild it.`, { stage: 'comic:panel-prompt' })
+    throw ValidationError(`Prompt bundle JSON is not a reviewed schemaVersion 4 panel bundle: ${error instanceof Error ? error.message : String(error)}. Run draft-scenes explicitly to rebuild it.`, { stage: 'comic:panel-prompt' })
   }
 }
 
@@ -69,7 +66,7 @@ const orderedKeys = (panels: PanelPrimaryReferenceInput[]): string[] => {
 }
 
 export const resolvePrimaryCharacterReferencesAcrossPanels = (panels: PanelPrimaryReferenceInput[], options: { composeDerived?: boolean } = {}): PrimaryCharacterReferenceState => {
-  if (panels.length === 0) return { primaryCharacterRefs: [], sketchCharacterRefs: [], canonicalCharacterRefs: [], missingPrimaryCharacterRefs: [] }
+  if (panels.length === 0) return { primaryCharacterRefs: [], missingPrimaryCharacterRefs: [] }
   const snapshotIds = new Set(panels.map(panel => panel.bundleData.snapshotId))
   const runDirectories = new Set(panels.map(panel => getSceneWorkspaceDirectoryForPanelPrompt(panel.panelDirectory)))
   if (snapshotIds.size !== 1 || runDirectories.size !== 1) throw ValidationError('Mixed snapshot IDs or run directories are not allowed in one image request', { stage: 'comic:reference-snapshot' })
@@ -81,8 +78,6 @@ export const resolvePrimaryCharacterReferencesAcrossPanels = (panels: PanelPrima
   const primaryCharacterRefs = characterReferences.map(reference => reference.path)
   return {
     primaryCharacterRefs,
-    sketchCharacterRefs: [],
-    canonicalCharacterRefs: [],
     missingPrimaryCharacterRefs: [],
     characterReferences,
   }
@@ -101,34 +96,26 @@ export type ResolvedLocationReference = {
 export const resolveLocationReferencesAcrossPanels = (panels: PanelPrimaryReferenceInput[]): ResolvedLocationReference[] => {
   if (panels.length === 0) throw ValidationError('A location reference requires at least one panel', { stage: 'comic:location-reference' })
   const runDirectories = new Set(panels.map(panel => getSceneWorkspaceDirectoryForPanelPrompt(panel.panelDirectory)))
-  if (panels.some(panel => panel.bundleData.schemaVersion === 2)) throw ValidationError('Legacy v2 panel bundles cannot enter image generation. Run draft-scenes explicitly to rebuild reviewed artifacts.', { stage: 'comic:location-reference' })
   if (runDirectories.size !== 1) throw ValidationError('Mixed run directories are not allowed in one image request', { stage: 'comic:location-reference' })
   const runDirectory = [...runDirectories][0]!
   const pluralPath = getLocationReferenceSnapshotsPath(runDirectory)
-  const legacyPath = getLocationReferenceSnapshotPath(runDirectory)
-  let snapshots: AnyLocationReferenceSnapshot[]
-  if (existsSync(pluralPath)) {
-    const manifest = JSON.parse(readFileSync(pluralPath, 'utf8')) as LocationReferenceSnapshotManifest
-    if (manifest.schemaVersion !== 2 || !Array.isArray(manifest.snapshots)) throw ValidationError(`Invalid location snapshot manifest: ${pluralPath}`, { stage: 'comic:location-reference' })
-    snapshots = manifest.snapshots
-  } else if (existsSync(legacyPath)) {
-    snapshots = [JSON.parse(readFileSync(legacyPath, 'utf8')) as AnyLocationReferenceSnapshot]
-  } else {
-    throw InfraError('Missing location-references.json or legacy location-reference.json. Run draft-scenes explicitly.', { stage: 'comic:location-reference' })
-  }
+  if (!existsSync(pluralPath)) throw InfraError(`Missing ${LOCATION_SNAPSHOTS_FILENAME}. Run draft-scenes explicitly.`, { stage: 'comic:location-reference' })
+  const manifest = JSON.parse(readFileSync(pluralPath, 'utf8')) as LocationReferenceSnapshotManifest
+  if (manifest.schemaVersion !== 2 || !Array.isArray(manifest.snapshots)) throw ValidationError(`Invalid location snapshot manifest: ${pluralPath}`, { stage: 'comic:location-reference' })
+  const snapshots = manifest.snapshots
   const byId = new Map(snapshots.map(snapshot => [snapshot.snapshotId, snapshot]))
   const ordered: ResolvedLocationReference[] = []
   const seen = new Set<string>()
   for (const input of panels) {
     const panel = input.bundleData.panels[0]
     if (!panel) throw ValidationError('Panel bundle is missing its panel payload', { stage: 'comic:location-reference' })
-    const snapshotId = input.bundleData.schemaVersion === 3 ? input.bundleData.locationSnapshotId : panel.locationSnapshotId
-    const expectedKey = input.bundleData.schemaVersion === 3 ? undefined : panel.locationKey
+    const snapshotId = panel.locationSnapshotId
+    const expectedKey = panel.locationKey
     if (!snapshotId) throw ValidationError('Panel bundle omits its location snapshot ID', { stage: 'comic:location-reference' })
     const snapshot = byId.get(snapshotId)
-    const sourceViewIndices = snapshot?.schemaVersion === 2 ? snapshot.sourceViews?.map(view => LOCATION_VIEWS.indexOf(view.view)) ?? [] : []
-    const invalidV2Provenance = snapshot?.schemaVersion === 2 && (!Array.isArray(snapshot.sourceViews) || snapshot.sourceViews.length === 0 || snapshot.sourceViews[0]?.view !== 'establishing' || !snapshot.sourceViews.every(view => LOCATION_VIEWS.includes(view.view) && !!view.generationId && /^[a-f0-9]{64}$/.test(view.imageSha256)) || new Set(sourceViewIndices).size !== sourceViewIndices.length || sourceViewIndices.some((index, position) => position > 0 && index <= sourceViewIndices[position - 1]!))
-    if (!snapshot || (snapshot.schemaVersion !== 1 && snapshot.schemaVersion !== 2) || !snapshot.sheet?.path || invalidV2Provenance || (expectedKey && snapshot.locationKey !== expectedKey)) {
+    const sourceViewIndices = snapshot?.sourceViews?.map(view => LOCATION_VIEWS.indexOf(view.view)) ?? []
+    const invalidProvenance = !!snapshot && (!Array.isArray(snapshot.sourceViews) || snapshot.sourceViews.length === 0 || snapshot.sourceViews[0]?.view !== 'establishing' || !snapshot.sourceViews.every(view => LOCATION_VIEWS.includes(view.view) && !!view.generationId && /^[a-f0-9]{64}$/.test(view.imageSha256)) || new Set(sourceViewIndices).size !== sourceViewIndices.length || sourceViewIndices.some((index, position) => position > 0 && index <= sourceViewIndices[position - 1]!))
+    if (!snapshot || snapshot.schemaVersion !== 2 || !snapshot.sheet?.path || invalidProvenance || (expectedKey && snapshot.locationKey !== expectedKey)) {
       throw ValidationError(`Panel location snapshot ${snapshotId} does not match its manifest entry`, { stage: 'comic:location-reference' })
     }
     if (seen.has(snapshotId)) continue
@@ -142,24 +129,16 @@ export const resolveLocationReferencesAcrossPanels = (panels: PanelPrimaryRefere
   return ordered
 }
 
-export const resolveLocationReferenceAcrossPanels = (panels: PanelPrimaryReferenceInput[]): string => {
-  const references = resolveLocationReferencesAcrossPanels(panels)
-  if (references.length !== 1) throw ValidationError(`Expected one location reference, found ${references.length}`, { stage: 'comic:location-reference' })
-  return references[0]!.path
-}
-
 const buildResolved = (references: string[], primary: string[], prior: string[], secondary: string[], missing: string[]): ResolvedReferenceImages => ({
   all: references,
   primaryCharacterRefs: primary,
-  sketchCharacterRefs: primary.filter(path => basename(path) === 'sketch-sheet.png'),
-  canonicalCharacterRefs: primary.filter(path => basename(path).startsWith('source.')),
   priorPanelRefs: prior.filter(path => references.includes(path)),
   secondaryRefs: secondary.filter(path => references.includes(path)),
   missingPrimaryCharacterRefs: missing,
 })
 
 export const applyReferenceImageLimits = (
-  _ordered: string[], primary: string[], _sketch: string[], _canonical: string[], prior: string[], secondary: string[], missing: string[], model: ImageGenerationModel
+  _ordered: string[], primary: string[], prior: string[], secondary: string[], missing: string[], model: ImageGenerationModel
 ): ResolvedReferenceImages => {
   const optional = [...prior, ...secondary].filter(path => !primary.includes(path))
   const limited = trimOptionalContinuityReferences(model, primary, optional)
@@ -173,14 +152,10 @@ export const findMissingReferenceImageFiles = async (paths: string[]): Promise<s
 }
 
 export const resolveReferenceImages = (
-  panelDirectory: string, entries: Dirent[], bundleData: PanelBundleData, model: ImageGenerationModel,
-  options: { includePriorPanelRefs?: boolean; includeSecondaryRefs?: boolean } = {}
+  panelDirectory: string, entries: Dirent[], bundleData: PanelBundleData, model: ImageGenerationModel
 ): ResolvedReferenceImages => {
   const primary = resolvePrimaryCharacterReferences(panelDirectory, entries, bundleData)
-  const prior = (options.includePriorPanelRefs ?? false)
-    ? entries.filter(entry => entry.isFile() && SUPPORTED_REFERENCE_EXTENSIONS.has(extname(entry.name).toLowerCase()) && PRIOR_PANEL_REFERENCE_PATTERN.test(entry.name))
-      .map(entry => join(panelDirectory, entry.name)).sort()
-    : []
+  const prior: string[] = []
   // Arbitrary images in panel directories are never promoted into identity refs.
   const locations = resolveLocationReferencesAcrossPanels([{ panelDirectory, entries, bundleData }])
   const designs = resolveDesignReferencesAcrossPanels([{ panelDirectory, entries, bundleData }])

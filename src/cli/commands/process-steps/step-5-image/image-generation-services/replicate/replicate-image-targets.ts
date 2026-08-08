@@ -31,7 +31,7 @@ import {
 } from '../../image-utils/image-inputs'
 
 export const collectReplicateImageTargets = (options: ImageGenOptions): ImageTarget[] => {
-  const models = options.replicateImageModels ?? (options.replicateImageModel ? [options.replicateImageModel] : [])
+  const models = options.replicateImageModels ?? []
   return models.flatMap((rawModel) => {
     const model: ReplicateImageModel = validateReplicateImageModel(rawModel)
     const unsupported = collectUnsupportedCommonFlags(options, [
@@ -41,7 +41,7 @@ export const collectReplicateImageTargets = (options: ImageGenOptions): ImageTar
       'imageCompression'
     ], IMAGE_OPTION_LABELS)
     if (options.imageMask !== undefined) unsupported.push('--image-mask')
-    if (options.geminiSearchGrounding === true) unsupported.push('--gemini-search-grounding')
+    if (options.geminiSearchGrounding === true) unsupported.push('--image-search-grounding')
     if (unsupported.length > 0) {
       throw unsupportedFlagError(
         'Replicate',

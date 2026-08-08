@@ -66,6 +66,8 @@ The music setup step checks hosted music API readiness and local lyric-video pre
 
 ## Shared Music Options
 
+The standalone `music` command drops the `music-` prefix these options carry everywhere else: `--duration` here is `--music-duration` on `write`, `config`, and `resume`. One resume flag set serves image, video, music, and OCR, where the short names would collide, so [ADR-012](../../../adr/ADR-012-add-price-preflight-to-resume.md) keeps the prefixes on those surfaces.
+
 Hosted generation flags:
 
 | Flag | Description |
@@ -134,7 +136,7 @@ bun autoshow music "ambient piano instrumental with soft tape saturation" --prov
 bun autoshow music "indie pop, nostalgic summer road trip vibe" --provider minimax=music-3.0 --price
 ```
 
-MiniMax auto-generates lyrics when `--lyrics-file` is omitted. Price estimation includes the extra lyrics-generation cost when lyrics are auto-generated. `music-3.0` supports instrumental mode; when instrumental mode is omitted, it generates with lyrics or auto-generated lyrics. `--duration` is currently ignored by MiniMax. The previous-generation `music-2.6` identity remains readable in historical benchmark results but is rejected for new runs.
+MiniMax auto-generates lyrics when `--lyrics-file` is omitted. Price estimation includes the extra lyrics-generation cost when lyrics are auto-generated. `music-3.0` supports instrumental mode; when instrumental mode is omitted, it generates with lyrics or auto-generated lyrics. `--duration` is currently ignored by MiniMax. The previous-generation `music-2.6` identity is rejected for new runs and no longer resolves against the model registry, so historical benchmark artifacts re-priced today fall back to default estimates.
 
 ### Gemini
 

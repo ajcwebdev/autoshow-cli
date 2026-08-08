@@ -25,18 +25,6 @@ export const toWholeSecondTimestamp = (seconds: number): string => {
   return `${String(hh).padStart(2, '0')}:${String(mm).padStart(2, '0')}:${String(ss).padStart(2, '0')}`
 }
 
-/** Safely extract a numeric seconds value from an unknown input. */
-export const parseSeconds = (value: unknown): number | null => {
-  if (typeof value === 'number' && Number.isFinite(value)) {
-    return value
-  }
-  if (typeof value === 'string') {
-    const parsed = Number.parseFloat(value)
-    return Number.isFinite(parsed) ? parsed : null
-  }
-  return null
-}
-
 /** Punctuation-aware word joining for building text from tokens. */
 export const appendToken = (current: string, token: string): string => {
   if (!current) {

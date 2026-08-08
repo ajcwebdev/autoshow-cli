@@ -1,6 +1,6 @@
 import { execFileSync } from 'node:child_process'
 import { statSync } from 'node:fs'
-import type { SourceNameCheckOptions, SourceNameViolation, SourceNameViolationKind } from '~/types'
+import type { SourceNameViolation, SourceNameViolationKind } from '~/types'
 import * as l from '~/utils/app-logger/app-logger'
 
 const DEFAULT_SOURCE_ROOT = 'src'
@@ -69,11 +69,10 @@ const duplicateBasenameViolations = (
 }
 
 export const findSourceNameViolations = (
-  paths: string[],
-  options: SourceNameCheckOptions = {}
+  paths: string[]
 ): SourceNameViolation[] => {
-  const sourceRoot = normalizeSourcePath(options.sourceRoot ?? DEFAULT_SOURCE_ROOT)
-  const allowedIndexPath = normalizeSourcePath(options.allowedIndexPath ?? DEFAULT_ALLOWED_INDEX_PATH)
+  const sourceRoot = normalizeSourcePath(DEFAULT_SOURCE_ROOT)
+  const allowedIndexPath = normalizeSourcePath(DEFAULT_ALLOWED_INDEX_PATH)
   const files = [...new Set(paths
     .map(normalizeSourcePath)
     .filter((sourcePath) => isUnderSourceRoot(sourcePath, sourceRoot)))]
@@ -123,10 +122,10 @@ export const formatSourceNameViolations = (violations: SourceNameViolation[]): s
   return lines.join('\n')
 }
 
-const listSourceFiles = (sourceRoot = DEFAULT_SOURCE_ROOT): string[] => {
+const listSourceFiles = (): string[] => {
   const output = execFileSync(
     'git',
-    ['ls-files', '--cached', '--others', '--exclude-standard', sourceRoot],
+    ['ls-files', '--cached', '--others', '--exclude-standard', DEFAULT_SOURCE_ROOT],
     { encoding: 'utf8' }
   )
 

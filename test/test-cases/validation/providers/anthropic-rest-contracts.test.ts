@@ -82,12 +82,12 @@ describe('Anthropic REST contracts', () => {
       })
     }) as typeof fetch
 
-    const result = await runAnthropicModel('Summarize this.', 'claude-haiku-4-5', structuredOpts, 'https://mock.anthropic.local')
+    const result = await runAnthropicModel('Summarize this.', 'claude-haiku-4-5', structuredOpts)
 
     expect(result.result).toBe('Hello from Claude.')
     expect(calls).toHaveLength(1)
     expect(calls[0]).toMatchObject({
-      url: 'https://mock.anthropic.local/v1/messages',
+      url: 'https://api.anthropic.com/v1/messages',
       method: 'POST',
       headers: {
         apiKey: 'anthropic-key',

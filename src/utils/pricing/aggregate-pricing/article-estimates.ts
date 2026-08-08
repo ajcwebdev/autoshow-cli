@@ -1,7 +1,7 @@
 import { estimateFirecrawlScrapeCost } from '~/cli/commands/process-steps/step-2-extract/step-2-ocr/ocr-utils/extract-pricing'
 import { hasConfiguredOcrProviderSelection, HTML_ARTICLE_OCR_FLAGS_IGNORED_WARNING } from '~/cli/commands/process-steps/step-2-extract/step-2-shared/inactive-flag-warnings'
 import { getExtractEstimation, getExtractPricing } from '~/cli/commands/setup-and-utilities/models/model-loader'
-import type { ArticleEstimateResult, ExtractStepEstimate, ResolvedStep2Execution, RuntimeOptions } from '~/types'
+import type { ArticleEstimateResult, ExtractStepEstimate, HtmlArticleBackend, ResolvedStep2Execution, RuntimeOptions } from '~/types'
 import { applyCostMultiplier } from '~/utils/pricing/cost-helpers'
 
 export const buildArticleEstimates = (
@@ -11,7 +11,9 @@ export const buildArticleEstimates = (
 ): ArticleEstimateResult => {
   const estimates: ExtractStepEstimate[] = []
   const notes: string[] = []
-  const backends = resolvedStep2.backends ?? [resolvedStep2.backend]
+  // `resolveArticleStep2` emits exactly one provider per requested backend, keyed by
+  // backend name, so every `service` on the article route is an HtmlArticleBackend.
+  const backends = resolvedStep2.providers.map(provider => provider.service as HtmlArticleBackend)
 
   for (const backend of backends) {
     if (backend === 'defuddle') {
@@ -73,7 +75,7 @@ export const buildArticleEstimates = (
   }
 
   if (!isRemoteTarget && opts.urlBackend !== 'defuddle') {
-    notes.push(`Local HTML inputs always use the defuddle backend; --url-backend ${opts.urlBackend} is ignored.`)
+    notes.push(`Local HTML inputs always use the defuddle backend; --url-provider ${opts.urlBackend} is ignored.`)
   }
 
   if (hasConfiguredOcrProviderSelection(opts)) {

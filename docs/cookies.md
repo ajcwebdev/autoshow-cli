@@ -9,6 +9,7 @@ Use this when `yt-dlp` hits a YouTube sign-in prompt or `Sign in to confirm you'
 - [Fallback: Export `cookies.txt`](#fallback-export-cookiestxt)
 - [Precedence And Diagnostics](#precedence-and-diagnostics)
 - [Unsupported Legacy Env Vars](#unsupported-legacy-env-vars)
+- [Passing yt-dlp arguments](#passing-yt-dlp-arguments)
 - [If It Still Fails](#if-it-still-fails)
 - [References](#references)
 
@@ -158,14 +159,31 @@ Do not rely on these legacy env vars for native `bun autoshow` commands:
 - `YTDLP_USER_AGENT`
 - `YTDLP_EXTRACTOR_ARGS`
 
-The current native code does not translate those env vars into `yt-dlp` arguments. If you need user-agent overrides, extractor args, PO tokens, or client overrides, use `yt-dlp` directly for that download or add an explicit native CLI flag before documenting it as supported.
+The current native code does not translate those env vars into `yt-dlp` arguments. There is no dedicated flag for user-agent overrides, extractor args, PO tokens, or client overrides either — pass them straight through instead, with `bun autoshow download <url> -- <yt-dlp args>`. See [Passing yt-dlp arguments](#passing-yt-dlp-arguments).
+
+## Passing yt-dlp arguments
+
+Anything after a bare `--` on the `download` command is forwarded to `yt-dlp` verbatim, so auth-adjacent options that have no dedicated AutoShow flag do not require leaving the CLI:
+
+```bash
+bun autoshow download https://youtube.com/watch?v=abc -- --user-agent "Mozilla/5.0 …"
+bun autoshow download https://youtube.com/watch?v=abc -- --extractor-args "youtube:player_client=web"
+```
+
+Passthrough is accepted only by `download`, and only for media URL inputs — not local files, and not the other commands. Give `download` no input at all and it runs `yt-dlp` directly in raw mode, which is the escape hatch for multi-output workflows:
+
+```bash
+bun autoshow download -- --format bestaudio -o "%(title)s.%(ext)s" https://youtube.com/watch?v=abc
+```
+
+`--cookies` and `--cookies-from-browser` stay AutoShow flags; do not also pass `--cookies` through the `--` boundary.
 
 ## If It Still Fails
 
 - `cookies-file` shows as missing in doctor: fix or remove `--cookies`. AutoShow will not fall back while that flag is present.
 - Browser import still fails: try a more specific profile such as `chrome:Default`, or export a dedicated `cookies.txt` file.
 - A fresh exported file still fails: confirm it starts with a Netscape cookie header, includes YouTube auth cookies, and was not committed or moved to a path with unreadable permissions.
-- Cookies still are not enough: current native `bun autoshow` commands do not expose user-agent or extractor-args flags. Run `yt-dlp` directly for that exceptional download or add first-class CLI support.
+- Cookies still are not enough: forward the extra `yt-dlp` options yourself with `bun autoshow download <url> -- --user-agent "…"` or `-- --extractor-args "youtube:player_client=web"`. See [Passing yt-dlp arguments](#passing-yt-dlp-arguments).
 
 ## References
 

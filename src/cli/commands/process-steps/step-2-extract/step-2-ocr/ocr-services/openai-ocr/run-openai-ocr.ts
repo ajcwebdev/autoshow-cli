@@ -204,7 +204,7 @@ export const runOpenAIOcr = async (
   filePath: string,
   step1Metadata: DocumentMetadata,
   model: string,
-  options: string | { baseUrl?: string | undefined, onRetryable?: HostedOcrSchedulerRetryPressureHandler | undefined } = {}
+  options: { baseUrl?: string | undefined, onRetryable?: HostedOcrSchedulerRetryPressureHandler | undefined } = {}
 ): Promise<{
   pages: PageResult[]
   extractionMethod: 'openai-ocr'
@@ -213,8 +213,7 @@ export const runOpenAIOcr = async (
   completionTokens?: number
 }> => {
   const expectedPageCount = Math.max(1, step1Metadata.pageCount)
-  const baseUrl = typeof options === 'string' ? options : options.baseUrl
-  const onRetryable = typeof options === 'string' ? undefined : options.onRetryable
+  const { baseUrl, onRetryable } = options
   const config = getOpenAIClientConfig(baseUrl)
 
   let lastError: Error | undefined

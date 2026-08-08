@@ -5,12 +5,10 @@ import { join } from 'node:path'
 import { buildOptsFromFlags } from '~/cli/commands/process-steps/step-1-download/download-targets/build-opts-from-flags/build-options-from-flags'
 import {
   readBatchManifest,
-  readExtractBatchManifest,
   readRunManifest,
   writeBatchManifest,
   writeExtractBatchManifest
 } from '~/cli/commands/process-steps/manifest-utils'
-import { dispatchResume } from '~/cli/commands/setup-and-utilities/resume/resume-dispatch'
 import { getResumeHandler } from '~/cli/commands/setup-and-utilities/resume/resume-registry'
 import { readOcrRunManifestEntry, writeOcrBatchManifest, writeOcrRunManifest } from '~/cli/commands/process-steps/step-2-extract/step-2-ocr/ocr-manifest'
 import { readSttRunManifestEntry, writeSttBatchManifest, writeSttRunManifest } from '~/cli/commands/process-steps/step-2-extract/step-2-stt/stt-manifest'
@@ -27,72 +25,7 @@ const withTempDir = async <T>(
   }
 }
 
-const writeJson = async (
-  path: string,
-  value: unknown
-): Promise<void> => {
-  await Bun.write(path, `${JSON.stringify(value, null, 2)}\n`)
-}
-
 describe('manifest schema contracts', () => {
-  test('legacy STT/OCR run manifests are rejected by manifest readers and resume', async () => {
-    for (const kind of ['stt', 'ocr'] as const) {
-      await withTempDir(`autoshow-legacy-${kind}-run-`, async (dir) => {
-        await writeJson(join(dir, 'run.json'), {
-          schemaVersion: 2,
-          kind,
-          metadata: {
-            outputDir: dir
-          }
-        })
-
-        await expect(readRunManifest(dir)).rejects.toThrow(`legacy "${kind}" manifests are no longer supported`)
-        await expect(dispatchResume(dir, {})).rejects.toThrow(`legacy "${kind}" manifests are no longer supported`)
-      })
-    }
-  })
-
-  test('legacy STT/OCR batch manifests are rejected by manifest readers and resume', async () => {
-    for (const kind of ['stt', 'ocr'] as const) {
-      await withTempDir(`autoshow-legacy-${kind}-batch-`, async (dir) => {
-        await writeJson(join(dir, 'batch.json'), {
-          schemaVersion: 2,
-          kind,
-          items: []
-        })
-
-        await expect(readBatchManifest(dir)).rejects.toThrow(`legacy "${kind}" manifests are no longer supported`)
-        await expect(dispatchResume(dir, {})).rejects.toThrow(`legacy "${kind}" manifests are no longer supported`)
-      })
-    }
-  })
-
-  test('extract batch schema v1 is rejected by manifest readers and resume', async () => {
-    await withTempDir('autoshow-legacy-extract-batch-', async (dir) => {
-      await writeJson(join(dir, 'extract-batch.json'), {
-        schemaVersion: 1,
-        createdAt: '2026-01-01T00:00:00.000Z',
-        items: [{
-          input: 'https://ajc.pics/autoshow/examples/1-audio.mp3',
-          inputFamily: 'media',
-          routedChildKind: 'stt',
-          childBatchEntry: {
-            kind: 'stt',
-            index: 0
-          },
-          completionStatus: 'full'
-        }],
-        childBatches: {
-          stt: 'stt',
-          ocr: 'ocr'
-        }
-      })
-
-      await expect(readExtractBatchManifest(dir)).rejects.toThrow('extract batch schema v1 is no longer supported')
-      await expect(dispatchResume(dir, {})).rejects.toThrow('extract batch schema v1 is no longer supported')
-    })
-  })
-
   test('STT and OCR manifest writers serialize extract kind with extractRoute metadata', async () => {
     await withTempDir('autoshow-extract-run-manifests-', async (dir) => {
       const mediaRunDir = join(dir, 'media-run')

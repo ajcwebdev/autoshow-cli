@@ -1,41 +1,8 @@
 import { join } from 'node:path'
-import { AppUsageError } from '~/utils/error-handler'
 import type { BatchManifest, BatchManifestEntry, BatchManifestKind, ExtractBatchManifest, ExtractBatchManifestItem, ExtractRoute, ProviderResult, RunManifest, RunManifestKind } from '~/types'
-
-class UnsupportedArtifactSchemaError extends AppUsageError {}
 
 const isRecord = (value: unknown): value is Record<string, unknown> =>
   typeof value === 'object' && value !== null && !Array.isArray(value)
-
-const assertSupportedRunOrBatchSchema = (
-  value: unknown,
-  artifactPath: string
-): void => {
-  if (!isRecord(value) || value['schemaVersion'] !== 2) {
-    return
-  }
-
-  if (value['kind'] === 'stt' || value['kind'] === 'ocr') {
-    throw new UnsupportedArtifactSchemaError(
-      `Unsupported artifact schema at ${artifactPath}: legacy "${value['kind']}" manifests are no longer supported. Re-run extract to create an "extract" manifest with metadata.extractRoute.`
-    )
-  }
-}
-
-const assertSupportedExtractBatchSchema = (
-  value: unknown,
-  artifactPath: string
-): void => {
-  if (!isRecord(value)) {
-    return
-  }
-
-  if (value['schemaVersion'] === 1) {
-    throw new UnsupportedArtifactSchemaError(
-      `Unsupported artifact schema at ${artifactPath}: extract batch schema v1 is no longer supported. Re-run extract to create schema v2 with route-based child batches.`
-    )
-  }
-}
 
 const parseRunManifest = (
   value: unknown,
@@ -241,7 +208,6 @@ export const readRunManifest = async (
   }
 
   const raw = await Bun.file(runPath).json() as unknown
-  assertSupportedRunOrBatchSchema(raw, runPath)
   return parseRunManifest(raw, expectedKind)
 }
 
@@ -270,7 +236,6 @@ export const readBatchManifest = async (
   }
 
   const raw = await Bun.file(batchPath).json() as unknown
-  assertSupportedRunOrBatchSchema(raw, batchPath)
   const manifest = parseBatchManifest(raw, expectedKind)
   if (!manifest) {
     return undefined
@@ -298,7 +263,6 @@ export const readExtractBatchManifest = async (
   }
 
   const raw = await Bun.file(manifestPath).json() as unknown
-  assertSupportedExtractBatchSchema(raw, manifestPath)
   const manifest = parseExtractBatchManifest(raw)
   if (!manifest) {
     return undefined

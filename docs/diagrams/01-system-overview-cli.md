@@ -88,7 +88,7 @@ Global flags:
 Two commands intentionally use looser native parsing:
 
 - `links` allows unknown flags because selector-like tokens are parsed by the command itself.
-- `comic` allows unknown flags, excess parameters, and help after the first positional argument so its legacy subcommand parser can receive pass-through argv. Public comic subcommands include `draft-scenes`, `generate-images`, and `character-sketch`.
+- `comic` allows unknown flags, excess parameters, and help after the first positional argument so its legacy subcommand parser can receive pass-through argv. Public comic subcommands are `draft-scenes`, `generate-images`, and `reference-sketch`.
 
 ## Command Surface
 

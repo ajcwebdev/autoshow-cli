@@ -1,9 +1,9 @@
 import { expect, test } from 'bun:test'
+import { expectLinksUsageError } from '../links-usage-errors'
 import {
   collectLinks,
   getDefaultLinksOutputFileName,
   parseLinksArgv,
-  runLinksWithArgv
 } from '~/cli/commands/setup-and-utilities/links/define-links-command'
 import {
   BFL_ALL_LINKS,
@@ -68,13 +68,13 @@ test('links selector accepts bfl provider with models and image sections', async
     bflImageSelection.globalSections
   )).toEqual(BFL_IMAGE_LINKS)
 
-  await expect(runLinksWithArgv([
+  await expectLinksUsageError([
     'bun',
     'src/cli/create-cli.ts',
     'links',
     '--bfl',
     'general'
-  ])).rejects.toThrow('Unknown links section(s) for --bfl: general')
+  ], 'Unknown links section(s) for --bfl: general')
 })
 
 test('links selector accepts ltx provider with models and video sections', async () => {
@@ -121,13 +121,13 @@ test('links selector accepts ltx provider with models and video sections', async
     ltxModelsSelection.globalSections
   )).toEqual(LTX_MODELS_LINKS)
 
-  await expect(runLinksWithArgv([
+  await expectLinksUsageError([
     'bun',
     'src/cli/create-cli.ts',
     'links',
     '--ltx',
     'image'
-  ])).rejects.toThrow('Unknown links section(s) for --ltx: image')
+  ], 'Unknown links section(s) for --ltx: image')
 })
 
 test('links selector accepts recraft provider with only image section', async () => {
@@ -161,13 +161,13 @@ test('links selector accepts recraft provider with only image section', async ()
     recraftImageSelection.globalSections
   )).toEqual(RECRAFT_IMAGE_LINKS)
 
-  await expect(runLinksWithArgv([
+  await expectLinksUsageError([
     'bun',
     'src/cli/create-cli.ts',
     'links',
     '--recraft',
     'video'
-  ])).rejects.toThrow('Unknown links section(s) for --recraft: video')
+  ], 'Unknown links section(s) for --recraft: video')
 })
 
 test('links selector accepts replicate provider with general and models sections', async () => {
@@ -232,11 +232,11 @@ test('links selector accepts replicate provider with general and models sections
     replicateGeneralSelection.globalSections
   )).toEqual(REPLICATE_GENERAL_LINKS)
 
-  await expect(runLinksWithArgv([
+  await expectLinksUsageError([
     'bun',
     'src/cli/create-cli.ts',
     'links',
     '--replicate',
     'image'
-  ])).rejects.toThrow('Unknown links section(s) for --replicate: image')
+  ], 'Unknown links section(s) for --replicate: image')
 })

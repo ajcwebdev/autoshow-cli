@@ -90,7 +90,7 @@ export type Step2Metadata = {
     audioInputTokens?: number | undefined
     textInputTokens?: number | undefined
     totalCost?: number | undefined
-    source?: 'response-header' | 'response_header' | 'fallback-estimate' | 'provider_usage' | 'provider_quote' | 'registry_fallback' | undefined
+    source?: 'response-header' | 'fallback-estimate' | 'provider_usage' | 'provider_quote' | 'registry_fallback' | undefined
     mode?: 'url' | 'duration' | 'order' | 'token' | 'segment_sum' | undefined
   } | undefined
 }

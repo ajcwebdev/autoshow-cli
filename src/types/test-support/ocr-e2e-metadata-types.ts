@@ -25,7 +25,6 @@ export type OcrE2eExtractMetadata = {
   resolvedStep2?: {
     route?: string
     sourceKind?: string
-    backend?: string
     providers?: Array<{ service?: string; model?: string; origin?: string }>
   }
   requestedProviders?: Array<{ service?: string; model?: string }>
@@ -36,7 +35,6 @@ export type OcrE2eExtractMetadata = {
     totalPages?: number
     epub?: Record<string, unknown>
     chapterExport?: OcrE2eEpubExportMetadata
-    epubExport?: OcrE2eEpubExportMetadata
     pdfChapterDetection?: OcrE2ePdfChapterDetectionMetadata
     outputFidelity?: string
   }

@@ -50,15 +50,12 @@ const mapStepEstimate = (estimate: StepEstimate, mode: EstimateMode): Record<str
       if (mode === 'human') {
         if (typeof estimate.costPer1kPagesCents === 'number') {
           entry['rate'] = `${formatEstimatedCost(estimate.costPer1kPagesCents)}/1K pages`
-        } else if (typeof estimate.costPer1kOutputCharsCents === 'number') {
-          entry['rate'] = `${formatEstimatedCost(estimate.costPer1kOutputCharsCents)}/1K output chars`
         } else if (typeof estimate.inputCostPer1MCents === 'number' && typeof estimate.outputCostPer1MCents === 'number') {
           entry['inputRate'] = `${formatEstimatedCost(estimate.inputCostPer1MCents)}/1M`
           entry['outputRate'] = `${formatEstimatedCost(estimate.outputCostPer1MCents)}/1M`
         }
       } else {
         if (typeof estimate.costPer1kPagesCents === 'number') entry['costPer1kPagesCents'] = estimate.costPer1kPagesCents
-        if (typeof estimate.costPer1kOutputCharsCents === 'number') entry['costPer1kOutputCharsCents'] = estimate.costPer1kOutputCharsCents
         if (typeof estimate.inputCostPer1MCents === 'number') entry['inputCostPer1MCents'] = estimate.inputCostPer1MCents
         if (typeof estimate.outputCostPer1MCents === 'number') entry['outputCostPer1MCents'] = estimate.outputCostPer1MCents
       }
@@ -319,7 +316,6 @@ export const createReporter = (logger: Logger): Reporter => {
     },
     complete: (outputDir, files, options) => {
       const tables = buildHumanCompletionTables(outputDir, files, options)
-      const hiddenSections = new Set(options?.hideHumanSections ?? [])
       const includeOutputDir = options?.includeOutputDir ?? true
       const humanSections = [
         ...(includeOutputDir
@@ -328,10 +324,10 @@ export const createReporter = (logger: Logger): Reporter => {
               table: createLocationsTable([{ artifact: 'outputDir', path: outputDir }])
             }]
           : []),
-        ...(tables.artifacts && !hiddenSections.has('artifacts') ? [{ title: 'Artifacts', table: tables.artifacts }] : []),
-        ...(tables.metrics && !hiddenSections.has('metrics') ? [{ title: 'Metrics', table: tables.metrics }] : []),
-        ...(tables.providers && !hiddenSections.has('providers') ? [{ title: 'Providers', table: tables.providers }] : []),
-        ...(tables.timing && !hiddenSections.has('timing') ? [{ title: 'Timing', table: tables.timing }] : [])
+        ...(tables.artifacts ? [{ title: 'Artifacts', table: tables.artifacts }] : []),
+        ...(tables.metrics ? [{ title: 'Metrics', table: tables.metrics }] : []),
+        ...(tables.providers ? [{ title: 'Providers', table: tables.providers }] : []),
+        ...(tables.timing ? [{ title: 'Timing', table: tables.timing }] : [])
       ]
 
       logger.write('success', options?.summaryMessage ?? 'Complete', {

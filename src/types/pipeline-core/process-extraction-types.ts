@@ -66,13 +66,12 @@ export const ExtractionOptionsSchema = v.object({
   deepinfraOcrModels: v.optional(v.array(v.string()), undefined),
   configPath: v.optional(v.string(), undefined),
   primaryOcr: v.optional(v.string(), undefined),
-  epubChapterFiles: v.optional(v.boolean(), undefined),
-  epubChunkLimitChars: v.optional(v.pipe(v.number(), v.minValue(1)), undefined),
+  chapterFiles: v.optional(v.boolean(), undefined),
+  chapterChunkLimitChars: v.optional(v.pipe(v.number(), v.minValue(1)), undefined),
   pdfChapterMode: v.optional(v.picklist(['local', 'auto', 'llm']), 'local'),
   pdfChapterLlmService: v.optional(v.string(), undefined),
   pdfChapterLlmModel: v.optional(v.string(), undefined),
   useEpubBun: v.optional(v.boolean(), undefined),
-  useEpubCalibre: v.optional(v.boolean(), undefined),
   step2SelectionOrigins: v.optional(v.record(
     v.string(),
     v.picklist(['default', 'explicit', 'all-shortcut'])
@@ -121,7 +120,7 @@ const ChapterExportSummarySchema = v.object({
 
 export const ExtractionMetadataSchema = v.object({
   extractionMethod: v.picklist([
-    'docx', 'pptx', 'xlsx', 'odf', 'tesseract', 'mutool+tesseract', 'mistral-ocr', 'openai-ocr', 'grok-ocr', 'epub-bun', 'epub-calibre',
+    'docx', 'pptx', 'xlsx', 'odf', 'tesseract', 'mutool+tesseract', 'mistral-ocr', 'openai-ocr', 'grok-ocr', 'epub-bun',
     'epub-text',
     'pdf-text', 'pdf+tesseract', 'pdf+mistral-ocr', 'pdf+glm-ocr', 'pdf+kimi-ocr', 'pdf+openai-ocr', 'pdf+grok-ocr', 'pdf+anthropic-ocr', 'pdf+gemini-ocr', 'pdf+deepinfra-ocr',
     'office-native', 'rtf-native',
@@ -150,16 +149,12 @@ export const ExtractionMetadataSchema = v.object({
   completionTokens: v.optional(v.number(), undefined),
   epub: v.optional(EpubInspectionSchema, undefined),
   chapterExport: v.optional(ChapterExportSummarySchema, undefined),
-  epubExport: v.optional(ChapterExportSummarySchema, undefined),
   pdfChapterDetection: v.optional(v.record(v.string(), v.unknown()), undefined),
   inputFamily: v.optional(v.string(), undefined),
   normalizedFrom: v.optional(v.string(), undefined),
   conversionChain: v.optional(v.array(v.string()), undefined),
   outputFormat: v.optional(v.string(), undefined),
   outputFidelity: v.optional(v.string(), undefined),
-  languageSupported: v.optional(v.boolean(), undefined),
-  probeFailureReason: v.optional(v.string(), undefined),
-  headerContentTypeOverridden: v.optional(v.boolean(), undefined),
   metadataSchemaVersion: v.optional(v.number(), undefined),
   providerCostCents: v.optional(v.number(), undefined),
   providerCostSource: v.optional(CostSourceSchema, undefined),

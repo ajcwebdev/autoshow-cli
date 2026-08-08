@@ -3,7 +3,6 @@ export type DownloadProfileId = 'bun-fetch-default' | 'bun-fetch-large-asset'
 export type DownloadProfile = {
   engine: 'bun-fetch'
   profileId: DownloadProfileId
-  flags: string[]
   // Aborts only when no bytes arrive for this long, so transfer size never
   // decides success. A total-transfer cap would fail large assets on slow links.
   stallTimeoutMs: number
@@ -52,12 +51,10 @@ export type PartialDownloadMetadata = {
   url: string
 }
 
-export type ResolvedEngine = 'bun-fetch'
-
 export type DownloadResult = {
   success: boolean
   bytes: number
-  engine: ResolvedEngine
+  engine: 'bun-fetch'
   profileId: DownloadProfileId
   durationMs: number
 }

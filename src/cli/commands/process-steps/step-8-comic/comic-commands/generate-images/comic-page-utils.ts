@@ -1,6 +1,6 @@
 import * as v from 'valibot'
 import { CLIUsageError, InternalError, ValidationError } from '~/utils/error-handler'
-import type { ComicGridChunk, ComicGridSpec, ComicPageChunk, ComicPanelSelection, PanelBundleData, GenerateImagesTarget, ImageGenerationSize, SketchPanelRange } from '~/types'
+import type { ComicGridSpec, ComicPageChunk, ComicPanelSelection, PanelBundleData, GenerateImagesTarget, ImageGenerationSize, SketchPanelRange } from '~/types'
 import { PanelBundleDataSchema } from '../../schemas/schemas'
 
 const PANEL_SELECTOR_PART_PATTERN = /^(\d+)(?:-(\d+))?$/
@@ -8,9 +8,6 @@ const GRID_SPEC_PATTERN = /^([1-9]\d*)x([1-9]\d*)$/i
 
 export const DEFAULT_FINAL_PANELS_PER_IMAGE = 1
 export const DEFAULT_SKETCH_PANELS_PER_IMAGE = 6
-// Kept as the public sketch/default chunk constant for compatibility with callers
-// that explicitly pass a shared override.
-export const DEFAULT_PANELS_PER_IMAGE = DEFAULT_SKETCH_PANELS_PER_IMAGE
 export const COMIC_GRID_PANEL_SIZE: ImageGenerationSize = '1536x1024'
 
 const assertPositiveInteger = (value: number, label: string): void => {
@@ -233,7 +230,7 @@ export const COMIC_STYLE_GUIDANCE = [
 export const chunkComicGridPanels = <T extends { panelNumber: number }>(
   panels: T[],
   grid: ComicGridSpec
-): Array<ComicGridChunk<T>> => {
+): Array<ComicPageChunk<T>> => {
   return chunkComicPagePanels(panels, getComicGridCapacity(grid))
 }
 
@@ -265,23 +262,6 @@ export const buildComicPagePromptData = (
   if (bundleDataList.some(bundle => bundle.snapshotId !== firstBundle.snapshotId)) {
     throw ValidationError('Page image panels cannot mix character reference snapshot IDs', { stage: 'comic:page-utils' })
   }
-  if (bundleDataList.every(bundle => bundle.schemaVersion === 3)) {
-    if (!firstBundle.locationSnapshotId || bundleDataList.some(bundle => bundle.locationSnapshotId !== firstBundle.locationSnapshotId)) {
-      throw ValidationError('Legacy v3 page panels cannot mix or omit location reference snapshot IDs', { stage: 'comic:page-utils' })
-    }
-    return {
-      schemaVersion: 3,
-      snapshotId: firstBundle.snapshotId,
-      locationSnapshotId: firstBundle.locationSnapshotId,
-      title: firstBundle.title,
-      location: firstBundle.location,
-      panels,
-    }
-  }
-  if (bundleDataList.some(bundle => bundle.schemaVersion !== 4)) {
-    throw ValidationError('Page image panels cannot mix panel bundle schema versions', { stage: 'comic:page-utils' })
-  }
-
   return v.parse(PanelBundleDataSchema, {
     schemaVersion: 4,
     snapshotId: firstBundle.snapshotId,
@@ -309,9 +289,9 @@ export const buildComicPagePrompt = (
       ].join('\n')
   const panelDirectives = pagePromptData.panels.map(panel => {
     const forbidden = allReferencedKeys.filter(key => !panel.characterKeys.includes(key))
-    const locationKey = panel.locationKey ?? locationReferences[0]?.key
+    const locationKey = panel.locationKey
     const locationReference = locationReferences.find(reference => reference.key === locationKey)
-    const panelDesignKeys = panel.designReferenceKeys ?? panel.designReferences?.map(reference => reference.key) ?? []
+    const panelDesignKeys = panel.designReferenceKeys ?? []
     const panelDesignReferences = designReferences.filter(reference => panelDesignKeys.includes(reference.key))
     const speech = panel.speech.length === 0
       ? ['  - Dialogue: none. Do not add a bubble or caption.']
@@ -331,8 +311,8 @@ export const buildComicPagePrompt = (
       `  - Exact required visible characters: ${panel.characterKeys.length > 0 ? panel.characterKeys.join(', ') : 'none'}.`,
       `  - Referenced characters forbidden from this sub-panel: ${forbidden.length > 0 ? forbidden.join(', ') : 'none'}.`,
       `  - Script-derived visual description: ${panel.description}`,
-      `  - Exhaustive prose shot plan: ${panel.shotPlan ?? 'Legacy bundle: rebuild with draft-scenes before generation.'}`,
-      `  - Canonical location: ${locationKey ?? 'legacy single location'}${locationReference ? ` (Reference ${locationReference.referenceIndex})` : ''}.`,
+      `  - Exhaustive prose shot plan: ${panel.shotPlan}`,
+      `  - Canonical location: ${locationKey}${locationReference ? ` (Reference ${locationReference.referenceIndex})` : ''}.`,
       `  - Canonical design references: ${panelDesignReferences.length > 0 ? panelDesignReferences.map(reference => `${reference.key} (Reference ${reference.referenceIndex}; ${reference.usage})`).join('; ') : 'none'}. Do not use a design reference in any sub-panel to which it is not mapped.`,
       ...speech,
     ].join('\n')
@@ -373,11 +353,11 @@ export const buildComicPagePrompt = (
     ].join('\n'),
     legend,
     locationReferences.length === 0
-      ? 'Location reference legend: legacy single-location bundle; use the final reference image for every sub-panel.'
+      ? 'Location reference legend: none.'
       : [
           'Location reference legend (after all character references, in first-panel-appearance order):',
           ...locationReferences.flatMap(reference => [
-            `- Reference ${reference.referenceIndex}: locationKey=${reference.key}; use only for sub-panels ${pagePromptData.panels.filter(panel => (panel.locationKey ?? locationReferences[0]?.key) === reference.key).map(panel => panel.number).join(', ')}.`,
+            `- Reference ${reference.referenceIndex}: locationKey=${reference.key}; use only for sub-panels ${pagePromptData.panels.filter(panel => panel.locationKey === reference.key).map(panel => panel.number).join(', ')}.`,
             `  Canonical location specification: ${reference.specification}`,
           ]),
         ].join('\n'),
@@ -385,7 +365,7 @@ export const buildComicPagePrompt = (
       ? 'Design reference legend: none.'
       : [
           'Design reference legend (after character and location references, in first-panel-appearance order):',
-          ...designReferences.map(reference => `- Reference ${reference.referenceIndex}: designKey=${reference.key}; usage=${reference.usage}; use only for sub-panels ${pagePromptData.panels.filter(panel => (panel.designReferenceKeys ?? panel.designReferences?.map(item => item.key) ?? []).includes(reference.key)).map(panel => panel.number).join(', ')}.`),
+          ...designReferences.map(reference => `- Reference ${reference.referenceIndex}: designKey=${reference.key}; usage=${reference.usage}; use only for sub-panels ${pagePromptData.panels.filter(panel => (panel.designReferenceKeys ?? []).includes(reference.key)).map(panel => panel.number).join(', ')}.`),
         ].join('\n'),
     `Exact per-panel execution contract:\n${panelDirectives}`,
     `Ordered page data:\n\`\`\`json\n${JSON.stringify(pagePromptData, null, 2)}\n\`\`\``,

@@ -5,8 +5,6 @@
       "https://www.assemblyai.com/docs/pre-recorded-audio/universal-2.md"
     ],
     "STT": [
-      "https://www.assemblyai.com/docs/pre-recorded-audio/universal-3-5-pro.md",
-      "https://www.assemblyai.com/docs/pre-recorded-audio/universal-2.md",
       "https://www.assemblyai.com/docs/api-reference/transcripts/submit.md",
       "https://www.assemblyai.com/docs/api-reference/transcripts/get.md"
     ]

@@ -1,4 +1,5 @@
 import type { AutoshowConfig, RepeatableModelFlag, Step2Command } from '~/types/index'
+import * as l from '~/utils/app-logger/app-logger'
 import { resolveCheapestModelForFlag } from '~/cli/commands/setup-and-utilities/models/cheapest-models'
 import {
   REPEATABLE_MODEL_FLAGS,
@@ -14,13 +15,16 @@ const STT_PROVIDER_FLAGS = getStep2ProviderSelectionFlagNames('stt')
 const OCR_PROVIDER_FLAGS = getStep2ProviderSelectionFlagNames('ocr')
 const URL_PROVIDER_FLAGS = getStep2ProviderSelectionFlagNames('url')
 const URL_PROVIDER_DEFAULT_GROUP_FLAGS = [...URL_PROVIDER_FLAGS, 'all-url', 'all-local-url', 'all-providers', 'all-local'] as const
-const LLM_PROVIDER_FLAGS = ['llama', 'openai', 'groq', 'gemini', 'anthropic', 'minimax', 'grok', 'glm', 'kimi', 'together', 'cerebras'] as const
+const LLM_PROVIDER_FLAGS = ['llama', 'llamafile', 'openai', 'groq', 'gemini', 'anthropic', 'minimax', 'grok', 'glm', 'kimi', 'together', 'cerebras'] as const
 const TTS_PROVIDER_FLAGS = ['kitten-tts', 'elevenlabs-tts', 'minimax-tts', 'groq-tts', 'grok-tts', 'mistral-tts', 'openai-tts', 'gemini-tts', 'deepgram-tts', 'speechify-tts', 'hume-tts', 'cartesia-tts'] as const
-const IMAGE_PROVIDER_FLAGS = ['gemini-image', 'openai-image', 'grok-image', 'bfl-image', 'reve-image', 'recraft-image', 'replicate-image', 'lumalabs-image', 'fal-image'] as const
+const IMAGE_PROVIDER_FLAGS = ['gemini-image', 'openai-image', 'grok-image', 'bfl-image', 'recraft-image', 'replicate-image', 'lumalabs-image', 'fal-image'] as const
 const VIDEO_PROVIDER_FLAGS = ['gemini-video', 'minimax-video', 'glm-video', 'grok-video', 'runway-video', 'ltx-video', 'replicate-video', 'lumalabs-video', 'fal-video'] as const
 const MUSIC_PROVIDER_FLAGS = ['elevenlabs-music', 'minimax-music', 'gemini-music'] as const
 const REPEATABLE_CONFIG_MODEL_FLAG_SET = new Set<string>(REPEATABLE_MODEL_FLAGS)
 const CONFIG_INJECTED_FLAGS_KEY = '__autoshowConfigInjectedFlags'
+// Written by the passes after the main loop rather than through
+// FLAG_TO_CONFIG_PATH, because each fans out to several config keys.
+const MULTI_DESTINATION_FLAGS = new Set(['provider-concurrency', 'local-concurrency', 'prompt'])
 const STEP2_PROVIDER_CONFIG_PATHS = Object.fromEntries(
   getStep2ProviderConfigPathEntries().map(({ flagName, configPath }) => [flagName, [...configPath]])
 ) as Record<string, string[]>
@@ -107,7 +111,7 @@ export const mergeConfigIntoRawFlags = (
 
   if (d.llm) {
     injectProviderGroup(LLM_PROVIDER_FLAGS, [
-      ['llama', d.llm.llama], ['openai', d.llm.openai], ['groq', d.llm.groq],
+      ['llama', d.llm.llama], ['llamafile', d.llm.llamafile], ['openai', d.llm.openai], ['groq', d.llm.groq],
       ['gemini', d.llm.gemini], ['anthropic', d.llm.anthropic], ['minimax', d.llm.minimax],
       ['grok', d.llm.grok], ['glm', d.llm.glm], ['kimi', d.llm.kimi],
       ['together', d.llm.together], ['cerebras', d.llm.cerebras],
@@ -135,7 +139,6 @@ export const mergeConfigIntoRawFlags = (
     inject('mistral-tts-ref-audio', d.post.tts.mistralTtsRefAudio)
     inject('mistral-tts-voice-name', d.post.tts.mistralTtsVoiceName)
     inject('tts-dialogue-format', d.post.tts.ttsDialogueFormat)
-    inject('tts-speaker-ref-audio', d.post.tts.ttsSpeakerRefAudio)
     inject('tts-speaker', d.post.tts.ttsSpeakers)
     inject('openai-voice', d.post.tts.openaiVoice)
     inject('openai-tts-instructions', d.post.tts.openaiTtsInstructions)
@@ -146,10 +149,6 @@ export const mergeConfigIntoRawFlags = (
     inject('deepgram-tts-bit-rate', d.post.tts.deepgramTtsBitRate)
     inject('deepgram-tts-sample-rate', d.post.tts.deepgramTtsSampleRate)
     inject('deepgram-tts-speed', d.post.tts.deepgramTtsSpeed)
-    inject('gemini-speaker-1-name', d.post.tts.geminiSpeaker1Name)
-    inject('gemini-speaker-1-voice', d.post.tts.geminiSpeaker1Voice)
-    inject('gemini-speaker-2-name', d.post.tts.geminiSpeaker2Name)
-    inject('gemini-speaker-2-voice', d.post.tts.geminiSpeaker2Voice)
     inject('elevenlabs-voice', d.post.tts.elevenlabsVoice)
     inject('elevenlabs-tts-ref-audio', d.post.tts.elevenlabsTtsRefAudio)
     inject('elevenlabs-tts-voice-name', d.post.tts.elevenlabsTtsVoiceName)
@@ -252,10 +251,10 @@ export const mergeConfigIntoRawFlags = (
   }
 
   if (d.extract?.ocr) {
-    inject('lang', d.extract.ocr.lang)
-    inject('out', d.extract.ocr.out)
+    inject('ocr-language', d.extract.ocr.lang)
+    inject('format', d.extract.ocr.out)
     injectProviderGroup(OCR_PROVIDER_FLAGS, resolveStep2ProviderDefaults(config, 'ocr'))
-    inject('dpi', d.extract.ocr.dpi)
+    inject('ocr-dpi', d.extract.ocr.dpi)
     inject('ocr-concurrency', d.extract.ocr.pageConcurrency)
     inject('ocr-provider-concurrency', d.extract.ocr.providerConcurrency)
     inject('ocr-local-concurrency', d.extract.ocr.localConcurrency)
@@ -286,7 +285,7 @@ export const mergeConfigIntoRawFlags = (
   return merged
 }
 
-const FLAG_TO_CONFIG_PATH: Record<string, string[]> = {
+export const FLAG_TO_CONFIG_PATH: Record<string, string[]> = {
   ...STEP2_PROVIDER_CONFIG_PATHS,
   'youtube-captions':  ['defaults', 'extract', 'stt', 'youtubeCaptions'],
   'stt-happyscribe-organization-id': ['defaults', 'extract', 'stt', 'happyscribeOrganizationId'],
@@ -299,9 +298,8 @@ const FLAG_TO_CONFIG_PATH: Record<string, string[]> = {
   'stt-local-concurrency': ['defaults', 'extract', 'stt', 'localConcurrency'],
   'stt-segment-concurrency': ['defaults', 'extract', 'stt', 'segmentConcurrency'],
   'stt-preflight-concurrency': ['defaults', 'extract', 'stt', 'preflightConcurrency'],
-  'refresh-cache':     ['defaults', 'extract', 'stt', 'refreshCache'],
-  'no-cache':          ['defaults', 'extract', 'stt', 'noCache'],
   'llama':             ['defaults', 'llm', 'llama'],
+  'llamafile':         ['defaults', 'llm', 'llamafile'],
   'openai':            ['defaults', 'llm', 'openai'],
   'groq':              ['defaults', 'llm', 'groq'],
   'gemini':            ['defaults', 'llm', 'gemini'],
@@ -335,7 +333,6 @@ const FLAG_TO_CONFIG_PATH: Record<string, string[]> = {
   'mistral-tts-ref-audio': ['defaults', 'post', 'tts', 'mistralTtsRefAudio'],
   'mistral-tts-voice-name': ['defaults', 'post', 'tts', 'mistralTtsVoiceName'],
   'tts-dialogue-format': ['defaults', 'post', 'tts', 'ttsDialogueFormat'],
-  'tts-speaker-ref-audio': ['defaults', 'post', 'tts', 'ttsSpeakerRefAudio'],
   'tts-speaker': ['defaults', 'post', 'tts', 'ttsSpeakers'],
   'openai-voice':      ['defaults', 'post', 'tts', 'openaiVoice'],
   'openai-tts-instructions': ['defaults', 'post', 'tts', 'openaiTtsInstructions'],
@@ -346,10 +343,6 @@ const FLAG_TO_CONFIG_PATH: Record<string, string[]> = {
   'deepgram-tts-bit-rate': ['defaults', 'post', 'tts', 'deepgramTtsBitRate'],
   'deepgram-tts-sample-rate': ['defaults', 'post', 'tts', 'deepgramTtsSampleRate'],
   'deepgram-tts-speed': ['defaults', 'post', 'tts', 'deepgramTtsSpeed'],
-  'gemini-speaker-1-name': ['defaults', 'post', 'tts', 'geminiSpeaker1Name'],
-  'gemini-speaker-1-voice': ['defaults', 'post', 'tts', 'geminiSpeaker1Voice'],
-  'gemini-speaker-2-name': ['defaults', 'post', 'tts', 'geminiSpeaker2Name'],
-  'gemini-speaker-2-voice': ['defaults', 'post', 'tts', 'geminiSpeaker2Voice'],
   'elevenlabs-voice':  ['defaults', 'post', 'tts', 'elevenlabsVoice'],
   'elevenlabs-tts-ref-audio': ['defaults', 'post', 'tts', 'elevenlabsTtsRefAudio'],
   'elevenlabs-tts-voice-name': ['defaults', 'post', 'tts', 'elevenlabsTtsVoiceName'],
@@ -366,11 +359,6 @@ const FLAG_TO_CONFIG_PATH: Record<string, string[]> = {
   'elevenlabs-tts-pronunciation-dictionary-locator': ['defaults', 'post', 'tts', 'elevenlabsTtsPronunciationDictionaryLocators'],
   'elevenlabs-tts-optimize-streaming-latency': ['defaults', 'post', 'tts', 'elevenlabsTtsOptimizeStreamingLatency'],
   'minimax-tts-voice': ['defaults', 'post', 'tts', 'minimaxTtsVoice'],
-  'minimax-tts-ref-audio': ['defaults', 'post', 'tts', 'minimaxTtsRefAudio'],
-  'minimax-tts-prompt-audio': ['defaults', 'post', 'tts', 'minimaxTtsPromptAudio'],
-  'minimax-tts-prompt-text': ['defaults', 'post', 'tts', 'minimaxTtsPromptText'],
-  'minimax-tts-clone-noise-reduction': ['defaults', 'post', 'tts', 'minimaxTtsCloneNoiseReduction'],
-  'minimax-tts-clone-volume-normalization': ['defaults', 'post', 'tts', 'minimaxTtsCloneVolumeNormalization'],
   'minimax-tts-language-boost': ['defaults', 'post', 'tts', 'minimaxTtsLanguageBoost'],
   'minimax-tts-speed': ['defaults', 'post', 'tts', 'minimaxTtsSpeed'],
   'minimax-tts-volume': ['defaults', 'post', 'tts', 'minimaxTtsVolume'],
@@ -393,7 +381,6 @@ const FLAG_TO_CONFIG_PATH: Record<string, string[]> = {
   'openai-image':      ['defaults', 'post', 'image', 'openaiImage'],
   'grok-image':        ['defaults', 'post', 'image', 'grokImage'],
   'bfl-image':         ['defaults', 'post', 'image', 'bflImage'],
-  'reve-image':        ['defaults', 'post', 'image', 'reveImage'],
   'recraft-image':     ['defaults', 'post', 'image', 'recraftImage'],
   'replicate-image':   ['defaults', 'post', 'image', 'replicateImage'],
   'lumalabs-image':    ['defaults', 'post', 'image', 'lumalabsImage'],
@@ -447,9 +434,6 @@ const FLAG_TO_CONFIG_PATH: Record<string, string[]> = {
   'ocr-language':       ['defaults', 'extract', 'ocr', 'lang'],
   'format':             ['defaults', 'extract', 'ocr', 'out'],
   'ocr-dpi':            ['defaults', 'extract', 'ocr', 'dpi'],
-  'lang':              ['defaults', 'extract', 'ocr', 'lang'],
-  'out':               ['defaults', 'extract', 'ocr', 'out'],
-  'dpi':               ['defaults', 'extract', 'ocr', 'dpi'],
   'ocr-concurrency':   ['defaults', 'extract', 'ocr', 'pageConcurrency'],
   'ocr-provider-concurrency': ['defaults', 'extract', 'ocr', 'providerConcurrency'],
   'ocr-local-concurrency': ['defaults', 'extract', 'ocr', 'localConcurrency'],
@@ -462,7 +446,11 @@ const FLAG_TO_CONFIG_PATH: Record<string, string[]> = {
   'max-cents':         ['pricing', 'maxCents'],
 }
 
-const RUNTIME_ONLY_FLAGS = new Set([
+// Per-run inputs that are never persisted. `buildConfigPatchFromFlags` skips these
+// before the FLAG_TO_CONFIG_PATH lookup, which is also what keeps them out of the
+// "no config destination" warning. An entry here must therefore not also have a
+// config destination — pinned by explicit-runtime-exclusions.test.ts.
+export const RUNTIME_ONLY_FLAGS = new Set([
   'price',
   'allow-over-budget',
   'show',
@@ -498,13 +486,13 @@ const readConfigFlagValue = (
 }
 
 const parseConfigValue = (flagName: string, rawValue: unknown): unknown => {
-  if ((flagName === 'tts-speaker-ref-audio' || flagName === 'minimax-tts-pronunciation' || flagName === 'elevenlabs-tts-pronunciation-dictionary-locator') && typeof rawValue === 'string') {
+  if ((flagName === 'minimax-tts-pronunciation' || flagName === 'elevenlabs-tts-pronunciation-dictionary-locator') && typeof rawValue === 'string') {
     return [rawValue]
   }
   if (typeof rawValue !== 'string') return rawValue
   const numericFlags = new Set([
-    'speaker-count', 'stt-reverb-verbatimicity', 'reverb-verbatimicity', 'image-count', 'video-duration',
-    'music-duration', 'dpi', 'ocr-dpi', 'length', 'batch-limit', 'batch-concurrency',
+    'speaker-count', 'stt-reverb-verbatimicity', 'image-count', 'video-duration',
+    'music-duration', 'ocr-dpi', 'length', 'batch-limit', 'batch-concurrency',
     'max-cents',
     'provider-concurrency', 'local-concurrency',
     'llm-provider-concurrency', 'llm-local-concurrency',
@@ -545,11 +533,17 @@ export const buildConfigPatchFromFlags = (
 ): Record<string, unknown> => {
   const patch: Record<string, unknown> = {}
   const rawOccurrences = parseRepeatableModelFlagOccurrences(rawArgs)
+  const discardedFlags: string[] = []
 
   for (const flagName of explicitFlags) {
     if (RUNTIME_ONLY_FLAGS.has(flagName)) continue
     const configPath = FLAG_TO_CONFIG_PATH[flagName]
-    if (!configPath) continue
+    // A flag with no destination used to be dropped in silence, so `config
+    // --image-mask x` reported success and wrote nothing. Say so instead.
+    if (!configPath) {
+      if (!MULTI_DESTINATION_FLAGS.has(flagName)) discardedFlags.push(flagName)
+      continue
+    }
     let value: unknown
 
     if (REPEATABLE_CONFIG_MODEL_FLAG_SET.has(flagName)) {
@@ -564,6 +558,13 @@ export const buildConfigPatchFromFlags = (
     }
 
     setNestedValue(patch, configPath, value)
+  }
+
+  if (discardedFlags.length > 0) {
+    l.warn(
+      `These flags have no config destination and were not saved: ${discardedFlags.sort().map(flag => `--${flag}`).join(', ')}. `
+      + 'Pass them on the command that uses them instead.'
+    )
   }
 
   if (explicitFlags.has('provider-concurrency')) {

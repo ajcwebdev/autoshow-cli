@@ -43,12 +43,12 @@ import {
   advancePageQaRepairStagnation,
   applyPageQaRepairPolicy,
   createPageQaRepairStagnationState,
-  DEFAULT_PAGE_QA_MODEL,
   judgeComicPage,
   readReusablePageQaEntry,
   writePageQaReports,
   type PageQaEntry,
 } from './comic-page-qa'
+import { DEFAULT_QA_MODEL } from '../../comic-utils/cli-args'
 import { DEFAULT_IMAGE_MODEL } from '../../comic-utils/image-size'
 import { validateReferenceImageCount } from '../../comic-utils/reference-capabilities'
 
@@ -120,8 +120,6 @@ const resolvePageReferences = async (
   const resolved = applyReferenceImageLimits(
     orderedReferences,
     orderedReferences,
-    primaryCharacterReferenceState.sketchCharacterRefs,
-    primaryCharacterReferenceState.canonicalCharacterRefs,
     [],
     [...sceneAnchorRefs, ...designPaths],
     primaryCharacterReferenceState.missingPrimaryCharacterRefs,
@@ -166,8 +164,8 @@ export const generateComicPages = async (
   const useModelSpecificFilenames = options.models.length > 1
   const variations: ImagePromptVariation[] = options.variations ?? ['canonical']
   const useVariationOutputPaths = options.variations !== undefined
-  const qaEnabled = options.qa ?? options.pageQa ?? true
-  const judgeModel = options.qaModel ?? options.pageQaModel ?? DEFAULT_PAGE_QA_MODEL
+  const qaEnabled = options.qa ?? true
+  const judgeModel = options.qaModel ?? DEFAULT_QA_MODEL
   const maxRepairs = options.maxRepairs ?? 2
 
   try {

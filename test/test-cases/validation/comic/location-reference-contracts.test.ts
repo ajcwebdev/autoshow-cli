@@ -168,14 +168,12 @@ describe('canonical location reference registration', () => {
     expect(await Bun.file(join(locations, 'single-episode', '02-cargo-bay--reference.png')).exists()).toBe(true)
   })
 
-  test('reads legacy schema-version-1 sheet registrations as establishing views', async () => {
+  test('rejects schema-version-1 sheet registrations', async () => {
     const { locations } = await fixture()
     const specification = 'Fixed loading door.'
     await Bun.write(join(locations, 'legacy--reference-sheet.png'), image)
     await Bun.write(getLocationSketchManifestPath(), JSON.stringify({ schemaVersion: 1, sketches: [{ locationKey: 'cargo-bay', generationId: 'legacy', specificationSha256: sha(specification), sheet: 'legacy--reference-sheet.png', sheetSha256: sha(image), model: 'fixture', createdAt: '2026-01-01T00:00:00.000Z' }] }))
-    const manifest = await readLocationSketchManifest()
-    expect(manifest.schemaVersion).toBe(2)
-    expect(manifest.sketches[0]?.views[0]).toMatchObject({ view: 'establishing', image: 'legacy--reference-sheet.png', generationId: 'legacy' })
+    await expect(readLocationSketchManifest()).rejects.toThrow(/Invalid location sketch manifest/)
   })
 
   test('rolls back the targeted view and manifests when atomic promotion fails', async () => {

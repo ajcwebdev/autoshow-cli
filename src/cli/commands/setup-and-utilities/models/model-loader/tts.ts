@@ -2,27 +2,15 @@ import { DEFAULT_COST_MULTIPLIER, DEFAULT_TTS_MS_PER_1K_CHARS } from './defaults
 import { getModelRegistry, getRegistryServiceType } from './registry'
 import type { TtsEstimation } from '~/types'
 
-const HISTORICAL_TTS_MODEL_REPLACEMENTS: Readonly<Record<string, string>> = {
-  'cartesia/sonic-3': 'sonic-3.5-2026-05-04',
-  'cartesia/sonic-3.5': 'sonic-3.5-2026-05-04',
-  'openai/gpt-4o-mini-tts': 'gpt-4o-mini-tts-2025-12-15',
-  'speechify/simba-english': 'simba-3.2'
-}
-
-const resolveTtsRegistryModel = (service: string, model: string): string =>
-  HISTORICAL_TTS_MODEL_REPLACEMENTS[`${service}/${model}`] ?? model
-
 export const getTtsPricing = (
   service: string,
   model: string
 ): {
   costPer1kCharsCents?: number
-  characterBillingBlockSize?: number
-  characterBillingBlockCostCents?: number
   inputCostPer1MCharsCents?: number
   outputCostPer1MCharsCents?: number
 } => {
-  const ttsModel = getModelRegistry().tts[service]?.models[resolveTtsRegistryModel(service, model)]
+  const ttsModel = getModelRegistry().tts[service]?.models[model]
   if (!ttsModel) return {}
   return {
     ...(ttsModel.costPer1kCharsCents !== undefined
@@ -30,12 +18,6 @@ export const getTtsPricing = (
       : ttsModel.costPer1kCharsUSD !== undefined
         ? { costPer1kCharsCents: ttsModel.costPer1kCharsUSD * 100 }
         : {}),
-    ...(ttsModel.characterBillingBlockSize !== undefined
-      ? { characterBillingBlockSize: ttsModel.characterBillingBlockSize }
-      : {}),
-    ...(ttsModel.characterBillingBlockCostCents !== undefined
-      ? { characterBillingBlockCostCents: ttsModel.characterBillingBlockCostCents }
-      : {}),
     ...(ttsModel.inputCostPer1MCharsCents !== undefined
       ? { inputCostPer1MCharsCents: ttsModel.inputCostPer1MCharsCents }
       : ttsModel.inputCostPer1MCharsUSD !== undefined
@@ -51,7 +33,7 @@ export const getTtsPricing = (
 
 export const getTtsEstimation = (service: string, model: string): TtsEstimation => {
   const serviceType = getRegistryServiceType('tts', service) ?? 'api'
-  const modelMeta = getModelRegistry().tts[service]?.models[resolveTtsRegistryModel(service, model)]
+  const modelMeta = getModelRegistry().tts[service]?.models[model]
   return {
     costMultiplier: modelMeta?.estimation?.costMultiplier ?? DEFAULT_COST_MULTIPLIER,
     msPer1KChars: modelMeta?.estimation?.msPer1KChars ?? DEFAULT_TTS_MS_PER_1K_CHARS[serviceType],
@@ -59,7 +41,7 @@ export const getTtsEstimation = (service: string, model: string): TtsEstimation 
 }
 
 export const getTtsMaxInputCharacters = (service: string, model: string): number | undefined =>
-  getModelRegistry().tts[service]?.models[resolveTtsRegistryModel(service, model)]?.limits?.maxInputCharacters
+  getModelRegistry().tts[service]?.models[model]?.limits?.maxInputCharacters
 
 export const getTtsCost = (service: string, model: string): number => {
   const pricing = getTtsPricing(service, model)

@@ -30,7 +30,7 @@ export const resolveEffectiveSplitSegmentDurationMinutes = (
     audioDurationSeconds?: number | undefined
   } = {}
 ): number => {
-  const preferredSegmentDurationMinutes = policy.preferredSegmentDurationMinutes ?? defaultSegmentDurationMinutes
+  const preferredSegmentDurationMinutes = defaultSegmentDurationMinutes
   const audioFileSizeBytes = typeof options.audioFileSizeBytes === 'number' && Number.isFinite(options.audioFileSizeBytes) && options.audioFileSizeBytes > 0
     ? options.audioFileSizeBytes
     : undefined

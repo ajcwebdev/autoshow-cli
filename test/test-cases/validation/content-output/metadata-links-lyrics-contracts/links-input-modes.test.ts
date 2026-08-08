@@ -1,4 +1,5 @@
 import { expect, test } from 'bun:test'
+import { expectLinksUsageError } from './links-usage-errors'
 import {
   getDefaultLinksDirectUrlOutputFileName,
   getDefaultLinksInputOutputFileName,
@@ -189,30 +190,30 @@ test('links fetches URL input files through the existing combined markdown write
 
 test('links input file mode reports missing empty and no-url files as usage errors', async () => {
   const missingPath = linksTestInputPath('missing')
-  await expect(runLinksWithArgv([
+  await expectLinksUsageError([
     'bun',
     'src/cli/create-cli.ts',
     'links',
     missingPath
-  ])).rejects.toThrow('Links input file not found')
+  ], 'Links input file not found')
 
   const emptyPath = linksTestInputPath('empty')
   await Bun.write(emptyPath, ' \n\t\n')
-  await expect(runLinksWithArgv([
+  await expectLinksUsageError([
     'bun',
     'src/cli/create-cli.ts',
     'links',
     emptyPath
-  ])).rejects.toThrow('Links input file is empty')
+  ], 'Links input file is empty')
 
   const noUrlPath = linksTestInputPath('no-url')
   await Bun.write(noUrlPath, '# Heading\n- local-file.md\nplain prose\n')
-  await expect(runLinksWithArgv([
+  await expectLinksUsageError([
     'bun',
     'src/cli/create-cli.ts',
     'links',
     noUrlPath
-  ])).rejects.toThrow('No valid remote URLs found in links input file')
+  ], 'No valid remote URLs found in links input file')
 })
 
 test('links input file mode cannot be combined with provider or section selectors', () => {

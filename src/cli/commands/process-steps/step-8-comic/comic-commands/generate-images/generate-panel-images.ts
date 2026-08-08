@@ -35,12 +35,12 @@ import {
   advancePageQaRepairStagnation,
   applyPageQaRepairPolicy,
   createPageQaRepairStagnationState,
-  DEFAULT_PAGE_QA_MODEL,
   judgeComicPage,
   readReusablePageQaEntry,
   writePageQaReports,
   type PageQaEntry,
 } from './comic-page-qa'
+import { DEFAULT_QA_MODEL } from '../../comic-utils/cli-args'
 import { DEFAULT_IMAGE_MODEL } from '../../comic-utils/image-size'
 import { validateReferenceImageCount } from '../../comic-utils/reference-capabilities'
 
@@ -59,7 +59,7 @@ export const generatePanelImages = async (
   const writeImage = dependencies.writeImage ?? writeGeneratedImage
   const judge = dependencies.judgePage ?? judgeComicPage
   const qaEnabled = options.qa ?? true
-  const judgeModel = options.qaModel ?? DEFAULT_PAGE_QA_MODEL
+  const judgeModel = options.qaModel ?? DEFAULT_QA_MODEL
   const maxRepairs = options.maxRepairs ?? 2
   const qaEntriesByDirectory = new Map<string, PageQaEntry[]>()
 

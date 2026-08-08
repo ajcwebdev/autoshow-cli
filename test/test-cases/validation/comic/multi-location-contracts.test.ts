@@ -2,18 +2,18 @@ import { afterEach, describe, expect, test } from 'bun:test'
 import { createHash } from 'node:crypto'
 import { mkdir, mkdtemp, rm } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
-import { dirname, join, resolve } from 'node:path'
+import { join, resolve } from 'node:path'
 import { configureCharactersRoot } from '~/cli/commands/process-steps/characters-root'
 import {
   createLocationReferenceSnapshots,
-  loadAndVerifyLocationReferenceSnapshots,
   normalizeLocationKey,
   resolveLocationCatalogEntry,
   type LocationReferenceCatalog,
 } from '~/cli/commands/process-steps/step-8-comic/comic-utils/location-reference'
+import { resolveLocationReferencesAcrossPanels } from '~/cli/commands/process-steps/step-8-comic/comic-utils/panel-prompt-utils'
 import { validateSceneSourceSegmentCoverage } from '~/cli/commands/process-steps/step-8-comic/comic-utils/source-coverage-utils'
 import { parseScriptMarkdownToStructuredData } from '~/cli/commands/process-steps/step-8-comic/comic-utils/structured-script-utils/structured-script-parser'
-import type { CharacterCatalogService, ScenePromptData, StructuredScriptSourceSegment } from '~/types'
+import type { CharacterCatalogService, PanelPrimaryReferenceInput, ScenePromptData, StructuredScriptSourceSegment } from '~/types'
 
 const roots: string[] = []
 const emptyCharacterCatalog = {
@@ -84,7 +84,7 @@ describe('multi-location comic contracts', () => {
     expect(() => validateSceneSourceSegmentCoverage(scene(['beat-0001', 'beat-0002'], 'quarters'), segments)).toThrow(/spans multiple locations.*Split/)
   })
 
-  test('snapshots each distinct location once, verifies checksums, and reads legacy singular manifests', async () => {
+  test('snapshots each distinct location once and rejects tampered or missing snapshot manifests on the panel resolution path', async () => {
     const root = await mkdtemp(join(tmpdir(), 'autoshow-multi-location-snapshots-'))
     roots.push(root)
     const characters = join(root, 'input', 'characters')
@@ -99,32 +99,53 @@ describe('multi-location comic contracts', () => {
       await Bun.write(join(locations, sheet), bytes)
       sketches.push({
         locationKey: entry.key,
-        generationId: `generation-${entry.key}`,
         specificationSha256: createHash('sha256').update(entry.specification).digest('hex'),
-        sheet,
-        sheetSha256: createHash('sha256').update(bytes).digest('hex'),
-        model: 'fixture',
-        createdAt: '2026-01-01T00:00:00.000Z',
+        views: [{
+          view: 'establishing',
+          generationId: `generation-${entry.key}`,
+          image: sheet,
+          imageSha256: createHash('sha256').update(bytes).digest('hex'),
+          model: 'fixture',
+          createdAt: '2026-01-01T00:00:00.000Z',
+        }],
       })
     }
     await Bun.write(join(locations, 'locations-reference.json'), JSON.stringify(catalog))
-    await Bun.write(join(locations, 'location-sketches.json'), JSON.stringify({ schemaVersion: 1, sketches }))
+    await Bun.write(join(locations, 'location-sketches.json'), JSON.stringify({ schemaVersion: 2, sketches }))
     const run = join(root, 'run')
     const manifest = await createLocationReferenceSnapshots(run, ['quarters', 'hallway', 'quarters'])
     expect(manifest.snapshots.every(snapshot => snapshot.sheet.path.startsWith('assets/location-references/'))).toBe(true)
     expect(manifest.snapshots.map(snapshot => snapshot.locationKey)).toEqual(['quarters', 'hallway'])
-    expect(await loadAndVerifyLocationReferenceSnapshots(run)).toHaveLength(2)
+    const panelInput = (runDirectory: string, index: number, snapshot: { locationKey: string; snapshotId: string }): PanelPrimaryReferenceInput => ({
+      panelDirectory: join(runDirectory, 'metadata', 'panel-prompts', `panel-0${index + 1}`),
+      entries: [],
+      bundleData: {
+        schemaVersion: 4,
+        snapshotId: 'character-snapshot',
+        title: 'Move',
+        location: 'quarters then hallway',
+        panels: [{
+          number: index + 1,
+          description: `Panel ${index + 1}.`,
+          shotPlan: `Panel ${index + 1} shot.`,
+          characterKeys: [],
+          speech: [],
+          sourceSegmentIds: [`beat-000${index + 1}`],
+          sourceSegments: [{ id: `beat-000${index + 1}`, type: 'direction', text: `Panel ${index + 1}.`, location: { key: snapshot.locationKey, raw: snapshot.locationKey } }],
+          locationKey: snapshot.locationKey,
+          locationSnapshotId: snapshot.snapshotId,
+        }],
+      },
+    })
+    const panels = manifest.snapshots.map((snapshot, index) => panelInput(run, index, snapshot))
+    expect(resolveLocationReferencesAcrossPanels(panels)).toHaveLength(2)
     const firstAsset = resolve(run, manifest.snapshots[0]!.sheet.path)
     await Bun.write(firstAsset, 'tampered')
-    await expect(loadAndVerifyLocationReferenceSnapshots(run)).rejects.toThrow(/missing or modified/)
+    expect(() => resolveLocationReferencesAcrossPanels(panels)).toThrow(/Location snapshot asset was modified/)
 
-    const legacyRun = join(root, 'legacy-run')
-    const legacyAsset = join(legacyRun, 'assets', 'location.png')
-    await mkdir(dirname(legacyAsset), { recursive: true })
-    await Bun.write(legacyAsset, 'legacy')
-    const legacyHash = createHash('sha256').update('legacy').digest('hex')
-    await Bun.write(join(legacyRun, 'assets', 'location-reference.json'), JSON.stringify({ schemaVersion: 1, snapshotId: 'legacy', locationKey: 'quarters', specification: 'Quarters.', sourceScripts: [], sourceGenerationId: 'old', sheet: { path: 'assets/location.png', sha256: legacyHash } }))
-    expect((await loadAndVerifyLocationReferenceSnapshots(legacyRun))[0]?.snapshotId).toBe('legacy')
+    const emptyRun = join(root, 'empty-run')
+    await mkdir(join(emptyRun, 'assets'), { recursive: true })
+    expect(() => resolveLocationReferencesAcrossPanels([panelInput(emptyRun, 0, manifest.snapshots[0]!)])).toThrow(/Missing location-references\.json/)
   })
 
   test('composes schema-version-2 views in canonical order and records source provenance', async () => {

@@ -4,7 +4,7 @@
 
 - **Decision Status:** Accepted
 - **Date Created:** 2026-08-03
-- **Date Updated:** 2026-08-03
+- **Date Updated:** 2026-08-07
 - **Verification Status:** Passed
 
 ## Context
@@ -53,7 +53,7 @@ Phase 1 makes these bounded changes:
 - Bare `--provider assemblyai` follows the standard cheapest-model rule and selects `universal-2`. `--all-providers` includes both active models. The flagship model requires an explicit selector.
 - The adapter retains its asynchronous upload, create, and poll lifecycle. The create body sends the selected model as the singleton `speech_models: [model]`, enables `speaker_labels`, and includes `speakers_expected` when the user supplies a speaker count.
 - Pricing uses diarization-inclusive effective rates of `$0.23/hour` for Universal-3.5 Pro and `$0.17/hour` for Universal-2, checked 2026-08-03. Both use cost multiplier `1`, preserve the existing upload and 10-hour duration limits, and label the reused `188 ms/second` timing estimate provisional.
-- Resume accepts completed `universal-3-pro` artifacts as historical results. An incomplete stored `universal-3-pro` target fails before price calculation or provider execution and directs the user to start a new explicit `universal-3-5-pro` or `universal-2` target.
+- Resume accepts completed `universal-3-pro` artifacts as historical results. An incomplete stored `universal-3-pro` target fails before price calculation or provider execution and directs the user to start a new target with an active AssemblyAI model. The per-model replacement-hint map was retired on 2026-08-07 (legacy audit §3.4); the generic active-registry check still refuses to substitute a different model.
 - Curated AssemblyAI links cover both active model pages plus transcript submit and get references.
 
 No public TypeScript type shape changes. Accepted values change for `--assemblyai-stt`, `--provider assemblyai=<model>`, and `--stt assemblyai=<model>`.

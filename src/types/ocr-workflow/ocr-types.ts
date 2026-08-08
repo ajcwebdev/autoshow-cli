@@ -1,5 +1,5 @@
 import type { ExtractionMetadata, ExtractionResult, HostedOcrSchedulerTelemetry, OcrConcurrencyMode, PageResult, PdfChunkPreparationSummary, ProcessDocumentOutput, ProviderCompletionStatus, ProviderErrorSummaryFields, ProviderRunStateBase, ProviderSuccess, ResolvedStep2Execution, Step1SourceRef } from '~/types'
-export type EpubInspectEngine = 'bun' | 'calibre'
+export type EpubInspectEngine = 'bun'
 
 export type EpubContentEntry = {
   path: string
@@ -135,7 +135,6 @@ export type OcrFn = (imagePath: string) => Promise<{ text: string, confidence?: 
 export type OcrFnProvider = OcrFn | { getOcrFn: () => Promise<OcrFn> }
 
 export type HostedExtractOcrEngine = 'mistral-ocr' | 'glm-ocr' | 'kimi-ocr' | 'openai-ocr' | 'grok-ocr' | 'anthropic-ocr' | 'gemini-ocr' | 'deepinfra-ocr'
-export type LocalExtractOcrEngine = 'tesseract'
 
 export type HostedOcrRun = {
   pages: PageResult[]

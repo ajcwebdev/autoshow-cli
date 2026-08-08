@@ -101,7 +101,7 @@ const parseProfile = (value: unknown): HostedOcrThroughputProfile | undefined =>
 }
 
 const parseStore = (value: unknown): HostedOcrThroughputProfileStore => {
-  if (!isRecord(value) || (value['version'] !== PROFILE_STORE_VERSION && value['version'] !== 1) || !Array.isArray(value['profiles'])) {
+  if (!isRecord(value) || value['version'] !== PROFILE_STORE_VERSION || !Array.isArray(value['profiles'])) {
     return { version: PROFILE_STORE_VERSION, profiles: [] }
   }
   return {

@@ -73,8 +73,6 @@ const getHostedOcrLimitSource = (service: HostedOcrService): string => {
       return 'project/links/glm-all-links.md'
     case 'kimi':
       return KIMI_OCR_LIMIT_SOURCE
-    default:
-      return 'project/links/all-all-links.md'
   }
 }
 

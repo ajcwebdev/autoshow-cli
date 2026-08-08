@@ -21,10 +21,10 @@ export const runMistralOcr = async (
   filePath: string,
   step1Metadata: DocumentMetadata,
   model: string,
-  options: string | { baseURL?: string | undefined, onRetryable?: HostedOcrSchedulerRetryPressureHandler | undefined } = MISTRAL_DEFAULT_BASE_URL
+  options: { baseURL?: string | undefined, onRetryable?: HostedOcrSchedulerRetryPressureHandler | undefined } = {}
 ): Promise<{ pages: PageResult[], extractionMethod: 'mistral-ocr' }> => {
-  const baseURL = typeof options === 'string' ? options : options.baseURL ?? MISTRAL_DEFAULT_BASE_URL
-  const onRetryable = typeof options === 'string' ? undefined : options.onRetryable
+  const baseURL = options.baseURL ?? MISTRAL_DEFAULT_BASE_URL
+  const onRetryable = options.onRetryable
   const apiKey = readEnv('MISTRAL_API_KEY')
   if (!apiKey) {
     throw InternalError('MISTRAL_API_KEY environment variable is required for Mistral OCR', { stage: 'ocr:mistral', hints: hintsForMissingEnv('MISTRAL_API_KEY') })

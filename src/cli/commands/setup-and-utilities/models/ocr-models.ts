@@ -2,8 +2,7 @@ import { createModelValidator } from '~/cli/commands/setup-and-utilities/models/
 
 export const SUPPORTED_MISTRAL_OCR_MODELS = [
   'mistral-ocr-2512',
-  'mistral-ocr-4-0',
-  'mistral-ocr-latest'
+  'mistral-ocr-4-0'
 ] as const satisfies readonly string[]
 
 export const validateMistralOcrModel = createModelValidator(SUPPORTED_MISTRAL_OCR_MODELS, 'mistral-ocr')
@@ -54,7 +53,6 @@ export const SUPPORTED_GEMINI_OCR_MODELS = [
   'gemini-3.1-pro-preview',
   'gemini-3.5-flash',
   'gemini-3.1-flash-lite',
-  'gemini-3.1-flash-lite-preview',
   'gemini-3.6-flash',
   'gemini-3.5-flash-lite'
 ] as const satisfies readonly string[]

@@ -1,4 +1,4 @@
-import type { ActualCostBreakdown, CostSource, EstimatedCostBreakdown, ExtractionMetadata, ManifestLogCostEntryLike, PartialExtractionMetadata, Step2Metadata, Step3Metadata, Step4Metadata, Step5Metadata, Step6VideoMetadata, Step7MusicMetadata, TimingEntryLike, WriteManifestMetadata, WriteStepKind } from '~/types'
+import type { CostSource, EstimatedCostBreakdown, ExtractionMetadata, ManifestLogActualCostBreakdown, ManifestLogCostEntryLike, PartialExtractionMetadata, Step2Metadata, Step3Metadata, Step4Metadata, Step5Metadata, Step6VideoMetadata, Step7MusicMetadata, TimingEntryLike, WriteManifestMetadata, WriteStepKind } from '~/types'
 import { buildMatchKey } from './manifest-log-formatting'
 
 export const isRecord = (value: unknown): value is Record<string, unknown> =>
@@ -78,10 +78,13 @@ const COST_SOURCES = new Set<CostSource>([
   'local_zero'
 ])
 
-const normalizeManifestCostSource = (value: unknown): CostSource =>
+// Manifests written by this CLI always record one of the known vocabulary values.
+// Anything else is left unset so the summary renders an empty source rather than
+// asserting a cost provenance the manifest never claimed.
+const readManifestCostSource = (value: unknown): CostSource | undefined =>
   typeof value === 'string' && COST_SOURCES.has(value as CostSource)
     ? value as CostSource
-    : 'registry_fallback'
+    : undefined
 
 export const toArray = <T,>(value: unknown, guard: (candidate: unknown) => candidate is T): T[] => {
   if (Array.isArray(value)) {
@@ -107,7 +110,7 @@ export const getEstimatedCostBreakdown = (metadata: WriteManifestMetadata): Esti
     : undefined
 }
 
-export const getActualCostBreakdown = (metadata: WriteManifestMetadata): ActualCostBreakdown | undefined => {
+export const getActualCostBreakdown = (metadata: WriteManifestMetadata): ManifestLogActualCostBreakdown | undefined => {
   const cost = metadata['cost']
   if (!isRecord(cost) || !isRecord(cost['actual'])) {
     return undefined
@@ -115,10 +118,13 @@ export const getActualCostBreakdown = (metadata: WriteManifestMetadata): ActualC
 
   const actual = cost['actual']
   const steps = Array.isArray(actual['steps'])
-    ? actual['steps'].filter(isCostEntry).map((entry) => ({
-        ...entry,
-        costSource: normalizeManifestCostSource(entry.costSource)
-      }))
+    ? actual['steps'].filter(isCostEntry).map(({ costSource: rawCostSource, ...entry }) => {
+        const costSource = readManifestCostSource(rawCostSource)
+        return {
+          ...entry,
+          ...(costSource ? { costSource } : {})
+        }
+      })
     : []
   return typeof actual['totalCost'] === 'number'
     ? { totalCost: actual['totalCost'], steps }

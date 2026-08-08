@@ -4,7 +4,7 @@ import { ensureMinimaxMusicGenSetup } from './minimax-music-gen'
 import { runMinimaxMusicGen } from './run-minimax-music-gen'
 
 export const collectMinimaxMusicTargets = (options: MusicGenOptions): MusicTarget[] => {
-  const models = options.minimaxMusicModels ?? (options.minimaxMusicModel ? [options.minimaxMusicModel] : [])
+  const models = options.minimaxMusicModels ?? []
   return models.map((rawModel) => {
     const model: MinimaxMusicModel = validateMinimaxMusicModel(rawModel)
 

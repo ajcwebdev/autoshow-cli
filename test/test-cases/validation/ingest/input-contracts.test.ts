@@ -3,7 +3,8 @@ import { mkdtemp, rm, writeFile } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { planProcessTargetBatchExecution, resolveProcessTargetPlan } from '~/cli/commands/process-steps/step-0-metadata/metadata-targets/metadata-process-target-plan'
-import { classifyInputFamily, classifyUrlInput, resolveInputRoutingForCommand } from '~/cli/commands/process-steps/step-0-metadata/metadata-targets/metadata-target-utils'
+import { classifyInputFamily, classifyUrlInput } from '~/cli/commands/process-steps/step-0-metadata/metadata-targets/metadata-input-classifier'
+import { resolveInputRoutingForCommand } from '~/cli/commands/process-steps/step-0-metadata/metadata-targets/metadata-input-routing'
 import { resolveXSpaceDownloadTarget } from '~/cli/commands/process-steps/step-1-download/download-targets/single/x-space-runner'
 import { buildOptsFromFlags } from '~/cli/commands/process-steps/step-1-download/download-targets/build-opts-from-flags/build-options-from-flags'
 import { STABLE_EXAMPLE_AUDIO_URL, runCommand } from '../../../test-utils/test-helpers'
@@ -11,7 +12,7 @@ import { STABLE_EXAMPLE_AUDIO_URL, runCommand } from '../../../test-utils/test-h
 const tempDirs: string[] = []
 
 const createUnsupportedInput = async (): Promise<string> => {
-  const dir = await mkdtemp(join(tmpdir(), 'autoshow-validation-next-input-'))
+  const dir = await mkdtemp(join(tmpdir(), 'autoshow-validation-input-'))
   tempDirs.push(dir)
   const filePath = join(dir, 'unknown.payload')
   await writeFile(filePath, 'plain text without a supported extension')

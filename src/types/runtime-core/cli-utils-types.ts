@@ -5,17 +5,11 @@ export type ExecRetryOptions = {
   maxAttempts?: number
   baseDelayMs?: number
   maxDelayMs?: number
-  // Optional hook run between a failed attempt and the next one (e.g. cleanup).
-  onBeforeRetry?: () => void | Promise<void>
 }
 
 export type ExecOptions = {
   env?: Record<string, string | undefined>
-  onStdoutLine?: (line: string) => void
   onStderrLine?: (line: string) => void
-  progressLabel?: string
-  heartbeatMs?: number
-  onHeartbeat?: (elapsedMs: number, message: string) => void
   maxBufferBytes?: number | undefined
   // When set, the command is retried on the simple fact that it failed — a
   // non-zero exit code or a thrown spawn error. The last result is still

@@ -322,7 +322,7 @@ describe('test-runner contracts', () => {
         }
 
         const selectedKeys = new Set(
-          resolvePriceSelection(allFiles, [file], true).commands.map((command) => command.key)
+          resolvePriceSelection(allFiles, [file], { budgetSkippableOnly: true }).commands.map((command) => command.key)
         )
 
         for (const key of budgetKeys) {
@@ -343,7 +343,7 @@ describe('test-runner contracts', () => {
 
   test('Replicate image live tests resolve all twelve exact budget keys', () => {
       const file = 'test/test-cases/e2e/service/step-5-image-gen-e2e/replicate-image.test.ts'
-      const keys = resolvePriceSelection([file], [file], true).commands.map(command => command.key)
+      const keys = resolvePriceSelection([file], [file], { budgetSkippableOnly: true }).commands.map(command => command.key)
 
       expect(keys).toEqual([
         'image-replicate-bytedance/seedream-4.5',
@@ -363,7 +363,7 @@ describe('test-runner contracts', () => {
 
   test('a 0.10 cent threshold marks all twelve Replicate image keys over budget', async () => {
       const file = 'test/test-cases/e2e/service/step-5-image-gen-e2e/replicate-image.test.ts'
-      const commands = resolvePriceSelection([file], [file], true).commands
+      const commands = resolvePriceSelection([file], [file], { budgetSkippableOnly: true }).commands
       const observations = await Promise.all(commands.map(async command => {
         const proc = Bun.spawn(['bun', ...withEmptyPriceConfig(command.args)], {
           stdout: 'pipe',
@@ -432,7 +432,7 @@ describe('test-runner contracts', () => {
 
       const keys = resolvePriceSelection(allFiles, [
         'test/test-cases/e2e/service/step-4-tts-e2e/tts-services/'
-      ], true).commands.map((command) => command.key)
+      ], { budgetSkippableOnly: true }).commands.map((command) => command.key)
 
       expect(keys).toContain('tts-groq-canopylabs/orpheus-v1-english')
       expect(keys).not.toContain(['tts-groq-canopylabs/orpheus', 'arabic-saudi'].join('-'))
@@ -453,14 +453,14 @@ describe('test-runner contracts', () => {
 
       const elevenlabsKeys = resolvePriceSelection(allFiles, [
         'test/test-cases/e2e/service/step-7-music-gen-e2e/'
-      ], true).commands.map((command) => command.key)
+      ], { budgetSkippableOnly: true }).commands.map((command) => command.key)
       expect(elevenlabsKeys).toContain('music-elevenlabs-music_v1')
       expect(elevenlabsKeys).toContain('music-elevenlabs-music_v2')
       expect(elevenlabsKeys).toContain('music-pipeline-elevenlabs-music_v2')
 
       const minimaxKeys = resolvePriceSelection(allFiles, [
         'test/test-cases/e2e/service/step-7-music-gen-e2e/'
-      ], true).commands.map((command) => command.key)
+      ], { budgetSkippableOnly: true }).commands.map((command) => command.key)
       expect(minimaxKeys).toContain('music-multi-minimax-music-3.0-gemini-lyria-3-clip-preview')
       expect(minimaxKeys).toContain('music-pipeline-minimax-music-3.0')
       for (const model of MINIMAX_INSTRUMENTAL_MUSIC_MODELS) {
@@ -470,7 +470,7 @@ describe('test-runner contracts', () => {
 
       const geminiKeys = resolvePriceSelection(allFiles, [
         'test/test-cases/e2e/service/step-7-music-gen-e2e/gemini-lyria-3-pro-preview.test.ts'
-      ], true).commands.map((command) => command.key)
+      ], { budgetSkippableOnly: true }).commands.map((command) => command.key)
       expect(geminiKeys).toContain('music-gemini-lyria-3-pro-preview')
       expect(geminiKeys).not.toContain('music-gemini-lyria-3-clip-preview')
     })

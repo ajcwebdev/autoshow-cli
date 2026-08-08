@@ -95,14 +95,14 @@ export const SUPPORTED_TOGETHER_STT_MODELS = [
   'nvidia/parakeet-tdt-0.6b-v3'
 ] as const satisfies readonly string[]
 
-export const validateWhisperModel = createModelValidator(SUPPORTED_WHISPER_MODELS, 'whisper', 'This flag uses local whisper.cpp models.')
-export const validateWhisperfileModel = createModelValidator(SUPPORTED_WHISPERFILE_MODELS, 'whisperfile', 'This flag uses local whisperfile (llamafile) models.')
+export const validateWhisperModel = createModelValidator(SUPPORTED_WHISPER_MODELS, 'whisper', 'This selector uses local whisper.cpp models.')
+export const validateWhisperfileModel = createModelValidator(SUPPORTED_WHISPERFILE_MODELS, 'whisperfile', 'This selector uses local whisperfile (llamafile) models.')
 export const validateDeepgramSttModel = createModelValidator(SUPPORTED_DEEPGRAM_STT_MODELS, 'deepgram-stt')
-export const validateDeepinfraSttModel = createModelValidator(SUPPORTED_DEEPINFRA_STT_MODELS, 'deepinfra-stt', 'This flag only accepts DeepInfra OpenAI-compatible Whisper models.')
+export const validateDeepinfraSttModel = createModelValidator(SUPPORTED_DEEPINFRA_STT_MODELS, 'deepinfra-stt', 'This selector only accepts DeepInfra OpenAI-compatible Whisper models.')
 export const validateSonioxSttModel = createModelValidator(SUPPORTED_SONIOX_STT_MODELS, 'soniox-stt')
 export const validateSpeechmaticsSttModel = createModelValidator(SUPPORTED_SPEECHMATICS_STT_MODELS, 'speechmatics-stt')
 export const validateRevSttModel = createModelValidator(SUPPORTED_REV_STT_MODELS, 'rev-stt')
-export const validateGroqSttModel = createModelValidator(SUPPORTED_GROQ_STT_MODELS, 'groq-stt', 'This flag only accepts Groq Whisper API models.')
+export const validateGroqSttModel = createModelValidator(SUPPORTED_GROQ_STT_MODELS, 'groq-stt', 'This selector only accepts Groq Whisper API models.')
 export const validateGrokSttModel = createModelValidator(SUPPORTED_GROK_STT_MODELS, 'grok-stt')
 export const validateMistralSttModel = createModelValidator(SUPPORTED_MISTRAL_STT_MODELS, 'mistral-stt')
 export const validateAssemblyaiSttModel = createModelValidator(SUPPORTED_ASSEMBLYAI_STT_MODELS, 'assemblyai-stt')
@@ -111,4 +111,4 @@ export const validateHappyscribeSttModel = createModelValidator(SUPPORTED_HAPPYS
 export const validateSupadataSttModel = createModelValidator(SUPPORTED_SUPADATA_STT_MODELS, 'supadata-stt')
 export const validateScrapeCreatorsSttModel = createModelValidator(SUPPORTED_SCRAPECREATORS_STT_MODELS, 'scrapecreators-stt')
 export const validateGeminiSttModel = createModelValidator(SUPPORTED_GEMINI_STT_MODELS, 'gemini-stt')
-export const validateTogetherSttModel = createModelValidator(SUPPORTED_TOGETHER_STT_MODELS, 'together-stt', 'This flag accepts concrete Together serverless batch transcription models.')
+export const validateTogetherSttModel = createModelValidator(SUPPORTED_TOGETHER_STT_MODELS, 'together-stt', 'This selector accepts concrete Together serverless batch transcription models.')

@@ -239,7 +239,7 @@ describe('TTS provider service contracts', () => {
       ].join('\n'), dir, {
         mistralTtsModels: ['voxtral-mini-tts-2603'],
         ttsDialogueFormat: 'labeled',
-        ttsSpeakerRefAudios: [
+        ttsSpeakers: [
           `Host=${LOCAL_SHORT_AUDIO_PATH}`,
           `Guest=${LOCAL_AUDIO_PATH}`
         ]

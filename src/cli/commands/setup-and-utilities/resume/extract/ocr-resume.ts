@@ -192,12 +192,11 @@ const buildResumeExtractionOpts = (
     ocrConcurrencyMode: opts.ocrConcurrencyMode,
     ocrProviderConcurrency: opts.ocrProviderConcurrency,
     ocrLocalConcurrency: opts.ocrLocalConcurrency,
-    epubChapterFiles: opts.epubChapterFiles,
-    epubChunkLimitChars: opts.epubChunkLimitChars,
+    chapterFiles: opts.chapterFiles,
+    chapterChunkLimitChars: opts.chapterChunkLimitChars,
     pdfChapterMode: opts.pdfChapterMode,
     configPath: opts.configPath,
     ...(opts.useEpubBun ? { useEpubBun: true } : {}),
-    ...(opts.useEpubCalibre ? { useEpubCalibre: true } : {}),
     ...(step2SelectionOrigins ? { step2SelectionOrigins } : {})
   }
 }

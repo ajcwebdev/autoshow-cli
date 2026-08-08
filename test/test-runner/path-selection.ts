@@ -1,7 +1,7 @@
 const E2E_PREFIX = 'test/test-cases/e2e/'
 const TEST_CASES_PREFIX = 'test/test-cases/'
 
-export const normalizePathFilter = (pathFilter: string): string => {
+const normalizePathFilter = (pathFilter: string): string => {
   return pathFilter
     .replace(/\\/g, '/')
     .replace(/^\.\//, '')

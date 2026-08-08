@@ -109,7 +109,7 @@ const startLlamaServer = async (target: LlamaServerTarget): Promise<LlamaServerI
     )
   }
 
-  await writeLlamaServerState(proc.pid, target, identity)
+  await writeLlamaServerState(proc.pid)
   return identity
 }
 

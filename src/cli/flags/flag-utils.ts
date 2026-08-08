@@ -16,6 +16,18 @@ export const withHelpGroup = (flags: CliFlagsDefinition, group: string): CliFlag
   return grouped
 }
 
+// Rewrites internal flag spellings into the public ones a surface registers. Help text and
+// usage errors both need it: a command that renames `--image-size` to `--size` must never
+// print a flag name the user cannot type on that surface.
+export const renameFlagSpellings = (
+  text: string,
+  publicNameByInternalName: Record<string, string>
+): string =>
+  Object.entries(publicNameByInternalName).reduce(
+    (value, [internalName, replacement]) => value.replaceAll(`--${internalName}`, `--${replacement}`),
+    text
+  )
+
 export const renameFlags = (
   flags: CliFlagsDefinition,
   publicNameByInternalName: Record<string, string>
@@ -23,11 +35,10 @@ export const renameFlags = (
   const renamed: CliFlagsDefinition = {}
   for (const [name, definition] of Object.entries(flags)) {
     const publicName = publicNameByInternalName[name] ?? name
-    const description = Object.entries(publicNameByInternalName).reduce(
-      (value, [internalName, replacement]) => value.replaceAll(`--${internalName}`, `--${replacement}`),
-      definition.description
-    )
-    renamed[publicName] = { ...definition, description }
+    renamed[publicName] = {
+      ...definition,
+      description: renameFlagSpellings(definition.description, publicNameByInternalName)
+    }
   }
   return renamed
 }

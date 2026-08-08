@@ -4,7 +4,7 @@ FROM ${BUN_BASE_IMAGE} AS deps
 
 WORKDIR /app
 
-COPY package.json bun.lock* bunfig.toml tsconfig.json ./
+COPY package.json bun.lock* bunfig.toml ./
 
 RUN bun install --frozen-lockfile --production
 
@@ -18,7 +18,6 @@ LABEL org.opencontainers.image.version="0.1.0"
 
 ENV NODE_ENV=production
 ENV HOME=/home/bun
-ENV AUTOSHOW_DOCKER_IMAGE=debian-slim-local-lite
 ENV AUTOSHOW_SYSTEM_TESSDATA_PREFIX=/usr/share/tesseract-ocr/5/tessdata
 
 RUN set -eux; \

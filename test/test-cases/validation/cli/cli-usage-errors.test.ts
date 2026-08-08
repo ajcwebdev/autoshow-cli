@@ -308,6 +308,12 @@ test('video positional image rejects conflicting explicit text mode', async () =
   )
 })
 
+// Step 2 is one command with three modalities — `step-2-extract/` holds `step-2-stt/`,
+// `step-2-ocr/`, and `step-2-url/` — so `stt` and `ocr` are reserved names, not retired ones,
+// and `tts` being public is what makes them the two a reader would most plausibly claim next.
+// Nothing in the parser reserves them: they fall through the generic unknown-command path like
+// any other typo, so this test is the whole of the reservation rather than a check on one.
+// Deleting it is the deliberate act required to reintroduce either name as a public command.
 test('legacy step-2 command names are not public commands', async () => {
   for (const command of ['stt', 'ocr'] as const) {
     await expectUsageExit([command, STABLE_EXAMPLE_AUDIO_URL], `Unknown command "${command}`)
@@ -352,12 +358,10 @@ test('public commands reject removed provider selector aliases', async () => {
     ['image', 'a sunset', '--openai', 'gpt-image-2', '--price'],
     'Unexpected flag: openai'
   )
-  const videoResult = await runCommand(
-    ['src/cli/create-cli.ts', 'video', 'a sunset timelapse', '--gemini-video', 'veo-3.1-fast-generate-preview', '--price'],
-    { env: { NO_COLOR: '1' } }
+  await expectUsageExit(
+    ['video', 'a sunset timelapse', '--gemini-video', 'veo-3.1-fast-generate-preview', '--price'],
+    'Unexpected flag: geminiVideo'
   )
-  expect(videoResult.exitCode).toBe(0)
-  expect(`${videoResult.stdout}\n${videoResult.stderr}`).toContain('veo-3.1-fast-generate-preview')
   await expectUsageExit(
     ['music', 'ambient piano', '--elevenlabs', 'music_v1', '--price'],
     'Unexpected flag: elevenlabs'
@@ -411,7 +415,6 @@ test('extract rejects removed Anthropic Sonnet 4.6 OCR model', async () => {
 test('extract accepts priority OCR model additions in price mode', async () => {
   const cases = [
     ['mistral', 'mistral-ocr-4-0'],
-    ['mistral', 'mistral-ocr-latest'],
     ['gemini', 'gemini-3.5-flash'],
     ['gemini', 'gemini-3.6-flash'],
     ['gemini', 'gemini-3.5-flash-lite'],
@@ -436,7 +439,7 @@ test('extract rejects removed Kimi Code OCR models', async () => {
   for (const model of [removedKimiCodeOcrModel, `${removedKimiCodeOcrModel}-highspeed`] as const) {
     await expectUsageExit(
       ['extract', 'input/examples/document/1-document.pdf', '--provider', `kimi=${model}`, '--price'],
-      `Invalid --kimi-ocr model "${model}". Allowed values: kimi-k2.6, kimi-k3`
+      `Invalid model "${model}" for --provider/--ocr kimi[=model]. Allowed values: kimi-k2.6, kimi-k3`
     )
   }
 })
@@ -444,7 +447,7 @@ test('extract rejects removed Kimi Code OCR models', async () => {
 test('extract rejects removed DeepInfra PaddleOCR model', async () => {
   await expectUsageExit(
     ['extract', 'input/examples/document/1-document.pdf', '--provider', 'deepinfra=PaddlePaddle/PaddleOCR-VL-0.9B', '--price'],
-    'Invalid --deepinfra-ocr model "PaddlePaddle/PaddleOCR-VL-0.9B". Allowed values: Qwen/Qwen3-VL-235B-A22B-Instruct, Qwen/Qwen3-VL-30B-A3B-Instruct'
+    'Invalid model "PaddlePaddle/PaddleOCR-VL-0.9B" for --provider/--ocr deepinfra[=model]. Allowed values: Qwen/Qwen3-VL-235B-A22B-Instruct, Qwen/Qwen3-VL-30B-A3B-Instruct'
   )
 })
 
@@ -492,21 +495,37 @@ test('tts rejects ambiguous generic TTS options with multiple providers', async 
   )
 })
 
+// Speaker mappings replace the run's voice, so a typed --tts-voice would be silently dropped.
+test('tts rejects --tts-voice combined with dialogue flags', async () => {
+  await expectUsageExit(
+    ['tts', 'input/examples/tts/1-tts.md', '--tts-voice', 'Luna', '--tts-dialogue-format', 'labeled', '--tts-speaker', 'Host=Jasper', '--price'],
+    '--tts-voice cannot be combined with --tts-speaker/--tts-dialogue-format; per-speaker voices come from --tts-speaker mappings.'
+  )
+})
+
+// Speaker mappings are the dialogue mode switch, so a typed format alone selects nothing.
+test('tts rejects --tts-dialogue-format without speaker mappings', async () => {
+  await expectUsageExit(
+    ['tts', 'input/examples/tts/1-tts.md', '--provider', 'openai=gpt-4o-mini-tts-2025-12-15', '--tts-dialogue-format', 'labeled', '--price'],
+    '--tts-dialogue-format requires at least one --tts-speaker SPEAKER=VOICE mapping. Speaker mappings select multi-speaker TTS; a dialogue format alone selects nothing.'
+  )
+})
+
 test('extract rejects removed Supadata STT modes', async () => {
   await expectUsageExit(
     ['extract', 'https://example.com/audio.mp3', '--provider', 'supadata=native', '--price'],
-    'Invalid --supadata-stt model "native". Allowed values: auto'
+    'Invalid model "native" for --provider/--stt supadata[=model]. Allowed values: auto'
   )
   await expectUsageExit(
     ['extract', 'https://example.com/audio.mp3', '--provider', 'supadata=generate', '--price'],
-    'Invalid --supadata-stt model "generate". Allowed values: auto'
+    'Invalid model "generate" for --provider/--stt supadata[=model]. Allowed values: auto'
   )
 })
 
 test('extract rejects unsupported ScrapeCreators STT modes', async () => {
   await expectUsageExit(
     ['extract', 'https://www.youtube.com/watch?v=MORMZXEaONk', '--provider', 'scrapecreators=auto', '--price'],
-    'Invalid --scrapecreators-stt model "auto". Allowed values: youtube-transcript'
+    'Invalid model "auto" for --provider/--stt scrapecreators[=model]. Allowed values: youtube-transcript'
   )
 })
 
@@ -569,6 +588,20 @@ test('standalone generation rejects removed pipeline-prefixed option aliases', a
   )
 })
 
+// The step-5 validators are shared with write/config/resume and name the `--image-*` flags
+// those surfaces register. This command registers the short spellings, so its rejections must
+// name the flag the user can actually type here.
+test('image command rejections name the spellings the image command registers', async () => {
+  await expectUsageExit(
+    ['image', 'a sunset', '--provider', 'grok=grok-imagine-image-quality', '--search-grounding', '--price'],
+    '--search-grounding is not supported by Grok/grok-imagine-image-quality'
+  )
+  await expectUsageExit(
+    ['image', 'a sunset', '--provider', 'recraft=recraftv4_1', '--count', '7', '--price'],
+    'Invalid --count value "7" for Recraft/recraftv4_1'
+  )
+})
+
 test('resume rejects provider-named option flags', async () => {
   await expectUsageExit(
     ['resume', 'output/nonexistent', '--elevenlabs-tts-stability', '0.4'],
@@ -579,20 +612,12 @@ test('resume rejects provider-named option flags', async () => {
     'Unexpected flag: minimaxTtsEmotion'
   )
   await expectUsageExit(
-    ['resume', 'output/nonexistent', '--gemini-speaker-1-voice', 'Kore'],
-    'Unexpected flag: geminiSpeaker1Voice'
-  )
-  await expectUsageExit(
     ['resume', 'output/nonexistent', '--replicate-video-seed', '1'],
     'Unexpected flag: replicateVideoSeed'
   )
   await expectUsageExit(
     ['resume', 'output/nonexistent', '--grok-video-storage-filename', 'clip.mp4'],
     'Unexpected flag: grokVideoStorageFilename'
-  )
-  await expectUsageExit(
-    ['resume', 'output/nonexistent', '--gemini-search-grounding'],
-    'Unexpected flag: geminiSearchGrounding'
   )
   await expectUsageExit(
     ['resume', 'output/nonexistent', '--stt-happyscribe-organization-id', 'org_123'],
@@ -615,7 +640,7 @@ test('comic generate-images rejects invalid page selection flags', async () => {
   )
   await expectUsageExit(
     ['comic', 'generate-images', 'input/scripts/02-script/01-co-work-smarter.md','--panel-limit', 'nope', '--price'],
-    '--panel-limit was removed'
+    'Unknown argument: --panel-limit'
   )
 })
 
@@ -630,10 +655,10 @@ test('comic generate-images rejects invalid and duplicate image models', async (
   )
 })
 
-test('comic generate-images rejects removed --panel flag', async () => {
+test('comic generate-images rejects removed --panel flag as unknown argument', async () => {
   await expectUsageExit(
     ['comic', 'generate-images', 'input/scripts/02-script/01-co-work-smarter.md','--panel', '1', '--price'],
-    '--panel was removed'
+    'Unknown argument: --panel'
   )
 })
 
@@ -714,10 +739,10 @@ test('comic non-strict shorthand remains an ordinary script path', async () => {
   expect(`${result.stdout}\n${result.stderr}`).toContain('Price Estimate: draft-scenes')
 })
 
-test('comic generate-images rejects removed prompts target with migration', async () => {
+test('comic generate-images rejects the prompts target as invalid', async () => {
   await expectUsageExit(
     ['comic', 'generate-images', 'input/scripts/02-script/01-co-work-smarter.md','--target', 'prompts', '--price'],
-    'bun autoshow comic draft-scenes <script-path> --only panel-prompts'
+    'Invalid target "prompts"'
   )
 })
 
@@ -751,25 +776,10 @@ test('comic generate-images rejects invalid grid options', async () => {
   )
 })
 
-test('comic generate-images rejects invalid page selection flags', async () => {
-  await expectUsageExit(
-    ['comic', 'generate-images', 'input/scripts/02-script/01-co-work-smarter.md','--panels-per-image', '0', '--price'],
-    'Invalid panels per image "0"'
-  )
-  await expectUsageExit(
-    ['comic', 'generate-images', 'input/scripts/02-script/01-co-work-smarter.md','--panel-limit', 'nope', '--price'],
-    '--panel-limit was removed'
-  )
-  await expectUsageExit(
-    ['comic', 'generate-images', 'input/scripts/02-script/01-co-work-smarter.md','--panels', '4-2', '--price'],
-    'Invalid panels "4-2"'
-  )
-})
-
-test('comic draft-scenes rejects removed flags', async () => {
+test('comic draft-scenes rejects removed --episode flag as unknown argument', async () => {
   await expectUsageExit(
     ['comic', 'draft-scenes', '--episode', 'ep02', '--price'],
-    '--episode was removed'
+    'Unknown argument: --episode'
   )
 })
 

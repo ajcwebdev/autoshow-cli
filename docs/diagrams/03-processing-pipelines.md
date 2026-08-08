@@ -161,7 +161,7 @@ all URL backends:
   run.json
 ```
 
-Article runs record `resolvedStep2` with route/backend data, `web`, `source`, `completionStatus`, provider state, cost, timing, and errors when present. Local HTML uses Defuddle. Remote single-backend Defuddle can fall back to Firecrawl when configured.
+Article runs record `resolvedStep2` with route and provider data, `web`, `source`, `completionStatus`, provider state, cost, timing, and errors when present. Local HTML uses Defuddle. Remote single-backend Defuddle can fall back to Firecrawl when configured.
 
 Document extract runs record `extractRoute: "document"`, `step1`, `step2` or `step2[]`, `resolvedStep2`, `requestedProviders`, `providerStates`, `missingProviders`, `primaryProvider`, `completionStatus`, `cost`, `timing`, `web`/`source` when applicable, and optional errors.
 

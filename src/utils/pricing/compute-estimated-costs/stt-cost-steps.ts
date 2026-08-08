@@ -21,6 +21,7 @@ const STT_FIELD_MAP = [
   { field: 'geminiSttModel' as const, provider: 'gemini-stt' },
   { field: 'togetherSttModel' as const, provider: 'together' },
   { field: 'whisperModel' as const, provider: 'whisper' },
+  { field: 'whisperfileModel' as const, provider: 'whisperfile' },
 ]
 
 /**

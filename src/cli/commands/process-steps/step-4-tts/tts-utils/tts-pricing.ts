@@ -28,13 +28,7 @@ export const estimateTtsCosts = (opts: RuntimeOptions, characterCount: number): 
     const per1kTotal = rate.costPer1kCharactersCents !== undefined
       ? (normalizedCharCount / 1000) * rate.costPer1kCharactersCents
       : undefined
-    const blockTotal = (
-      pricing.characterBillingBlockSize !== undefined
-      && pricing.characterBillingBlockCostCents !== undefined
-    )
-      ? Math.ceil(normalizedCharCount / Math.max(1, pricing.characterBillingBlockSize)) * pricing.characterBillingBlockCostCents
-      : undefined
-    const synthesisCost = blockTotal ?? dualRateTotal ?? per1kTotal ?? 0
+    const synthesisCost = dualRateTotal ?? per1kTotal ?? 0
     const setupCost = target.setupCostCents ?? 0
 
     return {

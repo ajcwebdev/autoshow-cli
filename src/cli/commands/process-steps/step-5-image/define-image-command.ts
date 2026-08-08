@@ -1,6 +1,7 @@
 import { defineCliCommand } from '~/cli/native/native-types'
-import { imageCommandFlags } from '~/cli/flags/image-flags'
-import { CLIUsageError } from '~/utils/error-handler'
+import { imageCommandFlags, imageCommandOptionNames } from '~/cli/flags/image-flags'
+import { renameFlagSpellings } from '~/cli/flags/flag-utils'
+import { AppUsageError, CLIUsageError, isCLIUsageError } from '~/utils/error-handler'
 import { buildOptsFromFlags } from '~/cli/commands/process-steps/step-1-download/download-targets/build-opts-from-flags/build-options-from-flags'
 import { extractExplicitFlags } from '~/cli/commands/setup-and-utilities/config/config-merge'
 import { normalizeCommandSelectorArgs, normalizeCommandSelectorFlags } from '~/cli/flags/service-selector-normalization/flag-helpers'
@@ -17,48 +18,23 @@ import { buildProviderStepSummaries, createGenerationOutputDir, getGenerationExp
 import * as l from '~/utils/app-logger/app-logger'
 import { runWithLogContext } from '~/utils/app-logger/app-logger'
 
-const IMAGE_COMMAND_OPTION_FLAGS = {
-  'image-aspect-ratio': 'aspect-ratio',
-  'image-size': 'size',
-  'image-quality': 'quality',
-  'image-format': 'format',
-  'image-background': 'background',
-  'image-count': 'count',
-  'image-input': 'input',
-  'image-mask': 'mask',
-  'image-response-mode': 'response-mode',
-  'image-search-grounding': 'search-grounding',
-  'image-compression': 'compression'
-} as const satisfies Record<string, string>
+// Step-5 validators are shared with `write`/`config`/`resume`, so they name the `--image-*`
+// flags those surfaces register. This command registers the short spellings, so retarget its
+// usage errors through the same map that renamed the flags — otherwise a rejection tells the
+// user to fix a flag this command does not accept.
+const retargetUsageErrorToCommandSpellings = (error: unknown): unknown => {
+  if (!isCLIUsageError(error)) return error
+  const message = renameFlagSpellings(error.message, imageCommandOptionNames)
+  if (message === error.message) return error
+  return new AppUsageError(message, error.hints.length > 0 ? error.hints : undefined)
+}
 
-export const imageCommand = defineCliCommand({
-  name: 'image',
-  description: 'Generate an image from a text prompt',
-  parameters: [{ key: '<prompt>', description: 'Text prompt for image generation' }],
-  flags: imageCommandFlags,
-  help: {
-    examples: [
-      ['bun autoshow image "a clean studio product photo of a red enamel camping mug on white seamless" --provider openai=gpt-image-2 --size 1024x1024 --format png --output-dir output/mug-base', 'Generate a base product image'],
-      ['bun autoshow image "make the mug matte black, keep the same camera angle, and place it on a walnut desk" --provider openai=gpt-image-2 --input output/mug-base/generated-image.png --format webp --compression 80 --output-dir output/mug-edit', 'Edit the generated image with OpenAI'],
-      ['bun autoshow image "restyle this product image as a 1960s travel poster" --provider gemini=gemini-3.1-flash-lite-image --input output/mug-base/generated-image.png --output-dir output/mug-gemini', 'Use the generated image as a Gemini reference'],
-      ['bun autoshow image "a futuristic observatory at sunset" --provider grok=grok-imagine-image-quality --size 1K --count 4', 'Generate multiple Grok outputs'],
-      ['bun autoshow image "place the same mug on a rustic breakfast table" --provider bfl=flux-2-pro --input output/mug-base/generated-image.png --size 1024x1024 --output-dir output/mug-bfl', 'Generate with BFL reference input'],
-      ['bun autoshow image "a handmade ceramic espresso cup on a marble counter" --provider bfl=flux-2-klein-4b --size 1024x1024 --format webp', 'Generate with FLUX.2 Klein'],
-      ['bun autoshow image "a premium product photo" --provider recraft=recraftv4_1 --size 1024x1024', 'Generate with Recraft'],
-      ['bun autoshow image "a polished launch poster for a sci-fi audio drama" --provider replicate=wan-video/wan-2.7-image --size 2K --count 2', 'Generate with Replicate Wan'],
-      ['bun autoshow image "a glass of iced coffee on a marble countertop in morning light" --provider lumalabs=uni-1 --aspect-ratio 16:9 --format png', 'Generate with Luma Labs'],
-      ['bun autoshow image "a launch poster with crisp typography" --provider fal=alibaba/qwen-image-3 --count 2', 'Generate with fal.ai']
-    ]
-  }
-}, async (ctx) => {
-  const prompt = ctx.parameters.prompt
-  const flags = ctx.flags
-
-  const imageMaxCents = await resolveMaxCentsFromFlags(flags as Record<string, unknown>)
+const runImageCommand = async (prompt: string, flags: Record<string, unknown>): Promise<void> => {
+  const imageMaxCents = await resolveMaxCentsFromFlags(flags)
   const rawArgs = Bun.argv.slice(2)
   const explicitFlags = extractExplicitFlags(rawArgs)
-  const optionNormalized = normalizeCommandSelectorFlags(flags as Record<string, unknown>, explicitFlags, IMAGE_COMMAND_OPTION_FLAGS)
-  const optionNormalizedArgs = normalizeCommandSelectorArgs(rawArgs, IMAGE_COMMAND_OPTION_FLAGS)
+  const optionNormalized = normalizeCommandSelectorFlags(flags, explicitFlags, imageCommandOptionNames)
+  const optionNormalizedArgs = normalizeCommandSelectorArgs(rawArgs, imageCommandOptionNames)
   const providerNormalized = normalizeGenericProviderSelectorFlags(
     optionNormalized.flags,
     optionNormalized.explicitFlags,
@@ -139,4 +115,31 @@ export const imageCommand = defineCliCommand({
       includeOutputDir: false
     }
   )
+}
+
+export const imageCommand = defineCliCommand({
+  name: 'image',
+  description: 'Generate an image from a text prompt',
+  parameters: [{ key: '<prompt>', description: 'Text prompt for image generation' }],
+  flags: imageCommandFlags,
+  help: {
+    examples: [
+      ['bun autoshow image "a clean studio product photo of a red enamel camping mug on white seamless" --provider openai=gpt-image-2 --size 1024x1024 --format png --output-dir output/mug-base', 'Generate a base product image'],
+      ['bun autoshow image "make the mug matte black, keep the same camera angle, and place it on a walnut desk" --provider openai=gpt-image-2 --input output/mug-base/generated-image.png --format webp --compression 80 --output-dir output/mug-edit', 'Edit the generated image with OpenAI'],
+      ['bun autoshow image "restyle this product image as a 1960s travel poster" --provider gemini=gemini-3.1-flash-lite-image --input output/mug-base/generated-image.png --output-dir output/mug-gemini', 'Use the generated image as a Gemini reference'],
+      ['bun autoshow image "a futuristic observatory at sunset" --provider grok=grok-imagine-image-quality --size 1K --count 4', 'Generate multiple Grok outputs'],
+      ['bun autoshow image "place the same mug on a rustic breakfast table" --provider bfl=flux-2-pro --input output/mug-base/generated-image.png --size 1024x1024 --output-dir output/mug-bfl', 'Generate with BFL reference input'],
+      ['bun autoshow image "a handmade ceramic espresso cup on a marble counter" --provider bfl=flux-2-klein-4b --size 1024x1024 --format webp', 'Generate with FLUX.2 Klein'],
+      ['bun autoshow image "a premium product photo" --provider recraft=recraftv4_1 --size 1024x1024', 'Generate with Recraft'],
+      ['bun autoshow image "a polished launch poster for a sci-fi audio drama" --provider replicate=wan-video/wan-2.7-image --size 2K --count 2', 'Generate with Replicate Wan'],
+      ['bun autoshow image "a glass of iced coffee on a marble countertop in morning light" --provider lumalabs=uni-1 --aspect-ratio 16:9 --format png', 'Generate with Luma Labs'],
+      ['bun autoshow image "a launch poster with crisp typography" --provider fal=alibaba/qwen-image-3 --count 2', 'Generate with fal.ai']
+    ]
+  }
+}, async (ctx) => {
+  try {
+    await runImageCommand(ctx.parameters.prompt, ctx.flags as Record<string, unknown>)
+  } catch (error) {
+    throw retargetUsageErrorToCommandSpellings(error)
+  }
 })

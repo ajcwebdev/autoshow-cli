@@ -76,18 +76,6 @@ export const buildOcrJobProgressTable = (
   return createKeyValueTable(entries)
 }
 
-export const logOcrJobProgress = (
-  logger: TableLogger,
-  job: OcrJobProgress,
-  level: LogLevel = job.state === 'failed' ? 'warn' : 'info'
-): void => {
-  logger.write(level, 'OCR Job', {
-    category: 'pipeline',
-    humanTable: buildOcrJobProgressTable(job),
-    metadata: job
-  })
-}
-
 export const buildOcrTransferTable = (
   event: OcrTransferEvent
 ): HumanLogTable =>

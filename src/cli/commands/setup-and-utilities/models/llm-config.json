@@ -225,22 +225,6 @@
           "msPer1KTokens": 2537
         }
       },
-      "gemini-3.1-flash-lite-preview": {
-        "description": "Compatibility alias for Gemini 3.1 Flash-Lite",
-        "pricingSourceUrl": "https://ai.google.dev/gemini-api/docs/pricing",
-        "pricingCheckedAt": "2026-05-31",
-        "pricingCurrency": "USD",
-        "pricingTier": "Gemini API paid Standard",
-        "pricingNotes": "Compatibility alias for gemini-3.1-flash-lite. Gemini 3.1 Flash-Lite Standard pricing is $0.25/1M text/image/video input tokens, $0.50/1M audio input tokens, and $1.50/1M output tokens. AutoShow uses text input pricing for step-3 LLM estimates. Free tier, batch/flex/priority prices, context caching, taxes, and provider credits are ignored.",
-        "inputCostPer1MUSD": 0.25,
-        "inputCostPer1MCents": 25,
-        "outputCostPer1MUSD": 1.5,
-        "outputCostPer1MCents": 150,
-        "estimation": {
-          "costMultiplier": 0.8395,
-          "msPer1KTokens": 2537
-        }
-      },
       "gemini-3.6-flash": {
         "description": "Gemini 3.6 Flash — current balanced Gemini model",
         "pricingSourceUrl": "https://ai.google.dev/gemini-api/docs/pricing",
@@ -648,7 +632,6 @@
   "llama": {
     "description": "Local LLM inference via llama.cpp",
     "type": "local",
-    "maxTokens": 4096,
     "models": {
       "ggml-org/gemma-3-270m-it-GGUF": {
         "description": "Gemma 3 270M Instruct — ultra-lightweight",
@@ -675,7 +658,6 @@
   "llamafile": {
     "description": "Local LLM inference via prebuilt single-file llamafiles",
     "type": "local",
-    "maxTokens": 4096,
     "models": {
       "Qwen3.5-0.8B-Q8_0": {
         "description": "Qwen3.5 0.8B Q8_0 llamafile — smallest prebuilt bundle (~1.6 GB)",

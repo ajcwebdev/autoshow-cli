@@ -3,13 +3,11 @@ import { chmod, mkdtemp, rm, writeFile } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { extractHtmlToMarkdown } from '~/cli/commands/process-steps/step-2-extract/step-2-url/url-local/defuddle/run-defuddle-url'
-import { assertUrlArticleOptionsSupported } from '~/cli/commands/process-steps/step-2-extract/step-2-url/url-provider-adapter'
 import {
   HOSTED_URL_ARTICLE_BACKENDS,
   URL_ARTICLE_BACKENDS
 } from '~/cli/commands/process-steps/step-2-extract/step-2-shared/provider-registry'
 import {
-  getUrlArticleProviderAdapter,
   runUrlArticleProviderWithStats,
   URL_ARTICLE_PROVIDER_ADAPTERS
 } from '~/cli/commands/process-steps/step-2-extract/step-2-url/url-provider-registry'
@@ -22,7 +20,7 @@ import { runSupadataUrl } from '~/cli/commands/process-steps/step-2-extract/step
 import { runZyteUrl } from '~/cli/commands/process-steps/step-2-extract/step-2-url/url-services/zyte/run-zyte-url'
 import { buildOptsFromFlags } from '~/cli/commands/process-steps/step-1-download/download-targets/build-opts-from-flags/build-options-from-flags'
 import { configureBinDir, getConfiguredBinDir } from '~/utils/runtime-paths'
-import type { DocumentMetadata, ExtractionOptions, HtmlArticleBackend, UrlArticleProviderAdapter, UrlArticleRunOptions, UrlArticleRunResult } from '~/types'
+import type { DocumentMetadata, ExtractionOptions, HtmlArticleBackend, UrlArticleProviderAdapter, UrlArticleRunResult, UrlRequestOptions } from '~/types'
 import { DEFAULT_URL_REQUEST_TIMEOUT_MS } from '~/cli/commands/process-steps/step-2-extract/step-2-url/url-utils'
 
 export const originalFetch = globalThis.fetch
@@ -134,12 +132,10 @@ export const writeFakeDefuddleBin = async (): Promise<{ bin: string, argsLog: st
   return { bin, argsLog }
 }
 export {
-  assertUrlArticleOptionsSupported,
   buildOptsFromFlags,
   chmod,
   DEFAULT_URL_REQUEST_TIMEOUT_MS,
   extractHtmlToMarkdown,
-  getUrlArticleProviderAdapter,
   HOSTED_URL_ARTICLE_BACKENDS,
   join,
   mkdtemp,
@@ -163,6 +159,6 @@ export type {
   ExtractionOptions,
   HtmlArticleBackend,
   UrlArticleProviderAdapter,
-  UrlArticleRunOptions,
-  UrlArticleRunResult
+  UrlArticleRunResult,
+  UrlRequestOptions
 }

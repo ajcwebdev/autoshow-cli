@@ -1,4 +1,4 @@
-import type { GenerationResourceGate, ProviderIdentity, SingleFileRunResult, TargetPoolKind, TargetSchedulerConcurrency } from '~/types'
+import type { ProviderIdentity, ResourceGate, SingleFileRunResult, TargetPoolKind, TargetSchedulerConcurrency } from '~/types'
 
 export type BuildSingleArtifactMapOptions<T> = {
   singleKey: string
@@ -14,7 +14,7 @@ export type RunTargetsOptionsBase<TTarget extends ProviderIdentity> = {
   stepLabel: string
   noProviderMessage: string
   concurrency?: TargetSchedulerConcurrency | undefined
-  resourceGate?: GenerationResourceGate | undefined
+  resourceGate?: ResourceGate | undefined
   getTargetPool?: ((target: TTarget) => TargetPoolKind) | undefined
   getTargetPriority?: ((target: TTarget, index: number) => number | undefined) | undefined
 }

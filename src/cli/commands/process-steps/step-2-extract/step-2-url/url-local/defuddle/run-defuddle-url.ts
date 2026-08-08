@@ -1,22 +1,14 @@
 import { mkdtemp, rm } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
-import type { ExtractHtmlToMarkdownInput, ExtractHtmlToMarkdownResult, UrlArticleProviderAdapter, UrlArticleRunOptions, UrlArticleRunResult, WebArticleMetadata } from '~/types'
+import type { ExtractHtmlToMarkdownInput, ExtractHtmlToMarkdownResult, UrlArticleProviderAdapter, UrlArticleRunResult, UrlRequestOptions, WebArticleMetadata } from '~/types'
 import { InfraError, ValidationError } from '~/utils/error-handler'
-import { assertUrlArticleOptionsSupported } from '../../url-provider-adapter'
 import { cleanString, countWords, ensureMeaningfulMarkdown, fallbackTitleFromSource, fetchRemoteHtml, getUrlRequestTimeoutMs, isRecord, isRemoteSource, normalizeMarkdown, readLocalHtml } from '../../url-utils'
 import {
 ensureDefuddleCliSetup,
 formatDefuddleCliOutput,
 runDefuddleCliCapture
 } from './defuddle-cli'
-
-const DEFUDDLE_CAPABILITIES = [
-  'local-html',
-  'remote-html',
-  'main-content',
-  'timeout'
-] as const
 
 export const extractHtmlToMarkdown = async (
   input: ExtractHtmlToMarkdownInput
@@ -100,13 +92,8 @@ const buildDefuddleWebMetadata = (
 const runDefuddleUrl = async (
   source: string,
   sourceUrl?: string,
-  options?: UrlArticleRunOptions
+  options?: UrlRequestOptions
 ): Promise<UrlArticleRunResult> => {
-  assertUrlArticleOptionsSupported({
-    displayName: 'Defuddle',
-    capabilities: DEFUDDLE_CAPABILITIES
-  }, options)
-
   if (isRemoteSource(source)) {
     const htmlInput = await fetchRemoteHtml(source, {
       timeoutMs: getUrlRequestTimeoutMs(options),
@@ -147,6 +134,5 @@ const runDefuddleUrl = async (
 export const defuddleArticleAdapter: UrlArticleProviderAdapter = {
   id: 'defuddle',
   displayName: 'Defuddle',
-  capabilities: DEFUDDLE_CAPABILITIES,
   run: runDefuddleUrl
 }

@@ -1,104 +1,20 @@
 import { join, resolve as resolvePath } from 'node:path'
 import { readBatchManifest, readExtractBatchManifest, readRunManifest } from '~/cli/commands/process-steps/manifest-utils'
 import { buildOptsFromFlags } from '~/cli/commands/process-steps/step-1-download/download-targets/build-opts-from-flags/build-options-from-flags'
-import { getStep2ProviderSelectionFlagNames } from '~/cli/commands/process-steps/step-2-extract/step-2-shared/provider-registry'
 import { loadConfig, resolveConfigPath } from '~/cli/commands/setup-and-utilities/config/config-loader'
 import { extractExplicitFlags, mergeConfigIntoRawFlags } from '~/cli/commands/setup-and-utilities/config/config-merge'
-import { IMAGE_COMMAND_SELECTOR_FLAGS } from '~/cli/flags/image-flags'
-import { MUSIC_COMMAND_SELECTOR_FLAGS } from '~/cli/flags/music-flags'
-import { EXTRACT_PUBLIC_SELECTOR_FLAGS, normalizeExtractGenericSelectorArgs, normalizeExtractGenericSelectorFlags } from '~/cli/flags/service-selector-normalization/extract-selectors'
+import { normalizeExtractGenericSelectorArgs, normalizeExtractGenericSelectorFlags } from '~/cli/flags/service-selector-normalization/extract-selectors'
 import { normalizeGenericProviderSelectorFlags } from '~/cli/flags/service-selector-normalization/generic-provider-selectors'
 import { normalizeGenericTtsOptionFlags } from '~/cli/flags/service-selector-normalization/generic-tts-option-selectors'
 import { STANDALONE_IMAGE_PROVIDER_TARGETS, STANDALONE_MUSIC_PROVIDER_TARGETS, STANDALONE_TTS_PROVIDER_TARGETS, STANDALONE_VIDEO_PROVIDER_TARGETS, WRITE_LLM_PROVIDER_TARGETS } from '~/cli/flags/service-selector-normalization/provider-targets'
-import { TTS_COMMAND_SELECTOR_FLAGS } from '~/cli/flags/tts-flags'
-import { VIDEO_COMMAND_SELECTOR_FLAGS } from '~/cli/flags/video-flags'
 import { logSuitePriceSummary } from '~/cli/commands/process-steps/step-1-download/download-targets/suite-price-logging'
 import { logResumeSuiteSummary } from './resume-logging'
 import * as l from '~/utils/app-logger/app-logger'
 import type { AggregatedPriceEstimate, BatchManifest, ExtractRoute, ExtractSelectorInputRoutes, ResumeDispatchOutcome, ResumeDisplayOptions, ResumeResult, ResumeSelectorNormalizationResult, ResumeTarget, ResumeTargetKind, RunManifest } from '~/types'
 import { CLIUsageError } from '~/utils/error-handler'
-import { getResumeHandler } from './resume-registry'
+import { getResumeHandler, URL_ARTICLE_ROUTE } from './resume-registry'
 
 const SUPPORTED_RESUME_KINDS = new Set<ResumeTargetKind>(['extract', 'write', 'tts', 'image', 'video', 'music'])
-
-const STT_SELECTION_FLAGS = getStep2ProviderSelectionFlagNames('stt')
-const OCR_SELECTION_FLAGS = getStep2ProviderSelectionFlagNames('ocr')
-
-const EXTRACT_SELECTOR_FLAGS = [
-  'all-stt',
-  'all-local-stt',
-  'all-ocr',
-  'all-local-ocr',
-  'all-url',
-  'all-local-url',
-  ...STT_SELECTION_FLAGS,
-  ...OCR_SELECTION_FLAGS
-] as const
-
-const TTS_SELECTOR_FLAGS = [
-  'all-tts',
-  'all-local-tts',
-  ...Object.keys(TTS_COMMAND_SELECTOR_FLAGS)
-] as const
-
-const LLM_SELECTOR_FLAGS = [
-  'all-llm',
-  'all-local-llm',
-  'llama',
-  'openai',
-  'groq',
-  'gemini',
-  'anthropic',
-  'minimax',
-  'grok',
-  'glm',
-  'kimi',
-  'together',
-  'cerebras'
-] as const
-
-const IMAGE_SELECTOR_FLAGS = [
-  'all-image',
-  'all-local-image',
-  ...Object.keys(IMAGE_COMMAND_SELECTOR_FLAGS)
-] as const
-
-const VIDEO_SELECTOR_FLAGS = [
-  'all-video',
-  'all-local-video',
-  ...Object.keys(VIDEO_COMMAND_SELECTOR_FLAGS)
-] as const
-
-const MUSIC_SELECTOR_FLAGS = [
-  'all-music',
-  'all-local-music',
-  ...Object.keys(MUSIC_COMMAND_SELECTOR_FLAGS)
-] as const
-
-const INTERNAL_SELECTOR_FLAGS_BY_KIND: Record<ResumeTargetKind, ReadonlySet<string>> = {
-  extract: new Set(EXTRACT_SELECTOR_FLAGS),
-  write: new Set(LLM_SELECTOR_FLAGS),
-  tts: new Set(TTS_SELECTOR_FLAGS),
-  image: new Set(IMAGE_SELECTOR_FLAGS),
-  video: new Set(VIDEO_SELECTOR_FLAGS),
-  music: new Set(MUSIC_SELECTOR_FLAGS)
-}
-
-const PUBLIC_SELECTOR_FLAGS_BY_KIND: Record<ResumeTargetKind, ReadonlySet<string>> = {
-  extract: new Set(Object.keys(EXTRACT_PUBLIC_SELECTOR_FLAGS)),
-  write: new Set(Object.keys(WRITE_LLM_PROVIDER_TARGETS)),
-  tts: new Set(Object.values(TTS_COMMAND_SELECTOR_FLAGS)),
-  image: new Set(Object.values(IMAGE_COMMAND_SELECTOR_FLAGS)),
-  video: new Set(Object.values(VIDEO_COMMAND_SELECTOR_FLAGS)),
-  music: new Set(Object.values(MUSIC_COMMAND_SELECTOR_FLAGS))
-}
-
-const ALL_INTERNAL_SELECTOR_FLAGS = new Set(
-  Object.values(INTERNAL_SELECTOR_FLAGS_BY_KIND).flatMap((flags) => [...flags])
-)
-const ALL_PUBLIC_SELECTOR_FLAGS = new Set(
-  Object.values(PUBLIC_SELECTOR_FLAGS_BY_KIND).flatMap((flags) => [...flags])
-)
 
 const PROVIDER_TARGETS_BY_KIND = {
   write: WRITE_LLM_PROVIDER_TARGETS,
@@ -124,45 +40,12 @@ const ALL_LOCAL_TARGET_BY_KIND = {
   music: undefined
 } as const satisfies Record<Exclude<ResumeTargetKind, 'extract'>, string | undefined>
 
-const occurrenceValues = (value: unknown): Array<string | boolean> => {
-  if (Array.isArray(value)) {
-    return value.filter((entry): entry is string | true => typeof entry === 'string' || entry === true)
-  }
-  return typeof value === 'string' || value === true ? [value] : []
-}
-
-const explicitOrPresent = (
-  flags: Record<string, unknown>,
-  explicitFlags: Set<string>,
-  flagName: string
-): boolean =>
-  explicitFlags.has(flagName) || occurrenceValues(flags[flagName]).length > 0
-
-const assertSelectorFlagsApplyToTarget = (
-  flags: Record<string, unknown>,
-  explicitFlags: Set<string>
-): void => {
-  for (const flagName of ALL_INTERNAL_SELECTOR_FLAGS) {
-    if (!explicitFlags.has(flagName)) {
-      continue
-    }
-    throw CLIUsageError(`--${flagName} is no longer supported for resume. Use --provider provider[=model], --all-providers, or --all-local.`)
-  }
-
-  for (const flagName of ALL_PUBLIC_SELECTOR_FLAGS) {
-    if (!explicitOrPresent(flags, explicitFlags, flagName)) {
-      continue
-    }
-    throw CLIUsageError(`--${flagName} is no longer supported for resume. Use --provider provider[=model], --all-providers, or --all-local.`)
-  }
-}
-
 const extractRoutesForTarget = (
   target: ResumeTarget
 ): ExtractSelectorInputRoutes => ({
   media: target.extractRoute === undefined || target.extractRoute === 'media',
   document: target.extractRoute === undefined || target.extractRoute === 'document',
-  article: target.extractRoute === undefined || target.extractRoute === 'x-space'
+  article: target.extractRoute === undefined || target.extractRoute === URL_ARTICLE_ROUTE
 })
 
 const isExtractRoute = (value: unknown): value is ExtractRoute =>
@@ -181,7 +64,7 @@ const inferExtractRouteFromBatchManifest = (
       .filter((value): value is string => typeof value === 'string')
   )
   if (inputFamilies.size === 1 && inputFamilies.has('html_article')) {
-    return 'x-space'
+    return URL_ARTICLE_ROUTE
   }
 
   const routes = new Set<ExtractRoute>()
@@ -204,7 +87,7 @@ const inferExtractRouteFromRunManifest = (
     ? manifest.metadata['resolvedStep2'] as Record<string, unknown>
     : undefined
   if (resolvedStep2?.['route'] === 'article') {
-    return 'x-space'
+    return URL_ARTICLE_ROUTE
   }
   return isExtractRoute(manifest.metadata['extractRoute'])
     ? manifest.metadata['extractRoute']
@@ -281,8 +164,6 @@ export const normalizeResumeSelectorFlagsForTarget = (
   explicitFlags: Set<string>,
   rawArgs: string[]
 ): ResumeSelectorNormalizationResult => {
-  assertSelectorFlagsApplyToTarget(flags, explicitFlags)
-
   if (target.kind === 'extract') {
     const routes = extractRoutesForTarget(target)
     const normalized = normalizeExtractGenericSelectorFlags(flags, explicitFlags, routes)

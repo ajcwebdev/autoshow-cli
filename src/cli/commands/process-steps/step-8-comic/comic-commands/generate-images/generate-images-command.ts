@@ -131,8 +131,8 @@ const runFinalPanelImageStage = async (options: FinalPanelImageStageOptions): Pr
         panels: options.panels ?? 'all',
         panelsPerImage,
         ...(options.variations !== undefined ? { variations: options.variations } : {}),
-        qa: options.qa ?? options.pageQa ?? true,
-        ...((options.qaModel ?? options.pageQaModel) ? { qaModel: options.qaModel ?? options.pageQaModel } : {}),
+        qa: options.qa ?? true,
+        ...(options.qaModel ? { qaModel: options.qaModel } : {}),
         maxRepairs: options.maxRepairs ?? 2,
       }
       return await generateComicPages(sceneSlug, pageOptions)
@@ -146,8 +146,8 @@ const runFinalPanelImageStage = async (options: FinalPanelImageStageOptions): Pr
         concurrency,
         ...(options.panels !== undefined ? { panels: options.panels } : {}),
         ...(options.variations !== undefined ? { variations: options.variations } : {}),
-        qa: options.qa ?? options.pageQa ?? true,
-        ...((options.qaModel ?? options.pageQaModel) ? { qaModel: options.qaModel ?? options.pageQaModel } : {}),
+        qa: options.qa ?? true,
+        ...(options.qaModel ? { qaModel: options.qaModel } : {}),
         maxRepairs: options.maxRepairs ?? 2,
       }
       return await generatePanelImages(sceneSlug, generationOptions)

@@ -173,7 +173,7 @@ describe('hosted OCR timing estimate contracts', () => {
 
       try {
         await writeFile(profilePath, JSON.stringify({
-          version: 1,
+          version: 2,
           profiles: [
             {
               provider: 'gemini',

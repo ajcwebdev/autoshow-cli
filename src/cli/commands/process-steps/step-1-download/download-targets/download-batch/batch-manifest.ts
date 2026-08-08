@@ -2,9 +2,7 @@ import { readRunManifest } from '~/cli/commands/process-steps/manifest-utils'
 import { InternalError } from '~/utils/error-handler'
 import type { BatchManifestEntry, BatchManifestErrorEntry, ProcessCommand } from '~/types'
 
-export { buildBatchManifestEntryForItem } from '~/cli/commands/process-steps/step-0-metadata/metadata-batch/batch-manifest-entry'
-
-export const toManifestKind = (command: ProcessCommand): 'metadata' | 'download' | 'extract' | 'write' => {
+export const toManifestKind =(command: ProcessCommand): 'metadata' | 'download' | 'extract' | 'write' => {
   if (command === 'metadata' || command === 'download' || command === 'extract' || command === 'write') {
     return command
   }

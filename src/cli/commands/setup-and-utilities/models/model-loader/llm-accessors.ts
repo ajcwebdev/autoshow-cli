@@ -36,7 +36,3 @@ export const getLlmEstimation = (service: string, model: string): LlmEstimation 
     msPer1KTokens: modelMeta?.estimation?.msPer1KTokens ?? DEFAULT_LLM_MS_PER_1K_TOKENS[serviceType],
   }
 }
-
-export const getLlamaDownloadRepo = (model: string): string | undefined => {
-  return getModelRegistry().llm['llama']?.models[model]?.hfDownloadRepo
-}

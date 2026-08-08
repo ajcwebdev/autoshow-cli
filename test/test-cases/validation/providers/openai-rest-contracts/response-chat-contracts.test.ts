@@ -276,7 +276,7 @@ describe('OpenAI REST response and chat contracts', () => {
     expect(schemaWithUnsupportedKeywords.properties.tags.minItems).toBe(1)
   })
 
-  test('Cerebras write honors base URL and sends preview public model ID directly', async () => {
+  test('Cerebras write targets the default endpoint and sends preview public model ID directly', async () => {
     process.env['CEREBRAS_API_KEY'] = 'cerebras-key'
 
     const calls = installFetch(() => jsonResponse({
@@ -285,12 +285,12 @@ describe('OpenAI REST response and chat contracts', () => {
       usage: { prompt_tokens: 4, completion_tokens: 2, total_tokens: 6 }
     }))
 
-    const result = await runCerebrasModel('Draft this.', 'zai-glm-4.7', undefined, 'https://mock.cerebras.local/v1/')
+    const result = await runCerebrasModel('Draft this.', 'zai-glm-4.7')
 
     expect(result.result).toBe('Cerebras preview response.')
     expect(calls).toHaveLength(1)
     expect(calls[0]).toMatchObject({
-      url: 'https://mock.cerebras.local/v1/chat/completions',
+      url: `${CEREBRAS_DEFAULT_BASE_URL}/chat/completions`,
       method: 'POST',
       bodyJson: {
         model: 'zai-glm-4.7',

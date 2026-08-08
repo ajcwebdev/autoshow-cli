@@ -86,9 +86,8 @@ bun autoshow tts <input> [flags]
 | `--tts-instructions <provider=value\|value>` | Generic voice/style instructions |
 | `--tts-output-format <provider=value\|value>` | Generic output format |
 | `--tts-chunk-concurrency <n>` | Hosted TTS chunk starts allowed in parallel per provider across the current run; default `30`, or `50` for Grok-only hosted TTS |
-| `--tts-dialogue-format <screenplay\|labeled>` | Dialogue input format for multi-speaker TTS |
-| `--tts-speaker-ref-audio SPEAKER=path` | Speaker reference audio mapping; repeatable |
-| `--tts-speaker SPEAKER=VOICE\|path` | Multi-speaker voice mapping; repeatable |
+| `--tts-dialogue-format <screenplay\|labeled>` | Dialogue input format for multi-speaker TTS; requires at least one `--tts-speaker` |
+| `--tts-speaker SPEAKER=VOICE\|path` | Multi-speaker voice mapping; repeatable. Selects multi-speaker TTS |
 | `--price` | Show the aggregated estimate and exit |
 | `--output-dir <dir>` | Global flag: pin an exact run directory instead of a timestamped output directory |
 
@@ -196,7 +195,7 @@ Grok TTS text is split into 2000-character chunks.
 | Models | `voxtral-mini-tts-2603` |
 | Voice source | exactly one of `--tts-voice <id>` or `--tts-ref-audio <path>` |
 | Saved voice name | `--tts-voice-name <name>` when creating a saved voice from reference audio |
-| Dialogue mode | `--tts-dialogue-format screenplay|labeled` plus repeatable `--tts-speaker-ref-audio SPEAKER=path` |
+| Dialogue mode | `--tts-dialogue-format screenplay|labeled` plus repeatable `--tts-speaker SPEAKER=path` |
 
 ```bash
 bun autoshow tts input/examples/tts/1-tts.md --provider mistral=voxtral-mini-tts-2603 --tts-voice voice_abc123
@@ -204,13 +203,13 @@ bun autoshow tts input/examples/tts/1-tts.md --provider mistral=voxtral-mini-tts
 bun autoshow tts input/chat-and-duco.txt \
   --provider mistral=voxtral-mini-tts-2603 \
   --tts-dialogue-format screenplay \
-  --tts-speaker-ref-audio DUCO=input/examples/audio/anthony-voice.mp3 \
-  --tts-speaker-ref-audio CHAT=https://ajc.pics/autoshow/examples/1-audio.mp3
+  --tts-speaker DUCO=input/examples/audio/anthony-voice.mp3 \
+  --tts-speaker CHAT=https://ajc.pics/autoshow/examples/1-audio.mp3
 ```
 
 Mistral Voxtral TTS requires one voice source when generating audio: a saved/custom voice ID or a reference audio file, provided as a local path or HTTP(S) URL. Add `--tts-voice-name` with `--tts-ref-audio` when the run should create/name a saved voice instead of using one-off reference audio. `--price` can estimate Mistral TTS with only `--provider mistral=voxtral-mini-tts-2603` because no synthesis request is made. Reference audio is base64-encoded for the request and is not written into run metadata; metadata records the speaker as `ref_audio:<basename>`.
 
-Dialogue mode works with every TTS provider, not just Mistral. `--tts-speaker SPEAKER=VOICE` mappings map speakers to provider voice IDs for any provider, while `--tts-speaker-ref-audio SPEAKER=path` reference audio mappings are supported only by Mistral, ElevenLabs, and Speechify; per-speaker mappings replace `--tts-voice` and `--tts-ref-audio` for the run. Gemini synthesizes dialogue natively in a single request; every other provider synthesizes one segment per turn and concatenates them. `screenplay` mode extracts configured speaker dialogue, strips leading parentheticals, and omits scene/action directions. `labeled` mode expects `SPEAKER: text` lines. Segment-and-concat runs write `dialogue-normalized.txt`, one WAV per turn under `segments/`, the final `speech.wav`, and `run.json`; price estimates use the spoken dialogue character count.
+Dialogue mode works with every TTS provider, not just Mistral. `--tts-speaker` mappings are what select it: one or more mappings turn the run into multi-speaker TTS, and that mode then requires `--tts-dialogue-format`. A format on its own selects nothing, so typing `--tts-dialogue-format` with no `--tts-speaker` is rejected up front, while a `ttsDialogueFormat` inherited from config defaults is ignored with a warning and the run continues as single-speaker. `--tts-speaker` takes both mapping kinds: `SPEAKER=VOICE` maps a speaker to a provider voice ID for any provider, while `SPEAKER=path` maps a speaker to reference audio and is supported only by Mistral, ElevenLabs, and Speechify. A value is read as reference audio when it contains a path separator or ends in a known audio extension (`.mp3`, `.wav`, `.m4a`, `.ogg`, `.opus`, `.flac`, and similar); anything else is read as a voice ID. Per-speaker mappings replace `--tts-voice` and `--tts-ref-audio` for the run, so the `tts` command rejects an explicit `--tts-voice` alongside `--tts-speaker` or `--tts-dialogue-format` rather than silently discarding it; a voice stored in config defaults is still exempt. Gemini synthesizes dialogue natively in a single request; every other provider synthesizes one segment per turn and concatenates them. `screenplay` mode extracts configured speaker dialogue, strips leading parentheticals, and omits scene/action directions. `labeled` mode expects `SPEAKER: text` lines. Segment-and-concat runs write `dialogue-normalized.txt`, one WAV per turn under `segments/`, the final `speech.wav`, and `run.json`; price estimates use the spoken dialogue character count.
 
 ### OpenAI
 
@@ -233,20 +232,19 @@ bun autoshow tts input/examples/tts/1-tts.md --provider openai=gpt-4o-mini-tts-2
 | Selector | `--provider gemini[=<model>]` |
 | Models | `gemini-3.1-flash-tts-preview` |
 | Single voice | `--tts-voice <name>`, default `Kore` |
-| Multispeaker | `--gemini-speaker-1-name`, `--gemini-speaker-1-voice`, `--gemini-speaker-2-name`, `--gemini-speaker-2-voice` |
+| Multispeaker | `--tts-dialogue-format labeled` plus repeatable `--tts-speaker SPEAKER=VOICE` |
 
 ```bash
 bun autoshow tts input/examples/tts/1-tts.md --provider gemini=gemini-3.1-flash-tts-preview --tts-voice Kore
 
 bun autoshow tts input/examples/tts/tts-dialogue.txt \
   --provider gemini=gemini-3.1-flash-tts-preview \
-  --gemini-speaker-1-name Host \
-  --gemini-speaker-1-voice Kore \
-  --gemini-speaker-2-name Guest \
-  --gemini-speaker-2-voice Puck
+  --tts-dialogue-format labeled \
+  --tts-speaker Host=Kore \
+  --tts-speaker Guest=Puck
 ```
 
-Gemini multispeaker mode is enabled only when all four `--gemini-speaker-*` flags are provided together. Do not combine the multispeaker flags with `--tts-voice`. The input text must include explicit speaker labels such as `Host:` and `Guest:` that match the configured speaker names. Inline Gemini-style delivery tags like `[whispers]` or `[excitedly]` stay in the source text and are passed through unchanged.
+Gemini multispeaker mode is enabled by the generic dialogue flags, the same ones every other provider uses; Gemini is the one provider that synthesizes the whole dialogue natively in a single request instead of concatenating per-turn segments. `--tts-voice` is rejected once speaker mappings are present, since those mappings supply every voice. The input text must include explicit speaker labels such as `Host:` and `Guest:` that match the configured speaker names. Inline Gemini-style delivery tags like `[whispers]` or `[excitedly]` stay in the source text and are passed through unchanged.
 
 ### Deepgram
 

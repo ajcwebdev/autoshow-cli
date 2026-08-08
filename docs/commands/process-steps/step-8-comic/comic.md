@@ -12,12 +12,10 @@ Draft comic scene JSON with exhaustive shot plans, build reviewed v4 panel bundl
 - [draft-scenes](#draft-scenes)
 - [generate-images](#generate-images)
 - [reference-sketch](#reference-sketch)
-- [character-sketch](#character-sketch)
 - [Output](#output)
 - [Clean-break migration](#clean-break-migration)
 - [Supported Models](#supported-models)
 - [Notes](#notes)
-- [Deprecated Options](#deprecated-options)
 
 ## Overview
 
@@ -33,7 +31,6 @@ The public subcommands are:
 bun autoshow comic draft-scenes
 bun autoshow comic generate-images
 bun autoshow comic reference-sketch
-bun autoshow comic character-sketch
 ```
 
 ## Setup
@@ -58,7 +55,7 @@ Every comic command requires `input/characters/characters-reference.json`, or th
 
 Character paths must stay within the character root, use PNG/WebP/JPG/JPEG files, remain exclusive to one catalog character, and all group targets must exist. The two fields may name the same file for a one-image character or distinct files for the legacy source-plus-sheet layout. Canonical source images must exist when the catalog loads. A distinct declared sheet may be missing during structure and scene drafting; character revision, panel-prompt creation, and relevant price preflight require a matching checksummed registration in `character-sketches.json`.
 
-Location configuration is project-defined too. Set `styleImage` in `input/locations/locations-reference.json` to any project image whose visual language should guide new location views. A location entry may set a safe root-relative `referenceDirectory`, a lowercase kebab-case establishing `referenceFilename` ending in `--reference.png`, or both to control its canonical promotion path. Reverse and side filenames are derived by inserting `-reverse` or `-side` before `.png`. Legacy `--reference-sheet.png` catalog filenames remain readable and normalize to the establishing path. When the catalog does not exist yet, the comic command uses the first character catalog image as the initial style reference and writes that portable relative path into the new location catalog.
+Location configuration is project-defined too. Set `styleImage` in `input/locations/locations-reference.json` to any project image whose visual language should guide new location views. A location entry may set a safe root-relative `referenceDirectory`, a lowercase kebab-case establishing `referenceFilename` ending in `--reference.png`, or both to control its canonical promotion path. Reverse and side filenames are derived by inserting `-reverse` or `-side` before `.png`. When the catalog does not exist yet, the comic command uses the first character catalog image as the initial style reference and writes that portable relative path into the new location catalog.
 
 ## Runtime Paths
 
@@ -78,7 +75,6 @@ Canonical project-root paths:
 bun autoshow comic draft-scenes <script-path> [--only structure|prompt|scene|panel-prompts] [--price]
 bun autoshow comic generate-images <script-path> [--target images|sketches|both] [--panels <all|range|list>] [--panels-per-image <n>] [--no-qa] [--max-repairs <n>] [--force] [--price]
 bun autoshow comic reference-sketch (--character <key> | --location <key> [--view establishing|reverse|side]) [--revise --notes <text>] [--price]
-bun autoshow comic character-sketch --character <key> [--image-model <model>] [--revise --notes <text>] [--price]
 ```
 
 The `<script-path>` argument also accepts strict episode-scene shorthand: `01-01` resolves to the single Markdown file in `input/scripts/02-script/` whose filename starts with `01-`.
@@ -101,7 +97,7 @@ bun autoshow comic generate-images input/scripts/01-script/01-opening.md --targe
 bun autoshow comic generate-images input/scripts/01-script/01-opening.md --target sketches --panels 1-4
 ```
 
-`draft-scenes` is required first because `generate-images` only consumes newly reviewed v4 scene artifacts. This writes final panel images under the scene's run directory, e.g. `output/<timestamp>_01-opening/panels/`; grouped page images land in `pages/` when `--panels-per-image` is above one or `--grid` is used. Existing single-location v3 panel bundles and their singular location manifests remain readable by image generation.
+`draft-scenes` is required first because `generate-images` only consumes newly reviewed v4 scene artifacts. This writes final panel images under the scene's run directory, e.g. `output/<timestamp>_01-opening/panels/`; grouped page images land in `pages/` when `--panels-per-image` is above one or `--grid` is used. Image generation reads only schema-version-4 panel bundles and plural location manifests; older bundles fail validation and must be rebuilt with `draft-scenes`.
 
 ### 1. Create structured script JSON
 
@@ -196,7 +192,7 @@ bun autoshow comic draft-scenes input/scripts/01-script/01-opening.md --only pan
 - `--only scene` drafts scene JSON from an existing prompt bundle.
 - `--only panel-prompts` builds stable panel prompt bundles from existing scene JSON and does not call an API.
 - Scene drafting validates generated JSON before writing it.
-- Structured scripts remain v2; reviewed scenes and panel bundles require `schemaVersion: 3`. Existing v2 scene/panel artifacts are readable migration inputs but cannot enter image generation until `draft-scenes` explicitly rebuilds them. Invalid model output is saved as `scene.invalid.json` with validation details.
+- Structured scripts require `schemaVersion: 3`; reviewed scenes and panel bundles require `schemaVersion: 4`. Each schema pins its version exactly and there is no migration reader, so an artifact written by an earlier version is rejected rather than upgraded — rerun `draft-scenes` to rebuild it. Invalid model output is saved as `scene.invalid.json` with validation details.
 - Every panel has an exhaustive prose `shotPlan` covering camera, composition, exact blocking/acting/eyelines, props, balloon placement, and exclusions. Script-authored staging and exact cast/dialogue take precedence over inferred shot details. Permanent location topology remains canonical unless the script explicitly changes the set as a story event.
 - `panel.characterKeys` is authoritative for visibility. Descriptions, speech text, and source segments never add visual references implicitly. There is no arbitrary cast-count ceiling: every script-required visible character belongs in the panel. Generation still preflights the selected model's actual reference-image input capability.
 - On-screen character speakers must be visible; offscreen character speakers must not be listed as visible.
@@ -261,21 +257,21 @@ bun autoshow comic generate-images input/scripts/01-script/01-opening.md --targe
 - Multi-model runs write model-specific filenames.
 - Before the first provider request, every selected panel/page/sketch and model is checked against the central registry's reference-image support and maximum input count. Required character references are never truncated; optional continuity images may be trimmed deterministically.
 - For fixed furniture and architecture, continuity covers geometry as well as presence: footprint, silhouette, connectedness, orientation, visible edge structure, and wall relationships must survive camera changes. Perspective may foreshorten the canonical form but may not invent a corner, return, split, or freestanding segment. This geometry check does not lock camera position, distance, or composition.
-- QA defaults on for individual and grouped outputs. Each output runs initial generation, strict GPT-5.6 Sol judgment, then at most two repair attempts by default. The first repair edits the exact failed image. If the same hard check survives two consecutive judgments, the next repair starts a completely new image from the canonical character and location references instead of chaining another edit; if that check stagnates for two more judgments after the restart, repair stops early. Canonical character images and immutable catalog descriptions have highest visual precedence for identity, physical embodiment, projection/display medium, anatomy, costume, and character-specific required props. A source or shot-plan contradiction cannot excuse a character-canon violation; QA treats it as a hard identity failure. Set continuity is independently strict: QA emits a structured audit for every canonical anchor as correctly placed, genuinely outside the crop, missing, relocated, duplicated, mirrored, or redesigned. An anchor whose canonical region is in frame must remain visibly identifiable; character or prop blocking never excuses its absence. Permanent anchors may be foreshortened or shown from another camera position, but they may not be relocated, hidden, removed from an otherwise revealing view, duplicated, mirrored, or redesigned without an explicit story event. This check does not require the canonical reference camera or repeated compositions. Cast, location, non-conflicting source staging, dialogue wording/completeness, speaker attribution, and panel structure also stay strict. Harmless typography substitutions—such as `...` for `…`, straight for curly quotation marks, or a hyphen for an em/en dash—do not fail dialogue QA when wording, meaning, speaker, and pacing are unchanged. Minor body-width, proportion, shading, detail, or stylization variance remains advisory when the character is clearly recognizable and preserves canonical design cues. Inferred shot-plan framing/staging receives one targeted edit; if that check alone remains unresolved afterward, it is explicitly recorded as waived and becomes advisory. All attempts and judgments are preserved, restart/stop decisions are recorded in attempt QA JSON, and only an attempt with no remaining hard failure is promoted. Exhaustion or stagnation omits the canonical output, continues other selected work, writes reports, and exits nonzero. `--page-qa` and `--page-qa-model` remain deprecated aliases.
+- QA defaults on for individual and grouped outputs. Each output runs initial generation, strict GPT-5.6 Sol judgment, then at most two repair attempts by default. The first repair edits the exact failed image. If the same hard check survives two consecutive judgments, the next repair starts a completely new image from the canonical character and location references instead of chaining another edit; if that check stagnates for two more judgments after the restart, repair stops early. Canonical character images and immutable catalog descriptions have highest visual precedence for identity, physical embodiment, projection/display medium, anatomy, costume, and character-specific required props. A source or shot-plan contradiction cannot excuse a character-canon violation; QA treats it as a hard identity failure. Set continuity is independently strict: QA emits a structured audit for every canonical anchor as correctly placed, genuinely outside the crop, missing, relocated, duplicated, mirrored, or redesigned. An anchor whose canonical region is in frame must remain visibly identifiable; character or prop blocking never excuses its absence. Permanent anchors may be foreshortened or shown from another camera position, but they may not be relocated, hidden, removed from an otherwise revealing view, duplicated, mirrored, or redesigned without an explicit story event. This check does not require the canonical reference camera or repeated compositions. Cast, location, non-conflicting source staging, dialogue wording/completeness, speaker attribution, and panel structure also stay strict. Harmless typography substitutions—such as `...` for `…`, straight for curly quotation marks, or a hyphen for an em/en dash—do not fail dialogue QA when wording, meaning, speaker, and pacing are unchanged. Minor body-width, proportion, shading, detail, or stylization variance remains advisory when the character is clearly recognizable and preserves canonical design cues. Inferred shot-plan framing/staging receives one targeted edit; if that check alone remains unresolved afterward, it is explicitly recorded as waived and becomes advisory. All attempts and judgments are preserved, restart/stop decisions are recorded in attempt QA JSON, and only an attempt with no remaining hard failure is promoted. Exhaustion or stagnation omits the canonical output, continues other selected work, writes reports, and exits nonzero.
 - Named anchor assemblies are preserved and audited component by component. A visible desk, console, shelf, rack, berth, or counter does not excuse omission of its named computer, keyboard, control unit, appliance, instrument, or other recurring component, and generic clutter is not a substitute. If an anchor cannot remain visibly identifiable, its entire canonical region must be outside the crop.
 - `--price` makes no writes or provider calls and separately reports initial image/judge calls plus maximum edit/judge calls.
 
 ## reference-sketch
 
-`reference-sketch --character` runs the existing character-sheet workflow. `reference-sketch --location` targets exactly one view: `establishing` by default, or deterministic `--view reverse|side`. The first establishing run scans matching scripts and asks the configured text model (`gpt-5.6-sol` by default) for stable location facts; reverse and side require establishing and may be added independently. Each successful view is immediately promoted and atomically registered. An existing target is a validated no-op unless `--revise --notes` is supplied. QA enforces the named camera contract and material distinction from existing views; camera failures restart fresh from canonical references, while style, feature, and geometry repairs edit the candidate. `character-sketch` is a compatibility alias and rejects `--view`.
+`reference-sketch --character` runs the existing character-sheet workflow. `reference-sketch --location` targets exactly one view: `establishing` by default, or deterministic `--view reverse|side`. The first establishing run scans matching scripts and asks the configured text model (`gpt-5.6-sol` by default) for stable location facts; reverse and side require establishing and may be added independently. Each successful view is immediately promoted and atomically registered. An existing target is a validated no-op unless `--revise --notes` is supplied. QA enforces the named camera contract and material distinction from existing views; camera failures restart fresh from canonical references, while style, feature, and geometry repairs edit the candidate.
 
 Location `--price` preflight uses the same target and retry arguments as generation. A new or revised view estimates one initial image and one initial judgment plus that view's permitted retries and judgments; a current validated no-op reports zero provider calls. The initial location-specification call is included only when the catalog entry does not yet exist.
 
-## character-sketch
+### Character sheets
 
-`character-sketch` generates a new immutable three-view version and automatically composes its reference sheet.
+`reference-sketch --character` generates a new immutable three-view version and automatically composes its reference sheet.
 
-### Options
+#### Options
 
 | Flag | Description | Default |
 |------|-------------|---------|
@@ -285,7 +281,7 @@ Location `--price` preflight uses the same target and retry arguments as generat
 | `--concurrency <n>` | Number of sketch views to generate in parallel | `10` |
 | `--price` | Estimate image-generation costs without making API calls | `false` |
 
-### Advanced Options
+#### Advanced Options
 
 | Flag | Description | Default |
 |------|-------------|---------|
@@ -293,15 +289,15 @@ Location `--price` preflight uses the same target and retry arguments as generat
 | `--size <size>` | Image size such as `1024x1536`, `1024x1024`, `1536x1024`, or `auto` | `1024x1536` |
 | `--quality <quality>` | `low`, `medium`, `high`, or `auto`; Gemini ignores this compatibility flag | `medium` |
 
-### Examples
+#### Examples
 
 ```bash
-bun autoshow comic character-sketch --character hero
-bun autoshow comic character-sketch --character sidekick --price
-bun autoshow comic character-sketch --character hero --revise --notes "Correct the eye shape"
+bun autoshow comic reference-sketch --character hero
+bun autoshow comic reference-sketch --character sidekick --price
+bun autoshow comic reference-sketch --character hero --revise --notes "Correct the eye shape"
 ```
 
-### Behavior
+#### Behavior
 
 - The three generated views and composed sheet stay in temporary storage until all work succeeds; only the flat catalog `outlineSheet` is persisted.
 - Fresh generation replaces the registered reference by default. Revision never falls back to fresh generation. A one-image character supplies that canonical image once for every view; a legacy two-image character supplies `[canonical source, current outline sheet]`.
@@ -326,7 +322,6 @@ output/<YYYY-MM-DD_HH-MM-SS-mmm>_01-opening/
   assets/
     character-references.json
     character-references/<snapshot-id>/<key>/
-    location-reference.json          # legacy schema when applicable
     location-references.json
     location-references/<snapshot-id>/
     design-references.json           # only when reviewed panels declare designReferences
@@ -351,13 +346,13 @@ Resume and pinning:
 - A later stage (e.g. `generate-images` after `draft-scenes`, or `draft-scenes --only prompt|scene|panel-prompts`) automatically resumes the **latest** existing run directory for the scene, so the multi-stage pipeline still finds prior-stage outputs.
 - A full `draft-scenes` run or `--only structure` starts a **fresh** run directory. `generate-images` resumes only a run that already contains `metadata/scene.json`; without one it fails instead of drafting, and `--force` never changes which run directory is used.
 - Pass the global `--output-dir <path>` to pin an explicit run directory for both reading and writing.
-- The panel-first layout is strict for fresh, resumed, and pinned workspaces. A flat legacy workspace fails with migration instructions; AutoShow does not fall back to flat reads, migrate it automatically, or provide a migration command.
+- The panel-first layout is strict for fresh, resumed, and pinned workspaces. AutoShow does not fall back to flat reads, migrate an older workspace automatically, or provide a migration command; re-run `draft-scenes` instead.
 
 ### Run-level character, location, and design snapshots
 
 `draft-scenes --only panel-prompts` first validates the union of visible character keys. Every visible character must have a registered canonical reference whose catalog paths and checksums match `character-sketches.json`. For a one-image character, the source and sheet fields intentionally have the same path and checksum. The command then copies one physical reference file per one-image character into `assets/character-references/<snapshot-id>/<key>/`, records scene-root-relative `assets/...` paths, SHA-256 checksums, and the registration generation ID, and atomically writes `assets/character-references.json` last. Panel bundles contain the snapshot ID and keys only; no character images are copied into panel directories.
 
-The same stage snapshots every distinct panel location once. Each location must resolve deterministically by key, catalog name, or declared alias and have an ordered schema-version-2 registration in `location-sketches.json` whose specification and per-view checksums still match. The stage composes all available views horizontally in establishing/reverse/side order into `assets/location-references/<snapshot-id>/<key>--reference-sheet.png`; a one-view location is copied directly and does not require ImageMagick. Each schema-version-2 snapshot records source-view generation IDs and checksums alongside the composed-sheet checksum, and the plural `assets/location-references.json` outer manifest remains schema version 2. Legacy schema-version-1 registrations and location snapshots remain readable only within the strict `assets/` layout so existing schemas remain compatible without flat-workspace compatibility.
+The same stage snapshots every distinct panel location once. Each location must resolve deterministically by key, catalog name, or declared alias and have an ordered schema-version-2 registration in `location-sketches.json` whose specification and per-view checksums still match. The stage composes all available views horizontally in establishing/reverse/side order into `assets/location-references/<snapshot-id>/<key>--reference-sheet.png`; a one-view location is copied directly and does not require ImageMagick. Each schema-version-2 snapshot records source-view generation IDs and checksums alongside the composed-sheet checksum, and the plural `assets/location-references.json` outer manifest remains schema version 2. Schema-version-1 sketch registrations and singular `location-reference.json` snapshots are no longer read; rebuild them with `reference-sketch --location` and `draft-scenes`.
 
 Reviewed schema-version-4 panels may optionally declare `designReferences` entries with a lowercase kebab-case `key`, a safe project-relative image `sourcePath` below `input/`, and a nonblank `usage` description. Automated scene drafting emits an empty array; reviewers attach designs before rebuilding panel prompts. The panel-prompt stage validates consistent key/path/usage mappings, checksums and copies each distinct design into `assets/design-references/<snapshot-id>/`, atomically writes `assets/design-references.json`, and binds only the mapped panels to the snapshot and keys. Generation, repair restarts, capability preflight, grouped pages, sketches, and QA receive designs after character and location references in first-panel-appearance order. Missing, mixed, unsafe, duplicated, stale, or tampered design references fail before provider calls, and QA treats an unmistakable mapped redesign as a hard source-precedence failure.
 
@@ -367,14 +362,14 @@ Image generation rejects missing, mismatched, stale, tampered, or over-limit req
 
 Flat scene workspaces are intentionally unsupported. Project owners must move drafting files and `panel-prompts/` below `metadata/`, move reference manifests and immutable snapshot directories below `assets/`, rewrite manifest asset paths to scene-root-relative `assets/...` paths, and rewrite coverage prompt paths to `metadata/panel-prompts/...` before invoking AutoShow. The CLI rejects a flat workspace with an actionable migration-required error and never performs this project-specific move itself.
 
-Legacy catalogs, unversioned structured/scene/panel artifacts, `character-sketch --image`, basename-keyed identity, version directories, and per-panel reference copies are no longer read. To migrate:
+Legacy catalogs, unversioned structured/scene/panel artifacts, the removed `--image` sketch-import flow, basename-keyed identity, version directories, and per-panel reference copies are no longer read. To migrate:
 
 1. Create a schema-version-3 catalog under the selected character root. For one-image characters, set `image` and `outlineSheet` to the same safe character-exclusive path.
-2. Move accepted legacy sheets into those flat paths and register their exact checksums in `character-sketches.json`, or regenerate missing characters with `bun autoshow comic character-sketch --character <key>`.
+2. Move accepted legacy sheets into those flat paths and register their exact checksums in `character-sketches.json`, or regenerate missing characters with `bun autoshow comic reference-sketch --character <key>`.
 3. Regenerate structured scripts and scene JSON.
 4. Rebuild panel prompts to create a checksummed run snapshot.
 
-Migration is entirely project-defined: register every catalog character using its configured key and paths. No external project directory or built-in cast is consulted. Commands that generate missing sheets can spend provider credits; run `bun autoshow comic character-sketch --character <key> --price` before explicitly choosing to proceed.
+Migration is entirely project-defined: register every catalog character using its configured key and paths. No external project directory or built-in cast is consulted. Commands that generate missing sheets can spend provider credits; run `bun autoshow comic reference-sketch --character <key> --price` before explicitly choosing to proceed.
 
 ## Supported Models
 
@@ -422,22 +417,6 @@ The default is `gpt-5.6-sol`. Inspect `llm-config.json` for the full list of ava
 
 ## Notes
 
-- Real `draft-scenes`, `generate-images`, `reference-sketch`, and `character-sketch` runs call the provider APIs for the selected text and image models, resolved through the central LLM and image registries.
+- Real `draft-scenes`, `generate-images`, and `reference-sketch` runs call the provider APIs for the selected text and image models, resolved through the central LLM and image registries.
 - Use `--price` to estimate hosted cost before running generation.
 - `draft-scenes --only prompt` and `draft-scenes --only panel-prompts` are prompt-building stages and do not generate images.
-
-## Deprecated Options
-
-The following options were removed. Using them will produce an informative error with migration instructions:
-
-| Removed Flag | Replacement |
-|---|---|
-| `--episode`, `--scene`, `--script` | Pass a script file path or `NN-SC` shorthand directly |
-| `--panel <n>` | Use `--panels <n>` |
-| `--panel-limit <n>` | Use `--panels <range>` directly (e.g. `--panels 1-4`) |
-| `--chunk <number>` | Use `--panels <range>` with `--target sketches` |
-| `--sketch-group-size <n\|all>` | Sketches auto-group in chunks of 6 by default; use `--panels-per-image <n>` to change chunk size or `--panels <range>` for explicit selection |
-| `--sketch-panels <range>` | Use `--panels <range>` |
-| `--draft-scenes` | Scene drafts are auto-detected |
-| `--skip-panel-prompts` | Panel prompts are auto-detected |
-| `generate-images --target prompts` | Use `draft-scenes <script-path> --only panel-prompts` |

@@ -49,9 +49,6 @@ export const isReplicateAlephVideoModel = (model: ReplicateVideoModel): boolean 
 export const isReplicateWanVideoModel = (model: ReplicateVideoModel): boolean =>
   model === 'wan-video/wan-2.7-t2v'
 
-export const isReplicateSeedanceStandardVideoModel = (model: ReplicateVideoModel): boolean =>
-  model === 'bytedance/seedance-2.0'
-
 export const isReplicateSeedanceFastVideoModel = (model: ReplicateVideoModel): boolean =>
   model === 'bytedance/seedance-2.0-fast'
 
@@ -149,8 +146,6 @@ export const normalizeGeminiDuration = (
 }
 
 export const GEMINI_VIDEO_RESOLUTIONS = ['720p', '1080p', '4k'] as const
-// 4k is rejected for Veo 3.1 Lite; standard and Fast accept it.
-export const GEMINI_4K_CAPABLE_MODELS = ['veo-3.1-generate-preview', 'veo-3.1-fast-generate-preview'] as const
 
 export const normalizeGeminiResolution = (
   resolution: string | undefined,

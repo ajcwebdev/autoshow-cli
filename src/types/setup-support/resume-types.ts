@@ -68,9 +68,6 @@ export type GenerationResumeConfig<TTarget extends ProviderIdentity, TMetadata> 
     providers: Array<{ service: string, model: string }>,
     opts: RuntimeOptions
   ) => TTarget[]
-  assertStoredMissingProvidersAreActive?: (
-    providers: Array<{ service: string, model: string }>
-  ) => void
   runMissingTargets: (
     targets: TTarget[],
     input: string,

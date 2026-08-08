@@ -1,144 +1,44 @@
 import { readFile } from 'node:fs/promises'
-import { basename, resolve } from 'node:path'
+import { basename, isAbsolute, resolve } from 'node:path'
 import type { ParsedCommandMetric, ParsedJunitCase, TestRunArtifacts } from '~/types'
-import type { MetricContext, ReportArgServiceFlag, ReportTestContext, ServiceModelPair } from '~/types'
+import type { MetricContext, ReportTestContext, ServiceModelPair } from '~/types'
 
-const COMMAND_KIND_NAMES = new Set(['setup', 'download', 'transcribe', 'extract', 'write', 'tts', 'image', 'video', 'music'])
-
-const ARG_SERVICE_FLAGS: Record<string, ReportArgServiceFlag> = {
-  '--openai': { service: 'openai', kind: 'write' },
-  '--anthropic': { service: 'anthropic', kind: 'write' },
-  '--gemini': { service: 'gemini', kind: 'write' },
-  '--groq': { service: 'groq', kind: 'write' },
-  '--minimax': { service: 'minimax', kind: 'write' },
-  '--glm': { service: 'glm', kind: 'write' },
-  '--kimi': { service: 'kimi', kind: 'write' },
-  '--llama': { service: 'llama.cpp', kind: 'write' },
-  '--whisper-stt': { service: 'whisper', kind: 'transcribe' },
-  '--reverb-stt': { service: 'reverb', kind: 'transcribe' },
-  '--tesseract-ocr': { service: 'tesseract', kind: 'extract' },
-  '--deepinfra-stt': { service: 'deepinfra', kind: 'transcribe' },
-  '--deepgram-stt': { service: 'deepgram', kind: 'transcribe' },
-  '--soniox-stt': { service: 'soniox', kind: 'transcribe' },
-  '--speechmatics-stt': { service: 'speechmatics', kind: 'transcribe' },
-  '--rev-stt': { service: 'rev', kind: 'transcribe' },
-  '--groq-stt': { service: 'groq', kind: 'transcribe' },
-  '--grok-stt': { service: 'grok', kind: 'transcribe' },
-  '--assemblyai-stt': { service: 'assemblyai', kind: 'transcribe' },
-  '--gladia-stt': { service: 'gladia', kind: 'transcribe' },
-  '--happyscribe-stt': { service: 'happyscribe', kind: 'transcribe' },
-  '--mistral-stt': { service: 'mistral', kind: 'transcribe' },
-  '--supadata-stt': { service: 'supadata', kind: 'transcribe' },
-  '--scrapecreators-stt': { service: 'scrapecreators', kind: 'transcribe' },
-  '--together-stt': { service: 'together', kind: 'transcribe' },
-  '--gemini-stt': { service: 'gemini-stt', kind: 'transcribe' },
-  '--mistral-ocr': { service: 'mistral', kind: 'extract' },
-  '--glm-ocr': { service: 'glm', kind: 'extract' },
-  '--kimi-ocr': { service: 'kimi', kind: 'extract' },
-  '--openai-ocr': { service: 'openai', kind: 'extract' },
-  '--anthropic-ocr': { service: 'anthropic', kind: 'extract' },
-  '--gemini-ocr': { service: 'gemini', kind: 'extract' },
-  '--deepinfra-ocr': { service: 'deepinfra', kind: 'extract' },
-  '--elevenlabs-tts': { service: 'elevenlabs', kind: 'tts' },
-  '--minimax-tts': { service: 'minimax', kind: 'tts' },
-  '--groq-tts': { service: 'groq', kind: 'tts' },
-  '--grok-tts': { service: 'grok', kind: 'tts' },
-  '--mistral-tts': { service: 'mistral', kind: 'tts' },
-  '--openai-tts': { service: 'openai', kind: 'tts' },
-  '--gemini-tts': { service: 'gemini', kind: 'tts' },
-  '--deepgram-tts': { service: 'deepgram', kind: 'tts' },
-  '--hume-tts': { service: 'hume', kind: 'tts' },
-  '--cartesia-tts': { service: 'cartesia', kind: 'tts' },
-  '--kitten-tts': { service: 'kitten', kind: 'tts' },
-  '--openai-image': { service: 'openai', kind: 'image' },
-  '--gemini-image': { service: 'gemini', kind: 'image' },
-  '--grok-image': { service: 'grok', kind: 'image' },
-  '--bfl-image': { service: 'bfl', kind: 'image' },
-  // Historical reports may contain this retired selector even though new runs cannot select it.
-  '--reve-image': { service: 'reve', kind: 'image' },
-  '--gemini-video': { service: 'gemini', kind: 'video' },
-  '--minimax-video': { service: 'minimax', kind: 'video' },
-  '--glm-video': { service: 'glm', kind: 'video' },
-  '--grok-video': { service: 'grok', kind: 'video' },
-  '--runway-video': { service: 'runway', kind: 'video' },
-  '--ltx-video': { service: 'ltx', kind: 'video' },
-  '--replicate-video': { service: 'replicate', kind: 'video' },
-  '--elevenlabs-music': { service: 'elevenlabs', kind: 'music' },
-  '--minimax-music': { service: 'minimax', kind: 'music' },
-  '--gemini-music': { service: 'gemini', kind: 'music' },
-}
-
-const COMMAND_PUBLIC_SERVICE_FLAGS: Record<string, Record<string, ReportArgServiceFlag>> = {
-  tts: {
-    '--kitten': { service: 'kitten', kind: 'tts' },
-    '--elevenlabs': { service: 'elevenlabs', kind: 'tts' },
-    '--minimax': { service: 'minimax', kind: 'tts' },
-    '--groq': { service: 'groq', kind: 'tts' },
-    '--grok': { service: 'grok', kind: 'tts' },
-    '--mistral': { service: 'mistral', kind: 'tts' },
-    '--openai': { service: 'openai', kind: 'tts' },
-    '--gemini': { service: 'gemini', kind: 'tts' },
-    '--deepgram': { service: 'deepgram', kind: 'tts' },
-    '--speechify': { service: 'speechify', kind: 'tts' },
-    '--hume': { service: 'hume', kind: 'tts' },
-    '--cartesia': { service: 'cartesia', kind: 'tts' },
-  },
-  image: {
-    '--gemini': { service: 'gemini', kind: 'image' },
-    '--openai': { service: 'openai', kind: 'image' },
-    '--minimax': { service: 'minimax', kind: 'image' },
-    '--grok': { service: 'grok', kind: 'image' },
-    '--runway': { service: 'runway', kind: 'image' },
-    '--bfl': { service: 'bfl', kind: 'image' },
-  },
-  video: {
-    '--gemini': { service: 'gemini', kind: 'video' },
-    '--minimax': { service: 'minimax', kind: 'video' },
-    '--glm': { service: 'glm', kind: 'video' },
-    '--grok': { service: 'grok', kind: 'video' },
-    '--runway': { service: 'runway', kind: 'video' },
-    '--ltx': { service: 'ltx', kind: 'video' },
-  },
-  music: {
-    '--elevenlabs': { service: 'elevenlabs', kind: 'music' },
-    '--minimax': { service: 'minimax', kind: 'music' },
-    '--gemini': { service: 'gemini', kind: 'music' },
-  },
-}
-
-const EXTRACT_PUBLIC_STT_SERVICE_FLAGS: Record<string, ReportArgServiceFlag> = {
-  '--whisper': { service: 'whisper', kind: 'transcribe' },
-  '--reverb': { service: 'reverb', kind: 'transcribe' },
-  '--deepinfra': { service: 'deepinfra', kind: 'transcribe' },
-  '--deepgram': { service: 'deepgram', kind: 'transcribe' },
-  '--soniox': { service: 'soniox', kind: 'transcribe' },
-  '--speechmatics': { service: 'speechmatics', kind: 'transcribe' },
-  '--rev': { service: 'rev', kind: 'transcribe' },
-  '--groq': { service: 'groq', kind: 'transcribe' },
-  '--grok': { service: 'grok', kind: 'transcribe' },
-  '--mistral': { service: 'mistral', kind: 'transcribe' },
-  '--assemblyai': { service: 'assemblyai', kind: 'transcribe' },
-  '--gladia': { service: 'gladia', kind: 'transcribe' },
-  '--happyscribe': { service: 'happyscribe', kind: 'transcribe' },
-  '--supadata': { service: 'supadata', kind: 'transcribe' },
-  '--scrapecreators': { service: 'scrapecreators', kind: 'transcribe' },
-  '--gemini': { service: 'gemini-stt', kind: 'transcribe' },
-  '--together': { service: 'together', kind: 'transcribe' },
-}
-
-const EXTRACT_PUBLIC_OCR_SERVICE_FLAGS: Record<string, ReportArgServiceFlag> = {
-  '--tesseract': { service: 'tesseract', kind: 'extract' },
-  '--mistral': { service: 'mistral', kind: 'extract' },
-  '--glm': { service: 'glm', kind: 'extract' },
-  '--kimi': { service: 'kimi', kind: 'extract' },
-  '--openai': { service: 'openai', kind: 'extract' },
-  '--anthropic': { service: 'anthropic', kind: 'extract' },
-  '--gemini': { service: 'gemini', kind: 'extract' },
-  '--deepinfra': { service: 'deepinfra', kind: 'extract' },
-}
+const COMMAND_KIND_NAMES = new Set(['setup', 'download', 'extract', 'write', 'tts', 'image', 'video', 'music'])
 
 const MEDIA_INPUT_PATTERN = /\.(?:mp3|m4a|aac|wav|flac|ogg|opus|webm|mp4|mov|mkv|avi|m4v)(?:[?#]|$)/i
 const DOCUMENT_INPUT_PATTERN = /\.(?:pdf|epub|mobi|prc|azw3?|fb2|lit|docx|pptx|xlsx|odt|ods|odp|rtf|csv|cbz|png|jpe?g|tiff?|webp|bmp|gif)(?:[?#]|$)/i
+
+// Live write-step selectors (src/cli/flags/shared-flags.ts stepProviderSelectorFlags).
+const STEP_SELECTOR_KINDS: Record<string, string> = {
+  '--stt': 'transcribe',
+  '--ocr': 'extract',
+  '--llm': 'write',
+  '--tts': 'tts',
+  '--image': 'image',
+  '--video': 'video',
+  '--music': 'music',
+}
+
+// Mirrors the canonical backend list in src/utils/extraction-provider-model.ts. `glm-reader`
+// is reported under service `glm` so it keeps matching the `glm` service hint below.
+const URL_BACKEND_PAIRS: Array<[backend: string, service: string, model: string]> = [
+  ['defuddle', 'defuddle', 'defuddle'],
+  ['firecrawl', 'firecrawl', 'firecrawl'],
+  ['glm-reader', 'glm', 'glm-reader'],
+  ['spider', 'spider', 'spider'],
+  ['supadata', 'supadata', 'supadata'],
+  ['zyte', 'zyte', 'zyte'],
+]
+
+const OCR_METHOD_SERVICES: Array<[method: string, service: string]> = [
+  ['mistral-ocr', 'mistral'],
+  ['glm-ocr', 'glm'],
+  ['kimi-ocr', 'kimi'],
+  ['openai-ocr', 'openai'],
+  ['anthropic-ocr', 'anthropic'],
+  ['gemini-ocr', 'gemini'],
+  ['deepinfra-ocr', 'deepinfra'],
+]
 
 const KNOWN_SERVICE_HINTS: Array<{ pattern: RegExp, service: string }> = [
   { pattern: /\bopenai\b/i, service: 'openai' },
@@ -229,13 +129,17 @@ export const isE2ETestFile = (file: string): boolean => file.startsWith('test/te
 export const isControlE2ETest = (name: string): boolean => {
   return /^rejects\b/i.test(name)
     || /^requires\b/i.test(name)
-    || /^all output files\b/i.test(name)
-    || /^selects exactly one model\b/i.test(name)
+}
+
+// Only resolves kinds the CLI actually names. `resume` is deliberately absent, so provider
+// pairs harvested from a `resume` invocation stay unlabelled instead of being called `write`.
+const resolveExplicitCommandKind = (metric: ParsedCommandMetric): string | null => {
+  return metric.args.find(arg => COMMAND_KIND_NAMES.has(arg)) ?? null
 }
 
 const parseMetricCommandKind = (metric: ParsedCommandMetric): string | null => {
-  const subcommand = metric.args.find(arg => COMMAND_KIND_NAMES.has(arg))
-  if (subcommand && COMMAND_KIND_NAMES.has(subcommand)) {
+  const subcommand = resolveExplicitCommandKind(metric)
+  if (subcommand) {
     return subcommand
   }
 
@@ -282,120 +186,124 @@ const inferExtractRouteKind = (metric: ParsedCommandMetric): 'transcribe' | 'ext
   return null
 }
 
-const resolveExtractPublicServiceFlag = (
-  arg: string,
-  metric: ParsedCommandMetric
-): ReportArgServiceFlag | null => {
-  const routeKind = inferExtractRouteKind(metric)
-  if (routeKind === 'transcribe') {
-    return EXTRACT_PUBLIC_STT_SERVICE_FLAGS[arg] ?? null
-  }
-  if (routeKind === 'extract') {
-    return EXTRACT_PUBLIC_OCR_SERVICE_FLAGS[arg] ?? null
-  }
-
-  return EXTRACT_PUBLIC_STT_SERVICE_FLAGS[arg] ?? EXTRACT_PUBLIC_OCR_SERVICE_FLAGS[arg] ?? null
+const splitProviderSpec = (spec: string): { service: string, model: string | null } => {
+  const separator = spec.indexOf('=')
+  if (separator < 0) return { service: spec, model: null }
+  return { service: spec.slice(0, separator), model: spec.slice(separator + 1) || null }
 }
 
-const resolveArgServiceFlag = (
-  arg: string,
-  commandKind: string | null,
-  metric: ParsedCommandMetric
-): ReportArgServiceFlag | null => {
-  if (commandKind === 'extract') {
-    const extractFlag = resolveExtractPublicServiceFlag(arg, metric)
-    if (extractFlag) return extractFlag
+const resolveUrlBackendPair = (backend: string): { service: string, model: string } => {
+  for (const [name, service, model] of URL_BACKEND_PAIRS) {
+    if (name === backend) return { service, model }
   }
-
-  const commandFlag = commandKind ? COMMAND_PUBLIC_SERVICE_FLAGS[commandKind]?.[arg] : null
-  return commandFlag ?? ARG_SERVICE_FLAGS[arg] ?? null
+  return { service: backend, model: backend }
 }
 
 const buildPairsFromMetricArgs = (metric: ParsedCommandMetric): ServiceModelPair[] => {
   const pairs: ServiceModelPair[] = []
-  const commandKind = parseMetricCommandKind(metric)
+  const commandKind = resolveExplicitCommandKind(metric)
 
   for (let index = 0; index < metric.args.length; index++) {
     const arg = metric.args[index]
     if (!arg) continue
 
-    if (arg === '--url-backend') {
-      const next = metric.args[index + 1]
-      if (next === 'firecrawl') {
-        pushPair(pairs, 'extract', 'firecrawl', 'firecrawl')
-      } else if (next === 'glm-reader') {
-        pushPair(pairs, 'extract', 'glm', 'glm-reader')
-      } else if (next === 'spider') {
-        pushPair(pairs, 'extract', 'spider', 'spider')
-      } else if (next === 'zyte') {
-        pushPair(pairs, 'extract', 'zyte', 'zyte')
-      }
+    const next = metric.args[index + 1]
+    if (!next || next.startsWith('--')) continue
+
+    if (arg === '--url-provider') {
+      const { service, model } = resolveUrlBackendPair(splitProviderSpec(next).service)
+      pushPair(pairs, 'extract', service, model)
+      index++
       continue
     }
 
-    const flag = resolveArgServiceFlag(arg, commandKind, metric)
-    if (!flag) continue
+    const stepKind = STEP_SELECTOR_KINDS[arg]
+    if (stepKind !== undefined) {
+      const { service, model } = splitProviderSpec(next)
+      pushPair(pairs, stepKind, service, model)
+      index++
+      continue
+    }
 
-    const next = metric.args[index + 1]
-    const model = next && !next.startsWith('--') ? next : null
-    pushPair(pairs, flag.kind, flag.service, model)
+    if (arg === '--provider') {
+      const { service, model } = splitProviderSpec(next)
+      if (commandKind === 'extract') {
+        const routeKind = inferExtractRouteKind(metric)
+        if (routeKind) {
+          pushPair(pairs, routeKind, service, model)
+        } else {
+          pushPair(pairs, 'transcribe', service, model)
+          pushPair(pairs, 'extract', service, model)
+        }
+      } else {
+        pushPair(pairs, commandKind, service, model)
+      }
+      index++
+    }
   }
 
   return dedupePairs(pairs)
 }
 
+const resolveStep2ExtractPair = (step2: Record<string, unknown>): { service: string | null, model: string | null } => {
+  const extractionMethod = typeof step2['extractionMethod'] === 'string' ? step2['extractionMethod'] : null
+  const ocrService = typeof step2['ocrService'] === 'string' ? step2['ocrService'] : null
+  const ocrModel = typeof step2['ocrModel'] === 'string' ? step2['ocrModel'] : null
+
+  if (extractionMethod) {
+    for (const [backend, service, model] of URL_BACKEND_PAIRS) {
+      if (extractionMethod.includes(`html+${backend}`)) {
+        return { service, model }
+      }
+    }
+  }
+
+  if (ocrService) {
+    return { service: ocrService, model: ocrModel }
+  }
+
+  if (extractionMethod) {
+    for (const [method, service] of OCR_METHOD_SERVICES) {
+      if (extractionMethod.includes(method)) {
+        return { service, model: ocrModel }
+      }
+    }
+  }
+
+  return { service: null, model: null }
+}
+
 const extractPairsFromMetadata = (metadata: Record<string, unknown>): ServiceModelPair[] => {
   const pairs: ServiceModelPair[] = []
 
-  const step2 = typeof metadata['step2'] === 'object' && metadata['step2'] !== null
-    ? metadata['step2'] as Record<string, unknown>
-    : null
+  const step2Entries = toRecordArray(metadata['step2'])
   const step3Entries = toRecordArray(metadata['step3'])
   const step4Entries = toRecordArray(metadata['step4'])
-  const musicEntries = toRecordArray(metadata['music'])
+  const musicEntries = [
+    ...toRecordArray(metadata['step7']),
+    ...toRecordArray(metadata['music'])
+  ]
   const ttsEntries = toRecordArray(metadata['tts'])
   const imageEntries = [
     ...toRecordArray(metadata['step5']),
     ...toRecordArray(metadata['image'])
   ]
-  const videoEntries = toRecordArray(metadata['video'])
+  const videoEntries = [
+    ...toRecordArray(metadata['step6']),
+    ...toRecordArray(metadata['video'])
+  ]
 
-  pushPair(
-    pairs,
-    'transcribe',
-    typeof step2?.['transcriptionService'] === 'string' ? step2['transcriptionService'] : null,
-    typeof step2?.['transcriptionModel'] === 'string' ? step2['transcriptionModel'] : null
-  )
-  pushPair(
-    pairs,
-    'extract',
-    typeof step2?.['ocrService'] === 'string'
-      ? step2['ocrService']
-      : typeof step2?.['extractionMethod'] === 'string' && step2['extractionMethod'].includes('mistral-ocr')
-        ? 'mistral'
-        : typeof step2?.['extractionMethod'] === 'string' && step2['extractionMethod'].includes('glm-ocr')
-          ? 'glm'
-          : typeof step2?.['extractionMethod'] === 'string' && step2['extractionMethod'].includes('kimi-ocr')
-            ? 'kimi'
-            : typeof step2?.['extractionMethod'] === 'string' && step2['extractionMethod'].includes('openai-ocr')
-              ? 'openai'
-              : typeof step2?.['extractionMethod'] === 'string' && step2['extractionMethod'].includes('anthropic-ocr')
-                ? 'anthropic'
-                : typeof step2?.['extractionMethod'] === 'string' && step2['extractionMethod'].includes('gemini-ocr')
-                  ? 'gemini'
-                  : typeof step2?.['extractionMethod'] === 'string' && step2['extractionMethod'].includes('glm-reader')
-                    ? 'glm'
-                    : typeof step2?.['extractionMethod'] === 'string' && step2['extractionMethod'].includes('firecrawl')
-                      ? 'firecrawl'
-                      : null,
-    typeof step2?.['ocrModel'] === 'string'
-      ? step2['ocrModel']
-      : typeof step2?.['extractionMethod'] === 'string' && step2['extractionMethod'].includes('glm-reader')
-        ? 'glm-reader'
-        : typeof step2?.['extractionMethod'] === 'string' && step2['extractionMethod'].includes('firecrawl')
-          ? 'firecrawl'
-          : null
-  )
+  for (const step2 of step2Entries) {
+    pushPair(
+      pairs,
+      'transcribe',
+      typeof step2['transcriptionService'] === 'string' ? step2['transcriptionService'] : null,
+      typeof step2['transcriptionModel'] === 'string' ? step2['transcriptionModel'] : null
+    )
+
+    const extractPair = resolveStep2ExtractPair(step2)
+    pushPair(pairs, 'extract', extractPair.service, extractPair.model)
+  }
 
   for (const step3 of step3Entries) {
     pushPair(
@@ -446,12 +354,51 @@ const extractPairsFromMetadata = (metadata: Record<string, unknown>): ServiceMod
     pushPair(
       pairs,
       'video',
-      typeof video['videoService'] === 'string' ? video['videoService'] : null,
-      typeof video['videoModel'] === 'string' ? video['videoModel'] : null
+      typeof video['videoGenService'] === 'string'
+        ? video['videoGenService']
+        : typeof video['videoService'] === 'string' ? video['videoService'] : null,
+      typeof video['videoGenModel'] === 'string'
+        ? video['videoGenModel']
+        : typeof video['videoModel'] === 'string' ? video['videoModel'] : null
     )
   }
 
   return dedupePairs(pairs)
+}
+
+// Matches sanitizeOutputRootSegment in test/test-utils/test-helpers.ts, which names the
+// run.json copies under `<runDir>/run/`.
+const sanitizeArtifactSegment = (value: string): string =>
+  value.replace(/[^a-zA-Z0-9_-]+/g, '-').replace(/^-+|-+$/g, '') || 'run'
+
+// Mirrors unwrapRunMetadataValue in test/test-utils/manifest-helpers.ts.
+const unwrapRunMetadata = (value: Record<string, unknown>): Record<string, unknown> => {
+  if (value['schemaVersion'] === 2 && typeof value['kind'] === 'string' && isRecord(value['metadata'])) {
+    return value['metadata']
+  }
+
+  return value
+}
+
+const buildMetricMetadataPaths = (metric: ParsedCommandMetric, artifacts: TestRunArtifacts): string[] => {
+  if (!metric.outputDir) return []
+
+  const absoluteOutputDir = isAbsolute(metric.outputDir)
+    ? metric.outputDir
+    : resolve(process.cwd(), metric.outputDir)
+  const paths = [resolve(absoluteOutputDir, 'run.json')]
+
+  const outputRoot = metric.outputRoot
+  if (outputRoot) {
+    const absoluteOutputRoot = isAbsolute(outputRoot) ? outputRoot : resolve(process.cwd(), outputRoot)
+    const copyName = [
+      sanitizeArtifactSegment(basename(absoluteOutputRoot)),
+      sanitizeArtifactSegment(basename(absoluteOutputDir)),
+    ].join('-')
+    paths.push(resolve(artifacts.runDir, 'run', `${copyName}.json`))
+  }
+
+  return paths
 }
 
 const getMetricMetadata = async (
@@ -461,21 +408,23 @@ const getMetricMetadata = async (
 ): Promise<Record<string, unknown> | null> => {
   if (!metric.outputDir) return null
 
-  const key = basename(metric.outputDir)
+  // Keyed on the fully-qualified output dir: basenames such as `downloaded_audio` and
+  // `1-document` repeat across parallel workers and would cross-attribute metadata.
+  const key = `${metric.outputRoot ?? ''}::${metric.outputDir}`
   if (cache.has(key)) {
     return cache.get(key) ?? null
   }
 
-  const metadataPath = resolve(artifacts.metadataDirPath, `${key}.json`)
-
-  try {
-    const parsed = JSON.parse(await readFile(metadataPath, 'utf8')) as unknown
-    if (typeof parsed === 'object' && parsed !== null) {
-      const record = parsed as Record<string, unknown>
-      cache.set(key, record)
-      return record
+  for (const metadataPath of buildMetricMetadataPaths(metric, artifacts)) {
+    try {
+      const parsed = JSON.parse(await readFile(metadataPath, 'utf8')) as unknown
+      if (isRecord(parsed)) {
+        const record = unwrapRunMetadata(parsed)
+        cache.set(key, record)
+        return record
+      }
+    } catch {
     }
-  } catch {
   }
 
   cache.set(key, null)
@@ -515,7 +464,6 @@ export const inferTestKind = (testCase: ParsedJunitCase): string | null => {
   if (/\bimage\b/i.test(testCase.name) || /generated-image/i.test(testCase.name)) return 'image'
   if (/\bvideo\b/i.test(testCase.name) || /\bveo\b/i.test(testCase.name)) return 'video'
   if (/\bmusic\b/i.test(testCase.name) || /generated music/i.test(testCase.name)) return 'music'
-  if (/uses cheapest model/i.test(testCase.name)) return 'write'
   return null
 }
 
@@ -543,14 +491,7 @@ const inferModelHints = (testCase: ParsedJunitCase): Set<string> => {
   const models = new Set<string>()
   const name = testCase.name
 
-  addModelHint(models, name.match(/uses cheapest model (.+?)(?: at minimal cost settings)?$/i)?.[1])
-  addModelHint(models, name.match(/with --mistral-ocr ([A-Za-z0-9./_-]+)/i)?.[1])
-  addModelHint(models, name.match(/with --glm-ocr ([A-Za-z0-9./_-]+)/i)?.[1])
-  addModelHint(models, name.match(/with --kimi-ocr ([A-Za-z0-9./_-]+)/i)?.[1])
-  addModelHint(models, name.match(/with --openai-ocr ([A-Za-z0-9./_-]+)/i)?.[1])
-  addModelHint(models, name.match(/with --anthropic-ocr ([A-Za-z0-9./_-]+)/i)?.[1])
-  addModelHint(models, name.match(/with --gemini-ocr ([A-Za-z0-9./_-]+)/i)?.[1])
-  addModelHint(models, name.match(/^([A-Za-z0-9./_-]+) (?:model generates|generates|runs in parallel|uses cheapest model)/i)?.[1])
+  addModelHint(models, name.match(/^([A-Za-z0-9./_-]+) (?:model generates|generates|runs in parallel)/i)?.[1])
 
   for (const match of name.matchAll(/--[a-z-]+\s+([A-Za-z0-9./_-]+)/gi)) {
     addModelHint(models, match[1])

@@ -65,10 +65,6 @@ const REMOVED_PROVIDER_NAMED_FLAGS = [
   'speechify-tts-voice-locale',
   'speechify-tts-voice-gender',
   'hume-tts-voice-provider',
-  'gemini-speaker-1-name',
-  'gemini-speaker-1-voice',
-  'gemini-speaker-2-name',
-  'gemini-speaker-2-voice',
   'elevenlabs-tts-clone-remove-background-noise',
   'elevenlabs-tts-stability',
   'elevenlabs-tts-similarity-boost',
@@ -86,15 +82,10 @@ const REMOVED_PROVIDER_NAMED_FLAGS = [
   'replicate-video-prompt-expansion',
   'grok-video-storage-filename',
   'grok-video-storage-expires-after',
-  'gemini-search-grounding',
   'stt-reverb-verbatimicity',
   'stt-happyscribe-organization-id',
   'stt-supadata-lang',
   'stt-scrapecreators-lang',
-  'reverb-verbatimicity',
-  'happyscribe-organization-id',
-  'supadata-lang',
-  'scrapecreators-lang'
 ] as const
 
 const target = (
@@ -419,28 +410,6 @@ describe('resume target-aware provider selectors', () => {
     )).toThrow('Unknown provider "openai" for --provider')
   })
 
-  test('rejects legacy resume selector aliases', () => {
-    expect(() => normalizeResumeSelectorFlagsForTarget(
-      target('tts'),
-      { 'all-image': true },
-      new Set(['all-image']),
-      ['resume', 'out', '--all-image']
-    )).toThrow('--all-image is no longer supported for resume')
-
-    expect(() => normalizeResumeSelectorFlagsForTarget(
-      target('image'),
-      { 'gemini-image': 'gemini-3.1-flash-lite-image' },
-      new Set(['gemini-image']),
-      ['resume', 'out', '--gemini-image', 'gemini-3.1-flash-lite-image']
-    )).toThrow('--gemini-image is no longer supported for resume')
-
-    expect(() => normalizeResumeSelectorFlagsForTarget(
-      target('extract', '/tmp/autoshow-resume-document', 'document'),
-      { openai: 'gpt-5.4-mini' },
-      new Set(['openai']),
-      ['resume', 'out', '--openai', 'gpt-5.4-mini']
-    )).toThrow('--openai is no longer supported for resume')
-  })
 })
 
 describe('resume all-shortcut additive selection', () => {

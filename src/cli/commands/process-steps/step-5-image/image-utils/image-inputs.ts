@@ -191,20 +191,6 @@ export const imageReferenceToDataUrl = async (value: string): Promise<string> =>
 export const imageReferenceToUrlOrDataUrl = async (value: string): Promise<string> =>
   isHttpUrl(value) ? value : await imageReferenceToDataUrl(value)
 
-export const imageReferenceToBase64 = async (value: string): Promise<string> => {
-  if (isDataImageUrl(value)) {
-    return value.slice(value.indexOf(',') + 1)
-  }
-
-  if (isHttpUrl(value)) {
-    const { bytes } = await fetchImageBytes(value)
-    return Buffer.from(bytes).toString('base64')
-  }
-
-  const bytes = await Bun.file(value).arrayBuffer()
-  return Buffer.from(bytes).toString('base64')
-}
-
 export const imageReferenceToInlineDataPart = async (value: string): Promise<GeminiPart> => {
   if (isDataImageUrl(value)) {
     const { bytes, mimeType } = dataUrlToBytes(value)

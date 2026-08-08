@@ -13,11 +13,8 @@ const PRICING_PROVENANCE_FIELDS = [
 const PRICE_FIELD_NAMES = [
   'costPerHourUSD',
   'costPerHourCents',
-  'costPerThreeHours',
   'costPer1kPagesUSD',
   'costPer1kPagesCents',
-  'costPer1kOutputCharsUSD',
-  'costPer1kOutputCharsCents',
   'costPerMInputTokensUSD',
   'costPerMInputTokensCents',
   'costPerMCachedInputTokensUSD',
@@ -32,15 +29,12 @@ const PRICE_FIELD_NAMES = [
   'outputCostPer1MCents',
   'costPer1kCharsUSD',
   'costPer1kCharsCents',
-  'characterBillingBlockCostCents',
   'inputCostPer1MCharsUSD',
   'inputCostPer1MCharsCents',
   'outputCostPer1MCharsUSD',
   'outputCostPer1MCharsCents',
   'costPerImageUSD',
   'costPerImageCents',
-  'costPerImage720pCents',
-  'costPerImage1080pCents',
   'costPerTrackUSD',
   'costPerTrackCents',
   'costPerMinuteUSD',
@@ -64,7 +58,6 @@ const PRICE_FIELD_NAMES = [
 const USD_CENTS_FIELD_PAIRS = [
   ['costPerHourUSD', 'costPerHourCents'],
   ['costPer1kPagesUSD', 'costPer1kPagesCents'],
-  ['costPer1kOutputCharsUSD', 'costPer1kOutputCharsCents'],
   ['costPerMInputTokensUSD', 'costPerMInputTokensCents'],
   ['costPerMCachedInputTokensUSD', 'costPerMCachedInputTokensCents'],
   ['costPerMOutputTokensUSD', 'costPerMOutputTokensCents'],
@@ -140,7 +133,6 @@ const isPaidApiRegistryModel = (record: RegistryModelRecord): boolean =>
     hasPositivePricingField(record.entry)
     || hasPositiveTokenPricingBand(record.entry)
     || hasPositiveFixedCostMatrix(record.entry)
-    || record.entry['providerPricing'] === 'quote'
     || CREDIT_PRICED_MODEL_KEYS.has(`${record.step}/${record.provider}/${record.model}`)
   )
 

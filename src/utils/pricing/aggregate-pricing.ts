@@ -1,6 +1,6 @@
 import type { AggregateExplicitEstimateOptions, AggregatedPriceEstimate, ProcessCommand, RuntimeOptions, StepEstimate } from '~/types'
 import { isExtractCommand } from '~/cli/commands/process-steps/process-command-kinds'
-import { resolveInputRoutingForCommand } from '~/cli/commands/process-steps/step-0-metadata/metadata-targets/metadata-target-utils'
+import { resolveInputRoutingForCommand } from '~/cli/commands/process-steps/step-0-metadata/metadata-targets/metadata-input-routing'
 import { ACSM_PRICE_NOTE } from '~/cli/commands/process-steps/step-1-download/document/acsm-fulfillment'
 import { collectTtsTargets } from '~/cli/commands/process-steps/step-4-tts/tts-targets'
 import { SUPADATA_STT_AGGREGATE_NOTE } from '~/utils/pricing/supadata-pricing'

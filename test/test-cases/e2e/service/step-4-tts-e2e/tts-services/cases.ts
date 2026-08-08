@@ -61,7 +61,7 @@ export const groqTts = {
   ttsService: 'groq',
   envVarKey: 'GROQ_API_KEY',
   envVarDescription: 'Groq TTS',
-  extraArgs: ['--groq-voice', 'troy'],
+  extraArgs: ['--tts-voice', 'groq=troy'],
   resolveExpectedSpeaker: async () => 'troy',
 } as const
 

@@ -66,6 +66,8 @@ Phase 1 removes the four retired TTS selectors from active selection and adds ni
 
 Phase 2 adds ElevenLabs `music_v2`, replaces MiniMax `music-2.6` with `music-3.0`, and retains both Gemini Lyria 3 preview selectors, moving the total music surface from four to five active selectors. The adapters, model-specific ElevenLabs output metadata, current pricing, active and historical identity handling, defaults and expansion, help, docs, price registry, resume selection, and local contracts are updated.
 
+> Follow-up (2026-08-07): phase 2's "preserve `music-2.6` only in historical benchmark and result readers" clause was not actually implemented — the model was dropped from the active registry with no historical reader behind it, so `getMusicModelMeta('minimax', 'music-2.6')` returned `undefined` and all four committed `docs/benchmarks/music/2026-05-21_*` runs repriced to $0 rather than failing. Closed by adding `RETIRED_MUSIC_MODEL_RATES` in `src/utils/pricing/compute-actual-costs.ts`, carrying the registry values the model held at retirement (15¢ per track, +1¢ when lyrics were generated), pinned by `image-video-music-pricing.test.ts`. A recorded `providerCostCents` still takes precedence. This is the same shape [ADR-019](ADR-019-refresh-current-hosted-image-and-video-models.md) used for Replicate `alibaba/happyhorse-1.0`; retiring a priced model now means moving its rate to a historical table, not deleting it.
+
 The approved first benchmark pass exposed an additive-resume artifact collision after all eight provider calls reported success: a single resumed music target used `generated-music.mp3`, so the later MiniMax pass overwrote the four ElevenLabs Music v2 files and left both new manifest entries pointing to the same artifact. Music resume now always promotes additive outputs to provider-and-model-specific filenames before merging metadata, with a local regression contract. The four MiniMax Music 3.0 artifacts and manifest entries were repaired and validated with ffprobe. After separate approval, all four duration-matched ElevenLabs Music v2 reruns completed successfully and were preserved under provider-and-model-specific filenames alongside the MiniMax artifacts. Their manifests record the expected 48 kHz, 192 kbps `mp3_48000_192` output format, exact requested durations of 30, 60, 120, and 180 seconds, and matching file sizes; ffprobe reported playable durations of 30.024, 60.024, 120.024, and 180.024 seconds.
 
 ## API / Type Impact
@@ -133,13 +135,14 @@ Phase 2 local verification passed on 2026-08-06: `bun run check`; 6 mocked music
 
 Also run the smallest relevant pricing, provenance, selector-ordering, routing, request-builder, response-parser, resume, and historical-normalization contracts for the providers changed in that phase. Tests must prove active-selector acceptance, removed-selector rejection, canonical defaults, exact all-provider expansion, complete pricing metadata, and local rejection of unsupported model/control combinations.
 
-Do not run `bun run t`, `AGENT=1 bun test/test-runner.ts`, hosted synthesis or generation commands, provider smoke tests, or e2e tests as implementation verification. Any live provider validation or calibration is paid or quota-limited and requires immediate explicit approval naming the exact command and expected cost or quota risk.
+Do not run `bun run t`, `bun test/test-runner.ts`, hosted synthesis or generation commands, provider smoke tests, or e2e tests as implementation verification. Any live provider validation or calibration is paid or quota-limited and requires immediate explicit approval naming the exact command and expected cost or quota risk.
 
 ## Follow-up Actions
 
 | Action | Owner | Current State |
 |---|---|---|
 | Revisit realtime music, music-cover, and reference-audio capabilities only through a separate decision that defines their distinct input, control, pricing, and output contracts | Music maintainers | Deliberately deferred |
+| Verify whether OpenAI has retired `tts-1` and `tts-1-hd`, and remove or retain both together based on that evidence | TTS maintainers | Open — phase 1 retained both as previous-generation selectors without checking retirement status; the same open question is recorded in each row's `pricingNotes` in `tts-config/tts-openai.json`, and it must be answered from OpenAI's published model documentation rather than by calling the API |
 
 ## References
 

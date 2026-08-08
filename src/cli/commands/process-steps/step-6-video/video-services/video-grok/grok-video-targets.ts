@@ -7,7 +7,7 @@ import { normalizeGrokVideoResolution } from '../../video-utils/video-normalizat
 import { validateVideoMediaReferences } from '../../video-utils/video-media-inputs'
 
 export const collectGrokVideoTargets = (options: VideoGenOptions, mode: VideoMode): VideoTarget[] => {
-  const models = options.grokVideoModels ?? (options.grokVideoModel ? [options.grokVideoModel] : [])
+  const models = options.grokVideoModels ?? []
   const hasGrokStorageControls = options.grokVideoStorageFilename || options.grokVideoStorageExpiresAfter !== undefined
   if (hasGrokStorageControls && models.length === 0) {
     throw CLIUsageError('Grok video storage flags require a Grok video provider target.')

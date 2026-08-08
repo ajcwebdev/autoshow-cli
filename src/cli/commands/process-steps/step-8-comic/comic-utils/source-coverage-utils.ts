@@ -65,14 +65,12 @@ export const validateSceneSourceSegmentCoverage = (
       const segment = sourceSegments.find(item => item.id === sourceSegmentId)
       if (segment) panelSegments.push(segment)
     }
-    if (sceneData.schemaVersion === 4) {
-      const locationKeys = Array.from(new Set(panelSegments.map(segment => segment.location?.key).filter((key): key is string => Boolean(key))))
-      if (locationKeys.length > 1) {
-        throw ValidationError(`Panel ${panel.number} spans multiple locations (${locationKeys.join(', ')}). Split it at the location transition.`, { stage: 'comic:source-coverage' })
-      }
-      if (locationKeys.length !== 1 || panel.locationKey !== locationKeys[0]) {
-        throw ValidationError(`Panel ${panel.number} locationKey "${panel.locationKey ?? ''}" does not match its source segment location "${locationKeys[0] ?? 'missing'}".`, { stage: 'comic:source-coverage' })
-      }
+    const locationKeys = Array.from(new Set(panelSegments.map(segment => segment.location?.key).filter((key): key is string => Boolean(key))))
+    if (locationKeys.length > 1) {
+      throw ValidationError(`Panel ${panel.number} spans multiple locations (${locationKeys.join(', ')}). Split it at the location transition.`, { stage: 'comic:source-coverage' })
+    }
+    if (locationKeys.length !== 1 || panel.locationKey !== locationKeys[0]) {
+      throw ValidationError(`Panel ${panel.number} locationKey "${panel.locationKey}" does not match its source segment location "${locationKeys[0] ?? 'missing'}".`, { stage: 'comic:source-coverage' })
     }
   }
 

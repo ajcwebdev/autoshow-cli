@@ -1,21 +1,10 @@
 import * as l from '~/utils/app-logger/app-logger'
 import { readEnv } from '~/utils/validate/env-utils'
-import type { UrlArticleProviderAdapter, UrlArticleRunOptions, UrlArticleRunResult, WebArticleMetadata } from '~/types'
+import type { UrlArticleProviderAdapter, UrlArticleRunResult, UrlRequestOptions, WebArticleMetadata } from '~/types'
 import { byteLength, cleanString, countWords, createUrlProviderHttpError, ensureMeaningfulMarkdown, fallbackTitleFromSource, getUrlRequestTimeoutMs, isRecord, normalizeMarkdown, tryFetchRemoteHtml, withUrlProviderTimeout } from '../../url-utils'
-import { assertUrlArticleOptionsSupported } from '../../url-provider-adapter'
 import { InternalError, ValidationError, hintsForMissingEnv } from '~/utils/error-handler'
 
 const SPIDER_DEFAULT_API_URL = 'https://api.spider.cloud'
-const SPIDER_CAPABILITIES = [
-  'remote-html',
-  'main-content',
-  'full-content',
-  'selectors',
-  'wait',
-  'timeout',
-  'geo',
-  'locale'
-] as const
 
 const getSpiderValue = (
   data: Record<string, unknown>,
@@ -36,41 +25,19 @@ const getSpiderValue = (
   return undefined
 }
 
-const durationFromMs = (milliseconds: number): { secs: number, nanos: number } => ({
-  secs: Math.floor(milliseconds / 1000),
-  nanos: (milliseconds % 1000) * 1_000_000
-})
-
 const buildSpiderScrapeRequest = (
   source: string,
-  options: UrlArticleRunOptions | undefined
+  options: UrlRequestOptions | undefined
 ): Record<string, unknown> => {
   const body: Record<string, unknown> = {
     url: source,
     return_format: 'markdown',
     metadata: true,
-    filter_output_main_only: options?.contentScope === 'full' ? false : true
+    filter_output_main_only: true
   }
 
-  if (options?.includeSelectors && options.includeSelectors.length > 0) {
-    body['root_selector'] = options.includeSelectors.join(', ')
-  }
-  if (options?.excludeSelectors && options.excludeSelectors.length > 0) {
-    body['exclude_selector'] = options.excludeSelectors.join(', ')
-  }
-  if (typeof options?.waitMs === 'number') {
-    body['wait_for'] = { delay: durationFromMs(options.waitMs) }
-  }
   if (typeof options?.timeoutMs === 'number') {
     body['request_timeout'] = Math.ceil(options.timeoutMs / 1000)
-  }
-  if (options?.geo?.country) {
-    body['country_code'] = options.geo.country
-  }
-  if (options?.geo?.locale) {
-    body['locale'] = options.geo.locale
-  } else if (options?.geo?.languages?.[0]) {
-    body['locale'] = options.geo.languages[0]
   }
 
   return body
@@ -128,14 +95,9 @@ const parseSpiderResponse = (payload: unknown): { markdown: string, web: WebArti
 
 const runSpiderScrape = async (
   source: string,
-  options?: UrlArticleRunOptions,
+  options?: UrlRequestOptions,
   baseUrl: string = SPIDER_DEFAULT_API_URL
 ): Promise<{ markdown: string, web: WebArticleMetadata }> => {
-  assertUrlArticleOptionsSupported({
-    displayName: 'Spider',
-    capabilities: SPIDER_CAPABILITIES
-  }, options)
-
   const apiKey = readEnv('SPIDER_API_KEY')
   const usingHostedApi = baseUrl === SPIDER_DEFAULT_API_URL
 
@@ -183,7 +145,7 @@ const runSpiderScrape = async (
 export const runSpiderUrl = async (
   source: string,
   sourceUrl: string | undefined,
-  options?: UrlArticleRunOptions,
+  options?: UrlRequestOptions,
   baseUrl: string = SPIDER_DEFAULT_API_URL
 ): Promise<UrlArticleRunResult> => {
   l.write('info', 'Using Spider backend for article extraction')
@@ -207,6 +169,5 @@ export const runSpiderUrl = async (
 export const spiderArticleAdapter: UrlArticleProviderAdapter = {
   id: 'spider',
   displayName: 'Spider',
-  capabilities: SPIDER_CAPABILITIES,
   run: runSpiderUrl
 }

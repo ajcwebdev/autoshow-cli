@@ -1,4 +1,4 @@
-import type { CostEstimateBase, GenerationResourceGate, ProcessingOptions, ProviderTargetBase, Step6VideoMetadata, VideoProvider } from '~/types'
+import type { CostEstimateBase, ProcessingOptions, ProviderTargetBase, ResourceGate, Step6VideoMetadata, VideoProvider } from '~/types'
 export type VideoGenOptions = Pick<
   ProcessingOptions,
   | 'geminiVideoModels' | 'geminiVideoModel'
@@ -21,7 +21,7 @@ export type VideoGenOptions = Pick<
   | 'grokVideoStorageFilename' | 'grokVideoStorageExpiresAfter'
   | 'videoProviderConcurrency' | 'videoLocalConcurrency'
 > & {
-  generationResourceGate?: GenerationResourceGate | undefined
+  generationResourceGate?: ResourceGate | undefined
 }
 
 export const VIDEO_MODES = ['text', 'image-to-video', 'reference-to-video', 'interpolate', 'extend', 'edit'] as const

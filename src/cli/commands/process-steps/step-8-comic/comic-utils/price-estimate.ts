@@ -6,7 +6,7 @@ import * as v from 'valibot'
 import type { CharacterSketchCommandOptions, ComicPriceModelRow, DraftScenesCommandOptions, GenerateImagesCommandOptions, GenerateSketchesCommandOptions, ImageGenerationModel, ImageGenerationQuality, ImageGenerationSize, ImagePromptVariation, ScenePanelCount, SceneSketchCount, StructureScriptsCommandOptions } from '~/types'
 import {
 COMIC_GRID_PANEL_SIZE,
-DEFAULT_PANELS_PER_IMAGE,
+DEFAULT_SKETCH_PANELS_PER_IMAGE,
 DEFAULT_FINAL_PANELS_PER_IMAGE,
 chunkComicGridPanels,
 chunkComicPagePanels,
@@ -15,6 +15,7 @@ panelSelectionToSketchRange,
 selectComicPanels,
 validateComicGridOptions,
 } from '../comic-commands/generate-images/comic-page-utils'
+import { PAGE_QA_REPORT_SCHEMA_VERSION } from '../comic-commands/generate-images/comic-page-qa'
 import {
 getImagePromptVariationLabel,
 } from '../comic-commands/generate-images/prompt-variations'
@@ -27,9 +28,8 @@ requireCurrentCharacterSketch,
 } from '../comic-commands/process-scenes/character-utils'
 import { estimateImageOutputCost, formatCost } from '../comic-image-services/image-costs'
 import { estimateLlmCostFromRegistry } from './structured-script-utils/llm-cost'
-import { DEFAULT_PAGE_QA_MODEL } from '../comic-commands/generate-images/comic-page-qa'
 import { isGeminiImageModel } from './image-service'
-import { DEFAULT_LLM_MODEL } from './cli-args'
+import { DEFAULT_LLM_MODEL, DEFAULT_QA_MODEL } from './cli-args'
 import { CLIUsageError } from '~/utils/error-handler'
 import { DEFAULT_IMAGE_MODEL, validateImageSizeForModels } from './image-size'
 import { ScenePromptDataSchema } from '../schemas/schemas'
@@ -333,7 +333,7 @@ export const estimateCharacterSketchPrice = async (
 ): Promise<void> => {
   if (!options.character) throw CLIUsageError('--character is required')
   const models = options.imageModels ?? [DEFAULT_IMAGE_MODEL]
-  if (models.length !== 1) throw CLIUsageError('character-sketch accepts exactly one --image-model')
+  if (models.length !== 1) throw CLIUsageError('comic reference-sketch accepts exactly one --image-model')
   const size: ImageGenerationSize = options.size ?? '1024x1536'
   const quality: ImageGenerationQuality = options.quality ?? 'medium'
   const catalog = loadCharacterCatalog()
@@ -345,7 +345,7 @@ export const estimateCharacterSketchPrice = async (
     await requireCurrentCharacterSketch(key, character)
   }
 
-  l(`${bold('Comic')} - Price Estimate: character-sketch`)
+  l(`${bold('Comic')} - Price Estimate: reference-sketch --character`)
   l(`${cyan('='.repeat(50))}\n`)
   l(`  Character: ${key}`)
   l(`  Source:    ${character.sourcePath}`)
@@ -388,7 +388,7 @@ export const estimateLocationReferencePrice = async (
   l(`  Location-spec aggregation (${options.llmModel ?? DEFAULT_LLM_MODEL}): ${aggregationCalls} call${aggregationCalls === 1 ? '' : 's'}`)
   l('  Initial location-reference image calls: 1')
   printImageEstimateTable([model], quality, size, 1, 'initial location view')
-  l(`  Initial judge calls (${options.qaModel ?? DEFAULT_PAGE_QA_MODEL}): ${qaEnabled ? 1 : 0}`)
+  l(`  Initial judge calls (${options.qaModel ?? DEFAULT_QA_MODEL}): ${qaEnabled ? 1 : 0}`)
   l(`  Maximum additional image repairs or fresh camera retries: ${qaEnabled ? maxRepairs : 0}`)
   l(`  Maximum additional judge calls: ${qaEnabled ? maxRepairs : 0}`)
   if (qaEnabled && maxRepairs > 0) printImageEstimateTable([DEFAULT_IMAGE_MODEL], quality, size, maxRepairs, 'maximum location retry')
@@ -411,7 +411,7 @@ const validatePriceReferenceGroup = async (panelPromptsDir: string, panelNumbers
   const locationPlaceholders = locations.map((_, index) => `__location-${index + 1}__`)
   const designPlaceholders = designs.map((_, index) => `__design-${index + 1}__`)
   for (const model of models) {
-    applyReferenceImageLimits([...primary.primaryCharacterRefs, ...locationPlaceholders, ...designPlaceholders], [...primary.primaryCharacterRefs, ...locationPlaceholders, ...designPlaceholders], primary.sketchCharacterRefs, primary.canonicalCharacterRefs, [], [...locationPlaceholders, ...designPlaceholders], primary.missingPrimaryCharacterRefs, model)
+    applyReferenceImageLimits([...primary.primaryCharacterRefs, ...locationPlaceholders, ...designPlaceholders], [...primary.primaryCharacterRefs, ...locationPlaceholders, ...designPlaceholders], [], [...locationPlaceholders, ...designPlaceholders], primary.missingPrimaryCharacterRefs, model)
   }
   return primary.primaryCharacterRefs.length + locations.length + designs.length
 }
@@ -480,7 +480,7 @@ const estimateFinalPanelImagesPrice = async (options: GenerateImagesCommandOptio
     l('  Reference preflight: canonical character references followed by distinct immutable location references in first-panel order')
     for (const pageChunk of pageChunks) {
       const count = await validatePriceReferenceGroup(panelPromptsDir, pageChunk.panelNumbers, models)
-      if ((options.qa ?? options.pageQa ?? true) && (options.maxRepairs ?? 2) > 0) validateReferenceImageCount(DEFAULT_IMAGE_MODEL, count + 1, `QA edits for page ${pageChunk.pageNumber}`)
+      if ((options.qa ?? true) && (options.maxRepairs ?? 2) > 0) validateReferenceImageCount(DEFAULT_IMAGE_MODEL, count + 1, `QA edits for page ${pageChunk.pageNumber}`)
       l(`  Reference preflight page ${pageChunk.pageNumber}: ${count} required`)
     }
 
@@ -518,8 +518,8 @@ const estimateFinalPanelImagesPrice = async (options: GenerateImagesCommandOptio
 
     printImageEstimateTableByModel(models, quality, size, pageOutputsByModel, 'page')
     l.dim('  Grouped pages use canonical character references followed by each distinct immutable location reference.')
-    if (options.qa ?? options.pageQa ?? true) {
-      const judgeModel = options.qaModel ?? options.pageQaModel ?? DEFAULT_PAGE_QA_MODEL
+    if (options.qa ?? true) {
+      const judgeModel = options.qaModel ?? DEFAULT_QA_MODEL
       const maxRepairs = options.maxRepairs ?? 2
       let judgeCalls = 0
       let reusedReports = 0
@@ -534,7 +534,7 @@ const estimateFinalPanelImagesPrice = async (options: GenerateImagesCommandOptio
         if (!force && existsSync(reportPath)) {
           try {
             const report = JSON.parse(readFileSync(reportPath, 'utf8')) as { schemaVersion?: number; pages?: Array<{ outputFile?: string; judgeModel?: string }> }
-            reusable = report.schemaVersion === 1 && report.pages?.some(entry => entry.outputFile === basename(outputPath) && entry.judgeModel === judgeModel) === true
+            reusable = report.schemaVersion === PAGE_QA_REPORT_SCHEMA_VERSION && report.pages?.some(entry => entry.outputFile === basename(outputPath) && entry.judgeModel === judgeModel) === true
           } catch {}
         }
         if (reusable) reusedReports++
@@ -580,7 +580,7 @@ const estimateFinalPanelImagesPrice = async (options: GenerateImagesCommandOptio
 
   for (const panelNumber of selectedPanelNumbers) {
     const count = await validatePriceReferenceGroup(panelPromptsDir, [panelNumber], models)
-    if ((options.qa ?? options.pageQa ?? true) && (options.maxRepairs ?? 2) > 0) validateReferenceImageCount(DEFAULT_IMAGE_MODEL, count + 1, `QA edits for panel ${panelNumber}`)
+    if ((options.qa ?? true) && (options.maxRepairs ?? 2) > 0) validateReferenceImageCount(DEFAULT_IMAGE_MODEL, count + 1, `QA edits for panel ${panelNumber}`)
     l(`  Reference preflight panel ${panelNumber}: ${count} required`)
   }
 
@@ -630,9 +630,9 @@ const estimateFinalPanelImagesPrice = async (options: GenerateImagesCommandOptio
 
   printImageEstimateTable(models, quality, size, totalPanels, 'panel')
   l(`  Initial image calls: ${totalPanels}`)
-  if (options.qa ?? options.pageQa ?? true) {
+  if (options.qa ?? true) {
     const maxRepairs = options.maxRepairs ?? 2
-    const judgeModel = options.qaModel ?? options.pageQaModel ?? DEFAULT_PAGE_QA_MODEL
+    const judgeModel = options.qaModel ?? DEFAULT_QA_MODEL
     l(`  Initial judge calls (${judgeModel}): ${totalPanels}`)
     l(`  Maximum additional image edits: ${totalPanels * maxRepairs}`)
     l(`  Maximum additional judge calls: ${totalPanels * maxRepairs}`)
@@ -676,7 +676,7 @@ const estimateGenerateSketchesPrice = async (
   const size: ImageGenerationSize = options.size ?? '1536x1024'
   const quality: ImageGenerationQuality = options.quality ?? 'high'
   const force = options.force ?? false
-  const panelsPerImage = options.panelsPerImage ?? DEFAULT_PANELS_PER_IMAGE
+  const panelsPerImage = options.panelsPerImage ?? DEFAULT_SKETCH_PANELS_PER_IMAGE
   const useModelSpecificFilenames = models.length > 1
   validateImageSizeForModels(size, models)
 

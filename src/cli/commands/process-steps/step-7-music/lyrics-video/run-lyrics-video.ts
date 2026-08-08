@@ -9,7 +9,7 @@ import { ensureDirectory, fileExists } from '~/utils/cli-utils'
 import { CLIUsageError, InfraError, ValidationError } from '~/utils/error-handler'
 import * as l from '~/utils/app-logger/app-logger'
 import { createHumanTable, logLocationsTable } from '~/utils/app-logger/human-table/human-table'
-import { buildLyricsCues } from './cue-builder'
+import { LYRICS_CUE_LIMITS, buildTranscriptionCues } from './cue-builder'
 import { formatSrt, formatVtt, loadCaptionFile } from './captions'
 import { getOutputRoot, getOutputRootAbsolute } from '~/cli/commands/process-steps/output-root'
 import { resolveRunDirectory } from '~/cli/commands/process-steps/run-dir'
@@ -182,7 +182,7 @@ const processLyricsRun = async (options: {
       })
       transcriptionMs = Date.now() - transcriptionStartedAt
       transcriptionDescriptor = whisperRun.metadata.transcriptionModel
-      const builtCues = buildLyricsCues(whisperRun.result)
+      const builtCues = buildTranscriptionCues(whisperRun.result, LYRICS_CUE_LIMITS)
       cues = builtCues.cues
       cueSource = builtCues.source
       if (cues.length === 0) {

@@ -1,12 +1,12 @@
 import type * as v from 'valibot'
 import { MinimaxMusicResponseSchema } from '~/cli/commands/process-steps/step-7-music/music-services/music-minimax/run-minimax-music-gen'
-import type { GenerationResourceGate, MusicProvider, ProcessingOptions, ProviderModelBase, ProviderTargetBase, Step7MusicMetadata } from '~/types'
+import type { MusicProvider, ProcessingOptions, ProviderModelBase, ProviderTargetBase, ResourceGate, Step7MusicMetadata } from '~/types'
 
 export type MusicGenOptions = Pick<
   ProcessingOptions,
   'elevenlabsMusicModels' | 'elevenlabsMusicModel' | 'minimaxMusicModels' | 'minimaxMusicModel' | 'geminiMusicModels' | 'geminiMusicModel' | 'musicDuration' | 'musicLyricsFile' | 'musicInstrumental' | 'musicProviderConcurrency' | 'musicLocalConcurrency'
 > & {
-  generationResourceGate?: GenerationResourceGate | undefined
+  generationResourceGate?: ResourceGate | undefined
 }
 
 export type MusicTarget = ProviderTargetBase<MusicProvider> & {

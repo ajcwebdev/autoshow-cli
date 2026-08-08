@@ -6,7 +6,7 @@ import { FAL_IMAGE_COUNT_RANGE, normalizeFalImageAspectRatio, runFalImageGen } f
 import { CLIUsageError } from '~/utils/error-handler'
 
 export const collectFalImageTargets = (options: ImageGenOptions): ImageTarget[] => {
-  const models = options.falImageModels ?? (options.falImageModel ? [options.falImageModel] : [])
+  const models = options.falImageModels ?? []
   return models.map((rawModel) => {
     const model: FalImageModel = validateFalImageModel(rawModel)
     const unsupported: string[] = []
@@ -14,7 +14,7 @@ export const collectFalImageTargets = (options: ImageGenOptions): ImageTarget[] 
     if (options.imageBackground) unsupported.push('--image-background')
     if (options.imageMask) unsupported.push('--image-mask')
     if (options.imageResponseMode) unsupported.push('--image-response-mode')
-    if (options.geminiSearchGrounding) unsupported.push('--gemini-search-grounding')
+    if (options.geminiSearchGrounding) unsupported.push('--image-search-grounding')
     if (options.imageCompression !== undefined) unsupported.push('--image-compression')
     if (unsupported.length) throw unsupportedFlagError('fal.ai', model, unsupported, 'fal.ai image support varies by model: common controls are --image-format and --image-count; MAI and Reve use --image-aspect-ratio, while HiDream and Qwen use --image-size.')
     if (options.imageCount !== undefined && (!Number.isInteger(options.imageCount) || options.imageCount < FAL_IMAGE_COUNT_RANGE[0] || options.imageCount > FAL_IMAGE_COUNT_RANGE[1])) {

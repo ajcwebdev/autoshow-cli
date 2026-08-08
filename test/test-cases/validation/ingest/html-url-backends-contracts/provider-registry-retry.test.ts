@@ -1,29 +1,15 @@
 import { expect, test } from 'bun:test'
 import {
-  assertUrlArticleOptionsSupported,
   buildAbortError,
   buildMockArticle,
-  getUrlArticleProviderAdapter,
   runUrlArticleProviderWithStats,
   URL_ARTICLE_PROVIDER_ADAPTERS
 } from './shared'
-import type { UrlArticleRunOptions } from './shared'
-
-test('URL article provider adapters expose neutral capabilities and reject unsupported explicit options', () => {
-  expect(getUrlArticleProviderAdapter('firecrawl').capabilities).toContain('selectors')
-  expect(getUrlArticleProviderAdapter('spider').capabilities).toContain('selectors')
-  expect(getUrlArticleProviderAdapter('defuddle').capabilities).toContain('timeout')
-  expect(getUrlArticleProviderAdapter('zyte').capabilities).toContain('timeout')
-  expect(getUrlArticleProviderAdapter('zyte').capabilities).toContain('structured-extraction')
-  expect(() => assertUrlArticleOptionsSupported(
-    getUrlArticleProviderAdapter('zyte'),
-    { includeSelectors: ['article'] }
-  )).toThrow('Zyte does not support URL article option "selectors".')
-})
+import type { UrlRequestOptions } from './shared'
 
 test('URL article provider retry wrapper retries timeout failures and reports attempts', async () => {
   const originalSleep = Bun.sleep
-  const seenOptions: UrlArticleRunOptions[] = []
+  const seenOptions: UrlRequestOptions[] = []
   let calls = 0
 
   try {

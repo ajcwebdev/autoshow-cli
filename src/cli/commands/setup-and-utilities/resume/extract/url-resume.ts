@@ -46,13 +46,6 @@ export const getSelectedUrlTargets = (
   return targets.length > 0 ? targets : undefined
 }
 
-export const getSelectedUrlBackends = (
-  opts: RuntimeOptions
-): HtmlArticleBackend[] | undefined => {
-  const targets = getSelectedUrlTargets(opts)
-  return targets ? getUrlTargetBackends(targets) : undefined
-}
-
 const readUrlArticleRunMetadata = async (
   outputDir: string
 ): Promise<Record<string, unknown> | undefined> => {
@@ -337,8 +330,6 @@ const buildResolvedArticleStep = (
 ): Extract<ResolvedStep2Execution, { route: 'article' }> => ({
   route: 'article',
   sourceKind: 'article',
-  backend: backends[0] ?? 'defuddle',
-  backends,
   providers: backends.map((backend) => ({
     service: backend,
     model: backend

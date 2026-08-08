@@ -38,7 +38,7 @@ describe('provider selection contracts', () => {
     }))).not.toThrow()
     expect(() => collectImageTargets(buildOptsFromFlags(false, {
       'recraft-image': 'recraftv4_1_vector'
-    }))).toThrow('Invalid --recraft-image')
+    }))).toThrow('Invalid model "recraftv4_1_vector" for --provider/--image recraft[=model]')
     expect(() => collectImageTargets(buildOptsFromFlags(false, {
       'recraft-image': 'recraftv4_1',
       'image-input': ['reference.png']

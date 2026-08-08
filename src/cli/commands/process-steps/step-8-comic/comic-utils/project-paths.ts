@@ -1,4 +1,4 @@
-import { access, readdir } from 'node:fs/promises'
+import { readdir } from 'node:fs/promises'
 import { basename, dirname, extname, join } from 'node:path'
 import type { ResolveComicScriptReferenceOptions } from '~/types'
 import { InfraError, ValidationError } from '~/utils/error-handler'
@@ -6,7 +6,6 @@ import { getSceneRunDirectory } from './scene-run-context'
 
 const INPUT_ROOT = 'input'
 const EPISODE_SCRIPTS_ROOT = join(INPUT_ROOT, 'scripts')
-const LEGACY_EPISODE_SCRIPTS_ROOT = join(INPUT_ROOT, 'episode-scripts')
 
 const COMIC_SCRIPT_SHORTHAND_PATTERN = /^(\d{2})-(\d{2})$/
 
@@ -26,8 +25,7 @@ export const getSceneWorkspaceDirectoryForPanelPrompt = (panelDirectory: string)
   const panelPromptsDirectory = dirname(panelDirectory)
   if (basename(panelPromptsDirectory) !== 'panel-prompts' || basename(dirname(panelPromptsDirectory)) !== 'metadata') {
     throw ValidationError(
-      `Panel prompt directory "${normalizeProjectPath(panelDirectory)}" is not inside metadata/panel-prompts/. ` +
-      'Flat legacy comic workspaces must be migrated to the panel-first layout before use.',
+      `Panel prompt directory "${normalizeProjectPath(panelDirectory)}" is not inside metadata/panel-prompts/.`,
       { stage: 'comic:project-paths' }
     )
   }
@@ -75,18 +73,6 @@ export const resolveSceneSlug = (scriptPath: string): string =>
 
 export const normalizeProjectPath = (path: string): string => path.replace(/\\/g, '/')
 
-const resolveDefaultEpisodeScriptsRoot = async (episode: string): Promise<string> => {
-  for (const root of [EPISODE_SCRIPTS_ROOT, LEGACY_EPISODE_SCRIPTS_ROOT]) {
-    try {
-      await access(join(root, `${episode}-script`))
-      return root
-    } catch {
-      // Prefer input/scripts in the eventual error while retaining compatibility with legacy projects.
-    }
-  }
-  return EPISODE_SCRIPTS_ROOT
-}
-
 export const resolveComicScriptReference = async (
   scriptReference: string,
   options: ResolveComicScriptReferenceOptions = {}
@@ -98,7 +84,7 @@ export const resolveComicScriptReference = async (
 
   const episode = match[1]
   const scene = match[2]
-  const episodeScriptsRoot = options.episodeScriptsRoot ?? await resolveDefaultEpisodeScriptsRoot(episode)
+  const episodeScriptsRoot = options.episodeScriptsRoot ?? EPISODE_SCRIPTS_ROOT
   const episodeDirectory = join(episodeScriptsRoot, `${episode}-script`)
   const expectedPrefix = `${scene}-`
 

@@ -7,7 +7,6 @@ export const getExtractPricing = (
   model: string
 ): {
   costPer1kPagesCents?: number
-  costPer1kOutputCharsCents?: number
   inputCostPer1MCents?: number
   cachedInputCostPer1MCents?: number
   outputCostPer1MCents?: number
@@ -28,11 +27,6 @@ export const getExtractPricing = (
       ? { costPer1kPagesCents: extractModel.costPer1kPagesCents }
       : extractModel.costPer1kPagesUSD !== undefined
         ? { costPer1kPagesCents: extractModel.costPer1kPagesUSD * 100 }
-        : {}),
-    ...(extractModel.costPer1kOutputCharsCents !== undefined
-      ? { costPer1kOutputCharsCents: extractModel.costPer1kOutputCharsCents }
-      : extractModel.costPer1kOutputCharsUSD !== undefined
-        ? { costPer1kOutputCharsCents: extractModel.costPer1kOutputCharsUSD * 100 }
         : {}),
     ...(extractModel.costPerMInputTokensCents !== undefined
       ? { inputCostPer1MCents: extractModel.costPerMInputTokensCents }

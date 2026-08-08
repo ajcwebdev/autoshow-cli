@@ -5,7 +5,7 @@ import { classifyHostedTtsRetry, withHostedTtsRetry } from '~/cli/commands/proce
 import { logTtsConfig } from '~/cli/commands/process-steps/step-4-tts/tts-utils/log-tts-config'
 import { TTS_CHUNK_CHARACTER_LIMITS } from '~/cli/commands/process-steps/step-4-tts/tts-utils/tts-chunking'
 import { GEMINI_DEFAULT_TTS_VOICE } from '~/cli/commands/setup-and-utilities/models/setup-model-options'
-import type { GeminiInlineAudioInfo, GeminiMultiSpeakerConfig, GeminiTtsModel, HostedTtsChunkScheduler, SpeakerVoiceRegistry, Step4Metadata } from '~/types'
+import type { GeminiInlineAudioInfo, GeminiTtsModel, HostedTtsChunkScheduler, SpeakerVoiceRegistry, Step4Metadata } from '~/types'
 import { exec } from '~/utils/cli-utils'
 import { getFfmpegBinary } from '~/utils/runtime-paths'
 import { geminiGenerateContent } from '~/utils/gemini/gemini-rest'
@@ -13,9 +13,7 @@ import { readEnv } from '~/utils/validate/env-utils'
 import { InfraError, InternalError, ValidationError, hintsForMissingEnv } from '~/utils/error-handler'
 import {
 buildGeminiSpeakerVoiceConfigs,
-formatGeminiSpeakerSummary,
 formatSpeakerRegistrySummary,
-validateGeminiMultiSpeakerTranscript,
 validateGeminiMultiSpeakerTranscriptFromRegistry
 } from './gemini-tts-config'
 
@@ -52,15 +50,13 @@ export const runGeminiTts = async (
   options: {
     model: GeminiTtsModel
     voiceId?: string | undefined
-    multiSpeakerConfig?: GeminiMultiSpeakerConfig | undefined
     speakerVoiceRegistry?: SpeakerVoiceRegistry | undefined
     chunkConcurrency?: number | undefined
     chunkScheduler?: HostedTtsChunkScheduler | undefined
   }
 ): Promise<{ audioPath: string, metadata: Step4Metadata }> => {
   const registry = options.speakerVoiceRegistry
-  const multiConfig = options.multiSpeakerConfig
-  const isMultiSpeaker = Boolean(registry || multiConfig)
+  const isMultiSpeaker = Boolean(registry)
   const voiceId = isMultiSpeaker
     ? undefined
     : options.voiceId?.trim() || GEMINI_DEFAULT_TTS_VOICE
@@ -71,8 +67,6 @@ export const runGeminiTts = async (
 
   if (registry) {
     validateGeminiMultiSpeakerTranscriptFromRegistry(text, registry)
-  } else if (multiConfig) {
-    validateGeminiMultiSpeakerTranscript(text, multiConfig)
   }
 
   const apiKey = readEnv('GEMINI_API_KEY')
@@ -82,9 +76,7 @@ export const runGeminiTts = async (
 
   const speakerSummary = registry
     ? formatSpeakerRegistrySummary(registry)
-    : multiConfig
-      ? formatGeminiSpeakerSummary(multiConfig)
-      : voiceId
+    : voiceId
 
   logTtsConfig('Gemini', isMultiSpeaker
     ? [
@@ -126,36 +118,13 @@ export const runGeminiTts = async (
                         speakerVoiceConfigs: buildGeminiSpeakerVoiceConfigs(registry)
                       }
                     }
-                  : multiConfig
-                    ? {
-                        multiSpeakerVoiceConfig: {
-                          speakerVoiceConfigs: [
-                            {
-                              speaker: multiConfig.speaker1Name,
-                              voiceConfig: {
-                                prebuiltVoiceConfig: {
-                                  voiceName: multiConfig.speaker1Voice
-                                }
-                              }
-                            },
-                            {
-                              speaker: multiConfig.speaker2Name,
-                              voiceConfig: {
-                                prebuiltVoiceConfig: {
-                                  voiceName: multiConfig.speaker2Voice
-                                }
-                              }
-                            }
-                          ]
+                  : {
+                      voiceConfig: {
+                        prebuiltVoiceConfig: {
+                          voiceName: voiceId as string
                         }
                       }
-                    : {
-                        voiceConfig: {
-                          prebuiltVoiceConfig: {
-                            voiceName: voiceId as string
-                          }
-                        }
-                      })
+                    })
               }
             },
             abortSignal: signal

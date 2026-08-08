@@ -34,7 +34,7 @@ export const buildOcrOptions = (ctx: BuildDomainOptionsContext): Pick<RuntimeOpt
     deepinfraOcrModel,
   } = modelOptions
 
-  const outputFormat = readOptionalStringFlag(mergedFlags, 'format') ?? readStringFlag(mergedFlags, 'out', 'json')
+  const outputFormat = readStringFlag(mergedFlags, 'format', 'json')
   const normalizedOut: OutputFormat = outputFormat === 'text' || outputFormat === 'tsv' || outputFormat === 'hocr' ? outputFormat : 'json'
   const epubLengthThousands = parseOptionalPositiveIntFlag(readOptionalStringFlag(mergedFlags, 'length'), 'length')
   const pdfChapterMode = parsePdfChapterMode(readOptionalStringFlag(mergedFlags, 'pdf-chapter-mode'))
@@ -71,8 +71,8 @@ export const buildOcrOptions = (ctx: BuildDomainOptionsContext): Pick<RuntimeOpt
       { defaultValue: DEFAULT_OCR_CONCURRENCY }
     ),
     keepOcrPageInputs: readBooleanFlag(mergedFlags, 'keep-ocr-page-inputs'),
-    dpi: parseIntWithDefault(readOptionalStringFlag(mergedFlags, 'ocr-dpi') ?? readOptionalStringFlag(mergedFlags, 'dpi'), 300),
-    lang: readOptionalStringFlag(mergedFlags, 'ocr-language') ?? readStringFlag(mergedFlags, 'lang', 'eng'),
+    dpi: parseIntWithDefault(readOptionalStringFlag(mergedFlags, 'ocr-dpi'), 300),
+    lang: readStringFlag(mergedFlags, 'ocr-language', 'eng'),
     out: normalizedOut,
     password: readOptionalStringFlag(mergedFlags, 'password'),
     useTesseract,
@@ -93,10 +93,9 @@ export const buildOcrOptions = (ctx: BuildDomainOptionsContext): Pick<RuntimeOpt
     deepinfraOcrModels,
     deepinfraOcrModel,
     primaryOcr: readOptionalStringFlag(mergedFlags, 'primary-ocr'),
-    epubChapterFiles: readOptionalBooleanFlag(mergedFlags, 'chapters'),
-    epubChunkLimitChars: epubLengthThousands === undefined ? undefined : epubLengthThousands * 1000,
+    chapterFiles: readOptionalBooleanFlag(mergedFlags, 'chapters'),
+    chapterChunkLimitChars: epubLengthThousands === undefined ? undefined : epubLengthThousands * 1000,
     pdfChapterMode,
     useEpubBun: readBooleanFlag(mergedFlags, 'epub-bun'),
-    useEpubCalibre: readBooleanFlag(mergedFlags, 'epub-calibre'),
   }
 }

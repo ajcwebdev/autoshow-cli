@@ -132,17 +132,14 @@ export const buildExtractionCallOpts = (target: string, baseDir: string, opts: R
   if (opts.deepinfraOcrModels) {
     extractionOpts.deepinfraOcrModels = opts.deepinfraOcrModels
   }
-  if (typeof opts.epubChapterFiles === 'boolean') {
-    extractionOpts.epubChapterFiles = opts.epubChapterFiles
+  if (typeof opts.chapterFiles === 'boolean') {
+    extractionOpts.chapterFiles = opts.chapterFiles
   }
-  if (typeof opts.epubChunkLimitChars === 'number') {
-    extractionOpts.epubChunkLimitChars = opts.epubChunkLimitChars
+  if (typeof opts.chapterChunkLimitChars === 'number') {
+    extractionOpts.chapterChunkLimitChars = opts.chapterChunkLimitChars
   }
   if (opts.useEpubBun) {
     extractionOpts.useEpubBun = true
-  }
-  if (opts.useEpubCalibre) {
-    extractionOpts.useEpubCalibre = true
   }
   if (step2SelectionOrigins) {
     extractionOpts.step2SelectionOrigins = step2SelectionOrigins
@@ -299,7 +296,7 @@ export const appendChapterExportArtifacts = async (
   outputDir: string
 ): Promise<void> => {
   const primary = Array.isArray(step2Metadata) ? step2Metadata[0] : step2Metadata
-  const exportSummary = primary?.chapterExport ?? primary?.epubExport
+  const exportSummary = primary?.chapterExport
   if (!exportSummary || !Array.isArray(exportSummary.directories)) {
     return
   }

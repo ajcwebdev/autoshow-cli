@@ -66,13 +66,12 @@ test('normalizable ebook extraction follows EPUB chapter, length, and inspect be
       expect(defaultRun.step2Metadata.chapterExport?.sourceFormat).toBe('epub')
       expect(defaultRun.step2Metadata.chapterExport?.normalizedFrom).toBe('azw3')
       expect(defaultRun.step2Metadata.chapterExport?.mode).toBe('chapters')
-      expect(defaultRun.step2Metadata.epubExport).toBeUndefined()
       expect(defaultRun.artifactFiles?.some((file) => file.relativePath.startsWith('chapters/'))).toBe(true)
 
       const noChapterRun = await runOcr(
         epubPath,
         prepared.step1Metadata,
-        buildExtractionOptions(epubPath, outputDir, { epubChapterFiles: false })
+        buildExtractionOptions(epubPath, outputDir, { chapterFiles: false })
       )
       expect(noChapterRun.step2Metadata.chapterExport).toBeUndefined()
       expect(noChapterRun.artifactFiles).toBeUndefined()
@@ -80,12 +79,11 @@ test('normalizable ebook extraction follows EPUB chapter, length, and inspect be
       const lengthRun = await runOcr(
         epubPath,
         prepared.step1Metadata,
-        buildExtractionOptions(epubPath, outputDir, { epubChunkLimitChars: 30 })
+        buildExtractionOptions(epubPath, outputDir, { chapterChunkLimitChars: 30 })
       )
       expect(lengthRun.step2Metadata.chapterExport?.sourceFormat).toBe('epub')
       expect(lengthRun.step2Metadata.chapterExport?.normalizedFrom).toBe('azw3')
       expect(lengthRun.step2Metadata.chapterExport?.chunkLimitChars).toBe(30)
-      expect(lengthRun.step2Metadata.epubExport?.chunkLimitChars).toBe(30)
       expect(lengthRun.artifactFiles?.some((file) => file.relativePath.includes('-part-'))).toBe(true)
 
       const inspectRun = await runOcr(

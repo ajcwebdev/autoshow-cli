@@ -4,7 +4,7 @@ import { ensureGeminiMusicGenSetup } from './gemini-music-gen'
 import { runGeminiMusicGen } from './run-gemini-music-gen'
 
 export const collectGeminiMusicTargets = (options: MusicGenOptions): MusicTarget[] => {
-  const models = options.geminiMusicModels ?? (options.geminiMusicModel ? [options.geminiMusicModel] : [])
+  const models = options.geminiMusicModels ?? []
   return models.map((rawModel) => {
     const model: GeminiMusicModel = validateGeminiMusicModel(rawModel)
 

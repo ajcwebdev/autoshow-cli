@@ -67,14 +67,14 @@ describe('music provider contracts', () => {
     const previousModel = 'music-2' + '.6'
     expect(() => buildOptsFromFlags(false, {
       'minimax-music': previousModel
-    })).toThrow(`Invalid --minimax-music model "${previousModel}"`)
+    })).toThrow(`Invalid model "${previousModel}" for --provider/--music minimax[=model]`)
     const retiredFreeModel = previousModel + '-free'
     expect(() => buildOptsFromFlags(false, {
       'minimax-music': retiredFreeModel
-    })).toThrow(`Invalid --minimax-music model "${retiredFreeModel}"`)
+    })).toThrow(`Invalid model "${retiredFreeModel}" for --provider/--music minimax[=model]`)
     expect(() => buildOptsFromFlags(false, {
       'minimax-music': 'music-cover'
-    })).toThrow('Invalid --minimax-music model "music-cover"')
+    })).toThrow('Invalid model "music-cover" for --provider/--music minimax[=model]')
   })
 
   test('MiniMax instrumental flow sends is_instrumental and skips lyrics generation', async () => {

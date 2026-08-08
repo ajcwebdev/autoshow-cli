@@ -49,7 +49,7 @@ Current LLM models:
 |----------|--------|
 | `openai` | `gpt-5.6-sol`, `gpt-5.6-terra`, `gpt-5.6-luna`, `gpt-5.5`, `gpt-5.4-mini`, `gpt-5.4-nano` |
 | `groq` | `openai/gpt-oss-20b`, `openai/gpt-oss-120b` |
-| `gemini` | `gemini-3.1-pro-preview`, `gemini-3.1-flash-lite`, `gemini-3.1-flash-lite-preview` compatibility alias, `gemini-3.6-flash`, `gemini-3.5-flash`, `gemini-3.5-flash-lite` |
+| `gemini` | `gemini-3.1-pro-preview`, `gemini-3.1-flash-lite`, `gemini-3.6-flash`, `gemini-3.5-flash`, `gemini-3.5-flash-lite` |
 | `anthropic` | `claude-fable-5`, `claude-opus-4-8`, `claude-sonnet-5`, `claude-sonnet-4-6`, `claude-haiku-4-5`, `claude-opus-5` |
 | `minimax` | `MiniMax-M3` |
 | `grok` | `grok-4.3`, `grok-4.5` |
@@ -74,7 +74,7 @@ Current hosted/local provider families:
 | Step | Providers |
 |------|-----------|
 | STT | Local: `whisper`, `whisperfile`, `reverb`. Hosted: `deepinfra`, `deepgram`, `soniox`, `speechmatics`, `rev`, `groq`, `grok`, `mistral`, `assemblyai`, `gladia`, `happyscribe`, `supadata`, `scrapecreators`, `gemini`, `together`. |
-| OCR | Local/native: `tesseract` plus native document extractors. Hosted: `mistral`, `glm`, `kimi`, `openai`, `grok`, `anthropic`, `gemini`, `deepinfra`, `unstructured`. |
+| OCR | Local/native: `tesseract` plus native document extractors. Hosted: `mistral`, `glm`, `kimi`, `openai`, `grok`, `anthropic`, `gemini`, `deepinfra`. |
 | URL | Local: `defuddle`. Hosted: `firecrawl`, `glm-reader`, `spider`, `supadata`, `zyte`. |
 | TTS | Local: `kitten`. Hosted: `elevenlabs`, `minimax`, `groq`, `grok`, `mistral`, `openai`, `gemini`, `deepgram`, `speechify`, `hume`, `cartesia`. |
 | Image | `gemini`, `openai`, `grok`, `bfl`, `recraft`, `replicate`, `lumalabs`, `fal`. |
@@ -141,7 +141,6 @@ These checks come from `HOSTED_PROVIDER_ENV_CHECKS`:
 | `RUNWAYML_API_SECRET` | Runway video |
 | `LTXV_API_KEY` | LTX video |
 | `MISTRAL_API_KEY` | Mistral STT/OCR/TTS |
-| `UNSTRUCTURED_API_KEY` | Unstructured OCR |
 | `BFL_API_KEY` | BFL image |
 | `RECRAFT_API_TOKEN` | Recraft image |
 | `REPLICATE_API_TOKEN` | Replicate image/video |

@@ -104,7 +104,7 @@ Accepted provider selectors are the lowercase names below.
 | `--gemini` | `general`, `image`, `models`, `music`, `ocr`, `stt`, `text`, `tts`, `video` |
 | `--gladia` | `general`, `stt` |
 | `--glm` | `general`, `models`, `ocr`, `text`, `url` |
-| `--grok` | `general`, `image`, `models`, `text`, `tts`, `video` |
+| `--grok` | `general`, `image`, `models`, `stt`, `text`, `tts`, `video` |
 | `--groq` | `general`, `models`, `stt`, `text`, `tts` |
 | `--happyscribe` | `stt` |
 | `--hume` | `general`, `tts` |
@@ -119,7 +119,6 @@ Accepted provider selectors are the lowercase names below.
 | `--replicate` | `general`, `models` |
 | `--resend` | `general` |
 | `--rev` | `general`, `stt` |
-| `--reve` | `image` |
 | `--runway` | `general`, `models` |
 | `--scrapecreators` | `general`, `stt`, `url` |
 | `--solidbase` | `general` |

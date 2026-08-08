@@ -1,6 +1,7 @@
 import * as l from '~/utils/app-logger/app-logger'
 import type { SplitPolicyTarget, Step2Metadata, SttTarget, SttTargetOptions, TranscriptionResult } from '~/types'
-import { dispatchStt, ensureSttTargetSetup } from './dispatch'
+import { dispatchStt } from './dispatch'
+import { ensureSttTargetSetup } from '../bootstrap'
 import { isSupadataSupportedSourceUrl } from '../stt-services/stt-supadata/supadata'
 import { isScrapeCreatorsSupportedSourceUrl } from '../stt-services/scrapecreators/scrapecreators'
 import { writeSttResultArtifact } from '../stt-utils/stt-result-artifacts'

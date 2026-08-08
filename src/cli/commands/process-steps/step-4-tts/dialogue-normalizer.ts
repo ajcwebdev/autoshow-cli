@@ -1,6 +1,7 @@
 import { basename } from 'node:path'
 import type { DialogueNormalization, DialogueTurn, SpeakerVoiceMapping, SpeakerVoiceRegistry, TtsDialogueFormat, TtsOptions } from '~/types'
 import { CLIUsageError } from '~/utils/error-handler'
+import * as l from '~/utils/app-logger/app-logger'
 const ACTION_VERBS = new Set([
   'freezes',
   'sits',
@@ -27,7 +28,11 @@ const ACTION_VERBS = new Set([
   'continues'
 ])
 
-const REF_AUDIO_EXTENSIONS = new Set(['.mp3', '.wav', '.m4a', '.ogg', '.flac', '.aac', '.webm', '.mp4'])
+const REF_AUDIO_EXTENSIONS = new Set([
+  '.mp3', '.wav', '.m4a', '.m4b', '.ogg', '.oga', '.opus', '.flac', '.aac',
+  '.webm', '.weba', '.mp4', '.aiff', '.aif', '.aifc', '.wma', '.amr', '.caf',
+  '.mka', '.au', '.pcm'
+])
 
 const normalizeSpeaker = (speaker: string): string =>
   speaker.trim().replace(/\s+/g, ' ').toUpperCase()
@@ -57,13 +62,8 @@ export const detectVoiceKind = (value: string): 'id' | 'ref-audio' => {
   return 'id'
 }
 
-const parseSpeakerMappings = (
-  values: readonly string[] | undefined,
-  options: {
-    flagName: '--tts-speaker' | '--tts-speaker-ref-audio'
-    expectedShape: 'SPEAKER=VOICE' | 'SPEAKER=path'
-    resolveVoiceKind: (voice: string) => SpeakerVoiceMapping['voiceKind']
-  }
+export const parseSpeakerVoiceMappings = (
+  values: readonly string[] | undefined
 ): SpeakerVoiceRegistry => {
   const entries: SpeakerVoiceMapping[] = []
   const bySpeaker = new Map<string, SpeakerVoiceMapping>()
@@ -71,22 +71,21 @@ const parseSpeakerMappings = (
   for (const raw of values ?? []) {
     const idx = raw.indexOf('=')
     if (idx <= 0 || idx === raw.length - 1) {
-      throw CLIUsageError(`Invalid ${options.flagName} value "${raw}". Expected ${options.expectedShape}.`)
+      throw CLIUsageError(`Invalid --tts-speaker value "${raw}". Expected SPEAKER=VOICE or SPEAKER=path.`)
     }
 
     const speaker = raw.slice(0, idx).trim()
     const voice = raw.slice(idx + 1).trim()
     if (!speaker || !voice) {
-      throw CLIUsageError(`Invalid ${options.flagName} value "${raw}". Expected ${options.expectedShape}.`)
+      throw CLIUsageError(`Invalid --tts-speaker value "${raw}". Expected SPEAKER=VOICE or SPEAKER=path.`)
     }
 
     const normalizedSpeaker = normalizeSpeaker(speaker)
     if (bySpeaker.has(normalizedSpeaker)) {
-      throw CLIUsageError(`Duplicate ${options.flagName} mapping for speaker ${speaker}.`)
+      throw CLIUsageError(`Duplicate --tts-speaker mapping for speaker ${speaker}.`)
     }
 
-    const voiceKind = options.resolveVoiceKind(voice)
-    const entry: SpeakerVoiceMapping = { speaker, normalizedSpeaker, voice, voiceKind }
+    const entry: SpeakerVoiceMapping = { speaker, normalizedSpeaker, voice, voiceKind: detectVoiceKind(voice) }
     bySpeaker.set(normalizedSpeaker, entry)
     entries.push(entry)
   }
@@ -94,28 +93,11 @@ const parseSpeakerMappings = (
   return { entries, bySpeaker }
 }
 
-export const parseSpeakerVoiceMappings = (
-  values: readonly string[] | undefined
-): SpeakerVoiceRegistry =>
-  parseSpeakerMappings(values, {
-    flagName: '--tts-speaker',
-    expectedShape: 'SPEAKER=VOICE',
-    resolveVoiceKind: detectVoiceKind
-  })
-
-export const parseSpeakerRefAudioMappings = (
-  values: readonly string[] | undefined
-): SpeakerVoiceRegistry =>
-  parseSpeakerMappings(values, {
-    flagName: '--tts-speaker-ref-audio',
-    expectedShape: 'SPEAKER=path',
-    resolveVoiceKind: () => 'ref-audio'
-  })
-
+// Speaker mappings alone are the mode switch. A dialogue format without them can only ever fail,
+// so counting it here turned a `ttsDialogueFormat` stored in config defaults into a step-4 abort
+// for every pipeline run. `assertDialogueFormatIsUsable` reports that case instead.
 export const isMultiSpeakerRequested = (options: TtsOptions): boolean =>
   (options.ttsSpeakers?.length ?? 0) > 0
-  || options.ttsDialogueFormat !== undefined
-  || (options.ttsSpeakerRefAudios?.length ?? 0) > 0
 
 export const resolveDialogueFormat = (options: TtsOptions): TtsDialogueFormat => {
   if (options.ttsDialogueFormat === 'screenplay' || options.ttsDialogueFormat === 'labeled') {
@@ -123,6 +105,27 @@ export const resolveDialogueFormat = (options: TtsOptions): TtsDialogueFormat =>
   }
 
   throw CLIUsageError('Dialogue TTS requires --tts-dialogue-format screenplay|labeled.')
+}
+
+// A format with no speaker mappings selects nothing. Typed on the command line that is a usage
+// error; inherited from config defaults it is inert, so say so rather than failing the run.
+export const assertDialogueFormatIsUsable = (
+  options: TtsOptions,
+  explicitFlags?: ReadonlySet<string>
+): void => {
+  const format = options.ttsDialogueFormat
+  if (format === undefined || isMultiSpeakerRequested(options)) {
+    return
+  }
+
+  if (explicitFlags?.has('tts-dialogue-format')) {
+    throw CLIUsageError('--tts-dialogue-format requires at least one --tts-speaker SPEAKER=VOICE mapping. Speaker mappings select multi-speaker TTS; a dialogue format alone selects nothing.')
+  }
+
+  l.warn(
+    `--tts-dialogue-format ${format} has no effect without --tts-speaker mappings and was ignored. `
+    + 'Pass --tts-speaker SPEAKER=VOICE to run multi-speaker TTS, or remove ttsDialogueFormat from your config defaults.'
+  )
 }
 
 const getSpeakerCue = (
@@ -315,10 +318,6 @@ export const normalizeDialogueText = (
   format: TtsDialogueFormat,
   registry: SpeakerVoiceRegistry
 ): DialogueNormalization => {
-  if (registry.entries.length === 0) {
-    throw CLIUsageError('Multi-speaker TTS requires at least one --tts-speaker SPEAKER=VOICE mapping.')
-  }
-
   const turns = format === 'screenplay'
     ? normalizeScreenplayDialogue(text, registry)
     : normalizeLabeledDialogue(text, registry)
@@ -339,9 +338,7 @@ export const normalizeDialogueFromOptions = (
   text: string,
   options: TtsOptions
 ): DialogueNormalization => {
-  const registry = (options.ttsSpeakers?.length ?? 0) > 0
-    ? parseSpeakerVoiceMappings(options.ttsSpeakers)
-    : parseSpeakerRefAudioMappings(options.ttsSpeakerRefAudios)
+  const registry = parseSpeakerVoiceMappings(options.ttsSpeakers)
   return normalizeDialogueText(text, resolveDialogueFormat(options), registry)
 }
 

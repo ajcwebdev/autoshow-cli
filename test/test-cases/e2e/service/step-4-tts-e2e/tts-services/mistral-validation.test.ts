@@ -15,7 +15,7 @@ test('rejects invalid mistral model', async () => {
   ])
 
   expect(result.exitCode).not.toBe(0)
-  expect(`${result.stdout}\n${result.stderr}`).toContain('Invalid --mistral-tts model')
+  expect(`${result.stdout}\n${result.stderr}`).toContain('Invalid model "invalid-model" for --provider/--tts mistral[=model]')
 })
 
 test('mistral execution defaults to reference audio and fails on missing API key', async () => {

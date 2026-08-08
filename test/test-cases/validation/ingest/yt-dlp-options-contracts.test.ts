@@ -1,5 +1,5 @@
 import { describe, expect, test } from 'bun:test'
-import { buildYtDlpDownloadArgs } from '~/cli/commands/process-steps/step-1-download/audio/audio-yt-dlp-options'
+import { buildYtDlpDownloadArgs } from '~/cli/commands/process-steps/shared/shared-yt-dlp-options'
 
 const valueAfter = (args: string[], flag: string): string | undefined => {
   const index = args.indexOf(flag)
