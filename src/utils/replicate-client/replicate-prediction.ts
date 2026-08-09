@@ -1,7 +1,7 @@
 import { REPLICATE_DEFAULT_BASE_URL } from '~/utils/base-urls'
 import { buildCaptureMetadata, redactPayloadPreview } from '~/utils/bounded-capture'
 import { AppProviderError, InfraError, ValidationError } from '~/utils/error-handler'
-import { extractRestErrorMessage, isRecord, joinRestUrl, parseJsonOrText, readRestResponseText } from '~/utils/rest-client'
+import { createProviderRestClient, isRecord, joinRestUrl, parseJsonOrText, readRestResponseText } from '~/utils/rest-client'
 import { classifyFetchRetry, isRetryableStatus, pollUntil, withRetry } from '~/utils/retries'
 import { MEDIA_GENERATION_TIMEOUT_MS } from '~/utils/timeouts'
 import type { BoundedCaptureResult, ReplicatePrediction, RetryClass, RunReplicatePredictionOptions } from '~/types'
@@ -58,6 +58,29 @@ class ReplicateRestError extends AppProviderError {
   }
 }
 
+type ReplicateFetchOptions = {
+  url: string
+  apiToken: string
+  init: RequestInit
+  stage: string
+  retryClass: RetryClass
+}
+
+const replicateFetch = createProviderRestClient<ReplicateFetchOptions, ReplicateRestError>({
+  buildRequest: (options) => {
+    const headers = new Headers(options.init.headers)
+    headers.set('authorization', `Bearer ${options.apiToken}`)
+    headers.set('accept', 'application/json')
+    return {
+      url: options.url,
+      init: { ...options.init, headers }
+    }
+  },
+  errorMessagePrefix: (options) => `Replicate ${options.stage} failed`,
+  createError: ({ options, response, captured, parsedBody, message }) =>
+    new ReplicateRestError(message, response, parsedBody, captured, options.stage, options.retryClass),
+  diagnostics: 'factory'
+})
 
 const normalizeStatus = (status: string | undefined): string =>
   status?.trim().toLowerCase() ?? ''
@@ -135,28 +158,15 @@ const fetchReplicateJson = async (
   stage: string,
   retryClass: RetryClass
 ): Promise<unknown> => {
-  const headers = new Headers(init.headers)
-  headers.set('authorization', `Bearer ${apiToken}`)
-  headers.set('accept', 'application/json')
-
-  const response = await fetch(url, {
-    ...init,
-    headers
+  const response = await replicateFetch({
+    url,
+    apiToken,
+    init,
+    stage,
+    retryClass
   })
   const captured = await readRestResponseText(response)
-  const rawText = captured.text
-  const parsed = captured.truncated ? captured.sanitizedPreview : parseJsonOrText(rawText)
-  if (!response.ok) {
-    throw new ReplicateRestError(
-      `Replicate ${stage} failed (${response.status}): ${extractRestErrorMessage(parsed, rawText, response.status)}`,
-      response,
-      parsed,
-      captured,
-      stage,
-      retryClass
-    )
-  }
-  return parsed
+  return captured.truncated ? captured.sanitizedPreview : parseJsonOrText(captured.text)
 }
 
 export const runReplicatePrediction = async (

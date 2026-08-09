@@ -58,23 +58,49 @@ export type ExtractRouteResumeHandler = Pick<ResumeHandler, 'hasResumableWork' |
 
 export type GenerationModelFieldTable = Record<string, readonly [modelsField: string, modelField: string]>
 
+export type GenerationResumeRunContext<TTarget extends ProviderIdentity, TMetadata> = {
+  targets: TTarget[]
+  existingEntries: TMetadata[]
+  currentManifestMetadata: Record<string, unknown>
+}
+
 export type GenerationResumeConfig<TTarget extends ProviderIdentity, TMetadata> = {
   kind: RunManifestKind
   metadataKey: string
   stepLabel: string
   providerFlags: readonly string[]
-  modelFields: GenerationModelFieldTable
+  selectionMode: 'additive-stored' | 'selected-only'
+  modelFields?: GenerationModelFieldTable
+  parseManifestEntries?: (
+    metadata: Record<string, unknown>
+  ) => TMetadata[] | undefined
+  resolveInput?: (
+    target: ResumeTarget,
+    currentManifestMetadata: Record<string, unknown>
+  ) => string | Promise<string>
+  serializeEntries?: (
+    entries: TMetadata[]
+  ) => unknown
+  failureMessage?: (
+    failure: 'failed' | 'incomplete',
+    providers: ProviderIdentity[]
+  ) => string
   getSuccessKey: (entry: TMetadata) => string
-  collectTargets: (opts: RuntimeOptions) => TTarget[]
+  collectTargets: (
+    opts: RuntimeOptions,
+    target: ResumeTarget
+  ) => TTarget[]
   runMissingTargets: (
     targets: TTarget[],
     input: string,
     outputDir: string,
-    opts: RuntimeOptions
+    opts: RuntimeOptions,
+    context: GenerationResumeRunContext<TTarget, TMetadata>
   ) => Promise<TMetadata[]>
   buildEstimates: (
     opts: RuntimeOptions,
     input: string,
+    context: GenerationResumeRunContext<TTarget, TMetadata>
   ) => StepEstimate[] | Promise<StepEstimate[]>
   priceAggregateOptions?: (
     input: string

@@ -1,6 +1,4 @@
 import { isRecord } from '~/utils/rest-client'
-import { resolve as resolvePath } from 'node:path'
-import { fileURLToPath } from 'node:url'
 import { DocumentMetadataSchema } from '~/types'
 import { CLIUsageError, InfraError } from '~/utils/error-handler'
 import { validateData } from '~/utils/validate/validation'
@@ -13,21 +11,10 @@ import {
   parseStoredRequestedTargets
 } from '~/cli/commands/process-steps/step-2-extract/step-2-ocr/ocr-run-state'
 import { readOcrRunManifestEntry, writeOcrBatchManifest, writeOcrRunManifest } from '~/cli/commands/process-steps/step-2-extract/step-2-ocr/ocr-manifest'
-import type { AggregatedPriceEstimate, BatchManifestEntry, OcrResumePassContext, OcrTarget, PreparedDocument, ProviderCompletionStatus, ProviderResumePassResult, ResolvedStep2Execution, ResumeDisplayOptions, ResumeOcrEntry, ResumeResult, ResumeTarget, RuntimeOptions, Step1SourceRef, StepEstimate, WebArticleMetadata } from '~/types'
+import type { AggregatedPriceEstimate, BatchManifestEntry, OcrResumePassContext, OcrTarget, PreparedDocument, ProviderCompletionStatus, ProviderResumePassResult, ResolvedStep2Execution, ResumeDisplayOptions, ResumeOcrEntry, ResumeResult, ResumeTarget, RuntimeOptions, Step1SourceRef, WebArticleMetadata } from '~/types'
 import { resolveAdditiveResumeProviderSelection } from '../resume-provider-selection'
-import { hasResumableProviderTargetWork, readProviderResumeTargetManifest, runProviderResumePass, withProviderResumeOutputDir } from '../provider-batch-resume'
-import { aggregateExplicitPriceEstimate } from '~/utils/pricing/aggregate-pricing'
+import { hasResumableProviderTargetWork, priceProviderResumeTarget, providerResumeSourceInput, resolveProviderResumeOutputDir, runProviderResumePass, selectedProviderTargetsComplete, selectedProvidersCompleteResult, toProviderResumeResult, toProviderResumeSource, withProviderResumeOutputDir } from '../provider-batch-resume'
 import { buildExtractEstimates } from '~/utils/pricing/aggregate-pricing/extract-estimates'
-
-
-const resolveStoredOutputDir = async (
-  entry: Record<string, unknown>
-): Promise<string | undefined> => {
-  if (typeof entry['outputDir'] === 'string' && entry['outputDir'].length > 0) {
-    return resolvePath(entry['outputDir'])
-  }
-  return undefined
-}
 
 const toStoredSource = (entry: Record<string, unknown>): Step1SourceRef => {
   const source = isRecord(entry['source']) ? entry['source'] : undefined
@@ -48,15 +35,7 @@ const toStoredSource = (entry: Record<string, unknown>): Step1SourceRef => {
     throw CLIUsageError('Run entry is missing source information and cannot be resumed.')
   }
 
-  if (url.startsWith('file://')) {
-    try {
-      return { filePath: fileURLToPath(url) }
-    } catch {
-      return { filePath: decodeURIComponent(url.replace(/^file:\/\/+/, '/')) }
-    }
-  }
-
-  return { url }
+  return toProviderResumeSource(url)
 }
 
 const parseResumeEntry = async (
@@ -67,7 +46,7 @@ const parseResumeEntry = async (
     return undefined
   }
 
-  const outputDir = await resolveStoredOutputDir(entry)
+  const outputDir = resolveProviderResumeOutputDir(entry)
   if (!outputDir) {
     return undefined
   }
@@ -133,33 +112,15 @@ const markEntryFull = (
   blockedProviders: []
 })
 
-const toResumeResult = (
-  result: ProviderResumePassResult
-): ResumeResult => ({
-  full: result.ok,
-  incomplete: result.incomplete,
-  failed: result.fail
-})
-
 const selectedOcrTargetsComplete = (
   metadata: BatchManifestEntry,
   selectedTargets: OcrTarget[] | undefined
-): boolean => {
-  if (selectedTargets === undefined) {
-    return false
-  }
-
-  const storedRequestedTargets = parseStoredRequestedTargets(metadata)
-  const storedMissingTargets = buildMissingTargetsFromEntry(metadata, storedRequestedTargets, {
-    includeBlocked: true
-  })
-  const resolvedTargets = resolveAdditiveResumeProviderSelection({
-    storedProviders: storedRequestedTargets,
-    runnableStoredProviders: storedMissingTargets,
-    selectedProviders: selectedTargets
-  })
-  return resolvedTargets.providersToRun.length === 0
-}
+): boolean => selectedProviderTargetsComplete(
+  metadata,
+  selectedTargets,
+  parseStoredRequestedTargets,
+  (entry, targets) => buildMissingTargetsFromEntry(entry, targets, { includeBlocked: true })
+)
 
 export const hasResumableOcrTargetWork = async (
   target: ResumeTarget,
@@ -288,11 +249,7 @@ const runResumeOcrTarget = async (
         const completionStatus = getOcrCompletionStatus(metadata)
         if (selectedTargets !== undefined && !hasRemainingResumableWork && completionStatus !== 'full') {
           return {
-            outputDir: entry.outputDir,
-            metadata,
-            completionStatus: 'full',
-            detail: 'selected providers complete; run manifest still incomplete',
-            level: 'success',
+            ...selectedProvidersCompleteResult(entry.outputDir, metadata),
             hasRemainingResumableWork
           }
         }
@@ -340,17 +297,7 @@ export const resumeOcrTarget = async (
   displayOptions: ResumeDisplayOptions = {}
 ): Promise<ResumeResult> => {
   const result = await runResumeOcrTarget(target, opts, selectedTargets, displayOptions)
-  return toResumeResult(result)
-}
-
-const ocrSourceInput = (
-  source: Step1SourceRef
-): string => {
-  const input = source.filePath ?? source.url
-  if (!input) {
-    throw CLIUsageError('OCR resume entry is missing a resumable source file or URL.')
-  }
-  return input
+  return toProviderResumeResult(result)
 }
 
 const buildResolvedOcrStep = (
@@ -369,27 +316,15 @@ export const priceOcrTarget = async (
   opts: RuntimeOptions,
   selectedTargets?: OcrTarget[]
 ): Promise<AggregatedPriceEstimate> => {
-  const manifest = await readProviderResumeTargetManifest(target, readOutputMetadata)
-  if (!manifest) {
-    throw CLIUsageError(
-      target.scope === 'batch'
-        ? `Invalid OCR batch manifest at ${target.dir}/batch.json`
-        : `Invalid OCR manifest at ${target.dir}/run.json`
-    )
-  }
-
-  const steps: StepEstimate[] = []
-  for (const entry of manifest.entries) {
-    const parsed = await parseResumeEntry(entry, selectedTargets)
-    if (!parsed || parsed.missingTargets.length === 0) {
-      continue
-    }
-    steps.push(...await buildExtractEstimates(
-      ocrSourceInput(parsed.source),
-      buildResolvedOcrStep(parsed.missingTargets),
-      opts
-    ))
-  }
-
-  return aggregateExplicitPriceEstimate(steps, opts)
+  return await priceProviderResumeTarget(target, opts, {
+    stepLabel: 'OCR',
+    readOutputMetadata,
+    parseEntry: (entry) => parseResumeEntry(entry, selectedTargets),
+    buildEstimates: (entry, estimateOpts) =>
+      buildExtractEstimates(
+        providerResumeSourceInput(entry.source, 'OCR'),
+        buildResolvedOcrStep(entry.missingTargets),
+        estimateOpts
+      )
+  })
 }

@@ -57,6 +57,7 @@ const fakeResumeConfig = (
   metadataKey: 'image',
   stepLabel: 'Fake image',
   providerFlags: ['fake-provider'],
+  selectionMode: 'additive-stored' as const,
   modelFields: FAKE_MODEL_FIELDS,
   getSuccessKey: (entry: ResumeFakeMetadata) =>
     getGenerationTargetKey(entry.service, entry.model),

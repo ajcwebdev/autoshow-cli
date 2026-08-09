@@ -1,5 +1,5 @@
 import * as l from '~/utils/app-logger/app-logger'
-import type { DeepgramAlternative, DeepgramResponse, DeepgramWords, RetryClass, Step2Metadata, SttSegmentRunOptions, SttTranscribeHttpError, TranscriptionResult, TranscriptionSegment } from '~/types'
+import type { DeepgramAlternative, DeepgramResponse, DeepgramWords, RetryClass, Step2Metadata, SttSegmentRunOptions, SttStageHttpError, TranscriptionResult, TranscriptionSegment } from '~/types'
 import { DeepgramResponseSchema } from '~/types'
 import { logSttSegmentLifecycle } from '~/cli/commands/process-steps/step-2-extract/step-2-stt/stt-logging'
 import {
@@ -8,23 +8,22 @@ import {
   formatSpeakerLabel,
   toTimestamp
 } from '~/cli/commands/process-steps/step-2-extract/step-2-stt/stt-utils/stt-utils'
-import { withRetry } from '~/utils/retries'
 import { DEEPGRAM_DEFAULT_BASE_URL } from '~/utils/base-urls'
 import { requireApiKey } from '~/utils/validate/env-utils'
-import { validateData } from '~/utils/validate/validation'
 import { finalizeHostedSttResult } from '../finalize-hosted-stt'
-import { classifySttFetchRetryWithMetrics, createSttRetryMetrics } from '../../stt-retry-metrics'
+import { createSttRetryMetrics, sttRetryMetricsToCallbacks } from '../../stt-retry-metrics'
+import { sttStageRequest } from '../stt-stage-request'
 
 const REQUEST_TIMEOUT_MS = 20 * 60 * 1000
 
 const attachDeepgramErrorContext = (
   error: unknown,
-  stage: 'transcribe',
+  stage: string,
   retryClass: RetryClass
 ): never => {
   const source = error instanceof Error ? error : new Error(String(error))
-  ;(source as SttTranscribeHttpError).stage = stage
-  ;(source as SttTranscribeHttpError).retryClass = retryClass
+  ;(source as SttStageHttpError).stage = stage
+  ;(source as SttStageHttpError).retryClass = retryClass
   throw source
 }
 
@@ -174,51 +173,33 @@ export const runDeepgramTranscribe = async (
   let requestCount = 0
   const retryMetrics = createSttRetryMetrics()
 
-  let rawPayload: unknown
-  try {
-    const transcribeStartedAt = Date.now()
-    rawPayload = await withRetry(
-      {
-        retryClass: 'runtime_http_create_conservative',
-        operationName: 'deepgram-stt',
-        policy: { maxAttempts: 4 },
-        timeoutMs: REQUEST_TIMEOUT_MS
+  const transcribeStartedAt = Date.now()
+  const payload = await sttStageRequest({
+    operationName: 'deepgram-stt',
+    stage: 'transcribe',
+    retryClass: 'runtime_http_create_conservative',
+    maxAttempts: 4,
+    timeoutMs: REQUEST_TIMEOUT_MS,
+    errorPrefix: 'Deepgram',
+    failureLabel: 'transcription',
+    schema: DeepgramResponseSchema,
+    schemaLabel: 'Deepgram STT response',
+    metrics: sttRetryMetricsToCallbacks(retryMetrics, () => {
+      requestCount += 1
+    }),
+    attachError: attachDeepgramErrorContext,
+    doFetch: async (signal) => await fetch(buildDeepgramUrl(baseURL, modelName), {
+      method: 'POST',
+      headers: {
+        Authorization: `Token ${apiKey}`,
+        'Content-Type': mimeType
       },
-      async (signal) => {
-        requestCount += 1
-        const response = await fetch(buildDeepgramUrl(baseURL, modelName), {
-          method: 'POST',
-          headers: {
-            Authorization: `Token ${apiKey}`,
-            'Content-Type': mimeType
-          },
-          body: file,
-          signal: signal ?? null
-        })
+      body: file,
+      signal: signal ?? null
+    })
+  })
+  transcribeMs += Date.now() - transcribeStartedAt
 
-        if (!response.ok) {
-          const errText = await response.text()
-          throw Object.assign(
-            new Error(`Deepgram transcription failed (${response.status}): ${errText}`),
-            {
-              status: response.status,
-              headers: response.headers,
-              stage: 'transcribe',
-              retryClass: 'runtime_http_create_conservative'
-            } satisfies Pick<SttTranscribeHttpError, 'status' | 'headers' | 'stage' | 'retryClass'>
-          )
-        }
-
-        return await response.json()
-      },
-      classifySttFetchRetryWithMetrics(retryMetrics, 'runtime_http_create_conservative', { retryAbortOnConservative: true })
-    )
-    transcribeMs += Date.now() - transcribeStartedAt
-  } catch (error) {
-    attachDeepgramErrorContext(error, 'transcribe', 'runtime_http_create_conservative')
-  }
-
-  const payload = validateData(DeepgramResponseSchema, rawPayload, 'Deepgram STT response')
   const primaryAlternative = selectPrimaryAlternative(payload)
   const transcript = (primaryAlternative?.transcript ?? '').trim()
   const utteranceSegments = segmentsFromUtterances(payload.results.utterances, offsetSeconds)

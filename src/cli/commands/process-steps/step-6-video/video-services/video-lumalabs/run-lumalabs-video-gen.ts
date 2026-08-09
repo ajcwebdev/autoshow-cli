@@ -1,4 +1,3 @@
-import * as v from 'valibot'
 import type { LumalabsImageRef, LumalabsVideoModel, Step6VideoMetadata } from '~/types'
 import { CLIUsageError, InfraError } from '~/utils/error-handler'
 import { logGenCompleted, logGenStatus } from '~/cli/commands/process-steps/generation-command-utils'
@@ -7,24 +6,12 @@ import { normalizeLumaVideoAspectRatio, normalizeLumaVideoDuration, normalizeLum
 import { videoMediaReferenceToUrlOrDataUrl } from '~/cli/commands/process-steps/step-6-video/video-utils/video-media-inputs'
 import { downloadVideoOutputBytes } from '~/cli/commands/process-steps/step-6-video/video-utils/video-output-download'
 import { LUMALABS_DEFAULT_BASE_URL } from '~/utils/base-urls'
-import { classifyFetchRetry, pollUntil, withRetry } from '~/utils/retries'
+import { LumalabsGenerationSchema, runPolledJob } from '~/utils/polled-job-client/polled-job'
 import { requireApiKey } from '~/utils/validate/env-utils'
-import { validateData } from '~/utils/validate/validation'
 import { MEDIA_GENERATION_TIMEOUT_MS } from '~/utils/timeouts'
 
 const POLL_INTERVAL_MS = 10_000
 const POLL_TIMEOUT_MS = MEDIA_GENERATION_TIMEOUT_MS
-
-const LumalabsGenerationSchema = v.object({
-  id: v.string(),
-  state: v.string(),
-  failure_code: v.optional(v.nullable(v.string()), undefined),
-  failure_reason: v.optional(v.nullable(v.string()), undefined),
-  output: v.optional(v.nullable(v.array(v.object({
-    type: v.optional(v.string(), undefined),
-    url: v.string()
-  }))), undefined)
-})
 
 const toLumalabsImageRef = async (input: string): Promise<LumalabsImageRef> => {
   const ref = await videoMediaReferenceToUrlOrDataUrl(input, 'image')
@@ -87,50 +74,27 @@ export const runLumalabsVideoGen = async (
   }
 
   const startTime = Date.now()
-  const createResp = await fetch(`${baseUrl}/generations`, {
-    method: 'POST',
-    headers,
-    body: JSON.stringify(body)
-  })
-
-  if (!createResp.ok) {
-    const errorBody = await createResp.text()
-    throw InfraError(`Luma Labs video generation request failed (${createResp.status}): ${errorBody || 'No response body'}`, { stage: 'video:lumalabs', status: createResp.status })
-  }
-
-  const createData = validateData(
-    LumalabsGenerationSchema,
-    await createResp.json() as unknown,
-    'Luma Labs video generation create response'
-  )
-
-  const pollData = await pollUntil({
+  const { result: pollData } = await runPolledJob({
     operationName: 'lumalabs-video-gen',
     intervalMs: POLL_INTERVAL_MS,
     deadlineMs: POLL_TIMEOUT_MS,
-    pollFn: () => withRetry(
-      { retryClass: 'runtime_http_read', operationName: 'lumalabs-video-gen-poll' },
-      async () => {
-        const pollResp = await fetch(`${baseUrl}/generations/${encodeURIComponent(createData.id)}`, {
-          method: 'GET',
-          headers
-        })
-
-        if (!pollResp.ok) {
-          const errorBody = await pollResp.text()
-          throw InfraError(`Luma Labs video generation query failed (${pollResp.status}): ${errorBody || 'No response body'}`, { stage: 'video:lumalabs', status: pollResp.status })
-        }
-
-        const data = validateData(
-          LumalabsGenerationSchema,
-          await pollResp.json() as unknown,
-          'Luma Labs video generation poll response'
-        )
-        logGenStatus('video', 'lumalabs', options.model, data.state)
-        return data
-      },
-      (error) => classifyFetchRetry(error, 'runtime_http_read', { retryAbortOnConservative: true })
-    ),
+    create: {
+      url: `${baseUrl}/generations`,
+      init: { method: 'POST', headers, body: JSON.stringify(body) },
+      schema: LumalabsGenerationSchema,
+      context: 'Luma Labs video generation create response',
+      stage: 'video:lumalabs',
+      errorMessage: 'Luma Labs video generation request failed'
+    },
+    poll: (created) => ({
+      url: `${baseUrl}/generations/${encodeURIComponent(created.id)}`,
+      init: { method: 'GET', headers },
+      schema: LumalabsGenerationSchema,
+      context: 'Luma Labs video generation poll response',
+      stage: 'video:lumalabs',
+      errorMessage: 'Luma Labs video generation query failed'
+    }),
+    onPoll: (data) => logGenStatus('video', 'lumalabs', options.model, data.state),
     isDone: (data) => data.state.toLowerCase() === 'completed',
     isFailed: (data) => data.state.toLowerCase() === 'failed'
       ? { failed: true, reason: data.failure_reason ?? data.failure_code ?? `Luma Labs generation state ${data.state}` }

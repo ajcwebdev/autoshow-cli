@@ -12,6 +12,9 @@ import { isLikelyUrl } from '~/cli/commands/process-steps/step-0-metadata/metada
 import { buildLLMModelOptions, resolveLLMDefaults } from '../options/model-option-llm-defaults'
 import { writeMetadataTerminalOutput, writeSavedMetadataArtifacts } from './metadata-output'
 import type { AggregatedPriceEstimate, BatchChildRunContext, BatchItem, BatchItemProcessResult, DownloadAudioOptions, ProcessingOptions, RuntimeOptions, VideoMetadata, WebArticleMetadata } from '~/types'
+import { IMAGE_PRICING_MODEL_KEYS } from '~/cli/commands/process-steps/step-5-image/image-utils/image-pricing'
+import { VIDEO_PRICING_MODEL_KEYS } from '~/cli/commands/process-steps/step-6-video/video-utils/video-pricing'
+import { MUSIC_PRICING_MODEL_KEYS } from '~/cli/commands/process-steps/step-7-music/music-utils/music-pricing'
 
 type ProcessingOptionSourceKey = keyof RuntimeOptions & keyof ProcessingOptions
 type ProcessingSpecialKey = 'url' | 'filePath' | 'outputDir' | 'directDownload' | keyof ReturnType<typeof buildLLMModelOptions>
@@ -64,24 +67,12 @@ const PROCESSING_FORWARD_KEYS = [
   'speechifyTtsVoiceGender', 'humeTtsModels', 'humeTtsModel',
   'humeTtsVoice', 'humeTtsVoiceProvider', 'cartesiaTtsModels',
   'cartesiaTtsModel', 'cartesiaTtsVoice', 'cartesiaTtsLanguage',
-  'geminiImageModels', 'geminiImageModel', 'openaiImageModels',
-  'openaiImageModel', 'grokImageModels', 'grokImageModel',
-  'bflImageModels', 'bflImageModel', 'recraftImageModels',
-  'recraftImageModel', 'replicateImageModels', 'replicateImageModel',
-  'lumalabsImageModels', 'lumalabsImageModel', 'falImageModels',
-  'falImageModel', 'imageAspectRatio', 'imageSize',
+  ...IMAGE_PRICING_MODEL_KEYS, 'imageAspectRatio', 'imageSize',
   'imageQuality', 'imageFormat', 'imageBackground',
   'imageCount', 'imageInputs', 'imageMask',
   'imageResponseMode', 'geminiSearchGrounding', 'imageCompression',
-  'elevenlabsMusicModels', 'elevenlabsMusicModel', 'minimaxMusicModels',
-  'minimaxMusicModel', 'geminiMusicModels', 'geminiMusicModel',
-  'musicDuration', 'musicLyricsFile', 'musicInstrumental',
-  'geminiVideoModels', 'geminiVideoModel', 'minimaxVideoModels',
-  'minimaxVideoModel', 'glmVideoModels', 'glmVideoModel',
-  'grokVideoModels', 'grokVideoModel', 'runwayVideoModels',
-  'runwayVideoModel', 'ltxVideoModels', 'ltxVideoModel',
-  'replicateVideoModels', 'replicateVideoModel', 'lumalabsVideoModels',
-  'lumalabsVideoModel', 'falVideoModels', 'falVideoModel',
+  ...MUSIC_PRICING_MODEL_KEYS, 'musicDuration', 'musicLyricsFile', 'musicInstrumental',
+  ...VIDEO_PRICING_MODEL_KEYS,
   'allVideo', 'videoDuration', 'videoSize',
   'videoAspectRatio', 'videoResolution', 'videoMode',
   'videoInputImage', 'videoLastFrame', 'videoReferenceImages',

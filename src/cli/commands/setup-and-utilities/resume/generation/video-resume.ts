@@ -37,6 +37,7 @@ export const videoResumeConfig = {
   metadataKey: 'video',
   stepLabel: 'Video',
   providerFlags: VIDEO_PROVIDER_FLAGS,
+  selectionMode: 'additive-stored' as const,
   modelFields: VIDEO_MODEL_FIELDS,
   getSuccessKey: (entry: Step6VideoMetadata) =>
     getGenerationTargetKey(entry.videoGenService, entry.videoGenModel),

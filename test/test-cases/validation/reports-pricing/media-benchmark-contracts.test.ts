@@ -4,6 +4,7 @@ import { join } from 'node:path'
 import { runImageBenchmark } from '~/cli/commands/setup-and-utilities/benchmark/run-image-benchmark'
 import { runTextBenchmark } from '~/cli/commands/setup-and-utilities/benchmark/run-text-benchmark'
 import { runVideoBenchmark } from '~/cli/commands/setup-and-utilities/benchmark/run-video-benchmark/run-video-benchmark'
+import { resolveVisionProviders } from '~/cli/commands/setup-and-utilities/benchmark/vision-benchmark-engine'
 import { exec } from '~/utils/cli-utils'
 import type { BenchmarkFlags, MediaBenchmarkRequestBody } from '~/types'
 import { installMockFetch, jsonResponse, setupContractSuiteLifecycle } from '../../../test-utils/rest-contract-helpers'
@@ -134,6 +135,13 @@ describe('image benchmark contracts', () => {
         images: Array<{ criterionScores: { promptAdherence: number } }>
       }>
     }
+    expect(Object.keys(qualityReport)).toEqual([
+      'schemaVersion', 'kind', 'runDir', 'runName', 'generatedAt', 'judge', 'prompt', 'rubric', 'providerCount', 'imageCount', 'providers'
+    ])
+    expect(Object.keys(qualityReport.providers[0] ?? {})).toEqual([
+      'rank', 'providerKey', 'provider', 'model', 'group', 'imageFiles', 'imageCount', 'processingTimeMs', 'costCents',
+      'criterionScores', 'averageScore10', 'qualityScore', 'qualityMetric', 'evidence', 'images'
+    ])
     expect(qualityReport.providers.map((provider) => provider.providerKey)).toEqual([
       'openai/gpt-image-2',
       'bfl/flux-2-pro'
@@ -512,6 +520,13 @@ describe('video benchmark contracts', () => {
         }>
       }>
     }
+    expect(Object.keys(qualityReport)).toEqual([
+      'schemaVersion', 'kind', 'runDir', 'runName', 'generatedAt', 'judge', 'prompt', 'rubric', 'providerCount', 'videoCount', 'frameCount', 'providers'
+    ])
+    expect(Object.keys(qualityReport.providers[0] ?? {})).toEqual([
+      'rank', 'providerKey', 'provider', 'model', 'group', 'videoFiles', 'videoCount', 'processingTimeMs', 'costCents',
+      'criterionScores', 'averageScore10', 'qualityScore', 'qualityMetric', 'evidence', 'videos'
+    ])
     expect(qualityReport.frameCount).toBe(10)
     expect(qualityReport.providers.map((provider) => provider.providerKey)).toEqual(['grok/grok-imagine-video'])
     expect(qualityReport.providers[0]?.qualityScore).toBe(80)
@@ -572,5 +587,31 @@ describe('video benchmark contracts', () => {
     expect(qualityMarkdown).toContain('# Video Quality Report')
     expect(comparisonMarkdown).toContain('### Automated Quality')
     expect(comparisonMarkdown).toContain('80.00/100')
+  })
+})
+
+describe('vision benchmark provider evidence policy', () => {
+  test('keeps first-entry evidence distinct from averaged evidence', async () => {
+    const entries = [
+      { service: 'provider', model: 'model', processingTimeMs: 100, costCents: 2, artifact: 'first' },
+      { service: 'provider', model: 'model', processingTimeMs: 300, costCents: 4, artifact: 'second' }
+    ]
+    const resolve = async (statsPolicy: 'first' | 'average') => await resolveVisionProviders({
+      entries,
+      identity: ({ service, model }) => ({ service, model }),
+      stats: ({ processingTimeMs, costCents }) => ({ processingTimeMs, costCents }),
+      artifacts: ({ artifact }) => Promise.resolve([artifact]),
+      statsPolicy,
+      assemble: (base, artifacts) => ({ ...base, artifacts })
+    })
+
+    expect(await resolve('first')).toEqual([{
+      providerKey: 'provider/model', provider: 'provider', model: 'model', group: 'service',
+      processingTimeMs: 100, costCents: 2, artifacts: ['first', 'second']
+    }])
+    expect(await resolve('average')).toEqual([{
+      providerKey: 'provider/model', provider: 'provider', model: 'model', group: 'service',
+      processingTimeMs: 200, costCents: 3, artifacts: ['first', 'second']
+    }])
   })
 })

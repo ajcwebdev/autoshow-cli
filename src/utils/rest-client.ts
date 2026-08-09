@@ -1,5 +1,5 @@
 import { AppError } from '~/utils/error-handler'
-import { buildCaptureMetadata, readBoundedResponseText } from '~/utils/bounded-capture'
+import { buildCaptureMetadata, readBoundedResponseText, redactPayloadPreview } from '~/utils/bounded-capture'
 import { sanitizeLogText } from '~/utils/app-logger/redaction'
 import type { BoundedCaptureResult } from '~/types'
 
@@ -67,6 +67,68 @@ export const normalizeFetchAbortError = (error: unknown): unknown => {
   return error
 }
 
+type ProviderRestRequest = {
+  url: string
+  init: RequestInit
+}
+
+type ProviderRestErrorContext<TOptions> = {
+  options: TOptions
+  response: Response
+  captured: BoundedCaptureResult
+  rawText: string
+  parsedBody: unknown
+}
+
+type ProviderRestClientProfile<TOptions, TError extends Error> = {
+  buildRequest: (options: TOptions) => ProviderRestRequest
+  errorMessagePrefix: (options: TOptions) => string
+  formatErrorMessage?: ((context: ProviderRestErrorContext<TOptions> & { errorMessagePrefix: string }) => string) | undefined
+  createError: (context: ProviderRestErrorContext<TOptions> & { message: string }) => TError
+  diagnostics?: 'raw-and-parsed' | 'parsed-body' | 'factory' | undefined
+}
+
+export const createProviderRestClient = <TOptions, TError extends Error>(
+  profile: ProviderRestClientProfile<TOptions, TError>
+): ((options: TOptions) => Promise<Response>) =>
+  async (options: TOptions): Promise<Response> => {
+    const request = profile.buildRequest(options)
+
+    try {
+      const response = await fetch(request.url, request.init)
+      if (response.ok) {
+        return response
+      }
+
+      const captured = await readRestResponseText(response)
+      const rawText = captured.text
+      const parsedBody = captured.truncated
+        ? captured.sanitizedPreview
+        : parseJsonOrText(rawText)
+      const errorMessagePrefix = profile.errorMessagePrefix(options)
+      const context = { options, response, captured, rawText, parsedBody }
+      const message = profile.formatErrorMessage?.({ ...context, errorMessagePrefix })
+        ?? `${errorMessagePrefix} (${response.status}): ${extractRestErrorMessage(parsedBody, rawText, response.status)}`
+      const error = profile.createError({ ...context, message })
+      if (profile.diagnostics !== 'factory') {
+        Object.assign(error, {
+          status: response.status,
+          headers: response.headers,
+          ...(profile.diagnostics === 'parsed-body'
+            ? { body: redactPayloadPreview(parsedBody) }
+            : { body: rawText, rawResponse: redactPayloadPreview(parsedBody) }),
+          ...buildCaptureMetadata(captured),
+          bodyBytes: captured.totalBytes,
+          bodyTruncated: captured.truncated,
+          bodyPreview: captured.sanitizedPreview
+        })
+      }
+      throw error
+    } catch (error) {
+      throw normalizeFetchAbortError(error)
+    }
+  }
+
 export const joinRestUrl = (
   baseURL: string | undefined,
   path: string,
@@ -96,7 +158,11 @@ export const joinRestUrl = (
   }
 }
 
-export const readJsonResponse = async (response: Response, errorMessagePrefix: string): Promise<unknown> => {
+export const readJsonResponse = async (
+  response: Response,
+  errorMessagePrefix: string,
+  options: { invalidJsonMessagePrefix?: string | undefined } = {}
+): Promise<unknown> => {
   const captured = await readRestResponseText(response)
   const rawText = captured.text
   if (captured.truncated) {
@@ -114,7 +180,7 @@ export const readJsonResponse = async (response: Response, errorMessagePrefix: s
   try {
     return JSON.parse(rawText) as unknown
   } catch (error) {
-    throw new AppError(`${errorMessagePrefix} returned invalid JSON: ${sanitizeLogText(rawText.slice(0, 500))}`, {
+    throw new AppError(`${options.invalidJsonMessagePrefix ?? errorMessagePrefix} returned invalid JSON: ${sanitizeLogText(rawText.slice(0, 500))}`, {
       kind: 'validation',
       cause: error instanceof Error ? error : new Error(String(error)),
       status: response.status,

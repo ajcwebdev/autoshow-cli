@@ -1,4 +1,4 @@
-import type { EstimateVideoCostOptions, FalVideoModel, GeminiVideoModel, GlmVideoModel, GrokVideoModel, LtxVideoModel, LumalabsVideoModel, MinimaxVideoModel, ReplicateVideoModel, RunwayVideoModel, VideoCostEstimate } from '~/types'
+import type { EstimateVideoCostOptions, FalVideoModel, GeminiVideoModel, GlmVideoModel, GrokVideoModel, LtxVideoModel, LumalabsVideoModel, MinimaxVideoModel, ReplicateVideoModel, RunwayVideoModel, VideoCostEstimate, VideoProvider } from '~/types'
 import { validateFalVideoModel, validateGeminiVideoModel, validateGlmVideoModel, validateGrokVideoModel, validateLtxVideoModel, validateLumalabsVideoModel, validateMinimaxVideoModel, validateReplicateVideoModel, validateRunwayVideoModel } from '~/cli/commands/setup-and-utilities/models/setup-model-options'
 import { getVideoModelMeta } from '~/cli/commands/setup-and-utilities/models/model-loader'
 import {
@@ -23,6 +23,22 @@ import {
 } from './video-normalization'
 import * as l from '~/utils/app-logger/app-logger'
 import { createKeyValueTable } from '~/utils/app-logger/human-table/human-table'
+import { collectSelections, passThroughKeys } from '~/utils/pricing/model-selection'
+import type { ProviderModelSelectionSpec } from '~/utils/pricing/model-selection'
+
+export const VIDEO_PRICING_PROVIDERS = [
+  { service: 'gemini', modelsKey: 'geminiVideoModels', modelKey: 'geminiVideoModel' },
+  { service: 'minimax', modelsKey: 'minimaxVideoModels', modelKey: 'minimaxVideoModel' },
+  { service: 'glm', modelsKey: 'glmVideoModels', modelKey: 'glmVideoModel' },
+  { service: 'grok', modelsKey: 'grokVideoModels', modelKey: 'grokVideoModel' },
+  { service: 'runway', modelsKey: 'runwayVideoModels', modelKey: 'runwayVideoModel' },
+  { service: 'ltx', modelsKey: 'ltxVideoModels', modelKey: 'ltxVideoModel' },
+  { service: 'replicate', modelsKey: 'replicateVideoModels', modelKey: 'replicateVideoModel' },
+  { service: 'lumalabs', modelsKey: 'lumalabsVideoModels', modelKey: 'lumalabsVideoModel' },
+  { service: 'fal', modelsKey: 'falVideoModels', modelKey: 'falVideoModel' }
+] as const satisfies readonly ProviderModelSelectionSpec<EstimateVideoCostOptions, VideoProvider>[]
+
+export const VIDEO_PRICING_MODEL_KEYS = passThroughKeys(VIDEO_PRICING_PROVIDERS)
 
 const GEMINI_MODEL_COST_FALLBACKS: Record<GeminiVideoModel, { cents720p: number, cents1080p: number, cents4k: number }> = {
   'veo-3.1-fast-generate-preview': { cents720p: 10, cents1080p: 12, cents4k: 30 },
@@ -278,61 +294,37 @@ export const estimateReplicateCost = (model: ReplicateVideoModel, options: Estim
 }
 
 export const estimateVideoCosts = (options: EstimateVideoCostOptions): VideoCostEstimate[] => {
-  const geminiModels = options.geminiVideoModels ?? (options.geminiVideoModel ? [options.geminiVideoModel] : [])
-  const minimaxModels = options.minimaxVideoModels ?? (options.minimaxVideoModel ? [options.minimaxVideoModel] : [])
-  const glmModels = options.glmVideoModels ?? (options.glmVideoModel ? [options.glmVideoModel] : [])
-  const grokModels = options.grokVideoModels ?? (options.grokVideoModel ? [options.grokVideoModel] : [])
-  const runwayModels = options.runwayVideoModels ?? (options.runwayVideoModel ? [options.runwayVideoModel] : [])
-  const ltxModels = options.ltxVideoModels ?? (options.ltxVideoModel ? [options.ltxVideoModel] : [])
-  const replicateModels = options.replicateVideoModels ?? (options.replicateVideoModel ? [options.replicateVideoModel] : [])
-  const lumalabsModels = options.lumalabsVideoModels ?? (options.lumalabsVideoModel ? [options.lumalabsVideoModel] : [])
-  const falModels = options.falVideoModels ?? (options.falVideoModel ? [options.falVideoModel] : [])
-
   const estimates: VideoCostEstimate[] = []
-
-  for (const rawModel of geminiModels) {
-    const model = validateGeminiVideoModel(rawModel)
-    estimates.push(estimateGeminiCost(model, options))
-  }
-
-  for (const rawModel of minimaxModels) {
-    const model = validateMinimaxVideoModel(rawModel)
-    estimates.push(estimateMinimaxCost(model, options))
-  }
-
-  for (const rawModel of glmModels) {
-    const model = validateGlmVideoModel(rawModel)
-    estimates.push(estimateGlmCost(model, options))
-  }
-
-  for (const rawModel of grokModels) {
-    const model = validateGrokVideoModel(rawModel)
-    estimates.push(estimateGrokCost(model, options))
-  }
-
-  for (const rawModel of runwayModels) {
-    const model = validateRunwayVideoModel(rawModel)
-    estimates.push(estimateRunwayCost(model, options))
-  }
-
-  for (const rawModel of ltxModels) {
-    const model = validateLtxVideoModel(rawModel)
-    estimates.push(estimateLtxCost(model, options))
-  }
-
-  for (const rawModel of replicateModels) {
-    const model = validateReplicateVideoModel(rawModel)
-    estimates.push(estimateReplicateCost(model, options))
-  }
-
-  for (const rawModel of lumalabsModels) {
-    const model = validateLumalabsVideoModel(rawModel)
-    estimates.push(estimateLumalabsCost(model, options))
-  }
-
-  for (const rawModel of falModels) {
-    const model = validateFalVideoModel(rawModel)
-    estimates.push(estimateFalCost(model, options))
+  for (const selection of collectSelections(options, VIDEO_PRICING_PROVIDERS)) {
+    switch (selection.service) {
+      case 'gemini':
+        estimates.push(estimateGeminiCost(validateGeminiVideoModel(selection.model), options))
+        break
+      case 'minimax':
+        estimates.push(estimateMinimaxCost(validateMinimaxVideoModel(selection.model), options))
+        break
+      case 'glm':
+        estimates.push(estimateGlmCost(validateGlmVideoModel(selection.model), options))
+        break
+      case 'grok':
+        estimates.push(estimateGrokCost(validateGrokVideoModel(selection.model), options))
+        break
+      case 'runway':
+        estimates.push(estimateRunwayCost(validateRunwayVideoModel(selection.model), options))
+        break
+      case 'ltx':
+        estimates.push(estimateLtxCost(validateLtxVideoModel(selection.model), options))
+        break
+      case 'replicate':
+        estimates.push(estimateReplicateCost(validateReplicateVideoModel(selection.model), options))
+        break
+      case 'lumalabs':
+        estimates.push(estimateLumalabsCost(validateLumalabsVideoModel(selection.model), options))
+        break
+      case 'fal':
+        estimates.push(estimateFalCost(validateFalVideoModel(selection.model), options))
+        break
+    }
   }
 
   if (estimates.length === 0) {
@@ -342,65 +334,7 @@ export const estimateVideoCosts = (options: EstimateVideoCostOptions): VideoCost
   return estimates
 }
 
-export const estimateVideoCost = (options: EstimateVideoCostOptions): VideoCostEstimate => {
-  const geminiModelRaw = options.geminiVideoModels?.[0] ?? options.geminiVideoModel
-  const minimaxModelRaw = options.minimaxVideoModels?.[0] ?? options.minimaxVideoModel
-  const glmModelRaw = options.glmVideoModels?.[0] ?? options.glmVideoModel
-  const grokModelRaw = options.grokVideoModels?.[0] ?? options.grokVideoModel
-  const runwayModelRaw = options.runwayVideoModels?.[0] ?? options.runwayVideoModel
-  const ltxModelRaw = options.ltxVideoModels?.[0] ?? options.ltxVideoModel
-  const replicateModelRaw = options.replicateVideoModels?.[0] ?? options.replicateVideoModel
-  const lumalabsModelRaw = options.lumalabsVideoModels?.[0] ?? options.lumalabsVideoModel
-  const falModelRaw = options.falVideoModels?.[0] ?? options.falVideoModel
-
-  if (typeof geminiModelRaw === 'string' && geminiModelRaw.length > 0) {
-    const model = validateGeminiVideoModel(geminiModelRaw)
-    return estimateGeminiCost(model, options)
-  }
-
-  if (typeof minimaxModelRaw === 'string' && minimaxModelRaw.length > 0) {
-    const model = validateMinimaxVideoModel(minimaxModelRaw)
-    return estimateMinimaxCost(model, options)
-  }
-
-  if (typeof glmModelRaw === 'string' && glmModelRaw.length > 0) {
-    const model = validateGlmVideoModel(glmModelRaw)
-    return estimateGlmCost(model, options)
-  }
-
-  if (typeof grokModelRaw === 'string' && grokModelRaw.length > 0) {
-    const model = validateGrokVideoModel(grokModelRaw)
-    return estimateGrokCost(model, options)
-  }
-
-  if (typeof runwayModelRaw === 'string' && runwayModelRaw.length > 0) {
-    const model = validateRunwayVideoModel(runwayModelRaw)
-    return estimateRunwayCost(model, options)
-  }
-
-  if (typeof ltxModelRaw === 'string' && ltxModelRaw.length > 0) {
-    const model = validateLtxVideoModel(ltxModelRaw)
-    return estimateLtxCost(model, options)
-  }
-
-  if (typeof replicateModelRaw === 'string' && replicateModelRaw.length > 0) {
-    const model = validateReplicateVideoModel(replicateModelRaw)
-    return estimateReplicateCost(model, options)
-  }
-
-  if (typeof lumalabsModelRaw === 'string' && lumalabsModelRaw.length > 0) {
-    const model = validateLumalabsVideoModel(lumalabsModelRaw)
-    return estimateLumalabsCost(model, options)
-  }
-
-
-  if (typeof falModelRaw === 'string' && falModelRaw.length > 0) {
-    const model = validateFalVideoModel(falModelRaw)
-    return estimateFalCost(model, options)
-  }
-
-  return estimateGeminiModelCost('veo-3.1-fast-generate-preview', options.videoDuration, options.videoResolution, options.videoMode)
-}
+export const estimateVideoCost = (options: EstimateVideoCostOptions): VideoCostEstimate => estimateVideoCosts(options)[0]!
 
 export const logVideoEstimate = (estimate: VideoCostEstimate): void => {
   const entries: Array<readonly [string, string]> = [

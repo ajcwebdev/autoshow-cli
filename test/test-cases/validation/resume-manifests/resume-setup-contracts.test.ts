@@ -6,6 +6,7 @@ import { runCommand } from '../../../test-utils/test-helpers'
 import { readRunManifest, writeRunManifest } from '~/cli/commands/process-steps/manifest-utils'
 import { writeOcrRunManifest } from '~/cli/commands/process-steps/step-2-extract/step-2-ocr/ocr-manifest'
 import { writeSttRunManifest } from '~/cli/commands/process-steps/step-2-extract/step-2-stt/stt-manifest'
+import { dispatchResume } from '~/cli/commands/setup-and-utilities/resume/resume-dispatch'
 import type { Step3Metadata } from '~/types'
 
 const tempDirs: string[] = []
@@ -128,6 +129,24 @@ test('resume reports every missing output directory', async () => {
   expect(output).toContain(missingOne)
   expect(output).toContain(missingTwo)
   expect(output).toContain('Resume failed for 2 output directories')
+})
+
+test('multi-directory resume failures use staged infrastructure errors', async () => {
+  const root = await makeTempRoot('autoshow-missing-resume-error-')
+  const missingOne = join(root, 'missing-one')
+  const missingTwo = join(root, 'missing-two')
+
+  try {
+    await dispatchResume([missingOne, missingTwo], {}, [], [])
+    expect.unreachable('missing resume directories should fail')
+  } catch (error) {
+    expect(error).toMatchObject({
+      kind: 'infrastructure',
+      stage: 'resume:dispatch',
+      exitCode: 2
+    })
+    expect((error as Error).message).toContain('Resume failed for 2 output directories')
+  }
 })
 
 test('resume continues after a failed directory and summarizes at the end', async () => {

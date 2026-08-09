@@ -1,4 +1,5 @@
 import type { BuildDomainOptionsContext, MusicRuntimeOptionKey, RuntimeOptions } from '~/types'
+import { MUSIC_PRICING_MODEL_KEYS } from '~/cli/commands/process-steps/step-7-music/music-utils/music-pricing'
 import {
   parseOptionalIntFlag,
   readBooleanFlag,
@@ -7,16 +8,11 @@ import {
 import { resolveLocalConcurrency, resolveProviderConcurrency } from './concurrency'
 import { pick } from '~/utils/cli-utils'
 
-const MUSIC_MODEL_KEYS = [
-  'elevenlabsMusicModels', 'elevenlabsMusicModel', 'minimaxMusicModels', 'minimaxMusicModel',
-  'geminiMusicModels', 'geminiMusicModel',
-] as const satisfies readonly MusicRuntimeOptionKey[]
-
 export const buildMusicOptions = (ctx: BuildDomainOptionsContext): Pick<RuntimeOptions, MusicRuntimeOptionKey> => {
   const { mergedFlags, explicitFlags, configuredFlags, allShortcutFlags, modelOptions, targetCounts } = ctx
 
   return {
-    ...pick(modelOptions, MUSIC_MODEL_KEYS),
+    ...pick(modelOptions, MUSIC_PRICING_MODEL_KEYS),
     musicProviderConcurrency: resolveProviderConcurrency(mergedFlags, 'music-provider-concurrency', allShortcutFlags['all-music'], targetCounts.hostedMusicTargetCount, explicitFlags, configuredFlags),
     musicLocalConcurrency: resolveLocalConcurrency(mergedFlags, 'music-local-concurrency', explicitFlags, configuredFlags),
     musicDuration: parseOptionalIntFlag(readOptionalStringFlag(mergedFlags, 'music-duration')),

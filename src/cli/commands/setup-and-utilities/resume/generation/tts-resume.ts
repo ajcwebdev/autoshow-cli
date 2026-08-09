@@ -44,6 +44,7 @@ export const ttsResumeConfig = {
   metadataKey: 'tts',
   stepLabel: 'TTS',
   providerFlags: TTS_PROVIDER_FLAGS,
+  selectionMode: 'additive-stored' as const,
   modelFields: TTS_MODEL_FIELDS,
   getSuccessKey: (entry: Step4Metadata) =>
     getGenerationTargetKey(entry.ttsService, entry.ttsModel),

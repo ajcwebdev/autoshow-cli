@@ -1,7 +1,6 @@
 import type { AnthropicDeletedFile, AnthropicFetchOptions, AnthropicFileMetadata, AnthropicMessageResponse, AnthropicRequestOptions, AnthropicRestConfig, AnthropicRestError } from '~/types'
 import { ANTHROPIC_DEFAULT_BASE_URL } from '~/utils/base-urls'
-import { buildCaptureMetadata, redactPayloadPreview } from '~/utils/bounded-capture'
-import { extractRestErrorMessage, isRecord, joinRestUrl, normalizeFetchAbortError, parseJsonOrText, readJsonResponse, readRestResponseText } from '~/utils/rest-client'
+import { createProviderRestClient, isRecord, joinRestUrl, readJsonResponse } from '~/utils/rest-client'
 
 const ANTHROPIC_VERSION = '2023-06-01'
 export const ANTHROPIC_FILES_API_BETA = 'files-api-2025-04-14'
@@ -33,63 +32,39 @@ const extractResponseType = (payload: unknown): string | undefined => {
   return typeof payload['type'] === 'string' ? payload['type'] : undefined
 }
 
-const createAnthropicHttpError = async (
-  response: Response,
-  errorMessagePrefix: string
-): Promise<AnthropicRestError> => {
-  const captured = await readRestResponseText(response)
-  const rawText = captured.text
-  const rawResponse = captured.truncated
-    ? captured.sanitizedPreview
-    : parseJsonOrText(rawText)
-  const message = extractRestErrorMessage(rawResponse, rawText, response.status)
-  return Object.assign(new Error(`${errorMessagePrefix} (${response.status}): ${message}`), {
-    status: response.status,
-    headers: response.headers,
-    body: rawText,
-    rawResponse: redactPayloadPreview(rawResponse),
-    ...buildCaptureMetadata(captured),
-    bodyBytes: captured.totalBytes,
-    bodyTruncated: captured.truncated,
-    bodyPreview: captured.sanitizedPreview,
-    ...(extractErrorType(rawResponse) ? { errorType: extractErrorType(rawResponse) } : {}),
-    ...(extractResponseType(rawResponse) ? { responseType: extractResponseType(rawResponse) } : {})
-  } satisfies Omit<AnthropicRestError, keyof Error>)
-}
-
-const anthropicFetch = async (options: AnthropicFetchOptions): Promise<Response> => {
-  const defaultBaseURL = options.config.defaultBaseURL ?? ANTHROPIC_DEFAULT_BASE_URL
-  const requestUrl = buildAnthropicUrl(options.config.baseURL, options.path, defaultBaseURL)
-
-  const headers = new Headers(options.headers)
-  if (!headers.has('accept')) {
-    headers.set('accept', 'application/json')
-  }
-  headers.set('x-api-key', options.config.apiKey)
-  headers.set('anthropic-version', ANTHROPIC_VERSION)
-
-  const beta = getBetaHeaderValue(options.beta)
-  if (beta) {
-    headers.set('anthropic-beta', beta)
-  }
-
-  try {
-    const response = await fetch(requestUrl, {
-      method: options.method ?? 'POST',
-      headers,
-      body: options.body,
-      ...(options.signal ? { signal: options.signal } : {})
-    })
-
-    if (!response.ok) {
-      throw await createAnthropicHttpError(response, options.errorMessagePrefix)
+const anthropicFetch = createProviderRestClient<AnthropicFetchOptions, AnthropicRestError>({
+  buildRequest: (options) => {
+    const headers = new Headers(options.headers)
+    if (!headers.has('accept')) {
+      headers.set('accept', 'application/json')
+    }
+    headers.set('x-api-key', options.config.apiKey)
+    headers.set('anthropic-version', ANTHROPIC_VERSION)
+    const beta = getBetaHeaderValue(options.beta)
+    if (beta) {
+      headers.set('anthropic-beta', beta)
     }
 
-    return response
-  } catch (error) {
-    throw normalizeFetchAbortError(error)
-  }
-}
+    return {
+      url: buildAnthropicUrl(
+        options.config.baseURL,
+        options.path,
+        options.config.defaultBaseURL ?? ANTHROPIC_DEFAULT_BASE_URL
+      ),
+      init: {
+        method: options.method ?? 'POST',
+        headers,
+        body: options.body,
+        ...(options.signal ? { signal: options.signal } : {})
+      }
+    }
+  },
+  errorMessagePrefix: (options) => options.errorMessagePrefix,
+  createError: ({ parsedBody, message }) => Object.assign(new Error(message), {
+    ...(extractErrorType(parsedBody) ? { errorType: extractErrorType(parsedBody) } : {}),
+    ...(extractResponseType(parsedBody) ? { responseType: extractResponseType(parsedBody) } : {})
+  }) as AnthropicRestError
+})
 
 const extractBetasFromBody = (body: Record<string, unknown>): string[] | undefined => {
   const value = body['betas']

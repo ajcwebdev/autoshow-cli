@@ -1,6 +1,6 @@
 import { basename, extname } from 'node:path'
 import type { OpenAIImageResponse } from '~/types'
-import { imageDownloadHttpError } from './polled-image-http'
+import { imageDownloadHttpError } from '~/utils/polled-job-client/polled-job'
 
 export const mimeToExtension = (mimeType: string | null | undefined, fallback = 'png'): string => {
   const normalized = mimeType?.split(';')[0]?.trim().toLowerCase()

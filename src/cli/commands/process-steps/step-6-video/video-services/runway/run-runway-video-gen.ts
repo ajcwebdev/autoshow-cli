@@ -5,9 +5,8 @@ import { logGenCompleted, logGenStatus } from '~/cli/commands/process-steps/gene
 import { estimateVideoCost, logVideoEstimate } from '~/cli/commands/process-steps/step-6-video/video-utils/video-pricing'
 import { normalizeRunwayDuration, normalizeRunwayRatio } from '~/cli/commands/process-steps/step-6-video/video-utils/video-normalization'
 import { downloadVideoOutputBytes } from '~/cli/commands/process-steps/step-6-video/video-utils/video-output-download'
-import { classifyFetchRetry, pollUntil, withRetry } from '~/utils/retries'
+import { formatPolledJobError, runPolledJob } from '~/utils/polled-job-client/polled-job'
 import { requireApiKey } from '~/utils/validate/env-utils'
-import { validateData } from '~/utils/validate/validation'
 import { MEDIA_GENERATION_TIMEOUT_MS } from '~/utils/timeouts'
 
 const RUNWAY_BASE_URL = 'https://api.dev.runwayml.com/v1'
@@ -30,15 +29,7 @@ const RunwayTaskStatusResponseSchema = v.object({
 
 const formatRunwayError = (task: v.InferOutput<typeof RunwayTaskStatusResponseSchema>): string => {
   const detail = task.failure ?? task.failureCode
-  if (typeof detail === 'string') return detail
-  if (detail !== undefined && detail !== null) {
-    try {
-      return JSON.stringify(detail)
-    } catch {
-      return String(detail)
-    }
-  }
-  return `Runway task status ${task.status}`
+  return formatPolledJobError(detail, `Runway task status ${task.status}`)
 }
 
 const validateRunwayPromptText = (prompt: string): void => {
@@ -71,63 +62,36 @@ export const runRunwayVideoGen = async (
   logVideoEstimate(estimate)
 
   const startTime = Date.now()
-  const createResp = await fetch(`${RUNWAY_BASE_URL}/text_to_video`, {
-    method: 'POST',
-    headers: {
-      Authorization: `Bearer ${apiKey}`,
-      'X-Runway-Version': RUNWAY_API_VERSION,
-      'Content-Type': 'application/json'
-    },
-    body: JSON.stringify({
-      model: options.model,
-      promptText: prompt,
-      ratio,
-      duration
-    })
-  })
-
-  if (!createResp.ok) {
-    const body = await createResp.text()
-    throw InfraError(`Runway video generation request failed (${createResp.status}): ${body || 'No response body'}`, { stage: 'video:runway', status: createResp.status })
+  const headers = {
+    Authorization: `Bearer ${apiKey}`,
+    'X-Runway-Version': RUNWAY_API_VERSION,
+    'Content-Type': 'application/json'
   }
-
-  const createData = validateData(
-    RunwayCreateTaskResponseSchema,
-    await createResp.json() as unknown,
-    'Runway video generation create response'
-  )
-
-  const taskData = await pollUntil({
+  const { result: taskData } = await runPolledJob({
     operationName: 'runway-video-gen',
     intervalMs: POLL_INTERVAL_MS,
     deadlineMs: POLL_TIMEOUT_MS,
-    pollFn: () => withRetry(
-      { retryClass: 'runtime_http_read', operationName: 'runway-video-gen-poll' },
-      async () => {
-        const pollResp = await fetch(`${RUNWAY_BASE_URL}/tasks/${encodeURIComponent(createData.id)}`, {
-          method: 'GET',
-          headers: {
-            Authorization: `Bearer ${apiKey}`,
-            'X-Runway-Version': RUNWAY_API_VERSION,
-            'Content-Type': 'application/json'
-          }
-        })
-
-        if (!pollResp.ok) {
-          const body = await pollResp.text()
-          throw InfraError(`Runway video generation query failed (${pollResp.status}): ${body || 'No response body'}`, { stage: 'video:runway', status: pollResp.status })
-        }
-
-        const data = validateData(
-          RunwayTaskStatusResponseSchema,
-          await pollResp.json() as unknown,
-          'Runway video generation query response'
-        )
-        logGenStatus('video', 'runway', options.model, data.status)
-        return data
+    create: {
+      url: `${RUNWAY_BASE_URL}/text_to_video`,
+      init: {
+        method: 'POST',
+        headers,
+        body: JSON.stringify({ model: options.model, promptText: prompt, ratio, duration })
       },
-      (error) => classifyFetchRetry(error, 'runtime_http_read', { retryAbortOnConservative: true })
-    ),
+      schema: RunwayCreateTaskResponseSchema,
+      context: 'Runway video generation create response',
+      stage: 'video:runway',
+      errorMessage: 'Runway video generation request failed'
+    },
+    poll: (created) => ({
+      url: `${RUNWAY_BASE_URL}/tasks/${encodeURIComponent(created.id)}`,
+      init: { method: 'GET', headers },
+      schema: RunwayTaskStatusResponseSchema,
+      context: 'Runway video generation query response',
+      stage: 'video:runway',
+      errorMessage: 'Runway video generation query failed'
+    }),
+    onPoll: (data) => logGenStatus('video', 'runway', options.model, data.status),
     isDone: (data) => data.status === 'SUCCEEDED',
     isFailed: (data) => ['FAILED', 'CANCELLED', 'THROTTLED'].includes(data.status)
       ? { failed: true, reason: formatRunwayError(data) }

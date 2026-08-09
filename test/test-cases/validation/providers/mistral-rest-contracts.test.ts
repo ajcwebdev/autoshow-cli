@@ -56,7 +56,37 @@ describe('Mistral REST contracts', () => {
     })
     expect(metadata).toMatchObject({
       transcriptionService: 'mistral',
-      transcriptionModel: 'voxtral-mini-latest'
+      transcriptionModel: 'voxtral-mini-latest',
+      timings: { requestCount: 1 }
+    })
+  }, 10_000)
+
+  test('STT reports retry and rate-limit counts through the shared hosted finalizer', async () => {
+    const dir = await tempDirs.make('autoshow-mistral-stt-retry-')
+    process.env['MISTRAL_API_KEY'] = 'mistral-key'
+
+    const calls = installMockFetch(() => calls.length === 1
+      ? Response.json({ message: 'rate limited' }, {
+          status: 429,
+          headers: { 'retry-after': '0.001' }
+        })
+      : Response.json({
+          model: 'voxtral-mini-latest',
+          text: 'Recovered transcription.',
+          segments: [{ start: 0, end: 1, text: 'Recovered transcription.' }]
+        }))
+
+    const { metadata } = await runMistralStt('input/examples/audio/0-audio-short.mp3', dir, {
+      model: 'voxtral-mini-latest',
+      segmentOffsetMinutes: 0,
+      baseUrl: 'https://mock.mistral.local'
+    })
+
+    expect(calls).toHaveLength(2)
+    expect(metadata.timings).toMatchObject({
+      requestCount: 2,
+      retryCount: 1,
+      rateLimitCount: 1
     })
   }, 10_000)
 

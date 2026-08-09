@@ -1,7 +1,7 @@
 import type { OpenAIChatCompletionResponse, OpenAIErrorFields, OpenAIFetchOptions, OpenAIImageResponse, OpenAIRequestOptions, OpenAIResponsesResponse, OpenAIRestConfig } from '~/types'
 import { OPENAI_DEFAULT_BASE_URL } from '~/utils/base-urls'
-import { buildCaptureMetadata, redactPayloadPreview } from '~/utils/bounded-capture'
-import { extractRestErrorMessage, isRecord, joinRestUrl, normalizeFetchAbortError, parseJsonOrText, readJsonResponse, readRestResponseText } from '~/utils/rest-client'
+import { redactPayloadPreview } from '~/utils/bounded-capture'
+import { createProviderRestClient, isRecord, joinRestUrl, readJsonResponse } from '~/utils/rest-client'
 
 export class OpenAIRestError extends Error {
   status: number
@@ -56,54 +56,31 @@ const extractErrorFields = (payload: unknown): OpenAIErrorFields => {
   return fields
 }
 
-const createOpenAIHttpError = async (
-  response: Response,
-  errorMessagePrefix: string
-): Promise<OpenAIRestError> => {
-  const captured = await readRestResponseText(response)
-  const rawText = captured.text
-  const rawResponse = captured.truncated
-    ? captured.sanitizedPreview
-    : parseJsonOrText(rawText)
-  const message = extractRestErrorMessage(rawResponse, rawText, response.status)
-  const error = new OpenAIRestError(
-    `${errorMessagePrefix} (${response.status}): ${message}`,
-    response.status,
-    response.headers,
-    rawText,
-    redactPayloadPreview(rawResponse),
-    extractErrorFields(rawResponse)
-  )
-  error.bodyBytes = captured.totalBytes
-  error.bodyTruncated = captured.truncated
-  error.bodyPreview = captured.sanitizedPreview
-  Object.assign(error, buildCaptureMetadata(captured))
-  return error
-}
-
-const openAIFetch = async (options: OpenAIFetchOptions): Promise<Response> => {
-  const requestUrl = buildOpenAIUrl(options.config.baseURL, options.path)
-
-  const headers = new Headers(options.headers)
-  headers.set('authorization', `Bearer ${options.config.apiKey}`)
-
-  try {
-    const response = await fetch(requestUrl, {
-      method: options.method ?? 'POST',
-      headers,
-      body: options.body,
-      ...(options.signal ? { signal: options.signal } : {})
-    })
-
-    if (!response.ok) {
-      throw await createOpenAIHttpError(response, options.errorMessagePrefix)
+const openAIFetch = createProviderRestClient<OpenAIFetchOptions, OpenAIRestError>({
+  buildRequest: (options) => {
+    const headers = new Headers(options.headers)
+    headers.set('authorization', `Bearer ${options.config.apiKey}`)
+    return {
+      url: buildOpenAIUrl(options.config.baseURL, options.path),
+      init: {
+        method: options.method ?? 'POST',
+        headers,
+        body: options.body,
+        ...(options.signal ? { signal: options.signal } : {})
+      }
     }
-
-    return response
-  } catch (error) {
-    throw normalizeFetchAbortError(error)
-  }
-}
+  },
+  errorMessagePrefix: (options) => options.errorMessagePrefix,
+  createError: ({ response, rawText, parsedBody, message }) =>
+    new OpenAIRestError(
+      message,
+      response.status,
+      response.headers,
+      rawText,
+      redactPayloadPreview(parsedBody),
+      extractErrorFields(parsedBody)
+    )
+})
 
 export const openAIJsonRequest = async <T = Record<string, unknown>>(
   config: OpenAIRestConfig,

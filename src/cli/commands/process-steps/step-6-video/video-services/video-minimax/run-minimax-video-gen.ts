@@ -6,7 +6,7 @@ import { requireApiKey } from '~/utils/validate/env-utils'
 import { MINIMAX_DEFAULT_BASE_URL } from '~/utils/base-urls'
 import { normalizeMinimaxDurationForApi, normalizeMinimaxResolutionForApi } from '~/cli/commands/process-steps/step-6-video/video-utils/video-normalization'
 import { downloadVideoOutputBytes } from '~/cli/commands/process-steps/step-6-video/video-utils/video-output-download'
-import { classifyFetchRetry, pollUntil, withRetry } from '~/utils/retries'
+import { runPolledJob } from '~/utils/polled-job-client/polled-job'
 import { MEDIA_GENERATION_TIMEOUT_MS } from '~/utils/timeouts'
 import {
   MinimaxCreateResponseSchema,
@@ -79,31 +79,32 @@ export const runMinimaxVideoGen = async (
     if (lastFrameImage) requestBody['last_frame_image'] = lastFrameImage
   }
 
-  const createData = await minimaxFetchJson(
-    `${baseURL}/v1/video_generation`,
-    {
-      init: minimaxJsonRequestInit(apiKey, 'POST', requestBody),
-      schema: MinimaxCreateResponseSchema,
-      responseContext: 'MiniMax video generation create response',
-      baseRespContext: 'MiniMax video generation create request',
-      stage: 'video:minimax',
-      httpErrorMessage: 'MiniMax video generation request failed'
-    }
-  )
-
-  const taskId = String(createData.task_id)
-
-  const queryData = await pollUntil({
+  const { result: queryData } = await runPolledJob({
     operationName: 'minimax-video-gen',
     intervalMs: POLL_INTERVAL_MS,
     deadlineMs: POLL_TIMEOUT_MS,
-    pollFn: () => withRetry(
-      { retryClass: 'runtime_http_read', operationName: 'minimax-video-gen-poll' },
-      async () => {
+    create: {
+      run: async () => await minimaxFetchJson(
+        `${baseURL}/v1/video_generation`,
+        {
+          init: minimaxJsonRequestInit(apiKey, 'POST', requestBody),
+          schema: MinimaxCreateResponseSchema,
+          responseContext: 'MiniMax video generation create response',
+          baseRespContext: 'MiniMax video generation create request',
+          stage: 'video:minimax',
+          httpErrorMessage: 'MiniMax video generation request failed'
+        }
+      )
+    },
+    poll: (created) => ({
+      run: async (signal) => {
         const data = await minimaxFetchJson(
-          `${baseURL}/v1/query/video_generation?task_id=${encodeURIComponent(taskId)}`,
+          `${baseURL}/v1/query/video_generation?task_id=${encodeURIComponent(String(created.task_id))}`,
           {
-            init: minimaxJsonRequestInit(apiKey, 'GET'),
+            init: {
+              ...minimaxJsonRequestInit(apiKey, 'GET'),
+              ...(signal ? { signal } : {})
+            },
             schema: MinimaxQueryResponseSchema,
             responseContext: 'MiniMax video generation query response',
             baseRespContext: 'MiniMax video generation query',
@@ -111,13 +112,10 @@ export const runMinimaxVideoGen = async (
             httpErrorMessage: 'MiniMax video generation query failed'
           }
         )
-
-        const status = readMinimaxTaskStatus(data)
-        logGenStatus('video', 'minimax', options.model, String(status ?? 'processing'))
         return data
-      },
-      (error) => classifyFetchRetry(error, 'runtime_http_read', { retryAbortOnConservative: true })
-    ),
+      }
+    }),
+    onPoll: (data) => logGenStatus('video', 'minimax', options.model, String(readMinimaxTaskStatus(data) ?? 'processing')),
     isDone: (data) => isMinimaxTaskSuccess(readMinimaxTaskStatus(data)),
     isFailed: (data) => {
       const status = readMinimaxTaskStatus(data)

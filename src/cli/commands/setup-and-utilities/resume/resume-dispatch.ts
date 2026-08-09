@@ -11,7 +11,7 @@ import { logSuitePriceSummary } from '~/cli/commands/process-steps/step-1-downlo
 import { logResumeSuiteSummary } from './resume-logging'
 import * as l from '~/utils/app-logger/app-logger'
 import type { AggregatedPriceEstimate, BatchManifest, ExtractRoute, ExtractSelectorInputRoutes, ResumeDispatchOutcome, ResumeDisplayOptions, ResumeResult, ResumeSelectorNormalizationResult, ResumeTarget, ResumeTargetKind, RunManifest } from '~/types'
-import { CLIUsageError } from '~/utils/error-handler'
+import { CLIUsageError, InfraError } from '~/utils/error-handler'
 import { getResumeHandler, URL_ARTICLE_ROUTE } from './resume-registry'
 
 const SUPPORTED_RESUME_KINDS = new Set<ResumeTargetKind>(['extract', 'write', 'tts', 'image', 'video', 'music'])
@@ -235,9 +235,7 @@ const buildResumeFailureError = (
     `Resume failed for ${failures.length} output ${noun}:`,
     ...failures.map((failure) => `- ${failure.outputDir}: ${failure.message}`)
   ]
-  const error = new Error(lines.join('\n'))
-  ;(error as Error & { exitCode?: number }).exitCode = 2
-  return error
+  return InfraError(lines.join('\n'), { stage: 'resume:dispatch', exitCode: 2 })
 }
 
 const dispatchSingleResume = async (

@@ -12,7 +12,7 @@ import {
   normalizeGlmSize
 } from '~/cli/commands/process-steps/step-6-video/video-utils/video-normalization'
 import { downloadVideoOutputBytes } from '~/cli/commands/process-steps/step-6-video/video-utils/video-output-download'
-import { classifyFetchRetry, pollUntil, withRetry } from '~/utils/retries'
+import { formatPolledJobError, runPolledJob } from '~/utils/polled-job-client/polled-job'
 import { validateData } from '~/utils/validate/validation'
 import { MEDIA_GENERATION_TIMEOUT_MS } from '~/utils/timeouts'
 import { videoMediaReferenceToUrlOrBase64, videoMediaReferenceToUrlOrDataUrl } from '../../video-utils/video-media-inputs'
@@ -76,16 +76,6 @@ const GlmPollVideoResponseSchema = v.object({
   video_result: v.optional(v.array(v.object({ url: v.string() })), undefined),
   error: v.optional(v.unknown(), undefined)
 })
-
-const formatGlmError = (value: unknown): string => {
-  if (value === undefined || value === null) return 'Unknown error'
-  if (typeof value === 'string') return value
-  try {
-    return JSON.stringify(value)
-  } catch {
-    return String(value)
-  }
-}
 
 export const runGlmVideoGen = async (
   prompt: string | undefined,
@@ -162,78 +152,58 @@ export const runGlmVideoGen = async (
   const requestBodies = buildGlmVideoRequestBodies(requestBodyBase, options.model, imageUrl)
 
   const startTime = Date.now()
-  let createData: v.InferOutput<typeof GlmCreateVideoResponseSchema> | undefined
-  const createErrors: string[] = []
-
-  for (let index = 0; index < requestBodies.length; index += 1) {
-    const createResp = await fetch(`${baseURL}/videos/generations`, {
-      method: 'POST',
-      headers: {
-        Authorization: `Bearer ${apiKey}`,
-        'Content-Type': 'application/json'
-      },
-      body: JSON.stringify(requestBodies[index])
-    })
-
-    if (!createResp.ok) {
-      const body = await createResp.text()
-      const message = `GLM video generation request failed (${createResp.status}): ${body || 'No response body'}`
-      createErrors.push(message)
-      if (index < requestBodies.length - 1 && shouldRetryViduCreateRequest(options.model, createResp.status, body)) {
-        continue
-      }
-      throw InfraError(message, { stage: 'video:glm' })
-    }
-
-    createData = validateData(
-      GlmCreateVideoResponseSchema,
-      await createResp.json() as unknown,
-      'GLM video generation create response'
-    )
-    break
+  const headers = {
+    Authorization: `Bearer ${apiKey}`,
+    'Content-Type': 'application/json'
   }
-
-  if (!createData) {
-    throw InfraError(createErrors.at(-1) ?? 'GLM video generation request failed: no create response was returned', { stage: 'video:glm' })
-  }
-
-  if (createData.task_status === 'FAIL') {
-    throw InfraError(`GLM video generation failed: ${formatGlmError(createData.error)}`, { stage: 'video:glm' })
-  }
-
-  const taskData = await pollUntil({
+  const { result: taskData } = await runPolledJob({
     operationName: 'glm-video-gen',
     intervalMs: POLL_INTERVAL_MS,
     deadlineMs: POLL_TIMEOUT_MS,
-    pollFn: () => withRetry(
-      { retryClass: 'runtime_http_read', operationName: 'glm-video-gen-poll' },
-      async () => {
-        const pollResp = await fetch(`${baseURL}/async-result/${encodeURIComponent(createData.id)}`, {
-          method: 'GET',
-          headers: {
-            Authorization: `Bearer ${apiKey}`,
-            'Content-Type': 'application/json'
+    create: {
+      run: async () => {
+        const createErrors: string[] = []
+        for (let index = 0; index < requestBodies.length; index += 1) {
+          const createResp = await fetch(`${baseURL}/videos/generations`, {
+            method: 'POST',
+            headers,
+            body: JSON.stringify(requestBodies[index])
+          })
+          if (!createResp.ok) {
+            const responseBody = await createResp.text()
+            const message = `GLM video generation request failed (${createResp.status}): ${responseBody || 'No response body'}`
+            createErrors.push(message)
+            if (index < requestBodies.length - 1 && shouldRetryViduCreateRequest(options.model, createResp.status, responseBody)) {
+              continue
+            }
+            throw InfraError(message, { stage: 'video:glm' })
           }
-        })
-
-        if (!pollResp.ok) {
-          const body = await pollResp.text()
-          throw InfraError(`GLM video generation query failed (${pollResp.status}): ${body || 'No response body'}`, { stage: 'video:glm', status: pollResp.status })
+          return validateData(
+            GlmCreateVideoResponseSchema,
+            await createResp.json() as unknown,
+            'GLM video generation create response'
+          )
         }
-
-        const data = validateData(
-          GlmPollVideoResponseSchema,
-          await pollResp.json() as unknown,
-          'GLM video generation query response'
-        )
-        logGenStatus('video', 'glm', options.model, data.task_status)
-        return data
-      },
-      (error) => classifyFetchRetry(error, 'runtime_http_read', { retryAbortOnConservative: true })
-    ),
+        throw InfraError(createErrors.at(-1) ?? 'GLM video generation request failed: no create response was returned', { stage: 'video:glm' })
+      }
+    },
+    validateCreate: (created) => {
+      if (created.task_status === 'FAIL') {
+        throw InfraError(`GLM video generation failed: ${formatPolledJobError(created.error)}`, { stage: 'video:glm' })
+      }
+    },
+    poll: (created) => ({
+      url: `${baseURL}/async-result/${encodeURIComponent(created.id)}`,
+      init: { method: 'GET', headers },
+      schema: GlmPollVideoResponseSchema,
+      context: 'GLM video generation query response',
+      stage: 'video:glm',
+      errorMessage: 'GLM video generation query failed'
+    }),
+    onPoll: (data) => logGenStatus('video', 'glm', options.model, data.task_status),
     isDone: (data) => data.task_status === 'SUCCESS',
     isFailed: (data) => data.task_status === 'FAIL'
-      ? { failed: true, reason: formatGlmError(data.error) }
+      ? { failed: true, reason: formatPolledJobError(data.error) }
       : { failed: false }
   })
 

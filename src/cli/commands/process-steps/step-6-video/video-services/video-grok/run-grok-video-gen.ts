@@ -10,10 +10,9 @@ import {
   normalizeGrokVideoResolution
 } from '~/cli/commands/process-steps/step-6-video/video-utils/video-normalization'
 import { downloadVideoOutputBytes } from '~/cli/commands/process-steps/step-6-video/video-utils/video-output-download'
-import { classifyFetchRetry, pollUntil, withRetry } from '~/utils/retries'
+import { formatPolledJobError, runPolledJob } from '~/utils/polled-job-client/polled-job'
 import { requireApiKey } from '~/utils/validate/env-utils'
 import { XAI_DEFAULT_BASE_URL } from '~/utils/base-urls'
-import { validateData } from '~/utils/validate/validation'
 import { MEDIA_GENERATION_TIMEOUT_MS } from '~/utils/timeouts'
 import {
   tryResolveLocalVideoDurationSeconds,
@@ -42,16 +41,6 @@ const GrokPollVideoResponseSchema = v.object({
     storage_error: v.optional(v.unknown(), undefined)
   }), undefined)
 })
-
-const formatGrokError = (value: unknown): string => {
-  if (value === undefined || value === null) return 'Unknown error'
-  if (typeof value === 'string') return value
-  try {
-    return JSON.stringify(value)
-  } catch {
-    return String(value)
-  }
-}
 
 export const runGrokVideoGen = async (
   prompt: string | undefined,
@@ -135,59 +124,35 @@ export const runGrokVideoGen = async (
     if (referenceImages && referenceImages.length > 0) requestBody['reference_images'] = referenceImages
   }
 
-  const createResp = await fetch(`${baseURL}${endpoint}`, {
-    method: 'POST',
-    headers: {
-      Authorization: `Bearer ${apiKey}`,
-      'Content-Type': 'application/json'
-    },
-    body: JSON.stringify(requestBody)
-  })
-
-  if (!createResp.ok) {
-    const body = await createResp.text()
-    throw InfraError(`Grok video ${mode} request failed (${createResp.status}): ${body || 'No response body'}`, { stage: 'video:grok' })
+  const headers = {
+    Authorization: `Bearer ${apiKey}`,
+    'Content-Type': 'application/json'
   }
-
-  const createData = validateData(
-    GrokCreateVideoResponseSchema,
-    await createResp.json() as unknown,
-    'Grok video generation create response'
-  )
-
-  const taskData = await pollUntil({
+  const { created: createData, result: taskData } = await runPolledJob({
     operationName: 'grok-video-gen',
     intervalMs: POLL_INTERVAL_MS,
     deadlineMs: POLL_TIMEOUT_MS,
-    pollFn: () => withRetry(
-      { retryClass: 'runtime_http_read', operationName: 'grok-video-gen-poll' },
-      async () => {
-        const pollResp = await fetch(`${baseURL}/videos/${encodeURIComponent(createData.request_id)}`, {
-          method: 'GET',
-          headers: {
-            Authorization: `Bearer ${apiKey}`,
-            'Content-Type': 'application/json'
-          }
-        })
-
-        if (!pollResp.ok) {
-          const body = await pollResp.text()
-          throw InfraError(`Grok video generation query failed (${pollResp.status}): ${body || 'No response body'}`, { stage: 'video:grok', status: pollResp.status })
-        }
-
-        const data = validateData(
-          GrokPollVideoResponseSchema,
-          await pollResp.json() as unknown,
-          'Grok video generation query response'
-        )
-        logGenStatus('video', 'grok', options.model, data.status)
-        return data
-      },
-      (error) => classifyFetchRetry(error, 'runtime_http_read', { retryAbortOnConservative: true })
-    ),
+    create: {
+      url: `${baseURL}${endpoint}`,
+      init: { method: 'POST', headers, body: JSON.stringify(requestBody) },
+      schema: GrokCreateVideoResponseSchema,
+      context: 'Grok video generation create response',
+      stage: 'video:grok',
+      errorMessage: `Grok video ${mode} request failed`,
+      errorFactory: (response, payload) => InfraError(`Grok video ${mode} request failed (${response.status}): ${typeof payload === 'string' && payload.length > 0 ? payload : 'No response body'}`, { stage: 'video:grok' })
+    },
+    poll: (created) => ({
+      url: `${baseURL}/videos/${encodeURIComponent(created.request_id)}`,
+      init: { method: 'GET', headers },
+      schema: GrokPollVideoResponseSchema,
+      context: 'Grok video generation query response',
+      stage: 'video:grok',
+      errorMessage: 'Grok video generation query failed'
+    }),
+    onPoll: (data) => logGenStatus('video', 'grok', options.model, data.status),
     isDone: (data) => data.status === 'done',
     isFailed: (data) => data.status === 'failed' || data.status === 'expired'
-      ? { failed: true, reason: formatGrokError(data.error) }
+      ? { failed: true, reason: formatPolledJobError(data.error) }
       : { failed: false }
   })
 

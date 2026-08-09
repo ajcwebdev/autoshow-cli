@@ -1,6 +1,5 @@
 import * as l from '~/utils/app-logger/app-logger'
 import { InfraError } from '~/utils/error-handler'
-import { pollUntil } from '~/utils/retries'
 import {
   LLAMA_BASE_URL,
   LLAMA_SERVER_HEALTH_HEARTBEAT_MS,
@@ -11,87 +10,31 @@ import { clearLlamaServerState, readLlamaServerState } from './llama-server-stat
 import type { LocalLlmServerResourceOptions } from '~/types'
 import {
   checkLocalServerHealthQuiet,
-  getErrorCode,
-  isPidRunning,
   waitForLocalServerHealth,
-  waitForLocalServerHealthState
 } from '../local-server-health'
+import {
+  stopRecordedLocalServer,
+  type RecordedLocalServerStopProfile
+} from '../local-server-stop'
 
 export const checkLlamaHealthQuiet = async (): Promise<boolean> =>
   await checkLocalServerHealthQuiet(LLAMA_BASE_URL)
 
-const waitForPidsExit = async (pids: number[], timeoutMs: number): Promise<boolean> => {
-  try {
-    await pollUntil({
-      operationName: 'llama-server-wait-process-exit',
-      intervalMs: 100,
-      deadlineMs: timeoutMs,
-      pollFn: async () => pids.every((pid) => !isPidRunning(pid)),
-      isDone: (allExited) => allExited
-    })
-    return true
-  } catch {
-    return false
-  }
-}
+export const LLAMA_STOP_PROFILE = {
+  serverName: 'llama',
+  baseUrl: LLAMA_BASE_URL,
+  stopTimeoutMs: LLAMA_SERVER_STOP_TIMEOUT_MS,
+  stopPolicy: 'verified-pid',
+  failureMessage: (pid: number) =>
+    `Failed to stop recorded llama-server on localhost:8080 (pid: ${pid})`,
+  stage: 'write:llama',
+  readState: readLlamaServerState,
+  clearState: clearLlamaServerState
+} satisfies RecordedLocalServerStopProfile
 
 const stopRecordedDefaultLlamaServer = async (
   options: LocalLlmServerResourceOptions = {}
-): Promise<boolean> => {
-  const state = await readLlamaServerState(options)
-  if (!state) {
-    return false
-  }
-
-  if (!isPidRunning(state.pid)) {
-    await clearLlamaServerState(state.pid, options)
-    return false
-  }
-
-  try {
-    process.kill(state.pid, 'SIGTERM')
-  } catch (error) {
-    if (getErrorCode(error) === 'ESRCH') {
-      await clearLlamaServerState(state.pid, options)
-      return false
-    }
-    throw error
-  }
-
-  const stoppedAfterTerm = await waitForLocalServerHealthState({
-    baseUrl: LLAMA_BASE_URL,
-    healthy: false,
-    operationName: 'llama-server-wait-stopped',
-    timeoutMs: LLAMA_SERVER_STOP_TIMEOUT_MS
-  })
-    && await waitForPidsExit([state.pid], LLAMA_SERVER_STOP_TIMEOUT_MS)
-  if (stoppedAfterTerm) {
-    await clearLlamaServerState(state.pid, options)
-    return true
-  }
-
-  try {
-    process.kill(state.pid, 'SIGKILL')
-  } catch (error) {
-    if (getErrorCode(error) !== 'ESRCH') {
-      throw error
-    }
-  }
-
-  const stoppedAfterKill = await waitForLocalServerHealthState({
-    baseUrl: LLAMA_BASE_URL,
-    healthy: false,
-    operationName: 'llama-server-wait-stopped',
-    timeoutMs: LLAMA_SERVER_STOP_TIMEOUT_MS
-  })
-    && await waitForPidsExit([state.pid], LLAMA_SERVER_STOP_TIMEOUT_MS)
-  if (stoppedAfterKill) {
-    await clearLlamaServerState(state.pid, options)
-    return true
-  }
-
-  throw InfraError(`Failed to stop recorded llama-server on localhost:8080 (pid: ${state.pid})`, { stage: 'write:llama' })
-}
+): Promise<boolean> => await stopRecordedLocalServer(LLAMA_STOP_PROFILE, options)
 
 export const stopDefaultLlamaServer = async (
   options: LocalLlmServerResourceOptions = {}

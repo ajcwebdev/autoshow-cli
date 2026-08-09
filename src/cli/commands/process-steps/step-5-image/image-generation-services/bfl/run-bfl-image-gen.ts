@@ -1,11 +1,9 @@
 import * as v from 'valibot'
 import type { BflImageModel, BflOutputFormat, Step5Metadata } from '~/types'
-import { CLIUsageError, InfraError, ValidationError } from '~/utils/error-handler'
+import { CLIUsageError, ValidationError } from '~/utils/error-handler'
 import { logGenCompleted, logGenStatus } from '~/cli/commands/process-steps/generation-command-utils'
 import { estimateImageCosts, logImageEstimate } from '~/cli/commands/process-steps/step-5-image/image-utils/image-pricing'
-import { downloadGeneratedImage, extractImageErrorMessage, fetchImageProviderJson } from '~/cli/commands/process-steps/step-5-image/image-utils/polled-image-http'
-import { classifyFetchRetry, pollUntil, withRetry } from '~/utils/retries'
-import { validateData } from '~/utils/validate/validation'
+import { downloadGeneratedImage, extractImageErrorMessage, readJsonOrText, runPolledJob, withImageProviderHeaders } from '~/utils/polled-job-client/polled-job'
 import { MEDIA_GENERATION_TIMEOUT_MS } from '~/utils/timeouts'
 import { imageReferenceToUrlOrDataUrl } from '../../image-utils/image-inputs'
 import { ensureBflImageGenSetup, getBflBaseUrl } from './bfl-image-gen'
@@ -70,13 +68,6 @@ export const getBflImageExtension = (format: string | undefined): string => {
   return outputFormat === 'jpeg' ? 'jpg' : outputFormat
 }
 
-const fetchBflJson = async (
-  url: string,
-  apiKey: string,
-  init: RequestInit
-): Promise<{ response: Response, payload: unknown }> =>
-  await fetchImageProviderJson(url, init, { 'x-key': apiKey })
-
 export const runBflImageGen = async (
   prompt: string,
   outputDir: string,
@@ -112,39 +103,35 @@ export const runBflImageGen = async (
     ...(dimensions ? { width: dimensions.width, height: dimensions.height } : {})
   }
 
-  const { response: createResponse, payload: createPayload } = await fetchBflJson(
-    `${getBflBaseUrl(options.baseUrl)}/v1/${encodeURIComponent(options.model)}`,
-    apiKey,
-    {
-      method: 'POST',
-      headers: { 'content-type': 'application/json' },
-      body: JSON.stringify(body)
-    }
-  )
-
-  if (!createResponse.ok) {
-    throw InfraError(`BFL image request failed (${createResponse.status}): ${extractImageErrorMessage(createPayload) ?? 'Unknown error'}`, { stage: 'image:bfl', status: createResponse.status })
-  }
-
-  const createData = validateData(BflAsyncResponseSchema, createPayload, 'BFL image generation create response')
-
-  const pollData = await pollUntil({
+  const { created: createData, result: pollData } = await runPolledJob({
     operationName: 'bfl-image-gen',
     intervalMs: POLL_INTERVAL_MS,
     deadlineMs: POLL_TIMEOUT_MS,
-    pollFn: () => withRetry(
-      { retryClass: 'runtime_http_read', operationName: 'bfl-image-gen-poll' },
-      async () => {
-        const { response, payload } = await fetchBflJson(createData.polling_url, apiKey, { method: 'GET' })
-        if (!response.ok) {
-          throw InfraError(`BFL image status query failed (${response.status}): ${extractImageErrorMessage(payload) ?? 'Unknown error'}`, { stage: 'image:bfl', status: response.status })
-        }
-        const data = validateData(BflPollResponseSchema, payload, 'BFL image generation poll response')
-        logGenStatus('image', 'bfl', options.model, data.status)
-        return data
-      },
-      (error) => classifyFetchRetry(error, 'runtime_http_read', { retryAbortOnConservative: true })
-    ),
+    create: {
+      url: `${getBflBaseUrl(options.baseUrl)}/v1/${encodeURIComponent(options.model)}`,
+      init: withImageProviderHeaders({
+        method: 'POST',
+        headers: { 'content-type': 'application/json' },
+        body: JSON.stringify(body)
+      }, { 'x-key': apiKey }),
+      schema: BflAsyncResponseSchema,
+      context: 'BFL image generation create response',
+      stage: 'image:bfl',
+      errorMessage: 'BFL image request failed',
+      readResponse: readJsonOrText,
+      formatErrorBody: (payload) => extractImageErrorMessage(payload) ?? 'Unknown error'
+    },
+    poll: (created) => ({
+      url: created.polling_url,
+      init: withImageProviderHeaders({ method: 'GET' }, { 'x-key': apiKey }),
+      schema: BflPollResponseSchema,
+      context: 'BFL image generation poll response',
+      stage: 'image:bfl',
+      errorMessage: 'BFL image status query failed',
+      readResponse: readJsonOrText,
+      formatErrorBody: (payload) => extractImageErrorMessage(payload) ?? 'Unknown error'
+    }),
+    onPoll: (data) => logGenStatus('image', 'bfl', options.model, data.status),
     isDone: (data) => data.status.toLowerCase() === 'ready',
     isFailed: (data) => {
       const status = data.status.toLowerCase()
@@ -160,13 +147,14 @@ export const runBflImageGen = async (
     throw ValidationError('BFL image generation completed without result.sample', { stage: 'image:bfl' })
   }
 
-  await withRetry(
-    { retryClass: 'runtime_http_read', operationName: 'bfl-image-result-download' },
-    async (signal) => await downloadGeneratedImage({
-      url: sampleUrl, outputPath, outputFormat, providerLabel: 'BFL', stage: 'image:bfl', signal
-    }),
-    (error) => classifyFetchRetry(error, 'runtime_http_read', { retryAbortOnConservative: true })
-  )
+  await downloadGeneratedImage({
+    url: sampleUrl,
+    outputPath,
+    outputFormat,
+    providerLabel: 'BFL',
+    stage: 'image:bfl',
+    operationName: 'bfl-image-result-download'
+  })
 
   const processingTime = Date.now() - startTime
   const imageFile = Bun.file(outputPath)

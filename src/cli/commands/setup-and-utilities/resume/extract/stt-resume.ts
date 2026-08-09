@@ -1,9 +1,8 @@
 import { isRecord } from '~/utils/rest-client'
 import { join, resolve as resolvePath } from 'node:path'
-import { fileURLToPath } from 'node:url'
 import * as l from '~/utils/app-logger/app-logger'
 import { createHumanTable } from '~/utils/app-logger/human-table/human-table'
-import type { AggregatedPriceEstimate, BatchManifestEntry, NormalizedResumeProviderBatchRunOptions, ProviderResumePassResult, ResumeDisplayOptions, ResumeProviderBatchRunOptions, ResumeResult, ResumeSttEntry, ResumeTarget, RuntimeOptions, StepEstimate, SttResumePassContext, SttTarget } from '~/types'
+import type { AggregatedPriceEstimate, BatchManifestEntry, NormalizedResumeProviderBatchRunOptions, ProviderResumePassResult, ResumeDisplayOptions, ResumeProviderBatchRunOptions, ResumeResult, ResumeSttEntry, ResumeTarget, RuntimeOptions, SttResumePassContext, SttTarget } from '~/types'
 import { CLIUsageError, InfraError } from '~/utils/error-handler'
 import { processStt } from '~/cli/commands/process-steps/step-2-extract/step-2-stt/process-stt'
 import { logSttBatchFinalSummary } from '~/cli/commands/process-steps/step-1-download/download-targets/download-batch/download-batch-summary'
@@ -20,8 +19,7 @@ import { getStep2ActiveModelsForService } from '~/cli/commands/process-steps/ste
 import { readSttRunManifestEntry, writeSttBatchManifest, writeSttRunManifest } from '~/cli/commands/process-steps/step-2-extract/step-2-stt/stt-manifest'
 import { YOUTUBE_CAPTIONS_SERVICE } from '~/cli/commands/process-steps/step-2-extract/step-2-stt/youtube-captions'
 import { resolveAdditiveResumeProviderSelection } from '../resume-provider-selection'
-import { hasResumableProviderTargetWork, readProviderResumeTargetManifest, runProviderResumePass } from '../provider-batch-resume'
-import { aggregateExplicitPriceEstimate } from '~/utils/pricing/aggregate-pricing'
+import { hasResumableProviderTargetWork, priceProviderResumeTarget, providerResumeSourceInput, resolveProviderResumeOutputDir, runProviderResumePass, selectedProviderTargetsComplete, selectedProvidersCompleteResult, toProviderResumeResult, toProviderResumeSource } from '../provider-batch-resume'
 import { buildSttEstimatesForTargets } from '~/utils/pricing/aggregate-pricing/stt-estimates'
 
 
@@ -47,24 +45,7 @@ const toSourceFromStep1 = (entry: Record<string, unknown>): { url?: string, file
     throw CLIUsageError('Batch entry is missing step1.url and cannot be resumed.')
   }
 
-  if (rawUrl.startsWith('file://')) {
-    try {
-      return { filePath: fileURLToPath(rawUrl) }
-    } catch {
-      return { filePath: decodeURIComponent(rawUrl.replace(/^file:\/\/+/, '/')) }
-    }
-  }
-
-  return { url: rawUrl }
-}
-
-const resolveStoredOutputDir = async (
-  entry: Record<string, unknown>
-): Promise<string | undefined> => {
-  if (typeof entry['outputDir'] === 'string' && entry['outputDir'].length > 0) {
-    return resolvePath(entry['outputDir'])
-  }
-  return undefined
+  return toProviderResumeSource(rawUrl)
 }
 
 const parseResumeEntry = async (
@@ -77,7 +58,7 @@ const parseResumeEntry = async (
     return undefined
   }
 
-  const outputDir = await resolveStoredOutputDir(entry)
+  const outputDir = resolveProviderResumeOutputDir(entry)
   if (!outputDir) {
     if (options.ignoreUnresumableEntries) {
       l.warn('Skipping STT entry with no resumable output directory')
@@ -141,31 +122,15 @@ const readOutputMetadata = async (outputDir: string): Promise<BatchManifestEntry
   return metadata
 }
 
-const toResumeResult = (
-  result: ProviderResumePassResult
-): ResumeResult => ({
-  full: result.ok,
-  incomplete: result.incomplete,
-  failed: result.fail
-})
-
 const selectedSttTargetsComplete = (
   metadata: BatchManifestEntry,
   selectedTargets: SttTarget[] | undefined
-): boolean => {
-  if (selectedTargets === undefined) {
-    return false
-  }
-
-  const storedRequestedTargets = parseStoredRequestedTargets(metadata)
-  const storedMissingTargets = buildMissingTargetsFromEntry(metadata, storedRequestedTargets)
-  const resolvedTargets = resolveAdditiveResumeProviderSelection({
-    storedProviders: storedRequestedTargets,
-    runnableStoredProviders: storedMissingTargets,
-    selectedProviders: selectedTargets
-  })
-  return resolvedTargets.providersToRun.length === 0
-}
+): boolean => selectedProviderTargetsComplete(
+  metadata,
+  selectedTargets,
+  parseStoredRequestedTargets,
+  buildMissingTargetsFromEntry
+)
 
 export const hasResumableSttTargetWork = async (
   target: ResumeTarget,
@@ -248,13 +213,7 @@ const runResumePass = async (
 
           const metadata = await readOutputMetadata(outputDir)
           if (selectedSttTargetsComplete(metadata, selectedTargets) && metadata['completionStatus'] !== 'full') {
-            return {
-              outputDir,
-              metadata,
-              completionStatus: 'full',
-              detail: 'selected providers complete; run manifest still incomplete',
-              level: 'success'
-            }
+            return selectedProvidersCompleteResult(outputDir, metadata)
           }
           return {
             outputDir,
@@ -270,13 +229,7 @@ const runResumePass = async (
 
           const metadata = await readOutputMetadata(error.outputDir)
           if (selectedSttTargetsComplete(metadata, selectedTargets) && metadata['completionStatus'] !== 'full') {
-            return {
-              outputDir: error.outputDir,
-              metadata,
-              completionStatus: 'full',
-              detail: 'selected providers complete; run manifest still incomplete',
-              level: 'success'
-            }
+            return selectedProvidersCompleteResult(error.outputDir, metadata)
           }
           return {
             outputDir: error.outputDir,
@@ -388,17 +341,7 @@ export const resumeSttTarget = async (
   if (result.incomplete > 0 || result.fail > 0) {
     throw InfraError(`STT resume still has ${result.incomplete} incomplete and ${result.fail} failed item(s)`, { stage: 'resume:stt', exitCode: 2 })
   }
-  return toResumeResult(result)
-}
-
-const sttSourceInput = (
-  source: ResumeSttEntry['source']
-): string => {
-  const input = source.filePath ?? source.url
-  if (!input) {
-    throw CLIUsageError('STT resume entry is missing a resumable source file or URL.')
-  }
-  return input
+  return toProviderResumeResult(result)
 }
 
 export const priceSttTarget = async (
@@ -406,28 +349,20 @@ export const priceSttTarget = async (
   opts: RuntimeOptions,
   selectedTargets?: SttTarget[]
 ): Promise<AggregatedPriceEstimate> => {
-  const manifest = await readProviderResumeTargetManifest(target, readOutputMetadata)
-  if (!manifest) {
-    throw CLIUsageError(
-      target.scope === 'batch'
-        ? `Invalid STT batch manifest at ${join(target.dir, 'batch.json')}`
-        : `Invalid STT manifest at ${join(target.dir, 'run.json')}`
-    )
-  }
-
   const currentTargets = selectedTargets && selectedTargets.length > 0 ? selectedTargets : collectSttTargets(opts)
-  const steps: StepEstimate[] = []
-  for (const entry of manifest.entries) {
-    const parsed = await parseResumeEntry(entry, selectedTargets, {
+  return await priceProviderResumeTarget(target, opts, {
+    stepLabel: 'STT',
+    readOutputMetadata,
+    parseEntry: (entry) => parseResumeEntry(entry, selectedTargets, {
       ignoreUnresumableEntries: false,
       youtubeCaptions: opts.youtubeCaptions,
       currentTargets
-    })
-    if (!parsed || parsed.missingTargets.length === 0) {
-      continue
-    }
-    steps.push(...await buildSttEstimatesForTargets(sttSourceInput(parsed.source), opts, parsed.missingTargets))
-  }
-
-  return aggregateExplicitPriceEstimate(steps, opts)
+    }),
+    buildEstimates: (entry, estimateOpts) =>
+      buildSttEstimatesForTargets(
+        providerResumeSourceInput(entry.source, 'STT'),
+        estimateOpts,
+        entry.missingTargets
+      )
+  })
 }

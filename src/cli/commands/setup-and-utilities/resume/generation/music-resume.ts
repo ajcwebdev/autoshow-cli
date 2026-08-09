@@ -48,6 +48,7 @@ export const musicResumeConfig = {
   metadataKey: 'music',
   stepLabel: 'Music',
   providerFlags: MUSIC_PROVIDER_FLAGS,
+  selectionMode: 'additive-stored' as const,
   modelFields: MUSIC_MODEL_FIELDS,
   getSuccessKey: (entry: Step7MusicMetadata) =>
     getGenerationTargetKey(entry.musicService, entry.musicModel),

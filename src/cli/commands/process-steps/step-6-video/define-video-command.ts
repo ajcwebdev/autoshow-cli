@@ -20,6 +20,8 @@ import { buildProviderStepSummaries, createGenerationOutputDir, getGenerationExp
 import * as l from '~/utils/app-logger/app-logger'
 import { runWithLogContext } from '~/utils/app-logger/app-logger'
 import type { RuntimeOptions, VideoProvider, VideoTarget } from '~/types'
+import { VIDEO_PRICING_PROVIDERS } from './video-utils/video-pricing'
+import { optionsForService } from '~/utils/pricing/model-selection'
 
 const VIDEO_PROVIDER_FLAGS = [
   'gemini-video',
@@ -57,14 +59,10 @@ const setSingleVideoProviderSelection = (
 const providerModelsFromTargets = (
   targets: VideoTarget[],
   provider: VideoProvider
-): string[] | undefined => {
-  const models = targets
+): string[] =>
+  targets
     .filter((target) => target.service === provider)
     .map((target) => target.model)
-  return models.length > 0 ? models : undefined
-}
-
-const first = <T,>(values: T[] | undefined): T | undefined => values?.[0]
 
 const countGrokInputImages = (opts: RuntimeOptions): number =>
   (opts.videoInputImage ? 1 : 0) + (opts.videoReferenceImages?.length ?? 0)
@@ -75,40 +73,17 @@ const countReplicateInputVideos = (opts: RuntimeOptions): number =>
 const buildPricingOptionsForTargets = (
   opts: RuntimeOptions,
   targets: VideoTarget[]
-): RuntimeOptions => {
-  const geminiVideoModels = providerModelsFromTargets(targets, 'gemini')
-  const minimaxVideoModels = providerModelsFromTargets(targets, 'minimax')
-  const glmVideoModels = providerModelsFromTargets(targets, 'glm')
-  const grokVideoModels = providerModelsFromTargets(targets, 'grok')
-  const runwayVideoModels = providerModelsFromTargets(targets, 'runway')
-  const ltxVideoModels = providerModelsFromTargets(targets, 'ltx')
-  const replicateVideoModels = providerModelsFromTargets(targets, 'replicate')
-  const lumalabsVideoModels = providerModelsFromTargets(targets, 'lumalabs')
-  const falVideoModels = providerModelsFromTargets(targets, 'fal')
-
-  return {
-    ...opts,
-    allVideo: false,
-    geminiVideoModels,
-    geminiVideoModel: first(geminiVideoModels),
-    minimaxVideoModels,
-    minimaxVideoModel: first(minimaxVideoModels),
-    glmVideoModels,
-    glmVideoModel: first(glmVideoModels),
-    grokVideoModels,
-    grokVideoModel: first(grokVideoModels),
-    runwayVideoModels,
-    runwayVideoModel: first(runwayVideoModels),
-    ltxVideoModels,
-    ltxVideoModel: first(ltxVideoModels),
-    replicateVideoModels,
-    replicateVideoModel: first(replicateVideoModels),
-    lumalabsVideoModels,
-    lumalabsVideoModel: first(lumalabsVideoModels),
-    falVideoModels,
-    falVideoModel: first(falVideoModels)
-  }
-}
+): RuntimeOptions => ({
+  ...opts,
+  allVideo: false,
+  ...Object.assign({}, ...VIDEO_PRICING_PROVIDERS.map((provider) =>
+    optionsForService(
+      VIDEO_PRICING_PROVIDERS,
+      provider.service,
+      providerModelsFromTargets(targets, provider.service)
+    )
+  ))
+})
 
 const resolveVideoInput = (
   input: string,

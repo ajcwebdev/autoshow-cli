@@ -1,9 +1,70 @@
-import { join } from 'node:path'
+import { join, resolve as resolvePath } from 'node:path'
+import { fileURLToPath } from 'node:url'
 import { readBatchManifest } from '~/cli/commands/process-steps/manifest-utils'
-import type { BatchManifestEntry, ProviderBatchResumeConfig, ProviderCompletionStatus, ProviderIdentity, ProviderResumeEntry, ProviderResumeManifest, ProviderResumePassResult, ResumeDisplayOptions, ResumeTarget, RuntimeOptions } from '~/types'
+import type { AggregatedPriceEstimate, BatchManifestEntry, ProviderBatchResumeConfig, ProviderCompletionStatus, ProviderIdentity, ProviderResumeEntry, ProviderResumeManifest, ProviderResumePassResult, ProviderResumePriceConfig, ProviderResumeProcessResult, ResumeDisplayOptions, ResumeResult, ResumeTarget, RuntimeOptions, Step1SourceRef, StepEstimate } from '~/types'
 import { CLIUsageError } from '~/utils/error-handler'
+import { aggregateExplicitPriceEstimate } from '~/utils/pricing/aggregate-pricing'
 import * as l from '~/utils/app-logger/app-logger'
 import { logResumeItem, logResumeSummary } from './resume-logging'
+import { resolveAdditiveResumeProviderSelection } from './resume-provider-selection'
+
+export const resolveProviderResumeOutputDir = (entry: Record<string, unknown>): string | undefined =>
+  typeof entry['outputDir'] === 'string' && entry['outputDir'].length > 0
+    ? resolvePath(entry['outputDir'])
+    : undefined
+
+export const toProviderResumeSource = (url: string): Step1SourceRef => {
+  if (url.startsWith('file://')) {
+    try {
+      return { filePath: fileURLToPath(url) }
+    } catch {
+      return { filePath: decodeURIComponent(url.replace(/^file:\/\/+/, '/')) }
+    }
+  }
+
+  return { url }
+}
+
+export const providerResumeSourceInput = (source: Step1SourceRef, stepLabel: string): string => {
+  const input = source.filePath ?? source.url
+  if (!input) {
+    throw CLIUsageError(`${stepLabel} resume entry is missing a resumable source file or URL.`)
+  }
+  return input
+}
+
+export const selectedProviderTargetsComplete = <TTarget extends ProviderIdentity>(
+  metadata: BatchManifestEntry,
+  selectedTargets: TTarget[] | undefined,
+  parseStoredTargets: (metadata: Record<string, unknown>) => TTarget[],
+  buildMissingTargets: (metadata: Record<string, unknown>, storedTargets: TTarget[]) => TTarget[]
+): boolean => {
+  if (selectedTargets === undefined) {
+    return false
+  }
+
+  const storedTargets = parseStoredTargets(metadata)
+  const missingTargets = buildMissingTargets(metadata, storedTargets)
+  return resolveAdditiveResumeProviderSelection({
+    storedProviders: storedTargets,
+    runnableStoredProviders: missingTargets,
+    selectedProviders: selectedTargets
+  }).providersToRun.length === 0
+}
+
+export const selectedProvidersCompleteResult = (outputDir: string, metadata: BatchManifestEntry): ProviderResumeProcessResult => ({
+  outputDir,
+  metadata,
+  completionStatus: 'full',
+  detail: 'selected providers complete; run manifest still incomplete',
+  level: 'success'
+})
+
+export const toProviderResumeResult = (result: ProviderResumePassResult): ResumeResult => ({
+  full: result.ok,
+  incomplete: result.incomplete,
+  failed: result.fail
+})
 
 export const withProviderResumeOutputDir = (
   metadata: BatchManifestEntry,
@@ -42,6 +103,35 @@ export const readProviderResumeTargetManifest = async (
     infoPath: target.manifestPath,
     entries: [withProviderResumeOutputDir(metadata, target.dir)]
   }
+}
+
+export const priceProviderResumeTarget = async <
+  TTarget extends ProviderIdentity,
+  TEntry extends ProviderResumeEntry<TTarget>
+>(
+  target: ResumeTarget,
+  opts: RuntimeOptions,
+  config: ProviderResumePriceConfig<TTarget, TEntry>
+): Promise<AggregatedPriceEstimate> => {
+  const manifest = await readProviderResumeTargetManifest(target, config.readOutputMetadata)
+  if (!manifest) {
+    throw CLIUsageError(
+      target.scope === 'batch'
+        ? `Invalid ${config.stepLabel} batch manifest at ${join(target.dir, 'batch.json')}`
+        : `Invalid ${config.stepLabel} manifest at ${join(target.dir, 'run.json')}`
+    )
+  }
+
+  const steps: StepEstimate[] = []
+  for (const entry of manifest.entries) {
+    const parsed = await config.parseEntry(entry)
+    if (!parsed || parsed.missingTargets.length === 0) {
+      continue
+    }
+    steps.push(...await config.buildEstimates(parsed, opts))
+  }
+
+  return aggregateExplicitPriceEstimate(steps, opts)
 }
 
 export const hasResumableProviderTargetWork = async <

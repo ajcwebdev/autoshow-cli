@@ -37,13 +37,17 @@ export const sttStageRequestWithRetryAfter = async <TSchema extends SttStageSche
         const response = await options.doFetch(signal)
 
         if (!response.ok) {
+          const failure = options.readFailure
+            ? await options.readFailure(response)
+            : { message: await response.text(), rawResponse: undefined }
           throw Object.assign(
-            new Error(`${errorPrefix} ${failureLabel ?? stage} failed (${response.status}): ${await response.text()}`),
+            new Error(`${errorPrefix} ${failureLabel ?? stage} failed (${response.status}): ${failure.message}`),
             {
               status: response.status,
               headers: response.headers,
               stage,
-              retryClass
+              retryClass,
+              ...(failure.rawResponse !== undefined ? { rawResponse: failure.rawResponse } : {})
             }
           ) satisfies SttStageHttpError
         }

@@ -442,6 +442,39 @@ describe('resume all-shortcut additive selection', () => {
     })
   })
 
+  test('write resume resolves a completed selection before requiring prompt.md', async () => {
+    await withTempDir('autoshow-write-resume-complete-no-prompt-', async (dir) => {
+      await writeRunManifest(dir, 'write', {
+        step3: {
+          llmService: 'openai',
+          llmModel: 'gpt-5.5',
+          processingTime: 1,
+          inputTokenCount: 1,
+          outputTokenCount: 1,
+          outputFileName: 'text-gpt-5.5.json',
+          outputFormat: 'json',
+          structuredMode: 'native',
+          structuredPresetNames: ['shortSummary']
+        } satisfies Step3Metadata
+      })
+
+      const normalized = normalizeResumeSelectorFlagsForTarget(
+        target('write', dir),
+        { provider: ['openai=gpt-5.5'] },
+        new Set(['provider']),
+        ['resume', dir, '--provider', 'openai=gpt-5.5']
+      )
+      const opts = buildOpts(normalized.flags, normalized.explicitFlags, normalized.rawArgs)
+
+      await expect(resumeWriteTarget(target('write', dir), opts, normalized.explicitFlags)).resolves.toEqual({
+        full: 1,
+        incomplete: 0,
+        failed: 0
+      })
+      expect(await Bun.file(join(dir, 'prompt.md')).exists()).toBe(false)
+    })
+  })
+
   test('write resume records successful partial LLM results and exits incomplete for failed targets', async () => {
     const env = snapshotEnv([
       'TOGETHER_API_KEY',
@@ -491,9 +524,17 @@ describe('resume all-shortcut additive selection', () => {
         )
         const opts = buildOpts(normalized.flags, normalized.explicitFlags, normalized.rawArgs)
 
-        await expect(resumeWriteTarget(target('write', dir), opts, normalized.explicitFlags)).rejects.toThrow(
-          'Write resume still has 1 incomplete provider(s): cerebras/zai-glm-4.7'
-        )
+        try {
+          await resumeWriteTarget(target('write', dir), opts, normalized.explicitFlags)
+          expect.unreachable('write resume should remain incomplete')
+        } catch (error) {
+          expect(error).toMatchObject({
+            kind: 'infrastructure',
+            stage: 'resume:generation',
+            exitCode: 2,
+            message: 'Write resume still has 1 incomplete provider(s): cerebras/zai-glm-4.7'
+          })
+        }
 
         const manifest = await Bun.file(join(dir, 'run.json')).json() as RunManifest
         const step3 = Array.isArray(manifest.metadata['step3'])
@@ -504,6 +545,7 @@ describe('resume all-shortcut additive selection', () => {
         expect(step3.map((entry) => `${entry.llmService}/${entry.llmModel}`)).not.toContain('cerebras/zai-glm-4.7')
         expect(togetherEntry).toBeDefined()
         expect(await Bun.file(join(dir, togetherEntry!.outputFileName)).exists()).toBe(true)
+        expect(manifest.metadata['requestedProviders']).toBeUndefined()
       })
     } finally {
       globalThis.fetch = originalFetch

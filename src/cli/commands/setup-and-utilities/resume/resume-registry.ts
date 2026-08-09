@@ -10,7 +10,7 @@ import { imageResumeConfig } from './generation/image-resume'
 import { videoResumeConfig } from './generation/video-resume'
 import { musicResumeConfig } from './generation/music-resume'
 import { buildGenerationResumeHandler } from './generation-resume'
-import { hasResumableWriteWork, priceWriteTarget, resumeWriteTarget } from './write/write-resume'
+import { writeResumeConfig } from './write/write-resume'
 import { readBatchManifest, readExtractBatchManifest, writeExtractBatchManifest } from '~/cli/commands/process-steps/manifest-utils'
 import { aggregateExplicitPriceEstimate } from '~/utils/pricing/aggregate-pricing'
 
@@ -375,15 +375,7 @@ const extractResumeHandler: ResumeHandler = {
 
 const ttsResumeHandler = buildGenerationResumeHandler('tts', ttsResumeConfig)
 
-const writeResumeHandler: ResumeHandler = {
-  kind: 'write',
-  hasResumableWork: async (target, opts, explicitFlags) =>
-    await hasResumableWriteWork(target, opts, explicitFlags),
-  resume: async (target, opts, explicitFlags, displayOptions) =>
-    await resumeWriteTarget(target, opts, explicitFlags, displayOptions),
-  price: async (target, opts, explicitFlags) =>
-    await priceWriteTarget(target, opts, explicitFlags)
-}
+const writeResumeHandler = buildGenerationResumeHandler('write', writeResumeConfig)
 
 const imageResumeHandler = buildGenerationResumeHandler('image', imageResumeConfig)
 

@@ -2,6 +2,8 @@ import { describe, expect, test } from 'bun:test'
 import { writeFile } from 'node:fs/promises'
 import { join } from 'node:path'
 import { runOpenAICompatibleSingleSpeakerStt } from '~/cli/commands/process-steps/step-2-extract/step-2-stt/stt-services/openai-compatible-single-speaker'
+import { runDeepgramTranscribe } from '~/cli/commands/process-steps/step-2-extract/step-2-stt/stt-services/stt-deepgram/run-deepgram-stt'
+import { runGrokStt } from '~/cli/commands/process-steps/step-2-extract/step-2-stt/stt-services/stt-grok/run-grok-stt'
 import { createOpenAISpeech, createOpenAITranscription } from '~/utils/openai/openai-client'
 import { installFetch, installOpenAIRestContractHooks, jsonResponse, withTempDir } from './shared'
 
@@ -64,6 +66,7 @@ describe('OpenAI REST audio and STT contracts', () => {
 
       expect(result.result.text).toBe('hello from retry')
       expect(result.result.segments).toHaveLength(1)
+      expect(result.metadata.timings).toMatchObject({ requestCount: 2, retryCount: 1 })
       expect(await Bun.file(join(dir, 'transcription.txt')).text()).toContain('hello from retry')
     })
 
@@ -74,5 +77,78 @@ describe('OpenAI REST audio and STT contracts', () => {
     ])
     expect(calls[0]?.form?.get('model')).toBe('openai/whisper-large-v3')
     expect(calls[1]?.form?.get('model')).toBe('openai/whisper-large-v3')
+  })
+
+  test('Deepgram uses the staged request shell and shared hosted finalizer', async () => {
+    process.env['DEEPGRAM_API_KEY'] = 'deepgram-key'
+    const calls = installFetch(() => jsonResponse({
+      results: {
+        channels: [{
+          alternatives: [{
+            transcript: 'hello from Deepgram',
+            words: [{ word: 'hello', punctuated_word: 'Hello', start: 0, end: 0.5, speaker: 0 }]
+          }]
+        }],
+        utterances: [{ start: 0, end: 0.5, transcript: 'Hello', speaker: 0 }]
+      }
+    }))
+
+    await withTempDir(async (dir) => {
+      const audioPath = join(dir, 'audio.mp3')
+      await writeFile(audioPath, 'audio', 'utf8')
+      const result = await runDeepgramTranscribe(audioPath, dir, {
+        model: 'nova-3',
+        segmentOffsetMinutes: 0
+      })
+
+      expect(result.result.text).toBe('hello from Deepgram')
+      expect(result.result.evidence?.words?.[0]).toMatchObject({
+        text: 'Hello',
+        speaker: 'speaker-0',
+        timingSource: 'native'
+      })
+      expect(result.metadata.timings).toMatchObject({ requestCount: 1 })
+      expect(await Bun.file(join(dir, 'transcription.txt')).text()).toContain('[speaker-0] Hello')
+    })
+
+    expect(calls).toHaveLength(1)
+    expect(calls[0]?.url).toBe('https://api.deepgram.com/v1/listen?model=nova-3&diarize=true&utterances=true&punctuate=true&smart_format=true')
+    expect(calls[0]?.headers.get('authorization')).toBe('Token deepgram-key')
+  })
+
+  test('Grok staged failures retain parsed response context and the retry wrapper', async () => {
+    process.env['XAI_API_KEY'] = 'grok-key'
+    const calls = installFetch(() => calls.length === 1
+      ? jsonResponse({ error: { message: 'slow down' } }, { status: 429, headers: { 'retry-after': '0.001' } })
+      : jsonResponse({ error: { message: 'bad audio' } }, { status: 400 }))
+
+    await withTempDir(async (dir) => {
+      const audioPath = join(dir, 'audio.mp3')
+      await writeFile(audioPath, 'audio', 'utf8')
+
+      try {
+        await runGrokStt(audioPath, dir, {
+          model: 'grok-2-audio',
+          segmentOffsetMinutes: 0
+        })
+        throw new Error('Expected Grok STT to fail')
+      } catch (error) {
+        expect(error).toMatchObject({
+          kind: 'retry_exhausted',
+          status: 400,
+          stage: 'transcribe',
+          retryClass: 'runtime_http_create_conservative'
+        })
+        expect((error as Error).message).toStartWith('grok-stt failed after 2/4 attempts')
+        expect((error as Error).cause).toMatchObject({
+          message: 'Grok transcription failed (400): bad audio',
+          rawResponse: { error: { message: 'bad audio' } }
+        })
+      }
+    })
+
+    expect(calls).toHaveLength(2)
+    expect(calls[0]?.form?.get('diarize')).toBe('true')
+    expect(calls[1]?.form?.get('language')).toBe('en')
   })
 })

@@ -6,7 +6,6 @@ import {
 import { estimateImageCosts } from '~/cli/commands/process-steps/step-5-image/image-utils/image-pricing'
 import { estimateVideoCost } from '~/cli/commands/process-steps/step-6-video/video-utils/video-pricing'
 import type { ActualCostBreakdown, ComputeActualCostsInput, CostSource, ExtractionMetadata, Step2Metadata, Step5Metadata, Step6VideoMetadata, StepCostEntry } from '~/types'
-import { toArray } from '~/utils/text-utils'
 import {
   computeSttCost,
   computeTtsCost,
@@ -20,7 +19,6 @@ import {
   computeScrapeCreatorsActualCost,
   getScrapeCreatorsCreditRateCents
 } from './scrapecreators-pricing'
-import { resolveReverbModelLabel } from '~/cli/commands/process-steps/step-2-extract/step-2-stt/stt-model-labels'
 import { resolveExtractionProviderModel } from '~/utils/extraction-provider-model'
 import { computeTokenCost } from './token-pricing'
 import {
@@ -28,26 +26,7 @@ import {
   resolveActualExtractCostEntry,
   zeroCostSource
 } from './provider-family-resolvers'
-
-const WHISPER_MODEL_PATH_PATTERN = /ggml-([a-z0-9.-]+)\.bin/i
-
-const resolveTranscriptionModel = (metadata: Step2Metadata): string => {
-  if (metadata.transcriptionService === 'reverb') {
-    return resolveReverbModelLabel(metadata.transcriptionModel)
-  }
-  if (metadata.transcriptionService !== 'whisper') {
-    return metadata.transcriptionModel
-  }
-  const match = metadata.transcriptionModel.match(WHISPER_MODEL_PATH_PATTERN)
-  if (match && typeof match[1] === 'string' && match[1].length > 0) {
-    return match[1]
-  }
-  return metadata.transcriptionModel
-}
-
-const isExtractionMetadata = (metadata: Step2Metadata | ExtractionMetadata): metadata is ExtractionMetadata => {
-  return 'extractionMethod' in metadata
-}
+import { walkRunSteps } from './run-step-walk'
 
 const normalizeDurationSeconds = (value: number): number =>
   Number.isFinite(value) ? Math.max(0, value) : 0
@@ -106,6 +85,7 @@ const resolveSttBillingDurationSeconds = (input: ComputeActualCostsInput): numbe
 
 const computeActualSttCharge = (
   metadata: Step2Metadata,
+  model: string,
   durationSeconds: number,
   sourceUrl: string | undefined
 ): {
@@ -117,7 +97,6 @@ const computeActualSttCharge = (
   completionTokens?: number
 } => {
   const service = metadata.transcriptionService
-  const model = resolveTranscriptionModel(metadata)
 
   if (service === 'supadata') {
     const actual = computeSupadataActualCost(
@@ -310,175 +289,134 @@ const addExtractionCostEntry = (
 
 export const computeActualCosts = (input: ComputeActualCostsInput): ActualCostBreakdown => {
   const steps: StepCostEntry[] = []
+  const durationSeconds = resolveSttBillingDurationSeconds(input)
 
-  if (input.step2 && !Array.isArray(input.step2) && isExtractionMetadata(input.step2)) {
-    addExtractionCostEntry(steps, input.step2)
-  }
-
-  if (input.step2 && !Array.isArray(input.step2) && !isExtractionMetadata(input.step2)) {
-    const durationSeconds = resolveSttBillingDurationSeconds(input)
-    const service = input.step2.transcriptionService
-    const model = resolveTranscriptionModel(input.step2)
-    const actual = computeActualSttCharge(input.step2, durationSeconds, input.step1?.url)
-
-    steps.push({
-      step: 'stt',
-      provider: service,
-      model,
-      cost: actual.cost,
-      costSource: actual.costSource,
-      inputMetric: actual.inputMetric,
-      inputValue: actual.inputValue,
-      ...(typeof actual.promptTokens === 'number' ? { promptTokens: actual.promptTokens } : {}),
-      ...(typeof actual.completionTokens === 'number' ? { completionTokens: actual.completionTokens } : {})
-    })
-  }
-
-  if (Array.isArray(input.step2) && input.step2.every(isExtractionMetadata)) {
-    for (const step2Entry of input.step2) {
-      addExtractionCostEntry(steps, step2Entry)
-    }
-  }
-
-  for (const partialStep2Entry of toArray(input.partialStep2)) {
-    addExtractionCostEntry(steps, partialStep2Entry, true)
-  }
-
-  if (Array.isArray(input.step2) && !input.step2.every(isExtractionMetadata)) {
-    const durationSeconds = resolveSttBillingDurationSeconds(input)
-    for (const step2Entry of input.step2) {
-      const service = step2Entry.transcriptionService
-      const model = resolveTranscriptionModel(step2Entry)
-      const actual = computeActualSttCharge(step2Entry, durationSeconds, input.step1?.url)
-      steps.push({
-        step: 'stt',
-        provider: service,
-        model,
-        cost: actual.cost,
-        costSource: actual.costSource,
-        inputMetric: actual.inputMetric,
-        inputValue: actual.inputValue,
-        ...(typeof actual.promptTokens === 'number' ? { promptTokens: actual.promptTokens } : {}),
-        ...(typeof actual.completionTokens === 'number' ? { completionTokens: actual.completionTokens } : {})
-      })
-    }
-  }
-
-  for (const step3Entry of toArray(input.step3)) {
-    const registryService = step3Entry.llmService === 'llama.cpp' ? 'llama' : step3Entry.llmService
-    const rates = getLlmCost(registryService, step3Entry.llmModel)
-    const tokenCost = computeTokenCost(
-      rates ?? { inputCostPer1MCents: 0, outputCostPer1MCents: 0 },
-      step3Entry.inputTokenCount,
-      step3Entry.outputTokenCount
-    )
-    steps.push({
-      step: 'llm',
-      provider: step3Entry.llmService,
-      model: step3Entry.llmModel,
-      cost: tokenCost.totalCost,
-      costSource: step3Entry.tokenCountSource === 'provider_usage'
-        ? 'provider_usage'
-        : zeroCostSource(step3Entry.llmService, tokenCost.totalCost, 'computed_usage'),
-      inputMetric: 'tokens',
-      inputValue: step3Entry.inputTokenCount + step3Entry.outputTokenCount,
-      promptTokens: step3Entry.inputTokenCount,
-      completionTokens: step3Entry.outputTokenCount,
-      ...(typeof tokenCost.pricingBand === 'string' ? { pricingBand: tokenCost.pricingBand } : {}),
-      ...(typeof tokenCost.pricingNote === 'string' ? { pricingNote: tokenCost.pricingNote } : {})
-    })
-  }
-
-  const step4Array = toArray(input.step4)
-
-  if (step4Array.length > 0 && typeof input.ttsCharacterCount === 'number') {
-    for (const step4 of step4Array) {
-      const ttsCost = computeTtsCost(step4.ttsService, step4.ttsModel, input.ttsCharacterCount)
-      const cloneCost = typeof step4.cloneCostCents === 'number' ? step4.cloneCostCents : 0
-      steps.push({
-        step: 'tts',
-        provider: step4.ttsService,
-        model: step4.ttsModel,
-        cost: ttsCost.cost + cloneCost,
-        costSource: zeroCostSource(step4.ttsService, ttsCost.cost + cloneCost, 'computed_usage'),
-        inputMetric: 'characters',
-        inputValue: input.ttsCharacterCount
-      })
-    }
-  }
-
-  for (const step5 of toArray(input.step5)) {
-    const imageCount = Math.max(1, step5.imageCount)
-    const cost = typeof step5.providerCostCents === 'number'
-      ? step5.providerCostCents
-      : computeImageFallbackCost(step5, imageCount)
-    steps.push({
-      step: 'image',
-      provider: step5.imageService,
-      model: step5.imageModel,
-      cost,
-      costSource: typeof step5.providerCostCents === 'number'
-        ? normalizeCostSource(step5.providerCostSource, 'provider_quote')
-        : 'registry_fallback',
-      inputMetric: 'images',
-      inputValue: imageCount
-    })
-  }
-
-  for (const step6Entry of toArray(input.step6)) {
-    const videoDuration = step6Entry.videoDuration ?? 0
-    const cost = typeof step6Entry.providerCostCents === 'number'
-      ? step6Entry.providerCostCents
-      : estimateActualVideoFallbackCost(step6Entry)
-    steps.push({
-      step: 'video',
-      provider: step6Entry.videoGenService,
-      model: step6Entry.videoGenModel,
-      cost,
-      costSource: typeof step6Entry.providerCostCents === 'number'
-        ? normalizeCostSource(step6Entry.providerCostSource, 'provider_quote')
-        : 'registry_fallback',
-      inputMetric: 'durationSeconds',
-      inputValue: videoDuration
-    })
-  }
-
-  if (input.step7) {
-    for (const step7Entry of toArray(input.step7)) {
-      const meta = getMusicModelMeta(step7Entry.musicService, step7Entry.musicModel)
-      const retired = RETIRED_MUSIC_MODEL_RATES[`${step7Entry.musicService}:${step7Entry.musicModel}`]
-      let cost = 0
-      if (typeof step7Entry.providerCostCents === 'number') {
-        cost = step7Entry.providerCostCents
-      } else if (meta) {
-        if (typeof meta.costPerTrackCents === 'number') {
-          cost = meta.costPerTrackCents
-          if (step7Entry.lyricsSource === 'generated' && typeof meta.lyricsCostPerTrackCents === 'number') {
-            cost += meta.lyricsCostPerTrackCents
+  walkRunSteps(input, {
+    partialStep2Order: 'before-array-stt',
+    visitors: {
+      stt: (metadata, model) => {
+        const actual = computeActualSttCharge(metadata, model, durationSeconds, input.step1?.url)
+        steps.push({
+          step: 'stt',
+          provider: metadata.transcriptionService,
+          model,
+          cost: actual.cost,
+          costSource: actual.costSource,
+          inputMetric: actual.inputMetric,
+          inputValue: actual.inputValue,
+          ...(typeof actual.promptTokens === 'number' ? { promptTokens: actual.promptTokens } : {}),
+          ...(typeof actual.completionTokens === 'number' ? { completionTokens: actual.completionTokens } : {})
+        })
+      },
+      extract: metadata => addExtractionCostEntry(steps, metadata),
+      partialExtract: metadata => addExtractionCostEntry(steps, metadata, true),
+      llm: (metadata) => {
+        const registryService = metadata.llmService === 'llama.cpp' ? 'llama' : metadata.llmService
+        const rates = getLlmCost(registryService, metadata.llmModel)
+        const tokenCost = computeTokenCost(
+          rates ?? { inputCostPer1MCents: 0, outputCostPer1MCents: 0 },
+          metadata.inputTokenCount,
+          metadata.outputTokenCount
+        )
+        steps.push({
+          step: 'llm',
+          provider: metadata.llmService,
+          model: metadata.llmModel,
+          cost: tokenCost.totalCost,
+          costSource: metadata.tokenCountSource === 'provider_usage'
+            ? 'provider_usage'
+            : zeroCostSource(metadata.llmService, tokenCost.totalCost, 'computed_usage'),
+          inputMetric: 'tokens',
+          inputValue: metadata.inputTokenCount + metadata.outputTokenCount,
+          promptTokens: metadata.inputTokenCount,
+          completionTokens: metadata.outputTokenCount,
+          ...(typeof tokenCost.pricingBand === 'string' ? { pricingBand: tokenCost.pricingBand } : {}),
+          ...(typeof tokenCost.pricingNote === 'string' ? { pricingNote: tokenCost.pricingNote } : {})
+        })
+      },
+      tts: (metadata, characterCount) => {
+        const ttsCost = computeTtsCost(metadata.ttsService, metadata.ttsModel, characterCount)
+        const cloneCost = typeof metadata.cloneCostCents === 'number' ? metadata.cloneCostCents : 0
+        steps.push({
+          step: 'tts',
+          provider: metadata.ttsService,
+          model: metadata.ttsModel,
+          cost: ttsCost.cost + cloneCost,
+          costSource: zeroCostSource(metadata.ttsService, ttsCost.cost + cloneCost, 'computed_usage'),
+          inputMetric: 'characters',
+          inputValue: characterCount
+        })
+      },
+      image: (metadata) => {
+        const imageCount = Math.max(1, metadata.imageCount)
+        const cost = typeof metadata.providerCostCents === 'number'
+          ? metadata.providerCostCents
+          : computeImageFallbackCost(metadata, imageCount)
+        steps.push({
+          step: 'image',
+          provider: metadata.imageService,
+          model: metadata.imageModel,
+          cost,
+          costSource: typeof metadata.providerCostCents === 'number'
+            ? normalizeCostSource(metadata.providerCostSource, 'provider_quote')
+            : 'registry_fallback',
+          inputMetric: 'images',
+          inputValue: imageCount
+        })
+      },
+      video: (metadata) => {
+        const videoDuration = metadata.videoDuration ?? 0
+        const cost = typeof metadata.providerCostCents === 'number'
+          ? metadata.providerCostCents
+          : estimateActualVideoFallbackCost(metadata)
+        steps.push({
+          step: 'video',
+          provider: metadata.videoGenService,
+          model: metadata.videoGenModel,
+          cost,
+          costSource: typeof metadata.providerCostCents === 'number'
+            ? normalizeCostSource(metadata.providerCostSource, 'provider_quote')
+            : 'registry_fallback',
+          inputMetric: 'durationSeconds',
+          inputValue: videoDuration
+        })
+      },
+      music: (metadata) => {
+        const meta = getMusicModelMeta(metadata.musicService, metadata.musicModel)
+        const retired = RETIRED_MUSIC_MODEL_RATES[`${metadata.musicService}:${metadata.musicModel}`]
+        let cost = 0
+        if (typeof metadata.providerCostCents === 'number') {
+          cost = metadata.providerCostCents
+        } else if (meta) {
+          if (typeof meta.costPerTrackCents === 'number') {
+            cost = meta.costPerTrackCents
+            if (metadata.lyricsSource === 'generated' && typeof meta.lyricsCostPerTrackCents === 'number') {
+              cost += meta.lyricsCostPerTrackCents
+            }
+          } else if (typeof meta.costPerMinuteCents === 'number' && typeof metadata.musicDurationMs === 'number') {
+            cost = meta.costPerMinuteCents * (metadata.musicDurationMs / 60000)
           }
-        } else if (typeof meta.costPerMinuteCents === 'number' && typeof step7Entry.musicDurationMs === 'number') {
-          cost = meta.costPerMinuteCents * (step7Entry.musicDurationMs / 60000)
+        } else if (retired) {
+          cost = retired.costPerTrackCents
+          if (metadata.lyricsSource === 'generated') {
+            cost += retired.lyricsCostPerTrackCents
+          }
         }
-      } else if (retired) {
-        cost = retired.costPerTrackCents
-        if (step7Entry.lyricsSource === 'generated') {
-          cost += retired.lyricsCostPerTrackCents
-        }
+        steps.push({
+          step: 'music',
+          provider: metadata.musicService,
+          model: metadata.musicModel,
+          cost,
+          costSource: typeof metadata.providerCostCents === 'number'
+            ? normalizeCostSource(metadata.providerCostSource, 'provider_quote')
+            : 'registry_fallback',
+          ...(typeof metadata.musicDurationMs === 'number'
+            ? { inputMetric: 'durationMs' as const, inputValue: metadata.musicDurationMs }
+            : { inputMetric: 'tracks' as const, inputValue: 1 })
+        })
       }
-      steps.push({
-        step: 'music',
-        provider: step7Entry.musicService,
-        model: step7Entry.musicModel,
-        cost,
-        costSource: typeof step7Entry.providerCostCents === 'number'
-          ? normalizeCostSource(step7Entry.providerCostSource, 'provider_quote')
-          : 'registry_fallback',
-        ...(typeof step7Entry.musicDurationMs === 'number'
-          ? { inputMetric: 'durationMs' as const, inputValue: step7Entry.musicDurationMs }
-          : { inputMetric: 'tracks' as const, inputValue: 1 })
-      })
     }
-  }
+  })
 
   const totalCost = steps.reduce((sum, s) => sum + s.cost, 0)
   return { totalCost, steps }

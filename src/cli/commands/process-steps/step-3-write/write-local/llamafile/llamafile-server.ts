@@ -1,9 +1,6 @@
-import { mkdir, readFile, rm, writeFile } from 'node:fs/promises'
-import { join } from 'node:path'
-import type { LlamafileServerState, LocalLlmServerResourceOptions } from '~/types'
+import type { LocalLlmServerResourceOptions } from '~/types'
 import * as l from '~/utils/app-logger/app-logger'
 import { InfraError } from '~/utils/error-handler'
-import { resolveProcessLockRoot } from '~/utils/process-lock'
 import {
   collectStreamTail,
   stripAnsi,
@@ -11,11 +8,13 @@ import {
 } from '../llama/llama-download-progress'
 import {
   checkLocalServerHealthQuiet,
-  getErrorCode,
   isPidRunning,
-  waitForLocalServerHealth,
-  waitForLocalServerHealthState
+  waitForLocalServerHealth
 } from '../local-server-health'
+import {
+  stopRecordedLocalServer,
+  type RecordedLocalServerStopProfile
+} from '../local-server-stop'
 import { ensureLlamafileBundleDownloaded } from './llamafile-download'
 import {
   DEFAULT_LLAMAFILE_SERVER_START_TIMEOUT_MS,
@@ -24,44 +23,13 @@ import {
   LLAMAFILE_SERVER_HEALTH_HEARTBEAT_MS,
   LLAMAFILE_SERVER_HEALTH_POLL_INTERVAL_MS,
   LLAMAFILE_SERVER_STDERR_TAIL_LIMIT,
-  LLAMAFILE_SERVER_STOP_TIMEOUT_MS,
-  LLAMAFILE_STATE_FILE_NAME
+  LLAMAFILE_SERVER_STOP_TIMEOUT_MS
 } from './llamafile-constants'
-
-const getStatePath = (options: LocalLlmServerResourceOptions = {}): string =>
-  join(resolveProcessLockRoot(options), LLAMAFILE_STATE_FILE_NAME)
-
-const readState = async (options: LocalLlmServerResourceOptions = {}): Promise<LlamafileServerState | null> => {
-  try {
-    const parsed = JSON.parse(await readFile(getStatePath(options), 'utf-8')) as Record<string, unknown>
-    const pid = typeof parsed['pid'] === 'number' ? parsed['pid'] : null
-    if (!Number.isInteger(pid) || (pid ?? 0) < 1) {
-      return null
-    }
-    return {
-      pid: pid as number,
-      port: typeof parsed['port'] === 'number' ? parsed['port'] : LLAMAFILE_PORT,
-      model: typeof parsed['model'] === 'string' ? parsed['model'] : null,
-      createdAt: typeof parsed['createdAt'] === 'string' ? parsed['createdAt'] : ''
-    }
-  } catch {
-    return null
-  }
-}
-
-const writeState = async (pid: number, model: string, options: LocalLlmServerResourceOptions = {}): Promise<void> => {
-  await mkdir(resolveProcessLockRoot(options), { recursive: true })
-  await writeFile(getStatePath(options), JSON.stringify({
-    pid,
-    port: LLAMAFILE_PORT,
-    model,
-    createdAt: new Date().toISOString()
-  } satisfies LlamafileServerState, null, 2))
-}
-
-const clearState = async (options: LocalLlmServerResourceOptions = {}): Promise<void> => {
-  await rm(getStatePath(options), { force: true })
-}
+import {
+  clearLlamafileServerState,
+  readLlamafileServerState,
+  writeLlamafileServerState
+} from './llamafile-server-state'
 
 export const checkLlamafileHealthQuiet = async (): Promise<boolean> =>
   await checkLocalServerHealthQuiet(LLAMAFILE_BASE_URL)
@@ -85,53 +53,19 @@ const resolveLlamafileRequestModel = async (fallback: string): Promise<string> =
   }
 }
 
-const stopRecordedLlamafileServer = async (options: LocalLlmServerResourceOptions = {}): Promise<boolean> => {
-  const state = await readState(options)
-  if (!state) {
-    return false
-  }
+export const LLAMAFILE_STOP_PROFILE = {
+  serverName: 'llamafile',
+  baseUrl: LLAMAFILE_BASE_URL,
+  stopTimeoutMs: LLAMAFILE_SERVER_STOP_TIMEOUT_MS,
+  stopPolicy: 'health-clear',
+  stage: 'write:llamafile',
+  readState: readLlamafileServerState,
+  clearState: clearLlamafileServerState
+} satisfies RecordedLocalServerStopProfile
 
-  if (!isPidRunning(state.pid)) {
-    await clearState(options)
-    return false
-  }
-
-  try {
-    process.kill(state.pid, 'SIGTERM')
-  } catch (error) {
-    if (getErrorCode(error) === 'ESRCH') {
-      await clearState(options)
-      return false
-    }
-    throw error
-  }
-
-  if (await waitForLocalServerHealthState({
-    baseUrl: LLAMAFILE_BASE_URL,
-    healthy: false,
-    operationName: 'llamafile-server-wait-stopped',
-    timeoutMs: LLAMAFILE_SERVER_STOP_TIMEOUT_MS
-  })) {
-    await clearState(options)
-    return true
-  }
-
-  try {
-    process.kill(state.pid, 'SIGKILL')
-  } catch (error) {
-    if (getErrorCode(error) !== 'ESRCH') {
-      throw error
-    }
-  }
-  await waitForLocalServerHealthState({
-    baseUrl: LLAMAFILE_BASE_URL,
-    healthy: false,
-    operationName: 'llamafile-server-wait-stopped',
-    timeoutMs: LLAMAFILE_SERVER_STOP_TIMEOUT_MS
-  })
-  await clearState(options)
-  return true
-}
+const stopRecordedLlamafileServer = async (
+  options: LocalLlmServerResourceOptions = {}
+): Promise<boolean> => await stopRecordedLocalServer(LLAMAFILE_STOP_PROFILE, options)
 
 export const stopLlamafileServer = async (options: LocalLlmServerResourceOptions = {}): Promise<void> => {
   await stopRecordedLlamafileServer(options)
@@ -172,7 +106,7 @@ const startLlamafileServer = async (bundlePath: string, model: string): Promise<
     stage: 'write:llamafile'
   })
 
-  await writeState(proc.pid, model)
+  await writeLlamafileServerState(proc.pid, model)
   const requestModel = await resolveLlamafileRequestModel(model)
   return { requestModel }
 }
@@ -181,7 +115,7 @@ export const ensureLlamafileServerRunning = async (model: string): Promise<{ req
   const bundlePath = await ensureLlamafileBundleDownloaded(model)
 
   if (await checkLlamafileHealthQuiet()) {
-    const state = await readState()
+    const state = await readLlamafileServerState()
     if (state && state.model === model && isPidRunning(state.pid)) {
       l.write('info', `Reusing llamafile server on ${LLAMAFILE_BASE_URL} (${model})`)
       const requestModel = await resolveLlamafileRequestModel(model)

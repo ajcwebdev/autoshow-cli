@@ -35,6 +35,7 @@ export const imageResumeConfig = {
   metadataKey: 'image',
   stepLabel: 'Image',
   providerFlags: IMAGE_PROVIDER_FLAGS,
+  selectionMode: 'additive-stored' as const,
   modelFields: IMAGE_MODEL_FIELDS,
   getSuccessKey: (entry: Step5Metadata) =>
     getGenerationTargetKey(entry.imageService, entry.imageModel),

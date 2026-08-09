@@ -1,7 +1,7 @@
 import type { ImageStepEstimate, MusicStepEstimate, RuntimeOptions, VideoStepEstimate } from '~/types'
-import { estimateImageCosts } from '~/cli/commands/process-steps/step-5-image/image-utils/image-pricing'
-import { estimateVideoCosts } from '~/cli/commands/process-steps/step-6-video/video-utils/video-pricing'
-import { estimateMusicCosts } from '~/cli/commands/process-steps/step-7-music/music-utils/music-pricing'
+import { estimateImageCosts, IMAGE_PRICING_MODEL_KEYS, IMAGE_PRICING_PROVIDERS } from '~/cli/commands/process-steps/step-5-image/image-utils/image-pricing'
+import { estimateVideoCosts, VIDEO_PRICING_MODEL_KEYS, VIDEO_PRICING_PROVIDERS } from '~/cli/commands/process-steps/step-6-video/video-utils/video-pricing'
+import { estimateMusicCosts, MUSIC_PRICING_MODEL_KEYS, MUSIC_PRICING_PROVIDERS } from '~/cli/commands/process-steps/step-7-music/music-utils/music-pricing'
 import {
   getImageEstimation,
   getMusicEstimation,
@@ -9,43 +9,14 @@ import {
 } from '~/cli/commands/setup-and-utilities/models/model-loader'
 import { applyCostMultiplier } from '~/utils/pricing/cost-helpers'
 import { tryResolveLocalVideoDurationSeconds } from '~/cli/commands/process-steps/step-6-video/video-utils/video-media-inputs'
+import { collectSelections, hasAnySelection } from '~/utils/pricing/model-selection'
+import { pick } from '~/utils/cli-utils'
 
 export const buildImageEstimates = (opts: RuntimeOptions): ImageStepEstimate[] => {
-  const hasImage = (opts.geminiImageModels?.length ?? 0) > 0
-    || !!opts.geminiImageModel
-    || (opts.openaiImageModels?.length ?? 0) > 0
-    || !!opts.openaiImageModel
-    || (opts.grokImageModels?.length ?? 0) > 0
-    || !!opts.grokImageModel
-    || (opts.bflImageModels?.length ?? 0) > 0
-    || !!opts.bflImageModel
-    || (opts.recraftImageModels?.length ?? 0) > 0
-    || !!opts.recraftImageModel
-    || (opts.replicateImageModels?.length ?? 0) > 0
-    || !!opts.replicateImageModel
-    || (opts.lumalabsImageModels?.length ?? 0) > 0
-    || !!opts.lumalabsImageModel
-    || (opts.falImageModels?.length ?? 0) > 0
-    || !!opts.falImageModel
-  if (!hasImage) return []
+  if (!hasAnySelection(opts, IMAGE_PRICING_PROVIDERS)) return []
 
   return estimateImageCosts({
-    geminiImageModels: opts.geminiImageModels,
-    geminiImageModel: opts.geminiImageModel,
-    openaiImageModels: opts.openaiImageModels,
-    openaiImageModel: opts.openaiImageModel,
-    grokImageModels: opts.grokImageModels,
-    grokImageModel: opts.grokImageModel,
-    bflImageModels: opts.bflImageModels,
-    bflImageModel: opts.bflImageModel,
-    recraftImageModels: opts.recraftImageModels,
-    recraftImageModel: opts.recraftImageModel,
-    replicateImageModels: opts.replicateImageModels,
-    replicateImageModel: opts.replicateImageModel,
-    lumalabsImageModels: opts.lumalabsImageModels,
-    lumalabsImageModel: opts.lumalabsImageModel,
-    falImageModels: opts.falImageModels,
-    falImageModel: opts.falImageModel,
+    ...pick(opts, IMAGE_PRICING_MODEL_KEYS),
     imageSize: opts.imageSize,
     imageQuality: opts.imageQuality,
     imageCount: opts.imageCount
@@ -69,27 +40,10 @@ const countReplicateInputVideos = (opts: RuntimeOptions): number =>
   (opts.videoInputVideo ? 1 : 0) + (opts.replicateVideoReferenceVideos?.length ?? 0)
 
 export const buildVideoEstimates = async (opts: RuntimeOptions): Promise<VideoStepEstimate[]> => {
-  const hasVideo = (opts.geminiVideoModels?.length ?? 0) > 0
-    || !!opts.geminiVideoModel
-    || (opts.minimaxVideoModels?.length ?? 0) > 0
-    || !!opts.minimaxVideoModel
-    || (opts.glmVideoModels?.length ?? 0) > 0
-    || !!opts.glmVideoModel
-    || (opts.grokVideoModels?.length ?? 0) > 0
-    || !!opts.grokVideoModel
-    || (opts.runwayVideoModels?.length ?? 0) > 0
-    || !!opts.runwayVideoModel
-    || (opts.ltxVideoModels?.length ?? 0) > 0
-    || !!opts.ltxVideoModel
-    || (opts.replicateVideoModels?.length ?? 0) > 0
-    || !!opts.replicateVideoModel
-    || (opts.lumalabsVideoModels?.length ?? 0) > 0
-    || !!opts.lumalabsVideoModel
-    || (opts.falVideoModels?.length ?? 0) > 0
-    || !!opts.falVideoModel
-  if (!hasVideo) return []
+  const selections = collectSelections(opts, VIDEO_PRICING_PROVIDERS)
+  if (selections.length === 0) return []
 
-  const hasGrokVideo = (opts.grokVideoModels?.length ?? 0) > 0 || !!opts.grokVideoModel
+  const hasGrokVideo = selections.some((selection) => selection.service === 'grok')
   const grokInputVideoDurationSeconds = hasGrokVideo && opts.videoInputVideo
     ? await tryResolveLocalVideoDurationSeconds(opts.videoInputVideo)
     : undefined
@@ -98,24 +52,7 @@ export const buildVideoEstimates = async (opts: RuntimeOptions): Promise<VideoSt
     : undefined
 
   return estimateVideoCosts({
-    geminiVideoModels: opts.geminiVideoModels,
-    geminiVideoModel: opts.geminiVideoModel,
-    minimaxVideoModels: opts.minimaxVideoModels,
-    minimaxVideoModel: opts.minimaxVideoModel,
-    glmVideoModels: opts.glmVideoModels,
-    glmVideoModel: opts.glmVideoModel,
-    grokVideoModels: opts.grokVideoModels,
-    grokVideoModel: opts.grokVideoModel,
-    runwayVideoModels: opts.runwayVideoModels,
-    runwayVideoModel: opts.runwayVideoModel,
-    ltxVideoModels: opts.ltxVideoModels,
-    ltxVideoModel: opts.ltxVideoModel,
-    replicateVideoModels: opts.replicateVideoModels,
-    replicateVideoModel: opts.replicateVideoModel,
-    lumalabsVideoModels: opts.lumalabsVideoModels,
-    lumalabsVideoModel: opts.lumalabsVideoModel,
-    falVideoModels: opts.falVideoModels,
-    falVideoModel: opts.falVideoModel,
+    ...pick(opts, VIDEO_PRICING_MODEL_KEYS),
     videoDuration: opts.videoDuration,
     videoSize: opts.videoSize,
     videoAspectRatio: opts.videoAspectRatio,
@@ -140,21 +77,10 @@ export const buildVideoEstimates = async (opts: RuntimeOptions): Promise<VideoSt
 }
 
 export const buildMusicEstimates = async (opts: RuntimeOptions): Promise<MusicStepEstimate[]> => {
-  const hasMusic = (opts.elevenlabsMusicModels?.length ?? 0) > 0
-    || !!opts.elevenlabsMusicModel
-    || (opts.minimaxMusicModels?.length ?? 0) > 0
-    || !!opts.minimaxMusicModel
-    || (opts.geminiMusicModels?.length ?? 0) > 0
-    || !!opts.geminiMusicModel
-  if (!hasMusic) return []
+  if (!hasAnySelection(opts, MUSIC_PRICING_PROVIDERS)) return []
 
   const estimates = estimateMusicCosts({
-    elevenlabsMusicModels: opts.elevenlabsMusicModels,
-    elevenlabsMusicModel: opts.elevenlabsMusicModel,
-    minimaxMusicModels: opts.minimaxMusicModels,
-    minimaxMusicModel: opts.minimaxMusicModel,
-    geminiMusicModels: opts.geminiMusicModels,
-    geminiMusicModel: opts.geminiMusicModel,
+    ...pick(opts, MUSIC_PRICING_MODEL_KEYS),
     musicDuration: opts.musicDuration,
     musicLyricsFile: opts.musicLyricsFile,
     musicInstrumental: opts.musicInstrumental
