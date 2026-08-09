@@ -1,6 +1,6 @@
 import * as l from '~/utils/app-logger/app-logger'
-import { readEnv } from '~/utils/validate/env-utils'
-import { InfraError, InternalError, ValidationError, hintsForMissingEnv } from '~/utils/error-handler'
+import { requireApiKey } from '~/utils/validate/env-utils'
+import { InfraError, ValidationError } from '~/utils/error-handler'
 import type { LlmApiCallResult, MiniMaxChatCompletionResponse, Step3Metadata, StructuredRequestOptions } from '~/types'
 import { runWithLLMInstrumentation, buildStep3Metadata } from '~/cli/commands/process-steps/step-3-write/write-utils/llm-instrumentation'
 import { withRetry, classifyFetchRetry } from '~/utils/retries'
@@ -29,11 +29,7 @@ export const runMinimaxModel = async (
   structuredOpts?: StructuredRequestOptions
 ): Promise<{ result: string, metadata: Step3Metadata }> => {
   try {
-    const apiKey = readEnv('MINIMAX_API_KEY')
-    if (!apiKey) {
-      l.error('MINIMAX_API_KEY not found in environment')
-      throw InternalError('MINIMAX_API_KEY environment variable is required', { stage: 'write:minimax', hints: hintsForMissingEnv('MINIMAX_API_KEY') })
-    }
+    const apiKey = requireApiKey('MINIMAX_API_KEY', 'write:minimax')
 
     const config = {
       apiKey,

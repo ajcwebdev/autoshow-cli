@@ -122,29 +122,3 @@ export const prioritizeCloudSttTargetIndices = (targets: SttTarget[]): number[] 
       return left.index - right.index
     })
     .map((entry) => entry.index)
-
-export const runTargetPool = async (
-  indices: number[],
-  concurrency: number,
-  worker: (index: number) => Promise<void>
-): Promise<void> => {
-  const normalizedConcurrency = Math.max(1, concurrency)
-  let next = 0
-
-  const runWorker = async (): Promise<void> => {
-    while (true) {
-      const current = next
-      next += 1
-      if (current >= indices.length) {
-        return
-      }
-      await worker(indices[current] as number)
-    }
-  }
-
-  await Promise.all(
-    Array.from({ length: Math.min(normalizedConcurrency, indices.length) }, async () => {
-      await runWorker()
-    })
-  )
-}

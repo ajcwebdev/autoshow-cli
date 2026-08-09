@@ -4,8 +4,9 @@ import type { ExistingSttRun, ProviderFailure, SttBatchWorkerContext, SttMultiPr
 import { runCoordinatedSttTargetPool } from '../batch'
 import { readExistingSttRun } from '../stt-batch/stt-run-state'
 import { createPromptRefreshController, selectPrimaryPromptProvider } from '../stt-prompt'
-import { prioritizeCloudSttTargetIndices, resolveEffectiveSttProviderConcurrency, logEffectiveProviderConcurrency, runTargetPool } from '../stt-provider-pool'
+import { prioritizeCloudSttTargetIndices, resolveEffectiveSttProviderConcurrency, logEffectiveProviderConcurrency } from '../stt-provider-pool'
 import { getSttTargetKey } from '../stt-targets'
+import { mapWithConcurrency } from '~/utils/run-with-concurrency'
 import { markSttTargetSkipped, runSttProviderTargetAtIndex } from './stt-batch-worker'
 import { runSttRecoveryPasses } from './stt-batch-recovery'
 import { computeSttBatchDerivedState, finalizeSttBatchCostTiming, reportSttBatchOutcome } from './stt-batch-finalize'
@@ -69,7 +70,7 @@ export const runMultiProviderSttBatch = async ({
     .filter((index) => targetsToRunKeys.has(getSttTargetKey(requestedTargets[index] as SttTarget)))
 
   await Promise.all([
-    runTargetPool(localIndices, options.sttLocalConcurrency, (index) => runSttProviderTargetAtIndex(workerContext, index)),
+    mapWithConcurrency(options.sttLocalConcurrency, localIndices, (index) => runSttProviderTargetAtIndex(workerContext, index)),
     batchCoordinator
       ? runCoordinatedSttTargetPool(
           cloudIndices,
@@ -79,7 +80,7 @@ export const runMultiProviderSttBatch = async ({
           (index, reason) => markSttTargetSkipped(workerContext, index, reason),
           async (index, queueWaitMs) => await runSttProviderTargetAtIndex(workerContext, index, 'initial', queueWaitMs)
         )
-      : runTargetPool(cloudIndices, providerConcurrency.effective, (index) => runSttProviderTargetAtIndex(workerContext, index))
+      : mapWithConcurrency(providerConcurrency.effective, cloudIndices, (index) => runSttProviderTargetAtIndex(workerContext, index))
   ])
 
   if (!batchCoordinator) {

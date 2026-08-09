@@ -1,6 +1,6 @@
 import * as v from 'valibot'
 import type { LtxVideoModel, Step6VideoMetadata, VideoMode } from '~/types'
-import { CLIUsageError, InfraError, InternalError, hintsForMissingEnv } from '~/utils/error-handler'
+import { CLIUsageError, InfraError } from '~/utils/error-handler'
 import { logGenCompleted, logGenStatus } from '~/cli/commands/process-steps/generation-command-utils'
 import { estimateVideoCost, logVideoEstimate } from '~/cli/commands/process-steps/step-6-video/video-utils/video-pricing'
 import {
@@ -12,7 +12,7 @@ import {
 } from '~/cli/commands/process-steps/step-6-video/video-utils/video-normalization'
 import { downloadVideoOutputBytes } from '~/cli/commands/process-steps/step-6-video/video-utils/video-output-download'
 import { pollUntil } from '~/utils/retries'
-import { readEnv } from '~/utils/validate/env-utils'
+import { requireApiKey } from '~/utils/validate/env-utils'
 import { validateData } from '~/utils/validate/validation'
 import { MEDIA_GENERATION_TIMEOUT_MS } from '~/utils/timeouts'
 import { videoMediaReferenceToUrlOrDataUrl } from '../../video-utils/video-media-inputs'
@@ -79,10 +79,7 @@ export const runLtxVideoGen = async (
     inputVideo?: string | undefined
   }
 ): Promise<{ videoPath: string, metadata: Step6VideoMetadata }> => {
-  const apiKey = readEnv('LTXV_API_KEY')
-  if (!apiKey) {
-    throw InternalError('LTXV_API_KEY environment variable is required for LTX video generation', { stage: 'video:ltx', hints: hintsForMissingEnv('LTXV_API_KEY') })
-  }
+  const apiKey = requireApiKey('LTXV_API_KEY', 'video:ltx', 'LTX video generation')
 
   const mode = options.mode ?? 'text'
   const endpoint = resolveLtxEndpoint(mode)

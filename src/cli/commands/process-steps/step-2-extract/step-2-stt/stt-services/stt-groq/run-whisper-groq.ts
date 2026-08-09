@@ -1,7 +1,6 @@
 import type { Step2Metadata, TranscriptionResult } from '~/types'
 import { GROQ_DEFAULT_BASE_URL } from '~/utils/base-urls'
-import { readEnv } from '~/utils/validate/env-utils'
-import { InternalError, hintsForMissingEnv } from '~/utils/error-handler'
+import { requireApiKey } from '~/utils/validate/env-utils'
 import { runOpenAICompatibleSingleSpeakerStt } from '../openai-compatible-single-speaker'
 
 export const runGroqTranscribe = async (
@@ -16,10 +15,7 @@ export const runGroqTranscribe = async (
   }
 ): Promise<{ result: TranscriptionResult, metadata: Step2Metadata }> => {
   const { model: modelName, segmentOffsetMinutes = 0, segmentNumber, totalSegments, audioDurationSeconds } = options
-  const apiKey = readEnv('GROQ_API_KEY')
-  if (!apiKey) {
-    throw InternalError('GROQ_API_KEY environment variable is required for Groq STT models', { stage: 'stt:groq', hints: hintsForMissingEnv('GROQ_API_KEY') })
-  }
+  const apiKey = requireApiKey('GROQ_API_KEY', 'stt:groq', 'Groq STT models')
 
   const baseURL = GROQ_DEFAULT_BASE_URL
   return await runOpenAICompatibleSingleSpeakerStt(audioPath, outputDir, {

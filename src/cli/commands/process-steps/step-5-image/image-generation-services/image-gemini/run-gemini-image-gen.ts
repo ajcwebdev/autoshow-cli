@@ -2,13 +2,13 @@ import { mkdir } from 'node:fs/promises'
 import { basename } from 'node:path'
 import type { GeminiImageModel, Step5Metadata } from '~/types'
 import { logGenCompleted, logGenStatus } from '~/cli/commands/process-steps/generation-command-utils'
-import { readEnv } from '~/utils/validate/env-utils'
+import { requireApiKey } from '~/utils/validate/env-utils'
 import { geminiGenerateContent } from '~/utils/gemini/gemini-rest'
 import { withRetry } from '~/utils/retries'
 import { classifyGeminiRetry } from '~/cli/commands/process-steps/step-3-write/write-services/write-gemini/gemini-utils'
 import { imageReferenceToInlineDataPart } from '../../image-utils/image-inputs'
 import { getProviderReturnedModel } from '../../image-utils/image-output'
-import { InfraError, InternalError, hintsForMissingEnv } from '~/utils/error-handler'
+import { InfraError } from '~/utils/error-handler'
 
 export const runGeminiImageGen = async (
   prompt: string,
@@ -23,10 +23,7 @@ export const runGeminiImageGen = async (
     searchGrounding?: boolean | undefined
   }
 ): Promise<{ imagePaths: string[], metadata: Step5Metadata }> => {
-  const apiKey = readEnv('GEMINI_API_KEY')
-  if (!apiKey) {
-    throw InternalError('GEMINI_API_KEY environment variable is required', { stage: 'image:gemini', hints: hintsForMissingEnv('GEMINI_API_KEY') })
-  }
+  const apiKey = requireApiKey('GEMINI_API_KEY', 'image:gemini')
 
   const startTime = Date.now()
   const imagePaths: string[] = []

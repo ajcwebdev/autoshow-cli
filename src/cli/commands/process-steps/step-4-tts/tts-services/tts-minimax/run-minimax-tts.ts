@@ -13,9 +13,9 @@ import { getFfmpegBinary } from '~/utils/runtime-paths'
 import * as l from '~/utils/app-logger/app-logger'
 import { pollUntil } from '~/utils/retries'
 import { MEDIA_GENERATION_TIMEOUT_MS } from '~/utils/timeouts'
-import { readEnv } from '~/utils/validate/env-utils'
+import { requireApiKey } from '~/utils/validate/env-utils'
 import { validateData } from '~/utils/validate/validation'
-import { InfraError, InternalError, ValidationError, hintsForMissingEnv } from '~/utils/error-handler'
+import { InfraError, ValidationError } from '~/utils/error-handler'
 
 const MINIMAX_DEFAULT_VOICE_ID = 'English_expressive_narrator'
 const POLL_INTERVAL_MS = 3_000
@@ -149,10 +149,7 @@ export const runMinimaxTts = async (
   outputDir: string,
   options: MinimaxTtsOptions
 ): Promise<{ audioPath: string, metadata: Step4Metadata }> => {
-  const apiKey = readEnv('MINIMAX_API_KEY')
-  if (!apiKey) {
-    throw InternalError('MINIMAX_API_KEY environment variable is required for MiniMax TTS', { stage: 'tts:minimax', hints: hintsForMissingEnv('MINIMAX_API_KEY') })
-  }
+  const apiKey = requireApiKey('MINIMAX_API_KEY', 'tts:minimax', 'MiniMax TTS')
 
   const baseURL = MINIMAX_DEFAULT_BASE_URL
   const chunks = splitTextIntoChunks(text, TTS_CHUNK_CHARACTER_LIMITS.minimax)

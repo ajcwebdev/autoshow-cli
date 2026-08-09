@@ -4,8 +4,8 @@ import type { ElevenLabsMusicResponseAudio, ElevenlabsMusicModel, Step7MusicMeta
 import { ELEVENLABS_DEFAULT_BASE_URL } from '~/utils/base-urls'
 import { classifyFetchRetry, withRetry } from '~/utils/retries'
 import { MEDIA_GENERATION_TIMEOUT_MS } from '~/utils/timeouts'
-import { readEnv } from '~/utils/validate/env-utils'
-import { InfraError, InternalError, ValidationError, hintsForMissingEnv } from '~/utils/error-handler'
+import { requireApiKey } from '~/utils/validate/env-utils'
+import { InfraError, ValidationError } from '~/utils/error-handler'
 
 export const ELEVENLABS_MIN_DURATION_SECONDS = 3
 export const ELEVENLABS_MAX_DURATION_SECONDS = 600
@@ -61,10 +61,7 @@ export const runElevenLabsMusicGen = async (
     forceInstrumental?: boolean | undefined
   }
 ): Promise<{ musicPath: string, metadata: Step7MusicMetadata }> => {
-  const apiKey = readEnv('ELEVENLABS_API_KEY')
-  if (!apiKey) {
-    throw InternalError('ELEVENLABS_API_KEY environment variable is required for ElevenLabs music generation', { stage: 'music:elevenlabs', hints: hintsForMissingEnv('ELEVENLABS_API_KEY') })
-  }
+  const apiKey = requireApiKey('ELEVENLABS_API_KEY', 'music:elevenlabs', 'ElevenLabs music generation')
 
   const baseURL = ELEVENLABS_DEFAULT_BASE_URL
   const musicPath = `${outputDir}/generated-music.mp3`

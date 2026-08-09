@@ -7,9 +7,8 @@ import { countTokens, toTimestamp, buildTranscriptionOutputBase, formatTranscrip
 import { withRetry, classifyFetchRetry, parseRetryAfterMs } from '~/utils/retries'
 import { MISTRAL_DEFAULT_BASE_URL } from '~/utils/base-urls'
 import { mistralMultipartRequest } from '~/utils/mistral/mistral-client'
-import { readEnv } from '~/utils/validate/env-utils'
+import { requireApiKey } from '~/utils/validate/env-utils'
 import { validateData } from '~/utils/validate/validation'
-import { InternalError, hintsForMissingEnv } from '~/utils/error-handler'
 import { createMistralSttPassController } from './mistral-stt-pass-controller'
 
 const REQUEST_TIMEOUT_MS = 20 * 60 * 1000
@@ -116,10 +115,7 @@ export const runMistralStt = async (
     baseUrl?: string | undefined
   }
 ): Promise<{ result: TranscriptionResult, metadata: Step2Metadata }> => {
-  const apiKey = readEnv('MISTRAL_API_KEY')
-  if (!apiKey) {
-    throw InternalError('MISTRAL_API_KEY environment variable is required for Mistral transcription', { stage: 'stt:mistral', hints: hintsForMissingEnv('MISTRAL_API_KEY') })
-  }
+  const apiKey = requireApiKey('MISTRAL_API_KEY', 'stt:mistral', 'Mistral transcription')
 
   const { model: modelName, segmentOffsetMinutes = 0, segmentNumber, totalSegments } = options
   if (segmentNumber && totalSegments) {

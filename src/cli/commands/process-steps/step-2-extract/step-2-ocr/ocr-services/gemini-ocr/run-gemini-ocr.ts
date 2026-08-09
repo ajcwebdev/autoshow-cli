@@ -3,8 +3,8 @@ import * as v from 'valibot'
 import * as l from '~/utils/app-logger/app-logger'
 import type { DocumentMetadata, GeminiContent, GeminiGenerateContentUsageMetadata, HostedOcrRun, HostedOcrSchedulerRetryPressureHandler, PageResult, RetryDecision } from '~/types'
 import { parseAndValidateStructured } from '~/cli/commands/process-steps/step-3-write/structured-output/validator'
-import { readEnv } from '~/utils/validate/env-utils'
-import { InfraError, InternalError, ValidationError, hintsForMissingEnv } from '~/utils/error-handler'
+import { requireApiKey } from '~/utils/validate/env-utils'
+import { InfraError, InternalError, ValidationError } from '~/utils/error-handler'
 import { classifyGeminiRetry } from '~/cli/commands/process-steps/step-3-write/write-services/write-gemini/gemini-utils'
 import { classifyOcrCreateRetry, OCR_SCHEMA_RETRY_ATTEMPTS, withOcrCreateRetry } from '~/cli/commands/process-steps/step-2-extract/step-2-ocr/ocr-utils/ocr-retry'
 import { getCachedCloudStagingObject } from '~/cli/commands/process-steps/step-2-extract/step-2-ocr/ocr-utils/preparation-cache'
@@ -318,10 +318,7 @@ export const runGeminiOcr = async (
   completionTokens?: number
   providerUsage?: HostedOcrRun['providerUsage']
 }> => {
-  const apiKey = readEnv('GEMINI_API_KEY')
-  if (!apiKey) {
-    throw InternalError('GEMINI_API_KEY environment variable is required for Gemini OCR', { stage: 'ocr:gemini', hints: hintsForMissingEnv('GEMINI_API_KEY') })
-  }
+  const apiKey = requireApiKey('GEMINI_API_KEY', 'ocr:gemini', 'Gemini OCR')
 
   const expectedPageCount = Math.max(1, step1Metadata.pageCount)
   const diagnosticPageNumber = expectedPageCount === 1

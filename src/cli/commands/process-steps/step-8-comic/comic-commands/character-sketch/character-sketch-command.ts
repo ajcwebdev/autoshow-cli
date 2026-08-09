@@ -18,7 +18,7 @@ import { createImageRunStats, updateImageRunStatsWithCostFallback } from '../../
 import { writeGeneratedImage } from '../../comic-image-services/image-writer'
 import { DEFAULT_IMAGE_MODEL, validateImageSizeForModels } from '../../comic-utils/image-size'
 import { loadPromptsConfig } from '../../comic-utils/scene-utils'
-import { runWithConcurrency } from '../../comic-utils/run-with-concurrency'
+import { runWithConcurrency } from '~/utils/run-with-concurrency'
 import { DEFAULT_CLI_CONCURRENCY } from '~/utils/concurrency-defaults'
 import { loadCharacterCatalog } from '../../comic-utils/character-reference-config'
 import { validateReferenceImageCount } from '../../comic-utils/reference-capabilities'

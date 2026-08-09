@@ -10,9 +10,8 @@ import {
 } from '~/cli/commands/process-steps/step-2-extract/step-2-stt/stt-utils/stt-utils'
 import { withRetry } from '~/utils/retries'
 import { DEEPGRAM_DEFAULT_BASE_URL } from '~/utils/base-urls'
-import { readEnv } from '~/utils/validate/env-utils'
+import { requireApiKey } from '~/utils/validate/env-utils'
 import { validateData } from '~/utils/validate/validation'
-import { InternalError, hintsForMissingEnv } from '~/utils/error-handler'
 import { finalizeHostedSttResult } from '../finalize-hosted-stt'
 import { classifySttFetchRetryWithMetrics, createSttRetryMetrics } from '../../stt-retry-metrics'
 
@@ -158,10 +157,7 @@ export const runDeepgramTranscribe = async (
   outputDir: string,
   options: SttSegmentRunOptions
 ): Promise<{ result: TranscriptionResult, metadata: Step2Metadata }> => {
-  const apiKey = readEnv('DEEPGRAM_API_KEY')
-  if (!apiKey) {
-    throw InternalError('DEEPGRAM_API_KEY environment variable is required for Deepgram transcription', { stage: 'stt:deepgram', hints: hintsForMissingEnv('DEEPGRAM_API_KEY') })
-  }
+  const apiKey = requireApiKey('DEEPGRAM_API_KEY', 'stt:deepgram', 'Deepgram transcription')
 
   const { model: modelName, segmentOffsetMinutes = 0, segmentNumber, totalSegments } = options
   if (segmentNumber && totalSegments) {

@@ -21,8 +21,8 @@ import {
 import { buildStep2TimingMetadata } from '~/cli/commands/process-steps/step-2-extract/step-2-stt/stt-timing-metadata'
 import { readSttProviderCheckpoint } from '~/cli/commands/process-steps/step-2-extract/step-2-stt/stt-manifest'
 import { getSupadataBaseUrl, isSupadataSupportedSourceUrl } from './supadata'
-import { readEnv } from '~/utils/validate/env-utils'
-import { InfraError, InternalError, hintsForMissingEnv } from '~/utils/error-handler'
+import { requireApiKey } from '~/utils/validate/env-utils'
+import { InfraError, InternalError } from '~/utils/error-handler'
 import { getSupadataCreditRateCents } from '~/utils/pricing/supadata-pricing'
 import {
   fetchSupadataTranscript,
@@ -79,10 +79,7 @@ export const runSupadataStt = async (
     throw buildSupadataUnsupportedSourceError(sourceUrl)
   }
 
-  const apiKey = readEnv('SUPADATA_API_KEY')
-  if (!apiKey) {
-    throw InternalError('SUPADATA_API_KEY environment variable is required for Supadata transcription', { stage: 'stt:supadata', hints: hintsForMissingEnv('SUPADATA_API_KEY') })
-  }
+  const apiKey = requireApiKey('SUPADATA_API_KEY', 'stt:supadata', 'Supadata transcription')
 
   if (segmentNumber && totalSegments) {
     logSttSegmentLifecycle(l, { provider: 'supadata', action: 'started', segmentNumber, totalSegments, model: modelName })

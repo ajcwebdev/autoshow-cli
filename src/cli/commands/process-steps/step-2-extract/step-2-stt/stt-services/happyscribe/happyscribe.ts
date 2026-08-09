@@ -1,7 +1,7 @@
 import { HAPPYSCRIBE_DEFAULT_BASE_URL } from '~/utils/base-urls'
-import { readEnv } from '~/utils/validate/env-utils'
+import { ensureApiKeySetup, readEnv, requireApiKey } from '~/utils/validate/env-utils'
 import { classifyFetchRetry, withRetry } from '~/utils/retries'
-import { InternalError, ValidationError, hintsForMissingEnv } from '~/utils/error-handler'
+import { ValidationError } from '~/utils/error-handler'
 import type { HappyScribeOrganization, HappyScribeOrganizationSelection } from '~/types'
 
 const ORGANIZATION_REQUEST_TIMEOUT_MS = 60_000
@@ -105,10 +105,7 @@ const listHappyScribeOrganizations = async (
     baseURL?: string | undefined
   } = {}
 ): Promise<HappyScribeOrganization[]> => {
-  const apiKey = options.apiKey ?? getHappyScribeApiKey()
-  if (!apiKey) {
-    throw InternalError('HAPPYSCRIBE_API_KEY environment variable is required for Happy Scribe transcription', { stage: 'stt:happyscribe', hints: hintsForMissingEnv('HAPPYSCRIBE_API_KEY') })
-  }
+  const apiKey = options.apiKey ?? requireApiKey('HAPPYSCRIBE_API_KEY', 'stt:happyscribe', 'Happy Scribe transcription')
 
   const baseURL = options.baseURL ?? getHappyScribeBaseUrl()
   const payload = await withRetry(
@@ -213,8 +210,4 @@ export const buildHappyScribeOrganizationResolutionError = (
   ].join(' '))
 }
 
-export const ensureHappyScribeSttSetup = async (): Promise<void> => {
-  if (!getHappyScribeApiKey()) {
-    throw InternalError('HAPPYSCRIBE_API_KEY environment variable is required for Happy Scribe transcription', { stage: 'stt:happyscribe', hints: hintsForMissingEnv('HAPPYSCRIBE_API_KEY') })
-  }
-}
+export const ensureHappyScribeSttSetup = ensureApiKeySetup('HAPPYSCRIBE_API_KEY', 'stt:happyscribe', 'Happy Scribe transcription')

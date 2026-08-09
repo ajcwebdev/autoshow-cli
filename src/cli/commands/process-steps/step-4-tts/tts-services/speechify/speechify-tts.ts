@@ -1,9 +1,3 @@
-import { readEnv } from '~/utils/validate/env-utils'
-import { InternalError, hintsForMissingEnv } from '~/utils/error-handler'
+import { ensureApiKeySetup } from '~/utils/validate/env-utils'
 
-export const ensureSpeechifyTtsSetup = async (): Promise<void> => {
-  const apiKey = readEnv('SPEECHIFY_API_KEY')
-  if (!apiKey) {
-    throw InternalError('SPEECHIFY_API_KEY environment variable is required for Speechify TTS', { stage: 'tts:speechify', hints: hintsForMissingEnv('SPEECHIFY_API_KEY') })
-  }
-}
+export const ensureSpeechifyTtsSetup = ensureApiKeySetup('SPEECHIFY_API_KEY', 'tts:speechify', 'Speechify TTS')

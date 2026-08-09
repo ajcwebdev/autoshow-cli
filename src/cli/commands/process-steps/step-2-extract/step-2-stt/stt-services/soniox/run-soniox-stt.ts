@@ -19,8 +19,8 @@ import {
 } from '~/cli/commands/process-steps/step-2-extract/step-2-stt/async-lifecycle'
 import { buildStep2TimingMetadata } from '~/cli/commands/process-steps/step-2-extract/step-2-stt/stt-timing-metadata'
 import { SONIOX_DEFAULT_BASE_URL } from '~/utils/base-urls'
-import { readEnv } from '~/utils/validate/env-utils'
-import { InternalError, hintsForMissingEnv } from '~/utils/error-handler'
+import { requireApiKey } from '~/utils/validate/env-utils'
+import { InternalError } from '~/utils/error-handler'
 import {
   createTranscription,
   deleteFile,
@@ -48,10 +48,7 @@ export const runSonioxStt = async (
     lifecycle?: AsyncSttLifecycleHooks | undefined
   }
 ): Promise<{ result: TranscriptionResult, metadata: Step2Metadata }> => {
-  const apiKey = readEnv('SONIOX_API_KEY')
-  if (!apiKey) {
-    throw InternalError('SONIOX_API_KEY environment variable is required for Soniox transcription', { stage: 'stt:soniox', hints: hintsForMissingEnv('SONIOX_API_KEY') })
-  }
+  const apiKey = requireApiKey('SONIOX_API_KEY', 'stt:soniox', 'Soniox transcription')
 
   const {
     model: modelName,

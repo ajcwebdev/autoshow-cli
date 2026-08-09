@@ -17,7 +17,6 @@ import {
 import { buildStep2TimingMetadata } from '~/cli/commands/process-steps/step-2-extract/step-2-stt/stt-timing-metadata'
 import {
   buildHappyScribeOrganizationResolutionError,
-  getHappyScribeApiKey,
   getHappyScribeBaseUrl,
   resolveHappyScribeOrganizationSelection
 } from './happyscribe'
@@ -32,7 +31,8 @@ import {
   getHappyScribeErrorStatus
 } from './happyscribe-utils'
 import { parseHappyScribeTranscriptPayload } from './parse-happyscribe-transcript'
-import { InfraError, InternalError, ValidationError, hintsForMissingEnv } from '~/utils/error-handler'
+import { InfraError, ValidationError } from '~/utils/error-handler'
+import { requireApiKey } from '~/utils/validate/env-utils'
 
 const INITIAL_POLL_INTERVAL_MS = 1_000
 const MAX_POLL_INTERVAL_MS = 10_000
@@ -115,10 +115,7 @@ export const runHappyScribeStt = async (
     runMode,
     lifecycle
   } = options
-  const apiKey = getHappyScribeApiKey()
-  if (!apiKey) {
-    throw InternalError('HAPPYSCRIBE_API_KEY environment variable is required for Happy Scribe transcription', { stage: 'stt:happyscribe', hints: hintsForMissingEnv('HAPPYSCRIBE_API_KEY') })
-  }
+  const apiKey = requireApiKey('HAPPYSCRIBE_API_KEY', 'stt:happyscribe', 'Happy Scribe transcription')
 
   const baseURL = getHappyScribeBaseUrl()
   const offsetSeconds = segmentOffsetMinutes * 60

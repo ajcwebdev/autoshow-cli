@@ -9,7 +9,7 @@ import { getPageComicImagePath, getPanelComicImagePath } from '../../comic-utils
 import { composeComicGridPage } from './comic-grid-composer'
 import { chunkComicGridPanels, getComicGridCapacity, selectComicPanels } from './comic-page-utils'
 import { getImagePromptVariationLabel } from './prompt-variations'
-import { runWithConcurrency } from '../../comic-utils/run-with-concurrency'
+import { runWithConcurrency } from '~/utils/run-with-concurrency'
 
 const formatGridSpec = (grid: GenerateComicGridPagesOptions['grid']): string => {
   return `${grid.columns}x${grid.rows}`

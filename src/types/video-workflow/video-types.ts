@@ -1,26 +1,5 @@
-import type { CostEstimateBase, ProcessingOptions, ProviderTargetBase, ResourceGate, Step6VideoMetadata, VideoProvider } from '~/types'
-export type VideoGenOptions = Pick<
-  ProcessingOptions,
-  | 'geminiVideoModels' | 'geminiVideoModel'
-  | 'minimaxVideoModels' | 'minimaxVideoModel'
-  | 'glmVideoModels' | 'glmVideoModel'
-  | 'grokVideoModels' | 'grokVideoModel'
-  | 'runwayVideoModels' | 'runwayVideoModel'
-  | 'ltxVideoModels' | 'ltxVideoModel'
-  | 'replicateVideoModels' | 'replicateVideoModel'
-  | 'lumalabsVideoModels' | 'lumalabsVideoModel'
-  | 'falVideoModels' | 'falVideoModel'
-  | 'allVideo'
-  | 'videoDuration' | 'videoSize' | 'videoAspectRatio' | 'videoResolution'
-  | 'videoMode' | 'videoInputImage' | 'videoLastFrame' | 'videoReferenceImages' | 'videoInputVideo'
-  | 'replicateVideoSeed' | 'replicateVideoGenerateAudio'
-  | 'replicateVideoReferenceVideos' | 'replicateVideoReferenceAudios'
-  | 'replicateVideoNegativePrompt' | 'replicateVideoAudio' | 'replicateVideoPromptExpansion'
-  | 'replicateVideoMultiPrompt' | 'replicateVideoMultiClip'
-  | 'falVideoGenerateAudio' | 'falVideoReferenceVideos' | 'falVideoReferenceAudios'
-  | 'grokVideoStorageFilename' | 'grokVideoStorageExpiresAfter'
-  | 'videoProviderConcurrency' | 'videoLocalConcurrency'
-> & {
+import type { CostEstimateBase, ProcessingOptions, ProviderTargetBase, ResourceGate, Step6VideoMetadata, VideoProvider, VideoRuntimeOptionKey } from '~/types'
+export type VideoGenOptions = Pick<ProcessingOptions, VideoRuntimeOptionKey> & {
   generationResourceGate?: ResourceGate | undefined
 }
 

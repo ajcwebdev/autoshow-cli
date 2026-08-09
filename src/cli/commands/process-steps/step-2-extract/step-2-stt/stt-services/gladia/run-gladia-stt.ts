@@ -7,9 +7,9 @@ import { buildSegmentsFromWords, buildTranscriptionOutputBase, countTokens, form
 import type { GladiaNormalizedWord, GladiaStatusResponse, GladiaUtterance, HostedAsyncSttRunOptions, RetryClass, Step2Metadata, Step2RuntimeMetadata, SttUploadJobHttpError, TranscriptionResult, TranscriptionSegment } from '~/types'
 import { GladiaCreateResponseSchema, GladiaStatusResponseSchema, GladiaUploadResponseSchema } from '~/types'
 import * as l from '~/utils/app-logger/app-logger'
-import { hintsForMissingEnv, InternalError } from '~/utils/error-handler'
+import { InternalError } from '~/utils/error-handler'
 import { parseRetryAfterMs, withRetry } from '~/utils/retries'
-import { readEnv } from '~/utils/validate/env-utils'
+import { requireApiKey } from '~/utils/validate/env-utils'
 import { validateData } from '~/utils/validate/validation'
 import { classifySttFetchRetryWithMetrics, createSttRetryMetrics } from '../../stt-retry-metrics'
 import { getGladiaBaseUrl } from './gladia'
@@ -140,10 +140,7 @@ export const runGladiaStt = async (
     runMode,
     lifecycle
   } = options
-  const apiKey = readEnv('GLADIA_API_KEY')
-  if (!apiKey) {
-    throw InternalError('GLADIA_API_KEY environment variable is required for Gladia transcription', { stage: 'stt:gladia', hints: hintsForMissingEnv('GLADIA_API_KEY') })
-  }
+  const apiKey = requireApiKey('GLADIA_API_KEY', 'stt:gladia', 'Gladia transcription')
 
   if (segmentNumber && totalSegments) {
     logSttSegmentLifecycle(l, { provider: 'gladia', action: 'started', segmentNumber, totalSegments, model: modelName })

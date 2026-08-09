@@ -1,7 +1,7 @@
 import type { SttBatchWorkerContext, SttTarget } from '~/types'
 import * as l from '~/utils/app-logger/app-logger'
 import { logSttRecoveryPass } from '../stt-logging'
-import { runTargetPool } from '../stt-provider-pool'
+import { mapWithConcurrency } from '~/utils/run-with-concurrency'
 import { runSttProviderTargetAtIndex } from './stt-batch-worker'
 
 const STT_RECOVERY_MAX_PASSES = 3
@@ -29,7 +29,7 @@ export const runSttRecoveryPasses = async (
       failures: recoveryIndices.length,
       providers: recoveryIndices.map((index) => `${(ctx.requestedTargets[index] as SttTarget).service}/${(ctx.requestedTargets[index] as SttTarget).model}`).join(', ')
     })
-    await runTargetPool(recoveryIndices, 1, async (index) => {
+    await mapWithConcurrency(1, recoveryIndices, async (index) => {
       const hadFailure = ctx.failuresByIndex.has(index)
       await runSttProviderTargetAtIndex(ctx, index, 'recovery')
       if (hadFailure && !ctx.failuresByIndex.has(index)) {

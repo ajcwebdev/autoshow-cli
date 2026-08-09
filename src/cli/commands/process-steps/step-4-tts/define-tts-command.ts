@@ -27,6 +27,7 @@ import { preflightToEstimated } from '~/utils/pricing/compute-costs'
 import { computeEstimatedCosts } from '~/utils/pricing/compute-estimated-costs'
 import { computeActualProcessingTimes, computeEstimatedProcessingTimes } from '~/utils/pricing/compute-processing-time'
 import { runPreflight } from '~/utils/pricing/preflight'
+import { mapWithConcurrency } from '~/utils/run-with-concurrency'
 import { assertDialogueFormatIsUsable, isMultiSpeakerRequested, normalizeDialogueFromOptions } from './dialogue-normalizer'
 import { runTtsForTargets } from './run-tts'
 import { buildTtsBatchEstimateSummary, computeSuccessfulTtsBatchActualCost } from './tts-batch-summary'
@@ -611,32 +612,6 @@ const runTtsBatchPlanForTargets = async (
   }
 }
 
-const runWithConcurrency = async <T,>(
-  items: T[],
-  concurrency: number,
-  worker: (item: T, index: number) => Promise<void>
-): Promise<void> => {
-  const normalizedConcurrency = Math.max(1, concurrency)
-  let nextIndex = 0
-
-  const runWorker = async (): Promise<void> => {
-    while (true) {
-      const currentIndex = nextIndex
-      nextIndex += 1
-      if (currentIndex >= items.length) {
-        return
-      }
-      await worker(items[currentIndex] as T, currentIndex)
-    }
-  }
-
-  await Promise.all(
-    Array.from({ length: Math.min(normalizedConcurrency, items.length) }, async () => {
-      await runWorker()
-    })
-  )
-}
-
 const runTtsDirectoryBatch = async (
   inputPath: string,
   ttsOptions: RuntimeOptions,
@@ -727,7 +702,7 @@ const runTtsDirectoryBatch = async (
     }
 
     if (localTargets.length > 0) {
-      await runWithConcurrency(plans, concurrency, async (plan) => {
+      await mapWithConcurrency(concurrency, plans, async (plan) => {
         await runWithLogContext({ batchId: basename(batchDir), itemIndex: plan.index + 1, itemCount: preparedInputs.length }, async () =>
           await runTtsBatchPlanForTargets(
             plan,

@@ -1,7 +1,7 @@
 import type { GrokImageModel, OpenAIImageResponse, Step5Metadata } from '~/types'
-import { CLIUsageError, InfraError, InternalError, hintsForMissingEnv } from '~/utils/error-handler'
+import { CLIUsageError, InfraError } from '~/utils/error-handler'
 import { logGenCompleted, logGenStatus } from '~/cli/commands/process-steps/generation-command-utils'
-import { readEnv } from '~/utils/validate/env-utils'
+import { requireApiKey } from '~/utils/validate/env-utils'
 import { XAI_DEFAULT_BASE_URL } from '~/utils/base-urls'
 import { createOpenAIImage, openAIJsonRequest } from '~/utils/openai/openai-client'
 import { imageReferenceToDataUrl, isHttpUrl } from '../../image-utils/image-inputs'
@@ -32,10 +32,7 @@ export const runGrokImageGen = async (
     baseUrl?: string | undefined
   }
 ): Promise<{ imagePaths: string[], metadata: Step5Metadata }> => {
-  const apiKey = readEnv('XAI_API_KEY')
-  if (!apiKey) {
-    throw InternalError('XAI_API_KEY environment variable is required for Grok image generation', { stage: 'image:grok', hints: hintsForMissingEnv('XAI_API_KEY') })
-  }
+  const apiKey = requireApiKey('XAI_API_KEY', 'image:grok', 'Grok image generation')
 
   const resolution = normalizeGrokImageResolution(options.imageSize)
   const mode = options.mode ?? 'generation'

@@ -8,9 +8,9 @@ import { AssemblyAiTranscriptResponseSchema } from '~/types'
 import { ASSEMBLYAI_DEFAULT_BASE_URL } from '~/utils/base-urls'
 import * as l from '~/utils/app-logger/app-logger'
 import { withRetry } from '~/utils/retries'
-import { readEnv } from '~/utils/validate/env-utils'
+import { requireApiKey } from '~/utils/validate/env-utils'
 import { validateData } from '~/utils/validate/validation'
-import { InternalError, ValidationError, hintsForMissingEnv } from '~/utils/error-handler'
+import { InternalError, ValidationError } from '~/utils/error-handler'
 import { classifySttFetchRetryWithMetrics, createSttRetryMetrics } from '../../stt-retry-metrics'
 
 const INITIAL_POLL_INTERVAL_MS = 1000
@@ -79,10 +79,7 @@ export const runAssemblyAiTranscribe = async (
     runMode,
     lifecycle
   } = options
-  const apiKey = readEnv('ASSEMBLYAI_API_KEY')
-  if (!apiKey) {
-    throw InternalError('ASSEMBLYAI_API_KEY environment variable is required for AssemblyAI transcription', { stage: 'stt:assemblyai', hints: hintsForMissingEnv('ASSEMBLYAI_API_KEY') })
-  }
+  const apiKey = requireApiKey('ASSEMBLYAI_API_KEY', 'stt:assemblyai', 'AssemblyAI transcription')
 
   if (segmentNumber && totalSegments) {
     logSttSegmentLifecycle(l, { provider: 'assemblyai', action: 'started', segmentNumber, totalSegments, model: modelName })

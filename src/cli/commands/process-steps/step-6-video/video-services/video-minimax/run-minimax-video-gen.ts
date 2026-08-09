@@ -1,9 +1,9 @@
 import * as v from 'valibot'
 import type { MinimaxVideoModel, Step6VideoMetadata, VideoMode } from '~/types'
-import { InfraError, InternalError, hintsForMissingEnv } from '~/utils/error-handler'
+import { InfraError } from '~/utils/error-handler'
 import { logGenCompleted, logGenStatus } from '~/cli/commands/process-steps/generation-command-utils'
 import { estimateVideoCost, logVideoEstimate } from '~/cli/commands/process-steps/step-6-video/video-utils/video-pricing'
-import { readEnv } from '~/utils/validate/env-utils'
+import { requireApiKey } from '~/utils/validate/env-utils'
 import { MINIMAX_DEFAULT_BASE_URL } from '~/utils/base-urls'
 import { validateData } from '~/utils/validate/validation'
 import { normalizeMinimaxDurationForApi, normalizeMinimaxResolutionForApi } from '~/cli/commands/process-steps/step-6-video/video-utils/video-normalization'
@@ -63,10 +63,7 @@ export const runMinimaxVideoGen = async (
     referenceImages?: string[] | undefined
   }
 ): Promise<{ videoPath: string, metadata: Step6VideoMetadata }> => {
-  const apiKey = readEnv('MINIMAX_API_KEY')
-  if (!apiKey) {
-    throw InternalError('MINIMAX_API_KEY environment variable is required', { stage: 'video:minimax', hints: hintsForMissingEnv('MINIMAX_API_KEY') })
-  }
+  const apiKey = requireApiKey('MINIMAX_API_KEY', 'video:minimax')
 
   const baseURL = MINIMAX_DEFAULT_BASE_URL
   const mode = options.mode ?? 'text'

@@ -1,7 +1,7 @@
 import * as l from '~/utils/app-logger/app-logger'
 import type { LlmApiCallResult, Step3Metadata, StructuredRequestOptions } from '~/types'
-import { readEnv } from '~/utils/validate/env-utils'
-import { InternalError, ValidationError, hintsForMissingEnv } from '~/utils/error-handler'
+import { requireApiKey } from '~/utils/validate/env-utils'
+import { ValidationError } from '~/utils/error-handler'
 import { withRetry } from '~/utils/retries'
 import { runWithLLMInstrumentation, buildStep3Metadata } from '~/cli/commands/process-steps/step-3-write/write-utils/llm-instrumentation'
 import { classifyGeminiRetry } from '~/cli/commands/process-steps/step-3-write/write-services/write-gemini/gemini-utils'
@@ -13,11 +13,7 @@ export const runGeminiModel = async (
   structuredOpts?: StructuredRequestOptions
 ): Promise<{ result: string, metadata: Step3Metadata }> => {
   try {
-    const apiKey = readEnv('GEMINI_API_KEY')
-    if (!apiKey) {
-      l.error(`GEMINI_API_KEY not found in environment`)
-      throw InternalError('GEMINI_API_KEY environment variable is required', { stage: 'write:gemini', hints: hintsForMissingEnv('GEMINI_API_KEY') })
-    }
+    const apiKey = requireApiKey('GEMINI_API_KEY', 'write:gemini')
 
     const apiCall = (): Promise<LlmApiCallResult> => withRetry(
       {

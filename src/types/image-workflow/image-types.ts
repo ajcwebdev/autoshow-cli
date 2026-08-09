@@ -1,36 +1,5 @@
-import type { CostEstimateBase, ImageProvider, ProcessingOptions, ProviderTargetBase, ResourceGate, Step5Metadata } from '~/types'
-export type ImageGenOptions = Pick<
-  ProcessingOptions,
-  | 'geminiImageModels'
-  | 'geminiImageModel'
-  | 'openaiImageModels'
-  | 'openaiImageModel'
-  | 'grokImageModels'
-  | 'grokImageModel'
-  | 'bflImageModels'
-  | 'bflImageModel'
-  | 'recraftImageModels'
-  | 'recraftImageModel'
-  | 'replicateImageModels'
-  | 'replicateImageModel'
-  | 'lumalabsImageModels'
-  | 'lumalabsImageModel'
-  | 'falImageModels'
-  | 'falImageModel'
-  | 'imageAspectRatio'
-  | 'imageSize'
-  | 'imageQuality'
-  | 'imageFormat'
-  | 'imageBackground'
-  | 'imageCount'
-  | 'imageInputs'
-  | 'imageMask'
-  | 'imageResponseMode'
-  | 'geminiSearchGrounding'
-  | 'imageCompression'
-  | 'imageProviderConcurrency'
-  | 'imageLocalConcurrency'
-> & {
+import type { CostEstimateBase, ImageProvider, ImageRuntimeOptionKey, ProcessingOptions, ProviderTargetBase, ResourceGate, Step5Metadata } from '~/types'
+export type ImageGenOptions = Pick<ProcessingOptions, ImageRuntimeOptionKey> & {
   generationResourceGate?: ResourceGate | undefined
 }
 

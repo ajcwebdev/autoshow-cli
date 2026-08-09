@@ -1,7 +1,6 @@
 import { isDirectMediaUrl } from '~/cli/commands/process-steps/step-1-download/audio/metadata-utils'
 import { SUPADATA_DEFAULT_BASE_URL } from '~/utils/base-urls'
-import { readEnv } from '~/utils/validate/env-utils'
-import { InternalError, hintsForMissingEnv } from '~/utils/error-handler'
+import { ensureApiKeySetup } from '~/utils/validate/env-utils'
 
 const SUPADATA_SUPPORTED_HOST_PATTERNS = [
   /(^|\.)youtube\.com$/i,
@@ -58,9 +57,4 @@ export const describeSupadataUnsupportedSource = (
   return `Supadata only supports public YouTube, TikTok, Instagram, X/Twitter, Facebook, or direct media/file URLs; unsupported source URL: ${sourceUrl}`
 }
 
-export const ensureSupadataSttSetup = async (): Promise<void> => {
-  const apiKey = readEnv('SUPADATA_API_KEY')
-  if (!apiKey) {
-    throw InternalError('SUPADATA_API_KEY environment variable is required for Supadata transcription', { stage: 'stt:supadata', hints: hintsForMissingEnv('SUPADATA_API_KEY') })
-  }
-}
+export const ensureSupadataSttSetup = ensureApiKeySetup('SUPADATA_API_KEY', 'stt:supadata', 'Supadata transcription')

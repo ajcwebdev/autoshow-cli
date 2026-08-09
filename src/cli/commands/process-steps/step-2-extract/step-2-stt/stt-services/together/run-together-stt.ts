@@ -1,7 +1,6 @@
 import type { Step2Metadata, TranscriptionResult } from '~/types'
 import { TOGETHER_DEFAULT_BASE_URL } from '~/utils/base-urls'
-import { readEnv } from '~/utils/validate/env-utils'
-import { InternalError, hintsForMissingEnv } from '~/utils/error-handler'
+import { requireApiKey } from '~/utils/validate/env-utils'
 import { runOpenAICompatibleSingleSpeakerStt } from '../openai-compatible-single-speaker'
 
 export const buildTogetherSttFormFields = (
@@ -31,10 +30,7 @@ export const runTogetherStt = async (
   }
 ): Promise<{ result: TranscriptionResult, metadata: Step2Metadata }> => {
   const { model, segmentOffsetMinutes = 0, segmentNumber, totalSegments, audioDurationSeconds } = options
-  const apiKey = readEnv('TOGETHER_API_KEY')
-  if (!apiKey) {
-    throw InternalError('TOGETHER_API_KEY environment variable is required for Together transcription', { stage: 'stt:together', hints: hintsForMissingEnv('TOGETHER_API_KEY') })
-  }
+  const apiKey = requireApiKey('TOGETHER_API_KEY', 'stt:together', 'Together transcription')
 
   return await runOpenAICompatibleSingleSpeakerStt(audioPath, outputDir, {
     service: 'together',

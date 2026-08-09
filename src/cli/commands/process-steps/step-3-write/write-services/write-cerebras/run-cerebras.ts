@@ -1,7 +1,7 @@
 import type { Step3Metadata, StructuredRequestOptions } from '~/types'
 import { CEREBRAS_DEFAULT_BASE_URL } from '~/utils/base-urls'
-import { CLIUsageError, InternalError, hintsForMissingEnv } from '~/utils/error-handler'
-import { readEnv } from '~/utils/validate/env-utils'
+import { CLIUsageError } from '~/utils/error-handler'
+import { requireApiKey } from '~/utils/validate/env-utils'
 import { runOpenAICompatibleChatModel } from '../openai-compatible-chat'
 
 export const CEREBRAS_MODEL_BY_SELECTOR = {
@@ -45,10 +45,7 @@ export const sanitizeCerebrasStructuredSchema = (schema: Record<string, unknown>
 }
 
 const ensureCerebrasApiKey = (): string => {
-  const apiKey = readEnv('CEREBRAS_API_KEY')
-  if (!apiKey) {
-    throw InternalError('CEREBRAS_API_KEY environment variable is required for --cerebras models', { stage: 'write:cerebras', hints: hintsForMissingEnv('CEREBRAS_API_KEY') })
-  }
+  const apiKey = requireApiKey('CEREBRAS_API_KEY', 'write:cerebras', '--cerebras models')
   return apiKey
 }
 

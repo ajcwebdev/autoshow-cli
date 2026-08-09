@@ -246,7 +246,7 @@ export const getAsyncSttErrorStatus = (error: unknown): number | undefined =>
 
 export const attachAsyncSttErrorContext = <TError extends Error & { stage?: string, retryClass?: RetryClass }>(
   error: unknown,
-  stage: 'create' | 'poll' | 'transcript',
+  stage: string,
   retryClass: RetryClass
 ): never => {
   if (error instanceof Error && error.cause instanceof Error) {
@@ -263,7 +263,7 @@ export const attachAsyncSttErrorContext = <TError extends Error & { stage?: stri
 
 export const attachAsyncSttValidationContext = <TError extends Error & { stage?: string, retryClass?: RetryClass, rawResponse?: unknown }>(
   error: unknown,
-  stage: 'create' | 'poll' | 'transcript',
+  stage: string,
   retryClass: RetryClass,
   rawResponse: unknown
 ): never => {

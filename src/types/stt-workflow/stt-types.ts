@@ -304,11 +304,9 @@ export type OptionalSttHttpError<TStage extends string> = Error & {
 
 export type SttTranscribeHttpError = RequiredSttHttpError<'transcribe'>
 
-export type SttAsyncJobHttpError = RequiredSttHttpErrorWithRawResponse<'create' | 'poll' | 'transcript'>
-
 export type SttUploadJobHttpError = RequiredSttHttpErrorWithRawResponse<'upload' | 'create' | 'poll'>
 
-export type SonioxHttpError = RequiredSttHttpErrorWithRawResponse<'upload' | 'create' | 'poll' | 'transcript'>
+export type SttStageHttpError = RequiredSttHttpErrorWithRawResponse<string>
 
 export type SupadataHttpError = OptionalSttHttpError<'create' | 'poll'> & {
   retryable?: boolean

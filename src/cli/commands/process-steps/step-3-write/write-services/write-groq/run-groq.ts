@@ -1,16 +1,10 @@
-import * as l from '~/utils/app-logger/app-logger'
-import { readEnv } from '~/utils/validate/env-utils'
-import { InternalError, hintsForMissingEnv } from '~/utils/error-handler'
+import { requireApiKey } from '~/utils/validate/env-utils'
 import { GROQ_DEFAULT_BASE_URL } from '~/utils/base-urls'
 import type { Step3Metadata, StructuredRequestOptions } from '~/types'
 import { runOpenAICompatibleChatModel } from '../openai-compatible-chat'
 
 const getGroqClientConfig = (): { apiKey: string, baseURL: string } => {
-  const apiKey = readEnv('GROQ_API_KEY')
-  if (!apiKey) {
-    l.error('GROQ_API_KEY not found in environment for Groq model')
-    throw InternalError('GROQ_API_KEY environment variable is required for --groq models', { stage: 'write:groq', hints: hintsForMissingEnv('GROQ_API_KEY') })
-  }
+  const apiKey = requireApiKey('GROQ_API_KEY', 'write:groq', '--groq models')
 
   return { apiKey, baseURL: GROQ_DEFAULT_BASE_URL }
 }

@@ -14,32 +14,7 @@ import * as l from '~/utils/app-logger/app-logger'
 import { runWithLogContext } from '~/utils/app-logger/app-logger'
 import { InfraError, InternalError } from '~/utils/error-handler'
 import { createHumanTable } from '~/utils/app-logger/human-table/human-table'
-
-const runTargetPool = async (
-  indices: number[],
-  concurrency: number,
-  worker: (index: number) => Promise<void>
-): Promise<void> => {
-  const normalizedConcurrency = Math.max(1, concurrency)
-  let nextIndex = 0
-
-  const runWorker = async (): Promise<void> => {
-    while (true) {
-      const currentIndex = nextIndex
-      nextIndex += 1
-      if (currentIndex >= indices.length) {
-        return
-      }
-      await worker(indices[currentIndex] as number)
-    }
-  }
-
-  await Promise.all(
-    Array.from({ length: Math.min(normalizedConcurrency, indices.length) }, async () => {
-      await runWorker()
-    })
-  )
-}
+import { mapWithConcurrency } from '~/utils/run-with-concurrency'
 
 export const resolveWriteTranscription = async (
   ctx: ResolveWriteTranscriptionContext
@@ -172,8 +147,8 @@ export const resolveWriteTranscription = async (
     const cloudIndices = prioritizeCloudSttTargetIndices(sttTargets)
 
     await Promise.all([
-      runTargetPool(localIndices, runtimeOptions?.sttLocalConcurrency ?? DEFAULT_CLI_CONCURRENCY, runTargetAtIndex),
-      runTargetPool(cloudIndices, runtimeOptions?.sttProviderConcurrency ?? DEFAULT_CLI_CONCURRENCY, runTargetAtIndex)
+      mapWithConcurrency(runtimeOptions?.sttLocalConcurrency ?? DEFAULT_CLI_CONCURRENCY, localIndices, runTargetAtIndex),
+      mapWithConcurrency(runtimeOptions?.sttProviderConcurrency ?? DEFAULT_CLI_CONCURRENCY, cloudIndices, runTargetAtIndex)
     ])
 
     successfulSttProviders = successes.filter((entry): entry is SttProviderSuccess => entry !== undefined)

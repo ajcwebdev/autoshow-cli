@@ -1,12 +1,12 @@
 import * as v from 'valibot'
 import type { RunwayVideoModel, Step6VideoMetadata } from '~/types'
-import { CLIUsageError, InfraError, InternalError, hintsForMissingEnv } from '~/utils/error-handler'
+import { CLIUsageError, InfraError } from '~/utils/error-handler'
 import { logGenCompleted, logGenStatus } from '~/cli/commands/process-steps/generation-command-utils'
 import { estimateVideoCost, logVideoEstimate } from '~/cli/commands/process-steps/step-6-video/video-utils/video-pricing'
 import { normalizeRunwayDuration, normalizeRunwayRatio } from '~/cli/commands/process-steps/step-6-video/video-utils/video-normalization'
 import { downloadVideoOutputBytes } from '~/cli/commands/process-steps/step-6-video/video-utils/video-output-download'
 import { pollUntil } from '~/utils/retries'
-import { readEnv } from '~/utils/validate/env-utils'
+import { requireApiKey } from '~/utils/validate/env-utils'
 import { validateData } from '~/utils/validate/validation'
 import { MEDIA_GENERATION_TIMEOUT_MS } from '~/utils/timeouts'
 
@@ -57,10 +57,7 @@ export const runRunwayVideoGen = async (
 ): Promise<{ videoPath: string, metadata: Step6VideoMetadata }> => {
   validateRunwayPromptText(prompt)
 
-  const apiKey = readEnv('RUNWAYML_API_SECRET')
-  if (!apiKey) {
-    throw InternalError('RUNWAYML_API_SECRET environment variable is required for Runway video generation', { stage: 'video:runway', hints: hintsForMissingEnv('RUNWAYML_API_SECRET') })
-  }
+  const apiKey = requireApiKey('RUNWAYML_API_SECRET', 'video:runway', 'Runway video generation')
 
   const duration = normalizeRunwayDuration(options.durationSeconds)
   const ratio = normalizeRunwayRatio(options.aspectRatio)

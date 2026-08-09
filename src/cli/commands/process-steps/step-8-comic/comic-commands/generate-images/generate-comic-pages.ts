@@ -28,7 +28,7 @@ resolveScenePanelDirectories,
 } from '../../comic-utils/panel-prompt-utils'
 import { getPagesDirectory, getPanelPromptsDirectory } from '../../comic-utils/project-paths'
 import { getPageComicImagePath, loadPromptsConfig } from '../../comic-utils/scene-utils'
-import { runWithConcurrency } from '../../comic-utils/run-with-concurrency'
+import { runWithConcurrency } from '~/utils/run-with-concurrency'
 import {
 buildComicPagePrompt,
 buildComicPagePromptData,

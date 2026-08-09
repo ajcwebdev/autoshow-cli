@@ -38,7 +38,7 @@ import {
 DEFAULT_SKETCH_PANELS_PER_IMAGE,
 hasOnlyTrailingPanelSelectionMisses,
 } from '../generate-images/comic-page-utils'
-import { runWithConcurrency } from '../../comic-utils/run-with-concurrency'
+import { runWithConcurrency } from '~/utils/run-with-concurrency'
 
 const SKETCH_CHUNK_SIZE = DEFAULT_SKETCH_PANELS_PER_IMAGE
 

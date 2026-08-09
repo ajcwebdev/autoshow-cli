@@ -1,9 +1,9 @@
 import type { GeminiMusicModel, GeminiMusicResponsePart, Step7MusicMetadata } from '~/types'
 import { logGenCompleted, logGenStatus } from '~/cli/commands/process-steps/generation-command-utils'
-import { readEnv } from '~/utils/validate/env-utils'
+import { requireApiKey } from '~/utils/validate/env-utils'
 import * as l from '~/utils/app-logger/app-logger'
 import { geminiGenerateContent } from '~/utils/gemini/gemini-rest'
-import { InfraError, InternalError, ValidationError, hintsForMissingEnv } from '~/utils/error-handler'
+import { InfraError, ValidationError } from '~/utils/error-handler'
 export const GEMINI_CLIP_DURATION_SECONDS = 30
 export const GEMINI_PRO_DEFAULT_DURATION_SECONDS = 120
 
@@ -158,10 +158,7 @@ export const runGeminiMusicGen = async (
     forceInstrumental?: boolean | undefined
   }
 ): Promise<{ musicPath: string, metadata: Step7MusicMetadata }> => {
-  const apiKey = readEnv('GEMINI_API_KEY')
-  if (!apiKey) {
-    throw InternalError('GEMINI_API_KEY environment variable is required for Gemini music generation', { stage: 'music:gemini', hints: hintsForMissingEnv('GEMINI_API_KEY') })
-  }
+  const apiKey = requireApiKey('GEMINI_API_KEY', 'music:gemini', 'Gemini music generation')
 
   const { prompt: geminiPrompt, lyricsSource, intendedDurationSeconds } = await buildGeminiMusicPrompt(prompt, options)
   const musicPath = `${outputDir}/generated-music.mp3`

@@ -5,9 +5,8 @@ import { logSttSegmentLifecycle } from '~/cli/commands/process-steps/step-2-extr
 import { appendToken, buildSegmentsFromWords, formatSpeakerLabel } from '~/cli/commands/process-steps/step-2-extract/step-2-stt/stt-utils/stt-utils'
 import { withRetry, classifyFetchRetry } from '~/utils/retries'
 import { XAI_DEFAULT_BASE_URL } from '~/utils/base-urls'
-import { readEnv } from '~/utils/validate/env-utils'
+import { requireApiKey } from '~/utils/validate/env-utils'
 import { validateData, validateDataSafe } from '~/utils/validate/validation'
-import { InternalError, hintsForMissingEnv } from '~/utils/error-handler'
 import { finalizeHostedSttResult } from '../finalize-hosted-stt'
 const REQUEST_TIMEOUT_MS = 20 * 60 * 1000
 
@@ -188,10 +187,7 @@ export const runGrokStt = async (
   }
 ): Promise<{ result: TranscriptionResult, metadata: Step2Metadata }> => {
   const { model, segmentOffsetMinutes = 0, segmentNumber, totalSegments } = options
-  const apiKey = readEnv('XAI_API_KEY')
-  if (!apiKey) {
-    throw InternalError('XAI_API_KEY environment variable is required for Grok transcription', { stage: 'stt:grok', hints: hintsForMissingEnv('XAI_API_KEY') })
-  }
+  const apiKey = requireApiKey('XAI_API_KEY', 'stt:grok', 'Grok transcription')
 
   if (segmentNumber && totalSegments) {
     logSttSegmentLifecycle(l, { provider: 'grok', action: 'started', segmentNumber, totalSegments, model })
