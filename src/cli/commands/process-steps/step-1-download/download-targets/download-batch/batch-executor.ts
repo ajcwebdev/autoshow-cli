@@ -47,6 +47,7 @@ const partitionExtractBatchPlan = (
   const childPlans: Record<ExtractRoute, ExtractChildBatchPlan> = {
     media: createExtractChildBatchPlan('media'),
     document: createExtractChildBatchPlan('document'),
+    article: createExtractChildBatchPlan('article'),
     'x-space': createExtractChildBatchPlan('x-space')
   }
   const manifestItems: ExtractBatchManifest['items'] = []
@@ -159,11 +160,12 @@ const executeExtractBatchPlan = async (
   const childBatches = {
     ...(childPlans.media.items.length > 0 ? { media: 'media' } : {}),
     ...(childPlans.document.items.length > 0 ? { document: 'document' } : {}),
+    ...(childPlans.article.items.length > 0 ? { article: 'article' } : {}),
     ...(childPlans['x-space'].items.length > 0 ? { 'x-space': 'x-space' } : {})
   }
 
   const initialManifest: ExtractBatchManifest = {
-    schemaVersion: 2,
+    schemaVersion: 3,
     createdAt: new Date().toISOString(),
     items: manifestItems,
     childBatches
@@ -172,12 +174,12 @@ const executeExtractBatchPlan = async (
   await writeExtractBatchManifest(batchDir, initialManifest)
   logLocationsTable(l, [{ artifact: 'extractBatchManifest', path: `${batchDir}/extract-batch.json` }])
 
-  if (childPlans.media.items.length === 0 && childPlans.document.items.length === 0 && childPlans['x-space'].items.length === 0) {
+  if (childPlans.media.items.length === 0 && childPlans.document.items.length === 0 && childPlans.article.items.length === 0 && childPlans['x-space'].items.length === 0) {
     l.warn('No supported inputs to process')
     return
   }
 
-  const [sttResult, ocrResult, xSpaceResult] = await Promise.all([
+  const [sttResult, ocrResult, articleResult, xSpaceResult] = await Promise.all([
     childPlans.media.items.length > 0
       ? runSttBatch(childPlans.media.items, childPlans.media.route, opts, {
           ...(batchPlan.source ? { source: batchPlan.source } : {}),
@@ -192,13 +194,16 @@ const executeExtractBatchPlan = async (
     childPlans.document.items.length > 0
       ? runExtractDocumentChildBatch(batchDir, opts, childPlans.document, batchPlan.source)
       : Promise.resolve(undefined),
+    childPlans.article.items.length > 0
+      ? runExtractDocumentChildBatch(batchDir, opts, childPlans.article, batchPlan.source)
+      : Promise.resolve(undefined),
     childPlans['x-space'].items.length > 0
       ? runExtractXSpaceChildBatch(batchDir, opts, childPlans['x-space'], batchPlan.source)
       : Promise.resolve(undefined)
   ])
 
   const finalItems = initialManifest.items.map((item) => ({ ...item }))
-  for (const route of ['media', 'document', 'x-space'] as const) {
+  for (const route of ['media', 'document', 'article', 'x-space'] as const) {
     const childPlan = childPlans[route]
     if (childPlan.items.length === 0) {
       continue
@@ -241,6 +246,14 @@ const executeExtractBatchPlan = async (
     const error = new Error(`Batch processing failed for ${ocrResult.fail} item(s)`)
     if (ocrResult.failureExitCode !== undefined) {
       ;(error as Error & { exitCode?: number }).exitCode = ocrResult.failureExitCode
+    }
+    throw error
+  }
+
+  if (articleResult && articleResult.ok === 0 && articleResult.fail > 0) {
+    const error = new Error(`Article batch processing failed for ${articleResult.fail} item(s)`)
+    if (articleResult.failureExitCode !== undefined) {
+      ;(error as Error & { exitCode?: number }).exitCode = articleResult.failureExitCode
     }
     throw error
   }

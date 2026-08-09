@@ -15,13 +15,13 @@ export type ProviderResult = ProviderManifestBase<'provider-result'> & {
 }
 
 export type RunManifest = {
-  schemaVersion: 2
+  schemaVersion: 3
   kind: 'metadata' | 'download' | 'extract' | 'write' | 'tts' | 'image' | 'video' | 'music'
   metadata: Record<string, unknown>
 }
 
 export type BatchManifest = {
-  schemaVersion: 2
+  schemaVersion: 3
   kind: RunManifest['kind']
   items: Record<string, unknown>[]
   source?: Record<string, unknown> | undefined
@@ -42,12 +42,13 @@ export type ExtractBatchManifestItem = {
 }
 
 export type ExtractBatchManifest = {
-  schemaVersion: 2
+  schemaVersion: 3
   createdAt: string
   items: ExtractBatchManifestItem[]
   childBatches: {
     media?: string | undefined
     document?: string | undefined
+    article?: string | undefined
     'x-space'?: string | undefined
   }
 }

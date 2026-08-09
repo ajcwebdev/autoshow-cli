@@ -147,7 +147,7 @@ export const runSupadataStt = async (
 
     billedCredits = credits
     creditRateCents = getSupadataCreditRateCents()
-    billingSource = 'response-header'
+    billingSource = 'response_header'
   }
 
   const buildTimingMetadata = (): Step2Metadata['timings'] =>

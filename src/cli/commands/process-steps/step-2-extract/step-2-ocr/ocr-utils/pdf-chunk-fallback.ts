@@ -60,7 +60,6 @@ import {
 import {
   buildMalformedFallbackPageRun,
   cleanupFallbackPageInputs,
-  hasMatchingFallbackState,
   readCachedFallbackPage,
   resolveFallbackChunkPath,
   resolveInitialFallbackReason,
@@ -496,15 +495,9 @@ export const runHostedOcrWithPdfChunkFallback = async (
   ): Promise<HostedOcrRun> => {
     const tempDir = await mkdtemp(join(tmpdir(), 'autoshow-ocr-pdf-pages-'))
     const sourceFile = basename(options.filePath)
-    const matchingFallbackState = await hasMatchingFallbackState(
-      options.fallbackDir,
-      sourceFile,
-      options.cacheIdentity
-    )
     const cacheValidation = {
       sourceFile,
-      identity: options.cacheIdentity,
-      allowLegacySourceFile: options.cacheIdentity === undefined || matchingFallbackState
+      identity: options.cacheIdentity
     }
     const storedChunkPreparation = options.createChunk === undefined
       ? await readFallbackChunkPreparation(options.fallbackDir)

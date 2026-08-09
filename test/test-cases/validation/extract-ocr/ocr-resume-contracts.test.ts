@@ -78,10 +78,11 @@ const writeCachedPage = async (
 ): Promise<void> => {
   await mkdir(join(dir, 'page-results'), { recursive: true })
   await Bun.write(pageCachePath(dir, pageNumber), JSON.stringify({
-    version: 1,
+    version: 2,
     mode: 'single-page',
     totalPages,
     pageNumber,
+    sourceFile: 'input.pdf',
     run
   }, null, 2) + '\n')
 }
@@ -583,7 +584,7 @@ describe('OCR resume contracts', () => {
     const tempDir = await mkdtemp(join(tmpdir(), 'autoshow-ocr-fallback-state-'))
     try {
       await Bun.write(join(tempDir, 'fallback-state.json'), JSON.stringify({
-        version: 1,
+        version: 2,
         mode: 'single-page',
         totalPages: 2,
         serviceLabel: 'Test OCR',
@@ -613,6 +614,43 @@ describe('OCR resume contracts', () => {
 
       expect(fullAttempts).toBe(0)
       expect([...attemptedPages].sort((a, b) => a - b)).toEqual([1, 2])
+    } finally {
+      await rm(tempDir, { recursive: true, force: true })
+    }
+  })
+
+  test('v1 hosted PDF fallback state misses cleanly and runs full-document OCR', async () => {
+    const tempDir = await mkdtemp(join(tmpdir(), 'autoshow-ocr-fallback-state-v1-'))
+    try {
+      await Bun.write(join(tempDir, 'fallback-state.json'), JSON.stringify({
+        version: 1,
+        mode: 'single-page',
+        totalPages: 2,
+        serviceLabel: 'Test OCR',
+        sourceFile: 'input.pdf'
+      }, null, 2) + '\n')
+
+      let fullAttempts = 0
+      const result = await runHostedOcrWithPdfChunkFallback({
+        filePath: '/virtual/input.pdf',
+        step1Metadata: { ...basePdfMetadata, pageCount: 2 },
+        serviceLabel: 'Test OCR',
+        totalPages: 2,
+        fallbackDir: tempDir,
+        runFull: async () => {
+          fullAttempts += 1
+          return hostedRun(pagesForRange(1, 2), { totalPages: 2 })
+        },
+        createChunk: async () => {
+          throw new Error('v1 fallback state must not enter page mode')
+        },
+        runChunk: async () => {
+          throw new Error('v1 fallback state must not call the provider page path')
+        }
+      })
+
+      expect(fullAttempts).toBe(1)
+      expect(result.pages.map((page) => page.pageNumber)).toEqual([1, 2])
     } finally {
       await rm(tempDir, { recursive: true, force: true })
     }

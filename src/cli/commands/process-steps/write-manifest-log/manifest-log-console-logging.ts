@@ -1,6 +1,7 @@
 import type { Logger, WriteManifestMetadata, WriteManifestSourceRefs } from '~/types'
 import { l } from '~/utils/app-logger/app-logger'
 import { createKeyValueTable } from '~/utils/app-logger/human-table/human-table'
+import { CURRENT_MANIFEST_VERSION_BY_KIND } from '../manifest-utils'
 import { buildWriteManifestConsoleSummary } from './manifest-log-console-summary'
 
 export const logRunManifestLocation = (
@@ -94,7 +95,7 @@ const logManifestConsoleSummary = (
   }
 
   logger.debug(`Run manifest:\n${JSON.stringify({
-    schemaVersion: 2,
+    schemaVersion: CURRENT_MANIFEST_VERSION_BY_KIND.run,
     kind,
     metadata
   }, null, 2)}`)

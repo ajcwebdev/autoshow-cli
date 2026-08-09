@@ -3,7 +3,7 @@ import { mkdir, mkdtemp, rm } from 'node:fs/promises'
 import { join } from 'node:path'
 import { tmpdir } from 'node:os'
 import { runCommand } from '../../../test-utils/test-helpers'
-import { readRunManifest, writeRunManifest } from '~/cli/commands/process-steps/manifest-utils'
+import { readRunManifest, writeExtractBatchManifest, writeRunManifest } from '~/cli/commands/process-steps/manifest-utils'
 import { writeOcrRunManifest } from '~/cli/commands/process-steps/step-2-extract/step-2-ocr/ocr-manifest'
 import { writeSttRunManifest } from '~/cli/commands/process-steps/step-2-extract/step-2-stt/stt-manifest'
 import { dispatchResume } from '~/cli/commands/setup-and-utilities/resume/resume-dispatch'
@@ -109,6 +109,70 @@ test('resume rejects a missing output directory before reaching provider validat
 
   expect(result.exitCode).toBe(2)
   expect(`${result.stdout}\n${result.stderr}`).toContain('Could not find')
+})
+
+test('resume loudly rejects schemaVersion 2 manifests after the clean break', async () => {
+  const runDir = await makeTempRoot('autoshow-old-resume-manifest-')
+  const runPath = join(runDir, 'run.json')
+  await Bun.write(runPath, JSON.stringify({
+    schemaVersion: 2,
+    kind: 'extract',
+    metadata: { extractRoute: 'media' }
+  }))
+
+  const result = await runCommand(['src/cli/create-cli.ts', 'resume', runDir], {
+    env: { NO_COLOR: '1' }
+  })
+
+  const output = `${result.stdout}\n${result.stderr}`
+  expect(result.exitCode).toBe(2)
+  expect(output).toContain(`Unsupported manifest version at ${runPath}`)
+  expect(output).toContain('found schemaVersion 2')
+  expect(output).toContain('supports schemaVersion 3')
+  expect(output).toContain('Old runs are not resumable with this build — re-run the pipeline.')
+  expect(output).not.toContain('Could not find extract-batch.json, batch.json, or run.json')
+})
+
+test('resume reports that X-Space extract runs are not resumable', async () => {
+  const runDir = await makeTempRoot('autoshow-x-space-resume-')
+  await writeRunManifest(runDir, 'extract', {
+    extractRoute: 'x-space',
+    source: { url: 'https://x.com/i/spaces/1DXxyRYNejbKM' }
+  })
+
+  const result = await runCommand(['src/cli/create-cli.ts', 'resume', runDir], {
+    env: { NO_COLOR: '1' }
+  })
+
+  const output = `${result.stdout}\n${result.stderr}`
+  expect(result.exitCode).toBe(2)
+  expect(output).toContain('X-Space runs are not resumable. Re-run the pipeline instead.')
+  expect(output).not.toContain('not a URL article extract run')
+})
+
+test('resume reports that parent batches containing X-Space runs are not resumable', async () => {
+  const batchDir = await makeTempRoot('autoshow-x-space-parent-resume-')
+  await writeExtractBatchManifest(batchDir, {
+    schemaVersion: 3,
+    createdAt: '2026-01-01T00:00:00.000Z',
+    childBatches: { 'x-space': 'x-space' },
+    items: [{
+      input: 'https://x.com/i/spaces/1DXxyRYNejbKM',
+      inputFamily: 'x_space',
+      extractRoute: 'x-space',
+      childBatchEntry: { route: 'x-space', index: 0 },
+      completionStatus: 'full',
+      outputDir: 'x-space-output'
+    }]
+  })
+
+  const result = await runCommand(['src/cli/create-cli.ts', 'resume', batchDir], {
+    env: { NO_COLOR: '1' }
+  })
+
+  const output = `${result.stdout}\n${result.stderr}`
+  expect(result.exitCode).toBe(2)
+  expect(output).toContain('X-Space runs are not resumable. Re-run the pipeline instead.')
 })
 
 test('resume reports every missing output directory', async () => {

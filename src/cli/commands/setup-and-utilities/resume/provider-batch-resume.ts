@@ -1,6 +1,6 @@
 import { join, resolve as resolvePath } from 'node:path'
 import { fileURLToPath } from 'node:url'
-import { readBatchManifest } from '~/cli/commands/process-steps/manifest-utils'
+import { assertManifestEntriesCanBeRewritten, readBatchManifest } from '~/cli/commands/process-steps/manifest-utils'
 import type { AggregatedPriceEstimate, BatchManifestEntry, ProviderBatchResumeConfig, ProviderCompletionStatus, ProviderIdentity, ProviderResumeEntry, ProviderResumeManifest, ProviderResumePassResult, ProviderResumePriceConfig, ProviderResumeProcessResult, ResumeDisplayOptions, ResumeResult, ResumeTarget, RuntimeOptions, Step1SourceRef, StepEstimate } from '~/types'
 import { CLIUsageError } from '~/utils/error-handler'
 import { aggregateExplicitPriceEstimate } from '~/utils/pricing/aggregate-pricing'
@@ -94,6 +94,8 @@ export const readProviderResumeTargetManifest = async (
     return {
       infoPath: manifest.manifestPath,
       entries: manifest.manifest.items,
+      rawItemCount: manifest.rawItemCount,
+      ...(manifest.firstUnparseableEntryIndex !== undefined ? { firstUnparseableEntryIndex: manifest.firstUnparseableEntryIndex } : {}),
       ...(manifest.manifest.source ? { source: manifest.manifest.source } : {})
     }
   }
@@ -214,6 +216,14 @@ export const runProviderResumePass = async <
         ? `Invalid batch manifest at ${join(target.dir, 'batch.json')}`
         : `Invalid ${config.stepLabel} manifest at ${join(target.dir, 'run.json')}`
     )
+  }
+  if (target.scope === 'batch') {
+    assertManifestEntriesCanBeRewritten({
+      manifestPath: manifest.infoPath,
+      manifest: { items: manifest.entries },
+      rawItemCount: manifest.rawItemCount ?? manifest.entries.length,
+      ...(manifest.firstUnparseableEntryIndex !== undefined ? { firstUnparseableEntryIndex: manifest.firstUnparseableEntryIndex } : {})
+    })
   }
 
   const parsedEntries = await Promise.all(

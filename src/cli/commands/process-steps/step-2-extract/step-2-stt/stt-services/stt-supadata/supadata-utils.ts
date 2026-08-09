@@ -31,7 +31,7 @@ export const parsePersistedSupadataBilling = (value: unknown): Step2Metadata['bi
   if (typeof billing['creditRateCents'] === 'number' && Number.isFinite(billing['creditRateCents']) && billing['creditRateCents'] >= 0) {
     parsed.creditRateCents = billing['creditRateCents']
   }
-  if (billing['source'] === 'response-header' || billing['source'] === 'fallback-estimate') {
+  if (billing['source'] === 'response_header' || billing['source'] === 'registry_fallback') {
     parsed.source = billing['source']
   }
 

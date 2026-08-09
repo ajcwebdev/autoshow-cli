@@ -89,7 +89,7 @@ export const buildExpectedFilesList = async (
     const documentDownload = typeof resolvedTarget === 'string' && await isDocumentLikeTarget(resolvedTarget, opts)
     return documentDownload ? ['run.json'] : [opts.bestQuality ? 'Media file' : 'Audio file', 'run.json']
   }
-  if (isExtractCommand(command) && extractRoute === 'document') {
+  if (isExtractCommand(command) && (extractRoute === 'document' || extractRoute === 'article')) {
     const ocrArtifact = getExpectedOcrArtifact(opts)
     const ocrExportArtifacts = getExpectedOcrExportArtifacts(opts, routing)
     const htmlArticleInput = routing?.family === 'html_article'

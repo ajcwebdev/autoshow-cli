@@ -47,26 +47,6 @@ const normalizeCostSource = (value: unknown, fallback: CostSource): CostSource =
     ? value as CostSource
     : fallback
 
-const mapBillingCostSource = (source: unknown): CostSource => {
-  switch (source) {
-    case 'provider_usage':
-    case 'provider_quote':
-    case 'response_header':
-      return source
-    case 'response-header':
-      return 'response_header'
-    case 'registry_fallback':
-    case 'fallback-estimate':
-      return 'registry_fallback'
-    case 'partial_provider_usage':
-      return 'partial_provider_usage'
-    case 'heuristic':
-      return 'heuristic'
-    default:
-      return 'computed_usage'
-  }
-}
-
 const resolveSttBillingDurationSeconds = (input: ComputeActualCostsInput): number => {
   if (typeof input.audioDurationSeconds === 'number') {
     return normalizeDurationSeconds(input.audioDurationSeconds)
@@ -108,7 +88,7 @@ const computeActualSttCharge = (
     )
     return {
       cost: actual.totalCost,
-      costSource: metadata.billing?.source ? mapBillingCostSource(metadata.billing.source) : 'computed_usage',
+      costSource: metadata.billing?.source ?? 'computed_usage',
       inputMetric: 'credits',
       inputValue: actual.creditsUsed
     }
@@ -121,7 +101,7 @@ const computeActualSttCharge = (
     )
     return {
       cost: actual.totalCost,
-      costSource: metadata.billing?.source ? mapBillingCostSource(metadata.billing.source) : 'computed_usage',
+      costSource: metadata.billing?.source ?? 'computed_usage',
       inputMetric: 'credits',
       inputValue: actual.creditsUsed
     }
@@ -139,7 +119,7 @@ const computeActualSttCharge = (
     ) {
       return {
         cost: metadata.billing.totalCost,
-        costSource: mapBillingCostSource(metadata.billing.source),
+        costSource: metadata.billing.source ?? 'computed_usage',
         inputMetric: 'tokens',
         inputValue: typeof totalTokens === 'number' && Number.isFinite(totalTokens)
           ? totalTokens
@@ -151,7 +131,7 @@ const computeActualSttCharge = (
 
     return {
       cost: metadata.billing.totalCost,
-      costSource: mapBillingCostSource(metadata.billing.source),
+      costSource: metadata.billing.source ?? 'computed_usage',
       inputMetric: 'durationSeconds',
       inputValue: durationSeconds
     }

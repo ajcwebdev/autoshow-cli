@@ -57,8 +57,7 @@ const parsePageCache = (
       extractionMethod: `${target.service}-ocr` as HostedExtractOcrEngine,
       ocrService: target.service,
       ocrModel: target.model
-    },
-    allowLegacySourceFile: true
+    }
   })
   if (parsed === undefined) {
     return undefined

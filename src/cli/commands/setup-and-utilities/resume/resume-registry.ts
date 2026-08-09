@@ -11,17 +11,9 @@ import { videoResumeConfig } from './generation/video-resume'
 import { musicResumeConfig } from './generation/music-resume'
 import { buildGenerationResumeHandler } from './generation-resume'
 import { writeResumeConfig } from './write/write-resume'
-import { readBatchManifest, readExtractBatchManifest, writeExtractBatchManifest } from '~/cli/commands/process-steps/manifest-utils'
+import { assertManifestEntriesCanBeRewritten, readBatchManifest, readExtractBatchManifest, type ParsedItemManifest, writeExtractBatchManifest } from '~/cli/commands/process-steps/manifest-utils'
 import { aggregateExplicitPriceEstimate } from '~/utils/pricing/aggregate-pricing'
-
-// The `ExtractRoute` value resume overloads to mean "URL article" (ADR-002 findings
-// 2-3): the producer reserves `'x-space'` for the `x_space` input family, while resume
-// keys `urlArticleResumeHandler` off it and infers it for all-`html_article` batches.
-// The name is local; the string is persisted, so renaming this constant is free and
-// changing its value is not (see `ExtractRoute`). The route-set validators
-// (`isExtractRoute` in `resume-dispatch.ts` and `manifest-utils.ts`) keep the bare
-// literal on purpose — they test the persisted route set, not this overload.
-export const URL_ARTICLE_ROUTE = 'x-space' as const
+import { CLIUsageError } from '~/utils/error-handler'
 
 const EXPLICIT_STEP2_SELECTION_FILTER = {
   includeOrigins: ['explicit', 'all-shortcut']
@@ -122,11 +114,13 @@ const toRelativeOutputDir = (
 
 const syncExtractBatchManifest = async (
   parentDir: string,
-  manifest: ExtractBatchManifest
+  parsedManifest: ParsedItemManifest<ExtractBatchManifest>
 ): Promise<void> => {
+  assertManifestEntriesCanBeRewritten(parsedManifest)
+  const { manifest } = parsedManifest
   const nextItems = manifest.items.map((item) => ({ ...item }))
 
-  for (const route of ['media', 'document', URL_ARTICLE_ROUTE] as const) {
+  for (const route of ['media', 'document', 'article'] as const) {
     const childRelativeDir = manifest.childBatches[route]
     if (typeof childRelativeDir !== 'string' || childRelativeDir.length === 0) {
       continue
@@ -231,6 +225,16 @@ const urlArticleResumeHandler: ExtractRouteResumeHandler = {
     )
 }
 
+const throwXSpaceNotResumable = (): never => {
+  throw CLIUsageError('X-Space runs are not resumable. Re-run the pipeline instead.')
+}
+
+const assertNoXSpaceResumeTarget = (manifest: ExtractBatchManifest): void => {
+  if (manifest.childBatches['x-space'] !== undefined || manifest.items.some((item) => item.extractRoute === 'x-space')) {
+    throwXSpaceNotResumable()
+  }
+}
+
 const getExtractRouteResumeHandler = (
   route: ExtractRoute | undefined
 ): ExtractRouteResumeHandler | undefined => {
@@ -240,8 +244,11 @@ const getExtractRouteResumeHandler = (
   if (route === 'document') {
     return ocrResumeHandler
   }
-  if (route === URL_ARTICLE_ROUTE) {
+  if (route === 'article') {
     return urlArticleResumeHandler
+  }
+  if (route === 'x-space') {
+    throwXSpaceNotResumable()
   }
   return undefined
 }
@@ -258,6 +265,7 @@ const extractResumeHandler: ResumeHandler = {
     if (!manifest) {
       return false
     }
+    assertNoXSpaceResumeTarget(manifest.manifest)
 
     const childTargets = resolveExtractChildTargets(opts)
     if (childTargets.shouldCheckStt) {
@@ -277,8 +285,8 @@ const extractResumeHandler: ResumeHandler = {
     }
 
     if (childTargets.shouldCheckUrl) {
-      const urlTarget = buildChildResumeTarget(target.dir, URL_ARTICLE_ROUTE, manifest.manifest.childBatches[URL_ARTICLE_ROUTE])
-      const urlHandler = getExtractRouteResumeHandler(URL_ARTICLE_ROUTE)
+      const urlTarget = buildChildResumeTarget(target.dir, 'article', manifest.manifest.childBatches.article)
+      const urlHandler = getExtractRouteResumeHandler('article')
       if (urlTarget && urlHandler && await urlHandler.hasResumableWork(urlTarget, opts, explicitFlags)) {
         return true
       }
@@ -296,6 +304,8 @@ const extractResumeHandler: ResumeHandler = {
     if (!manifest) {
       return EMPTY_RESUME_RESULT
     }
+    assertManifestEntriesCanBeRewritten(manifest)
+    assertNoXSpaceResumeTarget(manifest.manifest)
 
     const childTargets = resolveExtractChildTargets(opts)
     let totals = EMPTY_RESUME_RESULT
@@ -316,14 +326,14 @@ const extractResumeHandler: ResumeHandler = {
     }
 
     if (childTargets.shouldCheckUrl) {
-      const urlTarget = buildChildResumeTarget(target.dir, URL_ARTICLE_ROUTE, manifest.manifest.childBatches[URL_ARTICLE_ROUTE])
-      const urlHandler = getExtractRouteResumeHandler(URL_ARTICLE_ROUTE)
+      const urlTarget = buildChildResumeTarget(target.dir, 'article', manifest.manifest.childBatches.article)
+      const urlHandler = getExtractRouteResumeHandler('article')
       if (urlTarget && urlHandler) {
         totals = addResumeResult(totals, await urlHandler.resume(urlTarget, opts, explicitFlags))
       }
     }
 
-    await syncExtractBatchManifest(target.dir, manifest.manifest)
+    await syncExtractBatchManifest(target.dir, manifest)
     return totals
   },
   price: async (target, opts, explicitFlags) => {
@@ -336,6 +346,7 @@ const extractResumeHandler: ResumeHandler = {
     if (!manifest) {
       return aggregateExplicitPriceEstimate([], opts)
     }
+    assertNoXSpaceResumeTarget(manifest.manifest)
 
     const childTargets = resolveExtractChildTargets(opts)
     const steps: StepEstimate[] = []
@@ -362,8 +373,8 @@ const extractResumeHandler: ResumeHandler = {
     }
 
     if (childTargets.shouldCheckUrl) {
-      const urlTarget = buildChildResumeTarget(target.dir, URL_ARTICLE_ROUTE, manifest.manifest.childBatches[URL_ARTICLE_ROUTE])
-      const urlHandler = getExtractRouteResumeHandler(URL_ARTICLE_ROUTE)
+      const urlTarget = buildChildResumeTarget(target.dir, 'article', manifest.manifest.childBatches.article)
+      const urlHandler = getExtractRouteResumeHandler('article')
       if (urlTarget && urlHandler) {
         appendEstimate(await urlHandler.price(urlTarget, opts, explicitFlags))
       }

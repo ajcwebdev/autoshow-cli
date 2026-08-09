@@ -106,7 +106,9 @@ export const resolveInputRoutingForCommand = async (
     ? 'x-space'
     : step2Route === 'stt'
     ? 'media'
-    : step2Route === 'ocr' || step2Route === 'article' || step2Route === 'native-document'
+    : step2Route === 'article'
+    ? 'article'
+    : step2Route === 'ocr' || step2Route === 'native-document'
       ? 'document'
       : undefined
 

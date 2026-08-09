@@ -107,7 +107,7 @@ export const computeSupadataActualCost = (
   billedCredits?: number | undefined,
   creditRateCents = getSupadataCreditRateCents(),
   context: SupadataPricingContext = {}
-): { creditsUsed: number, totalCost: number, source: 'response-header' | 'fallback-estimate' } => {
+): { creditsUsed: number, totalCost: number, source: 'response_header' | 'registry_fallback' } => {
   const creditsUsed = typeof billedCredits === 'number' && Number.isFinite(billedCredits)
     ? Math.max(0, billedCredits)
     : estimateSupadataCredits(model, durationSeconds, context)
@@ -116,7 +116,7 @@ export const computeSupadataActualCost = (
     creditsUsed,
     totalCost: convertSupadataCreditsToCents(creditsUsed, creditRateCents),
     source: typeof billedCredits === 'number' && Number.isFinite(billedCredits)
-      ? 'response-header'
-      : 'fallback-estimate'
+      ? 'response_header'
+      : 'registry_fallback'
   }
 }

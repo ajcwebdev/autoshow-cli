@@ -128,10 +128,9 @@ const parseStoredStep2Metadata = (value: unknown): Step2Metadata | undefined => 
       parsedBilling.totalCost = value['billing']['totalCost']
     }
     if (
-      value['billing']['source'] === 'response-header'
-      || value['billing']['source'] === 'fallback-estimate'
-      || value['billing']['source'] === 'provider_usage'
+      value['billing']['source'] === 'provider_usage'
       || value['billing']['source'] === 'provider_quote'
+      || value['billing']['source'] === 'response_header'
       || value['billing']['source'] === 'registry_fallback'
     ) {
       parsedBilling.source = value['billing']['source']

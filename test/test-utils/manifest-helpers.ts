@@ -13,7 +13,7 @@ export const unwrapRunMetadataValue = (value: unknown): Record<string, unknown> 
     return null
   }
 
-  if (value['schemaVersion'] === 2 && typeof value['kind'] === 'string' && isRecord(value['metadata'])) {
+  if (value['schemaVersion'] === 3 && typeof value['kind'] === 'string' && isRecord(value['metadata'])) {
     return value['metadata']
   }
 
@@ -22,7 +22,7 @@ export const unwrapRunMetadataValue = (value: unknown): Record<string, unknown> 
 
 export const readRunManifest = async (pathOrDir: string): Promise<RunManifest> => {
   const raw = await Bun.file(resolveArtifactPath(pathOrDir, 'run.json')).json() as unknown
-  if (!isRecord(raw) || raw['schemaVersion'] !== 2 || typeof raw['kind'] !== 'string' || !isRecord(raw['metadata'])) {
+  if (!isRecord(raw) || raw['schemaVersion'] !== 3 || typeof raw['kind'] !== 'string' || !isRecord(raw['metadata'])) {
     throw new Error(`Invalid run manifest at ${resolveArtifactPath(pathOrDir, 'run.json')}`)
   }
 
@@ -38,7 +38,7 @@ export const writeRunManifestFixture = async (
   metadata: Record<string, unknown>
 ): Promise<void> => {
   const manifest = {
-    schemaVersion: 2,
+    schemaVersion: 3,
     kind,
     metadata
   }
@@ -47,7 +47,7 @@ export const writeRunManifestFixture = async (
 
 export const readBatchManifest = async (pathOrDir: string): Promise<BatchManifest> => {
   const raw = await Bun.file(resolveArtifactPath(pathOrDir, 'batch.json')).json() as unknown
-  if (!isRecord(raw) || raw['schemaVersion'] !== 2 || typeof raw['kind'] !== 'string' || !Array.isArray(raw['items'])) {
+  if (!isRecord(raw) || raw['schemaVersion'] !== 3 || typeof raw['kind'] !== 'string' || !Array.isArray(raw['items'])) {
     throw new Error(`Invalid batch manifest at ${resolveArtifactPath(pathOrDir, 'batch.json')}`)
   }
 

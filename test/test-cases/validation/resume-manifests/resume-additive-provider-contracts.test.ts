@@ -324,6 +324,31 @@ describe('additive resume provider selection', () => {
     })
   })
 
+  test('generic provider batch resume refuses to rewrite a pruned manifest', async () => {
+    await withTempDir('autoshow-provider-resume-refuse-prune-', async (dir) => {
+      const manifestPath = join(dir, 'batch.json')
+      const original = `${JSON.stringify({
+        schemaVersion: 3,
+        kind: 'extract',
+        items: ['future-entry']
+      }, null, 2)}\n`
+      await Bun.write(manifestPath, original)
+      const ranTargets: ProviderIdentity[] = []
+
+      await expect(runProviderResumePass({
+        kind: 'extract',
+        extractRoute: 'document',
+        scope: 'batch',
+        dir,
+        manifestPath
+      }, {} as RuntimeOptions, fakeProviderResumeConfig(ranTargets))).rejects.toThrow(
+        `Refusing to rewrite ${manifestPath}: manifest entry 1 is unparseable by this build.`
+      )
+      expect(ranTargets).toEqual([])
+      expect(await Bun.file(manifestPath).text()).toBe(original)
+    })
+  })
+
   test('generation resume without provider flags retries stored missing providers', async () => {
     await withTempDir('autoshow-generation-additive-missing-', async (dir) => {
       const openai = { service: 'openai', model: 'gpt-image-2' }
@@ -352,6 +377,29 @@ describe('additive resume provider selection', () => {
         { ...openai, processingTime: 10 },
         { ...gemini, processingTime: 1 }
       ])
+    })
+  })
+
+  test('generation resume reports an unsupported run manifest version', async () => {
+    await withTempDir('autoshow-generation-old-manifest-', async (dir) => {
+      const runPath = join(dir, 'run.json')
+      await Bun.write(runPath, JSON.stringify({
+        schemaVersion: 2,
+        kind: 'image',
+        metadata: {
+          input: 'prompt',
+          requestedProviders: [],
+          image: []
+        }
+      }))
+
+      await expect(hasResumableGenerationWork(
+        fakeTarget(dir),
+        fakeResumeConfig([], []),
+        {} as RuntimeOptions
+      )).rejects.toThrow(
+        `Unsupported manifest version at ${runPath}: found schemaVersion 2, but this build supports schemaVersion 3. Old runs are not resumable with this build — re-run the pipeline.`
+      )
     })
   })
 

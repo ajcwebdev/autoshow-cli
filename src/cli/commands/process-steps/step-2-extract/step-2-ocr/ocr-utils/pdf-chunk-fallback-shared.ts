@@ -5,7 +5,7 @@ import { isRecord } from '~/utils/rest-client'
 import { stripAnsi } from '../ocr-run-state'
 
 export const HOSTED_OCR_PDF_PAGE_FALLBACK_THRESHOLD = 20
-export const HOSTED_OCR_PDF_PAGE_FALLBACK_VERSION = 1
+export const HOSTED_OCR_PDF_PAGE_FALLBACK_VERSION = 2
 export const HOSTED_OCR_PDF_PAGE_FALLBACK_MODE = 'single-page'
 export const HOSTED_OCR_PDF_PAGE_FALLBACK_STATE_FILE = 'fallback-state.json'
 export const HOSTED_OCR_PDF_PAGE_INPUTS_DIR = 'page-inputs'

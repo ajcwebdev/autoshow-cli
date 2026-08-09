@@ -38,7 +38,7 @@ const kimiPageRun = (pageNumber: number, text = `page ${pageNumber}`): HostedOcr
   }]
 })
 
-const writeLegacyRenderedPage = async (
+const writeStoredPageCache = async (
   dir: string,
   sourceFile: string,
   pageNumber: number,
@@ -47,15 +47,20 @@ const writeLegacyRenderedPage = async (
 ): Promise<void> => {
   await mkdir(join(dir, 'page-results'), { recursive: true })
   await Bun.write(pageCachePath(dir, pageNumber), JSON.stringify({
-    version: 1,
-    mode: 'rendered-page',
-    extractionMethod: kimiIdentity.extractionMethod,
-    model: kimiIdentity.ocrModel,
+    version: 2,
+    mode: 'single-page',
     sourceFile,
     totalPages,
     pageNumber,
-    result: {
-      page: { pageNumber, method: 'ocr', text },
+    run: {
+      ...kimiPageRun(pageNumber, text),
+      pages: [{ pageNumber, method: 'ocr', text }],
+      providerUsage: [{
+        unit: 'chunk',
+        pageNumber,
+        promptTokens: pageNumber,
+        completionTokens: pageNumber * 10
+      }],
       promptTokens: pageNumber,
       completionTokens: pageNumber * 10
     }
@@ -141,6 +146,7 @@ describe('OCR resilience contracts', () => {
 
       const cached = await Bun.file(pageCachePath(tempDir, 3)).json() as Record<string, unknown>
       expect(cached).toMatchObject({
+        version: 2,
         mode: 'single-page',
         sourceFile: 'input.pdf',
         totalPages: 4,
@@ -152,15 +158,15 @@ describe('OCR resilience contracts', () => {
     }
   })
 
-  test('legacy rendered-page caches resume byte-identically and upgrade to the shared schema', async () => {
-    const tempDir = await mkdtemp(join(tmpdir(), 'autoshow-rendered-page-compat-'))
+  test('v2 page caches resume byte-identically through the shared schema', async () => {
+    const tempDir = await mkdtemp(join(tmpdir(), 'autoshow-rendered-page-resume-'))
     const inputPath = join(tempDir, 'input.pdf')
     let providerCalls = 0
     let renderCalls = 0
 
     try {
-      await writeLegacyRenderedPage(tempDir, 'input.pdf', 1, 2, '')
-      await writeLegacyRenderedPage(tempDir, 'input.pdf', 2, 2, 'page 2')
+      await writeStoredPageCache(tempDir, 'input.pdf', 1, 2, '')
+      await writeStoredPageCache(tempDir, 'input.pdf', 2, 2, 'page 2')
 
       const { result, events } = await captureLogEvents(async () =>
         await runHostedOcrWithPdfChunkFallback({
@@ -181,7 +187,7 @@ describe('OCR resilience contracts', () => {
           },
           runChunk: async () => {
             providerCalls += 1
-            throw new Error('legacy rendered-page cache should skip provider calls')
+            throw new Error('v2 page cache should skip provider calls')
           }
         })
       )
@@ -200,16 +206,16 @@ describe('OCR resilience contracts', () => {
         .every((event) => event.level === 'debug')
       ).toBe(true)
 
-      const upgraded = await Bun.file(pageCachePath(tempDir, 1)).json() as Record<string, unknown>
-      expect(upgraded).toMatchObject({
-        version: 1,
+      const stored = await Bun.file(pageCachePath(tempDir, 1)).json() as Record<string, unknown>
+      expect(stored).toMatchObject({
+        version: 2,
         mode: 'single-page',
         sourceFile: 'input.pdf',
         totalPages: 2,
         pageNumber: 1
       })
-      expect(upgraded['result']).toBeUndefined()
-      expect(upgraded['run']).toMatchObject(kimiIdentity)
+      expect(stored['result']).toBeUndefined()
+      expect(stored['run']).toMatchObject(kimiIdentity)
     } finally {
       await rm(tempDir, { recursive: true, force: true })
     }
@@ -223,7 +229,7 @@ describe('OCR resilience contracts', () => {
     try {
       await mkdir(join(tempDir, 'page-results'), { recursive: true })
       await Bun.write(pageCachePath(tempDir, 1), JSON.stringify({
-        version: 1,
+        version: 2,
         mode: 'single-page',
         sourceFile: 'input.pdf',
         totalPages: 3,
@@ -234,7 +240,7 @@ describe('OCR resilience contracts', () => {
         }
       }, null, 2) + '\n')
       await Bun.write(pageCachePath(tempDir, 2), JSON.stringify({
-        version: 1,
+        version: 2,
         mode: 'single-page',
         sourceFile: 'other.pdf',
         totalPages: 3,
@@ -244,7 +250,7 @@ describe('OCR resilience contracts', () => {
           pages: [{ pageNumber: 2, method: 'ocr', text: 'wrong source' }]
         }
       }, null, 2) + '\n')
-      await writeLegacyRenderedPage(tempDir, 'input.pdf', 3, 3, 'legacy page 3')
+      await writeStoredPageCache(tempDir, 'input.pdf', 3, 3, 'cached page 3')
 
       const result = await runHostedOcrWithPdfChunkFallback({
         filePath: inputPath,
@@ -268,7 +274,82 @@ describe('OCR resilience contracts', () => {
       })
 
       expect(attemptedPages).toEqual([1, 2])
-      expect(result.pages.map((page) => page.text)).toEqual(['fresh 1', 'fresh 2', 'legacy page 3'])
+      expect(result.pages.map((page) => page.text)).toEqual(['fresh 1', 'fresh 2', 'cached page 3'])
+    } finally {
+      await rm(tempDir, { recursive: true, force: true })
+    }
+  })
+
+  test('v1 and source-less page caches miss cleanly and recompute', async () => {
+    const tempDir = await mkdtemp(join(tmpdir(), 'autoshow-rendered-page-clean-break-'))
+    const inputPath = join(tempDir, 'input.pdf')
+    const attemptedPages: number[] = []
+
+    try {
+      await mkdir(join(tempDir, 'page-results'), { recursive: true })
+      await Bun.write(pageCachePath(tempDir, 1), JSON.stringify({
+        version: 1,
+        mode: 'single-page',
+        sourceFile: 'input.pdf',
+        totalPages: 3,
+        pageNumber: 1,
+        run: {
+          ...kimiPageRun(1, 'v1 page'),
+          pages: [{ pageNumber: 1, method: 'ocr', text: 'v1 page' }]
+        }
+      }, null, 2) + '\n')
+      await Bun.write(pageCachePath(tempDir, 2), JSON.stringify({
+        version: 2,
+        mode: 'single-page',
+        totalPages: 3,
+        pageNumber: 2,
+        run: {
+          ...kimiPageRun(2, 'source-less page'),
+          pages: [{ pageNumber: 2, method: 'ocr', text: 'source-less page' }]
+        }
+      }, null, 2) + '\n')
+      await Bun.write(pageCachePath(tempDir, 3), JSON.stringify({
+        version: 1,
+        mode: 'rendered-page',
+        extractionMethod: kimiIdentity.extractionMethod,
+        model: kimiIdentity.ocrModel,
+        sourceFile: 'input.pdf',
+        totalPages: 3,
+        pageNumber: 3,
+        result: {
+          page: { pageNumber: 3, method: 'ocr', text: 'legacy rendered page' }
+        }
+      }, null, 2) + '\n')
+
+      const result = await runHostedOcrWithPdfChunkFallback({
+        filePath: inputPath,
+        step1Metadata: { ...basePdfMetadata, pageCount: 3 },
+        serviceLabel: 'Kimi OCR',
+        totalPages: 3,
+        fallbackDir: tempDir,
+        pageConcurrency: 1,
+        forcePageMode: true,
+        cacheIdentity: kimiIdentity,
+        createChunk: async (_source, outputPath, range) => {
+          await Bun.write(outputPath, `page ${range.startPage}`)
+        },
+        runFull: async () => {
+          throw new Error('forced page mode must bypass full-document OCR')
+        },
+        runChunk: async (_chunkPath, _chunkMetadata, range) => {
+          attemptedPages.push(range.startPage)
+          return kimiPageRun(range.startPage, `fresh ${range.startPage}`)
+        }
+      })
+
+      expect(attemptedPages).toEqual([1, 2, 3])
+      expect(result.pages.map((page) => page.text)).toEqual(['fresh 1', 'fresh 2', 'fresh 3'])
+      const rewritten = await Bun.file(pageCachePath(tempDir, 3)).json() as Record<string, unknown>
+      expect(rewritten).toMatchObject({
+        version: 2,
+        mode: 'single-page',
+        sourceFile: 'input.pdf'
+      })
     } finally {
       await rm(tempDir, { recursive: true, force: true })
     }

@@ -60,6 +60,7 @@ test('--all-providers URL orchestrator writes provider artifacts and a multi-pro
     const manifest = await Bun.file(join(output.outputDir, 'run.json')).json() as {
       kind: string
       metadata: {
+        extractRoute: string
         completionStatus: string
         requestedProviders: Array<{ service: string, model: string }>
         providerStates: Array<{ service: string, model: string, status: string }>
@@ -69,6 +70,7 @@ test('--all-providers URL orchestrator writes provider artifacts and a multi-pro
     }
 
     expect(manifest.kind).toBe('extract')
+    expect(manifest.metadata.extractRoute).toBe('article')
     expect(manifest.metadata.completionStatus).toBe('full')
     expect(manifest.metadata.requestedProviders).toEqual(
       HOSTED_URL_ARTICLE_BACKENDS.map((backend) => ({ service: backend, model: backend }))
@@ -223,7 +225,7 @@ test('URL resume persists recovered provider state to the batch manifest', async
 
     await resumeUrlArticleTarget({
       kind: 'extract',
-      extractRoute: 'x-space',
+      extractRoute: 'article',
       scope: 'batch',
       dir: batchDir,
       manifestPath: join(batchDir, 'batch.json')
@@ -236,6 +238,33 @@ test('URL resume persists recovered provider state to the batch manifest', async
     )
   } finally {
     ;(Bun as typeof Bun & { sleep: typeof Bun.sleep }).sleep = originalSleep
+    await rm(tempRoot, { recursive: true, force: true })
+  }
+})
+
+test('URL batch resume refuses to rewrite a pruned manifest', async () => {
+  const tempRoot = await makeTempDir('autoshow-url-resume-refuse-prune-')
+
+  try {
+    const manifestPath = join(tempRoot, 'batch.json')
+    const original = `${JSON.stringify({
+      schemaVersion: 3,
+      kind: 'extract',
+      items: ['future-entry']
+    }, null, 2)}\n`
+    await Bun.write(manifestPath, original)
+
+    await expect(resumeUrlArticleTarget({
+      kind: 'extract',
+      extractRoute: 'article',
+      scope: 'batch',
+      dir: tempRoot,
+      manifestPath
+    }, buildOptsFromFlags(false, {}))).rejects.toThrow(
+      `Refusing to rewrite ${manifestPath}: manifest entry 1 is unparseable by this build.`
+    )
+    expect(await Bun.file(manifestPath).text()).toBe(original)
+  } finally {
     await rm(tempRoot, { recursive: true, force: true })
   }
 })
@@ -263,7 +292,7 @@ test('URL resume exits 2 for a stored failed run with no resumable backends', as
 
     await expect(resumeUrlArticleTarget({
       kind: 'extract',
-      extractRoute: 'x-space',
+      extractRoute: 'article',
       scope: 'single',
       dir: tempRoot,
       manifestPath: join(tempRoot, 'run.json')

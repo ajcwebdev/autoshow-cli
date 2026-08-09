@@ -1,6 +1,6 @@
 import { isRecord } from '~/utils/rest-client'
 import * as l from '~/utils/app-logger/app-logger'
-import { readRunManifest, writeRunManifest } from '~/cli/commands/process-steps/manifest-utils'
+import { readRunManifestOutcome, unsupportedManifestVersionError, writeRunManifest } from '~/cli/commands/process-steps/manifest-utils'
 import { getGenerationTargetKey } from '~/cli/commands/process-steps/generation-command-utils'
 import { logResumeItem, logResumeSummary } from './resume-logging'
 import { getResumeProviderKey, resolveAdditiveResumeProviderSelection, uniqueResumeProviders } from './resume-provider-selection'
@@ -165,7 +165,11 @@ async function prepareGenerationResume<TTarget extends ProviderIdentity, TMetada
     return undefined
   }
 
-  const manifest = await readRunManifest(target.dir, config.kind)
+  const manifestOutcome = await readRunManifestOutcome(target.dir, config.kind)
+  if (manifestOutcome.status === 'unsupported-version') {
+    throw unsupportedManifestVersionError(manifestOutcome)
+  }
+  const manifest = manifestOutcome.status === 'ok' ? manifestOutcome.manifest : undefined
   if (!manifest) {
     if (throwOnInvalid) {
       const manifestLabel = config.selectionMode === 'selected-only'

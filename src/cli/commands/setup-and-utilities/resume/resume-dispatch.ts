@@ -1,5 +1,5 @@
 import { join, resolve as resolvePath } from 'node:path'
-import { readBatchManifest, readExtractBatchManifest, readRunManifest } from '~/cli/commands/process-steps/manifest-utils'
+import { readBatchManifestOutcome, readExtractBatchManifestOutcome, readRunManifestOutcome, unsupportedManifestVersionError } from '~/cli/commands/process-steps/manifest-utils'
 import { buildOptsFromFlags } from '~/cli/commands/process-steps/step-1-download/download-targets/build-opts-from-flags/build-options-from-flags'
 import { loadConfig, resolveConfigPath } from '~/cli/commands/setup-and-utilities/config/config-loader'
 import { mergeConfigIntoRawFlags } from '~/cli/commands/setup-and-utilities/config/config-merge'
@@ -12,7 +12,7 @@ import { logResumeSuiteSummary } from './resume-logging'
 import * as l from '~/utils/app-logger/app-logger'
 import type { AggregatedPriceEstimate, BatchManifest, CliFlagOccurrence, ExtractRoute, ExtractSelectorInputRoutes, ResumeDispatchOutcome, ResumeDisplayOptions, ResumeResult, ResumeSelectorNormalizationResult, ResumeTarget, ResumeTargetKind, RunManifest } from '~/types'
 import { CLIUsageError, InfraError } from '~/utils/error-handler'
-import { getResumeHandler, URL_ARTICLE_ROUTE } from './resume-registry'
+import { getResumeHandler } from './resume-registry'
 
 const SUPPORTED_RESUME_KINDS = new Set<ResumeTargetKind>(['extract', 'write', 'tts', 'image', 'video', 'music'])
 
@@ -45,26 +45,17 @@ const extractRoutesForTarget = (
 ): ExtractSelectorInputRoutes => ({
   media: target.extractRoute === undefined || target.extractRoute === 'media',
   document: target.extractRoute === undefined || target.extractRoute === 'document',
-  article: target.extractRoute === undefined || target.extractRoute === URL_ARTICLE_ROUTE
+  article: target.extractRoute === undefined || target.extractRoute === 'article'
 })
 
 const isExtractRoute = (value: unknown): value is ExtractRoute =>
-  value === 'media' || value === 'document' || value === 'x-space'
+  value === 'media' || value === 'document' || value === 'article' || value === 'x-space'
 
 const inferExtractRouteFromBatchManifest = (
   manifest: BatchManifest
 ): ExtractRoute | undefined => {
   if (manifest.kind !== 'extract') {
     return undefined
-  }
-
-  const inputFamilies = new Set(
-    manifest.items
-      .map((item) => item['inputFamily'])
-      .filter((value): value is string => typeof value === 'string')
-  )
-  if (inputFamilies.size === 1 && inputFamilies.has('html_article')) {
-    return URL_ARTICLE_ROUTE
   }
 
   const routes = new Set<ExtractRoute>()
@@ -77,17 +68,11 @@ const inferExtractRouteFromBatchManifest = (
   return routes.size === 1 ? [...routes][0] : undefined
 }
 
-const inferExtractRouteFromRunManifest = (
+const readExtractRouteFromRunManifest = (
   manifest: RunManifest
 ): ExtractRoute | undefined => {
   if (manifest.kind !== 'extract') {
     return undefined
-  }
-  const resolvedStep2 = typeof manifest.metadata['resolvedStep2'] === 'object' && manifest.metadata['resolvedStep2'] !== null
-    ? manifest.metadata['resolvedStep2'] as Record<string, unknown>
-    : undefined
-  if (resolvedStep2?.['route'] === 'article') {
-    return URL_ARTICLE_ROUTE
   }
   return isExtractRoute(manifest.metadata['extractRoute'])
     ? manifest.metadata['extractRoute']
@@ -115,7 +100,11 @@ const resolveExplicitResumeTarget = async (
   outputDirInput: string
 ): Promise<ResumeTarget> => {
   const dir = resolvePath(outputDirInput)
-  const extractBatchManifest = await readExtractBatchManifest(dir)
+  const extractBatchOutcome = await readExtractBatchManifestOutcome(dir)
+  if (extractBatchOutcome.status === 'unsupported-version') {
+    throw unsupportedManifestVersionError(extractBatchOutcome)
+  }
+  const extractBatchManifest = extractBatchOutcome.status === 'ok' ? extractBatchOutcome.manifest : undefined
   if (extractBatchManifest) {
     return {
       kind: 'extract',
@@ -125,7 +114,11 @@ const resolveExplicitResumeTarget = async (
     }
   }
 
-  const batchManifest = await readBatchManifest(dir)
+  const batchOutcome = await readBatchManifestOutcome(dir)
+  if (batchOutcome.status === 'unsupported-version') {
+    throw unsupportedManifestVersionError(batchOutcome)
+  }
+  const batchManifest = batchOutcome.status === 'ok' ? batchOutcome.manifest : undefined
   if (batchManifest) {
     const target = toResumeTarget(
       batchManifest.manifest.kind,
@@ -140,14 +133,18 @@ const resolveExplicitResumeTarget = async (
     throw CLIUsageError(`Resume supports only extract, write, TTS, image, video, and music manifests. Found "${batchManifest.manifest.kind}" at ${batchManifest.manifestPath}.`)
   }
 
-  const runManifest = await readRunManifest(dir)
+  const runOutcome = await readRunManifestOutcome(dir)
+  if (runOutcome.status === 'unsupported-version') {
+    throw unsupportedManifestVersionError(runOutcome)
+  }
+  const runManifest = runOutcome.status === 'ok' ? runOutcome.manifest : undefined
   if (runManifest) {
     const target = toResumeTarget(
       runManifest.kind,
       'single',
       dir,
       join(dir, 'run.json'),
-      inferExtractRouteFromRunManifest(runManifest)
+      readExtractRouteFromRunManifest(runManifest)
     )
     if (target) {
       return target

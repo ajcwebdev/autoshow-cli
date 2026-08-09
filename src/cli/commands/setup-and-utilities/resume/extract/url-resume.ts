@@ -1,7 +1,7 @@
 import { isRecord } from '~/utils/rest-client'
 import { mkdir } from 'node:fs/promises'
 import { join, resolve as resolvePath } from 'node:path'
-import { readBatchManifest, writeBatchManifest } from '~/cli/commands/process-steps/manifest-utils'
+import { assertManifestEntriesCanBeRewritten, readBatchManifest, writeBatchManifest } from '~/cli/commands/process-steps/manifest-utils'
 import { buildExtractionCallOpts } from '~/cli/commands/process-steps/step-1-download/download-targets/single/document-write'
 import { readUrlRunManifestEntry, writeUrlRunManifest } from '~/cli/commands/process-steps/step-2-extract/step-2-url/url-manifest'
 import {
@@ -217,6 +217,7 @@ const writeUpdatedUrlBatchManifest = async (
   if (!manifest) {
     return
   }
+  assertManifestEntriesCanBeRewritten(manifest)
 
   const updatedEntries = await Promise.all(manifest.manifest.items.map(async (entry): Promise<BatchManifestEntry> => {
     const storedOutputDir = entry['outputDir']
@@ -265,6 +266,12 @@ export const resumeUrlArticleTarget = async (
   selectedTargets?: readonly UrlArticleTarget[] | undefined,
   displayOptions: ResumeDisplayOptions = {}
 ): Promise<ResumeResult> => {
+  if (target.scope === 'batch') {
+    const manifest = await readBatchManifest(target.dir, 'extract')
+    if (manifest) {
+      assertManifestEntriesCanBeRewritten(manifest)
+    }
+  }
   const outputDirs = await resolveBatchOutputDirs(target)
   let full = 0
   let incomplete = 0

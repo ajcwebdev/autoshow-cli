@@ -345,7 +345,7 @@ export const runScrapeCreatorsStt = async (
       creditsUsed,
       creditRateCents,
       totalCost: convertScrapeCreatorsCreditsToCents(creditsUsed, creditRateCents),
-      source: 'fallback-estimate',
+      source: 'registry_fallback',
       mode: 'url'
     }
   }

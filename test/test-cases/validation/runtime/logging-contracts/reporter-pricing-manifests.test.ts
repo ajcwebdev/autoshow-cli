@@ -424,31 +424,50 @@ describe('logging contracts', () => {
       try {
         await mkdir(pageResultsDir, { recursive: true })
         await writeFile(join(pageResultsDir, 'page-000001.json'), JSON.stringify({
-          version: 1,
-          mode: 'rendered-page',
-          extractionMethod: 'kimi-ocr',
-          model: 'kimi-latest',
+          version: 2,
+          mode: 'single-page',
           sourceFile: 'sensitive-input-name.pdf',
           totalPages: 3,
           pageNumber: 1,
-          result: {
-            page: { pageNumber: 1, method: 'ocr', text: 'alpha page' },
+          run: {
+            pages: [{ pageNumber: 1, method: 'ocr', text: 'alpha page' }],
+            extractionMethod: 'kimi-ocr',
+            ocrService: 'kimi',
+            ocrModel: 'kimi-latest',
+            totalPages: 1,
             promptTokens: 10,
             completionTokens: 3
           }
         }))
         await writeFile(join(pageResultsDir, 'page-000002.json'), JSON.stringify({
-          version: 1,
-          mode: 'rendered-page',
-          extractionMethod: 'kimi-ocr',
-          model: 'kimi-latest',
+          version: 2,
+          mode: 'single-page',
           sourceFile: 'sensitive-input-name.pdf',
           totalPages: 3,
           pageNumber: 2,
-          result: {
-            page: { pageNumber: 2, method: 'ocr', text: 'beta page' },
+          run: {
+            pages: [{ pageNumber: 2, method: 'ocr', text: 'beta page' }],
+            extractionMethod: 'kimi-ocr',
+            ocrService: 'kimi',
+            ocrModel: 'kimi-latest',
+            totalPages: 1,
             promptTokens: 20,
             completionTokens: 4
+          }
+        }))
+        await writeFile(join(pageResultsDir, 'page-000003.json'), JSON.stringify({
+          version: 2,
+          mode: 'single-page',
+          totalPages: 3,
+          pageNumber: 3,
+          run: {
+            pages: [{ pageNumber: 3, method: 'ocr', text: 'source-less page' }],
+            extractionMethod: 'kimi-ocr',
+            ocrService: 'kimi',
+            ocrModel: 'kimi-latest',
+            totalPages: 1,
+            promptTokens: 100,
+            completionTokens: 100
           }
         }))
 

@@ -304,7 +304,7 @@ describe('OCR resilience contracts', () => {
 
     try {
       await Bun.write(join(tempDir, 'fallback-state.json'), JSON.stringify({
-        version: 1,
+        version: 2,
         mode: 'single-page',
         totalPages: 5,
         serviceLabel: 'Anthropic OCR',

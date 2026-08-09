@@ -87,7 +87,7 @@ describe('ScrapeCreators STT contracts', () => {
             creditsUsed: 1,
             creditRateCents: 0.188,
             totalCost: 0.188,
-            source: 'fallback-estimate',
+            source: 'registry_fallback',
             mode: 'url'
           }
         })

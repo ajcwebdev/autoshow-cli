@@ -1,7 +1,7 @@
 import { isRecord } from '~/utils/rest-client'
 import { copyFile, mkdir, readdir, rm } from 'node:fs/promises'
 import { dirname, extname, join, resolve } from 'node:path'
-import { readRunManifest, writeRunManifest } from '~/cli/commands/process-steps/manifest-utils'
+import { parseProviderResult, readRunManifestOutcome, readVersionedManifest, unsupportedManifestVersionError, writeRunManifest } from '~/cli/commands/process-steps/manifest-utils'
 import { resolveRunDirectory } from '~/cli/commands/process-steps/run-dir'
 import { getOutputRoot, getOutputRootAbsolute } from '~/cli/commands/process-steps/output-root'
 import { getAudioDuration } from '~/cli/commands/process-steps/step-2-extract/step-2-stt/stt-utils/audio-splitter'
@@ -9,7 +9,7 @@ import { parseStoredTranscriptionResult } from '~/cli/commands/process-steps/ste
 import { formatCaptionTimestamp, formatSrt, formatVtt, hmsPartsToSeconds } from '~/cli/commands/process-steps/step-7-music/lyrics-video/captions'
 import { TRANSCRIPT_CUE_LIMITS, buildTranscriptionCues } from '~/cli/commands/process-steps/step-7-music/lyrics-video/cue-builder'
 import { buildTranscriptAss, extractTitle, findMatchingImage, FIXED_RENDER_FPS, FIXED_RENDER_HEIGHT, FIXED_RENDER_WIDTH, formatSpeakerDisplayLabel, renderLyricsVideo, TRANSCRIPT_OVERLAY_TEXT_LAYOUT } from '~/cli/commands/process-steps/step-7-music/lyrics-video/render'
-import type { CaptionCue, LoadedTranscription, ProviderResult, RunManifest, TranscriptCue, TranscriptCueSource, TranscriptionResult, TranscriptVideoSource } from '~/types'
+import type { CaptionCue, LoadedTranscription, RunManifest, TranscriptCue, TranscriptCueSource, TranscriptionResult, TranscriptVideoSource } from '~/types'
 import { ensureDirectory, fileExists } from '~/utils/cli-utils'
 import { CLIUsageError, InfraError, ValidationError } from '~/utils/error-handler'
 import * as l from '~/utils/app-logger/app-logger'
@@ -311,27 +311,17 @@ const collectSpeakerInventory = (cues: TranscriptCue[]): string[] => {
   return speakers
 }
 
-const parseProviderResultFile = (value: unknown): Pick<ProviderResult, 'provider' | 'model' | 'result'> | undefined => {
-  if (
-    !isRecord(value)
-    || value['schemaVersion'] !== 2
-    || value['kind'] !== 'provider-result'
-    || typeof value['provider'] !== 'string'
-    || !isRecord(value['result'])
-  ) {
-    return undefined
-  }
-
-  return {
-    provider: value['provider'],
-    ...(typeof value['model'] === 'string' ? { model: value['model'] } : {}),
-    result: value['result']
-  }
-}
-
 const loadTranscriptionResultJson = async (resultPath: string): Promise<LoadedTranscription> => {
-  const raw = await Bun.file(resultPath).json() as unknown
-  const envelope = parseProviderResultFile(raw)
+  const outcome = await readVersionedManifest(
+    resultPath,
+    'provider-result',
+    (raw) => parseProviderResult(raw, { lenientMetadata: true })
+  )
+  if (outcome.status === 'unsupported-version') {
+    throw unsupportedManifestVersionError(outcome)
+  }
+  const envelope = outcome.status === 'ok' ? outcome.manifest : undefined
+  const raw = outcome.status === 'invalid' ? outcome.raw : undefined
   const parsed = parseStoredTranscriptionResult(envelope?.result ?? raw)
   if (!parsed) {
     throw ValidationError(`Transcript result file is not a supported STT result: ${toProjectDisplayPath(resultPath)}`, { stage: 'video:transcript' })
@@ -462,7 +452,11 @@ const resolveExtractRunSource = async (
   flags: Record<string, unknown>
 ): Promise<TranscriptVideoSource> => {
   const runDir = resolveUserPath(inputPath)
-  const manifest = await readRunManifest(runDir, 'extract')
+  const manifestOutcome = await readRunManifestOutcome(runDir, 'extract')
+  if (manifestOutcome.status === 'unsupported-version') {
+    throw unsupportedManifestVersionError(manifestOutcome)
+  }
+  const manifest = manifestOutcome.status === 'ok' ? manifestOutcome.manifest : undefined
   if (!manifest || manifest.metadata['extractRoute'] !== 'media') {
     throw CLIUsageError(`Transcript video input must be a media extract output directory: ${toProjectDisplayPath(runDir)}`)
   }

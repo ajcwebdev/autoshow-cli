@@ -1,7 +1,7 @@
 import { isRecord } from '~/utils/rest-client'
 import { join } from 'node:path'
 import type { BatchManifestEntry, ProviderCheckpoint, SttBatchSummary, SttBatchSummaryItem } from '~/types'
-import { readRunManifestEntry, writeBatchManifest, writeRunManifest } from '../../manifest-utils'
+import { CURRENT_MANIFEST_VERSION_BY_KIND, readRunManifestEntry, readVersionedManifest, unsupportedManifestVersionError, writeBatchManifest, writeRunManifest } from '../../manifest-utils'
 
 
 
@@ -123,7 +123,6 @@ const parseCheckpoint = (
 ): ProviderCheckpoint | undefined => {
   if (
     !isRecord(value)
-    || value['schemaVersion'] !== 2
     || value['kind'] !== 'provider-checkpoint'
     || typeof value['provider'] !== 'string'
     || !isRecord(value['metadata'])
@@ -132,7 +131,7 @@ const parseCheckpoint = (
   }
 
   return {
-    schemaVersion: 2,
+    schemaVersion: CURRENT_MANIFEST_VERSION_BY_KIND['provider-checkpoint'],
     kind: 'provider-checkpoint',
     provider: value['provider'],
     ...(typeof value['model'] === 'string' ? { model: value['model'] } : {}),
@@ -177,7 +176,7 @@ export const writeSttProviderCheckpoint = async (
   metadata: Record<string, unknown>
 ): Promise<void> => {
   const checkpoint: ProviderCheckpoint = {
-    schemaVersion: 2,
+    schemaVersion: CURRENT_MANIFEST_VERSION_BY_KIND['provider-checkpoint'],
     kind: 'provider-checkpoint',
     provider,
     model,
@@ -190,10 +189,9 @@ export const readSttProviderCheckpoint = async (
   providerDir: string
 ): Promise<Record<string, unknown> | undefined> => {
   const checkpointPath = join(providerDir, 'checkpoint.json')
-  if (!await Bun.file(checkpointPath).exists()) {
-    return undefined
+  const outcome = await readVersionedManifest(checkpointPath, 'provider-checkpoint', parseCheckpoint)
+  if (outcome.status === 'unsupported-version') {
+    throw unsupportedManifestVersionError(outcome)
   }
-
-  const raw = await Bun.file(checkpointPath).json() as unknown
-  return parseCheckpoint(raw)?.metadata
+  return outcome.status === 'ok' ? outcome.manifest.metadata : undefined
 }

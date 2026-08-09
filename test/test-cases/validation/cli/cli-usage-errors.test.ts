@@ -92,7 +92,7 @@ test('benchmark --tts rejects missing TTS run directory', async () => {
 test('benchmark --tts rejects non-TTS run manifests', async () => {
   const runDir = await makeTempRoot('autoshow-tts-benchmark-kind-')
   await writeJson(join(runDir, 'run.json'), {
-    schemaVersion: 2,
+    schemaVersion: 3,
     kind: 'extract',
     metadata: {}
   })
@@ -106,7 +106,7 @@ test('benchmark --tts rejects non-TTS run manifests', async () => {
 test('benchmark --tts rejects missing source text without override', async () => {
   const runDir = await makeTempRoot('autoshow-tts-benchmark-text-')
   await writeJson(join(runDir, 'run.json'), {
-    schemaVersion: 2,
+    schemaVersion: 3,
     kind: 'tts',
     metadata: {
       tts: [{
@@ -139,7 +139,7 @@ test('benchmark --image rejects missing image run directory', async () => {
 test('benchmark --image rejects non-image run manifests', async () => {
   const runDir = await makeTempRoot('autoshow-image-benchmark-kind-')
   await writeJson(join(runDir, 'run.json'), {
-    schemaVersion: 2,
+    schemaVersion: 3,
     kind: 'tts',
     metadata: {}
   })
@@ -153,7 +153,7 @@ test('benchmark --image rejects non-image run manifests', async () => {
 test('benchmark --image rejects invalid image run metadata', async () => {
   const runDir = await makeTempRoot('autoshow-image-benchmark-metadata-')
   await writeJson(join(runDir, 'run.json'), {
-    schemaVersion: 2,
+    schemaVersion: 3,
     kind: 'image',
     metadata: {
       image: []
@@ -178,7 +178,7 @@ test('benchmark --text rejects missing write run directory', async () => {
 test('benchmark --text rejects non-write run manifests', async () => {
   const runDir = await makeTempRoot('autoshow-text-benchmark-kind-')
   await writeJson(join(runDir, 'run.json'), {
-    schemaVersion: 2,
+    schemaVersion: 3,
     kind: 'tts',
     metadata: {}
   })
@@ -192,7 +192,7 @@ test('benchmark --text rejects non-write run manifests', async () => {
 test('benchmark --text rejects missing step3 metadata', async () => {
   const runDir = await makeTempRoot('autoshow-text-benchmark-step3-')
   await writeJson(join(runDir, 'run.json'), {
-    schemaVersion: 2,
+    schemaVersion: 3,
     kind: 'write',
     metadata: {}
   })
@@ -215,7 +215,7 @@ test('benchmark --video rejects missing video run directory', async () => {
 test('benchmark --video rejects non-video run manifests', async () => {
   const runDir = await makeTempRoot('autoshow-video-benchmark-kind-')
   await writeJson(join(runDir, 'run.json'), {
-    schemaVersion: 2,
+    schemaVersion: 3,
     kind: 'image',
     metadata: {}
   })
@@ -229,7 +229,7 @@ test('benchmark --video rejects non-video run manifests', async () => {
 test('benchmark --video rejects missing source prompt', async () => {
   const runDir = await makeTempRoot('autoshow-video-benchmark-prompt-')
   await writeJson(join(runDir, 'run.json'), {
-    schemaVersion: 2,
+    schemaVersion: 3,
     kind: 'video',
     metadata: {
       video: []
@@ -245,7 +245,7 @@ test('benchmark --video rejects missing source prompt', async () => {
 test('benchmark --video rejects missing video metadata', async () => {
   const runDir = await makeTempRoot('autoshow-video-benchmark-metadata-')
   await writeJson(join(runDir, 'run.json'), {
-    schemaVersion: 2,
+    schemaVersion: 3,
     kind: 'video',
     metadata: {
       input: 'A cinematic mountain sunrise.'

@@ -59,7 +59,7 @@ describe('OCR resilience contracts', () => {
     const tempDir = await mkdtemp(join(tmpdir(), 'autoshow-ocr-audit-rollup-'))
     try {
       await Bun.write(join(tempDir, 'fallback-state.json'), JSON.stringify({
-        version: 1,
+        version: 2,
         pageStatusCounts: { cached: 0, resumed: 0, succeeded: 1, failed: 1, canceled: 3 },
         terminalReason: 'content_policy',
         chunkPreparation: {

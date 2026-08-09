@@ -373,7 +373,7 @@ const sanitizeArtifactSegment = (value: string): string =>
 
 // Mirrors unwrapRunMetadataValue in test/test-utils/manifest-helpers.ts.
 const unwrapRunMetadata = (value: Record<string, unknown>): Record<string, unknown> => {
-  if (value['schemaVersion'] === 2 && typeof value['kind'] === 'string' && isRecord(value['metadata'])) {
+  if (value['schemaVersion'] === 3 && typeof value['kind'] === 'string' && isRecord(value['metadata'])) {
     return value['metadata']
   }
 

@@ -3,6 +3,8 @@ import type { BatchManifestEntry, ProviderCompletionStatus, ProviderIdentity, Pr
 export type ProviderResumeManifest = {
   infoPath: string
   entries: BatchManifestEntry[]
+  rawItemCount?: number | undefined
+  firstUnparseableEntryIndex?: number | undefined
   source?: Record<string, unknown>
 }
 

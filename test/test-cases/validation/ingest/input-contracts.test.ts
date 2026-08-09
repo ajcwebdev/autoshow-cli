@@ -57,8 +57,8 @@ describe('input classification contracts', () => {
       { input: mediaPath, family: 'media', extractRoute: 'media' },
       { input: imagePath, family: 'document', extractRoute: 'document' },
       { input: 'https://example.com/files/report.pdf', family: 'document', extractRoute: 'document' },
-      { input: htmlPath, family: 'html_article', extractRoute: 'document' },
-      { input: 'https://example.com/articles/post.html', family: 'html_article', extractRoute: 'document' },
+      { input: htmlPath, family: 'html_article', extractRoute: 'article' },
+      { input: 'https://example.com/articles/post.html', family: 'html_article', extractRoute: 'article' },
       { input: 'https://x.com/i/spaces/1DXxyRYNejbKM', family: 'x_space', extractRoute: 'x-space' },
       { input: 'https://x.com/example/status/1234567890123456789', family: 'x_space', extractRoute: 'x-space' },
       { input: '1DXxyRYNejbKM', family: 'x_space', extractRoute: 'x-space' }
@@ -89,7 +89,7 @@ describe('input classification contracts', () => {
       'media'
     ])
     expect(batchPlan?.plannedInputs.map((item) => item.extractRoute).sort()).toEqual([
-      'document',
+      'article',
       'document',
       'media'
     ])
