@@ -1,7 +1,7 @@
 import { defineCliCommand } from '~/cli/native/native-types'
 import { configCommandFlags } from '~/cli/flags/config-flags'
 import { resolveConfigPath, loadConfig } from './config-loader'
-import { extractExplicitFlags, buildConfigPatchFromFlags, deepMergeConfig } from './config-merge'
+import { buildConfigPatchFromFlags, deepMergeConfig } from './config-merge'
 import { writeConfig } from './config-writer'
 import * as l from '~/utils/app-logger/app-logger'
 import { normalizeGenericTtsOptionFlags } from '~/cli/flags/service-selector-normalization/generic-tts-option-selectors'
@@ -36,14 +36,20 @@ export const configCommand = defineCliCommand({
     return
   }
 
-  const preprocessedArgv = Bun.argv.slice(2)
-  const explicitFlagNames = extractExplicitFlags(preprocessedArgv)
-  const selectorNormalized = normalizeWriteStepSelectorFlags(flags as Record<string, unknown>, explicitFlagNames, preprocessedArgv)
-  const ttsNormalized = normalizeGenericTtsOptionFlags(selectorNormalized.flags, selectorNormalized.explicitFlags)
+  const selectorNormalized = normalizeWriteStepSelectorFlags(
+    flags as Record<string, unknown>,
+    ctx.rawParsed.explicitFlags,
+    ctx.rawParsed.flagOccurrences
+  )
+  const ttsNormalized = normalizeGenericTtsOptionFlags(
+    selectorNormalized.flags,
+    selectorNormalized.explicitFlags,
+    selectorNormalized.flagOccurrences
+  )
   const patch = buildConfigPatchFromFlags(
     ttsNormalized.flags,
     ttsNormalized.explicitFlags,
-    selectorNormalized.rawArgs ?? preprocessedArgv
+    ttsNormalized.flagOccurrences
   )
 
   if (Object.keys(patch).length === 0) {

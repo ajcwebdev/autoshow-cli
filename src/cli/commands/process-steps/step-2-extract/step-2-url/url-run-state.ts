@@ -27,6 +27,10 @@ import { DocumentMetadataSchema, ExtractionMetadataSchema, ExtractionResultSchem
 import { computeActualCosts } from '~/utils/pricing/compute-actual-costs'
 import { computeActualProcessingTimes, computeEstimatedProcessingTimes } from '~/utils/pricing/compute-processing-time'
 import type { AggregatedPriceEstimate, BatchChildRunContext, DocumentMetadata, ExtractionMetadata, ExtractionOptions, ExtractionResult, HtmlArticleBackend, RuntimeOptions, UrlArticleBackendPlan, UrlArticleRunResult, UrlProviderFailure, UrlProviderRunOutcome, UrlProviderState, UrlProviderSuccess, UrlRequestOptions, WebArticleMetadata } from '~/types'
+import {
+  parseStoredProviderArray,
+  resolveProviderCompletionStatus
+} from '../step-2-shared/provider-batch-state'
 
 
 const readLocalHtmlFileSize = async (source: string): Promise<number | undefined> => {
@@ -309,11 +313,8 @@ export const buildProviderStates = (
 
 export const completionStatusFromProviderStates = (
   providerStates: UrlProviderState[]
-): 'full' | 'incomplete' | 'failed' => {
-  const succeeded = providerStates.filter((state) => state.status === 'succeeded').length
-  if (succeeded === 0) return 'failed'
-  return succeeded === providerStates.length ? 'full' : 'incomplete'
-}
+): 'full' | 'incomplete' | 'failed' =>
+  resolveProviderCompletionStatus(providerStates, 'incomplete')
 
 export const buildManifestMetadata = (
   step1Metadata: DocumentMetadata,
@@ -482,20 +483,19 @@ export const parseStoredStep2Metadata = (metadata: Record<string, unknown>): Ext
 }
 
 export const parseStoredProviderStates = (metadata: Record<string, unknown>): UrlProviderState[] => {
-  const rawStates = Array.isArray(metadata['providerStates']) ? metadata['providerStates'] : []
-  return rawStates.flatMap((entry) => {
+  return parseStoredProviderArray(metadata['providerStates'], (entry) => {
     if (!isRecord(entry)) {
-      return []
+      return undefined
     }
     const backend = parseStoredProviderBackend(entry)
     if (!backend) {
-      return []
+      return undefined
     }
     const status = entry['status']
     if (status !== 'succeeded' && status !== 'missing' && status !== 'failed' && status !== 'skipped') {
-      return []
+      return undefined
     }
-    return [{
+    return {
       service: backend,
       model: backend,
       artifactDir: typeof entry['artifactDir'] === 'string'
@@ -506,7 +506,7 @@ export const parseStoredProviderStates = (metadata: Record<string, unknown>): Ur
       ...(isRecord(entry['lastError']) && typeof entry['lastError']['message'] === 'string'
         ? { lastError: { message: entry['lastError']['message'] } }
         : {})
-    } satisfies UrlProviderState]
+    } satisfies UrlProviderState
   })
 }
 
@@ -516,9 +516,7 @@ export const parseStoredUrlBackends = (
   providerStates: UrlProviderState[]
 ): HtmlArticleBackend[] =>
   uniqueBackends([
-    ...((Array.isArray(metadata['requestedProviders']) ? metadata['requestedProviders'] : [])
-      .map(parseStoredProviderBackend)
-      .filter((backend): backend is HtmlArticleBackend => backend !== undefined)),
+    ...parseStoredProviderArray(metadata['requestedProviders'], parseStoredProviderBackend),
     ...providerStates.map((state) => state.service),
     ...step2Metadata
       .map(parseBackendFromExtractionMetadata)

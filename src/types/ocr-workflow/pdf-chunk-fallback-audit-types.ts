@@ -7,7 +7,7 @@ import type {
   RuntimeToolSource
 } from '~/types'
 
-export type InitialFallbackReason = 'large-pdf' | 'fallback-state' | 'page-cache' | 'full-document-failure'
+export type InitialFallbackReason = 'forced-page-mode' | 'large-pdf' | 'fallback-state' | 'page-cache' | 'full-document-failure'
 
 export type FallbackPageAuditStatus = 'cached' | 'resumed' | 'succeeded' | 'failed' | 'canceled'
 

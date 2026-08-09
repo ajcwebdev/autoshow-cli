@@ -1,6 +1,6 @@
 import { mkdir, rm } from 'node:fs/promises'
 import { basename, join } from 'node:path'
-import type { FallbackAuditState, HostedOcrRun, InitialFallbackReason, OcrPdfChunkRange, PdfChunkPreparationSummary, RunHostedOcrPdfChunkFallbackOptions, StoredHostedOcrFallbackPage } from '~/types'
+import type { FallbackAuditState, HostedExtractOcrEngine, HostedOcrIdentity, HostedOcrRun, HostedOcrService, InitialFallbackReason, OcrPdfChunkRange, PdfChunkPreparationSummary, RunHostedOcrPdfChunkFallbackOptions, StoredHostedOcrFallbackPage } from '~/types'
 import { ValidationError } from '~/utils/error-handler'
 import * as l from '~/utils/app-logger/app-logger'
 import { sanitizeLogMetadata, sanitizeLogText } from '~/utils/app-logger/redaction'
@@ -12,7 +12,6 @@ import {
   isRecord
 } from './pdf-chunk-fallback-shared'
 import {
-  fallbackStateExists,
   getFallbackPageInputPath,
   getFallbackPageInputsDir,
   getFallbackPageInvalidResponsePath,
@@ -23,36 +22,189 @@ import {
   getFallbackStatePath
 } from './pdf-chunk-fallback-paths'
 import { summarizeFallbackAudit } from './pdf-chunk-fallback-audit'
-import { isHostedOcrRun } from './hosted-ocr-utils'
+import { isHostedOcrRun, isPageResult } from './hosted-ocr-utils'
 
-const parseStoredFallbackPage = (
-  value: unknown,
-  pageNumber: number,
+type HostedOcrPageCacheValidation = {
+  pageNumber?: number | undefined
+  totalPages?: number | undefined
+  sourceFile?: string | undefined
+  identity?: HostedOcrIdentity | undefined
+  allowLegacySourceFile?: boolean | undefined
+}
+
+export type ParsedHostedOcrPageCache = {
+  pageNumber: number
   totalPages: number
-): HostedOcrRun | undefined => {
+  run: HostedOcrRun
+  legacyRenderedPage: boolean
+}
+
+const resolveHostedIdentityFromExtractionMethod = (
+  extractionMethod: unknown
+): Pick<HostedOcrIdentity, 'extractionMethod' | 'ocrService'> | undefined => {
+  const identities: Partial<Record<HostedExtractOcrEngine, HostedOcrService>> = {
+    'mistral-ocr': 'mistral',
+    'glm-ocr': 'glm',
+    'kimi-ocr': 'kimi',
+    'openai-ocr': 'openai',
+    'grok-ocr': 'grok',
+    'anthropic-ocr': 'anthropic',
+    'gemini-ocr': 'gemini',
+    'deepinfra-ocr': 'deepinfra'
+  }
+  if (typeof extractionMethod !== 'string') {
+    return undefined
+  }
+  const ocrService = identities[extractionMethod as HostedExtractOcrEngine]
+  if (ocrService === undefined) {
+    return undefined
+  }
+  return {
+    extractionMethod: extractionMethod as HostedExtractOcrEngine,
+    ocrService
+  }
+}
+
+const matchesCacheIdentity = (
+  run: HostedOcrRun,
+  identity: HostedOcrIdentity | undefined
+): boolean =>
+  identity === undefined
+  || (
+    run.extractionMethod === identity.extractionMethod
+    && run.ocrService === identity.ocrService
+    && run.ocrModel === identity.ocrModel
+  )
+
+const parseLegacyRenderedPage = (
+  value: Record<string, unknown>,
+  validation: HostedOcrPageCacheValidation
+): ParsedHostedOcrPageCache | undefined => {
   if (
-    !isRecord(value)
-    || value['version'] !== HOSTED_OCR_PDF_PAGE_FALLBACK_VERSION
+    value['version'] !== 1
+    || value['mode'] !== 'rendered-page'
+    || typeof value['model'] !== 'string'
+    || typeof value['sourceFile'] !== 'string'
+    || typeof value['pageNumber'] !== 'number'
+    || typeof value['totalPages'] !== 'number'
+    || !isRecord(value['result'])
+  ) {
+    return undefined
+  }
+
+  const pageNumber = value['pageNumber']
+  const totalPages = value['totalPages']
+  const result = value['result']
+  const page = result['page']
+  if (!isPageResult(page)) {
+    return undefined
+  }
+  const resolvedIdentity = resolveHostedIdentityFromExtractionMethod(value['extractionMethod'])
+  if (
+    resolvedIdentity === undefined
+    || page.pageNumber !== pageNumber
+    || (validation.pageNumber !== undefined && validation.pageNumber !== pageNumber)
+    || (validation.totalPages !== undefined && validation.totalPages !== totalPages)
+    || (validation.sourceFile !== undefined && validation.sourceFile !== value['sourceFile'])
+    || (validation.identity !== undefined && (
+      validation.identity.extractionMethod !== resolvedIdentity.extractionMethod
+      || validation.identity.ocrService !== resolvedIdentity.ocrService
+      || validation.identity.ocrModel !== value['model']
+    ))
+  ) {
+    return undefined
+  }
+
+  const promptTokens = typeof result['promptTokens'] === 'number' ? result['promptTokens'] : undefined
+  const completionTokens = typeof result['completionTokens'] === 'number' ? result['completionTokens'] : undefined
+  const hasUsage = promptTokens !== undefined || completionTokens !== undefined
+  const run: HostedOcrRun = {
+    pages: [page],
+    extractionMethod: resolvedIdentity.extractionMethod,
+    ocrService: resolvedIdentity.ocrService,
+    ocrModel: value['model'],
+    totalPages: 1,
+    ...(promptTokens !== undefined ? { promptTokens } : {}),
+    ...(completionTokens !== undefined ? { completionTokens } : {}),
+    ...(hasUsage
+      ? {
+          providerUsage: [{
+            unit: 'chunk',
+            pageStart: pageNumber,
+            pageEnd: pageNumber,
+            pages: 1,
+            provider: resolvedIdentity.ocrService,
+            model: value['model'],
+            ...(promptTokens !== undefined ? { promptTokens } : {}),
+            ...(completionTokens !== undefined ? { completionTokens } : {})
+          }]
+        }
+      : {})
+  }
+
+  return {
+    pageNumber,
+    totalPages,
+    run,
+    legacyRenderedPage: true
+  }
+}
+
+export const parseStoredHostedOcrPageCache = (
+  value: unknown,
+  validation: HostedOcrPageCacheValidation = {}
+): ParsedHostedOcrPageCache | undefined => {
+  if (!isRecord(value)) {
+    return undefined
+  }
+
+  const legacyRenderedPage = parseLegacyRenderedPage(value, validation)
+  if (legacyRenderedPage !== undefined) {
+    return legacyRenderedPage
+  }
+
+  if (
+    value['version'] !== HOSTED_OCR_PDF_PAGE_FALLBACK_VERSION
     || value['mode'] !== HOSTED_OCR_PDF_PAGE_FALLBACK_MODE
-    || value['pageNumber'] !== pageNumber
-    || value['totalPages'] !== totalPages
+    || typeof value['pageNumber'] !== 'number'
+    || typeof value['totalPages'] !== 'number'
     || !isHostedOcrRun(value['run'])
   ) {
     return undefined
   }
 
+  const pageNumber = value['pageNumber']
+  const totalPages = value['totalPages']
   const run = value['run']
-  if (run.pages.length !== 1 || run.pages[0]?.pageNumber !== pageNumber) {
+  const sourceFile = value['sourceFile']
+  if (
+    run.pages.length !== 1
+    || run.pages[0]?.pageNumber !== pageNumber
+    || !matchesCacheIdentity(run, validation.identity)
+    || (validation.pageNumber !== undefined && validation.pageNumber !== pageNumber)
+    || (validation.totalPages !== undefined && validation.totalPages !== totalPages)
+    || (validation.sourceFile !== undefined && (
+      typeof sourceFile === 'string'
+        ? sourceFile !== validation.sourceFile
+        : validation.allowLegacySourceFile !== true
+    ))
+  ) {
     return undefined
   }
 
-  return run
+  return {
+    pageNumber,
+    totalPages,
+    run,
+    legacyRenderedPage: false
+  }
 }
 
 export const readCachedFallbackPage = async (
   fallbackDir: string | undefined,
   pageNumber: number,
-  totalPages: number
+  totalPages: number,
+  validation: Omit<HostedOcrPageCacheValidation, 'pageNumber' | 'totalPages'> = {}
 ): Promise<HostedOcrRun | undefined> => {
   if (fallbackDir === undefined) {
     return undefined
@@ -60,7 +212,11 @@ export const readCachedFallbackPage = async (
 
   try {
     const raw = await Bun.file(getFallbackPageResultPath(fallbackDir, pageNumber)).json()
-    return parseStoredFallbackPage(raw, pageNumber, totalPages)
+    return parseStoredHostedOcrPageCache(raw, {
+      ...validation,
+      pageNumber,
+      totalPages
+    })?.run
   } catch {
     return undefined
   }
@@ -68,14 +224,15 @@ export const readCachedFallbackPage = async (
 
 const hasValidFallbackPageResults = async (
   fallbackDir: string | undefined,
-  totalPages: number
+  totalPages: number,
+  validation: Omit<HostedOcrPageCacheValidation, 'pageNumber' | 'totalPages'> = {}
 ): Promise<boolean> => {
   if (fallbackDir === undefined) {
     return false
   }
 
   for (let pageNumber = 1; pageNumber <= totalPages; pageNumber++) {
-    if (await readCachedFallbackPage(fallbackDir, pageNumber, totalPages) !== undefined) {
+    if (await readCachedFallbackPage(fallbackDir, pageNumber, totalPages, validation) !== undefined) {
       return true
     }
   }
@@ -85,7 +242,7 @@ const hasValidFallbackPageResults = async (
 
 export const writeFallbackState = async (
   fallbackDir: string | undefined,
-  options: Pick<RunHostedOcrPdfChunkFallbackOptions, 'filePath' | 'serviceLabel'>,
+  options: Pick<RunHostedOcrPdfChunkFallbackOptions, 'filePath' | 'serviceLabel' | 'cacheIdentity'>,
   totalPages: number,
   chunkPreparation?: PdfChunkPreparationSummary | undefined,
   audit?: FallbackAuditState | undefined
@@ -107,6 +264,13 @@ export const writeFallbackState = async (
     totalPages,
     serviceLabel: options.serviceLabel,
     sourceFile: basename(options.filePath),
+    ...(options.cacheIdentity !== undefined
+      ? {
+          extractionMethod: options.cacheIdentity.extractionMethod,
+          ocrService: options.cacheIdentity.ocrService,
+          ocrModel: options.cacheIdentity.ocrModel
+        }
+      : {}),
     ...(audit !== undefined
       ? {
           initialFallbackReason: audit.initialFallbackReason,
@@ -141,6 +305,7 @@ export const writeCachedFallbackPage = async (
   fallbackDir: string | undefined,
   pageNumber: number,
   totalPages: number,
+  sourceFile: string,
   run: HostedOcrRun
 ): Promise<void> => {
   if (fallbackDir === undefined) {
@@ -154,6 +319,7 @@ export const writeCachedFallbackPage = async (
     mode: HOSTED_OCR_PDF_PAGE_FALLBACK_MODE,
     totalPages,
     pageNumber,
+    sourceFile,
     run
   }
   await Bun.write(getFallbackPageResultPath(fallbackDir, pageNumber), JSON.stringify(payload, null, 2) + '\n')
@@ -249,6 +415,7 @@ export const buildMalformedFallbackPageRun = (
   const structuredError = findOcrStructuredResponseError(error)
   if (
     structuredError === undefined
+    || (structuredError as { category?: string }).category === 'provider_limit'
     || options.buildMalformedPageRun === undefined
   ) {
     return undefined
@@ -261,17 +428,56 @@ export const buildMalformedFallbackPageRun = (
   )
 }
 
+export const hasMatchingFallbackState = async (
+  fallbackDir: string | undefined,
+  sourceFile: string,
+  identity?: HostedOcrIdentity | undefined
+): Promise<boolean> => {
+  if (fallbackDir === undefined) {
+    return false
+  }
+
+  try {
+    const value = await Bun.file(getFallbackStatePath(fallbackDir)).json()
+    if (
+      !isRecord(value)
+      || value['version'] !== HOSTED_OCR_PDF_PAGE_FALLBACK_VERSION
+      || value['mode'] !== HOSTED_OCR_PDF_PAGE_FALLBACK_MODE
+      || (value['sourceFile'] !== sourceFile && value['sourceFile'] !== sanitizeLogText(sourceFile))
+    ) {
+      return false
+    }
+    if (identity === undefined) {
+      return true
+    }
+    return (value['extractionMethod'] === undefined || value['extractionMethod'] === identity.extractionMethod)
+      && (value['ocrService'] === undefined || value['ocrService'] === identity.ocrService)
+      && (value['ocrModel'] === undefined || value['ocrModel'] === identity.ocrModel)
+  } catch {
+    return false
+  }
+}
+
 export const resolveInitialFallbackReason = async (
   options: RunHostedOcrPdfChunkFallbackOptions,
   totalPages: number
 ): Promise<InitialFallbackReason | undefined> => {
+  if (options.forcePageMode === true) {
+    return 'forced-page-mode'
+  }
   if (totalPages > HOSTED_OCR_PDF_PAGE_FALLBACK_THRESHOLD) {
     return 'large-pdf'
   }
-  if (await fallbackStateExists(options.fallbackDir)) {
+  const expectedSourceFile = basename(options.filePath)
+  const matchingState = await hasMatchingFallbackState(options.fallbackDir, expectedSourceFile, options.cacheIdentity)
+  if (matchingState) {
     return 'fallback-state'
   }
-  if (await hasValidFallbackPageResults(options.fallbackDir, totalPages)) {
+  if (await hasValidFallbackPageResults(options.fallbackDir, totalPages, {
+    sourceFile: expectedSourceFile,
+    identity: options.cacheIdentity,
+    allowLegacySourceFile: options.cacheIdentity === undefined || matchingState
+  })) {
     return 'page-cache'
   }
   return undefined

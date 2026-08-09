@@ -12,7 +12,6 @@ import {
   rm,
   runAnthropicOcr,
   runHostedOcrWithPdfChunkFallback,
-  runOrderedOcrPageTasks,
   tmpdir
 } from './shared'
 import { installMockFetch } from '../../../../test-utils/rest-contract-helpers'
@@ -134,25 +133,6 @@ describe('OCR resilience contracts', () => {
     expect(fullAttempts).toBe(1)
     expect(pageAttempts).toBe(0)
     expect(result.totalPages).toBe(20)
-  })
-
-  test('hosted OCR page task concurrency preserves result order', async () => {
-    let active = 0
-    let maxActive = 0
-    const completionOrder: number[] = []
-
-    const results = await runOrderedOcrPageTasks([1, 2, 3, 4], 2, async (page) => {
-      active += 1
-      maxActive = Math.max(maxActive, active)
-      await Bun.sleep(page === 1 ? 20 : 2)
-      completionOrder.push(page)
-      active -= 1
-      return `page ${page}`
-    })
-
-    expect(maxActive).toBe(2)
-    expect(results).toEqual(['page 1', 'page 2', 'page 3', 'page 4'])
-    expect(completionOrder[0]).toBe(2)
   })
 
   test('Anthropic single-page PDF chunks are uploaded without re-splitting', async () => {

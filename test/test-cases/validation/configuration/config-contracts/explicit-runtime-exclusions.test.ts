@@ -1,19 +1,7 @@
 import { describe, expect, test } from 'bun:test'
-import { buildConfigPatchFromFlags, extractExplicitFlags, FLAG_TO_CONFIG_PATH, RUNTIME_ONLY_FLAGS } from '~/cli/commands/setup-and-utilities/config/config-merge'
+import { buildConfigPatchFromFlags, FLAG_TO_CONFIG_PATH, RUNTIME_ONLY_FLAGS } from '~/cli/commands/setup-and-utilities/config/config-merge'
 
 describe('config explicit flag and runtime exclusion contracts', () => {
-  test('extractExplicitFlags ignores tokens after the positional separator', () => {
-    expect(extractExplicitFlags([
-      'extract',
-      'https://ajc.pics/autoshow/examples/1-audio.mp3',
-      '--mistral-stt',
-      'voxtral-mini-2602',
-      '--',
-      '--deepinfra-ocr',
-      'Qwen/Qwen3-VL-30B-A3B-Instruct'
-    ])).toEqual(new Set(['mistral-stt']))
-  })
-
   test('runtime-only options are excluded from saved config patches', () => {
     expect(buildConfigPatchFromFlags({
       'reverb-stt': true,

@@ -1,11 +1,9 @@
-import * as l from '~/utils/app-logger/app-logger'
 import { basename } from 'node:path'
 import type { AsyncSttLifecycleHooks, AsyncSttLifecycleMetrics, DiarizationOptions, RevJob, RevTranscriptResponse, Step2Metadata, SttRequestMetrics, TranscriptionResult, TranscriptionSegment } from '~/types'
 import {
   RevJobSchema,
   RevTranscriptResponseSchema
 } from '~/types'
-import { logSttSegmentLifecycle } from '~/cli/commands/process-steps/step-2-extract/step-2-stt/stt-logging'
 import {
   buildTranscriptionOutputBase,
   countTokens,
@@ -267,6 +265,7 @@ export const runRevStt = async (
     audioDurationSeconds,
     initialPollIntervalMs: INITIAL_POLL_INTERVAL_MS,
     maxPollIntervalMs: MAX_POLL_INTERVAL_MS,
+    segment: { segmentNumber, totalSegments },
     createJob: async (metrics) => await createRevJob(baseURL, accessToken, audioPath, modelName, metrics),
     pollJob: async (jobId, metrics) => await pollRevJob(baseURL, accessToken, jobId, metrics),
     getTranscript: async (jobId, metrics) => await getTranscript(baseURL, accessToken, jobId, lifecycleMetricsToCallbacks(metrics)),
@@ -274,9 +273,11 @@ export const runRevStt = async (
     isFailed: (status) => status.status === 'failed' ? buildFailedJobMessage(status) : undefined,
     buildDeadlineError: (jobId, pollDeadlineMs) => buildAsyncSttPollingDeadlineError('Rev', jobId, pollDeadlineMs),
     buildResumeProbeError: (jobId, probeCount, totalWaitMs) => buildAsyncSttResumeProbeError('Rev', 'job', jobId, probeCount, totalWaitMs),
-    deleteJob: async (jobId) => await deleteJob(baseURL, accessToken, jobId),
-    shouldDeleteRemoteJob: ({ metadata, lastKnownStatus }) =>
-      metadata !== undefined || lastKnownStatus?.status === 'transcribed' || lastKnownStatus?.status === 'failed',
+    cleanup: {
+      deleteJob: async (jobId) => await deleteJob(baseURL, accessToken, jobId),
+      shouldDelete: ({ metadata, lastKnownStatus }) =>
+        metadata !== undefined || lastKnownStatus?.status === 'transcribed' || lastKnownStatus?.status === 'failed'
+    },
     buildResult: async ({ transcript, runtime, processingTime, timings }) => {
       const transcriptOutput = normalizeTranscriptOutput(transcript, offsetSeconds)
       const evidenceWords = evidenceWordsFromTranscript(transcript, offsetSeconds)
@@ -295,10 +296,6 @@ export const runRevStt = async (
         tokenCount: countTokens(finalText),
         runtime,
         ...(timings ? { timings } : {})
-      }
-
-      if (segmentNumber && totalSegments) {
-        logSttSegmentLifecycle(l, { provider: 'rev', action: 'completed', segmentNumber, totalSegments, model: modelName, processingTimeMs: processingTime })
       }
 
       return {

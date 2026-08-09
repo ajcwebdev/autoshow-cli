@@ -28,18 +28,11 @@ import { readFallbackAuditRollup } from './ocr-utils/pdf-chunk-fallback'
 import { persistHostedOcrTokenUsageProfiles } from './ocr-utils/hosted-ocr-token-profiles'
 import { persistHostedOcrThroughputProfiles } from './ocr-utils/hosted-ocr-throughput-profiles'
 import { runOcr } from './run-ocr'
+import { ProviderBatchCompletionError } from '../step-2-shared/provider-batch-state'
 
-export class OcrBatchCompletionError extends Error {
-  outputDir: string
-  completionStatus: ProviderCompletionStatus
-  exitCode: number
-
+export class OcrBatchCompletionError extends ProviderBatchCompletionError {
   constructor(outputDir: string, completionStatus: ProviderCompletionStatus, message: string) {
-    super(message)
-    this.name = 'OcrBatchCompletionError'
-    this.outputDir = outputDir
-    this.completionStatus = completionStatus
-    this.exitCode = 2
+    super('OcrBatchCompletionError', outputDir, completionStatus, message)
   }
 }
 

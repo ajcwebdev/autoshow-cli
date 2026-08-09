@@ -8,7 +8,6 @@ import { logBatchCompletionTable, logBatchItemStatus } from '~/cli/commands/proc
 import { buildOptsFromFlags } from '~/cli/commands/process-steps/step-1-download/download-targets/build-opts-from-flags/build-options-from-flags'
 import { logSuitePriceSummary } from '~/cli/commands/process-steps/step-1-download/download-targets/suite-price-logging'
 import { collectTextInputFiles, isTextInputPath } from '~/cli/commands/process-steps/step-3-write/text-input-utils'
-import { extractExplicitFlags } from '~/cli/commands/setup-and-utilities/config/config-merge'
 import { ttsCommandFlags } from '~/cli/flags/tts-flags'
 import { normalizeGenericProviderSelectorFlags } from '~/cli/flags/service-selector-normalization/generic-provider-selectors'
 import { normalizeGenericTtsOptionFlags, TTS_VOICE_OPTION_TARGETS } from '~/cli/flags/service-selector-normalization/generic-tts-option-selectors'
@@ -827,18 +826,18 @@ export const ttsCommand = defineCliCommand({
   const flags = ctx.flags as Record<string, unknown>
   const inputKind = await getTtsInputKind(inputPath)
   const maxCents = await resolveMaxCentsFromFlags(flags)
-  const rawArgs = Bun.argv.slice(2)
-  const explicitFlags = extractExplicitFlags(rawArgs)
   const providerNormalized = normalizeGenericProviderSelectorFlags(
     flags,
-    explicitFlags,
+    ctx.rawParsed.explicitFlags,
+    ctx.rawParsed.flagOccurrences,
     'provider',
     STANDALONE_TTS_PROVIDER_TARGETS,
-    { allProvidersTarget: 'all-tts', allLocalTarget: 'all-local-tts', rawArgs }
+    { allProvidersTarget: 'all-tts', allLocalTarget: 'all-local-tts' }
   )
   const ttsNormalized = normalizeGenericTtsOptionFlags(
     providerNormalized.flags,
     providerNormalized.explicitFlags,
+    providerNormalized.flagOccurrences,
     'kitten'
   )
   const ttsOptions = buildOptsFromFlags(
@@ -847,7 +846,7 @@ export const ttsCommand = defineCliCommand({
     [],
     { defaultTtsEngine: 'kitten' },
     ttsNormalized.explicitFlags,
-    providerNormalized.rawArgs ?? rawArgs
+    ttsNormalized.flagOccurrences
   )
 
   assertDialogueFormatIsUsable(ttsOptions, ttsNormalized.explicitFlags)

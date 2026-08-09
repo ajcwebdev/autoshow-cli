@@ -86,5 +86,5 @@ export const extractCommand = defineCliCommand({
   }
 
   validateEpubInspectCommandFlags(ctx)
-  await handleProcessTarget('extract', ctx.parameters.input, ctx.flags, ctx.rawParsed.doubleDash)
+  await handleProcessTarget('extract', ctx.parameters.input, ctx.flags, ctx.rawParsed)
 })

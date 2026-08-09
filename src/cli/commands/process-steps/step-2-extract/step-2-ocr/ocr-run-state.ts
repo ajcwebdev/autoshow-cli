@@ -10,6 +10,15 @@ import { readProviderResultEntry } from '../../manifest-utils'
 import { readOcrRunManifestEntry } from './ocr-manifest'
 import { getOcrTargetDirectoryName } from './ocr-targets'
 import { classifyOcrFailureSummary } from './ocr-utils/ocr-failure-classifier'
+import {
+  buildRequestedProviderList,
+  collectMissingProviderTargets,
+  inferStoredProviderCompletionStatus,
+  parseStoredProviderArray,
+  parseStoredProviderStateMap as parseStoredProviderStateEntries,
+  parseStoredSuccessfulProviderKeys,
+  resolveProviderCompletionStatus
+} from '../step-2-shared/provider-batch-state'
 
 
 const ANSI_PATTERN = /\x1B(?:[@-Z\\-_]|\[[0-?]*[ -/]*[@-~])/g
@@ -153,9 +162,7 @@ export const parseStoredRequestedTarget = (value: unknown): OcrTarget | undefine
 export const parseStoredRequestedTargets = (
   entry: Record<string, unknown>
 ): OcrTarget[] =>
-  Array.isArray(entry['requestedProviders'])
-    ? entry['requestedProviders'].map(parseStoredRequestedTarget).filter((target): target is OcrTarget => target !== undefined)
-    : []
+  parseStoredProviderArray(entry['requestedProviders'], parseStoredRequestedTarget)
 
 const parseStoredProviderState = (value: unknown): OcrProviderState | undefined => {
   if (!isRecord(value)) {
@@ -226,38 +233,18 @@ const parseStoredProviderLastError = (
 
 const parseStoredProviderStateMap = (
   entry: Record<string, unknown>
-): Map<string, OcrProviderState> => {
-  const states = new Map<string, OcrProviderState>()
-  const values = Array.isArray(entry['providerStates']) ? entry['providerStates'] : []
-  for (const value of values) {
-    const parsed = parseStoredProviderState(value)
-    if (!parsed) {
-      continue
-    }
-    states.set(getOcrTargetKey(parsed), parsed)
-  }
-  return states
-}
+): Map<string, OcrProviderState> =>
+  parseStoredProviderStateEntries(entry['providerStates'], parseStoredProviderState)
 
 const parseSuccessfulProviderKeys = (
   entry: Record<string, unknown>
-): Set<string> => {
-  const values = Array.isArray(entry['step2'])
-    ? entry['step2']
-    : entry['step2'] === undefined
-      ? []
-      : [entry['step2']]
-
-  const keys = new Set<string>()
-  for (const value of values) {
+): Set<string> =>
+  parseStoredSuccessfulProviderKeys(entry['step2'], (value) => {
     if (!isRecord(value) || typeof value['ocrService'] !== 'string' || typeof value['ocrModel'] !== 'string') {
-      continue
+      return undefined
     }
-    keys.add(`${value['ocrService']}:${value['ocrModel']}`)
-  }
-
-  return keys
-}
+    return { service: value['ocrService'], model: value['ocrModel'] }
+  })
 
 const metadataMatchesTarget = (
   metadata: ExtractionMetadata,
@@ -332,15 +319,13 @@ export const inferStoredCompletionStatus = (
 ): ProviderCompletionStatus => {
   const successfulKeys = parseSuccessfulProviderKeys(entry)
   const providerStates = parseStoredProviderStateMap(entry)
-  if (providerStates.size > 0) {
-    return resolveCompletionStatusFromState(requestedTargets, successfulKeys, providerStates)
-  }
-
-  if (entry['completionStatus'] === 'full' || entry['completionStatus'] === 'incomplete' || entry['completionStatus'] === 'failed') {
-    return entry['completionStatus']
-  }
-
-  return resolveCompletionStatusFromState(requestedTargets, successfulKeys, providerStates)
+  return inferStoredProviderCompletionStatus(
+    entry['completionStatus'],
+    requestedTargets,
+    successfulKeys,
+    providerStates,
+    (state) => state?.status === 'skipped'
+  )
 }
 
 export const buildMissingTargetsFromEntry = (
@@ -348,15 +333,10 @@ export const buildMissingTargetsFromEntry = (
   requestedTargets: OcrTarget[],
   options: { includeBlocked?: boolean | undefined } = {}
 ): OcrTarget[] => {
-  const explicitMissing = Array.isArray(entry['missingProviders'])
-    ? entry['missingProviders'].map(parseStoredRequestedTarget).filter((target): target is OcrTarget => target !== undefined)
-    : []
-  const missingTargets = new Map<string, OcrTarget>()
+  const explicitMissing = parseStoredProviderArray(entry['missingProviders'], parseStoredRequestedTarget)
   const providerStates = parseStoredProviderStateMap(entry)
   const blockedKeys = new Set(
-    (Array.isArray(entry['blockedProviders']) ? entry['blockedProviders'] : [])
-      .map(parseStoredRequestedTarget)
-      .filter((target): target is OcrTarget => target !== undefined)
+    parseStoredProviderArray(entry['blockedProviders'], parseStoredRequestedTarget)
       .map(getOcrTargetKey)
   )
 
@@ -371,27 +351,14 @@ export const buildMissingTargetsFromEntry = (
     return isRerunnableProviderState(state, options)
   }
 
-  for (const target of explicitMissing) {
-    const state = providerStates.get(getOcrTargetKey(target))
-    if (isTargetRerunnable(target, state)) {
-      missingTargets.set(getOcrTargetKey(target), target)
-    }
-  }
-
   const successfulKeys = parseSuccessfulProviderKeys(entry)
-  for (const target of requestedTargets) {
-    const key = getOcrTargetKey(target)
-    if (successfulKeys.has(key)) {
-      continue
-    }
-
-    const state = providerStates.get(key)
-    if (isTargetRerunnable(target, state)) {
-      missingTargets.set(key, target)
-    }
-  }
-
-  return [...missingTargets.values()]
+  return collectMissingProviderTargets(
+    explicitMissing,
+    requestedTargets,
+    successfulKeys,
+    providerStates,
+    isTargetRerunnable
+  )
 }
 
 export const hasOnlyBlockedMissingTargetsFromEntry = (
@@ -412,9 +379,7 @@ export const hasOnlyBlockedMissingTargetsFromEntry = (
 
   const providerStates = parseStoredProviderStateMap(entry)
   const blockedKeys = new Set(
-    (Array.isArray(entry['blockedProviders']) ? entry['blockedProviders'] : [])
-      .map(parseStoredRequestedTarget)
-      .filter((target): target is OcrTarget => target !== undefined)
+    parseStoredProviderArray(entry['blockedProviders'], parseStoredRequestedTarget)
       .map(getOcrTargetKey)
   )
 
@@ -443,36 +408,6 @@ const isRerunnableProviderState = (
     return false
   }
   return options.includeBlocked === true || !isBlockedOcrProviderState(state)
-}
-
-const resolveCompletionStatusFromState = (
-  requestedTargets: OcrTarget[],
-  successfulKeys: Set<string>,
-  providerStates: Map<string, OcrProviderState>
-): ProviderCompletionStatus => {
-  let succeeded = 0
-  let incomplete = 0
-
-  for (const target of requestedTargets) {
-    const key = getOcrTargetKey(target)
-    const state = providerStates.get(key)
-    if (state?.status === 'skipped') {
-      continue
-    }
-
-    if (successfulKeys.has(key) || state?.status === 'succeeded') {
-      succeeded += 1
-      continue
-    }
-
-    incomplete += 1
-  }
-
-  if (succeeded === 0) {
-    return 'failed'
-  }
-
-  return incomplete === 0 ? 'full' : 'incomplete'
 }
 
 export const readExistingOcrRun = async (
@@ -596,46 +531,30 @@ export const buildProviderStates = (
 
 export const resolveCompletionStatus = (
   providerStates: OcrProviderState[]
-): ProviderCompletionStatus => {
-  const succeeded = providerStates.filter((state) => state.status === 'succeeded').length
-  if (succeeded === 0) {
-    return 'failed'
-  }
-
-  return providerStates.every((state) => state.status === 'succeeded' || state.status === 'skipped')
-    ? 'full'
-    : 'incomplete'
-}
+): ProviderCompletionStatus =>
+  resolveProviderCompletionStatus(providerStates, 'complete')
 
 export const buildMissingProviders = (
   providerStates: OcrProviderState[],
   requestedTargets: OcrTarget[]
-): OcrRequestedProvider[] => {
-  const missingKeys = new Set(
-    providerStates
-      .filter(isNonSuccessProviderState)
-      .map((state) => getOcrTargetKey(state))
+): OcrRequestedProvider[] =>
+  buildRequestedProviderList(
+    providerStates,
+    requestedTargets,
+    isNonSuccessProviderState,
+    toRequestedProvider
   )
-
-  return requestedTargets
-    .filter((target) => missingKeys.has(getOcrTargetKey(target)))
-    .map(toRequestedProvider)
-}
 
 export const buildBlockedProviders = (
   providerStates: OcrProviderState[],
   requestedTargets: OcrTarget[]
-): OcrRequestedProvider[] => {
-  const blockedKeys = new Set(
-    providerStates
-      .filter((state) => isNonSuccessProviderState(state) && isBlockedOcrProviderState(state))
-      .map((state) => getOcrTargetKey(state))
+): OcrRequestedProvider[] =>
+  buildRequestedProviderList(
+    providerStates,
+    requestedTargets,
+    (state) => isNonSuccessProviderState(state) && isBlockedOcrProviderState(state),
+    toRequestedProvider
   )
-
-  return requestedTargets
-    .filter((target) => blockedKeys.has(getOcrTargetKey(target)))
-    .map(toRequestedProvider)
-}
 
 export const buildMetadataErrorEntries = (
   providerStates: OcrProviderState[]

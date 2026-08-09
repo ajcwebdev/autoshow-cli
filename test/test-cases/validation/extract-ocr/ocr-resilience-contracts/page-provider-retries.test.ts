@@ -18,7 +18,9 @@ import {
   withOcrPageRequestRetry
 } from './shared'
 import { runGeminiOcr } from '~/cli/commands/process-steps/step-2-extract/step-2-ocr/ocr-services/gemini-ocr/run-gemini-ocr'
+import { runHostedOcr } from '~/cli/commands/process-steps/step-2-extract/step-2-ocr/hosted-ocr'
 import { AppError } from '~/utils/error-handler'
+import type { ExtractionOptions } from '~/types'
 import { installMockFetch } from '../../../../test-utils/rest-contract-helpers'
 
 describe('OCR resilience contracts', () => {
@@ -432,7 +434,7 @@ describe('OCR resilience contracts', () => {
     }
   })
 
-  test('Kimi rendered page OCR uses the default page concurrency without adaptive throttling', async () => {
+  test('Kimi rendered page OCR uses the shared fallback default concurrency without adaptive throttling', async () => {
     const previousFetch = globalThis.fetch
     const previousEnv = {
       KIMI_API_KEY: process.env['KIMI_API_KEY']
@@ -495,18 +497,20 @@ describe('OCR resilience contracts', () => {
         }
       })
 
-      const run = runKimiOcr(inputPath, {
+      const run = runHostedOcr(inputPath, {
         ...basePdfMetadata,
         pageCount: pages.length,
         format: 'pdf',
         fileSize: 128
-      }, 'kimi-k2.6', {
+      }, {
+        filePath: inputPath,
         dpi: 300,
         password: undefined,
         outputDir: tempDir,
         ocrPreparationCache: cache,
-        ocrConcurrency: undefined
-      })
+        ocrConcurrency: undefined,
+        kimiOcrModel: 'kimi-k2.6'
+      } as ExtractionOptions)
 
       for (let attempt = 0; attempt < 500 && starts.length < 10; attempt++) {
         await Bun.sleep(1)
@@ -520,6 +524,7 @@ describe('OCR resilience contracts', () => {
       expect(maxActiveRequests).toBe(10)
       expect(starts.slice().sort((a, b) => a - b)).toEqual(pages)
       expect(result.pages.map(page => page.text)).toEqual(pages.map(page => `page ${page}`))
+      expect(result.providerUsage?.map(entry => entry['unit'])).toEqual(pages.map(() => 'chunk'))
     } finally {
       releaseFirstWindow?.()
       globalThis.fetch = previousFetch

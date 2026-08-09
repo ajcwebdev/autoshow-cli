@@ -18,9 +18,7 @@ import { DEFAULT_CLI_CONCURRENCY } from '~/utils/concurrency-defaults'
 import { IMAGE_GENERATION_QUALITIES } from '~/types'
 import type { CliFlagsDefinition } from '~/types'
 
-// Help metadata for the comic subcommands. The hand-rolled parsers in
-// comic-utils/cli-args.ts remain the source of truth for parsing; a contract test
-// keeps every flag documented here accepted by those parsers.
+// These tables are both the native parser definitions and the comic help metadata.
 
 const comicPriceFlag = {
   price: boolFlag(colorizeHelpDescription('Dry run: estimate API cost without making any calls'))

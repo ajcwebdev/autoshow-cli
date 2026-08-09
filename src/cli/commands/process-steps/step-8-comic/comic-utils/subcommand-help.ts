@@ -3,6 +3,7 @@ import {
   generateImagesFlags,
   referenceSketchFlags
 } from '~/cli/flags/comic-flags'
+import { defineCliCommand } from '~/cli/native/native-types'
 import { renderCommandHelp } from '~/cli/native/help-renderer'
 import { createNativeRootDefinition } from '~/cli/native/root-definition'
 import {
@@ -10,9 +11,12 @@ import {
   GENERATE_IMAGES_COMMAND,
   REFERENCE_SKETCH_COMMAND
 } from './cli-args'
+import {
+  handleDraftScenes,
+  handleGenerateImages,
+  handleReferenceSketch,
+} from './subcommand-handlers'
 import type { CliCommandDefinition } from '~/types'
-
-type ComicSubcommandHelpDefinition = Omit<CliCommandDefinition, 'handler'>
 
 const SCRIPT_PATH_PARAMETER = {
   key: '<script-path>',
@@ -25,10 +29,11 @@ export const DRAFT_SCENES_DESCRIPTION = 'Run script markdown to structured scrip
 export const GENERATE_IMAGES_DESCRIPTION = 'Run panel prompt bundles to review sketches and/or final panel images'
 export const REFERENCE_SKETCH_DESCRIPTION = 'Generate and register a character sheet or one canonical location view'
 
-const draftScenesHelp: ComicSubcommandHelpDefinition = {
+export const draftScenesCommandDefinition = defineCliCommand({
   name: `comic ${DRAFT_SCENES_COMMAND}`,
   description: DRAFT_SCENES_DESCRIPTION,
   parameters: [SCRIPT_PATH_PARAMETER],
+  allowExcessParameters: true,
   flags: draftScenesFlags,
   help: {
     examples: [
@@ -43,12 +48,13 @@ const draftScenesHelp: ComicSubcommandHelpDefinition = {
       ARTIFACT_NOTE
     ]
   }
-}
+}, handleDraftScenes)
 
-const generateImagesHelp: ComicSubcommandHelpDefinition = {
+export const generateImagesCommandDefinition = defineCliCommand({
   name: `comic ${GENERATE_IMAGES_COMMAND}`,
   description: GENERATE_IMAGES_DESCRIPTION,
   parameters: [SCRIPT_PATH_PARAMETER],
+  allowExcessParameters: true,
   flags: generateImagesFlags,
   help: {
     examples: [
@@ -64,11 +70,12 @@ const generateImagesHelp: ComicSubcommandHelpDefinition = {
       ARTIFACT_NOTE
     ]
   }
-}
+}, handleGenerateImages)
 
-const referenceSketchHelp: ComicSubcommandHelpDefinition = {
+export const referenceSketchCommandDefinition = defineCliCommand({
   name: `comic ${REFERENCE_SKETCH_COMMAND}`,
   description: REFERENCE_SKETCH_DESCRIPTION,
+  allowExcessParameters: true,
   flags: referenceSketchFlags,
   help: {
     examples: [
@@ -85,24 +92,24 @@ const referenceSketchHelp: ComicSubcommandHelpDefinition = {
       ARTIFACT_NOTE
     ]
   }
-}
+}, handleReferenceSketch)
 
-const COMIC_SUBCOMMAND_HELP: Readonly<Record<string, ComicSubcommandHelpDefinition>> = {
-  [DRAFT_SCENES_COMMAND]: draftScenesHelp,
-  [GENERATE_IMAGES_COMMAND]: generateImagesHelp,
-  [REFERENCE_SKETCH_COMMAND]: referenceSketchHelp
-}
+export const COMIC_SUBCOMMAND_DEFINITIONS = [
+  draftScenesCommandDefinition,
+  generateImagesCommandDefinition,
+  referenceSketchCommandDefinition,
+] as const satisfies readonly CliCommandDefinition[]
+
+const COMIC_SUBCOMMANDS: Readonly<Record<string, CliCommandDefinition>> = Object.fromEntries(
+  COMIC_SUBCOMMAND_DEFINITIONS.map(definition => [definition.name.slice('comic '.length), definition])
+)
 
 export const COMIC_SUBCOMMAND_SUMMARIES: ReadonlyArray<readonly [name: string, description: string]> =
-  Object.entries(COMIC_SUBCOMMAND_HELP).map(([name, definition]) => [name, definition.description] as const)
+  Object.entries(COMIC_SUBCOMMANDS).map(([name, definition]) => [name, definition.description] as const)
 
-export const hasComicSubcommandHelp = (subcommand: string): boolean =>
-  Object.hasOwn(COMIC_SUBCOMMAND_HELP, subcommand)
+export const getComicSubcommand = (subcommand: string): CliCommandDefinition | undefined =>
+  COMIC_SUBCOMMANDS[subcommand]
 
-export const printComicSubcommandHelp = (subcommand: string): void => {
-  const definition = COMIC_SUBCOMMAND_HELP[subcommand]
-  if (definition === undefined) {
-    return
-  }
+export const printComicSubcommandHelp = (definition: CliCommandDefinition): void => {
   console.log(renderCommandHelp(createNativeRootDefinition(), definition))
 }

@@ -49,7 +49,7 @@ import {
   getStep2AllShortcutModelExpansions,
   isStep2BooleanProviderSelected
 } from '~/cli/commands/process-steps/step-2-extract/step-2-shared/provider-registry'
-import type { AllShortcutFlag, FlagOccurrenceValue, RepeatableModelFlag, Step2ProviderSelectionOrigin } from '~/types'
+import type { AllShortcutFlag, CliFlagOccurrence, FlagOccurrenceValue, RepeatableModelFlag, Step2ProviderSelectionOrigin } from '~/types'
 import { readBooleanFlag } from './flag-readers'
 
 export const REPEATABLE_MODEL_FLAGS = [
@@ -178,44 +178,19 @@ const ALL_SHORTCUT_MODEL_EXPANSIONS: Partial<Record<RepeatableModelFlag, { short
   'fal-video': { shortcut: 'all-video', supported: SUPPORTED_FAL_VIDEO_MODELS },
 }
 
-export const parseRepeatableModelFlagOccurrences = (
-  args: string[]
+export const collectRepeatableModelFlagOccurrences = (
+  flagOccurrences: readonly CliFlagOccurrence[]
 ): Partial<Record<RepeatableModelFlag, FlagOccurrenceValue[]>> => {
   const result: Partial<Record<RepeatableModelFlag, FlagOccurrenceValue[]>> = {}
 
-  for (let i = 0; i < args.length; i++) {
-    const arg = args[i] as string
-    if (arg === '--') {
-      break
-    }
-    if (!arg.startsWith('--')) {
+  for (const occurrence of flagOccurrences) {
+    if (!REPEATABLE_MODEL_FLAG_SET.has(occurrence.name)) {
       continue
     }
-
-    const withoutDashes = arg.slice(2)
-    const eqIdx = withoutDashes.indexOf('=')
-    const key = (eqIdx === -1 ? withoutDashes : withoutDashes.slice(0, eqIdx)) as RepeatableModelFlag
-    if (!REPEATABLE_MODEL_FLAG_SET.has(key)) {
-      continue
-    }
-
+    const key = occurrence.name as RepeatableModelFlag
     const occurrenceList = result[key] ?? []
     result[key] = occurrenceList
-
-    if (eqIdx !== -1) {
-      const inlineValue = withoutDashes.slice(eqIdx + 1)
-      occurrenceList.push(inlineValue.length > 0 ? inlineValue : true)
-      continue
-    }
-
-    const next = args[i + 1]
-    if (typeof next === 'string' && !next.startsWith('--') && next !== '--') {
-      occurrenceList.push(next)
-      i++
-      continue
-    }
-
-    occurrenceList.push(true)
+    occurrenceList.push(occurrence.value)
   }
 
   return result

@@ -3,8 +3,7 @@ import { musicCommandFlags, musicCommandOptionNames } from '~/cli/flags/music-fl
 import { retargetUsageErrorsToCommandSpellings } from '~/cli/flags/flag-utils'
 import { CLIUsageError } from '~/utils/error-handler'
 import { buildOptsFromFlags } from '~/cli/commands/process-steps/step-1-download/download-targets/build-opts-from-flags/build-options-from-flags'
-import { extractExplicitFlags as extractConfigExplicitFlags } from '~/cli/commands/setup-and-utilities/config/config-merge'
-import { normalizeCommandSelectorArgs, normalizeCommandSelectorFlags } from '~/cli/flags/service-selector-normalization/flag-helpers'
+import { normalizeCommandSelectorFlags } from '~/cli/flags/service-selector-normalization/flag-helpers'
 import { normalizeGenericProviderSelectorFlags } from '~/cli/flags/service-selector-normalization/generic-provider-selectors'
 import { STANDALONE_MUSIC_PROVIDER_TARGETS } from '~/cli/flags/service-selector-normalization/provider-targets'
 import { runMusicGen } from './run-music-gen'
@@ -20,6 +19,7 @@ import * as l from '~/utils/app-logger/app-logger'
 import { runWithLogContext } from '~/utils/app-logger/app-logger'
 import { fileExists } from '~/utils/cli-utils'
 import { isTextInputPath } from '~/cli/commands/process-steps/step-3-write/text-input-utils'
+import type { CliFlagOccurrence } from '~/types'
 
 const HOSTED_MUSIC_FLAGS = [
   'all-providers',
@@ -40,32 +40,23 @@ const LYRIC_VIDEO_FLAGS = [
   'keep-tmp'
 ] as const
 
-const hasExplicitFlag = (argv: string[], flag: string): boolean =>
-  argv.some((token) => token === `--${flag}` || token.startsWith(`--${flag}=`))
-
-const getMusicArgv = (): string[] => {
-  const argv = Bun.argv.slice(2)
-  return argv[0] === 'music' ? argv.slice(1) : argv
-}
-
 const collectExplicitFlags = (
-  argv: string[],
+  explicitFlags: ReadonlySet<string>,
   flagNames: readonly string[]
-): string[] => flagNames.filter((flag) => hasExplicitFlag(argv, flag)).map((flag) => `--${flag}`)
+): string[] => flagNames.filter((flag) => explicitFlags.has(flag)).map((flag) => `--${flag}`)
 
 const runHostedMusicGeneration = async (
   input: string,
-  flags: Record<string, unknown>
+  flags: Record<string, unknown>,
+  explicitFlags: Set<string>,
+  flagOccurrences: readonly CliFlagOccurrence[]
 ): Promise<void> => {
   const prompt = isTextInputPath(input) && await fileExists(input)
     ? await Bun.file(input).text()
     : input
 
   const musicMaxCents = await resolveMaxCentsFromFlags(flags)
-  const rawArgs = Bun.argv.slice(2)
-  const explicitRuntimeFlags = extractConfigExplicitFlags(rawArgs)
-  const optionNormalized = normalizeCommandSelectorFlags(flags, explicitRuntimeFlags, musicCommandOptionNames)
-  const optionNormalizedArgs = normalizeCommandSelectorArgs(rawArgs, musicCommandOptionNames)
+  const optionNormalized = normalizeCommandSelectorFlags(flags, explicitFlags, flagOccurrences, musicCommandOptionNames)
   const musicDurationRaw = typeof optionNormalized.flags['music-duration'] === 'string'
     ? parseInt(optionNormalized.flags['music-duration'], 10)
     : undefined
@@ -75,11 +66,12 @@ const runHostedMusicGeneration = async (
   const providerNormalized = normalizeGenericProviderSelectorFlags(
     optionNormalized.flags,
     optionNormalized.explicitFlags,
+    optionNormalized.flagOccurrences,
     'provider',
     STANDALONE_MUSIC_PROVIDER_TARGETS,
-    { allProvidersTarget: 'all-music', rawArgs: optionNormalizedArgs }
+    { allProvidersTarget: 'all-music' }
   )
-  const musicOpts = buildOptsFromFlags(true, providerNormalized.flags, [], {}, providerNormalized.explicitFlags, providerNormalized.rawArgs ?? optionNormalizedArgs)
+  const musicOpts = buildOptsFromFlags(true, providerNormalized.flags, [], {}, providerNormalized.explicitFlags, providerNormalized.flagOccurrences)
 
   const musicTargets = collectMusicTargets(musicOpts)
   if (musicTargets.length === 0) {
@@ -174,9 +166,8 @@ export const musicCommand = defineCliCommand({
 }, retargetUsageErrorsToCommandSpellings(async (ctx) => {
   const input = typeof ctx.parameters.input === 'string' ? ctx.parameters.input : undefined
   const flags = ctx.flags as Record<string, unknown>
-  const musicArgv = getMusicArgv()
-  const hostedFlags = collectExplicitFlags(musicArgv, HOSTED_MUSIC_FLAGS)
-  const lyricVideoFlags = collectExplicitFlags(musicArgv, LYRIC_VIDEO_FLAGS)
+  const hostedFlags = collectExplicitFlags(ctx.rawParsed.explicitFlags, HOSTED_MUSIC_FLAGS)
+  const lyricVideoFlags = collectExplicitFlags(ctx.rawParsed.explicitFlags, LYRIC_VIDEO_FLAGS)
 
   if (input && lyricVideoFlags.length > 0) {
     throw CLIUsageError(`Do not combine lyric-video flags (${lyricVideoFlags.join(', ')}) with a hosted music prompt`)
@@ -199,5 +190,5 @@ export const musicCommand = defineCliCommand({
     )
   }
 
-  await runHostedMusicGeneration(input, flags)
+  await runHostedMusicGeneration(input, flags, ctx.rawParsed.explicitFlags, ctx.rawParsed.flagOccurrences)
 }, musicCommandOptionNames))

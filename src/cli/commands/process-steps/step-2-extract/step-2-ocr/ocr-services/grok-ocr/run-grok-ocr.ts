@@ -21,9 +21,7 @@ const buildOcrPrompt = (): string => [
 ].join(' ')
 
 export const runGrokOcr = createChatImageOcrRunner({
-  service: 'grok',
   extractionMethod: 'grok-ocr',
-  tempDirPrefix: 'autoshow-grok-ocr-',
   providerLabel: 'Grok OCR',
   maxImageBytes: GROK_OCR_IMAGE_BYTES,
   imageLimitLabel: '20 MiB',

@@ -8,6 +8,16 @@ import { readSttRunManifestEntry } from '../stt-manifest'
 import { readProviderResultEntry } from '../../../manifest-utils'
 import { parseStoredTranscriptionResult } from '../stt-utils/stt-result-artifacts'
 import { AppError } from '~/utils/error-handler'
+import {
+  buildRequestedProviderList,
+  collectMissingProviderTargets,
+  inferStoredProviderCompletionStatus,
+  parseStoredProviderArray,
+  parseStoredProviderStateMap as parseStoredProviderStateEntries,
+  parseStoredSuccessfulProviderKeys,
+  ProviderBatchCompletionError,
+  resolveProviderCompletionStatus
+} from '../../step-2-shared/provider-batch-state'
 
 const TRANSCRIPT_LINE_PATTERN = /^\[(\d{2}:\d{2}:\d{2}(?:[.,]\d{1,3})?)\]\s+(?:\[([^\]]+)\]\s+)?(.*)$/
 
@@ -193,9 +203,7 @@ const parseStoredRequestedTarget = (value: unknown): SttTarget | undefined => {
 export const parseStoredRequestedTargets = (
   entry: Record<string, unknown>
 ): SttTarget[] =>
-  Array.isArray(entry['requestedProviders'])
-    ? entry['requestedProviders'].map(parseStoredRequestedTarget).filter((target): target is SttTarget => target !== undefined)
-    : []
+  parseStoredProviderArray(entry['requestedProviders'], parseStoredRequestedTarget)
 
 const parseStoredProviderState = (value: unknown): SttProviderState | undefined => {
   if (!isRecord(value) || !isSttService(value['service']) || typeof value['model'] !== 'string') {
@@ -235,73 +243,23 @@ const parseStoredProviderState = (value: unknown): SttProviderState | undefined 
 
 const parseStoredProviderStateMap = (
   entry: Record<string, unknown>
-): Map<string, SttProviderState> => {
-  const states = new Map<string, SttProviderState>()
-  const values = Array.isArray(entry['providerStates']) ? entry['providerStates'] : []
-  for (const value of values) {
-    const parsed = parseStoredProviderState(value)
-    if (!parsed) {
-      continue
-    }
-    states.set(getSttTargetKey(parsed), parsed)
-  }
-  return states
-}
+): Map<string, SttProviderState> =>
+  parseStoredProviderStateEntries(entry['providerStates'], parseStoredProviderState)
 
 const parseSuccessfulProviderKeys = (
   entry: Record<string, unknown>
-): Set<string> => {
-  const values = Array.isArray(entry['step2'])
-    ? entry['step2']
-    : entry['step2'] === undefined
-      ? []
-      : [entry['step2']]
-
-  const keys = new Set<string>()
-  for (const value of values) {
+): Set<string> =>
+  parseStoredSuccessfulProviderKeys(entry['step2'], (value) => {
     if (!isRecord(value) || !isSttService(value['transcriptionService']) || typeof value['transcriptionModel'] !== 'string') {
-      continue
+      return undefined
     }
-
-    keys.add(`${value['transcriptionService']}:${value['transcriptionModel']}`)
-  }
-  return keys
-}
+    return { service: value['transcriptionService'], model: value['transcriptionModel'] }
+  })
 
 const isSkippedProviderState = (
   state: Pick<SttProviderState, 'status' | 'lastError'> | undefined
 ): boolean =>
   state?.status === 'skipped' || state?.lastError?.skipped === true
-
-const resolveCompletionStatusFromState = (
-  requestedTargets: SttTarget[],
-  successKeys: Set<string>,
-  providerStates: Map<string, SttProviderState>
-): ProviderCompletionStatus => {
-  let succeeded = 0
-  let incomplete = 0
-
-  for (const target of requestedTargets) {
-    const key = getSttTargetKey(target)
-    const state = providerStates.get(key)
-    if (isSkippedProviderState(state)) {
-      continue
-    }
-
-    if (successKeys.has(key) || state?.status === 'succeeded') {
-      succeeded += 1
-      continue
-    }
-
-    incomplete += 1
-  }
-
-  if (succeeded === 0) {
-    return 'failed'
-  }
-
-  return incomplete === 0 ? 'full' : 'incomplete'
-}
 
 export const summarizeSttProviderStates = (
   providerStates: SttProviderState[]
@@ -351,44 +309,29 @@ export const inferStoredCompletionStatus = (
 ): ProviderCompletionStatus => {
   const successKeys = parseSuccessfulProviderKeys(entry)
   const providerStates = parseStoredProviderStateMap(entry)
-  if (providerStates.size > 0) {
-    return resolveCompletionStatusFromState(requestedTargets, successKeys, providerStates)
-  }
-
-  if (entry['completionStatus'] === 'full' || entry['completionStatus'] === 'incomplete' || entry['completionStatus'] === 'failed') {
-    return entry['completionStatus']
-  }
-
-  return resolveCompletionStatusFromState(requestedTargets, successKeys, providerStates)
+  return inferStoredProviderCompletionStatus(
+    entry['completionStatus'],
+    requestedTargets,
+    successKeys,
+    providerStates,
+    isSkippedProviderState
+  )
 }
 
 export const buildMissingTargetsFromEntry = (
   entry: Record<string, unknown>,
   requestedTargets: SttTarget[]
 ): SttTarget[] => {
-  const explicitMissing = Array.isArray(entry['missingProviders'])
-    ? entry['missingProviders'].map(parseStoredRequestedTarget).filter((target): target is SttTarget => target !== undefined)
-    : []
+  const explicitMissing = parseStoredProviderArray(entry['missingProviders'], parseStoredRequestedTarget)
   const providerStates = parseStoredProviderStateMap(entry)
   const successKeys = parseSuccessfulProviderKeys(entry)
-  const missingTargets = new Map<string, SttTarget>()
-
-  for (const target of explicitMissing) {
-    const key = getSttTargetKey(target)
-    if (!isSkippedProviderState(providerStates.get(key))) {
-      missingTargets.set(key, target)
-    }
-  }
-
-  for (const target of requestedTargets) {
-    const key = getSttTargetKey(target)
-    const state = providerStates.get(key)
-    if (!successKeys.has(key) && state?.status !== 'succeeded' && !isSkippedProviderState(state)) {
-      missingTargets.set(key, target)
-    }
-  }
-
-  return [...missingTargets.values()]
+  return collectMissingProviderTargets(
+    explicitMissing,
+    requestedTargets,
+    successKeys,
+    providerStates,
+    (_target, state) => state?.status !== 'succeeded' && !isSkippedProviderState(state)
+  )
 }
 
 export const readExistingSttRun = async (
@@ -525,25 +468,19 @@ export const buildProviderStates = <
 
 export const resolveCompletionStatus = (
   providerStates: SttProviderState[]
-): ProviderCompletionStatus => {
-  const summary = summarizeSttProviderStates(providerStates)
-  if (summary.succeeded === 0) {
-    return 'failed'
-  }
-  return summary.failed === 0 && summary.missing === 0 ? 'full' : 'incomplete'
-}
+): ProviderCompletionStatus =>
+  resolveProviderCompletionStatus(providerStates, 'complete')
 
 export const buildMissingProviders = (
   providerStates: SttProviderState[],
   requestedTargets: SttTarget[]
 ): SttRequestedProvider[] => {
-  const missingKeys = new Set(providerStates
-    .filter((state) => state.status === 'failed' || state.status === 'missing')
-    .map((state) => getSttTargetKey(state)))
-
-  return requestedTargets
-    .filter((target) => missingKeys.has(getSttTargetKey(target)))
-    .map(toRequestedProvider)
+  return buildRequestedProviderList(
+    providerStates,
+    requestedTargets,
+    (state) => state.status === 'failed' || state.status === 'missing',
+    toRequestedProvider
+  )
 }
 
 export const buildMetadataErrorEntries = (
@@ -563,11 +500,8 @@ export const buildMetadataErrorEntries = (
       ...(state.lastError?.rawResponseFile ? { rawResponseFile: state.lastError.rawResponseFile } : {})
     }))
 
-export class SttPartialCompletionError extends Error {
-  outputDir: string
-  completionStatus: ProviderCompletionStatus
+export class SttPartialCompletionError extends ProviderBatchCompletionError {
   missingProviders: SttRequestedProvider[]
-  exitCode: number
 
   constructor(
     outputDir: string,
@@ -575,12 +509,8 @@ export class SttPartialCompletionError extends Error {
     missingProviders: SttRequestedProvider[],
     message: string
   ) {
-    super(message)
-    this.name = 'SttPartialCompletionError'
-    this.outputDir = outputDir
-    this.completionStatus = completionStatus
+    super('SttPartialCompletionError', outputDir, completionStatus, message)
     this.missingProviders = missingProviders
-    this.exitCode = 2
   }
 }
 

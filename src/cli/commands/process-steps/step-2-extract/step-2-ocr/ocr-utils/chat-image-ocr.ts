@@ -1,7 +1,7 @@
-import type { DocumentMetadata, ExtractionOptions, HostedOcrImageResult, HostedOcrSchedulerRetryPressureHandler, HostedOcrService, OpenAIChatCompletionResponse, OpenAIRestConfig, PageResult } from '~/types'
+import type { DocumentMetadata, ExtractionOptions, HostedOcrImageResult, HostedOcrSchedulerRetryPressureHandler, OpenAIChatCompletionResponse, OpenAIRestConfig, PageResult } from '~/types'
 import { createOpenAIChatCompletion, extractOpenAIChatCompletionText } from '~/utils/openai/openai-client'
 import { withOcrPageRequestRetry } from './ocr-retry'
-import { assertHostedOcrImageWithinLimits, buildHostedOcrImageResult, readHostedOcrImageDataUrl, runHostedOcrDocument } from './hosted-ocr-utils'
+import { assertHostedOcrImageWithinLimits, buildHostedOcrImageResult, readHostedOcrImageDataUrl } from './hosted-ocr-utils'
 
 type ChatImageOcrBodyInput = {
   model: string
@@ -15,9 +15,7 @@ type ChatImageOcrBodyInput = {
 }
 
 type ChatImageOcrProfile<TExtractionMethod extends string> = {
-  service: HostedOcrService
   extractionMethod: TExtractionMethod
-  tempDirPrefix: string
   providerLabel: string
   maxImageBytes: number
   imageLimitLabel: string
@@ -29,7 +27,10 @@ type ChatImageOcrProfile<TExtractionMethod extends string> = {
   checkResponse?: ((response: OpenAIChatCompletionResponse, rawText: string, pageLabel: string) => void) | undefined
 }
 
-type ChatImageOcrOptions = Pick<ExtractionOptions, 'dpi' | 'password' | 'outputDir' | 'ocrPreparationCache' | 'ocrConcurrency' | 'ocrConcurrencyMode' | 'hostedOcrScheduler'>
+type ChatImageOcrOptions = Pick<ExtractionOptions, 'dpi' | 'password' | 'outputDir' | 'ocrPreparationCache' | 'ocrConcurrency' | 'ocrConcurrencyMode' | 'hostedOcrScheduler'> & {
+  onRetryable?: HostedOcrSchedulerRetryPressureHandler | undefined
+  documentPageNumber?: number | undefined
+}
 
 export const createChatImageOcrRunner = <TExtractionMethod extends string>(
   profile: ChatImageOcrProfile<TExtractionMethod>
@@ -94,14 +95,21 @@ export const createChatImageOcrRunner = <TExtractionMethod extends string>(
 
   return async (filePath, step1Metadata, model, opts, baseUrl) => {
     const config = profile.getConfig(baseUrl)
-    return await runHostedOcrDocument(filePath, step1Metadata, opts, {
-      service: profile.service,
-      extractionMethod: profile.extractionMethod,
-      tempDirPrefix: profile.tempDirPrefix,
-      providerLabel: profile.providerLabel,
+    const result = await runImage(
+      config,
+      filePath,
+      step1Metadata.format,
       model,
-      runImage: async (imagePath, format, pageNumber, pageLabel, onRetryable) =>
-        await runImage(config, imagePath, format, model, pageNumber, pageLabel, onRetryable)
-    })
+      1,
+      typeof opts.documentPageNumber === 'number' ? `page ${opts.documentPageNumber}` : 'input image',
+      opts.onRetryable
+    )
+    return {
+      pages: [result.page],
+      extractionMethod: profile.extractionMethod,
+      totalPages: 1,
+      ...(typeof result.promptTokens === 'number' ? { promptTokens: result.promptTokens } : {}),
+      ...(typeof result.completionTokens === 'number' ? { completionTokens: result.completionTokens } : {})
+    }
   }
 }

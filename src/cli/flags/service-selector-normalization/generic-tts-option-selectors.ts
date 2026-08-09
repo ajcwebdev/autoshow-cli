@@ -1,6 +1,7 @@
 import { CLIUsageError } from '~/utils/error-handler'
-import type { SelectorNormalizationResult } from '~/types'
-import { appendFlagValue, occurrenceValues } from './flag-helpers'
+import type { CliFlagOccurrence, SelectorNormalizationResult } from '~/types'
+import { occurrenceValues } from './flag-helpers'
+import { applyFlagOccurrenceNormalization, replaceFlagOccurrence } from './occurrence-normalization'
 import { STANDALONE_TTS_PROVIDER_TARGETS } from './provider-targets'
 
 const TTS_PROVIDER_BY_TARGET = Object.fromEntries(
@@ -101,11 +102,11 @@ const readSelectedTtsProviders = (
 }
 
 const parseGenericTtsOptionValue = (
-  rawValue: string | true,
+  rawValue: string | boolean,
   flagName: string
 ): { provider?: string | undefined, value: string | boolean } => {
-  if (rawValue === true) {
-    return { value: true }
+  if (typeof rawValue === 'boolean') {
+    return { value: rawValue }
   }
 
   const eqIndex = rawValue.indexOf('=')
@@ -140,12 +141,11 @@ const resolveGenericTtsOptionProvider = (
   throw CLIUsageError(`--${flagName} requires provider=value when multiple TTS providers are selected.`)
 }
 
-const appendGenericTtsOption = (
-  flags: Record<string, unknown>,
+const resolveGenericTtsOption = (
   flagName: string,
   provider: string,
   value: string | boolean
-): string => {
+): { target: string, value: string | boolean, update: 'append' | 'set' } => {
   const providerTargets = TTS_GENERIC_OPTION_TARGETS[flagName as keyof typeof TTS_GENERIC_OPTION_TARGETS]
   const target = providerTargets?.[provider as keyof typeof providerTargets]
   if (!target) {
@@ -153,44 +153,39 @@ const appendGenericTtsOption = (
   }
 
   if (booleanTtsOptionTargets.has(target)) {
-    flags[target] = value === true || (typeof value === 'string' && !['false', '0', 'no', 'off'].includes(value.trim().toLowerCase()))
-    return target
+    return {
+      target,
+      value: value === true || (typeof value === 'string' && !['false', '0', 'no', 'off'].includes(value.trim().toLowerCase())),
+      update: 'set'
+    }
   }
 
   if (value === true) {
     throw CLIUsageError(`--${flagName} requires a value.`)
   }
 
-  appendFlagValue(flags, target, value)
-  return target
+  return { target, value, update: 'append' }
 }
 
 export const normalizeGenericTtsOptionFlags = (
   flags: Record<string, unknown>,
   explicitFlags: Set<string>,
+  flagOccurrences: readonly CliFlagOccurrence[],
   defaultProvider?: string | undefined
 ): SelectorNormalizationResult => {
-  const normalizedFlags: Record<string, unknown> = { ...flags }
-  const normalizedExplicitFlags = new Set(explicitFlags)
-  const selectedProviders = readSelectedTtsProviders(normalizedFlags, defaultProvider)
-
-  for (const flagName of genericTtsOptionFlags) {
-    const values = occurrenceValues(normalizedFlags[flagName])
-    if (values.length === 0) {
-      continue
+  const selectedProviders = readSelectedTtsProviders(flags, defaultProvider)
+  return applyFlagOccurrenceNormalization(flags, explicitFlags, flagOccurrences, (occurrence) => {
+    if (!genericTtsOptionFlags.includes(occurrence.name)) {
+      return undefined
     }
-
-    delete normalizedFlags[flagName]
-    normalizedExplicitFlags.delete(flagName)
-    for (const value of values) {
-      const parsed = parseGenericTtsOptionValue(value, flagName)
-      const provider = resolveGenericTtsOptionProvider(flagName, parsed.provider, selectedProviders)
-      normalizedExplicitFlags.add(appendGenericTtsOption(normalizedFlags, flagName, provider, parsed.value))
-    }
-  }
-
-  return {
-    flags: normalizedFlags,
-    explicitFlags: normalizedExplicitFlags
-  }
+    const parsed = parseGenericTtsOptionValue(occurrence.value, occurrence.name)
+    const provider = resolveGenericTtsOptionProvider(occurrence.name, parsed.provider, selectedProviders)
+    const replacement = resolveGenericTtsOption(occurrence.name, provider, parsed.value)
+    return [replaceFlagOccurrence(
+      occurrence,
+      replacement.target,
+      replacement.value,
+      replacement.update
+    )]
+  })
 }

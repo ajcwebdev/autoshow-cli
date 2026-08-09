@@ -4,7 +4,7 @@ import * as l from '~/utils/app-logger/app-logger'
 import { InfraError, InternalError } from '~/utils/error-handler'
 import { readProviderResultEntry } from '../../manifest-utils'
 import { readSttProviderCheckpoint, writeSttProviderCheckpoint } from './stt-manifest'
-import { logSttAsyncJobLifecycle, logSttCleanupFailure } from './stt-logging'
+import { logSttAsyncJobLifecycle, logSttCleanupFailure, logSttSegmentLifecycle } from './stt-logging'
 import { buildStep2TimingMetadata } from './stt-timing-metadata'
 
 
@@ -226,6 +226,7 @@ export const pollAsyncSttJobUntilComplete = async <TStatus>(
 const createAsyncSttLifecycleMetrics = (
   runMode: 'initial' | 'backfill' | undefined
 ): AsyncSttLifecycleMetrics => ({
+  uploadMs: 0,
   createMs: 0,
   pollMs: 0,
   pollSleepMs: 0,
@@ -344,8 +345,8 @@ export const deleteSttRemoteResource = async (options: {
   }
 }
 
-export const runAsyncSttJobLifecycle = async <TStatus, TTranscript>(
-  options: AsyncSttLifecycleOptions<TStatus, TTranscript>
+export const runAsyncSttJobLifecycle = async <TStatus, TTranscript, TUpload = unknown>(
+  options: AsyncSttLifecycleOptions<TStatus, TTranscript, TUpload>
 ): Promise<{ result: TranscriptionResult, metadata: Step2Metadata }> => {
   const metrics = createAsyncSttLifecycleMetrics(options.runMode)
   let runtime = await readPersistedAsyncSttRuntime(options.outputDir, {
@@ -356,9 +357,23 @@ export const runAsyncSttJobLifecycle = async <TStatus, TTranscript>(
   let lastKnownJobStatus: TStatus | undefined
   let resumedExistingJob = false
   let metadata: Step2Metadata | undefined
+  let uploadedAsset: Awaited<ReturnType<NonNullable<typeof options.uploadAsset>>> | undefined
+
+  const segmentNumber = options.segment?.segmentNumber
+  const totalSegments = options.segment?.totalSegments
+  if (segmentNumber && totalSegments) {
+    logSttSegmentLifecycle(l, {
+      provider: options.providerLogLabel,
+      action: 'started',
+      segmentNumber,
+      totalSegments,
+      model: options.modelName
+    })
+  }
 
   const buildTimingMetadata = (remoteProcessingMs = 0): Step2Metadata['timings'] =>
     buildStep2TimingMetadata({
+      uploadMs: metrics.uploadMs,
       createMs: metrics.createMs,
       createCount: metrics.createCount,
       pollMs: metrics.pollMs,
@@ -377,6 +392,7 @@ export const runAsyncSttJobLifecycle = async <TStatus, TTranscript>(
     transcriptionModel: options.modelName,
     processingTime: Date.now() - options.startTime,
     tokenCount: 0,
+    ...options.extendProgressMetadata?.(nextRuntime),
     timings: buildTimingMetadata() ?? {},
     runtime: nextRuntime
   })
@@ -400,8 +416,14 @@ export const runAsyncSttJobLifecycle = async <TStatus, TTranscript>(
       await persistProgressMetadata(runtime)
       await notifyJobReady(runtime)
     } else {
+      if (options.uploadAsset) {
+        const uploadStartedAt = Date.now()
+        uploadedAsset = await options.uploadAsset(metrics)
+        metrics.uploadMs += Date.now() - uploadStartedAt
+      }
+
       const createStartedAt = Date.now()
-      const createResponse = await options.createJob(metrics)
+      const createResponse = await options.createJob(metrics, uploadedAsset)
       metrics.createMs += Date.now() - createStartedAt
       metrics.createCount += 1
 
@@ -411,6 +433,8 @@ export const runAsyncSttJobLifecycle = async <TStatus, TTranscript>(
         mode: 'fresh',
         stage: 'polling',
         remoteJobId: jobId,
+        ...(uploadedAsset?.remoteAssetId ? { remoteAssetId: uploadedAsset.remoteAssetId } : {}),
+        ...(uploadedAsset?.remoteAssetUrl ? { remoteAssetUrl: uploadedAsset.remoteAssetUrl } : {}),
         createCompletedAt: new Date().toISOString()
       }
       await persistProgressMetadata(createdRuntime)
@@ -418,7 +442,10 @@ export const runAsyncSttJobLifecycle = async <TStatus, TTranscript>(
     }
 
     if (!jobId) {
-      throw InternalError(`${options.providerDisplayName} job creation did not produce a job id`, { stage: 'stt:async' })
+      const jobNoun = options.jobNoun ?? 'job'
+      throw InternalError(`${options.providerDisplayName} ${jobNoun} creation did not produce a ${jobNoun} id`, {
+        stage: options.guardStage ?? 'stt:async'
+      })
     }
 
     const activeJobId = jobId
@@ -456,6 +483,8 @@ export const runAsyncSttJobLifecycle = async <TStatus, TTranscript>(
           mode: runtime?.mode ?? 'fresh',
           stage: 'polling',
           remoteJobId: activeJobId,
+          ...((runtime?.remoteAssetId ?? uploadedAsset?.remoteAssetId) ? { remoteAssetId: runtime?.remoteAssetId ?? uploadedAsset?.remoteAssetId } : {}),
+          ...((runtime?.remoteAssetUrl ?? uploadedAsset?.remoteAssetUrl) ? { remoteAssetUrl: runtime?.remoteAssetUrl ?? uploadedAsset?.remoteAssetUrl } : {}),
           ...(runtime?.createCompletedAt ? { createCompletedAt: runtime.createCompletedAt } : {}),
           lastPollAt: new Date().toISOString()
         })
@@ -475,17 +504,23 @@ export const runAsyncSttJobLifecycle = async <TStatus, TTranscript>(
       mode: runtime?.mode ?? 'fresh',
       stage: 'completed',
       remoteJobId: activeJobId,
+      ...((runtime?.remoteAssetId ?? uploadedAsset?.remoteAssetId) ? { remoteAssetId: runtime?.remoteAssetId ?? uploadedAsset?.remoteAssetId } : {}),
+      ...((runtime?.remoteAssetUrl ?? uploadedAsset?.remoteAssetUrl) ? { remoteAssetUrl: runtime?.remoteAssetUrl ?? uploadedAsset?.remoteAssetUrl } : {}),
       ...(runtime?.createCompletedAt ? { createCompletedAt: runtime.createCompletedAt } : {}),
       ...(runtime?.lastPollAt ? { lastPollAt: runtime.lastPollAt } : {}),
       completedAt: new Date().toISOString()
     }
 
     const transcriptStartedAt = Date.now()
-    const transcript = await options.getTranscript(activeJobId, metrics)
+    const transcript = await options.getTranscript(activeJobId, metrics, pollResult.status)
     metrics.transcriptMs += Date.now() - transcriptStartedAt
 
+    if (options.persistCompletedProgress) {
+      await persistProgressMetadata(completedRuntime)
+    }
+
     const processingTime = Date.now() - options.startTime
-    const remoteProcessingMs = Math.max(0, processingTime - metrics.createMs - metrics.pollMs - metrics.transcriptMs)
+    const remoteProcessingMs = Math.max(0, processingTime - metrics.uploadMs - metrics.createMs - metrics.pollMs - metrics.transcriptMs)
     const timings = buildTimingMetadata(remoteProcessingMs)
     const built = await options.buildResult({
       transcript,
@@ -494,57 +529,83 @@ export const runAsyncSttJobLifecycle = async <TStatus, TTranscript>(
       timings
     })
     metadata = built.metadata
+
+    if (segmentNumber && totalSegments) {
+      logSttSegmentLifecycle(l, {
+        provider: options.providerLogLabel,
+        action: 'completed',
+        segmentNumber,
+        totalSegments,
+        model: options.modelName,
+        processingTimeMs: processingTime
+      })
+    }
+
     return built
   } finally {
-    const cleanupStartedAt = Date.now()
-    const shouldDeleteRemoteJob = jobId !== undefined && options.shouldDeleteRemoteJob({
-      metadata,
-      lastKnownStatus: lastKnownJobStatus
-    })
-    const remoteJobDeleted = shouldDeleteRemoteJob && jobId ? await options.deleteJob(jobId) : false
-    const cleanupMs = Date.now() - cleanupStartedAt
+    if (options.cleanup) {
+      const cleanupStartedAt = Date.now()
+      const shouldDeleteRemoteResources = jobId !== undefined && options.cleanup.shouldDelete({
+        metadata,
+        lastKnownStatus: lastKnownJobStatus,
+        runtime
+      })
+      const assetId = runtime?.remoteAssetId ?? uploadedAsset?.remoteAssetId
+      const remoteJobDeleted = shouldDeleteRemoteResources && jobId && options.cleanup.deleteJob
+        ? await options.cleanup.deleteJob(jobId)
+        : false
+      const remoteAssetDeleted = shouldDeleteRemoteResources && assetId && options.cleanup.deleteAsset
+        ? await options.cleanup.deleteAsset(assetId)
+        : false
+      const cleanupMs = Date.now() - cleanupStartedAt
 
-    if (metadata) {
-      const processingTime = metadata.processingTime
-      metadata.timings = {
-        ...(metadata.timings ?? {}),
-        ...(cleanupMs > 0 ? { cleanupMs } : {}),
-        remoteProcessingMs: Math.max(0, processingTime
-          - ((metadata.timings?.createMs ?? 0)
-          + (metadata.timings?.pollMs ?? 0)
-          + (metadata.timings?.transcriptMs ?? 0)
-          + cleanupMs))
-      }
-      metadata.runtime = {
-        ...(metadata.runtime ?? {
-          mode: runtime?.mode ?? 'fresh',
+      if (metadata && shouldDeleteRemoteResources) {
+        const processingTime = metadata.processingTime
+        metadata.timings = {
+          ...(metadata.timings ?? {}),
+          ...(cleanupMs > 0 ? { cleanupMs } : {}),
+          remoteProcessingMs: Math.max(0, processingTime
+            - ((metadata.timings?.createMs ?? 0)
+            + (metadata.timings?.uploadMs ?? 0)
+            + (metadata.timings?.pollMs ?? 0)
+            + (metadata.timings?.transcriptMs ?? 0)
+            + cleanupMs))
+        }
+        metadata.runtime = {
+          ...(metadata.runtime ?? {
+            mode: runtime?.mode ?? 'fresh',
+            stage: 'cleanup-complete',
+            remoteJobId: jobId ?? ''
+          }),
+          mode: metadata.runtime?.mode ?? runtime?.mode ?? 'fresh',
           stage: 'cleanup-complete',
-          remoteJobId: jobId ?? ''
-        }),
-        mode: metadata.runtime?.mode ?? runtime?.mode ?? 'fresh',
-        stage: 'cleanup-complete',
-        remoteJobId: metadata.runtime?.remoteJobId ?? jobId ?? '',
-        ...(metadata.runtime?.createCompletedAt ? { createCompletedAt: metadata.runtime.createCompletedAt } : {}),
-        ...(metadata.runtime?.lastPollAt ? { lastPollAt: metadata.runtime.lastPollAt } : {}),
-        ...(metadata.runtime?.completedAt ? { completedAt: metadata.runtime.completedAt } : {}),
-        cleanupCompletedAt: new Date().toISOString(),
-        cleanup: {
-          ...(metadata.runtime?.cleanup ?? {}),
-          ...(jobId ? { remoteJobDeleted } : {})
+          remoteJobId: metadata.runtime?.remoteJobId ?? jobId ?? '',
+          ...((metadata.runtime?.remoteAssetId ?? assetId) ? { remoteAssetId: metadata.runtime?.remoteAssetId ?? assetId } : {}),
+          ...((metadata.runtime?.remoteAssetUrl ?? runtime?.remoteAssetUrl ?? uploadedAsset?.remoteAssetUrl) ? { remoteAssetUrl: metadata.runtime?.remoteAssetUrl ?? runtime?.remoteAssetUrl ?? uploadedAsset?.remoteAssetUrl } : {}),
+          ...(metadata.runtime?.createCompletedAt ? { createCompletedAt: metadata.runtime.createCompletedAt } : {}),
+          ...(metadata.runtime?.lastPollAt ? { lastPollAt: metadata.runtime.lastPollAt } : {}),
+          ...(metadata.runtime?.completedAt ? { completedAt: metadata.runtime.completedAt } : {}),
+          cleanupCompletedAt: new Date().toISOString(),
+          cleanup: {
+            ...(metadata.runtime?.cleanup ?? {}),
+            ...(jobId && options.cleanup.deleteJob ? { remoteJobDeleted } : {}),
+            ...(assetId && options.cleanup.deleteAsset ? { remoteAssetDeleted } : {})
+          }
         }
-      }
-    } else if (runtime && jobId) {
-      const cleanupRuntime: Step2RuntimeMetadata = {
-        ...runtime,
-        stage: shouldDeleteRemoteJob ? 'cleanup-complete' : runtime.stage,
-        remoteJobId: jobId,
-        ...(shouldDeleteRemoteJob ? { cleanupCompletedAt: new Date().toISOString() } : {}),
-        cleanup: {
-          ...(runtime.cleanup ?? {}),
-          ...(shouldDeleteRemoteJob ? { remoteJobDeleted } : {})
+      } else if (!metadata && runtime && jobId) {
+        const cleanupRuntime: Step2RuntimeMetadata = {
+          ...runtime,
+          stage: shouldDeleteRemoteResources ? 'cleanup-complete' : runtime.stage,
+          remoteJobId: jobId,
+          ...(shouldDeleteRemoteResources ? { cleanupCompletedAt: new Date().toISOString() } : {}),
+          cleanup: {
+            ...(runtime.cleanup ?? {}),
+            ...(shouldDeleteRemoteResources && options.cleanup.deleteJob ? { remoteJobDeleted } : {}),
+            ...(shouldDeleteRemoteResources && assetId && options.cleanup.deleteAsset ? { remoteAssetDeleted } : {})
+          }
         }
+        await persistProgressMetadata(cleanupRuntime)
       }
-      await persistProgressMetadata(cleanupRuntime)
     }
   }
 }

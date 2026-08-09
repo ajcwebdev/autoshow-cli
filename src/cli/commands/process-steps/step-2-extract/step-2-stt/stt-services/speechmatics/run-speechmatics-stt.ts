@@ -1,4 +1,3 @@
-import * as l from '~/utils/app-logger/app-logger'
 import { basename } from 'node:path'
 import type { AsyncSttLifecycleHooks, AsyncSttLifecycleMetrics, DiarizationOptions, SpeechmaticsJob, SpeechmaticsTranscriptResponse, Step2Metadata, SttRequestMetrics, TranscriptionResult, TranscriptionSegment } from '~/types'
 import {
@@ -6,7 +5,6 @@ import {
   SpeechmaticsJobResponseSchema,
   SpeechmaticsTranscriptResponseSchema
 } from '~/types'
-import { logSttSegmentLifecycle } from '~/cli/commands/process-steps/step-2-extract/step-2-stt/stt-logging'
 import {
   appendToken,
   buildTranscriptionOutputBase,
@@ -318,6 +316,7 @@ export const runSpeechmaticsStt = async (
     audioDurationSeconds,
     initialPollIntervalMs: INITIAL_POLL_INTERVAL_MS,
     maxPollIntervalMs: MAX_POLL_INTERVAL_MS,
+    segment: { segmentNumber, totalSegments },
     createJob: async (metrics) => await createSpeechmaticsJob(baseURL, apiKey, audioPath, modelName, metrics),
     pollJob: async (jobId, metrics) => await pollSpeechmaticsJob(baseURL, apiKey, jobId, metrics),
     getTranscript: async (jobId, metrics) => await getTranscript(baseURL, apiKey, jobId, lifecycleMetricsToCallbacks(metrics)),
@@ -325,9 +324,11 @@ export const runSpeechmaticsStt = async (
     isFailed: (status) => status.status === 'rejected' ? buildRejectedJobMessage(status) : undefined,
     buildDeadlineError: (jobId, pollDeadlineMs) => buildAsyncSttPollingDeadlineError('Speechmatics', jobId, pollDeadlineMs),
     buildResumeProbeError: (jobId, probeCount, totalWaitMs) => buildAsyncSttResumeProbeError('Speechmatics', 'job', jobId, probeCount, totalWaitMs),
-    deleteJob: async (jobId) => await deleteJob(baseURL, apiKey, jobId),
-    shouldDeleteRemoteJob: ({ metadata, lastKnownStatus }) =>
-      metadata !== undefined || lastKnownStatus?.status === 'done' || lastKnownStatus?.status === 'rejected',
+    cleanup: {
+      deleteJob: async (jobId) => await deleteJob(baseURL, apiKey, jobId),
+      shouldDelete: ({ metadata, lastKnownStatus }) =>
+        metadata !== undefined || lastKnownStatus?.status === 'done' || lastKnownStatus?.status === 'rejected'
+    },
     buildResult: async ({ transcript, runtime, processingTime, timings }) => {
       const transcriptOutput = toTranscriptOutput(transcript, offsetSeconds)
       const evidenceWords = evidenceWordsFromTranscript(transcript, offsetSeconds)
@@ -346,10 +347,6 @@ export const runSpeechmaticsStt = async (
         tokenCount: countTokens(finalText),
         runtime,
         ...(timings ? { timings } : {})
-      }
-
-      if (segmentNumber && totalSegments) {
-        logSttSegmentLifecycle(l, { provider: 'speechmatics', action: 'completed', segmentNumber, totalSegments, model: modelName, processingTimeMs: processingTime })
       }
 
       return {

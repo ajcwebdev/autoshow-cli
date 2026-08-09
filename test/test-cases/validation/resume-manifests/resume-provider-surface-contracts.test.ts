@@ -19,11 +19,12 @@ import {
 } from '~/cli/flags/service-selector-normalization/provider-targets'
 import { buildOptsFromFlags } from '~/cli/commands/process-steps/step-1-download/download-targets/build-opts-from-flags/build-options-from-flags'
 import { writeRunManifest } from '~/cli/commands/process-steps/manifest-utils'
-import { normalizeResumeSelectorFlagsForTarget } from '~/cli/commands/setup-and-utilities/resume/resume-dispatch'
+import { normalizeResumeSelectorFlagsForTarget as normalizeResumeSelectorOccurrencesForTarget } from '~/cli/commands/setup-and-utilities/resume/resume-dispatch'
 import { getResumeHandler } from '~/cli/commands/setup-and-utilities/resume/resume-registry'
 import { hasResumableWriteWork, resumeWriteTarget } from '~/cli/commands/setup-and-utilities/resume/write/write-resume'
 import { installMockFetch, jsonResponse, restoreEnv, snapshotEnv } from '../../../test-utils/rest-contract-helpers'
-import type { ResumeTarget, RunManifest, RuntimeOptions, Step3Metadata } from '~/types'
+import type { CliFlagOccurrence, ResumeTarget, RunManifest, RuntimeOptions, Step3Metadata } from '~/types'
+import { flagOccurrencesFromValues } from '../../../test-utils/flag-occurrences'
 
 const hasResumableTtsWork = getResumeHandler('tts')!.hasResumableWork
 const hasResumableImageWork = getResumeHandler('image')!.hasResumableWork
@@ -105,9 +106,21 @@ const target = (
 const buildOpts = (
   flags: Record<string, unknown>,
   explicit: Set<string>,
-  rawArgs: string[]
+  flagOccurrences: CliFlagOccurrence[]
 ): RuntimeOptions =>
-  buildOptsFromFlags(false, flags, [], {}, explicit, rawArgs)
+  buildOptsFromFlags(false, flags, [], {}, explicit, flagOccurrences)
+
+const normalizeResumeSelectorFlagsForTarget = (
+  resumeTarget: ResumeTarget,
+  flags: Record<string, unknown>,
+  explicitFlags: Set<string>,
+  _rawArgs: string[]
+) => normalizeResumeSelectorOccurrencesForTarget(
+  resumeTarget,
+  flags,
+  explicitFlags,
+  flagOccurrencesFromValues(flags, explicitFlags)
+)
 
 const withTempDir = async <T>(
   prefix: string,
@@ -273,8 +286,8 @@ describe('resume target-aware provider selectors', () => {
     )
     expect(write.flags['together']).toBe('kimi-k2.6')
     expect(write.flags['cerebras']).toBe('zai-glm-4.7')
-    expect(buildOpts(write.flags, write.explicitFlags, write.rawArgs).togetherModels).toEqual(['kimi-k2.6'])
-    expect(buildOpts(write.flags, write.explicitFlags, write.rawArgs).cerebrasModels).toEqual(['zai-glm-4.7'])
+    expect(buildOpts(write.flags, write.explicitFlags, write.flagOccurrences).togetherModels).toEqual(['kimi-k2.6'])
+    expect(buildOpts(write.flags, write.explicitFlags, write.flagOccurrences).cerebrasModels).toEqual(['zai-glm-4.7'])
 
     const image = normalizeResumeSelectorFlagsForTarget(
       target('image'),
@@ -283,7 +296,7 @@ describe('resume target-aware provider selectors', () => {
       ['resume', 'out', '--provider', 'openai=gpt-image-2']
     )
     expect(image.flags['openai-image']).toBe('gpt-image-2')
-    expect(buildOpts(image.flags, image.explicitFlags, image.rawArgs).openaiImageModels).toEqual(['gpt-image-2'])
+    expect(buildOpts(image.flags, image.explicitFlags, image.flagOccurrences).openaiImageModels).toEqual(['gpt-image-2'])
 
     const video = normalizeResumeSelectorFlagsForTarget(
       target('video'),
@@ -292,7 +305,7 @@ describe('resume target-aware provider selectors', () => {
       ['resume', 'out', '--provider', 'runway=gen4.5']
     )
     expect(video.flags['runway-video']).toBe('gen4.5')
-    expect(buildOpts(video.flags, video.explicitFlags, video.rawArgs).runwayVideoModels).toEqual(['gen4.5'])
+    expect(buildOpts(video.flags, video.explicitFlags, video.flagOccurrences).runwayVideoModels).toEqual(['gen4.5'])
 
     const ltxVideo = normalizeResumeSelectorFlagsForTarget(
       target('video'),
@@ -301,7 +314,7 @@ describe('resume target-aware provider selectors', () => {
       ['resume', 'out', '--provider', 'ltx=ltx-2-3-pro']
     )
     expect(ltxVideo.flags['ltx-video']).toBe('ltx-2-3-pro')
-    expect(buildOpts(ltxVideo.flags, ltxVideo.explicitFlags, ltxVideo.rawArgs).ltxVideoModels).toEqual(['ltx-2-3-pro'])
+    expect(buildOpts(ltxVideo.flags, ltxVideo.explicitFlags, ltxVideo.flagOccurrences).ltxVideoModels).toEqual(['ltx-2-3-pro'])
 
     const music = normalizeResumeSelectorFlagsForTarget(
       target('music'),
@@ -310,7 +323,7 @@ describe('resume target-aware provider selectors', () => {
       ['resume', 'out', '--provider', 'elevenlabs=music_v1']
     )
     expect(music.flags['elevenlabs-music']).toBe('music_v1')
-    expect(buildOpts(music.flags, music.explicitFlags, music.rawArgs).elevenlabsMusicModels).toEqual(['music_v1'])
+    expect(buildOpts(music.flags, music.explicitFlags, music.flagOccurrences).elevenlabsMusicModels).toEqual(['music_v1'])
 
     const currentMusic = normalizeResumeSelectorFlagsForTarget(
       target('music'),
@@ -320,7 +333,7 @@ describe('resume target-aware provider selectors', () => {
     )
     expect(currentMusic.flags['elevenlabs-music']).toBe('music_v2')
     expect(currentMusic.flags['minimax-music']).toBe('music-3.0')
-    const currentMusicOpts = buildOpts(currentMusic.flags, currentMusic.explicitFlags, currentMusic.rawArgs)
+    const currentMusicOpts = buildOpts(currentMusic.flags, currentMusic.explicitFlags, currentMusic.flagOccurrences)
     expect(currentMusicOpts.elevenlabsMusicModels).toEqual(['music_v2'])
     expect(currentMusicOpts.minimaxMusicModels).toEqual(['music-3.0'])
   })
@@ -334,7 +347,7 @@ describe('resume target-aware provider selectors', () => {
     )
     expect(stt.flags['deepgram-stt']).toBe('nova-3')
     expect(stt.flags['deepinfra-ocr']).toBeUndefined()
-    expect(buildOpts(stt.flags, stt.explicitFlags, stt.rawArgs).deepgramSttModels).toEqual(['nova-3'])
+    expect(buildOpts(stt.flags, stt.explicitFlags, stt.flagOccurrences).deepgramSttModels).toEqual(['nova-3'])
 
     const ocr = normalizeResumeSelectorFlagsForTarget(
       target('extract', '/tmp/autoshow-resume-document', 'document'),
@@ -344,7 +357,7 @@ describe('resume target-aware provider selectors', () => {
     )
     expect(ocr.flags['deepinfra-ocr']).toBe('Qwen/Qwen3-VL-30B-A3B-Instruct')
     expect(ocr.flags['deepgram-stt']).toBeUndefined()
-    expect(buildOpts(ocr.flags, ocr.explicitFlags, ocr.rawArgs).deepinfraOcrModels).toEqual(['Qwen/Qwen3-VL-30B-A3B-Instruct'])
+    expect(buildOpts(ocr.flags, ocr.explicitFlags, ocr.flagOccurrences).deepinfraOcrModels).toEqual(['Qwen/Qwen3-VL-30B-A3B-Instruct'])
 
     const article = normalizeResumeSelectorFlagsForTarget(
       target('extract', '/tmp/autoshow-resume-article', 'x-space'),
@@ -353,7 +366,7 @@ describe('resume target-aware provider selectors', () => {
       ['resume', 'out', '--provider', 'supadata']
     )
     expect(article.flags['url-provider']).toBe('supadata')
-    expect(buildOpts(article.flags, article.explicitFlags, article.rawArgs).urlBackend).toBe('supadata')
+    expect(buildOpts(article.flags, article.explicitFlags, article.flagOccurrences).urlBackend).toBe('supadata')
   })
 
   test('normalizes --all-local by resolved resume target kind and extract route', () => {
@@ -364,7 +377,7 @@ describe('resume target-aware provider selectors', () => {
       ['resume', 'out', '--all-local']
     )
     expect(tts.flags['all-local-tts']).toBe(true)
-    expect(buildOpts(tts.flags, tts.explicitFlags, tts.rawArgs).kittenTtsModels).toBeDefined()
+    expect(buildOpts(tts.flags, tts.explicitFlags, tts.flagOccurrences).kittenTtsModels).toBeDefined()
 
     // Image resume has no local providers, so --all-local is rejected rather than
     // silently dropped (see native-global-args contracts).
@@ -382,7 +395,7 @@ describe('resume target-aware provider selectors', () => {
       ['resume', 'out', '--all-local']
     )
     expect(stt.flags['all-local-stt']).toBe(true)
-    expect(buildOpts(stt.flags, stt.explicitFlags, stt.rawArgs).whisperModels).toBeDefined()
+    expect(buildOpts(stt.flags, stt.explicitFlags, stt.flagOccurrences).whisperModels).toBeDefined()
 
     const ocr = normalizeResumeSelectorFlagsForTarget(
       target('extract', '/tmp/autoshow-resume-document', 'document'),
@@ -391,7 +404,7 @@ describe('resume target-aware provider selectors', () => {
       ['resume', 'out', '--all-local']
     )
     expect(ocr.flags['all-local-ocr']).toBe(true)
-    expect(buildOpts(ocr.flags, ocr.explicitFlags, ocr.rawArgs).useTesseract).toBe(true)
+    expect(buildOpts(ocr.flags, ocr.explicitFlags, ocr.flagOccurrences).useTesseract).toBe(true)
 
     const article = normalizeResumeSelectorFlagsForTarget(
       target('extract', '/tmp/autoshow-resume-article', 'x-space'),
@@ -400,7 +413,7 @@ describe('resume target-aware provider selectors', () => {
       ['resume', 'out', '--all-local']
     )
     expect(article.flags['all-local-url']).toBe(true)
-    expect(buildOpts(article.flags, article.explicitFlags, article.rawArgs).urlBackends).toEqual(['defuddle'])
+    expect(buildOpts(article.flags, article.explicitFlags, article.flagOccurrences).urlBackends).toEqual(['defuddle'])
   })
 
   test('rejects providers that do not apply to the resolved target', () => {
@@ -437,7 +450,7 @@ describe('resume all-shortcut additive selection', () => {
         new Set(['all-providers']),
         ['resume', dir, '--all-providers']
       )
-      const opts = buildOpts(normalized.flags, normalized.explicitFlags, normalized.rawArgs)
+      const opts = buildOpts(normalized.flags, normalized.explicitFlags, normalized.flagOccurrences)
       await expect(hasResumableWriteWork(target('write', dir), opts, normalized.explicitFlags)).resolves.toBe(true)
     })
   })
@@ -464,7 +477,7 @@ describe('resume all-shortcut additive selection', () => {
         new Set(['provider']),
         ['resume', dir, '--provider', 'openai=gpt-5.5']
       )
-      const opts = buildOpts(normalized.flags, normalized.explicitFlags, normalized.rawArgs)
+      const opts = buildOpts(normalized.flags, normalized.explicitFlags, normalized.flagOccurrences)
 
       await expect(resumeWriteTarget(target('write', dir), opts, normalized.explicitFlags)).resolves.toEqual({
         full: 1,
@@ -522,7 +535,7 @@ describe('resume all-shortcut additive selection', () => {
           new Set(['provider']),
           ['resume', dir, '--provider', 'together=kimi-k2.6', '--provider', 'cerebras=zai-glm-4.7']
         )
-        const opts = buildOpts(normalized.flags, normalized.explicitFlags, normalized.rawArgs)
+        const opts = buildOpts(normalized.flags, normalized.explicitFlags, normalized.flagOccurrences)
 
         try {
           await resumeWriteTarget(target('write', dir), opts, normalized.explicitFlags)
@@ -633,7 +646,7 @@ describe('resume all-shortcut additive selection', () => {
           explicit,
           ['resume', runDir, '--all-providers']
         )
-        const opts = buildOpts(normalized.flags, normalized.explicitFlags, normalized.rawArgs)
+        const opts = buildOpts(normalized.flags, normalized.explicitFlags, normalized.flagOccurrences)
         await expect(entry.hasWork(target(entry.kind, runDir), opts, normalized.explicitFlags)).resolves.toBe(true)
       }
     })

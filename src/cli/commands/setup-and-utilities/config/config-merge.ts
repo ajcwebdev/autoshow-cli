@@ -1,10 +1,10 @@
-import type { AutoshowConfig, RepeatableModelFlag } from '~/types/index'
+import type { AutoshowConfig, CliFlagOccurrence, RepeatableModelFlag } from '~/types/index'
 import * as l from '~/utils/app-logger/app-logger'
 import { resolveCheapestModelForFlag } from '~/cli/commands/setup-and-utilities/models/cheapest-models'
 import {
   REPEATABLE_MODEL_FLAGS,
+  collectRepeatableModelFlagOccurrences,
   normalizeModelFlagOccurrences,
-  parseRepeatableModelFlagOccurrences
 } from '~/cli/commands/process-steps/step-1-download/download-targets/build-opts-from-flags/build-options-from-flags'
 import {
   getStep2ProviderConfigPathEntries,
@@ -68,23 +68,6 @@ const readNestedValue = (
     current = (current as Record<string, unknown>)[segment]
   }
   return current
-}
-
-export const extractExplicitFlags = (argv: string[]): Set<string> => {
-  const explicit = new Set<string>()
-  for (const token of argv) {
-    if (token === '--') break
-    if (!token.startsWith('--')) continue
-    const withoutDashes = token.slice(2)
-    const eqIdx = withoutDashes.indexOf('=')
-    const key = eqIdx === -1 ? withoutDashes : withoutDashes.slice(0, eqIdx)
-    if (!key) continue
-    explicit.add(key)
-    if (key.startsWith('no-') && key.length > 3) {
-      explicit.add(key.slice(3))
-    }
-  }
-  return explicit
 }
 
 export const mergeConfigIntoRawFlags = (
@@ -380,10 +363,10 @@ const resolveConfigFlagValue = (flagName: string, rawValue: unknown): unknown =>
 export const buildConfigPatchFromFlags = (
   flags: Record<string, unknown>,
   explicitFlags: Set<string>,
-  rawArgs: string[] = []
+  flagOccurrences: readonly CliFlagOccurrence[] = []
 ): Record<string, unknown> => {
   const patch: Record<string, unknown> = {}
-  const rawOccurrences = parseRepeatableModelFlagOccurrences(rawArgs)
+  const rawOccurrences = collectRepeatableModelFlagOccurrences(flagOccurrences)
   const discardedFlags: string[] = []
 
   for (const flagName of explicitFlags) {

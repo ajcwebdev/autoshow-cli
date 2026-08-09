@@ -45,9 +45,7 @@ const buildTruncatedResponseError = (
 }
 
 export const runKimiOcr = createChatImageOcrRunner({
-  service: 'kimi',
   extractionMethod: 'kimi-ocr',
-  tempDirPrefix: 'autoshow-kimi-ocr-',
   providerLabel: 'Kimi OCR',
   maxImageBytes: KIMI_OCR_IMAGE_BYTES,
   imageLimitLabel: '100 MB',

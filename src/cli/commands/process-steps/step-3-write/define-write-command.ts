@@ -26,5 +26,5 @@ export const writeCommand = defineCliCommand({
   }
 }, async (ctx) => {
   validateEpubInspectCommandFlags(ctx)
-  await handleProcessTarget('write', ctx.parameters.input, ctx.flags, ctx.rawParsed.doubleDash)
+  await handleProcessTarget('write', ctx.parameters.input, ctx.flags, ctx.rawParsed)
 })

@@ -178,5 +178,17 @@ describe('async STT resume contracts', () => {
       '/v1/files/file-1',
       '/v1/transcriptions/transcription-1'
     ])
+    const checkpoint = await Bun.file(join(outputDir, 'checkpoint.json')).json() as {
+      metadata: { runtime: Record<string, unknown> }
+    }
+    expect(checkpoint.metadata.runtime).toMatchObject({
+      stage: 'cleanup-complete',
+      remoteJobId: 'transcription-1',
+      remoteAssetId: 'file-1',
+      cleanup: {
+        remoteJobDeleted: true,
+        remoteAssetDeleted: true
+      }
+    })
   })
 })

@@ -1,5 +1,5 @@
 import { CLIUsageError } from '~/utils/error-handler'
-import type { BatchOrder, HtmlArticleBackend } from '~/types'
+import type { BatchOrder, CliFlagOccurrence, HtmlArticleBackend } from '~/types'
 import { URL_ARTICLE_BACKENDS } from '~/cli/commands/process-steps/step-2-extract/step-2-shared/provider-registry'
 
 export const parseIntWithDefault = (value: string | undefined, fallback: number): number => {
@@ -167,24 +167,15 @@ export const parseTtsDialogueFormat = (value: string | undefined): 'screenplay' 
   throw CLIUsageError(`Invalid --tts-dialogue-format value "${value}". Expected "screenplay" or "labeled".`)
 }
 
-export const readOptionalRawStringFlag = (args: string[], flagName: string): string | undefined => {
-  for (let i = args.length - 1; i >= 0; i--) {
-    const arg = args[i] as string
-    if (arg === `--${flagName}`) {
-      const next = args[i + 1]
-      if (typeof next === 'string' && !next.startsWith('--') && next.length > 0) {
-        return next
-      }
-      continue
-    }
-
-    if (arg.startsWith(`--${flagName}=`)) {
-      const value = arg.slice(flagName.length + 3)
-      if (value.length > 0) {
-        return value
-      }
+export const readOptionalOccurrenceStringFlag = (
+  flagOccurrences: readonly CliFlagOccurrence[],
+  flagName: string
+): string | undefined => {
+  for (let index = flagOccurrences.length - 1; index >= 0; index--) {
+    const occurrence = flagOccurrences[index]
+    if (occurrence?.name === flagName && typeof occurrence.value === 'string' && occurrence.value.length > 0) {
+      return occurrence.value
     }
   }
-
   return undefined
 }

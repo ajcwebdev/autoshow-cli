@@ -3,9 +3,8 @@ import { videoCommandFlags, videoCommandOptionNames } from '~/cli/flags/video-fl
 import { retargetUsageErrorsToCommandSpellings } from '~/cli/flags/flag-utils'
 import { CLIUsageError } from '~/utils/error-handler'
 import { buildOptsFromFlags } from '~/cli/commands/process-steps/step-1-download/download-targets/build-opts-from-flags/build-options-from-flags'
-import { extractExplicitFlags } from '~/cli/commands/setup-and-utilities/config/config-merge'
 import { selectCheapestDefaultTextVideoSelection } from '~/cli/commands/setup-and-utilities/models/cheapest-models'
-import { normalizeCommandSelectorArgs, normalizeCommandSelectorFlags } from '~/cli/flags/service-selector-normalization/flag-helpers'
+import { normalizeCommandSelectorFlags } from '~/cli/flags/service-selector-normalization/flag-helpers'
 import { normalizeGenericProviderSelectorFlags } from '~/cli/flags/service-selector-normalization/generic-provider-selectors'
 import { STANDALONE_VIDEO_PROVIDER_TARGETS } from '~/cli/flags/service-selector-normalization/provider-targets'
 import { runVideoGen } from './run-video-gen'
@@ -139,17 +138,20 @@ export const videoCommand = defineCliCommand({
   const flags = ctx.flags
 
   const videoMaxCents = await resolveMaxCentsFromFlags(flags as Record<string, unknown>)
-  const rawArgs = Bun.argv.slice(2)
-  const explicitFlags = extractExplicitFlags(rawArgs)
-  const optionNormalized = normalizeCommandSelectorFlags(flags as Record<string, unknown>, explicitFlags, videoCommandOptionNames)
-  const optionNormalizedArgs = normalizeCommandSelectorArgs(rawArgs, videoCommandOptionNames)
+  const optionNormalized = normalizeCommandSelectorFlags(
+    flags as Record<string, unknown>,
+    ctx.rawParsed.explicitFlags,
+    ctx.rawParsed.flagOccurrences,
+    videoCommandOptionNames
+  )
   const resolvedInput = resolveVideoInput(input, optionNormalized.flags)
   const providerNormalized = normalizeGenericProviderSelectorFlags(
     optionNormalized.flags,
     optionNormalized.explicitFlags,
+    optionNormalized.flagOccurrences,
     'provider',
     STANDALONE_VIDEO_PROVIDER_TARGETS,
-    { allProvidersTarget: 'all-video', rawArgs: optionNormalizedArgs }
+    { allProvidersTarget: 'all-video' }
   )
 
   if (!hasVideoProviderSelection(providerNormalized.flags)) {
@@ -161,7 +163,7 @@ export const videoCommand = defineCliCommand({
     }
   }
 
-  const videoOpts = buildOptsFromFlags(true, providerNormalized.flags, [], {}, providerNormalized.explicitFlags, providerNormalized.rawArgs ?? optionNormalizedArgs)
+  const videoOpts = buildOptsFromFlags(true, providerNormalized.flags, [], {}, providerNormalized.explicitFlags, providerNormalized.flagOccurrences)
     const videoTargets = collectVideoTargets(videoOpts)
   if (videoTargets.length === 0) {
     throw CLIUsageError('Specify a video generation provider with --provider gemini|minimax|glm|grok|runway|ltx|replicate|lumalabs|fal[=model]')

@@ -1,11 +1,11 @@
 import { getOutputRoot } from '~/cli/commands/process-steps/output-root'
 import { isStep2BooleanProviderSelected } from '~/cli/commands/process-steps/step-2-extract/step-2-shared/provider-registry'
-import type { BuildDomainOptionsContext, BuildOptsDefaults, RuntimeOptions } from '~/types'
+import type { BuildDomainOptionsContext, BuildOptsDefaults, CliFlagOccurrence, RuntimeOptions } from '~/types'
 import {
   readBooleanFlag,
   readOptionalStringFlag
 } from '../options/flag-readers'
-import { parseRepeatableModelFlagOccurrences, readAllShortcutFlags, resolveStep2SelectionOrigins } from '../options/model-flag-selection'
+import { collectRepeatableModelFlagOccurrences, readAllShortcutFlags, resolveStep2SelectionOrigins } from '../options/model-flag-selection'
 import { readRuntimeModelOptions } from '../options/download-model-options'
 import { readInjectedConfigFlags } from './build-options-config-flags'
 import { resolveLocalConcurrency, resolveProviderConcurrency, resolveTtsChunkConcurrency } from './concurrency'
@@ -20,7 +20,7 @@ import { buildMusicOptions } from './music-options'
 import { buildVideoOptions } from './video-options'
 import { buildBatchOptions } from './batch-options'
 
-export { REPEATABLE_MODEL_FLAGS, normalizeModelFlagOccurrences, parseRepeatableModelFlagOccurrences } from '../options/model-flag-selection'
+export { collectRepeatableModelFlagOccurrences, REPEATABLE_MODEL_FLAGS, normalizeModelFlagOccurrences } from '../options/model-flag-selection'
 
 export const buildOptsFromFlags = (
   skipLLM: boolean,
@@ -28,11 +28,10 @@ export const buildOptsFromFlags = (
   _doubleDashArgs: string[] = [],
   defaults: BuildOptsDefaults = {},
   explicitFlags: Set<string> = new Set(),
-  rawArgs: string[] = []
+  flagOccurrences: readonly CliFlagOccurrence[] = []
 ): RuntimeOptions => {
   void _doubleDashArgs
-  const rawFlagArgs = rawArgs.includes('--') ? rawArgs.slice(0, rawArgs.indexOf('--')) : rawArgs
-  const rawModelOccurrences = parseRepeatableModelFlagOccurrences(rawFlagArgs)
+  const rawModelOccurrences = collectRepeatableModelFlagOccurrences(flagOccurrences)
 
   const mergedFlags: Record<string, unknown> = { ...flags }
   const allShortcutFlags = readAllShortcutFlags(mergedFlags)
@@ -70,7 +69,7 @@ export const buildOptsFromFlags = (
   const urlOptions = resolveUrlOptions(mergedFlags, allUrlSelected, allLocalUrlSelected, {
     explicitFlags,
     configuredFlags,
-    rawArgs
+    flagOccurrences
   })
   const useReverb = isStep2BooleanProviderSelected('reverb-stt', mergedFlags, allShortcutFlags)
   const step2SelectionOrigins = resolveStep2SelectionOrigins(mergedFlags, explicitFlags, rawModelOccurrences, allShortcutFlags, configuredFlags)
@@ -149,7 +148,7 @@ export const buildOptsFromFlags = (
     renderedOutDir: readOptionalStringFlag(mergedFlags, 'rendered-out-dir'),
     trackList: readOptionalStringFlag(mergedFlags, 'track-list'),
     promptMd: readBooleanFlag(mergedFlags, 'prompt-md'),
-    ...buildTtsOptions(mergedFlags, rawFlagArgs, modelOptions),
+    ...buildTtsOptions(mergedFlags, flagOccurrences, modelOptions),
     markdown: readBooleanFlag(mergedFlags, 'markdown'),
     save: readBooleanFlag(mergedFlags, 'save'),
   }

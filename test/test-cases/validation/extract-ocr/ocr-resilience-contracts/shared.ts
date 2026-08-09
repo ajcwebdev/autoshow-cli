@@ -20,6 +20,7 @@ import {
 } from '~/cli/commands/process-steps/step-2-extract/step-2-ocr/ocr-utils/ocr-retry'
 import {
   createOcrPdfChunkRenderError,
+  createRenderedPngPageChunk,
   createOcrPdfChunkWithLocalFallback,
   HOSTED_OCR_PDF_PAGE_FALLBACK_THRESHOLD,
   readFallbackAuditRollup,
@@ -28,11 +29,7 @@ import {
   stitchHostedOcrChunkRuns
 } from '~/cli/commands/process-steps/step-2-extract/step-2-ocr/ocr-utils/pdf-chunk-fallback'
 import { formatSplitPdfDiagnostic } from '~/cli/commands/process-steps/step-1-download/document/mutool-utils'
-import {
-  buildHostedOcrImageResult,
-  runHostedOcrDocument
-} from '~/cli/commands/process-steps/step-2-extract/step-2-ocr/ocr-utils/hosted-ocr-utils'
-import { runOrderedOcrPageTasks } from '~/cli/commands/process-steps/step-2-extract/step-2-ocr/ocr-utils/page-concurrency'
+import { buildHostedOcrImageResult } from '~/cli/commands/process-steps/step-2-extract/step-2-ocr/ocr-utils/hosted-ocr-utils'
 import { createOcrPreparationCache } from '~/cli/commands/process-steps/step-2-extract/step-2-ocr/ocr-utils/preparation-cache'
 import { classifyOcrProviderFailure } from '~/cli/commands/process-steps/step-2-extract/step-2-ocr/ocr-run-state'
 import {
@@ -150,6 +147,7 @@ export {
   classifyOcrProviderFailure,
   createOcrPdfChunkRenderError,
   createOcrPdfChunkWithLocalFallback,
+  createRenderedPngPageChunk,
   createOcrPreparationCache,
   formatSplitPdfDiagnostic,
   HOSTED_OCR_PDF_PAGE_FALLBACK_THRESHOLD,
@@ -170,11 +168,9 @@ export {
   OcrStructuredResponseError,
   readFallbackAuditRollup,
   rm,
-  runHostedOcrDocument,
   runHostedOcrWithPdfChunkFallback,
   runAnthropicOcr,
   runKimiOcr,
-  runOrderedOcrPageTasks,
   shouldFallbackToOcrPdfChunks,
   stitchHostedOcrChunkRuns,
   tmpdir,

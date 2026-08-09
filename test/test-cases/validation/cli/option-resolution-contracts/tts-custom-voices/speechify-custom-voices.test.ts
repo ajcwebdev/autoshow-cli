@@ -2,6 +2,7 @@ import { describe, expect, test } from 'bun:test'
 import { buildOptsFromFlags } from '~/cli/commands/process-steps/step-1-download/download-targets/build-opts-from-flags/build-options-from-flags'
 import { collectTtsTargets } from '~/cli/commands/process-steps/step-4-tts/tts-targets'
 import { SPEECHIFY_TTS_CUSTOM_VOICE_SETUP_MS } from '~/cli/commands/process-steps/step-4-tts/tts-services/speechify/speechify-custom-voices'
+import { flagOccurrencesFromValues } from '../../../../../test-utils/flag-occurrences'
 
 describe('Speechify custom voice option contracts', () => {
   test('Speechify custom voice flags build reference-audio targets and validate required consent', () => {
@@ -13,12 +14,10 @@ describe('Speechify custom voice option contracts', () => {
         'speechify-tts-consent-email': 'anthony@example.com',
         'speechify-tts-voice-locale': 'en-US',
         'speechify-tts-voice-gender': 'notSpecified'
-      }, [], {}, new Set(), [
-        '--speechify-tts-voice-name',
-        'AutoShow Anthony',
-        '--speechify-tts-consent-name',
-        'Anthony Example'
-      ])
+      }, [], {}, new Set(), flagOccurrencesFromValues({
+        'speechify-tts-voice-name': 'AutoShow Anthony',
+        'speechify-tts-consent-name': 'Anthony Example'
+      }))
       const speechifyTargets = collectTtsTargets(opts).filter((target) => target.service === 'speechify')
 
       expect(opts.speechifyTtsRefAudio).toBe('input/voices/my-voice-sample.mp3')

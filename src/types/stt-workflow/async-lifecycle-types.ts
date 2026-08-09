@@ -1,6 +1,7 @@
 import type { AsyncSttLifecycleHooks, Step2Metadata, Step2RuntimeMetadata, TranscriptionResult } from '~/types'
 
 export type AsyncSttLifecycleMetrics = {
+  uploadMs: number
   createMs: number
   pollMs: number
   pollSleepMs: number
@@ -11,6 +12,12 @@ export type AsyncSttLifecycleMetrics = {
   retryCount: number
   rateLimitCount: number
   backfillCount: number
+}
+
+export type AsyncSttUploadAssetResult<TUpload> = {
+  value: TUpload
+  remoteAssetId?: string | undefined
+  remoteAssetUrl?: string | undefined
 }
 
 export type AsyncSttCreateJobResult<TStatus> = {
@@ -25,7 +32,7 @@ export type AsyncSttLifecycleResultBuilderParams<TTranscript> = {
   timings?: Step2Metadata['timings'] | undefined
 }
 
-export type AsyncSttLifecycleOptions<TStatus, TTranscript> = {
+export type AsyncSttLifecycleOptions<TStatus, TTranscript, TUpload = unknown> = {
   outputDir: string
   providerService: Step2Metadata['transcriptionService']
   providerLogLabel: string
@@ -37,18 +44,34 @@ export type AsyncSttLifecycleOptions<TStatus, TTranscript> = {
   audioDurationSeconds?: number | undefined
   initialPollIntervalMs: number
   maxPollIntervalMs: number
-  createJob: (metrics: AsyncSttLifecycleMetrics) => Promise<AsyncSttCreateJobResult<TStatus>>
+  segment?: {
+    segmentNumber?: number | undefined
+    totalSegments?: number | undefined
+  } | undefined
+  jobNoun?: string | undefined
+  guardStage?: string | undefined
+  uploadAsset?: ((metrics: AsyncSttLifecycleMetrics) => Promise<AsyncSttUploadAssetResult<TUpload>>) | undefined
+  createJob: (
+    metrics: AsyncSttLifecycleMetrics,
+    upload: AsyncSttUploadAssetResult<TUpload> | undefined
+  ) => Promise<AsyncSttCreateJobResult<TStatus>>
   pollJob: (jobId: string, metrics: AsyncSttLifecycleMetrics) => Promise<{ status: TStatus, retryAfterMs: number | null }>
-  getTranscript: (jobId: string, metrics: AsyncSttLifecycleMetrics) => Promise<TTranscript>
+  getTranscript: (jobId: string, metrics: AsyncSttLifecycleMetrics, finalStatus: TStatus) => Promise<TTranscript>
   isComplete: (status: TStatus) => boolean
   isFailed: (status: TStatus) => string | undefined
   buildDeadlineError: (jobId: string, pollDeadlineMs: number) => never
   buildResumeProbeError: (jobId: string, probeCount: number, totalWaitMs: number) => never
-  deleteJob: (jobId: string) => Promise<boolean>
-  shouldDeleteRemoteJob: (context: {
-    metadata: Step2Metadata | undefined
-    lastKnownStatus: TStatus | undefined
-  }) => boolean
+  persistCompletedProgress?: boolean | undefined
+  extendProgressMetadata?: ((runtime: Step2RuntimeMetadata) => Partial<Pick<Step2Metadata, 'billing'>>) | undefined
+  cleanup?: {
+    shouldDelete: (context: {
+      metadata: Step2Metadata | undefined
+      lastKnownStatus: TStatus | undefined
+      runtime: Step2RuntimeMetadata | undefined
+    }) => boolean
+    deleteJob?: ((jobId: string) => Promise<boolean>) | undefined
+    deleteAsset?: ((assetId: string) => Promise<boolean>) | undefined
+  } | undefined
   buildResult: (
     params: AsyncSttLifecycleResultBuilderParams<TTranscript>
   ) => Promise<{ result: TranscriptionResult, metadata: Step2Metadata }>

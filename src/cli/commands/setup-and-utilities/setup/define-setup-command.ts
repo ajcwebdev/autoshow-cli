@@ -10,18 +10,12 @@ import type { SetupStepId } from '~/types'
 
 const VALID_SETUP_STEPS: SetupStepId[] = ['uv', 'yt-dlp', 'defuddle', 'whisper-binary', 'whisper-model', 'whisperfile', 'llama-binary', 'llamafile', 'reverb', 'calibre', 'acsm', 'acsm-authorize', 'all', 'transcription', 'write', 'tts', 'image', 'video', 'music']
 const FOCUSED_SETUP_CONFLICT_FLAGS = [
-  '--models',
-  '--doctor',
-  '--step',
-  '--force-redownload',
-  '--repeat'
+  'models',
+  'doctor',
+  'step',
+  'force-redownload',
+  'repeat'
 ] as const
-
-const hasLongFlag = (argv: string[], flag: string): boolean =>
-  argv.some((token) => token === flag || token.startsWith(`${flag}=`))
-
-const getUsedLongFlags = (argv: string[], flags: readonly string[]): string[] =>
-  flags.filter((flag) => hasLongFlag(argv, flag))
 
 const normalizeStringArrayFlag = (value: unknown): string[] => {
   if (Array.isArray(value)) {
@@ -53,21 +47,19 @@ export const setupCommand = defineCliCommand({
     ]
   }
 }, async (ctx) => {
-  const rawArgv = Bun.argv.slice(2)
-  const usedModelsFlag = hasLongFlag(rawArgv, '--models')
+  const usedModelsFlag = ctx.rawParsed.explicitFlags.has('models')
   const modelTargets = normalizeStringArrayFlag(ctx.flags.models)
 
   if (usedModelsFlag && modelTargets.length === 0) {
     throw CLIUsageError('--models requires at least one value')
   }
   if (usedModelsFlag) {
-    const modeFlag = '--models'
-    const conflicts = getUsedLongFlags(
-      rawArgv,
-      FOCUSED_SETUP_CONFLICT_FLAGS.filter((flag) => flag !== modeFlag)
-    )
+    const modeFlag = 'models'
+    const conflicts = FOCUSED_SETUP_CONFLICT_FLAGS
+      .filter((flag) => flag !== modeFlag && ctx.rawParsed.explicitFlags.has(flag))
+      .map((flag) => `--${flag}`)
     if (conflicts.length > 0) {
-      throw CLIUsageError(`${modeFlag} cannot be combined with ${conflicts.join(', ')}`)
+      throw CLIUsageError(`--${modeFlag} cannot be combined with ${conflicts.join(', ')}`)
     }
   }
 

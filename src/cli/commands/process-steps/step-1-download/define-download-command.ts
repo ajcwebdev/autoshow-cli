@@ -21,5 +21,5 @@ export const downloadCommand = defineCliCommand({
     ]
   }
 }, async (ctx) => {
-  await handleProcessTarget('download', ctx.parameters.input, ctx.flags, ctx.rawParsed.doubleDash)
+  await handleProcessTarget('download', ctx.parameters.input, ctx.flags, ctx.rawParsed)
 })

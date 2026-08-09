@@ -1,9 +1,9 @@
-import type { AggregatedPriceEstimate, ResumeResult } from '~/types'
+import type { AggregatedPriceEstimate, CliFlagOccurrence, ResumeResult } from '~/types'
 
 export type ResumeSelectorNormalizationResult = {
   flags: Record<string, unknown>
   explicitFlags: Set<string>
-  rawArgs: string[]
+  flagOccurrences: CliFlagOccurrence[]
 }
 
 export type ResumeDispatchOutcome = {

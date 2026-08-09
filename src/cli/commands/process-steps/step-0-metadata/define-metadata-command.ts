@@ -17,5 +17,5 @@ export const metadataCommand = defineCliCommand({
     ]
   }
 }, async (ctx) => {
-  await handleProcessTarget('metadata', ctx.parameters.input, ctx.flags, ctx.rawParsed.doubleDash)
+  await handleProcessTarget('metadata', ctx.parameters.input, ctx.flags, ctx.rawParsed)
 })

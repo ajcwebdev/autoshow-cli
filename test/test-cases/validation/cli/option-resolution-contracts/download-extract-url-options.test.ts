@@ -190,15 +190,7 @@ describe('option resolution contracts', () => {
       const separatedFlags = buildOptsFromFlags(false, {}, [
         '--mistral-stt',
         'voxtral-mini-2602'
-      ], {}, new Set(), [
-        'extract',
-        'https://ajc.pics/autoshow/examples/1-audio.mp3',
-        '--',
-        '--mistral-stt',
-        'voxtral-mini-2602',
-        '--speechify-tts-voice-name',
-        'AfterSeparator'
-      ])
+      ], {}, new Set(), [])
       const canonicalFlags = buildOptsFromFlags(false, {
         'mistral-stt': 'voxtral-mini-2602',
         'deepinfra-ocr': 'Qwen/Qwen3-VL-30B-A3B-Instruct'
