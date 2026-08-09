@@ -1,3 +1,4 @@
+import { isRecord } from '~/utils/rest-client'
 import * as l from '~/utils/app-logger/app-logger'
 import type { RetryClass, ScrapeCreatorsHttpError, ScrapeCreatorsTranscriptEntry, ScrapeCreatorsTranscriptPayload, Step2Metadata, TranscriptionResult, TranscriptionSegment } from '~/types'
 import { classifyFetchRetry, withRetry } from '~/utils/retries'
@@ -9,8 +10,6 @@ import { describeScrapeCreatorsUnsupportedSource, getScrapeCreatorsBaseUrl, isSc
 const REQUEST_TIMEOUT_MS = 60_000
 const DEFAULT_LANGUAGE = 'en'
 
-const isRecord = (value: unknown): value is Record<string, unknown> =>
-  typeof value === 'object' && value !== null && !Array.isArray(value)
 
 const parseFiniteNumber = (value: unknown): number | undefined => {
   if (typeof value === 'number') {

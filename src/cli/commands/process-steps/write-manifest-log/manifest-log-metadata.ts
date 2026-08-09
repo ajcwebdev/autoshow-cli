@@ -1,8 +1,8 @@
 import type { CostSource, EstimatedCostBreakdown, ExtractionMetadata, ManifestLogActualCostBreakdown, ManifestLogCostEntryLike, PartialExtractionMetadata, Step2Metadata, Step3Metadata, Step4Metadata, Step5Metadata, Step6VideoMetadata, Step7MusicMetadata, TimingEntryLike, WriteManifestMetadata, WriteStepKind } from '~/types'
+import { isRecord } from '~/utils/rest-client'
 import { buildMatchKey } from './manifest-log-formatting'
 
-export const isRecord = (value: unknown): value is Record<string, unknown> =>
-  typeof value === 'object' && value !== null && !Array.isArray(value)
+export { isRecord }
 
 export const isStep2Metadata = (value: unknown): value is Step2Metadata =>
   isRecord(value)

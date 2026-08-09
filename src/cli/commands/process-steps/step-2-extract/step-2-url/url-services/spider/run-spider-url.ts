@@ -1,6 +1,6 @@
 import * as l from '~/utils/app-logger/app-logger'
 import type { UrlArticleProviderAdapter, UrlArticleRunResult, UrlRequestOptions, WebArticleMetadata } from '~/types'
-import { byteLength, cleanString, countWords, ensureMeaningfulMarkdown, fallbackTitleFromSource, fetchUrlProviderJson, getUrlRequestTimeoutMs, isRecord, normalizeMarkdown, requireHostedUrlProviderApiKey, tryFetchRemoteHtml } from '../../url-utils'
+import { cleanString, countWords, fetchUrlProviderJson, finalizeUrlArticleResult, getUrlRequestTimeoutMs, isRecord, normalizeMarkdown, requireHostedUrlProviderApiKey } from '../../url-utils'
 import { ValidationError } from '~/utils/error-handler'
 
 const SPIDER_DEFAULT_API_URL = 'https://api.spider.cloud'
@@ -121,20 +121,7 @@ export const runSpiderUrl = async (
 ): Promise<UrlArticleRunResult> => {
   l.write('info', 'Using Spider backend for article extraction')
   const spiderResult = await runSpiderScrape(source, options, baseUrl)
-  const htmlFallback = await tryFetchRemoteHtml(source)
-
-  const markdown = ensureMeaningfulMarkdown(spiderResult.markdown, 'spider')
-  const web = { ...spiderResult.web }
-  if (sourceUrl) web.sourceUrl = sourceUrl
-  if (!web.finalUrl && htmlFallback?.finalUrl) web.finalUrl = htmlFallback.finalUrl
-
-  return {
-    markdown,
-    web,
-    fileSize: htmlFallback?.fileSize ?? byteLength(markdown),
-    title: spiderResult.web.title ?? fallbackTitleFromSource(source),
-    ...(spiderResult.web.author ? { author: spiderResult.web.author } : {})
-  }
+  return await finalizeUrlArticleResult(source, sourceUrl, 'spider', spiderResult)
 }
 
 export const spiderArticleAdapter: UrlArticleProviderAdapter = {

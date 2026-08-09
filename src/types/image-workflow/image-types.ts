@@ -17,24 +17,10 @@ export type ImageCostEstimate = CostEstimateBase<ImageProvider> & {
   costPerImageCents: number
 }
 
-export type EstimateImageCostOptions = {
-  geminiImageModels?: string[] | undefined
-  geminiImageModel?: string | undefined
-  openaiImageModels?: string[] | undefined
-  openaiImageModel?: string | undefined
-  grokImageModels?: string[] | undefined
-  grokImageModel?: string | undefined
-  bflImageModels?: string[] | undefined
-  bflImageModel?: string | undefined
-  recraftImageModels?: string[] | undefined
-  recraftImageModel?: string | undefined
-  replicateImageModels?: string[] | undefined
-  replicateImageModel?: string | undefined
-  lumalabsImageModels?: string[] | undefined
-  lumalabsImageModel?: string | undefined
-  falImageModels?: string[] | undefined
-  falImageModel?: string | undefined
-  imageSize?: string | undefined
-  imageQuality?: string | undefined
-  imageCount?: number | undefined
-}
+export type EstimateImageCostOptions = Pick<ProcessingOptions,
+  | 'geminiImageModels' | 'geminiImageModel' | 'openaiImageModels' | 'openaiImageModel'
+  | 'grokImageModels' | 'grokImageModel' | 'bflImageModels' | 'bflImageModel'
+  | 'recraftImageModels' | 'recraftImageModel' | 'replicateImageModels' | 'replicateImageModel'
+  | 'lumalabsImageModels' | 'lumalabsImageModel' | 'falImageModels' | 'falImageModel'
+  | 'imageSize' | 'imageQuality' | 'imageCount'
+>

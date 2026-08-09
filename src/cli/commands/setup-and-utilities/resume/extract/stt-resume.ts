@@ -1,3 +1,4 @@
+import { isRecord } from '~/utils/rest-client'
 import { join, resolve as resolvePath } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import * as l from '~/utils/app-logger/app-logger'
@@ -23,8 +24,6 @@ import { hasResumableProviderTargetWork, readProviderResumeTargetManifest, runPr
 import { aggregateExplicitPriceEstimate } from '~/utils/pricing/aggregate-pricing'
 import { buildSttEstimatesForTargets } from '~/utils/pricing/aggregate-pricing/stt-estimates'
 
-const isRecord = (value: unknown): value is Record<string, unknown> =>
-  typeof value === 'object' && value !== null && !Array.isArray(value)
 
 const assertStoredMissingSttTargetsAreActive = (
   targets: readonly SttTarget[]

@@ -1,3 +1,4 @@
+import { isRecord } from '~/utils/rest-client'
 import { join } from 'node:path'
 import type { ExistingSttRun, Step2Metadata, ProviderCompletionStatus, SttProviderFailureSummary, SttProviderState, SttProviderSuccess, SttRecordedProviderError, SttRequestedProvider, SttTarget, TranscriptionResult } from '~/types'
 import { parseStep2RuntimeMetadata } from '../async-lifecycle'
@@ -30,8 +31,6 @@ const STT_SERVICES = new Set<SttTarget['service']>([
   'youtube-captions'
 ])
 
-const isRecord = (value: unknown): value is Record<string, unknown> =>
-  typeof value === 'object' && value !== null && !Array.isArray(value)
 
 const isSttService = (value: unknown): value is SttTarget['service'] =>
   typeof value === 'string' && STT_SERVICES.has(value as SttTarget['service'])

@@ -1,3 +1,4 @@
+import { isRecord } from '~/utils/rest-client'
 import { createHash } from 'node:crypto'
 import { basename, extname } from 'node:path'
 import { extractHtmlToMarkdown } from '~/cli/commands/process-steps/step-2-extract/step-2-url/url-local/defuddle/run-defuddle-url'
@@ -416,8 +417,6 @@ const fetchUrl = async (url: string, fetchImpl: FetchFn): Promise<FetchUrlResult
   }
 }
 
-const isRecord = (value: unknown): value is Record<string, unknown> =>
-  typeof value === 'object' && value !== null && !Array.isArray(value)
 
 const readPreviousLinksRefreshMetadata = async (
   sidecarPath: string

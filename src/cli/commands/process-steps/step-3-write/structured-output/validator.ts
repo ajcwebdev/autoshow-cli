@@ -1,3 +1,4 @@
+import { isRecord } from '~/utils/rest-client'
 import * as v from 'valibot'
 import type { StructuredValidationContext, StructuredValidationResult, ValibotSchema } from '~/types'
 import { isSongLyricsPreset } from './preset-registry'
@@ -36,8 +37,6 @@ const parseJsonFromText = (raw: string): StructuredValidationResult => {
   }
 }
 
-const isRecord = (value: unknown): value is Record<string, unknown> =>
-  typeof value === 'object' && value !== null && !Array.isArray(value)
 
 const normalizeSongLyricsValue = (
   value: unknown,

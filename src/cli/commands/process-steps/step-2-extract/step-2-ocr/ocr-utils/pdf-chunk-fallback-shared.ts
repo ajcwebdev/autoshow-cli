@@ -1,6 +1,7 @@
 import { stat } from 'node:fs/promises'
 import type { OcrPdfChunkRange } from '~/types'
 import { collectErrorChain } from '~/utils/error-handler'
+import { isRecord } from '~/utils/rest-client'
 import { stripAnsi } from '../ocr-run-state'
 
 export const HOSTED_OCR_PDF_PAGE_FALLBACK_THRESHOLD = 20
@@ -12,8 +13,7 @@ export const HOSTED_OCR_PDF_PAGE_RESULTS_DIR = 'page-results'
 export const HOSTED_OCR_PDF_PARTIAL_TEXT_FILE = 'partial-extraction.txt'
 export const DEFAULT_RASTERIZED_PDF_CHUNK_DPI = 300
 
-export const isRecord = (value: unknown): value is Record<string, unknown> =>
-  typeof value === 'object' && value !== null && !Array.isArray(value)
+export { isRecord }
 
 export const getErrorMessage = (error: unknown): string => {
   const chain = collectErrorChain(error)

@@ -73,6 +73,34 @@ export const makeSingleProviderTtsRun = async (): Promise<{
   return { runDir, inputText }
 }
 
+export const makeAudioJudgeFixtureRun = async (): Promise<{
+  runDir: string
+  inputText: string
+  fixturesPath: string
+}> => {
+  const { runDir, inputText } = await makeSingleProviderTtsRun()
+  const fixturesPath = join(runDir, 'voice-quality-fixtures.json')
+  await writeJson(fixturesPath, {
+    providers: { 'openai/gpt-4o-mini-tts': { stt: { 'assemblyai/universal-2': inputText } } }
+  })
+  return { runDir, inputText, fixturesPath }
+}
+
+export const voiceQualityToolCallResponse = (argumentsJson: string): Response =>
+  new Response(JSON.stringify({
+    choices: [{
+      message: {
+        tool_calls: [{
+          type: 'function',
+          function: { name: 'record_tts_voice_quality', arguments: argumentsJson }
+        }]
+      }
+    }]
+  }), {
+    status: 200,
+    headers: { 'content-type': 'application/json' }
+  })
+
 export const buildSingleProviderReport = async (
   runDir: string,
   inputText: string,

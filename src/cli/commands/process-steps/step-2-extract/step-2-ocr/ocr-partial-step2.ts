@@ -1,43 +1,15 @@
+import { isRecord } from '~/utils/rest-client'
 import { readdir } from 'node:fs/promises'
 import { join } from 'node:path'
-import type { CollectPartialStep2Options, ExtractionMetadata, HostedOcrRun, OcrProviderFailureSummary, OcrTarget, PageResult, PartialExtractionFailureMetadata, PartialExtractionMetadata, PartialPageUsage } from '~/types'
+import type { CollectPartialStep2Options, ExtractionMetadata, OcrProviderFailureSummary, OcrTarget, PartialExtractionFailureMetadata, PartialExtractionMetadata, PartialPageUsage } from '~/types'
 import { ExtractionMetadataSchema } from '~/types'
 import { sanitizeLogText } from '~/utils/app-logger/redaction'
 import { estimateTokens } from '~/utils/text-utils'
 import { validateData } from '~/utils/validate/validation'
 import { getOcrTargetDirectoryName } from './ocr-targets'
+import { getUsageNumber, isHostedOcrRun, isPageResult } from './ocr-utils/hosted-ocr-utils'
 
 const PAGE_RESULTS_DIR = 'page-results'
-
-const isRecord = (value: unknown): value is Record<string, unknown> =>
-  typeof value === 'object' && value !== null && !Array.isArray(value)
-
-const isPageResult = (value: unknown): value is PageResult =>
-  isRecord(value)
-  && typeof value['pageNumber'] === 'number'
-  && (value['method'] === 'text' || value['method'] === 'ocr' || value['method'] === 'skipped')
-  && typeof value['text'] === 'string'
-
-const isHostedOcrRun = (value: unknown): value is HostedOcrRun =>
-  isRecord(value)
-  && Array.isArray(value['pages'])
-  && value['pages'].every(isPageResult)
-  && typeof value['extractionMethod'] === 'string'
-  && typeof value['ocrService'] === 'string'
-  && typeof value['ocrModel'] === 'string'
-
-const getUsageNumber = (
-  entry: Record<string, unknown>,
-  keys: readonly string[]
-): number | undefined => {
-  for (const key of keys) {
-    const value = entry[key]
-    if (typeof value === 'number' && Number.isFinite(value)) {
-      return value
-    }
-  }
-  return undefined
-}
 
 const collectUsageTokens = (
   usage: unknown

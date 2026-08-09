@@ -1,3 +1,4 @@
+import { isRecord } from '~/utils/rest-client'
 import { mkdir, readFile, rename, writeFile } from 'node:fs/promises'
 import { existsSync, readFileSync } from 'node:fs'
 import { homedir } from 'node:os'
@@ -29,8 +30,6 @@ const roundMetric = (value: number): number => {
   return Object.is(rounded, -0) ? 0 : rounded
 }
 
-const isRecord = (value: unknown): value is Record<string, unknown> =>
-  typeof value === 'object' && value !== null && !Array.isArray(value)
 
 const parseProfile = (value: unknown): HostedOcrThroughputProfile | undefined => {
   if (!isRecord(value)) {

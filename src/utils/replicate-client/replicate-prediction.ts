@@ -1,6 +1,6 @@
 import { REPLICATE_DEFAULT_BASE_URL } from '~/utils/base-urls'
 import { AppProviderError, InfraError, ValidationError } from '~/utils/error-handler'
-import { extractRestErrorMessage, joinRestUrl, parseJsonOrText, readRestResponseText } from '~/utils/rest-client'
+import { extractRestErrorMessage, isRecord, joinRestUrl, parseJsonOrText, readRestResponseText } from '~/utils/rest-client'
 import { classifyFetchRetry, isRetryableStatus, pollUntil, withRetry } from '~/utils/retries'
 import { MEDIA_GENERATION_TIMEOUT_MS } from '~/utils/timeouts'
 import type { ReplicatePrediction, RetryClass, RunReplicatePredictionOptions } from '~/types'
@@ -48,8 +48,6 @@ class ReplicateRestError extends AppProviderError {
   }
 }
 
-const isRecord = (value: unknown): value is Record<string, unknown> =>
-  typeof value === 'object' && value !== null && !Array.isArray(value)
 
 const normalizeStatus = (status: string | undefined): string =>
   status?.trim().toLowerCase() ?? ''

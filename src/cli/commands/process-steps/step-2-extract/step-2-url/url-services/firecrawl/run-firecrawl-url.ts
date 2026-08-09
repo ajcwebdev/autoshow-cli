@@ -1,6 +1,6 @@
 import * as l from '~/utils/app-logger/app-logger'
 import type { UrlArticleProviderAdapter, UrlArticleRunResult, UrlRequestOptions, WebArticleMetadata } from '~/types'
-import { byteLength, cleanString, countWords, ensureMeaningfulMarkdown, fallbackTitleFromSource, fetchUrlProviderJson, getUrlRequestTimeoutMs, isRecord, normalizeMarkdown, requireHostedUrlProviderApiKey, tryFetchRemoteHtml } from '../../url-utils'
+import { cleanString, countWords, fetchUrlProviderJson, finalizeUrlArticleResult, getUrlRequestTimeoutMs, isRecord, normalizeMarkdown, requireHostedUrlProviderApiKey } from '../../url-utils'
 import { InfraError, ValidationError } from '~/utils/error-handler'
 
 const FIRECRAWL_DEFAULT_API_URL = 'https://api.firecrawl.dev'
@@ -112,20 +112,7 @@ export const runFirecrawlUrl = async (
 ): Promise<UrlArticleRunResult> => {
   l.write('info', 'Using Firecrawl backend for article extraction')
   const firecrawlResult = await runFirecrawlScrape(source, options, baseUrl)
-  const htmlFallback = await tryFetchRemoteHtml(source)
-
-  const markdown = ensureMeaningfulMarkdown(firecrawlResult.markdown, 'firecrawl')
-  const web = { ...firecrawlResult.web }
-  if (sourceUrl) web.sourceUrl = sourceUrl
-  if (!web.finalUrl && htmlFallback?.finalUrl) web.finalUrl = htmlFallback.finalUrl
-
-  return {
-    markdown,
-    web,
-    fileSize: htmlFallback?.fileSize ?? byteLength(markdown),
-    title: firecrawlResult.web.title ?? fallbackTitleFromSource(source),
-    ...(firecrawlResult.web.author ? { author: firecrawlResult.web.author } : {})
-  }
+  return await finalizeUrlArticleResult(source, sourceUrl, 'firecrawl', firecrawlResult)
 }
 
 export const firecrawlArticleAdapter: UrlArticleProviderAdapter = {

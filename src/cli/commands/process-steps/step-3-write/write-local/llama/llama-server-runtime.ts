@@ -8,10 +8,8 @@ import {
 } from './llama-config'
 import { LLAMA_SERVER_STDERR_TAIL_LIMIT } from './llama-constants'
 import {
-  collectStreamTail,
-  parseDownloadInfo,
-  startDownloadProgressWatch,
-  stripAnsi
+  throwIfServerStartupFailed,
+  watchLlamaServerStderr
 } from './llama-download-progress'
 import {
   describeLlamaServerIdentity,
@@ -39,62 +37,17 @@ const startLlamaServer = async (target: LlamaServerTarget): Promise<LlamaServerI
     stdout: 'ignore',
     stderr: 'pipe'
   })
-  let stderrTail = ''
-  let stderrBuffer = ''
-  let stopDownloadWatch: (() => void) | null = null
-  const stopActiveDownloadWatch = (): void => {
-    if (stopDownloadWatch) {
-      stopDownloadWatch()
-      stopDownloadWatch = null
-    }
-  }
-  const cancelStderrReader = collectStreamTail(proc.stderr, chunk => {
-    stderrTail = (stderrTail + chunk).slice(-LLAMA_SERVER_STDERR_TAIL_LIMIT)
-
-    stderrBuffer += chunk
-    const lines = stderrBuffer.split(/[\r\n]+/)
-    stderrBuffer = lines.pop() || ''
-    for (const rawLine of lines) {
-      const line = stripAnsi(rawLine).trim()
-      if (!line) {
-        continue
-      }
-      const downloadInfo = parseDownloadInfo(line)
-      if (!downloadInfo) {
-        continue
-      }
-      stopActiveDownloadWatch()
-      l.write('info', `  llama model download started`)
-      stopDownloadWatch = startDownloadProgressWatch(downloadInfo)
-    }
-  })
+  const stderrWatch = watchLlamaServerStderr(proc.stderr, LLAMA_SERVER_STDERR_TAIL_LIMIT)
   proc.unref()
 
   const startTimeoutMs = getLlamaServerStartTimeoutMs()
   const healthResult = await waitForLlamaHealth(startTimeoutMs, proc)
-  stopActiveDownloadWatch()
-
-  cancelStderrReader()
-  if (!healthResult.healthy) {
-    const details = stderrTail.trim()
-    if (healthResult.reason === 'process_exit') {
-      const exitLabel = healthResult.exitCode ?? 'unknown'
-      throw InfraError(
-        details.length > 0
-          ? `llama-server exited before becoming healthy (exit code ${exitLabel}).\nllama-server stderr:\n${details}`
-          : `llama-server exited before becoming healthy (exit code ${exitLabel})`,
-        { stage: 'write:llama' }
-      )
-    }
-
-    const timeoutSeconds = Math.floor(startTimeoutMs / 1000)
-    throw InfraError(
-      details.length > 0
-        ? `llama-server failed to become healthy within ${timeoutSeconds} seconds.\nllama-server stderr (tail):\n${details}`
-        : `llama-server failed to become healthy within ${timeoutSeconds} seconds`,
-      { stage: 'write:llama' }
-    )
-  }
+  stderrWatch.stop()
+  throwIfServerStartupFailed(healthResult, stderrWatch.getTail(), startTimeoutMs, {
+    serverLabel: 'llama-server',
+    stderrLabel: 'llama-server',
+    stage: 'write:llama'
+  })
 
   const identity = await inspectRunningLlamaServer()
   if (!identity) {

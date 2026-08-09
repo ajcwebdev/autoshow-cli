@@ -28,81 +28,35 @@ const renderScalar = (value: MetadataScalar, indentLevel: number): string => {
   return `|-\n${value.split('\n').map(line => `${indent}${line}`).join('\n')}`
 }
 
+const renderEntry = (entry: unknown, prefix: string, indentLevel: number): string[] => {
+  if (Array.isArray(entry)) {
+    return entry.length === 0 ? [`${prefix} []`] : [prefix, renderArray(entry, indentLevel + 1)]
+  }
+  if (isPlainObject(entry)) {
+    const hasEntries = Object.values(entry).some((nested) => nested !== undefined)
+    return hasEntries ? [prefix, renderObject(entry, indentLevel + 1)] : [`${prefix} {}`]
+  }
+  if (isScalar(entry)) {
+    return [`${prefix} ${renderScalar(entry, indentLevel)}`]
+  }
+  return [`${prefix} '${escapeSingleQuotedString(String(entry))}'`]
+}
+
 const renderObject = (value: Record<string, unknown>, indentLevel: number): string => {
   const lines: string[] = []
-
   for (const [key, entry] of Object.entries(value)) {
-    if (entry === undefined) {
-      continue
+    if (entry !== undefined) {
+      lines.push(...renderEntry(entry, `${INDENT.repeat(indentLevel)}${key}:`, indentLevel))
     }
-
-    const indent = INDENT.repeat(indentLevel)
-    if (Array.isArray(entry)) {
-      if (entry.length === 0) {
-        lines.push(`${indent}${key}: []`)
-        continue
-      }
-      lines.push(`${indent}${key}:`)
-      lines.push(renderArray(entry, indentLevel + 1))
-      continue
-    }
-
-    if (isPlainObject(entry)) {
-      const objectEntries = Object.entries(entry).filter(([, nested]) => nested !== undefined)
-      if (objectEntries.length === 0) {
-        lines.push(`${indent}${key}: {}`)
-        continue
-      }
-      lines.push(`${indent}${key}:`)
-      lines.push(renderObject(entry, indentLevel + 1))
-      continue
-    }
-
-    if (!isScalar(entry)) {
-      lines.push(`${indent}${key}: '${escapeSingleQuotedString(String(entry))}'`)
-      continue
-    }
-
-    lines.push(`${indent}${key}: ${renderScalar(entry, indentLevel)}`)
   }
-
   return lines.join('\n')
 }
 
 const renderArray = (value: unknown[], indentLevel: number): string => {
-  const indent = INDENT.repeat(indentLevel)
   const lines: string[] = []
-
   for (const entry of value) {
-    if (Array.isArray(entry)) {
-      if (entry.length === 0) {
-        lines.push(`${indent}- []`)
-        continue
-      }
-      lines.push(`${indent}-`)
-      lines.push(renderArray(entry, indentLevel + 1))
-      continue
-    }
-
-    if (isPlainObject(entry)) {
-      const objectEntries = Object.entries(entry).filter(([, nested]) => nested !== undefined)
-      if (objectEntries.length === 0) {
-        lines.push(`${indent}- {}`)
-        continue
-      }
-      lines.push(`${indent}-`)
-      lines.push(renderObject(entry, indentLevel + 1))
-      continue
-    }
-
-    if (!isScalar(entry)) {
-      lines.push(`${indent}- '${escapeSingleQuotedString(String(entry))}'`)
-      continue
-    }
-
-    lines.push(`${indent}- ${renderScalar(entry, indentLevel)}`)
+    lines.push(...renderEntry(entry, `${INDENT.repeat(indentLevel)}-`, indentLevel))
   }
-
   return lines.join('\n')
 }
 

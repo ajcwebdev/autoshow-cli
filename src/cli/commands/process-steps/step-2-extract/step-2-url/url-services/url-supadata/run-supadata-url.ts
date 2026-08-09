@@ -2,7 +2,7 @@ import * as l from '~/utils/app-logger/app-logger'
 import { SUPADATA_DEFAULT_BASE_URL } from '~/utils/base-urls'
 import { readEnv } from '~/utils/validate/env-utils'
 import type { UrlArticleProviderAdapter, UrlArticleRunResult, UrlRequestOptions, WebArticleMetadata } from '~/types'
-import { byteLength, cleanString, countWords, ensureMeaningfulMarkdown, fallbackTitleFromSource, fetchUrlProviderJson, isRecord, normalizeMarkdown, tryFetchRemoteHtml } from '../../url-utils'
+import { cleanString, countWords, fetchUrlProviderJson, finalizeUrlArticleResult, isRecord, normalizeMarkdown } from '../../url-utils'
 import { InfraError, InternalError, ValidationError, hintsForMissingEnv } from '~/utils/error-handler'
 
 const parseSupadataResponse = (
@@ -79,20 +79,7 @@ export const runSupadataUrl = async (
 ): Promise<UrlArticleRunResult> => {
   l.write('info', 'Using Supadata backend for article extraction')
   const supadataResult = await runSupadataScrape(source, options, baseUrl)
-  const htmlFallback = await tryFetchRemoteHtml(source)
-
-  const markdown = ensureMeaningfulMarkdown(supadataResult.markdown, 'supadata')
-  const web = { ...supadataResult.web }
-  if (sourceUrl) web.sourceUrl = sourceUrl
-  if (!web.finalUrl && htmlFallback?.finalUrl) web.finalUrl = htmlFallback.finalUrl
-
-  return {
-    markdown,
-    web,
-    fileSize: htmlFallback?.fileSize ?? byteLength(markdown),
-    title: supadataResult.web.title ?? fallbackTitleFromSource(source),
-    ...(supadataResult.web.author ? { author: supadataResult.web.author } : {})
-  }
+  return await finalizeUrlArticleResult(source, sourceUrl, 'supadata', supadataResult)
 }
 
 export const supadataArticleAdapter: UrlArticleProviderAdapter = {

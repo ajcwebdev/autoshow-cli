@@ -1,3 +1,4 @@
+import { isRecord } from '~/utils/rest-client'
 import type { Step3Metadata, StructuredRequestOptions } from '~/types'
 import { CEREBRAS_DEFAULT_BASE_URL } from '~/utils/base-urls'
 import { CLIUsageError } from '~/utils/error-handler'
@@ -18,8 +19,6 @@ const CEREBRAS_UNSUPPORTED_SCHEMA_KEYS = new Set([
   'maxItems'
 ])
 
-const isRecord = (value: unknown): value is Record<string, unknown> =>
-  typeof value === 'object' && value !== null && !Array.isArray(value)
 
 export const sanitizeCerebrasStructuredSchema = (schema: Record<string, unknown>): Record<string, unknown> => {
   const sanitize = (node: unknown): unknown => {

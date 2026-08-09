@@ -1,3 +1,4 @@
+import { isRecord } from '~/utils/rest-client'
 import { join } from 'node:path'
 import type { ShowNoteArtifactResult, Step3Metadata, Step4Metadata, Step5Metadata, Step6VideoMetadata, Step7MusicMetadata, StructuredRunResult } from '~/types'
 import { isSongLyricsPreset } from './structured-output/preset-registry'
@@ -44,8 +45,6 @@ const humanizeKey = (value: string): string => {
     .replace(/^./, (char) => char.toUpperCase())
 }
 
-const isRecord = (value: unknown): value is Record<string, unknown> =>
-  typeof value === 'object' && value !== null && !Array.isArray(value)
 
 const renderPrimitiveList = (items: unknown[]): string | undefined => {
   if (!items.every((item) => ['string', 'number', 'boolean'].includes(typeof item))) {

@@ -1,6 +1,6 @@
 import * as l from '~/utils/app-logger/app-logger'
 import type { UrlArticleProviderAdapter, UrlArticleRunResult, UrlRequestOptions, WebArticleMetadata } from '~/types'
-import { byteLength, cleanString, countWords, ensureMeaningfulMarkdown, fallbackTitleFromSource, fetchUrlProviderJson, isRecord, normalizeMarkdown, requireHostedUrlProviderApiKey, tryFetchRemoteHtml } from '../../url-utils'
+import { cleanString, countWords, fetchUrlProviderJson, finalizeUrlArticleResult, isRecord, normalizeMarkdown, requireHostedUrlProviderApiKey } from '../../url-utils'
 import { ValidationError } from '~/utils/error-handler'
 
 const ZYTE_DEFAULT_API_URL = 'https://api.zyte.com'
@@ -129,20 +129,7 @@ export const runZyteUrl = async (
 ): Promise<UrlArticleRunResult> => {
   l.write('info', 'Using Zyte backend for article extraction')
   const zyteResult = await runZyteExtract(source, options, baseUrl)
-  const htmlFallback = await tryFetchRemoteHtml(source)
-
-  const markdown = ensureMeaningfulMarkdown(zyteResult.markdown, 'zyte')
-  const web = { ...zyteResult.web }
-  if (sourceUrl) web.sourceUrl = sourceUrl
-  if (!web.finalUrl && htmlFallback?.finalUrl) web.finalUrl = htmlFallback.finalUrl
-
-  return {
-    markdown,
-    web,
-    fileSize: htmlFallback?.fileSize ?? byteLength(markdown),
-    title: zyteResult.web.title ?? fallbackTitleFromSource(source),
-    ...(zyteResult.web.author ? { author: zyteResult.web.author } : {})
-  }
+  return await finalizeUrlArticleResult(source, sourceUrl, 'zyte', zyteResult)
 }
 
 export const zyteArticleAdapter: UrlArticleProviderAdapter = {

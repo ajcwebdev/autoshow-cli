@@ -1,6 +1,7 @@
+import { isRecord } from '~/utils/rest-client'
 import { mkdir, stat } from 'node:fs/promises'
 import { basename, join } from 'node:path'
-import type { DocumentMetadata, ExtractionOptions, HostedOcrImageResult, HostedOcrSchedulerRetryPressureHandler, HostedOcrService, PageResult, StoredRenderedHostedOcrPage } from '~/types'
+import type { DocumentMetadata, ExtractionOptions, HostedOcrImageResult, HostedOcrRun, HostedOcrSchedulerRetryPressureHandler, HostedOcrService, PageResult, StoredRenderedHostedOcrPage } from '~/types'
 import * as l from '~/utils/app-logger/app-logger'
 import { ValidationError } from '~/utils/error-handler'
 import { runHostedOcrSchedulerAdmission } from './hosted-ocr-scheduler'
@@ -108,15 +109,32 @@ const createHostedOcrUsageAccumulator = (): {
   }
 }
 
-const isRecord = (value: unknown): value is Record<string, unknown> =>
-  typeof value === 'object' && value !== null && !Array.isArray(value)
 
-const isPageResult = (value: unknown): value is PageResult =>
+export const isPageResult = (value: unknown): value is PageResult =>
   isRecord(value)
   && typeof value['pageNumber'] === 'number'
   && (value['method'] === 'text' || value['method'] === 'ocr' || value['method'] === 'skipped')
   && typeof value['text'] === 'string'
   && (value['confidence'] === undefined || typeof value['confidence'] === 'number')
+
+export const isHostedOcrRun = (value: unknown): value is HostedOcrRun =>
+  isRecord(value)
+  && Array.isArray(value['pages'])
+  && value['pages'].every(isPageResult)
+  && typeof value['extractionMethod'] === 'string'
+  && typeof value['ocrService'] === 'string'
+  && typeof value['ocrModel'] === 'string'
+
+export const getUsageNumber = (
+  entry: Record<string, unknown>,
+  keys: readonly string[]
+): number | undefined => {
+  for (const key of keys) {
+    const value = entry[key]
+    if (typeof value === 'number' && Number.isFinite(value)) return value
+  }
+  return undefined
+}
 
 const isHostedOcrImageResult = (value: unknown): value is HostedOcrImageResult =>
   isRecord(value)

@@ -1,3 +1,4 @@
+import { isRecord } from '~/utils/rest-client'
 import { mkdir } from 'node:fs/promises'
 import { join, resolve as resolvePath } from 'node:path'
 import { readBatchManifest } from '~/cli/commands/process-steps/manifest-utils'
@@ -32,8 +33,6 @@ import * as l from '~/utils/app-logger/app-logger'
 import { InfraError, ValidationError } from '~/utils/error-handler'
 import { logResumeItem, logResumeSummary } from '../resume-logging'
 
-const isRecord = (value: unknown): value is Record<string, unknown> =>
-  typeof value === 'object' && value !== null && !Array.isArray(value)
 
 const EXPLICIT_URL_SELECTION_FILTER = {
   includeOrigins: ['explicit', 'all-shortcut']

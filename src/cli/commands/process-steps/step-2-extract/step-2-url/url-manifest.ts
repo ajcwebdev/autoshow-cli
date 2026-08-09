@@ -1,7 +1,6 @@
+import { isRecord } from '~/utils/rest-client'
 import { readRunManifestEntry, writeRunManifest } from '../../manifest-utils'
 
-const isRecord = (value: unknown): value is Record<string, unknown> =>
-  typeof value === 'object' && value !== null && !Array.isArray(value)
 
 const isUrlArticleManifestEntry = (
   metadata: Record<string, unknown>

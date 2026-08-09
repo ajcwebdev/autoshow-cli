@@ -1,8 +1,7 @@
+import { isRecord } from '~/utils/rest-client'
 import { join } from 'node:path'
 import type { BatchManifest, BatchManifestEntry, BatchManifestKind, ExtractBatchManifest, ExtractBatchManifestItem, ExtractRoute, ProviderResult, RunManifest, RunManifestKind } from '~/types'
 
-const isRecord = (value: unknown): value is Record<string, unknown> =>
-  typeof value === 'object' && value !== null && !Array.isArray(value)
 
 const parseRunManifest = (
   value: unknown,

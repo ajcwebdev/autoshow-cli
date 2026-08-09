@@ -1,3 +1,4 @@
+import { isRecord } from '~/utils/rest-client'
 import { mkdir, stat } from 'node:fs/promises'
 import { join } from 'node:path'
 import * as l from '~/utils/app-logger/app-logger'
@@ -27,8 +28,6 @@ import { computeActualCosts } from '~/utils/pricing/compute-actual-costs'
 import { computeActualProcessingTimes, computeEstimatedProcessingTimes } from '~/utils/pricing/compute-processing-time'
 import type { AggregatedPriceEstimate, BatchChildRunContext, DocumentMetadata, ExtractionMetadata, ExtractionOptions, ExtractionResult, HtmlArticleBackend, RuntimeOptions, UrlArticleBackendPlan, UrlArticleRunResult, UrlProviderFailure, UrlProviderRunOutcome, UrlProviderState, UrlProviderSuccess, UrlRequestOptions, WebArticleMetadata } from '~/types'
 
-const isRecord = (value: unknown): value is Record<string, unknown> =>
-  typeof value === 'object' && value !== null && !Array.isArray(value)
 
 const readLocalHtmlFileSize = async (source: string): Promise<number | undefined> => {
   if (isRemoteSource(source)) {

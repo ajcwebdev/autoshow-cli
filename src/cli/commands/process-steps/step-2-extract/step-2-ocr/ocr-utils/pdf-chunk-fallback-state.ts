@@ -1,6 +1,6 @@
 import { mkdir, rm } from 'node:fs/promises'
 import { basename, join } from 'node:path'
-import type { FallbackAuditState, HostedOcrRun, InitialFallbackReason, OcrPdfChunkRange, PageResult, PdfChunkPreparationSummary, RunHostedOcrPdfChunkFallbackOptions, StoredHostedOcrFallbackPage } from '~/types'
+import type { FallbackAuditState, HostedOcrRun, InitialFallbackReason, OcrPdfChunkRange, PdfChunkPreparationSummary, RunHostedOcrPdfChunkFallbackOptions, StoredHostedOcrFallbackPage } from '~/types'
 import { ValidationError } from '~/utils/error-handler'
 import * as l from '~/utils/app-logger/app-logger'
 import { sanitizeLogMetadata, sanitizeLogText } from '~/utils/app-logger/redaction'
@@ -23,21 +23,7 @@ import {
   getFallbackStatePath
 } from './pdf-chunk-fallback-paths'
 import { summarizeFallbackAudit } from './pdf-chunk-fallback-audit'
-
-const isPageResult = (value: unknown): value is PageResult =>
-  isRecord(value)
-  && typeof value['pageNumber'] === 'number'
-  && (value['method'] === 'text' || value['method'] === 'ocr' || value['method'] === 'skipped')
-  && typeof value['text'] === 'string'
-  && (value['confidence'] === undefined || typeof value['confidence'] === 'number')
-
-const isHostedOcrRun = (value: unknown): value is HostedOcrRun =>
-  isRecord(value)
-  && Array.isArray(value['pages'])
-  && value['pages'].every(isPageResult)
-  && typeof value['extractionMethod'] === 'string'
-  && typeof value['ocrService'] === 'string'
-  && typeof value['ocrModel'] === 'string'
+import { isHostedOcrRun } from './hosted-ocr-utils'
 
 const parseStoredFallbackPage = (
   value: unknown,

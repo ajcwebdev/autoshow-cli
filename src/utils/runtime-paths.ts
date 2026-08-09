@@ -1,8 +1,15 @@
 import { existsSync } from 'node:fs'
-import { join, resolve } from 'node:path'
+import { basename, extname, isAbsolute, join, relative, resolve } from 'node:path'
 import type { ResolvedRuntimeTool, ResolveRuntimeToolOptions, RuntimeToolId } from '~/types'
 
 export const PROJECT_ROOT = resolve(import.meta.dir, '../..')
+export const toPosixPath = (value: string): string => value.replace(/\\/g, '/')
+export const toProjectDisplayPath = (absolutePath: string): string => {
+  const rel = relative(PROJECT_ROOT, absolutePath)
+  return rel.length === 0 || rel.startsWith('..') || isAbsolute(rel) ? absolutePath : toPosixPath(rel)
+}
+export const resolveUserPath = (value: string): string => resolve(PROJECT_ROOT, value)
+export const baseStem = (filePath: string): string => basename(filePath, extname(filePath))
 export const RUNTIME_DIR = join(PROJECT_ROOT, 'runtime')
 export const RUNTIME_BIN_DIR = join(RUNTIME_DIR, 'bin')
 export const RUNTIME_BUILD_DIR = join(RUNTIME_DIR, 'build')

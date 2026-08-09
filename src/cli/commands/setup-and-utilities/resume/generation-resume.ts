@@ -1,3 +1,4 @@
+import { isRecord } from '~/utils/rest-client'
 import * as l from '~/utils/app-logger/app-logger'
 import { readRunManifest, writeRunManifest } from '~/cli/commands/process-steps/manifest-utils'
 import { getGenerationTargetKey } from '~/cli/commands/process-steps/generation-command-utils'
@@ -6,8 +7,6 @@ import { getResumeProviderKey, resolveAdditiveResumeProviderSelection, uniqueRes
 import { CLIUsageError, InfraError } from '~/utils/error-handler'
 import { aggregateExplicitPriceEstimate } from '~/utils/pricing/aggregate-pricing'
 import type { AdditiveResumeProviderSelection, AggregatedPriceEstimate, GenerationResumeConfig, ResumeDisplayOptions, ProviderIdentity, ResumeResult, ResumeTarget, RunManifest, RuntimeOptions } from '~/types'
-const isRecord = (value: unknown): value is Record<string, unknown> =>
-  typeof value === 'object' && value !== null && !Array.isArray(value)
 
 export const buildUpdatedGenerationCostTiming = (
   currentMetadata: Record<string, unknown>,

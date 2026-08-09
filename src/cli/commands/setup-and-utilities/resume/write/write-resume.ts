@@ -1,3 +1,4 @@
+import { isRecord } from '~/utils/rest-client'
 import { readdir } from 'node:fs/promises'
 import { join } from 'node:path'
 import * as l from '~/utils/app-logger/app-logger'
@@ -67,8 +68,6 @@ const EXTRACT_ESTIMATE_PROVIDERS = new Set<ExtractEstimateTarget['provider']>([
   'zyte'
 ])
 
-const isRecord = (value: unknown): value is Record<string, unknown> =>
-  typeof value === 'object' && value !== null && !Array.isArray(value)
 
 const isStep3Metadata = (value: unknown): value is Step3Metadata =>
   isRecord(value)

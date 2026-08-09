@@ -1,3 +1,4 @@
+import { isRecord } from '~/utils/rest-client'
 import { resolve as resolvePath } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { DocumentMetadataSchema } from '~/types'
@@ -18,8 +19,6 @@ import { hasResumableProviderTargetWork, readProviderResumeTargetManifest, runPr
 import { aggregateExplicitPriceEstimate } from '~/utils/pricing/aggregate-pricing'
 import { buildExtractEstimates } from '~/utils/pricing/aggregate-pricing/extract-estimates'
 
-const isRecord = (value: unknown): value is Record<string, unknown> =>
-  typeof value === 'object' && value !== null && !Array.isArray(value)
 
 const resolveStoredOutputDir = async (
   entry: Record<string, unknown>

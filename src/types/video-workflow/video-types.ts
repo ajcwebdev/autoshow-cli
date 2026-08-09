@@ -23,33 +23,16 @@ export type VideoCostEstimate = CostEstimateBase<VideoProvider> & {
   costPerSecond: number
 }
 
-export type EstimateVideoCostOptions = {
-  geminiVideoModels?: string[] | undefined
-  geminiVideoModel?: string | undefined
-  minimaxVideoModels?: string[] | undefined
-  minimaxVideoModel?: string | undefined
-  glmVideoModels?: string[] | undefined
-  glmVideoModel?: string | undefined
-  grokVideoModels?: string[] | undefined
-  grokVideoModel?: string | undefined
-  runwayVideoModels?: string[] | undefined
-  runwayVideoModel?: string | undefined
-  ltxVideoModels?: string[] | undefined
-  ltxVideoModel?: string | undefined
-  replicateVideoModels?: string[] | undefined
-  replicateVideoModel?: string | undefined
-  lumalabsVideoModels?: string[] | undefined
-  lumalabsVideoModel?: string | undefined
-  falVideoModels?: string[] | undefined
-  falVideoModel?: string | undefined
-  videoDuration?: number | undefined
-  videoSize?: string | undefined
-  videoAspectRatio?: string | undefined
-  videoResolution?: string | undefined
-  videoMode?: string | undefined
+export type EstimateVideoCostOptions = Pick<ProcessingOptions,
+  | 'geminiVideoModels' | 'geminiVideoModel' | 'minimaxVideoModels' | 'minimaxVideoModel'
+  | 'glmVideoModels' | 'glmVideoModel' | 'grokVideoModels' | 'grokVideoModel'
+  | 'runwayVideoModels' | 'runwayVideoModel' | 'ltxVideoModels' | 'ltxVideoModel'
+  | 'replicateVideoModels' | 'replicateVideoModel' | 'lumalabsVideoModels' | 'lumalabsVideoModel'
+  | 'falVideoModels' | 'falVideoModel' | 'videoDuration' | 'videoSize'
+  | 'videoAspectRatio' | 'videoResolution' | 'videoMode' | 'replicateVideoGenerateAudio'
+> & {
   grokInputImageCount?: number | undefined
   grokInputVideoDurationSeconds?: number | undefined
   replicateVideoReferenceVideoCount?: number | undefined
-  replicateVideoGenerateAudio?: boolean | undefined
   replicateInputVideoDurationSeconds?: number | undefined
 }

@@ -3,9 +3,19 @@ import { join } from 'node:path'
 import type { LlamafileServerState, LocalLlmServerResourceOptions } from '~/types'
 import * as l from '~/utils/app-logger/app-logger'
 import { InfraError } from '~/utils/error-handler'
-import { pollUntil } from '~/utils/retries'
 import { resolveProcessLockRoot } from '~/utils/process-lock'
-import { collectStreamTail, stripAnsi } from '../llama/llama-download-progress'
+import {
+  collectStreamTail,
+  stripAnsi,
+  throwIfServerStartupFailed
+} from '../llama/llama-download-progress'
+import {
+  checkLocalServerHealthQuiet,
+  getErrorCode,
+  isPidRunning,
+  waitForLocalServerHealth,
+  waitForLocalServerHealthState
+} from '../local-server-health'
 import { ensureLlamafileBundleDownloaded } from './llamafile-download'
 import {
   DEFAULT_LLAMAFILE_SERVER_START_TIMEOUT_MS,
@@ -17,9 +27,6 @@ import {
   LLAMAFILE_SERVER_STOP_TIMEOUT_MS,
   LLAMAFILE_STATE_FILE_NAME
 } from './llamafile-constants'
-
-const getErrorCode = (error: unknown): string | undefined =>
-  error instanceof Error && 'code' in error ? (error as Error & { code?: string }).code : undefined
 
 const getStatePath = (options: LocalLlmServerResourceOptions = {}): string =>
   join(resolveProcessLockRoot(options), LLAMAFILE_STATE_FILE_NAME)
@@ -56,30 +63,8 @@ const clearState = async (options: LocalLlmServerResourceOptions = {}): Promise<
   await rm(getStatePath(options), { force: true })
 }
 
-const isPidRunning = (pid: number): boolean => {
-  try {
-    process.kill(pid, 0)
-    return true
-  } catch (error) {
-    return getErrorCode(error) === 'EPERM'
-  }
-}
-
-export const checkLlamafileHealthQuiet = async (): Promise<boolean> => {
-  try {
-    const response = await fetch(`${LLAMAFILE_BASE_URL}/health`, {
-      method: 'GET',
-      signal: AbortSignal.timeout(2000)
-    })
-    if (!response.ok) {
-      return false
-    }
-    const body = await response.json() as { status?: string }
-    return body?.status === 'ok'
-  } catch {
-    return false
-  }
-}
+export const checkLlamafileHealthQuiet = async (): Promise<boolean> =>
+  await checkLocalServerHealthQuiet(LLAMAFILE_BASE_URL)
 
 // The chat completions endpoint serves whatever model the bundle loaded. We query
 // /v1/models to report the server's own id; if unavailable we fall back to the alias.
@@ -97,71 +82,6 @@ const resolveLlamafileRequestModel = async (fallback: string): Promise<string> =
     return typeof id === 'string' && id.trim().length > 0 ? id : fallback
   } catch {
     return fallback
-  }
-}
-
-const waitForHealthState = async (healthy: boolean, timeoutMs: number): Promise<boolean> => {
-  try {
-    await pollUntil({
-      operationName: healthy ? 'llamafile-server-wait-healthy' : 'llamafile-server-wait-stopped',
-      intervalMs: 250,
-      deadlineMs: timeoutMs,
-      pollFn: async () => await checkLlamafileHealthQuiet(),
-      isDone: (result) => result === healthy
-    })
-    return true
-  } catch {
-    return false
-  }
-}
-
-const waitForLlamafileHealth = async (
-  timeoutMs: number,
-  proc: ReturnType<typeof Bun.spawn>
-): Promise<
-  | { healthy: true }
-  | { healthy: false, reason: 'timeout' }
-  | { healthy: false, reason: 'process_exit', exitCode: number | null }
-> => {
-  const startedAt = Date.now()
-  let lastHeartbeatAt = startedAt
-  let exitCode: number | null = null
-
-  void proc.exited.then(code => {
-    exitCode = code
-  }).catch(() => {
-    exitCode = -1
-  })
-
-  try {
-    await pollUntil({
-      operationName: 'llamafile-server-health',
-      intervalMs: LLAMAFILE_SERVER_HEALTH_POLL_INTERVAL_MS,
-      deadlineMs: timeoutMs,
-      pollFn: async () => {
-        const healthy = await checkLlamafileHealthQuiet()
-        const now = Date.now()
-        if ((now - lastHeartbeatAt) >= LLAMAFILE_SERVER_HEALTH_HEARTBEAT_MS) {
-          const elapsedSec = Math.floor((now - startedAt) / 1000)
-          l.debug(`waiting for llamafile server to become healthy (${elapsedSec}s elapsed)`)
-          lastHeartbeatAt = now
-        }
-        return { healthy, exitCode }
-      },
-      isDone: (result) => result.healthy,
-      isFailed: (result) => {
-        if (result.exitCode !== null) {
-          return { failed: true, reason: `process exited with code ${result.exitCode}` }
-        }
-        return { failed: false }
-      }
-    })
-    return { healthy: true }
-  } catch {
-    if (exitCode !== null) {
-      return { healthy: false, reason: 'process_exit', exitCode }
-    }
-    return { healthy: false, reason: 'timeout' }
   }
 }
 
@@ -186,7 +106,12 @@ const stopRecordedLlamafileServer = async (options: LocalLlmServerResourceOption
     throw error
   }
 
-  if (await waitForHealthState(false, LLAMAFILE_SERVER_STOP_TIMEOUT_MS)) {
+  if (await waitForLocalServerHealthState({
+    baseUrl: LLAMAFILE_BASE_URL,
+    healthy: false,
+    operationName: 'llamafile-server-wait-stopped',
+    timeoutMs: LLAMAFILE_SERVER_STOP_TIMEOUT_MS
+  })) {
     await clearState(options)
     return true
   }
@@ -198,7 +123,12 @@ const stopRecordedLlamafileServer = async (options: LocalLlmServerResourceOption
       throw error
     }
   }
-  await waitForHealthState(false, LLAMAFILE_SERVER_STOP_TIMEOUT_MS)
+  await waitForLocalServerHealthState({
+    baseUrl: LLAMAFILE_BASE_URL,
+    healthy: false,
+    operationName: 'llamafile-server-wait-stopped',
+    timeoutMs: LLAMAFILE_SERVER_STOP_TIMEOUT_MS
+  })
   await clearState(options)
   return true
 }
@@ -227,28 +157,20 @@ const startLlamafileServer = async (bundlePath: string, model: string): Promise<
   })
   proc.unref()
 
-  const healthResult = await waitForLlamafileHealth(DEFAULT_LLAMAFILE_SERVER_START_TIMEOUT_MS, proc)
+  const healthResult = await waitForLocalServerHealth(DEFAULT_LLAMAFILE_SERVER_START_TIMEOUT_MS, proc, {
+    baseUrl: LLAMAFILE_BASE_URL,
+    operationName: 'llamafile-server-health',
+    pollIntervalMs: LLAMAFILE_SERVER_HEALTH_POLL_INTERVAL_MS,
+    heartbeatMs: LLAMAFILE_SERVER_HEALTH_HEARTBEAT_MS,
+    label: 'llamafile server'
+  })
   cancelStderrReader()
 
-  if (!healthResult.healthy) {
-    const details = stderrTail.trim()
-    if (healthResult.reason === 'process_exit') {
-      const exitLabel = healthResult.exitCode ?? 'unknown'
-      throw InfraError(
-        details.length > 0
-          ? `llamafile server exited before becoming healthy (exit code ${exitLabel}).\nllamafile stderr:\n${details}`
-          : `llamafile server exited before becoming healthy (exit code ${exitLabel})`,
-        { stage: 'write:llamafile' }
-      )
-    }
-    const timeoutSeconds = Math.floor(DEFAULT_LLAMAFILE_SERVER_START_TIMEOUT_MS / 1000)
-    throw InfraError(
-      details.length > 0
-        ? `llamafile server failed to become healthy within ${timeoutSeconds} seconds.\nllamafile stderr (tail):\n${details}`
-        : `llamafile server failed to become healthy within ${timeoutSeconds} seconds`,
-      { stage: 'write:llamafile' }
-    )
-  }
+  throwIfServerStartupFailed(healthResult, stderrTail, DEFAULT_LLAMAFILE_SERVER_START_TIMEOUT_MS, {
+    serverLabel: 'llamafile server',
+    stderrLabel: 'llamafile',
+    stage: 'write:llamafile'
+  })
 
   await writeState(proc.pid, model)
   const requestModel = await resolveLlamafileRequestModel(model)

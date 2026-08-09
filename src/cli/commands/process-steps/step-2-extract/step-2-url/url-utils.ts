@@ -1,9 +1,10 @@
 import { stat } from 'node:fs/promises'
 import { basename, resolve as pathResolve } from 'node:path'
-import type { FetchRemoteHtmlOptions, HtmlArticleBackend, LocalHtmlReadResult, RemoteHtmlFetchResult, UrlRequestOptions } from '~/types'
+import type { FetchRemoteHtmlOptions, HtmlArticleBackend, LocalHtmlReadResult, RemoteHtmlFetchResult, UrlArticleRunResult, UrlRequestOptions, WebArticleMetadata } from '~/types'
 import { isAbortError } from '~/utils/retries'
 import { readEnv } from '~/utils/validate/env-utils'
 import { InfraError, InternalError, ValidationError, hintsForMissingEnv } from '~/utils/error-handler'
+import { isRecord } from '~/utils/rest-client'
 
 const HTML_FETCH_TIMEOUT_MS = 15000
 export const DEFAULT_URL_REQUEST_TIMEOUT_MS = 60000
@@ -12,8 +13,7 @@ export const DEFAULT_URL_REQUEST_ATTEMPTS = 3
 const MIN_MEANINGFUL_MARKDOWN_CHARS = 50
 const ARTICLE_FETCH_USER_AGENT = 'Mozilla/5.0 (compatible; autoshow-cli/0.1; +https://github.com/ajcwebdev/autoshow-cli)'
 
-export const isRecord = (value: unknown): value is Record<string, unknown> =>
-  typeof value === 'object' && value !== null && !Array.isArray(value)
+export { isRecord }
 
 export const cleanString = (value: unknown): string | undefined => {
   if (typeof value !== 'string') {
@@ -245,6 +245,26 @@ export const tryFetchRemoteHtml = async (
     return await fetchRemoteHtml(source)
   } catch {
     return null
+  }
+}
+
+export const finalizeUrlArticleResult = async (
+  source: string,
+  sourceUrl: string | undefined,
+  backend: HtmlArticleBackend,
+  scraped: { markdown: string, web: WebArticleMetadata }
+): Promise<UrlArticleRunResult> => {
+  const htmlFallback = await tryFetchRemoteHtml(source)
+  const markdown = ensureMeaningfulMarkdown(scraped.markdown, backend)
+  const web = { ...scraped.web }
+  if (sourceUrl) web.sourceUrl = sourceUrl
+  if (!web.finalUrl && htmlFallback?.finalUrl) web.finalUrl = htmlFallback.finalUrl
+  return {
+    markdown,
+    web,
+    fileSize: htmlFallback?.fileSize ?? byteLength(markdown),
+    title: scraped.web.title ?? fallbackTitleFromSource(source),
+    ...(scraped.web.author ? { author: scraped.web.author } : {})
   }
 }
 

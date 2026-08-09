@@ -1,3 +1,4 @@
+import { isRecord } from '~/utils/rest-client'
 import { basename, extname } from 'node:path'
 import { concatAndConvertToWav, convertAudioToWav, runTtsChunks, splitTextIntoChunks } from '~/cli/commands/process-steps/step-4-tts/tts-utils/audio-utils'
 import { finalizeTtsRun } from '~/cli/commands/process-steps/step-4-tts/tts-utils/finalize-tts-run'
@@ -15,8 +16,6 @@ import { CLIUsageError, InfraError, InternalError, ValidationError } from '~/uti
 const REQUEST_TIMEOUT_MS = MEDIA_GENERATION_TIMEOUT_MS
 const MISTRAL_REF_AUDIO_DIRECT_EXTENSIONS = new Set(['.mp3', '.mpeg', '.mpga', '.wav', '.wave'])
 
-const isRecord = (value: unknown): value is Record<string, unknown> =>
-  typeof value === 'object' && value !== null && !Array.isArray(value)
 
 const readStringField = (payload: unknown, field: string, label: string): string => {
   if (isRecord(payload) && typeof payload[field] === 'string') {

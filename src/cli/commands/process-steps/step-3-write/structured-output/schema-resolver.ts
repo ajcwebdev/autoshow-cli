@@ -1,3 +1,4 @@
+import { isRecord } from '~/utils/rest-client'
 import * as v from 'valibot'
 import { toJsonSchema } from '@valibot/to-json-schema'
 import type { ResolvedLeafPrompt, ResolvedStructuredSchema, ValibotSchema } from '~/types'
@@ -10,8 +11,6 @@ const sanitizeSchemaName = (name: string): string => {
   return sanitized.length > 0 ? sanitized : 'structured_output'
 }
 
-const isRecord = (value: unknown): value is Record<string, unknown> =>
-  typeof value === 'object' && value !== null && !Array.isArray(value)
 
 const includesObjectType = (typeValue: unknown): boolean => {
   if (typeValue === 'object') return true

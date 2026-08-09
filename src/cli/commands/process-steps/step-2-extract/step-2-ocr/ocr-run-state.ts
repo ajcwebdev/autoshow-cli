@@ -1,3 +1,4 @@
+import { isRecord } from '~/utils/rest-client'
 import { join } from 'node:path'
 import type { ExistingOcrRun, ExtractionMetadata, ExtractionResult, ProviderCompletionStatus, OcrProviderErrorLike, OcrProviderFailureCategory, OcrProviderFailureKind, OcrProviderFailureSummary, OcrProviderState, OcrProviderSuccess, OcrRecordedProviderError, OcrRequestedProvider, OcrTarget } from '~/types'
 import { ExtractionMetadataSchema, ExtractionResultSchema } from '~/types'
@@ -10,8 +11,6 @@ import { readOcrRunManifestEntry } from './ocr-manifest'
 import { getOcrTargetDirectoryName } from './ocr-targets'
 import { classifyOcrFailureSummary } from './ocr-utils/ocr-failure-classifier'
 
-const isRecord = (value: unknown): value is Record<string, unknown> =>
-  typeof value === 'object' && value !== null && !Array.isArray(value)
 
 const ANSI_PATTERN = /\x1B(?:[@-Z\\-_]|\[[0-?]*[ -/]*[@-~])/g
 const OCR_PROVIDER_FAILURE_CATEGORIES = new Set<OcrProviderFailureCategory>([

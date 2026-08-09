@@ -1,9 +1,8 @@
+import { isRecord } from '~/utils/rest-client'
 import type { OcrFailureClassification, OcrFailureClassificationInput, OcrProviderFailureCategory, OcrProviderFailureKind, OcrTarget } from '~/types'
 import { extractErrorMetadata } from '~/utils/error-handler'
 import { sanitizeLogText } from '~/utils/app-logger/redaction'
 
-const isRecord = (value: unknown): value is Record<string, unknown> =>
-  typeof value === 'object' && value !== null && !Array.isArray(value)
 
 const toSearchText = (value: unknown): string => {
   if (value === undefined || value === null) {
