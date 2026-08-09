@@ -2,6 +2,7 @@ import type { Step2Metadata, TranscriptionEvidenceWord, TranscriptionSegment } f
 
 export type HostedSttFinalizeOptions = {
   provider: Step2Metadata['transcriptionService']
+  lifecycleProvider?: string | undefined
   model: string
   outputDir: string
   segmentNumber?: number | undefined

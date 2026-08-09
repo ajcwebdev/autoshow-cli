@@ -1,8 +1,11 @@
 import { stat } from 'node:fs/promises'
 import { basename, resolve as pathResolve } from 'node:path'
-import type { FetchRemoteHtmlOptions, HtmlArticleBackend, LocalHtmlReadResult, RemoteHtmlFetchResult, UrlRequestOptions } from '~/types'
+import * as l from '~/utils/app-logger/app-logger'
+import type { FetchRemoteHtmlOptions, HtmlArticleBackend, LocalHtmlReadResult, RemoteHtmlFetchResult, UrlArticleRunResult, UrlRequestOptions, WebArticleMetadata } from '~/types'
 import { isAbortError } from '~/utils/retries'
-import { InfraError, ValidationError } from '~/utils/error-handler'
+import { readEnv } from '~/utils/validate/env-utils'
+import { InfraError, InternalError, ValidationError, hintsForMissingEnv } from '~/utils/error-handler'
+import { isRecord } from '~/utils/rest-client'
 
 const HTML_FETCH_TIMEOUT_MS = 15000
 export const DEFAULT_URL_REQUEST_TIMEOUT_MS = 60000
@@ -11,8 +14,7 @@ export const DEFAULT_URL_REQUEST_ATTEMPTS = 3
 const MIN_MEANINGFUL_MARKDOWN_CHARS = 50
 const ARTICLE_FETCH_USER_AGENT = 'Mozilla/5.0 (compatible; autoshow-cli/0.1; +https://github.com/ajcwebdev/autoshow-cli)'
 
-export const isRecord = (value: unknown): value is Record<string, unknown> =>
-  typeof value === 'object' && value !== null && !Array.isArray(value)
+export { isRecord }
 
 export const cleanString = (value: unknown): string | undefined => {
   if (typeof value !== 'string') {
@@ -20,6 +22,19 @@ export const cleanString = (value: unknown): string | undefined => {
   }
   const normalized = value.trim()
   return normalized.length > 0 ? normalized : undefined
+}
+
+export const pickCleanString = (
+  record: Record<string, unknown>,
+  ...keys: string[]
+): string | undefined => {
+  for (const key of keys) {
+    const value = cleanString(record[key])
+    if (value) {
+      return value
+    }
+  }
+  return undefined
 }
 
 export const byteLength = (value: string): number =>
@@ -145,6 +160,55 @@ export const withUrlProviderTimeout = async <T>(
   }
 }
 
+export const requireHostedUrlProviderApiKey = (
+  envVar: string,
+  providerId: string,
+  stage: string,
+  usingHostedApi: boolean
+): string | undefined => {
+  const apiKey = readEnv(envVar)
+  if (usingHostedApi && !apiKey) {
+    throw InternalError(
+      `${envVar} is required for --url-provider ${providerId} when using the hosted API. ` +
+      `Set ${envVar} or use a different URL backend.`,
+      { stage, hints: hintsForMissingEnv(envVar) }
+    )
+  }
+  return apiKey
+}
+
+export const fetchUrlProviderJson = async (
+  providerLabel: string,
+  action: string,
+  endpoint: string,
+  init: Omit<RequestInit, 'signal'>,
+  options: UrlRequestOptions | undefined,
+  errorKeys: readonly string[]
+): Promise<unknown> => {
+  const response = await withUrlProviderTimeout(providerLabel, options, async (signal) =>
+    await fetch(endpoint, { ...init, signal })
+  )
+
+  let payload: unknown
+  try {
+    payload = await response.json()
+  } catch {
+    payload = null
+  }
+
+  if (!response.ok) {
+    let errorMessage: string | undefined
+    if (isRecord(payload)) {
+      for (const key of errorKeys) {
+        errorMessage ??= cleanString(payload[key])
+      }
+    }
+    throw createUrlProviderHttpError(providerLabel, action, response, errorMessage)
+  }
+
+  return payload
+}
+
 export const fetchRemoteHtml = async (
   source: string,
   options: FetchRemoteHtmlOptions = {}
@@ -198,6 +262,48 @@ export const tryFetchRemoteHtml = async (
   }
 }
 
+export const finalizeUrlArticleResult = async (
+  source: string,
+  sourceUrl: string | undefined,
+  backend: HtmlArticleBackend,
+  scraped: { markdown: string, web: WebArticleMetadata }
+): Promise<UrlArticleRunResult> => {
+  const htmlFallback = await tryFetchRemoteHtml(source)
+  const markdown = ensureMeaningfulMarkdown(scraped.markdown, backend)
+  const web = { ...scraped.web }
+  if (sourceUrl) web.sourceUrl = sourceUrl
+  if (!web.finalUrl && htmlFallback?.finalUrl) web.finalUrl = htmlFallback.finalUrl
+  return {
+    markdown,
+    web,
+    fileSize: htmlFallback?.fileSize ?? byteLength(markdown),
+    title: scraped.web.title ?? fallbackTitleFromSource(source),
+    ...(scraped.web.author ? { author: scraped.web.author } : {})
+  }
+}
+
+type UrlArticleScrapeRunner = (
+  source: string,
+  options?: UrlRequestOptions,
+  baseUrl?: string
+) => Promise<{ markdown: string, web: WebArticleMetadata }>
+
+export const createUrlArticleRun = (
+  backend: HtmlArticleBackend,
+  displayName: string,
+  scrape: UrlArticleScrapeRunner
+): (
+  source: string,
+  sourceUrl: string | undefined,
+  options?: UrlRequestOptions,
+  baseUrl?: string
+) => Promise<UrlArticleRunResult> =>
+  async (source, sourceUrl, options, baseUrl) => {
+    l.write('info', `Using ${displayName} backend for article extraction`)
+    const scraped = await scrape(source, options, baseUrl)
+    return await finalizeUrlArticleResult(source, sourceUrl, backend, scraped)
+  }
+
 export const readLocalHtml = async (
   source: string
 ): Promise<LocalHtmlReadResult> => {
@@ -249,18 +355,12 @@ export const ensureMeaningfulMarkdown = (
     )
   }
 
-  if (backend === 'glm-reader') {
-    throw ValidationError('GLM Reader returned empty article markdown.', { stage: 'url:fetch' })
+  const displayNames: Record<Exclude<HtmlArticleBackend, 'defuddle'>, string> = {
+    firecrawl: 'Firecrawl',
+    'glm-reader': 'GLM Reader',
+    spider: 'Spider',
+    supadata: 'Supadata',
+    zyte: 'Zyte'
   }
-  if (backend === 'spider') {
-    throw ValidationError('Spider returned empty article markdown.', { stage: 'url:fetch' })
-  }
-  if (backend === 'supadata') {
-    throw ValidationError('Supadata returned empty article markdown.', { stage: 'url:fetch' })
-  }
-  if (backend === 'zyte') {
-    throw ValidationError('Zyte returned empty article markdown.', { stage: 'url:fetch' })
-  }
-
-  throw ValidationError('Firecrawl returned empty article markdown.', { stage: 'url:fetch' })
+  throw ValidationError(`${displayNames[backend]} returned empty article markdown.`, { stage: 'url:fetch' })
 }

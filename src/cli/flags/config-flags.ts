@@ -1,4 +1,4 @@
-import { omitFlags, withHelpGroup } from './flag-utils'
+import { boolFlag, omitFlags, strFlag, withHelpGroup } from './flag-utils'
 import {
   transcriptionFlags,
   llmProviderFlags,
@@ -17,25 +17,12 @@ import { videoGenFlags } from './video-flags'
 import type { CliFlagsDefinition } from '~/types'
 
 const configFlags = {
-  show: {
-    description: 'Print the effective config and resolved path',
-    type: Boolean,
-    default: false,
-    negatable: false
-  },
-  reset: {
-    description: 'Clear the config file back to empty defaults',
-    type: Boolean,
-    default: false,
-    negatable: false
-  }
+  show: boolFlag('Print the effective config and resolved path'),
+  reset: boolFlag('Clear the config file back to empty defaults')
 } as const satisfies CliFlagsDefinition
 
 const pricingFlags = {
-  'max-cents': {
-    description: 'Budget limit in cents — commands exceeding this fail unless --allow-over-budget is set',
-    type: String
-  }
+  'max-cents': strFlag('Budget limit in cents — commands exceeding this fail unless --allow-over-budget is set')
 } as const satisfies CliFlagsDefinition
 
 const configTtsFlags = omitFlags(ttsCommandFlags, [

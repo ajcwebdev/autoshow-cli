@@ -1,6 +1,7 @@
 import { expect, test } from 'bun:test'
 import {
   htmlDocument,
+  installMockFetch,
   longMarkdown,
   runSupadataUrl,
   runZyteUrl
@@ -9,22 +10,8 @@ import {
 test('Supadata URL backend sends scrape request and normalizes article metadata', async () => {
   process.env['SUPADATA_API_KEY'] = 'supadata-test-key'
 
-  const requests: Array<{ url: string, method: string, headers?: Record<string, string> }> = []
-  globalThis.fetch = (async (input: Parameters<typeof fetch>[0], init?: Parameters<typeof fetch>[1]): Promise<Response> => {
-    const url = String(input)
-    const headers: Record<string, string> = {}
-    if (init?.headers && typeof init.headers === 'object') {
-      for (const [key, value] of Object.entries(init.headers as Record<string, string>)) {
-        headers[key] = value
-      }
-    }
-    requests.push({
-      url,
-      method: init?.method ?? 'GET',
-      headers
-    })
-
-    if (url.startsWith('https://supadata.local/v1/web/scrape')) {
+  const requests = installMockFetch((call) => {
+    if (call.url.startsWith('https://supadata.local/v1/web/scrape')) {
       return Response.json({
         url: 'https://article.test/supadata-final',
         content: longMarkdown,
@@ -36,23 +23,23 @@ test('Supadata URL backend sends scrape request and normalizes article metadata'
       })
     }
 
-    if (url === 'https://article.test/supadata') {
+    if (call.url === 'https://article.test/supadata') {
       return new Response(htmlDocument, {
         status: 200,
         headers: { 'content-type': 'text/html; charset=utf-8' }
       })
     }
 
-    throw new Error(`Unexpected Supadata mock fetch: ${url}`)
-  }) as typeof fetch
+    throw new Error(`Unexpected Supadata mock fetch: ${call.url}`)
+  })
 
   const result = await runSupadataUrl('https://article.test/supadata', 'https://article.test/supadata', undefined, 'https://supadata.local/v1')
 
   expect(requests[0]).toMatchObject({
     url: 'https://supadata.local/v1/web/scrape?url=https%3A%2F%2Farticle.test%2Fsupadata',
-    method: 'GET',
-    headers: { 'x-api-key': 'supadata-test-key' }
+    method: 'GET'
   })
+  expect(requests[0]?.headers.get('x-api-key')).toBe('supadata-test-key')
   expect(result).toMatchObject({
     markdown: longMarkdown,
     title: 'Supadata Title',
@@ -76,13 +63,11 @@ test('Supadata URL backend rejects missing API key', async () => {
 test('Supadata URL backend reports provider HTTP errors with message/details', async () => {
   process.env['SUPADATA_API_KEY'] = 'supadata-test-key'
 
-  globalThis.fetch = (async (_input: Parameters<typeof fetch>[0], _init?: Parameters<typeof fetch>[1]): Promise<Response> =>
-    new Response(JSON.stringify({
+  installMockFetch(() => new Response(JSON.stringify({
       error: 'unauthorized',
       message: 'Unauthorized',
       details: 'The request is unauthorized. Please check your API key.'
-    }), { status: 401, statusText: 'Unauthorized' })
-  ) as typeof fetch
+  }), { status: 401, statusText: 'Unauthorized' }))
 
   await expect(
     runSupadataUrl('https://article.test/error', 'https://article.test/error')
@@ -92,16 +77,8 @@ test('Supadata URL backend reports provider HTTP errors with message/details', a
 test('Zyte URL backend posts article extract request and normalizes article metadata', async () => {
   delete process.env['ZYTE_API_KEY']
 
-  const requests: Array<{ url: string, method: string, body?: unknown }> = []
-  globalThis.fetch = (async (input: Parameters<typeof fetch>[0], init?: Parameters<typeof fetch>[1]): Promise<Response> => {
-    const url = String(input)
-    requests.push({
-      url,
-      method: init?.method ?? 'GET',
-      ...(typeof init?.body === 'string' ? { body: JSON.parse(init.body) as unknown } : {})
-    })
-
-    if (url === 'https://zyte.local/v1/extract') {
+  const requests = installMockFetch((call) => {
+    if (call.url === 'https://zyte.local/v1/extract') {
       return Response.json({
         article: {
           headline: 'Zyte Title',
@@ -116,22 +93,22 @@ test('Zyte URL backend posts article extract request and normalizes article meta
       })
     }
 
-    if (url === 'https://article.test/zyte') {
+    if (call.url === 'https://article.test/zyte') {
       return new Response(htmlDocument, {
         status: 200,
         headers: { 'content-type': 'text/html; charset=utf-8' }
       })
     }
 
-    throw new Error(`Unexpected Zyte mock fetch: ${url}`)
-  }) as typeof fetch
+    throw new Error(`Unexpected Zyte mock fetch: ${call.url}`)
+  })
 
   const result = await runZyteUrl('https://article.test/zyte', 'https://article.test/zyte', undefined, 'https://zyte.local')
 
   expect(requests[0]).toMatchObject({
     url: 'https://zyte.local/v1/extract',
     method: 'POST',
-    body: {
+    bodyJson: {
       url: 'https://article.test/zyte',
       article: true
     }

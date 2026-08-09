@@ -31,7 +31,6 @@ export const resumeCommand = defineCliCommand({
     ctx.parameters.outputDirs,
     ctx.flags,
     ctx.rawParsed.doubleDash,
-    ctx.argv,
-    ctx.rawParsed.positionals.map((entry) => entry.index)
+    ctx.rawParsed.flagOccurrences
   )
 })

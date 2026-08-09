@@ -1,10 +1,11 @@
 import { basename, extname } from 'node:path'
 import * as l from '~/utils/app-logger/app-logger'
 import type { GeminiContent, GeminiGenerateContentUsageMetadata, GeminiSttPayload, Step2Metadata, TranscriptionResult, TranscriptionSegment } from '~/types'
+import { logSttSegmentLifecycle } from '~/cli/commands/process-steps/step-2-extract/step-2-stt/stt-logging'
 import { classifyGeminiRetry } from '~/cli/commands/process-steps/step-3-write/write-services/write-gemini/gemini-utils'
 import { withRetry } from '~/utils/retries'
-import { readEnv } from '~/utils/validate/env-utils'
-import { InfraError, InternalError, ValidationError, hintsForMissingEnv } from '~/utils/error-handler'
+import { requireApiKey } from '~/utils/validate/env-utils'
+import { InfraError, InternalError, ValidationError } from '~/utils/error-handler'
 import { geminiDeleteFile, geminiFileDataPart, geminiGenerateContent, geminiGetFile, geminiUploadFile, geminiUserContent, getGeminiFileState } from '~/utils/gemini/gemini-rest'
 import { buildTranscriptionOutputBase, countTokens, formatTranscriptText, resolveTranscriptionOutput, toTimestamp } from '../../stt-utils/stt-utils'
 import { detectCompressedTimingCoverage } from '../../stt-utils/stt-timing-quality'
@@ -240,13 +241,10 @@ export const runGeminiStt = async (
   }
 ): Promise<{ result: TranscriptionResult, metadata: Step2Metadata }> => {
   const { model, segmentOffsetMinutes = 0, segmentNumber, totalSegments, audioDurationSeconds } = options
-  const apiKey = readEnv('GEMINI_API_KEY')
-  if (!apiKey) {
-    throw InternalError('GEMINI_API_KEY environment variable is required for Gemini transcription', { stage: 'stt:gemini', hints: hintsForMissingEnv('GEMINI_API_KEY') })
-  }
+  const apiKey = requireApiKey('GEMINI_API_KEY', 'stt:gemini', 'Gemini transcription')
 
   if (segmentNumber && totalSegments) {
-    l.write('info', `Gemini STT segment ${segmentNumber}/${totalSegments} started (${model})`)
+    logSttSegmentLifecycle(l, { provider: 'gemini-stt', action: 'started', segmentNumber, totalSegments, model })
   }
 
   const startTime = Date.now()
@@ -333,7 +331,7 @@ export const runGeminiStt = async (
 
   const processingTime = Date.now() - startTime
   if (segmentNumber && totalSegments) {
-    l.write('info', `Gemini STT segment ${segmentNumber}/${totalSegments} completed in ${processingTime}ms (${model})`)
+    logSttSegmentLifecycle(l, { provider: 'gemini-stt', action: 'completed', segmentNumber, totalSegments, model, processingTimeMs: processingTime })
   }
 
   const usage = response.usageMetadata

@@ -9,9 +9,16 @@ import { loadCharacterCatalog } from '~/cli/commands/process-steps/step-8-comic/
 import { createCharacterReferenceSnapshot, loadAndVerifyCharacterReferenceSnapshot, compileCharacterReferences } from '~/cli/commands/process-steps/step-8-comic/comic-utils/character-reference-snapshot'
 import { checksumFile, getCharacterSketchManifestPath, requireCurrentCharacterSketch } from '~/cli/commands/process-steps/step-8-comic/comic-commands/process-scenes/character-utils'
 import { buildSceneJsonSchema, buildStructuredScriptJsonSchema, PanelBundleDataSchema, ScenePromptDataSchema, StructuredScriptDataSchema, validateSceneCharacters } from '~/cli/commands/process-steps/step-8-comic/schemas/schemas'
-import { parseReferenceSketchArgs } from '~/cli/commands/process-steps/step-8-comic/comic-utils/cli-args'
+import {
+  coerceAndValidateReferenceSketch,
+  parseComicSubcommandArgv
+} from '~/cli/commands/process-steps/step-8-comic/comic-utils/cli-args'
+import { referenceSketchCommandDefinition } from '~/cli/commands/process-steps/step-8-comic/comic-utils/subcommand-help'
 import { getReferenceImageCapabilities, trimOptionalContinuityReferences } from '~/cli/commands/process-steps/step-8-comic/comic-utils/reference-capabilities'
 import { characterSketchCommand } from '~/cli/commands/process-steps/step-8-comic/comic-commands/character-sketch/character-sketch-command'
+
+const parseReferenceSketchArgs = (args: string[]) =>
+  coerceAndValidateReferenceSketch(parseComicSubcommandArgv(args, referenceSketchCommandDefinition))
 
 const temporaryRoots: string[] = []
 const tinyPng = Buffer.from('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNk+A8AAQUBAScY42YAAAAASUVORK5CYII=', 'base64')

@@ -1,7 +1,6 @@
+import { isRecord } from '~/utils/rest-client'
 import { readdir } from 'node:fs/promises'
 import { join } from 'node:path'
-import * as l from '~/utils/app-logger/app-logger'
-import { readRunManifest, writeRunManifest } from '~/cli/commands/process-steps/manifest-utils'
 import { serializeOneOrMany } from '~/cli/commands/process-steps/target-runner'
 import { collectLlmTargets, runLlmTargetsForStructuredPrompt } from '~/cli/commands/process-steps/step-3-write/run-llm'
 import { writeShowNoteArtifacts } from '~/cli/commands/process-steps/step-3-write/show-note-artifacts'
@@ -14,11 +13,10 @@ import { computeActualProcessingTimes, computeEstimatedProcessingTimes } from '~
 import { resolveExtractionProviderModel } from '~/utils/extraction-provider-model'
 import { toArray } from '~/utils/text-utils'
 import { CLIUsageError } from '~/utils/error-handler'
-import { logResumeItem, logResumeSummary } from '../resume-logging'
-import { aggregateExplicitPriceEstimate } from '~/utils/pricing/aggregate-pricing'
 import { getLlmCost, getLlmEstimation } from '~/cli/commands/setup-and-utilities/models/model-loader'
 import { computeTokenCost } from '~/utils/pricing/token-pricing'
-import type { AggregatedPriceEstimate, ExtractEstimateTarget, ExtractionMetadata, LLMOptions, LLMTarget, LlmStepEstimate, ResumeDisplayOptions, ResumeResult, ResumeTarget, RuntimeOptions, Step1Metadata, Step2Metadata, Step3Metadata, StructuredRunResult, StructuredValidationContext } from '~/types'
+import { hasResumableGenerationWork, priceGenerationTarget, resumeGenerationTarget } from '../generation-resume'
+import type { AggregatedPriceEstimate, ExtractEstimateTarget, ExtractionMetadata, GenerationResumeConfig, LLMOptions, LLMTarget, LlmStepEstimate, ResumeDisplayOptions, ResumeResult, ResumeTarget, RuntimeOptions, Step1Metadata, Step2Metadata, Step3Metadata, StructuredValidationContext } from '~/types'
 
 const WRITE_LLM_PROVIDER_FLAGS = [
   'all-llm',
@@ -67,8 +65,6 @@ const EXTRACT_ESTIMATE_PROVIDERS = new Set<ExtractEstimateTarget['provider']>([
   'zyte'
 ])
 
-const isRecord = (value: unknown): value is Record<string, unknown> =>
-  typeof value === 'object' && value !== null && !Array.isArray(value)
 
 const isStep3Metadata = (value: unknown): value is Step3Metadata =>
   isRecord(value)
@@ -96,10 +92,6 @@ const metadataKey = (
   entry: Pick<Step3Metadata, 'llmService' | 'llmModel'>
 ): string => `${entry.llmService}:${entry.llmModel}`
 
-const hasExplicitWriteProviderSelection = (
-  explicitFlags: Set<string>
-): boolean => WRITE_LLM_PROVIDER_FLAGS.some((flag) => explicitFlags.has(flag))
-
 const uniqueTargets = (
   targets: LLMTarget[]
 ): LLMTarget[] => {
@@ -116,20 +108,14 @@ const uniqueTargets = (
   return out
 }
 
-const collectSelectedWriteTargets = (
+const collectWriteTargets = (
   opts: RuntimeOptions,
-  explicitFlags: Set<string>,
   outputDir: string
-): LLMTarget[] => {
-  if (!hasExplicitWriteProviderSelection(explicitFlags)) {
-    return []
-  }
-
-  return uniqueTargets(collectLlmTargets({
+): LLMTarget[] =>
+  uniqueTargets(collectLlmTargets({
     ...opts,
     outputDir
   } as LLMOptions))
-}
 
 const sanitizeFileStem = (
   value: string
@@ -414,14 +400,6 @@ const rebuildWriteCostTiming = (
   }
 }
 
-const getTargetsToRun = (
-  selectedTargets: LLMTarget[],
-  existingEntries: Step3Metadata[]
-): LLMTarget[] => {
-  const successfulKeys = new Set(existingEntries.map(metadataKey))
-  return selectedTargets.filter((target) => !successfulKeys.has(targetKey(target)))
-}
-
 const averageTokenCount = (
   entries: Step3Metadata[],
   key: 'inputTokenCount' | 'outputTokenCount'
@@ -472,225 +450,112 @@ const buildWriteResumeLlmEstimates = (
   })
 }
 
-export const hasResumableWriteWork = async (
-  target: ResumeTarget,
-  opts: RuntimeOptions,
-  explicitFlags: Set<string> = new Set()
-): Promise<boolean> => {
-  if (target.scope !== 'single') {
-    return false
-  }
-
-  const manifest = await readRunManifest(target.dir, 'write')
-  if (!manifest) {
-    return false
-  }
-
-  const existingEntries = getExistingStep3Entries(manifest.metadata)
-  const selectedTargets = collectSelectedWriteTargets(opts, explicitFlags, target.dir)
-  return getTargetsToRun(selectedTargets, existingEntries).length > 0
-}
-
-export const resumeWriteTarget = async (
-  target: ResumeTarget,
-  opts: RuntimeOptions,
-  explicitFlags: Set<string> = new Set(),
-  displayOptions: ResumeDisplayOptions = {}
-): Promise<ResumeResult> => {
-  const itemLabel = displayOptions.itemLabel ?? '1/1'
-  if (target.scope !== 'single') {
-    throw CLIUsageError('Write resume currently supports single-run run.json outputs only.')
-  }
-
-  const manifest = await readRunManifest(target.dir, 'write')
-  if (!manifest) {
-    throw CLIUsageError(`Invalid write manifest at ${target.dir}/run.json`)
-  }
-
-  const existingEntries = getExistingStep3Entries(manifest.metadata)
-  if (existingEntries.length === 0) {
-    throw CLIUsageError(
-      'This write run.json does not contain resumable step3 LLM metadata. '
-      + 'Re-run the original command to produce a resumable write manifest.'
+export const writeResumeConfig = {
+  kind: 'write' as const,
+  metadataKey: 'step3',
+  stepLabel: 'Write',
+  providerFlags: WRITE_LLM_PROVIDER_FLAGS,
+  selectionMode: 'selected-only' as const,
+  parseManifestEntries: (metadata: Record<string, unknown>) => {
+    const entries = getExistingStep3Entries(metadata)
+    return entries.length > 0 ? entries : undefined
+  },
+  resolveInput: async (target: ResumeTarget) => {
+    const prompt = await readTextFileIfPresent(join(target.dir, 'prompt.md'))
+    if (!prompt) {
+      throw CLIUsageError(`Write resume requires prompt.md in ${target.dir}.`)
+    }
+    return prompt
+  },
+  serializeEntries: (entries: Step3Metadata[]) => serializeOneOrMany(entries),
+  failureMessage: (
+    failure: 'failed' | 'incomplete',
+    providers: Array<{ service: string, model: string }>
+  ) => failure === 'failed'
+    ? `Write resume still has failed providers: ${providers.map((entry) => `${entry.service}/${entry.model}`).join(', ')}`
+    : `Write resume still has ${providers.length} incomplete provider(s): ${providers.map((entry) => `${entry.service}/${entry.model}`).join(', ')}`,
+  getSuccessKey: metadataKey,
+  collectTargets: (opts: RuntimeOptions, target: ResumeTarget) =>
+    collectWriteTargets(opts, target.dir),
+  runMissingTargets: async (
+    targets: LLMTarget[],
+    prompt: string,
+    outputDir: string,
+    opts: RuntimeOptions,
+    context: {
+      existingEntries: Step3Metadata[]
+      currentManifestMetadata: Record<string, unknown>
+    }
+  ) => {
+    const promptNames = resolvePromptNamesForResume(opts, context.existingEntries)
+    const { structuredSchema, structuredValidationContext } = await resolveStructuredValidationContext(
+      promptNames,
+      context.currentManifestMetadata
     )
-  }
-
-  const selectedTargets = collectSelectedWriteTargets(opts, explicitFlags, target.dir)
-  if (selectedTargets.length === 0) {
-    logResumeItem(l, {
-      item: itemLabel,
-      status: 'full',
-      outputDir: target.dir,
-      providers: 'none',
-      detail: 'no write LLM providers selected'
-    }, 'success')
-    logResumeSummary(l, { full: 1, incomplete: 0, failed: 0 })
-    return { full: 1, incomplete: 0, failed: 0 }
-  }
-
-  const targetsToRun = getTargetsToRun(selectedTargets, existingEntries)
-  if (targetsToRun.length === 0) {
-    logResumeItem(l, {
-      item: itemLabel,
-      status: 'full',
-      outputDir: target.dir,
-      providers: 'none',
-      detail: 'all selected write LLM providers already complete'
-    }, 'success')
-    logResumeSummary(l, { full: 1, incomplete: 0, failed: 0 })
-    return { full: 1, incomplete: 0, failed: 0 }
-  }
-
-  const prompt = await readTextFileIfPresent(join(target.dir, 'prompt.md'))
-  if (!prompt) {
-    throw CLIUsageError(`Write resume requires prompt.md in ${target.dir}.`)
-  }
-
-  const providerLabels = targetsToRun.map((entry) => `${entry.service}/${entry.model}`)
-  logResumeItem(l, {
-    item: itemLabel,
-    status: 'processing',
-    outputDir: target.dir,
-    providers: providerLabels,
-    detail: 'resuming missing write LLM providers'
-  }, 'info')
-
-  const promptNames = resolvePromptNamesForResume(opts, existingEntries)
-  const { structuredSchema, structuredValidationContext } = await resolveStructuredValidationContext(
-    promptNames,
-    manifest.metadata
-  )
-  const reservedFileNames = await collectReservedTextJsonFileNames(target.dir, existingEntries)
-
-  let results: StructuredRunResult[]
-  try {
-    results = await runLlmTargetsForStructuredPrompt({
+    const reservedFileNames = await collectReservedTextJsonFileNames(outputDir, context.existingEntries)
+    const results = await runLlmTargetsForStructuredPrompt({
       prompt,
-      outputDir: target.dir,
-      targets: targetsToRun,
+      outputDir,
+      targets,
       structuredSchema,
       structuredValidationContext,
       llmProviderConcurrency: opts.llmProviderConcurrency,
       llmLocalConcurrency: opts.llmLocalConcurrency,
       fileNameForTarget: (llmTarget) => buildWriteResumeOutputFileName({
         target: llmTarget,
-        selectedTargets: targetsToRun,
-        existingEntries,
+        selectedTargets: targets,
+        existingEntries: context.existingEntries,
         reservedFileNames
       })
     })
-  } catch (error) {
-    logResumeItem(l, {
-      item: itemLabel,
-      status: 'failed',
-      outputDir: target.dir,
-      providers: providerLabels,
-      detail: error instanceof Error ? error.message : String(error)
-    }, 'error')
-    logResumeSummary(l, { full: 0, incomplete: 0, failed: 1 })
-    const exitError = new Error(
-      `Write resume still has failed providers: ${providerLabels.join(', ')}`
-    )
-    ;(exitError as Error & { exitCode?: number }).exitCode = 2
-    throw exitError
-  }
 
-  const sourceText = await readSourceText(target.dir)
-  await writeShowNoteArtifacts({
-    outputDir: target.dir,
-    results,
-    sourceText
-  })
-
-  if (opts.renderedText || opts.renderedOutDir) {
-    await writeRenderedTextArtifacts({
-      outputDir: target.dir,
+    const sourceText = await readSourceText(outputDir)
+    await writeShowNoteArtifacts({
+      outputDir,
       results,
-      writeInternal: opts.renderedText,
-      ...(opts.renderedOutDir ? { externalDir: opts.renderedOutDir, externalBaseName: 'text' } : {})
+      sourceText
     })
-  }
 
-  const mergedStep3 = [
-    ...existingEntries,
-    ...results.map((result) => result.metadata)
-  ]
-  const successfulKeys = new Set(mergedStep3.map(metadataKey))
-  const stillMissingTargets = targetsToRun.filter((llmTarget) => !successfulKeys.has(targetKey(llmTarget)))
-  const rebuilt = rebuildWriteCostTiming(manifest.metadata, mergedStep3)
+    if (opts.renderedText || opts.renderedOutDir) {
+      await writeRenderedTextArtifacts({
+        outputDir,
+        results,
+        writeInternal: opts.renderedText,
+        ...(opts.renderedOutDir ? { externalDir: opts.renderedOutDir, externalBaseName: 'text' } : {})
+      })
+    }
 
-  await writeRunManifest(target.dir, 'write', {
-    ...manifest.metadata,
-    ...rebuilt,
-    step3: serializeOneOrMany(mergedStep3)
-  })
+    return results.map((result) => result.metadata)
+  },
+  buildEstimates: (
+    _opts: RuntimeOptions,
+    _input: string,
+    context: { targets: LLMTarget[], existingEntries: Step3Metadata[] }
+  ) => buildWriteResumeLlmEstimates(context.targets, context.existingEntries),
+  rebuildRunMetadata: (
+    metadata: Step3Metadata[],
+    currentManifestMetadata: Record<string, unknown>
+  ) => rebuildWriteCostTiming(currentManifestMetadata, metadata)
+} satisfies GenerationResumeConfig<LLMTarget, Step3Metadata>
 
-  if (stillMissingTargets.length > 0) {
-    logResumeItem(l, {
-      item: itemLabel,
-      status: 'incomplete',
-      outputDir: target.dir,
-      providers: providerLabels,
-      detail: `${stillMissingTargets.length} provider(s) still missing`
-    }, 'warn')
-    logResumeSummary(l, { full: 0, incomplete: 1, failed: 0 })
-    const exitError = new Error(
-      `Write resume still has ${stillMissingTargets.length} incomplete provider(s): ${stillMissingTargets.map((entry) => `${entry.service}/${entry.model}`).join(', ')}`
-    )
-    ;(exitError as Error & { exitCode?: number }).exitCode = 2
-    throw exitError
-  }
+export const hasResumableWriteWork = async (
+  target: ResumeTarget,
+  opts: RuntimeOptions,
+  explicitFlags: Set<string> = new Set()
+): Promise<boolean> =>
+  await hasResumableGenerationWork(target, writeResumeConfig, opts, explicitFlags)
 
-  logResumeItem(l, {
-    item: itemLabel,
-    status: 'full',
-    outputDir: target.dir,
-    providers: providerLabels,
-    detail: 'resume complete'
-  }, 'success')
-  logResumeSummary(l, { full: 1, incomplete: 0, failed: 0 })
-  return { full: 1, incomplete: 0, failed: 0 }
-}
+export const resumeWriteTarget = async (
+  target: ResumeTarget,
+  opts: RuntimeOptions,
+  explicitFlags: Set<string> = new Set(),
+  displayOptions: ResumeDisplayOptions = {}
+): Promise<ResumeResult> =>
+  await resumeGenerationTarget(target, writeResumeConfig, opts, explicitFlags, displayOptions)
 
 export const priceWriteTarget = async (
   target: ResumeTarget,
   opts: RuntimeOptions,
   explicitFlags: Set<string> = new Set()
-): Promise<AggregatedPriceEstimate> => {
-  if (target.scope !== 'single') {
-    throw CLIUsageError('Write resume currently supports single-run run.json outputs only.')
-  }
-
-  const manifest = await readRunManifest(target.dir, 'write')
-  if (!manifest) {
-    throw CLIUsageError(`Invalid write manifest at ${target.dir}/run.json`)
-  }
-
-  const existingEntries = getExistingStep3Entries(manifest.metadata)
-  if (existingEntries.length === 0) {
-    throw CLIUsageError(
-      'This write run.json does not contain resumable step3 LLM metadata. '
-      + 'Re-run the original command to produce a resumable write manifest.'
-    )
-  }
-
-  const selectedTargets = collectSelectedWriteTargets(opts, explicitFlags, target.dir)
-  if (selectedTargets.length === 0) {
-    return aggregateExplicitPriceEstimate([], opts)
-  }
-
-  const targetsToRun = getTargetsToRun(selectedTargets, existingEntries)
-  if (targetsToRun.length === 0) {
-    return aggregateExplicitPriceEstimate([], opts)
-  }
-
-  const prompt = await readTextFileIfPresent(join(target.dir, 'prompt.md'))
-  if (!prompt) {
-    throw CLIUsageError(`Write resume requires prompt.md in ${target.dir}.`)
-  }
-
-  return aggregateExplicitPriceEstimate(
-    buildWriteResumeLlmEstimates(targetsToRun, existingEntries),
-    opts
-  )
-}
+): Promise<AggregatedPriceEstimate> =>
+  await priceGenerationTarget(target, writeResumeConfig, opts, explicitFlags)

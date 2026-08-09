@@ -10,9 +10,6 @@ export const LLAMAFILE_SERVER_HEALTH_POLL_INTERVAL_MS = 1000
 export const LLAMAFILE_SERVER_HEALTH_HEARTBEAT_MS = 15000
 export const LLAMAFILE_SERVER_STDERR_TAIL_LIMIT = 12000
 export const LLAMAFILE_SERVER_STOP_TIMEOUT_MS = 5000
-export const LLAMAFILE_EMPTY_RESPONSE_MAX_ATTEMPTS = 3
-export const LLAMAFILE_EMPTY_RESPONSE_RETRY_DELAY_MS = 500
-export const LLAMAFILE_CHAT_TEMPLATE_KWARGS = { enable_thinking: false } as const
 
 // Prebuilt single-file llamafiles (binary + weights) from the mozilla-ai
 // llamafile_0.10 Hugging Face repo. Keys must match SUPPORTED_LLAMAFILE_MODELS

@@ -11,11 +11,16 @@ import {
 describe('video provider REST contracts', () => {
   test('Runway Gen-4.5 uses text_to_video request shape and downloads output', async () => {
     process.env['RUNWAYML_API_SECRET'] = 'runway-key'
+    let pollAttempts = 0
     const calls = installMockFetch((call) => {
       if (call.url === 'https://api.dev.runwayml.com/v1/text_to_video' && call.method === 'POST') {
         return jsonResponse({ id: 'runway-task-123' })
       }
       if (call.url === 'https://api.dev.runwayml.com/v1/tasks/runway-task-123' && call.method === 'GET') {
+        pollAttempts += 1
+        if (pollAttempts === 1) {
+          return jsonResponse({ error: 'temporary outage' }, { status: 503 })
+        }
         return jsonResponse({
           id: 'runway-task-123',
           status: 'SUCCEEDED',
@@ -47,6 +52,7 @@ describe('video provider REST contracts', () => {
 
     expect(calls.map((call) => `${call.method} ${call.url}`)).toEqual([
       'POST https://api.dev.runwayml.com/v1/text_to_video',
+      'GET https://api.dev.runwayml.com/v1/tasks/runway-task-123',
       'GET https://api.dev.runwayml.com/v1/tasks/runway-task-123',
       'GET https://cdn.example.com/runway.mp4'
     ])

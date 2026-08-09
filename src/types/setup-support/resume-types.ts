@@ -1,4 +1,4 @@
-import type { AggregatedPriceEstimate, BatchManifestEntry, BatchProcessResult, ExtractRoute, ProviderCompletionStatus, ProviderIdentity, RunManifestKind, RuntimeOptions } from '~/types'
+import type { AggregateExplicitEstimateOptions, AggregatedPriceEstimate, BatchManifestEntry, BatchProcessResult, ExtractRoute, ProviderCompletionStatus, ProviderIdentity, RunManifestKind, RuntimeOptions, StepEstimate } from '~/types'
 
 export type ResumeItemSummary = {
   item: string
@@ -56,29 +56,55 @@ export type ResumeHandler = {
 
 export type ExtractRouteResumeHandler = Pick<ResumeHandler, 'hasResumableWork' | 'resume' | 'price'>
 
+export type GenerationModelFieldTable = Record<string, readonly [modelsField: string, modelField: string]>
+
+export type GenerationResumeRunContext<TTarget extends ProviderIdentity, TMetadata> = {
+  targets: TTarget[]
+  existingEntries: TMetadata[]
+  currentManifestMetadata: Record<string, unknown>
+}
 
 export type GenerationResumeConfig<TTarget extends ProviderIdentity, TMetadata> = {
   kind: RunManifestKind
   metadataKey: string
   stepLabel: string
   providerFlags: readonly string[]
+  selectionMode: 'additive-stored' | 'selected-only'
+  modelFields?: GenerationModelFieldTable
+  parseManifestEntries?: (
+    metadata: Record<string, unknown>
+  ) => TMetadata[] | undefined
+  resolveInput?: (
+    target: ResumeTarget,
+    currentManifestMetadata: Record<string, unknown>
+  ) => string | Promise<string>
+  serializeEntries?: (
+    entries: TMetadata[]
+  ) => unknown
+  failureMessage?: (
+    failure: 'failed' | 'incomplete',
+    providers: ProviderIdentity[]
+  ) => string
   getSuccessKey: (entry: TMetadata) => string
-  collectTargets: (opts: RuntimeOptions) => TTarget[]
-  collectTargetsForProviders: (
-    providers: Array<{ service: string, model: string }>,
-    opts: RuntimeOptions
+  collectTargets: (
+    opts: RuntimeOptions,
+    target: ResumeTarget
   ) => TTarget[]
   runMissingTargets: (
     targets: TTarget[],
     input: string,
     outputDir: string,
-    opts: RuntimeOptions
+    opts: RuntimeOptions,
+    context: GenerationResumeRunContext<TTarget, TMetadata>
   ) => Promise<TMetadata[]>
-  priceTargets: (
-    targets: TTarget[],
+  buildEstimates: (
+    opts: RuntimeOptions,
     input: string,
-    opts: RuntimeOptions
-  ) => Promise<AggregatedPriceEstimate>
+    context: GenerationResumeRunContext<TTarget, TMetadata>
+  ) => StepEstimate[] | Promise<StepEstimate[]>
+  priceAggregateOptions?: (
+    input: string
+  ) => AggregateExplicitEstimateOptions
   rebuildRunMetadata?: (
     metadata: TMetadata[],
     currentManifestMetadata: Record<string, unknown>,

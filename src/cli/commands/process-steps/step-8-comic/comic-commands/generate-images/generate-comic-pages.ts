@@ -15,20 +15,17 @@ writeGeneratedImage,
 import { InfraError, ValidationError } from '~/utils/error-handler'
 import { comicLog, err } from '../../comic-utils/comic-logger'
 import {
-applyReferenceImageLimits,
 extractPanelBundleData,
 findMissingReferenceImageFiles,
 getPanelNumberFromName,
 getPromptBundleFilename,
 normalizePromptBundle,
-resolvePrimaryCharacterReferencesAcrossPanels,
-resolveLocationReferencesAcrossPanels,
-resolveDesignReferencesAcrossPanels,
+resolveGroupedReferenceImages,
 resolveScenePanelDirectories,
 } from '../../comic-utils/panel-prompt-utils'
 import { getPagesDirectory, getPanelPromptsDirectory } from '../../comic-utils/project-paths'
 import { getPageComicImagePath, loadPromptsConfig } from '../../comic-utils/scene-utils'
-import { runWithConcurrency } from '../../comic-utils/run-with-concurrency'
+import { runWithConcurrency } from '~/utils/run-with-concurrency'
 import {
 buildComicPagePrompt,
 buildComicPagePromptData,
@@ -90,57 +87,16 @@ const resolvePageReferences = async (
   panels: ComicPagePanelSource[],
   model: ImageGenerationModel,
 ): Promise<ResolvedReferenceImages> => {
-  const primaryCharacterReferenceState = resolvePrimaryCharacterReferencesAcrossPanels(
-    panels.map(panel => ({
-      panelDirectory: panel.panelDirectory,
-      entries: panel.panelEntries,
-      bundleData: panel.bundleData,
-    }))
-  )
-
-  if (primaryCharacterReferenceState.missingPrimaryCharacterRefs.length > 0) {
+  const resolved = resolveGroupedReferenceImages(panels, model)
+  if (resolved.missingPrimaryCharacterRefs.length > 0) {
     throw InfraError(
       `Missing character reference images: ` +
-      `${primaryCharacterReferenceState.missingPrimaryCharacterRefs.join(', ')}. ` +
+      `${resolved.missingPrimaryCharacterRefs.join(', ')}. ` +
       'Generate any missing character sketches, then rebuild stable panel prompt bundles.',
       { stage: 'comic:pages' }
     )
   }
-
-  const locationReferences = resolveLocationReferencesAcrossPanels(panels.map(panel => ({ panelDirectory: panel.panelDirectory, entries: panel.panelEntries, bundleData: panel.bundleData })))
-  const sceneAnchorRefs = locationReferences.map(reference => reference.path)
-  const designReferences = resolveDesignReferencesAcrossPanels(panels.map(panel => ({ panelDirectory: panel.panelDirectory, entries: panel.panelEntries, bundleData: panel.bundleData })))
-  const designPaths = designReferences.map(reference => reference.path)
-  const orderedReferences = [
-    ...primaryCharacterReferenceState.primaryCharacterRefs,
-    ...sceneAnchorRefs,
-    ...designPaths,
-  ]
-
-  const resolved = applyReferenceImageLimits(
-    orderedReferences,
-    orderedReferences,
-    [],
-    [...sceneAnchorRefs, ...designPaths],
-    primaryCharacterReferenceState.missingPrimaryCharacterRefs,
-    model,
-  )
-  return {
-    ...resolved,
-    primaryCharacterRefs: primaryCharacterReferenceState.primaryCharacterRefs,
-    secondaryRefs: sceneAnchorRefs,
-    ...(primaryCharacterReferenceState.characterReferences
-      ? { characterReferences: primaryCharacterReferenceState.characterReferences }
-      : {}),
-    locationReferences: locationReferences.map((reference, index) => ({
-      ...reference,
-      referenceIndex: primaryCharacterReferenceState.primaryCharacterRefs.length + index + 1,
-    })),
-    designReferences: designReferences.map((reference, index) => ({
-      ...reference,
-      referenceIndex: primaryCharacterReferenceState.primaryCharacterRefs.length + locationReferences.length + index + 1,
-    })),
-  }
+  return resolved
 }
 
 export const generateComicPages = async (

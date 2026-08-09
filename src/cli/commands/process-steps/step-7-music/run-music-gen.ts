@@ -49,7 +49,7 @@ export const runMusicGen = async (
 ): Promise<{ musicPaths: string[], metadata: Step7MusicMetadata[] }> => {
   const targets = collectMusicTargets(options)
   if (targets.length === 0) {
-    throw CLIUsageError('Specify a music generation provider with --provider elevenlabs|minimax|gemini[=model].')
+    throw CLIUsageError('Specify a music generation provider with --provider elevenlabs|minimax|gemini[=model]')
   }
 
   return await runMusicTargets(targets, prompt, outputDir, options)

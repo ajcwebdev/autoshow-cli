@@ -1,8 +1,7 @@
-import * as l from '~/utils/app-logger/app-logger'
 import * as v from 'valibot'
 import type { GlmVideoModel, Step6VideoMetadata, VideoMode } from '~/types'
 import { CLIUsageError, InfraError } from '~/utils/error-handler'
-import { logMediaGenerationStatus } from '~/cli/commands/process-steps/generation-command-utils'
+import { logGenCompleted, logGenStatus } from '~/cli/commands/process-steps/generation-command-utils'
 import { ensureGlmApiKey, resolveGlmBaseUrl } from '~/cli/commands/process-steps/step-2-extract/step-2-ocr/ocr-services/glm-ocr/glm'
 import { estimateVideoCost, logVideoEstimate } from '~/cli/commands/process-steps/step-6-video/video-utils/video-pricing'
 import {
@@ -13,7 +12,7 @@ import {
   normalizeGlmSize
 } from '~/cli/commands/process-steps/step-6-video/video-utils/video-normalization'
 import { downloadVideoOutputBytes } from '~/cli/commands/process-steps/step-6-video/video-utils/video-output-download'
-import { pollUntil } from '~/utils/retries'
+import { formatPolledJobError, runPolledJob } from '~/utils/polled-job-client/polled-job'
 import { validateData } from '~/utils/validate/validation'
 import { MEDIA_GENERATION_TIMEOUT_MS } from '~/utils/timeouts'
 import { videoMediaReferenceToUrlOrBase64, videoMediaReferenceToUrlOrDataUrl } from '../../video-utils/video-media-inputs'
@@ -78,16 +77,6 @@ const GlmPollVideoResponseSchema = v.object({
   error: v.optional(v.unknown(), undefined)
 })
 
-const formatGlmError = (value: unknown): string => {
-  if (value === undefined || value === null) return 'Unknown error'
-  if (typeof value === 'string') return value
-  try {
-    return JSON.stringify(value)
-  } catch {
-    return String(value)
-  }
-}
-
 export const runGlmVideoGen = async (
   prompt: string | undefined,
   outputDir: string,
@@ -116,12 +105,7 @@ export const runGlmVideoGen = async (
     throw CLIUsageError(`GLM video prompts must be ${GLM_PROMPT_MAX_CHARS} characters or fewer. Received ${resolvedPrompt.length}.`)
   }
 
-  logMediaGenerationStatus(l, {
-    mediaType: 'video',
-    provider: 'glm',
-    model: options.model,
-    status: 'started'
-  })
+  logGenStatus('video', 'glm', options.model, 'started')
 
   const estimate = estimateVideoCost({
     glmVideoModel: options.model,
@@ -168,79 +152,58 @@ export const runGlmVideoGen = async (
   const requestBodies = buildGlmVideoRequestBodies(requestBodyBase, options.model, imageUrl)
 
   const startTime = Date.now()
-  let createData: v.InferOutput<typeof GlmCreateVideoResponseSchema> | undefined
-  const createErrors: string[] = []
-
-  for (let index = 0; index < requestBodies.length; index += 1) {
-    const createResp = await fetch(`${baseURL}/videos/generations`, {
-      method: 'POST',
-      headers: {
-        Authorization: `Bearer ${apiKey}`,
-        'Content-Type': 'application/json'
-      },
-      body: JSON.stringify(requestBodies[index])
-    })
-
-    if (!createResp.ok) {
-      const body = await createResp.text()
-      const message = `GLM video generation request failed (${createResp.status}): ${body || 'No response body'}`
-      createErrors.push(message)
-      if (index < requestBodies.length - 1 && shouldRetryViduCreateRequest(options.model, createResp.status, body)) {
-        continue
-      }
-      throw InfraError(message, { stage: 'video:glm' })
-    }
-
-    createData = validateData(
-      GlmCreateVideoResponseSchema,
-      await createResp.json() as unknown,
-      'GLM video generation create response'
-    )
-    break
+  const headers = {
+    Authorization: `Bearer ${apiKey}`,
+    'Content-Type': 'application/json'
   }
-
-  if (!createData) {
-    throw InfraError(createErrors.at(-1) ?? 'GLM video generation request failed: no create response was returned', { stage: 'video:glm' })
-  }
-
-  if (createData.task_status === 'FAIL') {
-    throw InfraError(`GLM video generation failed: ${formatGlmError(createData.error)}`, { stage: 'video:glm' })
-  }
-
-  const taskData = await pollUntil({
+  const { result: taskData } = await runPolledJob({
     operationName: 'glm-video-gen',
     intervalMs: POLL_INTERVAL_MS,
     deadlineMs: POLL_TIMEOUT_MS,
-    pollFn: async () => {
-      const pollResp = await fetch(`${baseURL}/async-result/${encodeURIComponent(createData.id)}`, {
-        method: 'GET',
-        headers: {
-          Authorization: `Bearer ${apiKey}`,
-          'Content-Type': 'application/json'
+    create: {
+      run: async () => {
+        const createErrors: string[] = []
+        for (let index = 0; index < requestBodies.length; index += 1) {
+          const createResp = await fetch(`${baseURL}/videos/generations`, {
+            method: 'POST',
+            headers,
+            body: JSON.stringify(requestBodies[index])
+          })
+          if (!createResp.ok) {
+            const responseBody = await createResp.text()
+            const message = `GLM video generation request failed (${createResp.status}): ${responseBody || 'No response body'}`
+            createErrors.push(message)
+            if (index < requestBodies.length - 1 && shouldRetryViduCreateRequest(options.model, createResp.status, responseBody)) {
+              continue
+            }
+            throw InfraError(message, { stage: 'video:glm' })
+          }
+          return validateData(
+            GlmCreateVideoResponseSchema,
+            await createResp.json() as unknown,
+            'GLM video generation create response'
+          )
         }
-      })
-
-      if (!pollResp.ok) {
-        const body = await pollResp.text()
-        throw InfraError(`GLM video generation query failed (${pollResp.status}): ${body || 'No response body'}`, { stage: 'video:glm' })
+        throw InfraError(createErrors.at(-1) ?? 'GLM video generation request failed: no create response was returned', { stage: 'video:glm' })
       }
-
-      const data = validateData(
-        GlmPollVideoResponseSchema,
-        await pollResp.json() as unknown,
-        'GLM video generation query response'
-      )
-      logMediaGenerationStatus(l, {
-        mediaType: 'video',
-        provider: 'glm',
-        model: options.model,
-        status: data.task_status
-      })
-      return data
     },
+    validateCreate: (created) => {
+      if (created.task_status === 'FAIL') {
+        throw InfraError(`GLM video generation failed: ${formatPolledJobError(created.error)}`, { stage: 'video:glm' })
+      }
+    },
+    poll: (created) => ({
+      url: `${baseURL}/async-result/${encodeURIComponent(created.id)}`,
+      init: { method: 'GET', headers },
+      schema: GlmPollVideoResponseSchema,
+      context: 'GLM video generation query response',
+      stage: 'video:glm',
+      errorMessage: 'GLM video generation query failed'
+    }),
+    onPoll: (data) => logGenStatus('video', 'glm', options.model, data.task_status),
     isDone: (data) => data.task_status === 'SUCCESS',
     isFailed: (data) => data.task_status === 'FAIL'
-      ? { failed: true, reason: formatGlmError(data.error) }
+      ? { failed: true, reason: formatPolledJobError(data.error) }
       : { failed: false }
   })
 
@@ -255,15 +218,7 @@ export const runGlmVideoGen = async (
   const processingTime = Date.now() - startTime
   const videoFile = Bun.file(outputPath)
 
-  logMediaGenerationStatus(l, {
-    mediaType: 'video',
-    provider: 'glm',
-    model: options.model,
-    status: 'completed',
-    processingTimeMs: processingTime,
-    outputCount: 1,
-    artifacts: [{ artifact: 'video', path: outputPath }]
-  })
+  logGenCompleted('video', 'glm', options.model, processingTime, [outputPath])
 
   return {
     videoPath: outputPath,

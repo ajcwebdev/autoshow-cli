@@ -1,3 +1,4 @@
+import { isRecord } from '~/utils/rest-client'
 import type { HostedOcrSchedulerLaneTelemetry, HostedOcrSchedulerSection, HostedOcrSchedulerTargetTelemetry, WriteManifestMetadata } from '~/types'
 import { createHumanTable } from '~/utils/app-logger/human-table/human-table'
 import { formatDuration } from '~/utils/app-logger/formatters'
@@ -5,8 +6,6 @@ import { buildProviderModelLabel } from './manifest-log-formatting'
 
 export const HOSTED_OCR_SCHEDULER_COLUMNS = ['lane', 'status', 'cap', 'capSource', 'peak', 'retryPressure', 'pause', 'pagesPerMinute', 'targetShare'] as const
 
-const isRecord = (value: unknown): value is Record<string, unknown> =>
-  typeof value === 'object' && value !== null && !Array.isArray(value)
 
 const parseTarget = (value: unknown): HostedOcrSchedulerTargetTelemetry | undefined => {
   if (!isRecord(value) || typeof value['targetKey'] !== 'string' || typeof value['service'] !== 'string' || typeof value['model'] !== 'string') {

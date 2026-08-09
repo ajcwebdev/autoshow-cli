@@ -1,4 +1,4 @@
-import type { ResolvedStep2Provider } from '~/types'
+import type { ResolvedStep2Provider, RuntimeOptions } from '~/types'
 
 export type BatchItem = {
   id: string
@@ -48,31 +48,14 @@ export type BatchRunOptions = {
   extractRoute?: ExtractRoute | undefined
 }
 
-export type ResolvedLLMConfig = {
-  llamaModels: string[] | undefined
-  llamaModel: string | undefined
-  llamafileModels: string[] | undefined
-  llamafileModel: string | undefined
-  openaiModels: string[] | undefined
-  openaiModel: string | undefined
-  groqModels: string[] | undefined
-  groqModel: string | undefined
-  geminiModels: string[] | undefined
-  geminiModel: string | undefined
-  anthropicModels: string[] | undefined
-  anthropicModel: string | undefined
-  minimaxModels: string[] | undefined
-  minimaxModel: string | undefined
-  grokModels: string[] | undefined
-  grokModel: string | undefined
-  glmModels: string[] | undefined
-  glmModel: string | undefined
-  kimiModels: string[] | undefined
-  kimiModel: string | undefined
-  togetherModels: string[] | undefined
-  togetherModel: string | undefined
-  cerebrasModels: string[] | undefined
-  cerebrasModel: string | undefined
+export type ResolvedLLMConfig = Pick<RuntimeOptions,
+  | 'llamaModels' | 'llamaModel' | 'llamafileModels' | 'llamafileModel'
+  | 'openaiModels' | 'openaiModel' | 'groqModels' | 'groqModel'
+  | 'geminiModels' | 'geminiModel' | 'anthropicModels' | 'anthropicModel'
+  | 'minimaxModels' | 'minimaxModel' | 'grokModels' | 'grokModel'
+  | 'glmModels' | 'glmModel' | 'kimiModels' | 'kimiModel'
+  | 'togetherModels' | 'togetherModel' | 'cerebrasModels' | 'cerebrasModel'
+> & {
   llmService: string | undefined
   llmModel: string | undefined
 }

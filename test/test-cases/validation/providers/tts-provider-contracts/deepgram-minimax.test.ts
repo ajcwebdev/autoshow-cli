@@ -1,104 +1,39 @@
 import {
-  afterEach,
-  beforeEach,
   describe,
   expect,
   test
 } from 'bun:test'
-import { mkdtemp, rm } from 'node:fs/promises'
-import { tmpdir } from 'node:os'
-import { join } from 'node:path'
 import { runDeepgramTts } from '~/cli/commands/process-steps/step-4-tts/tts-services/tts-deepgram/run-deepgram-tts'
 import { runMinimaxTts } from '~/cli/commands/process-steps/step-4-tts/tts-services/tts-minimax/run-minimax-tts'
-import { LOCAL_SHORT_AUDIO_PATH } from './shared'
+import { installMockFetch, LOCAL_SHORT_AUDIO_PATH, setupTtsContractLifecycle } from './shared'
 
-const tempDirs: string[] = []
-
-const originalFetch = globalThis.fetch
-
-const originalSleep = Bun.sleep
-
-const previousEnv: Record<string, string | undefined> = {}
-
-const envKeys = [
-  'ELEVENLABS_API_KEY',
-  'SPEECHIFY_API_KEY',
-  'HUME_API_KEY',
-  'CARTESIA_API_KEY',
-  'MISTRAL_API_KEY',
-  'OPENAI_API_KEY',
-  'GROQ_API_KEY',
-  'XAI_API_KEY',
-  'MINIMAX_API_KEY',
-  'DEEPGRAM_API_KEY'
-]
-
-const restoreEnv = (): void => {
-  for (const key of envKeys) {
-    if (previousEnv[key] === undefined) {
-      delete process.env[key]
-    } else {
-      process.env[key] = previousEnv[key]
-    }
-  }
-}
-
-const makeTempDir = async (prefix: string): Promise<string> => {
-  const dir = await mkdtemp(join(tmpdir(), prefix))
-  tempDirs.push(dir)
-  return dir
-}
-
-beforeEach(() => {
-  for (const key of envKeys) {
-    previousEnv[key] = process.env[key]
-    delete process.env[key]
-  }
-})
-
-afterEach(async () => {
-  restoreEnv()
-  globalThis.fetch = originalFetch
-  ;(Bun as typeof Bun & { sleep: typeof Bun.sleep }).sleep = originalSleep
-  await Promise.all(tempDirs.splice(0).map((dir) => rm(dir, { recursive: true, force: true })))
-})
+const { makeTempDir } = setupTtsContractLifecycle()
 
 describe('TTS provider service contracts', () => {
   test('MiniMax TTS sends voice controls, language boost, and pronunciation rules', async () => {
       const dir = await makeTempDir('autoshow-minimax-tts-controls-')
       const audioBytes = await Bun.file(LOCAL_SHORT_AUDIO_PATH).arrayBuffer()
-      const calls: Array<{ url: string, method: string, body?: Record<string, unknown> }> = []
-
       process.env['MINIMAX_API_KEY'] = 'minimax-key'
 
-      globalThis.fetch = (async (input: Parameters<typeof fetch>[0], init?: Parameters<typeof fetch>[1]): Promise<Response> => {
-        const url = String(input)
-        const method = init?.method ?? 'GET'
-        if (url.endsWith('/v1/t2a_async_v2')) {
-          calls.push({
-            url,
-            method,
-            body: JSON.parse(String(init?.body ?? '{}')) as Record<string, unknown>
-          })
+      const calls = installMockFetch((call) => {
+        if (call.url.endsWith('/v1/t2a_async_v2')) {
           return Response.json({
             task_id: 'task-1',
             base_resp: { status_code: 0, status_msg: 'success' }
           })
         }
-        if (url.includes('/v1/query/t2a_async_query_v2')) {
-          calls.push({ url, method })
+        if (call.url.includes('/v1/query/t2a_async_query_v2')) {
           return Response.json({
             status: 2,
             file_id: 'speech-file-id',
             base_resp: { status_code: 0, status_msg: 'success' }
           })
         }
-        if (url.includes('/v1/files/retrieve_content')) {
-          calls.push({ url, method })
+        if (call.url.includes('/v1/files/retrieve_content')) {
           return new Response(audioBytes, { status: 200, headers: { 'content-type': 'audio/mpeg' } })
         }
-        throw new Error(`Unexpected MiniMax mock fetch: ${method} ${url}`)
-      }) as typeof fetch
+        throw new Error(`Unexpected MiniMax mock fetch: ${call.method} ${call.url}`)
+      })
 
       const result = await runMinimaxTts('MiniMax control synthesis.', dir, {
         model: 'speech-2.8-hd',
@@ -113,10 +48,10 @@ describe('TTS provider service contracts', () => {
       })
 
       expect(await Bun.file(result.audioPath).exists()).toBe(true)
-      expect(calls[0]).toEqual({
+      expect(calls[0]).toMatchObject({
         url: 'https://api.minimax.io/v1/t2a_async_v2',
         method: 'POST',
-        body: {
+        bodyJson: {
           model: 'speech-2.8-hd',
           text: 'MiniMax control synthesis.',
           voice_setting: {
@@ -141,22 +76,49 @@ describe('TTS provider service contracts', () => {
       expect(calls.map((call) => call.method)).toEqual(['POST', 'GET', 'GET'])
     }, 10_000)
 
+  test('MiniMax TTS protocol failures keep the TTS stage', async () => {
+    const dir = await makeTempDir('autoshow-minimax-tts-stage-')
+    process.env['MINIMAX_API_KEY'] = 'minimax-key'
+    installMockFetch(() => Response.json({
+      task_id: 'task-failed',
+      base_resp: { status_code: 1004, status_msg: 'invalid text' }
+    }))
+
+    await expect(runMinimaxTts('Invalid MiniMax request.', dir, {
+      model: 'speech-2.8-hd'
+    })).rejects.toMatchObject({
+      stage: 'tts:minimax',
+      message: expect.stringContaining('invalid text')
+    })
+  })
+
+  test('MiniMax TTS HTTP failures retain retry-classification response metadata', async () => {
+    const dir = await makeTempDir('autoshow-minimax-tts-http-error-')
+    process.env['MINIMAX_API_KEY'] = 'minimax-key'
+    const calls = installMockFetch(() => new Response('invalid request', {
+      status: 400,
+      headers: { 'retry-after': '3' }
+    }))
+
+    await expect(runMinimaxTts('Invalid MiniMax request.', dir, {
+      model: 'speech-2.8-hd'
+    })).rejects.toMatchObject({
+      stage: 'tts:minimax',
+      status: 400,
+      headers: expect.any(Headers),
+      message: expect.stringContaining('invalid request')
+    })
+    expect(calls).toHaveLength(1)
+  })
+
   test('Deepgram TTS sends documented output controls as query parameters', async () => {
       const dir = await makeTempDir('autoshow-deepgram-tts-controls-')
       const audioBytes = await Bun.file(LOCAL_SHORT_AUDIO_PATH).arrayBuffer()
-      const calls: Array<{ url: string, method: string, authorization: string | null, body: Record<string, unknown> }> = []
-
       process.env['DEEPGRAM_API_KEY'] = 'deepgram-key'
 
-      globalThis.fetch = (async (input: Parameters<typeof fetch>[0], init?: Parameters<typeof fetch>[1]): Promise<Response> => {
-        calls.push({
-          url: String(input),
-          method: init?.method ?? 'GET',
-          authorization: new Headers(init?.headers).get('authorization'),
-          body: JSON.parse(String(init?.body ?? '{}')) as Record<string, unknown>
-        })
+      const calls = installMockFetch(() => {
         return new Response(audioBytes, { status: 200, headers: { 'content-type': 'audio/mpeg' } })
-      }) as typeof fetch
+      })
 
       const result = await runDeepgramTts('Deepgram control synthesis.', dir, {
         model: 'aura-2-thalia-en',
@@ -169,29 +131,28 @@ describe('TTS provider service contracts', () => {
       })
 
       expect(await Bun.file(result.audioPath).exists()).toBe(true)
-      expect(calls).toEqual([{
+      expect(calls).toHaveLength(1)
+      expect(calls[0]).toMatchObject({
         url: 'https://api.deepgram.com/v1/speak?model=aura-2-andromeda-en&encoding=linear16&container=wav&bit_rate=128000&sample_rate=24000&speed=1.1',
         method: 'POST',
-        authorization: 'Token deepgram-key',
-        body: { text: 'Deepgram control synthesis.' }
-      }])
+        bodyJson: { text: 'Deepgram control synthesis.' }
+      })
+      expect(calls[0]?.headers.get('authorization')).toBe('Token deepgram-key')
     }, 10_000)
 
   test('Deepgram TTS sends each newly registered model through the existing query transport', async () => {
     const dir = await makeTempDir('autoshow-deepgram-new-models-')
     const audioBytes = await Bun.file(LOCAL_SHORT_AUDIO_PATH).arrayBuffer()
-    const urls: string[] = []
     process.env['DEEPGRAM_API_KEY'] = 'deepgram-key'
-    globalThis.fetch = (async (input: Parameters<typeof fetch>[0]): Promise<Response> => {
-      urls.push(String(input))
+    const calls = installMockFetch(() => {
       return new Response(audioBytes, { status: 200, headers: { 'content-type': 'audio/mpeg' } })
-    }) as typeof fetch
+    })
 
     for (const model of ['aura-2-helena-en', 'aura-2-arcas-en', 'aura-2-aries-en'] as const) {
       await runDeepgramTts('New Deepgram model.', dir, { model })
     }
 
-    expect(urls).toEqual([
+    expect(calls.map((call) => call.url)).toEqual([
       'https://api.deepgram.com/v1/speak?model=aura-2-helena-en',
       'https://api.deepgram.com/v1/speak?model=aura-2-arcas-en',
       'https://api.deepgram.com/v1/speak?model=aura-2-aries-en'

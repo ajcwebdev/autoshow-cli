@@ -1,6 +1,5 @@
 import { KIMI_DEFAULT_BASE_URL } from '~/utils/base-urls'
-import { readEnv } from '~/utils/validate/env-utils'
-import { InternalError, hintsForMissingEnv } from '~/utils/error-handler'
+import { requireApiKey } from '~/utils/validate/env-utils'
 
 export const KIMI_OCR_IMAGE_BYTES = 100 * 1024 * 1024
 export const KIMI_OCR_LIMIT_SOURCE = 'project/links/kimi-general-ocr-text-links.md'
@@ -15,17 +14,8 @@ export const resolveKimiBaseUrl = (): string =>
 export const acceptsKimiThinkingField = (model: string): boolean =>
   !/^kimi-k3(?:[.-]|$)/i.test(model)
 
-const getKimiApiKey = (): string | undefined => {
-  return readEnv('KIMI_API_KEY')
-}
-
-export const ensureKimiApiKey = (serviceName: string): string => {
-  const apiKey = getKimiApiKey()
-  if (!apiKey) {
-    throw InternalError(`KIMI_API_KEY environment variable is required for ${serviceName}`, { stage: 'ocr:kimi', hints: hintsForMissingEnv('KIMI_API_KEY') })
-  }
-  return apiKey
-}
+export const ensureKimiApiKey = (serviceName: string): string =>
+  requireApiKey('KIMI_API_KEY', 'ocr:kimi', serviceName)
 
 export const ensureKimiOcrSetup = async (): Promise<void> => {
   ensureKimiApiKey('Kimi OCR')

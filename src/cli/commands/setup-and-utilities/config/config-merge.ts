@@ -1,10 +1,10 @@
-import type { AutoshowConfig, RepeatableModelFlag, Step2Command } from '~/types/index'
+import type { AutoshowConfig, CliFlagOccurrence, RepeatableModelFlag } from '~/types/index'
 import * as l from '~/utils/app-logger/app-logger'
 import { resolveCheapestModelForFlag } from '~/cli/commands/setup-and-utilities/models/cheapest-models'
 import {
   REPEATABLE_MODEL_FLAGS,
+  collectRepeatableModelFlagOccurrences,
   normalizeModelFlagOccurrences,
-  parseRepeatableModelFlagOccurrences
 } from '~/cli/commands/process-steps/step-1-download/download-targets/build-opts-from-flags/build-options-from-flags'
 import {
   getStep2ProviderConfigPathEntries,
@@ -29,6 +29,33 @@ const STEP2_PROVIDER_CONFIG_PATHS = Object.fromEntries(
   getStep2ProviderConfigPathEntries().map(({ flagName, configPath }) => [flagName, [...configPath]])
 ) as Record<string, string[]>
 
+// Provider-selection defaults are injected as whole groups: naming any provider
+// in a group on the command line drops the configured defaults for every provider
+// in it, so an explicit `--openai` is not joined by a configured `--groq`.
+// `gate` is the explicit-flag guard, `flags` is what actually gets injected — the
+// two differ only for URL, whose guard also covers the `all-*` bundles that
+// select providers indirectly and have no config destination of their own.
+const PROVIDER_SELECTION_GROUPS: readonly { gate: readonly string[], flags: readonly string[] }[] = [
+  { gate: STT_PROVIDER_FLAGS, flags: STT_PROVIDER_FLAGS },
+  { gate: LLM_PROVIDER_FLAGS, flags: LLM_PROVIDER_FLAGS },
+  { gate: TTS_PROVIDER_FLAGS, flags: TTS_PROVIDER_FLAGS },
+  { gate: IMAGE_PROVIDER_FLAGS, flags: IMAGE_PROVIDER_FLAGS },
+  { gate: VIDEO_PROVIDER_FLAGS, flags: VIDEO_PROVIDER_FLAGS },
+  { gate: MUSIC_PROVIDER_FLAGS, flags: MUSIC_PROVIDER_FLAGS },
+  { gate: OCR_PROVIDER_FLAGS, flags: OCR_PROVIDER_FLAGS },
+  { gate: URL_PROVIDER_DEFAULT_GROUP_FLAGS, flags: URL_PROVIDER_FLAGS }
+]
+
+// Flags the group pass owns, which the flag-by-flag pass must therefore skip.
+// Step-2 registry flags are excluded wholesale rather than by group membership:
+// an entry that is not `resumeSelectable` is absent from the groups but still
+// lands in FLAG_TO_CONFIG_PATH through the spread, and such a flag has never
+// been injected as a default.
+const GROUP_INJECTED_FLAGS = new Set<string>([
+  ...PROVIDER_SELECTION_GROUPS.flatMap(({ flags }) => [...flags]),
+  ...Object.keys(STEP2_PROVIDER_CONFIG_PATHS)
+])
+
 const readNestedValue = (
   source: Record<string, unknown>,
   path: readonly string[]
@@ -43,34 +70,6 @@ const readNestedValue = (
   return current
 }
 
-const resolveStep2ProviderDefaults = (
-  config: AutoshowConfig,
-  step: Step2Command
-): [string, unknown][] =>
-  getStep2ProviderSelectionFlagNames(step).map((flagName) => [
-    flagName,
-    STEP2_PROVIDER_CONFIG_PATHS[flagName]
-      ? readNestedValue(config as unknown as Record<string, unknown>, STEP2_PROVIDER_CONFIG_PATHS[flagName] as string[])
-      : undefined
-  ])
-
-export const extractExplicitFlags = (argv: string[]): Set<string> => {
-  const explicit = new Set<string>()
-  for (const token of argv) {
-    if (token === '--') break
-    if (!token.startsWith('--')) continue
-    const withoutDashes = token.slice(2)
-    const eqIdx = withoutDashes.indexOf('=')
-    const key = eqIdx === -1 ? withoutDashes : withoutDashes.slice(0, eqIdx)
-    if (!key) continue
-    explicit.add(key)
-    if (key.startsWith('no-') && key.length > 3) {
-      explicit.add(key.slice(3))
-    }
-  }
-  return explicit
-}
-
 export const mergeConfigIntoRawFlags = (
   rawFlags: Record<string, unknown>,
   config: AutoshowConfig,
@@ -81,196 +80,31 @@ export const mergeConfigIntoRawFlags = (
   const d = config.defaults
   if (!d) return merged
 
-  const hasExplicitFlagInGroup = (group: readonly string[]): boolean => group.some(flag => explicitFlags.has(flag))
+  const configRecord = config as unknown as Record<string, unknown>
 
-  const inject = (flagName: string, value: unknown): void => {
+  const inject = (flagName: string, path: readonly string[]): void => {
+    const value = readNestedValue(configRecord, path)
     if (value === undefined || explicitFlags.has(flagName)) return
     merged[flagName] = typeof value === 'number' ? String(value) : value
     injectedFlags.add(flagName)
   }
 
-  const injectProviderGroup = (group: readonly string[], entries: [string, unknown][]): void => {
-    if (hasExplicitFlagInGroup(group)) return
-    for (const [flag, val] of entries) inject(flag, val)
+  for (const { gate, flags } of PROVIDER_SELECTION_GROUPS) {
+    if (gate.some(flag => explicitFlags.has(flag))) continue
+    for (const flagName of flags) {
+      const path = FLAG_TO_CONFIG_PATH[flagName]
+      if (path) inject(flagName, path)
+    }
   }
 
-  if (d.extract?.stt) {
-    inject('youtube-captions', d.extract.stt.youtubeCaptions)
-    injectProviderGroup(STT_PROVIDER_FLAGS, resolveStep2ProviderDefaults(config, 'stt'))
-    inject('stt-happyscribe-organization-id', d.extract.stt.happyscribeOrganizationId)
-    inject('stt-supadata-lang', d.extract.stt.supadataLang)
-    inject('stt-scrapecreators-lang', d.extract.stt.scrapecreatorsLang)
-    inject('speaker-count', d.extract.stt.speakerCount)
-    inject('split', d.extract.stt.split)
-    inject('stt-reverb-verbatimicity', d.extract.stt.reverbVerbatimicity)
-    inject('stt-provider-concurrency', d.extract.stt.providerConcurrency)
-    inject('stt-local-concurrency', d.extract.stt.localConcurrency)
-    inject('stt-segment-concurrency', d.extract.stt.segmentConcurrency)
-    inject('stt-preflight-concurrency', d.extract.stt.preflightConcurrency)
-  }
-
-  if (d.llm) {
-    injectProviderGroup(LLM_PROVIDER_FLAGS, [
-      ['llama', d.llm.llama], ['llamafile', d.llm.llamafile], ['openai', d.llm.openai], ['groq', d.llm.groq],
-      ['gemini', d.llm.gemini], ['anthropic', d.llm.anthropic], ['minimax', d.llm.minimax],
-      ['grok', d.llm.grok], ['glm', d.llm.glm], ['kimi', d.llm.kimi],
-      ['together', d.llm.together], ['cerebras', d.llm.cerebras],
-    ])
-    inject('llm-provider-concurrency', d.llm.providerConcurrency)
-    inject('llm-local-concurrency', d.llm.localConcurrency)
-  }
-
-  if (d.post?.tts) {
-    injectProviderGroup(TTS_PROVIDER_FLAGS, [
-      ['kitten-tts', d.post.tts.kittenTts], ['elevenlabs-tts', d.post.tts.elevenlabsTts],
-      ['minimax-tts', d.post.tts.minimaxTts], ['groq-tts', d.post.tts.groqTts],
-      ['grok-tts', d.post.tts.grokTts], ['mistral-tts', d.post.tts.mistralTts],
-      ['openai-tts', d.post.tts.openaiTts], ['gemini-tts', d.post.tts.geminiTts],
-      ['deepgram-tts', d.post.tts.deepgramTts],
-      ['speechify-tts', d.post.tts.speechifyTts],
-      ['hume-tts', d.post.tts.humeTts], ['cartesia-tts', d.post.tts.cartesiaTts],
-    ])
-    inject('kitten-voice', d.post.tts.ttsSpeaker)
-    inject('groq-voice', d.post.tts.groqVoice)
-    inject('grok-tts-voice', d.post.tts.grokTtsVoice)
-    inject('grok-tts-language', d.post.tts.grokTtsLanguage)
-    inject('grok-tts-text-normalization', d.post.tts.grokTtsTextNormalization)
-    inject('mistral-tts-voice', d.post.tts.mistralTtsVoice)
-    inject('mistral-tts-ref-audio', d.post.tts.mistralTtsRefAudio)
-    inject('mistral-tts-voice-name', d.post.tts.mistralTtsVoiceName)
-    inject('tts-dialogue-format', d.post.tts.ttsDialogueFormat)
-    inject('tts-speaker', d.post.tts.ttsSpeakers)
-    inject('openai-voice', d.post.tts.openaiVoice)
-    inject('openai-tts-instructions', d.post.tts.openaiTtsInstructions)
-    inject('openai-tts-speed', d.post.tts.openaiTtsSpeed)
-    inject('gemini-voice', d.post.tts.geminiVoice)
-    inject('deepgram-tts-encoding', d.post.tts.deepgramTtsEncoding)
-    inject('deepgram-tts-container', d.post.tts.deepgramTtsContainer)
-    inject('deepgram-tts-bit-rate', d.post.tts.deepgramTtsBitRate)
-    inject('deepgram-tts-sample-rate', d.post.tts.deepgramTtsSampleRate)
-    inject('deepgram-tts-speed', d.post.tts.deepgramTtsSpeed)
-    inject('elevenlabs-voice', d.post.tts.elevenlabsVoice)
-    inject('elevenlabs-tts-ref-audio', d.post.tts.elevenlabsTtsRefAudio)
-    inject('elevenlabs-tts-voice-name', d.post.tts.elevenlabsTtsVoiceName)
-    inject('elevenlabs-tts-clone-remove-background-noise', d.post.tts.elevenlabsTtsCloneRemoveBackgroundNoise)
-    inject('elevenlabs-tts-output-format', d.post.tts.elevenlabsTtsOutputFormat)
-    inject('elevenlabs-tts-language-code', d.post.tts.elevenlabsTtsLanguageCode)
-    inject('elevenlabs-tts-stability', d.post.tts.elevenlabsTtsStability)
-    inject('elevenlabs-tts-similarity-boost', d.post.tts.elevenlabsTtsSimilarityBoost)
-    inject('elevenlabs-tts-style', d.post.tts.elevenlabsTtsStyle)
-    inject('elevenlabs-tts-use-speaker-boost', d.post.tts.elevenlabsTtsUseSpeakerBoost)
-    inject('elevenlabs-tts-speed', d.post.tts.elevenlabsTtsSpeed)
-    inject('elevenlabs-tts-seed', d.post.tts.elevenlabsTtsSeed)
-    inject('elevenlabs-tts-text-normalization', d.post.tts.elevenlabsTtsTextNormalization)
-    inject('elevenlabs-tts-pronunciation-dictionary-locator', d.post.tts.elevenlabsTtsPronunciationDictionaryLocators)
-    inject('elevenlabs-tts-optimize-streaming-latency', d.post.tts.elevenlabsTtsOptimizeStreamingLatency)
-    inject('minimax-tts-voice', d.post.tts.minimaxTtsVoice)
-    inject('minimax-tts-language-boost', d.post.tts.minimaxTtsLanguageBoost)
-    inject('minimax-tts-speed', d.post.tts.minimaxTtsSpeed)
-    inject('minimax-tts-volume', d.post.tts.minimaxTtsVolume)
-    inject('minimax-tts-pitch', d.post.tts.minimaxTtsPitch)
-    inject('minimax-tts-emotion', d.post.tts.minimaxTtsEmotion)
-    inject('minimax-tts-english-normalization', d.post.tts.minimaxTtsEnglishNormalization)
-    inject('minimax-tts-pronunciation', d.post.tts.minimaxTtsPronunciations)
-    inject('deepgram-voice', d.post.tts.deepgramVoice)
-    inject('speechify-voice', d.post.tts.speechifyVoice)
-    inject('speechify-tts-audio-format', d.post.tts.speechifyTtsAudioFormat)
-    inject('speechify-tts-language', d.post.tts.speechifyTtsLanguage)
-    inject('hume-tts-voice', d.post.tts.humeTtsVoice)
-    inject('hume-tts-voice-provider', d.post.tts.humeTtsVoiceProvider)
-    inject('cartesia-tts-voice', d.post.tts.cartesiaTtsVoice)
-    inject('cartesia-tts-language', d.post.tts.cartesiaTtsLanguage)
-    inject('tts-provider-concurrency', d.post.tts.providerConcurrency)
-    inject('tts-local-concurrency', d.post.tts.localConcurrency)
-    inject('tts-chunk-concurrency', d.post.tts.chunkConcurrency)
-  }
-
-  if (d.post?.image) {
-    injectProviderGroup(IMAGE_PROVIDER_FLAGS, [
-      ['gemini-image', d.post.image.geminiImage], ['openai-image', d.post.image.openaiImage],
-      ['grok-image', d.post.image.grokImage],
-      ['bfl-image', d.post.image.bflImage],
-      ['recraft-image', d.post.image.recraftImage],
-      ['replicate-image', d.post.image.replicateImage],
-      ['lumalabs-image', d.post.image.lumalabsImage],
-      ['fal-image', d.post.image.falImage],
-    ])
-    inject('image-aspect-ratio', d.post.image.imageAspectRatio)
-    inject('image-size', d.post.image.imageSize)
-    inject('image-quality', d.post.image.imageQuality)
-    inject('image-format', d.post.image.imageFormat)
-    inject('image-background', d.post.image.imageBackground)
-    inject('image-count', d.post.image.imageCount)
-    inject('image-provider-concurrency', d.post.image.providerConcurrency)
-    inject('image-local-concurrency', d.post.image.localConcurrency)
-  }
-
-  if (d.post?.video) {
-    injectProviderGroup(VIDEO_PROVIDER_FLAGS, [
-      ['gemini-video', d.post.video.geminiVideo], ['minimax-video', d.post.video.minimaxVideo],
-      ['glm-video', d.post.video.glmVideo], ['grok-video', d.post.video.grokVideo],
-      ['runway-video', d.post.video.runwayVideo],
-      ['ltx-video', d.post.video.ltxVideo],
-      ['replicate-video', d.post.video.replicateVideo],
-      ['lumalabs-video', d.post.video.lumalabsVideo],
-      ['fal-video', d.post.video.falVideo],
-    ])
-    inject('video-duration', d.post.video.videoDuration)
-    inject('video-size', d.post.video.videoSize)
-    inject('video-aspect-ratio', d.post.video.videoAspectRatio)
-    inject('video-resolution', d.post.video.videoResolution)
-    inject('video-mode', d.post.video.videoMode)
-    inject('video-input-image', d.post.video.videoInputImage)
-    inject('video-last-frame', d.post.video.videoLastFrame)
-    inject('video-reference-image', d.post.video.videoReferenceImages)
-    inject('video-input-video', d.post.video.videoInputVideo)
-    inject('replicate-video-seed', d.post.video.replicateVideoSeed)
-    inject('replicate-video-generate-audio', d.post.video.replicateVideoGenerateAudio)
-    inject('replicate-video-reference-video', d.post.video.replicateVideoReferenceVideos)
-    inject('replicate-video-reference-audio', d.post.video.replicateVideoReferenceAudios)
-    inject('replicate-video-negative-prompt', d.post.video.replicateVideoNegativePrompt)
-    inject('replicate-video-audio', d.post.video.replicateVideoAudio)
-    inject('replicate-video-prompt-expansion', d.post.video.replicateVideoPromptExpansion)
-    inject('fal-video-generate-audio', d.post.video.falVideoGenerateAudio)
-    inject('fal-video-reference-video', d.post.video.falVideoReferenceVideos)
-    inject('fal-video-reference-audio', d.post.video.falVideoReferenceAudios)
-    inject('grok-video-storage-filename', d.post.video.grokVideoStorageFilename)
-    inject('grok-video-storage-expires-after', d.post.video.grokVideoStorageExpiresAfter)
-    inject('video-provider-concurrency', d.post.video.providerConcurrency)
-    inject('video-local-concurrency', d.post.video.localConcurrency)
-  }
-
-  if (d.post?.music) {
-    injectProviderGroup(MUSIC_PROVIDER_FLAGS, [
-      ['elevenlabs-music', d.post.music.elevenlabsMusic], ['minimax-music', d.post.music.minimaxMusic],
-      ['gemini-music', d.post.music.geminiMusic],
-    ])
-    inject('music-duration', d.post.music.musicDuration)
-    inject('music-provider-concurrency', d.post.music.providerConcurrency)
-    inject('music-local-concurrency', d.post.music.localConcurrency)
-  }
-
-  if (d.extract?.ocr) {
-    inject('ocr-language', d.extract.ocr.lang)
-    inject('format', d.extract.ocr.out)
-    injectProviderGroup(OCR_PROVIDER_FLAGS, resolveStep2ProviderDefaults(config, 'ocr'))
-    inject('ocr-dpi', d.extract.ocr.dpi)
-    inject('ocr-concurrency', d.extract.ocr.pageConcurrency)
-    inject('ocr-provider-concurrency', d.extract.ocr.providerConcurrency)
-    inject('ocr-local-concurrency', d.extract.ocr.localConcurrency)
-    inject('chapters', d.extract.ocr.chapters)
-    inject('length', d.extract.ocr.length)
-    inject('pdf-chapter-mode', d.extract.ocr.pdfChapterMode)
-  }
-
-  if (d.extract?.url) {
-    injectProviderGroup(URL_PROVIDER_DEFAULT_GROUP_FLAGS, resolveStep2ProviderDefaults(config, 'url'))
-  }
-
-  if (d.batch) {
-    inject('batch-limit', d.batch.limit)
-    inject('batch-order', d.batch.order)
-    inject('batch-concurrency', d.batch.concurrency)
+  // Everything else is a one-flag-one-destination default, so the table is the
+  // whole mapping. Section gating is implicit: a missing config section makes
+  // readNestedValue return undefined and inject skip the flag. Paths outside
+  // `defaults` (`max-cents`) are not CLI defaults and stay excluded, as does
+  // `prompt`, which has no table entry and is handled below.
+  for (const [flagName, path] of Object.entries(FLAG_TO_CONFIG_PATH)) {
+    if (GROUP_INJECTED_FLAGS.has(flagName) || path[0] !== 'defaults') continue
+    inject(flagName, path)
   }
 
   if (d.prompts && d.prompts.length > 0 && !explicitFlags.has('prompt')) {
@@ -529,10 +363,10 @@ const resolveConfigFlagValue = (flagName: string, rawValue: unknown): unknown =>
 export const buildConfigPatchFromFlags = (
   flags: Record<string, unknown>,
   explicitFlags: Set<string>,
-  rawArgs: string[] = []
+  flagOccurrences: readonly CliFlagOccurrence[] = []
 ): Record<string, unknown> => {
   const patch: Record<string, unknown> = {}
-  const rawOccurrences = parseRepeatableModelFlagOccurrences(rawArgs)
+  const rawOccurrences = collectRepeatableModelFlagOccurrences(flagOccurrences)
   const discardedFlags: string[] = []
 
   for (const flagName of explicitFlags) {

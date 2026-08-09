@@ -50,7 +50,7 @@ export const finalizeHostedSttResult = async (
 
   if (options.segmentNumber && options.totalSegments) {
     logSttSegmentLifecycle(l, {
-      provider: options.provider,
+      provider: options.lifecycleProvider ?? options.provider,
       action: 'completed',
       segmentNumber: options.segmentNumber,
       totalSegments: options.totalSegments,

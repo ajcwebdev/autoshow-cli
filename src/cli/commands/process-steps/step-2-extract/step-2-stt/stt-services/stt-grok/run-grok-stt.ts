@@ -1,14 +1,14 @@
 import * as l from '~/utils/app-logger/app-logger'
 import * as v from 'valibot'
-import type { GrokSttHttpError, GrokWord, RetryClass, Step2Metadata, TranscriptionEvidenceWord, TranscriptionResult, TranscriptionSegment } from '~/types'
+import type { GrokWord, RetryClass, Step2Metadata, SttStageHttpError, TranscriptionEvidenceWord, TranscriptionResult, TranscriptionSegment } from '~/types'
 import { logSttSegmentLifecycle } from '~/cli/commands/process-steps/step-2-extract/step-2-stt/stt-logging'
 import { appendToken, buildSegmentsFromWords, formatSpeakerLabel } from '~/cli/commands/process-steps/step-2-extract/step-2-stt/stt-utils/stt-utils'
-import { withRetry, classifyFetchRetry } from '~/utils/retries'
 import { XAI_DEFAULT_BASE_URL } from '~/utils/base-urls'
-import { readEnv } from '~/utils/validate/env-utils'
-import { validateData, validateDataSafe } from '~/utils/validate/validation'
-import { InternalError, hintsForMissingEnv } from '~/utils/error-handler'
+import { requireApiKey } from '~/utils/validate/env-utils'
+import { validateDataSafe } from '~/utils/validate/validation'
 import { finalizeHostedSttResult } from '../finalize-hosted-stt'
+import { createSttRetryMetrics, sttRetryMetricsToCallbacks } from '../../stt-retry-metrics'
+import { sttStageRequest } from '../stt-stage-request'
 const REQUEST_TIMEOUT_MS = 20 * 60 * 1000
 
 const GrokSttWordSchema = v.object({
@@ -35,29 +35,24 @@ const GrokErrorSchema = v.object({
 
 const trimTrailingSlash = (value: string): string => value.replace(/\/+$/, '')
 
-const getErrorStatus = (error: unknown): number | undefined =>
-  error && typeof error === 'object' && 'status' in error && typeof (error as { status?: unknown }).status === 'number'
-    ? (error as { status: number }).status
-    : undefined
-
-const readGrokError = async (response: Response): Promise<{ message: string, raw: unknown }> => {
+const readGrokError = async (response: Response): Promise<{ message: string, rawResponse: unknown }> => {
   const rawText = await response.text()
   if (!rawText.trim()) {
-    return { message: `HTTP ${response.status}`, raw: rawText }
+    return { message: `HTTP ${response.status}`, rawResponse: rawText }
   }
 
   try {
     const parsed: unknown = JSON.parse(rawText)
     const validated = validateDataSafe(GrokErrorSchema, parsed)
     if (validated?.error?.message && validated.error.message.trim().length > 0) {
-      return { message: validated.error.message, raw: parsed }
+      return { message: validated.error.message, rawResponse: parsed }
     }
     if (validated?.message && validated.message.trim().length > 0) {
-      return { message: validated.message, raw: parsed }
+      return { message: validated.message, rawResponse: parsed }
     }
-    return { message: rawText, raw: parsed }
+    return { message: rawText, rawResponse: parsed }
   } catch {
-    return { message: rawText, raw: rawText }
+    return { message: rawText, rawResponse: rawText }
   }
 }
 
@@ -168,12 +163,12 @@ const evidenceWordsFromApi = (
 
 const attachGrokErrorContext = (
   error: unknown,
-  stage: 'transcribe',
+  stage: string,
   retryClass: RetryClass
 ): never => {
   const source = error instanceof Error ? error : new Error(String(error))
-  ;(source as GrokSttHttpError).stage = stage
-  ;(source as GrokSttHttpError).retryClass = retryClass
+  ;(source as SttStageHttpError).stage = stage
+  ;(source as SttStageHttpError).retryClass = retryClass
   throw source
 }
 
@@ -188,10 +183,7 @@ export const runGrokStt = async (
   }
 ): Promise<{ result: TranscriptionResult, metadata: Step2Metadata }> => {
   const { model, segmentOffsetMinutes = 0, segmentNumber, totalSegments } = options
-  const apiKey = readEnv('XAI_API_KEY')
-  if (!apiKey) {
-    throw InternalError('XAI_API_KEY environment variable is required for Grok transcription', { stage: 'stt:grok', hints: hintsForMissingEnv('XAI_API_KEY') })
-  }
+  const apiKey = requireApiKey('XAI_API_KEY', 'stt:grok', 'Grok transcription')
 
   if (segmentNumber && totalSegments) {
     logSttSegmentLifecycle(l, { provider: 'grok', action: 'started', segmentNumber, totalSegments, model })
@@ -202,69 +194,43 @@ export const runGrokStt = async (
   const baseURL = trimTrailingSlash(XAI_DEFAULT_BASE_URL)
   let transcribeMs = 0
   let requestCount = 0
-  let retryCount = 0
-  let rateLimitCount = 0
-  let rawPayload: unknown
+  const retryMetrics = createSttRetryMetrics()
 
-  try {
-    const transcribeStartedAt = Date.now()
-    rawPayload = await withRetry(
-      {
-        retryClass: 'runtime_http_create_conservative',
-        operationName: 'grok-stt',
-        policy: { maxAttempts: 4 },
-        timeoutMs: REQUEST_TIMEOUT_MS
-      },
-      async (signal) => {
-        requestCount += 1
-        const form = new FormData()
-        form.append('format', 'true')
-        form.append('language', 'en')
-        form.append('diarize', 'true')
-        form.append('file', Bun.file(audioPath))
+  const transcribeStartedAt = Date.now()
+  const payload = await sttStageRequest({
+    operationName: 'grok-stt',
+    stage: 'transcribe',
+    retryClass: 'runtime_http_create_conservative',
+    maxAttempts: 4,
+    timeoutMs: REQUEST_TIMEOUT_MS,
+    errorPrefix: 'Grok',
+    failureLabel: 'transcription',
+    schema: GrokSttResponseSchema,
+    schemaLabel: 'Grok STT response',
+    metrics: sttRetryMetricsToCallbacks(retryMetrics, () => {
+      requestCount += 1
+    }),
+    readFailure: readGrokError,
+    attachError: attachGrokErrorContext,
+    doFetch: async (signal) => {
+      const form = new FormData()
+      form.append('format', 'true')
+      form.append('language', 'en')
+      form.append('diarize', 'true')
+      form.append('file', Bun.file(audioPath))
 
-        const response = await fetch(`${baseURL}/stt`, {
-          method: 'POST',
-          headers: {
-            Authorization: `Bearer ${apiKey}`
-          },
-          body: form,
-          ...(signal ? { signal } : {})
-        })
+      return await fetch(`${baseURL}/stt`, {
+        method: 'POST',
+        headers: {
+          Authorization: `Bearer ${apiKey}`
+        },
+        body: form,
+        ...(signal ? { signal } : {})
+      })
+    }
+  })
+  transcribeMs += Date.now() - transcribeStartedAt
 
-        if (!response.ok) {
-          const { message, raw } = await readGrokError(response)
-          throw Object.assign(
-            new Error(`Grok transcription failed (${response.status}): ${message}`),
-            {
-              status: response.status,
-              headers: response.headers,
-              stage: 'transcribe',
-              retryClass: 'runtime_http_create_conservative',
-              rawResponse: raw
-            } satisfies Pick<GrokSttHttpError, 'status' | 'headers' | 'stage' | 'retryClass' | 'rawResponse'>
-          )
-        }
-
-        return await response.json()
-      },
-      (error) => {
-        const decision = classifyFetchRetry(error, 'runtime_http_create_conservative', { retryAbortOnConservative: true })
-        if (decision.shouldRetry) {
-          retryCount += 1
-          if (getErrorStatus(error) === 429) {
-            rateLimitCount += 1
-          }
-        }
-        return decision
-      }
-    )
-    transcribeMs += Date.now() - transcribeStartedAt
-  } catch (error) {
-    attachGrokErrorContext(error, 'transcribe', 'runtime_http_create_conservative')
-  }
-
-  const payload = validateData(GrokSttResponseSchema, rawPayload, 'Grok STT response')
   const text = payload.text.trim() || textFromWords(payload.words)
   const segments = segmentsFromWords(payload.words, offsetSeconds)
   const evidenceWords = evidenceWordsFromApi(payload.words, offsetSeconds)
@@ -278,8 +244,8 @@ export const runGrokStt = async (
     startTime,
     transcribeMs,
     requestCount,
-    retryCount,
-    rateLimitCount,
+    retryCount: retryMetrics.retryCount,
+    rateLimitCount: retryMetrics.rateLimitCount,
     text,
     segments,
     evidenceWords,

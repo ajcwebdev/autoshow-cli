@@ -13,32 +13,27 @@ const reindexCues = (cues: Array<Omit<CaptionCue, 'index'>>): CaptionCue[] =>
     text: cue.text
   }))
 
+export const hmsPartsToSeconds = (h: string, m: string, s: string, ms: string): number => {
+  const hours = Number(h)
+  const minutes = Number(m)
+  const seconds = Number(s)
+  const milliseconds = Number(ms)
+  if (![hours, minutes, seconds, milliseconds].every(Number.isFinite) || minutes > 59 || seconds > 59) {
+    return Number.NaN
+  }
+  return (hours * 3600) + (minutes * 60) + seconds + (milliseconds / 1000)
+}
+
 const parseCaptionTimestamp = (timestamp: string): number => {
   const match = timestamp.trim().match(/^(\d+):(\d{2}):(\d{2})([.,])(\d{3})$/)
   if (!match) {
     return Number.NaN
   }
 
-  const hours = Number(match[1])
-  const minutes = Number(match[2])
-  const seconds = Number(match[3])
-  const milliseconds = Number(match[5])
-
-  if (
-    !Number.isFinite(hours)
-    || !Number.isFinite(minutes)
-    || !Number.isFinite(seconds)
-    || !Number.isFinite(milliseconds)
-    || minutes > 59
-    || seconds > 59
-  ) {
-    return Number.NaN
-  }
-
-  return (hours * 3600) + (minutes * 60) + seconds + (milliseconds / 1000)
+  return hmsPartsToSeconds(match[1]!, match[2]!, match[3]!, match[5]!)
 }
 
-const formatCaptionTimestamp = (seconds: number, separator: '.' | ','): string => {
+export const formatCaptionTimestamp = (seconds: number, separator: '.' | ','): string => {
   const totalMilliseconds = Math.max(0, Math.round(seconds * 1000))
   const milliseconds = totalMilliseconds % 1000
   const totalSeconds = Math.floor(totalMilliseconds / 1000)
@@ -66,16 +61,13 @@ export const formatSrt = (cues: CaptionCue[]): string => {
   return body.length > 0 ? `${body}\n` : ''
 }
 
-const parseVtt = (raw: string): CaptionCue[] => {
+const parseCaptionCues = (raw: string, format: 'vtt' | 'srt'): CaptionCue[] => {
   const source = raw.replace(/^\uFEFF/, '').replace(/\r\n/g, '\n')
   const blocks = source.split(/\n{2,}/).map((block) => block.trim()).filter(Boolean)
   const cues: Array<Omit<CaptionCue, 'index'>> = []
 
   for (const block of blocks) {
-    if (block === 'WEBVTT' || block.startsWith('WEBVTT\n')) {
-      continue
-    }
-    if (/^NOTE(?:\s|$)/.test(block)) {
+    if (format === 'vtt' && (block === 'WEBVTT' || block.startsWith('WEBVTT\n') || /^NOTE(?:\s|$)/.test(block))) {
       continue
     }
 
@@ -88,7 +80,7 @@ const parseVtt = (raw: string): CaptionCue[] => {
     const timingLine = lines[timingLineIndex]!.trim()
     const match = timingLine.match(/^(\S+)\s+-->\s+(\S+)(?:\s+.*)?$/)
     if (!match) {
-      throw ValidationError(`Invalid VTT cue timing line: ${timingLine}`, { stage: 'music:captions' })
+      throw ValidationError(`Invalid ${format.toUpperCase()} cue timing line: ${timingLine}`, { stage: 'music:captions' })
     }
 
     const start = parseCaptionTimestamp(match[1]!)
@@ -96,42 +88,7 @@ const parseVtt = (raw: string): CaptionCue[] => {
     const text = normalizeText(lines.slice(timingLineIndex + 1).join('\n'))
 
     if (!Number.isFinite(start) || !Number.isFinite(end) || end <= start) {
-      throw ValidationError(`Invalid VTT cue timestamps: ${timingLine}`, { stage: 'music:captions' })
-    }
-    if (!text) {
-      continue
-    }
-
-    cues.push({ start, end, text })
-  }
-
-  return reindexCues(cues)
-}
-
-const parseSrt = (raw: string): CaptionCue[] => {
-  const source = raw.replace(/^\uFEFF/, '').replace(/\r\n/g, '\n')
-  const blocks = source.split(/\n{2,}/).map((block) => block.trim()).filter(Boolean)
-  const cues: Array<Omit<CaptionCue, 'index'>> = []
-
-  for (const block of blocks) {
-    const lines = block.split('\n')
-    const timingLineIndex = lines.findIndex((line) => line.includes('-->'))
-    if (timingLineIndex === -1) {
-      continue
-    }
-
-    const timingLine = lines[timingLineIndex]!.trim()
-    const match = timingLine.match(/^(\S+)\s+-->\s+(\S+)(?:\s+.*)?$/)
-    if (!match) {
-      throw ValidationError(`Invalid SRT cue timing line: ${timingLine}`, { stage: 'music:captions' })
-    }
-
-    const start = parseCaptionTimestamp(match[1]!)
-    const end = parseCaptionTimestamp(match[2]!)
-    const text = normalizeText(lines.slice(timingLineIndex + 1).join('\n'))
-
-    if (!Number.isFinite(start) || !Number.isFinite(end) || end <= start) {
-      throw ValidationError(`Invalid SRT cue timestamps: ${timingLine}`, { stage: 'music:captions' })
+      throw ValidationError(`Invalid ${format.toUpperCase()} cue timestamps: ${timingLine}`, { stage: 'music:captions' })
     }
     if (!text) {
       continue
@@ -148,14 +105,14 @@ export const loadCaptionFile = async (filePath: string): Promise<CaptionCue[]> =
   const extension = extname(filePath).toLowerCase()
 
   if (extension === '.vtt') {
-    return parseVtt(raw)
+    return parseCaptionCues(raw, 'vtt')
   }
   if (extension === '.srt') {
-    return parseSrt(raw)
+    return parseCaptionCues(raw, 'srt')
   }
   if (raw.replace(/^\uFEFF/, '').startsWith('WEBVTT')) {
-    return parseVtt(raw)
+    return parseCaptionCues(raw, 'vtt')
   }
 
-  return parseSrt(raw)
+  return parseCaptionCues(raw, 'srt')
 }

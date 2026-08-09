@@ -15,6 +15,36 @@ import { BLOB_PREFIXED_DOC_FETCH_LINK, BLOB_PREFIXED_DOC_LINK, linksTestOutputPa
 
 const LINKS_RETRY_TEST_URL = 'https://elevenlabs.io/docs/overview/models.md'
 
+const expectLinksRetryScenario = async (options: {
+  outputSlug: string
+  failure: Error | { body: string, status: number, statusText: string }
+  alwaysFail?: boolean | undefined
+  expectedAttempts: number
+  expectSuccess: boolean
+}): Promise<void> => {
+  const outputPath = linksTestOutputPath(options.outputSlug)
+  const attempts = new Map<string, number>()
+  const fetchImpl = async (input: string | URL | Request): Promise<Response> => {
+    const url = String(input)
+    const attempt = (attempts.get(url) ?? 0) + 1
+    attempts.set(url, attempt)
+    if (url === LINKS_RETRY_TEST_URL && (options.alwaysFail || attempt === 1)) {
+      if (options.failure instanceof Error) throw options.failure
+      return new Response(options.failure.body, options.failure)
+    }
+    return new Response(`# docs for ${url}\n`, { headers: { 'content-type': 'text/markdown' } })
+  }
+  await runLinksWithArgv([
+    'bun', 'src/cli/create-cli.ts', 'links', '--elevenlabs', 'models'
+  ], { outputPath, fetchImpl })
+  const output = await Bun.file(outputPath).text()
+  expect(attempts.get(LINKS_RETRY_TEST_URL)).toBe(options.expectedAttempts)
+  const successMarker = `<!-- Source: ${LINKS_RETRY_TEST_URL} -->`
+  const failureMarker = `<!-- Failed to fetch ${LINKS_RETRY_TEST_URL} -->`
+  expect(output).toContain(options.expectSuccess ? successMarker : failureMarker)
+  expect(output).not.toContain(options.expectSuccess ? failureMarker : successMarker)
+}
+
 const writeLinksFakeDefuddleBin = async (): Promise<{ dir: string, bin: string }> => {
   const dir = await mkdtemp(join(tmpdir(), 'autoshow-links-fake-defuddle-'))
   const bin = join(dir, 'defuddle')
@@ -33,98 +63,31 @@ const writeLinksFakeDefuddleBin = async (): Promise<{ dir: string, bin: string }
 }
 
 test('links retries transient network failures before writing output', async () => {
-  const outputPath = linksTestOutputPath('socket-retry')
-  const attempts = new Map<string, number>()
-
-  const fetchImpl = async (input: string | URL | Request): Promise<Response> => {
-    const url = String(input)
-    const attempt = (attempts.get(url) ?? 0) + 1
-    attempts.set(url, attempt)
-
-    if (url === LINKS_RETRY_TEST_URL && attempt === 1) {
-      throw new Error('The socket connection was closed unexpectedly')
-    }
-
-    return new Response(`# docs for ${url}\n`, {
-      headers: { 'content-type': 'text/markdown' }
-    })
-  }
-
-  await runLinksWithArgv([
-    'bun',
-    'src/cli/create-cli.ts',
-    'links',
-    '--elevenlabs',
-    'models'
-  ], { outputPath, fetchImpl })
-
-  const output = await Bun.file(outputPath).text()
-  expect(attempts.get(LINKS_RETRY_TEST_URL)).toBe(2)
-  expect(output).toContain(`<!-- Source: ${LINKS_RETRY_TEST_URL} -->`)
-  expect(output).not.toContain(`<!-- Failed to fetch ${LINKS_RETRY_TEST_URL} -->`)
+  await expectLinksRetryScenario({
+    outputSlug: 'socket-retry',
+    failure: new Error('The socket connection was closed unexpectedly'),
+    expectedAttempts: 2,
+    expectSuccess: true
+  })
 })
 
 test('links retries retryable HTTP status failures before writing output', async () => {
-  const outputPath = linksTestOutputPath('status-retry')
-  const attempts = new Map<string, number>()
-
-  const fetchImpl = async (input: string | URL | Request): Promise<Response> => {
-    const url = String(input)
-    const attempt = (attempts.get(url) ?? 0) + 1
-    attempts.set(url, attempt)
-
-    if (url === LINKS_RETRY_TEST_URL && attempt === 1) {
-      return new Response('temporary outage', { status: 503, statusText: 'Service Unavailable' })
-    }
-
-    return new Response(`# docs for ${url}\n`, {
-      headers: { 'content-type': 'text/markdown' }
-    })
-  }
-
-  await runLinksWithArgv([
-    'bun',
-    'src/cli/create-cli.ts',
-    'links',
-    '--elevenlabs',
-    'models'
-  ], { outputPath, fetchImpl })
-
-  const output = await Bun.file(outputPath).text()
-  expect(attempts.get(LINKS_RETRY_TEST_URL)).toBe(2)
-  expect(output).toContain(`<!-- Source: ${LINKS_RETRY_TEST_URL} -->`)
-  expect(output).not.toContain(`<!-- Failed to fetch ${LINKS_RETRY_TEST_URL} -->`)
+  await expectLinksRetryScenario({
+    outputSlug: 'status-retry',
+    failure: { body: 'temporary outage', status: 503, statusText: 'Service Unavailable' },
+    expectedAttempts: 2,
+    expectSuccess: true
+  })
 })
 
 test('links does not retry non-retryable HTTP status failures', async () => {
-  const outputPath = linksTestOutputPath('non-retryable-status')
-  const attempts = new Map<string, number>()
-
-  const fetchImpl = async (input: string | URL | Request): Promise<Response> => {
-    const url = String(input)
-    attempts.set(url, (attempts.get(url) ?? 0) + 1)
-
-    if (url === LINKS_RETRY_TEST_URL) {
-      return new Response('missing', { status: 404, statusText: 'Not Found' })
-    }
-
-    return new Response(`# docs for ${url}\n`, {
-      headers: { 'content-type': 'text/markdown' }
-    })
-  }
-
-  await runLinksWithArgv([
-    'bun',
-    'src/cli/create-cli.ts',
-    'links',
-    '--elevenlabs',
-    'models'
-  ], { outputPath, fetchImpl })
-
-  const output = await Bun.file(outputPath).text()
-  expect(attempts.get(LINKS_RETRY_TEST_URL)).toBe(1)
-  expect(output).toContain(`<!-- Failed to fetch ${LINKS_RETRY_TEST_URL} -->`)
-  expect(output).not.toContain(`<!-- Source: ${LINKS_RETRY_TEST_URL} -->`)
+  await expectLinksRetryScenario({
+    outputSlug: 'non-retryable-status',
+    failure: { body: 'missing', status: 404, statusText: 'Not Found' },
+    alwaysFail: true,
+    expectedAttempts: 1,
+    expectSuccess: false
+  })
 })
 
 test('links strips the blob prefix when fetching but cites the original URL', async () => {

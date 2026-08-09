@@ -1,7 +1,7 @@
 import type { HappyScribeHttpError, HappyScribeStage, RetryClass } from '~/types'
+import { isRecord } from '~/utils/rest-client'
 
-export const isRecord = (value: unknown): value is Record<string, unknown> =>
-  typeof value === 'object' && value !== null && !Array.isArray(value)
+export { isRecord }
 
 export const normalizeHappyScribeId = (value: unknown): string | undefined => {
   if (typeof value === 'string' && value.trim().length > 0) {
@@ -36,7 +36,7 @@ export const readHappyScribeJsonOrText = async (response: Response): Promise<unk
   }
 }
 
-const extractHappyScribeErrorMessage = (payload: unknown): string | undefined => {
+export const extractHappyScribeErrorMessage = (payload: unknown): string | undefined => {
   if (typeof payload === 'string') {
     const trimmed = payload.trim()
     return trimmed.length > 0 ? trimmed : undefined

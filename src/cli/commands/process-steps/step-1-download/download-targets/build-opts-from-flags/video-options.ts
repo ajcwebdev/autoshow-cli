@@ -1,4 +1,5 @@
 import type { BuildDomainOptionsContext, RuntimeOptions, VideoRuntimeOptionKey } from '~/types'
+import { VIDEO_PRICING_MODEL_KEYS } from '~/cli/commands/process-steps/step-6-video/video-utils/video-pricing'
 import {
   parseOptionalIntFlag,
   parseOptionalNumberFlag,
@@ -7,51 +8,15 @@ import {
   readOptionalStringListFlag
 } from '../options/flag-readers'
 import { resolveLocalConcurrency, resolveProviderConcurrency } from './concurrency'
+import { pick } from '~/utils/cli-utils'
 
 export const buildVideoOptions = (ctx: BuildDomainOptionsContext): Pick<RuntimeOptions, VideoRuntimeOptionKey> => {
   const { mergedFlags, explicitFlags, configuredFlags, allShortcutFlags, modelOptions, targetCounts } = ctx
-  const {
-    geminiVideoModels,
-    geminiVideoModel,
-    minimaxVideoModels,
-    minimaxVideoModel,
-    glmVideoModels,
-    glmVideoModel,
-    grokVideoModels,
-    grokVideoModel,
-    runwayVideoModels,
-    runwayVideoModel,
-    ltxVideoModels,
-    ltxVideoModel,
-    replicateVideoModels,
-    replicateVideoModel,
-    lumalabsVideoModels,
-    lumalabsVideoModel,
-    falVideoModels,
-    falVideoModel,
-  } = modelOptions
 
   return {
+    ...pick(modelOptions, VIDEO_PRICING_MODEL_KEYS),
     videoProviderConcurrency: resolveProviderConcurrency(mergedFlags, 'video-provider-concurrency', allShortcutFlags['all-video'], targetCounts.hostedVideoTargetCount, explicitFlags, configuredFlags),
     videoLocalConcurrency: resolveLocalConcurrency(mergedFlags, 'video-local-concurrency', explicitFlags, configuredFlags),
-    geminiVideoModels,
-    geminiVideoModel,
-    minimaxVideoModels,
-    minimaxVideoModel,
-    glmVideoModels,
-    glmVideoModel,
-    grokVideoModels,
-    grokVideoModel,
-    runwayVideoModels,
-    runwayVideoModel,
-    ltxVideoModels,
-    ltxVideoModel,
-    replicateVideoModels,
-    replicateVideoModel,
-    lumalabsVideoModels,
-    lumalabsVideoModel,
-    falVideoModels,
-    falVideoModel,
     allVideo: allShortcutFlags['all-video'],
     videoDuration: parseOptionalIntFlag(readOptionalStringFlag(mergedFlags, 'video-duration')),
     videoSize: readOptionalStringFlag(mergedFlags, 'video-size'),

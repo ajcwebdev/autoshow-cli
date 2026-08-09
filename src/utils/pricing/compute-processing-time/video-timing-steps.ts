@@ -1,6 +1,7 @@
 import type { ComputeEstimatedProcessingTimesInput, TimingStepEntry, TimingStepsResult } from '~/types'
-import { estimateVideoCosts } from '~/cli/commands/process-steps/step-6-video/video-utils/video-pricing'
+import { estimateVideoCosts, VIDEO_PRICING_PROVIDERS } from '~/cli/commands/process-steps/step-6-video/video-utils/video-pricing'
 import { getVideoEstimation } from '~/cli/commands/setup-and-utilities/models/model-loader'
+import { optionsForService } from '~/utils/pricing/model-selection'
 import { roundMs, withNormalizedTiming } from './timing-shared'
 
 const resolveVideoTimingDurationSeconds = (
@@ -8,15 +9,7 @@ const resolveVideoTimingDurationSeconds = (
   input: Pick<ComputeEstimatedProcessingTimesInput, 'videoSize' | 'videoAspectRatio' | 'videoResolution' | 'videoMode'>
 ): number | undefined => {
   const estimates = estimateVideoCosts({
-    ...(target.service === 'gemini' ? { geminiVideoModels: [target.model] } : {}),
-    ...(target.service === 'minimax' ? { minimaxVideoModels: [target.model] } : {}),
-    ...(target.service === 'glm' ? { glmVideoModels: [target.model] } : {}),
-    ...(target.service === 'grok' ? { grokVideoModels: [target.model] } : {}),
-    ...(target.service === 'runway' ? { runwayVideoModels: [target.model] } : {}),
-    ...(target.service === 'ltx' ? { ltxVideoModels: [target.model] } : {}),
-    ...(target.service === 'replicate' ? { replicateVideoModels: [target.model] } : {}),
-    ...(target.service === 'lumalabs' ? { lumalabsVideoModels: [target.model] } : {}),
-    ...(target.service === 'fal' ? { falVideoModels: [target.model] } : {}),
+    ...optionsForService(VIDEO_PRICING_PROVIDERS, target.service, target.model),
     videoDuration: target.durationSeconds,
     videoSize: input.videoSize,
     videoAspectRatio: input.videoAspectRatio,

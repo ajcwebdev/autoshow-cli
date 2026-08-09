@@ -3,6 +3,7 @@ import { runOpenAICompatibleChatModel } from '~/cli/commands/process-steps/step-
 import { runCerebrasModel } from '~/cli/commands/process-steps/step-3-write/write-services/write-cerebras/run-cerebras'
 import { runTogetherModel } from '~/cli/commands/process-steps/step-3-write/write-services/write-together/run-together'
 import { runMinimaxModel } from '~/cli/commands/process-steps/step-3-write/write-services/write-minimax/run-minimax'
+import { runOpenAIModel } from '~/cli/commands/process-steps/step-3-write/write-services/write-openai/run-openai'
 import { CEREBRAS_DEFAULT_BASE_URL, MINIMAX_DEFAULT_BASE_URL, TOGETHER_DEFAULT_BASE_URL } from '~/utils/base-urls'
 import { OpenAIRestError, createOpenAIResponse, extractOpenAIResponseText } from '~/utils/openai/openai-client'
 import { installFetch, installOpenAIRestContractHooks, jsonResponse, structuredOpts } from './shared'
@@ -74,8 +75,43 @@ describe('OpenAI REST response and chat contracts', () => {
     }
   })
 
+  test('OpenAI write routes Responses output and metadata through the shared request scaffold', async () => {
+    process.env['OPENAI_API_KEY'] = 'openai-key'
+    const calls = installFetch(() => jsonResponse({
+      model: 'gpt-5.5',
+      output: [{ type: 'message', content: [{ type: 'output_text', text: '{"summary":"done"}' }] }],
+      usage: { input_tokens: 7, output_tokens: 3, total_tokens: 10 }
+    }))
+
+    const result = await runOpenAIModel('Summarize this.', 'gpt-5.5', structuredOpts)
+
+    expect(result.result).toBe('{"summary":"done"}')
+    expect(calls).toHaveLength(1)
+    expect(calls[0]?.bodyJson).toEqual({
+      model: 'gpt-5.5',
+      input: 'Summarize this.',
+      stream: false,
+      text: {
+        format: {
+          type: 'json_schema',
+          name: 'summary',
+          schema: structuredOpts.schema,
+          strict: true
+        }
+      }
+    })
+    expect(result.metadata).toMatchObject({
+      llmService: 'openai',
+      llmModel: 'gpt-5.5',
+      providerReturnedModel: 'gpt-5.5',
+      tokenCountSource: 'provider_usage'
+    })
+  })
+
   test('OpenAI-compatible chat retries without response_format after structured fallback error', async () => {
-    const calls = installFetch((call) => {
+    const requestSignals: Array<AbortSignal | null | undefined> = []
+    const calls = installFetch((call, _input, init) => {
+      requestSignals.push(init?.signal)
       if (calls.length === 1) {
         expect(call.bodyJson?.['response_format']).toMatchObject({
           type: 'json_schema'
@@ -113,6 +149,10 @@ describe('OpenAI REST response and chat contracts', () => {
       'https://mock.xai.local/v1/chat/completions'
     ])
     expect(calls[0]?.headers.get('authorization')).toBe('Bearer xai-key')
+    expect(requestSignals).toHaveLength(2)
+    expect(requestSignals[0]).toBeInstanceOf(AbortSignal)
+    expect(requestSignals[1]).toBeInstanceOf(AbortSignal)
+    expect(requestSignals[0]).not.toBe(requestSignals[1])
   })
 
   test('MiniMax write uses native chat completions with bearer auth and OpenAI-style usage', async () => {

@@ -1,4 +1,20 @@
-import type { CostEstimateBase, ExtractionMetadata, HtmlArticleBackend, ImageProvider, MusicProvider, PartialExtractionMetadata, ProviderIdentityBase, ProviderModelBase, Step1Metadata, Step2Metadata, Step3Metadata, Step4Metadata, Step5Metadata, Step6VideoMetadata, Step7MusicMetadata, TimingStepEntry, VideoProvider } from '~/types'
+import type { ActualPipelineInputsBase, CostEstimateBase, HtmlArticleBackend, ImageProvider, MusicProvider, OcrModelOverrideOptions, ProviderIdentityBase, ProviderModelBase, Step1Metadata, Step2Metadata, Step3Metadata, Step4Metadata, Step5Metadata, Step6VideoMetadata, Step7MusicMetadata, SttRuntimeOptions, TimingStepEntry, VideoProvider } from '~/types'
+
+// The token-profile provenance fields carried by every extract estimate/cost surface.
+export type TokenProfileEstimateFields = {
+  tokenEstimateSource?: 'exact' | 'profile' | 'blended-profile' | 'registry'
+  tokenEstimateConfidence?: 'none' | 'sparse' | 'healthy'
+  tokenProfileSampleCount?: number
+  tokenProfilePromptTokensPerPage?: number
+  tokenProfileCompletionTokensPerPage?: number
+}
+
+type SttModelOverrides = Partial<Pick<SttRuntimeOptions,
+  | 'whisperfileModel' | 'deepinfraSttModel' | 'groqSttModel' | 'grokSttModel' | 'deepgramSttModel'
+  | 'sonioxSttModel' | 'speechmaticsSttModel' | 'revSttModel' | 'mistralSttModel' | 'assemblyaiSttModel'
+  | 'gladiaSttModel' | 'happyscribeSttModel' | 'supadataSttModel' | 'scrapecreatorsSttModel'
+  | 'geminiSttModel' | 'togetherSttModel'
+>>
 
 export type SttStepEstimate = CostEstimateBase & {
   step: 'stt'
@@ -52,7 +68,7 @@ export type MusicStepEstimate = ProviderModelBase<MusicProvider> & {
   note?: string
 }
 
-export type ExtractStepEstimate = ProviderModelBase<'tesseract' | 'mistral' | 'glm' | 'kimi' | 'openai' | 'grok' | 'anthropic' | 'gemini' | 'deepinfra' | HtmlArticleBackend> & {
+export type ExtractStepEstimate = ProviderModelBase<'tesseract' | 'mistral' | 'glm' | 'kimi' | 'openai' | 'grok' | 'anthropic' | 'gemini' | 'deepinfra' | HtmlArticleBackend> & TokenProfileEstimateFields & {
   step: 'extract'
   costPer1kPagesCents?: number
   inputCostPer1MCents?: number
@@ -66,11 +82,6 @@ export type ExtractStepEstimate = ProviderModelBase<'tesseract' | 'mistral' | 'g
   promptTokens?: number
   completionTokens?: number
   ocrMode?: string
-  tokenEstimateSource?: 'exact' | 'profile' | 'blended-profile' | 'registry'
-  tokenEstimateConfidence?: 'none' | 'sparse' | 'healthy'
-  tokenProfileSampleCount?: number
-  tokenProfilePromptTokensPerPage?: number
-  tokenProfileCompletionTokensPerPage?: number
   totalCost: number
   costMultiplier?: number
   estimateType?: 'heuristic' | 'exact'
@@ -114,49 +125,16 @@ type MusicPricingTarget = ProviderIdentityBase<Step7MusicMetadata['musicService'
   durationSeconds?: number
 }
 
-export type ComputeActualCostsInput = {
-  step1?: Step1Metadata | undefined
-  step2?: Step2Metadata | Step2Metadata[] | ExtractionMetadata | ExtractionMetadata[] | undefined
-  partialStep2?: PartialExtractionMetadata | PartialExtractionMetadata[] | undefined
-  step3?: Step3Metadata | Step3Metadata[] | undefined
-  step4?: Step4Metadata | Step4Metadata[] | undefined
-  step5?: Step5Metadata | Step5Metadata[] | undefined
-  step6?: Step6VideoMetadata | Step6VideoMetadata[] | undefined
-  step7?: Step7MusicMetadata | Step7MusicMetadata[] | undefined
-  ttsCharacterCount?: number | undefined
+export type ComputeActualCostsInput = ActualPipelineInputsBase<Step1Metadata> & {
   audioDurationSeconds?: number | undefined
 }
 
-export type ComputeEstimatedCostsInput = {
+export type ComputeEstimatedCostsInput = SttModelOverrides & OcrModelOverrideOptions & {
   applyCostMultipliers?: boolean | undefined
   sourceUrl?: string | undefined
   sttTargets?: SttPricingTarget[] | undefined
   whisperModel?: string | undefined
-  whisperfileModel?: string | undefined
-  deepinfraSttModel?: string | undefined
-  groqSttModel?: string | undefined
-  grokSttModel?: string | undefined
-  deepgramSttModel?: string | undefined
-  sonioxSttModel?: string | undefined
-  speechmaticsSttModel?: string | undefined
-  revSttModel?: string | undefined
-  mistralSttModel?: string | undefined
-  assemblyaiSttModel?: string | undefined
-  gladiaSttModel?: string | undefined
-  happyscribeSttModel?: string | undefined
-  supadataSttModel?: string | undefined
-  scrapecreatorsSttModel?: string | undefined
-  geminiSttModel?: string | undefined
-  togetherSttModel?: string | undefined
-  mistralOcrModel?: string | undefined
-  glmOcrModel?: string | undefined
-  kimiOcrModel?: string | undefined
-  openaiOcrModel?: string | undefined
-  grokOcrModel?: string | undefined
-  anthropicOcrModel?: string | undefined
-  geminiOcrModel?: string | undefined
-  deepinfraOcrModel?: string | undefined
-  extractTargets?: Array<{
+  extractTargets?: Array<TokenProfileEstimateFields & {
     provider: 'tesseract' | 'mistral' | 'glm' | 'kimi' | 'openai' | 'grok' | 'anthropic' | 'gemini' | 'deepinfra' | HtmlArticleBackend
     model: string
     pageCount?: number
@@ -165,11 +143,6 @@ export type ComputeEstimatedCostsInput = {
     promptTokens?: number
     completionTokens?: number
     ocrMode?: string
-    tokenEstimateSource?: 'exact' | 'profile' | 'blended-profile' | 'registry'
-    tokenEstimateConfidence?: 'none' | 'sparse' | 'healthy'
-    tokenProfileSampleCount?: number
-    tokenProfilePromptTokensPerPage?: number
-    tokenProfileCompletionTokensPerPage?: number
     quotedCostCents?: number
     estimateType?: 'heuristic' | 'exact'
     note?: string
@@ -231,19 +204,11 @@ export type ComputeEstimatedCostsInput = {
   musicInstrumental?: boolean | undefined
 }
 
-export type ComputeEstimatedProcessingTimesInput = {
+export type ComputeEstimatedProcessingTimesInput = OcrModelOverrideOptions & {
   sttTargets?: SttPricingTarget[] | undefined
   transcriptionService?: Step2Metadata['transcriptionService'] | undefined
   transcriptionModel?: string | undefined
   audioDurationSeconds?: number | undefined
-  mistralOcrModel?: string | undefined
-  glmOcrModel?: string | undefined
-  kimiOcrModel?: string | undefined
-  openaiOcrModel?: string | undefined
-  grokOcrModel?: string | undefined
-  anthropicOcrModel?: string | undefined
-  geminiOcrModel?: string | undefined
-  deepinfraOcrModel?: string | undefined
   extractTargets?: Array<{ provider: 'tesseract' | 'mistral' | 'glm' | 'kimi' | 'openai' | 'grok' | 'anthropic' | 'gemini' | 'deepinfra' | HtmlArticleBackend, model: string, pageCount?: number, rasterizedPages?: number, singlePagePdfFallbackPages?: number }> | undefined
   extractPageCount?: number | undefined
   ocrConcurrency?: number | undefined
@@ -297,7 +262,7 @@ export type CostSource =
   | 'heuristic'
   | 'local_zero'
 
-export type StepCostEntry = {
+export type StepCostEntry = TokenProfileEstimateFields & {
   step: 'stt' | 'extract' | 'llm' | 'tts' | 'image' | 'video' | 'music'
   provider: string
   model: string
@@ -308,11 +273,6 @@ export type StepCostEntry = {
   promptTokens?: number
   completionTokens?: number
   ocrMode?: string
-  tokenEstimateSource?: 'exact' | 'profile' | 'blended-profile' | 'registry'
-  tokenEstimateConfidence?: 'none' | 'sparse' | 'healthy'
-  tokenProfileSampleCount?: number
-  tokenProfilePromptTokensPerPage?: number
-  tokenProfileCompletionTokensPerPage?: number
   pricingBand?: string
   pricingNote?: string
 }
@@ -324,7 +284,7 @@ export type CostBreakdown<TStep> = {
 
 export type ActualCostBreakdown = CostBreakdown<StepCostEntry>
 
-export type EstimatedStepEntry = {
+export type EstimatedStepEntry = TokenProfileEstimateFields & {
   step: 'stt' | 'extract' | 'llm' | 'tts' | 'image' | 'video' | 'music'
   provider: string
   model: string
@@ -344,11 +304,6 @@ export type EstimatedStepEntry = {
   promptTokens?: number
   completionTokens?: number
   ocrMode?: string
-  tokenEstimateSource?: 'exact' | 'profile' | 'blended-profile' | 'registry'
-  tokenEstimateConfidence?: 'none' | 'sparse' | 'healthy'
-  tokenProfileSampleCount?: number
-  tokenProfilePromptTokensPerPage?: number
-  tokenProfileCompletionTokensPerPage?: number
   pricingBand?: string
   pricingNote?: string
   estimateType?: 'heuristic' | 'exact'

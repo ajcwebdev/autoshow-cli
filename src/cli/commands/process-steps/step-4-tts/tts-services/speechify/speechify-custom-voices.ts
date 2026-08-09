@@ -8,6 +8,7 @@ import { validateData } from '~/utils/validate/validation'
 import { materializeMediaInput } from '~/utils/media-url'
 import { CLIUsageError, ValidationError } from '~/utils/error-handler'
 import type { SpeechifyTtsCustomVoiceContext, SpeechifyTtsCustomVoiceGender, SpeechifyTtsCustomVoiceOptions, SpeechifyTtsCustomVoiceResult, TtsCustomVoiceSampleAudio } from '~/types'
+import { httpResponseError } from '~/utils/rest-client'
 
 export const SPEECHIFY_TTS_CUSTOM_VOICE_COST_CENTS = 0
 export const SPEECHIFY_TTS_CUSTOM_VOICE_SETUP_MS = 10_000
@@ -205,10 +206,7 @@ const createSpeechifyTtsCustomVoice = async (
 
       if (!response.ok) {
         const body = await readSpeechifyErrorBody(response)
-        const err = new Error(`Speechify TTS custom voice creation failed (${response.status}): ${body || 'No response body'}`) as Error & { status: number, headers: Headers }
-        err.status = response.status
-        err.headers = response.headers
-        throw err
+        throw httpResponseError(`Speechify TTS custom voice creation failed (${response.status}): ${body || 'No response body'}`, response)
       }
 
       return validateData(

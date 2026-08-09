@@ -1,23 +1,8 @@
-import * as l from '~/utils/app-logger/app-logger'
-import { readEnv } from '~/utils/validate/env-utils'
-import type { UrlArticleProviderAdapter, UrlArticleRunResult, UrlRequestOptions, WebArticleMetadata } from '~/types'
-import { byteLength, cleanString, countWords, createUrlProviderHttpError, ensureMeaningfulMarkdown, fallbackTitleFromSource, getUrlRequestTimeoutMs, isRecord, normalizeMarkdown, tryFetchRemoteHtml, withUrlProviderTimeout } from '../../url-utils'
-import { InternalError, ValidationError, hintsForMissingEnv } from '~/utils/error-handler'
+import type { UrlArticleProviderAdapter, UrlRequestOptions, WebArticleMetadata } from '~/types'
+import { cleanString, countWords, createUrlArticleRun, fetchUrlProviderJson, isRecord, normalizeMarkdown, pickCleanString, requireHostedUrlProviderApiKey } from '../../url-utils'
+import { ValidationError } from '~/utils/error-handler'
 
 const ZYTE_DEFAULT_API_URL = 'https://api.zyte.com'
-
-const getZyteArticleValue = (
-  article: Record<string, unknown>,
-  ...keys: string[]
-): string | undefined => {
-  for (const key of keys) {
-    const value = cleanString(article[key])
-    if (value) {
-      return value
-    }
-  }
-  return undefined
-}
 
 const getZyteAuthor = (
   article: Record<string, unknown>
@@ -77,19 +62,19 @@ const parseZyteResponse = (payload: unknown): { markdown: string, web: WebArticl
     throw ValidationError(fallbackMessage ?? 'Zyte did not return article data.', { stage: 'url:zyte' })
   }
 
-  const body = getZyteArticleValue(article, 'articleBody', 'text', 'description')
+  const body = pickCleanString(article, 'articleBody', 'text', 'description')
   if (!body) {
     throw ValidationError('Zyte returned empty article markdown.', { stage: 'url:zyte' })
   }
 
-  const title = getZyteArticleValue(article, 'headline', 'title', 'name')
+  const title = pickCleanString(article, 'headline', 'title', 'name')
   const markdown = articleBodyToMarkdown(title, body)
   const author = getZyteAuthor(article)
   const site = getZytePublisher(article)
-  const finalUrl = getZyteArticleValue(article, 'canonicalUrl', 'url')
-  const published = getZyteArticleValue(article, 'datePublished', 'datePublishedRaw')
-  const language = getZyteArticleValue(article, 'inLanguage', 'language')
-  const description = getZyteArticleValue(article, 'description')
+  const finalUrl = pickCleanString(article, 'canonicalUrl', 'url')
+  const published = pickCleanString(article, 'datePublished', 'datePublishedRaw')
+  const language = pickCleanString(article, 'inLanguage', 'language')
+  const description = pickCleanString(article, 'description')
 
   const web: WebArticleMetadata = {
     wordCount: countWords(markdown)
@@ -110,76 +95,19 @@ const runZyteExtract = async (
   options?: UrlRequestOptions,
   baseUrl: string = ZYTE_DEFAULT_API_URL
 ): Promise<{ markdown: string, web: WebArticleMetadata }> => {
-  const apiKey = readEnv('ZYTE_API_KEY')
-  const usingHostedApi = baseUrl === ZYTE_DEFAULT_API_URL
-
-  if (usingHostedApi && !apiKey) {
-    throw InternalError(
-      'ZYTE_API_KEY is required for --url-provider zyte when using the hosted API. ' +
-      'Set ZYTE_API_KEY or use a different URL backend.',
-      { stage: 'url:zyte', hints: hintsForMissingEnv('ZYTE_API_KEY') }
-    )
-  }
-
-  const requestOptions = {
-    ...options,
-    timeoutMs: getUrlRequestTimeoutMs(options)
-  }
-  const response = await withUrlProviderTimeout('Zyte', requestOptions, async (signal) =>
-    await fetch(`${baseUrl.replace(/\/$/, '')}/v1/extract`, {
-      method: 'POST',
-      signal,
-      headers: {
-        'Content-Type': 'application/json',
-        ...(apiKey ? { Authorization: `Basic ${Buffer.from(`${apiKey}:`).toString('base64')}` } : {})
-      },
-      body: JSON.stringify({
-        url: source,
-        article: true
-      })
-    })
-  )
-
-  let payload: unknown
-  try {
-    payload = await response.json()
-  } catch {
-    payload = null
-  }
-
-  if (!response.ok) {
-    const errorMessage = isRecord(payload)
-      ? cleanString(payload['detail']) ?? cleanString(payload['title']) ?? cleanString(payload['error']) ?? cleanString(payload['message'])
-      : undefined
-    throw createUrlProviderHttpError('Zyte', 'extract', response, errorMessage)
-  }
-
+  const apiKey = requireHostedUrlProviderApiKey('ZYTE_API_KEY', 'zyte', 'url:zyte', baseUrl === ZYTE_DEFAULT_API_URL)
+  const payload = await fetchUrlProviderJson('Zyte', 'extract', `${baseUrl.replace(/\/$/, '')}/v1/extract`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      ...(apiKey ? { Authorization: `Basic ${Buffer.from(`${apiKey}:`).toString('base64')}` } : {})
+    },
+    body: JSON.stringify({ url: source, article: true })
+  }, options, ['detail', 'title', 'error', 'message'])
   return parseZyteResponse(payload)
 }
 
-export const runZyteUrl = async (
-  source: string,
-  sourceUrl: string | undefined,
-  options?: UrlRequestOptions,
-  baseUrl: string = ZYTE_DEFAULT_API_URL
-): Promise<UrlArticleRunResult> => {
-  l.write('info', 'Using Zyte backend for article extraction')
-  const zyteResult = await runZyteExtract(source, options, baseUrl)
-  const htmlFallback = await tryFetchRemoteHtml(source)
-
-  const markdown = ensureMeaningfulMarkdown(zyteResult.markdown, 'zyte')
-  const web = { ...zyteResult.web }
-  if (sourceUrl) web.sourceUrl = sourceUrl
-  if (!web.finalUrl && htmlFallback?.finalUrl) web.finalUrl = htmlFallback.finalUrl
-
-  return {
-    markdown,
-    web,
-    fileSize: htmlFallback?.fileSize ?? byteLength(markdown),
-    title: zyteResult.web.title ?? fallbackTitleFromSource(source),
-    ...(zyteResult.web.author ? { author: zyteResult.web.author } : {})
-  }
-}
+export const runZyteUrl = createUrlArticleRun('zyte', 'Zyte', runZyteExtract)
 
 export const zyteArticleAdapter: UrlArticleProviderAdapter = {
   id: 'zyte',

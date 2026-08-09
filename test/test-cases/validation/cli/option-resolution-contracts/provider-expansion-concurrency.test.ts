@@ -14,6 +14,7 @@ import {
 } from '~/utils/concurrency-defaults'
 import { getStep2AllShortcutModelExpansions } from '~/cli/commands/process-steps/step-2-extract/step-2-shared/provider-registry'
 import { resolveCheapestModelForFlag } from '~/cli/commands/setup-and-utilities/models/cheapest-models'
+import { flagOccurrencesFromValues } from '../../../../test-utils/flag-occurrences'
 import {
   validateCerebrasModel,
   validateAnthropicOcrModel,
@@ -273,7 +274,7 @@ describe('option resolution contracts', () => {
       const normalizedGrokProvider = normalizeGenericProviderSelectorFlags({
         provider: 'grok',
         'tts-chunk-concurrency': String(DEFAULT_TTS_CHUNK_CONCURRENCY)
-      }, new Set(['provider']), 'provider', STANDALONE_TTS_PROVIDER_TARGETS, {
+      }, new Set(['provider']), flagOccurrencesFromValues({ provider: 'grok' }), 'provider', STANDALONE_TTS_PROVIDER_TARGETS, {
         allProvidersTarget: 'all-tts',
         allLocalTarget: 'all-local-tts'
       })

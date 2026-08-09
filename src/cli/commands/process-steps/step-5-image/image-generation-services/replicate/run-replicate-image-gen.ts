@@ -1,8 +1,7 @@
-import * as l from '~/utils/app-logger/app-logger'
 import { mkdir } from 'node:fs/promises'
 import type { JsonObject, ReplicateImageModel, ReplicateImageRequestMode, ReplicateImageSize, Step5Metadata } from '~/types'
 import { CLIUsageError, InfraError } from '~/utils/error-handler'
-import { logMediaGenerationStatus } from '~/cli/commands/process-steps/generation-command-utils'
+import { logGenCompleted, logGenStatus } from '~/cli/commands/process-steps/generation-command-utils'
 import { estimateImageCosts, logImageEstimate } from '~/cli/commands/process-steps/step-5-image/image-utils/image-pricing'
 import { classifyFetchRetry, withRetry } from '~/utils/retries'
 import { normalizeReplicateOutputUris, runReplicatePrediction } from '~/utils/replicate-client/replicate-prediction'
@@ -472,13 +471,7 @@ export const runReplicateImageGen = async (
     logImageEstimate(estimate)
   }
 
-  logMediaGenerationStatus(l, {
-    mediaType: 'image',
-    provider: 'replicate',
-    model: options.model,
-    status: 'started',
-    detail: mode
-  })
+  logGenStatus('image', 'replicate', options.model, 'started', mode)
 
   const startTime = Date.now()
   await mkdir(outputDir, { recursive: true })
@@ -491,12 +484,7 @@ export const runReplicateImageGen = async (
     input,
     operationName: 'replicate-image-gen',
     onStatus: (status) => {
-      logMediaGenerationStatus(l, {
-        mediaType: 'image',
-        provider: 'replicate',
-        model: options.model,
-        status: status.status
-      })
+      logGenStatus('image', 'replicate', options.model, status.status)
     }
   })
 
@@ -518,18 +506,7 @@ export const runReplicateImageGen = async (
   const imageFile = Bun.file(primaryImagePath)
   const returnedModel = providerReturnedModel(options.model, prediction.model ?? (requestedVersion ? undefined : prediction.version))
 
-  logMediaGenerationStatus(l, {
-    mediaType: 'image',
-    provider: 'replicate',
-    model: options.model,
-    status: 'completed',
-    processingTimeMs: processingTime,
-    outputCount: imagePaths.length,
-    artifacts: imagePaths.map((imagePath, index) => ({
-      artifact: index === 0 ? 'image' : `image ${index + 1}`,
-      path: imagePath
-    }))
-  })
+  logGenCompleted('image', 'replicate', options.model, processingTime, imagePaths)
 
   return {
     imagePaths,

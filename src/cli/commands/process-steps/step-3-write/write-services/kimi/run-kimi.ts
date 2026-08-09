@@ -7,17 +7,14 @@ export const runKimiModel = async (
   model: string,
   structuredOpts?: StructuredRequestOptions
 ): Promise<{ result: string, metadata: Step3Metadata }> => {
-  const apiKey = ensureKimiApiKey('--kimi models')
-  const config = {
-    apiKey,
-    baseURL: resolveKimiBaseUrl()
-  }
-
   return await runOpenAICompatibleChatModel({
     prompt,
     model,
     structuredOpts,
-    config,
+    config: () => ({
+      apiKey: ensureKimiApiKey('--kimi models'),
+      baseURL: resolveKimiBaseUrl()
+    }),
     service: 'kimi',
     providerLabel: 'Kimi',
     operationName: 'kimi-llm',

@@ -23,7 +23,7 @@ import {
 } from '../../comic-utils/panel-prompt-utils'
 import { buildComicPagePrompt, selectComicPanels } from './comic-page-utils'
 import { getPanelComicImagePath, loadPromptsConfig } from '../../comic-utils/scene-utils'
-import { runWithConcurrency } from '../../comic-utils/run-with-concurrency'
+import { runWithConcurrency } from '~/utils/run-with-concurrency'
 import {
   applyImagePromptVariation,
   getImagePromptVariationLabel,

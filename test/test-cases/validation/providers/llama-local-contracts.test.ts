@@ -1,11 +1,25 @@
 import { describe, expect, test } from 'bun:test'
 import { resolve } from 'node:path'
 import {
+  LLAMA_RUNNER_PROFILE,
   evaluateLlamaServerIdentityMatch,
   parseLlamaServerIdentityFromModels,
   parseLlamaServerIdentityFromProps
 } from '~/cli/commands/process-steps/step-3-write/write-local/llama/run-llama'
+import { LLAMA_STOP_PROFILE } from '~/cli/commands/process-steps/step-3-write/write-local/llama/llama-server-process'
+import {
+  clearLlamaServerState,
+  readLlamaServerState,
+  writeLlamaServerState
+} from '~/cli/commands/process-steps/step-3-write/write-local/llama/llama-server-state'
+import { requestLocalCompletion } from '~/cli/commands/process-steps/step-3-write/write-local/local-completion-client'
 import type { LlamaServerIdentity, LlamaServerTarget } from '~/types'
+import { installMockFetch, setupContractSuiteLifecycle } from '../../../test-utils/rest-contract-helpers'
+
+const tempDirs = setupContractSuiteLifecycle({
+  envKeys: [],
+  tempPrefix: 'autoshow-llama-local-contracts-'
+})
 
 describe('llama local contracts', () => {
   test('parses props identity and normalizes model paths', () => {
@@ -110,10 +124,65 @@ describe('llama local contracts', () => {
   })
 
   test('llama server management does not inspect the process table', async () => {
-    const source = await Bun.file('src/cli/commands/process-steps/step-3-write/write-local/llama/llama-server-process.ts').text()
+    const source = await Bun.file('src/cli/commands/process-steps/step-3-write/write-local/local-server-health.ts').text()
 
     expect(source).not.toContain("['ps'")
     expect(source).not.toContain('pid=,command=')
     expect(source).toContain('process.kill(pid, 0)')
+  })
+
+  test('shared completion client preserves the llama.cpp request and response contract', async () => {
+    const signal = new AbortController().signal
+    let requestSignal: AbortSignal | null | undefined
+    const calls = installMockFetch((_call, _input, init) => {
+      requestSignal = init?.signal
+      return Response.json({
+        choices: [{ message: { content: 'Local response' } }],
+        usage: { prompt_tokens: 3, completion_tokens: 7, total_tokens: 10 }
+      })
+    })
+
+    const result = await requestLocalCompletion(
+      LLAMA_RUNNER_PROFILE,
+      'Local prompt',
+      'loaded-model',
+      signal
+    )
+
+    expect(result).toEqual({ responseText: 'Local response', outputTokenCount: 7 })
+    expect(calls).toHaveLength(1)
+    expect(calls[0]).toMatchObject({
+      url: 'http://localhost:8080/v1/chat/completions',
+      method: 'POST',
+      bodyJson: {
+        model: 'loaded-model',
+        messages: [{ role: 'user', content: 'Local prompt' }],
+        stream: false,
+        temperature: 0.7,
+        max_tokens: 4096,
+        chat_template_kwargs: { enable_thinking: false }
+      }
+    })
+    expect(calls[0]?.headers.get('content-type')).toBe('application/json')
+    expect(requestSignal).toBe(signal)
+  })
+
+  test('llama.cpp keeps PID-exit verification and PID-guarded state clearing', () => {
+    expect(LLAMA_STOP_PROFILE).toMatchObject({
+      stopPolicy: 'verified-pid'
+    })
+  })
+
+  test('shared state plumbing preserves llama.cpp PID-guarded clearing', async () => {
+    const lockRoot = await tempDirs.make()
+    await writeLlamaServerState(101, { lockRoot })
+    expect(await readLlamaServerState({ lockRoot })).toEqual({ pid: 101 })
+
+    await writeLlamaServerState(202, { lockRoot })
+    await clearLlamaServerState(101, { lockRoot })
+    expect(await readLlamaServerState({ lockRoot })).toEqual({ pid: 202 })
+
+    await clearLlamaServerState(202, { lockRoot })
+    expect(await readLlamaServerState({ lockRoot })).toBeNull()
   })
 })

@@ -259,6 +259,38 @@ describe('retry error contracts', () => {
     }
   })
 
+  test('withRetry hoists response headers so exhausted errors retain Retry-After pacing', async () => {
+    try {
+      await withRetry(
+        {
+          retryClass: 'runtime_http_read',
+          operationName: 'rate-limited-read',
+          policy: {
+            ...FAST_RETRY_POLICY,
+            maxAttempts: 1
+          }
+        },
+        async () => {
+          throw Object.assign(new Error('rate limited'), {
+            status: 429,
+            headers: new Headers({ 'retry-after': '3' })
+          })
+        },
+        (error) => classifyFetchRetry(error, 'runtime_http_read')
+      )
+      throw new Error('expected retry exhaustion')
+    } catch (error) {
+      expect(error).toBeInstanceOf(AppError)
+      const appError = error as AppError
+      expect(appError.headers?.get('retry-after')).toBe('3')
+      expect(classifyFetchRetry(appError, 'runtime_http_read')).toEqual({
+        shouldRetry: true,
+        delayMs: 3_000,
+        reason: 'retryable status 429'
+      })
+    }
+  })
+
   test('withRetry reports actual attempts when a later failure is non-retryable', async () => {
     let attempts = 0
 

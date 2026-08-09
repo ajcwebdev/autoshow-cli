@@ -11,7 +11,7 @@ import { OCR_SCHEMA_RETRY_ATTEMPTS, withOcrCreateRetry } from '~/cli/commands/pr
 import { OcrStructuredResponseError } from '~/cli/commands/process-steps/step-2-extract/step-2-ocr/ocr-structured-response-error'
 import { OCR_REQUEST_TIMEOUT_MS } from '~/utils/timeouts'
 import { InfraError, InternalError, ValidationError } from '~/utils/error-handler'
-import { buildHostedOcrJsonPrompt, normalizeHostedOcrPages } from '../../ocr-utils/hosted-ocr-json'
+import { buildHostedOcrJsonPrompt, HOSTED_OCR_PAGES_JSON_SCHEMA, HostedOcrEnvelopeSchema, normalizeHostedOcrPages } from '../../ocr-utils/hosted-ocr-json'
 import {
   createAnthropicMessage,
   deleteAnthropicFile,
@@ -23,38 +23,6 @@ import {
   ANTHROPIC_OCR_IMAGE_BYTES,
   ANTHROPIC_OCR_MAX_TOKENS
 } from './anthropic-ocr'
-
-const AnthropicOcrEnvelopeSchema = v.object({
-  pages: v.array(v.object({
-    pageNumber: v.pipe(v.number(), v.integer(), v.minValue(1)),
-    text: v.string()
-  }))
-})
-
-const ANTHROPIC_OCR_JSON_SCHEMA = {
-  type: 'object',
-  additionalProperties: false,
-  required: ['pages'],
-  properties: {
-    pages: {
-      type: 'array',
-      items: {
-        type: 'object',
-        additionalProperties: false,
-        required: ['pageNumber', 'text'],
-        properties: {
-          pageNumber: {
-            type: 'integer',
-            minimum: 1
-          },
-          text: {
-            type: 'string'
-          }
-        }
-      }
-    }
-  }
-} as const
 
 const getImageMimeType = (format: DocumentMetadata['format']): 'image/jpeg' | 'image/png' | 'image/gif' | 'image/webp' => {
   switch (format) {
@@ -73,7 +41,7 @@ const getImageMimeType = (format: DocumentMetadata['format']): 'image/jpeg' | 'i
 
 const buildOcrPrompt = (expectedPageCount: number): string => [
   buildHostedOcrJsonPrompt(expectedPageCount),
-  `Use this exact JSON schema: ${JSON.stringify(ANTHROPIC_OCR_JSON_SCHEMA)}`
+  `Use this exact JSON schema: ${JSON.stringify(HOSTED_OCR_PAGES_JSON_SCHEMA)}`
 ].join(' ')
 
 const extractAnthropicText = (content: Array<{ type: string, text?: string | undefined }>): string =>
@@ -87,7 +55,7 @@ const normalizePages = (
   expectedPageCount: number,
   pageLabel: string
 ): PageResult[] => {
-  const parsed = v.safeParse(AnthropicOcrEnvelopeSchema, value)
+  const parsed = v.safeParse(HostedOcrEnvelopeSchema, value)
   if (!parsed.success) {
     throw ValidationError(`Anthropic OCR response for ${pageLabel} did not match the expected page schema.`, { stage: 'ocr:anthropic' })
   }
@@ -103,7 +71,7 @@ const parseOcrResponse = (
   expectedPageCount: number,
   pageLabel: string
 ): PageResult[] => {
-  const validation = parseAndValidateStructured(AnthropicOcrEnvelopeSchema, rawText)
+  const validation = parseAndValidateStructured(HostedOcrEnvelopeSchema, rawText)
   if (!validation.success) {
     throw new OcrStructuredResponseError(`Anthropic OCR returned malformed JSON for ${pageLabel}. Split the document into smaller chunks and retry.`, rawText)
   }

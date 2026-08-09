@@ -1,5 +1,5 @@
 import { describe, expect, test } from 'bun:test'
-import { buildSingleProviderReport, installVoiceQualityReportHooks, join, makeMockFetch, makeSingleProviderTtsRun, writeJson } from './shared'
+import { buildSingleProviderReport, installMockFetch, installVoiceQualityReportHooks, join, makeSingleProviderTtsRun, writeJson } from './shared'
 
 installVoiceQualityReportHooks()
 
@@ -10,7 +10,7 @@ describe('voice quality coverage recommendation contracts', () => {
     delete process.env['OPENAI_API_KEY']
     delete process.env['ASSEMBLYAI_API_KEY']
 
-    globalThis.fetch = makeMockFetch(async (): Promise<Response> => {
+    installMockFetch(async (): Promise<Response> => {
       fetchCount += 1
       throw new Error('paid endpoint should not be called')
     })
@@ -38,7 +38,7 @@ describe('voice quality coverage recommendation contracts', () => {
     process.env['OPENAI_API_KEY'] = 'test-openai-key'
     process.env['ASSEMBLYAI_API_KEY'] = 'test-assemblyai-key'
 
-    globalThis.fetch = makeMockFetch(async (): Promise<Response> => {
+    installMockFetch(async (): Promise<Response> => {
       fetchCount += 1
       throw new Error('paid endpoint should not be called')
     })
@@ -75,7 +75,7 @@ describe('voice quality coverage recommendation contracts', () => {
     delete process.env['OPENAI_API_KEY']
     delete process.env['ASSEMBLYAI_API_KEY']
 
-    globalThis.fetch = makeMockFetch(async (): Promise<Response> => {
+    installMockFetch(async (): Promise<Response> => {
       fetchCount += 1
       throw new Error('paid endpoint should not be called')
     })

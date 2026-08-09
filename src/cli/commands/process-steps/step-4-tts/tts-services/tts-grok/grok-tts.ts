@@ -1,9 +1,3 @@
-import { readEnv } from '~/utils/validate/env-utils'
-import { InternalError, hintsForMissingEnv } from '~/utils/error-handler'
+import { ensureApiKeySetup } from '~/utils/validate/env-utils'
 
-export const ensureGrokTtsSetup = async (): Promise<void> => {
-  const apiKey = readEnv('XAI_API_KEY')
-  if (!apiKey) {
-    throw InternalError('XAI_API_KEY environment variable is required for Grok TTS', { stage: 'tts:grok', hints: hintsForMissingEnv('XAI_API_KEY') })
-  }
-}
+export const ensureGrokTtsSetup = ensureApiKeySetup('XAI_API_KEY', 'tts:grok', 'Grok TTS')

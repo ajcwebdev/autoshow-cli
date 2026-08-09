@@ -1,7 +1,6 @@
 import { basename, extname } from 'node:path'
 import type { OpenAIImageResponse } from '~/types'
-import type { RetryClass } from '~/types'
-import { isRetryableStatus } from '~/utils/retries'
+import { imageDownloadHttpError } from '~/utils/polled-job-client/polled-job'
 
 export const mimeToExtension = (mimeType: string | null | undefined, fallback = 'png'): string => {
   const normalized = mimeType?.split(';')[0]?.trim().toLowerCase()
@@ -40,19 +39,7 @@ export const downloadImageUrl = async (
     ...(signal ? { signal } : {})
   })
   if (!response.ok) {
-    const err = new Error(`Generated image download failed (${response.status}): ${url}`) as Error & {
-      status: number
-      headers: Headers
-      stage: string
-      retryClass: RetryClass
-      retryable: boolean
-    }
-    err.status = response.status
-    err.headers = response.headers
-    err.stage = 'result-download'
-    err.retryClass = 'runtime_http_read'
-    err.retryable = isRetryableStatus(response.status)
-    throw err
+    throw imageDownloadHttpError(`Generated image download failed (${response.status}): ${url}`, response)
   }
 
   const ext = mimeToExtension(response.headers.get('content-type'), urlToExtension(url, fallbackExt))

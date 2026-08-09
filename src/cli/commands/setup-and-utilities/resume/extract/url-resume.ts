@@ -1,6 +1,7 @@
+import { isRecord } from '~/utils/rest-client'
 import { mkdir } from 'node:fs/promises'
 import { join, resolve as resolvePath } from 'node:path'
-import { readBatchManifest } from '~/cli/commands/process-steps/manifest-utils'
+import { readBatchManifest, writeBatchManifest } from '~/cli/commands/process-steps/manifest-utils'
 import { buildExtractionCallOpts } from '~/cli/commands/process-steps/step-1-download/download-targets/single/document-write'
 import { readUrlRunManifestEntry, writeUrlRunManifest } from '~/cli/commands/process-steps/step-2-extract/step-2-url/url-manifest'
 import {
@@ -27,13 +28,11 @@ uniqueUrlTargets
 import { logExtractManifestConsoleSummary } from '~/cli/commands/process-steps/write-manifest-log/write-manifest-log'
 import { aggregateExplicitPriceEstimate } from '~/utils/pricing/aggregate-pricing'
 import { buildArticleEstimates } from '~/utils/pricing/aggregate-pricing/article-estimates'
-import type { AggregatedPriceEstimate, ExtractionOptions, HtmlArticleBackend, ResolvedStep2Execution, ResumeDisplayOptions, ResumeResult, ResumeTarget, RuntimeOptions, Step2ProviderSelectionFilter, StepEstimate, UrlArticleResumePlan, UrlArticleResumeResult, UrlArticleTarget, UrlProviderRunOutcome, WebArticleMetadata } from '~/types'
+import type { AggregatedPriceEstimate, BatchManifestEntry, ExtractionOptions, HtmlArticleBackend, ProviderCompletionStatus, ResolvedStep2Execution, ResumeDisplayOptions, ResumeResult, ResumeTarget, RuntimeOptions, Step2ProviderSelectionFilter, StepEstimate, UrlArticleResumePlan, UrlArticleResumeResult, UrlArticleTarget, UrlProviderRunOutcome, WebArticleMetadata } from '~/types'
 import * as l from '~/utils/app-logger/app-logger'
 import { InfraError, ValidationError } from '~/utils/error-handler'
 import { logResumeItem, logResumeSummary } from '../resume-logging'
 
-const isRecord = (value: unknown): value is Record<string, unknown> =>
-  typeof value === 'object' && value !== null && !Array.isArray(value)
 
 const EXPLICIT_URL_SELECTION_FILTER = {
   includeOrigins: ['explicit', 'all-shortcut']
@@ -207,6 +206,43 @@ const resolveBatchOutputDirs = async (
   )
 }
 
+const writeUpdatedUrlBatchManifest = async (
+  target: ResumeTarget
+): Promise<void> => {
+  if (target.scope !== 'batch') {
+    return
+  }
+
+  const manifest = await readBatchManifest(target.dir, 'extract')
+  if (!manifest) {
+    return
+  }
+
+  const updatedEntries = await Promise.all(manifest.manifest.items.map(async (entry): Promise<BatchManifestEntry> => {
+    const storedOutputDir = entry['outputDir']
+    if (typeof storedOutputDir !== 'string' || storedOutputDir.length === 0) {
+      return entry
+    }
+
+    const outputDir = resolvePath(target.dir, storedOutputDir)
+    const metadata = await readUrlArticleRunMetadata(outputDir)
+    return metadata
+      ? { ...entry, ...metadata, outputDir }
+      : entry
+  }))
+
+  await writeBatchManifest(target.dir, 'extract', updatedEntries, manifest.manifest.source)
+}
+
+const getStoredUrlCompletionStatus = (
+  metadata: Record<string, unknown>
+): ProviderCompletionStatus => {
+  if (metadata['completionStatus'] === 'full' || metadata['completionStatus'] === 'failed') {
+    return metadata['completionStatus']
+  }
+  return 'incomplete'
+}
+
 export const hasResumableUrlArticleWork = async (
   target: ResumeTarget,
   selectedTargets?: readonly UrlArticleTarget[] | undefined
@@ -253,11 +289,13 @@ export const resumeUrlArticleTarget = async (
 
     const plan = resolveUrlArticleResumePlan(metadata, selectedTargets)
     if (plan.backendsToRun.length === 0) {
-      const runStillIncomplete = metadata['completionStatus'] !== undefined && metadata['completionStatus'] !== 'full'
+      const storedCompletionStatus = getStoredUrlCompletionStatus(metadata)
+      const noBackendsStatus = selectedTargets !== undefined ? 'full' : storedCompletionStatus
+      const runStillIncomplete = storedCompletionStatus !== 'full'
       const selectedCompleteWithIncompleteRun = selectedTargets !== undefined && runStillIncomplete
       logResumeItem(l, {
         item,
-        status: 'full',
+        status: noBackendsStatus,
         outputDir,
         providers: plan.skippedSuccessfulBackends.length > 0
           ? plan.skippedSuccessfulBackends.join(', ')
@@ -266,9 +304,17 @@ export const resumeUrlArticleTarget = async (
           ? 'selected providers complete; run manifest still incomplete'
           : plan.skippedSuccessfulBackends.length > 0
           ? 'selected URL providers already succeeded'
+          : noBackendsStatus === 'failed'
+          ? 'run manifest failed with no resumable URL providers'
           : 'no failed or missing URL providers'
-      }, 'success')
-      full += 1
+      }, noBackendsStatus === 'full' ? 'success' : noBackendsStatus === 'failed' ? 'error' : 'warn')
+      if (noBackendsStatus === 'full') {
+        full += 1
+      } else if (noBackendsStatus === 'failed') {
+        failed += 1
+      } else {
+        incomplete += 1
+      }
       continue
     }
 
@@ -314,6 +360,7 @@ export const resumeUrlArticleTarget = async (
   }
 
   logResumeSummary(l, { full, incomplete, failed })
+  await writeUpdatedUrlBatchManifest(target)
 
   if (incomplete > 0 || failed > 0) {
     throw InfraError(`URL article resume still has ${incomplete} incomplete and ${failed} failed item(s)`, { stage: 'resume:url', exitCode: 2 })

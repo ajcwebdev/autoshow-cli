@@ -1,111 +1,27 @@
 import { defineCliCommand } from '~/cli/native/native-types'
 import { CLIUsageError, rethrowAsUsage } from '~/utils/error-handler'
-import { referenceSketchCommand } from './comic-commands/reference-sketch/reference-sketch-command'
-import { draftScenesCommand } from './comic-commands/draft-scenes/draft-scenes-command'
-import { generateImagesCommand } from './comic-commands/generate-images/generate-images-command'
-import { DRAFT_SCENES_COMMAND, GENERATE_IMAGES_COMMAND, REFERENCE_SKETCH_COMMAND, parseDraftScenesArgs, parseGenerateImagesArgs, parseReferenceSketchArgs } from './comic-utils/cli-args'
+import { parseComicSubcommandArgv } from './comic-utils/cli-args'
 import {
   COMIC_SUBCOMMAND_SUMMARIES,
-  DRAFT_SCENES_DESCRIPTION,
-  GENERATE_IMAGES_DESCRIPTION,
-  REFERENCE_SKETCH_DESCRIPTION,
-  hasComicSubcommandHelp,
-  printComicSubcommandHelp
+  getComicSubcommand,
+  printComicSubcommandHelp,
 } from './comic-utils/subcommand-help'
 import { renderCommandHelp } from '~/cli/native/help-renderer'
 import { createNativeRootDefinition } from '~/cli/native/root-definition'
-import { resolveComicScriptReference, resolveSceneSlug } from './comic-utils/project-paths'
-import { estimateCharacterSketchPrice, estimateDraftScenesPrice, estimateGenerateImagesPrice, estimateLocationReferencePrice } from './comic-utils/price-estimate'
-import type { ComicSubcommandDefinition } from '~/types'
 import { GLOBAL_FLAG_DEFINITIONS } from '~/cli/global-flags'
 import { stripDefinedGlobalArgs } from '~/cli/native/global-arg-stripper'
-import { withCharacterCatalog } from './comic-utils/character-reference-config'
-
-const PUBLIC_COMIC_COMMANDS = [
-  DRAFT_SCENES_COMMAND,
-  GENERATE_IMAGES_COMMAND,
-  REFERENCE_SKETCH_COMMAND,
-] as const
 
 const printComicHelp = (): void => {
   console.log(renderCommandHelp(createNativeRootDefinition(), comicCommand))
 }
 
-const parseArgsOrUsage = <T>(parse: () => T): T => rethrowAsUsage(parse)
+const formatPublicSubcommands = (): string =>
+  COMIC_SUBCOMMAND_SUMMARIES.map(([name]) => name).join(', ')
 
-const resolveComicScriptReferenceOrUsage = (scriptReference: string): Promise<string> =>
-  rethrowAsUsage(() => resolveComicScriptReference(scriptReference))
-
-const comicSubcommands = [
-  {
-    name: REFERENCE_SKETCH_COMMAND,
-    description: REFERENCE_SKETCH_DESCRIPTION,
-    run: async (rawArgs) => {
-      const { showHelp, price, ...options } = parseArgsOrUsage(() => parseReferenceSketchArgs(rawArgs))
-      if (showHelp) { printComicSubcommandHelp(REFERENCE_SKETCH_COMMAND); return }
-      if (price) {
-        if (options.location) {
-          await estimateLocationReferencePrice(options)
-        } else await withCharacterCatalog(async () => await estimateCharacterSketchPrice(options))
-        return
-      }
-      if (options.location) await referenceSketchCommand(options)
-      else await withCharacterCatalog(async () => await referenceSketchCommand(options))
-    },
-  },
-  {
-    name: DRAFT_SCENES_COMMAND,
-    description: DRAFT_SCENES_DESCRIPTION,
-    run: async (rawArgs) => {
-      const parsed = parseArgsOrUsage(() => parseDraftScenesArgs(rawArgs))
-      if (parsed.showHelp) {
-        printComicSubcommandHelp(DRAFT_SCENES_COMMAND)
-        return
-      }
-      if (!parsed.scriptPath) {
-        throw CLIUsageError('Missing script path. Usage: bun autoshow comic draft-scenes <script-path>')
-      }
-      const scriptPath = await resolveComicScriptReferenceOrUsage(parsed.scriptPath)
-      const sceneSlug = resolveSceneSlug(scriptPath)
-      const options = { ...parsed, scriptPath, sceneSlug }
-      if (parsed.price) {
-        await estimateDraftScenesPrice(options)
-      } else {
-        await withCharacterCatalog(async () => await draftScenesCommand(options))
-      }
-    },
-  },
-  {
-    name: GENERATE_IMAGES_COMMAND,
-    description: GENERATE_IMAGES_DESCRIPTION,
-    run: async (rawArgs) => {
-      const parsed = parseArgsOrUsage(() => parseGenerateImagesArgs(rawArgs))
-      if (parsed.showHelp) {
-        printComicSubcommandHelp(GENERATE_IMAGES_COMMAND)
-        return
-      }
-      if (!parsed.scriptPath) {
-        throw CLIUsageError('Missing script path. Usage: bun autoshow comic generate-images <script-path>')
-      }
-      const scriptPath = await resolveComicScriptReferenceOrUsage(parsed.scriptPath)
-      const sceneSlug = resolveSceneSlug(scriptPath)
-      const options = { ...parsed, scriptPath, sceneSlug }
-      if (parsed.price) {
-        await estimateGenerateImagesPrice(options)
-        return
-      }
-      await generateImagesCommand(options)
-    },
-  },
-] as const satisfies readonly ComicSubcommandDefinition[]
-
-const comicSubcommandMap = new Map<string, ComicSubcommandDefinition>(
-  comicSubcommands.map(command => [command.name, command])
-)
-
-const formatPublicSubcommands = (): string => PUBLIC_COMIC_COMMANDS.join(', ')
-
-const dispatchComicSubcommand = async (rawArgs: string[]): Promise<void> => {
+const dispatchComicSubcommand = async (
+  rawArgs: string[],
+  store: Record<string, unknown>
+): Promise<void> => {
   const subcommand = rawArgs[0]
   if (!subcommand || subcommand === '-h' || subcommand === '--help') {
     printComicHelp()
@@ -114,8 +30,9 @@ const dispatchComicSubcommand = async (rawArgs: string[]): Promise<void> => {
 
   if (subcommand === 'help') {
     const helpTarget = rawArgs[1]
-    if (helpTarget !== undefined && hasComicSubcommandHelp(helpTarget)) {
-      printComicSubcommandHelp(helpTarget)
+    const helpCommand = helpTarget === undefined ? undefined : getComicSubcommand(helpTarget)
+    if (helpCommand) {
+      printComicSubcommandHelp(helpCommand)
       return
     }
     if (helpTarget !== undefined && !helpTarget.startsWith('-')) {
@@ -131,12 +48,27 @@ const dispatchComicSubcommand = async (rawArgs: string[]): Promise<void> => {
     )
   }
 
-  const command = comicSubcommandMap.get(subcommand)
+  const command = getComicSubcommand(subcommand)
   if (!command) {
     throw CLIUsageError(`Unknown comic subcommand "${subcommand}". Use one of: ${formatPublicSubcommands()}`)
   }
 
-  await command.run(rawArgs.slice(1))
+  const parsed = rethrowAsUsage(() => parseComicSubcommandArgv(rawArgs.slice(1), command))
+  if (parsed.mode === 'help') {
+    printComicSubcommandHelp(command)
+    return
+  }
+  if (parsed.mode !== 'command') return
+
+  await command.handler({
+    argv: parsed.argv,
+    ...(parsed.calledAs ? { calledAs: parsed.calledAs } : {}),
+    command,
+    flags: parsed.flags,
+    parameters: parsed.parameters,
+    rawParsed: parsed.rawParsed,
+    store,
+  })
 }
 
 export const comicCommand = defineCliCommand({
@@ -164,5 +96,5 @@ export const comicCommand = defineCliCommand({
 }, async (ctx) => {
   await dispatchComicSubcommand(stripDefinedGlobalArgs(ctx.argv.slice(1), GLOBAL_FLAG_DEFINITIONS, {
     preserve: ['help', 'version']
-  }))
+  }), ctx.store)
 })

@@ -1,10 +1,9 @@
 import { defineCliCommand } from '~/cli/native/native-types'
 import { imageCommandFlags, imageCommandOptionNames } from '~/cli/flags/image-flags'
-import { renameFlagSpellings } from '~/cli/flags/flag-utils'
-import { AppUsageError, CLIUsageError, isCLIUsageError } from '~/utils/error-handler'
+import { retargetUsageErrorsToCommandSpellings } from '~/cli/flags/flag-utils'
+import { CLIUsageError } from '~/utils/error-handler'
 import { buildOptsFromFlags } from '~/cli/commands/process-steps/step-1-download/download-targets/build-opts-from-flags/build-options-from-flags'
-import { extractExplicitFlags } from '~/cli/commands/setup-and-utilities/config/config-merge'
-import { normalizeCommandSelectorArgs, normalizeCommandSelectorFlags } from '~/cli/flags/service-selector-normalization/flag-helpers'
+import { normalizeCommandSelectorFlags } from '~/cli/flags/service-selector-normalization/flag-helpers'
 import { normalizeGenericProviderSelectorFlags } from '~/cli/flags/service-selector-normalization/generic-provider-selectors'
 import { STANDALONE_IMAGE_PROVIDER_TARGETS } from '~/cli/flags/service-selector-normalization/provider-targets'
 import { runImageGen } from './run-image-gen'
@@ -17,32 +16,25 @@ import { runPreflight } from '~/utils/pricing/preflight'
 import { buildProviderStepSummaries, createGenerationOutputDir, getGenerationExpectedOutputDir, resolveMaxCentsFromFlags, writeGenerationMetadata } from '~/cli/commands/process-steps/generation-command-utils'
 import * as l from '~/utils/app-logger/app-logger'
 import { runWithLogContext } from '~/utils/app-logger/app-logger'
+import type { CliFlagOccurrence } from '~/types'
 
-// Step-5 validators are shared with `write`/`config`/`resume`, so they name the `--image-*`
-// flags those surfaces register. This command registers the short spellings, so retarget its
-// usage errors through the same map that renamed the flags — otherwise a rejection tells the
-// user to fix a flag this command does not accept.
-const retargetUsageErrorToCommandSpellings = (error: unknown): unknown => {
-  if (!isCLIUsageError(error)) return error
-  const message = renameFlagSpellings(error.message, imageCommandOptionNames)
-  if (message === error.message) return error
-  return new AppUsageError(message, error.hints.length > 0 ? error.hints : undefined)
-}
-
-const runImageCommand = async (prompt: string, flags: Record<string, unknown>): Promise<void> => {
+const runImageCommand = async (
+  prompt: string,
+  flags: Record<string, unknown>,
+  explicitFlags: Set<string>,
+  flagOccurrences: readonly CliFlagOccurrence[]
+): Promise<void> => {
   const imageMaxCents = await resolveMaxCentsFromFlags(flags)
-  const rawArgs = Bun.argv.slice(2)
-  const explicitFlags = extractExplicitFlags(rawArgs)
-  const optionNormalized = normalizeCommandSelectorFlags(flags, explicitFlags, imageCommandOptionNames)
-  const optionNormalizedArgs = normalizeCommandSelectorArgs(rawArgs, imageCommandOptionNames)
+  const optionNormalized = normalizeCommandSelectorFlags(flags, explicitFlags, flagOccurrences, imageCommandOptionNames)
   const providerNormalized = normalizeGenericProviderSelectorFlags(
     optionNormalized.flags,
     optionNormalized.explicitFlags,
+    optionNormalized.flagOccurrences,
     'provider',
     STANDALONE_IMAGE_PROVIDER_TARGETS,
-    { allProvidersTarget: 'all-image', rawArgs: optionNormalizedArgs }
+    { allProvidersTarget: 'all-image' }
   )
-  const imageOpts = buildOptsFromFlags(true, providerNormalized.flags, [], {}, providerNormalized.explicitFlags, providerNormalized.rawArgs ?? optionNormalizedArgs)
+  const imageOpts = buildOptsFromFlags(true, providerNormalized.flags, [], {}, providerNormalized.explicitFlags, providerNormalized.flagOccurrences)
   const imageTargets = collectImageTargets(imageOpts)
   if (imageTargets.length === 0) {
     throw CLIUsageError('No image provider specified. Use --provider gemini|openai|grok|bfl|recraft|replicate|lumalabs|fal[=model].')
@@ -136,10 +128,6 @@ export const imageCommand = defineCliCommand({
       ['bun autoshow image "a launch poster with crisp typography" --provider fal=alibaba/qwen-image-3 --count 2', 'Generate with fal.ai']
     ]
   }
-}, async (ctx) => {
-  try {
-    await runImageCommand(ctx.parameters.prompt, ctx.flags as Record<string, unknown>)
-  } catch (error) {
-    throw retargetUsageErrorToCommandSpellings(error)
-  }
-})
+}, retargetUsageErrorsToCommandSpellings(async (ctx) => {
+  await runImageCommand(ctx.parameters.prompt, ctx.flags as Record<string, unknown>, ctx.rawParsed.explicitFlags, ctx.rawParsed.flagOccurrences)
+}, imageCommandOptionNames))

@@ -1,11 +1,13 @@
 import { stat } from 'node:fs/promises'
 import type { DownloadInfo } from '~/types'
 import * as l from '~/utils/app-logger/app-logger'
+import { InfraError } from '~/utils/error-handler'
 import { noteSetupTaskActivity } from '~/cli/commands/setup-and-utilities/setup/setup-heartbeat'
 import {
   LLAMA_DOWNLOAD_PROGRESS_POLL_MS,
   LLAMA_DOWNLOAD_STALLED_LOG_MS
 } from './llama-constants'
+import type { LocalServerHealthResult } from '../local-server-health'
 
 export const collectStreamTail = (stream: ReadableStream<Uint8Array> | null, onChunk: (chunk: string) => void): (() => void) => {
   if (!stream) {
@@ -49,6 +51,69 @@ export const collectStreamTail = (stream: ReadableStream<Uint8Array> | null, onC
 }
 
 export const stripAnsi = (text: string): string => text.replace(/\x1B\[[0-9;]*m/g, '')
+
+export const watchLlamaServerStderr = (
+  stream: ReadableStream<Uint8Array> | null,
+  tailLimit: number
+): { getTail(): string, stop(): void } => {
+  let stderrTail = ''
+  let stderrBuffer = ''
+  let stopDownloadWatch: (() => void) | null = null
+  const stopActiveDownloadWatch = (): void => {
+    stopDownloadWatch?.()
+    stopDownloadWatch = null
+  }
+  const cancelStderrReader = collectStreamTail(stream, chunk => {
+    stderrTail = (stderrTail + chunk).slice(-tailLimit)
+    stderrBuffer += chunk
+    const lines = stderrBuffer.split(/[\r\n]+/)
+    stderrBuffer = lines.pop() || ''
+    for (const rawLine of lines) {
+      const line = stripAnsi(rawLine).trim()
+      if (!line) continue
+      const downloadInfo = parseDownloadInfo(line)
+      if (!downloadInfo) continue
+      stopActiveDownloadWatch()
+      l.write('info', '  llama model download started')
+      stopDownloadWatch = startDownloadProgressWatch(downloadInfo)
+    }
+  })
+  return {
+    getTail: () => stderrTail,
+    stop: () => {
+      stopActiveDownloadWatch()
+      cancelStderrReader()
+    }
+  }
+}
+
+export const throwIfServerStartupFailed = (
+  health: LocalServerHealthResult,
+  tail: string,
+  timeoutMs: number,
+  options: { serverLabel: string, stderrLabel: string, stage: string }
+): void => {
+  if (health.healthy) return
+
+  const details = tail.trim()
+  if (health.reason === 'process_exit') {
+    const exitLabel = health.exitCode ?? 'unknown'
+    throw InfraError(
+      details.length > 0
+        ? `${options.serverLabel} exited before becoming healthy (exit code ${exitLabel}).\n${options.stderrLabel} stderr:\n${details}`
+        : `${options.serverLabel} exited before becoming healthy (exit code ${exitLabel})`,
+      { stage: options.stage }
+    )
+  }
+
+  const timeoutSeconds = Math.floor(timeoutMs / 1000)
+  throw InfraError(
+    details.length > 0
+      ? `${options.serverLabel} failed to become healthy within ${timeoutSeconds} seconds.\n${options.stderrLabel} stderr (tail):\n${details}`
+      : `${options.serverLabel} failed to become healthy within ${timeoutSeconds} seconds`,
+    { stage: options.stage }
+  )
+}
 
 const formatBytes = (bytes: number): string => {
   if (bytes < 1024) return `${bytes} B`

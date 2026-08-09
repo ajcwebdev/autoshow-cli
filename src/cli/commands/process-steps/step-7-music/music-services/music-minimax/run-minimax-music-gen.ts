@@ -1,14 +1,13 @@
 import * as v from 'valibot'
-import { logMediaGenerationStatus } from '~/cli/commands/process-steps/generation-command-utils'
-import { MinimaxBaseRespSchema, ensureMinimaxBaseRespSuccess, parseMinimaxJsonResponse } from '~/cli/commands/process-steps/step-4-tts/tts-services/tts-minimax/minimax-utils'
+import { logGenCompleted, logGenStatus } from '~/cli/commands/process-steps/generation-command-utils'
 import { isMinimaxInstrumentalMusicModel } from '~/cli/commands/setup-and-utilities/models/setup-model-options'
 import type { MinimaxLyricsGenerationResult, MinimaxMusicGenerationPayload, MinimaxMusicModel, MinimaxMusicResponse, Step7MusicMetadata } from '~/types'
 import { MINIMAX_DEFAULT_BASE_URL } from '~/utils/base-urls'
 import * as l from '~/utils/app-logger/app-logger'
 import { MEDIA_GENERATION_TIMEOUT_MS } from '~/utils/timeouts'
-import { readEnv } from '~/utils/validate/env-utils'
-import { validateData } from '~/utils/validate/validation'
-import { InfraError, InternalError, ValidationError, hintsForMissingEnv } from '~/utils/error-handler'
+import { requireApiKey } from '~/utils/validate/env-utils'
+import { InfraError, InternalError, ValidationError } from '~/utils/error-handler'
+import { MinimaxBaseRespSchema, minimaxFetchJson, minimaxJsonRequestInit } from '~/utils/minimax-client/minimax-client'
 
 const REQUEST_TIMEOUT_MS = MEDIA_GENERATION_TIMEOUT_MS
 const INCOMPLETE_RESPONSE_RETRY_DELAY_MS = 3_000
@@ -91,29 +90,20 @@ const generateLyrics = async (
   apiKey: string,
   prompt: string
 ): Promise<MinimaxLyricsGenerationResult> => {
-  const response = await fetch(`${baseURL}/v1/lyrics_generation`, {
-    method: 'POST',
-    headers: {
-      Authorization: `Bearer ${apiKey}`,
-      'Content-Type': 'application/json'
-    },
-    body: JSON.stringify({
-      mode: 'write_full_song',
-      prompt
-    })
-  })
-
-  if (!response.ok) {
-    const body = await response.text()
-    throw InfraError(`MiniMax lyrics generation failed (${response.status}): ${body || 'No response body'}`, { stage: 'music:minimax', status: response.status })
-  }
-
-  const parsed = validateData(
-    MinimaxLyricsResponseSchema,
-    await parseMinimaxJsonResponse(response, 'MiniMax lyrics generation response'),
-    'MiniMax lyrics generation response'
+  const parsed = await minimaxFetchJson(
+    `${baseURL}/v1/lyrics_generation`,
+    {
+      init: minimaxJsonRequestInit(apiKey, 'POST', {
+        mode: 'write_full_song',
+        prompt
+      }),
+      schema: MinimaxLyricsResponseSchema,
+      responseContext: 'MiniMax lyrics generation response',
+      baseRespContext: 'MiniMax lyrics generation',
+      stage: 'music:minimax',
+      httpErrorMessage: 'MiniMax lyrics generation failed'
+    }
   )
-  ensureMinimaxBaseRespSuccess(parsed.base_resp, 'MiniMax lyrics generation')
 
   return {
     lyrics: validateMinimaxMusicLyrics(parsed.lyrics ?? '', 'MiniMax generated lyrics'),
@@ -135,17 +125,19 @@ const requestMusicGeneration = async (
     audio_setting: MINIMAX_MUSIC_AUDIO_SETTING
   }
 
-  let response: Response
+  let parsed: MinimaxMusicResponse
   try {
-    response = await fetch(`${baseURL}/v1/music_generation`, {
-      method: 'POST',
-      headers: {
-        Authorization: `Bearer ${apiKey}`,
-        'Content-Type': 'application/json'
-      },
-      body: JSON.stringify(body),
-      signal: AbortSignal.timeout(REQUEST_TIMEOUT_MS)
-    })
+    parsed = await minimaxFetchJson(
+      `${baseURL}/v1/music_generation`,
+      {
+        init: minimaxJsonRequestInit(apiKey, 'POST', body, AbortSignal.timeout(REQUEST_TIMEOUT_MS)),
+        schema: MinimaxMusicResponseSchema,
+        responseContext: 'MiniMax music generation response',
+        baseRespContext: 'MiniMax music generation',
+        stage: 'music:minimax',
+        httpErrorMessage: 'MiniMax music generation failed'
+      }
+    )
   } catch (error) {
     if ((error instanceof DOMException && error.name === 'AbortError')
       || (error instanceof Error && error.name === 'AbortError')) {
@@ -153,18 +145,6 @@ const requestMusicGeneration = async (
     }
     throw error
   }
-
-  if (!response.ok) {
-    const body = await response.text()
-    throw InfraError(`MiniMax music generation failed (${response.status}): ${body || 'No response body'}`, { stage: 'music:minimax', status: response.status })
-  }
-
-  const parsed = validateData(
-    MinimaxMusicResponseSchema,
-    await parseMinimaxJsonResponse(response, 'MiniMax music generation response'),
-    'MiniMax music generation response'
-  )
-  ensureMinimaxBaseRespSuccess(parsed.base_resp, 'MiniMax music generation')
   return parsed
 }
 
@@ -217,24 +197,21 @@ export const runMinimaxMusicGen = async (
     forceInstrumental?: boolean | undefined
   }
 ): Promise<{ musicPath: string, metadata: Step7MusicMetadata }> => {
-  const apiKey = readEnv('MINIMAX_API_KEY')
-  if (!apiKey) {
-    throw InternalError('MINIMAX_API_KEY environment variable is required for MiniMax music generation', { stage: 'music:minimax', hints: hintsForMissingEnv('MINIMAX_API_KEY') })
-  }
+  const apiKey = requireApiKey('MINIMAX_API_KEY', 'music:minimax', 'MiniMax music generation')
 
   const baseURL = MINIMAX_DEFAULT_BASE_URL
   const musicPath = `${outputDir}/generated-music.mp3`
 
   if (options.durationSeconds !== undefined) {
-    l.warn('MiniMax music generation currently ignores --music-duration')
+    l.warn('MiniMax music generation currently ignores --duration')
   }
   const supportsInstrumental = isMinimaxInstrumentalMusicModel(options.model)
   const useInstrumental = options.forceInstrumental === true && supportsInstrumental
   if (options.forceInstrumental && !supportsInstrumental) {
-    l.warn(`MiniMax music model ${options.model} does not support --music-instrumental; generating with lyrics`)
+    l.warn(`MiniMax music model ${options.model} does not support --instrumental; generating with lyrics`)
   }
   if (useInstrumental && options.lyricsFile) {
-    l.warn('Ignoring --music-lyrics-file because --music-instrumental was provided for MiniMax music generation')
+    l.warn('Ignoring --lyrics-file because --instrumental was provided for MiniMax music generation')
   }
 
   const startTime = Date.now()
@@ -251,12 +228,7 @@ export const runMinimaxMusicGen = async (
     ? 'none'
     : options.lyricsFile ? 'provided' : 'generated'
 
-  logMediaGenerationStatus(l, {
-    mediaType: 'music',
-    provider: 'minimax',
-    model: options.model,
-    status: 'started'
-  })
+  logGenStatus('music', 'minimax', options.model, 'started')
 
   let payload: MinimaxMusicGenerationPayload
   if (useInstrumental) {
@@ -293,15 +265,7 @@ export const runMinimaxMusicGen = async (
   const musicFile = Bun.file(musicPath)
   const musicDurationMs = generated.extra_info?.music_duration
 
-  logMediaGenerationStatus(l, {
-    mediaType: 'music',
-    provider: 'minimax',
-    model: options.model,
-    status: 'completed',
-    processingTimeMs: processingTime,
-    outputCount: 1,
-    artifacts: [{ artifact: 'music', path: musicPath }]
-  })
+  logGenCompleted('music', 'minimax', options.model, processingTime, [musicPath])
 
   const metadata: Step7MusicMetadata = {
     musicService: 'minimax',

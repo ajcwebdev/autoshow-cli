@@ -8,6 +8,7 @@ import { normalizeGenericProviderSelectorFlags } from '~/cli/flags/service-selec
 import { STANDALONE_IMAGE_PROVIDER_TARGETS } from '~/cli/flags/service-selector-normalization/provider-targets'
 import { normalizeWriteStepSelectorFlags } from '~/cli/flags/service-selector-normalization/write-step-selectors'
 import { normalizeResumeSelectorFlagsForTarget } from '~/cli/commands/setup-and-utilities/resume/resume-dispatch'
+import { flagOccurrencesFromValues } from '../../../../test-utils/flag-occurrences'
 
 describe('native global argument contracts', () => {
   test('custom parsers strip defined globals with aliases, values, inline values, and negation', () => {
@@ -49,11 +50,11 @@ describe('native global argument contracts', () => {
   test('unsupported local provider groups are rejected instead of silently dropped', () => {
     expect(() => normalizeWriteStepSelectorFlags({
       'all-local': ['image']
-    }, new Set(['all-local']))).toThrow('--all-local does not support step "image"')
+    }, new Set(['all-local']), flagOccurrencesFromValues({ 'all-local': ['image'] }))).toThrow('--all-local does not support step "image"')
 
     expect(() => normalizeGenericProviderSelectorFlags({
       'all-local': true
-    }, new Set(['all-local']), 'provider', STANDALONE_IMAGE_PROVIDER_TARGETS, {
+    }, new Set(['all-local']), flagOccurrencesFromValues({ 'all-local': true }), 'provider', STANDALONE_IMAGE_PROVIDER_TARGETS, {
       allProvidersTarget: 'all-image'
     })).toThrow('--all-local is not supported')
 
@@ -62,8 +63,6 @@ describe('native global argument contracts', () => {
       scope: 'single',
       dir: '/tmp/video-run',
       manifestPath: '/tmp/video-run/run.json'
-    }, { 'all-local': true }, new Set(['all-local']), [
-      'resume', '/tmp/video-run', '--all-local'
-    ])).toThrow('--all-local is not supported')
+    }, { 'all-local': true }, new Set(['all-local']), flagOccurrencesFromValues({ 'all-local': true }))).toThrow('--all-local is not supported')
   })
 })

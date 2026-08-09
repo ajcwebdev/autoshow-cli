@@ -9,6 +9,7 @@ import { readElevenLabsError } from './elevenlabs-utils'
 import { materializeMediaInput } from '~/utils/media-url'
 import { InfraError, ValidationError } from '~/utils/error-handler'
 import type { ElevenLabsTtsIvcContext, ElevenLabsTtsIvcOptions, ElevenLabsTtsIvcResult, TtsCustomVoiceSampleAudio } from '~/types'
+import { httpResponseError } from '~/utils/rest-client'
 
 export const ELEVENLABS_TTS_IVC_COST_CENTS = 0
 export const ELEVENLABS_TTS_IVC_SETUP_MS = 10_000
@@ -126,9 +127,7 @@ const createElevenLabsTtsIvcVoice = async (
 
       if (!response.ok) {
         const errText = await readElevenLabsError(response)
-        const err = new Error(`ElevenLabs IVC voice creation failed (${response.status}): ${errText}`) as Error & { status: number }
-        err.status = response.status
-        throw err
+        throw httpResponseError(`ElevenLabs IVC voice creation failed (${response.status}): ${errText}`, response)
       }
 
       let payload: unknown

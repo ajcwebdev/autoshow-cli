@@ -1,9 +1,3 @@
-import { readEnv } from '~/utils/validate/env-utils'
-import { InternalError, hintsForMissingEnv } from '~/utils/error-handler'
+import { ensureApiKeySetup } from '~/utils/validate/env-utils'
 
-export const ensureGeminiTtsSetup = async (): Promise<void> => {
-  const apiKey = readEnv('GEMINI_API_KEY')
-  if (!apiKey) {
-    throw InternalError('GEMINI_API_KEY environment variable is required for Gemini TTS', { stage: 'tts:gemini', hints: hintsForMissingEnv('GEMINI_API_KEY') })
-  }
-}
+export const ensureGeminiTtsSetup = ensureApiKeySetup('GEMINI_API_KEY', 'tts:gemini', 'Gemini TTS')

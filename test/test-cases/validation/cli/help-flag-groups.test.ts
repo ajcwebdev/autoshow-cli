@@ -18,8 +18,8 @@ import { draftScenesFlags, generateImagesFlags, referenceSketchFlags } from '~/c
 import type { CliFlagsDefinition } from '~/types'
 
 // Mirrors `COMMAND_DEFINITIONS` in `create-cli.ts`, which cannot be imported
-// here because that module runs the CLI on load. The comic subcommands render
-// their own help from these three flag sets (`comic-utils/subcommand-help.ts`),
+// here because that module runs the CLI on load. The comic subcommands parse and
+// render their own help from these three flag sets (`comic-utils/subcommand-help.ts`),
 // so they are walked directly rather than through `comicCommand.flags`.
 const GROUPED_FLAG_SETS: (CliFlagsDefinition | undefined)[] = [
   configCommand.flags,

@@ -1,9 +1,3 @@
-import { readEnv } from '~/utils/validate/env-utils'
-import { InternalError, hintsForMissingEnv } from '~/utils/error-handler'
+import { ensureApiKeySetup } from '~/utils/validate/env-utils'
 
-export const ensureElevenLabsMusicGenSetup = async (): Promise<void> => {
-  const apiKey = readEnv('ELEVENLABS_API_KEY')
-  if (!apiKey) {
-    throw InternalError('ELEVENLABS_API_KEY environment variable is required for ElevenLabs music generation', { stage: 'music:elevenlabs', hints: hintsForMissingEnv('ELEVENLABS_API_KEY') })
-  }
-}
+export const ensureElevenLabsMusicGenSetup = ensureApiKeySetup('ELEVENLABS_API_KEY', 'music:elevenlabs', 'ElevenLabs music generation')

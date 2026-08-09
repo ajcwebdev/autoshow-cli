@@ -7,6 +7,7 @@ import { estimateTtsCosts } from '~/cli/commands/process-steps/step-4-tts/tts-ut
 import { SPEECHIFY_TTS_CUSTOM_VOICE_SETUP_MS } from '~/cli/commands/process-steps/step-4-tts/tts-services/speechify/speechify-custom-voices'
 import { getTtsEstimation, getTtsPricing } from '~/cli/commands/setup-and-utilities/models/model-loader'
 import { computeActualCosts } from '~/utils/pricing/compute-actual-costs'
+import { preflightToEstimated } from '~/utils/pricing/compute-costs'
 import { computeEstimatedProcessingTimes } from '~/utils/pricing/compute-processing-time'
 import { buildTtsBatchEstimateSummary, computeSuccessfulTtsBatchActualCost } from '~/cli/commands/process-steps/step-4-tts/tts-batch-summary'
 import { runCommand } from '../../../../test-utils/test-helpers'
@@ -317,6 +318,31 @@ describe('price mode contracts', () => {
 
     expect(buildTtsBatchEstimateSummary([estimate], 1, 2, { preparedInputs, targets: [targetFor('eleven_v3')] }).estimatedWallTimeMs).toBe(Math.round(5 * rate))
     expect(buildTtsBatchEstimateSummary([estimate], 1, 2, { preparedInputs, targets: [targetFor('eleven_flash_v2_5')] }).estimatedWallTimeMs).toBe(Math.round(6 * rate))
+  })
+
+  test('TTS preflight estimates preserve setup-fee and estimate-type metadata', () => {
+    const estimated = preflightToEstimated({
+      totalEstimatedCost: 26,
+      steps: [{
+        step: 'tts',
+        provider: 'elevenlabs',
+        model: 'eleven_v3',
+        costPer1kCharactersCents: 10,
+        setupCostCents: 16,
+        estimateType: 'exact',
+        totalCost: 26
+      }]
+    })
+
+    expect(estimated.steps).toEqual([{
+      step: 'tts',
+      provider: 'elevenlabs',
+      model: 'eleven_v3',
+      cost: 26,
+      costPer1kCharactersCents: 10,
+      setupCostCents: 16,
+      estimateType: 'exact'
+    }])
   })
 
   test('tts batch actual total cost sums successful child runs by child character count', () => {

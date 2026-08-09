@@ -18,7 +18,7 @@ import {
 } from '~/cli/commands/setup-and-utilities/models/setup-model-options'
 import { buildModelDescription } from '~/cli/commands/setup-and-utilities/models/model-validation'
 import type { Step2ProviderRegistryEntry } from '~/types'
-import { booleanProvider, modelProvider } from './entry-builders'
+import { booleanProvider, ocrModelProvider } from './entry-builders'
 
 export const STEP2_OCR_PROVIDER_REGISTRY = [
   booleanProvider({
@@ -34,122 +34,42 @@ export const STEP2_OCR_PROVIDER_REGISTRY = [
     model: 'tesseract',
     description: 'Use Tesseract OCR (default local OCR engine for PDF/image; forces OCR mode for EPUB and office documents)'
   }),
-  modelProvider({
-    step: 'ocr',
-    modality: 'document',
-    flagName: 'mistral-ocr',
-    targetService: 'mistral',
-    providerSpecProvider: 'mistral-ocr',
-    bootstrapProviderId: 'mistral-ocr',
-    configKey: 'mistralOcr',
-    allShortcut: 'all-ocr',
-    runtimeModelsKey: 'mistralOcrModels',
-    runtimeModelKey: 'mistralOcrModel',
+  ocrModelProvider('mistral', 'mistralOcr', {
     supportedModels: SUPPORTED_MISTRAL_OCR_MODELS,
     validateModel: validateMistralOcrModel,
     description: buildModelDescription('Mistral OCR model', SUPPORTED_MISTRAL_OCR_MODELS)
   }),
-  modelProvider({
-    step: 'ocr',
-    modality: 'document',
-    flagName: 'glm-ocr',
-    targetService: 'glm',
-    providerSpecProvider: 'glm-ocr',
-    bootstrapProviderId: 'glm-ocr',
-    configKey: 'glmOcr',
-    allShortcut: 'all-ocr',
-    runtimeModelsKey: 'glmOcrModels',
-    runtimeModelKey: 'glmOcrModel',
+  ocrModelProvider('glm', 'glmOcr', {
     supportedModels: SUPPORTED_GLM_OCR_MODELS,
     validateModel: validateGlmOcrModel,
     description: buildModelDescription('GLM OCR model', SUPPORTED_GLM_OCR_MODELS)
   }),
-  modelProvider({
-    step: 'ocr',
-    modality: 'document',
-    flagName: 'kimi-ocr',
-    targetService: 'kimi',
-    providerSpecProvider: 'kimi-ocr',
-    bootstrapProviderId: 'kimi-ocr',
-    configKey: 'kimiOcr',
-    allShortcut: 'all-ocr',
-    runtimeModelsKey: 'kimiOcrModels',
-    runtimeModelKey: 'kimiOcrModel',
+  ocrModelProvider('kimi', 'kimiOcr', {
     supportedModels: SUPPORTED_KIMI_OCR_MODELS,
     validateModel: validateKimiOcrModel,
     description: buildModelDescription('Kimi OCR model', SUPPORTED_KIMI_OCR_MODELS)
   }),
-  modelProvider({
-    step: 'ocr',
-    modality: 'document',
-    flagName: 'openai-ocr',
-    targetService: 'openai',
-    providerSpecProvider: 'openai-ocr',
-    bootstrapProviderId: 'openai-ocr',
-    configKey: 'openaiOcr',
-    allShortcut: 'all-ocr',
-    runtimeModelsKey: 'openaiOcrModels',
-    runtimeModelKey: 'openaiOcrModel',
+  ocrModelProvider('openai', 'openaiOcr', {
     supportedModels: SUPPORTED_OPENAI_OCR_MODELS,
     validateModel: validateOpenAIOcrModel,
     description: buildModelDescription('OpenAI OCR model', SUPPORTED_OPENAI_OCR_MODELS)
   }),
-  modelProvider({
-    step: 'ocr',
-    modality: 'document',
-    flagName: 'grok-ocr',
-    targetService: 'grok',
-    providerSpecProvider: 'grok-ocr',
-    bootstrapProviderId: 'grok-ocr',
-    configKey: 'grokOcr',
-    allShortcut: 'all-ocr',
-    runtimeModelsKey: 'grokOcrModels',
-    runtimeModelKey: 'grokOcrModel',
+  ocrModelProvider('grok', 'grokOcr', {
     supportedModels: SUPPORTED_GROK_OCR_MODELS,
     validateModel: validateGrokOcrModel,
     description: buildModelDescription('Grok OCR model', SUPPORTED_GROK_OCR_MODELS)
   }),
-  modelProvider({
-    step: 'ocr',
-    modality: 'document',
-    flagName: 'anthropic-ocr',
-    targetService: 'anthropic',
-    providerSpecProvider: 'anthropic-ocr',
-    bootstrapProviderId: 'anthropic-ocr',
-    configKey: 'anthropicOcr',
-    allShortcut: 'all-ocr',
-    runtimeModelsKey: 'anthropicOcrModels',
-    runtimeModelKey: 'anthropicOcrModel',
+  ocrModelProvider('anthropic', 'anthropicOcr', {
     supportedModels: SUPPORTED_ANTHROPIC_OCR_MODELS,
     validateModel: validateAnthropicOcrModel,
     description: buildModelDescription('Anthropic OCR model', SUPPORTED_ANTHROPIC_OCR_MODELS)
   }),
-  modelProvider({
-    step: 'ocr',
-    modality: 'document',
-    flagName: 'gemini-ocr',
-    targetService: 'gemini',
-    providerSpecProvider: 'gemini-ocr',
-    bootstrapProviderId: 'gemini-ocr',
-    configKey: 'geminiOcr',
-    allShortcut: 'all-ocr',
-    runtimeModelsKey: 'geminiOcrModels',
-    runtimeModelKey: 'geminiOcrModel',
+  ocrModelProvider('gemini', 'geminiOcr', {
     supportedModels: SUPPORTED_GEMINI_OCR_MODELS,
     validateModel: validateGeminiOcrModel,
     description: buildModelDescription('Gemini OCR model', SUPPORTED_GEMINI_OCR_MODELS)
   }),
-  modelProvider({
-    step: 'ocr',
-    modality: 'document',
-    flagName: 'deepinfra-ocr',
-    targetService: 'deepinfra',
-    providerSpecProvider: 'deepinfra-ocr',
-    bootstrapProviderId: 'deepinfra-ocr',
-    configKey: 'deepinfraOcr',
-    allShortcut: 'all-ocr',
-    runtimeModelsKey: 'deepinfraOcrModels',
-    runtimeModelKey: 'deepinfraOcrModel',
+  ocrModelProvider('deepinfra', 'deepinfraOcr', {
     supportedModels: SUPPORTED_DEEPINFRA_OCR_MODELS,
     validateModel: validateDeepinfraOcrModel,
     description: buildModelDescription('DeepInfra OCR model', SUPPORTED_DEEPINFRA_OCR_MODELS)

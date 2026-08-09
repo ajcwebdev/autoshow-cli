@@ -1,10 +1,10 @@
 import { defineCliCommand } from '~/cli/native/native-types'
-import { videoCommandFlags } from '~/cli/flags/video-flags'
+import { videoCommandFlags, videoCommandOptionNames } from '~/cli/flags/video-flags'
+import { retargetUsageErrorsToCommandSpellings } from '~/cli/flags/flag-utils'
 import { CLIUsageError } from '~/utils/error-handler'
 import { buildOptsFromFlags } from '~/cli/commands/process-steps/step-1-download/download-targets/build-opts-from-flags/build-options-from-flags'
-import { extractExplicitFlags } from '~/cli/commands/setup-and-utilities/config/config-merge'
 import { selectCheapestDefaultTextVideoSelection } from '~/cli/commands/setup-and-utilities/models/cheapest-models'
-import { normalizeCommandSelectorArgs, normalizeCommandSelectorFlags } from '~/cli/flags/service-selector-normalization/flag-helpers'
+import { normalizeCommandSelectorFlags } from '~/cli/flags/service-selector-normalization/flag-helpers'
 import { normalizeGenericProviderSelectorFlags } from '~/cli/flags/service-selector-normalization/generic-provider-selectors'
 import { STANDALONE_VIDEO_PROVIDER_TARGETS } from '~/cli/flags/service-selector-normalization/provider-targets'
 import { runVideoGen } from './run-video-gen'
@@ -19,18 +19,8 @@ import { buildProviderStepSummaries, createGenerationOutputDir, getGenerationExp
 import * as l from '~/utils/app-logger/app-logger'
 import { runWithLogContext } from '~/utils/app-logger/app-logger'
 import type { RuntimeOptions, VideoProvider, VideoTarget } from '~/types'
-
-const VIDEO_COMMAND_OPTION_FLAGS = {
-  'video-mode': 'mode',
-  'video-duration': 'duration',
-  'video-size': 'size',
-  'video-aspect-ratio': 'aspect-ratio',
-  'video-resolution': 'resolution',
-  'video-input-image': 'input-image',
-  'video-last-frame': 'last-frame',
-  'video-reference-image': 'reference-image',
-  'video-input-video': 'input-video'
-} as const satisfies Record<string, string>
+import { VIDEO_PRICING_PROVIDERS } from './video-utils/video-pricing'
+import { optionsForService } from '~/utils/pricing/model-selection'
 
 const VIDEO_PROVIDER_FLAGS = [
   'gemini-video',
@@ -68,14 +58,10 @@ const setSingleVideoProviderSelection = (
 const providerModelsFromTargets = (
   targets: VideoTarget[],
   provider: VideoProvider
-): string[] | undefined => {
-  const models = targets
+): string[] =>
+  targets
     .filter((target) => target.service === provider)
     .map((target) => target.model)
-  return models.length > 0 ? models : undefined
-}
-
-const first = <T,>(values: T[] | undefined): T | undefined => values?.[0]
 
 const countGrokInputImages = (opts: RuntimeOptions): number =>
   (opts.videoInputImage ? 1 : 0) + (opts.videoReferenceImages?.length ?? 0)
@@ -86,40 +72,17 @@ const countReplicateInputVideos = (opts: RuntimeOptions): number =>
 const buildPricingOptionsForTargets = (
   opts: RuntimeOptions,
   targets: VideoTarget[]
-): RuntimeOptions => {
-  const geminiVideoModels = providerModelsFromTargets(targets, 'gemini')
-  const minimaxVideoModels = providerModelsFromTargets(targets, 'minimax')
-  const glmVideoModels = providerModelsFromTargets(targets, 'glm')
-  const grokVideoModels = providerModelsFromTargets(targets, 'grok')
-  const runwayVideoModels = providerModelsFromTargets(targets, 'runway')
-  const ltxVideoModels = providerModelsFromTargets(targets, 'ltx')
-  const replicateVideoModels = providerModelsFromTargets(targets, 'replicate')
-  const lumalabsVideoModels = providerModelsFromTargets(targets, 'lumalabs')
-  const falVideoModels = providerModelsFromTargets(targets, 'fal')
-
-  return {
-    ...opts,
-    allVideo: false,
-    geminiVideoModels,
-    geminiVideoModel: first(geminiVideoModels),
-    minimaxVideoModels,
-    minimaxVideoModel: first(minimaxVideoModels),
-    glmVideoModels,
-    glmVideoModel: first(glmVideoModels),
-    grokVideoModels,
-    grokVideoModel: first(grokVideoModels),
-    runwayVideoModels,
-    runwayVideoModel: first(runwayVideoModels),
-    ltxVideoModels,
-    ltxVideoModel: first(ltxVideoModels),
-    replicateVideoModels,
-    replicateVideoModel: first(replicateVideoModels),
-    lumalabsVideoModels,
-    lumalabsVideoModel: first(lumalabsVideoModels),
-    falVideoModels,
-    falVideoModel: first(falVideoModels)
-  }
-}
+): RuntimeOptions => ({
+  ...opts,
+  allVideo: false,
+  ...Object.assign({}, ...VIDEO_PRICING_PROVIDERS.map((provider) =>
+    optionsForService(
+      VIDEO_PRICING_PROVIDERS,
+      provider.service,
+      providerModelsFromTargets(targets, provider.service)
+    )
+  ))
+})
 
 const resolveVideoInput = (
   input: string,
@@ -167,7 +130,7 @@ export const videoCommand = defineCliCommand({
       ['bun autoshow video "a cinematic mountain sunrise with synchronized ambience" --provider fal=minimax/h3 --duration 5 --resolution 2k', 'Generate video with fal.ai MiniMax H3']
     ]
   }
-}, async (ctx) => {
+}, retargetUsageErrorsToCommandSpellings(async (ctx) => {
   const input = ctx.parameters.input
   if (typeof input !== 'string' || input.trim().length === 0) {
     throw CLIUsageError('Missing video input: provide a text prompt or image path, URL, or data URL.')
@@ -175,17 +138,20 @@ export const videoCommand = defineCliCommand({
   const flags = ctx.flags
 
   const videoMaxCents = await resolveMaxCentsFromFlags(flags as Record<string, unknown>)
-  const rawArgs = Bun.argv.slice(2)
-  const explicitFlags = extractExplicitFlags(rawArgs)
-  const optionNormalized = normalizeCommandSelectorFlags(flags as Record<string, unknown>, explicitFlags, VIDEO_COMMAND_OPTION_FLAGS)
-  const optionNormalizedArgs = normalizeCommandSelectorArgs(rawArgs, VIDEO_COMMAND_OPTION_FLAGS)
+  const optionNormalized = normalizeCommandSelectorFlags(
+    flags as Record<string, unknown>,
+    ctx.rawParsed.explicitFlags,
+    ctx.rawParsed.flagOccurrences,
+    videoCommandOptionNames
+  )
   const resolvedInput = resolveVideoInput(input, optionNormalized.flags)
   const providerNormalized = normalizeGenericProviderSelectorFlags(
     optionNormalized.flags,
     optionNormalized.explicitFlags,
+    optionNormalized.flagOccurrences,
     'provider',
     STANDALONE_VIDEO_PROVIDER_TARGETS,
-    { allProvidersTarget: 'all-video', rawArgs: optionNormalizedArgs }
+    { allProvidersTarget: 'all-video' }
   )
 
   if (!hasVideoProviderSelection(providerNormalized.flags)) {
@@ -197,7 +163,7 @@ export const videoCommand = defineCliCommand({
     }
   }
 
-  const videoOpts = buildOptsFromFlags(true, providerNormalized.flags, [], {}, providerNormalized.explicitFlags, providerNormalized.rawArgs ?? optionNormalizedArgs)
+  const videoOpts = buildOptsFromFlags(true, providerNormalized.flags, [], {}, providerNormalized.explicitFlags, providerNormalized.flagOccurrences)
     const videoTargets = collectVideoTargets(videoOpts)
   if (videoTargets.length === 0) {
     throw CLIUsageError('Specify a video generation provider with --provider gemini|minimax|glm|grok|runway|ltx|replicate|lumalabs|fal[=model]')
@@ -279,4 +245,4 @@ export const videoCommand = defineCliCommand({
       includeOutputDir: false
     }
   )
-})
+}, videoCommandOptionNames))

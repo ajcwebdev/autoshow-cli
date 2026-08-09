@@ -1,3 +1,4 @@
+import { isRecord } from '~/utils/rest-client'
 import { getExtractPricing } from '~/cli/commands/setup-and-utilities/models/model-loader'
 import type { ActualCostBreakdown, AggregatedPriceEstimate, CollectEstimatedExtractTargetsOptions, EstimatedCostBreakdown, EstimatedStepEntry, ExtractEstimateProvider, ExtractEstimateTarget, ExtractionMetadata, OcrModelFallbackOptions, PartialExtractionMetadata, Step3Metadata } from '~/types'
 import { resolveExtractionProviderModel } from '~/utils/extraction-provider-model'
@@ -5,6 +6,7 @@ import { toArray } from '~/utils/text-utils'
 import { computeObservedEstimateCosts, computePriceAlignedEstimatedCosts, preflightToEstimated } from '~/utils/pricing/compute-costs'
 import { ANTHROPIC_OCR_PRICE_NOTE, DEEPINFRA_OCR_PRICE_NOTE, FIRECRAWL_PRICE_NOTE, GEMINI_OCR_PRICE_NOTE, GLM_OCR_PRICE_NOTE, GROK_OCR_PRICE_NOTE, KIMI_OCR_PRICE_NOTE, OPENAI_OCR_PRICE_NOTE } from './ocr-utils/extract-pricing'
 import { resolveHostedOcrModeFromExtractionMethod } from './ocr-utils/hosted-ocr-token-profiles'
+import { getUsageNumber } from './ocr-utils/hosted-ocr-utils'
 
 const TOKEN_PRICED_OCR_PROVIDERS = new Set(['glm', 'kimi', 'openai', 'grok', 'anthropic', 'gemini', 'deepinfra'])
 const OCR_DIAGNOSTIC_PROVIDERS = new Set([
@@ -26,8 +28,6 @@ const tokenProfileCostInput = (
 
 export { resolveExtractionProviderModel } from '~/utils/extraction-provider-model'
 
-const isRecord = (value: unknown): value is Record<string, unknown> =>
-  typeof value === 'object' && value !== null && !Array.isArray(value)
 
 const isPartialExtractionMetadata = (
   entry: ExtractionMetadata | PartialExtractionMetadata
@@ -362,19 +362,6 @@ const isSchemaRetryUsageEntry = (entry: unknown): entry is Record<string, unknow
     entry['usageRole'] === 'schema-retry'
     || entry['purpose'] === 'ocr-schema-retry'
   )
-
-const getUsageNumber = (
-  entry: Record<string, unknown>,
-  keys: readonly string[]
-): number | undefined => {
-  for (const key of keys) {
-    const value = entry[key]
-    if (typeof value === 'number' && Number.isFinite(value)) {
-      return value
-    }
-  }
-  return undefined
-}
 
 const addSchemaRetryUsagePages = (
   pages: Set<number>,

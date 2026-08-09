@@ -399,6 +399,67 @@ export const selectCheapestDefaultTextVideoSelection = (): CheapestVideoSelectio
   return best
 }
 
+const FLAG_SELECTORS: Record<string, () => string | undefined> = {
+  'deepinfra-stt': () => selectCheapestSttModel('deepinfra'),
+  'deepgram-stt': () => selectCheapestSttModel('deepgram'),
+  'soniox-stt': () => selectCheapestSttModel('soniox'),
+  'speechmatics-stt': () => selectCheapestSttModel('speechmatics'),
+  'rev-stt': () => selectCheapestSttModel('rev'),
+  'groq-stt': () => selectCheapestSttModel('groq'),
+  'grok-stt': () => selectCheapestSttModel('grok'),
+  'mistral-stt': () => selectCheapestSttModel('mistral'),
+  'assemblyai-stt': () => selectCheapestSttModel('assemblyai'),
+  'gladia-stt': () => selectCheapestSttModel('gladia'),
+  'happyscribe-stt': () => selectCheapestSttModel('happyscribe'),
+  'supadata-stt': () => 'auto',
+  'scrapecreators-stt': () => 'youtube-transcript',
+  'gemini-stt': () => selectCheapestSttModel('gemini-stt'),
+  'together-stt': () => selectCheapestSttModel('together'),
+  'mistral-ocr': () => selectCheapestExtractModel('mistral'),
+  'glm-ocr': () => selectCheapestExtractModel('glm'),
+  'kimi-ocr': () => selectCheapestExtractModel('kimi'),
+  'openai-ocr': () => selectCheapestExtractModel('openai'),
+  'grok-ocr': () => 'grok-4.3',
+  'anthropic-ocr': () => selectCheapestExtractModel('anthropic'),
+  'gemini-ocr': () => selectCheapestExtractModel('gemini'),
+  'deepinfra-ocr': () => DEFAULT_DEEPINFRA_OCR_MODEL,
+  openai: () => selectCheapestLlmModel('openai'),
+  groq: () => selectCheapestLlmModel('groq'),
+  gemini: () => selectCheapestLlmModel('gemini'),
+  anthropic: () => selectCheapestLlmModel('anthropic'),
+  minimax: () => selectCheapestLlmModel('minimax'),
+  grok: () => 'grok-4.3',
+  glm: () => selectCheapestLlmModel('glm'),
+  kimi: () => selectCheapestLlmModel('kimi'),
+  together: () => 'glm-5.1',
+  cerebras: () => selectCheapestLlmModel('cerebras'),
+  'minimax-tts': () => selectCheapestTtsModel('minimax'),
+  'grok-tts': () => selectCheapestTtsModel('grok'),
+  'mistral-tts': () => selectCheapestTtsModel('mistral'),
+  'gemini-tts': () => selectCheapestTtsModel('gemini'),
+  'hume-tts': () => selectCheapestTtsModel('hume'),
+  'gemini-image': () => selectCheapestImageModel('gemini'),
+  'openai-image': () => selectCheapestImageModel('openai'),
+  'grok-image': () => selectCheapestImageModel('grok'),
+  'bfl-image': () => selectCheapestImageModel('bfl'),
+  'recraft-image': () => selectCheapestImageModel('recraft'),
+  'replicate-image': () => selectCheapestImageModel('replicate'),
+  'lumalabs-image': () => selectCheapestImageModel('lumalabs'),
+  'fal-image': () => selectCheapestImageModel('fal'),
+  'elevenlabs-music': () => selectCheapestMusicModel('elevenlabs'),
+  'minimax-music': () => selectCheapestMusicModel('minimax'),
+  'gemini-music': () => selectCheapestMusicModel('gemini'),
+  'gemini-video': () => selectCheapestVideoModel('gemini'),
+  'minimax-video': () => selectCheapestVideoModel('minimax'),
+  'glm-video': () => selectCheapestVideoModel('glm'),
+  'grok-video': () => selectCheapestVideoModel('grok'),
+  'runway-video': () => selectCheapestVideoModel('runway'),
+  'ltx-video': () => selectCheapestVideoModel('ltx'),
+  'replicate-video': () => selectCheapestVideoModel('replicate'),
+  'lumalabs-video': () => selectCheapestVideoModel('lumalabs'),
+  'fal-video': () => selectCheapestVideoModel('fal')
+}
+
 export const resolveCheapestModelForFlag = (flagName: string): string | undefined => {
   const localDefault = DEFAULT_LOCAL_MODEL_BY_FLAG[flagName as keyof typeof DEFAULT_LOCAL_MODEL_BY_FLAG]
   if (localDefault) {
@@ -409,124 +470,5 @@ export const resolveCheapestModelForFlag = (flagName: string): string | undefine
     return hostedTtsDefault
   }
 
-  switch (flagName) {
-    case 'deepinfra-stt':
-      return selectCheapestSttModel('deepinfra')
-    case 'deepgram-stt':
-      return selectCheapestSttModel('deepgram')
-    case 'soniox-stt':
-      return selectCheapestSttModel('soniox')
-    case 'speechmatics-stt':
-      return selectCheapestSttModel('speechmatics')
-    case 'rev-stt':
-      return selectCheapestSttModel('rev')
-    case 'groq-stt':
-      return selectCheapestSttModel('groq')
-    case 'grok-stt':
-      return selectCheapestSttModel('grok')
-    case 'mistral-stt':
-      return selectCheapestSttModel('mistral')
-    case 'assemblyai-stt':
-      return selectCheapestSttModel('assemblyai')
-    case 'gladia-stt':
-      return selectCheapestSttModel('gladia')
-    case 'happyscribe-stt':
-      return selectCheapestSttModel('happyscribe')
-    case 'supadata-stt':
-      return 'auto'
-    case 'scrapecreators-stt':
-      return 'youtube-transcript'
-    case 'gemini-stt':
-      return selectCheapestSttModel('gemini-stt')
-    case 'together-stt':
-      return selectCheapestSttModel('together')
-    case 'mistral-ocr':
-      return selectCheapestExtractModel('mistral')
-    case 'glm-ocr':
-      return selectCheapestExtractModel('glm')
-    case 'kimi-ocr':
-      return selectCheapestExtractModel('kimi')
-    case 'openai-ocr':
-      return selectCheapestExtractModel('openai')
-    case 'grok-ocr':
-      return 'grok-4.3'
-    case 'anthropic-ocr':
-      return selectCheapestExtractModel('anthropic')
-    case 'gemini-ocr':
-      return selectCheapestExtractModel('gemini')
-    case 'deepinfra-ocr':
-      return DEFAULT_DEEPINFRA_OCR_MODEL
-    case 'openai':
-      return selectCheapestLlmModel('openai')
-    case 'groq':
-      return selectCheapestLlmModel('groq')
-    case 'gemini':
-      return selectCheapestLlmModel('gemini')
-    case 'anthropic':
-      return selectCheapestLlmModel('anthropic')
-    case 'minimax':
-      return selectCheapestLlmModel('minimax')
-    case 'grok':
-      return 'grok-4.3'
-    case 'glm':
-      return selectCheapestLlmModel('glm')
-    case 'kimi':
-      return selectCheapestLlmModel('kimi')
-    case 'together':
-      return 'glm-5.1'
-    case 'cerebras':
-      return selectCheapestLlmModel('cerebras')
-    case 'minimax-tts':
-      return selectCheapestTtsModel('minimax')
-    case 'grok-tts':
-      return selectCheapestTtsModel('grok')
-    case 'mistral-tts':
-      return selectCheapestTtsModel('mistral')
-    case 'gemini-tts':
-      return selectCheapestTtsModel('gemini')
-    case 'hume-tts':
-      return selectCheapestTtsModel('hume')
-    case 'gemini-image':
-      return selectCheapestImageModel('gemini')
-    case 'openai-image':
-      return selectCheapestImageModel('openai')
-    case 'grok-image':
-      return selectCheapestImageModel('grok')
-    case 'bfl-image':
-      return selectCheapestImageModel('bfl')
-    case 'recraft-image':
-      return selectCheapestImageModel('recraft')
-    case 'replicate-image':
-      return selectCheapestImageModel('replicate')
-    case 'lumalabs-image':
-      return selectCheapestImageModel('lumalabs')
-    case 'fal-image':
-      return selectCheapestImageModel('fal')
-    case 'elevenlabs-music':
-      return selectCheapestMusicModel('elevenlabs')
-    case 'minimax-music':
-      return selectCheapestMusicModel('minimax')
-    case 'gemini-music':
-      return selectCheapestMusicModel('gemini')
-    case 'gemini-video':
-      return selectCheapestVideoModel('gemini')
-    case 'minimax-video':
-      return selectCheapestVideoModel('minimax')
-    case 'glm-video':
-      return selectCheapestVideoModel('glm')
-    case 'grok-video':
-      return selectCheapestVideoModel('grok')
-    case 'runway-video':
-      return selectCheapestVideoModel('runway')
-    case 'ltx-video':
-      return selectCheapestVideoModel('ltx')
-    case 'replicate-video':
-      return selectCheapestVideoModel('replicate')
-    case 'lumalabs-video':
-      return selectCheapestVideoModel('lumalabs')
-    case 'fal-video':
-      return selectCheapestVideoModel('fal')
-    default:
-      return undefined
-  }
+  return FLAG_SELECTORS[flagName]?.()
 }

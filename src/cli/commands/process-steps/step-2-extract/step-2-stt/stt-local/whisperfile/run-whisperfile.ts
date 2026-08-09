@@ -1,199 +1,27 @@
-import { mkdir, rm } from 'node:fs/promises'
 import type { Step2Metadata, TranscriptionResult } from '~/types'
-import * as l from '~/utils/app-logger/app-logger'
-import { logSttSegmentLifecycle } from '~/cli/commands/process-steps/step-2-extract/step-2-stt/stt-logging'
-import { countTokens, formatTranscriptText } from '~/cli/commands/process-steps/step-2-extract/step-2-stt/stt-utils/stt-utils'
-import { parseWhisperJson, extractWhisperWords } from '../whisper/parse-whisper-output'
-import { formatWhisperProgressMessage, parseWhisperProgressPercent } from '../whisper/whisper-progress'
-import { exec, fileExists } from '~/utils/cli-utils'
-import { resolve } from 'node:path'
 import { whisperfileBinaryPath } from '~/cli/commands/setup-and-utilities/setup/run-complete-setup'
-import { pollUntil } from '~/utils/retries'
-import { prepareLocalSttInput } from '../local-audio-normalize'
-import { InfraError } from '~/utils/error-handler'
-
-const WHISPER_JSON_WAIT_TIMEOUT_MS = 3000
-const WHISPER_JSON_WAIT_POLL_MS = 100
-
-const waitForWhisperJson = async (jsonFile: string): Promise<boolean> => {
-  try {
-    await pollUntil({
-      operationName: 'whisperfile-json-output',
-      intervalMs: WHISPER_JSON_WAIT_POLL_MS,
-      deadlineMs: WHISPER_JSON_WAIT_TIMEOUT_MS,
-      pollFn: async () => await fileExists(jsonFile),
-      isDone: (exists) => exists
-    })
-    return true
-  } catch {
-    return await fileExists(jsonFile)
-  }
-}
+import { runWhisperCppTranscribe } from '../run-whispercpp-core'
+import type { WhisperCppTranscribeOptions } from '../run-whispercpp-core'
 
 export const runWhisperfileTranscribe = async (
   audioPath: string,
   outputDir: string,
-  options: {
-    model: string
-    segmentOffsetMinutes: number
-    segmentNumber?: number | undefined
-    totalSegments?: number | undefined
-    audioDurationSeconds?: number | undefined
-    segmentStartSeconds?: number | undefined
-    segmentDurationSeconds?: number | undefined
-    totalDurationSeconds?: number | undefined
-    preserveJson?: boolean | undefined
-  }
-): Promise<{ result: TranscriptionResult, metadata: Step2Metadata }> => {
-  const {
-    model: modelName,
-    segmentOffsetMinutes = 0,
-    segmentNumber,
-    totalSegments,
-    audioDurationSeconds,
-    segmentStartSeconds,
-    segmentDurationSeconds,
-    totalDurationSeconds,
-    preserveJson = false
-  } = options
-  let preparedInput: Awaited<ReturnType<typeof prepareLocalSttInput>> | undefined
-
-  try {
-    if (segmentNumber && totalSegments) {
-      logSttSegmentLifecycle(l, { provider: 'whisperfile', action: 'started', segmentNumber, totalSegments, model: modelName })
+  options: WhisperCppTranscribeOptions
+): Promise<{ result: TranscriptionResult, metadata: Step2Metadata }> =>
+  await runWhisperCppTranscribe(audioPath, outputDir, options, {
+    name: 'whisperfile',
+    label: 'Whisperfile',
+    tempPrefix: 'autoshow-whisperfile-',
+    resolveInvocation: async (modelName, baseArgs) => {
+      const whisperfileBinary = whisperfileBinaryPath(modelName)
+      return {
+        // Weights are embedded in the packaged whisperfile, so no -m flag is passed.
+        // whisperfiles are Cosmopolitan APE binaries; macOS posix_spawn cannot exec
+        // them directly, so launch through a shell that reads the self-extracting
+        // script (see whisperfile troubleshooting docs).
+        command: 'sh',
+        args: [whisperfileBinary, ...baseArgs],
+        modelDescriptor: whisperfileBinary
+      }
     }
-    const startTime = Date.now()
-    const whisperfileBinary = whisperfileBinaryPath(modelName)
-    const segmentSuffix = segmentNumber ? `_segment_${String(segmentNumber).padStart(3, '0')}` : ''
-    const outputDirAbs = resolve(outputDir)
-    await mkdir(outputDirAbs, { recursive: true })
-    const outputBase = resolve(outputDirAbs, `transcription${segmentSuffix}`)
-    preparedInput = await prepareLocalSttInput(audioPath, 'autoshow-whisperfile-')
-    // Weights are embedded in the packaged whisperfile, so no -m flag is passed.
-    const whisperArgs = [
-      '-f', preparedInput.audioPath,
-      '-ml', '1',
-      '-np',
-      '-pp',
-      '-of', outputBase,
-      '-ojf'
-    ]
-    // whisperfiles are Cosmopolitan APE binaries; macOS posix_spawn cannot exec
-    // them directly, so launch through a shell that reads the self-extracting
-    // script (see whisperfile troubleshooting docs).
-    let lastLoggedProgress: number | null = null
-    l.debug(formatWhisperProgressMessage(0, {
-      segmentNumber,
-      totalSegments,
-      segmentStartSeconds,
-      segmentDurationSeconds,
-      totalDurationSeconds
-    }))
-    lastLoggedProgress = 0
-    const result = await exec('sh', [whisperfileBinary, ...whisperArgs], {
-      onStderrLine: (line) => {
-        const progressPercent = parseWhisperProgressPercent(line)
-        if (progressPercent === null || progressPercent === lastLoggedProgress) {
-          return
-        }
-        lastLoggedProgress = progressPercent
-        l.debug(formatWhisperProgressMessage(progressPercent, {
-          segmentNumber,
-          totalSegments,
-          segmentStartSeconds,
-          segmentDurationSeconds,
-          totalDurationSeconds
-        }))
-      },
-      retry: { operationName: 'Whisperfile transcription' }
-    })
-    if (result.exitCode !== 0) {
-      throw InfraError(`Whisperfile transcription failed: ${result.stderr}`, { stage: 'stt:whisperfile' })
-    }
-    const jsonFile = `${outputBase}.json`
-    const jsonReady = await waitForWhisperJson(jsonFile)
-    if (!jsonReady) {
-      const commandOutput = result.stderr.trim() || result.stdout.trim()
-      const outputDirExists = await fileExists(outputDirAbs)
-      throw InfraError(
-        commandOutput.length > 0
-          ? `Whisperfile transcription completed but no JSON output was produced at ${jsonFile} (output dir exists: ${outputDirExists}). Command output:\n${commandOutput}`
-          : `Whisperfile transcription completed but no JSON output was produced at ${jsonFile} (output dir exists: ${outputDirExists})`,
-        { stage: 'stt:whisperfile' }
-      )
-    }
-    const jsonText = await Bun.file(jsonFile).text()
-    const rawResponse = JSON.parse(jsonText) as unknown
-    const maxRelativeEndSeconds = segmentDurationSeconds ?? audioDurationSeconds ?? totalDurationSeconds
-    let words = extractWhisperWords(jsonText, { maxEndSeconds: maxRelativeEndSeconds })
-    await Bun.write(`${outputBase}.words.json`, JSON.stringify(words))
-    let { text, segments } = parseWhisperJson(jsonText, { maxEndSeconds: maxRelativeEndSeconds })
-    if (segmentOffsetMinutes > 0) {
-      const offsetSeconds = segmentOffsetMinutes * 60
-      segments = segments.map(seg => {
-        const partsS = seg.start.split(':')
-        const partsE = seg.end.split(':')
-        const s = parseInt(partsS[0]!) * 3600 + parseInt(partsS[1]!) * 60 + parseInt(partsS[2]!) + offsetSeconds
-        const e = parseInt(partsE[0]!) * 3600 + parseInt(partsE[1]!) * 60 + parseInt(partsE[2]!) + offsetSeconds
-        const sh = Math.floor(s / 3600)
-        const sm = Math.floor((s % 3600) / 60)
-        const ss = s % 60
-        const eh = Math.floor(e / 3600)
-        const em = Math.floor((e % 3600) / 60)
-        const es = e % 60
-        return {
-          ...seg,
-          start: `${String(sh).padStart(2, '0')}:${String(sm).padStart(2, '0')}:${String(ss).padStart(2, '0')}`,
-          end: `${String(eh).padStart(2, '0')}:${String(em).padStart(2, '0')}:${String(es).padStart(2, '0')}`
-        }
-      })
-      const shiftedWords = words.map(w => ({ ...w, start: w.start + offsetSeconds, end: w.end + offsetSeconds }))
-      words = shiftedWords
-      await Bun.write(`${outputBase}.words.json`, JSON.stringify(shiftedWords))
-    }
-    if (!preserveJson) {
-      await rm(jsonFile, { force: true })
-    }
-    const processingTime = Date.now() - startTime
-    const tokenCount = countTokens(text)
-    const transcriptionModelDescriptor = whisperfileBinary
-    if (segmentNumber && totalSegments) {
-      logSttSegmentLifecycle(l, { provider: 'whisperfile', action: 'completed', segmentNumber, totalSegments, model: modelName, processingTimeMs: processingTime })
-    }
-    await Bun.write(`${outputBase}.txt`, formatTranscriptText(segments))
-    const metadata: Step2Metadata = {
-      transcriptionService: 'whisperfile',
-      transcriptionModel: transcriptionModelDescriptor,
-      processingTime,
-      tokenCount
-    }
-    return {
-      result: {
-        text,
-        segments,
-        evidence: {
-          words: words.map((word) => ({
-            startSeconds: word.start,
-            endSeconds: word.end,
-            text: word.word,
-            normalized: word.word.toLowerCase(),
-            timingSource: 'native'
-          })),
-          capabilities: {
-            hasNativeWordTiming: true,
-            hasConfidence: false,
-            hasSpeakerLabels: false
-          },
-          timingQuality: 'native_word',
-          rawResponse
-        }
-      },
-      metadata
-    }
-  } catch (error) {
-    l.error(`Failed to transcribe audio`, error)
-    throw error
-  } finally {
-    await preparedInput?.cleanup()
-  }
-}
+  })

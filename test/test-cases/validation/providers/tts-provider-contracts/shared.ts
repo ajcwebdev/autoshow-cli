@@ -1,8 +1,34 @@
 import { join } from 'node:path'
+import { installMockFetch, setupContractSuiteLifecycle } from '../../../../test-utils/rest-contract-helpers'
+
+export { installMockFetch }
 
 export const LOCAL_SHORT_AUDIO_PATH = join('input/examples/audio', '0-audio-short.mp3')
 
 export const LOCAL_AUDIO_PATH = join('input/examples/audio', '1-audio.mp3')
+
+const TTS_CONTRACT_ENV_KEYS = [
+  'ELEVENLABS_API_KEY',
+  'SPEECHIFY_API_KEY',
+  'HUME_API_KEY',
+  'CARTESIA_API_KEY',
+  'MISTRAL_API_KEY',
+  'OPENAI_API_KEY',
+  'GROQ_API_KEY',
+  'XAI_API_KEY',
+  'MINIMAX_API_KEY',
+  'DEEPGRAM_API_KEY'
+]
+
+export const setupTtsContractLifecycle = (): { makeTempDir: (prefix: string) => Promise<string> } => {
+  const tempDirs = setupContractSuiteLifecycle({
+    envKeys: TTS_CONTRACT_ENV_KEYS,
+    tempPrefix: 'autoshow-tts-contract-',
+    restoreBunSleep: true
+  })
+
+  return { makeTempDir: tempDirs.make }
+}
 
 export const waitForCondition = async (
   predicate: () => boolean,

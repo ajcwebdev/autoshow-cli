@@ -2,7 +2,7 @@ import { describe, expect, test } from 'bun:test'
 import { NativeMissingFlagValueError, NativeUnknownFlagError } from '~/cli/native/native-errors'
 import { defineCliCommand } from '~/cli/native/native-types'
 import { dispatchNativeCli } from '~/cli/native/dispatcher'
-import { parseNativeCli } from '~/cli/native/native-parser'
+import { parseCommandArgv, parseNativeCli } from '~/cli/native/native-parser'
 import type {
   CliCommandDefinition,
   CliFlagsDefinition,
@@ -148,6 +148,17 @@ describe('native CLI parser contracts', () => {
     expect(parsed.rawParsed.explicitFlags.has('quiet')).toBe(true)
     expect(parsed.rawParsed.explicitFlags.has('model')).toBe(true)
     expect(parsed.rawParsed.explicitFlags.has('long-name')).toBe(true)
+    expect(parsed.rawParsed.flagOccurrences).toEqual([
+      { name: 'dry', raw: '--dry=false', value: false, known: true },
+      { name: 'feature', raw: '--no-feature', value: false, known: true },
+      { name: 'quiet', raw: '-q', value: true, known: true },
+      { name: 'dry', raw: '-d', value: true, known: true },
+      { name: 'name', raw: '--name=fixture', value: 'fixture', known: true },
+      { name: 'model', raw: '--model', value: true, known: true },
+      { name: 'model', raw: '--model', value: 'gpt-test', known: true },
+      { name: 'model', raw: '--model=glm-test', value: 'glm-test', known: true },
+      { name: 'long-name', raw: '--long-name', value: 'dashed', known: true }
+    ])
   })
 
   test('collects double-dash passthrough without parsing provider-looking args after the separator', () => {
@@ -170,9 +181,18 @@ describe('native CLI parser contracts', () => {
   test('tracks unknown flags and missing string values', () => {
     const parsed = parseNativeCli(['run', 'input.txt', '--unknown-flag'], commands, globalFlags)
     expect(parsed.rawParsed.unknown).toEqual({ unknownFlag: true })
+    expect(parsed.rawParsed.flagOccurrences).toEqual([
+      { name: 'unknownFlag', raw: '--unknown-flag', value: true, known: false }
+    ])
 
     expect(() => parseNativeCli(['run', 'input.txt', '--name'], commands, globalFlags))
       .toThrow(NativeMissingFlagValueError)
+  })
+
+  test('parses a resolved command argv through the reusable command boundary', () => {
+    const argv = ['run', 'input.txt', '--name', 'fixture']
+    expect(parseCommandArgv(argv, runCommand, globalFlags))
+      .toEqual(parseNativeCli(argv, commands, globalFlags))
   })
 
   test('routes root help/version and command help/version', () => {

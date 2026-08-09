@@ -15,12 +15,17 @@ describe('video provider REST contracts', () => {
   test('LTX sends text, image, interpolation, and extension request bodies with metadata cost fallback', async () => {
     process.env['LTXV_API_KEY'] = 'ltx-key'
     let requestIndex = 0
+    let pollAttempts = 0
     const calls = installMockFetch((call) => {
       if (call.url.startsWith('https://api.ltx.video/v2/') && call.method === 'POST') {
         requestIndex += 1
         return jsonResponse({ id: `ltx-${requestIndex}` })
       }
       if (call.url.startsWith('https://api.ltx.video/v2/') && call.method === 'GET') {
+        pollAttempts += 1
+        if (pollAttempts === 1) {
+          return jsonResponse({ error: 'temporary outage' }, { status: 503 })
+        }
         const id = call.url.split('/').at(-1) ?? 'ltx-unknown'
         return jsonResponse({
           id,
@@ -115,6 +120,7 @@ describe('video provider REST contracts', () => {
       'https://api.ltx.video/v2/image-to-video',
       'https://api.ltx.video/v2/extend'
     ])
+    expect(pollAttempts).toBe(5)
 
     const postBodies = calls.filter((call) => call.method === 'POST').map((call) => call.bodyJson!)
     const imageDataUrl = `data:image/png;base64,${Buffer.from(new Uint8Array([1, 2, 3])).toString('base64')}`

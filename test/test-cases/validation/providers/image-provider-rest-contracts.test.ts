@@ -1,28 +1,24 @@
-import { afterEach, beforeEach, describe, expect, test } from 'bun:test'
+import { describe, expect, test } from 'bun:test'
 import { writeFile } from 'node:fs/promises'
 import { join } from 'node:path'
 import { runBflImageGen } from '~/cli/commands/process-steps/step-5-image/image-generation-services/bfl/run-bfl-image-gen'
+import { runLumalabsImageGen } from '~/cli/commands/process-steps/step-5-image/image-generation-services/lumalabs/run-lumalabs-image-gen'
 import { runRecraftImageGen } from '~/cli/commands/process-steps/step-5-image/image-generation-services/recraft/run-recraft-image-gen'
 import { runReplicateImageGen } from '~/cli/commands/process-steps/step-5-image/image-generation-services/replicate/run-replicate-image-gen'
 import {
   bytesResponse,
-  clearEnv,
-  createTempDirTracker,
   installMockFetch,
   jsonResponse,
-  restoreEnv,
-  snapshotEnv
+  setupContractSuiteLifecycle
 } from '../../../test-utils/rest-contract-helpers'
-import type { EnvSnapshot } from '~/types'
 
-const originalFetch = globalThis.fetch
-let previousEnv: EnvSnapshot = {}
 const envKeys = [
   'BFL_API_KEY',
+  'LUMA_AGENTS_API_KEY',
   'RECRAFT_API_TOKEN',
   'REPLICATE_API_TOKEN'
 ]
-const tempDirs = createTempDirTracker('autoshow-image-provider-rest-')
+const tempDirs = setupContractSuiteLifecycle({ envKeys, tempPrefix: 'autoshow-image-provider-rest-' })
 
 const imageResponse = (
   bytes: Uint8Array,
@@ -34,20 +30,10 @@ const withTempDir = async <T,>(fn: (dir: string) => Promise<T>): Promise<T> => {
   return await tempDirs.withDir(fn)
 }
 
-beforeEach(() => {
-  previousEnv = snapshotEnv(envKeys)
-  clearEnv(envKeys)
-})
-
-afterEach(async () => {
-  globalThis.fetch = originalFetch
-  restoreEnv(previousEnv)
-  await tempDirs.cleanup()
-})
-
 describe('image provider REST contracts', () => {
   test('BFL image generation sends numbered reference image fields', async () => {
     process.env['BFL_API_KEY'] = 'bfl-key'
+    let pollAttempts = 0
     const calls = installMockFetch((call) => {
       if (call.method === 'POST') {
         return jsonResponse({
@@ -57,6 +43,10 @@ describe('image provider REST contracts', () => {
         })
       }
       if (call.url === 'https://mock.bfl.local/poll') {
+        pollAttempts += 1
+        if (pollAttempts === 1) {
+          return jsonResponse({ error: 'temporary outage' }, { status: 503 })
+        }
         return jsonResponse({
           status: 'Ready',
           result: { sample: 'https://mock.bfl.local/result.jpeg' },
@@ -91,6 +81,44 @@ describe('image provider REST contracts', () => {
       input_image_2: 'https://cdn.example.com/reference.webp'
     })
     expect(String(calls[0]?.bodyJson?.['input_image'])).toBe(`data:image/png;base64,${Buffer.from(new Uint8Array([1, 2, 3])).toString('base64')}`)
+    expect(calls.filter((call) => call.url === 'https://mock.bfl.local/poll')).toHaveLength(2)
+  })
+
+  test('Luma Labs image generation retries a transient polling failure', async () => {
+    process.env['LUMA_AGENTS_API_KEY'] = 'luma-key'
+    const baseUrl = 'https://mock.luma.local/v1'
+    let pollAttempts = 0
+    const calls = installMockFetch((call) => {
+      if (call.url === `${baseUrl}/generations` && call.method === 'POST') {
+        return jsonResponse({ id: 'luma-image-1', state: 'queued' })
+      }
+      if (call.url === `${baseUrl}/generations/luma-image-1`) {
+        pollAttempts += 1
+        if (pollAttempts === 1) {
+          return jsonResponse({ error: 'temporary outage' }, { status: 503 })
+        }
+        return jsonResponse({
+          id: 'luma-image-1',
+          state: 'completed',
+          output: [{ type: 'image', url: 'https://mock.luma.local/result.png' }]
+        })
+      }
+      if (call.url === 'https://mock.luma.local/result.png') {
+        return imageResponse(new Uint8Array([9, 8, 7]), 'image/png')
+      }
+      throw new Error(`Unexpected Luma Labs image fetch: ${call.method} ${call.url}`)
+    })
+
+    await withTempDir(async (dir) => {
+      const result = await runLumalabsImageGen('A stable image', dir, {
+        model: 'uni-1',
+        baseUrl
+      })
+
+      expect(await Bun.file(result.imagePaths[0]!).exists()).toBe(true)
+    })
+
+    expect(calls.filter((call) => call.url === `${baseUrl}/generations/luma-image-1`)).toHaveLength(2)
   })
 
   test('BFL image result download retries transient 504 responses', async () => {
@@ -501,5 +529,45 @@ describe('image provider REST contracts', () => {
     })
 
     expect(calls).toHaveLength(1)
+  })
+
+  test('Replicate REST failures retain bounded diagnostics without exposing provider secrets', async () => {
+    process.env['REPLICATE_API_TOKEN'] = 'replicate-token'
+    const secret = 'replicate-secret-key-123456'
+    installMockFetch(() => jsonResponse({
+      error: {
+        message: 'invalid request',
+        api_key: secret,
+        request_id: 'req_secret123456789'
+      }
+    }, { status: 400 }))
+
+    await withTempDir(async (dir) => {
+      try {
+        await runReplicateImageGen('Rejected prompt', dir, {
+          model: 'wan-video/wan-2.7-image',
+          baseUrl: 'https://mock.replicate.local/v1'
+        })
+        throw new Error('expected Replicate REST failure')
+      } catch (error) {
+        expect(error).toBeInstanceOf(Error)
+        const replicateError = error as Error & {
+          rawResponse?: unknown
+          metadata?: Record<string, unknown>
+          bodyBytes?: number
+          bodyTruncated?: boolean
+          bodyPreview?: string
+        }
+        const serialized = JSON.stringify({
+          rawResponse: replicateError.rawResponse,
+          metadata: replicateError.metadata,
+          bodyPreview: replicateError.bodyPreview
+        })
+        expect(serialized).not.toContain(secret)
+        expect(serialized).toContain('REDACTED')
+        expect(replicateError.bodyBytes).toBeGreaterThan(0)
+        expect(replicateError.bodyTruncated).toBe(false)
+      }
+    })
   })
 })

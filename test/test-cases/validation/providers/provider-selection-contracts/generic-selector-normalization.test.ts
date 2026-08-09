@@ -6,13 +6,65 @@ import { collectTtsTargets } from '~/cli/commands/process-steps/step-4-tts/tts-t
 import { collectImageTargets } from '~/cli/commands/process-steps/step-5-image/image-generation-targets'
 import { collectVideoTargets } from '~/cli/commands/process-steps/step-6-video/video-targets'
 import { collectMusicTargets } from '~/cli/commands/process-steps/step-7-music/music-targets'
-import { normalizeExtractGenericSelectorArgs, normalizeExtractGenericSelectorFlags } from '~/cli/flags/service-selector-normalization/extract-selectors'
-import { normalizeGenericProviderSelectorFlags } from '~/cli/flags/service-selector-normalization/generic-provider-selectors'
-import { normalizeWriteStepSelectorFlags } from '~/cli/flags/service-selector-normalization/write-step-selectors'
+import { normalizeExtractGenericSelectorFlags as normalizeExtractGenericSelectorOccurrences } from '~/cli/flags/service-selector-normalization/extract-selectors'
+import { normalizeGenericProviderSelectorFlags as normalizeGenericProviderSelectorOccurrences } from '~/cli/flags/service-selector-normalization/generic-provider-selectors'
+import { normalizeWriteStepSelectorFlags as normalizeWriteStepSelectorOccurrences } from '~/cli/flags/service-selector-normalization/write-step-selectors'
 import { STANDALONE_IMAGE_PROVIDER_TARGETS, STANDALONE_MUSIC_PROVIDER_TARGETS, STANDALONE_TTS_PROVIDER_TARGETS, STANDALONE_VIDEO_PROVIDER_TARGETS } from '~/cli/flags/service-selector-normalization/provider-targets'
-import { normalizeResumeSelectorFlagsForTarget } from '~/cli/commands/setup-and-utilities/resume/resume-dispatch'
+import { normalizeResumeSelectorFlagsForTarget as normalizeResumeSelectorOccurrencesForTarget } from '~/cli/commands/setup-and-utilities/resume/resume-dispatch'
 import { buildWriteResumeOutputFileName } from '~/cli/commands/setup-and-utilities/resume/write/write-resume'
-import type { Step3Metadata } from '~/types'
+import type { ExtractSelectorInputRoutes, ResumeTarget, Step3Metadata } from '~/types'
+import { flagOccurrencesFromValues, parseFlagsAndOccurrences } from '../../../../test-utils/flag-occurrences'
+import { extractStep2CommandFlags } from '~/cli/flags/extract-flags'
+
+const normalizeGenericProviderSelectorFlags = (
+  flags: Record<string, unknown>,
+  explicitFlags: Set<string>,
+  selectorFlag: string,
+  targets: Record<string, string>,
+  options: { allProvidersTarget?: string, allLocalTarget?: string } = {}
+) => normalizeGenericProviderSelectorOccurrences(
+  flags,
+  explicitFlags,
+  flagOccurrencesFromValues(flags, explicitFlags),
+  selectorFlag,
+  targets,
+  options
+)
+
+const normalizeWriteStepSelectorFlags = (
+  flags: Record<string, unknown>,
+  explicitFlags: Set<string>
+) => normalizeWriteStepSelectorOccurrences(flags, explicitFlags, flagOccurrencesFromValues(flags, explicitFlags))
+
+const normalizeExtractGenericSelectorFlags = (
+  flags: Record<string, unknown>,
+  explicitFlags: Set<string>,
+  routes: ExtractSelectorInputRoutes
+) => normalizeExtractGenericSelectorOccurrences(flags, explicitFlags, flagOccurrencesFromValues(flags, explicitFlags), routes)
+
+const normalizeResumeSelectorFlagsForTarget = (
+  target: ResumeTarget,
+  flags: Record<string, unknown>,
+  explicitFlags: Set<string>,
+  _rawArgs: string[]
+) => normalizeResumeSelectorOccurrencesForTarget(target, flags, explicitFlags, flagOccurrencesFromValues(flags, explicitFlags))
+
+const normalizeExtractGenericSelectorArgs = (
+  argv: string[],
+  routes: ExtractSelectorInputRoutes
+): string[] => {
+  const parsed = parseFlagsAndOccurrences(argv, extractStep2CommandFlags)
+  const normalized = normalizeExtractGenericSelectorOccurrences(
+    parsed.flags,
+    parsed.rawParsed.explicitFlags,
+    parsed.rawParsed.flagOccurrences,
+    routes
+  )
+  return normalized.flagOccurrences.flatMap((occurrence) => [
+    `--${occurrence.name}`,
+    ...(typeof occurrence.value === 'string' ? [occurrence.value] : [])
+  ])
+}
 
 describe('provider selection contracts', () => {
   test('dedicated command generic provider selectors normalize to existing runtime option keys', () => {
@@ -78,57 +130,30 @@ describe('provider selection contracts', () => {
     expect(writeOpts.cerebrasModel).toBe('gpt-oss-120b')
 
     const imageArgNormalized = normalizeGenericProviderSelectorFlags(
-      {},
-      new Set(),
+      {
+        provider: ['openai=gpt-image-2', 'gemini=gemini-3.1-flash-lite-image', 'recraft', 'replicate=wan-video/wan-2.7-image']
+      },
+      new Set(['provider']),
       'provider',
       STANDALONE_IMAGE_PROVIDER_TARGETS,
-      {
-        allProvidersTarget: 'all-image',
-        rawArgs: [
-          'image',
-          'a sunset',
-          '--provider',
-          'openai=gpt-image-2',
-          '--provider=gemini=gemini-3.1-flash-lite-image',
-          '--provider',
-          'recraft',
-          '--provider',
-          'replicate=wan-video/wan-2.7-image'
-        ]
-      }
+      { allProvidersTarget: 'all-image' }
     )
-    expect(imageArgNormalized.rawArgs).toEqual([
-      'image',
-      'a sunset',
-      '--openai-image',
-      'gpt-image-2',
-      '--gemini-image',
-      'gemini-3.1-flash-lite-image',
-      '--recraft-image',
-      '--replicate-image',
-      'wan-video/wan-2.7-image'
+    expect(imageArgNormalized.flagOccurrences.map(({ name, value }) => ({ name, value }))).toEqual([
+      { name: 'openai-image', value: 'gpt-image-2' },
+      { name: 'gemini-image', value: 'gemini-3.1-flash-lite-image' },
+      { name: 'recraft-image', value: true },
+      { name: 'replicate-image', value: 'wan-video/wan-2.7-image' }
     ])
 
     const videoArgNormalized = normalizeGenericProviderSelectorFlags(
-      {},
-      new Set(),
+      { provider: ['replicate=wan-video/wan-2.7-t2v'] },
+      new Set(['provider']),
       'provider',
       STANDALONE_VIDEO_PROVIDER_TARGETS,
-      {
-        allProvidersTarget: 'all-video',
-        rawArgs: [
-          'video',
-          'a sunset',
-          '--provider',
-          'replicate=wan-video/wan-2.7-t2v'
-        ]
-      }
+      { allProvidersTarget: 'all-video' }
     )
-    expect(videoArgNormalized.rawArgs).toEqual([
-      'video',
-      'a sunset',
-      '--replicate-video',
-      'wan-video/wan-2.7-t2v'
+    expect(videoArgNormalized.flagOccurrences.map(({ name, value }) => ({ name, value }))).toEqual([
+      { name: 'replicate-video', value: 'wan-video/wan-2.7-t2v' }
     ])
   })
 
@@ -159,13 +184,49 @@ describe('provider selection contracts', () => {
     }, new Set(['all-local']))).toThrow('--all-local requires a step')
   })
 
+  test('canonical occurrences close the three former map-versus-argv selector drifts', () => {
+    const suppressed = parseFlagsAndOccurrences([
+      'extract',
+      'input.mp3',
+      '--all-providers=false',
+      '--all-local=no'
+    ], extractStep2CommandFlags)
+    const suppressedNormalized = normalizeExtractGenericSelectorOccurrences(
+      suppressed.flags,
+      suppressed.rawParsed.explicitFlags,
+      suppressed.rawParsed.flagOccurrences,
+      { media: true, document: false }
+    )
+    expect(suppressedNormalized.flagOccurrences).toEqual([])
+    expect(suppressedNormalized.explicitFlags.has('all-providers')).toBe(false)
+    expect(suppressedNormalized.explicitFlags.has('all-local')).toBe(false)
+
+    expect(() => normalizeExtractGenericSelectorFlags({
+      provider: ['firecrawl', 'supadata']
+    }, new Set(['provider']), { media: false, document: false, article: true })).toThrow(
+      'Article extract supports one --provider URL backend at a time'
+    )
+
+    const writeAll = normalizeWriteStepSelectorFlags({
+      'all-providers': ['stt', 'llm'],
+      'all-local': ['tts']
+    }, new Set(['all-providers', 'all-local']))
+    expect(writeAll.flagOccurrences.map((occurrence) => occurrence.name)).toEqual([
+      'all-stt',
+      'all-llm',
+      'all-local-tts'
+    ])
+  })
+
   test('write resume generic providers normalize to LLM runtime option keys', () => {
     const normalized = normalizeResumeSelectorFlagsForTarget({
       kind: 'write',
       scope: 'single',
       dir: '/tmp/write-run',
       manifestPath: '/tmp/write-run/run.json'
-    }, {}, new Set(), [
+    }, {
+      provider: ['together=kimi-k2.6', 'together=glm-5.1', 'cerebras=gpt-oss-120b', 'cerebras=zai-glm-4.7']
+    }, new Set(['provider']), [
       'resume',
       '/tmp/write-run',
       '--provider',
@@ -177,19 +238,13 @@ describe('provider selection contracts', () => {
       '--provider',
       'cerebras=zai-glm-4.7'
     ])
-    const opts = buildOptsFromFlags(false, normalized.flags, [], {}, normalized.explicitFlags, normalized.rawArgs)
+    const opts = buildOptsFromFlags(false, normalized.flags, [], {}, normalized.explicitFlags, normalized.flagOccurrences)
 
-    expect(normalized.rawArgs).toEqual([
-      'resume',
-      '/tmp/write-run',
-      '--together',
-      'kimi-k2.6',
-      '--together',
-      'glm-5.1',
-      '--cerebras',
-      'gpt-oss-120b',
-      '--cerebras',
-      'zai-glm-4.7'
+    expect(normalized.flagOccurrences.map(({ name, value }) => ({ name, value }))).toEqual([
+      { name: 'together', value: 'kimi-k2.6' },
+      { name: 'together', value: 'glm-5.1' },
+      { name: 'cerebras', value: 'gpt-oss-120b' },
+      { name: 'cerebras', value: 'zai-glm-4.7' }
     ])
     expect(opts.togetherModels).toEqual(['kimi-k2.6', 'glm-5.1'])
     expect(opts.cerebrasModels).toEqual(['gpt-oss-120b', 'zai-glm-4.7'])
@@ -313,8 +368,6 @@ describe('provider selection contracts', () => {
       '--price'
     ], { media: false, document: true })
     expect(routeAwareDocumentArgs).toEqual([
-      'extract',
-      'input/examples/document/1-document.pdf',
       '--glm-ocr',
       'glm-ocr',
       '--price'
@@ -326,8 +379,6 @@ describe('provider selection contracts', () => {
       'grok=grok-4.3',
       '--price'
     ], { media: false, document: true })).toEqual([
-      'extract',
-      'input/examples/document/1-document.pdf',
       '--grok-ocr',
       'grok-4.3',
       '--price'
@@ -338,8 +389,6 @@ describe('provider selection contracts', () => {
       '--provider=mistral=voxtral-mini-2602',
       '--price'
     ], { media: true, document: false })).toEqual([
-      'extract',
-      'https://ajc.pics/autoshow/examples/0-audio-short.mp3',
       '--mistral-stt',
       'voxtral-mini-2602',
       '--price'
@@ -350,8 +399,6 @@ describe('provider selection contracts', () => {
       '--provider',
       'mistral'
     ], { media: true, document: true })).toEqual([
-      'extract',
-      'input/examples/batch/2-urls.md',
       '--mistral-stt',
       '--mistral-ocr'
     ])
@@ -361,8 +408,6 @@ describe('provider selection contracts', () => {
       '--provider',
       'grok'
     ], { media: true, document: true })).toEqual([
-      'extract',
-      'input/examples/batch/2-urls.md',
       '--grok-stt',
       '--grok-ocr'
     ])
@@ -371,8 +416,6 @@ describe('provider selection contracts', () => {
       'input/examples/batch/2-urls.md',
       '--all-local'
     ], { media: true, document: true, article: true })).toEqual([
-      'extract',
-      'input/examples/batch/2-urls.md',
       '--all-local-stt',
       '--all-local-ocr',
       '--all-local-url'
@@ -383,13 +426,11 @@ describe('provider selection contracts', () => {
       '--provider',
       'firecrawl'
     ], { media: false, document: false, article: true })).toEqual([
-      'extract',
-      'https://article.test/story.html',
       '--url-provider',
       'firecrawl'
     ])
 
-    const routeAwareDocumentOpts = buildOptsFromFlags(false, documentNormalized.flags, [], {}, documentNormalized.explicitFlags, routeAwareDocumentArgs)
+    const routeAwareDocumentOpts = buildOptsFromFlags(false, documentNormalized.flags, [], {}, documentNormalized.explicitFlags, documentNormalized.flagOccurrences)
     expect(routeAwareDocumentOpts.glmOcrModels).toEqual(['glm-ocr'])
     expect(routeAwareDocumentOpts.glmModels).toBeUndefined()
 

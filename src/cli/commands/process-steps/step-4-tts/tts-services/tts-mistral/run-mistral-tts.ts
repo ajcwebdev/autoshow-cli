@@ -1,3 +1,4 @@
+import { isRecord } from '~/utils/rest-client'
 import { basename, extname } from 'node:path'
 import { concatAndConvertToWav, convertAudioToWav, runTtsChunks, splitTextIntoChunks } from '~/cli/commands/process-steps/step-4-tts/tts-utils/audio-utils'
 import { finalizeTtsRun } from '~/cli/commands/process-steps/step-4-tts/tts-utils/finalize-tts-run'
@@ -9,14 +10,12 @@ import { MISTRAL_DEFAULT_BASE_URL } from '~/utils/base-urls'
 import { materializeMediaInput } from '~/utils/media-url'
 import { mistralJsonRequest } from '~/utils/mistral/mistral-client'
 import { MEDIA_GENERATION_TIMEOUT_MS } from '~/utils/timeouts'
-import { readEnv } from '~/utils/validate/env-utils'
-import { CLIUsageError, InfraError, InternalError, ValidationError, hintsForMissingEnv } from '~/utils/error-handler'
+import { requireApiKey } from '~/utils/validate/env-utils'
+import { CLIUsageError, InfraError, InternalError, ValidationError } from '~/utils/error-handler'
 
 const REQUEST_TIMEOUT_MS = MEDIA_GENERATION_TIMEOUT_MS
 const MISTRAL_REF_AUDIO_DIRECT_EXTENSIONS = new Set(['.mp3', '.mpeg', '.mpga', '.wav', '.wave'])
 
-const isRecord = (value: unknown): value is Record<string, unknown> =>
-  typeof value === 'object' && value !== null && !Array.isArray(value)
 
 const readStringField = (payload: unknown, field: string, label: string): string => {
   if (isRecord(payload) && typeof payload[field] === 'string') {
@@ -136,10 +135,7 @@ export const runMistralTts = async (
   if (voiceName && voiceSource.kind !== 'refAudio') {
     throw CLIUsageError('Mistral TTS --mistral-tts-voice-name requires --mistral-tts-ref-audio.')
   }
-  const apiKey = readEnv('MISTRAL_API_KEY')
-  if (!apiKey) {
-    throw InternalError('MISTRAL_API_KEY environment variable is required for Mistral TTS', { stage: 'tts:mistral', hints: hintsForMissingEnv('MISTRAL_API_KEY') })
-  }
+  const apiKey = requireApiKey('MISTRAL_API_KEY', 'tts:mistral', 'Mistral TTS')
 
   const chunks = splitTextIntoChunks(text, TTS_CHUNK_CHARACTER_LIMITS.mistral)
   if (chunks.length === 0) {

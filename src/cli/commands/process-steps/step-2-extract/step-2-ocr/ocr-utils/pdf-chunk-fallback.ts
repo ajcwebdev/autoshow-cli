@@ -1,6 +1,6 @@
-import { mkdtemp, rm, stat } from 'node:fs/promises'
+import { copyFile, mkdtemp, rm, stat } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
-import { join } from 'node:path'
+import { basename, join } from 'node:path'
 import {
   convertDocumentToPdf,
   renderPageToImage,
@@ -11,6 +11,7 @@ import type {
   FallbackAuditState,
   HostedOcrRun,
   InitialFallbackReason,
+  OcrPreparationCache,
   OcrPdfChunkRange,
   PdfChunkPreparationState,
   PdfChunkLocalTools,
@@ -23,7 +24,7 @@ import type { RunHostedOcrPdfChunkFallbackOptions } from '~/types'
 import { InternalError } from '~/utils/error-handler'
 import * as l from '~/utils/app-logger/app-logger'
 import { classifyOcrProviderFailure } from '../ocr-run-state'
-import { normalizeOcrPageConcurrency } from './page-concurrency'
+import { normalizeOcrPageConcurrency } from './ocr-page-concurrency'
 import {
   createOcrPdfChunkRenderError,
   DEFAULT_RASTERIZED_PDF_CHUNK_DPI,
@@ -59,16 +60,17 @@ import {
 import {
   buildMalformedFallbackPageRun,
   cleanupFallbackPageInputs,
+  hasMatchingFallbackState,
   readCachedFallbackPage,
   resolveFallbackChunkPath,
   resolveInitialFallbackReason,
   validateSinglePageFallbackRun,
   writeCachedFallbackPage,
-  writeFallbackPageText,
   writeFallbackPartialText,
   writeFallbackState,
   writeInvalidFallbackPageResponse
 } from './pdf-chunk-fallback-state'
+import { getCachedRenderedPageImage } from './preparation-cache'
 
 export {
   createOcrPdfChunkRenderError,
@@ -82,6 +84,62 @@ const defaultPdfChunkLocalTools: PdfChunkLocalTools = {
   splitPdfPages,
   renderPageToImage,
   convertDocumentToPdf
+}
+
+export const createRenderedPngPageChunk = (
+  dpi: number,
+  ocrPreparationCache?: OcrPreparationCache | undefined
+): NonNullable<RunHostedOcrPdfChunkFallbackOptions['createChunk']> => async (
+  inputPath,
+  outputPath,
+  range,
+  password
+) => {
+  if (range.startPage !== range.endPage) {
+    throw createOcrPdfChunkRenderError(range, {
+      exitCode: 1,
+      stderr: 'Rendered PNG fallback only supports single-page chunks.',
+      stdout: '',
+      command: `mutool draw PNG (${formatRange(range)})`
+    })
+  }
+
+  const render = async (renderPath: string): Promise<void> => {
+    const result = await renderPageToImage(inputPath, range.startPage, dpi, renderPath, password)
+    if (result.exitCode !== 0 || !await hasNonEmptyFile(renderPath)) {
+      throw createOcrPdfChunkRenderError(range, {
+        exitCode: result.exitCode === 0 ? 1 : result.exitCode,
+        stderr: result.stderr,
+        stdout: result.stdout,
+        command: `mutool draw PNG (${formatRange(range)})`
+      })
+    }
+  }
+
+  if (ocrPreparationCache === undefined) {
+    await render(outputPath)
+    return
+  }
+
+  const rendered = await getCachedRenderedPageImage(
+    ocrPreparationCache,
+    {
+      filePath: inputPath,
+      page: range.startPage,
+      dpi,
+      password
+    },
+    render
+  )
+  await copyFile(rendered.imagePath, outputPath)
+  if (!await hasNonEmptyFile(outputPath)) {
+    throw createOcrPdfChunkRenderError(range, {
+      exitCode: 1,
+      stderr: 'Cached rendered PNG page was empty.',
+      stdout: '',
+      command: `copy cached PNG (${formatRange(range)})`
+    })
+  }
 }
 
 const createRasterizedSinglePagePdfChunk = async (options: {
@@ -437,6 +495,17 @@ export const runHostedOcrWithPdfChunkFallback = async (
     initialFailure?: FallbackAuditState['initialFailure'] | undefined
   ): Promise<HostedOcrRun> => {
     const tempDir = await mkdtemp(join(tmpdir(), 'autoshow-ocr-pdf-pages-'))
+    const sourceFile = basename(options.filePath)
+    const matchingFallbackState = await hasMatchingFallbackState(
+      options.fallbackDir,
+      sourceFile,
+      options.cacheIdentity
+    )
+    const cacheValidation = {
+      sourceFile,
+      identity: options.cacheIdentity,
+      allowLegacySourceFile: options.cacheIdentity === undefined || matchingFallbackState
+    }
     const storedChunkPreparation = options.createChunk === undefined
       ? await readFallbackChunkPreparation(options.fallbackDir)
       : undefined
@@ -490,12 +559,17 @@ export const runHostedOcrWithPdfChunkFallback = async (
     await queueFallbackStateWrite()
 
     const processPage = async (pageNumber: number): Promise<HostedOcrRun> => {
-      const cached = await readCachedFallbackPage(options.fallbackDir, pageNumber, totalPages)
+      const cached = await readCachedFallbackPage(
+        options.fallbackDir,
+        pageNumber,
+        totalPages,
+        cacheValidation
+      )
       if (cached !== undefined) {
         setFallbackPageAudit(audit, pageNumber, 'cached', {
           chunkPreparation: getChunkPreparationSummary()
         })
-        await writeFallbackPageText(options.fallbackDir, pageNumber, cached)
+        await writeCachedFallbackPage(options.fallbackDir, pageNumber, totalPages, sourceFile, cached)
         l.write('debug', `${options.serviceLabel}: OCR fallback page ${pageNumber} already cached`)
         return cached
       }
@@ -526,7 +600,7 @@ export const runHostedOcrWithPdfChunkFallback = async (
           pageNumber,
           options.serviceLabel
         )
-        await writeCachedFallbackPage(options.fallbackDir, pageNumber, totalPages, pageRun)
+        await writeCachedFallbackPage(options.fallbackDir, pageNumber, totalPages, sourceFile, pageRun)
         setFallbackPageAudit(audit, pageNumber, 'succeeded', {
           chunkPreparation: getChunkPreparationSummary()
         })
@@ -536,7 +610,7 @@ export const runHostedOcrWithPdfChunkFallback = async (
         const malformedPageRun = buildMalformedFallbackPageRun(options, error, range)
         if (malformedPageRun !== undefined) {
           l.warn(`${options.serviceLabel}: OCR fallback page ${pageNumber} returned malformed structured output; treating raw response as page text`)
-          await writeCachedFallbackPage(options.fallbackDir, pageNumber, totalPages, malformedPageRun)
+          await writeCachedFallbackPage(options.fallbackDir, pageNumber, totalPages, sourceFile, malformedPageRun)
           setFallbackPageAudit(audit, pageNumber, 'succeeded', {
             chunkPreparation: getChunkPreparationSummary()
           })
@@ -662,7 +736,9 @@ export const runHostedOcrWithPdfChunkFallback = async (
 
   const initialFallbackReason = await resolveInitialFallbackReason(options, totalPages)
   if (initialFallbackReason !== undefined) {
-    if (initialFallbackReason === 'large-pdf') {
+    if (initialFallbackReason === 'forced-page-mode') {
+      l.write('info', `${options.serviceLabel}: using resumable rendered-page OCR`)
+    } else if (initialFallbackReason === 'large-pdf') {
       l.write('info', `${options.serviceLabel}: PDF has ${totalPages} pages; using resumable single-page OCR`)
     } else {
       l.write('info', `${options.serviceLabel}: OCR page fallback artifacts found; resuming single-page OCR`)

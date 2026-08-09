@@ -1,11 +1,8 @@
-import * as l from '~/utils/app-logger/app-logger'
-import * as v from 'valibot'
-import type { LumalabsImageModel, LumalabsImageRef, LumalabsOutputFormat, RetryClass, Step5Metadata } from '~/types'
-import { CLIUsageError, InfraError, ValidationError } from '~/utils/error-handler'
-import { logMediaGenerationStatus } from '~/cli/commands/process-steps/generation-command-utils'
+import type { LumalabsImageModel, LumalabsImageRef, LumalabsOutputFormat, Step5Metadata } from '~/types'
+import { CLIUsageError, ValidationError } from '~/utils/error-handler'
+import { logGenCompleted, logGenStatus } from '~/cli/commands/process-steps/generation-command-utils'
 import { estimateImageCosts, logImageEstimate } from '~/cli/commands/process-steps/step-5-image/image-utils/image-pricing'
-import { classifyFetchRetry, isRetryableStatus, pollUntil, withRetry } from '~/utils/retries'
-import { validateData } from '~/utils/validate/validation'
+import { downloadGeneratedImage, extractImageErrorMessage, LumalabsGenerationSchema, readJsonOrText, runPolledJob, withImageProviderHeaders } from '~/utils/polled-job-client/polled-job'
 import { MEDIA_GENERATION_TIMEOUT_MS } from '~/utils/timeouts'
 import { imageReferenceToInlineDataPart, isHttpUrl } from '../../image-utils/image-inputs'
 import { ensureLumalabsImageGenSetup, getLumalabsBaseUrl } from './lumalabs-image-gen'
@@ -14,17 +11,6 @@ const POLL_TIMEOUT_MS = MEDIA_GENERATION_TIMEOUT_MS
 
 export const LUMALABS_ASPECT_RATIOS = ['16:9', '4:3', '3:2', '1:1', '2:3', '3:4', '9:16', '2:1', '1:2'] as const
 export const LUMALABS_OUTPUT_FORMATS = ['png', 'jpeg'] as const
-
-const LumalabsGenerationSchema = v.object({
-  id: v.string(),
-  state: v.string(),
-  failure_code: v.optional(v.nullable(v.string()), undefined),
-  failure_reason: v.optional(v.nullable(v.string()), undefined),
-  output: v.optional(v.nullable(v.array(v.object({
-    type: v.optional(v.string(), undefined),
-    url: v.string()
-  }))), undefined)
-})
 
 export const normalizeLumalabsAspectRatio = (aspectRatio: string | undefined): string | undefined => {
   if (aspectRatio === undefined || aspectRatio.length === 0) {
@@ -67,78 +53,8 @@ const toImageRef = async (input: string): Promise<LumalabsImageRef> => {
   return { data: inline.data, media_type: inline.mimeType }
 }
 
-const readJsonOrText = async (response: Response): Promise<unknown> => {
-  const text = await response.text()
-  if (text.length === 0) return ''
-  try {
-    return JSON.parse(text) as unknown
-  } catch {
-    return text
-  }
-}
-
-const extractErrorMessage = (payload: unknown): string | undefined => {
-  if (typeof payload === 'string') return payload
-  if (!payload || typeof payload !== 'object') return undefined
-  const record = payload as Record<string, unknown>
-  for (const key of ['message', 'error', 'detail', 'details', 'failure_reason']) {
-    const value = record[key]
-    if (typeof value === 'string') return value
-    if (value !== undefined) return JSON.stringify(value)
-  }
-  return JSON.stringify(payload)
-}
-
-const fetchLumalabsJson = async (
-  url: string,
-  apiKey: string,
-  init: RequestInit
-): Promise<{ response: Response, payload: unknown }> => {
-  const headers = new Headers(init.headers)
-  headers.set('accept', 'application/json')
-  headers.set('authorization', `Bearer ${apiKey}`)
-
-  const response = await fetch(url, {
-    ...init,
-    headers
-  })
-  const payload = await readJsonOrText(response)
-  return { response, payload }
-}
-
-const downloadLumalabsImage = async (
-  url: string,
-  outputPath: string,
-  outputFormat: LumalabsOutputFormat,
-  signal?: AbortSignal | undefined
-): Promise<void> => {
-  const response = await fetch(url, {
-    method: 'GET',
-    headers: { accept: `image/${outputFormat},image/*;q=0.9,*/*;q=0.8` },
-    ...(signal ? { signal } : {})
-  })
-  if (!response.ok) {
-    const err = new Error(`Luma Labs image result download failed (${response.status})`) as Error & {
-      status: number
-      headers: Headers
-      stage: string
-      retryClass: RetryClass
-      retryable: boolean
-    }
-    err.status = response.status
-    err.headers = response.headers
-    err.stage = 'result-download'
-    err.retryClass = 'runtime_http_read'
-    err.retryable = isRetryableStatus(response.status)
-    throw err
-  }
-
-  const bytes = new Uint8Array(await response.arrayBuffer())
-  if (bytes.byteLength === 0) {
-    throw InfraError('Luma Labs image generation returned an empty image', { stage: 'image:lumalabs' })
-  }
-  await Bun.write(outputPath, bytes)
-}
+const extractErrorMessage = (payload: unknown): string | undefined =>
+  extractImageErrorMessage(payload, ['failure_reason'])
 
 export const runLumalabsImageGen = async (
   prompt: string,
@@ -159,13 +75,7 @@ export const runLumalabsImageGen = async (
     logImageEstimate(estimate)
   }
 
-  logMediaGenerationStatus(l, {
-    mediaType: 'image',
-    provider: 'lumalabs',
-    model: options.model,
-    status: 'started',
-    detail: mode
-  })
+  logGenStatus('image', 'lumalabs', options.model, 'started', mode)
 
   const startTime = Date.now()
   const imageRefs = await Promise.all(inputs.map(toImageRef))
@@ -186,40 +96,35 @@ export const runLumalabsImageGen = async (
       })
   }
 
-  const { response: createResponse, payload: createPayload } = await fetchLumalabsJson(
-    `${getLumalabsBaseUrl(options.baseUrl)}/generations`,
-    apiKey,
-    {
-      method: 'POST',
-      headers: { 'content-type': 'application/json' },
-      body: JSON.stringify(body)
-    }
-  )
-
-  if (!createResponse.ok) {
-    throw InfraError(`Luma Labs image request failed (${createResponse.status}): ${extractErrorMessage(createPayload) ?? 'Unknown error'}`, { stage: 'image:lumalabs', status: createResponse.status })
-  }
-
-  const createData = validateData(LumalabsGenerationSchema, createPayload, 'Luma Labs image generation create response')
-
-  const pollData = await pollUntil({
+  const { result: pollData } = await runPolledJob({
     operationName: 'lumalabs-image-gen',
     intervalMs: POLL_INTERVAL_MS,
     deadlineMs: POLL_TIMEOUT_MS,
-    pollFn: async () => {
-      const { response, payload } = await fetchLumalabsJson(`${getLumalabsBaseUrl(options.baseUrl)}/generations/${encodeURIComponent(createData.id)}`, apiKey, { method: 'GET' })
-      if (!response.ok) {
-        throw InfraError(`Luma Labs image status query failed (${response.status}): ${extractErrorMessage(payload) ?? 'Unknown error'}`, { stage: 'image:lumalabs', status: response.status })
-      }
-      const data = validateData(LumalabsGenerationSchema, payload, 'Luma Labs image generation poll response')
-      logMediaGenerationStatus(l, {
-        mediaType: 'image',
-        provider: 'lumalabs',
-        model: options.model,
-        status: data.state
-      })
-      return data
+    create: {
+      url: `${getLumalabsBaseUrl(options.baseUrl)}/generations`,
+      init: withImageProviderHeaders({
+        method: 'POST',
+        headers: { 'content-type': 'application/json' },
+        body: JSON.stringify(body)
+      }, { authorization: `Bearer ${apiKey}` }),
+      schema: LumalabsGenerationSchema,
+      context: 'Luma Labs image generation create response',
+      stage: 'image:lumalabs',
+      errorMessage: 'Luma Labs image request failed',
+      readResponse: readJsonOrText,
+      formatErrorBody: (payload) => extractErrorMessage(payload) ?? 'Unknown error'
     },
+    poll: (created) => ({
+      url: `${getLumalabsBaseUrl(options.baseUrl)}/generations/${encodeURIComponent(created.id)}`,
+      init: withImageProviderHeaders({ method: 'GET' }, { authorization: `Bearer ${apiKey}` }),
+      schema: LumalabsGenerationSchema,
+      context: 'Luma Labs image generation poll response',
+      stage: 'image:lumalabs',
+      errorMessage: 'Luma Labs image status query failed',
+      readResponse: readJsonOrText,
+      formatErrorBody: (payload) => extractErrorMessage(payload) ?? 'Unknown error'
+    }),
+    onPoll: (data) => logGenStatus('image', 'lumalabs', options.model, data.state),
     isDone: (data) => data.state.toLowerCase() === 'completed',
     isFailed: (data) => {
       if (data.state.toLowerCase() === 'failed') {
@@ -235,25 +140,20 @@ export const runLumalabsImageGen = async (
     throw ValidationError('Luma Labs image generation completed without an output URL', { stage: 'image:lumalabs' })
   }
 
-  await withRetry(
-    { retryClass: 'runtime_http_read', operationName: 'lumalabs-image-result-download' },
-    async (signal) => await downloadLumalabsImage(resultUrl, outputPath, outputFormat, signal),
-    (error) => classifyFetchRetry(error, 'runtime_http_read', { retryAbortOnConservative: true })
-  )
+  await downloadGeneratedImage({
+    url: resultUrl,
+    outputPath,
+    outputFormat,
+    providerLabel: 'Luma Labs',
+    stage: 'image:lumalabs',
+    operationName: 'lumalabs-image-result-download'
+  })
 
   const processingTime = Date.now() - startTime
   const imageFile = Bun.file(outputPath)
   const providerCostCents = estimate?.totalCost
 
-  logMediaGenerationStatus(l, {
-    mediaType: 'image',
-    provider: 'lumalabs',
-    model: options.model,
-    status: 'completed',
-    processingTimeMs: processingTime,
-    outputCount: 1,
-    artifacts: [{ artifact: 'image', path: outputPath }]
-  })
+  logGenCompleted('image', 'lumalabs', options.model, processingTime, [outputPath])
 
   return {
     imagePaths: [outputPath],

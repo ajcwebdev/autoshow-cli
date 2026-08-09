@@ -1,6 +1,5 @@
 import { XAI_DEFAULT_BASE_URL } from '~/utils/base-urls'
-import { readEnv } from '~/utils/validate/env-utils'
-import { InternalError, hintsForMissingEnv } from '~/utils/error-handler'
+import { requireApiKey } from '~/utils/validate/env-utils'
 
 export const GROK_OCR_IMAGE_BYTES = 20 * 1024 * 1024
 export const GROK_OCR_LIMIT_SOURCE = 'https://docs.x.ai/developers/models'
@@ -13,10 +12,7 @@ const resolveGrokOcrBaseUrl = (baseUrl: string = XAI_DEFAULT_BASE_URL): string =
 }
 
 export const getGrokOcrClientConfig = (baseUrl?: string): { apiKey: string, baseURL: string } => {
-  const apiKey = readEnv('XAI_API_KEY')
-  if (!apiKey) {
-    throw InternalError('XAI_API_KEY environment variable is required for Grok OCR', { stage: 'ocr:grok', hints: hintsForMissingEnv('XAI_API_KEY') })
-  }
+  const apiKey = requireApiKey('XAI_API_KEY', 'ocr:grok', 'Grok OCR')
 
   return {
     apiKey,

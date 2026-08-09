@@ -1,4 +1,5 @@
 import type { BuildDomainOptionsContext, ImageRuntimeOptionKey, RuntimeOptions } from '~/types'
+import { IMAGE_PRICING_MODEL_KEYS } from '~/cli/commands/process-steps/step-5-image/image-utils/image-pricing'
 import {
   parseOptionalNumberFlag,
   parseOptionalPositiveIntFlag,
@@ -7,47 +8,15 @@ import {
   readOptionalStringListFlag
 } from '../options/flag-readers'
 import { resolveLocalConcurrency, resolveProviderConcurrency } from './concurrency'
+import { pick } from '~/utils/cli-utils'
 
 export const buildImageOptions = (ctx: BuildDomainOptionsContext): Pick<RuntimeOptions, ImageRuntimeOptionKey> => {
   const { mergedFlags, explicitFlags, configuredFlags, allShortcutFlags, modelOptions, targetCounts } = ctx
-  const {
-    geminiImageModels,
-    geminiImageModel,
-    openaiImageModels,
-    openaiImageModel,
-    grokImageModels,
-    grokImageModel,
-    bflImageModels,
-    bflImageModel,
-    recraftImageModels,
-    recraftImageModel,
-    replicateImageModels,
-    replicateImageModel,
-    lumalabsImageModels,
-    lumalabsImageModel,
-    falImageModels,
-    falImageModel,
-  } = modelOptions
 
   return {
+    ...pick(modelOptions, IMAGE_PRICING_MODEL_KEYS),
     imageProviderConcurrency: resolveProviderConcurrency(mergedFlags, 'image-provider-concurrency', allShortcutFlags['all-image'], targetCounts.hostedImageTargetCount, explicitFlags, configuredFlags),
     imageLocalConcurrency: resolveLocalConcurrency(mergedFlags, 'image-local-concurrency', explicitFlags, configuredFlags),
-    geminiImageModels,
-    geminiImageModel,
-    openaiImageModels,
-    openaiImageModel,
-    grokImageModels,
-    grokImageModel,
-    bflImageModels,
-    bflImageModel,
-    recraftImageModels,
-    recraftImageModel,
-    replicateImageModels,
-    replicateImageModel,
-    lumalabsImageModels,
-    lumalabsImageModel,
-    falImageModels,
-    falImageModel,
     imageAspectRatio: readOptionalStringFlag(mergedFlags, 'image-aspect-ratio'),
     imageSize: readOptionalStringFlag(mergedFlags, 'image-size'),
     imageQuality: readOptionalStringFlag(mergedFlags, 'image-quality'),

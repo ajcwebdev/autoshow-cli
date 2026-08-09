@@ -4,33 +4,8 @@ import { logSuitePriceSummary } from './suite-price-logging'
 import { isExtractCommand } from '~/cli/commands/process-steps/process-command-kinds'
 import { ACSM_PRICE_NOTE } from '~/cli/commands/process-steps/step-1-download/document/acsm-fulfillment'
 import { buildAggregatedPriceEstimate } from '~/utils/pricing/aggregate-pricing'
+import { mapWithConcurrency } from '~/utils/run-with-concurrency'
 import type { ProcessCommand, RuntimeOptions } from '~/types'
-
-const runWithConcurrency = async <T,>(
-  items: T[],
-  concurrency: number,
-  worker: (item: T, index: number) => Promise<void>
-): Promise<void> => {
-  const normalizedConcurrency = Math.max(1, concurrency)
-  let nextIndex = 0
-
-  const runWorker = async (): Promise<void> => {
-    while (true) {
-      const currentIndex = nextIndex
-      nextIndex += 1
-      if (currentIndex >= items.length) {
-        return
-      }
-      await worker(items[currentIndex] as T, currentIndex)
-    }
-  }
-
-  await Promise.all(
-    Array.from({ length: Math.min(normalizedConcurrency, items.length) }, async () => {
-      await runWorker()
-    })
-  )
-}
 
 export const reportSuitePriceEstimate = async (
   command: ProcessCommand,
@@ -46,7 +21,7 @@ export const reportSuitePriceEstimate = async (
   const concurrency = isExtractCommand(command) ? opts.sttPreflightConcurrency : 1
 
   let skipped = 0
-  await runWithConcurrency(targets, concurrency, async (item) => {
+  await mapWithConcurrency(concurrency, targets, async (item) => {
     try {
       const estimate = await buildAggregatedPriceEstimate(command, item, opts, undefined)
       l.report.estimate(estimate)

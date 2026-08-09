@@ -1,3 +1,4 @@
+import { isRecord } from '~/utils/rest-client'
 import type { Step2TimingMetadata } from '~/types'
 
 const STT_TIMING_KEYS = [
@@ -20,8 +21,6 @@ const STT_TIMING_KEYS = [
   'backfillCount'
 ] as const satisfies readonly (keyof Step2TimingMetadata)[]
 
-const isRecord = (value: unknown): value is Record<string, unknown> =>
-  typeof value === 'object' && value !== null && !Array.isArray(value)
 
 export const buildStep2TimingMetadata = (
   value: Partial<Record<keyof Step2TimingMetadata, number | undefined>>

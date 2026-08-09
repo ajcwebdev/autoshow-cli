@@ -6,6 +6,7 @@ import {
   buildMissingProviders,
   buildMissingTargetsFromEntry,
   buildBlockedProviders,
+  buildMetadataErrorEntries,
   classifyOcrProviderFailure,
   inferStoredCompletionStatus,
   parseStoredRequestedTarget,
@@ -180,6 +181,18 @@ describe('OCR resume contracts', () => {
     expect(resolveCompletionStatus(providerStates)).toBe('full')
   })
 
+  test('legacy OCR completion fallback ignores successes from non-requested providers', () => {
+    const entry = {
+      step2: [
+        { ocrService: 'tesseract', ocrModel: 'tesseract' },
+        { ocrService: 'kimi', ocrModel: 'kimi-k2.5' },
+        { ocrService: 'openai', ocrModel: 'gpt-5.2' }
+      ]
+    }
+
+    expect(inferStoredCompletionStatus(entry, requestedTargets)).toBe('incomplete')
+  })
+
   test('existing OCR run preserves root step2 metadata without provider artifacts', async () => {
     const tempDir = await mkdtemp(join(tmpdir(), 'autoshow-ocr-root-metadata-'))
     try {
@@ -259,6 +272,44 @@ describe('OCR resume contracts', () => {
       mistralTarget,
       anthropicTarget
     ])
+  })
+
+  test('checkpoint and final OCR metadata share every provider failure diagnostic', () => {
+    const failedState = providerState(mistralTarget, 'failed', {
+      message: 'Mistral OCR request failed',
+      category: 'rate_limit',
+      failureKind: 'rate_limit',
+      retryable: true,
+      quota: true,
+      providerWide: true,
+      blockedReason: 'quota',
+      stage: 'extract:mistral',
+      status: 429,
+      retryAfterMs: 12_000,
+      errorFile: 'providers/mistral/error.json',
+      rawResponseFile: 'providers/mistral/raw-response.txt'
+    })
+
+    const checkpointFailures = buildMetadataErrorEntries([failedState])
+    const finalizedFailures = buildMetadataErrorEntries([failedState])
+
+    expect(checkpointFailures).toEqual(finalizedFailures)
+    expect(checkpointFailures).toEqual([{
+      service: mistralTarget.service,
+      model: mistralTarget.model,
+      message: 'Mistral OCR request failed',
+      category: 'rate_limit',
+      failureKind: 'rate_limit',
+      retryable: true,
+      quota: true,
+      providerWide: true,
+      blockedReason: 'quota',
+      stage: 'extract:mistral',
+      status: 429,
+      retryAfterMs: 12_000,
+      errorFile: 'providers/mistral/error.json',
+      rawResponseFile: 'providers/mistral/raw-response.txt'
+    }])
   })
 
   test('blocked provider failures remain missing but are excluded from automatic resume', () => {

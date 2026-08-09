@@ -1,61 +1,40 @@
 import {
-  afterEach,
-  beforeEach,
   describe,
   expect,
   test
 } from 'bun:test'
-import { rm } from 'node:fs/promises'
-import { runTtsChunks, splitTextIntoUtf8ByteChunks } from '~/cli/commands/process-steps/step-4-tts/tts-utils/audio-utils'
+import { chmod } from 'node:fs/promises'
+import { join } from 'node:path'
+import { concatAndConvertToWav, runTtsChunks, splitTextIntoUtf8ByteChunks } from '~/cli/commands/process-steps/step-4-tts/tts-utils/audio-utils'
 import { createHostedTtsBatchCoordinator, createHostedTtsChunkScheduler } from '~/cli/commands/process-steps/step-4-tts/tts-utils/hosted-tts-chunk-scheduler'
-import { waitForCondition } from './shared'
+import { configureBinDir, getConfiguredBinDir } from '~/utils/runtime-paths'
+import { setupTtsContractLifecycle, waitForCondition } from './shared'
 
-const tempDirs: string[] = []
-
-const originalFetch = globalThis.fetch
-
-const originalSleep = Bun.sleep
-
-const previousEnv: Record<string, string | undefined> = {}
-
-const envKeys = [
-  'ELEVENLABS_API_KEY',
-  'SPEECHIFY_API_KEY',
-  'HUME_API_KEY',
-  'CARTESIA_API_KEY',
-  'MISTRAL_API_KEY',
-  'OPENAI_API_KEY',
-  'GROQ_API_KEY',
-  'XAI_API_KEY',
-  'MINIMAX_API_KEY',
-  'DEEPGRAM_API_KEY'
-]
-
-const restoreEnv = (): void => {
-  for (const key of envKeys) {
-    if (previousEnv[key] === undefined) {
-      delete process.env[key]
-    } else {
-      process.env[key] = previousEnv[key]
-    }
-  }
-}
-
-beforeEach(() => {
-  for (const key of envKeys) {
-    previousEnv[key] = process.env[key]
-    delete process.env[key]
-  }
-})
-
-afterEach(async () => {
-  restoreEnv()
-  globalThis.fetch = originalFetch
-  ;(Bun as typeof Bun & { sleep: typeof Bun.sleep }).sleep = originalSleep
-  await Promise.all(tempDirs.splice(0).map((dir) => rm(dir, { recursive: true, force: true })))
-})
+const { makeTempDir } = setupTtsContractLifecycle()
 
 describe('TTS provider service contracts', () => {
+  test('concat cleanup removes the temporary list when ffmpeg fails', async () => {
+      const outputDir = await makeTempDir('concat-failure-')
+      const fakeFfmpegPath = join(outputDir, 'ffmpeg')
+      const concatListPath = join(outputDir, 'speech-testprovider-chunks.txt')
+      const previousBinDir = getConfiguredBinDir()
+      await Bun.write(fakeFfmpegPath, '#!/bin/sh\nprintf "forced concat failure" >&2\nexit 7\n')
+      await chmod(fakeFfmpegPath, 0o755)
+      configureBinDir(outputDir)
+
+      try {
+        await expect(concatAndConvertToWav([
+          join(outputDir, 'chunk-1.mp3'),
+          join(outputDir, 'chunk-2.mp3')
+        ], outputDir, 'TestProvider')).rejects.toThrow(
+          'Failed to concatenate TestProvider audio chunks: forced concat failure'
+        )
+        expect(await Bun.file(concatListPath).exists()).toBe(false)
+      } finally {
+        configureBinDir(previousBinDir ?? '')
+      }
+    })
+
   test('UTF-8 byte chunking respects multi-byte characters and hard byte limits', () => {
       const chunks = splitTextIntoUtf8ByteChunks(`${'é'.repeat(6)} ${'🙂'.repeat(3)}`, 12)
 

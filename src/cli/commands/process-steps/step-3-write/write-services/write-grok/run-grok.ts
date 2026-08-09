@@ -1,16 +1,10 @@
-import * as l from '~/utils/app-logger/app-logger'
-import { readEnv } from '~/utils/validate/env-utils'
-import { InternalError, hintsForMissingEnv } from '~/utils/error-handler'
+import { requireApiKey } from '~/utils/validate/env-utils'
 import { XAI_DEFAULT_BASE_URL } from '~/utils/base-urls'
 import type { Step3Metadata, StructuredRequestOptions } from '~/types'
 import { runOpenAICompatibleChatModel } from '../openai-compatible-chat'
 
 const getGrokClientConfig = (): { apiKey: string, baseURL: string } => {
-  const apiKey = readEnv('XAI_API_KEY')
-  if (!apiKey) {
-    l.error('XAI_API_KEY not found in environment for Grok model')
-    throw InternalError('XAI_API_KEY environment variable is required for --grok models', { stage: 'write:grok', hints: hintsForMissingEnv('XAI_API_KEY') })
-  }
+  const apiKey = requireApiKey('XAI_API_KEY', 'write:grok', '--grok models')
 
   return {
     apiKey,
@@ -23,13 +17,11 @@ export const runGrokModel = async (
   model: string,
   structuredOpts?: StructuredRequestOptions
 ): Promise<{ result: string, metadata: Step3Metadata }> => {
-  const config = getGrokClientConfig()
-
   return await runOpenAICompatibleChatModel({
     prompt,
     model,
     structuredOpts,
-    config,
+    config: getGrokClientConfig,
     service: 'grok',
     providerLabel: 'Grok',
     operationName: 'grok-llm'

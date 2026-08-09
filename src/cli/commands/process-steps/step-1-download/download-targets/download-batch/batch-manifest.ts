@@ -1,5 +1,6 @@
 import { readRunManifest } from '~/cli/commands/process-steps/manifest-utils'
 import { InternalError } from '~/utils/error-handler'
+import { isRecord } from '~/utils/rest-client'
 import type { BatchManifestEntry, BatchManifestErrorEntry, ProcessCommand } from '~/types'
 
 export const toManifestKind =(command: ProcessCommand): 'metadata' | 'download' | 'extract' | 'write' => {
@@ -10,8 +11,7 @@ export const toManifestKind =(command: ProcessCommand): 'metadata' | 'download' 
   throw InternalError('Unsupported batch manifest command: ' + command, { stage: 'batch:manifest' })
 }
 
-export const isRecord = (value: unknown): value is Record<string, unknown> =>
-  typeof value === 'object' && value !== null && !Array.isArray(value)
+export { isRecord }
 
 export const getBatchManifestErrorCount = (entry: BatchManifestEntry | null): number => {
   if (!entry) {

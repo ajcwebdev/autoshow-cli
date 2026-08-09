@@ -144,6 +144,25 @@ describe('music provider contracts', () => {
     })
   })
 
+  test('MiniMax music protocol failures keep the music stage', async () => {
+    await withTempDir(async (dir) => {
+      await withEnvAndFetch({
+        MINIMAX_API_KEY: 'test-key'
+      }, (async (_input: Parameters<typeof fetch>[0], _init?: Parameters<typeof fetch>[1]): Promise<Response> => new Response('not-json', {
+        status: 200,
+        headers: { 'content-type': 'application/json' }
+      })) as typeof fetch, async () => {
+        await expect(runMinimaxMusicGen('ambient instrumental', dir, {
+          model: 'music-3.0',
+          forceInstrumental: true
+        })).rejects.toMatchObject({
+          stage: 'music:minimax',
+          message: expect.stringContaining('Invalid JSON')
+        })
+      })
+    })
+  })
+
   test('MiniMax auto-lyrics metadata captures generated title, style, and lyrics', async () => {
     const calls: Array<{ url: string, body: Record<string, unknown> }> = []
 

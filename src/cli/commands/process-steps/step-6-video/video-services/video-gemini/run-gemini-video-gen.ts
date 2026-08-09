@@ -1,10 +1,9 @@
-import * as l from '~/utils/app-logger/app-logger'
 import { mkdir } from 'node:fs/promises'
 import type { GeminiVideoModel, Step6VideoMetadata, VideoMode } from '~/types'
-import { InfraError, InternalError, hintsForMissingEnv } from '~/utils/error-handler'
-import { logMediaGenerationStatus } from '~/cli/commands/process-steps/generation-command-utils'
+import { InfraError } from '~/utils/error-handler'
+import { logGenCompleted, logGenStatus } from '~/cli/commands/process-steps/generation-command-utils'
 import { estimateVideoCost, logVideoEstimate } from '~/cli/commands/process-steps/step-6-video/video-utils/video-pricing'
-import { readEnv } from '~/utils/validate/env-utils'
+import { requireApiKey } from '~/utils/validate/env-utils'
 import { normalizeGeminiDuration, normalizeGeminiResolution } from '~/cli/commands/process-steps/step-6-video/video-utils/video-normalization'
 import { pollUntil } from '~/utils/retries'
 import { MEDIA_GENERATION_TIMEOUT_MS } from '~/utils/timeouts'
@@ -32,17 +31,9 @@ export const runGeminiVideoGen = async (
     inputVideo?: string | undefined
   }
 ): Promise<{ videoPath: string, metadata: Step6VideoMetadata }> => {
-  const apiKey = readEnv('GEMINI_API_KEY')
-  if (!apiKey) {
-    throw InternalError('GEMINI_API_KEY environment variable is required', { stage: 'video:gemini', hints: hintsForMissingEnv('GEMINI_API_KEY') })
-  }
+  const apiKey = requireApiKey('GEMINI_API_KEY', 'video:gemini')
 
-  logMediaGenerationStatus(l, {
-    mediaType: 'video',
-    provider: 'gemini',
-    model: options.model,
-    status: 'started'
-  })
+  logGenStatus('video', 'gemini', options.model, 'started')
 
   const estimate = estimateVideoCost({
     geminiVideoModel: options.model,
@@ -92,12 +83,7 @@ export const runGeminiVideoGen = async (
     intervalMs: POLL_INTERVAL_MS,
     deadlineMs: POLL_TIMEOUT_MS,
     pollFn: async () => {
-      logMediaGenerationStatus(l, {
-        mediaType: 'video',
-        provider: 'gemini',
-        model: options.model,
-        status: 'in_progress'
-      })
+      logGenStatus('video', 'gemini', options.model, 'in_progress')
       const operationName = operation.name
       if (!operationName) {
         throw InfraError('Gemini video generation did not return an operation name', { stage: 'video:gemini' })
@@ -126,16 +112,7 @@ export const runGeminiVideoGen = async (
   const processingTime = Date.now() - startTime
   const videoFile = Bun.file(outputPath)
 
-  logMediaGenerationStatus(l, {
-    mediaType: 'video',
-    provider: 'gemini',
-    model: options.model,
-    status: 'completed',
-    processingTimeMs: processingTime,
-    outputCount: 1,
-    detail: `Actual billed cost was not returned by the API; estimate ${estimate.totalCost.toFixed(3)}¢`,
-    artifacts: [{ artifact: 'video', path: outputPath }]
-  })
+  logGenCompleted('video', 'gemini', options.model, processingTime, [outputPath], `Actual billed cost was not returned by the API; estimate ${estimate.totalCost.toFixed(3)}¢`)
 
   const metadata: Step6VideoMetadata = {
     videoGenService: 'gemini',

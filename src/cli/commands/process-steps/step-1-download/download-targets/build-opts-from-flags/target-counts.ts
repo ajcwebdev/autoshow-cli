@@ -1,4 +1,8 @@
 import type { RuntimeModelOptions, TargetCounts } from '~/types'
+import { IMAGE_PRICING_PROVIDERS } from '~/cli/commands/process-steps/step-5-image/image-utils/image-pricing'
+import { VIDEO_PRICING_PROVIDERS } from '~/cli/commands/process-steps/step-6-video/video-utils/video-pricing'
+import { MUSIC_PRICING_PROVIDERS } from '~/cli/commands/process-steps/step-7-music/music-utils/music-pricing'
+import { collectSelections } from '~/utils/pricing/model-selection'
 
 const countSelectedTargets = (
   models: string[] | undefined,
@@ -38,29 +42,9 @@ export const resolveTargetCounts = (modelOptions: RuntimeModelOptions): TargetCo
     + countSelectedTargets(modelOptions.speechifyTtsModels, modelOptions.speechifyTtsModel)
     + countSelectedTargets(modelOptions.humeTtsModels, modelOptions.humeTtsModel)
     + countSelectedTargets(modelOptions.cartesiaTtsModels, modelOptions.cartesiaTtsModel)
-  const hostedImageTargetCount =
-    countSelectedTargets(modelOptions.geminiImageModels, modelOptions.geminiImageModel)
-    + countSelectedTargets(modelOptions.openaiImageModels, modelOptions.openaiImageModel)
-    + countSelectedTargets(modelOptions.grokImageModels, modelOptions.grokImageModel)
-    + countSelectedTargets(modelOptions.bflImageModels, modelOptions.bflImageModel)
-    + countSelectedTargets(modelOptions.recraftImageModels, modelOptions.recraftImageModel)
-    + countSelectedTargets(modelOptions.replicateImageModels, modelOptions.replicateImageModel)
-    + countSelectedTargets(modelOptions.lumalabsImageModels, modelOptions.lumalabsImageModel)
-    + countSelectedTargets(modelOptions.falImageModels, modelOptions.falImageModel)
-  const hostedVideoTargetCount =
-    countSelectedTargets(modelOptions.geminiVideoModels, modelOptions.geminiVideoModel)
-    + countSelectedTargets(modelOptions.minimaxVideoModels, modelOptions.minimaxVideoModel)
-    + countSelectedTargets(modelOptions.glmVideoModels, modelOptions.glmVideoModel)
-    + countSelectedTargets(modelOptions.grokVideoModels, modelOptions.grokVideoModel)
-    + countSelectedTargets(modelOptions.runwayVideoModels, modelOptions.runwayVideoModel)
-    + countSelectedTargets(modelOptions.ltxVideoModels, modelOptions.ltxVideoModel)
-    + countSelectedTargets(modelOptions.replicateVideoModels, modelOptions.replicateVideoModel)
-    + countSelectedTargets(modelOptions.lumalabsVideoModels, modelOptions.lumalabsVideoModel)
-    + countSelectedTargets(modelOptions.falVideoModels, modelOptions.falVideoModel)
-  const hostedMusicTargetCount =
-    countSelectedTargets(modelOptions.elevenlabsMusicModels, modelOptions.elevenlabsMusicModel)
-    + countSelectedTargets(modelOptions.minimaxMusicModels, modelOptions.minimaxMusicModel)
-    + countSelectedTargets(modelOptions.geminiMusicModels, modelOptions.geminiMusicModel)
+  const hostedImageTargetCount = collectSelections(modelOptions, IMAGE_PRICING_PROVIDERS).length
+  const hostedVideoTargetCount = collectSelections(modelOptions, VIDEO_PRICING_PROVIDERS).length
+  const hostedMusicTargetCount = collectSelections(modelOptions, MUSIC_PRICING_PROVIDERS).length
 
   return {
     hostedOcrTargetCount,

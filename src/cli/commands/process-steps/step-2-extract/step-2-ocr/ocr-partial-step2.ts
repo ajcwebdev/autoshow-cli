@@ -1,43 +1,16 @@
+import { isRecord } from '~/utils/rest-client'
 import { readdir } from 'node:fs/promises'
 import { join } from 'node:path'
-import type { CollectPartialStep2Options, ExtractionMetadata, HostedOcrRun, OcrProviderFailureSummary, OcrTarget, PageResult, PartialExtractionFailureMetadata, PartialExtractionMetadata, PartialPageUsage } from '~/types'
+import type { CollectPartialStep2Options, ExtractionMetadata, HostedExtractOcrEngine, OcrProviderFailureSummary, OcrTarget, PartialExtractionFailureMetadata, PartialExtractionMetadata, PartialPageUsage } from '~/types'
 import { ExtractionMetadataSchema } from '~/types'
 import { sanitizeLogText } from '~/utils/app-logger/redaction'
 import { estimateTokens } from '~/utils/text-utils'
 import { validateData } from '~/utils/validate/validation'
 import { getOcrTargetDirectoryName } from './ocr-targets'
+import { getUsageNumber } from './ocr-utils/hosted-ocr-utils'
+import { parseStoredHostedOcrPageCache } from './ocr-utils/pdf-chunk-fallback-state'
 
 const PAGE_RESULTS_DIR = 'page-results'
-
-const isRecord = (value: unknown): value is Record<string, unknown> =>
-  typeof value === 'object' && value !== null && !Array.isArray(value)
-
-const isPageResult = (value: unknown): value is PageResult =>
-  isRecord(value)
-  && typeof value['pageNumber'] === 'number'
-  && (value['method'] === 'text' || value['method'] === 'ocr' || value['method'] === 'skipped')
-  && typeof value['text'] === 'string'
-
-const isHostedOcrRun = (value: unknown): value is HostedOcrRun =>
-  isRecord(value)
-  && Array.isArray(value['pages'])
-  && value['pages'].every(isPageResult)
-  && typeof value['extractionMethod'] === 'string'
-  && typeof value['ocrService'] === 'string'
-  && typeof value['ocrModel'] === 'string'
-
-const getUsageNumber = (
-  entry: Record<string, unknown>,
-  keys: readonly string[]
-): number | undefined => {
-  for (const key of keys) {
-    const value = entry[key]
-    if (typeof value === 'number' && Number.isFinite(value)) {
-      return value
-    }
-  }
-  return undefined
-}
 
 const collectUsageTokens = (
   usage: unknown
@@ -72,62 +45,27 @@ const collectUsageTokens = (
   }
 }
 
-const parseRenderedPageCache = (
+const parsePageCache = (
   value: unknown,
   target: OcrTarget
 ): PartialPageUsage | undefined => {
-  if (
-    !isRecord(value)
-    || value['mode'] !== 'rendered-page'
-    || typeof value['extractionMethod'] !== 'string'
-    || value['model'] !== target.model
-    || typeof value['totalPages'] !== 'number'
-    || typeof value['pageNumber'] !== 'number'
-    || !isRecord(value['result'])
-    || !isPageResult(value['result']['page'])
-  ) {
+  if (target.service === 'tesseract') {
+    return undefined
+  }
+  const parsed = parseStoredHostedOcrPageCache(value, {
+    identity: {
+      extractionMethod: `${target.service}-ocr` as HostedExtractOcrEngine,
+      ocrService: target.service,
+      ocrModel: target.model
+    },
+    allowLegacySourceFile: true
+  })
+  if (parsed === undefined) {
     return undefined
   }
 
-  const result = value['result'] as Record<string, unknown>
-  const page = result['page']
-  if (!isPageResult(page)) {
-    return undefined
-  }
-  if (page.pageNumber !== value['pageNumber']) {
-    return undefined
-  }
-
-  return {
-    pageNumber: page.pageNumber,
-    text: page.text,
-    extractionMethod: value['extractionMethod'],
-    totalPages: Math.max(1, Math.floor(value['totalPages'])),
-    ...(typeof result['promptTokens'] === 'number' ? { promptTokens: result['promptTokens'] } : {}),
-    ...(typeof result['completionTokens'] === 'number' ? { completionTokens: result['completionTokens'] } : {})
-  }
-}
-
-const parseSinglePageFallbackCache = (
-  value: unknown,
-  target: OcrTarget
-): PartialPageUsage | undefined => {
-  if (
-    !isRecord(value)
-    || value['mode'] !== 'single-page'
-    || typeof value['totalPages'] !== 'number'
-    || typeof value['pageNumber'] !== 'number'
-    || !isHostedOcrRun(value['run'])
-  ) {
-    return undefined
-  }
-
-  const run = value['run']
-  if (run.ocrService !== target.service || run.ocrModel !== target.model) {
-    return undefined
-  }
-
-  const page = run.pages.find((candidate) => candidate.pageNumber === value['pageNumber'])
+  const run = parsed.run
+  const page = run.pages.find((candidate) => candidate.pageNumber === parsed.pageNumber)
   if (!page) {
     return undefined
   }
@@ -137,7 +75,7 @@ const parseSinglePageFallbackCache = (
     pageNumber: page.pageNumber,
     text: page.text,
     extractionMethod: run.extractionMethod,
-    totalPages: Math.max(1, Math.floor(value['totalPages'])),
+    totalPages: Math.max(1, Math.floor(parsed.totalPages)),
     ...(typeof run.promptTokens === 'number' ? { promptTokens: run.promptTokens } : usageTokens.promptTokens !== undefined ? { promptTokens: usageTokens.promptTokens } : {}),
     ...(typeof run.completionTokens === 'number' ? { completionTokens: run.completionTokens } : usageTokens.completionTokens !== undefined ? { completionTokens: usageTokens.completionTokens } : {})
   }
@@ -166,7 +104,7 @@ const readPartialPageCaches = async (
     } catch {
       continue
     }
-    const parsed = parseRenderedPageCache(raw, target) ?? parseSinglePageFallbackCache(raw, target)
+    const parsed = parsePageCache(raw, target)
     if (parsed !== undefined) {
       pages.set(parsed.pageNumber, parsed)
     }

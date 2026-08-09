@@ -1,9 +1,19 @@
-import type { BatchManifestEntry, ProviderCompletionStatus, ProviderIdentity, ProviderResumeEntry, ProviderResumeProcessResult, ResumeTarget, RuntimeOptions } from '~/types'
+import type { BatchManifestEntry, ProviderCompletionStatus, ProviderIdentity, ProviderResumeEntry, ProviderResumeProcessResult, ResumeTarget, RuntimeOptions, StepEstimate } from '~/types'
 
 export type ProviderResumeManifest = {
   infoPath: string
   entries: BatchManifestEntry[]
   source?: Record<string, unknown>
+}
+
+export type ProviderResumePriceConfig<
+  TTarget extends ProviderIdentity,
+  TEntry extends ProviderResumeEntry<TTarget>
+> = Pick<ProviderBatchResumeConfig<TTarget, TEntry>, 'stepLabel' | 'readOutputMetadata' | 'parseEntry'> & {
+  buildEstimates: (
+    entry: TEntry,
+    opts: RuntimeOptions
+  ) => StepEstimate[] | Promise<StepEstimate[]>
 }
 
 export type ProviderResumePassContextInput<TEntry> = {

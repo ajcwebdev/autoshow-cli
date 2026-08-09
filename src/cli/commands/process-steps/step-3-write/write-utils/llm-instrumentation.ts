@@ -1,7 +1,6 @@
+import { isRecord } from '~/utils/rest-client'
 import type { LlmApiCallResult, LlmInstrumentationResult, NormalizedLlmUsage, Step3Metadata, StructuredRequestOptions } from '~/types'
 import { countTokens } from '~/cli/commands/process-steps/step-2-extract/step-2-stt/stt-utils/stt-utils'
-const isRecord = (value: unknown): value is Record<string, unknown> =>
-  typeof value === 'object' && value !== null && !Array.isArray(value)
 
 const finiteNumber = (value: unknown): number | undefined =>
   typeof value === 'number' && Number.isFinite(value) ? value : undefined

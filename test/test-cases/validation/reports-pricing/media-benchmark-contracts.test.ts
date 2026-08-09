@@ -1,78 +1,30 @@
-import { afterEach, beforeEach, describe, expect, test } from 'bun:test'
-import { mkdir, mkdtemp, rm, writeFile } from 'node:fs/promises'
-import { tmpdir } from 'node:os'
+import { describe, expect, test } from 'bun:test'
+import { mkdir, writeFile } from 'node:fs/promises'
 import { join } from 'node:path'
 import { runImageBenchmark } from '~/cli/commands/setup-and-utilities/benchmark/run-image-benchmark'
 import { runTextBenchmark } from '~/cli/commands/setup-and-utilities/benchmark/run-text-benchmark'
 import { runVideoBenchmark } from '~/cli/commands/setup-and-utilities/benchmark/run-video-benchmark/run-video-benchmark'
+import { resolveVisionProviders } from '~/cli/commands/setup-and-utilities/benchmark/vision-benchmark-engine'
 import { exec } from '~/utils/cli-utils'
-import type { BenchmarkFlags, MediaBenchmarkFetchCall, MediaBenchmarkRequestBody } from '~/types'
+import type { BenchmarkFlags, MediaBenchmarkRequestBody } from '~/types'
+import { installMockFetch, jsonResponse, setupContractSuiteLifecycle } from '../../../test-utils/rest-contract-helpers'
 
-const originalFetch = globalThis.fetch
-const tempDirs: string[] = []
-const previousEnv: Record<string, string | undefined> = {}
 const envKeys = ['OPENAI_API_KEY']
+const tempDirs = setupContractSuiteLifecycle({ envKeys, tempPrefix: 'autoshow-media-benchmark-' })
 const onePixelPng = Buffer.from(
   'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+/p9sAAAAASUVORK5CYII=',
   'base64'
 )
 
 const makeTempRoot = async (prefix: string): Promise<string> => {
-  const root = await mkdtemp(join(tmpdir(), prefix))
-  tempDirs.push(root)
-  return root
+  return await tempDirs.make(prefix)
 }
 
 const writeJson = async (path: string, value: unknown): Promise<void> => {
   await writeFile(path, `${JSON.stringify(value, null, 2)}\n`)
 }
 
-const readBody = async (body: RequestInit['body'] | null | undefined): Promise<string> =>
-  typeof body === 'string' ? body : ''
-
-const installFetch = (
-  handler: (call: MediaBenchmarkFetchCall) => Promise<Response> | Response
-): MediaBenchmarkFetchCall[] => {
-  const calls: MediaBenchmarkFetchCall[] = []
-  globalThis.fetch = (async (input: Parameters<typeof fetch>[0], init?: Parameters<typeof fetch>[1]): Promise<Response> => {
-    const bodyText = await readBody(init?.body)
-    const call: MediaBenchmarkFetchCall = {
-      url: String(input),
-      method: init?.method ?? 'GET',
-      headers: new Headers(init?.headers),
-      bodyText,
-      ...(bodyText.trim().startsWith('{') ? { bodyJson: JSON.parse(bodyText) as Record<string, unknown> } : {})
-    }
-    calls.push(call)
-    return await handler(call)
-  }) as typeof fetch
-  return calls
-}
-
-const jsonResponse = (body: unknown): Response =>
-  new Response(JSON.stringify(body), {
-    status: 200,
-    headers: { 'content-type': 'application/json' }
-  })
-
-beforeEach(() => {
-  for (const key of envKeys) {
-    previousEnv[key] = process.env[key]
-    delete process.env[key]
-  }
-})
-
-afterEach(async () => {
-  globalThis.fetch = originalFetch
-  for (const key of envKeys) {
-    if (previousEnv[key] === undefined) {
-      delete process.env[key]
-    } else {
-      process.env[key] = previousEnv[key]
-    }
-  }
-  await Promise.all(tempDirs.splice(0).map((dir) => rm(dir, { recursive: true, force: true })))
-})
+const installFetch = installMockFetch
 
 const imageJudgeOutput = (score: number, summary: string): Record<string, unknown> => ({
   output_text: JSON.stringify({
@@ -183,6 +135,13 @@ describe('image benchmark contracts', () => {
         images: Array<{ criterionScores: { promptAdherence: number } }>
       }>
     }
+    expect(Object.keys(qualityReport)).toEqual([
+      'schemaVersion', 'kind', 'runDir', 'runName', 'generatedAt', 'judge', 'prompt', 'rubric', 'providerCount', 'imageCount', 'providers'
+    ])
+    expect(Object.keys(qualityReport.providers[0] ?? {})).toEqual([
+      'rank', 'providerKey', 'provider', 'model', 'group', 'imageFiles', 'imageCount', 'processingTimeMs', 'costCents',
+      'criterionScores', 'averageScore10', 'qualityScore', 'qualityMetric', 'evidence', 'images'
+    ])
     expect(qualityReport.providers.map((provider) => provider.providerKey)).toEqual([
       'openai/gpt-image-2',
       'bfl/flux-2-pro'
@@ -561,6 +520,13 @@ describe('video benchmark contracts', () => {
         }>
       }>
     }
+    expect(Object.keys(qualityReport)).toEqual([
+      'schemaVersion', 'kind', 'runDir', 'runName', 'generatedAt', 'judge', 'prompt', 'rubric', 'providerCount', 'videoCount', 'frameCount', 'providers'
+    ])
+    expect(Object.keys(qualityReport.providers[0] ?? {})).toEqual([
+      'rank', 'providerKey', 'provider', 'model', 'group', 'videoFiles', 'videoCount', 'processingTimeMs', 'costCents',
+      'criterionScores', 'averageScore10', 'qualityScore', 'qualityMetric', 'evidence', 'videos'
+    ])
     expect(qualityReport.frameCount).toBe(10)
     expect(qualityReport.providers.map((provider) => provider.providerKey)).toEqual(['grok/grok-imagine-video'])
     expect(qualityReport.providers[0]?.qualityScore).toBe(80)
@@ -621,5 +587,31 @@ describe('video benchmark contracts', () => {
     expect(qualityMarkdown).toContain('# Video Quality Report')
     expect(comparisonMarkdown).toContain('### Automated Quality')
     expect(comparisonMarkdown).toContain('80.00/100')
+  })
+})
+
+describe('vision benchmark provider evidence policy', () => {
+  test('keeps first-entry evidence distinct from averaged evidence', async () => {
+    const entries = [
+      { service: 'provider', model: 'model', processingTimeMs: 100, costCents: 2, artifact: 'first' },
+      { service: 'provider', model: 'model', processingTimeMs: 300, costCents: 4, artifact: 'second' }
+    ]
+    const resolve = async (statsPolicy: 'first' | 'average') => await resolveVisionProviders({
+      entries,
+      identity: ({ service, model }) => ({ service, model }),
+      stats: ({ processingTimeMs, costCents }) => ({ processingTimeMs, costCents }),
+      artifacts: ({ artifact }) => Promise.resolve([artifact]),
+      statsPolicy,
+      assemble: (base, artifacts) => ({ ...base, artifacts })
+    })
+
+    expect(await resolve('first')).toEqual([{
+      providerKey: 'provider/model', provider: 'provider', model: 'model', group: 'service',
+      processingTimeMs: 100, costCents: 2, artifacts: ['first', 'second']
+    }])
+    expect(await resolve('average')).toEqual([{
+      providerKey: 'provider/model', provider: 'provider', model: 'model', group: 'service',
+      processingTimeMs: 200, costCents: 3, artifacts: ['first', 'second']
+    }])
   })
 })

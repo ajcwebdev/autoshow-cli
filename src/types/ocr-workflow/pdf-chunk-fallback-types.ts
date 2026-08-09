@@ -1,4 +1,4 @@
-import type { CommandResultBase, DocumentMetadata, HostedOcrRun, RuntimeToolSource } from '~/types'
+import type { CommandResultBase, DocumentMetadata, HostedOcrIdentity, HostedOcrRun, RuntimeToolSource } from '~/types'
 export type OcrPdfChunkRange = {
   startPage: number
   endPage: number
@@ -102,6 +102,8 @@ export type RunHostedOcrPdfChunkFallbackOptions = {
   fallbackDir?: string | undefined
   pageConcurrency?: number | undefined
   keepPageInputs?: boolean | undefined
+  forcePageMode?: boolean | undefined
+  cacheIdentity?: HostedOcrIdentity | undefined
   runFull: () => Promise<HostedOcrRun>
   runChunk: (chunkPath: string, chunkMetadata: DocumentMetadata, range: OcrPdfChunkRange) => Promise<HostedOcrRun>
   buildMalformedPageRun?: (rawText: string, range: OcrPdfChunkRange) => HostedOcrRun

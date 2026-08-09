@@ -3,7 +3,7 @@ import { mkdir, readdir } from 'node:fs/promises'
 import { join } from 'node:path'
 import * as v from 'valibot'
 import { InfraError, InternalError, ValidationError } from '~/utils/error-handler'
-import type { ComicImageGenerationDependencies, ComicPanelSource, PanelBundleData, GenerateSceneSketchesOptions, ImageGenerationModel, PromptsConfig, ResolvedReferenceImages, SketchPanelChunk } from '~/types'
+import type { ComicImageGenerationDependencies, ComicPanelSource, PanelBundleData, GenerateSceneSketchesOptions, PromptsConfig, SketchPanelChunk } from '~/types'
 import {
 createImageRunStats,
 updateImageRunStatsWithCostFallback,
@@ -17,15 +17,12 @@ writeGeneratedImage,
 import { PanelBundleDataSchema } from '../../schemas/schemas'
 import { comicLog, err, formatDuration } from '../../comic-utils/comic-logger'
 import {
-applyReferenceImageLimits,
 extractPanelBundleData,
 findMissingReferenceImageFiles,
 formatPanelDirectoryName,
 getPanelNumberFromName,
 getPromptBundleFilename,
-resolvePrimaryCharacterReferencesAcrossPanels,
-resolveLocationReferencesAcrossPanels,
-resolveDesignReferencesAcrossPanels,
+resolveGroupedReferenceImages,
 resolveScenePanelDirectories,
 } from '../../comic-utils/panel-prompt-utils'
 import { getPanelPromptsDirectory, getSketchesDirectory } from '../../comic-utils/project-paths'
@@ -38,7 +35,7 @@ import {
 DEFAULT_SKETCH_PANELS_PER_IMAGE,
 hasOnlyTrailingPanelSelectionMisses,
 } from '../generate-images/comic-page-utils'
-import { runWithConcurrency } from '../../comic-utils/run-with-concurrency'
+import { runWithConcurrency } from '~/utils/run-with-concurrency'
 
 const SKETCH_CHUNK_SIZE = DEFAULT_SKETCH_PANELS_PER_IMAGE
 
@@ -239,49 +236,6 @@ const getChunkCharacterKeys = (
   return Array.from(keys)
 }
 
-const resolveSketchChunkReferences = (
-  panels: Array<Pick<ComicPanelSource, 'panelDirectory' | 'panelEntries' | 'bundleData'>>,
-  model: ImageGenerationModel,
-  priorSketchPaths: string[] = []
-): ResolvedReferenceImages => {
-  const primaryCharacterReferenceState = resolvePrimaryCharacterReferencesAcrossPanels(
-    panels.map(panel => ({
-      panelDirectory: panel.panelDirectory,
-      entries: panel.panelEntries,
-      bundleData: panel.bundleData,
-    }))
-  )
-  const preferredPrimaryCharacterRefs = primaryCharacterReferenceState.primaryCharacterRefs
-
-  // Already-generated sketches lead the reference list so recurring characters carry
-  // their established design forward; character refs alone let a face drift between
-  // chunks, and the first 5 inputs are the ones held at higher fidelity.
-  const priorSketchRefs = priorSketchPaths
-  const locationReferences = resolveLocationReferencesAcrossPanels(panels.map(panel => ({ panelDirectory: panel.panelDirectory, entries: panel.panelEntries, bundleData: panel.bundleData })))
-  const locationPaths = locationReferences.map(reference => reference.path)
-  const designReferences = resolveDesignReferencesAcrossPanels(panels.map(panel => ({ panelDirectory: panel.panelDirectory, entries: panel.panelEntries, bundleData: panel.bundleData })))
-  const designPaths = designReferences.map(reference => reference.path)
-
-  const resolved = applyReferenceImageLimits(
-    [...preferredPrimaryCharacterRefs, ...locationPaths, ...designPaths, ...priorSketchRefs],
-    [...preferredPrimaryCharacterRefs, ...locationPaths, ...designPaths],
-    priorSketchRefs,
-    [...locationPaths, ...designPaths],
-    primaryCharacterReferenceState.missingPrimaryCharacterRefs,
-    model,
-  )
-  return {
-    ...resolved,
-    primaryCharacterRefs: preferredPrimaryCharacterRefs,
-    secondaryRefs: locationPaths,
-    locationReferences: locationReferences.map((reference, index) => ({
-      ...reference,
-      referenceIndex: preferredPrimaryCharacterRefs.length + index + 1,
-    })),
-    designReferences: designReferences.map((reference, index) => ({ ...reference, referenceIndex: preferredPrimaryCharacterRefs.length + locationReferences.length + index + 1 })),
-  }
-}
-
 const readSketchPanelSource = async (
   sceneDirectory: string,
   panelEntry: Dirent
@@ -363,7 +317,7 @@ export const generateSceneSketches = async (
       for (const chunk of selectedSketchChunks) {
         for (const model of options.models) {
           try {
-            const references = resolveSketchChunkReferences(chunk.panels, model)
+            const references = resolveGroupedReferenceImages(chunk.panels, model)
             const missing = await findMissingReferenceImageFiles(references.all)
             preflightFailures.push(...missing)
           } catch (error) {
@@ -428,7 +382,7 @@ export const generateSceneSketches = async (
               }
             }
 
-            const resolvedReferences = resolveSketchChunkReferences(
+            const resolvedReferences = resolveGroupedReferenceImages(
               sketchChunk.panels,
               model,
               priorSketchPaths,

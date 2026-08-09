@@ -2,16 +2,16 @@ import { join, resolve as resolvePath } from 'node:path'
 import { readBatchManifest, readExtractBatchManifest, readRunManifest } from '~/cli/commands/process-steps/manifest-utils'
 import { buildOptsFromFlags } from '~/cli/commands/process-steps/step-1-download/download-targets/build-opts-from-flags/build-options-from-flags'
 import { loadConfig, resolveConfigPath } from '~/cli/commands/setup-and-utilities/config/config-loader'
-import { extractExplicitFlags, mergeConfigIntoRawFlags } from '~/cli/commands/setup-and-utilities/config/config-merge'
-import { normalizeExtractGenericSelectorArgs, normalizeExtractGenericSelectorFlags } from '~/cli/flags/service-selector-normalization/extract-selectors'
+import { mergeConfigIntoRawFlags } from '~/cli/commands/setup-and-utilities/config/config-merge'
+import { normalizeExtractGenericSelectorFlags } from '~/cli/flags/service-selector-normalization/extract-selectors'
 import { normalizeGenericProviderSelectorFlags } from '~/cli/flags/service-selector-normalization/generic-provider-selectors'
 import { normalizeGenericTtsOptionFlags } from '~/cli/flags/service-selector-normalization/generic-tts-option-selectors'
 import { STANDALONE_IMAGE_PROVIDER_TARGETS, STANDALONE_MUSIC_PROVIDER_TARGETS, STANDALONE_TTS_PROVIDER_TARGETS, STANDALONE_VIDEO_PROVIDER_TARGETS, WRITE_LLM_PROVIDER_TARGETS } from '~/cli/flags/service-selector-normalization/provider-targets'
 import { logSuitePriceSummary } from '~/cli/commands/process-steps/step-1-download/download-targets/suite-price-logging'
 import { logResumeSuiteSummary } from './resume-logging'
 import * as l from '~/utils/app-logger/app-logger'
-import type { AggregatedPriceEstimate, BatchManifest, ExtractRoute, ExtractSelectorInputRoutes, ResumeDispatchOutcome, ResumeDisplayOptions, ResumeResult, ResumeSelectorNormalizationResult, ResumeTarget, ResumeTargetKind, RunManifest } from '~/types'
-import { CLIUsageError } from '~/utils/error-handler'
+import type { AggregatedPriceEstimate, BatchManifest, CliFlagOccurrence, ExtractRoute, ExtractSelectorInputRoutes, ResumeDispatchOutcome, ResumeDisplayOptions, ResumeResult, ResumeSelectorNormalizationResult, ResumeTarget, ResumeTargetKind, RunManifest } from '~/types'
+import { CLIUsageError, InfraError } from '~/utils/error-handler'
 import { getResumeHandler, URL_ARTICLE_ROUTE } from './resume-registry'
 
 const SUPPORTED_RESUME_KINDS = new Set<ResumeTargetKind>(['extract', 'write', 'tts', 'image', 'video', 'music'])
@@ -162,45 +162,42 @@ export const normalizeResumeSelectorFlagsForTarget = (
   target: ResumeTarget,
   flags: Record<string, unknown>,
   explicitFlags: Set<string>,
-  rawArgs: string[]
+  flagOccurrences: readonly CliFlagOccurrence[]
 ): ResumeSelectorNormalizationResult => {
   if (target.kind === 'extract') {
     const routes = extractRoutesForTarget(target)
-    const normalized = normalizeExtractGenericSelectorFlags(flags, explicitFlags, routes)
-    return {
-      ...normalized,
-      rawArgs: normalizeExtractGenericSelectorArgs(rawArgs, routes)
-    }
+    return normalizeExtractGenericSelectorFlags(flags, explicitFlags, flagOccurrences, routes)
   }
 
   const providerNormalized = normalizeGenericProviderSelectorFlags(
     flags,
     explicitFlags,
+    flagOccurrences,
     'provider',
     PROVIDER_TARGETS_BY_KIND[target.kind],
     {
       allProvidersTarget: ALL_PROVIDERS_TARGET_BY_KIND[target.kind],
       allLocalTarget: ALL_LOCAL_TARGET_BY_KIND[target.kind],
-      rawArgs
     }
   )
 
   if (target.kind === 'tts') {
     const ttsNormalized = normalizeGenericTtsOptionFlags(
       providerNormalized.flags,
-      providerNormalized.explicitFlags
+      providerNormalized.explicitFlags,
+      providerNormalized.flagOccurrences
     )
     return {
       flags: ttsNormalized.flags,
       explicitFlags: ttsNormalized.explicitFlags,
-      rawArgs: providerNormalized.rawArgs ?? rawArgs
+      flagOccurrences: ttsNormalized.flagOccurrences
     }
   }
 
   return {
     flags: providerNormalized.flags,
     explicitFlags: providerNormalized.explicitFlags,
-    rawArgs: providerNormalized.rawArgs ?? rawArgs
+    flagOccurrences: providerNormalized.flagOccurrences
   }
 }
 
@@ -213,17 +210,6 @@ const normalizeOutputDirInputs = (
       ? [outputDirInput]
       : []
 
-const stripRawPositionalArgs = (
-  rawArgv: string[],
-  positionalIndexes: readonly number[] = []
-): string[] => {
-  if (positionalIndexes.length === 0) {
-    return rawArgv
-  }
-  const indexes = new Set(positionalIndexes)
-  return rawArgv.filter((_arg, index) => !indexes.has(index))
-}
-
 const errorMessage = (error: unknown): string =>
   error instanceof Error ? error.message : String(error)
 
@@ -235,27 +221,25 @@ const buildResumeFailureError = (
     `Resume failed for ${failures.length} output ${noun}:`,
     ...failures.map((failure) => `- ${failure.outputDir}: ${failure.message}`)
   ]
-  const error = new Error(lines.join('\n'))
-  ;(error as Error & { exitCode?: number }).exitCode = 2
-  return error
+  return InfraError(lines.join('\n'), { stage: 'resume:dispatch', exitCode: 2 })
 }
 
 const dispatchSingleResume = async (
   outputDirInput: string,
   rawFlags: Record<string, unknown>,
   doubleDash: string[] = [],
-  rawArgv: string[] = Bun.argv.slice(2),
+  flagOccurrences: readonly CliFlagOccurrence[] = [],
   displayOptions: ResumeDisplayOptions = {}
 ): Promise<ResumeDispatchOutcome> => {
   const target = await resolveExplicitResumeTarget(outputDirInput)
-  const rawExplicitFlags = extractExplicitFlags(rawArgv)
-  const normalized = normalizeResumeSelectorFlagsForTarget(target, rawFlags, rawExplicitFlags, rawArgv)
+  const rawExplicitFlags = new Set(flagOccurrences.map((occurrence) => occurrence.name))
+  const normalized = normalizeResumeSelectorFlagsForTarget(target, rawFlags, rawExplicitFlags, flagOccurrences)
   const configPathOverride = typeof rawFlags['config-path'] === 'string' ? rawFlags['config-path'] : undefined
   const resolvedConfigPath = await resolveConfigPath(configPathOverride)
   const config = await loadConfig(resolvedConfigPath)
   const mergedFlags = mergeConfigIntoRawFlags(normalized.flags, config, normalized.explicitFlags)
   const opts = {
-    ...buildOptsFromFlags(false, mergedFlags, doubleDash, {}, normalized.explicitFlags, normalized.rawArgs),
+    ...buildOptsFromFlags(false, mergedFlags, doubleDash, {}, normalized.explicitFlags, normalized.flagOccurrences),
     configPath: resolvedConfigPath
   }
 
@@ -278,8 +262,7 @@ export const dispatchResume = async (
   outputDirInput: string | string[] | undefined,
   rawFlags: Record<string, unknown>,
   doubleDash: string[] = [],
-  rawArgv: string[] = Bun.argv.slice(2),
-  positionalIndexes: readonly number[] = []
+  flagOccurrences: readonly CliFlagOccurrence[] = []
 ): Promise<void> => {
   if (doubleDash.length > 0) {
     throw CLIUsageError(`Unexpected positional outputs after "--" for "resume": ${doubleDash.join(' ')}. Run: bun autoshow help resume`)
@@ -290,7 +273,6 @@ export const dispatchResume = async (
     throw CLIUsageError('Missing required output directory. Usage: bun autoshow resume <outputDirs...> [flags]')
   }
 
-  const rawFlagArgv = stripRawPositionalArgs(rawArgv, positionalIndexes)
   const failures: Array<{ outputDir: string, message: string }> = []
   const estimates: AggregatedPriceEstimate[] = []
   const resumeResults: ResumeResult[] = []
@@ -302,7 +284,7 @@ export const dispatchResume = async (
         outputDir,
         rawFlags,
         doubleDash,
-        rawFlagArgv,
+        flagOccurrences,
         outputDirs.length > 1 ? { itemLabel: `${index + 1}/${outputDirs.length}` } : {}
       )
       if (outcome.estimate) {

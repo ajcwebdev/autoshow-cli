@@ -8,7 +8,6 @@ import { logBatchCompletionTable, logBatchItemStatus } from '~/cli/commands/proc
 import { buildOptsFromFlags } from '~/cli/commands/process-steps/step-1-download/download-targets/build-opts-from-flags/build-options-from-flags'
 import { logSuitePriceSummary } from '~/cli/commands/process-steps/step-1-download/download-targets/suite-price-logging'
 import { collectTextInputFiles, isTextInputPath } from '~/cli/commands/process-steps/step-3-write/text-input-utils'
-import { extractExplicitFlags } from '~/cli/commands/setup-and-utilities/config/config-merge'
 import { ttsCommandFlags } from '~/cli/flags/tts-flags'
 import { normalizeGenericProviderSelectorFlags } from '~/cli/flags/service-selector-normalization/generic-provider-selectors'
 import { normalizeGenericTtsOptionFlags, TTS_VOICE_OPTION_TARGETS } from '~/cli/flags/service-selector-normalization/generic-tts-option-selectors'
@@ -27,6 +26,7 @@ import { preflightToEstimated } from '~/utils/pricing/compute-costs'
 import { computeEstimatedCosts } from '~/utils/pricing/compute-estimated-costs'
 import { computeActualProcessingTimes, computeEstimatedProcessingTimes } from '~/utils/pricing/compute-processing-time'
 import { runPreflight } from '~/utils/pricing/preflight'
+import { mapWithConcurrency } from '~/utils/run-with-concurrency'
 import { assertDialogueFormatIsUsable, isMultiSpeakerRequested, normalizeDialogueFromOptions } from './dialogue-normalizer'
 import { runTtsForTargets } from './run-tts'
 import { buildTtsBatchEstimateSummary, computeSuccessfulTtsBatchActualCost } from './tts-batch-summary'
@@ -611,32 +611,6 @@ const runTtsBatchPlanForTargets = async (
   }
 }
 
-const runWithConcurrency = async <T,>(
-  items: T[],
-  concurrency: number,
-  worker: (item: T, index: number) => Promise<void>
-): Promise<void> => {
-  const normalizedConcurrency = Math.max(1, concurrency)
-  let nextIndex = 0
-
-  const runWorker = async (): Promise<void> => {
-    while (true) {
-      const currentIndex = nextIndex
-      nextIndex += 1
-      if (currentIndex >= items.length) {
-        return
-      }
-      await worker(items[currentIndex] as T, currentIndex)
-    }
-  }
-
-  await Promise.all(
-    Array.from({ length: Math.min(normalizedConcurrency, items.length) }, async () => {
-      await runWorker()
-    })
-  )
-}
-
 const runTtsDirectoryBatch = async (
   inputPath: string,
   ttsOptions: RuntimeOptions,
@@ -727,7 +701,7 @@ const runTtsDirectoryBatch = async (
     }
 
     if (localTargets.length > 0) {
-      await runWithConcurrency(plans, concurrency, async (plan) => {
+      await mapWithConcurrency(concurrency, plans, async (plan) => {
         await runWithLogContext({ batchId: basename(batchDir), itemIndex: plan.index + 1, itemCount: preparedInputs.length }, async () =>
           await runTtsBatchPlanForTargets(
             plan,
@@ -852,18 +826,18 @@ export const ttsCommand = defineCliCommand({
   const flags = ctx.flags as Record<string, unknown>
   const inputKind = await getTtsInputKind(inputPath)
   const maxCents = await resolveMaxCentsFromFlags(flags)
-  const rawArgs = Bun.argv.slice(2)
-  const explicitFlags = extractExplicitFlags(rawArgs)
   const providerNormalized = normalizeGenericProviderSelectorFlags(
     flags,
-    explicitFlags,
+    ctx.rawParsed.explicitFlags,
+    ctx.rawParsed.flagOccurrences,
     'provider',
     STANDALONE_TTS_PROVIDER_TARGETS,
-    { allProvidersTarget: 'all-tts', allLocalTarget: 'all-local-tts', rawArgs }
+    { allProvidersTarget: 'all-tts', allLocalTarget: 'all-local-tts' }
   )
   const ttsNormalized = normalizeGenericTtsOptionFlags(
     providerNormalized.flags,
     providerNormalized.explicitFlags,
+    providerNormalized.flagOccurrences,
     'kitten'
   )
   const ttsOptions = buildOptsFromFlags(
@@ -872,7 +846,7 @@ export const ttsCommand = defineCliCommand({
     [],
     { defaultTtsEngine: 'kitten' },
     ttsNormalized.explicitFlags,
-    providerNormalized.rawArgs ?? rawArgs
+    ttsNormalized.flagOccurrences
   )
 
   assertDialogueFormatIsUsable(ttsOptions, ttsNormalized.explicitFlags)

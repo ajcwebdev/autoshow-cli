@@ -1,3 +1,4 @@
+import { httpResponseError, isRecord } from '~/utils/rest-client'
 import { createHash } from 'node:crypto'
 import { basename, extname } from 'node:path'
 import { extractHtmlToMarkdown } from '~/cli/commands/process-steps/step-2-extract/step-2-url/url-local/defuddle/run-defuddle-url'
@@ -11,6 +12,7 @@ import * as l from '~/utils/app-logger/app-logger'
 import { DEFAULT_CLI_CONCURRENCY } from '~/utils/concurrency-defaults'
 import { countReferenceTokens, REFERENCE_TOKENIZER_METADATA } from '~/utils/reference-tokenizer'
 import { classifyFetchRetry, withRetry } from '~/utils/retries'
+import { mapWithConcurrency } from '~/utils/run-with-concurrency'
 import { LINKS_FETCH_TIMEOUT_MS } from '~/utils/timeouts'
 import modelLinks from './model-links'
 
@@ -42,39 +44,8 @@ const hashRefreshContent = (content: string): string =>
   createHash('sha256').update(content, 'utf8').digest('hex')
 const countCharacters = (content: string): number =>
   Array.from(content).length
-const mapWithConcurrency = async <TItem, TResult>(
-  items: TItem[],
-  concurrency: number,
-  mapItem: (item: TItem, index: number) => Promise<TResult>
-): Promise<TResult[]> => {
-  if (items.length === 0) {
-    return []
-  }
-
-  const results = new Array<TResult>(items.length)
-  const workerCount = Math.min(Math.max(1, Math.floor(concurrency)), items.length)
-  let nextIndex = 0
-
-  const runWorker = async (): Promise<void> => {
-    while (true) {
-      const index = nextIndex
-      nextIndex += 1
-      if (index >= items.length) {
-        return
-      }
-      results[index] = await mapItem(items[index] as TItem, index)
-    }
-  }
-
-  await Promise.all(Array.from({ length: workerCount }, () => runWorker()))
-  return results
-}
-const createHttpFetchError = (response: Response): Error & { status: number, headers: Headers } => {
-  const error = new Error(`HTTP ${response.status} ${response.statusText}`) as Error & { status: number, headers: Headers }
-  error.status = response.status
-  error.headers = response.headers
-  return error
-}
+const createHttpFetchError = (response: Response): Error =>
+  httpResponseError(`HTTP ${response.status} ${response.statusText}`, response)
 const sanitizeLinksOutputStem = (rawStem: string, fallback: string, maxLength: number): string => {
   const sanitized = rawStem
     .replace(/[^a-zA-Z0-9_-]+/g, '-')
@@ -442,8 +413,6 @@ const fetchUrl = async (url: string, fetchImpl: FetchFn): Promise<FetchUrlResult
   }
 }
 
-const isRecord = (value: unknown): value is Record<string, unknown> =>
-  typeof value === 'object' && value !== null && !Array.isArray(value)
 
 const readPreviousLinksRefreshMetadata = async (
   sidecarPath: string
@@ -624,8 +593,8 @@ export const runLinksWithArgv = async (
   l.write('info', `Fetching ${links.length} documentation URLs with concurrency ${fetchConcurrency}`)
 
   const fetchResults = await mapWithConcurrency(
-    links,
     fetchConcurrency,
+    links,
     async (url) => await fetchUrl(url, fetchImpl)
   )
   const failedUrls = fetchResults

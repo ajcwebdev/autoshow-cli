@@ -1,15 +1,12 @@
 import { basename } from 'node:path'
-import * as v from 'valibot'
 import * as l from '~/utils/app-logger/app-logger'
 import type { DocumentMetadata, GeminiContent, GeminiGenerateContentUsageMetadata, HostedOcrRun, HostedOcrSchedulerRetryPressureHandler, PageResult, RetryDecision } from '~/types'
-import { parseAndValidateStructured } from '~/cli/commands/process-steps/step-3-write/structured-output/validator'
-import { readEnv } from '~/utils/validate/env-utils'
-import { InfraError, InternalError, ValidationError, hintsForMissingEnv } from '~/utils/error-handler'
+import { requireApiKey } from '~/utils/validate/env-utils'
+import { InfraError, InternalError, ValidationError } from '~/utils/error-handler'
 import { classifyGeminiRetry } from '~/cli/commands/process-steps/step-3-write/write-services/write-gemini/gemini-utils'
 import { classifyOcrCreateRetry, OCR_SCHEMA_RETRY_ATTEMPTS, withOcrCreateRetry } from '~/cli/commands/process-steps/step-2-extract/step-2-ocr/ocr-utils/ocr-retry'
 import { getCachedCloudStagingObject } from '~/cli/commands/process-steps/step-2-extract/step-2-ocr/ocr-utils/preparation-cache'
-import { OcrStructuredResponseError } from '~/cli/commands/process-steps/step-2-extract/step-2-ocr/ocr-structured-response-error'
-import { buildHostedOcrJsonPrompt, normalizeHostedOcrPages } from '../../ocr-utils/hosted-ocr-json'
+import { buildHostedOcrJsonPrompt, createHostedOcrResponseParser, HOSTED_OCR_PAGES_JSON_SCHEMA } from '../../ocr-utils/hosted-ocr-json'
 import { geminiDeleteFile, geminiFileDataPart, geminiGenerateContent, geminiGetFile, geminiUploadFile, geminiUserContent, getGeminiFileState } from '~/utils/gemini/gemini-rest'
 import { sanitizeLogText } from '~/utils/app-logger/redaction'
 import {
@@ -18,74 +15,11 @@ import {
   GEMINI_INLINE_PDF_BYTES
 } from './gemini-ocr'
 
-const GeminiOcrEnvelopeSchema = v.object({
-  pages: v.array(v.object({
-    pageNumber: v.pipe(v.number(), v.integer(), v.minValue(1)),
-    text: v.string()
-  }))
-})
-
-const GEMINI_OCR_JSON_SCHEMA = {
-  type: 'object',
-  additionalProperties: false,
-  required: ['pages'],
-  properties: {
-    pages: {
-      type: 'array',
-      items: {
-        type: 'object',
-        additionalProperties: false,
-        required: ['pageNumber', 'text'],
-        properties: {
-          pageNumber: {
-            type: 'integer',
-            minimum: 1
-          },
-          text: {
-            type: 'string'
-          }
-        }
-      }
-    }
-  }
-} as const
-
 const GEMINI_OCR_MIN_OUTPUT_TOKENS = 24_576
 const GEMINI_OCR_SINGLE_PAGE_IMAGE_MAX_OUTPUT_TOKENS = 8_192
 const GEMINI_OCR_MAX_OUTPUT_TOKENS = 65_536
 
-const normalizePages = (
-  value: unknown,
-  expectedPageCount: number
-): PageResult[] => {
-  const parsed = v.safeParse(GeminiOcrEnvelopeSchema, value)
-  if (!parsed.success) {
-    throw ValidationError('Gemini OCR response did not match the expected page schema.', { stage: 'ocr:gemini' })
-  }
-
-  return normalizeHostedOcrPages(parsed.output.pages, expectedPageCount, {
-    emptyPagesMessage: 'Gemini OCR returned no pages.',
-    countMismatchMessage: (actual, expected) => `Gemini OCR returned ${actual} pages, expected ${expected}.`,
-    nonContiguousMessage: 'Gemini OCR returned non-contiguous page numbers.'
-  })
-}
-
-const parseOcrResponse = (
-  rawText: string,
-  expectedPageCount: number
-): PageResult[] => {
-  const validation = parseAndValidateStructured(GeminiOcrEnvelopeSchema, rawText)
-  if (!validation.success) {
-    throw new OcrStructuredResponseError(validation.issue ?? 'Gemini OCR response was not valid JSON.', rawText)
-  }
-
-  try {
-    return normalizePages(validation.value, expectedPageCount)
-  } catch (error) {
-    const message = error instanceof Error ? error.message : String(error)
-    throw new OcrStructuredResponseError(message, rawText)
-  }
-}
+const parseOcrResponse = createHostedOcrResponseParser('Gemini OCR', 'ocr:gemini')
 
 const getGeminiMimeType = (format: DocumentMetadata['format']): string => {
   switch (format) {
@@ -169,7 +103,7 @@ const buildGeminiOcrGenerationConfig = (
   format: DocumentMetadata['format']
 ): Record<string, unknown> => ({
   responseMimeType: 'application/json',
-  responseJsonSchema: GEMINI_OCR_JSON_SCHEMA,
+  responseJsonSchema: HOSTED_OCR_PAGES_JSON_SCHEMA,
   maxOutputTokens: expectedPageCount === 1 && format !== 'pdf'
     ? GEMINI_OCR_SINGLE_PAGE_IMAGE_MAX_OUTPUT_TOKENS
     : buildGeminiOcrMaxOutputTokens(expectedPageCount),
@@ -318,10 +252,7 @@ export const runGeminiOcr = async (
   completionTokens?: number
   providerUsage?: HostedOcrRun['providerUsage']
 }> => {
-  const apiKey = readEnv('GEMINI_API_KEY')
-  if (!apiKey) {
-    throw InternalError('GEMINI_API_KEY environment variable is required for Gemini OCR', { stage: 'ocr:gemini', hints: hintsForMissingEnv('GEMINI_API_KEY') })
-  }
+  const apiKey = requireApiKey('GEMINI_API_KEY', 'ocr:gemini', 'Gemini OCR')
 
   const expectedPageCount = Math.max(1, step1Metadata.pageCount)
   const diagnosticPageNumber = expectedPageCount === 1

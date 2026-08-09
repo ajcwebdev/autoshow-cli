@@ -1,15 +1,14 @@
-import * as l from '~/utils/app-logger/app-logger'
 import { mkdir } from 'node:fs/promises'
 import { basename } from 'node:path'
 import type { GeminiImageModel, Step5Metadata } from '~/types'
-import { logMediaGenerationStatus } from '~/cli/commands/process-steps/generation-command-utils'
-import { readEnv } from '~/utils/validate/env-utils'
+import { logGenCompleted, logGenStatus } from '~/cli/commands/process-steps/generation-command-utils'
+import { requireApiKey } from '~/utils/validate/env-utils'
 import { geminiGenerateContent } from '~/utils/gemini/gemini-rest'
 import { withRetry } from '~/utils/retries'
 import { classifyGeminiRetry } from '~/cli/commands/process-steps/step-3-write/write-services/write-gemini/gemini-utils'
 import { imageReferenceToInlineDataPart } from '../../image-utils/image-inputs'
 import { getProviderReturnedModel } from '../../image-utils/image-output'
-import { InfraError, InternalError, hintsForMissingEnv } from '~/utils/error-handler'
+import { InfraError } from '~/utils/error-handler'
 
 export const runGeminiImageGen = async (
   prompt: string,
@@ -24,10 +23,7 @@ export const runGeminiImageGen = async (
     searchGrounding?: boolean | undefined
   }
 ): Promise<{ imagePaths: string[], metadata: Step5Metadata }> => {
-  const apiKey = readEnv('GEMINI_API_KEY')
-  if (!apiKey) {
-    throw InternalError('GEMINI_API_KEY environment variable is required', { stage: 'image:gemini', hints: hintsForMissingEnv('GEMINI_API_KEY') })
-  }
+  const apiKey = requireApiKey('GEMINI_API_KEY', 'image:gemini')
 
   const startTime = Date.now()
   const imagePaths: string[] = []
@@ -37,13 +33,7 @@ export const runGeminiImageGen = async (
 
   await mkdir(outputDir, { recursive: true })
 
-  logMediaGenerationStatus(l, {
-    mediaType: 'image',
-    provider: 'gemini',
-    model: options.model,
-    status: 'started',
-    detail: mode === 'edit' ? 'native image edit' : 'native image'
-  })
+  logGenStatus('image', 'gemini', options.model, 'started', mode === 'edit' ? 'native image edit' : 'native image')
   const inputParts = await Promise.all((options.inputs ?? []).map(imageReferenceToInlineDataPart))
   const responseModalities = options.responseMode === 'text-image' ? ['TEXT', 'IMAGE'] : ['IMAGE']
 
@@ -101,18 +91,7 @@ export const runGeminiImageGen = async (
   const primaryFile = Bun.file(primaryPath)
   const imageFileSize = primaryFile.size
 
-  logMediaGenerationStatus(l, {
-    mediaType: 'image',
-    provider: 'gemini',
-    model: options.model,
-    status: 'completed',
-    processingTimeMs: processingTime,
-    outputCount: imagePaths.length,
-    artifacts: imagePaths.map((imagePath, index) => ({
-      artifact: index === 0 ? 'image' : `image ${index + 1}`,
-      path: imagePath
-    }))
-  })
+  logGenCompleted('image', 'gemini', options.model, processingTime, imagePaths)
 
   const metadata: Step5Metadata = {
     imageService: 'gemini',

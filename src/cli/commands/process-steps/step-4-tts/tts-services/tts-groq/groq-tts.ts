@@ -1,9 +1,3 @@
-import { readEnv } from '~/utils/validate/env-utils'
-import { InternalError, hintsForMissingEnv } from '~/utils/error-handler'
+import { ensureApiKeySetup } from '~/utils/validate/env-utils'
 
-export const ensureGroqTtsSetup = async (): Promise<void> => {
-  const apiKey = readEnv('GROQ_API_KEY')
-  if (!apiKey) {
-    throw InternalError('GROQ_API_KEY environment variable is required for Groq TTS', { stage: 'tts:groq', hints: hintsForMissingEnv('GROQ_API_KEY') })
-  }
-}
+export const ensureGroqTtsSetup = ensureApiKeySetup('GROQ_API_KEY', 'tts:groq', 'Groq TTS')

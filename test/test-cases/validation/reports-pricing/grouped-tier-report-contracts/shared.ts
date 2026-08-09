@@ -1,8 +1,15 @@
-import { expect } from 'bun:test'
+import { afterEach, expect } from 'bun:test'
 
 import { writeFile } from 'node:fs/promises'
 
 import type { MetricName, MetricRankingEntry, RankingSurfaceName, TtsRankingEntry } from '~/types'
+import { createTempDirTracker } from '../../../../test-utils/rest-contract-helpers'
+
+export const setupTempRoots = (): ((prefix: string) => Promise<string>) => {
+  const tracker = createTempDirTracker('autoshow-grouped-tier-')
+  afterEach(tracker.cleanup)
+  return tracker.make
+}
 
 export const readStreamText = async (
   stream: ReadableStream<Uint8Array> | number | undefined | null

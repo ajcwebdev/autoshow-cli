@@ -141,6 +141,23 @@ const getHeadersFromError = (error: unknown): Headers | undefined => {
   return undefined
 }
 
+const getWrappedRetryCause = (error: unknown): unknown => {
+  const seen = new Set<unknown>()
+  let current = error
+
+  while (
+    current instanceof AppError
+    && current.kind === 'retry_exhausted'
+    && current.cause instanceof Error
+    && !seen.has(current)
+  ) {
+    seen.add(current)
+    current = current.cause
+  }
+
+  return current
+}
+
 export const classifyFetchRetry = (
   error: unknown,
   retryClass: RetryClass,
@@ -172,14 +189,16 @@ export const classifyFetchRetry = (
     return noRetry(`unexpected status ${status}`)
   }
 
-  if (isAbortError(error) || isTimeoutError(error)) {
+  const retryCause = getWrappedRetryCause(error)
+
+  if (isAbortError(retryCause) || isTimeoutError(retryCause)) {
     if (retryClass === 'runtime_http_create_conservative' && options.retryAbortOnConservative !== true) {
       return noRetry('abort/timeout on conservative request')
     }
     return doRetry(0, 'abort/timeout')
   }
 
-  if (isNetworkError(error)) {
+  if (isNetworkError(retryCause)) {
     return doRetry(0, 'network error')
   }
 
@@ -323,6 +342,7 @@ export const withRetry = async <T>(
   const elapsed = Date.now() - startedAt
   const metadata = extractErrorMetadata(lastError)
   const status = typeof metadata['status'] === 'number' ? metadata['status'] : undefined
+  const headers = metadata['headers'] instanceof Headers ? metadata['headers'] : undefined
   const stage = typeof metadata['stage'] === 'string' ? metadata['stage'] : undefined
   const retryable = typeof metadata['retryable'] === 'boolean' ? metadata['retryable'] : undefined
   const retryClass = typeof metadata['retryClass'] === 'string' ? metadata['retryClass'] as RetryClass : ctx.retryClass
@@ -333,6 +353,7 @@ export const withRetry = async <T>(
     cause: toErrorCause(lastError),
     retryClass,
     ...(typeof status === 'number' ? { status } : {}),
+    ...(headers ? { headers } : {}),
     ...(stage ? { stage } : {}),
     ...(typeof retryable === 'boolean' ? { retryable } : {}),
     metadata: {

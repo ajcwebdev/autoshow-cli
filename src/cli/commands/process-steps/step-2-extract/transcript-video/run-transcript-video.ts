@@ -1,11 +1,12 @@
+import { isRecord } from '~/utils/rest-client'
 import { copyFile, mkdir, readdir, rm } from 'node:fs/promises'
-import { basename, dirname, extname, isAbsolute, join, relative, resolve } from 'node:path'
+import { dirname, extname, join, resolve } from 'node:path'
 import { readRunManifest, writeRunManifest } from '~/cli/commands/process-steps/manifest-utils'
 import { resolveRunDirectory } from '~/cli/commands/process-steps/run-dir'
 import { getOutputRoot, getOutputRootAbsolute } from '~/cli/commands/process-steps/output-root'
 import { getAudioDuration } from '~/cli/commands/process-steps/step-2-extract/step-2-stt/stt-utils/audio-splitter'
 import { parseStoredTranscriptionResult } from '~/cli/commands/process-steps/step-2-extract/step-2-stt/stt-utils/stt-result-artifacts'
-import { formatSrt, formatVtt } from '~/cli/commands/process-steps/step-7-music/lyrics-video/captions'
+import { formatCaptionTimestamp, formatSrt, formatVtt, hmsPartsToSeconds } from '~/cli/commands/process-steps/step-7-music/lyrics-video/captions'
 import { TRANSCRIPT_CUE_LIMITS, buildTranscriptionCues } from '~/cli/commands/process-steps/step-7-music/lyrics-video/cue-builder'
 import { buildTranscriptAss, extractTitle, findMatchingImage, FIXED_RENDER_FPS, FIXED_RENDER_HEIGHT, FIXED_RENDER_WIDTH, formatSpeakerDisplayLabel, renderLyricsVideo, TRANSCRIPT_OVERLAY_TEXT_LAYOUT } from '~/cli/commands/process-steps/step-7-music/lyrics-video/render'
 import type { CaptionCue, LoadedTranscription, ProviderResult, RunManifest, TranscriptCue, TranscriptCueSource, TranscriptionResult, TranscriptVideoSource } from '~/types'
@@ -13,31 +14,13 @@ import { ensureDirectory, fileExists } from '~/utils/cli-utils'
 import { CLIUsageError, InfraError, ValidationError } from '~/utils/error-handler'
 import * as l from '~/utils/app-logger/app-logger'
 import { materializeMediaInput } from '~/utils/media-url'
+import { PROJECT_ROOT, baseStem, resolveUserPath, toProjectDisplayPath } from '~/utils/runtime-paths'
 
-
-const PROJECT_ROOT = resolve(import.meta.dir, '../../../../../../')
 const AUDIO_EXTENSIONS = new Set(['.wav', '.mp3', '.m4a', '.flac', '.ogg', '.aac'])
 const TRANSCRIPT_LINE_PATTERN = /^\[(\d{2}:\d{2}:\d{2}(?:[.,]\d{1,3})?)\]\s+(?:\[([^\]]+)\]\s+)?(.*)$/
 const MAX_TRANSCRIPT_WORDS_PER_CUE = 12
 const MAX_TRANSCRIPT_CHARACTERS_PER_CUE = 78
 
-const isRecord = (value: unknown): value is Record<string, unknown> =>
-  typeof value === 'object' && value !== null && !Array.isArray(value)
-
-const toPosixPath = (value: string): string =>
-  value.replace(/\\/g, '/')
-
-const toProjectDisplayPath = (absolutePath: string): string => {
-  const rel = relative(PROJECT_ROOT, absolutePath)
-  if (rel.length === 0 || rel.startsWith('..') || isAbsolute(rel)) {
-    return absolutePath
-  }
-
-  return toPosixPath(rel)
-}
-
-const resolveUserPath = (value: string): string =>
-  resolve(PROJECT_ROOT, value)
 
 const materializeAudioInput = async (
   value: string
@@ -60,9 +43,6 @@ const materializeAudioInput = async (
     cleanup: materialized.cleanup
   }
 }
-
-const baseStem = (filePath: string): string =>
-  basename(filePath, extname(filePath))
 
 const normalizeText = (text: string): string =>
   text.replace(/\s+/g, ' ').trim()
@@ -154,23 +134,7 @@ const parseTimestampToSeconds = (timestamp: string): number => {
     return Number.NaN
   }
 
-  const hours = Number(match[1])
-  const minutes = Number(match[2])
-  const seconds = Number(match[3])
-  const milliseconds = match[5] ? Number(match[5].padEnd(3, '0')) : 0
-
-  if (
-    !Number.isFinite(hours)
-    || !Number.isFinite(minutes)
-    || !Number.isFinite(seconds)
-    || !Number.isFinite(milliseconds)
-    || minutes > 59
-    || seconds > 59
-  ) {
-    return Number.NaN
-  }
-
-  return (hours * 3600) + (minutes * 60) + seconds + (milliseconds / 1000)
+  return hmsPartsToSeconds(match[1]!, match[2]!, match[3]!, match[5]?.padEnd(3, '0') ?? '0')
 }
 
 const repairCueDurations = (
@@ -303,25 +267,14 @@ const buildCuesFromTranscriptText = (
     result: {
       text: repaired.map((cue) => cue.text).join(' ').trim(),
       segments: repaired.map((cue) => ({
-        start: formatCueTimestamp(cue.start),
-        end: formatCueTimestamp(cue.end),
+        start: formatCaptionTimestamp(cue.start, '.'),
+        end: formatCaptionTimestamp(cue.end, '.'),
         text: cue.text,
         ...(cue.speaker ? { speaker: cue.speaker } : {})
       }))
     },
     cues: repaired
   }
-}
-
-const formatCueTimestamp = (seconds: number): string => {
-  const totalMilliseconds = Math.max(0, Math.round(seconds * 1000))
-  const milliseconds = totalMilliseconds % 1000
-  const totalSeconds = Math.floor(totalMilliseconds / 1000)
-  const secs = totalSeconds % 60
-  const totalMinutes = Math.floor(totalSeconds / 60)
-  const minutes = totalMinutes % 60
-  const hours = Math.floor(totalMinutes / 60)
-  return `${String(hours).padStart(2, '0')}:${String(minutes).padStart(2, '0')}:${String(secs).padStart(2, '0')}.${String(milliseconds).padStart(3, '0')}`
 }
 
 // Captions carry the speaker inline because .vtt/.srt have no second line to attribute with; the

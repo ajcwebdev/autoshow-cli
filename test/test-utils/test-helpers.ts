@@ -18,6 +18,7 @@ import { configureOutputRoot } from '~/cli/commands/process-steps/output-root'
 import { LLAMA_PROCESS_LOCK_NAME, stopDefaultLlamaServer } from '~/cli/commands/process-steps/step-3-write/write-local/llama/run-llama'
 import { LLAMAFILE_PROCESS_LOCK_NAME, stopLlamafileServer as stopLlamafileServerInternal } from '~/cli/commands/process-steps/step-3-write/write-local/llamafile/run-llamafile'
 import { withProcessLock } from '~/utils/process-lock'
+import { stripAnsi } from '~/utils/terminal-colors'
 import type {
   AdaptiveCommandAttemptRecord,
   AdaptiveConcurrencyConfig,
@@ -60,8 +61,6 @@ export const STABLE_EXAMPLE_AUDIO_TITLE = STABLE_EXAMPLE_AUDIO_URL.split('/').po
 export const STABLE_TTS_MD_PATH = 'input/examples/tts/1-tts.md'
 export const STABLE_TTS_MD_TITLE = '1-tts'
 const PAGE_IMAGE_PNG_BASE64 = 'iVBORw0KGgoAAAANSUhEUgAAACAAAAAgCAIAAAD8GO2jAAAAN0lEQVR4nO3RwQ0AMAjDwJT9d05HMB9+vgGCZF7bXJrT9XhgwR8gEyETIRMhEyETIRMhEyEThXzH8QM9OMM6fAAAAABJRU5ErkJggg=='
-
-const stripAnsi = (text: string): string => text.replace(/\x1b\[[0-9;]*m/g, '')
 
 const shouldPreserveArtifacts = (): boolean => process.env['AUTOSHOW_TEST_PRESERVE_ARTIFACTS'] !== '0'
 

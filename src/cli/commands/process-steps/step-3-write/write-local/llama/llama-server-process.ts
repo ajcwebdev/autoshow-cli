@@ -1,6 +1,5 @@
 import * as l from '~/utils/app-logger/app-logger'
 import { InfraError } from '~/utils/error-handler'
-import { pollUntil } from '~/utils/retries'
 import {
   LLAMA_BASE_URL,
   LLAMA_SERVER_HEALTH_HEARTBEAT_MS,
@@ -9,112 +8,33 @@ import {
 } from './llama-constants'
 import { clearLlamaServerState, readLlamaServerState } from './llama-server-state'
 import type { LocalLlmServerResourceOptions } from '~/types'
+import {
+  checkLocalServerHealthQuiet,
+  waitForLocalServerHealth,
+} from '../local-server-health'
+import {
+  stopRecordedLocalServer,
+  type RecordedLocalServerStopProfile
+} from '../local-server-stop'
 
-const getErrorCode = (error: unknown): string | undefined =>
-  error instanceof Error && 'code' in error ? (error as Error & { code?: string }).code : undefined
+export const checkLlamaHealthQuiet = async (): Promise<boolean> =>
+  await checkLocalServerHealthQuiet(LLAMA_BASE_URL)
 
-export const checkLlamaHealthQuiet = async (): Promise<boolean> => {
-  try {
-    const response = await fetch(`${LLAMA_BASE_URL}/health`, {
-      method: 'GET',
-      signal: AbortSignal.timeout(2000)
-    })
-    if (!response.ok) {
-      return false
-    }
-    const body = await response.json() as { status?: string }
-    return body?.status === 'ok'
-  } catch {
-    return false
-  }
-}
-
-const waitForLlamaHealthState = async (healthy: boolean, timeoutMs: number): Promise<boolean> => {
-  try {
-    await pollUntil({
-      operationName: healthy ? 'llama-server-wait-healthy' : 'llama-server-wait-stopped',
-      intervalMs: 250,
-      deadlineMs: timeoutMs,
-      pollFn: async () => await checkLlamaHealthQuiet(),
-      isDone: (result) => result === healthy
-    })
-    return true
-  } catch {
-    return false
-  }
-}
-
-const isPidRunning = (pid: number): boolean => {
-  try {
-    process.kill(pid, 0)
-    return true
-  } catch (error) {
-    return getErrorCode(error) === 'EPERM'
-  }
-}
-
-const waitForPidsExit = async (pids: number[], timeoutMs: number): Promise<boolean> => {
-  try {
-    await pollUntil({
-      operationName: 'llama-server-wait-process-exit',
-      intervalMs: 100,
-      deadlineMs: timeoutMs,
-      pollFn: async () => pids.every((pid) => !isPidRunning(pid)),
-      isDone: (allExited) => allExited
-    })
-    return true
-  } catch {
-    return false
-  }
-}
+export const LLAMA_STOP_PROFILE = {
+  serverName: 'llama',
+  baseUrl: LLAMA_BASE_URL,
+  stopTimeoutMs: LLAMA_SERVER_STOP_TIMEOUT_MS,
+  stopPolicy: 'verified-pid',
+  failureMessage: (pid: number) =>
+    `Failed to stop recorded llama-server on localhost:8080 (pid: ${pid})`,
+  stage: 'write:llama',
+  readState: readLlamaServerState,
+  clearState: clearLlamaServerState
+} satisfies RecordedLocalServerStopProfile
 
 const stopRecordedDefaultLlamaServer = async (
   options: LocalLlmServerResourceOptions = {}
-): Promise<boolean> => {
-  const state = await readLlamaServerState(options)
-  if (!state) {
-    return false
-  }
-
-  if (!isPidRunning(state.pid)) {
-    await clearLlamaServerState(state.pid, options)
-    return false
-  }
-
-  try {
-    process.kill(state.pid, 'SIGTERM')
-  } catch (error) {
-    if (getErrorCode(error) === 'ESRCH') {
-      await clearLlamaServerState(state.pid, options)
-      return false
-    }
-    throw error
-  }
-
-  const stoppedAfterTerm = await waitForLlamaHealthState(false, LLAMA_SERVER_STOP_TIMEOUT_MS)
-    && await waitForPidsExit([state.pid], LLAMA_SERVER_STOP_TIMEOUT_MS)
-  if (stoppedAfterTerm) {
-    await clearLlamaServerState(state.pid, options)
-    return true
-  }
-
-  try {
-    process.kill(state.pid, 'SIGKILL')
-  } catch (error) {
-    if (getErrorCode(error) !== 'ESRCH') {
-      throw error
-    }
-  }
-
-  const stoppedAfterKill = await waitForLlamaHealthState(false, LLAMA_SERVER_STOP_TIMEOUT_MS)
-    && await waitForPidsExit([state.pid], LLAMA_SERVER_STOP_TIMEOUT_MS)
-  if (stoppedAfterKill) {
-    await clearLlamaServerState(state.pid, options)
-    return true
-  }
-
-  throw InfraError(`Failed to stop recorded llama-server on localhost:8080 (pid: ${state.pid})`, { stage: 'write:llama' })
-}
+): Promise<boolean> => await stopRecordedLocalServer(LLAMA_STOP_PROFILE, options)
 
 export const stopDefaultLlamaServer = async (
   options: LocalLlmServerResourceOptions = {}
@@ -145,52 +65,14 @@ export const stopRecordedLlamaServerIfPresent = async (): Promise<boolean> =>
 export const waitForLlamaHealth = async (
   timeoutMs: number,
   proc: ReturnType<typeof Bun.spawn>
-): Promise<
-  | { healthy: true }
-  | { healthy: false, reason: 'timeout' }
-  | { healthy: false, reason: 'process_exit', exitCode: number | null }
-> => {
-  const startedAt = Date.now()
-  let lastHeartbeatAt = startedAt
-  let exitCode: number | null = null
-
-  void proc.exited.then(code => {
-    exitCode = code
-  }).catch(() => {
-    exitCode = -1
+): ReturnType<typeof waitForLocalServerHealth> =>
+  waitForLocalServerHealth(timeoutMs, proc, {
+    baseUrl: LLAMA_BASE_URL,
+    operationName: 'llama-server-health',
+    pollIntervalMs: LLAMA_SERVER_HEALTH_POLL_INTERVAL_MS,
+    heartbeatMs: LLAMA_SERVER_HEALTH_HEARTBEAT_MS,
+    label: 'llama-server'
   })
-
-  try {
-    await pollUntil({
-      operationName: 'llama-server-health',
-      intervalMs: LLAMA_SERVER_HEALTH_POLL_INTERVAL_MS,
-      deadlineMs: timeoutMs,
-      pollFn: async () => {
-        const healthy = await checkLlamaHealthQuiet()
-        const now = Date.now()
-        if ((now - lastHeartbeatAt) >= LLAMA_SERVER_HEALTH_HEARTBEAT_MS) {
-          const elapsedSec = Math.floor((now - startedAt) / 1000)
-          l.debug(`waiting for llama-server to become healthy (${elapsedSec}s elapsed)`)
-          lastHeartbeatAt = now
-        }
-        return { healthy, exitCode }
-      },
-      isDone: (result) => result.healthy,
-      isFailed: (result) => {
-        if (result.exitCode !== null) {
-          return { failed: true, reason: `process exited with code ${result.exitCode}` }
-        }
-        return { failed: false }
-      }
-    })
-    return { healthy: true }
-  } catch (error) {
-    if (exitCode !== null) {
-      return { healthy: false, reason: 'process_exit', exitCode }
-    }
-    return { healthy: false, reason: 'timeout' }
-  }
-}
 
 const waitForSpawnedProcessExit = async (
   proc: ReturnType<typeof Bun.spawn>,

@@ -4,7 +4,6 @@ import { getExtractLimits } from '~/cli/commands/setup-and-utilities/models/mode
 import type { DocumentMetadata, ExtractionOptions, HostedDirectImageFormatSet, HostedDirectImageInputStrategy, HostedExtractOcrEngine, HostedOcrIdentity, HostedOcrRun, HostedOcrSchedulerRetryPressureHandler, HostedOcrService, RunHostedOcrPdfChunkFallbackOptions } from '~/types'
 import { commandExists, exec } from '~/utils/cli-utils'
 import { CLIUsageError } from '~/utils/error-handler'
-import { renderPageToImage } from '~/cli/commands/process-steps/step-1-download/document/mutool-utils'
 import { hasAnthropicOcr, hasDeepinfraOcr, hasGeminiOcr, hasGlmOcr, hasGrokOcr, hasKimiOcr, hasMistralOcr, hasOpenAIOcr } from './ocr-engine-selection'
 import { ANTHROPIC_OCR_LIMIT_SOURCE, ensureAnthropicOcrSetup } from './ocr-services/anthropic-ocr/anthropic-ocr'
 import { runAnthropicOcr } from './ocr-services/anthropic-ocr/run-anthropic-ocr'
@@ -24,7 +23,7 @@ import { ensureOpenAIOcrSetup } from './ocr-services/openai-ocr/openai-ocr'
 import { runOpenAIOcr } from './ocr-services/openai-ocr/run-openai-ocr'
 import { isBunImagePngNormalizableFormat, normalizeImageToPngWithBun } from './ocr-utils/bun-image-utils'
 import { runHostedOcrSchedulerAdmission } from './ocr-utils/hosted-ocr-scheduler'
-import { createOcrPdfChunkRenderError, runHostedOcrWithPdfChunkFallback } from './ocr-utils/pdf-chunk-fallback'
+import { createRenderedPngPageChunk, runHostedOcrWithPdfChunkFallback } from './ocr-utils/pdf-chunk-fallback'
 import { isPdfEncrypted, resolvePdfPageCount } from './pdf/pdf-utils'
 
 const formatBytes = (bytes: number): string => {
@@ -344,7 +343,7 @@ const runChunkableHostedPdfOcr = async (
   serviceLabel: string,
   identity: HostedOcrIdentity,
   runProvider: (inputPath: string, inputMetadata: DocumentMetadata, onRetryable?: HostedOcrSchedulerRetryPressureHandler | undefined, pageNumber?: number | undefined) => Promise<HostedOcrRun>,
-  fallbackOptions: Pick<RunHostedOcrPdfChunkFallbackOptions, 'createChunk' | 'chunkFormat' | 'chunkExtension'> = {}
+  fallbackOptions: Pick<RunHostedOcrPdfChunkFallbackOptions, 'createChunk' | 'chunkFormat' | 'chunkExtension' | 'forcePageMode'> = {}
 ): Promise<HostedOcrRun> => {
   const runScheduledProvider = async (
     inputPath: string,
@@ -383,6 +382,7 @@ const runChunkableHostedPdfOcr = async (
     dpi: opts.dpi,
     password: opts.password,
     fallbackDir: opts.outputDir,
+    cacheIdentity: identity,
     pageConcurrency: opts.hostedOcrScheduler?.getMaxConcurrency({
       service: identity.ocrService,
       model: identity.ocrModel,
@@ -452,41 +452,6 @@ const withHostedUsageDetail = (
   }
 }
 
-const createGeminiOcrPageImageChunk = (
-  dpi: number
-): NonNullable<RunHostedOcrPdfChunkFallbackOptions['createChunk']> => async (
-  inputPath,
-  outputPath,
-  range,
-  password
-) => {
-  if (range.startPage !== range.endPage) {
-    throw createOcrPdfChunkRenderError(range, {
-      exitCode: 1,
-      stderr: 'Gemini image page fallback only supports single-page chunks.',
-      stdout: '',
-      command: `mutool draw PNG (${range.startPage === range.endPage ? `page ${range.startPage}` : `pages ${range.startPage}-${range.endPage}`})`
-    })
-  }
-
-  const result = await renderPageToImage(inputPath, range.startPage, dpi, outputPath, password)
-  let outputSize = 0
-  try {
-    outputSize = (await stat(outputPath)).size
-  } catch {
-    outputSize = 0
-  }
-
-  if (result.exitCode !== 0 || outputSize <= 0) {
-    throw createOcrPdfChunkRenderError(range, {
-      exitCode: result.exitCode === 0 ? 1 : result.exitCode,
-      stderr: result.stderr,
-      stdout: result.stdout,
-      command: `mutool draw PNG (page ${range.startPage})`
-    })
-  }
-}
-
 export const runHostedOcr = async (
   filePath: string,
   step1Metadata: DocumentMetadata,
@@ -537,25 +502,38 @@ export const runHostedOcr = async (
   if (hasKimiOcr(opts)) {
     await ensureKimiOcrSetup()
     const ocrModel = opts.kimiOcrModel as string
-    await assertHostedOcrWithinLimits(filePath, step1Metadata, opts)
-    const run = await runKimiOcr(filePath, step1Metadata, ocrModel, {
-      dpi: opts.dpi,
-      password: opts.password,
-      outputDir: opts.outputDir,
-      ocrConcurrency: opts.ocrConcurrency,
-      ocrConcurrencyMode: opts.ocrConcurrencyMode,
-      hostedOcrScheduler: opts.hostedOcrScheduler,
-      ocrPreparationCache: opts.ocrPreparationCache
-    })
-    return withHostedUsageDetail({
-      pages: run.pages,
-      extractionMethod: run.extractionMethod,
+    return await runChunkableHostedPdfOcr(filePath, step1Metadata, opts, 'Kimi OCR', {
+      extractionMethod: 'kimi-ocr',
       ocrService: 'kimi',
-      ocrModel,
-      totalPages: run.totalPages,
-      ...(typeof run.promptTokens === 'number' ? { promptTokens: run.promptTokens } : {}),
-      ...(typeof run.completionTokens === 'number' ? { completionTokens: run.completionTokens } : {})
-    }, { unit: 'document', pages: run.totalPages })
+      ocrModel
+    }, async (inputPath, inputMetadata, onRetryable, pageNumber) => {
+      await assertHostedOcrWithinLimits(inputPath, inputMetadata, opts)
+      const run = await runKimiOcr(inputPath, inputMetadata, ocrModel, {
+        dpi: opts.dpi,
+        password: opts.password,
+        outputDir: opts.outputDir,
+        ocrConcurrency: opts.ocrConcurrency,
+        ocrConcurrencyMode: opts.ocrConcurrencyMode,
+        hostedOcrScheduler: opts.hostedOcrScheduler,
+        ocrPreparationCache: opts.ocrPreparationCache,
+        onRetryable,
+        documentPageNumber: pageNumber
+      })
+      return {
+        pages: run.pages,
+        extractionMethod: run.extractionMethod,
+        ocrService: 'kimi',
+        ocrModel,
+        totalPages: run.totalPages,
+        ...(typeof run.promptTokens === 'number' ? { promptTokens: run.promptTokens } : {}),
+        ...(typeof run.completionTokens === 'number' ? { completionTokens: run.completionTokens } : {})
+      }
+    }, {
+      forcePageMode: true,
+      createChunk: createRenderedPngPageChunk(opts.dpi, opts.ocrPreparationCache),
+      chunkFormat: 'png',
+      chunkExtension: 'png'
+    })
   }
 
   if (hasOpenAIOcr(opts)) {
@@ -583,25 +561,38 @@ export const runHostedOcr = async (
   if (hasGrokOcr(opts)) {
     await ensureGrokOcrSetup()
     const ocrModel = opts.grokOcrModel as string
-    await assertHostedOcrWithinLimits(filePath, step1Metadata, opts)
-    const run = await runGrokOcr(filePath, step1Metadata, ocrModel, {
-      dpi: opts.dpi,
-      password: opts.password,
-      outputDir: opts.outputDir,
-      ocrConcurrency: opts.ocrConcurrency,
-      ocrConcurrencyMode: opts.ocrConcurrencyMode,
-      hostedOcrScheduler: opts.hostedOcrScheduler,
-      ocrPreparationCache: opts.ocrPreparationCache
-    })
-    return withHostedUsageDetail({
-      pages: run.pages,
-      extractionMethod: run.extractionMethod,
+    return await runChunkableHostedPdfOcr(filePath, step1Metadata, opts, 'Grok OCR', {
+      extractionMethod: 'grok-ocr',
       ocrService: 'grok',
-      ocrModel,
-      totalPages: run.totalPages,
-      ...(typeof run.promptTokens === 'number' ? { promptTokens: run.promptTokens } : {}),
-      ...(typeof run.completionTokens === 'number' ? { completionTokens: run.completionTokens } : {})
-    }, { unit: 'document', pages: run.totalPages })
+      ocrModel
+    }, async (inputPath, inputMetadata, onRetryable, pageNumber) => {
+      await assertHostedOcrWithinLimits(inputPath, inputMetadata, opts)
+      const run = await runGrokOcr(inputPath, inputMetadata, ocrModel, {
+        dpi: opts.dpi,
+        password: opts.password,
+        outputDir: opts.outputDir,
+        ocrConcurrency: opts.ocrConcurrency,
+        ocrConcurrencyMode: opts.ocrConcurrencyMode,
+        hostedOcrScheduler: opts.hostedOcrScheduler,
+        ocrPreparationCache: opts.ocrPreparationCache,
+        onRetryable,
+        documentPageNumber: pageNumber
+      })
+      return {
+        pages: run.pages,
+        extractionMethod: run.extractionMethod,
+        ocrService: 'grok',
+        ocrModel,
+        totalPages: run.totalPages,
+        ...(typeof run.promptTokens === 'number' ? { promptTokens: run.promptTokens } : {}),
+        ...(typeof run.completionTokens === 'number' ? { completionTokens: run.completionTokens } : {})
+      }
+    }, {
+      forcePageMode: true,
+      createChunk: createRenderedPngPageChunk(opts.dpi, opts.ocrPreparationCache),
+      chunkFormat: 'png',
+      chunkExtension: 'png'
+    })
   }
 
   if (hasAnthropicOcr(opts)) {
@@ -651,7 +642,7 @@ export const runHostedOcr = async (
         ...(run.providerUsage && run.providerUsage.length > 0 ? { providerUsage: run.providerUsage } : {})
       }
     }, {
-      createChunk: createGeminiOcrPageImageChunk(opts.dpi),
+      createChunk: createRenderedPngPageChunk(opts.dpi, opts.ocrPreparationCache),
       chunkFormat: 'png',
       chunkExtension: 'png'
     })
@@ -660,25 +651,38 @@ export const runHostedOcr = async (
   if (hasDeepinfraOcr(opts)) {
     await ensureDeepinfraOcrSetup()
     const ocrModel = opts.deepinfraOcrModel as string
-    await assertHostedOcrWithinLimits(filePath, step1Metadata, opts)
-    const run = await runDeepinfraOcr(filePath, step1Metadata, ocrModel, {
-      dpi: opts.dpi,
-      password: opts.password,
-      outputDir: opts.outputDir,
-      ocrConcurrency: opts.ocrConcurrency,
-      ocrConcurrencyMode: opts.ocrConcurrencyMode,
-      hostedOcrScheduler: opts.hostedOcrScheduler,
-      ocrPreparationCache: opts.ocrPreparationCache
-    })
-    return withHostedUsageDetail({
-      pages: run.pages,
-      extractionMethod: run.extractionMethod,
+    return await runChunkableHostedPdfOcr(filePath, step1Metadata, opts, 'DeepInfra OCR', {
+      extractionMethod: 'deepinfra-ocr',
       ocrService: 'deepinfra',
-      ocrModel,
-      totalPages: run.totalPages,
-      ...(typeof run.promptTokens === 'number' ? { promptTokens: run.promptTokens } : {}),
-      ...(typeof run.completionTokens === 'number' ? { completionTokens: run.completionTokens } : {})
-    }, { unit: 'document', pages: run.totalPages })
+      ocrModel
+    }, async (inputPath, inputMetadata, onRetryable, pageNumber) => {
+      await assertHostedOcrWithinLimits(inputPath, inputMetadata, opts)
+      const run = await runDeepinfraOcr(inputPath, inputMetadata, ocrModel, {
+        dpi: opts.dpi,
+        password: opts.password,
+        outputDir: opts.outputDir,
+        ocrConcurrency: opts.ocrConcurrency,
+        ocrConcurrencyMode: opts.ocrConcurrencyMode,
+        hostedOcrScheduler: opts.hostedOcrScheduler,
+        ocrPreparationCache: opts.ocrPreparationCache,
+        onRetryable,
+        documentPageNumber: pageNumber
+      })
+      return {
+        pages: run.pages,
+        extractionMethod: run.extractionMethod,
+        ocrService: 'deepinfra',
+        ocrModel,
+        totalPages: run.totalPages,
+        ...(typeof run.promptTokens === 'number' ? { promptTokens: run.promptTokens } : {}),
+        ...(typeof run.completionTokens === 'number' ? { completionTokens: run.completionTokens } : {})
+      }
+    }, {
+      forcePageMode: true,
+      createChunk: createRenderedPngPageChunk(opts.dpi, opts.ocrPreparationCache),
+      chunkFormat: 'png',
+      chunkExtension: 'png'
+    })
   }
 
   throw CLIUsageError('Hosted OCR requested without a configured hosted OCR model.')

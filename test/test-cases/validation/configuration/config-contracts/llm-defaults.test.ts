@@ -2,7 +2,6 @@ import { describe, expect, test } from 'bun:test'
 import { loadConfig } from '~/cli/commands/setup-and-utilities/config/config-loader'
 import {
   buildConfigPatchFromFlags,
-  extractExplicitFlags,
   mergeConfigIntoRawFlags,
   FLAG_TO_CONFIG_PATH
 } from '~/cli/commands/setup-and-utilities/config/config-merge'
@@ -10,14 +9,14 @@ import { normalizeWriteStepSelectorFlags } from '~/cli/flags/service-selector-no
 import { WRITE_LLM_PROVIDER_TARGETS } from '~/cli/flags/service-selector-normalization/provider-targets'
 import type { AutoshowConfig } from '~/types'
 import { writeTempConfig } from './shared'
+import { flagOccurrencesFromValues } from '../../../../test-utils/flag-occurrences'
 
-// Mirrors the config command handler: parse explicit flags off argv, expand the
-// `--llm provider[=model]` selector into its per-provider target flag, then build
-// the patch from the normalized flags and args.
-const patchFromArgv = (argv: string[], flags: Record<string, unknown>): Record<string, unknown> => {
-  const explicitFlags = extractExplicitFlags(argv)
-  const normalized = normalizeWriteStepSelectorFlags(flags, explicitFlags, argv)
-  return buildConfigPatchFromFlags(normalized.flags, normalized.explicitFlags, normalized.rawArgs ?? argv)
+// Mirrors the config command handler: expand the parsed `--llm provider[=model]`
+// occurrences into per-provider target occurrences, then build the patch.
+const patchFromArgv = (_argv: string[], flags: Record<string, unknown>): Record<string, unknown> => {
+  const explicitFlags = new Set(Object.keys(flags))
+  const normalized = normalizeWriteStepSelectorFlags(flags, explicitFlags, flagOccurrencesFromValues(flags, explicitFlags))
+  return buildConfigPatchFromFlags(normalized.flags, normalized.explicitFlags, normalized.flagOccurrences)
 }
 
 describe('config LLM default contracts', () => {

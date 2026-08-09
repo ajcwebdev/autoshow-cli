@@ -65,6 +65,45 @@ export const logMediaGenerationStatus = (
   })
 }
 
+export const logGenStatus = (
+  mediaType: MediaGenerationStatus['mediaType'],
+  provider: string,
+  model: string,
+  status: string,
+  detail?: string
+): void => {
+  logMediaGenerationStatus(l, {
+    mediaType,
+    provider,
+    model,
+    status,
+    ...(detail !== undefined ? { detail } : {})
+  })
+}
+
+export const logGenCompleted = (
+  mediaType: MediaGenerationStatus['mediaType'],
+  provider: string,
+  model: string,
+  processingTimeMs: number,
+  paths: readonly string[],
+  detail?: string
+): void => {
+  logMediaGenerationStatus(l, {
+    mediaType,
+    provider,
+    model,
+    status: 'completed',
+    processingTimeMs,
+    outputCount: paths.length,
+    ...(detail !== undefined ? { detail } : {}),
+    artifacts: paths.map((path, index) => ({
+      artifact: index === 0 ? mediaType : `${mediaType} ${index + 1}`,
+      path
+    }))
+  })
+}
+
 export const resolveMaxCentsFromFlags = async (flags: Record<string, unknown>): Promise<number | undefined> => {
   const configPathOverride = typeof flags['config-path'] === 'string' ? flags['config-path'] : undefined
   const configPath = await resolveConfigPath(configPathOverride)

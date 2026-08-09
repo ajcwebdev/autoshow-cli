@@ -1,17 +1,15 @@
-import { createAsyncSttJobReadyNotifier, createAsyncSttProgressMetadataPersister, pollAsyncSttJobUntilComplete, readPersistedAsyncSttRuntime } from '~/cli/commands/process-steps/step-2-extract/step-2-stt/async-lifecycle'
-import { logSttAsyncJobLifecycle, logSttDiarizationConfig, logSttSegmentLifecycle } from '~/cli/commands/process-steps/step-2-extract/step-2-stt/stt-logging'
-import { buildStep2TimingMetadata } from '~/cli/commands/process-steps/step-2-extract/step-2-stt/stt-timing-metadata'
+import { buildAsyncSttPollingDeadlineError, buildAsyncSttResumeProbeError, runAsyncSttJobLifecycle } from '~/cli/commands/process-steps/step-2-extract/step-2-stt/async-lifecycle'
+import { logSttDiarizationConfig } from '~/cli/commands/process-steps/step-2-extract/step-2-stt/stt-logging'
 import { buildTranscriptionWordEvidence } from '~/cli/commands/process-steps/step-2-extract/step-2-stt/stt-utils/stt-evidence'
 import { buildSegmentsFromWords, buildTranscriptionOutputBase, countTokens, formatTranscriptText, resolveTranscriptionOutput, toTimestamp } from '~/cli/commands/process-steps/step-2-extract/step-2-stt/stt-utils/stt-utils'
-import type { HostedAsyncSttRunOptions, RetryClass, Step2Metadata, Step2RuntimeMetadata, SttUploadJobHttpError, TranscriptionResult, TranscriptionSegment } from '~/types'
+import type { AsyncSttLifecycleMetrics, HostedAsyncSttRunOptions, RetryClass, Step2Metadata, SttStageHttpError, TranscriptionResult, TranscriptionSegment } from '~/types'
 import { AssemblyAiTranscriptResponseSchema } from '~/types'
 import { ASSEMBLYAI_DEFAULT_BASE_URL } from '~/utils/base-urls'
 import * as l from '~/utils/app-logger/app-logger'
-import { withRetry } from '~/utils/retries'
-import { readEnv } from '~/utils/validate/env-utils'
-import { validateData } from '~/utils/validate/validation'
-import { InternalError, ValidationError, hintsForMissingEnv } from '~/utils/error-handler'
-import { classifySttFetchRetryWithMetrics, createSttRetryMetrics } from '../../stt-retry-metrics'
+import { InternalError, ValidationError } from '~/utils/error-handler'
+import { requireApiKey } from '~/utils/validate/env-utils'
+import * as v from 'valibot'
+import { lifecycleMetricsToCallbacks, sttStageRequest, sttStageRequestWithRetryAfter } from '../stt-stage-request'
 
 const INITIAL_POLL_INTERVAL_MS = 1000
 const MAX_POLL_INTERVAL_MS = 10000
@@ -34,65 +32,115 @@ const formatSpeaker = (speaker: string | undefined): string | undefined => {
   return `speaker-${speaker}`
 }
 
-const parseRetryAfterMs = (headers: Headers): number | null => {
-  const retryAfter = headers.get('retry-after')
-  if (!retryAfter) {
-    return null
-  }
-
-  const asSeconds = Number.parseFloat(retryAfter)
-  if (Number.isFinite(asSeconds) && asSeconds >= 0) {
-    return Math.round(asSeconds * 1000)
-  }
-
-  const asDate = Date.parse(retryAfter)
-  if (Number.isFinite(asDate)) {
-    return Math.max(0, asDate - Date.now())
-  }
-
-  return null
-}
-
 const attachAssemblyAiErrorContext = (
   error: unknown,
-  stage: 'upload' | 'create' | 'poll',
+  stage: string,
   retryClass: RetryClass
 ): never => {
   const source = error instanceof Error ? error : new Error(String(error))
-  ;(source as SttUploadJobHttpError).stage = stage
-  ;(source as SttUploadJobHttpError).retryClass = retryClass
+  ;(source as SttStageHttpError).stage = stage
+  ;(source as SttStageHttpError).retryClass = retryClass
   throw source
 }
 
-const buildPollingDeadlineError = (
-  transcriptId: string,
-  pollDeadlineMs: number
-): never => {
-  const error = Object.assign(
-    new Error(`AssemblyAI timed out waiting for transcription completion for ${transcriptId} (deadline exceeded after ${pollDeadlineMs}ms)`),
-    {
-      stage: 'poll',
-      retryClass: 'runtime_http_read' as RetryClass,
-      retryable: true
-    }
-  )
-  throw error
+const uploadAssemblyAiAudio = async (
+  apiKey: string,
+  audioPath: string,
+  metrics: AsyncSttLifecycleMetrics
+): Promise<string> => {
+  const uploadResult = await sttStageRequest({
+    operationName: 'assemblyai-upload',
+    stage: 'upload',
+    retryClass: 'runtime_http_create_conservative',
+    maxAttempts: 4,
+    timeoutMs: REQUEST_TIMEOUT_MS,
+    errorPrefix: 'AssemblyAI',
+    schema: v.unknown(),
+    schemaLabel: 'AssemblyAI upload response',
+    metrics: lifecycleMetricsToCallbacks(metrics),
+    attachError: attachAssemblyAiErrorContext,
+    doFetch: (signal) => fetch(`${ASSEMBLYAI_DEFAULT_BASE_URL}/v2/upload`, {
+      method: 'POST',
+      headers: {
+        'authorization': apiKey,
+        'content-type': 'application/octet-stream'
+      },
+      body: Bun.file(audioPath),
+      signal: signal ?? null
+    })
+  })
+
+  const uploadRecord = uploadResult as Record<string, unknown> | null
+  if (typeof uploadRecord !== 'object' || uploadRecord === null || typeof uploadRecord['upload_url'] !== 'string') {
+    throw ValidationError('AssemblyAI upload response missing upload_url', { stage: 'stt:assemblyai' })
+  }
+
+  return uploadRecord['upload_url']
 }
 
-const buildResumeProbeError = (
+const createAssemblyAiTranscript = async (
+  apiKey: string,
+  audioUrl: string,
+  modelName: string,
+  speakerCount: number | undefined,
+  metrics: AsyncSttLifecycleMetrics
+): Promise<string> => {
+  const createResult = await sttStageRequest({
+    operationName: 'assemblyai-create-transcript',
+    stage: 'create',
+    retryClass: 'runtime_http_create_conservative',
+    maxAttempts: 4,
+    timeoutMs: REQUEST_TIMEOUT_MS,
+    errorPrefix: 'AssemblyAI',
+    failureLabel: 'transcript creation',
+    schema: v.unknown(),
+    schemaLabel: 'AssemblyAI transcript creation response',
+    metrics: lifecycleMetricsToCallbacks(metrics),
+    attachError: attachAssemblyAiErrorContext,
+    doFetch: (signal) => fetch(`${ASSEMBLYAI_DEFAULT_BASE_URL}/v2/transcript`, {
+      method: 'POST',
+      headers: {
+        'authorization': apiKey,
+        'content-type': 'application/json'
+      },
+      body: JSON.stringify(buildAssemblyAiTranscriptRequest(audioUrl, modelName, speakerCount)),
+      signal: signal ?? null
+    })
+  })
+
+  const createRecord = createResult as Record<string, unknown> | null
+  if (typeof createRecord !== 'object' || createRecord === null || typeof createRecord['id'] !== 'string') {
+    throw ValidationError('AssemblyAI transcript creation response missing id', { stage: 'stt:assemblyai' })
+  }
+
+  return createRecord['id']
+}
+
+const pollAssemblyAiTranscript = async (
+  apiKey: string,
   transcriptId: string,
-  probeCount: number,
-  totalWaitMs: number
-): never => {
-  const error = Object.assign(
-    new Error(`AssemblyAI transcript ${transcriptId} is still pending after ${probeCount} resume status checks (${totalWaitMs}ms total backoff). Retry the command later.`),
-    {
-      stage: 'poll',
-      retryClass: 'runtime_http_read' as RetryClass,
-      retryable: true
-    }
-  )
-  throw error
+  metrics: AsyncSttLifecycleMetrics
+): Promise<{ status: v.InferOutput<typeof AssemblyAiTranscriptResponseSchema>, retryAfterMs: number | null }> => {
+  const { value, retryAfterMs } = await sttStageRequestWithRetryAfter({
+    operationName: 'assemblyai-poll-transcript',
+    stage: 'poll',
+    retryClass: 'runtime_http_read',
+    maxAttempts: 6,
+    timeoutMs: POLL_REQUEST_TIMEOUT_MS,
+    errorPrefix: 'AssemblyAI',
+    failureLabel: 'polling',
+    schema: AssemblyAiTranscriptResponseSchema,
+    schemaLabel: 'AssemblyAI transcript response',
+    metrics: lifecycleMetricsToCallbacks(metrics),
+    attachError: attachAssemblyAiErrorContext,
+    doFetch: (signal) => fetch(`${ASSEMBLYAI_DEFAULT_BASE_URL}/v2/transcript/${transcriptId}`, {
+      method: 'GET',
+      headers: { 'authorization': apiKey },
+      signal: signal ?? null
+    })
+  })
+
+  return { status: value, retryAfterMs }
 }
 
 export const runAssemblyAiTranscribe = async (
@@ -110,14 +158,8 @@ export const runAssemblyAiTranscribe = async (
     runMode,
     lifecycle
   } = options
-  const apiKey = readEnv('ASSEMBLYAI_API_KEY')
-  if (!apiKey) {
-    throw InternalError('ASSEMBLYAI_API_KEY environment variable is required for AssemblyAI transcription', { stage: 'stt:assemblyai', hints: hintsForMissingEnv('ASSEMBLYAI_API_KEY') })
-  }
+  const apiKey = requireApiKey('ASSEMBLYAI_API_KEY', 'stt:assemblyai', 'AssemblyAI transcription')
 
-  if (segmentNumber && totalSegments) {
-    logSttSegmentLifecycle(l, { provider: 'assemblyai', action: 'started', segmentNumber, totalSegments, model: modelName })
-  }
   if (diarizationOptions?.speakerCount !== undefined) {
     logSttDiarizationConfig(l, {
       provider: 'assemblyai',
@@ -130,358 +172,101 @@ export const runAssemblyAiTranscribe = async (
   const startTime = Date.now()
   const offsetSeconds = segmentOffsetMinutes * 60
   const outputBase = buildTranscriptionOutputBase(outputDir, segmentNumber)
-  let uploadMs = 0
-  let createMs = 0
-  let pollMs = 0
-  let pollSleepMs = 0
-  let createCount = 0
-  let pollCount = 0
-  let requestCount = 0
-  const retryMetrics = createSttRetryMetrics()
-  const backfillCount = runMode === 'backfill' ? 1 : 0
 
-  const baseURL = ASSEMBLYAI_DEFAULT_BASE_URL
-  const headers = {
-    'authorization': apiKey,
-    'content-type': 'application/json'
-  }
-
-  const audioFile = Bun.file(audioPath)
-  let runtime = await readPersistedAsyncSttRuntime(outputDir, {
-    transcriptionService: 'assemblyai',
-    transcriptionModel: modelName
-  })
-  let uploadUrl = runtime?.remoteAssetUrl
-  let transcriptId = runtime?.remoteJobId
-  let resumedExistingTranscript = false
-
-  const buildTimingMetadata = (remoteProcessingMs = 0): Step2Metadata['timings'] =>
-    buildStep2TimingMetadata({
-      uploadMs,
-      createMs,
-      createCount,
-      pollMs,
-      pollSleepMs,
-      pollCount,
-      remoteProcessingMs,
-      requestCount,
-      retryCount: retryMetrics.retryCount,
-      rateLimitCount: retryMetrics.rateLimitCount,
-      backfillCount
-    })
-
-  const buildProgressMetadata = (nextRuntime: Step2RuntimeMetadata): Step2Metadata => ({
-    transcriptionService: 'assemblyai',
-    transcriptionModel: modelName,
-    processingTime: Date.now() - startTime,
-    tokenCount: 0,
-    timings: buildTimingMetadata() ?? {},
-    runtime: nextRuntime
-  })
-
-  const persistProgressMetadata = createAsyncSttProgressMetadataPersister(
+  return await runAsyncSttJobLifecycle<v.InferOutput<typeof AssemblyAiTranscriptResponseSchema>, v.InferOutput<typeof AssemblyAiTranscriptResponseSchema>, string>({
     outputDir,
-    buildProgressMetadata,
-    (nextRuntime) => { runtime = nextRuntime }
-  )
-  const notifyJobReady = createAsyncSttJobReadyNotifier(lifecycle?.onJobReady)
-
-  if (runtime && (runtime.stage === 'created' || runtime.stage === 'polling')) {
-    resumedExistingTranscript = true
-    runtime = {
-      ...runtime,
-      mode: 'resumed',
-      stage: 'polling'
-    }
-    transcriptId = runtime.remoteJobId
-    uploadUrl = runtime.remoteAssetUrl
-    await persistProgressMetadata(runtime)
-    await notifyJobReady(runtime)
-  } else {
-    let uploadResult: unknown
-    try {
-      const uploadStartedAt = Date.now()
-      uploadResult = await withRetry(
-        {
-          retryClass: 'runtime_http_create_conservative',
-          operationName: 'assemblyai-upload',
-          policy: { maxAttempts: 4 },
-          timeoutMs: REQUEST_TIMEOUT_MS
-        },
-        async (signal) => {
-          requestCount += 1
-          const uploadResponse = await fetch(`${baseURL}/v2/upload`, {
-            method: 'POST',
-            headers: {
-              'authorization': apiKey,
-              'content-type': 'application/octet-stream'
-            },
-            body: audioFile,
-            signal: signal ?? null
-          })
-
-          if (!uploadResponse.ok) {
-            const errText = await uploadResponse.text()
-            throw Object.assign(
-              new Error(`AssemblyAI upload failed (${uploadResponse.status}): ${errText}`),
-              {
-                status: uploadResponse.status,
-                headers: uploadResponse.headers,
-                stage: 'upload',
-                retryClass: 'runtime_http_create_conservative'
-              } satisfies Pick<SttUploadJobHttpError, 'status' | 'headers' | 'stage' | 'retryClass'>
-            )
-          }
-
-          return await uploadResponse.json()
-        },
-        classifySttFetchRetryWithMetrics(retryMetrics, 'runtime_http_create_conservative', { retryAbortOnConservative: true })
-      )
-      uploadMs += Date.now() - uploadStartedAt
-    } catch (error) {
-      attachAssemblyAiErrorContext(error, 'upload', 'runtime_http_create_conservative')
-    }
-    const uploadRecord = uploadResult as Record<string, unknown> | null
-    if (typeof uploadRecord !== 'object' || uploadRecord === null || typeof uploadRecord['upload_url'] !== 'string') {
-      throw ValidationError('AssemblyAI upload response missing upload_url', { stage: 'stt:assemblyai' })
-    }
-    uploadUrl = uploadRecord['upload_url']
-
-    const transcriptBody = buildAssemblyAiTranscriptRequest(
-      uploadUrl,
-      modelName,
-      diarizationOptions?.speakerCount
-    )
-
-    let createResult: unknown
-    try {
-      const createStartedAt = Date.now()
-      createResult = await withRetry(
-        {
-          retryClass: 'runtime_http_create_conservative',
-          operationName: 'assemblyai-create-transcript',
-          policy: { maxAttempts: 4 },
-          timeoutMs: REQUEST_TIMEOUT_MS
-        },
-        async (signal) => {
-          requestCount += 1
-          const createResponse = await fetch(`${baseURL}/v2/transcript`, {
-            method: 'POST',
-            headers,
-            body: JSON.stringify(transcriptBody),
-            signal: signal ?? null
-          })
-
-          if (!createResponse.ok) {
-            const errText = await createResponse.text()
-            throw Object.assign(
-              new Error(`AssemblyAI transcript creation failed (${createResponse.status}): ${errText}`),
-              {
-                status: createResponse.status,
-                headers: createResponse.headers,
-                stage: 'create',
-                retryClass: 'runtime_http_create_conservative'
-              } satisfies Pick<SttUploadJobHttpError, 'status' | 'headers' | 'stage' | 'retryClass'>
-            )
-          }
-
-          return await createResponse.json()
-        },
-        classifySttFetchRetryWithMetrics(retryMetrics, 'runtime_http_create_conservative', { retryAbortOnConservative: true })
-      )
-      createMs += Date.now() - createStartedAt
-      createCount += 1
-    } catch (error) {
-      attachAssemblyAiErrorContext(error, 'create', 'runtime_http_create_conservative')
-    }
-    const createRecord = createResult as Record<string, unknown> | null
-    if (typeof createRecord !== 'object' || createRecord === null || typeof createRecord['id'] !== 'string') {
-      throw ValidationError('AssemblyAI transcript creation response missing id', { stage: 'stt:assemblyai' })
-    }
-    transcriptId = createRecord['id']
-
-    const createdRuntime: Step2RuntimeMetadata = {
-      mode: 'fresh',
-      stage: 'polling',
-      remoteJobId: transcriptId,
-      remoteAssetUrl: uploadUrl,
-      createCompletedAt: new Date().toISOString()
-    }
-    await persistProgressMetadata(createdRuntime)
-    await notifyJobReady(createdRuntime)
-  }
-
-  if (!transcriptId) {
-    throw InternalError('AssemblyAI transcript creation did not produce a transcript id', { stage: 'stt:assemblyai' })
-  }
-  const activeTranscriptId = transcriptId
-  logSttAsyncJobLifecycle(l, {
-    provider: `assemblyai/${modelName}`,
-    action: resumedExistingTranscript ? 'resumed' : 'created',
-    remoteId: activeTranscriptId,
-    state: 'polling'
-  })
-
-  const pollResult = await pollAsyncSttJobUntilComplete({
-    jobId: activeTranscriptId,
+    providerService: 'assemblyai',
+    providerLogLabel: 'assemblyai',
+    providerDisplayName: 'AssemblyAI',
+    modelName,
+    startTime,
+    runMode,
+    lifecycle,
+    audioDurationSeconds,
     initialPollIntervalMs: INITIAL_POLL_INTERVAL_MS,
     maxPollIntervalMs: MAX_POLL_INTERVAL_MS,
-    audioDurationSeconds,
-    pollMode: resumedExistingTranscript ? 'resume-probe' : 'fresh',
-    buildDeadlineError: (jobId, pollDeadlineMs) => buildPollingDeadlineError(jobId, pollDeadlineMs),
-    buildResumeProbeError: (jobId, probeCount, totalWaitMs) => buildResumeProbeError(jobId, probeCount, totalWaitMs),
-    poll: async () => {
-      let result!: { payload: unknown, retryAfterMs: number | null }
-      try {
-        const pollStartedAt = Date.now()
-        result = await withRetry(
-          {
-            retryClass: 'runtime_http_read',
-            operationName: 'assemblyai-poll-transcript',
-            policy: { maxAttempts: 6 },
-            timeoutMs: POLL_REQUEST_TIMEOUT_MS
-          },
-          async (signal) => {
-            requestCount += 1
-            const pollResponse = await fetch(`${baseURL}/v2/transcript/${activeTranscriptId}`, {
-              method: 'GET',
-              headers: { 'authorization': apiKey },
-              signal: signal ?? null
-            })
-
-            if (!pollResponse.ok) {
-              const errText = await pollResponse.text()
-              throw Object.assign(
-                new Error(`AssemblyAI polling failed (${pollResponse.status}): ${errText}`),
-                {
-                  status: pollResponse.status,
-                  headers: pollResponse.headers,
-                  stage: 'poll',
-                  retryClass: 'runtime_http_read'
-                } satisfies Pick<SttUploadJobHttpError, 'status' | 'headers' | 'stage' | 'retryClass'>
-              )
-            }
-
-            return {
-              payload: await pollResponse.json(),
-              retryAfterMs: parseRetryAfterMs(pollResponse.headers)
-            }
-          },
-          classifySttFetchRetryWithMetrics(retryMetrics, 'runtime_http_read', { retryAbortOnConservative: true })
-        )
-        pollMs += Date.now() - pollStartedAt
-      } catch (error) {
-        attachAssemblyAiErrorContext(error, 'poll', 'runtime_http_read')
+    segment: { segmentNumber, totalSegments },
+    jobNoun: 'transcript',
+    guardStage: 'stt:assemblyai',
+    uploadAsset: async (metrics) => {
+      const uploadUrl = await uploadAssemblyAiAudio(apiKey, audioPath, metrics)
+      return { value: uploadUrl, remoteAssetUrl: uploadUrl }
+    },
+    createJob: async (metrics, upload) => {
+      if (!upload) {
+        throw InternalError('AssemblyAI upload did not produce an upload URL', { stage: 'stt:assemblyai' })
       }
+      return {
+        jobId: await createAssemblyAiTranscript(
+          apiKey,
+          upload.value,
+          modelName,
+          diarizationOptions?.speakerCount,
+          metrics
+        )
+      }
+    },
+    pollJob: async (jobId, metrics) => await pollAssemblyAiTranscript(apiKey, jobId, metrics),
+    getTranscript: async (_jobId, _metrics, finalStatus) => finalStatus,
+    isComplete: (status) => status.status === 'completed',
+    isFailed: (status) => status.status === 'error'
+      ? `AssemblyAI transcription failed: ${status.error ?? 'unknown error'}`
+      : undefined,
+    buildDeadlineError: (jobId, pollDeadlineMs) => buildAsyncSttPollingDeadlineError('AssemblyAI', jobId, pollDeadlineMs),
+    buildResumeProbeError: (jobId, probeCount, totalWaitMs) => buildAsyncSttResumeProbeError('AssemblyAI', 'transcript', jobId, probeCount, totalWaitMs),
+    buildResult: async ({ transcript, runtime, processingTime, timings }) => {
+      const segments: TranscriptionSegment[] = []
+
+      if (transcript.utterances && transcript.utterances.length > 0) {
+        for (const utterance of transcript.utterances) {
+          segments.push({
+            start: toTimestamp(utterance.start / 1000 + offsetSeconds),
+            end: toTimestamp(utterance.end / 1000 + offsetSeconds),
+            text: utterance.text,
+            ...(formatSpeaker(utterance.speaker) ? { speaker: formatSpeaker(utterance.speaker) } : {})
+          })
+        }
+      } else if (transcript.words && transcript.words.length > 0) {
+        segments.push(...buildSegmentsFromWords(transcript.words.map((word) => ({
+          start: word.start / 1000,
+          end: word.end / 1000,
+          text: word.text,
+          speaker: formatSpeaker(word.speaker)
+        })), offsetSeconds))
+      }
+
+      const evidenceWords = transcript.words?.map((word) => ({
+        startSeconds: (word.start / 1000) + offsetSeconds,
+        endSeconds: (word.end / 1000) + offsetSeconds,
+        text: word.text,
+        normalized: word.text.toLowerCase(),
+        ...(formatSpeaker(word.speaker) ? { speaker: formatSpeaker(word.speaker) } : {}),
+        confidence: word.confidence,
+        timingSource: 'native' as const
+      })) ?? []
+      const { finalSegments, finalText } = resolveTranscriptionOutput(
+        segments,
+        (transcript.text ?? '').trim(),
+        offsetSeconds
+      )
+
+      await Bun.write(`${outputBase}.txt`, formatTranscriptText(finalSegments))
 
       return {
-        status: validateData(AssemblyAiTranscriptResponseSchema, result.payload, 'AssemblyAI transcript response'),
-        retryAfterMs: result.retryAfterMs
+        result: {
+          text: finalText,
+          segments: finalSegments,
+          evidence: buildTranscriptionWordEvidence({ words: evidenceWords, segments: finalSegments, rawResponse: transcript })
+        },
+        metadata: {
+          transcriptionService: 'assemblyai',
+          transcriptionModel: modelName,
+          processingTime,
+          tokenCount: countTokens(finalText),
+          runtime,
+          ...(timings ? { timings } : {})
+        }
       }
-    },
-    isComplete: (status) => status.status === 'completed',
-    isFailed: (status) =>
-      status.status === 'error'
-        ? `AssemblyAI transcription failed: ${status.error ?? 'unknown error'}`
-        : undefined,
-    onProgress: async () => {
-        await persistProgressMetadata({
-          ...(runtime ?? {
-            mode: 'fresh',
-            stage: 'polling',
-            remoteJobId: activeTranscriptId
-          }),
-          mode: (runtime?.mode ?? 'fresh'),
-          stage: 'polling',
-          remoteJobId: activeTranscriptId,
-          ...(uploadUrl ? { remoteAssetUrl: uploadUrl } : {}),
-          ...(runtime?.createCompletedAt ? { createCompletedAt: runtime.createCompletedAt } : {}),
-          lastPollAt: new Date().toISOString()
-        })
-    },
-    withPollSlot: lifecycle?.withPollSlot
-  })
-
-  pollSleepMs += pollResult.pollSleepMs
-  pollCount += pollResult.pollCount
-
-  const transcript = pollResult.status
-  const completedRuntime: Step2RuntimeMetadata = {
-    ...(runtime ?? {
-      mode: 'fresh',
-      stage: 'completed',
-      remoteJobId: activeTranscriptId
-    }),
-    mode: runtime?.mode ?? 'fresh',
-    stage: 'completed',
-    remoteJobId: activeTranscriptId,
-    ...(uploadUrl ? { remoteAssetUrl: uploadUrl } : {}),
-    ...(runtime?.createCompletedAt ? { createCompletedAt: runtime.createCompletedAt } : {}),
-    ...(runtime?.lastPollAt ? { lastPollAt: runtime.lastPollAt } : {}),
-    completedAt: new Date().toISOString()
-  }
-
-  const segments: TranscriptionSegment[] = []
-
-  if (transcript.utterances && transcript.utterances.length > 0) {
-    for (const utterance of transcript.utterances) {
-      const startSec = utterance.start / 1000 + offsetSeconds
-      const endSec = utterance.end / 1000 + offsetSeconds
-      segments.push({
-        start: toTimestamp(startSec),
-        end: toTimestamp(endSec),
-        text: utterance.text,
-        ...(formatSpeaker(utterance.speaker) ? { speaker: formatSpeaker(utterance.speaker) } : {})
-      })
     }
-  } else if (transcript.words && transcript.words.length > 0) {
-    const normalized = transcript.words.map(w => ({
-      start: w.start / 1000,
-      end: w.end / 1000,
-      text: w.text,
-      speaker: formatSpeaker(w.speaker)
-    }))
-    segments.push(...buildSegmentsFromWords(normalized, offsetSeconds))
-  }
-
-  const text = (transcript.text ?? '').trim()
-  const evidenceWords = transcript.words?.map((word) => ({
-    startSeconds: (word.start / 1000) + offsetSeconds,
-    endSeconds: (word.end / 1000) + offsetSeconds,
-    text: word.text,
-    normalized: word.text.toLowerCase(),
-    ...(formatSpeaker(word.speaker) ? { speaker: formatSpeaker(word.speaker) } : {}),
-    confidence: word.confidence,
-    timingSource: 'native' as const
-  })) ?? []
-
-  const { finalSegments, finalText } = resolveTranscriptionOutput(segments, text, offsetSeconds)
-
-  const formattedTranscriptPath = `${outputBase}.txt`
-  await Bun.write(formattedTranscriptPath, formatTranscriptText(finalSegments))
-
-  const processingTime = Date.now() - startTime
-  const remoteProcessingMs = Math.max(0, processingTime - uploadMs - createMs - pollMs)
-  const timings = buildTimingMetadata(remoteProcessingMs)
-  const metadata: Step2Metadata = {
-    transcriptionService: 'assemblyai',
-    transcriptionModel: modelName,
-    processingTime,
-    tokenCount: countTokens(finalText),
-    runtime: completedRuntime,
-    ...(timings ? { timings } : {})
-  }
-
-  if (segmentNumber && totalSegments) {
-    logSttSegmentLifecycle(l, { provider: 'assemblyai', action: 'completed', segmentNumber, totalSegments, model: modelName, processingTimeMs: processingTime })
-  }
-
-  return {
-    result: {
-      text: finalText,
-      segments: finalSegments,
-      evidence: buildTranscriptionWordEvidence({ words: evidenceWords, segments: finalSegments, rawResponse: transcript })
-    },
-    metadata
-  }
+  })
 }

@@ -1,5 +1,5 @@
 import { booleanAllProvidersFlag, priceFlag, sharedConcurrencyFlags } from './shared-flags'
-import { formatProviderList, formatRange, formatUniqueValueList, formatValueList, formatValuesByProvider, pickFlags, renameFlags, withHelpGroup } from './flag-utils'
+import { boolFlag, formatProviderList, formatRange, formatUniqueValueList, formatValueList, formatValuesByProvider, pickFlags, renameFlags, strFlag, strListFlag, withHelpGroup } from './flag-utils'
 import { IMAGE_GENERATION_QUALITIES } from '~/types'
 import type { CliFlagsDefinition } from '~/types'
 import { STANDALONE_IMAGE_PROVIDER_TARGETS } from './service-selector-normalization/provider-targets'
@@ -30,58 +30,23 @@ const seedreamOnlyAspectRatios = REPLICATE_SEEDREAM_ASPECT_RATIO_VALUES.filter(
 )
 
 export const imageGenFlags = {
-  'image-aspect-ratio': {
-    description: `Image aspect ratio: ${formatUniqueValueList(...imageAspectRatioLists)} (provider-specific support; Replicate Seedream also supports ${formatValueList(seedreamOnlyAspectRatios)})`,
-    type: String
-  },
-  'image-size': {
-    description: `Image size/resolution: ${formatValueList(GEMINI_IMAGE_SIZE_VALUES)} (Gemini/Replicate Wan), ${formatValueList(OPENAI_FIXED_IMAGE_SIZE_VALUES)} or flexible WIDTHxHEIGHT for OpenAI gpt-image-2, ${formatValueList(GROK_IMAGE_SIZE_VALUES)} (Grok), WIDTHxHEIGHT for BFL/Replicate custom sizing, or Recraft model-specific WIDTHxHEIGHT/aspect ratio values`,
-    type: String
-  },
-  'image-quality': {
-    description: `Image quality: ${formatValueList(IMAGE_GENERATION_QUALITIES)} (OpenAI, default: auto)`,
-    type: String
-  },
-  'image-format': {
-    description: `Image output format: ${formatUniqueValueList(OPENAI_IMAGE_FORMAT_VALUES, BFL_OUTPUT_FORMATS)} (OpenAI/fal.ai default: png; BFL default: jpeg; Replicate seedream-5-lite supports png|jpeg)`,
-    type: String
-  },
-  'image-background': {
-    description: `Image background: ${formatValueList(OPENAI_IMAGE_BACKGROUND_VALUES)} (OpenAI, default: auto)`,
-    type: String
-  },
-  'image-count': {
-    description: `Number of images to generate in one provider request where supported: ${formatValuesByProvider([
-      { provider: 'OpenAI', values: [formatRange(OPENAI_IMAGE_COUNT_RANGE)] },
-      { provider: 'Grok', values: [formatRange(GROK_IMAGE_COUNT_RANGE)] },
-      { provider: 'Recraft', values: [formatRange(RECRAFT_IMAGE_COUNT_RANGE)] },
-      { provider: 'Replicate Wan', values: [formatRange(REPLICATE_WAN_IMAGE_COUNT_RANGE)] },
-      { provider: 'fal.ai', values: [formatRange(FAL_IMAGE_COUNT_RANGE)] }
-    ])}; default: 1`,
-    type: String
-  },
-  'image-input': {
-    description: `Reference/source image path or URL for edit/reference workflows (repeatable; OpenAI, Grok, Gemini native, BFL, Replicate, Luma Labs, fal.ai; Luma Labs supports up to ${LUMALABS_MAX_IMAGE_INPUTS})`,
-    type: [String] as [StringConstructor]
-  },
-  'image-mask': {
-    description: 'Mask image path for inpainting/edit workflows (OpenAI only)',
-    type: String
-  },
-  'image-response-mode': {
-    description: `Gemini native response mode: ${formatValueList(GEMINI_IMAGE_RESPONSE_MODES)} (default: image)`,
-    type: String
-  },
-  'image-search-grounding': {
-    description: 'Enable Gemini native image generation with Google Search grounding metadata',
-    type: Boolean,
-    default: false,
-    negatable: false
-  },
-  'image-compression': {
-    description: `OpenAI output compression for jpeg/webp images, ${formatRange(OPENAI_IMAGE_COMPRESSION_RANGE)}`,
-    type: String
-  },
+  'image-aspect-ratio': strFlag(`Image aspect ratio: ${formatUniqueValueList(...imageAspectRatioLists)} (provider-specific support; Replicate Seedream also supports ${formatValueList(seedreamOnlyAspectRatios)})`),
+  'image-size': strFlag(`Image size/resolution: ${formatValueList(GEMINI_IMAGE_SIZE_VALUES)} (Gemini/Replicate Wan), ${formatValueList(OPENAI_FIXED_IMAGE_SIZE_VALUES)} or flexible WIDTHxHEIGHT for OpenAI gpt-image-2, ${formatValueList(GROK_IMAGE_SIZE_VALUES)} (Grok), WIDTHxHEIGHT for BFL/Replicate custom sizing, or Recraft model-specific WIDTHxHEIGHT/aspect ratio values`),
+  'image-quality': strFlag(`Image quality: ${formatValueList(IMAGE_GENERATION_QUALITIES)} (OpenAI, default: auto)`),
+  'image-format': strFlag(`Image output format: ${formatUniqueValueList(OPENAI_IMAGE_FORMAT_VALUES, BFL_OUTPUT_FORMATS)} (OpenAI/fal.ai default: png; BFL default: jpeg; Replicate seedream-5-lite supports png|jpeg)`),
+  'image-background': strFlag(`Image background: ${formatValueList(OPENAI_IMAGE_BACKGROUND_VALUES)} (OpenAI, default: auto)`),
+  'image-count': strFlag(`Number of images to generate in one provider request where supported: ${formatValuesByProvider([
+    { provider: 'OpenAI', values: [formatRange(OPENAI_IMAGE_COUNT_RANGE)] },
+    { provider: 'Grok', values: [formatRange(GROK_IMAGE_COUNT_RANGE)] },
+    { provider: 'Recraft', values: [formatRange(RECRAFT_IMAGE_COUNT_RANGE)] },
+    { provider: 'Replicate Wan', values: [formatRange(REPLICATE_WAN_IMAGE_COUNT_RANGE)] },
+    { provider: 'fal.ai', values: [formatRange(FAL_IMAGE_COUNT_RANGE)] }
+  ])}; default: 1`),
+  'image-input': strListFlag(`Reference/source image path or URL for edit/reference workflows (repeatable; OpenAI, Grok, Gemini native, BFL, Replicate, Luma Labs, fal.ai; Luma Labs supports up to ${LUMALABS_MAX_IMAGE_INPUTS})`),
+  'image-mask': strFlag('Mask image path for inpainting/edit workflows (OpenAI only)'),
+  'image-response-mode': strFlag(`Gemini native response mode: ${formatValueList(GEMINI_IMAGE_RESPONSE_MODES)} (default: image)`),
+  'image-search-grounding': boolFlag('Enable Gemini native image generation with Google Search grounding metadata'),
+  'image-compression': strFlag(`OpenAI output compression for jpeg/webp images, ${formatRange(OPENAI_IMAGE_COMPRESSION_RANGE)}`),
 } as const satisfies CliFlagsDefinition
 
 // The standalone `image` command drops the `image-` prefix every other surface keeps
@@ -103,10 +68,7 @@ export const imageCommandOptionNames = {
 } as const satisfies Record<string, string>
 
 const imageProviderSelectionFlags = {
-  provider: {
-    description: `Image provider[=model]: ${formatProviderList(STANDALONE_IMAGE_PROVIDER_TARGETS)}; repeatable`,
-    type: [String] as [StringConstructor]
-  },
+  provider: strListFlag(`Image provider[=model]: ${formatProviderList(STANDALONE_IMAGE_PROVIDER_TARGETS)}; repeatable`),
   ...booleanAllProvidersFlag,
   ...pickFlags(sharedConcurrencyFlags, ['provider-concurrency'])
 } as const satisfies CliFlagsDefinition

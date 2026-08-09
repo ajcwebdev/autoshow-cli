@@ -1,6 +1,4 @@
-import { afterEach } from 'bun:test'
-import { chmod, mkdtemp, rm, writeFile } from 'node:fs/promises'
-import { tmpdir } from 'node:os'
+import { chmod, writeFile } from 'node:fs/promises'
 import { join } from 'node:path'
 import { extractHtmlToMarkdown } from '~/cli/commands/process-steps/step-2-extract/step-2-url/url-local/defuddle/run-defuddle-url'
 import {
@@ -22,8 +20,8 @@ import { buildOptsFromFlags } from '~/cli/commands/process-steps/step-1-download
 import { configureBinDir, getConfiguredBinDir } from '~/utils/runtime-paths'
 import type { DocumentMetadata, ExtractionOptions, HtmlArticleBackend, UrlArticleProviderAdapter, UrlArticleRunResult, UrlRequestOptions } from '~/types'
 import { DEFAULT_URL_REQUEST_TIMEOUT_MS } from '~/cli/commands/process-steps/step-2-extract/step-2-url/url-utils'
+import { installMockFetch, setupContractSuiteLifecycle } from '../../../../test-utils/rest-contract-helpers'
 
-export const originalFetch = globalThis.fetch
 export const envKeys = [
   'FIRECRAWL_API_KEY',
   'GLM_API_KEY',
@@ -34,14 +32,25 @@ export const envKeys = [
   'AUTOSHOW_FAKE_DEFUDDLE_MODE',
   'AUTOSHOW_FAKE_DEFUDDLE_STDERR'
 ] as const
-export const originalEnv = new Map<string, string | undefined>(
-  envKeys.map(key => [key, process.env[key]])
-)
 export const originalBinDir = getConfiguredBinDir()
 export const originalAdapterRuns = new Map<HtmlArticleBackend, UrlArticleProviderAdapter['run']>(
   URL_ARTICLE_BACKENDS.map((backend) => [backend, URL_ARTICLE_PROVIDER_ADAPTERS[backend].run])
 )
-export const tempDirs: string[] = []
+const tempDirs = setupContractSuiteLifecycle({
+  envKeys,
+  tempPrefix: 'autoshow-url-backend-',
+  afterEachExtra: () => {
+    for (const backend of URL_ARTICLE_BACKENDS) {
+      const originalRun = originalAdapterRuns.get(backend)
+      if (originalRun) {
+        URL_ARTICLE_PROVIDER_ADAPTERS[backend].run = originalRun
+      }
+    }
+    configureBinDir(originalBinDir ?? '')
+  }
+})
+
+export const makeTempDir = tempDirs.make
 
 export const longMarkdown = 'This article contains enough meaningful markdown content for the URL backend extraction contract to pass without reaching any hosted provider.'
 export const htmlDocument = `<!doctype html>
@@ -57,26 +66,6 @@ export const htmlDocument = `<!doctype html>
     </article>
   </body>
 </html>`
-
-afterEach(async () => {
-  globalThis.fetch = originalFetch
-  for (const backend of URL_ARTICLE_BACKENDS) {
-    const originalRun = originalAdapterRuns.get(backend)
-    if (originalRun) {
-      URL_ARTICLE_PROVIDER_ADAPTERS[backend].run = originalRun
-    }
-  }
-  for (const key of envKeys) {
-    const originalValue = originalEnv.get(key)
-    if (originalValue === undefined) {
-      delete process.env[key]
-    } else {
-      process.env[key] = originalValue
-    }
-  }
-  configureBinDir(originalBinDir ?? '')
-  await Promise.all(tempDirs.splice(0).map((dir) => rm(dir, { recursive: true, force: true })))
-})
 
 export const buildMockArticle = (
   backend: HtmlArticleBackend,
@@ -104,8 +93,7 @@ export const buildAbortError = (message: string): Error => {
 }
 
 export const writeFakeDefuddleBin = async (): Promise<{ bin: string, argsLog: string }> => {
-  const dir = await mkdtemp(join(tmpdir(), 'autoshow-fake-defuddle-'))
-  tempDirs.push(dir)
+  const dir = await tempDirs.make('autoshow-fake-defuddle-')
   const bin = join(dir, 'defuddle')
   const argsLog = join(dir, 'args.log')
 
@@ -137,10 +125,9 @@ export {
   DEFAULT_URL_REQUEST_TIMEOUT_MS,
   extractHtmlToMarkdown,
   HOSTED_URL_ARTICLE_BACKENDS,
+  installMockFetch,
   join,
-  mkdtemp,
   processUrlArticle,
-  rm,
   runFirecrawlUrl,
   runGlmReaderUrl,
   runOcr,
@@ -148,7 +135,6 @@ export {
   runSupadataUrl,
   runUrlArticleProviderWithStats,
   runZyteUrl,
-  tmpdir,
   URL_ARTICLE_BACKENDS,
   URL_ARTICLE_PROVIDER_ADAPTERS,
   writeFile

@@ -4,9 +4,8 @@ import { MistralOcrResponseSchema } from '~/types'
 import { withOcrCreateRetry } from '~/cli/commands/process-steps/step-2-extract/step-2-ocr/ocr-utils/ocr-retry'
 import { MISTRAL_DEFAULT_BASE_URL } from '~/utils/base-urls'
 import { mistralJsonRequest } from '~/utils/mistral/mistral-client'
-import { readEnv } from '~/utils/validate/env-utils'
+import { requireApiKey } from '~/utils/validate/env-utils'
 import { validateData } from '~/utils/validate/validation'
-import { InternalError, hintsForMissingEnv } from '~/utils/error-handler'
 
 const imageMimeType = (filePath: string): string => {
   const ext = extname(filePath).toLowerCase()
@@ -25,10 +24,7 @@ export const runMistralOcr = async (
 ): Promise<{ pages: PageResult[], extractionMethod: 'mistral-ocr' }> => {
   const baseURL = options.baseURL ?? MISTRAL_DEFAULT_BASE_URL
   const onRetryable = options.onRetryable
-  const apiKey = readEnv('MISTRAL_API_KEY')
-  if (!apiKey) {
-    throw InternalError('MISTRAL_API_KEY environment variable is required for Mistral OCR', { stage: 'ocr:mistral', hints: hintsForMissingEnv('MISTRAL_API_KEY') })
-  }
+  const apiKey = requireApiKey('MISTRAL_API_KEY', 'ocr:mistral', 'Mistral OCR')
 
   const bytes = await Bun.file(filePath).arrayBuffer()
   const base64 = Buffer.from(bytes).toString('base64')

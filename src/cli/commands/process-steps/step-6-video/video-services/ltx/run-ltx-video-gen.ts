@@ -1,8 +1,7 @@
-import * as l from '~/utils/app-logger/app-logger'
 import * as v from 'valibot'
 import type { LtxVideoModel, Step6VideoMetadata, VideoMode } from '~/types'
-import { CLIUsageError, InfraError, InternalError, hintsForMissingEnv } from '~/utils/error-handler'
-import { logMediaGenerationStatus } from '~/cli/commands/process-steps/generation-command-utils'
+import { CLIUsageError, InfraError } from '~/utils/error-handler'
+import { logGenCompleted, logGenStatus } from '~/cli/commands/process-steps/generation-command-utils'
 import { estimateVideoCost, logVideoEstimate } from '~/cli/commands/process-steps/step-6-video/video-utils/video-pricing'
 import {
   normalizeLtxVideoAspectRatio,
@@ -12,9 +11,8 @@ import {
   normalizeLtxVideoSize
 } from '~/cli/commands/process-steps/step-6-video/video-utils/video-normalization'
 import { downloadVideoOutputBytes } from '~/cli/commands/process-steps/step-6-video/video-utils/video-output-download'
-import { pollUntil } from '~/utils/retries'
-import { readEnv } from '~/utils/validate/env-utils'
-import { validateData } from '~/utils/validate/validation'
+import { formatPolledJobError, runPolledJob } from '~/utils/polled-job-client/polled-job'
+import { requireApiKey } from '~/utils/validate/env-utils'
 import { MEDIA_GENERATION_TIMEOUT_MS } from '~/utils/timeouts'
 import { videoMediaReferenceToUrlOrDataUrl } from '../../video-utils/video-media-inputs'
 const LTX_BASE_URL = 'https://api.ltx.video'
@@ -36,20 +34,6 @@ const LtxPollVideoResponseSchema = v.object({
   }), undefined),
   error: v.optional(v.unknown(), undefined)
 })
-
-const formatLtxError = (value: unknown): string => {
-  if (value === undefined || value === null) return 'Unknown error'
-  if (typeof value === 'string') return value
-  if (typeof value === 'object' && 'message' in value) {
-    const message = (value as { message?: unknown }).message
-    if (typeof message === 'string' && message.length > 0) return message
-  }
-  try {
-    return JSON.stringify(value)
-  } catch {
-    return String(value)
-  }
-}
 
 const resolveLtxEndpoint = (mode: VideoMode): 'text-to-video' | 'image-to-video' | 'extend' => {
   if (mode === 'text') return 'text-to-video'
@@ -80,10 +64,7 @@ export const runLtxVideoGen = async (
     inputVideo?: string | undefined
   }
 ): Promise<{ videoPath: string, metadata: Step6VideoMetadata }> => {
-  const apiKey = readEnv('LTXV_API_KEY')
-  if (!apiKey) {
-    throw InternalError('LTXV_API_KEY environment variable is required for LTX video generation', { stage: 'video:ltx', hints: hintsForMissingEnv('LTXV_API_KEY') })
-  }
+  const apiKey = requireApiKey('LTXV_API_KEY', 'video:ltx', 'LTX video generation')
 
   const mode = options.mode ?? 'text'
   const endpoint = resolveLtxEndpoint(mode)
@@ -97,12 +78,7 @@ export const runLtxVideoGen = async (
     requireLtxPrompt(resolvedPrompt)
   }
 
-  logMediaGenerationStatus(l, {
-    mediaType: 'video',
-    provider: 'ltx',
-    model: options.model,
-    status: 'started'
-  })
+  logGenStatus('video', 'ltx', options.model, 'started')
 
   const estimate = estimateVideoCost({
     ltxVideoModel: options.model,
@@ -149,60 +125,34 @@ export const runLtxVideoGen = async (
   }
 
   const startTime = Date.now()
-  const createResp = await fetch(`${LTX_BASE_URL}/v2/${endpoint}`, {
-    method: 'POST',
-    headers: {
-      Authorization: `Bearer ${apiKey}`,
-      'Content-Type': 'application/json'
-    },
-    body: JSON.stringify(requestBody)
-  })
-
-  if (!createResp.ok) {
-    const body = await createResp.text()
-    throw InfraError(`LTX video ${mode} request failed (${createResp.status}): ${body || 'No response body'}`, { stage: 'video:ltx', status: createResp.status })
+  const headers = {
+    Authorization: `Bearer ${apiKey}`,
+    'Content-Type': 'application/json'
   }
-
-  const createData = validateData(
-    LtxCreateVideoResponseSchema,
-    await createResp.json() as unknown,
-    'LTX video generation create response'
-  )
-
-  const taskData = await pollUntil({
+  const { created: createData, result: taskData } = await runPolledJob({
     operationName: 'ltx-video-gen',
     intervalMs: POLL_INTERVAL_MS,
     deadlineMs: POLL_TIMEOUT_MS,
-    pollFn: async () => {
-      const pollResp = await fetch(`${LTX_BASE_URL}/v2/${endpoint}/${encodeURIComponent(createData.id)}`, {
-        method: 'GET',
-        headers: {
-          Authorization: `Bearer ${apiKey}`,
-          'Content-Type': 'application/json'
-        }
-      })
-
-      if (!pollResp.ok) {
-        const body = await pollResp.text()
-        throw InfraError(`LTX video generation query failed (${pollResp.status}): ${body || 'No response body'}`, { stage: 'video:ltx', status: pollResp.status })
-      }
-
-      const data = validateData(
-        LtxPollVideoResponseSchema,
-        await pollResp.json() as unknown,
-        'LTX video generation query response'
-      )
-      logMediaGenerationStatus(l, {
-        mediaType: 'video',
-        provider: 'ltx',
-        model: options.model,
-        status: data.status
-      })
-      return data
+    create: {
+      url: `${LTX_BASE_URL}/v2/${endpoint}`,
+      init: { method: 'POST', headers, body: JSON.stringify(requestBody) },
+      schema: LtxCreateVideoResponseSchema,
+      context: 'LTX video generation create response',
+      stage: 'video:ltx',
+      errorMessage: `LTX video ${mode} request failed`
     },
+    poll: (created) => ({
+      url: `${LTX_BASE_URL}/v2/${endpoint}/${encodeURIComponent(created.id)}`,
+      init: { method: 'GET', headers },
+      schema: LtxPollVideoResponseSchema,
+      context: 'LTX video generation query response',
+      stage: 'video:ltx',
+      errorMessage: 'LTX video generation query failed'
+    }),
+    onPoll: (data) => logGenStatus('video', 'ltx', options.model, data.status),
     isDone: (data) => data.status === 'completed',
     isFailed: (data) => data.status === 'failed'
-      ? { failed: true, reason: formatLtxError(data.error) }
+      ? { failed: true, reason: formatPolledJobError(data.error, 'Unknown error', { readMessage: true }) }
       : { failed: false }
   })
 
@@ -218,16 +168,7 @@ export const runLtxVideoGen = async (
   const videoFile = Bun.file(outputPath)
   const estimateDetail = `Actual billed cost was not returned by the API; estimated ${estimate.totalCost.toFixed(2)}¢.`
 
-  logMediaGenerationStatus(l, {
-    mediaType: 'video',
-    provider: 'ltx',
-    model: options.model,
-    status: 'completed',
-    processingTimeMs: processingTime,
-    outputCount: 1,
-    detail: estimateDetail,
-    artifacts: [{ artifact: 'video', path: outputPath }]
-  })
+  logGenCompleted('video', 'ltx', options.model, processingTime, [outputPath], estimateDetail)
 
   return {
     videoPath: outputPath,

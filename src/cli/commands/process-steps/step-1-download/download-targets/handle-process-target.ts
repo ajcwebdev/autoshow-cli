@@ -8,12 +8,12 @@ import { hasConfiguredOcrProviderSelection, HTML_ARTICLE_OCR_FLAGS_IGNORED_WARNI
 import { ACSM_PRICE_NOTE } from '~/cli/commands/process-steps/step-1-download/document/acsm-fulfillment'
 import { readPromptFileText, resolveWriteTextProjectDefaults } from '~/cli/commands/process-steps/step-3-write/text-input-utils'
 import { loadConfig, resolveConfigPath, resolveMaxCents } from '~/cli/commands/setup-and-utilities/config/config-loader'
-import { extractExplicitFlags, mergeConfigIntoRawFlags } from '~/cli/commands/setup-and-utilities/config/config-merge'
+import { mergeConfigIntoRawFlags } from '~/cli/commands/setup-and-utilities/config/config-merge'
 import { setupYtDependencies } from '~/cli/commands/setup-and-utilities/setup/setup-download/dl-audio/audio'
-import { hasExtractGenericSelectorFlags, normalizeExtractGenericSelectorArgs, normalizeExtractGenericSelectorFlags, stripExtractGenericSelectorArgs, stripExtractGenericSelectorFlags } from '~/cli/flags/service-selector-normalization/extract-selectors'
+import { hasExtractGenericSelectorOccurrences, normalizeExtractGenericSelectorFlags, stripExtractGenericSelectorFlags, stripExtractGenericSelectorOccurrences } from '~/cli/flags/service-selector-normalization/extract-selectors'
 import { normalizeGenericTtsOptionFlags } from '~/cli/flags/service-selector-normalization/generic-tts-option-selectors'
 import { normalizeWriteStepSelectorFlags } from '~/cli/flags/service-selector-normalization/write-step-selectors'
-import type { AggregatedPriceEstimate, ExtractSelectorInputRoutes, ProcessCommand, ResolvedProcessTargetDoubleDash, RuntimeOptions } from '~/types'
+import type { AggregatedPriceEstimate, CliRawParsed, ExtractSelectorInputRoutes, ProcessCommand, ResolvedProcessTargetDoubleDash, RuntimeOptions } from '~/types'
 import { CLIUsageError } from '~/utils/error-handler'
 import * as l from '~/utils/app-logger/app-logger'
 import { buildAggregatedPriceEstimate } from '~/utils/pricing/aggregate-pricing'
@@ -144,8 +144,9 @@ export const handleProcessTarget = async (
   command: ProcessCommand,
   target: string | undefined,
   rawFlags: Record<string, unknown>,
-  doubleDash: string[] = []
+  rawParsed: Pick<CliRawParsed, 'doubleDash' | 'explicitFlags' | 'flagOccurrences'>
 ): Promise<void> => {
+  const doubleDash = rawParsed.doubleDash
   const resolvedDoubleDash = resolveProcessTargetDoubleDash(command, target, doubleDash)
   if (resolvedDoubleDash.kind === 'raw-yt-dlp') {
     await runRawYtDlp(resolvedDoubleDash.ytDlpPassthroughArgs)
@@ -155,26 +156,25 @@ export const handleProcessTarget = async (
   const configPathOverride = typeof rawFlags['config-path'] === 'string' ? rawFlags['config-path'] : undefined
   const resolvedConfigPath = await resolveConfigPath(configPathOverride)
   const config = await loadConfig(resolvedConfigPath)
-  const rawArgv = Bun.argv.slice(2)
-  const parsedExplicitFlags = extractExplicitFlags(rawArgv)
-  const configExplicitFlags = parsedExplicitFlags
+  const configExplicitFlags = rawParsed.explicitFlags
   const mergedFlags = mergeConfigIntoRawFlags(rawFlags, config, configExplicitFlags)
   let optionFlags = mergedFlags
   let explicitFlags = configExplicitFlags
-  let optionArgv = rawArgv
+  let optionOccurrences = rawParsed.flagOccurrences
   let selectorPlan: Awaited<ReturnType<typeof resolveProcessTargetPlan>> | undefined
 
-  if (isExtractCommand(command) && hasExtractGenericSelectorFlags(mergedFlags)) {
+  if (isExtractCommand(command) && hasExtractGenericSelectorOccurrences(optionOccurrences)) {
     const preliminaryFlags = stripExtractGenericSelectorFlags(mergedFlags)
-    const preliminaryArgv = stripExtractGenericSelectorArgs(rawArgv)
+    const preliminaryOccurrences = stripExtractGenericSelectorOccurrences(optionOccurrences)
+    const preliminaryExplicitFlags = new Set(preliminaryOccurrences.map((occurrence) => occurrence.name))
     const preliminaryOpts: RuntimeOptions = {
       ...buildOptsFromFlags(
         true,
         preliminaryFlags,
         doubleDash,
         {},
-        configExplicitFlags,
-        preliminaryArgv
+        preliminaryExplicitFlags,
+        preliminaryOccurrences
       ),
       configPath: resolvedConfigPath
     }
@@ -183,18 +183,18 @@ export const handleProcessTarget = async (
         selectorPlan = await resolveProcessTargetPlan(command, resolvedDoubleDash.resolvedTarget, preliminaryOpts)
         return await resolveExtractSelectorInputRoutes(command, selectorPlan, preliminaryOpts, resolvedDoubleDash.resolvedTarget)
       })()
-    const normalized = normalizeExtractGenericSelectorFlags(mergedFlags, configExplicitFlags, selectorRoutes)
+    const normalized = normalizeExtractGenericSelectorFlags(mergedFlags, configExplicitFlags, optionOccurrences, selectorRoutes)
     optionFlags = normalized.flags
     explicitFlags = normalized.explicitFlags
-    optionArgv = normalizeExtractGenericSelectorArgs(rawArgv, selectorRoutes)
+    optionOccurrences = normalized.flagOccurrences
   }
 
   if (command === 'write') {
-    const selectorNormalized = normalizeWriteStepSelectorFlags(optionFlags, explicitFlags, optionArgv)
-    const ttsNormalized = normalizeGenericTtsOptionFlags(selectorNormalized.flags, selectorNormalized.explicitFlags)
+    const selectorNormalized = normalizeWriteStepSelectorFlags(optionFlags, explicitFlags, optionOccurrences)
+    const ttsNormalized = normalizeGenericTtsOptionFlags(selectorNormalized.flags, selectorNormalized.explicitFlags, selectorNormalized.flagOccurrences)
     optionFlags = ttsNormalized.flags
     explicitFlags = ttsNormalized.explicitFlags
-    optionArgv = selectorNormalized.rawArgs ?? optionArgv
+    optionOccurrences = ttsNormalized.flagOccurrences
   }
 
   const opts: RuntimeOptions = {
@@ -204,7 +204,7 @@ export const handleProcessTarget = async (
       doubleDash,
       {},
       explicitFlags,
-      optionArgv
+      optionOccurrences
     ),
     configPath: resolvedConfigPath
   }

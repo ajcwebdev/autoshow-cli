@@ -1,7 +1,8 @@
-import { expect, beforeAll, afterAll } from 'bun:test'
-import { runCommand, fileExists, findLatestDirectory, cleanupTestOutput, STABLE_EXAMPLE_AUDIO_URL, STABLE_EXAMPLE_AUDIO_TITLE } from '../../../../../../test-utils/test-helpers'
+import { beforeAll, afterAll } from 'bun:test'
+import { cleanupTestOutput, STABLE_EXAMPLE_AUDIO_URL, STABLE_EXAMPLE_AUDIO_TITLE } from '../../../../../../test-utils/test-helpers'
 import { budgetedTest, E2E_TEST_TIMEOUT_MS } from '../../../../../../test-utils/budget'
-import { readRunMetadata } from '../../../../../../test-utils/manifest-helpers'
+import { runCommandAndExpectOutputDir } from '../../../../../../test-utils/service-test-kit'
+import { assertSttExtractRun } from '../../../../../../test-utils/assert-stt-extract-run'
 
 beforeAll(async () => {
   await cleanupTestOutput(STABLE_EXAMPLE_AUDIO_TITLE)
@@ -15,56 +16,19 @@ budgetedTest('transcribe-whisperfile-tiny', 'whisperfile transcribes local audio
   await cleanupTestOutput(STABLE_EXAMPLE_AUDIO_TITLE)
 
   const testName = 'whisperfile transcribes local audio'
-  const result = await runCommand(
+  const outputDir = await runCommandAndExpectOutputDir(
+    STABLE_EXAMPLE_AUDIO_TITLE,
     ['src/cli/create-cli.ts', 'extract', STABLE_EXAMPLE_AUDIO_URL, '--provider', 'whisperfile=tiny'],
     { testName }
   )
 
-  expect(result.exitCode).toBe(0)
-
-  const outputDir = result.outputDir ?? await findLatestDirectory(STABLE_EXAMPLE_AUDIO_TITLE, result.outputRoot)
-  expect(outputDir).not.toBeNull()
-
-  if (outputDir) {
-    const transcriptExists = await fileExists(`${outputDir}/transcription.txt`)
-    expect(transcriptExists).toBe(true)
-
-    const transcriptContent = await Bun.file(`${outputDir}/transcription.txt`).text()
-    expect(transcriptContent.length).toBeGreaterThan(0)
-    expect(transcriptContent).toMatch(/\[\d{2}:\d{2}:\d{2}(?:\.\d{3})?\]/)
-
-    const promptExists = await fileExists(`${outputDir}/prompt.md`)
-    expect(promptExists).toBe(true)
-
-    const metadata = await readRunMetadata(outputDir) as {
-      resolvedStep2?: {
-        route?: string
-        sourceKind?: string
-        providers?: Array<{ service?: string; model?: string }>
-      }
-      requestedProviders?: Array<{ service?: string; model?: string; local?: boolean }>
-      providerStates?: Array<{ service?: string; model?: string; status?: string; artifactDir?: string }>
-      missingProviders?: Array<unknown>
-      step2?: { transcriptionModel?: string }
-    }
-    expect(metadata.resolvedStep2).toMatchObject({
-      route: 'stt',
-      sourceKind: 'media',
-      providers: [{ service: 'whisperfile', model: 'tiny' }]
-    })
-    expect(metadata.requestedProviders).toMatchObject([{ service: 'whisperfile', model: 'tiny', local: true }])
-    expect(metadata.providerStates).toMatchObject([
-      {
-        service: 'whisperfile',
-        model: 'tiny',
-        artifactDir: '.',
-        status: 'succeeded'
-      }
-    ])
-    expect(metadata.missingProviders).toEqual([])
-
-    const step2 = metadata.step2
-    expect(step2).toBeDefined()
-    expect(step2?.transcriptionModel).toContain('whisper-tiny.llamafile')
-  }
+  await assertSttExtractRun(outputDir, {
+    transcriptMatch: /\[\d{2}:\d{2}:\d{2}(?:\.\d{3})?\]/,
+    target: { service: 'whisperfile', model: 'tiny', local: true, origin: 'explicit' },
+    modelMatch: { contains: 'whisper-tiny.llamafile' },
+    expectPrompt: true,
+    resolvedStep2: true,
+    providerStates: true,
+    splitSegmentsDir: false
+  })
 }, E2E_TEST_TIMEOUT_MS)

@@ -25,13 +25,23 @@ import {
   resolveSketchChunks,
   selectSketchPanelRange
 } from '~/cli/commands/process-steps/step-8-comic/comic-commands/generate-sketches/generate-scene-sketches'
-import { DEFAULT_LLM_MODEL, parseDraftScenesArgs, parseGenerateImagesArgs, parseReferenceSketchArgs } from '~/cli/commands/process-steps/step-8-comic/comic-utils/cli-args'
+import {
+  DEFAULT_LLM_MODEL,
+  coerceAndValidateDraftScenes,
+  coerceAndValidateGenerateImages,
+  coerceAndValidateReferenceSketch,
+  parseComicSubcommandArgv
+} from '~/cli/commands/process-steps/step-8-comic/comic-utils/cli-args'
+import {
+  draftScenesCommandDefinition,
+  generateImagesCommandDefinition,
+  referenceSketchCommandDefinition
+} from '~/cli/commands/process-steps/step-8-comic/comic-utils/subcommand-help'
 import {
   draftScenesFlags,
   generateImagesFlags,
   referenceSketchFlags
 } from '~/cli/flags/comic-flags'
-import type { CliFlagsDefinition } from '~/types'
 import { findRegistryServiceForModel } from '~/cli/commands/setup-and-utilities/models/model-loader/registry'
 import {
   getPageComicImageFilename,
@@ -45,6 +55,15 @@ import {
 import type { PanelBundleData, PromptsConfig } from '~/types'
 
 const engineeringBayLocation = { key: 'engineering-bay', raw: 'INT. ENGINEERING BAY' }
+
+const parseDraftScenesArgs = (args: string[]) =>
+  coerceAndValidateDraftScenes(parseComicSubcommandArgv(args, draftScenesCommandDefinition))
+
+const parseGenerateImagesArgs = (args: string[]) =>
+  coerceAndValidateGenerateImages(parseComicSubcommandArgv(args, generateImagesCommandDefinition))
+
+const parseReferenceSketchArgs = (args: string[]) =>
+  coerceAndValidateReferenceSketch(parseComicSubcommandArgv(args, referenceSketchCommandDefinition))
 
 describe('option resolution contracts', () => {
   test('comic scene drafting defaults to gpt-5.6-sol', () => {
@@ -520,48 +539,19 @@ describe('option resolution contracts', () => {
     })
 })
 
-// The comic subcommands document their flags with the tables in src/cli/flags/comic-flags.ts
-// but parse them with the hand-rolled parsers in comic-utils/cli-args.ts. This guards against
-// the two drifting apart: everything the help output advertises must reach a parser branch.
-describe('documented comic flags are accepted by the comic parsers', () => {
-  const documentedInvocations = (flags: CliFlagsDefinition): string[][] => {
-    const invocations: string[][] = []
-    for (const [name, definition] of Object.entries(flags)) {
-      if (definition.type === Boolean) {
-        invocations.push([`--${name}`])
-        if (definition.negatable === true) {
-          invocations.push([`--no-${name}`])
-        }
-        continue
-      }
-      invocations.push([`--${name}`, 'placeholder-value'])
-    }
-    return invocations
-  }
+describe('comic native parser definitions', () => {
+  test('uses the help flag tables directly as the parser definitions', () => {
+    expect(draftScenesCommandDefinition.flags).toBe(draftScenesFlags)
+    expect(generateImagesCommandDefinition.flags).toBe(generateImagesFlags)
+    expect(referenceSketchCommandDefinition.flags).toBe(referenceSketchFlags)
+  })
 
-  const expectFlagIsKnown = (parse: (args: string[]) => unknown, args: string[]): void => {
-    const flag = args[0] as string
-    try {
-      parse(args)
-    } catch (error) {
-      // Value-level rejections are expected for placeholder values; unknown flags are not.
-      expect((error as Error).message).not.toContain(`Unknown argument: ${flag}`)
-    }
-  }
-
-  const cases = [
-    ['draft-scenes', draftScenesFlags as CliFlagsDefinition, parseDraftScenesArgs],
-    ['generate-images', generateImagesFlags as CliFlagsDefinition, parseGenerateImagesArgs],
-    ['reference-sketch', referenceSketchFlags as CliFlagsDefinition, parseReferenceSketchArgs]
-  ] as const
-
-  for (const [subcommand, flags, parse] of cases) {
-    test(`comic ${subcommand} parses every flag it documents`, () => {
-      const invocations = documentedInvocations(flags)
-      expect(invocations.length).toBeGreaterThan(0)
-      for (const args of invocations) {
-        expectFlagIsKnown(parse, args)
-      }
-    })
-  }
+  test('preserves once-only errors and the legacy no-inline-assignment grammar', () => {
+    expect(() => parseGenerateImagesArgs(['script.md', '--grid', '2x3', '--grid', '3x2']))
+      .toThrow('Grid can only be specified once')
+    expect(() => parseGenerateImagesArgs(['script.md', '--grid=2x3']))
+      .toThrow('Unknown argument: --grid=2x3')
+    expect(() => parseGenerateImagesArgs(['script.md', '--qa=false']))
+      .toThrow('Unknown argument: --qa=false')
+  })
 })

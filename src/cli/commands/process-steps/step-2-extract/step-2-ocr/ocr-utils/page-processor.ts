@@ -9,7 +9,7 @@ import { ocrImage } from './tesseract-utils'
 import { isTextUsable } from './page-triage'
 import { logOcrPagesProgress } from '../ocr-logging'
 import { getCachedRenderedPageImage } from './preparation-cache'
-import { normalizeOcrPageConcurrency } from './page-concurrency'
+import { normalizeOcrPageConcurrency } from './ocr-page-concurrency'
 import { InfraError, InternalError } from '~/utils/error-handler'
 
 const toPlainTextFromTsv = (tsv: string): string => {

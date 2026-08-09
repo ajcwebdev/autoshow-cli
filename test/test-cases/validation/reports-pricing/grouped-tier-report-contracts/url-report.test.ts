@@ -1,37 +1,19 @@
 import {
-  afterEach,
   describe,
   expect,
   test
 } from 'bun:test'
-import {
-  mkdir,
-  mkdtemp,
-  rm,
-  writeFile
-} from 'node:fs/promises'
-import { tmpdir } from 'node:os'
+import { writeFile } from 'node:fs/promises'
 import { join } from 'node:path'
 import type { RankingSurfaceName, TtsRankingEntry } from '~/types'
-import { expectRankingSurfaces, runConsensusBuildReport, writeJson } from './shared'
+import { writeMultiProviderRunFixture } from '../../../../test-utils/manifest-helpers'
+import { expectRankingSurfaces, runConsensusBuildReport, setupTempRoots } from './shared'
 
-const tempDirs: string[] = []
-
-const makeTempRoot = async (prefix: string): Promise<string> => {
-  const root = await mkdtemp(join(tmpdir(), prefix))
-  tempDirs.push(root)
-  return root
-}
-
-afterEach(async () => {
-  await Promise.all(tempDirs.splice(0).map((dir) => rm(dir, { recursive: true, force: true })))
-})
+const makeTempRoot = setupTempRoots()
 
 describe('grouped report contracts', () => {
   test('URL comparison report emits full ranking surfaces without tier output', async () => {
       const runDir = await makeTempRoot('autoshow-url-full-surfaces-')
-      const providersDir = join(runDir, 'providers')
-      await mkdir(providersDir, { recursive: true })
       await writeFile(join(runDir, 'consensus-extraction.txt'), 'alpha beta gamma delta epsilon zeta eta theta\n')
 
       const providerArtifacts = [
@@ -42,49 +24,13 @@ describe('grouped report contracts', () => {
         { dir: 'glm-reader', provider: 'glm-reader', model: 'glm-reader', text: 'alpha beta gamma delta epsilon zeta eta theta extra' }
       ]
 
-      await writeJson(join(runDir, 'run.json'), {
-        schemaVersion: 2,
+      await writeMultiProviderRunFixture(runDir, {
         kind: 'url',
-        metadata: {
-          providerStates: providerArtifacts.map((artifact) => ({
-            service: artifact.provider,
-            model: artifact.model,
-            artifactDir: `providers/${artifact.dir}`,
-            status: 'succeeded'
-          })),
-          cost: {
-            actual: {
-              steps: providerArtifacts
-                .filter((artifact) => artifact.cost !== undefined)
-                .map((artifact) => ({ provider: artifact.provider, model: artifact.model, cost: artifact.cost }))
-            }
-          },
-          timing: {
-            actual: {
-              steps: providerArtifacts
-                .filter((artifact) => artifact.processingTime !== undefined)
-                .map((artifact) => ({
-                  provider: artifact.provider,
-                  model: artifact.model,
-                  processingTimeMs: artifact.processingTime
-                }))
-            }
-          }
-        }
-      })
-
-      for (const artifact of providerArtifacts) {
-        const providerDir = join(providersDir, artifact.dir)
-        await mkdir(providerDir, { recursive: true })
-        await writeJson(join(providerDir, 'result.json'), {
-          schemaVersion: 2,
-          kind: 'provider-result',
-          provider: artifact.provider,
-          model: artifact.model,
-          metadata: artifact.processingTime === undefined ? {} : { processingTime: artifact.processingTime },
+        providers: providerArtifacts.map((artifact) => ({
+          ...artifact,
           result: { text: artifact.text }
-        })
-      }
+        }))
+      })
 
       const { stderr } = await runConsensusBuildReport('url', runDir)
       expect(stderr).toBe('')

@@ -1,32 +1,25 @@
 import { HAPPYSCRIBE_DEFAULT_BASE_URL } from '~/utils/base-urls'
-import { readEnv } from '~/utils/validate/env-utils'
+import { ensureApiKeySetup, readEnv, requireApiKey } from '~/utils/validate/env-utils'
 import { classifyFetchRetry, withRetry } from '~/utils/retries'
-import { InternalError, ValidationError, hintsForMissingEnv } from '~/utils/error-handler'
+import { ValidationError } from '~/utils/error-handler'
 import type { HappyScribeOrganization, HappyScribeOrganizationSelection } from '~/types'
+import {
+  extractHappyScribeErrorMessage,
+  isRecord,
+  normalizeHappyScribeId,
+  readHappyScribeJsonOrText
+} from './happyscribe-utils'
 
 const ORGANIZATION_REQUEST_TIMEOUT_MS = 60_000
 
 export const HAPPYSCRIBE_STT_LANGUAGE = 'en-US'
-
-const isRecord = (value: unknown): value is Record<string, unknown> =>
-  typeof value === 'object' && value !== null && !Array.isArray(value)
-
-const normalizeId = (value: unknown): string | undefined => {
-  if (typeof value === 'string' && value.trim().length > 0) {
-    return value.trim()
-  }
-  if (typeof value === 'number' && Number.isFinite(value)) {
-    return String(value)
-  }
-  return undefined
-}
 
 const parseOrganization = (value: unknown): HappyScribeOrganization | undefined => {
   if (!isRecord(value)) {
     return undefined
   }
 
-  const id = normalizeId(value['id'])
+  const id = normalizeHappyScribeId(value['id'])
   if (!id) {
     return undefined
   }
@@ -40,39 +33,6 @@ const parseOrganization = (value: unknown): HappyScribeOrganization | undefined 
       ? { currency: value['currency'].trim().toLowerCase() }
       : {})
   }
-}
-
-const readJsonOrText = async (response: Response): Promise<unknown> => {
-  const rawText = await response.text()
-  if (rawText.length === 0) {
-    return {}
-  }
-
-  try {
-    return JSON.parse(rawText) as unknown
-  } catch {
-    return rawText
-  }
-}
-
-const extractErrorMessage = (payload: unknown): string | undefined => {
-  if (typeof payload === 'string') {
-    const trimmed = payload.trim()
-    return trimmed.length > 0 ? trimmed : undefined
-  }
-
-  if (!isRecord(payload)) {
-    return undefined
-  }
-
-  for (const key of ['message', 'error', 'detail', 'failureMessage', 'failureReason'] as const) {
-    const value = payload[key]
-    if (typeof value === 'string' && value.trim().length > 0) {
-      return value.trim()
-    }
-  }
-
-  return undefined
 }
 
 export const getHappyScribeBaseUrl = (): string => HAPPYSCRIBE_DEFAULT_BASE_URL
@@ -105,10 +65,7 @@ const listHappyScribeOrganizations = async (
     baseURL?: string | undefined
   } = {}
 ): Promise<HappyScribeOrganization[]> => {
-  const apiKey = options.apiKey ?? getHappyScribeApiKey()
-  if (!apiKey) {
-    throw InternalError('HAPPYSCRIBE_API_KEY environment variable is required for Happy Scribe transcription', { stage: 'stt:happyscribe', hints: hintsForMissingEnv('HAPPYSCRIBE_API_KEY') })
-  }
+  const apiKey = options.apiKey ?? requireApiKey('HAPPYSCRIBE_API_KEY', 'stt:happyscribe', 'Happy Scribe transcription')
 
   const baseURL = options.baseURL ?? getHappyScribeBaseUrl()
   const payload = await withRetry(
@@ -127,11 +84,11 @@ const listHappyScribeOrganizations = async (
         },
         signal: signal ?? null
       })
-      const payload = await readJsonOrText(response)
+      const payload = await readHappyScribeJsonOrText(response)
 
       if (!response.ok) {
         throw Object.assign(
-          new Error(`Happy Scribe organizations lookup failed (${response.status}): ${extractErrorMessage(payload) ?? 'Unknown error'}`),
+          new Error(`Happy Scribe organizations lookup failed (${response.status}): ${extractHappyScribeErrorMessage(payload) ?? 'Unknown error'}`),
           {
             status: response.status,
             headers: response.headers,
@@ -213,8 +170,4 @@ export const buildHappyScribeOrganizationResolutionError = (
   ].join(' '))
 }
 
-export const ensureHappyScribeSttSetup = async (): Promise<void> => {
-  if (!getHappyScribeApiKey()) {
-    throw InternalError('HAPPYSCRIBE_API_KEY environment variable is required for Happy Scribe transcription', { stage: 'stt:happyscribe', hints: hintsForMissingEnv('HAPPYSCRIBE_API_KEY') })
-  }
-}
+export const ensureHappyScribeSttSetup = ensureApiKeySetup('HAPPYSCRIBE_API_KEY', 'stt:happyscribe', 'Happy Scribe transcription')

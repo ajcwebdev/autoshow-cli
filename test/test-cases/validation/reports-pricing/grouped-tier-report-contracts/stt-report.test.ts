@@ -1,44 +1,26 @@
 import {
-  afterEach,
   describe,
   expect,
   test
 } from 'bun:test'
-import {
-  mkdir,
-  mkdtemp,
-  rm,
-  writeFile
-} from 'node:fs/promises'
-import { tmpdir } from 'node:os'
+import { writeFile } from 'node:fs/promises'
 import { join } from 'node:path'
 import type { MetricName, MetricRankingEntry } from '~/types'
+import { writeMultiProviderRunFixture } from '../../../../test-utils/manifest-helpers'
 import {
   deprecatedOverallTierKey,
   deprecatedTierSplitKey,
   expectMetricRankings,
   hasOwnKeyDeep,
   runConsensusBuildReport,
-  writeJson
+  setupTempRoots
 } from './shared'
 
-const tempDirs: string[] = []
-
-const makeTempRoot = async (prefix: string): Promise<string> => {
-  const root = await mkdtemp(join(tmpdir(), prefix))
-  tempDirs.push(root)
-  return root
-}
-
-afterEach(async () => {
-  await Promise.all(tempDirs.splice(0).map((dir) => rm(dir, { recursive: true, force: true })))
-})
+const makeTempRoot = setupTempRoots()
 
 describe('grouped report contracts', () => {
   test('STT comparison report emits full metric rankings split by diarization support', async () => {
       const runDir = await makeTempRoot('autoshow-stt-diarization-tiering-')
-      const providersDir = join(runDir, 'providers')
-      await mkdir(providersDir, { recursive: true })
       await writeFile(join(runDir, 'consensus-transcription.txt'), [
         '[00:00:00] [speaker-1] Alpha beta.',
         '[00:00:04] [speaker-2] Gamma delta.'
@@ -97,40 +79,14 @@ describe('grouped report contracts', () => {
         }
       ]
 
-      await writeJson(join(runDir, 'run.json'), {
-        schemaVersion: 2,
+      await writeMultiProviderRunFixture(runDir, {
         kind: 'extract',
         metadata: {
-          step1: { durationSeconds: 8, duration: '00:00:08' },
-          providerStates: providerArtifacts.map((artifact) => ({ artifactDir: `providers/${artifact.dir}` })),
-          cost: {
-            actual: {
-              steps: providerArtifacts
-                .filter((artifact) => artifact.cost !== undefined)
-                .map((artifact) => ({ provider: artifact.provider, model: artifact.model, cost: artifact.cost }))
-            }
-          },
-          timing: {
-            actual: {
-              steps: providerArtifacts.map((artifact) => ({
-                provider: artifact.provider,
-                model: artifact.model,
-                processingTimeMs: artifact.processingTime
-              }))
-            }
-          }
-        }
-      })
-
-      for (const artifact of providerArtifacts) {
-        const providerDir = join(providersDir, artifact.dir)
-        await mkdir(providerDir, { recursive: true })
-        await writeJson(join(providerDir, 'result.json'), {
-          schemaVersion: 2,
-          kind: 'provider-result',
-          provider: artifact.provider,
-          model: artifact.model,
-          metadata: { processingTime: artifact.processingTime, tokenCount: 4 },
+          step1: { durationSeconds: 8, duration: '00:00:08' }
+        },
+        providerMetadata: { tokenCount: 4 },
+        providers: providerArtifacts.map((artifact) => ({
+          ...artifact,
           result: {
             text: 'Alpha beta. Gamma delta.',
             segments: artifact.segments,
@@ -139,8 +95,8 @@ describe('grouped report contracts', () => {
               capabilities: { hasSpeakerLabels: artifact.hasSpeakerLabels }
             }
           }
-        })
-      }
+        }))
+      })
 
       const { stderr } = await runConsensusBuildReport('stt', runDir)
       expect(stderr).toBe('')

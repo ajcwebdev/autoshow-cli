@@ -1,8 +1,7 @@
-import * as l from '~/utils/app-logger/app-logger'
 import { mkdir } from 'node:fs/promises'
 import type { OpenAIImageResponse, RecraftImageModel, Step5Metadata } from '~/types'
 import { CLIUsageError, ValidationError } from '~/utils/error-handler'
-import { logMediaGenerationStatus } from '~/cli/commands/process-steps/generation-command-utils'
+import { logGenCompleted, logGenStatus } from '~/cli/commands/process-steps/generation-command-utils'
 import { estimateImageCosts, logImageEstimate } from '~/cli/commands/process-steps/step-5-image/image-utils/image-pricing'
 import { openAIJsonRequest } from '~/utils/openai/openai-client'
 import {
@@ -132,13 +131,7 @@ export const runRecraftImageGen = async (
     logImageEstimate(estimate)
   }
 
-  logMediaGenerationStatus(l, {
-    mediaType: 'image',
-    provider: 'recraft',
-    model: options.model,
-    status: 'started',
-    detail: 'generation'
-  })
+  logGenStatus('image', 'recraft', options.model, 'started', 'generation')
 
   const startTime = Date.now()
   await mkdir(outputDir, { recursive: true })
@@ -165,18 +158,7 @@ export const runRecraftImageGen = async (
   const primaryImagePath = imagePaths[0] as string
   const imageFile = Bun.file(primaryImagePath)
 
-  logMediaGenerationStatus(l, {
-    mediaType: 'image',
-    provider: 'recraft',
-    model: options.model,
-    status: 'completed',
-    processingTimeMs: processingTime,
-    outputCount: imagePaths.length,
-    artifacts: imagePaths.map((imagePath, index) => ({
-      artifact: index === 0 ? 'image' : `image ${index + 1}`,
-      path: imagePath
-    }))
-  })
+  logGenCompleted('image', 'recraft', options.model, processingTime, imagePaths)
 
   return {
     imagePaths,

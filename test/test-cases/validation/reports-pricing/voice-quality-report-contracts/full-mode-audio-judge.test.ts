@@ -1,26 +1,16 @@
 import { describe, expect, test } from 'bun:test'
-import { buildSingleProviderReport, installVoiceQualityReportHooks, join, makeMockFetch, makeSingleProviderTtsRun, writeJson } from './shared'
+import { buildSingleProviderReport, installMockFetch, installVoiceQualityReportHooks, makeAudioJudgeFixtureRun, makeSingleProviderTtsRun, voiceQualityToolCallResponse } from './shared'
 
 installVoiceQualityReportHooks()
 
 describe('voice quality full-mode audio judge contracts', () => {
   test('full TTS mode reads OpenAI audio judge JSON from content before legacy audio transcript', async () => {
-    const { runDir, inputText } = await makeSingleProviderTtsRun()
-    const fixturesPath = join(runDir, 'voice-quality-fixtures.json')
-    await writeJson(fixturesPath, {
-      providers: {
-        'openai/gpt-4o-mini-tts': {
-          stt: {
-            'assemblyai/universal-2': inputText
-          }
-        }
-      }
-    })
+    const { runDir, inputText, fixturesPath } = await makeAudioJudgeFixtureRun()
     process.env['OPENAI_API_KEY'] = 'test-openai-key'
     delete process.env['ASSEMBLYAI_API_KEY']
     let fetchCount = 0
 
-    globalThis.fetch = makeMockFetch(async (input: Parameters<typeof fetch>[0], init?: Parameters<typeof fetch>[1]): Promise<Response> => {
+    installMockFetch(async (_call, input, init): Promise<Response> => {
       fetchCount += 1
       expect(String(input)).toContain('/chat/completions')
       const requestBody = JSON.parse(String(init?.body ?? '{}')) as Record<string, unknown>
@@ -59,22 +49,12 @@ describe('voice quality full-mode audio judge contracts', () => {
   })
 
   test('full TTS mode retries OpenAI audio judge without response_format when JSON mode is unsupported', async () => {
-    const { runDir, inputText } = await makeSingleProviderTtsRun()
-    const fixturesPath = join(runDir, 'voice-quality-fixtures.json')
-    await writeJson(fixturesPath, {
-      providers: {
-        'openai/gpt-4o-mini-tts': {
-          stt: {
-            'assemblyai/universal-2': inputText
-          }
-        }
-      }
-    })
+    const { runDir, inputText, fixturesPath } = await makeAudioJudgeFixtureRun()
     process.env['OPENAI_API_KEY'] = 'test-openai-key'
     delete process.env['ASSEMBLYAI_API_KEY']
     const requestBodies: Array<Record<string, unknown>> = []
 
-    globalThis.fetch = makeMockFetch(async (_input: Parameters<typeof fetch>[0], init?: Parameters<typeof fetch>[1]): Promise<Response> => {
+    installMockFetch(async (_call, _input, init): Promise<Response> => {
       const requestBody = JSON.parse(String(init?.body ?? '{}')) as Record<string, unknown>
       requestBodies.push(requestBody)
 
@@ -100,26 +80,7 @@ describe('voice quality full-mode audio judge contracts', () => {
         type: 'function',
         function: { name: 'record_tts_voice_quality' }
       })
-      return new Response(JSON.stringify({
-        choices: [
-          {
-            message: {
-              tool_calls: [
-                {
-                  type: 'function',
-                  function: {
-                    name: 'record_tts_voice_quality',
-                    arguments: '{"naturalnessScore":88,"pronunciationScore":86,"prosodyScore":87,"artifactScore":91,"confidence":0.77,"notes":"clear"}'
-                  }
-                }
-              ]
-            }
-          }
-        ]
-      }), {
-        status: 200,
-        headers: { 'content-type': 'application/json' }
-      })
+      return voiceQualityToolCallResponse('{"naturalnessScore":88,"pronunciationScore":86,"prosodyScore":87,"artifactScore":91,"confidence":0.77,"notes":"clear"}')
     })
 
     const report = await buildSingleProviderReport(runDir, inputText, {
@@ -131,22 +92,12 @@ describe('voice quality full-mode audio judge contracts', () => {
   })
 
   test('full TTS mode retries OpenAI audio judge with audio output when text-only response says audio is missing', async () => {
-    const { runDir, inputText } = await makeSingleProviderTtsRun()
-    const fixturesPath = join(runDir, 'voice-quality-fixtures.json')
-    await writeJson(fixturesPath, {
-      providers: {
-        'openai/gpt-4o-mini-tts': {
-          stt: {
-            'assemblyai/universal-2': inputText
-          }
-        }
-      }
-    })
+    const { runDir, inputText, fixturesPath } = await makeAudioJudgeFixtureRun()
     process.env['OPENAI_API_KEY'] = 'test-openai-key'
     delete process.env['ASSEMBLYAI_API_KEY']
     const requestBodies: Array<Record<string, unknown>> = []
 
-    globalThis.fetch = makeMockFetch(async (_input: Parameters<typeof fetch>[0], init?: Parameters<typeof fetch>[1]): Promise<Response> => {
+    installMockFetch(async (_call, _input, init): Promise<Response> => {
       const requestBody = JSON.parse(String(init?.body ?? '{}')) as Record<string, unknown>
       requestBodies.push(requestBody)
 
@@ -174,26 +125,7 @@ describe('voice quality full-mode audio judge contracts', () => {
         type: 'function',
         function: { name: 'record_tts_voice_quality' }
       })
-      return new Response(JSON.stringify({
-        choices: [
-          {
-            message: {
-              tool_calls: [
-                {
-                  type: 'function',
-                  function: {
-                    name: 'record_tts_voice_quality',
-                    arguments: '{"naturalnessScore":84,"pronunciationScore":82,"prosodyScore":83,"artifactScore":89,"confidence":0.72,"notes":"clear"}'
-                  }
-                }
-              ]
-            }
-          }
-        ]
-      }), {
-        status: 200,
-        headers: { 'content-type': 'application/json' }
-      })
+      return voiceQualityToolCallResponse('{"naturalnessScore":84,"pronunciationScore":82,"prosodyScore":83,"artifactScore":89,"confidence":0.72,"notes":"clear"}')
     })
 
     const report = await buildSingleProviderReport(runDir, inputText, {
@@ -209,7 +141,7 @@ describe('voice quality full-mode audio judge contracts', () => {
     process.env['OPENAI_API_KEY'] = 'test-openai-key'
     delete process.env['ASSEMBLYAI_API_KEY']
 
-    globalThis.fetch = makeMockFetch(async (): Promise<Response> => new Response(JSON.stringify({
+    installMockFetch(async (): Promise<Response> => new Response(JSON.stringify({
       choices: [
         {
           message: {

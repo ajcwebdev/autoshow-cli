@@ -24,11 +24,19 @@ export type CliParameterDefinition = {
   description?: string
 }
 
+export type CliFlagOccurrence = {
+  name: string
+  raw: string
+  value: string | boolean
+  known: boolean
+}
+
 type CliHelpGroup = readonly [key: string, label: string]
 
 export type CliRawParsed = {
   doubleDash: string[]
   explicitFlags: Set<string>
+  flagOccurrences: CliFlagOccurrence[]
   unknown: Record<string, unknown>
   positionals: Array<{ value: string, index: number }>
 }

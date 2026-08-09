@@ -1,8 +1,9 @@
 import { readInjectedConfigFlags } from '~/cli/commands/process-steps/step-1-download/download-targets/build-opts-from-flags/build-options-config-flags'
 import { URL_ARTICLE_BACKENDS } from '~/cli/commands/process-steps/step-2-extract/step-2-shared/provider-registry'
-import type { ExtractPublicSelectorTarget, ExtractSelectorInputRoutes, SelectorNormalizationResult } from '~/types'
+import type { CliFlagOccurrence, ExtractPublicSelectorTarget, ExtractSelectorInputRoutes, SelectorNormalizationResult } from '~/types'
 import { CLIUsageError } from '~/utils/error-handler'
-import { appendFlagValue, occurrenceValues, parseLongFlagArg, parseProviderSelectorValue, setBooleanFlag } from './flag-helpers'
+import { parseProviderSelectorValue } from './flag-helpers'
+import { applyFlagOccurrenceNormalization, replaceFlagOccurrence } from './occurrence-normalization'
 
 export const EXTRACT_PUBLIC_SELECTOR_FLAGS: Record<string, ExtractPublicSelectorTarget> = {
   reverb: { stt: 'reverb-stt' },
@@ -101,26 +102,10 @@ const selectExtractAllLocalTargets = (
   return targets
 }
 
-const appendExtractGenericTarget = (
-  flags: Record<string, unknown>,
-  target: string,
-  value: string | boolean
-): void => {
-  if (target === 'url-provider') {
-    const current = flags[target]
-    if (typeof current === 'string' && current !== value) {
-      throw CLIUsageError('Article extract supports one --provider URL backend at a time. Use --all-providers, --all-local, or both for URL backend groups.')
-    }
-    flags[target] = value
-    return
-  }
-  appendFlagValue(flags, target, value)
-}
-
-export const hasExtractGenericSelectorFlags = (
-  flags: Record<string, unknown>
+export const hasExtractGenericSelectorOccurrences = (
+  flagOccurrences: readonly CliFlagOccurrence[]
 ): boolean =>
-  occurrenceValues(flags['provider']).length > 0 || flags['all-providers'] === true || flags['all-local'] === true
+  flagOccurrences.some((occurrence) => extractGenericSelectorNames.has(occurrence.name))
 
 export const stripExtractGenericSelectorFlags = (
   flags: Record<string, unknown>
@@ -132,146 +117,68 @@ export const stripExtractGenericSelectorFlags = (
   return stripped
 }
 
-export const stripExtractGenericSelectorArgs = (argv: string[]): string[] => {
-  const stripped: string[] = []
+const extractGenericSelectorNames = new Set(['provider', 'all-providers', 'all-local'])
 
-  for (let i = 0; i < argv.length; i++) {
-    const arg = argv[i] as string
-    if (arg === '--') {
-      stripped.push(...argv.slice(i))
-      break
-    }
-
-    const parsed = parseLongFlagArg(arg)
-    if (!parsed || (parsed.name !== 'provider' && parsed.name !== 'all-providers' && parsed.name !== 'all-local')) {
-      stripped.push(arg)
-      continue
-    }
-
-    if (
-      parsed.name === 'provider'
-      && parsed.inlineValue === undefined
-      && typeof argv[i + 1] === 'string'
-      && argv[i + 1] !== '--'
-      && !argv[i + 1]!.startsWith('--')
-    ) {
-      i++
-    }
-  }
-
-  return stripped
-}
+export const stripExtractGenericSelectorOccurrences = (
+  flagOccurrences: readonly CliFlagOccurrence[]
+): CliFlagOccurrence[] =>
+  flagOccurrences.filter((occurrence) => !extractGenericSelectorNames.has(occurrence.name))
 
 export const normalizeExtractGenericSelectorFlags = (
   flags: Record<string, unknown>,
   explicitFlags: Set<string>,
+  flagOccurrences: readonly CliFlagOccurrence[],
   routes: ExtractSelectorInputRoutes
 ): SelectorNormalizationResult => {
-  const normalizedFlags: Record<string, unknown> = { ...flags }
-  const normalizedExplicitFlags = new Set(explicitFlags)
-  const configuredFlags = readInjectedConfigFlags(normalizedFlags)
+  const normalizedInputFlags: Record<string, unknown> = { ...flags }
+  const configuredFlags = readInjectedConfigFlags(normalizedInputFlags)
 
   if (
-    normalizedFlags['url-provider'] === 'defuddle'
+    normalizedInputFlags['url-provider'] === 'defuddle'
     && !explicitFlags.has('url-provider')
     && !configuredFlags.has('url-provider')
   ) {
-    delete normalizedFlags['url-provider']
+    delete normalizedInputFlags['url-provider']
   }
 
-  for (const value of occurrenceValues(normalizedFlags['provider'])) {
-    const parsed = parseProviderSelectorValue(value, 'provider')
-    for (const target of selectExtractGenericTargets(parsed.provider, parsed.model, routes)) {
-      appendExtractGenericTarget(normalizedFlags, target.target, target.value)
-      normalizedExplicitFlags.add(target.target)
-    }
-  }
-  delete normalizedFlags['provider']
-  normalizedExplicitFlags.delete('provider')
+  let selectedUrlBackend = typeof normalizedInputFlags['url-provider'] === 'string'
+    ? normalizedInputFlags['url-provider']
+    : undefined
 
-  if (normalizedFlags['all-providers'] === true) {
-    for (const target of selectExtractAllProviderTargets(routes)) {
-      setBooleanFlag(normalizedFlags, target)
-      normalizedExplicitFlags.add(target)
-    }
-    delete normalizedFlags['all-providers']
-    normalizedExplicitFlags.delete('all-providers')
-  }
-
-  if (normalizedFlags['all-local'] === true) {
-    for (const target of selectExtractAllLocalTargets(routes)) {
-      setBooleanFlag(normalizedFlags, target)
-      normalizedExplicitFlags.add(target)
-    }
-    delete normalizedFlags['all-local']
-    normalizedExplicitFlags.delete('all-local')
-  }
-
-  return {
-    flags: normalizedFlags,
-    explicitFlags: normalizedExplicitFlags
-  }
-}
-
-export const normalizeExtractGenericSelectorArgs = (
-  argv: string[],
-  routes: ExtractSelectorInputRoutes
-): string[] => {
-  const normalized: string[] = []
-
-  for (let i = 0; i < argv.length; i++) {
-    const arg = argv[i] as string
-    if (arg === '--') {
-      normalized.push(...argv.slice(i))
-      break
-    }
-
-    const parsed = parseLongFlagArg(arg)
-    if (!parsed || (parsed.name !== 'provider' && parsed.name !== 'all-providers' && parsed.name !== 'all-local')) {
-      normalized.push(arg)
-      continue
-    }
-
-    if (parsed.name === 'all-providers') {
-      if (parsed.inlineValue === undefined || !['false', '0', 'no'].includes(parsed.inlineValue.trim().toLowerCase())) {
-        normalized.push(...selectExtractAllProviderTargets(routes).map((target) => `--${target}`))
+  return applyFlagOccurrenceNormalization(normalizedInputFlags, explicitFlags, flagOccurrences, (occurrence) => {
+    if (occurrence.name === 'provider') {
+      if (occurrence.value === false) {
+        return []
       }
-      continue
+      const provider = parseProviderSelectorValue(occurrence.value, 'provider')
+      return selectExtractGenericTargets(provider.provider, provider.model, routes).map((target) => {
+        if (target.target === 'url-provider') {
+          if (selectedUrlBackend !== undefined && selectedUrlBackend !== target.value) {
+            throw CLIUsageError('Article extract supports one --provider URL backend at a time. Use --all-providers, --all-local, or both for URL backend groups.')
+          }
+          selectedUrlBackend = String(target.value)
+        }
+        return replaceFlagOccurrence(
+          occurrence,
+          target.target,
+          target.value,
+          target.target === 'url-provider' || extractBooleanSelectorTargetFlags.has(target.target) ? 'set' : 'append'
+        )
+      })
     }
 
-    if (parsed.name === 'all-local') {
-      if (parsed.inlineValue === undefined || !['false', '0', 'no'].includes(parsed.inlineValue.trim().toLowerCase())) {
-        normalized.push(...selectExtractAllLocalTargets(routes).map((target) => `--${target}`))
-      }
-      continue
+    if (occurrence.name === 'all-providers') {
+      return occurrence.value === true
+        ? selectExtractAllProviderTargets(routes).map((target) => replaceFlagOccurrence(occurrence, target, true))
+        : []
     }
-
-    const hasSeparateValue = parsed.inlineValue === undefined
-      && typeof argv[i + 1] === 'string'
-      && argv[i + 1] !== '--'
-      && !argv[i + 1]!.startsWith('--')
-    const rawValue: string | true = parsed.inlineValue !== undefined
-      ? parsed.inlineValue
-      : hasSeparateValue
-        ? argv[i + 1] as string
-        : true
-    if (hasSeparateValue) {
-      i++
+    if (occurrence.name === 'all-local') {
+      return occurrence.value === true
+        ? selectExtractAllLocalTargets(routes).map((target) => replaceFlagOccurrence(occurrence, target, true))
+        : []
     }
-
-    const provider = parseProviderSelectorValue(rawValue, 'provider')
-    for (const target of selectExtractGenericTargets(provider.provider, provider.model, routes)) {
-      if (target.target === 'url-provider') {
-        normalized.push('--url-provider', String(target.value))
-      } else if (typeof target.value === 'string' && !extractBooleanSelectorTargetFlags.has(target.target)) {
-        normalized.push(`--${target.target}`, target.value)
-      } else {
-        normalized.push(`--${target.target}`)
-      }
-    }
-  }
-
-  return normalized
+    return undefined
+  })
 }
 
 export const describeRoutes = (routes: ExtractSelectorInputRoutes): string => {

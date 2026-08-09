@@ -15,6 +15,7 @@ import {
 import { InfraError } from '~/utils/error-handler'
 import { ACSM_ACCOUNT_REQUIRED_FILES, ACSM_FULFILL_COMMAND } from '~/cli/commands/process-steps/step-1-download/document/acsm-fulfillment'
 import { downloadFile } from '../download'
+import { runCapture } from '~/cli/commands/setup-and-utilities/setup/run-complete-setup'
 import { installManagedUv, resolveUvCommand } from '../managed-uv'
 import { readDependencyUrlAndSha256, readDependencyVersion } from '../../dependency-metadata'
 import type { AcsmWrapperPaths } from '~/types'
@@ -33,36 +34,6 @@ const ACSM_FINGERPRINT_HASH_LINE = "    str_to_hash = serial + devkey_bytes.deco
 const ACSM_FINGERPRINT_RETURN_TEXT_LINE = "    return b64str.decode('latin-1')"
 
 const shellQuote = (value: string): string => `'${value.replace(/'/g, "'\\''")}'`
-
-const commandLine = (command: string, args: readonly string[]): string =>
-  [command, ...args].join(' ')
-
-const runSetupCapture = async (
-  command: string,
-  args: string[],
-  options: { allowFailure?: boolean, cwd?: string, env?: Record<string, string | undefined> } = {}
-): Promise<{ stdout: string, stderr: string, exitCode: number }> => {
-  const proc = Bun.spawn([command, ...args], {
-    ...(options.cwd ? { cwd: options.cwd } : {}),
-    ...(options.env ? { env: { ...(process.env as Record<string, string | undefined>), ...options.env } } : {}),
-    stdout: 'pipe',
-    stderr: 'pipe'
-  })
-  const [stdout, stderr, exitCode] = await Promise.all([
-    proc.stdout ? new Response(proc.stdout).text() : Promise.resolve(''),
-    proc.stderr ? new Response(proc.stderr).text() : Promise.resolve(''),
-    proc.exited
-  ])
-  const result = { stdout, stderr, exitCode }
-  if (exitCode !== 0 && !options.allowFailure) {
-    const detail = stderr.trim() || stdout.trim()
-    throw InfraError(
-      `${commandLine(command, args)} failed with exit code ${exitCode}${detail ? `: ${detail}` : ''}`,
-      { stage: 'setup:acsm' }
-    )
-  }
-  return result
-}
 
 const ensureUvForAcsm = async (): Promise<string> => {
   const existing = await resolveUvCommand()
@@ -106,7 +77,7 @@ export const buildAcsmDeviceFilePreflightCode = (): string =>
   ].join('\n')
 
 const acsmPythonImportCheck = async (pythonPath: string): Promise<boolean> => {
-  const result = await runSetupCapture(
+  const result = await runCapture(
     pythonPath,
     ['-c', 'import lxml, Cryptodome'],
     { allowFailure: true }
@@ -121,8 +92,8 @@ const ensureAcsmPythonEnv = async (): Promise<void> => {
   }
 
   const uv = await ensureUvForAcsm()
-  await runSetupCapture(uv, ['venv', acsmCalibrePluginPythonEnvDir])
-  await runSetupCapture(uv, [
+  await runCapture(uv, ['venv', acsmCalibrePluginPythonEnvDir])
+  await runCapture(uv, [
     'pip',
     'install',
     '--python',
@@ -168,7 +139,7 @@ export const runAcsmStandaloneImportPreflight = async ({
   pluginDir,
   pythonPath
 }: Pick<AcsmWrapperPaths, 'pluginDir' | 'pythonPath'>): Promise<void> => {
-  const result = await runSetupCapture(
+  const result = await runCapture(
     pythonPath,
     ['-c', buildAcsmStandaloneImportCheckCode()],
     {
@@ -191,7 +162,7 @@ export const runAcsmDeviceFilePreflight = async ({
 }: Pick<AcsmWrapperPaths, 'pluginDir' | 'pythonPath'>): Promise<void> => {
   const workDir = await mkdtemp(join(tmpdir(), 'autoshow-acsm-device-preflight-'))
   try {
-    const result = await runSetupCapture(
+    const result = await runCapture(
       pythonPath,
       ['-c', buildAcsmDeviceFilePreflightCode()],
       {

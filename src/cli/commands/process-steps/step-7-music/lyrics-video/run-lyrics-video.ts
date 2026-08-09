@@ -23,8 +23,8 @@ import {
   renderLyricsVideo
 } from './render'
 import type { CaptionCue, LyricsCueSource } from '~/types'
+import { PROJECT_ROOT, baseStem, resolveUserPath, toPosixPath, toProjectDisplayPath } from '~/utils/runtime-paths'
 
-const PROJECT_ROOT = resolve(import.meta.dir, '../../../../../../')
 const DEFAULT_INPUT_ROOT = join(PROJECT_ROOT, 'input')
 
 const logLyricsBatchSummary = (total: number, succeeded: number, failed: number): void => {
@@ -44,21 +44,6 @@ const resolveInputRoot = (flags?: Record<string, unknown>): string => {
   return override ? resolve(PROJECT_ROOT, override) : DEFAULT_INPUT_ROOT
 }
 
-const resolveUserPath = (value: string): string =>
-  resolve(PROJECT_ROOT, value)
-
-const toPosixPath = (value: string): string =>
-  value.replace(/\\/g, '/')
-
-const toProjectDisplayPath = (absolutePath: string): string => {
-  const rel = relative(PROJECT_ROOT, absolutePath)
-  if (rel.length === 0 || rel.startsWith('..') || isAbsolute(rel)) {
-    return absolutePath
-  }
-
-  return toPosixPath(rel)
-}
-
 const isWithinDir = (targetPath: string, directory: string): boolean => {
   const rel = relative(directory, targetPath)
   return rel === '' || (!rel.startsWith('..') && !isAbsolute(rel))
@@ -75,9 +60,6 @@ const ensureProjectPath = (flag: '--captions', filePath: string): void => {
     throw CLIUsageError(`${flag} must point to a file inside the project tree`)
   }
 }
-
-const baseStem = (filePath: string): string =>
-  basename(filePath, extname(filePath))
 
 const findAudioFiles = async (inputDir: string): Promise<string[]> => {
   if (!await fileExists(inputDir)) {

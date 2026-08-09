@@ -60,14 +60,6 @@ export type ArtifactReport = {
   tiering: Record<string, ArtifactTiering>
 }
 
-export type MediaBenchmarkFetchCall = {
-  url: string
-  method: string
-  headers: Headers
-  bodyText: string
-  bodyJson?: Record<string, unknown>
-}
-
 export type MediaBenchmarkRequestBody = {
   model?: string
   input?: Array<{

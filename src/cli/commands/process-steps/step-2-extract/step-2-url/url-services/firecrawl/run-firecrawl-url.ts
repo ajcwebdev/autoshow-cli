@@ -1,23 +1,8 @@
-import * as l from '~/utils/app-logger/app-logger'
-import { readEnv } from '~/utils/validate/env-utils'
-import type { UrlArticleProviderAdapter, UrlArticleRunResult, UrlRequestOptions, WebArticleMetadata } from '~/types'
-import { byteLength, cleanString, countWords, createUrlProviderHttpError, ensureMeaningfulMarkdown, fallbackTitleFromSource, getUrlRequestTimeoutMs, isRecord, normalizeMarkdown, tryFetchRemoteHtml, withUrlProviderTimeout } from '../../url-utils'
-import { InfraError, InternalError, ValidationError, hintsForMissingEnv } from '~/utils/error-handler'
+import type { UrlArticleProviderAdapter, UrlRequestOptions, WebArticleMetadata } from '~/types'
+import { cleanString, countWords, createUrlArticleRun, fetchUrlProviderJson, getUrlRequestTimeoutMs, isRecord, normalizeMarkdown, pickCleanString, requireHostedUrlProviderApiKey } from '../../url-utils'
+import { InfraError, ValidationError } from '~/utils/error-handler'
 
 const FIRECRAWL_DEFAULT_API_URL = 'https://api.firecrawl.dev'
-
-const getFirecrawlMetadataValue = (
-  metadata: Record<string, unknown>,
-  ...keys: string[]
-): string | undefined => {
-  for (const key of keys) {
-    const value = cleanString(metadata[key])
-    if (value) {
-      return value
-    }
-  }
-  return undefined
-}
 
 const parseFirecrawlResponse = (payload: unknown): { markdown: string, web: WebArticleMetadata } => {
   if (!isRecord(payload)) {
@@ -42,14 +27,14 @@ const parseFirecrawlResponse = (payload: unknown): { markdown: string, web: WebA
     : countWords(markdown)
 
   const web: WebArticleMetadata = {}
-  const sourceUrl = getFirecrawlMetadataValue(metadata, 'sourceURL', 'sourceUrl')
-  const finalUrl = getFirecrawlMetadataValue(metadata, 'finalURL', 'finalUrl', 'url')
-  const title = getFirecrawlMetadataValue(metadata, 'title')
-  const author = getFirecrawlMetadataValue(metadata, 'author', 'byline')
-  const site = getFirecrawlMetadataValue(metadata, 'site', 'siteName', 'ogSiteName')
-  const published = getFirecrawlMetadataValue(metadata, 'published', 'publishedTime', 'publishDate')
-  const language = getFirecrawlMetadataValue(metadata, 'language')
-  const description = getFirecrawlMetadataValue(metadata, 'description')
+  const sourceUrl = pickCleanString(metadata, 'sourceURL', 'sourceUrl')
+  const finalUrl = pickCleanString(metadata, 'finalURL', 'finalUrl', 'url')
+  const title = pickCleanString(metadata, 'title')
+  const author = pickCleanString(metadata, 'author', 'byline')
+  const site = pickCleanString(metadata, 'site', 'siteName', 'ogSiteName')
+  const published = pickCleanString(metadata, 'published', 'publishedTime', 'publishDate')
+  const language = pickCleanString(metadata, 'language')
+  const description = pickCleanString(metadata, 'description')
 
   if (sourceUrl) web.sourceUrl = sourceUrl
   if (finalUrl) web.finalUrl = finalUrl
@@ -72,47 +57,19 @@ const runFirecrawlScrape = async (
   options?: UrlRequestOptions,
   baseUrl: string = FIRECRAWL_DEFAULT_API_URL
 ): Promise<{ markdown: string, web: WebArticleMetadata }> => {
-  const apiKey = readEnv('FIRECRAWL_API_KEY')
-  const usingHostedApi = baseUrl === FIRECRAWL_DEFAULT_API_URL
-
-  if (usingHostedApi && !apiKey) {
-    throw InternalError(
-      'FIRECRAWL_API_KEY is required for --url-provider firecrawl when using the hosted API. ' +
-      'Set FIRECRAWL_API_KEY or use a different URL backend.',
-      { stage: 'extract:firecrawl', hints: hintsForMissingEnv('FIRECRAWL_API_KEY') }
-    )
-  }
-
+  const apiKey = requireHostedUrlProviderApiKey('FIRECRAWL_API_KEY', 'firecrawl', 'extract:firecrawl', baseUrl === FIRECRAWL_DEFAULT_API_URL)
   const requestOptions = {
     ...options,
     timeoutMs: getUrlRequestTimeoutMs(options)
   }
-  const response = await withUrlProviderTimeout('Firecrawl', requestOptions, async (signal) =>
-    await fetch(`${baseUrl.replace(/\/$/, '')}/v2/scrape`, {
-      method: 'POST',
-      signal,
-      headers: {
-        'Content-Type': 'application/json',
-        ...(apiKey ? { Authorization: `Bearer ${apiKey}` } : {})
-      },
-      body: JSON.stringify(buildFirecrawlScrapeRequest(source, requestOptions))
-    })
-  )
-
-  let payload: unknown
-  try {
-    payload = await response.json()
-  } catch {
-    payload = null
-  }
-
-  if (!response.ok) {
-    const errorMessage = isRecord(payload)
-      ? cleanString(payload['error']) ?? cleanString(payload['message'])
-      : undefined
-    throw createUrlProviderHttpError('Firecrawl', 'scrape', response, errorMessage)
-  }
-
+  const payload = await fetchUrlProviderJson('Firecrawl', 'scrape', `${baseUrl.replace(/\/$/, '')}/v2/scrape`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      ...(apiKey ? { Authorization: `Bearer ${apiKey}` } : {})
+    },
+    body: JSON.stringify(buildFirecrawlScrapeRequest(source, requestOptions))
+  }, requestOptions, ['error', 'message'])
   return parseFirecrawlResponse(payload)
 }
 
@@ -133,29 +90,7 @@ const buildFirecrawlScrapeRequest = (
   return body
 }
 
-export const runFirecrawlUrl = async (
-  source: string,
-  sourceUrl: string | undefined,
-  options?: UrlRequestOptions,
-  baseUrl: string = FIRECRAWL_DEFAULT_API_URL
-): Promise<UrlArticleRunResult> => {
-  l.write('info', 'Using Firecrawl backend for article extraction')
-  const firecrawlResult = await runFirecrawlScrape(source, options, baseUrl)
-  const htmlFallback = await tryFetchRemoteHtml(source)
-
-  const markdown = ensureMeaningfulMarkdown(firecrawlResult.markdown, 'firecrawl')
-  const web = { ...firecrawlResult.web }
-  if (sourceUrl) web.sourceUrl = sourceUrl
-  if (!web.finalUrl && htmlFallback?.finalUrl) web.finalUrl = htmlFallback.finalUrl
-
-  return {
-    markdown,
-    web,
-    fileSize: htmlFallback?.fileSize ?? byteLength(markdown),
-    title: firecrawlResult.web.title ?? fallbackTitleFromSource(source),
-    ...(firecrawlResult.web.author ? { author: firecrawlResult.web.author } : {})
-  }
-}
+export const runFirecrawlUrl = createUrlArticleRun('firecrawl', 'Firecrawl', runFirecrawlScrape)
 
 export const firecrawlArticleAdapter: UrlArticleProviderAdapter = {
   id: 'firecrawl',

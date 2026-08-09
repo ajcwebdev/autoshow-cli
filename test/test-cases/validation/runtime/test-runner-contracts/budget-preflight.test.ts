@@ -180,6 +180,10 @@ const extractHelperGeneratedBudgetKeys = (file: string, source: string): { keys:
   const keys: string[] = []
   const issues: string[] = []
 
+  if (extractCallBodies(source, 'defineGenerationServiceTest').length > 0) {
+    issues.push(`${file}: generation e2e consumers must call the image, video, or music wrapper so budget keys remain source-inspectable`)
+  }
+
   for (const spec of helperBudgetKeySpecs) {
     for (const callBody of extractCallBodies(source, spec.callName)) {
       const service = spec.serviceFromCliFlag

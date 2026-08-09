@@ -1,23 +1,15 @@
-import { afterEach, beforeEach, describe, expect, test } from 'bun:test'
+import { describe, expect, test } from 'bun:test'
 import { runFalImageGen } from '~/cli/commands/process-steps/step-5-image/image-generation-services/fal-image-service/run-fal-image-gen'
 import { runFalVideoGen } from '~/cli/commands/process-steps/step-6-video/video-services/fal-video-service/run-fal-video-gen'
-import type { EnvSnapshot, FalImageModel, FalVideoModel } from '~/types'
-import { bytesResponse, clearEnv, createTempDirTracker, installMockFetch, jsonResponse, restoreEnv, snapshotEnv } from '../../../test-utils/rest-contract-helpers'
+import type { FalImageModel, FalVideoModel } from '~/types'
+import { bytesResponse, installMockFetch, jsonResponse, setupContractSuiteLifecycle } from '../../../test-utils/rest-contract-helpers'
 
-const originalFetch = globalThis.fetch
-const tempDirs = createTempDirTracker('autoshow-fal-provider-')
-let previousEnv: EnvSnapshot = {}
-
-beforeEach(() => {
-  previousEnv = snapshotEnv(['FAL_API_KEY'])
-  clearEnv(['FAL_API_KEY'])
-  process.env['FAL_API_KEY'] = 'fal-test-key'
-})
-
-afterEach(async () => {
-  globalThis.fetch = originalFetch
-  restoreEnv(previousEnv)
-  await tempDirs.cleanup()
+const tempDirs = setupContractSuiteLifecycle({
+  envKeys: ['FAL_API_KEY'],
+  tempPrefix: 'autoshow-fal-provider-',
+  beforeEachExtra: () => {
+    process.env['FAL_API_KEY'] = 'fal-test-key'
+  }
 })
 
 const installFalQueueMock = () => installMockFetch((call) => {

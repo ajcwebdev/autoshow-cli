@@ -1,7 +1,7 @@
 import type { Step3Metadata, StructuredRequestOptions } from '~/types'
 import { TOGETHER_DEFAULT_BASE_URL } from '~/utils/base-urls'
-import { CLIUsageError, InternalError, hintsForMissingEnv } from '~/utils/error-handler'
-import { readEnv } from '~/utils/validate/env-utils'
+import { CLIUsageError } from '~/utils/error-handler'
+import { requireApiKey } from '~/utils/validate/env-utils'
 import { runOpenAICompatibleChatModel } from '../openai-compatible-chat'
 
 export const TOGETHER_MODEL_BY_SELECTOR = {
@@ -10,10 +10,7 @@ export const TOGETHER_MODEL_BY_SELECTOR = {
 } as const
 
 const ensureTogetherApiKey = (): string => {
-  const apiKey = readEnv('TOGETHER_API_KEY')
-  if (!apiKey) {
-    throw InternalError('TOGETHER_API_KEY environment variable is required for --together models', { stage: 'write:together', hints: hintsForMissingEnv('TOGETHER_API_KEY') })
-  }
+  const apiKey = requireApiKey('TOGETHER_API_KEY', 'write:together', '--together models')
   return apiKey
 }
 
@@ -30,17 +27,15 @@ export const runTogetherModel = async (
   model: string,
   structuredOpts?: StructuredRequestOptions
 ): Promise<{ result: string, metadata: Step3Metadata }> => {
-  const config = {
-    apiKey: ensureTogetherApiKey(),
-    baseURL: TOGETHER_DEFAULT_BASE_URL,
-    provider: 'together'
-  }
-
   return await runOpenAICompatibleChatModel({
     prompt,
     model,
     structuredOpts,
-    config,
+    config: () => ({
+      apiKey: ensureTogetherApiKey(),
+      baseURL: TOGETHER_DEFAULT_BASE_URL,
+      provider: 'together'
+    }),
     service: 'together',
     providerLabel: 'Together',
     operationName: 'together-llm',

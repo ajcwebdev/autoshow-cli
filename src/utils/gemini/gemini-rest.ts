@@ -3,7 +3,7 @@ import type { GeminiContent, GeminiFile, GeminiGenerateContentResponse, GeminiGe
 import { buildCaptureMetadata, redactPayloadPreview } from '~/utils/bounded-capture'
 import { AppError, InfraError, ValidationError } from '~/utils/error-handler'
 import { sanitizeLogText } from '~/utils/app-logger/redaction'
-import { readRestResponseText } from '~/utils/rest-client'
+import { createProviderRestClient, parseJsonOrText, readJsonResponse, readRestResponseText } from '~/utils/rest-client'
 
 const GEMINI_API_BASE_URL = 'https://generativelanguage.googleapis.com'
 const GEMINI_API_VERSION = 'v1beta'
@@ -29,17 +29,6 @@ export class GeminiRestError extends Error {
 const isRecord = (value: unknown): value is Record<string, unknown> =>
   typeof value === 'object' && value !== null
 
-const parseJsonOrText = (text: string): unknown => {
-  if (text.trim().length === 0) {
-    return {}
-  }
-  try {
-    return JSON.parse(text) as unknown
-  } catch {
-    return text
-  }
-}
-
 const buildGeminiUrl = (path: string, params?: Record<string, string>): string => {
   const normalizedPath = path.startsWith('/') ? path.slice(1) : path
   const url = new URL(`${GEMINI_API_BASE_URL}/${normalizedPath}`)
@@ -52,24 +41,35 @@ const buildGeminiUrl = (path: string, params?: Record<string, string>): string =
 const buildV1BetaUrl = (path: string, params?: Record<string, string>): string =>
   buildGeminiUrl(`${GEMINI_API_VERSION}/${path}`, params)
 
-const createGeminiRestError = (
-  parsed: unknown,
-  status: number,
-  headers: Headers,
-  captured: Awaited<ReturnType<typeof readRestResponseText>>
-): GeminiRestError => {
-  const error = new GeminiRestError(
-    formatGeminiErrorMessage(parsed, status),
-    status,
-    headers,
-    redactPayloadPreview(parsed)
-  )
-  error.bodyBytes = captured.totalBytes
-  error.bodyTruncated = captured.truncated
-  error.bodyPreview = captured.sanitizedPreview
-  Object.assign(error, buildCaptureMetadata(captured))
-  return error
+const formatGeminiErrorMessage = (body: unknown, status: number): string => {
+  if (isRecord(body) && isRecord(body['error'])) {
+    const error = body['error']
+    const message = typeof error['message'] === 'string' ? error['message'] : JSON.stringify(body)
+    const code = typeof error['code'] === 'number' ? error['code'] : status
+    return `Gemini API request failed with status ${code}: ${sanitizeLogText(message)}`
+  }
+  if (typeof body === 'string' && body.length > 0) {
+    return `Gemini API request failed with status ${status}: ${sanitizeLogText(body)}`
+  }
+  return `Gemini API request failed with status ${status}`
 }
+
+type GeminiFetchOptions = {
+  url: string
+  init: RequestInit
+}
+
+const requestGemini = createProviderRestClient<GeminiFetchOptions, GeminiRestError>({
+  buildRequest: (options) => options,
+  errorMessagePrefix: () => 'Gemini API request failed',
+  formatErrorMessage: ({ parsedBody, response }) => formatGeminiErrorMessage(parsedBody, response.status),
+  createError: ({ response, parsedBody, message }) =>
+    new GeminiRestError(message, response.status, response.headers, redactPayloadPreview(parsedBody)),
+  diagnostics: 'parsed-body'
+})
+
+const geminiFetch = async (url: string, init: RequestInit): Promise<Response> =>
+  await requestGemini({ url, init })
 
 const geminiJsonRequest = async (
   apiKey: string,
@@ -87,33 +87,17 @@ const geminiJsonRequest = async (
     headers.set('content-type', 'application/json')
   }
 
-  const response = await fetch(url, {
+  const response = await geminiFetch(url, {
     method: init.method,
     headers,
     ...(init.body !== undefined ? { body: typeof init.body === 'string' ? init.body : JSON.stringify(init.body) } : {}),
     ...(init.abortSignal ? { signal: init.abortSignal } : {})
   })
-  const captured = await readRestResponseText(response)
-  const text = captured.text
-  const parsed = captured.truncated ? captured.sanitizedPreview : parseJsonOrText(text)
-  if (!response.ok) {
-    throw createGeminiRestError(parsed, response.status, response.headers, captured)
+  return {
+    json: await readJsonResponse(response, 'Gemini API response', { invalidJsonMessagePrefix: 'Gemini API' }),
+    headers: response.headers,
+    status: response.status
   }
-  if (captured.truncated) {
-    throw new AppError(`Gemini API response exceeded the ${captured.retainedBytes.toLocaleString()} byte response capture limit`, {
-      kind: 'validation',
-      status: response.status,
-      metadata: buildCaptureMetadata(captured)
-    })
-  }
-  if (typeof parsed === 'string') {
-    throw new AppError(`Gemini API returned invalid JSON: ${sanitizeLogText(parsed.slice(0, 500))}`, {
-      kind: 'validation',
-      status: response.status,
-      metadata: buildCaptureMetadata(captured)
-    })
-  }
-  return { json: parsed, headers: response.headers, status: response.status }
 }
 
 const geminiBinaryRequest = async (
@@ -122,35 +106,17 @@ const geminiBinaryRequest = async (
   query?: Record<string, string>
 ): Promise<{ bytes: Uint8Array, headers: Headers, status: number }> => {
   const url = buildV1BetaUrl(path, query)
-  const response = await fetch(url, {
+  const response = await geminiFetch(url, {
     method: 'GET',
     headers: {
       'x-goog-api-key': apiKey
     }
   })
-  if (!response.ok) {
-    const captured = await readRestResponseText(response)
-    const parsed = captured.truncated ? captured.sanitizedPreview : parseJsonOrText(captured.text)
-    throw createGeminiRestError(parsed, response.status, response.headers, captured)
-  }
   return {
     bytes: new Uint8Array(await response.arrayBuffer()),
     headers: response.headers,
     status: response.status
   }
-}
-
-const formatGeminiErrorMessage = (body: unknown, status: number): string => {
-  if (isRecord(body) && isRecord(body['error'])) {
-    const error = body['error']
-    const message = typeof error['message'] === 'string' ? error['message'] : JSON.stringify(body)
-    const code = typeof error['code'] === 'number' ? error['code'] : status
-    return `Gemini API request failed with status ${code}: ${sanitizeLogText(message)}`
-  }
-  if (typeof body === 'string' && body.length > 0) {
-    return `Gemini API request failed with status ${status}: ${sanitizeLogText(body)}`
-  }
-  return `Gemini API request failed with status ${status}`
 }
 
 const normalizeGeminiModelPath = (model: string): string => {
@@ -360,7 +326,7 @@ export const geminiUploadFile = async (
     ...(config.name ? { name: config.name.startsWith('files/') ? config.name : `files/${config.name}` } : {})
   }
   const startUrl = buildGeminiUrl('upload/v1beta/files')
-  const startResponse = await fetch(startUrl, {
+  const startResponse = await geminiFetch(startUrl, {
     method: 'POST',
     headers: {
       'content-type': 'application/json',
@@ -374,11 +340,6 @@ export const geminiUploadFile = async (
     body: JSON.stringify({ file: fileMetadata }),
     ...(config.abortSignal ? { signal: config.abortSignal } : {})
   })
-  if (!startResponse.ok) {
-    const captured = await readRestResponseText(startResponse)
-    const parsed = captured.truncated ? captured.sanitizedPreview : parseJsonOrText(captured.text)
-    throw createGeminiRestError(parsed, startResponse.status, startResponse.headers, captured)
-  }
   const uploadUrl = startResponse.headers.get('x-goog-upload-url')
   if (!uploadUrl) {
     throw InfraError('Failed to get Gemini upload URL. Server did not return x-goog-upload-url.', { stage: 'gemini:rest' })
@@ -390,7 +351,7 @@ export const geminiUploadFile = async (
     const chunkSize = Math.min(GEMINI_UPLOAD_CHUNK_BYTES, sizeBytes - offset)
     const command = offset + chunkSize >= sizeBytes ? 'upload, finalize' : 'upload'
     const chunk = await file.slice(offset, offset + chunkSize).arrayBuffer()
-    finalResponse = await fetch(uploadUrl, {
+    finalResponse = await geminiFetch(uploadUrl, {
       method: 'POST',
       headers: {
         'x-goog-api-key': apiKey,
@@ -402,11 +363,6 @@ export const geminiUploadFile = async (
       body: chunk,
       ...(config.abortSignal ? { signal: config.abortSignal } : {})
     })
-    if (!finalResponse.ok) {
-      const captured = await readRestResponseText(finalResponse)
-      const parsed = captured.truncated ? captured.sanitizedPreview : parseJsonOrText(captured.text)
-      throw createGeminiRestError(parsed, finalResponse.status, finalResponse.headers, captured)
-    }
     offset += chunkSize
     const uploadStatus = finalResponse.headers.get('x-goog-upload-status')
     if (uploadStatus !== 'active') {

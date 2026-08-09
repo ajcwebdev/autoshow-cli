@@ -1,4 +1,5 @@
-import type { BenchmarkSurfaceGroupBase, JsonObject, ProviderComparisonMarkdownOptions, ProviderComparisonRankingSurfaces, ProviderGroupRows } from '~/types'
+import { basename, join } from 'node:path'
+import type { BenchmarkSurfaceGroupBase, JsonObject, MediaComparisonReportOptions, MediaComparisonRowProvider, ProviderComparisonMarkdownOptions, ProviderComparisonRankingSurfaces, ProviderGroupRows } from '~/types'
 import { escapeCell, formatCost, formatScore, formatSeconds, getArray, getNumber, getObject, getString, isRecord } from './benchmark-utils'
 
 export const splitProviderComparisonRows = (rows: readonly JsonObject[]): ProviderGroupRows => ({
@@ -188,4 +189,94 @@ export const writeProviderComparisonMarkdown = async (
   )
 
   await Bun.write(path, `${lines.join('\n')}\n`)
+}
+
+export const baseMediaComparisonRow = (provider: MediaComparisonRowProvider): JsonObject => ({
+  rank: provider.rank,
+  providerKey: provider.providerKey,
+  provider: provider.providerKey,
+  model: null,
+  group: provider.group,
+  processingTimeMs: provider.processingTimeMs ?? null,
+  actualProcessingTimeMs: provider.processingTimeMs ?? null,
+  costCents: provider.costCents ?? null,
+  actualCostCents: provider.costCents ?? null,
+  qualityScore: provider.qualityScore,
+  qualityMetric: provider.qualityMetric,
+  qualityValue: provider.qualityScore,
+  qualityLabel: `${formatScore(provider.qualityScore)}/100`,
+  metrics: {
+    wer: null,
+    cer: null,
+    speakerAwareWER: null,
+    textOnlyWER: null,
+    roundtripWER: null,
+    contentCoverage: null,
+    qualityScore: provider.qualityScore
+  },
+  supportsDiarization: null,
+  diarizationSupport: null,
+  tierGroup: null,
+  groupOverallRank: null,
+  groupTier: null,
+  qualityWarnings: [],
+  segmentStats: null,
+  duplicateGroupId: null
+})
+
+export const writeMediaComparisonReports = async (
+  runDir: string,
+  options: MediaComparisonReportOptions
+): Promise<{ jsonOut: string, markdownOut: string }> => {
+  const { category, categoryLabel, proxyNoun, report, rows, summaryMetrics } = options
+  const { local: localProviders, service: serviceProviders } = splitProviderComparisonRows(rows)
+  const rankingSurfaces = buildMediaRankingSurfaces(rows, { qualityLabel: `${category} quality` })
+  const jsonOut = join(runDir, 'provider-comparison-report.json')
+  const markdownOut = join(runDir, 'provider-comparison-report.md')
+
+  const comparisonReport: JsonObject = {
+    schemaVersion: 2,
+    kind: `${category}-provider-comparison`,
+    category,
+    runDir,
+    runName: basename(runDir),
+    generatedAt: report.generatedAt,
+    metric: `${category}-quality-price-speed`,
+    scoreFormula: `Automated quality ranking uses OpenAI ${category} quality score; price and speed surfaces remain independent.`,
+    tiering: null,
+    duplicateGroups: [],
+    normalization: null,
+    providerCount: report.providerCount,
+    providerGroups: {
+      local: { count: localProviders.length, providers: localProviders },
+      service: { count: serviceProviders.length, providers: serviceProviders }
+    },
+    providers: rows,
+    rankingSurfaces,
+    combinedLeaderboardPolicy: 'omitted: local and service providers are not ranked against each other',
+    notes: [
+      `Automated quality rankings use explicit ${category} judge scores from ${category}-quality-report.json.`,
+      `Price and speed surfaces are evidence-only and do not affect ${category} quality scores.`,
+      `${categoryLabel} mode evaluates existing generated ${category}s only; it does not generate new ${category}s.`
+    ]
+  }
+
+  await Bun.write(jsonOut, `${JSON.stringify(comparisonReport, null, 2)}\n`)
+  await writeProviderComparisonMarkdown(markdownOut, {
+    title: `${categoryLabel} Provider Comparison Report`,
+    runDir: report.runDir,
+    providerCount: report.providerCount,
+    ...(summaryMetrics ? { summaryMetrics } : {}),
+    judgeModel: report.judge.model,
+    qualityReportFileName: `${category}-quality-report.json`,
+    qualityProxyMethodText: `File size, ${proxyNoun}, latency, and cost are not used as quality proxies.`,
+    rows,
+    rankingSurfaces,
+    notes: [
+      `- ${categoryLabel} mode evaluates existing generated ${category}s only; it does not generate new ${category}s.`,
+      `- Quality scores are explicit judge scores and are not inferred from file size, ${proxyNoun}, latency, or cost.`
+    ]
+  })
+
+  return { jsonOut, markdownOut }
 }

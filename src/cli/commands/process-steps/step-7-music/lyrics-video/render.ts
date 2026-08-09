@@ -49,88 +49,117 @@ const assTime = (seconds: number): string => {
   return `${hours}:${String(minutes).padStart(2, '0')}:${String(secs).padStart(2, '0')}.${String(centiseconds).padStart(2, '0')}`
 }
 
-export const buildAss = (
-  options: { width: number, height: number, font: string, title: string },
-  cues: CaptionCue[]
-): string => {
-  const { width, height, font, title } = options
-  const horizontalMargin = Math.round(width * 0.1)
-  const verticalMargin = Math.round(height * 0.1)
-  const baseFontSize = Math.round(height * 0.045)
-  const contextFontSize = Math.round(baseFontSize * 0.85)
-  const titleFontSize = Math.round(baseFontSize * 0.9)
-  const activeOutline = Math.max(3, Math.round(baseFontSize * 0.08))
-  const activeShadow = Math.max(2, Math.round(baseFontSize * 0.04))
-  const contextOutline = Math.max(2, Math.round(contextFontSize * 0.08))
-  const contextShadow = Math.max(1, Math.round(contextFontSize * 0.04))
-  const titleOutline = Math.max(2, Math.round(titleFontSize * 0.08))
-  const titleShadow = Math.max(1, Math.round(titleFontSize * 0.04))
-
-  const header = [
-    '[Script Info]',
-    'ScriptType: v4.00+',
-    `PlayResX: ${width}`,
-    `PlayResY: ${height}`,
-    'WrapStyle: 2',
-    'ScaledBorderAndShadow: yes',
-    '',
-    '[V4+ Styles]',
-    'Format: Name, Fontname, Fontsize, PrimaryColour, SecondaryColour, OutlineColour, BackColour, Bold, Italic, Underline, StrikeOut, ScaleX, ScaleY, Spacing, Angle, BorderStyle, Outline, Shadow, Alignment, MarginL, MarginR, MarginV, Encoding',
-    `Style: Active,${font},${baseFontSize},&H00FFFFFF,&H00FFFFFF,&H00000000,&HA0000000,1,0,0,0,100,100,0,0,1,${activeOutline},${activeShadow},5,${horizontalMargin},${horizontalMargin},${verticalMargin},1`,
-    `Style: Context,${font},${contextFontSize},&H00C0C0C0,&H00C0C0C0,&H00000000,&HA0000000,0,0,0,0,100,100,0,0,1,${contextOutline},${contextShadow},5,${horizontalMargin},${horizontalMargin},${verticalMargin},1`,
-    `Style: Title,${font},${titleFontSize},&H00FFFFFF,&H00FFFFFF,&H00000000,&HA0000000,1,0,0,0,100,100,0,0,1,${titleOutline},${titleShadow},8,${horizontalMargin},${horizontalMargin},${verticalMargin},1`,
-    '',
-    '[Events]',
-    'Format: Layer, Start, End, Style, Name, MarginL, MarginR, MarginV, Effect, Text'
-  ].join('\n')
-
-  const events: string[] = []
-  if (cues.length > 0) {
-    const videoEnd = cues[cues.length - 1]!.end + 2
-    const titleY = Math.round(height * 0.08)
-    events.push(`Dialogue: 3,${assTime(0)},${assTime(videoEnd)},Title,,0,0,0,,{\\pos(${width / 2},${titleY})\\an5\\blur0.6\\q2}${escapeAssText(title)}`)
-  }
-
-  const lineSpacing = Math.round(height * 0.08)
-  const centerY = Math.round(height / 2)
-  const previousY = centerY - lineSpacing
-  const nextY = centerY + lineSpacing
-
-  for (let index = 0; index < cues.length; index += 1) {
-    const cue = cues[index]!
-    if (cue.end <= cue.start) {
-      continue
-    }
-
-    if (index > 0) {
-      events.push(`Dialogue: 1,${assTime(cue.start)},${assTime(cue.end)},Context,,0,0,0,,{\\pos(${width / 2},${previousY})\\an5\\blur0.6\\q2}${escapeAssText(cues[index - 1]!.text)}`)
-    }
-
-    events.push(`Dialogue: 0,${assTime(cue.start)},${assTime(cue.end)},Active,,0,0,0,,{\\pos(${width / 2},${centerY})\\an5\\blur0.6\\q2}${escapeAssText(cue.text)}`)
-
-    if (index + 1 < cues.length) {
-      events.push(`Dialogue: 2,${assTime(cue.start)},${assTime(cue.end)},Context,,0,0,0,,{\\pos(${width / 2},${nextY})\\an5\\blur0.6\\q2}${escapeAssText(cues[index + 1]!.text)}`)
-    }
-  }
-
-  return `${header}\n${events.join('\n')}\n`
+type AssStyle = {
+  name: string
+  fontSize: number
+  primaryColor: string
+  bold: boolean
+  outline: number
+  shadow: number
+  alignment: number
 }
 
-export const buildTranscriptAss = (
+export type AssTheme = {
+  horizontalMarginRatio: number
+  verticalMarginRatio: number
+  styles: (height: number) => AssStyle[]
+  title: { style: string, layer: number, yRatio: number }
+  cue: {
+    activeStyle: string
+    contextStyle: string
+    activeLayer: number
+    previousLayer: number
+    nextLayer: number
+    centerYRatio: number
+    lineSpacingRatio: number
+    colorActiveBySpeaker?: boolean | undefined
+  }
+}
+
+export const LYRICS_ASS_THEME: AssTheme = {
+  horizontalMarginRatio: 0.1,
+  verticalMarginRatio: 0.1,
+  styles: (height) => {
+    const activeSize = Math.round(height * 0.045)
+    const contextSize = Math.round(activeSize * 0.85)
+    const titleSize = Math.round(activeSize * 0.9)
+    return [
+      { name: 'Active', fontSize: activeSize, primaryColor: '&H00FFFFFF', bold: true, outline: Math.max(3, Math.round(activeSize * 0.08)), shadow: Math.max(2, Math.round(activeSize * 0.04)), alignment: 5 },
+      { name: 'Context', fontSize: contextSize, primaryColor: '&H00C0C0C0', bold: false, outline: Math.max(2, Math.round(contextSize * 0.08)), shadow: Math.max(1, Math.round(contextSize * 0.04)), alignment: 5 },
+      { name: 'Title', fontSize: titleSize, primaryColor: '&H00FFFFFF', bold: true, outline: Math.max(2, Math.round(titleSize * 0.08)), shadow: Math.max(1, Math.round(titleSize * 0.04)), alignment: 8 }
+    ]
+  },
+  title: { style: 'Title', layer: 3, yRatio: 0.08 },
+  cue: {
+    activeStyle: 'Active',
+    contextStyle: 'Context',
+    activeLayer: 0,
+    previousLayer: 1,
+    nextLayer: 2,
+    centerYRatio: 0.5,
+    lineSpacingRatio: 0.08
+  }
+}
+
+export const TRANSCRIPT_ASS_THEME: AssTheme = {
+  horizontalMarginRatio: 0.085,
+  verticalMarginRatio: 0.09,
+  styles: (height) => {
+    const activeSize = Math.round(height * TRANSCRIPT_OVERLAY_TEXT_LAYOUT.activeFontScale)
+    const contextSize = Math.round(height * TRANSCRIPT_OVERLAY_TEXT_LAYOUT.contextFontScale)
+    const speakerSize = Math.round(activeSize * 0.66)
+    const titleSize = Math.round(activeSize * 0.72)
+    const labelOutline = Math.max(2, Math.round(speakerSize * 0.08))
+    return [
+      { name: 'TranscriptActive', fontSize: activeSize, primaryColor: '&H00FFFFFF', bold: true, outline: Math.max(3, Math.round(activeSize * 0.08)), shadow: 2, alignment: 5 },
+      // Kept for byte compatibility even though speaker identity is currently carried by line colour.
+      { name: 'TranscriptSpeaker', fontSize: speakerSize, primaryColor: '&H004FE7FF', bold: true, outline: labelOutline, shadow: 1, alignment: 5 },
+      { name: 'TranscriptContext', fontSize: contextSize, primaryColor: '&H00C0C0C0', bold: false, outline: Math.max(2, Math.round(contextSize * 0.08)), shadow: 1, alignment: 5 },
+      { name: 'TranscriptTitle', fontSize: titleSize, primaryColor: '&H00FFFFFF', bold: true, outline: labelOutline, shadow: 1, alignment: 8 }
+    ]
+  },
+  title: { style: 'TranscriptTitle', layer: 4, yRatio: 0.07 },
+  cue: {
+    activeStyle: 'TranscriptActive',
+    contextStyle: 'TranscriptContext',
+    activeLayer: 2,
+    previousLayer: 1,
+    nextLayer: 1,
+    centerYRatio: 0.52,
+    lineSpacingRatio: 0.06,
+    colorActiveBySpeaker: true
+  }
+}
+
+const buildAssStyle = (
+  style: AssStyle,
+  font: string,
+  horizontalMargin: number,
+  verticalMargin: number
+): string =>
+  `Style: ${style.name},${font},${style.fontSize},${style.primaryColor},${style.primaryColor},&H00000000,&HA0000000,${style.bold ? 1 : 0},0,0,0,100,100,0,0,1,${style.outline},${style.shadow},${style.alignment},${horizontalMargin},${horizontalMargin},${verticalMargin},1`
+
+const buildCueDialogue = (options: {
+  layer: number
+  start: number
+  end: number
+  style: string
+  x: number
+  y: number
+  text: string
+  extraTags?: string | undefined
+}): string =>
+  `Dialogue: ${options.layer},${assTime(options.start)},${assTime(options.end)},${options.style},,0,0,0,,{\\pos(${options.x},${options.y})\\an5\\blur0.6\\q2${options.extraTags ?? ''}}${escapeAssText(options.text)}`
+
+export const buildCueAss = (
   options: { width: number, height: number, font: string, title: string },
-  cues: Array<CaptionCue & { speaker?: string | undefined }>
+  cues: ReadonlyArray<CaptionCue>,
+  theme: AssTheme
 ): string => {
   const { width, height, font, title } = options
-  const horizontalMargin = Math.round(width * 0.085)
-  const verticalMargin = Math.round(height * 0.09)
-  const bodyFontSize = Math.round(height * TRANSCRIPT_OVERLAY_TEXT_LAYOUT.activeFontScale)
-  const contextFontSize = Math.round(height * TRANSCRIPT_OVERLAY_TEXT_LAYOUT.contextFontScale)
-  const speakerFontSize = Math.round(bodyFontSize * 0.66)
-  const titleFontSize = Math.round(bodyFontSize * 0.72)
-  const activeOutline = Math.max(3, Math.round(bodyFontSize * 0.08))
-  const contextOutline = Math.max(2, Math.round(contextFontSize * 0.08))
-  const labelOutline = Math.max(2, Math.round(speakerFontSize * 0.08))
-
+  const horizontalMargin = Math.round(width * theme.horizontalMarginRatio)
+  const verticalMargin = Math.round(height * theme.verticalMarginRatio)
+  const styles = theme.styles(height).map((style) => buildAssStyle(style, font, horizontalMargin, verticalMargin))
   const header = [
     '[Script Info]',
     'ScriptType: v4.00+',
@@ -141,10 +170,7 @@ export const buildTranscriptAss = (
     '',
     '[V4+ Styles]',
     'Format: Name, Fontname, Fontsize, PrimaryColour, SecondaryColour, OutlineColour, BackColour, Bold, Italic, Underline, StrikeOut, ScaleX, ScaleY, Spacing, Angle, BorderStyle, Outline, Shadow, Alignment, MarginL, MarginR, MarginV, Encoding',
-    `Style: TranscriptActive,${font},${bodyFontSize},&H00FFFFFF,&H00FFFFFF,&H00000000,&HA0000000,1,0,0,0,100,100,0,0,1,${activeOutline},2,5,${horizontalMargin},${horizontalMargin},${verticalMargin},1`,
-    `Style: TranscriptSpeaker,${font},${speakerFontSize},&H004FE7FF,&H004FE7FF,&H00000000,&HA0000000,1,0,0,0,100,100,0,0,1,${labelOutline},1,5,${horizontalMargin},${horizontalMargin},${verticalMargin},1`,
-    `Style: TranscriptContext,${font},${contextFontSize},&H00C0C0C0,&H00C0C0C0,&H00000000,&HA0000000,0,0,0,0,100,100,0,0,1,${contextOutline},1,5,${horizontalMargin},${horizontalMargin},${verticalMargin},1`,
-    `Style: TranscriptTitle,${font},${titleFontSize},&H00FFFFFF,&H00FFFFFF,&H00000000,&HA0000000,1,0,0,0,100,100,0,0,1,${labelOutline},1,8,${horizontalMargin},${horizontalMargin},${verticalMargin},1`,
+    ...styles,
     '',
     '[Events]',
     'Format: Layer, Start, End, Style, Name, MarginL, MarginR, MarginV, Effect, Text'
@@ -152,44 +178,73 @@ export const buildTranscriptAss = (
 
   const events: string[] = []
   if (cues.length > 0) {
-    const videoEnd = cues[cues.length - 1]!.end + 2
-    const titleY = Math.round(height * 0.07)
-    events.push(`Dialogue: 4,${assTime(0)},${assTime(videoEnd)},TranscriptTitle,,0,0,0,,{\\pos(${width / 2},${titleY})\\an5\\blur0.6\\q2}${escapeAssText(title)}`)
+    events.push(buildCueDialogue({
+      layer: theme.title.layer,
+      start: 0,
+      end: cues[cues.length - 1]!.end + 2,
+      style: theme.title.style,
+      x: width / 2,
+      y: Math.round(height * theme.title.yRatio),
+      text: title
+    }))
   }
 
-  // Mirrors the Pango overlay path: previous line above, active line centred and coloured by speaker,
-  // next line below, all at fixed positions so nothing shifts between cues.
-  const lineSpacing = Math.round(height * 0.06)
-  const centerY = Math.round(height * 0.52)
-  const previousY = centerY - lineSpacing
-  const nextY = centerY + lineSpacing
-  const speakerColors = buildSpeakerColorMap(cues)
+  const lineSpacing = Math.round(height * theme.cue.lineSpacingRatio)
+  const centerY = Math.round(height * theme.cue.centerYRatio)
+  const speakerColors = theme.cue.colorActiveBySpeaker === true
+    ? buildSpeakerColorMap(cues)
+    : undefined
 
   for (let index = 0; index < cues.length; index += 1) {
     const cue = cues[index]!
-    if (cue.end <= cue.start) {
-      continue
+    if (cue.end <= cue.start) continue
+    const pushDialogue = (
+      layer: number,
+      style: string,
+      y: number,
+      text: string,
+      extraTags?: string
+    ): void => {
+      events.push(buildCueDialogue({
+        layer,
+        start: cue.start,
+        end: cue.end,
+        style,
+        x: width / 2,
+        y,
+        text,
+        ...(extraTags ? { extraTags } : {})
+      }))
     }
 
     const previousCue = cues[index - 1]
     if (previousCue) {
-      events.push(`Dialogue: 1,${assTime(cue.start)},${assTime(cue.end)},TranscriptContext,,0,0,0,,{\\pos(${width / 2},${previousY})\\an5\\blur0.6\\q2}${escapeAssText(previousCue.text)}`)
+      pushDialogue(theme.cue.previousLayer, theme.cue.contextStyle, centerY - lineSpacing, previousCue.text)
     }
 
-    // Speaker identity is carried by the line colour alone.
-    const speakerTint = cue.speaker
+    const speakerTint = cue.speaker && speakerColors
       ? `\\c${toAssColor(speakerColors.get(cue.speaker) ?? '#FFFFFF')}`
-      : ''
-    events.push(`Dialogue: 2,${assTime(cue.start)},${assTime(cue.end)},TranscriptActive,,0,0,0,,{\\pos(${width / 2},${centerY})\\an5\\blur0.6\\q2${speakerTint}}${escapeAssText(cue.text)}`)
+      : undefined
+    pushDialogue(theme.cue.activeLayer, theme.cue.activeStyle, centerY, cue.text, speakerTint)
 
     const nextCue = cues[index + 1]
     if (nextCue) {
-      events.push(`Dialogue: 1,${assTime(cue.start)},${assTime(cue.end)},TranscriptContext,,0,0,0,,{\\pos(${width / 2},${nextY})\\an5\\blur0.6\\q2}${escapeAssText(nextCue.text)}`)
+      pushDialogue(theme.cue.nextLayer, theme.cue.contextStyle, centerY + lineSpacing, nextCue.text)
     }
   }
 
   return `${header}\n${events.join('\n')}\n`
 }
+
+export const buildAss = (
+  options: { width: number, height: number, font: string, title: string },
+  cues: CaptionCue[]
+): string => buildCueAss(options, cues, LYRICS_ASS_THEME)
+
+export const buildTranscriptAss = (
+  options: { width: number, height: number, font: string, title: string },
+  cues: Array<CaptionCue & { speaker?: string | undefined }>
+): string => buildCueAss(options, cues, TRANSCRIPT_ASS_THEME)
 
 const checkFfmpegEncoder = async (encoder: string): Promise<boolean> => {
   const result = await exec(getFfmpegBinary(), ['-hide_banner', '-encoders'])
@@ -255,6 +310,68 @@ export const buildImageBackgroundFilter = (options: {
     ',vignette=PI/3.5',
     '[bg]'
   ].join('')
+
+type LyricsVideoOverlaySource =
+  | { kind: 'ass', path: string }
+  | { kind: 'frames', path: string }
+
+export const buildLyricsVideoFfmpegArgs = (options: {
+  audioPath: string
+  outputRelativePath: string
+  width: number
+  height: number
+  fps: number
+  encoderSettings: readonly string[]
+  includeEq: boolean
+  overlay: LyricsVideoOverlaySource
+  imageRelativePath?: string | undefined
+}): string[] => {
+  const imageInput = options.imageRelativePath
+    ? ['-noautorotate', '-loop', '1', '-i', options.imageRelativePath]
+    : []
+  const overlayInput = options.overlay.kind === 'frames'
+    ? ['-f', 'concat', '-safe', '0', '-i', options.overlay.path]
+    : []
+  const audioInput = ['-i', options.audioPath]
+  const inputArgs = options.imageRelativePath
+    ? [...imageInput, ...overlayInput, ...audioInput]
+    : [...audioInput, ...overlayInput]
+  const backgroundFilter = options.imageRelativePath
+    ? buildImageBackgroundFilter({
+        width: options.width,
+        height: options.height,
+        includeEq: options.includeEq
+      })
+    : [
+        '[0:a]',
+        `showspectrum=s=${options.width}x${options.height}:mode=combined:color=intensity:scale=log`,
+        ',format=yuv420p',
+        ',vignette=PI/7',
+        '[bg]'
+      ].join('')
+  const overlayFilter = options.overlay.kind === 'ass'
+    ? `[bg]ass=filename=${options.overlay.path}[v]`
+    : '[bg][1:v]overlay=format=auto[v]'
+  const audioInputIndex = options.imageRelativePath
+    ? options.overlay.kind === 'frames' ? 2 : 1
+    : 0
+
+  return [
+    '-y',
+    ...inputArgs,
+    '-filter_complex', `${backgroundFilter};${overlayFilter}`,
+    '-map', '[v]',
+    '-map', `${audioInputIndex}:a`,
+    '-r', String(options.fps),
+    ...options.encoderSettings,
+    '-pix_fmt', 'yuv420p',
+    '-metadata:s:v:0', 'rotate=0',
+    '-c:a', 'aac',
+    '-b:a', '192k',
+    '-shortest',
+    options.outputRelativePath
+  ]
+}
 
 export const findMatchingImage = async (audioPath: string, directory: string): Promise<string | undefined> => {
   const baseName = audioPath.split(/[\\/]/).pop()?.replace(/\.[^.]+$/, '') ?? ''
@@ -634,144 +751,36 @@ export const renderLyricsVideo = async (options: {
 
   const useAssFilter = await hasFfmpegFilter('ass')
   const useEqFilter = imageRelativePath ? await hasFfmpegFilter('eq') : false
-  const ffmpegArgs = useAssFilter
-    ? (() => {
-        const filter = imageRelativePath
-          ? [
-              buildImageBackgroundFilter({ width, height, includeEq: useEqFilter }),
-              ';',
-              `[bg]ass=filename=${assRelativePath}[v]`
-            ].join('')
-          : [
-              '[0:a]',
-              `showspectrum=s=${width}x${height}:mode=combined:color=intensity:scale=log`,
-              ',format=yuv420p',
-              ',vignette=PI/7',
-              '[bg]',
-              ';',
-              `[bg]ass=filename=${assRelativePath}[v]`
-            ].join('')
+  let overlay: LyricsVideoOverlaySource
+  if (useAssFilter) {
+    overlay = { kind: 'ass', path: assRelativePath }
+  } else {
+    const overlayDir = join(workingDirectory, 'overlay')
+    await mkdir(overlayDir, { recursive: true })
+    const overlayConcatPath = await buildOverlaySequence({
+      overlayDir,
+      width,
+      height,
+      font,
+      title,
+      cues,
+      includeContext,
+      ...(textLayout ? { layout: textLayout } : {})
+    })
+    overlay = { kind: 'frames', path: overlayConcatPath }
+  }
 
-        return imageRelativePath
-          ? [
-              '-y',
-              '-noautorotate',
-              '-loop', '1',
-              '-i', imageRelativePath,
-              '-i', audioPath,
-              '-filter_complex', filter,
-              '-map', '[v]',
-              '-map', '1:a',
-              '-r', String(fps),
-              ...encoderSettings,
-              '-pix_fmt', 'yuv420p',
-              '-metadata:s:v:0', 'rotate=0',
-              '-c:a', 'aac',
-              '-b:a', '192k',
-              '-shortest',
-              outputRelativePath
-            ]
-          : [
-              '-y',
-              '-i', audioPath,
-              '-filter_complex', filter,
-              '-map', '[v]',
-              '-map', '0:a',
-              '-r', String(fps),
-              ...encoderSettings,
-              '-pix_fmt', 'yuv420p',
-              // Never inherit a display matrix from the source: the input may be a rotated video
-              // being used purely as an audio track, and the rendered overlay is always upright.
-              '-metadata:s:v:0', 'rotate=0',
-              '-c:a', 'aac',
-              '-b:a', '192k',
-              '-shortest',
-              outputRelativePath
-            ]
-      })()
-    : (() => {
-        const overlayDir = join(workingDirectory, 'overlay')
-        return [
-          '__fallback__',
-          overlayDir
-        ]
-      })()
-
-  const finalArgs = ffmpegArgs[0] === '__fallback__'
-    ? await (async () => {
-      const overlayDir = ffmpegArgs[1]!
-        await mkdir(overlayDir, { recursive: true })
-        const overlayConcatPath = await buildOverlaySequence({
-          overlayDir,
-          width,
-          height,
-          font,
-          title,
-          cues,
-          includeContext,
-          ...(textLayout ? { layout: textLayout } : {})
-        })
-
-        const filter = imageRelativePath
-          ? [
-              buildImageBackgroundFilter({ width, height, includeEq: useEqFilter }),
-              ';',
-              '[bg][1:v]overlay=format=auto[v]'
-            ].join('')
-          : [
-              '[0:a]',
-              `showspectrum=s=${width}x${height}:mode=combined:color=intensity:scale=log`,
-              ',format=yuv420p',
-              ',vignette=PI/7',
-              '[bg]',
-              ';',
-              '[bg][1:v]overlay=format=auto[v]'
-            ].join('')
-
-        return imageRelativePath
-          ? [
-              '-y',
-              '-noautorotate',
-              '-loop', '1',
-              '-i', imageRelativePath,
-              '-f', 'concat',
-              '-safe', '0',
-              '-i', overlayConcatPath,
-              '-i', audioPath,
-              '-filter_complex', filter,
-              '-map', '[v]',
-              '-map', '2:a',
-              '-r', String(fps),
-              ...encoderSettings,
-              '-pix_fmt', 'yuv420p',
-              '-metadata:s:v:0', 'rotate=0',
-              '-c:a', 'aac',
-              '-b:a', '192k',
-              '-shortest',
-              outputRelativePath
-            ]
-          : [
-              '-y',
-              '-i', audioPath,
-              '-f', 'concat',
-              '-safe', '0',
-              '-i', overlayConcatPath,
-              '-filter_complex', filter,
-              '-map', '[v]',
-              '-map', '0:a',
-              '-r', String(fps),
-              ...encoderSettings,
-              '-pix_fmt', 'yuv420p',
-              // Never inherit a display matrix from the source: the input may be a rotated video
-              // being used purely as an audio track, and the rendered overlay is always upright.
-              '-metadata:s:v:0', 'rotate=0',
-              '-c:a', 'aac',
-              '-b:a', '192k',
-              '-shortest',
-              outputRelativePath
-            ]
-      })()
-    : ffmpegArgs
+  const finalArgs = buildLyricsVideoFfmpegArgs({
+    audioPath,
+    outputRelativePath,
+    width,
+    height,
+    fps,
+    encoderSettings,
+    includeEq: useEqFilter,
+    overlay,
+    ...(imageRelativePath ? { imageRelativePath } : {})
+  })
 
   const proc = Bun.spawn([getFfmpegBinary(), ...finalArgs], {
     cwd: workingDirectory,

@@ -12,9 +12,9 @@ import {
   rm,
   runAnthropicOcr,
   runHostedOcrWithPdfChunkFallback,
-  runOrderedOcrPageTasks,
   tmpdir
 } from './shared'
+import { installMockFetch } from '../../../../test-utils/rest-contract-helpers'
 
 describe('OCR resilience contracts', () => {
   test('PDFs over the hosted fallback threshold skip full-document OCR and include page 1', async () => {
@@ -135,25 +135,6 @@ describe('OCR resilience contracts', () => {
     expect(result.totalPages).toBe(20)
   })
 
-  test('hosted OCR page task concurrency preserves result order', async () => {
-    let active = 0
-    let maxActive = 0
-    const completionOrder: number[] = []
-
-    const results = await runOrderedOcrPageTasks([1, 2, 3, 4], 2, async (page) => {
-      active += 1
-      maxActive = Math.max(maxActive, active)
-      await Bun.sleep(page === 1 ? 20 : 2)
-      completionOrder.push(page)
-      active -= 1
-      return `page ${page}`
-    })
-
-    expect(maxActive).toBe(2)
-    expect(results).toEqual(['page 1', 'page 2', 'page 3', 'page 4'])
-    expect(completionOrder[0]).toBe(2)
-  })
-
   test('Anthropic single-page PDF chunks are uploaded without re-splitting', async () => {
     const previousFetch = globalThis.fetch
     const previousEnv = {
@@ -166,13 +147,12 @@ describe('OCR resilience contracts', () => {
     try {
       await Bun.write(inputPath, '%PDF-1.7\nsingle page placeholder\n')
       process.env['ANTHROPIC_API_KEY'] = 'test-key'
-      globalThis.fetch = (async (input: Parameters<typeof fetch>[0], init?: Parameters<typeof fetch>[1]): Promise<Response> => {
-        const url = String(input)
-        if (url.endsWith('/v1/files') && init?.method === 'POST') {
+      installMockFetch((call) => {
+        if (call.url.endsWith('/v1/files') && call.method === 'POST') {
           calls.push('upload')
           return jsonResponse({ id: 'file_test_123' })
         }
-        if (url.endsWith('/v1/messages')) {
+        if (call.url.endsWith('/v1/messages')) {
           calls.push('message')
           return jsonResponse({
             content: [{
@@ -185,12 +165,12 @@ describe('OCR resilience contracts', () => {
             }
           })
         }
-        if (url.endsWith('/v1/files/file_test_123') && init?.method === 'DELETE') {
+        if (call.url.endsWith('/v1/files/file_test_123') && call.method === 'DELETE') {
           calls.push('delete')
           return jsonResponse({ id: 'file_test_123', type: 'file_deleted' })
         }
-        throw new Error(`unexpected Anthropic mock URL: ${url}`)
-      }) as typeof fetch
+        throw new Error(`unexpected Anthropic mock URL: ${call.url}`)
+      })
 
       const result = await runAnthropicOcr(inputPath, {
         ...basePdfMetadata,

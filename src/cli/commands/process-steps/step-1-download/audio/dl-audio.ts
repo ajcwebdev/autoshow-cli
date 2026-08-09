@@ -14,6 +14,7 @@ import { materializeNormalizedAudioArtifact, planNormalizedAudioArtifact } from 
 import { logAudioDownload, logAudioNormalize, logAudioOutput } from './audio-logging'
 import { getYtDlpBinary, hasYtDlpBinary } from '~/cli/commands/process-steps/shared/shared-yt-dlp-binary'
 import { hasRuntimeTool } from '~/utils/runtime-paths'
+import { httpResponseError } from '~/utils/rest-client'
 
 
 let ytDlpVersionVerified = false
@@ -111,9 +112,7 @@ const downloadDirectMediaUrl = async (url: string, outputDir: string): Promise<s
     async () => {
       const r = await fetch(url)
       if (!r.ok) {
-        const err = new Error(`Failed to download ${url}: HTTP ${r.status}`) as Error & { status: number }
-        err.status = r.status
-        throw err
+        throw httpResponseError(`Failed to download ${url}: HTTP ${r.status}`, r)
       }
       return r
     },
@@ -183,9 +182,7 @@ const downloadDirectAudioUrl = async (url: string, outputDir: string): Promise<s
     async () => {
       const r = await fetch(url, { redirect: 'follow' })
       if (!r.ok) {
-        const err = new Error(`Direct download failed: ${r.status} ${r.statusText} (${url})`) as Error & { status: number }
-        err.status = r.status
-        throw err
+        throw httpResponseError(`Direct download failed: ${r.status} ${r.statusText} (${url})`, r)
       }
       return r
     },

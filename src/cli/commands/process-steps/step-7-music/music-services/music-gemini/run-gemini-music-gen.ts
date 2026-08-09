@@ -1,9 +1,9 @@
 import type { GeminiMusicModel, GeminiMusicResponsePart, Step7MusicMetadata } from '~/types'
-import { logMediaGenerationStatus } from '~/cli/commands/process-steps/generation-command-utils'
-import { readEnv } from '~/utils/validate/env-utils'
+import { logGenCompleted, logGenStatus } from '~/cli/commands/process-steps/generation-command-utils'
+import { requireApiKey } from '~/utils/validate/env-utils'
 import * as l from '~/utils/app-logger/app-logger'
 import { geminiGenerateContent } from '~/utils/gemini/gemini-rest'
-import { InfraError, InternalError, ValidationError, hintsForMissingEnv } from '~/utils/error-handler'
+import { InfraError, ValidationError } from '~/utils/error-handler'
 export const GEMINI_CLIP_DURATION_SECONDS = 30
 export const GEMINI_PRO_DEFAULT_DURATION_SECONDS = 120
 
@@ -95,7 +95,7 @@ const resolveIntendedDurationSeconds = (
 
   if (model === 'lyria-3-clip-preview') {
     if (durationSeconds !== undefined && durationSeconds !== GEMINI_CLIP_DURATION_SECONDS) {
-      l.warn(`Gemini Lyria 3 Clip always generates ${GEMINI_CLIP_DURATION_SECONDS}s clips; ignoring --music-duration ${durationSeconds}`)
+      l.warn(`Gemini Lyria 3 Clip always generates ${GEMINI_CLIP_DURATION_SECONDS}s clips; ignoring --duration ${durationSeconds}`)
     }
     return GEMINI_CLIP_DURATION_SECONDS
   }
@@ -121,7 +121,7 @@ const buildGeminiMusicPrompt = async (
 
   if (options.forceInstrumental) {
     if (options.lyricsFile) {
-      l.warn('Ignoring --music-lyrics-file because --music-instrumental was provided for Gemini music generation')
+      l.warn('Ignoring --lyrics-file because --instrumental was provided for Gemini music generation')
     }
     parts.push('Instrumental only, no vocals.')
     return {
@@ -158,20 +158,12 @@ export const runGeminiMusicGen = async (
     forceInstrumental?: boolean | undefined
   }
 ): Promise<{ musicPath: string, metadata: Step7MusicMetadata }> => {
-  const apiKey = readEnv('GEMINI_API_KEY')
-  if (!apiKey) {
-    throw InternalError('GEMINI_API_KEY environment variable is required for Gemini music generation', { stage: 'music:gemini', hints: hintsForMissingEnv('GEMINI_API_KEY') })
-  }
+  const apiKey = requireApiKey('GEMINI_API_KEY', 'music:gemini', 'Gemini music generation')
 
   const { prompt: geminiPrompt, lyricsSource, intendedDurationSeconds } = await buildGeminiMusicPrompt(prompt, options)
   const musicPath = `${outputDir}/generated-music.mp3`
 
-  logMediaGenerationStatus(l, {
-    mediaType: 'music',
-    provider: 'gemini',
-    model: options.model,
-    status: 'started'
-  })
+  logGenStatus('music', 'gemini', options.model, 'started')
 
   const startTime = Date.now()
   const response = await geminiGenerateContent(apiKey, {
@@ -184,15 +176,7 @@ export const runGeminiMusicGen = async (
   const processingTime = Date.now() - startTime
   const musicFile = Bun.file(musicPath)
 
-  logMediaGenerationStatus(l, {
-    mediaType: 'music',
-    provider: 'gemini',
-    model: options.model,
-    status: 'completed',
-    processingTimeMs: processingTime,
-    outputCount: 1,
-    artifacts: [{ artifact: 'music', path: musicPath }]
-  })
+  logGenCompleted('music', 'gemini', options.model, processingTime, [musicPath])
 
   const metadata: Step7MusicMetadata = {
     musicService: 'gemini',

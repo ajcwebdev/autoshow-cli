@@ -1,7 +1,8 @@
+import { isRecord } from '~/utils/rest-client'
 import type { Step3Metadata, StructuredRequestOptions } from '~/types'
 import { CEREBRAS_DEFAULT_BASE_URL } from '~/utils/base-urls'
-import { CLIUsageError, InternalError, hintsForMissingEnv } from '~/utils/error-handler'
-import { readEnv } from '~/utils/validate/env-utils'
+import { CLIUsageError } from '~/utils/error-handler'
+import { requireApiKey } from '~/utils/validate/env-utils'
 import { runOpenAICompatibleChatModel } from '../openai-compatible-chat'
 
 export const CEREBRAS_MODEL_BY_SELECTOR = {
@@ -18,8 +19,6 @@ const CEREBRAS_UNSUPPORTED_SCHEMA_KEYS = new Set([
   'maxItems'
 ])
 
-const isRecord = (value: unknown): value is Record<string, unknown> =>
-  typeof value === 'object' && value !== null && !Array.isArray(value)
 
 export const sanitizeCerebrasStructuredSchema = (schema: Record<string, unknown>): Record<string, unknown> => {
   const sanitize = (node: unknown): unknown => {
@@ -45,10 +44,7 @@ export const sanitizeCerebrasStructuredSchema = (schema: Record<string, unknown>
 }
 
 const ensureCerebrasApiKey = (): string => {
-  const apiKey = readEnv('CEREBRAS_API_KEY')
-  if (!apiKey) {
-    throw InternalError('CEREBRAS_API_KEY environment variable is required for --cerebras models', { stage: 'write:cerebras', hints: hintsForMissingEnv('CEREBRAS_API_KEY') })
-  }
+  const apiKey = requireApiKey('CEREBRAS_API_KEY', 'write:cerebras', '--cerebras models')
   return apiKey
 }
 
@@ -68,17 +64,15 @@ export const runCerebrasModel = async (
   model: string,
   structuredOpts?: StructuredRequestOptions
 ): Promise<{ result: string, metadata: Step3Metadata }> => {
-  const config = {
-    apiKey: ensureCerebrasApiKey(),
-    baseURL: CEREBRAS_DEFAULT_BASE_URL,
-    provider: 'cerebras'
-  }
-
   return await runOpenAICompatibleChatModel({
     prompt,
     model,
     structuredOpts,
-    config,
+    config: () => ({
+      apiKey: ensureCerebrasApiKey(),
+      baseURL: CEREBRAS_DEFAULT_BASE_URL,
+      provider: 'cerebras'
+    }),
     service: 'cerebras',
     providerLabel: 'Cerebras',
     operationName: 'cerebras-llm',

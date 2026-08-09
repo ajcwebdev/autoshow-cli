@@ -1,5 +1,5 @@
 import { mkdir } from 'node:fs/promises'
-import type { ExtractionMetadata, ExistingOcrRun, OcrBatchFinalization, OcrBatchRunContext, ProviderCompletionStatus, OcrMetadataOptions, OcrProviderFailureKind, OcrProviderFailureSummary, OcrProviderSuccess, OcrTarget, ProcessDocumentOutput, ResolvedStep2Execution } from '~/types'
+import type { ExtractionMetadata, ExistingOcrRun, OcrBatchFinalization, OcrBatchRunContext, ProviderCompletionStatus, OcrMetadataOptions, OcrProviderFailureSummary, OcrProviderSuccess, OcrTarget, ProcessDocumentOutput, ResolvedStep2Execution } from '~/types'
 import { l, runWithLogContext } from '~/utils/app-logger/app-logger'
 import { logExtractManifestConsoleSummary } from '~/cli/commands/process-steps/write-manifest-log/write-manifest-log'
 import { isEpubInspectMode, writeExtractionArtifact, writeProviderArtifacts } from './ocr-artifacts'
@@ -28,18 +28,11 @@ import { readFallbackAuditRollup } from './ocr-utils/pdf-chunk-fallback'
 import { persistHostedOcrTokenUsageProfiles } from './ocr-utils/hosted-ocr-token-profiles'
 import { persistHostedOcrThroughputProfiles } from './ocr-utils/hosted-ocr-throughput-profiles'
 import { runOcr } from './run-ocr'
+import { ProviderBatchCompletionError } from '../step-2-shared/provider-batch-state'
 
-export class OcrBatchCompletionError extends Error {
-  outputDir: string
-  completionStatus: ProviderCompletionStatus
-  exitCode: number
-
+export class OcrBatchCompletionError extends ProviderBatchCompletionError {
   constructor(outputDir: string, completionStatus: ProviderCompletionStatus, message: string) {
-    super(message)
-    this.name = 'OcrBatchCompletionError'
-    this.outputDir = outputDir
-    this.completionStatus = completionStatus
-    this.exitCode = 2
+    super('OcrBatchCompletionError', outputDir, completionStatus, message)
   }
 }
 
@@ -71,18 +64,7 @@ const createOcrCheckpointWriter = (params: {
       const missingProviders = buildMissingProviders(providerStates, requestedTargets)
       const blockedProviders = buildBlockedProviders(providerStates, requestedTargets)
       const completionStatus = resolveCompletionStatus(providerStates)
-      const metadataErrors: NonNullable<OcrMetadataOptions['failures']> = buildMetadataErrorEntries(providerStates).map((value) => ({
-        service: value['service'] as string,
-        model: value['model'] as string,
-        message: value['message'] as string,
-        ...(typeof value['category'] === 'string' ? { category: value['category'] as string } : {}),
-        ...(typeof value['failureKind'] === 'string' ? { failureKind: value['failureKind'] as OcrProviderFailureKind } : {}),
-        ...(typeof value['retryable'] === 'boolean' ? { retryable: value['retryable'] as boolean } : {}),
-        ...(typeof value['quota'] === 'boolean' ? { quota: value['quota'] as boolean } : {}),
-        ...(typeof value['providerWide'] === 'boolean' ? { providerWide: value['providerWide'] as boolean } : {}),
-        ...(typeof value['blockedReason'] === 'string' ? { blockedReason: value['blockedReason'] as string } : {}),
-        ...(typeof value['errorFile'] === 'string' ? { errorFile: value['errorFile'] as string } : {})
-      }))
+      const metadataErrors = buildMetadataErrorEntries(providerStates)
       const step2Metadata = snapshotSuccessMetadata
         .filter((entry): entry is ExtractionMetadata => entry !== undefined)
       const partialStep2 = await collectPartialStep2Metadata({
@@ -239,22 +221,7 @@ const finalizeOcrBatchManifest = async (params: {
   const missingProviders = buildMissingProviders(providerStates, requestedTargets)
   const blockedProviders = buildBlockedProviders(providerStates, requestedTargets)
   const completionStatus = resolveCompletionStatus(providerStates)
-  const metadataErrors: NonNullable<OcrMetadataOptions['failures']> = buildMetadataErrorEntries(providerStates).map((value) => ({
-    service: value['service'] as string,
-    model: value['model'] as string,
-    message: value['message'] as string,
-    ...(typeof value['category'] === 'string' ? { category: value['category'] as string } : {}),
-    ...(typeof value['failureKind'] === 'string' ? { failureKind: value['failureKind'] as OcrProviderFailureKind } : {}),
-    ...(typeof value['retryable'] === 'boolean' ? { retryable: value['retryable'] as boolean } : {}),
-    ...(typeof value['quota'] === 'boolean' ? { quota: value['quota'] as boolean } : {}),
-    ...(typeof value['providerWide'] === 'boolean' ? { providerWide: value['providerWide'] as boolean } : {}),
-    ...(typeof value['blockedReason'] === 'string' ? { blockedReason: value['blockedReason'] as string } : {}),
-    ...(typeof value['stage'] === 'string' ? { stage: value['stage'] as string } : {}),
-    ...(typeof value['status'] === 'number' ? { status: value['status'] as number } : {}),
-    ...(typeof value['retryAfterMs'] === 'number' ? { retryAfterMs: value['retryAfterMs'] as number } : {}),
-    ...(typeof value['errorFile'] === 'string' ? { errorFile: value['errorFile'] as string } : {}),
-    ...(typeof value['rawResponseFile'] === 'string' ? { rawResponseFile: value['rawResponseFile'] as string } : {})
-  }))
+  const metadataErrors = buildMetadataErrorEntries(providerStates)
   const step2Metadata = successes
     .map((entry, index) => entry?.metadata ?? existingRun.successMetadata[index])
     .filter((entry): entry is ExtractionMetadata => entry !== undefined)

@@ -1,19 +1,8 @@
-import { mkdir, rm } from 'node:fs/promises'
 import type { Step2Metadata, TranscriptionResult } from '~/types'
-import * as l from '~/utils/app-logger/app-logger'
-import { logSttSegmentLifecycle } from '~/cli/commands/process-steps/step-2-extract/step-2-stt/stt-logging'
-import { countTokens, formatTranscriptText } from '~/cli/commands/process-steps/step-2-extract/step-2-stt/stt-utils/stt-utils'
-import { parseWhisperJson, extractWhisperWords } from './parse-whisper-output'
-import { exec, fileExists } from '~/utils/cli-utils'
-import { resolve } from 'node:path'
+import { fileExists } from '~/utils/cli-utils'
 import { whisperBinaryPath, whisperModelsDir } from '~/cli/commands/setup-and-utilities/setup/run-complete-setup'
-import { pollUntil } from '~/utils/retries'
-import { formatWhisperProgressMessage, parseWhisperProgressPercent } from './whisper-progress'
-import { prepareLocalSttInput } from '../local-audio-normalize'
-import { InfraError } from '~/utils/error-handler'
-
-const WHISPER_JSON_WAIT_TIMEOUT_MS = 3000
-const WHISPER_JSON_WAIT_POLL_MS = 100
+import { runWhisperCppTranscribe } from '../run-whispercpp-core'
+import type { WhisperCppTranscribeOptions } from '../run-whispercpp-core'
 
 const coremlEncoderLookupCache = new Map<string, Promise<string | null>>()
 
@@ -36,186 +25,24 @@ const detectCoreMLEncoder = async (modelName: string): Promise<string | null> =>
   return await lookup
 }
 
-const waitForWhisperJson = async (jsonFile: string): Promise<boolean> => {
-  try {
-    await pollUntil({
-      operationName: 'whisper-json-output',
-      intervalMs: WHISPER_JSON_WAIT_POLL_MS,
-      deadlineMs: WHISPER_JSON_WAIT_TIMEOUT_MS,
-      pollFn: async () => await fileExists(jsonFile),
-      isDone: (exists) => exists
-    })
-    return true
-  } catch {
-    return await fileExists(jsonFile)
-  }
-}
-
 export const runWhisperTranscribe = async (
   audioPath: string,
   outputDir: string,
-  options: {
-    model: string
-    segmentOffsetMinutes: number
-    segmentNumber?: number | undefined
-    totalSegments?: number | undefined
-    audioDurationSeconds?: number | undefined
-    segmentStartSeconds?: number | undefined
-    segmentDurationSeconds?: number | undefined
-    totalDurationSeconds?: number | undefined
-    preserveJson?: boolean | undefined
-  }
-): Promise<{ result: TranscriptionResult, metadata: Step2Metadata }> => {
-  const {
-    model: modelName,
-    segmentOffsetMinutes = 0,
-    segmentNumber,
-    totalSegments,
-    audioDurationSeconds,
-    segmentStartSeconds,
-    segmentDurationSeconds,
-    totalDurationSeconds,
-    preserveJson = false
-  } = options
-  let preparedInput: Awaited<ReturnType<typeof prepareLocalSttInput>> | undefined
-
-  try {
-    if (segmentNumber && totalSegments) {
-      logSttSegmentLifecycle(l, { provider: 'whisper', action: 'started', segmentNumber, totalSegments, model: modelName })
+  options: WhisperCppTranscribeOptions
+): Promise<{ result: TranscriptionResult, metadata: Step2Metadata }> =>
+  await runWhisperCppTranscribe(audioPath, outputDir, options, {
+    name: 'whisper',
+    label: 'Whisper',
+    tempPrefix: 'autoshow-whisper-',
+    resolveInvocation: async (modelName, baseArgs) => {
+      const modelPath = `${whisperModelsDir}/ggml-${modelName}.bin`
+      const coreMLEncoderPath = await detectCoreMLEncoder(modelName)
+      const descriptorParts = [modelPath]
+      if (coreMLEncoderPath) descriptorParts.push(`coreml:${coreMLEncoderPath}`)
+      return {
+        command: whisperBinaryPath,
+        args: ['-m', modelPath, ...baseArgs],
+        modelDescriptor: descriptorParts.join(' | ')
+      }
     }
-    const startTime = Date.now()
-    const modelPath = `${whisperModelsDir}/ggml-${modelName}.bin`
-    const whisperBinary = whisperBinaryPath
-    const segmentSuffix = segmentNumber ? `_segment_${String(segmentNumber).padStart(3, '0')}` : ''
-    const outputDirAbs = resolve(outputDir)
-    await mkdir(outputDirAbs, { recursive: true })
-    const outputBase = resolve(outputDirAbs, `transcription${segmentSuffix}`)
-    preparedInput = await prepareLocalSttInput(audioPath, 'autoshow-whisper-')
-    const coreMLEncoderPath = await detectCoreMLEncoder(modelName)
-    const whisperArgs = [
-      '-m', modelPath,
-      '-f', preparedInput.audioPath,
-      '-ml', '1',
-      '-np',
-      '-pp',
-      '-of', outputBase,
-      '-ojf'
-    ]
-    let lastLoggedProgress: number | null = null
-    l.debug(formatWhisperProgressMessage(0, {
-      segmentNumber,
-      totalSegments,
-      segmentStartSeconds,
-      segmentDurationSeconds,
-      totalDurationSeconds
-    }))
-    lastLoggedProgress = 0
-    const result = await exec(whisperBinary, whisperArgs, {
-      onStderrLine: (line) => {
-        const progressPercent = parseWhisperProgressPercent(line)
-        if (progressPercent === null || progressPercent === lastLoggedProgress) {
-          return
-        }
-        lastLoggedProgress = progressPercent
-        l.debug(formatWhisperProgressMessage(progressPercent, {
-          segmentNumber,
-          totalSegments,
-          segmentStartSeconds,
-          segmentDurationSeconds,
-          totalDurationSeconds
-        }))
-      },
-      retry: { operationName: 'Whisper transcription' }
-    })
-    if (result.exitCode !== 0) {
-      throw InfraError(`Whisper transcription failed: ${result.stderr}`, { stage: 'stt:whisper' })
-    }
-    const jsonFile = `${outputBase}.json`
-    const jsonReady = await waitForWhisperJson(jsonFile)
-    if (!jsonReady) {
-      const commandOutput = result.stderr.trim() || result.stdout.trim()
-      const outputDirExists = await fileExists(outputDirAbs)
-      throw InfraError(
-        commandOutput.length > 0
-          ? `Whisper transcription completed but no JSON output was produced at ${jsonFile} (output dir exists: ${outputDirExists}). Command output:\n${commandOutput}`
-          : `Whisper transcription completed but no JSON output was produced at ${jsonFile} (output dir exists: ${outputDirExists})`,
-        { stage: 'stt:whisper' }
-      )
-    }
-    const jsonText = await Bun.file(jsonFile).text()
-    const rawResponse = JSON.parse(jsonText) as unknown
-    const maxRelativeEndSeconds = segmentDurationSeconds ?? audioDurationSeconds ?? totalDurationSeconds
-    let words = extractWhisperWords(jsonText, { maxEndSeconds: maxRelativeEndSeconds })
-    await Bun.write(`${outputBase}.words.json`, JSON.stringify(words))
-    let { text, segments } = parseWhisperJson(jsonText, { maxEndSeconds: maxRelativeEndSeconds })
-    if (segmentOffsetMinutes > 0) {
-      const offsetSeconds = segmentOffsetMinutes * 60
-      segments = segments.map(seg => {
-        const partsS = seg.start.split(':')
-        const partsE = seg.end.split(':')
-        const s = parseInt(partsS[0]!) * 3600 + parseInt(partsS[1]!) * 60 + parseInt(partsS[2]!) + offsetSeconds
-        const e = parseInt(partsE[0]!) * 3600 + parseInt(partsE[1]!) * 60 + parseInt(partsE[2]!) + offsetSeconds
-        const sh = Math.floor(s / 3600)
-        const sm = Math.floor((s % 3600) / 60)
-        const ss = s % 60
-        const eh = Math.floor(e / 3600)
-        const em = Math.floor((e % 3600) / 60)
-        const es = e % 60
-        return {
-          ...seg,
-          start: `${String(sh).padStart(2, '0')}:${String(sm).padStart(2, '0')}:${String(ss).padStart(2, '0')}`,
-          end: `${String(eh).padStart(2, '0')}:${String(em).padStart(2, '0')}:${String(es).padStart(2, '0')}`
-        }
-      })
-      const shiftedWords = words.map(w => ({ ...w, start: w.start + offsetSeconds, end: w.end + offsetSeconds }))
-      words = shiftedWords
-      await Bun.write(`${outputBase}.words.json`, JSON.stringify(shiftedWords))
-    }
-    if (!preserveJson) {
-      await rm(jsonFile, { force: true })
-    }
-    const processingTime = Date.now() - startTime
-    const tokenCount = countTokens(text)
-    const descriptorParts = [modelPath]
-    if (coreMLEncoderPath) descriptorParts.push(`coreml:${coreMLEncoderPath}`)
-    const transcriptionModelDescriptor = descriptorParts.join(' | ')
-    if (segmentNumber && totalSegments) {
-      logSttSegmentLifecycle(l, { provider: 'whisper', action: 'completed', segmentNumber, totalSegments, model: modelName, processingTimeMs: processingTime })
-    }
-    await Bun.write(`${outputBase}.txt`, formatTranscriptText(segments))
-    const metadata: Step2Metadata = {
-      transcriptionService: 'whisper',
-      transcriptionModel: transcriptionModelDescriptor,
-      processingTime,
-      tokenCount
-    }
-    return {
-      result: {
-        text,
-        segments,
-        evidence: {
-          words: words.map((word) => ({
-            startSeconds: word.start,
-            endSeconds: word.end,
-            text: word.word,
-            normalized: word.word.toLowerCase(),
-            timingSource: 'native'
-          })),
-          capabilities: {
-            hasNativeWordTiming: true,
-            hasConfidence: false,
-            hasSpeakerLabels: false
-          },
-          timingQuality: 'native_word',
-          rawResponse
-        }
-      },
-      metadata
-    }
-  } catch (error) {
-    l.error(`Failed to transcribe audio`, error)
-    throw error
-  } finally {
-    await preparedInput?.cleanup()
-  }
-}
+  })

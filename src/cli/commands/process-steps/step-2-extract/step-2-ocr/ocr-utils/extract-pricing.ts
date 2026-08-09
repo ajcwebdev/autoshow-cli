@@ -187,56 +187,26 @@ export const estimateMistralOcrCost = async (
   }
 }
 
-export const estimateGlmOcrCost = async (
+const estimateTokenPricedOcrCost = async <TProvider extends TokenPricedOcrProvider>(
+  provider: TProvider,
+  validateModel: (modelRaw: string) => string,
+  fallbackInputCostPer1MCents: number,
+  fallbackOutputCostPer1MCents: number,
   modelRaw: string,
   input: string,
-  options: HostedOcrEstimateOptions = {}
-): Promise<TokenOcrCostEstimate<'glm'>> => {
-  const model = validateGlmOcrModel(modelRaw)
-  const pricing = getExtractPricing('glm', model)
+  options: HostedOcrEstimateOptions,
+  note?: string
+): Promise<TokenOcrCostEstimate<TProvider> & { note?: string }> => {
+  const model = validateModel(modelRaw)
+  const pricing = getExtractPricing(provider, model)
   const pageCount = await resolveExtractInputPageCountForPricing(input)
   const ocrMode = resolveOcrModeForPricingInput(input)
-  const tokenUsage = estimateOcrTokenUsage('glm', model, pageCount, {
-    ocrMode,
-    profilePath: options.hostedOcrTokenProfilePath
-  })
+  const tokenUsage = estimateOcrTokenUsage(provider, model, pageCount, { ocrMode, profilePath: options.hostedOcrTokenProfilePath })
   const { promptTokens, completionTokens } = tokenUsage
-  const cost = computeOcrTokenCost(pricing, 3, 3, promptTokens, completionTokens)
+  const cost = computeOcrTokenCost(pricing, fallbackInputCostPer1MCents, fallbackOutputCostPer1MCents, promptTokens, completionTokens)
 
   return {
-    provider: 'glm',
-    model,
-    pageCount,
-    promptTokens,
-    completionTokens,
-    inputCostPer1MCents: cost.inputCostPer1MCents,
-    outputCostPer1MCents: cost.outputCostPer1MCents,
-    totalCost: cost.totalCost,
-    ...(typeof cost.pricingBand === 'string' ? { pricingBand: cost.pricingBand } : {}),
-    ...(typeof cost.pricingNote === 'string' ? { pricingNote: cost.pricingNote } : {}),
-    ocrMode,
-    ...tokenEstimateMetadata(tokenUsage),
-    estimateType: 'heuristic'
-  }
-}
-
-export const estimateOpenAIOcrCost = async (
-  modelRaw: string,
-  input: string,
-  options: HostedOcrEstimateOptions = {}
-): Promise<TokenOcrCostEstimate<'openai'> & {
-  note: string
-}> => {
-  const model = validateOpenAIOcrModel(modelRaw)
-  const pricing = getExtractPricing('openai', model)
-  const pageCount = await resolveExtractInputPageCountForPricing(input)
-  const ocrMode = resolveOcrModeForPricingInput(input)
-  const tokenUsage = estimateOcrTokenUsage('openai', model, pageCount, { ocrMode, profilePath: options.hostedOcrTokenProfilePath })
-  const { promptTokens, completionTokens } = tokenUsage
-  const cost = computeOcrTokenCost(pricing, 20, 125, promptTokens, completionTokens)
-
-  return {
-    provider: 'openai',
+    provider,
     model,
     pageCount,
     promptTokens,
@@ -249,171 +219,58 @@ export const estimateOpenAIOcrCost = async (
     ocrMode,
     ...tokenEstimateMetadata(tokenUsage),
     estimateType: 'heuristic',
-    note: OPENAI_OCR_PRICE_NOTE
+    ...(note !== undefined ? { note } : {})
   }
 }
 
-export const estimateGrokOcrCost = async (
+export const estimateGlmOcrCost = (
   modelRaw: string,
   input: string,
   options: HostedOcrEstimateOptions = {}
-): Promise<TokenOcrCostEstimate<'grok'> & {
-  note: string
-}> => {
-  const model = validateGrokOcrModel(modelRaw)
-  const pricing = getExtractPricing('grok', model)
-  const pageCount = await resolveExtractInputPageCountForPricing(input)
-  const ocrMode = resolveOcrModeForPricingInput(input)
-  const tokenUsage = estimateOcrTokenUsage('grok', model, pageCount, { ocrMode, profilePath: options.hostedOcrTokenProfilePath })
-  const { promptTokens, completionTokens } = tokenUsage
-  const cost = computeOcrTokenCost(pricing, 125, 250, promptTokens, completionTokens)
+): Promise<TokenOcrCostEstimate<'glm'>> =>
+  estimateTokenPricedOcrCost('glm', validateGlmOcrModel, 3, 3, modelRaw, input, options)
 
-  return {
-    provider: 'grok',
-    model,
-    pageCount,
-    promptTokens,
-    completionTokens,
-    inputCostPer1MCents: cost.inputCostPer1MCents,
-    outputCostPer1MCents: cost.outputCostPer1MCents,
-    totalCost: cost.totalCost,
-    ...(typeof cost.pricingBand === 'string' ? { pricingBand: cost.pricingBand } : {}),
-    ...(typeof cost.pricingNote === 'string' ? { pricingNote: cost.pricingNote } : {}),
-    ocrMode,
-    ...tokenEstimateMetadata(tokenUsage),
-    estimateType: 'heuristic',
-    note: GROK_OCR_PRICE_NOTE
-  }
-}
-
-export const estimateAnthropicOcrCost = async (
+export const estimateOpenAIOcrCost = (
   modelRaw: string,
   input: string,
   options: HostedOcrEstimateOptions = {}
-): Promise<TokenOcrCostEstimate<'anthropic'> & {
-  note: string
-}> => {
-  const model = validateAnthropicOcrModel(modelRaw)
-  const pricing = getExtractPricing('anthropic', model)
-  const pageCount = await resolveExtractInputPageCountForPricing(input)
-  const ocrMode = resolveOcrModeForPricingInput(input)
-  const tokenUsage = estimateOcrTokenUsage('anthropic', model, pageCount, { ocrMode, profilePath: options.hostedOcrTokenProfilePath })
-  const { promptTokens, completionTokens } = tokenUsage
-  const cost = computeOcrTokenCost(pricing, 100, 500, promptTokens, completionTokens)
+): Promise<TokenOcrCostEstimate<'openai'> & { note: string }> =>
+  estimateTokenPricedOcrCost('openai', validateOpenAIOcrModel, 20, 125, modelRaw, input, options, OPENAI_OCR_PRICE_NOTE) as Promise<TokenOcrCostEstimate<'openai'> & { note: string }>
 
-  return {
-    provider: 'anthropic',
-    model,
-    pageCount,
-    promptTokens,
-    completionTokens,
-    inputCostPer1MCents: cost.inputCostPer1MCents,
-    outputCostPer1MCents: cost.outputCostPer1MCents,
-    totalCost: cost.totalCost,
-    ...(typeof cost.pricingBand === 'string' ? { pricingBand: cost.pricingBand } : {}),
-    ...(typeof cost.pricingNote === 'string' ? { pricingNote: cost.pricingNote } : {}),
-    ocrMode,
-    ...tokenEstimateMetadata(tokenUsage),
-    estimateType: 'heuristic',
-    note: ANTHROPIC_OCR_PRICE_NOTE
-  }
-}
-
-export const estimateGeminiOcrCost = async (
+export const estimateGrokOcrCost = (
   modelRaw: string,
   input: string,
   options: HostedOcrEstimateOptions = {}
-): Promise<TokenOcrCostEstimate<'gemini'>> => {
-  const model = validateGeminiOcrModel(modelRaw)
-  const pricing = getExtractPricing('gemini', model)
-  const pageCount = await resolveExtractInputPageCountForPricing(input)
-  const ocrMode = resolveOcrModeForPricingInput(input)
-  const tokenUsage = estimateOcrTokenUsage('gemini', model, pageCount, { ocrMode, profilePath: options.hostedOcrTokenProfilePath })
-  const { promptTokens, completionTokens } = tokenUsage
-  const cost = computeOcrTokenCost(pricing, 25, 150, promptTokens, completionTokens)
+): Promise<TokenOcrCostEstimate<'grok'> & { note: string }> =>
+  estimateTokenPricedOcrCost('grok', validateGrokOcrModel, 125, 250, modelRaw, input, options, GROK_OCR_PRICE_NOTE) as Promise<TokenOcrCostEstimate<'grok'> & { note: string }>
 
-  return {
-    provider: 'gemini',
-    model,
-    pageCount,
-    promptTokens,
-    completionTokens,
-    inputCostPer1MCents: cost.inputCostPer1MCents,
-    outputCostPer1MCents: cost.outputCostPer1MCents,
-    totalCost: cost.totalCost,
-    ...(typeof cost.pricingBand === 'string' ? { pricingBand: cost.pricingBand } : {}),
-    ...(typeof cost.pricingNote === 'string' ? { pricingNote: cost.pricingNote } : {}),
-    ocrMode,
-    ...tokenEstimateMetadata(tokenUsage),
-    estimateType: 'heuristic'
-  }
-}
-
-export const estimateDeepinfraOcrCost = async (
+export const estimateAnthropicOcrCost = (
   modelRaw: string,
   input: string,
   options: HostedOcrEstimateOptions = {}
-): Promise<TokenOcrCostEstimate<'deepinfra'> & {
-  note: string
-}> => {
-  const model = validateDeepinfraOcrModel(modelRaw)
-  const pricing = getExtractPricing('deepinfra', model)
-  const pageCount = await resolveExtractInputPageCountForPricing(input)
-  const ocrMode = resolveOcrModeForPricingInput(input)
-  const tokenUsage = estimateOcrTokenUsage('deepinfra', model, pageCount, { ocrMode, profilePath: options.hostedOcrTokenProfilePath })
-  const { promptTokens, completionTokens } = tokenUsage
-  const cost = computeOcrTokenCost(pricing, 9, 19, promptTokens, completionTokens)
+): Promise<TokenOcrCostEstimate<'anthropic'> & { note: string }> =>
+  estimateTokenPricedOcrCost('anthropic', validateAnthropicOcrModel, 100, 500, modelRaw, input, options, ANTHROPIC_OCR_PRICE_NOTE) as Promise<TokenOcrCostEstimate<'anthropic'> & { note: string }>
 
-  return {
-    provider: 'deepinfra',
-    model,
-    pageCount,
-    promptTokens,
-    completionTokens,
-    inputCostPer1MCents: cost.inputCostPer1MCents,
-    outputCostPer1MCents: cost.outputCostPer1MCents,
-    totalCost: cost.totalCost,
-    ...(typeof cost.pricingBand === 'string' ? { pricingBand: cost.pricingBand } : {}),
-    ...(typeof cost.pricingNote === 'string' ? { pricingNote: cost.pricingNote } : {}),
-    ocrMode,
-    ...tokenEstimateMetadata(tokenUsage),
-    estimateType: 'heuristic',
-    note: DEEPINFRA_OCR_PRICE_NOTE
-  }
-}
-
-export const estimateKimiOcrCost = async (
+export const estimateGeminiOcrCost = (
   modelRaw: string,
   input: string,
   options: HostedOcrEstimateOptions = {}
-): Promise<TokenOcrCostEstimate<'kimi'> & {
-  note: string
-}> => {
-  const model = validateKimiOcrModel(modelRaw)
-  const pricing = getExtractPricing('kimi', model)
-  const pageCount = await resolveExtractInputPageCountForPricing(input)
-  const ocrMode = resolveOcrModeForPricingInput(input)
-  const tokenUsage = estimateOcrTokenUsage('kimi', model, pageCount, { ocrMode, profilePath: options.hostedOcrTokenProfilePath })
-  const { promptTokens, completionTokens } = tokenUsage
-  const cost = computeOcrTokenCost(pricing, 95, 400, promptTokens, completionTokens)
+): Promise<TokenOcrCostEstimate<'gemini'>> =>
+  estimateTokenPricedOcrCost('gemini', validateGeminiOcrModel, 25, 150, modelRaw, input, options)
 
-  return {
-    provider: 'kimi',
-    model,
-    pageCount,
-    promptTokens,
-    completionTokens,
-    inputCostPer1MCents: cost.inputCostPer1MCents,
-    outputCostPer1MCents: cost.outputCostPer1MCents,
-    totalCost: cost.totalCost,
-    ...(typeof cost.pricingBand === 'string' ? { pricingBand: cost.pricingBand } : {}),
-    ...(typeof cost.pricingNote === 'string' ? { pricingNote: cost.pricingNote } : {}),
-    ocrMode,
-    ...tokenEstimateMetadata(tokenUsage),
-    estimateType: 'heuristic',
-    note: KIMI_OCR_PRICE_NOTE
-  }
-}
+export const estimateDeepinfraOcrCost = (
+  modelRaw: string,
+  input: string,
+  options: HostedOcrEstimateOptions = {}
+): Promise<TokenOcrCostEstimate<'deepinfra'> & { note: string }> =>
+  estimateTokenPricedOcrCost('deepinfra', validateDeepinfraOcrModel, 9, 19, modelRaw, input, options, DEEPINFRA_OCR_PRICE_NOTE) as Promise<TokenOcrCostEstimate<'deepinfra'> & { note: string }>
+
+export const estimateKimiOcrCost = (
+  modelRaw: string,
+  input: string,
+  options: HostedOcrEstimateOptions = {}
+): Promise<TokenOcrCostEstimate<'kimi'> & { note: string }> =>
+  estimateTokenPricedOcrCost('kimi', validateKimiOcrModel, 95, 400, modelRaw, input, options, KIMI_OCR_PRICE_NOTE) as Promise<TokenOcrCostEstimate<'kimi'> & { note: string }>
 
 export const estimateFirecrawlScrapeCost = (): {
   provider: 'firecrawl'

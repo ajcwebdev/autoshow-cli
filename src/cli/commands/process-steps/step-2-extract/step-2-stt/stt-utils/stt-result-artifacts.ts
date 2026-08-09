@@ -1,8 +1,7 @@
+import { isRecord } from '~/utils/rest-client'
 import { writeProviderResult } from '../../../manifest-utils'
 import type { Step2Metadata, TranscriptionEvidence, TranscriptionEvidenceCapabilities, TranscriptionEvidenceSegment, TranscriptionEvidenceTimingQuality, TranscriptionEvidenceWord, TranscriptionResult } from '~/types'
 
-const isRecord = (value: unknown): value is Record<string, unknown> =>
-  typeof value === 'object' && value !== null && !Array.isArray(value)
 
 const parseEvidenceSegment = (
   value: unknown

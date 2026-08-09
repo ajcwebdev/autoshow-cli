@@ -1,7 +1,7 @@
 import type { SupadataChunk, SupadataJobPayload, SupadataJobStatus, SupadataTranscriptPayload } from '~/types'
+import { isRecord } from '~/utils/rest-client'
 
-export const isRecord = (value: unknown): value is Record<string, unknown> =>
-  typeof value === 'object' && value !== null && !Array.isArray(value)
+export { isRecord }
 
 const isSupadataChunk = (value: unknown): value is SupadataChunk =>
   isRecord(value)

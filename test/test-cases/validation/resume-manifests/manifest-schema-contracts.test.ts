@@ -5,9 +5,11 @@ import { join } from 'node:path'
 import { buildOptsFromFlags } from '~/cli/commands/process-steps/step-1-download/download-targets/build-opts-from-flags/build-options-from-flags'
 import {
   readBatchManifest,
+  readExtractBatchManifest,
   readRunManifest,
   writeBatchManifest,
-  writeExtractBatchManifest
+  writeExtractBatchManifest,
+  writeRunManifest
 } from '~/cli/commands/process-steps/manifest-utils'
 import { getResumeHandler } from '~/cli/commands/setup-and-utilities/resume/resume-registry'
 import { readOcrRunManifestEntry, writeOcrBatchManifest, writeOcrRunManifest } from '~/cli/commands/process-steps/step-2-extract/step-2-ocr/ocr-manifest'
@@ -164,6 +166,77 @@ describe('manifest schema contracts', () => {
         dir: documentDir,
         manifestPath: join(documentDir, 'batch.json')
       }, opts, new Set())).resolves.toBe(false)
+    })
+  })
+
+  test('parent extract resume synchronizes URL child batch completion', async () => {
+    await withTempDir('autoshow-extract-url-resume-sync-', async (dir) => {
+      const urlBatchDir = join(dir, 'x-space')
+      const urlOutputDir = join(dir, 'url-output')
+      await Promise.all([
+        mkdir(urlBatchDir, { recursive: true }),
+        mkdir(urlOutputDir, { recursive: true })
+      ])
+
+      const firecrawl = { service: 'firecrawl', model: 'firecrawl' }
+      await writeRunManifest(urlOutputDir, 'extract', {
+        resolvedStep2: {
+          route: 'article',
+          sourceKind: 'article',
+          providers: [firecrawl]
+        },
+        completionStatus: 'full',
+        requestedProviders: [firecrawl],
+        providerStates: [{
+          ...firecrawl,
+          artifactDir: 'providers/firecrawl',
+          status: 'succeeded',
+          attempts: 1
+        }]
+      })
+      await writeBatchManifest(urlBatchDir, 'extract', [{
+        outputDir: urlOutputDir,
+        completionStatus: 'incomplete',
+        requestedProviders: [firecrawl]
+      }])
+      await writeExtractBatchManifest(dir, {
+        schemaVersion: 2,
+        createdAt: '2026-01-01T00:00:00.000Z',
+        childBatches: { 'x-space': 'x-space' },
+        items: [{
+          input: 'https://article.test/story.html',
+          inputFamily: 'html_article',
+          extractRoute: 'x-space',
+          childBatchEntry: { route: 'x-space', index: 0 },
+          completionStatus: 'incomplete',
+          outputDir: 'url-output'
+        }]
+      })
+
+      const handler = getResumeHandler('extract')
+      expect(handler).toBeDefined()
+      if (!handler) {
+        return
+      }
+
+      const opts = buildOptsFromFlags(
+        false,
+        { 'url-provider': 'firecrawl' },
+        [],
+        {},
+        new Set(['url-provider'])
+      )
+      await handler.resume({
+        kind: 'extract',
+        scope: 'batch',
+        dir,
+        manifestPath: join(dir, 'extract-batch.json')
+      }, opts, new Set(['url-provider']))
+
+      const childManifest = await readBatchManifest(urlBatchDir, 'extract')
+      const parentManifest = await readExtractBatchManifest(dir)
+      expect(childManifest?.manifest.items[0]?.['completionStatus']).toBe('full')
+      expect(parentManifest?.manifest.items[0]?.completionStatus).toBe('full')
     })
   })
 })

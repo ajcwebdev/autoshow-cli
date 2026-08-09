@@ -7,7 +7,7 @@ import {
   DEFAULT_URL_REQUEST_TIMEOUT_MS
 } from '~/cli/commands/process-steps/step-2-extract/step-2-url/url-utils'
 import { CLIUsageError } from '~/utils/error-handler'
-import type { RuntimeOptions } from '~/types'
+import type { CliFlagOccurrence, RuntimeOptions } from '~/types'
 import {
   parseUrlBackend,
   readOptionalStringFlag
@@ -52,17 +52,17 @@ export const resolveUrlOptions = (
   options: {
     explicitFlags?: Set<string> | undefined
     configuredFlags?: Set<string> | undefined
-    rawArgs?: string[] | undefined
+    flagOccurrences?: readonly CliFlagOccurrence[] | undefined
   } = {}
 ): Pick<RuntimeOptions, 'urlBackend' | 'urlBackendExplicit' | 'urlBackends' | 'urlRequestTimeoutMs' | 'urlRequestAttempts'> => {
   const publicUrlBackendFlag = readOptionalStringFlag(flags, 'url-provider')
-  const hasRawArgs = (options.rawArgs?.length ?? 0) > 0
+  const hasFlagOccurrences = (options.flagOccurrences?.length ?? 0) > 0
   const hasSelectedFlag = (flagName: string, value: string | undefined): boolean =>
     value !== undefined
     && (
       options.explicitFlags?.has(flagName) === true
       || options.configuredFlags?.has(flagName) === true
-      || !hasRawArgs
+      || !hasFlagOccurrences
     )
   const publicSelected = hasSelectedFlag('url-provider', publicUrlBackendFlag)
   const urlBackendFlag = publicSelected ? publicUrlBackendFlag : undefined

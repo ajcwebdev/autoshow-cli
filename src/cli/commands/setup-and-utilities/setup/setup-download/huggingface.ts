@@ -4,6 +4,7 @@ import { withRetry, classifyFetchRetry } from '~/utils/retries'
 import { withSetupDownloadSlot } from './download-admission'
 import type { HuggingFaceDownloadOptions, HuggingFaceFileEntry } from '~/types'
 import { InfraError, InternalError, ValidationError, hintsForMissingEnv } from '~/utils/error-handler'
+import { httpResponseError } from '~/utils/rest-client'
 
 const DEFAULT_REVISION = 'main'
 const HF_DOWNLOAD_TIMEOUT_MS = 120_000
@@ -65,10 +66,7 @@ const fetchWithRetry = async (
       })
 
       if (!response.ok) {
-        const error = new Error(`Hugging Face download failed: HTTP ${response.status} ${response.statusText}`)
-        ;(error as Error & { status?: number, headers?: Headers }).status = response.status
-        ;(error as Error & { status?: number, headers?: Headers }).headers = response.headers
-        throw error
+        throw httpResponseError(`Hugging Face download failed: HTTP ${response.status} ${response.statusText}`, response)
       }
 
       return response

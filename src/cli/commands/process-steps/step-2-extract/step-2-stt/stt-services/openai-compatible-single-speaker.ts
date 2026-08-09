@@ -1,15 +1,11 @@
 import { logSttSegmentLifecycle } from '~/cli/commands/process-steps/step-2-extract/step-2-stt/stt-logging'
-import {
-buildTranscriptionOutputBase,
-countTokens,
-formatTranscriptText,
-resolveTranscriptionOutput,
-toTimestamp
-} from '~/cli/commands/process-steps/step-2-extract/step-2-stt/stt-utils/stt-utils'
+import { toTimestamp } from '~/cli/commands/process-steps/step-2-extract/step-2-stt/stt-utils/stt-utils'
 import type { OpenAICompatibleTranscriptionSegment, RawTranscriptionPayload, Step2Metadata, TranscriptionResult, TranscriptionSegment } from '~/types'
 import * as l from '~/utils/app-logger/app-logger'
 import { createOpenAITranscription } from '~/utils/openai/openai-client'
-import { classifyFetchRetry, withRetry } from '~/utils/retries'
+import { withRetry } from '~/utils/retries'
+import { classifySttFetchRetryWithMetrics, createSttRetryMetrics } from '../stt-retry-metrics'
+import { finalizeHostedSttResult } from './finalize-hosted-stt'
 import { repairZeroDurationMonotonicSegments } from '../stt-utils/stt-timing-quality'
 
 
@@ -79,6 +75,7 @@ const createCompatibleTranscription = async <T = Record<string, unknown>>({
 
 const withCompatibleTranscriptionRetry = async <T>(
   operationName: string,
+  retryMetrics: ReturnType<typeof createSttRetryMetrics>,
   operation: (signal?: AbortSignal) => Promise<T>
 ): Promise<T> =>
   await withRetry(
@@ -88,7 +85,7 @@ const withCompatibleTranscriptionRetry = async <T>(
       timeoutMs: REQUEST_TIMEOUT_MS
     },
     operation,
-    (error) => classifyFetchRetry(error, 'runtime_http_create_conservative', { retryAbortOnConservative: true })
+    classifySttFetchRetryWithMetrics(retryMetrics, 'runtime_http_create_conservative', { retryAbortOnConservative: true })
   )
 
 export const runOpenAICompatibleSingleSpeakerStt = async (
@@ -129,7 +126,8 @@ export const runOpenAICompatibleSingleSpeakerStt = async (
 
   const startTime = Date.now()
   const offsetSeconds = segmentOffsetMinutes * 60
-  const outputBase = buildTranscriptionOutputBase(outputDir, segmentNumber)
+  let requestCount = 0
+  const retryMetrics = createSttRetryMetrics()
 
   const buildForm = (): FormData => {
     const form = new FormData()
@@ -141,17 +139,23 @@ export const runOpenAICompatibleSingleSpeakerStt = async (
     return form
   }
 
+  const transcribeStartedAt = Date.now()
   const payload = await withCompatibleTranscriptionRetry(
     `${service}-stt-create`,
-    async (signal) => await createCompatibleTranscription<RawTranscriptionPayload>({
-      apiKey,
-      baseURL,
-      provider: service,
-      form: buildForm(),
-      errorMessagePrefix: `${providerLabel} transcription failed`,
-      signal
-    })
+    retryMetrics,
+    async (signal) => {
+      requestCount += 1
+      return await createCompatibleTranscription<RawTranscriptionPayload>({
+        apiKey,
+        baseURL,
+        provider: service,
+        form: buildForm(),
+        errorMessagePrefix: `${providerLabel} transcription failed`,
+        signal
+      })
+    }
   )
+  const transcribeMs = Date.now() - transcribeStartedAt
   const knownEndSeconds = typeof audioDurationSeconds === 'number' && Number.isFinite(audioDurationSeconds)
     ? offsetSeconds + audioDurationSeconds
     : undefined
@@ -159,36 +163,22 @@ export const runOpenAICompatibleSingleSpeakerStt = async (
   const text = typeof payload.text === 'string'
     ? payload.text.trim()
     : segments.map((segment) => segment.text).join(' ').trim()
-  const { finalSegments, finalText } = resolveTranscriptionOutput(segments, text, offsetSeconds)
-
-  await Bun.write(`${outputBase}.txt`, formatTranscriptText(finalSegments))
-
-  const processingTime = Date.now() - startTime
-  const metadata: Step2Metadata = {
-    transcriptionService: service,
-    transcriptionModel: model,
-    processingTime,
-    tokenCount: countTokens(finalText)
-  }
-
-  if (segmentNumber && totalSegments) {
-    logSttSegmentLifecycle(l, { provider: providerLabel, action: 'completed', segmentNumber, totalSegments, model, processingTimeMs: processingTime })
-  }
-
-  return {
-    result: {
-      text: finalText,
-      segments: finalSegments,
-      evidence: {
-        capabilities: {
-          hasNativeWordTiming: false,
-          hasConfidence: false,
-          hasSpeakerLabels: false
-        },
-        timingQuality: 'segment_interpolated',
-        rawResponse: payload
-      }
-    },
-    metadata
-  }
+  return await finalizeHostedSttResult({
+    provider: service,
+    lifecycleProvider: providerLabel,
+    model,
+    outputDir,
+    segmentNumber,
+    totalSegments,
+    offsetSeconds,
+    startTime,
+    transcribeMs,
+    requestCount,
+    retryCount: retryMetrics.retryCount,
+    rateLimitCount: retryMetrics.rateLimitCount,
+    text,
+    segments,
+    evidenceWords: [],
+    rawResponse: payload
+  })
 }

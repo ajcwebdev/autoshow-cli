@@ -18,7 +18,10 @@ import {
   withOcrPageRequestRetry
 } from './shared'
 import { runGeminiOcr } from '~/cli/commands/process-steps/step-2-extract/step-2-ocr/ocr-services/gemini-ocr/run-gemini-ocr'
+import { runHostedOcr } from '~/cli/commands/process-steps/step-2-extract/step-2-ocr/hosted-ocr'
 import { AppError } from '~/utils/error-handler'
+import type { ExtractionOptions } from '~/types'
+import { installMockFetch } from '../../../../test-utils/rest-contract-helpers'
 
 describe('OCR resilience contracts', () => {
   test('DeepInfra page OCR uses bounded request retries and timeout classification keeps page context', async () => {
@@ -267,7 +270,7 @@ describe('OCR resilience contracts', () => {
       await Bun.write(inputPath, new Uint8Array([137, 80, 78, 71]))
       process.env['KIMI_API_KEY'] = 'test-key'
       ;(Bun as typeof Bun & { sleep: typeof Bun.sleep }).sleep = (async () => {}) as typeof Bun.sleep
-      globalThis.fetch = (async (_input: Parameters<typeof fetch>[0], init?: Parameters<typeof fetch>[1]): Promise<Response> => {
+      installMockFetch((_call, _input, init) => {
         attempts += 1
         expect(init?.signal).toBeDefined()
         return jsonResponse({
@@ -280,7 +283,7 @@ describe('OCR resilience contracts', () => {
             completion_tokens: 6
           }
         })
-      }) as typeof fetch
+      })
 
       await expect(runKimiOcr(inputPath, {
         ...basePdfMetadata,
@@ -315,14 +318,11 @@ describe('OCR resilience contracts', () => {
     }
     const tempDir = await mkdtemp(join(tmpdir(), 'autoshow-gemini-single-page-cap-'))
     const inputPath = join(tempDir, 'input.png')
-    const requests: Array<Record<string, unknown>> = []
 
     try {
       await Bun.write(inputPath, new Uint8Array([137, 80, 78, 71]))
       process.env['GEMINI_API_KEY'] = 'test-key'
-      globalThis.fetch = (async (_input: Parameters<typeof fetch>[0], init?: Parameters<typeof fetch>[1]): Promise<Response> => {
-        const body = typeof init?.body === 'string' ? JSON.parse(init.body) as Record<string, unknown> : {}
-        requests.push(body)
+      const requests = installMockFetch((_call) => {
         if (requests.length === 1) {
           return jsonResponse({
             candidates: [{
@@ -343,7 +343,7 @@ describe('OCR resilience contracts', () => {
             candidatesTokenCount: 5
           }
         })
-      }) as typeof fetch
+      })
 
       const result = await runGeminiOcr(inputPath, {
         ...basePdfMetadata,
@@ -355,9 +355,9 @@ describe('OCR resilience contracts', () => {
       })
 
       expect(requests).toHaveLength(2)
-      expect((requests[0]?.['generationConfig'] as Record<string, unknown>)['maxOutputTokens']).toBe(8_192)
-      expect((requests[1]?.['generationConfig'] as Record<string, unknown>)['maxOutputTokens']).toBe(8_192)
-      const retryContents = requests[1]?.['contents'] as Array<Record<string, unknown>>
+      expect((requests[0]?.bodyJson?.['generationConfig'] as Record<string, unknown>)['maxOutputTokens']).toBe(8_192)
+      expect((requests[1]?.bodyJson?.['generationConfig'] as Record<string, unknown>)['maxOutputTokens']).toBe(8_192)
+      const retryContents = requests[1]?.bodyJson?.['contents'] as Array<Record<string, unknown>>
       const retryParts = retryContents[0]?.['parts'] as Array<Record<string, unknown>>
       expect(retryParts[0]?.['text']).toContain('Return only valid JSON for this single OCR page.')
 
@@ -398,13 +398,11 @@ describe('OCR resilience contracts', () => {
     }
     const tempDir = await mkdtemp(join(tmpdir(), 'autoshow-gemini-direct-pdf-cap-'))
     const inputPath = join(tempDir, 'input.pdf')
-    let requestBody: Record<string, unknown> | undefined
 
     try {
       await Bun.write(inputPath, '%PDF-1.7 test placeholder')
       process.env['GEMINI_API_KEY'] = 'test-key'
-      globalThis.fetch = (async (_input: Parameters<typeof fetch>[0], init?: Parameters<typeof fetch>[1]): Promise<Response> => {
-        requestBody = typeof init?.body === 'string' ? JSON.parse(init.body) as Record<string, unknown> : {}
+      const requests = installMockFetch(() => {
         return jsonResponse({
           candidates: [{
             content: { parts: [{ text: '{"pages":[{"pageNumber":1,"text":"pdf page"}]}' }] }
@@ -414,7 +412,7 @@ describe('OCR resilience contracts', () => {
             candidatesTokenCount: 4
           }
         })
-      }) as typeof fetch
+      })
 
       const result = await runGeminiOcr(inputPath, {
         ...basePdfMetadata,
@@ -423,7 +421,7 @@ describe('OCR resilience contracts', () => {
         fileSize: 24
       }, 'gemini-3.1-flash-lite')
 
-      expect((requestBody?.['generationConfig'] as Record<string, unknown>)['maxOutputTokens']).toBe(24_576)
+      expect((requests[0]?.bodyJson?.['generationConfig'] as Record<string, unknown>)['maxOutputTokens']).toBe(24_576)
       expect(result.pages[0]?.text).toBe('pdf page')
     } finally {
       globalThis.fetch = previousFetch
@@ -436,7 +434,7 @@ describe('OCR resilience contracts', () => {
     }
   })
 
-  test('Kimi rendered page OCR uses the default page concurrency without adaptive throttling', async () => {
+  test('Kimi rendered page OCR uses the shared fallback default concurrency without adaptive throttling', async () => {
     const previousFetch = globalThis.fetch
     const previousEnv = {
       KIMI_API_KEY: process.env['KIMI_API_KEY']
@@ -454,8 +452,7 @@ describe('OCR resilience contracts', () => {
       releaseFirstWindow = resolve
     })
 
-    const readPageNumber = (init: Parameters<typeof fetch>[1]): number => {
-      const body = typeof init?.body === 'string' ? JSON.parse(init.body) as Record<string, unknown> : {}
+    const readPageNumber = (body: Record<string, unknown>): number => {
       const messages = body['messages'] as Array<Record<string, unknown>>
       const content = messages[0]?.['content'] as Array<Record<string, unknown>>
       const imagePart = content.find(part => part['type'] === 'image_url')
@@ -476,8 +473,8 @@ describe('OCR resilience contracts', () => {
       await Bun.write(inputPath, '%PDF-1.7 test placeholder')
       await prefillRenderedPageCache(cache, renderDir, inputPath, pages, 300)
       process.env['KIMI_API_KEY'] = 'test-key'
-      globalThis.fetch = (async (_input: Parameters<typeof fetch>[0], init?: Parameters<typeof fetch>[1]): Promise<Response> => {
-        const pageNumber = readPageNumber(init)
+      installMockFetch(async (call) => {
+        const pageNumber = readPageNumber(call.bodyJson ?? {})
         starts.push(pageNumber)
         activeRequests += 1
         maxActiveRequests = Math.max(maxActiveRequests, activeRequests)
@@ -498,20 +495,22 @@ describe('OCR resilience contracts', () => {
         } finally {
           activeRequests -= 1
         }
-      }) as typeof fetch
+      })
 
-      const run = runKimiOcr(inputPath, {
+      const run = runHostedOcr(inputPath, {
         ...basePdfMetadata,
         pageCount: pages.length,
         format: 'pdf',
         fileSize: 128
-      }, 'kimi-k2.6', {
+      }, {
+        filePath: inputPath,
         dpi: 300,
         password: undefined,
         outputDir: tempDir,
         ocrPreparationCache: cache,
-        ocrConcurrency: undefined
-      })
+        ocrConcurrency: undefined,
+        kimiOcrModel: 'kimi-k2.6'
+      } as ExtractionOptions)
 
       for (let attempt = 0; attempt < 500 && starts.length < 10; attempt++) {
         await Bun.sleep(1)
@@ -525,6 +524,7 @@ describe('OCR resilience contracts', () => {
       expect(maxActiveRequests).toBe(10)
       expect(starts.slice().sort((a, b) => a - b)).toEqual(pages)
       expect(result.pages.map(page => page.text)).toEqual(pages.map(page => `page ${page}`))
+      expect(result.providerUsage?.map(entry => entry['unit'])).toEqual(pages.map(() => 'chunk'))
     } finally {
       releaseFirstWindow?.()
       globalThis.fetch = previousFetch

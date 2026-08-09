@@ -1,10 +1,9 @@
+import { isRecord } from '~/utils/rest-client'
 import { join } from 'node:path'
 import type { BatchManifestEntry, ProviderCheckpoint, SttBatchSummary, SttBatchSummaryItem } from '~/types'
 import { readRunManifestEntry, writeBatchManifest, writeRunManifest } from '../../manifest-utils'
 
 
-const isRecord = (value: unknown): value is Record<string, unknown> =>
-  typeof value === 'object' && value !== null && !Array.isArray(value)
 
 const isCompletionStatus = (value: unknown): value is SttBatchSummaryItem['completionStatus'] =>
   value === 'full' || value === 'incomplete' || value === 'failed' || value === 'skipped'

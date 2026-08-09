@@ -3,13 +3,13 @@ import type { DiarizationOptions, RetryClass, Step2Metadata, SttTranscribeHttpEr
 import { MistralTranscriptionResponseSchema } from '~/types'
 import * as l from '~/utils/app-logger/app-logger'
 import { logSttSegmentLifecycle } from '~/cli/commands/process-steps/step-2-extract/step-2-stt/stt-logging'
-import { countTokens, toTimestamp, buildTranscriptionOutputBase, formatTranscriptText, formatSpeakerLabel } from '~/cli/commands/process-steps/step-2-extract/step-2-stt/stt-utils/stt-utils'
+import { formatSpeakerLabel, toTimestamp } from '~/cli/commands/process-steps/step-2-extract/step-2-stt/stt-utils/stt-utils'
 import { withRetry, classifyFetchRetry, parseRetryAfterMs } from '~/utils/retries'
 import { MISTRAL_DEFAULT_BASE_URL } from '~/utils/base-urls'
 import { mistralMultipartRequest } from '~/utils/mistral/mistral-client'
-import { readEnv } from '~/utils/validate/env-utils'
+import { requireApiKey } from '~/utils/validate/env-utils'
 import { validateData } from '~/utils/validate/validation'
-import { InternalError, hintsForMissingEnv } from '~/utils/error-handler'
+import { finalizeHostedSttResult } from '../finalize-hosted-stt'
 import { createMistralSttPassController } from './mistral-stt-pass-controller'
 
 const REQUEST_TIMEOUT_MS = 20 * 60 * 1000
@@ -116,10 +116,7 @@ export const runMistralStt = async (
     baseUrl?: string | undefined
   }
 ): Promise<{ result: TranscriptionResult, metadata: Step2Metadata }> => {
-  const apiKey = readEnv('MISTRAL_API_KEY')
-  if (!apiKey) {
-    throw InternalError('MISTRAL_API_KEY environment variable is required for Mistral transcription', { stage: 'stt:mistral', hints: hintsForMissingEnv('MISTRAL_API_KEY') })
-  }
+  const apiKey = requireApiKey('MISTRAL_API_KEY', 'stt:mistral', 'Mistral transcription')
 
   const { model: modelName, segmentOffsetMinutes = 0, segmentNumber, totalSegments } = options
   if (segmentNumber && totalSegments) {
@@ -128,11 +125,13 @@ export const runMistralStt = async (
 
   const startTime = Date.now()
   const offsetSeconds = segmentOffsetMinutes * 60
-  const outputBase = buildTranscriptionOutputBase(outputDir, segmentNumber)
   const fileBytes = await Bun.file(audioPath).arrayBuffer()
   const baseURL = options.baseUrl ?? MISTRAL_DEFAULT_BASE_URL
   const passController = options.passController ?? createMistralSttPassController()
   let transcribeMs = 0
+  let requestCount = 0
+  let retryCount = 0
+  let rateLimitCount = 0
 
   let rawPayload: unknown
   try {
@@ -145,6 +144,7 @@ export const runMistralStt = async (
         timeoutMs: REQUEST_TIMEOUT_MS
       },
       async (signal) => {
+        requestCount += 1
         return await passController.withRequestSlot(async () => {
           try {
             const form = new FormData()
@@ -170,6 +170,8 @@ export const runMistralStt = async (
       },
       (error) => {
         if (getErrorStatus(error) === 429) {
+          retryCount += 1
+          rateLimitCount += 1
           return {
             shouldRetry: true,
             delayMs: resolveMistralRateLimitCooldownMs(error),
@@ -177,7 +179,11 @@ export const runMistralStt = async (
           }
         }
 
-        return classifyFetchRetry(error, 'runtime_http_create_conservative', { retryAbortOnConservative: true })
+        const decision = classifyFetchRetry(error, 'runtime_http_create_conservative', { retryAbortOnConservative: true })
+        if (decision.shouldRetry) {
+          retryCount += 1
+        }
+        return decision
       }
     )
     transcribeMs += Date.now() - transcribeStartedAt
@@ -193,44 +199,21 @@ export const runMistralStt = async (
   const textFromPayload = (payload.text ?? '').trim()
   const text = textFromPayload.length > 0 ? textFromPayload : segments.map(seg => seg.text).join(' ').trim()
 
-  const finalSegments = segments.length > 0
-    ? segments
-    : [{
-        start: toTimestamp(offsetSeconds),
-        end: toTimestamp(offsetSeconds),
-        text
-      }]
-
-  const formattedTranscriptPath = `${outputBase}.txt`
-  await Bun.write(formattedTranscriptPath, formatTranscriptText(finalSegments))
-
-  const processingTime = Date.now() - startTime
-  const metadata: Step2Metadata = {
-    transcriptionService: 'mistral',
-    transcriptionModel: modelName,
-    processingTime,
-    tokenCount: countTokens(text),
-    ...(transcribeMs > 0 ? { timings: { transcribeMs } } : {})
-  }
-
-  if (segmentNumber && totalSegments) {
-    logSttSegmentLifecycle(l, { provider: 'mistral', action: 'completed', segmentNumber, totalSegments, model: modelName, processingTimeMs: processingTime })
-  }
-
-  return {
-    result: {
-      text,
-      segments: finalSegments,
-      evidence: {
-        capabilities: {
-          hasNativeWordTiming: false,
-          hasConfidence: false,
-          hasSpeakerLabels: finalSegments.some((segment) => segment.speaker !== undefined)
-        },
-        timingQuality: 'segment_interpolated',
-        rawResponse: payload
-      }
-    },
-    metadata
-  }
+  return await finalizeHostedSttResult({
+    provider: 'mistral',
+    model: modelName,
+    outputDir,
+    segmentNumber,
+    totalSegments,
+    offsetSeconds,
+    startTime,
+    transcribeMs,
+    requestCount,
+    retryCount,
+    rateLimitCount,
+    text,
+    segments,
+    evidenceWords: [],
+    rawResponse: payload
+  })
 }

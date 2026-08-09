@@ -1,5 +1,5 @@
 import { describe, expect, test } from 'bun:test'
-import { mkdir, mkdtemp, rm, writeFile } from 'node:fs/promises'
+import { mkdir, mkdtemp, rm } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { getGenerationTargetKey } from '~/cli/commands/process-steps/generation-command-utils'
@@ -16,8 +16,9 @@ import { writeOcrRunManifest } from '~/cli/commands/process-steps/step-2-extract
 import { hasResumableSttTargetWork, priceSttTarget } from '~/cli/commands/setup-and-utilities/resume/extract/stt-resume'
 import { finalizeMusicResumeArtifacts } from '~/cli/commands/setup-and-utilities/resume/generation/music-resume'
 import { writeSttRunManifest } from '~/cli/commands/process-steps/step-2-extract/step-2-stt/stt-manifest'
-import { readExistingSttRun } from '~/cli/commands/process-steps/step-2-extract/step-2-stt/stt-batch/stt-run-state'
-import type { BatchManifestEntry, OcrTarget, ProviderBatchResumeConfig, ProviderIdentity, ResumeFakeMetadata, ResumeFakeProviderResumeEntry, ResumeTarget, RuntimeOptions, SttTarget } from '~/types'
+import { buildProviderStates as buildSttProviderStates, readExistingSttRun } from '~/cli/commands/process-steps/step-2-extract/step-2-stt/stt-batch/stt-run-state'
+import type { BatchManifestEntry, OcrTarget, ProviderBatchResumeConfig, ProviderIdentity, ResumeFakeMetadata, ResumeFakeProviderResumeEntry, ResumeTarget, RuntimeOptions, SttProviderState, SttProviderSuccess, SttTarget } from '~/types'
+import { writeProviderResultFixture } from '../../../test-utils/manifest-helpers'
 
 const isRecord = (value: unknown): value is Record<string, unknown> =>
   typeof value === 'object' && value !== null && !Array.isArray(value)
@@ -34,6 +35,20 @@ const withTempDir = async <T>(
   }
 }
 
+const FAKE_MODEL_FIELDS = {
+  openai: ['openaiImageModels', 'openaiImageModel'],
+  gemini: ['geminiImageModels', 'geminiImageModel']
+} as const
+
+const collectFakeTargetsFromOptions = (opts: RuntimeOptions): ProviderIdentity[] => {
+  const valuesByField = opts as Record<string, unknown>
+  return Object.entries(FAKE_MODEL_FIELDS).flatMap(([service, [modelsField, modelField]]) => {
+    const models = valuesByField[modelsField] ?? valuesByField[modelField]
+    const values = Array.isArray(models) ? models : [models]
+    return values.flatMap((model) => typeof model === 'string' ? [{ service, model }] : [])
+  })
+}
+
 const fakeResumeConfig = (
   selectedTargets: ProviderIdentity[],
   ranTargets: ProviderIdentity[]
@@ -42,11 +57,12 @@ const fakeResumeConfig = (
   metadataKey: 'image',
   stepLabel: 'Fake image',
   providerFlags: ['fake-provider'],
+  selectionMode: 'additive-stored' as const,
+  modelFields: FAKE_MODEL_FIELDS,
   getSuccessKey: (entry: ResumeFakeMetadata) =>
     getGenerationTargetKey(entry.service, entry.model),
-  collectTargets: () => selectedTargets,
-  collectTargetsForProviders: (providers: ProviderIdentity[]) =>
-    providers.map((provider) => ({ ...provider })),
+  collectTargets: (opts: RuntimeOptions) =>
+    selectedTargets.length > 0 ? selectedTargets : collectFakeTargetsFromOptions(opts),
   runMissingTargets: async (targets: ProviderIdentity[]) => {
     ranTargets.push(...targets)
     return targets.map((target) => ({
@@ -54,10 +70,7 @@ const fakeResumeConfig = (
       processingTime: 1
     }))
   },
-  priceTargets: async () => ({
-    steps: [],
-    totalEstimatedCost: 0
-  }),
+  buildEstimates: () => [],
   rebuildRunMetadata: (metadata: ResumeFakeMetadata[]) => ({
     cost: {
       actual: {
@@ -412,23 +425,22 @@ describe('additive resume provider selection', () => {
           attempts: 1
         }]
       })
-      await writeFile(join(providerDir, 'result.json'), `${JSON.stringify({
-        schemaVersion: 2,
-        kind: 'provider-result',
-        provider: target.service,
-        model: target.model,
-        metadata: {
+      await writeProviderResultFixture(
+        providerDir,
+        target.service,
+        target.model,
+        {
           transcriptionService: target.service,
           transcriptionModel: target.model,
           processingTime: 10,
           tokenCount: 2
         },
-        result: {
+        {
           text: 'Compacted transcript.',
           segments: [{ start: '00:00:00', end: '00:00:01', text: 'Compacted transcript.' }],
           evidence: { timingQuality: 'coarse' }
         }
-      })}\n`)
+      )
 
       const existing = await readExistingSttRun(dir, [target])
 
@@ -439,6 +451,59 @@ describe('additive resume provider selection', () => {
       })
       expect(await Bun.file(join(providerDir, 'transcription.txt')).exists()).toBe(false)
     })
+  })
+
+  test('STT provider-state reconciliation preserves artifact locations and one attempt per run', () => {
+    const resumedRoot: SttTarget = { service: 'whisper', model: 'large-v3-turbo', local: true }
+    const freshSuccess: SttTarget = { service: 'assemblyai', model: 'universal-2', local: false }
+    const currentFailure: SttTarget = { service: 'deepgram', model: 'nova-3', local: false }
+    const freshFailure: SttTarget = { service: 'groq', model: 'whisper-large-v3-turbo', local: false }
+    const untouched: SttTarget = { service: 'speechmatics', model: 'melia-1', local: false }
+    const attemptedSkip: SttTarget = { service: 'soniox', model: 'stt-rt-v4', local: false }
+    const schedulerSkip: SttTarget = { service: 'reverb', model: 'reverb_asr_v2', local: false }
+    const requestedTargets = [resumedRoot, freshSuccess, currentFailure, freshFailure, untouched, attemptedSkip, schedulerSkip]
+    const successes: Array<SttProviderSuccess | undefined> = [
+      {
+        target: resumedRoot,
+        metadata: {} as SttProviderSuccess['metadata'],
+        result: {} as SttProviderSuccess['result'],
+        relativeDir: '.'
+      },
+      {
+        target: freshSuccess,
+        metadata: {} as SttProviderSuccess['metadata'],
+        result: {} as SttProviderSuccess['result']
+      },
+      undefined,
+      undefined,
+      undefined,
+      undefined,
+      undefined
+    ]
+    const failures = new Map([
+      [2, { message: 'current failure', retryable: true }],
+      [3, { message: 'fresh failure', retryable: true }],
+      [5, { message: 'provider classified this attempt as skipped', retryable: false, skipped: true }]
+    ])
+    const existingStates = new Map<string, SttProviderState>([
+      ['whisper:large-v3-turbo', { ...resumedRoot, artifactDir: '.', status: 'succeeded', attempts: 3 }],
+      ['deepgram:nova-3', { ...currentFailure, artifactDir: 'providers/deepgram-nova-3', status: 'failed', attempts: 5 }],
+      ['speechmatics:melia-1', { ...untouched, artifactDir: 'providers/speechmatics-melia-1', status: 'missing', attempts: 2 }],
+      ['soniox:stt-rt-v4', { ...attemptedSkip, artifactDir: 'providers/soniox-stt-rt-v4', status: 'skipped', attempts: 4 }],
+      ['reverb:reverb_asr_v2', { ...schedulerSkip, artifactDir: 'providers/reverb-reverb_asr_v2', status: 'skipped', attempts: 0 }]
+    ])
+
+    const states = buildSttProviderStates(requestedTargets, successes, failures, existingStates)
+
+    expect(states.slice(0, 5).map(({ artifactDir, status, attempts }) => ({ artifactDir, status, attempts }))).toEqual([
+      { artifactDir: '.', status: 'succeeded', attempts: 3 },
+      { artifactDir: 'providers/assemblyai-universal-2', status: 'succeeded', attempts: 1 },
+      { artifactDir: 'providers/deepgram-nova-3', status: 'failed', attempts: 5 },
+      { artifactDir: 'providers/groq-whisper-large-v3-turbo', status: 'failed', attempts: 1 },
+      { artifactDir: 'providers/speechmatics-melia-1', status: 'missing', attempts: 2 }
+    ])
+    expect(states[5]).toMatchObject({ status: 'skipped', attempts: 4 })
+    expect(states[6]).toMatchObject({ status: 'skipped', attempts: 0 })
   })
 
   test('generation resume appends explicit new providers to a full run', async () => {
@@ -475,18 +540,16 @@ describe('additive resume provider selection', () => {
           runMissingTargets: async () => {
             throw new Error('runner should not be called')
           },
-          priceTargets: async (targets: ProviderIdentity[]) => {
+          buildEstimates: (opts: RuntimeOptions) => {
+            const targets = collectFakeTargetsFromOptions(opts)
             pricedTargets.push(...targets)
-            return {
-              steps: [{
+            return [{
                 step: 'image',
                 provider: 'gemini',
                 model: 'gemini-3.1-flash-lite-image',
                 imageCount: 1,
                 totalCost: 1
-              }],
-              totalEstimatedCost: 1
-            }
+              }]
           }
         },
         {} as RuntimeOptions,

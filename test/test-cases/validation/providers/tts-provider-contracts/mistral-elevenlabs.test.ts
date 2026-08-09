@@ -1,12 +1,8 @@
 import {
-  afterEach,
-  beforeEach,
   describe,
   expect,
   test
 } from 'bun:test'
-import { mkdtemp, rm } from 'node:fs/promises'
-import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { runElevenLabsTts } from '~/cli/commands/process-steps/step-4-tts/tts-services/tts-elevenlabs/run-elevenlabs-tts'
 import { runMistralTts } from '~/cli/commands/process-steps/step-4-tts/tts-services/tts-mistral/run-mistral-tts'
@@ -14,87 +10,23 @@ import { runTts } from '~/cli/commands/process-steps/step-4-tts/run-tts'
 import { resolveTtsChunkCharacterLimit } from '~/cli/commands/process-steps/step-4-tts/tts-utils/tts-chunking'
 import type { TtsOptions } from '~/types'
 import { createMockWavBase64, createSyntheticWavBytes } from '../../../../test-utils/media-fixtures'
-import { LOCAL_AUDIO_PATH, LOCAL_SHORT_AUDIO_PATH, readWavSamples, segmentRms, waitForCondition } from './shared'
+import { installMockFetch } from '../../../../test-utils/rest-contract-helpers'
+import { LOCAL_AUDIO_PATH, LOCAL_SHORT_AUDIO_PATH, readWavSamples, segmentRms, setupTtsContractLifecycle, waitForCondition } from './shared'
 
 const SHORT_AUDIO_URL = 'https://ajc.pics/autoshow/examples/0-audio-short.mp3'
 
-const tempDirs: string[] = []
-
-const originalFetch = globalThis.fetch
-
-const originalSleep = Bun.sleep
-
-const previousEnv: Record<string, string | undefined> = {}
-
-const envKeys = [
-  'ELEVENLABS_API_KEY',
-  'SPEECHIFY_API_KEY',
-  'HUME_API_KEY',
-  'CARTESIA_API_KEY',
-  'MISTRAL_API_KEY',
-  'OPENAI_API_KEY',
-  'GROQ_API_KEY',
-  'XAI_API_KEY',
-  'MINIMAX_API_KEY',
-  'DEEPGRAM_API_KEY'
-]
-
-const restoreEnv = (): void => {
-  for (const key of envKeys) {
-    if (previousEnv[key] === undefined) {
-      delete process.env[key]
-    } else {
-      process.env[key] = previousEnv[key]
-    }
-  }
-}
-
-const makeTempDir = async (prefix: string): Promise<string> => {
-  const dir = await mkdtemp(join(tmpdir(), prefix))
-  tempDirs.push(dir)
-  return dir
-}
-
-beforeEach(() => {
-  for (const key of envKeys) {
-    previousEnv[key] = process.env[key]
-    delete process.env[key]
-  }
-})
-
-afterEach(async () => {
-  restoreEnv()
-  globalThis.fetch = originalFetch
-  ;(Bun as typeof Bun & { sleep: typeof Bun.sleep }).sleep = originalSleep
-  await Promise.all(tempDirs.splice(0).map((dir) => rm(dir, { recursive: true, force: true })))
-})
+const { makeTempDir } = setupTtsContractLifecycle()
 
 describe('TTS provider service contracts', () => {
   test('Mistral converts non-mp3-wav reference audio to WAV before sending ref_audio', async () => {
       const dir = await makeTempDir('autoshow-mistral-tts-ref-audio-')
       const sourcePath = join(dir, 'reference.m4a')
-      const calls: Array<{ url: string, method: string, authorization: string | null, body: Record<string, unknown> }> = []
 
       await Bun.$`ffmpeg -v error -y -i ${LOCAL_SHORT_AUDIO_PATH} -t 1 -c:a aac ${sourcePath}`.quiet()
 
       process.env['MISTRAL_API_KEY'] = 'mistral-key'
 
-      globalThis.fetch = (async (input: Parameters<typeof fetch>[0], init?: Parameters<typeof fetch>[1]): Promise<Response> => {
-        const request = input instanceof Request ? input : undefined
-        const bodyText = typeof init?.body === 'string'
-          ? init.body
-          : request
-            ? await request.clone().text()
-            : ''
-        const headers = new Headers(init?.headers ?? request?.headers)
-        calls.push({
-          url: request?.url ?? String(input),
-          method: init?.method ?? request?.method ?? 'GET',
-          authorization: headers.get('authorization'),
-          body: JSON.parse(bodyText) as Record<string, unknown>
-        })
-        return Response.json({ audio_data: createMockWavBase64() })
-      }) as typeof fetch
+      const calls = installMockFetch(() => Response.json({ audio_data: createMockWavBase64() }))
 
       const result = await runMistralTts('Mistral reference synthesis.', dir, {
         model: 'voxtral-mini-tts-2603',
@@ -103,19 +35,19 @@ describe('TTS provider service contracts', () => {
 
       expect(await Bun.file(result.audioPath).exists()).toBe(true)
       expect(calls).toHaveLength(1)
+      expect(calls[0]?.headers.get('authorization')).toBe('Bearer mistral-key')
       expect(calls[0]).toMatchObject({
         url: 'https://api.mistral.ai/v1/audio/speech',
-        method: 'POST',
-        authorization: 'Bearer mistral-key'
+        method: 'POST'
       })
-      expect(calls[0]?.body).toMatchObject({
+      expect(calls[0]?.bodyJson).toMatchObject({
         model: 'voxtral-mini-tts-2603',
         input: 'Mistral reference synthesis.',
         stream: false,
         response_format: 'wav'
       })
 
-      const refAudio = String(calls[0]?.body['ref_audio'])
+      const refAudio = String(calls[0]?.bodyJson?.['ref_audio'])
       const refBytes = Buffer.from(refAudio, 'base64')
       expect(refBytes.subarray(0, 4).toString('ascii')).toBe('RIFF')
       expect(refBytes.subarray(8, 12).toString('ascii')).toBe('WAVE')
@@ -132,27 +64,14 @@ describe('TTS provider service contracts', () => {
       const dir = await makeTempDir('autoshow-mistral-tts-saved-voice-')
       const sourcePath = SHORT_AUDIO_URL
       const mediaBytes = await Bun.file(LOCAL_SHORT_AUDIO_PATH).arrayBuffer()
-      const calls: Array<{ url: string, method: string, authorization: string | null, body: Record<string, unknown> }> = []
-
       process.env['MISTRAL_API_KEY'] = 'mistral-key'
 
-      globalThis.fetch = (async (input: Parameters<typeof fetch>[0], init?: Parameters<typeof fetch>[1]): Promise<Response> => {
-        const request = input instanceof Request ? input : undefined
-        const url = request?.url ?? String(input)
-        if (url === SHORT_AUDIO_URL) {
+      const calls = installMockFetch((call) => {
+        if (call.url === SHORT_AUDIO_URL) {
           return new Response(mediaBytes, { status: 200, headers: { 'content-type': 'audio/mpeg' } })
         }
-        const bodyText = typeof init?.body === 'string'
-          ? init.body
-          : request
-            ? await request.clone().text()
-            : ''
-        const headers = new Headers(init?.headers ?? request?.headers)
-        const method = init?.method ?? request?.method ?? 'GET'
-        const body = JSON.parse(bodyText) as Record<string, unknown>
-        calls.push({ url, method, authorization: headers.get('authorization'), body })
 
-        if (url.endsWith('/v1/audio/voices')) {
+        if (call.url.endsWith('/v1/audio/voices')) {
           return Response.json({
             id: 'mistral_saved_voice_123',
             name: 'AutoShow Saved Voice',
@@ -161,11 +80,11 @@ describe('TTS provider service contracts', () => {
             user_id: null
           })
         }
-        if (url.endsWith('/v1/audio/speech')) {
+        if (call.url.endsWith('/v1/audio/speech')) {
           return Response.json({ audio_data: createMockWavBase64() })
         }
-        throw new Error(`Unexpected Mistral saved voice mock fetch: ${method} ${url}`)
-      }) as typeof fetch
+        throw new Error(`Unexpected Mistral saved voice mock fetch: ${call.method} ${call.url}`)
+      })
 
       const result = await runMistralTts('Mistral saved voice synthesis.', dir, {
         model: 'voxtral-mini-tts-2603',
@@ -174,24 +93,25 @@ describe('TTS provider service contracts', () => {
       })
 
       expect(await Bun.file(result.audioPath).exists()).toBe(true)
-      expect(calls).toHaveLength(2)
-      expect(calls[0]).toMatchObject({
+      expect(calls).toHaveLength(3)
+      const providerCalls = calls.filter((call) => call.url !== SHORT_AUDIO_URL)
+      expect(providerCalls).toHaveLength(2)
+      expect(providerCalls[0]).toMatchObject({
         url: 'https://api.mistral.ai/v1/audio/voices',
         method: 'POST',
-        authorization: 'Bearer mistral-key',
-        body: {
+        bodyJson: {
           name: 'AutoShow Saved Voice',
           sample_filename: '0-audio-short.mp3',
           retention_notice: 30
         }
       })
-      expect(typeof calls[0]?.body['sample_audio']).toBe('string')
-      expect(String(calls[0]?.body['sample_audio']).length).toBeGreaterThan(0)
-      expect(calls[1]).toMatchObject({
+      expect(providerCalls[0]?.headers.get('authorization')).toBe('Bearer mistral-key')
+      expect(typeof providerCalls[0]?.bodyJson?.['sample_audio']).toBe('string')
+      expect(String(providerCalls[0]?.bodyJson?.['sample_audio']).length).toBeGreaterThan(0)
+      expect(providerCalls[1]).toMatchObject({
         url: 'https://api.mistral.ai/v1/audio/speech',
         method: 'POST',
-        authorization: 'Bearer mistral-key',
-        body: {
+        bodyJson: {
           model: 'voxtral-mini-tts-2603',
           input: 'Mistral saved voice synthesis.',
           stream: false,
@@ -199,6 +119,7 @@ describe('TTS provider service contracts', () => {
           voice_id: 'mistral_saved_voice_123'
         }
       })
+      expect(providerCalls[1]?.headers.get('authorization')).toBe('Bearer mistral-key')
       expect(result.metadata).toMatchObject({
         ttsService: 'mistral',
         ttsModel: 'voxtral-mini-tts-2603',
@@ -210,28 +131,9 @@ describe('TTS provider service contracts', () => {
 
   test('Mistral multi-speaker TTS sends each speaker reference audio', async () => {
       const dir = await makeTempDir('autoshow-mistral-tts-dialogue-ref-audio-')
-      const calls: Array<{ url: string, method: string, authorization: string | null, body: Record<string, unknown> }> = []
-
       process.env['MISTRAL_API_KEY'] = 'mistral-key'
 
-      globalThis.fetch = (async (input: Parameters<typeof fetch>[0], init?: Parameters<typeof fetch>[1]): Promise<Response> => {
-        const request = input instanceof Request ? input : undefined
-        const bodyText = typeof init?.body === 'string'
-          ? init.body
-          : request
-            ? await request.clone().text()
-            : ''
-        const headers = new Headers(init?.headers ?? request?.headers)
-        const method = init?.method ?? request?.method ?? 'GET'
-        const url = request?.url ?? String(input)
-        calls.push({
-          url,
-          method,
-          authorization: headers.get('authorization'),
-          body: JSON.parse(bodyText) as Record<string, unknown>
-        })
-        return Response.json({ audio_data: createMockWavBase64() })
-      }) as typeof fetch
+      const calls = installMockFetch(() => Response.json({ audio_data: createMockWavBase64() }))
 
       const result = await runTts([
         'Host: Welcome to the reference audio test.',
@@ -247,21 +149,21 @@ describe('TTS provider service contracts', () => {
 
       expect(calls).toHaveLength(2)
       for (const call of calls) {
+        expect(call.headers.get('authorization')).toBe('Bearer mistral-key')
         expect(call).toMatchObject({
           url: 'https://api.mistral.ai/v1/audio/speech',
           method: 'POST',
-          authorization: 'Bearer mistral-key',
-          body: {
+          bodyJson: {
             model: 'voxtral-mini-tts-2603',
             stream: false,
             response_format: 'wav'
           }
         })
-        expect(typeof call.body['ref_audio']).toBe('string')
-        expect(String(call.body['ref_audio']).length).toBeGreaterThan(0)
-        expect(call.body['voice_id']).toBeUndefined()
+        expect(typeof call.bodyJson?.['ref_audio']).toBe('string')
+        expect(String(call.bodyJson?.['ref_audio']).length).toBeGreaterThan(0)
+        expect(call.bodyJson?.['voice_id']).toBeUndefined()
       }
-      expect(calls.map((call) => call.body['input']).sort()).toEqual([
+      expect(calls.map((call) => call.bodyJson?.['input']).sort()).toEqual([
         'Thanks. I should use the guest sample.',
         'Welcome to the reference audio test.'
       ])
@@ -283,19 +185,10 @@ describe('TTS provider service contracts', () => {
   test('ElevenLabs TTS sends output format, voice settings, seed, text normalization, and pronunciation dictionaries controls', async () => {
       const dir = await makeTempDir('autoshow-elevenlabs-tts-controls-')
       const audioBytes = await Bun.file(LOCAL_SHORT_AUDIO_PATH).arrayBuffer()
-      const calls: Array<{ url: string, method: string, authorization: string | null, body: Record<string, unknown> }> = []
 
       process.env['ELEVENLABS_API_KEY'] = 'elevenlabs-key'
 
-      globalThis.fetch = (async (input: Parameters<typeof fetch>[0], init?: Parameters<typeof fetch>[1]): Promise<Response> => {
-        calls.push({
-          url: String(input),
-          method: init?.method ?? 'GET',
-          authorization: new Headers(init?.headers).get('xi-api-key'),
-          body: JSON.parse(String(init?.body ?? '{}')) as Record<string, unknown>
-        })
-        return new Response(audioBytes, { status: 200, headers: { 'content-type': 'audio/mpeg' } })
-      }) as typeof fetch
+      const calls = installMockFetch(() => new Response(audioBytes, { status: 200, headers: { 'content-type': 'audio/mpeg' } }))
 
       const result = await runElevenLabsTts('ElevenLabs control synthesis.', dir, {
         model: 'eleven_v3',
@@ -318,52 +211,49 @@ describe('TTS provider service contracts', () => {
       })
 
       expect(await Bun.file(result.audioPath).exists()).toBe(true)
-      expect(calls).toEqual([{
-        url: 'https://api.elevenlabs.io/v1/text-to-speech/voice_existing123?output_format=mp3_22050_32&optimize_streaming_latency=2',
-        method: 'POST',
-        authorization: 'elevenlabs-key',
-        body: {
-          text: 'ElevenLabs control synthesis.',
-          model_id: 'eleven_v3',
-          language_code: 'en',
-          voice_settings: {
-            stability: 0.4,
-            similarity_boost: 0.8,
-            style: 0.2,
-            use_speaker_boost: true,
-            speed: 1.1
+      expect(calls).toHaveLength(1)
+      expect(calls[0]?.headers.get('xi-api-key')).toBe('elevenlabs-key')
+      expect(calls[0]?.url).toBe('https://api.elevenlabs.io/v1/text-to-speech/voice_existing123?output_format=mp3_22050_32&optimize_streaming_latency=2')
+      expect(calls[0]?.method).toBe('POST')
+      expect(calls[0]?.bodyJson).toEqual({
+        text: 'ElevenLabs control synthesis.',
+        model_id: 'eleven_v3',
+        language_code: 'en',
+        voice_settings: {
+          stability: 0.4,
+          similarity_boost: 0.8,
+          style: 0.2,
+          use_speaker_boost: true,
+          speed: 1.1
+        },
+        seed: 12345,
+        apply_text_normalization: 'on',
+        pronunciation_dictionary_locators: [
+          {
+            pronunciation_dictionary_id: 'dict_1',
+            version_id: 'version_2'
           },
-          seed: 12345,
-          apply_text_normalization: 'on',
-          pronunciation_dictionary_locators: [
-            {
-              pronunciation_dictionary_id: 'dict_1',
-              version_id: 'version_2'
-            },
-            {
-              pronunciation_dictionary_id: 'dict_3'
-            }
-          ]
-        }
-      }])
+          {
+            pronunciation_dictionary_id: 'dict_3'
+          }
+        ]
+      })
       expect(result.metadata.chunkCount).toBe(1)
     }, 10_000)
 
   test('ElevenLabs sends new model IDs and resolves model-specific character limits', async () => {
     const dir = await makeTempDir('autoshow-elevenlabs-new-models-')
     const audioBytes = await Bun.file(LOCAL_SHORT_AUDIO_PATH).arrayBuffer()
-    const bodies: Array<Record<string, unknown>> = []
     process.env['ELEVENLABS_API_KEY'] = 'elevenlabs-key'
-    globalThis.fetch = (async (_input: Parameters<typeof fetch>[0], init?: Parameters<typeof fetch>[1]): Promise<Response> => {
-      bodies.push(JSON.parse(String(init?.body ?? '{}')) as Record<string, unknown>)
+    const calls = installMockFetch(() => {
       return new Response(audioBytes, { status: 200, headers: { 'content-type': 'audio/mpeg' } })
-    }) as typeof fetch
+    })
 
     for (const model of ['eleven_multilingual_v2', 'eleven_flash_v2_5'] as const) {
       await runElevenLabsTts('New ElevenLabs model.', dir, { model, voiceId: 'voice_existing123' })
     }
 
-    expect(bodies.map((body) => body['model_id'])).toEqual(['eleven_multilingual_v2', 'eleven_flash_v2_5'])
+    expect(calls.map((call) => call.bodyJson?.['model_id'])).toEqual(['eleven_multilingual_v2', 'eleven_flash_v2_5'])
     expect(resolveTtsChunkCharacterLimit('elevenlabs', 'eleven_v3')).toBe(5000)
     expect(resolveTtsChunkCharacterLimit('elevenlabs', 'eleven_multilingual_v2')).toBe(10000)
     expect(resolveTtsChunkCharacterLimit('elevenlabs', 'eleven_flash_v2_5')).toBe(40000)
@@ -372,17 +262,11 @@ describe('TTS provider service contracts', () => {
   test('ElevenLabs TTS splits long text into multiple API calls', async () => {
       const dir = await makeTempDir('autoshow-elevenlabs-tts-chunks-')
       const audioBytes = await Bun.file(LOCAL_SHORT_AUDIO_PATH).arrayBuffer()
-      const calls: Array<{ url: string, body: Record<string, unknown> }> = []
-
       process.env['ELEVENLABS_API_KEY'] = 'elevenlabs-key'
 
-      globalThis.fetch = (async (input: Parameters<typeof fetch>[0], init?: Parameters<typeof fetch>[1]): Promise<Response> => {
-        calls.push({
-          url: String(input),
-          body: JSON.parse(String(init?.body ?? '{}')) as Record<string, unknown>
-        })
+      const calls = installMockFetch(() => {
         return new Response(audioBytes, { status: 200, headers: { 'content-type': 'audio/mpeg' } })
-      }) as typeof fetch
+      })
 
       const result = await runElevenLabsTts(`${'A'.repeat(5000)} ${'B'.repeat(100)}`, dir, {
         model: 'eleven_v3',
@@ -398,7 +282,7 @@ describe('TTS provider service contracts', () => {
       })
       expect(calls).toHaveLength(2)
       expect(calls.every((call) => call.url === 'https://api.elevenlabs.io/v1/text-to-speech/voice_existing123?output_format=mp3_44100_128')).toBe(true)
-      expect(calls.map((call) => String(call.body['text']).length)).toEqual([5000, 100])
+      expect(calls.map((call) => String(call.bodyJson?.['text']).length)).toEqual([5000, 100])
     }, 10_000)
 
   test('ElevenLabs TTS runs chunks concurrently and concatenates in chunk order', async () => {
@@ -416,9 +300,8 @@ describe('TTS provider service contracts', () => {
 
       process.env['ELEVENLABS_API_KEY'] = 'elevenlabs-key'
 
-      globalThis.fetch = (async (_input: Parameters<typeof fetch>[0], init?: Parameters<typeof fetch>[1]): Promise<Response> => {
-        const body = JSON.parse(String(init?.body ?? '{}')) as Record<string, unknown>
-        const marker = String(body['text'] ?? '').charAt(0)
+      installMockFetch(async (call) => {
+        const marker = String(call.bodyJson?.['text'] ?? '').charAt(0)
         started.push(marker)
         inFlight += 1
         maxInFlight = Math.max(maxInFlight, inFlight)
@@ -430,7 +313,7 @@ describe('TTS provider service contracts', () => {
           status: 200,
           headers: { 'content-type': 'audio/mpeg' }
         })
-      }) as typeof fetch
+      })
 
       const runPromise = runElevenLabsTts(`${'A'.repeat(5000)} ${'B'.repeat(5000)} ${'C'.repeat(100)}`, dir, {
         model: 'eleven_v3',
@@ -466,39 +349,20 @@ describe('TTS provider service contracts', () => {
   test('ElevenLabs IVC setup runs once before chunked synthesis', async () => {
       const dir = await makeTempDir('autoshow-elevenlabs-tts-ivc-chunks-')
       const audioBytes = await Bun.file(LOCAL_SHORT_AUDIO_PATH).arrayBuffer()
-      const calls: Array<{ url: string, method: string, body?: unknown }> = []
-
       process.env['ELEVENLABS_API_KEY'] = 'elevenlabs-key'
 
-      globalThis.fetch = (async (input: Parameters<typeof fetch>[0], init?: Parameters<typeof fetch>[1]): Promise<Response> => {
-        const url = String(input)
-        const method = init?.method ?? 'GET'
-        if (url.endsWith('/v1/voices/add')) {
-          const form = init?.body as FormData
-          calls.push({
-            url,
-            method,
-            body: {
-              name: form.get('name'),
-              hasFile: form.get('files') instanceof Blob,
-              removeBackgroundNoise: form.get('remove_background_noise')
-            }
-          })
+      const calls = installMockFetch((call) => {
+        if (call.url.endsWith('/v1/voices/add')) {
           return Response.json({
             voice_id: 'voice_cloned_once',
             requires_verification: false
           })
         }
-        if (url.includes('/v1/text-to-speech/')) {
-          calls.push({
-            url,
-            method,
-            body: JSON.parse(String(init?.body ?? '{}')) as Record<string, unknown>
-          })
+        if (call.url.includes('/v1/text-to-speech/')) {
           return new Response(audioBytes, { status: 200, headers: { 'content-type': 'audio/mpeg' } })
         }
-        throw new Error(`Unexpected ElevenLabs IVC chunk mock fetch: ${method} ${url}`)
-      }) as typeof fetch
+        throw new Error(`Unexpected ElevenLabs IVC chunk mock fetch: ${call.method} ${call.url}`)
+      })
 
       const result = await runElevenLabsTts(`${'A'.repeat(5000)} ${'B'.repeat(100)}`, dir, {
         model: 'eleven_v3',
@@ -513,14 +377,13 @@ describe('TTS provider service contracts', () => {
       expect(await Bun.file(result.audioPath).exists()).toBe(true)
       expect(calls.filter((call) => call.url.endsWith('/v1/voices/add'))).toHaveLength(1)
       expect(calls.filter((call) => call.url.includes('/v1/text-to-speech/'))).toHaveLength(2)
-      expect(calls.find((call) => call.url.endsWith('/v1/voices/add'))?.body).toEqual({
-        name: 'AutoShow Chunk Clone',
-        hasFile: true,
-        removeBackgroundNoise: 'true'
-      })
+      const cloneCall = calls.find((call) => call.url.endsWith('/v1/voices/add'))
+      expect(cloneCall?.form?.get('name')).toBe('AutoShow Chunk Clone')
+      expect(cloneCall?.form?.get('files')).toBeInstanceOf(Blob)
+      expect(cloneCall?.form?.get('remove_background_noise')).toBe('true')
       expect(calls.filter((call) => call.url.includes('/v1/text-to-speech/')).map((call) => ({
         url: call.url,
-        textLength: String((call.body as Record<string, unknown>)['text']).length
+        textLength: String(call.bodyJson?.['text']).length
       }))).toEqual([
         {
           url: 'https://api.elevenlabs.io/v1/text-to-speech/voice_cloned_once?output_format=mp3_44100_128',

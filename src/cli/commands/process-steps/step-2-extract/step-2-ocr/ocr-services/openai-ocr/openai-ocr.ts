@@ -1,9 +1,3 @@
-import { readEnv } from '~/utils/validate/env-utils'
-import { InternalError, hintsForMissingEnv } from '~/utils/error-handler'
+import { ensureApiKeySetup } from '~/utils/validate/env-utils'
 
-export const ensureOpenAIOcrSetup = async (): Promise<void> => {
-  const apiKey = readEnv('OPENAI_API_KEY')
-  if (!apiKey) {
-    throw InternalError('OPENAI_API_KEY environment variable is required for OpenAI OCR', { stage: 'ocr:openai', hints: hintsForMissingEnv('OPENAI_API_KEY') })
-  }
-}
+export const ensureOpenAIOcrSetup = ensureApiKeySetup('OPENAI_API_KEY', 'ocr:openai', 'OpenAI OCR')
