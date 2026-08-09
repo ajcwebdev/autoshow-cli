@@ -462,13 +462,13 @@ describe('image provider REST contracts', () => {
     await withTempDir(async (dir) => {
       const result = await runReplicateImageGen('A typographic launch poster', dir, {
         model: 'ideogram-ai/ideogram-v4-balanced',
-        imageSize: '1024x768',
+        imageSize: '2048x2048',
         baseUrl: 'https://mock.replicate.local/v1'
       })
-      expect(result.metadata).toMatchObject({ imageModel: 'ideogram-ai/ideogram-v4-balanced', imageSize: '1024x768', imageFormat: 'png', requestMode: 'generation', providerCostCents: 6 })
+      expect(result.metadata).toMatchObject({ imageModel: 'ideogram-ai/ideogram-v4-balanced', imageSize: '2048x2048', imageFormat: 'png', requestMode: 'generation', providerCostCents: 6 })
     })
 
-    expect(calls[0]?.bodyJson).toEqual({ input: { prompt: 'A typographic launch poster', resolution: '1024x768' } })
+    expect(calls[0]?.bodyJson).toEqual({ input: { prompt: 'A typographic launch poster', resolution: '2048x2048' } })
   })
 
   test('Replicate ERNIE uses the generic version-pinned endpoint and normalizes output options', async () => {
