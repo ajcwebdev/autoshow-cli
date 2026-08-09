@@ -172,7 +172,7 @@ export const runHappyScribeStt = async (
         uploadUrl = await apiClient.getSignedUploadUrl(audioPath)
         await apiClient.uploadMedia(uploadUrl, audioPath)
       } catch (error) {
-        attachHappyScribeErrorContext(error, 'upload', 'runtime_http_create_conservative')
+        attachHappyScribeErrorContext(error, 'upload', 'runtime_http_create_retriable')
       }
       if (!uploadUrl) {
         throw ValidationError('Happy Scribe signed upload response missing signedUrl', { stage: 'stt:happyscribe' })
@@ -193,7 +193,7 @@ export const runHappyScribeStt = async (
           organizationId: selectedOrganization.id
         })
       } catch (error) {
-        attachHappyScribeErrorContext(error, 'create', 'runtime_http_create_conservative')
+        attachHappyScribeErrorContext(error, 'create', 'runtime_http_create_retriable')
       }
       if (!createdOrder) {
         throw ValidationError('Happy Scribe order creation did not return an order id', { stage: 'stt:happyscribe' })

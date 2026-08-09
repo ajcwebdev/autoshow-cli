@@ -57,6 +57,14 @@ export const runGenerationStagesForSingleWrite = async (options: {
     return result
   }
 
+  if (options.step3Results[0]?.validationFailed === true) {
+    if (ttsRequested) l.warn('TTS skipped: the LLM output failed structured validation')
+    if (imageRequested) l.warn('Image gen skipped: the LLM output failed structured validation')
+    if (musicRequested) l.warn('Music gen skipped: the LLM output failed structured validation')
+    if (videoRequested) l.warn('Video gen skipped: the LLM output failed structured validation')
+    return result
+  }
+
   const renderedText = options.step3RunResults[0]?.renderedText ?? ''
   const generationResourceGate = createGenerationResourceGate({
     capacity: resolveGenerationResourceCapacity(options.generationOptions)

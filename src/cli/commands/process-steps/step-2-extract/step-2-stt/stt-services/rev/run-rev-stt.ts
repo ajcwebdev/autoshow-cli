@@ -175,7 +175,7 @@ const createRevJob = async (
   const createResponse = await sttStageRequest({
     operationName: 'rev-create-job',
     stage: 'create',
-    retryClass: 'runtime_http_create_conservative',
+    retryClass: 'runtime_http_create_retriable',
     maxAttempts: 4,
     timeoutMs: REQUEST_TIMEOUT_MS,
     errorPrefix: 'Rev',

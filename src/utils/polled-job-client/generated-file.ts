@@ -27,7 +27,7 @@ export const downloadGeneratedFile = async (options: {
       }
       return bytes
     },
-    (error) => classifyFetchRetry(error, 'runtime_http_read', { retryAbortOnConservative: true })
+    (error) => classifyFetchRetry(error, 'runtime_http_read')
   )
 
 export const imageDownloadHttpError = (message: string, response: Response): Error =>

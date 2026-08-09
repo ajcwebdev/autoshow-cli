@@ -13,6 +13,7 @@ import {
   writeLlamaServerState
 } from '~/cli/commands/process-steps/step-3-write/write-local/llama/llama-server-state'
 import { requestLocalCompletion } from '~/cli/commands/process-steps/step-3-write/write-local/local-completion-client'
+import { runLocalModel } from '~/cli/commands/process-steps/step-3-write/write-local/local-model-runner'
 import type { LlamaServerIdentity, LlamaServerTarget } from '~/types'
 import { installMockFetch, setupContractSuiteLifecycle } from '../../../test-utils/rest-contract-helpers'
 
@@ -131,7 +132,7 @@ describe('llama local contracts', () => {
     expect(source).toContain('process.kill(pid, 0)')
   })
 
-  test('shared completion client preserves the llama.cpp request and response contract', async () => {
+  test('shared completion client sends native llama.cpp schemas and preserves the response contract', async () => {
     const signal = new AbortController().signal
     let requestSignal: AbortSignal | null | undefined
     const calls = installMockFetch((_call, _input, init) => {
@@ -146,6 +147,17 @@ describe('llama local contracts', () => {
       LLAMA_RUNNER_PROFILE,
       'Local prompt',
       'loaded-model',
+      {
+        schemaName: 'local_response',
+        schema: {
+          type: 'object',
+          properties: { answer: { type: 'string' } },
+          required: ['answer'],
+          additionalProperties: false
+        },
+        strict: false,
+        strategy: 'native'
+      },
       signal
     )
 
@@ -160,11 +172,56 @@ describe('llama local contracts', () => {
         stream: false,
         temperature: 0.7,
         max_tokens: 4096,
-        chat_template_kwargs: { enable_thinking: false }
+        chat_template_kwargs: { enable_thinking: false },
+        response_format: {
+          type: 'json_schema',
+          json_schema: {
+            name: 'local_response',
+            schema: {
+              type: 'object',
+              properties: { answer: { type: 'string' } },
+              required: ['answer'],
+              additionalProperties: false
+            },
+            strict: false
+          }
+        }
       }
     })
     expect(calls[0]?.headers.get('content-type')).toBe('application/json')
     expect(requestSignal).toBe(signal)
+  })
+
+  test('local model runner threads native structured options into the completion request', async () => {
+    const calls = installMockFetch(() => Response.json({
+      choices: [{ message: { content: '{"answer":"yes"}' } }],
+      usage: { prompt_tokens: 3, completion_tokens: 5, total_tokens: 8 }
+    }))
+
+    const result = await runLocalModel({
+      ...LLAMA_RUNNER_PROFILE,
+      processLockName: `llama-native-structured-contract-${process.pid}`,
+      ensureServerRunning: async () => 'loaded-model'
+    }, 'Local prompt', 'configured-model', {
+      schemaName: 'local_response',
+      schema: { type: 'object' },
+      strict: false,
+      strategy: 'native'
+    })
+
+    expect(calls[0]?.bodyJson?.['response_format']).toMatchObject({
+      type: 'json_schema',
+      json_schema: {
+        name: 'local_response',
+        schema: { type: 'object' },
+        strict: false
+      }
+    })
+    expect(result.metadata).toMatchObject({
+      llmService: 'llama.cpp',
+      llmModel: 'configured-model',
+      structuredMode: 'native'
+    })
   })
 
   test('llama.cpp keeps PID-exit verification and PID-guarded state clearing', () => {

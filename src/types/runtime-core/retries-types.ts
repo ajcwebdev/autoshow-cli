@@ -1,9 +1,5 @@
 import type { RetryClass, RetryDecision, RetryPolicy } from '~/types'
 
-export type ClassifyFetchRetryOptions = {
-  retryAbortOnConservative?: boolean
-}
-
 export type RetryClassifier = (error: unknown) => RetryDecision
 
 export type PollOptions<T> = {
@@ -21,10 +17,5 @@ export type RetryContext = {
   policy?: Partial<RetryPolicy>
   timeoutMs?: number
   onRetryAttempt?: (error: unknown, decision: RetryDecision) => void
-  maxAttemptsForRetry?: (
-    error: unknown,
-    decision: RetryDecision,
-    attemptNumber: number,
-    baseMaxAttempts: number
-  ) => number | undefined
+  rateLimitMaxAttempts?: number | undefined
 }

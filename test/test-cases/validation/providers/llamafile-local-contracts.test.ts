@@ -87,7 +87,13 @@ describe('llamafile local contracts', () => {
     const promise = requestLocalCompletion(
       LLAMAFILE_RUNNER_PROFILE,
       'Local prompt',
-      'bundle-model'
+      'bundle-model',
+      {
+        schemaName: 'compat_response',
+        schema: { type: 'object' },
+        strict: false,
+        strategy: 'schema-guided'
+      }
     )
     await expect(promise).rejects.toMatchObject({
       message: 'llamafile API error: 503 Unavailable',
@@ -105,6 +111,7 @@ describe('llamafile local contracts', () => {
         chat_template_kwargs: { enable_thinking: false }
       }
     })
+    expect(calls[0]?.bodyJson?.['response_format']).toBeUndefined()
   })
 
   test('llamafile keeps health-only stopping and unconditional post-kill state clearing', () => {

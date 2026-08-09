@@ -43,7 +43,7 @@ describe('general retry-on-any-error contracts', () => {
         shouldRetry: false,
         reason: 'abort/timeout on conservative request'
       })
-      expect(classifyFetchRetry(error, 'runtime_http_read')).toMatchObject({
+      expect(classifyFetchRetry(error, 'runtime_http_create_retriable')).toMatchObject({
         shouldRetry: true,
         reason: 'abort/timeout'
       })

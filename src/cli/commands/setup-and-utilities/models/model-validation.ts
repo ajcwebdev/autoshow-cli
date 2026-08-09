@@ -26,11 +26,10 @@ const SELECTOR_CATEGORIES = [
 ] as const satisfies readonly { stepFlag: string, targets: Record<string, string> }[]
 
 // Two local STT keys predate the `<provider>-<category>` convention and cannot be split by
-// suffix, so they would otherwise read as bare LLM providers. Whisperfile is also extract-only:
-// it has no entry in WRITE_STT_PROVIDER_TARGETS, so `--stt whisperfile` is not a real spelling.
+// suffix, so they would otherwise read as bare LLM providers.
 const IRREGULAR_SELECTORS: Record<string, string> = {
   whisper: '--provider/--stt whisper[=model]',
-  whisperfile: '--provider whisperfile[=model]'
+  whisperfile: '--provider/--stt whisperfile[=model]'
 }
 
 const modelValidatorFlags = new Set<string>()

@@ -10,7 +10,7 @@ import { logSuitePriceSummary } from '~/cli/commands/process-steps/step-1-downlo
 import { collectTextInputFiles, isTextInputPath } from '~/cli/commands/process-steps/step-3-write/text-input-utils'
 import { ttsCommandFlags } from '~/cli/flags/tts-flags'
 import { normalizeGenericProviderSelectorFlags } from '~/cli/flags/service-selector-normalization/generic-provider-selectors'
-import { normalizeGenericTtsOptionFlags, TTS_VOICE_OPTION_TARGETS } from '~/cli/flags/service-selector-normalization/generic-tts-option-selectors'
+import { assertNoVoiceIdentityWithDialogue, normalizeGenericTtsOptionFlags } from '~/cli/flags/service-selector-normalization/generic-tts-option-selectors'
 import { STANDALONE_TTS_PROVIDER_TARGETS } from '~/cli/flags/service-selector-normalization/provider-targets'
 import { defineCliCommand } from '~/cli/native/native-types'
 import type { ActualCostBreakdown, AggregatedPriceEstimate, BatchManifestEntry, CompletedTtsBatchItem, EstimatedCostBreakdown, HostedTtsSchedulerTelemetry, PreparedTtsInput, PreparedTtsRun, RuntimeOptions, Step4Metadata, StepTimingBreakdown, SuccessfulTtsBatchItem, TtsBatchEstimateReport, TtsBatchItemAccumulator, TtsBatchPlanItem, TtsTarget } from '~/types'
@@ -851,12 +851,7 @@ export const ttsCommand = defineCliCommand({
 
   assertDialogueFormatIsUsable(ttsOptions, ttsNormalized.explicitFlags)
 
-  // Speaker mappings overwrite the resolved voice for every turn, so a typed --tts-voice would
-  // be silently discarded. Gate on explicitFlags, not on the resolved value: config defaults and
-  // kitten's always-set ttsSpeaker default must stay exempt.
-  if (isMultiSpeakerRequested(ttsOptions) && TTS_VOICE_OPTION_TARGETS.some((target) => ttsNormalized.explicitFlags.has(target))) {
-    throw CLIUsageError('--tts-voice cannot be combined with --tts-speaker/--tts-dialogue-format; per-speaker voices come from --tts-speaker mappings.')
-  }
+  assertNoVoiceIdentityWithDialogue(ttsOptions, ttsNormalized.explicitFlags)
 
   const targets = collectTtsTargets(ttsOptions)
 

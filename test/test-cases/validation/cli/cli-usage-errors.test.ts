@@ -267,6 +267,13 @@ test('benchmark rejects mutually exclusive scoring modes', async () => {
   )
 })
 
+test('benchmark rejects unknown STT services before audio preparation', async () => {
+  await expectUsageExit(
+    ['benchmark', '/definitely/missing/benchmark-audio.mp3', '--stt-services', 'deepgram,gorq'],
+    'Unsupported --stt-services service: gorq. Supported services:'
+  )
+})
+
 test('unknown flag exits 2', async () => {
   await expectUsageExit(['write', STABLE_EXAMPLE_AUDIO_URL, '--structured'], 'Unexpected flag: structured')
 })
@@ -503,6 +510,40 @@ test('tts rejects --tts-voice combined with dialogue flags', async () => {
   )
 })
 
+test('tts rejects reference audio and saved voice names combined with dialogue flags', async () => {
+  const expectedMessage = 'Voice identity options such as --tts-ref-audio and --tts-voice-name cannot be combined with --tts-speaker/--tts-dialogue-format; per-speaker voices come from --tts-speaker mappings.'
+  for (const [flag, value] of [
+    ['--tts-ref-audio', 'input/examples/audio/anthony-voice.mp3'],
+    ['--tts-voice-name', 'AutoShowVoice']
+  ] as const) {
+    await expectUsageExit(
+      ['tts', 'input/examples/tts/1-tts.md', '--provider', 'mistral=voxtral-mini-tts-2603', flag, value, '--tts-dialogue-format', 'labeled', '--tts-speaker', 'Host=Jasper', '--price'],
+      expectedMessage
+    )
+  }
+})
+
+test('write rejects explicit TTS voice identity combined with dialogue flags', async () => {
+  await expectUsageExit(
+    ['write', 'input/examples/tts/1-tts.md', '--tts', 'mistral=voxtral-mini-tts-2603', '--tts-ref-audio', 'input/examples/audio/anthony-voice.mp3', '--tts-dialogue-format', 'labeled', '--tts-speaker', 'Host=Jasper', '--price'],
+    'Voice identity options such as --tts-ref-audio and --tts-voice-name cannot be combined with --tts-speaker/--tts-dialogue-format; per-speaker voices come from --tts-speaker mappings.'
+  )
+})
+
+test('resume rejects explicit TTS voice identity combined with dialogue flags', async () => {
+  const runDir = await makeTempRoot('autoshow-resume-tts-dialogue-')
+  await writeJson(join(runDir, 'run.json'), {
+    schemaVersion: 3,
+    kind: 'tts',
+    metadata: {}
+  })
+
+  await expectUsageExit(
+    ['resume', runDir, '--provider', 'mistral=voxtral-mini-tts-2603', '--tts-voice-name', 'AutoShowVoice', '--tts-dialogue-format', 'labeled', '--tts-speaker', 'Host=Jasper', '--price'],
+    'Voice identity options such as --tts-ref-audio and --tts-voice-name cannot be combined with --tts-speaker/--tts-dialogue-format; per-speaker voices come from --tts-speaker mappings.'
+  )
+})
+
 // Speaker mappings are the dialogue mode switch, so a typed format alone selects nothing.
 test('tts rejects --tts-dialogue-format without speaker mappings', async () => {
   await expectUsageExit(
@@ -647,7 +688,7 @@ test('comic generate-images rejects invalid page selection flags', async () => {
   )
   await expectUsageExit(
     ['comic', 'generate-images', 'input/scripts/02-script/01-co-work-smarter.md','--panel-limit', 'nope', '--price'],
-    'Unknown argument: --panel-limit'
+    'Unexpected flag: panelLimit'
   )
 })
 
@@ -665,7 +706,7 @@ test('comic generate-images rejects invalid and duplicate image models', async (
 test('comic generate-images rejects removed --panel flag as unknown argument', async () => {
   await expectUsageExit(
     ['comic', 'generate-images', 'input/scripts/02-script/01-co-work-smarter.md','--panel', '1', '--price'],
-    'Unknown argument: --panel'
+    'Unexpected flag: panel'
   )
 })
 
@@ -675,13 +716,13 @@ test('comic generate-images accepts --panels-per-image with sketch target', asyn
     'comic',
     'generate-images',
     'input/scripts/02-script/01-co-work-smarter.md',
-    '--target',
-    'sketches',
+    '--target=sketches',
     '--panels-per-image',
     '6',
     '--quality',
     'high',
-    '--price'
+    '--price',
+    '--'
   ], {
     env: { NO_COLOR: '1' }
   })
@@ -765,10 +806,17 @@ test('comic generate-images rejects invalid grid options', async () => {
     ['comic', 'generate-images', 'input/scripts/02-script/01-co-work-smarter.md', '--panels-per-image', '1', '--grid', '0x3', '--price'],
     'Invalid grid "0x3"'
   )
-  await expectUsageExit(
-    ['comic', 'generate-images', 'input/scripts/02-script/01-co-work-smarter.md', '--panels-per-image', '1', '--grid', '2x3', '--grid', '3x2', '--price'],
-    'Grid can only be specified once'
-  )
+  const repeatedGrid = await runCommand([
+    'src/cli/create-cli.ts',
+    'comic',
+    'generate-images',
+    'input/scripts/02-script/01-co-work-smarter.md',
+    '--panels-per-image=1',
+    '--grid=2x3',
+    '--grid=3x2',
+    '--price'
+  ], { env: { NO_COLOR: '1' } })
+  expect(repeatedGrid.exitCode).toBe(0)
   await expectUsageExit(
     ['comic', 'generate-images', 'input/scripts/02-script/01-co-work-smarter.md', '--target', 'sketches', '--panels-per-image', '1', '--grid', '2x3', '--price'],
     '--grid only applies when --target is images or both'
@@ -786,13 +834,13 @@ test('comic generate-images rejects invalid grid options', async () => {
 test('comic draft-scenes rejects removed --episode flag as unknown argument', async () => {
   await expectUsageExit(
     ['comic', 'draft-scenes', '--episode', 'ep02', '--price'],
-    'Unknown argument: --episode'
+    'Unexpected flag: episode'
   )
 })
 
 test('comic draft-scenes rejects invalid concurrency values', async () => {
   await expectUsageExit(
-    ['comic', 'draft-scenes', '--concurrency', '0', '--price'],
+    ['comic', 'draft-scenes', 'input/scripts/02-script/01-co-work-smarter.md', '--concurrency', '0', '--price'],
     'Invalid concurrency'
   )
 })

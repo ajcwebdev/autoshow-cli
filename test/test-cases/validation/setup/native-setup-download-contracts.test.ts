@@ -2,7 +2,7 @@ import { describe, expect, test } from 'bun:test'
 import { chmod, lstat, mkdir, readdir, readlink, rm, stat, symlink } from 'node:fs/promises'
 import { join } from 'node:path'
 import { extractTarGzBuffer } from '~/cli/commands/setup-and-utilities/setup/setup-download/tar-gz'
-import { downloadFile, resolveDownloadProfile } from '~/cli/commands/setup-and-utilities/setup/setup-download/download'
+import { downloadFile, resolveDownloadTimeouts } from '~/cli/commands/setup-and-utilities/setup/setup-download/download'
 import {
   DEFAULT_SETUP_DOWNLOAD_CONCURRENCY,
   getSetupDownloadAdmissionSnapshot,
@@ -132,11 +132,12 @@ describe('managed download checksum validation', () => {
     const destination = join(await makeTempDir(), 'asset.txt')
     const payload = 'official artifact\n'
     globalThis.fetch = mockFetch(async () => new Response(payload))
-    await downloadFile({
+    const result = await downloadFile({
       url: 'https://example.test/asset.txt',
       destination,
       sha256: '35cd0d2312fa344837c333588f0882f1015161916a573ee6a4754708d4a69657'
     })
+    expect(result).toBeUndefined()
     expect(await Bun.file(destination).text()).toBe(payload)
 
     await expect(downloadFile({
@@ -275,13 +276,12 @@ describe('download timeout budgets', () => {
   test('large-asset flows get a longer total budget than the default flow', () => {
     // A flat total-transfer deadline is what made multi-GB models fail on any
     // link slower than the deadline implied, regardless of connection health.
-    const defaultProfile = resolveDownloadProfile({ url: '', destination: '' })
-    const modelProfile = resolveDownloadProfile({ url: '', destination: '', flowId: 'whisper-model' })
+    const defaultTimeouts = resolveDownloadTimeouts({ url: '', destination: '' })
+    const modelTimeouts = resolveDownloadTimeouts({ url: '', destination: '', flowId: 'whisper-model' })
 
-    expect(modelProfile.profileId).toBe('bun-fetch-large-asset')
-    expect(modelProfile.totalTimeoutMs).toBeGreaterThan(defaultProfile.totalTimeoutMs)
+    expect(modelTimeouts.totalTimeoutMs).toBeGreaterThan(defaultTimeouts.totalTimeoutMs)
     // Inactivity, not elapsed transfer time, is what aborts a download.
-    expect(modelProfile.stallTimeoutMs).toBe(defaultProfile.stallTimeoutMs)
+    expect(modelTimeouts.stallTimeoutMs).toBe(defaultTimeouts.stallTimeoutMs)
   })
 
   test('HTTP download failures retain Retry-After headers for outer retry wrappers', async () => {

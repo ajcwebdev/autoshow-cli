@@ -11,7 +11,7 @@ import { loadConfig, resolveConfigPath, resolveMaxCents } from '~/cli/commands/s
 import { mergeConfigIntoRawFlags } from '~/cli/commands/setup-and-utilities/config/config-merge'
 import { setupYtDependencies } from '~/cli/commands/setup-and-utilities/setup/setup-download/dl-audio/audio'
 import { hasExtractGenericSelectorOccurrences, normalizeExtractGenericSelectorFlags, stripExtractGenericSelectorFlags, stripExtractGenericSelectorOccurrences } from '~/cli/flags/service-selector-normalization/extract-selectors'
-import { normalizeGenericTtsOptionFlags } from '~/cli/flags/service-selector-normalization/generic-tts-option-selectors'
+import { assertNoVoiceIdentityWithDialogue, normalizeGenericTtsOptionFlags } from '~/cli/flags/service-selector-normalization/generic-tts-option-selectors'
 import { normalizeWriteStepSelectorFlags } from '~/cli/flags/service-selector-normalization/write-step-selectors'
 import type { AggregatedPriceEstimate, CliRawParsed, ExtractSelectorInputRoutes, ProcessCommand, ResolvedProcessTargetDoubleDash, RuntimeOptions } from '~/types'
 import { CLIUsageError } from '~/utils/error-handler'
@@ -207,6 +207,10 @@ export const handleProcessTarget = async (
       optionOccurrences
     ),
     configPath: resolvedConfigPath
+  }
+
+  if (command === 'write') {
+    assertNoVoiceIdentityWithDialogue(opts, explicitFlags)
   }
 
   const maxCents = resolveMaxCents(config.pricing)

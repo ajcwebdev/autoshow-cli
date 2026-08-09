@@ -22,7 +22,7 @@ export const fetchSupadataTranscript = async (
 ): Promise<{ status: number, headers: Headers, payload: unknown }> =>
   await withRetry(
     {
-      retryClass: 'runtime_http_create_conservative',
+      retryClass: 'runtime_http_create_retriable',
       operationName: 'supadata-create-transcript',
       policy: { maxAttempts: 3 },
       timeoutMs: REQUEST_TIMEOUT_MS
@@ -53,7 +53,7 @@ export const fetchSupadataTranscript = async (
             status: response.status,
             headers: response.headers,
             stage: 'create',
-            retryClass: 'runtime_http_create_conservative',
+            retryClass: 'runtime_http_create_retriable',
             retryable: false,
             rawResponse: payload
           } satisfies Pick<SupadataHttpError, 'status' | 'headers' | 'stage' | 'retryClass' | 'retryable' | 'rawResponse'>
@@ -61,7 +61,7 @@ export const fetchSupadataTranscript = async (
       }
 
       if (!response.ok && response.status !== 202) {
-        throw toSupadataHttpError('create', 'runtime_http_create_conservative', response, payload)
+        throw toSupadataHttpError('create', 'runtime_http_create_retriable', response, payload)
       }
 
       return {
@@ -71,7 +71,7 @@ export const fetchSupadataTranscript = async (
       }
     },
     (error) => {
-      const decision = classifyFetchRetry(error, 'runtime_http_create_conservative', { retryAbortOnConservative: true })
+      const decision = classifyFetchRetry(error, 'runtime_http_create_retriable')
       if (decision.shouldRetry) {
         input.metrics?.onRetry?.((error as { status?: unknown }).status as number | undefined)
       }
@@ -123,7 +123,7 @@ export const pollSupadataTranscriptJob = async (
       }
     },
     (error) => {
-      const decision = classifyFetchRetry(error, 'runtime_http_read', { retryAbortOnConservative: true })
+      const decision = classifyFetchRetry(error, 'runtime_http_read')
       if (decision.shouldRetry) {
         input.metrics?.onRetry?.((error as { status?: unknown }).status as number | undefined)
       }

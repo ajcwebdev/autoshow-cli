@@ -63,8 +63,7 @@ describe('image provider REST contracts', () => {
       const result = await runBflImageGen('Edit with references', dir, {
         model: 'flux-2-klein-4b',
         outputFormat: 'png',
-        inputs: [refPath, 'https://cdn.example.com/reference.webp'],
-        baseUrl: 'https://mock.bfl.local'
+        inputs: [refPath, 'https://cdn.example.com/reference.webp']
       })
 
       expect(result.metadata.requestMode).toBe('edit')
@@ -72,7 +71,7 @@ describe('image provider REST contracts', () => {
     })
 
     expect(calls[0]).toMatchObject({
-      url: 'https://mock.bfl.local/v1/flux-2-klein-4b',
+      url: 'https://api.bfl.ai/v1/flux-2-klein-4b',
       method: 'POST'
     })
     expect(calls[0]?.bodyJson).toMatchObject({
@@ -86,7 +85,7 @@ describe('image provider REST contracts', () => {
 
   test('Luma Labs image generation retries a transient polling failure', async () => {
     process.env['LUMA_AGENTS_API_KEY'] = 'luma-key'
-    const baseUrl = 'https://mock.luma.local/v1'
+    const baseUrl = 'https://agents.lumalabs.ai/v1'
     let pollAttempts = 0
     const calls = installMockFetch((call) => {
       if (call.url === `${baseUrl}/generations` && call.method === 'POST') {
@@ -111,8 +110,7 @@ describe('image provider REST contracts', () => {
 
     await withTempDir(async (dir) => {
       const result = await runLumalabsImageGen('A stable image', dir, {
-        model: 'uni-1',
-        baseUrl
+        model: 'uni-1'
       })
 
       expect(await Bun.file(result.imagePaths[0]!).exists()).toBe(true)
@@ -155,8 +153,7 @@ describe('image provider REST contracts', () => {
     await withTempDir(async (dir) => {
       const result = await runBflImageGen('Generate a stable image', dir, {
         model: 'flux-2-flex',
-        outputFormat: 'jpeg',
-        baseUrl: 'https://mock.bfl.local'
+        outputFormat: 'jpeg'
       })
 
       expect(result.imagePaths[0]?.endsWith('generated-image.jpg')).toBe(true)
@@ -187,8 +184,7 @@ describe('image provider REST contracts', () => {
       const result = await runRecraftImageGen('A precise product photo', dir, {
         model: 'recraftv4_1',
         count: 2,
-        aspectRatio: '16:9',
-        baseUrl: 'https://mock.recraft.local/v1'
+        aspectRatio: '16:9'
       })
 
       expect(result.imagePaths.map((path) => path.endsWith('.png'))).toEqual([true, true])
@@ -204,7 +200,7 @@ describe('image provider REST contracts', () => {
     })
 
     expect(calls[0]).toMatchObject({
-      url: 'https://mock.recraft.local/v1/images/generations',
+      url: 'https://external.api.recraft.ai/v1/images/generations',
       method: 'POST'
     })
     expect(calls[0]?.headers.get('authorization')).toBe('Bearer recraft-token')
@@ -246,8 +242,7 @@ describe('image provider REST contracts', () => {
         model: 'bytedance/seedream-4.5',
         inputs: [refPath],
         imageSize: '1536x1024',
-        aspectRatio: '16:9',
-        baseUrl: 'https://mock.replicate.local/v1'
+        aspectRatio: '16:9'
       })
 
       expect(result.imagePaths[0]?.endsWith('generated-image.jpg')).toBe(true)
@@ -266,7 +261,7 @@ describe('image provider REST contracts', () => {
     })
 
     expect(calls[0]).toMatchObject({
-      url: 'https://mock.replicate.local/v1/models/bytedance/seedream-4.5/predictions',
+      url: 'https://api.replicate.com/v1/models/bytedance/seedream-4.5/predictions',
       method: 'POST'
     })
     expect(calls[0]?.headers.get('authorization')).toBe('Bearer replicate-token')
@@ -317,8 +312,7 @@ describe('image provider REST contracts', () => {
       const result = await runReplicateImageGen('Restyle this product image', dir, {
         model: 'qwen/qwen-image-2-pro',
         inputs: [refPath],
-        aspectRatio: '1:1',
-        baseUrl: 'https://mock.replicate.local/v1'
+        aspectRatio: '1:1'
       })
 
       expect(result.imagePaths[0]?.endsWith('generated-image.png')).toBe(true)
@@ -335,7 +329,7 @@ describe('image provider REST contracts', () => {
     })
 
     expect(calls.map((call) => `${call.method} ${call.url}`)).toEqual([
-      'POST https://mock.replicate.local/v1/models/qwen/qwen-image-2-pro/predictions',
+      'POST https://api.replicate.com/v1/models/qwen/qwen-image-2-pro/predictions',
       'GET https://mock.replicate.local/v1/predictions/pred-async',
       'GET https://mock.replicate.local/out/qwen.png'
     ])
@@ -376,8 +370,7 @@ describe('image provider REST contracts', () => {
         model: 'wan-video/wan-2.7-image',
         inputs: [refPath, 'https://cdn.example.com/reference.png'],
         imageSize: '1920x1080',
-        count: 3,
-        baseUrl: 'https://mock.replicate.local/v1'
+        count: 3
       })
 
       expect(result.imagePaths.map((path) => path.endsWith('.png'))).toEqual([true, true, true])
@@ -433,13 +426,12 @@ describe('image provider REST contracts', () => {
         inputs: [refPath],
         imageSize: '2K',
         aspectRatio: '1:1',
-        outputFormat: 'png',
-        baseUrl: 'https://mock.replicate.local/v1'
+        outputFormat: 'png'
       })
       expect(result.metadata).toMatchObject({ imageModel: 'bytedance/seedream-5-pro', imageSize: '2K', imageFormat: 'png', requestMode: 'edit', providerCostCents: 9 })
     })
 
-    expect(calls[0]?.url).toBe('https://mock.replicate.local/v1/models/bytedance/seedream-5-pro/predictions')
+    expect(calls[0]?.url).toBe('https://api.replicate.com/v1/models/bytedance/seedream-5-pro/predictions')
     expect(calls[0]?.bodyJson).toEqual({
       input: {
         prompt: 'Preserve this product design',
@@ -462,8 +454,7 @@ describe('image provider REST contracts', () => {
     await withTempDir(async (dir) => {
       const result = await runReplicateImageGen('A typographic launch poster', dir, {
         model: 'ideogram-ai/ideogram-v4-balanced',
-        imageSize: '2048x2048',
-        baseUrl: 'https://mock.replicate.local/v1'
+        imageSize: '2048x2048'
       })
       expect(result.metadata).toMatchObject({ imageModel: 'ideogram-ai/ideogram-v4-balanced', imageSize: '2048x2048', imageFormat: 'png', requestMode: 'generation', providerCostCents: 6 })
     })
@@ -487,14 +478,13 @@ describe('image provider REST contracts', () => {
         model: 'prunaai/ernie-image-turbo',
         imageSize: '1264x848',
         count: 2,
-        outputFormat: 'jpeg',
-        baseUrl: 'https://mock.replicate.local/v1'
+        outputFormat: 'jpeg'
       })
       expect(result.metadata).toMatchObject({ imageModel: 'prunaai/ernie-image-turbo', imageCount: 2, imageSize: '1264x848', imageFormat: 'jpg', providerCostCents: 2.3 })
       expect(result.metadata.providerReturnedModel).toBeUndefined()
     })
 
-    expect(calls[0]?.url).toBe('https://mock.replicate.local/v1/predictions')
+    expect(calls[0]?.url).toBe('https://api.replicate.com/v1/predictions')
     expect(calls[0]?.bodyJson).toEqual({
       version: 'prunaai/ernie-image-turbo:fb19aa909fb366cdbdc06a87be3753aea6954346780bac847cccf8f32ad2626f',
       input: {
@@ -523,8 +513,7 @@ describe('image provider REST contracts', () => {
 
     await withTempDir(async (dir) => {
       await expect(runReplicateImageGen('Blocked prompt', dir, {
-        model: 'wan-video/wan-2.7-image',
-        baseUrl: 'https://mock.replicate.local/v1'
+        model: 'wan-video/wan-2.7-image'
       })).rejects.toThrow('terminal failure - prompt rejected')
     })
 
@@ -545,8 +534,7 @@ describe('image provider REST contracts', () => {
     await withTempDir(async (dir) => {
       try {
         await runReplicateImageGen('Rejected prompt', dir, {
-          model: 'wan-video/wan-2.7-image',
-          baseUrl: 'https://mock.replicate.local/v1'
+          model: 'wan-video/wan-2.7-image'
         })
         throw new Error('expected Replicate REST failure')
       } catch (error) {

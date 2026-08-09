@@ -98,7 +98,7 @@ export const runFalVideoGen = async (prompt: string, outputDir: string, options:
   referenceVideos?: string[] | undefined
   referenceAudios?: string[] | undefined
   generateAudio?: boolean | undefined
-  baseUrl?: string | undefined
+  /** Test-only override that keeps queue-polling contract tests fast. */
   pollIntervalMs?: number | undefined
 }): Promise<{ videoPath: string, metadata: Step6VideoMetadata }> => {
   if (!prompt.trim()) throw CLIUsageError('fal.ai video prompt cannot be empty.')
@@ -109,7 +109,7 @@ export const runFalVideoGen = async (prompt: string, outputDir: string, options:
   logMediaGenerationStatus(l, { mediaType: 'video', provider: 'fal', model: options.model, status: 'started', detail: options.mode })
   const startTime = Date.now()
   await mkdir(outputDir, { recursive: true })
-  const result = await runFalQueue<FalVideoOutput>({ apiKey, endpointId: request.endpointId, input: request.input, baseUrl: options.baseUrl, pollIntervalMs: options.pollIntervalMs, operationName: 'fal-video-gen', onStatus: status => logMediaGenerationStatus(l, { mediaType: 'video', provider: 'fal', model: options.model, status: status.status }) })
+  const result = await runFalQueue<FalVideoOutput>({ apiKey, endpointId: request.endpointId, input: request.input, pollIntervalMs: options.pollIntervalMs, operationName: 'fal-video-gen', onStatus: status => logMediaGenerationStatus(l, { mediaType: 'video', provider: 'fal', model: options.model, status: status.status }) })
   const videoUrl = result.output.video?.url
   if (typeof videoUrl !== 'string') throw InfraError('fal.ai video generation completed without a video URL', { stage: 'video:fal' })
   const videoPath = `${outputDir}/generated-video.mp4`

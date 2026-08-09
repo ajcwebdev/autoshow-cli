@@ -101,7 +101,7 @@ const listHappyScribeOrganizations = async (
 
       return payload
     },
-    (error) => classifyFetchRetry(error, 'runtime_http_read', { retryAbortOnConservative: true })
+    (error) => classifyFetchRetry(error, 'runtime_http_read')
   )
 
   if (!isRecord(payload) || !Array.isArray(payload['organizations'])) {

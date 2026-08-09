@@ -10,7 +10,7 @@ test('links selector errors distinguish dashed global sections from valid provid
     'links',
     '--stt',
     'tts'
-  ])).toThrow('Unknown links selector "--stt". Known providers:')
+  ])).toThrow('Unexpected flag: stt')
 })
 
 test('links selector rejects inline provider values', () => {

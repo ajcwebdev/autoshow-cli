@@ -154,7 +154,11 @@ const renderParameters = (command: CliCommandHelpDefinition): string[] => {
 }
 
 const renderSubcommands = (command: CliCommandHelpDefinition): string[] => {
-  const subcommands = command.help?.subcommands ?? []
+  const prefix = `${command.name} `
+  const subcommands = (command.subcommands ?? []).map((subcommand) => [
+    subcommand.name.startsWith(prefix) ? subcommand.name.slice(prefix.length) : subcommand.name,
+    subcommand.description
+  ] as const)
   if (subcommands.length === 0) {
     return []
   }

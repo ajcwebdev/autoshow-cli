@@ -1,3 +1,5 @@
+import { isStructuredValidationFailureEnvelope } from './validation-failure'
+
 const humanizeKey = (value: string): string => {
   return value
     .replace(/([a-z0-9])([A-Z])/g, '$1 $2')
@@ -108,6 +110,12 @@ const renderSingle = (json: unknown): string => {
   }
 
   if (json && typeof json === 'object' && !Array.isArray(json)) {
+    if (isStructuredValidationFailureEnvelope(json)) {
+      const longestFence = Math.max(2, ...Array.from(json._raw.matchAll(/`+/gu), (match) => match[0].length))
+      const fence = '`'.repeat(longestFence + 1)
+      return `## Structured Validation Error\n\n${json._validationError}\n\n## Raw Output\n\n${fence}text\n${json._raw}${json._raw.endsWith('\n') ? '' : '\n'}${fence}`
+    }
+
     const record = json as Record<string, unknown>
     const renderedSongLyrics = renderSongLyrics(record)
     if (renderedSongLyrics) {

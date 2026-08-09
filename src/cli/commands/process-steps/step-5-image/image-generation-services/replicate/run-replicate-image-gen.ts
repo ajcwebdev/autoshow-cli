@@ -478,7 +478,6 @@ export const runReplicateImageGen = async (
     aspectRatio?: string | undefined
     count?: number | undefined
     outputFormat?: string | undefined
-    baseUrl?: string | undefined
   }
 ): Promise<{ imagePaths: string[], metadata: Step5Metadata }> => {
   const apiToken = await ensureReplicateImageGenSetup()
@@ -506,7 +505,7 @@ export const runReplicateImageGen = async (
 
   const prediction = await runReplicatePrediction({
     apiToken,
-    baseUrl: getReplicateBaseUrl(options.baseUrl),
+    baseUrl: getReplicateBaseUrl(),
     model: options.model,
     version: requestedVersion,
     input,
@@ -525,7 +524,7 @@ export const runReplicateImageGen = async (
     await withRetry(
       { retryClass: 'runtime_http_read', operationName: 'replicate-image-result-download' },
       async (signal) => await downloadImageUrl(url, outputDir, index, fallbackExt, signal),
-      (error) => classifyFetchRetry(error, 'runtime_http_read', { retryAbortOnConservative: true })
+      (error) => classifyFetchRetry(error, 'runtime_http_read')
     )
   ))
 

@@ -5,7 +5,7 @@ import { loadConfig, resolveConfigPath } from '~/cli/commands/setup-and-utilitie
 import { mergeConfigIntoRawFlags } from '~/cli/commands/setup-and-utilities/config/config-merge'
 import { normalizeExtractGenericSelectorFlags } from '~/cli/flags/service-selector-normalization/extract-selectors'
 import { normalizeGenericProviderSelectorFlags } from '~/cli/flags/service-selector-normalization/generic-provider-selectors'
-import { normalizeGenericTtsOptionFlags } from '~/cli/flags/service-selector-normalization/generic-tts-option-selectors'
+import { assertNoVoiceIdentityWithDialogue, normalizeGenericTtsOptionFlags } from '~/cli/flags/service-selector-normalization/generic-tts-option-selectors'
 import { STANDALONE_IMAGE_PROVIDER_TARGETS, STANDALONE_MUSIC_PROVIDER_TARGETS, STANDALONE_TTS_PROVIDER_TARGETS, STANDALONE_VIDEO_PROVIDER_TARGETS, WRITE_LLM_PROVIDER_TARGETS } from '~/cli/flags/service-selector-normalization/provider-targets'
 import { logSuitePriceSummary } from '~/cli/commands/process-steps/step-1-download/download-targets/suite-price-logging'
 import { logResumeSuiteSummary } from './resume-logging'
@@ -239,6 +239,8 @@ const dispatchSingleResume = async (
     ...buildOptsFromFlags(false, mergedFlags, doubleDash, {}, normalized.explicitFlags, normalized.flagOccurrences),
     configPath: resolvedConfigPath
   }
+
+  assertNoVoiceIdentityWithDialogue(opts, normalized.explicitFlags)
 
   const handler = getResumeHandler(target.kind)
   if (!handler) {

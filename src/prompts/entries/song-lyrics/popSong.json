@@ -6,6 +6,6 @@
   "structuredPreset": "standardSongLyrics",
   "examples": {
     "json": "{\n  \"title\": \"Track One\",\n  \"verse1\": \"[Catchy pop verse]\",\n  \"chorus\": \"[Memorable, singable hook]\",\n  \"verse2\": \"[Second verse with relatable imagery]\",\n  \"bridge\": \"[Bridge that shifts the emotional angle]\",\n  \"finalChorus\": \"[Final chorus]\"\n}",
-    "markdown": "Format the output like so:\n\n# Track One\n\nVerse 1\n\nLyrics to the song."
+    "markdown": "# Track One\n\nVerse 1\n\nLyrics to the song."
   }
 }

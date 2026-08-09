@@ -3,12 +3,14 @@ import { getModelRegistry } from './model-loader'
 import { InternalError } from '~/utils/error-handler'
 import type { CheapestVideoSelection } from '~/types'
 import { DEFAULT_DEEPINFRA_OCR_MODEL } from './ocr-models'
+import { SUPPORTED_LLAMAFILE_MODELS } from './llm-models'
 
 const PERFORMANCE_TIE_BREAKERS = ['mini', 'nano', 'micro', 'flash', 'turbo', 'fast', 'small']
 
 const DEFAULT_LOCAL_MODEL_BY_FLAG = {
   whisper: 'tiny',
   llama: 'ggml-org/gemma-3-270m-it-GGUF',
+  llamafile: SUPPORTED_LLAMAFILE_MODELS[0],
   'kitten-tts': 'kitten-tts-nano-0.8-int8',
 } as const satisfies Record<string, string>
 

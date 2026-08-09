@@ -152,7 +152,7 @@ export const runLtxVideoGen = async (
     onPoll: (data) => logGenStatus('video', 'ltx', options.model, data.status),
     isDone: (data) => data.status === 'completed',
     isFailed: (data) => data.status === 'failed'
-      ? { failed: true, reason: formatPolledJobError(data.error, 'Unknown error', { readMessage: true }) }
+      ? { failed: true, reason: formatPolledJobError(data.error) }
       : { failed: false }
   })
 

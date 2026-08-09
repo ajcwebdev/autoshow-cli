@@ -12,6 +12,7 @@ import {
   WRITE_OCR_PROVIDER_TARGETS,
   WRITE_STT_PROVIDER_TARGETS
 } from '~/cli/flags/service-selector-normalization/provider-targets'
+import { EXTRACT_PUBLIC_SELECTOR_FLAGS } from '~/cli/flags/service-selector-normalization/extract-selectors'
 import {
   validateKimiOcrModel,
   validateMinimaxModel,
@@ -21,6 +22,8 @@ import {
 
 // Importing setup-model-options above registers every createModelValidator key, so
 // getModelValidatorFlags() below sees all seven model modules.
+
+const WRITE_STT_EXTRACT_EXCLUSIONS = new Set<string>([])
 
 describe('model validation selector contracts', () => {
   // Model validators are keyed by internal target flag names (`kimi-ocr`, `groq-tts`,
@@ -63,6 +66,26 @@ describe('model validation selector contracts', () => {
     expect(mismatched).toEqual([])
   })
 
+  test('write STT targets equal the extract STT projection minus named exclusions', () => {
+    const writeTargets: Record<string, string> = WRITE_STT_PROVIDER_TARGETS
+    const missingFromWrite = Object.entries(EXTRACT_PUBLIC_SELECTOR_FLAGS)
+      .filter(([provider, targets]) =>
+        targets.stt !== undefined
+        && !WRITE_STT_EXTRACT_EXCLUSIONS.has(provider)
+        && writeTargets[provider] !== targets.stt
+      )
+      .map(([provider]) => provider)
+    const unexpectedInWrite = Object.entries(writeTargets)
+      .filter(([provider, target]) =>
+        EXTRACT_PUBLIC_SELECTOR_FLAGS[provider]?.stt !== target
+        || WRITE_STT_EXTRACT_EXCLUSIONS.has(provider)
+      )
+      .map(([provider]) => provider)
+
+    expect(missingFromWrite).toEqual([])
+    expect(unexpectedInWrite).toEqual([])
+  })
+
   test('messages name the selector a user can type, not the internal flag', () => {
     // Retired IDs are assembled at runtime so they stay ungreppable in the registries.
     const retiredKimiOcrModel = ['kimi-k2', '7-code'].join('.')
@@ -76,15 +99,14 @@ describe('model validation selector contracts', () => {
     )
   })
 
-  // The two keys that predate the `<provider>-<category>` convention. Whisperfile has no
-  // WRITE_STT_PROVIDER_TARGETS entry, so its error must not advertise an `--stt` spelling.
+  // The two keys that predate the `<provider>-<category>` convention.
   test('irregular local STT keys name their real spellings', () => {
     expect(() => validateWhisperModel('bogus')).toThrow(
       'Invalid model "bogus" for --provider/--stt whisper[=model]. This selector uses local whisper.cpp models.'
     )
     expect(() => validateWhisperfileModel('bogus')).toThrow(
-      'Invalid model "bogus" for --provider whisperfile[=model]. This selector uses local whisperfile (llamafile) models.'
+      'Invalid model "bogus" for --provider/--stt whisperfile[=model]. This selector uses local whisperfile (llamafile) models.'
     )
-    expect(describeModelSelector('whisperfile')).not.toContain('--stt')
+    expect(describeModelSelector('whisperfile')).toContain('--stt')
   })
 })

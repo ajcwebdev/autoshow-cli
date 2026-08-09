@@ -14,32 +14,32 @@ import { setupCommand } from '~/cli/commands/setup-and-utilities/setup/define-se
 import { ttsCommand } from '~/cli/commands/process-steps/step-4-tts/define-tts-command'
 import { videoCommand } from '~/cli/commands/process-steps/step-6-video/define-video-command'
 import { writeCommand } from '~/cli/commands/process-steps/step-3-write/define-write-command'
-import { draftScenesFlags, generateImagesFlags, referenceSketchFlags } from '~/cli/flags/comic-flags'
-import type { CliFlagsDefinition } from '~/types'
+import type { CliCommandDefinition, CliFlagsDefinition } from '~/types'
 
 // Mirrors `COMMAND_DEFINITIONS` in `create-cli.ts`, which cannot be imported
-// here because that module runs the CLI on load. The comic subcommands parse and
-// render their own help from these three flag sets (`comic-utils/subcommand-help.ts`),
-// so they are walked directly rather than through `comicCommand.flags`.
-const GROUPED_FLAG_SETS: (CliFlagsDefinition | undefined)[] = [
-  configCommand.flags,
-  setupCommand.flags,
-  linksCommand.flags,
-  metadataCommand.flags,
-  downloadCommand.flags,
-  extractCommand.flags,
-  resumeCommand.flags,
-  writeCommand.flags,
-  ttsCommand.flags,
-  imageCommand.flags,
-  videoCommand.flags,
-  musicCommand.flags,
-  comicCommand.flags,
-  benchmarkCommand.flags,
-  draftScenesFlags,
-  generateImagesFlags,
-  referenceSketchFlags
+// here because that module runs the CLI on load. Walk the registered command tree
+// so first-class subcommand flags cannot drift out of this guard.
+const COMMANDS: readonly CliCommandDefinition[] = [
+  configCommand,
+  setupCommand,
+  linksCommand,
+  metadataCommand,
+  downloadCommand,
+  extractCommand,
+  resumeCommand,
+  writeCommand,
+  ttsCommand,
+  imageCommand,
+  videoCommand,
+  musicCommand,
+  comicCommand,
+  benchmarkCommand
 ]
+
+const GROUPED_FLAG_SETS: (CliFlagsDefinition | undefined)[] = COMMANDS.flatMap((command) => [
+  command.flags,
+  ...(command.subcommands ?? []).map((subcommand) => subcommand.flags)
+])
 
 const isRecord = (value: unknown): value is Record<string, unknown> =>
   typeof value === 'object' && value !== null && !Array.isArray(value)

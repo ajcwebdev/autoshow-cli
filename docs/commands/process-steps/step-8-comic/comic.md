@@ -199,7 +199,7 @@ bun autoshow comic draft-scenes input/scripts/01-script/01-opening.md --only pan
 
 ## generate-images
 
-`generate-images` turns scene JSON into stable panel prompt bundles, optional black-and-white review sketches, and final comic panel images.
+`generate-images` turns reviewed panel prompt bundles into optional black-and-white review sketches and final comic panel images.
 
 ### Options
 
@@ -218,7 +218,6 @@ bun autoshow comic draft-scenes input/scripts/01-script/01-opening.md --only pan
 
 | Flag | Description | Default |
 |------|-------------|---------|
-| `--llm-model <model>` | Use a supported text model (see [Supported Models](#supported-models)) | `gpt-5.6-sol` |
 | `--image-model <model[,model...]>` | Use one or more supported image models (see [Supported Models](#supported-models)) | `gpt-image-2` |
 | `--variation <name[,name...]>` | Generate final images with one or more prompt variations: `canonical`, `animation-polish`, `cinematic-depth` | none |
 | `--size <size>` | Image size such as `1536x1024`, `1024x1024`, `1024x1536`, or `auto` | `1536x1024` |

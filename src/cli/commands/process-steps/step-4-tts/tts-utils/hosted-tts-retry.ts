@@ -11,7 +11,7 @@ const HOSTED_TTS_RETRY_POLICY: RetryPolicy = {
 }
 
 export const classifyHostedTtsRetry: RetryClassifier = (error) =>
-  classifyFetchRetry(error, 'runtime_http_create_conservative', { retryAbortOnConservative: true })
+  classifyFetchRetry(error, 'runtime_http_create_retriable')
 
 const getErrorStatus = (error: unknown): number | undefined => {
   if (error && typeof error === 'object' && 'status' in error) {
@@ -55,7 +55,7 @@ export const withHostedTtsRetry = async <T>(
 ): Promise<T> =>
   await withRetry(
     {
-      retryClass: 'runtime_http_create_conservative',
+      retryClass: 'runtime_http_create_retriable',
       operationName: options.operationName,
       timeoutMs: options.timeoutMs ?? MEDIA_GENERATION_TIMEOUT_MS,
       policy: {

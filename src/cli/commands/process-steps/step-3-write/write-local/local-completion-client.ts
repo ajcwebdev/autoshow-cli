@@ -1,4 +1,5 @@
 import { countTokens } from '~/cli/commands/process-steps/step-2-extract/step-2-stt/stt-utils/stt-utils'
+import type { StructuredRequestOptions } from '~/types'
 import { LlamaResponseSchema } from '~/types'
 import * as l from '~/utils/app-logger/app-logger'
 import { InfraError } from '~/utils/error-handler'
@@ -22,6 +23,7 @@ export const requestLocalCompletion = async (
   profile: LocalCompletionProfile,
   prompt: string,
   model: string,
+  structuredOpts?: StructuredRequestOptions,
   signal?: AbortSignal
 ): Promise<LocalCompletionResult> => {
   const init: RequestInit = {
@@ -40,7 +42,19 @@ export const requestLocalCompletion = async (
       stream: false,
       temperature: 0.7,
       max_tokens: 4096,
-      chat_template_kwargs: { enable_thinking: false }
+      chat_template_kwargs: { enable_thinking: false },
+      ...(structuredOpts?.strategy === 'native'
+        ? {
+            response_format: {
+              type: 'json_schema',
+              json_schema: {
+                name: structuredOpts.schemaName,
+                schema: structuredOpts.schema,
+                strict: structuredOpts.strict
+              }
+            }
+          }
+        : {})
     }),
     ...(signal ? { signal } : {})
   }

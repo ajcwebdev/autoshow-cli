@@ -6,6 +6,6 @@
   "structuredPreset": "standardSongLyrics",
   "examples": {
     "json": "{\n  \"title\": \"Track One\",\n  \"verse1\": \"[Narrative folk verse]\",\n  \"chorus\": \"[Simple, repeatable chorus]\",\n  \"verse2\": \"[Verse that deepens the social theme]\",\n  \"bridge\": \"[Bridge with community or tradition imagery]\",\n  \"finalChorus\": \"[Final chorus]\"\n}",
-    "markdown": "Format the output like so:\n\n# Track One\n\nVerse 1\n\nLyrics to the song."
+    "markdown": "# Track One\n\nVerse 1\n\nLyrics to the song."
   }
 }

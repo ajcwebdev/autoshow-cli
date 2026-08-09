@@ -31,4 +31,5 @@ export type Step3Metadata = {
   outputFormat: 'json'
   structuredMode: 'native' | 'schema-guided'
   structuredPresetNames: string[]
+  validationFailed?: boolean | undefined
 }

@@ -26,13 +26,12 @@ export const runOpenAIImageGen = async (
     outputFormat?: string | undefined
     background?: string | undefined
     compression?: number | undefined
-    baseUrl?: string | undefined
   }
 ): Promise<{ imagePaths: string[], metadata: Step5Metadata }> => {
   const mode = options.mode ?? 'generation'
   logGenStatus('image', 'openai', options.model, 'started', mode)
 
-  const config = getOpenAIClientConfig(options.baseUrl)
+  const config = getOpenAIClientConfig()
 
   const startTime = Date.now()
 

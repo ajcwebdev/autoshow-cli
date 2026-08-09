@@ -213,7 +213,7 @@ export const runSupadataStt = async (
       createMs += Date.now() - createStartedAt
       createCount += 1
     } catch (error) {
-      attachSupadataErrorContext(error, 'create', 'runtime_http_create_conservative')
+      attachSupadataErrorContext(error, 'create', 'runtime_http_create_retriable')
     }
     if (!createResult) {
       throw InfraError('Supadata transcript request did not return a response', { stage: 'stt:supadata' })
@@ -225,7 +225,7 @@ export const runSupadataStt = async (
       if (!jobPayload) {
         throw Object.assign(new Error('Supadata returned 202 without a jobId'), {
           stage: 'create',
-          retryClass: 'runtime_http_create_conservative' as const,
+          retryClass: 'runtime_http_create_retriable' as const,
           rawResponse: createResult.payload
         })
       }
@@ -255,7 +255,7 @@ export const runSupadataStt = async (
       if (!transcriptPayload) {
         throw Object.assign(new Error('Supadata returned an invalid transcript payload'), {
           stage: 'create',
-          retryClass: 'runtime_http_create_conservative' as const,
+          retryClass: 'runtime_http_create_retriable' as const,
           retryable: false,
           rawResponse: createResult.payload
         })

@@ -59,7 +59,8 @@ export const WRITE_STT_PROVIDER_TARGETS = {
   scrapecreators: 'scrapecreators-stt',
   gemini: 'gemini-stt',
   together: 'together-stt',
-  whisper: 'whisper-stt'
+  whisper: 'whisper-stt',
+  whisperfile: 'whisperfile-stt'
 } as const satisfies Record<string, string>
 
 export const WRITE_OCR_PROVIDER_TARGETS = {

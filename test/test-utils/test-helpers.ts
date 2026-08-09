@@ -182,7 +182,8 @@ const PROCESSING_COMMANDS = new Set([
   'tts',
   'image',
   'music',
-  'video'
+  'video',
+  'comic'
 ])
 const HELP_FLAGS = new Set(['--help', '-h'])
 let commandOutputCounter = 0
@@ -475,8 +476,7 @@ export const runCommand = async (args: string[], opts?: RunCommandOptions): Prom
   // Production reads config from flags, not env. Translate the harness's output-root
   // and optional bin-dir conventions into the global CLI flags the child understands.
   // Only inject for processing commands (the ones that consume the output root and the
-  // managed binaries); commands like `comic` parse their own variadic subcommand args
-  // (allowUnknownFlags) and help invocations don't need either. Insert BEFORE any `--`
+  // managed binaries); help invocations do not need either. Insert BEFORE any `--`
   // passthrough separator so the flags are parsed by AutoShow, not forwarded to yt-dlp.
   const overrideBinDir = opts?.env?.['AUTOSHOW_BIN_DIR']?.trim()
   const injectedGlobalFlags = isProcessingCliCommand(baseChildArgs)

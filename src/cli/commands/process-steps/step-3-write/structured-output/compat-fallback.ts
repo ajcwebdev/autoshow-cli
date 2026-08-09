@@ -3,6 +3,7 @@ import * as l from '~/utils/app-logger/app-logger'
 import { InfraError } from '~/utils/error-handler'
 import { buildStructuredInstructionSuffix } from './schema-resolver'
 import { parseAndValidateStructured } from './validator'
+import { buildStructuredValidationFailureEnvelope } from './validation-failure'
 
 const buildCompatPrompt = (prompt: string, schema: ResolvedStructuredSchema): string => {
   return [
@@ -14,14 +15,6 @@ const buildCompatPrompt = (prompt: string, schema: ResolvedStructuredSchema): st
     JSON.stringify(schema.jsonSchema, null, 2)
   ].join('\n')
 }
-
-const buildCompatFallbackEnvelope = (
-  rawResponse: string,
-  validationIssue: string
-): Record<string, string> => ({
-  content: rawResponse,
-  _validationError: validationIssue
-})
 
 export const runCompatFallback = async (
   target: LLMTarget,
@@ -68,7 +61,7 @@ export const runCompatFallback = async (
 
   l.warn(`Structured compat fallback for ${target.label}/${model}: ${lastIssue}`)
   return {
-    parsedJson: buildCompatFallbackEnvelope(lastResponse.result, lastIssue),
+    parsedJson: buildStructuredValidationFailureEnvelope(lastResponse.result, lastIssue),
     rawResponse: lastResponse.result,
     metadata: lastResponse.metadata
   }

@@ -52,13 +52,12 @@ export type ScenePromptData = v.InferOutput<typeof import('~/cli/commands/proces
 export type ParsedGenerateBaseArgs = {
   showHelp: boolean
   price?: boolean
-  scriptPath?: string
+  scriptPath: string
   panels?: ComicPanelSelection
   panelsPerImage?: number
   grid?: GenerateImagesCommandOptions['grid']
   variations?: GenerateImagesCommandOptions['variations']
   target?: NonNullable<GenerateImagesCommandOptions['target']>
-  llmModel?: ParsedLlmModel
   imageModels?: ParsedImageModel[]
   size?: ParsedImageSize
   quality?: ParsedImageQuality
@@ -78,7 +77,7 @@ export type ParsedImageModel = NonNullable<GenerateImagesCommandOptions['imageMo
 export type ParsedLlmModel = NonNullable<DraftScenesCommandOptions['llmModel']>
 
 export type ParsedDraftCommandArgs = {
-  scriptPath?: string
+  scriptPath: string
   llmModel?: ParsedLlmModel
   only?: NonNullable<DraftScenesCommandOptions['only']>
   showHelp: boolean

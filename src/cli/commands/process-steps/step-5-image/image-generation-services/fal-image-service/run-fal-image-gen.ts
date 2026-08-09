@@ -123,7 +123,7 @@ export const runFalImageGen = async (prompt: string, outputDir: string, options:
   aspectRatio?: string | undefined
   count?: number | undefined
   outputFormat?: string | undefined
-  baseUrl?: string | undefined
+  /** Test-only override that keeps queue-polling contract tests fast. */
   pollIntervalMs?: number | undefined
 }): Promise<{ imagePaths: string[], metadata: Step5Metadata }> => {
   if (!prompt.trim()) throw CLIUsageError('fal.ai image prompt cannot be empty.')
@@ -138,7 +138,6 @@ export const runFalImageGen = async (prompt: string, outputDir: string, options:
     apiKey,
     endpointId: request.endpointId,
     input: request.input,
-    baseUrl: options.baseUrl,
     pollIntervalMs: options.pollIntervalMs,
     operationName: 'fal-image-gen',
     onStatus: status => logMediaGenerationStatus(l, { mediaType: 'image', provider: 'fal', model: options.model, status: status.status })

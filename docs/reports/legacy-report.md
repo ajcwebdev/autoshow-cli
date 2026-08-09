@@ -59,7 +59,7 @@ Each replaced a hand-maintained mirror with a derived source or a two-direction 
 
 - **`schemaVersion` optional on `run.json` shapes** — refuted. The finder wanted it required; the skeptic showed the type is correct as-is.
 - **`.gitignore`'s `runtime/auth/` line** — refuted. It looks shadowed by the bare `runtime/` rule, but `docs/cookies.md` documents `runtime/auth/` as the home for browser session credentials, and the file already contains negations that pierce `runtime/`. Defense-in-depth for a documented secrets path, not seed residue.
-- **`downloadFile` still returns a `DownloadResult` no caller reads** — deliberate; scoped out as a signature change.
+- **`downloadFile` still returns a `DownloadResult` no caller reads** — superseded 2026-08-09 by structural legacy W5.1: the approved signature change now returns `Promise<void>`, and the unused result/profile surface was removed.
 - **The `CLIUsageError` name-string arm** — `isCLIUsageError` is `instanceof`-only. The class's own `name` stays: it is a diagnostics label, not a control-flow key, and renaming it would change every serialized diagnostic payload.
 - Kept from the first audit: `llama` vs `llama.cpp` naming, the `*-targets.ts` barrels, `fromLegacyCheck`, bare model names in `setup --models`, `--concurrency` runner rejection, `ttsSpeaker` for `--kitten-voice`, `structured-output/compat-fallback.ts`.
 - Checked and live, not residue: `rolling-shingle-approximation`, the five per-provider `-tts` arms in `resolveCheapestModelForFlag`, the local `selectorArgToInternalArgs`, `decodeLegacyPuaText` and friends.

@@ -21,8 +21,7 @@ describe('OpenAI REST image contracts', () => {
         size: '1024x1024',
         quality: 'high',
         outputFormat: 'webp',
-        background: 'opaque',
-        baseUrl: 'https://mock.openai.local/v1'
+        background: 'opaque'
       })
 
       expect(result.imagePaths).toHaveLength(1)
@@ -65,8 +64,7 @@ describe('OpenAI REST image contracts', () => {
       const result = await runOpenAIImageGen('A test image', dir, {
         model: 'gpt-image-2',
         count: 2,
-        outputFormat: 'png',
-        baseUrl: 'https://mock.openai.local/v1'
+        outputFormat: 'png'
       })
 
       expect(result.imagePaths.map((imagePath) => imagePath.endsWith('.png'))).toEqual([true, true])
@@ -103,8 +101,7 @@ describe('OpenAI REST image contracts', () => {
         inputs: [refPath],
         count: 1,
         outputFormat: 'webp',
-        compression: 75,
-        baseUrl: 'https://mock.openai.local/v1'
+        compression: 75
       })
 
       expect(result.metadata.requestMode).toBe('edit')
@@ -112,7 +109,7 @@ describe('OpenAI REST image contracts', () => {
     })
 
     expect(calls[0]).toMatchObject({
-      url: 'https://mock.openai.local/v1/images/edits',
+      url: 'https://api.openai.com/v1/images/edits',
       method: 'POST'
     })
     expect(calls[0]?.form?.get('model')).toBe('gpt-image-2')
@@ -139,8 +136,7 @@ describe('OpenAI REST image contracts', () => {
         model: 'gpt-image-2',
         mode: 'edit',
         inputs: [firstRef, secondRef],
-        count: 1,
-        baseUrl: 'https://mock.openai.local/v1'
+        count: 1
       })
     })
 

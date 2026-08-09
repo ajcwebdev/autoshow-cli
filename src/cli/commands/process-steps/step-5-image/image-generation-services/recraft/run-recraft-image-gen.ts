@@ -118,7 +118,6 @@ export const runRecraftImageGen = async (
     count?: number | undefined
     imageSize?: string | undefined
     aspectRatio?: string | undefined
-    baseUrl?: string | undefined
   }
 ): Promise<{ imagePaths: string[], metadata: Step5Metadata }> => {
   const apiToken = await ensureRecraftImageGenSetup()
@@ -137,7 +136,7 @@ export const runRecraftImageGen = async (
   await mkdir(outputDir, { recursive: true })
 
   const result = await openAIJsonRequest<OpenAIImageResponse>(
-    { apiKey: apiToken, baseURL: getRecraftBaseUrl(options.baseUrl) },
+    { apiKey: apiToken, baseURL: getRecraftBaseUrl() },
     '/images/generations',
     {
       prompt,

@@ -4,8 +4,6 @@ import {
   referenceSketchFlags
 } from '~/cli/flags/comic-flags'
 import { defineCliCommand } from '~/cli/native/native-types'
-import { renderCommandHelp } from '~/cli/native/help-renderer'
-import { createNativeRootDefinition } from '~/cli/native/root-definition'
 import {
   DRAFT_SCENES_COMMAND,
   GENERATE_IMAGES_COMMAND,
@@ -33,7 +31,6 @@ export const draftScenesCommandDefinition = defineCliCommand({
   name: `comic ${DRAFT_SCENES_COMMAND}`,
   description: DRAFT_SCENES_DESCRIPTION,
   parameters: [SCRIPT_PATH_PARAMETER],
-  allowExcessParameters: true,
   flags: draftScenesFlags,
   help: {
     examples: [
@@ -54,7 +51,6 @@ export const generateImagesCommandDefinition = defineCliCommand({
   name: `comic ${GENERATE_IMAGES_COMMAND}`,
   description: GENERATE_IMAGES_DESCRIPTION,
   parameters: [SCRIPT_PATH_PARAMETER],
-  allowExcessParameters: true,
   flags: generateImagesFlags,
   help: {
     examples: [
@@ -64,7 +60,7 @@ export const generateImagesCommandDefinition = defineCliCommand({
       [`bun autoshow comic ${GENERATE_IMAGES_COMMAND} 05-01 --no-qa --price`, 'Estimate the image cost with QA disabled']
     ],
     notes: [
-      'Scene drafts and panel prompts are auto-detected and only rebuilt when missing; pass --force to rebuild them.',
+      'Reviewed scene and panel prompt bundles are required; --force only regenerates image outputs.',
       `To rebuild panel prompts explicitly, run: bun autoshow comic ${DRAFT_SCENES_COMMAND} <script-path> --only panel-prompts`,
       'QA options (--qa, --qa-model, --max-repairs) only apply when --target is images or both.',
       ARTIFACT_NOTE
@@ -75,7 +71,6 @@ export const generateImagesCommandDefinition = defineCliCommand({
 export const referenceSketchCommandDefinition = defineCliCommand({
   name: `comic ${REFERENCE_SKETCH_COMMAND}`,
   description: REFERENCE_SKETCH_DESCRIPTION,
-  allowExcessParameters: true,
   flags: referenceSketchFlags,
   help: {
     examples: [
@@ -99,17 +94,3 @@ export const COMIC_SUBCOMMAND_DEFINITIONS = [
   generateImagesCommandDefinition,
   referenceSketchCommandDefinition,
 ] as const satisfies readonly CliCommandDefinition[]
-
-const COMIC_SUBCOMMANDS: Readonly<Record<string, CliCommandDefinition>> = Object.fromEntries(
-  COMIC_SUBCOMMAND_DEFINITIONS.map(definition => [definition.name.slice('comic '.length), definition])
-)
-
-export const COMIC_SUBCOMMAND_SUMMARIES: ReadonlyArray<readonly [name: string, description: string]> =
-  Object.entries(COMIC_SUBCOMMANDS).map(([name, definition]) => [name, definition.description] as const)
-
-export const getComicSubcommand = (subcommand: string): CliCommandDefinition | undefined =>
-  COMIC_SUBCOMMANDS[subcommand]
-
-export const printComicSubcommandHelp = (definition: CliCommandDefinition): void => {
-  console.log(renderCommandHelp(createNativeRootDefinition(), definition))
-}

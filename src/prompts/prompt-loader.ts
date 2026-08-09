@@ -7,6 +7,8 @@ import { BoundedTextCapture, buildCaptureMetadata } from '~/utils/bounded-captur
 import { AppError, CLIUsageError } from '~/utils/error-handler'
 import { validateData } from '~/utils/validate/validation'
 
+const MARKDOWN_EXAMPLE_PRESENTATION_PREFIX = 'Format the output like so:'
+
 export const LeafPromptSchema = v.object({
   description: v.string(),
   expectedInputTokens: v.pipe(v.number(), v.integer(), v.minValue(0)),
@@ -14,7 +16,13 @@ export const LeafPromptSchema = v.object({
   instruction: v.string(),
   examples: v.object({
     json: v.string(),
-    markdown: v.string()
+    markdown: v.pipe(
+      v.string(),
+      v.check(
+        example => !example.trimStart().startsWith(MARKDOWN_EXAMPLE_PRESENTATION_PREFIX),
+        `Markdown prompt examples must not begin with "${MARKDOWN_EXAMPLE_PRESENTATION_PREFIX}"`
+      )
+    )
   }),
   structuredPreset: v.optional(v.string(), undefined)
 })
@@ -99,25 +107,12 @@ const isLeaf = (entry: PromptEntry): entry is LeafPrompt => 'instruction' in ent
 const getPromptExample = (examples: PromptExamples, exampleFormat: PromptExampleFormat): string =>
   examples[exampleFormat]
 
-const stripMarkdownExamplePrefix = (example: string): string => {
-  const prefixMatch = example.match(/^\s*Format the output like so:(?:\r?\n)+/u)
-  const stripped = prefixMatch ? example.slice(prefixMatch[0].length) : example
-  return stripped.trimEnd()
-}
-
-const stripJsonExamplePrefix = (example: string): string =>
-  example.trim()
-
 const normalizeExampleText = (
   example: string,
   exampleFormat: PromptExampleFormat
-): string => {
-  if (exampleFormat === 'markdown') {
-    return stripMarkdownExamplePrefix(example)
-  }
-
-  return stripJsonExamplePrefix(example)
-}
+): string => exampleFormat === 'markdown'
+  ? example.trimEnd()
+  : example.trim()
 
 const tryBuildCombinedJsonExample = (leaves: ResolvedLeafPrompt[]): string | undefined => {
   if (leaves.length <= 1) {

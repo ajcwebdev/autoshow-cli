@@ -109,6 +109,9 @@ const applyUniversalHelpDescriptionColors = (): void => {
 
   for (const command of COMMAND_DEFINITIONS) {
     colorizeFlagDescriptions(command.flags as Record<string, unknown> | undefined)
+    for (const subcommand of command.subcommands ?? []) {
+      colorizeFlagDescriptions(subcommand.flags as Record<string, unknown> | undefined)
+    }
   }
 
   helpDescriptionColorsApplied = true

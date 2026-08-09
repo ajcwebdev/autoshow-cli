@@ -3,13 +3,32 @@ import { getNativeBuiltinCommand } from './builtins'
 import {
 NativeInvalidParametersError,
 NativeMissingFlagValueError,
-NativeNoSuchCommandError
+NativeNoSuchCommandError,
+NativeUnknownFlagError
 } from './native-errors'
 
 const createCommandMap = (
   commands: readonly CliCommandDefinition[]
 ): Map<string, CliCommandDefinition> =>
   new Map(commands.map((command) => [command.name, command]))
+
+const getSubcommandName = (
+  parent: CliCommandDefinition,
+  subcommand: CliCommandDefinition
+): string => {
+  const prefix = `${parent.name} `
+  return subcommand.name.startsWith(prefix)
+    ? subcommand.name.slice(prefix.length)
+    : subcommand.name
+}
+
+const createSubcommandMap = (
+  command: CliCommandDefinition
+): Map<string, CliCommandDefinition> =>
+  new Map((command.subcommands ?? []).map((subcommand) => [
+    getSubcommandName(command, subcommand),
+    subcommand
+  ]))
 
 const findCommand = (
   commands: Map<string, CliCommandDefinition>,
@@ -229,7 +248,8 @@ const buildInitialFlags = (definitions: CliFlagsDefinition): CliFlagValues => {
 
 const assignParameters = (
   command: CliCommandDefinition,
-  positional: Array<{ value: string, index: number }>
+  positional: Array<{ value: string, index: number }>,
+  hasUnknownFlags: boolean
 ): CliParameterValues => {
   const parameters = {} as CliParameterValues
   const definitions = command.parameters ?? []
@@ -264,7 +284,7 @@ const assignParameters = (
     }
   }
 
-  if (command.allowExcessParameters === false && positionalIndex < positional.length) {
+  if (!hasUnknownFlags && command.allowExcessParameters !== true && positionalIndex < positional.length) {
     throw new NativeInvalidParametersError(`Unexpected parameter "${positional[positionalIndex]?.value}"`)
   }
 
@@ -272,18 +292,28 @@ const assignParameters = (
 }
 
 const buildRawParsed = (
+  argv: string[],
   doubleDash: string[],
   explicitFlags: Set<string>,
   flagOccurrences: CliFlagOccurrence[],
   unknown: Record<string, unknown>,
   positionals: Array<{ value: string, index: number }> = []
-): CliRawParsed => ({
-  doubleDash,
-  explicitFlags,
-  flagOccurrences,
-  unknown,
-  positionals
-})
+): CliRawParsed => {
+  let searchFrom = 1
+  const flagOccurrenceIndices = flagOccurrences.map((occurrence) => {
+    const index = argv.indexOf(occurrence.raw, searchFrom)
+    searchFrom = index < 0 ? searchFrom : index + 1
+    return index
+  })
+  return {
+    doubleDash,
+    explicitFlags,
+    flagOccurrences,
+    flagOccurrenceIndices,
+    unknown,
+    positionals
+  }
+}
 
 export const parseCommandArgv = (
   argv: string[],
@@ -322,7 +352,7 @@ export const parseCommandArgv = (
         command,
         flags,
         parameters: {} as CliParameterValues,
-        rawParsed: buildRawParsed(doubleDash, explicitFlags, flagOccurrences, unknown, positional)
+        rawParsed: buildRawParsed(argv, doubleDash, explicitFlags, flagOccurrences, unknown, positional)
       }
     }
     if (arg === '--version' || arg === '-v' || arg === '-V') {
@@ -336,7 +366,7 @@ export const parseCommandArgv = (
         command,
         flags,
         parameters: {} as CliParameterValues,
-        rawParsed: buildRawParsed(doubleDash, explicitFlags, flagOccurrences, unknown, positional)
+        rawParsed: buildRawParsed(argv, doubleDash, explicitFlags, flagOccurrences, unknown, positional)
       }
     }
     if (arg.startsWith('--') && arg.length > 2) {
@@ -350,7 +380,7 @@ export const parseCommandArgv = (
     positional.push({ value: arg, index })
   }
 
-  const parameters = assignParameters(command, positional)
+  const parameters = assignParameters(command, positional, Object.keys(unknown).length > 0)
   return {
     mode: 'command',
     argv,
@@ -358,8 +388,105 @@ export const parseCommandArgv = (
     command,
     flags,
     parameters,
-    rawParsed: buildRawParsed(doubleDash, explicitFlags, flagOccurrences, unknown, positional)
+    rawParsed: buildRawParsed(argv, doubleDash, explicitFlags, flagOccurrences, unknown, positional)
   }
+}
+
+export const parseCommandInvocation = (
+  argv: string[],
+  command: CliCommandDefinition,
+  globalFlags: CliFlagsDefinition
+): CliParseResult => {
+  const commandIndex = argv.findIndex((argument) => argument === command.name)
+  if (commandIndex < 0) {
+    throw new NativeNoSuchCommandError(command.name)
+  }
+  const parsed = parseCommandArgv(argv.slice(commandIndex), command, globalFlags)
+  const unknownFlags = Object.keys(parsed.rawParsed.unknown)
+  if (!command.allowUnknownFlags && unknownFlags.length > 0) {
+    throw new NativeUnknownFlagError(unknownFlags)
+  }
+  return parsed
+}
+
+const findSubcommandIndex = (
+  argv: string[],
+  command: CliCommandDefinition,
+  globalFlags: CliFlagsDefinition
+): number | undefined => {
+  const definitions = { ...globalFlags, ...(command.flags ?? {}) }
+  const shortFlags = buildShortFlagMap(definitions)
+
+  for (let index = 1; index < argv.length; index++) {
+    const arg = argv[index] as string
+    if (arg === '--' || isHelpFlag(arg)) return undefined
+    if (arg.startsWith('--') && arg.length > 2) {
+      const rawName = arg.slice(2).split('=', 1)[0] as string
+      const name = rawName.startsWith('no-') ? rawName.slice(3) : rawName
+      const definition = definitions[name]
+      if (definition && !isBooleanFlag(definition) && !arg.includes('=')) index++
+      continue
+    }
+    if (arg.startsWith('-') && arg.length > 1) {
+      const definition = definitions[shortFlags.get(arg.slice(1)) ?? '']
+      if (definition && !isBooleanFlag(definition)) index++
+      continue
+    }
+    return index
+  }
+
+  return undefined
+}
+
+const parseCommandTreeArgv = (
+  argv: string[],
+  command: CliCommandDefinition,
+  globalFlags: CliFlagsDefinition
+): CliParseResult => {
+  if (!command.subcommands?.length) {
+    return parseCommandArgv(argv, command, globalFlags)
+  }
+
+  const subcommandIndex = findSubcommandIndex(argv, command, globalFlags)
+  if (subcommandIndex === undefined) {
+    const parsed = parseCommandArgv(argv, command, globalFlags)
+    return parsed.mode === 'command' && Object.keys(parsed.rawParsed.unknown).length === 0
+      ? { ...parsed, mode: 'help' }
+      : parsed
+  }
+
+  const subcommandName = argv[subcommandIndex] as string
+  if (subcommandName === 'help') {
+    const helpTarget = argv[subcommandIndex + 1]
+    if (helpTarget === undefined || isHelpFlag(helpTarget)) {
+      const parsed = parseCommandArgv(argv.slice(0, subcommandIndex), command, globalFlags)
+      return { ...parsed, mode: 'help' }
+    }
+    const helpCommand = createSubcommandMap(command).get(helpTarget)
+    if (helpCommand === undefined) {
+      throw new NativeNoSuchCommandError(`${command.name} ${helpTarget}`)
+    }
+    return {
+      mode: 'help',
+      argv,
+      calledAs: helpCommand.name,
+      command: helpCommand,
+      flags: buildInitialFlags(globalFlags),
+      parameters: {} as CliParameterValues,
+      rawParsed: buildRawParsed(argv, [], new Set(['help']), [], {})
+    }
+  }
+
+  const subcommand = createSubcommandMap(command).get(subcommandName)
+  if (subcommand === undefined) {
+    throw new NativeNoSuchCommandError(`${command.name} ${subcommandName}`)
+  }
+
+  return parseCommandArgv([
+    subcommand.name,
+    ...argv.slice(1, subcommandIndex),
+    ...argv.slice(subcommandIndex + 1)
+  ], subcommand, globalFlags)
 }
 
 export const parseNativeCli = (
@@ -375,7 +502,7 @@ export const parseNativeCli = (
       argv,
       flags: buildInitialFlags(globalFlags),
       parameters: {} as CliParameterValues,
-      rawParsed: buildRawParsed([], new Set(['help']), [], {})
+      rawParsed: buildRawParsed(argv, [], new Set(['help']), [], {})
     }
   }
 
@@ -386,7 +513,7 @@ export const parseNativeCli = (
       argv,
       flags: buildInitialFlags(globalFlags),
       parameters: {} as CliParameterValues,
-      rawParsed: buildRawParsed([], new Set(['help']), [], {})
+      rawParsed: buildRawParsed(argv, [], new Set(['help']), [], {})
     }
   }
   if (isVersionFlag(first)) {
@@ -395,7 +522,7 @@ export const parseNativeCli = (
       argv,
       flags: buildInitialFlags(globalFlags),
       parameters: {} as CliParameterValues,
-      rawParsed: buildRawParsed([], new Set(['version']), [], {})
+      rawParsed: buildRawParsed(argv, [], new Set(['version']), [], {})
     }
   }
   if (first === 'version') {
@@ -408,7 +535,7 @@ export const parseNativeCli = (
         command: versionCommand,
         flags: buildInitialFlags(globalFlags),
         parameters: {} as CliParameterValues,
-        rawParsed: buildRawParsed([], new Set(['help']), [], {})
+        rawParsed: buildRawParsed(argv, [], new Set(['help']), [], {})
       }
     }
     return {
@@ -417,7 +544,7 @@ export const parseNativeCli = (
       calledAs: 'version',
       flags: buildInitialFlags(globalFlags),
       parameters: {} as CliParameterValues,
-      rawParsed: buildRawParsed([], new Set(), [], {})
+      rawParsed: buildRawParsed(argv, [], new Set(), [], {})
     }
   }
   if (first === 'help') {
@@ -429,7 +556,7 @@ export const parseNativeCli = (
         calledAs: 'help',
         flags: buildInitialFlags(globalFlags),
         parameters: {} as CliParameterValues,
-        rawParsed: buildRawParsed([], new Set(['version']), [], {})
+        rawParsed: buildRawParsed(argv, [], new Set(['version']), [], {})
       }
     }
     const helpCommandName = isHelpFlag(commandName) ? 'help' : commandName
@@ -437,13 +564,28 @@ export const parseNativeCli = (
     if (typeof helpCommandName === 'string' && command === undefined) {
       throw new NativeNoSuchCommandError(helpCommandName)
     }
+    if (command?.subcommands?.length && typeof argv[2] === 'string' && !argv[2]?.startsWith('-')) {
+      const subcommand = createSubcommandMap(command).get(argv[2] as string)
+      if (subcommand === undefined) {
+        throw new NativeNoSuchCommandError(`${command.name} ${argv[2]}`)
+      }
+      return {
+        mode: 'help',
+        argv,
+        calledAs: subcommand.name,
+        command: subcommand,
+        flags: buildInitialFlags(globalFlags),
+        parameters: {} as CliParameterValues,
+        rawParsed: buildRawParsed(argv, [], new Set(['help']), [], {})
+      }
+    }
     return {
       mode: 'help',
       argv,
       ...(command ? { calledAs: command.name, command } : {}),
       flags: buildInitialFlags(globalFlags),
       parameters: {} as CliParameterValues,
-      rawParsed: buildRawParsed([], new Set(['help']), [], {})
+      rawParsed: buildRawParsed(argv, [], new Set(['help']), [], {})
     }
   }
 
@@ -452,5 +594,5 @@ export const parseNativeCli = (
     throw new NativeNoSuchCommandError(first)
   }
 
-  return parseCommandArgv(argv, command, globalFlags)
+  return parseCommandTreeArgv(argv, command, globalFlags)
 }

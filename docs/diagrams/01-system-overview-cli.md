@@ -13,7 +13,7 @@ Architecture overview for the native CLI, command routing, global flags, provide
 ## System Layers
 
 ```
-bun autoshow <command> <target> [flags]
+bun autoshow <command> [<subcommand>] <target> [flags]
             |
             v
 +------------------+     +------------------+     +------------------+     +------------------+
@@ -25,7 +25,7 @@ bun autoshow <command> <target> [flags]
 1. CLI layer: `src/cli/create-cli.ts` registers the root definition, global flags, command groups, and per-command definitions. `src/cli/native/*` parses argv, renders help/version output, rejects unknown flags where appropriate, and builds the command context.
 2. Target layer: `handleProcessTarget()` resolves the target, merges config defaults, normalizes selectors, builds `RuntimeOptions`, calls `resolveProcessTargetPlan()`, and for single extract/write items calls `resolveInputRoutingForCommand()`.
 3. Processing layer: Step 0 metadata, Step 1 download/detect, Step 2 STT/OCR/article/X extraction, Step 3 LLM writing, Steps 4-7 TTS/image/video/music generation, and Step 8 comic utilities.
-4. Output layer: `run.json`, `batch.json`, `extract-batch.json`, and provider `result.json` artifacts use schema version 2 envelopes.
+4. Output layer: `run.json`, `batch.json`, and `extract-batch.json` use schema version 3 envelopes; provider result/checkpoint artifacts remain schema version 2.
 
 ## Native Dispatch
 
@@ -38,13 +38,14 @@ dispatchNativeCli(argv, root, commands)
         v
 parseNativeCli()
         |
+        +--> one registered subcommand level? -> resolve the final command definition once
         +--> help?    -> renderRootHelp() or renderCommandHelp()
         +--> version? -> print package version
         |
         v
 unknown global/command flags?
         |
-        +--> reject unless command.allowUnknownFlags is true
+        +--> reject through the native usage-error path
         |
         v
 apply global runtime settings
@@ -85,10 +86,7 @@ Global flags:
 | `--cookies-from-browser` | Import browser cookies through yt-dlp. |
 | `--model-path` | Use a local GGUF file for llama.cpp. |
 
-Two commands intentionally use looser native parsing:
-
-- `links` allows unknown flags because selector-like tokens are parsed by the command itself.
-- `comic` allows unknown flags, excess parameters, and help after the first positional argument so its legacy subcommand parser can receive pass-through argv. Public comic subcommands are `draft-scenes`, `generate-images`, and `reference-sketch`.
+Comic's public `draft-scenes`, `generate-images`, and `reference-sketch` commands are first-class children of `comicCommand`; dispatch, global flags, parameter cardinality, and both help forms use the native command tree. Links registers every provider selector as a real hidden flag, then assigns the native parser's ordered positional metadata to provider scopes without reparsing raw argv.
 
 ## Command Surface
 
@@ -112,7 +110,7 @@ Processing and generation:
   image     standalone image generation
   video     standalone video generation
   music     standalone music generation or local lyric-video rendering
-  comic     comic workflow pass-through commands
+  comic     nested draft-scenes, generate-images, and reference-sketch workflows
 ```
 
 Process commands enter the shared target layer except for special standalone generation modes. `extract --transcript-video` is handled before normal target processing and renders a captioned video from an existing extract run or from explicit `--audio` plus `--transcript-result`/`--transcript-text`.

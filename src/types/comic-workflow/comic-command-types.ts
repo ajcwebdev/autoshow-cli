@@ -106,7 +106,6 @@ export type SketchPanelRange =
 
 export type GenerateImagesCommandOptions = ComicScriptSceneCommandOptionsBase
   & ComicImageCommandOptionsBase
-  & ComicLlmCommandOptionsBase
   & ComicPanelGenerationOptionsBase
   & {
     target?: GenerateImagesTarget

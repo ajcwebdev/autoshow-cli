@@ -13,7 +13,7 @@ const tempDirs = setupContractSuiteLifecycle({
 })
 
 const installFalQueueMock = () => installMockFetch((call) => {
-  const endpointPath = call.url.replace('https://mock.fal.local/', '')
+  const endpointPath = call.url.replace('https://queue.fal.run/', '')
   if (call.method === 'POST') {
     return jsonResponse({
       status: 'IN_QUEUE',
@@ -49,14 +49,13 @@ describe('fal.ai provider REST contracts', () => {
       for (const entry of cases) {
         const result = await runFalImageGen('A clean product photograph', dir, {
           model: entry.model,
-          baseUrl: 'https://mock.fal.local',
           pollIntervalMs: 1
         })
         expect(result.metadata).toMatchObject({ imageService: 'fal', imageModel: entry.model, requestMode: 'generation' })
       }
     })
 
-    expect(calls.filter(call => call.method === 'POST').map(call => call.url)).toEqual(cases.map(entry => `https://mock.fal.local/${entry.endpoint}`))
+    expect(calls.filter(call => call.method === 'POST').map(call => call.url)).toEqual(cases.map(entry => `https://queue.fal.run/${entry.endpoint}`))
     expect(calls.filter(call => call.method === 'POST').every(call => call.headers.get('authorization') === 'Key fal-test-key')).toBe(true)
   })
 
@@ -72,14 +71,13 @@ describe('fal.ai provider REST contracts', () => {
         const result = await runFalVideoGen('A slow cinematic camera move', dir, {
           model: entry.model,
           mode: 'text',
-          baseUrl: 'https://mock.fal.local',
           pollIntervalMs: 1
         })
         expect(result.metadata).toMatchObject({ videoGenService: 'fal', videoGenModel: entry.model, requestMode: 'text' })
       }
     })
 
-    expect(calls.filter(call => call.method === 'POST').map(call => call.url)).toEqual(cases.map(entry => `https://mock.fal.local/${entry.endpoint}`))
+    expect(calls.filter(call => call.method === 'POST').map(call => call.url)).toEqual(cases.map(entry => `https://queue.fal.run/${entry.endpoint}`))
   })
 
   test('fal.ai edit, multimodal reference, and transition routes preserve their media inputs', async () => {
@@ -92,7 +90,6 @@ describe('fal.ai provider REST contracts', () => {
       await runFalImageGen('Edit the reference', dir, {
         model: 'alibaba/qwen-image-3',
         inputs: [image],
-        baseUrl: 'https://mock.fal.local',
         pollIntervalMs: 1
       })
       await runFalVideoGen('Preserve the references', dir, {
@@ -101,7 +98,6 @@ describe('fal.ai provider REST contracts', () => {
         referenceImages: [image],
         referenceVideos: [video],
         referenceAudios: [audio],
-        baseUrl: 'https://mock.fal.local',
         pollIntervalMs: 1
       })
       await runFalVideoGen('Transition between frames', dir, {
@@ -110,16 +106,15 @@ describe('fal.ai provider REST contracts', () => {
         inputImage: image,
         lastFrame: image,
         generateAudio: true,
-        baseUrl: 'https://mock.fal.local',
         pollIntervalMs: 1
       })
     })
 
     const posts = calls.filter(call => call.method === 'POST')
     expect(posts.map(call => call.url)).toEqual([
-      'https://mock.fal.local/alibaba/qwen-image-3/edit',
-      'https://mock.fal.local/minimax/h3/reference-to-video',
-      'https://mock.fal.local/fal-ai/pixverse/c1/transition'
+      'https://queue.fal.run/alibaba/qwen-image-3/edit',
+      'https://queue.fal.run/minimax/h3/reference-to-video',
+      'https://queue.fal.run/fal-ai/pixverse/c1/transition'
     ])
     expect(posts[0]?.bodyJson).toMatchObject({ image_urls: [image] })
     expect(posts[1]?.bodyJson).toMatchObject({ reference_image_urls: [image], reference_video_urls: [video], reference_audio_urls: [audio] })

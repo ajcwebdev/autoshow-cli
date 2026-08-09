@@ -244,7 +244,7 @@ bun autoshow extract https://ajc.pics/autoshow/examples/1-audio.mp3 --provider w
 bun autoshow extract https://ajc.pics/autoshow/examples/1-audio.mp3 --provider whisperfile=large-v3
 ```
 
-Whisperfile is a self-contained alternative to the `whisper.cpp` build: each model is a single Cosmopolitan APE binary with the GGML weights embedded, so it runs with no compiler toolchain. AutoShow launches it through a shell (`sh <binary>`) because macOS cannot `exec` the APE format directly. Output carries native word timing but no diarization. Whisperfile is included by `--all-local`. Unlike `--provider whisper`, the whisperfile selector has no default model, so always pass an explicit model. Whisperfile is selectable on `extract` (and as a `resume` target); the `write --stt` step selector does not currently expose it, so use `--provider whisper` for local STT inside a `write` run.
+Whisperfile is a self-contained alternative to the `whisper.cpp` build: each model is a single Cosmopolitan APE binary with the GGML weights embedded, so it runs with no compiler toolchain. AutoShow launches it through a shell (`sh <binary>`) because macOS cannot `exec` the APE format directly. Output carries native word timing but no diarization. Whisperfile is included by `--all-local`. Unlike `--provider whisper`, the whisperfile selector has no default model, so always pass an explicit model. Whisperfile is selectable through `--provider whisperfile=<model>` on `extract` and `resume`, and through `--stt whisperfile=<model>` on `write` and `config`.
 
 ### Groq
 

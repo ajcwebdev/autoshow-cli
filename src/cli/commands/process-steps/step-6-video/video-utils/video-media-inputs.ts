@@ -22,6 +22,7 @@ const VIDEO_MIME_TYPES = ['video/mp4'] as const
 const AUDIO_MIME_TYPES = ['audio/mpeg', 'audio/mp3', 'audio/wav', 'audio/x-wav', 'audio/wave'] as const
 const VIDEO_MEDIA_DATA_URL_PATTERN = /^data:(image\/(?:jpeg|jpg|png|bmp|webp)|video\/mp4|audio\/(?:mpeg|mp3|wav|x-wav|wave));base64,/i
 const MIME_ALIASES = { 'image/jpg': 'image/jpeg' } as const
+type VideoMediaSpec = MediaKindSpec & { prettyMimeList: string }
 
 const videoMediaSpec = (
   kind: VideoMediaKind,
@@ -29,14 +30,12 @@ const videoMediaSpec = (
   accept: string,
   prettyMimeList: string,
   defaultFileName: string
-): MediaKindSpec => ({
+): VideoMediaSpec => ({
   allowedMimeTypes,
   mimeByExtension: MIME_BY_EXTENSION,
   mimeAliases: MIME_ALIASES,
   dataUrlPattern: VIDEO_MEDIA_DATA_URL_PATTERN,
-  enforceAllowedDataMime: true,
-  unknownLocalMime: { mode: 'throw' },
-  fetchedContentType: { mode: 'allowed' },
+  policy: { mode: 'strict' },
   accept,
   defaultFileName: () => defaultFileName,
   prettyMimeList,
@@ -46,14 +45,14 @@ const videoMediaSpec = (
     unsupportedUrl: url => `Unsupported media URL "${url}". Expected ${prettyMimeList} content for ${kind} input.`,
     unsupportedDataUrl: () => `Unsupported media data URL. Expected ${prettyMimeList} content for ${kind} input.`
   },
-  downloadError: { stage: 'video:media-inputs', includeStatus: false }
+  downloadError: { stage: 'video:media-inputs' }
 })
 
 const VIDEO_MEDIA_KIND_SPECS = {
   image: videoMediaSpec('image', IMAGE_MIME_TYPES, 'image/*,*/*;q=0.8', 'JPEG, PNG, BMP, or WebP', 'image.png'),
   video: videoMediaSpec('video', VIDEO_MIME_TYPES, 'video/mp4,*/*;q=0.8', 'MP4', 'video.mp4'),
   audio: videoMediaSpec('audio', AUDIO_MIME_TYPES, 'audio/mpeg,audio/wav,*/*;q=0.8', 'MP3 or WAV', 'audio.mp3')
-} satisfies Record<VideoMediaKind, MediaKindSpec>
+} satisfies Record<VideoMediaKind, VideoMediaSpec>
 
 const VIDEO_MEDIA_REFERENCE_ENGINES = {
   image: createMediaReferenceEngine(VIDEO_MEDIA_KIND_SPECS.image),

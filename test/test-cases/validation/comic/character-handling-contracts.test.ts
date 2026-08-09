@@ -10,15 +10,16 @@ import { createCharacterReferenceSnapshot, loadAndVerifyCharacterReferenceSnapsh
 import { checksumFile, getCharacterSketchManifestPath, requireCurrentCharacterSketch } from '~/cli/commands/process-steps/step-8-comic/comic-commands/process-scenes/character-utils'
 import { buildSceneJsonSchema, buildStructuredScriptJsonSchema, PanelBundleDataSchema, ScenePromptDataSchema, StructuredScriptDataSchema, validateSceneCharacters } from '~/cli/commands/process-steps/step-8-comic/schemas/schemas'
 import {
-  coerceAndValidateReferenceSketch,
-  parseComicSubcommandArgv
+  coerceAndValidateReferenceSketch
 } from '~/cli/commands/process-steps/step-8-comic/comic-utils/cli-args'
 import { referenceSketchCommandDefinition } from '~/cli/commands/process-steps/step-8-comic/comic-utils/subcommand-help'
+import { GLOBAL_FLAG_DEFINITIONS } from '~/cli/global-flags'
+import { parseCommandInvocation } from '~/cli/native/native-parser'
 import { getReferenceImageCapabilities, trimOptionalContinuityReferences } from '~/cli/commands/process-steps/step-8-comic/comic-utils/reference-capabilities'
 import { characterSketchCommand } from '~/cli/commands/process-steps/step-8-comic/comic-commands/character-sketch/character-sketch-command'
 
 const parseReferenceSketchArgs = (args: string[]) =>
-  coerceAndValidateReferenceSketch(parseComicSubcommandArgv(args, referenceSketchCommandDefinition))
+  coerceAndValidateReferenceSketch(parseCommandInvocation([referenceSketchCommandDefinition.name, ...args], referenceSketchCommandDefinition, GLOBAL_FLAG_DEFINITIONS))
 
 const temporaryRoots: string[] = []
 const tinyPng = Buffer.from('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNk+A8AAQUBAScY42YAAAAASUVORK5CYII=', 'base64')
@@ -241,7 +242,7 @@ describe('comic character handling flat-reference contracts', () => {
   })
 
   test('reference-sketch character parsing rejects --image and enforces one model', () => {
-    expect(() => parseReferenceSketchArgs(['--character', 'hero', '--image', 'hero.webp'])).toThrow(/Unknown argument: --image/)
+    expect(() => parseReferenceSketchArgs(['--character', 'hero', '--image', 'hero.webp'])).toThrow(/Unexpected flag: image/)
     expect(() => parseReferenceSketchArgs(['--character', 'hero', '--image-model', 'gpt-image-2,grok-imagine-image'])).toThrow(/exactly one/)
     expect(() => parseReferenceSketchArgs(['--character', 'hero', '--force'])).toThrow(/Unknown argument/)
     expect(parseReferenceSketchArgs(['--character', 'hero', '--revise', '--notes', 'Fix eyes']).character).toBe('hero')

@@ -1,7 +1,7 @@
 import { createHash } from 'node:crypto'
 import { mkdir, open, rename, rm, stat } from 'node:fs/promises'
 import { dirname } from 'node:path'
-import type { DownloadFlowId, DownloadProfile, DownloadProfileId, DownloadRequest, DownloadResult, PartialDownloadMetadata } from '~/types'
+import type { DownloadFlowId, DownloadRequest, PartialDownloadMetadata } from '~/types'
 import { extractTarGzBuffer } from './tar-gz'
 import { withSetupDownloadSlot } from './download-admission'
 import { runCapture } from '~/cli/commands/setup-and-utilities/setup/run-complete-setup'
@@ -15,49 +15,38 @@ const DEFAULT_STALL_TIMEOUT_MS = 60_000
 const DEFAULT_TOTAL_TIMEOUT_MS = 15 * 60_000
 const LARGE_ASSET_TOTAL_TIMEOUT_MS = 60 * 60_000
 
-const BUN_FETCH_PROFILES: Record<DownloadProfileId, DownloadProfile> = {
-  'bun-fetch-default': {
-    engine: 'bun-fetch',
-    profileId: 'bun-fetch-default',
-    stallTimeoutMs: DEFAULT_STALL_TIMEOUT_MS,
-    totalTimeoutMs: DEFAULT_TOTAL_TIMEOUT_MS
-  },
-  'bun-fetch-large-asset': {
-    engine: 'bun-fetch',
-    profileId: 'bun-fetch-large-asset',
-    stallTimeoutMs: DEFAULT_STALL_TIMEOUT_MS,
-    totalTimeoutMs: LARGE_ASSET_TOTAL_TIMEOUT_MS
-  }
+const TOTAL_TIMEOUT_MS_BY_FLOW: Record<DownloadFlowId, number> = {
+  'uv-release': DEFAULT_TOTAL_TIMEOUT_MS,
+  'yt-dlp-binary': DEFAULT_TOTAL_TIMEOUT_MS,
+  'ffmpeg-source': DEFAULT_TOTAL_TIMEOUT_MS,
+  'lame-source': DEFAULT_TOTAL_TIMEOUT_MS,
+  'mupdf-source': DEFAULT_TOTAL_TIMEOUT_MS,
+  'calibre-dmg': LARGE_ASSET_TOTAL_TIMEOUT_MS,
+  'acsm-calibre-plugin': DEFAULT_TOTAL_TIMEOUT_MS,
+  'leptonica-source': DEFAULT_TOTAL_TIMEOUT_MS,
+  'tesseract-source': DEFAULT_TOTAL_TIMEOUT_MS,
+  tessdata: DEFAULT_TOTAL_TIMEOUT_MS,
+  'qpdf-source': DEFAULT_TOTAL_TIMEOUT_MS,
+  'whisper-model': LARGE_ASSET_TOTAL_TIMEOUT_MS,
+  'whisperfile-binary': LARGE_ASSET_TOTAL_TIMEOUT_MS,
+  'llama-tarball': DEFAULT_TOTAL_TIMEOUT_MS,
+  'llamafile-binary': LARGE_ASSET_TOTAL_TIMEOUT_MS,
+  'whisper-source': DEFAULT_TOTAL_TIMEOUT_MS,
+  'reverb-source': DEFAULT_TOTAL_TIMEOUT_MS,
+  'reverb-model': LARGE_ASSET_TOTAL_TIMEOUT_MS
 }
 
-const FLOW_DEFAULTS: Record<DownloadFlowId, DownloadProfileId> = {
-  'uv-release': 'bun-fetch-default',
-  'yt-dlp-binary': 'bun-fetch-default',
-  'ffmpeg-source': 'bun-fetch-default',
-  'lame-source': 'bun-fetch-default',
-  'mupdf-source': 'bun-fetch-default',
-  'calibre-dmg': 'bun-fetch-large-asset',
-  'acsm-calibre-plugin': 'bun-fetch-default',
-  'leptonica-source': 'bun-fetch-default',
-  'tesseract-source': 'bun-fetch-default',
-  tessdata: 'bun-fetch-default',
-  'qpdf-source': 'bun-fetch-default',
-  'whisper-model': 'bun-fetch-large-asset',
-  'whisperfile-binary': 'bun-fetch-large-asset',
-  'llama-tarball': 'bun-fetch-default',
-  'llamafile-binary': 'bun-fetch-large-asset',
-  'whisper-source': 'bun-fetch-default',
-  'reverb-source': 'bun-fetch-default',
-  'reverb-model': 'bun-fetch-large-asset'
+type DownloadTimeouts = {
+  stallTimeoutMs: number
+  totalTimeoutMs: number
 }
 
-export const resolveDownloadProfile = (req: DownloadRequest): DownloadProfile => {
-  const targetProfileId = req.flowId ? FLOW_DEFAULTS[req.flowId] : 'bun-fetch-default'
-  const selected = BUN_FETCH_PROFILES[targetProfileId] ?? BUN_FETCH_PROFILES['bun-fetch-default']
+export const resolveDownloadTimeouts = (req: DownloadRequest): DownloadTimeouts => {
   return {
-    ...selected,
-    ...(req.stallTimeoutMs !== undefined ? { stallTimeoutMs: req.stallTimeoutMs } : {}),
-    ...(req.totalTimeoutMs !== undefined ? { totalTimeoutMs: req.totalTimeoutMs } : {})
+    stallTimeoutMs: req.stallTimeoutMs ?? DEFAULT_STALL_TIMEOUT_MS,
+    totalTimeoutMs: req.totalTimeoutMs ?? (req.flowId === undefined
+      ? DEFAULT_TOTAL_TIMEOUT_MS
+      : TOTAL_TIMEOUT_MS_BY_FLOW[req.flowId])
   }
 }
 
@@ -132,7 +121,7 @@ type DownloadWatchdog = {
   timeoutMessage: () => string | undefined
 }
 
-const createDownloadWatchdog = (profile: DownloadProfile): DownloadWatchdog => {
+const createDownloadWatchdog = (timeouts: DownloadTimeouts): DownloadWatchdog => {
   const controller = new AbortController()
   let abortReason: 'stall' | 'deadline' | undefined
   let stallTimer: ReturnType<typeof setTimeout> | undefined
@@ -142,13 +131,13 @@ const createDownloadWatchdog = (profile: DownloadProfile): DownloadWatchdog => {
     stallTimer = setTimeout(() => {
       abortReason = 'stall'
       controller.abort()
-    }, profile.stallTimeoutMs)
+    }, timeouts.stallTimeoutMs)
   }
 
   const deadlineTimer = setTimeout(() => {
     abortReason = 'deadline'
     controller.abort()
-  }, profile.totalTimeoutMs)
+  }, timeouts.totalTimeoutMs)
 
   armStallTimer()
 
@@ -162,10 +151,10 @@ const createDownloadWatchdog = (profile: DownloadProfile): DownloadWatchdog => {
     // Wording keeps "timed out" so classifyFetchRetry treats this as retryable.
     timeoutMessage: () => {
       if (abortReason === 'stall') {
-        return `Download timed out: no data received for ${Math.round(profile.stallTimeoutMs / 1000)}s`
+        return `Download timed out: no data received for ${Math.round(timeouts.stallTimeoutMs / 1000)}s`
       }
       if (abortReason === 'deadline') {
-        return `Download timed out after ${Math.round(profile.totalTimeoutMs / 1000)}s`
+        return `Download timed out after ${Math.round(timeouts.totalTimeoutMs / 1000)}s`
       }
       return undefined
     }
@@ -203,19 +192,16 @@ const streamResponseToFile = async (
 
 // Streams to `<destination>.part` so nothing is buffered whole in memory and an
 // interrupted transfer can resume from the bytes already on disk.
-const fetchToPartFile = async (req: DownloadRequest, profile: DownloadProfile): Promise<number> => {
+const fetchToPartFile = async (req: DownloadRequest, timeouts: DownloadTimeouts): Promise<number> => {
   const resumeFrom = await resolveResumeOffset(req)
   const partPath = partFilePath(req.destination)
-  const watchdog = createDownloadWatchdog(profile)
+  const watchdog = createDownloadWatchdog(timeouts)
 
   try {
-    const headers: Record<string, string> = { ...(req.headers ?? {}) }
-    if (resumeFrom > 0) headers['range'] = `bytes=${resumeFrom}-`
-
     const response = await fetch(req.url, {
       signal: watchdog.signal,
       redirect: 'follow',
-      ...(Object.keys(headers).length > 0 ? { headers } : {})
+      ...(resumeFrom > 0 ? { headers: { range: `bytes=${resumeFrom}-` } } : {})
     })
 
     if (!response.ok) {
@@ -281,9 +267,8 @@ const extractDownloadedArchive = async (
   await runCapture('unzip', ['-q', archivePath, '-d', req.destination])
 }
 
-export const downloadFile = async (req: DownloadRequest): Promise<DownloadResult> => {
-  const profile = resolveDownloadProfile(req)
-  const startedAt = Date.now()
+export const downloadFile = async (req: DownloadRequest): Promise<void> => {
+  const timeouts = resolveDownloadTimeouts(req)
   const mode = req.mode ?? 'file'
   const partPath = partFilePath(req.destination)
 
@@ -291,7 +276,7 @@ export const downloadFile = async (req: DownloadRequest): Promise<DownloadResult
 
   // Only the transfer holds a slot: hashing and extraction below are local work,
   // and a 1.5 GB checksum pass must not keep another download queued.
-  const bytes = await withSetupDownloadSlot(async () => await fetchToPartFile(req, profile))
+  const bytes = await withSetupDownloadSlot(async () => await fetchToPartFile(req, timeouts))
 
   // Both guards below mean the bytes on disk are wrong rather than merely
   // incomplete, so the partial file is discarded instead of resumed.
@@ -319,13 +304,5 @@ export const downloadFile = async (req: DownloadRequest): Promise<DownloadResult
   } else {
     await extractDownloadedArchive(partPath, req, mode)
     await discardPartialDownload(req.destination)
-  }
-
-  return {
-    success: true,
-    bytes,
-    engine: profile.engine,
-    profileId: profile.profileId,
-    durationMs: Date.now() - startedAt
   }
 }

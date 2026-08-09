@@ -177,7 +177,7 @@ export const runDeepgramTranscribe = async (
   const payload = await sttStageRequest({
     operationName: 'deepgram-stt',
     stage: 'transcribe',
-    retryClass: 'runtime_http_create_conservative',
+    retryClass: 'runtime_http_create_retriable',
     maxAttempts: 4,
     timeoutMs: REQUEST_TIMEOUT_MS,
     errorPrefix: 'Deepgram',

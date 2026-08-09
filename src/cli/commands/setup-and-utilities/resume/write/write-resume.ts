@@ -78,6 +78,7 @@ const isStep3Metadata = (value: unknown): value is Step3Metadata =>
   && (value['structuredMode'] === 'native' || value['structuredMode'] === 'schema-guided')
   && Array.isArray(value['structuredPresetNames'])
   && value['structuredPresetNames'].every((entry) => typeof entry === 'string')
+  && (value['validationFailed'] === undefined || typeof value['validationFailed'] === 'boolean')
 
 const getExistingStep3Entries = (
   metadata: Record<string, unknown>
