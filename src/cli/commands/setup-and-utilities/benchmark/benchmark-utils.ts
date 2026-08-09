@@ -1,5 +1,8 @@
 import { stat } from 'node:fs/promises'
-import { CLIUsageError, isCLIUsageError, ValidationError } from '~/utils/error-handler'
+import { join } from 'node:path'
+import { getOpenAIClientConfig } from '~/cli/commands/process-steps/step-3-write/write-services/write-openai/openai-utils'
+import { CLIUsageError, InfraError, isCLIUsageError, ValidationError } from '~/utils/error-handler'
+import { createOpenAIResponse, extractOpenAIResponseText } from '~/utils/openai/openai-client'
 import type { JsonObject } from '~/types'
 
 export const isRecord = (value: unknown): value is JsonObject =>
@@ -66,6 +69,58 @@ export const ensureFile = async (path: string, message: string): Promise<void> =
   }
 }
 
+export const loadMediaRunJson = async <TEntry>(
+  runDir: string,
+  kind: 'image' | 'video',
+  label: string,
+  parseEntry: (rawEntry: JsonObject, rawRunJson: JsonObject, index: number) => TEntry
+): Promise<{ input: string, entries: TEntry[], raw: JsonObject }> => {
+  await ensureDirectory(runDir, `${label} run directory`)
+
+  const runJsonPath = join(runDir, 'run.json')
+  await ensureFile(runJsonPath, `${label} run directory is missing run.json: ${runJsonPath}`)
+
+  let rawJson: unknown
+  try {
+    rawJson = JSON.parse(await Bun.file(runJsonPath).text()) as unknown
+  } catch (error) {
+    throw CLIUsageError(`${label} benchmark run.json is not valid JSON: ${error instanceof Error ? error.message : String(error)}`)
+  }
+
+  if (!isRecord(rawJson)) {
+    throw CLIUsageError(`${label} benchmark run.json must be a JSON object.`)
+  }
+
+  const rawKind = getString(rawJson, 'kind')
+  if (rawKind !== kind) {
+    throw CLIUsageError(`run.json kind is "${rawKind ?? 'unknown'}", expected "${kind}"`)
+  }
+
+  const metadata = getObject(rawJson, 'metadata')
+  if (!metadata) {
+    throw CLIUsageError(`${label} benchmark run.json is missing metadata.`)
+  }
+
+  const input = getString(metadata, 'input')
+  if (!input) {
+    throw CLIUsageError(`${label} benchmark source prompt is missing. This run.json must contain metadata.input.`)
+  }
+
+  const rawEntries = getArray(metadata, kind)
+  if (rawEntries.length === 0) {
+    throw CLIUsageError(`${label} benchmark run.json must contain metadata.${kind}[].`)
+  }
+
+  const entries = rawEntries.map((entry, index) => {
+    if (!isRecord(entry)) {
+      throw CLIUsageError(`${label} benchmark metadata.${kind}[${index}] must be an object.`)
+    }
+    return parseEntry(entry, rawJson, index)
+  })
+
+  return { input, entries, raw: rawJson }
+}
+
 export const costFromRunCostSteps = (runJson: JsonObject, service: string, model: string): number | undefined => {
   const metadata = getObject(runJson, 'metadata')
   const cost = metadata ? getObject(metadata, 'cost') : undefined
@@ -122,6 +177,39 @@ export const parseJsonObjectFromText = (rawText: string, errorMessage: string): 
   }
 
   throw ValidationError(errorMessage, { stage: 'benchmark:parse-json' })
+}
+
+export const runOpenAIJudge = async (
+  model: string,
+  content: unknown[],
+  schemaName: string,
+  schema: unknown,
+  emptyMessage: string,
+  stage: string
+): Promise<{ rawText: string, usage?: JsonObject }> => {
+  const config = getOpenAIClientConfig()
+  const response = await createOpenAIResponse(config, {
+    model,
+    input: [{ role: 'user', content }],
+    text: {
+      verbosity: 'low',
+      format: {
+        type: 'json_schema',
+        name: schemaName,
+        schema,
+        strict: true
+      }
+    }
+  })
+  const rawText = extractOpenAIResponseText(response) ?? ''
+  if (!rawText.trim()) {
+    throw InfraError(emptyMessage, { stage })
+  }
+
+  return {
+    rawText,
+    ...(isRecord(response.usage) ? { usage: response.usage } : {})
+  }
 }
 
 export const stringArray = (object: JsonObject, key: string): string[] =>

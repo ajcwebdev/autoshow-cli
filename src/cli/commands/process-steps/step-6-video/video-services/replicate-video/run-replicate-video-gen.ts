@@ -28,6 +28,27 @@ import { normalizeReplicateOutputUris, runReplicatePrediction } from '~/utils/re
 const MAX_WAN_AUDIO_BYTES = 15 * 1024 * 1024
 const MAX_SEEDANCE_REFERENCE_DURATION_SECONDS = 15
 
+type ReplicateVideoGenOptions = {
+  model: ReplicateVideoModel
+  mode?: VideoMode | undefined
+  durationSeconds?: number | undefined
+  resolution?: string | undefined
+  aspectRatio?: string | undefined
+  inputImage?: string | undefined
+  lastFrameImage?: string | undefined
+  referenceImages?: string[] | undefined
+  inputVideo?: string | undefined
+  referenceVideos?: string[] | undefined
+  referenceAudios?: string[] | undefined
+  negativePrompt?: string | undefined
+  audio?: string | undefined
+  promptExpansion?: boolean | undefined
+  generateAudio?: boolean | undefined
+  seed?: number | undefined
+  multiPrompt?: string | undefined
+  multiClip?: boolean | undefined
+}
+
 const hasText = (value: string | undefined): value is string =>
   typeof value === 'string' && value.trim().length > 0
 
@@ -113,16 +134,7 @@ const validateSeedanceReferenceDurations = async (
 
 const buildHappyHorseInput = async (
   prompt: string | undefined,
-  options: {
-    model: ReplicateVideoModel
-    mode: VideoMode
-    durationSeconds?: number | undefined
-    resolution?: string | undefined
-    aspectRatio?: string | undefined
-    inputImage?: string | undefined
-    referenceImages?: string[] | undefined
-    seed?: number | undefined
-  }
+  options: ReplicateVideoGenOptions & { mode: VideoMode }
 ): Promise<ReplicateVideoBuildResult> => {
   const durationForApi = normalizeReplicateVideoDuration(options.model, options.durationSeconds)
   const resolution = normalizeReplicateVideoResolution(options.model, options.resolution)
@@ -155,21 +167,7 @@ const buildHappyHorseInput = async (
 
 const buildKlingInput = async (
   prompt: string | undefined,
-  options: {
-    model: ReplicateVideoModel
-    mode: VideoMode
-    durationSeconds?: number | undefined
-    resolution?: string | undefined
-    aspectRatio?: string | undefined
-    inputImage?: string | undefined
-    lastFrameImage?: string | undefined
-    referenceImages?: string[] | undefined
-    inputVideo?: string | undefined
-    referenceVideos?: string[] | undefined
-    negativePrompt?: string | undefined
-    generateAudio?: boolean | undefined
-    multiPrompt?: string | undefined
-  }
+  options: ReplicateVideoGenOptions & { mode: VideoMode }
 ): Promise<ReplicateVideoBuildResult> => {
   const resolvedPrompt = requirePrompt(prompt, `Replicate/${options.model}`)
   const durationForApi = normalizeReplicateVideoDuration(options.model, options.durationSeconds)
@@ -215,19 +213,7 @@ const buildKlingInput = async (
 
 const buildPixVerseInput = async (
   prompt: string | undefined,
-  options: {
-    model: ReplicateVideoModel
-    mode: VideoMode
-    durationSeconds?: number | undefined
-    resolution?: string | undefined
-    aspectRatio?: string | undefined
-    inputImage?: string | undefined
-    lastFrameImage?: string | undefined
-    negativePrompt?: string | undefined
-    generateAudio?: boolean | undefined
-    seed?: number | undefined
-    multiClip?: boolean | undefined
-  }
+  options: ReplicateVideoGenOptions & { mode: VideoMode }
 ): Promise<ReplicateVideoBuildResult> => {
   const resolvedPrompt = requirePrompt(prompt, `Replicate/${options.model}`)
   const durationForApi = normalizeReplicateVideoDuration(options.model, options.durationSeconds)
@@ -280,21 +266,7 @@ const buildAlephInput = async (
 
 const buildSeedanceInput = async (
   prompt: string | undefined,
-  options: {
-    model: ReplicateVideoModel
-    mode: VideoMode
-    durationSeconds?: number | undefined
-    resolution?: string | undefined
-    aspectRatio?: string | undefined
-    inputImage?: string | undefined
-    lastFrameImage?: string | undefined
-    referenceImages?: string[] | undefined
-    inputVideo?: string | undefined
-    referenceVideos?: string[] | undefined
-    referenceAudios?: string[] | undefined
-    generateAudio?: boolean | undefined
-    seed?: number | undefined
-  }
+  options: ReplicateVideoGenOptions & { mode: VideoMode }
 ): Promise<ReplicateVideoBuildResult> => {
   const resolvedPrompt = requirePrompt(prompt, `Replicate/${options.model}`)
   const durationForApi = normalizeReplicateVideoDuration(options.model, options.durationSeconds)
@@ -350,16 +322,7 @@ const buildSeedanceInput = async (
 
 const buildWanInput = async (
   prompt: string | undefined,
-  options: {
-    model: ReplicateVideoModel
-    durationSeconds?: number | undefined
-    resolution?: string | undefined
-    aspectRatio?: string | undefined
-    negativePrompt?: string | undefined
-    audio?: string | undefined
-    promptExpansion?: boolean | undefined
-    seed?: number | undefined
-  }
+  options: ReplicateVideoGenOptions
 ): Promise<ReplicateVideoBuildResult> => {
   const resolvedPrompt = requirePrompt(prompt, `Replicate/${options.model}`)
   const durationForApi = normalizeReplicateVideoDuration(options.model, options.durationSeconds)
@@ -392,26 +355,7 @@ const buildWanInput = async (
 
 const buildReplicateVideoInput = async (
   prompt: string | undefined,
-  options: {
-    model: ReplicateVideoModel
-    mode?: VideoMode | undefined
-    durationSeconds?: number | undefined
-    resolution?: string | undefined
-    aspectRatio?: string | undefined
-    inputImage?: string | undefined
-    lastFrameImage?: string | undefined
-    referenceImages?: string[] | undefined
-    inputVideo?: string | undefined
-    referenceVideos?: string[] | undefined
-    referenceAudios?: string[] | undefined
-    negativePrompt?: string | undefined
-    audio?: string | undefined
-    promptExpansion?: boolean | undefined
-    generateAudio?: boolean | undefined
-    seed?: number | undefined
-    multiPrompt?: string | undefined
-    multiClip?: boolean | undefined
-  }
+  options: ReplicateVideoGenOptions
 ): Promise<ReplicateVideoBuildResult> => {
   const mode = options.mode ?? 'text'
   if (isReplicateHappyHorseVideoModel(options.model)) {
@@ -438,26 +382,7 @@ const buildReplicateVideoInput = async (
 export const runReplicateVideoGen = async (
   prompt: string | undefined,
   outputDir: string,
-  options: {
-    model: ReplicateVideoModel
-    mode?: VideoMode | undefined
-    durationSeconds?: number | undefined
-    resolution?: string | undefined
-    aspectRatio?: string | undefined
-    inputImage?: string | undefined
-    lastFrameImage?: string | undefined
-    referenceImages?: string[] | undefined
-    inputVideo?: string | undefined
-    referenceVideos?: string[] | undefined
-    referenceAudios?: string[] | undefined
-    negativePrompt?: string | undefined
-    audio?: string | undefined
-    promptExpansion?: boolean | undefined
-    generateAudio?: boolean | undefined
-    seed?: number | undefined
-    multiPrompt?: string | undefined
-    multiClip?: boolean | undefined
-  }
+  options: ReplicateVideoGenOptions
 ): Promise<{ videoPath: string, metadata: Step6VideoMetadata }> => {
   const apiToken = await ensureReplicateSetup('Replicate video generation')
   const referenceVideoCount = (options.inputVideo ? 1 : 0) + (options.referenceVideos?.length ?? 0)

@@ -12,27 +12,17 @@ import {
 import { hasExplicitOrConfiguredFlag } from './build-options-config-flags'
 import { resolveLocalConcurrency, resolveProviderConcurrency } from './concurrency'
 import { DEFAULT_OCR_CONCURRENCY } from '~/utils/concurrency-defaults'
+import { pick } from '~/utils/cli-utils'
+
+const OCR_MODEL_KEYS = [
+  'mistralOcrModels', 'mistralOcrModel', 'glmOcrModels', 'glmOcrModel',
+  'kimiOcrModels', 'kimiOcrModel', 'openaiOcrModels', 'openaiOcrModel',
+  'grokOcrModels', 'grokOcrModel', 'anthropicOcrModels', 'anthropicOcrModel',
+  'geminiOcrModels', 'geminiOcrModel', 'deepinfraOcrModels', 'deepinfraOcrModel',
+] as const satisfies readonly OcrRuntimeOptionKey[]
 
 export const buildOcrOptions = (ctx: BuildDomainOptionsContext): Pick<RuntimeOptions, OcrRuntimeOptionKey> => {
   const { mergedFlags, explicitFlags, configuredFlags, allShortcutFlags, modelOptions, targetCounts } = ctx
-  const {
-    mistralOcrModels,
-    mistralOcrModel,
-    glmOcrModels,
-    glmOcrModel,
-    kimiOcrModels,
-    kimiOcrModel,
-    openaiOcrModels,
-    openaiOcrModel,
-    grokOcrModels,
-    grokOcrModel,
-    anthropicOcrModels,
-    anthropicOcrModel,
-    geminiOcrModels,
-    geminiOcrModel,
-    deepinfraOcrModels,
-    deepinfraOcrModel,
-  } = modelOptions
 
   const outputFormat = readStringFlag(mergedFlags, 'format', 'json')
   const normalizedOut: OutputFormat = outputFormat === 'text' || outputFormat === 'tsv' || outputFormat === 'hocr' ? outputFormat : 'json'
@@ -52,6 +42,7 @@ export const buildOcrOptions = (ctx: BuildDomainOptionsContext): Pick<RuntimeOpt
     : undefined
 
   return {
+    ...pick(modelOptions, OCR_MODEL_KEYS),
     ocrConcurrency: resolvedOcrConcurrency,
     ocrConcurrencyMode: hasUserOcrConcurrency ? 'fixed' : 'auto',
     ocrProviderConcurrency: resolveProviderConcurrency(
@@ -76,22 +67,6 @@ export const buildOcrOptions = (ctx: BuildDomainOptionsContext): Pick<RuntimeOpt
     out: normalizedOut,
     password: readOptionalStringFlag(mergedFlags, 'password'),
     useTesseract,
-    mistralOcrModels,
-    mistralOcrModel,
-    glmOcrModels,
-    glmOcrModel,
-    kimiOcrModels,
-    kimiOcrModel,
-    openaiOcrModels,
-    openaiOcrModel,
-    grokOcrModels,
-    grokOcrModel,
-    anthropicOcrModels,
-    anthropicOcrModel,
-    geminiOcrModels,
-    geminiOcrModel,
-    deepinfraOcrModels,
-    deepinfraOcrModel,
     primaryOcr: readOptionalStringFlag(mergedFlags, 'primary-ocr'),
     chapterFiles: readOptionalBooleanFlag(mergedFlags, 'chapters'),
     chapterChunkLimitChars: epubLengthThousands === undefined ? undefined : epubLengthThousands * 1000,

@@ -2,7 +2,7 @@ import { readInjectedConfigFlags } from '~/cli/commands/process-steps/step-1-dow
 import { URL_ARTICLE_BACKENDS } from '~/cli/commands/process-steps/step-2-extract/step-2-shared/provider-registry'
 import type { ExtractPublicSelectorTarget, ExtractSelectorInputRoutes, SelectorNormalizationResult } from '~/types'
 import { CLIUsageError } from '~/utils/error-handler'
-import { appendFlagValue, occurrenceValues, parseLongFlagArg, parseProviderSelectorValue, setBooleanFlag } from './flag-helpers'
+import { appendFlagValue, occurrenceValues, parseProviderSelectorValue, rewriteLongFlagArgs, setBooleanFlag } from './flag-helpers'
 
 export const EXTRACT_PUBLIC_SELECTOR_FLAGS: Record<string, ExtractPublicSelectorTarget> = {
   reverb: { stt: 'reverb-stt' },
@@ -132,35 +132,15 @@ export const stripExtractGenericSelectorFlags = (
   return stripped
 }
 
-export const stripExtractGenericSelectorArgs = (argv: string[]): string[] => {
-  const stripped: string[] = []
+const extractGenericSelectorNames = new Set(['provider', 'all-providers', 'all-local'])
 
-  for (let i = 0; i < argv.length; i++) {
-    const arg = argv[i] as string
-    if (arg === '--') {
-      stripped.push(...argv.slice(i))
-      break
-    }
-
-    const parsed = parseLongFlagArg(arg)
-    if (!parsed || (parsed.name !== 'provider' && parsed.name !== 'all-providers' && parsed.name !== 'all-local')) {
-      stripped.push(arg)
-      continue
-    }
-
-    if (
-      parsed.name === 'provider'
-      && parsed.inlineValue === undefined
-      && typeof argv[i + 1] === 'string'
-      && argv[i + 1] !== '--'
-      && !argv[i + 1]!.startsWith('--')
-    ) {
-      i++
-    }
-  }
-
-  return stripped
-}
+export const stripExtractGenericSelectorArgs = (argv: string[]): string[] =>
+  rewriteLongFlagArgs(
+    argv,
+    (name) => extractGenericSelectorNames.has(name),
+    (name) => name === 'provider',
+    () => []
+  )
 
 export const normalizeExtractGenericSelectorFlags = (
   flags: Record<string, unknown>,
@@ -213,66 +193,35 @@ export const normalizeExtractGenericSelectorFlags = (
   }
 }
 
+const isSuppressedSelectorValue = (rawValue: string | true): boolean =>
+  rawValue !== true && ['false', '0', 'no'].includes(rawValue.trim().toLowerCase())
+
 export const normalizeExtractGenericSelectorArgs = (
   argv: string[],
   routes: ExtractSelectorInputRoutes
-): string[] => {
-  const normalized: string[] = []
-
-  for (let i = 0; i < argv.length; i++) {
-    const arg = argv[i] as string
-    if (arg === '--') {
-      normalized.push(...argv.slice(i))
-      break
-    }
-
-    const parsed = parseLongFlagArg(arg)
-    if (!parsed || (parsed.name !== 'provider' && parsed.name !== 'all-providers' && parsed.name !== 'all-local')) {
-      normalized.push(arg)
-      continue
-    }
-
-    if (parsed.name === 'all-providers') {
-      if (parsed.inlineValue === undefined || !['false', '0', 'no'].includes(parsed.inlineValue.trim().toLowerCase())) {
-        normalized.push(...selectExtractAllProviderTargets(routes).map((target) => `--${target}`))
+): string[] =>
+  rewriteLongFlagArgs(
+    argv,
+    (name) => extractGenericSelectorNames.has(name),
+    (name) => name === 'provider',
+    (name, rawValue) => {
+      if (name === 'all-providers') {
+        return isSuppressedSelectorValue(rawValue) ? [] : selectExtractAllProviderTargets(routes).map((target) => `--${target}`)
       }
-      continue
-    }
-
-    if (parsed.name === 'all-local') {
-      if (parsed.inlineValue === undefined || !['false', '0', 'no'].includes(parsed.inlineValue.trim().toLowerCase())) {
-        normalized.push(...selectExtractAllLocalTargets(routes).map((target) => `--${target}`))
+      if (name === 'all-local') {
+        return isSuppressedSelectorValue(rawValue) ? [] : selectExtractAllLocalTargets(routes).map((target) => `--${target}`)
       }
-      continue
-    }
 
-    const hasSeparateValue = parsed.inlineValue === undefined
-      && typeof argv[i + 1] === 'string'
-      && argv[i + 1] !== '--'
-      && !argv[i + 1]!.startsWith('--')
-    const rawValue: string | true = parsed.inlineValue !== undefined
-      ? parsed.inlineValue
-      : hasSeparateValue
-        ? argv[i + 1] as string
-        : true
-    if (hasSeparateValue) {
-      i++
+      const provider = parseProviderSelectorValue(rawValue, 'provider')
+      return selectExtractGenericTargets(provider.provider, provider.model, routes).flatMap((target) =>
+        target.target === 'url-provider'
+          ? ['--url-provider', String(target.value)]
+          : typeof target.value === 'string' && !extractBooleanSelectorTargetFlags.has(target.target)
+            ? [`--${target.target}`, target.value]
+            : [`--${target.target}`]
+      )
     }
-
-    const provider = parseProviderSelectorValue(rawValue, 'provider')
-    for (const target of selectExtractGenericTargets(provider.provider, provider.model, routes)) {
-      if (target.target === 'url-provider') {
-        normalized.push('--url-provider', String(target.value))
-      } else if (typeof target.value === 'string' && !extractBooleanSelectorTargetFlags.has(target.target)) {
-        normalized.push(`--${target.target}`, target.value)
-      } else {
-        normalized.push(`--${target.target}`)
-      }
-    }
-  }
-
-  return normalized
-}
+  )
 
 export const describeRoutes = (routes: ExtractSelectorInputRoutes): string => {
   if (routes.media && routes.document) return 'mixed media and document/image'

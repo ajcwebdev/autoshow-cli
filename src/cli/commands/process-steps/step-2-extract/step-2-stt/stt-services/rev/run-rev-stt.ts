@@ -5,10 +5,7 @@ import {
   RevJobSchema,
   RevTranscriptResponseSchema
 } from '~/types'
-import {
-  logSttCleanupFailure,
-  logSttSegmentLifecycle
-} from '~/cli/commands/process-steps/step-2-extract/step-2-stt/stt-logging'
+import { logSttSegmentLifecycle } from '~/cli/commands/process-steps/step-2-extract/step-2-stt/stt-logging'
 import {
   buildTranscriptionOutputBase,
   countTokens,
@@ -18,7 +15,7 @@ import {
   toTimestamp
 } from '~/cli/commands/process-steps/step-2-extract/step-2-stt/stt-utils/stt-utils'
 import { buildTranscriptionWordEvidence } from '~/cli/commands/process-steps/step-2-extract/step-2-stt/stt-utils/stt-evidence'
-import { buildAsyncSttPollingDeadlineError, buildAsyncSttResumeProbeError, runAsyncSttJobLifecycle } from '~/cli/commands/process-steps/step-2-extract/step-2-stt/async-lifecycle'
+import { buildAsyncSttPollingDeadlineError, buildAsyncSttResumeProbeError, deleteSttRemoteResource, runAsyncSttJobLifecycle } from '~/cli/commands/process-steps/step-2-extract/step-2-stt/async-lifecycle'
 import { lifecycleMetricsToCallbacks, sttStageRequest, sttStageRequestWithRetryAfter } from '../stt-stage-request'
 import { getRevBaseUrl } from './rev'
 import { requireApiKey } from '~/utils/validate/env-utils'
@@ -85,36 +82,13 @@ const deleteJob = async (
   baseURL: string,
   accessToken: string,
   jobId: string
-): Promise<boolean> => {
-  try {
-    const response = await fetch(buildRevUrl(baseURL, `/jobs/${jobId}`), {
-      method: 'DELETE',
-      headers: {
-        Authorization: `Bearer ${accessToken}`
-      }
-    })
-
-    if (!response.ok && response.status !== 404) {
-      logSttCleanupFailure(l, {
-        provider: 'rev',
-        artifact: 'job',
-        id: jobId,
-        detail: String(response.status)
-      })
-      return false
-    }
-
-    return true
-  } catch (error) {
-    logSttCleanupFailure(l, {
-      provider: 'rev',
-      artifact: 'job',
-      id: jobId,
-      detail: error instanceof Error ? error.message : String(error)
-    })
-    return false
-  }
-}
+): Promise<boolean> => await deleteSttRemoteResource({
+  url: buildRevUrl(baseURL, `/jobs/${jobId}`),
+  apiKey: accessToken,
+  provider: 'rev',
+  artifact: 'job',
+  id: jobId
+})
 
 const normalizeTranscriptOutput = (
   transcript: RevTranscriptResponse,

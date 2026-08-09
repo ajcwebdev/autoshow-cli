@@ -1,5 +1,40 @@
+import * as v from 'valibot'
 import type { HostedOcrPagePayload, NormalizeHostedOcrPagesOptions, PageResult } from '~/types'
+import { parseAndValidateStructured } from '~/cli/commands/process-steps/step-3-write/structured-output/validator'
+import { OcrStructuredResponseError } from '~/cli/commands/process-steps/step-2-extract/step-2-ocr/ocr-structured-response-error'
 import { ValidationError } from '~/utils/error-handler'
+
+export const HostedOcrEnvelopeSchema = v.object({
+  pages: v.array(v.object({
+    pageNumber: v.pipe(v.number(), v.integer(), v.minValue(1)),
+    text: v.string()
+  }))
+})
+
+export const HOSTED_OCR_PAGES_JSON_SCHEMA = {
+  type: 'object',
+  additionalProperties: false,
+  required: ['pages'],
+  properties: {
+    pages: {
+      type: 'array',
+      items: {
+        type: 'object',
+        additionalProperties: false,
+        required: ['pageNumber', 'text'],
+        properties: {
+          pageNumber: {
+            type: 'integer',
+            minimum: 1
+          },
+          text: {
+            type: 'string'
+          }
+        }
+      }
+    }
+  }
+} as const
 
 const ESCAPED_FORMATTING_PATTERN = /\\r\\n|\\n|\\r|\\t/g
 const ESCAPED_LINE_BREAK_PATTERN = /\\r\\n|\\n|\\r/g
@@ -70,4 +105,36 @@ export const normalizeHostedOcrPages = (
   }
 
   return pages
+}
+
+export const createHostedOcrResponseParser = (
+  providerLabel: string,
+  stage: string
+): ((rawText: string, expectedPageCount: number) => PageResult[]) => {
+  const normalizePages = (value: unknown, expectedPageCount: number): PageResult[] => {
+    const parsed = v.safeParse(HostedOcrEnvelopeSchema, value)
+    if (!parsed.success) {
+      throw ValidationError(`${providerLabel} response did not match the expected page schema.`, { stage })
+    }
+
+    return normalizeHostedOcrPages(parsed.output.pages, expectedPageCount, {
+      emptyPagesMessage: `${providerLabel} returned no pages.`,
+      countMismatchMessage: (actual, expected) => `${providerLabel} returned ${actual} pages, expected ${expected}.`,
+      nonContiguousMessage: `${providerLabel} returned non-contiguous page numbers.`
+    })
+  }
+
+  return (rawText: string, expectedPageCount: number): PageResult[] => {
+    const validation = parseAndValidateStructured(HostedOcrEnvelopeSchema, rawText)
+    if (!validation.success) {
+      throw new OcrStructuredResponseError(validation.issue ?? `${providerLabel} response was not valid JSON.`, rawText)
+    }
+
+    try {
+      return normalizePages(validation.value, expectedPageCount)
+    } catch (error) {
+      const message = error instanceof Error ? error.message : String(error)
+      throw new OcrStructuredResponseError(message, rawText)
+    }
+  }
 }

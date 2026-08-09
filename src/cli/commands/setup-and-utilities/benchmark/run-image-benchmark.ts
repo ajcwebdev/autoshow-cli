@@ -1,10 +1,8 @@
 import { basename, extname, isAbsolute, join, resolve } from 'node:path'
-import { getOpenAIClientConfig } from '~/cli/commands/process-steps/step-3-write/write-services/write-openai/openai-utils'
-import { CLIUsageError, InfraError, ValidationError } from '~/utils/error-handler'
+import { CLIUsageError, ValidationError } from '~/utils/error-handler'
 import * as l from '~/utils/app-logger/app-logger'
 import { createHumanTable, createKeyValueTable } from '~/utils/app-logger/human-table/human-table'
-import { createOpenAIResponse, extractOpenAIResponseText } from '~/utils/openai/openai-client'
-import { average, costFromRunCostSteps, ensureDirectory, ensureFile, escapeCell, formatScore, getArray, getNumber, getObject, getString, isRecord, parseJsonObjectFromText, providerGroup, providerKey, round2, stringArray, uniqueStrings } from './benchmark-utils'
+import { average, costFromRunCostSteps, ensureFile, escapeCell, formatScore, getArray, getNumber, getString, loadMediaRunJson, parseJsonObjectFromText, providerGroup, providerKey, round2, runOpenAIJudge, stringArray, uniqueStrings } from './benchmark-utils'
 import type { BenchmarkFlags, ImageBenchmarkProvider, ImageCriterionScores, ImageEvaluation, ImageFileReference, ImageQualityProviderReport, ImageQualityReport, ImageRunEntry, ImageRunJson, JsonObject } from '~/types'
 import { buildMediaRankingSurfaces, splitProviderComparisonRows, writeProviderComparisonMarkdown } from './media-provider-comparison'
 const DEFAULT_IMAGE_JUDGE_MODEL = 'gpt-5.5'
@@ -94,56 +92,14 @@ const parseImageRunEntry = (
 }
 
 const loadImageRunJson = async (runDir: string): Promise<ImageRunJson> => {
-  await ensureDirectory(runDir, 'Image run directory')
-
-  const runJsonPath = join(runDir, 'run.json')
-  await ensureFile(runJsonPath, `Image run directory is missing run.json: ${runJsonPath}`)
-
-  let rawJson: unknown
-  try {
-    rawJson = JSON.parse(await Bun.file(runJsonPath).text()) as unknown
-  } catch (error) {
-    throw CLIUsageError(`Image benchmark run.json is not valid JSON: ${error instanceof Error ? error.message : String(error)}`)
-  }
-
-  if (!isRecord(rawJson)) {
-    throw CLIUsageError('Image benchmark run.json must be a JSON object.')
-  }
-
-  const kind = getString(rawJson, 'kind')
-  if (kind !== 'image') {
-    throw CLIUsageError(`run.json kind is "${kind ?? 'unknown'}", expected "image"`)
-  }
-
-  const metadata = getObject(rawJson, 'metadata')
-  if (!metadata) {
-    throw CLIUsageError('Image benchmark run.json is missing metadata.')
-  }
-
-  const input = getString(metadata, 'input')
-  if (!input) {
-    throw CLIUsageError('Image benchmark source prompt is missing. This run.json must contain metadata.input.')
-  }
-
-  const imageEntries = getArray(metadata, 'image')
-  if (imageEntries.length === 0) {
-    throw CLIUsageError('Image benchmark run.json must contain metadata.image[].')
-  }
-
-  const image = imageEntries.map((entry, index) => {
-    if (!isRecord(entry)) {
-      throw CLIUsageError(`Image benchmark metadata.image[${index}] must be an object.`)
-    }
-    return parseImageRunEntry(entry, rawJson, index)
-  })
-
+  const { input, entries, raw } = await loadMediaRunJson(runDir, 'image', 'Image', parseImageRunEntry)
   return {
     kind: 'image',
     metadata: {
       input,
-      image
+      image: entries
     },
-    raw: rawJson
+    raw
   }
 }
 
@@ -247,16 +203,15 @@ const buildImageJudgePrompt = (prompt: string, provider: ImageBenchmarkProvider,
   'Return only the requested JSON.'
 ].join('\n')
 
-const createImageJudgeRequestBody = async (
+const judgeImage = async (
   prompt: string,
   provider: ImageBenchmarkProvider,
   image: ImageFileReference,
   model: string
-): Promise<Record<string, unknown>> => ({
-  model,
-  input: [{
-    role: 'user',
-    content: [
+): Promise<ImageEvaluation> => {
+  const { rawText, usage } = await runOpenAIJudge(
+    model,
+    [
       {
         type: 'input_text',
         text: buildImageJudgePrompt(prompt, provider, image)
@@ -266,39 +221,17 @@ const createImageJudgeRequestBody = async (
         image_url: await imageDataUrl(image),
         detail: 'auto'
       }
-    ]
-  }],
-  text: {
-    verbosity: 'low',
-    format: {
-      type: 'json_schema',
-      name: 'image_quality_evaluation',
-      schema: IMAGE_JUDGE_SCHEMA,
-      strict: true
-    }
-  }
-})
-
-const judgeImage = async (
-  prompt: string,
-  provider: ImageBenchmarkProvider,
-  image: ImageFileReference,
-  model: string
-): Promise<ImageEvaluation> => {
-  const config = getOpenAIClientConfig()
-  const response = await createOpenAIResponse(
-    config,
-    await createImageJudgeRequestBody(prompt, provider, image, model)
+    ],
+    'image_quality_evaluation',
+    IMAGE_JUDGE_SCHEMA,
+    `OpenAI image judge returned no text for ${provider.providerKey} ${image.fileName}.`,
+    'benchmark:image-judge'
   )
-  const rawText = extractOpenAIResponseText(response) ?? ''
-  if (!rawText.trim()) {
-    throw InfraError(`OpenAI image judge returned no text for ${provider.providerKey} ${image.fileName}.`, { stage: 'benchmark:image-judge' })
-  }
 
   const evaluation = parseImageJudgeResponse(rawText, image.fileName)
   return {
     ...evaluation,
-    ...(isRecord(response.usage) ? { usage: response.usage } : {})
+    ...(usage ? { usage } : {})
   }
 }
 

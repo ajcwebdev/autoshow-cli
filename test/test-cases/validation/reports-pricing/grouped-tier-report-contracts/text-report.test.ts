@@ -1,26 +1,14 @@
 import {
-  afterEach,
   describe,
   expect,
   test
 } from 'bun:test'
-import { mkdtemp, rm, writeFile } from 'node:fs/promises'
-import { tmpdir } from 'node:os'
+import { writeFile } from 'node:fs/promises'
 import { join } from 'node:path'
 import type { RankingSurfaceName, TtsRankingEntry } from '~/types'
-import { expectTtsRankingSurfaces, runConsensusBuildReport, writeJson } from './shared'
+import { expectTtsRankingSurfaces, runConsensusBuildReport, setupTempRoots, writeJson } from './shared'
 
-const tempDirs: string[] = []
-
-const makeTempRoot = async (prefix: string): Promise<string> => {
-  const root = await mkdtemp(join(tmpdir(), prefix))
-  tempDirs.push(root)
-  return root
-}
-
-afterEach(async () => {
-  await Promise.all(tempDirs.splice(0).map((dir) => rm(dir, { recursive: true, force: true })))
-})
+const makeTempRoot = setupTempRoots()
 
 describe('grouped report contracts', () => {
   test('Text comparison report emits metadata ranking surfaces without provider APIs', async () => {

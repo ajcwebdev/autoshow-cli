@@ -1,9 +1,19 @@
 import { validateCartesiaTtsVoice, validateDeepgramTtsVoice, validateElevenLabsTtsTextNormalization, validateGrokTtsLanguage, validateGrokTtsVoice, validateGroqTtsVoice, validateHumeTtsVoice, validateHumeTtsVoiceProvider, validateKittenTtsModel, validateKittenTtsSpeaker, validateMinimaxTtsEmotion, validateMinimaxTtsLanguageBoost, validateSpeechifyTtsAudioFormat, validateSpeechifyTtsVoice } from '~/cli/commands/setup-and-utilities/models/setup-model-options'
-import type { RuntimeModelOptions, TtsRuntimeOptions } from '~/types'
+import type { RuntimeModelOptions, TtsRuntimeOptionKey, TtsRuntimeOptions } from '~/types'
 import { parseOptionalNumberFlag, parseTtsDialogueFormat, readBooleanFlag, readOptionalRawStringFlag, readOptionalStringFlag, readOptionalStringListFlag, readStringFlag } from '../options/flag-readers'
 import { validateCliValue } from '../options/download-model-options'
+import { pick } from '~/utils/cli-utils'
 
 const DEFAULT_KITTEN_TTS_SPEAKER = 'Jasper'
+
+const TTS_MODEL_KEYS = [
+  'elevenlabsTtsModels', 'elevenlabsTtsModel', 'minimaxTtsModels', 'minimaxTtsModel',
+  'groqTtsModels', 'groqTtsModel', 'grokTtsModels', 'grokTtsModel',
+  'mistralTtsModels', 'mistralTtsModel', 'openaiTtsModels', 'openaiTtsModel',
+  'geminiTtsModels', 'geminiTtsModel', 'deepgramTtsModels', 'deepgramTtsModel',
+  'speechifyTtsModels', 'speechifyTtsModel', 'humeTtsModels', 'humeTtsModel',
+  'cartesiaTtsModels', 'cartesiaTtsModel',
+] as const satisfies readonly TtsRuntimeOptionKey[]
 
 export const buildTtsOptions = (
   flags: Record<string, unknown>,
@@ -13,31 +23,16 @@ export const buildTtsOptions = (
   const {
     kittenTtsModelValues,
     kittenTtsModelValue,
-    elevenlabsTtsModels,
-    elevenlabsTtsModel,
-    minimaxTtsModels,
-    minimaxTtsModel,
     groqTtsModels,
-    groqTtsModel,
     grokTtsModels,
-    grokTtsModel,
-    mistralTtsModels,
-    mistralTtsModel,
-    openaiTtsModels,
-    openaiTtsModel,
-    geminiTtsModels,
-    geminiTtsModel,
     deepgramTtsModels,
-    deepgramTtsModel,
     speechifyTtsModels,
-    speechifyTtsModel,
     humeTtsModels,
-    humeTtsModel,
     cartesiaTtsModels,
-    cartesiaTtsModel,
   } = modelOptions
 
   return {
+    ...pick(modelOptions, TTS_MODEL_KEYS),
     ttsSpeaker: (() => {
       const raw = readStringFlag(flags, 'kitten-voice', DEFAULT_KITTEN_TTS_SPEAKER)
       return kittenTtsModelValue !== undefined
@@ -46,10 +41,6 @@ export const buildTtsOptions = (
     })(),
     kittenTtsModels: kittenTtsModelValues,
     kittenTtsModel: kittenTtsModelValue === undefined ? undefined : validateCliValue(validateKittenTtsModel, kittenTtsModelValue),
-    groqTtsModels,
-    groqTtsModel,
-    grokTtsModels,
-    grokTtsModel,
     grokTtsVoice: (() => {
       const value = readOptionalStringFlag(flags, 'grok-tts-voice')
       if (value === undefined) return undefined
@@ -62,21 +53,11 @@ export const buildTtsOptions = (
       return validateCliValue(validateGrokTtsLanguage, value)
     })(),
     grokTtsTextNormalization: readBooleanFlag(flags, 'grok-tts-text-normalization'),
-    mistralTtsModels,
-    mistralTtsModel,
     mistralTtsVoice: readOptionalStringFlag(flags, 'mistral-tts-voice'),
     mistralTtsRefAudio: readOptionalStringFlag(flags, 'mistral-tts-ref-audio'),
     mistralTtsVoiceName: readOptionalRawStringFlag(rawFlagArgs, 'mistral-tts-voice-name') ?? readOptionalStringFlag(flags, 'mistral-tts-voice-name'),
     ttsDialogueFormat: parseTtsDialogueFormat(readOptionalStringFlag(flags, 'tts-dialogue-format')),
     ttsSpeakers: readOptionalStringListFlag(flags, 'tts-speaker'),
-    openaiTtsModels,
-    openaiTtsModel,
-    geminiTtsModels,
-    geminiTtsModel,
-    deepgramTtsModels,
-    deepgramTtsModel,
-    speechifyTtsModels,
-    speechifyTtsModel,
     speechifyVoice: (() => {
       const value = readOptionalStringFlag(flags, 'speechify-voice')
       if (value === undefined) return undefined
@@ -95,8 +76,6 @@ export const buildTtsOptions = (
     speechifyTtsConsentEmail: readOptionalStringFlag(flags, 'speechify-tts-consent-email'),
     speechifyTtsVoiceLocale: readOptionalStringFlag(flags, 'speechify-tts-voice-locale'),
     speechifyTtsVoiceGender: readOptionalStringFlag(flags, 'speechify-tts-voice-gender'),
-    humeTtsModels,
-    humeTtsModel,
     humeTtsVoice: (() => {
       const value = readOptionalRawStringFlag(rawFlagArgs, 'hume-tts-voice') ?? readOptionalStringFlag(flags, 'hume-tts-voice')
       if (value === undefined) return undefined
@@ -108,8 +87,6 @@ export const buildTtsOptions = (
       if (value === undefined) return undefined
       return validateCliValue(validateHumeTtsVoiceProvider, value)
     })(),
-    cartesiaTtsModels,
-    cartesiaTtsModel,
     cartesiaTtsVoice: (() => {
       const value = readOptionalStringFlag(flags, 'cartesia-tts-voice')
       if (value === undefined) return undefined
@@ -138,8 +115,6 @@ export const buildTtsOptions = (
     deepgramTtsBitRate: parseOptionalNumberFlag(readOptionalStringFlag(flags, 'deepgram-tts-bit-rate'), 'deepgram-tts-bit-rate', { min: 1, max: 1000000, integer: true }),
     deepgramTtsSampleRate: parseOptionalNumberFlag(readOptionalStringFlag(flags, 'deepgram-tts-sample-rate'), 'deepgram-tts-sample-rate', { min: 1, max: 192000, integer: true }),
     deepgramTtsSpeed: parseOptionalNumberFlag(readOptionalStringFlag(flags, 'deepgram-tts-speed'), 'deepgram-tts-speed', { min: 0.5, max: 2 }),
-    elevenlabsTtsModels,
-    elevenlabsTtsModel,
     elevenlabsTtsRefAudio: readOptionalStringFlag(flags, 'elevenlabs-tts-ref-audio'),
     elevenlabsTtsVoiceName: readOptionalRawStringFlag(rawFlagArgs, 'elevenlabs-tts-voice-name') ?? readOptionalStringFlag(flags, 'elevenlabs-tts-voice-name'),
     elevenlabsTtsCloneRemoveBackgroundNoise: readBooleanFlag(flags, 'elevenlabs-tts-clone-remove-background-noise'),
@@ -158,8 +133,6 @@ export const buildTtsOptions = (
     })(),
     elevenlabsTtsPronunciationDictionaryLocators: readOptionalStringListFlag(flags, 'elevenlabs-tts-pronunciation-dictionary-locator'),
     elevenlabsTtsOptimizeStreamingLatency: parseOptionalNumberFlag(readOptionalStringFlag(flags, 'elevenlabs-tts-optimize-streaming-latency'), 'elevenlabs-tts-optimize-streaming-latency', { min: 0, max: 4, integer: true }),
-    minimaxTtsModels,
-    minimaxTtsModel,
     minimaxTtsVoice: readOptionalStringFlag(flags, 'minimax-tts-voice'),
     minimaxTtsLanguageBoost: (() => {
       const value = readOptionalStringFlag(flags, 'minimax-tts-language-boost')

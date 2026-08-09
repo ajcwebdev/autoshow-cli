@@ -3,7 +3,7 @@ import * as l from '~/utils/app-logger/app-logger'
 import { InfraError, InternalError } from '~/utils/error-handler'
 import { readProviderResultEntry } from '../../manifest-utils'
 import { readSttProviderCheckpoint, writeSttProviderCheckpoint } from './stt-manifest'
-import { logSttAsyncJobLifecycle } from './stt-logging'
+import { logSttAsyncJobLifecycle, logSttCleanupFailure } from './stt-logging'
 import { buildStep2TimingMetadata } from './stt-timing-metadata'
 
 
@@ -306,6 +306,43 @@ export const buildAsyncSttResumeProbeError = (
     }
   )
   throw error
+}
+
+export const deleteSttRemoteResource = async (options: {
+  url: string
+  apiKey: string
+  provider: string
+  artifact: string
+  id: string
+}): Promise<boolean> => {
+  try {
+    const response = await fetch(options.url, {
+      method: 'DELETE',
+      headers: {
+        Authorization: `Bearer ${options.apiKey}`
+      }
+    })
+
+    if (!response.ok && response.status !== 404) {
+      logSttCleanupFailure(l, {
+        provider: options.provider,
+        artifact: options.artifact,
+        id: options.id,
+        detail: String(response.status)
+      })
+      return false
+    }
+
+    return true
+  } catch (error) {
+    logSttCleanupFailure(l, {
+      provider: options.provider,
+      artifact: options.artifact,
+      id: options.id,
+      detail: error instanceof Error ? error.message : String(error)
+    })
+    return false
+  }
 }
 
 export const runAsyncSttJobLifecycle = async <TStatus, TTranscript>(

@@ -1,7 +1,5 @@
-import { getOpenAIClientConfig } from '~/cli/commands/process-steps/step-3-write/write-services/write-openai/openai-utils'
-import { InfraError, ValidationError } from '~/utils/error-handler'
-import { createOpenAIResponse, extractOpenAIResponseText } from '~/utils/openai/openai-client'
-import { average, getNumber, getString, isRecord, parseJsonObjectFromText, round2, stringArray } from '../benchmark-utils'
+import { ValidationError } from '~/utils/error-handler'
+import { average, getNumber, getString, parseJsonObjectFromText, round2, runOpenAIJudge, stringArray } from '../benchmark-utils'
 import { VIDEO_JUDGE_SCHEMA } from './video-benchmark-constants'
 import type { JsonObject, VideoBenchmarkProvider, VideoCriterionScores, VideoEvaluation, VideoFileReference, VideoFrame } from '~/types'
 
@@ -82,17 +80,17 @@ const buildVideoJudgePrompt = (
   'Return only the requested JSON.'
 ].join('\n')
 
-const createVideoJudgeRequestBody = async (
+export const judgeVideo = async (
   prompt: string,
   provider: VideoBenchmarkProvider,
   video: VideoFileReference,
-  frames: readonly VideoFrame[],
-  model: string
-): Promise<Record<string, unknown>> => ({
-  model,
-  input: [{
-    role: 'user',
-    content: [
+  model: string,
+  durationSeconds: number,
+  frames: VideoFrame[]
+): Promise<VideoEvaluation> => {
+  const { rawText, usage } = await runOpenAIJudge(
+    model,
+    [
       {
         type: 'input_text',
         text: buildVideoJudgePrompt(prompt, provider, video, frames)
@@ -102,40 +100,16 @@ const createVideoJudgeRequestBody = async (
         image_url: await frameDataUrl(frame),
         detail: 'auto'
       }))))
-    ]
-  }],
-  text: {
-    verbosity: 'low',
-    format: {
-      type: 'json_schema',
-      name: 'video_quality_evaluation',
-      schema: VIDEO_JUDGE_SCHEMA,
-      strict: true
-    }
-  }
-})
-
-export const judgeVideo = async (
-  prompt: string,
-  provider: VideoBenchmarkProvider,
-  video: VideoFileReference,
-  model: string,
-  durationSeconds: number,
-  frames: VideoFrame[]
-): Promise<VideoEvaluation> => {
-  const config = getOpenAIClientConfig()
-  const response = await createOpenAIResponse(
-    config,
-    await createVideoJudgeRequestBody(prompt, provider, video, frames, model)
+    ],
+    'video_quality_evaluation',
+    VIDEO_JUDGE_SCHEMA,
+    `OpenAI video judge returned no text for ${provider.providerKey} ${video.fileName}.`,
+    'benchmark:video-judge'
   )
-  const rawText = extractOpenAIResponseText(response) ?? ''
-  if (!rawText.trim()) {
-    throw InfraError(`OpenAI video judge returned no text for ${provider.providerKey} ${video.fileName}.`, { stage: 'benchmark:video-judge' })
-  }
 
   const evaluation = parseVideoJudgeResponse(rawText, video, durationSeconds, frames)
   return {
     ...evaluation,
-    ...(isRecord(response.usage) ? { usage: response.usage } : {})
+    ...(usage ? { usage } : {})
   }
 }

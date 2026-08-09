@@ -2,7 +2,7 @@ import * as l from '~/utils/app-logger/app-logger'
 import { SUPADATA_DEFAULT_BASE_URL } from '~/utils/base-urls'
 import { readEnv } from '~/utils/validate/env-utils'
 import type { UrlArticleProviderAdapter, UrlArticleRunResult, UrlRequestOptions, WebArticleMetadata } from '~/types'
-import { byteLength, cleanString, countWords, createUrlProviderHttpError, ensureMeaningfulMarkdown, fallbackTitleFromSource, getUrlRequestTimeoutMs, isRecord, normalizeMarkdown, tryFetchRemoteHtml, withUrlProviderTimeout } from '../../url-utils'
+import { byteLength, cleanString, countWords, ensureMeaningfulMarkdown, fallbackTitleFromSource, fetchUrlProviderJson, isRecord, normalizeMarkdown, tryFetchRemoteHtml } from '../../url-utils'
 import { InfraError, InternalError, ValidationError, hintsForMissingEnv } from '~/utils/error-handler'
 
 const parseSupadataResponse = (
@@ -64,34 +64,10 @@ const runSupadataScrape = async (
 
   const scrapeUrl = `${baseUrl.replace(/\/$/, '')}/web/scrape?url=${encodeURIComponent(source)}`
 
-  const requestOptions = {
-    ...options,
-    timeoutMs: getUrlRequestTimeoutMs(options)
-  }
-  const response = await withUrlProviderTimeout('Supadata', requestOptions, async (signal) =>
-    await fetch(scrapeUrl, {
-      method: 'GET',
-      signal,
-      headers: {
-        'x-api-key': apiKey
-      }
-    })
-  )
-
-  let payload: unknown
-  try {
-    payload = await response.json()
-  } catch {
-    payload = null
-  }
-
-  if (!response.ok) {
-    const errorMessage = isRecord(payload)
-      ? cleanString(payload['message']) ?? cleanString(payload['details']) ?? cleanString(payload['error'])
-      : undefined
-    throw createUrlProviderHttpError('Supadata', 'scrape', response, errorMessage)
-  }
-
+  const payload = await fetchUrlProviderJson('Supadata', 'scrape', scrapeUrl, {
+    method: 'GET',
+    headers: { 'x-api-key': apiKey }
+  }, options, ['message', 'details', 'error'])
   return parseSupadataResponse(payload, source)
 }
 

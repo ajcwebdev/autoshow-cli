@@ -1,12 +1,9 @@
-import * as v from 'valibot'
-import { OcrStructuredResponseError } from '~/cli/commands/process-steps/step-2-extract/step-2-ocr/ocr-structured-response-error'
 import { OCR_SCHEMA_RETRY_ATTEMPTS, withOcrCreateRetry } from '~/cli/commands/process-steps/step-2-extract/step-2-ocr/ocr-utils/ocr-retry'
-import { parseAndValidateStructured } from '~/cli/commands/process-steps/step-3-write/structured-output/validator'
 import { getOpenAIClientConfig } from '~/cli/commands/process-steps/step-3-write/write-services/write-openai/openai-utils'
 import type { DocumentMetadata, HostedOcrSchedulerRetryPressureHandler, OpenAIOcrInputContent, PageResult } from '~/types'
 import { createOpenAIResponse, extractOpenAIResponseText } from '~/utils/openai/openai-client'
-import { buildHostedOcrJsonPrompt, normalizeHostedOcrPages } from '../../ocr-utils/hosted-ocr-json'
-import { InfraError, InternalError, ValidationError } from '~/utils/error-handler'
+import { buildHostedOcrJsonPrompt, createHostedOcrResponseParser, HOSTED_OCR_PAGES_JSON_SCHEMA } from '../../ocr-utils/hosted-ocr-json'
+import { InfraError, InternalError } from '~/utils/error-handler'
 
 const OPENAI_NATIVE_STRUCTURED_MODELS = new Set([
   'gpt-5.6-sol',
@@ -16,38 +13,6 @@ const OPENAI_NATIVE_STRUCTURED_MODELS = new Set([
   'gpt-5.4-mini',
   'gpt-5.4-nano'
 ])
-
-const OpenAIOcrEnvelopeSchema = v.object({
-  pages: v.array(v.object({
-    pageNumber: v.pipe(v.number(), v.integer(), v.minValue(1)),
-    text: v.string()
-  }))
-})
-
-const OPENAI_OCR_JSON_SCHEMA = {
-  type: 'object',
-  additionalProperties: false,
-  required: ['pages'],
-  properties: {
-    pages: {
-      type: 'array',
-      items: {
-        type: 'object',
-        additionalProperties: false,
-        required: ['pageNumber', 'text'],
-        properties: {
-          pageNumber: {
-            type: 'integer',
-            minimum: 1
-          },
-          text: {
-            type: 'string'
-          }
-        }
-      }
-    }
-  }
-} as const
 
 const getImageMimeType = (format: DocumentMetadata['format']): string => {
   switch (format) {
@@ -70,7 +35,7 @@ const supportsNativeStructuredOutput = (model: string): boolean =>
 const buildSchemaGuidedPrompt = (expectedPageCount: number): string => [
   buildHostedOcrJsonPrompt(expectedPageCount),
   'Use this exact JSON shape:',
-  JSON.stringify(OPENAI_OCR_JSON_SCHEMA)
+  JSON.stringify(HOSTED_OCR_PAGES_JSON_SCHEMA)
 ].join('\n\n')
 
 const buildSinglePageTextPrompt = (): string => [
@@ -82,38 +47,7 @@ const buildSinglePageTextPrompt = (): string => [
   'If the page is blank or unreadable, return an empty response.'
 ].join(' ')
 
-const normalizePages = (
-  value: unknown,
-  expectedPageCount: number
-): PageResult[] => {
-  const parsed = v.safeParse(OpenAIOcrEnvelopeSchema, value)
-  if (!parsed.success) {
-    throw ValidationError('OpenAI OCR response did not match the expected page schema.', { stage: 'ocr:openai' })
-  }
-
-  return normalizeHostedOcrPages(parsed.output.pages, expectedPageCount, {
-    emptyPagesMessage: 'OpenAI OCR returned no pages.',
-    countMismatchMessage: (actual, expected) => `OpenAI OCR returned ${actual} pages, expected ${expected}.`,
-    nonContiguousMessage: 'OpenAI OCR returned non-contiguous page numbers.'
-  })
-}
-
-const parseOcrResponse = (
-  rawText: string,
-  expectedPageCount: number
-): PageResult[] => {
-  const validation = parseAndValidateStructured(OpenAIOcrEnvelopeSchema, rawText)
-  if (!validation.success) {
-    throw new OcrStructuredResponseError(validation.issue ?? 'OpenAI OCR response was not valid JSON.', rawText)
-  }
-
-  try {
-    return normalizePages(validation.value, expectedPageCount)
-  } catch (error) {
-    const message = error instanceof Error ? error.message : String(error)
-    throw new OcrStructuredResponseError(message, rawText)
-  }
-}
+const parseOcrResponse = createHostedOcrResponseParser('OpenAI OCR', 'ocr:openai')
 
 const parseSinglePageOcrResponse = (rawText: string): PageResult[] => {
   try {
@@ -187,7 +121,7 @@ const createRequestBody = async (
       format: {
         type: 'json_schema',
         name: 'ocr_pages',
-        schema: OPENAI_OCR_JSON_SCHEMA,
+        schema: HOSTED_OCR_PAGES_JSON_SCHEMA,
         strict: true
       }
     }

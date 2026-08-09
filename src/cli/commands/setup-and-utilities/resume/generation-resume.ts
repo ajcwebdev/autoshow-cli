@@ -5,7 +5,7 @@ import { logResumeItem, logResumeSummary } from './resume-logging'
 import { getResumeProviderKey, resolveAdditiveResumeProviderSelection, uniqueResumeProviders } from './resume-provider-selection'
 import { CLIUsageError, InfraError } from '~/utils/error-handler'
 import { aggregateExplicitPriceEstimate } from '~/utils/pricing/aggregate-pricing'
-import type { AggregatedPriceEstimate, GenerationResumeConfig, ResumeDisplayOptions, ProviderIdentity, ResumeResult, ResumeTarget, RuntimeOptions } from '~/types'
+import type { AdditiveResumeProviderSelection, AggregatedPriceEstimate, GenerationResumeConfig, ResumeDisplayOptions, ProviderIdentity, ResumeResult, ResumeTarget, RunManifest, RuntimeOptions } from '~/types'
 const isRecord = (value: unknown): value is Record<string, unknown> =>
   typeof value === 'object' && value !== null && !Array.isArray(value)
 
@@ -141,20 +141,54 @@ const allProvidersSucceeded = (
 ): boolean =>
   providers.every((provider) => successKeys.has(getGenerationTargetKey(provider.service, provider.model)))
 
-export const hasResumableGenerationWork = async <TTarget extends { service: string, model: string }, TMetadata>(
+type GenerationResumePreparation<TTarget extends ProviderIdentity> = {
+  manifest: RunManifest
+  input: string
+  existingEntries: unknown[]
+  successKeys: Set<string>
+  selectedTargets: TTarget[]
+  selectedProviders: ProviderIdentity[] | undefined
+  resolved: AdditiveResumeProviderSelection<ProviderIdentity>
+}
+
+async function prepareGenerationResume<TTarget extends ProviderIdentity, TMetadata>(
   target: ResumeTarget,
   config: GenerationResumeConfig<TTarget, TMetadata>,
   opts: RuntimeOptions,
-  explicitFlags: Set<string> = new Set()
-): Promise<boolean> => {
+  explicitFlags: Set<string>,
+  throwOnInvalid: true
+): Promise<GenerationResumePreparation<TTarget>>
+async function prepareGenerationResume<TTarget extends ProviderIdentity, TMetadata>(
+  target: ResumeTarget,
+  config: GenerationResumeConfig<TTarget, TMetadata>,
+  opts: RuntimeOptions,
+  explicitFlags: Set<string>,
+  throwOnInvalid: false
+): Promise<GenerationResumePreparation<TTarget> | undefined>
+async function prepareGenerationResume<TTarget extends ProviderIdentity, TMetadata>(
+  target: ResumeTarget,
+  config: GenerationResumeConfig<TTarget, TMetadata>,
+  opts: RuntimeOptions,
+  explicitFlags: Set<string>,
+  throwOnInvalid: boolean
+): Promise<GenerationResumePreparation<TTarget> | undefined> {
   const manifest = await readRunManifest(target.dir, config.kind)
   if (!manifest) {
-    return false
+    if (throwOnInvalid) {
+      throw CLIUsageError(`Invalid ${config.stepLabel} manifest at ${target.dir}/run.json`)
+    }
+    return undefined
   }
 
   const parsed = parseGenerationManifest(manifest.metadata, config.metadataKey)
   if (!parsed) {
-    return false
+    if (throwOnInvalid) {
+      throw CLIUsageError(
+        `This ${config.stepLabel} run.json does not contain resume metadata (input/requestedProviders). `
+        + 'Re-run the original command to produce a resumable manifest.'
+      )
+    }
+    return undefined
   }
 
   const successKeys = new Set(
@@ -177,10 +211,49 @@ export const hasResumableGenerationWork = async <TTarget extends { service: stri
     successfulProviderKeys: successKeys
   })
 
-  return resolved.providersToRun.length > 0
+  return {
+    manifest,
+    input: parsed.input,
+    existingEntries: parsed.existingEntries,
+    successKeys,
+    selectedTargets,
+    selectedProviders,
+    resolved
+  }
 }
 
-export const resumeGenerationTarget = async <TTarget extends { service: string, model: string }, TMetadata>(
+const resolveGenerationTargetsToRunOrThrow = <TTarget extends ProviderIdentity, TMetadata>(
+  prep: GenerationResumePreparation<TTarget>,
+  config: GenerationResumeConfig<TTarget, TMetadata>,
+  opts: RuntimeOptions
+): TTarget[] => {
+  const targetsToRun = selectTargetsForProviders(
+    prep.resolved.providersToRun,
+    prep.selectedTargets,
+    (providers) => config.collectTargetsForProviders(providers, opts)
+  )
+
+  if (targetsToRun.length === 0) {
+    throw CLIUsageError(
+      `Could not reconstruct targets for missing providers: ${prep.resolved.providersToRun.map((p) => `${p.service}/${p.model}`).join(', ')}. `
+      + 'Pass explicit provider flags matching the original models.'
+    )
+  }
+
+  return targetsToRun
+}
+
+export const hasResumableGenerationWork = async <TTarget extends ProviderIdentity, TMetadata>(
+  target: ResumeTarget,
+  config: GenerationResumeConfig<TTarget, TMetadata>,
+  opts: RuntimeOptions,
+  explicitFlags: Set<string> = new Set()
+): Promise<boolean> => {
+  const prep = await prepareGenerationResume(target, config, opts, explicitFlags, false)
+  return prep !== undefined && prep.resolved.providersToRun.length > 0
+}
+
+export const resumeGenerationTarget = async <TTarget extends ProviderIdentity, TMetadata>(
   target: ResumeTarget,
   config: GenerationResumeConfig<TTarget, TMetadata>,
   opts: RuntimeOptions,
@@ -188,39 +261,9 @@ export const resumeGenerationTarget = async <TTarget extends { service: string, 
   displayOptions: ResumeDisplayOptions = {}
 ): Promise<ResumeResult> => {
   const itemLabel = displayOptions.itemLabel ?? '1/1'
-  const manifest = await readRunManifest(target.dir, config.kind)
-  if (!manifest) {
-    throw CLIUsageError(`Invalid ${config.stepLabel} manifest at ${target.dir}/run.json`)
-  }
-
-  const parsed = parseGenerationManifest(manifest.metadata, config.metadataKey)
-  if (!parsed) {
-    throw CLIUsageError(
-      `This ${config.stepLabel} run.json does not contain resume metadata (input/requestedProviders). `
-      + 'Re-run the original command to produce a resumable manifest.'
-    )
-  }
-
-  const successKeys = new Set(
-    (parsed.existingEntries as TMetadata[]).map(config.getSuccessKey)
-  )
-
-  const storedMissingProviders = parsed.requestedProviders.filter(
-    (provider) => !successKeys.has(getGenerationTargetKey(provider.service, provider.model))
-  )
-  const selectedTargets = hasExplicitGenerationProviderSelection(config.providerFlags, explicitFlags)
-    ? config.collectTargets(opts)
-    : []
-  const selectedProviders = selectedTargets.length > 0
-    ? selectedTargets.map(toProviderIdentity)
-    : undefined
+  const prep = await prepareGenerationResume(target, config, opts, explicitFlags, true)
+  const { manifest, input, existingEntries, successKeys, selectedProviders, resolved } = prep
   const hasExplicitSelectedProviders = selectedProviders !== undefined
-  const resolved = resolveAdditiveResumeProviderSelection({
-    storedProviders: parsed.requestedProviders,
-    runnableStoredProviders: storedMissingProviders,
-    ...(selectedProviders ? { selectedProviders } : {}),
-    successfulProviderKeys: successKeys
-  })
 
   if (resolved.providersToRun.length === 0) {
     const unresolvedProviders = resolved.requestedProviders.filter(
@@ -241,18 +284,7 @@ export const resumeGenerationTarget = async <TTarget extends { service: string, 
     return { full: 1, incomplete: 0, failed: 0 }
   }
 
-  const targetsToRun = selectTargetsForProviders(
-    resolved.providersToRun,
-    selectedTargets,
-    (providers) => config.collectTargetsForProviders(providers, opts)
-  )
-
-  if (targetsToRun.length === 0) {
-    throw CLIUsageError(
-      `Could not reconstruct targets for missing providers: ${resolved.providersToRun.map((p) => `${p.service}/${p.model}`).join(', ')}. `
-      + 'Pass explicit provider flags matching the original models.'
-    )
-  }
+  const targetsToRun = resolveGenerationTargetsToRunOrThrow(prep, config, opts)
 
   const providerLabels = targetsToRun.map((t) => `${t.service}/${t.model}`)
   logResumeItem(l, {
@@ -265,7 +297,7 @@ export const resumeGenerationTarget = async <TTarget extends { service: string, 
 
   let newMetadata: TMetadata[]
   try {
-    newMetadata = await config.runMissingTargets(targetsToRun, parsed.input, target.dir, opts)
+    newMetadata = await config.runMissingTargets(targetsToRun, input, target.dir, opts)
   } catch (error) {
     logResumeItem(l, {
       item: itemLabel,
@@ -281,14 +313,14 @@ export const resumeGenerationTarget = async <TTarget extends { service: string, 
     )
   }
 
-  const mergedMetadata = [...(parsed.existingEntries as TMetadata[]), ...newMetadata]
+  const mergedMetadata = [...(existingEntries as TMetadata[]), ...newMetadata]
 
   const mergedSuccessKeys = new Set(mergedMetadata.map(config.getSuccessKey))
   const stillMissing = resolved.requestedProviders.filter(
     (p) => !mergedSuccessKeys.has(getGenerationTargetKey(p.service, p.model))
   )
   const rebuiltMetadata = config.rebuildRunMetadata
-    ? config.rebuildRunMetadata(mergedMetadata, manifest.metadata, parsed.input)
+    ? config.rebuildRunMetadata(mergedMetadata, manifest.metadata, input)
     : {}
 
   await writeRunManifest(target.dir, config.kind, {
@@ -340,61 +372,17 @@ export const resumeGenerationTarget = async <TTarget extends { service: string, 
   return { full: 1, incomplete: 0, failed: 0 }
 }
 
-export const priceGenerationTarget = async <TTarget extends { service: string, model: string }, TMetadata>(
+export const priceGenerationTarget = async <TTarget extends ProviderIdentity, TMetadata>(
   target: ResumeTarget,
   config: GenerationResumeConfig<TTarget, TMetadata>,
   opts: RuntimeOptions,
   explicitFlags: Set<string> = new Set()
 ): Promise<AggregatedPriceEstimate> => {
-  const manifest = await readRunManifest(target.dir, config.kind)
-  if (!manifest) {
-    throw CLIUsageError(`Invalid ${config.stepLabel} manifest at ${target.dir}/run.json`)
-  }
-
-  const parsed = parseGenerationManifest(manifest.metadata, config.metadataKey)
-  if (!parsed) {
-    throw CLIUsageError(
-      `This ${config.stepLabel} run.json does not contain resume metadata (input/requestedProviders). `
-      + 'Re-run the original command to produce a resumable manifest.'
-    )
-  }
-
-  const successKeys = new Set(
-    (parsed.existingEntries as TMetadata[]).map(config.getSuccessKey)
-  )
-
-  const storedMissingProviders = parsed.requestedProviders.filter(
-    (provider) => !successKeys.has(getGenerationTargetKey(provider.service, provider.model))
-  )
-  const selectedTargets = hasExplicitGenerationProviderSelection(config.providerFlags, explicitFlags)
-    ? config.collectTargets(opts)
-    : []
-  const selectedProviders = selectedTargets.length > 0
-    ? selectedTargets.map(toProviderIdentity)
-    : undefined
-  const resolved = resolveAdditiveResumeProviderSelection({
-    storedProviders: parsed.requestedProviders,
-    runnableStoredProviders: storedMissingProviders,
-    ...(selectedProviders ? { selectedProviders } : {}),
-    successfulProviderKeys: successKeys
-  })
-
-  if (resolved.providersToRun.length === 0) {
+  const prep = await prepareGenerationResume(target, config, opts, explicitFlags, true)
+  if (prep.resolved.providersToRun.length === 0) {
     return aggregateExplicitPriceEstimate([], opts)
   }
 
-  const targetsToRun = selectTargetsForProviders(
-    resolved.providersToRun,
-    selectedTargets,
-    (providers) => config.collectTargetsForProviders(providers, opts)
-  )
-
-  if (targetsToRun.length === 0) {
-    throw CLIUsageError(
-      `Could not reconstruct targets for missing providers: ${resolved.providersToRun.map((p) => `${p.service}/${p.model}`).join(', ')}. `
-      + 'Pass explicit provider flags matching the original models.'
-    )
-  }
-
-  return await config.priceTargets(targetsToRun, parsed.input, opts)
+  const targetsToRun = resolveGenerationTargetsToRunOrThrow(prep, config, opts)
+  return await config.priceTargets(targetsToRun, prep.input, opts)
 }

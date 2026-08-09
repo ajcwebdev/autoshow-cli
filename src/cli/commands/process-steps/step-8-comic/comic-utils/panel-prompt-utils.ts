@@ -3,7 +3,7 @@ import type { Dirent } from 'node:fs'
 import { existsSync, readFileSync } from 'node:fs'
 import { resolve } from 'node:path'
 import * as v from 'valibot'
-import type { PanelBundleData, ImageGenerationModel, PanelPrimaryReferenceInput, PrimaryCharacterReferenceState, ResolvedReferenceImages } from '~/types'
+import type { ComicPanelSource, PanelBundleData, ImageGenerationModel, PanelPrimaryReferenceInput, PrimaryCharacterReferenceState, ResolvedReferenceImages } from '~/types'
 import { PanelBundleDataSchema } from '../schemas/schemas'
 import { CharacterReferenceManifestSchema, getCharacterReferenceManifestPath } from './character-reference-snapshot'
 import { resolveCharacterIdentityReferences } from './character-identity-card'
@@ -144,6 +144,47 @@ export const applyReferenceImageLimits = (
   const limited = trimOptionalContinuityReferences(model, primary, optional)
   if (limited.trimmed.length > 0) l.dim(`  Trimmed ${limited.trimmed.length} optional continuity reference(s) for ${model}`)
   return buildResolved(limited.references, primary, prior, secondary, missing)
+}
+
+export const resolveGroupedReferenceImages = (
+  panels: Array<Pick<ComicPanelSource, 'panelDirectory' | 'panelEntries' | 'bundleData'>>,
+  model: ImageGenerationModel,
+  priorRefs: string[] = []
+): ResolvedReferenceImages => {
+  const referenceInputs = panels.map(panel => ({
+    panelDirectory: panel.panelDirectory,
+    entries: panel.panelEntries,
+    bundleData: panel.bundleData,
+  }))
+  const primaryState = resolvePrimaryCharacterReferencesAcrossPanels(referenceInputs)
+  const primaryCharacterRefs = primaryState.primaryCharacterRefs
+  const locationReferences = resolveLocationReferencesAcrossPanels(referenceInputs)
+  const locationPaths = locationReferences.map(reference => reference.path)
+  const designReferences = resolveDesignReferencesAcrossPanels(referenceInputs)
+  const designPaths = designReferences.map(reference => reference.path)
+
+  const resolved = applyReferenceImageLimits(
+    [...primaryCharacterRefs, ...locationPaths, ...designPaths, ...priorRefs],
+    [...primaryCharacterRefs, ...locationPaths, ...designPaths],
+    priorRefs,
+    [...locationPaths, ...designPaths],
+    primaryState.missingPrimaryCharacterRefs,
+    model,
+  )
+  return {
+    ...resolved,
+    primaryCharacterRefs,
+    secondaryRefs: locationPaths,
+    ...(primaryState.characterReferences ? { characterReferences: primaryState.characterReferences } : {}),
+    locationReferences: locationReferences.map((reference, index) => ({
+      ...reference,
+      referenceIndex: primaryCharacterRefs.length + index + 1,
+    })),
+    designReferences: designReferences.map((reference, index) => ({
+      ...reference,
+      referenceIndex: primaryCharacterRefs.length + locationReferences.length + index + 1,
+    })),
+  }
 }
 
 export const findMissingReferenceImageFiles = async (paths: string[]): Promise<string[]> => {

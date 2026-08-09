@@ -1,8 +1,7 @@
 import * as l from '~/utils/app-logger/app-logger'
-import { readEnv } from '~/utils/validate/env-utils'
 import type { UrlArticleProviderAdapter, UrlArticleRunResult, UrlRequestOptions, WebArticleMetadata } from '~/types'
-import { byteLength, cleanString, countWords, createUrlProviderHttpError, ensureMeaningfulMarkdown, fallbackTitleFromSource, getUrlRequestTimeoutMs, isRecord, normalizeMarkdown, tryFetchRemoteHtml, withUrlProviderTimeout } from '../../url-utils'
-import { InternalError, ValidationError, hintsForMissingEnv } from '~/utils/error-handler'
+import { byteLength, cleanString, countWords, ensureMeaningfulMarkdown, fallbackTitleFromSource, fetchUrlProviderJson, isRecord, normalizeMarkdown, requireHostedUrlProviderApiKey, tryFetchRemoteHtml } from '../../url-utils'
+import { ValidationError } from '~/utils/error-handler'
 
 const ZYTE_DEFAULT_API_URL = 'https://api.zyte.com'
 
@@ -110,50 +109,15 @@ const runZyteExtract = async (
   options?: UrlRequestOptions,
   baseUrl: string = ZYTE_DEFAULT_API_URL
 ): Promise<{ markdown: string, web: WebArticleMetadata }> => {
-  const apiKey = readEnv('ZYTE_API_KEY')
-  const usingHostedApi = baseUrl === ZYTE_DEFAULT_API_URL
-
-  if (usingHostedApi && !apiKey) {
-    throw InternalError(
-      'ZYTE_API_KEY is required for --url-provider zyte when using the hosted API. ' +
-      'Set ZYTE_API_KEY or use a different URL backend.',
-      { stage: 'url:zyte', hints: hintsForMissingEnv('ZYTE_API_KEY') }
-    )
-  }
-
-  const requestOptions = {
-    ...options,
-    timeoutMs: getUrlRequestTimeoutMs(options)
-  }
-  const response = await withUrlProviderTimeout('Zyte', requestOptions, async (signal) =>
-    await fetch(`${baseUrl.replace(/\/$/, '')}/v1/extract`, {
-      method: 'POST',
-      signal,
-      headers: {
-        'Content-Type': 'application/json',
-        ...(apiKey ? { Authorization: `Basic ${Buffer.from(`${apiKey}:`).toString('base64')}` } : {})
-      },
-      body: JSON.stringify({
-        url: source,
-        article: true
-      })
-    })
-  )
-
-  let payload: unknown
-  try {
-    payload = await response.json()
-  } catch {
-    payload = null
-  }
-
-  if (!response.ok) {
-    const errorMessage = isRecord(payload)
-      ? cleanString(payload['detail']) ?? cleanString(payload['title']) ?? cleanString(payload['error']) ?? cleanString(payload['message'])
-      : undefined
-    throw createUrlProviderHttpError('Zyte', 'extract', response, errorMessage)
-  }
-
+  const apiKey = requireHostedUrlProviderApiKey('ZYTE_API_KEY', 'zyte', 'url:zyte', baseUrl === ZYTE_DEFAULT_API_URL)
+  const payload = await fetchUrlProviderJson('Zyte', 'extract', `${baseUrl.replace(/\/$/, '')}/v1/extract`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      ...(apiKey ? { Authorization: `Basic ${Buffer.from(`${apiKey}:`).toString('base64')}` } : {})
+    },
+    body: JSON.stringify({ url: source, article: true })
+  }, options, ['detail', 'title', 'error', 'message'])
   return parseZyteResponse(payload)
 }
 

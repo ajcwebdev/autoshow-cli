@@ -192,7 +192,7 @@ describe('config image and TTS default contracts', () => {
   })
 
   test('buildConfigPatchFromFlags saves and merges TTS request-control defaults', () => {
-    const patch = buildConfigPatchFromFlags({
+    const requestControlFlags = {
       'grok-tts-language': 'ar-SA',
       'grok-tts-text-normalization': true,
       'openai-tts-instructions': 'Speak with calm narration.',
@@ -220,7 +220,8 @@ describe('config image and TTS default contracts', () => {
       'elevenlabs-tts-text-normalization': 'on',
       'elevenlabs-tts-pronunciation-dictionary-locator': ['dict_1:version_2', 'dict_3'],
       'elevenlabs-tts-optimize-streaming-latency': '2'
-    }, new Set([
+    }
+    const patch = buildConfigPatchFromFlags(requestControlFlags, new Set([
       'grok-tts-language',
       'grok-tts-text-normalization',
       'openai-tts-instructions',
@@ -286,35 +287,7 @@ describe('config image and TTS default contracts', () => {
       }
     })
 
-    expect(mergeConfigIntoRawFlags({}, patch as Parameters<typeof mergeConfigIntoRawFlags>[1], new Set())).toMatchObject({
-      'grok-tts-language': 'ar-SA',
-      'grok-tts-text-normalization': true,
-      'openai-tts-instructions': 'Speak with calm narration.',
-      'openai-tts-speed': '1.25',
-      'minimax-tts-language-boost': 'English',
-      'minimax-tts-speed': '1.2',
-      'minimax-tts-volume': '2.5',
-      'minimax-tts-pitch': '-2',
-      'minimax-tts-emotion': 'calm',
-      'minimax-tts-english-normalization': true,
-      'minimax-tts-pronunciation': ['AutoShow/auto show', 'TTS/tee tee ess'],
-      'deepgram-tts-encoding': 'linear16',
-      'deepgram-tts-container': 'wav',
-      'deepgram-tts-bit-rate': '128000',
-      'deepgram-tts-sample-rate': '24000',
-      'deepgram-tts-speed': '1.1',
-      'elevenlabs-tts-output-format': 'mp3_22050_32',
-      'elevenlabs-tts-language-code': 'en',
-      'elevenlabs-tts-stability': '0.4',
-      'elevenlabs-tts-similarity-boost': '0.8',
-      'elevenlabs-tts-style': '0.2',
-      'elevenlabs-tts-use-speaker-boost': true,
-      'elevenlabs-tts-speed': '1.1',
-      'elevenlabs-tts-seed': '12345',
-      'elevenlabs-tts-text-normalization': 'on',
-      'elevenlabs-tts-pronunciation-dictionary-locator': ['dict_1:version_2', 'dict_3'],
-      'elevenlabs-tts-optimize-streaming-latency': '2'
-    })
+    expect(mergeConfigIntoRawFlags({}, patch as Parameters<typeof mergeConfigIntoRawFlags>[1], new Set())).toMatchObject(requestControlFlags)
   })
 
   test('buildConfigPatchFromFlags saves and merges ElevenLabs TTS clone defaults', () => {

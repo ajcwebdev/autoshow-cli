@@ -1,8 +1,7 @@
 import * as l from '~/utils/app-logger/app-logger'
-import { readEnv } from '~/utils/validate/env-utils'
 import type { UrlArticleProviderAdapter, UrlArticleRunResult, UrlRequestOptions, WebArticleMetadata } from '~/types'
-import { byteLength, cleanString, countWords, createUrlProviderHttpError, ensureMeaningfulMarkdown, fallbackTitleFromSource, getUrlRequestTimeoutMs, isRecord, normalizeMarkdown, tryFetchRemoteHtml, withUrlProviderTimeout } from '../../url-utils'
-import { InfraError, InternalError, ValidationError, hintsForMissingEnv } from '~/utils/error-handler'
+import { byteLength, cleanString, countWords, ensureMeaningfulMarkdown, fallbackTitleFromSource, fetchUrlProviderJson, getUrlRequestTimeoutMs, isRecord, normalizeMarkdown, requireHostedUrlProviderApiKey, tryFetchRemoteHtml } from '../../url-utils'
+import { InfraError, ValidationError } from '~/utils/error-handler'
 
 const FIRECRAWL_DEFAULT_API_URL = 'https://api.firecrawl.dev'
 
@@ -72,47 +71,19 @@ const runFirecrawlScrape = async (
   options?: UrlRequestOptions,
   baseUrl: string = FIRECRAWL_DEFAULT_API_URL
 ): Promise<{ markdown: string, web: WebArticleMetadata }> => {
-  const apiKey = readEnv('FIRECRAWL_API_KEY')
-  const usingHostedApi = baseUrl === FIRECRAWL_DEFAULT_API_URL
-
-  if (usingHostedApi && !apiKey) {
-    throw InternalError(
-      'FIRECRAWL_API_KEY is required for --url-provider firecrawl when using the hosted API. ' +
-      'Set FIRECRAWL_API_KEY or use a different URL backend.',
-      { stage: 'extract:firecrawl', hints: hintsForMissingEnv('FIRECRAWL_API_KEY') }
-    )
-  }
-
+  const apiKey = requireHostedUrlProviderApiKey('FIRECRAWL_API_KEY', 'firecrawl', 'extract:firecrawl', baseUrl === FIRECRAWL_DEFAULT_API_URL)
   const requestOptions = {
     ...options,
     timeoutMs: getUrlRequestTimeoutMs(options)
   }
-  const response = await withUrlProviderTimeout('Firecrawl', requestOptions, async (signal) =>
-    await fetch(`${baseUrl.replace(/\/$/, '')}/v2/scrape`, {
-      method: 'POST',
-      signal,
-      headers: {
-        'Content-Type': 'application/json',
-        ...(apiKey ? { Authorization: `Bearer ${apiKey}` } : {})
-      },
-      body: JSON.stringify(buildFirecrawlScrapeRequest(source, requestOptions))
-    })
-  )
-
-  let payload: unknown
-  try {
-    payload = await response.json()
-  } catch {
-    payload = null
-  }
-
-  if (!response.ok) {
-    const errorMessage = isRecord(payload)
-      ? cleanString(payload['error']) ?? cleanString(payload['message'])
-      : undefined
-    throw createUrlProviderHttpError('Firecrawl', 'scrape', response, errorMessage)
-  }
-
+  const payload = await fetchUrlProviderJson('Firecrawl', 'scrape', `${baseUrl.replace(/\/$/, '')}/v2/scrape`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      ...(apiKey ? { Authorization: `Bearer ${apiKey}` } : {})
+    },
+    body: JSON.stringify(buildFirecrawlScrapeRequest(source, requestOptions))
+  }, requestOptions, ['error', 'message'])
   return parseFirecrawlResponse(payload)
 }
 

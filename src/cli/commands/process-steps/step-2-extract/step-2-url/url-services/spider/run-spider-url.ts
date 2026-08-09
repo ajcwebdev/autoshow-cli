@@ -1,8 +1,7 @@
 import * as l from '~/utils/app-logger/app-logger'
-import { readEnv } from '~/utils/validate/env-utils'
 import type { UrlArticleProviderAdapter, UrlArticleRunResult, UrlRequestOptions, WebArticleMetadata } from '~/types'
-import { byteLength, cleanString, countWords, createUrlProviderHttpError, ensureMeaningfulMarkdown, fallbackTitleFromSource, getUrlRequestTimeoutMs, isRecord, normalizeMarkdown, tryFetchRemoteHtml, withUrlProviderTimeout } from '../../url-utils'
-import { InternalError, ValidationError, hintsForMissingEnv } from '~/utils/error-handler'
+import { byteLength, cleanString, countWords, ensureMeaningfulMarkdown, fallbackTitleFromSource, fetchUrlProviderJson, getUrlRequestTimeoutMs, isRecord, normalizeMarkdown, requireHostedUrlProviderApiKey, tryFetchRemoteHtml } from '../../url-utils'
+import { ValidationError } from '~/utils/error-handler'
 
 const SPIDER_DEFAULT_API_URL = 'https://api.spider.cloud'
 
@@ -98,47 +97,19 @@ const runSpiderScrape = async (
   options?: UrlRequestOptions,
   baseUrl: string = SPIDER_DEFAULT_API_URL
 ): Promise<{ markdown: string, web: WebArticleMetadata }> => {
-  const apiKey = readEnv('SPIDER_API_KEY')
-  const usingHostedApi = baseUrl === SPIDER_DEFAULT_API_URL
-
-  if (usingHostedApi && !apiKey) {
-    throw InternalError(
-      'SPIDER_API_KEY is required for --url-provider spider when using the hosted API. ' +
-      'Set SPIDER_API_KEY or use a different URL backend.',
-      { stage: 'url:spider', hints: hintsForMissingEnv('SPIDER_API_KEY') }
-    )
-  }
-
+  const apiKey = requireHostedUrlProviderApiKey('SPIDER_API_KEY', 'spider', 'url:spider', baseUrl === SPIDER_DEFAULT_API_URL)
   const requestOptions = {
     ...options,
     timeoutMs: getUrlRequestTimeoutMs(options)
   }
-  const response = await withUrlProviderTimeout('Spider', requestOptions, async (signal) =>
-    await fetch(`${baseUrl.replace(/\/$/, '')}/scrape`, {
-      method: 'POST',
-      signal,
-      headers: {
-        'Content-Type': 'application/json',
-        ...(apiKey ? { Authorization: `Bearer ${apiKey}` } : {})
-      },
-      body: JSON.stringify(buildSpiderScrapeRequest(source, requestOptions))
-    })
-  )
-
-  let payload: unknown
-  try {
-    payload = await response.json()
-  } catch {
-    payload = null
-  }
-
-  if (!response.ok) {
-    const errorMessage = isRecord(payload)
-      ? cleanString(payload['error']) ?? cleanString(payload['message']) ?? cleanString(payload['detail'])
-      : undefined
-    throw createUrlProviderHttpError('Spider', 'scrape', response, errorMessage)
-  }
-
+  const payload = await fetchUrlProviderJson('Spider', 'scrape', `${baseUrl.replace(/\/$/, '')}/scrape`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      ...(apiKey ? { Authorization: `Bearer ${apiKey}` } : {})
+    },
+    body: JSON.stringify(buildSpiderScrapeRequest(source, requestOptions))
+  }, requestOptions, ['error', 'message', 'detail'])
   return parseSpiderResponse(payload)
 }
 

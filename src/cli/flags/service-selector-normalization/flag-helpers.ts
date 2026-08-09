@@ -101,28 +101,29 @@ export const selectorArgToInternalArgs = (
   return parsed.model === true ? [`--${target}`] : [`--${target}`, parsed.model]
 }
 
-export const normalizeProviderSelectorArgs = (
+export const rewriteLongFlagArgs = (
   argv: string[],
-  selectorFlag: string,
-  targetByProvider: Record<string, string>,
-  booleanTargets: ReadonlySet<string>
+  matches: (name: string) => boolean,
+  consumesValue: (name: string) => boolean,
+  rewrite: (name: string, rawValue: string | true) => string[]
 ): string[] => {
-  const normalized: string[] = []
+  const rewritten: string[] = []
 
   for (let i = 0; i < argv.length; i++) {
     const arg = argv[i] as string
     if (arg === '--') {
-      normalized.push(...argv.slice(i))
+      rewritten.push(...argv.slice(i))
       break
     }
 
     const parsed = parseLongFlagArg(arg)
-    if (!parsed || parsed.name !== selectorFlag) {
-      normalized.push(arg)
+    if (!parsed || !matches(parsed.name)) {
+      rewritten.push(arg)
       continue
     }
 
     const hasSeparateValue = parsed.inlineValue === undefined
+      && consumesValue(parsed.name)
       && typeof argv[i + 1] === 'string'
       && argv[i + 1] !== '--'
       && !argv[i + 1]!.startsWith('--')
@@ -135,11 +136,24 @@ export const normalizeProviderSelectorArgs = (
     if (hasSeparateValue) {
       i++
     }
-    normalized.push(...selectorArgToInternalArgs(selectorFlag, targetByProvider, booleanTargets, rawValue))
+    rewritten.push(...rewrite(parsed.name, rawValue))
   }
 
-  return normalized
+  return rewritten
 }
+
+export const normalizeProviderSelectorArgs = (
+  argv: string[],
+  selectorFlag: string,
+  targetByProvider: Record<string, string>,
+  booleanTargets: ReadonlySet<string>
+): string[] =>
+  rewriteLongFlagArgs(
+    argv,
+    (name) => name === selectorFlag,
+    () => true,
+    (_name, rawValue) => selectorArgToInternalArgs(selectorFlag, targetByProvider, booleanTargets, rawValue)
+  )
 
 export const normalizeCommandSelectorFlags = (
   flags: Record<string, unknown>,

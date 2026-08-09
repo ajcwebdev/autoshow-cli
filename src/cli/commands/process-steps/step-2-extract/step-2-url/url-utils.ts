@@ -2,7 +2,8 @@ import { stat } from 'node:fs/promises'
 import { basename, resolve as pathResolve } from 'node:path'
 import type { FetchRemoteHtmlOptions, HtmlArticleBackend, LocalHtmlReadResult, RemoteHtmlFetchResult, UrlRequestOptions } from '~/types'
 import { isAbortError } from '~/utils/retries'
-import { InfraError, ValidationError } from '~/utils/error-handler'
+import { readEnv } from '~/utils/validate/env-utils'
+import { InfraError, InternalError, ValidationError, hintsForMissingEnv } from '~/utils/error-handler'
 
 const HTML_FETCH_TIMEOUT_MS = 15000
 export const DEFAULT_URL_REQUEST_TIMEOUT_MS = 60000
@@ -143,6 +144,55 @@ export const withUrlProviderTimeout = async <T>(
     }
     throw error
   }
+}
+
+export const requireHostedUrlProviderApiKey = (
+  envVar: string,
+  providerId: string,
+  stage: string,
+  usingHostedApi: boolean
+): string | undefined => {
+  const apiKey = readEnv(envVar)
+  if (usingHostedApi && !apiKey) {
+    throw InternalError(
+      `${envVar} is required for --url-provider ${providerId} when using the hosted API. ` +
+      `Set ${envVar} or use a different URL backend.`,
+      { stage, hints: hintsForMissingEnv(envVar) }
+    )
+  }
+  return apiKey
+}
+
+export const fetchUrlProviderJson = async (
+  providerLabel: string,
+  action: string,
+  endpoint: string,
+  init: Omit<RequestInit, 'signal'>,
+  options: UrlRequestOptions | undefined,
+  errorKeys: readonly string[]
+): Promise<unknown> => {
+  const response = await withUrlProviderTimeout(providerLabel, options, async (signal) =>
+    await fetch(endpoint, { ...init, signal })
+  )
+
+  let payload: unknown
+  try {
+    payload = await response.json()
+  } catch {
+    payload = null
+  }
+
+  if (!response.ok) {
+    let errorMessage: string | undefined
+    if (isRecord(payload)) {
+      for (const key of errorKeys) {
+        errorMessage ??= cleanString(payload[key])
+      }
+    }
+    throw createUrlProviderHttpError(providerLabel, action, response, errorMessage)
+  }
+
+  return payload
 }
 
 export const fetchRemoteHtml = async (

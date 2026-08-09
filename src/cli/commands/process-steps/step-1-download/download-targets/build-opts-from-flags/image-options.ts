@@ -7,47 +7,22 @@ import {
   readOptionalStringListFlag
 } from '../options/flag-readers'
 import { resolveLocalConcurrency, resolveProviderConcurrency } from './concurrency'
+import { pick } from '~/utils/cli-utils'
+
+const IMAGE_MODEL_KEYS = [
+  'geminiImageModels', 'geminiImageModel', 'openaiImageModels', 'openaiImageModel',
+  'grokImageModels', 'grokImageModel', 'bflImageModels', 'bflImageModel',
+  'recraftImageModels', 'recraftImageModel', 'replicateImageModels', 'replicateImageModel',
+  'lumalabsImageModels', 'lumalabsImageModel', 'falImageModels', 'falImageModel',
+] as const satisfies readonly ImageRuntimeOptionKey[]
 
 export const buildImageOptions = (ctx: BuildDomainOptionsContext): Pick<RuntimeOptions, ImageRuntimeOptionKey> => {
   const { mergedFlags, explicitFlags, configuredFlags, allShortcutFlags, modelOptions, targetCounts } = ctx
-  const {
-    geminiImageModels,
-    geminiImageModel,
-    openaiImageModels,
-    openaiImageModel,
-    grokImageModels,
-    grokImageModel,
-    bflImageModels,
-    bflImageModel,
-    recraftImageModels,
-    recraftImageModel,
-    replicateImageModels,
-    replicateImageModel,
-    lumalabsImageModels,
-    lumalabsImageModel,
-    falImageModels,
-    falImageModel,
-  } = modelOptions
 
   return {
+    ...pick(modelOptions, IMAGE_MODEL_KEYS),
     imageProviderConcurrency: resolveProviderConcurrency(mergedFlags, 'image-provider-concurrency', allShortcutFlags['all-image'], targetCounts.hostedImageTargetCount, explicitFlags, configuredFlags),
     imageLocalConcurrency: resolveLocalConcurrency(mergedFlags, 'image-local-concurrency', explicitFlags, configuredFlags),
-    geminiImageModels,
-    geminiImageModel,
-    openaiImageModels,
-    openaiImageModel,
-    grokImageModels,
-    grokImageModel,
-    bflImageModels,
-    bflImageModel,
-    recraftImageModels,
-    recraftImageModel,
-    replicateImageModels,
-    replicateImageModel,
-    lumalabsImageModels,
-    lumalabsImageModel,
-    falImageModels,
-    falImageModel,
     imageAspectRatio: readOptionalStringFlag(mergedFlags, 'image-aspect-ratio'),
     imageSize: readOptionalStringFlag(mergedFlags, 'image-size'),
     imageQuality: readOptionalStringFlag(mergedFlags, 'image-quality'),

@@ -1,4 +1,3 @@
-import * as l from '~/utils/app-logger/app-logger'
 import { basename } from 'node:path'
 import type { DiarizationOptions, SonioxTranscriptionStatus, SonioxTranscriptResponse, SttRequestMetrics } from '~/types'
 import {
@@ -6,7 +5,7 @@ import {
   SonioxTranscriptResponseSchema,
   SonioxTranscriptionStatusSchema
 } from '~/types'
-import { logSttCleanupFailure } from '~/cli/commands/process-steps/step-2-extract/step-2-stt/stt-logging'
+import { deleteSttRemoteResource } from '~/cli/commands/process-steps/step-2-extract/step-2-stt/async-lifecycle'
 import { sttStageRequest, sttStageRequestWithRetryAfter } from '../stt-stage-request'
 
 const REQUEST_TIMEOUT_MS = 20 * 60 * 1000
@@ -154,66 +153,22 @@ export const deleteTranscription = async (
   baseURL: string,
   apiKey: string,
   transcriptionId: string
-): Promise<boolean> => {
-  try {
-    const response = await fetch(buildSonioxUrl(baseURL, `/v1/transcriptions/${transcriptionId}`), {
-      method: 'DELETE',
-      headers: {
-        Authorization: `Bearer ${apiKey}`
-      }
-    })
-
-    if (!response.ok && response.status !== 404) {
-      logSttCleanupFailure(l, {
-        provider: 'soniox',
-        artifact: 'transcription',
-        id: transcriptionId,
-        detail: String(response.status)
-      })
-      return false
-    }
-    return true
-  } catch (error) {
-    logSttCleanupFailure(l, {
-      provider: 'soniox',
-      artifact: 'transcription',
-      id: transcriptionId,
-      detail: error instanceof Error ? error.message : String(error)
-    })
-    return false
-  }
-}
+): Promise<boolean> => await deleteSttRemoteResource({
+  url: buildSonioxUrl(baseURL, `/v1/transcriptions/${transcriptionId}`),
+  apiKey,
+  provider: 'soniox',
+  artifact: 'transcription',
+  id: transcriptionId
+})
 
 export const deleteFile = async (
   baseURL: string,
   apiKey: string,
   fileId: string
-): Promise<boolean> => {
-  try {
-    const response = await fetch(buildSonioxUrl(baseURL, `/v1/files/${fileId}`), {
-      method: 'DELETE',
-      headers: {
-        Authorization: `Bearer ${apiKey}`
-      }
-    })
-
-    if (!response.ok && response.status !== 404) {
-      logSttCleanupFailure(l, {
-        provider: 'soniox',
-        artifact: 'file',
-        id: fileId,
-        detail: String(response.status)
-      })
-      return false
-    }
-    return true
-  } catch (error) {
-    logSttCleanupFailure(l, {
-      provider: 'soniox',
-      artifact: 'file',
-      id: fileId,
-      detail: error instanceof Error ? error.message : String(error)
-    })
-    return false
-  }
-}
+): Promise<boolean> => await deleteSttRemoteResource({
+  url: buildSonioxUrl(baseURL, `/v1/files/${fileId}`),
+  apiKey,
+  provider: 'soniox',
+  artifact: 'file',
+  id: fileId
+})

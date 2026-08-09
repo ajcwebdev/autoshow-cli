@@ -6,10 +6,7 @@ import {
   SpeechmaticsJobResponseSchema,
   SpeechmaticsTranscriptResponseSchema
 } from '~/types'
-import {
-  logSttCleanupFailure,
-  logSttSegmentLifecycle
-} from '~/cli/commands/process-steps/step-2-extract/step-2-stt/stt-logging'
+import { logSttSegmentLifecycle } from '~/cli/commands/process-steps/step-2-extract/step-2-stt/stt-logging'
 import {
   appendToken,
   buildTranscriptionOutputBase,
@@ -19,7 +16,7 @@ import {
   toTimestamp
 } from '~/cli/commands/process-steps/step-2-extract/step-2-stt/stt-utils/stt-utils'
 import { buildTranscriptionWordEvidence } from '~/cli/commands/process-steps/step-2-extract/step-2-stt/stt-utils/stt-evidence'
-import { buildAsyncSttPollingDeadlineError, buildAsyncSttResumeProbeError, runAsyncSttJobLifecycle } from '~/cli/commands/process-steps/step-2-extract/step-2-stt/async-lifecycle'
+import { buildAsyncSttPollingDeadlineError, buildAsyncSttResumeProbeError, deleteSttRemoteResource, runAsyncSttJobLifecycle } from '~/cli/commands/process-steps/step-2-extract/step-2-stt/async-lifecycle'
 import { lifecycleMetricsToCallbacks, sttStageRequest, sttStageRequestWithRetryAfter } from '../stt-stage-request'
 import { getSpeechmaticsBaseUrl } from './speechmatics'
 import { requireApiKey } from '~/utils/validate/env-utils'
@@ -96,36 +93,13 @@ const deleteJob = async (
   baseURL: string,
   apiKey: string,
   jobId: string
-): Promise<boolean> => {
-  try {
-    const response = await fetch(buildSpeechmaticsUrl(baseURL, `/v2/jobs/${jobId}`), {
-      method: 'DELETE',
-      headers: {
-        Authorization: `Bearer ${apiKey}`
-      }
-    })
-
-    if (!response.ok && response.status !== 404) {
-      logSttCleanupFailure(l, {
-        provider: 'speechmatics',
-        artifact: 'job',
-        id: jobId,
-        detail: String(response.status)
-      })
-      return false
-    }
-
-    return true
-  } catch (error) {
-    logSttCleanupFailure(l, {
-      provider: 'speechmatics',
-      artifact: 'job',
-      id: jobId,
-      detail: error instanceof Error ? error.message : String(error)
-    })
-    return false
-  }
-}
+): Promise<boolean> => await deleteSttRemoteResource({
+  url: buildSpeechmaticsUrl(baseURL, `/v2/jobs/${jobId}`),
+  apiKey,
+  provider: 'speechmatics',
+  artifact: 'job',
+  id: jobId
+})
 
 const toTranscriptOutput = (
   transcript: SpeechmaticsTranscriptResponse,
