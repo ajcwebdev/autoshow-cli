@@ -1,5 +1,5 @@
 import { describe, expect, test } from 'bun:test'
-import { HELP_FLAG_GROUPS } from '~/cli/native/root-definition'
+import { HELP_FLAG_GROUPS } from '~/cli/native/help-groups'
 import { benchmarkCommand } from '~/cli/commands/setup-and-utilities/benchmark/define-benchmark-command'
 import { comicCommand } from '~/cli/commands/process-steps/step-8-comic/define-comic-command'
 import { configCommand } from '~/cli/commands/setup-and-utilities/config/define-config-command'

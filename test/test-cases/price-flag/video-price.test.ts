@@ -72,7 +72,7 @@ test('Gemini video rejects 4k resolution for Lite with --price', async () => {
     ['src/cli/create-cli.ts', 'video', 'a cinematic mountain sunrise', '--provider', 'gemini=veo-3.1-lite-generate-preview', '--resolution', '4k', '--price'],
   )
   expect(result.exitCode).not.toBe(0)
-  expect(`${result.stdout}\n${result.stderr}`).toContain('Veo 3.1 Lite does not support --video-resolution 4k')
+  expect(`${result.stdout}\n${result.stderr}`).toContain('Gemini Veo 3.1 Lite does not support --resolution 4k')
 })
 
 test('Gemini video allows 4k resolution for standard and Fast with approximate pricing', async () => {

@@ -76,10 +76,10 @@ test('extract PDF with --out json', async () => {
   expect(await fileExists(`${outputDir}/result.json`)).toBe(true)
 })
 
-test('extract EPUB with default options writes cleaned text without synthetic page labels', async () => {
+test('extract EPUB with default options writes cleaned text and chapter metadata without synthetic page labels', async () => {
   await cleanupTestOutput('1-epub')
 
-  const result = await runCommand(['src/cli/create-cli.ts', 'extract', epubInput], { testName: 'extract EPUB with default options writes cleaned text without synthetic page labels' })
+  const result = await runCommand(['src/cli/create-cli.ts', 'extract', epubInput], { testName: 'extract EPUB with default options writes cleaned text and chapter metadata without synthetic page labels' })
   expect(result.exitCode).toBe(0)
 
   const outputDir = requireOutputDir(result.outputDir ?? await findLatestDirectory('1-epub', result.outputRoot), '1-epub')
@@ -91,7 +91,11 @@ test('extract EPUB with default options writes cleaned text without synthetic pa
   const metadata = await readRunMetadata(outputDir) as OcrE2eExtractMetadata
   expect(metadata.step2?.extractionMethod).toBe('epub-text')
   expect(metadata.step2?.outputFidelity).toBe('cleaned-epub-text')
-  expect(metadata.step2?.chapterExport).toBeUndefined()
+  expect(metadata.step2?.chapterExport).toMatchObject({
+    sourceFormat: 'epub',
+    mode: 'chapters',
+    directories: ['chapters']
+  })
   expect(metadata.resolvedStep2).toMatchObject({
     route: 'native-document',
     sourceKind: 'epub'

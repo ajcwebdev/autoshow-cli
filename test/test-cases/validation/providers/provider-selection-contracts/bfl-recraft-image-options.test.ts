@@ -218,7 +218,7 @@ describe('provider selection contracts', () => {
 
       const ideogram = buildOptsFromFlags(false, {
         'replicate-image': ['ideogram-ai/ideogram-v4-balanced'],
-        'image-size': '1024x768'
+        'image-size': '2048x2048'
       })
       expect(collectImageTargets(ideogram).map((target) => target.model)).toEqual(['ideogram-ai/ideogram-v4-balanced'])
       expect(() => collectImageTargets(buildOptsFromFlags(false, {
@@ -227,8 +227,8 @@ describe('provider selection contracts', () => {
       }))).toThrow('text-to-image only')
       expect(() => collectImageTargets(buildOptsFromFlags(false, {
         'replicate-image': ['ideogram-ai/ideogram-v4-quality'],
-        'image-size': '1025x1024'
-      }))).toThrow('multiples of 16')
+        'image-size': '1024x1024'
+      }))).toThrow('Supported values: 2048x2048')
 
       const ernie = buildOptsFromFlags(false, {
         'replicate-image': ['prunaai/ernie-image-turbo'],

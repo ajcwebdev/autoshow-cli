@@ -65,12 +65,37 @@ export const REPLICATE_QWEN_ASPECT_RATIO_VALUES = [
   '1:2'
 ] as const
 
+export const REPLICATE_IDEOGRAM_RESOLUTION_VALUES = [
+  '2048x2048',
+  '1440x2880',
+  '2880x1440',
+  '1664x2496',
+  '2496x1664',
+  '1792x2240',
+  '2240x1792',
+  '1440x2560',
+  '2560x1440',
+  '1600x2560',
+  '2560x1600',
+  '1728x2304',
+  '2304x1728',
+  '1296x3168',
+  '3168x1296',
+  '1152x2944',
+  '2944x1152',
+  '1248x3328',
+  '3328x1248',
+  '1280x3072',
+  '3072x1280'
+] as const
+
 export const REPLICATE_WAN_IMAGE_COUNT_RANGE = [1, 4] as const
 export const REPLICATE_ERNIE_IMAGE_COUNT_RANGE = [1, 4] as const
 
 const REPLICATE_SEEDREAM_ASPECT_RATIOS = new Set<string>(REPLICATE_SEEDREAM_ASPECT_RATIO_VALUES)
 
 const REPLICATE_QWEN_ASPECT_RATIOS = new Set<string>(REPLICATE_QWEN_ASPECT_RATIO_VALUES)
+const REPLICATE_IDEOGRAM_RESOLUTIONS = new Set<string>(REPLICATE_IDEOGRAM_RESOLUTION_VALUES)
 
 const normalizeImageDimensions = (
   size: string,
@@ -196,15 +221,18 @@ export const normalizeReplicateIdeogramSize = (
   imageSize: string | undefined
 ): ReplicateImageSize | undefined => {
   if (imageSize === undefined || imageSize.length === 0) return undefined
-  const dimensions = normalizeImageDimensions(imageSize, `Replicate/${model}`, { min: 256, max: 2048 })
-  if (dimensions.width % 16 !== 0 || dimensions.height % 16 !== 0) {
-    throw CLIUsageError(`Invalid --image-size value "${imageSize}" for Replicate/${model}. Width and height must be multiples of 16.`)
+  const normalized = imageSize.trim()
+  if (!REPLICATE_IDEOGRAM_RESOLUTIONS.has(normalized)) {
+    throw CLIUsageError(
+      `Invalid --image-size value "${imageSize}" for Replicate/${model}. Supported values: ${REPLICATE_IDEOGRAM_RESOLUTION_VALUES.join(', ')}.`
+    )
   }
+  const dimensions = normalizeImageDimensions(normalized, `Replicate/${model}`, { min: 1152, max: 3328 })
   return {
-    requestValue: `${dimensions.width}x${dimensions.height}`,
+    requestValue: normalized,
     width: dimensions.width,
     height: dimensions.height,
-    metadataValue: `${dimensions.width}x${dimensions.height}`
+    metadataValue: normalized
   }
 }
 

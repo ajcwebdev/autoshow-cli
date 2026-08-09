@@ -24,17 +24,17 @@ defineImageServiceTest({
     {
       model: 'ideogram-ai/ideogram-v4-turbo',
       prompt: 'The word TURBO centered in a clean typographic poster',
-      extraArgs: ['--size', '1024x1024']
+      extraArgs: ['--size', '2048x2048']
     },
     {
       model: 'ideogram-ai/ideogram-v4-balanced',
       prompt: 'The word BALANCED centered in a clean typographic poster',
-      extraArgs: ['--size', '1024x1024']
+      extraArgs: ['--size', '2048x2048']
     },
     {
       model: 'ideogram-ai/ideogram-v4-quality',
       prompt: 'The word QUALITY centered in a clean typographic poster',
-      extraArgs: ['--size', '1024x1024']
+      extraArgs: ['--size', '2048x2048']
     },
     {
       model: 'prunaai/ernie-image',
