@@ -20,13 +20,15 @@ import {
 import { buildOptsFromFlags } from '~/cli/commands/process-steps/step-1-download/download-targets/build-opts-from-flags/build-options-from-flags'
 import { writeRunManifest } from '~/cli/commands/process-steps/manifest-utils'
 import { normalizeResumeSelectorFlagsForTarget } from '~/cli/commands/setup-and-utilities/resume/resume-dispatch'
-import { hasResumableTtsWork } from '~/cli/commands/setup-and-utilities/resume/generation/tts-resume'
-import { hasResumableImageWork } from '~/cli/commands/setup-and-utilities/resume/generation/image-resume'
-import { hasResumableVideoWork } from '~/cli/commands/setup-and-utilities/resume/generation/video-resume'
-import { hasResumableMusicWork } from '~/cli/commands/setup-and-utilities/resume/generation/music-resume'
+import { getResumeHandler } from '~/cli/commands/setup-and-utilities/resume/resume-registry'
 import { hasResumableWriteWork, resumeWriteTarget } from '~/cli/commands/setup-and-utilities/resume/write/write-resume'
 import { installMockFetch, jsonResponse, restoreEnv, snapshotEnv } from '../../../test-utils/rest-contract-helpers'
 import type { ResumeTarget, RunManifest, RuntimeOptions, Step3Metadata } from '~/types'
+
+const hasResumableTtsWork = getResumeHandler('tts')!.hasResumableWork
+const hasResumableImageWork = getResumeHandler('image')!.hasResumableWork
+const hasResumableVideoWork = getResumeHandler('video')!.hasResumableWork
+const hasResumableMusicWork = getResumeHandler('music')!.hasResumableWork
 
 const expectResumeHasFlags = (flags: readonly string[]): void => {
   for (const flag of flags) {

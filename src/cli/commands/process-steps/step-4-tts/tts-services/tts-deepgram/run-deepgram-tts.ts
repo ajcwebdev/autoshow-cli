@@ -8,6 +8,7 @@ import { requireApiKey } from '~/utils/validate/env-utils'
 import { DEEPGRAM_DEFAULT_BASE_URL } from '~/utils/base-urls'
 import { InfraError } from '~/utils/error-handler'
 import { readDeepgramError } from './deepgram-utils'
+import { httpResponseError } from '~/utils/rest-client'
 
 const trimTrailingSlash = (value: string): string => value.replace(/\/+$/, '')
 
@@ -82,10 +83,7 @@ export const runDeepgramTts = async (
 
       if (!response.ok) {
         const errText = await readDeepgramError(response)
-        const err = new Error(`Deepgram TTS failed (${response.status}): ${errText}`) as Error & { status: number, headers: Headers }
-        err.status = response.status
-        err.headers = response.headers
-        throw err
+        throw httpResponseError(`Deepgram TTS failed (${response.status}): ${errText}`, response)
       }
 
       return new Uint8Array(await response.arrayBuffer())

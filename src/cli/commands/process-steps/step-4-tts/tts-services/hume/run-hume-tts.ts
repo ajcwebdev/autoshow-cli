@@ -7,6 +7,7 @@ import type { HostedTtsChunkScheduler, HumeTtsModel, HumeVoicePayload, Step4Meta
 import { HUME_DEFAULT_BASE_URL } from '~/utils/base-urls'
 import { requireApiKey } from '~/utils/validate/env-utils'
 import { ValidationError } from '~/utils/error-handler'
+import { httpResponseError } from '~/utils/rest-client'
 
 const UUID_LIKE_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i
 
@@ -97,10 +98,7 @@ export const runHumeTts = async (
 
       if (!response.ok) {
         const errText = await readHumeError(response)
-        const err = new Error(`Hume TTS failed (${response.status}): ${errText}`) as Error & { status: number, headers: Headers }
-        err.status = response.status
-        err.headers = response.headers
-        throw err
+        throw httpResponseError(`Hume TTS failed (${response.status}): ${errText}`, response)
       }
 
       return new Uint8Array(await response.arrayBuffer())

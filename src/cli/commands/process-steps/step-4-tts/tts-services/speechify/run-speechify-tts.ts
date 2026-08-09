@@ -9,6 +9,7 @@ import { requireApiKey } from '~/utils/validate/env-utils'
 import { SPEECHIFY_DEFAULT_BASE_URL } from '~/utils/base-urls'
 import { validateDataSafe } from '~/utils/validate/validation'
 import { ValidationError } from '~/utils/error-handler'
+import { httpResponseError } from '~/utils/rest-client'
 import { ensureSpeechifyTtsCustomVoice } from './speechify-custom-voices'
 
 const SpeechifySpeechResponseSchema = v.object({
@@ -101,10 +102,7 @@ export const runSpeechifyTts = async (
 
       if (!response.ok) {
         const errText = await readSpeechifyError(response)
-        const err = new Error(`Speechify TTS failed (${response.status}): ${errText}`) as Error & { status: number, headers: Headers }
-        err.status = response.status
-        err.headers = response.headers
-        throw err
+        throw httpResponseError(`Speechify TTS failed (${response.status}): ${errText}`, response)
       }
 
       const payload = validateDataSafe(SpeechifySpeechResponseSchema, await response.json())

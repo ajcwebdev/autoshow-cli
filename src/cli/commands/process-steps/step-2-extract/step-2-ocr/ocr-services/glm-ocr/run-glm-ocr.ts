@@ -1,4 +1,4 @@
-import { isRecord } from '~/utils/rest-client'
+import { httpResponseError, isRecord } from '~/utils/rest-client'
 import { extname } from 'node:path'
 import type { DocumentMetadata, HostedOcrSchedulerRetryPressureHandler, PageResult } from '~/types'
 import { GlmOcrResponseSchema } from '~/types'
@@ -83,12 +83,9 @@ export const runGlmOcr = async (
       const message = isRecord(parsedPayload)
         ? cleanString(parsedPayload['message']) ?? cleanString(parsedPayload['error'])
         : undefined
-      throw Object.assign(
-        new Error(`GLM OCR request failed (${response.status} ${response.statusText})${message ? `: ${message}` : ''}`),
-        {
-          status: response.status,
-          headers: response.headers
-        }
+      throw httpResponseError(
+        `GLM OCR request failed (${response.status} ${response.statusText})${message ? `: ${message}` : ''}`,
+        response
       )
     }
 

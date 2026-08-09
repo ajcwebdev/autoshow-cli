@@ -6,7 +6,7 @@ import { logResumeItem, logResumeSummary } from './resume-logging'
 import { getResumeProviderKey, resolveAdditiveResumeProviderSelection, uniqueResumeProviders } from './resume-provider-selection'
 import { CLIUsageError, InfraError } from '~/utils/error-handler'
 import { aggregateExplicitPriceEstimate } from '~/utils/pricing/aggregate-pricing'
-import type { AdditiveResumeProviderSelection, AggregatedPriceEstimate, GenerationResumeConfig, ResumeDisplayOptions, ProviderIdentity, ResumeResult, ResumeTarget, RunManifest, RuntimeOptions } from '~/types'
+import type { AdditiveResumeProviderSelection, AggregatedPriceEstimate, GenerationModelFieldTable, GenerationResumeConfig, ProviderIdentity, ResumeDisplayOptions, ResumeHandler, ResumeResult, ResumeTarget, ResumeTargetKind, RunManifest, RuntimeOptions } from '~/types'
 
 export const buildUpdatedGenerationCostTiming = (
   currentMetadata: Record<string, unknown>,
@@ -22,8 +22,6 @@ export const buildUpdatedGenerationCostTiming = (
     actual: actualTiming
   }
 })
-
-export type GenerationModelFieldTable = Record<string, readonly [modelsField: string, modelField: string]>
 
 export const clearProviderModelFields = (
   opts: RuntimeOptions,
@@ -229,7 +227,12 @@ const resolveGenerationTargetsToRunOrThrow = <TTarget extends ProviderIdentity, 
   const targetsToRun = selectTargetsForProviders(
     prep.resolved.providersToRun,
     prep.selectedTargets,
-    (providers) => config.collectTargetsForProviders(providers, opts)
+    (providers) => collectGenerationTargetsForProviders(
+      providers,
+      opts,
+      config.modelFields,
+      config.collectTargets
+    )
   )
 
   if (targetsToRun.length === 0) {
@@ -383,5 +386,24 @@ export const priceGenerationTarget = async <TTarget extends ProviderIdentity, TM
   }
 
   const targetsToRun = resolveGenerationTargetsToRunOrThrow(prep, config, opts)
-  return await config.priceTargets(targetsToRun, prep.input, opts)
+  const priceOpts = buildGenerationPriceOptions(targetsToRun, opts, config.modelFields)
+  const steps = await config.buildEstimates(priceOpts, prep.input)
+  return aggregateExplicitPriceEstimate(
+    steps,
+    priceOpts,
+    config.priceAggregateOptions?.(prep.input)
+  )
 }
+
+export const buildGenerationResumeHandler = <TTarget extends ProviderIdentity, TMetadata>(
+  kind: ResumeTargetKind,
+  config: GenerationResumeConfig<TTarget, TMetadata>
+): ResumeHandler => ({
+  kind,
+  hasResumableWork: async (target, opts, explicitFlags) =>
+    await hasResumableGenerationWork(target, config, opts, explicitFlags),
+  resume: async (target, opts, explicitFlags, displayOptions) =>
+    await resumeGenerationTarget(target, config, opts, explicitFlags, displayOptions),
+  price: async (target, opts, explicitFlags) =>
+    await priceGenerationTarget(target, config, opts, explicitFlags)
+})

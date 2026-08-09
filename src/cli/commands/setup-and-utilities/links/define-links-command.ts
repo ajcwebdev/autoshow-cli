@@ -1,4 +1,4 @@
-import { isRecord } from '~/utils/rest-client'
+import { httpResponseError, isRecord } from '~/utils/rest-client'
 import { createHash } from 'node:crypto'
 import { basename, extname } from 'node:path'
 import { extractHtmlToMarkdown } from '~/cli/commands/process-steps/step-2-extract/step-2-url/url-local/defuddle/run-defuddle-url'
@@ -44,12 +44,8 @@ const hashRefreshContent = (content: string): string =>
   createHash('sha256').update(content, 'utf8').digest('hex')
 const countCharacters = (content: string): number =>
   Array.from(content).length
-const createHttpFetchError = (response: Response): Error & { status: number, headers: Headers } => {
-  const error = new Error(`HTTP ${response.status} ${response.statusText}`) as Error & { status: number, headers: Headers }
-  error.status = response.status
-  error.headers = response.headers
-  return error
-}
+const createHttpFetchError = (response: Response): Error =>
+  httpResponseError(`HTTP ${response.status} ${response.statusText}`, response)
 const sanitizeLinksOutputStem = (rawStem: string, fallback: string, maxLength: number): string => {
   const sanitized = rawStem
     .replace(/[^a-zA-Z0-9_-]+/g, '-')

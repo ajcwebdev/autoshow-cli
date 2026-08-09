@@ -54,10 +54,11 @@ const createMinimaxHttpError = async (
   message: string
 ): Promise<Error & { status: number, headers: Headers }> => {
   const body = await response.text()
-  const error = InfraError(`${message} (${response.status}): ${body || 'No response body'}`, { stage: 'tts:minimax', status: response.status }) as unknown as Error & { status: number, headers: Headers }
-  error.status = response.status
-  error.headers = response.headers
-  return error
+  return InfraError(`${message} (${response.status}): ${body || 'No response body'}`, {
+    stage: 'tts:minimax',
+    status: response.status,
+    headers: response.headers
+  }) as Error & { status: number, headers: Headers }
 }
 
 const downloadChunkAudio = async (

@@ -1,6 +1,6 @@
-import type { RetryClass } from '~/types'
 import { InfraError } from '~/utils/error-handler'
 import { isRetryableStatus } from '~/utils/retries'
+import { httpResponseError } from '~/utils/rest-client'
 
 export const readJsonOrText = async (response: Response): Promise<unknown> => {
   const text = await response.text()
@@ -47,19 +47,11 @@ export const fetchImageProviderJson = async (
 }
 
 export const imageDownloadHttpError = (message: string, response: Response): Error => {
-  const err = new Error(message) as Error & {
-    status: number
-    headers: Headers
-    stage: string
-    retryClass: RetryClass
-    retryable: boolean
-  }
-  err.status = response.status
-  err.headers = response.headers
-  err.stage = 'result-download'
-  err.retryClass = 'runtime_http_read'
-  err.retryable = isRetryableStatus(response.status)
-  return err
+  return httpResponseError(message, response, {
+    stage: 'result-download',
+    retryClass: 'runtime_http_read',
+    retryable: isRetryableStatus(response.status)
+  })
 }
 
 export const downloadGeneratedImage = async (options: {

@@ -9,6 +9,7 @@ import { ELEVENLABS_DEFAULT_BASE_URL } from '~/utils/base-urls'
 import { requireApiKey } from '~/utils/validate/env-utils'
 import { ValidationError } from '~/utils/error-handler'
 import { ensureElevenLabsTtsIvcVoice } from './elevenlabs-ivc'
+import { httpResponseError } from '~/utils/rest-client'
 
 const parsePronunciationDictionaryLocator = (
   value: string
@@ -117,10 +118,7 @@ export const runElevenLabsTts = async (
 
       if (!response.ok) {
         const errText = await readElevenLabsError(response)
-        const err = new Error(`ElevenLabs TTS failed (${response.status}): ${errText}`) as Error & { status: number, headers: Headers }
-        err.status = response.status
-        err.headers = response.headers
-        throw err
+        throw httpResponseError(`ElevenLabs TTS failed (${response.status}): ${errText}`, response)
       }
 
       return new Uint8Array(await response.arrayBuffer())

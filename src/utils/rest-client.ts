@@ -8,6 +8,16 @@ export const trimTrailingSlashes = (value: string): string => value.replace(/\/+
 export const isRecord = (value: unknown): value is Record<string, unknown> =>
   typeof value === 'object' && value !== null && !Array.isArray(value)
 
+export const httpResponseError = <TExtras extends object = Record<never, never>>(
+  message: string,
+  response: Response,
+  extras?: TExtras
+): Error & { status: number, headers: Headers } & TExtras =>
+  Object.assign(new Error(message), extras, {
+    status: response.status,
+    headers: response.headers
+  })
+
 export const parseJsonOrText = (rawText: string): unknown => {
   if (rawText.trim().length === 0) {
     return {}

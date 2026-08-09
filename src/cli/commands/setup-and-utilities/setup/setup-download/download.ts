@@ -6,6 +6,7 @@ import { extractTarGzBuffer } from './tar-gz'
 import { withSetupDownloadSlot } from './download-admission'
 import { runCapture } from '~/cli/commands/setup-and-utilities/setup/run-complete-setup'
 import { InfraError, InternalError } from '~/utils/error-handler'
+import { httpResponseError } from '~/utils/rest-client'
 
 // Downloads abort on inactivity, not on elapsed transfer time: a flat total
 // deadline made every multi-GB asset fail on any link slower than the deadline
@@ -222,10 +223,8 @@ const fetchToPartFile = async (req: DownloadRequest, profile: DownloadProfile): 
         // The partial file is at or past the full length; restart clean.
         await discardPartialDownload(req.destination)
       }
-      throw InfraError(`bun-fetch download failed: HTTP ${response.status} ${response.statusText}`, {
-        stage: 'setup:download',
-        status: response.status,
-        headers: response.headers
+      throw httpResponseError(`bun-fetch download failed: HTTP ${response.status} ${response.statusText}`, response, {
+        stage: 'setup:download'
       })
     }
 

@@ -34,6 +34,20 @@ const withTempDir = async <T>(
   }
 }
 
+const FAKE_MODEL_FIELDS = {
+  openai: ['openaiImageModels', 'openaiImageModel'],
+  gemini: ['geminiImageModels', 'geminiImageModel']
+} as const
+
+const collectFakeTargetsFromOptions = (opts: RuntimeOptions): ProviderIdentity[] => {
+  const valuesByField = opts as Record<string, unknown>
+  return Object.entries(FAKE_MODEL_FIELDS).flatMap(([service, [modelsField, modelField]]) => {
+    const models = valuesByField[modelsField] ?? valuesByField[modelField]
+    const values = Array.isArray(models) ? models : [models]
+    return values.flatMap((model) => typeof model === 'string' ? [{ service, model }] : [])
+  })
+}
+
 const fakeResumeConfig = (
   selectedTargets: ProviderIdentity[],
   ranTargets: ProviderIdentity[]
@@ -42,11 +56,11 @@ const fakeResumeConfig = (
   metadataKey: 'image',
   stepLabel: 'Fake image',
   providerFlags: ['fake-provider'],
+  modelFields: FAKE_MODEL_FIELDS,
   getSuccessKey: (entry: ResumeFakeMetadata) =>
     getGenerationTargetKey(entry.service, entry.model),
-  collectTargets: () => selectedTargets,
-  collectTargetsForProviders: (providers: ProviderIdentity[]) =>
-    providers.map((provider) => ({ ...provider })),
+  collectTargets: (opts: RuntimeOptions) =>
+    selectedTargets.length > 0 ? selectedTargets : collectFakeTargetsFromOptions(opts),
   runMissingTargets: async (targets: ProviderIdentity[]) => {
     ranTargets.push(...targets)
     return targets.map((target) => ({
@@ -54,10 +68,7 @@ const fakeResumeConfig = (
       processingTime: 1
     }))
   },
-  priceTargets: async () => ({
-    steps: [],
-    totalEstimatedCost: 0
-  }),
+  buildEstimates: () => [],
   rebuildRunMetadata: (metadata: ResumeFakeMetadata[]) => ({
     cost: {
       actual: {
@@ -528,18 +539,16 @@ describe('additive resume provider selection', () => {
           runMissingTargets: async () => {
             throw new Error('runner should not be called')
           },
-          priceTargets: async (targets: ProviderIdentity[]) => {
+          buildEstimates: (opts: RuntimeOptions) => {
+            const targets = collectFakeTargetsFromOptions(opts)
             pricedTargets.push(...targets)
-            return {
-              steps: [{
+            return [{
                 step: 'image',
                 provider: 'gemini',
                 model: 'gemini-3.1-flash-lite-image',
                 imageCount: 1,
                 totalCost: 1
-              }],
-              totalEstimatedCost: 1
-            }
+              }]
           }
         },
         {} as RuntimeOptions,

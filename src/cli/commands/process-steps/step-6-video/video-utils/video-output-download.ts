@@ -1,16 +1,5 @@
 import { classifyFetchRetry, withRetry } from '~/utils/retries'
-
-class VideoOutputDownloadHttpError extends Error {
-  status: number
-  headers: Headers
-
-  constructor(providerLabel: string, status: number, headers: Headers) {
-    super(`${providerLabel} video download failed (${status})`)
-    this.name = 'VideoOutputDownloadHttpError'
-    this.status = status
-    this.headers = headers
-  }
-}
+import { httpResponseError } from '~/utils/rest-client'
 
 export const downloadVideoOutputBytes = async (
   videoUrl: string,
@@ -24,7 +13,7 @@ export const downloadVideoOutputBytes = async (
     async (signal) => {
       const response = await fetch(videoUrl, signal ? { signal } : undefined)
       if (!response.ok) {
-        throw new VideoOutputDownloadHttpError(providerLabel, response.status, response.headers)
+        throw httpResponseError(`${providerLabel} video download failed (${response.status})`, response)
       }
       return new Uint8Array(await response.arrayBuffer())
     },

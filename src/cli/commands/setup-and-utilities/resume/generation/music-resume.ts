@@ -1,13 +1,12 @@
 import { rename } from 'node:fs/promises'
 import { getGenerationTargetKey } from '~/cli/commands/process-steps/generation-command-utils'
-import { buildGenerationPriceOptions, buildUpdatedGenerationCostTiming, collectGenerationTargetsForProviders, hasResumableGenerationWork, priceGenerationTarget, resumeGenerationTarget } from '../generation-resume'
+import { buildUpdatedGenerationCostTiming } from '../generation-resume'
 import { collectMusicTargets, getMusicArtifactFileName } from '~/cli/commands/process-steps/step-7-music/music-targets'
 import { runMusicTargets } from '~/cli/commands/process-steps/step-7-music/run-music-gen'
 import { computeActualCosts } from '~/utils/pricing/compute-actual-costs'
 import { computeActualProcessingTimes } from '~/utils/pricing/compute-processing-time'
-import { aggregateExplicitPriceEstimate } from '~/utils/pricing/aggregate-pricing'
 import { buildMusicEstimates } from '~/utils/pricing/aggregate-pricing/generation-estimates'
-import type { AggregatedPriceEstimate, MusicTarget, ResumeDisplayOptions, ResumeResult, ResumeTarget, RuntimeOptions, Step7MusicMetadata } from '~/types'
+import type { GenerationResumeConfig, MusicTarget, RuntimeOptions, Step7MusicMetadata } from '~/types'
 
 const MUSIC_PROVIDER_FLAGS = [
   'all-music',
@@ -21,12 +20,6 @@ const MUSIC_MODEL_FIELDS = {
   minimax: ['minimaxMusicModels', 'minimaxMusicModel'],
   gemini: ['geminiMusicModels', 'geminiMusicModel']
 } as const
-
-const collectMusicTargetsForProviders = (
-  providers: Array<{ service: string, model: string }>,
-  opts: RuntimeOptions
-): MusicTarget[] =>
-  collectGenerationTargetsForProviders(providers, opts, MUSIC_MODEL_FIELDS, collectMusicTargets)
 
 export const finalizeMusicResumeArtifacts = async (
   metadata: Step7MusicMetadata[],
@@ -50,24 +43,15 @@ export const finalizeMusicResumeArtifacts = async (
     }
   }))
 
-const priceMusicTargets = async (
-  targets: MusicTarget[],
-  _input: string,
-  opts: RuntimeOptions
-): Promise<AggregatedPriceEstimate> => {
-  const priceOpts = buildGenerationPriceOptions(targets, opts, MUSIC_MODEL_FIELDS)
-  return aggregateExplicitPriceEstimate(await buildMusicEstimates(priceOpts), priceOpts)
-}
-
-const musicResumeConfig = {
+export const musicResumeConfig = {
   kind: 'music' as const,
   metadataKey: 'music',
   stepLabel: 'Music',
   providerFlags: MUSIC_PROVIDER_FLAGS,
+  modelFields: MUSIC_MODEL_FIELDS,
   getSuccessKey: (entry: Step7MusicMetadata) =>
     getGenerationTargetKey(entry.musicService, entry.musicModel),
   collectTargets: (opts: RuntimeOptions) => collectMusicTargets(opts),
-  collectTargetsForProviders: collectMusicTargetsForProviders,
   runMissingTargets: async (
     targets: MusicTarget[],
     input: string,
@@ -77,7 +61,7 @@ const musicResumeConfig = {
     const { metadata } = await runMusicTargets(targets, input, outputDir, opts)
     return await finalizeMusicResumeArtifacts(metadata, outputDir)
   },
-  priceTargets: priceMusicTargets,
+  buildEstimates: async (opts: RuntimeOptions) => await buildMusicEstimates(opts),
   rebuildRunMetadata: (
     metadata: Step7MusicMetadata[],
     currentManifestMetadata: Record<string, unknown>
@@ -86,26 +70,4 @@ const musicResumeConfig = {
     computeActualCosts({ step7: metadata }),
     computeActualProcessingTimes({ step7: metadata })
   )
-}
-
-export const hasResumableMusicWork = async (
-  target: ResumeTarget,
-  opts: RuntimeOptions,
-  explicitFlags: Set<string> = new Set()
-): Promise<boolean> =>
-  await hasResumableGenerationWork(target, musicResumeConfig, opts, explicitFlags)
-
-export const resumeMusicTarget = async (
-  target: ResumeTarget,
-  opts: RuntimeOptions,
-  explicitFlags: Set<string> = new Set(),
-  displayOptions: ResumeDisplayOptions = {}
-): Promise<ResumeResult> =>
-  await resumeGenerationTarget(target, musicResumeConfig, opts, explicitFlags, displayOptions)
-
-export const priceMusicTarget = async (
-  target: ResumeTarget,
-  opts: RuntimeOptions,
-  explicitFlags: Set<string> = new Set()
-): Promise<AggregatedPriceEstimate> =>
-  await priceGenerationTarget(target, musicResumeConfig, opts, explicitFlags)
+} satisfies GenerationResumeConfig<MusicTarget, Step7MusicMetadata>

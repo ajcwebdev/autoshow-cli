@@ -10,6 +10,7 @@ import {
 import { requireApiKey } from '~/utils/validate/env-utils'
 import { CARTESIA_DEFAULT_BASE_URL } from '~/utils/base-urls'
 import { ValidationError } from '~/utils/error-handler'
+import { httpResponseError } from '~/utils/rest-client'
 const CARTESIA_DEFAULT_VERSION = '2026-03-01'
 
 const trimTrailingSlash = (value: string): string => value.replace(/\/+$/, '')
@@ -89,10 +90,7 @@ export const runCartesiaTts = async (
 
       if (!response.ok) {
         const errText = await readCartesiaError(response)
-        const err = new Error(`Cartesia TTS failed (${response.status}): ${errText}`) as Error & { status: number, headers: Headers }
-        err.status = response.status
-        err.headers = response.headers
-        throw err
+        throw httpResponseError(`Cartesia TTS failed (${response.status}): ${errText}`, response)
       }
 
       return new Uint8Array(await response.arrayBuffer())

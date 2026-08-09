@@ -5,10 +5,11 @@ import { collectSttTargets } from '~/cli/commands/process-steps/step-2-extract/s
 import { hasResumableOcrTargetWork, priceOcrTarget, resumeOcrTarget } from './extract/ocr-resume'
 import { hasResumableSttTargetWork, priceSttTarget, resumeSttTarget } from './extract/stt-resume'
 import { getSelectedUrlTargets as collectSelectedUrlTargets, hasResumableUrlArticleWork, priceUrlArticleTarget, resumeUrlArticleTarget } from './extract/url-resume'
-import { hasResumableTtsWork, priceTtsTarget, resumeTtsTarget } from './generation/tts-resume'
-import { hasResumableImageWork, priceImageTarget, resumeImageTarget } from './generation/image-resume'
-import { hasResumableVideoWork, priceVideoTarget, resumeVideoTarget } from './generation/video-resume'
-import { hasResumableMusicWork, priceMusicTarget, resumeMusicTarget } from './generation/music-resume'
+import { ttsResumeConfig } from './generation/tts-resume'
+import { imageResumeConfig } from './generation/image-resume'
+import { videoResumeConfig } from './generation/video-resume'
+import { musicResumeConfig } from './generation/music-resume'
+import { buildGenerationResumeHandler } from './generation-resume'
 import { hasResumableWriteWork, priceWriteTarget, resumeWriteTarget } from './write/write-resume'
 import { readBatchManifest, readExtractBatchManifest, writeExtractBatchManifest } from '~/cli/commands/process-steps/manifest-utils'
 import { aggregateExplicitPriceEstimate } from '~/utils/pricing/aggregate-pricing'
@@ -372,15 +373,7 @@ const extractResumeHandler: ResumeHandler = {
   }
 }
 
-const ttsResumeHandler: ResumeHandler = {
-  kind: 'tts',
-  hasResumableWork: async (target, opts, explicitFlags) =>
-    await hasResumableTtsWork(target, opts, explicitFlags),
-  resume: async (target, opts, explicitFlags, displayOptions) =>
-    await resumeTtsTarget(target, opts, explicitFlags, displayOptions),
-  price: async (target, opts, explicitFlags) =>
-    await priceTtsTarget(target, opts, explicitFlags)
-}
+const ttsResumeHandler = buildGenerationResumeHandler('tts', ttsResumeConfig)
 
 const writeResumeHandler: ResumeHandler = {
   kind: 'write',
@@ -392,35 +385,11 @@ const writeResumeHandler: ResumeHandler = {
     await priceWriteTarget(target, opts, explicitFlags)
 }
 
-const imageResumeHandler: ResumeHandler = {
-  kind: 'image',
-  hasResumableWork: async (target, opts, explicitFlags) =>
-    await hasResumableImageWork(target, opts, explicitFlags),
-  resume: async (target, opts, explicitFlags, displayOptions) =>
-    await resumeImageTarget(target, opts, explicitFlags, displayOptions),
-  price: async (target, opts, explicitFlags) =>
-    await priceImageTarget(target, opts, explicitFlags)
-}
+const imageResumeHandler = buildGenerationResumeHandler('image', imageResumeConfig)
 
-const videoResumeHandler: ResumeHandler = {
-  kind: 'video',
-  hasResumableWork: async (target, opts, explicitFlags) =>
-    await hasResumableVideoWork(target, opts, explicitFlags),
-  resume: async (target, opts, explicitFlags, displayOptions) =>
-    await resumeVideoTarget(target, opts, explicitFlags, displayOptions),
-  price: async (target, opts, explicitFlags) =>
-    await priceVideoTarget(target, opts, explicitFlags)
-}
+const videoResumeHandler = buildGenerationResumeHandler('video', videoResumeConfig)
 
-const musicResumeHandler: ResumeHandler = {
-  kind: 'music',
-  hasResumableWork: async (target, opts, explicitFlags) =>
-    await hasResumableMusicWork(target, opts, explicitFlags),
-  resume: async (target, opts, explicitFlags, displayOptions) =>
-    await resumeMusicTarget(target, opts, explicitFlags, displayOptions),
-  price: async (target, opts, explicitFlags) =>
-    await priceMusicTarget(target, opts, explicitFlags)
-}
+const musicResumeHandler = buildGenerationResumeHandler('music', musicResumeConfig)
 
 const RESUME_HANDLERS: Readonly<Record<ResumeTargetKind, ResumeHandler>> = {
   extract: extractResumeHandler,
