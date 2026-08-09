@@ -224,7 +224,8 @@ const fetchToPartFile = async (req: DownloadRequest, profile: DownloadProfile): 
       }
       throw InfraError(`bun-fetch download failed: HTTP ${response.status} ${response.statusText}`, {
         stage: 'setup:download',
-        status: response.status
+        status: response.status,
+        headers: response.headers
       })
     }
 

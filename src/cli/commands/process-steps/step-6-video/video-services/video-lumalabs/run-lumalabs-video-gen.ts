@@ -7,7 +7,7 @@ import { normalizeLumaVideoAspectRatio, normalizeLumaVideoDuration, normalizeLum
 import { videoMediaReferenceToUrlOrDataUrl } from '~/cli/commands/process-steps/step-6-video/video-utils/video-media-inputs'
 import { downloadVideoOutputBytes } from '~/cli/commands/process-steps/step-6-video/video-utils/video-output-download'
 import { LUMALABS_DEFAULT_BASE_URL } from '~/utils/base-urls'
-import { pollUntil } from '~/utils/retries'
+import { classifyFetchRetry, pollUntil, withRetry } from '~/utils/retries'
 import { requireApiKey } from '~/utils/validate/env-utils'
 import { validateData } from '~/utils/validate/validation'
 import { MEDIA_GENERATION_TIMEOUT_MS } from '~/utils/timeouts'
@@ -108,25 +108,29 @@ export const runLumalabsVideoGen = async (
     operationName: 'lumalabs-video-gen',
     intervalMs: POLL_INTERVAL_MS,
     deadlineMs: POLL_TIMEOUT_MS,
-    pollFn: async () => {
-      const pollResp = await fetch(`${baseUrl}/generations/${encodeURIComponent(createData.id)}`, {
-        method: 'GET',
-        headers
-      })
+    pollFn: () => withRetry(
+      { retryClass: 'runtime_http_read', operationName: 'lumalabs-video-gen-poll' },
+      async () => {
+        const pollResp = await fetch(`${baseUrl}/generations/${encodeURIComponent(createData.id)}`, {
+          method: 'GET',
+          headers
+        })
 
-      if (!pollResp.ok) {
-        const errorBody = await pollResp.text()
-        throw InfraError(`Luma Labs video generation query failed (${pollResp.status}): ${errorBody || 'No response body'}`, { stage: 'video:lumalabs', status: pollResp.status })
-      }
+        if (!pollResp.ok) {
+          const errorBody = await pollResp.text()
+          throw InfraError(`Luma Labs video generation query failed (${pollResp.status}): ${errorBody || 'No response body'}`, { stage: 'video:lumalabs', status: pollResp.status })
+        }
 
-      const data = validateData(
-        LumalabsGenerationSchema,
-        await pollResp.json() as unknown,
-        'Luma Labs video generation poll response'
-      )
-      logGenStatus('video', 'lumalabs', options.model, data.state)
-      return data
-    },
+        const data = validateData(
+          LumalabsGenerationSchema,
+          await pollResp.json() as unknown,
+          'Luma Labs video generation poll response'
+        )
+        logGenStatus('video', 'lumalabs', options.model, data.state)
+        return data
+      },
+      (error) => classifyFetchRetry(error, 'runtime_http_read', { retryAbortOnConservative: true })
+    ),
     isDone: (data) => data.state.toLowerCase() === 'completed',
     isFailed: (data) => data.state.toLowerCase() === 'failed'
       ? { failed: true, reason: data.failure_reason ?? data.failure_code ?? `Luma Labs generation state ${data.state}` }

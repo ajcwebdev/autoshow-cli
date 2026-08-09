@@ -1,6 +1,6 @@
 import { isRecord } from '~/utils/rest-client'
 import { join } from 'node:path'
-import type { ExistingOcrRun, ExtractionMetadata, ExtractionResult, ProviderCompletionStatus, OcrProviderErrorLike, OcrProviderFailureCategory, OcrProviderFailureKind, OcrProviderFailureSummary, OcrProviderState, OcrProviderSuccess, OcrRecordedProviderError, OcrRequestedProvider, OcrTarget } from '~/types'
+import type { ExistingOcrRun, ExtractionMetadata, ExtractionResult, ProviderCompletionStatus, OcrMetadataOptions, OcrProviderErrorLike, OcrProviderFailureCategory, OcrProviderFailureKind, OcrProviderFailureSummary, OcrProviderState, OcrProviderSuccess, OcrRecordedProviderError, OcrRequestedProvider, OcrTarget } from '~/types'
 import { ExtractionMetadataSchema, ExtractionResultSchema } from '~/types'
 import { collectErrorChain, extractErrorMetadata } from '~/utils/error-handler'
 import { sanitizeLogText } from '~/utils/app-logger/redaction'
@@ -340,11 +340,7 @@ export const inferStoredCompletionStatus = (
     return entry['completionStatus']
   }
 
-  const successCount = successfulKeys.size
-  if (successCount === 0) {
-    return 'failed'
-  }
-  return successCount === requestedTargets.length ? 'full' : 'incomplete'
+  return resolveCompletionStatusFromState(requestedTargets, successfulKeys, providerStates)
 }
 
 export const buildMissingTargetsFromEntry = (
@@ -643,22 +639,23 @@ export const buildBlockedProviders = (
 
 export const buildMetadataErrorEntries = (
   providerStates: OcrProviderState[]
-): Array<Record<string, unknown>> =>
+): NonNullable<OcrMetadataOptions['failures']> =>
   providerStates
-    .filter((state) => state.lastError !== undefined)
+    .filter((state): state is OcrProviderState & { lastError: OcrRecordedProviderError & { message: string } } =>
+      typeof state.lastError?.message === 'string')
     .map((state) => ({
       service: state.service,
       model: state.model,
-      message: state.lastError?.message,
-      category: state.lastError?.category,
-      failureKind: state.lastError?.failureKind,
-      retryable: state.lastError?.retryable,
-      ...(state.lastError?.quota ? { quota: true } : {}),
-      ...(state.lastError?.providerWide ? { providerWide: true } : {}),
-      ...(state.lastError?.blockedReason ? { blockedReason: state.lastError.blockedReason } : {}),
-      ...(state.lastError?.stage ? { stage: state.lastError.stage } : {}),
-      ...(typeof state.lastError?.status === 'number' ? { status: state.lastError.status } : {}),
-      ...(typeof state.lastError?.retryAfterMs === 'number' ? { retryAfterMs: state.lastError.retryAfterMs } : {}),
-      ...(state.lastError?.errorFile ? { errorFile: state.lastError.errorFile } : {}),
-      ...(state.lastError?.rawResponseFile ? { rawResponseFile: state.lastError.rawResponseFile } : {})
+      message: state.lastError.message,
+      ...(typeof state.lastError.category === 'string' ? { category: state.lastError.category } : {}),
+      ...(typeof state.lastError.failureKind === 'string' ? { failureKind: state.lastError.failureKind } : {}),
+      ...(typeof state.lastError.retryable === 'boolean' ? { retryable: state.lastError.retryable } : {}),
+      ...(state.lastError.quota ? { quota: true } : {}),
+      ...(state.lastError.providerWide ? { providerWide: true } : {}),
+      ...(state.lastError.blockedReason ? { blockedReason: state.lastError.blockedReason } : {}),
+      ...(state.lastError.stage ? { stage: state.lastError.stage } : {}),
+      ...(typeof state.lastError.status === 'number' ? { status: state.lastError.status } : {}),
+      ...(typeof state.lastError.retryAfterMs === 'number' ? { retryAfterMs: state.lastError.retryAfterMs } : {}),
+      ...(state.lastError.errorFile ? { errorFile: state.lastError.errorFile } : {}),
+      ...(state.lastError.rawResponseFile ? { rawResponseFile: state.lastError.rawResponseFile } : {})
     }))

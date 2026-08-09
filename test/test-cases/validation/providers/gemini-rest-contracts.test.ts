@@ -134,9 +134,13 @@ describe('Gemini REST contracts', () => {
 
   test('Gemini LLM structured output sends response JSON schema', async () => {
     process.env['GEMINI_API_KEY'] = 'gemini-key'
-    const calls = installFetch(() => jsonResponse({
-      candidates: [{ content: { parts: [{ text: '{"title":"Done"}' }] } }]
-    }))
+    let requestSignal: AbortSignal | null | undefined
+    const calls = installFetch((_call, _input, init) => {
+      requestSignal = init?.signal
+      return jsonResponse({
+        candidates: [{ content: { parts: [{ text: '{"title":"Done"}' }] } }]
+      })
+    })
 
     const result = await runGeminiModel('Write a title.', 'gemini-3.1-flash-lite', {
       strategy: 'schema-guided',
@@ -161,6 +165,7 @@ describe('Gemini REST contracts', () => {
         properties: { title: { type: 'string' } }
       }
     })
+    expect(requestSignal).toBeInstanceOf(AbortSignal)
   })
 
   test('Gemini STT sends inline audio content parts and structured schema', async () => {

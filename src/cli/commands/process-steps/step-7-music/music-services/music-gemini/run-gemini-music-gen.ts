@@ -95,7 +95,7 @@ const resolveIntendedDurationSeconds = (
 
   if (model === 'lyria-3-clip-preview') {
     if (durationSeconds !== undefined && durationSeconds !== GEMINI_CLIP_DURATION_SECONDS) {
-      l.warn(`Gemini Lyria 3 Clip always generates ${GEMINI_CLIP_DURATION_SECONDS}s clips; ignoring --music-duration ${durationSeconds}`)
+      l.warn(`Gemini Lyria 3 Clip always generates ${GEMINI_CLIP_DURATION_SECONDS}s clips; ignoring --duration ${durationSeconds}`)
     }
     return GEMINI_CLIP_DURATION_SECONDS
   }
@@ -121,7 +121,7 @@ const buildGeminiMusicPrompt = async (
 
   if (options.forceInstrumental) {
     if (options.lyricsFile) {
-      l.warn('Ignoring --music-lyrics-file because --music-instrumental was provided for Gemini music generation')
+      l.warn('Ignoring --lyrics-file because --instrumental was provided for Gemini music generation')
     }
     parts.push('Instrumental only, no vocals.')
     return {

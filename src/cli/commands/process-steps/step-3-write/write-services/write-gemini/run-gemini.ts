@@ -6,6 +6,12 @@ import { withRetry } from '~/utils/retries'
 import { runWithLLMInstrumentation, buildStep3Metadata } from '~/cli/commands/process-steps/step-3-write/write-utils/llm-instrumentation'
 import { classifyGeminiRetry } from '~/cli/commands/process-steps/step-3-write/write-services/write-gemini/gemini-utils'
 import { geminiGenerateContent } from '~/utils/gemini/gemini-rest'
+import { LLM_REQUEST_TIMEOUT_MS } from '~/utils/timeouts'
+
+const createCombinedSignal = (signal?: AbortSignal): AbortSignal => {
+  const timeoutSignal = AbortSignal.timeout(LLM_REQUEST_TIMEOUT_MS)
+  return AbortSignal.any([...(signal ? [signal] : []), timeoutSignal])
+}
 
 export const runGeminiModel = async (
   prompt: string,
@@ -21,7 +27,7 @@ export const runGeminiModel = async (
         operationName: 'gemini-llm',
         policy: { maxAttempts: 3 }
       },
-      async () => {
+      async (signal) => {
         const generationConfig: Record<string, unknown> | undefined = structuredOpts
           ? {
               responseMimeType: 'application/json',
@@ -32,7 +38,8 @@ export const runGeminiModel = async (
         const response = await geminiGenerateContent(apiKey, {
           model,
           contents: prompt,
-          ...(generationConfig ? { generationConfig } : {})
+          ...(generationConfig ? { generationConfig } : {}),
+          abortSignal: createCombinedSignal(signal)
         })
 
         const text = response.text ?? ''

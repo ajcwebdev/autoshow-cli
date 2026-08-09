@@ -8,7 +8,7 @@ import { MINIMAX_DEFAULT_BASE_URL } from '~/utils/base-urls'
 import { validateData } from '~/utils/validate/validation'
 import { normalizeMinimaxDurationForApi, normalizeMinimaxResolutionForApi } from '~/cli/commands/process-steps/step-6-video/video-utils/video-normalization'
 import { downloadVideoOutputBytes } from '~/cli/commands/process-steps/step-6-video/video-utils/video-output-download'
-import { pollUntil } from '~/utils/retries'
+import { classifyFetchRetry, pollUntil, withRetry } from '~/utils/retries'
 import { MEDIA_GENERATION_TIMEOUT_MS } from '~/utils/timeouts'
 import {
   MinimaxBaseRespSchema,
@@ -125,7 +125,7 @@ export const runMinimaxVideoGen = async (
     await createResp.json() as unknown,
     'MiniMax video generation create response'
   )
-  ensureMinimaxBaseRespSuccess(createData.base_resp, 'MiniMax video generation create request')
+  ensureMinimaxBaseRespSuccess(createData.base_resp, 'MiniMax video generation create request', 'video:minimax')
 
   const taskId = String(createData.task_id)
 
@@ -133,31 +133,35 @@ export const runMinimaxVideoGen = async (
     operationName: 'minimax-video-gen',
     intervalMs: POLL_INTERVAL_MS,
     deadlineMs: POLL_TIMEOUT_MS,
-    pollFn: async () => {
-      const queryResp = await fetch(`${baseURL}/v1/query/video_generation?task_id=${encodeURIComponent(taskId)}`, {
-        method: 'GET',
-        headers: {
-          Authorization: `Bearer ${apiKey}`,
-          'Content-Type': 'application/json'
+    pollFn: () => withRetry(
+      { retryClass: 'runtime_http_read', operationName: 'minimax-video-gen-poll' },
+      async () => {
+        const queryResp = await fetch(`${baseURL}/v1/query/video_generation?task_id=${encodeURIComponent(taskId)}`, {
+          method: 'GET',
+          headers: {
+            Authorization: `Bearer ${apiKey}`,
+            'Content-Type': 'application/json'
+          }
+        })
+
+        if (!queryResp.ok) {
+          const body = await queryResp.text()
+          throw InfraError(`MiniMax video generation query failed (${queryResp.status}): ${body || 'No response body'}`, { stage: 'video:minimax', status: queryResp.status })
         }
-      })
 
-      if (!queryResp.ok) {
-        const body = await queryResp.text()
-        throw InfraError(`MiniMax video generation query failed (${queryResp.status}): ${body || 'No response body'}`, { stage: 'video:minimax' })
-      }
+        const data = validateData(
+          MinimaxQueryVideoResponseSchema,
+          await queryResp.json() as unknown,
+          'MiniMax video generation query response'
+        )
+        ensureMinimaxBaseRespSuccess(data.base_resp, 'MiniMax video generation query', 'video:minimax')
 
-      const data = validateData(
-        MinimaxQueryVideoResponseSchema,
-        await queryResp.json() as unknown,
-        'MiniMax video generation query response'
-      )
-      ensureMinimaxBaseRespSuccess(data.base_resp, 'MiniMax video generation query')
-
-      const status = readTaskStatus(data)
-      logGenStatus('video', 'minimax', options.model, String(status ?? 'processing'))
-      return data
-    },
+        const status = readTaskStatus(data)
+        logGenStatus('video', 'minimax', options.model, String(status ?? 'processing'))
+        return data
+      },
+      (error) => classifyFetchRetry(error, 'runtime_http_read', { retryAbortOnConservative: true })
+    ),
     isDone: (data) => isMinimaxTaskSuccess(readTaskStatus(data)),
     isFailed: (data) => {
       const status = readTaskStatus(data)
@@ -194,7 +198,7 @@ export const runMinimaxVideoGen = async (
     await retrieveResp.json() as unknown,
     'MiniMax video file retrieve response'
   )
-  ensureMinimaxBaseRespSuccess(retrieveData.base_resp, 'MiniMax video file retrieve')
+  ensureMinimaxBaseRespSuccess(retrieveData.base_resp, 'MiniMax video file retrieve', 'video:minimax')
 
   const outputPath = `${outputDir}/generated-video.mp4`
   const bytes = await downloadVideoOutputBytes(retrieveData.file.download_url, 'MiniMax')

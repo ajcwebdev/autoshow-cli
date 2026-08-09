@@ -154,23 +154,26 @@ export const concatAndConvertToWav = async (
     .join('\n')
   await Bun.write(concatListPath, `${concatList}\n`)
 
-  const ffmpeg = await exec(getFfmpegBinary(), [
-    '-f', 'concat',
-    '-safe', '0',
-    '-i', concatListPath,
-    '-ar', '16000',
-    '-ac', '1',
-    '-c:a', 'pcm_s16le',
-    '-y',
-    wavPath
-  ])
+  try {
+    const ffmpeg = await exec(getFfmpegBinary(), [
+      '-f', 'concat',
+      '-safe', '0',
+      '-i', concatListPath,
+      '-ar', '16000',
+      '-ac', '1',
+      '-c:a', 'pcm_s16le',
+      '-y',
+      wavPath
+    ])
 
-  if (ffmpeg.exitCode !== 0) {
-    throw InfraError(`Failed to concatenate ${providerLabel} audio chunks: ${ffmpeg.stderr.trim()}`, { stage: 'tts:audio-utils' })
+    if (ffmpeg.exitCode !== 0) {
+      throw InfraError(`Failed to concatenate ${providerLabel} audio chunks: ${ffmpeg.stderr.trim()}`, { stage: 'tts:audio-utils' })
+    }
+
+    return wavPath
+  } finally {
+    await Bun.$`rm -f ${concatListPath}`.quiet().nothrow()
   }
-
-  await Bun.$`rm -f ${concatListPath}`.quiet().nothrow()
-  return wavPath
 }
 
 export const convertAudioToWav = async (

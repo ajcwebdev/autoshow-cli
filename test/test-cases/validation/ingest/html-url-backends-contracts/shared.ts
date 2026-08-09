@@ -1,4 +1,4 @@
-import { afterEach } from 'bun:test'
+import { afterEach, beforeEach } from 'bun:test'
 import { chmod, mkdtemp, rm, writeFile } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
@@ -34,9 +34,7 @@ export const envKeys = [
   'AUTOSHOW_FAKE_DEFUDDLE_MODE',
   'AUTOSHOW_FAKE_DEFUDDLE_STDERR'
 ] as const
-export const originalEnv = new Map<string, string | undefined>(
-  envKeys.map(key => [key, process.env[key]])
-)
+let previousEnv = new Map<string, string | undefined>()
 export const originalBinDir = getConfiguredBinDir()
 export const originalAdapterRuns = new Map<HtmlArticleBackend, UrlArticleProviderAdapter['run']>(
   URL_ARTICLE_BACKENDS.map((backend) => [backend, URL_ARTICLE_PROVIDER_ADAPTERS[backend].run])
@@ -58,6 +56,13 @@ export const htmlDocument = `<!doctype html>
   </body>
 </html>`
 
+beforeEach(() => {
+  previousEnv = new Map(envKeys.map(key => [key, process.env[key]]))
+  for (const key of envKeys) {
+    delete process.env[key]
+  }
+})
+
 afterEach(async () => {
   globalThis.fetch = originalFetch
   for (const backend of URL_ARTICLE_BACKENDS) {
@@ -67,7 +72,7 @@ afterEach(async () => {
     }
   }
   for (const key of envKeys) {
-    const originalValue = originalEnv.get(key)
+    const originalValue = previousEnv.get(key)
     if (originalValue === undefined) {
       delete process.env[key]
     } else {

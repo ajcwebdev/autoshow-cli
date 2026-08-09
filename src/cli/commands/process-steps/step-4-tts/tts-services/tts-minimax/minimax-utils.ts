@@ -8,22 +8,27 @@ export const MinimaxBaseRespSchema = v.object({
 
 export const ensureMinimaxBaseRespSuccess = (
   baseResp: { status_code?: number | undefined, status_msg?: string | undefined } | undefined,
-  context: string
+  context: string,
+  stage: string
 ): void => {
   if (baseResp?.status_code !== undefined && baseResp.status_code !== 0) {
-    throw InfraError(`${context} failed (${baseResp.status_code}): ${baseResp.status_msg ?? 'Unknown error'}`, { stage: 'tts:minimax' })
+    throw InfraError(`${context} failed (${baseResp.status_code}): ${baseResp.status_msg ?? 'Unknown error'}`, { stage })
   }
 }
 
-export const parseMinimaxJsonResponse = async (response: Response, context: string): Promise<unknown> => {
+export const parseMinimaxJsonResponse = async (
+  response: Response,
+  context: string,
+  stage: string
+): Promise<unknown> => {
   const text = await response.text()
   if (!text.trim()) {
-    throw ValidationError(`Empty response body for ${context}`, { stage: 'tts:minimax' })
+    throw ValidationError(`Empty response body for ${context}`, { stage })
   }
   try {
     return JSON.parse(text) as unknown
   } catch (error) {
-    throw ValidationError(`Invalid JSON for ${context}: ${error instanceof Error ? error.message : String(error)}`, { stage: 'tts:minimax' })
+    throw ValidationError(`Invalid JSON for ${context}: ${error instanceof Error ? error.message : String(error)}`, { stage })
   }
 }
 

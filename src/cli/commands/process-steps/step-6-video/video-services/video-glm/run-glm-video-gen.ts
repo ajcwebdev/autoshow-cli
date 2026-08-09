@@ -12,7 +12,7 @@ import {
   normalizeGlmSize
 } from '~/cli/commands/process-steps/step-6-video/video-utils/video-normalization'
 import { downloadVideoOutputBytes } from '~/cli/commands/process-steps/step-6-video/video-utils/video-output-download'
-import { pollUntil } from '~/utils/retries'
+import { classifyFetchRetry, pollUntil, withRetry } from '~/utils/retries'
 import { validateData } from '~/utils/validate/validation'
 import { MEDIA_GENERATION_TIMEOUT_MS } from '~/utils/timeouts'
 import { videoMediaReferenceToUrlOrBase64, videoMediaReferenceToUrlOrDataUrl } from '../../video-utils/video-media-inputs'
@@ -205,28 +205,32 @@ export const runGlmVideoGen = async (
     operationName: 'glm-video-gen',
     intervalMs: POLL_INTERVAL_MS,
     deadlineMs: POLL_TIMEOUT_MS,
-    pollFn: async () => {
-      const pollResp = await fetch(`${baseURL}/async-result/${encodeURIComponent(createData.id)}`, {
-        method: 'GET',
-        headers: {
-          Authorization: `Bearer ${apiKey}`,
-          'Content-Type': 'application/json'
+    pollFn: () => withRetry(
+      { retryClass: 'runtime_http_read', operationName: 'glm-video-gen-poll' },
+      async () => {
+        const pollResp = await fetch(`${baseURL}/async-result/${encodeURIComponent(createData.id)}`, {
+          method: 'GET',
+          headers: {
+            Authorization: `Bearer ${apiKey}`,
+            'Content-Type': 'application/json'
+          }
+        })
+
+        if (!pollResp.ok) {
+          const body = await pollResp.text()
+          throw InfraError(`GLM video generation query failed (${pollResp.status}): ${body || 'No response body'}`, { stage: 'video:glm', status: pollResp.status })
         }
-      })
 
-      if (!pollResp.ok) {
-        const body = await pollResp.text()
-        throw InfraError(`GLM video generation query failed (${pollResp.status}): ${body || 'No response body'}`, { stage: 'video:glm' })
-      }
-
-      const data = validateData(
-        GlmPollVideoResponseSchema,
-        await pollResp.json() as unknown,
-        'GLM video generation query response'
-      )
-      logGenStatus('video', 'glm', options.model, data.task_status)
-      return data
-    },
+        const data = validateData(
+          GlmPollVideoResponseSchema,
+          await pollResp.json() as unknown,
+          'GLM video generation query response'
+        )
+        logGenStatus('video', 'glm', options.model, data.task_status)
+        return data
+      },
+      (error) => classifyFetchRetry(error, 'runtime_http_read', { retryAbortOnConservative: true })
+    ),
     isDone: (data) => data.task_status === 'SUCCESS',
     isFailed: (data) => data.task_status === 'FAIL'
       ? { failed: true, reason: formatGlmError(data.error) }

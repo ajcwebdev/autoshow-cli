@@ -111,8 +111,9 @@ const downloadDirectMediaUrl = async (url: string, outputDir: string): Promise<s
     async () => {
       const r = await fetch(url)
       if (!r.ok) {
-        const err = new Error(`Failed to download ${url}: HTTP ${r.status}`) as Error & { status: number }
+        const err = new Error(`Failed to download ${url}: HTTP ${r.status}`) as Error & { status: number, headers: Headers }
         err.status = r.status
+        err.headers = r.headers
         throw err
       }
       return r
@@ -183,8 +184,9 @@ const downloadDirectAudioUrl = async (url: string, outputDir: string): Promise<s
     async () => {
       const r = await fetch(url, { redirect: 'follow' })
       if (!r.ok) {
-        const err = new Error(`Direct download failed: ${r.status} ${r.statusText} (${url})`) as Error & { status: number }
+        const err = new Error(`Direct download failed: ${r.status} ${r.statusText} (${url})`) as Error & { status: number, headers: Headers }
         err.status = r.status
+        err.headers = r.headers
         throw err
       }
       return r

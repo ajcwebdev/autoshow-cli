@@ -13,12 +13,17 @@ describe('video provider REST contracts', () => {
   test('GLM sends text, image, interpolation, and reference request bodies', async () => {
     process.env['GLM_API_KEY'] = 'glm-key'
     let requestIndex = 0
+    let pollAttempts = 0
     const calls = installMockFetch((call) => {
       if (call.method === 'POST') {
         requestIndex += 1
         return jsonResponse({ id: `glm-${requestIndex}`, task_status: 'PROCESSING' })
       }
       if (call.url.startsWith(`${GLM_DEFAULT_BASE_URL}/async-result/glm-`)) {
+        pollAttempts += 1
+        if (pollAttempts === 1) {
+          return jsonResponse({ error: 'temporary outage' }, { status: 503 })
+        }
         return jsonResponse({
           id: 'glm-result',
           task_status: 'SUCCESS',
@@ -101,6 +106,7 @@ describe('video provider REST contracts', () => {
         lastFrameDataUrl
       ]
     })
+    expect(pollAttempts).toBe(6)
   })
 
   test('GLM Vidu image generation retries alternate media field shapes', async () => {

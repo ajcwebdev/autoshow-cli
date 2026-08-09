@@ -125,7 +125,7 @@ const syncExtractBatchManifest = async (
 ): Promise<void> => {
   const nextItems = manifest.items.map((item) => ({ ...item }))
 
-  for (const route of ['media', 'document'] as const) {
+  for (const route of ['media', 'document', URL_ARTICLE_ROUTE] as const) {
     const childRelativeDir = manifest.childBatches[route]
     if (typeof childRelativeDir !== 'string' || childRelativeDir.length === 0) {
       continue

@@ -13,11 +13,16 @@ const BASE = 'https://agents.lumalabs.ai/v1'
 describe('video provider REST contracts', () => {
   test('Luma Labs Ray 3.2 submits a video generation and downloads output', async () => {
     process.env['LUMA_AGENTS_API_KEY'] = 'luma-key'
+    let pollAttempts = 0
     const calls = installMockFetch((call) => {
       if (call.url === `${BASE}/generations` && call.method === 'POST') {
         return jsonResponse({ id: 'luma-gen-123', state: 'queued' })
       }
       if (call.url === `${BASE}/generations/luma-gen-123` && call.method === 'GET') {
+        pollAttempts += 1
+        if (pollAttempts === 1) {
+          return jsonResponse({ error: 'temporary outage' }, { status: 503 })
+        }
         return jsonResponse({
           id: 'luma-gen-123',
           state: 'completed',
@@ -50,6 +55,7 @@ describe('video provider REST contracts', () => {
 
     expect(calls.map((call) => `${call.method} ${call.url}`)).toEqual([
       `POST ${BASE}/generations`,
+      `GET ${BASE}/generations/luma-gen-123`,
       `GET ${BASE}/generations/luma-gen-123`,
       'GET https://cdn.example.com/luma.mp4'
     ])

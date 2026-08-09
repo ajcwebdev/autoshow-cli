@@ -1,5 +1,6 @@
 import { defineCliCommand } from '~/cli/native/native-types'
-import { musicCommandFlags } from '~/cli/flags/music-flags'
+import { musicCommandFlags, musicCommandOptionNames } from '~/cli/flags/music-flags'
+import { retargetUsageErrorsToCommandSpellings } from '~/cli/flags/flag-utils'
 import { CLIUsageError } from '~/utils/error-handler'
 import { buildOptsFromFlags } from '~/cli/commands/process-steps/step-1-download/download-targets/build-opts-from-flags/build-options-from-flags'
 import { extractExplicitFlags as extractConfigExplicitFlags } from '~/cli/commands/setup-and-utilities/config/config-merge'
@@ -52,12 +53,6 @@ const collectExplicitFlags = (
   flagNames: readonly string[]
 ): string[] => flagNames.filter((flag) => hasExplicitFlag(argv, flag)).map((flag) => `--${flag}`)
 
-const MUSIC_COMMAND_OPTION_FLAGS = {
-  'music-duration': 'duration',
-  'music-lyrics-file': 'lyrics-file',
-  'music-instrumental': 'instrumental'
-} as const satisfies Record<string, string>
-
 const runHostedMusicGeneration = async (
   input: string,
   flags: Record<string, unknown>
@@ -69,8 +64,8 @@ const runHostedMusicGeneration = async (
   const musicMaxCents = await resolveMaxCentsFromFlags(flags)
   const rawArgs = Bun.argv.slice(2)
   const explicitRuntimeFlags = extractConfigExplicitFlags(rawArgs)
-  const optionNormalized = normalizeCommandSelectorFlags(flags, explicitRuntimeFlags, MUSIC_COMMAND_OPTION_FLAGS)
-  const optionNormalizedArgs = normalizeCommandSelectorArgs(rawArgs, MUSIC_COMMAND_OPTION_FLAGS)
+  const optionNormalized = normalizeCommandSelectorFlags(flags, explicitRuntimeFlags, musicCommandOptionNames)
+  const optionNormalizedArgs = normalizeCommandSelectorArgs(rawArgs, musicCommandOptionNames)
   const musicDurationRaw = typeof optionNormalized.flags['music-duration'] === 'string'
     ? parseInt(optionNormalized.flags['music-duration'], 10)
     : undefined
@@ -176,7 +171,7 @@ export const musicCommand = defineCliCommand({
       ['bun autoshow music --batch --model small', 'Render lyric videos for every supported audio file under input']
     ]
   }
-}, async (ctx) => {
+}, retargetUsageErrorsToCommandSpellings(async (ctx) => {
   const input = typeof ctx.parameters.input === 'string' ? ctx.parameters.input : undefined
   const flags = ctx.flags as Record<string, unknown>
   const musicArgv = getMusicArgv()
@@ -205,4 +200,4 @@ export const musicCommand = defineCliCommand({
   }
 
   await runHostedMusicGeneration(input, flags)
-})
+}, musicCommandOptionNames))

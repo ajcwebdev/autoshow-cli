@@ -11,10 +11,27 @@ import {
   prefillRenderedPageCache,
   rm,
   runHostedOcrDocument,
+  runOrderedOcrPageTasks,
   tmpdir
 } from './shared'
 
 describe('OCR resilience contracts', () => {
+  test('rendered hosted OCR stops scheduling pages after a page task fails', async () => {
+    const startedPages: number[] = []
+
+    await expect(runOrderedOcrPageTasks([1, 2, 3, 4], 2, async (page) => {
+      startedPages.push(page)
+      if (page === 2) {
+        throw new Error('page 2 failed')
+      }
+      await Bun.sleep(20)
+      return page
+    })).rejects.toThrow('page 2 failed')
+
+    await Bun.sleep(30)
+    expect(startedPages).toEqual([1, 2])
+  })
+
   test('rendered hosted OCR starts with the default page concurrency when concurrency is unset', async () => {
     const tempDir = await mkdtemp(join(tmpdir(), 'autoshow-rendered-hosted-ocr-default-concurrency-'))
     const inputPath = join(tempDir, 'input.pdf')

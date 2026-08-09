@@ -80,11 +80,16 @@ describe('video provider REST contracts', () => {
   test('MiniMax retries transient video download body read failures after task success', async () => {
     process.env['MINIMAX_API_KEY'] = 'minimax-key'
     let downloadAttempts = 0
+    let pollAttempts = 0
     const calls = installMockFetch((call) => {
       if (call.method === 'POST') {
         return jsonResponse({ task_id: 'minimax-retry', base_resp: { status_code: 0, status_msg: 'success' } })
       }
       if (call.url === `${MINIMAX_DEFAULT_BASE_URL}/v1/query/video_generation?task_id=minimax-retry`) {
+        pollAttempts += 1
+        if (pollAttempts === 1) {
+          return jsonResponse({ error: 'temporary outage' }, { status: 503 })
+        }
         return jsonResponse({
           data: { status: 'success', file_id: 'file-retry' },
           base_resp: { status_code: 0, status_msg: 'success' }
@@ -116,6 +121,32 @@ describe('video provider REST contracts', () => {
     })
 
     expect(calls.filter((call) => call.method === 'POST')).toHaveLength(1)
+    expect(calls.filter((call) => call.url === `${MINIMAX_DEFAULT_BASE_URL}/v1/query/video_generation?task_id=minimax-retry`)).toHaveLength(2)
     expect(calls.filter((call) => call.url === 'https://cdn.example.com/minimax-retry.mp4')).toHaveLength(2)
+  })
+
+  test('MiniMax video protocol failures keep the video stage', async () => {
+    process.env['MINIMAX_API_KEY'] = 'minimax-key'
+    installMockFetch((call) => {
+      if (call.method === 'POST') {
+        return jsonResponse({
+          task_id: 'minimax-failed',
+          base_resp: { status_code: 1004, status_msg: 'invalid prompt' }
+        })
+      }
+      throw new Error(`Unexpected MiniMax fetch: ${call.method} ${call.url}`)
+    })
+
+    await withTempDir(async (dir) => {
+      try {
+        await runMinimaxVideoGen('bad prompt', dir, { model: 'MiniMax-Hailuo-2.3' })
+        throw new Error('expected MiniMax video generation to fail')
+      } catch (error) {
+        expect(error).toMatchObject({
+          stage: 'video:minimax',
+          message: expect.stringContaining('invalid prompt')
+        })
+      }
+    })
   })
 })

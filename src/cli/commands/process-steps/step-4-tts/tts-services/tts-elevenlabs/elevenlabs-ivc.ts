@@ -126,8 +126,9 @@ const createElevenLabsTtsIvcVoice = async (
 
       if (!response.ok) {
         const errText = await readElevenLabsError(response)
-        const err = new Error(`ElevenLabs IVC voice creation failed (${response.status}): ${errText}`) as Error & { status: number }
+        const err = new Error(`ElevenLabs IVC voice creation failed (${response.status}): ${errText}`) as Error & { status: number, headers: Headers }
         err.status = response.status
+        err.headers = response.headers
         throw err
       }
 

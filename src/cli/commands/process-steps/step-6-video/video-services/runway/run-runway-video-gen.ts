@@ -5,7 +5,7 @@ import { logGenCompleted, logGenStatus } from '~/cli/commands/process-steps/gene
 import { estimateVideoCost, logVideoEstimate } from '~/cli/commands/process-steps/step-6-video/video-utils/video-pricing'
 import { normalizeRunwayDuration, normalizeRunwayRatio } from '~/cli/commands/process-steps/step-6-video/video-utils/video-normalization'
 import { downloadVideoOutputBytes } from '~/cli/commands/process-steps/step-6-video/video-utils/video-output-download'
-import { pollUntil } from '~/utils/retries'
+import { classifyFetchRetry, pollUntil, withRetry } from '~/utils/retries'
 import { requireApiKey } from '~/utils/validate/env-utils'
 import { validateData } from '~/utils/validate/validation'
 import { MEDIA_GENERATION_TIMEOUT_MS } from '~/utils/timeouts'
@@ -101,29 +101,33 @@ export const runRunwayVideoGen = async (
     operationName: 'runway-video-gen',
     intervalMs: POLL_INTERVAL_MS,
     deadlineMs: POLL_TIMEOUT_MS,
-    pollFn: async () => {
-      const pollResp = await fetch(`${RUNWAY_BASE_URL}/tasks/${encodeURIComponent(createData.id)}`, {
-        method: 'GET',
-        headers: {
-          Authorization: `Bearer ${apiKey}`,
-          'X-Runway-Version': RUNWAY_API_VERSION,
-          'Content-Type': 'application/json'
+    pollFn: () => withRetry(
+      { retryClass: 'runtime_http_read', operationName: 'runway-video-gen-poll' },
+      async () => {
+        const pollResp = await fetch(`${RUNWAY_BASE_URL}/tasks/${encodeURIComponent(createData.id)}`, {
+          method: 'GET',
+          headers: {
+            Authorization: `Bearer ${apiKey}`,
+            'X-Runway-Version': RUNWAY_API_VERSION,
+            'Content-Type': 'application/json'
+          }
+        })
+
+        if (!pollResp.ok) {
+          const body = await pollResp.text()
+          throw InfraError(`Runway video generation query failed (${pollResp.status}): ${body || 'No response body'}`, { stage: 'video:runway', status: pollResp.status })
         }
-      })
 
-      if (!pollResp.ok) {
-        const body = await pollResp.text()
-        throw InfraError(`Runway video generation query failed (${pollResp.status}): ${body || 'No response body'}`, { stage: 'video:runway', status: pollResp.status })
-      }
-
-      const data = validateData(
-        RunwayTaskStatusResponseSchema,
-        await pollResp.json() as unknown,
-        'Runway video generation query response'
-      )
-      logGenStatus('video', 'runway', options.model, data.status)
-      return data
-    },
+        const data = validateData(
+          RunwayTaskStatusResponseSchema,
+          await pollResp.json() as unknown,
+          'Runway video generation query response'
+        )
+        logGenStatus('video', 'runway', options.model, data.status)
+        return data
+      },
+      (error) => classifyFetchRetry(error, 'runtime_http_read', { retryAbortOnConservative: true })
+    ),
     isDone: (data) => data.status === 'SUCCEEDED',
     isFailed: (data) => ['FAILED', 'CANCELLED', 'THROTTLED'].includes(data.status)
       ? { failed: true, reason: formatRunwayError(data) }

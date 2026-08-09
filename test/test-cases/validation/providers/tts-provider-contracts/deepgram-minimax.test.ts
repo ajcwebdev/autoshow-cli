@@ -87,6 +87,22 @@ describe('TTS provider service contracts', () => {
       expect(calls.map((call) => call.method)).toEqual(['POST', 'GET', 'GET'])
     }, 10_000)
 
+  test('MiniMax TTS protocol failures keep the TTS stage', async () => {
+    const dir = await makeTempDir('autoshow-minimax-tts-stage-')
+    process.env['MINIMAX_API_KEY'] = 'minimax-key'
+    globalThis.fetch = (async (_input: Parameters<typeof fetch>[0], _init?: Parameters<typeof fetch>[1]): Promise<Response> => Response.json({
+      task_id: 'task-failed',
+      base_resp: { status_code: 1004, status_msg: 'invalid text' }
+    })) as typeof fetch
+
+    await expect(runMinimaxTts('Invalid MiniMax request.', dir, {
+      model: 'speech-2.8-hd'
+    })).rejects.toMatchObject({
+      stage: 'tts:minimax',
+      message: expect.stringContaining('invalid text')
+    })
+  })
+
   test('Deepgram TTS sends documented output controls as query parameters', async () => {
       const dir = await makeTempDir('autoshow-deepgram-tts-controls-')
       const audioBytes = await Bun.file(LOCAL_SHORT_AUDIO_PATH).arrayBuffer()

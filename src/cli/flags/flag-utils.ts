@@ -1,4 +1,5 @@
-import type { CliFlagDefinition, CliFlagsDefinition } from '~/types'
+import type { CliCommandHandler, CliFlagDefinition, CliFlagsDefinition } from '~/types'
+import { AppUsageError, isCLIUsageError } from '~/utils/error-handler'
 
 // An omitted default must omit the `default` key entirely — native-parser and
 // help-renderer test `'default' in definition`, so `default: undefined` would
@@ -47,6 +48,27 @@ export const renameFlagSpellings = (
     (value, [internalName, replacement]) => value.replaceAll(`--${internalName}`, `--${replacement}`),
     text
   )
+
+// Shared validators name the pipeline flags they receive (`--video-duration`, etc.).
+// Standalone generation commands register shorter spellings, so translate usage errors at
+// the command boundary while preserving non-usage errors and any existing usage hints.
+export const retargetUsageErrorsToCommandSpellings = (
+  handler: CliCommandHandler,
+  publicNameByInternalName: Record<string, string>
+): CliCommandHandler => async (ctx) => {
+  try {
+    await handler(ctx)
+  } catch (error) {
+    if (!isCLIUsageError(error)) {
+      throw error
+    }
+    const message = renameFlagSpellings(error.message, publicNameByInternalName)
+    if (message === error.message) {
+      throw error
+    }
+    throw new AppUsageError(message, error.hints.length > 0 ? error.hints : undefined)
+  }
+}
 
 export const renameFlags = (
   flags: CliFlagsDefinition,

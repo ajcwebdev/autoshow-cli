@@ -132,15 +132,19 @@ export const runBflImageGen = async (
     operationName: 'bfl-image-gen',
     intervalMs: POLL_INTERVAL_MS,
     deadlineMs: POLL_TIMEOUT_MS,
-    pollFn: async () => {
-      const { response, payload } = await fetchBflJson(createData.polling_url, apiKey, { method: 'GET' })
-      if (!response.ok) {
-        throw InfraError(`BFL image status query failed (${response.status}): ${extractImageErrorMessage(payload) ?? 'Unknown error'}`, { stage: 'image:bfl', status: response.status })
-      }
-      const data = validateData(BflPollResponseSchema, payload, 'BFL image generation poll response')
-      logGenStatus('image', 'bfl', options.model, data.status)
-      return data
-    },
+    pollFn: () => withRetry(
+      { retryClass: 'runtime_http_read', operationName: 'bfl-image-gen-poll' },
+      async () => {
+        const { response, payload } = await fetchBflJson(createData.polling_url, apiKey, { method: 'GET' })
+        if (!response.ok) {
+          throw InfraError(`BFL image status query failed (${response.status}): ${extractImageErrorMessage(payload) ?? 'Unknown error'}`, { stage: 'image:bfl', status: response.status })
+        }
+        const data = validateData(BflPollResponseSchema, payload, 'BFL image generation poll response')
+        logGenStatus('image', 'bfl', options.model, data.status)
+        return data
+      },
+      (error) => classifyFetchRetry(error, 'runtime_http_read', { retryAbortOnConservative: true })
+    ),
     isDone: (data) => data.status.toLowerCase() === 'ready',
     isFailed: (data) => {
       const status = data.status.toLowerCase()

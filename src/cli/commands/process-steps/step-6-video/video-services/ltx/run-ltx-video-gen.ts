@@ -11,7 +11,7 @@ import {
   normalizeLtxVideoSize
 } from '~/cli/commands/process-steps/step-6-video/video-utils/video-normalization'
 import { downloadVideoOutputBytes } from '~/cli/commands/process-steps/step-6-video/video-utils/video-output-download'
-import { pollUntil } from '~/utils/retries'
+import { classifyFetchRetry, pollUntil, withRetry } from '~/utils/retries'
 import { requireApiKey } from '~/utils/validate/env-utils'
 import { validateData } from '~/utils/validate/validation'
 import { MEDIA_GENERATION_TIMEOUT_MS } from '~/utils/timeouts'
@@ -164,28 +164,32 @@ export const runLtxVideoGen = async (
     operationName: 'ltx-video-gen',
     intervalMs: POLL_INTERVAL_MS,
     deadlineMs: POLL_TIMEOUT_MS,
-    pollFn: async () => {
-      const pollResp = await fetch(`${LTX_BASE_URL}/v2/${endpoint}/${encodeURIComponent(createData.id)}`, {
-        method: 'GET',
-        headers: {
-          Authorization: `Bearer ${apiKey}`,
-          'Content-Type': 'application/json'
+    pollFn: () => withRetry(
+      { retryClass: 'runtime_http_read', operationName: 'ltx-video-gen-poll' },
+      async () => {
+        const pollResp = await fetch(`${LTX_BASE_URL}/v2/${endpoint}/${encodeURIComponent(createData.id)}`, {
+          method: 'GET',
+          headers: {
+            Authorization: `Bearer ${apiKey}`,
+            'Content-Type': 'application/json'
+          }
+        })
+
+        if (!pollResp.ok) {
+          const body = await pollResp.text()
+          throw InfraError(`LTX video generation query failed (${pollResp.status}): ${body || 'No response body'}`, { stage: 'video:ltx', status: pollResp.status })
         }
-      })
 
-      if (!pollResp.ok) {
-        const body = await pollResp.text()
-        throw InfraError(`LTX video generation query failed (${pollResp.status}): ${body || 'No response body'}`, { stage: 'video:ltx', status: pollResp.status })
-      }
-
-      const data = validateData(
-        LtxPollVideoResponseSchema,
-        await pollResp.json() as unknown,
-        'LTX video generation query response'
-      )
-      logGenStatus('video', 'ltx', options.model, data.status)
-      return data
-    },
+        const data = validateData(
+          LtxPollVideoResponseSchema,
+          await pollResp.json() as unknown,
+          'LTX video generation query response'
+        )
+        logGenStatus('video', 'ltx', options.model, data.status)
+        return data
+      },
+      (error) => classifyFetchRetry(error, 'runtime_http_read', { retryAbortOnConservative: true })
+    ),
     isDone: (data) => data.status === 'completed',
     isFailed: (data) => data.status === 'failed'
       ? { failed: true, reason: formatLtxError(data.error) }

@@ -137,15 +137,19 @@ export const runLumalabsImageGen = async (
     operationName: 'lumalabs-image-gen',
     intervalMs: POLL_INTERVAL_MS,
     deadlineMs: POLL_TIMEOUT_MS,
-    pollFn: async () => {
-      const { response, payload } = await fetchLumalabsJson(`${getLumalabsBaseUrl(options.baseUrl)}/generations/${encodeURIComponent(createData.id)}`, apiKey, { method: 'GET' })
-      if (!response.ok) {
-        throw InfraError(`Luma Labs image status query failed (${response.status}): ${extractErrorMessage(payload) ?? 'Unknown error'}`, { stage: 'image:lumalabs', status: response.status })
-      }
-      const data = validateData(LumalabsGenerationSchema, payload, 'Luma Labs image generation poll response')
-      logGenStatus('image', 'lumalabs', options.model, data.state)
-      return data
-    },
+    pollFn: () => withRetry(
+      { retryClass: 'runtime_http_read', operationName: 'lumalabs-image-gen-poll' },
+      async () => {
+        const { response, payload } = await fetchLumalabsJson(`${getLumalabsBaseUrl(options.baseUrl)}/generations/${encodeURIComponent(createData.id)}`, apiKey, { method: 'GET' })
+        if (!response.ok) {
+          throw InfraError(`Luma Labs image status query failed (${response.status}): ${extractErrorMessage(payload) ?? 'Unknown error'}`, { stage: 'image:lumalabs', status: response.status })
+        }
+        const data = validateData(LumalabsGenerationSchema, payload, 'Luma Labs image generation poll response')
+        logGenStatus('image', 'lumalabs', options.model, data.state)
+        return data
+      },
+      (error) => classifyFetchRetry(error, 'runtime_http_read', { retryAbortOnConservative: true })
+    ),
     isDone: (data) => data.state.toLowerCase() === 'completed',
     isFailed: (data) => {
       if (data.state.toLowerCase() === 'failed') {

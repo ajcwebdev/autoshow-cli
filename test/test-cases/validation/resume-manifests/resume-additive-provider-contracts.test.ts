@@ -16,8 +16,8 @@ import { writeOcrRunManifest } from '~/cli/commands/process-steps/step-2-extract
 import { hasResumableSttTargetWork, priceSttTarget } from '~/cli/commands/setup-and-utilities/resume/extract/stt-resume'
 import { finalizeMusicResumeArtifacts } from '~/cli/commands/setup-and-utilities/resume/generation/music-resume'
 import { writeSttRunManifest } from '~/cli/commands/process-steps/step-2-extract/step-2-stt/stt-manifest'
-import { readExistingSttRun } from '~/cli/commands/process-steps/step-2-extract/step-2-stt/stt-batch/stt-run-state'
-import type { BatchManifestEntry, OcrTarget, ProviderBatchResumeConfig, ProviderIdentity, ResumeFakeMetadata, ResumeFakeProviderResumeEntry, ResumeTarget, RuntimeOptions, SttTarget } from '~/types'
+import { buildProviderStates as buildSttProviderStates, readExistingSttRun } from '~/cli/commands/process-steps/step-2-extract/step-2-stt/stt-batch/stt-run-state'
+import type { BatchManifestEntry, OcrTarget, ProviderBatchResumeConfig, ProviderIdentity, ResumeFakeMetadata, ResumeFakeProviderResumeEntry, ResumeTarget, RuntimeOptions, SttProviderState, SttProviderSuccess, SttTarget } from '~/types'
 
 const isRecord = (value: unknown): value is Record<string, unknown> =>
   typeof value === 'object' && value !== null && !Array.isArray(value)
@@ -439,6 +439,59 @@ describe('additive resume provider selection', () => {
       })
       expect(await Bun.file(join(providerDir, 'transcription.txt')).exists()).toBe(false)
     })
+  })
+
+  test('STT provider-state reconciliation preserves artifact locations and one attempt per run', () => {
+    const resumedRoot: SttTarget = { service: 'whisper', model: 'large-v3-turbo', local: true }
+    const freshSuccess: SttTarget = { service: 'assemblyai', model: 'universal-2', local: false }
+    const currentFailure: SttTarget = { service: 'deepgram', model: 'nova-3', local: false }
+    const freshFailure: SttTarget = { service: 'groq', model: 'whisper-large-v3-turbo', local: false }
+    const untouched: SttTarget = { service: 'speechmatics', model: 'melia-1', local: false }
+    const attemptedSkip: SttTarget = { service: 'soniox', model: 'stt-rt-v4', local: false }
+    const schedulerSkip: SttTarget = { service: 'reverb', model: 'reverb_asr_v2', local: false }
+    const requestedTargets = [resumedRoot, freshSuccess, currentFailure, freshFailure, untouched, attemptedSkip, schedulerSkip]
+    const successes: Array<SttProviderSuccess | undefined> = [
+      {
+        target: resumedRoot,
+        metadata: {} as SttProviderSuccess['metadata'],
+        result: {} as SttProviderSuccess['result'],
+        relativeDir: '.'
+      },
+      {
+        target: freshSuccess,
+        metadata: {} as SttProviderSuccess['metadata'],
+        result: {} as SttProviderSuccess['result']
+      },
+      undefined,
+      undefined,
+      undefined,
+      undefined,
+      undefined
+    ]
+    const failures = new Map([
+      [2, { message: 'current failure', retryable: true }],
+      [3, { message: 'fresh failure', retryable: true }],
+      [5, { message: 'provider classified this attempt as skipped', retryable: false, skipped: true }]
+    ])
+    const existingStates = new Map<string, SttProviderState>([
+      ['whisper:large-v3-turbo', { ...resumedRoot, artifactDir: '.', status: 'succeeded', attempts: 3 }],
+      ['deepgram:nova-3', { ...currentFailure, artifactDir: 'providers/deepgram-nova-3', status: 'failed', attempts: 5 }],
+      ['speechmatics:melia-1', { ...untouched, artifactDir: 'providers/speechmatics-melia-1', status: 'missing', attempts: 2 }],
+      ['soniox:stt-rt-v4', { ...attemptedSkip, artifactDir: 'providers/soniox-stt-rt-v4', status: 'skipped', attempts: 4 }],
+      ['reverb:reverb_asr_v2', { ...schedulerSkip, artifactDir: 'providers/reverb-reverb_asr_v2', status: 'skipped', attempts: 0 }]
+    ])
+
+    const states = buildSttProviderStates(requestedTargets, successes, failures, existingStates)
+
+    expect(states.slice(0, 5).map(({ artifactDir, status, attempts }) => ({ artifactDir, status, attempts }))).toEqual([
+      { artifactDir: '.', status: 'succeeded', attempts: 3 },
+      { artifactDir: 'providers/assemblyai-universal-2', status: 'succeeded', attempts: 1 },
+      { artifactDir: 'providers/deepgram-nova-3', status: 'failed', attempts: 5 },
+      { artifactDir: 'providers/groq-whisper-large-v3-turbo', status: 'failed', attempts: 1 },
+      { artifactDir: 'providers/speechmatics-melia-1', status: 'missing', attempts: 2 }
+    ])
+    expect(states[5]).toMatchObject({ status: 'skipped', attempts: 4 })
+    expect(states[6]).toMatchObject({ status: 'skipped', attempts: 0 })
   })
 
   test('generation resume appends explicit new providers to a full run', async () => {

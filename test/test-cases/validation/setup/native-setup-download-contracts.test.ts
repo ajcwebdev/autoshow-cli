@@ -323,6 +323,25 @@ describe('download timeout budgets', () => {
     expect(modelProfile.stallTimeoutMs).toBe(defaultProfile.stallTimeoutMs)
   })
 
+  test('HTTP download failures retain Retry-After headers for outer retry wrappers', async () => {
+    const destination = join(await makeTempDir(), 'rate-limited.bin')
+    const fetchImpl = globalThis.fetch
+    globalThis.fetch = mockFetch(async () => new Response('slow down', {
+      status: 429,
+      headers: { 'retry-after': '11' }
+    }))
+
+    try {
+      await downloadFile({ url: 'https://example.test/rate-limited.bin', destination })
+      throw new Error('expected rate-limited download failure')
+    } catch (error) {
+      expect((error as { status?: number }).status).toBe(429)
+      expect((error as { headers?: Headers }).headers?.get('retry-after')).toBe('11')
+    } finally {
+      globalThis.fetch = fetchImpl
+    }
+  })
+
   test('a stalled transfer fails with a retryable timeout message', async () => {
     const destination = join(await makeTempDir(), 'stalled.bin')
     const fetchImpl = globalThis.fetch

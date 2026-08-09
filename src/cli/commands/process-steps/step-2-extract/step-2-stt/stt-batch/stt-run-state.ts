@@ -486,9 +486,9 @@ export const buildProviderStates = <
         service: target.service,
         model: target.model,
         local: target.local,
-        artifactDir: getSttProviderArtifactDir(target),
+        artifactDir: success.relativeDir ?? existing?.artifactDir ?? getSttProviderArtifactDir(target),
         status: 'succeeded',
-        attempts: existing?.attempts ?? 0
+        attempts: existing?.attempts ?? 1
       }
     }
 
@@ -499,7 +499,7 @@ export const buildProviderStates = <
         local: target.local,
         artifactDir: getSttProviderArtifactDir(target),
         status: failure.skipped === true ? 'skipped' : 'failed',
-        attempts: existing?.attempts ?? 0,
+        attempts: existing?.attempts ?? 1,
         lastError: toRecordedProviderError({
           message: failure.message,
           ...(failure.skipped === true ? { skipped: true } : {}),

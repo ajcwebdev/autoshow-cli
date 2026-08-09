@@ -347,7 +347,6 @@ export const runHappyScribeStt = async (
     completedAt: new Date().toISOString()
   }
   billing = buildBillingMetadata(modelName, audioDurationSeconds, completedOrder, transcription)
-  await persistProgressMetadata(completedRuntime)
 
   let result: TranscriptionResult | undefined
   const tryDirectDownload = async (): Promise<TranscriptionResult | undefined> => {
@@ -406,6 +405,8 @@ export const runHappyScribeStt = async (
   if (!result) {
     throw InfraError('Happy Scribe transcript retrieval did not produce a transcript', { stage: 'stt:happyscribe' })
   }
+
+  await persistProgressMetadata(completedRuntime)
 
   const formattedTranscriptPath = `${outputBase}.txt`
   await Bun.write(formattedTranscriptPath, formatTranscriptText(result.segments))

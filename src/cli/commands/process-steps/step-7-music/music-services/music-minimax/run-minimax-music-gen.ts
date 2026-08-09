@@ -110,10 +110,10 @@ const generateLyrics = async (
 
   const parsed = validateData(
     MinimaxLyricsResponseSchema,
-    await parseMinimaxJsonResponse(response, 'MiniMax lyrics generation response'),
+    await parseMinimaxJsonResponse(response, 'MiniMax lyrics generation response', 'music:minimax'),
     'MiniMax lyrics generation response'
   )
-  ensureMinimaxBaseRespSuccess(parsed.base_resp, 'MiniMax lyrics generation')
+  ensureMinimaxBaseRespSuccess(parsed.base_resp, 'MiniMax lyrics generation', 'music:minimax')
 
   return {
     lyrics: validateMinimaxMusicLyrics(parsed.lyrics ?? '', 'MiniMax generated lyrics'),
@@ -161,10 +161,10 @@ const requestMusicGeneration = async (
 
   const parsed = validateData(
     MinimaxMusicResponseSchema,
-    await parseMinimaxJsonResponse(response, 'MiniMax music generation response'),
+    await parseMinimaxJsonResponse(response, 'MiniMax music generation response', 'music:minimax'),
     'MiniMax music generation response'
   )
-  ensureMinimaxBaseRespSuccess(parsed.base_resp, 'MiniMax music generation')
+  ensureMinimaxBaseRespSuccess(parsed.base_resp, 'MiniMax music generation', 'music:minimax')
   return parsed
 }
 
@@ -223,15 +223,15 @@ export const runMinimaxMusicGen = async (
   const musicPath = `${outputDir}/generated-music.mp3`
 
   if (options.durationSeconds !== undefined) {
-    l.warn('MiniMax music generation currently ignores --music-duration')
+    l.warn('MiniMax music generation currently ignores --duration')
   }
   const supportsInstrumental = isMinimaxInstrumentalMusicModel(options.model)
   const useInstrumental = options.forceInstrumental === true && supportsInstrumental
   if (options.forceInstrumental && !supportsInstrumental) {
-    l.warn(`MiniMax music model ${options.model} does not support --music-instrumental; generating with lyrics`)
+    l.warn(`MiniMax music model ${options.model} does not support --instrumental; generating with lyrics`)
   }
   if (useInstrumental && options.lyricsFile) {
-    l.warn('Ignoring --music-lyrics-file because --music-instrumental was provided for MiniMax music generation')
+    l.warn('Ignoring --lyrics-file because --instrumental was provided for MiniMax music generation')
   }
 
   const startTime = Date.now()

@@ -169,10 +169,10 @@ export const runMinimaxTts = async (
 
       const createTaskData = validateData(
         MinimaxCreateResponseSchema,
-        await parseMinimaxJsonResponse(createTaskResponse, 'MiniMax TTS create task response'),
+        await parseMinimaxJsonResponse(createTaskResponse, 'MiniMax TTS create task response', 'tts:minimax'),
         'MiniMax TTS create task response'
       )
-      ensureMinimaxBaseRespSuccess(createTaskData.base_resp, 'MiniMax TTS task creation')
+      ensureMinimaxBaseRespSuccess(createTaskData.base_resp, 'MiniMax TTS task creation', 'tts:minimax')
 
       const taskId = String(createTaskData.task_id)
 
@@ -204,10 +204,10 @@ export const runMinimaxTts = async (
 
           const data = validateData(
             MinimaxQueryResponseSchema,
-            await parseMinimaxJsonResponse(queryResponse, 'MiniMax TTS query task response'),
+            await parseMinimaxJsonResponse(queryResponse, 'MiniMax TTS query task response', 'tts:minimax'),
             'MiniMax TTS query task response'
           )
-          ensureMinimaxBaseRespSuccess(data.base_resp, 'MiniMax TTS task query')
+          ensureMinimaxBaseRespSuccess(data.base_resp, 'MiniMax TTS task query', 'tts:minimax')
           return data
         },
         isDone: (data) => isMinimaxTaskSuccess(readTaskStatus(data)),

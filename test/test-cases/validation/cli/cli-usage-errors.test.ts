@@ -602,6 +602,13 @@ test('image command rejections name the spellings the image command registers', 
   )
 })
 
+test('video command rejections name the spellings the video command registers', async () => {
+  await expectUsageExit(
+    ['video', 'edit this clip', '--provider', 'grok=grok-imagine-video', '--mode', 'edit', '--duration', '5', '--price'],
+    '--mode edit requires --input-video'
+  )
+})
+
 test('resume rejects provider-named option flags', async () => {
   await expectUsageExit(
     ['resume', 'output/nonexistent', '--elevenlabs-tts-stability', '0.4'],

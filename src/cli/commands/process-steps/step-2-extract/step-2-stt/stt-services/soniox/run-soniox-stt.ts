@@ -79,6 +79,7 @@ export const runSonioxStt = async (
   let retryCount = 0
   let rateLimitCount = 0
   let metadata: Step2Metadata | undefined
+  let reachedTerminalOutcome = false
   const backfillCount = runMode === 'backfill' ? 1 : 0
   const requestMetrics = {
     onRequest: () => {
@@ -187,6 +188,7 @@ export const runSonioxStt = async (
         const pollStartedAt = Date.now()
         const result = await pollTranscription(baseURL, apiKey, activeTranscriptionId, requestMetrics)
         pollMs += Date.now() - pollStartedAt
+        reachedTerminalOutcome = result.status.status === 'completed' || result.status.status === 'error'
         return {
           status: result.status,
           retryAfterMs: result.retryAfterMs
@@ -260,10 +262,10 @@ export const runSonioxStt = async (
     const cleanupStartedAt = Date.now()
     let remoteJobDeleted = false
     let remoteAssetDeleted = false
-    if (transcriptionId) {
+    if (reachedTerminalOutcome && transcriptionId) {
       remoteJobDeleted = await deleteTranscription(baseURL, apiKey, transcriptionId)
     }
-    if (fileId) {
+    if (reachedTerminalOutcome && fileId) {
       remoteAssetDeleted = await deleteFile(baseURL, apiKey, fileId)
     }
     const cleanupMs = Date.now() - cleanupStartedAt

@@ -20,6 +20,7 @@ export class AppError extends Error {
   readonly hints: string[]
   readonly exitCode: number
   readonly status?: number
+  readonly headers?: Headers
   readonly stage?: string
   readonly retryClass?: RetryClass
   readonly retryable?: boolean
@@ -36,6 +37,7 @@ export class AppError extends Error {
 
     if (options.cause) this.cause = options.cause
     if (typeof options.status === 'number') this.status = options.status
+    if (options.headers instanceof Headers) this.headers = options.headers
     if (options.stage !== undefined) this.stage = options.stage
     if (options.retryClass !== undefined) this.retryClass = options.retryClass
     if (typeof options.retryable === 'boolean') this.retryable = options.retryable

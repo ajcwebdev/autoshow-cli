@@ -1,5 +1,6 @@
 import { defineCliCommand } from '~/cli/native/native-types'
-import { videoCommandFlags } from '~/cli/flags/video-flags'
+import { videoCommandFlags, videoCommandOptionNames } from '~/cli/flags/video-flags'
+import { retargetUsageErrorsToCommandSpellings } from '~/cli/flags/flag-utils'
 import { CLIUsageError } from '~/utils/error-handler'
 import { buildOptsFromFlags } from '~/cli/commands/process-steps/step-1-download/download-targets/build-opts-from-flags/build-options-from-flags'
 import { extractExplicitFlags } from '~/cli/commands/setup-and-utilities/config/config-merge'
@@ -19,18 +20,6 @@ import { buildProviderStepSummaries, createGenerationOutputDir, getGenerationExp
 import * as l from '~/utils/app-logger/app-logger'
 import { runWithLogContext } from '~/utils/app-logger/app-logger'
 import type { RuntimeOptions, VideoProvider, VideoTarget } from '~/types'
-
-const VIDEO_COMMAND_OPTION_FLAGS = {
-  'video-mode': 'mode',
-  'video-duration': 'duration',
-  'video-size': 'size',
-  'video-aspect-ratio': 'aspect-ratio',
-  'video-resolution': 'resolution',
-  'video-input-image': 'input-image',
-  'video-last-frame': 'last-frame',
-  'video-reference-image': 'reference-image',
-  'video-input-video': 'input-video'
-} as const satisfies Record<string, string>
 
 const VIDEO_PROVIDER_FLAGS = [
   'gemini-video',
@@ -167,7 +156,7 @@ export const videoCommand = defineCliCommand({
       ['bun autoshow video "a cinematic mountain sunrise with synchronized ambience" --provider fal=minimax/h3 --duration 5 --resolution 2k', 'Generate video with fal.ai MiniMax H3']
     ]
   }
-}, async (ctx) => {
+}, retargetUsageErrorsToCommandSpellings(async (ctx) => {
   const input = ctx.parameters.input
   if (typeof input !== 'string' || input.trim().length === 0) {
     throw CLIUsageError('Missing video input: provide a text prompt or image path, URL, or data URL.')
@@ -177,8 +166,8 @@ export const videoCommand = defineCliCommand({
   const videoMaxCents = await resolveMaxCentsFromFlags(flags as Record<string, unknown>)
   const rawArgs = Bun.argv.slice(2)
   const explicitFlags = extractExplicitFlags(rawArgs)
-  const optionNormalized = normalizeCommandSelectorFlags(flags as Record<string, unknown>, explicitFlags, VIDEO_COMMAND_OPTION_FLAGS)
-  const optionNormalizedArgs = normalizeCommandSelectorArgs(rawArgs, VIDEO_COMMAND_OPTION_FLAGS)
+  const optionNormalized = normalizeCommandSelectorFlags(flags as Record<string, unknown>, explicitFlags, videoCommandOptionNames)
+  const optionNormalizedArgs = normalizeCommandSelectorArgs(rawArgs, videoCommandOptionNames)
   const resolvedInput = resolveVideoInput(input, optionNormalized.flags)
   const providerNormalized = normalizeGenericProviderSelectorFlags(
     optionNormalized.flags,
@@ -279,4 +268,4 @@ export const videoCommand = defineCliCommand({
       includeOutputDir: false
     }
   )
-})
+}, videoCommandOptionNames))

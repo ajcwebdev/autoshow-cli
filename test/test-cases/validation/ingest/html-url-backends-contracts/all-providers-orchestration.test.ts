@@ -1,4 +1,8 @@
 import { expect, test } from 'bun:test'
+import { mkdir } from 'node:fs/promises'
+import { readBatchManifest, readRunManifest, writeBatchManifest } from '~/cli/commands/process-steps/manifest-utils'
+import { writeUrlRunManifest } from '~/cli/commands/process-steps/step-2-extract/step-2-url/url-manifest'
+import { resumeUrlArticleTarget } from '~/cli/commands/setup-and-utilities/resume/extract/url-resume'
 import {
   buildAbortError,
   buildMockArticle,
@@ -182,6 +186,94 @@ test('--all-providers URL manifest records one exhausted failed URL provider wit
     )).toBe(false)
   } finally {
     ;(Bun as typeof Bun & { sleep: typeof Bun.sleep }).sleep = originalSleep
+    await rm(tempRoot, { recursive: true, force: true })
+  }
+})
+
+test('URL resume persists recovered provider state to the batch manifest', async () => {
+  const tempRoot = await mkdtemp(join(tmpdir(), 'autoshow-url-resume-batch-'))
+  const originalSleep = Bun.sleep
+
+  try {
+    ;(Bun as typeof Bun & { sleep: typeof Bun.sleep }).sleep = (async () => {}) as typeof Bun.sleep
+    for (const backend of HOSTED_URL_ARTICLE_BACKENDS) {
+      URL_ARTICLE_PROVIDER_ADAPTERS[backend].run = async (source, sourceUrl) =>
+        buildMockArticle(backend, source, sourceUrl)
+    }
+    URL_ARTICLE_PROVIDER_ADAPTERS.zyte.run = async () => {
+      throw buildAbortError('Zyte request timed out after 25ms')
+    }
+
+    const opts = buildOptsFromFlags(false, {
+      'all-url': true,
+      'url-request-timeout-ms': '25',
+      'url-request-attempts': '2'
+    }, [], {}, new Set(['all-url']))
+    const output = await processUrlArticle('https://article.test/resume.html', tempRoot, opts)
+    const runManifest = await readRunManifest(output.outputDir, 'extract')
+    expect(runManifest?.metadata['completionStatus']).toBe('incomplete')
+
+    const batchDir = join(tempRoot, 'batch')
+    await mkdir(batchDir, { recursive: true })
+    await writeBatchManifest(batchDir, 'extract', [{
+      ...runManifest!.metadata,
+      outputDir: output.outputDir
+    }])
+
+    URL_ARTICLE_PROVIDER_ADAPTERS.zyte.run = async (source, sourceUrl) =>
+      buildMockArticle('zyte', source, sourceUrl)
+
+    await resumeUrlArticleTarget({
+      kind: 'extract',
+      extractRoute: 'x-space',
+      scope: 'batch',
+      dir: batchDir,
+      manifestPath: join(batchDir, 'batch.json')
+    }, opts)
+
+    const batchManifest = await readBatchManifest(batchDir, 'extract')
+    expect(batchManifest?.manifest.items[0]?.['completionStatus']).toBe('full')
+    expect(batchManifest?.manifest.items[0]?.['providerStates']).toEqual(
+      expect.arrayContaining([expect.objectContaining({ service: 'zyte', status: 'succeeded' })])
+    )
+  } finally {
+    ;(Bun as typeof Bun & { sleep: typeof Bun.sleep }).sleep = originalSleep
+    await rm(tempRoot, { recursive: true, force: true })
+  }
+})
+
+test('URL resume exits 2 for a stored failed run with no resumable backends', async () => {
+  const tempRoot = await mkdtemp(join(tmpdir(), 'autoshow-url-resume-failed-'))
+
+  try {
+    await writeUrlRunManifest(tempRoot, {
+      resolvedStep2: {
+        route: 'article',
+        sourceKind: 'article',
+        providers: [{ service: 'defuddle', model: 'defuddle' }]
+      },
+      completionStatus: 'failed',
+      requestedProviders: [{ service: 'defuddle', model: 'defuddle' }],
+      providerStates: [{
+        service: 'defuddle',
+        model: 'defuddle',
+        artifactDir: 'providers/defuddle',
+        status: 'skipped',
+        attempts: 0
+      }]
+    })
+
+    await expect(resumeUrlArticleTarget({
+      kind: 'extract',
+      extractRoute: 'x-space',
+      scope: 'single',
+      dir: tempRoot,
+      manifestPath: join(tempRoot, 'run.json')
+    }, buildOptsFromFlags(false, {}))).rejects.toMatchObject({
+      exitCode: 2,
+      stage: 'resume:url'
+    })
+  } finally {
     await rm(tempRoot, { recursive: true, force: true })
   }
 })

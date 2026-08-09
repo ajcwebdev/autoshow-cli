@@ -151,7 +151,10 @@ describe('ElevenLabs clone flow contracts', () => {
           if (url.endsWith('/v1/voices/add')) {
             return new Response(JSON.stringify({ detail: { message: 'bad reference audio' } }), {
               status: 400,
-              headers: { 'content-type': 'application/json' }
+              headers: {
+                'content-type': 'application/json',
+                'retry-after': '7'
+              }
             })
           }
           if (url.includes('/v1/text-to-speech/')) {
@@ -160,13 +163,19 @@ describe('ElevenLabs clone flow contracts', () => {
           throw new Error(`Unexpected ElevenLabs error mock fetch: ${url}`)
         }) as typeof fetch
 
-        await expect(runElevenLabsTts('Hello.', tempDir, {
-          model: 'eleven_v3',
-          clone: {
-            refAudioPath: 'input/examples/audio/anthony-voice.mp3',
-            context: createElevenLabsTtsIvcContext()
-          }
-        })).rejects.toThrow('ElevenLabs IVC voice creation failed (400): bad reference audio')
+        try {
+          await runElevenLabsTts('Hello.', tempDir, {
+            model: 'eleven_v3',
+            clone: {
+              refAudioPath: 'input/examples/audio/anthony-voice.mp3',
+              context: createElevenLabsTtsIvcContext()
+            }
+          })
+          throw new Error('expected ElevenLabs IVC failure')
+        } catch (error) {
+          expect((error as Error).message).toContain('ElevenLabs IVC voice creation failed (400): bad reference audio')
+          expect((error as { headers?: Headers }).headers?.get('retry-after')).toBe('7')
+        }
         expect(synthesisCalls).toBe(0)
       } finally {
         globalThis.fetch = previousFetch

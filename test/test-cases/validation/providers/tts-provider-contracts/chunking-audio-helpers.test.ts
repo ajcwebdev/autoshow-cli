@@ -3,13 +3,38 @@ import {
   expect,
   test
 } from 'bun:test'
-import { runTtsChunks, splitTextIntoUtf8ByteChunks } from '~/cli/commands/process-steps/step-4-tts/tts-utils/audio-utils'
+import { chmod } from 'node:fs/promises'
+import { join } from 'node:path'
+import { concatAndConvertToWav, runTtsChunks, splitTextIntoUtf8ByteChunks } from '~/cli/commands/process-steps/step-4-tts/tts-utils/audio-utils'
 import { createHostedTtsBatchCoordinator, createHostedTtsChunkScheduler } from '~/cli/commands/process-steps/step-4-tts/tts-utils/hosted-tts-chunk-scheduler'
+import { configureBinDir, getConfiguredBinDir } from '~/utils/runtime-paths'
 import { setupTtsContractLifecycle, waitForCondition } from './shared'
 
-setupTtsContractLifecycle()
+const { makeTempDir } = setupTtsContractLifecycle()
 
 describe('TTS provider service contracts', () => {
+  test('concat cleanup removes the temporary list when ffmpeg fails', async () => {
+      const outputDir = await makeTempDir('concat-failure-')
+      const fakeFfmpegPath = join(outputDir, 'ffmpeg')
+      const concatListPath = join(outputDir, 'speech-testprovider-chunks.txt')
+      const previousBinDir = getConfiguredBinDir()
+      await Bun.write(fakeFfmpegPath, '#!/bin/sh\nprintf "forced concat failure" >&2\nexit 7\n')
+      await chmod(fakeFfmpegPath, 0o755)
+      configureBinDir(outputDir)
+
+      try {
+        await expect(concatAndConvertToWav([
+          join(outputDir, 'chunk-1.mp3'),
+          join(outputDir, 'chunk-2.mp3')
+        ], outputDir, 'TestProvider')).rejects.toThrow(
+          'Failed to concatenate TestProvider audio chunks: forced concat failure'
+        )
+        expect(await Bun.file(concatListPath).exists()).toBe(false)
+      } finally {
+        configureBinDir(previousBinDir ?? '')
+      }
+    })
+
   test('UTF-8 byte chunking respects multi-byte characters and hard byte limits', () => {
       const chunks = splitTextIntoUtf8ByteChunks(`${'é'.repeat(6)} ${'🙂'.repeat(3)}`, 12)
 

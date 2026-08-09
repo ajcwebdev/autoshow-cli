@@ -29,9 +29,14 @@ export const runOrderedOcrPageTasks = async <TInput, TResult>(
   const normalizedConcurrency = normalizeOcrPageConcurrency(concurrency)
   const results: Array<TResult | undefined> = new Array(inputs.length)
   let next = 0
+  let stopped = false
 
   const runWorker = async (): Promise<void> => {
     while (true) {
+      if (stopped) {
+        return
+      }
+
       const index = next
       next += 1
       if (index >= inputs.length) {
@@ -39,9 +44,14 @@ export const runOrderedOcrPageTasks = async <TInput, TResult>(
       }
 
       const input = inputs[index] as TInput
-      const result = await worker(input, index)
-      results[index] = result
-      await onResult?.(result, input, index, results)
+      try {
+        const result = await worker(input, index)
+        results[index] = result
+        await onResult?.(result, input, index, results)
+      } catch (error) {
+        stopped = true
+        throw error
+      }
     }
   }
 

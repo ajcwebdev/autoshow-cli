@@ -29,13 +29,15 @@ const musicProviderSelectionFlags = {
   ...pickFlags(sharedConcurrencyFlags, ['provider-concurrency'])
 } as const satisfies CliFlagsDefinition
 
+export const musicCommandOptionNames = {
+  'music-duration': 'duration',
+  'music-lyrics-file': 'lyrics-file',
+  'music-instrumental': 'instrumental'
+} as const satisfies Record<string, string>
+
 export const musicCommandFlags = {
   ...withHelpGroup(musicProviderSelectionFlags, 'provider-selection'),
-  ...withHelpGroup(renameFlags(musicGenFlags, {
-    'music-duration': 'duration',
-    'music-lyrics-file': 'lyrics-file',
-    'music-instrumental': 'instrumental'
-  }), 'hosted-music'),
+  ...withHelpGroup(renameFlags(musicGenFlags, musicCommandOptionNames), 'hosted-music'),
   ...withHelpGroup(priceFlag, 'pricing'),
   ...withHelpGroup(musicLyricVideoFlags, 'lyric-video')
 } as const satisfies CliFlagsDefinition

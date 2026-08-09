@@ -3,7 +3,7 @@ import { mkdtemp, rm } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { exec } from '~/utils/cli-utils'
-import { classifyFetchRetry, runLocalModelWithRetry } from '~/utils/retries'
+import { classifyFetchRetry, runLocalModelWithRetry, withRetry } from '~/utils/retries'
 
 describe('general retry-on-any-error contracts', () => {
   test('classifyFetchRetry retries unrecognized error types', () => {
@@ -15,6 +15,38 @@ describe('general retry-on-any-error contracts', () => {
     for (const status of [400, 401, 403, 404, 422]) {
       const decision = classifyFetchRetry(Object.assign(new Error('client error'), { status }), 'runtime_http_read')
       expect(decision.shouldRetry).toBe(false)
+    }
+  })
+
+  test('classifyFetchRetry preserves timeout identity through retry-exhaustion wrappers', async () => {
+    try {
+      await withRetry(
+        {
+          retryClass: 'runtime_http_read',
+          operationName: 'wrapped-timeout',
+          policy: {
+            maxAttempts: 1,
+            baseDelayMs: 0,
+            maxDelayMs: 0,
+            jitter: false,
+            exponential: false
+          }
+        },
+        async () => {
+          throw new DOMException('The operation timed out.', 'TimeoutError')
+        },
+        (error) => classifyFetchRetry(error, 'runtime_http_read')
+      )
+      throw new Error('expected retry exhaustion')
+    } catch (error) {
+      expect(classifyFetchRetry(error, 'runtime_http_create_conservative')).toMatchObject({
+        shouldRetry: false,
+        reason: 'abort/timeout on conservative request'
+      })
+      expect(classifyFetchRetry(error, 'runtime_http_read')).toMatchObject({
+        shouldRetry: true,
+        reason: 'abort/timeout'
+      })
     }
   })
 

@@ -105,7 +105,7 @@ export const videoGenFlags = {
   'grok-video-storage-expires-after': strFlag('Grok video storage expiration in seconds (max 2592000)'),
 } as const satisfies CliFlagsDefinition
 
-const videoCommandOptionNames = {
+export const videoCommandOptionNames = {
   'video-mode': 'mode',
   'video-duration': 'duration',
   'video-size': 'size',

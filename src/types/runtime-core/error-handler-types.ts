@@ -14,6 +14,7 @@ export type AppErrorOptions = {
   exitCode?: number
   cause?: Error | undefined
   status?: number
+  headers?: Headers
   stage?: string
   retryClass?: RetryClass
   retryable?: boolean

@@ -1,9 +1,10 @@
 import { REPLICATE_DEFAULT_BASE_URL } from '~/utils/base-urls'
+import { buildCaptureMetadata, redactPayloadPreview } from '~/utils/bounded-capture'
 import { AppProviderError, InfraError, ValidationError } from '~/utils/error-handler'
 import { extractRestErrorMessage, isRecord, joinRestUrl, parseJsonOrText, readRestResponseText } from '~/utils/rest-client'
 import { classifyFetchRetry, isRetryableStatus, pollUntil, withRetry } from '~/utils/retries'
 import { MEDIA_GENERATION_TIMEOUT_MS } from '~/utils/timeouts'
-import type { ReplicatePrediction, RetryClass, RunReplicatePredictionOptions } from '~/types'
+import type { BoundedCaptureResult, ReplicatePrediction, RetryClass, RunReplicatePredictionOptions } from '~/types'
 
 const REPLICATE_SYNC_WAIT_SECONDS = 60
 const REPLICATE_POLL_INTERVAL_MS = 5_000
@@ -12,8 +13,11 @@ const REPLICATE_FAILURE_STATUSES = new Set(['failed', 'canceled', 'aborted'])
 
 class ReplicateRestError extends AppProviderError {
   override readonly status: number
-  readonly headers: Headers
+  override readonly headers: Headers
   readonly rawResponse: unknown
+  readonly bodyBytes: number
+  readonly bodyTruncated: boolean
+  readonly bodyPreview: string
   override readonly stage: string
   override readonly retryClass: RetryClass
   override readonly retryable: boolean
@@ -22,9 +26,11 @@ class ReplicateRestError extends AppProviderError {
     message: string,
     response: Response,
     rawResponse: unknown,
+    captured: BoundedCaptureResult,
     stage: string,
     retryClass: RetryClass
   ) {
+    const redactedResponse = redactPayloadPreview(rawResponse)
     super(message, {
       status: response.status,
       stage,
@@ -35,13 +41,17 @@ class ReplicateRestError extends AppProviderError {
         stage,
         retryClass,
         retryable: isRetryableStatus(response.status),
-        rawResponse
+        rawResponse: redactedResponse,
+        ...buildCaptureMetadata(captured)
       }
     })
     this.name = 'ReplicateRestError'
     this.status = response.status
     this.headers = response.headers
-    this.rawResponse = rawResponse
+    this.rawResponse = redactedResponse
+    this.bodyBytes = captured.totalBytes
+    this.bodyTruncated = captured.truncated
+    this.bodyPreview = captured.sanitizedPreview
     this.stage = stage
     this.retryClass = retryClass
     this.retryable = isRetryableStatus(response.status)
@@ -141,6 +151,7 @@ const fetchReplicateJson = async (
       `Replicate ${stage} failed (${response.status}): ${extractRestErrorMessage(parsed, rawText, response.status)}`,
       response,
       parsed,
+      captured,
       stage,
       retryClass
     )

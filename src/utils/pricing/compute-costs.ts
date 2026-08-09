@@ -68,7 +68,9 @@ export const preflightToEstimated = (estimate: AggregatedPriceEstimate): Estimat
           ...(typeof s.costMultiplier === 'number' ? { costMultiplier: s.costMultiplier } : {}),
           ...(s.costPer1kCharactersCents !== undefined ? { costPer1kCharactersCents: s.costPer1kCharactersCents } : {}),
           ...(s.inputCostPer1MCharactersCents !== undefined ? { inputCostPer1MCharactersCents: s.inputCostPer1MCharactersCents } : {}),
-          ...(s.outputCostPer1MCharactersCents !== undefined ? { outputCostPer1MCharactersCents: s.outputCostPer1MCharactersCents } : {})
+          ...(s.outputCostPer1MCharactersCents !== undefined ? { outputCostPer1MCharactersCents: s.outputCostPer1MCharactersCents } : {}),
+          ...(typeof s.setupCostCents === 'number' ? { setupCostCents: s.setupCostCents } : {}),
+          ...(typeof s.estimateType === 'string' ? { estimateType: s.estimateType } : {})
         })
         break
       case 'image':

@@ -1,4 +1,4 @@
-import { afterEach } from 'bun:test'
+import { afterEach, beforeEach } from 'bun:test'
 import { mkdir, mkdtemp, rm, writeFile } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
@@ -9,7 +9,7 @@ import { writeSyntheticWav } from '../../../../test-utils/media-fixtures'
 const tempDirs: string[] = []
 const originalFetch = globalThis.fetch
 const envKeys = ['OPENAI_API_KEY', 'ASSEMBLYAI_API_KEY'] as const
-const originalEnv = Object.fromEntries(envKeys.map((key) => [key, process.env[key]])) as Record<typeof envKeys[number], string | undefined>
+let previousEnv = {} as Record<typeof envKeys[number], string | undefined>
 
 export const makeTempRoot = async (prefix: string): Promise<string> => {
   const root = await mkdtemp(join(tmpdir(), prefix))
@@ -26,10 +26,17 @@ export const makeMockFetch = (
 ): typeof fetch => Object.assign(fn, { preconnect: () => undefined }) as typeof fetch
 
 export const installVoiceQualityReportHooks = (): void => {
+  beforeEach(() => {
+    previousEnv = Object.fromEntries(envKeys.map((key) => [key, process.env[key]])) as Record<typeof envKeys[number], string | undefined>
+    for (const key of envKeys) {
+      delete process.env[key]
+    }
+  })
+
   afterEach(async () => {
     globalThis.fetch = originalFetch
     for (const key of envKeys) {
-      const value = originalEnv[key]
+      const value = previousEnv[key]
       if (value === undefined) {
         delete process.env[key]
       } else {
