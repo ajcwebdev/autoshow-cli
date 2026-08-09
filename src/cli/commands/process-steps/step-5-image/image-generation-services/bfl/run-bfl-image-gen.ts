@@ -1,9 +1,10 @@
 import * as v from 'valibot'
-import type { BflImageModel, BflOutputFormat, RetryClass, Step5Metadata } from '~/types'
+import type { BflImageModel, BflOutputFormat, Step5Metadata } from '~/types'
 import { CLIUsageError, InfraError, ValidationError } from '~/utils/error-handler'
 import { logGenCompleted, logGenStatus } from '~/cli/commands/process-steps/generation-command-utils'
 import { estimateImageCosts, logImageEstimate } from '~/cli/commands/process-steps/step-5-image/image-utils/image-pricing'
-import { classifyFetchRetry, isRetryableStatus, pollUntil, withRetry } from '~/utils/retries'
+import { downloadGeneratedImage, extractImageErrorMessage, fetchImageProviderJson } from '~/cli/commands/process-steps/step-5-image/image-utils/polled-image-http'
+import { classifyFetchRetry, pollUntil, withRetry } from '~/utils/retries'
 import { validateData } from '~/utils/validate/validation'
 import { MEDIA_GENERATION_TIMEOUT_MS } from '~/utils/timeouts'
 import { imageReferenceToUrlOrDataUrl } from '../../image-utils/image-inputs'
@@ -69,78 +70,12 @@ export const getBflImageExtension = (format: string | undefined): string => {
   return outputFormat === 'jpeg' ? 'jpg' : outputFormat
 }
 
-const readJsonOrText = async (response: Response): Promise<unknown> => {
-  const text = await response.text()
-  if (text.length === 0) return ''
-  try {
-    return JSON.parse(text) as unknown
-  } catch {
-    return text
-  }
-}
-
-const extractErrorMessage = (payload: unknown): string | undefined => {
-  if (typeof payload === 'string') return payload
-  if (!payload || typeof payload !== 'object') return undefined
-  const record = payload as Record<string, unknown>
-  for (const key of ['message', 'error', 'detail', 'details']) {
-    const value = record[key]
-    if (typeof value === 'string') return value
-    if (value !== undefined) return JSON.stringify(value)
-  }
-  return JSON.stringify(payload)
-}
-
 const fetchBflJson = async (
   url: string,
   apiKey: string,
   init: RequestInit
-): Promise<{ response: Response, payload: unknown }> => {
-  const headers = new Headers(init.headers)
-  headers.set('accept', 'application/json')
-  headers.set('x-key', apiKey)
-
-  const response = await fetch(url, {
-    ...init,
-    headers
-  })
-  const payload = await readJsonOrText(response)
-  return { response, payload }
-}
-
-const downloadBflImage = async (
-  url: string,
-  outputPath: string,
-  outputFormat: BflOutputFormat,
-  signal?: AbortSignal | undefined
-): Promise<void> => {
-  const response = await fetch(url, {
-    method: 'GET',
-    headers: { accept: `image/${outputFormat},image/*;q=0.9,*/*;q=0.8` },
-    ...(signal ? { signal } : {})
-  })
-  if (!response.ok) {
-    const err = new Error(`BFL image result download failed (${response.status})`) as Error & {
-      status: number
-      headers: Headers
-      stage: string
-      retryClass: RetryClass
-      retryable: boolean
-    }
-    err.status = response.status
-    err.headers = response.headers
-    err.stage = 'result-download'
-    err.retryClass = 'runtime_http_read'
-    err.retryable = isRetryableStatus(response.status)
-    throw err
-  }
-
-  const bytes = new Uint8Array(await response.arrayBuffer())
-  if (bytes.byteLength === 0) {
-    throw InfraError('BFL image generation returned an empty image', { stage: 'image:bfl' })
-  }
-  await Bun.write(outputPath, bytes)
-}
+): Promise<{ response: Response, payload: unknown }> =>
+  await fetchImageProviderJson(url, init, { 'x-key': apiKey })
 
 export const runBflImageGen = async (
   prompt: string,
@@ -188,7 +123,7 @@ export const runBflImageGen = async (
   )
 
   if (!createResponse.ok) {
-    throw InfraError(`BFL image request failed (${createResponse.status}): ${extractErrorMessage(createPayload) ?? 'Unknown error'}`, { stage: 'image:bfl', status: createResponse.status })
+    throw InfraError(`BFL image request failed (${createResponse.status}): ${extractImageErrorMessage(createPayload) ?? 'Unknown error'}`, { stage: 'image:bfl', status: createResponse.status })
   }
 
   const createData = validateData(BflAsyncResponseSchema, createPayload, 'BFL image generation create response')
@@ -200,7 +135,7 @@ export const runBflImageGen = async (
     pollFn: async () => {
       const { response, payload } = await fetchBflJson(createData.polling_url, apiKey, { method: 'GET' })
       if (!response.ok) {
-        throw InfraError(`BFL image status query failed (${response.status}): ${extractErrorMessage(payload) ?? 'Unknown error'}`, { stage: 'image:bfl', status: response.status })
+        throw InfraError(`BFL image status query failed (${response.status}): ${extractImageErrorMessage(payload) ?? 'Unknown error'}`, { stage: 'image:bfl', status: response.status })
       }
       const data = validateData(BflPollResponseSchema, payload, 'BFL image generation poll response')
       logGenStatus('image', 'bfl', options.model, data.status)
@@ -210,7 +145,7 @@ export const runBflImageGen = async (
     isFailed: (data) => {
       const status = data.status.toLowerCase()
       if (status === 'error' || status === 'failed') {
-        return { failed: true, reason: extractErrorMessage(data) ?? 'Unknown error' }
+        return { failed: true, reason: extractImageErrorMessage(data) ?? 'Unknown error' }
       }
       return { failed: false }
     }
@@ -223,7 +158,9 @@ export const runBflImageGen = async (
 
   await withRetry(
     { retryClass: 'runtime_http_read', operationName: 'bfl-image-result-download' },
-    async (signal) => await downloadBflImage(sampleUrl, outputPath, outputFormat, signal),
+    async (signal) => await downloadGeneratedImage({
+      url: sampleUrl, outputPath, outputFormat, providerLabel: 'BFL', stage: 'image:bfl', signal
+    }),
     (error) => classifyFetchRetry(error, 'runtime_http_read', { retryAbortOnConservative: true })
   )
 

@@ -1,9 +1,10 @@
 import * as v from 'valibot'
-import type { LumalabsImageModel, LumalabsImageRef, LumalabsOutputFormat, RetryClass, Step5Metadata } from '~/types'
+import type { LumalabsImageModel, LumalabsImageRef, LumalabsOutputFormat, Step5Metadata } from '~/types'
 import { CLIUsageError, InfraError, ValidationError } from '~/utils/error-handler'
 import { logGenCompleted, logGenStatus } from '~/cli/commands/process-steps/generation-command-utils'
 import { estimateImageCosts, logImageEstimate } from '~/cli/commands/process-steps/step-5-image/image-utils/image-pricing'
-import { classifyFetchRetry, isRetryableStatus, pollUntil, withRetry } from '~/utils/retries'
+import { downloadGeneratedImage, extractImageErrorMessage, fetchImageProviderJson } from '~/cli/commands/process-steps/step-5-image/image-utils/polled-image-http'
+import { classifyFetchRetry, pollUntil, withRetry } from '~/utils/retries'
 import { validateData } from '~/utils/validate/validation'
 import { MEDIA_GENERATION_TIMEOUT_MS } from '~/utils/timeouts'
 import { imageReferenceToInlineDataPart, isHttpUrl } from '../../image-utils/image-inputs'
@@ -66,78 +67,15 @@ const toImageRef = async (input: string): Promise<LumalabsImageRef> => {
   return { data: inline.data, media_type: inline.mimeType }
 }
 
-const readJsonOrText = async (response: Response): Promise<unknown> => {
-  const text = await response.text()
-  if (text.length === 0) return ''
-  try {
-    return JSON.parse(text) as unknown
-  } catch {
-    return text
-  }
-}
-
-const extractErrorMessage = (payload: unknown): string | undefined => {
-  if (typeof payload === 'string') return payload
-  if (!payload || typeof payload !== 'object') return undefined
-  const record = payload as Record<string, unknown>
-  for (const key of ['message', 'error', 'detail', 'details', 'failure_reason']) {
-    const value = record[key]
-    if (typeof value === 'string') return value
-    if (value !== undefined) return JSON.stringify(value)
-  }
-  return JSON.stringify(payload)
-}
+const extractErrorMessage = (payload: unknown): string | undefined =>
+  extractImageErrorMessage(payload, ['failure_reason'])
 
 const fetchLumalabsJson = async (
   url: string,
   apiKey: string,
   init: RequestInit
-): Promise<{ response: Response, payload: unknown }> => {
-  const headers = new Headers(init.headers)
-  headers.set('accept', 'application/json')
-  headers.set('authorization', `Bearer ${apiKey}`)
-
-  const response = await fetch(url, {
-    ...init,
-    headers
-  })
-  const payload = await readJsonOrText(response)
-  return { response, payload }
-}
-
-const downloadLumalabsImage = async (
-  url: string,
-  outputPath: string,
-  outputFormat: LumalabsOutputFormat,
-  signal?: AbortSignal | undefined
-): Promise<void> => {
-  const response = await fetch(url, {
-    method: 'GET',
-    headers: { accept: `image/${outputFormat},image/*;q=0.9,*/*;q=0.8` },
-    ...(signal ? { signal } : {})
-  })
-  if (!response.ok) {
-    const err = new Error(`Luma Labs image result download failed (${response.status})`) as Error & {
-      status: number
-      headers: Headers
-      stage: string
-      retryClass: RetryClass
-      retryable: boolean
-    }
-    err.status = response.status
-    err.headers = response.headers
-    err.stage = 'result-download'
-    err.retryClass = 'runtime_http_read'
-    err.retryable = isRetryableStatus(response.status)
-    throw err
-  }
-
-  const bytes = new Uint8Array(await response.arrayBuffer())
-  if (bytes.byteLength === 0) {
-    throw InfraError('Luma Labs image generation returned an empty image', { stage: 'image:lumalabs' })
-  }
-  await Bun.write(outputPath, bytes)
-}
+): Promise<{ response: Response, payload: unknown }> =>
+  await fetchImageProviderJson(url, init, { authorization: `Bearer ${apiKey}` })
 
 export const runLumalabsImageGen = async (
   prompt: string,
@@ -225,7 +163,9 @@ export const runLumalabsImageGen = async (
 
   await withRetry(
     { retryClass: 'runtime_http_read', operationName: 'lumalabs-image-result-download' },
-    async (signal) => await downloadLumalabsImage(resultUrl, outputPath, outputFormat, signal),
+    async (signal) => await downloadGeneratedImage({
+      url: resultUrl, outputPath, outputFormat, providerLabel: 'Luma Labs', stage: 'image:lumalabs', signal
+    }),
     (error) => classifyFetchRetry(error, 'runtime_http_read', { retryAbortOnConservative: true })
   )
 

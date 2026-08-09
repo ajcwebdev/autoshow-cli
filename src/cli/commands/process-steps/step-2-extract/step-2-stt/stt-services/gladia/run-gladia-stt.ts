@@ -4,14 +4,13 @@ import { logSttAsyncJobLifecycle, logSttDiarizationConfig, logSttSegmentLifecycl
 import { buildStep2TimingMetadata } from '~/cli/commands/process-steps/step-2-extract/step-2-stt/stt-timing-metadata'
 import { buildTranscriptionWordEvidence } from '~/cli/commands/process-steps/step-2-extract/step-2-stt/stt-utils/stt-evidence'
 import { buildSegmentsFromWords, buildTranscriptionOutputBase, countTokens, formatSpeakerLabel, formatTranscriptText, resolveTranscriptionOutput, toTimestamp } from '~/cli/commands/process-steps/step-2-extract/step-2-stt/stt-utils/stt-utils'
-import type { GladiaNormalizedWord, GladiaStatusResponse, GladiaUtterance, HostedAsyncSttRunOptions, RetryClass, Step2Metadata, Step2RuntimeMetadata, SttUploadJobHttpError, TranscriptionResult, TranscriptionSegment } from '~/types'
+import type { GladiaNormalizedWord, GladiaStatusResponse, GladiaUtterance, HostedAsyncSttRunOptions, RetryClass, Step2Metadata, Step2RuntimeMetadata, SttStageHttpError, TranscriptionResult, TranscriptionSegment } from '~/types'
 import { GladiaCreateResponseSchema, GladiaStatusResponseSchema, GladiaUploadResponseSchema } from '~/types'
 import * as l from '~/utils/app-logger/app-logger'
 import { InternalError } from '~/utils/error-handler'
-import { parseRetryAfterMs, withRetry } from '~/utils/retries'
 import { requireApiKey } from '~/utils/validate/env-utils'
-import { validateData } from '~/utils/validate/validation'
-import { classifySttFetchRetryWithMetrics, createSttRetryMetrics } from '../../stt-retry-metrics'
+import { createSttRetryMetrics, sttRetryMetricsToCallbacks } from '../../stt-retry-metrics'
+import { sttStageRequest, sttStageRequestWithRetryAfter } from '../stt-stage-request'
 import { getGladiaBaseUrl } from './gladia'
 
 
@@ -42,16 +41,12 @@ export const buildGladiaCreateRequest = (
 
 const attachGladiaErrorContext = (
   error: unknown,
-  stage: 'upload' | 'create' | 'poll',
-  retryClass: RetryClass,
-  rawResponse?: unknown
+  stage: string,
+  retryClass: RetryClass
 ): never => {
   const source = error instanceof Error ? error : new Error(String(error))
-  ;(source as SttUploadJobHttpError).stage = stage
-  ;(source as SttUploadJobHttpError).retryClass = retryClass
-  if (rawResponse !== undefined) {
-    ;(source as SttUploadJobHttpError).rawResponse = rawResponse
-  }
+  ;(source as SttStageHttpError).stage = stage
+  ;(source as SttStageHttpError).retryClass = retryClass
   throw source
 }
 
@@ -167,6 +162,7 @@ export const runGladiaStt = async (
   let pollCount = 0
   let requestCount = 0
   const retryMetrics = createSttRetryMetrics()
+  const requestMetrics = sttRetryMetricsToCallbacks(retryMetrics, () => { requestCount += 1 })
   const backfillCount = runMode === 'backfill' ? 1 : 0
 
   let runtime = await readPersistedAsyncSttRuntime(outputDir, {
@@ -222,113 +218,62 @@ export const runGladiaStt = async (
     await persistProgressMetadata(runtime)
     await notifyJobReady(runtime)
   } else {
-    let uploadPayload: unknown
-    try {
-      const uploadStartedAt = Date.now()
-      uploadPayload = await withRetry(
-        {
-          retryClass: 'runtime_http_create_conservative',
-          operationName: 'gladia-upload',
-          policy: { maxAttempts: 4 },
-          timeoutMs: REQUEST_TIMEOUT_MS
-        },
-        async (signal) => {
-          requestCount += 1
-          const form = new FormData()
-          form.append('audio', Bun.file(audioPath), basename(audioPath))
+    const uploadStartedAt = Date.now()
+    const uploadRecord = await sttStageRequest({
+      operationName: 'gladia-upload',
+      stage: 'upload',
+      retryClass: 'runtime_http_create_conservative',
+      maxAttempts: 4,
+      timeoutMs: REQUEST_TIMEOUT_MS,
+      errorPrefix: 'Gladia',
+      schema: GladiaUploadResponseSchema,
+      schemaLabel: 'Gladia upload response',
+      metrics: requestMetrics,
+      attachError: attachGladiaErrorContext,
+      doFetch: (signal) => {
+        const form = new FormData()
+        form.append('audio', Bun.file(audioPath), basename(audioPath))
 
-          const response = await fetch(buildGladiaUrl(baseURL, '/v2/upload'), {
-            method: 'POST',
-            headers: authHeaders,
-            body: form,
-            signal: signal ?? null
-          })
-
-          if (!response.ok) {
-            throw Object.assign(
-              new Error(`Gladia upload failed (${response.status}): ${await response.text()}`),
-              {
-                status: response.status,
-                headers: response.headers,
-                stage: 'upload',
-                retryClass: 'runtime_http_create_conservative'
-              } satisfies Pick<SttUploadJobHttpError, 'status' | 'headers' | 'stage' | 'retryClass'>
-            )
-          }
-
-          return await response.json()
-        },
-        classifySttFetchRetryWithMetrics(retryMetrics, 'runtime_http_create_conservative', { retryAbortOnConservative: true })
-      )
-      uploadMs += Date.now() - uploadStartedAt
-    } catch (error) {
-      attachGladiaErrorContext(error, 'upload', 'runtime_http_create_conservative')
-    }
-
-    const uploadRecord = (() => {
-      try {
-        return validateData(GladiaUploadResponseSchema, uploadPayload, 'Gladia upload response')
-      } catch (error) {
-        return attachGladiaErrorContext(error, 'upload', 'runtime_http_create_conservative', uploadPayload)
+        return fetch(buildGladiaUrl(baseURL, '/v2/upload'), {
+          method: 'POST',
+          headers: authHeaders,
+          body: form,
+          signal: signal ?? null
+        })
       }
-    })()
+    })
+    uploadMs += Date.now() - uploadStartedAt
 
     uploadUrl = uploadRecord.audio_url
     uploadAssetId = uploadRecord.audio_metadata.id
 
     const createBody = buildGladiaCreateRequest(uploadUrl, modelName, diarizationOptions)
 
-    let createPayload: unknown
-    try {
-      const createStartedAt = Date.now()
-      createPayload = await withRetry(
-        {
-          retryClass: 'runtime_http_create_conservative',
-          operationName: 'gladia-create-transcription',
-          policy: { maxAttempts: 4 },
-          timeoutMs: REQUEST_TIMEOUT_MS
+    const createStartedAt = Date.now()
+    const createRecord = await sttStageRequest({
+      operationName: 'gladia-create-transcription',
+      stage: 'create',
+      retryClass: 'runtime_http_create_conservative',
+      maxAttempts: 4,
+      timeoutMs: REQUEST_TIMEOUT_MS,
+      errorPrefix: 'Gladia',
+      failureLabel: 'transcription creation',
+      schema: GladiaCreateResponseSchema,
+      schemaLabel: 'Gladia create response',
+      metrics: requestMetrics,
+      attachError: attachGladiaErrorContext,
+      doFetch: (signal) => fetch(buildGladiaUrl(baseURL, '/v2/pre-recorded'), {
+        method: 'POST',
+        headers: {
+          ...authHeaders,
+          'content-type': 'application/json'
         },
-        async (signal) => {
-          requestCount += 1
-          const response = await fetch(buildGladiaUrl(baseURL, '/v2/pre-recorded'), {
-            method: 'POST',
-            headers: {
-              ...authHeaders,
-              'content-type': 'application/json'
-            },
-            body: JSON.stringify(createBody),
-            signal: signal ?? null
-          })
-
-          if (!response.ok) {
-            throw Object.assign(
-              new Error(`Gladia transcription creation failed (${response.status}): ${await response.text()}`),
-              {
-                status: response.status,
-                headers: response.headers,
-                stage: 'create',
-                retryClass: 'runtime_http_create_conservative'
-              } satisfies Pick<SttUploadJobHttpError, 'status' | 'headers' | 'stage' | 'retryClass'>
-            )
-          }
-
-          return await response.json()
-        },
-        classifySttFetchRetryWithMetrics(retryMetrics, 'runtime_http_create_conservative', { retryAbortOnConservative: true })
-      )
-      createMs += Date.now() - createStartedAt
-      createCount += 1
-    } catch (error) {
-      attachGladiaErrorContext(error, 'create', 'runtime_http_create_conservative')
-    }
-
-    const createRecord = (() => {
-      try {
-        return validateData(GladiaCreateResponseSchema, createPayload, 'Gladia create response')
-      } catch (error) {
-        return attachGladiaErrorContext(error, 'create', 'runtime_http_create_conservative', createPayload)
-      }
-    })()
+        body: JSON.stringify(createBody),
+        signal: signal ?? null
+      })
+    })
+    createMs += Date.now() - createStartedAt
+    createCount += 1
 
     transcriptionId = createRecord.id
 
@@ -365,60 +310,28 @@ export const runGladiaStt = async (
     buildDeadlineError: (jobId, pollDeadlineMs) => buildAsyncSttPollingDeadlineError('Gladia', jobId, pollDeadlineMs),
     buildResumeProbeError: (jobId, probeCount, totalWaitMs) => buildAsyncSttResumeProbeError('Gladia', 'transcription', jobId, probeCount, totalWaitMs),
     poll: async () => {
-      let result!: { payload: unknown, retryAfterMs: number | null }
-      try {
-        const pollStartedAt = Date.now()
-        result = await withRetry(
-          {
-            retryClass: 'runtime_http_read',
-            operationName: 'gladia-poll-transcription',
-            policy: { maxAttempts: 6 },
-            timeoutMs: POLL_REQUEST_TIMEOUT_MS
-          },
-          async (signal) => {
-            requestCount += 1
-            const response = await fetch(buildGladiaUrl(baseURL, `/v2/pre-recorded/${activeTranscriptionId}`), {
-              method: 'GET',
-              headers: authHeaders,
-              signal: signal ?? null
-            })
+      const pollStartedAt = Date.now()
+      const { value, retryAfterMs } = await sttStageRequestWithRetryAfter({
+        operationName: 'gladia-poll-transcription',
+        stage: 'poll',
+        retryClass: 'runtime_http_read',
+        maxAttempts: 6,
+        timeoutMs: POLL_REQUEST_TIMEOUT_MS,
+        errorPrefix: 'Gladia',
+        failureLabel: 'polling',
+        schema: GladiaStatusResponseSchema,
+        schemaLabel: 'Gladia transcription status response',
+        metrics: requestMetrics,
+        attachError: attachGladiaErrorContext,
+        doFetch: (signal) => fetch(buildGladiaUrl(baseURL, `/v2/pre-recorded/${activeTranscriptionId}`), {
+          method: 'GET',
+          headers: authHeaders,
+          signal: signal ?? null
+        })
+      })
+      pollMs += Date.now() - pollStartedAt
 
-            if (!response.ok) {
-              throw Object.assign(
-                new Error(`Gladia polling failed (${response.status}): ${await response.text()}`),
-                {
-                  status: response.status,
-                  headers: response.headers,
-                  stage: 'poll',
-                  retryClass: 'runtime_http_read'
-                } satisfies Pick<SttUploadJobHttpError, 'status' | 'headers' | 'stage' | 'retryClass'>
-              )
-            }
-
-            return {
-              payload: await response.json(),
-              retryAfterMs: parseRetryAfterMs(response.headers) ?? null
-            }
-          },
-          classifySttFetchRetryWithMetrics(retryMetrics, 'runtime_http_read', { retryAbortOnConservative: true })
-        )
-        pollMs += Date.now() - pollStartedAt
-      } catch (error) {
-        attachGladiaErrorContext(error, 'poll', 'runtime_http_read')
-      }
-
-      const status = (() => {
-        try {
-          return validateData(GladiaStatusResponseSchema, result.payload, 'Gladia transcription status response')
-        } catch (error) {
-          return attachGladiaErrorContext(error, 'poll', 'runtime_http_read', result.payload)
-        }
-      })()
-
-      return {
-        status,
-        retryAfterMs: result.retryAfterMs
-      }
+      return { status: value, retryAfterMs }
     },
     isComplete: (status) => status.status === 'done',
     isFailed: (status) =>

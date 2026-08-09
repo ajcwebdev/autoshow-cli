@@ -3,15 +3,15 @@ import { logSttAsyncJobLifecycle, logSttDiarizationConfig, logSttSegmentLifecycl
 import { buildStep2TimingMetadata } from '~/cli/commands/process-steps/step-2-extract/step-2-stt/stt-timing-metadata'
 import { buildTranscriptionWordEvidence } from '~/cli/commands/process-steps/step-2-extract/step-2-stt/stt-utils/stt-evidence'
 import { buildSegmentsFromWords, buildTranscriptionOutputBase, countTokens, formatTranscriptText, resolveTranscriptionOutput, toTimestamp } from '~/cli/commands/process-steps/step-2-extract/step-2-stt/stt-utils/stt-utils'
-import type { HostedAsyncSttRunOptions, RetryClass, Step2Metadata, Step2RuntimeMetadata, SttUploadJobHttpError, TranscriptionResult, TranscriptionSegment } from '~/types'
+import type { HostedAsyncSttRunOptions, RetryClass, Step2Metadata, Step2RuntimeMetadata, SttStageHttpError, TranscriptionResult, TranscriptionSegment } from '~/types'
 import { AssemblyAiTranscriptResponseSchema } from '~/types'
 import { ASSEMBLYAI_DEFAULT_BASE_URL } from '~/utils/base-urls'
 import * as l from '~/utils/app-logger/app-logger'
-import { withRetry } from '~/utils/retries'
+import * as v from 'valibot'
 import { requireApiKey } from '~/utils/validate/env-utils'
-import { validateData } from '~/utils/validate/validation'
 import { InternalError, ValidationError } from '~/utils/error-handler'
-import { classifySttFetchRetryWithMetrics, createSttRetryMetrics } from '../../stt-retry-metrics'
+import { createSttRetryMetrics, sttRetryMetricsToCallbacks } from '../../stt-retry-metrics'
+import { sttStageRequest, sttStageRequestWithRetryAfter } from '../stt-stage-request'
 
 const INITIAL_POLL_INTERVAL_MS = 1000
 const MAX_POLL_INTERVAL_MS = 10000
@@ -34,33 +34,14 @@ const formatSpeaker = (speaker: string | undefined): string | undefined => {
   return `speaker-${speaker}`
 }
 
-const parseRetryAfterMs = (headers: Headers): number | null => {
-  const retryAfter = headers.get('retry-after')
-  if (!retryAfter) {
-    return null
-  }
-
-  const asSeconds = Number.parseFloat(retryAfter)
-  if (Number.isFinite(asSeconds) && asSeconds >= 0) {
-    return Math.round(asSeconds * 1000)
-  }
-
-  const asDate = Date.parse(retryAfter)
-  if (Number.isFinite(asDate)) {
-    return Math.max(0, asDate - Date.now())
-  }
-
-  return null
-}
-
 const attachAssemblyAiErrorContext = (
   error: unknown,
-  stage: 'upload' | 'create' | 'poll',
+  stage: string,
   retryClass: RetryClass
 ): never => {
   const source = error instanceof Error ? error : new Error(String(error))
-  ;(source as SttUploadJobHttpError).stage = stage
-  ;(source as SttUploadJobHttpError).retryClass = retryClass
+  ;(source as SttStageHttpError).stage = stage
+  ;(source as SttStageHttpError).retryClass = retryClass
   throw source
 }
 
@@ -104,6 +85,7 @@ export const runAssemblyAiTranscribe = async (
   let pollCount = 0
   let requestCount = 0
   const retryMetrics = createSttRetryMetrics()
+  const requestMetrics = sttRetryMetricsToCallbacks(retryMetrics, () => { requestCount += 1 })
   const backfillCount = runMode === 'backfill' ? 1 : 0
 
   const baseURL = ASSEMBLYAI_DEFAULT_BASE_URL
@@ -164,49 +146,30 @@ export const runAssemblyAiTranscribe = async (
     await persistProgressMetadata(runtime)
     await notifyJobReady(runtime)
   } else {
-    let uploadResult: unknown
-    try {
-      const uploadStartedAt = Date.now()
-      uploadResult = await withRetry(
-        {
-          retryClass: 'runtime_http_create_conservative',
-          operationName: 'assemblyai-upload',
-          policy: { maxAttempts: 4 },
-          timeoutMs: REQUEST_TIMEOUT_MS
+    const uploadStartedAt = Date.now()
+    const uploadResult = await sttStageRequest({
+      operationName: 'assemblyai-upload',
+      stage: 'upload',
+      retryClass: 'runtime_http_create_conservative',
+      maxAttempts: 4,
+      timeoutMs: REQUEST_TIMEOUT_MS,
+      errorPrefix: 'AssemblyAI',
+      schema: v.unknown(),
+      schemaLabel: 'AssemblyAI upload response',
+      metrics: requestMetrics,
+      attachError: attachAssemblyAiErrorContext,
+      doFetch: (signal) => fetch(`${baseURL}/v2/upload`, {
+        method: 'POST',
+        headers: {
+          'authorization': apiKey,
+          'content-type': 'application/octet-stream'
         },
-        async (signal) => {
-          requestCount += 1
-          const uploadResponse = await fetch(`${baseURL}/v2/upload`, {
-            method: 'POST',
-            headers: {
-              'authorization': apiKey,
-              'content-type': 'application/octet-stream'
-            },
-            body: audioFile,
-            signal: signal ?? null
-          })
+        body: audioFile,
+        signal: signal ?? null
+      })
+    })
+    uploadMs += Date.now() - uploadStartedAt
 
-          if (!uploadResponse.ok) {
-            const errText = await uploadResponse.text()
-            throw Object.assign(
-              new Error(`AssemblyAI upload failed (${uploadResponse.status}): ${errText}`),
-              {
-                status: uploadResponse.status,
-                headers: uploadResponse.headers,
-                stage: 'upload',
-                retryClass: 'runtime_http_create_conservative'
-              } satisfies Pick<SttUploadJobHttpError, 'status' | 'headers' | 'stage' | 'retryClass'>
-            )
-          }
-
-          return await uploadResponse.json()
-        },
-        classifySttFetchRetryWithMetrics(retryMetrics, 'runtime_http_create_conservative', { retryAbortOnConservative: true })
-      )
-      uploadMs += Date.now() - uploadStartedAt
-    } catch (error) {
-      attachAssemblyAiErrorContext(error, 'upload', 'runtime_http_create_conservative')
-    }
     const uploadRecord = uploadResult as Record<string, unknown> | null
     if (typeof uploadRecord !== 'object' || uploadRecord === null || typeof uploadRecord['upload_url'] !== 'string') {
       throw ValidationError('AssemblyAI upload response missing upload_url', { stage: 'stt:assemblyai' })
@@ -219,47 +182,29 @@ export const runAssemblyAiTranscribe = async (
       diarizationOptions?.speakerCount
     )
 
-    let createResult: unknown
-    try {
-      const createStartedAt = Date.now()
-      createResult = await withRetry(
-        {
-          retryClass: 'runtime_http_create_conservative',
-          operationName: 'assemblyai-create-transcript',
-          policy: { maxAttempts: 4 },
-          timeoutMs: REQUEST_TIMEOUT_MS
-        },
-        async (signal) => {
-          requestCount += 1
-          const createResponse = await fetch(`${baseURL}/v2/transcript`, {
-            method: 'POST',
-            headers,
-            body: JSON.stringify(transcriptBody),
-            signal: signal ?? null
-          })
+    const createStartedAt = Date.now()
+    const createResult = await sttStageRequest({
+      operationName: 'assemblyai-create-transcript',
+      stage: 'create',
+      retryClass: 'runtime_http_create_conservative',
+      maxAttempts: 4,
+      timeoutMs: REQUEST_TIMEOUT_MS,
+      errorPrefix: 'AssemblyAI',
+      failureLabel: 'transcript creation',
+      schema: v.unknown(),
+      schemaLabel: 'AssemblyAI transcript creation response',
+      metrics: requestMetrics,
+      attachError: attachAssemblyAiErrorContext,
+      doFetch: (signal) => fetch(`${baseURL}/v2/transcript`, {
+        method: 'POST',
+        headers,
+        body: JSON.stringify(transcriptBody),
+        signal: signal ?? null
+      })
+    })
+    createMs += Date.now() - createStartedAt
+    createCount += 1
 
-          if (!createResponse.ok) {
-            const errText = await createResponse.text()
-            throw Object.assign(
-              new Error(`AssemblyAI transcript creation failed (${createResponse.status}): ${errText}`),
-              {
-                status: createResponse.status,
-                headers: createResponse.headers,
-                stage: 'create',
-                retryClass: 'runtime_http_create_conservative'
-              } satisfies Pick<SttUploadJobHttpError, 'status' | 'headers' | 'stage' | 'retryClass'>
-            )
-          }
-
-          return await createResponse.json()
-        },
-        classifySttFetchRetryWithMetrics(retryMetrics, 'runtime_http_create_conservative', { retryAbortOnConservative: true })
-      )
-      createMs += Date.now() - createStartedAt
-      createCount += 1
-    } catch (error) {
-      attachAssemblyAiErrorContext(error, 'create', 'runtime_http_create_conservative')
-    }
     const createRecord = createResult as Record<string, unknown> | null
     if (typeof createRecord !== 'object' || createRecord === null || typeof createRecord['id'] !== 'string') {
       throw ValidationError('AssemblyAI transcript creation response missing id', { stage: 'stt:assemblyai' })
@@ -297,53 +242,28 @@ export const runAssemblyAiTranscribe = async (
     buildDeadlineError: (jobId, pollDeadlineMs) => buildAsyncSttPollingDeadlineError('AssemblyAI', jobId, pollDeadlineMs),
     buildResumeProbeError: (jobId, probeCount, totalWaitMs) => buildAsyncSttResumeProbeError('AssemblyAI', 'transcript', jobId, probeCount, totalWaitMs),
     poll: async () => {
-      let result!: { payload: unknown, retryAfterMs: number | null }
-      try {
-        const pollStartedAt = Date.now()
-        result = await withRetry(
-          {
-            retryClass: 'runtime_http_read',
-            operationName: 'assemblyai-poll-transcript',
-            policy: { maxAttempts: 6 },
-            timeoutMs: POLL_REQUEST_TIMEOUT_MS
-          },
-          async (signal) => {
-            requestCount += 1
-            const pollResponse = await fetch(`${baseURL}/v2/transcript/${activeTranscriptId}`, {
-              method: 'GET',
-              headers: { 'authorization': apiKey },
-              signal: signal ?? null
-            })
+      const pollStartedAt = Date.now()
+      const { value, retryAfterMs } = await sttStageRequestWithRetryAfter({
+        operationName: 'assemblyai-poll-transcript',
+        stage: 'poll',
+        retryClass: 'runtime_http_read',
+        maxAttempts: 6,
+        timeoutMs: POLL_REQUEST_TIMEOUT_MS,
+        errorPrefix: 'AssemblyAI',
+        failureLabel: 'polling',
+        schema: AssemblyAiTranscriptResponseSchema,
+        schemaLabel: 'AssemblyAI transcript response',
+        metrics: requestMetrics,
+        attachError: attachAssemblyAiErrorContext,
+        doFetch: (signal) => fetch(`${baseURL}/v2/transcript/${activeTranscriptId}`, {
+          method: 'GET',
+          headers: { 'authorization': apiKey },
+          signal: signal ?? null
+        })
+      })
+      pollMs += Date.now() - pollStartedAt
 
-            if (!pollResponse.ok) {
-              const errText = await pollResponse.text()
-              throw Object.assign(
-                new Error(`AssemblyAI polling failed (${pollResponse.status}): ${errText}`),
-                {
-                  status: pollResponse.status,
-                  headers: pollResponse.headers,
-                  stage: 'poll',
-                  retryClass: 'runtime_http_read'
-                } satisfies Pick<SttUploadJobHttpError, 'status' | 'headers' | 'stage' | 'retryClass'>
-              )
-            }
-
-            return {
-              payload: await pollResponse.json(),
-              retryAfterMs: parseRetryAfterMs(pollResponse.headers)
-            }
-          },
-          classifySttFetchRetryWithMetrics(retryMetrics, 'runtime_http_read', { retryAbortOnConservative: true })
-        )
-        pollMs += Date.now() - pollStartedAt
-      } catch (error) {
-        attachAssemblyAiErrorContext(error, 'poll', 'runtime_http_read')
-      }
-
-      return {
-        status: validateData(AssemblyAiTranscriptResponseSchema, result.payload, 'AssemblyAI transcript response'),
-        retryAfterMs: result.retryAfterMs
-      }
+      return { status: value, retryAfterMs }
     },
     isComplete: (status) => status.status === 'completed',
     isFailed: (status) =>

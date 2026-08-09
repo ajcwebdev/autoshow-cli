@@ -21,7 +21,7 @@ export const lifecycleMetricsToCallbacks = (
 export const sttStageRequestWithRetryAfter = async <TSchema extends SttStageSchema>(
   options: SttStageRequestOptions<TSchema>
 ): Promise<{ value: InferOutput<TSchema>, retryAfterMs: number | null }> => {
-  const { errorPrefix, metrics, retryClass, stage } = options
+  const { attachError = attachAsyncSttErrorContext, errorPrefix, failureLabel, metrics, retryClass, stage } = options
 
   let result!: { payload: unknown, retryAfterMs: number | null }
   try {
@@ -38,7 +38,7 @@ export const sttStageRequestWithRetryAfter = async <TSchema extends SttStageSche
 
         if (!response.ok) {
           throw Object.assign(
-            new Error(`${errorPrefix} ${stage} failed (${response.status}): ${await response.text()}`),
+            new Error(`${errorPrefix} ${failureLabel ?? stage} failed (${response.status}): ${await response.text()}`),
             {
               status: response.status,
               headers: response.headers,
@@ -62,7 +62,7 @@ export const sttStageRequestWithRetryAfter = async <TSchema extends SttStageSche
       }
     )
   } catch (error) {
-    attachAsyncSttErrorContext<SttStageHttpError>(error, stage, retryClass)
+    attachError(error, stage, retryClass)
   }
 
   try {

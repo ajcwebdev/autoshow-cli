@@ -4,6 +4,7 @@ import { dirname } from 'node:path'
 import type { DownloadFlowId, DownloadProfile, DownloadProfileId, DownloadRequest, DownloadResult, PartialDownloadMetadata } from '~/types'
 import { extractTarGzBuffer } from './tar-gz'
 import { withSetupDownloadSlot } from './download-admission'
+import { runCapture } from '~/cli/commands/setup-and-utilities/setup/run-complete-setup'
 import { InfraError, InternalError } from '~/utils/error-handler'
 
 // Downloads abort on inactivity, not on elapsed transfer time: a flat total
@@ -249,19 +250,6 @@ const fetchToPartFile = async (req: DownloadRequest, profile: DownloadProfile): 
   }
 }
 
-const runArchiveCommand = async (command: string, args: string[]): Promise<void> => {
-  const proc = Bun.spawn([command, ...args], { stdout: 'pipe', stderr: 'pipe' })
-  const [stdout, stderr, exitCode] = await Promise.all([
-    proc.stdout ? new Response(proc.stdout).text() : Promise.resolve(''),
-    proc.stderr ? new Response(proc.stderr).text() : Promise.resolve(''),
-    proc.exited
-  ])
-  if (exitCode !== 0) {
-    const detail = stderr.trim() || stdout.trim()
-    throw InfraError(`${command} extraction failed with exit code ${exitCode}${detail ? `: ${detail}` : ''}`, { stage: 'setup:download' })
-  }
-}
-
 const extractDownloadedArchive = async (
   archivePath: string,
   req: DownloadRequest,
@@ -283,14 +271,14 @@ const extractDownloadedArchive = async (
     if (req.stripComponents !== undefined) {
       args.push(`--strip-components=${req.stripComponents}`)
     }
-    await runArchiveCommand('tar', args)
+    await runCapture('tar', args)
     return
   }
 
   if (req.stripComponents !== undefined && req.stripComponents > 0) {
     throw InternalError('zip extraction does not support stripComponents', { stage: 'setup:download' })
   }
-  await runArchiveCommand('unzip', ['-q', archivePath, '-d', req.destination])
+  await runCapture('unzip', ['-q', archivePath, '-d', req.destination])
 }
 
 export const downloadFile = async (req: DownloadRequest): Promise<DownloadResult> => {

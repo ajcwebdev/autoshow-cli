@@ -1,15 +1,12 @@
-import { resolve } from 'node:path'
 import * as v from 'valibot'
 import { MinimaxBaseRespSchema, ensureMinimaxBaseRespSuccess, isMinimaxTaskFailure, isMinimaxTaskSuccess, parseMinimaxJsonResponse } from '~/cli/commands/process-steps/step-4-tts/tts-services/tts-minimax/minimax-utils'
-import { runTtsChunks, splitTextIntoChunks } from '~/cli/commands/process-steps/step-4-tts/tts-utils/audio-utils'
+import { concatAndConvertToWav, runTtsChunks, splitTextIntoChunks } from '~/cli/commands/process-steps/step-4-tts/tts-utils/audio-utils'
 import { finalizeTtsRun } from '~/cli/commands/process-steps/step-4-tts/tts-utils/finalize-tts-run'
 import { withHostedTtsRetry } from '~/cli/commands/process-steps/step-4-tts/tts-utils/hosted-tts-retry'
 import { logTtsConfig } from '~/cli/commands/process-steps/step-4-tts/tts-utils/log-tts-config'
 import { TTS_CHUNK_CHARACTER_LIMITS } from '~/cli/commands/process-steps/step-4-tts/tts-utils/tts-chunking'
 import type { MinimaxTtsOptions, Step4Metadata } from '~/types'
 import { MINIMAX_DEFAULT_BASE_URL } from '~/utils/base-urls'
-import { exec } from '~/utils/cli-utils'
-import { getFfmpegBinary } from '~/utils/runtime-paths'
 import * as l from '~/utils/app-logger/app-logger'
 import { pollUntil } from '~/utils/retries'
 import { MEDIA_GENERATION_TIMEOUT_MS } from '~/utils/timeouts'
@@ -88,60 +85,6 @@ const downloadChunkAudio = async (
   }
 
   await Bun.write(chunkPath, bytes)
-}
-
-const concatAndConvertToWav = async (chunkPaths: string[], outputDir: string): Promise<string> => {
-  const wavPath = `${outputDir}/speech.wav`
-
-  if (chunkPaths.length === 1) {
-    const ffmpeg = await exec(getFfmpegBinary(), [
-      '-i', chunkPaths[0] as string,
-      '-ar', '16000',
-      '-ac', '1',
-      '-c:a', 'pcm_s16le',
-      '-y',
-      wavPath
-    ])
-    if (ffmpeg.exitCode !== 0) {
-      throw InfraError(`Failed to convert MiniMax audio to WAV: ${ffmpeg.stderr.trim()}`, { stage: 'tts:minimax' })
-    }
-    return wavPath
-  }
-
-  const concatListPath = `${outputDir}/speech-minimax-chunks.txt`
-  const mergedPath = `${outputDir}/speech-minimax-merged.mp3`
-  const concatList = chunkPaths
-    .map(path => `file '${resolve(path).replace(/'/g, `'\\''`)}'`)
-    .join('\n')
-  await Bun.write(concatListPath, `${concatList}\n`)
-
-  const concat = await exec(getFfmpegBinary(), [
-    '-f', 'concat',
-    '-safe', '0',
-    '-i', concatListPath,
-    '-c', 'copy',
-    '-y',
-    mergedPath
-  ])
-
-  if (concat.exitCode !== 0) {
-    throw InfraError(`Failed to concatenate MiniMax audio chunks: ${concat.stderr.trim()}`, { stage: 'tts:minimax' })
-  }
-
-  const convert = await exec(getFfmpegBinary(), [
-    '-i', mergedPath,
-    '-ar', '16000',
-    '-ac', '1',
-    '-c:a', 'pcm_s16le',
-    '-y',
-    wavPath
-  ])
-
-  if (convert.exitCode !== 0) {
-    throw InfraError(`Failed to convert concatenated MiniMax audio to WAV: ${convert.stderr.trim()}`, { stage: 'tts:minimax' })
-  }
-
-  return wavPath
 }
 
 export const runMinimaxTts = async (
@@ -288,7 +231,7 @@ export const runMinimaxTts = async (
       return chunkPath
     }, { provider: 'minimax', scheduler: options.chunkScheduler })
 
-    const audioPath = await concatAndConvertToWav(orderedChunkPaths, outputDir)
+    const audioPath = await concatAndConvertToWav(orderedChunkPaths, outputDir, 'MiniMax')
     const result = finalizeTtsRun({
       service: 'minimax',
       model: options.model,
@@ -306,6 +249,6 @@ export const runMinimaxTts = async (
     for (const chunkPath of chunkPaths) {
       await Bun.$`rm -f ${chunkPath}`.quiet().nothrow()
     }
-    await Bun.$`rm -f ${outputDir}/speech-minimax-chunks.txt ${outputDir}/speech-minimax-merged.mp3`.quiet().nothrow()
+    await Bun.$`rm -f ${outputDir}/speech-minimax-chunks.txt`.quiet().nothrow()
   }
 }

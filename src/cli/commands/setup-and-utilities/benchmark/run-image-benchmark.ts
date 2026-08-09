@@ -4,7 +4,7 @@ import * as l from '~/utils/app-logger/app-logger'
 import { createHumanTable, createKeyValueTable } from '~/utils/app-logger/human-table/human-table'
 import { average, costFromRunCostSteps, ensureFile, escapeCell, formatScore, getArray, getNumber, getString, loadMediaRunJson, parseJsonObjectFromText, providerGroup, providerKey, round2, runOpenAIJudge, stringArray, uniqueStrings } from './benchmark-utils'
 import type { BenchmarkFlags, ImageBenchmarkProvider, ImageCriterionScores, ImageEvaluation, ImageFileReference, ImageQualityProviderReport, ImageQualityReport, ImageRunEntry, ImageRunJson, JsonObject } from '~/types'
-import { buildMediaRankingSurfaces, splitProviderComparisonRows, writeProviderComparisonMarkdown } from './media-provider-comparison'
+import { baseMediaComparisonRow, writeMediaComparisonReports } from './media-provider-comparison'
 const DEFAULT_IMAGE_JUDGE_MODEL = 'gpt-5.5'
 const QUALITY_METRIC_NAME = 'image quality score'
 
@@ -328,36 +328,7 @@ const providerComparisonRows = (report: ImageQualityReport): JsonObject[] =>
     .slice()
     .sort((left, right) => left.providerKey.localeCompare(right.providerKey))
     .map((provider) => ({
-      rank: provider.rank,
-      providerKey: provider.providerKey,
-      provider: provider.providerKey,
-      model: null,
-      group: provider.group,
-      processingTimeMs: provider.processingTimeMs ?? null,
-      actualProcessingTimeMs: provider.processingTimeMs ?? null,
-      costCents: provider.costCents ?? null,
-      actualCostCents: provider.costCents ?? null,
-      qualityScore: provider.qualityScore,
-      qualityMetric: provider.qualityMetric,
-      qualityValue: provider.qualityScore,
-      qualityLabel: `${formatScore(provider.qualityScore)}/100`,
-      metrics: {
-        wer: null,
-        cer: null,
-        speakerAwareWER: null,
-        textOnlyWER: null,
-        roundtripWER: null,
-        contentCoverage: null,
-        qualityScore: provider.qualityScore
-      },
-      supportsDiarization: null,
-      diarizationSupport: null,
-      tierGroup: null,
-      groupOverallRank: null,
-      groupTier: null,
-      qualityWarnings: [],
-      segmentStats: null,
-      duplicateGroupId: null,
+      ...baseMediaComparisonRow(provider),
       imageQuality: {
         judgeModel: report.judge.model,
         qualityScore: provider.qualityScore,
@@ -372,64 +343,14 @@ const providerComparisonRows = (report: ImageQualityReport): JsonObject[] =>
 const writeProviderComparisonReports = async (
   runDir: string,
   report: ImageQualityReport
-): Promise<{ jsonOut: string, markdownOut: string }> => {
-  const rows = providerComparisonRows(report)
-  const { local: localProviders, service: serviceProviders } = splitProviderComparisonRows(rows)
-  const rankingSurfaces = buildMediaRankingSurfaces(rows, { qualityLabel: 'image quality' })
-  const jsonOut = join(runDir, 'provider-comparison-report.json')
-  const markdownOut = join(runDir, 'provider-comparison-report.md')
-
-  const comparisonReport: JsonObject = {
-    schemaVersion: 2,
-    kind: 'image-provider-comparison',
+): Promise<{ jsonOut: string, markdownOut: string }> =>
+  await writeMediaComparisonReports(runDir, {
     category: 'image',
-    runDir,
-    runName: basename(runDir),
-    generatedAt: report.generatedAt,
-    metric: 'image-quality-price-speed',
-    scoreFormula: 'Automated quality ranking uses OpenAI image quality score; price and speed surfaces remain independent.',
-    tiering: null,
-    duplicateGroups: [],
-    normalization: null,
-    providerCount: report.providerCount,
-    providerGroups: {
-      local: {
-        count: localProviders.length,
-        providers: localProviders
-      },
-      service: {
-        count: serviceProviders.length,
-        providers: serviceProviders
-      }
-    },
-    providers: rows,
-    rankingSurfaces,
-    combinedLeaderboardPolicy: 'omitted: local and service providers are not ranked against each other',
-    notes: [
-      'Automated quality rankings use explicit image judge scores from image-quality-report.json.',
-      'Price and speed surfaces are evidence-only and do not affect image quality scores.',
-      'Image mode evaluates existing generated images only; it does not generate new images.'
-    ]
-  }
-
-  await Bun.write(jsonOut, `${JSON.stringify(comparisonReport, null, 2)}\n`)
-  await writeProviderComparisonMarkdown(markdownOut, {
-    title: 'Image Provider Comparison Report',
-    runDir: report.runDir,
-    providerCount: report.providerCount,
-    judgeModel: report.judge.model,
-    qualityReportFileName: 'image-quality-report.json',
-    qualityProxyMethodText: 'File size, dimensions, latency, and cost are not used as quality proxies.',
-    rows,
-    rankingSurfaces,
-    notes: [
-      '- Image mode evaluates existing generated images only; it does not generate new images.',
-      '- Quality scores are explicit judge scores and are not inferred from file size, dimensions, latency, or cost.'
-    ]
+    categoryLabel: 'Image',
+    proxyNoun: 'dimensions',
+    report,
+    rows: providerComparisonRows(report)
   })
-
-  return { jsonOut, markdownOut }
-}
 
 const writeImageQualityReports = async (
   runDir: string,

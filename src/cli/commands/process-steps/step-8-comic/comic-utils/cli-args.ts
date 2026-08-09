@@ -86,6 +86,45 @@ const parseImageModels = (value: string): ParsedImageModel[] => {
   return parsedModels
 }
 
+const parseLlmModelFlag = (existing: ParsedLlmModel | undefined, args: string[], index: number, flag: string): ParsedLlmModel => {
+  if (existing) throw CLIUsageError('LLM model can only be specified once')
+  const llmModel = readFlagValue(args, index, flag)
+  if (!findRegistryServiceForModel('llm', llmModel)) {
+    throw CLIUsageError(
+      `Invalid llm model "${llmModel}". It is not present in the central LLM registry.`
+    )
+  }
+
+  return llmModel as ParsedLlmModel
+}
+
+const parseImageSizeFlag = (existing: ParsedImageSize | undefined, args: string[], index: number, flag: string): ParsedImageSize => {
+  if (existing) throw CLIUsageError('Size can only be specified once')
+  return readFlagValue(args, index, flag) as ParsedImageSize
+}
+
+const parseImageQualityFlag = (existing: ParsedImageQuality | undefined, args: string[], index: number, flag: string): ParsedImageQuality => {
+  if (existing) throw CLIUsageError('Quality can only be specified once')
+  const quality = readFlagValue(args, index, flag)
+  if (!IMAGE_QUALITY_OPTIONS.has(quality)) {
+    throw CLIUsageError(`Invalid quality "${quality}". Expected one of: low, medium, high, auto`)
+  }
+
+  return quality as ParsedImageQuality
+}
+
+const parseConcurrencyFlag = (existing: number | undefined, args: string[], index: number, flag: string): number => {
+  if (existing !== undefined) throw CLIUsageError('Concurrency can only be specified once')
+  return parseConcurrencyValue(readFlagValue(args, index, flag))
+}
+
+// Trailing positional script path shared by the draft-scenes and generate-images default cases.
+const readTrailingScriptPath = (existing: string | undefined, argument: string | undefined): string | undefined => {
+  if (argument && argument.startsWith('-')) throw CLIUsageError(`Unknown argument: ${argument}`)
+  if (existing) throw CLIUsageError('Script path can only be specified once')
+  return argument
+}
+
 export const parseDraftScenesArgs = (args: string[]): ParsedDraftCommandArgs => {
   const parsed: ParsedDraftCommandArgs = { showHelp: false }
 
@@ -101,18 +140,7 @@ export const parseDraftScenesArgs = (args: string[]): ParsedDraftCommandArgs => 
         parsed.price = true
         break
       case '--llm-model': {
-        if (parsed.llmModel) {
-          throw CLIUsageError('LLM model can only be specified once')
-        }
-
-        const llmModel = readFlagValue(args, index, argument)
-        if (!findRegistryServiceForModel('llm', llmModel)) {
-          throw CLIUsageError(
-            `Invalid llm model "${llmModel}". It is not present in the central LLM registry.`
-          )
-        }
-
-        parsed.llmModel = llmModel as ParsedLlmModel
+        parsed.llmModel = parseLlmModelFlag(parsed.llmModel, args, index, argument)
         index++
         break
       }
@@ -133,23 +161,14 @@ export const parseDraftScenesArgs = (args: string[]): ParsedDraftCommandArgs => 
         break
       }
       case '--concurrency': {
-        if (parsed.concurrency !== undefined) {
-          throw CLIUsageError('Concurrency can only be specified once')
-        }
-
-        parsed.concurrency = parseConcurrencyValue(readFlagValue(args, index, argument))
+        parsed.concurrency = parseConcurrencyFlag(parsed.concurrency, args, index, argument)
         index++
         break
       }
       default: {
-        if (argument && argument.startsWith('-')) {
-          throw CLIUsageError(`Unknown argument: ${argument}`)
-        }
-        if (parsed.scriptPath) {
-          throw CLIUsageError('Script path can only be specified once')
-        }
-        if (argument) {
-          parsed.scriptPath = argument
+        const scriptPath = readTrailingScriptPath(parsed.scriptPath, argument)
+        if (scriptPath) {
+          parsed.scriptPath = scriptPath
         }
         break
       }
@@ -232,26 +251,12 @@ export const parseReferenceSketchArgs = (args: string[]): ParsedReferenceSketchA
         break
       }
       case '--size': {
-        if (parsed.size) {
-          throw CLIUsageError('Size can only be specified once')
-        }
-
-        const size = readFlagValue(args, index, argument)
-        parsed.size = size as ParsedImageSize
+        parsed.size = parseImageSizeFlag(parsed.size, args, index, argument)
         index++
         break
       }
       case '--quality': {
-        if (parsed.quality) {
-          throw CLIUsageError('Quality can only be specified once')
-        }
-
-        const quality = readFlagValue(args, index, argument)
-        if (!IMAGE_QUALITY_OPTIONS.has(quality)) {
-          throw CLIUsageError(`Invalid quality "${quality}". Expected one of: low, medium, high, auto`)
-        }
-
-        parsed.quality = quality as ParsedImageQuality
+        parsed.quality = parseImageQualityFlag(parsed.quality, args, index, argument)
         index++
         break
       }
@@ -274,11 +279,7 @@ export const parseReferenceSketchArgs = (args: string[]): ParsedReferenceSketchA
         break
       }
       case '--concurrency': {
-        if (parsed.concurrency !== undefined) {
-          throw CLIUsageError('Concurrency can only be specified once')
-        }
-
-        parsed.concurrency = parseConcurrencyValue(readFlagValue(args, index, argument))
+        parsed.concurrency = parseConcurrencyFlag(parsed.concurrency, args, index, argument)
         index++
         break
       }
@@ -361,27 +362,12 @@ export const parseGenerateImagesArgs = (args: string[]): ParsedGenerateImagesArg
         break
       }
       case '--llm-model': {
-        if (parsed.llmModel) {
-          throw CLIUsageError('LLM model can only be specified once')
-        }
-
-        const llmModel = readFlagValue(args, index, argument)
-        if (!findRegistryServiceForModel('llm', llmModel)) {
-          throw CLIUsageError(
-            `Invalid llm model "${llmModel}". It is not present in the central LLM registry.`
-          )
-        }
-
-        parsed.llmModel = llmModel as ParsedLlmModel
+        parsed.llmModel = parseLlmModelFlag(parsed.llmModel, args, index, argument)
         index++
         break
       }
       case '--concurrency': {
-        if (parsed.concurrency !== undefined) {
-          throw CLIUsageError('Concurrency can only be specified once')
-        }
-
-        parsed.concurrency = parseConcurrencyValue(readFlagValue(args, index, argument))
+        parsed.concurrency = parseConcurrencyFlag(parsed.concurrency, args, index, argument)
         index++
         break
       }
@@ -436,26 +422,12 @@ export const parseGenerateImagesArgs = (args: string[]): ParsedGenerateImagesArg
         break
       }
       case '--size': {
-        if (parsed.size) {
-          throw CLIUsageError('Size can only be specified once')
-        }
-
-        const size = readFlagValue(args, index, argument)
-        parsed.size = size as ParsedImageSize
+        parsed.size = parseImageSizeFlag(parsed.size, args, index, argument)
         index++
         break
       }
       case '--quality': {
-        if (parsed.quality) {
-          throw CLIUsageError('Quality can only be specified once')
-        }
-
-        const quality = readFlagValue(args, index, argument)
-        if (!IMAGE_QUALITY_OPTIONS.has(quality)) {
-          throw CLIUsageError(`Invalid quality "${quality}". Expected one of: low, medium, high, auto`)
-        }
-
-        parsed.quality = quality as ParsedImageQuality
+        parsed.quality = parseImageQualityFlag(parsed.quality, args, index, argument)
         index++
         break
       }
@@ -469,14 +441,9 @@ export const parseGenerateImagesArgs = (args: string[]): ParsedGenerateImagesArg
         break
       }
       default: {
-        if (argument && argument.startsWith('-')) {
-          throw CLIUsageError(`Unknown argument: ${argument}`)
-        }
-        if (parsed.scriptPath) {
-          throw CLIUsageError('Script path can only be specified once')
-        }
-        if (argument) {
-          parsed.scriptPath = argument
+        const scriptPath = readTrailingScriptPath(parsed.scriptPath, argument)
+        if (scriptPath) {
+          parsed.scriptPath = scriptPath
         }
         break
       }

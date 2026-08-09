@@ -8,6 +8,7 @@ import { runGroqTts } from '~/cli/commands/process-steps/step-4-tts/tts-services
 import { runOpenAITts } from '~/cli/commands/process-steps/step-4-tts/tts-services/tts-openai/run-openai-tts'
 import { createHostedTtsChunkScheduler } from '~/cli/commands/process-steps/step-4-tts/tts-utils/hosted-tts-chunk-scheduler'
 import { createMockWavBase64, createSyntheticWavBytes } from '../../../../test-utils/media-fixtures'
+import { installMockFetch } from '../../../../test-utils/rest-contract-helpers'
 import { readWavSamples, segmentRms, setupTtsContractLifecycle, waitForCondition } from './shared'
 
 const { makeTempDir } = setupTtsContractLifecycle()
@@ -16,26 +17,10 @@ describe('TTS provider service contracts', () => {
   test('OpenAI TTS sends instructions and speed in speech requests', async () => {
       const dir = await makeTempDir('autoshow-openai-tts-controls-')
       const audioBytes = Buffer.from(createMockWavBase64(), 'base64')
-      const calls: Array<{ url: string, method: string, authorization: string | null, body: Record<string, unknown> }> = []
 
       process.env['OPENAI_API_KEY'] = 'openai-key'
 
-      globalThis.fetch = (async (input: Parameters<typeof fetch>[0], init?: Parameters<typeof fetch>[1]): Promise<Response> => {
-        const request = input instanceof Request ? input : undefined
-        const bodyText = typeof init?.body === 'string'
-          ? init.body
-          : request
-            ? await request.clone().text()
-            : ''
-        const headers = new Headers(init?.headers ?? request?.headers)
-        calls.push({
-          url: request?.url ?? String(input),
-          method: init?.method ?? request?.method ?? 'GET',
-          authorization: headers.get('authorization'),
-          body: JSON.parse(bodyText) as Record<string, unknown>
-        })
-        return new Response(audioBytes, { status: 200, headers: { 'content-type': 'audio/wav' } })
-      }) as typeof fetch
+      const calls = installMockFetch(() => new Response(audioBytes, { status: 200, headers: { 'content-type': 'audio/wav' } }))
 
       const result = await runOpenAITts('OpenAI control synthesis.', dir, {
         model: 'gpt-4o-mini-tts-2025-12-15',
@@ -46,11 +31,11 @@ describe('TTS provider service contracts', () => {
 
       expect(await Bun.file(result.audioPath).exists()).toBe(true)
       expect(calls).toHaveLength(1)
+      expect(calls[0]?.headers.get('authorization')).toBe('Bearer openai-key')
       expect(calls[0]).toMatchObject({
         url: 'https://api.openai.com/v1/audio/speech',
         method: 'POST',
-        authorization: 'Bearer openai-key',
-        body: {
+        bodyJson: {
           model: 'gpt-4o-mini-tts-2025-12-15',
           voice: 'alloy',
           input: 'OpenAI control synthesis.',
@@ -64,26 +49,10 @@ describe('TTS provider service contracts', () => {
   test('OpenAI tts-1 drops unsupported instructions from speech requests', async () => {
       const dir = await makeTempDir('autoshow-openai-tts-1-controls-')
       const audioBytes = Buffer.from(createMockWavBase64(), 'base64')
-      const calls: Array<{ url: string, method: string, authorization: string | null, body: Record<string, unknown> }> = []
 
       process.env['OPENAI_API_KEY'] = 'openai-key'
 
-      globalThis.fetch = (async (input: Parameters<typeof fetch>[0], init?: Parameters<typeof fetch>[1]): Promise<Response> => {
-        const request = input instanceof Request ? input : undefined
-        const bodyText = typeof init?.body === 'string'
-          ? init.body
-          : request
-            ? await request.clone().text()
-            : ''
-        const headers = new Headers(init?.headers ?? request?.headers)
-        calls.push({
-          url: request?.url ?? String(input),
-          method: init?.method ?? request?.method ?? 'GET',
-          authorization: headers.get('authorization'),
-          body: JSON.parse(bodyText) as Record<string, unknown>
-        })
-        return new Response(audioBytes, { status: 200, headers: { 'content-type': 'audio/wav' } })
-      }) as typeof fetch
+      const calls = installMockFetch(() => new Response(audioBytes, { status: 200, headers: { 'content-type': 'audio/wav' } }))
 
       const result = await runOpenAITts('OpenAI classic synthesis.', dir, {
         model: 'tts-1',
@@ -94,32 +63,23 @@ describe('TTS provider service contracts', () => {
 
       expect(await Bun.file(result.audioPath).exists()).toBe(true)
       expect(calls).toHaveLength(1)
-      expect(calls[0]?.body).toMatchObject({
+      expect(calls[0]?.bodyJson).toMatchObject({
         model: 'tts-1',
         voice: 'alloy',
         input: 'OpenAI classic synthesis.',
         response_format: 'wav',
         speed: 1.25
       })
-      expect(calls[0]?.body).not.toHaveProperty('instructions')
+      expect(calls[0]?.bodyJson).not.toHaveProperty('instructions')
     }, 10_000)
 
   test('Grok TTS sends language, text normalization, and custom voice IDs', async () => {
       const dir = await makeTempDir('autoshow-grok-tts-controls-')
       const audioBytes = Buffer.from(createMockWavBase64(), 'base64')
-      const calls: Array<{ url: string, method: string, authorization: string | null, body: Record<string, unknown> }> = []
 
       process.env['XAI_API_KEY'] = 'xai-key'
 
-      globalThis.fetch = (async (input: Parameters<typeof fetch>[0], init?: Parameters<typeof fetch>[1]): Promise<Response> => {
-        calls.push({
-          url: String(input),
-          method: init?.method ?? 'GET',
-          authorization: new Headers(init?.headers).get('authorization'),
-          body: JSON.parse(String(init?.body ?? '{}')) as Record<string, unknown>
-        })
-        return new Response(audioBytes, { status: 200, headers: { 'content-type': 'audio/wav' } })
-      }) as typeof fetch
+      const calls = installMockFetch(() => new Response(audioBytes, { status: 200, headers: { 'content-type': 'audio/wav' } }))
 
       const result = await runGrokTts('Grok control synthesis.', dir, {
         model: 'grok-tts',
@@ -134,21 +94,20 @@ describe('TTS provider service contracts', () => {
         ttsModel: 'grok-tts',
         speaker: 'ab12cd34'
       })
-      expect(calls).toEqual([{
-        url: 'https://api.x.ai/v1/tts',
-        method: 'POST',
-        authorization: 'Bearer xai-key',
-        body: {
-          text: 'Grok control synthesis.',
-          voice_id: 'ab12cd34',
-          language: 'ar-SA',
-          text_normalization: true,
-          output_format: {
-            codec: 'wav',
-            sample_rate: 24000
-          }
+      expect(calls).toHaveLength(1)
+      expect(calls[0]?.headers.get('authorization')).toBe('Bearer xai-key')
+      expect(calls[0]?.url).toBe('https://api.x.ai/v1/tts')
+      expect(calls[0]?.method).toBe('POST')
+      expect(calls[0]?.bodyJson).toEqual({
+        text: 'Grok control synthesis.',
+        voice_id: 'ab12cd34',
+        language: 'ar-SA',
+        text_normalization: true,
+        output_format: {
+          codec: 'wav',
+          sample_rate: 24000
         }
-      }])
+      })
     }, 10_000)
 
   test('Grok TTS retries Bun request timeouts and passes per-attempt signals', async () => {
@@ -318,19 +277,10 @@ describe('TTS provider service contracts', () => {
   test('Groq TTS defaults to English Orpheus voice', async () => {
       const dir = await makeTempDir('autoshow-groq-tts-defaults-')
       const audioBytes = Buffer.from(createMockWavBase64(), 'base64')
-      const calls: Array<{ url: string, method: string, authorization: string | null, body: Record<string, unknown> }> = []
 
       process.env['GROQ_API_KEY'] = 'groq-key'
 
-      globalThis.fetch = (async (input: Parameters<typeof fetch>[0], init?: Parameters<typeof fetch>[1]): Promise<Response> => {
-        calls.push({
-          url: String(input),
-          method: init?.method ?? 'GET',
-          authorization: new Headers(init?.headers).get('authorization'),
-          body: JSON.parse(String(init?.body ?? '{}')) as Record<string, unknown>
-        })
-        return new Response(audioBytes, { status: 200, headers: { 'content-type': 'audio/wav' } })
-      }) as typeof fetch
+      const calls = installMockFetch(() => new Response(audioBytes, { status: 200, headers: { 'content-type': 'audio/wav' } }))
 
       const result = await runGroqTts('Groq English synthesis.', dir, {
         model: 'canopylabs/orpheus-v1-english'
@@ -342,16 +292,15 @@ describe('TTS provider service contracts', () => {
         ttsModel: 'canopylabs/orpheus-v1-english',
         speaker: 'troy'
       })
-      expect(calls).toEqual([{
-        url: 'https://api.groq.com/openai/v1/audio/speech',
-        method: 'POST',
-        authorization: 'Bearer groq-key',
-        body: {
-          model: 'canopylabs/orpheus-v1-english',
-          voice: 'troy',
-          input: 'Groq English synthesis.',
-          response_format: 'wav'
-        }
-      }])
+      expect(calls).toHaveLength(1)
+      expect(calls[0]?.headers.get('authorization')).toBe('Bearer groq-key')
+      expect(calls[0]?.url).toBe('https://api.groq.com/openai/v1/audio/speech')
+      expect(calls[0]?.method).toBe('POST')
+      expect(calls[0]?.bodyJson).toEqual({
+        model: 'canopylabs/orpheus-v1-english',
+        voice: 'troy',
+        input: 'Groq English synthesis.',
+        response_format: 'wav'
+      })
     }, 10_000)
 })

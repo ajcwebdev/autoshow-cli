@@ -14,4 +14,6 @@ export type SttStageRequestOptions<TSchema extends SttStageSchema> = {
   schemaLabel: string
   doFetch: (signal: AbortSignal | undefined) => Promise<Response>
   metrics?: SttRequestMetrics | undefined
+  failureLabel?: string | undefined
+  attachError?: ((error: unknown, stage: string, retryClass: RetryClass) => never) | undefined
 }

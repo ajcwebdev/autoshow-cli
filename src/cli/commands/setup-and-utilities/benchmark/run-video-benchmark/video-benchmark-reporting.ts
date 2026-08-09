@@ -1,6 +1,6 @@
 import { basename, join } from 'node:path'
 import { escapeCell, formatScore } from '../benchmark-utils'
-import { buildMediaRankingSurfaces, splitProviderComparisonRows, writeProviderComparisonMarkdown } from '../media-provider-comparison'
+import { baseMediaComparisonRow, writeMediaComparisonReports } from '../media-provider-comparison'
 import { VIDEO_QUALITY_CRITERIA } from './video-benchmark-constants'
 import { evaluateProvider, rankProviders } from './video-benchmark-providers'
 import type { JsonObject, VideoBenchmarkProvider, VideoQualityProviderReport, VideoQualityReport, VideoRunJson } from '~/types'
@@ -45,36 +45,7 @@ const providerComparisonRows = (report: VideoQualityReport): JsonObject[] =>
     .slice()
     .sort((left, right) => left.providerKey.localeCompare(right.providerKey))
     .map((provider) => ({
-      rank: provider.rank,
-      providerKey: provider.providerKey,
-      provider: provider.providerKey,
-      model: null,
-      group: provider.group,
-      processingTimeMs: provider.processingTimeMs ?? null,
-      actualProcessingTimeMs: provider.processingTimeMs ?? null,
-      costCents: provider.costCents ?? null,
-      actualCostCents: provider.costCents ?? null,
-      qualityScore: provider.qualityScore,
-      qualityMetric: provider.qualityMetric,
-      qualityValue: provider.qualityScore,
-      qualityLabel: `${formatScore(provider.qualityScore)}/100`,
-      metrics: {
-        wer: null,
-        cer: null,
-        speakerAwareWER: null,
-        textOnlyWER: null,
-        roundtripWER: null,
-        contentCoverage: null,
-        qualityScore: provider.qualityScore
-      },
-      supportsDiarization: null,
-      diarizationSupport: null,
-      tierGroup: null,
-      groupOverallRank: null,
-      groupTier: null,
-      qualityWarnings: [],
-      segmentStats: null,
-      duplicateGroupId: null,
+      ...baseMediaComparisonRow(provider),
       videoQuality: {
         judgeModel: report.judge.model,
         qualityScore: provider.qualityScore,
@@ -100,68 +71,18 @@ const providerComparisonRows = (report: VideoQualityReport): JsonObject[] =>
 export const writeProviderComparisonReports = async (
   runDir: string,
   report: VideoQualityReport
-): Promise<{ jsonOut: string, markdownOut: string }> => {
-  const rows = providerComparisonRows(report)
-  const { local: localProviders, service: serviceProviders } = splitProviderComparisonRows(rows)
-  const rankingSurfaces = buildMediaRankingSurfaces(rows, { qualityLabel: 'video quality' })
-  const jsonOut = join(runDir, 'provider-comparison-report.json')
-  const markdownOut = join(runDir, 'provider-comparison-report.md')
-
-  const comparisonReport: JsonObject = {
-    schemaVersion: 2,
-    kind: 'video-provider-comparison',
+): Promise<{ jsonOut: string, markdownOut: string }> =>
+  await writeMediaComparisonReports(runDir, {
     category: 'video',
-    runDir,
-    runName: basename(runDir),
-    generatedAt: report.generatedAt,
-    metric: 'video-quality-price-speed',
-    scoreFormula: 'Automated quality ranking uses OpenAI video quality score; price and speed surfaces remain independent.',
-    tiering: null,
-    duplicateGroups: [],
-    normalization: null,
-    providerCount: report.providerCount,
-    providerGroups: {
-      local: {
-        count: localProviders.length,
-        providers: localProviders
-      },
-      service: {
-        count: serviceProviders.length,
-        providers: serviceProviders
-      }
-    },
-    providers: rows,
-    rankingSurfaces,
-    combinedLeaderboardPolicy: 'omitted: local and service providers are not ranked against each other',
-    notes: [
-      'Automated quality rankings use explicit video judge scores from video-quality-report.json.',
-      'Price and speed surfaces are evidence-only and do not affect video quality scores.',
-      'Video mode evaluates existing generated videos only; it does not generate new videos.'
-    ]
-  }
-
-  await Bun.write(jsonOut, `${JSON.stringify(comparisonReport, null, 2)}\n`)
-  await writeProviderComparisonMarkdown(markdownOut, {
-    title: 'Video Provider Comparison Report',
-    runDir: report.runDir,
-    providerCount: report.providerCount,
+    categoryLabel: 'Video',
+    proxyNoun: 'duration',
+    report,
+    rows: providerComparisonRows(report),
     summaryMetrics: [
       { label: 'Videos scored', value: report.videoCount },
       { label: 'Frames scored', value: report.frameCount }
-    ],
-    judgeModel: report.judge.model,
-    qualityReportFileName: 'video-quality-report.json',
-    qualityProxyMethodText: 'File size, duration, latency, and cost are not used as quality proxies.',
-    rows,
-    rankingSurfaces,
-    notes: [
-      '- Video mode evaluates existing generated videos only; it does not generate new videos.',
-      '- Quality scores are explicit judge scores and are not inferred from file size, duration, latency, or cost.'
     ]
   })
-
-  return { jsonOut, markdownOut }
-}
 
 export const writeVideoQualityReports = async (
   runDir: string,
