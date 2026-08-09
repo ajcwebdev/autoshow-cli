@@ -1,51 +1,27 @@
-import { afterEach, beforeEach } from 'bun:test'
-import { mkdir, mkdtemp, rm, writeFile } from 'node:fs/promises'
-import { tmpdir } from 'node:os'
+import { mkdir, writeFile } from 'node:fs/promises'
 import { join } from 'node:path'
 import { buildVoiceQualityReport } from '~/cli/commands/setup-and-utilities/benchmark/tts-voice-quality-report/report-writing'
 import { runCommand } from '../../../../test-utils/test-helpers'
 import { writeSyntheticWav } from '../../../../test-utils/media-fixtures'
+import { installMockFetch, setupContractSuiteLifecycle } from '../../../../test-utils/rest-contract-helpers'
 
-const tempDirs: string[] = []
-const originalFetch = globalThis.fetch
 const envKeys = ['OPENAI_API_KEY', 'ASSEMBLYAI_API_KEY'] as const
-let previousEnv = {} as Record<typeof envKeys[number], string | undefined>
+let tempDirs: ReturnType<typeof setupContractSuiteLifecycle> | undefined
 
 export const makeTempRoot = async (prefix: string): Promise<string> => {
-  const root = await mkdtemp(join(tmpdir(), prefix))
-  tempDirs.push(root)
-  return root
+  if (tempDirs === undefined) throw new Error('Voice quality report contract lifecycle is not installed')
+  return await tempDirs.make(prefix)
 }
 
 export const writeJson = async (path: string, value: unknown): Promise<void> => {
   await writeFile(path, JSON.stringify(value, null, 2) + '\n')
 }
 
-export const makeMockFetch = (
-  fn: (input: Parameters<typeof fetch>[0], init?: Parameters<typeof fetch>[1]) => Promise<Response>
-): typeof fetch => Object.assign(fn, { preconnect: () => undefined }) as typeof fetch
-
 export const installVoiceQualityReportHooks = (): void => {
-  beforeEach(() => {
-    previousEnv = Object.fromEntries(envKeys.map((key) => [key, process.env[key]])) as Record<typeof envKeys[number], string | undefined>
-    for (const key of envKeys) {
-      delete process.env[key]
-    }
-  })
-
-  afterEach(async () => {
-    globalThis.fetch = originalFetch
-    for (const key of envKeys) {
-      const value = previousEnv[key]
-      if (value === undefined) {
-        delete process.env[key]
-      } else {
-        process.env[key] = value
-      }
-    }
-    await Promise.all(tempDirs.splice(0).map((dir) => rm(dir, { recursive: true, force: true })))
-  })
+  tempDirs = setupContractSuiteLifecycle({ envKeys, tempPrefix: 'autoshow-voice-quality-' })
 }
+
+export { installMockFetch }
 
 export const makeSingleProviderTtsRun = async (): Promise<{
   runDir: string

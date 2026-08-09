@@ -149,4 +149,21 @@ describe('video provider REST contracts', () => {
       }
     })
   })
+
+  test('MiniMax video invalid JSON uses the guarded protocol parser and video stage', async () => {
+    process.env['MINIMAX_API_KEY'] = 'minimax-key'
+    installMockFetch(() => new Response('not-json', {
+      status: 200,
+      headers: { 'content-type': 'application/json' }
+    }))
+
+    await withTempDir(async (dir) => {
+      await expect(runMinimaxVideoGen('bad response', dir, {
+        model: 'MiniMax-Hailuo-2.3'
+      })).rejects.toMatchObject({
+        stage: 'video:minimax',
+        message: expect.stringContaining('Invalid JSON for MiniMax video generation create response')
+      })
+    })
+  })
 })

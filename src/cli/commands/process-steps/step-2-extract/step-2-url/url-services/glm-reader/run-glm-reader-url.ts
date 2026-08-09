@@ -1,9 +1,8 @@
 import * as v from 'valibot'
-import * as l from '~/utils/app-logger/app-logger'
-import type { UrlArticleProviderAdapter, UrlArticleRunResult, UrlRequestOptions, WebArticleMetadata } from '~/types'
+import type { UrlArticleProviderAdapter, UrlRequestOptions, WebArticleMetadata } from '~/types'
 import { validateData } from '~/utils/validate/validation'
 import { ensureGlmApiKey, resolveGlmBaseUrl } from '~/cli/commands/process-steps/step-2-extract/step-2-ocr/ocr-services/glm-ocr/glm'
-import { byteLength, cleanString, countWords, createUrlProviderHttpError, ensureMeaningfulMarkdown, fallbackTitleFromSource, getUrlRequestTimeoutMs, isRecord, tryFetchRemoteHtml, withUrlProviderTimeout } from '../../url-utils'
+import { cleanString, countWords, createUrlArticleRun, createUrlProviderHttpError, getUrlRequestTimeoutMs, isRecord, withUrlProviderTimeout } from '../../url-utils'
 
 const GlmReaderResponseSchema = v.looseObject({
   reader_result: v.looseObject({
@@ -18,7 +17,7 @@ const runGlmReader = async (
   source: string,
   options?: UrlRequestOptions,
   baseUrl?: string
-): Promise<{ preparedMarkdown: string, web: WebArticleMetadata }> => {
+): Promise<{ markdown: string, web: WebArticleMetadata }> => {
   const apiKey = ensureGlmApiKey('GLM Reader')
   const timeoutMs = getUrlRequestTimeoutMs(options)
   const requestOptions = { ...options, timeoutMs }
@@ -75,32 +74,12 @@ const runGlmReader = async (
   if (description) web.description = description
 
   return {
-    preparedMarkdown: content,
+    markdown: content,
     web
   }
 }
 
-export const runGlmReaderUrl = async (
-  source: string,
-  sourceUrl: string | undefined,
-  options?: UrlRequestOptions,
-  baseUrl?: string
-): Promise<UrlArticleRunResult> => {
-  l.write('info', 'Using GLM Reader backend for article extraction')
-  const glmResult = await runGlmReader(source, options, baseUrl)
-  const htmlFallback = await tryFetchRemoteHtml(source)
-
-  const markdown = ensureMeaningfulMarkdown(glmResult.preparedMarkdown, 'glm-reader')
-  const web = { ...glmResult.web }
-  if (sourceUrl) web.sourceUrl = sourceUrl
-
-  return {
-    markdown,
-    web,
-    fileSize: htmlFallback?.fileSize ?? byteLength(markdown),
-    title: glmResult.web.title ?? fallbackTitleFromSource(source)
-  }
-}
+export const runGlmReaderUrl = createUrlArticleRun('glm-reader', 'GLM Reader', runGlmReader)
 
 export const glmReaderArticleAdapter: UrlArticleProviderAdapter = {
   id: 'glm-reader',

@@ -1,57 +1,23 @@
-import { afterEach, beforeEach, describe, expect, test } from 'bun:test'
-import { mkdtemp, rm } from 'node:fs/promises'
-import { tmpdir } from 'node:os'
+import { describe, expect, test } from 'bun:test'
 import { join } from 'node:path'
 import { runHappyScribeStt } from '~/cli/commands/process-steps/step-2-extract/step-2-stt/stt-services/happyscribe/run-happyscribe-stt'
 import { runSonioxStt } from '~/cli/commands/process-steps/step-2-extract/step-2-stt/stt-services/soniox/run-soniox-stt'
 import { writeSttProviderCheckpoint } from '~/cli/commands/process-steps/step-2-extract/step-2-stt/stt-manifest'
+import { installMockFetch, jsonResponse, setupContractSuiteLifecycle } from '../../../test-utils/rest-contract-helpers'
 
-const tempDirs: string[] = []
-let previousFetch: typeof fetch
-let previousSleep: typeof Bun.sleep
-let previousHappyScribeApiKey: string | undefined
-let previousSonioxApiKey: string | undefined
-
-const jsonResponse = (body: unknown, status = 200): Response =>
-  new Response(JSON.stringify(body), {
-    status,
-    headers: { 'content-type': 'application/json' }
-  })
-
-const makeTempDir = async (prefix: string): Promise<string> => {
-  const dir = await mkdtemp(join(tmpdir(), prefix))
-  tempDirs.push(dir)
-  return dir
-}
-
-const restoreEnv = (key: 'HAPPYSCRIBE_API_KEY' | 'SONIOX_API_KEY', value: string | undefined): void => {
-  if (value === undefined) {
-    delete process.env[key]
-  } else {
-    process.env[key] = value
+const tempDirs = setupContractSuiteLifecycle({
+  envKeys: ['HAPPYSCRIBE_API_KEY', 'SONIOX_API_KEY'],
+  tempPrefix: 'autoshow-async-stt-resume-',
+  restoreBunSleep: true,
+  beforeEachExtra: () => {
+    installMockFetch(() => {
+      throw new Error('Unexpected unmocked provider request')
+    })
+    ;(Bun as typeof Bun & { sleep: typeof Bun.sleep }).sleep = (async () => {}) as typeof Bun.sleep
   }
-}
-
-beforeEach(() => {
-  previousFetch = globalThis.fetch
-  previousSleep = Bun.sleep
-  previousHappyScribeApiKey = process.env['HAPPYSCRIBE_API_KEY']
-  previousSonioxApiKey = process.env['SONIOX_API_KEY']
-  delete process.env['HAPPYSCRIBE_API_KEY']
-  delete process.env['SONIOX_API_KEY']
-  globalThis.fetch = (async () => {
-    throw new Error('Unexpected unmocked provider request')
-  }) as unknown as typeof fetch
-  ;(Bun as typeof Bun & { sleep: typeof Bun.sleep }).sleep = (async () => {}) as typeof Bun.sleep
 })
 
-afterEach(async () => {
-  globalThis.fetch = previousFetch
-  ;(Bun as typeof Bun & { sleep: typeof Bun.sleep }).sleep = previousSleep
-  restoreEnv('HAPPYSCRIBE_API_KEY', previousHappyScribeApiKey)
-  restoreEnv('SONIOX_API_KEY', previousSonioxApiKey)
-  await Promise.all(tempDirs.splice(0).map(async (dir) => await rm(dir, { recursive: true, force: true })))
-})
+const makeTempDir = tempDirs.make
 
 describe('async STT resume contracts', () => {
   test('Happy Scribe keeps the paid order resumable when export retrieval fails', async () => {
@@ -63,9 +29,9 @@ describe('async STT resume contracts', () => {
     let orderCreates = 0
     let exportCreates = 0
     let downloadAttempts = 0
-    globalThis.fetch = (async (input, init) => {
-      const url = new URL(String(input))
-      const method = init?.method ?? 'GET'
+    installMockFetch((call) => {
+      const url = new URL(call.url)
+      const method = call.method
 
       if (url.pathname.endsWith('/organizations')) {
         return jsonResponse({ organizations: [{ id: 'organization-1', currency: 'usd' }] })
@@ -104,7 +70,7 @@ describe('async STT resume contracts', () => {
       if (url.hostname === 'download.mock') {
         downloadAttempts += 1
         if (downloadAttempts <= 2) {
-          return jsonResponse({ error: 'export temporarily unavailable' }, 503)
+          return jsonResponse({ error: 'export temporarily unavailable' }, { status: 503 })
         }
         return jsonResponse({
           transcript: 'hello from resumed export',
@@ -113,7 +79,7 @@ describe('async STT resume contracts', () => {
       }
 
       throw new Error(`Unexpected Happy Scribe request: ${method} ${url.toString()}`)
-    }) as typeof fetch
+    })
 
     await expect(runHappyScribeStt(audioPath, outputDir, {
       model: 'auto',
@@ -157,13 +123,9 @@ describe('async STT resume contracts', () => {
       }
     })
 
-    const calls: Array<{ method: string, pathname: string }> = []
-    globalThis.fetch = (async (input, init) => {
-      const url = new URL(String(input))
-      const method = init?.method ?? 'GET'
-      calls.push({ method, pathname: url.pathname })
+    const calls = installMockFetch(() => {
       return jsonResponse({ id: 'transcription-1', status: 'processing' })
-    }) as typeof fetch
+    })
 
     await expect(runSonioxStt(join(outputDir, 'audio.mp3'), outputDir, {
       model: 'stt-async-v5',
@@ -196,12 +158,8 @@ describe('async STT resume contracts', () => {
       }
     })
 
-    const calls: Array<{ method: string, pathname: string }> = []
-    globalThis.fetch = (async (input, init) => {
-      const url = new URL(String(input))
-      const method = init?.method ?? 'GET'
-      calls.push({ method, pathname: url.pathname })
-      if (method === 'DELETE') {
+    const calls = installMockFetch((call) => {
+      if (call.method === 'DELETE') {
         return new Response(null, { status: 204 })
       }
       return jsonResponse({
@@ -209,14 +167,14 @@ describe('async STT resume contracts', () => {
         status: 'error',
         error_message: 'provider rejected the audio'
       })
-    }) as typeof fetch
+    })
 
     await expect(runSonioxStt(join(outputDir, 'audio.mp3'), outputDir, {
       model: 'stt-async-v5',
       segmentOffsetMinutes: 0
     })).rejects.toThrow('Soniox transcription failed: provider rejected the audio')
 
-    expect(calls.filter((call) => call.method === 'DELETE').map((call) => call.pathname).sort()).toEqual([
+    expect(calls.filter((call) => call.method === 'DELETE').map((call) => new URL(call.url).pathname).sort()).toEqual([
       '/v1/files/file-1',
       '/v1/transcriptions/transcription-1'
     ])

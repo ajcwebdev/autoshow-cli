@@ -1,5 +1,6 @@
 import { stat } from 'node:fs/promises'
 import { basename, resolve as pathResolve } from 'node:path'
+import * as l from '~/utils/app-logger/app-logger'
 import type { FetchRemoteHtmlOptions, HtmlArticleBackend, LocalHtmlReadResult, RemoteHtmlFetchResult, UrlArticleRunResult, UrlRequestOptions, WebArticleMetadata } from '~/types'
 import { isAbortError } from '~/utils/retries'
 import { readEnv } from '~/utils/validate/env-utils'
@@ -21,6 +22,19 @@ export const cleanString = (value: unknown): string | undefined => {
   }
   const normalized = value.trim()
   return normalized.length > 0 ? normalized : undefined
+}
+
+export const pickCleanString = (
+  record: Record<string, unknown>,
+  ...keys: string[]
+): string | undefined => {
+  for (const key of keys) {
+    const value = cleanString(record[key])
+    if (value) {
+      return value
+    }
+  }
+  return undefined
 }
 
 export const byteLength = (value: string): number =>
@@ -268,6 +282,28 @@ export const finalizeUrlArticleResult = async (
   }
 }
 
+type UrlArticleScrapeRunner = (
+  source: string,
+  options?: UrlRequestOptions,
+  baseUrl?: string
+) => Promise<{ markdown: string, web: WebArticleMetadata }>
+
+export const createUrlArticleRun = (
+  backend: HtmlArticleBackend,
+  displayName: string,
+  scrape: UrlArticleScrapeRunner
+): (
+  source: string,
+  sourceUrl: string | undefined,
+  options?: UrlRequestOptions,
+  baseUrl?: string
+) => Promise<UrlArticleRunResult> =>
+  async (source, sourceUrl, options, baseUrl) => {
+    l.write('info', `Using ${displayName} backend for article extraction`)
+    const scraped = await scrape(source, options, baseUrl)
+    return await finalizeUrlArticleResult(source, sourceUrl, backend, scraped)
+  }
+
 export const readLocalHtml = async (
   source: string
 ): Promise<LocalHtmlReadResult> => {
@@ -319,18 +355,12 @@ export const ensureMeaningfulMarkdown = (
     )
   }
 
-  if (backend === 'glm-reader') {
-    throw ValidationError('GLM Reader returned empty article markdown.', { stage: 'url:fetch' })
+  const displayNames: Record<Exclude<HtmlArticleBackend, 'defuddle'>, string> = {
+    firecrawl: 'Firecrawl',
+    'glm-reader': 'GLM Reader',
+    spider: 'Spider',
+    supadata: 'Supadata',
+    zyte: 'Zyte'
   }
-  if (backend === 'spider') {
-    throw ValidationError('Spider returned empty article markdown.', { stage: 'url:fetch' })
-  }
-  if (backend === 'supadata') {
-    throw ValidationError('Supadata returned empty article markdown.', { stage: 'url:fetch' })
-  }
-  if (backend === 'zyte') {
-    throw ValidationError('Zyte returned empty article markdown.', { stage: 'url:fetch' })
-  }
-
-  throw ValidationError('Firecrawl returned empty article markdown.', { stage: 'url:fetch' })
+  throw ValidationError(`${displayNames[backend]} returned empty article markdown.`, { stage: 'url:fetch' })
 }

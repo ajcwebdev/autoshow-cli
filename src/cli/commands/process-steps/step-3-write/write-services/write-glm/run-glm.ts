@@ -7,17 +7,14 @@ export const runGlmModel = async (
   model: string,
   structuredOpts?: StructuredRequestOptions
 ): Promise<{ result: string, metadata: Step3Metadata }> => {
-  const apiKey = ensureGlmApiKey('--glm models')
-  const config = {
-    apiKey,
-    baseURL: resolveGlmBaseUrl()
-  }
-
   return await runOpenAICompatibleChatModel({
     prompt,
     model,
     structuredOpts,
-    config,
+    config: () => ({
+      apiKey: ensureGlmApiKey('--glm models'),
+      baseURL: resolveGlmBaseUrl()
+    }),
     service: 'glm',
     providerLabel: 'GLM',
     operationName: 'glm-llm',

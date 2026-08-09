@@ -1,3 +1,4 @@
+import { afterEach, beforeEach } from 'bun:test'
 import { mkdtemp, rm } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
@@ -38,17 +39,38 @@ const readMockFetchBody = async (
   return { text: '' }
 }
 
+const readMockFetchRequestBody = async (
+  request: Request
+): Promise<{ text: string, bytes?: number | undefined, form?: FormData | undefined }> => {
+  if (request.body === null) return { text: '' }
+  const clone = request.clone()
+  const contentType = request.headers.get('content-type') ?? ''
+  if (contentType.includes('multipart/form-data') || contentType.includes('application/x-www-form-urlencoded')) {
+    return { text: '', form: await clone.formData() as unknown as FormData }
+  }
+  if (contentType.includes('json') || contentType.startsWith('text/')) {
+    return { text: await clone.text() }
+  }
+  const body = await clone.arrayBuffer()
+  return { text: '', bytes: body.byteLength }
+}
+
 export const installMockFetch = (handler: MockFetchHandler): MockFetchCall[] => {
   const calls: MockFetchCall[] = []
   globalThis.fetch = (async (
     input: Parameters<typeof fetch>[0],
     init?: Parameters<typeof fetch>[1]
   ): Promise<Response> => {
-    const { text, bytes, form } = await readMockFetchBody(init?.body)
+    const request = input instanceof Request ? input : undefined
+    const { text, bytes, form } = init?.body !== undefined
+      ? await readMockFetchBody(init.body)
+      : request !== undefined
+        ? await readMockFetchRequestBody(request)
+        : { text: '' }
     const call: MockFetchCall = {
-      url: String(input),
-      method: init?.method ?? 'GET',
-      headers: new Headers(init?.headers),
+      url: request?.url ?? String(input),
+      method: init?.method ?? request?.method ?? 'GET',
+      headers: new Headers(init?.headers ?? request?.headers),
       bodyText: text,
       ...(text.trim().startsWith('{') ? { bodyJson: JSON.parse(text) as Record<string, unknown> } : {}),
       ...(bytes !== undefined ? { bodyBytes: bytes } : {}),
@@ -102,4 +124,44 @@ export const createTempDirTracker = (
       await Promise.all(tempDirs.splice(0).map((dir) => rm(dir, { recursive: true, force: true })))
     }
   }
+}
+
+export const setupContractSuiteLifecycle = (
+  options: {
+    envKeys: readonly string[]
+    tempPrefix: string
+    restoreBunSleep?: boolean | undefined
+    beforeEachExtra?: (() => Promise<void> | void) | undefined
+    afterEachExtra?: (() => Promise<void> | void) | undefined
+  }
+): ReturnType<typeof createTempDirTracker> => {
+  const tempDirs = createTempDirTracker(options.tempPrefix)
+  let previousEnv: EnvSnapshot = {}
+  let previousFetch: typeof fetch
+  let previousSleep: typeof Bun.sleep | undefined
+
+  beforeEach(async () => {
+    previousFetch = globalThis.fetch
+    previousEnv = snapshotEnv(options.envKeys)
+    clearEnv(options.envKeys)
+    if (options.restoreBunSleep === true) {
+      previousSleep = Bun.sleep
+    }
+    await options.beforeEachExtra?.()
+  })
+
+  afterEach(async () => {
+    try {
+      await options.afterEachExtra?.()
+    } finally {
+      globalThis.fetch = previousFetch
+      restoreEnv(previousEnv)
+      if (previousSleep !== undefined) {
+        ;(Bun as typeof Bun & { sleep: typeof Bun.sleep }).sleep = previousSleep
+      }
+      await tempDirs.cleanup()
+    }
+  })
+
+  return tempDirs
 }

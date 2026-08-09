@@ -1,27 +1,26 @@
-import { afterEach, beforeEach } from 'bun:test'
 import type { StructuredRequestOptions } from '~/types'
 import {
-  clearEnv,
-  createTempDirTracker,
   installMockFetch,
   jsonResponse,
-  restoreEnv,
-  snapshotEnv
+  setupContractSuiteLifecycle
 } from '../../../../test-utils/rest-contract-helpers'
-import type { EnvSnapshot } from '~/types'
 
-export const originalFetch = globalThis.fetch
 export const envKeys = [
   'OPENAI_API_KEY',
   'XAI_API_KEY',
   'KIMI_API_KEY',
+  'DEEPINFRA_API_KEY',
   'MINIMAX_API_KEY',
   'CEREBRAS_API_KEY',
   'TOGETHER_API_KEY'
 ]
-export const tempDirs = createTempDirTracker('autoshow-openai-rest-')
-export const withTempDir = tempDirs.withDir
 export const installFetch = installMockFetch
+let tempDirs: ReturnType<typeof setupContractSuiteLifecycle> | undefined
+
+export const withTempDir = async <T,>(fn: (dir: string) => Promise<T>): Promise<T> => {
+  if (tempDirs === undefined) throw new Error('OpenAI REST contract lifecycle is not installed')
+  return await tempDirs.withDir(fn)
+}
 
 export const structuredOpts: StructuredRequestOptions = {
   schemaName: 'summary',
@@ -38,18 +37,7 @@ export const structuredOpts: StructuredRequestOptions = {
 }
 
 export const installOpenAIRestContractHooks = (): void => {
-  let previousEnv: EnvSnapshot = {}
-
-  beforeEach(() => {
-    previousEnv = snapshotEnv(envKeys)
-    clearEnv(envKeys)
-  })
-
-  afterEach(async () => {
-    globalThis.fetch = originalFetch
-    restoreEnv(previousEnv)
-    await tempDirs.cleanup()
-  })
+  tempDirs = setupContractSuiteLifecycle({ envKeys, tempPrefix: 'autoshow-openai-rest-' })
 }
 
 export { jsonResponse }

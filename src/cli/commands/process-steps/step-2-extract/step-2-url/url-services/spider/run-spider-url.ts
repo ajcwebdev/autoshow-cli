@@ -1,6 +1,5 @@
-import * as l from '~/utils/app-logger/app-logger'
-import type { UrlArticleProviderAdapter, UrlArticleRunResult, UrlRequestOptions, WebArticleMetadata } from '~/types'
-import { cleanString, countWords, fetchUrlProviderJson, finalizeUrlArticleResult, getUrlRequestTimeoutMs, isRecord, normalizeMarkdown, requireHostedUrlProviderApiKey } from '../../url-utils'
+import type { UrlArticleProviderAdapter, UrlRequestOptions, WebArticleMetadata } from '~/types'
+import { cleanString, countWords, createUrlArticleRun, fetchUrlProviderJson, getUrlRequestTimeoutMs, isRecord, normalizeMarkdown, requireHostedUrlProviderApiKey } from '../../url-utils'
 import { ValidationError } from '~/utils/error-handler'
 
 const SPIDER_DEFAULT_API_URL = 'https://api.spider.cloud'
@@ -113,16 +112,7 @@ const runSpiderScrape = async (
   return parseSpiderResponse(payload)
 }
 
-export const runSpiderUrl = async (
-  source: string,
-  sourceUrl: string | undefined,
-  options?: UrlRequestOptions,
-  baseUrl: string = SPIDER_DEFAULT_API_URL
-): Promise<UrlArticleRunResult> => {
-  l.write('info', 'Using Spider backend for article extraction')
-  const spiderResult = await runSpiderScrape(source, options, baseUrl)
-  return await finalizeUrlArticleResult(source, sourceUrl, 'spider', spiderResult)
-}
+export const runSpiderUrl = createUrlArticleRun('spider', 'Spider', runSpiderScrape)
 
 export const spiderArticleAdapter: UrlArticleProviderAdapter = {
   id: 'spider',

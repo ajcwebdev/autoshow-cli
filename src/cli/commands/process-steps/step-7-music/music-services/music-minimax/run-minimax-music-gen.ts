@@ -1,14 +1,13 @@
 import * as v from 'valibot'
 import { logGenCompleted, logGenStatus } from '~/cli/commands/process-steps/generation-command-utils'
-import { MinimaxBaseRespSchema, ensureMinimaxBaseRespSuccess, parseMinimaxJsonResponse } from '~/cli/commands/process-steps/step-4-tts/tts-services/tts-minimax/minimax-utils'
 import { isMinimaxInstrumentalMusicModel } from '~/cli/commands/setup-and-utilities/models/setup-model-options'
 import type { MinimaxLyricsGenerationResult, MinimaxMusicGenerationPayload, MinimaxMusicModel, MinimaxMusicResponse, Step7MusicMetadata } from '~/types'
 import { MINIMAX_DEFAULT_BASE_URL } from '~/utils/base-urls'
 import * as l from '~/utils/app-logger/app-logger'
 import { MEDIA_GENERATION_TIMEOUT_MS } from '~/utils/timeouts'
 import { requireApiKey } from '~/utils/validate/env-utils'
-import { validateData } from '~/utils/validate/validation'
 import { InfraError, InternalError, ValidationError } from '~/utils/error-handler'
+import { MinimaxBaseRespSchema, minimaxFetchJson, minimaxJsonRequestInit } from '~/utils/minimax-client/minimax-client'
 
 const REQUEST_TIMEOUT_MS = MEDIA_GENERATION_TIMEOUT_MS
 const INCOMPLETE_RESPONSE_RETRY_DELAY_MS = 3_000
@@ -91,29 +90,20 @@ const generateLyrics = async (
   apiKey: string,
   prompt: string
 ): Promise<MinimaxLyricsGenerationResult> => {
-  const response = await fetch(`${baseURL}/v1/lyrics_generation`, {
-    method: 'POST',
-    headers: {
-      Authorization: `Bearer ${apiKey}`,
-      'Content-Type': 'application/json'
-    },
-    body: JSON.stringify({
-      mode: 'write_full_song',
-      prompt
-    })
-  })
-
-  if (!response.ok) {
-    const body = await response.text()
-    throw InfraError(`MiniMax lyrics generation failed (${response.status}): ${body || 'No response body'}`, { stage: 'music:minimax', status: response.status })
-  }
-
-  const parsed = validateData(
-    MinimaxLyricsResponseSchema,
-    await parseMinimaxJsonResponse(response, 'MiniMax lyrics generation response', 'music:minimax'),
-    'MiniMax lyrics generation response'
+  const parsed = await minimaxFetchJson(
+    `${baseURL}/v1/lyrics_generation`,
+    {
+      init: minimaxJsonRequestInit(apiKey, 'POST', {
+        mode: 'write_full_song',
+        prompt
+      }),
+      schema: MinimaxLyricsResponseSchema,
+      responseContext: 'MiniMax lyrics generation response',
+      baseRespContext: 'MiniMax lyrics generation',
+      stage: 'music:minimax',
+      httpErrorMessage: 'MiniMax lyrics generation failed'
+    }
   )
-  ensureMinimaxBaseRespSuccess(parsed.base_resp, 'MiniMax lyrics generation', 'music:minimax')
 
   return {
     lyrics: validateMinimaxMusicLyrics(parsed.lyrics ?? '', 'MiniMax generated lyrics'),
@@ -135,17 +125,19 @@ const requestMusicGeneration = async (
     audio_setting: MINIMAX_MUSIC_AUDIO_SETTING
   }
 
-  let response: Response
+  let parsed: MinimaxMusicResponse
   try {
-    response = await fetch(`${baseURL}/v1/music_generation`, {
-      method: 'POST',
-      headers: {
-        Authorization: `Bearer ${apiKey}`,
-        'Content-Type': 'application/json'
-      },
-      body: JSON.stringify(body),
-      signal: AbortSignal.timeout(REQUEST_TIMEOUT_MS)
-    })
+    parsed = await minimaxFetchJson(
+      `${baseURL}/v1/music_generation`,
+      {
+        init: minimaxJsonRequestInit(apiKey, 'POST', body, AbortSignal.timeout(REQUEST_TIMEOUT_MS)),
+        schema: MinimaxMusicResponseSchema,
+        responseContext: 'MiniMax music generation response',
+        baseRespContext: 'MiniMax music generation',
+        stage: 'music:minimax',
+        httpErrorMessage: 'MiniMax music generation failed'
+      }
+    )
   } catch (error) {
     if ((error instanceof DOMException && error.name === 'AbortError')
       || (error instanceof Error && error.name === 'AbortError')) {
@@ -153,18 +145,6 @@ const requestMusicGeneration = async (
     }
     throw error
   }
-
-  if (!response.ok) {
-    const body = await response.text()
-    throw InfraError(`MiniMax music generation failed (${response.status}): ${body || 'No response body'}`, { stage: 'music:minimax', status: response.status })
-  }
-
-  const parsed = validateData(
-    MinimaxMusicResponseSchema,
-    await parseMinimaxJsonResponse(response, 'MiniMax music generation response', 'music:minimax'),
-    'MiniMax music generation response'
-  )
-  ensureMinimaxBaseRespSuccess(parsed.base_resp, 'MiniMax music generation', 'music:minimax')
   return parsed
 }
 

@@ -1,6 +1,5 @@
-import type { DocumentMetadata, ExtractionOptions, HostedOcrImageResult, HostedOcrSchedulerRetryPressureHandler, OpenAIRestConfig, PageResult } from '~/types'
-import { withOcrPageRequestRetry } from '~/cli/commands/process-steps/step-2-extract/step-2-ocr/ocr-utils/ocr-retry'
-import { assertHostedOcrImageWithinLimits, buildHostedOcrImageResult, readHostedOcrImageDataUrl, runHostedOcrDocument } from '~/cli/commands/process-steps/step-2-extract/step-2-ocr/ocr-utils/hosted-ocr-utils'
+import type { DocumentMetadata, OpenAIChatCompletionResponse } from '~/types'
+import { createChatImageOcrRunner } from '~/cli/commands/process-steps/step-2-extract/step-2-ocr/ocr-utils/chat-image-ocr'
 import { OcrStructuredResponseError } from '~/cli/commands/process-steps/step-2-extract/step-2-ocr/ocr-structured-response-error'
 import {
   KIMI_OCR_IMAGE_BYTES,
@@ -8,7 +7,6 @@ import {
   ensureKimiApiKey,
   resolveKimiBaseUrl
 } from './kimi'
-import { createOpenAIChatCompletion, extractOpenAIChatCompletionText } from '~/utils/openai/openai-client'
 
 const KIMI_OCR_DEFAULT_MAX_COMPLETION_TOKENS = 8192
 const KIMI_OCR_IMAGE_MIME_TYPES: Partial<Record<DocumentMetadata['format'], string>> = {
@@ -34,23 +32,6 @@ const isLengthFinishReason = (
 ): boolean =>
   finishReason === 'length' || finishReason === 'max_tokens'
 
-const buildKimiOcrChatBody = (
-  model: string,
-  imageUrl: string
-): Record<string, unknown> => ({
-  model,
-  stream: false,
-  max_completion_tokens: KIMI_OCR_DEFAULT_MAX_COMPLETION_TOKENS,
-  ...(acceptsKimiThinkingField(model) ? { thinking: { type: 'disabled' } } : {}),
-  messages: [{
-    role: 'user',
-    content: [
-      { type: 'text', text: buildOcrPrompt() },
-      { type: 'image_url', image_url: { url: imageUrl } }
-    ]
-  }]
-})
-
 const buildTruncatedResponseError = (
   rawText: string,
   pageLabel: string
@@ -63,66 +44,30 @@ const buildTruncatedResponseError = (
   return error
 }
 
-const runKimiOcrImage = async (
-  config: OpenAIRestConfig,
-  imagePath: string,
-  format: DocumentMetadata['format'],
-  model: string,
-  pageNumber: number,
-  pageLabel: string,
-  onRetryable?: HostedOcrSchedulerRetryPressureHandler | undefined
-): Promise<HostedOcrImageResult> => {
-  await assertHostedOcrImageWithinLimits(imagePath, pageLabel, {
-    providerLabel: 'Kimi OCR',
-    maxBytes: KIMI_OCR_IMAGE_BYTES,
-    limitLabel: '100 MB'
-  })
-  const imageUrl = await readHostedOcrImageDataUrl(imagePath, format, {
-    providerLabel: 'Kimi OCR',
-    supportedMimeTypes: KIMI_OCR_IMAGE_MIME_TYPES
-  })
-
-  return await withOcrPageRequestRetry(
-    `kimi-ocr ${pageLabel}`,
-    async (signal) => {
-      const response = await createOpenAIChatCompletion(config, buildKimiOcrChatBody(model, imageUrl), { signal, errorMessagePrefix: 'Kimi OCR request failed' })
-      const rawText = extractOpenAIChatCompletionText(response) ?? ''
-      const finishReason = response.choices?.[0]?.finish_reason
-
-      if (isLengthFinishReason(finishReason)) {
-        throw buildTruncatedResponseError(rawText, pageLabel)
-      }
-
-      return buildHostedOcrImageResult(pageNumber, rawText, {
-        ...(typeof response.usage?.prompt_tokens === 'number' ? { promptTokens: response.usage.prompt_tokens } : {}),
-        ...(typeof response.usage?.completion_tokens === 'number' ? { completionTokens: response.usage.completion_tokens } : {})
-      })
-    },
-    { onRetryable }
-  )
-}
-
-export const runKimiOcr = async (
-  filePath: string,
-  step1Metadata: DocumentMetadata,
-  model: string,
-  opts: Pick<ExtractionOptions, 'dpi' | 'password' | 'outputDir' | 'ocrPreparationCache' | 'ocrConcurrency' | 'ocrConcurrencyMode' | 'hostedOcrScheduler'>
-): Promise<{
-  pages: PageResult[]
-  extractionMethod: 'kimi-ocr'
-  totalPages: number
-  promptTokens?: number
-  completionTokens?: number
-}> => {
-  const apiKey = ensureKimiApiKey('Kimi OCR')
-  const config = { apiKey, baseURL: resolveKimiBaseUrl() }
-  return await runHostedOcrDocument(filePath, step1Metadata, opts, {
-    service: 'kimi',
-    extractionMethod: 'kimi-ocr',
-    tempDirPrefix: 'autoshow-kimi-ocr-',
-    providerLabel: 'Kimi OCR',
+export const runKimiOcr = createChatImageOcrRunner({
+  service: 'kimi',
+  extractionMethod: 'kimi-ocr',
+  tempDirPrefix: 'autoshow-kimi-ocr-',
+  providerLabel: 'Kimi OCR',
+  maxImageBytes: KIMI_OCR_IMAGE_BYTES,
+  imageLimitLabel: '100 MB',
+  supportedMimeTypes: KIMI_OCR_IMAGE_MIME_TYPES,
+  prompt: buildOcrPrompt(),
+  errorMessagePrefix: 'Kimi OCR request failed',
+  getConfig: () => ({
+    apiKey: ensureKimiApiKey('Kimi OCR'),
+    baseURL: resolveKimiBaseUrl()
+  }),
+  buildBody: ({ model, messages }) => ({
     model,
-    runImage: async (imagePath, format, pageNumber, pageLabel, onRetryable) =>
-      await runKimiOcrImage(config, imagePath, format, model, pageNumber, pageLabel, onRetryable)
-  })
-}
+    stream: false,
+    max_completion_tokens: KIMI_OCR_DEFAULT_MAX_COMPLETION_TOKENS,
+    ...(acceptsKimiThinkingField(model) ? { thinking: { type: 'disabled' } } : {}),
+    messages
+  }),
+  checkResponse: (response: OpenAIChatCompletionResponse, rawText: string, pageLabel: string) => {
+    if (isLengthFinishReason(response.choices?.[0]?.finish_reason)) {
+      throw buildTruncatedResponseError(rawText, pageLabel)
+    }
+  }
+})

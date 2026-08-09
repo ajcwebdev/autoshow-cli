@@ -3,17 +3,17 @@ import {
   expect,
   test
 } from 'bun:test'
-import { mkdir, writeFile } from 'node:fs/promises'
+import { writeFile } from 'node:fs/promises'
 import { join } from 'node:path'
 import type { MetricName, MetricRankingEntry } from '~/types'
+import { writeMultiProviderRunFixture } from '../../../../test-utils/manifest-helpers'
 import {
   deprecatedOverallTierKey,
   deprecatedTierSplitKey,
   expectMetricRankings,
   hasOwnKeyDeep,
   runConsensusBuildReport,
-  setupTempRoots,
-  writeJson
+  setupTempRoots
 } from './shared'
 
 const makeTempRoot = setupTempRoots()
@@ -21,8 +21,6 @@ const makeTempRoot = setupTempRoots()
 describe('grouped report contracts', () => {
   test('OCR comparison report emits full metric rankings by provider group', async () => {
       const runDir = await makeTempRoot('autoshow-ocr-tiering-')
-      const providersDir = join(runDir, 'providers')
-      await mkdir(providersDir, { recursive: true })
       await writeFile(join(runDir, 'consensus-extraction.txt'), 'alpha beta gamma\n')
 
       const providerArtifacts = [
@@ -31,47 +29,21 @@ describe('grouped report contracts', () => {
         { dir: 'openai-gpt-4o-mini', provider: 'openai', model: 'gpt-4o-mini', text: 'alpha gamma', processingTime: 3000, cost: 0.5 }
       ]
 
-      await writeJson(join(runDir, 'run.json'), {
-        schemaVersion: 2,
+      await writeMultiProviderRunFixture(runDir, {
         kind: 'extract',
         metadata: {
-          step2: [{ extractionMethod: 'ocr', totalPages: 1, ocrPages: 1, textPages: 0 }],
-          providerStates: providerArtifacts.map((artifact) => ({ artifactDir: `providers/${artifact.dir}` })),
-          cost: {
-            actual: {
-              steps: providerArtifacts
-                .filter((artifact) => artifact.cost !== undefined)
-                .map((artifact) => ({ provider: artifact.provider, model: artifact.model, cost: artifact.cost }))
-            }
-          },
-          timing: {
-            actual: {
-              steps: providerArtifacts.map((artifact) => ({
-                provider: artifact.provider,
-                model: artifact.model,
-                processingTimeMs: artifact.processingTime
-              }))
-            }
-          }
-        }
-      })
-
-      for (const artifact of providerArtifacts) {
-        const providerDir = join(providersDir, artifact.dir)
-        await mkdir(providerDir, { recursive: true })
-        await writeJson(join(providerDir, 'result.json'), {
-          schemaVersion: 2,
-          kind: 'provider-result',
-          provider: artifact.provider,
-          model: artifact.model,
-          metadata: { processingTime: artifact.processingTime, tokenEstimate: 3 },
+          step2: [{ extractionMethod: 'ocr', totalPages: 1, ocrPages: 1, textPages: 0 }]
+        },
+        providerMetadata: { tokenEstimate: 3 },
+        providers: providerArtifacts.map((artifact) => ({
+          ...artifact,
           result: {
             text: artifact.text,
             pages: [{ pageNumber: 0, method: 'ocr', text: artifact.text }],
             totalPages: 1
           }
-        })
-      }
+        }))
+      })
 
       const { stderr } = await runConsensusBuildReport('ocr', runDir)
       expect(stderr).toBe('')

@@ -1,5 +1,5 @@
 import { describe, expect, test } from 'bun:test'
-import { buildSingleProviderReport, installVoiceQualityReportHooks, makeAudioJudgeFixtureRun, makeMockFetch, makeSingleProviderTtsRun, voiceQualityToolCallResponse } from './shared'
+import { buildSingleProviderReport, installMockFetch, installVoiceQualityReportHooks, makeAudioJudgeFixtureRun, makeSingleProviderTtsRun, voiceQualityToolCallResponse } from './shared'
 
 installVoiceQualityReportHooks()
 
@@ -10,7 +10,7 @@ describe('voice quality full-mode audio judge contracts', () => {
     delete process.env['ASSEMBLYAI_API_KEY']
     let fetchCount = 0
 
-    globalThis.fetch = makeMockFetch(async (input: Parameters<typeof fetch>[0], init?: Parameters<typeof fetch>[1]): Promise<Response> => {
+    installMockFetch(async (_call, input, init): Promise<Response> => {
       fetchCount += 1
       expect(String(input)).toContain('/chat/completions')
       const requestBody = JSON.parse(String(init?.body ?? '{}')) as Record<string, unknown>
@@ -54,7 +54,7 @@ describe('voice quality full-mode audio judge contracts', () => {
     delete process.env['ASSEMBLYAI_API_KEY']
     const requestBodies: Array<Record<string, unknown>> = []
 
-    globalThis.fetch = makeMockFetch(async (_input: Parameters<typeof fetch>[0], init?: Parameters<typeof fetch>[1]): Promise<Response> => {
+    installMockFetch(async (_call, _input, init): Promise<Response> => {
       const requestBody = JSON.parse(String(init?.body ?? '{}')) as Record<string, unknown>
       requestBodies.push(requestBody)
 
@@ -97,7 +97,7 @@ describe('voice quality full-mode audio judge contracts', () => {
     delete process.env['ASSEMBLYAI_API_KEY']
     const requestBodies: Array<Record<string, unknown>> = []
 
-    globalThis.fetch = makeMockFetch(async (_input: Parameters<typeof fetch>[0], init?: Parameters<typeof fetch>[1]): Promise<Response> => {
+    installMockFetch(async (_call, _input, init): Promise<Response> => {
       const requestBody = JSON.parse(String(init?.body ?? '{}')) as Record<string, unknown>
       requestBodies.push(requestBody)
 
@@ -141,7 +141,7 @@ describe('voice quality full-mode audio judge contracts', () => {
     process.env['OPENAI_API_KEY'] = 'test-openai-key'
     delete process.env['ASSEMBLYAI_API_KEY']
 
-    globalThis.fetch = makeMockFetch(async (): Promise<Response> => new Response(JSON.stringify({
+    installMockFetch(async (): Promise<Response> => new Response(JSON.stringify({
       choices: [
         {
           message: {

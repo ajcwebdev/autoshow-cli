@@ -1,108 +1,21 @@
 import { basename } from 'node:path'
-import { assertNever } from '~/utils/validate/assert-never'
 import { formatCost, formatDuration, formatEstimatedCost, formatEstimatedCostWithExactCents } from '~/utils/app-logger/formatters'
 import { createDetailTable, createHumanTable, createLocationsTable, toHumanTableCell } from '~/utils/app-logger/human-table/human-table'
 import { emitResult } from '~/utils/app-logger/result-emitter'
 import { resolveReverbModelLabel } from '~/cli/commands/process-steps/step-2-extract/step-2-stt/stt-model-labels'
-import type { AggregatedPriceEstimate, CompleteOptions, EstimateMode, HumanCompletionTables, HumanLogTableRow, Logger, Reporter, ReporterMetricValue, StepEstimate, StepSummaryEntry, StepTimingCost, TimingStepEntry } from '~/types'
+import { stepEstimateToReport } from '~/utils/pricing/step-estimate-fields'
+import type { AggregatedPriceEstimate, CompleteOptions, HumanCompletionTables, HumanLogTableRow, Logger, Reporter, ReporterMetricValue, StepEstimate, StepSummaryEntry, StepTimingCost, TimingStepEntry } from '~/types'
 
 const formatSttProvider = (provider: string): string => {
   return provider === 'whisper' ? 'whisper.cpp' : provider
 }
 
-const costField = (mode: EstimateMode, cents: number): string | number =>
-  mode === 'human' ? formatEstimatedCost(cents) : cents
-
-const costKey = (mode: EstimateMode): string =>
-  mode === 'human' ? 'cost' : 'totalCostCents'
-
-const mapStepEstimate = (estimate: StepEstimate, mode: EstimateMode): Record<string, string | number> => {
-  const base = { step: estimate.step, provider: estimate.provider, model: estimate.model }
-
-  switch (estimate.step) {
-    case 'stt': {
-      const entry: Record<string, string | number> = {
-        ...base,
-        provider: formatSttProvider(estimate.provider),
-        model: estimate.provider === 'reverb' ? resolveReverbModelLabel(estimate.model) : estimate.model,
-        [costKey(mode)]: costField(mode, estimate.totalCost)
-      }
-      return entry
-    }
-    case 'llm': {
-      const entry: Record<string, string | number> = { ...base }
-      if (mode === 'human') {
-        entry['inputRate'] = `${formatEstimatedCost(estimate.inputCostPer1MCents)}/1M`
-        entry['outputRate'] = `${formatEstimatedCost(estimate.outputCostPer1MCents)}/1M`
-      } else {
-        entry['inputCostPer1MCents'] = estimate.inputCostPer1MCents
-        entry['outputCostPer1MCents'] = estimate.outputCostPer1MCents
-      }
-      if (typeof estimate.estimatedInputTokens === 'number') entry['estInputTokens'] = estimate.estimatedInputTokens
-      if (typeof estimate.estimatedOutputTokens === 'number') entry['estOutputTokens'] = estimate.estimatedOutputTokens
-      if (typeof estimate.pricingBand === 'string') entry['pricingBand'] = estimate.pricingBand
-      if (typeof estimate.pricingNote === 'string') entry['pricingNote'] = estimate.pricingNote
-      entry[costKey(mode)] = costField(mode, estimate.totalCost)
-      return entry
-    }
-    case 'extract': {
-      const entry: Record<string, string | number> = { ...base }
-      if (mode === 'human') {
-        if (typeof estimate.costPer1kPagesCents === 'number') {
-          entry['rate'] = `${formatEstimatedCost(estimate.costPer1kPagesCents)}/1K pages`
-        } else if (typeof estimate.inputCostPer1MCents === 'number' && typeof estimate.outputCostPer1MCents === 'number') {
-          entry['inputRate'] = `${formatEstimatedCost(estimate.inputCostPer1MCents)}/1M`
-          entry['outputRate'] = `${formatEstimatedCost(estimate.outputCostPer1MCents)}/1M`
-        }
-      } else {
-        if (typeof estimate.costPer1kPagesCents === 'number') entry['costPer1kPagesCents'] = estimate.costPer1kPagesCents
-        if (typeof estimate.inputCostPer1MCents === 'number') entry['inputCostPer1MCents'] = estimate.inputCostPer1MCents
-        if (typeof estimate.outputCostPer1MCents === 'number') entry['outputCostPer1MCents'] = estimate.outputCostPer1MCents
-      }
-      if (typeof estimate.pageCount === 'number') entry['pages'] = estimate.pageCount
-      if (typeof estimate.estimatedOutputChars === 'number') entry['estOutputChars'] = estimate.estimatedOutputChars
-      if (typeof estimate.promptTokens === 'number') entry['promptTokens'] = estimate.promptTokens
-      if (typeof estimate.completionTokens === 'number') entry['completionTokens'] = estimate.completionTokens
-      if (typeof estimate.tokenEstimateSource === 'string') entry['tokenEstimateSource'] = estimate.tokenEstimateSource
-      if (typeof estimate.tokenEstimateConfidence === 'string') entry['tokenEstimateConfidence'] = estimate.tokenEstimateConfidence
-      if (typeof estimate.pricingBand === 'string') entry['pricingBand'] = estimate.pricingBand
-      if (typeof estimate.pricingNote === 'string') entry['pricingNote'] = estimate.pricingNote
-      if (typeof estimate.estimateType === 'string') entry['estimateType'] = estimate.estimateType
-      entry[costKey(mode)] = costField(mode, estimate.totalCost)
-      return entry
-    }
-    case 'tts': {
-      const entry: Record<string, string | number> = { ...base }
-      if (mode === 'human') {
-        if (typeof estimate.inputCostPer1MCharactersCents === 'number' && typeof estimate.outputCostPer1MCharactersCents === 'number') {
-          entry['inputRate'] = `${formatEstimatedCost(estimate.inputCostPer1MCharactersCents)}/1M chars`
-          entry['outputRate'] = `${formatEstimatedCost(estimate.outputCostPer1MCharactersCents)}/1M chars`
-        } else if (typeof estimate.costPer1kCharactersCents === 'number') {
-          entry['rate'] = `${formatEstimatedCost(estimate.costPer1kCharactersCents)}/1K chars`
-        }
-      }
-      if (typeof estimate.characterCount === 'number') entry['characters'] = estimate.characterCount
-      if (typeof estimate.setupCostCents === 'number') {
-        if (mode === 'human') entry['setup'] = formatEstimatedCost(estimate.setupCostCents)
-        else entry['setupCostCents'] = estimate.setupCostCents
-      }
-      entry[costKey(mode)] = costField(mode, estimate.totalCost)
-      return entry
-    }
-    case 'image':
-      return { ...base, [costKey(mode)]: costField(mode, estimate.totalCost) }
-    case 'video':
-      return { ...base, [costKey(mode)]: costField(mode, estimate.totalCost) }
-    case 'music': {
-      const entry: Record<string, string | number> = { ...base }
-      if (mode === 'human') entry['lyrics'] = estimate.lyricsSource
-      entry[costKey(mode)] = costField(mode, estimate.totalCost)
-      return entry
-    }
-    default:
-      assertNever(estimate)
-  }
-}
+const formatEstimateIdentity = (estimate: StepEstimate): Pick<StepEstimate, 'provider' | 'model'> => ({
+  provider: estimate.step === 'stt' ? formatSttProvider(estimate.provider) : estimate.provider,
+  model: estimate.step === 'stt' && estimate.provider === 'reverb'
+    ? resolveReverbModelLabel(estimate.model)
+    : estimate.model
+})
 
 const mapTimingEstimate = (timing: TimingStepEntry): Record<string, string | number> => ({
   step: timing.step,
@@ -208,12 +121,10 @@ const buildHumanEstimateRows = (
 
   return estimate.steps.map((step, index) => {
     const timing = timingRows[index]
+    const identity = formatEstimateIdentity(step)
     return {
       step: step.step,
-      provider: step.step === 'stt' ? formatSttProvider(step.provider) : step.provider,
-      model: step.step === 'stt' && step.provider === 'reverb'
-        ? resolveReverbModelLabel(step.model)
-        : step.model,
+      ...identity,
       ...(typeof timing?.['input'] === 'string' ? { input: timing['input'] } : {}),
       ...(step.step === 'tts' && typeof step.setupCostCents === 'number'
         ? { setup: formatEstimatedCost(step.setupCostCents) }
@@ -308,7 +219,7 @@ export const createReporter = (logger: Logger): Reporter => {
       emitResult({
         dryRun: true,
         estimate: {
-          steps: estimate.steps.map(s => mapStepEstimate(s, 'raw')),
+          steps: estimate.steps.map(step => stepEstimateToReport(step, formatEstimateIdentity(step))),
           totalEstimatedCostCents: estimate.totalEstimatedCost,
           ...(estimate.timing ? { timing: estimate.timing } : {})
         }

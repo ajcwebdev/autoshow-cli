@@ -7,13 +7,11 @@ export const runAnthropicModel = async (
   model: string,
   structuredOpts?: StructuredRequestOptions
 ): Promise<{ result: string, metadata: Step3Metadata }> => {
-  const config = getAnthropicClientConfig()
-
   return await runAnthropicCompatibleModel({
     prompt,
     model,
     structuredOpts,
-    config,
+    config: getAnthropicClientConfig,
     service: 'anthropic',
     providerLabel: 'Anthropic',
     operationName: 'anthropic-llm',

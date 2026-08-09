@@ -6,7 +6,7 @@ export type RunAnthropicCompatibleModelOptions = {
   prompt: string
   model: string
   structuredOpts?: StructuredRequestOptions | undefined
-  config: AnthropicRestConfig
+  config: AnthropicRestConfig | (() => AnthropicRestConfig)
   service: AnthropicCompatibleService
   providerLabel: string
   operationName: string

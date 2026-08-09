@@ -1,4 +1,4 @@
-import { afterEach, beforeEach, describe, expect, test } from 'bun:test'
+import { describe, expect, test } from 'bun:test'
 import { writeFile } from 'node:fs/promises'
 import { join } from 'node:path'
 import type { DocumentMetadata, LogSinkEvent } from '~/types'
@@ -13,19 +13,14 @@ import { classifyGeminiRetry } from '~/cli/commands/process-steps/step-3-write/w
 import { geminiGenerateContent, GeminiRestError } from '~/utils/gemini/gemini-rest'
 import { l } from '~/utils/app-logger/app-logger'
 import {
-  clearEnv,
-  createTempDirTracker,
   installMockFetch as installFetch,
   jsonResponse,
-  restoreEnv,
-  snapshotEnv
+  setupContractSuiteLifecycle
 } from '../../../test-utils/rest-contract-helpers'
 import { createMockWavBase64 } from '../../../test-utils/media-fixtures'
 
-const originalFetch = globalThis.fetch
-let previousEnv: Record<string, string | undefined> = {}
 const envKeys = ['GEMINI_API_KEY']
-const tempDirs = createTempDirTracker('autoshow-gemini-rest-')
+const tempDirs = setupContractSuiteLifecycle({ envKeys, tempPrefix: 'autoshow-gemini-rest-' })
 const withTempDir = tempDirs.withDir
 
 const audioBytes = new Uint8Array([1, 2, 3, 4])
@@ -52,17 +47,6 @@ const captureLogEvents = async <T>(
     l.config.sinks.push(...originalSinks)
   }
 }
-
-beforeEach(() => {
-  previousEnv = snapshotEnv(envKeys)
-  clearEnv(envKeys)
-})
-
-afterEach(async () => {
-  globalThis.fetch = originalFetch
-  restoreEnv(previousEnv)
-  await tempDirs.cleanup()
-})
 
 describe('Gemini REST contracts', () => {
   test('generateContent uses v1beta REST headers, generationConfig, and non-thought text extraction', async () => {

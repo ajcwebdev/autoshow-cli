@@ -1,5 +1,5 @@
 import { describe, expect, test } from 'bun:test'
-import { mkdir, mkdtemp, rm, writeFile } from 'node:fs/promises'
+import { mkdir, mkdtemp, rm } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { getGenerationTargetKey } from '~/cli/commands/process-steps/generation-command-utils'
@@ -18,6 +18,7 @@ import { finalizeMusicResumeArtifacts } from '~/cli/commands/setup-and-utilities
 import { writeSttRunManifest } from '~/cli/commands/process-steps/step-2-extract/step-2-stt/stt-manifest'
 import { buildProviderStates as buildSttProviderStates, readExistingSttRun } from '~/cli/commands/process-steps/step-2-extract/step-2-stt/stt-batch/stt-run-state'
 import type { BatchManifestEntry, OcrTarget, ProviderBatchResumeConfig, ProviderIdentity, ResumeFakeMetadata, ResumeFakeProviderResumeEntry, ResumeTarget, RuntimeOptions, SttProviderState, SttProviderSuccess, SttTarget } from '~/types'
+import { writeProviderResultFixture } from '../../../test-utils/manifest-helpers'
 
 const isRecord = (value: unknown): value is Record<string, unknown> =>
   typeof value === 'object' && value !== null && !Array.isArray(value)
@@ -423,23 +424,22 @@ describe('additive resume provider selection', () => {
           attempts: 1
         }]
       })
-      await writeFile(join(providerDir, 'result.json'), `${JSON.stringify({
-        schemaVersion: 2,
-        kind: 'provider-result',
-        provider: target.service,
-        model: target.model,
-        metadata: {
+      await writeProviderResultFixture(
+        providerDir,
+        target.service,
+        target.model,
+        {
           transcriptionService: target.service,
           transcriptionModel: target.model,
           processingTime: 10,
           tokenCount: 2
         },
-        result: {
+        {
           text: 'Compacted transcript.',
           segments: [{ start: '00:00:00', end: '00:00:01', text: 'Compacted transcript.' }],
           evidence: { timingQuality: 'coarse' }
         }
-      })}\n`)
+      )
 
       const existing = await readExistingSttRun(dir, [target])
 

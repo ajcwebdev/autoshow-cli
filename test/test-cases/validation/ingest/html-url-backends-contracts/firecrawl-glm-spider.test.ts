@@ -2,6 +2,7 @@ import { expect, test } from 'bun:test'
 import {
   DEFAULT_URL_REQUEST_TIMEOUT_MS,
   htmlDocument,
+  installMockFetch,
   longMarkdown,
   runFirecrawlUrl,
   runGlmReaderUrl,
@@ -11,16 +12,8 @@ import {
 test('firecrawl URL backend posts scrape request and normalizes article metadata', async () => {
   delete process.env['FIRECRAWL_API_KEY']
 
-  const requests: Array<{ url: string, method: string, body?: unknown }> = []
-  globalThis.fetch = (async (input: Parameters<typeof fetch>[0], init?: Parameters<typeof fetch>[1]): Promise<Response> => {
-    const url = String(input)
-    requests.push({
-      url,
-      method: init?.method ?? 'GET',
-      ...(typeof init?.body === 'string' ? { body: JSON.parse(init.body) as unknown } : {})
-    })
-
-    if (url === 'https://firecrawl.local/v2/scrape') {
+  const requests = installMockFetch((call) => {
+    if (call.url === 'https://firecrawl.local/v2/scrape') {
       return Response.json({
         data: {
           markdown: longMarkdown,
@@ -36,22 +29,22 @@ test('firecrawl URL backend posts scrape request and normalizes article metadata
       })
     }
 
-    if (url === 'https://article.test/story') {
+    if (call.url === 'https://article.test/story') {
       return new Response(htmlDocument, {
         status: 200,
         headers: { 'content-type': 'text/html; charset=utf-8' }
       })
     }
 
-    throw new Error(`Unexpected Firecrawl mock fetch: ${url}`)
-  }) as typeof fetch
+    throw new Error(`Unexpected Firecrawl mock fetch: ${call.url}`)
+  })
 
   const result = await runFirecrawlUrl('https://article.test/story', 'https://article.test/story', undefined, 'https://firecrawl.local')
 
   expect(requests[0]).toMatchObject({
     url: 'https://firecrawl.local/v2/scrape',
     method: 'POST',
-    body: {
+    bodyJson: {
       url: 'https://article.test/story',
       formats: ['markdown'],
       onlyMainContent: true,
@@ -72,25 +65,16 @@ test('firecrawl URL backend posts scrape request and normalizes article metadata
   expect(result.fileSize).toBeGreaterThan(longMarkdown.length)
 })
 
-test('GLM Reader URL backend posts reader request and normalizes article metadata', async () => {
+test('GLM Reader URL backend posts reader request, normalizes metadata, and backfills final URL', async () => {
   process.env['GLM_API_KEY'] = 'glm-test-key'
 
-  const requests: Array<{ url: string, method: string, body?: unknown }> = []
-  globalThis.fetch = (async (input: Parameters<typeof fetch>[0], init?: Parameters<typeof fetch>[1]): Promise<Response> => {
-    const url = String(input)
-    requests.push({
-      url,
-      method: init?.method ?? 'GET',
-      ...(typeof init?.body === 'string' ? { body: JSON.parse(init.body) as unknown } : {})
-    })
-
-    if (url === 'https://glm.local/api/paas/v4/reader') {
+  const requests = installMockFetch((call) => {
+    if (call.url === 'https://glm.local/api/paas/v4/reader') {
       return new Response(JSON.stringify({
         reader_result: {
           content: longMarkdown,
           title: 'GLM Reader Title',
-          description: 'GLM Reader description',
-          url: 'https://article.test/glm-final'
+          description: 'GLM Reader description'
         }
       }), {
         status: 200,
@@ -98,22 +82,22 @@ test('GLM Reader URL backend posts reader request and normalizes article metadat
       })
     }
 
-    if (url === 'https://article.test/glm') {
+    if (call.url === 'https://article.test/glm') {
       return new Response(htmlDocument, {
         status: 200,
         headers: { 'content-type': 'text/html; charset=utf-8' }
       })
     }
 
-    throw new Error(`Unexpected GLM Reader mock fetch: ${url}`)
-  }) as typeof fetch
+    throw new Error(`Unexpected GLM Reader mock fetch: ${call.url}`)
+  })
 
   const result = await runGlmReaderUrl('https://article.test/glm', 'https://article.test/glm', undefined, 'https://glm.local')
 
   expect(requests[0]).toMatchObject({
     url: 'https://glm.local/api/paas/v4/reader',
     method: 'POST',
-    body: {
+    bodyJson: {
       url: 'https://article.test/glm',
       return_format: 'markdown',
       timeout: Math.ceil(DEFAULT_URL_REQUEST_TIMEOUT_MS / 1000),
@@ -130,7 +114,7 @@ test('GLM Reader URL backend posts reader request and normalizes article metadat
     title: 'GLM Reader Title',
     web: {
       sourceUrl: 'https://article.test/glm',
-      finalUrl: 'https://article.test/glm-final',
+      finalUrl: 'https://article.test/glm',
       description: 'GLM Reader description'
     }
   })
@@ -140,16 +124,8 @@ test('GLM Reader URL backend posts reader request and normalizes article metadat
 test('Spider URL backend posts scrape request and normalizes article metadata', async () => {
   delete process.env['SPIDER_API_KEY']
 
-  const requests: Array<{ url: string, method: string, body?: unknown }> = []
-  globalThis.fetch = (async (input: Parameters<typeof fetch>[0], init?: Parameters<typeof fetch>[1]): Promise<Response> => {
-    const url = String(input)
-    requests.push({
-      url,
-      method: init?.method ?? 'GET',
-      ...(typeof init?.body === 'string' ? { body: JSON.parse(init.body) as unknown } : {})
-    })
-
-    if (url === 'https://spider.local/scrape') {
+  const requests = installMockFetch((call) => {
+    if (call.url === 'https://spider.local/scrape') {
       return Response.json([{
         url: 'https://article.test/spider-final',
         content: longMarkdown,
@@ -163,22 +139,22 @@ test('Spider URL backend posts scrape request and normalizes article metadata', 
       }])
     }
 
-    if (url === 'https://article.test/spider') {
+    if (call.url === 'https://article.test/spider') {
       return new Response(htmlDocument, {
         status: 200,
         headers: { 'content-type': 'text/html; charset=utf-8' }
       })
     }
 
-    throw new Error(`Unexpected Spider mock fetch: ${url}`)
-  }) as typeof fetch
+    throw new Error(`Unexpected Spider mock fetch: ${call.url}`)
+  })
 
   const result = await runSpiderUrl('https://article.test/spider', 'https://article.test/spider', undefined, 'https://spider.local')
 
   expect(requests[0]).toMatchObject({
     url: 'https://spider.local/scrape',
     method: 'POST',
-    body: {
+    bodyJson: {
       url: 'https://article.test/spider',
       return_format: 'markdown',
       metadata: true,

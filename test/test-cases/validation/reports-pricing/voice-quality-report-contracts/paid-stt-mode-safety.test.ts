@@ -1,5 +1,5 @@
 import { describe, expect, test } from 'bun:test'
-import { buildSingleProviderReport, installVoiceQualityReportHooks, makeMockFetch, makeSingleProviderTtsRun } from './shared'
+import { buildSingleProviderReport, installMockFetch, installVoiceQualityReportHooks, makeSingleProviderTtsRun } from './shared'
 
 installVoiceQualityReportHooks()
 
@@ -9,7 +9,7 @@ describe('voice quality paid STT and mode safety contracts', () => {
     delete process.env['OPENAI_API_KEY']
     process.env['ASSEMBLYAI_API_KEY'] = 'test-assemblyai-key'
 
-    globalThis.fetch = makeMockFetch(async (input: Parameters<typeof fetch>[0]): Promise<Response> => {
+    installMockFetch(async (_call, input): Promise<Response> => {
       expect(String(input)).toContain('/v2/upload')
       return new Response('upload unavailable', { status: 503 })
     })
@@ -25,7 +25,7 @@ describe('voice quality paid STT and mode safety contracts', () => {
     delete process.env['OPENAI_API_KEY']
     delete process.env['ASSEMBLYAI_API_KEY']
 
-    globalThis.fetch = makeMockFetch(async (): Promise<Response> => {
+    installMockFetch(async (): Promise<Response> => {
       fetchCount += 1
       throw new Error('paid endpoint should not be called')
     })
@@ -44,7 +44,7 @@ describe('voice quality paid STT and mode safety contracts', () => {
     process.env['OPENAI_API_KEY'] = 'test-openai-key'
     process.env['ASSEMBLYAI_API_KEY'] = 'test-assemblyai-key'
 
-    globalThis.fetch = makeMockFetch(async (): Promise<Response> => {
+    installMockFetch(async (): Promise<Response> => {
       fetchCount += 1
       throw new Error('paid endpoint should not be called')
     })

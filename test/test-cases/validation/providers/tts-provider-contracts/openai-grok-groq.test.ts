@@ -113,27 +113,20 @@ describe('TTS provider service contracts', () => {
   test('Grok TTS retries Bun request timeouts and passes per-attempt signals', async () => {
       const dir = await makeTempDir('autoshow-grok-tts-timeout-retry-')
       const audioBytes = Buffer.from(createMockWavBase64(), 'base64')
-      const calls: Array<{ url: string, method: string, authorization: string | null, body: Record<string, unknown> }> = []
       const signals: boolean[] = []
       let attempt = 0
 
       process.env['XAI_API_KEY'] = 'xai-key'
       ;(Bun as typeof Bun & { sleep: typeof Bun.sleep }).sleep = (async () => {}) as typeof Bun.sleep
 
-      globalThis.fetch = (async (input: Parameters<typeof fetch>[0], init?: Parameters<typeof fetch>[1]): Promise<Response> => {
+      const calls = installMockFetch((_call, _input, init) => {
         signals.push(init?.signal instanceof AbortSignal)
-        calls.push({
-          url: String(input),
-          method: init?.method ?? 'GET',
-          authorization: new Headers(init?.headers).get('authorization'),
-          body: JSON.parse(String(init?.body ?? '{}')) as Record<string, unknown>
-        })
         attempt += 1
         if (attempt === 1) {
           throw new DOMException('The operation timed out.', 'TimeoutError')
         }
         return new Response(audioBytes, { status: 200, headers: { 'content-type': 'audio/wav' } })
-      }) as typeof fetch
+      })
 
       const result = await runGrokTts('Grok timeout retry synthesis.', dir, {
         model: 'grok-tts'
@@ -142,7 +135,7 @@ describe('TTS provider service contracts', () => {
       expect(await Bun.file(result.audioPath).exists()).toBe(true)
       expect(calls).toHaveLength(2)
       expect(signals).toEqual([true, true])
-      expect(calls.map((call) => call.body['text'])).toEqual([
+      expect(calls.map((call) => call.bodyJson?.['text'])).toEqual([
         'Grok timeout retry synthesis.',
         'Grok timeout retry synthesis.'
       ])
@@ -163,9 +156,8 @@ describe('TTS provider service contracts', () => {
 
       process.env['XAI_API_KEY'] = 'xai-key'
 
-      globalThis.fetch = (async (_input: Parameters<typeof fetch>[0], init?: Parameters<typeof fetch>[1]): Promise<Response> => {
-        const body = JSON.parse(String(init?.body ?? '{}')) as Record<string, unknown>
-        const marker = String(body['text'] ?? '').charAt(0)
+      installMockFetch(async (call) => {
+        const marker = String(call.bodyJson?.['text'] ?? '').charAt(0)
         started.push(marker)
         inFlight += 1
         maxInFlight = Math.max(maxInFlight, inFlight)
@@ -177,7 +169,7 @@ describe('TTS provider service contracts', () => {
           status: 200,
           headers: { 'content-type': 'audio/wav' }
         })
-      }) as typeof fetch
+      })
 
       const input = `${'A'.repeat(2000)} ${'B'.repeat(2000)} ${'C'.repeat(100)}`
       const runPromise = runGrokTts(input, dir, {
@@ -223,9 +215,8 @@ describe('TTS provider service contracts', () => {
 
       process.env['XAI_API_KEY'] = 'xai-key'
 
-      globalThis.fetch = (async (_input: Parameters<typeof fetch>[0], init?: Parameters<typeof fetch>[1]): Promise<Response> => {
-        const body = JSON.parse(String(init?.body ?? '{}')) as Record<string, unknown>
-        started.push(String(body['text'] ?? '').charAt(0))
+      installMockFetch(async (call) => {
+        started.push(String(call.bodyJson?.['text'] ?? '').charAt(0))
         inFlight += 1
         maxInFlight = Math.max(maxInFlight, inFlight)
         if (!releaseImmediately) {
@@ -236,7 +227,7 @@ describe('TTS provider service contracts', () => {
           status: 200,
           headers: { 'content-type': 'audio/wav' }
         })
-      }) as typeof fetch
+      })
 
       const firstRun = runGrokTts(`${'A'.repeat(2000)} ${'B'.repeat(2000)} ${'C'.repeat(100)}`, firstDir, {
         model: 'grok-tts',

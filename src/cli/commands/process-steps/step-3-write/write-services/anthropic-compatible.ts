@@ -1,15 +1,7 @@
-import { buildStep3Metadata, runWithLLMInstrumentation } from '~/cli/commands/process-steps/step-3-write/write-utils/llm-instrumentation'
-import type { LlmApiCallResult, RunAnthropicCompatibleModelOptions, Step3Metadata } from '~/types'
+import { executeLlmRequest } from '~/cli/commands/process-steps/step-3-write/write-utils/llm-request-scaffold'
+import type { AnthropicRestConfig, RunAnthropicCompatibleModelOptions, Step3Metadata } from '~/types'
 import { createAnthropicMessage } from '~/utils/anthropic/anthropic-client'
-import * as l from '~/utils/app-logger/app-logger'
-import { ValidationError } from '~/utils/error-handler'
-import { classifyFetchRetry, withRetry } from '~/utils/retries'
-import { LLM_REQUEST_TIMEOUT_MS } from '~/utils/timeouts'
-
-const createCombinedSignal = (signal?: AbortSignal): AbortSignal => {
-  const timeoutSignal = AbortSignal.timeout(LLM_REQUEST_TIMEOUT_MS)
-  return AbortSignal.any([...(signal ? [signal] : []), timeoutSignal])
-}
+import { classifyFetchRetry } from '~/utils/retries'
 
 const extractAnthropicText = (content: Array<{ type: string, text?: string | undefined }>): string =>
   content
@@ -27,49 +19,40 @@ export const runAnthropicCompatibleModel = async ({
   operationName,
   supportsStructuredOutput = false
 }: RunAnthropicCompatibleModelOptions): Promise<{ result: string, metadata: Step3Metadata }> => {
-  try {
-    const apiCall = (): Promise<LlmApiCallResult> => withRetry(
-      { retryClass: 'runtime_http_create_conservative', operationName },
-      async (signal) => {
-        const requestBody: Record<string, unknown> = {
-          model,
-          max_tokens: 16000,
-          messages: [{ role: 'user', content: prompt }]
-        }
+  return await executeLlmRequest<AnthropicRestConfig>(prompt, model, structuredOpts, {
+    service,
+    providerLabel,
+    operationName,
+    emptyResponseStage: 'write:anthropic',
+    classifier: (error) => classifyFetchRetry(error, 'runtime_http_create_conservative'),
+    prepare: () => typeof config === 'function' ? config() : config,
+    execute: async (createSignal, resolvedConfig) => {
+      const requestBody: Record<string, unknown> = {
+        model,
+        max_tokens: 16000,
+        messages: [{ role: 'user', content: prompt }]
+      }
 
-        if (supportsStructuredOutput && structuredOpts) {
-          requestBody['output_config'] = {
-            format: {
-              type: 'json_schema',
-              schema: structuredOpts.schema
-            }
+      if (supportsStructuredOutput && structuredOpts) {
+        requestBody['output_config'] = {
+          format: {
+            type: 'json_schema',
+            schema: structuredOpts.schema
           }
         }
+      }
 
-        const message = await createAnthropicMessage(config, requestBody, {
-          signal: createCombinedSignal(signal)
-        })
+      const message = await createAnthropicMessage(resolvedConfig, requestBody, {
+        signal: createSignal()
+      })
 
-        const text = extractAnthropicText(message.content ?? [])
-        if (!text) {
-          throw ValidationError('No response text from model', { stage: 'write:anthropic' })
-        }
-        return {
-          text,
-          usage: message.usage,
-          rawProviderUsage: message.usage,
-          returnedModel: message.model
-        }
-      },
-      (error) => classifyFetchRetry(error, 'runtime_http_create_conservative')
-    )
-
-    const instrumentation = await runWithLLMInstrumentation(prompt, apiCall)
-    const metadata = buildStep3Metadata(service, model, instrumentation, structuredOpts)
-
-    return { result: instrumentation.responseText, metadata }
-  } catch (error) {
-    l.error(`Failed to run ${providerLabel} model`, error)
-    throw error
-  }
+      const text = extractAnthropicText(message.content ?? [])
+      return {
+        text,
+        usage: message.usage,
+        rawProviderUsage: message.usage,
+        returnedModel: message.model
+      }
+    }
+  })
 }

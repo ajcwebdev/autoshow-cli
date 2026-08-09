@@ -1,54 +1,27 @@
-import * as v from 'valibot'
 import type { MinimaxVideoModel, Step6VideoMetadata, VideoMode } from '~/types'
 import { InfraError } from '~/utils/error-handler'
 import { logGenCompleted, logGenStatus } from '~/cli/commands/process-steps/generation-command-utils'
 import { estimateVideoCost, logVideoEstimate } from '~/cli/commands/process-steps/step-6-video/video-utils/video-pricing'
 import { requireApiKey } from '~/utils/validate/env-utils'
 import { MINIMAX_DEFAULT_BASE_URL } from '~/utils/base-urls'
-import { validateData } from '~/utils/validate/validation'
 import { normalizeMinimaxDurationForApi, normalizeMinimaxResolutionForApi } from '~/cli/commands/process-steps/step-6-video/video-utils/video-normalization'
 import { downloadVideoOutputBytes } from '~/cli/commands/process-steps/step-6-video/video-utils/video-output-download'
 import { classifyFetchRetry, pollUntil, withRetry } from '~/utils/retries'
 import { MEDIA_GENERATION_TIMEOUT_MS } from '~/utils/timeouts'
 import {
-  MinimaxBaseRespSchema,
-  ensureMinimaxBaseRespSuccess,
+  MinimaxCreateResponseSchema,
+  MinimaxQueryResponseSchema,
   isMinimaxTaskSuccess,
-  isMinimaxTaskFailure
-} from '~/cli/commands/process-steps/step-4-tts/tts-services/tts-minimax/minimax-utils'
+  isMinimaxTaskFailure,
+  minimaxFetchJson,
+  minimaxJsonRequestInit,
+  readMinimaxTaskStatus,
+  resolveMinimaxFileId,
+  retrieveMinimaxFileUrl
+} from '~/utils/minimax-client/minimax-client'
 import { videoMediaReferenceToUrlOrDataUrl } from '../../video-utils/video-media-inputs'
 const POLL_INTERVAL_MS = 10_000
 const POLL_TIMEOUT_MS = MEDIA_GENERATION_TIMEOUT_MS
-
-const MinimaxCreateVideoResponseSchema = v.object({
-  task_id: v.union([v.string(), v.number()]),
-  base_resp: v.optional(MinimaxBaseRespSchema, undefined)
-})
-
-const MinimaxQueryVideoDataSchema = v.object({
-  status: v.optional(v.union([v.string(), v.number()]), undefined),
-  file_id: v.optional(v.union([v.string(), v.number()]), undefined),
-  error_message: v.optional(v.string(), undefined)
-})
-
-const MinimaxQueryVideoResponseSchema = v.object({
-  status: v.optional(v.union([v.string(), v.number()]), undefined),
-  file_id: v.optional(v.union([v.string(), v.number()]), undefined),
-  error_message: v.optional(v.string(), undefined),
-  data: v.optional(MinimaxQueryVideoDataSchema, undefined),
-  base_resp: v.optional(MinimaxBaseRespSchema, undefined)
-})
-
-const MinimaxRetrieveFileResponseSchema = v.object({
-  file: v.object({
-    download_url: v.string()
-  }),
-  base_resp: v.optional(MinimaxBaseRespSchema, undefined)
-})
-
-const readTaskStatus = (query: v.InferOutput<typeof MinimaxQueryVideoResponseSchema>): string | number | undefined => {
-  return query.data?.status ?? query.status
-}
 
 export const runMinimaxVideoGen = async (
   prompt: string | undefined,
@@ -106,26 +79,17 @@ export const runMinimaxVideoGen = async (
     if (lastFrameImage) requestBody['last_frame_image'] = lastFrameImage
   }
 
-  const createResp = await fetch(`${baseURL}/v1/video_generation`, {
-    method: 'POST',
-    headers: {
-      Authorization: `Bearer ${apiKey}`,
-      'Content-Type': 'application/json'
-    },
-    body: JSON.stringify(requestBody)
-  })
-
-  if (!createResp.ok) {
-    const body = await createResp.text()
-    throw InfraError(`MiniMax video generation request failed (${createResp.status}): ${body || 'No response body'}`, { stage: 'video:minimax' })
-  }
-
-  const createData = validateData(
-    MinimaxCreateVideoResponseSchema,
-    await createResp.json() as unknown,
-    'MiniMax video generation create response'
+  const createData = await minimaxFetchJson(
+    `${baseURL}/v1/video_generation`,
+    {
+      init: minimaxJsonRequestInit(apiKey, 'POST', requestBody),
+      schema: MinimaxCreateResponseSchema,
+      responseContext: 'MiniMax video generation create response',
+      baseRespContext: 'MiniMax video generation create request',
+      stage: 'video:minimax',
+      httpErrorMessage: 'MiniMax video generation request failed'
+    }
   )
-  ensureMinimaxBaseRespSuccess(createData.base_resp, 'MiniMax video generation create request', 'video:minimax')
 
   const taskId = String(createData.task_id)
 
@@ -136,35 +100,27 @@ export const runMinimaxVideoGen = async (
     pollFn: () => withRetry(
       { retryClass: 'runtime_http_read', operationName: 'minimax-video-gen-poll' },
       async () => {
-        const queryResp = await fetch(`${baseURL}/v1/query/video_generation?task_id=${encodeURIComponent(taskId)}`, {
-          method: 'GET',
-          headers: {
-            Authorization: `Bearer ${apiKey}`,
-            'Content-Type': 'application/json'
+        const data = await minimaxFetchJson(
+          `${baseURL}/v1/query/video_generation?task_id=${encodeURIComponent(taskId)}`,
+          {
+            init: minimaxJsonRequestInit(apiKey, 'GET'),
+            schema: MinimaxQueryResponseSchema,
+            responseContext: 'MiniMax video generation query response',
+            baseRespContext: 'MiniMax video generation query',
+            stage: 'video:minimax',
+            httpErrorMessage: 'MiniMax video generation query failed'
           }
-        })
-
-        if (!queryResp.ok) {
-          const body = await queryResp.text()
-          throw InfraError(`MiniMax video generation query failed (${queryResp.status}): ${body || 'No response body'}`, { stage: 'video:minimax', status: queryResp.status })
-        }
-
-        const data = validateData(
-          MinimaxQueryVideoResponseSchema,
-          await queryResp.json() as unknown,
-          'MiniMax video generation query response'
         )
-        ensureMinimaxBaseRespSuccess(data.base_resp, 'MiniMax video generation query', 'video:minimax')
 
-        const status = readTaskStatus(data)
+        const status = readMinimaxTaskStatus(data)
         logGenStatus('video', 'minimax', options.model, String(status ?? 'processing'))
         return data
       },
       (error) => classifyFetchRetry(error, 'runtime_http_read', { retryAbortOnConservative: true })
     ),
-    isDone: (data) => isMinimaxTaskSuccess(readTaskStatus(data)),
+    isDone: (data) => isMinimaxTaskSuccess(readMinimaxTaskStatus(data)),
     isFailed: (data) => {
-      const status = readTaskStatus(data)
+      const status = readMinimaxTaskStatus(data)
       if (isMinimaxTaskFailure(status)) {
         return { failed: true, reason: data.data?.error_message ?? data.error_message ?? data.base_resp?.status_msg ?? 'Unknown error' }
       }
@@ -172,36 +128,15 @@ export const runMinimaxVideoGen = async (
     }
   })
 
-  const fileId = (() => {
-    const raw = queryData.data?.file_id ?? queryData.file_id
-    return raw === undefined ? undefined : String(raw)
-  })()
+  const fileId = resolveMinimaxFileId(queryData)
   if (!fileId) {
     throw InfraError('MiniMax video generation succeeded but no file_id was returned', { stage: 'video:minimax' })
   }
 
-  const retrieveResp = await fetch(`${baseURL}/v1/files/retrieve?file_id=${encodeURIComponent(fileId)}`, {
-    method: 'GET',
-    headers: {
-      Authorization: `Bearer ${apiKey}`,
-      'Content-Type': 'application/json'
-    }
-  })
-
-  if (!retrieveResp.ok) {
-    const body = await retrieveResp.text()
-    throw InfraError(`MiniMax file retrieve failed (${retrieveResp.status}): ${body || 'No response body'}`, { stage: 'video:minimax' })
-  }
-
-  const retrieveData = validateData(
-    MinimaxRetrieveFileResponseSchema,
-    await retrieveResp.json() as unknown,
-    'MiniMax video file retrieve response'
-  )
-  ensureMinimaxBaseRespSuccess(retrieveData.base_resp, 'MiniMax video file retrieve', 'video:minimax')
+  const downloadUrl = await retrieveMinimaxFileUrl(baseURL, apiKey, fileId, 'video:minimax')
 
   const outputPath = `${outputDir}/generated-video.mp4`
-  const bytes = await downloadVideoOutputBytes(retrieveData.file.download_url, 'MiniMax')
+  const bytes = await downloadVideoOutputBytes(downloadUrl, 'MiniMax')
   await Bun.write(outputPath, bytes)
 
   const processingTime = Date.now() - startTime

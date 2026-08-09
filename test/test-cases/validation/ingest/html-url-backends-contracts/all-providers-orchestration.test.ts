@@ -1,5 +1,5 @@
 import { expect, test } from 'bun:test'
-import { mkdir } from 'node:fs/promises'
+import { mkdir, rm } from 'node:fs/promises'
 import { readBatchManifest, readRunManifest, writeBatchManifest } from '~/cli/commands/process-steps/manifest-utils'
 import { writeUrlRunManifest } from '~/cli/commands/process-steps/step-2-extract/step-2-url/url-manifest'
 import { resumeUrlArticleTarget } from '~/cli/commands/setup-and-utilities/resume/extract/url-resume'
@@ -10,10 +10,8 @@ import {
   HOSTED_URL_ARTICLE_BACKENDS,
   htmlDocument,
   join,
-  mkdtemp,
+  makeTempDir,
   processUrlArticle,
-  rm,
-  tmpdir,
   URL_ARTICLE_BACKENDS,
   URL_ARTICLE_PROVIDER_ADAPTERS,
   writeFile
@@ -21,7 +19,7 @@ import {
 import type { HtmlArticleBackend, UrlRequestOptions } from './shared'
 
 test('--all-providers URL orchestrator writes provider artifacts and a multi-provider run manifest', async () => {
-  const tempRoot = await mkdtemp(join(tmpdir(), 'autoshow-all-url-'))
+  const tempRoot = await makeTempDir('autoshow-all-url-')
 
   try {
     const seenOptions = new Map<HtmlArticleBackend, UrlRequestOptions | undefined>()
@@ -99,7 +97,7 @@ test('--all-providers URL orchestrator writes provider artifacts and a multi-pro
 })
 
 test('--all-providers plus --all-local URL orchestrator preserves the full backend set', async () => {
-  const tempRoot = await mkdtemp(join(tmpdir(), 'autoshow-all-url-combined-'))
+  const tempRoot = await makeTempDir('autoshow-all-url-combined-')
 
   try {
     for (const backend of URL_ARTICLE_BACKENDS) {
@@ -133,7 +131,7 @@ test('--all-providers plus --all-local URL orchestrator preserves the full backe
 })
 
 test('--all-providers URL manifest records one exhausted failed URL provider without an actual-cost artifact', async () => {
-  const tempRoot = await mkdtemp(join(tmpdir(), 'autoshow-all-url-failed-provider-'))
+  const tempRoot = await makeTempDir('autoshow-all-url-failed-provider-')
   const originalSleep = Bun.sleep
 
   try {
@@ -191,7 +189,7 @@ test('--all-providers URL manifest records one exhausted failed URL provider wit
 })
 
 test('URL resume persists recovered provider state to the batch manifest', async () => {
-  const tempRoot = await mkdtemp(join(tmpdir(), 'autoshow-url-resume-batch-'))
+  const tempRoot = await makeTempDir('autoshow-url-resume-batch-')
   const originalSleep = Bun.sleep
 
   try {
@@ -243,7 +241,7 @@ test('URL resume persists recovered provider state to the batch manifest', async
 })
 
 test('URL resume exits 2 for a stored failed run with no resumable backends', async () => {
-  const tempRoot = await mkdtemp(join(tmpdir(), 'autoshow-url-resume-failed-'))
+  const tempRoot = await makeTempDir('autoshow-url-resume-failed-')
 
   try {
     await writeUrlRunManifest(tempRoot, {
@@ -279,7 +277,7 @@ test('URL resume exits 2 for a stored failed run with no resumable backends', as
 })
 
 test('--all-providers plus --all-local URL with local HTML runs defuddle and marks hosted backends skipped', async () => {
-  const tempRoot = await mkdtemp(join(tmpdir(), 'autoshow-local-all-url-'))
+  const tempRoot = await makeTempDir('autoshow-local-all-url-')
 
   try {
     const localHtml = join(tempRoot, 'local-article.html')
@@ -335,7 +333,7 @@ test('--all-providers plus --all-local URL with local HTML runs defuddle and mar
 })
 
 test('local HTML with a single hosted URL provider still runs and records defuddle', async () => {
-  const tempRoot = await mkdtemp(join(tmpdir(), 'autoshow-local-single-url-'))
+  const tempRoot = await makeTempDir('autoshow-local-single-url-')
 
   try {
     const localHtml = join(tempRoot, 'local-article.html')

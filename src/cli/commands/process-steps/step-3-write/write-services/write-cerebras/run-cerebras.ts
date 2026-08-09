@@ -64,17 +64,15 @@ export const runCerebrasModel = async (
   model: string,
   structuredOpts?: StructuredRequestOptions
 ): Promise<{ result: string, metadata: Step3Metadata }> => {
-  const config = {
-    apiKey: ensureCerebrasApiKey(),
-    baseURL: CEREBRAS_DEFAULT_BASE_URL,
-    provider: 'cerebras'
-  }
-
   return await runOpenAICompatibleChatModel({
     prompt,
     model,
     structuredOpts,
-    config,
+    config: () => ({
+      apiKey: ensureCerebrasApiKey(),
+      baseURL: CEREBRAS_DEFAULT_BASE_URL,
+      provider: 'cerebras'
+    }),
     service: 'cerebras',
     providerLabel: 'Cerebras',
     operationName: 'cerebras-llm',

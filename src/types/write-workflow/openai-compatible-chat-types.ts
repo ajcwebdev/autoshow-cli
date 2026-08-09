@@ -6,7 +6,7 @@ export type RunOpenAICompatibleChatModelOptions = {
   prompt: string
   model: string
   structuredOpts?: StructuredRequestOptions | undefined
-  config: OpenAIRestConfig
+  config: OpenAIRestConfig | (() => OpenAIRestConfig)
   service: OpenAICompatibleChatService
   providerLabel: string
   operationName: string

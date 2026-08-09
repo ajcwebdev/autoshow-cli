@@ -1,22 +1,8 @@
-import * as l from '~/utils/app-logger/app-logger'
-import type { UrlArticleProviderAdapter, UrlArticleRunResult, UrlRequestOptions, WebArticleMetadata } from '~/types'
-import { cleanString, countWords, fetchUrlProviderJson, finalizeUrlArticleResult, getUrlRequestTimeoutMs, isRecord, normalizeMarkdown, requireHostedUrlProviderApiKey } from '../../url-utils'
+import type { UrlArticleProviderAdapter, UrlRequestOptions, WebArticleMetadata } from '~/types'
+import { cleanString, countWords, createUrlArticleRun, fetchUrlProviderJson, getUrlRequestTimeoutMs, isRecord, normalizeMarkdown, pickCleanString, requireHostedUrlProviderApiKey } from '../../url-utils'
 import { InfraError, ValidationError } from '~/utils/error-handler'
 
 const FIRECRAWL_DEFAULT_API_URL = 'https://api.firecrawl.dev'
-
-const getFirecrawlMetadataValue = (
-  metadata: Record<string, unknown>,
-  ...keys: string[]
-): string | undefined => {
-  for (const key of keys) {
-    const value = cleanString(metadata[key])
-    if (value) {
-      return value
-    }
-  }
-  return undefined
-}
 
 const parseFirecrawlResponse = (payload: unknown): { markdown: string, web: WebArticleMetadata } => {
   if (!isRecord(payload)) {
@@ -41,14 +27,14 @@ const parseFirecrawlResponse = (payload: unknown): { markdown: string, web: WebA
     : countWords(markdown)
 
   const web: WebArticleMetadata = {}
-  const sourceUrl = getFirecrawlMetadataValue(metadata, 'sourceURL', 'sourceUrl')
-  const finalUrl = getFirecrawlMetadataValue(metadata, 'finalURL', 'finalUrl', 'url')
-  const title = getFirecrawlMetadataValue(metadata, 'title')
-  const author = getFirecrawlMetadataValue(metadata, 'author', 'byline')
-  const site = getFirecrawlMetadataValue(metadata, 'site', 'siteName', 'ogSiteName')
-  const published = getFirecrawlMetadataValue(metadata, 'published', 'publishedTime', 'publishDate')
-  const language = getFirecrawlMetadataValue(metadata, 'language')
-  const description = getFirecrawlMetadataValue(metadata, 'description')
+  const sourceUrl = pickCleanString(metadata, 'sourceURL', 'sourceUrl')
+  const finalUrl = pickCleanString(metadata, 'finalURL', 'finalUrl', 'url')
+  const title = pickCleanString(metadata, 'title')
+  const author = pickCleanString(metadata, 'author', 'byline')
+  const site = pickCleanString(metadata, 'site', 'siteName', 'ogSiteName')
+  const published = pickCleanString(metadata, 'published', 'publishedTime', 'publishDate')
+  const language = pickCleanString(metadata, 'language')
+  const description = pickCleanString(metadata, 'description')
 
   if (sourceUrl) web.sourceUrl = sourceUrl
   if (finalUrl) web.finalUrl = finalUrl
@@ -104,16 +90,7 @@ const buildFirecrawlScrapeRequest = (
   return body
 }
 
-export const runFirecrawlUrl = async (
-  source: string,
-  sourceUrl: string | undefined,
-  options?: UrlRequestOptions,
-  baseUrl: string = FIRECRAWL_DEFAULT_API_URL
-): Promise<UrlArticleRunResult> => {
-  l.write('info', 'Using Firecrawl backend for article extraction')
-  const firecrawlResult = await runFirecrawlScrape(source, options, baseUrl)
-  return await finalizeUrlArticleResult(source, sourceUrl, 'firecrawl', firecrawlResult)
-}
+export const runFirecrawlUrl = createUrlArticleRun('firecrawl', 'Firecrawl', runFirecrawlScrape)
 
 export const firecrawlArticleAdapter: UrlArticleProviderAdapter = {
   id: 'firecrawl',

@@ -1,5 +1,3 @@
-import * as v from 'valibot'
-import { MinimaxBaseRespSchema, ensureMinimaxBaseRespSuccess, isMinimaxTaskFailure, isMinimaxTaskSuccess, parseMinimaxJsonResponse } from '~/cli/commands/process-steps/step-4-tts/tts-services/tts-minimax/minimax-utils'
 import { concatAndConvertToWav, runTtsChunks, splitTextIntoChunks } from '~/cli/commands/process-steps/step-4-tts/tts-utils/audio-utils'
 import { finalizeTtsRun } from '~/cli/commands/process-steps/step-4-tts/tts-utils/finalize-tts-run'
 import { withHostedTtsRetry } from '~/cli/commands/process-steps/step-4-tts/tts-utils/hosted-tts-retry'
@@ -11,43 +9,12 @@ import * as l from '~/utils/app-logger/app-logger'
 import { pollUntil } from '~/utils/retries'
 import { MEDIA_GENERATION_TIMEOUT_MS } from '~/utils/timeouts'
 import { requireApiKey } from '~/utils/validate/env-utils'
-import { validateData } from '~/utils/validate/validation'
 import { InfraError, ValidationError } from '~/utils/error-handler'
+import { MinimaxCreateResponseSchema, MinimaxQueryResponseSchema, isMinimaxTaskFailure, isMinimaxTaskSuccess, minimaxFetchJson, minimaxJsonRequestInit, readMinimaxTaskStatus, resolveMinimaxFileId } from '~/utils/minimax-client/minimax-client'
 
 const MINIMAX_DEFAULT_VOICE_ID = 'English_expressive_narrator'
 const POLL_INTERVAL_MS = 3_000
 const POLL_TIMEOUT_MS = MEDIA_GENERATION_TIMEOUT_MS
-
-const MinimaxCreateResponseSchema = v.object({
-  task_id: v.union([v.string(), v.number()]),
-  file_id: v.optional(v.union([v.string(), v.number()]), undefined),
-  base_resp: v.optional(MinimaxBaseRespSchema, undefined)
-})
-
-const MinimaxQueryDataSchema = v.object({
-  status: v.optional(v.union([v.string(), v.number()]), undefined),
-  file_id: v.optional(v.union([v.string(), v.number()]), undefined)
-})
-
-const MinimaxQueryResponseSchema = v.object({
-  status: v.optional(v.union([v.string(), v.number()]), undefined),
-  file_id: v.optional(v.union([v.string(), v.number()]), undefined),
-  error_message: v.optional(v.string(), undefined),
-  data: v.optional(MinimaxQueryDataSchema, undefined),
-  base_resp: v.optional(MinimaxBaseRespSchema, undefined)
-})
-
-const readTaskStatus = (query: v.InferOutput<typeof MinimaxQueryResponseSchema>): string | number | undefined => {
-  return query.data?.status ?? query.status
-}
-
-const extractFileId = (
-  createResp: v.InferOutput<typeof MinimaxCreateResponseSchema>,
-  queryResp: v.InferOutput<typeof MinimaxQueryResponseSchema>
-): string | undefined => {
-  const rawFileId = queryResp.data?.file_id ?? queryResp.file_id ?? createResp.file_id
-  return rawFileId === undefined ? undefined : String(rawFileId)
-}
 
 const createMinimaxHttpError = async (
   response: Response,
@@ -145,35 +112,26 @@ export const runMinimaxTts = async (
         ...(pronunciationRules && pronunciationRules.length > 0 ? { pronunciation_dict: { tone: pronunciationRules } } : {})
       }
 
-      const createTaskResponse = await withHostedTtsRetry(
+      const createTaskData = await minimaxFetchJson(
+        `${baseURL}/v1/t2a_async_v2`,
         {
-          operationName: `minimax-tts-create-chunk-${chunkIndex}`,
-          ttsProvider: 'minimax',
-          chunkScheduler: options.chunkScheduler
-        },
-        async (signal) => await fetch(`${baseURL}/v1/t2a_async_v2`, {
-          method: 'POST',
-          headers: {
-            Authorization: `Bearer ${apiKey}`,
-            'Content-Type': 'application/json'
-          },
-          body: JSON.stringify(requestBody),
-          ...(signal ? { signal } : {})
-        }).then(async (response) => {
-          if (!response.ok) {
-            throw await createMinimaxHttpError(response, 'MiniMax TTS task creation failed')
-          }
-          return response
-        })
+          init: minimaxJsonRequestInit(apiKey, 'POST', requestBody),
+          schema: MinimaxCreateResponseSchema,
+          responseContext: 'MiniMax TTS create task response',
+          baseRespContext: 'MiniMax TTS task creation',
+          stage: 'tts:minimax',
+          httpErrorMessage: 'MiniMax TTS task creation failed',
+          decorateError: async response => await createMinimaxHttpError(response, 'MiniMax TTS task creation failed'),
+          execute: async request => await withHostedTtsRetry(
+            {
+              operationName: `minimax-tts-create-chunk-${chunkIndex}`,
+              ttsProvider: 'minimax',
+              chunkScheduler: options.chunkScheduler
+            },
+            request
+          )
+        }
       )
-
-
-      const createTaskData = validateData(
-        MinimaxCreateResponseSchema,
-        await parseMinimaxJsonResponse(createTaskResponse, 'MiniMax TTS create task response', 'tts:minimax'),
-        'MiniMax TTS create task response'
-      )
-      ensureMinimaxBaseRespSuccess(createTaskData.base_resp, 'MiniMax TTS task creation', 'tts:minimax')
 
       const taskId = String(createTaskData.task_id)
 
@@ -182,46 +140,38 @@ export const runMinimaxTts = async (
         intervalMs: POLL_INTERVAL_MS,
         deadlineMs: POLL_TIMEOUT_MS,
         pollFn: async () => {
-          const queryResponse = await withHostedTtsRetry(
+          return await minimaxFetchJson(
+            `${baseURL}/v1/query/t2a_async_query_v2?task_id=${encodeURIComponent(taskId)}`,
             {
-              operationName: `minimax-tts-query-chunk-${chunkIndex}`,
-              ttsProvider: 'minimax',
-              chunkScheduler: options.chunkScheduler
-            },
-            async (signal) => await fetch(`${baseURL}/v1/query/t2a_async_query_v2?task_id=${encodeURIComponent(taskId)}`, {
-              method: 'GET',
-              headers: {
-                Authorization: `Bearer ${apiKey}`,
-                'Content-Type': 'application/json'
-              },
-              ...(signal ? { signal } : {})
-            }).then(async (response) => {
-              if (!response.ok) {
-                throw await createMinimaxHttpError(response, 'MiniMax TTS task query failed')
-              }
-              return response
-            })
+              init: minimaxJsonRequestInit(apiKey, 'GET'),
+              schema: MinimaxQueryResponseSchema,
+              responseContext: 'MiniMax TTS query task response',
+              baseRespContext: 'MiniMax TTS task query',
+              stage: 'tts:minimax',
+              httpErrorMessage: 'MiniMax TTS task query failed',
+              decorateError: async response => await createMinimaxHttpError(response, 'MiniMax TTS task query failed'),
+              execute: async request => await withHostedTtsRetry(
+                {
+                  operationName: `minimax-tts-query-chunk-${chunkIndex}`,
+                  ttsProvider: 'minimax',
+                  chunkScheduler: options.chunkScheduler
+                },
+                request
+              )
+            }
           )
-
-          const data = validateData(
-            MinimaxQueryResponseSchema,
-            await parseMinimaxJsonResponse(queryResponse, 'MiniMax TTS query task response', 'tts:minimax'),
-            'MiniMax TTS query task response'
-          )
-          ensureMinimaxBaseRespSuccess(data.base_resp, 'MiniMax TTS task query', 'tts:minimax')
-          return data
         },
-        isDone: (data) => isMinimaxTaskSuccess(readTaskStatus(data)),
+        isDone: (data) => isMinimaxTaskSuccess(readMinimaxTaskStatus(data)),
         isFailed: (data) => {
-          const status = readTaskStatus(data)
+          const status = readMinimaxTaskStatus(data)
           if (isMinimaxTaskFailure(status)) {
-            return { failed: true, reason: data.error_message ?? data.base_resp?.status_msg ?? 'Unknown error' }
+            return { failed: true, reason: data.data?.error_message ?? data.error_message ?? data.base_resp?.status_msg ?? 'Unknown error' }
           }
           return { failed: false }
         }
       })
 
-      const fileId = extractFileId(createTaskData, queryData)
+      const fileId = resolveMinimaxFileId(queryData, createTaskData)
       if (!fileId) {
         throw InfraError('MiniMax TTS task succeeded but no file_id was returned', { stage: 'tts:minimax' })
       }

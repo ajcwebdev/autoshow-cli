@@ -36,7 +36,7 @@ import {
 } from '~/cli/commands/setup-and-utilities/models/setup-model-options'
 import { buildModelDescription } from '~/cli/commands/setup-and-utilities/models/model-validation'
 import type { Step2ProviderRegistryEntry } from '~/types'
-import { booleanProvider, modelProvider } from './entry-builders'
+import { booleanProvider, sttModelProvider } from './entry-builders'
 
 export const STEP2_STT_PROVIDER_REGISTRY = [
   booleanProvider({
@@ -52,256 +52,94 @@ export const STEP2_STT_PROVIDER_REGISTRY = [
     model: 'reverb',
     description: 'Use Reverb ASR for transcription'
   }),
-  modelProvider({
-    step: 'stt',
-    modality: 'media',
-    flagName: 'deepinfra-stt',
-    targetService: 'deepinfra',
-    providerSpecProvider: 'deepinfra',
-    bootstrapProviderId: 'deepinfra-stt',
-    configKey: 'deepinfraStt',
-    allShortcut: 'all-stt',
-    runtimeModelsKey: 'deepinfraSttModels',
-    runtimeModelKey: 'deepinfraSttModel',
+  sttModelProvider('deepinfra', 'deepinfraStt', {
     supportedModels: SUPPORTED_DEEPINFRA_STT_MODELS,
     validateModel: validateDeepinfraSttModel,
     description: buildModelDescription('DeepInfra Whisper STT model (API, billed)', SUPPORTED_DEEPINFRA_STT_MODELS)
   }),
-  modelProvider({
-    step: 'stt',
-    modality: 'media',
-    flagName: 'deepgram-stt',
-    targetService: 'deepgram',
-    providerSpecProvider: 'deepgram',
-    bootstrapProviderId: 'deepgram-stt',
-    configKey: 'deepgramStt',
-    allShortcut: 'all-stt',
-    runtimeModelsKey: 'deepgramSttModels',
-    runtimeModelKey: 'deepgramSttModel',
+  sttModelProvider('deepgram', 'deepgramStt', {
     supportedModels: SUPPORTED_DEEPGRAM_STT_MODELS,
     validateModel: validateDeepgramSttModel,
     description: buildModelDescription('Deepgram STT model', SUPPORTED_DEEPGRAM_STT_MODELS)
   }),
-  modelProvider({
-    step: 'stt',
-    modality: 'media',
-    flagName: 'soniox-stt',
-    targetService: 'soniox',
-    providerSpecProvider: 'soniox',
-    bootstrapProviderId: 'soniox-stt',
-    configKey: 'sonioxStt',
-    allShortcut: 'all-stt',
-    runtimeModelsKey: 'sonioxSttModels',
-    runtimeModelKey: 'sonioxSttModel',
+  sttModelProvider('soniox', 'sonioxStt', {
     supportedModels: SUPPORTED_SONIOX_STT_MODELS,
     validateModel: validateSonioxSttModel,
     description: buildModelDescription('Soniox STT model', SUPPORTED_SONIOX_STT_MODELS)
   }),
-  modelProvider({
-    step: 'stt',
-    modality: 'media',
-    flagName: 'speechmatics-stt',
-    targetService: 'speechmatics',
-    providerSpecProvider: 'speechmatics',
-    bootstrapProviderId: 'speechmatics-stt',
-    configKey: 'speechmaticsStt',
-    allShortcut: 'all-stt',
-    runtimeModelsKey: 'speechmaticsSttModels',
-    runtimeModelKey: 'speechmaticsSttModel',
+  sttModelProvider('speechmatics', 'speechmaticsStt', {
     supportedModels: SUPPORTED_SPEECHMATICS_STT_MODELS,
     validateModel: validateSpeechmaticsSttModel,
     description: buildModelDescription('Speechmatics STT model', SUPPORTED_SPEECHMATICS_STT_MODELS)
   }),
-  modelProvider({
-    step: 'stt',
-    modality: 'media',
-    flagName: 'rev-stt',
-    targetService: 'rev',
-    providerSpecProvider: 'rev',
-    bootstrapProviderId: 'rev-stt',
-    configKey: 'revStt',
-    allShortcut: 'all-stt',
-    runtimeModelsKey: 'revSttModels',
-    runtimeModelKey: 'revSttModel',
+  sttModelProvider('rev', 'revStt', {
     supportedModels: SUPPORTED_REV_STT_MODELS,
     validateModel: validateRevSttModel,
     description: buildModelDescription('Rev STT model', SUPPORTED_REV_STT_MODELS)
   }),
-  modelProvider({
-    step: 'stt',
-    modality: 'media',
-    flagName: 'groq-stt',
-    targetService: 'groq',
-    providerSpecProvider: 'groq',
-    bootstrapProviderId: 'groq-stt',
-    configKey: 'groqStt',
-    allShortcut: 'all-stt',
-    runtimeModelsKey: 'groqSttModels',
-    runtimeModelKey: 'groqSttModel',
+  sttModelProvider('groq', 'groqStt', {
     supportedModels: SUPPORTED_GROQ_STT_MODELS,
     validateModel: validateGroqSttModel,
     description: buildModelDescription('Groq Whisper STT model (API, billed)', SUPPORTED_GROQ_STT_MODELS)
   }),
-  modelProvider({
-    step: 'stt',
-    modality: 'media',
-    flagName: 'grok-stt',
-    targetService: 'grok',
-    providerSpecProvider: 'grok',
-    bootstrapProviderId: 'grok-stt',
-    configKey: 'grokStt',
-    allShortcut: 'all-stt',
-    runtimeModelsKey: 'grokSttModels',
-    runtimeModelKey: 'grokSttModel',
+  sttModelProvider('grok', 'grokStt', {
     supportedModels: SUPPORTED_GROK_STT_MODELS,
     validateModel: validateGrokSttModel,
     description: buildModelDescription('xAI Grok STT model', SUPPORTED_GROK_STT_MODELS)
   }),
-  modelProvider({
-    step: 'stt',
-    modality: 'media',
-    flagName: 'mistral-stt',
-    targetService: 'mistral',
-    providerSpecProvider: 'mistral',
-    bootstrapProviderId: 'mistral-stt',
-    configKey: 'mistralStt',
-    allShortcut: 'all-stt',
-    runtimeModelsKey: 'mistralSttModels',
-    runtimeModelKey: 'mistralSttModel',
+  sttModelProvider('mistral', 'mistralStt', {
     supportedModels: SUPPORTED_MISTRAL_STT_MODELS,
     validateModel: validateMistralSttModel,
     description: buildModelDescription('Mistral STT model', SUPPORTED_MISTRAL_STT_MODELS)
   }),
-  modelProvider({
-    step: 'stt',
-    modality: 'media',
-    flagName: 'assemblyai-stt',
-    targetService: 'assemblyai',
-    providerSpecProvider: 'assemblyai',
-    bootstrapProviderId: 'assemblyai-stt',
-    configKey: 'assemblyaiStt',
-    allShortcut: 'all-stt',
-    runtimeModelsKey: 'assemblyaiSttModels',
-    runtimeModelKey: 'assemblyaiSttModel',
+  sttModelProvider('assemblyai', 'assemblyaiStt', {
     supportedModels: SUPPORTED_ASSEMBLYAI_STT_MODELS,
     validateModel: validateAssemblyaiSttModel,
     description: buildModelDescription('AssemblyAI STT model', SUPPORTED_ASSEMBLYAI_STT_MODELS)
   }),
-  modelProvider({
-    step: 'stt',
-    modality: 'media',
-    flagName: 'gladia-stt',
-    targetService: 'gladia',
-    providerSpecProvider: 'gladia',
-    bootstrapProviderId: 'gladia-stt',
-    configKey: 'gladiaStt',
-    allShortcut: 'all-stt',
-    runtimeModelsKey: 'gladiaSttModels',
-    runtimeModelKey: 'gladiaSttModel',
+  sttModelProvider('gladia', 'gladiaStt', {
     supportedModels: SUPPORTED_GLADIA_STT_MODELS,
     validateModel: validateGladiaSttModel,
     description: buildModelDescription('Gladia STT model', SUPPORTED_GLADIA_STT_MODELS)
   }),
-  modelProvider({
-    step: 'stt',
-    modality: 'media',
-    flagName: 'happyscribe-stt',
-    targetService: 'happyscribe',
-    providerSpecProvider: 'happyscribe',
-    bootstrapProviderId: 'happyscribe-stt',
-    configKey: 'happyscribeStt',
-    allShortcut: 'all-stt',
-    runtimeModelsKey: 'happyscribeSttModels',
-    runtimeModelKey: 'happyscribeSttModel',
+  sttModelProvider('happyscribe', 'happyscribeStt', {
     supportedModels: SUPPORTED_HAPPYSCRIBE_STT_MODELS,
     validateModel: validateHappyscribeSttModel,
     description: buildModelDescription('Happy Scribe automatic STT model (fixed en-US only)', SUPPORTED_HAPPYSCRIBE_STT_MODELS)
   }),
-  modelProvider({
-    step: 'stt',
-    modality: 'media',
-    flagName: 'supadata-stt',
-    targetService: 'supadata',
-    providerSpecProvider: 'supadata',
-    bootstrapProviderId: 'supadata-stt',
-    configKey: 'supadataStt',
-    allShortcut: 'all-stt',
-    runtimeModelsKey: 'supadataSttModels',
-    runtimeModelKey: 'supadataSttModel',
+  sttModelProvider('supadata', 'supadataStt', {
     supportedModels: SUPPORTED_SUPADATA_STT_MODELS,
     validateModel: validateSupadataSttModel,
     description: buildModelDescription('Supadata STT mode', SUPPORTED_SUPADATA_STT_MODELS)
   }),
-  modelProvider({
-    step: 'stt',
-    modality: 'media',
-    flagName: 'scrapecreators-stt',
-    targetService: 'scrapecreators',
-    providerSpecProvider: 'scrapecreators',
-    bootstrapProviderId: 'scrapecreators-stt',
-    configKey: 'scrapecreatorsStt',
-    runtimeModelsKey: 'scrapecreatorsSttModels',
-    runtimeModelKey: 'scrapecreatorsSttModel',
+  sttModelProvider('scrapecreators', 'scrapecreatorsStt', {
+    allShortcut: false,
     supportedModels: SUPPORTED_SCRAPECREATORS_STT_MODELS,
     validateModel: validateScrapeCreatorsSttModel,
     description: buildModelDescription('ScrapeCreators YouTube transcript retrieval mode', SUPPORTED_SCRAPECREATORS_STT_MODELS)
   }),
-  modelProvider({
-    step: 'stt',
-    modality: 'media',
-    flagName: 'gemini-stt',
+  sttModelProvider('gemini', 'geminiStt', {
     targetService: 'gemini-stt',
     providerSpecProvider: 'gemini-stt',
-    bootstrapProviderId: 'gemini-stt',
-    configKey: 'geminiStt',
-    allShortcut: 'all-stt',
-    runtimeModelsKey: 'geminiSttModels',
-    runtimeModelKey: 'geminiSttModel',
     supportedModels: SUPPORTED_GEMINI_STT_MODELS,
     validateModel: validateGeminiSttModel,
     description: buildModelDescription('Gemini STT model', SUPPORTED_GEMINI_STT_MODELS)
   }),
-  modelProvider({
-    step: 'stt',
-    modality: 'media',
-    flagName: 'together-stt',
-    targetService: 'together',
-    providerSpecProvider: 'together',
-    bootstrapProviderId: 'together-stt',
-    configKey: 'togetherStt',
-    allShortcut: 'all-stt',
-    runtimeModelsKey: 'togetherSttModels',
-    runtimeModelKey: 'togetherSttModel',
+  sttModelProvider('together', 'togetherStt', {
     supportedModels: SUPPORTED_TOGETHER_STT_MODELS,
     validateModel: validateTogetherSttModel,
     description: buildModelDescription('Together batch STT model (API, billed)', SUPPORTED_TOGETHER_STT_MODELS)
   }),
-  modelProvider({
-    step: 'stt',
-    modality: 'media',
-    flagName: 'whisper-stt',
-    targetService: 'whisper',
-    providerSpecProvider: 'whisper',
+  sttModelProvider('whisper', 'whisper', {
     bootstrapProviderId: 'whisper',
-    configKey: 'whisper',
     allShortcut: 'all-local-stt',
-    runtimeModelsKey: 'whisperModels',
-    runtimeModelKey: 'whisperModel',
     supportedModels: SUPPORTED_WHISPER_MODELS,
     validateModel: validateWhisperModel,
     description: 'Local whisper.cpp model (free): tiny|base|small|medium|large-v3-turbo'
   }),
-  modelProvider({
-    step: 'stt',
-    modality: 'media',
-    flagName: 'whisperfile-stt',
-    targetService: 'whisperfile',
-    providerSpecProvider: 'whisperfile',
+  sttModelProvider('whisperfile', 'whisperfile', {
     bootstrapProviderId: 'whisperfile',
-    configKey: 'whisperfile',
     allShortcut: 'all-local-stt',
-    runtimeModelsKey: 'whisperfileModels',
-    runtimeModelKey: 'whisperfileModel',
     supportedModels: SUPPORTED_WHISPERFILE_MODELS,
     validateModel: validateWhisperfileModel,
     description: 'Local whisperfile/llamafile model (free): tiny|tiny.en|small|small.en|medium|medium.en|large-v2|large-v3'

@@ -2,6 +2,7 @@ import { describe, expect, test } from 'bun:test'
 import { writeFile } from 'node:fs/promises'
 import { join } from 'node:path'
 import type { DocumentMetadata } from '~/types'
+import { runDeepinfraOcr } from '~/cli/commands/process-steps/step-2-extract/step-2-ocr/ocr-services/deepinfra-ocr/run-deepinfra-ocr'
 import { runGrokOcr } from '~/cli/commands/process-steps/step-2-extract/step-2-ocr/ocr-services/grok-ocr/run-grok-ocr'
 import { runKimiOcr } from '~/cli/commands/process-steps/step-2-extract/step-2-ocr/ocr-services/kimi-ocr/run-kimi-ocr'
 import { runOpenAIOcr } from '~/cli/commands/process-steps/step-2-extract/step-2-ocr/ocr-services/openai-ocr/run-openai-ocr'
@@ -125,8 +126,9 @@ describe('OpenAI REST OCR contracts', () => {
     })
   })
 
-  test('Grok OCR passes through Grok 4.20 non-reasoning without changing chat image payload shape', async () => {
+  test('Grok and DeepInfra OCR preserve their provider-specific chat image payloads', async () => {
     process.env['XAI_API_KEY'] = 'xai-key'
+    process.env['DEEPINFRA_API_KEY'] = 'deepinfra-key'
     const calls = installFetch(() => jsonResponse({
       choices: [{ message: { content: 'Grok OCR text' } }],
       usage: { prompt_tokens: 4000, completion_tokens: 1000 }
@@ -168,6 +170,23 @@ describe('OpenAI REST OCR contracts', () => {
         image_url: {
           url: `data:image/png;base64,${Buffer.from(new Uint8Array([1, 2, 3])).toString('base64')}`
         }
+      })
+
+      const webpPath = join(dir, 'page.webp')
+      await writeFile(webpPath, new Uint8Array([4, 5, 6]))
+      await runDeepinfraOcr(webpPath, { ...metadata, format: 'webp' }, 'Qwen/Qwen3-VL-8B-Instruct', {
+        dpi: 300,
+        password: undefined,
+        outputDir: dir,
+        ocrPreparationCache: undefined
+      })
+      expect(calls[1]?.bodyJson?.['max_tokens']).toBe(4092)
+      expect(calls[1]?.bodyJson).not.toHaveProperty('max_completion_tokens')
+      const deepinfraMessages = calls[1]?.bodyJson?.['messages'] as Array<Record<string, unknown>>
+      const deepinfraContent = deepinfraMessages[0]?.['content'] as Array<Record<string, unknown>>
+      expect(deepinfraContent[1]).toEqual({
+        type: 'image_url',
+        image_url: { url: `data:image/webp;base64,${Buffer.from(new Uint8Array([4, 5, 6])).toString('base64')}` }
       })
     })
   })

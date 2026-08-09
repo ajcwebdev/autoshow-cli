@@ -27,17 +27,15 @@ export const runTogetherModel = async (
   model: string,
   structuredOpts?: StructuredRequestOptions
 ): Promise<{ result: string, metadata: Step3Metadata }> => {
-  const config = {
-    apiKey: ensureTogetherApiKey(),
-    baseURL: TOGETHER_DEFAULT_BASE_URL,
-    provider: 'together'
-  }
-
   return await runOpenAICompatibleChatModel({
     prompt,
     model,
     structuredOpts,
-    config,
+    config: () => ({
+      apiKey: ensureTogetherApiKey(),
+      baseURL: TOGETHER_DEFAULT_BASE_URL,
+      provider: 'together'
+    }),
     service: 'together',
     providerLabel: 'Together',
     operationName: 'together-llm',

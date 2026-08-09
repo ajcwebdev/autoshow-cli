@@ -1,3 +1,4 @@
+import { mkdir } from 'node:fs/promises'
 import { join } from 'node:path'
 import type { BatchManifest, ProviderResult, RunManifest } from '~/types'
 
@@ -33,10 +34,10 @@ export const readRunMetadata = async (pathOrDir: string): Promise<Record<string,
 
 export const writeRunManifestFixture = async (
   pathOrDir: string,
-  kind: RunManifest['kind'],
+  kind: RunManifest['kind'] | 'url',
   metadata: Record<string, unknown>
 ): Promise<void> => {
-  const manifest: RunManifest = {
+  const manifest = {
     schemaVersion: 2,
     kind,
     metadata
@@ -93,4 +94,69 @@ export const writeProviderResultFixture = async (
     result
   }
   await Bun.write(resolveArtifactPath(pathOrDir, 'result.json'), `${JSON.stringify(envelope, null, 2)}\n`)
+}
+
+export type MultiProviderRunFixtureProvider = {
+  dir: string
+  provider: string
+  model: string
+  status?: 'succeeded' | 'missing' | 'failed' | 'skipped'
+  processingTime?: number
+  cost?: number
+  result: Record<string, unknown>
+}
+
+export type MultiProviderRunFixtureOptions = {
+  kind: RunManifest['kind'] | 'url'
+  metadata?: Record<string, unknown>
+  providerMetadata?: Record<string, unknown>
+  providers: readonly MultiProviderRunFixtureProvider[]
+}
+
+export const writeMultiProviderRunFixture = async (
+  runDir: string,
+  options: MultiProviderRunFixtureOptions
+): Promise<void> => {
+  const providerStates = options.providers.map((provider) => ({
+    service: provider.provider,
+    model: provider.model,
+    artifactDir: `providers/${provider.dir}`,
+    status: provider.status ?? 'succeeded'
+  }))
+  const costSteps = options.providers.flatMap((provider) =>
+    provider.cost === undefined
+      ? []
+      : [{ provider: provider.provider, model: provider.model, cost: provider.cost }]
+  )
+  const timingSteps = options.providers.flatMap((provider) =>
+    provider.processingTime === undefined
+      ? []
+      : [{
+          provider: provider.provider,
+          model: provider.model,
+          processingTimeMs: provider.processingTime
+        }]
+  )
+
+  await mkdir(runDir, { recursive: true })
+  await writeRunManifestFixture(runDir, options.kind, {
+    ...options.metadata,
+    providerStates,
+    cost: { actual: { steps: costSteps } },
+    timing: { actual: { steps: timingSteps } }
+  })
+  await Promise.all(options.providers.map(async (provider) => {
+    const providerDir = join(runDir, 'providers', provider.dir)
+    await mkdir(providerDir, { recursive: true })
+    await writeProviderResultFixture(
+      providerDir,
+      provider.provider,
+      provider.model,
+      {
+        ...(provider.processingTime === undefined ? {} : { processingTime: provider.processingTime }),
+        ...options.providerMetadata
+      },
+      provider.result
+    )
+  }))
 }

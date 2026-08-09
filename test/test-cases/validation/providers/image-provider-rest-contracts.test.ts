@@ -1,4 +1,4 @@
-import { afterEach, beforeEach, describe, expect, test } from 'bun:test'
+import { describe, expect, test } from 'bun:test'
 import { writeFile } from 'node:fs/promises'
 import { join } from 'node:path'
 import { runBflImageGen } from '~/cli/commands/process-steps/step-5-image/image-generation-services/bfl/run-bfl-image-gen'
@@ -7,24 +7,18 @@ import { runRecraftImageGen } from '~/cli/commands/process-steps/step-5-image/im
 import { runReplicateImageGen } from '~/cli/commands/process-steps/step-5-image/image-generation-services/replicate/run-replicate-image-gen'
 import {
   bytesResponse,
-  clearEnv,
-  createTempDirTracker,
   installMockFetch,
   jsonResponse,
-  restoreEnv,
-  snapshotEnv
+  setupContractSuiteLifecycle
 } from '../../../test-utils/rest-contract-helpers'
-import type { EnvSnapshot } from '~/types'
 
-const originalFetch = globalThis.fetch
-let previousEnv: EnvSnapshot = {}
 const envKeys = [
   'BFL_API_KEY',
   'LUMA_AGENTS_API_KEY',
   'RECRAFT_API_TOKEN',
   'REPLICATE_API_TOKEN'
 ]
-const tempDirs = createTempDirTracker('autoshow-image-provider-rest-')
+const tempDirs = setupContractSuiteLifecycle({ envKeys, tempPrefix: 'autoshow-image-provider-rest-' })
 
 const imageResponse = (
   bytes: Uint8Array,
@@ -35,17 +29,6 @@ const imageResponse = (
 const withTempDir = async <T,>(fn: (dir: string) => Promise<T>): Promise<T> => {
   return await tempDirs.withDir(fn)
 }
-
-beforeEach(() => {
-  previousEnv = snapshotEnv(envKeys)
-  clearEnv(envKeys)
-})
-
-afterEach(async () => {
-  globalThis.fetch = originalFetch
-  restoreEnv(previousEnv)
-  await tempDirs.cleanup()
-})
 
 describe('image provider REST contracts', () => {
   test('BFL image generation sends numbered reference image fields', async () => {

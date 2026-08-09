@@ -1,5 +1,5 @@
 import { expect, test } from 'bun:test'
-import { mkdir, rename, stat } from 'node:fs/promises'
+import { mkdir, rename, rm, stat } from 'node:fs/promises'
 import {
   defuddleRuntimeDir,
   ensureDefuddleCliSetup
@@ -11,11 +11,8 @@ import {
   htmlDocument,
   join,
   longMarkdown,
-  mkdtemp,
-  rm,
+  makeTempDir,
   runOcr,
-  tempDirs,
-  tmpdir,
   writeFile,
   writeFakeDefuddleBin
 } from './shared'
@@ -92,8 +89,7 @@ test('concurrent Defuddle setup callers share a single managed install', async (
   const backupDir = `${defuddleRuntimeDir}.autoshow-test-${Date.now()}-${Math.random().toString(16).slice(2)}`
   const hadRuntimeDir = await pathExists(defuddleRuntimeDir)
   const originalSpawn = Bun.spawn
-  const fakeOverrideDir = await mkdtemp(join(tmpdir(), 'autoshow-invalid-defuddle-'))
-  tempDirs.push(fakeOverrideDir)
+  const fakeOverrideDir = await makeTempDir('autoshow-invalid-defuddle-')
   const fakeOverrideBin = join(fakeOverrideDir, 'defuddle')
   let installCalls = 0
   let activeInstalls = 0

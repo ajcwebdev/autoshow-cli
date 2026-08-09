@@ -14,13 +14,11 @@ export const runGroqModel = async (
   model: string,
   structuredOpts?: StructuredRequestOptions
 ): Promise<{ result: string, metadata: Step3Metadata }> => {
-  const config = getGroqClientConfig()
-
   return await runOpenAICompatibleChatModel({
     prompt,
     model,
     structuredOpts,
-    config,
+    config: getGroqClientConfig,
     service: 'groq',
     providerLabel: 'Groq',
     operationName: 'groq-llm',

@@ -1,6 +1,5 @@
-import { afterEach, describe, expect, test } from 'bun:test'
-import { chmod, lstat, mkdir, mkdtemp, readdir, readlink, rm, stat, symlink } from 'node:fs/promises'
-import { tmpdir } from 'node:os'
+import { describe, expect, test } from 'bun:test'
+import { chmod, lstat, mkdir, readdir, readlink, rm, stat, symlink } from 'node:fs/promises'
 import { join } from 'node:path'
 import { extractTarGzBuffer } from '~/cli/commands/setup-and-utilities/setup/setup-download/tar-gz'
 import { downloadFile, resolveDownloadProfile } from '~/cli/commands/setup-and-utilities/setup/setup-download/download'
@@ -26,18 +25,16 @@ import {
   REVERB_DIARIZATION_PIPELINE_REQUIRED_FILES
 } from '~/cli/commands/process-steps/step-2-extract/step-2-stt/stt-local/reverb/reverb-assets'
 import type { SetupTarEntry } from '~/types'
+import { setupContractSuiteLifecycle } from '../../../test-utils/rest-contract-helpers'
 
-const tempDirs: string[] = []
-
-const makeTempDir = async (): Promise<string> => {
-  const dir = await mkdtemp(join(tmpdir(), 'autoshow-native-setup-test-'))
-  tempDirs.push(dir)
-  return dir
-}
-
-afterEach(async () => {
-  await Promise.all(tempDirs.splice(0).map((dir) => rm(dir, { recursive: true, force: true })))
+const tempDirs = setupContractSuiteLifecycle({
+  envKeys: ['HUGGINGFACE_HUB_CACHE'],
+  tempPrefix: 'autoshow-native-setup-test-',
+  afterEachExtra: () => {
+    setSetupDownloadConcurrency(DEFAULT_SETUP_DOWNLOAD_CONCURRENCY)
+  }
 })
+const makeTempDir = tempDirs.make
 
 const encoder = new TextEncoder()
 
@@ -134,60 +131,45 @@ describe('managed download checksum validation', () => {
   test('validates sha256 before writing downloaded files', async () => {
     const destination = join(await makeTempDir(), 'asset.txt')
     const payload = 'official artifact\n'
-    const fetchImpl = globalThis.fetch
     globalThis.fetch = mockFetch(async () => new Response(payload))
-    try {
-      await downloadFile({
-        url: 'https://example.test/asset.txt',
-        destination,
-        sha256: '35cd0d2312fa344837c333588f0882f1015161916a573ee6a4754708d4a69657'
-      })
-      expect(await Bun.file(destination).text()).toBe(payload)
+    await downloadFile({
+      url: 'https://example.test/asset.txt',
+      destination,
+      sha256: '35cd0d2312fa344837c333588f0882f1015161916a573ee6a4754708d4a69657'
+    })
+    expect(await Bun.file(destination).text()).toBe(payload)
 
-      await expect(downloadFile({
-        url: 'https://example.test/asset.txt',
-        destination,
-        sha256: '0000000000000000000000000000000000000000000000000000000000000000'
-      })).rejects.toThrow('SHA-256 mismatch')
-    } finally {
-      globalThis.fetch = fetchImpl
-    }
+    await expect(downloadFile({
+      url: 'https://example.test/asset.txt',
+      destination,
+      sha256: '0000000000000000000000000000000000000000000000000000000000000000'
+    })).rejects.toThrow('SHA-256 mismatch')
   })
 
   test('a checksum mismatch discards the partial file instead of leaving it to resume', async () => {
     const destination = join(await makeTempDir(), 'asset.bin')
-    const fetchImpl = globalThis.fetch
     globalThis.fetch = mockFetch(async () => new Response('corrupt\n'))
-    try {
-      await expect(downloadFile({
-        url: 'https://example.test/asset.bin',
-        destination,
-        sha256: '0000000000000000000000000000000000000000000000000000000000000000'
-      })).rejects.toThrow('SHA-256 mismatch')
+    await expect(downloadFile({
+      url: 'https://example.test/asset.bin',
+      destination,
+      sha256: '0000000000000000000000000000000000000000000000000000000000000000'
+    })).rejects.toThrow('SHA-256 mismatch')
 
-      expect(await Bun.file(`${destination}.part`).exists()).toBe(false)
-      expect(await Bun.file(`${destination}.part.json`).exists()).toBe(false)
-    } finally {
-      globalThis.fetch = fetchImpl
-    }
+    expect(await Bun.file(`${destination}.part`).exists()).toBe(false)
+    expect(await Bun.file(`${destination}.part.json`).exists()).toBe(false)
   })
 
   test('a short file is rejected and discarded rather than cached as complete', async () => {
     const destination = join(await makeTempDir(), 'model.bin')
-    const fetchImpl = globalThis.fetch
     globalThis.fetch = mockFetch(async () => new Response('truncated'))
-    try {
-      await expect(downloadFile({
-        url: 'https://example.test/model.bin',
-        destination,
-        expectedMinBytes: 10_000_000
-      })).rejects.toThrow('too small')
+    await expect(downloadFile({
+      url: 'https://example.test/model.bin',
+      destination,
+      expectedMinBytes: 10_000_000
+    })).rejects.toThrow('too small')
 
-      expect(await Bun.file(destination).exists()).toBe(false)
-      expect(await Bun.file(`${destination}.part`).exists()).toBe(false)
-    } finally {
-      globalThis.fetch = fetchImpl
-    }
+    expect(await Bun.file(destination).exists()).toBe(false)
+    expect(await Bun.file(`${destination}.part`).exists()).toBe(false)
   })
 })
 
@@ -195,7 +177,6 @@ describe('resumable downloads', () => {
   test('an interrupted transfer resumes from the bytes already on disk', async () => {
     const destination = join(await makeTempDir(), 'large.bin')
     const payload = 'abcdefghijklmnopqrstuvwxyz'
-    const fetchImpl = globalThis.fetch
     const rangeHeaders: (string | null)[] = []
     let attempt = 0
 
@@ -224,25 +205,20 @@ describe('resumable downloads', () => {
       return new Response(payload.slice(start), { status: 206 })
     })
 
-    try {
-      await expect(downloadFile({ url: 'https://example.test/large.bin', destination }))
-        .rejects.toThrow()
-      // The prefix survives so the retry does not refetch from zero.
-      expect(await Bun.file(`${destination}.part`).text()).toBe(payload.slice(0, 10))
+    await expect(downloadFile({ url: 'https://example.test/large.bin', destination }))
+      .rejects.toThrow()
+    // The prefix survives so the retry does not refetch from zero.
+    expect(await Bun.file(`${destination}.part`).text()).toBe(payload.slice(0, 10))
 
-      await downloadFile({ url: 'https://example.test/large.bin', destination })
+    await downloadFile({ url: 'https://example.test/large.bin', destination })
 
-      expect(await Bun.file(destination).text()).toBe(payload)
-      expect(rangeHeaders).toEqual([null, 'bytes=10-'])
-      expect(await Bun.file(`${destination}.part`).exists()).toBe(false)
-    } finally {
-      globalThis.fetch = fetchImpl
-    }
+    expect(await Bun.file(destination).text()).toBe(payload)
+    expect(rangeHeaders).toEqual([null, 'bytes=10-'])
+    expect(await Bun.file(`${destination}.part`).exists()).toBe(false)
   })
 
   test('a partial file from a different url is discarded rather than concatenated', async () => {
     const destination = join(await makeTempDir(), 'asset.bin')
-    const fetchImpl = globalThis.fetch
     const rangeHeaders: (string | null)[] = []
 
     await Bun.write(`${destination}.part`, 'stale bytes from another asset')
@@ -253,18 +229,13 @@ describe('resumable downloads', () => {
       return new Response('fresh\n')
     })
 
-    try {
-      await downloadFile({ url: 'https://example.test/asset.bin', destination })
-      expect(rangeHeaders).toEqual([null])
-      expect(await Bun.file(destination).text()).toBe('fresh\n')
-    } finally {
-      globalThis.fetch = fetchImpl
-    }
+    await downloadFile({ url: 'https://example.test/asset.bin', destination })
+    expect(rangeHeaders).toEqual([null])
+    expect(await Bun.file(destination).text()).toBe('fresh\n')
   })
 
   test('a server that ignores the range request restarts cleanly instead of appending', async () => {
     const destination = join(await makeTempDir(), 'asset.bin')
-    const fetchImpl = globalThis.fetch
 
     await Bun.write(`${destination}.part`, 'partial')
     await Bun.write(`${destination}.part.json`, JSON.stringify({ url: 'https://example.test/asset.bin' }))
@@ -272,41 +243,31 @@ describe('resumable downloads', () => {
     // Status 200 rather than 206 means the peer replayed from byte 0.
     globalThis.fetch = mockFetch(async () => new Response('complete payload\n', { status: 200 }))
 
-    try {
-      await downloadFile({ url: 'https://example.test/asset.bin', destination })
-      expect(await Bun.file(destination).text()).toBe('complete payload\n')
-    } finally {
-      globalThis.fetch = fetchImpl
-    }
+    await downloadFile({ url: 'https://example.test/asset.bin', destination })
+    expect(await Bun.file(destination).text()).toBe('complete payload\n')
   })
 })
 
 describe('HuggingFace cache detection', () => {
   test('treats a snapshot of symlinks as cached and a dangling snapshot as missing', async () => {
     const hubCache = await makeTempDir()
-    const previous = process.env['HUGGINGFACE_HUB_CACHE']
     process.env['HUGGINGFACE_HUB_CACHE'] = hubCache
 
-    try {
-      // HuggingFace stores snapshot entries as symlinks into blobs/, so a
-      // readdir isFile() check sees nothing and the guard never fires.
-      const repoDir = join(hubCache, 'models--KittenML--kitten-tts-nano-0.8-int8')
-      const blobs = join(repoDir, 'blobs')
-      const snapshot = join(repoDir, 'snapshots', 'abc123')
-      await mkdir(blobs, { recursive: true })
-      await mkdir(snapshot, { recursive: true })
-      await Bun.write(join(blobs, 'weights'), 'model bytes')
-      await symlink(join(blobs, 'weights'), join(snapshot, 'model.onnx'))
+    // HuggingFace stores snapshot entries as symlinks into blobs/, so a
+    // readdir isFile() check sees nothing and the guard never fires.
+    const repoDir = join(hubCache, 'models--KittenML--kitten-tts-nano-0.8-int8')
+    const blobs = join(repoDir, 'blobs')
+    const snapshot = join(repoDir, 'snapshots', 'abc123')
+    await mkdir(blobs, { recursive: true })
+    await mkdir(snapshot, { recursive: true })
+    await Bun.write(join(blobs, 'weights'), 'model bytes')
+    await symlink(join(blobs, 'weights'), join(snapshot, 'model.onnx'))
 
-      expect(await hasCachedKittenTtsModel('kitten-tts-nano-0.8-int8')).toBe(true)
+    expect(await hasCachedKittenTtsModel('kitten-tts-nano-0.8-int8')).toBe(true)
 
-      // A pruned blob leaves the link behind; that is not a usable cache.
-      await rm(join(blobs, 'weights'), { force: true })
-      expect(await hasCachedKittenTtsModel('kitten-tts-nano-0.8-int8')).toBe(false)
-    } finally {
-      if (previous === undefined) delete process.env['HUGGINGFACE_HUB_CACHE']
-      else process.env['HUGGINGFACE_HUB_CACHE'] = previous
-    }
+    // A pruned blob leaves the link behind; that is not a usable cache.
+    await rm(join(blobs, 'weights'), { force: true })
+    expect(await hasCachedKittenTtsModel('kitten-tts-nano-0.8-int8')).toBe(false)
   })
 })
 
@@ -325,7 +286,6 @@ describe('download timeout budgets', () => {
 
   test('HTTP download failures retain Retry-After headers for outer retry wrappers', async () => {
     const destination = join(await makeTempDir(), 'rate-limited.bin')
-    const fetchImpl = globalThis.fetch
     globalThis.fetch = mockFetch(async () => new Response('slow down', {
       status: 429,
       headers: { 'retry-after': '11' }
@@ -337,15 +297,11 @@ describe('download timeout budgets', () => {
     } catch (error) {
       expect((error as { status?: number }).status).toBe(429)
       expect((error as { headers?: Headers }).headers?.get('retry-after')).toBe('11')
-    } finally {
-      globalThis.fetch = fetchImpl
     }
   })
 
   test('a stalled transfer fails with a retryable timeout message', async () => {
     const destination = join(await makeTempDir(), 'stalled.bin')
-    const fetchImpl = globalThis.fetch
-
     globalThis.fetch = mockFetch(async (_url, init) => new Response(new ReadableStream<Uint8Array>({
       start (controller) {
         controller.enqueue(new TextEncoder().encode('partial'))
@@ -354,16 +310,12 @@ describe('download timeout budgets', () => {
       }
     })))
 
-    try {
-      await expect(downloadFile({
-        url: 'https://example.test/stalled.bin',
-        destination,
-        stallTimeoutMs: 25,
-        totalTimeoutMs: 5_000
-      })).rejects.toThrow(/timed out/i)
-    } finally {
-      globalThis.fetch = fetchImpl
-    }
+    await expect(downloadFile({
+      url: 'https://example.test/stalled.bin',
+      destination,
+      stallTimeoutMs: 25,
+      totalTimeoutMs: 5_000
+    })).rejects.toThrow(/timed out/i)
   })
 })
 
@@ -388,7 +340,6 @@ describe('setup download admission budget', () => {
 
   test('bounds concurrent transfers so an opening burst cannot divide the link N ways', async () => {
     const dir = await makeTempDir()
-    const fetchImpl = globalThis.fetch
     const started: string[] = []
     const gates = new Map<string, ReturnType<typeof deferred>>()
 
@@ -424,14 +375,12 @@ describe('setup download admission budget', () => {
       await Promise.all(pending)
       expect(getSetupDownloadAdmissionSnapshot()).toMatchObject({ active: 0, waiting: 0 })
     } finally {
-      globalThis.fetch = fetchImpl
       setSetupDownloadConcurrency(DEFAULT_SETUP_DOWNLOAD_CONCURRENCY)
     }
   })
 
   test('a failed transfer releases its slot instead of leaking it', async () => {
     const dir = await makeTempDir()
-    const fetchImpl = globalThis.fetch
     let attempt = 0
 
     globalThis.fetch = mockFetch(async () => {
@@ -455,14 +404,12 @@ describe('setup download admission budget', () => {
       expect(await Bun.file(join(dir, 'second.bin')).text()).toBe('payload')
       expect(getSetupDownloadAdmissionSnapshot()).toMatchObject({ active: 0, waiting: 0 })
     } finally {
-      globalThis.fetch = fetchImpl
       setSetupDownloadConcurrency(DEFAULT_SETUP_DOWNLOAD_CONCURRENCY)
     }
   })
 
   test('the slot is released before checksum verification, not after', async () => {
     const dir = await makeTempDir()
-    const fetchImpl = globalThis.fetch
     const events: string[] = []
 
     globalThis.fetch = mockFetch(async (url) => {
@@ -489,7 +436,6 @@ describe('setup download admission budget', () => {
 
       expect(events.indexOf('fetch:second')).toBeLessThan(events.indexOf('done:first'))
     } finally {
-      globalThis.fetch = fetchImpl
       setSetupDownloadConcurrency(DEFAULT_SETUP_DOWNLOAD_CONCURRENCY)
     }
   })

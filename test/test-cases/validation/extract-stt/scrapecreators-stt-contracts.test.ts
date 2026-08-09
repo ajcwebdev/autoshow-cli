@@ -1,6 +1,5 @@
 import { describe, expect, test } from 'bun:test'
-import { mkdtemp, readFile, rm } from 'node:fs/promises'
-import { tmpdir } from 'node:os'
+import { readFile } from 'node:fs/promises'
 import { join } from 'node:path'
 import {
   isScrapeCreatorsSupportedSourceUrl
@@ -8,26 +7,13 @@ import {
 import {
   runScrapeCreatorsStt
 } from '~/cli/commands/process-steps/step-2-extract/step-2-stt/stt-services/scrapecreators/run-scrapecreators-stt'
+import { installMockFetch, jsonResponse, setupContractSuiteLifecycle } from '../../../test-utils/rest-contract-helpers'
 
-const withTempOutputDir = async <T>(fn: (outputDir: string) => Promise<T>): Promise<T> => {
-  const outputDir = await mkdtemp(join(tmpdir(), 'autoshow-scrapecreators-'))
-  try {
-    return await fn(outputDir)
-  } finally {
-    await rm(outputDir, { recursive: true, force: true })
-  }
-}
-
-const restoreEnv = (
-  key: string,
-  value: string | undefined
-): void => {
-  if (value === undefined) {
-    delete process.env[key]
-    return
-  }
-  process.env[key] = value
-}
+const tempDirs = setupContractSuiteLifecycle({
+  envKeys: ['SCRAPECREATORS_API_KEY'],
+  tempPrefix: 'autoshow-scrapecreators-'
+})
+const withTempOutputDir = tempDirs.withDir
 
 describe('ScrapeCreators STT contracts', () => {
   test('source support is restricted to YouTube URLs', () => {
@@ -40,18 +26,9 @@ describe('ScrapeCreators STT contracts', () => {
   })
 
   test('mocked success response normalizes text, timestamps, evidence, artifact, and billing', async () => {
-    const previousKey = process.env['SCRAPECREATORS_API_KEY']
-    const previousFetch = globalThis.fetch
-    const calls: Array<{ url: string, headers: unknown }> = []
-
-    try {
-      process.env['SCRAPECREATORS_API_KEY'] = 'test-scrapecreators-key'
-      globalThis.fetch = (async (
-        input: Parameters<typeof fetch>[0],
-        init?: Parameters<typeof fetch>[1]
-      ): Promise<Response> => {
-        calls.push({ url: String(input), headers: init?.headers })
-        return new Response(JSON.stringify({
+    process.env['SCRAPECREATORS_API_KEY'] = 'test-scrapecreators-key'
+    const calls = installMockFetch(() =>
+      jsonResponse({
           transcript: [
             { startMs: '0', endMs: '1250', startTimeText: '0:00', text: ' Hello world. ' },
             { startMs: '1250', endMs: '3000', startTimeText: '0:01', text: 'Next line.' }
@@ -59,13 +36,9 @@ describe('ScrapeCreators STT contracts', () => {
           videoId: 'dQw4w9WgXcQ',
           transcript_only_text: 'Hello world. Next line.',
           captionTracks: [{ languageCode: 'es', name: 'Spanish' }]
-        }), {
-          status: 200,
-          headers: { 'content-type': 'application/json' }
-        })
-      }) as unknown as typeof fetch
+      }))
 
-      await withTempOutputDir(async (outputDir) => {
+    await withTempOutputDir(async (outputDir) => {
         const { result, metadata } = await runScrapeCreatorsStt('unused.mp3', outputDir, {
           model: 'youtube-transcript',
           sourceUrl: 'https://www.youtube.com/watch?v=MORMZXEaONk',
@@ -74,13 +47,13 @@ describe('ScrapeCreators STT contracts', () => {
           baseUrl: 'https://mock.scrapecreators.local'
         })
         const requestedUrl = new URL(calls[0]?.url ?? '')
-        const headers = calls[0]?.headers as Record<string, string>
+        const headers = calls[0]?.headers
 
         expect(requestedUrl.origin).toBe('https://mock.scrapecreators.local')
         expect(requestedUrl.pathname).toBe('/v1/youtube/video/transcript')
         expect(requestedUrl.searchParams.get('url')).toBe('https://www.youtube.com/watch?v=MORMZXEaONk')
         expect(requestedUrl.searchParams.get('language')).toBe('es')
-        expect(headers['x-api-key']).toBe('test-scrapecreators-key')
+        expect(headers?.get('x-api-key')).toBe('test-scrapecreators-key')
         expect(result.text).toBe('Hello world. Next line.')
         expect(result.segments).toEqual([
           { start: '00:00:00.000', end: '00:00:01.250', text: 'Hello world.' },
@@ -122,32 +95,20 @@ describe('ScrapeCreators STT contracts', () => {
         await expect(readFile(join(outputDir, 'transcription.txt'), 'utf8')).resolves.toBe(
           '[00:00:00.000] Hello world.\n[00:00:01.250] Next line.'
         )
-      })
-    } finally {
-      globalThis.fetch = previousFetch
-      restoreEnv('SCRAPECREATORS_API_KEY', previousKey)
-    }
+    })
   })
 
   test('malformed transcript timing strings fail as an invalid payload', async () => {
-    const previousKey = process.env['SCRAPECREATORS_API_KEY']
-    const previousFetch = globalThis.fetch
     const invalidPayload = {
       transcript: [
         { startMs: 'not-a-number', endMs: '1250', text: 'Bad timing.' }
       ]
     }
 
-    try {
-      process.env['SCRAPECREATORS_API_KEY'] = 'test-scrapecreators-key'
-      globalThis.fetch = (async (): Promise<Response> =>
-        new Response(JSON.stringify(invalidPayload), {
-          status: 200,
-          headers: { 'content-type': 'application/json' }
-        })
-      ) as unknown as typeof fetch
+    process.env['SCRAPECREATORS_API_KEY'] = 'test-scrapecreators-key'
+    installMockFetch(() => jsonResponse(invalidPayload))
 
-      await withTempOutputDir(async (outputDir) => {
+    await withTempOutputDir(async (outputDir) => {
         try {
           await runScrapeCreatorsStt('unused.mp3', outputDir, {
             model: 'youtube-transcript',
@@ -163,27 +124,14 @@ describe('ScrapeCreators STT contracts', () => {
           expect((error as { stage?: string }).stage).toBe('create')
           expect((error as { rawResponse?: unknown }).rawResponse).toEqual(invalidPayload)
         }
-      })
-    } finally {
-      globalThis.fetch = previousFetch
-      restoreEnv('SCRAPECREATORS_API_KEY', previousKey)
-    }
+    })
   })
 
   test('mocked transcript null response is skipped and non-retryable', async () => {
-    const previousKey = process.env['SCRAPECREATORS_API_KEY']
-    const previousFetch = globalThis.fetch
+    process.env['SCRAPECREATORS_API_KEY'] = 'test-scrapecreators-key'
+    installMockFetch(() => jsonResponse({ transcript: null }))
 
-    try {
-      process.env['SCRAPECREATORS_API_KEY'] = 'test-scrapecreators-key'
-      globalThis.fetch = (async (): Promise<Response> =>
-        new Response(JSON.stringify({ transcript: null }), {
-          status: 200,
-          headers: { 'content-type': 'application/json' }
-        })
-      ) as unknown as typeof fetch
-
-      await withTempOutputDir(async (outputDir) => {
+    await withTempOutputDir(async (outputDir) => {
         try {
           await runScrapeCreatorsStt('unused.mp3', outputDir, {
             model: 'youtube-transcript',
@@ -200,26 +148,13 @@ describe('ScrapeCreators STT contracts', () => {
           expect((error as { retryable?: boolean }).retryable).toBe(false)
           expect((error as { rawResponse?: unknown }).rawResponse).toEqual({ transcript: null })
         }
-      })
-    } finally {
-      globalThis.fetch = previousFetch
-      restoreEnv('SCRAPECREATORS_API_KEY', previousKey)
-    }
+    })
   })
 
   test('unsupported sources skip before reading credentials or calling fetch', async () => {
-    const previousKey = process.env['SCRAPECREATORS_API_KEY']
-    const previousFetch = globalThis.fetch
-    let fetchCalled = false
+    const calls = installMockFetch(() => new Response('{}'))
 
-    try {
-      delete process.env['SCRAPECREATORS_API_KEY']
-      globalThis.fetch = (async (): Promise<Response> => {
-        fetchCalled = true
-        return new Response('{}')
-      }) as unknown as typeof fetch
-
-      await withTempOutputDir(async (outputDir) => {
+    await withTempOutputDir(async (outputDir) => {
         try {
           await runScrapeCreatorsStt('unused.mp3', outputDir, {
             model: 'youtube-transcript',
@@ -233,11 +168,7 @@ describe('ScrapeCreators STT contracts', () => {
           expect((error as { skipped?: boolean }).skipped).toBe(true)
           expect((error as { retryable?: boolean }).retryable).toBe(false)
         }
-      })
-      expect(fetchCalled).toBe(false)
-    } finally {
-      globalThis.fetch = previousFetch
-      restoreEnv('SCRAPECREATORS_API_KEY', previousKey)
-    }
+    })
+    expect(calls).toHaveLength(0)
   })
 })

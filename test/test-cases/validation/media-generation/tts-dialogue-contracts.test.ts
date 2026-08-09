@@ -1,6 +1,3 @@
-import { mkdtemp, rm } from 'node:fs/promises'
-import { tmpdir } from 'node:os'
-import { join } from 'node:path'
 import { describe, expect, test } from 'bun:test'
 import { buildOptsFromFlags } from '~/cli/commands/process-steps/step-1-download/download-targets/build-opts-from-flags/build-options-from-flags'
 import { runTts } from '~/cli/commands/process-steps/step-4-tts/run-tts'
@@ -13,7 +10,13 @@ import {
   parseSpeakerVoiceMappings
 } from '~/cli/commands/process-steps/step-4-tts/dialogue-normalizer'
 import { createSyntheticWavBytes } from '../../../test-utils/media-fixtures'
+import { installMockFetch, setupContractSuiteLifecycle } from '../../../test-utils/rest-contract-helpers'
 import { readWavSamples, segmentRms } from '../providers/tts-provider-contracts/shared'
+
+const tempDirs = setupContractSuiteLifecycle({
+  envKeys: ['OPENAI_API_KEY'],
+  tempPrefix: 'autoshow-tts-dialogue-order-'
+})
 
 describe('TTS dialogue contracts', () => {
   test('labeled normalization accepts canonical speaker lines and rejects unknown speakers', () => {
@@ -117,50 +120,37 @@ describe('TTS dialogue contracts', () => {
   })
 
   test('hosted segment-and-concat preserves dialogue turn order under concurrent segment scheduling', async () => {
-    const dir = await mkdtemp(join(tmpdir(), 'autoshow-tts-dialogue-order-'))
-    const originalFetch = globalThis.fetch
-    const previousKey = process.env['OPENAI_API_KEY']
+    const dir = await tempDirs.make()
     const audioByMarker = new Map([
       ['A', createSyntheticWavBytes({ durationSeconds: 0.25, amplitude: 0.2, frequencyHz: 440 })],
       ['B', createSyntheticWavBytes({ durationSeconds: 0.25, amplitude: 0.5, frequencyHz: 440 })],
       ['C', createSyntheticWavBytes({ durationSeconds: 0.25, amplitude: 0.9, frequencyHz: 440 })]
     ])
 
-    try {
-      process.env['OPENAI_API_KEY'] = 'openai-key'
-      globalThis.fetch = (async (_input: Parameters<typeof fetch>[0], init?: Parameters<typeof fetch>[1]): Promise<Response> => {
-        const body = JSON.parse(String(init?.body ?? '{}')) as Record<string, unknown>
-        const marker = String(body['input'] ?? '').charAt(0)
-        return new Response(audioByMarker.get(marker) ?? audioByMarker.get('A'), {
-          status: 200,
-          headers: { 'content-type': 'audio/wav' }
-        })
-      }) as typeof fetch
+    process.env['OPENAI_API_KEY'] = 'openai-key'
+    installMockFetch((call) => {
+      const marker = String(call.bodyJson?.['input'] ?? '').charAt(0)
+      return new Response(audioByMarker.get(marker) ?? audioByMarker.get('A'), {
+        status: 200,
+        headers: { 'content-type': 'audio/wav' }
+      })
+    })
 
-      const result = await runTts([
-        'Alice: Alpha turn.',
-        'Bob: Bravo turn.',
-        'Alice: Charlie turn.'
-      ].join('\n'), dir, buildOptsFromFlags(false, {
-        'openai-tts': 'gpt-4o-mini-tts-2025-12-15',
-        'tts-dialogue-format': 'labeled',
-        'tts-speaker': ['Alice=alloy', 'Bob=onyx']
-      }))
+    const result = await runTts([
+      'Alice: Alpha turn.',
+      'Bob: Bravo turn.',
+      'Alice: Charlie turn.'
+    ].join('\n'), dir, buildOptsFromFlags(false, {
+      'openai-tts': 'gpt-4o-mini-tts-2025-12-15',
+      'tts-dialogue-format': 'labeled',
+      'tts-speaker': ['Alice=alloy', 'Bob=onyx']
+    }))
 
-      expect(result.metadata[0]?.chunkCount).toBe(3)
-      const samples = await readWavSamples(result.audioPaths[0] as string)
-      const rmsValues = [0, 1, 2].map((index) => segmentRms(samples, index, 3))
-      expect(rmsValues[0] as number).toBeLessThan(rmsValues[1] as number)
-      expect(rmsValues[1] as number).toBeLessThan(rmsValues[2] as number)
-    } finally {
-      globalThis.fetch = originalFetch
-      if (previousKey === undefined) {
-        delete process.env['OPENAI_API_KEY']
-      } else {
-        process.env['OPENAI_API_KEY'] = previousKey
-      }
-      await rm(dir, { recursive: true, force: true })
-    }
+    expect(result.metadata[0]?.chunkCount).toBe(3)
+    const samples = await readWavSamples(result.audioPaths[0] as string)
+    const rmsValues = [0, 1, 2].map((index) => segmentRms(samples, index, 3))
+    expect(rmsValues[0] as number).toBeLessThan(rmsValues[1] as number)
+    expect(rmsValues[1] as number).toBeLessThan(rmsValues[2] as number)
   }, 10_000)
 
   test('Gemini multispeaker uses the generic speaker mappings', () => {

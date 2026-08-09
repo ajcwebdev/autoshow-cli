@@ -1,8 +1,7 @@
-import * as l from '~/utils/app-logger/app-logger'
 import { SUPADATA_DEFAULT_BASE_URL } from '~/utils/base-urls'
 import { readEnv } from '~/utils/validate/env-utils'
-import type { UrlArticleProviderAdapter, UrlArticleRunResult, UrlRequestOptions, WebArticleMetadata } from '~/types'
-import { cleanString, countWords, fetchUrlProviderJson, finalizeUrlArticleResult, isRecord, normalizeMarkdown } from '../../url-utils'
+import type { UrlArticleProviderAdapter, UrlRequestOptions, WebArticleMetadata } from '~/types'
+import { cleanString, countWords, createUrlArticleRun, fetchUrlProviderJson, isRecord, normalizeMarkdown } from '../../url-utils'
 import { InfraError, InternalError, ValidationError, hintsForMissingEnv } from '~/utils/error-handler'
 
 const parseSupadataResponse = (
@@ -71,16 +70,7 @@ const runSupadataScrape = async (
   return parseSupadataResponse(payload, source)
 }
 
-export const runSupadataUrl = async (
-  source: string,
-  sourceUrl: string | undefined,
-  options?: UrlRequestOptions,
-  baseUrl: string = SUPADATA_DEFAULT_BASE_URL
-): Promise<UrlArticleRunResult> => {
-  l.write('info', 'Using Supadata backend for article extraction')
-  const supadataResult = await runSupadataScrape(source, options, baseUrl)
-  return await finalizeUrlArticleResult(source, sourceUrl, 'supadata', supadataResult)
-}
+export const runSupadataUrl = createUrlArticleRun('supadata', 'Supadata', runSupadataScrape)
 
 export const supadataArticleAdapter: UrlArticleProviderAdapter = {
   id: 'supadata',

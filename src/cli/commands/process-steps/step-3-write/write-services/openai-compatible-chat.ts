@@ -1,16 +1,9 @@
-import { buildStep3Metadata, runWithLLMInstrumentation } from '~/cli/commands/process-steps/step-3-write/write-utils/llm-instrumentation'
+import { executeLlmRequest } from '~/cli/commands/process-steps/step-3-write/write-utils/llm-request-scaffold'
 import { isStructuredFallbackError } from '~/cli/commands/process-steps/step-3-write/write-utils/structured-error-utils'
-import type { LlmApiCallResult, RunOpenAICompatibleChatModelOptions, Step3Metadata } from '~/types'
+import type { LlmApiCallResult, OpenAIRestConfig, RunOpenAICompatibleChatModelOptions, Step3Metadata } from '~/types'
 import * as l from '~/utils/app-logger/app-logger'
-import { ValidationError } from '~/utils/error-handler'
 import { createOpenAIChatCompletion, extractOpenAIChatCompletionText } from '~/utils/openai/openai-client'
-import { classifyFetchRetry, withRetry } from '~/utils/retries'
-import { LLM_REQUEST_TIMEOUT_MS } from '~/utils/timeouts'
-
-const createCombinedSignal = (signal?: AbortSignal): AbortSignal => {
-  const timeoutSignal = AbortSignal.timeout(LLM_REQUEST_TIMEOUT_MS)
-  return AbortSignal.any([...(signal ? [signal] : []), timeoutSignal])
-}
+import { classifyFetchRetry } from '~/utils/retries'
 
 export const runOpenAICompatibleChatModel = async ({
   prompt,
@@ -23,68 +16,59 @@ export const runOpenAICompatibleChatModel = async ({
   customizeRequestBody,
   buildStructuredResponseFormat
 }: RunOpenAICompatibleChatModelOptions): Promise<{ result: string, metadata: Step3Metadata }> => {
-  try {
-    const apiCall = (): Promise<LlmApiCallResult> => withRetry(
-      { retryClass: 'runtime_http_create_conservative', operationName },
-      async (signal) => {
-        const requestBody: Record<string, unknown> = {
-          model,
-          messages: [{ role: 'user', content: prompt }]
+  return await executeLlmRequest<OpenAIRestConfig>(prompt, model, structuredOpts, {
+    service,
+    providerLabel,
+    operationName,
+    emptyResponseStage: 'write:openai-chat',
+    classifier: (error) => classifyFetchRetry(error, 'runtime_http_create_conservative'),
+    prepare: () => typeof config === 'function' ? config() : config,
+    execute: async (createSignal, resolvedConfig) => {
+      const requestBody: Record<string, unknown> = {
+        model,
+        messages: [{ role: 'user', content: prompt }]
+      }
+      customizeRequestBody?.(requestBody, model)
+
+      const executeRequest = async (body: Record<string, unknown>): Promise<LlmApiCallResult> => {
+        const response = await createOpenAIChatCompletion(resolvedConfig, body, {
+          signal: createSignal()
+        })
+
+        const text = extractOpenAIChatCompletionText(response) ?? ''
+        return {
+          text,
+          usage: response.usage,
+          rawProviderUsage: response.usage,
+          returnedModel: response.model
         }
-        customizeRequestBody?.(requestBody, model)
+      }
 
-        const executeRequest = async (body: Record<string, unknown>): Promise<LlmApiCallResult> => {
-          const response = await createOpenAIChatCompletion(config, body, {
-            signal: createCombinedSignal(signal)
-          })
+      if (!structuredOpts) {
+        return await executeRequest(requestBody)
+      }
 
-          const text = extractOpenAIChatCompletionText(response) ?? ''
-          if (!text) {
-            throw ValidationError('No response text from model', { stage: 'write:openai-chat' })
+      const structuredRequestBody: Record<string, unknown> = {
+        ...requestBody,
+        response_format: buildStructuredResponseFormat?.(structuredOpts) ?? {
+          type: 'json_schema',
+          json_schema: {
+            name: structuredOpts.schemaName,
+            schema: structuredOpts.schema,
+            strict: structuredOpts.strict
           }
-          return {
-            text,
-            usage: response.usage,
-            rawProviderUsage: response.usage,
-            returnedModel: response.model
-          }
         }
+      }
 
-        if (!structuredOpts) {
-          return await executeRequest(requestBody)
+      try {
+        return await executeRequest(structuredRequestBody)
+      } catch (error) {
+        if (!isStructuredFallbackError(error)) {
+          throw error
         }
-
-        const structuredRequestBody: Record<string, unknown> = {
-          ...requestBody,
-          response_format: buildStructuredResponseFormat?.(structuredOpts) ?? {
-            type: 'json_schema',
-            json_schema: {
-              name: structuredOpts.schemaName,
-              schema: structuredOpts.schema,
-              strict: structuredOpts.strict
-            }
-          }
-        }
-
-        try {
-          return await executeRequest(structuredRequestBody)
-        } catch (error) {
-          if (!isStructuredFallbackError(error)) {
-            throw error
-          }
-          l.warn(`${providerLabel} structured output failed for ${model}; retrying without response_format`)
-          return await executeRequest(requestBody)
-        }
-      },
-      (error) => classifyFetchRetry(error, 'runtime_http_create_conservative')
-    )
-
-    const instrumentation = await runWithLLMInstrumentation(prompt, apiCall)
-    const metadata = buildStep3Metadata(service, model, instrumentation, structuredOpts)
-
-    return { result: instrumentation.responseText, metadata }
-  } catch (error) {
-    l.error(`Failed to run ${providerLabel} model`, error)
-    throw error
-  }
+        l.warn(`${providerLabel} structured output failed for ${model}; retrying without response_format`)
+        return await executeRequest(requestBody)
+      }
+    }
+  })
 }
