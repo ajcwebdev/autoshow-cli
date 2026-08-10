@@ -17,7 +17,7 @@ The second was a private command stack. The top-level native parser accepted `co
 
 The `links` command had the last other form of the same structural problem. Its provider-scoped positional grammar is legitimate, but it hid every provider selector behind `allowUnknownFlags`, declared a fake `<provider>` help flag, found the `links` token inside raw process argv, and tokenized flags again in `parseLinksArgv`.
 
-The central model migration was accepted and implemented in the original version of this ADR. Wave 3 of `structural-legacy-report.md` reopened the record because completing comic's native CLI migration is the same architectural decision: comic should adapt its domain semantics to shared infrastructure rather than maintain a parallel shell. This update records the intentionally changed grammar before and alongside its implementation.
+The central model migration was accepted and implemented in the original version of this ADR. Part II, Wave 3 of `legacy-report.md` reopened the record because completing comic's native CLI migration is the same architectural decision: comic should adapt its domain semantics to shared infrastructure rather than maintain a parallel shell. This update records the intentionally changed grammar before and alongside its implementation.
 
 ## Options Considered
 
@@ -126,7 +126,7 @@ The shared model migration and the native CLI migration are implemented. `comicC
 - [ADR-003](ADR-003-type-surface-cleanup-and-architecture-mirroring.md) — shared type and ownership boundaries
 - [ADR-005](ADR-005-reduce-environment-variable-surface-area.md) — removal of parallel override/client plumbing
 - [ADR-013](ADR-013-add-refresh-metadata-to-links.md) — links selection modes and refresh artifacts
-- `docs/reports/structural-legacy-report.md` — W3.0, W3.1/SL-5, and W3.2/SL-6
+- `docs/reports/legacy-report.md` Part II — W3.0, W3.1/SL-5, and W3.2/SL-6
 - `src/cli/native/native-parser.ts`, `dispatcher.ts`, and `help-renderer.ts`
 - `src/cli/commands/process-steps/step-8-comic/define-comic-command.ts`
 - `src/cli/commands/setup-and-utilities/links/define-links-command.ts`
