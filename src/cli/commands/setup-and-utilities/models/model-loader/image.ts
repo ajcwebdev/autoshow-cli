@@ -1,12 +1,12 @@
 import { DEFAULT_COST_MULTIPLIER, DEFAULT_IMAGE_MS_PER_IMAGE } from './defaults'
 import { getModelRegistry } from './registry'
+import { getRetiredModelRate } from './retired-model-rates'
 import type { ImageEstimation } from '~/types'
 
 export const getImageCost = (service: string, model: string): number => {
   const imageModel = getModelRegistry().image[service]?.models[model]
-  if (!imageModel) return 0
-  if (typeof imageModel.costPerImageCents === 'number') return imageModel.costPerImageCents
-  return imageModel.costPerImageUSD * 100
+    ?? getRetiredModelRate('image', service, model)
+  return imageModel?.costPerImageCents ?? 0
 }
 
 export const getImageEstimation = (service: string, model: string): ImageEstimation => {

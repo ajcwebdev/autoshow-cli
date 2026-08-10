@@ -1,5 +1,6 @@
 import { DEFAULT_COST_MULTIPLIER, DEFAULT_TTS_MS_PER_1K_CHARS } from './defaults'
 import { getModelRegistry, getRegistryServiceType } from './registry'
+import { getRetiredModelRate } from './retired-model-rates'
 import type { TtsEstimation } from '~/types'
 
 export const getTtsPricing = (
@@ -11,23 +12,18 @@ export const getTtsPricing = (
   outputCostPer1MCharsCents?: number
 } => {
   const ttsModel = getModelRegistry().tts[service]?.models[model]
+    ?? getRetiredModelRate('tts', service, model)
   if (!ttsModel) return {}
   return {
     ...(ttsModel.costPer1kCharsCents !== undefined
       ? { costPer1kCharsCents: ttsModel.costPer1kCharsCents }
-      : ttsModel.costPer1kCharsUSD !== undefined
-        ? { costPer1kCharsCents: ttsModel.costPer1kCharsUSD * 100 }
-        : {}),
+      : {}),
     ...(ttsModel.inputCostPer1MCharsCents !== undefined
       ? { inputCostPer1MCharsCents: ttsModel.inputCostPer1MCharsCents }
-      : ttsModel.inputCostPer1MCharsUSD !== undefined
-        ? { inputCostPer1MCharsCents: ttsModel.inputCostPer1MCharsUSD * 100 }
-        : {}),
+      : {}),
     ...(ttsModel.outputCostPer1MCharsCents !== undefined
       ? { outputCostPer1MCharsCents: ttsModel.outputCostPer1MCharsCents }
-      : ttsModel.outputCostPer1MCharsUSD !== undefined
-        ? { outputCostPer1MCharsCents: ttsModel.outputCostPer1MCharsUSD * 100 }
-        : {})
+      : {})
   }
 }
 

@@ -1,92 +1,63 @@
+import { URL_ARTICLE_BACKENDS } from '~/cli/commands/process-steps/step-2-extract/step-2-shared/provider-registry'
+import {
+  STANDALONE_IMAGE_PROVIDER_TARGETS,
+  STANDALONE_MUSIC_PROVIDER_TARGETS,
+  STANDALONE_TTS_PROVIDER_TARGETS,
+  STANDALONE_VIDEO_PROVIDER_TARGETS,
+  WRITE_LLM_PROVIDER_TARGETS,
+  WRITE_OCR_PROVIDER_TARGETS,
+  WRITE_STT_PROVIDER_TARGETS
+} from '~/cli/flags/service-selector-normalization/provider-targets'
 import type { AdaptiveProviderFlagValue, AdaptiveProviderGroup, AdaptiveProviderGroupKind } from '~/types'
 
-const STT_REMOTE_PROVIDERS = [
-  'deepinfra',
-  'deepgram',
-  'soniox',
-  'speechmatics',
-  'rev',
-  'groq',
-  'grok',
-  'mistral',
-  'assemblyai',
-  'gladia',
-  'happyscribe',
-  'supadata',
-  'scrapecreators',
-  'gemini',
-  'together',
-] as const
+const LOCAL_STT_PROVIDERS = ['reverb', 'whisper', 'whisperfile'] as const satisfies readonly (keyof typeof WRITE_STT_PROVIDER_TARGETS)[]
+const LOCAL_OCR_PROVIDERS = ['tesseract'] as const satisfies readonly (keyof typeof WRITE_OCR_PROVIDER_TARGETS)[]
+const LOCAL_URL_PROVIDERS = ['defuddle'] as const satisfies readonly (typeof URL_ARTICLE_BACKENDS)[number][]
+const LOCAL_LLM_PROVIDERS = ['llama', 'llamafile'] as const satisfies readonly (keyof typeof WRITE_LLM_PROVIDER_TARGETS)[]
+const LOCAL_TTS_PROVIDERS = ['kitten'] as const satisfies readonly (keyof typeof STANDALONE_TTS_PROVIDER_TARGETS)[]
 
-const OCR_REMOTE_PROVIDERS = [
-  'mistral',
-  'glm',
-  'kimi',
-  'openai',
-  'grok',
-  'anthropic',
-  'gemini',
-  'deepinfra',
-] as const
+const withoutLocalProviders = (
+  providers: readonly string[],
+  localProviders: readonly string[]
+): string[] => {
+  const localProviderSet = new Set(localProviders)
+  return providers.filter((provider) => !localProviderSet.has(provider))
+}
 
-const URL_REMOTE_PROVIDERS = [
-  'firecrawl',
-  'glm-reader',
-  'spider',
-  'supadata',
-  'zyte',
-] as const
+const withoutLocalProviderTargets = (
+  targets: Readonly<Record<string, string>>,
+  localProviders: readonly string[]
+): Record<string, string> => {
+  const localProviderSet = new Set(localProviders)
+  return Object.fromEntries(
+    Object.entries(targets).filter(([provider]) => !localProviderSet.has(provider))
+  )
+}
 
-const LLM_REMOTE_PROVIDERS = [
-  'openai',
-  'groq',
-  'gemini',
-  'anthropic',
-  'minimax',
-  'grok',
-  'glm',
-  'kimi',
-  'together',
-  'cerebras',
-] as const
+const STT_REMOTE_PROVIDER_TARGETS = withoutLocalProviderTargets(WRITE_STT_PROVIDER_TARGETS, LOCAL_STT_PROVIDERS)
+const OCR_REMOTE_PROVIDER_TARGETS = withoutLocalProviderTargets(WRITE_OCR_PROVIDER_TARGETS, LOCAL_OCR_PROVIDERS)
+const LLM_REMOTE_PROVIDER_TARGETS = withoutLocalProviderTargets(WRITE_LLM_PROVIDER_TARGETS, LOCAL_LLM_PROVIDERS)
+const TTS_REMOTE_PROVIDER_TARGETS = withoutLocalProviderTargets(STANDALONE_TTS_PROVIDER_TARGETS, LOCAL_TTS_PROVIDERS)
 
-const TTS_REMOTE_PROVIDERS = [
-  'elevenlabs',
-  'minimax',
-  'groq',
-  'grok',
-  'mistral',
-  'openai',
-  'gemini',
-  'deepgram',
-  'speechify',
-  'hume',
-  'cartesia',
-] as const
+export const ADAPTIVE_REMOTE_PROVIDERS = {
+  stt: Object.keys(STT_REMOTE_PROVIDER_TARGETS),
+  ocr: Object.keys(OCR_REMOTE_PROVIDER_TARGETS),
+  url: withoutLocalProviders(URL_ARTICLE_BACKENDS, LOCAL_URL_PROVIDERS),
+  llm: Object.keys(LLM_REMOTE_PROVIDER_TARGETS),
+  tts: Object.keys(TTS_REMOTE_PROVIDER_TARGETS),
+  image: Object.keys(STANDALONE_IMAGE_PROVIDER_TARGETS),
+  video: Object.keys(STANDALONE_VIDEO_PROVIDER_TARGETS),
+  music: Object.keys(STANDALONE_MUSIC_PROVIDER_TARGETS)
+} as const
 
-const IMAGE_REMOTE_PROVIDERS = [
-  'gemini',
-  'openai',
-  'grok',
-  'bfl',
-  'recraft',
-] as const
-
-const VIDEO_REMOTE_PROVIDERS = [
-  'gemini',
-  'minimax',
-  'glm',
-  'grok',
-  'runway',
-  'ltx',
-  'replicate',
-] as const
-
-const MUSIC_REMOTE_PROVIDERS = [
-  'elevenlabs',
-  'minimax',
-  'gemini',
-] as const
+const STT_REMOTE_PROVIDERS = ADAPTIVE_REMOTE_PROVIDERS.stt
+const OCR_REMOTE_PROVIDERS = ADAPTIVE_REMOTE_PROVIDERS.ocr
+const URL_REMOTE_PROVIDERS = ADAPTIVE_REMOTE_PROVIDERS.url
+const LLM_REMOTE_PROVIDERS = ADAPTIVE_REMOTE_PROVIDERS.llm
+const TTS_REMOTE_PROVIDERS = ADAPTIVE_REMOTE_PROVIDERS.tts
+const IMAGE_REMOTE_PROVIDERS = ADAPTIVE_REMOTE_PROVIDERS.image
+const VIDEO_REMOTE_PROVIDERS = ADAPTIVE_REMOTE_PROVIDERS.video
+const MUSIC_REMOTE_PROVIDERS = ADAPTIVE_REMOTE_PROVIDERS.music
 
 const STT_REMOTE_SET = new Set<string>(STT_REMOTE_PROVIDERS)
 const OCR_REMOTE_SET = new Set<string>(OCR_REMOTE_PROVIDERS)
@@ -97,7 +68,7 @@ const IMAGE_REMOTE_SET = new Set<string>(IMAGE_REMOTE_PROVIDERS)
 const VIDEO_REMOTE_SET = new Set<string>(VIDEO_REMOTE_PROVIDERS)
 const MUSIC_REMOTE_SET = new Set<string>(MUSIC_REMOTE_PROVIDERS)
 
-const VALUE_FLAGS = new Set([
+const CORE_VALUE_FLAGS = [
   'provider',
   'url-provider',
   'stt',
@@ -108,70 +79,27 @@ const VALUE_FLAGS = new Set([
   'video',
   'music',
   'all-providers',
-  'openai',
-  'groq',
-  'gemini',
-  'anthropic',
-  'minimax',
-  'grok',
-  'glm',
-  'kimi',
-  'together',
-  'cerebras',
   'llama',
   'whisper',
   'reverb',
   'deepinfra',
-  'deepgram-stt',
-  'soniox-stt',
-  'speechmatics-stt',
-  'rev-stt',
-  'groq-stt',
-  'grok-stt',
-  'mistral-stt',
-  'assemblyai-stt',
-  'gladia-stt',
-  'happyscribe-stt',
-  'supadata-stt',
-  'scrapecreators-stt',
-  'gemini-stt',
-  'together-stt',
-  'mistral-ocr',
-  'glm-ocr',
-  'kimi-ocr',
-  'openai-ocr',
-  'grok-ocr',
-  'anthropic-ocr',
-  'gemini-ocr',
-  'deepinfra-ocr',
   'kitten-tts',
-  'elevenlabs-tts',
-  'minimax-tts',
-  'groq-tts',
-  'grok-tts',
-  'mistral-tts',
-  'openai-tts',
-  'gemini-tts',
-  'deepgram-tts',
-  'speechify-tts',
-  'hume-tts',
-  'cartesia-tts',
-  'gemini-image',
-  'openai-image',
-  'grok-image',
-  'bfl-image',
-  'recraft-image',
-  'gemini-video',
-  'minimax-video',
-  'glm-video',
-  'grok-video',
-  'runway-video',
-  'ltx-video',
-  'replicate-video',
-  'elevenlabs-music',
-  'minimax-music',
-  'gemini-music',
-])
+] as const
+
+export const ADAPTIVE_PROVIDER_VALUE_FLAGS = [
+  ...CORE_VALUE_FLAGS,
+  ...new Set([
+    ...Object.values(STT_REMOTE_PROVIDER_TARGETS),
+    ...Object.values(OCR_REMOTE_PROVIDER_TARGETS),
+    ...Object.values(LLM_REMOTE_PROVIDER_TARGETS),
+    ...Object.values(TTS_REMOTE_PROVIDER_TARGETS),
+    ...Object.values(STANDALONE_IMAGE_PROVIDER_TARGETS),
+    ...Object.values(STANDALONE_VIDEO_PROVIDER_TARGETS),
+    ...Object.values(STANDALONE_MUSIC_PROVIDER_TARGETS)
+  ])
+] as const
+
+const VALUE_FLAGS = new Set<string>(ADAPTIVE_PROVIDER_VALUE_FLAGS)
 
 const MEDIA_EXTENSIONS = new Set([
   'aac',

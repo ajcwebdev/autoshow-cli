@@ -9,7 +9,7 @@ reverbDiarizationDir as reverbDiarizationDirFromAssets,
 reverbDiarizationEmbeddingDir as reverbDiarizationEmbeddingDirFromAssets,
 reverbModelDir as reverbModelDirFromAssets
 } from '~/cli/commands/process-steps/step-2-extract/step-2-stt/stt-local/reverb/reverb-assets'
-import { convertWhisperModelToCoreml, downloadWhisperModel, fetchWhisperModel, setupWhisper } from '~/cli/commands/process-steps/step-2-extract/step-2-stt/stt-local/whisper/whisper'
+import { downloadWhisperModel, setupWhisper } from '~/cli/commands/process-steps/step-2-extract/step-2-stt/stt-local/whisper/whisper'
 import { setupWhisperfile } from '~/cli/commands/process-steps/step-2-extract/step-2-stt/stt-local/whisperfile/whisperfile'
 import { ensureLlamafileBundleDownloaded, resolveLlamafileBundlePath } from '~/cli/commands/process-steps/step-3-write/write-local/llamafile/llamafile-download'
 import { DEFAULT_LLAMAFILE_MODEL } from '~/cli/commands/process-steps/step-3-write/write-local/llamafile/llamafile-constants'
@@ -70,7 +70,6 @@ const RUNTIME = RUNTIME_DIR
 export const whisperBinaryPath = join(RUNTIME, 'bin/whisper-cli')
 export const llamaBinaryPath = join(RUNTIME, 'bin/llama-server')
 export const whisperLibDir = join(RUNTIME, 'bin/lib')
-export const whisperCoremlEnvDir = join(RUNTIME, 'bin/whisper-coreml-env')
 export const reverbUvEnvDir = join(RUNTIME, 'bin/reverb')
 export const kittenTtsUvEnvDir = join(RUNTIME, 'bin/kitten-tts')
 export const whisperBuildDir = join(RUNTIME, 'build/whisper.cpp')
@@ -255,12 +254,6 @@ export const detectArchitecture = (): string => {
   return process.arch
 }
 
-export const supportsCoreML = async (): Promise<boolean> => {
-  if (!(detectPlatform() === 'darwin' && detectArchitecture() === 'arm64')) return false
-  const result = await runCapture('xcrun', ['--sdk', 'macosx', '--show-sdk-path'], { allowFailure: true })
-  return result.exitCode === 0
-}
-
 export const setupUv = async (): Promise<void> => {
   const pathUv = Bun.which('uv')
   if (pathUv) {
@@ -333,64 +326,17 @@ const validateBinary = async (name: string, path: string, args: string[]): Promi
   }
 }
 
-const TRANSCRIPTION_PROVIDER_ENV_KEYS = [
-  'OPENAI_API_KEY',
-  'GEMINI_API_KEY',
-  'GLM_API_KEY',
-  'TOGETHER_API_KEY',
-  'XAI_API_KEY',
-  'MISTRAL_API_KEY',
-  'ELEVENLABS_API_KEY',
-  'DEEPGRAM_API_KEY',
-  'SONIOX_API_KEY',
-  'SPEECHMATICS_API_KEY',
-  'REVAI_ACCESS_TOKEN',
-  'ASSEMBLYAI_API_KEY',
-  'GLADIA_API_KEY',
-  'SUPADATA_API_KEY',
-  'SCRAPECREATORS_API_KEY',
-  'GROQ_API_KEY',
-  'DEEPINFRA_API_KEY',
-  'HAPPYSCRIBE_API_KEY',
-  'HUGGINGFACE_TOKEN'
-] as const
+const TRANSCRIPTION_PROVIDER_ENV_KEYS = getHostedProviderEnvKeysForConfigPrefix('defaults.extract.stt.')
 
-const WRITE_PROVIDER_ENV_KEYS = [
-  'OPENAI_API_KEY',
-  'XAI_API_KEY',
-  'GEMINI_API_KEY',
-  'GLM_API_KEY',
-  'KIMI_API_KEY',
-  'TOGETHER_API_KEY',
-  'CEREBRAS_API_KEY',
-  'ANTHROPIC_API_KEY',
-  'GROQ_API_KEY',
-  'MINIMAX_API_KEY'
-] as const
+const WRITE_PROVIDER_ENV_KEYS = getHostedProviderEnvKeysForConfigPrefix('defaults.llm.')
 
-const TTS_PROVIDER_ENV_KEYS = [
-  'OPENAI_API_KEY',
-  'ELEVENLABS_API_KEY',
-  'GROQ_API_KEY',
-  'XAI_API_KEY',
-  'MISTRAL_API_KEY',
-  'GEMINI_API_KEY',
-  'DEEPGRAM_API_KEY',
-  'SPEECHIFY_API_KEY',
-  'HUME_API_KEY',
-  'CARTESIA_API_KEY',
-  'MINIMAX_API_KEY'
-] as const
+const TTS_PROVIDER_ENV_KEYS = getHostedProviderEnvKeysForConfigPrefix('defaults.post.tts.')
 
 const IMAGE_PROVIDER_ENV_KEYS = getHostedProviderEnvKeysForConfigPrefix('defaults.post.image.')
 
 const VIDEO_PROVIDER_ENV_KEYS = getHostedProviderEnvKeysForConfigPrefix('defaults.post.video.')
 
-const MUSIC_PROVIDER_ENV_KEYS = [
-  'GEMINI_API_KEY',
-  'ELEVENLABS_API_KEY',
-  'MINIMAX_API_KEY'
-] as const
+const MUSIC_PROVIDER_ENV_KEYS = getHostedProviderEnvKeysForConfigPrefix('defaults.post.music.')
 
 const ALL_PROVIDER_ENV_KEYS = HOSTED_PROVIDER_ENV_CHECKS.map(check => check.envVar)
 
@@ -474,6 +420,58 @@ const directorySize = async (root: string): Promise<number> => {
     if (Number.isFinite(kilobytes)) return kilobytes * 1024
   }
   return await walkDirectorySize(root)
+}
+
+type ReclaimableWhisperCoremlArtifact = {
+  path: string
+  bytes: number
+}
+
+export const collectReclaimableWhisperCoremlArtifacts = async (options: {
+  coremlEnvDir?: string
+  modelsDir?: string
+} = {}): Promise<ReclaimableWhisperCoremlArtifact[]> => {
+  const coremlEnvDir = options.coremlEnvDir ?? join(RUNTIME_BIN_DIR, 'whisper-coreml-env')
+  const modelsDir = options.modelsDir ?? whisperModelsDir
+  const paths: string[] = []
+
+  if (await pathExists(coremlEnvDir)) paths.push(coremlEnvDir)
+
+  try {
+    const encoderPackages = (await readdir(modelsDir, { withFileTypes: true }))
+      .filter((entry) => entry.isDirectory() && (entry.name.endsWith('.mlmodelc') || entry.name.endsWith('.mlpackage')))
+      .map((entry) => join(modelsDir, entry.name))
+      .sort()
+    paths.push(...encoderPackages)
+  } catch {
+    // A fresh install has no Whisper model directory yet.
+  }
+
+  return await Promise.all(paths.map(async (path) => ({
+    path,
+    bytes: await directorySize(path)
+  })))
+}
+
+const logReclaimableWhisperCoremlArtifacts = async (): Promise<void> => {
+  const artifacts = await collectReclaimableWhisperCoremlArtifacts()
+  if (artifacts.length === 0) return
+
+  l.write('info', 'Reclaimable Legacy Whisper CoreML Artifacts', {
+    category: 'artifact',
+    humanTable: createHumanTable(
+      artifacts.map(({ path, bytes }) => ({
+        path,
+        reclaimable: formatBytes(bytes),
+        action: 'safe to delete'
+      })),
+      ['path', 'reclaimable', 'action']
+    ),
+    metadata: {
+      artifacts,
+      totalBytes: artifacts.reduce((total, artifact) => total + artifact.bytes, 0)
+    }
+  })
 }
 
 // runtime/build only ever holds transient source and object trees. Individual
@@ -614,15 +612,8 @@ const runFullSetup = async (): Promise<boolean> => {
         label: 'Whisper',
         run: async () => {
           await setupWhisper()
-          await fetchWhisperModel(defaultWhisperModel)
-          // The music model's download is network-bound and the default model's
-          // CoreML conversion is CPU-bound, so they overlap cleanly. The two
-          // conversions stay serial — running both would contend for the CPU.
-          await runSettledSetupTasks([
-            { label: `whisper ${defaultWhisperModel} CoreML`, run: async () => { await convertWhisperModelToCoreml(defaultWhisperModel) } },
-            { label: `whisper ${defaultMusicWhisperModel} download`, run: async () => { await fetchWhisperModel(defaultMusicWhisperModel) } }
-          ])
-          await convertWhisperModelToCoreml(defaultMusicWhisperModel)
+          await downloadWhisperModel(defaultWhisperModel)
+          await downloadWhisperModel(defaultMusicWhisperModel)
         }
       },
       {
@@ -657,6 +648,7 @@ const runFullSetup = async (): Promise<boolean> => {
   await validateBinary('llama-server', llamaBinaryPath, ['--version'])
 
   await pruneBuildTrees()
+  await logReclaimableWhisperCoremlArtifacts()
   logSetupStepTimings()
   const healthy = await logSetupSummary(startedAtMs, providerSummary)
 
@@ -797,7 +789,6 @@ const getForceRedownloadPaths = async (step: SetupStepId): Promise<readonly stri
       reverbUvEnvDir,
       kittenTtsUvEnvDir,
       ...kittenModelPaths,
-      whisperCoremlEnvDir,
       defuddleRuntimeDir,
       ytDlpManagedBinaryPath,
       ffmpegManagedBinaryPath,

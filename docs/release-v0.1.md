@@ -230,9 +230,35 @@ bun autoshow music "bright 90s pop rock with a huge chorus" --provider gemini=ly
   - configured writing and image providers for staged comic generation
   - reusable character sketches and panel prompt bundles
 - Key outputs:
-  - a timestamped `output/<timestamp>_<scene-slug>/` run directory with `structured-script.json`, `draft-prompt.md`, `scene.json`, and `panel-prompts/` artifacts
+  - a timestamped `output/<timestamp>_<scene-slug>/` run directory with drafting artifacts under `metadata/` and immutable reference manifests and snapshots under `assets/`
   - review sketches, final panel images, and grouped page `.png` images under that run directory's `sketches/`, `panels/`, and `pages/` subdirectories
-  - reusable character sketch images under `output/characters/sketches/<character-stem>/`
+  - reusable character and location reference images and their registration manifests under `input/characters/` and `input/locations/`
+
+```text
+output/<timestamp>_<scene-slug>/
+  metadata/
+    structured-script.json
+    draft-prompt.md
+    scene.json
+    scene.invalid.json               # only when validation preserves invalid model output
+    panel-prompts/
+      source-coverage.json
+      panel-NN/<bundle>.md
+  assets/
+    character-references.json
+    character-references/
+      <snapshot-id>/
+        <character-key>/
+    location-references.json
+    location-references/
+      <snapshot-id>/
+    design-references.json           # only when reviewed panels declare design references
+    design-references/
+      <snapshot-id>/
+  panels/
+  pages/
+  sketches/
+```
 
 Example:
 

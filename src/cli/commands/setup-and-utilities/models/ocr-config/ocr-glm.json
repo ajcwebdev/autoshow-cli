@@ -10,8 +10,6 @@
         "pricingCurrency": "USD",
         "pricingTier": "Z.AI standard token pricing",
         "pricingNotes": "Z.AI lists GLM OCR token pricing at $0.03/1M input tokens and $0.03/1M output tokens. OCR estimates multiply observed or heuristic token usage by these rates; cache discounts, batch discounts, enterprise pricing, taxes, and provider credits are ignored.",
-        "costPerMInputTokensUSD": 0.03,
-        "costPerMOutputTokensUSD": 0.03,
         "costPerMInputTokensCents": 3,
         "costPerMOutputTokensCents": 3,
         "limits": {

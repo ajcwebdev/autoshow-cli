@@ -10,7 +10,6 @@
         "pricingCurrency": "USD",
         "pricingTier": "Together AI serverless batch transcription pricing",
         "pricingNotes": "Together AI Whisper batch transcription is billed at $0.0015/audio minute, equivalent to $0.09/hour. Free credits, discounts, enterprise pricing, taxes, and provider credits are ignored.",
-        "costPerHourUSD": 0.09,
         "costPerHourCents": 9,
         "limits": {
           "effectiveBytes": 20971520,
@@ -31,7 +30,6 @@
         "pricingCurrency": "USD",
         "pricingTier": "Together AI serverless batch transcription pricing",
         "pricingNotes": "Together AI Parakeet batch transcription is billed at $0.0015/audio minute, equivalent to $0.09/hour. The reused Whisper timing estimate is provisional until Phase 7 benchmarking completes. Free credits, discounts, enterprise pricing, taxes, and provider credits are ignored.",
-        "costPerHourUSD": 0.09,
         "costPerHourCents": 9,
         "limits": {
           "effectiveBytes": 524288000,

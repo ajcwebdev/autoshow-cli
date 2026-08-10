@@ -75,7 +75,6 @@ Hosted generation flags:
 | `--provider provider[=model]` | Hosted music provider/model selector; repeat to run multiple targets |
 | `--all-providers` | Enable every supported hosted music provider/model |
 | `--provider-concurrency <n>` | Hosted music providers/models to run concurrently per item; default `10` |
-| `--local-concurrency <n>` | Local music providers to run concurrently per item; default `10` |
 | `--duration <seconds>` | Requested music duration |
 | `--lyrics-file <path>` | Lyrics file path (`.md` or `.txt`) for MiniMax and Gemini music generation |
 | `--instrumental` | Force instrumental generation for providers that support prompt/instrumental mode |

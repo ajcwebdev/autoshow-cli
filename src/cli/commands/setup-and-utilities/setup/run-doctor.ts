@@ -457,38 +457,6 @@ const collectLlamaManagedModelsCheck = async (probes: DoctorProbes): Promise<Doc
   )
 }
 
-// A missing or corrupt CoreML encoder is invisible at runtime — whisper.cpp just
-// falls back to the CPU encoder — so it only ever shows up as an unexplained
-// transcription slowdown. On non-Apple-Silicon hosts there is nothing to check.
-const checkCoremlEncoders = async (probes: DoctorProbes): Promise<DoctorCheck> => {
-  if (process.platform !== 'darwin' || process.arch !== 'arm64') {
-    return check('INFO', 'whisper CoreML encoders', 'not applicable on this host')
-  }
-
-  const modelFiles = (await probes.listDirectory(whisperModelsDir))
-    .filter((name) => /^ggml-.+\.bin$/.test(name))
-    .map((name) => name.replace(/^ggml-/, '').replace(/\.bin$/, ''))
-
-  if (modelFiles.length === 0) {
-    return check('INFO', 'whisper CoreML encoders', `no whisper models installed in ${whisperModelsDir}`)
-  }
-
-  const missing: string[] = []
-  for (const model of modelFiles) {
-    const compiled = `${whisperModelsDir}/ggml-${model}-encoder.mlmodelc`
-    const packaged = `${whisperModelsDir}/ggml-${model}-encoder.mlpackage`
-    if (!await probes.pathExists(compiled) && !await probes.pathExists(packaged)) {
-      missing.push(model)
-    }
-  }
-
-  return missing.length === 0
-    ? check('OK', 'whisper CoreML encoders', `compiled for ${modelFiles.join(', ')}`)
-    : check('WARN', 'whisper CoreML encoders', `missing for ${missing.join(', ')} (whisper falls back to the CPU encoder)`, {
-      nextStep: 'bun autoshow setup --step whisper-model'
-    })
-}
-
 const checkReverbAssets = async (probes: DoctorProbes): Promise<DoctorCheck> => {
   const missing = await getMissingReverbAsrFiles(probes.pathExists)
 
@@ -561,7 +529,6 @@ const collectLocalModelAssetChecks = async (probes: DoctorProbes): Promise<Docto
       'bun autoshow setup'
     ),
     await collectInstalledWhisperModelsCheck(probes),
-    await checkCoremlEncoders(probes),
     await checkReverbAssets(probes),
     await checkReverbDiarization(probes),
     await checkLlamaModelReadiness(probes, defaultLlamaModel),

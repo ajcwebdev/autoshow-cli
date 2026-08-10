@@ -10,7 +10,6 @@
         "pricingCurrency": "USD",
         "pricingTier": "Happy Scribe Product API automatic transcription reference pricing",
         "pricingNotes": "Happy Scribe automatic transcription is estimated at $0.60/hour. Subscription differences, enterprise pricing, taxes, and provider credits are ignored.",
-        "costPerHourUSD": 0.6,
         "costPerHourCents": 60,
         "limits": {
           "notes": "Happy Scribe documents a signed-upload plus orders workflow for automatic transcription, but current public Product API docs do not publish fixed upload-size or audio-duration caps for automatic STT. AutoShow keeps Happy Scribe v1 split policy note-only and relies on explicit --split or retry-with-split if the provider rejects an oversized input."

@@ -163,6 +163,7 @@ describe('comic character handling flat-reference contracts', () => {
           { kind: 'required', pattern: '\\bhologram\\b', description: 'Hero must be identified as a hologram.' },
           { kind: 'required', pattern: '\\bprojector(?:\\s+base)?\\b', description: 'Hero must include a projector base.' },
           { kind: 'forbidden', pattern: '\\bhero\\b.{0,80}\\bon\\b.{0,40}\\bmonitor\\b', description: 'Hero must not appear on a monitor.' },
+          { kind: 'forbidden', pattern: '\\bmonitor\\b.{0,40}\\b(?:shows?|contains?)\\b.{0,40}\\bhero\\b', description: 'A monitor must not show Hero.' },
         ],
       }],
       groupAliases: [],
@@ -180,6 +181,18 @@ describe('comic character handling flat-reference contracts', () => {
     )).not.toThrow()
     expect(() => validateSceneCharacters(
       scene('Hero is a hologram.', 'The hologram shines above a projector base. Exclude any monitor showing Hero.'),
+      catalog,
+    )).not.toThrow()
+    expect(() => validateSceneCharacters(
+      scene('Hero is a hologram.', 'The hologram shines above a projector base. The planet is visible behind him, but no monitor shows Hero.'),
+      catalog,
+    )).not.toThrow()
+    expect(() => validateSceneCharacters(
+      scene('Hero is a hologram.', 'The hologram shines above a projector base; Hero is not displayed on or inside any monitor.'),
+      catalog,
+    )).not.toThrow()
+    expect(() => validateSceneCharacters(
+      scene('Hero is a hologram.', 'The hologram shines above a projector base. Hero must never appear on or inside any monitor.'),
       catalog,
     )).not.toThrow()
     expect(() => validateSceneCharacters(

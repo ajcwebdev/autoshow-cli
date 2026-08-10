@@ -4,7 +4,7 @@
 
 - **Decision Status:** Accepted
 - **Date Created:** 2026-07-13
-- **Date Updated:** 2026-08-03
+- **Date Updated:** 2026-08-10
 - **Verification Status:** Passed
 
 The 2026-07-24 Google Gemini, Moonshot Kimi, and Claude Opus 5 additions are implemented and verified against `bun run check` and the targeted local contract suites. The previously blocked hosted OCR `--price` subprocess contracts were rerun successfully on 2026-08-03 after `runtime/` was provisioned. An approved one-page Kimi K3 write probe also confirmed the request shape and provider usage reporting. Provisional Gemini, Claude, and Kimi heuristics remain deferred pending separately approved calibration.
@@ -177,6 +177,8 @@ Negative outcomes:
 - The explicitly approved `bun autoshow write input/examples/document/1-document.pdf --llm kimi=kimi-k3 --prompt shortSummary` probe completed successfully on 2026-08-03. Kimi reported 661 input tokens and 159 output tokens, producing an actual provider-usage cost of `0.437¢` against the `0.540¢` estimate and confirming that the K3 request succeeds without the rejected K2.x `thinking` field.
 - The cross-provider thinking and reasoning-effort configuration decision is recorded separately in [ADR-017](ADR-017-normalize-cross-provider-reasoning-configuration.md); its implementation and calibration remain outside this accepted model-refresh decision.
 
+The structural legacy program's W10.1 MiniMax gate was answered from published documentation on 2026-08-10 without a provider request. MiniMax's current [OpenAI-compatible Chat Completions API](https://platform.minimax.io/docs/api-reference/text-chat-openai) enumerates AutoShow's active `MiniMax-M3` selector, but its documented request body exposes messages, service tier, thinking controls, streaming, token limits, sampling controls, and tools without `response_format` or `json_schema`; the current [OpenAI SDK guide](https://platform.minimax.io/docs/api-reference/text-openai-api) likewise documents `MiniMax-M3` without either structured-output parameter. The deprecated [native text-generation endpoint](https://platform.minimax.io/docs/api-reference/text-post) documents `response_format: { type: 'json_schema' }` only for `MiniMax-Text-01`, which is not an active AutoShow selector. The gate is therefore negative: `MiniMax-M3` has no published native `json_schema` contract, so `compat-fallback.ts` and MiniMax's schema-guided strategy remain live.
+
 > Follow-up (2026-08-07): `mistral-ocr-latest` was removed from `SUPPORTED_MISTRAL_OCR_MODELS` and from `ocr-config/ocr-mistral.json`. The alias predated this ADR and was the one selector left contradicting its "do not register any `*-latest` alias" clause: its registry row duplicated `mistral-ocr-4-0` byte-for-byte, so `--all-ocr` paid for the same model twice and price reports listed one model under two names. `--provider mistral=mistral-ocr-latest` now returns the standard invalid-model error naming `mistral-ocr-2512` and `mistral-ocr-4-0`, pinned by `provider-expansion-concurrency.test.ts`. The cheapest Mistral OCR default, `mistral-ocr-2512`, is unchanged.
 
 ## Follow-up Actions
@@ -186,6 +188,7 @@ Negative outcomes:
 | Calibrate Grok 4.5 OCR page timing and token heuristics from a paid run | OCR maintainers | Deferred until the exact paid provider run is separately approved |
 | Calibrate Gemini 3.6/3.5, Claude Opus 5, and Kimi K3 write and OCR heuristics from a paid run | Model registry maintainers | Deferred until the exact paid provider run is separately approved |
 | Re-evaluate the cheapest Gemini write and OCR default before `gemini-3.1-flash-lite` shuts down on 2027-05-07 | Model registry maintainers | Pending |
+| At the next hosted LLM refresh, verify from MiniMax's published Chat Completions and model documentation whether every active MiniMax LLM selector supports OpenAI-compatible `response_format: { type: 'json_schema' }` | LLM maintainers | Closed 2026-08-10 — the current OpenAI-compatible request schema and SDK guide do not document `response_format` or `json_schema` for active `MiniMax-M3`; the deprecated native endpoint limits that feature to inactive `MiniMax-Text-01`. Keep the schema-guided compatibility path and re-evaluate only when MiniMax publishes a native contract for every active selector. |
 
 ## Verification
 

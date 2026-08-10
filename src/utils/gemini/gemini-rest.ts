@@ -269,24 +269,21 @@ const normalizeGeminiVideoOperation = (value: unknown): GeminiVideoOperation => 
     ...(raw['error'] !== undefined ? { error: raw['error'] } : {})
   }
   const response = isRecord(raw['response']) ? raw['response'] : undefined
+  // Raw Gemini REST provenance: https://ai.google.dev/gemini-api/docs/veo and the Google Gen AI SDK's ML Developer API converters at https://github.com/googleapis/js-genai/blob/4489991a7c40b22dff75348748048b0b14ac687e/src/converters/_models_converters.ts.
   const generateVideoResponse = response && isRecord(response['generateVideoResponse'])
     ? response['generateVideoResponse']
-    : response
+    : undefined
   if (generateVideoResponse) {
     const samples = Array.isArray(generateVideoResponse['generatedSamples'])
       ? generateVideoResponse['generatedSamples']
-      : Array.isArray(generateVideoResponse['generatedVideos'])
-        ? generateVideoResponse['generatedVideos']
-        : []
+      : []
     operation.response = {
       generatedVideos: samples
         .map((sample): GeminiGeneratedVideo | undefined => {
           if (!isRecord(sample)) return undefined
           if (isRecord(sample['video'])) {
-            return { video: normalizeGeminiVideo(sample['video']) }
-          }
-          if (isRecord(sample['_self'])) {
-            return { video: normalizeGeminiVideo(sample['_self']) }
+            const video = normalizeGeminiVideo(sample['video'])
+            return video ? { video } : undefined
           }
           return undefined
         })
@@ -298,13 +295,16 @@ const normalizeGeminiVideoOperation = (value: unknown): GeminiVideoOperation => 
   return operation
 }
 
-const normalizeGeminiVideo = (raw: Record<string, unknown>): GeminiVideo => ({
-  ...(typeof raw['uri'] === 'string' ? { uri: raw['uri'] } : {}),
-  ...(typeof raw['encodedVideo'] === 'string' ? { videoBytes: raw['encodedVideo'] } : {}),
-  ...(typeof raw['videoBytes'] === 'string' ? { videoBytes: raw['videoBytes'] } : {}),
-  ...(typeof raw['encoding'] === 'string' ? { mimeType: raw['encoding'] } : {}),
-  ...(typeof raw['mimeType'] === 'string' ? { mimeType: raw['mimeType'] } : {})
-})
+const normalizeGeminiVideo = (raw: Record<string, unknown>): GeminiVideo | undefined => {
+  const uri = typeof raw['uri'] === 'string' ? raw['uri'] : undefined
+  const videoBytes = typeof raw['encodedVideo'] === 'string' ? raw['encodedVideo'] : undefined
+  if (uri === undefined && videoBytes === undefined) return undefined
+  return {
+    ...(uri !== undefined ? { uri } : {}),
+    ...(videoBytes !== undefined ? { videoBytes } : {}),
+    ...(typeof raw['encoding'] === 'string' ? { mimeType: raw['encoding'] } : {})
+  }
+}
 
 export const geminiUploadFile = async (
   apiKey: string,

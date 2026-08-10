@@ -34,7 +34,6 @@ describe('test-runner contracts', () => {
           models: {
             'gpt-image-2': {
               description: 'GPT Image 2',
-              costPerImageUSD: 0.08,
               costPerImageCents: 8,
               estimation: {
                 costMultiplier: 1,

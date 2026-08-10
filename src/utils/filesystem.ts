@@ -49,14 +49,6 @@ export const walkPaths = async (
   return paths
 }
 
-export const findDirectoriesBySuffix = async (
-  root: string,
-  suffix: string,
-  maxDepth = Number.POSITIVE_INFINITY
-): Promise<string[]> =>
-  (await walkPaths(root, { kind: 'directory', maxDepth }))
-    .filter((path) => path.endsWith(suffix))
-
 export const listImmediateDirectories = async (root: string): Promise<string[]> => {
   const entries = (await readdir(root, { withFileTypes: true }))
     .sort((left, right) => left.name.localeCompare(right.name))

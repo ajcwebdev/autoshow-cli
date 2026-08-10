@@ -2,7 +2,7 @@ import { afterEach, describe, expect, test } from 'bun:test'
 import { mkdir, mkdtemp, rm, stat, writeFile } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
-import { findDirectoriesBySuffix, listImmediateDirectories, makeExecutable, walkPaths } from '~/utils/filesystem'
+import { listImmediateDirectories, makeExecutable, walkPaths } from '~/utils/filesystem'
 import { fileExists } from '~/utils/cli-utils'
 
 const tempDirs: string[] = []
@@ -33,16 +33,6 @@ describe('filesystem helpers', () => {
       .toEqual(['root.txt'])
     expect((await walkPaths(root, { kind: 'file', maxDepth: 2 })).map((path) => path.replace(`${root}/`, '')).sort())
       .toEqual(['one/one.txt', 'root.txt'])
-  })
-
-  test('findDirectoriesBySuffix returns suffix matches inside maxDepth', async () => {
-    const root = await makeTempDir()
-    await mkdir(join(root, 'build', 'encoder.mlmodelc'), { recursive: true })
-    await mkdir(join(root, 'build', 'nested', 'too-deep.mlmodelc'), { recursive: true })
-
-    const matches = await findDirectoriesBySuffix(root, '.mlmodelc', 2)
-
-    expect(matches.map((path) => path.replace(`${root}/`, ''))).toEqual(['build/encoder.mlmodelc'])
   })
 
   test('listImmediateDirectories ignores files and nested directories', async () => {

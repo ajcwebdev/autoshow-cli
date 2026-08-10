@@ -10,7 +10,6 @@
         "pricingCurrency": "USD",
         "pricingTier": "Standard pay-as-you-go reference heuristic",
         "pricingNotes": "Zyte lists automatic extraction at $0.0004-$0.0016 per data type before discounts, while base request tiers, bandwidth, actions, screenshots, and selected features can add cost. AutoShow uses the $0.0016 upper-bound extraction add-on as a base/reference heuristic and excludes variable base request costs, free credits, discounts, enterprise pricing, taxes, and provider credits.",
-        "costPer1kPagesUSD": 1.6,
         "costPer1kPagesCents": 160,
         "limits": {
           "notes": "Zyte lists automatic extraction at $0.0004-$0.0016 per data type before volume discounts; article extraction uses the upper bound here and excludes variable base request tier costs."

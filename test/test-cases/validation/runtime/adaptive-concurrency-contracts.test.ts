@@ -10,8 +10,22 @@ import {
   recordAdaptiveSuccess,
   resolveAdaptiveConcurrencyConfig
 } from '../../../test-runner/adaptive-concurrency'
-import { extractAdaptiveProviderGroups } from '../../../test-runner/adaptive-provider-groups'
+import {
+  ADAPTIVE_PROVIDER_VALUE_FLAGS,
+  ADAPTIVE_REMOTE_PROVIDERS,
+  extractAdaptiveProviderGroups
+} from '../../../test-runner/adaptive-provider-groups'
 import { runCommand } from '../../../test-utils/test-helpers'
+import { URL_ARTICLE_BACKENDS } from '~/cli/commands/process-steps/step-2-extract/step-2-shared/provider-registry'
+import {
+  STANDALONE_IMAGE_PROVIDER_TARGETS,
+  STANDALONE_MUSIC_PROVIDER_TARGETS,
+  STANDALONE_TTS_PROVIDER_TARGETS,
+  STANDALONE_VIDEO_PROVIDER_TARGETS,
+  WRITE_LLM_PROVIDER_TARGETS,
+  WRITE_OCR_PROVIDER_TARGETS,
+  WRITE_STT_PROVIDER_TARGETS
+} from '~/cli/flags/service-selector-normalization/provider-targets'
 import type { RunCommandAttemptRunner } from '~/types'
 
 const tempDirs: string[] = []
@@ -88,6 +102,84 @@ afterEach(async () => {
 })
 
 describe('adaptive provider group parser', () => {
+  test('remote provider mirrors exactly cover target registries minus named local engines', () => {
+    const expectedLocalProviders = {
+      stt: ['reverb', 'whisper', 'whisperfile'],
+      ocr: ['tesseract'],
+      url: ['defuddle'],
+      llm: ['llama', 'llamafile'],
+      tts: ['kitten'],
+      image: [],
+      video: [],
+      music: [],
+    } as const
+    const providerRegistries = {
+      stt: Object.keys(WRITE_STT_PROVIDER_TARGETS),
+      ocr: Object.keys(WRITE_OCR_PROVIDER_TARGETS),
+      url: URL_ARTICLE_BACKENDS,
+      llm: Object.keys(WRITE_LLM_PROVIDER_TARGETS),
+      tts: Object.keys(STANDALONE_TTS_PROVIDER_TARGETS),
+      image: Object.keys(STANDALONE_IMAGE_PROVIDER_TARGETS),
+      video: Object.keys(STANDALONE_VIDEO_PROVIDER_TARGETS),
+      music: Object.keys(STANDALONE_MUSIC_PROVIDER_TARGETS),
+    } as const
+
+    for (const kind of Object.keys(providerRegistries) as Array<keyof typeof providerRegistries>) {
+      const expected = providerRegistries[kind].filter((provider) =>
+        !(expectedLocalProviders[kind] as readonly string[]).includes(provider)
+      )
+      const actual = ADAPTIVE_REMOTE_PROVIDERS[kind]
+      expect({
+        missing: expected.filter((provider) => !actual.includes(provider)),
+        extra: actual.filter((provider) => !expected.includes(provider)),
+      }).toEqual({ missing: [], extra: [] })
+    }
+  })
+
+  test('value-consuming provider flags exactly cover remote target registries plus the parser core', () => {
+    const coreValueFlags = [
+      'provider',
+      'url-provider',
+      'stt',
+      'ocr',
+      'llm',
+      'tts',
+      'image',
+      'video',
+      'music',
+      'all-providers',
+      'llama',
+      'whisper',
+      'reverb',
+      'deepinfra',
+      'kitten-tts',
+    ]
+    const targetRegistries = {
+      stt: WRITE_STT_PROVIDER_TARGETS,
+      ocr: WRITE_OCR_PROVIDER_TARGETS,
+      llm: WRITE_LLM_PROVIDER_TARGETS,
+      tts: STANDALONE_TTS_PROVIDER_TARGETS,
+      image: STANDALONE_IMAGE_PROVIDER_TARGETS,
+      video: STANDALONE_VIDEO_PROVIDER_TARGETS,
+      music: STANDALONE_MUSIC_PROVIDER_TARGETS,
+    } as const
+    const expected = new Set(coreValueFlags)
+
+    for (const kind of Object.keys(targetRegistries) as Array<keyof typeof targetRegistries>) {
+      const remoteProviders = ADAPTIVE_REMOTE_PROVIDERS[kind]
+      for (const [provider, target] of Object.entries(targetRegistries[kind])) {
+        if (remoteProviders.includes(provider)) {
+          expected.add(target)
+        }
+      }
+    }
+
+    expect({
+      missing: [...expected].filter((flag) => !ADAPTIVE_PROVIDER_VALUE_FLAGS.includes(flag)),
+      extra: ADAPTIVE_PROVIDER_VALUE_FLAGS.filter((flag) => !expected.has(flag)),
+    }).toEqual({ missing: [], extra: [] })
+  })
+
   test('extracts provider groups across processing command shapes', () => {
     expect(extractAdaptiveProviderGroups([
       'src/cli/create-cli.ts',
@@ -178,6 +270,20 @@ describe('adaptive provider group parser', () => {
       '--provider',
       'elevenlabs=music_v1'
     ])).toEqual(['music/elevenlabs'])
+
+    expect(extractAdaptiveProviderGroups([
+      'src/cli/create-cli.ts',
+      'image',
+      'a prompt',
+      '--all-providers'
+    ])).toEqual(Object.keys(STANDALONE_IMAGE_PROVIDER_TARGETS).map((provider): `image/${string}` => `image/${provider}`).sort())
+
+    expect(extractAdaptiveProviderGroups([
+      'src/cli/create-cli.ts',
+      'video',
+      'a prompt',
+      '--all-providers'
+    ])).toEqual(Object.keys(STANDALONE_VIDEO_PROVIDER_TARGETS).map((provider): `video/${string}` => `video/${provider}`).sort())
   })
 
   test('local-only providers do not create adaptive groups', () => {

@@ -194,16 +194,35 @@ input/characters/
   <canonical-source-image>
   <source-stem>--outline-sheet.png # registered live sheet
 
-output/<timestamp>_<scene>/
-  structured-script.json           # schemaVersion 3; characterKeys/speakerKey
-  scene.json                        # schemaVersion 4; authoritative panel.characterKeys
-  character-references.json         # checksummed immutable snapshot manifest
-  character-references/<snapshot-id>/<character-key>/
-    reference.<ext>                  # one-image character
-    sketch-sheet.png                 # legacy two-image character
-    source.<ext>                     # legacy two-image character
-  panel-prompts/panel-NN/
-    <scene>-panel-N.md               # keys + snapshot ID; no copied character images
+output/<timestamp>_<scene-slug>/
+  metadata/
+    structured-script.json           # schemaVersion 3; characterKeys/speakerKey
+    draft-prompt.md
+    scene.json                       # schemaVersion 4; authoritative panel.characterKeys
+    scene.invalid.json               # only when validation preserves invalid model output
+    panel-prompts/
+      source-coverage.json
+      panel-NN/
+        <scene>-panel-N.md            # keys + snapshot IDs; no copied reference images
+  assets/
+    character-references.json        # checksummed immutable character snapshot manifest
+    character-references/
+      <snapshot-id>/
+        <character-key>/
+          reference.<ext>             # one-image character
+          sketch-sheet.png            # legacy two-image character
+          source.<ext>                # legacy two-image character
+    location-references.json         # checksummed immutable location snapshot manifest
+    location-references/
+      <snapshot-id>/
+        <location-key>--reference-sheet.png
+    design-references.json           # only when reviewed panels declare design references
+    design-references/
+      <snapshot-id>/
+        <design-key>.<ext>
+  panels/
+  pages/
+  sketches/
 ```
 
 Reference compilation preserves first character appearance and emits one canonical image for each one-image character. Legacy two-image characters emit one derived identity card. The scene's immutable location reference follows all required character references, then any optional panel/page/sketch continuity references.

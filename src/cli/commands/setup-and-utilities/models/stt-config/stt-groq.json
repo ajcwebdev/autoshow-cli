@@ -10,7 +10,6 @@
         "pricingCurrency": "USD",
         "pricingTier": "Groq on-demand speech-to-text pricing",
         "pricingNotes": "Groq hosted Whisper STT estimates use published per-hour rates for the selected model. Free tier, enterprise pricing, taxes, and provider credits are ignored.",
-        "costPerHourUSD": 0.111,
         "costPerHourCents": 11.1,
         "limits": {
           "effectiveBytes": 26214400,
@@ -30,7 +29,6 @@
         "pricingCurrency": "USD",
         "pricingTier": "Groq on-demand speech-to-text pricing",
         "pricingNotes": "Groq hosted Whisper STT estimates use published per-hour rates for the selected model. Free tier, enterprise pricing, taxes, and provider credits are ignored.",
-        "costPerHourUSD": 0.04,
         "costPerHourCents": 4,
         "limits": {
           "effectiveBytes": 26214400,

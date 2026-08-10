@@ -58,7 +58,6 @@ The standalone `image` command drops the `image-` prefix these options carry eve
 |------|-------------|
 | `--all-providers` | Select every supported image provider/model |
 | `--provider-concurrency <n>` | Hosted image providers/models to run concurrently per item; default `10` |
-| `--local-concurrency <n>` | Local image providers to run concurrently per item; default `10` |
 | `--aspect-ratio <ratio>` | Provider-dependent aspect ratio control; Recraft sends this as its `size` value when `--size` is absent |
 | `--size <size>` | Provider-dependent size or resolution control; Recraft sends this as its `size` value |
 | `--quality <q>` | OpenAI quality: `low`, `medium`, `high`, or `auto` |

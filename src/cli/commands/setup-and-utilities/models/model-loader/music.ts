@@ -1,9 +1,15 @@
 import { DEFAULT_COST_MULTIPLIER, DEFAULT_MUSIC_MS_PER_SECOND } from './defaults'
 import { getModelRegistry } from './registry'
+import { getRetiredModelRate } from './retired-model-rates'
 import type { DurationBilledEstimation, MusicModelMeta } from '~/types'
+import type { RetiredModelRate } from './retired-model-rates'
 
-export const getMusicModelMeta = (service: string, model: string): MusicModelMeta | undefined => {
+export const getMusicModelMeta = (
+  service: string,
+  model: string
+): MusicModelMeta | RetiredModelRate<'music'> | undefined => {
   return getModelRegistry().music[service]?.models[model]
+    ?? getRetiredModelRate('music', service, model)
 }
 
 export const getMusicEstimation = (service: string, model: string): DurationBilledEstimation => {

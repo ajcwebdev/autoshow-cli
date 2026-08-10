@@ -22,7 +22,7 @@ bun as config --show
 bun as config --reset
 ```
 
-No input argument is required. Flags that are explicitly passed are persisted to the config file when they map to reusable defaults. Runtime-only flags such as `--price`, `--allow-over-budget`, `--show`, `--reset`, `--config-path`, PDF passwords, Speechify custom-voice creation fields, `--music-lyrics-file`, and `--music-instrumental` are never persisted. Image edit/reference controls such as `--image-input`, `--image-mask`, `--image-response-mode`, `--image-search-grounding`, and `--image-compression` are accepted by write/config/resume flag surfaces but are not persisted or injected by the current config command.
+No input argument is required. Flags that are explicitly passed are persisted to the config file when they map to reusable defaults. Runtime-only flags such as `--price`, `--allow-over-budget`, `--show`, `--reset`, `--config-path`, PDF passwords, Speechify custom-voice creation fields, `--music-lyrics-file`, and `--music-instrumental` are never persisted. Image edit/reference controls such as `--image-input`, `--image-mask`, `--image-response-mode`, `--image-search-grounding`, and `--image-compression` are accepted by the write and resume flag surfaces but rejected by config because they describe a single generation rather than reusable defaults.
 
 ## Config File Location
 
@@ -91,16 +91,16 @@ Representative JSON shape:
         "groqStt": ["whisper-large-v3-turbo"],
         "grokStt": ["speech-to-text"],
         "deepgramStt": ["nova-3"],
-        "sonioxStt": ["stt-async-v4"],
+        "sonioxStt": ["stt-async-v5"],
         "speechmaticsStt": ["enhanced"],
         "revStt": ["machine"],
         "mistralStt": ["voxtral-mini-2602"],
-        "assemblyaiStt": ["universal-3-pro"],
-        "gladiaStt": ["default"],
+        "assemblyaiStt": ["universal-3-5-pro"],
+        "gladiaStt": ["solaria-1"],
         "happyscribeStt": ["auto"],
         "supadataStt": ["auto"],
         "scrapecreatorsStt": ["youtube-transcript"],
-        "geminiStt": ["gemini-3-flash-preview"],
+        "geminiStt": ["gemini-3.6-flash"],
         "happyscribeOrganizationId": "org_123",
         "supadataLang": "en",
         "scrapecreatorsLang": "en",
@@ -187,11 +187,12 @@ Representative JSON shape:
         "chunkConcurrency": 3
       },
       "image": {
-        "geminiImage": ["gemini-3.1-flash-image-preview"],
+        "geminiImage": ["gemini-3.1-flash-lite-image"],
         "openaiImage": ["gpt-image-2"],
         "grokImage": ["grok-imagine-image"],
         "bflImage": ["flux-2-pro"],
         "recraftImage": ["recraftv4_1"],
+        "falImage": ["fal-ai/hidream-o1-image"],
         "imageAspectRatio": "16:9",
         "imageSize": "1024x1024",
         "imageQuality": "low",
@@ -208,6 +209,7 @@ Representative JSON shape:
         "grokVideo": ["grok-imagine-video"],
         "runwayVideo": ["gen4.5"],
         "ltxVideo": ["ltx-2-3-fast"],
+        "falVideo": ["minimax/h3"],
         "videoDuration": 8,
         "videoSize": "1280x720",
         "videoAspectRatio": "16:9",
@@ -300,19 +302,20 @@ Speechify custom-voice creation fields (`--speechify-tts-ref-audio`, `--speechif
 
 | Field | Flag |
 |-------|------|
-| `geminiImage`, `openaiImage`, `grokImage`, `bflImage`, `recraftImage`, `replicateImage`, `lumalabsImage` | `--image provider[=model]` |
+| `geminiImage`, `openaiImage`, `grokImage`, `bflImage`, `recraftImage`, `replicateImage`, `lumalabsImage`, `falImage` | `--image provider[=model]` |
 | `imageAspectRatio`, `imageSize`, `imageQuality`, `imageFormat`, `imageBackground`, `imageCount` | matching reusable image option flags |
 | `providerConcurrency`, `localConcurrency` | `--provider-concurrency`, `--local-concurrency` |
 
-`--image-input`, `--image-mask`, `--image-response-mode`, `--image-search-grounding`, and `--image-compression` are runtime image-generation flags. They are not persisted by the current config command.
+`--image-input`, `--image-mask`, `--image-response-mode`, `--image-search-grounding`, and `--image-compression` are runtime image-generation flags accepted by write and resume. The config command rejects them instead of persisting them.
 
 ### defaults.post.video
 
 | Field | Flag |
 |-------|------|
-| `geminiVideo`, `minimaxVideo`, `glmVideo`, `grokVideo`, `runwayVideo`, `ltxVideo`, `replicateVideo`, `lumalabsVideo` | `--video provider[=model]` |
+| `geminiVideo`, `minimaxVideo`, `glmVideo`, `grokVideo`, `runwayVideo`, `ltxVideo`, `replicateVideo`, `lumalabsVideo`, `falVideo` | `--video provider[=model]` |
 | `videoDuration`, `videoSize`, `videoAspectRatio`, `videoResolution`, `videoMode`, `videoInputImage`, `videoLastFrame`, `videoReferenceImages`, `videoInputVideo`, `grokVideoStorageFilename`, `grokVideoStorageExpiresAfter` | matching video option flags |
 | `replicateVideoSeed`, `replicateVideoGenerateAudio`, `replicateVideoReferenceVideos`, `replicateVideoReferenceAudios`, `replicateVideoNegativePrompt`, `replicateVideoAudio`, `replicateVideoPromptExpansion` | `--replicate-video-*` option flags |
+| `falVideoGenerateAudio`, `falVideoReferenceVideos`, `falVideoReferenceAudios` | `--fal-video-*` option flags |
 | `providerConcurrency`, `localConcurrency` | `--provider-concurrency`, `--local-concurrency` |
 
 ### defaults.post.music

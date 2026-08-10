@@ -468,7 +468,7 @@ bun autoshow benchmark audio.mp3 --stt-services whisper:base,whisper:small,whisp
 bun autoshow benchmark audio.mp3 --stt-services whisper:tiny,deepgram
 ```
 
-Every service benchmarks one model by default, whisper included. Whisper's default is `base` (~150 MB), which the first run downloads into `runtime/models/whisper` before transcribing; the accepted whisper sizes are `tiny`, `base`, `small`, `medium`, and `large-v3-turbo`. Each additional size costs another download — the repo pins `tiny` at ~78 MB and `large-v3-turbo` at ~1.6 GB, with the rest in between — and, on a CoreML-capable macOS host, another one-time CoreML conversion of that model. Each model also adds a full pass over every compression and speed variant, so wall-clock scales with the number of models, not just the number of services.
+Every service benchmarks one model by default, whisper included. Whisper's default is `base` (~150 MB), which the first run downloads into `runtime/models/whisper` before transcribing; the accepted whisper sizes are `tiny`, `base`, `small`, `medium`, and `large-v3-turbo`. Each additional size costs another download — the repo pins `tiny` at ~78 MB and `large-v3-turbo` at ~1.6 GB, with the rest in between. Each model also adds a full pass over every compression and speed variant, so wall-clock scales with the number of models, not just the number of services.
 
 ## Notes
 

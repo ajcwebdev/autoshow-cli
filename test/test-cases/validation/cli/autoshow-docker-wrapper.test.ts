@@ -2,12 +2,41 @@ import { afterEach, expect, test } from 'bun:test'
 import { chmod, mkdir, mkdtemp, readFile, realpath, rm, writeFile } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
 import { delimiter, join, resolve } from 'node:path'
+import { readDependencyUrlAndSha256 } from '~/cli/commands/setup-and-utilities/setup/dependency-metadata'
 
 const wrapperPath = resolve(import.meta.dir, '../../../../scripts/autoshow-docker.sh')
+const dockerfilePath = resolve(import.meta.dir, '../../../../Dockerfile')
 const temporaryDirectories: string[] = []
 
 afterEach(async () => {
   await Promise.all(temporaryDirectories.splice(0).map(path => rm(path, { recursive: true, force: true })))
+})
+
+test('Docker yt-dlp pin matches resolved native setup metadata in both directions', async () => {
+  const dockerfile = await readFile(dockerfilePath, 'utf8')
+  const dockerArgs = Object.fromEntries(
+    [...dockerfile.matchAll(/^ARG (YT_DLP_[A-Z0-9_]+)=(\S+)$/gm)]
+      .map(([, name, value]) => [name, value])
+  )
+  const { url, sha256 } = await readDependencyUrlAndSha256('yt-dlp', 'linux')
+  const expectedArgs = {
+    YT_DLP_URL: url,
+    YT_DLP_SHA256: sha256
+  }
+
+  expect({
+    missing: Object.keys(expectedArgs).filter(name => !(name in dockerArgs)),
+    extra: Object.keys(dockerArgs).filter(name => !(name in expectedArgs))
+  }).toEqual({ missing: [], extra: [] })
+  expect(dockerArgs).toEqual(expectedArgs)
+
+  const downloadIndex = dockerfile.indexOf('curl -fsSL "${YT_DLP_URL}" -o /usr/local/bin/yt-dlp')
+  const checksumIndex = dockerfile.indexOf('"${YT_DLP_SHA256}" /usr/local/bin/yt-dlp | sha256sum -c -')
+  const chmodIndex = dockerfile.indexOf('chmod 0755 /usr/local/bin/yt-dlp')
+
+  expect(downloadIndex).toBeGreaterThan(-1)
+  expect(checksumIndex).toBeGreaterThan(downloadIndex)
+  expect(chmodIndex).toBeGreaterThan(checksumIndex)
 })
 
 test('Docker wrapper preserves relative and host-absolute workspace paths', async () => {

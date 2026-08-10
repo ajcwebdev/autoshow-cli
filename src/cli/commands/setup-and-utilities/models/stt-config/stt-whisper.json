@@ -5,7 +5,6 @@
     "models": {
       "tiny": {
         "description": "Tiny — fastest, lowest accuracy",
-        "costPerHourUSD": 0,
         "costPerHourCents": 0,
         "limits": {
           "notes": "Local whisper.cpp transcription runs on the local machine rather than a hosted API, so provider-side upload and duration caps do not apply."
@@ -16,7 +15,6 @@
       },
       "base": {
         "description": "Base — fast with reasonable accuracy",
-        "costPerHourUSD": 0,
         "costPerHourCents": 0,
         "limits": {
           "notes": "Local whisper.cpp transcription runs on the local machine rather than a hosted API, so provider-side upload and duration caps do not apply."
@@ -27,7 +25,6 @@
       },
       "small": {
         "description": "Small — balanced speed and accuracy",
-        "costPerHourUSD": 0,
         "costPerHourCents": 0,
         "limits": {
           "notes": "Local whisper.cpp transcription runs on the local machine rather than a hosted API, so provider-side upload and duration caps do not apply."
@@ -35,7 +32,6 @@
       },
       "medium": {
         "description": "Medium — good accuracy, moderate speed",
-        "costPerHourUSD": 0,
         "costPerHourCents": 0,
         "limits": {
           "notes": "Local whisper.cpp transcription runs on the local machine rather than a hosted API, so provider-side upload and duration caps do not apply."
@@ -43,7 +39,6 @@
       },
       "large-v3-turbo": {
         "description": "Large v3 Turbo — fast with near-v3 accuracy",
-        "costPerHourUSD": 0,
         "costPerHourCents": 0,
         "limits": {
           "notes": "Local whisper.cpp transcription runs on the local machine rather than a hosted API, so provider-side upload and duration caps do not apply."

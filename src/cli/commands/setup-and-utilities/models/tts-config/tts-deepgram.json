@@ -10,7 +10,6 @@
         "pricingCurrency": "USD",
         "pricingTier": "Deepgram Aura API pay-as-you-go TTS pricing",
         "pricingNotes": "Deepgram Aura-2 TTS estimates use the published $0.03/1K characters rate. Free credits, committed-use discounts, enterprise pricing, taxes, and provider credits are ignored.",
-        "costPer1kCharsUSD": 0.03,
         "costPer1kCharsCents": 3,
         "estimation": {
           "costMultiplier": 1,
@@ -24,7 +23,6 @@
         "pricingCurrency": "USD",
         "pricingTier": "Deepgram Aura API pay-as-you-go TTS pricing",
         "pricingNotes": "Deepgram Aura-2 TTS estimates use the published $0.03/1K characters rate. Free credits, committed-use discounts, enterprise pricing, taxes, and provider credits are ignored.",
-        "costPer1kCharsUSD": 0.03,
         "costPer1kCharsCents": 3,
         "estimation": {
           "costMultiplier": 1,
@@ -38,7 +36,6 @@
         "pricingCurrency": "USD",
         "pricingTier": "Deepgram Aura API pay-as-you-go TTS pricing",
         "pricingNotes": "Deepgram Aura-2 TTS estimates use the published $0.03/1K characters rate. Free credits, committed-use discounts, enterprise pricing, taxes, and provider credits are ignored.",
-        "costPer1kCharsUSD": 0.03,
         "costPer1kCharsCents": 3,
         "estimation": {
           "costMultiplier": 1,
@@ -52,7 +49,6 @@
         "pricingCurrency": "USD",
         "pricingTier": "Deepgram Aura API pay-as-you-go TTS pricing",
         "pricingNotes": "Deepgram Aura-2 TTS estimates use the published $0.03/1K characters rate. Free credits, committed-use discounts, enterprise pricing, taxes, and provider credits are ignored.",
-        "costPer1kCharsUSD": 0.03,
         "costPer1kCharsCents": 3,
         "estimation": {
           "costMultiplier": 1,
@@ -66,7 +62,6 @@
         "pricingCurrency": "USD",
         "pricingTier": "Deepgram Aura API pay-as-you-go TTS pricing",
         "pricingNotes": "Deepgram Aura-2 TTS estimates use the published $0.03/1K characters rate. Free credits, committed-use discounts, enterprise pricing, taxes, and provider credits are ignored.",
-        "costPer1kCharsUSD": 0.03,
         "costPer1kCharsCents": 3,
         "estimation": {
           "costMultiplier": 1,
@@ -80,7 +75,6 @@
         "pricingCurrency": "USD",
         "pricingTier": "Deepgram Aura API pay-as-you-go TTS pricing",
         "pricingNotes": "Deepgram Aura-2 TTS estimates use the published $0.03/1K characters rate. Timing is provisional pending separately approved calibration. Free credits, committed-use discounts, enterprise pricing, taxes, and provider credits are ignored.",
-        "costPer1kCharsUSD": 0.03,
         "costPer1kCharsCents": 3,
         "estimation": { "costMultiplier": 1, "msPer1KChars": 39639 }
       },
@@ -91,7 +85,6 @@
         "pricingCurrency": "USD",
         "pricingTier": "Deepgram Aura API pay-as-you-go TTS pricing",
         "pricingNotes": "Deepgram Aura-2 TTS estimates use the published $0.03/1K characters rate. Timing is provisional pending separately approved calibration. Free credits, committed-use discounts, enterprise pricing, taxes, and provider credits are ignored.",
-        "costPer1kCharsUSD": 0.03,
         "costPer1kCharsCents": 3,
         "estimation": { "costMultiplier": 1, "msPer1KChars": 39639 }
       },
@@ -102,7 +95,6 @@
         "pricingCurrency": "USD",
         "pricingTier": "Deepgram Aura API pay-as-you-go TTS pricing",
         "pricingNotes": "Deepgram Aura-2 TTS estimates use the published $0.03/1K characters rate. Timing is provisional pending separately approved calibration. Free credits, committed-use discounts, enterprise pricing, taxes, and provider credits are ignored.",
-        "costPer1kCharsUSD": 0.03,
         "costPer1kCharsCents": 3,
         "estimation": { "costMultiplier": 1, "msPer1KChars": 39639 }
       }

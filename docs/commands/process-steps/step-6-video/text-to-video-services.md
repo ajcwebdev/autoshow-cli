@@ -50,7 +50,6 @@ The standalone `video` command drops the `video-` prefix these options carry eve
 |------|-------------|
 | `--all-providers` | Run every supported video provider/model |
 | `--provider-concurrency <n>` | Hosted video providers/models to run concurrently per item; default `10` |
-| `--local-concurrency <n>` | Local video providers to run concurrently per item; default `10` |
 | `--duration <seconds>` | Requested video duration |
 | `--size <size>` | Provider-dependent size control |
 | `--aspect-ratio <ratio>` | Provider-dependent aspect ratio |
