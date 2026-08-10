@@ -10,6 +10,7 @@ export type CharacterCatalogEntry = CharacterReferenceConfig['characters'][numbe
   key: CharacterKey
   sourcePath: string
   outlineSheetPath: string
+  generationReferencePath?: string
 }
 
 export type CharacterCatalogService = Readonly<{

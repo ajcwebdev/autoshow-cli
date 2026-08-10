@@ -117,6 +117,9 @@ export const loadCharacterCatalog = (charactersRoot = getCharactersRoot()): Char
     }
     const sourcePath = resolveCatalogAsset(key, 'image', authored.image)
     const outlineSheetPath = resolveCatalogAsset(key, 'outlineSheet', authored.outlineSheet)
+    const generationReferencePath = authored.generationReference
+      ? resolveCatalogAsset(key, 'image', authored.generationReference)
+      : undefined
     const normalizedSourcePath = sourcePath.replace(/\\/g, '/')
     if (sourcePaths.has(normalizedSourcePath)) fail(configPath, `duplicate source image path "${authored.image}"`)
     const normalizedOutlineSheetPath = outlineSheetPath.replace(/\\/g, '/')
@@ -127,14 +130,21 @@ export const loadCharacterCatalog = (charactersRoot = getCharactersRoot()): Char
     if (assetPaths.has(normalizedSourcePath) || assetPaths.has(normalizedOutlineSheetPath)) {
       fail(configPath, 'character asset paths must be unique across source images and outline sheets')
     }
-    if (!existsSync(sourcePath) || !statSync(sourcePath).isFile()) {
-      fail(configPath, `source image for "${key}" was not found at ${sourcePath}`)
+    const hasSource = existsSync(sourcePath) && statSync(sourcePath).isFile()
+    if (!hasSource) {
+      const bootstrapReferencePath = generationReferencePath ?? fail(configPath, `source image for "${key}" was not found at ${sourcePath}`)
+      if (sourcePath !== outlineSheetPath) {
+        fail(configPath, `character "${key}" may omit its source image only when image and outlineSheet name the same canonical destination`)
+      }
+      if (!existsSync(bootstrapReferencePath) || !statSync(bootstrapReferencePath).isFile()) {
+        fail(configPath, `generation reference for "${key}" was not found at ${bootstrapReferencePath}`)
+      }
     }
     sourcePaths.add(normalizedSourcePath)
     outlineSheetPaths.add(normalizedOutlineSheetPath)
     assetPaths.add(normalizedSourcePath)
     assetPaths.add(normalizedOutlineSheetPath)
-    const entry = freezeEntry({ ...authored, key, sourcePath, outlineSheetPath })
+    const entry = freezeEntry({ ...authored, key, sourcePath, outlineSheetPath, ...(generationReferencePath ? { generationReferencePath } : {}) })
     byKey.set(key, entry)
     addLookup(key, [key])
     addLookup(authored.name, [key])

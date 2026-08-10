@@ -25,6 +25,8 @@ const AuthoredCharacterDetailsSchema = v.strictObject({
   image: CharacterReferenceImagePathSchema,
   outlineSheet: CharacterReferenceImagePathSchema,
   description: v.string(),
+  generationReference: v.optional(CharacterReferenceImagePathSchema),
+  generationInstructions: v.optional(v.string()),
   sceneTextRules: v.optional(v.array(CharacterSceneTextRuleSchema)),
 })
 

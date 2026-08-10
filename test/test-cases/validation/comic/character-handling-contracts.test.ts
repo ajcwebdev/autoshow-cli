@@ -7,7 +7,7 @@ import { configureOutputRoot } from '~/cli/commands/process-steps/output-root'
 import { configureCharactersRoot } from '~/cli/commands/process-steps/characters-root'
 import { loadCharacterCatalog } from '~/cli/commands/process-steps/step-8-comic/comic-utils/character-reference-config'
 import { createCharacterReferenceSnapshot, loadAndVerifyCharacterReferenceSnapshot, compileCharacterReferences } from '~/cli/commands/process-steps/step-8-comic/comic-utils/character-reference-snapshot'
-import { checksumFile, getCharacterSketchManifestPath, requireCurrentCharacterSketch } from '~/cli/commands/process-steps/step-8-comic/comic-commands/process-scenes/character-utils'
+import { checksumFile, getCharacterSketchManifestPath, readCharacterSketchManifest, requireCurrentCharacterSketch } from '~/cli/commands/process-steps/step-8-comic/comic-commands/process-scenes/character-utils'
 import { buildSceneJsonSchema, buildStructuredScriptJsonSchema, PanelBundleDataSchema, ScenePromptDataSchema, StructuredScriptDataSchema, validateSceneCharacters } from '~/cli/commands/process-steps/step-8-comic/schemas/schemas'
 import {
   coerceAndValidateReferenceSketch
@@ -93,6 +93,31 @@ describe('comic character handling flat-reference contracts', () => {
     const catalog = loadCharacterCatalog(root)
     const hero = catalog.get(catalog.requireKey('hero'))
     expect(hero.sourcePath).toBe(hero.outlineSheetPath)
+  })
+
+  test('catalog permits a missing one-file canonical asset when a style-only generation reference exists', async () => {
+    const root = await makeCatalog({
+      characters: [
+        {
+          key: 'new-alien', name: 'New Alien', aliases: ['NEW ALIEN'], image: 'new-alien.png', outlineSheet: 'new-alien.png',
+          generationReference: 'hero.webp', generationInstructions: 'Render full-color cel-shaded character art.', description: 'A new four-armed alien.',
+        },
+      ],
+      groupAliases: [],
+    })
+    const catalog = loadCharacterCatalog(root)
+    const alien = catalog.get(catalog.requireKey('new-alien'))
+    expect(alien.generationReferencePath).toBe(join(root, 'hero.webp'))
+    expect(Bun.file(alien.sourcePath).size).toBe(0)
+  })
+
+  test('character sketch manifests preserve checksum-registered legacy imports', async () => {
+    const root = await makeCatalog()
+    await writeFile(getCharacterSketchManifestPath(root), JSON.stringify({ schemaVersion: 1, sketches: [{
+      characterKey: 'hero', generationId: 'legacy-hero', origin: 'legacy-import', sourceImage: 'hero.webp', outlineSheet: 'hero--outline-sheet.png',
+      sourceSha256: 'a'.repeat(64), sheetSha256: 'b'.repeat(64), model: null, createdAt: '2026-01-01T00:00:00.000Z',
+    }] }))
+    expect((await readCharacterSketchManifest(root)).sketches[0]?.origin).toBe('legacy-import')
   })
 
   test('panel-prompt preflight aggregates every unregistered visible character', async () => {
@@ -244,7 +269,7 @@ describe('comic character handling flat-reference contracts', () => {
   test('reference-sketch character parsing rejects --image and enforces one model', () => {
     expect(() => parseReferenceSketchArgs(['--character', 'hero', '--image', 'hero.webp'])).toThrow(/Unexpected flag: image/)
     expect(() => parseReferenceSketchArgs(['--character', 'hero', '--image-model', 'gpt-image-2,grok-imagine-image'])).toThrow(/exactly one/)
-    expect(() => parseReferenceSketchArgs(['--character', 'hero', '--force'])).toThrow(/Unknown argument/)
+    expect(() => parseReferenceSketchArgs(['--character', 'hero', '--force'])).toThrow(/Unexpected flag: force|Unknown argument/)
     expect(parseReferenceSketchArgs(['--character', 'hero', '--revise', '--notes', 'Fix eyes']).character).toBe('hero')
   })
 
@@ -382,6 +407,37 @@ describe('comic character handling flat-reference contracts', () => {
       sheetSha256: canonicalSha256,
     })
     await expect(requireCurrentCharacterSketch(loadCharacterCatalog(charactersRoot).requireKey('hero'))).resolves.toBeTruthy()
+  })
+
+  test('bootstrap generation uses the style reference without copying its subject contract', async () => {
+    const charactersRoot = await makeCatalog({
+      characters: [
+        {
+          key: 'new-alien', name: 'New Alien', aliases: ['NEW ALIEN'], image: 'new-alien.png', outlineSheet: 'new-alien.png',
+          generationReference: 'hero.webp', generationInstructions: 'Render full-color cel-shaded character art.', description: 'A new four-armed alien.',
+        },
+      ],
+      groupAliases: [],
+    })
+    configureCharactersRoot(charactersRoot)
+    const prompts: string[] = []
+    const references: string[][] = []
+    await characterSketchCommand({ character: 'new-alien', imageModels: ['gpt-image-2'], concurrency: 1 }, {
+      createGenerationId: () => 'bootstrap-generation',
+      requestImage: async (prompt, refs) => {
+        prompts.push(prompt)
+        references.push(refs)
+        return { mode: 'edit', result: { imageBase64: 'ignored' } }
+      },
+      writeImage: async path => { await writeFile(path, 'view') },
+      composeSheet: async selection => { await writeFile(selection.outputPath, 'new-canonical-reference'); return { width: 3, height: 1 } },
+    })
+    const canonicalPath = join(charactersRoot, 'new-alien.png')
+    expect(references.every(items => items.length === 1 && items[0] === join(charactersRoot, 'hero.webp'))).toBe(true)
+    expect(prompts.every(prompt => prompt.includes('visual-style reference') && prompt.includes('full-color cel-shaded') && !prompt.includes('black-and-white outline art only'))).toBe(true)
+    expect(await Bun.file(canonicalPath).text()).toBe('new-canonical-reference')
+    const registration = JSON.parse(await Bun.file(getCharacterSketchManifestPath(charactersRoot)).text()).sketches[0]
+    expect(registration.sourceSha256).toBe(await checksumFile(canonicalPath))
   })
 
   test('revision validates provenance and sends canonical source before the current flat sheet', async () => {

@@ -13,7 +13,7 @@ export const CHARACTER_SKETCH_MANIFEST_FILENAME = 'character-sketches.json'
 const CharacterSketchRegistrationSchema = v.strictObject({
   characterKey: v.pipe(v.string(), v.regex(/^[a-z0-9]+(?:-[a-z0-9]+)*$/)),
   generationId: v.pipe(v.string(), v.minLength(1)),
-  origin: v.picklist(['generated', 'revision']),
+  origin: v.picklist(['generated', 'revision', 'legacy-import']),
   sourceImage: v.string(),
   outlineSheet: v.string(),
   sourceSha256: v.pipe(v.string(), v.regex(/^[a-f0-9]{64}$/)),
