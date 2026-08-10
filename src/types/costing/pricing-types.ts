@@ -1,4 +1,5 @@
 import type { ActualPipelineInputsBase, CostEstimateBase, HtmlArticleBackend, ImageProvider, MusicProvider, OcrModelOverrideOptions, ProviderIdentityBase, ProviderModelBase, Step1Metadata, Step2Metadata, Step3Metadata, Step4Metadata, Step5Metadata, Step6VideoMetadata, Step7MusicMetadata, SttRuntimeOptions, TimingStepEntry, VideoProvider } from '~/types'
+import type { CostSource } from './pricing-vocabularies'
 
 // The token-profile provenance fields carried by every extract estimate/cost surface.
 export type TokenProfileEstimateFields = {
@@ -252,15 +253,7 @@ export type ComputeEstimatedProcessingTimesInput = OcrModelOverrideOptions & {
 }
 
 
-export type CostSource =
-  | 'provider_usage'
-  | 'provider_quote'
-  | 'response_header'
-  | 'computed_usage'
-  | 'registry_fallback'
-  | 'partial_provider_usage'
-  | 'heuristic'
-  | 'local_zero'
+export type { CostSource } from './pricing-vocabularies'
 
 export type StepCostEntry = TokenProfileEstimateFields & {
   step: 'stt' | 'extract' | 'llm' | 'tts' | 'image' | 'video' | 'music'

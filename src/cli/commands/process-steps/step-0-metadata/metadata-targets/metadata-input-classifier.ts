@@ -1,5 +1,5 @@
 import { extname } from 'node:path'
-import type { DetectResult, InputFamily, MetadataInputKind, RuntimeOptions } from '~/types'
+import type { DetectResult, InputFamily, MetadataInputKind, UrlRuntimeOptions } from '~/types'
 import { fileExists } from '~/utils/cli-utils'
 import { resolveConvertibleEbookFormatFromExtension } from '../formats/metadata-convertible-ebooks'
 import { detectDocumentFormat } from '../formats/metadata-detect-format'
@@ -119,7 +119,7 @@ const isStreamingUrl = (url: string): boolean => {
 
 const shouldAssumeHtmlArticle = (
   url: string,
-  opts?: Pick<RuntimeOptions, 'urlBackendExplicit'>
+  opts?: Pick<UrlRuntimeOptions, 'urlBackendExplicit'>
 ): boolean =>
   opts?.urlBackendExplicit === true && /^https?:\/\//i.test(url)
 
@@ -187,7 +187,7 @@ export const isHtmlDocumentPath = (path: string): boolean =>
 
 export const classifyUrlInput = async (
   url: string,
-  opts?: Pick<RuntimeOptions, 'urlBackendExplicit'>
+  opts?: Pick<UrlRuntimeOptions, 'urlBackendExplicit'>
 ): Promise<MetadataInputKind> => {
   if (isDocumentUrl(url)) {
     return hasHtmlExtension(new URL(url).pathname) ? 'url_html_article' : 'url_direct_document'
@@ -235,7 +235,7 @@ export const classifyUrlInput = async (
 
 export const isDocumentLikeTarget = async (
   target: string,
-  opts?: Pick<RuntimeOptions, 'urlBackendExplicit'>
+  opts?: Pick<UrlRuntimeOptions, 'urlBackendExplicit'>
 ): Promise<boolean> => {
   if (isLikelyUrl(target)) {
     const kind = await classifyUrlInput(target, opts)
@@ -247,7 +247,7 @@ export const isDocumentLikeTarget = async (
 
 export const isHtmlArticleTarget = async (
   target: string,
-  opts?: Pick<RuntimeOptions, 'urlBackendExplicit'>
+  opts?: Pick<UrlRuntimeOptions, 'urlBackendExplicit'>
 ): Promise<boolean> => {
   if (isLikelyUrl(target)) {
     return await classifyUrlInput(target, opts) === 'url_html_article'
@@ -258,7 +258,7 @@ export const isHtmlArticleTarget = async (
 
 export const classifyInputFamily = async (
   target: string,
-  opts?: Pick<RuntimeOptions, 'urlBackendExplicit'>
+  opts?: Pick<UrlRuntimeOptions, 'urlBackendExplicit'>
 ): Promise<InputFamily> => {
   if (isLikelyUrl(target)) {
     const kind = await classifyUrlInput(target, opts)

@@ -5,12 +5,12 @@ import { isExtractCommand } from '~/cli/commands/process-steps/process-command-k
 import { ACSM_PRICE_NOTE } from '~/cli/commands/process-steps/step-1-download/document/acsm-fulfillment'
 import { buildAggregatedPriceEstimate } from '~/utils/pricing/aggregate-pricing'
 import { mapWithConcurrency } from '~/utils/run-with-concurrency'
-import type { ProcessCommand, RuntimeOptions } from '~/types'
+import type { CommandPricingOptions, PricingRuntimeOptions, ProcessCommand } from '~/types'
 
 export const reportSuitePriceEstimate = async (
   command: ProcessCommand,
   targets: string[],
-  opts: RuntimeOptions
+  opts: CommandPricingOptions
 ): Promise<number> => {
   logSingleRowTable(l, 'Suite Price Estimate', {
     itemType: targets.length === 1 ? 'target' : 'targets',
@@ -51,6 +51,6 @@ export const reportSuitePriceEstimate = async (
 export const formatCents = (amount: number): string => `${amount.toFixed(3)}¢`
 
 export const shouldRunCommandPreflight = (
-  opts: Pick<RuntimeOptions, 'price'>,
+  opts: Pick<PricingRuntimeOptions, 'price'>,
   maxCents: number | undefined
 ): boolean => opts.price || maxCents !== undefined

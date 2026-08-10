@@ -5,10 +5,11 @@ import * as l from '~/utils/app-logger/app-logger'
 import { runWithLogContext } from '~/utils/app-logger/app-logger'
 import { sttTarget } from '../run-stt'
 import { getSttProviderArtifactDir, toRecordedProviderError } from '../stt-batch/stt-run-state'
+import { createSttProviderProgressLifecycle, markSttProviderRunning } from '../stt-provider-progress'
 import { classifySttProviderFailure, extractProviderRawResponse, resolveTransientProviderCooldownMs, shouldBlockSttProviderForBatch, writeProviderFailureArtifacts, writeSkippedProviderArtifact } from '../stt-provider-failures'
 import { getSttTargetDirectoryName, getSttTargetKey } from '../stt-targets'
 import { writeSttResultArtifact } from '../stt-utils/stt-result-artifacts'
-import { resolveTargetAudioPath, withMergedStep2Timings } from './recorded-step2'
+import { withMergedStep2Timings } from './recorded-step2'
 
 /**
  * Mutable state shared across every provider target run in a multi-provider STT batch.
@@ -38,6 +39,7 @@ export const markSttTargetSkipped = async (
     artifactDir: relativeDir,
     status: 'skipped',
     attempts: options.attempts ?? ctx.providerStateMap.get(targetKey)?.attempts ?? 0,
+    ...(ctx.providerStateMap.get(targetKey)?.metadata ? { metadata: ctx.providerStateMap.get(targetKey)?.metadata } : {}),
     lastError: toRecordedProviderError({
       message: reason.message,
       skipped: true,
@@ -62,7 +64,8 @@ export const runSttProviderTargetAtIndex = async (
   const providerDir = join(providersDir, providerDirName)
   const relativeDir = getSttProviderArtifactDir(target)
   const targetKey = getSttTargetKey(target)
-  const nextAttemptCount = (providerStateMap.get(targetKey)?.attempts ?? 0) + 1
+  const previousState = providerStateMap.get(targetKey)
+  const nextAttemptCount = (previousState?.attempts ?? 0) + 1
 
   providerStateMap.set(targetKey, {
     service: target.service,
@@ -70,7 +73,8 @@ export const runSttProviderTargetAtIndex = async (
     local: target.local,
     artifactDir: relativeDir,
     status: 'missing',
-    attempts: nextAttemptCount
+    attempts: nextAttemptCount,
+    ...(previousState?.metadata ? { metadata: previousState.metadata } : {})
   })
 
   try {
@@ -78,12 +82,27 @@ export const runSttProviderTargetAtIndex = async (
       await rm(providerDir, { recursive: true, force: true })
     }
     await mkdir(providerDir, { recursive: true })
+    await markSttProviderRunning({
+      rootDir: ctx.outputDir,
+      artifactDir: providerDir,
+      target
+    }, nextAttemptCount)
 
-    const audioPath = resolveTargetAudioPath(target, prepared)
+    const audioPath = prepared.executionArtifacts.sourceMediaPath
     if (runOptions.outputDir) {
       batchCoordinator?.noteBackfill(target)
     }
     let asyncJobReady = false
+    const manifestLifecycle = createSttProviderProgressLifecycle({
+      rootDir: ctx.outputDir,
+      artifactDir: providerDir,
+      target
+    }, (metadata) => {
+      const current = providerStateMap.get(targetKey)
+      if (current) {
+        providerStateMap.set(targetKey, { ...current, metadata })
+      }
+    })
     const transcription = await runWithLogContext({ step: 'step-2-stt', provider: providerDirName }, async () =>
       await sttTarget(audioPath, providerDir, target, {
         split: options.split,
@@ -95,8 +114,10 @@ export const runSttProviderTargetAtIndex = async (
         happyscribeOrganizationId: options.happyscribeOrganizationId,
         runMode: runOptions.outputDir ? 'backfill' : 'initial',
         ...(mistralPassController ? { mistralPassController } : {}),
-        asyncLifecycle: batchCoordinator
-          ? {
+        asyncLifecycle: {
+          ...manifestLifecycle,
+          ...(batchCoordinator
+            ? {
               onJobReady: async () => {
                 if (asyncJobReady) {
                   return
@@ -107,14 +128,15 @@ export const runSttProviderTargetAtIndex = async (
               withPollSlot: async <T,>(fn: () => Promise<T>): Promise<T> =>
                 await batchCoordinator.withPollSlot(target, fn)
             }
-          : undefined
+            : {})
+        }
       })
     )
     const metadataWithQueueTiming = withMergedStep2Timings(
       transcription.metadata,
       queueWaitMs > 0 ? { queueWaitMs } : undefined
     )
-    await writeSttResultArtifact(providerDir, metadataWithQueueTiming, transcription.result)
+    await writeSttResultArtifact(providerDir, transcription.result)
     successes[index] = {
       target,
       metadata: metadataWithQueueTiming,
@@ -129,7 +151,8 @@ export const runSttProviderTargetAtIndex = async (
       local: target.local,
       artifactDir: relativeDir,
       status: 'succeeded',
-      attempts: nextAttemptCount
+      attempts: nextAttemptCount,
+      ...(providerStateMap.get(targetKey)?.metadata ? { metadata: providerStateMap.get(targetKey)?.metadata } : {})
     })
     failuresByIndex.delete(index)
   } catch (error) {
@@ -187,6 +210,7 @@ export const runSttProviderTargetAtIndex = async (
       artifactDir: relativeDir,
       status: 'failed',
       attempts: nextAttemptCount,
+      ...(providerStateMap.get(targetKey)?.metadata ? { metadata: providerStateMap.get(targetKey)?.metadata } : {}),
       lastError: toRecordedProviderError({
         message: failure.message,
         ...(failure.stage ? { stage: failure.stage } : {}),

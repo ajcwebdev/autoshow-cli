@@ -6,6 +6,7 @@ import {
 } from '~/cli/commands/setup-and-utilities/models/model-loader'
 import { estimateImageCosts } from '~/cli/commands/process-steps/step-5-image/image-utils/image-pricing'
 import { estimateVideoCost } from '~/cli/commands/process-steps/step-6-video/video-utils/video-pricing'
+import { isCostSource } from '~/types'
 import type { ActualCostBreakdown, ComputeActualCostsInput, CostSource, ExtractionMetadata, Step2Metadata, Step5Metadata, Step6VideoMetadata, StepCostEntry } from '~/types'
 import {
   computeSttCost,
@@ -32,20 +33,9 @@ import { walkRunSteps } from './run-step-walk'
 const normalizeDurationSeconds = (value: number): number =>
   Number.isFinite(value) ? Math.max(0, value) : 0
 
-const COST_SOURCES = new Set<CostSource>([
-  'provider_usage',
-  'provider_quote',
-  'response_header',
-  'computed_usage',
-  'registry_fallback',
-  'partial_provider_usage',
-  'heuristic',
-  'local_zero'
-])
-
 const normalizeCostSource = (value: unknown, fallback: CostSource): CostSource =>
-  typeof value === 'string' && COST_SOURCES.has(value as CostSource)
-    ? value as CostSource
+  isCostSource(value)
+    ? value
     : fallback
 
 const resolveSttBillingDurationSeconds = (input: ComputeActualCostsInput): number => {

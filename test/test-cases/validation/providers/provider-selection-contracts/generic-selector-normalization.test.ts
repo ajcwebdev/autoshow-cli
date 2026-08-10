@@ -1,5 +1,5 @@
 import { describe, expect, test } from 'bun:test'
-import { buildOptsFromFlags } from '~/cli/commands/process-steps/step-1-download/download-targets/build-opts-from-flags/build-options-from-flags'
+import { buildOptsFromFlags } from '~/cli/options/option-resolution/build-options-from-flags'
 import { collectExplicitOcrTargets } from '~/cli/commands/process-steps/step-2-extract/step-2-ocr/ocr-targets'
 import { collectSttTargets } from '~/cli/commands/process-steps/step-2-extract/step-2-stt/stt-targets'
 import { collectTtsTargets } from '~/cli/commands/process-steps/step-4-tts/tts-targets'
@@ -92,11 +92,11 @@ describe('provider selection contracts', () => {
       allProvidersTarget: 'all-image'
     })).toThrow('--all-local is not supported')
 
-    const ttsOpts = buildOptsFromFlags(false, ttsNormalized.flags, [], {}, ttsNormalized.explicitFlags)
-    const imageOpts = buildOptsFromFlags(false, imageNormalized.flags, [], {}, imageNormalized.explicitFlags)
-    const videoOpts = buildOptsFromFlags(false, videoNormalized.flags, [], {}, videoNormalized.explicitFlags)
-    const musicOpts = buildOptsFromFlags(false, musicNormalized.flags, [], {}, musicNormalized.explicitFlags)
-    const ttsAllLocalOpts = buildOptsFromFlags(false, ttsAllLocalNormalized.flags, [], {}, ttsAllLocalNormalized.explicitFlags)
+    const ttsOpts = buildOptsFromFlags(false, ttsNormalized.flags, {}, ttsNormalized.explicitFlags)
+    const imageOpts = buildOptsFromFlags(false, imageNormalized.flags, {}, imageNormalized.explicitFlags)
+    const videoOpts = buildOptsFromFlags(false, videoNormalized.flags, {}, videoNormalized.explicitFlags)
+    const musicOpts = buildOptsFromFlags(false, musicNormalized.flags, {}, musicNormalized.explicitFlags)
+    const ttsAllLocalOpts = buildOptsFromFlags(false, ttsAllLocalNormalized.flags, {}, ttsAllLocalNormalized.explicitFlags)
 
     expect(ttsOpts.openaiTtsModels).toEqual(['gpt-4o-mini-tts-2025-12-15'])
     expect(ttsOpts.elevenlabsTtsModels).toEqual(['eleven_v3'])
@@ -121,7 +121,7 @@ describe('provider selection contracts', () => {
     const writeNormalized = normalizeWriteStepSelectorFlags({
       llm: ['grok=grok-4.5', 'together=kimi-k2.6', 'together=glm-5.1', 'cerebras=gpt-oss-120b', 'cerebras=zai-glm-4.7']
     }, new Set(['llm']))
-    const writeOpts = buildOptsFromFlags(false, writeNormalized.flags, [], {}, writeNormalized.explicitFlags)
+    const writeOpts = buildOptsFromFlags(false, writeNormalized.flags, {}, writeNormalized.explicitFlags)
     expect(writeOpts.grokModels).toEqual(['grok-4.5'])
     expect(writeOpts.grokModel).toBe('grok-4.5')
     expect(writeOpts.togetherModels).toEqual(['kimi-k2.6', 'glm-5.1'])
@@ -223,7 +223,7 @@ describe('provider selection contracts', () => {
       kind: 'write',
       scope: 'single',
       dir: '/tmp/write-run',
-      manifestPath: '/tmp/write-run/run.json'
+      manifestPath: '/tmp/write-run/manifest.json'
     }, {
       provider: ['together=kimi-k2.6', 'together=glm-5.1', 'cerebras=gpt-oss-120b', 'cerebras=zai-glm-4.7']
     }, new Set(['provider']), [
@@ -238,7 +238,7 @@ describe('provider selection contracts', () => {
       '--provider',
       'cerebras=zai-glm-4.7'
     ])
-    const opts = buildOptsFromFlags(false, normalized.flags, [], {}, normalized.explicitFlags, normalized.flagOccurrences)
+    const opts = buildOptsFromFlags(false, normalized.flags, {}, normalized.explicitFlags, normalized.flagOccurrences)
 
     expect(normalized.flagOccurrences.map(({ name, value }) => ({ name, value }))).toEqual([
       { name: 'together', value: 'kimi-k2.6' },
@@ -329,13 +329,13 @@ describe('provider selection contracts', () => {
       'all-local': true
     }, new Set(['all-local']), { media: true, document: true, article: true })
 
-    expect(buildOptsFromFlags(false, mediaNormalized.flags, [], {}, mediaNormalized.explicitFlags).mistralSttModels).toEqual(['voxtral-mini-2602'])
-    expect(buildOptsFromFlags(false, documentNormalized.flags, [], {}, documentNormalized.explicitFlags).glmOcrModels).toEqual(['glm-ocr'])
-    expect(buildOptsFromFlags(false, grokDocumentNormalized.flags, [], {}, grokDocumentNormalized.explicitFlags).grokOcrModels).toEqual(['grok-4.3'])
-    const mixedDefaultOpts = buildOptsFromFlags(false, mixedDefaultNormalized.flags, [], {}, mixedDefaultNormalized.explicitFlags)
+    expect(buildOptsFromFlags(false, mediaNormalized.flags, {}, mediaNormalized.explicitFlags).mistralSttModels).toEqual(['voxtral-mini-2602'])
+    expect(buildOptsFromFlags(false, documentNormalized.flags, {}, documentNormalized.explicitFlags).glmOcrModels).toEqual(['glm-ocr'])
+    expect(buildOptsFromFlags(false, grokDocumentNormalized.flags, {}, grokDocumentNormalized.explicitFlags).grokOcrModels).toEqual(['grok-4.3'])
+    const mixedDefaultOpts = buildOptsFromFlags(false, mixedDefaultNormalized.flags, {}, mixedDefaultNormalized.explicitFlags)
     expect(mixedDefaultOpts.mistralSttModels).toEqual(['voxtral-mini-2602'])
     expect(mixedDefaultOpts.mistralOcrModels).toEqual(['mistral-ocr-2512'])
-    const grokMixedDefaultOpts = buildOptsFromFlags(false, grokMixedDefaultNormalized.flags, [], {}, grokMixedDefaultNormalized.explicitFlags)
+    const grokMixedDefaultOpts = buildOptsFromFlags(false, grokMixedDefaultNormalized.flags, {}, grokMixedDefaultNormalized.explicitFlags)
     expect(grokMixedDefaultOpts.grokSttModels).toEqual(['speech-to-text'])
     expect(grokMixedDefaultOpts.grokOcrModels).toEqual(['grok-4.3'])
     expect(localMixedNormalized.flags).toMatchObject({
@@ -343,7 +343,7 @@ describe('provider selection contracts', () => {
       'all-local-ocr': true,
       'all-local-url': true
     })
-    const localMixedOpts = buildOptsFromFlags(false, localMixedNormalized.flags, [], {}, localMixedNormalized.explicitFlags)
+    const localMixedOpts = buildOptsFromFlags(false, localMixedNormalized.flags, {}, localMixedNormalized.explicitFlags)
     expect(collectSttTargets(localMixedOpts).map((target) => target.service)).toContain('whisper')
     expect(collectExplicitOcrTargets(localMixedOpts).map((target) => target.service)).toEqual([
       'tesseract'
@@ -355,7 +355,7 @@ describe('provider selection contracts', () => {
     }, new Set(['provider']), { media: false, document: false, article: true })
     expect(articleNormalized.flags['url-provider']).toBe('firecrawl')
     expect(articleNormalized.explicitFlags.has('url-provider')).toBe(true)
-    expect(buildOptsFromFlags(false, articleNormalized.flags, [], {}, articleNormalized.explicitFlags).urlBackend).toBe('firecrawl')
+    expect(buildOptsFromFlags(false, articleNormalized.flags, {}, articleNormalized.explicitFlags).urlBackend).toBe('firecrawl')
     expect(() => normalizeExtractGenericSelectorFlags({
       provider: ['firecrawl=reader-v1']
     }, new Set(['provider']), { media: false, document: false, article: true })).toThrow('does not accept a model')
@@ -430,7 +430,7 @@ describe('provider selection contracts', () => {
       'firecrawl'
     ])
 
-    const routeAwareDocumentOpts = buildOptsFromFlags(false, documentNormalized.flags, [], {}, documentNormalized.explicitFlags, documentNormalized.flagOccurrences)
+    const routeAwareDocumentOpts = buildOptsFromFlags(false, documentNormalized.flags, {}, documentNormalized.explicitFlags, documentNormalized.flagOccurrences)
     expect(routeAwareDocumentOpts.glmOcrModels).toEqual(['glm-ocr'])
     expect(routeAwareDocumentOpts.glmModels).toBeUndefined()
 

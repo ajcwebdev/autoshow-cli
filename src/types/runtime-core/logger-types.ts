@@ -150,8 +150,6 @@ export type Reporter = {
   complete: (outputDir: string, files: Record<string, string>, options?: CompleteOptions) => void
 }
 
-export type EstimateMode = 'human' | 'raw'
-
 export type StepSummaryEntry = {
   step: string
   providerModel?: string

@@ -1,46 +1,34 @@
 import { describe, expect, test } from 'bun:test'
-import { mkdir, mkdtemp, rm } from 'node:fs/promises'
-import { tmpdir } from 'node:os'
+import { mkdir } from 'node:fs/promises'
 import { join } from 'node:path'
+import { withTempDir } from '../../../test-utils/temp-dirs'
 import { getGenerationTargetKey } from '~/cli/commands/process-steps/generation-command-utils'
 import { priceGenerationTarget, resumeGenerationTarget, hasResumableGenerationWork } from '~/cli/commands/setup-and-utilities/resume/generation-resume'
-import { readBatchManifest, readRunManifest, writeBatchManifest, writeRunManifest } from '~/cli/commands/process-steps/manifest-utils'
-import { buildOptsFromFlags } from '~/cli/commands/process-steps/step-1-download/download-targets/build-opts-from-flags/build-options-from-flags'
+import { PIPELINE_MANIFEST_FILE, readSinglePipelineItemRecord, writePipelineItemRecords } from '~/cli/commands/process-steps/pipeline-manifest'
+import { buildOptsFromFlags } from '~/cli/options/option-resolution/build-options-from-flags'
 import { hasResumableProviderTargetWork, runProviderResumePass } from '~/cli/commands/setup-and-utilities/resume/provider-batch-resume'
 import {
   resolveAdditiveResumeProviderSelection
 } from '~/cli/commands/setup-and-utilities/resume/resume-provider-selection'
 import { getSelectedUrlTargets, resolveUrlArticleResumePlan } from '~/cli/commands/setup-and-utilities/resume/extract/url-resume'
 import { hasResumableOcrTargetWork } from '~/cli/commands/setup-and-utilities/resume/extract/ocr-resume'
-import { writeOcrRunManifest } from '~/cli/commands/process-steps/step-2-extract/step-2-ocr/ocr-manifest'
 import { hasResumableSttTargetWork, priceSttTarget } from '~/cli/commands/setup-and-utilities/resume/extract/stt-resume'
 import { finalizeMusicResumeArtifacts } from '~/cli/commands/setup-and-utilities/resume/generation/music-resume'
-import { writeSttRunManifest } from '~/cli/commands/process-steps/step-2-extract/step-2-stt/stt-manifest'
 import { buildProviderStates as buildSttProviderStates, readExistingSttRun } from '~/cli/commands/process-steps/step-2-extract/step-2-stt/stt-batch/stt-run-state'
-import type { BatchManifestEntry, OcrTarget, ProviderBatchResumeConfig, ProviderIdentity, ResumeFakeMetadata, ResumeFakeProviderResumeEntry, ResumeTarget, RuntimeOptions, SttProviderState, SttProviderSuccess, SttTarget } from '~/types'
-import { writeProviderResultFixture } from '../../../test-utils/manifest-helpers'
+import type { OcrTarget, PipelineItemRecord, ProviderBatchResumeConfig, ProviderIdentity, ResumeFakeMetadata, ResumeFakeProviderResumeEntry, ResumeTarget, SttProviderState, SttProviderSuccess, SttTarget } from '~/types'
+import { readCanonicalManifest, readCanonicalRecord, writeProviderResultFixture, writeSingleManifestFixture } from '../../../test-utils/manifest-helpers'
 
 const isRecord = (value: unknown): value is Record<string, unknown> =>
   typeof value === 'object' && value !== null && !Array.isArray(value)
-
-const withTempDir = async <T>(
-  prefix: string,
-  fn: (dir: string) => Promise<T>
-): Promise<T> => {
-  const dir = await mkdtemp(join(tmpdir(), prefix))
-  try {
-    return await fn(dir)
-  } finally {
-    await rm(dir, { recursive: true, force: true })
-  }
-}
 
 const FAKE_MODEL_FIELDS = {
   openai: ['openaiImageModels', 'openaiImageModel'],
   gemini: ['geminiImageModels', 'geminiImageModel']
 } as const
 
-const collectFakeTargetsFromOptions = (opts: RuntimeOptions): ProviderIdentity[] => {
+type ResolvedOptions = ReturnType<typeof buildOptsFromFlags>
+
+const collectFakeTargetsFromOptions = (opts: ResolvedOptions): ProviderIdentity[] => {
   const valuesByField = opts as Record<string, unknown>
   return Object.entries(FAKE_MODEL_FIELDS).flatMap(([service, [modelsField, modelField]]) => {
     const models = valuesByField[modelsField] ?? valuesByField[modelField]
@@ -61,7 +49,7 @@ const fakeResumeConfig = (
   modelFields: FAKE_MODEL_FIELDS,
   getSuccessKey: (entry: ResumeFakeMetadata) =>
     getGenerationTargetKey(entry.service, entry.model),
-  collectTargets: (opts: RuntimeOptions) =>
+  collectTargets: (opts: ResolvedOptions) =>
     selectedTargets.length > 0 ? selectedTargets : collectFakeTargetsFromOptions(opts),
   runMissingTargets: async (targets: ProviderIdentity[]) => {
     ranTargets.push(...targets)
@@ -97,7 +85,7 @@ const writeFakeImageRun = async (
   requestedProviders: ProviderIdentity[],
   metadata: ResumeFakeMetadata[]
 ): Promise<void> => {
-  await writeRunManifest(dir, 'image', {
+  await writeSingleManifestFixture(dir, 'image', {
     input: 'prompt',
     requestedProviders,
     image: metadata
@@ -108,7 +96,7 @@ const fakeTarget = (dir: string): ResumeTarget => ({
   kind: 'image',
   scope: 'single',
   dir,
-  manifestPath: join(dir, 'run.json')
+  manifestPath: join(dir, PIPELINE_MANIFEST_FILE)
 })
 
 const parseFakeProviderResumeEntry = (
@@ -141,41 +129,32 @@ const parseFakeProviderResumeEntry = (
     requestedTargets,
     missingTargets,
     completionStatus: entry['completionStatus'] === 'full' ? 'full' : 'incomplete',
-    rawEntry: entry
+    rawRecord: entry
   }
 }
 
-const readFakeProviderOutputMetadata = async (
+const readFakeProviderItemRecord = async (
   outputDir: string
-): Promise<BatchManifestEntry> => {
-  const manifest = await readRunManifest(outputDir, 'extract')
-  if (!manifest) {
+): Promise<PipelineItemRecord> => {
+  const record = await readSinglePipelineItemRecord(outputDir, { command: 'extract' })
+  if (!record) {
     throw new Error(`Missing fake provider manifest at ${outputDir}`)
   }
-  return manifest.metadata
+  return record
 }
 
 const fakeProviderResumeConfig = (
   ranTargets: ProviderIdentity[]
 ): ProviderBatchResumeConfig<ProviderIdentity, ResumeFakeProviderResumeEntry> => ({
   stepLabel: 'Fake provider',
-  readOutputMetadata: readFakeProviderOutputMetadata,
-  writeBatchManifest: async (
-    batchDir: string,
-    entries: BatchManifestEntry[],
-    source?: Record<string, unknown>
-  ) => await writeBatchManifest(batchDir, 'extract', entries, source),
-  writeRunManifest: async (
-    outputDir: string,
-    metadata: Record<string, unknown>
-  ) => await writeRunManifest(outputDir, 'extract', metadata),
-  parseEntry: async (entry: unknown) => parseFakeProviderResumeEntry(entry),
+  readItemRecord: readFakeProviderItemRecord,
+  parseRecord: async (record: unknown) => parseFakeProviderResumeEntry(record),
   getProviderLabels: (targets: ProviderIdentity[]) =>
     targets.map((target) => `${target.service}/${target.model}`),
   processEntry: async ({ entry }) => {
     ranTargets.push(...entry.missingTargets)
-    const metadata = {
-      ...entry.rawEntry,
+    const record = {
+      ...entry.rawRecord,
       completionStatus: 'full',
       missingProviders: [],
       providerStates: entry.requestedTargets.map((target) => ({
@@ -183,10 +162,10 @@ const fakeProviderResumeConfig = (
         status: 'succeeded'
       }))
     }
-    await writeRunManifest(entry.outputDir, 'extract', metadata)
+    await writeSingleManifestFixture(entry.outputDir, 'extract', record, { extractRoute: 'document' })
     return {
       outputDir: entry.outputDir,
-      metadata,
+      record,
       completionStatus: 'full' as const,
       detail: 'resume complete'
     }
@@ -236,8 +215,8 @@ describe('additive resume provider selection', () => {
     await withTempDir('autoshow-provider-resume-engine-', async (dir) => {
       const singleDir = join(dir, 'single')
       const batchDir = join(dir, 'batch')
-      const completeDir = join(dir, 'complete')
-      const incompleteDir = join(dir, 'incomplete')
+      const completeDir = join(batchDir, 'complete')
+      const incompleteDir = join(batchDir, 'incomplete')
       await Promise.all([
         mkdir(singleDir, { recursive: true }),
         mkdir(batchDir, { recursive: true }),
@@ -247,12 +226,12 @@ describe('additive resume provider selection', () => {
 
       const alpha = { service: 'alpha', model: 'one' }
       const beta = { service: 'beta', model: 'two' }
-      await writeRunManifest(singleDir, 'extract', {
+      await writeSingleManifestFixture(singleDir, 'extract', {
         outputDir: singleDir,
         completionStatus: 'incomplete',
         requestedProviders: [alpha],
         missingProviders: [alpha]
-      })
+      }, { extractRoute: 'document' })
 
       const singleRanTargets: ProviderIdentity[] = []
       const singleTarget: ResumeTarget = {
@@ -260,7 +239,7 @@ describe('additive resume provider selection', () => {
         extractRoute: 'document',
         scope: 'single',
         dir: singleDir,
-        manifestPath: join(singleDir, 'run.json')
+        manifestPath: join(singleDir, PIPELINE_MANIFEST_FILE)
       }
       await expect(hasResumableProviderTargetWork(
         singleTarget,
@@ -268,32 +247,46 @@ describe('additive resume provider selection', () => {
       )).resolves.toBe(true)
       const singleResult = await runProviderResumePass(
         singleTarget,
-        {} as RuntimeOptions,
+        {} as ResolvedOptions,
         fakeProviderResumeConfig(singleRanTargets)
       )
-      const singleManifest = await readRunManifest(singleDir, 'extract')
+      const singleRecord = await readCanonicalRecord(singleDir)
       expect(singleResult).toMatchObject({ ok: 1, incomplete: 0, fail: 0, attemptedEntries: 1 })
       expect(singleRanTargets).toEqual([alpha])
-      expect(singleManifest?.metadata['completionStatus']).toBe('full')
-      expect(singleManifest?.metadata['outputDir']).toBeUndefined()
+      expect(singleRecord['completionStatus']).toBe('full')
+      expect(singleRecord['outputDir']).toBe(singleDir)
 
-      await writeRunManifest(completeDir, 'extract', {
+      await writeSingleManifestFixture(completeDir, 'extract', {
         outputDir: completeDir,
         completionStatus: 'full',
         requestedProviders: [alpha],
+        providerStates: [{
+          ...alpha,
+          artifactDir: '.',
+          status: 'succeeded',
+          attempts: 1,
+          metadata: {}
+        }],
         missingProviders: []
-      })
-      await writeRunManifest(incompleteDir, 'extract', {
+      }, { extractRoute: 'document' })
+      await writeSingleManifestFixture(incompleteDir, 'extract', {
         outputDir: incompleteDir,
         completionStatus: 'incomplete',
         requestedProviders: [beta],
         missingProviders: [beta]
-      })
-      await writeBatchManifest(batchDir, 'extract', [
+      }, { extractRoute: 'document' })
+      await writePipelineItemRecords(batchDir, 'extract', 'batch', [
         {
           outputDir: completeDir,
           completionStatus: 'full',
           requestedProviders: [alpha],
+          providerStates: [{
+            ...alpha,
+            artifactDir: '.',
+            status: 'succeeded',
+            attempts: 1,
+            metadata: {}
+          }],
           missingProviders: []
         },
         {
@@ -302,7 +295,7 @@ describe('additive resume provider selection', () => {
           requestedProviders: [beta],
           missingProviders: [beta]
         }
-      ])
+      ], { extractRoute: 'document' })
 
       const batchRanTargets: ProviderIdentity[] = []
       const batchTarget: ResumeTarget = {
@@ -310,27 +303,30 @@ describe('additive resume provider selection', () => {
         extractRoute: 'document',
         scope: 'batch',
         dir: batchDir,
-        manifestPath: join(batchDir, 'batch.json')
+        manifestPath: join(batchDir, PIPELINE_MANIFEST_FILE)
       }
       const batchResult = await runProviderResumePass(
         batchTarget,
-        {} as RuntimeOptions,
+        {} as ResolvedOptions,
         fakeProviderResumeConfig(batchRanTargets)
       )
-      const batchManifest = await readBatchManifest(batchDir, 'extract')
+      const batchManifest = await readCanonicalManifest(batchDir)
       expect(batchResult).toMatchObject({ ok: 2, incomplete: 0, fail: 0, attemptedEntries: 1 })
       expect(batchRanTargets).toEqual([beta])
-      expect(batchManifest?.manifest.items.map((entry) => entry['completionStatus'])).toEqual(['full', 'full'])
+      expect(batchManifest.items.map((entry) => entry.status)).toEqual(['full', 'full'])
     })
   })
 
-  test('generic provider batch resume refuses to rewrite a pruned manifest', async () => {
-    await withTempDir('autoshow-provider-resume-refuse-prune-', async (dir) => {
-      const manifestPath = join(dir, 'batch.json')
+  test('generic provider batch resume rejects a corrupt canonical item without rewriting it', async () => {
+    await withTempDir('autoshow-provider-resume-corrupt-item-', async (dir) => {
+      const manifestPath = join(dir, PIPELINE_MANIFEST_FILE)
+      const now = new Date().toISOString()
       const original = `${JSON.stringify({
-        schemaVersion: 3,
-        kind: 'extract',
-        items: ['future-entry']
+        command: 'extract',
+        scope: 'batch',
+        createdAt: now,
+        updatedAt: now,
+        items: ['corrupt-item']
       }, null, 2)}\n`
       await Bun.write(manifestPath, original)
       const ranTargets: ProviderIdentity[] = []
@@ -341,8 +337,8 @@ describe('additive resume provider selection', () => {
         scope: 'batch',
         dir,
         manifestPath
-      }, {} as RuntimeOptions, fakeProviderResumeConfig(ranTargets))).rejects.toThrow(
-        `Refusing to rewrite ${manifestPath}: manifest entry 1 is unparseable by this build.`
+      }, {} as ResolvedOptions, fakeProviderResumeConfig(ranTargets))).rejects.toThrow(
+        `Invalid canonical manifest at ${manifestPath}`
       )
       expect(ranTargets).toEqual([])
       expect(await Bun.file(manifestPath).text()).toBe(original)
@@ -359,47 +355,24 @@ describe('additive resume provider selection', () => {
       await expect(hasResumableGenerationWork(
         fakeTarget(dir),
         fakeResumeConfig([], ranTargets),
-        {} as RuntimeOptions,
+        {} as ResolvedOptions,
         new Set()
       )).resolves.toBe(true)
 
       await resumeGenerationTarget(
         fakeTarget(dir),
         fakeResumeConfig([], ranTargets),
-        {} as RuntimeOptions,
+        {} as ResolvedOptions,
         new Set()
       )
 
-      const manifest = await readRunManifest(dir, 'image')
+      const record = await readCanonicalRecord(dir)
       expect(ranTargets).toEqual([gemini])
-      expect(manifest?.metadata['requestedProviders']).toEqual([openai, gemini])
-      expect(manifest?.metadata['image']).toEqual([
+      expect(record['requestedProviders']).toEqual([openai, gemini])
+      expect(record['image']).toEqual([
         { ...openai, processingTime: 10 },
         { ...gemini, processingTime: 1 }
       ])
-    })
-  })
-
-  test('generation resume reports an unsupported run manifest version', async () => {
-    await withTempDir('autoshow-generation-old-manifest-', async (dir) => {
-      const runPath = join(dir, 'run.json')
-      await Bun.write(runPath, JSON.stringify({
-        schemaVersion: 2,
-        kind: 'image',
-        metadata: {
-          input: 'prompt',
-          requestedProviders: [],
-          image: []
-        }
-      }))
-
-      await expect(hasResumableGenerationWork(
-        fakeTarget(dir),
-        fakeResumeConfig([], []),
-        {} as RuntimeOptions
-      )).rejects.toThrow(
-        `Unsupported manifest version at ${runPath}: found schemaVersion 2, but this build supports schemaVersion 3. Old runs are not resumable with this build — re-run the pipeline.`
-      )
     })
   })
 
@@ -412,32 +385,32 @@ describe('additive resume provider selection', () => {
         mkdir(completeDir, { recursive: true }),
         mkdir(incompleteDir, { recursive: true })
       ])
-      await writeSttRunManifest(completeDir, {
+      await writeSingleManifestFixture(completeDir, 'extract', {
         step1: { url: 'file:///tmp/historical.mp3' },
         completionStatus: 'full',
         requestedProviders: [retired],
         missingProviders: [],
         providerStates: [{ ...retired, status: 'succeeded', artifactDir: 'providers/assemblyai-universal-3-pro', attempts: 1 }]
-      })
-      await writeSttRunManifest(incompleteDir, {
+      }, { extractRoute: 'media' })
+      await writeSingleManifestFixture(incompleteDir, 'extract', {
         step1: { url: 'file:///tmp/historical.mp3' },
         completionStatus: 'incomplete',
         requestedProviders: [retired],
         missingProviders: [retired],
         providerStates: [{ ...retired, status: 'missing', artifactDir: 'providers/assemblyai-universal-3-pro', attempts: 0 }]
-      })
+      }, { extractRoute: 'media' })
 
       const completeTarget: ResumeTarget = {
         kind: 'extract',
         extractRoute: 'media',
         scope: 'single',
         dir: completeDir,
-        manifestPath: join(completeDir, 'run.json')
+        manifestPath: join(completeDir, PIPELINE_MANIFEST_FILE)
       }
       const incompleteTarget: ResumeTarget = {
         ...completeTarget,
         dir: incompleteDir,
-        manifestPath: join(incompleteDir, 'run.json')
+        manifestPath: join(incompleteDir, PIPELINE_MANIFEST_FILE)
       }
 
       await expect(hasResumableSttTargetWork(
@@ -447,21 +420,26 @@ describe('additive resume provider selection', () => {
       )).resolves.toBe(false)
       await expect(priceSttTarget(
         incompleteTarget,
-        { youtubeCaptions: false } as RuntimeOptions
+        { youtubeCaptions: false } as ResolvedOptions
       )).rejects.toThrow('Stored STT target assemblyai/universal-3-pro is incomplete')
       await expect(priceSttTarget(
         incompleteTarget,
-        { youtubeCaptions: false } as RuntimeOptions
+        { youtubeCaptions: false } as ResolvedOptions
       )).rejects.toThrow('Start a new target with an active assemblyai model.')
     })
   })
 
-  test('STT resume reconstructs compacted successes from provider result artifacts', async () => {
+  test('STT resume reconstructs compacted successes from canonical provider results only', async () => {
     await withTempDir('autoshow-stt-compacted-resume-', async (dir) => {
       const target: SttTarget = { service: 'assemblyai', model: 'universal-2', local: false }
       const providerDir = join(dir, 'providers', 'assemblyai-universal-2')
+      const canonicalResult = {
+        text: 'Compacted transcript.',
+        segments: [{ start: '00:00:00', end: '00:00:01', text: 'Compacted transcript.' }],
+        evidence: { timingQuality: 'coarse' as const }
+      }
       await mkdir(providerDir, { recursive: true })
-      await writeSttRunManifest(dir, {
+      await writeSingleManifestFixture(dir, 'extract', {
         step1: { url: 'file:///tmp/audio.mp3' },
         completionStatus: 'incomplete',
         requestedProviders: [target, { service: 'speechmatics', model: 'melia-1', local: false }],
@@ -470,33 +448,27 @@ describe('additive resume provider selection', () => {
           ...target,
           status: 'succeeded',
           artifactDir: 'providers/assemblyai-universal-2',
-          attempts: 1
+          attempts: 1,
+          metadata: {
+            transcriptionService: target.service,
+            transcriptionModel: target.model,
+            processingTime: 10,
+            tokenCount: 2
+          },
+          result: canonicalResult
         }]
-      })
+      }, { extractRoute: 'media' })
       await writeProviderResultFixture(
         providerDir,
-        target.service,
-        target.model,
         {
-          transcriptionService: target.service,
-          transcriptionModel: target.model,
-          processingTime: 10,
-          tokenCount: 2
-        },
-        {
-          text: 'Compacted transcript.',
-          segments: [{ start: '00:00:00', end: '00:00:01', text: 'Compacted transcript.' }],
-          evidence: { timingQuality: 'coarse' }
+          text: 'User-facing artifact is not resume control state.',
+          segments: []
         }
       )
 
       const existing = await readExistingSttRun(dir, [target])
 
-      expect(existing.successes[0]?.result).toEqual({
-        text: 'Compacted transcript.',
-        segments: [{ start: '00:00:00', end: '00:00:01', text: 'Compacted transcript.' }],
-        evidence: { timingQuality: 'coarse' }
-      })
+      expect(existing.successes[0]?.result).toEqual(canonicalResult)
       expect(await Bun.file(join(providerDir, 'transcription.txt')).exists()).toBe(false)
     })
   })
@@ -564,13 +536,13 @@ describe('additive resume provider selection', () => {
       await resumeGenerationTarget(
         fakeTarget(dir),
         fakeResumeConfig([gemini], ranTargets),
-        {} as RuntimeOptions,
+        {} as ResolvedOptions,
         new Set(['fake-provider'])
       )
 
-      const manifest = await readRunManifest(dir, 'image')
+      const record = await readCanonicalRecord(dir)
       expect(ranTargets).toEqual([gemini])
-      expect(manifest?.metadata['requestedProviders']).toEqual([openai, gemini])
+      expect(record['requestedProviders']).toEqual([openai, gemini])
     })
   })
 
@@ -588,7 +560,7 @@ describe('additive resume provider selection', () => {
           runMissingTargets: async () => {
             throw new Error('runner should not be called')
           },
-          buildEstimates: (opts: RuntimeOptions) => {
+          buildEstimates: (opts: ResolvedOptions) => {
             const targets = collectFakeTargetsFromOptions(opts)
             pricedTargets.push(...targets)
             return [{
@@ -600,7 +572,7 @@ describe('additive resume provider selection', () => {
               }]
           }
         },
-        {} as RuntimeOptions,
+        {} as ResolvedOptions,
         new Set()
       )
 
@@ -618,14 +590,14 @@ describe('additive resume provider selection', () => {
       await expect(hasResumableGenerationWork(
         fakeTarget(dir),
         fakeResumeConfig([openai], ranTargets),
-        {} as RuntimeOptions,
+        {} as ResolvedOptions,
         new Set(['fake-provider'])
       )).resolves.toBe(false)
 
       await resumeGenerationTarget(
         fakeTarget(dir),
         fakeResumeConfig([openai], ranTargets),
-        {} as RuntimeOptions,
+        {} as ResolvedOptions,
         new Set(['fake-provider'])
       )
 
@@ -643,15 +615,15 @@ describe('additive resume provider selection', () => {
       const result = await resumeGenerationTarget(
         fakeTarget(dir),
         fakeResumeConfig([openai], ranTargets),
-        {} as RuntimeOptions,
+        {} as ResolvedOptions,
         new Set(['fake-provider'])
       )
 
-      const manifest = await readRunManifest(dir, 'image')
+      const record = await readCanonicalRecord(dir)
       expect(result).toEqual({ full: 1, incomplete: 0, failed: 0 })
       expect(ranTargets).toEqual([])
-      expect(manifest?.metadata['requestedProviders']).toEqual([openai, gemini])
-      expect(manifest?.metadata['image']).toEqual([{ ...openai, processingTime: 10 }])
+      expect(record['requestedProviders']).toEqual([openai, gemini])
+      expect(record['image']).toEqual([{ ...openai, processingTime: 10 }])
     })
   })
 
@@ -666,7 +638,7 @@ describe('additive resume provider selection', () => {
 
       const whisper: SttTarget = { service: 'whisper', model: 'tiny', local: true }
       const deepgram: SttTarget = { service: 'deepgram', model: 'nova-3', local: false }
-      await writeSttRunManifest(sttDir, {
+      await writeSingleManifestFixture(sttDir, 'extract', {
         step1: { url: 'file:///tmp/audio.mp3' },
         completionStatus: 'full',
         requestedProviders: [whisper],
@@ -678,11 +650,11 @@ describe('additive resume provider selection', () => {
           status: 'succeeded',
           attempts: 1
         }]
-      })
+      }, { extractRoute: 'media' })
 
       const tesseract: OcrTarget = { service: 'tesseract', model: 'tesseract' }
       const openaiOcr: OcrTarget = { service: 'openai', model: 'gpt-5.4-mini' }
-      await writeOcrRunManifest(ocrDir, {
+      await writeSingleManifestFixture(ocrDir, 'extract', {
         source: { filePath: '/tmp/document.pdf' },
         completionStatus: 'full',
         requestedProviders: [tesseract],
@@ -693,7 +665,7 @@ describe('additive resume provider selection', () => {
           status: 'succeeded',
           attempts: 1
         }]
-      })
+      }, { extractRoute: 'document' })
 
       await expect(hasResumableSttTargetWork(
         {
@@ -701,7 +673,7 @@ describe('additive resume provider selection', () => {
           extractRoute: 'media',
           scope: 'single',
           dir: sttDir,
-          manifestPath: join(sttDir, 'run.json')
+          manifestPath: join(sttDir, PIPELINE_MANIFEST_FILE)
         },
         [deepgram],
         { youtubeCaptions: false, currentTargets: [deepgram] }
@@ -712,7 +684,7 @@ describe('additive resume provider selection', () => {
           extractRoute: 'media',
           scope: 'single',
           dir: sttDir,
-          manifestPath: join(sttDir, 'run.json')
+          manifestPath: join(sttDir, PIPELINE_MANIFEST_FILE)
         },
         [whisper],
         { youtubeCaptions: false, currentTargets: [whisper] }
@@ -724,7 +696,7 @@ describe('additive resume provider selection', () => {
           extractRoute: 'document',
           scope: 'single',
           dir: ocrDir,
-          manifestPath: join(ocrDir, 'run.json')
+          manifestPath: join(ocrDir, PIPELINE_MANIFEST_FILE)
         },
         [openaiOcr]
       )).resolves.toBe(true)
@@ -734,7 +706,7 @@ describe('additive resume provider selection', () => {
           extractRoute: 'document',
           scope: 'single',
           dir: ocrDir,
-          manifestPath: join(ocrDir, 'run.json')
+          manifestPath: join(ocrDir, PIPELINE_MANIFEST_FILE)
         },
         [tesseract]
       )).resolves.toBe(false)
@@ -745,25 +717,40 @@ describe('additive resume provider selection', () => {
     await withTempDir('autoshow-stt-resume-price-targets-', async (dir) => {
       const whisper: SttTarget = { service: 'whisper', model: 'tiny', local: true }
       const deepgram: SttTarget = { service: 'deepgram', model: 'nova-3', local: false }
-      await writeSttRunManifest(dir, {
+      await writeSingleManifestFixture(dir, 'extract', {
         step1: { url: 'file:///tmp/audio.mp3' },
         completionStatus: 'incomplete',
         requestedProviders: [whisper, deepgram],
-        step2: {
-          transcriptionService: 'deepgram',
-          transcriptionModel: 'nova-3',
-          processingTime: 1,
-          tokenCount: 1
-        }
-      })
+        missingProviders: [whisper],
+        providerStates: [{
+          ...deepgram,
+          artifactDir: 'providers/deepgram-nova-3',
+          status: 'succeeded',
+          attempts: 1,
+          metadata: {
+            transcriptionService: 'deepgram',
+            transcriptionModel: 'nova-3',
+            processingTime: 1,
+            tokenCount: 1
+          },
+          result: {
+            text: 'Completed Deepgram transcript.',
+            segments: [{
+              start: '00:00:00',
+              end: '00:00:01',
+              text: 'Completed Deepgram transcript.'
+            }]
+          }
+        }]
+      }, { extractRoute: 'media' })
 
       const estimate = await priceSttTarget({
         kind: 'extract',
         extractRoute: 'media',
         scope: 'single',
         dir,
-        manifestPath: join(dir, 'run.json')
-      }, {} as RuntimeOptions)
+        manifestPath: join(dir, PIPELINE_MANIFEST_FILE)
+      }, {} as ResolvedOptions)
 
       expect(estimate.steps.map((step) => `${step.provider}/${step.model}`)).toEqual(['whisper/tiny'])
     })
@@ -802,7 +789,7 @@ describe('additive resume provider selection', () => {
 
     const selectedSpiderTargets = getSelectedUrlTargets(buildOptsFromFlags(false, {
       'url-provider': 'spider'
-    }, [], {}, new Set(['url-provider'])))
+    }, {}, new Set(['url-provider'])))
     expect(selectedSpiderTargets).toEqual([spider])
     expect(resolveUrlArticleResumePlan(metadata, selectedSpiderTargets)).toMatchObject({
       requestedTargets: [firecrawl, zyte, spider],
@@ -815,7 +802,7 @@ describe('additive resume provider selection', () => {
 
     const selectedFirecrawlTargets = getSelectedUrlTargets(buildOptsFromFlags(false, {
       'url-provider': 'firecrawl'
-    }, [], {}, new Set(['url-provider'])))
+    }, {}, new Set(['url-provider'])))
     expect(resolveUrlArticleResumePlan(metadata, selectedFirecrawlTargets)).toMatchObject({
       targetsToRun: [],
       skippedSuccessfulTargets: [firecrawl],
@@ -825,7 +812,7 @@ describe('additive resume provider selection', () => {
 
     const allHostedTargets = getSelectedUrlTargets(buildOptsFromFlags(false, {
       'all-url': true
-    }, [], {}, new Set(['all-url'])))
+    }, {}, new Set(['all-url'])))
     expect(allHostedTargets).toEqual([
       firecrawl,
       { service: 'glm-reader', model: 'glm-reader' },

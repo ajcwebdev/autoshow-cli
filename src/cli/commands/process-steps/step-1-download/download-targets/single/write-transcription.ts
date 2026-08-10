@@ -165,7 +165,7 @@ export const resolveWriteTranscription = async (
     }
 
     await Bun.write(`${outputDir}/transcription.txt`, formatTranscriptText(promptSource.result.segments))
-    await writeSttResultArtifact(outputDir, promptSource.metadata, promptSource.result)
+    await writeSttResultArtifact(outputDir, promptSource.result)
     transcriptionResult = {
       result: promptSource.result,
       metadata: successfulSttProviders.map((entry) => entry.metadata)

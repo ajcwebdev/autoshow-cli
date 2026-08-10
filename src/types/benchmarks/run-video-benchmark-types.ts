@@ -9,12 +9,9 @@ export type VideoRunEntry = {
   videoDuration?: number
 }
 
-export type VideoRunJson = {
-  kind: 'video'
-  metadata: {
-    input: string
-    video: VideoRunEntry[]
-  }
+export type VideoBenchmarkManifestView = {
+  input: string
+  entries: VideoRunEntry[]
   raw: JsonObject
 }
 

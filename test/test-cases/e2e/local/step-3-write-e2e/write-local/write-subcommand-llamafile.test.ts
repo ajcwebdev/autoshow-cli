@@ -9,7 +9,7 @@ import {
   STABLE_EXAMPLE_AUDIO_TITLE,
 } from '../../../../../test-utils/test-helpers'
 import { budgetedTest, E2E_TEST_TIMEOUT_MS } from '../../../../../test-utils/budget'
-import { readRunMetadata } from '../../../../../test-utils/manifest-helpers'
+import { readCanonicalRecord } from '../../../../../test-utils/manifest-helpers'
 
 // Uses the smallest prebuilt bundle (Qwen3.5-0.8B-Q8_0, ~1.6 GB) to bound the download.
 const LLAMAFILE_MODEL = 'Qwen3.5-0.8B-Q8_0'
@@ -44,7 +44,7 @@ describe('write subcommand with llamafile', () => {
       const summaryJson = await Bun.file(`${outputDir}/text.json`).json() as unknown
       expect(summaryJson).toBeDefined()
 
-      const metadata = await readRunMetadata(outputDir) as {
+      const metadata = await readCanonicalRecord(outputDir) as {
         completionStatus?: string
         step3?: { llmModel?: string; llmService?: string }
       }

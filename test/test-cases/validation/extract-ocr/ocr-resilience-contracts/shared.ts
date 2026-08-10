@@ -2,10 +2,7 @@ import { mkdir, mkdtemp, rm } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import type { DocumentMetadata, HostedOcrRun, LogSinkEvent, OcrPreparationCache, PageResult } from '~/types'
-import {
-  OCR_POLL_DEADLINE_MS,
-  OCR_REQUEST_TIMEOUT_MS
-} from '~/utils/timeouts'
+import { OCR_REQUEST_TIMEOUT_MS } from '~/utils/timeouts'
 import {
   classifyOcrCreateRetry,
   OCR_PAGE_RATE_LIMIT_REQUEST_ATTEMPTS,
@@ -160,7 +157,6 @@ export {
   OCR_PAGE_REQUEST_ATTEMPTS,
   OCR_PAGE_REQUEST_RETRY_POLICY,
   OCR_PAGE_REQUEST_TIMEOUT_MS,
-  OCR_POLL_DEADLINE_MS,
   OCR_RATE_LIMIT_RETRY_DELAY_MAX_MS,
   OCR_RATE_LIMIT_RETRY_DELAY_MIN_MS,
   OCR_REQUEST_TIMEOUT_MS,

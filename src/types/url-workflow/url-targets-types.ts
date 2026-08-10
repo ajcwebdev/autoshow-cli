@@ -1,4 +1,11 @@
-import type { HtmlArticleBackend } from '~/types'
+import type { HtmlArticleBackend, OcrRuntimeOptions, UrlSelectionOptions } from '~/types'
+
+export type UrlExtractionOptions = OcrRuntimeOptions & UrlSelectionOptions & {
+  outputRootDir: string
+  urlProviderConcurrency: number
+  urlRequestTimeoutMs: number
+  urlRequestAttempts: number
+}
 
 export type UrlArticleBackendPlan = {
   remote: boolean

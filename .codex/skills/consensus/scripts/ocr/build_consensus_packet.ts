@@ -10,7 +10,7 @@ import {
   formatProcessingSeconds,
   isLocalOcrService,
   loadOcrProviderRuns,
-  loadOcrRunJson,
+  loadOcrManifestRecord,
   textSimilarity,
 } from "./ocr_consensus_lib.ts";
 
@@ -70,15 +70,15 @@ function parseArgs(argv: string[]): ParsedArgs {
 }
 
 export function buildPacket(runDir: string) {
-  const runJson = loadOcrRunJson(runDir);
+  const manifestRecord = loadOcrManifestRecord(runDir);
   const { providers, warnings } = loadOcrProviderRuns(runDir);
   if (providers.length === 0) {
     throw new Error(`No providers/*/result.json files found under ${runDir}`);
   }
 
   const { baseline, agreement } = chooseBaselineProvider(providers);
-  const documentTitle = runJson.metadata?.step1?.title ?? "unknown";
-  const totalPages = runJson.metadata?.step1?.pageCount ?? baseline.pages.length;
+  const documentTitle = manifestRecord.metadata.step1?.title ?? "unknown";
+  const totalPages = manifestRecord.metadata.step1?.pageCount ?? baseline.pages.length;
 
   const providerStats = [...providers]
     .sort((left, right) => left.directoryName.localeCompare(right.directoryName))

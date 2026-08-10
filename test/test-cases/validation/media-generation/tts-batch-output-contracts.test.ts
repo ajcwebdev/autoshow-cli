@@ -1,6 +1,6 @@
 import { describe, expect, test } from 'bun:test'
 import {
-  buildTtsBatchRunMetadata,
+  buildTtsBatchSource,
   getTtsBatchAudioFileName
 } from '~/cli/commands/process-steps/step-4-tts/define-tts-command'
 import type { CompletedTtsBatchItem, HostedTtsSchedulerTelemetry, Step4Metadata } from '~/types'
@@ -131,7 +131,7 @@ describe('tts batch output contracts', () => {
     )).toBe('guinea-00-preface-elevenlabs-eleven_v3.wav')
   })
 
-  test('batch run metadata aggregates all speech outputs into one run manifest payload', () => {
+  test('batch-scoped canonical source aggregates costs without duplicating item payloads', () => {
     const first = buildTtsMetadata({
       audioFileName: 'guinea-00-preface.wav',
       audioFileSize: 101
@@ -141,28 +141,10 @@ describe('tts batch output contracts', () => {
       audioFileSize: 102
     })
 
-    const metadata = buildTtsBatchRunMetadata(
+    const source = buildTtsBatchSource(
       [
         buildCompletedItem(0, 'guinea-00-preface', 'chapters/00-preface.md', 1000, [first]),
         buildCompletedItem(1, 'guinea-01-nonconsensual-experimentation', 'chapters/01-nonconsensual-experimentation.md', 2000, [second])
-      ],
-      [
-        {
-          input: 'chapters/00-preface.md',
-          inputKind: 'text',
-          audioStem: 'guinea-00-preface',
-          characterCount: 1000,
-          completionStatus: 'full',
-          tts: [first]
-        },
-        {
-          input: 'chapters/01-nonconsensual-experimentation.md',
-          inputKind: 'text',
-          audioStem: 'guinea-01-nonconsensual-experimentation',
-          characterCount: 2000,
-          completionStatus: 'full',
-          tts: [second]
-        }
       ],
       {
         sourceKind: 'directory',
@@ -179,18 +161,10 @@ describe('tts batch output contracts', () => {
       }
     )
 
-    expect(asRecord(metadata['batch'])['selectedCount']).toBe(2)
-    expect(asArray(metadata['tts']).map((entry) => asRecord(entry)['audioFileName'])).toEqual([
-      'guinea-00-preface.wav',
-      'guinea-01-nonconsensual-experimentation.wav'
-    ])
-    expect(asArray(metadata['items']).map((entry) => asRecord(entry)['audioStem'])).toEqual([
-      'guinea-00-preface',
-      'guinea-01-nonconsensual-experimentation'
-    ])
-    expect(asArray(metadata['items']).every((entry) => !('outputDir' in asRecord(entry)))).toBe(true)
-
-    const cost = asRecord(metadata['cost'])
+    expect(source['selectedCount']).toBe(2)
+    expect(source['items']).toBeUndefined()
+    expect(source['tts']).toBeUndefined()
+    const cost = asRecord(asRecord(source['summary'])['cost'])
     expect(asRecord(cost['actual'])['totalCost']).toBe(2)
     expect(asArray(asRecord(cost['actual'])['steps'])).toHaveLength(2)
   })
@@ -233,16 +207,8 @@ describe('tts batch output contracts', () => {
       }]
     }
 
-    const metadata = buildTtsBatchRunMetadata(
+    const source = buildTtsBatchSource(
       [buildCompletedItem(0, 'chapter', 'chapters/chapter.md', 4100, [metadataEntry])],
-      [{
-        input: 'chapters/chapter.md',
-        inputKind: 'text',
-        audioStem: 'chapter',
-        characterCount: 4100,
-        completionStatus: 'full',
-        tts: [metadataEntry]
-      }],
       {
         sourceKind: 'directory',
         sourceUrl: 'chapters',
@@ -259,7 +225,8 @@ describe('tts batch output contracts', () => {
       telemetry
     )
 
-    expect(asRecord(metadata['hostedTtsScheduler'])['providers']).toEqual(telemetry.providers)
-    expect(asRecord(metadata['hostedTtsScheduler'])['jobs']).toEqual(telemetry.jobs)
+    const scheduler = asRecord(asRecord(source['summary'])['hostedTtsScheduler'])
+    expect(scheduler['providers']).toEqual(telemetry.providers)
+    expect(scheduler['jobs']).toEqual(telemetry.jobs)
   })
 })

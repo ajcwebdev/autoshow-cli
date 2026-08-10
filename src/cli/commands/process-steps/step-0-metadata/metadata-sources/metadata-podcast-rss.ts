@@ -87,7 +87,7 @@ const parseAtomEntries = (xml: string): ParsedEpisode[] =>
     }
   }).filter(ep => ep.enclosureUrl !== '')
 
-export const parsePodcastFeedXml = (xml: string, _feedUrl: string): PodcastRssParsedFeed | null => {
+export const parsePodcastFeedXml = (xml: string): PodcastRssParsedFeed | null => {
   const isAtom = xml.includes('<feed') && xml.includes('xmlns="http://www.w3.org/2005/Atom"')
   const isRss = xml.includes('<rss') || xml.includes('<channel>')
 

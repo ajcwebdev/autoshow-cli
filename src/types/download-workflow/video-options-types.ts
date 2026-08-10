@@ -44,5 +44,3 @@ export type VideoRuntimeOptions = {
   grokVideoStorageFilename: string | undefined
   grokVideoStorageExpiresAfter: number | undefined
 }
-
-export type VideoRuntimeOptionKey = keyof VideoRuntimeOptions

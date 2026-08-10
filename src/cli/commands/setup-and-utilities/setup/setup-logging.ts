@@ -1,4 +1,4 @@
-import type { HostedProviderStatus, HumanLogTable, LogLevel, SetupToolStatus, SetupToolStatusRow, TableLogger } from '~/types'
+import type { HumanLogTable, LogLevel, SetupToolStatus, SetupToolStatusRow, TableLogger } from '~/types'
 import { createHumanTable } from '~/utils/app-logger/human-table/human-table'
 
 const isPathLikeDetail = (detail: string): boolean => {
@@ -57,20 +57,3 @@ export const logSetupToolStatus = (
     metadata: summary
   })
 }
-
-export const buildProviderReadinessTable = (
-  summary: {
-    provider: string
-    capability: string
-    status: HostedProviderStatus
-    envKey?: string | undefined
-    detail?: string | undefined
-  }
-): HumanLogTable =>
-  createHumanTable([{
-    provider: summary.provider,
-    capability: summary.capability,
-    status: summary.status,
-    envKey: summary.envKey ?? '',
-    detail: summary.detail ?? ''
-  }], ['provider', 'capability', 'status', 'envKey', 'detail'])

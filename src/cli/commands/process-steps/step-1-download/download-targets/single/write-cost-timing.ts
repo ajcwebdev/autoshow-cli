@@ -1,6 +1,6 @@
 import { buildEstimatedTtsTargets } from '~/cli/commands/process-steps/step-4-tts/tts-targets'
 import { getExpectedImageCount } from '~/cli/commands/process-steps/step-5-image/image-generation-targets'
-import type { ComputeWriteCostAndTimingContext, RuntimeOptions } from '~/types'
+import type { ComputeWriteCostAndTimingContext } from '~/types'
 import { computeActualCosts } from '~/utils/pricing/compute-actual-costs'
 import { buildAggregatedPriceEstimate } from '~/utils/pricing/aggregate-pricing'
 import { preflightToEstimated } from '~/utils/pricing/compute-costs'
@@ -83,7 +83,7 @@ export const computeWriteCostAndTiming = async (ctx: ComputeWriteCostAndTimingCo
   const priceAlignedEstimate = preflightEstimate ?? await buildAggregatedPriceEstimate(
     'write',
     priceEstimateTarget,
-    processingOptions as unknown as RuntimeOptions
+    processingOptions
   )
   const estimated = preflightToEstimated(priceAlignedEstimate)
 

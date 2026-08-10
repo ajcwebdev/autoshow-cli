@@ -1,4 +1,22 @@
-import type { CliFlagDefinition, RuntimeOptions, Step2BooleanProviderRegistryEntry, Step2BooleanSelectionKey, Step2Command, Step2Modality, Step2ModelProviderRegistryEntry, Step2ShortcutFlag } from '~/types'
+import type { CliFlagDefinition, Step2BooleanProviderRegistryEntry, Step2BooleanSelectionKey, Step2Command, Step2Modality, Step2ModelProviderRegistryEntry, Step2ProviderOptionSurface, Step2ShortcutFlag } from '~/types'
+
+type BooleanProviderEntry<FlagName extends string, RuntimeKey extends Step2BooleanSelectionKey> =
+  Omit<Step2BooleanProviderRegistryEntry, 'flagName' | 'selection'> & {
+    flagName: FlagName
+    selection: Omit<Step2BooleanProviderRegistryEntry['selection'], 'runtimeKey'> & { runtimeKey: RuntimeKey }
+  }
+
+type ModelProviderEntry<
+  FlagName extends string,
+  RuntimeModelsKey extends keyof Step2ProviderOptionSurface,
+  RuntimeModelKey extends keyof Step2ProviderOptionSurface
+> = Omit<Step2ModelProviderRegistryEntry, 'flagName' | 'selection'> & {
+  flagName: FlagName
+  selection: Omit<Step2ModelProviderRegistryEntry['selection'], 'runtimeModelsKey' | 'runtimeModelKey'> & {
+    runtimeModelsKey: RuntimeModelsKey
+    runtimeModelKey: RuntimeModelKey
+  }
+}
 
 const createBooleanFlag = (
   description: string
@@ -23,21 +41,24 @@ const step2ConfigPath = (
   key: string
 ): readonly string[] => ['defaults', 'extract', step, key]
 
-export const booleanProvider = (
+export const booleanProvider = <
+  const FlagName extends string,
+  const RuntimeKey extends Step2BooleanSelectionKey
+>(
   entry: {
     step: Step2Command
     modality: Step2Modality
-    flagName: string
+    flagName: FlagName
     targetService: string
     providerSpecProvider: string
     bootstrapProviderId: string
     configKey: string
     allShortcut?: Step2ShortcutFlag | undefined
-    runtimeKey: Step2BooleanSelectionKey
+    runtimeKey: RuntimeKey
     model: string
     description: string
   }
-): Step2BooleanProviderRegistryEntry => ({
+): BooleanProviderEntry<FlagName, RuntimeKey> => ({
   step: entry.step,
   modality: entry.modality,
   flagName: entry.flagName,
@@ -55,23 +76,27 @@ export const booleanProvider = (
   flag: createBooleanFlag(entry.description)
 })
 
-export const modelProvider = (
+export const modelProvider = <
+  const FlagName extends string,
+  const RuntimeModelsKey extends keyof Step2ProviderOptionSurface,
+  const RuntimeModelKey extends keyof Step2ProviderOptionSurface
+>(
   entry: {
     step: Step2Command
     modality: Step2Modality
-    flagName: string
+    flagName: FlagName
     targetService: string
     providerSpecProvider: string
     bootstrapProviderId: string
     configKey: string
     allShortcut?: Step2ShortcutFlag | undefined
-    runtimeModelsKey: keyof RuntimeOptions
-    runtimeModelKey: keyof RuntimeOptions
+    runtimeModelsKey: RuntimeModelsKey
+    runtimeModelKey: RuntimeModelKey
     supportedModels: readonly string[]
     validateModel: (value: string) => string
     description: string
   }
-): Step2ModelProviderRegistryEntry => ({
+): ModelProviderEntry<FlagName, RuntimeModelsKey, RuntimeModelKey> => ({
   step: entry.step,
   modality: entry.modality,
   flagName: entry.flagName,
@@ -92,18 +117,18 @@ export const modelProvider = (
 })
 
 type RuntimeModelKeyStem = {
-  [Key in Extract<keyof RuntimeOptions, string>]: Key extends `${infer Stem}Models`
-    ? `${Stem}Model` extends keyof RuntimeOptions
+  [Key in Extract<keyof Step2ProviderOptionSurface, string>]: Key extends `${infer Stem}Models`
+    ? `${Stem}Model` extends keyof Step2ProviderOptionSurface
       ? Stem
       : never
     : never
-}[Extract<keyof RuntimeOptions, string>]
+}[Extract<keyof Step2ProviderOptionSurface, string>]
 
 type SttRuntimeModelKeyStem = Extract<RuntimeModelKeyStem, `${string}Stt` | 'whisper' | 'whisperfile'>
 type OcrRuntimeModelKeyStem = Extract<RuntimeModelKeyStem, `${string}Ocr`>
 
-type RuntimeModelsKey<Stem extends RuntimeModelKeyStem> = Extract<keyof RuntimeOptions, `${Stem}Models`>
-type RuntimeModelKey<Stem extends RuntimeModelKeyStem> = Extract<keyof RuntimeOptions, `${Stem}Model`>
+type RuntimeModelsKey<Stem extends RuntimeModelKeyStem> = Extract<keyof Step2ProviderOptionSurface, `${Stem}Models`>
+type RuntimeModelKey<Stem extends RuntimeModelKeyStem> = Extract<keyof Step2ProviderOptionSurface, `${Stem}Model`>
 
 type ConventionModelProviderOptions = {
   supportedModels: readonly string[]
@@ -126,12 +151,12 @@ const runtimeSelectionKeys = <Stem extends RuntimeModelKeyStem>(keyStem: Stem): 
   runtimeModelKey: `${keyStem}Model` as RuntimeModelKey<Stem>
 })
 
-export const sttModelProvider = <Stem extends SttRuntimeModelKeyStem>(
-  slug: string,
+export const sttModelProvider = <const Slug extends string, Stem extends SttRuntimeModelKeyStem>(
+  slug: Slug,
   keyStem: Stem,
   options: SttModelProviderOptions
-): Step2ModelProviderRegistryEntry => {
-  const flagName = `${slug}-stt`
+): ModelProviderEntry<`${Slug}-stt`, RuntimeModelsKey<Stem>, RuntimeModelKey<Stem>> => {
+  const flagName = `${slug}-stt` as `${Slug}-stt`
   return modelProvider({
     step: 'stt',
     modality: 'media',
@@ -148,12 +173,12 @@ export const sttModelProvider = <Stem extends SttRuntimeModelKeyStem>(
   })
 }
 
-export const ocrModelProvider = <Stem extends OcrRuntimeModelKeyStem>(
-  slug: string,
+export const ocrModelProvider = <const Slug extends string, Stem extends OcrRuntimeModelKeyStem>(
+  slug: Slug,
   keyStem: Stem,
   options: ConventionModelProviderOptions
-): Step2ModelProviderRegistryEntry => {
-  const flagName = `${slug}-ocr`
+): ModelProviderEntry<`${Slug}-ocr`, RuntimeModelsKey<Stem>, RuntimeModelKey<Stem>> => {
+  const flagName = `${slug}-ocr` as `${Slug}-ocr`
   return modelProvider({
     step: 'ocr',
     modality: 'document',

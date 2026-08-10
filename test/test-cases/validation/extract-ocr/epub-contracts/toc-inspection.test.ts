@@ -1,15 +1,8 @@
 import { expect, test } from 'bun:test'
-import { createReader, inspectEpubWithReader } from './shared'
+import { createStandardEpubReader, inspectEpubWithReader } from './shared'
 
 test('EPUB TOC heading matching uses cleaned HTML fragments', async () => {
-  const inspected = await inspectEpubWithReader(createReader({
-    'META-INF/container.xml': `
-      <container>
-        <rootfiles>
-          <rootfile full-path="OEBPS/content.opf" media-type="application/oebps-package+xml"/>
-        </rootfiles>
-      </container>
-    `,
+  const inspected = await inspectEpubWithReader(createStandardEpubReader({
     'OEBPS/content.opf': `
       <package>
         <manifest>
@@ -46,14 +39,7 @@ test('EPUB TOC heading matching uses cleaned HTML fragments', async () => {
 })
 
 test('EPUB nav TOC titles use cleaned HTML fragments', async () => {
-  const inspected = await inspectEpubWithReader(createReader({
-    'META-INF/container.xml': `
-      <container>
-        <rootfiles>
-          <rootfile full-path="OEBPS/content.opf" media-type="application/oebps-package+xml"/>
-        </rootfiles>
-      </container>
-    `,
+  const inspected = await inspectEpubWithReader(createStandardEpubReader({
     'OEBPS/content.opf': `
       <package>
         <manifest>

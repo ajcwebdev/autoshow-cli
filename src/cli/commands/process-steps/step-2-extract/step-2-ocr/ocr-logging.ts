@@ -1,4 +1,4 @@
-import type { HumanLogTable, KeyValueEntry, LogLevel, OcrJobProgress, OcrPagesProgress, OcrProviderLifecycle, OcrTransferEvent, TableLogger } from '~/types'
+import type { HumanLogTable, KeyValueEntry, LogLevel, OcrPagesProgress, OcrProviderLifecycle, TableLogger } from '~/types'
 import { createKeyValueTable } from '~/utils/app-logger/human-table/human-table'
 
 const addOptionalEntry = (
@@ -61,26 +61,3 @@ export const logOcrPagesProgress = (
     metadata: progress
   })
 }
-
-export const buildOcrJobProgressTable = (
-  job: OcrJobProgress
-): HumanLogTable => {
-  const entries: KeyValueEntry[] = [
-    ['provider', job.provider],
-    ['action', job.action]
-  ]
-  addOptionalEntry(entries, 'remoteId', job.remoteId)
-  entries.push(['state', job.state])
-  addOptionalEntry(entries, 'pages', job.pages)
-  addOptionalEntry(entries, 'detail', job.detail)
-  return createKeyValueTable(entries)
-}
-
-export const buildOcrTransferTable = (
-  event: OcrTransferEvent
-): HumanLogTable =>
-  createKeyValueTable([
-    ['action', event.action],
-    ['file', event.file],
-    ['destination', event.destination]
-  ])

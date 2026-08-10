@@ -9,7 +9,7 @@ import {
   buildTimingLookup,
   computeSpeakingRate,
   discoverAudioFiles,
-  loadTtsRunJson,
+  loadTtsManifestRecord,
   makeProviderKey,
   probeAudio,
   tokenize,
@@ -98,22 +98,22 @@ function parseArgs(argv: string[]): ParsedArgs {
 }
 
 export async function buildPacket(runDir: string, inputTextPath: string, skipFfprobe: boolean) {
-  const runJson = loadTtsRunJson(runDir);
+  const manifestRecord = loadTtsManifestRecord(runDir);
   const inputText = readFileSync(inputTextPath, "utf8").trim();
   const charCount = inputText.length;
   const wordCount = tokenize(inputText).length;
   const warnings: string[] = [];
 
-  const { found, missing } = discoverAudioFiles(runDir, runJson.metadata.tts);
+  const { found, missing } = discoverAudioFiles(runDir, manifestRecord.metadata.tts);
   if (missing.length > 0) {
     warnings.push(`Missing audio files: ${missing.join(", ")}`);
   }
 
-  const costLookup = buildCostLookup(runJson);
-  const timingLookup = buildTimingLookup(runJson);
+  const costLookup = buildCostLookup(manifestRecord);
+  const timingLookup = buildTimingLookup(manifestRecord);
 
   const providers: ProviderEvidence[] = [];
-  for (const entry of runJson.metadata.tts) {
+  for (const entry of manifestRecord.metadata.tts) {
     const providerKey = makeProviderKey(entry.ttsService, entry.ttsModel);
     const audioPath = found.get(providerKey);
     const audioExists = audioPath !== undefined;

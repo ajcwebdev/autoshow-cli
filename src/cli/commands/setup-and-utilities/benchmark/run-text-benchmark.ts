@@ -1,5 +1,6 @@
 import { stat } from 'node:fs/promises'
 import { basename, join, resolve } from 'node:path'
+import { derivePipelineItemRecord, PIPELINE_MANIFEST_FILE, readManifest } from '~/cli/commands/process-steps/pipeline-manifest'
 import type { BenchmarkFlags, BenchmarkProviderGroup, JsonObject, MatchedCostStep, MatchedTimingStep, RankingEntry, RankingSurfaces, SurfaceGroup, TextComparisonReport, TextProviderRow, TextStep3Entry } from '~/types'
 import { CLIUsageError, isCLIUsageError } from '~/utils/error-handler'
 import * as l from '~/utils/app-logger/app-logger'
@@ -73,16 +74,14 @@ const surfaceEntry = (
   label
 })
 
-const costSteps = (runJson: JsonObject, source: 'actual' | 'estimated'): JsonObject[] => {
-  const metadata = getObject(runJson, 'metadata')
-  const cost = metadata ? getObject(metadata, 'cost') : undefined
+const costSteps = (metadata: JsonObject, source: 'actual' | 'estimated'): JsonObject[] => {
+  const cost = getObject(metadata, 'cost')
   const scope = cost ? getObject(cost, source) : undefined
   return scope ? getArray(scope, 'steps').filter(isRecord) : []
 }
 
-const timingSteps = (runJson: JsonObject, source: 'actual' | 'estimated'): JsonObject[] => {
-  const metadata = getObject(runJson, 'metadata')
-  const timing = metadata ? getObject(metadata, 'timing') : undefined
+const timingSteps = (metadata: JsonObject, source: 'actual' | 'estimated'): JsonObject[] => {
+  const timing = getObject(metadata, 'timing')
   const scope = timing ? getObject(timing, source) : undefined
   return scope ? getArray(scope, 'steps').filter(isRecord) : []
 }
@@ -92,9 +91,9 @@ const stepMatchesProvider = (step: JsonObject, service: string, model: string): 
   && getString(step, 'provider') === service
   && getString(step, 'model') === model
 
-const findCostStep = (runJson: JsonObject, service: string, model: string): MatchedCostStep | null => {
+const findCostStep = (metadata: JsonObject, service: string, model: string): MatchedCostStep | null => {
   for (const source of ['actual', 'estimated'] as const) {
-    const step = costSteps(runJson, source).find((candidate) => stepMatchesProvider(candidate, service, model))
+    const step = costSteps(metadata, source).find((candidate) => stepMatchesProvider(candidate, service, model))
     if (!step) {
       continue
     }
@@ -106,9 +105,9 @@ const findCostStep = (runJson: JsonObject, service: string, model: string): Matc
   return null
 }
 
-const findTimingStep = (runJson: JsonObject, service: string, model: string): MatchedTimingStep | null => {
+const findTimingStep = (metadata: JsonObject, service: string, model: string): MatchedTimingStep | null => {
   for (const source of ['actual', 'estimated'] as const) {
-    const step = timingSteps(runJson, source).find((candidate) => stepMatchesProvider(candidate, service, model))
+    const step = timingSteps(metadata, source).find((candidate) => stepMatchesProvider(candidate, service, model))
     if (!step) {
       continue
     }
@@ -128,15 +127,10 @@ const findTimingStep = (runJson: JsonObject, service: string, model: string): Ma
   return null
 }
 
-const normalizeStep3Entries = (runJson: JsonObject): TextStep3Entry[] => {
-  const metadata = getObject(runJson, 'metadata')
-  if (!metadata) {
-    throw CLIUsageError('Text benchmark run.json is missing metadata.')
-  }
-
+const normalizeStep3Entries = (metadata: JsonObject): TextStep3Entry[] => {
   const entries = asObjectArray(metadata['step3'])
   if (entries.length === 0) {
-    throw CLIUsageError('Text benchmark run.json must contain metadata.step3.')
+    throw CLIUsageError(`Text benchmark ${PIPELINE_MANIFEST_FILE} must contain item metadata.step3.`)
   }
 
   return entries.map((entry, index) => {
@@ -176,7 +170,7 @@ const outputFileEvidence = async (
 
 const buildProviderRows = async (
   runDir: string,
-  runJson: JsonObject,
+  metadata: JsonObject,
   entries: readonly TextStep3Entry[]
 ): Promise<TextProviderRow[]> => {
   const rows: TextProviderRow[] = []
@@ -186,8 +180,8 @@ const buildProviderRows = async (
     const inputTokenCount = entry.inputTokenCount ?? 0
     const outputTokenCount = entry.outputTokenCount ?? 0
     const totalTokenCount = inputTokenCount + outputTokenCount
-    const cost = findCostStep(runJson, service, model)
-    const timing = findTimingStep(runJson, service, model)
+    const cost = findCostStep(metadata, service, model)
+    const timing = findTimingStep(metadata, service, model)
     const processingTimeMs = timing?.processingTimeMs ?? entry.processingTime ?? null
     const msPerUnit = timing?.msPerUnit
       ?? (processingTimeMs !== null && totalTokenCount > 0 ? round3(processingTimeMs / (totalTokenCount / 1000)) : null)
@@ -354,7 +348,7 @@ const buildReport = (runDir: string, rows: TextProviderRow[]): TextComparisonRep
     qualityPolicy: 'Text benchmark quality is unavailable unless explicit future quality fields are present. Length, speed, cost, output existence, schema validity, and subjective judgment are not quality proxies.',
     notes: [
       'Text mode scores existing write outputs only and does not call LLM providers.',
-      'Price rankings use local zero monetary cost and reported actual or estimated service costs from run.json.',
+      'Price rankings use local zero monetary cost and reported actual or estimated service costs from manifest.json.',
       'Speed rankings prefer normalized msPerUnit timing when present, falling back to wall-clock processing time.',
       'Automated and human quality rankings require explicit quality fields and are otherwise unavailable.'
     ]
@@ -440,7 +434,7 @@ const reportMarkdown = (report: TextComparisonReport): string => {
     '',
     '## Method',
     '',
-    '- Price rankings use zero monetary cost for local LLMs and reported actual or estimated service cost from `run.json`.',
+    '- Price rankings use zero monetary cost for local LLMs and reported actual or estimated service cost from `manifest.json`.',
     '- Speed rankings prefer `msPerUnit` normalized timing when present, then fall back to wall-clock processing time.',
     '- Token counts, output file presence, schema mode, speed, and cost are evidence only.',
     '- Text quality is not inferred from length, speed, cost, output existence, schema validity, or subjective judgment.',
@@ -456,7 +450,7 @@ const reportMarkdown = (report: TextComparisonReport): string => {
   ].join('\n')
 }
 
-const loadTextRunJson = async (runDir: string): Promise<JsonObject> => {
+const loadTextManifestMetadata = async (runDir: string): Promise<JsonObject> => {
   try {
     const dirStat = await stat(runDir)
     if (!dirStat.isDirectory()) {
@@ -469,35 +463,20 @@ const loadTextRunJson = async (runDir: string): Promise<JsonObject> => {
     throw CLIUsageError(`Text run directory not found: ${runDir}`)
   }
 
-  const runJsonPath = join(runDir, 'run.json')
-  try {
-    await stat(runJsonPath)
-  } catch {
-    throw CLIUsageError(`Text run directory is missing run.json: ${runJsonPath}`)
+  const manifest = await readManifest(runDir)
+  const item = manifest?.items[0]
+  if (!manifest || manifest.command !== 'write' || manifest.scope !== 'single' || !item) {
+    throw CLIUsageError(`Text run directory must contain a single write ${PIPELINE_MANIFEST_FILE}.`)
   }
-
-  let parsed: unknown
-  try {
-    parsed = await Bun.file(runJsonPath).json()
-  } catch (error) {
-    throw CLIUsageError(`Text benchmark run.json is not valid JSON: ${error instanceof Error ? error.message : String(error)}`)
-  }
-  if (!isRecord(parsed)) {
-    throw CLIUsageError('Text benchmark run.json must be a JSON object.')
-  }
-  const kind = getString(parsed, 'kind')
-  if (kind !== 'write') {
-    throw CLIUsageError(`run.json kind is "${kind ?? 'unknown'}", expected "write"`)
-  }
-  return parsed
+  return derivePipelineItemRecord(runDir, item)
 }
 
 export const writeTextProviderComparisonReports = async (
   runDir: string,
-  runJson: JsonObject
+  metadata: JsonObject
 ): Promise<{ report: TextComparisonReport, jsonOut: string, markdownOut: string }> => {
-  const entries = normalizeStep3Entries(runJson)
-  const rows = await buildProviderRows(runDir, runJson, entries)
+  const entries = normalizeStep3Entries(metadata)
+  const rows = await buildProviderRows(runDir, metadata, entries)
   const report = buildReport(runDir, rows)
   const jsonOut = join(runDir, 'provider-comparison-report.json')
   const markdownOut = join(runDir, 'provider-comparison-report.md')
@@ -515,8 +494,8 @@ export const runTextBenchmark = async (
   }
 
   const runDir = resolve(input)
-  const runJson = await loadTextRunJson(runDir)
-  const { report, jsonOut, markdownOut } = await writeTextProviderComparisonReports(runDir, runJson)
+  const metadata = await loadTextManifestMetadata(runDir)
+  const { report, jsonOut, markdownOut } = await writeTextProviderComparisonReports(runDir, metadata)
 
   l.write('info', 'Text Benchmark Report', {
     category: 'artifact',

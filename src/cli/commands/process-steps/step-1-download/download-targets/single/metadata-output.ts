@@ -1,5 +1,5 @@
 import { formatMetadataAsFrontmatter } from '~/cli/commands/process-steps/step-0-metadata/format-metadata-frontmatter'
-import { writeRunManifest } from '~/cli/commands/process-steps/manifest-utils'
+import { createManifest, createManifestItem, PIPELINE_MANIFEST_FILE, writeManifest } from '~/cli/commands/process-steps/pipeline-manifest'
 import * as l from '~/utils/app-logger/app-logger'
 import type { DocumentMetadata, WebArticleMetadata } from '~/types'
 
@@ -35,9 +35,11 @@ export const writeSavedMetadataArtifacts = async (
   markdown: boolean,
   save: boolean
 ): Promise<void> => {
-  await writeRunManifest(outputDir, 'metadata', { step1: metadata })
+  await writeManifest(outputDir, createManifest('metadata', 'single', [
+    createManifestItem(outputDir, { status: 'full', metadata: { step1: metadata } })
+  ]))
 
-  const artifactFiles: Record<string, string> = { run: 'run.json' }
+  const artifactFiles: Record<string, string> = { manifest: PIPELINE_MANIFEST_FILE }
   if (save && markdown) {
     await Bun.write(`${outputDir}/metadata.md`, formatMetadataAsFrontmatter(metadata))
     artifactFiles['metadataMarkdown'] = 'metadata.md'

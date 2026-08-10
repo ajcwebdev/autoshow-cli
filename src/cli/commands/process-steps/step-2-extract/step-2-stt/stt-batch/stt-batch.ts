@@ -1,13 +1,14 @@
 import * as l from '~/utils/app-logger/app-logger'
 import { createHumanTable } from '~/utils/app-logger/human-table/human-table'
-import type { BatchProcessResult, BatchRunOptions, RuntimeOptions } from '~/types'
+import type { BatchProcessResult, BatchRunOptions, SttExtractionOptions } from '~/types'
 import { collectSttTargets } from '../stt-targets'
 import { buildSttBatchSchedulerRows } from './stt-batch-policy'
 import { SttBatchCoordinator } from './stt-batch-coordinator'
 import { runResumeSttMissingFromBatchDir } from '~/cli/commands/setup-and-utilities/resume/extract/stt-resume'
 import { logSttBatchFinalSummary } from '~/cli/commands/process-steps/step-1-download/download-targets/download-batch/download-batch-summary'
 import { processBatch } from '~/cli/commands/process-steps/step-1-download/download-targets/download-batch/process-download-batch'
-import { processSingleTarget } from '../../../step-1-download/download-targets/single/single-target-runner'
+import { isLikelyUrl } from '~/cli/commands/process-steps/step-0-metadata/metadata-targets/metadata-input-classifier'
+import { processStt } from '../process-stt'
 import { createMistralSttPassController } from '../stt-services/stt-mistral/mistral-stt-pass-controller'
 
 class SttBatchIncompleteError extends Error {
@@ -32,13 +33,13 @@ class SttBatchIncompleteError extends Error {
 
 const shouldEnableCoordinator = (
   items: string[],
-  opts: RuntimeOptions
+  opts: SttExtractionOptions
 ): boolean => items.length > 1 && collectSttTargets(opts).length > 1
 
 export const runSttBatch = async (
   items: string[],
   batchLabel: string,
-  opts: RuntimeOptions,
+  opts: SttExtractionOptions,
   runOpts: BatchRunOptions = {}
 ): Promise<BatchProcessResult> => {
   const requestedTargets = collectSttTargets(opts)
@@ -54,15 +55,22 @@ export const runSttBatch = async (
     batchLabel,
     'extract',
     opts,
-    async (command, item, batchDir, batchOpts, batchItem) =>
-      await processSingleTarget(command, item, batchDir, batchOpts, undefined, {
-        ...(coordinator ? { sttBatchCoordinator: coordinator } : {}),
-        ...(mistralPassController ? { mistralSttPassController: mistralPassController } : {}),
-        batchChildContext: {
-          batchDir,
-          ...(batchItem ? { batchItem } : {})
+    async (_command, item, batchDir, batchOpts, batchItem) => ({
+      outputDir: await processStt(
+        isLikelyUrl(item) ? { url: item } : { filePath: item },
+        batchDir,
+        batchOpts,
+        undefined,
+        {
+          ...(coordinator ? { batchCoordinator: coordinator } : {}),
+          ...(mistralPassController ? { mistralPassController } : {}),
+          batchChildContext: {
+            batchDir,
+            ...(batchItem ? { batchItem } : {})
+          }
         }
-      }),
+      )
+    }),
     {
       ...runOpts,
       extractRoute: 'media'

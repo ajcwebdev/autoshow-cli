@@ -10,7 +10,7 @@ import {
   STABLE_TTS_MD_TITLE,
 } from '../../../../../test-utils/test-helpers'
 import { budgetedTest, E2E_TEST_TIMEOUT_MS } from '../../../../../test-utils/budget'
-import { readRunMetadata } from '../../../../../test-utils/manifest-helpers'
+import { readCanonicalRecord } from '../../../../../test-utils/manifest-helpers'
 import { requireConfiguredEnvVar } from '../../../../../test-utils/service-test-kit'
 
 describe('kitten-tts', () => {
@@ -60,7 +60,7 @@ describe('kitten-tts', () => {
           const audioFile = Bun.file(`${outputDir}/speech.wav`)
           expect(audioFile.size).toBeGreaterThan(0)
 
-          const metadata = await readRunMetadata(outputDir) as {
+          const metadata = await readCanonicalRecord(outputDir) as {
             tts?: Array<{ ttsService?: string; ttsModel?: string; chunkCount?: number; audioFileName?: string; speaker?: string }>
           }
           expect(metadata.tts?.[0]?.ttsService).toBe('kitten')
@@ -98,7 +98,7 @@ describe('kitten-tts', () => {
         expect(await fileExists(`${outputDir}/speech-kitten-kitten-tts-mini.wav`)).toBe(true)
         expect(await fileExists(`${outputDir}/speech-openai-gpt-4o-mini-tts-2025-12-15.wav`)).toBe(true)
 
-        const metadata = await readRunMetadata(outputDir)
+        const metadata = await readCanonicalRecord(outputDir)
         const ttsEntries = toRecordArray(metadata['tts'])
         expect(ttsEntries).toHaveLength(2)
         expect(ttsEntries[0]?.['ttsService']).toBe('kitten')
@@ -148,7 +148,7 @@ describe('kitten-tts', () => {
         expect(await fileExists(`${outputDir}/speech-kitten-kitten-tts-mini.wav`)).toBe(true)
         expect(await fileExists(`${outputDir}/speech-openai-gpt-4o-mini-tts-2025-12-15.wav`)).toBe(false)
 
-        const metadata = await readRunMetadata(outputDir)
+        const metadata = await readCanonicalRecord(outputDir)
         const ttsEntries = toRecordArray(metadata['tts'])
         expect(ttsEntries).toHaveLength(1)
         expect(ttsEntries[0]?.['ttsService']).toBe('kitten')

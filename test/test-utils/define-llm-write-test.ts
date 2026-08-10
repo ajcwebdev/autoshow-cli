@@ -7,7 +7,7 @@ import {
   STABLE_EXAMPLE_AUDIO_TITLE,
 } from "./test-helpers"
 import { E2E_TEST_TIMEOUT_MS } from './budget'
-import { readRunMetadata } from './manifest-helpers'
+import { readCanonicalRecord } from './manifest-helpers'
 import {
   classifyLiveProviderAvailabilityFailure,
   defineBudgetedLiveServiceTest,
@@ -80,10 +80,10 @@ export const defineLLMWriteTest = ({
         throw new Error(`Expected output directory for ${inputTitle}`)
       }
 
-      const metadataExists = await fileExists(`${outputDir}/run.json`)
+      const metadataExists = await fileExists(`${outputDir}/manifest.json`)
       expect(metadataExists).toBe(true)
 
-      const metadata = await readRunMetadata(outputDir) as {
+      const metadata = await readCanonicalRecord(outputDir) as {
         step3?: { llmModel?: string; llmService?: string; outputFileName?: string }
       }
       const outputFileName = metadata.step3?.outputFileName ?? 'text.json'

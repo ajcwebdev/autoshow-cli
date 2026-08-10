@@ -1,0 +1,710 @@
+import { rename, rm } from 'node:fs/promises'
+import { isAbsolute, join, relative, resolve } from 'node:path'
+import { randomUUID } from 'node:crypto'
+import { PIPELINE_ITEM_STATUSES, PIPELINE_PROVIDER_STATUSES, PROCESS_COMMANDS } from '~/types'
+import type { ExtractRoute, InputFamily, PipelineItemRecord, PipelineManifest, PipelineManifestChildLink, PipelineManifestItem, PipelineProviderState, ProcessCommand } from '~/types'
+import { CLIUsageError } from '~/utils/error-handler'
+import { isRecord } from '~/utils/rest-client'
+
+export const PIPELINE_MANIFEST_FILE = 'manifest.json'
+
+const PROCESS_COMMAND_SET = new Set<string>(PROCESS_COMMANDS)
+const ITEM_STATUS_SET = new Set<string>(PIPELINE_ITEM_STATUSES)
+const PROVIDER_STATUS_SET = new Set<string>(PIPELINE_PROVIDER_STATUSES)
+const INPUT_FAMILY_SET = new Set(['media', 'document', 'html_article', 'x_space', 'unsupported'])
+const EXTRACT_ROUTE_SET = new Set(['media', 'document', 'article', 'x-space'])
+
+const hasOnlyKeys = (
+  value: Record<string, unknown>,
+  allowedKeys: readonly string[]
+): boolean => {
+  const allowed = new Set(allowedKeys)
+  return Object.keys(value).every((key) => allowed.has(key))
+}
+
+const isProcessCommand = (value: unknown): value is ProcessCommand =>
+  typeof value === 'string' && PROCESS_COMMAND_SET.has(value)
+
+const isInputFamily = (value: unknown): value is InputFamily =>
+  typeof value === 'string' && INPUT_FAMILY_SET.has(value)
+
+const isExtractRoute = (value: unknown): value is ExtractRoute =>
+  typeof value === 'string' && EXTRACT_ROUTE_SET.has(value)
+
+const isSafeRelativePath = (rootDir: string, value: string): boolean => {
+  if (value.length === 0 || isAbsolute(value)) {
+    return false
+  }
+  const root = resolve(rootDir)
+  const target = resolve(root, value)
+  const fromRoot = relative(root, target)
+  return fromRoot === '' || (!fromRoot.startsWith('..') && !isAbsolute(fromRoot))
+}
+
+export const toManifestRelativePath = (
+  rootDir: string,
+  value: string
+): string => {
+  const root = resolve(rootDir)
+  const target = isAbsolute(value) ? resolve(value) : resolve(root, value)
+  const fromRoot = relative(root, target) || '.'
+  if (!isSafeRelativePath(root, fromRoot)) {
+    throw CLIUsageError(`Manifest path escapes its run root: ${value}`)
+  }
+  return fromRoot
+}
+
+export const resolveManifestRelativePath = (
+  rootDir: string,
+  value: string
+): string => {
+  if (!isSafeRelativePath(rootDir, value)) {
+    throw CLIUsageError(`Manifest path escapes its run root: ${value}`)
+  }
+  return resolve(rootDir, value)
+}
+
+const parseProviderState = (
+  rootDir: string,
+  value: unknown
+): PipelineProviderState | undefined => {
+  if (
+    !isRecord(value)
+    || !hasOnlyKeys(value, ['service', 'model', 'local', 'artifactDir', 'status', 'attempts', 'options', 'metadata', 'result', 'error'])
+    || typeof value['service'] !== 'string'
+    || (value['model'] !== undefined && value['model'] !== null && typeof value['model'] !== 'string')
+    || typeof value['artifactDir'] !== 'string'
+    || !isSafeRelativePath(rootDir, value['artifactDir'])
+    || typeof value['status'] !== 'string'
+    || !PROVIDER_STATUS_SET.has(value['status'])
+    || typeof value['attempts'] !== 'number'
+    || !Number.isInteger(value['attempts'])
+    || value['attempts'] < 0
+    || !isRecord(value['options'])
+    || !isRecord(value['metadata'])
+    || (value['result'] !== undefined && !isRecord(value['result']))
+    || (value['error'] !== undefined && !isRecord(value['error']))
+    || (value['local'] !== undefined && typeof value['local'] !== 'boolean')
+  ) {
+    return undefined
+  }
+
+  return {
+    service: value['service'],
+    ...(value['model'] === null || typeof value['model'] === 'string' ? { model: value['model'] } : {}),
+    ...(typeof value['local'] === 'boolean' ? { local: value['local'] } : {}),
+    artifactDir: value['artifactDir'],
+    status: value['status'] as PipelineProviderState['status'],
+    attempts: value['attempts'],
+    options: value['options'],
+    metadata: value['metadata'],
+    ...(isRecord(value['result']) ? { result: value['result'] } : {}),
+    ...(isRecord(value['error']) ? { error: value['error'] } : {})
+  }
+}
+
+const parseChildLink = (
+  rootDir: string,
+  value: unknown
+): PipelineManifestChildLink | undefined => {
+  if (
+    !isRecord(value)
+    || !hasOnlyKeys(value, ['route', 'index', 'manifestDir'])
+    || !isExtractRoute(value['route'])
+    || typeof value['index'] !== 'number'
+    || !Number.isInteger(value['index'])
+    || value['index'] < 0
+    || typeof value['manifestDir'] !== 'string'
+    || !isSafeRelativePath(rootDir, value['manifestDir'])
+  ) {
+    return undefined
+  }
+  return {
+    route: value['route'],
+    index: value['index'],
+    manifestDir: value['manifestDir']
+  }
+}
+
+const parseManifestItem = (
+  rootDir: string,
+  value: unknown
+): PipelineManifestItem | undefined => {
+  if (
+    !isRecord(value)
+    || !hasOnlyKeys(value, ['input', 'inputFamily', 'extractRoute', 'outputDir', 'child', 'status', 'metadata', 'providers'])
+    || typeof value['status'] !== 'string'
+    || !ITEM_STATUS_SET.has(value['status'])
+    || !isRecord(value['metadata'])
+    || !Array.isArray(value['providers'])
+    || (value['input'] !== undefined && typeof value['input'] !== 'string')
+    || (value['inputFamily'] !== undefined && !isInputFamily(value['inputFamily']))
+    || (value['extractRoute'] !== undefined && !isExtractRoute(value['extractRoute']))
+    || (value['outputDir'] !== undefined && (
+      typeof value['outputDir'] !== 'string'
+      || !isSafeRelativePath(rootDir, value['outputDir'])
+    ))
+    || (value['child'] !== undefined && parseChildLink(rootDir, value['child']) === undefined)
+  ) {
+    return undefined
+  }
+
+  const providers = value['providers'].map((provider) => parseProviderState(rootDir, provider))
+  if (providers.some((provider) => provider === undefined)) {
+    return undefined
+  }
+  if (
+    value['status'] === 'full'
+    && providers.some((provider) => provider?.status !== 'succeeded' && provider?.status !== 'skipped')
+  ) {
+    return undefined
+  }
+
+  const child = value['child'] === undefined ? undefined : parseChildLink(rootDir, value['child'])
+  return {
+    ...(typeof value['input'] === 'string' ? { input: value['input'] } : {}),
+    ...(isInputFamily(value['inputFamily']) ? { inputFamily: value['inputFamily'] } : {}),
+    ...(isExtractRoute(value['extractRoute']) ? { extractRoute: value['extractRoute'] } : {}),
+    ...(typeof value['outputDir'] === 'string' ? { outputDir: value['outputDir'] } : {}),
+    ...(child ? { child } : {}),
+    status: value['status'] as PipelineManifestItem['status'],
+    metadata: value['metadata'],
+    providers: providers as PipelineProviderState[]
+  }
+}
+
+const parseManifest = (
+  rootDir: string,
+  value: unknown
+): PipelineManifest | undefined => {
+  if (
+    !isRecord(value)
+    || !hasOnlyKeys(value, ['command', 'scope', 'createdAt', 'updatedAt', 'source', 'items'])
+    || !isProcessCommand(value['command'])
+    || (value['scope'] !== 'single' && value['scope'] !== 'batch')
+    || typeof value['createdAt'] !== 'string'
+    || typeof value['updatedAt'] !== 'string'
+    || Number.isNaN(Date.parse(value['createdAt']))
+    || Number.isNaN(Date.parse(value['updatedAt']))
+    || (value['source'] !== undefined && !isRecord(value['source']))
+    || !Array.isArray(value['items'])
+    || value['items'].length === 0
+  ) {
+    return undefined
+  }
+
+  const items = value['items'].map((item) => parseManifestItem(rootDir, item))
+  if (
+    items.some((item) => item === undefined)
+    || (value['scope'] === 'single' && items.length !== 1)
+    || items.some((item) => item?.child !== undefined && (
+      value['scope'] !== 'batch'
+      || value['command'] !== 'extract'
+      || item.extractRoute !== item.child.route
+    ))
+  ) {
+    return undefined
+  }
+
+  return {
+    command: value['command'],
+    scope: value['scope'],
+    createdAt: value['createdAt'],
+    updatedAt: value['updatedAt'],
+    ...(isRecord(value['source']) ? { source: value['source'] } : {}),
+    items: items as PipelineManifestItem[]
+  }
+}
+
+const invalidManifestError = (manifestPath: string): Error =>
+  CLIUsageError(`Invalid canonical manifest at ${manifestPath}. Re-run the pipeline to regenerate this output.`)
+
+const readManifestUnlocked = async (
+  rootDir: string
+): Promise<PipelineManifest | undefined> => {
+  const manifestPath = join(rootDir, PIPELINE_MANIFEST_FILE)
+  if (!await Bun.file(manifestPath).exists()) {
+    return undefined
+  }
+
+  let raw: unknown
+  try {
+    raw = await Bun.file(manifestPath).json() as unknown
+  } catch (error) {
+    throw CLIUsageError(`Malformed canonical manifest at ${manifestPath}: ${error instanceof Error ? error.message : String(error)}`)
+  }
+  const manifest = parseManifest(rootDir, raw)
+  if (!manifest) {
+    throw invalidManifestError(manifestPath)
+  }
+  return manifest
+}
+
+const manifestQueues = new Map<string, Promise<void>>()
+
+const withManifestLock = async <T>(
+  rootDir: string,
+  action: () => Promise<T>
+): Promise<T> => {
+  const key = resolve(rootDir)
+  const previous = manifestQueues.get(key) ?? Promise.resolve()
+  let release = (): void => {}
+  const gate = new Promise<void>((resolveGate) => {
+    release = resolveGate
+  })
+  const queued = previous.catch(() => undefined).then(async () => await gate)
+  manifestQueues.set(key, queued)
+  await previous.catch(() => undefined)
+  try {
+    return await action()
+  } finally {
+    release()
+    if (manifestQueues.get(key) === queued) {
+      manifestQueues.delete(key)
+    }
+  }
+}
+
+const writeManifestUnlocked = async (
+  rootDir: string,
+  manifest: PipelineManifest
+): Promise<PipelineManifest> => {
+  const manifestPath = join(rootDir, PIPELINE_MANIFEST_FILE)
+  const next = {
+    ...manifest,
+    updatedAt: new Date().toISOString()
+  }
+  const parsed = parseManifest(rootDir, next)
+  if (!parsed) {
+    throw invalidManifestError(manifestPath)
+  }
+
+  const tempPath = join(rootDir, `.${PIPELINE_MANIFEST_FILE}.${process.pid}.${randomUUID()}.tmp`)
+  try {
+    await Bun.write(tempPath, `${JSON.stringify(parsed, null, 2)}\n`)
+    await rename(tempPath, manifestPath)
+  } finally {
+    await rm(tempPath, { force: true }).catch(() => undefined)
+  }
+  return parsed
+}
+
+export const readManifest = async (
+  rootDir: string
+): Promise<PipelineManifest | undefined> => await readManifestUnlocked(rootDir)
+
+export const writeManifest = async (
+  rootDir: string,
+  manifest: PipelineManifest
+): Promise<PipelineManifest> =>
+  await withManifestLock(rootDir, async () => await writeManifestUnlocked(rootDir, manifest))
+
+export const updateManifest = async (
+  rootDir: string,
+  update: (manifest: PipelineManifest) => PipelineManifest | Promise<PipelineManifest>
+): Promise<PipelineManifest> =>
+  await withManifestLock(rootDir, async () => {
+    const current = await readManifestUnlocked(rootDir)
+    if (!current) {
+      throw CLIUsageError(`Missing canonical manifest at ${join(rootDir, PIPELINE_MANIFEST_FILE)}`)
+    }
+    return await writeManifestUnlocked(rootDir, await update(current))
+  })
+
+export const createManifest = (
+  command: ProcessCommand,
+  scope: PipelineManifest['scope'],
+  items: PipelineManifestItem[],
+  source?: Record<string, unknown>
+): PipelineManifest => {
+  const now = new Date().toISOString()
+  return {
+    command,
+    scope,
+    createdAt: now,
+    updatedAt: now,
+    ...(source ? { source } : {}),
+    items
+  }
+}
+
+export const createManifestItem = (
+  rootDir: string,
+  input: Omit<PipelineManifestItem, 'outputDir' | 'child' | 'providers'> & {
+    outputDir?: string | undefined
+    child?: Omit<PipelineManifestChildLink, 'manifestDir'> & { manifestDir: string } | undefined
+    providers?: PipelineProviderState[] | undefined
+  }
+): PipelineManifestItem => {
+  const item: PipelineManifestItem = {
+    ...(input.input !== undefined ? { input: input.input } : {}),
+    ...(input.inputFamily !== undefined ? { inputFamily: input.inputFamily } : {}),
+    ...(input.extractRoute !== undefined ? { extractRoute: input.extractRoute } : {}),
+    ...(input.outputDir !== undefined ? { outputDir: toManifestRelativePath(rootDir, input.outputDir) } : {}),
+    ...(input.child
+      ? {
+          child: {
+            route: input.child.route,
+            index: input.child.index,
+            manifestDir: toManifestRelativePath(rootDir, input.child.manifestDir)
+          }
+        }
+      : {}),
+    status: input.status,
+    metadata: input.metadata,
+    providers: (input.providers ?? []).map((provider) => ({
+      ...provider,
+      artifactDir: toManifestRelativePath(rootDir, provider.artifactDir)
+    }))
+  }
+  const parsed = parseManifestItem(rootDir, item)
+  if (!parsed) {
+    throw CLIUsageError('Cannot construct an invalid canonical manifest item.')
+  }
+  return parsed
+}
+
+const providerKey = (value: Record<string, unknown>): string | undefined =>
+  typeof value['service'] === 'string'
+    ? `${value['service']}\u0000${typeof value['model'] === 'string' ? value['model'] : ''}`
+    : undefined
+
+const providerOptions = (value: Record<string, unknown>): Record<string, unknown> => {
+  const options = { ...value }
+  delete options['service']
+  delete options['model']
+  delete options['local']
+  delete options['artifactDir']
+  delete options['status']
+  delete options['attempts']
+  delete options['lastError']
+  delete options['error']
+  delete options['metadata']
+  delete options['result']
+  return options
+}
+
+const findProviderMetadata = (
+  record: Record<string, unknown>,
+  service: string,
+  model: string | null | undefined
+): Record<string, unknown> | undefined => {
+  const rawStep2 = record['step2']
+  const entries = (Array.isArray(rawStep2) ? rawStep2 : rawStep2 === undefined ? [] : [rawStep2])
+    .filter((entry): entry is Record<string, unknown> => isRecord(entry))
+  return entries.find((entry) =>
+    (entry['transcriptionService'] === service && (model == null || entry['transcriptionModel'] === model))
+    || (entry['ocrService'] === service && (model == null || entry['ocrModel'] === model))
+    || (entry['service'] === service && (model == null || entry['model'] === model))
+    || (typeof entry['extractionMethod'] === 'string' && entry['extractionMethod'] === `html+${service}`)
+  )
+}
+
+const createProviderStatesFromRecord = (
+  rootDir: string,
+  record: Record<string, unknown>
+): PipelineProviderState[] => {
+  const requested = Array.isArray(record['requestedProviders'])
+    ? record['requestedProviders'].filter((value): value is Record<string, unknown> => isRecord(value))
+    : []
+  const requestedByKey = new Map(
+    requested.flatMap((value) => {
+      const key = providerKey(value)
+      return key ? [[key, value] as const] : []
+    })
+  )
+  const rawStates = Array.isArray(record['providerStates'])
+    ? record['providerStates'].filter((value): value is Record<string, unknown> => isRecord(value))
+    : []
+  const statesByKey = new Set<string>()
+  const states = rawStates.map((state): PipelineProviderState => {
+    const key = providerKey(state)
+    if (!key || typeof state['service'] !== 'string') {
+      throw CLIUsageError('Cannot persist a provider state without a service identity.')
+    }
+    statesByKey.add(key)
+    const request = requestedByKey.get(key)
+    const status = typeof state['status'] === 'string' && PROVIDER_STATUS_SET.has(state['status'])
+      ? state['status'] as PipelineProviderState['status']
+      : 'missing'
+    const artifactDir = typeof state['artifactDir'] === 'string' ? state['artifactDir'] : '.'
+    return {
+      service: state['service'],
+      ...(typeof state['model'] === 'string' || state['model'] === null ? { model: state['model'] } : {}),
+      ...(typeof state['local'] === 'boolean' ? { local: state['local'] } : {}),
+      artifactDir: toManifestRelativePath(rootDir, artifactDir),
+      status,
+      attempts: typeof state['attempts'] === 'number' && Number.isInteger(state['attempts']) && state['attempts'] >= 0
+        ? state['attempts']
+        : 0,
+      options: request ? providerOptions(request) : {},
+      metadata: isRecord(state['metadata'])
+        ? state['metadata']
+        : findProviderMetadata(record, state['service'], typeof state['model'] === 'string' || state['model'] === null ? state['model'] : undefined) ?? {},
+      ...(isRecord(state['result']) ? { result: state['result'] } : {}),
+      ...(isRecord(state['error'])
+        ? { error: state['error'] }
+        : isRecord(state['lastError'])
+          ? { error: state['lastError'] }
+          : {})
+    }
+  })
+
+  for (const request of requested) {
+    const key = providerKey(request)
+    if (!key || statesByKey.has(key) || typeof request['service'] !== 'string') {
+      continue
+    }
+    states.push({
+      service: request['service'],
+      ...(typeof request['model'] === 'string' || request['model'] === null ? { model: request['model'] } : {}),
+      ...(typeof request['local'] === 'boolean' ? { local: request['local'] } : {}),
+      artifactDir: '.',
+      status: 'missing',
+      attempts: 0,
+      options: providerOptions(request),
+      metadata: {}
+    })
+  }
+  return states
+}
+
+export const createPipelineItemFromRecord = (
+  rootDir: string,
+  record: PipelineItemRecord,
+  options: {
+    status?: PipelineManifestItem['status'] | undefined
+    input?: string | undefined
+    inputFamily?: InputFamily | undefined
+    extractRoute?: ExtractRoute | undefined
+    outputDir?: string | undefined
+    child?: PipelineManifestChildLink | undefined
+  } = {}
+): PipelineManifestItem => {
+  const metadata = { ...record }
+  for (const key of [
+    'input',
+    'inputFamily',
+    'extractRoute',
+    'outputDir',
+    'childBatchEntry',
+    'completionStatus',
+    'status',
+    'requestedProviders',
+    'providerStates',
+    'missingProviders',
+    'blockedProviders'
+  ]) {
+    delete metadata[key]
+  }
+  const providers = createProviderStatesFromRecord(rootDir, record)
+  if (providers.length > 0) {
+    delete metadata['step2']
+  }
+
+  const storedStatus = record['completionStatus'] === 'full'
+    || record['completionStatus'] === 'incomplete'
+    || record['completionStatus'] === 'failed'
+    || record['completionStatus'] === 'skipped'
+    ? record['completionStatus']
+    : record['status'] === 'failed'
+      ? 'failed'
+      : record['status'] === 'completed'
+        ? 'full'
+        : undefined
+  const child = options.child
+  const rawInputFamily = options.inputFamily ?? record['inputFamily']
+  const rawRoute = options.extractRoute ?? record['extractRoute']
+  return createManifestItem(rootDir, {
+    ...(options.input !== undefined
+      ? { input: options.input }
+      : typeof record['input'] === 'string'
+        ? { input: record['input'] }
+        : {}),
+    ...(isInputFamily(rawInputFamily) ? { inputFamily: rawInputFamily } : {}),
+    ...(isExtractRoute(rawRoute) ? { extractRoute: rawRoute } : {}),
+    ...(options.outputDir !== undefined
+      ? { outputDir: options.outputDir }
+      : typeof record['outputDir'] === 'string'
+        ? { outputDir: record['outputDir'] }
+        : {}),
+    ...(child ? { child } : {}),
+    status: options.status ?? storedStatus ?? 'incomplete',
+    metadata,
+    providers
+  })
+}
+
+export const derivePipelineItemRecord = (
+  rootDir: string,
+  item: PipelineManifestItem
+): PipelineItemRecord => {
+  const requestedProviders = item.providers.map((provider) => ({
+    service: provider.service,
+    ...(provider.model !== undefined ? { model: provider.model } : {}),
+    ...(provider.local !== undefined ? { local: provider.local } : {}),
+    ...provider.options
+  }))
+  const providerStates = item.providers.map((provider) => ({
+    service: provider.service,
+    ...(provider.model !== undefined ? { model: provider.model } : {}),
+    ...(provider.local !== undefined ? { local: provider.local } : {}),
+    artifactDir: provider.artifactDir,
+    status: provider.status,
+    attempts: provider.attempts,
+    metadata: provider.metadata,
+    ...(provider.result ? { result: provider.result } : {}),
+    ...(provider.error ? { lastError: provider.error } : {})
+  }))
+  const missingProviders = requestedProviders.filter((_, index) => {
+    const status = item.providers[index]?.status
+    return status === 'missing' || status === 'failed'
+  })
+  const blockedProviders = requestedProviders.filter((_, index) => {
+    const error = item.providers[index]?.error
+    return error?.['retryable'] === false || typeof error?.['blockedReason'] === 'string'
+  })
+  const successfulMetadata = item.providers
+    .filter((provider) => provider.status === 'succeeded' && Object.keys(provider.metadata).length > 0)
+    .map((provider) => provider.metadata)
+
+  return {
+    ...item.metadata,
+    ...(item.input !== undefined ? { input: item.input } : {}),
+    ...(item.inputFamily !== undefined ? { inputFamily: item.inputFamily } : {}),
+    ...(item.extractRoute !== undefined ? { extractRoute: item.extractRoute } : {}),
+    ...(successfulMetadata.length === 1
+      ? { step2: successfulMetadata[0] }
+      : successfulMetadata.length > 1
+        ? { step2: successfulMetadata }
+        : {}),
+    outputDir: item.outputDir !== undefined
+      ? resolveManifestRelativePath(rootDir, item.outputDir)
+      : resolve(rootDir),
+    ...(item.child ? { childBatchEntry: { route: item.child.route, index: item.child.index } } : {}),
+    completionStatus: item.status,
+    requestedProviders,
+    providerStates,
+    missingProviders,
+    blockedProviders
+  }
+}
+
+export const readSinglePipelineItemRecord = async (
+  rootDir: string,
+  expected: {
+    command?: ProcessCommand | undefined
+    extractRoute?: ExtractRoute | undefined
+  } = {}
+): Promise<PipelineItemRecord | undefined> => {
+  const manifest = await readManifest(rootDir)
+  if (
+    !manifest
+    || manifest.scope !== 'single'
+    || manifest.items.length !== 1
+    || (expected.command !== undefined && manifest.command !== expected.command)
+  ) {
+    return undefined
+  }
+  const item = manifest.items[0]
+  if (!item || (expected.extractRoute !== undefined && item.extractRoute !== expected.extractRoute)) {
+    return undefined
+  }
+  return derivePipelineItemRecord(rootDir, item)
+}
+
+type ManifestProviderSelector = {
+  service: string
+  model?: string | null | undefined
+  artifactDir?: string | undefined
+}
+
+const matchesManifestProvider = (
+  rootDir: string,
+  provider: PipelineProviderState,
+  selector: ManifestProviderSelector
+): boolean =>
+  provider.service === selector.service
+  && (!Object.hasOwn(selector, 'model') || provider.model === selector.model)
+  && (selector.artifactDir === undefined
+    || provider.artifactDir === toManifestRelativePath(rootDir, selector.artifactDir))
+
+export const readSingleManifestProviderState = async (
+  rootDir: string,
+  selector: ManifestProviderSelector
+): Promise<PipelineProviderState | undefined> => {
+  const manifest = await readManifest(rootDir)
+  if (!manifest || manifest.scope !== 'single' || manifest.items.length !== 1) {
+    return undefined
+  }
+  return manifest.items[0]?.providers.find((provider) =>
+    matchesManifestProvider(rootDir, provider, selector)
+  )
+}
+
+export const updateSingleManifestProviderState = async (
+  rootDir: string,
+  selector: ManifestProviderSelector,
+  update: (provider: PipelineProviderState) => PipelineProviderState | Promise<PipelineProviderState>
+): Promise<PipelineProviderState> => {
+  let updatedProvider: PipelineProviderState | undefined
+  await updateManifest(rootDir, async (manifest) => {
+    if (manifest.scope !== 'single' || manifest.items.length !== 1) {
+      throw CLIUsageError(`Canonical manifest at ${join(rootDir, PIPELINE_MANIFEST_FILE)} is not a single-run manifest.`)
+    }
+    const item = manifest.items[0]
+    if (!item) {
+      throw invalidManifestError(join(rootDir, PIPELINE_MANIFEST_FILE))
+    }
+    const providerIndex = item.providers.findIndex((provider) =>
+      matchesManifestProvider(rootDir, provider, selector)
+    )
+    const provider = item.providers[providerIndex]
+    if (!provider) {
+      throw CLIUsageError(`Canonical manifest at ${join(rootDir, PIPELINE_MANIFEST_FILE)} has no matching ${selector.service} provider state.`)
+    }
+    const nextProvider = await update(provider)
+    if (!matchesManifestProvider(rootDir, nextProvider, selector)) {
+      throw CLIUsageError('A manifest provider-state update cannot change the selected provider identity or artifact path.')
+    }
+    updatedProvider = nextProvider
+    const providers = item.providers.slice()
+    providers[providerIndex] = nextProvider
+    const items = manifest.items.slice()
+    items[0] = { ...item, providers }
+    return { ...manifest, items }
+  })
+  if (!updatedProvider) {
+    throw CLIUsageError(`Canonical manifest at ${join(rootDir, PIPELINE_MANIFEST_FILE)} was not updated.`)
+  }
+  return updatedProvider
+}
+
+export const writePipelineItemRecords = async (
+  rootDir: string,
+  command: ProcessCommand,
+  scope: PipelineManifest['scope'],
+  records: PipelineItemRecord[],
+  options: {
+    extractRoute?: ExtractRoute | undefined
+    source?: Record<string, unknown> | undefined
+  } = {}
+): Promise<PipelineManifest> => {
+  if (scope === 'single' && records.length !== 1) {
+    throw CLIUsageError('A single-run canonical manifest must contain exactly one item record.')
+  }
+  const current = await readManifest(rootDir)
+  const next = createManifest(
+    command,
+    scope,
+    records.map((record) => createPipelineItemFromRecord(rootDir, record, {
+      ...(options.extractRoute ? { extractRoute: options.extractRoute } : {}),
+      ...(scope === 'single' ? { outputDir: rootDir } : {})
+    })),
+    options.source
+  )
+  return await writeManifest(rootDir, {
+    ...next,
+    ...(current ? { createdAt: current.createdAt } : {})
+  })
+}

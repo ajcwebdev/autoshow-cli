@@ -329,20 +329,16 @@ describe('OCR PDF chapter detection contracts', () => {
     try {
       await writeProviderArtifacts(
         tempDir,
-        { service: 'gemini', model: 'gemini-3.5-flash' },
         result,
         metadata,
         'json',
         files
       )
 
-      const providerResult = JSON.parse(await readFile(join(tempDir, 'result.json'), 'utf-8')) as {
-        metadata: ExtractionMetadata
-      }
+      const providerResult = JSON.parse(await readFile(join(tempDir, 'result.json'), 'utf-8')) as ExtractionResult
       const chapterText = await readFile(join(tempDir, files[0]?.relativePath ?? ''), 'utf-8')
 
-      expect(providerResult.metadata.chapterExport?.chapterFilesWritten).toBe(files.length)
-      expect(providerResult.metadata.chapterExport?.directories).toEqual(['chapters'])
+      expect(providerResult).toEqual(result)
       expect(chapterText).toContain('Opening body.')
     } finally {
       await rm(tempDir, { recursive: true, force: true })
@@ -351,7 +347,7 @@ describe('OCR PDF chapter detection contracts', () => {
 
   test('root chapter artifacts are only advertised when root directories exist', async () => {
     const tempDir = await mkdtemp(join(tmpdir(), 'autoshow-root-chapter-artifacts-'))
-    const artifactFiles: Record<string, string> = { run: 'run.json' }
+    const artifactFiles: Record<string, string> = { manifest: 'manifest.json' }
     const metadata: ExtractionMetadata = {
       extractionMethod: 'pdf+gemini-ocr',
       totalPages: 11,
@@ -377,12 +373,12 @@ describe('OCR PDF chapter detection contracts', () => {
 
     try {
       await appendChapterExportArtifacts(artifactFiles, metadata, tempDir)
-      expect(artifactFiles).toEqual({ run: 'run.json' })
+      expect(artifactFiles).toEqual({ manifest: 'manifest.json' })
 
       await mkdir(join(tempDir, 'chapters'))
       await appendChapterExportArtifacts(artifactFiles, metadata, tempDir)
       expect(artifactFiles).toMatchObject({
-        run: 'run.json',
+        manifest: 'manifest.json',
         chapters: 'chapters/'
       })
       expect(artifactFiles['chunks']).toBeUndefined()

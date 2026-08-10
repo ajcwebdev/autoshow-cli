@@ -1,6 +1,6 @@
 # Image Consensus
 
-Use this category for multi-provider AutoShow image runs with `run.json` metadata and generated image files in the run directory root.
+Use this category for multi-provider AutoShow image runs with canonical `manifest.json` metadata and generated image files in the run directory root.
 
 ## Packet
 

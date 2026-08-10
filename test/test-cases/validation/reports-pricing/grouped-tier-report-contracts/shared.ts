@@ -3,7 +3,7 @@ import { afterEach, expect } from 'bun:test'
 import { writeFile } from 'node:fs/promises'
 
 import type { MetricName, MetricRankingEntry, RankingSurfaceName, TtsRankingEntry } from '~/types'
-import { createTempDirTracker } from '../../../../test-utils/rest-contract-helpers'
+import { createTempDirTracker } from '../../../../test-utils/temp-dirs'
 
 export const setupTempRoots = (): ((prefix: string) => Promise<string>) => {
   const tracker = createTempDirTracker('autoshow-grouped-tier-')

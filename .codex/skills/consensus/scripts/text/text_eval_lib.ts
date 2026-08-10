@@ -1,10 +1,10 @@
-import { existsSync, readFileSync, statSync } from "node:fs";
+import { existsSync, statSync } from "node:fs";
 import { basename, join, resolve } from "node:path";
+import { loadCanonicalRunRecord } from "../shared/pipeline_manifest";
 
 export type JsonObject = Record<string, unknown>;
 
-export interface TextRunJson extends JsonObject {
-  kind: "write";
+export interface TextManifestRecord extends JsonObject {
   metadata: JsonObject;
 }
 
@@ -81,19 +81,19 @@ function stepMatches(step: JsonObject, service: string, model: string): boolean 
     && asString(step.model) === model;
 }
 
-function costSteps(runJson: TextRunJson, source: "actual" | "estimated"): JsonObject[] {
-  const cost = nestedObject(runJson.metadata, "cost");
+function costSteps(manifestRecord: TextManifestRecord, source: "actual" | "estimated"): JsonObject[] {
+  const cost = nestedObject(manifestRecord.metadata, "cost");
   return nestedArray(nestedObject(cost, source), "steps");
 }
 
-function timingSteps(runJson: TextRunJson, source: "actual" | "estimated"): JsonObject[] {
-  const timing = nestedObject(runJson.metadata, "timing");
+function timingSteps(manifestRecord: TextManifestRecord, source: "actual" | "estimated"): JsonObject[] {
+  const timing = nestedObject(manifestRecord.metadata, "timing");
   return nestedArray(nestedObject(timing, source), "steps");
 }
 
-function findCostStep(runJson: TextRunJson, service: string, model: string): { source: "actual" | "estimated"; costCents: number } | null {
+function findCostStep(manifestRecord: TextManifestRecord, service: string, model: string): { source: "actual" | "estimated"; costCents: number } | null {
   for (const source of ["actual", "estimated"] as const) {
-    const step = costSteps(runJson, source).find((candidate) => stepMatches(candidate, service, model));
+    const step = costSteps(manifestRecord, source).find((candidate) => stepMatches(candidate, service, model));
     const costCents = firstNumber(step, ["cost", "costCents", "actualCostCents", "estimatedCostCents", "totalCost"]);
     if (step && costCents !== null) {
       return { source, costCents };
@@ -102,7 +102,7 @@ function findCostStep(runJson: TextRunJson, service: string, model: string): { s
   return null;
 }
 
-function findTimingStep(runJson: TextRunJson, service: string, model: string): {
+function findTimingStep(manifestRecord: TextManifestRecord, service: string, model: string): {
   source: "actual" | "estimated";
   processingTimeMs: number | null;
   msPerUnit: number | null;
@@ -114,7 +114,7 @@ function findTimingStep(runJson: TextRunJson, service: string, model: string): {
   timingScope: string | null;
 } | null {
   for (const source of ["actual", "estimated"] as const) {
-    const step = timingSteps(runJson, source).find((candidate) => stepMatches(candidate, service, model));
+    const step = timingSteps(manifestRecord, source).find((candidate) => stepMatches(candidate, service, model));
     if (!step) continue;
     return {
       source,
@@ -131,34 +131,20 @@ function findTimingStep(runJson: TextRunJson, service: string, model: string): {
   return null;
 }
 
-export function loadTextRunJson(runDir: string): TextRunJson {
-  const runJsonPath = join(runDir, "run.json");
-  if (!existsSync(runJsonPath)) {
-    throw new Error(`Text run directory is missing run.json: ${runJsonPath}`);
-  }
-  const parsed = JSON.parse(readFileSync(runJsonPath, "utf8")) as unknown;
-  if (!isRecord(parsed)) {
-    throw new Error("Text benchmark run.json must be a JSON object.");
-  }
-  if (parsed.kind !== "write") {
-    throw new Error(`run.json kind is "${asString(parsed.kind) ?? "unknown"}", expected "write"`);
-  }
-  if (!isRecord(parsed.metadata)) {
-    throw new Error("Text benchmark run.json is missing metadata.");
-  }
-  return parsed as TextRunJson;
+export function loadTextManifestRecord(runDir: string): TextManifestRecord {
+  return { metadata: loadCanonicalRunRecord(runDir, "write").metadata };
 }
 
-export function textStep3Entries(runJson: TextRunJson): JsonObject[] {
-  const entries = objectArray(runJson.metadata.step3);
+export function textStep3Entries(manifestRecord: TextManifestRecord): JsonObject[] {
+  const entries = objectArray(manifestRecord.metadata.step3);
   if (entries.length === 0) {
-    throw new Error("Text benchmark run.json must contain metadata.step3.");
+    throw new Error("Text benchmark canonical manifest item must contain metadata.step3.");
   }
   return entries;
 }
 
-export function buildTextProviderRows(runDir: string, runJson: TextRunJson): TextProviderRow[] {
-  return textStep3Entries(runJson).map((entry, index) => {
+export function buildTextProviderRows(runDir: string, manifestRecord: TextManifestRecord): TextProviderRow[] {
+  return textStep3Entries(manifestRecord).map((entry, index) => {
     const service = asString(entry.llmService);
     const model = asString(entry.llmModel);
     if (!service || !model) {
@@ -167,8 +153,8 @@ export function buildTextProviderRows(runDir: string, runJson: TextRunJson): Tex
     const inputTokenCount = asNumber(entry.inputTokenCount) ?? 0;
     const outputTokenCount = asNumber(entry.outputTokenCount) ?? 0;
     const totalTokenCount = inputTokenCount + outputTokenCount;
-    const cost = findCostStep(runJson, service, model);
-    const timing = findTimingStep(runJson, service, model);
+    const cost = findCostStep(manifestRecord, service, model);
+    const timing = findTimingStep(manifestRecord, service, model);
     const processingTimeMs = timing?.processingTimeMs ?? asNumber(entry.processingTime);
     const msPerUnit = timing?.msPerUnit
       ?? (processingTimeMs !== null && totalTokenCount > 0 ? round3(processingTimeMs / (totalTokenCount / 1000)) : null);

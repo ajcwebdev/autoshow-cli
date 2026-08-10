@@ -5,13 +5,13 @@ import {
   mergeConfigIntoRawFlags,
   FLAG_TO_CONFIG_PATH
 } from '~/cli/commands/setup-and-utilities/config/config-merge'
-import { collectRepeatableModelFlagOccurrences, normalizeModelFlagOccurrences, REPEATABLE_MODEL_FLAGS } from '~/cli/commands/process-steps/step-1-download/download-targets/options/model-flag-selection'
-import { resolveLLMDefaults } from '~/cli/commands/process-steps/step-1-download/download-targets/options/model-option-llm-defaults'
+import { collectRepeatableModelFlagOccurrences, normalizeModelFlagOccurrences, REPEATABLE_MODEL_FLAGS } from '~/cli/options/option-resolution/model-flag-selection'
+import { resolveLLMDefaults } from '~/cli/options/option-resolution/model-option-llm-defaults'
 import { resolveCheapestModelForFlag } from '~/cli/commands/setup-and-utilities/models/cheapest-models'
 import { SUPPORTED_LLAMAFILE_MODELS } from '~/cli/commands/setup-and-utilities/models/llm-models'
 import { normalizeWriteStepSelectorFlags } from '~/cli/flags/service-selector-normalization/write-step-selectors'
 import { WRITE_LLM_PROVIDER_TARGETS } from '~/cli/flags/service-selector-normalization/provider-targets'
-import type { AutoshowConfig, RuntimeOptions } from '~/types'
+import type { AutoshowConfig } from '~/types'
 import { writeTempConfig } from './shared'
 import { flagOccurrencesFromValues } from '../../../../test-utils/flag-occurrences'
 
@@ -32,7 +32,7 @@ describe('config LLM default contracts', () => {
     const llamafileModels = normalizeModelFlagOccurrences('llamafile', normalized.flags, occurrences)
 
     expect(llamafileModels).toEqual([SUPPORTED_LLAMAFILE_MODELS[0]])
-    expect(resolveLLMDefaults({ llamafileModels } as RuntimeOptions)).toMatchObject({
+    expect(resolveLLMDefaults({ llamafileModels })).toMatchObject({
       llmService: 'llamafile',
       llmModel: SUPPORTED_LLAMAFILE_MODELS[0]
     })

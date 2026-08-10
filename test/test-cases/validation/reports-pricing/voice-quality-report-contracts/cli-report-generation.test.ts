@@ -1,5 +1,6 @@
 import { describe, expect, test } from 'bun:test'
 import { installVoiceQualityReportHooks, join, makeTempRoot, mkdir, runCommand, writeFile, writeJson, writeSyntheticWav } from './shared'
+import { writeSingleManifestFixture } from '../../../../test-utils/manifest-helpers'
 
 installVoiceQualityReportHooks()
 
@@ -40,10 +41,7 @@ describe('voice quality CLI report generation contracts', () => {
       }
     ]
 
-    await writeJson(join(runDir, 'run.json'), {
-      schemaVersion: 2,
-      kind: 'tts',
-      metadata: {
+    await writeSingleManifestFixture(runDir, 'tts', {
         input: inputText,
         tts: ttsEntries,
         timing: {
@@ -55,7 +53,6 @@ describe('voice quality CLI report generation contracts', () => {
             }))
           }
         }
-      }
     })
 
     await mkdir(runDir, { recursive: true })

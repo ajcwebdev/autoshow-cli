@@ -1,54 +1,51 @@
-import type { ExtractRoute, InputFamily, OptionalProviderModelIdentity } from '~/types'
+import type { ExtractRoute, InputFamily, JsonObject, ProcessCommand } from '~/types'
 
-export type ProviderSpec = OptionalProviderModelIdentity
-
-export type ProviderManifestBase<TKind extends string> = OptionalProviderModelIdentity & {
-  schemaVersion: 2
-  kind: TKind
-  metadata: Record<string, unknown>
+export type ProviderSpec = {
+  provider: string
+  model?: string | undefined
 }
 
-export type ProviderCheckpoint = ProviderManifestBase<'provider-checkpoint'>
+export const PIPELINE_ITEM_STATUSES = ['full', 'incomplete', 'failed', 'skipped'] as const
+export type PipelineItemStatus = typeof PIPELINE_ITEM_STATUSES[number]
 
-export type ProviderResult = ProviderManifestBase<'provider-result'> & {
-  result: Record<string, unknown>
+export const PIPELINE_PROVIDER_STATUSES = ['running', 'succeeded', 'missing', 'failed', 'skipped'] as const
+export type PipelineProviderStatus = typeof PIPELINE_PROVIDER_STATUSES[number]
+
+export type PipelineProviderState = {
+  service: string
+  model?: string | null | undefined
+  local?: boolean | undefined
+  artifactDir: string
+  status: PipelineProviderStatus
+  attempts: number
+  options: JsonObject
+  metadata: JsonObject
+  result?: JsonObject | undefined
+  error?: JsonObject | undefined
 }
 
-export type RunManifest = {
-  schemaVersion: 3
-  kind: 'metadata' | 'download' | 'extract' | 'write' | 'tts' | 'image' | 'video' | 'music'
-  metadata: Record<string, unknown>
+export type PipelineManifestChildLink = {
+  route: ExtractRoute
+  index: number
+  manifestDir: string
 }
 
-export type BatchManifest = {
-  schemaVersion: 3
-  kind: RunManifest['kind']
-  items: Record<string, unknown>[]
-  source?: Record<string, unknown> | undefined
-}
-
-
-export type ExtractBatchManifestItem = {
-  input: string
-  inputFamily: InputFamily
+export type PipelineManifestItem = {
+  input?: string | undefined
+  inputFamily?: InputFamily | undefined
   extractRoute?: ExtractRoute | undefined
-  childBatchEntry?: {
-    route: ExtractRoute
-    index: number
-  } | undefined
-  completionStatus: 'full' | 'incomplete' | 'failed' | 'skipped'
-  skipReason?: string | undefined
   outputDir?: string | undefined
+  child?: PipelineManifestChildLink | undefined
+  status: PipelineItemStatus
+  metadata: JsonObject
+  providers: PipelineProviderState[]
 }
 
-export type ExtractBatchManifest = {
-  schemaVersion: 3
+export type PipelineManifest = {
+  command: ProcessCommand
+  scope: 'single' | 'batch'
   createdAt: string
-  items: ExtractBatchManifestItem[]
-  childBatches: {
-    media?: string | undefined
-    document?: string | undefined
-    article?: string | undefined
-    'x-space'?: string | undefined
-  }
+  updatedAt: string
+  source?: JsonObject | undefined
+  items: PipelineManifestItem[]
 }

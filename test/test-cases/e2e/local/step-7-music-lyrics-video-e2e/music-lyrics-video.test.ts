@@ -10,7 +10,8 @@ import {
   OUTPUT_DIR,
   runCommand
 } from '../../../../test-utils/test-helpers'
-import { readBatchManifest, readRunManifest } from '../../../../test-utils/manifest-helpers'
+import { readCanonicalManifest, readCanonicalRecord } from '../../../../test-utils/manifest-helpers'
+import { PIPELINE_MANIFEST_FILE } from '~/cli/commands/process-steps/pipeline-manifest'
 import { exec } from '~/utils/cli-utils'
 
 const SHORT_AUDIO_PATH = 'input/examples/audio/0-audio-short.mp3'
@@ -103,12 +104,13 @@ test('music lyric-video rerender uses edited captions, preserves tmp when reques
     expect(await fileExists(`${outputDir}/0-audio-short-fixed.srt`)).toBe(true)
     expect(await fileExists(`${outputDir}/.lyrics-tmp`)).toBe(true)
 
-    const manifest = await readRunManifest(outputDir)
-    expect(manifest.kind).toBe('music')
-    expect(manifest.metadata['mode']).toBe('lyric-video')
-    expect((manifest.metadata['transcription'] as Record<string, unknown>)['mode']).toBe('captions')
-    expect((manifest.metadata['render'] as Record<string, unknown>)['backgroundMode']).toBe('image')
-    expect((manifest.metadata['artifacts'] as Record<string, unknown>)['tempDirKept']).toBe(true)
+    const manifest = await readCanonicalManifest(outputDir)
+    const record = await readCanonicalRecord(outputDir)
+    expect(manifest.command).toBe('music')
+    expect(record['mode']).toBe('lyric-video')
+    expect((record['transcription'] as Record<string, unknown>)['mode']).toBe('captions')
+    expect((record['render'] as Record<string, unknown>)['backgroundMode']).toBe('image')
+    expect((record['artifacts'] as Record<string, unknown>)['tempDirKept']).toBe(true)
 
     const videoStream = await probeVideoStream(`${outputDir}/0-audio-short-fixed.mp4`)
     expect(videoStream.codecName).toBe('h264')
@@ -138,13 +140,14 @@ budgetedTest('transcribe-whisper-tiny', 'music lyric-video transcribes local aud
     expect(await fileExists(`${outputDir}/0-audio-short.mp4`)).toBe(true)
     expect(await fileExists(`${outputDir}/0-audio-short.vtt`)).toBe(true)
     expect(await fileExists(`${outputDir}/0-audio-short.srt`)).toBe(true)
-    expect(await fileExists(`${outputDir}/run.json`)).toBe(true)
+    expect(await fileExists(`${outputDir}/${PIPELINE_MANIFEST_FILE}`)).toBe(true)
     expect(await fileExists(`${outputDir}/.lyrics-tmp`)).toBe(false)
 
-    const manifest = await readRunManifest(outputDir)
-    expect(manifest.kind).toBe('music')
-    expect(manifest.metadata['mode']).toBe('lyric-video')
-    const transcription = manifest.metadata['transcription'] as Record<string, unknown>
+    const manifest = await readCanonicalManifest(outputDir)
+    const record = await readCanonicalRecord(outputDir)
+    expect(manifest.command).toBe('music')
+    expect(record['mode']).toBe('lyric-video')
+    const transcription = record['transcription'] as Record<string, unknown>
     expect(transcription['mode']).toBe('whisper')
     expect(transcription['model']).toBe('tiny')
     expect(typeof transcription['descriptor']).toBe('string')
@@ -175,21 +178,22 @@ budgetedTest('transcribe-whisper-large-v3-turbo', 'bun autoshow music --audio in
     expect(await fileExists(`${outputDir}/01-example-song.mp4`)).toBe(true)
     expect(await fileExists(`${outputDir}/01-example-song.vtt`)).toBe(true)
     expect(await fileExists(`${outputDir}/01-example-song.srt`)).toBe(true)
-    expect(await fileExists(`${outputDir}/run.json`)).toBe(true)
+    expect(await fileExists(`${outputDir}/${PIPELINE_MANIFEST_FILE}`)).toBe(true)
     expect(await fileExists(`${outputDir}/.lyrics-tmp`)).toBe(false)
 
-    const manifest = await readRunManifest(outputDir)
-    expect(manifest.kind).toBe('music')
-    expect(manifest.metadata['mode']).toBe('lyric-video')
+    const manifest = await readCanonicalManifest(outputDir)
+    const record = await readCanonicalRecord(outputDir)
+    expect(manifest.command).toBe('music')
+    expect(record['mode']).toBe('lyric-video')
 
-    const transcription = manifest.metadata['transcription'] as Record<string, unknown>
+    const transcription = record['transcription'] as Record<string, unknown>
     expect(transcription['mode']).toBe('whisper')
     expect(transcription['model']).toBe('large-v3-turbo')
     expect(typeof transcription['descriptor']).toBe('string')
     expect(String(transcription['descriptor'])).toContain('ggml-large-v3-turbo')
     expect(Number(transcription['cueCount'])).toBeGreaterThan(0)
 
-    const render = manifest.metadata['render'] as Record<string, unknown>
+    const render = record['render'] as Record<string, unknown>
     expect(render['backgroundMode']).toBe('image')
 
     const videoStream = await probeVideoStream(`${outputDir}/01-example-song.mp4`)
@@ -199,7 +203,7 @@ budgetedTest('transcribe-whisper-large-v3-turbo', 'bun autoshow music --audio in
   }
 }, E2E_TEST_TIMEOUT_MS)
 
-budgetedTest('transcribe-whisper-tiny', 'music lyric-video batch writes a batch manifest and child lyric runs for the configured input tree', async () => {
+budgetedTest('transcribe-whisper-tiny', 'music lyric-video batch writes one batch-scoped canonical manifest and child lyric items for the configured input tree', async () => {
   await cleanupTestOutput(BATCH_SUFFIX)
 
   const result = await runCommand([
@@ -217,24 +221,28 @@ budgetedTest('transcribe-whisper-tiny', 'music lyric-video batch writes a batch 
 
   if (result.outputDir) {
     const batchDir = resolve(process.cwd(), result.outputDir)
-    expect(await fileExists(`${batchDir}/batch.json`)).toBe(true)
+    expect(await fileExists(`${batchDir}/${PIPELINE_MANIFEST_FILE}`)).toBe(true)
 
-    const manifest = await readBatchManifest(batchDir)
-    expect(manifest.kind).toBe('music')
+    const manifest = await readCanonicalManifest(batchDir)
+    expect(manifest.command).toBe('music')
     expect(manifest.source?.['mode']).toBe('lyric-video')
     expect(manifest.items).toHaveLength(2)
-    const childDirNames = (manifest.items as Array<Record<string, unknown>>)
-      .map((item) => basename(String(item['outputDir'])))
+    const childDirNames = manifest.items
+      .map((item) => basename(String(item.outputDir)))
       .sort()
     expect(childDirNames).toEqual(['01-batch-one', '02-batch-two'])
 
-    for (const item of manifest.items as Array<Record<string, unknown>>) {
-      expect(item['status']).toBe('completed')
-      const childDir = resolve(process.cwd(), String(item['outputDir']))
-      expect(await fileExists(`${childDir}/run.json`)).toBe(true)
-      const childManifest = await readRunManifest(childDir)
-      expect(childManifest.kind).toBe('music')
-      expect(childManifest.metadata['mode']).toBe('lyric-video')
+    for (const item of manifest.items) {
+      expect(item.status).toBe('full')
+      if (!item.outputDir) {
+        throw new Error('Expected music batch item outputDir')
+      }
+      const childDir = resolve(batchDir, item.outputDir)
+      expect(await fileExists(`${childDir}/${PIPELINE_MANIFEST_FILE}`)).toBe(true)
+      const childManifest = await readCanonicalManifest(childDir)
+      const childRecord = await readCanonicalRecord(childDir)
+      expect(childManifest.command).toBe('music')
+      expect(childRecord['mode']).toBe('lyric-video')
     }
   }
 }, E2E_TEST_TIMEOUT_MS)

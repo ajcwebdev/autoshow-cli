@@ -1,4 +1,4 @@
-import type { GeminiDurationSeconds, GeminiResolution, GlmVideoDurationSeconds, GlmVideoFps, GlmVideoModel, GlmVideoQuality, GrokVideoDurationSeconds, GrokVideoResolution, LtxVideoDurationSeconds, LtxVideoFps, LtxVideoModel, LumaVideoDuration, LumaVideoResolution, MinimaxApiResolution, MinimaxDurationSeconds, MinimaxResolution, MinimaxVideoModel, ReplicateVideoModel, ReplicateVideoResolution, RunwayDurationSeconds, RunwayRatio, VideoMode } from '~/types'
+import type { GeminiDurationSeconds, GeminiResolution, GlmVideoDurationSeconds, GlmVideoFps, GlmVideoModel, GlmVideoQuality, GrokVideoDurationSeconds, GrokVideoResolution, LtxVideoDurationSeconds, LtxVideoModel, LumaVideoDuration, LumaVideoResolution, MinimaxApiResolution, MinimaxDurationSeconds, MinimaxResolution, MinimaxVideoModel, ReplicateVideoModel, ReplicateVideoResolution, RunwayDurationSeconds, RunwayRatio, VideoMode } from '~/types'
 import { CLIUsageError } from '~/utils/error-handler'
 
 export const REPLICATE_COMMON_ASPECT_RATIOS = ['16:9', '9:16', '1:1', '4:3', '3:4'] as const
@@ -338,8 +338,6 @@ export const LTX_2_3_SIZE_VALUES = [
 const LTX_2_3_SIZES = new Set<string>(LTX_2_3_SIZE_VALUES)
 
 const isLtxFastModel = (model: LtxVideoModel): boolean => model.endsWith('-fast')
-
-export const normalizeLtxVideoFps = (_model: LtxVideoModel): LtxVideoFps => 24
 
 export const normalizeLtxVideoResolution = (resolution: string | undefined): '1080p' | '4k' => {
   if (resolution === undefined || resolution === '') return '1080p'

@@ -9,7 +9,7 @@ import {
   buildTimingLookup,
   discoverMusicFiles,
   entryProcessingTime,
-  loadMusicRunJson,
+  loadMusicManifestRecord,
   makeProviderKey,
   nullableNumber,
 } from "./music_eval_lib.ts";
@@ -70,19 +70,19 @@ function parseArgs(argv: string[]): ParsedArgs {
 }
 
 export async function buildPacket(runDir: string) {
-  const runJson = loadMusicRunJson(runDir);
+  const manifestRecord = loadMusicManifestRecord(runDir);
   const warnings: string[] = [];
 
-  const { found, missing } = discoverMusicFiles(runDir, runJson.metadata.music);
+  const { found, missing } = discoverMusicFiles(runDir, manifestRecord.metadata.music);
   if (missing.length > 0) {
     warnings.push(`Missing music files: ${missing.join(", ")}`);
   }
 
-  const costLookup = buildCostLookup(runJson);
-  const timingLookup = buildTimingLookup(runJson);
+  const costLookup = buildCostLookup(manifestRecord);
+  const timingLookup = buildTimingLookup(manifestRecord);
 
   const providers: MusicProviderEvidence[] = [];
-  for (const entry of runJson.metadata.music) {
+  for (const entry of manifestRecord.metadata.music) {
     const providerKey = makeProviderKey(entry.musicService, entry.musicModel);
     const musicPath = found.get(providerKey) ?? "";
     const musicExists = musicPath.length > 0;

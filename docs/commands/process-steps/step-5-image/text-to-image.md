@@ -157,7 +157,7 @@ bun autoshow image "turn the generated mug into a glossy magazine ad on a warm k
 bun autoshow image "a futuristic observatory at sunset" --provider grok=grok-imagine-image-quality --aspect-ratio 16:9 --size 1K --count 4
 ```
 
-Grok responses include provider-reported billed cost when available, and that actual value is used in `run.json`.
+Grok responses include provider-reported billed cost when available, and that actual value is stored in canonical item/provider metadata.
 
 ### BFL
 
@@ -215,7 +215,7 @@ bun autoshow image "a clean studio product photo of a red enamel camping mug on 
 bun autoshow image "place the same mug on a rustic breakfast table" --provider replicate=bytedance/seedream-4.5 --input output/mug-base/generated-image.jpg --output-dir output/mug-replicate
 ```
 
-`--provider replicate` with no model resolves to `prunaai/ernie-image-turbo`, the lowest-cost Replicate image model under the pinned default-runtime estimate in the local pricing table. Option support varies by model family. Seedream accepts `--size` (`2K`, `4K`, or `WIDTHxHEIGHT` with each edge 1024 through 4096 pixels on `seedream-4.5`; `2K` or `3K` on `seedream-5-lite`; `1K` or `2K` on `seedream-5-pro`) and `--aspect-ratio` `1:1`, `4:3`, `3:4`, `16:9`, `9:16`, `3:2`, `2:3`, `21:9`, or `match_input_image`; Seedream 5 Lite and Pro also accept `--format png|jpeg`, and Pro accepts up to 10 `--input` references. Ideogram V4 Turbo, Balanced, and Quality are text-to-image only and accept optional `--size WIDTHxHEIGHT` dimensions from 256 through 2048 pixels when both edges are multiples of 16. ERNIE and ERNIE Turbo are pinned community deployments that accept `--size WIDTHxHEIGHT` with each edge from 64 through 2048 pixels, `--count 1-4`, and `--format png|jpeg`; they do not accept reference images. Qwen rejects `--size` and accepts `--aspect-ratio` `1:1`, `16:9`, `9:16`, `4:3`, `3:4`, `3:2`, `2:3`, `2:1`, or `1:2`. Wan rejects `--aspect-ratio` and accepts `--size` `1K`, `2K`, or `WIDTHxHEIGHT` with each edge 256 through 4096 pixels; `--size 4K` works only for `wan-2.7-image-pro` text-to-image requests without `--input`. Replicate rejects `--quality`, `--background`, `--mask`, `--compression`, `--response-mode`, and `--search-grounding`. Seedream 5 Pro estimates select its published 1K or 2K output price; ERNIE estimates use the pinned version's published example runtime on Replicate H100 hardware and therefore vary with actual runtime and resolution. Registry fallback estimates are recorded in `run.json` when provider billing is unavailable.
+`--provider replicate` with no model resolves to `prunaai/ernie-image-turbo`, the lowest-cost Replicate image model under the pinned default-runtime estimate in the local pricing table. Option support varies by model family. Seedream accepts `--size` (`2K`, `4K`, or `WIDTHxHEIGHT` with each edge 1024 through 4096 pixels on `seedream-4.5`; `2K` or `3K` on `seedream-5-lite`; `1K` or `2K` on `seedream-5-pro`) and `--aspect-ratio` `1:1`, `4:3`, `3:4`, `16:9`, `9:16`, `3:2`, `2:3`, `21:9`, or `match_input_image`; Seedream 5 Lite and Pro also accept `--format png|jpeg`, and Pro accepts up to 10 `--input` references. Ideogram V4 Turbo, Balanced, and Quality are text-to-image only and accept optional `--size WIDTHxHEIGHT` dimensions from 256 through 2048 pixels when both edges are multiples of 16. ERNIE and ERNIE Turbo are pinned community deployments that accept `--size WIDTHxHEIGHT` with each edge from 64 through 2048 pixels, `--count 1-4`, and `--format png|jpeg`; they do not accept reference images. Qwen rejects `--size` and accepts `--aspect-ratio` `1:1`, `16:9`, `9:16`, `4:3`, `3:4`, `3:2`, `2:3`, `2:1`, or `1:2`. Wan rejects `--aspect-ratio` and accepts `--size` `1K`, `2K`, or `WIDTHxHEIGHT` with each edge 256 through 4096 pixels; `--size 4K` works only for `wan-2.7-image-pro` text-to-image requests without `--input`. Replicate rejects `--quality`, `--background`, `--mask`, `--compression`, `--response-mode`, and `--search-grounding`. Seedream 5 Pro estimates select its published 1K or 2K output price; ERNIE estimates use the pinned version's published example runtime on Replicate H100 hardware and therefore vary with actual runtime and resolution. Registry fallback estimates are recorded in canonical item metadata when provider billing is unavailable.
 
 ### Luma Labs
 
@@ -255,7 +255,7 @@ fal.ai uses `FAL_API_KEY` and the hosted queue API. HiDream and Qwen use `--size
 
 ## Output
 
-- Standalone `image` runs always write `run.json`.
+- Standalone `image` runs always write `manifest.json`.
 - Gemini writes `generated-image.png`.
 - OpenAI writes `generated-image.<format>`, plus numbered variants for `--count`.
 - Grok writes `generated-image.jpg`, plus numbered variants for `--count`.
@@ -266,7 +266,7 @@ fal.ai uses `FAL_API_KEY` and the hosted queue API. HiDream and Qwen use `--size
 - fal.ai writes `generated-image.png`, `generated-image.jpg`, or `generated-image.webp`, plus numbered variants for `--count`.
 - Multi-provider runs rename outputs to include the provider and model, such as `generated-image-openai-gpt-image-2.png`; slashes in Replicate model names become dashes, such as `generated-image-replicate-wan-video-wan-2.7-image.png`.
 - `--output-dir` controls the run directory; generated file names remain provider-dependent and deterministic inside that directory.
-- `run.json` includes `image`, `cost`, and `timing` sections. The `image` field is always an array, and each entry includes `imageFileNames`.
+- `manifest.json` uses the canonical single-run shape. Its sole item's metadata includes `image`, `cost`, and `timing`; `image` is always an array, and each entry includes `imageFileNames`.
 
 ## Notes
 

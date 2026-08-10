@@ -26,6 +26,25 @@ export const createReader = (files: Record<string, string>): EpubContentReader =
   }
 })
 
+export const withStandardEpubContainer = (
+  files: Record<string, string>,
+  packagePath = 'OEBPS/content.opf'
+): Record<string, string> => ({
+  'META-INF/container.xml': `
+    <container>
+      <rootfiles>
+        <rootfile full-path="${packagePath}" media-type="application/oebps-package+xml"/>
+      </rootfiles>
+    </container>
+  `,
+  ...files
+})
+
+export const createStandardEpubReader = (
+  files: Record<string, string>,
+  packagePath = 'OEBPS/content.opf'
+): EpubContentReader => createReader(withStandardEpubContainer(files, packagePath))
+
 export const EXAMPLE_EPUB_PATH = resolve('input/examples/document/1-epub.epub')
 
 export const withFakeEbookConvert = async <T>(

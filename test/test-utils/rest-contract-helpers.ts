@@ -1,8 +1,6 @@
 import { afterEach, beforeEach } from 'bun:test'
-import { mkdtemp, rm } from 'node:fs/promises'
-import { tmpdir } from 'node:os'
-import { join } from 'node:path'
 import type { EnvSnapshot, MockFetchCall, MockFetchHandler } from '~/types'
+import { createTempDirTracker } from './temp-dirs'
 
 export const jsonResponse = (body: unknown, init?: ResponseInit): Response =>
   new Response(JSON.stringify(body), {
@@ -97,31 +95,6 @@ export const restoreEnv = (snapshot: EnvSnapshot): void => {
       delete process.env[key]
     } else {
       process.env[key] = value
-    }
-  }
-}
-
-export const createTempDirTracker = (
-  defaultPrefix: string
-): {
-  make: (prefix?: string) => Promise<string>
-  withDir: <T>(fn: (dir: string) => Promise<T>, prefix?: string) => Promise<T>
-  cleanup: () => Promise<void>
-} => {
-  const tempDirs: string[] = []
-
-  const make = async (prefix = defaultPrefix): Promise<string> => {
-    const dir = await mkdtemp(join(tmpdir(), prefix))
-    tempDirs.push(dir)
-    return dir
-  }
-
-  return {
-    make,
-    withDir: async <T,>(fn: (dir: string) => Promise<T>, prefix?: string): Promise<T> =>
-      await fn(await make(prefix)),
-    cleanup: async (): Promise<void> => {
-      await Promise.all(tempDirs.splice(0).map((dir) => rm(dir, { recursive: true, force: true })))
     }
   }
 }

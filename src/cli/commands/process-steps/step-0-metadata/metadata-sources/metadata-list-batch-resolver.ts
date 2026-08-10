@@ -1,4 +1,4 @@
-import type { BatchItem, ProcessCommand, ResolvedBatch, RuntimeOptions } from '~/types'
+import type { BatchItem, ProcessCommand, ProcessPlanningOptions, ResolvedBatch } from '~/types'
 import { selectBatchItems } from '../metadata-batch/metadata-batch-select'
 import { tryResolveBatchSource } from '../metadata-batch/metadata-batch-router'
 
@@ -12,7 +12,7 @@ export const resolveListBatchItems = async (
   items: string[],
   sourceUrl: string,
   command: ProcessCommand,
-  opts: RuntimeOptions
+  opts: ProcessPlanningOptions
 ): Promise<ResolvedBatch> => {
   const batchOpts = {
     limit: opts.batchLimit,

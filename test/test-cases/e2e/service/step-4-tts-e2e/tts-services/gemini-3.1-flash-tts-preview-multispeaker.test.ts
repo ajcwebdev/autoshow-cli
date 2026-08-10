@@ -8,7 +8,7 @@ import {
   findLatestDirectory,
   runCommand,
 } from '../../../../../test-utils/test-helpers'
-import { readRunMetadata } from '../../../../../test-utils/manifest-helpers'
+import { readCanonicalRecord } from '../../../../../test-utils/manifest-helpers'
 import { requireConfiguredEnvVar } from '../../../../../test-utils/service-test-kit'
 
 budgetedTest('tts-gemini-gemini-3.1-flash-tts-preview', 'gemini multispeaker with explicit speaker mappings generates speech.wav', async () => {
@@ -47,7 +47,7 @@ budgetedTest('tts-gemini-gemini-3.1-flash-tts-preview', 'gemini multispeaker wit
     if (outputDir) {
       expect(await fileExists(`${outputDir}/speech.wav`)).toBe(true)
 
-      const metadata = await readRunMetadata(outputDir) as {
+      const metadata = await readCanonicalRecord(outputDir) as {
         tts?: Array<{ ttsService?: string, ttsModel?: string, speaker?: string }>
       }
       expect(metadata.tts?.[0]?.ttsService).toBe('gemini')
@@ -58,4 +58,3 @@ budgetedTest('tts-gemini-gemini-3.1-flash-tts-preview', 'gemini multispeaker wit
     await rm(tempRoot, { recursive: true, force: true })
   }
 }, E2E_TEST_TIMEOUT_MS)
-

@@ -1,6 +1,7 @@
 import type { EstimateVideoCostOptions, FalVideoModel, GeminiVideoModel, GlmVideoModel, GrokVideoModel, LtxVideoModel, LumalabsVideoModel, MinimaxVideoModel, ReplicateVideoModel, RunwayVideoModel, VideoCostEstimate, VideoProvider } from '~/types'
 import { validateFalVideoModel, validateGeminiVideoModel, validateGlmVideoModel, validateGrokVideoModel, validateLtxVideoModel, validateLumalabsVideoModel, validateMinimaxVideoModel, validateReplicateVideoModel, validateRunwayVideoModel } from '~/cli/commands/setup-and-utilities/models/setup-model-options'
 import { getVideoModelMeta } from '~/cli/commands/setup-and-utilities/models/model-loader'
+import { deriveGenerationPricingProviders, VIDEO_GENERATION_SELECTION } from '~/cli/flags/service-selector-normalization/provider-targets'
 import {
   normalizeGeminiDuration,
   normalizeGeminiResolution,
@@ -26,17 +27,7 @@ import { createKeyValueTable } from '~/utils/app-logger/human-table/human-table'
 import { collectSelections, passThroughKeys } from '~/utils/pricing/model-selection'
 import type { ProviderModelSelectionSpec } from '~/utils/pricing/model-selection'
 
-export const VIDEO_PRICING_PROVIDERS = [
-  { service: 'gemini', modelsKey: 'geminiVideoModels', modelKey: 'geminiVideoModel' },
-  { service: 'minimax', modelsKey: 'minimaxVideoModels', modelKey: 'minimaxVideoModel' },
-  { service: 'glm', modelsKey: 'glmVideoModels', modelKey: 'glmVideoModel' },
-  { service: 'grok', modelsKey: 'grokVideoModels', modelKey: 'grokVideoModel' },
-  { service: 'runway', modelsKey: 'runwayVideoModels', modelKey: 'runwayVideoModel' },
-  { service: 'ltx', modelsKey: 'ltxVideoModels', modelKey: 'ltxVideoModel' },
-  { service: 'replicate', modelsKey: 'replicateVideoModels', modelKey: 'replicateVideoModel' },
-  { service: 'lumalabs', modelsKey: 'lumalabsVideoModels', modelKey: 'lumalabsVideoModel' },
-  { service: 'fal', modelsKey: 'falVideoModels', modelKey: 'falVideoModel' }
-] as const satisfies readonly ProviderModelSelectionSpec<EstimateVideoCostOptions, VideoProvider>[]
+export const VIDEO_PRICING_PROVIDERS = deriveGenerationPricingProviders(VIDEO_GENERATION_SELECTION) satisfies readonly ProviderModelSelectionSpec<EstimateVideoCostOptions, VideoProvider>[]
 
 export const VIDEO_PRICING_MODEL_KEYS = passThroughKeys(VIDEO_PRICING_PROVIDERS)
 

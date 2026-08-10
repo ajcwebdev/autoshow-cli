@@ -6,7 +6,8 @@ import {
 import { writeFile } from 'node:fs/promises'
 import { join } from 'node:path'
 import type { RankingSurfaceName, TtsRankingEntry } from '~/types'
-import { expectTtsRankingSurfaces, runConsensusBuildReport, setupTempRoots, writeJson } from './shared'
+import { expectTtsRankingSurfaces, runConsensusBuildReport, setupTempRoots } from './shared'
+import { writeSingleManifestFixture } from '../../../../test-utils/manifest-helpers'
 
 const makeTempRoot = setupTempRoots()
 
@@ -17,10 +18,7 @@ describe('grouped report contracts', () => {
       await writeFile(join(runDir, 'groq-output.md'), 'Groq text output.\n')
       await writeFile(join(runDir, 'minimax-output.md'), 'MiniMax text output.\n')
 
-      await writeJson(join(runDir, 'run.json'), {
-        schemaVersion: 2,
-        kind: 'write',
-        metadata: {
+      await writeSingleManifestFixture(runDir, 'write', {
           step3: [
             {
               llmService: 'llama.cpp',
@@ -71,7 +69,6 @@ describe('grouped report contracts', () => {
               ]
             }
           }
-        }
       })
 
       const { stderr } = await runConsensusBuildReport('text', runDir)

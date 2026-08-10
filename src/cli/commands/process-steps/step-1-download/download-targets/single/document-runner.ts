@@ -7,13 +7,13 @@ import { resolveRunDirectory } from '~/cli/commands/process-steps/run-dir'
 import { downloadDocument, prepareDocumentMetadata } from '~/cli/commands/process-steps/step-1-download/document/dl-document'
 import { getHtmlArticleBackendDisplayName, prepareHtmlArticle } from '~/cli/commands/process-steps/step-1-download/document/prepare-html-article'
 import { processOcr } from '~/cli/commands/process-steps/step-2-extract/step-2-ocr/process-ocr'
-import { writeRunManifest } from '~/cli/commands/process-steps/manifest-utils'
-import type { AggregatedPriceEstimate, BatchChildRunContext, BatchItemProcessResult, PreparedDocument, ProcessDocumentOutput, RuntimeOptions, Step1SourceRef } from '~/types'
+import { createManifest, createPipelineItemFromRecord, PIPELINE_MANIFEST_FILE, writeManifest } from '~/cli/commands/process-steps/pipeline-manifest'
+import type { AggregatedPriceEstimate, BatchChildRunContext, BatchItemProcessResult, MetadataOutputOptions, OcrExtractionOptions, OcrRuntimeOptions, OcrSelectionOptions, PreparedDocument, ProcessDocumentOutput, SharedPipelineOptions, Step1SourceRef, UrlExtractionOptions } from '~/types'
 import { formatHtmlArticleOcrFlagsIgnoredWarning, hasConfiguredOcrProviderSelection } from '~/cli/commands/process-steps/step-2-extract/step-2-shared/inactive-flag-warnings'
 import { buildDocumentMetadataView, writeMetadataTerminalOutput, writeSavedMetadataArtifacts } from './metadata-output'
 import { appendChapterExportArtifacts, buildExtractionCallOpts } from './document-write'
 
-const warnHtmlArticleFlagBehavior = (target: string, opts: RuntimeOptions, backend: PreparedDocument['htmlArticleBackend']): void => {
+const warnHtmlArticleFlagBehavior = (target: string, opts: OcrSelectionOptions, backend: PreparedDocument['htmlArticleBackend']): void => {
   if (hasConfiguredOcrProviderSelection(opts)) {
     l.warn(formatHtmlArticleOcrFlagsIgnoredWarning(target))
   }
@@ -25,7 +25,7 @@ const warnHtmlArticleFlagBehavior = (target: string, opts: RuntimeOptions, backe
 export const prepareArticleDocument = async (
   source: string,
   baseDir: string,
-  opts: RuntimeOptions,
+  opts: UrlExtractionOptions,
   batchChildContext?: BatchChildRunContext
 ): Promise<PreparedDocument> => {
   const effectiveBaseDir = baseDir && baseDir.trim().length > 0 ? baseDir : opts.outputRootDir
@@ -191,7 +191,7 @@ export const logIncompleteOcrRunSummary = (
 export const processOcrSingle = async (
   target: string,
   baseDir: string,
-  opts: RuntimeOptions,
+  opts: OcrExtractionOptions,
   sourceRef?: Step1SourceRef,
   preparedDocument?: PreparedDocument,
   preflightEstimate?: AggregatedPriceEstimate,
@@ -209,7 +209,7 @@ export const processOcrSingle = async (
   )
 
   const artifactFiles: Record<string, string> = {
-    run: 'run.json'
+    manifest: 'manifest.json'
   }
   switch (opts.out) {
     case 'json':
@@ -270,7 +270,7 @@ export const processOcrSingle = async (
 
 export const processMetadataDocument = async (
   target: string,
-  opts: RuntimeOptions,
+  opts: Pick<SharedPipelineOptions, 'outputRootDir'> & Pick<OcrRuntimeOptions, 'password'> & MetadataOutputOptions,
   baseDir: string,
   password?: string,
   sourceRef?: Step1SourceRef,
@@ -312,7 +312,7 @@ export const processMetadataDocument = async (
 
 export const processMetadataPreparedDocument = async (
   prepared: PreparedDocument,
-  opts: RuntimeOptions
+  opts: MetadataOutputOptions
 ): Promise<BatchItemProcessResult> => {
   try {
     const metadata = buildDocumentMetadataView(prepared.step1Metadata, prepared.web)
@@ -329,7 +329,7 @@ export const processMetadataPreparedDocument = async (
 export const processDownloadDocument = async (
   target: string,
   baseDir: string,
-  opts: RuntimeOptions,
+  opts: Pick<SharedPipelineOptions, 'outputRootDir'> & Pick<OcrRuntimeOptions, 'password'>,
   sourceRef?: Step1SourceRef,
   batchChildContext?: BatchChildRunContext
 ): Promise<{ outputDir: string }> => {
@@ -341,9 +341,11 @@ export const processDownloadDocument = async (
       actual: { totalCost: 0, steps: [] as never[] }
     }
 
-    await writeRunManifest(prepared.outputDir, 'download', { step1: prepared.step1Metadata, cost })
+    await writeManifest(prepared.outputDir, createManifest('download', 'single', [
+      createPipelineItemFromRecord(prepared.outputDir, { step1: prepared.step1Metadata, cost }, { status: 'full' })
+    ]))
 
-    l.report.complete(prepared.outputDir, { run: 'run.json' })
+    l.report.complete(prepared.outputDir, { manifest: PIPELINE_MANIFEST_FILE })
 
     return { outputDir: prepared.outputDir }
   } finally {
@@ -362,13 +364,15 @@ export const processDownloadPreparedDocument = async (
       actual: { totalCost: 0, steps: [] as never[] }
     }
 
-    await writeRunManifest(prepared.outputDir, 'download', {
-      step1: prepared.step1Metadata,
-      ...(prepared.web ? { web: prepared.web } : {}),
-      cost
-    })
+    await writeManifest(prepared.outputDir, createManifest('download', 'single', [
+      createPipelineItemFromRecord(prepared.outputDir, {
+        step1: prepared.step1Metadata,
+        ...(prepared.web ? { web: prepared.web } : {}),
+        cost
+      }, { status: 'full' })
+    ]))
 
-    l.report.complete(prepared.outputDir, { run: 'run.json' })
+    l.report.complete(prepared.outputDir, { manifest: PIPELINE_MANIFEST_FILE })
 
     return { outputDir: prepared.outputDir }
   } finally {

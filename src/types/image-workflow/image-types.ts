@@ -1,5 +1,6 @@
-import type { CostEstimateBase, ImageProvider, ImageRuntimeOptionKey, ProcessingOptions, ProviderTargetBase, ResourceGate, Step5Metadata } from '~/types'
-export type ImageGenOptions = Pick<ProcessingOptions, ImageRuntimeOptionKey> & {
+import type { CostEstimateBase, ImageProvider, ImageRuntimeOptions, ProviderTargetBase, ResourceGate, Step5Metadata } from '~/types'
+
+export type ImageGenOptions = Partial<ImageRuntimeOptions> & {
   generationResourceGate?: ResourceGate | undefined
 }
 
@@ -17,10 +18,10 @@ export type ImageCostEstimate = CostEstimateBase<ImageProvider> & {
   costPerImageCents: number
 }
 
-export type EstimateImageCostOptions = Pick<ProcessingOptions,
+export type EstimateImageCostOptions = Partial<Pick<ImageRuntimeOptions,
   | 'geminiImageModels' | 'geminiImageModel' | 'openaiImageModels' | 'openaiImageModel'
   | 'grokImageModels' | 'grokImageModel' | 'bflImageModels' | 'bflImageModel'
   | 'recraftImageModels' | 'recraftImageModel' | 'replicateImageModels' | 'replicateImageModel'
   | 'lumalabsImageModels' | 'lumalabsImageModel' | 'falImageModels' | 'falImageModel'
   | 'imageSize' | 'imageQuality' | 'imageCount'
->
+>>

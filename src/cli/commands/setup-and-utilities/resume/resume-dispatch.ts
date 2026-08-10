@@ -1,6 +1,6 @@
 import { join, resolve as resolvePath } from 'node:path'
-import { readBatchManifestOutcome, readExtractBatchManifestOutcome, readRunManifestOutcome, unsupportedManifestVersionError } from '~/cli/commands/process-steps/manifest-utils'
-import { buildOptsFromFlags } from '~/cli/commands/process-steps/step-1-download/download-targets/build-opts-from-flags/build-options-from-flags'
+import { PIPELINE_MANIFEST_FILE, readManifest } from '~/cli/commands/process-steps/pipeline-manifest'
+import { buildOptsFromFlags } from '~/cli/options/option-resolution/build-options-from-flags'
 import { loadConfig, resolveConfigPath } from '~/cli/commands/setup-and-utilities/config/config-loader'
 import { mergeConfigIntoRawFlags } from '~/cli/commands/setup-and-utilities/config/config-merge'
 import { normalizeExtractGenericSelectorFlags } from '~/cli/flags/service-selector-normalization/extract-selectors'
@@ -10,7 +10,7 @@ import { STANDALONE_IMAGE_PROVIDER_TARGETS, STANDALONE_MUSIC_PROVIDER_TARGETS, S
 import { logSuitePriceSummary } from '~/cli/commands/process-steps/step-1-download/download-targets/suite-price-logging'
 import { logResumeSuiteSummary } from './resume-logging'
 import * as l from '~/utils/app-logger/app-logger'
-import type { AggregatedPriceEstimate, BatchManifest, CliFlagOccurrence, ExtractRoute, ExtractSelectorInputRoutes, ResumeDispatchOutcome, ResumeDisplayOptions, ResumeResult, ResumeSelectorNormalizationResult, ResumeTarget, ResumeTargetKind, RunManifest } from '~/types'
+import type { AggregatedPriceEstimate, CliFlagOccurrence, ExtractRoute, ExtractSelectorInputRoutes, PipelineManifest, ResumeDispatchOutcome, ResumeDisplayOptions, ResumeResult, ResumeSelectorNormalizationResult, ResumeTarget, ResumeTargetKind } from '~/types'
 import { CLIUsageError, InfraError } from '~/utils/error-handler'
 import { getResumeHandler } from './resume-registry'
 
@@ -51,32 +51,21 @@ const extractRoutesForTarget = (
 const isExtractRoute = (value: unknown): value is ExtractRoute =>
   value === 'media' || value === 'document' || value === 'article' || value === 'x-space'
 
-const inferExtractRouteFromBatchManifest = (
-  manifest: BatchManifest
+const readExtractRoute = (
+  manifest: PipelineManifest
 ): ExtractRoute | undefined => {
-  if (manifest.kind !== 'extract') {
+  if (manifest.command !== 'extract') {
     return undefined
   }
 
   const routes = new Set<ExtractRoute>()
   for (const item of manifest.items) {
-    if (isExtractRoute(item['extractRoute'])) {
-      routes.add(item['extractRoute'])
+    if (isExtractRoute(item.extractRoute)) {
+      routes.add(item.extractRoute)
     }
   }
 
   return routes.size === 1 ? [...routes][0] : undefined
-}
-
-const readExtractRouteFromRunManifest = (
-  manifest: RunManifest
-): ExtractRoute | undefined => {
-  if (manifest.kind !== 'extract') {
-    return undefined
-  }
-  return isExtractRoute(manifest.metadata['extractRoute'])
-    ? manifest.metadata['extractRoute']
-    : undefined
 }
 
 const toResumeTarget = (
@@ -100,59 +89,23 @@ const resolveExplicitResumeTarget = async (
   outputDirInput: string
 ): Promise<ResumeTarget> => {
   const dir = resolvePath(outputDirInput)
-  const extractBatchOutcome = await readExtractBatchManifestOutcome(dir)
-  if (extractBatchOutcome.status === 'unsupported-version') {
-    throw unsupportedManifestVersionError(extractBatchOutcome)
-  }
-  const extractBatchManifest = extractBatchOutcome.status === 'ok' ? extractBatchOutcome.manifest : undefined
-  if (extractBatchManifest) {
-    return {
-      kind: 'extract',
-      scope: 'batch',
-      dir,
-      manifestPath: extractBatchManifest.manifestPath
-    }
-  }
-
-  const batchOutcome = await readBatchManifestOutcome(dir)
-  if (batchOutcome.status === 'unsupported-version') {
-    throw unsupportedManifestVersionError(batchOutcome)
-  }
-  const batchManifest = batchOutcome.status === 'ok' ? batchOutcome.manifest : undefined
-  if (batchManifest) {
+  const manifest = await readManifest(dir)
+  const manifestPath = join(dir, PIPELINE_MANIFEST_FILE)
+  if (manifest) {
     const target = toResumeTarget(
-      batchManifest.manifest.kind,
-      'batch',
+      manifest.command,
+      manifest.scope,
       dir,
-      batchManifest.manifestPath,
-      inferExtractRouteFromBatchManifest(batchManifest.manifest)
+      manifestPath,
+      readExtractRoute(manifest)
     )
     if (target) {
       return target
     }
-    throw CLIUsageError(`Resume supports only extract, write, TTS, image, video, and music manifests. Found "${batchManifest.manifest.kind}" at ${batchManifest.manifestPath}.`)
+    throw CLIUsageError(`Resume supports only extract, write, TTS, image, video, and music manifests. Found "${manifest.command}" at ${manifestPath}.`)
   }
 
-  const runOutcome = await readRunManifestOutcome(dir)
-  if (runOutcome.status === 'unsupported-version') {
-    throw unsupportedManifestVersionError(runOutcome)
-  }
-  const runManifest = runOutcome.status === 'ok' ? runOutcome.manifest : undefined
-  if (runManifest) {
-    const target = toResumeTarget(
-      runManifest.kind,
-      'single',
-      dir,
-      join(dir, 'run.json'),
-      readExtractRouteFromRunManifest(runManifest)
-    )
-    if (target) {
-      return target
-    }
-    throw CLIUsageError(`Resume supports only extract, write, TTS, image, video, and music manifests. Found "${runManifest.kind}" at ${join(dir, 'run.json')}.`)
-  }
-
-  throw CLIUsageError(`Could not find extract-batch.json, batch.json, or run.json under ${dir}.`)
+  throw CLIUsageError(`Could not find ${PIPELINE_MANIFEST_FILE} under ${dir}.`)
 }
 
 export const normalizeResumeSelectorFlagsForTarget = (
@@ -224,7 +177,6 @@ const buildResumeFailureError = (
 const dispatchSingleResume = async (
   outputDirInput: string,
   rawFlags: Record<string, unknown>,
-  doubleDash: string[] = [],
   flagOccurrences: readonly CliFlagOccurrence[] = [],
   displayOptions: ResumeDisplayOptions = {}
 ): Promise<ResumeDispatchOutcome> => {
@@ -236,7 +188,7 @@ const dispatchSingleResume = async (
   const config = await loadConfig(resolvedConfigPath)
   const mergedFlags = mergeConfigIntoRawFlags(normalized.flags, config, normalized.explicitFlags)
   const opts = {
-    ...buildOptsFromFlags(false, mergedFlags, doubleDash, {}, normalized.explicitFlags, normalized.flagOccurrences),
+    ...buildOptsFromFlags(false, mergedFlags, {}, normalized.explicitFlags, normalized.flagOccurrences),
     configPath: resolvedConfigPath
   }
 
@@ -282,7 +234,6 @@ export const dispatchResume = async (
       const outcome = await dispatchSingleResume(
         outputDir,
         rawFlags,
-        doubleDash,
         flagOccurrences,
         outputDirs.length > 1 ? { itemLabel: `${index + 1}/${outputDirs.length}` } : {}
       )

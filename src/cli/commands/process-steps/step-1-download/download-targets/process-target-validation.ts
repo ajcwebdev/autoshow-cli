@@ -1,5 +1,5 @@
 import { CLIUsageError } from '~/utils/error-handler'
-import type { ProcessCommand, RuntimeOptions } from '~/types'
+import type { OcrSelectionOptions, ProcessCommand, SttSelectionOptions } from '~/types'
 import { collectExplicitOcrTargets } from '~/cli/commands/process-steps/step-2-extract/step-2-ocr/ocr-targets'
 import { collectSttTargets } from '~/cli/commands/process-steps/step-2-extract/step-2-stt/stt-targets'
 
@@ -7,7 +7,7 @@ export const buildUnsupportedExtractInputMessage = (
   input: string
 ): string => `Could not classify extract input "${input}". Verify the file type or route it explicitly as media or document content.`
 
-export const validateWriteStep2ProviderSelection = (command: ProcessCommand, opts: RuntimeOptions): void => {
+export const validateWriteStep2ProviderSelection = (command: ProcessCommand, opts: SttSelectionOptions & OcrSelectionOptions): void => {
   if (command !== 'write') {
     return
   }

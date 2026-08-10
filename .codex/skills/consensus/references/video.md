@@ -1,6 +1,6 @@
 # Video Consensus
 
-Use this category for multi-provider AutoShow video runs with `run.json` metadata and generated video files in the run directory root.
+Use this category for multi-provider AutoShow video runs with canonical `manifest.json` metadata and generated video files in the run directory root.
 
 ## Packet
 

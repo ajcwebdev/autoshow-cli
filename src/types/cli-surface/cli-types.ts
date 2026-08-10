@@ -1,6 +1,6 @@
-import type { BatchRuntimeOptions, HostedTtsChunkScheduler, HtmlArticleBackend, ImageRuntimeOptions, MusicRuntimeOptions, OcrRuntimeOptions, ResourceGate, SttRuntimeOptions, TtsRuntimeOptions, VideoRuntimeOptions } from '~/types'
+import type { BatchRuntimeOptions, HostedTtsChunkScheduler, HtmlArticleBackend, ImageRuntimeOptions, MusicRuntimeOptions, OcrRuntimeOptions, OcrSelectionOptions, ResolvedLLMModelOptions, ResourceGate, SttRuntimeOptions, SttSelectionOptions, TtsRuntimeOptions, VideoRuntimeOptions } from '~/types'
 
-const PROCESS_COMMANDS = ['metadata', 'download', 'extract', 'write', 'tts', 'image', 'video', 'music'] as const
+export const PROCESS_COMMANDS = ['metadata', 'download', 'extract', 'write', 'tts', 'image', 'video', 'music'] as const
 
 export type ProcessCommand = typeof PROCESS_COMMANDS[number]
 
@@ -9,46 +9,34 @@ export type OutputFormat = typeof OUTPUT_FORMATS[number]
 
 export type Step2ProviderSelectionOrigin = 'default' | 'explicit' | 'all-shortcut'
 
-export type RuntimeOptions = SttRuntimeOptions & TtsRuntimeOptions & OcrRuntimeOptions & ImageRuntimeOptions & MusicRuntimeOptions & VideoRuntimeOptions & BatchRuntimeOptions & {
+export type SharedPipelineOptions = {
   outputRootDir: string
   configPath: string | undefined
   useReverb: boolean
   youtubeCaptions: boolean
   whisperExplicit: boolean
   step2SelectionOrigins: Partial<Record<string, Step2ProviderSelectionOrigin>>
-  llamaModels: string[] | undefined
-  llamaModel: string | undefined
-  llamafileModels: string[] | undefined
-  llamafileModel: string | undefined
-  openaiModels: string[] | undefined
-  openaiModel: string | undefined
-  groqModels: string[] | undefined
-  groqModel: string | undefined
-  geminiModels: string[] | undefined
-  geminiModel: string | undefined
-  anthropicModels: string[] | undefined
-  anthropicModel: string | undefined
-  minimaxModels: string[] | undefined
-  minimaxModel: string | undefined
-  grokModels: string[] | undefined
-  grokModel: string | undefined
-  glmModels: string[] | undefined
-  glmModel: string | undefined
-  kimiModels: string[] | undefined
-  kimiModel: string | undefined
-  togetherModels: string[] | undefined
-  togetherModel: string | undefined
-  cerebrasModels: string[] | undefined
-  cerebrasModel: string | undefined
+}
+
+export type LlmRuntimeOptions = ResolvedLLMModelOptions & {
   llmProviderConcurrency: number
   llmLocalConcurrency: number
+}
+
+export type GenerationSchedulingOptions = {
   ttsProviderConcurrency: number
   ttsLocalConcurrency: number
   ttsChunkConcurrency: number
   generationResourceGate?: ResourceGate | undefined
   hostedTtsChunkScheduler?: HostedTtsChunkScheduler | undefined
+}
+
+export type PricingRuntimeOptions = {
   price: boolean
   allowOverBudget: boolean
+}
+
+export type UrlRuntimeOptions = {
   skipLLM: boolean
   urlBackend: HtmlArticleBackend
   urlBackendExplicit: boolean
@@ -56,8 +44,13 @@ export type RuntimeOptions = SttRuntimeOptions & TtsRuntimeOptions & OcrRuntimeO
   urlProviderConcurrency: number
   urlRequestTimeoutMs: number
   urlRequestAttempts: number
-  ytDlpPassthroughArgs: string[] | undefined
+}
 
+export type DownloadRuntimeOptions = {
+  ytDlpPassthroughArgs: string[] | undefined
+}
+
+export type PromptRuntimeOptions = {
   prompts: string[]
   promptFile: string | undefined
   textInput: boolean
@@ -65,7 +58,59 @@ export type RuntimeOptions = SttRuntimeOptions & TtsRuntimeOptions & OcrRuntimeO
   renderedOutDir: string | undefined
   trackList: string | undefined
   promptMd: boolean
+}
 
+export type MetadataOutputOptions = {
   markdown: boolean
   save: boolean
 }
+
+export type ProcessPlanningOptions = SttSelectionOptions
+  & OcrSelectionOptions
+  & Pick<OcrRuntimeOptions, 'useEpubBun'>
+  & Pick<BatchRuntimeOptions, 'batchLimit' | 'batchAll' | 'batchOrder'>
+  & Pick<UrlRuntimeOptions, 'urlBackend' | 'urlBackendExplicit' | 'urlBackends'>
+  & Pick<PromptRuntimeOptions, 'textInput'>
+
+export type CommandPricingOptions = ProcessPlanningOptions
+  & SttRuntimeOptions
+  & OcrRuntimeOptions
+  & TtsRuntimeOptions
+  & ImageRuntimeOptions
+  & VideoRuntimeOptions
+  & MusicRuntimeOptions
+  & LlmRuntimeOptions
+  & GenerationSchedulingOptions
+  & PricingRuntimeOptions
+  & UrlRuntimeOptions
+  & Pick<PromptRuntimeOptions, 'prompts' | 'promptFile' | 'textInput' | 'promptMd'>
+
+export type ExpectedOutputOptions = ProcessPlanningOptions
+  & SttRuntimeOptions
+  & OcrRuntimeOptions
+  & TtsRuntimeOptions
+  & ImageRuntimeOptions
+  & VideoRuntimeOptions
+  & MusicRuntimeOptions
+  & LlmRuntimeOptions
+  & UrlRuntimeOptions
+  & PromptRuntimeOptions
+  & MetadataOutputOptions
+  & Pick<BatchRuntimeOptions, 'bestQuality'>
+  & Pick<SharedPipelineOptions, 'youtubeCaptions'>
+
+export type WriteRuntimeOptions = SttRuntimeOptions
+  & TtsRuntimeOptions
+  & OcrRuntimeOptions
+  & ImageRuntimeOptions
+  & MusicRuntimeOptions
+  & VideoRuntimeOptions
+  & BatchRuntimeOptions
+  & SharedPipelineOptions
+  & LlmRuntimeOptions
+  & GenerationSchedulingOptions
+  & PricingRuntimeOptions
+  & UrlRuntimeOptions
+  & DownloadRuntimeOptions
+  & PromptRuntimeOptions
+  & MetadataOutputOptions

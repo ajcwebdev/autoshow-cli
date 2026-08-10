@@ -15,7 +15,7 @@ import {
   WRITE_LLM_PROVIDER_TARGETS,
   WRITE_OCR_PROVIDER_TARGETS
 } from '~/cli/flags/service-selector-normalization/provider-targets'
-import { PDF_CHAPTER_MODES } from '~/cli/commands/process-steps/step-1-download/download-targets/options/flag-readers'
+import { PDF_CHAPTER_MODES } from '~/cli/options/option-resolution/flag-readers'
 import {
   GEMINI_VIDEO_RESOLUTIONS,
   GLM_COGVIDEOX_SIZE_VALUES,

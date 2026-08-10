@@ -1,6 +1,6 @@
 # Image Combined Provider Comparison Report (2026-05-21)
 
-This standalone report aggregates the two image benchmark runs dated 2026-05-21 directly from the existing `run.json` and `image-quality-report.json` files. No images were regenerated and no judge was run.
+This standalone report aggregates the two image benchmark runs dated 2026-05-21 directly from the existing `manifest.json` and `image-quality-report.json` files. No images were regenerated and no judge was run.
 
 ## Source Inventory
 
@@ -11,7 +11,7 @@ This standalone report aggregates the two image benchmark runs dated 2026-05-21 
 - Automated quality score rows: 26 across 13 models
 - Human quality score rows: 0
 
-Aggregate quality is the unweighted average `qualityScore` across rows where an explicit judge score was present. Quality coverage is shown as score observations over total runs; cost and speed coverage is shown as observed provider rows over total runs. Cost is USD converted from report cents. For judged historical rows, the retained cost in `image-quality-report.json` takes precedence over a recomputed registry fallback; all other costs come from `run.json`. Speed is average processing time in seconds. Rankings are grouped by service providers because no local providers were present. Unjudged models remain in price and speed rankings with `n/a` quality and are not included in the automated-quality ranking.
+Aggregate quality is the unweighted average `qualityScore` across rows where an explicit judge score was present. Quality coverage is shown as score observations over total runs; cost and speed coverage is shown as observed provider rows over total runs. Cost is USD converted from report cents. For judged historical rows, the retained cost in `image-quality-report.json` takes precedence over a recomputed registry fallback; all other costs come from `manifest.json`. Speed is average processing time in seconds. Rankings are grouped by service providers because no local providers were present. Unjudged models remain in price and speed rankings with `n/a` quality and are not included in the automated-quality ranking.
 
 | Run | Prompt | Providers | Best automated quality | Cheapest service | Fastest service |
 | --- | --- | ---: | --- | --- | --- |
@@ -132,4 +132,4 @@ No explicit `humanQualityScore` was available in either source run. Generic `qua
 
 ## Source Checks
 
-Both source directories contained readable `run.json` and `image-quality-report.json` files. The run metadata contained 37 service rows in `2026-05-21_10-33-37-508_image-gen` and 37 service rows in `2026-05-21_10-35-24-459_image-gen`. The quality artifacts contained 13 explicit score rows and 13 explicit score rows. All 74 run rows had cost and processing-time evidence. No local provider or explicit human-quality evidence was present.
+Both source directories contained readable `manifest.json` and `image-quality-report.json` files. The run metadata contained 37 service rows in `2026-05-21_10-33-37-508_image-gen` and 37 service rows in `2026-05-21_10-35-24-459_image-gen`. The quality artifacts contained 13 explicit score rows and 13 explicit score rows. All 74 run rows had cost and processing-time evidence. No local provider or explicit human-quality evidence was present.

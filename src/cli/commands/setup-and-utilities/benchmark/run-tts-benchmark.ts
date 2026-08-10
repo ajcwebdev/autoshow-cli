@@ -1,11 +1,11 @@
 import { stat } from 'node:fs/promises'
-import { join, resolve } from 'node:path'
+import { resolve } from 'node:path'
 import { CLIUsageError, isCLIUsageError } from '~/utils/error-handler'
 import * as l from '~/utils/app-logger/app-logger'
 import { createKeyValueTable } from '~/utils/app-logger/human-table/human-table'
-import { loadTtsRunJson } from './tts-eval-lib'
+import { loadTtsManifestMetadata } from './tts-eval-lib'
 import { writeVoiceQualityReport } from '~/cli/commands/setup-and-utilities/benchmark/tts-voice-quality-report/report-writing'
-import type { BenchmarkFlags, ContentType, TtsInputTextSource, TtsRunJson, VoiceQualityReportMode, VoiceQualityReportOptions } from '~/types'
+import type { BenchmarkFlags, ContentType, TtsInputTextSource, TtsManifestMetadata, VoiceQualityReportMode, VoiceQualityReportOptions } from '~/types'
 const DEFAULT_AUDIO_JUDGE_MODEL = 'gpt-audio'
 
 const readTextFlagValue = async (value: string): Promise<TtsInputTextSource> => {
@@ -33,14 +33,14 @@ const readTextFlagValue = async (value: string): Promise<TtsInputTextSource> => 
 }
 
 const resolveTtsInputText = async (
-  runJson: TtsRunJson,
+  manifestMetadata: TtsManifestMetadata,
   flags: BenchmarkFlags
 ): Promise<TtsInputTextSource> => {
   if (flags['tts-input-text']) {
     return await readTextFlagValue(flags['tts-input-text'])
   }
 
-  const metadataInput = runJson.metadata.input?.trim()
+  const metadataInput = manifestMetadata.input?.trim()
   if (metadataInput) {
     return {
       inputText: metadataInput,
@@ -49,7 +49,7 @@ const resolveTtsInputText = async (
   }
 
   throw CLIUsageError(
-    'TTS benchmark source text is missing. This run.json does not contain metadata.input; pass --tts-input-text with the original text or a text file path.'
+    'TTS benchmark source text is missing. manifest.json does not contain item metadata.input; pass --tts-input-text with the original text or a text file path.'
   )
 }
 
@@ -61,7 +61,7 @@ const resolveTtsMode = (value: string | undefined): VoiceQualityReportMode => {
   return mode
 }
 
-const loadBenchmarkTtsRunJson = async (runDir: string): Promise<TtsRunJson> => {
+const loadBenchmarkTtsManifest = async (runDir: string): Promise<TtsManifestMetadata> => {
   try {
     const dirStat = await stat(runDir)
     if (!dirStat.isDirectory()) {
@@ -74,15 +74,8 @@ const loadBenchmarkTtsRunJson = async (runDir: string): Promise<TtsRunJson> => {
     throw CLIUsageError(`TTS run directory not found: ${runDir}`)
   }
 
-  const runJsonPath = join(runDir, 'run.json')
   try {
-    await stat(runJsonPath)
-  } catch {
-    throw CLIUsageError(`TTS run directory is missing run.json: ${runJsonPath}`)
-  }
-
-  try {
-    return loadTtsRunJson(runDir)
+    return await loadTtsManifestMetadata(runDir)
   } catch (error) {
     throw CLIUsageError(error instanceof Error ? error.message : String(error))
   }
@@ -97,10 +90,10 @@ export const runTtsBenchmark = async (
   }
 
   const runDir = resolve(input)
-  const runJson = await loadBenchmarkTtsRunJson(runDir)
+  const manifestMetadata = await loadBenchmarkTtsManifest(runDir)
   const mode = resolveTtsMode(flags['tts-mode'])
   const contentType: ContentType = 'default'
-  const inputTextSource = await resolveTtsInputText(runJson, flags)
+  const inputTextSource = await resolveTtsInputText(manifestMetadata, flags)
 
   const options: VoiceQualityReportOptions = {
     runDir,
@@ -125,7 +118,7 @@ export const runTtsBenchmark = async (
     humanTable: createKeyValueTable([
       ['runDir', runDir],
       ['mode', mode],
-      ['providers', runJson.metadata.tts.length],
+      ['providers', manifestMetadata.tts.length],
       ['json', jsonOut],
       ['markdown', markdownOut],
       ['warnings', warnings.length],
@@ -133,7 +126,7 @@ export const runTtsBenchmark = async (
     metadata: {
       runDir,
       mode,
-      providerCount: runJson.metadata.tts.length,
+      providerCount: manifestMetadata.tts.length,
       jsonOut,
       markdownOut,
       warningCount: warnings.length,

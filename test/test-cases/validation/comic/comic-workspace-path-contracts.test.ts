@@ -19,6 +19,36 @@ import { beginSceneRun, resetSceneRunContext } from '~/cli/commands/process-step
 
 const roots: string[] = []
 
+type SnapshotFixtureOptions = {
+  assetPath?: string | ((canonicalPath: string) => string)
+  registeredSha256?: string
+  schemaVersion?: number
+}
+
+const createSnapshotFixture = async (options: SnapshotFixtureOptions = {}) => {
+  const workspace = await mkdtemp(join(tmpdir(), 'autoshow-comic-assets-'))
+  roots.push(workspace)
+  const bytes = Buffer.from('canonical-reference')
+  const canonicalPath = join(workspace, 'assets', 'character-references', 'snapshot', 'hero', 'reference.png')
+  await mkdir(join(workspace, 'assets', 'character-references', 'snapshot', 'hero'), { recursive: true })
+  await Bun.write(canonicalPath, bytes)
+  const sha256 = createHash('sha256').update(bytes).digest('hex')
+  const assetPath = typeof options.assetPath === 'function'
+    ? options.assetPath(canonicalPath)
+    : options.assetPath ?? 'assets/character-references/snapshot/hero/reference.png'
+  await Bun.write(join(workspace, 'assets', 'character-references.json'), JSON.stringify({
+    schemaVersion: options.schemaVersion ?? 2,
+    snapshotId: 'snapshot',
+    catalogHash: 'catalog',
+    createdAt: '2026-01-01T00:00:00.000Z',
+    characters: [{ key: 'hero', name: 'Hero', description: 'Hero.', sourceSketchVersion: 'v1', assets: [
+      { role: 'sketch-sheet', path: assetPath, sha256: options.registeredSha256 ?? sha256 },
+      { role: 'source-image', path: assetPath, sha256: options.registeredSha256 ?? sha256 },
+    ] }],
+  }))
+  return { canonicalPath, workspace }
+}
+
 afterEach(async () => {
   resetSceneRunContext()
   resetPinnedRunDir()
@@ -59,26 +89,33 @@ describe('panel-first comic workspace paths', () => {
     expect(getSceneJsonPath('scene')).toBe(join(pinned, 'metadata', 'scene.json'))
   })
 
-  test('loads assets below assets/ and still enforces registered checksums', async () => {
-    const workspace = await mkdtemp(join(tmpdir(), 'autoshow-comic-assets-'))
-    roots.push(workspace)
-    const bytes = Buffer.from('canonical-reference')
-    const assetPath = join(workspace, 'assets', 'character-references', 'snapshot', 'hero', 'reference.png')
-    await mkdir(join(workspace, 'assets', 'character-references', 'snapshot', 'hero'), { recursive: true })
-    await Bun.write(assetPath, bytes)
-    const sha256 = createHash('sha256').update(bytes).digest('hex')
-    await Bun.write(join(workspace, 'assets', 'character-references.json'), JSON.stringify({
-      schemaVersion: 2,
-      snapshotId: 'snapshot',
-      catalogHash: 'catalog',
-      createdAt: '2026-01-01T00:00:00.000Z',
-      characters: [{ key: 'hero', name: 'Hero', description: 'Hero.', sourceSketchVersion: 'v1', assets: [
-        { role: 'sketch-sheet', path: 'assets/character-references/snapshot/hero/reference.png', sha256 },
-        { role: 'source-image', path: 'assets/character-references/snapshot/hero/reference.png', sha256 },
-      ] }],
-    }))
-    await expect(loadAndVerifyCharacterReferenceSnapshot(workspace, 'snapshot')).resolves.toBeTruthy()
-    await Bun.write(assetPath, 'tampered')
-    await expect(loadAndVerifyCharacterReferenceSnapshot(workspace, 'snapshot')).rejects.toThrow(/modified or corrupted/)
+  test('accepts a valid character-reference snapshot', async () => {
+    const { workspace } = await createSnapshotFixture()
+    expect(loadAndVerifyCharacterReferenceSnapshot(workspace, 'snapshot').snapshotId).toBe('snapshot')
+  })
+
+  test('rejects a character-reference asset path that escapes with ../', async () => {
+    const { workspace } = await createSnapshotFixture({ assetPath: '../outside.png' })
+    expect(() => loadAndVerifyCharacterReferenceSnapshot(workspace, 'snapshot')).toThrow(/Unsafe snapshot asset path/)
+  })
+
+  test('rejects an absolute character-reference asset path even when it points inside the workspace', async () => {
+    const { workspace } = await createSnapshotFixture({ assetPath: canonicalPath => canonicalPath })
+    expect(() => loadAndVerifyCharacterReferenceSnapshot(workspace, 'snapshot')).toThrow(/Unsafe snapshot asset path/)
+  })
+
+  test('rejects a character-reference checksum mismatch', async () => {
+    const { workspace } = await createSnapshotFixture({ registeredSha256: '0'.repeat(64) })
+    expect(() => loadAndVerifyCharacterReferenceSnapshot(workspace, 'snapshot')).toThrow(/modified or corrupted/)
+  })
+
+  test('rejects a legacy character-reference schema version', async () => {
+    const { workspace } = await createSnapshotFixture({ schemaVersion: 1 })
+    expect(() => loadAndVerifyCharacterReferenceSnapshot(workspace, 'snapshot')).toThrow(/schemaVersion 2/)
+  })
+
+  test('rejects a stale character-reference snapshot ID', async () => {
+    const { workspace } = await createSnapshotFixture()
+    expect(() => loadAndVerifyCharacterReferenceSnapshot(workspace, 'stale-snapshot')).toThrow(/does not match manifest snapshot/)
   })
 })

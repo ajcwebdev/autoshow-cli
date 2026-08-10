@@ -5,7 +5,7 @@ import {
   fileExists,
   findLatestDirectory,
 } from '../../../../test-utils/test-helpers'
-import { readRunMetadata } from '../../../../test-utils/manifest-helpers'
+import { readCanonicalRecord } from '../../../../test-utils/manifest-helpers'
 import { requireConfiguredEnvVar } from '../../../../test-utils/service-test-kit'
 
 budgetedTest('music-pipeline-minimax-music-3.0', 'write with minimax music and lyrics file', async () => {
@@ -23,7 +23,7 @@ budgetedTest('music-pipeline-minimax-music-3.0', 'write with minimax music and l
 
   expect(await fileExists(`${outputDir}/generated-music.mp3`)).toBe(true)
 
-  const metadata = await readRunMetadata(outputDir) as {
+  const metadata = await readCanonicalRecord(outputDir) as {
     step7?: { musicService?: string; musicModel?: string; lyricsSource?: string; musicFileName?: string }
   }
   expect(metadata.step7?.musicService).toBe('minimax')
@@ -31,4 +31,3 @@ budgetedTest('music-pipeline-minimax-music-3.0', 'write with minimax music and l
   expect(metadata.step7?.lyricsSource).toBe('provided')
   expect(metadata.step7?.musicFileName).toBe('generated-music.mp3')
 })
-

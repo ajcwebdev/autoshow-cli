@@ -18,14 +18,14 @@ bun autoshow <command> [<subcommand>] <target> [flags]
             v
 +------------------+     +------------------+     +------------------+     +------------------+
 | CLI layer        | --> | Target layer     | --> | Processing layer | --> | Output layer     |
-| native parser    |     | plan + routing   |     | steps 0-8        |     | schema v2 files  |
+| native parser    |     | plan + routing   |     | steps 0-8        |     | manifest + files |
 +------------------+     +------------------+     +------------------+     +------------------+
 ```
 
 1. CLI layer: `src/cli/create-cli.ts` registers the root definition, global flags, command groups, and per-command definitions. `src/cli/native/*` parses argv, renders help/version output, rejects unknown flags where appropriate, and builds the command context.
-2. Target layer: `handleProcessTarget()` resolves the target, merges config defaults, normalizes selectors, builds `RuntimeOptions`, calls `resolveProcessTargetPlan()`, and for single extract/write items calls `resolveInputRoutingForCommand()`.
+2. Target layer: `handleProcessTarget()` resolves the target, merges config defaults, normalizes selectors, composes only the domain option slices required by the selected command, calls `resolveProcessTargetPlan()`, and for single extract/write items calls `resolveInputRoutingForCommand()`.
 3. Processing layer: Step 0 metadata, Step 1 download/detect, Step 2 STT/OCR/article/X extraction, Step 3 LLM writing, Steps 4-7 TTS/image/video/music generation, and Step 8 comic utilities.
-4. Output layer: `run.json`, `batch.json`, and `extract-batch.json` use schema version 3 envelopes; provider result/checkpoint artifacts remain schema version 2.
+4. Output layer: every run or batch root owns one unversioned `manifest.json` with the same canonical shape. Provider lifecycle state is stored in that manifest through the serialized atomic writer; provider directories contain generated artifacts and optional raw domain `result.json` payloads, never another control artifact.
 
 ## Native Dispatch
 
@@ -138,6 +138,8 @@ write/config pipeline defaults
   --all-providers stt|ocr|url|llm|tts|image|video|music
   --all-local stt|ocr|url|llm|tts
 ```
+
+Flag/config resolution is command-neutral, but processing is not built around an all-command option bag. STT, OCR, URL, LLM, TTS, image, video, music, batch, and pricing consumers accept their own option slices plus explicitly named shared controls. Only the full media/document write path composes the slices it actually runs.
 
 `extract --provider` is route-aware. A media item maps it to STT providers, a document/image item maps it to OCR providers, and an article route uses URL backend selection. Mixed extract batches are partitioned by route so generic selections are normalized before execution.
 

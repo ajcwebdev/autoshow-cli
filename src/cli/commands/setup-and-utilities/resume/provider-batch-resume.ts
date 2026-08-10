@@ -1,16 +1,16 @@
 import { join, resolve as resolvePath } from 'node:path'
 import { fileURLToPath } from 'node:url'
-import { assertManifestEntriesCanBeRewritten, readBatchManifest } from '~/cli/commands/process-steps/manifest-utils'
-import type { AggregatedPriceEstimate, BatchManifestEntry, ProviderBatchResumeConfig, ProviderCompletionStatus, ProviderIdentity, ProviderResumeEntry, ProviderResumeManifest, ProviderResumePassResult, ProviderResumePriceConfig, ProviderResumeProcessResult, ResumeDisplayOptions, ResumeResult, ResumeTarget, RuntimeOptions, Step1SourceRef, StepEstimate } from '~/types'
+import { createPipelineItemFromRecord, derivePipelineItemRecord, PIPELINE_MANIFEST_FILE, readManifest, writeManifest } from '~/cli/commands/process-steps/pipeline-manifest'
+import type { AggregatedPriceEstimate, PipelineItemRecord, ProviderBatchResumeConfig, ProviderCompletionStatus, ProviderIdentity, ProviderResumeEntry, ProviderResumePassResult, ProviderResumePriceConfig, ProviderResumeProcessResult, ProviderResumeSnapshot, ResumeDisplayOptions, ResumeResult, ResumeTarget, Step1SourceRef, StepEstimate } from '~/types'
 import { CLIUsageError } from '~/utils/error-handler'
 import { aggregateExplicitPriceEstimate } from '~/utils/pricing/aggregate-pricing'
 import * as l from '~/utils/app-logger/app-logger'
 import { logResumeItem, logResumeSummary } from './resume-logging'
 import { resolveAdditiveResumeProviderSelection } from './resume-provider-selection'
 
-export const resolveProviderResumeOutputDir = (entry: Record<string, unknown>): string | undefined =>
-  typeof entry['outputDir'] === 'string' && entry['outputDir'].length > 0
-    ? resolvePath(entry['outputDir'])
+export const resolveProviderResumeOutputDir = (record: PipelineItemRecord): string | undefined =>
+  typeof record['outputDir'] === 'string' && record['outputDir'].length > 0
+    ? resolvePath(record['outputDir'])
     : undefined
 
 export const toProviderResumeSource = (url: string): Step1SourceRef => {
@@ -34,17 +34,17 @@ export const providerResumeSourceInput = (source: Step1SourceRef, stepLabel: str
 }
 
 export const selectedProviderTargetsComplete = <TTarget extends ProviderIdentity>(
-  metadata: BatchManifestEntry,
+  record: PipelineItemRecord,
   selectedTargets: TTarget[] | undefined,
-  parseStoredTargets: (metadata: Record<string, unknown>) => TTarget[],
-  buildMissingTargets: (metadata: Record<string, unknown>, storedTargets: TTarget[]) => TTarget[]
+  parseStoredTargets: (record: PipelineItemRecord) => TTarget[],
+  buildMissingTargets: (record: PipelineItemRecord, storedTargets: TTarget[]) => TTarget[]
 ): boolean => {
   if (selectedTargets === undefined) {
     return false
   }
 
-  const storedTargets = parseStoredTargets(metadata)
-  const missingTargets = buildMissingTargets(metadata, storedTargets)
+  const storedTargets = parseStoredTargets(record)
+  const missingTargets = buildMissingTargets(record, storedTargets)
   return resolveAdditiveResumeProviderSelection({
     storedProviders: storedTargets,
     runnableStoredProviders: missingTargets,
@@ -52,11 +52,11 @@ export const selectedProviderTargetsComplete = <TTarget extends ProviderIdentity
   }).providersToRun.length === 0
 }
 
-export const selectedProvidersCompleteResult = (outputDir: string, metadata: BatchManifestEntry): ProviderResumeProcessResult => ({
+export const selectedProvidersCompleteResult = (outputDir: string, record: PipelineItemRecord): ProviderResumeProcessResult => ({
   outputDir,
-  metadata,
+  record,
   completionStatus: 'full',
-  detail: 'selected providers complete; run manifest still incomplete',
+  detail: 'selected providers complete; canonical item still incomplete',
   level: 'success'
 })
 
@@ -67,73 +67,64 @@ export const toProviderResumeResult = (result: ProviderResumePassResult): Resume
 })
 
 export const withProviderResumeOutputDir = (
-  metadata: BatchManifestEntry,
+  record: PipelineItemRecord,
   outputDir: string
-): BatchManifestEntry => ({
-  ...metadata,
+): PipelineItemRecord => ({
+  ...record,
   outputDir
 })
 
-export const stripProviderResumeOutputDir = (
-  metadata: BatchManifestEntry
-): Record<string, unknown> => {
-  const { outputDir: _outputDir, ...rest } = metadata
-  return rest
-}
-
-export const readProviderResumeTargetManifest = async (
+export const readProviderResumeSnapshot = async (
   target: ResumeTarget,
-  readOutputMetadata: (outputDir: string) => Promise<BatchManifestEntry>
-): Promise<ProviderResumeManifest | undefined> => {
-  if (target.scope === 'batch') {
-    const manifest = await readBatchManifest(target.dir, 'extract')
-    if (!manifest) {
-      return undefined
-    }
+  readItemRecord: (outputDir: string) => Promise<PipelineItemRecord>
+): Promise<ProviderResumeSnapshot | undefined> => {
+  const manifest = await readManifest(target.dir)
+  if (!manifest || manifest.command !== 'extract' || manifest.scope !== target.scope) {
+    return undefined
+  }
 
+  if (target.scope === 'batch') {
     return {
-      infoPath: manifest.manifestPath,
-      entries: manifest.manifest.items,
-      rawItemCount: manifest.rawItemCount,
-      ...(manifest.firstUnparseableEntryIndex !== undefined ? { firstUnparseableEntryIndex: manifest.firstUnparseableEntryIndex } : {}),
-      ...(manifest.manifest.source ? { source: manifest.manifest.source } : {})
+      manifestPath: join(target.dir, PIPELINE_MANIFEST_FILE),
+      manifest,
+      records: manifest.items.map((item) => derivePipelineItemRecord(target.dir, item))
     }
   }
 
-  const metadata = await readOutputMetadata(target.dir)
+  const record = await readItemRecord(target.dir)
   return {
-    infoPath: target.manifestPath,
-    entries: [withProviderResumeOutputDir(metadata, target.dir)]
+    manifestPath: join(target.dir, PIPELINE_MANIFEST_FILE),
+    manifest,
+    records: [withProviderResumeOutputDir(record, target.dir)]
   }
 }
 
 export const priceProviderResumeTarget = async <
   TTarget extends ProviderIdentity,
-  TEntry extends ProviderResumeEntry<TTarget>
+  TEntry extends ProviderResumeEntry<TTarget>,
+  TOptions extends object
 >(
   target: ResumeTarget,
-  opts: RuntimeOptions,
-  config: ProviderResumePriceConfig<TTarget, TEntry>
+  opts: TOptions,
+  config: ProviderResumePriceConfig<TTarget, TEntry, TOptions>
 ): Promise<AggregatedPriceEstimate> => {
-  const manifest = await readProviderResumeTargetManifest(target, config.readOutputMetadata)
-  if (!manifest) {
+  const snapshot = await readProviderResumeSnapshot(target, config.readItemRecord)
+  if (!snapshot) {
     throw CLIUsageError(
-      target.scope === 'batch'
-        ? `Invalid ${config.stepLabel} batch manifest at ${join(target.dir, 'batch.json')}`
-        : `Invalid ${config.stepLabel} manifest at ${join(target.dir, 'run.json')}`
+      `Invalid ${config.stepLabel} manifest at ${join(target.dir, PIPELINE_MANIFEST_FILE)}`
     )
   }
 
   const steps: StepEstimate[] = []
-  for (const entry of manifest.entries) {
-    const parsed = await config.parseEntry(entry)
+  for (const record of snapshot.records) {
+    const parsed = await config.parseRecord(record)
     if (!parsed || parsed.missingTargets.length === 0) {
       continue
     }
     steps.push(...await config.buildEstimates(parsed, opts))
   }
 
-  return aggregateExplicitPriceEstimate(steps, opts)
+  return aggregateExplicitPriceEstimate(steps, config.getAggregateTimingOptions?.(opts) ?? {})
 }
 
 export const hasResumableProviderTargetWork = async <
@@ -141,16 +132,16 @@ export const hasResumableProviderTargetWork = async <
   TEntry extends ProviderResumeEntry<TTarget>
 >(
   target: ResumeTarget,
-  config: Pick<ProviderBatchResumeConfig<TTarget, TEntry>, 'parseEntry' | 'readOutputMetadata'>
+  config: Pick<ProviderBatchResumeConfig<TTarget, TEntry>, 'parseRecord' | 'readItemRecord'>
 ): Promise<boolean> => {
-  const manifest = await readProviderResumeTargetManifest(target, config.readOutputMetadata)
-  if (!manifest) {
+  const snapshot = await readProviderResumeSnapshot(target, config.readItemRecord)
+  if (!snapshot) {
     return false
   }
 
-  for (const entry of manifest.entries) {
+  for (const record of snapshot.records) {
     try {
-      const parsedEntry = await config.parseEntry(entry)
+      const parsedEntry = await config.parseRecord(record)
       if (parsedEntry && parsedEntry.missingTargets.length > 0) {
         return true
       }
@@ -162,11 +153,11 @@ export const hasResumableProviderTargetWork = async <
   return false
 }
 
-const defaultClassifyNoMatchingMetadata = (
-  metadata: BatchManifestEntry
+const defaultClassifyNoMatchingRecord = (
+  record: PipelineItemRecord
 ): ProviderCompletionStatus => {
-  if (metadata['completionStatus'] === 'failed' || metadata['completionStatus'] === 'full') {
-    return metadata['completionStatus']
+  if (record['completionStatus'] === 'failed' || record['completionStatus'] === 'full') {
+    return record['completionStatus']
   }
   return 'incomplete'
 }
@@ -200,34 +191,25 @@ const toLogLevel = (
 export const runProviderResumePass = async <
   TTarget extends ProviderIdentity,
   TEntry extends ProviderResumeEntry<TTarget>,
-  TContext = undefined
+  TContext = undefined,
+  TOptions extends object = object
 >(
   target: ResumeTarget,
-  opts: RuntimeOptions,
-  config: ProviderBatchResumeConfig<TTarget, TEntry, TContext>,
+  opts: TOptions,
+  config: ProviderBatchResumeConfig<TTarget, TEntry, TContext, TOptions>,
   pass = 1,
   totalPasses = 1,
   displayOptions: ResumeDisplayOptions = {}
 ): Promise<ProviderResumePassResult> => {
-  const manifest = await readProviderResumeTargetManifest(target, config.readOutputMetadata)
-  if (!manifest) {
+  const snapshot = await readProviderResumeSnapshot(target, config.readItemRecord)
+  if (!snapshot) {
     throw CLIUsageError(
-      target.scope === 'batch'
-        ? `Invalid batch manifest at ${join(target.dir, 'batch.json')}`
-        : `Invalid ${config.stepLabel} manifest at ${join(target.dir, 'run.json')}`
+      `Invalid ${config.stepLabel} manifest at ${join(target.dir, PIPELINE_MANIFEST_FILE)}`
     )
-  }
-  if (target.scope === 'batch') {
-    assertManifestEntriesCanBeRewritten({
-      manifestPath: manifest.infoPath,
-      manifest: { items: manifest.entries },
-      rawItemCount: manifest.rawItemCount ?? manifest.entries.length,
-      ...(manifest.firstUnparseableEntryIndex !== undefined ? { firstUnparseableEntryIndex: manifest.firstUnparseableEntryIndex } : {})
-    })
   }
 
   const parsedEntries = await Promise.all(
-    manifest.entries.map(async (entry) => await config.parseEntry(entry))
+    snapshot.records.map(async (record) => await config.parseRecord(record))
   )
   const context = config.createPassContext
     ? await config.createPassContext({ target, opts, parsedEntries })
@@ -239,7 +221,7 @@ export const runProviderResumePass = async <
     failed: 0
   }
   let attemptedEntries = 0
-  const updatedEntries: BatchManifestEntry[] = []
+  const updatedRecords: PipelineItemRecord[] = []
 
   if (totalPasses > 1) {
     l.write('info', `${config.stepLabel} resume pass ${pass}/${totalPasses}`)
@@ -248,9 +230,9 @@ export const runProviderResumePass = async <
   for (let index = 0; index < parsedEntries.length; index++) {
     const entry = parsedEntries[index]
     if (!entry) {
-      const rawEntry = manifest.entries[index]
-      if (rawEntry) {
-        updatedEntries.push(rawEntry)
+      const rawRecord = snapshot.records[index]
+      if (rawRecord) {
+        updatedRecords.push(rawRecord)
       }
       continue
     }
@@ -269,18 +251,18 @@ export const runProviderResumePass = async <
         detail: 'already full'
       }, 'success')
       totals.full += 1
-      const normalizedMetadata = config.normalizeAlreadyFullMetadata
-        ? config.normalizeAlreadyFullMetadata(entry.rawEntry)
-        : entry.rawEntry
-      updatedEntries.push(withProviderResumeOutputDir(normalizedMetadata, entry.outputDir))
+      const normalizedRecord = config.normalizeAlreadyFullRecord
+        ? config.normalizeAlreadyFullRecord(entry.rawRecord)
+        : entry.rawRecord
+      updatedRecords.push(withProviderResumeOutputDir(normalizedRecord, entry.outputDir))
       continue
     }
 
     if (entry.missingTargets.length === 0) {
-      const metadata = await config.readOutputMetadata(entry.outputDir)
-      const noMatchingStatus = config.classifyNoMatchingMetadata
-        ? config.classifyNoMatchingMetadata(metadata)
-        : defaultClassifyNoMatchingMetadata(metadata)
+      const record = await config.readItemRecord(entry.outputDir)
+      const noMatchingStatus = config.classifyNoMatchingRecord
+        ? config.classifyNoMatchingRecord(record)
+        : defaultClassifyNoMatchingRecord(record)
       const detail = config.formatNoMatchingDetail
         ? config.formatNoMatchingDetail({
           target,
@@ -298,8 +280,8 @@ export const runProviderResumePass = async <
         providers: 'none',
         detail
       }, toLogLevel(noMatchingStatus))
-      updatedEntries.push(withProviderResumeOutputDir(metadata, entry.outputDir))
-      await config.onNoMatchingMetadata?.({ target, opts, context, metadata })
+      updatedRecords.push(withProviderResumeOutputDir(record, entry.outputDir))
+      await config.onNoMatchingRecord?.({ target, opts, context, record })
       addStatusToTotals(noMatchingStatus, totals)
       continue
     }
@@ -322,7 +304,7 @@ export const runProviderResumePass = async <
       providerLabels,
       context
     })
-    updatedEntries.push(withProviderResumeOutputDir(result.metadata, result.outputDir))
+    updatedRecords.push(withProviderResumeOutputDir(result.record, result.outputDir))
     addStatusToTotals(result.completionStatus, totals)
     await config.onProcessedResult?.({ target, opts, context, result })
     logResumeItem(l, {
@@ -334,10 +316,11 @@ export const runProviderResumePass = async <
     }, toLogLevel(result.completionStatus, result.level))
   }
 
-  if (target.scope === 'batch') {
-    await config.writeBatchManifest(target.dir, updatedEntries, manifest.source)
-  } else if (updatedEntries[0]) {
-    await config.writeRunManifest(target.dir, stripProviderResumeOutputDir(updatedEntries[0]))
+  if (updatedRecords.length > 0) {
+    await writeManifest(target.dir, {
+      ...snapshot.manifest,
+      items: updatedRecords.map((record) => createPipelineItemFromRecord(target.dir, record))
+    })
   }
 
   await config.afterPass?.({ target, opts, context })

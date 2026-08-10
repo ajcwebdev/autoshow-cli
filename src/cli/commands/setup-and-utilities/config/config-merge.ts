@@ -5,7 +5,7 @@ import {
   REPEATABLE_MODEL_FLAGS,
   collectRepeatableModelFlagOccurrences,
   normalizeModelFlagOccurrences,
-} from '~/cli/commands/process-steps/step-1-download/download-targets/build-opts-from-flags/build-options-from-flags'
+} from '~/cli/options/option-resolution/build-options-from-flags'
 import {
   getStep2ProviderConfigPathEntries,
   getStep2ProviderSelectionFlagNames

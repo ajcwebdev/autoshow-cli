@@ -118,11 +118,11 @@ const parseOutputDirFromText = (text: string): string | null => {
   const clean = stripAnsi(text)
   const patterns = [
     /(?:^|\n)\s*(?:outputDir|output dir|retryOutputDir|retry output dir):\s*([^\n\r]+)/g,
-    /(?:^|\n)\s*(?:runManifest|run manifest|batchManifest|batch manifest):\s*([^\n\r]+\/(?:run|batch)\.json)/g,
+    /(?:^|\n)\s*(?:manifest):\s*([^\n\r]+\/manifest\.json)/g,
     /Locations[\s\S]*?│\s*(?:outputDir|output dir|retryOutputDir|retry output dir)\s*│\s*([^\n\r│]+?)\s*│/g,
-    /Artifacts[\s\S]*?│\s*run\s*│\s*([^\n\r│]+\/run\.json)\s*│/g,
+    /Artifacts[\s\S]*?│\s*manifest\s*│\s*([^\n\r│]+\/manifest\.json)\s*│/g,
     /"artifact"\s*:\s*"outputDir"[\s\S]*?"path"\s*:\s*"([^"\n\r]+)"/g,
-    /"run"\s*:\s*"([^"\n\r]+\/run\.json)"/g,
+    /"manifest"\s*:\s*"([^"\n\r]+\/manifest\.json)"/g,
   ]
 
   for (const pattern of patterns) {
@@ -133,7 +133,7 @@ const parseOutputDirFromText = (text: string): string | null => {
     }
     const value = last[1]?.trim()
     if (value && value.length > 0) {
-      if (value.endsWith('/run.json') || value.endsWith('/batch.json')) {
+      if (value.endsWith('/manifest.json')) {
         return dirname(value)
       }
       return value
@@ -143,7 +143,7 @@ const parseOutputDirFromText = (text: string): string | null => {
   return null
 }
 
-const copyRunManifestToArtifacts = async (outputDir: string | null, outputRoot: string): Promise<void> => {
+const copyManifestToArtifacts = async (outputDir: string | null, outputRoot: string): Promise<void> => {
   const artifactsDir = process.env['AUTOSHOW_TEST_ARTIFACTS_DIR']
   if (!artifactsDir || !outputDir) {
     return
@@ -151,7 +151,7 @@ const copyRunManifestToArtifacts = async (outputDir: string | null, outputRoot: 
 
   const absoluteOutputDir = isAbsolute(outputDir) ? outputDir : resolve(process.cwd(), outputDir)
   const absoluteOutputRoot = isAbsolute(outputRoot) ? outputRoot : resolve(process.cwd(), outputRoot)
-  const srcPath = `${absoluteOutputDir}/run.json`
+  const srcPath = `${absoluteOutputDir}/manifest.json`
 
   try {
     const exists = await fileExists(srcPath)
@@ -528,12 +528,12 @@ export const runCommand = async (args: string[], opts?: RunCommandOptions): Prom
   const combined = `${stdout}\n${stderr}`
   const outputDir = parseOutputDirFromText(combined)
   const effectiveOutputRoot = outputRoot
-  await copyRunManifestToArtifacts(outputDir, effectiveOutputRoot)
+  await copyManifestToArtifacts(outputDir, effectiveOutputRoot)
   const absoluteOutputDir = outputDir
     ? (isAbsolute(outputDir) ? outputDir : resolve(process.cwd(), outputDir))
     : null
   const metadataSummary = absoluteOutputDir
-    ? await readOutputMetadataSummary(`${absoluteOutputDir}/run.json`)
+    ? await readOutputMetadataSummary(`${absoluteOutputDir}/manifest.json`)
     : null
   const parsedEstimatedCostCents = parseCommandEstimatedTotal(combined)
 

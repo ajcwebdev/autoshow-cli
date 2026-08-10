@@ -2,7 +2,7 @@ import { defineCliCommand } from '~/cli/native/native-types'
 import { videoCommandFlags, videoCommandOptionNames } from '~/cli/flags/video-flags'
 import { retargetUsageErrorsToCommandSpellings } from '~/cli/flags/flag-utils'
 import { CLIUsageError } from '~/utils/error-handler'
-import { buildOptsFromFlags } from '~/cli/commands/process-steps/step-1-download/download-targets/build-opts-from-flags/build-options-from-flags'
+import { buildOptsFromFlags } from '~/cli/options/option-resolution/build-options-from-flags'
 import { selectCheapestDefaultTextVideoSelection } from '~/cli/commands/setup-and-utilities/models/cheapest-models'
 import { normalizeCommandSelectorFlags } from '~/cli/flags/service-selector-normalization/flag-helpers'
 import { normalizeGenericProviderSelectorFlags } from '~/cli/flags/service-selector-normalization/generic-provider-selectors'
@@ -14,25 +14,21 @@ import { computeActualCosts } from '~/utils/pricing/compute-actual-costs'
 import { computeEstimatedCosts } from '~/utils/pricing/compute-estimated-costs'
 import { computeActualProcessingTimes, computeEstimatedProcessingTimes } from '~/utils/pricing/compute-processing-time'
 import { preflightToEstimated } from '~/utils/pricing/compute-costs'
-import { runPreflight } from '~/utils/pricing/preflight'
+import { evaluatePreflightEstimate } from '~/utils/pricing/preflight'
+import { aggregateExplicitPriceEstimate } from '~/utils/pricing/aggregate-pricing'
+import { buildVideoEstimates } from '~/utils/pricing/aggregate-pricing/generation-estimates'
 import { buildProviderStepSummaries, createGenerationOutputDir, getGenerationExpectedOutputDir, resolveMaxCentsFromFlags, writeGenerationMetadata } from '~/cli/commands/process-steps/generation-command-utils'
 import * as l from '~/utils/app-logger/app-logger'
 import { runWithLogContext } from '~/utils/app-logger/app-logger'
-import type { RuntimeOptions, VideoProvider, VideoTarget } from '~/types'
+import type { ResourceGate, VideoProvider, VideoRuntimeOptions, VideoTarget } from '~/types'
 import { VIDEO_PRICING_PROVIDERS } from './video-utils/video-pricing'
 import { optionsForService } from '~/utils/pricing/model-selection'
 
-const VIDEO_PROVIDER_FLAGS = [
-  'gemini-video',
-  'minimax-video',
-  'glm-video',
-  'grok-video',
-  'runway-video',
-  'ltx-video',
-  'replicate-video',
-  'lumalabs-video',
-  'fal-video'
-] as const
+type StandaloneVideoCommandOptions = VideoRuntimeOptions & {
+  generationResourceGate?: ResourceGate | undefined
+  price: boolean
+  allowOverBudget: boolean
+}
 
 const VIDEO_POSITIONAL_IMAGE_CONFLICT_FLAGS = [
   ['video-input-image', '--input-image'],
@@ -45,7 +41,7 @@ const hasValue = (value: unknown): boolean =>
   Array.isArray(value) ? value.length > 0 : value !== undefined && value !== ''
 
 const hasVideoProviderSelection = (flags: Record<string, unknown>): boolean =>
-  flags['all-video'] === true || VIDEO_PROVIDER_FLAGS.some((flagName) => hasValue(flags[flagName]))
+  flags['all-video'] === true || Object.values(STANDALONE_VIDEO_PROVIDER_TARGETS).some((flagName) => hasValue(flags[flagName]))
 
 const setSingleVideoProviderSelection = (
   flags: Record<string, unknown>,
@@ -63,16 +59,16 @@ const providerModelsFromTargets = (
     .filter((target) => target.service === provider)
     .map((target) => target.model)
 
-const countGrokInputImages = (opts: RuntimeOptions): number =>
+const countGrokInputImages = (opts: Pick<VideoRuntimeOptions, 'videoInputImage' | 'videoReferenceImages'>): number =>
   (opts.videoInputImage ? 1 : 0) + (opts.videoReferenceImages?.length ?? 0)
 
-const countReplicateInputVideos = (opts: RuntimeOptions): number =>
+const countReplicateInputVideos = (opts: Pick<VideoRuntimeOptions, 'videoInputVideo' | 'replicateVideoReferenceVideos'>): number =>
   (opts.videoInputVideo ? 1 : 0) + (opts.replicateVideoReferenceVideos?.length ?? 0)
 
-const buildPricingOptionsForTargets = (
-  opts: RuntimeOptions,
+const buildPricingOptionsForTargets = <T extends VideoRuntimeOptions>(
+  opts: T,
   targets: VideoTarget[]
-): RuntimeOptions => ({
+): T => ({
   ...opts,
   allVideo: false,
   ...Object.assign({}, ...VIDEO_PRICING_PROVIDERS.map((provider) =>
@@ -163,19 +159,23 @@ export const videoCommand = defineCliCommand({
     }
   }
 
-  const videoOpts = buildOptsFromFlags(true, providerNormalized.flags, [], {}, providerNormalized.explicitFlags, providerNormalized.flagOccurrences)
-    const videoTargets = collectVideoTargets(videoOpts)
+  const videoOpts: StandaloneVideoCommandOptions = buildOptsFromFlags(true, providerNormalized.flags, {}, providerNormalized.explicitFlags, providerNormalized.flagOccurrences)
+  const videoTargets = collectVideoTargets(videoOpts)
   if (videoTargets.length === 0) {
     throw CLIUsageError('Specify a video generation provider with --provider gemini|minimax|glm|grok|runway|ltx|replicate|lumalabs|fal[=model]')
   }
 
   const pricingVideoOpts = buildPricingOptionsForTargets(videoOpts, videoTargets)
-  const { estimate: preflightEstimate, shouldExit: videoShouldExit } = await runPreflight('video', input, pricingVideoOpts, videoMaxCents)
+  const { estimate: preflightEstimate, shouldExit: videoShouldExit } = evaluatePreflightEstimate(
+    aggregateExplicitPriceEstimate(await buildVideoEstimates(pricingVideoOpts), {}),
+    pricingVideoOpts,
+    videoMaxCents
+  )
   if (videoShouldExit) {
     const singleTarget = videoTargets.length === 1
     l.report.expectedOutput(getGenerationExpectedOutputDir('./output/<timestamp>_video-gen/'), [
       ...videoTargets.map((t) => getVideoArtifactFileName(t, singleTarget)),
-      'run.json'
+      'manifest.json'
     ])
     return
   }
@@ -222,14 +222,15 @@ export const videoCommand = defineCliCommand({
 
   await writeGenerationMetadata(outputDir, 'video', metadata, cost, timing, {
     input,
-    requestedProviders: videoTargets.map((t) => ({ service: t.service, model: t.model }))
+    requestedProviders: videoTargets.map((t) => ({ service: t.service, model: t.model })),
+    completedProviders: metadata.map((entry) => ({ service: entry.videoGenService, model: entry.videoGenModel }))
   })
 
   l.report.complete(
     outputDir,
     {
       ...buildVideoArtifactMap(metadata),
-      run: 'run.json'
+      manifest: 'manifest.json'
     },
     {
       steps: buildProviderStepSummaries(

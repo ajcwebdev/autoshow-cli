@@ -220,7 +220,7 @@ describe('logging contracts', () => {
       ])
       expect(writes[0]?.options?.humanTable).toMatchObject({
         columns: ['artifact', 'path'],
-        rows: [{ artifact: 'runManifest', path: '/tmp/autoshow-run/run.json' }]
+        rows: [{ artifact: 'manifest', path: '/tmp/autoshow-run/manifest.json' }]
       })
       expect(writes[3]?.options?.humanTable?.columns).toEqual([
         'providerModel',

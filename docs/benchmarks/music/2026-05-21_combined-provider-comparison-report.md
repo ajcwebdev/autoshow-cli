@@ -1,6 +1,6 @@
 # Music Combined Provider Comparison Report (2026-05-21)
 
-This standalone report aggregates the four music benchmark runs dated 2026-05-21 from the existing `run.json` and `provider-comparison-report.json` files only. Provider result rows are read from `providerGroups.service.providers`, with source ranking contracts checked under `rankingSurfaces.service.*`; no music was regenerated and no audio judge was run.
+This standalone report aggregates the four music benchmark runs dated 2026-05-21 from the existing `manifest.json` and `provider-comparison-report.json` files only. Provider result rows are read from `providerGroups.service.providers`, with source ranking contracts checked under `rankingSurfaces.service.*`; no music was regenerated and no audio judge was run.
 
 ## Source Inventory
 
@@ -54,4 +54,4 @@ No explicit `humanQualityScore` was available in any source report. Generic `qua
 
 ## Source Checks
 
-All four source directories contained readable `run.json` and `provider-comparison-report.json` files. Each source report contained full `rankingSurfaces.service.price` and `rankingSurfaces.service.speed` arrays of length 4. Each source report contained empty `rankingSurfaces.service.automatedQuality` and `rankingSurfaces.service.humanQuality` arrays with unavailable reasons. `providerGroups.local.count` was 0 in all four runs.
+All four source directories contained readable `manifest.json` and `provider-comparison-report.json` files. Each source report contained full `rankingSurfaces.service.price` and `rankingSurfaces.service.speed` arrays of length 4. Each source report contained empty `rankingSurfaces.service.automatedQuality` and `rankingSurfaces.service.humanQuality` arrays with unavailable reasons. `providerGroups.local.count` was 0 in all four runs.

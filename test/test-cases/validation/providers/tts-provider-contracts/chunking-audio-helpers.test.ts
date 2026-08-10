@@ -5,7 +5,7 @@ import {
 } from 'bun:test'
 import { chmod } from 'node:fs/promises'
 import { join } from 'node:path'
-import { concatAndConvertToWav, runTtsChunks, splitTextIntoUtf8ByteChunks } from '~/cli/commands/process-steps/step-4-tts/tts-utils/audio-utils'
+import { concatAndConvertToWav, runTtsChunks } from '~/cli/commands/process-steps/step-4-tts/tts-utils/audio-utils'
 import { createHostedTtsBatchCoordinator, createHostedTtsChunkScheduler } from '~/cli/commands/process-steps/step-4-tts/tts-utils/hosted-tts-chunk-scheduler'
 import { configureBinDir, getConfiguredBinDir } from '~/utils/runtime-paths'
 import { setupTtsContractLifecycle, waitForCondition } from './shared'
@@ -33,13 +33,6 @@ describe('TTS provider service contracts', () => {
       } finally {
         configureBinDir(previousBinDir ?? '')
       }
-    })
-
-  test('UTF-8 byte chunking respects multi-byte characters and hard byte limits', () => {
-      const chunks = splitTextIntoUtf8ByteChunks(`${'é'.repeat(6)} ${'🙂'.repeat(3)}`, 12)
-
-      expect(chunks.every((chunk) => Buffer.byteLength(chunk, 'utf8') <= 12)).toBe(true)
-      expect(chunks.join('')).toBe(`${'é'.repeat(6)}${'🙂'.repeat(3)}`)
     })
 
   test('hosted TTS chunk scheduler shares one cap across simultaneous runs for the same provider', async () => {

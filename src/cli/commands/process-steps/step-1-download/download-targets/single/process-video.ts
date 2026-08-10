@@ -1,4 +1,4 @@
-import { writeRunManifest } from '~/cli/commands/process-steps/manifest-utils'
+import { createManifest, createPipelineItemFromRecord, writeManifest } from '~/cli/commands/process-steps/pipeline-manifest'
 import { getOutputRoot } from '~/cli/commands/process-steps/output-root'
 import { resolveRunDirectory } from '~/cli/commands/process-steps/run-dir'
 import { extractSourceMetadata } from '~/cli/commands/process-steps/step-1-download/audio/metadata-utils'
@@ -19,7 +19,7 @@ import { buildPrompt } from '~/cli/commands/process-steps/step-3-write/write-uti
 import { serializeOneOrMany } from '~/cli/commands/process-steps/target-runner'
 import { logWriteManifestConsoleSummary } from '~/cli/commands/process-steps/write-manifest-log/write-manifest-log'
 import { resolvePromptNames } from '~/prompts/prompt-loader'
-import type { AggregatedPriceEstimate, ProcessVideoRuntimeOptions, ProcessingOptions, RuntimeOptions, Step1Metadata, Step3Metadata, StructuredRunResult, VideoMetadata } from '~/types'
+import type { AggregatedPriceEstimate, ProcessVideoRuntimeOptions, ProcessingOptions, Step1Metadata, Step3Metadata, StructuredRunResult, VideoMetadata } from '~/types'
 import { ensureDirectory } from '~/utils/cli-utils'
 import * as l from '~/utils/app-logger/app-logger'
 import { runWithLogContext } from '~/utils/app-logger/app-logger'
@@ -52,7 +52,7 @@ export const processVideo = async (
     ...options,
     outputDir
   }
-  const sttTargets = collectSttTargets(processingOptions as unknown as RuntimeOptions)
+  const sttTargets = collectSttTargets(processingOptions)
   const mistralPassController = sttTargets.some((target) => target.service === 'mistral')
     ? createMistralSttPassController()
     : undefined
@@ -238,7 +238,9 @@ export const processVideo = async (
       ...(timing ? { timing } : {}),
       ...(sttFailures.length > 0 ? { errors: sttFailures } : {}),
     }
-    await writeRunManifest(outputDir, 'write', processingMetadata)
+    await writeManifest(outputDir, createManifest('write', 'single', [
+      createPipelineItemFromRecord(outputDir, processingMetadata, { status: completionStatus })
+    ]))
     logWriteManifestConsoleSummary(outputDir, processingMetadata, {
       promptArtifact: 'prompt.md',
       ...(step3Results.length === 1 && typeof renderedArtifacts.internalArtifacts['rendered'] === 'string'

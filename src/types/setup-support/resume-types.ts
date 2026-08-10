@@ -1,4 +1,4 @@
-import type { AggregateExplicitEstimateOptions, AggregatedPriceEstimate, BatchManifestEntry, BatchProcessResult, ExtractRoute, ProviderCompletionStatus, ProviderIdentity, RunManifestKind, RuntimeOptions, StepEstimate } from '~/types'
+import type { AggregateExplicitEstimateOptions, AggregatedPriceEstimate, BatchProcessResult, ExtractRoute, PipelineItemRecord, ProcessCommand, ProviderCompletionStatus, ProviderIdentity, StepEstimate } from '~/types'
 
 export type ResumeItemSummary = {
   item: string
@@ -34,27 +34,27 @@ export type ResumeTarget = {
   manifestPath: string
 }
 
-export type ResumeHandler = {
+export type ResumeHandler<TOptions extends object> = {
   kind: ResumeTargetKind
   hasResumableWork: (
     target: ResumeTarget,
-    opts: RuntimeOptions,
+    opts: TOptions,
     explicitFlags: Set<string>
   ) => Promise<boolean>
   resume: (
     target: ResumeTarget,
-    opts: RuntimeOptions,
+    opts: TOptions,
     explicitFlags: Set<string>,
     displayOptions?: ResumeDisplayOptions | undefined
   ) => Promise<ResumeResult>
   price: (
     target: ResumeTarget,
-    opts: RuntimeOptions,
+    opts: TOptions,
     explicitFlags: Set<string>
   ) => Promise<AggregatedPriceEstimate>
 }
 
-export type ExtractRouteResumeHandler = Pick<ResumeHandler, 'hasResumableWork' | 'resume' | 'price'>
+export type ExtractRouteResumeHandler<TOptions extends object> = Pick<ResumeHandler<TOptions>, 'hasResumableWork' | 'resume' | 'price'>
 
 export type GenerationModelFieldTable = Record<string, readonly [modelsField: string, modelField: string]>
 
@@ -64,8 +64,8 @@ export type GenerationResumeRunContext<TTarget extends ProviderIdentity, TMetada
   currentManifestMetadata: Record<string, unknown>
 }
 
-export type GenerationResumeConfig<TTarget extends ProviderIdentity, TMetadata> = {
-  kind: RunManifestKind
+export type GenerationResumeConfig<TTarget extends ProviderIdentity, TMetadata, TOptions extends object> = {
+  kind: ProcessCommand
   metadataKey: string
   stepLabel: string
   providerFlags: readonly string[]
@@ -87,18 +87,18 @@ export type GenerationResumeConfig<TTarget extends ProviderIdentity, TMetadata> 
   ) => string
   getSuccessKey: (entry: TMetadata) => string
   collectTargets: (
-    opts: RuntimeOptions,
+    opts: TOptions,
     target: ResumeTarget
   ) => TTarget[]
   runMissingTargets: (
     targets: TTarget[],
     input: string,
     outputDir: string,
-    opts: RuntimeOptions,
+    opts: TOptions,
     context: GenerationResumeRunContext<TTarget, TMetadata>
   ) => Promise<TMetadata[]>
   buildEstimates: (
-    opts: RuntimeOptions,
+    opts: TOptions,
     input: string,
     context: GenerationResumeRunContext<TTarget, TMetadata>
   ) => StepEstimate[] | Promise<StepEstimate[]>
@@ -118,13 +118,13 @@ export type ProviderResumeEntry<TTarget extends ProviderIdentity, TSource = unkn
   requestedTargets: TTarget[]
   missingTargets: TTarget[]
   completionStatus: ProviderCompletionStatus
-  rawEntry: BatchManifestEntry
+  rawRecord: PipelineItemRecord
 }
 
 
 export type ProviderResumeProcessResult = {
   outputDir: string
-  metadata: BatchManifestEntry
+  record: PipelineItemRecord
   completionStatus: ProviderCompletionStatus
   detail: string
   level?: 'success' | 'warn' | 'error'

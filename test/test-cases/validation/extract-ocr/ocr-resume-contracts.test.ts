@@ -2,18 +2,18 @@ import { describe, expect, test } from 'bun:test'
 import { mkdir, mkdtemp, rm } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
+import { PIPELINE_MANIFEST_FILE } from '~/cli/commands/process-steps/pipeline-manifest'
 import {
   buildMissingProviders,
   buildMissingTargetsFromEntry,
   buildBlockedProviders,
   buildMetadataErrorEntries,
   classifyOcrProviderFailure,
-  inferStoredCompletionStatus,
+  resolveCanonicalCompletionStatus,
   parseStoredRequestedTarget,
   readExistingOcrRun,
   resolveCompletionStatus
 } from '~/cli/commands/process-steps/step-2-extract/step-2-ocr/ocr-run-state'
-import { writeOcrRunManifest } from '~/cli/commands/process-steps/step-2-extract/step-2-ocr/ocr-manifest'
 import {
   OcrStructuredResponseError,
   writeInvalidOcrStructuredResponse
@@ -23,7 +23,8 @@ import { runHostedOcrWithPdfChunkFallback } from '~/cli/commands/process-steps/s
 import { hasResumableOcrTargetWork, resumeOcrTarget } from '~/cli/commands/setup-and-utilities/resume/extract/ocr-resume'
 import { logIncompleteOcrRunSummary } from '~/cli/commands/process-steps/step-1-download/download-targets/single/document-runner'
 import { l } from '~/utils/app-logger/app-logger'
-import type { DocumentMetadata, HostedOcrRun, LogSinkEvent, OcrProviderState, OcrTarget, PageResult, ProcessDocumentOutput, ResumeTarget, RuntimeOptions } from '~/types'
+import type { DocumentMetadata, HostedOcrRun, LogSinkEvent, OcrExtractionOptions, OcrProviderState, OcrTarget, PageResult, ProcessDocumentOutput, ResumeTarget } from '~/types'
+import { writeSingleManifestFixture } from '../../../test-utils/manifest-helpers'
 
 const requestedTargets: OcrTarget[] = [
   { service: 'tesseract', model: 'tesseract' },
@@ -130,7 +131,7 @@ const ocrResumeTarget = (dir: string): ResumeTarget => ({
   extractRoute: 'document',
   scope: 'single',
   dir,
-  manifestPath: join(dir, 'run.json')
+  manifestPath: join(dir, PIPELINE_MANIFEST_FILE)
 })
 
 const summaryExtraction = (
@@ -178,67 +179,82 @@ describe('OCR resume contracts', () => {
       providerStates
     }
 
-    expect(inferStoredCompletionStatus(entry, requestedTargets)).toBe('full')
+    expect(resolveCanonicalCompletionStatus(entry, requestedTargets)).toBe('full')
     expect(resolveCompletionStatus(providerStates)).toBe('full')
   })
 
-  test('legacy OCR completion fallback ignores successes from non-requested providers', () => {
-    const entry = {
-      step2: [
-        { ocrService: 'tesseract', ocrModel: 'tesseract' },
-        { ocrService: 'kimi', ocrModel: 'kimi-k2.5' },
-        { ocrService: 'openai', ocrModel: 'gpt-5.2' }
-      ]
-    }
-
-    expect(inferStoredCompletionStatus(entry, requestedTargets)).toBe('incomplete')
+  test('completion requires canonical provider states', () => {
+    expect(resolveCanonicalCompletionStatus({}, requestedTargets)).toBe('failed')
   })
 
-  test('existing OCR run preserves root step2 metadata without provider artifacts', async () => {
+  test('existing OCR run reads canonical provider results without provider artifact files', async () => {
     const tempDir = await mkdtemp(join(tmpdir(), 'autoshow-ocr-root-metadata-'))
     try {
-      await writeOcrRunManifest(tempDir, {
+      const tesseractMetadata = {
+        extractionMethod: 'mutool+tesseract' as const,
+        totalPages: 1,
+        ocrPages: 1,
+        textPages: 0,
+        processingTime: 10,
+        dpi: 300,
+        languages: 'eng',
+        tokenEstimate: 12,
+        inputFamily: 'pdf'
+      }
+      const anthropicMetadata = {
+        extractionMethod: 'pdf+anthropic-ocr' as const,
+        totalPages: 1,
+        ocrPages: 1,
+        textPages: 0,
+        processingTime: 20,
+        dpi: 300,
+        languages: 'eng',
+        tokenEstimate: 34,
+        ocrService: 'anthropic',
+        ocrModel: 'claude-sonnet-5',
+        inputFamily: 'pdf'
+      }
+      const tesseractResult = {
+        text: 'Tesseract result.',
+        pages: [{ pageNumber: 1, method: 'ocr' as const, text: 'Tesseract result.' }],
+        totalPages: 1,
+        ocrPages: 1,
+        textPages: 0
+      }
+      const anthropicResult = {
+        text: 'Anthropic result.',
+        pages: [{ pageNumber: 1, method: 'ocr' as const, text: 'Anthropic result.' }],
+        totalPages: 1,
+        ocrPages: 1,
+        textPages: 0
+      }
+      await writeSingleManifestFixture(tempDir, 'extract', {
         source: { filePath: '/tmp/document.pdf' },
         completionStatus: 'full',
         requestedProviders: [tesseractTarget, anthropicTarget],
         providerStates: [
-          providerState(tesseractTarget, 'succeeded'),
-          providerState(anthropicTarget, 'succeeded')
-        ],
-        step2: [
           {
-            extractionMethod: 'mutool+tesseract',
-            totalPages: 1,
-            ocrPages: 1,
-            textPages: 0,
-            processingTime: 10,
-            dpi: 300,
-            languages: 'eng',
-            tokenEstimate: 12,
-            inputFamily: 'pdf'
+            ...providerState(tesseractTarget, 'succeeded'),
+            metadata: tesseractMetadata,
+            result: tesseractResult
           },
           {
-            extractionMethod: 'anthropic-ocr',
-            totalPages: 1,
-            ocrPages: 1,
-            textPages: 0,
-            processingTime: 20,
-            dpi: 300,
-            languages: 'eng',
-            tokenEstimate: 34,
-            ocrService: 'anthropic',
-            ocrModel: 'claude-sonnet-5',
-            inputFamily: 'pdf'
+            ...providerState(anthropicTarget, 'succeeded'),
+            metadata: anthropicMetadata,
+            result: anthropicResult
           }
         ]
-      })
+      }, { extractRoute: 'document' })
 
       const existingRun = await readExistingOcrRun(tempDir, [tesseractTarget, anthropicTarget])
 
-      expect(existingRun.successes).toEqual([undefined, undefined])
+      expect(existingRun.successes.map((success) => success?.result)).toEqual([
+        tesseractResult,
+        anthropicResult
+      ])
       expect(existingRun.successMetadata.map((metadata) => metadata?.extractionMethod)).toEqual([
         'mutool+tesseract',
-        'anthropic-ocr'
+        'pdf+anthropic-ocr'
       ])
     } finally {
       await rm(tempDir, { recursive: true, force: true })
@@ -363,7 +379,7 @@ describe('OCR resume contracts', () => {
         blockedReason: 'content_policy',
         status: 400
       })
-      await writeOcrRunManifest(tempDir, {
+      await writeSingleManifestFixture(tempDir, 'extract', {
         source: { filePath: '/tmp/document.pdf' },
         completionStatus: 'incomplete',
         requestedProviders: [tesseractTarget, anthropicTarget],
@@ -373,13 +389,13 @@ describe('OCR resume contracts', () => {
           providerState(tesseractTarget, 'succeeded'),
           blockedAnthropic
         ]
-      })
+      }, { extractRoute: 'document' })
 
       await expect(hasResumableOcrTargetWork(ocrResumeTarget(tempDir), undefined)).resolves.toBe(false)
       await expect(hasResumableOcrTargetWork(ocrResumeTarget(tempDir), [anthropicTarget])).resolves.toBe(true)
 
       const { events } = await captureLogEvents(async () => {
-        await resumeOcrTarget(ocrResumeTarget(tempDir), {} as RuntimeOptions)
+        await resumeOcrTarget(ocrResumeTarget(tempDir), {} as OcrExtractionOptions)
       })
       const resumeItem = events.find((event) => event.message === 'Resume Item')
 

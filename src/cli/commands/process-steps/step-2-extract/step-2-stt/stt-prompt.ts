@@ -1,5 +1,5 @@
 import { basename } from 'node:path'
-import type { PreparedSttMedia, PromptSelectionCandidate, RuntimeOptions, Step2Metadata, SttPromptRefreshController, SttProviderSuccess, TranscriptionResult } from '~/types'
+import type { PreparedSttMedia, PromptSelectionCandidate, Step2Metadata, SttExtractionOptions, SttPromptRefreshController, SttProviderSuccess, TranscriptionResult } from '~/types'
 import { resolvePromptNames } from '~/prompts/prompt-loader'
 import { buildPrompt } from '../../step-3-write/write-utils/prompt-utils'
 import { resolveReverbModelLabel } from './stt-model-labels'
@@ -36,7 +36,7 @@ export const buildPromptFile = async (
   metadata: PreparedSttMedia['metadata'],
   transcription: TranscriptionResult,
   slug: string,
-  options: Pick<RuntimeOptions, 'prompts' | 'promptMd'> & {
+  options: Pick<SttExtractionOptions, 'prompts' | 'promptMd'> & {
     promptSourceProvider?: string | undefined
     requestedSpeakerCount?: number | undefined
     suppressDiarizationLog?: boolean | undefined
@@ -115,7 +115,7 @@ export const createPromptRefreshController = ({
 }: {
   outputDir: string
   preparedMedia: PreparedSttMedia
-  options: Pick<RuntimeOptions, 'prompts' | 'promptMd'>
+  options: Pick<SttExtractionOptions, 'prompts' | 'promptMd'>
   coordinatedAcrossBatch: boolean
   successes: Array<SttProviderSuccess | undefined>
 }): SttPromptRefreshController => {

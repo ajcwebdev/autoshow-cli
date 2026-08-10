@@ -1,4 +1,4 @@
-import type { ResolvedStep2Provider, RuntimeOptions } from '~/types'
+import type { PipelineItemRecord, ResolvedLLMModelOptions, ResolvedStep2Provider } from '~/types'
 
 export type BatchItem = {
   id: string
@@ -42,20 +42,13 @@ export type BatchRunOptions = {
   selectedItems?: Array<BatchItem | undefined>
   concurrency?: number
   totalCount?: number
-  initialEntries?: Record<string, unknown>[]
+  initialRecords?: PipelineItemRecord[]
   resultEntryIndexes?: number[]
   parentBatchDir?: string | undefined
   extractRoute?: ExtractRoute | undefined
 }
 
-export type ResolvedLLMConfig = Pick<RuntimeOptions,
-  | 'llamaModels' | 'llamaModel' | 'llamafileModels' | 'llamafileModel'
-  | 'openaiModels' | 'openaiModel' | 'groqModels' | 'groqModel'
-  | 'geminiModels' | 'geminiModel' | 'anthropicModels' | 'anthropicModel'
-  | 'minimaxModels' | 'minimaxModel' | 'grokModels' | 'grokModel'
-  | 'glmModels' | 'glmModel' | 'kimiModels' | 'kimiModel'
-  | 'togetherModels' | 'togetherModel' | 'cerebrasModels' | 'cerebrasModel'
-> & {
+export type ResolvedLLMConfig = ResolvedLLMModelOptions & {
   llmService: string | undefined
   llmModel: string | undefined
 }

@@ -1,0 +1,36 @@
+import type { ImageRuntimeOptions, ResolvedFlagContext } from '~/types'
+import { IMAGE_PRICING_MODEL_KEYS } from '~/cli/commands/process-steps/step-5-image/image-utils/image-pricing'
+import {
+  parseOptionalNumberFlag,
+  parseOptionalPositiveIntFlag,
+  readBooleanFlag,
+  readOptionalStringFlag,
+  readOptionalStringListFlag
+} from './flag-readers'
+import { resolveLocalConcurrency, resolveProviderConcurrency } from './concurrency'
+import { pick } from '~/utils/cli-utils'
+
+export const buildImageOptions = (ctx: ResolvedFlagContext): ImageRuntimeOptions => {
+  const { mergedFlags, explicitFlags, configuredFlags, allShortcutFlags, modelOptions } = ctx
+
+  return {
+    ...pick(modelOptions, IMAGE_PRICING_MODEL_KEYS),
+    imageProviderConcurrency: resolveProviderConcurrency(mergedFlags, 'image-provider-concurrency', allShortcutFlags['all-image'], explicitFlags, configuredFlags),
+    imageLocalConcurrency: resolveLocalConcurrency(mergedFlags, 'image-local-concurrency', explicitFlags, configuredFlags),
+    imageAspectRatio: readOptionalStringFlag(mergedFlags, 'image-aspect-ratio'),
+    imageSize: readOptionalStringFlag(mergedFlags, 'image-size'),
+    imageQuality: readOptionalStringFlag(mergedFlags, 'image-quality'),
+    imageFormat: readOptionalStringFlag(mergedFlags, 'image-format'),
+    imageBackground: readOptionalStringFlag(mergedFlags, 'image-background'),
+    imageCount: parseOptionalPositiveIntFlag(readOptionalStringFlag(mergedFlags, 'image-count'), 'image-count'),
+    imageInputs: readOptionalStringListFlag(mergedFlags, 'image-input'),
+    imageMask: readOptionalStringFlag(mergedFlags, 'image-mask'),
+    imageResponseMode: readOptionalStringFlag(mergedFlags, 'image-response-mode'),
+    geminiSearchGrounding: readBooleanFlag(mergedFlags, 'image-search-grounding') ? true : undefined,
+    imageCompression: parseOptionalNumberFlag(readOptionalStringFlag(mergedFlags, 'image-compression'), 'image-compression', {
+      min: 0,
+      max: 100,
+      integer: true
+    }),
+  }
+}

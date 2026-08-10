@@ -56,7 +56,7 @@ This applies to:
 - STT, OCR, and URL combined cross-run report builders and their generated JSON, Markdown, and self-contained HTML artifacts.
 - No production CLI flags, public APIs, single-run reports, provider execution, runtime data fetching, or cross-group leaderboards.
 
-URL combined schema v1 uses the source reports' `rankingSurfaces.*.automatedQuality` values as quality evidence, averages present supporting WER, CER, content coverage, processing-time, and cost values, and keeps `local` and `service` aggregation independent. Optional `run.json` metadata supplies article titles and safe HTTP(S) inventory links. No provider execution or runtime dashboard fetching is involved.
+URL combined schema v1 uses the source reports' `rankingSurfaces.*.automatedQuality` values as quality evidence, averages present supporting WER, CER, content coverage, processing-time, and cost values, and keeps `local` and `service` aggregation independent. Optional canonical `manifest.json` item metadata supplies article titles and safe HTTP(S) inventory links. No provider execution or runtime dashboard fetching is involved.
 
 ### 2026-07-18 revision: eight rankings and quality-cost terciles
 
@@ -87,7 +87,7 @@ The current tier contract is:
 - Each provider row inside JSON `tiering[*].tiers[*].providers` exposes `qualityCostRank` and `qualityCostComposite` alongside its identity fields.
 - Markdown tier tables and HTML tier cards display matching quality-cost ranks and composites from that same tier data.
 
-The current combined JSON schema versions are OCR v2, STT v3, and URL v1. Those versions include the eight `weightedRankings` per group and the quality-cost tier contract; they do not expose the former placement-surface counts, thresholds, or placement lists.
+The current combined JSON report schema versions are OCR v2, STT v3, and URL v1. These versions apply only to the generated benchmark-report contracts, not the unversioned pipeline manifest. They include the eight `weightedRankings` per group and the quality-cost tier contract; they do not expose the former placement-surface counts, thresholds, or placement lists.
 
 ## Implementation Note
 

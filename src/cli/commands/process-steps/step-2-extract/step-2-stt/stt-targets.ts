@@ -1,4 +1,4 @@
-import type { RuntimeOptions, Step2ProviderSelectionFilter, SttSource, SttSourceEligibility, SttTarget } from '~/types'
+import type { Step2ProviderSelectionFilter, SttDiarizationFlagOptions, SttSelectionOptions, SttSource, SttSourceEligibility, SttTarget } from '~/types'
 import { SUPPORTED_SCRAPECREATORS_STT_MODELS } from '~/cli/commands/setup-and-utilities/models/setup-model-options'
 import { collectStep2ProviderSelections } from '../step-2-shared/provider-registry'
 import { collectSttProviderSpecs, resolveDiarizationOptions } from './stt-cli'
@@ -20,6 +20,8 @@ const URL_ONLY_STT_SERVICES = new Set<SttTarget['service']>([
 
 const scrapeCreatorsAllProviderModel = SUPPORTED_SCRAPECREATORS_STT_MODELS[0] ?? 'youtube-transcript'
 
+type SttTargetOptions = SttSelectionOptions & SttDiarizationFlagOptions
+
 const sanitizeSegment = (value: string): string =>
   value.replace(/[/\\:*?"<>|]+/g, '_')
 
@@ -36,7 +38,7 @@ export const getSttTargetDirectoryName = (target: Pick<SttTarget, 'service' | 'm
   `${sanitizeSegment(target.service)}-${sanitizeSegment(target.model)}`
 
 const buildSttTarget = (
-  options: RuntimeOptions,
+  options: SttTargetOptions,
   provider: string,
   selectedModel?: string | undefined
 ): SttTarget => {
@@ -67,7 +69,7 @@ export const sttSourceFromInput = (
   : { filePath: input }
 
 export const collectSttTargets = (
-  options: RuntimeOptions,
+  options: SttTargetOptions,
   filter?: Step2ProviderSelectionFilter
 ): SttTarget[] => {
   return collectSttProviderSpecs(options, filter).map((spec) => {
@@ -76,12 +78,12 @@ export const collectSttTargets = (
 }
 
 export const collectSttTargetsForSource = (
-  options: RuntimeOptions,
+  options: SttTargetOptions,
   source: SttSource,
   filter?: Step2ProviderSelectionFilter
 ): SttTarget[] => {
   const targets = collectSttTargets(options, filter)
-  const selections = collectStep2ProviderSelections('stt', options as Record<string, unknown>, filter)
+  const selections = collectStep2ProviderSelections('stt', options, filter)
   const allShortcutTargetKeys = new Set(
     selections
       .filter((selection) => selection.origin === 'all-shortcut')

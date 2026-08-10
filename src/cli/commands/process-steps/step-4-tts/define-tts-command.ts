@@ -1,11 +1,11 @@
 import { mkdtemp, rename, rm, stat } from 'node:fs/promises'
 import { basename, extname, join } from 'node:path'
 import { buildProviderStepSummaries, createGenerationOutputDir, getGenerationExpectedOutputDir, resolveMaxCentsFromFlags, writeGenerationMetadata } from '~/cli/commands/process-steps/generation-command-utils'
-import { writeBatchManifest, writeRunManifest } from '~/cli/commands/process-steps/manifest-utils'
-import { buildBatchManifestEntryForItem } from '~/cli/commands/process-steps/step-0-metadata/metadata-batch/batch-manifest-entry'
+import { writePipelineItemRecords } from '~/cli/commands/process-steps/pipeline-manifest'
+import { buildPipelineItemRecord } from '~/cli/commands/process-steps/step-0-metadata/metadata-batch/pipeline-item-record-builder'
 import { sanitizeTitleSlug } from '~/cli/commands/process-steps/step-1-download/audio/metadata-utils'
 import { logBatchCompletionTable, logBatchItemStatus } from '~/cli/commands/process-steps/step-1-download/download-targets/download-batch/download-batch-summary'
-import { buildOptsFromFlags } from '~/cli/commands/process-steps/step-1-download/download-targets/build-opts-from-flags/build-options-from-flags'
+import { buildOptsFromFlags } from '~/cli/options/option-resolution/build-options-from-flags'
 import { logSuitePriceSummary } from '~/cli/commands/process-steps/step-1-download/download-targets/suite-price-logging'
 import { collectTextInputFiles, isTextInputPath } from '~/cli/commands/process-steps/step-3-write/text-input-utils'
 import { ttsCommandFlags } from '~/cli/flags/tts-flags'
@@ -13,19 +13,20 @@ import { normalizeGenericProviderSelectorFlags } from '~/cli/flags/service-selec
 import { assertNoVoiceIdentityWithDialogue, normalizeGenericTtsOptionFlags } from '~/cli/flags/service-selector-normalization/generic-tts-option-selectors'
 import { STANDALONE_TTS_PROVIDER_TARGETS } from '~/cli/flags/service-selector-normalization/provider-targets'
 import { defineCliCommand } from '~/cli/native/native-types'
-import type { ActualCostBreakdown, AggregatedPriceEstimate, BatchManifestEntry, CompletedTtsBatchItem, EstimatedCostBreakdown, HostedTtsSchedulerTelemetry, PreparedTtsInput, PreparedTtsRun, RuntimeOptions, Step4Metadata, StepTimingBreakdown, SuccessfulTtsBatchItem, TtsBatchEstimateReport, TtsBatchItemAccumulator, TtsBatchPlanItem, TtsTarget } from '~/types'
+import type { ActualCostBreakdown, AggregatedPriceEstimate, CompletedTtsBatchItem, EstimatedCostBreakdown, HostedTtsSchedulerTelemetry, PipelineItemRecord, PreparedTtsInput, PreparedTtsRun, Step4Metadata, StepTimingBreakdown, SuccessfulTtsBatchItem, TtsBatchEstimateReport, TtsBatchItemAccumulator, TtsBatchPlanItem, TtsOptions, TtsTarget } from '~/types'
 import { DEFAULT_CLI_CONCURRENCY } from '~/utils/concurrency-defaults'
 import { CLIUsageError, InfraError } from '~/utils/error-handler'
 import * as l from '~/utils/app-logger/app-logger'
 import { runWithLogContext } from '~/utils/app-logger/app-logger'
 import { formatDuration, formatEstimatedCostWithExactCents } from '~/utils/app-logger/formatters'
 import { createDetailTable, createHumanTable, logLocationsTable } from '~/utils/app-logger/human-table/human-table'
-import { buildAggregatedPriceEstimate } from '~/utils/pricing/aggregate-pricing'
+import { aggregateExplicitPriceEstimate } from '~/utils/pricing/aggregate-pricing'
+import { buildTtsEstimates } from '~/utils/pricing/aggregate-pricing/tts-estimates'
 import { computeActualCosts } from '~/utils/pricing/compute-actual-costs'
 import { preflightToEstimated } from '~/utils/pricing/compute-costs'
 import { computeEstimatedCosts } from '~/utils/pricing/compute-estimated-costs'
 import { computeActualProcessingTimes, computeEstimatedProcessingTimes } from '~/utils/pricing/compute-processing-time'
-import { runPreflight } from '~/utils/pricing/preflight'
+import { evaluatePreflightEstimate } from '~/utils/pricing/preflight'
 import { mapWithConcurrency } from '~/utils/run-with-concurrency'
 import { assertDialogueFormatIsUsable, isMultiSpeakerRequested, normalizeDialogueFromOptions } from './dialogue-normalizer'
 import { runTtsForTargets } from './run-tts'
@@ -34,6 +35,12 @@ import { buildEstimatedTtsTargets, buildTtsArtifactMap, collectTtsTargets, getTt
 import { createHostedTtsBatchCoordinator } from './tts-utils/hosted-tts-chunk-scheduler'
 
 const formatCents = (amount: number): string => `${amount.toFixed(3)}¢`
+
+type StandaloneTtsCommandOptions = TtsOptions & {
+  batchConcurrency: number
+  price: boolean
+  allowOverBudget: boolean
+}
 
 const getTtsInputKind = async (inputPath: string): Promise<'file' | 'directory'> => {
   try {
@@ -62,7 +69,7 @@ const getInputStem = (inputPath: string): string =>
 
 const prepareTtsInput = async (
   inputPath: string,
-  ttsOptions: RuntimeOptions
+  ttsOptions: TtsOptions
 ): Promise<PreparedTtsInput> => {
   const text = await Bun.file(inputPath).text()
   if (!text.trim()) {
@@ -86,15 +93,18 @@ const prepareTtsInput = async (
 
 const buildTtsEstimateForInput = async (
   prepared: PreparedTtsInput,
-  ttsOptions: RuntimeOptions
-): Promise<AggregatedPriceEstimate> =>
-  await buildAggregatedPriceEstimate('tts', prepared.inputPath, ttsOptions, prepared.ttsCharacterCount, {
+  ttsOptions: TtsOptions
+): Promise<AggregatedPriceEstimate> => {
+  const steps = await buildTtsEstimates(ttsOptions, prepared.ttsCharacterCount)
+  return aggregateExplicitPriceEstimate(steps, ttsOptions, {
+    ttsTimingCharacterCount: prepared.ttsCharacterCount,
     ttsInputText: prepared.ttsTimingInputText
   })
+}
 
 const reportTtsBatchEstimates = async (
   preparedInputs: PreparedTtsInput[],
-  ttsOptions: RuntimeOptions,
+  ttsOptions: TtsOptions,
   targets: TtsTarget[],
   logItems: boolean,
   batchConcurrency: number
@@ -173,7 +183,7 @@ const enforceTtsBatchBudget = (
 const runPreparedTtsInput = async (
   prepared: PreparedTtsInput,
   outputDir: string,
-  ttsOptions: RuntimeOptions,
+  ttsOptions: TtsOptions,
   targets: TtsTarget[],
   preflightEstimate: AggregatedPriceEstimate
 ): Promise<Step4Metadata[]> => {
@@ -181,7 +191,8 @@ const runPreparedTtsInput = async (
 
   await writeGenerationMetadata(outputDir, 'tts', run.metadata, run.cost, run.timing, {
     input: prepared.text,
-    requestedProviders: targets.map((t) => ({ service: t.service, model: t.model }))
+    requestedProviders: targets.map((t) => ({ service: t.service, model: t.model })),
+    completedProviders: run.metadata.map((entry) => ({ service: entry.ttsService, model: entry.ttsModel }))
   })
 
   l.report.complete(
@@ -189,7 +200,7 @@ const runPreparedTtsInput = async (
     {
       ...buildTtsArtifactMap(run.metadata, 'audio'),
       ...(prepared.dialogueRequested ? { dialogue: 'dialogue-normalized.txt', segments: 'segments/' } : {}),
-      run: 'run.json'
+      manifest: 'manifest.json'
     },
     {
       steps: buildProviderStepSummaries(
@@ -212,7 +223,7 @@ const runPreparedTtsInput = async (
 const synthesizePreparedTtsInput = async (
   prepared: PreparedTtsInput,
   outputDir: string,
-  ttsOptions: RuntimeOptions,
+  ttsOptions: TtsOptions,
   targets: TtsTarget[],
   preflightEstimate: AggregatedPriceEstimate
 ): Promise<PreparedTtsRun> => {
@@ -222,7 +233,7 @@ const synthesizePreparedTtsInput = async (
 const synthesizePreparedTtsInputForTargets = async (
   prepared: PreparedTtsInput,
   outputDir: string,
-  ttsOptions: RuntimeOptions,
+  ttsOptions: TtsOptions,
   targets: TtsTarget[],
   preflightEstimate: AggregatedPriceEstimate
 ): Promise<PreparedTtsRun> => {
@@ -263,7 +274,7 @@ const synthesizePreparedTtsInputForTargets = async (
 
 const runSingleTtsInput = async (
   inputPath: string,
-  ttsOptions: RuntimeOptions,
+  ttsOptions: StandaloneTtsCommandOptions,
   targets: TtsTarget[],
   maxCents: number | undefined
 ): Promise<void> => {
@@ -272,15 +283,17 @@ const runSingleTtsInput = async (
   }
 
   const prepared = await prepareTtsInput(inputPath, ttsOptions)
-  const { estimate: preflightEstimate, shouldExit } = await runPreflight('tts', inputPath, ttsOptions, maxCents, prepared.ttsCharacterCount, {
-    ttsInputText: prepared.ttsTimingInputText
-  })
+  const { estimate: preflightEstimate, shouldExit } = evaluatePreflightEstimate(
+    await buildTtsEstimateForInput(prepared, ttsOptions),
+    ttsOptions,
+    maxCents
+  )
   if (shouldExit) {
     l.report.expectedOutput(
       getGenerationExpectedOutputDir('./output/<timestamp>_<label>/'),
       prepared.dialogueRequested
-        ? ['dialogue-normalized.txt', 'segments/', 'speech.wav', 'run.json']
-        : [...targets.map((target) => getTtsArtifactFileName(target, targets.length === 1)), 'run.json']
+        ? ['dialogue-normalized.txt', 'segments/', 'speech.wav', 'manifest.json']
+        : [...targets.map((target) => getTtsArtifactFileName(target, targets.length === 1)), 'manifest.json']
     )
     return
   }
@@ -289,11 +302,11 @@ const runSingleTtsInput = async (
   await runPreparedTtsInput(prepared, outputDir, ttsOptions, targets, preflightEstimate)
 }
 
-const buildTtsBatchInitialEntries = (
+const buildTtsBatchInitialRecords = (
   preparedInputs: PreparedTtsInput[]
-): BatchManifestEntry[] =>
+): PipelineItemRecord[] =>
   preparedInputs.map((prepared) => ({
-    ...buildBatchManifestEntryForItem(prepared.inputPath),
+    ...buildPipelineItemRecord(prepared.inputPath),
     input: prepared.inputPath,
     inputKind: 'text',
     characterCount: prepared.ttsCharacterCount
@@ -406,15 +419,8 @@ const mergeTimingBreakdowns = (
   steps: breakdowns.flatMap((breakdown) => breakdown.steps)
 })
 
-const stripBatchItemOutputDir = (entry: BatchManifestEntry): BatchManifestEntry => {
-  const copy: BatchManifestEntry = { ...entry }
-  delete copy['outputDir']
-  return copy
-}
-
-export const buildTtsBatchRunMetadata = (
+export const buildTtsBatchSource = (
   items: CompletedTtsBatchItem[],
-  manifestItems: BatchManifestEntry[],
   batchSource: Record<string, unknown>,
   batchSummary: {
     ok: number
@@ -428,26 +434,24 @@ export const buildTtsBatchRunMetadata = (
   const runs = items.map((item) => item.run)
 
   return {
-    batch: {
-      ...batchSource,
+    ...batchSource,
+    summary: {
       ok: batchSummary.ok,
       partial: batchSummary.partial,
       fail: batchSummary.fail,
-      processingTime: batchSummary.wallTimeMs
-    },
-    items: manifestItems.map(stripBatchItemOutputDir),
-    tts: items.flatMap((item) => item.metadata),
-    cost: {
-      estimated: mergeEstimatedCostBreakdowns(runs.map((run) => run.cost.estimated)),
-      observedEstimate: mergeEstimatedCostBreakdowns(runs.map((run) => run.cost.observedEstimate)),
-      actual: mergeActualCostBreakdowns(runs.map((run) => run.cost.actual))
-    },
-    timing: {
-      estimated: mergeTimingBreakdowns(runs.map((run) => run.timing.estimated)),
-      actual: mergeTimingBreakdowns(runs.map((run) => run.timing.actual))
-    },
-    requestedProviders: batchSummary.requestedProviders,
-    ...(schedulerTelemetry ? { hostedTtsScheduler: schedulerTelemetry } : {})
+      processingTime: batchSummary.wallTimeMs,
+      cost: {
+        estimated: mergeEstimatedCostBreakdowns(runs.map((run) => run.cost.estimated)),
+        observedEstimate: mergeEstimatedCostBreakdowns(runs.map((run) => run.cost.observedEstimate)),
+        actual: mergeActualCostBreakdowns(runs.map((run) => run.cost.actual))
+      },
+      timing: {
+        estimated: mergeTimingBreakdowns(runs.map((run) => run.timing.estimated)),
+        actual: mergeTimingBreakdowns(runs.map((run) => run.timing.actual))
+      },
+      requestedProviders: batchSummary.requestedProviders,
+      ...(schedulerTelemetry ? { hostedTtsScheduler: schedulerTelemetry } : {})
+    }
   }
 }
 
@@ -578,7 +582,7 @@ const runTtsBatchPlanForTargets = async (
   plan: TtsBatchPlanItem,
   accumulator: TtsBatchItemAccumulator,
   batchDir: string,
-  ttsOptions: RuntimeOptions,
+  ttsOptions: TtsOptions,
   targets: TtsTarget[],
   allTargets: TtsTarget[],
   preflightEstimate: AggregatedPriceEstimate
@@ -613,7 +617,7 @@ const runTtsBatchPlanForTargets = async (
 
 const runTtsDirectoryBatch = async (
   inputPath: string,
-  ttsOptions: RuntimeOptions,
+  ttsOptions: StandaloneTtsCommandOptions,
   targets: TtsTarget[],
   maxCents: number | undefined
 ): Promise<void> => {
@@ -640,9 +644,9 @@ const runTtsDirectoryBatch = async (
     title: getInputStem(inputPath),
     selectedCount: preparedInputs.length
   }
-  const finalEntries = buildTtsBatchInitialEntries(preparedInputs)
-  await writeBatchManifest(batchDir, 'tts', finalEntries, batchSource)
-  logLocationsTable(l, [{ artifact: 'batchManifest', path: `${batchDir}/batch.json` }])
+  const finalRecords = buildTtsBatchInitialRecords(preparedInputs)
+  await writePipelineItemRecords(batchDir, 'tts', 'batch', finalRecords, { source: batchSource })
+  logLocationsTable(l, [{ artifact: 'manifest', path: `${batchDir}/manifest.json` }])
 
   if (concurrency > 1) {
     l.write('info', `Processing ${preparedInputs.length} TTS inputs with local/file concurrency ${concurrency}`)
@@ -668,7 +672,7 @@ const runTtsDirectoryBatch = async (
 
     if (hostedTargets.length > 0) {
       const hostedCoordinator = createHostedTtsBatchCoordinator(ttsOptions.ttsChunkConcurrency)
-      const hostedOptions: RuntimeOptions = {
+      const hostedOptions: TtsOptions = {
         ...ttsOptions,
         hostedTtsChunkScheduler: hostedCoordinator,
         ttsProviderConcurrency: Math.max(hostedTargets.length, ttsOptions.ttsProviderConcurrency ?? 1)
@@ -724,8 +728,8 @@ const runTtsDirectoryBatch = async (
     const errors = accumulator.errors.map((message) => ({ message }))
     if (metadata.length === 0) {
       fail++
-      finalEntries[accumulator.index] = {
-        ...(finalEntries[accumulator.index] ?? {}),
+      finalRecords[accumulator.index] = {
+        ...(finalRecords[accumulator.index] ?? {}),
         audioStem: accumulator.itemStem,
         completionStatus: 'failed',
         ...(errors.length > 0 ? { errors } : {})
@@ -755,8 +759,8 @@ const runTtsDirectoryBatch = async (
     } else {
       logBatchItemStatus('success', accumulator.inputPath, 'done')
     }
-    finalEntries[accumulator.index] = {
-      ...(finalEntries[accumulator.index] ?? {}),
+    finalRecords[accumulator.index] = {
+      ...(finalRecords[accumulator.index] ?? {}),
       audioStem: accumulator.itemStem,
       completionStatus: isPartial ? 'incomplete' : 'full',
       tts: metadata,
@@ -768,10 +772,8 @@ const runTtsDirectoryBatch = async (
   const actualTotalCost = computeSuccessfulTtsBatchActualCost(successfulItems)
   const requestedProviders = targets.map((t) => ({ service: t.service, model: t.model }))
 
-  await writeBatchManifest(batchDir, 'tts', finalEntries, batchSource)
-  await writeRunManifest(batchDir, 'tts', buildTtsBatchRunMetadata(
+  const completedBatchSource = buildTtsBatchSource(
     completedItems.sort((a, b) => a.index - b.index),
-    finalEntries,
     batchSource,
     {
       ok,
@@ -781,11 +783,11 @@ const runTtsDirectoryBatch = async (
       requestedProviders
     },
     schedulerTelemetry
-  ))
-  logBatchCompletionTable('tts', ok, partial, 0, fail)
+  )
+  await writePipelineItemRecords(batchDir, 'tts', 'batch', finalRecords, { source: completedBatchSource })
+  logBatchCompletionTable(ok, partial, 0, fail)
   l.report.complete(batchDir, {
-    run: 'run.json',
-    batch: 'batch.json',
+    manifest: 'manifest.json',
     ...Object.fromEntries(
       completedItems.flatMap((item) =>
         item.metadata.map((entry) => [
@@ -840,10 +842,9 @@ export const ttsCommand = defineCliCommand({
     providerNormalized.flagOccurrences,
     'kitten'
   )
-  const ttsOptions = buildOptsFromFlags(
+  const ttsOptions: StandaloneTtsCommandOptions = buildOptsFromFlags(
     true,
     ttsNormalized.flags,
-    [],
     { defaultTtsEngine: 'kitten' },
     ttsNormalized.explicitFlags,
     ttsNormalized.flagOccurrences

@@ -378,7 +378,7 @@ Prompt names are assembled at runtime from JSON files discovered recursively und
 - `--prompt-md` writes a second prompt file (`prompt-md.md`) with markdown-formatted examples alongside the JSON prompt.
 - Project lyric draft mode defaults `--rendered-out-dir` to `./output/<name>/lyrics`.
 - Providers with native structured output use it directly; other providers use the internal schema-guided fallback path.
-- EPUB inspect mode keeps the extraction payload in `run.json` and still writes the normal step-3 JSON output.
+- EPUB inspect mode keeps the extraction payload in the canonical item's metadata and still writes the normal step-3 JSON output.
 
 ## Notes
 

@@ -1,7 +1,6 @@
 import { expect, test } from 'bun:test'
 import { mkdir, rm } from 'node:fs/promises'
-import { readBatchManifest, readRunManifest, writeBatchManifest } from '~/cli/commands/process-steps/manifest-utils'
-import { writeUrlRunManifest } from '~/cli/commands/process-steps/step-2-extract/step-2-url/url-manifest'
+import { derivePipelineItemRecord, PIPELINE_MANIFEST_FILE, readManifest, writePipelineItemRecords } from '~/cli/commands/process-steps/pipeline-manifest'
 import { resumeUrlArticleTarget } from '~/cli/commands/setup-and-utilities/resume/extract/url-resume'
 import {
   buildAbortError,
@@ -17,8 +16,9 @@ import {
   writeFile
 } from './shared'
 import type { HtmlArticleBackend, UrlRequestOptions } from './shared'
+import { writeSingleManifestFixture } from '../../../../test-utils/manifest-helpers'
 
-test('--all-providers URL orchestrator writes provider artifacts and a multi-provider run manifest', async () => {
+test('--all-providers URL orchestrator writes provider artifacts and one canonical manifest', async () => {
   const tempRoot = await makeTempDir('autoshow-all-url-')
 
   try {
@@ -47,44 +47,31 @@ test('--all-providers URL orchestrator writes provider artifacts and a multi-pro
 
       expect(extractionText).toContain(`${backend} Article`)
       expect(providerResult).toMatchObject({
-        schemaVersion: 2,
-        kind: 'provider-result',
-        provider: backend,
-        model: backend
-      })
-      expect(providerResult['result']).toMatchObject({
         text: expect.stringContaining(`${backend} Article`)
       })
     }
 
-    const manifest = await Bun.file(join(output.outputDir, 'run.json')).json() as {
-      kind: string
-      metadata: {
-        extractRoute: string
-        completionStatus: string
-        requestedProviders: Array<{ service: string, model: string }>
-        providerStates: Array<{ service: string, model: string, status: string }>
-        step2: unknown[]
-        resolvedStep2: { providers: Array<{ service: string, model: string }> }
-      }
-    }
+    const manifest = await readManifest(output.outputDir)
+    const item = manifest?.items[0]
 
-    expect(manifest.kind).toBe('extract')
-    expect(manifest.metadata.extractRoute).toBe('article')
-    expect(manifest.metadata.completionStatus).toBe('full')
-    expect(manifest.metadata.requestedProviders).toEqual(
+    expect(manifest?.command).toBe('extract')
+    expect(manifest?.scope).toBe('single')
+    expect(item?.extractRoute).toBe('article')
+    expect(item?.status).toBe('full')
+    expect<unknown>(item?.providers.map(({ service, model }) => ({ service, model }))).toEqual(
       HOSTED_URL_ARTICLE_BACKENDS.map((backend) => ({ service: backend, model: backend }))
     )
-    expect(manifest.metadata.providerStates.map((state) => state.status)).toEqual([
+    expect(item?.providers.map((state) => state.status)).toEqual([
       'succeeded',
       'succeeded',
       'succeeded',
       'succeeded',
       'succeeded'
     ])
-    expect(manifest.metadata.step2).toHaveLength(HOSTED_URL_ARTICLE_BACKENDS.length)
-    expect(manifest.metadata.resolvedStep2.providers.map((provider) => provider.service)).toEqual([...HOSTED_URL_ARTICLE_BACKENDS])
-    expect(manifest.metadata.resolvedStep2.providers).toEqual(manifest.metadata.requestedProviders)
+    expect(item?.providers.map((provider) => provider.metadata)).toHaveLength(HOSTED_URL_ARTICLE_BACKENDS.length)
+    const resolvedStep2 = item?.metadata['resolvedStep2'] as { providers: Array<{ service: string, model: string }> }
+    expect(resolvedStep2.providers.map((provider) => provider.service)).toEqual([...HOSTED_URL_ARTICLE_BACKENDS])
+    expect<unknown>(resolvedStep2.providers).toEqual(item?.providers.map(({ service, model }) => ({ service, model })))
     expect(await Bun.file(join(output.outputDir, 'providers', 'defuddle', 'result.json')).exists()).toBe(false)
     for (const backend of HOSTED_URL_ARTICLE_BACKENDS) {
       expect(seenOptions.get(backend)).toMatchObject({
@@ -112,18 +99,13 @@ test('--all-providers plus --all-local URL orchestrator preserves the full backe
       'all-local-url': true
     })
     const output = await processUrlArticle('https://article.test/all.html', tempRoot, opts)
-    const manifest = await Bun.file(join(output.outputDir, 'run.json')).json() as {
-      metadata: {
-        requestedProviders: Array<{ service: string, model: string }>
-        resolvedStep2: { providers: Array<{ service: string, model: string }> }
-      }
-    }
-
-    expect(manifest.metadata.requestedProviders).toEqual(
+    const item = (await readManifest(output.outputDir))?.items[0]
+    expect<unknown>(item?.providers.map(({ service, model }) => ({ service, model }))).toEqual(
       URL_ARTICLE_BACKENDS.map((backend) => ({ service: backend, model: backend }))
     )
-    expect(manifest.metadata.resolvedStep2.providers.map((provider) => provider.service)).toEqual([...URL_ARTICLE_BACKENDS])
-    expect(manifest.metadata.resolvedStep2.providers).toEqual(manifest.metadata.requestedProviders)
+    const resolvedStep2 = item?.metadata['resolvedStep2'] as { providers: Array<{ service: string, model: string }> }
+    expect(resolvedStep2.providers.map((provider) => provider.service)).toEqual([...URL_ARTICLE_BACKENDS])
+    expect<unknown>(resolvedStep2.providers).toEqual(item?.providers.map(({ service, model }) => ({ service, model })))
     for (const backend of URL_ARTICLE_BACKENDS) {
       expect(await Bun.file(join(output.outputDir, 'providers', backend, 'result.json')).exists()).toBe(true)
     }
@@ -156,32 +138,24 @@ test('--all-providers URL manifest records one exhausted failed URL provider wit
     expect(await Bun.file(join(output.outputDir, 'providers', 'zyte', 'result.json')).exists()).toBe(false)
     expect(await Bun.file(join(output.outputDir, 'providers', 'firecrawl', 'result.json')).exists()).toBe(true)
 
-    const manifest = await Bun.file(join(output.outputDir, 'run.json')).json() as {
-      metadata: {
-        completionStatus: string
-        missingProviders: Array<{ service: string, model: string }>
-        errors?: Array<{ service: string, model: string, message: string }>
-        providerStates: Array<{ service: string, status: string, attempts: number, lastError?: { message: string } }>
-        cost: { actual: { steps?: unknown[], totalCost: number } }
-      }
-    }
-
-    expect(manifest.metadata.completionStatus).toBe('incomplete')
-    expect(manifest.metadata.missingProviders).toEqual([{ service: 'zyte', model: 'zyte' }])
-    expect(manifest.metadata.errors).toEqual([{
+    const item = (await readManifest(output.outputDir))?.items[0]
+    expect(item?.status).toBe('incomplete')
+    expect(item?.providers.filter(({ status }) => status === 'failed').map(({ service, model }) => ({ service, model }))).toEqual([{ service: 'zyte', model: 'zyte' }])
+    expect(item?.metadata['errors']).toEqual([{
       service: 'zyte',
       model: 'zyte',
       message: expect.stringContaining('Zyte request failed after 2/2 attempts with 25ms timeout')
     }])
-    expect(manifest.metadata.providerStates.find((state) => state.service === 'zyte')).toMatchObject({
+    expect(item?.providers.find((state) => state.service === 'zyte')).toMatchObject({
       service: 'zyte',
       status: 'failed',
       attempts: 2,
-      lastError: {
+      error: {
         message: expect.stringContaining('Zyte request timed out after 25ms')
       }
     })
-    expect(manifest.metadata.cost.actual.steps?.some((step) =>
+    const cost = item?.metadata['cost'] as { actual: { steps?: unknown[], totalCost: number } }
+    expect(cost.actual.steps?.some((step) =>
       typeof step === 'object' && step !== null && JSON.stringify(step).includes('zyte')
     )).toBe(false)
   } finally {
@@ -190,7 +164,7 @@ test('--all-providers URL manifest records one exhausted failed URL provider wit
   }
 })
 
-test('URL resume persists recovered provider state to the batch manifest', async () => {
+test('URL resume persists recovered provider state to the batch-scoped canonical manifest', async () => {
   const tempRoot = await makeTempDir('autoshow-url-resume-batch-')
   const originalSleep = Bun.sleep
 
@@ -208,17 +182,18 @@ test('URL resume persists recovered provider state to the batch manifest', async
       'all-url': true,
       'url-request-timeout-ms': '25',
       'url-request-attempts': '2'
-    }, [], {}, new Set(['all-url']))
-    const output = await processUrlArticle('https://article.test/resume.html', tempRoot, opts)
-    const runManifest = await readRunManifest(output.outputDir, 'extract')
-    expect(runManifest?.metadata['completionStatus']).toBe('incomplete')
-
+    }, {}, new Set(['all-url']))
     const batchDir = join(tempRoot, 'batch')
     await mkdir(batchDir, { recursive: true })
-    await writeBatchManifest(batchDir, 'extract', [{
-      ...runManifest!.metadata,
+    const output = await processUrlArticle('https://article.test/resume.html', batchDir, opts)
+    const sourceManifest = await readManifest(output.outputDir)
+    const sourceItem = sourceManifest?.items[0]
+    expect(sourceItem?.status).toBe('incomplete')
+
+    await writePipelineItemRecords(batchDir, 'extract', 'batch', [{
+      ...derivePipelineItemRecord(output.outputDir, sourceItem!),
       outputDir: output.outputDir
-    }])
+    }], { extractRoute: 'article' })
 
     URL_ARTICLE_PROVIDER_ADAPTERS.zyte.run = async (source, sourceUrl) =>
       buildMockArticle('zyte', source, sourceUrl)
@@ -228,12 +203,12 @@ test('URL resume persists recovered provider state to the batch manifest', async
       extractRoute: 'article',
       scope: 'batch',
       dir: batchDir,
-      manifestPath: join(batchDir, 'batch.json')
+      manifestPath: join(batchDir, PIPELINE_MANIFEST_FILE)
     }, opts)
 
-    const batchManifest = await readBatchManifest(batchDir, 'extract')
-    expect(batchManifest?.manifest.items[0]?.['completionStatus']).toBe('full')
-    expect(batchManifest?.manifest.items[0]?.['providerStates']).toEqual(
+    const batchManifest = await readManifest(batchDir)
+    expect(batchManifest?.items[0]?.status).toBe('full')
+    expect(batchManifest?.items[0]?.providers).toEqual(
       expect.arrayContaining([expect.objectContaining({ service: 'zyte', status: 'succeeded' })])
     )
   } finally {
@@ -242,14 +217,16 @@ test('URL resume persists recovered provider state to the batch manifest', async
   }
 })
 
-test('URL batch resume refuses to rewrite a pruned manifest', async () => {
-  const tempRoot = await makeTempDir('autoshow-url-resume-refuse-prune-')
+test('URL batch resume refuses to rewrite a corrupt canonical manifest', async () => {
+  const tempRoot = await makeTempDir('autoshow-url-resume-refuse-corrupt-')
 
   try {
-    const manifestPath = join(tempRoot, 'batch.json')
+    const manifestPath = join(tempRoot, PIPELINE_MANIFEST_FILE)
     const original = `${JSON.stringify({
-      schemaVersion: 3,
-      kind: 'extract',
+      command: 'extract',
+      scope: 'batch',
+      createdAt: '2026-01-01T00:00:00.000Z',
+      updatedAt: '2026-01-01T00:00:00.000Z',
       items: ['future-entry']
     }, null, 2)}\n`
     await Bun.write(manifestPath, original)
@@ -261,7 +238,7 @@ test('URL batch resume refuses to rewrite a pruned manifest', async () => {
       dir: tempRoot,
       manifestPath
     }, buildOptsFromFlags(false, {}))).rejects.toThrow(
-      `Refusing to rewrite ${manifestPath}: manifest entry 1 is unparseable by this build.`
+      `Invalid canonical manifest at ${manifestPath}`
     )
     expect(await Bun.file(manifestPath).text()).toBe(original)
   } finally {
@@ -273,7 +250,7 @@ test('URL resume exits 2 for a stored failed run with no resumable backends', as
   const tempRoot = await makeTempDir('autoshow-url-resume-failed-')
 
   try {
-    await writeUrlRunManifest(tempRoot, {
+    await writeSingleManifestFixture(tempRoot, 'extract', {
       resolvedStep2: {
         route: 'article',
         sourceKind: 'article',
@@ -288,14 +265,14 @@ test('URL resume exits 2 for a stored failed run with no resumable backends', as
         status: 'skipped',
         attempts: 0
       }]
-    })
+    }, { extractRoute: 'article' })
 
     await expect(resumeUrlArticleTarget({
       kind: 'extract',
       extractRoute: 'article',
       scope: 'single',
       dir: tempRoot,
-      manifestPath: join(tempRoot, 'run.json')
+      manifestPath: join(tempRoot, PIPELINE_MANIFEST_FILE)
     }, buildOptsFromFlags(false, {}))).rejects.toMatchObject({
       exitCode: 2,
       stage: 'resume:url'
@@ -333,23 +310,17 @@ test('--all-providers plus --all-local URL with local HTML runs defuddle and mar
       expect(await Bun.file(join(output.outputDir, 'providers', backend, 'extraction.txt')).exists()).toBe(false)
     }
 
-    const manifest = await Bun.file(join(output.outputDir, 'run.json')).json() as {
-      metadata: {
-        completionStatus: string
-        requestedProviders: Array<{ service: string, model: string }>
-        resolvedStep2: { providers: Array<{ service: string, model: string }> }
-        providerStates: Array<{ service: string, status: string }>
-      }
-    }
+    const item = (await readManifest(output.outputDir))?.items[0]
 
-    expect(manifest.metadata.completionStatus).toBe('incomplete')
-    expect(manifest.metadata.requestedProviders).toEqual(
+    expect(item?.status).toBe('incomplete')
+    expect<unknown>(item?.providers.map(({ service, model }) => ({ service, model }))).toEqual(
       URL_ARTICLE_BACKENDS.map((backend) => ({ service: backend, model: backend }))
     )
-    expect(manifest.metadata.resolvedStep2.providers.map((provider) => provider.service)).toEqual([...URL_ARTICLE_BACKENDS])
-    expect(manifest.metadata.resolvedStep2.providers).toEqual(manifest.metadata.requestedProviders)
-    expect(manifest.metadata.providerStates).toEqual([
-      { service: 'defuddle', model: 'defuddle', artifactDir: 'providers/defuddle', status: 'succeeded', attempts: 1 },
+    const resolvedStep2 = item?.metadata['resolvedStep2'] as { providers: Array<{ service: string, model: string }> }
+    expect(resolvedStep2.providers.map((provider) => provider.service)).toEqual([...URL_ARTICLE_BACKENDS])
+    expect<unknown>(resolvedStep2.providers).toEqual(item?.providers.map(({ service, model }) => ({ service, model })))
+    expect(item?.providers).toEqual([
+      expect.objectContaining({ service: 'defuddle', model: 'defuddle', artifactDir: 'providers/defuddle', status: 'succeeded', attempts: 1 }),
       expect.objectContaining({ service: 'firecrawl', status: 'skipped' }),
       expect.objectContaining({ service: 'glm-reader', status: 'skipped' }),
       expect.objectContaining({ service: 'spider', status: 'skipped' }),
@@ -376,34 +347,29 @@ test('local HTML with a single hosted URL provider still runs and records defudd
 
     const opts = buildOptsFromFlags(false, {
       'url-provider': 'firecrawl'
-    }, [], {}, new Set(['url-provider']))
+    }, {}, new Set(['url-provider']))
     const output = await processUrlArticle(localHtml, tempRoot, opts)
 
-    const manifest = await Bun.file(join(output.outputDir, 'run.json')).json() as {
-      metadata: {
-        completionStatus: string
-        requestedProviders: Array<{ service: string, model: string }>
-        resolvedStep2: {
-          backend?: string
-          backends?: string[]
-          providers?: Array<{ service: string, model: string }>
-        }
-      }
-    }
+    const item = (await readManifest(output.outputDir))?.items[0]
 
     expect(await Bun.file(join(output.outputDir, 'result.json')).exists()).toBe(true)
     expect(await Bun.file(join(output.outputDir, 'providers', 'defuddle', 'result.json')).exists()).toBe(false)
     expect(await Bun.file(join(output.outputDir, 'providers', 'firecrawl', 'result.json')).exists()).toBe(false)
-    expect(manifest.metadata.completionStatus).toBe('full')
-    expect(manifest.metadata.requestedProviders).toEqual([{ service: 'defuddle', model: 'defuddle' }])
-    expect(manifest.metadata.resolvedStep2).toMatchObject({
+    expect(item?.status).toBe('full')
+    expect(item?.providers.map(({ service, model }) => ({ service, model }))).toEqual([{ service: 'defuddle', model: 'defuddle' }])
+    const resolvedStep2 = item?.metadata['resolvedStep2'] as {
+      backend?: string
+      backends?: string[]
+      providers?: Array<{ service: string, model: string }>
+    }
+    expect(resolvedStep2).toMatchObject({
       providers: [{ service: 'defuddle', model: 'defuddle' }]
     })
     // `providers` is the sole persisted backend record. The legacy `backend`/`backends`
     // keys were write-only and are no longer emitted; resume reconstructs the backend
     // set from `requestedProviders` instead.
-    expect(manifest.metadata.resolvedStep2.backend).toBeUndefined()
-    expect(manifest.metadata.resolvedStep2.backends).toBeUndefined()
+    expect(resolvedStep2.backend).toBeUndefined()
+    expect(resolvedStep2.backends).toBeUndefined()
   } finally {
     await rm(tempRoot, { recursive: true, force: true })
   }

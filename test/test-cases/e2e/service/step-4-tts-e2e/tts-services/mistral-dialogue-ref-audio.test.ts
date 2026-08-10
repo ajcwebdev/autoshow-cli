@@ -8,7 +8,7 @@ import {
   findLatestDirectory,
   runCommand,
 } from '../../../../../test-utils/test-helpers'
-import { readRunMetadata } from '../../../../../test-utils/manifest-helpers'
+import { readCanonicalRecord } from '../../../../../test-utils/manifest-helpers'
 import {
   formatCommandFailureDiagnostics,
   requireConfiguredEnvVar
@@ -61,7 +61,7 @@ budgetedTest('tts-mistral-dialogue-ref-audio', 'mistral dialogue mode generates 
       expect(await fileExists(`${outputDir}/segments/segment-001-Host.wav`)).toBe(true)
       expect(await fileExists(`${outputDir}/segments/segment-002-Guest.wav`)).toBe(true)
 
-      const metadata = await readRunMetadata(outputDir) as {
+      const metadata = await readCanonicalRecord(outputDir) as {
         tts?: Array<{ ttsService?: string, ttsModel?: string, speaker?: string, chunkCount?: number }>
       }
       expect(metadata.tts?.[0]?.ttsService).toBe('mistral')
@@ -73,4 +73,3 @@ budgetedTest('tts-mistral-dialogue-ref-audio', 'mistral dialogue mode generates 
     await rm(tempRoot, { recursive: true, force: true })
   }
 }, E2E_TEST_TIMEOUT_MS)
-

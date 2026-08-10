@@ -52,7 +52,7 @@ tryResolveYoutubeCaptionTranscription()
   |      youtube-captions.vtt
   |      youtube-captions.json
   |      transcription.txt
-  |      result.json provider-result for youtube-captions
+  |      result.json raw caption/transcription payload
   |      requested STT providers are marked skipped
   |
   +--> unavailable:
@@ -71,19 +71,19 @@ Output layout:
 ```
 single provider:
   transcription.txt
-  result.json                # provider-result envelope
+  result.json                # raw transcription payload
   prompt.md                  # extraction/write prompt context
-  run.json                   # schema v2, kind "extract" or "write"
+  manifest.json              # canonical command/scope/items shape
 
 multi-provider:
   providers/<provider-model>/
     transcription.txt
-    result.json              # provider-result envelope
+    result.json              # raw transcription payload
   prompt.md
-  run.json
+  manifest.json
 ```
 
-Run metadata records `extractRoute: "media"` for extract runs, `step1`, `step2` or `step2[]`, `resolvedStep2`, `completionStatus`, `requestedProviders`, `providerStates`, `missingProviders`, `cost`, `timing`, and optional `errors`.
+Extract items record `extractRoute: "media"`. Extract and write items use the same canonical status/provider shape and keep ordinary Step 1, route, cost, and timing evidence in item metadata when applicable. Requested, missing, blocked, and completion summaries are derived from provider entries and item status rather than persisted as parallel lists.
 
 Provider failures do not discard the whole output directory. A run can finish as:
 
@@ -137,14 +137,14 @@ Document extract output:
 ```
 single provider/native route:
   extraction.txt | result.json | extraction.tsv | extraction.hocr
-  run.json
+  manifest.json
 
 multi-provider OCR:
   providers/<provider-model>/
     extraction.txt | extraction.tsv | extraction.hocr
-    result.json              # provider-result envelope
+    result.json              # raw OCR/domain payload
   extraction.<format>         # primary provider output when --primary-ocr is set
-  run.json
+  manifest.json
 ```
 
 Article output:
@@ -152,18 +152,18 @@ Article output:
 ```
 single backend:
   extraction.txt | result.json | extraction.tsv | extraction.hocr
-  run.json
+  manifest.json
 
 all URL backends:
   providers/<backend>/
     extraction.txt
-    result.json              # provider-result envelope
-  run.json
+    result.json              # raw article/domain payload
+  manifest.json
 ```
 
-Article runs record `resolvedStep2` with route and provider data, `web`, `source`, `completionStatus`, provider state, cost, timing, and errors when present. Local HTML uses Defuddle. Remote single-backend Defuddle can fall back to Firecrawl when configured.
+Article items record route evidence, `web`, source, cost, timing, and errors in `metadata`, plus canonical item and provider statuses. Local HTML uses Defuddle. Remote single-backend Defuddle can fall back to Firecrawl when configured.
 
-Document extract runs record `extractRoute: "document"`, `step1`, `step2` or `step2[]`, `resolvedStep2`, `requestedProviders`, `providerStates`, `missingProviders`, `primaryProvider`, `completionStatus`, `cost`, `timing`, `web`/`source` when applicable, and optional errors.
+Document extract items record `extractRoute: "document"`, Step 1 and route evidence, primary-provider data, cost, timing, web/source data when applicable, and optional errors. Provider identity, attempts, status, options, metadata, result, and error live once in the item's `providers` entries.
 
 ## Write Outputs
 
@@ -196,13 +196,13 @@ writeShowNoteArtifacts()
   +--> show-note.md or show-note-<model>.md
 ```
 
-Text-input write mode skips Steps 1-2. It treats `.md`/`.txt` files as the source corpus, writes `kind: "write"` run manifests with `metadata.source.kind: "text-input"`, and then can run the same Step 3 plus optional TTS/image/video/music stages.
+Text-input write mode skips Steps 1-2. It treats `.md`/`.txt` files as the source corpus, writes a canonical manifest with `command: "write"`, `scope: "single"`, and `items[0].metadata.source.kind: "text-input"`, and then can run the same Step 3 plus optional TTS/image/video/music stages.
 
 `output/<project>/text` can be used as a project directory. The target layer infers `--text-input`, `prompt.md`, optional `tracks.md`, and rendered lyric output defaults from the project structure.
 
 ## Transcript Video Pipeline
 
-`extract --transcript-video` renders a video with captions and uses `kind: "video"` in `run.json` with transcript-video metadata.
+`extract --transcript-video` renders a video with captions and writes a canonical single-run manifest with `command: "video"` and transcript-video item metadata.
 
 ```
 existing extract output
@@ -221,7 +221,7 @@ runExtractTranscriptVideo()
 <label>.mp4
 <label>.vtt
 <label>.srt
-run.json
+manifest.json
 ```
 
 Manual mode requires `--audio` plus exactly one of `--transcript-result` or `--transcript-text`.
@@ -247,5 +247,5 @@ music lyric-video mode
 <stem>.mp4
 <stem>.vtt
 <stem>.srt
-run.json kind "music", mode "lyric-video"
+manifest.json command "music", item metadata mode "lyric-video"
 ```

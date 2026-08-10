@@ -3,14 +3,14 @@ import { join } from 'node:path'
 import * as l from '~/utils/app-logger/app-logger'
 import { createHumanTable, createKeyValueTable } from '~/utils/app-logger/human-table/human-table'
 import { logExtractManifestConsoleSummary } from '~/cli/commands/process-steps/write-manifest-log/write-manifest-log'
-import { buildExtractionCallOpts } from '../../step-1-download/download-targets/single/document-write'
+import { writePipelineItemRecords } from '../../pipeline-manifest'
 import { formatHtmlArticleOcrFlagsIgnoredWarning, hasConfiguredOcrProviderSelection } from '../step-2-shared/inactive-flag-warnings'
-import { writeUrlRunManifest } from './url-manifest'
 import {
   buildFallbackStep1Metadata,
   buildManifestMetadata,
   buildProviderStates,
   buildStep1MetadataFromArticle,
+  buildUrlExtractionOptions,
   completionStatusFromProviderStates,
   reserveUrlOutputDir,
   runUrlArticleBackendPlan,
@@ -22,7 +22,7 @@ import {
   resolveUrlArticleBackendPlan
 } from './url-targets'
 import { InfraError } from '~/utils/error-handler'
-import type { AggregatedPriceEstimate, BatchChildRunContext, ExtractionOptions, ProcessDocumentOutput, RuntimeOptions, UrlProviderFailure, UrlProviderRunOutcome, UrlProviderSuccess } from '~/types'
+import type { AggregatedPriceEstimate, BatchChildRunContext, ProcessDocumentOutput, UrlExtractionOptions, UrlProviderFailure, UrlProviderRunOutcome, UrlProviderSuccess } from '~/types'
 
 const successfulUrlProviderOutcomes = (
   outcomes: UrlProviderRunOutcome[]
@@ -45,12 +45,12 @@ const failedUrlProviderOutcomes = (
 export const processUrlArticle = async (
   source: string,
   baseDir: string,
-  opts: RuntimeOptions,
+  opts: UrlExtractionOptions,
   preflightEstimate?: AggregatedPriceEstimate,
   batchChildContext?: BatchChildRunContext
 ): Promise<ProcessDocumentOutput> => {
   const plan = resolveUrlArticleBackendPlan(source, opts)
-  const extractionOpts = buildExtractionCallOpts(source, baseDir, opts) as Pick<ExtractionOptions, 'dpi' | 'languages' | 'outputFormat'>
+  const extractionOpts = buildUrlExtractionOptions(opts)
   const fallbackStep1 = await buildFallbackStep1Metadata(source)
 
   if (hasConfiguredOcrProviderSelection(opts)) {
@@ -97,7 +97,7 @@ export const processUrlArticle = async (
     await writeExtractionArtifact(outputDir, successes[0].result, extractionOpts.outputFormat)
   }
 
-  await writeUrlRunManifest(outputDir, manifestMetadata)
+  await writePipelineItemRecords(outputDir, 'extract', 'single', [manifestMetadata], { extractRoute: 'article' })
   logExtractManifestConsoleSummary(outputDir, manifestMetadata)
 
   if (successes.length === 0) {
@@ -108,7 +108,7 @@ export const processUrlArticle = async (
   }
   const primarySuccess = successes[0] as UrlProviderSuccess
 
-  const artifactFiles: Record<string, string> = { run: 'run.json' }
+  const artifactFiles: Record<string, string> = { manifest: 'manifest.json' }
   if (plan.allUrlMode) {
     for (const success of successes) {
       artifactFiles[`result-${success.backend}`] = `${getUrlProviderArtifactDir(success.backend)}/result.json`

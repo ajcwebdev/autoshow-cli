@@ -10,28 +10,24 @@ import {
   rm,
   runOcr,
   tmpdir,
+  withStandardEpubContainer,
   writeStoredZip
 } from './shared'
 
 const buildMinimalEpubFiles = (chapterHtml: string): Record<string, string> => ({
   mimetype: 'application/epub+zip',
-  'META-INF/container.xml': `
-    <container>
-      <rootfiles>
-        <rootfile full-path="OEBPS/content.opf" media-type="application/oebps-package+xml"/>
-      </rootfiles>
-    </container>
-  `,
-  'OEBPS/content.opf': `
-    <package>
-      <metadata><title>Self Closing Book</title></metadata>
-      <manifest>
-        <item id="chapter1" href="Text/chapter1.xhtml" media-type="application/xhtml+xml"/>
-      </manifest>
-      <spine><itemref idref="chapter1"/></spine>
-    </package>
-  `,
-  'OEBPS/Text/chapter1.xhtml': chapterHtml
+  ...withStandardEpubContainer({
+    'OEBPS/content.opf': `
+      <package>
+        <metadata><title>Self Closing Book</title></metadata>
+        <manifest>
+          <item id="chapter1" href="Text/chapter1.xhtml" media-type="application/xhtml+xml"/>
+        </manifest>
+        <spine><itemref idref="chapter1"/></spine>
+      </package>
+    `,
+    'OEBPS/Text/chapter1.xhtml': chapterHtml
+  })
 })
 
 test('EPUB native text extraction handles XHTML self-closing title tags in chapter HTML', async () => {

@@ -8,7 +8,6 @@ import {
   OCR_PAGE_REQUEST_ATTEMPTS,
   OCR_PAGE_REQUEST_RETRY_POLICY,
   OCR_PAGE_REQUEST_TIMEOUT_MS,
-  OCR_POLL_DEADLINE_MS,
   OCR_REQUEST_TIMEOUT_MS,
   OCR_SCHEMA_RETRY_ATTEMPTS
 } from './shared'
@@ -16,7 +15,6 @@ import {
 describe('OCR resilience contracts', () => {
   test('OCR retry policy and timeout defaults are aggressive and env parsing is strict', () => {
     expect(OCR_REQUEST_TIMEOUT_MS).toBe(60 * 60_000)
-    expect(OCR_POLL_DEADLINE_MS).toBe(60 * 60_000)
     expect(OCR_PAGE_REQUEST_ATTEMPTS).toBe(2)
     expect(OCR_PAGE_RATE_LIMIT_REQUEST_ATTEMPTS).toBe(6)
     expect(OCR_PAGE_REQUEST_TIMEOUT_MS).toBe(5 * 60_000)

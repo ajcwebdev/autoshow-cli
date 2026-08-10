@@ -6,7 +6,7 @@ import { resolve } from "node:path";
 import {
   buildTextProviderRows,
   defaultReportPaths,
-  loadTextRunJson,
+  loadTextManifestRecord,
   runName,
   type TextProviderRow,
 } from "./text_eval_lib.ts";
@@ -21,7 +21,7 @@ function helpText(): string {
   return [
     "Usage: bun build_comparison_report.ts <run_dir> [--markdown-out <path>] [--json-out <path>]",
     "",
-    "Generate text/write provider comparison reports from existing run.json metadata.",
+    "Generate text/write provider comparison reports from canonical manifest metadata.",
   ].join("\n");
 }
 
@@ -109,8 +109,8 @@ async function main(): Promise<number> {
   const defaults = defaultReportPaths(args.runDir);
   const jsonOut = args.jsonOut ?? defaults.jsonOut;
   const markdownOut = args.markdownOut ?? defaults.markdownOut;
-  const runJson = loadTextRunJson(args.runDir);
-  const rows = buildTextProviderRows(args.runDir, runJson);
+  const manifestRecord = loadTextManifestRecord(args.runDir);
+  const rows = buildTextProviderRows(args.runDir, manifestRecord);
   const localRows = rows.filter((row) => row.group === "local");
   const serviceRows = rows.filter((row) => row.group === "service");
   const reportJson = {

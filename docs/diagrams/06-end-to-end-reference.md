@@ -83,7 +83,7 @@ processSingleTarget()
             |    writeRenderedTextArtifacts() -> text.md
             |    writeShowNoteArtifacts() -> show-note.md
             |
-            +--> writeRunManifest(kind="write")
+            +--> writeManifest(createManifest("write", "single", items))
 ```
 
 ## Expected Artifacts
@@ -92,32 +92,51 @@ processSingleTarget()
 output/YYYY-MM-DD_HH-MM-SS-mmm_<video-title>/
   audio.(mp3|m4a|ogg|flac)
   transcription.txt
-  result.json                 # provider-result when single STT provider writes top-level result
+  result.json                 # raw STT domain payload for a single provider
   prompt.md
   prompt-md.md
   text.json
   text.md
   show-note.md
-  run.json
+  manifest.json
 ```
 
-The `run.json` envelope:
+The canonical `manifest.json`:
 
 ```json
 {
-  "schemaVersion": 2,
-  "kind": "write",
-  "metadata": {
-    "step1": {},
-    "step2": {},
-    "step3": {},
-    "cost": {},
-    "timing": {}
-  }
+  "command": "write",
+  "scope": "single",
+  "createdAt": "2026-08-10T12:00:00.000Z",
+  "updatedAt": "2026-08-10T12:00:05.000Z",
+  "items": [
+    {
+      "status": "full",
+      "metadata": {
+        "step1": {},
+        "step3": {},
+        "cost": {},
+        "timing": {}
+      },
+      "providers": [
+        {
+          "service": "whisper",
+          "model": "small",
+          "local": true,
+          "artifactDir": ".",
+          "status": "succeeded",
+          "attempts": 1,
+          "options": {},
+          "metadata": {},
+          "result": {}
+        }
+      ]
+    }
+  ]
 }
 ```
 
-For multi-provider STT or LLM selections, provider-specific artifacts move under `providers/<provider-model>/` or receive `text-<model>.json` / `text-<model>.md` names, and the run manifest records `requestedProviders`, `providerStates`, `missingProviders`, and `completionStatus`.
+For multi-provider STT or LLM selections, provider-specific artifacts move under `providers/<provider-model>/` or receive `text-<model>.json` / `text-<model>.md` names. The manifest stores item status and canonical provider entries; requested, missing, and completion views are computed from that state.
 
 ## Provider API Keys
 

@@ -1,4 +1,4 @@
-import type { RuntimeOptions, TtsStepEstimate } from '~/types'
+import type { ProcessingOptions, TtsOptions, TtsStepEstimate } from '~/types'
 import { estimateTtsCosts } from '~/cli/commands/process-steps/step-4-tts/tts-utils/tts-pricing'
 import { getTtsEstimation } from '~/cli/commands/setup-and-utilities/models/model-loader'
 import { resolvePromptTokenEstimate } from '~/prompts/prompt-loader'
@@ -6,13 +6,15 @@ import { applyCostMultiplier } from '~/utils/pricing/cost-helpers'
 
 const ESTIMATED_TTS_CHARACTERS_PER_TOKEN = 4
 
-export const estimateTtsCharacterCountFromPrompts = async (opts: RuntimeOptions): Promise<number> => {
-  const promptTokenEstimate = await resolvePromptTokenEstimate(opts.prompts)
+export const estimateTtsCharacterCountFromPrompts = async (
+  opts: Pick<ProcessingOptions, 'prompts'>
+): Promise<number> => {
+  const promptTokenEstimate = await resolvePromptTokenEstimate(opts.prompts ?? [])
   const estimatedOutputTokens = Math.max(0, promptTokenEstimate.estimatedOutputTokens)
   return Math.max(0, Math.round(estimatedOutputTokens * ESTIMATED_TTS_CHARACTERS_PER_TOKEN))
 }
 
-export const buildTtsEstimates = async (opts: RuntimeOptions, characterCount: number): Promise<TtsStepEstimate[]> => {
+export const buildTtsEstimates = async (opts: TtsOptions, characterCount: number): Promise<TtsStepEstimate[]> => {
   const normalizedCharacterCount = Math.max(0, Math.floor(characterCount))
   const estimates: TtsStepEstimate[] = []
   for (const cost of estimateTtsCosts(opts, normalizedCharacterCount)) {

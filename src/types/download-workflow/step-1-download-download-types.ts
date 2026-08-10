@@ -97,7 +97,7 @@ export type MutoolDocInfo = {
 
 export type BatchItemProcessResult = {
   outputDir?: string
-  manifestEntry?: Record<string, unknown>
+  itemRecord?: PipelineItemRecord
 }
 
 
@@ -106,76 +106,7 @@ export type BuildOptsDefaults = {
 }
 
 export type RepeatableModelFlag =
-  | 'whisper-stt'
-  | 'whisperfile-stt'
-  | 'deepinfra-stt'
-  | 'groq-stt'
-  | 'grok-stt'
-  | 'deepgram-stt'
-  | 'soniox-stt'
-  | 'speechmatics-stt'
-  | 'rev-stt'
-  | 'mistral-stt'
-  | 'assemblyai-stt'
-  | 'gladia-stt'
-  | 'happyscribe-stt'
-  | 'supadata-stt'
-  | 'scrapecreators-stt'
-  | 'gemini-stt'
-  | 'together-stt'
-  | 'mistral-ocr'
-  | 'glm-ocr'
-  | 'kimi-ocr'
-  | 'openai-ocr'
-  | 'grok-ocr'
-  | 'anthropic-ocr'
-  | 'gemini-ocr'
-  | 'deepinfra-ocr'
-  | 'llama'
-  | 'llamafile'
-  | 'openai'
-  | 'groq'
-  | 'gemini'
-  | 'anthropic'
-  | 'minimax'
-  | 'grok'
-  | 'glm'
-  | 'kimi'
-  | 'together'
-  | 'cerebras'
-  | 'kitten-tts'
-  | 'elevenlabs-tts'
-  | 'deepgram-tts'
-  | 'minimax-tts'
-  | 'groq-tts'
-  | 'grok-tts'
-  | 'mistral-tts'
-  | 'openai-tts'
-  | 'gemini-tts'
-  | 'speechify-tts'
-  | 'hume-tts'
-  | 'cartesia-tts'
-  | 'gemini-image'
-  | 'openai-image'
-  | 'grok-image'
-  | 'bfl-image'
-  | 'recraft-image'
-  | 'replicate-image'
-  | 'lumalabs-image'
-  | 'fal-image'
-  | 'elevenlabs-music'
-  | 'minimax-music'
-  | 'gemini-music'
-  | 'gemini-video'
-  | 'minimax-video'
-  | 'glm-video'
-  | 'grok-video'
-  | 'runway-video'
-  | 'ltx-video'
-  | 'replicate-video'
-  | 'lumalabs-video'
-  | 'fal-video'
-  | 'lumalabs-video'
+  import('~/cli/flags/service-selector-normalization/repeatable-model-flags').RepeatableModelFlag
 
 export type FlagOccurrenceValue = string | boolean
 
@@ -201,23 +132,23 @@ export type ExtractChildBatchPlan = {
   route: ExtractRoute
   items: string[]
   selectedItems?: Array<BatchItem | undefined>
-  initialEntries: Record<string, unknown>[]
+  initialRecords: PipelineItemRecord[]
   resultEntryIndexes: number[]
   parentIndexes: number[]
 }
 
 
-export type BatchManifestEntry = JsonObject
+export type PipelineItemRecord = JsonObject
 
-export type BatchManifestErrorEntry = {
+export type PipelineItemErrorRecord = {
   service?: string
   model?: string
   message?: string
   skipped?: boolean
 }
 
-export type SttManifestProviderSummary = {
+export type SttProviderSummary = {
   label: string
-  status: 'succeeded' | 'missing' | 'failed' | 'skipped'
+  status: 'running' | 'succeeded' | 'missing' | 'failed' | 'skipped'
   message?: string
 }

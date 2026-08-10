@@ -64,7 +64,7 @@ This removes:
 
 Everything the packet and report consume is preserved: `provider`, `model`, `metadata.tokenCount`, `metadata.processingTime`, `result.text`, `result.segments`, `result.evidence.timingQuality`, and `result.evidence.capabilities`. Output is minified and the operation is idempotent. Regenerating `reference-comparison-report.{json,md}` after compaction produces byte-identical output aside from the `generatedAt` timestamp.
 
-Before deleting the source audio and derivative `transcription.txt`/`checkpoint.json`/`split-attempts` files, confirm `run.json`, every `providers/*/result.json`, and `consensus-transcription.txt` remain — they are the full set needed to regenerate reports. `run.json` holds only metadata (no transcripts), so the per-provider `result.json` files are the sole transcript source and must be kept.
+Before deleting the source audio and derivative transcription or split-attempt files, confirm `manifest.json`, every `providers/*/result.json`, and `consensus-transcription.txt` remain — they are the full set needed to regenerate reports. `manifest.json` holds canonical item and provider metadata but no transcripts, so the per-provider `result.json` payloads are the sole transcript source and must be kept.
 
 ## Combined Cross-Run Report
 

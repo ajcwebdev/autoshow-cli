@@ -1,8 +1,7 @@
 export {
   classifySttSplitLimitError,
   extractSttSplitDurationCapSecondsFromError,
-  resolveAdaptiveSplitSegmentDurationMinutes,
-  shouldRetrySplitTranscriptionAfterError
+  resolveAdaptiveSplitSegmentDurationMinutes
 } from './run-stt/split-limits'
 export {
   resolveSttSplitPolicy,

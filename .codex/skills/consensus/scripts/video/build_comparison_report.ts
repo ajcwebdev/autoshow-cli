@@ -13,7 +13,7 @@ import {
   formatFileSize,
   formatProcessingSeconds,
   isFiniteNumber,
-  loadVideoRunJson,
+  loadVideoManifestRecord,
   makeProviderKey,
   normalizeLowerIsBetter,
   nullableNumber,
@@ -193,20 +193,20 @@ function loadVideoQualityScores(
 }
 
 export async function buildReport(runDir: string) {
-  const runJson = loadVideoRunJson(runDir);
+  const manifestRecord = loadVideoManifestRecord(runDir);
   const warnings: string[] = [];
 
-  const { found, missing } = discoverVideoFiles(runDir, runJson.metadata.video);
+  const { found, missing } = discoverVideoFiles(runDir, manifestRecord.metadata.video);
   if (missing.length > 0) {
     warnings.push(`Missing video files: ${missing.join(", ")}`);
   }
 
-  const costLookup = buildCostLookup(runJson);
-  const timingLookup = buildTimingLookup(runJson);
+  const costLookup = buildCostLookup(manifestRecord);
+  const timingLookup = buildTimingLookup(manifestRecord);
   const qualityScores = loadVideoQualityScores(runDir, warnings);
   const providerData: Array<Omit<RankedProvider, "rank">> = [];
 
-  for (const entry of runJson.metadata.video) {
+  for (const entry of manifestRecord.metadata.video) {
     const providerKey = makeProviderKey(entry.videoGenService, entry.videoGenModel);
     const videoPath = found.get(providerKey) ?? "";
     const videoExists = videoPath.length > 0;
@@ -326,7 +326,7 @@ export async function buildReport(runDir: string) {
 ## Method
 
 - Each provider in \`metadata.video[]\` was evaluated from one AutoShow video run directory.
-- Cost and processing time were extracted from \`run.json\` metadata.
+- Cost and processing time were extracted from \`manifest.json\` metadata.
 - Ranking uses price-speed scoring: 50% cost efficiency and 50% processing speed.
 - Lower cost and lower processing time are better; missing cost or timing receives a neutral component score of 50.
 - If all available values for a metric are equal, providers with that metric receive 100 for that component.

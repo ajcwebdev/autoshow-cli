@@ -1,4 +1,4 @@
-import type { BatchSource, ProcessCommand, ResolvedBatch, RuntimeOptions } from '~/types'
+import type { BatchSource, ProcessCommand, ProcessPlanningOptions, ResolvedBatch } from '~/types'
 import { commandSupportsBatchSourceExpansion } from '~/cli/commands/process-steps/process-command-kinds'
 import { selectBatchItems } from './metadata-batch-select'
 import { tryEnumerateYoutubeChannel } from '../metadata-sources/metadata-youtube-channel-provider'
@@ -7,7 +7,7 @@ import { tryEnumeratePodcastFeed } from '../metadata-sources/metadata-podcast-rs
 export const tryResolveBatchSource = async (
   input: string,
   command: ProcessCommand,
-  opts: RuntimeOptions
+  opts: ProcessPlanningOptions
 ): Promise<ResolvedBatch | null> => {
   if (!commandSupportsBatchSourceExpansion(command)) return null
   if (!input.startsWith('http')) return null

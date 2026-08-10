@@ -16,7 +16,7 @@ import { runGlmReaderUrl } from '~/cli/commands/process-steps/step-2-extract/ste
 import { runSpiderUrl } from '~/cli/commands/process-steps/step-2-extract/step-2-url/url-services/spider/run-spider-url'
 import { runSupadataUrl } from '~/cli/commands/process-steps/step-2-extract/step-2-url/url-services/url-supadata/run-supadata-url'
 import { runZyteUrl } from '~/cli/commands/process-steps/step-2-extract/step-2-url/url-services/zyte/run-zyte-url'
-import { buildOptsFromFlags } from '~/cli/commands/process-steps/step-1-download/download-targets/build-opts-from-flags/build-options-from-flags'
+import { buildOptsFromFlags } from '~/cli/options/option-resolution/build-options-from-flags'
 import { configureBinDir, getConfiguredBinDir } from '~/utils/runtime-paths'
 import type { DocumentMetadata, ExtractionOptions, HtmlArticleBackend, UrlArticleProviderAdapter, UrlArticleRunResult, UrlRequestOptions } from '~/types'
 import { DEFAULT_URL_REQUEST_TIMEOUT_MS } from '~/cli/commands/process-steps/step-2-extract/step-2-url/url-utils'

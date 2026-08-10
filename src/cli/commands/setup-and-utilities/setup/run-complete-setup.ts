@@ -732,24 +732,21 @@ const computeP90 = (values: number[]): number => {
   return sorted[Math.max(0, Math.min(sorted.length - 1, Math.ceil(0.9 * sorted.length) - 1))]!
 }
 
-const logBenchmarkResults = (stepLabel: string, runs: number, results: Map<string, number[]>): void => {
-  const rows = [...results.entries()].map(([engine, durations]) => {
-    const median = computeMedian(durations)
-    const p90 = computeP90(durations)
-    return {
-      engine,
-      medianMs: median,
-      p90Ms: p90,
-      minMs: Math.min(...durations),
-      maxMs: Math.max(...durations),
-      outliers: durations.filter(v => v > p90).length
-    }
-  })
+const logBenchmarkResults = (stepLabel: string, durations: number[]): void => {
+  const median = computeMedian(durations)
+  const p90 = computeP90(durations)
+  const rows = [{
+    medianMs: median,
+    p90Ms: p90,
+    minMs: Math.min(...durations),
+    maxMs: Math.max(...durations),
+    outliers: durations.filter(v => v > p90).length
+  }]
 
-  l.write('info', `Setup Benchmark (${stepLabel}, ${runs} run${runs > 1 ? 's' : ''})`, {
+  l.write('info', `Setup Benchmark (${stepLabel}, ${durations.length} runs)`, {
     category: 'command',
-    humanTable: createHumanTable(rows, ['engine', 'medianMs', 'p90Ms', 'minMs', 'maxMs', 'outliers']),
-    metadata: { step: stepLabel, runs, results: rows }
+    humanTable: createHumanTable(rows, ['medianMs', 'p90Ms', 'minMs', 'maxMs', 'outliers']),
+    metadata: { step: stepLabel, runs: durations.length, results: rows }
   })
 }
 
@@ -862,18 +859,17 @@ export const runSetupStep = async (step: SetupStepId, options?: { forceRedownloa
     return await executeStepOnce(step)
   }
 
-  const label = 'auto'
-  const timings = new Map<string, number[]>([[label, []]])
+  const timings: number[] = []
   let healthy = true
   for (let i = 0; i < repeat; i++) {
     await applyRunOptions(step, options)
     const start = Date.now()
     healthy = await executeStepOnce(step) && healthy
     const duration = Date.now() - start
-    timings.get(label)!.push(duration)
-    l.write('info', `Run ${i + 1}/${repeat} (${label}): ${duration}ms`)
+    timings.push(duration)
+    l.write('info', `Run ${i + 1}/${repeat}: ${duration}ms`)
   }
 
-  logBenchmarkResults(step, repeat, timings)
+  logBenchmarkResults(step, timings)
   return healthy
 }

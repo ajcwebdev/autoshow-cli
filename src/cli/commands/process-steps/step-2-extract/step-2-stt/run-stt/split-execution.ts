@@ -27,10 +27,9 @@ export const resolveSplitSegmentOutputDir = (
 
 const persistTranscriptionStructuredArtifact = async (
   outputDir: string,
-  result: TranscriptionResult,
-  metadata: Step2Metadata
+  result: TranscriptionResult
 ): Promise<void> => {
-  await writeSttResultArtifact(outputDir, metadata, result)
+  await writeSttResultArtifact(outputDir, result)
 }
 
 const resolveEffectiveSegmentConcurrency = (
@@ -201,7 +200,7 @@ const runSplitTranscription = async (
 
   const combined = mergeSplitTranscriptionChunks(results)
   await Bun.write(`${outputDir}/transcription.txt`, formatTranscriptText(combined.result.segments))
-  await persistTranscriptionStructuredArtifact(outputDir, combined.result, combined.metadata)
+  await persistTranscriptionStructuredArtifact(outputDir, combined.result)
   return combined
 }
 

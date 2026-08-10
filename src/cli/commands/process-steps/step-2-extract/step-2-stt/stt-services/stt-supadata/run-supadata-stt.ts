@@ -15,11 +15,11 @@ import {
   buildAsyncSttResumeProbeError,
   createAsyncSttJobReadyNotifier,
   createAsyncSttProgressMetadataPersister,
+  parseStep2RuntimeMetadata,
   pollAsyncSttJobUntilComplete,
-  readPersistedAsyncSttRuntime,
+  readPersistedAsyncSttProgressMetadata,
 } from '~/cli/commands/process-steps/step-2-extract/step-2-stt/async-lifecycle'
 import { buildStep2TimingMetadata } from '~/cli/commands/process-steps/step-2-extract/step-2-stt/stt-timing-metadata'
-import { readSttProviderCheckpoint } from '~/cli/commands/process-steps/step-2-extract/step-2-stt/stt-manifest'
 import { getSupadataBaseUrl, isSupadataSupportedSourceUrl } from './supadata'
 import { requireApiKey } from '~/utils/validate/env-utils'
 import { InfraError, InternalError } from '~/utils/error-handler'
@@ -98,16 +98,14 @@ export const runSupadataStt = async (
   let requestCount = 0
   let retryCount = 0
   let rateLimitCount = 0
-  const persistedCheckpointMetadata = await readSttProviderCheckpoint(outputDir)
-  const persistedBilling = persistedCheckpointMetadata
-    && persistedCheckpointMetadata['transcriptionService'] === 'supadata'
-    && persistedCheckpointMetadata['transcriptionModel'] === modelName
-      ? parsePersistedSupadataBilling(persistedCheckpointMetadata)
-      : undefined
-  let runtime = await readPersistedAsyncSttRuntime(outputDir, {
+  const persistedProgressMetadata = await readPersistedAsyncSttProgressMetadata(lifecycle, {
     transcriptionService: 'supadata',
     transcriptionModel: modelName
-  })
+  }, segmentNumber)
+  const persistedBilling = persistedProgressMetadata
+    ? parsePersistedSupadataBilling(persistedProgressMetadata)
+    : undefined
+  let runtime = parseStep2RuntimeMetadata(persistedProgressMetadata?.['runtime'])
   let billedCredits = persistedBilling?.creditsUsed
   let creditRateCents = persistedBilling?.creditRateCents ?? getSupadataCreditRateCents()
   let billingSource = persistedBilling?.source
@@ -174,7 +172,8 @@ export const runSupadataStt = async (
   })
 
   const persistProgressMetadata = createAsyncSttProgressMetadataPersister(
-    outputDir,
+    lifecycle,
+    segmentNumber,
     buildProgressMetadata,
     (nextRuntime) => { runtime = nextRuntime }
   )

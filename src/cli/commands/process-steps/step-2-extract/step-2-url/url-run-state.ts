@@ -10,7 +10,6 @@ import { InfraError, ValidationError } from '~/utils/error-handler'
 import { reserveBatchChildOutputDir } from '~/cli/commands/process-steps/batch-child-output'
 import { resolveRunDirectory } from '~/cli/commands/process-steps/run-dir'
 import { buildArticleSlug } from '~/cli/commands/process-steps/step-1-download/document/prepare-html-article'
-import { writeProviderResult } from '../../manifest-utils'
 import { runProviderTargetScheduler } from '../../provider-target-scheduler'
 import { URL_ARTICLE_BACKENDS } from '../step-2-shared/provider-registry'
 import { collectEstimatedExtractTargets, resolveExtractEstimatedCosts, resolveExtractObservedEstimateCosts } from '../step-2-ocr/ocr-costs'
@@ -26,7 +25,7 @@ import { fallbackTitleFromSource, formatErrorMessage, isRemoteSource } from './u
 import { DocumentMetadataSchema, ExtractionMetadataSchema, ExtractionResultSchema } from '~/types'
 import { computeActualCosts } from '~/utils/pricing/compute-actual-costs'
 import { computeActualProcessingTimes, computeEstimatedProcessingTimes } from '~/utils/pricing/compute-processing-time'
-import type { AggregatedPriceEstimate, BatchChildRunContext, DocumentMetadata, ExtractionMetadata, ExtractionOptions, ExtractionResult, HtmlArticleBackend, RuntimeOptions, UrlArticleBackendPlan, UrlArticleRunResult, UrlProviderFailure, UrlProviderRunOutcome, UrlProviderState, UrlProviderSuccess, UrlRequestOptions, WebArticleMetadata } from '~/types'
+import type { AggregatedPriceEstimate, BatchChildRunContext, DocumentMetadata, ExtractionMetadata, ExtractionOptions, ExtractionResult, HtmlArticleBackend, UrlArticleBackendPlan, UrlArticleRunResult, UrlExtractionOptions, UrlProviderFailure, UrlProviderRunOutcome, UrlProviderState, UrlProviderSuccess, UrlRequestOptions, WebArticleMetadata } from '~/types'
 import {
   parseStoredProviderArray,
   resolveProviderCompletionStatus
@@ -44,8 +43,16 @@ const readLocalHtmlFileSize = async (source: string): Promise<number | undefined
   }
 }
 
+export const buildUrlExtractionOptions = (
+  opts: Pick<UrlExtractionOptions, 'dpi' | 'lang' | 'out'>
+): Pick<ExtractionOptions, 'dpi' | 'languages' | 'outputFormat'> => ({
+  dpi: opts.dpi,
+  languages: opts.lang,
+  outputFormat: opts.out
+})
+
 const buildUrlRunOptions = (
-  opts: Pick<RuntimeOptions, 'urlRequestTimeoutMs' | 'urlRequestAttempts'>
+  opts: Pick<UrlExtractionOptions, 'urlRequestTimeoutMs' | 'urlRequestAttempts'>
 ): UrlRequestOptions => ({
   timeoutMs: opts.urlRequestTimeoutMs,
   requestAttempts: opts.urlRequestAttempts
@@ -99,7 +106,7 @@ export const buildStep1MetadataFromArticle = (
 export const reserveUrlOutputDir = async (
   source: string,
   baseDir: string,
-  opts: RuntimeOptions,
+  opts: Pick<UrlExtractionOptions, 'outputRootDir'>,
   fallbackStep1: DocumentMetadata,
   article: UrlArticleRunResult | undefined,
   batchChildContext?: BatchChildRunContext
@@ -185,13 +192,7 @@ export const writeUrlProviderArtifacts = async (
   const providerDir = join(outputDir, getUrlProviderArtifactDir(success.backend))
   await mkdir(providerDir, { recursive: true })
   await writeFile(join(providerDir, 'extraction.txt'), `${success.result.text}\n`)
-  await writeProviderResult(
-    providerDir,
-    success.backend,
-    success.backend,
-    success.metadata as Record<string, unknown>,
-    success.result as Record<string, unknown>
-  )
+  await writeFile(join(providerDir, 'result.json'), JSON.stringify(success.result, null, 2))
 }
 
 const runSingleUrlBackend = async (
@@ -294,7 +295,9 @@ export const buildProviderStates = (
         model: backend,
         artifactDir: getUrlProviderArtifactDir(backend),
         status: 'succeeded',
-        attempts: outcome.success.attempts
+        attempts: outcome.success.attempts,
+        metadata: outcome.success.metadata,
+        result: outcome.success.result as unknown as Record<string, unknown>
       }
     }
 
@@ -383,7 +386,7 @@ export const runAllUrlBackends = async (
   source: string,
   requestedBackends: HtmlArticleBackend[],
   sourceUrl: string | undefined,
-  opts: RuntimeOptions,
+  opts: Pick<UrlExtractionOptions, 'urlProviderConcurrency' | 'urlRequestTimeoutMs' | 'urlRequestAttempts'>,
   extractionOpts: Pick<ExtractionOptions, 'dpi' | 'languages' | 'outputFormat'>
 ): Promise<UrlProviderRunOutcome[]> => {
   const urlRunOptions = buildUrlRunOptions(opts)
@@ -421,7 +424,7 @@ export const runAllUrlBackends = async (
 export const runUrlArticleBackendPlan = async (
   source: string,
   plan: UrlArticleBackendPlan,
-  opts: RuntimeOptions,
+  opts: Pick<UrlExtractionOptions, 'urlProviderConcurrency' | 'urlRequestTimeoutMs' | 'urlRequestAttempts'>,
   extractionOpts: Pick<ExtractionOptions, 'dpi' | 'languages' | 'outputFormat'>
 ): Promise<UrlProviderRunOutcome[]> => {
   if (plan.allUrlMode) {
@@ -492,7 +495,7 @@ export const parseStoredProviderStates = (metadata: Record<string, unknown>): Ur
       return undefined
     }
     const status = entry['status']
-    if (status !== 'succeeded' && status !== 'missing' && status !== 'failed' && status !== 'skipped') {
+    if (status !== 'running' && status !== 'succeeded' && status !== 'missing' && status !== 'failed' && status !== 'skipped') {
       return undefined
     }
     return {
@@ -503,6 +506,8 @@ export const parseStoredProviderStates = (metadata: Record<string, unknown>): Ur
         : getUrlProviderArtifactDir(backend),
       status,
       attempts: typeof entry['attempts'] === 'number' ? entry['attempts'] : 0,
+      ...(isRecord(entry['metadata']) ? { metadata: entry['metadata'] } : {}),
+      ...(isRecord(entry['result']) ? { result: entry['result'] } : {}),
       ...(isRecord(entry['lastError']) && typeof entry['lastError']['message'] === 'string'
         ? { lastError: { message: entry['lastError']['message'] } }
         : {})
@@ -511,17 +516,9 @@ export const parseStoredProviderStates = (metadata: Record<string, unknown>): Ur
 }
 
 export const parseStoredUrlBackends = (
-  metadata: Record<string, unknown>,
-  step2Metadata: ExtractionMetadata[],
   providerStates: UrlProviderState[]
 ): HtmlArticleBackend[] =>
-  uniqueBackends([
-    ...parseStoredProviderArray(metadata['requestedProviders'], parseStoredProviderBackend),
-    ...providerStates.map((state) => state.service),
-    ...step2Metadata
-      .map(parseBackendFromExtractionMetadata)
-      .filter((backend): backend is HtmlArticleBackend => backend !== undefined)
-  ])
+  uniqueBackends(providerStates.map((state) => state.service))
 
 export const getUrlArticleSource = (
   metadata: Record<string, unknown>
@@ -535,15 +532,14 @@ export const getUrlArticleSource = (
   if (filePath) {
     return { source: filePath, sourceRef: { filePath } }
   }
-  throw ValidationError('URL article manifest requires run.json metadata.source.url or metadata.source.filePath.', { stage: 'extract:url' })
+  throw ValidationError('URL article manifest requires metadata.source.url or metadata.source.filePath.', { stage: 'extract:url' })
 }
 
-export const getStoredStep1Metadata = async (
-  metadata: Record<string, unknown>,
-  source: string
-): Promise<DocumentMetadata> => {
-  if (isRecord(metadata['step1'])) {
-    return validateData(DocumentMetadataSchema, metadata['step1'], 'stored URL step1 metadata')
+export const getStoredStep1Metadata = (
+  metadata: Record<string, unknown>
+): DocumentMetadata => {
+  if (!isRecord(metadata['step1'])) {
+    throw ValidationError('Canonical URL article manifest is missing step1 metadata.', { stage: 'extract:url' })
   }
-  return await buildFallbackStep1Metadata(source)
+  return validateData(DocumentMetadataSchema, metadata['step1'], 'stored URL step1 metadata')
 }

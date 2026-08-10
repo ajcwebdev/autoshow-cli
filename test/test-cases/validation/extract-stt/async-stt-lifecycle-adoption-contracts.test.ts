@@ -1,10 +1,13 @@
 import { describe, expect, test } from 'bun:test'
 import { join } from 'node:path'
+import { readSingleManifestProviderState } from '~/cli/commands/process-steps/pipeline-manifest'
 import { runAssemblyAiTranscribe } from '~/cli/commands/process-steps/step-2-extract/step-2-stt/stt-services/assemblyai/run-assemblyai-stt'
 import { runGladiaStt } from '~/cli/commands/process-steps/step-2-extract/step-2-stt/stt-services/gladia/run-gladia-stt'
 import { runSonioxStt } from '~/cli/commands/process-steps/step-2-extract/step-2-stt/stt-services/soniox/run-soniox-stt'
-import type { Step2Metadata, TranscriptionResult } from '~/types'
+import { ASYNC_STT_PROGRESS_METADATA_KEY, createSttProviderProgressLifecycle } from '~/cli/commands/process-steps/step-2-extract/step-2-stt/stt-provider-progress'
+import type { AsyncSttLifecycleHooks, Step2Metadata, SttTarget, TranscriptionResult } from '~/types'
 import { installMockFetch, jsonResponse, setupContractSuiteLifecycle } from '../../../test-utils/rest-contract-helpers'
+import { writeSingleManifestFixture } from '../../../test-utils/manifest-helpers'
 
 const tempDirs = setupContractSuiteLifecycle({
   envKeys: ['ASSEMBLYAI_API_KEY', 'GLADIA_API_KEY', 'SONIOX_API_KEY'],
@@ -18,6 +21,27 @@ const tempDirs = setupContractSuiteLifecycle({
   }
 })
 
+const seedAsyncProviderManifest = async (
+  outputDir: string,
+  target: Pick<SttTarget, 'service' | 'model'>
+): Promise<Pick<AsyncSttLifecycleHooks, 'readProgressMetadata' | 'writeProgressMetadata'>> => {
+  await writeSingleManifestFixture(outputDir, 'extract', {
+    completionStatus: 'incomplete',
+    requestedProviders: [{ service: target.service, model: target.model, local: false }],
+    providerStates: [{
+      service: target.service,
+      model: target.model,
+      local: false,
+      artifactDir: '.',
+      status: 'running',
+      attempts: 1
+    }],
+    missingProviders: [{ service: target.service, model: target.model, local: false }]
+  }, { extractRoute: 'media' })
+
+  return createSttProviderProgressLifecycle({ rootDir: outputDir, artifactDir: outputDir, target })
+}
+
 const expectLifecycleArtifacts = async (
   outputDir: string,
   actual: { result: TranscriptionResult, metadata: Step2Metadata },
@@ -29,7 +53,8 @@ const expectLifecycleArtifacts = async (
     remoteJobId: string
     remoteAssetId?: string | undefined
     remoteAssetUrl?: string | undefined
-  }
+  },
+  target: Pick<SttTarget, 'service' | 'model'>
 ): Promise<void> => {
   expect(actual.result).toEqual({
     text: expected.text,
@@ -56,16 +81,18 @@ const expectLifecycleArtifacts = async (
     }
   })
 
-  const checkpoint = await Bun.file(join(outputDir, 'checkpoint.json')).json() as {
-    metadata: { runtime: Record<string, unknown> }
-  }
-  expect(checkpoint.metadata.runtime).toMatchObject({
+  const provider = await readSingleManifestProviderState(outputDir, {
+    service: target.service,
+    model: target.model,
+    artifactDir: outputDir
+  })
+  expect(provider?.metadata[ASYNC_STT_PROGRESS_METADATA_KEY]).toMatchObject({ whole: { runtime: {
     mode: 'fresh',
     stage: 'polling',
     remoteJobId: expected.remoteJobId,
     ...(expected.remoteAssetId ? { remoteAssetId: expected.remoteAssetId } : {}),
     ...(expected.remoteAssetUrl ? { remoteAssetUrl: expected.remoteAssetUrl } : {})
-  })
+  } } })
 }
 
 describe('async STT lifecycle adoption contracts', () => {
@@ -115,11 +142,13 @@ describe('async STT lifecycle adoption contracts', () => {
     }
   })
 
-  test('AssemblyAI preserves request, result, transcript, and checkpoint shapes', async () => {
+  test('AssemblyAI preserves request, result, transcript, and canonical progress shapes', async () => {
     const outputDir = await tempDirs.make()
     const audioPath = join(outputDir, 'audio.mp3')
     await Bun.write(audioPath, 'audio')
     process.env['ASSEMBLYAI_API_KEY'] = 'test-assemblyai-key'
+    const target = { service: 'assemblyai', model: 'universal-2' } as const
+    const lifecycle = await seedAsyncProviderManifest(outputDir, target)
 
     const calls = installMockFetch((call) => {
       const path = new URL(call.url).pathname
@@ -143,7 +172,8 @@ describe('async STT lifecycle adoption contracts', () => {
 
     const actual = await runAssemblyAiTranscribe(audioPath, outputDir, {
       model: 'universal-2',
-      segmentOffsetMinutes: 0
+      segmentOffsetMinutes: 0,
+      lifecycle
     })
 
     await expectLifecycleArtifacts(outputDir, actual, {
@@ -153,7 +183,7 @@ describe('async STT lifecycle adoption contracts', () => {
       speaker: 'speaker-A',
       remoteJobId: 'assembly-job-1',
       remoteAssetUrl: 'https://cdn.assemblyai.test/audio-1'
-    })
+    }, target)
     expect(calls.map((call) => `${call.method} ${new URL(call.url).pathname}`)).toEqual([
       'POST /v2/upload',
       'POST /v2/transcript',
@@ -161,11 +191,13 @@ describe('async STT lifecycle adoption contracts', () => {
     ])
   })
 
-  test('Gladia preserves request, result, transcript, and checkpoint shapes', async () => {
+  test('Gladia preserves request, result, transcript, and canonical progress shapes', async () => {
     const outputDir = await tempDirs.make()
     const audioPath = join(outputDir, 'audio.mp3')
     await Bun.write(audioPath, 'audio')
     process.env['GLADIA_API_KEY'] = 'test-gladia-key'
+    const target = { service: 'gladia', model: 'solaria-1' } as const
+    const lifecycle = await seedAsyncProviderManifest(outputDir, target)
 
     const calls = installMockFetch((call) => {
       const path = new URL(call.url).pathname
@@ -208,7 +240,8 @@ describe('async STT lifecycle adoption contracts', () => {
 
     const actual = await runGladiaStt(audioPath, outputDir, {
       model: 'solaria-1',
-      segmentOffsetMinutes: 0
+      segmentOffsetMinutes: 0,
+      lifecycle
     })
 
     await expectLifecycleArtifacts(outputDir, actual, {
@@ -219,7 +252,7 @@ describe('async STT lifecycle adoption contracts', () => {
       remoteJobId: 'gladia-job-1',
       remoteAssetId: 'gladia-asset-1',
       remoteAssetUrl: 'https://cdn.gladia.test/audio-1'
-    })
+    }, target)
     expect(calls.map((call) => `${call.method} ${new URL(call.url).pathname}`)).toEqual([
       'POST /v2/upload',
       'POST /v2/pre-recorded',
@@ -227,11 +260,13 @@ describe('async STT lifecycle adoption contracts', () => {
     ])
   })
 
-  test('Soniox preserves request, result, transcript, and checkpoint shapes', async () => {
+  test('Soniox preserves request, result, transcript, and canonical progress shapes', async () => {
     const outputDir = await tempDirs.make()
     const audioPath = join(outputDir, 'audio.mp3')
     await Bun.write(audioPath, 'audio')
     process.env['SONIOX_API_KEY'] = 'test-soniox-key'
+    const target = { service: 'soniox', model: 'stt-async-v5' } as const
+    const lifecycle = await seedAsyncProviderManifest(outputDir, target)
 
     const calls = installMockFetch((call) => {
       const path = new URL(call.url).pathname
@@ -259,7 +294,8 @@ describe('async STT lifecycle adoption contracts', () => {
 
     const actual = await runSonioxStt(audioPath, outputDir, {
       model: 'stt-async-v5',
-      segmentOffsetMinutes: 0
+      segmentOffsetMinutes: 0,
+      lifecycle
     })
 
     await expectLifecycleArtifacts(outputDir, actual, {
@@ -269,7 +305,7 @@ describe('async STT lifecycle adoption contracts', () => {
       speaker: 'speaker-1',
       remoteJobId: 'soniox-job-1',
       remoteAssetId: 'soniox-asset-1'
-    })
+    }, target)
     expect(calls.map((call) => `${call.method} ${new URL(call.url).pathname}`)).toEqual([
       'POST /v1/files',
       'POST /v1/transcriptions',

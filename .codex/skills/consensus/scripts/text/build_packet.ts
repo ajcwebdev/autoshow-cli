@@ -5,7 +5,7 @@ import { join, resolve } from "node:path";
 
 import {
   buildTextProviderRows,
-  loadTextRunJson,
+  loadTextManifestRecord,
   type TextProviderRow,
 } from "./text_eval_lib.ts";
 
@@ -58,8 +58,8 @@ function outputPreview(runDir: string, row: TextProviderRow): string | null {
 
 async function main(): Promise<number> {
   const args = parseArgs(process.argv.slice(2));
-  const runJson = loadTextRunJson(args.runDir);
-  const rows = buildTextProviderRows(args.runDir, runJson);
+  const manifestRecord = loadTextManifestRecord(args.runDir);
+  const rows = buildTextProviderRows(args.runDir, manifestRecord);
   const packet = {
     schemaVersion: 1,
     kind: "text-consensus-packet",

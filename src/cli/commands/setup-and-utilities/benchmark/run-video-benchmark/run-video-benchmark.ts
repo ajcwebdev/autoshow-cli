@@ -4,8 +4,8 @@ import { baseMediaComparisonRow, writeMediaComparisonReports } from '../media-pr
 import { judgeVisionArtifact, qualityReportBase, rankVisionProviders, runVisionBenchmark, summarizeVisionEvaluations, writeVisionQualityJson, writeVisionQualityMarkdown } from '../vision-benchmark-engine'
 import { VIDEO_FRAME_COUNT } from './video-benchmark-constants'
 import { extractVideoFrames, requireVideoTools } from './video-benchmark-frames'
-import { loadVideoRunJson, resolveVideoProviders } from './video-benchmark-run-json'
-import type { BenchmarkFlags, JsonObject, VideoBenchmarkProvider, VideoCriterionScores, VideoEvaluation, VideoFileReference, VideoFrame, VideoQualityProviderReport, VideoQualityReport, VideoRunJson } from '~/types'
+import { loadVideoBenchmarkManifest, resolveVideoProviders } from './video-benchmark-manifest'
+import type { BenchmarkFlags, JsonObject, VideoBenchmarkManifestView, VideoBenchmarkProvider, VideoCriterionScores, VideoEvaluation, VideoFileReference, VideoFrame, VideoQualityProviderReport, VideoQualityReport } from '~/types'
 import type { VisionCriterion } from '../vision-benchmark-engine'
 
 const DEFAULT_VIDEO_JUDGE_MODEL = 'gpt-5.5'
@@ -133,15 +133,15 @@ const providerComparisonRows = (report: VideoQualityReport): JsonObject[] => rep
 
 const writeVideoQualityReports = async (
   runDir: string,
-  runJson: VideoRunJson,
+  manifestView: VideoBenchmarkManifestView,
   providers: readonly VideoBenchmarkProvider[],
   judgeModel: string
 ): Promise<{ report: VideoQualityReport, jsonOut: string, markdownOut: string }> => {
   const evaluated = [] as Array<Omit<VideoQualityProviderReport, 'rank'>>
-  for (const provider of providers) evaluated.push(await evaluateVideoProvider(runDir, runJson.metadata.input, provider, judgeModel))
+  for (const provider of providers) evaluated.push(await evaluateVideoProvider(runDir, manifestView.input, provider, judgeModel))
   const ranked: VideoQualityProviderReport[] = rankVisionProviders(evaluated)
   const report: VideoQualityReport = {
-    ...qualityReportBase('video-quality-report', runDir, new Date().toISOString(), judgeModel, runJson.metadata.input, {
+    ...qualityReportBase('video-quality-report', runDir, new Date().toISOString(), judgeModel, manifestView.input, {
       scale: '1-10',
       qualityScore: 'average criterion score x 10',
       frameSampling: '10 midpoint-interval screenshots per video',
@@ -172,8 +172,8 @@ export const runVideoBenchmark = async (input: string | undefined, flags: Benchm
     defaultJudgeModel: DEFAULT_VIDEO_JUDGE_MODEL,
     judgeModel: (options) => options['video-judge-model'],
     load: async (runDir) => {
-      const runJson = await loadVideoRunJson(runDir)
-      return { runJson, providers: await resolveVideoProviders(runDir, runJson) }
+      const manifestView = await loadVideoBenchmarkManifest(runDir)
+      return { manifestView, providers: await resolveVideoProviders(runDir, manifestView) }
     },
     artifactCount: ({ videos }) => videos.length,
     prepare: requireVideoTools,

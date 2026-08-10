@@ -1,21 +1,21 @@
 import type { Logger, WriteManifestMetadata, WriteManifestSourceRefs } from '~/types'
 import { l } from '~/utils/app-logger/app-logger'
 import { createKeyValueTable } from '~/utils/app-logger/human-table/human-table'
-import { CURRENT_MANIFEST_VERSION_BY_KIND } from '../manifest-utils'
+import { PIPELINE_MANIFEST_FILE } from '../pipeline-manifest'
 import { buildWriteManifestConsoleSummary } from './manifest-log-console-summary'
 
-export const logRunManifestLocation = (
+export const logManifestLocation = (
   outputDir: string,
   logger: Pick<Logger, 'write'> = l,
-  kind = 'write'
+  command = 'write'
 ): string => {
-  const manifestPath = `${outputDir}/run.json`
+  const manifestPath = `${outputDir}/${PIPELINE_MANIFEST_FILE}`
   logger.write('info', 'Locations', {
     category: 'artifact',
-    humanTable: createKeyValueTable([['runManifest', manifestPath]], 'artifact', 'path'),
+    humanTable: createKeyValueTable([['manifest', manifestPath]], 'artifact', 'path'),
     metadata: {
       path: manifestPath,
-      kind
+      command
     }
   })
   return manifestPath
@@ -41,14 +41,14 @@ export const logExtractManifestConsoleSummary = (
 
 const logManifestConsoleSummary = (
   outputDir: string,
-  kind: string,
+  command: string,
   metadata: WriteManifestMetadata,
   refs: WriteManifestSourceRefs,
   logger: Pick<Logger, 'write' | 'debug'>
 ): void => {
   const summary = buildWriteManifestConsoleSummary(metadata, refs)
 
-  logRunManifestLocation(outputDir, logger, kind)
+  logManifestLocation(outputDir, logger, command)
 
   if (summary.runSummary) {
     logger.write('info', 'Run Summary', {
@@ -94,9 +94,5 @@ const logManifestConsoleSummary = (
     })
   }
 
-  logger.debug(`Run manifest:\n${JSON.stringify({
-    schemaVersion: CURRENT_MANIFEST_VERSION_BY_KIND.run,
-    kind,
-    metadata
-  }, null, 2)}`)
+  logger.debug(`Manifest item metadata:\n${JSON.stringify({ command, metadata }, null, 2)}`)
 }

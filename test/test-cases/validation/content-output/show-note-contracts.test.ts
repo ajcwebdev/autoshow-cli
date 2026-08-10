@@ -11,7 +11,7 @@ import type {
   StructuredRunResult
 } from '~/types'
 import { writeShowNoteArtifacts } from '~/cli/commands/process-steps/step-3-write/show-note-artifacts'
-import { buildOptsFromFlags } from '~/cli/commands/process-steps/step-1-download/download-targets/build-opts-from-flags/build-options-from-flags'
+import { buildOptsFromFlags } from '~/cli/options/option-resolution/build-options-from-flags'
 import { buildExpectedFilesList } from '~/cli/commands/process-steps/step-1-download/download-targets/expected-output'
 import { renderToPlainText } from '~/cli/commands/process-steps/step-3-write/structured-output/renderers'
 import { buildStructuredValidationFailureEnvelope } from '~/cli/commands/process-steps/step-3-write/structured-output/validation-failure'

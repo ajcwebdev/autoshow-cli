@@ -28,19 +28,15 @@ interface RunStepTimingEntry {
   inputValue?: number;
 }
 
-export interface TtsRunJson {
-  schemaVersion?: number;
-  kind: string;
-  metadata: {
-    tts: TtsEntryMetadata[];
-    input?: string;
-    cost?: {
-      estimated?: { totalCost?: number; steps?: RunStepCostEntry[] };
-      actual?: { totalCost?: number; steps?: RunStepCostEntry[] };
-    };
-    timing?: {
-      estimated?: { totalProcessingTimeMs?: number; steps?: RunStepTimingEntry[] };
-      actual?: { totalProcessingTimeMs?: number; steps?: RunStepTimingEntry[] };
-    };
+export interface TtsManifestMetadata {
+  tts: TtsEntryMetadata[];
+  input?: string;
+  cost?: {
+    estimated?: { totalCost?: number; steps?: RunStepCostEntry[] };
+    actual?: { totalCost?: number; steps?: RunStepCostEntry[] };
+  };
+  timing?: {
+    estimated?: { totalProcessingTimeMs?: number; steps?: RunStepTimingEntry[] };
+    actual?: { totalProcessingTimeMs?: number; steps?: RunStepTimingEntry[] };
   };
 }

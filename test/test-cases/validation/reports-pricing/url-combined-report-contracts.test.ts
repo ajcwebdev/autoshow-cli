@@ -24,6 +24,7 @@ import {
   LONG_SEQUENCE_DISTANCE_METHOD
 } from '../../../../.codex/skills/consensus/scripts/url/url_consensus_lib'
 import type { UrlCombinedArtifact, UrlCombinedFixtureProvider } from '~/types'
+import { PIPELINE_MANIFEST_FILE } from '~/cli/commands/process-steps/pipeline-manifest'
 
 const tempRoots: string[] = []
 
@@ -111,12 +112,21 @@ function writeFixtureRun(
     }
   }))
   if (metadata) {
-    writeFileSync(join(runDir, 'run.json'), JSON.stringify({
-      metadata: {
-        step1: { title: metadata.title },
-        web: { title: metadata.title, sourceUrl: metadata.sourceUrl, finalUrl: metadata.sourceUrl },
-        source: { url: metadata.sourceUrl }
-      }
+    writeFileSync(join(runDir, PIPELINE_MANIFEST_FILE), JSON.stringify({
+      command: 'extract',
+      scope: 'single',
+      createdAt: '2026-01-01T00:00:00.000Z',
+      updatedAt: '2026-01-01T00:00:00.000Z',
+      items: [{
+        extractRoute: 'article',
+        status: 'full',
+        metadata: {
+          step1: { title: metadata.title },
+          web: { title: metadata.title, sourceUrl: metadata.sourceUrl, finalUrl: metadata.sourceUrl },
+          source: { url: metadata.sourceUrl }
+        },
+        providers: []
+      }]
     }))
   }
 }

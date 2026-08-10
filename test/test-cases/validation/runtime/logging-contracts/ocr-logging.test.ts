@@ -1,9 +1,7 @@
 import { describe, expect, test } from 'bun:test'
 import {
-  buildOcrJobProgressTable,
   buildOcrPagesProgressTable,
-  buildOcrProviderLifecycleTable,
-  buildOcrTransferTable
+  buildOcrProviderLifecycleTable
 } from '~/cli/commands/process-steps/step-2-extract/step-2-ocr/ocr-logging'
 
 describe('logging contracts', () => {
@@ -40,48 +38,5 @@ describe('logging contracts', () => {
         ]
       })
 
-      expect(buildOcrJobProgressTable({
-        provider: 'deepinfra',
-        action: 'poll',
-        remoteId: 'job-123',
-        state: 'in_progress',
-        pages: 7,
-        detail: 'attempt 10'
-      })).toEqual({
-        columns: ['key', 'value'],
-        rows: [
-          { key: 'provider', value: 'deepinfra' },
-          { key: 'action', value: 'poll' },
-          { key: 'remoteId', value: 'job-123' },
-          { key: 'state', value: 'in_progress' },
-          { key: 'pages', value: 7 },
-          { key: 'detail', value: 'attempt 10' }
-        ]
-      })
-
-      expect(buildOcrJobProgressTable({
-        provider: 'deepinfra',
-        action: 'launch',
-        state: 'queued'
-      }).rows).toEqual([
-        { key: 'provider', value: 'deepinfra' },
-        { key: 'action', value: 'launch' },
-        { key: 'state', value: 'queued' }
-      ])
-    })
-
-  test('ocr log table builders use key/value rows for single-operation details', () => {
-      expect(buildOcrTransferTable({
-        action: 'upload',
-        file: 'document.pdf',
-        destination: 's3://bucket/document.pdf'
-      })).toEqual({
-        columns: ['key', 'value'],
-        rows: [
-          { key: 'action', value: 'upload' },
-          { key: 'file', value: 'document.pdf' },
-          { key: 'destination', value: 's3://bucket/document.pdf' }
-        ]
-      })
     })
 })

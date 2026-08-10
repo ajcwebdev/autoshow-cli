@@ -521,7 +521,7 @@ export const tryResolveYoutubeCaptionTranscription = async (
     await copyFile(downloadedVttPath, providerVttPath)
     await Bun.write(providerMetadataPath, `${JSON.stringify(metadataFile, null, 2)}\n`)
 
-    await writeSttResultArtifact(providerDir, step2Metadata, transcription)
+    await writeSttResultArtifact(providerDir, transcription)
     await syncRootArtifacts(providerDir, outputDir)
 
     return {

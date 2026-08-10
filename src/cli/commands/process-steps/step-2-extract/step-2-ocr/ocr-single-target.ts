@@ -1,9 +1,9 @@
 import type { OcrSingleRunContext, ProcessDocumentOutput } from '~/types'
 import { l, runWithLogContext } from '~/utils/app-logger/app-logger'
 import { logExtractManifestConsoleSummary } from '~/cli/commands/process-steps/write-manifest-log/write-manifest-log'
+import { writePipelineItemRecords } from '../../pipeline-manifest'
 import { isEpubInspectMode, writeExtractionArtifact, writeTextArtifactFiles } from './ocr-artifacts'
 import { buildDocumentMetadataPayload, buildSuccessfulResolvedProviderStates, resolveRecordedOcrStep2, toResolvedRequestedProviders } from './ocr-document-metadata'
-import { writeOcrRunManifest } from './ocr-manifest'
 import { buildExtractionOptionsForTarget } from './ocr-targets'
 import { persistHostedOcrTokenUsageProfiles } from './ocr-utils/hosted-ocr-token-profiles'
 import { persistHostedOcrThroughputProfiles } from './ocr-utils/hosted-ocr-throughput-profiles'
@@ -35,7 +35,7 @@ export const runOcrSingleTarget = async (ctx: OcrSingleRunContext): Promise<Proc
     ...(resolvedRequestedProviders
       ? {
           requestedProviders: resolvedRequestedProviders,
-          providerStates: buildSuccessfulResolvedProviderStates(resolvedRequestedProviders),
+          providerStates: buildSuccessfulResolvedProviderStates(resolvedRequestedProviders, extracted.step2Metadata, extracted.result),
           missingProviders: [],
           blockedProviders: []
         }
@@ -47,7 +47,7 @@ export const runOcrSingleTarget = async (ctx: OcrSingleRunContext): Promise<Proc
     ocrLocalConcurrency: opts.ocrLocalConcurrency,
     hostedOcrScheduler: hostedOcrScheduler.snapshot()
   })
-  await writeOcrRunManifest(outputDir, rootMetadata)
+  await writePipelineItemRecords(outputDir, 'extract', 'single', [rootMetadata], { extractRoute: 'document' })
   await persistHostedOcrThroughputProfiles(hostedOcrScheduler.snapshot(), {
     completionStatus: 'full'
   }).catch((error) => {
@@ -78,7 +78,7 @@ export const runOcrSingleTarget = async (ctx: OcrSingleRunContext): Promise<Proc
     ...(resolvedRequestedProviders
       ? {
           requestedProviders: resolvedRequestedProviders,
-          providerStates: buildSuccessfulResolvedProviderStates(resolvedRequestedProviders),
+          providerStates: buildSuccessfulResolvedProviderStates(resolvedRequestedProviders, extracted.step2Metadata, extracted.result),
           missingProviders: [],
           blockedProviders: []
         }

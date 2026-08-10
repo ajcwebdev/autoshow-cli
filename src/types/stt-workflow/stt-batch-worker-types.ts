@@ -1,12 +1,13 @@
-import type { MistralSttPassController, PreparedSttMedia, ProcessSttRunOptions, ProviderFailure, RuntimeOptions, SttBatchCoordinator, SttProviderState, SttProviderSuccess, SttTarget } from '~/types'
+import type { MistralSttPassController, PreparedSttMedia, ProcessSttRunOptions, ProviderFailure, SttBatchCoordinator, SttExtractionOptions, SttProviderState, SttProviderSuccess, SttTarget } from '~/types'
 
 export type SttBatchWorkerContext = {
+  outputDir: string
   providersDir: string
   requestedTargets: SttTarget[]
   successes: Array<SttProviderSuccess | undefined>
   failuresByIndex: Map<number, ProviderFailure>
   providerStateMap: Map<string, SttProviderState>
-  options: RuntimeOptions
+  options: SttExtractionOptions
   prepared: PreparedSttMedia
   runOptions: ProcessSttRunOptions
   batchCoordinator: SttBatchCoordinator | undefined

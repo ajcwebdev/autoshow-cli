@@ -41,13 +41,13 @@ bun autoshow benchmark <video-run-dir> --video [flags]
 
 Default STT mode takes an audio file, generates a spectrum of degraded versions (lower bitrates and faster playback speeds), transcribes each version through all available STT services, and produces a JSON report comparing transcription quality via Word Error Rate (WER). This identifies at what point compression or speed-up causes transcription quality to degrade for each service.
 
-TTS mode is selected with `--tts`. It takes an existing AutoShow TTS run directory, reads `run.json`, derives the source text from `metadata.input`, scores all `metadata.tts[]` audio files, and writes voice quality reports beside the run.
+TTS mode is selected with `--tts`. It takes an existing AutoShow TTS run directory, reads its canonical `manifest.json`, derives the source text from `items[0].input`, scores all `items[0].metadata.tts[]` audio files, and writes voice quality reports beside the run.
 
-Text mode is selected with `--text`. It takes an existing AutoShow write run directory, reads `kind: "write"` `run.json`, scores provider price and speed from existing `metadata.step3`, `metadata.cost`, and `metadata.timing` evidence, and writes provider comparison reports beside the run. It does not call LLM providers.
+Text mode is selected with `--text`. It takes an existing AutoShow run whose canonical manifest has `command: "write"` and `scope: "single"`, scores provider price and speed from existing item `metadata.step3`, `metadata.cost`, and `metadata.timing` evidence, and writes provider comparison reports beside the run. It does not call LLM providers.
 
-Image mode is selected with `--image`. It takes an existing AutoShow image run directory, reads `run.json`, derives the source prompt from `metadata.input`, scores all generated files listed in `metadata.image[].imageFileNames`, and writes image quality reports beside the run. It evaluates existing generated images only; it does not generate new images.
+Image mode is selected with `--image`. It takes an existing AutoShow image run directory, reads its canonical manifest, derives the source prompt from `items[0].input`, scores all generated files listed in `items[0].metadata.image[].imageFileNames`, and writes image quality reports beside the run. It evaluates existing generated images only; it does not generate new images.
 
-Video mode is selected with `--video`. It takes an existing AutoShow video run directory, reads `run.json`, derives the source prompt from `metadata.input`, extracts 10 midpoint-interval frames per generated video with local `ffmpeg`/`ffprobe`, scores those ordered frames, and writes video quality reports beside the run. It evaluates existing generated videos only; it does not generate new videos.
+Video mode is selected with `--video`. It takes an existing AutoShow video run directory, reads its canonical manifest, derives the source prompt from `items[0].input`, extracts 10 midpoint-interval frames per generated video listed in `items[0].metadata.video[]`, scores those ordered frames, and writes video quality reports beside the run. It evaluates existing generated videos only; it does not generate new videos.
 
 Document OCR benchmarks are not run by `bun autoshow benchmark`. For OCR, run the normal extraction flow with route-aware provider selections such as `--all-providers`, then generate or inspect the OCR comparison reports under `docs/benchmarks/ocr/`.
 
@@ -70,7 +70,7 @@ Document OCR benchmarks are not run by `bun autoshow benchmark`. For OCR, run th
 | Flag                        | Default                  | Description                                                                    |
 |-----------------------------|--------------------------|--------------------------------------------------------------------------------|
 | `--tts`                     | `false`                  | Score an existing TTS run instead of running the STT compression/speed benchmark |
-| `--tts-input-text`          | `metadata.input`         | Original source text, or a text file path, for older runs without `metadata.input` |
+| `--tts-input-text`          | `items[0].input`         | Override the original source text with literal text or a text file path |
 | `--tts-mode`                | `full`                   | `full` may call paid STT/audio judge APIs when credentials exist; `local` never does |
 | `--tts-roundtrip-dir`       | none                     | Directory of existing roundtrip transcripts                                    |
 | `--tts-metric-fixtures`     | none                     | JSON fixtures with precomputed model metrics and transcripts                    |
@@ -157,7 +157,7 @@ bun autoshow benchmark docs/benchmarks/video/<run> --video --video-judge-model g
 
 ## TTS voice-quality mode
 
-`bun autoshow benchmark <tts-run-dir> --tts` is analysis-only. It does not generate new TTS samples. The run directory must contain a TTS `run.json` with `metadata.tts[]`; each entry's `audioFileName` is resolved relative to the run directory.
+`bun autoshow benchmark <tts-run-dir> --tts` is analysis-only. It does not generate new TTS samples. The run directory must contain a canonical single-run manifest with `command: "tts"` and `items[0].metadata.tts[]`; each entry's `audioFileName` is resolved relative to the run directory.
 
 By default, `--tts` uses `--tts-mode full`. Full mode computes local signal/prosody heuristics, uses any supplied fixtures or roundtrip transcripts, and may call OpenAI audio judging plus AssemblyAI/OpenAI roundtrip STT when the corresponding API keys are configured. Configured paid scoring calls are strict in full mode: if OpenAI judging or paid roundtrip STT is attempted and fails, the benchmark exits non-zero instead of recording a warning. Missing paid credentials still skip those metrics. Use `--tts-mode local` for a no-paid, warning-tolerant pass.
 
@@ -184,10 +184,10 @@ When a `voice-quality-report.json` exists in a TTS run directory, the provider c
 
 `bun autoshow benchmark <write-run-dir> --text` is no-cost and analysis-only. It does not generate text, re-run prompts, or call LLM providers. The run directory must contain:
 
-- `kind: "write"`
-- `metadata.step3` as an object or array with `llmService`, `llmModel`, token counts, processing time, and output file metadata
-- optional `metadata.cost.actual|estimated.steps`
-- optional `metadata.timing.actual|estimated.steps`
+- `command: "write"`, `scope: "single"`, and exactly one item
+- `items[0].metadata.step3` as an object or array with `llmService`, `llmModel`, token counts, processing time, and output file metadata
+- optional `items[0].metadata.cost.actual|estimated.steps`
+- optional `items[0].metadata.timing.actual|estimated.steps`
 
 Outputs are written beside the run:
 
@@ -205,15 +205,15 @@ Tracked benchmark workflow:
 
 1. Run `write` separately into `docs/benchmarks/write/<run>`.
 2. Run `bun autoshow benchmark docs/benchmarks/write/<run> --text`.
-3. Commit the resulting `run.json`, provider outputs, `provider-comparison-report.json`, and `provider-comparison-report.md`.
+3. Commit the resulting `manifest.json`, provider outputs, `provider-comparison-report.json`, and `provider-comparison-report.md`.
 
 ## Image quality mode
 
-`bun autoshow benchmark <image-run-dir> --image` is analysis-only. It does not generate new images. The run directory must contain an image `run.json` with:
+`bun autoshow benchmark <image-run-dir> --image` is analysis-only. It does not generate new images. The run directory must contain a canonical single-run `manifest.json` with:
 
-- `kind: "image"`
-- `metadata.input` containing the original generation prompt
-- `metadata.image[]` entries with `imageService`, `imageModel`, and relative `imageFileNames[]`
+- `command: "image"`
+- `items[0].input` containing the original generation prompt
+- `items[0].metadata.image[]` entries with `imageService`, `imageModel`, and relative `imageFileNames[]`
 
 Each image is sent to OpenAI `gpt-5.5` by default through the Responses API as an `input_image` data URL with `detail: "auto"`. The judge uses native strict JSON schema output and scores five criteria from 1 to 10:
 
@@ -239,11 +239,11 @@ Outputs are written beside the run:
 
 ## Video quality mode
 
-`bun autoshow benchmark <video-run-dir> --video` is analysis-only. It does not generate new videos. The run directory must contain a video `run.json` with:
+`bun autoshow benchmark <video-run-dir> --video` is analysis-only. It does not generate new videos. The run directory must contain a canonical single-run `manifest.json` with:
 
-- `kind: "video"`
-- `metadata.input` containing the original generation prompt
-- `metadata.video[]` entries with `videoGenService`, `videoGenModel`, and relative `videoFileName`
+- `command: "video"`
+- `items[0].input` containing the original generation prompt
+- `items[0].metadata.video[]` entries with `videoGenService`, `videoGenModel`, and relative `videoFileName`
 
 The benchmark requires local `ffmpeg` and `ffprobe` so it can sample 10 ordered PNG frames from each generated video. Each video is sent to OpenAI `gpt-5.5` by default through the Responses API as ordered `input_image` data URLs with `detail: "auto"`. The judge uses native strict JSON schema output and scores five criteria from 1 to 10:
 
@@ -362,7 +362,7 @@ output/benchmark/<timestamp>/
       <service>-<model>/
         benchmark-attempt.json            # Started/success/error status for this attempt
         transcription.txt                 # Per-variant per-service transcription
-        result.json                       # Provider result envelope with transcription and metadata
+        result.json                       # Raw benchmark transcription/domain payload
   report.json                             # Final benchmark report
 ```
 

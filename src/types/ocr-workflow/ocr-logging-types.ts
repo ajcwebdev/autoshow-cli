@@ -15,19 +15,4 @@ export type OcrPagesProgress = {
   ocrConcurrency: number
 }
 
-export type OcrJobProgress = {
-  provider: string
-  action: string
-  remoteId?: string | undefined
-  state: string
-  pages?: number | string | undefined
-  detail?: string | undefined
-}
-
 export type KeyValueEntry = readonly [string, unknown]
-
-export type OcrTransferEvent = {
-  action: string
-  file: string
-  destination: string
-}

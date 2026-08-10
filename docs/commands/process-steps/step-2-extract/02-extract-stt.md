@@ -111,7 +111,7 @@ bun autoshow extract https://www.youtube.com/@channelname --youtube-captions --b
 
 ## Transcript Videos
 
-`extract --transcript-video` renders a local MP4 from existing STT artifacts. It does not call an STT provider. The normal path is a media extract output directory; AutoShow reads its `run.json`, infers the saved audio file, and renders the root `result.json` or the single completed provider result. Multi-provider runs with more than one result require `--transcript-result`.
+`extract --transcript-video` renders a local MP4 from existing STT artifacts. It does not call an STT provider. The normal path is a media extract output directory; AutoShow reads its canonical `manifest.json`, infers the saved audio file, and renders the root raw `result.json` payload or the single completed provider payload. Multi-provider runs with more than one result require `--transcript-result`.
 
 First produce a diarized STT run from a committed example file. Soniox diarizes by default, so the transcript carries speaker labels; any other provider from [Diarized STT](#diarized-stt) works the same way. `--output-dir` pins the run directory so every later command can name it directly instead of guessing a timestamp.
 
@@ -120,7 +120,7 @@ First produce a diarized STT run from a committed example file. Soniox diarizes 
 bun autoshow extract input/examples/audio/1-audio.mp3 --provider soniox --output-dir output/transcript-demo
 ```
 
-That single-provider run writes `1-audio.mp3`, `transcription.txt`, and `result.json` into `output/transcript-demo`, with `[HH:MM:SS.mmm] [speaker] text` lines in the transcript.
+That single-provider run writes `1-audio.mp3`, `transcription.txt`, and a raw domain `result.json` into `output/transcript-demo`, with `[HH:MM:SS.mmm] [speaker] text` lines in the transcript. The result payload is a user-facing transcription artifact, not resume/control state.
 
 ```bash
 # render from that completed media extract directory
@@ -143,7 +143,7 @@ bun autoshow extract input/examples/audio/1-audio.mp3 --provider soniox --provid
 bun autoshow extract output/transcript-demo-multi --transcript-video --transcript-result output/transcript-demo-multi/providers/soniox-stt-async-v5/result.json
 ```
 
-Without `--output-dir` each command creates its own timestamped directory (`output/<timestamp>_1-audio`, `output/<timestamp>_transcript-video-<label>`). The output directory contains `<label>.mp4`, `<label>.vtt`, `<label>.srt`, and `run.json`. When the STT result carries native per-word timings, cues are built from those words rather than from segment stamps, so the on-screen line matches the audio. The active line is drawn between the previous and next lines, with the speaker shown as a colour-coded label on the active line only; `.vtt`/`.srt` keep the speaker inline. Cues also fall back to `result.json` segments or `[HH:MM:SS.mmm] [speaker] text` transcript lines when a provider reports no word timings. The renderer uses the same fixed 1920x1080 local ffmpeg pipeline as lyric videos, with `--font` and `--keep-tmp` available for transcript-video rendering.
+Without `--output-dir` each command creates its own timestamped directory (`output/<timestamp>_1-audio`, `output/<timestamp>_transcript-video-<label>`). The output directory contains `<label>.mp4`, `<label>.vtt`, `<label>.srt`, and `manifest.json`. When the STT result carries native per-word timings, cues are built from those words rather than from segment stamps, so the on-screen line matches the audio. The active line is drawn between the previous and next lines, with the speaker shown as a colour-coded label on the active line only; `.vtt`/`.srt` keep the speaker inline. Cues also fall back to `result.json` segments or `[HH:MM:SS.mmm] [speaker] text` transcript lines when a provider reports no word timings. The renderer uses the same fixed 1920x1080 local ffmpeg pipeline as lyric videos, with `--font` and `--keep-tmp` available for transcript-video rendering.
 
 ## URL/streaming/source-URL STT
 
@@ -429,11 +429,11 @@ ScrapeCreators price estimates use one fixed transcript-request credit.
 ## STT Notes
 
 - Before any hosted STT provider upload, AutoShow stages one shared stripped audio-only artifact. The default hosted artifact is mono AAC-LC in `.m4a` capped at 96 kbps, preserves the original sample rate, and drops cover art/chapters/metadata/extra streams. Low-bitrate mono `.m4a`/AAC and `.mp3` inputs stay on a stream-copy cleanup path instead of taking a second lossy encode. Supadata and ScrapeCreators use public source URLs instead of local uploads.
-- Single-provider local/upload STT runs write root `transcription.txt` plus root `result.json`; URL transcript retrieval providers write under their provider directory.
-- Hosted multi-provider runs write one transcript and one canonical structured artifact per provider under `providers/<service>-<model>/`.
+- Single-provider local/upload STT runs write root `transcription.txt` plus a raw root `result.json`; URL transcript retrieval providers write their raw payload under the provider directory.
+- Hosted multi-provider runs write one transcript and one raw structured payload per provider under `providers/<service>-<model>/`.
 - `--youtube-captions` is English-only in v1 and only applies to YouTube inputs.
 - For YouTube channels and playlists, `--youtube-captions` is evaluated per selected video in the batch. Use `--batch-all` when you want the full channel or playlist instead of the default batch limit.
 - If captions are found, the selected STT providers are skipped for that item and the caption result becomes the transcript source.
-- Caption-backed transcripts are recorded as service `youtube-captions` with model `subtitle-track` in pricing and manifest metadata.
-- STT batch roots now include `stt-summary.json`, which records per-item caption-vs-STT routing alongside completion status.
+- Caption-backed transcripts are recorded as service `youtube-captions` with model `subtitle-track` in pricing and the canonical provider entry.
+- STT batch roots include one `manifest.json`, which records per-item caption-vs-STT routing alongside the item status. Batch totals are derived from the items rather than written to a separate summary file.
 - Backfill existing STT outputs with top-level [`resume`](../../setup-and-utilities/resume/resume.md).

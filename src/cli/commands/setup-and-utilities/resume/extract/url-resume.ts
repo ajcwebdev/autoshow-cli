@@ -1,12 +1,11 @@
 import { isRecord } from '~/utils/rest-client'
 import { mkdir } from 'node:fs/promises'
-import { join, resolve as resolvePath } from 'node:path'
-import { assertManifestEntriesCanBeRewritten, readBatchManifest, writeBatchManifest } from '~/cli/commands/process-steps/manifest-utils'
-import { buildExtractionCallOpts } from '~/cli/commands/process-steps/step-1-download/download-targets/single/document-write'
-import { readUrlRunManifestEntry, writeUrlRunManifest } from '~/cli/commands/process-steps/step-2-extract/step-2-url/url-manifest'
+import { join } from 'node:path'
+import { createPipelineItemFromRecord, derivePipelineItemRecord, PIPELINE_MANIFEST_FILE, readManifest, readSinglePipelineItemRecord, resolveManifestRelativePath, writeManifest, writePipelineItemRecords } from '~/cli/commands/process-steps/pipeline-manifest'
 import {
 buildManifestMetadata,
 buildProviderStates,
+buildUrlExtractionOptions,
 completionStatusFromProviderStates,
 getStoredStep1Metadata,
 getUrlArticleSource,
@@ -28,7 +27,7 @@ uniqueUrlTargets
 import { logExtractManifestConsoleSummary } from '~/cli/commands/process-steps/write-manifest-log/write-manifest-log'
 import { aggregateExplicitPriceEstimate } from '~/utils/pricing/aggregate-pricing'
 import { buildArticleEstimates } from '~/utils/pricing/aggregate-pricing/article-estimates'
-import type { AggregatedPriceEstimate, BatchManifestEntry, ExtractionOptions, HtmlArticleBackend, ProviderCompletionStatus, ResolvedStep2Execution, ResumeDisplayOptions, ResumeResult, ResumeTarget, RuntimeOptions, Step2ProviderSelectionFilter, StepEstimate, UrlArticleResumePlan, UrlArticleResumeResult, UrlArticleTarget, UrlProviderRunOutcome, WebArticleMetadata } from '~/types'
+import type { AggregatedPriceEstimate, HtmlArticleBackend, ProviderCompletionStatus, ResolvedStep2Execution, ResumeDisplayOptions, ResumeResult, ResumeTarget, Step2ProviderSelectionFilter, StepEstimate, UrlArticleResumePlan, UrlArticleResumeResult, UrlArticleTarget, UrlExtractionOptions, UrlProviderRunOutcome, WebArticleMetadata } from '~/types'
 import * as l from '~/utils/app-logger/app-logger'
 import { InfraError, ValidationError } from '~/utils/error-handler'
 import { logResumeItem, logResumeSummary } from '../resume-logging'
@@ -39,7 +38,7 @@ const EXPLICIT_URL_SELECTION_FILTER = {
 } as const satisfies Step2ProviderSelectionFilter
 
 export const getSelectedUrlTargets = (
-  opts: RuntimeOptions
+  opts: UrlExtractionOptions
 ): UrlArticleTarget[] | undefined => {
   const targets = collectUrlTargets(opts, EXPLICIT_URL_SELECTION_FILTER)
   return targets.length > 0 ? targets : undefined
@@ -48,25 +47,21 @@ export const getSelectedUrlTargets = (
 const readUrlArticleRunMetadata = async (
   outputDir: string
 ): Promise<Record<string, unknown> | undefined> => {
-  return await readUrlRunManifestEntry(outputDir)
+  return await readSinglePipelineItemRecord(outputDir, { command: 'extract', extractRoute: 'article' })
 }
 
 export const resolveUrlArticleResumePlan = (
   metadata: Record<string, unknown>,
   selectedTargets?: readonly UrlArticleTarget[] | undefined
 ): UrlArticleResumePlan => {
-  const step2Metadata = parseStoredStep2Metadata(metadata)
   const providerStates = parseStoredProviderStates(metadata)
-  const storedBackends = parseStoredUrlBackends(metadata, step2Metadata, providerStates)
+  const storedBackends = parseStoredUrlBackends(providerStates)
   const storedTargets = storedBackends.map(toUrlArticleTarget)
-  const successfulBackends = new Set<HtmlArticleBackend>([
-    ...providerStates.filter((state) => state.status === 'succeeded').map((state) => state.service),
-    ...step2Metadata
-      .map(parseBackendFromExtractionMetadata)
-      .filter((backend): backend is HtmlArticleBackend => backend !== undefined)
-  ])
+  const successfulBackends = new Set<HtmlArticleBackend>(
+    providerStates.filter((state) => state.status === 'succeeded').map((state) => state.service)
+  )
   const runnableStoredBackends = providerStates
-    .filter((state) => state.status === 'missing' || state.status === 'failed')
+    .filter((state) => state.status === 'running' || state.status === 'missing' || state.status === 'failed')
     .map((state) => state.service)
   const runnableStoredTargets = runnableStoredBackends.map(toUrlArticleTarget)
 
@@ -98,20 +93,20 @@ export const resolveUrlArticleResumePlan = (
 
 export const resumeUrlArticleProviders = async (
   outputDir: string,
-  opts: RuntimeOptions,
+  opts: UrlExtractionOptions,
   selectedTargets?: readonly UrlArticleTarget[] | undefined
 ): Promise<UrlArticleResumeResult> => {
-  const metadata = await readUrlRunManifestEntry(outputDir)
+  const metadata = await readUrlArticleRunMetadata(outputDir)
   if (!metadata) {
-    throw ValidationError(`Invalid URL article manifest at ${join(outputDir, 'run.json')}`, { stage: 'resume:url' })
+    throw ValidationError(`Invalid URL article manifest at ${join(outputDir, PIPELINE_MANIFEST_FILE)}`, { stage: 'resume:url' })
   }
 
   const { source, sourceRef, sourceUrl } = getUrlArticleSource(metadata)
-  const step1Metadata = await getStoredStep1Metadata(metadata, source)
+  const step1Metadata = getStoredStep1Metadata(metadata)
   const existingStep2Metadata = parseStoredStep2Metadata(metadata)
   const existingProviderStates = parseStoredProviderStates(metadata)
   const plan = resolveUrlArticleResumePlan(metadata, selectedTargets)
-  const extractionOpts = buildExtractionCallOpts(source, outputDir, opts) as Pick<ExtractionOptions, 'dpi' | 'languages' | 'outputFormat'>
+  const extractionOpts = buildUrlExtractionOptions(opts)
 
   const outcomes = plan.backendsToRun.length > 0
     ? await runAllUrlBackends(source, plan.backendsToRun, sourceUrl, opts, extractionOpts)
@@ -170,7 +165,7 @@ export const resumeUrlArticleProviders = async (
     providerStates,
     failures
   })
-  await writeUrlRunManifest(outputDir, manifestMetadata)
+  await writePipelineItemRecords(outputDir, 'extract', 'single', [manifestMetadata], { extractRoute: 'article' })
   logExtractManifestConsoleSummary(outputDir, manifestMetadata)
 
   return {
@@ -194,14 +189,14 @@ const resolveBatchOutputDirs = async (
     return [target.dir]
   }
 
-  const manifest = await readBatchManifest(target.dir, 'extract')
-  if (!manifest) {
+  const manifest = await readManifest(target.dir)
+  if (!manifest || manifest.command !== 'extract' || manifest.scope !== 'batch') {
     return []
   }
 
-  return manifest.manifest.items.flatMap((entry) =>
-    typeof entry['outputDir'] === 'string' && entry['outputDir'].length > 0
-      ? [resolvePath(target.dir, entry['outputDir'])]
+  return manifest.items.flatMap((item) =>
+    typeof item.outputDir === 'string' && item.outputDir.length > 0
+      ? [resolveManifestRelativePath(target.dir, item.outputDir)]
       : []
   )
 }
@@ -213,26 +208,29 @@ const writeUpdatedUrlBatchManifest = async (
     return
   }
 
-  const manifest = await readBatchManifest(target.dir, 'extract')
-  if (!manifest) {
+  const manifest = await readManifest(target.dir)
+  if (!manifest || manifest.command !== 'extract' || manifest.scope !== 'batch') {
     return
   }
-  assertManifestEntriesCanBeRewritten(manifest)
 
-  const updatedEntries = await Promise.all(manifest.manifest.items.map(async (entry): Promise<BatchManifestEntry> => {
-    const storedOutputDir = entry['outputDir']
+  const updatedItems = await Promise.all(manifest.items.map(async (item) => {
+    const storedOutputDir = item.outputDir
     if (typeof storedOutputDir !== 'string' || storedOutputDir.length === 0) {
-      return entry
+      return item
     }
 
-    const outputDir = resolvePath(target.dir, storedOutputDir)
+    const outputDir = resolveManifestRelativePath(target.dir, storedOutputDir)
     const metadata = await readUrlArticleRunMetadata(outputDir)
     return metadata
-      ? { ...entry, ...metadata, outputDir }
-      : entry
+      ? createPipelineItemFromRecord(target.dir, {
+          ...derivePipelineItemRecord(target.dir, item),
+          ...metadata,
+          outputDir
+        })
+      : item
   }))
 
-  await writeBatchManifest(target.dir, 'extract', updatedEntries, manifest.manifest.source)
+  await writeManifest(target.dir, { ...manifest, items: updatedItems })
 }
 
 const getStoredUrlCompletionStatus = (
@@ -262,16 +260,10 @@ export const hasResumableUrlArticleWork = async (
 
 export const resumeUrlArticleTarget = async (
   target: ResumeTarget,
-  opts: RuntimeOptions,
+  opts: UrlExtractionOptions,
   selectedTargets?: readonly UrlArticleTarget[] | undefined,
   displayOptions: ResumeDisplayOptions = {}
 ): Promise<ResumeResult> => {
-  if (target.scope === 'batch') {
-    const manifest = await readBatchManifest(target.dir, 'extract')
-    if (manifest) {
-      assertManifestEntriesCanBeRewritten(manifest)
-    }
-  }
   const outputDirs = await resolveBatchOutputDirs(target)
   let full = 0
   let incomplete = 0
@@ -308,11 +300,11 @@ export const resumeUrlArticleTarget = async (
           ? plan.skippedSuccessfulBackends.join(', ')
           : 'none',
         detail: selectedCompleteWithIncompleteRun
-          ? 'selected providers complete; run manifest still incomplete'
+          ? 'selected providers complete; canonical item still incomplete'
           : plan.skippedSuccessfulBackends.length > 0
           ? 'selected URL providers already succeeded'
           : noBackendsStatus === 'failed'
-          ? 'run manifest failed with no resumable URL providers'
+          ? 'canonical item failed with no resumable URL providers'
           : 'no failed or missing URL providers'
       }, noBackendsStatus === 'full' ? 'success' : noBackendsStatus === 'failed' ? 'error' : 'warn')
       if (noBackendsStatus === 'full') {
@@ -343,7 +335,7 @@ export const resumeUrlArticleTarget = async (
         providers: result.backendsToRun.join(', '),
         detail: result.completionStatus === 'full'
           ? 'resume complete'
-          : 'selected providers complete; run manifest still incomplete'
+          : 'selected providers complete; canonical item still incomplete'
       }, 'success')
     } else if (result.completionStatus === 'failed') {
       failed += 1
@@ -392,7 +384,7 @@ const buildResolvedArticleStep = (
 
 export const priceUrlArticleTarget = async (
   target: ResumeTarget,
-  opts: RuntimeOptions,
+  opts: UrlExtractionOptions,
   selectedTargets?: readonly UrlArticleTarget[] | undefined
 ): Promise<AggregatedPriceEstimate> => {
   const outputDirs = await resolveBatchOutputDirs(target)

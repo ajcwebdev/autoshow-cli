@@ -328,8 +328,30 @@ const resolveCalibrationConfigFilePath = async (
 }
 
 const unwrapCalibrationMetadata = (parsed: Record<string, unknown>): Record<string, unknown> => {
-  const metadata = parsed['metadata']
-  return isRecord(metadata) ? metadata : parsed
+  const items = parsed['items']
+  const item = Array.isArray(items) && items.length === 1 && isRecord(items[0])
+    ? items[0]
+    : undefined
+  if (!item || !isRecord(item['metadata'])) {
+    return parsed
+  }
+
+  const providerMetadata = Array.isArray(item['providers'])
+    ? item['providers']
+      .filter((provider): provider is Record<string, unknown> =>
+        isRecord(provider) && provider['status'] === 'succeeded' && isRecord(provider['metadata']))
+      .map((provider) => provider['metadata'] as Record<string, unknown>)
+      .filter((metadata) => Object.keys(metadata).length > 0)
+    : []
+
+  return {
+    ...item['metadata'],
+    ...(providerMetadata.length === 1
+      ? { step2: providerMetadata[0] }
+      : providerMetadata.length > 1
+        ? { step2: providerMetadata }
+        : {})
+  }
 }
 
 const collectJsonFiles = async (dir: string): Promise<string[]> => {
@@ -346,12 +368,12 @@ const collectJsonFiles = async (dir: string): Promise<string[]> => {
 }
 
 const collectCalibrationManifestPaths = async (runDir: string): Promise<string[]> => {
-  const [runManifests, metadataManifests] = await Promise.all([
+  const [pipelineManifests, metadataManifests] = await Promise.all([
     collectJsonFiles(resolve(runDir, 'run')),
     collectJsonFiles(resolve(runDir, 'metadata')),
   ])
 
-  return [...runManifests, ...metadataManifests]
+  return [...pipelineManifests, ...metadataManifests]
 }
 
 export const buildModelCalibrationReport = async (

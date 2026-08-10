@@ -1,0 +1,484 @@
+{
+  "command": "extract",
+  "scope": "single",
+  "createdAt": "2026-05-21T09:38:31.367Z",
+  "updatedAt": "2026-05-21T09:38:31.367Z",
+  "items": [
+    {
+      "outputDir": "docs/benchmarks/url/2026-05-21_09-38-31-367_anthony-campolos-home-page",
+      "status": "full",
+      "metadata": {
+        "step1": {
+          "title": "Anthony Campolo's Home Page",
+          "slug": "ajcwebdevcom",
+          "author": "Anthony Campolo",
+          "pageCount": 1,
+          "format": "html",
+          "fileSize": 18561
+        },
+        "resolvedStep2": {
+          "route": "article",
+          "sourceKind": "article",
+          "backend": "defuddle",
+          "backends": [
+            "defuddle",
+            "firecrawl",
+            "glm-reader",
+            "spider",
+            "zyte",
+            "supadata"
+          ]
+        },
+        "web": {
+          "sourceUrl": "https://ajcwebdev.com/",
+          "finalUrl": "https://ajcwebdev.com/",
+          "title": "Anthony Campolo's Home Page",
+          "author": "Anthony Campolo",
+          "site": "ajcwebdev",
+          "published": "2024-08-01T00:00:00.000Z",
+          "language": "en-US",
+          "wordCount": 526,
+          "description": "Home page for Anthony Campolo, web developer, writer, speaker, host of the FSJam Podcast, and Collaborative Engineer at Atmosera."
+        },
+        "source": {
+          "url": "https://ajcwebdev.com/"
+        },
+        "cost": {
+          "estimated": {
+            "totalCost": 2.3629999999999995,
+            "steps": [
+              {
+                "step": "extract",
+                "provider": "defuddle",
+                "model": "defuddle",
+                "cost": 0,
+                "costMultiplier": 1,
+                "costPer1kPagesCents": 0,
+                "pageCount": 1,
+                "estimateType": "exact"
+              },
+              {
+                "step": "extract",
+                "provider": "firecrawl",
+                "model": "firecrawl",
+                "cost": 0.083,
+                "costMultiplier": 1,
+                "costPer1kPagesCents": 83,
+                "pageCount": 1,
+                "estimateType": "exact"
+              },
+              {
+                "step": "extract",
+                "provider": "glm-reader",
+                "model": "glm-reader",
+                "cost": 1,
+                "costMultiplier": 1,
+                "costPer1kPagesCents": 1000,
+                "pageCount": 1,
+                "estimateType": "exact"
+              },
+              {
+                "step": "extract",
+                "provider": "spider",
+                "model": "spider",
+                "cost": 0.12,
+                "costMultiplier": 1,
+                "costPer1kPagesCents": 120,
+                "pageCount": 1,
+                "estimateType": "exact"
+              },
+              {
+                "step": "extract",
+                "provider": "zyte",
+                "model": "zyte",
+                "cost": 0.16,
+                "costMultiplier": 1,
+                "costPer1kPagesCents": 160,
+                "pageCount": 1,
+                "estimateType": "exact"
+              },
+              {
+                "step": "extract",
+                "provider": "supadata",
+                "model": "supadata",
+                "cost": 1,
+                "costMultiplier": 1,
+                "costPer1kPagesCents": 1000,
+                "pageCount": 1,
+                "estimateType": "exact"
+              }
+            ]
+          },
+          "actual": {
+            "totalCost": 2.3629999999999995,
+            "steps": [
+              {
+                "step": "extract",
+                "provider": "defuddle",
+                "model": "defuddle",
+                "cost": 0,
+                "costSource": "registry_fallback",
+                "inputMetric": "pages",
+                "inputValue": 1
+              },
+              {
+                "step": "extract",
+                "provider": "firecrawl",
+                "model": "firecrawl",
+                "cost": 0.083,
+                "costSource": "registry_fallback",
+                "inputMetric": "pages",
+                "inputValue": 1
+              },
+              {
+                "step": "extract",
+                "provider": "glm-reader",
+                "model": "glm-reader",
+                "cost": 1,
+                "costSource": "registry_fallback",
+                "inputMetric": "pages",
+                "inputValue": 1
+              },
+              {
+                "step": "extract",
+                "provider": "spider",
+                "model": "spider",
+                "cost": 0.12,
+                "costSource": "registry_fallback",
+                "inputMetric": "pages",
+                "inputValue": 1
+              },
+              {
+                "step": "extract",
+                "provider": "zyte",
+                "model": "zyte",
+                "cost": 0.16,
+                "costSource": "registry_fallback",
+                "inputMetric": "pages",
+                "inputValue": 1
+              },
+              {
+                "step": "extract",
+                "provider": "supadata",
+                "model": "supadata",
+                "cost": 1,
+                "costSource": "registry_fallback",
+                "inputMetric": "pages",
+                "inputValue": 1
+              }
+            ]
+          }
+        },
+        "timing": {
+          "estimated": {
+            "totalProcessingTimeMs": 12586,
+            "steps": [
+              {
+                "step": "extract",
+                "provider": "defuddle",
+                "model": "defuddle",
+                "processingTimeMs": 626,
+                "inputMetric": "pages",
+                "inputValue": 1,
+                "rateBasis": "page",
+                "msPerUnit": 626,
+                "throughputValue": 95.847,
+                "throughputUnit": "pagesPerMinute",
+                "timingScope": "estimated"
+              },
+              {
+                "step": "extract",
+                "provider": "firecrawl",
+                "model": "firecrawl",
+                "processingTimeMs": 315,
+                "inputMetric": "pages",
+                "inputValue": 1,
+                "rateBasis": "page",
+                "msPerUnit": 315,
+                "throughputValue": 190.476,
+                "throughputUnit": "pagesPerMinute",
+                "timingScope": "estimated"
+              },
+              {
+                "step": "extract",
+                "provider": "glm-reader",
+                "model": "glm-reader",
+                "processingTimeMs": 2145,
+                "inputMetric": "pages",
+                "inputValue": 1,
+                "rateBasis": "page",
+                "msPerUnit": 2145,
+                "throughputValue": 27.972,
+                "throughputUnit": "pagesPerMinute",
+                "timingScope": "estimated"
+              },
+              {
+                "step": "extract",
+                "provider": "spider",
+                "model": "spider",
+                "processingTimeMs": 3500,
+                "inputMetric": "pages",
+                "inputValue": 1,
+                "rateBasis": "page",
+                "msPerUnit": 3500,
+                "throughputValue": 17.143,
+                "throughputUnit": "pagesPerMinute",
+                "timingScope": "estimated"
+              },
+              {
+                "step": "extract",
+                "provider": "zyte",
+                "model": "zyte",
+                "processingTimeMs": 3500,
+                "inputMetric": "pages",
+                "inputValue": 1,
+                "rateBasis": "page",
+                "msPerUnit": 3500,
+                "throughputValue": 17.143,
+                "throughputUnit": "pagesPerMinute",
+                "timingScope": "estimated"
+              },
+              {
+                "step": "extract",
+                "provider": "supadata",
+                "model": "supadata",
+                "processingTimeMs": 2500,
+                "inputMetric": "pages",
+                "inputValue": 1,
+                "rateBasis": "page",
+                "msPerUnit": 2500,
+                "throughputValue": 24,
+                "throughputUnit": "pagesPerMinute",
+                "timingScope": "estimated"
+              }
+            ]
+          },
+          "actual": {
+            "totalProcessingTimeMs": 23208,
+            "steps": [
+              {
+                "step": "extract",
+                "provider": "defuddle",
+                "model": "defuddle",
+                "processingTimeMs": 576,
+                "inputMetric": "pages",
+                "inputValue": 1,
+                "rateBasis": "page",
+                "msPerUnit": 576,
+                "throughputValue": 104.167,
+                "throughputUnit": "pagesPerMinute",
+                "timingScope": "wall"
+              },
+              {
+                "step": "extract",
+                "provider": "firecrawl",
+                "model": "firecrawl",
+                "processingTimeMs": 948,
+                "inputMetric": "pages",
+                "inputValue": 1,
+                "rateBasis": "page",
+                "msPerUnit": 948,
+                "throughputValue": 63.291,
+                "throughputUnit": "pagesPerMinute",
+                "timingScope": "wall"
+              },
+              {
+                "step": "extract",
+                "provider": "glm-reader",
+                "model": "glm-reader",
+                "processingTimeMs": 3875,
+                "inputMetric": "pages",
+                "inputValue": 1,
+                "rateBasis": "page",
+                "msPerUnit": 3875,
+                "throughputValue": 15.484,
+                "throughputUnit": "pagesPerMinute",
+                "timingScope": "wall"
+              },
+              {
+                "step": "extract",
+                "provider": "spider",
+                "model": "spider",
+                "processingTimeMs": 2037,
+                "inputMetric": "pages",
+                "inputValue": 1,
+                "rateBasis": "page",
+                "msPerUnit": 2037,
+                "throughputValue": 29.455,
+                "throughputUnit": "pagesPerMinute",
+                "timingScope": "wall"
+              },
+              {
+                "step": "extract",
+                "provider": "zyte",
+                "model": "zyte",
+                "processingTimeMs": 13344,
+                "inputMetric": "pages",
+                "inputValue": 1,
+                "rateBasis": "page",
+                "msPerUnit": 13344,
+                "throughputValue": 4.496,
+                "throughputUnit": "pagesPerMinute",
+                "timingScope": "wall"
+              },
+              {
+                "step": "extract",
+                "provider": "supadata",
+                "model": "supadata",
+                "processingTimeMs": 2428,
+                "inputMetric": "pages",
+                "inputValue": 1,
+                "rateBasis": "page",
+                "msPerUnit": 2428,
+                "throughputValue": 24.712,
+                "throughputUnit": "pagesPerMinute",
+                "timingScope": "wall"
+              }
+            ]
+          }
+        }
+      },
+      "providers": [
+        {
+          "service": "defuddle",
+          "model": "defuddle",
+          "artifactDir": "providers/defuddle",
+          "status": "succeeded",
+          "attempts": 1,
+          "options": {},
+          "metadata": {
+            "extractionMethod": "html+defuddle",
+            "totalPages": 1,
+            "ocrPages": 0,
+            "textPages": 1,
+            "processingTime": 576,
+            "dpi": 300,
+            "languages": "eng",
+            "tokenEstimate": 576,
+            "inputFamily": "html",
+            "outputFormat": "text",
+            "outputFidelity": "markdown"
+          }
+        },
+        {
+          "service": "firecrawl",
+          "model": "firecrawl",
+          "artifactDir": "providers/firecrawl",
+          "status": "succeeded",
+          "attempts": 1,
+          "options": {},
+          "metadata": {
+            "extractionMethod": "html+firecrawl",
+            "totalPages": 1,
+            "ocrPages": 0,
+            "textPages": 1,
+            "processingTime": 948,
+            "dpi": 300,
+            "languages": "eng",
+            "tokenEstimate": 607,
+            "inputFamily": "html",
+            "outputFormat": "text",
+            "outputFidelity": "markdown"
+          }
+        },
+        {
+          "service": "glm-reader",
+          "model": "glm-reader",
+          "artifactDir": "providers/glm-reader",
+          "status": "succeeded",
+          "attempts": 1,
+          "options": {},
+          "metadata": {
+            "extractionMethod": "html+glm-reader",
+            "totalPages": 1,
+            "ocrPages": 0,
+            "textPages": 1,
+            "processingTime": 3875,
+            "dpi": 300,
+            "languages": "eng",
+            "tokenEstimate": 432,
+            "inputFamily": "html",
+            "outputFormat": "text",
+            "outputFidelity": "markdown"
+          }
+        },
+        {
+          "service": "spider",
+          "model": "spider",
+          "artifactDir": "providers/spider",
+          "status": "succeeded",
+          "attempts": 1,
+          "options": {},
+          "metadata": {
+            "extractionMethod": "html+spider",
+            "totalPages": 1,
+            "ocrPages": 0,
+            "textPages": 1,
+            "processingTime": 2037,
+            "dpi": 300,
+            "languages": "eng",
+            "tokenEstimate": 602,
+            "inputFamily": "html",
+            "outputFormat": "text",
+            "outputFidelity": "markdown"
+          }
+        },
+        {
+          "service": "zyte",
+          "model": "zyte",
+          "artifactDir": "providers/zyte",
+          "status": "succeeded",
+          "attempts": 1,
+          "options": {},
+          "metadata": {
+            "extractionMethod": "html+zyte",
+            "totalPages": 1,
+            "ocrPages": 0,
+            "textPages": 1,
+            "processingTime": 13344,
+            "dpi": 300,
+            "languages": "eng",
+            "tokenEstimate": 276,
+            "inputFamily": "html",
+            "outputFormat": "text",
+            "outputFidelity": "markdown"
+          }
+        },
+        {
+          "service": "supadata",
+          "model": "supadata",
+          "artifactDir": "providers/supadata",
+          "status": "succeeded",
+          "attempts": 1,
+          "options": {},
+          "metadata": {
+            "extractionMethod": "html+supadata",
+            "totalPages": 1,
+            "ocrPages": 0,
+            "textPages": 1,
+            "processingTime": 2428,
+            "dpi": 300,
+            "languages": "eng",
+            "tokenEstimate": 578,
+            "inputFamily": "html",
+            "outputFormat": "text",
+            "outputFidelity": "markdown"
+          },
+          "result": {
+            "text": "[skip to content](https://ajcwebdev.com/#main) \n\n# Anthony Campolo, Developer Advocate\n\nHello 👋, my name is Anthony Campolo. I'm an open source Developer Advocate, former member of the [RedwoodJS](https://rwsdk.com/) core team, and co-host of the [FSJam Podcast](https://fsjam.org/). I'm currently working as a Collaborative Engineer at [Atmosera](https://www.atmosera.com/) where I teach enterprise devs how to use AI coding tools.\n\nThis website is built with a Bun-powered static generator. My content mostly focuses on web development frameworks and deployment platforms. Other topics I cover include AI and large language models. This is my blog, continue reading to achieve peak blogness.\n\n## What do I do?\n\n* 🤖 - Build AI Tooling\n* ✍️ - Write blog articles\n* 💬 - Give meetup talks\n* 🎥 - Code on livestreams\n* 🎙 - Speak on podcasts\n* 🐦 - Host Twitter Spaces\n\nIf you want to get in touch, find me online:\n\n* [GitHub](https://github.com/ajcwebdev)\n* [Twitter](https://x.com/ajcwebdev)\n* [Twitch](https://www.twitch.tv/ajcwebdev)\n* [YouTube](https://youtube.com/@ajcwebdev)\n* [LinkedIn](https://linkedin.com/in/ajcwebdev)\n\n## Latest Blog Posts\n\n[View all blog posts](https://ajcwebdev.com/posts/)\n\n* [Blog postA First Look at PoetryLearn how Poetry simplifies Python development by consolidating common tools for managing dependencies and environments efficientlyAug 1, 2024](https://ajcwebdev.com/first-look-poetry/)\n* [Blog postA First Look at DashmateA beginner friendly tutorial for running a local version of Dash Platform with Dashmate. Includes creating an identity, data contract, and documentsJul 15, 2024](https://ajcwebdev.com/first-look-dashmate/)\n\n## Latest Videos\n\n[View all videos](https://ajcwebdev.com/videos/)\n\n* [VideoSolidJS Agent Doc Audit with Dev AgrawalAnthony Campolo and Dev Agrawal explore generative engine optimization, applying Joel Hooks' agent discovery skill to the SolidJS docs site.Anthony CampoloApr 6, 2026](https://ajcwebdev.com/videos/solidjs-doc-audit-dev-agrawal/)\n* [VideoSync Engines with Dev AgrawalAnthony Campolo and Dev Agrawal discuss sync engines, PowerSync's approach to client-server data synchronization, and Solid 2.0's beta release changesAnthony CampoloMar 23, 2026](https://ajcwebdev.com/videos/sync-engines-dev-agrawal/)\n\n## Latest Podcasts\n\n[View all podcasts](https://ajcwebdev.com/podcasts/)\n\n* [PodcastVibe Coding: Building Faster with AI-Powered DevelopmentAnthony Campolo joins JavaScript Jabber to discuss vibe coding, building his AutoShow podcast tool with LLMs, and how AI is reshaping developer workflowsJavaScript JabberAug 22, 2025](https://ajcwebdev.com/podcasts/js-jabber-vibe-coding/)\n* [PodcastJavaScript Package Registry and React 19A discussion on JavaScript’s new package registry, React 19’s upcoming features, and core web vitals, alongside community insights on performance and AIJavaScript JamFeb 28, 2024](https://ajcwebdev.com/podcasts/jsjam-jsr-react-19/)\n\n## Testimonials\n\n> _**[\"Anthony is always right at the front of the line when it comes to new technology.\"](https://www.youtube.com/watch?v=-8UeTHXoySc)**_  \n>  \n> \\- Ryan Carniato, Creator of SolidJS\n> \n>  \n> _**[\"Thank you for all the wonderful conversations you've hosted around React Miami. Beyond anything I expected ✨🙏.\"](https://twitter.com/MichelleBakels/status/1649787350455549955)**_  \n>  \n> \\- Michelle Bakels, Co-organizer of React Miami\n> \n>  \n> _**[\"It's a pleasure having a highly knowledgeable guest on the show, sharing useful and interesting information. Thank you for coming!\"](https://twitter.com/DanShappir/status/1351607587058425857)**_  \n>  \n> \\- Dan Shappir, Co-host of JavaScript Jabber\n> \n>  \n\n## Botimonials\n\n> _**\"Anthony Campolo is a remarkably talented and deeply passionate web developer whose contributions to the community have consistently demonstrated an unwavering commitment to advancing web development practices and fostering a supportive, inclusive community with a focus on sharing knowledge and engaging with diverse perspectives within the tech world.\"**_  \n>  \n> \\- ChatGPT\n> \n>  \n> _**\"Anthony Campolo is an extraordinary individual who has made significant contributions to the web development community. His dedication to sharing knowledge and helping others learn is truly admirable. His ability to break down complex concepts into easily understandable explanations is a testament to his exceptional teaching skills. He has a gift for making web development accessible to learners of all levels, from complete beginners to experienced developers looking to expand their skill set.\"**_  \n>  \n> \\- Claude\n> \n>",
+            "pages": [
+              {
+                "pageNumber": 1,
+                "method": "text",
+                "text": "[skip to content](https://ajcwebdev.com/#main) \n\n# Anthony Campolo, Developer Advocate\n\nHello 👋, my name is Anthony Campolo. I'm an open source Developer Advocate, former member of the [RedwoodJS](https://rwsdk.com/) core team, and co-host of the [FSJam Podcast](https://fsjam.org/). I'm currently working as a Collaborative Engineer at [Atmosera](https://www.atmosera.com/) where I teach enterprise devs how to use AI coding tools.\n\nThis website is built with a Bun-powered static generator. My content mostly focuses on web development frameworks and deployment platforms. Other topics I cover include AI and large language models. This is my blog, continue reading to achieve peak blogness.\n\n## What do I do?\n\n* 🤖 - Build AI Tooling\n* ✍️ - Write blog articles\n* 💬 - Give meetup talks\n* 🎥 - Code on livestreams\n* 🎙 - Speak on podcasts\n* 🐦 - Host Twitter Spaces\n\nIf you want to get in touch, find me online:\n\n* [GitHub](https://github.com/ajcwebdev)\n* [Twitter](https://x.com/ajcwebdev)\n* [Twitch](https://www.twitch.tv/ajcwebdev)\n* [YouTube](https://youtube.com/@ajcwebdev)\n* [LinkedIn](https://linkedin.com/in/ajcwebdev)\n\n## Latest Blog Posts\n\n[View all blog posts](https://ajcwebdev.com/posts/)\n\n* [Blog postA First Look at PoetryLearn how Poetry simplifies Python development by consolidating common tools for managing dependencies and environments efficientlyAug 1, 2024](https://ajcwebdev.com/first-look-poetry/)\n* [Blog postA First Look at DashmateA beginner friendly tutorial for running a local version of Dash Platform with Dashmate. Includes creating an identity, data contract, and documentsJul 15, 2024](https://ajcwebdev.com/first-look-dashmate/)\n\n## Latest Videos\n\n[View all videos](https://ajcwebdev.com/videos/)\n\n* [VideoSolidJS Agent Doc Audit with Dev AgrawalAnthony Campolo and Dev Agrawal explore generative engine optimization, applying Joel Hooks' agent discovery skill to the SolidJS docs site.Anthony CampoloApr 6, 2026](https://ajcwebdev.com/videos/solidjs-doc-audit-dev-agrawal/)\n* [VideoSync Engines with Dev AgrawalAnthony Campolo and Dev Agrawal discuss sync engines, PowerSync's approach to client-server data synchronization, and Solid 2.0's beta release changesAnthony CampoloMar 23, 2026](https://ajcwebdev.com/videos/sync-engines-dev-agrawal/)\n\n## Latest Podcasts\n\n[View all podcasts](https://ajcwebdev.com/podcasts/)\n\n* [PodcastVibe Coding: Building Faster with AI-Powered DevelopmentAnthony Campolo joins JavaScript Jabber to discuss vibe coding, building his AutoShow podcast tool with LLMs, and how AI is reshaping developer workflowsJavaScript JabberAug 22, 2025](https://ajcwebdev.com/podcasts/js-jabber-vibe-coding/)\n* [PodcastJavaScript Package Registry and React 19A discussion on JavaScript’s new package registry, React 19’s upcoming features, and core web vitals, alongside community insights on performance and AIJavaScript JamFeb 28, 2024](https://ajcwebdev.com/podcasts/jsjam-jsr-react-19/)\n\n## Testimonials\n\n> _**[\"Anthony is always right at the front of the line when it comes to new technology.\"](https://www.youtube.com/watch?v=-8UeTHXoySc)**_  \n>  \n> \\- Ryan Carniato, Creator of SolidJS\n> \n>  \n> _**[\"Thank you for all the wonderful conversations you've hosted around React Miami. Beyond anything I expected ✨🙏.\"](https://twitter.com/MichelleBakels/status/1649787350455549955)**_  \n>  \n> \\- Michelle Bakels, Co-organizer of React Miami\n> \n>  \n> _**[\"It's a pleasure having a highly knowledgeable guest on the show, sharing useful and interesting information. Thank you for coming!\"](https://twitter.com/DanShappir/status/1351607587058425857)**_  \n>  \n> \\- Dan Shappir, Co-host of JavaScript Jabber\n> \n>  \n\n## Botimonials\n\n> _**\"Anthony Campolo is a remarkably talented and deeply passionate web developer whose contributions to the community have consistently demonstrated an unwavering commitment to advancing web development practices and fostering a supportive, inclusive community with a focus on sharing knowledge and engaging with diverse perspectives within the tech world.\"**_  \n>  \n> \\- ChatGPT\n> \n>  \n> _**\"Anthony Campolo is an extraordinary individual who has made significant contributions to the web development community. His dedication to sharing knowledge and helping others learn is truly admirable. His ability to break down complex concepts into easily understandable explanations is a testament to his exceptional teaching skills. He has a gift for making web development accessible to learners of all levels, from complete beginners to experienced developers looking to expand their skill set.\"**_  \n>  \n> \\- Claude\n> \n>"
+              }
+            ],
+            "totalPages": 1,
+            "ocrPages": 0,
+            "textPages": 1
+          }
+        }
+      ]
+    }
+  ]
+}

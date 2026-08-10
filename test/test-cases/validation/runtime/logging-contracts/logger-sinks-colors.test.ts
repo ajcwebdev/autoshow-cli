@@ -33,14 +33,14 @@ describe('logging contracts', () => {
         sink({
           ...makeEvent('info'),
           message: 'Locations',
-          humanTable: createHumanTable([{ artifact: 'run', path: 'output/run/run.json' }], ['artifact', 'path'])
+          humanTable: createHumanTable([{ artifact: 'manifest', path: 'output/run/manifest.json' }], ['artifact', 'path'])
         })
       })
 
       expect(captured.stdout).toHaveLength(1)
       expect(captured.stderr).toHaveLength(0)
       expect(captured.stdout[0]).toContain('Locations')
-      expect(stripAnsi(captured.stdout[0] as string)).toContain('output/run/run.json')
+      expect(stripAnsi(captured.stdout[0] as string)).toContain('output/run/manifest.json')
     })
 
   test('human sink colors log prefixes when color is enabled', () => {

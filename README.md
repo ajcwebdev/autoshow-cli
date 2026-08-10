@@ -252,7 +252,7 @@ FORCE_COLOR=1              # force ANSI color in redirected output
 
 ## Output Layout
 
-Most artifact-producing runs write a timestamped directory under `output/` with `run.json` plus the files for the steps that actually ran. Standalone `tts`, `image`, `video`, and hosted `music` accept `--output-dir <dir>` to choose the run directory exactly.
+Most artifact-producing runs write a timestamped directory under `output/` with one unversioned `manifest.json` plus the files for the steps that actually ran. Standalone `tts`, `image`, `video`, and hosted `music` accept `--output-dir <dir>` to choose the run directory exactly.
 
 Typical artifacts include:
 
@@ -263,14 +263,14 @@ Typical artifacts include:
 - `providers/<backend>/extraction.txt` and `providers/<backend>/result.json` for `extract <url> --all-providers`
 - `text.json`
 - generated speech, image, video, or music files
-- `run.json`
+- `manifest.json`
 - `metadata.md` for `metadata --markdown --save`
 
-`extract` batches write a parent `extract-batch.json` plus nested `media/`, `document/`, and `x-space/` child batches when those routed items are present. Other batch runs write `batch.json`, and some structured remote sources add `source.json`.
+Single runs and batches use the same canonical manifest shape. Mixed `extract` batches use a parent manifest whose items link to nested `media/`, `document/`, `article/`, and `x-space/` child directories; each child root also owns exactly one canonical manifest. Source identity, item status, and provider progress live in that shape rather than companion control files.
 
 Notable exceptions:
 
-- `metadata --save` reports `run.json`, and `metadata --markdown --save` also reports `metadata.md`
+- `metadata --save` reports `manifest.json`, and `metadata --markdown --save` also reports `metadata.md`
 - `links` writes to a selection-based file under `project/links/`, for example `project/links/all-all-links.md`
 - utility commands such as `config`, `setup`, and `links` do not use the `output/` run-directory pattern
 

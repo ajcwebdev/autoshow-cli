@@ -20,9 +20,9 @@ bun t test/test-cases/e2e/service/step-3-write-e2e/write-services/
 ## Current Coverage
 
 - Provider-backed write coverage lives in model-level files under `test/test-cases/e2e/service/step-3-write-e2e/write-services/`.
-- The suite uses `defineLLMWriteTest` to verify service-backed write runs, output artifacts, and `run.json` step 3 metadata when the required API key is configured.
+- The suite uses `defineLLMWriteTest` to verify service-backed write runs, output artifacts, and canonical item `metadata.step3` when the required API key is configured.
 - Current live service providers are OpenAI, Anthropic, Gemini, Groq, MiniMax, Grok, GLM, and Kimi. The GLM case covers `--llm glm=glm-5.1` and requires `GLM_API_KEY`; the Kimi case covers `--llm kimi=kimi-k2.6` and requires `KIMI_API_KEY`.
-- No-cost REST contract coverage verifies Together model mapping, Cerebras public model IDs (`gpt-oss-120b`, `zai-glm-4.7`), bearer auth, structured-output routing, and `run.json` step 3 metadata without calling provider APIs.
+- No-cost REST contract coverage verifies Together model mapping, Cerebras public model IDs (`gpt-oss-120b`, `zai-glm-4.7`), bearer auth, structured-output routing, and canonical item `metadata.step3` without calling provider APIs.
 
 ## Price Preflight
 

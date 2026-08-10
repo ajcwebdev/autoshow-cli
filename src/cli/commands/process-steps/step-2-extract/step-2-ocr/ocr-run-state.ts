@@ -1,22 +1,19 @@
 import { isRecord } from '~/utils/rest-client'
-import { join } from 'node:path'
-import type { ExistingOcrRun, ExtractionMetadata, ExtractionResult, ProviderCompletionStatus, OcrMetadataOptions, OcrProviderErrorLike, OcrProviderFailureCategory, OcrProviderFailureKind, OcrProviderFailureSummary, OcrProviderState, OcrProviderSuccess, OcrRecordedProviderError, OcrRequestedProvider, OcrTarget } from '~/types'
+import type { ExistingOcrRun, ExtractionMetadata, ProviderCompletionStatus, OcrMetadataOptions, OcrProviderErrorLike, OcrProviderFailureCategory, OcrProviderFailureKind, OcrProviderFailureSummary, OcrProviderState, OcrProviderSuccess, OcrRecordedProviderError, OcrRequestedProvider, OcrTarget } from '~/types'
 import { ExtractionMetadataSchema, ExtractionResultSchema } from '~/types'
-import { collectErrorChain, extractErrorMetadata } from '~/utils/error-handler'
+import { CLIUsageError, collectErrorChain, extractErrorMetadata } from '~/utils/error-handler'
 import { sanitizeLogText } from '~/utils/app-logger/redaction'
 import { parseRetryAfterMs } from '~/utils/retries'
 import { validateData } from '~/utils/validate/validation'
-import { readProviderResultEntry } from '../../manifest-utils'
-import { readOcrRunManifestEntry } from './ocr-manifest'
+import { readSinglePipelineItemRecord } from '../../pipeline-manifest'
 import { getOcrTargetDirectoryName } from './ocr-targets'
 import { classifyOcrFailureSummary } from './ocr-utils/ocr-failure-classifier'
 import {
   buildRequestedProviderList,
   collectMissingProviderTargets,
-  inferStoredProviderCompletionStatus,
   parseStoredProviderArray,
   parseStoredProviderStateMap as parseStoredProviderStateEntries,
-  parseStoredSuccessfulProviderKeys,
+  resolveRequestedProviderCompletionStatus,
   resolveProviderCompletionStatus
 } from '../step-2-shared/provider-batch-state'
 
@@ -174,7 +171,7 @@ const parseStoredProviderState = (value: unknown): OcrProviderState | undefined 
     return undefined
   }
 
-  if (value['status'] !== 'succeeded' && value['status'] !== 'missing' && value['status'] !== 'failed' && value['status'] !== 'skipped') {
+  if (value['status'] !== 'running' && value['status'] !== 'succeeded' && value['status'] !== 'missing' && value['status'] !== 'failed' && value['status'] !== 'skipped') {
     return undefined
   }
 
@@ -190,6 +187,8 @@ const parseStoredProviderState = (value: unknown): OcrProviderState | undefined 
     artifactDir: value['artifactDir'],
     status: value['status'],
     attempts: value['attempts'],
+    ...(isRecord(value['metadata']) ? { metadata: value['metadata'] } : {}),
+    ...(isRecord(value['result']) ? { result: value['result'] } : {}),
     ...(lastError ? { lastError } : {})
   }
 }
@@ -236,93 +235,13 @@ const parseStoredProviderStateMap = (
 ): Map<string, OcrProviderState> =>
   parseStoredProviderStateEntries(entry['providerStates'], parseStoredProviderState)
 
-const parseSuccessfulProviderKeys = (
-  entry: Record<string, unknown>
-): Set<string> =>
-  parseStoredSuccessfulProviderKeys(entry['step2'], (value) => {
-    if (!isRecord(value) || typeof value['ocrService'] !== 'string' || typeof value['ocrModel'] !== 'string') {
-      return undefined
-    }
-    return { service: value['ocrService'], model: value['ocrModel'] }
-  })
-
-const metadataMatchesTarget = (
-  metadata: ExtractionMetadata,
-  target: OcrTarget
-): boolean => {
-  if (metadata.ocrService === target.service && metadata.ocrModel === target.model) {
-    return true
-  }
-
-  if (target.service === 'tesseract') {
-    return metadata.extractionMethod.includes('tesseract')
-  }
-
-  return false
-}
-
-const parseRootExtractionMetadata = (
-  entry: Record<string, unknown>,
-  target: OcrTarget
-): ExtractionMetadata | undefined => {
-  const values = Array.isArray(entry['step2'])
-    ? entry['step2']
-    : entry['step2'] === undefined
-      ? []
-      : [entry['step2']]
-
-  for (const value of values) {
-    try {
-      const metadata = validateData(ExtractionMetadataSchema, value, 'stored OCR metadata')
-      if (metadataMatchesTarget(metadata, target)) {
-        return metadata
-      }
-    } catch {
-      continue
-    }
-  }
-
-  return undefined
-}
-
-const readRootExtractionResult = async (
-  outputDir: string,
-  metadata: ExtractionMetadata
-): Promise<ExtractionResult | undefined> => {
-  const resultPath = join(outputDir, 'result.json')
-  if (await Bun.file(resultPath).exists()) {
-    try {
-      return validateData(ExtractionResultSchema, await Bun.file(resultPath).json(), 'stored OCR result')
-    } catch {
-      // Fall back to extraction.txt for text-only single-provider outputs.
-    }
-  }
-
-  const textPath = join(outputDir, 'extraction.txt')
-  const text = await Bun.file(textPath).text().catch(() => undefined)
-  if (text === undefined) {
-    return undefined
-  }
-
-  return {
-    text,
-    pages: [],
-    totalPages: metadata.totalPages,
-    ocrPages: metadata.ocrPages,
-    textPages: metadata.textPages
-  }
-}
-
-export const inferStoredCompletionStatus = (
+export const resolveCanonicalCompletionStatus = (
   entry: Record<string, unknown>,
   requestedTargets: OcrTarget[]
 ): ProviderCompletionStatus => {
-  const successfulKeys = parseSuccessfulProviderKeys(entry)
   const providerStates = parseStoredProviderStateMap(entry)
-  return inferStoredProviderCompletionStatus(
-    entry['completionStatus'],
+  return resolveRequestedProviderCompletionStatus(
     requestedTargets,
-    successfulKeys,
     providerStates,
     (state) => state?.status === 'skipped'
   )
@@ -333,7 +252,6 @@ export const buildMissingTargetsFromEntry = (
   requestedTargets: OcrTarget[],
   options: { includeBlocked?: boolean | undefined } = {}
 ): OcrTarget[] => {
-  const explicitMissing = parseStoredProviderArray(entry['missingProviders'], parseStoredRequestedTarget)
   const providerStates = parseStoredProviderStateMap(entry)
   const blockedKeys = new Set(
     parseStoredProviderArray(entry['blockedProviders'], parseStoredRequestedTarget)
@@ -351,11 +269,8 @@ export const buildMissingTargetsFromEntry = (
     return isRerunnableProviderState(state, options)
   }
 
-  const successfulKeys = parseSuccessfulProviderKeys(entry)
   return collectMissingProviderTargets(
-    explicitMissing,
     requestedTargets,
-    successfulKeys,
     providerStates,
     isTargetRerunnable
   )
@@ -392,7 +307,7 @@ export const hasOnlyBlockedMissingTargetsFromEntry = (
 const isNonSuccessProviderState = (
   state: OcrProviderState | undefined
 ): boolean =>
-  state === undefined || state.status === 'missing' || state.status === 'failed'
+  state === undefined || state.status === 'running' || state.status === 'missing' || state.status === 'failed'
 
 export const isBlockedOcrProviderState = (
   state: OcrProviderState | undefined
@@ -417,7 +332,7 @@ export const readExistingOcrRun = async (
   const providerStates = new Map<string, OcrProviderState>()
   const successes: Array<OcrProviderSuccess | undefined> = new Array(requestedTargets.length)
   const successMetadata: Array<ExtractionMetadata | undefined> = new Array(requestedTargets.length)
-  const raw = await readOcrRunManifestEntry(outputDir)
+  const raw = await readSinglePipelineItemRecord(outputDir, { command: 'extract', extractRoute: 'document' })
   if (!isRecord(raw)) {
     return { successes, successMetadata, providerStates }
   }
@@ -429,38 +344,27 @@ export const readExistingOcrRun = async (
 
   await Promise.all(requestedTargets.map(async (target, index) => {
     const key = getOcrTargetKey(target)
-    const providerDir = join(outputDir, getOcrProviderArtifactDir(target))
-    const providerResult = await readProviderResultEntry(providerDir)
-    if (!providerResult) {
-      const metadata = parseRootExtractionMetadata(raw, target)
-      if (!metadata) {
-        return
-      }
-
-      successMetadata[index] = metadata
-      if (storedProviderStates.get(key)?.artifactDir === '.') {
-        const result = await readRootExtractionResult(outputDir, metadata)
-        if (!result) {
-          return
-        }
-        successes[index] = {
-          target,
-          metadata,
-          result,
-          relativeDir: '.'
-        }
-      }
+    const storedState = storedProviderStates.get(key)
+    if (storedState?.status !== 'succeeded') {
       return
     }
+    if (!storedState.metadata) {
+      throw CLIUsageError(`Canonical OCR provider state ${target.service}/${target.model} is missing provider metadata.`)
+    }
+    const metadata = validateData(ExtractionMetadataSchema, storedState.metadata, 'stored OCR provider metadata')
+    const storedResult = isRecord(storedState.result)
+      ? validateData(ExtractionResultSchema, storedState.result, 'canonical OCR provider result')
+      : undefined
+    if (!storedResult) {
+      throw CLIUsageError(`Canonical OCR provider state ${target.service}/${target.model} is missing a valid result.`)
+    }
 
-    const metadata = validateData(ExtractionMetadataSchema, providerResult.metadata, 'stored OCR provider metadata')
-    const result = validateData(ExtractionResultSchema, providerResult.result, 'stored OCR result')
     successMetadata[index] = metadata
 
     successes[index] = {
       target,
       metadata,
-      result,
+      result: storedResult,
       relativeDir: getOcrProviderArtifactDir(target)
     }
   }))
@@ -491,7 +395,9 @@ export const buildProviderStates = (
         model: target.model,
         artifactDir: success?.relativeDir ?? existing?.artifactDir ?? getOcrProviderArtifactDir(target),
         status: 'succeeded',
-        attempts: existing?.attempts ?? 1
+        attempts: existing?.attempts ?? 1,
+        ...(successMetadata[index] ? { metadata: successMetadata[index] } : existing?.metadata ? { metadata: existing.metadata } : {}),
+        ...(success ? { result: success.result as unknown as Record<string, unknown> } : existing?.result ? { result: existing.result } : {})
       }
     }
 
@@ -502,6 +408,7 @@ export const buildProviderStates = (
         artifactDir: getOcrProviderArtifactDir(target),
         status: 'failed',
         attempts: (existing?.attempts ?? 0) + 1,
+        ...(existing?.metadata ? { metadata: existing.metadata } : {}),
         lastError: {
           message: sanitizeLogText(failure.message),
           category: failure.category,
@@ -525,6 +432,7 @@ export const buildProviderStates = (
       artifactDir: getOcrProviderArtifactDir(target),
       status: existing?.status ?? 'missing',
       attempts: existing?.attempts ?? 0,
+      ...(existing?.metadata ? { metadata: existing.metadata } : {}),
       ...(existing?.lastError ? { lastError: existing.lastError } : {})
     }
   })

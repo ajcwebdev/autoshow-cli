@@ -1,6 +1,6 @@
+import { join } from 'node:path'
 import { isRecord } from '~/utils/rest-client'
-import { writeProviderResult } from '../../../manifest-utils'
-import type { Step2Metadata, TranscriptionEvidence, TranscriptionEvidenceCapabilities, TranscriptionEvidenceSegment, TranscriptionEvidenceTimingQuality, TranscriptionEvidenceWord, TranscriptionResult } from '~/types'
+import type { TranscriptionEvidence, TranscriptionEvidenceCapabilities, TranscriptionEvidenceSegment, TranscriptionEvidenceTimingQuality, TranscriptionEvidenceWord, TranscriptionResult } from '~/types'
 
 
 const parseEvidenceSegment = (
@@ -170,14 +170,7 @@ export const parseStoredTranscriptionResult = (
 
 export const writeSttResultArtifact = async (
   outputDir: string,
-  metadata: Step2Metadata,
   result: TranscriptionResult
 ): Promise<void> => {
-  await writeProviderResult(
-    outputDir,
-    metadata.transcriptionService,
-    metadata.transcriptionModel,
-    metadata as unknown as Record<string, unknown>,
-    result as unknown as Record<string, unknown>
-  )
+  await Bun.write(join(outputDir, 'result.json'), `${JSON.stringify(result, null, 2)}\n`)
 }

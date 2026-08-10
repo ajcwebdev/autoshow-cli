@@ -2,7 +2,7 @@ import { defineCliCommand } from '~/cli/native/native-types'
 import { imageCommandFlags, imageCommandOptionNames } from '~/cli/flags/image-flags'
 import { retargetUsageErrorsToCommandSpellings } from '~/cli/flags/flag-utils'
 import { CLIUsageError } from '~/utils/error-handler'
-import { buildOptsFromFlags } from '~/cli/commands/process-steps/step-1-download/download-targets/build-opts-from-flags/build-options-from-flags'
+import { buildOptsFromFlags } from '~/cli/options/option-resolution/build-options-from-flags'
 import { normalizeCommandSelectorFlags } from '~/cli/flags/service-selector-normalization/flag-helpers'
 import { normalizeGenericProviderSelectorFlags } from '~/cli/flags/service-selector-normalization/generic-provider-selectors'
 import { STANDALONE_IMAGE_PROVIDER_TARGETS } from '~/cli/flags/service-selector-normalization/provider-targets'
@@ -12,11 +12,19 @@ import { computeActualCosts } from '~/utils/pricing/compute-actual-costs'
 import { computeEstimatedCosts } from '~/utils/pricing/compute-estimated-costs'
 import { computeActualProcessingTimes, computeEstimatedProcessingTimes } from '~/utils/pricing/compute-processing-time'
 import { preflightToEstimated } from '~/utils/pricing/compute-costs'
-import { runPreflight } from '~/utils/pricing/preflight'
+import { evaluatePreflightEstimate } from '~/utils/pricing/preflight'
+import { aggregateExplicitPriceEstimate } from '~/utils/pricing/aggregate-pricing'
+import { buildImageEstimates } from '~/utils/pricing/aggregate-pricing/generation-estimates'
 import { buildProviderStepSummaries, createGenerationOutputDir, getGenerationExpectedOutputDir, resolveMaxCentsFromFlags, writeGenerationMetadata } from '~/cli/commands/process-steps/generation-command-utils'
 import * as l from '~/utils/app-logger/app-logger'
 import { runWithLogContext } from '~/utils/app-logger/app-logger'
-import type { CliFlagOccurrence } from '~/types'
+import type { CliFlagOccurrence, ImageRuntimeOptions, ResourceGate } from '~/types'
+
+type StandaloneImageCommandOptions = ImageRuntimeOptions & {
+  generationResourceGate?: ResourceGate | undefined
+  price: boolean
+  allowOverBudget: boolean
+}
 
 const runImageCommand = async (
   prompt: string,
@@ -34,19 +42,23 @@ const runImageCommand = async (
     STANDALONE_IMAGE_PROVIDER_TARGETS,
     { allProvidersTarget: 'all-image' }
   )
-  const imageOpts = buildOptsFromFlags(true, providerNormalized.flags, [], {}, providerNormalized.explicitFlags, providerNormalized.flagOccurrences)
+  const imageOpts: StandaloneImageCommandOptions = buildOptsFromFlags(true, providerNormalized.flags, {}, providerNormalized.explicitFlags, providerNormalized.flagOccurrences)
   const imageTargets = collectImageTargets(imageOpts)
   if (imageTargets.length === 0) {
     throw CLIUsageError('No image provider specified. Use --provider gemini|openai|grok|bfl|recraft|replicate|lumalabs|fal[=model].')
   }
 
-  const { estimate: preflightEstimate, shouldExit: imageShouldExit } = await runPreflight('image', prompt, imageOpts, imageMaxCents)
+  const { estimate: preflightEstimate, shouldExit: imageShouldExit } = evaluatePreflightEstimate(
+    aggregateExplicitPriceEstimate(buildImageEstimates(imageOpts), {}),
+    imageOpts,
+    imageMaxCents
+  )
   if (imageShouldExit) {
     const expectedFiles = [
       ...imageTargets.flatMap((target) =>
         getExpectedImageArtifactFileNames(target, imageOpts, imageTargets.length === 1)
       ),
-      'run.json'
+      'manifest.json'
     ]
     l.report.expectedOutput(getGenerationExpectedOutputDir('./output/<timestamp>_image-gen/'), expectedFiles)
     return
@@ -84,14 +96,15 @@ const runImageCommand = async (
 
   await writeGenerationMetadata(outputDir, 'image', metadata, cost, timing, {
     input: prompt,
-    requestedProviders: imageTargets.map((t) => ({ service: t.service, model: t.model }))
+    requestedProviders: imageTargets.map((t) => ({ service: t.service, model: t.model })),
+    completedProviders: metadata.map((entry) => ({ service: entry.imageService, model: entry.imageModel }))
   })
 
   l.report.complete(
     outputDir,
     {
       ...buildImageArtifactMap(metadata),
-      run: 'run.json'
+      manifest: 'manifest.json'
     },
     {
       steps: buildProviderStepSummaries(

@@ -1,5 +1,6 @@
-import type { CostEstimateBase, ProcessingOptions, ProviderTargetBase, ResourceGate, Step6VideoMetadata, VideoProvider, VideoRuntimeOptionKey } from '~/types'
-export type VideoGenOptions = Pick<ProcessingOptions, VideoRuntimeOptionKey> & {
+import type { CostEstimateBase, ProviderTargetBase, ResourceGate, Step6VideoMetadata, VideoProvider, VideoRuntimeOptions } from '~/types'
+
+export type VideoGenOptions = Partial<VideoRuntimeOptions> & {
   generationResourceGate?: ResourceGate | undefined
 }
 
@@ -23,14 +24,14 @@ export type VideoCostEstimate = CostEstimateBase<VideoProvider> & {
   costPerSecond: number
 }
 
-export type EstimateVideoCostOptions = Pick<ProcessingOptions,
+export type EstimateVideoCostOptions = Partial<Pick<VideoRuntimeOptions,
   | 'geminiVideoModels' | 'geminiVideoModel' | 'minimaxVideoModels' | 'minimaxVideoModel'
   | 'glmVideoModels' | 'glmVideoModel' | 'grokVideoModels' | 'grokVideoModel'
   | 'runwayVideoModels' | 'runwayVideoModel' | 'ltxVideoModels' | 'ltxVideoModel'
   | 'replicateVideoModels' | 'replicateVideoModel' | 'lumalabsVideoModels' | 'lumalabsVideoModel'
   | 'falVideoModels' | 'falVideoModel' | 'videoDuration' | 'videoSize'
   | 'videoAspectRatio' | 'videoResolution' | 'videoMode' | 'replicateVideoGenerateAudio'
-> & {
+>> & {
   grokInputImageCount?: number | undefined
   grokInputVideoDurationSeconds?: number | undefined
   replicateVideoReferenceVideoCount?: number | undefined

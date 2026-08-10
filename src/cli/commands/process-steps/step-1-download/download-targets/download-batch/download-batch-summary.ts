@@ -1,20 +1,19 @@
 import { basename } from 'node:path'
-import { readBatchManifest } from '~/cli/commands/process-steps/manifest-utils'
+import { derivePipelineItemRecord, readManifest } from '~/cli/commands/process-steps/pipeline-manifest'
 import { formatSttTargetLabel } from '~/cli/commands/process-steps/step-2-extract/step-2-stt/stt-targets'
-import type { BatchManifestEntry, BatchManifestErrorEntry, ProcessCommand, SttBatchItemSummary, SttManifestProviderSummary } from '~/types'
+import type { PipelineItemErrorRecord, PipelineItemRecord, PipelineItemStatus, SttBatchItemSummary, SttProviderSummary } from '~/types'
 import * as l from '~/utils/app-logger/app-logger'
 import { createHumanTable, logBatchItemTable } from '~/utils/app-logger/human-table/human-table'
-import { getBatchManifestCompletionStatus, getBatchManifestErrors, isRecord } from './batch-manifest'
+import { getPipelineItemStatus, isRecord } from './pipeline-item-record-state'
 
-const getBatchManifestTitle = (
-  entry: BatchManifestEntry,
+const getPipelineItemTitle = (
+  record: PipelineItemRecord,
   fallbackIndex: number
 ): string => {
-  const step1 = isRecord(entry['step1']) ? entry['step1'] : undefined
+  const step1 = isRecord(record['step1']) ? record['step1'] : undefined
   const titleCandidates = [
     step1?.['title'],
-    step1?.['slug'],
-    entry['title']
+    step1?.['slug']
   ]
 
   for (const candidate of titleCandidates) {
@@ -23,11 +22,7 @@ const getBatchManifestTitle = (
     }
   }
 
-  const url = typeof step1?.['url'] === 'string'
-    ? step1['url']
-    : typeof entry['url'] === 'string'
-      ? entry['url']
-      : undefined
+  const url = typeof step1?.['url'] === 'string' ? step1['url'] : undefined
   if (typeof url === 'string' && url.length > 0) {
     try {
       const parsed = new URL(url)
@@ -39,7 +34,7 @@ const getBatchManifestTitle = (
     }
   }
 
-  const outputDir = entry['outputDir']
+  const outputDir = record['outputDir']
   if (typeof outputDir === 'string' && outputDir.trim().length > 0) {
     return basename(outputDir)
   }
@@ -47,11 +42,11 @@ const getBatchManifestTitle = (
   return `item-${fallbackIndex + 1}`
 }
 
-const parseSttManifestProviderSummaries = (
-  entry: BatchManifestEntry
-): SttManifestProviderSummary[] => {
-  const providerStates = Array.isArray(entry['providerStates']) ? entry['providerStates'] : []
-  const summaries: SttManifestProviderSummary[] = []
+const parseSttProviderSummaries = (
+  record: PipelineItemRecord
+): SttProviderSummary[] => {
+  const providerStates = Array.isArray(record['providerStates']) ? record['providerStates'] : []
+  const summaries: SttProviderSummary[] = []
 
   for (const value of providerStates) {
     if (!isRecord(value) || typeof value['service'] !== 'string' || typeof value['model'] !== 'string') {
@@ -59,7 +54,7 @@ const parseSttManifestProviderSummaries = (
     }
 
     const status = value['status']
-    if (status !== 'succeeded' && status !== 'missing' && status !== 'failed' && status !== 'skipped') {
+    if (status !== 'running' && status !== 'succeeded' && status !== 'missing' && status !== 'failed' && status !== 'skipped') {
       continue
     }
 
@@ -81,24 +76,15 @@ const parseSttManifestProviderSummaries = (
   return summaries
 }
 
-const countStep2Entries = (entry: BatchManifestEntry): number => {
-  const step2 = entry['step2']
-  if (Array.isArray(step2)) {
-    return step2.filter((value) => isRecord(value)).length
-  }
-
-  return isRecord(step2) ? 1 : 0
-}
-
-const getSttManifestProviderCounts = (
-  entry: BatchManifestEntry | null
+const getSttProviderStatusCounts = (
+  record: PipelineItemRecord | null
 ): {
   succeeded: number
   failed: number
   missing: number
   skipped: number
 } => {
-  if (!entry) {
+  if (!record) {
     return {
       succeeded: 0,
       failed: 0,
@@ -107,14 +93,14 @@ const getSttManifestProviderCounts = (
     }
   }
 
-  const summaries = parseSttManifestProviderSummaries(entry)
+  const summaries = parseSttProviderSummaries(record)
   if (summaries.length > 0) {
     return summaries.reduce((counts, summary) => {
       if (summary.status === 'succeeded') {
         counts.succeeded += 1
       } else if (summary.status === 'failed') {
         counts.failed += 1
-      } else if (summary.status === 'missing') {
+      } else if (summary.status === 'missing' || summary.status === 'running') {
         counts.missing += 1
       } else {
         counts.skipped += 1
@@ -128,12 +114,11 @@ const getSttManifestProviderCounts = (
     })
   }
 
-  const errors = getBatchManifestErrors(entry)
   return {
-    succeeded: countStep2Entries(entry),
-    failed: errors.filter((value) => value.skipped !== true).length,
+    succeeded: 0,
+    failed: 0,
     missing: 0,
-    skipped: errors.filter((value) => value.skipped === true).length
+    skipped: 0
   }
 }
 
@@ -143,9 +128,9 @@ const formatBatchProviderCount = (
 ): string => `${count} ${label}${count === 1 ? '' : 's'}`
 
 export const buildSttBatchItemDetail = (
-  entry: BatchManifestEntry | null
+  record: PipelineItemRecord | null
 ): string | undefined => {
-  const counts = getSttManifestProviderCounts(entry)
+  const counts = getSttProviderStatusCounts(record)
   const parts = [
     counts.failed > 0 ? formatBatchProviderCount(counts.failed, 'provider failure') : undefined,
     counts.missing > 0 ? formatBatchProviderCount(counts.missing, 'provider missing') : undefined,
@@ -155,15 +140,15 @@ export const buildSttBatchItemDetail = (
   return parts.length > 0 ? parts.join(', ') : undefined
 }
 
-const resolveSttBatchManifestCompletionStatus = (
-  entry: BatchManifestEntry
-): 'full' | 'incomplete' | 'failed' | 'skipped' => {
-  const completionStatus = getBatchManifestCompletionStatus(entry)
+const resolveSttItemRecordCompletionStatus = (
+  record: PipelineItemRecord
+): PipelineItemStatus => {
+  const completionStatus = getPipelineItemStatus(record)
   if (completionStatus) {
     return completionStatus
   }
 
-  const counts = getSttManifestProviderCounts(entry)
+  const counts = getSttProviderStatusCounts(record)
   if (counts.succeeded === 0) {
     return 'failed'
   }
@@ -171,19 +156,19 @@ const resolveSttBatchManifestCompletionStatus = (
   return counts.failed === 0 && counts.missing === 0 ? 'full' : 'incomplete'
 }
 
-const summarizeSttBatchManifestEntries = (
-  entries: BatchManifestEntry[]
+const summarizeSttItemRecords = (
+  records: PipelineItemRecord[]
 ): SttBatchItemSummary[] =>
-  entries.map((entry, index) => ({
-    label: getBatchManifestTitle(entry, index),
-    completionStatus: resolveSttBatchManifestCompletionStatus(entry),
-    providers: parseSttManifestProviderSummaries(entry)
+  records.map((record, index) => ({
+    label: getPipelineItemTitle(record, index),
+    completionStatus: resolveSttItemRecordCompletionStatus(record),
+    providers: parseSttProviderSummaries(record)
   }))
 
 const buildSttBatchFinalSummaryTable = (
-  entries: BatchManifestEntry[]
+  records: PipelineItemRecord[]
 ) => {
-  const summaries = summarizeSttBatchManifestEntries(entries)
+  const summaries = summarizeSttItemRecords(records)
   const rows = summaries.flatMap((summary, index) => {
     const base = {
       item: `${index + 1}/${summaries.length}`,
@@ -212,17 +197,18 @@ const buildSttBatchFinalSummaryTable = (
 }
 
 export const logSttBatchFinalSummary = async (batchDir: string): Promise<void> => {
-  const manifest = await readBatchManifest(batchDir, 'extract').catch(() => undefined)
-  if (!manifest) {
+  const manifest = await readManifest(batchDir).catch(() => undefined)
+  if (!manifest || manifest.command !== 'extract' || manifest.scope !== 'batch') {
     return
   }
 
-  const summaries = summarizeSttBatchManifestEntries(manifest.manifest.items)
+  const records = manifest.items.map((item) => derivePipelineItemRecord(batchDir, item))
+  const summaries = summarizeSttItemRecords(records)
   if (summaries.length === 0) {
     return
   }
 
-  const table = buildSttBatchFinalSummaryTable(manifest.manifest.items)
+  const table = buildSttBatchFinalSummaryTable(records)
   const hasFailed = summaries.some((summary) =>
     summary.completionStatus === 'failed'
     || summary.providers.some((provider) => provider.status === 'failed')
@@ -273,19 +259,19 @@ const buildSttBatchSummaryTable = (
   }], ['full', 'incomplete', 'failed'])
 
 export const buildBatchPartialFailureTable = (
-  entries: BatchManifestErrorEntry[]
+  records: PipelineItemErrorRecord[]
 ) => {
   const counts = new Map<string, number>()
 
-  for (const entry of entries) {
-    if (entry.skipped === true) {
+  for (const record of records) {
+    if (record.skipped === true) {
       continue
     }
-    if (typeof entry.service !== 'string' || typeof entry.model !== 'string') {
+    if (typeof record.service !== 'string' || typeof record.model !== 'string') {
       continue
     }
 
-    const key = `${entry.service}/${entry.model}`
+    const key = `${record.service}/${record.model}`
     counts.set(key, (counts.get(key) ?? 0) + 1)
   }
 
@@ -310,21 +296,18 @@ export const logBatchItemStatus = (
 }
 
 const buildBatchCompletionTable = (
-  command: ProcessCommand,
   ok: number,
   partial: number,
   incomplete: number,
   fail: number,
   sttLike = false
 )=> {
-  void command
   return sttLike
     ? buildSttBatchSummaryTable(ok, incomplete, fail)
     : buildNonSttBatchSummaryTable(ok, partial, fail)
 }
 
 export const logBatchCompletionTable = (
-  command: ProcessCommand,
   ok: number,
   partial: number,
   incomplete: number,
@@ -338,7 +321,7 @@ export const logBatchCompletionTable = (
     'Batch Summary',
     {
       category: 'pipeline',
-      humanTable: buildBatchCompletionTable(command, ok, partial, incomplete, fail, sttLike),
+      humanTable: buildBatchCompletionTable(ok, partial, incomplete, fail, sttLike),
       metadata: sttLike
         ? { full: ok, incomplete, failed: fail }
         : { completed: ok, full: ok - partial, partial, failed: fail }

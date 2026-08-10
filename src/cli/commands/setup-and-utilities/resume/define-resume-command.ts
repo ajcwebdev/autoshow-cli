@@ -4,7 +4,7 @@ import { dispatchResume } from './resume-dispatch'
 
 const outputDirParameter = [{
   key: '<outputDirs...>',
-  description: 'Existing run or batch output directories (contain run.json or batch.json)'
+  description: 'Existing pipeline output directories (contain manifest.json)'
 }] as const
 
 export const resumeCommand = defineCliCommand({

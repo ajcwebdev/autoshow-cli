@@ -1,5 +1,5 @@
 import { describe, expect, test } from 'bun:test'
-import { buildOptsFromFlags } from '~/cli/commands/process-steps/step-1-download/download-targets/build-opts-from-flags/build-options-from-flags'
+import { buildOptsFromFlags } from '~/cli/options/option-resolution/build-options-from-flags'
 import { collectVideoTargets } from '~/cli/commands/process-steps/step-6-video/video-targets'
 
 describe('option resolution contracts', () => {

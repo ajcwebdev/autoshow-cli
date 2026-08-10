@@ -2,7 +2,6 @@ import type {
   HostedTtsBatchCoordinator,
   HostedTtsChunkJob,
   HostedTtsChunkRateLimitFeedback,
-  HostedTtsChunkRetryFeedback,
   HostedTtsChunkScheduler,
   HostedTtsChunkSchedulerOptions,
   HostedTtsChunkSchedulerSnapshot,
@@ -347,7 +346,7 @@ export class HostedTtsBatchCoordinatorImpl implements HostedTtsBatchCoordinator 
     return await promise
   }
 
-  notifyRetry(provider: TtsProvider, _feedback: HostedTtsChunkRetryFeedback = {}): void {
+  notifyRetry(provider: TtsProvider): void {
     const state = this.#getState(provider)
     state.stats.retryCount += 1
     const job = this.#getAttributableJob(state)

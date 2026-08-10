@@ -1,7 +1,7 @@
 import { describe, expect, test } from 'bun:test'
 import { buildStep3Metadata, runWithLLMInstrumentation } from '~/cli/commands/process-steps/step-3-write/write-utils/llm-instrumentation'
 import { getLlmEstimation } from '~/cli/commands/setup-and-utilities/models/model-loader'
-import type { RuntimeOptions } from '~/types'
+import type { CommandPricingOptions } from '~/types'
 import { buildAggregatedPriceEstimate } from '~/utils/pricing/aggregate-pricing'
 import { computeActualCosts } from '~/utils/pricing/compute-actual-costs'
 import { preflightToEstimated } from '~/utils/pricing/compute-costs'
@@ -16,7 +16,7 @@ describe('price mode contracts', () => {
         useTesseract: false,
         urlBackend: 'defuddle',
         urlBackendExplicit: false
-      } as RuntimeOptions
+      } as CommandPricingOptions
       const priceEstimate = await buildAggregatedPriceEstimate('write', 'input/examples/tts/1-tts.md', opts)
       const estimated = preflightToEstimated(priceEstimate)
       const observedEstimate = computeEstimatedCosts({

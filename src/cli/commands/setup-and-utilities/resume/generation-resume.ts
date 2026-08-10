@@ -1,12 +1,12 @@
 import { isRecord } from '~/utils/rest-client'
 import * as l from '~/utils/app-logger/app-logger'
-import { readRunManifestOutcome, unsupportedManifestVersionError, writeRunManifest } from '~/cli/commands/process-steps/manifest-utils'
+import { readManifest, writeManifest } from '~/cli/commands/process-steps/pipeline-manifest'
 import { getGenerationTargetKey } from '~/cli/commands/process-steps/generation-command-utils'
 import { logResumeItem, logResumeSummary } from './resume-logging'
 import { getResumeProviderKey, resolveAdditiveResumeProviderSelection, uniqueResumeProviders } from './resume-provider-selection'
 import { CLIUsageError, InfraError } from '~/utils/error-handler'
 import { aggregateExplicitPriceEstimate } from '~/utils/pricing/aggregate-pricing'
-import type { AdditiveResumeProviderSelection, AggregatedPriceEstimate, GenerationModelFieldTable, GenerationResumeConfig, ProviderIdentity, ResumeDisplayOptions, ResumeHandler, ResumeResult, ResumeTarget, ResumeTargetKind, RunManifest, RuntimeOptions } from '~/types'
+import type { AdditiveResumeProviderSelection, AggregatedPriceEstimate, GenerationModelFieldTable, GenerationResumeConfig, PipelineManifest, PipelineManifestItem, ProviderIdentity, ResumeDisplayOptions, ResumeHandler, ResumeResult, ResumeTarget, ResumeTargetKind } from '~/types'
 
 export const buildUpdatedGenerationCostTiming = (
   currentMetadata: Record<string, unknown>,
@@ -23,23 +23,23 @@ export const buildUpdatedGenerationCostTiming = (
   }
 })
 
-export const clearProviderModelFields = (
-  opts: RuntimeOptions,
+export const clearProviderModelFields = <TOptions extends object>(
+  opts: TOptions,
   fields: GenerationModelFieldTable
-): RuntimeOptions => {
-  const cleared: Record<string, unknown> = { ...opts }
+): TOptions => {
+  const cleared = { ...opts }
   for (const [modelsField, modelField] of Object.values(fields)) {
-    cleared[modelsField] = undefined
-    cleared[modelField] = undefined
+    Reflect.set(cleared, modelsField, undefined)
+    Reflect.set(cleared, modelField, undefined)
   }
-  return cleared as RuntimeOptions
+  return cleared
 }
 
-export const collectGenerationTargetsForProviders = <TTarget extends ProviderIdentity>(
+export const collectGenerationTargetsForProviders = <TTarget extends ProviderIdentity, TOptions extends object>(
   providers: ProviderIdentity[],
-  opts: RuntimeOptions,
+  opts: TOptions,
   fields: GenerationModelFieldTable,
-  collect: (opts: RuntimeOptions) => TTarget[]
+  collect: (opts: TOptions) => TTarget[]
 ): TTarget[] =>
   providers.flatMap((provider) => {
     const providerFields = fields[provider.service]
@@ -47,45 +47,40 @@ export const collectGenerationTargetsForProviders = <TTarget extends ProviderIde
       return []
     }
     const [modelsField, modelField] = providerFields
-    return collect({
-      ...clearProviderModelFields(opts, fields),
-      [modelsField]: [provider.model],
-      [modelField]: provider.model
-    } as RuntimeOptions).filter((target) =>
+    const providerOptions = clearProviderModelFields(opts, fields)
+    Reflect.set(providerOptions, modelsField, [provider.model])
+    Reflect.set(providerOptions, modelField, provider.model)
+    return collect(providerOptions).filter((target) =>
       target.service === provider.service && target.model === provider.model
     )
   })
 
-export const buildGenerationPriceOptions = (
+export const buildGenerationPriceOptions = <TOptions extends object>(
   targets: ProviderIdentity[],
-  opts: RuntimeOptions,
+  opts: TOptions,
   fields: GenerationModelFieldTable
-): RuntimeOptions => {
-  const priceOpts: Record<string, unknown> = { ...clearProviderModelFields(opts, fields) }
+): TOptions => {
+  const priceOpts = clearProviderModelFields(opts, fields)
   for (const [service, [modelsField]] of Object.entries(fields)) {
     const models = targets
       .filter((target) => target.service === service)
       .map((target) => target.model)
     if (models.length > 0) {
-      priceOpts[modelsField] = models
+      Reflect.set(priceOpts, modelsField, models)
     }
   }
-  return priceOpts as RuntimeOptions
+  return priceOpts
 }
 
 const parseStoredRequestedProviders = (
-  metadata: Record<string, unknown>
+  item: PipelineManifestItem
 ): ProviderIdentity[] | undefined => {
-  const requestedProviders = Array.isArray(metadata['requestedProviders'])
-    ? metadata['requestedProviders'].filter(
-        (entry): entry is ProviderIdentity =>
-          isRecord(entry)
-          && typeof entry['service'] === 'string'
-          && typeof entry['model'] === 'string'
-      )
-    : undefined
-
-  return requestedProviders && requestedProviders.length > 0
+  const requestedProviders = item.providers.flatMap((provider) =>
+    typeof provider.model === 'string'
+      ? [{ service: provider.service, model: provider.model }]
+      : []
+  )
+  return requestedProviders.length > 0
     ? requestedProviders
     : undefined
 }
@@ -129,7 +124,8 @@ const allProvidersSucceeded = (
   providers.every((provider) => successKeys.has(getGenerationTargetKey(provider.service, provider.model)))
 
 type GenerationResumePreparation<TTarget extends ProviderIdentity, TMetadata> = {
-  manifest: RunManifest
+  manifest: PipelineManifest
+  item: PipelineManifestItem
   existingEntries: TMetadata[]
   successKeys: Set<string>
   selectedTargets: TTarget[]
@@ -137,68 +133,70 @@ type GenerationResumePreparation<TTarget extends ProviderIdentity, TMetadata> = 
   resolved: AdditiveResumeProviderSelection<ProviderIdentity>
 }
 
-async function prepareGenerationResume<TTarget extends ProviderIdentity, TMetadata>(
+async function prepareGenerationResume<TTarget extends ProviderIdentity, TMetadata, TOptions extends object>(
   target: ResumeTarget,
-  config: GenerationResumeConfig<TTarget, TMetadata>,
-  opts: RuntimeOptions,
+  config: GenerationResumeConfig<TTarget, TMetadata, TOptions>,
+  opts: TOptions,
   explicitFlags: Set<string>,
   throwOnInvalid: true
 ): Promise<GenerationResumePreparation<TTarget, TMetadata>>
-async function prepareGenerationResume<TTarget extends ProviderIdentity, TMetadata>(
+async function prepareGenerationResume<TTarget extends ProviderIdentity, TMetadata, TOptions extends object>(
   target: ResumeTarget,
-  config: GenerationResumeConfig<TTarget, TMetadata>,
-  opts: RuntimeOptions,
+  config: GenerationResumeConfig<TTarget, TMetadata, TOptions>,
+  opts: TOptions,
   explicitFlags: Set<string>,
   throwOnInvalid: false
 ): Promise<GenerationResumePreparation<TTarget, TMetadata> | undefined>
-async function prepareGenerationResume<TTarget extends ProviderIdentity, TMetadata>(
+async function prepareGenerationResume<TTarget extends ProviderIdentity, TMetadata, TOptions extends object>(
   target: ResumeTarget,
-  config: GenerationResumeConfig<TTarget, TMetadata>,
-  opts: RuntimeOptions,
+  config: GenerationResumeConfig<TTarget, TMetadata, TOptions>,
+  opts: TOptions,
   explicitFlags: Set<string>,
   throwOnInvalid: boolean
 ): Promise<GenerationResumePreparation<TTarget, TMetadata> | undefined> {
   if (config.selectionMode === 'selected-only' && target.scope !== 'single') {
     if (throwOnInvalid) {
-      throw CLIUsageError(`${config.stepLabel} resume currently supports single-run run.json outputs only.`)
+      throw CLIUsageError(`${config.stepLabel} resume currently supports single-run manifest.json outputs only.`)
     }
     return undefined
   }
 
-  const manifestOutcome = await readRunManifestOutcome(target.dir, config.kind)
-  if (manifestOutcome.status === 'unsupported-version') {
-    throw unsupportedManifestVersionError(manifestOutcome)
-  }
-  const manifest = manifestOutcome.status === 'ok' ? manifestOutcome.manifest : undefined
-  if (!manifest) {
+  const manifest = await readManifest(target.dir)
+  if (!manifest || manifest.command !== config.kind || manifest.scope !== target.scope) {
     if (throwOnInvalid) {
       const manifestLabel = config.selectionMode === 'selected-only'
         ? config.stepLabel.toLowerCase()
         : config.stepLabel
-      throw CLIUsageError(`Invalid ${manifestLabel} manifest at ${target.dir}/run.json`)
+      throw CLIUsageError(`Invalid ${manifestLabel} manifest at ${target.dir}/manifest.json`)
     }
     return undefined
   }
 
+  const item = manifest.items[0]
+  if (!item) {
+    if (throwOnInvalid) {
+      throw CLIUsageError(`Invalid ${config.stepLabel} manifest at ${target.dir}/manifest.json`)
+    }
+    return undefined
+  }
   const existingEntries = config.parseManifestEntries
-    ? config.parseManifestEntries(manifest.metadata)
-    : Array.isArray(manifest.metadata[config.metadataKey])
-      ? manifest.metadata[config.metadataKey] as TMetadata[]
+    ? config.parseManifestEntries(item.metadata)
+    : Array.isArray(item.metadata[config.metadataKey])
+      ? item.metadata[config.metadataKey] as TMetadata[]
       : []
   const storedProviders = config.selectionMode === 'additive-stored'
-    ? parseStoredRequestedProviders(manifest.metadata)
+    ? parseStoredRequestedProviders(item)
     : undefined
-  const hasStoredInput = typeof manifest.metadata['input'] === 'string'
-    && manifest.metadata['input'].length > 0
+  const hasStoredInput = typeof item.input === 'string' && item.input.length > 0
   const invalidManifest = existingEntries === undefined
     || (config.selectionMode === 'additive-stored' && (!hasStoredInput || !storedProviders))
 
   if (invalidManifest) {
     if (throwOnInvalid) {
       throw CLIUsageError(config.selectionMode === 'additive-stored'
-        ? `This ${config.stepLabel} run.json does not contain resume metadata (input/requestedProviders). `
+        ? `This ${config.stepLabel} manifest.json does not contain canonical resume input/provider state. `
           + 'Re-run the original command to produce a resumable manifest.'
-        : `This ${config.stepLabel.toLowerCase()} run.json does not contain resumable ${config.metadataKey} LLM metadata. `
+        : `This ${config.stepLabel.toLowerCase()} manifest.json does not contain resumable ${config.metadataKey} LLM metadata. `
           + `Re-run the original command to produce a resumable ${config.stepLabel.toLowerCase()} manifest.`
       )
     }
@@ -234,6 +232,7 @@ async function prepareGenerationResume<TTarget extends ProviderIdentity, TMetada
 
   return {
     manifest,
+    item,
     existingEntries,
     successKeys,
     selectedTargets,
@@ -242,11 +241,11 @@ async function prepareGenerationResume<TTarget extends ProviderIdentity, TMetada
   }
 }
 
-const resolveGenerationTargetsToRunOrThrow = <TTarget extends ProviderIdentity, TMetadata>(
+const resolveGenerationTargetsToRunOrThrow = <TTarget extends ProviderIdentity, TMetadata, TOptions extends object>(
   target: ResumeTarget,
   prep: GenerationResumePreparation<TTarget, TMetadata>,
-  config: GenerationResumeConfig<TTarget, TMetadata>,
-  opts: RuntimeOptions
+  config: GenerationResumeConfig<TTarget, TMetadata, TOptions>,
+  opts: TOptions
 ): TTarget[] => {
   const targetsToRun = selectTargetsForProviders(
     prep.resolved.providersToRun,
@@ -271,19 +270,19 @@ const resolveGenerationTargetsToRunOrThrow = <TTarget extends ProviderIdentity, 
   return targetsToRun
 }
 
-const resolveGenerationInput = async <TTarget extends ProviderIdentity, TMetadata>(
+const resolveGenerationInput = async <TTarget extends ProviderIdentity, TMetadata, TOptions extends object>(
   target: ResumeTarget,
   prep: GenerationResumePreparation<TTarget, TMetadata>,
-  config: GenerationResumeConfig<TTarget, TMetadata>
+  config: GenerationResumeConfig<TTarget, TMetadata, TOptions>
 ): Promise<string> => {
   if (config.resolveInput) {
-    return await config.resolveInput(target, prep.manifest.metadata)
+    return await config.resolveInput(target, prep.item.metadata)
   }
-  return prep.manifest.metadata['input'] as string
+  return prep.item.input as string
 }
 
-const buildGenerationFailureMessage = <TTarget extends ProviderIdentity, TMetadata>(
-  config: GenerationResumeConfig<TTarget, TMetadata>,
+const buildGenerationFailureMessage = <TTarget extends ProviderIdentity, TMetadata, TOptions extends object>(
+  config: GenerationResumeConfig<TTarget, TMetadata, TOptions>,
   failure: 'failed' | 'incomplete',
   providers: ProviderIdentity[]
 ): string => {
@@ -296,26 +295,26 @@ const buildGenerationFailureMessage = <TTarget extends ProviderIdentity, TMetada
   return `${config.stepLabel} resume still has ${providers.length} incomplete provider(s)`
 }
 
-export const hasResumableGenerationWork = async <TTarget extends ProviderIdentity, TMetadata>(
+export const hasResumableGenerationWork = async <TTarget extends ProviderIdentity, TMetadata, TOptions extends object>(
   target: ResumeTarget,
-  config: GenerationResumeConfig<TTarget, TMetadata>,
-  opts: RuntimeOptions,
+  config: GenerationResumeConfig<TTarget, TMetadata, TOptions>,
+  opts: TOptions,
   explicitFlags: Set<string> = new Set()
 ): Promise<boolean> => {
   const prep = await prepareGenerationResume(target, config, opts, explicitFlags, false)
   return prep !== undefined && prep.resolved.providersToRun.length > 0
 }
 
-export const resumeGenerationTarget = async <TTarget extends ProviderIdentity, TMetadata>(
+export const resumeGenerationTarget = async <TTarget extends ProviderIdentity, TMetadata, TOptions extends object>(
   target: ResumeTarget,
-  config: GenerationResumeConfig<TTarget, TMetadata>,
-  opts: RuntimeOptions,
+  config: GenerationResumeConfig<TTarget, TMetadata, TOptions>,
+  opts: TOptions,
   explicitFlags: Set<string> = new Set(),
   displayOptions: ResumeDisplayOptions = {}
 ): Promise<ResumeResult> => {
   const itemLabel = displayOptions.itemLabel ?? '1/1'
   const prep = await prepareGenerationResume(target, config, opts, explicitFlags, true)
-  const { manifest, existingEntries, successKeys, selectedProviders, resolved } = prep
+  const { manifest, item, existingEntries, successKeys, selectedProviders, resolved } = prep
   const hasExplicitSelectedProviders = selectedProviders !== undefined
 
   if (resolved.providersToRun.length === 0) {
@@ -332,7 +331,7 @@ export const resumeGenerationTarget = async <TTarget extends ProviderIdentity, T
           ? `all selected ${config.stepLabel.toLowerCase()} LLM providers already complete`
           : `no ${config.stepLabel.toLowerCase()} LLM providers selected`
         : hasExplicitSelectedProviders && unresolvedProviders.length > 0
-          ? 'selected providers complete; run manifest still incomplete'
+          ? 'selected providers complete; canonical item still incomplete'
           : hasExplicitSelectedProviders
             ? 'all selected providers already complete'
             : 'all providers already complete'
@@ -360,7 +359,7 @@ export const resumeGenerationTarget = async <TTarget extends ProviderIdentity, T
     newMetadata = await config.runMissingTargets(targetsToRun, input, target.dir, opts, {
       targets: targetsToRun,
       existingEntries,
-      currentManifestMetadata: manifest.metadata
+      currentManifestMetadata: item.metadata
     })
   } catch (error) {
     logResumeItem(l, {
@@ -384,18 +383,40 @@ export const resumeGenerationTarget = async <TTarget extends ProviderIdentity, T
     (p) => !mergedSuccessKeys.has(getGenerationTargetKey(p.service, p.model))
   )
   const rebuiltMetadata = config.rebuildRunMetadata
-    ? config.rebuildRunMetadata(mergedMetadata, manifest.metadata, input)
+    ? config.rebuildRunMetadata(mergedMetadata, item.metadata, input)
     : {}
 
-  await writeRunManifest(target.dir, config.kind, {
-    ...manifest.metadata,
-    ...rebuiltMetadata,
-    ...(config.selectionMode === 'additive-stored'
-      ? { requestedProviders: resolved.requestedProviders.map(toProviderIdentity) }
-      : {}),
-    [config.metadataKey]: config.serializeEntries
-      ? config.serializeEntries(mergedMetadata)
-      : mergedMetadata
+  const nextProviderByKey = new Map(item.providers.map((provider) => [getGenerationTargetKey(provider.service, provider.model ?? ''), provider]))
+  for (const provider of resolved.requestedProviders) {
+    const key = getGenerationTargetKey(provider.service, provider.model)
+    const current = nextProviderByKey.get(key)
+    const succeeded = mergedSuccessKeys.has(key)
+    nextProviderByKey.set(key, {
+      service: provider.service,
+      model: provider.model,
+      artifactDir: current?.artifactDir ?? '.',
+      status: succeeded ? 'succeeded' : 'missing',
+      attempts: Math.max(current?.attempts ?? 0, succeeded ? 1 : 0),
+      options: current?.options ?? {},
+      metadata: current?.metadata ?? {},
+      ...(succeeded ? {} : current?.error ? { error: current.error } : {})
+    })
+  }
+  await writeManifest(target.dir, {
+    ...manifest,
+    items: [{
+      ...item,
+      input,
+      status: stillMissing.length > 0 ? 'incomplete' : 'full',
+      metadata: {
+        ...item.metadata,
+        ...rebuiltMetadata,
+        [config.metadataKey]: config.serializeEntries
+          ? config.serializeEntries(mergedMetadata)
+          : mergedMetadata
+      },
+      providers: [...nextProviderByKey.values()]
+    }]
   })
 
   if (stillMissing.length > 0) {
@@ -409,7 +430,7 @@ export const resumeGenerationTarget = async <TTarget extends ProviderIdentity, T
         status: 'full',
         outputDir: target.dir,
         providers: providerLabels,
-        detail: 'selected providers complete; run manifest still incomplete'
+        detail: 'selected providers complete; canonical item still incomplete'
       }, 'success')
       logResumeSummary(l, { full: 1, incomplete: 0, failed: 0 })
       return { full: 1, incomplete: 0, failed: 0 }
@@ -440,10 +461,10 @@ export const resumeGenerationTarget = async <TTarget extends ProviderIdentity, T
   return { full: 1, incomplete: 0, failed: 0 }
 }
 
-export const priceGenerationTarget = async <TTarget extends ProviderIdentity, TMetadata>(
+export const priceGenerationTarget = async <TTarget extends ProviderIdentity, TMetadata, TOptions extends object>(
   target: ResumeTarget,
-  config: GenerationResumeConfig<TTarget, TMetadata>,
-  opts: RuntimeOptions,
+  config: GenerationResumeConfig<TTarget, TMetadata, TOptions>,
+  opts: TOptions,
   explicitFlags: Set<string> = new Set()
 ): Promise<AggregatedPriceEstimate> => {
   const prep = await prepareGenerationResume(target, config, opts, explicitFlags, true)
@@ -459,7 +480,7 @@ export const priceGenerationTarget = async <TTarget extends ProviderIdentity, TM
   const steps = await config.buildEstimates(priceOpts, input, {
     targets: targetsToRun,
     existingEntries: prep.existingEntries,
-    currentManifestMetadata: prep.manifest.metadata
+    currentManifestMetadata: prep.item.metadata
   })
   return aggregateExplicitPriceEstimate(
     steps,
@@ -468,10 +489,10 @@ export const priceGenerationTarget = async <TTarget extends ProviderIdentity, TM
   )
 }
 
-export const buildGenerationResumeHandler = <TTarget extends ProviderIdentity, TMetadata>(
+export const buildGenerationResumeHandler = <TTarget extends ProviderIdentity, TMetadata, TOptions extends object>(
   kind: ResumeTargetKind,
-  config: GenerationResumeConfig<TTarget, TMetadata>
-): ResumeHandler => ({
+  config: GenerationResumeConfig<TTarget, TMetadata, TOptions>
+): ResumeHandler<TOptions> => ({
   kind,
   hasResumableWork: async (target, opts, explicitFlags) =>
     await hasResumableGenerationWork(target, config, opts, explicitFlags),

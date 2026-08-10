@@ -1,0 +1,288 @@
+{
+  "command": "extract",
+  "scope": "single",
+  "createdAt": "2025-04-01T12:00:00.000Z",
+  "updatedAt": "2025-04-01T12:00:00.000Z",
+  "source": {
+    "url": "https://example.com/eval-demo.mp3"
+  },
+  "items": [
+    {
+      "input": "https://example.com/eval-demo.mp3",
+      "inputFamily": "media",
+      "extractRoute": "media",
+      "status": "full",
+      "metadata": {
+        "step1": {
+          "title": "Eval Demo Episode",
+          "durationSeconds": 180
+        },
+        "cost": {
+          "actual": {
+            "steps": [
+              {
+                "provider": "deepgram",
+                "model": "nova-2",
+                "cost": 2.5
+              },
+              {
+                "provider": "assembly",
+                "model": "universal",
+                "cost": 3.1
+              }
+            ]
+          }
+        },
+        "timing": {
+          "actual": {
+            "steps": [
+              {
+                "provider": "deepgram",
+                "model": "nova-2",
+                "processingTimeMs": 4200
+              },
+              {
+                "provider": "assembly",
+                "model": "universal",
+                "processingTimeMs": 8500
+              },
+              {
+                "provider": "whisper",
+                "model": "large-v3",
+                "processingTimeMs": 15000
+              }
+            ]
+          }
+        }
+      },
+      "providers": [
+        {
+          "service": "deepgram",
+          "model": "nova-2",
+          "artifactDir": "providers/deepgram",
+          "status": "succeeded",
+          "attempts": 1,
+          "options": {},
+          "metadata": {
+            "processingTime": 4200
+          },
+          "result": {
+            "segments": [
+              {
+                "start": 2,
+                "end": 8.5,
+                "speaker": "A",
+                "text": "Welcome to the show. Today we're talking about building APIs with Hono."
+              },
+              {
+                "start": 10,
+                "end": 18,
+                "speaker": "B",
+                "text": "Thanks for having me. I've been working on Hona for about two years now."
+              },
+              {
+                "start": 20,
+                "end": 32,
+                "speaker": "A",
+                "text": "So for people who haven't heard of it, what is Hono and why should they care?"
+              },
+              {
+                "start": 34,
+                "end": 52,
+                "speaker": "B",
+                "text": "Hono is a small fast web framework that runs on any JavaScript runtime. It works on Cloudflare Workers, Deno, Bun, Node, you name it."
+              },
+              {
+                "start": 55,
+                "end": 68,
+                "speaker": "A",
+                "text": "That's interesting. How does it compare to Express performance wise?"
+              },
+              {
+                "start": 70,
+                "end": 88,
+                "speaker": "B",
+                "text": "We're significantly faster than Express in benchmarks. The router uses a radix tree so route matching is O of log n instead of O of n."
+              },
+              {
+                "start": 90,
+                "end": 105,
+                "speaker": "A",
+                "text": "And you recently added RPC support right? Tell us about that."
+              },
+              {
+                "start": 108,
+                "end": 130,
+                "speaker": "B",
+                "text": "Yes the RPC feature lets you get end to end type safety between your API and client. Similar to tRPC but built into the framework."
+              },
+              {
+                "start": 132,
+                "end": 150,
+                "speaker": "A",
+                "text": "Where can people learn more about Hono?"
+              },
+              {
+                "start": 152,
+                "end": 170,
+                "speaker": "B",
+                "text": "Check out hono.dev for docs and the GitHub repo at github.com slash honojs slash hono."
+              }
+            ]
+          }
+        },
+        {
+          "service": "assembly",
+          "model": "universal",
+          "artifactDir": "providers/assembly",
+          "status": "succeeded",
+          "attempts": 1,
+          "options": {},
+          "metadata": {
+            "processingTime": 8500
+          },
+          "result": {
+            "segments": [
+              {
+                "start": 2.1,
+                "end": 8.3,
+                "speaker": "speaker_1",
+                "text": "Welcome to the show. Today we're talking about building APIs with Hono."
+              },
+              {
+                "start": 10.2,
+                "end": 17.8,
+                "speaker": "speaker_2",
+                "text": "Thanks for having me. I've been working on Hono for about two years now."
+              },
+              {
+                "start": 20.1,
+                "end": 31.5,
+                "speaker": "speaker_1",
+                "text": "So for people who haven't heard of it, what is Hono and why should they care?"
+              },
+              {
+                "start": 34.2,
+                "end": 51.8,
+                "speaker": "speaker_2",
+                "text": "Hono is a small, fast web framework that runs on any JavaScript runtime. It works on Cloudflare Workers, Deno, Bun, Node, you name it."
+              },
+              {
+                "start": 55.1,
+                "end": 67.5,
+                "speaker": "speaker_1",
+                "text": "That's interesting. How does it compare to Express performance-wise?"
+              },
+              {
+                "start": 70.3,
+                "end": 87.5,
+                "speaker": "speaker_2",
+                "text": "We're significantly faster than Express in benchmarks. The router uses a radix tree, so route matching is O of log n instead of O of n."
+              },
+              {
+                "start": 90.2,
+                "end": 104.8,
+                "speaker": "speaker_1",
+                "text": "And you recently added RPC support, right? Tell us about that."
+              },
+              {
+                "start": 108.1,
+                "end": 129.5,
+                "speaker": "speaker_2",
+                "text": "Yes, the RPC feature lets you get end-to-end type safety between your API and client. Similar to tRPC but built into the framework."
+              },
+              {
+                "start": 132.2,
+                "end": 149.8,
+                "speaker": "speaker_1",
+                "text": "Where can people learn more about Hono?"
+              },
+              {
+                "start": 152.1,
+                "end": 169.5,
+                "speaker": "speaker_2",
+                "text": "Check out hono.dev for docs and the GitHub repo at github.com/honojs/hono."
+              }
+            ]
+          }
+        },
+        {
+          "service": "whisper",
+          "model": "large-v3",
+          "local": true,
+          "artifactDir": "providers/whisper",
+          "status": "succeeded",
+          "attempts": 1,
+          "options": {},
+          "metadata": {
+            "processingTime": 15000
+          },
+          "result": {
+            "segments": [
+              {
+                "start": 2,
+                "end": 8.6,
+                "speaker": "SPEAKER_00",
+                "text": "Welcome to the show. Today we're talking about building APIs with Hono."
+              },
+              {
+                "start": 10,
+                "end": 18.2,
+                "speaker": "SPEAKER_01",
+                "text": "Thanks for having me. I've been working on Honno for about two years now."
+              },
+              {
+                "start": 20,
+                "end": 32.1,
+                "speaker": "SPEAKER_00",
+                "text": "So for people who haven't heard of it, what is Hono and why should they care?"
+              },
+              {
+                "start": 34,
+                "end": 52.5,
+                "speaker": "SPEAKER_01",
+                "text": "Hono is a small fast web framework that runs on any JavaScript runtime. It works on Cloudflare Workers, Deno, Bun, Node, you name it."
+              },
+              {
+                "start": 55,
+                "end": 68.2,
+                "speaker": "SPEAKER_00",
+                "text": "That's interesting. How does it compare to Express performance wise?"
+              },
+              {
+                "start": 70,
+                "end": 88.5,
+                "speaker": "SPEAKER_01",
+                "text": "We're significantly faster than Express in benchmarks. The router uses a Reddix tree so route matching is O of log n instead of O of n."
+              },
+              {
+                "start": 90,
+                "end": 105.5,
+                "speaker": "SPEAKER_00",
+                "text": "And you recently added RPC support right? Tell us about that."
+              },
+              {
+                "start": 108,
+                "end": 130.5,
+                "speaker": "SPEAKER_01",
+                "text": "Yes the RPC feature lets you get end to end type safety between your API and client. Similar to TRPC but built into the framework."
+              },
+              {
+                "start": 132,
+                "end": 150.2,
+                "speaker": "SPEAKER_00",
+                "text": "Where can people learn more about Honno?"
+              },
+              {
+                "start": 152,
+                "end": 170.5,
+                "speaker": "SPEAKER_01",
+                "text": "Check out honno.dev for docs and the GitHub repo at github.com slash honnojs slash honno."
+              }
+            ]
+          }
+        }
+      ]
+    }
+  ]
+}

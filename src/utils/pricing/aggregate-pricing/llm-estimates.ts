@@ -1,5 +1,5 @@
-import type { LlmStepEstimate, RuntimeOptions } from '~/types'
-import { resolveLLMDefaults } from '~/cli/commands/process-steps/step-1-download/download-targets/options/model-option-llm-defaults'
+import type { LlmStepEstimate, ResolvedLLMModelOptions } from '~/types'
+import { resolveLLMDefaults } from '~/cli/options/option-resolution/model-option-llm-defaults'
 import { estimateLlmRates } from '~/cli/commands/process-steps/step-3-write/write-utils/llm-pricing'
 import { estimatePromptTokensFromText, readPromptFileText } from '~/cli/commands/process-steps/step-3-write/text-input-utils'
 import { getLlmCost, getLlmEstimation } from '~/cli/commands/setup-and-utilities/models/model-loader'
@@ -7,14 +7,18 @@ import { resolvePromptTokenEstimate } from '~/prompts/prompt-loader'
 import { computeTokenCost } from '~/utils/pricing/token-pricing'
 
 export const buildLlmEstimates = async (
-  opts: RuntimeOptions,
+  opts: Partial<ResolvedLLMModelOptions> & {
+    prompts?: string[] | undefined
+    promptFile?: string | undefined
+  },
   skipLLM: boolean
 ): Promise<LlmStepEstimate[]> => {
   if (skipLLM) return []
   const llmConfig = resolveLLMDefaults(opts)
   const rates = estimateLlmRates(llmConfig)
-  const promptFileOnly = typeof opts.promptFile === 'string' && opts.promptFile.length > 0 && opts.prompts.length === 0
-  const promptTokenEstimate = await resolvePromptTokenEstimate(opts.prompts, {
+  const prompts = opts.prompts ?? []
+  const promptFileOnly = typeof opts.promptFile === 'string' && opts.promptFile.length > 0 && prompts.length === 0
+  const promptTokenEstimate = await resolvePromptTokenEstimate(prompts, {
     fallbackToDefault: !promptFileOnly
   })
   const promptFileText = await readPromptFileText(opts.promptFile)

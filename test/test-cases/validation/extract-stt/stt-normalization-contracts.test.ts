@@ -8,7 +8,7 @@ import {
   repairZeroDurationMonotonicSegments
 } from '~/cli/commands/process-steps/step-2-extract/step-2-stt/stt-utils/stt-timing-quality'
 import type { MetricName, SttNormalizationMetricRankingEntry } from '~/types'
-import { writeMultiProviderRunFixture } from '../../../test-utils/manifest-helpers'
+import { writeMultiProviderManifestFixture } from '../../../test-utils/manifest-helpers'
 
 const tempDirs: string[] = []
 
@@ -116,8 +116,9 @@ describe('STT normalization contracts', () => {
       }
     ]
 
-    await writeMultiProviderRunFixture(runDir, {
-      kind: 'extract',
+    await writeMultiProviderManifestFixture(runDir, {
+      command: 'extract',
+      extractRoute: 'media',
       metadata: { step1: { durationSeconds: 10, duration: '00:00:10' } },
       providerMetadata: { tokenCount: 2 },
       providers: providerArtifacts

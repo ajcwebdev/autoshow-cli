@@ -13,13 +13,13 @@ import { setupYtDependencies } from '~/cli/commands/setup-and-utilities/setup/se
 import { hasExtractGenericSelectorOccurrences, normalizeExtractGenericSelectorFlags, stripExtractGenericSelectorFlags, stripExtractGenericSelectorOccurrences } from '~/cli/flags/service-selector-normalization/extract-selectors'
 import { assertNoVoiceIdentityWithDialogue, normalizeGenericTtsOptionFlags } from '~/cli/flags/service-selector-normalization/generic-tts-option-selectors'
 import { normalizeWriteStepSelectorFlags } from '~/cli/flags/service-selector-normalization/write-step-selectors'
-import type { AggregatedPriceEstimate, CliRawParsed, ExtractSelectorInputRoutes, ProcessCommand, ResolvedProcessTargetDoubleDash, RuntimeOptions } from '~/types'
+import type { AggregatedPriceEstimate, CliRawParsed, ExtractSelectorInputRoutes, ProcessCommand, ProcessPlanningOptions, ResolvedProcessTargetDoubleDash } from '~/types'
 import { CLIUsageError } from '~/utils/error-handler'
 import * as l from '~/utils/app-logger/app-logger'
 import { buildAggregatedPriceEstimate } from '~/utils/pricing/aggregate-pricing'
 import { runPreflight } from '~/utils/pricing/preflight'
 import { executeBatchPlan } from './download-batch/batch-executor'
-import { buildOptsFromFlags } from './build-opts-from-flags/build-options-from-flags'
+import { buildOptsFromFlags } from '~/cli/options/option-resolution/build-options-from-flags'
 import { buildBatchExpectedFilesList, buildExpectedFilesList } from './expected-output'
 import { formatCents, reportSuitePriceEstimate, shouldRunCommandPreflight } from './process-target-preflight'
 import { buildUnsupportedExtractInputMessage, validateWriteStep2ProviderSelection } from './process-target-validation'
@@ -97,7 +97,7 @@ const addExtractSelectorRoute = (
 const resolveExtractSelectorInputRoutes = async (
   command: ProcessCommand,
   plan: Awaited<ReturnType<typeof resolveProcessTargetPlan>>,
-  opts: RuntimeOptions,
+  opts: ProcessPlanningOptions,
   resolvedTarget: string
 ): Promise<ExtractSelectorInputRoutes> => {
   const routes: ExtractSelectorInputRoutes = { media: false, document: false, article: false }
@@ -121,7 +121,7 @@ const resolveExtractSelectorInputRoutes = async (
 const resolveDirectExtractSelectorInputRoutes = async (
   command: ProcessCommand,
   resolvedTarget: string,
-  opts: RuntimeOptions
+  opts: ProcessPlanningOptions
 ): Promise<ExtractSelectorInputRoutes | undefined> => {
   if (!isExtractCommand(command)) {
     return undefined
@@ -167,11 +167,10 @@ export const handleProcessTarget = async (
     const preliminaryFlags = stripExtractGenericSelectorFlags(mergedFlags)
     const preliminaryOccurrences = stripExtractGenericSelectorOccurrences(optionOccurrences)
     const preliminaryExplicitFlags = new Set(preliminaryOccurrences.map((occurrence) => occurrence.name))
-    const preliminaryOpts: RuntimeOptions = {
+    const preliminaryOpts = {
       ...buildOptsFromFlags(
         true,
         preliminaryFlags,
-        doubleDash,
         {},
         preliminaryExplicitFlags,
         preliminaryOccurrences
@@ -197,11 +196,10 @@ export const handleProcessTarget = async (
     optionOccurrences = ttsNormalized.flagOccurrences
   }
 
-  const opts: RuntimeOptions = {
+  const opts = {
     ...buildOptsFromFlags(
       isExtractCommand(command) || command === 'download' || command === 'metadata',
       optionFlags,
-      doubleDash,
       {},
       explicitFlags,
       optionOccurrences
@@ -224,7 +222,7 @@ export const handleProcessTarget = async (
   const writeProjectDefaults = command === 'write'
     ? await resolveWriteTextProjectDefaults(resolvedTarget, opts, explicitFlags)
     : undefined
-  const effectiveOpts: RuntimeOptions = writeProjectDefaults
+  const effectiveOpts = writeProjectDefaults
     ? {
         ...opts,
         textInput: true,
@@ -311,12 +309,12 @@ export const handleProcessTarget = async (
   }
 
   if (batchPlan) {
-    if (plan.kind === 'directory' && batchPlan.initialEntries.length === 0) {
+    if (plan.kind === 'directory' && batchPlan.initialRecords.length === 0) {
       l.warn(`No inputs found in ${resolvedTarget}`)
       return
     }
     if (plan.kind === 'youtube_collection') {
-      l.write('info', `Detected YouTube collection URL, processing ${batchPlan.initialEntries.length} videos`)
+      l.write('info', `Detected YouTube collection URL, processing ${batchPlan.initialRecords.length} videos`)
     }
     await executeBatchPlan(command, effectiveOpts, batchPlan)
     return

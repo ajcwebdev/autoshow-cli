@@ -1,5 +1,5 @@
 import { HAPPYSCRIBE_DEFAULT_BASE_URL } from '~/utils/base-urls'
-import { ensureApiKeySetup, readEnv, requireApiKey } from '~/utils/validate/env-utils'
+import { ensureApiKeySetup, requireApiKey } from '~/utils/validate/env-utils'
 import { classifyFetchRetry, withRetry } from '~/utils/retries'
 import { ValidationError } from '~/utils/error-handler'
 import type { HappyScribeOrganization, HappyScribeOrganizationSelection } from '~/types'
@@ -36,9 +36,6 @@ const parseOrganization = (value: unknown): HappyScribeOrganization | undefined 
 }
 
 export const getHappyScribeBaseUrl = (): string => HAPPYSCRIBE_DEFAULT_BASE_URL
-
-export const getHappyScribeApiKey = (): string | undefined =>
-  readEnv('HAPPYSCRIBE_API_KEY')
 
 export const buildHappyScribeUrl = (baseURL: string, path: string): string =>
   new URL(path.replace(/^\/+/, ''), baseURL.endsWith('/') ? baseURL : `${baseURL}/`).toString()

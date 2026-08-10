@@ -36,9 +36,7 @@ export const transientVideoReadFailureResponse = (): Response => {
   return response
 }
 
-export const withTempDir = async <T,>(fn: (dir: string) => Promise<T>): Promise<T> => {
-  return await tempDirs.withDir(fn)
-}
+export const withTempDir = tempDirs.withDir
 
 export const writeMediaFixtures = async (dir: string): Promise<{ imagePath: string, lastFramePath: string, videoPath: string }> => {
   const imagePath = join(dir, 'input.png')

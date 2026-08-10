@@ -15,8 +15,7 @@ import { toArray } from '~/utils/text-utils'
 import { CLIUsageError } from '~/utils/error-handler'
 import { getLlmCost, getLlmEstimation } from '~/cli/commands/setup-and-utilities/models/model-loader'
 import { computeTokenCost } from '~/utils/pricing/token-pricing'
-import { hasResumableGenerationWork, priceGenerationTarget, resumeGenerationTarget } from '../generation-resume'
-import type { AggregatedPriceEstimate, ExtractEstimateTarget, ExtractionMetadata, GenerationResumeConfig, LLMOptions, LLMTarget, LlmStepEstimate, ResumeDisplayOptions, ResumeResult, ResumeTarget, RuntimeOptions, Step1Metadata, Step2Metadata, Step3Metadata, StructuredValidationContext } from '~/types'
+import type { ExtractEstimateTarget, ExtractionMetadata, GenerationResumeConfig, LLMOptions, LLMTarget, LlmStepEstimate, ResumeTarget, Step1Metadata, Step2Metadata, Step3Metadata, StructuredValidationContext, WriteRuntimeOptions } from '~/types'
 
 const WRITE_LLM_PROVIDER_FLAGS = [
   'all-llm',
@@ -110,13 +109,15 @@ const uniqueTargets = (
 }
 
 const collectWriteTargets = (
-  opts: RuntimeOptions,
+  opts: WriteRuntimeOptions,
   outputDir: string
-): LLMTarget[] =>
-  uniqueTargets(collectLlmTargets({
+): LLMTarget[] => {
+  const llmOptions: LLMOptions = {
     ...opts,
     outputDir
-  } as LLMOptions))
+  }
+  return uniqueTargets(collectLlmTargets(llmOptions))
+}
 
 const sanitizeFileStem = (
   value: string
@@ -222,7 +223,7 @@ const readSourceText = async (
   ?? ''
 
 const resolvePromptNamesForResume = (
-  opts: RuntimeOptions,
+  opts: WriteRuntimeOptions,
   existingEntries: Step3Metadata[]
 ): string[] => {
   if (opts.prompts.length > 0) {
@@ -476,13 +477,13 @@ export const writeResumeConfig = {
     ? `Write resume still has failed providers: ${providers.map((entry) => `${entry.service}/${entry.model}`).join(', ')}`
     : `Write resume still has ${providers.length} incomplete provider(s): ${providers.map((entry) => `${entry.service}/${entry.model}`).join(', ')}`,
   getSuccessKey: metadataKey,
-  collectTargets: (opts: RuntimeOptions, target: ResumeTarget) =>
+  collectTargets: (opts: WriteRuntimeOptions, target: ResumeTarget) =>
     collectWriteTargets(opts, target.dir),
   runMissingTargets: async (
     targets: LLMTarget[],
     prompt: string,
     outputDir: string,
-    opts: RuntimeOptions,
+    opts: WriteRuntimeOptions,
     context: {
       existingEntries: Step3Metadata[]
       currentManifestMetadata: Record<string, unknown>
@@ -529,7 +530,7 @@ export const writeResumeConfig = {
     return results.map((result) => result.metadata)
   },
   buildEstimates: (
-    _opts: RuntimeOptions,
+    _opts: WriteRuntimeOptions,
     _input: string,
     context: { targets: LLMTarget[], existingEntries: Step3Metadata[] }
   ) => buildWriteResumeLlmEstimates(context.targets, context.existingEntries),
@@ -537,26 +538,4 @@ export const writeResumeConfig = {
     metadata: Step3Metadata[],
     currentManifestMetadata: Record<string, unknown>
   ) => rebuildWriteCostTiming(currentManifestMetadata, metadata)
-} satisfies GenerationResumeConfig<LLMTarget, Step3Metadata>
-
-export const hasResumableWriteWork = async (
-  target: ResumeTarget,
-  opts: RuntimeOptions,
-  explicitFlags: Set<string> = new Set()
-): Promise<boolean> =>
-  await hasResumableGenerationWork(target, writeResumeConfig, opts, explicitFlags)
-
-export const resumeWriteTarget = async (
-  target: ResumeTarget,
-  opts: RuntimeOptions,
-  explicitFlags: Set<string> = new Set(),
-  displayOptions: ResumeDisplayOptions = {}
-): Promise<ResumeResult> =>
-  await resumeGenerationTarget(target, writeResumeConfig, opts, explicitFlags, displayOptions)
-
-export const priceWriteTarget = async (
-  target: ResumeTarget,
-  opts: RuntimeOptions,
-  explicitFlags: Set<string> = new Set()
-): Promise<AggregatedPriceEstimate> =>
-  await priceGenerationTarget(target, writeResumeConfig, opts, explicitFlags)
+} satisfies GenerationResumeConfig<LLMTarget, Step3Metadata, WriteRuntimeOptions>

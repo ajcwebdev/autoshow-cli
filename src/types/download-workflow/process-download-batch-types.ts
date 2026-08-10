@@ -1,6 +1,6 @@
-import type { BatchItemOutcome, BatchManifestEntry, BatchManifestErrorEntry, BatchProcessResult, BatchSource } from '~/types'
+import type { BatchItemOutcome, BatchProcessResult, BatchSource, PipelineItemErrorRecord, PipelineItemRecord } from '~/types'
 
-export type BatchManifestSummarySource = {
+export type BatchSummarySource = {
   sourceKind: BatchSource['sourceKind']
   sourceUrl: string
   title: string | undefined
@@ -14,15 +14,15 @@ export type PrepareBatchRunResult =
       done: false
       batchDir: string
       batchDirName: string
-      batchSource: BatchManifestSummarySource | undefined
-      infoEntries: BatchManifestEntry[]
+      batchSource: BatchSummarySource | undefined
+      itemRecords: PipelineItemRecord[]
     }
 
 export type BatchTallyAccumulator = {
   applyItemResult: (result: BatchItemOutcome, index: number) => void
   recordRejectedItem: (reason: unknown) => void
-  finalInfoEntries: BatchManifestEntry[]
-  partialFailureEntries: BatchManifestErrorEntry[]
+  finalItemRecords: PipelineItemRecord[]
+  partialFailureRecords: PipelineItemErrorRecord[]
   tally: () => { ok: number, partial: number, incomplete: number, fail: number }
   failureExit: () => number | undefined
 }

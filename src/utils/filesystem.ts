@@ -48,11 +48,3 @@ export const walkPaths = async (
   await visit(root, 0)
   return paths
 }
-
-export const listImmediateDirectories = async (root: string): Promise<string[]> => {
-  const entries = (await readdir(root, { withFileTypes: true }))
-    .sort((left, right) => left.name.localeCompare(right.name))
-  return entries
-    .filter((entry) => entry.isDirectory())
-    .map((entry) => join(root, entry.name))
-}

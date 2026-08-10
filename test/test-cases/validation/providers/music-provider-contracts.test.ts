@@ -1,12 +1,12 @@
 import { describe, expect, test } from 'bun:test'
-import { mkdtemp, rm, writeFile } from 'node:fs/promises'
-import { tmpdir } from 'node:os'
+import { writeFile } from 'node:fs/promises'
 import { join } from 'node:path'
-import { buildOptsFromFlags } from '~/cli/commands/process-steps/step-1-download/download-targets/build-opts-from-flags/build-options-from-flags'
+import { buildOptsFromFlags } from '~/cli/options/option-resolution/build-options-from-flags'
 import { collectMusicTargets } from '~/cli/commands/process-steps/step-7-music/music-targets'
 import { runElevenLabsMusicGen } from '~/cli/commands/process-steps/step-7-music/music-services/music-elevenlabs/run-elevenlabs-music-gen'
 import { writeGeminiMusicInlineAudio } from '~/cli/commands/process-steps/step-7-music/music-services/music-gemini/run-gemini-music-gen'
 import { runMinimaxMusicGen } from '~/cli/commands/process-steps/step-7-music/music-services/music-minimax/run-minimax-music-gen'
+import { withTempDir } from '../../../test-utils/temp-dirs'
 
 const audioBytes = new Uint8Array([1, 2, 3, 4])
 const audioHex = Buffer.from(audioBytes).toString('hex')
@@ -42,15 +42,6 @@ const withEnvAndFetch = async <T,>(
   }
 }
 
-const withTempDir = async <T,>(fn: (dir: string) => Promise<T>): Promise<T> => {
-  const dir = await mkdtemp(join(tmpdir(), 'autoshow-music-provider-'))
-  try {
-    return await fn(dir)
-  } finally {
-    await rm(dir, { recursive: true, force: true })
-  }
-}
-
 const readJsonBody = (body: RequestInit['body'] | null | undefined): Record<string, unknown> =>
   JSON.parse(String(body ?? '{}')) as Record<string, unknown>
 
@@ -80,7 +71,7 @@ describe('music provider contracts', () => {
   test('MiniMax instrumental flow sends is_instrumental and skips lyrics generation', async () => {
     const calls: Array<Record<string, unknown>> = []
 
-    await withTempDir(async (dir) => {
+    await withTempDir('autoshow-music-provider-', async (dir) => {
       await withEnvAndFetch({
         MINIMAX_API_KEY: 'test-key'
       }, (async (input: Parameters<typeof fetch>[0], init?: Parameters<typeof fetch>[1]): Promise<Response> => {
@@ -145,7 +136,7 @@ describe('music provider contracts', () => {
   })
 
   test('MiniMax music protocol failures keep the music stage', async () => {
-    await withTempDir(async (dir) => {
+    await withTempDir('autoshow-music-provider-', async (dir) => {
       await withEnvAndFetch({
         MINIMAX_API_KEY: 'test-key'
       }, (async (_input: Parameters<typeof fetch>[0], _init?: Parameters<typeof fetch>[1]): Promise<Response> => new Response('not-json', {
@@ -166,7 +157,7 @@ describe('music provider contracts', () => {
   test('MiniMax auto-lyrics metadata captures generated title, style, and lyrics', async () => {
     const calls: Array<{ url: string, body: Record<string, unknown> }> = []
 
-    await withTempDir(async (dir) => {
+    await withTempDir('autoshow-music-provider-', async (dir) => {
       await withEnvAndFetch({
         MINIMAX_API_KEY: 'test-key'
       }, (async (input: Parameters<typeof fetch>[0], init?: Parameters<typeof fetch>[1]): Promise<Response> => {
@@ -214,7 +205,7 @@ describe('music provider contracts', () => {
   test('MiniMax caps prompt length and validates lyrics length before generation requests', async () => {
     const calls: Array<Record<string, unknown>> = []
 
-    await withTempDir(async (dir) => {
+    await withTempDir('autoshow-music-provider-', async (dir) => {
       await withEnvAndFetch({
         MINIMAX_API_KEY: 'test-key'
       }, (async (input: Parameters<typeof fetch>[0], init?: Parameters<typeof fetch>[1]): Promise<Response> => {
@@ -251,7 +242,7 @@ describe('music provider contracts', () => {
   })
 
   test('Gemini text parts are preserved while audio inline data is written', async () => {
-    await withTempDir(async (dir) => {
+    await withTempDir('autoshow-music-provider-', async (dir) => {
       const musicPath = join(dir, 'generated-music.mp3')
       const result = await writeGeminiMusicInlineAudio([
         { thought: true, text: 'hidden scratchpad' },
@@ -272,7 +263,7 @@ describe('music provider contracts', () => {
   test('ElevenLabs music uses model-specific output formats and records response headers', async () => {
     const requests: Array<{ url: string, body: Record<string, unknown> }> = []
 
-    await withTempDir(async (dir) => {
+    await withTempDir('autoshow-music-provider-', async (dir) => {
       await withEnvAndFetch({
         ELEVENLABS_API_KEY: 'test-key',
         ELEVENLABS_BASE_URL: 'https://mock.elevenlabs.local/v1'

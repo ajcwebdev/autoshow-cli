@@ -1,32 +1,32 @@
-import type { BatchManifestEntry, ProviderCompletionStatus, ProviderIdentity, ProviderResumeEntry, ProviderResumeProcessResult, ResumeTarget, RuntimeOptions, StepEstimate } from '~/types'
+import type { AggregateTimingOptions, PipelineItemRecord, PipelineManifest, ProviderCompletionStatus, ProviderIdentity, ProviderResumeEntry, ProviderResumeProcessResult, ResumeTarget, StepEstimate } from '~/types'
 
-export type ProviderResumeManifest = {
-  infoPath: string
-  entries: BatchManifestEntry[]
-  rawItemCount?: number | undefined
-  firstUnparseableEntryIndex?: number | undefined
-  source?: Record<string, unknown>
+export type ProviderResumeSnapshot = {
+  manifestPath: string
+  manifest: PipelineManifest
+  records: PipelineItemRecord[]
 }
 
 export type ProviderResumePriceConfig<
   TTarget extends ProviderIdentity,
-  TEntry extends ProviderResumeEntry<TTarget>
-> = Pick<ProviderBatchResumeConfig<TTarget, TEntry>, 'stepLabel' | 'readOutputMetadata' | 'parseEntry'> & {
+  TEntry extends ProviderResumeEntry<TTarget>,
+  TOptions extends object
+> = Pick<ProviderBatchResumeConfig<TTarget, TEntry, undefined, TOptions>, 'stepLabel' | 'readItemRecord' | 'parseRecord'> & {
   buildEstimates: (
     entry: TEntry,
-    opts: RuntimeOptions
+    opts: TOptions
   ) => StepEstimate[] | Promise<StepEstimate[]>
+  getAggregateTimingOptions?: ((opts: TOptions) => AggregateTimingOptions) | undefined
 }
 
-export type ProviderResumePassContextInput<TEntry> = {
+export type ProviderResumePassContextInput<TEntry, TOptions extends object> = {
   target: ResumeTarget
-  opts: RuntimeOptions
+  opts: TOptions
   parsedEntries: Array<TEntry | undefined>
 }
 
-export type ProviderResumeProcessEntryInput<TEntry, TContext> = {
+export type ProviderResumeProcessEntryInput<TEntry, TContext, TOptions extends object> = {
   target: ResumeTarget
-  opts: RuntimeOptions
+  opts: TOptions
   entry: TEntry
   index: number
   entryCount: number
@@ -34,60 +34,52 @@ export type ProviderResumeProcessEntryInput<TEntry, TContext> = {
   context: TContext
 }
 
-export type ProviderResumeNoMatchingDetailInput<TEntry, TContext> = {
+export type ProviderResumeNoMatchingDetailInput<TEntry, TContext, TOptions extends object> = {
   target: ResumeTarget
-  opts: RuntimeOptions
+  opts: TOptions
   entry: TEntry
   index: number
   entryCount: number
   context: TContext
 }
 
-export type ProviderResumePassHookInput<TContext> = {
+export type ProviderResumePassHookInput<TContext, TOptions extends object> = {
   target: ResumeTarget
-  opts: RuntimeOptions
+  opts: TOptions
   context: TContext
 }
 
-export type ProviderResumeMetadataHookInput<TContext> = ProviderResumePassHookInput<TContext> & {
-  metadata: BatchManifestEntry
+export type ProviderResumeRecordHookInput<TContext, TOptions extends object> = ProviderResumePassHookInput<TContext, TOptions> & {
+  record: PipelineItemRecord
 }
 
-export type ProviderResumeResultHookInput<TContext> = ProviderResumePassHookInput<TContext> & {
+export type ProviderResumeResultHookInput<TContext, TOptions extends object> = ProviderResumePassHookInput<TContext, TOptions> & {
   result: ProviderResumeProcessResult
 }
 
 export type ProviderBatchResumeConfig<
   TTarget extends ProviderIdentity,
   TEntry extends ProviderResumeEntry<TTarget>,
-  TContext = undefined
+  TContext = undefined,
+  TOptions extends object = object
 > = {
   stepLabel: string
-  parseEntry: (entry: unknown) => Promise<TEntry | undefined>
-  readOutputMetadata: (outputDir: string) => Promise<BatchManifestEntry>
-  writeBatchManifest: (
-    batchDir: string,
-    entries: BatchManifestEntry[],
-    source?: Record<string, unknown>
-  ) => Promise<void>
-  writeRunManifest: (
-    outputDir: string,
-    metadata: Record<string, unknown>
-  ) => Promise<void>
+  parseRecord: (record: unknown) => Promise<TEntry | undefined>
+  readItemRecord: (outputDir: string) => Promise<PipelineItemRecord>
   processingDetail?: string
   getProviderLabels: (targets: TTarget[]) => string[]
   processEntry: (
-    input: ProviderResumeProcessEntryInput<TEntry, TContext>
+    input: ProviderResumeProcessEntryInput<TEntry, TContext, TOptions>
   ) => Promise<ProviderResumeProcessResult>
   createPassContext?: (
-    input: ProviderResumePassContextInput<TEntry>
+    input: ProviderResumePassContextInput<TEntry, TOptions>
   ) => TContext | Promise<TContext>
   formatNoMatchingDetail?: (
-    input: ProviderResumeNoMatchingDetailInput<TEntry, TContext>
+    input: ProviderResumeNoMatchingDetailInput<TEntry, TContext, TOptions>
   ) => string
-  normalizeAlreadyFullMetadata?: (metadata: BatchManifestEntry) => BatchManifestEntry
-  classifyNoMatchingMetadata?: (metadata: BatchManifestEntry) => ProviderCompletionStatus
-  onNoMatchingMetadata?: (input: ProviderResumeMetadataHookInput<TContext>) => void | Promise<void>
-  onProcessedResult?: (input: ProviderResumeResultHookInput<TContext>) => void | Promise<void>
-  afterPass?: (input: ProviderResumePassHookInput<TContext>) => void | Promise<void>
+  normalizeAlreadyFullRecord?: (record: PipelineItemRecord) => PipelineItemRecord
+  classifyNoMatchingRecord?: (record: PipelineItemRecord) => ProviderCompletionStatus
+  onNoMatchingRecord?: (input: ProviderResumeRecordHookInput<TContext, TOptions>) => void | Promise<void>
+  onProcessedResult?: (input: ProviderResumeResultHookInput<TContext, TOptions>) => void | Promise<void>
+  afterPass?: (input: ProviderResumePassHookInput<TContext, TOptions>) => void | Promise<void>
 }

@@ -9,7 +9,7 @@
 
 ## Method
 
-- Price rankings use zero monetary cost for local LLMs and reported actual or estimated service cost from `run.json`.
+- Price rankings use zero monetary cost for local LLMs and reported actual or estimated service cost from `manifest.json`.
 - Speed rankings prefer `msPerUnit` normalized timing when present, then fall back to wall-clock processing time.
 - Token counts, output file presence, schema mode, speed, and cost are evidence only.
 - Text quality is not inferred from length, speed, cost, output existence, schema validity, or subjective judgment.
@@ -118,6 +118,6 @@ Unavailable: No explicit humanQualityScore was available. Text benchmark human q
 ## Notes
 
 - Text mode scores existing write outputs only and does not call LLM providers.
-- Price rankings use local zero monetary cost and reported actual or estimated service costs from run.json.
+- Price rankings use local zero monetary cost and reported actual or estimated service costs from manifest.json.
 - Speed rankings prefer normalized msPerUnit timing when present, falling back to wall-clock processing time.
 - Automated and human quality rankings require explicit quality fields and are otherwise unavailable.

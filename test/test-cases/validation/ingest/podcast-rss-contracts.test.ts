@@ -24,7 +24,7 @@ describe('podcast RSS parsing contracts', () => {
       <enclosure url="https://example.test/audio-b.m4a?download=1" length="3456" />
     </item>
   </channel>
-</rss>`, 'https://example.test/feed')
+</rss>`)
 
     expect(parsed?.episodes.map(ep => ({
       id: ep.id,
@@ -54,7 +54,7 @@ describe('podcast RSS parsing contracts', () => {
     <link rel="enclosure" href="https://example.test/atom-image.png" type="image/png" />
     <link rel="enclosure" href="https://example.test/atom-audio.ogg" type="audio/ogg" />
   </entry>
-</feed>`, 'https://example.test/atom')
+</feed>`)
 
     expect(parsed?.episodes).toHaveLength(1)
     expect(parsed?.episodes[0]?.enclosureUrl).toBe('https://example.test/atom-audio.ogg')

@@ -1,4 +1,4 @@
-import type { RuntimeOptions, SttStepEstimate, SttTarget } from '~/types'
+import type { SttDiarizationFlagOptions, SttSelectionOptions, SttStepEstimate, SttTarget } from '~/types'
 import { resolveSttInputDurationSeconds } from '~/cli/commands/process-steps/step-2-extract/step-2-stt/stt-utils/stt-duration'
 import { collectSttTargetsForSource, sttSourceFromInput } from '~/cli/commands/process-steps/step-2-extract/step-2-stt/stt-targets'
 import {
@@ -12,6 +12,11 @@ import { estimateSupadataCost } from '~/utils/pricing/supadata-pricing'
 import { estimateScrapeCreatorsCost } from '~/utils/pricing/scrapecreators-pricing'
 
 const EXACT_COST_MULTIPLIER = 1
+
+type SttEstimateOptions = SttSelectionOptions & SttDiarizationFlagOptions & {
+  youtubeCaptions?: boolean | undefined
+  happyscribeOrganizationId?: string | undefined
+}
 
 const buildCloudSttEstimate = async (
   provider: string,
@@ -75,7 +80,7 @@ const buildHappyScribeSttEstimate = async (
 
 export const buildSttEstimates = async (
   resolvedTarget: string,
-  opts: RuntimeOptions
+  opts: SttEstimateOptions
 ): Promise<SttStepEstimate[]> => {
   const captionTargets = opts.youtubeCaptions && /^https?:\/\//i.test(resolvedTarget)
     ? await resolveYoutubeCaptionEstimateTargets(resolvedTarget)
@@ -88,7 +93,7 @@ export const buildSttEstimates = async (
 
 export const buildSttEstimatesForTargets = async (
   resolvedTarget: string,
-  opts: RuntimeOptions,
+  opts: Pick<SttEstimateOptions, 'happyscribeOrganizationId'>,
   targets: SttTarget[]
 ): Promise<SttStepEstimate[]> => {
   if (targets.length === 0) {

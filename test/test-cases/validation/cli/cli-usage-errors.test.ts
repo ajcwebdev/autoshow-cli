@@ -4,6 +4,7 @@ import { mkdir, mkdtemp, rm, writeFile } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { STABLE_EXAMPLE_AUDIO_URL, runCommand } from '../../../test-utils/test-helpers'
+import { writeSingleManifestFixture } from '../../../test-utils/manifest-helpers'
 
 const tempDirs: string[] = []
 const repoFixtureFiles: string[] = []
@@ -14,10 +15,6 @@ const makeTempRoot = async (prefix: string): Promise<string> => {
   const root = await mkdtemp(join(tmpdir(), prefix))
   tempDirs.push(root)
   return root
-}
-
-const writeJson = async (path: string, value: unknown): Promise<void> => {
-  await writeFile(path, `${JSON.stringify(value, null, 2)}\n`)
 }
 
 afterEach(async () => {
@@ -89,36 +86,28 @@ test('benchmark --tts rejects missing TTS run directory', async () => {
   )
 })
 
-test('benchmark --tts rejects non-TTS run manifests', async () => {
+test('benchmark --tts rejects canonical manifests for another command', async () => {
   const runDir = await makeTempRoot('autoshow-tts-benchmark-kind-')
-  await writeJson(join(runDir, 'run.json'), {
-    schemaVersion: 3,
-    kind: 'extract',
-    metadata: {}
-  })
+  await writeSingleManifestFixture(runDir, 'extract', {}, { extractRoute: 'media' })
 
   await expectUsageExit(
     ['benchmark', runDir, '--tts'],
-    'run.json kind is "extract", expected "tts"'
+    'Expected a single TTS manifest.json'
   )
 })
 
 test('benchmark --tts rejects missing source text without override', async () => {
   const runDir = await makeTempRoot('autoshow-tts-benchmark-text-')
-  await writeJson(join(runDir, 'run.json'), {
-    schemaVersion: 3,
-    kind: 'tts',
-    metadata: {
-      tts: [{
-        ttsService: 'kitten',
-        ttsModel: 'kitten-tts-nano',
-        speaker: 'Jasper',
-        processingTime: 100,
-        audioFileName: 'speech.wav',
-        audioFileSize: 10,
-        chunkCount: 1
-      }]
-    }
+  await writeSingleManifestFixture(runDir, 'tts', {
+    tts: [{
+      ttsService: 'kitten',
+      ttsModel: 'kitten-tts-nano',
+      speaker: 'Jasper',
+      processingTime: 100,
+      audioFileName: 'speech.wav',
+      audioFileSize: 10,
+      chunkCount: 1
+    }]
   })
 
   await expectUsageExit(
@@ -136,28 +125,20 @@ test('benchmark --image rejects missing image run directory', async () => {
   )
 })
 
-test('benchmark --image rejects non-image run manifests', async () => {
+test('benchmark --image rejects canonical manifests for another command', async () => {
   const runDir = await makeTempRoot('autoshow-image-benchmark-kind-')
-  await writeJson(join(runDir, 'run.json'), {
-    schemaVersion: 3,
-    kind: 'tts',
-    metadata: {}
-  })
+  await writeSingleManifestFixture(runDir, 'tts', {})
 
   await expectUsageExit(
     ['benchmark', runDir, '--image'],
-    'run.json kind is "tts", expected "image"'
+    'Image run directory must contain a single image manifest.json.'
   )
 })
 
 test('benchmark --image rejects invalid image run metadata', async () => {
   const runDir = await makeTempRoot('autoshow-image-benchmark-metadata-')
-  await writeJson(join(runDir, 'run.json'), {
-    schemaVersion: 3,
-    kind: 'image',
-    metadata: {
-      image: []
-    }
+  await writeSingleManifestFixture(runDir, 'image', {
+    image: []
   })
 
   await expectUsageExit(
@@ -175,31 +156,23 @@ test('benchmark --text rejects missing write run directory', async () => {
   )
 })
 
-test('benchmark --text rejects non-write run manifests', async () => {
+test('benchmark --text rejects canonical manifests for another command', async () => {
   const runDir = await makeTempRoot('autoshow-text-benchmark-kind-')
-  await writeJson(join(runDir, 'run.json'), {
-    schemaVersion: 3,
-    kind: 'tts',
-    metadata: {}
-  })
+  await writeSingleManifestFixture(runDir, 'tts', {})
 
   await expectUsageExit(
     ['benchmark', runDir, '--text'],
-    'run.json kind is "tts", expected "write"'
+    'Text run directory must contain a single write manifest.json.'
   )
 })
 
 test('benchmark --text rejects missing step3 metadata', async () => {
   const runDir = await makeTempRoot('autoshow-text-benchmark-step3-')
-  await writeJson(join(runDir, 'run.json'), {
-    schemaVersion: 3,
-    kind: 'write',
-    metadata: {}
-  })
+  await writeSingleManifestFixture(runDir, 'write', {})
 
   await expectUsageExit(
     ['benchmark', runDir, '--text'],
-    'Text benchmark run.json must contain metadata.step3.'
+    'Text benchmark manifest.json must contain item metadata.step3.'
   )
 })
 
@@ -212,28 +185,20 @@ test('benchmark --video rejects missing video run directory', async () => {
   )
 })
 
-test('benchmark --video rejects non-video run manifests', async () => {
+test('benchmark --video rejects canonical manifests for another command', async () => {
   const runDir = await makeTempRoot('autoshow-video-benchmark-kind-')
-  await writeJson(join(runDir, 'run.json'), {
-    schemaVersion: 3,
-    kind: 'image',
-    metadata: {}
-  })
+  await writeSingleManifestFixture(runDir, 'image', {})
 
   await expectUsageExit(
     ['benchmark', runDir, '--video'],
-    'run.json kind is "image", expected "video"'
+    'Video run directory must contain a single video manifest.json.'
   )
 })
 
 test('benchmark --video rejects missing source prompt', async () => {
   const runDir = await makeTempRoot('autoshow-video-benchmark-prompt-')
-  await writeJson(join(runDir, 'run.json'), {
-    schemaVersion: 3,
-    kind: 'video',
-    metadata: {
-      video: []
-    }
+  await writeSingleManifestFixture(runDir, 'video', {
+    video: []
   })
 
   await expectUsageExit(
@@ -244,17 +209,13 @@ test('benchmark --video rejects missing source prompt', async () => {
 
 test('benchmark --video rejects missing video metadata', async () => {
   const runDir = await makeTempRoot('autoshow-video-benchmark-metadata-')
-  await writeJson(join(runDir, 'run.json'), {
-    schemaVersion: 3,
-    kind: 'video',
-    metadata: {
-      input: 'A cinematic mountain sunrise.'
-    }
+  await writeSingleManifestFixture(runDir, 'video', {
+    input: 'A cinematic mountain sunrise.'
   })
 
   await expectUsageExit(
     ['benchmark', runDir, '--video'],
-    'Video benchmark run.json must contain metadata.video[].'
+    'Video benchmark manifest.json must contain item metadata.video[].'
   )
 })
 
@@ -532,11 +493,7 @@ test('write rejects explicit TTS voice identity combined with dialogue flags', a
 
 test('resume rejects explicit TTS voice identity combined with dialogue flags', async () => {
   const runDir = await makeTempRoot('autoshow-resume-tts-dialogue-')
-  await writeJson(join(runDir, 'run.json'), {
-    schemaVersion: 3,
-    kind: 'tts',
-    metadata: {}
-  })
+  await writeSingleManifestFixture(runDir, 'tts', {})
 
   await expectUsageExit(
     ['resume', runDir, '--provider', 'mistral=voxtral-mini-tts-2603', '--tts-voice-name', 'AutoShowVoice', '--tts-dialogue-format', 'labeled', '--tts-speaker', 'Host=Jasper', '--price'],

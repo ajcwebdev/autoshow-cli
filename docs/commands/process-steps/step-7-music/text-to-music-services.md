@@ -193,7 +193,7 @@ Hosted single-provider runs write:
 ```text
 output/YYYY-MM-DD_HH-mm-ss_music-gen/
   generated-music.mp3
-  run.json
+  manifest.json
 ```
 
 Multi-provider runs write one file per provider:
@@ -203,10 +203,10 @@ output/YYYY-MM-DD_HH-mm-ss_music-gen/
   generated-music-elevenlabs-music_v2.mp3
   generated-music-minimax-music-3.0.mp3
   generated-music-gemini-lyria-3-clip-preview.mp3
-  run.json
+  manifest.json
 ```
 
-`run.json` includes `music`, `cost`, and `timing` sections. `music` is always an array, even when only one provider succeeds.
+`manifest.json` uses the canonical single-run shape. Its sole item's metadata includes `music`, `cost`, and `timing`; `music` is always an array, even when only one provider succeeds.
 
 For hosted music generation, `--output-dir` controls the run directory; generated file names remain provider-dependent and deterministic inside that directory.
 
@@ -217,7 +217,7 @@ output/YYYY-MM-DD_HH-MM-SS-sss_music-lyrics-<stem>/
   <stem>.mp4
   <stem>.vtt
   <stem>.srt
-  run.json
+  manifest.json
   .lyrics-tmp/          # only when --keep-tmp is set
 ```
 
@@ -225,15 +225,15 @@ Lyric-video batch runs write:
 
 ```text
 output/YYYY-MM-DD_HH-MM-SS-sss_music-lyrics-batch/
-  batch.json
+  manifest.json
   <slug>/
     <stem>.mp4
     <stem>.vtt
     <stem>.srt
-    run.json
+    manifest.json
 ```
 
-Lyric-video `run.json` uses `kind: "music"` and metadata `mode: "lyric-video"`. It records source audio, optional captions source, transcription mode and model, cue counts, render settings, artifact filenames, and timing metrics.
+Lyric-video `manifest.json` uses the same canonical shape with `command: "music"`, `scope: "single"`, and item metadata `mode: "lyric-video"`. It records source audio, optional captions source, transcription mode and model, cue counts, render settings, artifact filenames, and timing metrics.
 
 ## Notes
 

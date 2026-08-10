@@ -3,12 +3,12 @@ import { CLIUsageError } from '~/utils/error-handler'
 import { reserveBatchChildOutputDir } from '~/cli/commands/process-steps/batch-child-output'
 import { resolveRunDirectory } from '~/cli/commands/process-steps/run-dir'
 import { sanitizeTitleSlug } from '~/cli/commands/process-steps/step-1-download/audio/metadata-utils'
-import { writeRunManifest } from '~/cli/commands/process-steps/manifest-utils'
+import { createManifest, createManifestItem, PIPELINE_MANIFEST_FILE, writeManifest } from '~/cli/commands/process-steps/pipeline-manifest'
 import * as l from '~/utils/app-logger/app-logger'
 import { readEnv } from '~/utils/validate/env-utils'
 import { writeMetadataTerminalOutput, writeSavedMetadataArtifacts } from './metadata-output'
 import { runExtractedDocumentWrite } from './document-write'
-import type { AggregatedPriceEstimate, BatchChildRunContext, BatchItemProcessResult, DocumentMetadata, ExtractionResult, ParsedSpaceInput, ProcessDocumentOutput, RuntimeOptions, SpacesArtifact, XSpaceExtractionArtifacts } from '~/types'
+import type { AggregatedPriceEstimate, BatchChildRunContext, BatchItemProcessResult, DocumentMetadata, ExtractionResult, MetadataOutputOptions, ParsedSpaceInput, ProcessDocumentOutput, SharedPipelineOptions, SpacesArtifact, WriteRuntimeOptions, XSpaceExtractionArtifacts } from '~/types'
 
 const X_SPACE_URL_BASE = 'https://x.com/i/spaces/'
 
@@ -158,7 +158,7 @@ const buildXSpaceExtractionResult = (
 const collectAndWriteXSpaceExtraction = async (
   target: string,
   baseDir: string,
-  opts: RuntimeOptions,
+  opts: Pick<SharedPipelineOptions, 'outputRootDir'>,
   batchChildContext?: BatchChildRunContext
 ): Promise<XSpaceExtractionArtifacts> => {
   const { renderSpacesJson, renderSpacesMarkdown } = await import('~/cli/commands/process-steps/step-2-extract/step-2-url/url-services/x-spaces/report')
@@ -218,7 +218,7 @@ export const resolveXSpaceDownloadTarget = async (target: string): Promise<strin
 export const processMetadataXSpace = async (
   target: string,
   baseDir: string,
-  opts: RuntimeOptions,
+  opts: Pick<SharedPipelineOptions, 'outputRootDir'> & MetadataOutputOptions,
   batchChildContext?: BatchChildRunContext
 ): Promise<BatchItemProcessResult> => {
   const { artifact, parsedInput } = await collectXSpacesArtifact(target, 'metadata')
@@ -241,25 +241,30 @@ export const processMetadataXSpace = async (
 export const processXSpace = async (
   target: string,
   baseDir: string,
-  opts: RuntimeOptions,
+  opts: Pick<SharedPipelineOptions, 'outputRootDir'>,
   batchChildContext?: BatchChildRunContext
 ): Promise<BatchItemProcessResult> => {
   const extraction = await collectAndWriteXSpaceExtraction(target, baseDir, opts, batchChildContext)
 
-  await writeRunManifest(extraction.outputDir, 'extract', {
-    extractRoute: 'x-space',
-    step1: {
-      title: extraction.label,
-      source: 'x-space',
-      spaceCount: extraction.artifact.totals.spaces,
-      errorCount: extraction.artifact.totals.errors
-    }
-  })
+  await writeManifest(extraction.outputDir, createManifest('extract', 'single', [
+    createManifestItem(extraction.outputDir, {
+      extractRoute: 'x-space',
+      status: extraction.artifact.totals.errors > 0 ? 'incomplete' : 'full',
+      metadata: {
+        step1: {
+          title: extraction.label,
+          source: 'x-space',
+          spaceCount: extraction.artifact.totals.spaces,
+          errorCount: extraction.artifact.totals.errors
+        }
+      }
+    })
+  ]))
 
   l.report.complete(extraction.outputDir, {
     result: 'result.json',
     extraction: 'extraction.md',
-    run: 'run.json'
+    manifest: PIPELINE_MANIFEST_FILE
   })
 
   return { outputDir: extraction.outputDir }
@@ -268,7 +273,7 @@ export const processXSpace = async (
 export const runXSpaceWrite = async (
   target: string,
   baseDir: string,
-  opts: RuntimeOptions,
+  opts: WriteRuntimeOptions,
   preflightEstimate?: AggregatedPriceEstimate,
   batchChildContext?: BatchChildRunContext
 ): Promise<BatchItemProcessResult> => {

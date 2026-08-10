@@ -8,7 +8,7 @@ import {
   fileExists,
   runCommand
 } from '../../../test-utils/test-helpers'
-import { readRunManifest, writeProviderResultFixture, writeRunManifestFixture } from '../../../test-utils/manifest-helpers'
+import { readCanonicalManifest, writeProviderResultFixture, writeSingleManifestFixture } from '../../../test-utils/manifest-helpers'
 
 const SHORT_AUDIO_PATH = EXAMPLE_SHORT_AUDIO_URL
 const FIXTURE_RUN_DIR = `${OUTPUT_DIR}/transcript-video-fixture-run`
@@ -37,7 +37,7 @@ const fixtureTranscriptionResult = {
 beforeAll(async () => {
   await mkdir(FIXTURE_RUN_DIR, { recursive: true })
   await copyFile(LOCAL_EXAMPLE_SHORT_AUDIO_PATH, `${FIXTURE_RUN_DIR}/0-audio-short.mp3`)
-  await writeRunManifestFixture(FIXTURE_RUN_DIR, 'extract', {
+  await writeSingleManifestFixture(FIXTURE_RUN_DIR, 'extract', {
     step1: {
       title: 'Transcript Video Fixture',
       audioFileName: '0-audio-short.mp3'
@@ -54,19 +54,10 @@ beforeAll(async () => {
       artifactDir: '.',
       status: 'succeeded',
       attempts: 1
-    }],
-    extractRoute: 'media'
-  })
+    }]
+  }, { extractRoute: 'media' })
   await writeProviderResultFixture(
     FIXTURE_RUN_DIR,
-    'fixture',
-    'fixture-model',
-    {
-      transcriptionService: 'fixture',
-      transcriptionModel: 'fixture-model',
-      processingTime: 1,
-      tokenCount: 4
-    },
     fixtureTranscriptionResult
   )
   await writeFile(FIXTURE_TEXT_PATH, [
@@ -97,12 +88,13 @@ test('extract transcript-video renders from a media extract output directory', a
     expect(await fileExists(`${result.outputDir}/0-audio-short.srt`)).toBe(true)
     expect(await fileExists(`${result.outputDir}/.transcript-video-tmp`)).toBe(false)
 
-    const manifest = await readRunManifest(result.outputDir)
-    expect(manifest.kind).toBe('video')
-    expect(manifest.metadata['mode']).toBe('transcript-video')
-    expect((manifest.metadata['source'] as Record<string, unknown>)['extractRunDir']).toContain('transcript-video-fixture-run')
-    expect((manifest.metadata['transcript'] as Record<string, unknown>)['cueSource']).toBe('extract-evidence-segments')
-    expect((manifest.metadata['transcript'] as Record<string, unknown>)['speakerCount']).toBe(2)
+    const manifest = await readCanonicalManifest(result.outputDir)
+    const metadata = manifest.items[0]!.metadata
+    expect(manifest.command).toBe('video')
+    expect(metadata['mode']).toBe('transcript-video')
+    expect((metadata['source'] as Record<string, unknown>)['extractRunDir']).toContain('transcript-video-fixture-run')
+    expect((metadata['transcript'] as Record<string, unknown>)['cueSource']).toBe('extract-evidence-segments')
+    expect((metadata['transcript'] as Record<string, unknown>)['speakerCount']).toBe(2)
 
     // Captions carry the readable display label, not the raw provider id.
     const vtt = await Bun.file(`${result.outputDir}/0-audio-short.vtt`).text()
@@ -131,9 +123,10 @@ test('extract transcript-video renders from explicit audio and transcript text f
     expect(await fileExists(`${result.outputDir}/transcription.vtt`)).toBe(true)
     expect(await fileExists(`${result.outputDir}/.transcript-video-tmp`)).toBe(true)
 
-    const manifest = await readRunManifest(result.outputDir)
-    expect(manifest.kind).toBe('video')
-    expect((manifest.metadata['source'] as Record<string, unknown>)['transcriptSource']).toBe('transcript-text')
-    expect((manifest.metadata['transcript'] as Record<string, unknown>)['cueSource']).toBe('transcript-text')
+    const manifest = await readCanonicalManifest(result.outputDir)
+    const metadata = manifest.items[0]!.metadata
+    expect(manifest.command).toBe('video')
+    expect((metadata['source'] as Record<string, unknown>)['transcriptSource']).toBe('transcript-text')
+    expect((metadata['transcript'] as Record<string, unknown>)['cueSource']).toBe('transcript-text')
   }
 }, E2E_TEST_TIMEOUT_MS)

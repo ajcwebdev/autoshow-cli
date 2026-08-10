@@ -40,7 +40,7 @@ describe('native global argument contracts', () => {
       kind: 'video',
       scope: 'single',
       dir: '/tmp/video-run',
-      manifestPath: '/tmp/video-run/run.json'
+      manifestPath: '/tmp/video-run/manifest.json'
     }, { 'all-local': true }, new Set(['all-local']), flagOccurrencesFromValues({ 'all-local': true }))).toThrow('--all-local is not supported')
   })
 })

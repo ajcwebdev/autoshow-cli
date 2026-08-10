@@ -312,9 +312,9 @@ describe('comic character handling flat-reference contracts', () => {
     expect(cardBytes.readUInt32BE(20)).toBe(1024)
     expect(await Bun.file(`${references[0]}.json`).exists()).toBe(true)
     expect(compileCharacterReferences(runDirectory, manifest, [key])).toEqual(references)
-    await expect(loadAndVerifyCharacterReferenceSnapshot(runDirectory, manifest.snapshotId)).resolves.toBeTruthy()
+    expect(loadAndVerifyCharacterReferenceSnapshot(runDirectory, manifest.snapshotId)).toBeTruthy()
     await writeFile(join(runDirectory, manifest.characters[0]!.assets[0]!.path), 'tampered')
-    await expect(loadAndVerifyCharacterReferenceSnapshot(runDirectory, manifest.snapshotId)).rejects.toThrow(/modified or corrupted/)
+    expect(() => loadAndVerifyCharacterReferenceSnapshot(runDirectory, manifest.snapshotId)).toThrow(/modified or corrupted/)
   })
 
   test('single-image characters snapshot one file and use it directly without an identity-card derivative', async () => {

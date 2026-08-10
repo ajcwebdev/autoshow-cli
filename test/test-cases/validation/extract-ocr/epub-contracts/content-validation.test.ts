@@ -1,16 +1,9 @@
 import { expect, test } from 'bun:test'
-import { createReader, inspectEpubWithReader } from './shared'
+import { createReader, inspectEpubWithReader, withStandardEpubContainer } from './shared'
 
 const EPUB_UNREADABLE_ERROR = 'AutoShow does not remove DRM'
 
-const readableEpubFiles = (overrides: Record<string, string> = {}): Record<string, string> => ({
-  'META-INF/container.xml': `
-    <container>
-      <rootfiles>
-        <rootfile full-path="OEBPS/content.opf" media-type="application/oebps-package+xml"/>
-      </rootfiles>
-    </container>
-  `,
+const readableEpubFiles = (overrides: Record<string, string> = {}): Record<string, string> => withStandardEpubContainer({
   'OEBPS/content.opf': `
     <package>
       <manifest>

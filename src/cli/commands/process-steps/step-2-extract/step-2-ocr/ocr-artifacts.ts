@@ -2,7 +2,6 @@ import { mkdir, rm } from 'node:fs/promises'
 import { dirname, join } from 'node:path'
 import type { ExtractionMetadata, ExtractionOptions, ExtractionResult, TextArtifactFile } from '~/types'
 import { writeFile } from '~/utils/cli-utils'
-import { writeProviderResult } from '../../manifest-utils'
 
 export const isEpubInspectMode = (metadata: ExtractionMetadata): boolean =>
   metadata.extractionMethod === 'epub-bun'
@@ -64,7 +63,6 @@ export const writeTextArtifactFiles = async (
 
 export const writeProviderArtifacts = async (
   providerDir: string,
-  target: { service: string, model: string },
   extractionResult: ExtractionResult,
   step2Metadata: ExtractionMetadata,
   outputFormat: ExtractionOptions['outputFormat'],
@@ -77,13 +75,7 @@ export const writeProviderArtifacts = async (
     isEpubInspectMode(step2Metadata),
     undefined
   )
-  await writeProviderResult(
-    providerDir,
-    target.service,
-    target.model,
-    step2Metadata as Record<string, unknown>,
-    extractionResult as Record<string, unknown>
-  )
+  await writeFile(join(providerDir, 'result.json'), JSON.stringify(extractionResult, null, 2))
   if (Array.isArray(artifactFiles)) {
     await writeTextArtifactFiles(providerDir, artifactFiles)
   }

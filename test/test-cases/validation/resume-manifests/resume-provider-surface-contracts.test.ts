@@ -1,6 +1,5 @@
 import { describe, expect, test } from 'bun:test'
-import { mkdir, mkdtemp, rm } from 'node:fs/promises'
-import { tmpdir } from 'node:os'
+import { mkdir } from 'node:fs/promises'
 import { join } from 'node:path'
 import { resumeFlags } from '~/cli/flags/resume-flags'
 import { allArticleFlags, ocrInputFlags, ocrTuningFlags } from '~/cli/flags/shared-flags'
@@ -17,16 +16,18 @@ import {
   STANDALONE_VIDEO_PROVIDER_TARGETS,
   WRITE_LLM_PROVIDER_TARGETS
 } from '~/cli/flags/service-selector-normalization/provider-targets'
-import { buildOptsFromFlags } from '~/cli/commands/process-steps/step-1-download/download-targets/build-opts-from-flags/build-options-from-flags'
-import { writeRunManifest } from '~/cli/commands/process-steps/manifest-utils'
+import { buildOptsFromFlags } from '~/cli/options/option-resolution/build-options-from-flags'
+import { PIPELINE_MANIFEST_FILE, readManifest } from '~/cli/commands/process-steps/pipeline-manifest'
 import { normalizeResumeSelectorFlagsForTarget as normalizeResumeSelectorOccurrencesForTarget } from '~/cli/commands/setup-and-utilities/resume/resume-dispatch'
 import { getResumeHandler } from '~/cli/commands/setup-and-utilities/resume/resume-registry'
-import { hasResumableWriteWork, resumeWriteTarget } from '~/cli/commands/setup-and-utilities/resume/write/write-resume'
 import { installMockFetch, jsonResponse, restoreEnv, snapshotEnv } from '../../../test-utils/rest-contract-helpers'
-import type { CliFlagOccurrence, ResumeTarget, RunManifest, RuntimeOptions, Step3Metadata } from '~/types'
+import type { CliFlagOccurrence, ResumeTarget, Step3Metadata } from '~/types'
 import { flagOccurrencesFromValues } from '../../../test-utils/flag-occurrences'
+import { withTempDir } from '../../../test-utils/temp-dirs'
+import { writeSingleManifestFixture } from '../../../test-utils/manifest-helpers'
 
 const hasResumableTtsWork = getResumeHandler('tts')!.hasResumableWork
+const writeResumeHandler = getResumeHandler('write')!
 const hasResumableImageWork = getResumeHandler('image')!.hasResumableWork
 const hasResumableVideoWork = getResumeHandler('video')!.hasResumableWork
 const hasResumableMusicWork = getResumeHandler('music')!.hasResumableWork
@@ -100,15 +101,15 @@ const target = (
   ...(extractRoute ? { extractRoute } : {}),
   scope: 'single',
   dir,
-  manifestPath: join(dir, 'run.json')
+  manifestPath: join(dir, PIPELINE_MANIFEST_FILE)
 })
 
 const buildOpts = (
   flags: Record<string, unknown>,
   explicit: Set<string>,
   flagOccurrences: CliFlagOccurrence[]
-): RuntimeOptions =>
-  buildOptsFromFlags(false, flags, [], {}, explicit, flagOccurrences)
+) =>
+  buildOptsFromFlags(false, flags, {}, explicit, flagOccurrences)
 
 const normalizeResumeSelectorFlagsForTarget = (
   resumeTarget: ResumeTarget,
@@ -121,18 +122,6 @@ const normalizeResumeSelectorFlagsForTarget = (
   explicitFlags,
   flagOccurrencesFromValues(flags, explicitFlags)
 )
-
-const withTempDir = async <T>(
-  prefix: string,
-  fn: (dir: string) => Promise<T>
-): Promise<T> => {
-  const dir = await mkdtemp(join(tmpdir(), prefix))
-  try {
-    return await fn(dir)
-  } finally {
-    await rm(dir, { recursive: true, force: true })
-  }
-}
 
 const originalFetch = globalThis.fetch
 
@@ -430,7 +419,7 @@ describe('resume target-aware provider selectors', () => {
 describe('resume all-shortcut additive selection', () => {
   test('explicit all shortcuts make write LLM runs resumable without provider calls', async () => {
     await withTempDir('autoshow-write-resume-all-shortcuts-', async (dir) => {
-      await writeRunManifest(dir, 'write', {
+      await writeSingleManifestFixture(dir, 'write', {
         step3: {
           llmService: 'openai',
           llmModel: 'gpt-5.5',
@@ -451,13 +440,13 @@ describe('resume all-shortcut additive selection', () => {
         ['resume', dir, '--all-providers']
       )
       const opts = buildOpts(normalized.flags, normalized.explicitFlags, normalized.flagOccurrences)
-      await expect(hasResumableWriteWork(target('write', dir), opts, normalized.explicitFlags)).resolves.toBe(true)
+      await expect(writeResumeHandler.hasResumableWork(target('write', dir), opts, normalized.explicitFlags)).resolves.toBe(true)
     })
   })
 
   test('write resume resolves a completed selection before requiring prompt.md', async () => {
     await withTempDir('autoshow-write-resume-complete-no-prompt-', async (dir) => {
-      await writeRunManifest(dir, 'write', {
+      await writeSingleManifestFixture(dir, 'write', {
         step3: {
           llmService: 'openai',
           llmModel: 'gpt-5.5',
@@ -479,7 +468,7 @@ describe('resume all-shortcut additive selection', () => {
       )
       const opts = buildOpts(normalized.flags, normalized.explicitFlags, normalized.flagOccurrences)
 
-      await expect(resumeWriteTarget(target('write', dir), opts, normalized.explicitFlags)).resolves.toEqual({
+      await expect(writeResumeHandler.resume(target('write', dir), opts, normalized.explicitFlags)).resolves.toEqual({
         full: 1,
         incomplete: 0,
         failed: 0
@@ -498,7 +487,7 @@ describe('resume all-shortcut additive selection', () => {
       process.env['CEREBRAS_API_KEY'] = 'cerebras-key'
 
       await withTempDir('autoshow-write-resume-partial-', async (dir) => {
-        await writeRunManifest(dir, 'write', {
+        await writeSingleManifestFixture(dir, 'write', {
           step3: {
             llmService: 'openai',
             llmModel: 'gpt-5.5',
@@ -538,7 +527,7 @@ describe('resume all-shortcut additive selection', () => {
         const opts = buildOpts(normalized.flags, normalized.explicitFlags, normalized.flagOccurrences)
 
         try {
-          await resumeWriteTarget(target('write', dir), opts, normalized.explicitFlags)
+          await writeResumeHandler.resume(target('write', dir), opts, normalized.explicitFlags)
           expect.unreachable('write resume should remain incomplete')
         } catch (error) {
           expect(error).toMatchObject({
@@ -549,16 +538,20 @@ describe('resume all-shortcut additive selection', () => {
           })
         }
 
-        const manifest = await Bun.file(join(dir, 'run.json')).json() as RunManifest
-        const step3 = Array.isArray(manifest.metadata['step3'])
-          ? manifest.metadata['step3'] as Step3Metadata[]
-          : [manifest.metadata['step3'] as Step3Metadata]
+        const manifest = await readManifest(dir)
+        const item = manifest?.items[0]
+        const step3 = Array.isArray(item?.metadata['step3'])
+          ? item.metadata['step3'] as Step3Metadata[]
+          : [item?.metadata['step3'] as Step3Metadata]
         const togetherEntry = step3.find((entry) => `${entry.llmService}/${entry.llmModel}` === 'together/kimi-k2.6')
         expect(step3.map((entry) => `${entry.llmService}/${entry.llmModel}`)).toContain('together/kimi-k2.6')
         expect(step3.map((entry) => `${entry.llmService}/${entry.llmModel}`)).not.toContain('cerebras/zai-glm-4.7')
         expect(togetherEntry).toBeDefined()
         expect(await Bun.file(join(dir, togetherEntry!.outputFileName)).exists()).toBe(true)
-        expect(manifest.metadata['requestedProviders']).toBeUndefined()
+        expect(item?.providers).toEqual(expect.arrayContaining([
+          expect.objectContaining({ service: 'together', model: 'kimi-k2.6', status: 'succeeded' }),
+          expect.objectContaining({ service: 'cerebras', model: 'zai-glm-4.7', status: 'missing' })
+        ]))
       })
     } finally {
       globalThis.fetch = originalFetch
@@ -634,9 +627,16 @@ describe('resume all-shortcut additive selection', () => {
       for (const entry of cases) {
         const runDir = join(dir, entry.kind)
         await mkdir(runDir, { recursive: true })
-        await writeRunManifest(runDir, entry.kind, {
+        await writeSingleManifestFixture(runDir, entry.kind, {
           input: 'prompt',
+          completionStatus: 'full',
           requestedProviders: [entry.requestedProvider],
+          providerStates: [{
+            ...entry.requestedProvider,
+            artifactDir: '.',
+            status: 'succeeded',
+            attempts: 1
+          }],
           [entry.metadataKey]: [entry.metadata]
         })
         const explicit = new Set(['all-providers'])

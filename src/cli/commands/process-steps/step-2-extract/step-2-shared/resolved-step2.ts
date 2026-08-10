@@ -41,7 +41,7 @@ const resolveArticleProviders = (
   backend: HtmlArticleBackend,
   backends: HtmlArticleBackend[] | undefined
 ): ResolvedStep2Provider[] => {
-  const selectedProviders = collectStep2ProviderSelections('url', options as Record<string, unknown>).map(toResolvedProvider)
+  const selectedProviders = collectStep2ProviderSelections('url', options).map(toResolvedProvider)
   const selectedByService = new Map(selectedProviders.map((provider) => [provider.service, provider]))
   const providerForBackend = (targetBackend: HtmlArticleBackend): ResolvedStep2Provider =>
     selectedByService.get(targetBackend) ?? {
@@ -68,12 +68,12 @@ const resolveArticleStep2 = (
 const resolveOcrProviders = (
   options: OcrStep2ResolutionOptions
 ): ResolvedStep2Provider[] =>
-  collectStep2ProviderSelections('ocr', options as Record<string, unknown>).map(toResolvedProvider)
+  collectStep2ProviderSelections('ocr', options).map(toResolvedProvider)
 
 export const resolveSttStep2Execution = (
   options: SttStep2ResolutionOptions
 ): ResolvedStep2Execution => {
-  const providers = collectStep2ProviderSelections('stt', options as Record<string, unknown>).map(toResolvedProvider)
+  const providers = collectStep2ProviderSelections('stt', options).map(toResolvedProvider)
   if (providers.length > 0) {
     return {
       route: 'stt',

@@ -8,6 +8,7 @@ import { resolveVisionProviders } from '~/cli/commands/setup-and-utilities/bench
 import { exec } from '~/utils/cli-utils'
 import type { BenchmarkFlags, MediaBenchmarkRequestBody } from '~/types'
 import { installMockFetch, jsonResponse, setupContractSuiteLifecycle } from '../../../test-utils/rest-contract-helpers'
+import { writeSingleManifestFixture } from '../../../test-utils/manifest-helpers'
 
 const envKeys = ['OPENAI_API_KEY']
 const tempDirs = setupContractSuiteLifecycle({ envKeys, tempPrefix: 'autoshow-media-benchmark-' })
@@ -18,10 +19,6 @@ const onePixelPng = Buffer.from(
 
 const makeTempRoot = async (prefix: string): Promise<string> => {
   return await tempDirs.make(prefix)
-}
-
-const writeJson = async (path: string, value: unknown): Promise<void> => {
-  await writeFile(path, `${JSON.stringify(value, null, 2)}\n`)
 }
 
 const installFetch = installMockFetch
@@ -47,10 +44,7 @@ const writeImageRun = async (runDir: string): Promise<void> => {
   await mkdir(runDir, { recursive: true })
   await writeFile(join(runDir, 'openai.png'), onePixelPng)
   await writeFile(join(runDir, 'bfl.png'), onePixelPng)
-  await writeJson(join(runDir, 'run.json'), {
-    schemaVersion: 2,
-    kind: 'image',
-    metadata: {
+  await writeSingleManifestFixture(runDir, 'image', {
       input: 'A crisp technical infographic with readable labels.',
       image: [
         {
@@ -68,7 +62,6 @@ const writeImageRun = async (runDir: string): Promise<void> => {
           imageFileNames: ['bfl.png']
         }
       ]
-    }
   })
 }
 
@@ -195,10 +188,7 @@ const writeTextRun = async (runDir: string): Promise<void> => {
   await writeFile(join(runDir, 'llama-output.md'), 'Local write output.\n')
   await writeFile(join(runDir, 'groq-output.md'), 'Groq write output.\n')
   await writeFile(join(runDir, 'minimax-output.md'), 'MiniMax write output.\n')
-  await writeJson(join(runDir, 'run.json'), {
-    schemaVersion: 2,
-    kind: 'write',
-    metadata: {
+  await writeSingleManifestFixture(runDir, 'write', {
       step3: [
         {
           llmService: 'llama.cpp',
@@ -285,7 +275,6 @@ const writeTextRun = async (runDir: string): Promise<void> => {
           ]
         }
       }
-    }
   })
 }
 
@@ -433,10 +422,7 @@ const writeTinyVideo = async (path: string): Promise<void> => {
 const writeVideoRun = async (runDir: string): Promise<void> => {
   await mkdir(runDir, { recursive: true })
   await writeTinyVideo(join(runDir, 'grok.mp4'))
-  await writeJson(join(runDir, 'run.json'), {
-    schemaVersion: 2,
-    kind: 'video',
-    metadata: {
+  await writeSingleManifestFixture(runDir, 'video', {
       input: 'A cinematic mountain sunrise with a slow forward camera move.',
       video: [
         {
@@ -461,7 +447,6 @@ const writeVideoRun = async (runDir: string): Promise<void> => {
           ]
         }
       }
-    }
   })
 }
 

@@ -26,9 +26,7 @@ const imageResponse = (
   headers?: Record<string, string>
 ): Response => bytesResponse(bytes, { headers: { 'content-type': contentType, ...headers } })
 
-const withTempDir = async <T,>(fn: (dir: string) => Promise<T>): Promise<T> => {
-  return await tempDirs.withDir(fn)
-}
+const withTempDir = tempDirs.withDir
 
 describe('image provider REST contracts', () => {
   test('BFL image generation sends numbered reference image fields', async () => {

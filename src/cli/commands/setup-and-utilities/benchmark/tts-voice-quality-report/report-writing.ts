@@ -3,7 +3,7 @@ import { tmpdir } from "node:os"
 import { basename, join, resolve } from "node:path"
 import { rankVoiceQualityProviders } from '~/utils/voice-quality-scoring'
 import * as l from '~/utils/app-logger/app-logger'
-import { discoverAudioFiles, loadTtsRunJson, makeProviderKey, tokenize } from '../tts-eval-lib'
+import { discoverAudioFiles, loadTtsManifestMetadata, makeProviderKey, tokenize } from '../tts-eval-lib'
 import type { ContentType, MetricFixtures, ProviderVoiceQualityEntry, ScoreCoverage, VoiceQualityReportMode, VoiceQualityReportOptions } from '~/types'
 import { HUMAN_SPEECH_WEIGHTS, NATURALNESS_WEIGHTS, SPEECH_QUALITY_WEIGHTS } from './voice-quality-report-constants'
 import { evaluateProvider } from './provider-evaluation'
@@ -243,7 +243,7 @@ ${warningLines}
 }
 
 export async function buildVoiceQualityReport(args: VoiceQualityReportOptions) {
-  const runJson = loadTtsRunJson(args.runDir);
+  const manifestMetadata = await loadTtsManifestMetadata(args.runDir);
   const inputTextPath = args.inputTextPath ? resolve(args.inputTextPath) : null;
   const inputText = (args.inputText !== undefined
     ? args.inputText
@@ -255,13 +255,13 @@ export async function buildVoiceQualityReport(args: VoiceQualityReportOptions) {
   const inputTextCharCount = inputText.length;
   const inputTextWordCount = tokenize(inputText).length;
   const fixtures = args.metricFixturesPath ? readJsonFile<MetricFixtures>(args.metricFixturesPath) : null;
-  const { found, missing } = discoverAudioFiles(args.runDir, runJson.metadata.tts);
+  const { found, missing } = discoverAudioFiles(args.runDir, manifestMetadata.tts);
   const warnings = missing.map((fileName) => `Missing audio file: ${fileName}`);
   const tempDir = mkdtempSync(join(tmpdir(), "autoshow-voice-quality-"));
 
   try {
     const providerEntries: Array<Omit<ProviderVoiceQualityEntry, "rank">> = [];
-    for (const entry of runJson.metadata.tts) {
+    for (const entry of manifestMetadata.tts) {
       const providerKey = makeProviderKey(entry.ttsService, entry.ttsModel);
       const evaluated = await evaluateProvider({
         runDir: args.runDir,

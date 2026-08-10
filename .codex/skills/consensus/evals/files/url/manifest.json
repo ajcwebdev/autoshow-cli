@@ -1,0 +1,84 @@
+{
+  "command": "extract",
+  "scope": "single",
+  "createdAt": "2025-04-01T12:00:00.000Z",
+  "updatedAt": "2025-04-01T12:00:00.000Z",
+  "source": {
+    "url": "https://example.com/article.html"
+  },
+  "items": [
+    {
+      "input": "https://example.com/article.html",
+      "inputFamily": "html_article",
+      "extractRoute": "article",
+      "status": "full",
+      "metadata": {
+        "step1": {
+          "title": "URL Consensus Fixture",
+          "slug": "url-consensus-fixture",
+          "pageCount": 1,
+          "format": "html",
+          "fileSize": 1234
+        },
+        "source": {
+          "url": "https://example.com/article.html"
+        }
+      },
+      "providers": [
+        {
+          "service": "defuddle",
+          "model": "defuddle",
+          "local": true,
+          "artifactDir": "providers/defuddle",
+          "status": "succeeded",
+          "attempts": 1,
+          "options": {},
+          "metadata": {
+            "extractionMethod": "html+defuddle",
+            "processingTime": 500,
+            "tokenEstimate": 20
+          },
+          "result": {
+            "text": "# Fixture Article\n\nThis fixture article is used to validate URL consensus reports.",
+            "pages": [
+              {
+                "pageNumber": 1,
+                "method": "text",
+                "text": "# Fixture Article\n\nThis fixture article is used to validate URL consensus reports."
+              }
+            ],
+            "totalPages": 1,
+            "ocrPages": 0,
+            "textPages": 1
+          }
+        },
+        {
+          "service": "firecrawl",
+          "model": "firecrawl",
+          "artifactDir": "providers/firecrawl",
+          "status": "succeeded",
+          "attempts": 1,
+          "options": {},
+          "metadata": {
+            "extractionMethod": "html+firecrawl",
+            "processingTime": 1200,
+            "tokenEstimate": 20
+          },
+          "result": {
+            "text": "# Fixture Article\n\nThis fixture article validates URL consensus comparison reports.",
+            "pages": [
+              {
+                "pageNumber": 1,
+                "method": "text",
+                "text": "# Fixture Article\n\nThis fixture article validates URL consensus comparison reports."
+              }
+            ],
+            "totalPages": 1,
+            "ocrPages": 0,
+            "textPages": 1
+          }
+        }
+      ]
+    }
+  ]
+}

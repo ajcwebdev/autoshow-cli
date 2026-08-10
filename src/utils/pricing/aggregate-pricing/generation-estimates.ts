@@ -1,4 +1,4 @@
-import type { ImageStepEstimate, MusicStepEstimate, RuntimeOptions, VideoStepEstimate } from '~/types'
+import type { EstimateImageCostOptions, EstimateMusicCostOptions, EstimateVideoCostOptions, ImageStepEstimate, MusicStepEstimate, VideoRuntimeOptions, VideoStepEstimate } from '~/types'
 import { estimateImageCosts, IMAGE_PRICING_MODEL_KEYS, IMAGE_PRICING_PROVIDERS } from '~/cli/commands/process-steps/step-5-image/image-utils/image-pricing'
 import { estimateVideoCosts, VIDEO_PRICING_MODEL_KEYS, VIDEO_PRICING_PROVIDERS } from '~/cli/commands/process-steps/step-6-video/video-utils/video-pricing'
 import { estimateMusicCosts, MUSIC_PRICING_MODEL_KEYS, MUSIC_PRICING_PROVIDERS } from '~/cli/commands/process-steps/step-7-music/music-utils/music-pricing'
@@ -12,7 +12,7 @@ import { tryResolveLocalVideoDurationSeconds } from '~/cli/commands/process-step
 import { collectSelections, hasAnySelection } from '~/utils/pricing/model-selection'
 import { pick } from '~/utils/cli-utils'
 
-export const buildImageEstimates = (opts: RuntimeOptions): ImageStepEstimate[] => {
+export const buildImageEstimates = (opts: EstimateImageCostOptions): ImageStepEstimate[] => {
   if (!hasAnySelection(opts, IMAGE_PRICING_PROVIDERS)) return []
 
   return estimateImageCosts({
@@ -33,13 +33,18 @@ export const buildImageEstimates = (opts: RuntimeOptions): ImageStepEstimate[] =
   })
 }
 
-const countGrokInputImages = (opts: RuntimeOptions): number =>
+type VideoEstimateOptions = EstimateVideoCostOptions & Partial<Pick<
+  VideoRuntimeOptions,
+  'videoInputImage' | 'videoReferenceImages' | 'videoInputVideo' | 'replicateVideoReferenceVideos'
+>>
+
+const countGrokInputImages = (opts: VideoEstimateOptions): number =>
   (opts.videoInputImage ? 1 : 0) + (opts.videoReferenceImages?.length ?? 0)
 
-const countReplicateInputVideos = (opts: RuntimeOptions): number =>
+const countReplicateInputVideos = (opts: VideoEstimateOptions): number =>
   (opts.videoInputVideo ? 1 : 0) + (opts.replicateVideoReferenceVideos?.length ?? 0)
 
-export const buildVideoEstimates = async (opts: RuntimeOptions): Promise<VideoStepEstimate[]> => {
+export const buildVideoEstimates = async (opts: VideoEstimateOptions): Promise<VideoStepEstimate[]> => {
   const selections = collectSelections(opts, VIDEO_PRICING_PROVIDERS)
   if (selections.length === 0) return []
 
@@ -76,7 +81,7 @@ export const buildVideoEstimates = async (opts: RuntimeOptions): Promise<VideoSt
   })
 }
 
-export const buildMusicEstimates = async (opts: RuntimeOptions): Promise<MusicStepEstimate[]> => {
+export const buildMusicEstimates = async (opts: EstimateMusicCostOptions): Promise<MusicStepEstimate[]> => {
   if (!hasAnySelection(opts, MUSIC_PRICING_PROVIDERS)) return []
 
   const estimates = estimateMusicCosts({

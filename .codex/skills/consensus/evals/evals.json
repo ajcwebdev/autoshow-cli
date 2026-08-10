@@ -42,7 +42,7 @@
         "local price rankings use zero monetary cost and service rankings keep missing price entries last"
       ],
       "files": [
-        "evals/files/ocr/run.json",
+        "evals/files/ocr/manifest.json",
         "evals/files/ocr/providers/tesseract-tesseract/result.json",
         "evals/files/ocr/providers/mistral-mistral-ocr-2512/result.json",
         "evals/files/ocr/providers/openai-gpt-5.4/result.json"
@@ -63,7 +63,7 @@
         "local price rankings use zero monetary cost and service rankings keep missing price entries last"
       ],
       "files": [
-        "evals/files/stt/run.json",
+        "evals/files/stt/manifest.json",
         "evals/files/stt/providers/deepgram/result.json",
         "evals/files/stt/providers/assembly/result.json",
         "evals/files/stt/providers/whisper/result.json"
@@ -96,7 +96,7 @@
         "URL normalized JSON omits overall, overallMetric, overallWeights, and tiering"
       ],
       "files": [
-        "evals/files/url/run.json",
+        "evals/files/url/manifest.json",
         "evals/files/url/providers/defuddle/result.json",
         "evals/files/url/providers/firecrawl/result.json"
       ]

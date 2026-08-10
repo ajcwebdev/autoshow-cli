@@ -2,7 +2,7 @@ Video consensus evaluation
 
 Run directory: /Users/ajc/c/as/autoshow-cli/docs/benchmarks/video/2026-05-21_06-50-32-135_video-gen
 Category: video
-Evidence source: consensus packet built from run.json and generated video artifact metadata.
+Evidence source: consensus packet built from manifest.json and generated video artifact metadata.
 
 This evaluation uses measurable packet evidence only. It does not claim to have watched the videos and does not assess visual quality, prompt adherence, motion quality, narrative coherence, or human preference.
 

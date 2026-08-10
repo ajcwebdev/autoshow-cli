@@ -1,7 +1,8 @@
 #!/usr/bin/env bun
 
-import { existsSync, readFileSync } from "node:fs";
+import { existsSync } from "node:fs";
 import { join } from "node:path";
+import { loadCanonicalRunRecord } from "../shared/pipeline_manifest";
 
 // ---------------------------------------------------------------------------
 // Types
@@ -44,9 +45,7 @@ interface RunStepTimingEntry {
   inputValue?: number;
 }
 
-export interface TtsRunJson {
-  schemaVersion?: number;
-  kind: string;
+export interface TtsManifestRecord {
   metadata: {
     tts: TtsEntryMetadata[];
     cost?: {
@@ -79,22 +78,15 @@ export interface ProviderEvidence {
 }
 
 // ---------------------------------------------------------------------------
-// Run JSON helpers
+// Canonical manifest helpers
 // ---------------------------------------------------------------------------
 
-export function readJson<T>(path: string): T {
-  return JSON.parse(readFileSync(path, "utf8")) as T;
-}
-
-export function loadTtsRunJson(runDir: string): TtsRunJson {
-  const runJson = readJson<TtsRunJson>(join(runDir, "run.json"));
-  if (runJson.kind !== "tts") {
-    throw new Error(`run.json kind is "${runJson.kind}", expected "tts"`);
+export function loadTtsManifestRecord(runDir: string): TtsManifestRecord {
+  const metadata = loadCanonicalRunRecord(runDir, "tts").metadata;
+  if (!Array.isArray(metadata.tts) || metadata.tts.length === 0) {
+    throw new Error("Canonical TTS manifest item metadata.tts is missing or empty");
   }
-  if (!Array.isArray(runJson.metadata?.tts) || runJson.metadata.tts.length === 0) {
-    throw new Error("run.json metadata.tts is missing or empty");
-  }
-  return runJson;
+  return { metadata: metadata as TtsManifestRecord["metadata"] };
 }
 
 export function makeProviderKey(service: string, model: string): string {
@@ -172,9 +164,9 @@ export function computeSpeakingRate(charCount: number, durationSeconds: number):
 // Cost and timing lookups
 // ---------------------------------------------------------------------------
 
-export function buildCostLookup(runJson: TtsRunJson): Map<string, number> {
+export function buildCostLookup(manifestRecord: TtsManifestRecord): Map<string, number> {
   const lookup = new Map<string, number>();
-  const steps = runJson.metadata.cost?.actual?.steps ?? runJson.metadata.cost?.estimated?.steps ?? [];
+  const steps = manifestRecord.metadata.cost?.actual?.steps ?? manifestRecord.metadata.cost?.estimated?.steps ?? [];
   for (const step of steps) {
     if (step.provider && step.model && step.cost !== undefined) {
       lookup.set(makeProviderKey(step.provider, step.model), Number(step.cost));
@@ -183,9 +175,9 @@ export function buildCostLookup(runJson: TtsRunJson): Map<string, number> {
   return lookup;
 }
 
-export function buildTimingLookup(runJson: TtsRunJson): Map<string, number> {
+export function buildTimingLookup(manifestRecord: TtsManifestRecord): Map<string, number> {
   const lookup = new Map<string, number>();
-  const steps = runJson.metadata.timing?.actual?.steps ?? runJson.metadata.timing?.estimated?.steps ?? [];
+  const steps = manifestRecord.metadata.timing?.actual?.steps ?? manifestRecord.metadata.timing?.estimated?.steps ?? [];
   for (const step of steps) {
     if (step.provider && step.model && step.processingTimeMs !== undefined) {
       lookup.set(makeProviderKey(step.provider, step.model), Number(step.processingTimeMs));

@@ -42,7 +42,7 @@ bun autoshow metadata <input>
 
 ```text
 --markdown           Output metadata as Markdown frontmatter YAML
---save               Save run.json to disk (and metadata.md with --markdown)
+--save               Save the canonical manifest.json (and metadata.md with --markdown)
 --password           Password for encrypted PDFs
 --url-provider       Article/HTML extraction backend: defuddle|firecrawl|glm-reader|spider|supadata|zyte (default defuddle; local .html/.htm always use defuddle)
 --batch-limit        Batch: number of items to process (default 5)
@@ -91,14 +91,16 @@ When `--save` is provided, metadata artifacts are written to a timestamped outpu
 
 ```text
 output/YYYY-MM-DD_HH-MM-SS_title/
-  run.json
+  manifest.json
 ```
+
+The saved file uses the same unversioned canonical shape as every other pipeline output: `command: "metadata"`, `scope: "single"`, timestamps, and one item. The displayed metadata is stored in that item's `metadata`; it is not a second manifest format.
 
 With `--save --markdown`, the same directory also includes:
 
 ```text
 output/YYYY-MM-DD_HH-MM-SS_title/
-  run.json
+  manifest.json
   metadata.md
 ```
 
@@ -127,7 +129,7 @@ bun autoshow metadata "https://www.youtube.com/watch?v=u1-WHqATSQU" --save
 # Display metadata as Markdown frontmatter YAML
 bun autoshow metadata "https://www.youtube.com/watch?v=u1-WHqATSQU" --markdown
 
-# Display and save both run.json and metadata.md
+# Display and save the canonical manifest.json plus metadata.md
 bun autoshow metadata "https://www.youtube.com/watch?v=u1-WHqATSQU" --markdown --save
 
 # Local media file metadata

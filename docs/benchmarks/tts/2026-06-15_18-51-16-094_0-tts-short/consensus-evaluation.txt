@@ -5,7 +5,7 @@ Input text: "Short test line." (16 characters, 3 words) — a short smoke-test p
 
 PROVENANCE / METHOD
 This evaluation is reconciled from measurable run evidence only:
-  - run.json metadata (cost, processing time) and the consensus build-packet
+  - manifest.json metadata (cost, processing time) and the consensus build-packet
     snapshot (audio duration, speaking rate).
   - voice-quality-report.json, generated in full mode (paidCallsAllowed=true):
     roundtrip intelligibility from AssemblyAI universal-3-pro STT (median

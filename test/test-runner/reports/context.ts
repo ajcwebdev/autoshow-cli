@@ -367,16 +367,23 @@ const extractPairsFromMetadata = (metadata: Record<string, unknown>): ServiceMod
 }
 
 // Matches sanitizeOutputRootSegment in test/test-utils/test-helpers.ts, which names the
-// run.json copies under `<runDir>/run/`.
+// canonical manifest copies under `<runDir>/run/`.
 const sanitizeArtifactSegment = (value: string): string =>
   value.replace(/[^a-zA-Z0-9_-]+/g, '-').replace(/^-+|-+$/g, '') || 'run'
 
-// Mirrors unwrapRunMetadataValue in test/test-utils/manifest-helpers.ts.
-const unwrapRunMetadata = (value: Record<string, unknown>): Record<string, unknown> => {
-  if (value['schemaVersion'] === 3 && typeof value['kind'] === 'string' && isRecord(value['metadata'])) {
-    return value['metadata']
+// Mirrors unwrapCanonicalRecordValue in test/test-utils/manifest-helpers.ts.
+const unwrapManifestMetadata = (value: Record<string, unknown>): Record<string, unknown> => {
+  const items = value['items']
+  if (
+    typeof value['command'] === 'string'
+    && (value['scope'] === 'single' || value['scope'] === 'batch')
+    && Array.isArray(items)
+    && items.length === 1
+    && isRecord(items[0])
+    && isRecord(items[0]['metadata'])
+  ) {
+    return items[0]['metadata']
   }
-
   return value
 }
 
@@ -386,7 +393,7 @@ const buildMetricMetadataPaths = (metric: ParsedCommandMetric, artifacts: TestRu
   const absoluteOutputDir = isAbsolute(metric.outputDir)
     ? metric.outputDir
     : resolve(process.cwd(), metric.outputDir)
-  const paths = [resolve(absoluteOutputDir, 'run.json')]
+  const paths = [resolve(absoluteOutputDir, 'manifest.json')]
 
   const outputRoot = metric.outputRoot
   if (outputRoot) {
@@ -419,7 +426,7 @@ const getMetricMetadata = async (
     try {
       const parsed = JSON.parse(await readFile(metadataPath, 'utf8')) as unknown
       if (isRecord(parsed)) {
-        const record = unwrapRunMetadata(parsed)
+        const record = unwrapManifestMetadata(parsed)
         cache.set(key, record)
         return record
       }

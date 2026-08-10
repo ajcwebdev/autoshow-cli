@@ -7,6 +7,7 @@ PlannedBatchInput,
 ResolvedBatch,
 ResolvedStep2Execution
 } from '../cli-surface/cli-dir-types'
+import type { PipelineItemRecord } from '../download-workflow/step-1-download-download-types'
 
 export type MetadataScalar = string | number | boolean | null
 
@@ -58,7 +59,7 @@ export type BatchExecutionPlan = {
   label: string
   items: string[]
   selectedItems?: Array<BatchItem | undefined>
-  initialEntries: Record<string, unknown>[]
+  initialRecords: PipelineItemRecord[]
   resultEntryIndexes: number[]
   plannedInputs: PlannedBatchInput[]
   source?: BatchSource
