@@ -2,6 +2,7 @@ import { isRecord } from '~/utils/rest-client'
 import { join } from 'node:path'
 import type { ShowNoteArtifactResult, Step3Metadata, Step4Metadata, Step5Metadata, Step6VideoMetadata, Step7MusicMetadata, StructuredRunResult } from '~/types'
 import { isSongLyricsPreset } from './structured-output/preset-registry'
+import { isStructuredValidationFailureEnvelope } from './structured-output/validation-failure'
 
 const FRONTMATTER_PATTERN = /^---\r?\n[\s\S]*?\r?\n---/
 
@@ -163,7 +164,7 @@ const renderShowNoteBody = (
   fallbackRenderedText: string,
   metadata: Pick<Step3Metadata, 'structuredPresetNames'>
 ): string => {
-  if (hasSongLyricsPreset(metadata)) {
+  if (isStructuredValidationFailureEnvelope(parsedJson) || hasSongLyricsPreset(metadata)) {
     return fallbackRenderedText.trimEnd()
   }
 

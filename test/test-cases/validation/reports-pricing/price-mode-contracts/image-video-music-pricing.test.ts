@@ -8,7 +8,7 @@ import { estimateMusicCosts } from '~/cli/commands/process-steps/step-7-music/mu
 import { resolveExtractionProviderModel } from '~/cli/commands/process-steps/step-2-extract/step-2-ocr/ocr-costs'
 import { computeActualCosts } from '~/utils/pricing/compute-actual-costs'
 import { computeActualProcessingTimes } from '~/utils/pricing/compute-processing-time'
-import type { ExtractionMetadata, Step6VideoMetadata, Step7MusicMetadata } from '~/types'
+import type { ExtractionMetadata, Step5Metadata, Step6VideoMetadata, Step7MusicMetadata } from '~/types'
 
 const buildVideoMetadata = (overrides: Partial<Step6VideoMetadata>): Step6VideoMetadata => ({
   videoGenService: 'gemini',
@@ -369,5 +369,24 @@ describe('price mode contracts', () => {
       expect(computeActualCosts({
         step7: { ...archived, providerCostCents: 21 }
       }).steps[0]).toMatchObject({ cost: 21 })
+    })
+
+  test('retired Gemini image benchmark results retain historical output pricing', () => {
+      expect(computeActualCosts({
+        step5: {
+          imageService: 'gemini',
+          imageModel: 'gemini-3.1-flash-image-preview',
+          processingTime: 16_107,
+          imageFileNames: ['generated-image.png'],
+          imageCount: 1,
+          imageFileSize: 1234
+        } as unknown as Step5Metadata
+      }).steps[0]).toMatchObject({
+        step: 'image',
+        provider: 'gemini',
+        model: 'gemini-3.1-flash-image-preview',
+        cost: 6.7,
+        costSource: 'registry_fallback'
+      })
     })
 })

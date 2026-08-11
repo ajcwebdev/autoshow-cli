@@ -358,7 +358,7 @@ describe('price mode contracts', () => {
             creditsUsed: 1,
             creditRateCents: 0.188,
             totalCost: 0.188,
-            source: 'fallback-estimate',
+            source: 'registry_fallback',
             mode: 'url'
           }
         }),
@@ -370,6 +370,7 @@ describe('price mode contracts', () => {
         provider: 'scrapecreators',
         model: 'youtube-transcript',
         cost: 0.188,
+        costSource: 'registry_fallback',
         inputMetric: 'credits',
         inputValue: 1
       })

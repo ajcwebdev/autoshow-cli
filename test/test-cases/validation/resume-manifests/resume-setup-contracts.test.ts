@@ -3,9 +3,8 @@ import { mkdir, mkdtemp, rm } from 'node:fs/promises'
 import { join } from 'node:path'
 import { tmpdir } from 'node:os'
 import { runCommand } from '../../../test-utils/test-helpers'
-import { readRunManifest, writeRunManifest } from '~/cli/commands/process-steps/manifest-utils'
-import { writeOcrRunManifest } from '~/cli/commands/process-steps/step-2-extract/step-2-ocr/ocr-manifest'
-import { writeSttRunManifest } from '~/cli/commands/process-steps/step-2-extract/step-2-stt/stt-manifest'
+import { PIPELINE_MANIFEST_FILE, readSinglePipelineItemRecord, writePipelineItemRecords } from '~/cli/commands/process-steps/pipeline-manifest'
+import { writeSingleManifestFixture } from '../../../test-utils/manifest-helpers'
 import { dispatchResume } from '~/cli/commands/setup-and-utilities/resume/resume-dispatch'
 import type { Step3Metadata } from '~/types'
 
@@ -19,9 +18,17 @@ const makeTempRoot = async (prefix: string): Promise<string> => {
 
 const writeCompleteTtsRun = async (dir: string): Promise<void> => {
   await mkdir(dir, { recursive: true })
-  await writeRunManifest(dir, 'tts', {
+  await writeSingleManifestFixture(dir, 'tts', {
     input: 'Hello.',
+    completionStatus: 'full',
     requestedProviders: [{ service: 'kitten', model: 'kitten-tts-nano' }],
+    providerStates: [{
+      service: 'kitten',
+      model: 'kitten-tts-nano',
+      artifactDir: '.',
+      status: 'succeeded',
+      attempts: 1
+    }],
     tts: [{
       ttsService: 'kitten',
       ttsModel: 'kitten-tts-nano',
@@ -35,12 +42,26 @@ const writeCompleteTtsRun = async (dir: string): Promise<void> => {
 
 const writeIncompleteTtsRun = async (dir: string): Promise<void> => {
   await mkdir(dir, { recursive: true })
-  await writeRunManifest(dir, 'tts', {
+  await writeSingleManifestFixture(dir, 'tts', {
     input: 'Hello from resume price mode.',
+    completionStatus: 'incomplete',
     requestedProviders: [
       { service: 'kitten', model: 'kitten-tts-nano' },
       { service: 'openai', model: 'gpt-4o-mini-tts-2025-12-15' }
     ],
+    providerStates: [{
+      service: 'kitten',
+      model: 'kitten-tts-nano',
+      artifactDir: '.',
+      status: 'succeeded',
+      attempts: 1
+    }, {
+      service: 'openai',
+      model: 'gpt-4o-mini-tts-2025-12-15',
+      artifactDir: '.',
+      status: 'missing',
+      attempts: 0
+    }],
     tts: [{
       ttsService: 'kitten',
       ttsModel: 'kitten-tts-nano',
@@ -54,7 +75,7 @@ const writeIncompleteTtsRun = async (dir: string): Promise<void> => {
 
 const writeWriteRun = async (dir: string): Promise<void> => {
   await mkdir(dir, { recursive: true })
-  await writeRunManifest(dir, 'write', {
+  await writeSingleManifestFixture(dir, 'write', {
     step3: {
       llmService: 'openai',
       llmModel: 'gpt-5.5',
@@ -109,6 +130,62 @@ test('resume rejects a missing output directory before reaching provider validat
 
   expect(result.exitCode).toBe(2)
   expect(`${result.stdout}\n${result.stderr}`).toContain('Could not find')
+})
+
+test('resume loudly rejects a corrupt canonical manifest', async () => {
+  const runDir = await makeTempRoot('autoshow-corrupt-resume-manifest-')
+  const manifestPath = join(runDir, PIPELINE_MANIFEST_FILE)
+  await Bun.write(manifestPath, JSON.stringify({
+    command: 'extract',
+    scope: 'single',
+    createdAt: '2026-01-01T00:00:00.000Z',
+    updatedAt: '2026-01-01T00:00:00.000Z',
+    items: [{ extractRoute: 'media', status: 'incomplete', metadata: {} }]
+  }))
+
+  const result = await runCommand(['src/cli/create-cli.ts', 'resume', runDir], {
+    env: { NO_COLOR: '1' }
+  })
+
+  const output = `${result.stdout}\n${result.stderr}`
+  expect(result.exitCode).toBe(2)
+  expect(output).toContain(`Invalid canonical manifest at ${manifestPath}`)
+  expect(output).toContain('Re-run the pipeline to regenerate this output.')
+})
+
+test('resume reports that X-Space extract runs are not resumable', async () => {
+  const runDir = await makeTempRoot('autoshow-x-space-resume-')
+  await writeSingleManifestFixture(runDir, 'extract', {
+    source: { url: 'https://x.com/i/spaces/1DXxyRYNejbKM' }
+  }, { extractRoute: 'x-space' })
+
+  const result = await runCommand(['src/cli/create-cli.ts', 'resume', runDir], {
+    env: { NO_COLOR: '1' }
+  })
+
+  const output = `${result.stdout}\n${result.stderr}`
+  expect(result.exitCode).toBe(2)
+  expect(output).toContain('X-Space runs are not resumable. Re-run the pipeline instead.')
+  expect(output).not.toContain('not a URL article extract run')
+})
+
+test('resume reports that parent batches containing X-Space runs are not resumable', async () => {
+  const batchDir = await makeTempRoot('autoshow-x-space-parent-resume-')
+  await writePipelineItemRecords(batchDir, 'extract', 'batch', [{
+      input: 'https://x.com/i/spaces/1DXxyRYNejbKM',
+      inputFamily: 'x_space',
+      extractRoute: 'x-space',
+      completionStatus: 'full',
+      outputDir: 'x-space-output'
+  }], { extractRoute: 'x-space', source: { childBatches: { 'x-space': 'x-space' } } })
+
+  const result = await runCommand(['src/cli/create-cli.ts', 'resume', batchDir], {
+    env: { NO_COLOR: '1' }
+  })
+
+  const output = `${result.stdout}\n${result.stderr}`
+  expect(result.exitCode).toBe(2)
+  expect(output).toContain('X-Space runs are not resumable. Re-run the pipeline instead.')
 })
 
 test('resume reports every missing output directory', async () => {
@@ -200,7 +277,7 @@ test('explicit OCR resume succeeds when selected providers are complete and mani
   const root = await makeTempRoot('autoshow-ocr-selected-complete-')
   const runDir = join(root, 'ocr-run')
   await mkdir(runDir, { recursive: true })
-  await writeOcrRunManifest(runDir, {
+  await writeSingleManifestFixture(runDir, 'extract', {
     source: { filePath: '/tmp/document.pdf' },
     completionStatus: 'incomplete',
     requestedProviders: [
@@ -237,7 +314,7 @@ test('explicit OCR resume succeeds when selected providers are complete and mani
       ocrService: 'openai',
       ocrModel: 'gpt-5.6-sol'
     }
-  })
+  }, { extractRoute: 'document' })
 
   const result = await runCommand([
     'src/cli/create-cli.ts',
@@ -250,11 +327,11 @@ test('explicit OCR resume succeeds when selected providers are complete and mani
   })
 
   const output = `${result.stdout}\n${result.stderr}`
-  const manifest = await readRunManifest(runDir, 'extract')
+  const manifest = await readSinglePipelineItemRecord(runDir, { command: 'extract', extractRoute: 'document' })
   expect(result.exitCode).toBe(0)
-  expect(output).toContain('selected providers complete; run manifest still incomplete')
-  expect(manifest?.metadata['completionStatus']).toBe('incomplete')
-  expect(manifest?.metadata['missingProviders']).toEqual([
+  expect(output).toContain('selected providers complete; canonical item still incomplete')
+  expect(manifest?.['completionStatus']).toBe('incomplete')
+  expect(manifest?.['missingProviders']).toEqual([
     { service: 'tesseract', model: 'tesseract' }
   ])
 })
@@ -263,7 +340,7 @@ test('resume --price reports a dry-run estimate and leaves manifests unchanged',
   const root = await makeTempRoot('autoshow-resume-price-')
   const runDir = join(root, 'incomplete-tts')
   await writeIncompleteTtsRun(runDir)
-  const manifestPath = join(runDir, 'run.json')
+  const manifestPath = join(runDir, PIPELINE_MANIFEST_FILE)
   const before = await Bun.file(manifestPath).text()
 
   const result = await runCommand([
@@ -311,7 +388,7 @@ test('write resume --price estimates selected missing LLM providers without prov
   const root = await makeTempRoot('autoshow-write-resume-price-')
   const runDir = join(root, 'write-run')
   await writeWriteRun(runDir)
-  const manifestPath = join(runDir, 'run.json')
+  const manifestPath = join(runDir, PIPELINE_MANIFEST_FILE)
   const before = await Bun.file(manifestPath).text()
 
   const result = await runCommand([
@@ -336,11 +413,11 @@ test('resume --price fails when resumable source metadata is missing', async () 
   const root = await makeTempRoot('autoshow-resume-price-missing-source-')
   const runDir = join(root, 'stt-run')
   await mkdir(runDir, { recursive: true })
-  await writeSttRunManifest(runDir, {
+  await writeSingleManifestFixture(runDir, 'extract', {
     completionStatus: 'incomplete',
     requestedProviders: [{ service: 'deepgram', model: 'nova-3', local: false }],
     missingProviders: [{ service: 'deepgram', model: 'nova-3', local: false }]
-  })
+  }, { extractRoute: 'media' })
 
   const result = await runCommand([
     'src/cli/create-cli.ts',
@@ -353,7 +430,7 @@ test('resume --price fails when resumable source metadata is missing', async () 
 
   const output = `${result.stdout}\n${result.stderr}`
   expect(result.exitCode).toBe(2)
-  expect(output).toContain('Batch entry is missing step1.url and cannot be resumed.')
+  expect(output).toContain('Pipeline item record is missing step1.url and cannot be resumed.')
 })
 
 test('resume rejects positional outputs after the separator', async () => {

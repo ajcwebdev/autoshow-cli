@@ -1,5 +1,6 @@
 import { DEFAULT_COST_MULTIPLIER, DEFAULT_EXTRACT_MS_PER_PAGE } from './defaults'
 import { getModelRegistry } from './registry'
+import { getRetiredModelRate } from './retired-model-rates'
 import type { ExtractEstimation, ExtractLimits } from '~/types'
 
 export const getExtractPricing = (
@@ -21,28 +22,21 @@ export const getExtractPricing = (
   higherContextPricing?: { thresholdInputTokens: number, note: string } | undefined
 } => {
   const extractModel = getModelRegistry().extract[service]?.models[model]
+    ?? getRetiredModelRate('extract', service, model)
   if (!extractModel) return {}
   return {
     ...(extractModel.costPer1kPagesCents !== undefined
       ? { costPer1kPagesCents: extractModel.costPer1kPagesCents }
-      : extractModel.costPer1kPagesUSD !== undefined
-        ? { costPer1kPagesCents: extractModel.costPer1kPagesUSD * 100 }
-        : {}),
+      : {}),
     ...(extractModel.costPerMInputTokensCents !== undefined
       ? { inputCostPer1MCents: extractModel.costPerMInputTokensCents }
-      : extractModel.costPerMInputTokensUSD !== undefined
-        ? { inputCostPer1MCents: extractModel.costPerMInputTokensUSD * 100 }
-        : {}),
+      : {}),
     ...(extractModel.costPerMCachedInputTokensCents !== undefined
       ? { cachedInputCostPer1MCents: extractModel.costPerMCachedInputTokensCents }
-      : extractModel.costPerMCachedInputTokensUSD !== undefined
-        ? { cachedInputCostPer1MCents: extractModel.costPerMCachedInputTokensUSD * 100 }
-        : {}),
+      : {}),
     ...(extractModel.costPerMOutputTokensCents !== undefined
       ? { outputCostPer1MCents: extractModel.costPerMOutputTokensCents }
-      : extractModel.costPerMOutputTokensUSD !== undefined
-        ? { outputCostPer1MCents: extractModel.costPerMOutputTokensUSD * 100 }
-        : {}),
+      : {}),
     ...(extractModel.tokenPricingBands !== undefined ? { tokenPricingBands: extractModel.tokenPricingBands } : {}),
     ...(extractModel.higherContextPricing !== undefined ? { higherContextPricing: extractModel.higherContextPricing } : {})
   }

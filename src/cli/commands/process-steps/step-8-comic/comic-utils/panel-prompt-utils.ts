@@ -5,7 +5,7 @@ import { resolve } from 'node:path'
 import * as v from 'valibot'
 import type { ComicPanelSource, PanelBundleData, ImageGenerationModel, PanelPrimaryReferenceInput, PrimaryCharacterReferenceState, ResolvedReferenceImages } from '~/types'
 import { PanelBundleDataSchema } from '../schemas/schemas'
-import { CharacterReferenceManifestSchema, getCharacterReferenceManifestPath } from './character-reference-snapshot'
+import { loadAndVerifyCharacterReferenceSnapshot } from './character-reference-snapshot'
 import { resolveCharacterIdentityReferences } from './character-identity-card'
 import { getLocationReferenceSnapshotsPath, LOCATION_SNAPSHOTS_FILENAME, LOCATION_VIEWS, type LocationReferenceSnapshotManifest } from './location-reference'
 import { resolveDesignReferencesAcrossPanels } from './design-reference'
@@ -42,20 +42,6 @@ export const getPromptBundleFilename = (panelDirectory: string, entries: Dirent[
   return files[0]
 }
 
-const loadVerifiedManifestSync = (runDirectory: string, snapshotId: string) => {
-  const path = getCharacterReferenceManifestPath(runDirectory)
-  if (!existsSync(path)) throw InfraError(`Missing character-references.json. Rebuild panel prompts.`, { stage: 'comic:reference-snapshot' })
-  const manifest = v.parse(CharacterReferenceManifestSchema, JSON.parse(readFileSync(path, 'utf8')))
-  if (manifest.snapshotId !== snapshotId) throw ValidationError(`Panel bundle snapshot ${snapshotId} does not match manifest snapshot ${manifest.snapshotId}`, { stage: 'comic:reference-snapshot' })
-  for (const character of manifest.characters) for (const asset of character.assets) {
-    const assetPath = resolve(runDirectory, asset.path)
-    if (!existsSync(assetPath)) throw InfraError(`Snapshot asset is missing: ${asset.path}`, { stage: 'comic:reference-snapshot' })
-    const actual = createHash('sha256').update(readFileSync(assetPath)).digest('hex')
-    if (actual !== asset.sha256) throw ValidationError(`Snapshot asset was modified or corrupted: ${asset.path}`, { stage: 'comic:reference-snapshot' })
-  }
-  return manifest
-}
-
 const orderedKeys = (panels: PanelPrimaryReferenceInput[]): string[] => {
   const seen = new Set<string>()
   const keys: string[] = []
@@ -72,7 +58,7 @@ export const resolvePrimaryCharacterReferencesAcrossPanels = (panels: PanelPrima
   if (snapshotIds.size !== 1 || runDirectories.size !== 1) throw ValidationError('Mixed snapshot IDs or run directories are not allowed in one image request', { stage: 'comic:reference-snapshot' })
   const runDirectory = [...runDirectories][0]!
   const snapshotId = [...snapshotIds][0]!
-  const manifest = loadVerifiedManifestSync(runDirectory, snapshotId)
+  const manifest = loadAndVerifyCharacterReferenceSnapshot(runDirectory, snapshotId)
   const keys = orderedKeys(panels)
   const characterReferences = resolveCharacterIdentityReferences(runDirectory, manifest, keys, { compose: options.composeDerived !== false })
   const primaryCharacterRefs = characterReferences.map(reference => reference.path)
@@ -138,7 +124,7 @@ const buildResolved = (references: string[], primary: string[], prior: string[],
 })
 
 export const applyReferenceImageLimits = (
-  _ordered: string[], primary: string[], prior: string[], secondary: string[], missing: string[], model: ImageGenerationModel
+  primary: string[], prior: string[], secondary: string[], missing: string[], model: ImageGenerationModel
 ): ResolvedReferenceImages => {
   const optional = [...prior, ...secondary].filter(path => !primary.includes(path))
   const limited = trimOptionalContinuityReferences(model, primary, optional)
@@ -164,7 +150,6 @@ export const resolveGroupedReferenceImages = (
   const designPaths = designReferences.map(reference => reference.path)
 
   const resolved = applyReferenceImageLimits(
-    [...primaryCharacterRefs, ...locationPaths, ...designPaths, ...priorRefs],
     [...primaryCharacterRefs, ...locationPaths, ...designPaths],
     priorRefs,
     [...locationPaths, ...designPaths],

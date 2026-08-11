@@ -1,4 +1,4 @@
-import type { DiarizationOptions, ProviderSpec, RuntimeOptions, Step2ProviderSelectionFilter, SttDiarizationFlagOptions, TranscribeEngine, TranscribeEngineCapabilities } from '~/types'
+import type { DiarizationOptions, ProviderSpec, Step2ProviderSelectionFilter, SttDiarizationFlagOptions, SttSelectionOptions, TranscribeEngine, TranscribeEngineCapabilities } from '~/types'
 import { collectStep2ProviderSpecs } from '../step-2-shared/provider-registry'
 
 
@@ -51,46 +51,10 @@ export const resolveDiarizationOptions = (
 }
 
 export const collectSttProviderSpecs = (
-  options: Pick<
-    RuntimeOptions,
-    | 'useReverb'
-    | 'step2SelectionOrigins'
-    | 'whisperModel'
-    | 'whisperModels'
-    | 'deepinfraSttModel'
-    | 'deepinfraSttModels'
-    | 'deepgramSttModel'
-    | 'deepgramSttModels'
-    | 'sonioxSttModel'
-    | 'sonioxSttModels'
-    | 'speechmaticsSttModel'
-    | 'speechmaticsSttModels'
-    | 'revSttModel'
-    | 'revSttModels'
-    | 'groqSttModel'
-    | 'groqSttModels'
-    | 'grokSttModel'
-    | 'grokSttModels'
-    | 'mistralSttModel'
-    | 'mistralSttModels'
-    | 'assemblyaiSttModel'
-    | 'assemblyaiSttModels'
-    | 'gladiaSttModel'
-    | 'gladiaSttModels'
-    | 'happyscribeSttModel'
-    | 'happyscribeSttModels'
-    | 'supadataSttModel'
-    | 'supadataSttModels'
-    | 'scrapecreatorsSttModel'
-    | 'scrapecreatorsSttModels'
-    | 'geminiSttModel'
-    | 'geminiSttModels'
-    | 'togetherSttModel'
-    | 'togetherSttModels'
-  >,
+  options: SttSelectionOptions,
   filter?: Step2ProviderSelectionFilter
 ): ProviderSpec[] => {
-  const specs = collectStep2ProviderSpecs('stt', options as Record<string, unknown>, filter)
+  const specs = collectStep2ProviderSpecs('stt', options, filter)
 
   if (specs.length === 0 && !filter?.includeOrigins) {
     specs.push({ provider: 'whisper', model: options.whisperModel })

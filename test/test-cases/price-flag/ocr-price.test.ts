@@ -27,5 +27,5 @@ test('bun autoshow extract https://ajcwebdev.com --url-provider glm-reader --pri
   expect(output).toContain('Total estimated cost: 1.00¢ (1.000¢)')
   expect(output).toContain('glm-reader')
   expect(output).toContain('extraction.txt')
-  expect(output).toContain('run.json')
+  expect(output).toContain('manifest.json')
 })

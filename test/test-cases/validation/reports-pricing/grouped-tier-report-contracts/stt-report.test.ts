@@ -6,7 +6,7 @@ import {
 import { writeFile } from 'node:fs/promises'
 import { join } from 'node:path'
 import type { MetricName, MetricRankingEntry } from '~/types'
-import { writeMultiProviderRunFixture } from '../../../../test-utils/manifest-helpers'
+import { writeMultiProviderManifestFixture } from '../../../../test-utils/manifest-helpers'
 import {
   deprecatedOverallTierKey,
   deprecatedTierSplitKey,
@@ -79,8 +79,9 @@ describe('grouped report contracts', () => {
         }
       ]
 
-      await writeMultiProviderRunFixture(runDir, {
-        kind: 'extract',
+      await writeMultiProviderManifestFixture(runDir, {
+        command: 'extract',
+        extractRoute: 'media',
         metadata: {
           step1: { durationSeconds: 8, duration: '00:00:08' }
         },

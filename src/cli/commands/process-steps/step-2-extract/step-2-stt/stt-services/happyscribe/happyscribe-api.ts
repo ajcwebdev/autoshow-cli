@@ -43,7 +43,7 @@ export const createHappyScribeApiClient = (
           return payload
         },
         (error) => {
-          const decision = classifyFetchRetry(error, requestOptions.retryClass, { retryAbortOnConservative: true })
+          const decision = classifyFetchRetry(error, requestOptions.retryClass)
           if (decision.shouldRetry) {
             options.onRetry?.(error)
           }
@@ -60,7 +60,7 @@ export const createHappyScribeApiClient = (
   ): Promise<string> => {
     const payload = await fetchJsonWithRetry({
       stage: 'upload',
-      retryClass: 'runtime_http_create_conservative',
+      retryClass: 'runtime_http_create_retriable',
       operationName: 'happyscribe-get-signed-upload',
       maxAttempts: 4,
       timeoutMs: REQUEST_TIMEOUT_MS,
@@ -78,7 +78,7 @@ export const createHappyScribeApiClient = (
     try {
       return parseHappyScribeSignedUploadUrl(payload)
     } catch (error) {
-      return attachHappyScribeErrorContext(error, 'upload', 'runtime_http_create_conservative', payload)
+      return attachHappyScribeErrorContext(error, 'upload', 'runtime_http_create_retriable', payload)
     }
   }
 
@@ -89,7 +89,7 @@ export const createHappyScribeApiClient = (
     try {
       await withRetry(
         {
-          retryClass: 'runtime_http_create_conservative',
+          retryClass: 'runtime_http_create_retriable',
           operationName: 'happyscribe-upload-media',
           policy: { maxAttempts: 3 },
           timeoutMs: REQUEST_TIMEOUT_MS
@@ -106,7 +106,7 @@ export const createHappyScribeApiClient = (
             const payload = await readHappyScribeJsonOrText(uploadResponse)
             throw toHappyScribeHttpError(
               'upload',
-              'runtime_http_create_conservative',
+              'runtime_http_create_retriable',
               uploadResponse,
               payload,
               'Happy Scribe media upload failed'
@@ -114,7 +114,7 @@ export const createHappyScribeApiClient = (
           }
         },
         (error) => {
-          const decision = classifyFetchRetry(error, 'runtime_http_create_conservative', { retryAbortOnConservative: true })
+          const decision = classifyFetchRetry(error, 'runtime_http_create_retriable')
           if (decision.shouldRetry) {
             options.onRetry?.(error)
           }
@@ -122,7 +122,7 @@ export const createHappyScribeApiClient = (
         }
       )
     } catch (error) {
-      attachHappyScribeErrorContext(error, 'upload', 'runtime_http_create_conservative')
+      attachHappyScribeErrorContext(error, 'upload', 'runtime_http_create_retriable')
     }
   }
 
@@ -135,7 +135,7 @@ export const createHappyScribeApiClient = (
   ): Promise<HappyScribeOrder> => {
     const payload = await fetchJsonWithRetry({
       stage: 'create',
-      retryClass: 'runtime_http_create_conservative',
+      retryClass: 'runtime_http_create_retriable',
       operationName: 'happyscribe-create-order',
       maxAttempts: 4,
       timeoutMs: REQUEST_TIMEOUT_MS,
@@ -165,7 +165,7 @@ export const createHappyScribeApiClient = (
     try {
       return parseHappyScribeOrder(payload)
     } catch (error) {
-      return attachHappyScribeErrorContext(error, 'create', 'runtime_http_create_conservative', payload)
+      return attachHappyScribeErrorContext(error, 'create', 'runtime_http_create_retriable', payload)
     }
   }
 
@@ -235,7 +235,7 @@ export const createHappyScribeApiClient = (
   ): Promise<HappyScribeExport> => {
     const payload = await fetchJsonWithRetry({
       stage: 'result',
-      retryClass: 'runtime_http_create_conservative',
+      retryClass: 'runtime_http_create_retriable',
       operationName: 'happyscribe-create-export',
       maxAttempts: 4,
       timeoutMs: REQUEST_TIMEOUT_MS,
@@ -260,7 +260,7 @@ export const createHappyScribeApiClient = (
     try {
       return parseHappyScribeExport(payload)
     } catch (error) {
-      return attachHappyScribeErrorContext(error, 'result', 'runtime_http_create_conservative', payload)
+      return attachHappyScribeErrorContext(error, 'result', 'runtime_http_create_retriable', payload)
     }
   }
 

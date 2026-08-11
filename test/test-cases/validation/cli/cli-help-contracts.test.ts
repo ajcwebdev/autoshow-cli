@@ -15,7 +15,7 @@ import {
   WRITE_LLM_PROVIDER_TARGETS,
   WRITE_OCR_PROVIDER_TARGETS
 } from '~/cli/flags/service-selector-normalization/provider-targets'
-import { PDF_CHAPTER_MODES } from '~/cli/commands/process-steps/step-1-download/download-targets/options/flag-readers'
+import { PDF_CHAPTER_MODES } from '~/cli/options/option-resolution/flag-readers'
 import {
   GEMINI_VIDEO_RESOLUTIONS,
   GLM_COGVIDEOX_SIZE_VALUES,
@@ -549,8 +549,9 @@ test('provider help lists are derived from the supported selector registries', a
   expect(extract.stdout).toContain('whisperfile')
   expect(extract.stdout).toContain(urlBackends)
   expect(write.stdout).toContain(llmProviders)
-  expect(write.stdout).not.toMatch(/--stt[^\n]*whisperfile/)
+  expect(write.stdout).toMatch(/--stt[^\n]*whisperfile/)
   expect(config.stdout).toContain(llmProviders)
+  expect(config.stdout).toMatch(/--stt[^\n]*whisperfile/)
   expect(resume.stdout).toContain(`URL: ${urlBackends}`)
   expect(resume.stdout).toContain(`video: ${videoProviders}`)
   expect(tts.stdout).toContain('repeatable (default: kitten)')

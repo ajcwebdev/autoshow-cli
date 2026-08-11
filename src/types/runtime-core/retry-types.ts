@@ -4,6 +4,7 @@ export type RetryClass =
   | 'runtime_local_inference'
   | 'runtime_http_read'
   | 'runtime_http_create_conservative'
+  | 'runtime_http_create_retriable'
   | 'runtime_poll_loop'
 
 export type RetryPolicy = {
@@ -20,4 +21,3 @@ export type RetryDecision = {
   delayMs: number
   reason: string
 }
-

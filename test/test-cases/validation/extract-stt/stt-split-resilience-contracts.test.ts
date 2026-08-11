@@ -4,8 +4,7 @@ import {
   extractSttSplitDurationCapSecondsFromError,
   resolveAdaptiveSplitSegmentDurationMinutes,
   resolveSttSplitPolicy,
-  resolveTranscriptionSplitDecision,
-  shouldRetrySplitTranscriptionAfterError
+  resolveTranscriptionSplitDecision
 } from '~/cli/commands/process-steps/step-2-extract/step-2-stt/orchestrator'
 import { planAudioSplitSegments } from '~/cli/commands/process-steps/step-2-extract/step-2-stt/stt-utils/audio-splitter'
 import { resolveSplitSegmentOutputDir } from '~/cli/commands/process-steps/step-2-extract/step-2-stt/run-stt/split-execution'
@@ -34,7 +33,7 @@ const expectValidSegmentPlan = (segments: ReturnType<typeof planAudioSplitSegmen
 }
 
 describe('STT split resilience contracts', () => {
-  test('split segments isolate provider checkpoints by segment identity', () => {
+  test('split segments isolate provider work directories by segment identity', () => {
     expect(resolveSplitSegmentOutputDir('/tmp/pass_001', 1)).toBe('/tmp/pass_001/segment-runs/segment_001')
     expect(resolveSplitSegmentOutputDir('/tmp/pass_001', 12)).toBe('/tmp/pass_001/segment-runs/segment_012')
   })
@@ -100,8 +99,6 @@ describe('STT split resilience contracts', () => {
     } satisfies SplitPolicyTarget
 
     expect(classifySttSplitLimitError(target, error)).toEqual({ reason: 'attachment_cap' })
-    expect(shouldRetrySplitTranscriptionAfterError(target, false, error)).toBe(true)
-    expect(shouldRetrySplitTranscriptionAfterError(target, true, error)).toBe(true)
     expect(resolveAdaptiveSplitSegmentDurationMinutes(10, error)).toBe(5)
   })
 
@@ -125,7 +122,6 @@ describe('STT split resilience contracts', () => {
 
     for (const error of nonLimitErrors) {
       expect(classifySttSplitLimitError(GLADIA, error)).toBeUndefined()
-      expect(shouldRetrySplitTranscriptionAfterError(GLADIA, false, error)).toBe(false)
     }
   })
 })

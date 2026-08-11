@@ -1,6 +1,7 @@
-import type { AggregateExplicitEstimateOptions, AggregatedPriceEstimate, ProcessCommand, RuntimeOptions, StepEstimate } from '~/types'
+import type { AggregateExplicitEstimateOptions, AggregatedPriceEstimate, AggregateTimingOptions, CommandPricingOptions, ProcessingOptions, ProcessCommand, StepEstimate } from '~/types'
 import { isExtractCommand } from '~/cli/commands/process-steps/process-command-kinds'
 import { resolveInputRoutingForCommand } from '~/cli/commands/process-steps/step-0-metadata/metadata-targets/metadata-input-routing'
+import { resolveSttStep2Execution } from '~/cli/commands/process-steps/step-2-extract/step-2-shared/resolved-step2'
 import { ACSM_PRICE_NOTE } from '~/cli/commands/process-steps/step-1-download/document/acsm-fulfillment'
 import { collectTtsTargets } from '~/cli/commands/process-steps/step-4-tts/tts-targets'
 import { SUPADATA_STT_AGGREGATE_NOTE } from '~/utils/pricing/supadata-pricing'
@@ -14,7 +15,7 @@ import { buildAggregateTiming } from './aggregate-pricing/timing'
 import { buildTtsEstimates, estimateTtsCharacterCountFromPrompts } from './aggregate-pricing/tts-estimates'
 
 const buildTimingOptions = (
-  opts: RuntimeOptions,
+  opts: AggregateTimingOptions,
   context: { ttsInputText?: string | undefined } = {}
 ) => ({
   ...(typeof context.ttsInputText === 'string' ? { ttsInputText: context.ttsInputText } : {}),
@@ -27,7 +28,7 @@ const buildTimingOptions = (
 
 export const aggregateExplicitPriceEstimate = (
   steps: StepEstimate[],
-  opts: RuntimeOptions,
+  opts: AggregateTimingOptions,
   options: AggregateExplicitEstimateOptions = {}
 ): AggregatedPriceEstimate => {
   const notes = [...(options.notes ?? [])]
@@ -53,13 +54,32 @@ export const aggregateExplicitPriceEstimate = (
   }
 }
 
-export const buildAggregatedPriceEstimate = async (
+const isProcessingOptions = (
+  opts: CommandPricingOptions | ProcessingOptions
+): opts is ProcessingOptions =>
+  'outputDir' in opts && ('url' in opts || 'filePath' in opts)
+
+export function buildAggregatedPriceEstimate (
+  command: 'write',
+  resolvedTarget: string,
+  opts: CommandPricingOptions | ProcessingOptions,
+  characterCount?: number,
+  context?: { ttsInputText?: string | undefined }
+): Promise<AggregatedPriceEstimate>
+export function buildAggregatedPriceEstimate (
   command: ProcessCommand,
   resolvedTarget: string,
-  opts: RuntimeOptions,
+  opts: CommandPricingOptions,
+  characterCount?: number,
+  context?: { ttsInputText?: string | undefined }
+): Promise<AggregatedPriceEstimate>
+export async function buildAggregatedPriceEstimate (
+  command: ProcessCommand,
+  resolvedTarget: string,
+  opts: CommandPricingOptions | ProcessingOptions,
   characterCount?: number,
   context: { ttsInputText?: string | undefined } = {}
-): Promise<AggregatedPriceEstimate> => {
+): Promise<AggregatedPriceEstimate> {
   const steps: StepEstimate[] = []
   let totalEstimatedCost = 0
   let ttsTimingCharacterCount: number | undefined
@@ -71,11 +91,17 @@ export const buildAggregatedPriceEstimate = async (
     totalEstimatedCost += step.totalCost
   }
 
-  const routing = await resolveInputRoutingForCommand(command === 'download' || command === 'metadata' ? 'write' : command, resolvedTarget, opts)
+  const routing = isProcessingOptions(opts)
+    ? {
+        family: 'media' as const,
+        resolvedStep2: resolveSttStep2Execution(opts),
+        extractRoute: 'media' as const
+      }
+    : await resolveInputRoutingForCommand(command === 'download' || command === 'metadata' ? 'write' : command, resolvedTarget, opts)
   const documentTarget = routing.family === 'document' || routing.family === 'html_article'
   const resolvedStep2 = routing.resolvedStep2
   const extractRoute = routing.extractRoute
-  const textInputWrite = command === 'write' && opts.textInput
+  const textInputWrite = command === 'write' && !isProcessingOptions(opts) && opts.textInput
   const documentWrite = command === 'write' && documentTarget && !textInputWrite
   const mediaWrite = command === 'write' && routing.family === 'media' && !textInputWrite
   const isRemoteTarget = /^https?:\/\//i.test(resolvedTarget)
@@ -93,13 +119,13 @@ export const buildAggregatedPriceEstimate = async (
     }
   }
 
-  if (!textInputWrite && ((isExtractCommand(command) && extractRoute === 'document') || documentWrite) && resolvedStep2.route === 'ocr') {
-    for (const extract of await buildExtractEstimates(resolvedTarget, resolvedStep2, opts)) {
+  if (!textInputWrite && ((isExtractCommand(command) && extractRoute === 'document') || documentWrite) && resolvedStep2.route === 'ocr' && !isProcessingOptions(opts)) {
+    for (const extract of await buildExtractEstimates(resolvedTarget, resolvedStep2, {})) {
       addStep(extract)
     }
   }
 
-  if (resolvedStep2.route === 'article') {
+  if (resolvedStep2.route === 'article' && !isProcessingOptions(opts)) {
     const article = buildArticleEstimates(resolvedStep2, opts, isRemoteTarget)
     for (const estimate of article.estimates) {
       addStep(estimate)

@@ -8,7 +8,7 @@ import {
   buildCostLookup,
   buildTimingLookup,
   discoverImageFiles,
-  loadImageRunJson,
+  loadImageManifestRecord,
   makeProviderKey,
   probeImage,
 } from "./image_eval_lib.ts";
@@ -69,19 +69,19 @@ function parseArgs(argv: string[]): ParsedArgs {
 }
 
 export async function buildPacket(runDir: string) {
-  const runJson = loadImageRunJson(runDir);
+  const manifestRecord = loadImageManifestRecord(runDir);
   const warnings: string[] = [];
 
-  const { found, missing } = discoverImageFiles(runDir, runJson.metadata.image);
+  const { found, missing } = discoverImageFiles(runDir, manifestRecord.metadata.image);
   if (missing.length > 0) {
     warnings.push(`Missing image files: ${missing.join(", ")}`);
   }
 
-  const costLookup = buildCostLookup(runJson);
-  const timingLookup = buildTimingLookup(runJson);
+  const costLookup = buildCostLookup(manifestRecord);
+  const timingLookup = buildTimingLookup(manifestRecord);
 
   const providers: ImageProviderEvidence[] = [];
-  for (const entry of runJson.metadata.image) {
+  for (const entry of manifestRecord.metadata.image) {
     const providerKey = makeProviderKey(entry.imageService, entry.imageModel);
     const imagePaths = found.get(providerKey) ?? [];
     const allImagesExist = imagePaths.length === entry.imageFileNames.length;

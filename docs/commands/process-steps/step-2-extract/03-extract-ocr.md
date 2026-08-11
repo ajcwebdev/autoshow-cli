@@ -110,7 +110,7 @@ bun autoshow extract input/examples/document/1-document.pdf --format json
 bun autoshow extract input/examples/document/1-document.pdf --all-providers --price
 ```
 
-For token-priced hosted OCR providers, `--price` uses model-specific input/output token heuristics from recent benchmark usage. Actual runs write provider usage to `run.json` when available, and post-run cost diagnostics use those actual token counts.
+For token-priced hosted OCR providers, `--price` uses model-specific input/output token heuristics from recent benchmark usage. Actual runs write usage to the provider entry in `manifest.json` when available, and post-run cost diagnostics use those actual token counts.
 
 The human price table shows `step`, `provider`, `model`, and `cost`, plus `input` and `estimatedTime` columns when those values are available. Run with `--json` when you need the structured estimate fields behind the total, including page counts, prompt/completion tokens, input/output rates, and `estimateType`.
 
@@ -128,7 +128,7 @@ The wrapper must write exactly one `.epub` or `.pdf` into `<output-dir>` and exi
 
 After setup, run `bun autoshow setup --step acsm-authorize` once to create the local activation files used by the standalone plugin scripts. You can press Enter at the Adobe ID prompt for anonymous authorization, or copy an existing `activation.xml`, `device.xml`, and `devicesalt` into `runtime/tools/acsm-calibre-plugin/account`.
 
-On success, AutoShow records `sourceFormat: "acsm"`, `normalizedFormat: "epub"` or `"pdf"`, and `conversionChain: ["calibre-acsm-plugin"]` in `run.json`, then continues through the normal EPUB/PDF extraction path. On failure, wrapper stdout/stderr is not copied into user-facing errors or manifests because plugin activation data, account paths, and backup details may be sensitive.
+On success, AutoShow records `sourceFormat: "acsm"`, `normalizedFormat: "epub"` or `"pdf"`, and `conversionChain: ["calibre-acsm-plugin"]` in the manifest item's metadata, then continues through the normal EPUB/PDF extraction path. On failure, wrapper stdout/stderr is not copied into user-facing errors or manifests because plugin activation data, account paths, and backup details may be sensitive.
 
 Limitations:
 
@@ -142,7 +142,7 @@ Limitations:
 
 | Flag | Result |
 |------|--------|
-| `--epub-bun` | Inspect EPUB structure with the Bun ZIP/XML parser and write structured EPUB data into `run.json` |
+| `--epub-bun` | Inspect EPUB structure with the Bun ZIP/XML parser and write structured EPUB data into the canonical item's metadata |
 
 ```bash
 bun autoshow extract input/examples/document/1-epub.epub --epub-bun --format json
@@ -189,7 +189,7 @@ bun autoshow extract input/examples/document/book.pdf --no-chapters
 - Automatic long-PDF detection uses local mode; pass explicit `--chapters --pdf-chapter-mode auto` to allow model assistance when the local result is weak and a default LLM is configured.
 - `--chapters --pdf-chapter-mode llm` always attempts the model-assisted resolver after building the local evidence dossier.
 - `--length <n>` hard-splits oversized PDF chapter files using the same base name with `-part-NN` suffixes, widened to `-part-NNN` at 100 or more generated files.
-- Detection diagnostics are written into `run.json` under `step2.pdfChapterDetection`, and the export summary is written under `step2.chapterExport`.
+- Detection diagnostics are written under `items[].metadata.step2.pdfChapterDetection`, and the export summary is written under `items[].metadata.step2.chapterExport`.
 
 ## OCR Services
 
@@ -268,7 +268,7 @@ Kimi OCR uses token pricing estimates and recorded usage when available.
 - Passing `--provider kimi` keeps the cheapest/general Kimi OCR default, `kimi-k2.6`.
 - Kimi OCR price mode uses cache-miss input/output pricing from `project/links/kimi-general-ocr-text-links.md`. Cached input pricing is not used because OCR image requests are not cache-stable.
 - Kimi OCR disables thinking for `kimi-k2.6`. Kimi K3 thinking is always on and rejects the `thinking` field, so AutoShow omits it for `kimi-k3`; its page heuristics are reused from K2.6 and are provisional until calibrated.
-- Actual Kimi OCR runs write `promptTokens` and `completionTokens` into `run.json` when the API returns usage.
+- Actual Kimi OCR runs write `promptTokens` and `completionTokens` into the canonical provider metadata when the API returns usage.
 
 ### OpenAI OCR
 
@@ -380,13 +380,13 @@ DeepInfra OCR uses token pricing estimates and recorded usage when available.
 | `Qwen/Qwen3-VL-235B-A22B-Instruct` | $0.20 / 1M tokens | $0.88 / 1M tokens | 4,081 input + 526 output tokens, about $0.0013/page or $1.28/1K pages | 20,000 ms/page |
 | `Qwen/Qwen3-VL-30B-A3B-Instruct` | $0.15 / 1M tokens | $0.60 / 1M tokens | 7,981 input + 472 output tokens, about $0.0015/page or $1.48/1K pages | 12,618 ms/page |
 
-- DeepInfra OCR price mode uses model-specific token heuristics. Actual runs write `promptTokens` and `completionTokens` into `run.json` when DeepInfra returns usage.
+- DeepInfra OCR price mode uses model-specific token heuristics. Actual runs write `promptTokens` and `completionTokens` into the canonical provider metadata when DeepInfra returns usage.
 - Cached-token pricing is not used for OCR estimates because AutoShow sends direct or rendered page images and those image requests are not cache-stable.
 - DeepInfra implementation details are based on DeepInfra's [Vision & OCR](https://docs.deepinfra.com/chat/vision), [OpenAI-compatible Chat Completions](https://docs.deepinfra.com/api-reference/chat-completions/openai-chat-completions), and [OCR catalog](https://deepinfra.com/models/ocr) docs.
 
 ## OCR Notes
 
-- Standalone `extract` document runs write the root extraction artifact (`extraction.txt` or `result.json`) plus `run.json`.
+- Standalone `extract` document runs write the root extraction artifact (`extraction.txt` or a raw domain `result.json`) plus the canonical `manifest.json`.
 - EPUB export and PDF chapter autodetection write additive `chapters/` or `chunks/` side artifacts inside the same output directory.
 - Supported document formats include PDF, EPUB, ACSM, MOBI, AZW/AZW3, PRC, FB2, LIT, DOCX, PPTX, XLSX, ODT, ODS, ODP, RTF, CSV, and CBZ.
 - Supported image formats include PNG, JPG, JPEG, TIF, TIFF, WebP, BMP, and GIF.
@@ -400,7 +400,7 @@ DeepInfra OCR uses token pricing estimates and recorded usage when available.
 
 Hosted OCR provider failures are classified as retryable or blocked before any retry is scheduled. Transient failures (timeouts, network errors, temporary `5xx`, genuine rate limits) stay retryable; provider-declared blockers (insufficient balance, billing required, account suspension, quota exhaustion, content-policy blocks, auth failures, and provider no-retry responses) are marked `retryable: false` and stop new page work for that provider while other requested providers continue.
 
-- A multi-provider run where at least one requested provider succeeds keeps `completionStatus: incomplete`, and successful provider outputs remain usable under `providers/<service>-<model>/`.
+- A multi-provider run where at least one selected provider succeeds and another does not keeps item `status: "incomplete"`, and successful provider outputs remain usable under `providers/<service>-<model>/`.
 - The incomplete-run summary prints a Run Status table (requested/succeeded/failed/missing/retryable/blocked counts) and a Provider Failures table with the failure class, retryability, retry attempts spent, and page fallback counts (`ok / failed / canceled`) when PDF page fallback ran.
 - Each failed provider writes a redacted `error.json` (plus optional raw-response artifacts); PDF page fallback writes an auditable `fallback-state.json` recording the fallback reason, per-page cached/resumed/succeeded/failed/canceled status, chunk preparation strategy, and split-tool failures. Split-tool warnings are prefixed with the provider label.
-- Automatic `resume` skips providers listed in `blockedProviders`; explicit `resume <dir> --provider provider=model` re-opts into a blocked provider after you fix the balance, billing, credentials, policy, or model cause.
+- Automatic `resume` skips provider entries whose canonical error state is non-retryable or blocked; explicit `resume <dir> --provider provider=model` re-opts into that provider after you fix the balance, billing, credentials, policy, or model cause.

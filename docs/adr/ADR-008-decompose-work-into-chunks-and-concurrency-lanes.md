@@ -130,7 +130,7 @@ The controls nest from outermost to innermost:
              └─ withRetry              per-request backoff and jitter      src/utils/retries.ts
 ```
 
-Layer 1, batch items. `--batch-concurrency` is defined in `batchFlags` and parsed into `RuntimeOptions.batchConcurrency`. `processBatch` runs a strict sequential loop when the value is `1` and `Promise.allSettled` over a polling semaphore when it is greater. The semaphore busy-waits on a 50 ms timer and is not FIFO, so admission order under contention is not guaranteed. The flag is accepted by `metadata`, `download`, `extract`, `write`, `tts`, `resume`, and the `stt`/`ocr` flag sets, and is persisted as `defaults.batch.concurrency`. Standalone `image`, `video`, and `music` have no batch path and do not accept it; `comic` uses its own unrelated `--concurrency`.
+Layer 1, batch items. `--batch-concurrency` is defined in `batchFlags` and resolved into the batch option slice consumed by batch-capable commands. `processBatch` runs a strict sequential loop when the value is `1` and `Promise.allSettled` over a polling semaphore when it is greater. The semaphore busy-waits on a 50 ms timer and is not FIFO, so admission order under contention is not guaranteed. The flag is accepted by `metadata`, `download`, `extract`, `write`, `tts`, `resume`, and the STT/OCR flag sets, and is persisted as `defaults.batch.concurrency`. Standalone `image`, `video`, and `music` have no batch path and do not accept it; `comic` uses its own unrelated `--concurrency`.
 
 Layer 2, provider targets. `runProviderTargetScheduler` splits targets into a hosted pool and a local pool that run concurrently, each a bounded worker pool. Within a pool, entries sort by descending `priority` then ascending `index`, which OCR uses to start the slowest providers first. The scheduler contains no retry or backoff of its own. An optional `resourceGate` is acquired inside each worker; `createGenerationResourceGate` uses this to cap total simultaneous work across steps 4 through 7, with capacity set to the maximum of all their provider and local values.
 
@@ -256,7 +256,7 @@ Negative outcomes:
 - Related ADR: [ADR-012](ADR-012-add-price-preflight-to-resume.md) — price preflight consumes the same concurrency values when simulating pool wall time
 - Concurrency defaults: `src/utils/concurrency-defaults.ts`
 - Flag definitions: `src/cli/flags/shared-flags.ts`, `src/cli/flags/tts-flags.ts`
-- Flag resolution: `src/cli/commands/process-steps/step-1-download/download-targets/build-opts-from-flags/concurrency.ts`
+- Flag resolution: `src/cli/options/option-resolution/concurrency.ts`
 - Generic batch executor: `src/cli/commands/process-steps/step-1-download/download-targets/download-batch/process-download-batch.ts`
 - Generic target scheduler: `src/cli/commands/process-steps/provider-target-scheduler.ts`
 - Cross-step resource gate: `src/utils/resource-gate.ts`, `src/cli/commands/process-steps/step-3-write/generation-resource-gate.ts`

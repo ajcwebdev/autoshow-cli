@@ -86,7 +86,7 @@ export const runPolledJob = async <TCreate, TPoll>(options: {
         options.onPoll?.(value)
         return value
       },
-      (error) => classifyFetchRetry(error, 'runtime_http_read', { retryAbortOnConservative: true })
+      (error) => classifyFetchRetry(error, 'runtime_http_read')
     ),
     isDone: options.isDone,
     ...(options.isFailed ? { isFailed: options.isFailed } : {})
@@ -97,12 +97,11 @@ export const runPolledJob = async <TCreate, TPoll>(options: {
 
 export const formatPolledJobError = (
   value: unknown,
-  fallback = 'Unknown error',
-  options: { readMessage?: boolean | undefined } = {}
+  fallback = 'Unknown error'
 ): string => {
   if (value === undefined || value === null) return fallback
   if (typeof value === 'string') return value
-  if (options.readMessage && typeof value === 'object' && 'message' in value) {
+  if (typeof value === 'object' && 'message' in value) {
     const message = (value as { message?: unknown }).message
     if (typeof message === 'string' && message.length > 0) return message
   }

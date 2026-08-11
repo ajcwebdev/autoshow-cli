@@ -1,9 +1,14 @@
 import { describe, expect, test } from 'bun:test'
 import { join } from 'node:path'
+import { readSingleManifestProviderState } from '~/cli/commands/process-steps/pipeline-manifest'
+import { createAsyncSttProgressMetadataPersister, readPersistedAsyncSttRuntime } from '~/cli/commands/process-steps/step-2-extract/step-2-stt/async-lifecycle'
 import { runHappyScribeStt } from '~/cli/commands/process-steps/step-2-extract/step-2-stt/stt-services/happyscribe/run-happyscribe-stt'
 import { runSonioxStt } from '~/cli/commands/process-steps/step-2-extract/step-2-stt/stt-services/soniox/run-soniox-stt'
-import { writeSttProviderCheckpoint } from '~/cli/commands/process-steps/step-2-extract/step-2-stt/stt-manifest'
+import { ASYNC_STT_PROGRESS_METADATA_KEY, createSttProviderProgressLifecycle } from '~/cli/commands/process-steps/step-2-extract/step-2-stt/stt-provider-progress'
+import { writeSttResultArtifact } from '~/cli/commands/process-steps/step-2-extract/step-2-stt/stt-utils/stt-result-artifacts'
+import type { PipelineProviderStatus, Step2Metadata, Step2RuntimeMetadata, SttTarget } from '~/types'
 import { installMockFetch, jsonResponse, setupContractSuiteLifecycle } from '../../../test-utils/rest-contract-helpers'
+import { writeSingleManifestFixture } from '../../../test-utils/manifest-helpers'
 
 const tempDirs = setupContractSuiteLifecycle({
   envKeys: ['HAPPYSCRIBE_API_KEY', 'SONIOX_API_KEY'],
@@ -19,12 +24,62 @@ const tempDirs = setupContractSuiteLifecycle({
 
 const makeTempDir = tempDirs.make
 
+const seedAsyncProviderManifest = async (
+  outputDir: string,
+  target: Pick<SttTarget, 'service' | 'model'>,
+  options: {
+    status?: PipelineProviderStatus | undefined
+    runtime?: Step2RuntimeMetadata | undefined
+    billing?: Step2Metadata['billing'] | undefined
+  } = {}
+) => {
+  const progressMetadata = options.runtime
+    ? {
+        transcriptionService: target.service,
+        transcriptionModel: target.model,
+        processingTime: 0,
+        tokenCount: 0,
+        timings: {},
+        runtime: options.runtime,
+        ...(options.billing ? { billing: options.billing } : {})
+      }
+    : undefined
+  await writeSingleManifestFixture(outputDir, 'extract', {
+    completionStatus: 'incomplete',
+    requestedProviders: [{ service: target.service, model: target.model, local: false }],
+    providerStates: [{
+      service: target.service,
+      model: target.model,
+      local: false,
+      artifactDir: '.',
+      status: options.status ?? 'running',
+      attempts: 1,
+      ...(progressMetadata
+        ? { metadata: { [ASYNC_STT_PROGRESS_METADATA_KEY]: { whole: progressMetadata } } }
+        : {})
+    }],
+    missingProviders: [{ service: target.service, model: target.model, local: false }]
+  }, { extractRoute: 'media' })
+  return createSttProviderProgressLifecycle({ rootDir: outputDir, artifactDir: outputDir, target })
+}
+
+const readProvider = async (
+  outputDir: string,
+  target: Pick<SttTarget, 'service' | 'model'>
+) => await readSingleManifestProviderState(outputDir, {
+  service: target.service,
+  model: target.model,
+  artifactDir: outputDir
+})
+
 describe('async STT resume contracts', () => {
   test('Happy Scribe keeps the paid order resumable when export retrieval fails', async () => {
     const outputDir = await makeTempDir('autoshow-happyscribe-export-resume-')
     const audioPath = join(outputDir, 'audio.mp3')
     await Bun.write(audioPath, 'audio')
     process.env['HAPPYSCRIBE_API_KEY'] = 'test-happyscribe-key'
+    const target = { service: 'happyscribe', model: 'auto' } as const
+    const lifecycle = await seedAsyncProviderManifest(outputDir, target)
 
     let orderCreates = 0
     let exportCreates = 0
@@ -83,20 +138,19 @@ describe('async STT resume contracts', () => {
 
     await expect(runHappyScribeStt(audioPath, outputDir, {
       model: 'auto',
-      segmentOffsetMinutes: 0
+      segmentOffsetMinutes: 0,
+      lifecycle
     })).rejects.toThrow('Happy Scribe transcript download failed')
 
-    const failedCheckpoint = await Bun.file(join(outputDir, 'checkpoint.json')).json() as {
-      metadata: { runtime: Record<string, unknown> }
-    }
-    expect(failedCheckpoint.metadata.runtime).toMatchObject({
+    const failedProvider = await readProvider(outputDir, target)
+    expect(failedProvider?.metadata[ASYNC_STT_PROGRESS_METADATA_KEY]).toMatchObject({ whole: { runtime: {
       stage: 'polling',
       remoteJobId: 'order-1'
-    })
-
+    } } })
     const resumed = await runHappyScribeStt(audioPath, outputDir, {
       model: 'auto',
-      segmentOffsetMinutes: 0
+      segmentOffsetMinutes: 0,
+      lifecycle
     })
 
     expect(resumed.result.text).toBe('hello from resumed export')
@@ -109,12 +163,12 @@ describe('async STT resume contracts', () => {
     expect(exportCreates).toBe(2)
   })
 
-  test('Soniox retains remote resources while a polling checkpoint remains retryable', async () => {
+  test('Soniox retains remote resources while canonical polling progress remains retryable', async () => {
     const outputDir = await makeTempDir('autoshow-soniox-poll-resume-')
     process.env['SONIOX_API_KEY'] = 'test-soniox-key'
-    await writeSttProviderCheckpoint(outputDir, 'soniox', 'stt-async-v5', {
-      transcriptionService: 'soniox',
-      transcriptionModel: 'stt-async-v5',
+    const target = { service: 'soniox', model: 'stt-async-v5' } as const
+    const lifecycle = await seedAsyncProviderManifest(outputDir, target, {
+      status: 'failed',
       runtime: {
         mode: 'fresh',
         stage: 'polling',
@@ -129,27 +183,26 @@ describe('async STT resume contracts', () => {
 
     await expect(runSonioxStt(join(outputDir, 'audio.mp3'), outputDir, {
       model: 'stt-async-v5',
-      segmentOffsetMinutes: 0
+      segmentOffsetMinutes: 0,
+      lifecycle
     })).rejects.toThrow('is still pending after 5 resume status checks')
 
     expect(calls.filter((call) => call.method === 'GET')).toHaveLength(5)
     expect(calls.filter((call) => call.method === 'DELETE')).toHaveLength(0)
-    const checkpoint = await Bun.file(join(outputDir, 'checkpoint.json')).json() as {
-      metadata: { runtime: Record<string, unknown> }
-    }
-    expect(checkpoint.metadata.runtime).toMatchObject({
+    const provider = await readProvider(outputDir, target)
+    expect(provider?.metadata[ASYNC_STT_PROGRESS_METADATA_KEY]).toMatchObject({ whole: { runtime: {
       stage: 'polling',
       remoteJobId: 'transcription-1',
       remoteAssetId: 'file-1'
-    })
+    } } })
   })
 
   test('Soniox deletes remote resources after a terminal provider failure', async () => {
     const outputDir = await makeTempDir('autoshow-soniox-terminal-cleanup-')
     process.env['SONIOX_API_KEY'] = 'test-soniox-key'
-    await writeSttProviderCheckpoint(outputDir, 'soniox', 'stt-async-v5', {
-      transcriptionService: 'soniox',
-      transcriptionModel: 'stt-async-v5',
+    const target = { service: 'soniox', model: 'stt-async-v5' } as const
+    const lifecycle = await seedAsyncProviderManifest(outputDir, target, {
+      status: 'failed',
       runtime: {
         mode: 'fresh',
         stage: 'polling',
@@ -171,17 +224,16 @@ describe('async STT resume contracts', () => {
 
     await expect(runSonioxStt(join(outputDir, 'audio.mp3'), outputDir, {
       model: 'stt-async-v5',
-      segmentOffsetMinutes: 0
+      segmentOffsetMinutes: 0,
+      lifecycle
     })).rejects.toThrow('Soniox transcription failed: provider rejected the audio')
 
     expect(calls.filter((call) => call.method === 'DELETE').map((call) => new URL(call.url).pathname).sort()).toEqual([
       '/v1/files/file-1',
       '/v1/transcriptions/transcription-1'
     ])
-    const checkpoint = await Bun.file(join(outputDir, 'checkpoint.json')).json() as {
-      metadata: { runtime: Record<string, unknown> }
-    }
-    expect(checkpoint.metadata.runtime).toMatchObject({
+    const provider = await readProvider(outputDir, target)
+    expect(provider?.metadata[ASYNC_STT_PROGRESS_METADATA_KEY]).toMatchObject({ whole: { runtime: {
       stage: 'cleanup-complete',
       remoteJobId: 'transcription-1',
       remoteAssetId: 'file-1',
@@ -189,6 +241,65 @@ describe('async STT resume contracts', () => {
         remoteJobDeleted: true,
         remoteAssetDeleted: true
       }
+    } } })
+  })
+
+  test('concurrent segment progress stays isolated in one canonical provider entry', async () => {
+    const outputDir = await makeTempDir('autoshow-async-stt-segment-progress-')
+    const target = { service: 'soniox', model: 'stt-async-v5' } as const
+    const lifecycle = await seedAsyncProviderManifest(outputDir, target)
+    const buildProgress = (runtime: Step2RuntimeMetadata): Step2Metadata => ({
+      transcriptionService: target.service,
+      transcriptionModel: target.model,
+      processingTime: 0,
+      tokenCount: 0,
+      runtime
     })
+    const persistFirst = createAsyncSttProgressMetadataPersister(lifecycle, 1, buildProgress, () => {})
+    const persistSecond = createAsyncSttProgressMetadataPersister(lifecycle, 2, buildProgress, () => {})
+
+    await Promise.all([
+      persistFirst({ mode: 'fresh', stage: 'polling', remoteJobId: 'segment-job-1' }),
+      persistSecond({ mode: 'fresh', stage: 'polling', remoteJobId: 'segment-job-2' })
+    ])
+
+    const provider = await readProvider(outputDir, target)
+    expect(provider?.metadata[ASYNC_STT_PROGRESS_METADATA_KEY]).toMatchObject({
+      'segment-001': { runtime: { remoteJobId: 'segment-job-1' } },
+      'segment-002': { runtime: { remoteJobId: 'segment-job-2' } }
+    })
+    await expect(readPersistedAsyncSttRuntime(lifecycle, {
+      transcriptionService: target.service,
+      transcriptionModel: target.model
+    }, 1)).resolves.toMatchObject({ remoteJobId: 'segment-job-1' })
+    await expect(readPersistedAsyncSttRuntime(lifecycle, {
+      transcriptionService: target.service,
+      transcriptionModel: target.model
+    }, 2)).resolves.toMatchObject({ remoteJobId: 'segment-job-2' })
+  })
+
+  test('result artifacts and non-resumable provider statuses cannot supply async control state', async () => {
+    const outputDir = await makeTempDir('autoshow-async-stt-result-isolation-')
+    const target = { service: 'soniox', model: 'stt-async-v5' } as const
+    const runtime: Step2RuntimeMetadata = {
+      mode: 'fresh',
+      stage: 'polling',
+      remoteJobId: 'manifest-job'
+    }
+    const lifecycle = await seedAsyncProviderManifest(outputDir, target, {
+      status: 'succeeded',
+      runtime
+    })
+    const untrustedResult = {
+      text: 'done',
+      segments: [],
+      runtime: { ...runtime, remoteJobId: 'result-artifact-job' }
+    }
+    await writeSttResultArtifact(outputDir, untrustedResult)
+
+    await expect(readPersistedAsyncSttRuntime(lifecycle, {
+      transcriptionService: target.service,
+      transcriptionModel: target.model
+    })).resolves.toBeUndefined()
   })
 })

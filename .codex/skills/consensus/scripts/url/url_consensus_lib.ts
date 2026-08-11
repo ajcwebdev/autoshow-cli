@@ -1,7 +1,9 @@
 #!/usr/bin/env bun
 
 import { existsSync, readFileSync, readdirSync } from "node:fs";
-import { join } from "node:path";
+import { basename, join } from "node:path";
+import { loadCanonicalRunRecord } from "../shared/pipeline_manifest";
+import type { PipelineProviderState } from "../shared/pipeline_manifest";
 
 export interface UrlProviderRun {
   directoryName: string;
@@ -20,19 +22,16 @@ export interface UrlProviderRun {
   title: string | null;
 }
 
-interface ProviderResultPayload {
-  provider?: string;
-  model?: string;
-  metadata?: {
-    tokenEstimate?: number;
-    processingTime?: number;
-  };
-  result?: {
+interface UrlProviderResult {
+  text?: string;
+  pages?: Array<{
     text?: string;
-    pages?: Array<{
-      text?: string;
-    }>;
-  };
+  }>;
+}
+
+interface UrlProviderMetadata {
+  tokenEstimate?: number;
+  processingTime?: number;
 }
 
 interface RunStepCostEntry {
@@ -47,17 +46,9 @@ interface RunStepTimingEntry {
   processingTimeMs?: number;
 }
 
-interface RunProviderState {
-  service?: string;
-  model?: string;
-  artifactDir?: string;
-  status?: string;
-}
-
-export interface UrlRunJson {
-  schemaVersion?: number;
-  kind?: string;
-  metadata?: {
+export interface UrlManifestRecord {
+  providers: PipelineProviderState[];
+  metadata: {
     step1?: {
       title?: string;
       slug?: string;
@@ -73,7 +64,6 @@ export interface UrlRunJson {
       finalUrl?: string;
       title?: string;
     };
-    providerStates?: RunProviderState[];
     cost?: {
       actual?: { steps?: RunStepCostEntry[] };
     };
@@ -675,32 +665,28 @@ export function selectBaselineProvider(runs: UrlProviderRun[]): UrlProviderRun {
     .sort((left, right) => tokenize(right.text).length - tokenize(left.text).length || left.providerKey.localeCompare(right.providerKey))[0] as UrlProviderRun;
 }
 
-function getProviderText(payload: ProviderResultPayload): string {
-  if (typeof payload.result?.text === "string" && payload.result.text.trim().length > 0) {
-    return payload.result.text;
+function getProviderText(result: UrlProviderResult): string {
+  if (typeof result.text === "string" && result.text.trim().length > 0) {
+    return result.text;
   }
-  const pageText = payload.result?.pages
+  const pageText = result.pages
     ?.map((page) => page.text ?? "")
     .filter((text) => text.trim().length > 0)
     .join("\n\n");
   return pageText ?? "";
 }
 
-function findRunProviderState(run: UrlRunJson | null, directoryName: string, provider: string, model: string): RunProviderState | null {
-  const states = run?.metadata?.providerStates ?? [];
-  return states.find((state) =>
-    state.artifactDir === `providers/${directoryName}`
-    || (state.service === provider && (state.model === undefined || state.model === model))
-  ) ?? null;
+function findManifestProviderState(manifestRecord: UrlManifestRecord, directoryName: string): PipelineProviderState | null {
+  return manifestRecord.providers.find((state) => basename(state.artifactDir) === directoryName) ?? null;
 }
 
-function findActualCost(run: UrlRunJson | null, provider: string, model: string): number | null {
-  const step = run?.metadata?.cost?.actual?.steps?.find((entry) => entry.provider === provider && entry.model === model);
+function findActualCost(manifestRecord: UrlManifestRecord, provider: string, model: string): number | null {
+  const step = manifestRecord.metadata.cost?.actual?.steps?.find((entry) => entry.provider === provider && entry.model === model);
   return typeof step?.cost === "number" ? step.cost : null;
 }
 
-function findActualTiming(run: UrlRunJson | null, provider: string, model: string): number | null {
-  const step = run?.metadata?.timing?.actual?.steps?.find((entry) => entry.provider === provider && entry.model === model);
+function findActualTiming(manifestRecord: UrlManifestRecord, provider: string, model: string): number | null {
+  const step = manifestRecord.metadata.timing?.actual?.steps?.find((entry) => entry.provider === provider && entry.model === model);
   return typeof step?.processingTimeMs === "number" ? step.processingTimeMs : null;
 }
 
@@ -710,8 +696,11 @@ export function loadUrlProviderRuns(runDir: string): UrlProviderRun[] {
     throw new Error(`Provider directory not found: ${providersDir}`);
   }
 
-  const runPath = join(runDir, "run.json");
-  const run = existsSync(runPath) ? readJson<UrlRunJson>(runPath) : null;
+  const canonicalRecord = loadCanonicalRunRecord(runDir, "extract", "article");
+  const manifestRecord: UrlManifestRecord = {
+    providers: canonicalRecord.item.providers,
+    metadata: canonicalRecord.metadata as UrlManifestRecord["metadata"],
+  };
   const directories = readdirSync(providersDir, { withFileTypes: true })
     .filter((entry) => entry.isDirectory())
     .map((entry) => entry.name)
@@ -721,17 +710,18 @@ export function loadUrlProviderRuns(runDir: string): UrlProviderRun[] {
     const resultPath = join(providersDir, directoryName, "result.json");
     if (!existsSync(resultPath)) return [];
 
-    const payload = readJson<ProviderResultPayload>(resultPath);
-    const provider = payload.provider ?? directoryName;
-    const model = payload.model ?? provider;
-    const state = findRunProviderState(run, directoryName, provider, model);
-    if (state?.status && state.status !== "succeeded") return [];
+    const state = findManifestProviderState(manifestRecord, directoryName);
+    if (!state || state.status !== "succeeded") return [];
+    const provider = state.service;
+    const model = typeof state.model === "string" ? state.model : provider;
+    const metadata = state.metadata as UrlProviderMetadata;
+    const result = readJson<UrlProviderResult>(resultPath);
 
-    const text = getProviderText(payload).trim();
+    const text = getProviderText(result).trim();
     const extractionPath = join(providersDir, directoryName, "extraction.txt");
-    const sourceUrl = run?.metadata?.web?.sourceUrl ?? run?.metadata?.source?.url ?? null;
-    const finalUrl = run?.metadata?.web?.finalUrl ?? null;
-    const title = run?.metadata?.web?.title ?? run?.metadata?.step1?.title ?? null;
+    const sourceUrl = manifestRecord.metadata.web?.sourceUrl ?? manifestRecord.metadata.source?.url ?? null;
+    const finalUrl = manifestRecord.metadata.web?.finalUrl ?? null;
+    const title = manifestRecord.metadata.web?.title ?? manifestRecord.metadata.step1?.title ?? null;
 
     return [{
       directoryName,
@@ -742,10 +732,10 @@ export function loadUrlProviderRuns(runDir: string): UrlProviderRun[] {
       extractionPath: existsSync(extractionPath) ? extractionPath : null,
       text,
       plainText: markdownToPlainText(text),
-      tokenEstimate: typeof payload.metadata?.tokenEstimate === "number" ? payload.metadata.tokenEstimate : null,
-      processingTimeMs: findActualTiming(run, provider, model)
-        ?? (typeof payload.metadata?.processingTime === "number" ? payload.metadata.processingTime : null),
-      actualCostCents: findActualCost(run, provider, model),
+      tokenEstimate: typeof metadata.tokenEstimate === "number" ? metadata.tokenEstimate : null,
+      processingTimeMs: findActualTiming(manifestRecord, provider, model)
+        ?? (typeof metadata.processingTime === "number" ? metadata.processingTime : null),
+      actualCostCents: findActualCost(manifestRecord, provider, model),
       sourceUrl,
       finalUrl,
       title,

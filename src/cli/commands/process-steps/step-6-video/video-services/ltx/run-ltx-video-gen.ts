@@ -6,7 +6,6 @@ import { estimateVideoCost, logVideoEstimate } from '~/cli/commands/process-step
 import {
   normalizeLtxVideoAspectRatio,
   normalizeLtxVideoDuration,
-  normalizeLtxVideoFps,
   normalizeLtxVideoResolution,
   normalizeLtxVideoSize
 } from '~/cli/commands/process-steps/step-6-video/video-utils/video-normalization'
@@ -72,7 +71,7 @@ export const runLtxVideoGen = async (
   const resolution = normalizeLtxVideoResolution(options.resolution)
   const aspectRatio = normalizeLtxVideoAspectRatio(options.model, options.aspectRatio)
   const duration = normalizeLtxVideoDuration(options.model, size, options.durationSeconds, mode)
-  const fps = mode === 'extend' ? undefined : normalizeLtxVideoFps(options.model)
+  const fps = mode === 'extend' ? undefined : 24
   const resolvedPrompt = prompt ?? (mode === 'image-to-video' || mode === 'interpolate' ? DEFAULT_IMAGE_VIDEO_PROMPT : undefined)
   if (mode === 'text') {
     requireLtxPrompt(resolvedPrompt)
@@ -152,7 +151,7 @@ export const runLtxVideoGen = async (
     onPoll: (data) => logGenStatus('video', 'ltx', options.model, data.status),
     isDone: (data) => data.status === 'completed',
     isFailed: (data) => data.status === 'failed'
-      ? { failed: true, reason: formatPolledJobError(data.error, 'Unknown error', { readMessage: true }) }
+      ? { failed: true, reason: formatPolledJobError(data.error) }
       : { failed: false }
   })
 

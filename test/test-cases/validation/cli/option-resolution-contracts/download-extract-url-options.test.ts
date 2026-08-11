@@ -1,5 +1,5 @@
 import { describe, expect, test } from 'bun:test'
-import { buildOptsFromFlags } from '~/cli/commands/process-steps/step-1-download/download-targets/build-opts-from-flags/build-options-from-flags'
+import { buildOptsFromFlags } from '~/cli/options/option-resolution/build-options-from-flags'
 import { buildExtractionCallOpts } from '~/cli/commands/process-steps/step-1-download/download-targets/single/document-write'
 import { buildExpectedFilesList } from '~/cli/commands/process-steps/step-1-download/download-targets/expected-output'
 import {
@@ -182,15 +182,11 @@ describe('option resolution contracts', () => {
       expect(disabled).not.toContain('chapters/*.txt (EPUB native text runs, or PDF chapter autodetection)')
     })
 
-  test('buildOptsFromFlags only accepts canonical flags before the positional separator', () => {
+  test('buildOptsFromFlags only accepts canonical flag keys', () => {
       const camelCaseFlags = buildOptsFromFlags(false, {
         mistralStt: 'voxtral-mini-2602',
         deepinfraOcr: 'Qwen/Qwen3-VL-30B-A3B-Instruct'
       })
-      const separatedFlags = buildOptsFromFlags(false, {}, [
-        '--mistral-stt',
-        'voxtral-mini-2602'
-      ], {}, new Set(), [])
       const canonicalFlags = buildOptsFromFlags(false, {
         'mistral-stt': 'voxtral-mini-2602',
         'deepinfra-ocr': 'Qwen/Qwen3-VL-30B-A3B-Instruct'
@@ -198,8 +194,6 @@ describe('option resolution contracts', () => {
 
       expect(camelCaseFlags.mistralSttModel).toBeUndefined()
       expect(camelCaseFlags.deepinfraOcrModel).toBeUndefined()
-      expect(separatedFlags.mistralSttModel).toBeUndefined()
-      expect(separatedFlags.speechifyTtsVoiceName).toBeUndefined()
       expect(canonicalFlags.mistralSttModel).toBe('voxtral-mini-2602')
       expect(canonicalFlags.deepinfraOcrModel).toBe('Qwen/Qwen3-VL-30B-A3B-Instruct')
     })
@@ -222,7 +216,7 @@ describe('option resolution contracts', () => {
       const explicitConcurrency = buildOptsFromFlags(false, {
         'all-url': true,
         'provider-concurrency': '3'
-      }, [], {}, new Set(['provider-concurrency']))
+      }, {}, new Set(['provider-concurrency']))
 
       expect(opts.urlBackends).toEqual([...HOSTED_URL_ARTICLE_BACKENDS])
       expect(localOpts.urlBackends).toEqual(['defuddle'])
@@ -276,7 +270,7 @@ describe('option resolution contracts', () => {
       )).resolves.toEqual([
         'providers/<backend>/result.json',
         'providers/<backend>/extraction.txt',
-        'run.json'
+        'manifest.json'
       ])
     })
 
@@ -293,7 +287,7 @@ describe('option resolution contracts', () => {
         'text.json',
         'show-note.md',
         'prompt.md',
-        'run.json'
+        'manifest.json'
       ])
     })
 
@@ -308,7 +302,7 @@ describe('option resolution contracts', () => {
         'text.json',
         'show-note.md',
         'prompt.md',
-        'run.json'
+        'manifest.json'
       ])
     })
 })

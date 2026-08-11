@@ -9,7 +9,7 @@ import {
   STABLE_EXAMPLE_AUDIO_TITLE,
 } from '../../../../../test-utils/test-helpers'
 import { budgetedTest, E2E_TEST_TIMEOUT_MS } from '../../../../../test-utils/budget'
-import { readRunMetadata } from '../../../../../test-utils/manifest-helpers'
+import { readCanonicalRecord } from '../../../../../test-utils/manifest-helpers'
 
 
 describe('write subcommand with llama', () => {
@@ -33,10 +33,10 @@ describe('write subcommand with llama', () => {
     expect(result.exitCode).toBe(0)
     const output = `${result.stdout}\n${result.stderr}`
     expect(output).toContain('Locations')
-    expect(output).toContain('run manifest')
+    expect(output).toContain('manifest.json')
     expect(output).toContain('Run Summary')
     expect(output).toContain('Prompt Usage')
-    expect(output).not.toContain('Run manifest:\n{')
+    expect(output).not.toContain('manifest.json:\n{')
     expect(output).not.toContain('"step1": {')
 
     const outputDir = result.outputDir ?? await findLatestDirectory(STABLE_EXAMPLE_AUDIO_TITLE, result.outputRoot)
@@ -49,7 +49,7 @@ describe('write subcommand with llama', () => {
       const summaryJson = await Bun.file(`${outputDir}/text.json`).json() as unknown
       expect(summaryJson).toBeDefined()
 
-      const metadata = await readRunMetadata(outputDir) as {
+      const metadata = await readCanonicalRecord(outputDir) as {
         completionStatus?: string
         requestedProviders?: Array<{ service?: string; model?: string }>
         providerStates?: Array<{ service?: string; model?: string; status?: string; artifactDir?: string }>
@@ -90,7 +90,7 @@ describe('write subcommand with llama', () => {
       const summaryExists = await fileExists(`${outputDir}/text.json`)
       expect(summaryExists).toBe(true)
 
-      const metadata = await readRunMetadata(outputDir) as {
+      const metadata = await readCanonicalRecord(outputDir) as {
         completionStatus?: string
         step3?: { llmModel?: string; llmService?: string }
       }

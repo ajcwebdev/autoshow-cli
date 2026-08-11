@@ -50,7 +50,6 @@ The standalone `video` command drops the `video-` prefix these options carry eve
 |------|-------------|
 | `--all-providers` | Run every supported video provider/model |
 | `--provider-concurrency <n>` | Hosted video providers/models to run concurrently per item; default `10` |
-| `--local-concurrency <n>` | Local video providers to run concurrently per item; default `10` |
 | `--duration <seconds>` | Requested video duration |
 | `--size <size>` | Provider-dependent size control |
 | `--aspect-ratio <ratio>` | Provider-dependent aspect ratio |
@@ -305,7 +304,7 @@ Single-provider runs write:
 ```text
 output/YYYY-MM-DD_HH-mm-ss_video-gen/
   generated-video.mp4
-  run.json
+  manifest.json
 ```
 
 Multi-provider runs write one file per provider:
@@ -318,10 +317,10 @@ output/YYYY-MM-DD_HH-mm-ss_video-gen/
   generated-video-grok-grok-imagine-video.mp4
   generated-video-runway-gen4.5.mp4
   generated-video-ltx-ltx-2-3-fast.mp4
-  run.json
+  manifest.json
 ```
 
-`run.json` includes `video`, `cost`, and `timing` sections. `video` is always an array, even when only one provider succeeds.
+`manifest.json` uses the canonical single-run shape. Its sole item's metadata includes `video`, `cost`, and `timing`; `video` is always an array, even when only one provider succeeds.
 
 `--output-dir` controls the run directory; generated file names remain provider-dependent and deterministic inside that directory.
 

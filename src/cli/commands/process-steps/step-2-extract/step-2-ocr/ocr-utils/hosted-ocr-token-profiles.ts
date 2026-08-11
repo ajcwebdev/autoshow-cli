@@ -4,6 +4,7 @@ import { mkdir, readFile, rename, writeFile } from 'node:fs/promises'
 import { homedir } from 'node:os'
 import { dirname, join } from 'node:path'
 import { getExtractEstimation } from '~/cli/commands/setup-and-utilities/models/model-loader'
+import { isTokenPricedOcrProvider } from '~/types'
 import type { ExtractionMetadata, HostedOcrTokenUsageEstimate, HostedOcrTokenUsageProfile, HostedOcrTokenUsageProfileStore, PartialExtractionMetadata, PersistHostedOcrProfilesOptions, TokenPricedOcrProvider } from '~/types'
 import { withProcessLock } from '~/utils/process-lock'
 
@@ -13,16 +14,6 @@ const MAX_TOKEN_PROFILE_SAMPLES = 100
 const TOKEN_PROFILE_LOCK_NAME = 'ocr-token-usage-profiles-v1'
 const DEFAULT_OCR_INPUT_TOKENS_PER_PAGE = 4000
 const DEFAULT_OCR_OUTPUT_TOKENS_PER_PAGE = 1000
-
-const TOKEN_PRICED_OCR_PROVIDERS = new Set<TokenPricedOcrProvider>([
-  'glm',
-  'kimi',
-  'openai',
-  'grok',
-  'anthropic',
-  'gemini',
-  'deepinfra'
-])
 
 export const resolveHostedOcrTokenUsageProfilePath = (): string =>
   join(homedir(), '.cache', 'autoshow-cli', 'ocr-token-usage-profiles-v1.json')
@@ -57,9 +48,6 @@ const roundMetric = (value: number): number => {
   return Object.is(rounded, -0) ? 0 : rounded
 }
 
-
-const isTokenPricedOcrProvider = (value: unknown): value is TokenPricedOcrProvider =>
-  typeof value === 'string' && TOKEN_PRICED_OCR_PROVIDERS.has(value as TokenPricedOcrProvider)
 
 const parseProfile = (value: unknown): HostedOcrTokenUsageProfile | undefined => {
   if (!isRecord(value)) {

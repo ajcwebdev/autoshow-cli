@@ -1,29 +1,24 @@
-import { existsSync, readFileSync } from "node:fs"
+import { existsSync } from "node:fs"
 import { join } from "node:path"
+import { derivePipelineItemRecord, PIPELINE_MANIFEST_FILE, readManifest } from '~/cli/commands/process-steps/pipeline-manifest'
 import { InfraError, ValidationError } from '~/utils/error-handler'
-import type { AudioProperties, TtsEntryMetadata, TtsRunJson } from '~/types'
+import type { AudioProperties, TtsEntryMetadata, TtsManifestMetadata } from '~/types'
 
 // ---------------------------------------------------------------------------
 // Types
 // ---------------------------------------------------------------------------
 
-// ---------------------------------------------------------------------------
-// Run JSON helpers
-// ---------------------------------------------------------------------------
-
-function readJson<T>(path: string): T {
-  return JSON.parse(readFileSync(path, "utf8")) as T;
-}
-
-export function loadTtsRunJson(runDir: string): TtsRunJson {
-  const runJson = readJson<TtsRunJson>(join(runDir, "run.json"));
-  if (runJson.kind !== "tts") {
-    throw ValidationError(`run.json kind is "${runJson.kind}", expected "tts"`, { stage: 'benchmark:tts-eval' });
+export async function loadTtsManifestMetadata(runDir: string): Promise<TtsManifestMetadata> {
+  const manifest = await readManifest(runDir);
+  const item = manifest?.items[0];
+  if (!manifest || manifest.command !== "tts" || manifest.scope !== "single" || !item) {
+    throw ValidationError(`Expected a single TTS ${PIPELINE_MANIFEST_FILE}`, { stage: 'benchmark:tts-eval' });
   }
-  if (!Array.isArray(runJson.metadata?.tts) || runJson.metadata.tts.length === 0) {
-    throw ValidationError("run.json metadata.tts is missing or empty", { stage: 'benchmark:tts-eval' });
+  const metadata = derivePipelineItemRecord(runDir, item);
+  if (!Array.isArray(metadata['tts']) || metadata['tts'].length === 0) {
+    throw ValidationError(`${PIPELINE_MANIFEST_FILE} item metadata.tts is missing or empty`, { stage: 'benchmark:tts-eval' });
   }
-  return runJson;
+  return metadata as unknown as TtsManifestMetadata;
 }
 
 export function makeProviderKey(service: string, model: string): string {

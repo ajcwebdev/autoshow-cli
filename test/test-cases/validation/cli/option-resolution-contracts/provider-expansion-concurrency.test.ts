@@ -1,5 +1,5 @@
 import { describe, expect, test } from 'bun:test'
-import { buildOptsFromFlags } from '~/cli/commands/process-steps/step-1-download/download-targets/build-opts-from-flags/build-options-from-flags'
+import { buildOptsFromFlags } from '~/cli/options/option-resolution/build-options-from-flags'
 import { buildExtractionCallOpts } from '~/cli/commands/process-steps/step-1-download/download-targets/single/document-write'
 import { collectExplicitOcrTargets } from '~/cli/commands/process-steps/step-2-extract/step-2-ocr/ocr-targets'
 import { collectSttTargets } from '~/cli/commands/process-steps/step-2-extract/step-2-stt/stt-targets'
@@ -126,7 +126,7 @@ describe('option resolution contracts', () => {
       const explicitShared = buildOptsFromFlags(false, {
         'provider-concurrency': String(DEFAULT_CLI_CONCURRENCY),
         'local-concurrency': String(DEFAULT_CLI_CONCURRENCY)
-      }, [], {}, new Set(['provider-concurrency', 'local-concurrency']))
+      }, {}, new Set(['provider-concurrency', 'local-concurrency']))
       const configuredSpecific = buildOptsFromFlags(false, {
         'provider-concurrency': String(DEFAULT_CLI_CONCURRENCY),
         'local-concurrency': String(DEFAULT_CLI_CONCURRENCY),
@@ -281,14 +281,13 @@ describe('option resolution contracts', () => {
       const genericProviderGrok = buildOptsFromFlags(
         false,
         normalizedGrokProvider.flags,
-        [],
         { defaultTtsEngine: 'kitten' },
         normalizedGrokProvider.explicitFlags
       )
       const explicitThirty = buildOptsFromFlags(false, {
         'grok-tts': 'grok-tts',
         'tts-chunk-concurrency': String(DEFAULT_TTS_CHUNK_CONCURRENCY)
-      }, [], {}, new Set(['tts-chunk-concurrency']))
+      }, {}, new Set(['tts-chunk-concurrency']))
       const configuredThirty = buildOptsFromFlags(false, {
         'grok-tts': 'grok-tts',
         'tts-chunk-concurrency': String(DEFAULT_TTS_CHUNK_CONCURRENCY),
@@ -398,11 +397,11 @@ describe('option resolution contracts', () => {
       expect(humeTtsDefault).toBe('octave-2')
       expect(cartesiaTtsDefault).toBe('sonic-3.5-2026-05-04')
       expect(opts.openaiModel).toBe(openaiDefault)
-      expect(opts.grokModel).toBe(grokDefault)
-      expect(opts.glmModel).toBe(glmDefault)
-      expect(opts.kimiModel).toBe(kimiDefault)
-      expect(opts.togetherModel).toBe(togetherDefault)
-      expect(opts.cerebrasModel).toBe(cerebrasDefault)
+      expect(grokDefault).toBe(opts.grokModel)
+      expect(glmDefault).toBe(opts.glmModel)
+      expect(kimiDefault).toBe(opts.kimiModel)
+      expect(togetherDefault).toBe(opts.togetherModel)
+      expect(cerebrasDefault).toBe(opts.cerebrasModel)
       expect(opts.deepgramSttModel).toBe(deepgramDefault)
       expect(opts.assemblyaiSttModel).toBe(assemblyaiDefault)
       expect(opts.gladiaSttModel).toBe(gladiaDefault)
@@ -453,7 +452,7 @@ describe('option resolution contracts', () => {
       const explicitVideoOpts = buildOptsFromFlags(false, {
         'all-video': true,
         'video-provider-concurrency': '3'
-      }, [], {}, new Set(['video-provider-concurrency']))
+      }, {}, new Set(['video-provider-concurrency']))
 
       expect(ocrOpts.ocrProviderConcurrency).toBe(DEFAULT_OCR_CONCURRENCY)
       expect(llmOpts.llmProviderConcurrency).toBe(DEFAULT_ALL_PROVIDER_CONCURRENCY)

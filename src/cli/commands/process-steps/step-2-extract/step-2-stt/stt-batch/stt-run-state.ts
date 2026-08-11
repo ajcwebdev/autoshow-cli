@@ -1,25 +1,20 @@
 import { isRecord } from '~/utils/rest-client'
-import { join } from 'node:path'
-import type { ExistingSttRun, Step2Metadata, ProviderCompletionStatus, SttProviderFailureSummary, SttProviderState, SttProviderSuccess, SttRecordedProviderError, SttRequestedProvider, SttTarget, TranscriptionResult } from '~/types'
+import type { ExistingSttRun, Step2Metadata, ProviderCompletionStatus, SttProviderFailureSummary, SttProviderState, SttProviderSuccess, SttRecordedProviderError, SttRequestedProvider, SttTarget } from '~/types'
 import { parseStep2RuntimeMetadata } from '../async-lifecycle'
 import { parseStoredStep2TimingMetadata } from '../stt-timing-metadata'
 import { getSttTargetDirectoryName, getSttTargetKey } from '../stt-targets'
-import { readSttRunManifestEntry } from '../stt-manifest'
-import { readProviderResultEntry } from '../../../manifest-utils'
+import { readSinglePipelineItemRecord } from '../../../pipeline-manifest'
 import { parseStoredTranscriptionResult } from '../stt-utils/stt-result-artifacts'
-import { AppError } from '~/utils/error-handler'
+import { CLIUsageError } from '~/utils/error-handler'
 import {
   buildRequestedProviderList,
   collectMissingProviderTargets,
-  inferStoredProviderCompletionStatus,
   parseStoredProviderArray,
   parseStoredProviderStateMap as parseStoredProviderStateEntries,
-  parseStoredSuccessfulProviderKeys,
   ProviderBatchCompletionError,
+  resolveRequestedProviderCompletionStatus,
   resolveProviderCompletionStatus
 } from '../../step-2-shared/provider-batch-state'
-
-const TRANSCRIPT_LINE_PATTERN = /^\[(\d{2}:\d{2}:\d{2}(?:[.,]\d{1,3})?)\]\s+(?:\[([^\]]+)\]\s+)?(.*)$/
 
 const STT_SERVICES = new Set<SttTarget['service']>([
   'whisper',
@@ -44,50 +39,6 @@ const STT_SERVICES = new Set<SttTarget['service']>([
 
 const isSttService = (value: unknown): value is SttTarget['service'] =>
   typeof value === 'string' && STT_SERVICES.has(value as SttTarget['service'])
-
-const parseTranscriptText = (text: string): TranscriptionResult => {
-  const segments: TranscriptionResult['segments'] = []
-  for (const rawLine of text.split('\n')) {
-    const line = rawLine.trim()
-    if (line.length === 0) {
-      continue
-    }
-
-    const match = line.match(TRANSCRIPT_LINE_PATTERN)
-    if (!match) {
-      continue
-    }
-
-    const segmentText = (match[3] ?? '').trim()
-    if (segmentText.length === 0) {
-      continue
-    }
-
-    segments.push({
-      start: match[1] as string,
-      end: match[1] as string,
-      text: segmentText,
-      ...(typeof match[2] === 'string' && match[2].trim().length > 0
-        ? { speaker: match[2].trim() }
-        : {})
-    })
-  }
-
-  if (segments.length === 0) {
-    const trimmed = text.trim()
-    return {
-      text: trimmed,
-      segments: trimmed.length > 0
-        ? [{ start: '00:00:00', end: '00:00:00', text: trimmed }]
-        : []
-    }
-  }
-
-  return {
-    text: segments.map((segment) => segment.text).join(' ').trim(),
-    segments
-  }
-}
 
 const parseStoredStep2Metadata = (value: unknown): Step2Metadata | undefined => {
   if (!isRecord(value) || !isSttService(value['transcriptionService']) || typeof value['transcriptionModel'] !== 'string') {
@@ -128,10 +79,9 @@ const parseStoredStep2Metadata = (value: unknown): Step2Metadata | undefined => 
       parsedBilling.totalCost = value['billing']['totalCost']
     }
     if (
-      value['billing']['source'] === 'response-header'
-      || value['billing']['source'] === 'fallback-estimate'
-      || value['billing']['source'] === 'provider_usage'
+      value['billing']['source'] === 'provider_usage'
       || value['billing']['source'] === 'provider_quote'
+      || value['billing']['source'] === 'response_header'
       || value['billing']['source'] === 'registry_fallback'
     ) {
       parsedBilling.source = value['billing']['source']
@@ -210,7 +160,7 @@ const parseStoredProviderState = (value: unknown): SttProviderState | undefined 
     return undefined
   }
 
-  if (value['status'] !== 'succeeded' && value['status'] !== 'missing' && value['status'] !== 'failed' && value['status'] !== 'skipped') {
+  if (value['status'] !== 'running' && value['status'] !== 'succeeded' && value['status'] !== 'missing' && value['status'] !== 'failed' && value['status'] !== 'skipped') {
     return undefined
   }
 
@@ -237,6 +187,8 @@ const parseStoredProviderState = (value: unknown): SttProviderState | undefined 
     artifactDir: value['artifactDir'],
     status: value['status'],
     attempts: value['attempts'],
+    ...(isRecord(value['metadata']) ? { metadata: value['metadata'] } : {}),
+    ...(isRecord(value['result']) ? { result: value['result'] } : {}),
     ...(lastError ? { lastError } : {})
   }
 }
@@ -245,16 +197,6 @@ const parseStoredProviderStateMap = (
   entry: Record<string, unknown>
 ): Map<string, SttProviderState> =>
   parseStoredProviderStateEntries(entry['providerStates'], parseStoredProviderState)
-
-const parseSuccessfulProviderKeys = (
-  entry: Record<string, unknown>
-): Set<string> =>
-  parseStoredSuccessfulProviderKeys(entry['step2'], (value) => {
-    if (!isRecord(value) || !isSttService(value['transcriptionService']) || typeof value['transcriptionModel'] !== 'string') {
-      return undefined
-    }
-    return { service: value['transcriptionService'], model: value['transcriptionModel'] }
-  })
 
 const isSkippedProviderState = (
   state: Pick<SttProviderState, 'status' | 'lastError'> | undefined
@@ -303,16 +245,13 @@ export const summarizeSttProviderStates = (
   return summary
 }
 
-export const inferStoredCompletionStatus = (
+export const resolveCanonicalCompletionStatus = (
   entry: Record<string, unknown>,
   requestedTargets: SttTarget[]
 ): ProviderCompletionStatus => {
-  const successKeys = parseSuccessfulProviderKeys(entry)
   const providerStates = parseStoredProviderStateMap(entry)
-  return inferStoredProviderCompletionStatus(
-    entry['completionStatus'],
+  return resolveRequestedProviderCompletionStatus(
     requestedTargets,
-    successKeys,
     providerStates,
     isSkippedProviderState
   )
@@ -322,13 +261,9 @@ export const buildMissingTargetsFromEntry = (
   entry: Record<string, unknown>,
   requestedTargets: SttTarget[]
 ): SttTarget[] => {
-  const explicitMissing = parseStoredProviderArray(entry['missingProviders'], parseStoredRequestedTarget)
   const providerStates = parseStoredProviderStateMap(entry)
-  const successKeys = parseSuccessfulProviderKeys(entry)
   return collectMissingProviderTargets(
-    explicitMissing,
     requestedTargets,
-    successKeys,
     providerStates,
     (_target, state) => state?.status !== 'succeeded' && !isSkippedProviderState(state)
   )
@@ -340,7 +275,7 @@ export const readExistingSttRun = async (
 ): Promise<ExistingSttRun> => {
   const providerStates = new Map<string, SttProviderState>()
   const successes: Array<SttProviderSuccess | undefined> = new Array(requestedTargets.length)
-  const raw = await readSttRunManifestEntry(outputDir)
+  const raw = await readSinglePipelineItemRecord(outputDir, { command: 'extract', extractRoute: 'media' })
   if (!isRecord(raw)) {
     return { successes, providerStates }
   }
@@ -352,54 +287,23 @@ export const readExistingSttRun = async (
 
   await Promise.all(requestedTargets.map(async (target, index) => {
     const key = getSttTargetKey(target)
-    const providerDir = join(outputDir, getSttProviderArtifactDir(target))
-    let providerResult = await readProviderResultEntry(providerDir)
-    let relativeDir = getSttProviderArtifactDir(target)
-    let transcriptPath = join(outputDir, getSttProviderArtifactDir(target), 'transcription.txt')
-    if (!providerResult && storedProviderStates.get(key)?.artifactDir === '.') {
-      providerResult = await readProviderResultEntry(outputDir)
-      relativeDir = '.'
-      transcriptPath = join(outputDir, 'transcription.txt')
-    }
-    if (!providerResult) {
+    const storedState = storedProviderStates.get(key)
+    if (storedState?.status !== 'succeeded') {
       return
     }
-    if (
-      providerResult.provider !== target.service
-      || (typeof providerResult.model === 'string' && providerResult.model !== target.model)
-    ) {
-      return
-    }
-
-    const metadata = parseStoredStep2Metadata(providerResult.metadata)
+    const metadata = parseStoredStep2Metadata(storedState.metadata)
     if (!metadata) {
-      return
+      throw CLIUsageError(`Canonical STT provider state ${target.service}/${target.model} is missing valid provider metadata.`)
     }
-
-    let result = parseStoredTranscriptionResult(providerResult.result)
+    const result = parseStoredTranscriptionResult(storedState.result)
     if (!result) {
-      let transcriptText: string
-      try {
-        transcriptText = await Bun.file(transcriptPath).text()
-      } catch (error) {
-        throw new AppError(`Failed to read stored STT transcript at ${transcriptPath}`, {
-          kind: 'infrastructure',
-          cause: error instanceof Error ? error : new Error(String(error)),
-          stage: 'transcript',
-          metadata: {
-            transcriptPath,
-            service: target.service,
-            model: target.model
-          }
-        })
-      }
-      result = parseTranscriptText(transcriptText)
+      throw CLIUsageError(`Canonical STT provider state ${target.service}/${target.model} is missing a valid result.`)
     }
     successes[index] = {
       target,
       metadata,
       result,
-      relativeDir
+      relativeDir: storedState.artifactDir
     }
   }))
 
@@ -431,7 +335,9 @@ export const buildProviderStates = <
         local: target.local,
         artifactDir: success.relativeDir ?? existing?.artifactDir ?? getSttProviderArtifactDir(target),
         status: 'succeeded',
-        attempts: existing?.attempts ?? 1
+        attempts: existing?.attempts ?? 1,
+        metadata: success.metadata,
+        result: success.result as unknown as Record<string, unknown>
       }
     }
 
@@ -443,6 +349,7 @@ export const buildProviderStates = <
         artifactDir: getSttProviderArtifactDir(target),
         status: failure.skipped === true ? 'skipped' : 'failed',
         attempts: existing?.attempts ?? 1,
+        ...(existing?.metadata ? { metadata: existing.metadata } : {}),
         lastError: toRecordedProviderError({
           message: failure.message,
           ...(failure.skipped === true ? { skipped: true } : {}),
@@ -462,6 +369,7 @@ export const buildProviderStates = <
       artifactDir: getSttProviderArtifactDir(target),
       status: existing?.status ?? 'missing',
       attempts: existing?.attempts ?? 0,
+      ...(existing?.metadata ? { metadata: existing.metadata } : {}),
       ...(existing?.lastError ? { lastError: existing.lastError } : {})
     }
   })

@@ -1,102 +1,105 @@
 import { mkdir } from 'node:fs/promises'
-import { join } from 'node:path'
-import type { BatchManifest, ProviderResult, RunManifest } from '~/types'
+import { basename, dirname, join } from 'node:path'
+import {
+  createManifest,
+  createManifestItem,
+  derivePipelineItemRecord,
+  PIPELINE_MANIFEST_FILE,
+  readManifest,
+  writeManifest,
+  writePipelineItemRecords
+} from '~/cli/commands/process-steps/pipeline-manifest'
+import type { ExtractRoute, PipelineManifest, PipelineManifestItem, PipelineProviderState, ProcessCommand } from '~/types'
 
 const isRecord = (value: unknown): value is Record<string, unknown> =>
   typeof value === 'object' && value !== null && !Array.isArray(value)
 
-const resolveArtifactPath = (pathOrDir: string, fileName: string): string =>
-  pathOrDir.endsWith(`/${fileName}`) ? pathOrDir : join(pathOrDir, fileName)
+const resolveRootDir = (pathOrDir: string): string =>
+  basename(pathOrDir) === PIPELINE_MANIFEST_FILE ? dirname(pathOrDir) : pathOrDir
 
-export const unwrapRunMetadataValue = (value: unknown): Record<string, unknown> | null => {
+export const unwrapCanonicalRecordValue = (value: unknown): Record<string, unknown> | null => {
   if (!isRecord(value)) {
     return null
   }
 
-  if (value['schemaVersion'] === 2 && typeof value['kind'] === 'string' && isRecord(value['metadata'])) {
-    return value['metadata']
+  const items = value['items']
+  if (
+    typeof value['command'] === 'string'
+    && (value['scope'] === 'single' || value['scope'] === 'batch')
+    && Array.isArray(items)
+    && items.length === 1
+    && isRecord(items[0])
+    && isRecord(items[0]['metadata'])
+  ) {
+    return items[0]['metadata']
   }
 
   return value
 }
 
-export const readRunManifest = async (pathOrDir: string): Promise<RunManifest> => {
-  const raw = await Bun.file(resolveArtifactPath(pathOrDir, 'run.json')).json() as unknown
-  if (!isRecord(raw) || raw['schemaVersion'] !== 2 || typeof raw['kind'] !== 'string' || !isRecord(raw['metadata'])) {
-    throw new Error(`Invalid run manifest at ${resolveArtifactPath(pathOrDir, 'run.json')}`)
+export const readCanonicalManifest = async (pathOrDir: string): Promise<PipelineManifest> => {
+  const rootDir = resolveRootDir(pathOrDir)
+  const manifest = await readManifest(rootDir)
+  if (!manifest) {
+    throw new Error(`Missing canonical manifest at ${join(rootDir, PIPELINE_MANIFEST_FILE)}`)
   }
-
-  return raw as RunManifest
+  return manifest
 }
 
-export const readRunMetadata = async (pathOrDir: string): Promise<Record<string, unknown>> =>
-  (await readRunManifest(pathOrDir)).metadata
+export const readCanonicalRecord = async (pathOrDir: string): Promise<Record<string, unknown>> => {
+  const rootDir = resolveRootDir(pathOrDir)
+  const manifest = await readCanonicalManifest(rootDir)
+  const item = manifest.scope === 'single' && manifest.items.length === 1
+    ? manifest.items[0]
+    : undefined
+  if (!item) {
+    throw new Error(`Expected one canonical manifest item at ${join(rootDir, PIPELINE_MANIFEST_FILE)}`)
+  }
+  return derivePipelineItemRecord(rootDir, item)
+}
 
-export const writeRunManifestFixture = async (
-  pathOrDir: string,
-  kind: RunManifest['kind'] | 'url',
-  metadata: Record<string, unknown>
+export const writeSingleManifestFixture = async (
+  rootDir: string,
+  command: ProcessCommand,
+  record: Record<string, unknown>,
+  options: { extractRoute?: ExtractRoute | undefined } = {}
 ): Promise<void> => {
-  const manifest = {
-    schemaVersion: 2,
-    kind,
-    metadata
-  }
-  await Bun.write(resolveArtifactPath(pathOrDir, 'run.json'), `${JSON.stringify(manifest, null, 2)}\n`)
+  await mkdir(rootDir, { recursive: true })
+  await writePipelineItemRecords(rootDir, command, 'single', [record], options)
 }
 
-export const readBatchManifest = async (pathOrDir: string): Promise<BatchManifest> => {
-  const raw = await Bun.file(resolveArtifactPath(pathOrDir, 'batch.json')).json() as unknown
-  if (!isRecord(raw) || raw['schemaVersion'] !== 2 || typeof raw['kind'] !== 'string' || !Array.isArray(raw['items'])) {
-    throw new Error(`Invalid batch manifest at ${resolveArtifactPath(pathOrDir, 'batch.json')}`)
-  }
-
-  return raw as BatchManifest
+export const readCanonicalItemRecords = async (pathOrDir: string): Promise<Record<string, unknown>[]> => {
+  const rootDir = resolveRootDir(pathOrDir)
+  return (await readCanonicalManifest(rootDir)).items.map((item) => derivePipelineItemRecord(rootDir, item))
 }
 
-export const readBatchItems = async (pathOrDir: string): Promise<Record<string, unknown>[]> =>
-  (await readBatchManifest(pathOrDir)).items
+export const readCanonicalSource = async (pathOrDir: string): Promise<Record<string, unknown> | undefined> =>
+  (await readCanonicalManifest(pathOrDir)).source
 
-export const readBatchSource = async (pathOrDir: string): Promise<Record<string, unknown> | undefined> => {
-  const manifest = await readBatchManifest(pathOrDir)
-  return isRecord(manifest.source) ? manifest.source : undefined
-}
+const resolveProviderResultPath = (pathOrDir: string): string =>
+  basename(pathOrDir) === 'result.json' ? pathOrDir : join(pathOrDir, 'result.json')
 
-export const readProviderResult = async (pathOrDir: string): Promise<ProviderResult> => {
-  const raw = await Bun.file(resolveArtifactPath(pathOrDir, 'result.json')).json() as unknown
-  if (
-    !isRecord(raw)
-    || raw['schemaVersion'] !== 2
-    || raw['kind'] !== 'provider-result'
-    || typeof raw['provider'] !== 'string'
-    || !isRecord(raw['metadata'])
-    || !isRecord(raw['result'])
-  ) {
-    throw new Error(`Invalid provider result at ${resolveArtifactPath(pathOrDir, 'result.json')}`)
+export const readProviderResultArtifact = async (pathOrDir: string): Promise<Record<string, unknown>> => {
+  const resultPath = resolveProviderResultPath(pathOrDir)
+  if (!await Bun.file(resultPath).exists()) {
+    throw new Error(`Missing provider result artifact at ${resultPath}`)
   }
-
-  return raw as ProviderResult
+  const result = await Bun.file(resultPath).json() as unknown
+  if (!isRecord(result)) {
+    throw new Error(`Invalid provider result artifact at ${resultPath}`)
+  }
+  return result
 }
 
 export const writeProviderResultFixture = async (
   pathOrDir: string,
-  provider: string,
-  model: string | undefined,
-  metadata: Record<string, unknown>,
   result: Record<string, unknown>
 ): Promise<void> => {
-  const envelope: ProviderResult = {
-    schemaVersion: 2,
-    kind: 'provider-result',
-    provider,
-    ...(model ? { model } : {}),
-    metadata,
-    result
-  }
-  await Bun.write(resolveArtifactPath(pathOrDir, 'result.json'), `${JSON.stringify(envelope, null, 2)}\n`)
+  await mkdir(pathOrDir, { recursive: true })
+  await Bun.write(resolveProviderResultPath(pathOrDir), `${JSON.stringify(result, null, 2)}\n`)
 }
 
-export type MultiProviderRunFixtureProvider = {
+export type MultiProviderManifestFixtureProvider = {
   dir: string
   provider: string
   model: string
@@ -106,22 +109,30 @@ export type MultiProviderRunFixtureProvider = {
   result: Record<string, unknown>
 }
 
-export type MultiProviderRunFixtureOptions = {
-  kind: RunManifest['kind'] | 'url'
+export type MultiProviderManifestFixtureOptions = {
+  command: ProcessCommand
+  extractRoute?: ExtractRoute | undefined
   metadata?: Record<string, unknown>
   providerMetadata?: Record<string, unknown>
-  providers: readonly MultiProviderRunFixtureProvider[]
+  providers: readonly MultiProviderManifestFixtureProvider[]
 }
 
-export const writeMultiProviderRunFixture = async (
-  runDir: string,
-  options: MultiProviderRunFixtureOptions
+export const writeMultiProviderManifestFixture = async (
+  rootDir: string,
+  options: MultiProviderManifestFixtureOptions
 ): Promise<void> => {
-  const providerStates = options.providers.map((provider) => ({
+  const providers = options.providers.map((provider): PipelineProviderState => ({
     service: provider.provider,
     model: provider.model,
     artifactDir: `providers/${provider.dir}`,
-    status: provider.status ?? 'succeeded'
+    status: provider.status ?? 'succeeded',
+    attempts: provider.status === 'missing' ? 0 : 1,
+    options: {},
+    metadata: {
+      ...(provider.processingTime === undefined ? {} : { processingTime: provider.processingTime }),
+      ...options.providerMetadata
+    },
+    result: provider.result
   }))
   const costSteps = options.providers.flatMap((provider) =>
     provider.cost === undefined
@@ -131,31 +142,29 @@ export const writeMultiProviderRunFixture = async (
   const timingSteps = options.providers.flatMap((provider) =>
     provider.processingTime === undefined
       ? []
-      : [{
-          provider: provider.provider,
-          model: provider.model,
-          processingTimeMs: provider.processingTime
-        }]
+      : [{ provider: provider.provider, model: provider.model, processingTimeMs: provider.processingTime }]
   )
+  const status: PipelineManifestItem['status'] = providers.every((provider) =>
+    provider.status === 'succeeded' || provider.status === 'skipped'
+  ) ? 'full' : 'incomplete'
 
-  await mkdir(runDir, { recursive: true })
-  await writeRunManifestFixture(runDir, options.kind, {
-    ...options.metadata,
-    providerStates,
-    cost: { actual: { steps: costSteps } },
-    timing: { actual: { steps: timingSteps } }
-  })
-  await Promise.all(options.providers.map(async (provider) => {
-    const providerDir = join(runDir, 'providers', provider.dir)
-    await mkdir(providerDir, { recursive: true })
-    await writeProviderResultFixture(
-      providerDir,
-      provider.provider,
-      provider.model,
-      {
-        ...(provider.processingTime === undefined ? {} : { processingTime: provider.processingTime }),
-        ...options.providerMetadata
+  await mkdir(rootDir, { recursive: true })
+  await writeManifest(rootDir, createManifest(options.command, 'single', [
+    createManifestItem(rootDir, {
+      ...(options.extractRoute ? { extractRoute: options.extractRoute } : {}),
+      status,
+      metadata: {
+        ...options.metadata,
+        cost: { actual: { steps: costSteps } },
+        timing: { actual: { steps: timingSteps } }
       },
+      providers
+    })
+  ]))
+
+  await Promise.all(options.providers.map(async (provider) => {
+    await writeProviderResultFixture(
+      join(rootDir, 'providers', provider.dir),
       provider.result
     )
   }))

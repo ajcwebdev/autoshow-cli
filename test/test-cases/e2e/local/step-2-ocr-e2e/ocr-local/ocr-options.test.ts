@@ -1,8 +1,10 @@
 import { test, expect, beforeAll, afterAll } from 'bun:test'
 import { readdir, rm } from 'node:fs/promises'
+import { join } from 'node:path'
 import { cleanupTestOutput, runCommand, fileExists, findLatestDirectory, ensurePageImageFixture } from '../../../../../test-utils/test-helpers'
-import { readRunManifest, readRunMetadata } from '../../../../../test-utils/manifest-helpers'
+import { readCanonicalManifest, readCanonicalRecord } from '../../../../../test-utils/manifest-helpers'
 import type { OcrE2eExtractMetadata } from '~/types'
+import { PIPELINE_MANIFEST_FILE } from '~/cli/commands/process-steps/pipeline-manifest'
 
 const pdfInput = 'input/examples/document/1-document.pdf'
 const multiPagePdfInput = 'input/examples/document/3-document.pdf'
@@ -40,12 +42,12 @@ test('extract PDF with default options', async () => {
 
   expect(await fileExists(`${outputDir}/extraction.txt`)).toBe(true)
   expect(await fileExists(`${outputDir}/result.json`)).toBe(false)
-  expect(await fileExists(`${outputDir}/run.json`)).toBe(true)
+  expect(await fileExists(`${outputDir}/${PIPELINE_MANIFEST_FILE}`)).toBe(true)
 
-  const manifest = await readRunManifest(outputDir)
-  const metadata = manifest.metadata as OcrE2eExtractMetadata
-  expect(manifest.kind).toBe('extract')
-  expect(manifest.metadata['extractRoute']).toBe('document')
+  const manifest = await readCanonicalManifest(outputDir)
+  const metadata = await readCanonicalRecord(outputDir) as OcrE2eExtractMetadata
+  expect(manifest.command).toBe('extract')
+  expect(manifest.items[0]?.extractRoute).toBe('document')
   expect(metadata.resolvedStep2).toMatchObject({
     route: 'ocr',
     sourceKind: 'pdf',
@@ -88,7 +90,7 @@ test('extract EPUB with default options writes cleaned text and chapter metadata
   expect(extractionText.startsWith('Page 1\n')).toBe(false)
   expect(extractionText).toContain('Chapter 1: Introduction to AutoShow')
 
-  const metadata = await readRunMetadata(outputDir) as OcrE2eExtractMetadata
+  const metadata = await readCanonicalRecord(outputDir) as OcrE2eExtractMetadata
   expect(metadata.step2?.extractionMethod).toBe('epub-text')
   expect(metadata.step2?.outputFidelity).toBe('cleaned-epub-text')
   expect(metadata.step2?.chapterExport).toMatchObject({
@@ -114,7 +116,7 @@ test('extract image with explicit --tesseract matches the default local OCR path
 
   const defaultOutputDir = requireOutputDir(defaultResult.outputDir ?? await findLatestDirectory('1-document', defaultResult.outputRoot), '1-document')
 
-  const defaultMetadata = await readRunMetadata(defaultOutputDir) as OcrE2eExtractMetadata
+  const defaultMetadata = await readCanonicalRecord(defaultOutputDir) as OcrE2eExtractMetadata
 
   await cleanupTestOutput('1-document')
 
@@ -125,7 +127,7 @@ test('extract image with explicit --tesseract matches the default local OCR path
 
   const explicitOutputDir = requireOutputDir(explicitResult.outputDir ?? await findLatestDirectory('1-document', explicitResult.outputRoot), '1-document')
 
-  const explicitMetadata = await readRunMetadata(explicitOutputDir) as OcrE2eExtractMetadata
+  const explicitMetadata = await readCanonicalRecord(explicitOutputDir) as OcrE2eExtractMetadata
   expect(defaultMetadata.step2?.extractionMethod).toBe('image+tesseract')
   expect(defaultMetadata.resolvedStep2).toMatchObject({
     route: 'ocr',
@@ -166,7 +168,7 @@ test('bun autoshow extract https://ajcwebdev.com --url-provider defuddle', async
 
     expect(await fileExists(`${outputDir}/extraction.txt`)).toBe(true)
 
-    const metadata = await readRunMetadata(outputDir) as OcrE2eExtractMetadata
+    const metadata = await readCanonicalRecord(outputDir) as OcrE2eExtractMetadata
     expect(metadata.step1?.format).toBe('html')
     expect(metadata.step2?.extractionMethod).toBe('html+defuddle')
     expect(metadata.resolvedStep2).toMatchObject({
@@ -182,19 +184,19 @@ test('bun autoshow extract https://ajcwebdev.com --url-provider defuddle', async
   }
 })
 
-test('extract EPUB with --epub-bun writes structured data into run.json only', async () => {
+test('extract EPUB with --epub-bun writes structured data into the canonical manifest only', async () => {
   await cleanupTestOutput('1-epub')
 
-  const result = await runCommand(['src/cli/create-cli.ts', 'extract', epubInput, '--epub-bun'], { testName: 'extract EPUB with --epub-bun writes structured data into run.json only' })
+  const result = await runCommand(['src/cli/create-cli.ts', 'extract', epubInput, '--epub-bun'], { testName: 'extract EPUB with --epub-bun writes structured data into the canonical manifest only' })
   expect(result.exitCode).toBe(0)
 
   const outputDir = requireOutputDir(result.outputDir ?? await findLatestDirectory('1-epub', result.outputRoot), '1-epub')
 
-  expect(await fileExists(`${outputDir}/run.json`)).toBe(true)
+  expect(await fileExists(join(outputDir, PIPELINE_MANIFEST_FILE))).toBe(true)
   expect(await fileExists(`${outputDir}/extraction.txt`)).toBe(false)
   expect(await fileExists(`${outputDir}/result.json`)).toBe(false)
 
-  const metadata = await readRunMetadata(outputDir) as OcrE2eExtractMetadata
+  const metadata = await readCanonicalRecord(outputDir) as OcrE2eExtractMetadata
   expect(metadata.step2?.extractionMethod).toBe('epub-bun')
   expect(typeof metadata.step2?.epub).toBe('object')
 })
@@ -207,7 +209,7 @@ test('extract EPUB with --epub-bun uses Bun EPUB reader', async () => {
 
   const outputDir = requireOutputDir(result.outputDir ?? await findLatestDirectory('1-epub', result.outputRoot), '1-epub')
 
-  const metadata = await readRunMetadata(outputDir) as OcrE2eExtractMetadata
+  const metadata = await readCanonicalRecord(outputDir) as OcrE2eExtractMetadata
   expect(metadata.step2?.extractionMethod).toBe('epub-bun')
   expect(typeof metadata.step2?.epub).toBe('object')
 })
@@ -224,7 +226,7 @@ test('extract EPUB writes chapter files by default and metadata summary', async 
   expect(chapterFiles.length).toBeGreaterThan(0)
   expect(await fileExists(`${outputDir}/chunks`)).toBe(false)
 
-  const metadata = await readRunMetadata(outputDir) as OcrE2eExtractMetadata
+  const metadata = await readCanonicalRecord(outputDir) as OcrE2eExtractMetadata
   expect(metadata.step2?.chapterExport?.sourceFormat).toBe('epub')
   expect(metadata.step2?.chapterExport?.mode).toBe('chapters')
   expect(metadata.step2?.chapterExport?.chunkLimitChars).toBe(5000)
@@ -248,7 +250,7 @@ test('extract EPUB with --no-chapters and --length writes chunk files and metada
   expect(chunkFiles.length).toBeGreaterThan(1)
   expect(await fileExists(`${outputDir}/chapters`)).toBe(false)
 
-  const metadata = await readRunMetadata(outputDir) as OcrE2eExtractMetadata
+  const metadata = await readCanonicalRecord(outputDir) as OcrE2eExtractMetadata
   expect(metadata.step2?.chapterExport?.sourceFormat).toBe('epub')
   expect(metadata.step2?.chapterExport?.mode).toBe('chunks')
   expect(metadata.step2?.chapterExport?.chunkLimitChars).toBe(1000)
@@ -266,7 +268,7 @@ test('extract PDF with --chapters writes chapter files and diagnostics', async (
   const chapterFiles = (await readdir(`${outputDir}/chapters`)).filter((name) => name.endsWith('.txt')).sort()
   expect(chapterFiles.length).toBeGreaterThan(0)
 
-  const metadata = await readRunMetadata(outputDir) as OcrE2eExtractMetadata
+  const metadata = await readCanonicalRecord(outputDir) as OcrE2eExtractMetadata
   expect(metadata.step2?.chapterExport?.sourceFormat).toBe('pdf')
   expect(metadata.step2?.chapterExport?.mode).toBe('chapters')
   expect(metadata.step2?.chapterExport?.directories).toEqual(['chapters'])
@@ -285,7 +287,7 @@ test('extract EPUB inspect mode ignores chapter export flags', async () => {
 
   expect(await fileExists(`${outputDir}/chapters`)).toBe(false)
 
-  const metadata = await readRunMetadata(outputDir) as OcrE2eExtractMetadata
+  const metadata = await readCanonicalRecord(outputDir) as OcrE2eExtractMetadata
   expect(metadata.step2?.extractionMethod).toBe('epub-bun')
   expect(metadata.step2?.chapterExport).toBeUndefined()
 })
@@ -300,7 +302,7 @@ test('extract non-EPUB-non-PDF ignores chapter export flags', async () => {
   const outputDir = requireOutputDir(result.outputDir ?? await findLatestDirectory('1-document', result.outputRoot), '1-document')
 
   expect(await fileExists(`${outputDir}/chapters`)).toBe(false)
-  const metadata = await readRunMetadata(outputDir) as OcrE2eExtractMetadata
+  const metadata = await readCanonicalRecord(outputDir) as OcrE2eExtractMetadata
   expect(metadata.step2?.chapterExport).toBeUndefined()
 })
 
@@ -318,6 +320,6 @@ test('extract non-EPUB with --epub-bun falls back to normal extraction flow', as
   const outputDir = requireOutputDir(result.outputDir ?? await findLatestDirectory('1-document', result.outputRoot), '1-document')
 
   expect(await fileExists(`${outputDir}/extraction.txt`)).toBe(true)
-  const metadata = await readRunMetadata(outputDir) as OcrE2eExtractMetadata
+  const metadata = await readCanonicalRecord(outputDir) as OcrE2eExtractMetadata
   expect(metadata.step2?.extractionMethod).not.toBe('epub-bun')
 })

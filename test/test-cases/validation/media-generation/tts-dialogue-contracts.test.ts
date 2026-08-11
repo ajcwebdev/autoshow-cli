@@ -1,5 +1,5 @@
 import { describe, expect, test } from 'bun:test'
-import { buildOptsFromFlags } from '~/cli/commands/process-steps/step-1-download/download-targets/build-opts-from-flags/build-options-from-flags'
+import { buildOptsFromFlags } from '~/cli/options/option-resolution/build-options-from-flags'
 import { runTts } from '~/cli/commands/process-steps/step-4-tts/run-tts'
 import { collectTtsTargets } from '~/cli/commands/process-steps/step-4-tts/tts-targets'
 import {

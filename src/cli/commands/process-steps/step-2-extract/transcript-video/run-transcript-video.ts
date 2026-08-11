@@ -1,7 +1,7 @@
 import { isRecord } from '~/utils/rest-client'
 import { copyFile, mkdir, readdir, rm } from 'node:fs/promises'
 import { dirname, extname, join, resolve } from 'node:path'
-import { readRunManifest, writeRunManifest } from '~/cli/commands/process-steps/manifest-utils'
+import { createManifest, createManifestItem, PIPELINE_MANIFEST_FILE, readManifest, writeManifest } from '~/cli/commands/process-steps/pipeline-manifest'
 import { resolveRunDirectory } from '~/cli/commands/process-steps/run-dir'
 import { getOutputRoot, getOutputRootAbsolute } from '~/cli/commands/process-steps/output-root'
 import { getAudioDuration } from '~/cli/commands/process-steps/step-2-extract/step-2-stt/stt-utils/audio-splitter'
@@ -9,7 +9,7 @@ import { parseStoredTranscriptionResult } from '~/cli/commands/process-steps/ste
 import { formatCaptionTimestamp, formatSrt, formatVtt, hmsPartsToSeconds } from '~/cli/commands/process-steps/step-7-music/lyrics-video/captions'
 import { TRANSCRIPT_CUE_LIMITS, buildTranscriptionCues } from '~/cli/commands/process-steps/step-7-music/lyrics-video/cue-builder'
 import { buildTranscriptAss, extractTitle, findMatchingImage, FIXED_RENDER_FPS, FIXED_RENDER_HEIGHT, FIXED_RENDER_WIDTH, formatSpeakerDisplayLabel, renderLyricsVideo, TRANSCRIPT_OVERLAY_TEXT_LAYOUT } from '~/cli/commands/process-steps/step-7-music/lyrics-video/render'
-import type { CaptionCue, LoadedTranscription, ProviderResult, RunManifest, TranscriptCue, TranscriptCueSource, TranscriptionResult, TranscriptVideoSource } from '~/types'
+import type { CaptionCue, LoadedTranscription, PipelineManifestItem, TranscriptCue, TranscriptCueSource, TranscriptionResult, TranscriptVideoSource } from '~/types'
 import { ensureDirectory, fileExists } from '~/utils/cli-utils'
 import { CLIUsageError, InfraError, ValidationError } from '~/utils/error-handler'
 import * as l from '~/utils/app-logger/app-logger'
@@ -311,28 +311,9 @@ const collectSpeakerInventory = (cues: TranscriptCue[]): string[] => {
   return speakers
 }
 
-const parseProviderResultFile = (value: unknown): Pick<ProviderResult, 'provider' | 'model' | 'result'> | undefined => {
-  if (
-    !isRecord(value)
-    || value['schemaVersion'] !== 2
-    || value['kind'] !== 'provider-result'
-    || typeof value['provider'] !== 'string'
-    || !isRecord(value['result'])
-  ) {
-    return undefined
-  }
-
-  return {
-    provider: value['provider'],
-    ...(typeof value['model'] === 'string' ? { model: value['model'] } : {}),
-    result: value['result']
-  }
-}
-
 const loadTranscriptionResultJson = async (resultPath: string): Promise<LoadedTranscription> => {
   const raw = await Bun.file(resultPath).json() as unknown
-  const envelope = parseProviderResultFile(raw)
-  const parsed = parseStoredTranscriptionResult(envelope?.result ?? raw)
+  const parsed = parseStoredTranscriptionResult(raw)
   if (!parsed) {
     throw ValidationError(`Transcript result file is not a supported STT result: ${toProjectDisplayPath(resultPath)}`, { stage: 'video:transcript' })
   }
@@ -340,9 +321,7 @@ const loadTranscriptionResultJson = async (resultPath: string): Promise<LoadedTr
   return {
     result: parsed,
     source: 'result-json',
-    sourcePath: resultPath,
-    ...(envelope?.provider ? { provider: envelope.provider } : {}),
-    ...(envelope?.model ? { model: envelope.model } : {})
+    sourcePath: resultPath
   }
 }
 
@@ -364,9 +343,9 @@ const loadTranscriptText = async (
 
 const resolveAudioFromExtractRun = async (
   runDir: string,
-  manifest: RunManifest
+  item: PipelineManifestItem
 ): Promise<string> => {
-  const step1 = isRecord(manifest.metadata['step1']) ? manifest.metadata['step1'] : undefined
+  const step1 = isRecord(item.metadata['step1']) ? item.metadata['step1'] : undefined
   const fileNames = [
     typeof step1?.['audioFileName'] === 'string' ? step1['audioFileName'] : undefined,
     typeof step1?.['mediaFileName'] === 'string' ? step1['mediaFileName'] : undefined
@@ -394,50 +373,27 @@ const resolveAudioFromExtractRun = async (
 
 const getProviderStateResultCandidates = async (
   runDir: string,
-  manifest: RunManifest
+  item: PipelineManifestItem
 ): Promise<string[]> => {
   const candidates: string[] = []
-  const providerStates = Array.isArray(manifest.metadata['providerStates'])
-    ? manifest.metadata['providerStates'].filter((value): value is Record<string, unknown> => isRecord(value))
-    : []
-
-  for (const state of providerStates) {
-    if (state['status'] !== 'succeeded' || typeof state['artifactDir'] !== 'string') {
+  for (const state of item.providers) {
+    if (state.status !== 'succeeded') {
       continue
     }
-    const candidate = join(runDir, state['artifactDir'], 'result.json')
+    const candidate = join(runDir, state.artifactDir, 'result.json')
     if (await fileExists(candidate)) {
       candidates.push(candidate)
     }
   }
 
-  const providersDir = join(runDir, 'providers')
-  if (await fileExists(providersDir)) {
-    const entries = await readdir(providersDir, { withFileTypes: true })
-    for (const entry of entries) {
-      if (!entry.isDirectory()) {
-        continue
-      }
-      const candidate = join(providersDir, entry.name, 'result.json')
-      if (await fileExists(candidate) && !candidates.includes(candidate)) {
-        candidates.push(candidate)
-      }
-    }
-  }
-
-  return candidates.sort()
+  return [...new Set(candidates)].sort()
 }
 
 const resolveResultFromExtractRun = async (
   runDir: string,
-  manifest: RunManifest
+  item: PipelineManifestItem
 ): Promise<string> => {
-  const rootResult = join(runDir, 'result.json')
-  if (await fileExists(rootResult)) {
-    return rootResult
-  }
-
-  const candidates = await getProviderStateResultCandidates(runDir, manifest)
+  const candidates = await getProviderStateResultCandidates(runDir, item)
   if (candidates.length === 1) {
     return candidates[0]!
   }
@@ -449,8 +405,8 @@ const resolveResultFromExtractRun = async (
   throw CLIUsageError(`No STT result.json found in ${toProjectDisplayPath(runDir)}. Pass --transcript-result or --transcript-text explicitly.`)
 }
 
-const resolveTitleFromExtractRun = (manifest: RunManifest, audioPath: string): string => {
-  const step1 = isRecord(manifest.metadata['step1']) ? manifest.metadata['step1'] : undefined
+const resolveTitleFromExtractRun = (item: PipelineManifestItem, audioPath: string): string => {
+  const step1 = isRecord(item.metadata['step1']) ? item.metadata['step1'] : undefined
   const title = typeof step1?.['title'] === 'string' && step1['title'].trim().length > 0
     ? step1['title'].trim()
     : undefined
@@ -462,8 +418,9 @@ const resolveExtractRunSource = async (
   flags: Record<string, unknown>
 ): Promise<TranscriptVideoSource> => {
   const runDir = resolveUserPath(inputPath)
-  const manifest = await readRunManifest(runDir, 'extract')
-  if (!manifest || manifest.metadata['extractRoute'] !== 'media') {
+  const manifest = await readManifest(runDir)
+  const item = manifest?.items[0]
+  if (!manifest || manifest.command !== 'extract' || manifest.scope !== 'single' || !item || item.extractRoute !== 'media') {
     throw CLIUsageError(`Transcript video input must be a media extract output directory: ${toProjectDisplayPath(runDir)}`)
   }
 
@@ -475,7 +432,7 @@ const resolveExtractRunSource = async (
   }
 
   const audioInput = audioFlag ? await materializeAudioInput(audioFlag) : undefined
-  const audioPath = audioInput?.audioPath ?? await resolveAudioFromExtractRun(runDir, manifest)
+  const audioPath = audioInput?.audioPath ?? await resolveAudioFromExtractRun(runDir, item)
   if (!await fileExists(audioPath)) {
     throw InfraError(`Audio file not found: ${toProjectDisplayPath(audioPath)}`, { stage: 'video:transcript' })
   }
@@ -491,14 +448,14 @@ const resolveExtractRunSource = async (
       audioPath,
       ...(audioInput?.audioDisplayPath ? { audioDisplayPath: audioInput.audioDisplayPath } : {}),
       transcription: loaded.transcription,
-      title: resolveTitleFromExtractRun(manifest, audioPath),
+      title: resolveTitleFromExtractRun(item, audioPath),
       label: baseStem(transcriptPath),
       extractRunDir: runDir,
       ...(audioInput ? { cleanup: audioInput.cleanup } : {})
     }
   }
 
-  const resultPath = resultFlag ? resolveUserPath(resultFlag) : await resolveResultFromExtractRun(runDir, manifest)
+  const resultPath = resultFlag ? resolveUserPath(resultFlag) : await resolveResultFromExtractRun(runDir, item)
   if (!await fileExists(resultPath)) {
     throw InfraError(`Transcript result file not found: ${toProjectDisplayPath(resultPath)}`, { stage: 'video:transcript' })
   }
@@ -507,7 +464,7 @@ const resolveExtractRunSource = async (
     audioPath,
     ...(audioInput?.audioDisplayPath ? { audioDisplayPath: audioInput.audioDisplayPath } : {}),
     transcription: await loadTranscriptionResultJson(resultPath),
-    title: resolveTitleFromExtractRun(manifest, audioPath),
+    title: resolveTitleFromExtractRun(item, audioPath),
     label: baseStem(audioPath),
     extractRunDir: runDir,
     ...(audioInput ? { cleanup: audioInput.cleanup } : {})
@@ -646,7 +603,7 @@ const processTranscriptVideoRun = async (
     await copyFile(renderedVideoPath, videoPath)
 
     const totalMs = Date.now() - startedAt
-    await writeRunManifest(options.outputDirAbsolute, 'video', {
+    const manifestMetadata = {
       mode: 'transcript-video',
       source: {
         audioPath: source.audioDisplayPath ?? toProjectDisplayPath(source.audioPath),
@@ -676,7 +633,7 @@ const processTranscriptVideoRun = async (
         video: videoFileName,
         vtt: vttFileName,
         srt: srtFileName,
-        run: 'run.json',
+        manifest: PIPELINE_MANIFEST_FILE,
         tempDirKept: options.keepTmp
       },
       timing: {
@@ -685,13 +642,16 @@ const processTranscriptVideoRun = async (
         captionsWriteMs,
         renderMs
       }
-    })
+    }
+    await writeManifest(options.outputDirAbsolute, createManifest('video', 'single', [
+      createManifestItem(options.outputDirAbsolute, { status: 'full', metadata: manifestMetadata })
+    ]))
 
     l.report.complete(options.outputDirRelative, {
       video: videoFileName,
       vtt: vttFileName,
       srt: srtFileName,
-      run: 'run.json'
+      manifest: PIPELINE_MANIFEST_FILE
     }, {
       metrics: {
         cueCount: cues.length,

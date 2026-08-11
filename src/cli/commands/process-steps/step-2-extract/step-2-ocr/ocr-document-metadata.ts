@@ -1,4 +1,4 @@
-import type { AggregatedPriceEstimate, ExtractionOptions, OcrMetadataOptions, ProcessDocumentOutput, ResolvedStep2Execution, Step1SourceRef } from '~/types'
+import type { AggregatedPriceEstimate, ExtractionMetadata, ExtractionOptions, OcrMetadataOptions, ProcessDocumentOutput, ResolvedStep2Execution, Step1SourceRef } from '~/types'
 import { computeActualCosts } from '~/utils/pricing/compute-actual-costs'
 import { computeActualProcessingTimes, computeEstimatedProcessingTimes } from '~/utils/pricing/compute-processing-time'
 import { serializeOneOrMany } from '../../target-runner'
@@ -62,15 +62,25 @@ export const toResolvedRequestedProviders = (
     : undefined
 
 export const buildSuccessfulResolvedProviderStates = (
-  resolvedProviders: Array<{ service: string, model: string }>
+  resolvedProviders: Array<{ service: string, model: string }>,
+  step2Metadata: ExtractionMetadata | ExtractionMetadata[],
+  result: ProcessDocumentOutput['result']
 ): Array<Record<string, unknown>> =>
-  resolvedProviders.map((provider) => ({
-    service: provider.service,
-    model: provider.model,
-    artifactDir: '.',
-    status: 'succeeded',
-    attempts: 1
-  }))
+  resolvedProviders.map((provider) => {
+    const entries = Array.isArray(step2Metadata) ? step2Metadata : [step2Metadata]
+    const metadata = entries.find((entry) =>
+      entry.ocrService === provider.service && entry.ocrModel === provider.model
+    ) ?? entries[0]
+    return {
+      service: provider.service,
+      model: provider.model,
+      artifactDir: '.',
+      status: 'succeeded',
+      attempts: 1,
+      result,
+      ...(metadata ? { metadata } : {})
+    }
+  })
 
 export const buildDocumentMetadataPayload = (
   step1Metadata: ProcessDocumentOutput['step1Metadata'],

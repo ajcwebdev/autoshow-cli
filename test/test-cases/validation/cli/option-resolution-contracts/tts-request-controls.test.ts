@@ -1,6 +1,6 @@
 import { describe, expect, test } from 'bun:test'
 import { basename } from 'node:path'
-import { buildOptsFromFlags } from '~/cli/commands/process-steps/step-1-download/download-targets/build-opts-from-flags/build-options-from-flags'
+import { buildOptsFromFlags } from '~/cli/options/option-resolution/build-options-from-flags'
 import { collectTtsTargets } from '~/cli/commands/process-steps/step-4-tts/tts-targets'
 import {
   getGroqDefaultTtsVoiceForModel,
@@ -21,6 +21,7 @@ import {
 } from '~/cli/commands/setup-and-utilities/models/setup-model-options'
 import { MISTRAL_DEFAULT_REF_AUDIO } from '~/cli/commands/setup-and-utilities/models/tts-models'
 import { formatModelSelector } from '~/cli/commands/setup-and-utilities/models/model-validation'
+import { assertNoVoiceIdentityWithDialogue } from '~/cli/flags/service-selector-normalization/generic-tts-option-selectors'
 
 const REMOVED_GROQ_TTS_MODEL = ['canopylabs/orpheus', 'arabic-saudi'].join('-')
 
@@ -80,6 +81,43 @@ describe('option resolution contracts', () => {
         'CHAT=https://ajc.pics/autoshow/examples/0-audio-short.mp3'
       ])
     })
+
+  test('dialogue voice-identity guard is derived for every generic target and only rejects explicit values', () => {
+    const dialogue = { ttsSpeakers: ['HOST=Jasper'] }
+
+    for (const target of [
+      'kitten-voice',
+      'groq-voice',
+      'grok-tts-voice',
+      'mistral-tts-voice',
+      'openai-voice',
+      'gemini-voice',
+      'deepgram-voice',
+      'speechify-voice',
+      'hume-tts-voice',
+      'cartesia-tts-voice',
+      'minimax-tts-voice',
+      'elevenlabs-voice'
+    ]) {
+      expect(() => assertNoVoiceIdentityWithDialogue(dialogue, new Set([target])))
+        .toThrow('--tts-voice cannot be combined with --tts-speaker/--tts-dialogue-format')
+    }
+
+    for (const target of [
+      'mistral-tts-ref-audio',
+      'speechify-tts-ref-audio',
+      'elevenlabs-tts-ref-audio',
+      'mistral-tts-voice-name',
+      'speechify-tts-voice-name',
+      'elevenlabs-tts-voice-name'
+    ]) {
+      expect(() => assertNoVoiceIdentityWithDialogue(dialogue, new Set([target])))
+        .toThrow('Voice identity options such as --tts-ref-audio and --tts-voice-name cannot be combined')
+    }
+
+    expect(() => assertNoVoiceIdentityWithDialogue(dialogue, new Set(['tts-speaker']))).not.toThrow()
+    expect(() => assertNoVoiceIdentityWithDialogue({ ttsSpeakers: undefined }, new Set(['kitten-voice']))).not.toThrow()
+  })
 
   test('buildOptsFromFlags maps and validates provider-specific TTS request controls', () => {
       const opts = buildOptsFromFlags(false, {

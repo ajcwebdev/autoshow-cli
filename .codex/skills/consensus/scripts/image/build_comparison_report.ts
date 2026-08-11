@@ -11,7 +11,7 @@ import {
   formatDimensions,
   formatFileSize,
   formatProcessingSeconds,
-  loadImageRunJson,
+  loadImageManifestRecord,
   makeProviderKey,
   probeImage,
 } from "./image_eval_lib.ts";
@@ -133,20 +133,20 @@ interface RankedProvider {
 }
 
 export async function buildReport(runDir: string) {
-  const runJson = loadImageRunJson(runDir);
+  const manifestRecord = loadImageManifestRecord(runDir);
   const warnings: string[] = [];
 
-  const { found, missing } = discoverImageFiles(runDir, runJson.metadata.image);
+  const { found, missing } = discoverImageFiles(runDir, manifestRecord.metadata.image);
   if (missing.length > 0) {
     warnings.push(`Missing image files: ${missing.join(", ")}`);
   }
 
-  const costLookup = buildCostLookup(runJson);
-  const timingLookup = buildTimingLookup(runJson);
+  const costLookup = buildCostLookup(manifestRecord);
+  const timingLookup = buildTimingLookup(manifestRecord);
 
   const providerData: Array<Omit<RankedProvider, "rank">> = [];
 
-  for (const entry of runJson.metadata.image) {
+  for (const entry of manifestRecord.metadata.image) {
     const providerKey = makeProviderKey(entry.imageService, entry.imageModel);
     const imagePaths = found.get(providerKey) ?? [];
 
@@ -295,7 +295,7 @@ export async function buildReport(runDir: string) {
 
 - Each provider in \`metadata.image[]\` was evaluated based on its image output.
 - Image dimensions were measured by probing file headers directly.
-- Cost and processing time were extracted from \`run.json\` metadata.
+- Cost and processing time were extracted from \`manifest.json\` metadata.
 ${methodDescription}
 
 ## Providers (${ranked.length})

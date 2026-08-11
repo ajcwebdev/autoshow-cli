@@ -1,5 +1,5 @@
 import type * as v from 'valibot'
-import type { AggregatedPriceEstimate, BatchChildRunContext, DeepgramResponse, DiarizationOptions, GladiaStatusResponse, ProviderCompletionStatus, ProviderErrorSummaryFields, ProviderIdentityBase, ProviderRunStateBase, ProviderSuccess, RetryClass, RuntimeOptions, SecondsTimedTextRangeBase, Step1Metadata, Step2Metadata, Step2RuntimeMetadata, TranscribeEngine, TranscriptionResult, VideoMetadata, YtDlpVideoInfo } from '~/types'
+import type { AggregatedPriceEstimate, BatchChildRunContext, DeepgramResponse, DiarizationOptions, GladiaStatusResponse, ProviderCompletionStatus, ProviderErrorSummaryFields, ProviderIdentityBase, ProviderRunStateBase, ProviderSuccess, RetryClass, SecondsTimedTextRangeBase, Step1Metadata, Step2Metadata, Step2RuntimeMetadata, SttExtractionOptions, TranscribeEngine, TranscriptionResult, VideoMetadata, YtDlpVideoInfo } from '~/types'
 import {
 RevJobSchema,
 RevTranscriptResponseSchema,
@@ -18,19 +18,6 @@ export type MistralSttPassController =
 export type TranscribeEngineCapabilities = {
   diarizationByDefault: boolean
   supportsSpeakerCountHint: boolean
-}
-
-export type SttBatchSummaryItem = {
-  url?: string | undefined
-  title?: string | undefined
-  publishedAt?: string | undefined
-  outputDir: string
-  completionStatus: 'full' | 'incomplete' | 'failed' | 'skipped'
-  transcriptionService?: string | undefined
-  transcriptionModel?: string | undefined
-  captionUsed: boolean
-  captionKind?: 'manual' | 'auto' | undefined
-  captionLanguage?: string | undefined
 }
 
 export type EmbeddedJson = {
@@ -137,7 +124,7 @@ export type PreparedSttMedia = {
 export type SttCompletionContextBase = {
   outputDir: string
   requestedTargets: SttTarget[]
-  options: RuntimeOptions
+  options: SttExtractionOptions
   preflightEstimate?: AggregatedPriceEstimate | undefined
   prepared: PreparedSttMedia
   acquisitionTimeMs: number
@@ -254,6 +241,8 @@ export type WhisperProgressLogContext = {
 export type AsyncSttLifecycleHooks = {
   onJobReady?: ((runtime: Step2RuntimeMetadata) => Promise<void> | void) | undefined
   withPollSlot?: (<T>(fn: () => Promise<T>) => Promise<T>) | undefined
+  readProgressMetadata?: ((progressKey: string) => Promise<Record<string, unknown> | undefined>) | undefined
+  writeProgressMetadata?: ((progressKey: string, metadata: Step2Metadata) => Promise<void>) | undefined
 }
 
 export type SttTargetOptions = {
@@ -303,8 +292,6 @@ export type OptionalSttHttpError<TStage extends string> = Error & {
 }
 
 export type SttTranscribeHttpError = RequiredSttHttpError<'transcribe'>
-
-export type SttUploadJobHttpError = RequiredSttHttpErrorWithRawResponse<'upload' | 'create' | 'poll'>
 
 export type SttStageHttpError = RequiredSttHttpErrorWithRawResponse<string>
 

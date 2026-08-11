@@ -6,6 +6,6 @@
   "structuredPreset": "shortSummary",
   "examples": {
     "json": "{\n  \"episodeDescription\": \"A concise one-sentence description of the transcript in 180 characters or fewer.\"\n}",
-    "markdown": "Format the output like so:\n\n    ## Episode Description\n\n    One sentence description encapsulating the content within roughly 180 characters."
+    "markdown": "    ## Episode Description\n\n    One sentence description encapsulating the content within roughly 180 characters."
   }
 }

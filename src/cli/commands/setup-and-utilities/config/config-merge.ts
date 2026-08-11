@@ -5,21 +5,28 @@ import {
   REPEATABLE_MODEL_FLAGS,
   collectRepeatableModelFlagOccurrences,
   normalizeModelFlagOccurrences,
-} from '~/cli/commands/process-steps/step-1-download/download-targets/build-opts-from-flags/build-options-from-flags'
+} from '~/cli/options/option-resolution/build-options-from-flags'
 import {
   getStep2ProviderConfigPathEntries,
   getStep2ProviderSelectionFlagNames
 } from '~/cli/commands/process-steps/step-2-extract/step-2-shared/provider-registry'
+import {
+  STANDALONE_IMAGE_PROVIDER_TARGETS,
+  STANDALONE_MUSIC_PROVIDER_TARGETS,
+  STANDALONE_TTS_PROVIDER_TARGETS,
+  STANDALONE_VIDEO_PROVIDER_TARGETS,
+  WRITE_LLM_PROVIDER_TARGETS
+} from '~/cli/flags/service-selector-normalization/provider-targets'
 
 const STT_PROVIDER_FLAGS = getStep2ProviderSelectionFlagNames('stt')
 const OCR_PROVIDER_FLAGS = getStep2ProviderSelectionFlagNames('ocr')
 const URL_PROVIDER_FLAGS = getStep2ProviderSelectionFlagNames('url')
 const URL_PROVIDER_DEFAULT_GROUP_FLAGS = [...URL_PROVIDER_FLAGS, 'all-url', 'all-local-url', 'all-providers', 'all-local'] as const
-const LLM_PROVIDER_FLAGS = ['llama', 'llamafile', 'openai', 'groq', 'gemini', 'anthropic', 'minimax', 'grok', 'glm', 'kimi', 'together', 'cerebras'] as const
-const TTS_PROVIDER_FLAGS = ['kitten-tts', 'elevenlabs-tts', 'minimax-tts', 'groq-tts', 'grok-tts', 'mistral-tts', 'openai-tts', 'gemini-tts', 'deepgram-tts', 'speechify-tts', 'hume-tts', 'cartesia-tts'] as const
-const IMAGE_PROVIDER_FLAGS = ['gemini-image', 'openai-image', 'grok-image', 'bfl-image', 'recraft-image', 'replicate-image', 'lumalabs-image', 'fal-image'] as const
-const VIDEO_PROVIDER_FLAGS = ['gemini-video', 'minimax-video', 'glm-video', 'grok-video', 'runway-video', 'ltx-video', 'replicate-video', 'lumalabs-video', 'fal-video'] as const
-const MUSIC_PROVIDER_FLAGS = ['elevenlabs-music', 'minimax-music', 'gemini-music'] as const
+const LLM_PROVIDER_FLAGS = Object.values(WRITE_LLM_PROVIDER_TARGETS)
+const TTS_PROVIDER_FLAGS = Object.values(STANDALONE_TTS_PROVIDER_TARGETS)
+const IMAGE_PROVIDER_FLAGS = Object.values(STANDALONE_IMAGE_PROVIDER_TARGETS)
+const VIDEO_PROVIDER_FLAGS = Object.values(STANDALONE_VIDEO_PROVIDER_TARGETS)
+const MUSIC_PROVIDER_FLAGS = Object.values(STANDALONE_MUSIC_PROVIDER_TARGETS)
 const REPEATABLE_CONFIG_MODEL_FLAG_SET = new Set<string>(REPEATABLE_MODEL_FLAGS)
 const CONFIG_INJECTED_FLAGS_KEY = '__autoshowConfigInjectedFlags'
 // Written by the passes after the main loop rather than through

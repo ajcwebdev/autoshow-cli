@@ -1,4 +1,5 @@
 import { mkdtemp, mkdir, rename, rm } from 'node:fs/promises'
+import { existsSync } from 'node:fs'
 import { dirname, join, relative } from 'node:path'
 import type { CharacterSketchCommandOptions, CharacterSketchView, ImageGenerationQuality, ImageGenerationSize } from '~/types'
 import { comicLog, err, formatCompactCost, formatDuration, suppressSharedPipelineLogs } from '../../comic-utils/comic-logger'
@@ -36,13 +37,22 @@ const buildPrompt = (
   view: CharacterSketchView,
   prompts: Awaited<ReturnType<typeof loadPromptsConfig>>['Character Sketch Prompts'],
   revisionNotes?: string,
+  generationInstructions?: string,
+  bootstrap = false,
 ): string => [
-  prompts.Prefix?.trim(),
-  prompts.Character.trim(),
+  generationInstructions
+    ? (bootstrap
+        ? 'Create a new reusable character reference from the written specification. Use the supplied image only as a visual-style reference; do not copy its subject, identity, anatomy, clothing, pose, or props.'
+        : 'Create a reusable character reference that preserves the supplied character identity while following the catalog rendering instructions.')
+    : prompts.Prefix?.trim(),
+  generationInstructions ? undefined : prompts.Character.trim(),
   `Character: ${name}\nNotes: ${description}`,
   revisionNotes ? `Revision notes: ${revisionNotes}` : undefined,
+  generationInstructions ? `Rendering instructions: ${generationInstructions.trim()}` : undefined,
   prompts[VIEW_PROMPT_KEYS[view]].trim(),
-  'Requirements:\n- Output black-and-white outline art only.\n- Use a plain white background.\n- Preserve identity, proportions, clothing silhouette, and distinctive features.\n- Show the full character clearly in frame.',
+  generationInstructions
+    ? 'Requirements:\n- Use a plain white or warm-white background with no setting.\n- Preserve the specified anatomy, proportions, clothing silhouette, palette, and distinctive features consistently across views.\n- Show the full character clearly in frame.\n- Do not add labels, captions, borders, inset images, extra figures, or alternate views.'
+    : 'Requirements:\n- Output black-and-white outline art only.\n- Use a plain white background.\n- Preserve identity, proportions, clothing silhouette, and distinctive features.\n- Show the full character clearly in frame.',
 ].filter(Boolean).join('\n\n')
 
 export type CharacterSketchCommandDependencies = {
@@ -70,10 +80,16 @@ export const characterSketchCommand = async (
   validateImageSizeForModels(size, [model])
 
   const current = options.revise ? await requireCurrentCharacterSketch(key, character) : null
+  const bootstrap = !existsSync(character.sourcePath)
+  if (bootstrap && options.revise) throw CLIUsageError(`Cannot revise character "${key}" before its first reference has been generated`)
+  if (bootstrap && !character.generationReferencePath) {
+    throw ValidationError(`Character "${key}" has no source image or generationReference`, { stage: 'comic:character-sketch' })
+  }
   const usesSingleReference = character.sourcePath === character.outlineSheetPath
   const referenceCount = options.revise && !usesSingleReference ? 2 : 1
   validateReferenceImageCount(model, referenceCount, `character-sketch ${options.revise ? 'revision' : 'generation'}`)
-  const sourceSha256 = await checksumFile(character.sourcePath)
+  const stableReferencePath = bootstrap ? character.generationReferencePath! : character.sourcePath
+  const stableReferenceSha256 = await checksumFile(stableReferencePath)
 
   const requestImage = dependencies.requestImage ?? createImage
   const writeImage = dependencies.writeImage ?? writeGeneratedImage
@@ -92,9 +108,9 @@ export const characterSketchCommand = async (
       const outputPath = getCharacterSketchImagePathForDirectory(temporaryDirectory, view)
       const references = options.revise && !usesSingleReference
         ? [character.sourcePath, character.outlineSheetPath]
-        : [character.sourcePath]
+        : [stableReferencePath]
       const requestStart = Date.now()
-      const response = await requestImage(buildPrompt(character.name, character.description, view, prompts, options.notes), references, model, size, quality)
+      const response = await requestImage(buildPrompt(character.name, character.description, view, prompts, options.notes, character.generationInstructions, bootstrap), references, model, size, quality)
       const duration = Date.now() - requestStart
       stats.totalDurationMs += duration
       await writeImage(outputPath, response.result.imageBase64, response.result.mimeType)
@@ -110,8 +126,8 @@ export const characterSketchCommand = async (
     const sheetSha256 = await checksumFile(stagedSheet)
 
     await withCharacterSketchManifestLock(async () => {
-      if (await checksumFile(character.sourcePath) !== sourceSha256) {
-        throw ValidationError(`The source image for "${key}" changed during generation; the new sheet was not registered.`, { stage: 'comic:character-sketch' })
+      if (await checksumFile(stableReferencePath) !== stableReferenceSha256 || (bootstrap && existsSync(character.sourcePath))) {
+        throw ValidationError(`The source or generation reference for "${key}" changed during generation; the new sheet was not registered.`, { stage: 'comic:character-sketch' })
       }
       if (options.revise) {
         const latest = await requireCurrentCharacterSketch(key, character)
@@ -128,7 +144,7 @@ export const characterSketchCommand = async (
         origin: options.revise ? 'revision' as const : 'generated' as const,
         sourceImage: character.image,
         outlineSheet: character.outlineSheet,
-        sourceSha256: usesSingleReference ? sheetSha256 : sourceSha256,
+        sourceSha256: usesSingleReference ? sheetSha256 : stableReferenceSha256,
         sheetSha256,
         model,
         createdAt: new Date().toISOString(),

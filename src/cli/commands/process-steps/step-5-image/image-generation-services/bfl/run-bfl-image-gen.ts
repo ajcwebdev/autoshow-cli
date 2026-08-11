@@ -71,7 +71,7 @@ export const getBflImageExtension = (format: string | undefined): string => {
 export const runBflImageGen = async (
   prompt: string,
   outputDir: string,
-  options: { model: BflImageModel, imageSize?: string | undefined, outputFormat?: string | undefined, inputs?: string[] | undefined, baseUrl?: string | undefined }
+  options: { model: BflImageModel, imageSize?: string | undefined, outputFormat?: string | undefined, inputs?: string[] | undefined }
 ): Promise<{ imagePaths: string[], metadata: Step5Metadata }> => {
   const apiKey = await ensureBflImageGenSetup()
   const dimensions = normalizeBflImageSize(options.imageSize)
@@ -108,7 +108,7 @@ export const runBflImageGen = async (
     intervalMs: POLL_INTERVAL_MS,
     deadlineMs: POLL_TIMEOUT_MS,
     create: {
-      url: `${getBflBaseUrl(options.baseUrl)}/v1/${encodeURIComponent(options.model)}`,
+      url: `${getBflBaseUrl()}/v1/${encodeURIComponent(options.model)}`,
       init: withImageProviderHeaders({
         method: 'POST',
         headers: { 'content-type': 'application/json' },

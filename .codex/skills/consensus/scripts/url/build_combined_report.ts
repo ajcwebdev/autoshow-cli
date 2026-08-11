@@ -8,6 +8,7 @@
 
 import { existsSync, readFileSync, writeFileSync } from "node:fs";
 import { basename, dirname, join, resolve } from "node:path";
+import { loadCanonicalRunRecord, PIPELINE_MANIFEST_FILE } from "../shared/pipeline_manifest";
 import {
   MISSING_DATA_POLICY,
   TIERING_METHOD_LINES,
@@ -95,14 +96,6 @@ interface SingleRunReport {
     longSequenceDistanceMethods?: string[];
   };
   notes?: string[];
-}
-
-interface RunJson {
-  metadata?: {
-    step1?: { title?: string };
-    source?: { url?: string };
-    web?: { title?: string; sourceUrl?: string; finalUrl?: string };
-  };
 }
 
 export interface UrlRunLeader {
@@ -242,8 +235,10 @@ export function discoverUrlCombinedRuns(rootDir: string): UrlCombinedRun[] {
   return discoverCombinedRuns(rootDir, "provider-comparison-report.json").map((discovered) => {
     const report = readJson<SingleRunReport>(discovered.reportPath);
     const actualRunDir = dirname(discovered.reportPath);
-    const runPath = join(actualRunDir, "run.json");
-    const runJson = existsSync(runPath) ? readJson<RunJson>(runPath) : null;
+    const manifestPath = join(actualRunDir, PIPELINE_MANIFEST_FILE);
+    const manifestMetadata = existsSync(manifestPath)
+      ? loadCanonicalRunRecord(actualRunDir, "extract", "article").metadata
+      : null;
     const providerCounts = {
       local: report.providerGroups?.local?.count ?? report.providerGroups?.local?.providers?.length ?? 0,
       service: report.providerGroups?.service?.count ?? report.providerGroups?.service?.providers?.length ?? 0,
@@ -260,14 +255,17 @@ export function discoverUrlCombinedRuns(rootDir: string): UrlCombinedRun[] {
       (count, group) => count + (report.rankingSurfaces?.[group]?.humanQuality?.length ?? 0),
       0,
     );
-    const sourceUrl = runJson?.metadata?.web?.sourceUrl ?? runJson?.metadata?.source?.url ?? null;
+    const web = manifestMetadata?.["web"] as { title?: string; sourceUrl?: string; finalUrl?: string } | undefined;
+    const source = manifestMetadata?.["source"] as { url?: string } | undefined;
+    const step1 = manifestMetadata?.["step1"] as { title?: string } | undefined;
+    const sourceUrl = web?.sourceUrl ?? source?.url ?? null;
     return {
       ...discovered,
       runDir: actualRunDir,
       providerCount: report.providerCount ?? providerRowCount,
-      articleTitle: runJson?.metadata?.web?.title ?? runJson?.metadata?.step1?.title ?? report.runName ?? basename(actualRunDir),
+      articleTitle: web?.title ?? step1?.title ?? report.runName ?? basename(actualRunDir),
       sourceUrl,
-      finalUrl: runJson?.metadata?.web?.finalUrl ?? sourceUrl,
+      finalUrl: web?.finalUrl ?? sourceUrl,
       providerCounts,
       providerRowCount,
       automatedQualityRowCount,
@@ -674,7 +672,7 @@ function buildMarkdown(
   const md: string[] = [
     "# Combined URL Provider Comparison Report",
     "",
-    "This report is generated exclusively from the committed `run.json` and `provider-comparison-report.json` artifacts. It does not rerun URL extraction providers or regenerate consensus extractions.",
+    "This report is generated exclusively from the committed `manifest.json` and `provider-comparison-report.json` artifacts. It does not rerun URL extraction providers or regenerate consensus extractions.",
     "",
     "## Source Inventory",
     "",

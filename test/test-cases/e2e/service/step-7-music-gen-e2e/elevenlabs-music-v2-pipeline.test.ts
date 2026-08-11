@@ -5,7 +5,7 @@ import {
   fileExists,
   findLatestDirectory,
 } from '../../../../test-utils/test-helpers'
-import { readRunMetadata } from '../../../../test-utils/manifest-helpers'
+import { readCanonicalRecord } from '../../../../test-utils/manifest-helpers'
 import { requireConfiguredEnvVar } from '../../../../test-utils/service-test-kit'
 
 budgetedTest('music-pipeline-elevenlabs-music_v2', 'write with elevenlabs music pipeline writes music artifacts and metadata', async () => {
@@ -25,7 +25,7 @@ budgetedTest('music-pipeline-elevenlabs-music_v2', 'write with elevenlabs music 
 
   expect(await fileExists(`${outputDir}/generated-music.mp3`)).toBe(true)
 
-  const metadata = await readRunMetadata(outputDir) as {
+  const metadata = await readCanonicalRecord(outputDir) as {
     step7?: { musicService?: string; musicModel?: string; lyricsSource?: string }
   }
   expect(metadata.step7?.musicService).toBe('elevenlabs')

@@ -2,7 +2,7 @@ import { resolve } from 'node:path'
 import type { RunTtsChunksOptions } from '~/types'
 import { exec } from '~/utils/cli-utils'
 import { getFfmpegBinary } from '~/utils/runtime-paths'
-import { InfraError, ValidationError } from '~/utils/error-handler'
+import { InfraError } from '~/utils/error-handler'
 import { createHostedTtsChunkScheduler, normalizeHostedTtsChunkConcurrency } from './hosted-tts-chunk-scheduler'
 
 export const splitTextIntoChunks = (text: string, maxChars: number): string[] => {
@@ -23,52 +23,6 @@ export const splitTextIntoChunks = (text: string, maxChars: number): string[] =>
       chunks.push(chunk)
     }
     remaining = remaining.slice(splitAt).trim()
-  }
-
-  if (remaining.length > 0) {
-    chunks.push(remaining)
-  }
-
-  return chunks
-}
-
-const utf8ByteLength = (value: string): number =>
-  Buffer.byteLength(value, 'utf8')
-
-export const splitTextIntoUtf8ByteChunks = (text: string, maxBytes: number): string[] => {
-  const chunks: string[] = []
-  let remaining = text.trim()
-
-  while (utf8ByteLength(remaining) > maxBytes) {
-    let best = ''
-    let bestIndex = 0
-    let current = ''
-    let currentBytes = 0
-
-    for (const char of remaining) {
-      const nextBytes = currentBytes + utf8ByteLength(char)
-      if (nextBytes > maxBytes) {
-        break
-      }
-
-      current += char
-      currentBytes = nextBytes
-      if (/\s/.test(char)) {
-        best = current.trim()
-        bestIndex = current.length
-      }
-    }
-
-    if (!best) {
-      best = current.trim()
-      bestIndex = current.length
-    }
-    if (!best) {
-      throw ValidationError(`Unable to split TTS input into ${maxBytes}-byte chunks.`, { stage: 'tts:audio-utils' })
-    }
-
-    chunks.push(best)
-    remaining = remaining.slice(bestIndex).trim()
   }
 
   if (remaining.length > 0) {

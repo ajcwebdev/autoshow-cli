@@ -1,4 +1,4 @@
-import type { BatchManifest, HumanLogTable, InputFamily, JsonObject, RunManifest, TimingEntryBase, TimingStepEntry } from '~/types'
+import type { HumanLogTable, InputFamily, JsonObject, TimingEntryBase, TimingStepEntry } from '~/types'
 export type WriteStepKind = TimingStepEntry['step']
 
 export type WriteManifestMetadata = JsonObject
@@ -88,11 +88,6 @@ export type ProviderIdentityBase<TService extends string = string, TModel extend
 
 export type ProviderIdentity = ProviderIdentityBase
 
-export type OptionalProviderModelIdentity<TProvider extends string = string, TModel extends string = string> = {
-  provider: TProvider
-  model?: TModel | undefined
-}
-
 export type TargetPoolKind = 'hosted' | 'local'
 
 export type TargetSchedulerConcurrency = {
@@ -119,10 +114,6 @@ export type ProcessCommandCapabilities = {
   supportsBatchSourceExpansion: boolean
   supportedInputFamilies?: readonly InputFamily[] | undefined
 }
-
-export type RunManifestKind = RunManifest['kind']
-export type BatchManifestKind = BatchManifest['kind']
-
 
 export type MediaGenerationStatus = {
   mediaType: 'tts' | 'image' | 'video' | 'music'

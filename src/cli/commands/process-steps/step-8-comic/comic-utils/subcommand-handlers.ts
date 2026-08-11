@@ -13,7 +13,7 @@ import {
   estimateGenerateImagesPrice,
   estimateLocationReferencePrice,
 } from './price-estimate'
-import { CLIUsageError, rethrowAsUsage } from '~/utils/error-handler'
+import { rethrowAsUsage } from '~/utils/error-handler'
 import { withCharacterCatalog } from './character-reference-config'
 import type { CliCommandHandler } from '~/types'
 
@@ -35,9 +35,6 @@ export const handleReferenceSketch: CliCommandHandler = async (ctx) => {
 
 export const handleDraftScenes: CliCommandHandler = async (ctx) => {
   const parsed = rethrowAsUsage(() => coerceAndValidateDraftScenes(ctx))
-  if (!parsed.scriptPath) {
-    throw CLIUsageError('Missing script path. Usage: bun autoshow comic draft-scenes <script-path>')
-  }
   const scriptPath = await resolveComicScriptReferenceOrUsage(parsed.scriptPath)
   const sceneSlug = resolveSceneSlug(scriptPath)
   const options = { ...parsed, scriptPath, sceneSlug }
@@ -47,9 +44,6 @@ export const handleDraftScenes: CliCommandHandler = async (ctx) => {
 
 export const handleGenerateImages: CliCommandHandler = async (ctx) => {
   const parsed = rethrowAsUsage(() => coerceAndValidateGenerateImages(ctx))
-  if (!parsed.scriptPath) {
-    throw CLIUsageError('Missing script path. Usage: bun autoshow comic generate-images <script-path>')
-  }
   const scriptPath = await resolveComicScriptReferenceOrUsage(parsed.scriptPath)
   const sceneSlug = resolveSceneSlug(scriptPath)
   const options = { ...parsed, scriptPath, sceneSlug }

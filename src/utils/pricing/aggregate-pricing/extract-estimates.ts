@@ -1,4 +1,4 @@
-import type { ExtractStepEstimate, HostedOcrEstimateHandler, HostedOcrPricingService, OcrCostEstimate, ResolvedStep2Execution, RuntimeOptions } from '~/types'
+import type { ExtractStepEstimate, HostedOcrEstimateHandler, HostedOcrPricingService, OcrCostEstimate, ResolvedStep2Execution } from '~/types'
 import { GEMINI_OCR_PRICE_NOTE, GLM_OCR_PRICE_NOTE, estimateAnthropicOcrCost, estimateDeepinfraOcrCost, estimateGeminiOcrCost, estimateGlmOcrCost, estimateGrokOcrCost, estimateKimiOcrCost, estimateMistralOcrCost, estimateOpenAIOcrCost, resolveExtractInputPageCountForPricing } from '~/cli/commands/process-steps/step-2-extract/step-2-ocr/ocr-utils/extract-pricing'
 import { getExtractEstimation } from '~/cli/commands/setup-and-utilities/models/model-loader'
 import { applyCostMultiplier } from '~/utils/pricing/cost-helpers'
@@ -110,7 +110,7 @@ const buildHostedExtractEstimate = (
 export const buildExtractEstimates = async (
   resolvedTarget: string,
   resolvedStep2: Extract<ResolvedStep2Execution, { route: 'ocr' }>,
-  opts: RuntimeOptions & { hostedOcrTokenProfilePath?: string | undefined }
+  opts: { hostedOcrTokenProfilePath?: string | undefined }
 ): Promise<ExtractStepEstimate[]> => {
   const estimates: ExtractStepEstimate[] = []
 

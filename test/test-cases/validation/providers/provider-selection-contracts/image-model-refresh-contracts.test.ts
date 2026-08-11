@@ -1,5 +1,5 @@
 import { describe, expect, test } from 'bun:test'
-import { buildOptsFromFlags } from '~/cli/commands/process-steps/step-1-download/download-targets/build-opts-from-flags/build-options-from-flags'
+import { buildOptsFromFlags } from '~/cli/options/option-resolution/build-options-from-flags'
 import { collectImageTargets } from '~/cli/commands/process-steps/step-5-image/image-generation-targets'
 import { estimateImageCosts } from '~/cli/commands/process-steps/step-5-image/image-utils/image-pricing'
 import { SUPPORTED_BFL_IMAGE_MODELS, SUPPORTED_FAL_IMAGE_MODELS, SUPPORTED_GEMINI_IMAGE_MODELS, SUPPORTED_REPLICATE_IMAGE_MODELS } from '~/cli/commands/setup-and-utilities/models/setup-model-options'

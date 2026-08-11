@@ -58,7 +58,7 @@ export const sttStageRequestWithRetryAfter = async <TSchema extends SttStageSche
         }
       },
       (error) => {
-        const decision = classifyFetchRetry(error, retryClass, { retryAbortOnConservative: true })
+        const decision = classifyFetchRetry(error, retryClass)
         if (decision.shouldRetry) {
           metrics?.onRetry?.(getAsyncSttErrorStatus(error))
         }

@@ -5,7 +5,7 @@ import { runTtsTargets } from '~/cli/commands/process-steps/step-4-tts/run-tts'
 import { computeActualCosts } from '~/utils/pricing/compute-actual-costs'
 import { computeActualProcessingTimes } from '~/utils/pricing/compute-processing-time'
 import { buildTtsEstimates } from '~/utils/pricing/aggregate-pricing/tts-estimates'
-import type { GenerationResumeConfig, RuntimeOptions, Step4Metadata, TtsTarget } from '~/types'
+import type { GenerationResumeConfig, Step4Metadata, TtsOptions, TtsTarget } from '~/types'
 
 const TTS_PROVIDER_FLAGS = [
   'all-tts',
@@ -48,14 +48,14 @@ export const ttsResumeConfig = {
   modelFields: TTS_MODEL_FIELDS,
   getSuccessKey: (entry: Step4Metadata) =>
     getGenerationTargetKey(entry.ttsService, entry.ttsModel),
-  collectTargets: (opts: RuntimeOptions) => collectTtsTargets(opts),
+  collectTargets: (opts: TtsOptions) => collectTtsTargets(opts),
   runMissingTargets: async (
     targets: TtsTarget[],
     input: string,
     outputDir: string,
-    opts: RuntimeOptions
+    opts: TtsOptions
   ) => await runTtsTargets(targets, input, outputDir, opts),
-  buildEstimates: async (opts: RuntimeOptions, input: string) =>
+  buildEstimates: async (opts: TtsOptions, input: string) =>
     await buildTtsEstimates(opts, input.length),
   priceAggregateOptions: (input: string) => ({
     ttsTimingCharacterCount: input.length,
@@ -70,4 +70,4 @@ export const ttsResumeConfig = {
     computeActualCosts({ step4: metadata, ttsCharacterCount: input.length }),
     computeActualProcessingTimes({ step4: metadata, ttsCharacterCount: input.length })
   )
-} satisfies GenerationResumeConfig<TtsTarget, Step4Metadata>
+} satisfies GenerationResumeConfig<TtsTarget, Step4Metadata, TtsOptions>

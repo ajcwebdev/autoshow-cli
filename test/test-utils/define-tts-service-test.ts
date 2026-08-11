@@ -14,7 +14,7 @@ import {
   requireConfiguredEnvVar,
   withOutputLifecycle
 } from './service-test-kit'
-import { readRunMetadata } from './manifest-helpers'
+import { readCanonicalRecord } from './manifest-helpers'
 import { l } from '~/utils/app-logger/app-logger'
 import type { TtsExtraArgs } from '~/types'
 
@@ -142,7 +142,7 @@ export const defineTTSServiceTest = ({
       const audioFile = Bun.file(`${outputDir}/speech.wav`)
       expect(audioFile.size).toBeGreaterThan(0)
 
-      const metadata = await readRunMetadata(outputDir) as {
+      const metadata = await readCanonicalRecord(outputDir) as {
         tts?: Array<{ ttsService?: string, ttsModel?: string, speaker?: string, audioFileName?: string }>
       }
       expect(metadata.tts?.[0]?.ttsService).toBe(ttsService)

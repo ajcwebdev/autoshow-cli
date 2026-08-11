@@ -1,4 +1,4 @@
-import { unwrapRunMetadataValue } from './manifest-helpers'
+import { unwrapCanonicalRecordValue } from './manifest-helpers'
 import type { OutputMetadataSummary } from '~/types'
 
 const isRecord = (value: unknown): value is Record<string, unknown> => {
@@ -67,7 +67,7 @@ const readTimingTotal = (
 }
 
 const summarizeOutputMetadataValue = (value: unknown): OutputMetadataSummary | null => {
-  const metadata = unwrapRunMetadataValue(value)
+  const metadata = unwrapCanonicalRecordValue(value)
   if (!metadata) {
     return null
   }

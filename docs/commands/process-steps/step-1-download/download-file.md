@@ -41,11 +41,11 @@ Use `--best-quality` for streaming sources when you want the best available vide
 
 **Supported image formats:** PNG, JPG, JPEG, TIF, TIFF, WebP, BMP, GIF
 
-Convertible ebook inputs (MOBI, AZW/AZW3, PRC, FB2, and LIT) are normalized to EPUB through Calibre during step 1. The source format and conversion chain are recorded in `run.json` under `step1`.
+Convertible ebook inputs (MOBI, AZW/AZW3, PRC, FB2, and LIT) are normalized to EPUB through Calibre during step 1. The source format and conversion chain are recorded under `items[].metadata.step1` in `manifest.json`.
 
 ACSM inputs are fulfilled locally before document metadata is collected. Run `bun autoshow setup --step calibre` to install document tooling and ACSM fulfillment support, or `bun autoshow setup --step acsm` to install only the ACSM wrapper/plugin runtime. Setup writes `calibre-acsm-fulfill` and `calibre-acsm-authorize` under `runtime/bin`; run `bun autoshow setup --step acsm-authorize` once before extracting real ACSM files. AutoShow does not automate DRM removal and does not use online ACSM converters.
 
-Step-1 metadata in `run.json` also includes `slug`, which is derived from the original filename without its final extension when available.
+Step-1 item metadata in `manifest.json` also includes `slug`, which is derived from the original filename without its final extension when available.
 
 ## Flags
 
@@ -101,24 +101,23 @@ bun autoshow download -- \
 ```text
 output/YYYY-MM-DD_HH-MM-SS-mmm_title/
   <audio>.mp3|.m4a|.ogg|.flac
-  run.json
+  manifest.json
 ```
 
-With `--best-quality`, streaming outputs may be merged as `.mkv`, `.mp4`, or `.webm`, depending on the source streams selected by `yt-dlp`. Direct media URLs and local media files keep their source extension. The `run.json` `step1` payload keeps `audioFileName` and `audioFileSize` for compatibility and also includes `mediaFileName`, `mediaFileSize`, and `mediaKind`.
+With `--best-quality`, streaming outputs may be merged as `.mkv`, `.mp4`, or `.webm`, depending on the source streams selected by `yt-dlp`. Direct media URLs and local media files keep their source extension. The `items[].metadata.step1` payload keeps `audioFileName` and `audioFileSize` and also includes `mediaFileName`, `mediaFileSize`, and `mediaKind`.
 
 **Document inputs**
 
 ```text
 output/YYYY-MM-DD_HH-MM-SS-mmm_title/
-  run.json
+  manifest.json
 ```
 
 **Batch inputs**
 
 ```text
 output/YYYY-MM-DD_HH-MM-SS-mmm_batch-label/
-  source.json
-  batch.json  # consolidated per-item run metadata payloads
+  manifest.json      # canonical batch source, items, metadata, and provider states
   YYYY-MM-DD-item/   # when the item has a content date
   item-slug/         # otherwise
     <artifacts for that item>
@@ -128,8 +127,7 @@ output/YYYY-MM-DD_HH-MM-SS-mmm_batch-label/
 
 ```text
 output/YYYY-MM-DD_HH-MM-SS-mmm_batch-label/
-  source.json
-  batch.json
+  manifest.json
   <episode-1>.mp3|.m4a|.ogg|.flac
   <episode-2>.mp3|.m4a|.ogg|.flac
 ```
@@ -138,11 +136,12 @@ With `--keep-original-media --flat-batch`, the same batch directory keeps the or
 
 ```text
 output/YYYY-MM-DD_HH-MM-SS-mmm_batch-label/
-  source.json
-  batch.json
+  manifest.json
   <episode-1>.mp3
   <episode-2>.mp3
 ```
+
+Batch source inventory is stored once in the manifest's optional top-level `source` object. Every item uses the canonical item shape with `status`, `metadata`, and `providers`; there is no companion batch control file.
 
 ## Examples
 

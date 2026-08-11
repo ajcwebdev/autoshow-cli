@@ -24,7 +24,7 @@ describe('video provider REST contracts', () => {
               generatedSamples: [{
                 video: {
                   encodedVideo: inlineVideo,
-                  mimeType: 'video/mp4'
+                  encoding: 'video/mp4'
                 }
               }]
             }

@@ -11,8 +11,10 @@ import type {
   StructuredRunResult
 } from '~/types'
 import { writeShowNoteArtifacts } from '~/cli/commands/process-steps/step-3-write/show-note-artifacts'
-import { buildOptsFromFlags } from '~/cli/commands/process-steps/step-1-download/download-targets/build-opts-from-flags/build-options-from-flags'
+import { buildOptsFromFlags } from '~/cli/options/option-resolution/build-options-from-flags'
 import { buildExpectedFilesList } from '~/cli/commands/process-steps/step-1-download/download-targets/expected-output'
+import { renderToPlainText } from '~/cli/commands/process-steps/step-3-write/structured-output/renderers'
+import { buildStructuredValidationFailureEnvelope } from '~/cli/commands/process-steps/step-3-write/structured-output/validation-failure'
 
 const buildStep3Metadata = (overrides: Partial<Step3Metadata> = {}): Step3Metadata => ({
   llmService: 'openai',
@@ -68,6 +70,32 @@ test('show notes preserve prompt frontmatter and include rendered output plus so
     expect(showNote).toContain('## Source\n\n```text\nFull source text\nwith all details.\n```')
     expect(showNote).not.toContain('Prompt instructions must not leak into show notes.')
     expect(showNote).not.toContain('[00:00:00] Prompt transcript copy')
+  } finally {
+    await rm(tempDir, { recursive: true, force: true })
+  }
+})
+
+test('show notes preserve marked structured validation failures', async () => {
+  const tempDir = await mkdtemp(join(tmpdir(), 'autoshow-show-note-validation-failure-'))
+  try {
+    const outputDir = join(tempDir, 'out')
+    await mkdir(outputDir, { recursive: true })
+    await writePrompt(outputDir)
+    const failure = buildStructuredValidationFailureEnvelope('unparseable provider output', 'Response was not valid JSON')
+
+    await writeShowNoteArtifacts({
+      outputDir,
+      results: [{
+        metadata: buildStep3Metadata({ validationFailed: true }),
+        renderedText: renderToPlainText(failure, ['content']),
+        parsedJson: failure
+      }],
+      sourceText: 'source'
+    })
+
+    const showNote = await Bun.file(join(outputDir, 'show-note.md')).text()
+    expect(showNote).toContain('## Structured Validation Error\n\nResponse was not valid JSON')
+    expect(showNote).toContain('## Raw Output\n\n```text\nunparseable provider output\n```')
   } finally {
     await rm(tempDir, { recursive: true, force: true })
   }

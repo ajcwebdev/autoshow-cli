@@ -1,4 +1,5 @@
 import type { CostSource, EstimatedCostBreakdown, ExtractionMetadata, ManifestLogActualCostBreakdown, ManifestLogCostEntryLike, PartialExtractionMetadata, Step2Metadata, Step3Metadata, Step4Metadata, Step5Metadata, Step6VideoMetadata, Step7MusicMetadata, TimingEntryLike, WriteManifestMetadata, WriteStepKind } from '~/types'
+import { isCostSource } from '~/types'
 import { isRecord } from '~/utils/rest-client'
 import { buildMatchKey } from './manifest-log-formatting'
 
@@ -67,23 +68,12 @@ const isTimingEntry = (value: unknown): value is TimingEntryLike =>
   && typeof value['model'] === 'string'
   && typeof value['processingTimeMs'] === 'number'
 
-const COST_SOURCES = new Set<CostSource>([
-  'provider_usage',
-  'provider_quote',
-  'response_header',
-  'computed_usage',
-  'registry_fallback',
-  'partial_provider_usage',
-  'heuristic',
-  'local_zero'
-])
-
 // Manifests written by this CLI always record one of the known vocabulary values.
 // Anything else is left unset so the summary renders an empty source rather than
 // asserting a cost provenance the manifest never claimed.
 const readManifestCostSource = (value: unknown): CostSource | undefined =>
-  typeof value === 'string' && COST_SOURCES.has(value as CostSource)
-    ? value as CostSource
+  isCostSource(value)
+    ? value
     : undefined
 
 export const toArray = <T,>(value: unknown, guard: (candidate: unknown) => candidate is T): T[] => {

@@ -1,5 +1,5 @@
-import { join, relative, resolve as resolvePath } from 'node:path'
-import type { AggregatedPriceEstimate, BatchManifestEntry, ExtractBatchManifest, ExtractRoute, ExtractRouteResumeHandler, OcrTarget, ResumeHandler, ResumeResult, ResumeTarget, ResumeTargetKind, RuntimeOptions, StepEstimate, SttTarget, UrlArticleTarget } from '~/types'
+import { join } from 'node:path'
+import type { AggregatedPriceEstimate, ExtractRoute, ExtractRouteResumeHandler, OcrExtractionOptions, OcrTarget, PipelineManifest, PipelineManifestChildLink, ResumeHandler, ResumeResult, ResumeTarget, SttExtractionOptions, StepEstimate, SttTarget, UrlArticleTarget, UrlExtractionOptions } from '~/types'
 import { collectExplicitOcrTargets } from '~/cli/commands/process-steps/step-2-extract/step-2-ocr/ocr-targets'
 import { collectSttTargets } from '~/cli/commands/process-steps/step-2-extract/step-2-stt/stt-targets'
 import { hasResumableOcrTargetWork, priceOcrTarget, resumeOcrTarget } from './extract/ocr-resume'
@@ -11,17 +11,9 @@ import { videoResumeConfig } from './generation/video-resume'
 import { musicResumeConfig } from './generation/music-resume'
 import { buildGenerationResumeHandler } from './generation-resume'
 import { writeResumeConfig } from './write/write-resume'
-import { readBatchManifest, readExtractBatchManifest, writeExtractBatchManifest } from '~/cli/commands/process-steps/manifest-utils'
+import { PIPELINE_MANIFEST_FILE, readManifest, resolveManifestRelativePath, toManifestRelativePath, writeManifest } from '~/cli/commands/process-steps/pipeline-manifest'
 import { aggregateExplicitPriceEstimate } from '~/utils/pricing/aggregate-pricing'
-
-// The `ExtractRoute` value resume overloads to mean "URL article" (ADR-002 findings
-// 2-3): the producer reserves `'x-space'` for the `x_space` input family, while resume
-// keys `urlArticleResumeHandler` off it and infers it for all-`html_article` batches.
-// The name is local; the string is persisted, so renaming this constant is free and
-// changing its value is not (see `ExtractRoute`). The route-set validators
-// (`isExtractRoute` in `resume-dispatch.ts` and `manifest-utils.ts`) keep the bare
-// literal on purpose — they test the persisted route set, not this overload.
-export const URL_ARTICLE_ROUTE = 'x-space' as const
+import { CLIUsageError } from '~/utils/error-handler'
 
 const EXPLICIT_STEP2_SELECTION_FILTER = {
   includeOrigins: ['explicit', 'all-shortcut']
@@ -33,6 +25,8 @@ const EMPTY_RESUME_RESULT: ResumeResult = {
   failed: 0
 }
 
+type ExtractResumeOptions = SttExtractionOptions & OcrExtractionOptions & UrlExtractionOptions
+
 const addResumeResult = (
   totals: ResumeResult,
   result: ResumeResult
@@ -43,25 +37,25 @@ const addResumeResult = (
 })
 
 const getSelectedSttTargets = (
-  opts: RuntimeOptions
+  opts: SttExtractionOptions
 ): SttTarget[] | undefined => {
   const targets = collectSttTargets(opts, EXPLICIT_STEP2_SELECTION_FILTER)
   return targets.length > 0 ? targets : undefined
 }
 
 const getSelectedOcrTargets = (
-  opts: RuntimeOptions
+  opts: OcrExtractionOptions
 ): OcrTarget[] | undefined => {
   const targets = collectExplicitOcrTargets(opts, EXPLICIT_STEP2_SELECTION_FILTER)
   return targets.length > 0 ? targets : undefined
 }
 
 const getSelectedUrlTargets = (
-  opts: RuntimeOptions
+  opts: UrlExtractionOptions
 ): UrlArticleTarget[] | undefined => collectSelectedUrlTargets(opts)
 
 const resolveExtractChildTargets = (
-  opts: RuntimeOptions
+  opts: ExtractResumeOptions
 ): {
   sttTargets?: SttTarget[] | undefined
   ocrTargets?: OcrTarget[] | undefined
@@ -88,83 +82,174 @@ const resolveExtractChildTargets = (
   }
 }
 
+const invalidExtractParentManifest = (
+  parentDir: string,
+  detail: string
+): Error =>
+  CLIUsageError(`Invalid canonical extract parent manifest at ${join(parentDir, PIPELINE_MANIFEST_FILE)}: ${detail}`)
+
 const buildChildResumeTarget = (
   parentDir: string,
-  route: ExtractRoute,
-  relativeDir?: string | undefined
-): ResumeTarget | undefined => {
-  const childDir = resolvePath(parentDir, relativeDir ?? route)
+  child: PipelineManifestChildLink
+): ResumeTarget => {
+  const childDir = resolveManifestRelativePath(parentDir, child.manifestDir)
+  if (toManifestRelativePath(parentDir, childDir) === '.') {
+    throw invalidExtractParentManifest(parentDir, 'a child manifest cannot point to the parent directory')
+  }
   return {
     kind: 'extract',
-    extractRoute: route,
+    extractRoute: child.route,
     scope: 'batch',
     dir: childDir,
-    manifestPath: join(childDir, 'batch.json')
+    manifestPath: join(childDir, PIPELINE_MANIFEST_FILE)
   }
 }
 
-const isCompletionStatus = (
-  value: unknown
-): value is ExtractBatchManifest['items'][number]['completionStatus'] =>
-  value === 'full' || value === 'incomplete' || value === 'failed' || value === 'skipped'
-
-const toRelativeOutputDir = (
-  parentDir: string,
-  outputDir: unknown
-): string | undefined => {
-  if (typeof outputDir !== 'string' || outputDir.length === 0) {
+const readExtractManifest = async (
+  target: ResumeTarget
+): Promise<PipelineManifest | undefined> => {
+  const manifest = await readManifest(target.dir)
+  if (!manifest) {
     return undefined
   }
-
-  const relativePath = relative(parentDir, outputDir)
-  return relativePath.length > 0 ? relativePath : '.'
+  if (manifest.command !== 'extract' || manifest.scope !== target.scope) {
+    throw CLIUsageError(`Invalid extract manifest at ${target.manifestPath}.`)
+  }
+  return manifest
 }
 
-const syncExtractBatchManifest = async (
-  parentDir: string,
-  manifest: ExtractBatchManifest
-): Promise<void> => {
-  const nextItems = manifest.items.map((item) => ({ ...item }))
+const isExtractParentManifest = (
+  manifest: PipelineManifest
+): boolean => manifest.items.some((item) => item.child !== undefined)
 
-  for (const route of ['media', 'document', URL_ARTICLE_ROUTE] as const) {
-    const childRelativeDir = manifest.childBatches[route]
-    if (typeof childRelativeDir !== 'string' || childRelativeDir.length === 0) {
+const assertLinkedChildItem = (
+  parentDir: string,
+  child: PipelineManifestChildLink,
+  manifest: PipelineManifest
+): void => {
+  const childItem = manifest.items[child.index]
+  if (!childItem) {
+    throw invalidExtractParentManifest(parentDir, `child ${child.manifestDir} has no item ${child.index}`)
+  }
+  if (childItem.extractRoute !== child.route) {
+    throw invalidExtractParentManifest(parentDir, `child ${child.manifestDir} item ${child.index} has route ${childItem.extractRoute ?? 'missing'}, expected ${child.route}`)
+  }
+}
+
+const readExtractChildManifest = async (
+  parentDir: string,
+  child: PipelineManifestChildLink
+): Promise<{ target: ResumeTarget, manifest: PipelineManifest }> => {
+  const target = buildChildResumeTarget(parentDir, child)
+  const manifest = await readManifest(target.dir)
+  if (!manifest) {
+    throw invalidExtractParentManifest(parentDir, `missing child manifest ${child.manifestDir}/${PIPELINE_MANIFEST_FILE}`)
+  }
+  if (manifest.command !== 'extract' || manifest.scope !== 'batch') {
+    throw invalidExtractParentManifest(parentDir, `child ${child.manifestDir} is not an extract batch`)
+  }
+  assertLinkedChildItem(parentDir, child, manifest)
+  return { target, manifest }
+}
+
+const resolveExtractChildResumeTargets = async (
+  parentDir: string,
+  manifest: PipelineManifest
+): Promise<Partial<Record<ExtractRoute, ResumeTarget>>> => {
+  if (manifest.command !== 'extract' || manifest.scope !== 'batch') {
+    throw invalidExtractParentManifest(parentDir, 'parent must be an extract batch')
+  }
+  const targets: Partial<Record<ExtractRoute, ResumeTarget>> = {}
+  const manifestDirs: Partial<Record<ExtractRoute, string>> = {}
+  const routesByManifestDir = new Map<string, ExtractRoute>()
+  const childManifests = new Map<string, PipelineManifest>()
+  const linkedIndexesByManifestDir = new Map<string, Set<number>>()
+
+  for (const item of manifest.items) {
+    const child = item.child
+    if (!child) {
+      if (item.status !== 'skipped' && item.extractRoute !== undefined) {
+        throw invalidExtractParentManifest(parentDir, `non-skipped ${item.extractRoute} item is missing its child link`)
+      }
+      continue
+    }
+    if (item.extractRoute !== child.route) {
+      throw invalidExtractParentManifest(parentDir, `item route ${item.extractRoute ?? 'missing'} does not match child route ${child.route}`)
+    }
+    const target = buildChildResumeTarget(parentDir, child)
+    if (manifestDirs[child.route] !== undefined && manifestDirs[child.route] !== target.dir) {
+      throw invalidExtractParentManifest(parentDir, `route ${child.route} points to multiple child manifests`)
+    }
+    const existingRoute = routesByManifestDir.get(target.dir)
+    if (existingRoute !== undefined && existingRoute !== child.route) {
+      throw invalidExtractParentManifest(parentDir, `child ${child.manifestDir} is linked as both ${existingRoute} and ${child.route}`)
+    }
+    const linkedIndexes = linkedIndexesByManifestDir.get(target.dir) ?? new Set<number>()
+    if (linkedIndexes.has(child.index)) {
+      throw invalidExtractParentManifest(parentDir, `child ${child.manifestDir} item ${child.index} is linked more than once`)
+    }
+    linkedIndexes.add(child.index)
+    linkedIndexesByManifestDir.set(target.dir, linkedIndexes)
+    let childManifest = childManifests.get(target.dir)
+    if (!childManifest) {
+      childManifest = (await readExtractChildManifest(parentDir, child)).manifest
+      childManifests.set(target.dir, childManifest)
+    } else {
+      assertLinkedChildItem(parentDir, child, childManifest)
+    }
+    manifestDirs[child.route] = target.dir
+    routesByManifestDir.set(target.dir, child.route)
+    targets[child.route] = target
+  }
+
+  return targets
+}
+
+const syncExtractParentManifest = async (
+  parentDir: string,
+  manifest: PipelineManifest
+): Promise<void> => {
+  const childManifests = new Map<string, PipelineManifest>()
+  const nextItems: PipelineManifest['items'] = []
+  for (const item of manifest.items) {
+    const child = item.child
+    if (!child) {
+      nextItems.push({ ...item })
       continue
     }
 
-    const childDir = resolvePath(parentDir, childRelativeDir)
-    const childManifest = await readBatchManifest(childDir, 'extract')
-    const childEntries = childManifest?.manifest.items ?? []
-
-    nextItems.forEach((item, index) => {
-      if (item.childBatchEntry?.route !== route) {
-        return
-      }
-
-      const childEntry = childEntries[item.childBatchEntry.index] as BatchManifestEntry | undefined
-      if (!childEntry) {
-        return
-      }
-
-      const outputDir = toRelativeOutputDir(parentDir, childEntry['outputDir'])
-      nextItems[index] = {
-        ...item,
-        completionStatus: isCompletionStatus(childEntry['completionStatus'])
-          ? childEntry['completionStatus']
-          : item.completionStatus,
-        ...(typeof childEntry['skipReason'] === 'string' ? { skipReason: childEntry['skipReason'] } : {}),
-        ...(outputDir ? { outputDir } : {})
-      }
-    })
+    const childTarget = buildChildResumeTarget(parentDir, child)
+    let childManifest = childManifests.get(childTarget.dir)
+    if (!childManifest) {
+      childManifest = (await readExtractChildManifest(parentDir, child)).manifest
+      childManifests.set(childTarget.dir, childManifest)
+    } else {
+      assertLinkedChildItem(parentDir, child, childManifest)
+    }
+    const childItem = childManifest.items[child.index]
+    if (!childItem) {
+      throw invalidExtractParentManifest(parentDir, `child ${child.manifestDir} has no item ${child.index}`)
+    }
+    const nextItem = {
+      ...item,
+      status: childItem.status
+    }
+    if (childItem.outputDir === undefined) {
+      delete nextItem.outputDir
+    } else {
+      const childDir = resolveManifestRelativePath(parentDir, child.manifestDir)
+      nextItem.outputDir = toManifestRelativePath(parentDir, resolveManifestRelativePath(childDir, childItem.outputDir))
+    }
+    nextItems.push(nextItem)
   }
 
-  await writeExtractBatchManifest(parentDir, {
+  await writeManifest(parentDir, {
     ...manifest,
     items: nextItems
   })
 }
 
-const sttResumeHandler: ExtractRouteResumeHandler = {
+const sttResumeHandler: ExtractRouteResumeHandler<SttExtractionOptions> = {
   hasResumableWork: async (target, opts, _explicitFlags) =>
     await hasResumableSttTargetWork(
       target,
@@ -189,7 +274,7 @@ const sttResumeHandler: ExtractRouteResumeHandler = {
     )
 }
 
-const ocrResumeHandler: ExtractRouteResumeHandler = {
+const ocrResumeHandler: ExtractRouteResumeHandler<OcrExtractionOptions> = {
   hasResumableWork: async (target, opts, _explicitFlags) =>
     await hasResumableOcrTargetWork(
       target,
@@ -210,7 +295,7 @@ const ocrResumeHandler: ExtractRouteResumeHandler = {
     )
 }
 
-const urlArticleResumeHandler: ExtractRouteResumeHandler = {
+const urlArticleResumeHandler: ExtractRouteResumeHandler<UrlExtractionOptions> = {
   hasResumableWork: async (target, opts, _explicitFlags) =>
     await hasResumableUrlArticleWork(
       target,
@@ -231,113 +316,118 @@ const urlArticleResumeHandler: ExtractRouteResumeHandler = {
     )
 }
 
+const throwXSpaceNotResumable = (): never => {
+  throw CLIUsageError('X-Space runs are not resumable. Re-run the pipeline instead.')
+}
+
+const assertNoXSpaceResumeTarget = (manifest: PipelineManifest): void => {
+  if (manifest.items.some((item) => item.extractRoute === 'x-space' || item.child?.route === 'x-space')) {
+    throwXSpaceNotResumable()
+  }
+}
+
 const getExtractRouteResumeHandler = (
   route: ExtractRoute | undefined
-): ExtractRouteResumeHandler | undefined => {
+) => {
   if (route === 'media') {
     return sttResumeHandler
   }
   if (route === 'document') {
     return ocrResumeHandler
   }
-  if (route === URL_ARTICLE_ROUTE) {
+  if (route === 'article') {
     return urlArticleResumeHandler
+  }
+  if (route === 'x-space') {
+    throwXSpaceNotResumable()
   }
   return undefined
 }
 
-const extractResumeHandler: ResumeHandler = {
+const RESUMABLE_EXTRACT_ROUTES = ['media', 'document', 'article'] as const
+
+const shouldCheckExtractRoute = (
+  selection: ReturnType<typeof resolveExtractChildTargets>,
+  route: typeof RESUMABLE_EXTRACT_ROUTES[number]
+): boolean => route === 'media'
+  ? selection.shouldCheckStt
+  : route === 'document'
+    ? selection.shouldCheckOcr
+    : selection.shouldCheckUrl
+
+const extractResumeHandler: ResumeHandler<ExtractResumeOptions> = {
   kind: 'extract',
   hasResumableWork: async (target, opts, explicitFlags) => {
-    const routeHandler = getExtractRouteResumeHandler(target.extractRoute)
-    if (routeHandler) {
-      return await routeHandler.hasResumableWork(target, opts, explicitFlags)
-    }
-
-    const manifest = await readExtractBatchManifest(target.dir)
+    const manifest = await readExtractManifest(target)
     if (!manifest) {
       return false
     }
+    if (!isExtractParentManifest(manifest)) {
+      const routeHandler = getExtractRouteResumeHandler(target.extractRoute)
+      return routeHandler
+        ? await routeHandler.hasResumableWork(target, opts, explicitFlags)
+        : false
+    }
+    assertNoXSpaceResumeTarget(manifest)
 
-    const childTargets = resolveExtractChildTargets(opts)
-    if (childTargets.shouldCheckStt) {
-      const sttTarget = buildChildResumeTarget(target.dir, 'media', manifest.manifest.childBatches.media)
-      const sttHandler = getExtractRouteResumeHandler('media')
-      if (sttTarget && sttHandler && await sttHandler.hasResumableWork(sttTarget, opts, explicitFlags)) {
+    const selection = resolveExtractChildTargets(opts)
+    const childTargets = await resolveExtractChildResumeTargets(target.dir, manifest)
+    for (const route of RESUMABLE_EXTRACT_ROUTES) {
+      const childTarget = childTargets[route]
+      const routeHandler = getExtractRouteResumeHandler(route)
+      if (
+        shouldCheckExtractRoute(selection, route)
+        && childTarget
+        && routeHandler
+        && await routeHandler.hasResumableWork(childTarget, opts, explicitFlags)
+      ) {
         return true
       }
     }
-
-    if (childTargets.shouldCheckOcr) {
-      const ocrTarget = buildChildResumeTarget(target.dir, 'document', manifest.manifest.childBatches.document)
-      const ocrHandler = getExtractRouteResumeHandler('document')
-      if (ocrTarget && ocrHandler && await ocrHandler.hasResumableWork(ocrTarget, opts, explicitFlags)) {
-        return true
-      }
-    }
-
-    if (childTargets.shouldCheckUrl) {
-      const urlTarget = buildChildResumeTarget(target.dir, URL_ARTICLE_ROUTE, manifest.manifest.childBatches[URL_ARTICLE_ROUTE])
-      const urlHandler = getExtractRouteResumeHandler(URL_ARTICLE_ROUTE)
-      if (urlTarget && urlHandler && await urlHandler.hasResumableWork(urlTarget, opts, explicitFlags)) {
-        return true
-      }
-    }
-
     return false
   },
   resume: async (target, opts, explicitFlags, displayOptions) => {
-    const routeHandler = getExtractRouteResumeHandler(target.extractRoute)
-    if (routeHandler) {
-      return await routeHandler.resume(target, opts, explicitFlags, displayOptions)
-    }
-
-    const manifest = await readExtractBatchManifest(target.dir)
+    const manifest = await readExtractManifest(target)
     if (!manifest) {
       return EMPTY_RESUME_RESULT
     }
+    if (!isExtractParentManifest(manifest)) {
+      const routeHandler = getExtractRouteResumeHandler(target.extractRoute)
+      return routeHandler
+        ? await routeHandler.resume(target, opts, explicitFlags, displayOptions)
+        : EMPTY_RESUME_RESULT
+    }
+    assertNoXSpaceResumeTarget(manifest)
 
-    const childTargets = resolveExtractChildTargets(opts)
+    const selection = resolveExtractChildTargets(opts)
+    const childTargets = await resolveExtractChildResumeTargets(target.dir, manifest)
     let totals = EMPTY_RESUME_RESULT
-    if (childTargets.shouldCheckStt) {
-      const sttTarget = buildChildResumeTarget(target.dir, 'media', manifest.manifest.childBatches.media)
-      const sttHandler = getExtractRouteResumeHandler('media')
-      if (sttTarget && sttHandler) {
-        totals = addResumeResult(totals, await sttHandler.resume(sttTarget, opts, explicitFlags))
+    for (const route of RESUMABLE_EXTRACT_ROUTES) {
+      const childTarget = childTargets[route]
+      const routeHandler = getExtractRouteResumeHandler(route)
+      if (shouldCheckExtractRoute(selection, route) && childTarget && routeHandler) {
+        totals = addResumeResult(totals, await routeHandler.resume(childTarget, opts, explicitFlags))
       }
     }
 
-    if (childTargets.shouldCheckOcr) {
-      const ocrTarget = buildChildResumeTarget(target.dir, 'document', manifest.manifest.childBatches.document)
-      const ocrHandler = getExtractRouteResumeHandler('document')
-      if (ocrTarget && ocrHandler) {
-        totals = addResumeResult(totals, await ocrHandler.resume(ocrTarget, opts, explicitFlags))
-      }
-    }
-
-    if (childTargets.shouldCheckUrl) {
-      const urlTarget = buildChildResumeTarget(target.dir, URL_ARTICLE_ROUTE, manifest.manifest.childBatches[URL_ARTICLE_ROUTE])
-      const urlHandler = getExtractRouteResumeHandler(URL_ARTICLE_ROUTE)
-      if (urlTarget && urlHandler) {
-        totals = addResumeResult(totals, await urlHandler.resume(urlTarget, opts, explicitFlags))
-      }
-    }
-
-    await syncExtractBatchManifest(target.dir, manifest.manifest)
+    await syncExtractParentManifest(target.dir, manifest)
     return totals
   },
   price: async (target, opts, explicitFlags) => {
-    const routeHandler = getExtractRouteResumeHandler(target.extractRoute)
-    if (routeHandler) {
-      return await routeHandler.price(target, opts, explicitFlags)
-    }
-
-    const manifest = await readExtractBatchManifest(target.dir)
+    const manifest = await readExtractManifest(target)
     if (!manifest) {
       return aggregateExplicitPriceEstimate([], opts)
     }
+    if (!isExtractParentManifest(manifest)) {
+      const routeHandler = getExtractRouteResumeHandler(target.extractRoute)
+      return routeHandler
+        ? await routeHandler.price(target, opts, explicitFlags)
+        : aggregateExplicitPriceEstimate([], opts)
+    }
+    assertNoXSpaceResumeTarget(manifest)
 
-    const childTargets = resolveExtractChildTargets(opts)
+    const selection = resolveExtractChildTargets(opts)
+    const childTargets = await resolveExtractChildResumeTargets(target.dir, manifest)
     const steps: StepEstimate[] = []
     const notes: string[] = []
     const appendEstimate = (estimate: AggregatedPriceEstimate): void => {
@@ -345,27 +435,11 @@ const extractResumeHandler: ResumeHandler = {
       notes.push(...(estimate.notes ?? []))
     }
 
-    if (childTargets.shouldCheckStt) {
-      const sttTarget = buildChildResumeTarget(target.dir, 'media', manifest.manifest.childBatches.media)
-      const sttHandler = getExtractRouteResumeHandler('media')
-      if (sttTarget && sttHandler) {
-        appendEstimate(await sttHandler.price(sttTarget, opts, explicitFlags))
-      }
-    }
-
-    if (childTargets.shouldCheckOcr) {
-      const ocrTarget = buildChildResumeTarget(target.dir, 'document', manifest.manifest.childBatches.document)
-      const ocrHandler = getExtractRouteResumeHandler('document')
-      if (ocrTarget && ocrHandler) {
-        appendEstimate(await ocrHandler.price(ocrTarget, opts, explicitFlags))
-      }
-    }
-
-    if (childTargets.shouldCheckUrl) {
-      const urlTarget = buildChildResumeTarget(target.dir, URL_ARTICLE_ROUTE, manifest.manifest.childBatches[URL_ARTICLE_ROUTE])
-      const urlHandler = getExtractRouteResumeHandler(URL_ARTICLE_ROUTE)
-      if (urlTarget && urlHandler) {
-        appendEstimate(await urlHandler.price(urlTarget, opts, explicitFlags))
+    for (const route of RESUMABLE_EXTRACT_ROUTES) {
+      const childTarget = childTargets[route]
+      const routeHandler = getExtractRouteResumeHandler(route)
+      if (shouldCheckExtractRoute(selection, route) && childTarget && routeHandler) {
+        appendEstimate(await routeHandler.price(childTarget, opts, explicitFlags))
       }
     }
 
@@ -383,15 +457,15 @@ const videoResumeHandler = buildGenerationResumeHandler('video', videoResumeConf
 
 const musicResumeHandler = buildGenerationResumeHandler('music', musicResumeConfig)
 
-const RESUME_HANDLERS: Readonly<Record<ResumeTargetKind, ResumeHandler>> = {
+const RESUME_HANDLERS = {
   extract: extractResumeHandler,
   write: writeResumeHandler,
   tts: ttsResumeHandler,
   image: imageResumeHandler,
   video: videoResumeHandler,
   music: musicResumeHandler
-}
+} as const
 
 export const getResumeHandler = (
   kind: ResumeTarget['kind']
-): ResumeHandler | undefined => RESUME_HANDLERS[kind]
+) => RESUME_HANDLERS[kind]

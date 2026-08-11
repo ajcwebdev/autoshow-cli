@@ -1,5 +1,5 @@
 import { stat } from 'node:fs/promises'
-import { join } from 'node:path'
+import { derivePipelineItemRecord, PIPELINE_MANIFEST_FILE, readManifest } from '~/cli/commands/process-steps/pipeline-manifest'
 import { getOpenAIClientConfig } from '~/cli/commands/process-steps/step-3-write/write-services/write-openai/openai-utils'
 import { CLIUsageError, InfraError, isCLIUsageError, ValidationError } from '~/utils/error-handler'
 import { createOpenAIResponse, extractOpenAIResponseText } from '~/utils/openai/openai-client'
@@ -69,61 +69,42 @@ export const ensureFile = async (path: string, message: string): Promise<void> =
   }
 }
 
-export const loadMediaRunJson = async <TEntry>(
+export const loadMediaManifest = async <TEntry>(
   runDir: string,
-  kind: 'image' | 'video',
+  command: 'image' | 'video',
   label: string,
-  parseEntry: (rawEntry: JsonObject, rawRunJson: JsonObject, index: number) => TEntry
+  parseEntry: (rawEntry: JsonObject, manifestMetadata: JsonObject, index: number) => TEntry
 ): Promise<{ input: string, entries: TEntry[], raw: JsonObject }> => {
   await ensureDirectory(runDir, `${label} run directory`)
-
-  const runJsonPath = join(runDir, 'run.json')
-  await ensureFile(runJsonPath, `${label} run directory is missing run.json: ${runJsonPath}`)
-
-  let rawJson: unknown
-  try {
-    rawJson = JSON.parse(await Bun.file(runJsonPath).text()) as unknown
-  } catch (error) {
-    throw CLIUsageError(`${label} benchmark run.json is not valid JSON: ${error instanceof Error ? error.message : String(error)}`)
+  const manifest = await readManifest(runDir)
+  const item = manifest?.items[0]
+  if (!manifest || manifest.command !== command || manifest.scope !== 'single' || !item) {
+    throw CLIUsageError(`${label} run directory must contain a single ${command} ${PIPELINE_MANIFEST_FILE}.`)
   }
-
-  if (!isRecord(rawJson)) {
-    throw CLIUsageError(`${label} benchmark run.json must be a JSON object.`)
-  }
-
-  const rawKind = getString(rawJson, 'kind')
-  if (rawKind !== kind) {
-    throw CLIUsageError(`run.json kind is "${rawKind ?? 'unknown'}", expected "${kind}"`)
-  }
-
-  const metadata = getObject(rawJson, 'metadata')
-  if (!metadata) {
-    throw CLIUsageError(`${label} benchmark run.json is missing metadata.`)
-  }
+  const metadata = derivePipelineItemRecord(runDir, item)
 
   const input = getString(metadata, 'input')
   if (!input) {
-    throw CLIUsageError(`${label} benchmark source prompt is missing. This run.json must contain metadata.input.`)
+    throw CLIUsageError(`${label} benchmark source prompt is missing. ${PIPELINE_MANIFEST_FILE} must contain an item input.`)
   }
 
-  const rawEntries = getArray(metadata, kind)
+  const rawEntries = getArray(metadata, command)
   if (rawEntries.length === 0) {
-    throw CLIUsageError(`${label} benchmark run.json must contain metadata.${kind}[].`)
+    throw CLIUsageError(`${label} benchmark ${PIPELINE_MANIFEST_FILE} must contain item metadata.${command}[].`)
   }
 
   const entries = rawEntries.map((entry, index) => {
     if (!isRecord(entry)) {
-      throw CLIUsageError(`${label} benchmark metadata.${kind}[${index}] must be an object.`)
+      throw CLIUsageError(`${label} benchmark metadata.${command}[${index}] must be an object.`)
     }
-    return parseEntry(entry, rawJson, index)
+    return parseEntry(entry, metadata, index)
   })
 
-  return { input, entries, raw: rawJson }
+  return { input, entries, raw: metadata }
 }
 
-export const costFromRunCostSteps = (runJson: JsonObject, service: string, model: string): number | undefined => {
-  const metadata = getObject(runJson, 'metadata')
-  const cost = metadata ? getObject(metadata, 'cost') : undefined
+export const costFromManifestMetadata = (metadata: JsonObject, service: string, model: string): number | undefined => {
+  const cost = getObject(metadata, 'cost')
   const sources = [
     cost ? getObject(cost, 'actual') : undefined,
     cost ? getObject(cost, 'estimated') : undefined

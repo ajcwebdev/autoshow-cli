@@ -1,6 +1,6 @@
 # Text Consensus
 
-Use this category for existing AutoShow `write` runs with `run.json` metadata. It is metadata-only and does not call LLM providers.
+Use this category for existing AutoShow `write` runs with canonical `manifest.json` metadata. It is metadata-only and does not call LLM providers.
 
 ## Packet
 
@@ -16,6 +16,6 @@ The packet records each `metadata.step3` provider/model, token counts, output fi
 bun scripts/run.ts text build-report "$RUN_DIR"
 ```
 
-Reports expose full `price`, `speed`, `automatedQuality`, and `humanQuality` ranking surfaces for local and service groups. `llama.cpp` is local; hosted LLM providers are service providers. Price uses local zero monetary cost plus actual or estimated `run.json` cost steps. Speed prefers normalized `msPerUnit` timing when present and otherwise uses wall-clock processing time.
+Reports expose full `price`, `speed`, `automatedQuality`, and `humanQuality` ranking surfaces for local and service groups. `llama.cpp` is local; hosted LLM providers are service providers. Price uses local zero monetary cost plus actual or estimated `manifest.json` cost steps. Speed prefers normalized `msPerUnit` timing when present and otherwise uses wall-clock processing time.
 
 Text quality is not inferred from length, speed, cost, output existence, schema validity, subjective judgment, token count, or model family. Automated and human quality rankings remain unavailable unless explicit future text quality fields are present.

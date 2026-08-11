@@ -1,7 +1,8 @@
 #!/usr/bin/env bun
 
-import { existsSync, readFileSync } from "node:fs";
+import { existsSync } from "node:fs";
 import { join } from "node:path";
+import { loadCanonicalRunRecord } from "../shared/pipeline_manifest";
 
 export interface VideoEntryMetadata {
   videoGenService: string;
@@ -30,9 +31,7 @@ interface RunStepTimingEntry {
   inputValue?: number;
 }
 
-export interface VideoRunJson {
-  schemaVersion?: number;
-  kind: string;
+export interface VideoManifestRecord {
   metadata: {
     video: VideoEntryMetadata[];
     input?: string;
@@ -62,19 +61,12 @@ export interface VideoProviderEvidence {
   costCents: number | null;
 }
 
-export function readJson<T>(path: string): T {
-  return JSON.parse(readFileSync(path, "utf8")) as T;
-}
-
-export function loadVideoRunJson(runDir: string): VideoRunJson {
-  const runJson = readJson<VideoRunJson>(join(runDir, "run.json"));
-  if (runJson.kind !== "video") {
-    throw new Error(`run.json kind is "${runJson.kind}", expected "video"`);
+export function loadVideoManifestRecord(runDir: string): VideoManifestRecord {
+  const metadata = loadCanonicalRunRecord(runDir, "video").metadata;
+  if (!Array.isArray(metadata.video) || metadata.video.length === 0) {
+    throw new Error("Canonical video manifest item metadata.video is missing or empty");
   }
-  if (!Array.isArray(runJson.metadata?.video) || runJson.metadata.video.length === 0) {
-    throw new Error("run.json metadata.video is missing or empty");
-  }
-  return runJson;
+  return { metadata: metadata as VideoManifestRecord["metadata"] };
 }
 
 export function makeProviderKey(service: string, model: string): string {
@@ -98,10 +90,10 @@ export function discoverVideoFiles(
   return { found, missing };
 }
 
-export function buildCostLookup(runJson: VideoRunJson): Map<string, number> {
+export function buildCostLookup(manifestRecord: VideoManifestRecord): Map<string, number> {
   const lookup = new Map<string, number>();
-  const estimatedSteps = runJson.metadata.cost?.estimated?.steps ?? [];
-  const actualSteps = runJson.metadata.cost?.actual?.steps ?? [];
+  const estimatedSteps = manifestRecord.metadata.cost?.estimated?.steps ?? [];
+  const actualSteps = manifestRecord.metadata.cost?.actual?.steps ?? [];
   for (const step of estimatedSteps) {
     if (step.provider && step.model && step.cost !== undefined) {
       lookup.set(makeProviderKey(step.provider, step.model), Number(step.cost));
@@ -115,10 +107,10 @@ export function buildCostLookup(runJson: VideoRunJson): Map<string, number> {
   return lookup;
 }
 
-export function buildTimingLookup(runJson: VideoRunJson): Map<string, number> {
+export function buildTimingLookup(manifestRecord: VideoManifestRecord): Map<string, number> {
   const lookup = new Map<string, number>();
-  const estimatedSteps = runJson.metadata.timing?.estimated?.steps ?? [];
-  const actualSteps = runJson.metadata.timing?.actual?.steps ?? [];
+  const estimatedSteps = manifestRecord.metadata.timing?.estimated?.steps ?? [];
+  const actualSteps = manifestRecord.metadata.timing?.actual?.steps ?? [];
   for (const step of estimatedSteps) {
     if (step.provider && step.model && step.processingTimeMs !== undefined) {
       lookup.set(makeProviderKey(step.provider, step.model), Number(step.processingTimeMs));

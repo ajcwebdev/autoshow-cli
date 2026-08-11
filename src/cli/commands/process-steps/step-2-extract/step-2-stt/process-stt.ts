@@ -1,6 +1,6 @@
 import * as l from '~/utils/app-logger/app-logger'
 import { basename } from 'node:path'
-import type { AggregatedPriceEstimate, ProcessSttRunOptions, RuntimeOptions } from '~/types'
+import type { AggregatedPriceEstimate, ProcessSttRunOptions, SttExtractionOptions } from '~/types'
 import { runWithLogContext } from '~/utils/app-logger/app-logger'
 import { ensureDirectory } from '~/utils/cli-utils'
 import { reserveBatchChildOutputDir } from '../../batch-child-output'
@@ -17,7 +17,7 @@ import { runMultiProviderSttBatch } from './process-stt/multi-provider-batch'
 export const processStt = async (
   source: { url?: string, filePath?: string },
   baseDir: string,
-  options: RuntimeOptions,
+  options: SttExtractionOptions,
   preflightEstimate?: AggregatedPriceEstimate,
   runOptions: ProcessSttRunOptions = {}
 ): Promise<string> => {

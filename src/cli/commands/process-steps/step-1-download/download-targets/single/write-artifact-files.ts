@@ -46,7 +46,7 @@ export const buildWriteArtifactFiles = (ctx: BuildWriteArtifactFilesContext): Re
   if (step6Metadata) Object.assign(artifactFiles, buildVideoArtifactMap(step6Metadata))
   if (step7Metadata) Object.assign(artifactFiles, buildMusicArtifactMap(step7Metadata))
   artifactFiles['prompt'] = 'prompt.md'
-  artifactFiles['run'] = 'run.json'
+  artifactFiles['manifest'] = 'manifest.json'
 
   return artifactFiles
 }

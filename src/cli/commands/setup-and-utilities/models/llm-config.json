@@ -10,11 +10,8 @@
         "pricingCurrency": "USD",
         "pricingTier": "OpenAI API standard token pricing",
         "pricingNotes": "OpenAI lists GPT-5.6 Sol Standard pricing at $5/1M input tokens, $0.50/1M cached input tokens, $6.25/1M cache write tokens, and $30/1M output tokens. AutoShow uses uncached standard input/output rates for estimates. The gpt-5.6 alias routes to gpt-5.6-sol and is intentionally not registered separately. Batch, flex, priority, regional uplifts, cached-input discounts, cache-write charges, enterprise pricing, taxes, and provider credits are ignored.",
-        "inputCostPer1MUSD": 5,
         "inputCostPer1MCents": 500,
-        "cachedInputCostPer1MUSD": 0.5,
         "cachedInputCostPer1MCents": 50,
-        "outputCostPer1MUSD": 30,
         "outputCostPer1MCents": 3000,
         "estimation": {
           "costMultiplier": 0.7927,
@@ -28,11 +25,8 @@
         "pricingCurrency": "USD",
         "pricingTier": "OpenAI API standard token pricing",
         "pricingNotes": "OpenAI lists GPT-5.6 Terra Standard pricing at $2.50/1M input tokens, $0.25/1M cached input tokens, $3.125/1M cache write tokens, and $15/1M output tokens. AutoShow uses uncached standard input/output rates for estimates. Batch, flex, priority, regional uplifts, cached-input discounts, cache-write charges, enterprise pricing, taxes, and provider credits are ignored.",
-        "inputCostPer1MUSD": 2.5,
         "inputCostPer1MCents": 250,
-        "cachedInputCostPer1MUSD": 0.25,
         "cachedInputCostPer1MCents": 25,
-        "outputCostPer1MUSD": 15,
         "outputCostPer1MCents": 1500,
         "estimation": {
           "costMultiplier": 0.7927,
@@ -46,11 +40,8 @@
         "pricingCurrency": "USD",
         "pricingTier": "OpenAI API standard token pricing",
         "pricingNotes": "OpenAI lists GPT-5.6 Luna Standard pricing at $1/1M input tokens, $0.10/1M cached input tokens, $1.25/1M cache write tokens, and $6/1M output tokens. AutoShow uses uncached standard input/output rates for estimates. Batch, flex, priority, regional uplifts, cached-input discounts, cache-write charges, enterprise pricing, taxes, and provider credits are ignored.",
-        "inputCostPer1MUSD": 1,
         "inputCostPer1MCents": 100,
-        "cachedInputCostPer1MUSD": 0.1,
         "cachedInputCostPer1MCents": 10,
-        "outputCostPer1MUSD": 6,
         "outputCostPer1MCents": 600,
         "estimation": {
           "costMultiplier": 0.7927,
@@ -64,29 +55,21 @@
         "pricingCurrency": "USD",
         "pricingTier": "OpenAI API standard token pricing",
         "pricingNotes": "OpenAI lists GPT-5.5 Standard pricing with short-context rates of $5/1M input tokens, $0.50/1M cached input tokens, and $30/1M output tokens, and long-context rates of $10/1M input, $1/1M cached input, and $45/1M output. AutoShow uses uncached short-context rates by default and switches to the long-context rates when estimated or observed input context exceeds 272K tokens. Batch, flex, priority, regional uplifts, cached-input discounts, enterprise pricing, taxes, and provider credits are ignored.",
-        "inputCostPer1MUSD": 5,
         "inputCostPer1MCents": 500,
-        "outputCostPer1MUSD": 30,
         "outputCostPer1MCents": 3000,
         "tokenPricingBands": [
           {
             "label": "standard-short-context",
             "maxInputTokens": 272000,
-            "inputCostPer1MUSD": 5,
             "inputCostPer1MCents": 500,
-            "cachedInputCostPer1MUSD": 0.5,
             "cachedInputCostPer1MCents": 50,
-            "outputCostPer1MUSD": 30,
             "outputCostPer1MCents": 3000
           },
           {
             "label": "standard-long-context",
             "minInputTokens": 272001,
-            "inputCostPer1MUSD": 10,
             "inputCostPer1MCents": 1000,
-            "cachedInputCostPer1MUSD": 1,
             "cachedInputCostPer1MCents": 100,
-            "outputCostPer1MUSD": 45,
             "outputCostPer1MCents": 4500
           }
         ],
@@ -102,9 +85,7 @@
         "pricingCurrency": "USD",
         "pricingTier": "OpenAI API standard token pricing",
         "pricingNotes": "OpenAI lists GPT-5.4 Mini Standard pricing at $0.75/1M input tokens, $0.075/1M cached input tokens, and $4.50/1M output tokens. Batch, flex, priority, regional uplifts, cached-input discounts, enterprise pricing, taxes, and provider credits are ignored.",
-        "inputCostPer1MUSD": 0.75,
         "inputCostPer1MCents": 75,
-        "outputCostPer1MUSD": 4.5,
         "outputCostPer1MCents": 450,
         "estimation": {
           "costMultiplier": 0.7927,
@@ -118,9 +99,7 @@
         "pricingCurrency": "USD",
         "pricingTier": "OpenAI API standard token pricing",
         "pricingNotes": "OpenAI lists GPT-5.4 Nano Standard pricing at $0.20/1M input tokens, $0.02/1M cached input tokens, and $1.25/1M output tokens. Batch, flex, priority, regional uplifts, cached-input discounts, enterprise pricing, taxes, and provider credits are ignored.",
-        "inputCostPer1MUSD": 0.2,
         "inputCostPer1MCents": 20,
-        "outputCostPer1MUSD": 1.25,
         "outputCostPer1MCents": 125,
         "estimation": {
           "costMultiplier": 0.7927,
@@ -140,9 +119,7 @@
         "pricingCurrency": "USD",
         "pricingTier": "Groq on-demand token pricing",
         "pricingNotes": "Groq lists openai/gpt-oss-20b at $0.075/1M uncached input tokens, $0.0375/1M cached input tokens, and $0.30/1M output tokens. AutoShow uses uncached input pricing. Batch, cached-input discounts, enterprise pricing, taxes, and provider credits are ignored.",
-        "inputCostPer1MUSD": 0.075,
         "inputCostPer1MCents": 7.5,
-        "outputCostPer1MUSD": 0.3,
         "outputCostPer1MCents": 30,
         "estimation": {
           "costMultiplier": 0.7815,
@@ -156,9 +133,7 @@
         "pricingCurrency": "USD",
         "pricingTier": "Groq on-demand token pricing",
         "pricingNotes": "Groq lists openai/gpt-oss-120b at $0.15/1M uncached input tokens, $0.075/1M cached input tokens, and $0.60/1M output tokens. AutoShow uses uncached input pricing. Batch, cached-input discounts, enterprise pricing, taxes, and provider credits are ignored.",
-        "inputCostPer1MUSD": 0.15,
         "inputCostPer1MCents": 15,
-        "outputCostPer1MUSD": 0.6,
         "outputCostPer1MCents": 60,
         "estimation": {
           "costMultiplier": 0.848,
@@ -178,29 +153,21 @@
         "pricingCurrency": "USD",
         "pricingTier": "Gemini API paid Standard",
         "pricingNotes": "Gemini 3.1 Pro Preview Standard pricing is $2/1M input tokens and $12/1M output tokens for prompts up to 200K tokens, and $4/1M input tokens and $18/1M output tokens for prompts over 200K tokens. AutoShow uses uncached paid Standard pricing and switches bands from estimated or observed input tokens. Free tier, batch/flex/priority prices, context caching, taxes, and provider credits are ignored.",
-        "inputCostPer1MUSD": 2,
         "inputCostPer1MCents": 200,
-        "outputCostPer1MUSD": 12,
         "outputCostPer1MCents": 1200,
         "tokenPricingBands": [
           {
             "label": "standard-up-to-200k",
             "maxInputTokens": 200000,
-            "inputCostPer1MUSD": 2,
             "inputCostPer1MCents": 200,
-            "cachedInputCostPer1MUSD": 0.2,
             "cachedInputCostPer1MCents": 20,
-            "outputCostPer1MUSD": 12,
             "outputCostPer1MCents": 1200
           },
           {
             "label": "standard-over-200k",
             "minInputTokens": 200001,
-            "inputCostPer1MUSD": 4,
             "inputCostPer1MCents": 400,
-            "cachedInputCostPer1MUSD": 0.4,
             "cachedInputCostPer1MCents": 40,
-            "outputCostPer1MUSD": 18,
             "outputCostPer1MCents": 1800
           }
         ],
@@ -216,9 +183,7 @@
         "pricingCurrency": "USD",
         "pricingTier": "Gemini API paid Standard",
         "pricingNotes": "Gemini 3.1 Flash-Lite Standard pricing is $0.25/1M text/image/video input tokens, $0.50/1M audio input tokens, and $1.50/1M output tokens. AutoShow uses text input pricing for step-3 LLM estimates. Free tier, batch/flex/priority prices, context caching, taxes, and provider credits are ignored.",
-        "inputCostPer1MUSD": 0.25,
         "inputCostPer1MCents": 25,
-        "outputCostPer1MUSD": 1.5,
         "outputCostPer1MCents": 150,
         "estimation": {
           "costMultiplier": 0.8395,
@@ -232,9 +197,7 @@
         "pricingCurrency": "USD",
         "pricingTier": "Gemini API paid Standard",
         "pricingNotes": "Google lists Gemini 3.6 Flash Standard pricing at $1.50/1M input tokens and $7.50/1M output tokens with no published context tiers. AutoShow uses uncached paid Standard pricing. Free tier, batch/flex/priority prices, context caching, taxes, and provider credits are ignored.",
-        "inputCostPer1MUSD": 1.5,
         "inputCostPer1MCents": 150,
-        "outputCostPer1MUSD": 7.5,
         "outputCostPer1MCents": 750,
         "estimation": {
           "costMultiplier": 0.8395,
@@ -248,9 +211,7 @@
         "pricingCurrency": "USD",
         "pricingTier": "Gemini API paid Standard",
         "pricingNotes": "Google lists Gemini 3.5 Flash Standard pricing at $1.50/1M input tokens and $9.00/1M output tokens with no published context tiers. AutoShow uses uncached paid Standard pricing. Free tier, batch/flex/priority prices, context caching, taxes, and provider credits are ignored.",
-        "inputCostPer1MUSD": 1.5,
         "inputCostPer1MCents": 150,
-        "outputCostPer1MUSD": 9,
         "outputCostPer1MCents": 900,
         "estimation": {
           "costMultiplier": 0.8395,
@@ -264,9 +225,7 @@
         "pricingCurrency": "USD",
         "pricingTier": "Gemini API paid Standard",
         "pricingNotes": "Google lists Gemini 3.5 Flash-Lite Standard pricing at $0.30/1M input tokens and $2.50/1M output tokens with no published context tiers. Google documents this model as the recommended replacement for gemini-3.1-flash-lite ahead of that model's 2027-05-07 shutdown. AutoShow uses uncached paid Standard pricing. Free tier, batch/flex/priority prices, context caching, taxes, and provider credits are ignored.",
-        "inputCostPer1MUSD": 0.3,
         "inputCostPer1MCents": 30,
-        "outputCostPer1MUSD": 2.5,
         "outputCostPer1MCents": 250,
         "estimation": {
           "costMultiplier": 0.8395,
@@ -286,9 +245,7 @@
         "pricingCurrency": "USD",
         "pricingTier": "Claude API standard token pricing",
         "pricingNotes": "Anthropic lists Claude Fable 5 standard token pricing at $10/1M input tokens and $50/1M output tokens. Claude Fable 5 requires 30-day data retention and is not available under zero data retention arrangements. Prompt caching, batch discounts, fast mode, enterprise pricing, taxes, and provider credits are ignored.",
-        "inputCostPer1MUSD": 10,
         "inputCostPer1MCents": 1000,
-        "outputCostPer1MUSD": 50,
         "outputCostPer1MCents": 5000,
         "estimation": {
           "costMultiplier": 1,
@@ -302,9 +259,7 @@
         "pricingCurrency": "USD",
         "pricingTier": "Claude API standard token pricing",
         "pricingNotes": "Anthropic lists Claude Opus 4.8 standard token pricing at $5/1M input tokens and $25/1M output tokens. Prompt caching, batch discounts, enterprise pricing, taxes, and provider credits are ignored.",
-        "inputCostPer1MUSD": 5,
         "inputCostPer1MCents": 500,
-        "outputCostPer1MUSD": 25,
         "outputCostPer1MCents": 2500,
         "estimation": {
           "costMultiplier": 1,
@@ -318,9 +273,7 @@
         "pricingCurrency": "USD",
         "pricingTier": "Claude API introductory token pricing through 2026-08-31",
         "pricingNotes": "Anthropic lists Claude Sonnet 5 introductory pricing at $2/1M input tokens and $10/1M output tokens through 2026-08-31, with standard pricing of $3/1M input tokens and $15/1M output tokens beginning 2026-09-01. AutoShow estimates currently use the introductory rates. Prompt caching, batch discounts, fast mode, enterprise pricing, taxes, and provider credits are ignored.",
-        "inputCostPer1MUSD": 2,
         "inputCostPer1MCents": 200,
-        "outputCostPer1MUSD": 10,
         "outputCostPer1MCents": 1000,
         "estimation": {
           "costMultiplier": 0.8487,
@@ -334,9 +287,7 @@
         "pricingCurrency": "USD",
         "pricingTier": "Claude API standard token pricing",
         "pricingNotes": "Anthropic lists Claude Sonnet 4.6 standard token pricing at $3/1M input tokens and $15/1M output tokens. Prompt caching, batch discounts, enterprise pricing, taxes, and provider credits are ignored.",
-        "inputCostPer1MUSD": 3,
         "inputCostPer1MCents": 300,
-        "outputCostPer1MUSD": 15,
         "outputCostPer1MCents": 1500,
         "estimation": {
           "costMultiplier": 0.8487,
@@ -350,9 +301,7 @@
         "pricingCurrency": "USD",
         "pricingTier": "Claude API standard token pricing",
         "pricingNotes": "Anthropic lists Claude Haiku 4.5 standard token pricing at $1/1M input tokens and $5/1M output tokens. Prompt caching, batch discounts, enterprise pricing, taxes, and provider credits are ignored.",
-        "inputCostPer1MUSD": 1,
         "inputCostPer1MCents": 100,
-        "outputCostPer1MUSD": 5,
         "outputCostPer1MCents": 500,
         "estimation": {
           "costMultiplier": 0.8487,
@@ -366,9 +315,7 @@
         "pricingCurrency": "USD",
         "pricingTier": "Claude API standard token pricing",
         "pricingNotes": "Anthropic lists Claude Opus 5 standard token pricing at $5/1M input tokens and $25/1M output tokens, unchanged from Claude Opus 4.8. Claude Opus 5 runs with thinking on by default at the default high effort level, so reused Claude Opus 4.8 output-token and latency heuristics are provisional. Prompt caching, batch discounts, fast mode, enterprise pricing, taxes, and provider credits are ignored.",
-        "inputCostPer1MUSD": 5,
         "inputCostPer1MCents": 500,
-        "outputCostPer1MUSD": 25,
         "outputCostPer1MCents": 2500,
         "estimation": {
           "costMultiplier": 1,
@@ -388,29 +335,21 @@
         "pricingCurrency": "USD",
         "pricingTier": "MiniMax pay-as-you-go standard pricing",
         "pricingNotes": "MiniMax lists MiniMax-M3 Standard pricing at $0.60/1M input tokens, $0.12/1M cached input tokens, and $2.40/1M output tokens up to 512K input tokens; prompts over 512K use $1.20/1M input tokens, $0.24/1M cached input tokens, and $4.80/1M output tokens. AutoShow uses uncached Standard pricing and switches bands from estimated or observed input tokens. The short 7-day promotional discount, priority pricing, enterprise pricing, taxes, and provider credits are ignored.",
-        "inputCostPer1MUSD": 0.6,
         "inputCostPer1MCents": 60,
-        "outputCostPer1MUSD": 2.4,
         "outputCostPer1MCents": 240,
         "tokenPricingBands": [
           {
             "label": "standard-up-to-512k",
             "maxInputTokens": 512000,
-            "inputCostPer1MUSD": 0.6,
             "inputCostPer1MCents": 60,
-            "cachedInputCostPer1MUSD": 0.12,
             "cachedInputCostPer1MCents": 12,
-            "outputCostPer1MUSD": 2.4,
             "outputCostPer1MCents": 240
           },
           {
             "label": "standard-over-512k",
             "minInputTokens": 512001,
-            "inputCostPer1MUSD": 1.2,
             "inputCostPer1MCents": 120,
-            "cachedInputCostPer1MUSD": 0.24,
             "cachedInputCostPer1MCents": 24,
-            "outputCostPer1MUSD": 4.8,
             "outputCostPer1MCents": 480
           }
         ],
@@ -432,9 +371,7 @@
         "pricingCurrency": "USD",
         "pricingTier": "xAI public Chat API token pricing",
         "pricingNotes": "xAI lists Grok 4.3 at $1.25/1M input tokens, $0.20/1M cached input tokens, and $2.50/1M output tokens. The Grok 4.3 model page states requests exceeding the 200K context window use higher context pricing, but the public pricing page does not publish numeric higher-context rates. AutoShow uses the listed standard rates and emits a pricing note when observed or estimated input context exceeds 200K tokens. Batch, cached-input discounts, regional differences, enterprise pricing, taxes, and provider credits are ignored.",
-        "inputCostPer1MUSD": 1.25,
         "inputCostPer1MCents": 125,
-        "outputCostPer1MUSD": 2.5,
         "outputCostPer1MCents": 250,
         "higherContextPricing": {
           "thresholdInputTokens": 200000,
@@ -452,31 +389,22 @@
         "pricingCurrency": "USD",
         "pricingTier": "xAI public Chat API token pricing",
         "pricingNotes": "xAI lists Grok 4.5 standard pricing at $2.00/1M input tokens, $0.30/1M cached input tokens, and $6.00/1M output tokens for requests with up to 200K input tokens. Requests above 200K input tokens cost $4.00/1M input tokens, $0.60/1M cached input tokens, and $12.00/1M output tokens. AutoShow uses uncached standard rates for estimates and switches bands from estimated or observed input tokens. Batch discounts, cached-input discounts, regional differences, enterprise pricing, taxes, and provider credits are ignored.",
-        "inputCostPer1MUSD": 2,
         "inputCostPer1MCents": 200,
-        "cachedInputCostPer1MUSD": 0.3,
         "cachedInputCostPer1MCents": 30,
-        "outputCostPer1MUSD": 6,
         "outputCostPer1MCents": 600,
         "tokenPricingBands": [
           {
             "label": "standard-up-to-200k",
             "maxInputTokens": 200000,
-            "inputCostPer1MUSD": 2,
             "inputCostPer1MCents": 200,
-            "cachedInputCostPer1MUSD": 0.3,
             "cachedInputCostPer1MCents": 30,
-            "outputCostPer1MUSD": 6,
             "outputCostPer1MCents": 600
           },
           {
             "label": "standard-over-200k",
             "minInputTokens": 200001,
-            "inputCostPer1MUSD": 4,
             "inputCostPer1MCents": 400,
-            "cachedInputCostPer1MUSD": 0.6,
             "cachedInputCostPer1MCents": 60,
-            "outputCostPer1MUSD": 12,
             "outputCostPer1MCents": 1200
           }
         ],
@@ -498,9 +426,7 @@
         "pricingCurrency": "USD",
         "pricingTier": "Z.AI standard API token pricing",
         "pricingNotes": "Z.AI lists GLM-5.1 standard pricing at $1.40/1M input tokens and $4.40/1M output tokens. Cache discounts, batch discounts, enterprise pricing, taxes, and provider credits are ignored.",
-        "inputCostPer1MUSD": 1.4,
         "inputCostPer1MCents": 140,
-        "outputCostPer1MUSD": 4.4,
         "outputCostPer1MCents": 440,
         "estimation": {
           "costMultiplier": 1,
@@ -520,9 +446,7 @@
         "pricingCurrency": "USD",
         "pricingTier": "Moonshot AI public API token pricing",
         "pricingNotes": "Moonshot AI public pricing lists Kimi K2.6 at $0.95/1M input tokens and $4/1M output tokens. Cache discounts, batch discounts, enterprise pricing, taxes, and provider credits are ignored.",
-        "inputCostPer1MUSD": 0.95,
         "inputCostPer1MCents": 95,
-        "outputCostPer1MUSD": 4,
         "outputCostPer1MCents": 400,
         "estimation": {
           "costMultiplier": 1,
@@ -536,11 +460,8 @@
         "pricingCurrency": "USD",
         "pricingTier": "Moonshot AI public API token pricing",
         "pricingNotes": "Moonshot AI public pricing lists Kimi K3 at $3/1M cache-miss input tokens, $0.30/1M cache-hit input tokens, and $15/1M output tokens with flat pay-as-you-go rates and no context tiers. AutoShow uses uncached input pricing for estimates. Kimi K3 runs with always-on thinking at the provider default reasoning_effort of max, so reused Kimi K2.6 output-token and latency heuristics are optimistic until calibrated. Cache discounts, batch discounts, enterprise pricing, taxes, and provider credits are ignored.",
-        "inputCostPer1MUSD": 3,
         "inputCostPer1MCents": 300,
-        "cachedInputCostPer1MUSD": 0.3,
         "cachedInputCostPer1MCents": 30,
-        "outputCostPer1MUSD": 15,
         "outputCostPer1MCents": 1500,
         "estimation": {
           "costMultiplier": 1,
@@ -560,11 +481,8 @@
         "pricingCurrency": "USD",
         "pricingTier": "Together AI serverless token pricing",
         "pricingNotes": "Together AI lists moonshotai/Kimi-K2.6 at $1.20/1M input tokens, $0.20/1M cached input tokens, and $4.50/1M output tokens. AutoShow uses uncached input pricing. Batch discounts, cached-input discounts, enterprise pricing, taxes, and provider credits are ignored.",
-        "inputCostPer1MUSD": 1.2,
         "inputCostPer1MCents": 120,
-        "cachedInputCostPer1MUSD": 0.2,
         "cachedInputCostPer1MCents": 20,
-        "outputCostPer1MUSD": 4.5,
         "outputCostPer1MCents": 450,
         "estimation": {
           "costMultiplier": 1,
@@ -578,11 +496,8 @@
         "pricingCurrency": "USD",
         "pricingTier": "Together AI serverless token pricing",
         "pricingNotes": "Together AI lists zai-org/GLM-5.1 at $1.40/1M input tokens, $0.26/1M cached input tokens, and $4.40/1M output tokens. AutoShow uses uncached input pricing. Batch discounts, cached-input discounts, enterprise pricing, taxes, and provider credits are ignored.",
-        "inputCostPer1MUSD": 1.4,
         "inputCostPer1MCents": 140,
-        "cachedInputCostPer1MUSD": 0.26,
         "cachedInputCostPer1MCents": 26,
-        "outputCostPer1MUSD": 4.4,
         "outputCostPer1MCents": 440,
         "estimation": {
           "costMultiplier": 1,
@@ -602,9 +517,7 @@
         "pricingCurrency": "USD",
         "pricingTier": "Cerebras public endpoint token pricing",
         "pricingNotes": "The Cerebras public model catalog lists gpt-oss-120b prompt tokens at $0.00000035/token and completion tokens at $0.00000075/token. AutoShow reports those as $0.35/1M input tokens and $0.75/1M output tokens. Batch discounts, enterprise pricing, taxes, and provider credits are ignored.",
-        "inputCostPer1MUSD": 0.35,
         "inputCostPer1MCents": 35,
-        "outputCostPer1MUSD": 0.75,
         "outputCostPer1MCents": 75,
         "estimation": {
           "costMultiplier": 1,
@@ -618,9 +531,7 @@
         "pricingCurrency": "USD",
         "pricingTier": "Cerebras public endpoint token pricing",
         "pricingNotes": "The Cerebras public model catalog lists zai-glm-4.7 prompt tokens at $0.00000225/token and completion tokens at $0.00000275/token. AutoShow reports those as $2.25/1M input tokens and $2.75/1M output tokens. The model is marked preview. Batch discounts, enterprise pricing, taxes, and provider credits are ignored.",
-        "inputCostPer1MUSD": 2.25,
         "inputCostPer1MCents": 225,
-        "outputCostPer1MUSD": 2.75,
         "outputCostPer1MCents": 275,
         "estimation": {
           "costMultiplier": 1,
@@ -635,9 +546,7 @@
     "models": {
       "ggml-org/gemma-3-270m-it-GGUF": {
         "description": "Gemma 3 270M Instruct — ultra-lightweight",
-        "inputCostPer1MUSD": 0,
         "inputCostPer1MCents": 0,
-        "outputCostPer1MUSD": 0,
         "outputCostPer1MCents": 0,
         "estimation": {
           "msPer1KTokens": 2857
@@ -645,9 +554,7 @@
       },
       "ggml-org/Qwen3-0.6B-GGUF": {
         "description": "Qwen3 0.6B — ultra-lightweight",
-        "inputCostPer1MUSD": 0,
         "inputCostPer1MCents": 0,
-        "outputCostPer1MUSD": 0,
         "outputCostPer1MCents": 0,
         "estimation": {
           "msPer1KTokens": 1540
@@ -661,9 +568,7 @@
     "models": {
       "Qwen3.5-0.8B-Q8_0": {
         "description": "Qwen3.5 0.8B Q8_0 llamafile — smallest prebuilt bundle (~1.6 GB)",
-        "inputCostPer1MUSD": 0,
         "inputCostPer1MCents": 0,
-        "outputCostPer1MUSD": 0,
         "outputCostPer1MCents": 0,
         "estimation": {
           "msPer1KTokens": 2000
@@ -671,9 +576,7 @@
       },
       "Qwen3.5-2B-Q8_0": {
         "description": "Qwen3.5 2B Q8_0 llamafile (~3.2 GB)",
-        "inputCostPer1MUSD": 0,
         "inputCostPer1MCents": 0,
-        "outputCostPer1MUSD": 0,
         "outputCostPer1MCents": 0,
         "estimation": {
           "msPer1KTokens": 3500
@@ -681,9 +584,7 @@
       },
       "Qwen3.5-4B-Q5_K_S": {
         "description": "Qwen3.5 4B Q5_K_S llamafile (~4.1 GB)",
-        "inputCostPer1MUSD": 0,
         "inputCostPer1MCents": 0,
-        "outputCostPer1MUSD": 0,
         "outputCostPer1MCents": 0,
         "estimation": {
           "msPer1KTokens": 5000

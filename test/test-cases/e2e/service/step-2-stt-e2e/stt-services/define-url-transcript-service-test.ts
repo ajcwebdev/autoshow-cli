@@ -4,7 +4,8 @@ import { E2E_TEST_TIMEOUT_MS } from '../../../../../test-utils/budget'
 import {
   fileExists,
 } from '../../../../../test-utils/test-helpers'
-import { readRunMetadata } from '../../../../../test-utils/manifest-helpers'
+import { readCanonicalRecord } from '../../../../../test-utils/manifest-helpers'
+import { PIPELINE_MANIFEST_FILE } from '~/cli/commands/process-steps/pipeline-manifest'
 import {
   defineBudgetedLiveServiceTest,
   requireConfiguredEnvVar,
@@ -84,9 +85,9 @@ export const defineUrlTranscriptServiceTest = ({
       `${provider}=${model}`
     ])
 
-    expect(await fileExists(join(outputDir, 'run.json'))).toBe(true)
+    expect(await fileExists(join(outputDir, PIPELINE_MANIFEST_FILE))).toBe(true)
 
-    const metadata = await readRunMetadata(outputDir)
+    const metadata = await readCanonicalRecord(outputDir)
     const step2 = findStep2Metadata(metadata, service, model)
     expect(step2?.['transcriptionService']).toBe(service)
     expect(step2?.['transcriptionModel']).toBe(model)

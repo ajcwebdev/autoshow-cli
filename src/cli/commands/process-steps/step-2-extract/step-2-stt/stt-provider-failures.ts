@@ -67,8 +67,7 @@ export const classifySttProviderFailure = (
     )
     retryable = classifyFetchRetry(
       retryCandidate,
-      retryClass,
-      { retryAbortOnConservative: true }
+      retryClass
     ).shouldRetry
   } else if (typeof status === 'number') {
     retryable = classifyFetchRetry(
@@ -76,8 +75,7 @@ export const classifySttProviderFailure = (
         status,
         ...(headers instanceof Headers ? { headers } : {})
       }),
-      'runtime_http_read',
-      { retryAbortOnConservative: true }
+      'runtime_http_read'
     ).shouldRetry
   }
 

@@ -15,7 +15,7 @@ import { buildAggregatedPriceEstimate } from '~/utils/pricing/aggregate-pricing'
 import { computeActualCosts } from '~/utils/pricing/compute-actual-costs'
 import { computeEstimatedCosts } from '~/utils/pricing/compute-estimated-costs'
 import { computeActualProcessingTimes, computeEstimatedProcessingTimes } from '~/utils/pricing/compute-processing-time'
-import type { ExtractionMetadata, RuntimeOptions } from '~/types'
+import type { CommandPricingOptions, ExtractionMetadata } from '~/types'
 import { findPricingNoteKeys } from './shared'
 
 const MULTI_PAGE_PDF = 'input/examples/document/3-document.pdf'
@@ -48,7 +48,7 @@ const expectedOcrProcessingMs = (
 
 const buildHostedOcrPricingOptions = (
   providerCases: readonly (typeof HOSTED_OCR_PROVIDER_CASES[number])[] = HOSTED_OCR_PROVIDER_CASES
-): RuntimeOptions => {
+): CommandPricingOptions => {
   const opts: Record<string, unknown> = {
     step2SelectionOrigins: Object.fromEntries(providerCases.map((providerCase) => [providerCase.flagName, 'explicit'])),
     useTesseract: false,
@@ -62,7 +62,7 @@ const buildHostedOcrPricingOptions = (
     opts[providerCase.modelsKey] = [providerCase.model]
   }
 
-  return opts as RuntimeOptions
+  return opts as CommandPricingOptions
 }
 
 describe('price mode contracts', () => {
@@ -607,7 +607,7 @@ describe('price mode contracts', () => {
       const priceEstimate = await buildAggregatedPriceEstimate('extract', MULTI_PAGE_PDF, {
         ...buildHostedOcrPricingOptions([KIMI_OCR_PROVIDER_CASE]),
         hostedOcrTokenProfilePath: profilePath
-      } as RuntimeOptions & { hostedOcrTokenProfilePath: string })
+      } as CommandPricingOptions & { hostedOcrTokenProfilePath: string })
       const fallbackEstimated = resolveExtractEstimatedCosts(undefined, actualMetadata, { hostedOcrTokenProfilePath: profilePath })
       const observedEstimate = resolveExtractObservedEstimateCosts(actualMetadata)
       const multiplier = getExtractEstimation('kimi', 'kimi-k2.6').costMultiplier

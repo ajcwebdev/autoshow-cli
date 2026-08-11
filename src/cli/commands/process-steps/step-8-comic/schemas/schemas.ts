@@ -25,6 +25,8 @@ const AuthoredCharacterDetailsSchema = v.strictObject({
   image: CharacterReferenceImagePathSchema,
   outlineSheet: CharacterReferenceImagePathSchema,
   description: v.string(),
+  generationReference: v.optional(CharacterReferenceImagePathSchema),
+  generationInstructions: v.optional(v.string()),
   sceneTextRules: v.optional(v.array(CharacterSceneTextRuleSchema)),
 })
 
@@ -223,8 +225,8 @@ const assertKnownUniqueKeys = (values: readonly string[], catalog: CharacterCata
 }
 
 const positiveDepictionText = (value: string): string => value
-  .split(/(?<=[.!?;])\s+/)
-  .filter(sentence => !/^\s*(?:exclude|never|no\b|do not\b|don't\b|without\b)/iu.test(sentence))
+  .split(/(?<=[.!?;])\s+|,?\s+(?:but|and|while|with)\s+(?=(?:exclude|never|no\b|not\b|do not\b|don't\b|without\b))/iu)
+  .filter(sentence => !/^\s*(?:(?:exclude|never|no\b|not\b|do not\b|don't\b|without\b)|[^.!?;]{0,80}\b(?:is|are|was|were|be|been|being|may|must|should|can|could|will|would)\s+(?:not|never)\b)/iu.test(sentence))
   .join(' ')
 
 export const validateStructuredScriptCharacters = (data: v.InferOutput<typeof StructuredScriptDataSchema>, catalog: CharacterCatalogService): void => {

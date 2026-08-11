@@ -8,12 +8,9 @@ export type ImageRunEntry = {
   costCents?: number
 }
 
-export type ImageRunJson = {
-  kind: 'image'
-  metadata: {
-    input: string
-    image: ImageRunEntry[]
-  }
+export type ImageBenchmarkManifestView = {
+  input: string
+  entries: ImageRunEntry[]
   raw: JsonObject
 }
 

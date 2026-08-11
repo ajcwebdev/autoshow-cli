@@ -8,21 +8,19 @@ Backfill missing provider outputs in an existing run, child batch, or parent `ex
 bun autoshow resume <outputDirs...> [flags]
 ```
 
-`resume` does not accept a new source input. It works against one or more existing output directories, each containing one of:
+`resume` does not accept a new source input. It works against one or more existing output directories, each containing the one canonical file:
 
-- `run.json` for a single run
-- `batch.json` for a batch
-- `extract-batch.json` for an `extract` parent batch
+- `manifest.json` with `scope: "single"` or `scope: "batch"`; route-aware extract parents use ordinary item child links in this same shape
 
 ## Target Resolution
 
 - `resume` supports `extract`, write LLM, TTS, image, video, and music manifests.
-- With no provider flags, it uses the originally requested providers recorded in the manifest (`requestedProviders` for STT, OCR, TTS, image, video, and music; `web.requestedBackends` for URL extraction) and reruns only missing or failed outputs. Write LLM resumes require explicit provider selection because older write manifests do not store the original LLM request set separately from successful `step3` outputs.
-- Explicit provider flags are additive: selected provider/models are appended to the stored request set and skipped if they already succeeded.
+- With no provider flags, it reads each canonical item’s `providers` entries and reruns only entries whose status is `missing` or `failed`. Write LLM resume requires explicit provider selection by policy.
+- Explicit provider flags are additive: selected provider/models are appended to the set derived from canonical provider entries and skipped if they already succeeded.
 - When multiple directories are provided, `resume` processes them sequentially with the same flags, continues after per-directory failures, and reports any failures together at the end.
-- Parent `extract` batch resumes route STT selections to `media/` children, OCR selections to `document/` children, and URL selections to article/X-Space children.
-- TTS/image/video/music resumes require recent manifests with `requestedProviders` and `input` fields.
-- Write resumes require a single-run `write` manifest with `prompt.md` and `step3` metadata.
+- Parent `extract` batch resumes follow containment-checked `{ route, index, manifestDir }` child links and route selections to the linked `media`, `document`, `article`, or `x-space` canonical child manifest.
+- TTS/image/video/music resumes require a canonical item with an input and provider entries.
+- Write resumes require a canonical single-run manifest with `command: "write"`, `prompt.md`, and item `metadata.step3`.
 - `--price` resolves the same missing or additive providers and prints a dry-run cost estimate without calling providers or writing manifests/artifacts.
 
 ## Provider Selection
@@ -31,13 +29,13 @@ Use the target-aware generic selector:
 
 | Flag | Description |
 |------|-------------|
-| `--provider provider[=model]` | Add one provider/model for the resolved target kind |
-| `--all-providers` | Add every supported provider/model for the resolved target kind or extract route |
-| `--all-local` | Add every local engine/backend for the resolved target kind or extract route; supported for `extract`, write LLM, and TTS targets, and rejected for image, video, and music targets |
+| `--provider provider[=model]` | Add one provider/model for the resolved command or extract route |
+| `--all-providers` | Add every supported provider/model for the resolved command or extract route |
+| `--all-local` | Add every local engine/backend for the resolved command or extract route; supported for `extract`, write LLM, and TTS targets, and rejected for image, video, and music targets |
 
 `--provider` is repeatable. For `extract` resumes, the target route decides whether a provider name maps to STT, OCR, or URL article extraction.
 
-For OCR resumes, automatic mode skips providers recorded in the manifest's `blockedProviders` (non-retryable failures such as quota, billing, account suspension, content policy, or auth). When only blocked providers remain, `resume` reports "only blocked OCR providers remain" instead of rerunning them. Explicit `--provider provider=model` opts back into a blocked provider after the underlying cause is fixed or the provider/model/policy context intentionally changes.
+For OCR resumes, automatic mode derives blocked providers from canonical provider `error` data (non-retryable failures such as quota, billing, account suspension, content policy, or auth). When only blocked providers remain, `resume` reports "only blocked OCR providers remain" instead of rerunning them. Explicit `--provider provider=model` opts back into a blocked provider after the underlying cause is fixed or the provider/model/policy context intentionally changes.
 
 Examples of provider names:
 
@@ -182,8 +180,7 @@ Resume keeps the pipeline/config option names for media generation options, beca
 ## Notes
 
 - `resume` updates the existing output directory in place.
-- `resume --price` leaves `run.json`, `batch.json`, provider artifacts, and generated media/text files unchanged.
+- `resume --price` leaves `manifest.json`, raw provider artifacts, and generated media/text files unchanged.
 - Write LLM resume is additive and writes service-qualified files when needed to avoid overwriting existing short-model outputs, such as `text-together-glm-5.1.json` beside an existing `text-glm-5.1.json`.
-- Legacy suffixed resume selector aliases are no longer accepted. Use `--provider provider[=model]`, `--all-providers`, or `--all-local`.
-- No `resume` flag is named after a provider. Provider-named option flags such as `--elevenlabs-tts-stability`, `--replicate-video-seed`, `--grok-video-storage-filename`, and `--stt-happyscribe-organization-id` exit with `Unexpected flag: <name>`. Manifests record `requestedProviders` and `input` but not per-provider tuning, so resumed runs use provider defaults for those knobs. Set them under `defaults` in `autoshow.config` (config values are still merged into resume runs) or rerun the originating command.
+- No `resume` flag is named after a provider. Provider-named option flags such as `--elevenlabs-tts-stability`, `--replicate-video-seed`, `--grok-video-storage-filename`, and `--stt-happyscribe-organization-id` exit with `Unexpected flag: <name>`. A provider entry's `options` object is the only persisted option slot; when a domain cannot reconstruct a tuning value from canonical state, its option slice resolves that value from `autoshow.config` or the provider default.
 - `resume` exits with code `2` when items are still incomplete or failed after the backfill attempt.

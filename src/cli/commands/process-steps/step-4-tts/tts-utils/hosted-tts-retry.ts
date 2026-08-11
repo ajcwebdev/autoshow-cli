@@ -11,15 +11,7 @@ const HOSTED_TTS_RETRY_POLICY: RetryPolicy = {
 }
 
 export const classifyHostedTtsRetry: RetryClassifier = (error) =>
-  classifyFetchRetry(error, 'runtime_http_create_conservative', { retryAbortOnConservative: true })
-
-const getErrorStatus = (error: unknown): number | undefined => {
-  if (error && typeof error === 'object' && 'status' in error) {
-    const status = (error as { status: unknown }).status
-    if (typeof status === 'number') return status
-  }
-  return undefined
-}
+  classifyFetchRetry(error, 'runtime_http_create_retriable')
 
 const getErrorHeaders = (error: unknown): Headers | undefined => {
   if (error && typeof error === 'object' && 'headers' in error) {
@@ -38,10 +30,9 @@ const notifyHostedTtsSchedulerRetry = (
     return
   }
 
-  const status = getErrorStatus(error)
-  options.chunkScheduler.notifyRetry(options.ttsProvider, { status })
+  options.chunkScheduler.notifyRetry(options.ttsProvider)
 
-  if (status === 429) {
+  if (error && typeof error === 'object' && 'status' in error && error.status === 429) {
     options.chunkScheduler.notifyRateLimit(options.ttsProvider, {
       retryAfterMs: parseRetryAfterMs(getErrorHeaders(error)),
       delayMs: decision.delayMs
@@ -55,7 +46,7 @@ export const withHostedTtsRetry = async <T>(
 ): Promise<T> =>
   await withRetry(
     {
-      retryClass: 'runtime_http_create_conservative',
+      retryClass: 'runtime_http_create_retriable',
       operationName: options.operationName,
       timeoutMs: options.timeoutMs ?? MEDIA_GENERATION_TIMEOUT_MS,
       policy: {

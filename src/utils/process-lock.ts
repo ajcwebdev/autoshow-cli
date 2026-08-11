@@ -10,6 +10,7 @@ const DEFAULT_LOCK_STALE_MS = 60_000
 const DEFAULT_LOCK_WAIT_TIMEOUT_MS = 2 * 60 * 60 * 1000
 const DEFAULT_LOCK_WAIT_MS = 100
 const DEFAULT_LOCK_HEARTBEAT_MS = 5_000
+const LIVE_OWNER_STALE_MULTIPLIER = 10
 const LOCK_OWNER_FILE = 'owner.json'
 const CURRENT_HOSTNAME = hostname()
 
@@ -135,16 +136,45 @@ const getProcessLockAgeMs = async (
   }
 }
 
+type ProcessLockDirIdentity = {
+  dev: number
+  ino: number
+}
+
+const getProcessLockDirIdentity = async (lockDir: string): Promise<ProcessLockDirIdentity | null> => {
+  try {
+    const lockStats = await stat(lockDir)
+    return { dev: lockStats.dev, ino: lockStats.ino }
+  } catch {
+    return null
+  }
+}
+
+const isSameProcessLockDir = (
+  observed: ProcessLockDirIdentity,
+  takenOver: ProcessLockDirIdentity | null
+): boolean =>
+  takenOver !== null && observed.dev === takenOver.dev && observed.ino === takenOver.ino
+
 const removeStaleProcessLock = async (
   lockDir: string,
   staleMs: number
 ): Promise<boolean> => {
+  const observedLockDir = await getProcessLockDirIdentity(lockDir)
+  if (!observedLockDir) {
+    return true
+  }
+
   const ownerState = await readProcessLockOwnerState(lockDir)
   const owner = ownerState.owner
   const sameHost = owner?.hostname === CURRENT_HOSTNAME
-  const ownerIsGone = sameHost && owner?.pid !== undefined && !isProcessRunning(owner.pid)
+  const ownerIsRunning = sameHost && owner?.pid !== undefined && isProcessRunning(owner.pid)
+  const ownerIsGone = sameHost && owner?.pid !== undefined && !ownerIsRunning
   const ageMs = await getProcessLockAgeMs(lockDir, owner)
-  const heartbeatIsStale = ageMs !== null && ageMs > staleMs
+  const staleThresholdMs = ownerIsRunning
+    ? staleMs * LIVE_OWNER_STALE_MULTIPLIER
+    : staleMs
+  const heartbeatIsStale = ageMs !== null && ageMs > staleThresholdMs
 
   if (!ownerIsGone && !heartbeatIsStale) {
     if (ownerState.parseError) {
@@ -161,6 +191,34 @@ const removeStaleProcessLock = async (
     return false
   }
 
+  const reapDir = `${lockDir}.reap-${randomUUID()}`
+  try {
+    await rename(lockDir, reapDir)
+  } catch (error) {
+    if (getErrorCode(error) === 'ENOENT') {
+      return true
+    }
+    throw error
+  }
+
+  const takenOverOwner = await readProcessLockOwner(reapDir)
+  const tookObservedLock = isSameProcessLockDir(
+    observedLockDir,
+    await getProcessLockDirIdentity(reapDir)
+  ) && (owner?.ownerId === undefined || takenOverOwner?.ownerId === owner.ownerId)
+
+  if (!tookObservedLock) {
+    // A third contender can acquire the canonical path before this restore and make
+    // it fail. That residual window is accepted; orphaned .reap-* directories are
+    // ignored because acquisition only considers the canonical lock directory.
+    try {
+      await rename(reapDir, lockDir)
+    } catch {
+      return false
+    }
+    return false
+  }
+
   l.write('warn', `Removing stale process lock at ${lockDir}`, {
     metadata: {
       lockDir,
@@ -171,12 +229,14 @@ const removeStaleProcessLock = async (
       hostname: owner?.hostname,
       ageMs,
       staleMs,
+      staleThresholdMs,
+      ownerIsRunning,
       ownerIsGone,
       heartbeatIsStale,
       ...(ownerState.parseError ? { parseError: ownerState.parseError } : {})
     }
   })
-  await rm(lockDir, { recursive: true, force: true })
+  await rm(reapDir, { recursive: true, force: true })
   return true
 }
 
@@ -250,8 +310,13 @@ export const withProcessLock = async <T,>(
 
   const activeOwner = owner
   const heartbeatHealth: HeartbeatHealth = { failureCount: 0 }
+  let heartbeatRefresh: Promise<void> | undefined
   const heartbeat = setInterval(() => {
-    void refreshProcessLockOwner(lockDir, activeOwner).catch((error) => {
+    if (heartbeatRefresh) {
+      return
+    }
+
+    heartbeatRefresh = refreshProcessLockOwner(lockDir, activeOwner).catch((error) => {
       heartbeatHealth.failureCount += 1
       heartbeatHealth.lastFailureAt = new Date().toISOString()
       heartbeatHealth.lastError = safeErrorMessage(error)
@@ -267,6 +332,8 @@ export const withProcessLock = async <T,>(
           error: heartbeatHealth.lastError
         }
       })
+    }).finally(() => {
+      heartbeatRefresh = undefined
     })
   }, heartbeatMs)
   heartbeat.unref?.()
@@ -275,6 +342,7 @@ export const withProcessLock = async <T,>(
     return await fn()
   } finally {
     clearInterval(heartbeat)
+    await heartbeatRefresh
     if (heartbeatHealth.failureCount > 0) {
       l.write('warn', `Process lock ${lockName} completed after heartbeat refresh failures`, {
         metadata: {

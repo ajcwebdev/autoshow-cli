@@ -1,4 +1,4 @@
-import type { ResolvedStep2Provider, RuntimeOptions } from '~/types'
+import type { PipelineItemRecord, ResolvedLLMModelOptions, ResolvedStep2Provider } from '~/types'
 
 export type BatchItem = {
   id: string
@@ -42,38 +42,19 @@ export type BatchRunOptions = {
   selectedItems?: Array<BatchItem | undefined>
   concurrency?: number
   totalCount?: number
-  initialEntries?: Record<string, unknown>[]
+  initialRecords?: PipelineItemRecord[]
   resultEntryIndexes?: number[]
   parentBatchDir?: string | undefined
   extractRoute?: ExtractRoute | undefined
 }
 
-export type ResolvedLLMConfig = Pick<RuntimeOptions,
-  | 'llamaModels' | 'llamaModel' | 'llamafileModels' | 'llamafileModel'
-  | 'openaiModels' | 'openaiModel' | 'groqModels' | 'groqModel'
-  | 'geminiModels' | 'geminiModel' | 'anthropicModels' | 'anthropicModel'
-  | 'minimaxModels' | 'minimaxModel' | 'grokModels' | 'grokModel'
-  | 'glmModels' | 'glmModel' | 'kimiModels' | 'kimiModel'
-  | 'togetherModels' | 'togetherModel' | 'cerebrasModels' | 'cerebrasModel'
-> & {
+export type ResolvedLLMConfig = ResolvedLLMModelOptions & {
   llmService: string | undefined
   llmModel: string | undefined
 }
 
 export type InputFamily = 'media' | 'document' | 'html_article' | 'x_space' | 'unsupported'
-// These literals are persisted, not just in-memory: they appear in `run.json`'s
-// `extractRoute`, and in `extract-batch.json`'s `childBatches` keys and per-item
-// `childBatchEntry.route`. The manifest parsers gate on this exact set, so changing a
-// value breaks every manifest already on disk unless a `schemaVersion` migration ships
-// with it — and no migration code exists (ADR-002 findings 1 and 6).
-//
-// `'x-space'` carries two meanings (ADR-002 findings 2-3). The producer assigns it to
-// the `x_space` input family only, planning article children onto `document` instead;
-// resume re-classifies by input family and keys `urlArticleResumeHandler` off this same
-// value. Resume names that second meaning `URL_ARTICLE_ROUTE` so each use site says
-// which one it means. Splitting the route into two values is the end state recorded in
-// ADR-002 and stays deferred, since it requires the missing upgrader.
-export type ExtractRoute = 'media' | 'document' | 'x-space'
+export type ExtractRoute = 'media' | 'document' | 'article' | 'x-space'
 
 export type Step2Modality = 'media' | 'document' | 'article'
 

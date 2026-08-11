@@ -6,7 +6,7 @@ import { planProcessTargetBatchExecution, resolveProcessTargetPlan } from '~/cli
 import { classifyInputFamily, classifyUrlInput } from '~/cli/commands/process-steps/step-0-metadata/metadata-targets/metadata-input-classifier'
 import { resolveInputRoutingForCommand } from '~/cli/commands/process-steps/step-0-metadata/metadata-targets/metadata-input-routing'
 import { resolveXSpaceDownloadTarget } from '~/cli/commands/process-steps/step-1-download/download-targets/single/x-space-runner'
-import { buildOptsFromFlags } from '~/cli/commands/process-steps/step-1-download/download-targets/build-opts-from-flags/build-options-from-flags'
+import { buildOptsFromFlags } from '~/cli/options/option-resolution/build-options-from-flags'
 import { STABLE_EXAMPLE_AUDIO_URL, runCommand } from '../../../test-utils/test-helpers'
 
 const tempDirs: string[] = []
@@ -57,8 +57,8 @@ describe('input classification contracts', () => {
       { input: mediaPath, family: 'media', extractRoute: 'media' },
       { input: imagePath, family: 'document', extractRoute: 'document' },
       { input: 'https://example.com/files/report.pdf', family: 'document', extractRoute: 'document' },
-      { input: htmlPath, family: 'html_article', extractRoute: 'document' },
-      { input: 'https://example.com/articles/post.html', family: 'html_article', extractRoute: 'document' },
+      { input: htmlPath, family: 'html_article', extractRoute: 'article' },
+      { input: 'https://example.com/articles/post.html', family: 'html_article', extractRoute: 'article' },
       { input: 'https://x.com/i/spaces/1DXxyRYNejbKM', family: 'x_space', extractRoute: 'x-space' },
       { input: 'https://x.com/example/status/1234567890123456789', family: 'x_space', extractRoute: 'x-space' },
       { input: '1DXxyRYNejbKM', family: 'x_space', extractRoute: 'x-space' }
@@ -89,7 +89,7 @@ describe('input classification contracts', () => {
       'media'
     ])
     expect(batchPlan?.plannedInputs.map((item) => item.extractRoute).sort()).toEqual([
-      'document',
+      'article',
       'document',
       'media'
     ])

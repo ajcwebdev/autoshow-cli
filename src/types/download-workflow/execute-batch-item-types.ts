@@ -1,26 +1,26 @@
-import type { BatchItem, BatchItemProcessResult, BatchManifestEntry, BatchRunOptions, ProcessCommand, RuntimeOptions } from '~/types'
+import type { BatchItem, BatchItemProcessResult, BatchRunOptions, PipelineItemRecord, ProcessCommand } from '~/types'
 
-export type BatchItemProcessor = (
+export type BatchItemProcessor<TOptions extends object> = (
   command: ProcessCommand,
   item: string,
   batchDir: string,
-  opts: RuntimeOptions,
+  opts: TOptions,
   batchItem?: BatchItem
 ) => Promise<BatchItemProcessResult | void>
 
-export type ExecuteBatchItemContext = {
+export type ExecuteBatchItemContext<TOptions extends object> = {
   command: ProcessCommand
   batchDir: string
   batchDirName: string
-  opts: RuntimeOptions
+  opts: TOptions
   runOpts: BatchRunOptions
-  processSingleTarget: BatchItemProcessor
+  processSingleTarget: BatchItemProcessor<TOptions>
   sttLike: boolean
   itemCount: number
 }
 
 export type BatchItemOutcome = {
-  manifestEntry: BatchManifestEntry | null
+  itemRecord: PipelineItemRecord | null
   errorCount: number
   status: 'ok' | 'partial' | 'incomplete' | 'failed'
   failureError?: unknown

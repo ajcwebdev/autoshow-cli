@@ -10,7 +10,6 @@
         "pricingCurrency": "USD",
         "pricingTier": "Z.AI built-in web tool reference pricing",
         "pricingNotes": "GLM Reader estimates use the Z.AI built-in web-search/tool reference of $0.01 per use as a per-page/request heuristic. Provider-specific quote paths, free quotas, discounts, enterprise pricing, taxes, and provider credits are ignored.",
-        "costPer1kPagesUSD": 10,
         "costPer1kPagesCents": 1000,
         "limits": {
           "notes": "Z.AI publishes built-in Web Search at $0.01/use; GLM Reader-specific request pricing was not listed in the local docs."

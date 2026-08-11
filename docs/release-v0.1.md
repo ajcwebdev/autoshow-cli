@@ -59,7 +59,7 @@ Process-step commands are ordered by pipeline step number. Each section below su
   - local `.html` / `.htm`, URL-list `.md` / `.txt`, X Space/post URLs, raw Space IDs, directories, RSS/podcast feeds, and YouTube channels
 - Key outputs:
   - terminal JSON metadata by default, or Markdown frontmatter YAML with `--markdown`
-  - saved `output/YYYY-MM-DD_HH-MM-SS_title/run.json` with `--save`
+  - saved `output/YYYY-MM-DD_HH-MM-SS_title/manifest.json` with `--save`
   - saved `output/YYYY-MM-DD_HH-MM-SS_title/metadata.md` with `--save --markdown`
   - target classification details and source metadata in the displayed or saved metadata
 
@@ -79,11 +79,11 @@ bun autoshow metadata input/examples/document/1-document.pdf
   - images such as `.png`, `.jpg`, `.jpeg`, `.tif`, `.tiff`, `.webp`, `.bmp`, and `.gif`
   - local `.html` / `.htm`, remote HTML/article URLs, URL-list `.md` / `.txt`, X Space/post URLs, raw Space IDs, and directories
 - Key outputs:
-  - media runs under `output/YYYY-MM-DD_HH-MM-SS-mmm_title/` with `<audio>.mp3|.m4a|.ogg|.flac` plus `run.json`
-  - X Space audio downloads under the same run directory with `<audio>.mp3|.m4a|.ogg|.flac` plus `run.json`
-  - best-quality streaming media under the same run directory as `.mkv`, `.mp4`, or `.webm` plus `run.json`
-  - document, image, and article runs under `output/YYYY-MM-DD_HH-MM-SS-mmm_title/` with source metadata in `run.json`
-  - batch runs under `output/YYYY-MM-DD_HH-MM-SS-mmm_batch-label/` with `source.json`, `batch.json`, and per-item artifact directories
+  - media runs under `output/YYYY-MM-DD_HH-MM-SS-mmm_title/` with `<audio>.mp3|.m4a|.ogg|.flac` plus `manifest.json`
+  - X Space audio downloads under the same run directory with `<audio>.mp3|.m4a|.ogg|.flac` plus `manifest.json`
+  - best-quality streaming media under the same run directory as `.mkv`, `.mp4`, or `.webm` plus `manifest.json`
+  - document, image, and article runs under `output/YYYY-MM-DD_HH-MM-SS-mmm_title/` with source metadata in `manifest.json`
+  - batch runs under `output/YYYY-MM-DD_HH-MM-SS-mmm_batch-label/` with one canonical `manifest.json`; its optional `source` object owns source inventory and its `items` own per-item output paths and state
 
 Example:
 
@@ -101,11 +101,11 @@ bun autoshow download input/examples/document/1-document.pdf
   - images such as `.png`, `.jpg`, `.jpeg`, `.tif`, `.tiff`, `.webp`, `.bmp`, and `.gif` through OCR
   - local `.html` / `.htm`, remote HTML/article URLs, URL-list `.md` / `.txt`, X Space/post URLs, raw Space IDs, and directories
 - Key outputs:
-  - media STT runs under `output/YYYY-MM-DD_HH-MM-SS_title/` with `transcription.txt`, `result.json`, and `run.json`; multi-provider results use `providers/<service>-<model>/`
-  - document/image OCR runs under the timestamped output directory with `extraction.txt` or `result.json`, `run.json`, and optional `chapters/` or `chunks/`
-  - article extraction runs under `output/YYYY-MM-DD_HH-MM-SS_article/` with `extraction.txt`, `result.json`, `extraction.tsv`, or `extraction.hocr`, plus `run.json`
-  - X Space runs under the timestamped output directory with `result.json`, `extraction.md`, and `run.json`
-  - transcript-video renders with `<label>.mp4`, `<label>.vtt`, `<label>.srt`, and `run.json`
+  - media STT runs under `output/YYYY-MM-DD_HH-MM-SS_title/` with `transcription.txt`, a raw domain `result.json`, and `manifest.json`; multi-provider results use `providers/<service>-<model>/`
+  - document/image OCR runs under the timestamped output directory with `extraction.txt` or a raw domain `result.json`, `manifest.json`, and optional `chapters/` or `chunks/`
+  - article extraction runs under `output/YYYY-MM-DD_HH-MM-SS_article/` with `extraction.txt`, a raw domain `result.json`, `extraction.tsv`, or `extraction.hocr`, plus `manifest.json`
+  - X Space runs under the timestamped output directory with a raw domain `result.json`, `extraction.md`, and `manifest.json`
+  - transcript-video renders with `<label>.mp4`, `<label>.vtt`, `<label>.srt`, and `manifest.json`
   - comparison/consensus flows can add `consensus-extraction.txt`, `provider-comparison-report.md`, and `provider-comparison-report.json`
 
 Example:
@@ -125,7 +125,7 @@ bun autoshow extract input/examples/document/1-document.pdf --format json
   - prompt families for summaries, chapters, marketing, social copy, creative writing, and song lyrics
   - hosted LLM providers and local llama.cpp or llamafile
 - Key outputs:
-  - timestamped write run directory under `output/` with `prompt.md` and `run.json`
+  - timestamped write run directory under `output/` with `prompt.md` and `manifest.json`
   - single-target JSON output as `text.json`; multi-target JSON output as `text-<model>.json`
   - rendered Markdown as `text.md` / `text-<model>.md` when `--rendered-text` is set
   - show-note Markdown as `show-note.md` / `show-note-<model>.md`
@@ -146,9 +146,9 @@ bun autoshow write ./output/demo/text --prompt rockSong
   - local Markdown or plaintext files: `.md` and `.txt`
   - local Kitten TTS and hosted TTS providers
 - Key outputs:
-  - single-target runs under `./output/<timestamp>_<label>/` with `speech.wav` and `run.json`
-  - multi-target runs with `speech-<service>-<sanitized-model>.wav` files plus `run.json`
-  - dialogue runs with `dialogue-normalized.txt`, per-turn `.wav` files under `segments/`, final `speech.wav`, and `run.json`
+  - single-target runs under `./output/<timestamp>_<label>/` with `speech.wav` and `manifest.json`
+  - multi-target runs with `speech-<service>-<sanitized-model>.wav` files plus `manifest.json`
+  - dialogue runs with `dialogue-normalized.txt`, per-turn `.wav` files under `segments/`, final `speech.wav`, and `manifest.json`
 
 Example:
 
@@ -168,7 +168,7 @@ bun autoshow tts input/examples/tts/1-tts.md --provider kitten=kitten-tts-mini
   - default run directory `output/<timestamp>_image-gen/`, or the exact directory passed with `--output-dir`
   - generated image files such as `generated-image.png`, `generated-image.jpg`, or `generated-image.webp`
   - multi-provider files named like `generated-image-<provider>-<model>.<ext>`
-  - `run.json` with image, cost, and timing metadata
+  - `manifest.json` with image, cost, and timing data in the canonical item's metadata
 
 Example:
 
@@ -189,7 +189,7 @@ bun autoshow image "a premium product photo of a mountain observatory brochure" 
   - default run directory `output/YYYY-MM-DD_HH-mm-ss_video-gen/`, or the exact directory passed with `--output-dir`
   - single-provider video as `generated-video.mp4`
   - multi-provider videos named like `generated-video-<provider>-<model>.mp4`
-  - `run.json` with video, cost, and timing metadata
+  - `manifest.json` with video, cost, and timing data in the canonical item's metadata
 
 Example:
 
@@ -208,10 +208,10 @@ bun autoshow video "animate the product on a slow turntable" --provider ltx=ltx-
   - optional caption inputs such as `.vtt` for lyric-video rerenders
   - hosted music providers plus local Whisper captions and ffmpeg for lyric videos
 - Key outputs:
-  - hosted runs under `output/YYYY-MM-DD_HH-mm-ss_music-gen/` with `generated-music.mp3` and `run.json`
-  - multi-provider hosted runs with `generated-music-<provider>-<model>.mp3` files plus `run.json`
-  - lyric-video runs under `output/YYYY-MM-DD_HH-MM-SS-sss_music-lyrics-<stem>/` with `<stem>.mp4`, `<stem>.vtt`, `<stem>.srt`, and `run.json`
-  - lyric-video batch runs under `output/YYYY-MM-DD_HH-MM-SS-sss_music-lyrics-batch/` with `batch.json` and per-song directories
+  - hosted runs under `output/YYYY-MM-DD_HH-mm-ss_music-gen/` with `generated-music.mp3` and `manifest.json`
+  - multi-provider hosted runs with `generated-music-<provider>-<model>.mp3` files plus `manifest.json`
+  - lyric-video runs under `output/YYYY-MM-DD_HH-MM-SS-sss_music-lyrics-<stem>/` with `<stem>.mp4`, `<stem>.vtt`, `<stem>.srt`, and `manifest.json`
+  - lyric-video batch runs under `output/YYYY-MM-DD_HH-MM-SS-sss_music-lyrics-batch/` with `manifest.json` and per-song directories
 
 Examples:
 
@@ -230,9 +230,35 @@ bun autoshow music "bright 90s pop rock with a huge chorus" --provider gemini=ly
   - configured writing and image providers for staged comic generation
   - reusable character sketches and panel prompt bundles
 - Key outputs:
-  - a timestamped `output/<timestamp>_<scene-slug>/` run directory with `structured-script.json`, `draft-prompt.md`, `scene.json`, and `panel-prompts/` artifacts
+  - a timestamped `output/<timestamp>_<scene-slug>/` run directory with drafting artifacts under `metadata/` and immutable reference indexes and snapshots under `assets/`
   - review sketches, final panel images, and grouped page `.png` images under that run directory's `sketches/`, `panels/`, and `pages/` subdirectories
-  - reusable character sketch images under `output/characters/sketches/<character-stem>/`
+  - reusable character and location reference images and their registration catalogs under `input/characters/` and `input/locations/`
+
+```text
+output/<timestamp>_<scene-slug>/
+  metadata/
+    structured-script.json
+    draft-prompt.md
+    scene.json
+    scene.invalid.json               # only when validation preserves invalid model output
+    panel-prompts/
+      source-coverage.json
+      panel-NN/<bundle>.md
+  assets/
+    character-references.json
+    character-references/
+      <snapshot-id>/
+        <character-key>/
+    location-references.json
+    location-references/
+      <snapshot-id>/
+    design-references.json           # only when reviewed panels declare design references
+    design-references/
+      <snapshot-id>/
+  panels/
+  pages/
+  sketches/
+```
 
 Example:
 
@@ -310,7 +336,7 @@ bun autoshow links stt
 [`resume`](./commands/setup-and-utilities/resume/resume.md) fills missing provider outputs in an existing run, child batch, or parent `extract` batch directory.
 
 - Primary inputs/providers:
-  - existing output directories containing `run.json`, `batch.json`, or `extract-batch.json`
+  - existing output directories containing the canonical `manifest.json`; both scopes and route-aware extract parent/child manifests use that one shape
   - supported STT, OCR, URL extraction, LLM, TTS, image, video, and music providers
 - Key outputs:
   - newly completed provider artifacts added in place to the original `output/<run-or-batch-dir>/` tree
@@ -328,11 +354,11 @@ bun autoshow resume ./output/<run-or-batch-dir> --provider deepinfra
 
 - Primary inputs/providers:
   - STT compression/speed benchmark source audio files such as `.mp3`, `.m4a`, `.wav`, `.flac`, `.ogg`, and `.aac`
-  - existing TTS run directories with `run.json` and speech audio outputs
-  - existing write, image, and video run directories with `run.json`, `.json`, `.png` / `.jpg` / `.webp` / `.svg`, or `.mp4` outputs
+  - existing TTS run directories with `manifest.json` and speech audio outputs
+  - existing write, image, and video run directories with `manifest.json`, `.json`, `.png` / `.jpg` / `.webp` / `.svg`, or `.mp4` outputs
   - configured local or hosted judging providers where a benchmark mode needs them
 - Key outputs:
-  - STT benchmark output under `output/benchmark/<timestamp>/` with `source.m4a`, variant `.m4a` files, per-service `transcription.txt`, `result.json`, `benchmark-attempt.json`, and final `report.json`
+  - STT benchmark output under `output/benchmark/<timestamp>/` with `source.m4a`, variant `.m4a` files, per-service `transcription.txt`, raw benchmark `result.json`, `benchmark-attempt.json`, and final `report.json`
   - TTS reports beside the run as `voice-quality-report.json` and `voice-quality-report.md`
   - text reports beside the run as `provider-comparison-report.json` and `provider-comparison-report.md`
   - image reports beside the run as `image-quality-report.json`, `image-quality-report.md`, `provider-comparison-report.json`, and `provider-comparison-report.md`
@@ -366,6 +392,7 @@ Shared runtime behavior applies across multiple process steps:
 - Provider/model flags are repeatable across STT, OCR, URL extraction, LLM, TTS, image, video, and music.
 - `--all-providers` and `--all-local` fan-out modes cover supported routes.
 - Per-step provider/local concurrency controls provider fan-out.
+- Flag and config resolution project into STT, OCR, URL, LLM, TTS, image, video, music, batch, and pricing option slices. Standalone generation, pricing, and resume consumers receive only their domain slice plus named shared controls; the full media/document write path uses its own composed `ProcessingOptions` boundary.
 
 Root help also exposes shared controls for config paths, verbosity, JSON output, cookies, and model paths.
 
@@ -375,10 +402,12 @@ See [Pricing Preflight](./commands.md#pricing-preflight) and the individual comm
 
 Most artifact-producing process-step commands write a timestamped directory under `output/`. Utility commands either update shared state, write docs under `project/`, or add reports beside existing runs.
 
-Primary manifests connect artifacts back to the command, provider/model choices, cost, timing, and batch context that produced them:
+Every run or batch root owns exactly one unversioned `manifest.json` with `{ command, scope, createdAt, updatedAt, source?, items }`. Single and batch scopes use the same top-level and item shapes; command and scope are ordinary data, not format selectors.
 
-- `run.json` exists for individual artifact-producing runs.
-- `batch.json` exists for non-extract batch parents.
-- `extract-batch.json` exists for route-aware extract batch parents.
+- Every item has `status`, `metadata`, and `providers`, plus input identity, route/output data, and an optional `{ route, index, manifestDir }` child link.
+- Every provider entry owns identity, artifact directory, attempts, options, metadata, status, result, and error state. One serialized atomic writer updates this lifecycle; requested, missing, blocked, completion, and batch-summary views are derived instead of persisted beside it.
+- Route-aware extract parents and children each use the canonical file. Child links name containment-checked relative directories, never alternate manifest filenames.
+- Provider directories contain generated artifacts and optional raw domain `result.json` payloads only. Raw results have no pipeline manifest version or kind and never control resume.
+- The reader recognizes only the current canonical shape. Outputs from before the clean break are not probed or migrated and must be rerun.
 
 See [Types, Metadata & Output Layout](./diagrams/05-types-and-output.md) for the full manifest shape.

@@ -4,6 +4,8 @@ import { spawnSync } from "node:child_process";
 import { existsSync, mkdtempSync, readFileSync, readdirSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { basename, dirname, join } from "node:path";
+import { loadCanonicalRunRecord } from "../shared/pipeline_manifest";
+import type { PipelineProviderState } from "../shared/pipeline_manifest";
 
 export interface OcrPage {
   pageNumber: number;
@@ -37,15 +39,9 @@ interface RunStepTimingEntry {
   processingTimeMs?: number;
 }
 
-interface RunProviderState {
-  artifactDir?: string;
-  status?: string;
-}
-
-export interface OcrRunJson {
-  schemaVersion?: number;
-  kind?: string;
-  metadata?: {
+export interface OcrManifestRecord {
+  providers: PipelineProviderState[];
+  metadata: {
     step1?: {
       title?: string;
       slug?: string;
@@ -63,7 +59,6 @@ export interface OcrRunJson {
       ocrService?: string;
       ocrModel?: string;
     }>;
-    providerStates?: RunProviderState[];
     cost?: {
       estimated?: { steps?: RunStepCostEntry[] };
       actual?: { steps?: RunStepCostEntry[] };
@@ -75,22 +70,19 @@ export interface OcrRunJson {
   };
 }
 
-interface ProviderResultPayload {
-  provider?: string;
-  model?: string;
-  metadata?: {
-    tokenEstimate?: number;
-    processingTime?: number;
-  };
-  result?: {
+interface OcrProviderResult {
+  text?: string;
+  pages?: Array<{
+    pageNumber?: number;
+    method?: string;
     text?: string;
-    pages?: Array<{
-      pageNumber?: number;
-      method?: string;
-      text?: string;
-    }>;
-    totalPages?: number;
-  };
+  }>;
+  totalPages?: number;
+}
+
+interface OcrProviderMetadata {
+  tokenEstimate?: number;
+  processingTime?: number;
 }
 
 const TOKEN_RE = /[a-z0-9]+(?:[''][a-z0-9]+)?/gi;
@@ -345,10 +337,6 @@ export interface OcrPageAnalysisArtifacts {
   selectiveAdjudicationPages: OcrSelectiveAdjudicationArtifact;
   variantComparisonSummary: OcrVariantComparisonSummary;
   benchmarkSummaryMarkdown: string;
-}
-
-export function readJson<T>(path: string): T {
-  return JSON.parse(readFileSync(path, "utf8")) as T;
 }
 
 export function normalizeText(text: string): string {
@@ -658,9 +646,9 @@ function makeProviderLookupKey(provider: string, model: string): string {
   return `${provider}::${model}`;
 }
 
-export function buildCostLookup(runJson: OcrRunJson): Map<string, number> {
+export function buildCostLookup(manifestRecord: OcrManifestRecord): Map<string, number> {
   const lookup = new Map<string, number>();
-  const actualSteps = runJson.metadata?.cost?.actual?.steps ?? [];
+  const actualSteps = manifestRecord.metadata.cost?.actual?.steps ?? [];
   for (const step of actualSteps) {
     if (step.provider && step.model && step.cost !== undefined) {
       lookup.set(makeProviderLookupKey(step.provider, step.model), Number(step.cost));
@@ -669,7 +657,7 @@ export function buildCostLookup(runJson: OcrRunJson): Map<string, number> {
   if (lookup.size > 0) {
     return lookup;
   }
-  const estimatedSteps = runJson.metadata?.cost?.estimated?.steps ?? [];
+  const estimatedSteps = manifestRecord.metadata.cost?.estimated?.steps ?? [];
   for (const step of estimatedSteps) {
     if (step.provider && step.model && step.cost !== undefined) {
       lookup.set(makeProviderLookupKey(step.provider, step.model), Number(step.cost));
@@ -678,9 +666,9 @@ export function buildCostLookup(runJson: OcrRunJson): Map<string, number> {
   return lookup;
 }
 
-export function buildTimingLookup(runJson: OcrRunJson): Map<string, number> {
+export function buildTimingLookup(manifestRecord: OcrManifestRecord): Map<string, number> {
   const lookup = new Map<string, number>();
-  const actualSteps = runJson.metadata?.timing?.actual?.steps ?? [];
+  const actualSteps = manifestRecord.metadata.timing?.actual?.steps ?? [];
   for (const step of actualSteps) {
     if (step.provider && step.model && step.processingTimeMs !== undefined) {
       lookup.set(makeProviderLookupKey(step.provider, step.model), Number(step.processingTimeMs));
@@ -689,7 +677,7 @@ export function buildTimingLookup(runJson: OcrRunJson): Map<string, number> {
   if (lookup.size > 0) {
     return lookup;
   }
-  const estimatedSteps = runJson.metadata?.timing?.estimated?.steps ?? [];
+  const estimatedSteps = manifestRecord.metadata.timing?.estimated?.steps ?? [];
   for (const step of estimatedSteps) {
     if (step.provider && step.model && step.processingTimeMs !== undefined) {
       lookup.set(makeProviderLookupKey(step.provider, step.model), Number(step.processingTimeMs));
@@ -698,16 +686,17 @@ export function buildTimingLookup(runJson: OcrRunJson): Map<string, number> {
   return lookup;
 }
 
-export function loadOcrRunJson(runDir: string): OcrRunJson {
-  const runJson = readJson<OcrRunJson>(join(runDir, "run.json"));
-  if (runJson.kind !== "ocr" && runJson.kind !== "extract") {
-    throw new Error(`run.json kind is "${runJson.kind}", expected "ocr" or "extract"`);
-  }
-  const step2 = runJson.metadata?.step2;
+export function loadOcrManifestRecord(runDir: string): OcrManifestRecord {
+  const record = loadCanonicalRunRecord(runDir, "extract", "document");
+  const metadata = record.metadata;
+  const step2 = metadata.step2;
   if (!Array.isArray(step2) || step2.length === 0) {
-    throw new Error("run.json metadata.step2 is missing or empty");
+    throw new Error("Canonical OCR manifest item metadata.step2 is missing or empty");
   }
-  return runJson;
+  return {
+    providers: record.item.providers,
+    metadata: metadata as OcrManifestRecord["metadata"],
+  };
 }
 
 function isFinitePageNumber(value: unknown): value is number {
@@ -722,7 +711,7 @@ function isContiguousPageNumberSequence(pageNumbers: number[], start: number): b
   return sorted.every((pageNumber, index) => pageNumber === start + index);
 }
 
-function normalizeProviderPages(pages: ProviderResultPayload["result"]["pages"] = []): OcrPage[] {
+function normalizeProviderPages(pages: NonNullable<OcrProviderPayload["result"]["pages"]> = []): OcrPage[] {
   const pageNumbers = pages.map((page) => page.pageNumber).filter(isFinitePageNumber);
   const shiftZeroBasedPages =
     pageNumbers.length === pages.length &&
@@ -739,12 +728,12 @@ function normalizeProviderPages(pages: ProviderResultPayload["result"]["pages"] 
 }
 
 export function loadOcrProviderRuns(runDir: string): { providers: OcrProviderRun[]; warnings: string[] } {
-  const runJson = loadOcrRunJson(runDir);
-  const costLookup = buildCostLookup(runJson);
-  const timingLookup = buildTimingLookup(runJson);
+  const manifestRecord = loadOcrManifestRecord(runDir);
+  const costLookup = buildCostLookup(manifestRecord);
+  const timingLookup = buildTimingLookup(manifestRecord);
   const warnings: string[] = [];
 
-  const providerStates = runJson.metadata?.providerStates ?? [];
+  const providerStates = manifestRecord.providers;
   const expectedDirs = new Set(
     providerStates
       .map((state) => state.artifactDir)
@@ -767,7 +756,7 @@ export function loadOcrProviderRuns(runDir: string): { providers: OcrProviderRun
   const missingResultDirs = [...expectedDirs].filter((dir) => !discoveredDirs.has(dir)).sort();
   if (missingResultDirs.length > 0) {
     warnings.push(
-      "run.json references provider artifact directories that are missing result.json files: " +
+      "manifest.json references provider artifact directories that are missing result.json files: " +
         missingResultDirs.join(", "),
     );
   }
@@ -775,41 +764,47 @@ export function loadOcrProviderRuns(runDir: string): { providers: OcrProviderRun
   const extraResultDirs = [...discoveredDirs].filter((dir) => !expectedDirs.has(dir)).sort();
   if (extraResultDirs.length > 0) {
     warnings.push(
-      "Found provider result.json files not listed in run.json providerStates: " +
+      "Found provider result.json files not listed in manifest.json provider states: " +
         extraResultDirs.join(", "),
     );
   }
 
-  const providers = resultPaths.map((resultPath) => {
-    const payload = readJson<ProviderResultPayload>(resultPath);
-    const provider = payload.provider;
-    const model = payload.model;
-    if (!provider || !model) {
-      throw new Error(`${resultPath} is missing provider/model metadata`);
+  const providers = resultPaths.flatMap((resultPath) => {
+    const directoryName = basename(dirname(resultPath));
+    const state = providerStates.find((providerState) => basename(providerState.artifactDir) === directoryName);
+    if (!state || state.status !== "succeeded") {
+      return [];
     }
+    const provider = state.service;
+    const model = state.model;
+    if (typeof model !== "string") {
+      throw new Error(`${resultPath} has no model identity in manifest.json`);
+    }
+    const metadata = state.metadata as OcrProviderMetadata;
+    const result = JSON.parse(readFileSync(resultPath, "utf8")) as OcrProviderResult;
 
-    const pages = normalizeProviderPages(payload.result?.pages);
+    const pages = normalizeProviderPages(result.pages);
 
     const extractionPath = join(dirname(resultPath), "extraction.txt");
     const lookupKey = makeProviderLookupKey(provider, model);
 
     const pageText = pages.map((page) => page.text).join("\n\n").trim();
 
-    return {
-      directoryName: basename(dirname(resultPath)),
+    return [{
+      directoryName,
       provider,
       model,
       providerKey: makeProviderKey(provider, model),
       resultPath,
       extractionPath: existsSync(extractionPath) ? extractionPath : null,
       pages,
-      text: pageText || String(payload.result?.text ?? "").trim(),
-      tokenEstimate: payload.metadata?.tokenEstimate ?? null,
+      text: pageText || String(result.text ?? "").trim(),
+      tokenEstimate: metadata.tokenEstimate ?? null,
       processingTimeMs:
         timingLookup.get(lookupKey) ??
-        (payload.metadata?.processingTime !== undefined ? Number(payload.metadata.processingTime) : null),
+        (metadata.processingTime !== undefined ? Number(metadata.processingTime) : null),
       actualCostCents: costLookup.get(lookupKey) ?? null,
-    } satisfies OcrProviderRun;
+    } satisfies OcrProviderRun];
   });
 
   return { providers, warnings };

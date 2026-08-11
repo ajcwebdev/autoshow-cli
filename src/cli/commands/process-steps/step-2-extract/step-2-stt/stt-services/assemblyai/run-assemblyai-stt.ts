@@ -51,7 +51,7 @@ const uploadAssemblyAiAudio = async (
   const uploadResult = await sttStageRequest({
     operationName: 'assemblyai-upload',
     stage: 'upload',
-    retryClass: 'runtime_http_create_conservative',
+    retryClass: 'runtime_http_create_retriable',
     maxAttempts: 4,
     timeoutMs: REQUEST_TIMEOUT_MS,
     errorPrefix: 'AssemblyAI',
@@ -88,7 +88,7 @@ const createAssemblyAiTranscript = async (
   const createResult = await sttStageRequest({
     operationName: 'assemblyai-create-transcript',
     stage: 'create',
-    retryClass: 'runtime_http_create_conservative',
+    retryClass: 'runtime_http_create_retriable',
     maxAttempts: 4,
     timeoutMs: REQUEST_TIMEOUT_MS,
     errorPrefix: 'AssemblyAI',

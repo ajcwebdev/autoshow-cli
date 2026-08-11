@@ -1,6 +1,6 @@
 import { commandSupportsInputFamily, isExtractCommand } from '~/cli/commands/process-steps/process-command-kinds'
 import { resolveOcrStep2ExecutionFromFormat, resolveSttStep2Execution } from '~/cli/commands/process-steps/step-2-extract/step-2-shared/resolved-step2'
-import type { InputFamily, ProcessCommand, ResolvedInputRouting, RuntimeOptions } from '~/types'
+import type { InputFamily, OcrRuntimeOptions, OcrSelectionOptions, ProcessCommand, ResolvedInputRouting, SttSelectionOptions, UrlRuntimeOptions } from '~/types'
 import { classifyInputFamily, isLikelyUrl, resolveDocumentFormatHint } from './metadata-input-classifier'
 
 export const describeUnsupportedInputForCommand = (
@@ -27,74 +27,24 @@ export const describeUnsupportedInputForCommand = (
 export const resolveInputRoutingForCommand = async (
   command: ProcessCommand,
   target: string,
-  opts?: Pick<
-    RuntimeOptions,
-    | 'urlBackendExplicit'
-    | 'urlBackend'
-    | 'urlBackends'
-    | 'step2SelectionOrigins'
-    | 'useReverb'
-    | 'whisperModel'
-    | 'whisperModels'
-    | 'deepinfraSttModel'
-    | 'deepinfraSttModels'
-    | 'deepgramSttModel'
-    | 'deepgramSttModels'
-    | 'sonioxSttModel'
-    | 'sonioxSttModels'
-    | 'speechmaticsSttModel'
-    | 'speechmaticsSttModels'
-    | 'revSttModel'
-    | 'revSttModels'
-    | 'groqSttModel'
-    | 'groqSttModels'
-    | 'grokSttModel'
-    | 'grokSttModels'
-    | 'mistralSttModel'
-    | 'mistralSttModels'
-    | 'assemblyaiSttModel'
-    | 'assemblyaiSttModels'
-    | 'gladiaSttModel'
-    | 'gladiaSttModels'
-    | 'happyscribeSttModel'
-    | 'happyscribeSttModels'
-    | 'supadataSttModel'
-    | 'supadataSttModels'
-    | 'scrapecreatorsSttModel'
-    | 'scrapecreatorsSttModels'
-    | 'useTesseract'
-    | 'mistralOcrModel'
-    | 'mistralOcrModels'
-    | 'glmOcrModel'
-    | 'glmOcrModels'
-    | 'kimiOcrModel'
-    | 'kimiOcrModels'
-    | 'openaiOcrModel'
-    | 'openaiOcrModels'
-    | 'grokOcrModel'
-    | 'grokOcrModels'
-    | 'anthropicOcrModel'
-    | 'anthropicOcrModels'
-    | 'geminiOcrModel'
-    | 'geminiOcrModels'
-    | 'deepinfraOcrModel'
-    | 'deepinfraOcrModels'
-    | 'useEpubBun'
-  >
+  opts?: SttSelectionOptions
+    & OcrSelectionOptions
+    & Pick<UrlRuntimeOptions, 'urlBackendExplicit' | 'urlBackend' | 'urlBackends'>
+    & Pick<OcrRuntimeOptions, 'useEpubBun'>
 ): Promise<ResolvedInputRouting> => {
   const family = await classifyInputFamily(target, opts)
   const documentFormatHint = await resolveDocumentFormatHint(target, family)
   const resolvedStep2: ResolvedInputRouting['resolvedStep2'] = family === 'x_space'
     ? { route: 'unsupported' as const, sourceKind: 'unsupported' as const }
     : family === 'media'
-    ? resolveSttStep2Execution((opts ?? {}) as Parameters<typeof resolveSttStep2Execution>[0])
+    ? resolveSttStep2Execution(opts ?? {})
     : family === 'document' || family === 'html_article'
       ? resolveOcrStep2ExecutionFromFormat(
           documentFormatHint ?? (family === 'html_article' ? 'html' : 'pdf'),
           {
             ...(opts ?? {}),
             localHtmlDocument: family === 'html_article' && !isLikelyUrl(target)
-          } as Parameters<typeof resolveOcrStep2ExecutionFromFormat>[1]
+          }
         )
       : {
           route: 'unsupported',
@@ -106,7 +56,9 @@ export const resolveInputRoutingForCommand = async (
     ? 'x-space'
     : step2Route === 'stt'
     ? 'media'
-    : step2Route === 'ocr' || step2Route === 'article' || step2Route === 'native-document'
+    : step2Route === 'article'
+    ? 'article'
+    : step2Route === 'ocr' || step2Route === 'native-document'
       ? 'document'
       : undefined
 

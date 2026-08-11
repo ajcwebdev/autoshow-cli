@@ -8,7 +8,7 @@ import { ensureDirectory } from '~/utils/cli-utils'
 import { CLIUsageError, isCLIUsageError } from '~/utils/error-handler'
 import * as l from '~/utils/app-logger/app-logger'
 import { createDetailTable } from '~/utils/app-logger/human-table/human-table'
-import { writeRunManifest } from './manifest-utils'
+import { createManifest, createPipelineItemFromRecord, writeManifest } from './pipeline-manifest'
 
 
 const mediaLabels: Readonly<Record<MediaGenerationStatus['mediaType'], string>> = {
@@ -175,17 +175,33 @@ export const writeGenerationMetadata = async <T,>(
   manifestContext?: {
     input: string
     requestedProviders: Array<{ service: string, model: string }>
+    completedProviders: Array<{ service: string, model: string }>
   }
 ): Promise<void> => {
-  await writeRunManifest(outputDir, metadataKey as 'tts' | 'image' | 'video' | 'music', {
+  const completedKeys = new Set((manifestContext?.completedProviders ?? []).map((provider) => getGenerationTargetKey(provider.service, provider.model)))
+  const manifestMetadata = {
     [metadataKey]: metadata,
     cost: cost as Record<string, unknown>,
     timing: timing as Record<string, unknown>,
     ...(manifestContext ? {
       input: manifestContext.input,
-      requestedProviders: manifestContext.requestedProviders
+      requestedProviders: manifestContext.requestedProviders,
+      providerStates: manifestContext.requestedProviders.map((provider) => ({
+        ...provider,
+        artifactDir: '.',
+        status: completedKeys.has(getGenerationTargetKey(provider.service, provider.model)) ? 'succeeded' : 'missing',
+        attempts: completedKeys.has(getGenerationTargetKey(provider.service, provider.model)) ? 1 : 0
+      }))
     } : {})
-  })
+  }
+  const command = metadataKey as 'tts' | 'image' | 'video' | 'music'
+  await writeManifest(outputDir, createManifest(command, 'single', [
+    createPipelineItemFromRecord(outputDir, manifestMetadata, {
+      status: manifestContext && manifestContext.requestedProviders.some((provider) => !completedKeys.has(getGenerationTargetKey(provider.service, provider.model)))
+        ? 'incomplete'
+        : 'full'
+    })
+  ]))
 }
 
 export const buildProviderStepSummaries = <T,>(

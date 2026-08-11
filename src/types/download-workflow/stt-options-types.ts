@@ -1,3 +1,5 @@
+import type { BatchRuntimeOptions } from './batch-options-types'
+
 export type SttRuntimeOptions = {
   whisperModels: string[] | undefined
   whisperModel: string
@@ -43,6 +45,15 @@ export type SttRuntimeOptions = {
   sttPreflightConcurrency: number
   reverbVerbatimicity: number
   split: boolean
+}
+
+export type SttExtractionOptions = SttRuntimeOptions & Pick<BatchRuntimeOptions, 'batchConcurrency'> & {
+  outputRootDir: string
+  useReverb: boolean
+  youtubeCaptions: boolean
+  step2SelectionOrigins: Partial<Record<string, 'default' | 'explicit' | 'all-shortcut'>>
+  prompts: string[]
+  promptMd: boolean
 }
 
 export type SttRuntimeOptionKey = keyof SttRuntimeOptions

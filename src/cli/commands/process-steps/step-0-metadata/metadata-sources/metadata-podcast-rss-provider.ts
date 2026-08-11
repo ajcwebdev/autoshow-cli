@@ -59,7 +59,7 @@ export const tryEnumeratePodcastFeed = async (url: string): Promise<BatchSource 
     return null
   }
 
-  const parsed = parsePodcastFeedXml(xml, url)
+  const parsed = parsePodcastFeedXml(xml)
   if (!parsed || parsed.episodes.length === 0) return null
 
   const feedAuthor = parsed.author ?? parsed.title

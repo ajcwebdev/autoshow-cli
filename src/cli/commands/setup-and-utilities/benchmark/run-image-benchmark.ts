@@ -2,9 +2,9 @@ import { extname, isAbsolute, join, resolve } from 'node:path'
 import * as l from '~/utils/app-logger/app-logger'
 import { CLIUsageError } from '~/utils/error-handler'
 import { baseMediaComparisonRow, writeMediaComparisonReports } from './media-provider-comparison'
-import { costFromRunCostSteps, ensureFile, getArray, getNumber, getString, loadMediaRunJson } from './benchmark-utils'
+import { costFromManifestMetadata, ensureFile, getArray, getNumber, getString, loadMediaManifest } from './benchmark-utils'
 import { judgeVisionArtifact, qualityReportBase, rankVisionProviders, resolveVisionProviders, runVisionBenchmark, summarizeVisionEvaluations, writeVisionQualityJson, writeVisionQualityMarkdown } from './vision-benchmark-engine'
-import type { BenchmarkFlags, ImageBenchmarkProvider, ImageCriterionScores, ImageEvaluation, ImageFileReference, ImageQualityProviderReport, ImageQualityReport, ImageRunEntry, ImageRunJson, JsonObject } from '~/types'
+import type { BenchmarkFlags, ImageBenchmarkManifestView, ImageBenchmarkProvider, ImageCriterionScores, ImageEvaluation, ImageFileReference, ImageQualityProviderReport, ImageQualityReport, ImageRunEntry, JsonObject } from '~/types'
 import type { VisionCriterion } from './vision-benchmark-engine'
 
 const DEFAULT_IMAGE_JUDGE_MODEL = 'gpt-5.5'
@@ -29,7 +29,7 @@ const imageMimeType = (fileName: string): string => {
   }
 }
 
-const parseImageRunEntry = (rawEntry: JsonObject, rawRunJson: JsonObject, index: number): ImageRunEntry => {
+const parseImageRunEntry = (rawEntry: JsonObject, manifestMetadata: JsonObject, index: number): ImageRunEntry => {
   const imageService = getString(rawEntry, 'imageService')
   const imageModel = getString(rawEntry, 'imageModel')
   if (!imageService || !imageModel) {
@@ -40,7 +40,7 @@ const parseImageRunEntry = (rawEntry: JsonObject, rawRunJson: JsonObject, index:
     throw CLIUsageError(`Image benchmark metadata.image[${index}] must include imageFileNames[].`)
   }
   const processingTimeMs = getNumber(rawEntry, 'processingTime')
-  const costCents = getNumber(rawEntry, 'providerCostCents') ?? costFromRunCostSteps(rawRunJson, imageService, imageModel)
+  const costCents = getNumber(rawEntry, 'providerCostCents') ?? costFromManifestMetadata(manifestMetadata, imageService, imageModel)
   return {
     imageService,
     imageModel,
@@ -50,9 +50,9 @@ const parseImageRunEntry = (rawEntry: JsonObject, rawRunJson: JsonObject, index:
   }
 }
 
-const loadImageRun = async (runDir: string): Promise<{ runJson: ImageRunJson, providers: ImageBenchmarkProvider[] }> => {
-  const { input, entries, raw } = await loadMediaRunJson(runDir, 'image', 'Image', parseImageRunEntry)
-  const runJson: ImageRunJson = { kind: 'image', metadata: { input, image: entries }, raw }
+const loadImageRun = async (runDir: string): Promise<{ manifestView: ImageBenchmarkManifestView, providers: ImageBenchmarkProvider[] }> => {
+  const { input, entries, raw } = await loadMediaManifest(runDir, 'image', 'Image', parseImageRunEntry)
+  const manifestView: ImageBenchmarkManifestView = { input, entries, raw }
   const providers = await resolveVisionProviders<ImageRunEntry, ImageFileReference, ImageBenchmarkProvider>({
     entries,
     identity: ({ imageService, imageModel }) => ({ service: imageService, model: imageModel }),
@@ -69,7 +69,7 @@ const loadImageRun = async (runDir: string): Promise<{ runJson: ImageRunJson, pr
     statsPolicy: 'first',
     assemble: (base, images) => ({ ...base, images })
   })
-  return { runJson, providers }
+  return { manifestView, providers }
 }
 
 const imageDataUrl = async ({ path, mimeType }: ImageFileReference): Promise<string> => {
@@ -141,15 +141,15 @@ const providerComparisonRows = (report: ImageQualityReport): JsonObject[] => rep
 
 const writeImageQualityReports = async (
   runDir: string,
-  runJson: ImageRunJson,
+  manifestView: ImageBenchmarkManifestView,
   providers: readonly ImageBenchmarkProvider[],
   judgeModel: string
 ): Promise<{ report: ImageQualityReport, jsonOut: string, markdownOut: string }> => {
   const evaluated = [] as Array<Omit<ImageQualityProviderReport, 'rank'>>
-  for (const provider of providers) evaluated.push(await evaluateImageProvider(runJson.metadata.input, provider, judgeModel))
+  for (const provider of providers) evaluated.push(await evaluateImageProvider(manifestView.input, provider, judgeModel))
   const ranked: ImageQualityProviderReport[] = rankVisionProviders(evaluated)
   const report: ImageQualityReport = {
-    ...qualityReportBase('image-quality-report', runDir, new Date().toISOString(), judgeModel, runJson.metadata.input, {
+    ...qualityReportBase('image-quality-report', runDir, new Date().toISOString(), judgeModel, manifestView.input, {
       scale: '1-10', qualityScore: 'average criterion score x 10', criteria: IMAGE_CRITERIA.map(({ reportLabel }) => reportLabel)
     }),
     providerCount: ranked.length,

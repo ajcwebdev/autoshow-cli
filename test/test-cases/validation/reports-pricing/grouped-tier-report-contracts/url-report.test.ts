@@ -6,7 +6,7 @@ import {
 import { writeFile } from 'node:fs/promises'
 import { join } from 'node:path'
 import type { RankingSurfaceName, TtsRankingEntry } from '~/types'
-import { writeMultiProviderRunFixture } from '../../../../test-utils/manifest-helpers'
+import { writeMultiProviderManifestFixture } from '../../../../test-utils/manifest-helpers'
 import { expectRankingSurfaces, runConsensusBuildReport, setupTempRoots } from './shared'
 
 const makeTempRoot = setupTempRoots()
@@ -24,8 +24,9 @@ describe('grouped report contracts', () => {
         { dir: 'glm-reader', provider: 'glm-reader', model: 'glm-reader', text: 'alpha beta gamma delta epsilon zeta eta theta extra' }
       ]
 
-      await writeMultiProviderRunFixture(runDir, {
-        kind: 'url',
+      await writeMultiProviderManifestFixture(runDir, {
+        command: 'extract',
+        extractRoute: 'article',
         providers: providerArtifacts.map((artifact) => ({
           ...artifact,
           result: { text: artifact.text }

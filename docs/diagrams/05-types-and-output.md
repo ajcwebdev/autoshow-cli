@@ -1,11 +1,11 @@
 # Types, Metadata & Output Layout
 
-Reference for public output artifacts, schema v2 envelopes, runtime directories, provider result files, and key type families.
+Reference for public output artifacts, the canonical pipeline manifest, runtime directories, provider result files, and key type families.
 
 ## Outline
 
 - [Output Layout](#output-layout)
-- [Schema V2 Envelopes](#schema-v2-envelopes)
+- [Canonical Manifest](#canonical-manifest)
 - [Runtime Layout](#runtime-layout)
 - [Type Reference](#type-reference)
 
@@ -14,7 +14,7 @@ Reference for public output artifacts, schema v2 envelopes, runtime directories,
 ```
 output/
   YYYY-MM-DD_HH-MM-SS_<title>/
-    run.json
+    manifest.json
 
     # media extract/write
     audio.(mp3|m4a|ogg|flac)
@@ -32,16 +32,16 @@ output/
     show-note-<model>.md
     providers/<provider-model>/
       transcription.txt
-      result.json                      # provider-result envelope
+      result.json                      # raw domain result payload
 
     # document/article extract/write
     extraction.txt
-    result.json                        # provider-result or structured extract result
+    result.json                        # raw structured extract/domain payload
     extraction.tsv
     extraction.hocr
     providers/<provider-or-backend>/
       extraction.txt
-      result.json                      # provider-result envelope
+      result.json                      # raw domain result payload
     prompt.md
     prompt-md.md
     text.json | text-<model>.json
@@ -69,66 +69,96 @@ Batch roots:
 
 ```
 non-extract batch:
-  batch.json
-  source.json                  # optional source-backed batch
+  manifest.json
   <item-output>/
 
 extract batch:
-  extract-batch.json           # schema v2 route parent
-  source.json                  # optional source-backed batch
+  manifest.json                 # parent items and child links
   media/
-    batch.json
-    stt-summary.json
+    manifest.json
     <item-output>/
   document/
-    batch.json
+    manifest.json
+    <item-output>/
+  article/
+    manifest.json
     <item-output>/
   x-space/
-    batch.json
+    manifest.json
     <item-output>/
 
 standalone tts directory batch:
-  batch.json
-  run.json
+  manifest.json
   <item-stem>.<ext>                        # one target
   <item-stem>-<provider>-<model>.<ext>     # multi-target/provider output
 ```
 
-TTS directory batch entries include the input, `audioStem`, completion status, TTS metadata arrays, and errors for failed items. The aggregate `run.json` records batch metadata, requested providers, item metadata, cost, and timing.
+Every output root owns exactly one `manifest.json`. TTS directory batch items include the input, `audioStem`, status, provider states, TTS metadata, cost, timing, and any errors. Extract parent items link to route child manifests by a containment-checked relative directory.
 
-## Schema V2 Envelopes
+## Canonical Manifest
 
-Run manifests:
+Single runs and batches use the same unversioned, non-union shape. `command` and `scope` are ordinary data, not format selectors:
 
 ```json
 {
-  "schemaVersion": 2,
-  "kind": "extract",
-  "metadata": {}
+  "command": "extract",
+  "scope": "single",
+  "createdAt": "2026-08-10T12:00:00.000Z",
+  "updatedAt": "2026-08-10T12:00:05.000Z",
+  "source": {},
+  "items": [
+    {
+      "input": "input/audio.mp3",
+      "inputFamily": "media",
+      "extractRoute": "media",
+      "outputDir": ".",
+      "status": "full",
+      "metadata": {},
+      "providers": [
+        {
+          "service": "whisper",
+          "model": "small",
+          "local": true,
+          "artifactDir": ".",
+          "status": "succeeded",
+          "attempts": 1,
+          "options": {},
+          "metadata": {},
+          "result": {}
+        }
+      ]
+    }
+  ]
 }
 ```
 
-Valid `run.json` kinds are `metadata`, `download`, `extract`, `write`, `tts`, `image`, `video`, and `music`.
+Commands are `metadata`, `download`, `extract`, `write`, `tts`, `image`, `video`, and `music`. Scope is `single` or `batch`. Item status is `full`, `incomplete`, `failed`, or `skipped`; provider status is `running`, `succeeded`, `missing`, `failed`, or `skipped`.
 
-Batch manifests:
+Batch items use the same item shape. A route parent adds a child link without changing the manifest format:
 
 ```json
 {
-  "schemaVersion": 2,
-  "kind": "write",
-  "items": [],
-  "source": {}
+  "input": "input/file.pdf",
+  "inputFamily": "document",
+  "extractRoute": "document",
+  "outputDir": "document/2026-08-10_12-00-00_file",
+  "child": {
+    "route": "document",
+    "index": 0,
+    "manifestDir": "document"
+  },
+  "status": "full",
+  "metadata": {},
+  "providers": []
 }
 ```
 
-Valid `batch.json` kinds match run kinds. `source` is present only for source-backed batches such as podcast feeds or YouTube sources.
+`source` is optional top-level business data for source-backed work such as podcast feeds or YouTube collections. It is never written to a companion control file.
 
-Provider result envelopes:
+Provider directories may retain raw user-facing domain results, but those files are not manifests and never control resume:
 
 ```json
 {
-  "schemaVersion": 2,
-  "kind": "provider-result",
   "provider": "whisper",
   "model": "small",
   "metadata": {},
@@ -136,33 +166,7 @@ Provider result envelopes:
 }
 ```
 
-Extract batch parent:
-
-```json
-{
-  "schemaVersion": 2,
-  "createdAt": "2026-06-10T17:00:00.000Z",
-  "items": [
-    {
-      "input": "input/file.pdf",
-      "inputFamily": "document",
-      "extractRoute": "document",
-      "childBatchEntry": { "route": "document", "index": 0 },
-      "completionStatus": "full",
-      "outputDir": "document/2026-06-10_12-00-00_file"
-    }
-  ],
-  "childBatches": {
-    "media": "media/batch.json",
-    "document": "document/batch.json",
-    "x-space": "x-space/batch.json"
-  }
-}
-```
-
-Extract batch item `inputFamily` values are `media`, `document`, `html_article`, `x_space`, and `unsupported`. Extract routes are `media`, `document`, and `x-space`. Completion status values are `full`, `incomplete`, `failed`, and `skipped`.
-
-Manifest readers accept only schema v2 run/batch manifests with a current `kind` and schema v2 extract batches. Retired shapes — schema v1 extract batches and run manifests with `kind: "stt"` or `kind: "ocr"` — no longer parse and are treated as absent; re-run `extract` to produce a current manifest.
+The sole reader validates this current shape, timestamps, enumerated values, status consistency, and containment of every output, child, and provider path. One serialized atomic writer creates and updates that shape, including in-progress provider lifecycle changes. There is no pipeline-manifest version, kind registry, compatibility reader, migration path, filename probing, or old-format recognition. Existing outputs from before this cutover must be rerun.
 
 ## Runtime Layout
 
@@ -194,16 +198,35 @@ input/characters/
   <canonical-source-image>
   <source-stem>--outline-sheet.png # registered live sheet
 
-output/<timestamp>_<scene>/
-  structured-script.json           # schemaVersion 3; characterKeys/speakerKey
-  scene.json                        # schemaVersion 4; authoritative panel.characterKeys
-  character-references.json         # checksummed immutable snapshot manifest
-  character-references/<snapshot-id>/<character-key>/
-    reference.<ext>                  # one-image character
-    sketch-sheet.png                 # legacy two-image character
-    source.<ext>                     # legacy two-image character
-  panel-prompts/panel-NN/
-    <scene>-panel-N.md               # keys + snapshot ID; no copied character images
+output/<timestamp>_<scene-slug>/
+  metadata/
+    structured-script.json           # schemaVersion 3; characterKeys/speakerKey
+    draft-prompt.md
+    scene.json                       # schemaVersion 4; authoritative panel.characterKeys
+    scene.invalid.json               # only when validation preserves invalid model output
+    panel-prompts/
+      source-coverage.json
+      panel-NN/
+        <scene>-panel-N.md            # keys + snapshot IDs; no copied reference images
+  assets/
+    character-references.json        # checksummed immutable character snapshot index
+    character-references/
+      <snapshot-id>/
+        <character-key>/
+          reference.<ext>             # one-image character
+          sketch-sheet.png            # legacy two-image character
+          source.<ext>                # legacy two-image character
+    location-references.json         # checksummed immutable location snapshot index
+    location-references/
+      <snapshot-id>/
+        <location-key>--reference-sheet.png
+    design-references.json           # only when reviewed panels declare design references
+    design-references/
+      <snapshot-id>/
+        <design-key>.<ext>
+  panels/
+  pages/
+  sketches/
 ```
 
 Reference compilation preserves first character appearance and emits one canonical image for each one-image character. Legacy two-image characters emit one derived identity card. The scene's immutable location reference follows all required character references, then any optional panel/page/sketch continuity references.
@@ -217,14 +240,17 @@ ProcessCommand =
   "metadata" | "download" | "extract" | "write" |
   "tts" | "image" | "music" | "video"
 
-RuntimeOptions includes:
-  target/download controls
-  batch and source selection
-  STT/OCR/URL/LLM/TTS/image/video/music provider selections
-  local/hosted concurrency controls
-  prompt/text-input/rendered-text controls
-  cost/preflight controls
-  provider-specific voice, model, media, and generation options
+Flag/config resolution context:
+  merged/configured/explicit flags
+  normalized repeatable model selections
+  command-neutral resolution state
+
+ProcessingOptions:
+  only the composed media/document write pipeline
+
+Domain option slices:
+  STT, OCR, URL, LLM, TTS, image, video, music, batch, and pricing
+  each consumer requests only its domain plus named shared controls
 ```
 
 Provider unions:
@@ -259,4 +285,4 @@ Important metadata fields by step:
 | Step 6 video | video provider/model, file name/size/duration, request mode, resolution/aspect ratio, input/reference media, provider IDs/URLs/progress/moderation/storage, provider cost. |
 | Step 7 music | music provider/model, file name/size/duration, lyrics source, generated lyrics/title/style fields, audio technical metadata, provider IDs/traces, provider cost. |
 
-Run-level metadata commonly includes `completionStatus`, `requestedProviders`, `providerStates`, `missingProviders`, `cost`, `timing`, `errors`, and route-specific fields such as `extractRoute`, `resolvedStep2`, `web`, and `source`.
+Item metadata commonly includes cost, timing, errors, and route-specific evidence such as `resolvedStep2` and `web`. Completion and provider progress live only in the canonical item `status` and `providers` fields; requested, missing, and blocked lists are derived views rather than duplicated persisted state.

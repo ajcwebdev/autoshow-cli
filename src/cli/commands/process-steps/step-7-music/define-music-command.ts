@@ -2,7 +2,7 @@ import { defineCliCommand } from '~/cli/native/native-types'
 import { musicCommandFlags, musicCommandOptionNames } from '~/cli/flags/music-flags'
 import { retargetUsageErrorsToCommandSpellings } from '~/cli/flags/flag-utils'
 import { CLIUsageError } from '~/utils/error-handler'
-import { buildOptsFromFlags } from '~/cli/commands/process-steps/step-1-download/download-targets/build-opts-from-flags/build-options-from-flags'
+import { buildOptsFromFlags } from '~/cli/options/option-resolution/build-options-from-flags'
 import { normalizeCommandSelectorFlags } from '~/cli/flags/service-selector-normalization/flag-helpers'
 import { normalizeGenericProviderSelectorFlags } from '~/cli/flags/service-selector-normalization/generic-provider-selectors'
 import { STANDALONE_MUSIC_PROVIDER_TARGETS } from '~/cli/flags/service-selector-normalization/provider-targets'
@@ -13,13 +13,21 @@ import { computeActualCosts } from '~/utils/pricing/compute-actual-costs'
 import { computeEstimatedCosts } from '~/utils/pricing/compute-estimated-costs'
 import { computeActualProcessingTimes, computeEstimatedProcessingTimes } from '~/utils/pricing/compute-processing-time'
 import { preflightToEstimated } from '~/utils/pricing/compute-costs'
-import { runPreflight } from '~/utils/pricing/preflight'
+import { evaluatePreflightEstimate } from '~/utils/pricing/preflight'
+import { aggregateExplicitPriceEstimate } from '~/utils/pricing/aggregate-pricing'
+import { buildMusicEstimates } from '~/utils/pricing/aggregate-pricing/generation-estimates'
 import { buildProviderStepSummaries, createGenerationOutputDir, getGenerationExpectedOutputDir, resolveMaxCentsFromFlags, writeGenerationMetadata } from '~/cli/commands/process-steps/generation-command-utils'
 import * as l from '~/utils/app-logger/app-logger'
 import { runWithLogContext } from '~/utils/app-logger/app-logger'
 import { fileExists } from '~/utils/cli-utils'
 import { isTextInputPath } from '~/cli/commands/process-steps/step-3-write/text-input-utils'
-import type { CliFlagOccurrence } from '~/types'
+import type { CliFlagOccurrence, MusicRuntimeOptions, ResourceGate } from '~/types'
+
+type StandaloneMusicCommandOptions = MusicRuntimeOptions & {
+  generationResourceGate?: ResourceGate | undefined
+  price: boolean
+  allowOverBudget: boolean
+}
 
 const HOSTED_MUSIC_FLAGS = [
   'all-providers',
@@ -71,19 +79,23 @@ const runHostedMusicGeneration = async (
     STANDALONE_MUSIC_PROVIDER_TARGETS,
     { allProvidersTarget: 'all-music' }
   )
-  const musicOpts = buildOptsFromFlags(true, providerNormalized.flags, [], {}, providerNormalized.explicitFlags, providerNormalized.flagOccurrences)
+  const musicOpts: StandaloneMusicCommandOptions = buildOptsFromFlags(true, providerNormalized.flags, {}, providerNormalized.explicitFlags, providerNormalized.flagOccurrences)
 
   const musicTargets = collectMusicTargets(musicOpts)
   if (musicTargets.length === 0) {
     throw CLIUsageError('Specify a music generation provider with --provider elevenlabs|minimax|gemini[=model]')
   }
 
-  const { estimate: preflightEstimate, shouldExit: musicShouldExit } = await runPreflight('music', prompt, musicOpts, musicMaxCents)
+  const { estimate: preflightEstimate, shouldExit: musicShouldExit } = evaluatePreflightEstimate(
+    aggregateExplicitPriceEstimate(await buildMusicEstimates(musicOpts), {}),
+    musicOpts,
+    musicMaxCents
+  )
   if (musicShouldExit) {
     const singleTarget = musicTargets.length === 1
     const expectedFiles = [
       ...musicTargets.map((target) => getMusicArtifactFileName(target, singleTarget)),
-      'run.json'
+      'manifest.json'
     ]
     l.report.expectedOutput(getGenerationExpectedOutputDir('./output/<timestamp>_music-gen/'), expectedFiles)
     return
@@ -122,14 +134,15 @@ const runHostedMusicGeneration = async (
 
   await writeGenerationMetadata(outputDir, 'music', metadata, cost, timing, {
     input: prompt,
-    requestedProviders: musicTargets.map((t) => ({ service: t.service, model: t.model }))
+    requestedProviders: musicTargets.map((t) => ({ service: t.service, model: t.model })),
+    completedProviders: metadata.map((entry) => ({ service: entry.musicService, model: entry.musicModel }))
   })
 
   l.report.complete(
     outputDir,
     {
       ...buildMusicArtifactMap(metadata),
-      run: 'run.json'
+      manifest: 'manifest.json'
     },
     {
       steps: buildProviderStepSummaries(

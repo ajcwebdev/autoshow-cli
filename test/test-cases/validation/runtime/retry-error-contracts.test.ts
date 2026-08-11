@@ -24,7 +24,7 @@ describe('retry error contracts', () => {
     })
   })
 
-  test('classifyFetchRetry retries conservative create aborts and socket closures', () => {
+  test('classifyFetchRetry keeps conservative abort refusal separate from retriable creates', () => {
     expect(classifyFetchRetry(
       new DOMException('The operation timed out.', 'TimeoutError'),
       'runtime_http_create_conservative'
@@ -35,8 +35,7 @@ describe('retry error contracts', () => {
 
     expect(classifyFetchRetry(
       new DOMException('The operation timed out.', 'TimeoutError'),
-      'runtime_http_create_conservative',
-      { retryAbortOnConservative: true }
+      'runtime_http_create_retriable'
     )).toMatchObject({
       shouldRetry: true,
       reason: 'abort/timeout'
@@ -44,8 +43,7 @@ describe('retry error contracts', () => {
 
     expect(classifyFetchRetry(
       new Error('Socket connection was closed unexpectedly'),
-      'runtime_http_create_conservative',
-      { retryAbortOnConservative: true }
+      'runtime_http_create_retriable'
     )).toMatchObject({
       shouldRetry: true,
       reason: 'network error'
@@ -210,7 +208,7 @@ describe('retry error contracts', () => {
           rawResponse: { error: 'temporary outage' }
         })
       },
-      (error) => classifyFetchRetry(error, 'runtime_http_read', { retryAbortOnConservative: true })
+      (error) => classifyFetchRetry(error, 'runtime_http_read')
     )).rejects.toThrow(AppError)
 
     expect(attempts).toBe(2)
@@ -237,7 +235,7 @@ describe('retry error contracts', () => {
             rawResponse: { error: 'temporary outage' }
           })
         },
-        (error) => classifyFetchRetry(error, 'runtime_http_read', { retryAbortOnConservative: true })
+        (error) => classifyFetchRetry(error, 'runtime_http_read')
       )
       throw new Error('expected retry failure')
     } catch (error) {
@@ -314,7 +312,7 @@ describe('retry error contracts', () => {
           }
           throw Object.assign(new Error('bad request'), { status: 400, stage: 'create' })
         },
-        (error) => classifyFetchRetry(error, 'runtime_http_read', { retryAbortOnConservative: true })
+        (error) => classifyFetchRetry(error, 'runtime_http_read')
       )
       throw new Error('expected retry failure')
     } catch (error) {
@@ -346,7 +344,7 @@ describe('retry error contracts', () => {
       async () => {
         throw original
       },
-      (error) => classifyFetchRetry(error, 'runtime_http_read', { retryAbortOnConservative: true })
+      (error) => classifyFetchRetry(error, 'runtime_http_read')
     )).rejects.toBe(original)
   })
 })

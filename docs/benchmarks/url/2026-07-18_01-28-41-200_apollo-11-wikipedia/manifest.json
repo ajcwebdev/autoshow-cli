@@ -1,0 +1,485 @@
+{
+  "command": "extract",
+  "scope": "single",
+  "createdAt": "2026-07-18T01:28:41.200Z",
+  "updatedAt": "2026-07-18T01:28:41.200Z",
+  "items": [
+    {
+      "outputDir": "docs/benchmarks/url/2026-07-18_01-28-41-200_apollo-11-wikipedia",
+      "status": "full",
+      "metadata": {
+        "step1": {
+          "title": "Apollo 11 - Wikipedia",
+          "slug": "enwikipediaorg-wiki-apollo11",
+          "pageCount": 1,
+          "format": "html",
+          "fileSize": 1412611
+        },
+        "resolvedStep2": {
+          "route": "article",
+          "sourceKind": "article",
+          "backend": "firecrawl",
+          "backends": [
+            "firecrawl",
+            "glm-reader",
+            "spider",
+            "supadata",
+            "zyte"
+          ],
+          "providers": [
+            {
+              "service": "firecrawl",
+              "model": "firecrawl"
+            },
+            {
+              "service": "glm-reader",
+              "model": "glm-reader"
+            },
+            {
+              "service": "spider",
+              "model": "spider"
+            },
+            {
+              "service": "supadata",
+              "model": "supadata"
+            },
+            {
+              "service": "zyte",
+              "model": "zyte"
+            }
+          ]
+        },
+        "web": {
+          "sourceUrl": "https://en.wikipedia.org/wiki/Apollo_11",
+          "finalUrl": "https://en.wikipedia.org/wiki/Apollo_11",
+          "title": "Apollo 11 - Wikipedia",
+          "language": "en",
+          "wordCount": 29549
+        },
+        "source": {
+          "url": "https://en.wikipedia.org/wiki/Apollo_11"
+        },
+        "cost": {
+          "estimated": {
+            "totalCost": 2.363,
+            "steps": [
+              {
+                "step": "extract",
+                "provider": "firecrawl",
+                "model": "firecrawl",
+                "cost": 0.083,
+                "costMultiplier": 1,
+                "costPer1kPagesCents": 83,
+                "pageCount": 1,
+                "estimateType": "exact"
+              },
+              {
+                "step": "extract",
+                "provider": "glm-reader",
+                "model": "glm-reader",
+                "cost": 1,
+                "costMultiplier": 1,
+                "costPer1kPagesCents": 1000,
+                "pageCount": 1,
+                "estimateType": "exact"
+              },
+              {
+                "step": "extract",
+                "provider": "spider",
+                "model": "spider",
+                "cost": 0.12,
+                "costMultiplier": 1,
+                "costPer1kPagesCents": 120,
+                "pageCount": 1,
+                "estimateType": "exact"
+              },
+              {
+                "step": "extract",
+                "provider": "supadata",
+                "model": "supadata",
+                "cost": 1,
+                "costMultiplier": 1,
+                "costPer1kPagesCents": 1000,
+                "pageCount": 1,
+                "estimateType": "exact"
+              },
+              {
+                "step": "extract",
+                "provider": "zyte",
+                "model": "zyte",
+                "cost": 0.16,
+                "costMultiplier": 1,
+                "costPer1kPagesCents": 160,
+                "pageCount": 1,
+                "estimateType": "exact"
+              }
+            ]
+          },
+          "observedEstimate": {
+            "totalCost": 2.363,
+            "steps": [
+              {
+                "step": "extract",
+                "provider": "firecrawl",
+                "model": "firecrawl",
+                "cost": 0.083,
+                "costMultiplier": 1,
+                "costPer1kPagesCents": 83,
+                "pageCount": 1,
+                "estimateType": "exact"
+              },
+              {
+                "step": "extract",
+                "provider": "glm-reader",
+                "model": "glm-reader",
+                "cost": 1,
+                "costMultiplier": 1,
+                "costPer1kPagesCents": 1000,
+                "pageCount": 1,
+                "estimateType": "exact"
+              },
+              {
+                "step": "extract",
+                "provider": "spider",
+                "model": "spider",
+                "cost": 0.12,
+                "costMultiplier": 1,
+                "costPer1kPagesCents": 120,
+                "pageCount": 1,
+                "estimateType": "exact"
+              },
+              {
+                "step": "extract",
+                "provider": "supadata",
+                "model": "supadata",
+                "cost": 1,
+                "costMultiplier": 1,
+                "costPer1kPagesCents": 1000,
+                "pageCount": 1,
+                "estimateType": "exact"
+              },
+              {
+                "step": "extract",
+                "provider": "zyte",
+                "model": "zyte",
+                "cost": 0.16,
+                "costMultiplier": 1,
+                "costPer1kPagesCents": 160,
+                "pageCount": 1,
+                "estimateType": "exact"
+              }
+            ]
+          },
+          "actual": {
+            "totalCost": 2.363,
+            "steps": [
+              {
+                "step": "extract",
+                "provider": "firecrawl",
+                "model": "firecrawl",
+                "cost": 0.083,
+                "costSource": "registry_fallback",
+                "inputMetric": "pages",
+                "inputValue": 1
+              },
+              {
+                "step": "extract",
+                "provider": "glm-reader",
+                "model": "glm-reader",
+                "cost": 1,
+                "costSource": "registry_fallback",
+                "inputMetric": "pages",
+                "inputValue": 1
+              },
+              {
+                "step": "extract",
+                "provider": "spider",
+                "model": "spider",
+                "cost": 0.12,
+                "costSource": "registry_fallback",
+                "inputMetric": "pages",
+                "inputValue": 1
+              },
+              {
+                "step": "extract",
+                "provider": "supadata",
+                "model": "supadata",
+                "cost": 1,
+                "costSource": "registry_fallback",
+                "inputMetric": "pages",
+                "inputValue": 1
+              },
+              {
+                "step": "extract",
+                "provider": "zyte",
+                "model": "zyte",
+                "cost": 0.16,
+                "costSource": "registry_fallback",
+                "inputMetric": "pages",
+                "inputValue": 1
+              }
+            ]
+          }
+        },
+        "timing": {
+          "estimated": {
+            "totalProcessingTimeMs": 11960,
+            "steps": [
+              {
+                "step": "extract",
+                "provider": "firecrawl",
+                "model": "firecrawl",
+                "processingTimeMs": 315,
+                "inputMetric": "pages",
+                "inputValue": 1,
+                "rateBasis": "page",
+                "msPerUnit": 315,
+                "throughputValue": 190.476,
+                "throughputUnit": "pagesPerMinute",
+                "timingScope": "estimated"
+              },
+              {
+                "step": "extract",
+                "provider": "glm-reader",
+                "model": "glm-reader",
+                "processingTimeMs": 2145,
+                "inputMetric": "pages",
+                "inputValue": 1,
+                "rateBasis": "page",
+                "msPerUnit": 2145,
+                "throughputValue": 27.972,
+                "throughputUnit": "pagesPerMinute",
+                "timingScope": "estimated"
+              },
+              {
+                "step": "extract",
+                "provider": "spider",
+                "model": "spider",
+                "processingTimeMs": 3500,
+                "inputMetric": "pages",
+                "inputValue": 1,
+                "rateBasis": "page",
+                "msPerUnit": 3500,
+                "throughputValue": 17.143,
+                "throughputUnit": "pagesPerMinute",
+                "timingScope": "estimated"
+              },
+              {
+                "step": "extract",
+                "provider": "supadata",
+                "model": "supadata",
+                "processingTimeMs": 2500,
+                "inputMetric": "pages",
+                "inputValue": 1,
+                "rateBasis": "page",
+                "msPerUnit": 2500,
+                "throughputValue": 24,
+                "throughputUnit": "pagesPerMinute",
+                "timingScope": "estimated"
+              },
+              {
+                "step": "extract",
+                "provider": "zyte",
+                "model": "zyte",
+                "processingTimeMs": 3500,
+                "inputMetric": "pages",
+                "inputValue": 1,
+                "rateBasis": "page",
+                "msPerUnit": 3500,
+                "throughputValue": 17.143,
+                "throughputUnit": "pagesPerMinute",
+                "timingScope": "estimated"
+              }
+            ],
+            "estimateConfidence": "registry",
+            "likelyGatingTargets": [
+              {
+                "step": "extract",
+                "provider": "spider",
+                "model": "spider",
+                "processingTimeMs": 3500
+              }
+            ]
+          },
+          "actual": {
+            "totalProcessingTimeMs": 24096,
+            "steps": [
+              {
+                "step": "extract",
+                "provider": "firecrawl",
+                "model": "firecrawl",
+                "processingTimeMs": 917,
+                "inputMetric": "pages",
+                "inputValue": 1,
+                "rateBasis": "page",
+                "msPerUnit": 917,
+                "throughputValue": 65.431,
+                "throughputUnit": "pagesPerMinute",
+                "timingScope": "wall"
+              },
+              {
+                "step": "extract",
+                "provider": "glm-reader",
+                "model": "glm-reader",
+                "processingTimeMs": 4344,
+                "inputMetric": "pages",
+                "inputValue": 1,
+                "rateBasis": "page",
+                "msPerUnit": 4344,
+                "throughputValue": 13.812,
+                "throughputUnit": "pagesPerMinute",
+                "timingScope": "wall"
+              },
+              {
+                "step": "extract",
+                "provider": "spider",
+                "model": "spider",
+                "processingTimeMs": 1550,
+                "inputMetric": "pages",
+                "inputValue": 1,
+                "rateBasis": "page",
+                "msPerUnit": 1550,
+                "throughputValue": 38.71,
+                "throughputUnit": "pagesPerMinute",
+                "timingScope": "wall"
+              },
+              {
+                "step": "extract",
+                "provider": "supadata",
+                "model": "supadata",
+                "processingTimeMs": 7229,
+                "inputMetric": "pages",
+                "inputValue": 1,
+                "rateBasis": "page",
+                "msPerUnit": 7229,
+                "throughputValue": 8.3,
+                "throughputUnit": "pagesPerMinute",
+                "timingScope": "wall"
+              },
+              {
+                "step": "extract",
+                "provider": "zyte",
+                "model": "zyte",
+                "processingTimeMs": 10056,
+                "inputMetric": "pages",
+                "inputValue": 1,
+                "rateBasis": "page",
+                "msPerUnit": 10056,
+                "throughputValue": 5.967,
+                "throughputUnit": "pagesPerMinute",
+                "timingScope": "wall"
+              }
+            ]
+          }
+        }
+      },
+      "providers": [
+        {
+          "service": "firecrawl",
+          "model": "firecrawl",
+          "artifactDir": "providers/firecrawl",
+          "status": "succeeded",
+          "attempts": 1,
+          "options": {},
+          "metadata": {
+            "extractionMethod": "html+firecrawl",
+            "totalPages": 1,
+            "ocrPages": 0,
+            "textPages": 1,
+            "processingTime": 917,
+            "dpi": 300,
+            "languages": "eng",
+            "tokenEstimate": 29549,
+            "inputFamily": "html",
+            "outputFormat": "text",
+            "outputFidelity": "markdown"
+          }
+        },
+        {
+          "service": "glm-reader",
+          "model": "glm-reader",
+          "artifactDir": "providers/glm-reader",
+          "status": "succeeded",
+          "attempts": 1,
+          "options": {},
+          "metadata": {
+            "extractionMethod": "html+glm-reader",
+            "totalPages": 1,
+            "ocrPages": 0,
+            "textPages": 1,
+            "processingTime": 4344,
+            "dpi": 300,
+            "languages": "eng",
+            "tokenEstimate": 21597,
+            "inputFamily": "html",
+            "outputFormat": "text",
+            "outputFidelity": "markdown"
+          }
+        },
+        {
+          "service": "spider",
+          "model": "spider",
+          "artifactDir": "providers/spider",
+          "status": "succeeded",
+          "attempts": 1,
+          "options": {},
+          "metadata": {
+            "extractionMethod": "html+spider",
+            "totalPages": 1,
+            "ocrPages": 0,
+            "textPages": 1,
+            "processingTime": 1550,
+            "dpi": 300,
+            "languages": "eng",
+            "tokenEstimate": 25150,
+            "inputFamily": "html",
+            "outputFormat": "text",
+            "outputFidelity": "markdown"
+          }
+        },
+        {
+          "service": "supadata",
+          "model": "supadata",
+          "artifactDir": "providers/supadata",
+          "status": "succeeded",
+          "attempts": 1,
+          "options": {},
+          "metadata": {
+            "extractionMethod": "html+supadata",
+            "totalPages": 1,
+            "ocrPages": 0,
+            "textPages": 1,
+            "processingTime": 7229,
+            "dpi": 300,
+            "languages": "eng",
+            "tokenEstimate": 29175,
+            "inputFamily": "html",
+            "outputFormat": "text",
+            "outputFidelity": "markdown"
+          }
+        },
+        {
+          "service": "zyte",
+          "model": "zyte",
+          "artifactDir": "providers/zyte",
+          "status": "succeeded",
+          "attempts": 1,
+          "options": {},
+          "metadata": {
+            "extractionMethod": "html+zyte",
+            "totalPages": 1,
+            "ocrPages": 0,
+            "textPages": 1,
+            "processingTime": 10056,
+            "dpi": 300,
+            "languages": "eng",
+            "tokenEstimate": 22457,
+            "inputFamily": "html",
+            "outputFormat": "text",
+            "outputFidelity": "markdown"
+          }
+        }
+      ]
+    }
+  ]
+}

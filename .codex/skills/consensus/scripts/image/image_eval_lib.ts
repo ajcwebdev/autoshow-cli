@@ -2,6 +2,7 @@
 
 import { existsSync, readFileSync } from "node:fs";
 import { join } from "node:path";
+import { loadCanonicalRunRecord } from "../shared/pipeline_manifest";
 
 // ---------------------------------------------------------------------------
 // Types
@@ -45,9 +46,7 @@ interface RunStepTimingEntry {
   inputValue?: number;
 }
 
-export interface ImageRunJson {
-  schemaVersion?: number;
-  kind: string;
+export interface ImageManifestRecord {
   metadata: {
     image: ImageEntryMetadata[];
     cost?: {
@@ -76,22 +75,15 @@ export interface ImageProviderEvidence {
 }
 
 // ---------------------------------------------------------------------------
-// Run JSON helpers
+// Canonical manifest helpers
 // ---------------------------------------------------------------------------
 
-export function readJson<T>(path: string): T {
-  return JSON.parse(readFileSync(path, "utf8")) as T;
-}
-
-export function loadImageRunJson(runDir: string): ImageRunJson {
-  const runJson = readJson<ImageRunJson>(join(runDir, "run.json"));
-  if (runJson.kind !== "image") {
-    throw new Error(`run.json kind is "${runJson.kind}", expected "image"`);
+export function loadImageManifestRecord(runDir: string): ImageManifestRecord {
+  const metadata = loadCanonicalRunRecord(runDir, "image").metadata;
+  if (!Array.isArray(metadata.image) || metadata.image.length === 0) {
+    throw new Error("Canonical image manifest item metadata.image is missing or empty");
   }
-  if (!Array.isArray(runJson.metadata?.image) || runJson.metadata.image.length === 0) {
-    throw new Error("run.json metadata.image is missing or empty");
-  }
-  return runJson;
+  return { metadata: metadata as ImageManifestRecord["metadata"] };
 }
 
 export function makeProviderKey(service: string, model: string): string {
@@ -255,10 +247,10 @@ export async function probeImage(imagePath: string): Promise<ImageProperties> {
 // Cost and timing lookups
 // ---------------------------------------------------------------------------
 
-export function buildCostLookup(runJson: ImageRunJson): Map<string, number> {
+export function buildCostLookup(manifestRecord: ImageManifestRecord): Map<string, number> {
   const lookup = new Map<string, number>();
-  const estimatedSteps = runJson.metadata.cost?.estimated?.steps ?? [];
-  const actualSteps = runJson.metadata.cost?.actual?.steps ?? [];
+  const estimatedSteps = manifestRecord.metadata.cost?.estimated?.steps ?? [];
+  const actualSteps = manifestRecord.metadata.cost?.actual?.steps ?? [];
   for (const step of estimatedSteps) {
     if (step.provider && step.model && step.cost !== undefined) {
       lookup.set(makeProviderKey(step.provider, step.model), Number(step.cost));
@@ -272,10 +264,10 @@ export function buildCostLookup(runJson: ImageRunJson): Map<string, number> {
   return lookup;
 }
 
-export function buildTimingLookup(runJson: ImageRunJson): Map<string, number> {
+export function buildTimingLookup(manifestRecord: ImageManifestRecord): Map<string, number> {
   const lookup = new Map<string, number>();
-  const estimatedSteps = runJson.metadata.timing?.estimated?.steps ?? [];
-  const actualSteps = runJson.metadata.timing?.actual?.steps ?? [];
+  const estimatedSteps = manifestRecord.metadata.timing?.estimated?.steps ?? [];
+  const actualSteps = manifestRecord.metadata.timing?.actual?.steps ?? [];
   for (const step of estimatedSteps) {
     if (step.provider && step.model && step.processingTimeMs !== undefined) {
       lookup.set(makeProviderKey(step.provider, step.model), Number(step.processingTimeMs));

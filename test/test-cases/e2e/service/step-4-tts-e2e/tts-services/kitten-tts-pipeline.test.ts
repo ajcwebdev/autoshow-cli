@@ -9,8 +9,9 @@ import {
   STABLE_EXAMPLE_AUDIO_TITLE,
 } from "../../../../../test-utils/test-helpers"
 import { budgetedTest, E2E_TEST_TIMEOUT_MS } from "../../../../../test-utils/budget"
-import { readRunMetadata } from "../../../../../test-utils/manifest-helpers"
+import { readCanonicalRecord } from "../../../../../test-utils/manifest-helpers"
 import { requireConfiguredEnvVar } from "../../../../../test-utils/service-test-kit"
+import { PIPELINE_MANIFEST_FILE } from '~/cli/commands/process-steps/pipeline-manifest'
 
 describe("kitten-tts pipeline", () => {
   describe("write with tts", () => {
@@ -33,10 +34,10 @@ describe("kitten-tts pipeline", () => {
       expect(outputDir).not.toBeNull()
 
       if (outputDir) {
-        const metadataExists = await fileExists(`${outputDir}/run.json`)
+        const metadataExists = await fileExists(`${outputDir}/${PIPELINE_MANIFEST_FILE}`)
         expect(metadataExists).toBe(true)
 
-        const metadata = await readRunMetadata(outputDir) as Record<string, unknown>
+        const metadata = await readCanonicalRecord(outputDir) as Record<string, unknown>
         const step3 = isRecord(metadata['step3']) ? metadata['step3'] : null
         const step4Entries = toRecordArray(metadata['step4'])
 
@@ -92,7 +93,7 @@ describe("kitten-tts pipeline", () => {
         expect(await fileExists(`${outputDir}/speech-kitten-kitten-tts-mini.wav`)).toBe(true)
         expect(await fileExists(`${outputDir}/speech-openai-gpt-4o-mini-tts-2025-12-15.wav`)).toBe(true)
 
-        const metadata = await readRunMetadata(outputDir)
+        const metadata = await readCanonicalRecord(outputDir)
         const step3 = isRecord(metadata['step3']) ? metadata['step3'] : null
         const step4Entries = toRecordArray(metadata['step4'])
 

@@ -3,7 +3,7 @@ import { OUTPUT_FORMATS } from '~/types'
 import type { CliFlagsDefinition } from '~/types'
 import { boolFlag, formatProviderList, formatValueList, strFlag, strListFlag } from './flag-utils'
 import { URL_ARTICLE_BACKENDS } from '~/cli/commands/process-steps/step-2-extract/step-2-shared/provider-registry'
-import { PDF_CHAPTER_MODES } from '~/cli/commands/process-steps/step-1-download/download-targets/options/flag-readers'
+import { PDF_CHAPTER_MODES } from '~/cli/options/option-resolution/flag-readers'
 import { STANDALONE_IMAGE_PROVIDER_TARGETS, STANDALONE_MUSIC_PROVIDER_TARGETS, STANDALONE_TTS_PROVIDER_TARGETS, STANDALONE_VIDEO_PROVIDER_TARGETS, WRITE_LLM_PROVIDER_TARGETS, WRITE_OCR_PROVIDER_TARGETS, WRITE_STT_PROVIDER_TARGETS } from './service-selector-normalization/provider-targets'
 
 export const priceFlag = {

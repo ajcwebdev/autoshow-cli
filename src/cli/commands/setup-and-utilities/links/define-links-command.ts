@@ -5,8 +5,8 @@ import { extractHtmlToMarkdown } from '~/cli/commands/process-steps/step-2-extra
 import { runFirecrawlUrl } from '~/cli/commands/process-steps/step-2-extract/step-2-url/url-services/firecrawl/run-firecrawl-url'
 import { defineCliCommand } from '~/cli/native/native-types'
 import { GLOBAL_FLAG_DEFINITIONS } from '~/cli/global-flags'
-import { stripDefinedGlobalArgs } from '~/cli/native/global-arg-stripper'
-import type { FetchFn, FetchUrlResult, LinksChangeStatus, LinksRefreshLinkMetadata, LinksRefreshMetadata, LinksSelection, LinksSelectionMode, ModelLinksData, RunLinksOptions } from '~/types'
+import { parseCommandInvocation } from '~/cli/native/native-parser'
+import type { CliCommandContext, CliFlagsDefinition, CliParseResult, FetchFn, FetchUrlResult, LinksChangeStatus, LinksRefreshLinkMetadata, LinksRefreshMetadata, LinksSelection, LinksSelectionMode, ModelLinksData, RunLinksOptions } from '~/types'
 import { CLIUsageError, InfraError } from '~/utils/error-handler'
 import * as l from '~/utils/app-logger/app-logger'
 import { DEFAULT_CLI_CONCURRENCY } from '~/utils/concurrency-defaults'
@@ -29,8 +29,6 @@ const formatErrorMessage = (error: unknown): string =>
 const isRemoteUrlToken = (arg: string): boolean => /^(?:blob:)?https?:\/\//i.test(arg)
 const isLinksInputFileArg = (arg: string): boolean =>
   !isRemoteUrlToken(arg) && /\.(?:md|txt)$/i.test(arg)
-const parseBooleanFlagValue = (value: string | undefined): boolean =>
-  value === undefined || !['false', '0', 'no'].includes(value.trim().toLowerCase())
 const getFetchableDocumentationUrl = (url: string): string => {
   const match = /^blob:(https?:\/\/.+)$/i.exec(url)
   return match?.[1] ?? url
@@ -133,41 +131,64 @@ const globalSectionKeySet = new Set(
 const knownProviders = [...serviceKeySet].sort()
 const knownSections = [...globalSectionKeySet].sort()
 
-export const parseLinksArgv = (argv: string[]): LinksSelection => {
-  const linksIdx = argv.findIndex((a) => a === 'links')
-  const args = linksIdx >= 0 ? argv.slice(linksIdx + 1) : []
+const linksProviderFlags = Object.fromEntries(knownProviders.map((provider) => [provider, {
+  description: `Scope following section selectors to ${provider}`,
+  type: Boolean,
+  negatable: false,
+  help: { hidden: true }
+}])) as CliFlagsDefinition
 
+const linksFlags = {
+  refresh: {
+    description: 'Write refresh metadata sidecar with per-link hashes and token counts',
+    type: Boolean,
+    default: false,
+    negatable: false
+  },
+  ...linksProviderFlags
+} as const satisfies CliFlagsDefinition
+
+type LinksParsedCommand = Pick<CliCommandContext, 'argv' | 'flags' | 'rawParsed'> | CliParseResult
+
+export const parseLinksSelection = (parsed: LinksParsedCommand): LinksSelection => {
   const serviceSelections = new Map<string, string[]>()
   const globalSections: string[] = []
   let currentService: string | null = null
-  let refresh = false
   let inputFilePath: string | undefined
   let directUrl: string | undefined
 
-  for (const arg of args) {
-    if (arg === '--help' || arg === '-h' || arg === '--version' || arg === '-v') continue
-    if (arg.startsWith('--')) {
-      const rawFlag = arg.slice(2)
-      const eqIndex = rawFlag.indexOf('=')
-      const flag = (eqIndex === -1 ? rawFlag : rawFlag.slice(0, eqIndex)).toLowerCase()
-      const flagValue = eqIndex === -1 ? undefined : rawFlag.slice(eqIndex + 1)
-      if (flag === 'refresh') {
-        refresh = parseBooleanFlagValue(flagValue)
-        continue
+  const orderedTokens = [
+    ...parsed.rawParsed.positionals.map((position) => ({
+      kind: 'positional' as const,
+      index: position.index,
+      value: position.value
+    })),
+    ...parsed.rawParsed.flagOccurrences.map((occurrence, occurrenceIndex) => ({
+      kind: 'flag' as const,
+      index: parsed.rawParsed.flagOccurrenceIndices[occurrenceIndex] ?? -1,
+      occurrence
+    }))
+  ].sort((left, right) => left.index - right.index)
+
+  for (const token of orderedTokens) {
+    if (token.kind === 'flag') {
+      const { name, raw } = token.occurrence
+      if (name === 'refresh' || !serviceKeySet.has(name)) continue
+      const equalsIndex = raw.indexOf('=')
+      if (equalsIndex !== -1) {
+        const flagValue = raw.slice(equalsIndex + 1)
+        const sectionHint = flagValue.trim() ? `, e.g. "--${name} ${flagValue}"` : ''
+        throw CLIUsageError(`links provider selector "--${name}" does not accept inline values; pass sections as separate arguments after the provider selector${sectionHint}.`)
       }
-      if (serviceKeySet.has(flag)) {
-        if (flagValue !== undefined) {
-          const sectionHint = flagValue.trim() ? `, e.g. "--${flag} ${flagValue}"` : ''
-          throw CLIUsageError(`links provider selector "--${flag}" does not accept inline values; pass sections as separate arguments after the provider selector${sectionHint}.`)
-        }
-        currentService = flag
-        if (!serviceSelections.has(currentService)) {
-          serviceSelections.set(currentService, [])
-        }
-      } else {
-        throw CLIUsageError(`Unknown links selector "--${flag}". Known providers: ${knownProviders.join(', ')}. Known sections: ${knownSections.join(', ')}.`)
+      currentService = name
+      if (!serviceSelections.has(currentService)) {
+        serviceSelections.set(currentService, [])
       }
-    } else if (isRemoteUrlToken(arg)) {
+      continue
+    }
+
+    const arg = token.value
+    if (isRemoteUrlToken(arg)) {
       if (directUrl) {
         throw CLIUsageError('links direct URL mode cannot be combined with provider selectors, section selectors, input file mode, or another direct URL')
       }
@@ -184,6 +205,10 @@ export const parseLinksArgv = (argv: string[]): LinksSelection => {
     }
   }
 
+  if (parsed.rawParsed.doubleDash.length > 0) {
+    throw CLIUsageError(`Unknown links selector "--". Known providers: ${knownProviders.join(', ')}. Known sections: ${knownSections.join(', ')}.`)
+  }
+
   if (directUrl && (inputFilePath || serviceSelections.size > 0 || globalSections.length > 0)) {
     throw CLIUsageError('links direct URL mode cannot be combined with provider selectors, section selectors, input file mode, or another direct URL')
   }
@@ -195,10 +220,15 @@ export const parseLinksArgv = (argv: string[]): LinksSelection => {
   return {
     serviceSelections,
     globalSections,
-    refresh,
+    refresh: parsed.flags['refresh'] === true,
     ...(inputFilePath ? { inputFilePath } : {}),
     ...(directUrl ? { directUrl } : {})
   }
+}
+
+export const parseLinksArgv = (argv: string[]): LinksSelection => {
+  const parsed = parseCommandInvocation(argv, linksCommand, GLOBAL_FLAG_DEFINITIONS)
+  return parseLinksSelection(parsed)
 }
 
 const assertKnownSections = (
@@ -563,11 +593,10 @@ const buildLinksRefreshMetadata = (
   }
 }
 
-export const runLinksWithArgv = async (
-  argv: string[],
+export const runLinks = async (
+  selection: LinksSelection,
   options: RunLinksOptions = {}
 ): Promise<{ outputPath: string, urlCount: number, lineCount: number, refreshMetadataPath?: string }> => {
-  const selection = parseLinksArgv(argv)
   const { serviceSelections, globalSections, inputFilePath, directUrl, refresh } = selection
   assertKnownSections(serviceSelections, globalSections)
   const links = directUrl
@@ -651,25 +680,17 @@ export const runLinksWithArgv = async (
   }
 }
 
+export const runLinksWithArgv = async (
+  argv: string[],
+  options: RunLinksOptions = {}
+): Promise<{ outputPath: string, urlCount: number, lineCount: number, refreshMetadataPath?: string }> =>
+  await runLinks(parseLinksArgv(argv), options)
+
 export const linksCommand = defineCliCommand({
   name: 'links',
   description: 'Fetch provider documentation markdown and write a combined file',
   parameters: [{ key: '[selection...]', description: `Documentation section(s) (${knownSections.join('|')}), one URL, or one .md/.txt URL list; sections listed after a --<provider> selector scope to that provider` }],
-  flags: {
-    refresh: {
-      description: 'Write refresh metadata sidecar with per-link hashes and token counts',
-      type: Boolean,
-      default: false,
-      negatable: false
-    },
-    '<provider>': {
-      description: `Provider selector, passed as a flag: ${knownProviders.map((provider) => `--${provider}`).join('|')}`,
-      type: Boolean,
-      negatable: false
-    }
-  },
-  allowUnknownFlags: true,
-  allowExcessParameters: true,
+  flags: linksFlags,
   help: {
     examples: [
       ['bun autoshow links', 'Fetch all provider documentation'],
@@ -681,7 +702,5 @@ export const linksCommand = defineCliCommand({
     ]
   }
 }, async (ctx) => {
-  await runLinksWithArgv(['links', ...stripDefinedGlobalArgs(ctx.argv.slice(1), GLOBAL_FLAG_DEFINITIONS, {
-    preserve: ['help', 'version']
-  })])
+  await runLinks(parseLinksSelection(ctx))
 })

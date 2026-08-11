@@ -31,8 +31,3 @@ export const parseFlagsAndOccurrences = (
   }
   return parseCommandArgv(argv, command, {})
 }
-
-export const parseFlagOccurrences = (
-  argv: string[],
-  flags: CliFlagsDefinition
-): CliFlagOccurrence[] => parseFlagsAndOccurrences(argv, flags).rawParsed.flagOccurrences

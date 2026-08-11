@@ -107,7 +107,7 @@ const uploadGladiaAudio = async (
 ) => await sttStageRequest({
   operationName: 'gladia-upload',
   stage: 'upload',
-  retryClass: 'runtime_http_create_conservative',
+  retryClass: 'runtime_http_create_retriable',
   maxAttempts: 4,
   timeoutMs: REQUEST_TIMEOUT_MS,
   errorPrefix: 'Gladia',
@@ -139,7 +139,7 @@ const createGladiaTranscription = async (
   const createRecord = await sttStageRequest({
     operationName: 'gladia-create-transcription',
     stage: 'create',
-    retryClass: 'runtime_http_create_conservative',
+    retryClass: 'runtime_http_create_retriable',
     maxAttempts: 4,
     timeoutMs: REQUEST_TIMEOUT_MS,
     errorPrefix: 'Gladia',

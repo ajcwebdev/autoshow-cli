@@ -4,7 +4,7 @@
 
 - **Decision Status:** Accepted
 - **Date Created:** 2026-08-06
-- **Date Updated:** 2026-08-07
+- **Date Updated:** 2026-08-10
 - **Verification Status:** Passed for both phases
 
 ## Context
@@ -81,6 +81,10 @@ Phase 1 removes the shut-down Gemini preview, Reve's active provider surface, an
 
 Phase 2 replaces HappyHorse 1.0 with HappyHorse 1.1; adds Kling Video 3.0, Kling Video 3.0 Omni, PixVerse V6, and Runway Aleph 2.0 through Replicate; adds Grok Imagine Video 1.5 while retaining the original Grok selector for its broader operation surface; and includes the previously completed fal.ai MiniMax H3 and PixVerse C1 integrations. The video adapters now include model-specific routing, duration and resolution validation, native-audio and multi-shot controls, reference and edit contracts, pricing, links, all-provider expansion, resume identity, historical HappyHorse cost readability, and mocked local request/response coverage, finishing with 32 active hosted video selectors.
 
+The 2026-08-10 W9.1 MiniMax audit retained all six 01-series selectors. MiniMax's published [`video_generation` T2V enumeration](https://platform.minimax.io/docs/api-reference/video-generation-t2v) still lists `T2V-01` and `T2V-01-Director`, its [I2V enumeration](https://platform.minimax.io/docs/api-reference/video-generation-i2v) still lists `I2V-01`, `I2V-01-live`, and `I2V-01-Director`, and its [S2V enumeration](https://platform.minimax.io/docs/api-reference/video-generation-s2v) still lists `S2V-01`. The direct adapter therefore keeps both its Hailuo and 01-series normalization branches, and the six selectors remain active rather than entering the retired-rate table. Bare `--minimax-video` deliberately remains `T2V-01` at the published 19¢ six-second 720p block rate; no default shift to the 28¢ `MiniMax-Hailuo-2.3` occurs while the cheaper model remains explicitly served. A focused historical-rate contract pins all six 19¢ rates so a future approved retirement cannot silently break repricing for the committed 2026-05-21 benchmark artifacts.
+
+The 2026-08-10 W9.2 Veo response-shape audit retained only the raw Gemini REST spellings published by Google. The [Veo REST guide](https://ai.google.dev/gemini-api/docs/veo) reads completed operations through `response.generateVideoResponse.generatedSamples[0].video.uri`; the official Google Gen AI SDK's [ML Developer API operation and response converters](https://github.com/googleapis/js-genai/blob/4489991a7c40b22dff75348748048b0b14ac687e/src/converters/_models_converters.ts#L3116-L3151) consume that same wrapper and list, and its [raw video converter](https://github.com/googleapis/js-genai/blob/4489991a7c40b22dff75348748048b0b14ac687e/src/converters/_models_converters.ts#L6041-L6058) maps `uri`, `encodedVideo`, and `encoding` to the SDK's public `uri`, `videoBytes`, and `mimeType` fields. The direct REST normalizer therefore keeps the URI and inline-byte arms but removes the unwrapped-response fallback, raw `generatedVideos`, `_self`, `videoBytes`, and `mimeType` aliases: those were a non-provider hybrid of SDK-normalized names and the separate Vertex converter. Both inline-byte fixtures now use raw `encodedVideo` plus `encoding`, and a focused mocked contract pins both published output modes while proving the removed aliases do not normalize.
+
 ## API / Type Impact
 
 - Hosted image accepted-model unions remove `gemini-3.1-flash-image-preview`, Reve `latest`, `reve-create@20250915`, `recraftv4_1_vector`, `recraftv4_1_pro_vector`, `recraftv4_1_utility_vector`, and `recraftv4_1_utility_pro_vector`; add `gemini-3.1-flash-lite-image`, `gemini-3.1-flash-image`, `gemini-3-pro-image`, `flux-2-klein-4b`, `flux-2-klein-9b`, the six selected Replicate models, and the five selected fal.ai models; and finish with 34 active selectors.
@@ -144,6 +148,8 @@ git diff --check
 Phase 1 and the fal.ai implementation verification passed on 2026-08-06 without hosted generation calls: `bun run check`; targeted CLI help, usage, option-resolution, selector, and links contracts; and mocked queue request, polling, result-download, and metadata contracts covering all five image selectors and both video selectors. No paid fal.ai generation was executed.
 
 Phase 2 existing-provider verification passed on 2026-08-06 without hosted generation calls: `bun run check`; 68 targeted video request, selection, option-resolution, pricing, provenance, and budget-registry contracts; the required CLI help, usage, and option-resolution smoke contracts; and `git diff --check`. The active hosted video registry contains exactly 32 selectors. Replicate schemas and prices were checked against the live model metadata and public model pages, and Grok 1.5 behavior and pricing were checked against xAI's model card and video workflow documentation.
+
+The W9.2 Veo response-shape audit passed on 2026-08-10 without a hosted generation call: `bun run check`; `gemini-rest-contracts.test.ts`, `gemini-veo.test.ts`, and `prompt-normalization.test.ts` (14/14); `cli-help-contracts.test.ts` and `cli-usage-errors.test.ts` (96/96); `option-resolution-contracts/` (98/98); and `git diff --check`. Re-enabling the removed SDK-style `videoBytes` and `mimeType` aliases made the focused provenance contract fail; restoring the raw REST boundary returned it to green.
 
 Also run the smallest relevant pricing, provenance, selector-ordering, routing, request-builder, response-parser, resume, and historical-normalization contracts for the providers changed in that phase. Tests must prove active-selector acceptance, removed-selector rejection, canonical defaults, exact all-provider expansion, complete pricing metadata, and local rejection of unsupported model/control combinations.
 

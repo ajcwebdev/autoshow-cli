@@ -13,19 +13,19 @@ Architecture overview for the native CLI, command routing, global flags, provide
 ## System Layers
 
 ```
-bun autoshow <command> <target> [flags]
+bun autoshow <command> [<subcommand>] <target> [flags]
             |
             v
 +------------------+     +------------------+     +------------------+     +------------------+
 | CLI layer        | --> | Target layer     | --> | Processing layer | --> | Output layer     |
-| native parser    |     | plan + routing   |     | steps 0-8        |     | schema v2 files  |
+| native parser    |     | plan + routing   |     | steps 0-8        |     | manifest + files |
 +------------------+     +------------------+     +------------------+     +------------------+
 ```
 
 1. CLI layer: `src/cli/create-cli.ts` registers the root definition, global flags, command groups, and per-command definitions. `src/cli/native/*` parses argv, renders help/version output, rejects unknown flags where appropriate, and builds the command context.
-2. Target layer: `handleProcessTarget()` resolves the target, merges config defaults, normalizes selectors, builds `RuntimeOptions`, calls `resolveProcessTargetPlan()`, and for single extract/write items calls `resolveInputRoutingForCommand()`.
+2. Target layer: `handleProcessTarget()` resolves the target, merges config defaults, normalizes selectors, composes only the domain option slices required by the selected command, calls `resolveProcessTargetPlan()`, and for single extract/write items calls `resolveInputRoutingForCommand()`.
 3. Processing layer: Step 0 metadata, Step 1 download/detect, Step 2 STT/OCR/article/X extraction, Step 3 LLM writing, Steps 4-7 TTS/image/video/music generation, and Step 8 comic utilities.
-4. Output layer: `run.json`, `batch.json`, `extract-batch.json`, and provider `result.json` artifacts use schema version 2 envelopes.
+4. Output layer: every run or batch root owns one unversioned `manifest.json` with the same canonical shape. Provider lifecycle state is stored in that manifest through the serialized atomic writer; provider directories contain generated artifacts and optional raw domain `result.json` payloads, never another control artifact.
 
 ## Native Dispatch
 
@@ -38,13 +38,14 @@ dispatchNativeCli(argv, root, commands)
         v
 parseNativeCli()
         |
+        +--> one registered subcommand level? -> resolve the final command definition once
         +--> help?    -> renderRootHelp() or renderCommandHelp()
         +--> version? -> print package version
         |
         v
 unknown global/command flags?
         |
-        +--> reject unless command.allowUnknownFlags is true
+        +--> reject through the native usage-error path
         |
         v
 apply global runtime settings
@@ -85,10 +86,7 @@ Global flags:
 | `--cookies-from-browser` | Import browser cookies through yt-dlp. |
 | `--model-path` | Use a local GGUF file for llama.cpp. |
 
-Two commands intentionally use looser native parsing:
-
-- `links` allows unknown flags because selector-like tokens are parsed by the command itself.
-- `comic` allows unknown flags, excess parameters, and help after the first positional argument so its legacy subcommand parser can receive pass-through argv. Public comic subcommands are `draft-scenes`, `generate-images`, and `reference-sketch`.
+Comic's public `draft-scenes`, `generate-images`, and `reference-sketch` commands are first-class children of `comicCommand`; dispatch, global flags, parameter cardinality, and both help forms use the native command tree. Links registers every provider selector as a real hidden flag, then assigns the native parser's ordered positional metadata to provider scopes without reparsing raw argv.
 
 ## Command Surface
 
@@ -112,7 +110,7 @@ Processing and generation:
   image     standalone image generation
   video     standalone video generation
   music     standalone music generation or local lyric-video rendering
-  comic     comic workflow pass-through commands
+  comic     nested draft-scenes, generate-images, and reference-sketch workflows
 ```
 
 Process commands enter the shared target layer except for special standalone generation modes. `extract --transcript-video` is handled before normal target processing and renders a captioned video from an existing extract run or from explicit `--audio` plus `--transcript-result`/`--transcript-text`.
@@ -140,6 +138,8 @@ write/config pipeline defaults
   --all-providers stt|ocr|url|llm|tts|image|video|music
   --all-local stt|ocr|url|llm|tts
 ```
+
+Flag/config resolution is command-neutral, but processing is not built around an all-command option bag. STT, OCR, URL, LLM, TTS, image, video, music, batch, and pricing consumers accept their own option slices plus explicitly named shared controls. Only the full media/document write path composes the slices it actually runs.
 
 `extract --provider` is route-aware. A media item maps it to STT providers, a document/image item maps it to OCR providers, and an article route uses URL backend selection. Mixed extract batches are partitioned by route so generic selections are normalized before execution.
 

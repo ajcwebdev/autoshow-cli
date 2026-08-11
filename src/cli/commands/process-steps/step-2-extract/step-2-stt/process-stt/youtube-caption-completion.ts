@@ -3,8 +3,8 @@ import * as l from '~/utils/app-logger/app-logger'
 import { createHumanTable } from '~/utils/app-logger/human-table/human-table'
 import { computeActualCosts } from '~/utils/pricing/compute-actual-costs'
 import { computeActualProcessingTimes, computeEstimatedProcessingTimes } from '~/utils/pricing/compute-processing-time'
-import { logRunManifestLocation } from '~/cli/commands/process-steps/write-manifest-log/write-manifest-log'
-import { writeSttRunManifest } from '../stt-manifest'
+import { logManifestLocation } from '~/cli/commands/process-steps/write-manifest-log/write-manifest-log'
+import { writePipelineItemRecords } from '../../../pipeline-manifest'
 import { toRequestedProvider } from '../stt-batch/stt-run-state'
 import { buildSingleStepSummaries, filterEstimatedSttCosts, resolveSttEstimatedCosts } from '../stt-costs'
 import { buildPromptFile, buildProviderModelLabel } from '../stt-prompt'
@@ -92,15 +92,16 @@ export const completeYoutubeCaptionStt = async ({
       local: captionTranscription.target.local,
       artifactDir: captionTranscription.relativeDir ?? '.',
       status: 'succeeded',
-      attempts: 1
+      attempts: 1,
+      result: captionTranscription.result
     }],
     missingProviders: [],
     cost,
     ...(timing ? { timing } : {})
   }, null, 2)
-  await writeSttRunManifest(outputDir, JSON.parse(metadataJson) as Record<string, unknown>)
-  logRunManifestLocation(outputDir, l, 'extract')
-  l.debug(`Run manifest:\n${metadataJson}`)
+  await writePipelineItemRecords(outputDir, 'extract', 'single', [JSON.parse(metadataJson)], { extractRoute: 'media' })
+  logManifestLocation(outputDir, l, 'extract')
+  l.debug(`Canonical manifest item metadata:\n${metadataJson}`)
 
   const artifactFiles: Record<string, string> = {
     audio: prepared.step1Metadata.audioFileName,
@@ -109,7 +110,7 @@ export const completeYoutubeCaptionStt = async ({
     captions: 'youtube-captions.vtt',
     captionMetadata: 'youtube-captions.json',
     prompt: 'prompt.md',
-    run: 'run.json'
+    manifest: 'manifest.json'
   }
 
   l.report.complete(outputDir, artifactFiles, {

@@ -29,7 +29,6 @@ export const runGrokImageGen = async (
     count?: number | undefined
     aspectRatio?: string | undefined
     imageSize?: string | undefined
-    baseUrl?: string | undefined
   }
 ): Promise<{ imagePaths: string[], metadata: Step5Metadata }> => {
   const apiKey = requireApiKey('XAI_API_KEY', 'image:grok', 'Grok image generation')
@@ -43,7 +42,7 @@ export const runGrokImageGen = async (
 
   const clientConfig = {
     apiKey,
-    baseURL: (options.baseUrl ?? XAI_DEFAULT_BASE_URL).trim().replace(/\/+$/, '')
+    baseURL: XAI_DEFAULT_BASE_URL
   }
   const result = mode === 'edit'
     ? await (async () => {

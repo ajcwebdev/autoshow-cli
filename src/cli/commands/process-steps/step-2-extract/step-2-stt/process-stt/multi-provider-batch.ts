@@ -1,8 +1,9 @@
 import { mkdir } from 'node:fs/promises'
 import { join } from 'node:path'
 import type { ExistingSttRun, ProviderFailure, SttBatchWorkerContext, SttMultiProviderBatchContext, SttProviderState, SttProviderSuccess, SttTarget } from '~/types'
+import { readSinglePipelineItemRecord, writePipelineItemRecords } from '../../../pipeline-manifest'
 import { runCoordinatedSttTargetPool } from '../batch'
-import { readExistingSttRun } from '../stt-batch/stt-run-state'
+import { getSttProviderArtifactDir, readExistingSttRun, toRequestedProvider } from '../stt-batch/stt-run-state'
 import { createPromptRefreshController, selectPrimaryPromptProvider } from '../stt-prompt'
 import { prioritizeCloudSttTargetIndices, resolveEffectiveSttProviderConcurrency, logEffectiveProviderConcurrency } from '../stt-provider-pool'
 import { getSttTargetKey } from '../stt-targets'
@@ -35,6 +36,33 @@ export const runMultiProviderSttBatch = async ({
   const successes: Array<SttProviderSuccess | undefined> = existingRun.successes
   const failuresByIndex = new Map<number, ProviderFailure>()
   const providerStateMap = new Map(existingRun.providerStates)
+  const existingItemRecord = await readSinglePipelineItemRecord(outputDir, {
+    command: 'extract',
+    extractRoute: 'media'
+  })
+  const targetsToRun = new Set(targetsToRunKeys)
+  await writePipelineItemRecords(outputDir, 'extract', 'single', [{
+    ...(existingItemRecord ?? {}),
+    step1: prepared.step1Metadata,
+    completionStatus: 'incomplete',
+    requestedProviders: requestedTargets.map(toRequestedProvider),
+    providerStates: requestedTargets.map((target) => {
+      const existing = providerStateMap.get(getSttTargetKey(target))
+      return {
+        service: target.service,
+        model: target.model,
+        local: target.local,
+        artifactDir: existing?.artifactDir ?? getSttProviderArtifactDir(target),
+        status: targetsToRun.has(getSttTargetKey(target)) ? 'missing' : existing?.status ?? 'missing',
+        attempts: existing?.attempts ?? 0,
+        ...(existing?.lastError ? { lastError: existing.lastError } : {}),
+        ...(existing?.metadata ? { metadata: existing.metadata } : {})
+      }
+    }),
+    missingProviders: requestedTargets
+      .filter((target) => targetsToRun.has(getSttTargetKey(target)))
+      .map(toRequestedProvider)
+  }], { extractRoute: 'media' })
   const providerConcurrency = resolveEffectiveSttProviderConcurrency(options, requestedTargets)
   const batchCoordinator = runOptions.batchCoordinator
   const coordinatedAcrossBatch = batchCoordinator !== undefined && options.batchConcurrency > 1
@@ -49,6 +77,7 @@ export const runMultiProviderSttBatch = async ({
   })
 
   const workerContext: SttBatchWorkerContext = {
+    outputDir,
     providersDir,
     requestedTargets,
     successes,

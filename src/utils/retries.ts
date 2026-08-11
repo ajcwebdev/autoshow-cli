@@ -1,10 +1,17 @@
-import type { ClassifyFetchRetryOptions, HumanLogTable, PollOptions, RetryAttemptLog, RetryClass, RetryClassifier, RetryContext, RetryDecision, RetryPolicy } from '~/types'
+import type { HumanLogTable, PollOptions, RetryAttemptLog, RetryClass, RetryClassifier, RetryContext, RetryDecision, RetryPolicy } from '~/types'
 import { AppError, extractErrorMetadata } from '~/utils/error-handler'
 import * as l from '~/utils/app-logger/app-logger'
 import { createKeyValueTable } from '~/utils/app-logger/human-table/human-table'
 
 const NON_RETRYABLE_STATUSES = new Set([400, 401, 402, 403, 404, 422])
 const RETRYABLE_STATUSES = new Set([408, 425, 429, 500, 502, 503, 504])
+const RUNTIME_HTTP_CREATE_RETRY_POLICY: RetryPolicy = {
+  maxAttempts: 2,
+  baseDelayMs: 2_000,
+  maxDelayMs: 10_000,
+  jitter: true,
+  exponential: true
+}
 
 const RETRY_POLICIES: Record<RetryClass, RetryPolicy> = {
   setup_download: {
@@ -35,13 +42,8 @@ const RETRY_POLICIES: Record<RetryClass, RetryPolicy> = {
     jitter: true,
     exponential: true
   },
-  runtime_http_create_conservative: {
-    maxAttempts: 2,
-    baseDelayMs: 2_000,
-    maxDelayMs: 10_000,
-    jitter: true,
-    exponential: true
-  },
+  runtime_http_create_conservative: RUNTIME_HTTP_CREATE_RETRY_POLICY,
+  runtime_http_create_retriable: RUNTIME_HTTP_CREATE_RETRY_POLICY,
   runtime_poll_loop: {
     maxAttempts: 1,
     baseDelayMs: 0,
@@ -160,8 +162,7 @@ const getWrappedRetryCause = (error: unknown): unknown => {
 
 export const classifyFetchRetry = (
   error: unknown,
-  retryClass: RetryClass,
-  options: ClassifyFetchRetryOptions = {}
+  retryClass: RetryClass
 ): RetryDecision => {
   const noRetry = (reason: string): RetryDecision => ({ shouldRetry: false, delayMs: 0, reason })
   const doRetry = (delayMs: number, reason: string): RetryDecision => ({ shouldRetry: true, delayMs, reason })
@@ -192,7 +193,7 @@ export const classifyFetchRetry = (
   const retryCause = getWrappedRetryCause(error)
 
   if (isAbortError(retryCause) || isTimeoutError(retryCause)) {
-    if (retryClass === 'runtime_http_create_conservative' && options.retryAbortOnConservative !== true) {
+    if (retryClass === 'runtime_http_create_conservative') {
       return noRetry('abort/timeout on conservative request')
     }
     return doRetry(0, 'abort/timeout')
@@ -264,8 +265,7 @@ export const withRetry = async <T>(
   classifier?: RetryClassifier
 ): Promise<T> => {
   const policy = getRetryPolicy(ctx.retryClass, ctx.policy)
-  const baseMaxAttempts = policy.maxAttempts
-  let maxAttempts = baseMaxAttempts
+  let maxAttempts = policy.maxAttempts
   const startedAt = Date.now()
   let lastError: unknown
   let retried = false
@@ -285,9 +285,8 @@ export const withRetry = async <T>(
       let classifiedReason: string | undefined
       if (classifier) {
         const decision = classifier(error)
-        const retryMaxAttempts = ctx.maxAttemptsForRetry?.(error, decision, attempt + 1, baseMaxAttempts)
-        if (typeof retryMaxAttempts === 'number' && Number.isFinite(retryMaxAttempts)) {
-          maxAttempts = Math.max(maxAttempts, Math.max(1, Math.floor(retryMaxAttempts)))
+        if (decision.shouldRetry && getStatusFromError(error) === 429 && typeof ctx.rateLimitMaxAttempts === 'number' && Number.isFinite(ctx.rateLimitMaxAttempts)) {
+          maxAttempts = Math.max(maxAttempts, Math.max(1, Math.floor(ctx.rateLimitMaxAttempts)))
         }
 
         const isLastAttempt = attempt >= maxAttempts - 1

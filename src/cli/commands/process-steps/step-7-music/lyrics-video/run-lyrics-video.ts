@@ -4,7 +4,7 @@ import { validateWhisperModel } from '~/cli/commands/setup-and-utilities/models/
 import { ensureProviderReady } from '~/utils/bootstrap-broker'
 import { reserveBatchChildOutputDir } from '~/cli/commands/process-steps/batch-child-output'
 import { runWhisperTranscribe } from '~/cli/commands/process-steps/step-2-extract/step-2-stt/stt-local/whisper/run-whisper'
-import { writeBatchManifest, writeRunManifest } from '~/cli/commands/process-steps/manifest-utils'
+import { createManifest, createManifestItem, createPipelineItemFromRecord, PIPELINE_MANIFEST_FILE, writeManifest } from '~/cli/commands/process-steps/pipeline-manifest'
 import { ensureDirectory, fileExists } from '~/utils/cli-utils'
 import { CLIUsageError, InfraError, ValidationError } from '~/utils/error-handler'
 import * as l from '~/utils/app-logger/app-logger'
@@ -208,7 +208,7 @@ const processLyricsRun = async (options: {
     await copyFile(renderedVideoPath, videoPath)
 
     const totalMs = Date.now() - startedAt
-    await writeRunManifest(outputDirAbsolute, 'music', {
+    const manifestMetadata = {
       mode: 'lyric-video',
       source: {
         audioPath: toProjectDisplayPath(audioPath),
@@ -235,7 +235,7 @@ const processLyricsRun = async (options: {
         video: videoFileName,
         vtt: vttFileName,
         srt: srtFileName,
-        run: 'run.json',
+        manifest: PIPELINE_MANIFEST_FILE,
         tempDirKept: keepTmp
       },
       timing: {
@@ -244,11 +244,14 @@ const processLyricsRun = async (options: {
         captionsWriteMs,
         renderMs
       }
-    })
+    }
+    await writeManifest(outputDirAbsolute, createManifest('music', 'single', [
+      createManifestItem(outputDirAbsolute, { status: 'full', metadata: manifestMetadata })
+    ]))
 
     if (emitCompletion) {
       l.report.complete(outputDirRelative, {
-        run: 'run.json',
+        manifest: PIPELINE_MANIFEST_FILE,
         video: videoFileName,
         vtt: vttFileName,
         srt: srtFileName
@@ -322,7 +325,7 @@ export const runMusicLyricVideo = async (flags: Record<string, unknown>): Promis
         totalEstimatedCost: 0,
         notes: [`Local lyric-video batch rendering for ${files.length} audio file(s) has no provider cost.`]
       })
-      l.report.expectedOutput('./output/<timestamp>_music-lyrics-batch/', ['batch.json', '<item>/run.json', '<item>/<name>.mp4', '<item>/<name>.vtt', '<item>/<name>.srt'])
+      l.report.expectedOutput('./output/<timestamp>_music-lyrics-batch/', [PIPELINE_MANIFEST_FILE, `<item>/${PIPELINE_MANIFEST_FILE}`, '<item>/<name>.mp4', '<item>/<name>.vtt', '<item>/<name>.srt'])
       return
     }
 
@@ -357,7 +360,7 @@ export const runMusicLyricVideo = async (flags: Record<string, unknown>): Promis
         succeeded += 1
         items.push({
           inputAudioPath: toProjectDisplayPath(audioPath),
-          outputDir: result.outputDir,
+          outputDir: childDirAbsolute,
           status: 'completed',
           cueCount: result.cueCount,
           cueSource: result.cueSource
@@ -367,7 +370,7 @@ export const runMusicLyricVideo = async (flags: Record<string, unknown>): Promis
         const message = error instanceof Error ? error.message : String(error)
         items.push({
           inputAudioPath: toProjectDisplayPath(audioPath),
-          outputDir: childDirRelative,
+          outputDir: childDirAbsolute,
           status: 'failed',
           error: message
         })
@@ -375,15 +378,19 @@ export const runMusicLyricVideo = async (flags: Record<string, unknown>): Promis
       }
     }
 
-    await writeBatchManifest(batchDirAbsolute, 'music', items, {
+    await writeManifest(batchDirAbsolute, createManifest('music', 'batch', items.map((item) =>
+      createPipelineItemFromRecord(batchDirAbsolute, item, {
+        input: typeof item['inputAudioPath'] === 'string' ? item['inputAudioPath'] : undefined
+      })
+    ), {
       mode: 'lyric-video',
       inputDir: toProjectDisplayPath(inputRoot),
       model,
       font
-    })
+    }))
 
     logLocationsTable(l, [{ artifact: 'outputDir', path: batchDirRelative }])
-    logLocationsTable(l, [{ artifact: 'batchManifest', path: `${batchDirRelative}/batch.json` }])
+    logLocationsTable(l, [{ artifact: 'manifest', path: `${batchDirRelative}/${PIPELINE_MANIFEST_FILE}` }])
     logLyricsBatchSummary(items.length, succeeded, failed)
 
     if (failed > 0) {
@@ -414,7 +421,7 @@ export const runMusicLyricVideo = async (flags: Record<string, unknown>): Promis
       totalEstimatedCost: 0,
       notes: ['Local lyric-video transcription and rendering have no provider cost.']
     })
-    l.report.expectedOutput('./output/<timestamp>_music-lyrics-<label>/', ['run.json', `${outputLabel}.mp4`, `${outputLabel}.vtt`, `${outputLabel}.srt`])
+    l.report.expectedOutput('./output/<timestamp>_music-lyrics-<label>/', [PIPELINE_MANIFEST_FILE, `${outputLabel}.mp4`, `${outputLabel}.vtt`, `${outputLabel}.srt`])
     return
   }
 

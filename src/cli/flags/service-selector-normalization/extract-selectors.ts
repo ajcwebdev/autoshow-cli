@@ -1,4 +1,4 @@
-import { readInjectedConfigFlags } from '~/cli/commands/process-steps/step-1-download/download-targets/build-opts-from-flags/build-options-config-flags'
+import { readInjectedConfigFlags } from '~/cli/options/option-resolution/build-options-config-flags'
 import { URL_ARTICLE_BACKENDS } from '~/cli/commands/process-steps/step-2-extract/step-2-shared/provider-registry'
 import type { CliFlagOccurrence, ExtractPublicSelectorTarget, ExtractSelectorInputRoutes, SelectorNormalizationResult } from '~/types'
 import { CLIUsageError } from '~/utils/error-handler'

@@ -1,7 +1,6 @@
 import type { HumanLogTable } from '~/types'
 
 const pathLikeColumnNames = new Set<string>([
-  'batchmanifest',
   'cachedir',
   'destination',
   'dir',
@@ -18,7 +17,6 @@ const pathLikeColumnNames = new Set<string>([
   'outputpath',
   'path',
   'retryoutputdir',
-  'runmanifest',
   'source',
   'sourcemedia',
   'sourcepath',
@@ -44,7 +42,6 @@ const conditionallyLiftVerboseColumnNames = new Set<string>([
 ])
 
 const humanLabelOverrides = new Map<string, string>([
-  ['batchmanifest', 'batch manifest'],
   ['cachedir', 'cache dir'],
   ['durationms', 'duration'],
   ['elapsedms', 'elapsed'],
@@ -58,7 +55,6 @@ const humanLabelOverrides = new Map<string, string>([
   ['processingtimems', 'time'],
   ['providermodel', 'provider/model'],
   ['retryoutputdir', 'retry output dir'],
-  ['runmanifest', 'run manifest'],
   ['sourcemedia', 'source media'],
   ['sourcepath', 'source path'],
   ['targetpath', 'target path'],

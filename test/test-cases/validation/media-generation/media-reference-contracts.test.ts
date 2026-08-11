@@ -84,7 +84,7 @@ describe('media reference differential contracts', () => {
     })
   })
 
-  test('preserves MIME alias normalization and download error metadata', async () => {
+  test('normalizes MIME aliases and includes download status metadata', async () => {
     await expect(videoMediaReferenceToGeminiInlineData('data:image/jpg;base64,AQID', 'image')).resolves.toEqual({
       inlineData: { mimeType: 'image/jpeg', data: 'AQID' }
     })
@@ -108,9 +108,9 @@ describe('media reference differential contracts', () => {
     } catch (error) {
       expect(error).toMatchObject({
         message: 'Video media input download failed (429): https://example.com/reference.png',
-        stage: 'video:media-inputs'
+        stage: 'video:media-inputs',
+        status: 429
       })
-      expect((error as { status?: number }).status).toBeUndefined()
     }
   })
 })

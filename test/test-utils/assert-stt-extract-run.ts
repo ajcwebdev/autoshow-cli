@@ -1,6 +1,6 @@
 import { expect } from 'bun:test'
 import { fileExists } from './test-helpers'
-import { readRunMetadata } from './manifest-helpers'
+import { readCanonicalRecord } from './manifest-helpers'
 
 type SttModelMatch =
   | { equals: string, contains?: never }
@@ -43,7 +43,7 @@ export const assertSttExtractRun = async (
   expect(await fileExists(`${outputDir}/prompt.md`)).toBe(expectation.expectPrompt)
   expect(await fileExists(`${outputDir}/text.json`)).toBe(false)
 
-  const metadata = await readRunMetadata(outputDir)
+  const metadata = await readCanonicalRecord(outputDir)
   const step2 = metadata['step2'] as { transcriptionService?: string, transcriptionModel?: string } | undefined
   expect(step2?.transcriptionService).toBe(expectation.target.service)
   if (expectation.modelMatch.equals !== undefined) {

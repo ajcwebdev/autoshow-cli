@@ -1,5 +1,6 @@
 import { DEFAULT_COST_MULTIPLIER, DEFAULT_STT_MS_PER_SECOND } from './defaults'
 import { getModelRegistry, getRegistryServiceType } from './registry'
+import { getRetiredModelRate } from './retired-model-rates'
 import type { DurationBilledEstimation, SttBilling, SttLimits } from '~/types'
 
 export const getSttCost = (
@@ -7,18 +8,14 @@ export const getSttCost = (
   model: string
 ): { costPerHourCents?: number } => {
   const sttModel = getModelRegistry().stt[service]?.models[model]
-  if (!sttModel) return {}
-  return {
-    ...(sttModel.costPerHourCents !== undefined
-      ? { costPerHourCents: sttModel.costPerHourCents }
-      : sttModel.costPerHourUSD !== undefined
-        ? { costPerHourCents: sttModel.costPerHourUSD * 100 }
-        : {})
-  }
+    ?? getRetiredModelRate('stt', service, model)
+  if (sttModel?.costPerHourCents === undefined) return {}
+  return { costPerHourCents: sttModel.costPerHourCents }
 }
 
 export const getSttBilling = (service: string, model: string): SttBilling => {
   const billing = getModelRegistry().stt[service]?.models[model]?.billing
+    ?? getRetiredModelRate('stt', service, model)?.billing
   return {
     ...(billing?.roundingIncrementSeconds !== undefined
       ? { roundingIncrementSeconds: billing.roundingIncrementSeconds }

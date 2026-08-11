@@ -5,7 +5,7 @@ import {
   fileExists,
   findLatestDirectory,
 } from '../../../../test-utils/test-helpers'
-import { readRunMetadata } from '../../../../test-utils/manifest-helpers'
+import { readCanonicalRecord } from '../../../../test-utils/manifest-helpers'
 import { requireConfiguredEnvVar } from '../../../../test-utils/service-test-kit'
 
 const SHORT_AUDIO_PATH = 'input/examples/audio/0-audio-short.mp3'
@@ -35,7 +35,7 @@ budgetedTest(['write-groq-openai/gpt-oss-20b', 'image-openai-gpt-image-2'], 'gpt
     throw new Error(`Expected output directory for ${SHORT_AUDIO_TITLE}`)
   }
 
-  const metadata = await readRunMetadata(outputDir) as {
+  const metadata = await readCanonicalRecord(outputDir) as {
     step3?: { llmService?: string; outputFileName?: string }
     step5?: { imageService?: string; imageModel?: string; imageFileNames?: string[] }
   }

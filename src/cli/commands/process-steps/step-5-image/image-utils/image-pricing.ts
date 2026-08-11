@@ -1,21 +1,13 @@
 import { getImageCost } from '~/cli/commands/setup-and-utilities/models/model-loader'
 import { validateBflImageModel, validateFalImageModel, validateGeminiImageModel, validateGrokImageModel, validateLumalabsImageModel, validateOpenAIImageModel, validateRecraftImageModel, validateReplicateImageModel } from '~/cli/commands/setup-and-utilities/models/setup-model-options'
+import { deriveGenerationPricingProviders, IMAGE_GENERATION_SELECTION } from '~/cli/flags/service-selector-normalization/provider-targets'
 import type { EstimateImageCostOptions, ImageCostEstimate, ImageProvider, OpenAIImageOutputPricing, OpenAIImageQuality } from '~/types'
 import * as l from '~/utils/app-logger/app-logger'
 import { createKeyValueTable } from '~/utils/app-logger/human-table/human-table'
 import { collectSelections, passThroughKeys } from '~/utils/pricing/model-selection'
 import type { ProviderModelSelectionSpec } from '~/utils/pricing/model-selection'
 
-export const IMAGE_PRICING_PROVIDERS = [
-  { service: 'gemini', modelsKey: 'geminiImageModels', modelKey: 'geminiImageModel' },
-  { service: 'openai', modelsKey: 'openaiImageModels', modelKey: 'openaiImageModel' },
-  { service: 'grok', modelsKey: 'grokImageModels', modelKey: 'grokImageModel' },
-  { service: 'bfl', modelsKey: 'bflImageModels', modelKey: 'bflImageModel' },
-  { service: 'recraft', modelsKey: 'recraftImageModels', modelKey: 'recraftImageModel' },
-  { service: 'replicate', modelsKey: 'replicateImageModels', modelKey: 'replicateImageModel' },
-  { service: 'lumalabs', modelsKey: 'lumalabsImageModels', modelKey: 'lumalabsImageModel' },
-  { service: 'fal', modelsKey: 'falImageModels', modelKey: 'falImageModel' }
-] as const satisfies readonly ProviderModelSelectionSpec<EstimateImageCostOptions, ImageProvider>[]
+export const IMAGE_PRICING_PROVIDERS = deriveGenerationPricingProviders(IMAGE_GENERATION_SELECTION) satisfies readonly ProviderModelSelectionSpec<EstimateImageCostOptions, ImageProvider>[]
 
 export const IMAGE_PRICING_MODEL_KEYS = passThroughKeys(IMAGE_PRICING_PROVIDERS)
 

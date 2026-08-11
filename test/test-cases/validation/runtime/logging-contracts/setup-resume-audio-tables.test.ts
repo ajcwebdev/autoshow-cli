@@ -2,10 +2,7 @@ import { describe, expect, test } from 'bun:test'
 import { buildAudioNormalizeTable } from '~/cli/commands/process-steps/step-1-download/audio/audio-logging'
 import { buildResumeSummaryTable } from '~/cli/commands/setup-and-utilities/resume/resume-logging'
 import { buildSuitePriceSummaryRows } from '~/cli/commands/process-steps/step-1-download/download-targets/suite-price-logging'
-import {
-  buildProviderReadinessTable,
-  buildSetupToolStatusTable
-} from '~/cli/commands/setup-and-utilities/setup/setup-logging'
+import { buildSetupToolStatusTable } from '~/cli/commands/setup-and-utilities/setup/setup-logging'
 import {
   buildHostedProviderConfigurationLogTable,
   buildHostedProviderConfigurationRows,
@@ -29,23 +26,6 @@ describe('logging contracts', () => {
         checked: '3 commands',
         totalEstimatedCost: '12.35\u00a2'
       }])
-      expect(buildProviderReadinessTable({
-        provider: 'supadata',
-        capability: 'transcription',
-        status: 'configured',
-        envKey: 'SUPADATA_API_KEY',
-        detail: 'https://api.supadata.ai/v1'
-      })).toEqual({
-        columns: ['provider', 'capability', 'status', 'envKey', 'detail'],
-        rows: [{
-          provider: 'supadata',
-          capability: 'transcription',
-          status: 'configured',
-          envKey: 'SUPADATA_API_KEY',
-          detail: 'https://api.supadata.ai/v1'
-        }]
-      })
-
       const providerRows = buildHostedProviderConfigurationRows(
         { OPENAI_API_KEY: 'sk-test' },
         { envVars: ['OPENAI_API_KEY', 'GEMINI_API_KEY'] }

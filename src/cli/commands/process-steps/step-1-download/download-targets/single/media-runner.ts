@@ -1,106 +1,173 @@
-import { ProcessingOptionsSchema } from '~/types'
-import { validateData } from '~/utils/validate/validation'
-import { ensureDirectory, fileExists } from '~/utils/cli-utils'
+import { ensureDirectory, fileExists, pick } from '~/utils/cli-utils'
 import * as l from '~/utils/app-logger/app-logger'
 import { processVideo } from './process-video'
 import { normalizeBatchChildPublishedAt, reserveBatchChildOutputDir } from '~/cli/commands/process-steps/batch-child-output'
 import { resolveRunDirectory } from '~/cli/commands/process-steps/run-dir'
 import { buildMediaStep1Slug, extractSourceMetadata } from '~/cli/commands/process-steps/step-1-download/audio/metadata-utils'
 import { downloadAudio } from '~/cli/commands/process-steps/step-1-download/audio/dl-audio'
-import { writeRunManifest } from '~/cli/commands/process-steps/manifest-utils'
+import { createManifest, createPipelineItemFromRecord, PIPELINE_MANIFEST_FILE, writeManifest } from '~/cli/commands/process-steps/pipeline-manifest'
 import { isLikelyUrl } from '~/cli/commands/process-steps/step-0-metadata/metadata-targets/metadata-input-classifier'
-import { buildLLMModelOptions, resolveLLMDefaults } from '../options/model-option-llm-defaults'
-import { writeMetadataTerminalOutput, writeSavedMetadataArtifacts } from './metadata-output'
-import type { AggregatedPriceEstimate, BatchChildRunContext, BatchItem, BatchItemProcessResult, DownloadAudioOptions, ProcessingOptions, RuntimeOptions, VideoMetadata, WebArticleMetadata } from '~/types'
+import { buildLLMModelOptions, resolveLLMDefaults } from '~/cli/options/option-resolution/model-option-llm-defaults'
+import { STT_MODEL_KEYS } from '~/cli/options/option-resolution/stt-options'
+import { TTS_MODEL_KEYS } from '~/cli/options/option-resolution/tts-options'
 import { IMAGE_PRICING_MODEL_KEYS } from '~/cli/commands/process-steps/step-5-image/image-utils/image-pricing'
 import { VIDEO_PRICING_MODEL_KEYS } from '~/cli/commands/process-steps/step-6-video/video-utils/video-pricing'
 import { MUSIC_PRICING_MODEL_KEYS } from '~/cli/commands/process-steps/step-7-music/music-utils/music-pricing'
+import { writeMetadataTerminalOutput, writeSavedMetadataArtifacts } from './metadata-output'
+import type { AggregatedPriceEstimate, BatchChildRunContext, BatchItem, BatchItemProcessResult, BatchRuntimeOptions, DownloadAudioOptions, DownloadRuntimeOptions, MetadataOutputOptions, PipelineItemRecord, ProcessingOptions, ProcessingSource, SharedPipelineOptions, VideoMetadata, WebArticleMetadata, WriteRuntimeOptions } from '~/types'
 
-type ProcessingOptionSourceKey = keyof RuntimeOptions & keyof ProcessingOptions
-type ProcessingSpecialKey = 'url' | 'filePath' | 'outputDir' | 'directDownload' | keyof ReturnType<typeof buildLLMModelOptions>
+type DownloadMediaRuntimeOptions = Pick<BatchRuntimeOptions, 'keepOriginalMedia' | 'bestQuality' | 'flatBatch'>
+  & DownloadRuntimeOptions
+  & Pick<SharedPipelineOptions, 'outputRootDir'>
 
-const PROCESSING_FORWARD_KEYS = [
-  'configPath', 'whisperModels', 'whisperModel',
-  'whisperfileModels', 'whisperfileModel', 'youtubeCaptions',
-  'deepinfraSttModels', 'deepinfraSttModel', 'groqSttModels',
-  'groqSttModel', 'grokSttModels', 'grokSttModel',
-  'deepgramSttModels', 'deepgramSttModel', 'sonioxSttModels',
-  'sonioxSttModel', 'speechmaticsSttModels', 'speechmaticsSttModel',
-  'revSttModels', 'revSttModel', 'mistralSttModels',
-  'mistralSttModel', 'assemblyaiSttModels', 'assemblyaiSttModel',
-  'gladiaSttModels', 'gladiaSttModel', 'happyscribeSttModels',
-  'happyscribeSttModel', 'happyscribeOrganizationId', 'supadataSttModels',
-  'supadataSttModel', 'scrapecreatorsSttModels', 'scrapecreatorsSttModel',
-  'geminiSttModels', 'geminiSttModel', 'togetherSttModels',
-  'togetherSttModel', 'supadataLang', 'scrapecreatorsLang',
-  'diarizationSpeakerCount', 'llmProviderConcurrency', 'llmLocalConcurrency',
-  'ttsProviderConcurrency', 'ttsLocalConcurrency', 'ttsChunkConcurrency',
-  'imageProviderConcurrency', 'imageLocalConcurrency', 'videoProviderConcurrency',
-  'videoLocalConcurrency', 'musicProviderConcurrency', 'musicLocalConcurrency',
-  'useReverb', 'reverbVerbatimicity', 'split',
-  'skipLLM', 'prompts', 'promptFile',
-  'renderedText', 'renderedOutDir', 'trackList',
-  'promptMd', 'ttsSpeaker', 'kittenTtsModels',
-  'kittenTtsModel', 'groqTtsModels', 'groqTtsModel',
-  'groqVoiceId', 'grokTtsModels', 'grokTtsModel',
-  'grokTtsVoice', 'grokTtsLanguage', 'grokTtsTextNormalization',
-  'mistralTtsModels', 'mistralTtsModel', 'mistralTtsVoice',
-  'mistralTtsRefAudio', 'mistralTtsVoiceName', 'ttsDialogueFormat',
-  'ttsSpeakers', 'openaiTtsModels', 'openaiTtsModel',
-  'openaiVoiceId', 'openaiTtsInstructions', 'openaiTtsSpeed',
-  'geminiTtsModels', 'geminiTtsModel', 'geminiVoiceId',
-  'elevenlabsTtsModels', 'elevenlabsTtsModel', 'elevenlabsVoiceId',
-  'elevenlabsTtsRefAudio', 'elevenlabsTtsVoiceName', 'elevenlabsTtsCloneRemoveBackgroundNoise',
-  'elevenlabsTtsOutputFormat', 'elevenlabsTtsLanguageCode', 'elevenlabsTtsStability',
-  'elevenlabsTtsSimilarityBoost', 'elevenlabsTtsStyle', 'elevenlabsTtsUseSpeakerBoost',
-  'elevenlabsTtsSpeed', 'elevenlabsTtsSeed', 'elevenlabsTtsTextNormalization',
-  'elevenlabsTtsPronunciationDictionaryLocators', 'elevenlabsTtsOptimizeStreamingLatency', 'minimaxTtsModels',
-  'minimaxTtsModel', 'minimaxTtsVoice', 'minimaxTtsLanguageBoost',
-  'minimaxTtsSpeed', 'minimaxTtsVolume', 'minimaxTtsPitch',
-  'minimaxTtsEmotion', 'minimaxTtsEnglishNormalization', 'minimaxTtsPronunciations',
-  'deepgramTtsModels', 'deepgramTtsModel', 'deepgramVoiceId',
-  'deepgramTtsEncoding', 'deepgramTtsContainer', 'deepgramTtsBitRate',
-  'deepgramTtsSampleRate', 'deepgramTtsSpeed', 'speechifyTtsModels',
-  'speechifyTtsModel', 'speechifyVoice', 'speechifyTtsAudioFormat',
-  'speechifyTtsLanguage', 'speechifyTtsRefAudio', 'speechifyTtsVoiceName',
-  'speechifyTtsConsentName', 'speechifyTtsConsentEmail', 'speechifyTtsVoiceLocale',
-  'speechifyTtsVoiceGender', 'humeTtsModels', 'humeTtsModel',
-  'humeTtsVoice', 'humeTtsVoiceProvider', 'cartesiaTtsModels',
-  'cartesiaTtsModel', 'cartesiaTtsVoice', 'cartesiaTtsLanguage',
-  ...IMAGE_PRICING_MODEL_KEYS, 'imageAspectRatio', 'imageSize',
-  'imageQuality', 'imageFormat', 'imageBackground',
-  'imageCount', 'imageInputs', 'imageMask',
-  'imageResponseMode', 'geminiSearchGrounding', 'imageCompression',
-  ...MUSIC_PRICING_MODEL_KEYS, 'musicDuration', 'musicLyricsFile', 'musicInstrumental',
-  ...VIDEO_PRICING_MODEL_KEYS,
-  'allVideo', 'videoDuration', 'videoSize',
-  'videoAspectRatio', 'videoResolution', 'videoMode',
-  'videoInputImage', 'videoLastFrame', 'videoReferenceImages',
-  'videoInputVideo', 'replicateVideoSeed', 'replicateVideoGenerateAudio',
-  'replicateVideoReferenceVideos', 'replicateVideoReferenceAudios', 'replicateVideoNegativePrompt',
-  'replicateVideoAudio', 'replicateVideoPromptExpansion', 'replicateVideoMultiPrompt',
-  'replicateVideoMultiClip', 'falVideoGenerateAudio', 'falVideoReferenceVideos',
-  'falVideoReferenceAudios', 'grokVideoStorageFilename', 'grokVideoStorageExpiresAfter',
-] as const satisfies readonly ProcessingOptionSourceKey[]
-
-type ProcessingForwardKey = typeof PROCESSING_FORWARD_KEYS[number]
-type MissingProcessingForwardKey = Exclude<keyof ProcessingOptions, ProcessingForwardKey | ProcessingSpecialKey>
-
-const pickProcessingForwardOptions = (
-  options: RuntimeOptions,
-  keys: MissingProcessingForwardKey extends never ? typeof PROCESSING_FORWARD_KEYS : never = PROCESSING_FORWARD_KEYS
-): Pick<RuntimeOptions, ProcessingForwardKey> =>
-  Object.fromEntries(keys.map(key => [key, options[key]])) as Pick<RuntimeOptions, ProcessingForwardKey>
+export const buildProcessingOptions = (
+  source: ProcessingSource,
+  outputDir: string,
+  runtimeOptions: WriteRuntimeOptions
+): ProcessingOptions => {
+  return {
+    ...source,
+    configPath: runtimeOptions.configPath,
+    step2SelectionOrigins: runtimeOptions.step2SelectionOrigins,
+    ...pick(runtimeOptions, STT_MODEL_KEYS),
+    youtubeCaptions: runtimeOptions.youtubeCaptions,
+    happyscribeOrganizationId: runtimeOptions.happyscribeOrganizationId,
+    supadataLang: runtimeOptions.supadataLang,
+    scrapecreatorsLang: runtimeOptions.scrapecreatorsLang,
+    diarizationSpeakerCount: runtimeOptions.diarizationSpeakerCount,
+    useReverb: runtimeOptions.useReverb,
+    reverbVerbatimicity: runtimeOptions.reverbVerbatimicity,
+    split: runtimeOptions.split,
+    ...buildLLMModelOptions(resolveLLMDefaults(runtimeOptions)),
+    llmProviderConcurrency: runtimeOptions.llmProviderConcurrency,
+    llmLocalConcurrency: runtimeOptions.llmLocalConcurrency,
+    ttsProviderConcurrency: runtimeOptions.ttsProviderConcurrency,
+    ttsLocalConcurrency: runtimeOptions.ttsLocalConcurrency,
+    ttsChunkConcurrency: runtimeOptions.ttsChunkConcurrency,
+    ...pick(runtimeOptions, TTS_MODEL_KEYS),
+    ttsSpeaker: runtimeOptions.ttsSpeaker,
+    kittenTtsModels: runtimeOptions.kittenTtsModels,
+    kittenTtsModel: runtimeOptions.kittenTtsModel,
+    groqVoiceId: runtimeOptions.groqVoiceId,
+    grokTtsVoice: runtimeOptions.grokTtsVoice,
+    grokTtsLanguage: runtimeOptions.grokTtsLanguage,
+    grokTtsTextNormalization: runtimeOptions.grokTtsTextNormalization,
+    mistralTtsVoice: runtimeOptions.mistralTtsVoice,
+    mistralTtsRefAudio: runtimeOptions.mistralTtsRefAudio,
+    mistralTtsVoiceName: runtimeOptions.mistralTtsVoiceName,
+    ttsDialogueFormat: runtimeOptions.ttsDialogueFormat,
+    ttsSpeakers: runtimeOptions.ttsSpeakers,
+    openaiVoiceId: runtimeOptions.openaiVoiceId,
+    openaiTtsInstructions: runtimeOptions.openaiTtsInstructions,
+    openaiTtsSpeed: runtimeOptions.openaiTtsSpeed,
+    geminiVoiceId: runtimeOptions.geminiVoiceId,
+    elevenlabsVoiceId: runtimeOptions.elevenlabsVoiceId,
+    elevenlabsTtsRefAudio: runtimeOptions.elevenlabsTtsRefAudio,
+    elevenlabsTtsVoiceName: runtimeOptions.elevenlabsTtsVoiceName,
+    elevenlabsTtsCloneRemoveBackgroundNoise: runtimeOptions.elevenlabsTtsCloneRemoveBackgroundNoise,
+    elevenlabsTtsOutputFormat: runtimeOptions.elevenlabsTtsOutputFormat,
+    elevenlabsTtsLanguageCode: runtimeOptions.elevenlabsTtsLanguageCode,
+    elevenlabsTtsStability: runtimeOptions.elevenlabsTtsStability,
+    elevenlabsTtsSimilarityBoost: runtimeOptions.elevenlabsTtsSimilarityBoost,
+    elevenlabsTtsStyle: runtimeOptions.elevenlabsTtsStyle,
+    elevenlabsTtsUseSpeakerBoost: runtimeOptions.elevenlabsTtsUseSpeakerBoost,
+    elevenlabsTtsSpeed: runtimeOptions.elevenlabsTtsSpeed,
+    elevenlabsTtsSeed: runtimeOptions.elevenlabsTtsSeed,
+    elevenlabsTtsTextNormalization: runtimeOptions.elevenlabsTtsTextNormalization,
+    elevenlabsTtsPronunciationDictionaryLocators: runtimeOptions.elevenlabsTtsPronunciationDictionaryLocators,
+    elevenlabsTtsOptimizeStreamingLatency: runtimeOptions.elevenlabsTtsOptimizeStreamingLatency,
+    deepgramVoiceId: runtimeOptions.deepgramVoiceId,
+    deepgramTtsEncoding: runtimeOptions.deepgramTtsEncoding,
+    deepgramTtsContainer: runtimeOptions.deepgramTtsContainer,
+    deepgramTtsBitRate: runtimeOptions.deepgramTtsBitRate,
+    deepgramTtsSampleRate: runtimeOptions.deepgramTtsSampleRate,
+    deepgramTtsSpeed: runtimeOptions.deepgramTtsSpeed,
+    minimaxTtsVoice: runtimeOptions.minimaxTtsVoice,
+    minimaxTtsLanguageBoost: runtimeOptions.minimaxTtsLanguageBoost,
+    minimaxTtsSpeed: runtimeOptions.minimaxTtsSpeed,
+    minimaxTtsVolume: runtimeOptions.minimaxTtsVolume,
+    minimaxTtsPitch: runtimeOptions.minimaxTtsPitch,
+    minimaxTtsEmotion: runtimeOptions.minimaxTtsEmotion,
+    minimaxTtsEnglishNormalization: runtimeOptions.minimaxTtsEnglishNormalization,
+    minimaxTtsPronunciations: runtimeOptions.minimaxTtsPronunciations,
+    speechifyVoice: runtimeOptions.speechifyVoice,
+    speechifyTtsAudioFormat: runtimeOptions.speechifyTtsAudioFormat,
+    speechifyTtsLanguage: runtimeOptions.speechifyTtsLanguage,
+    speechifyTtsRefAudio: runtimeOptions.speechifyTtsRefAudio,
+    speechifyTtsVoiceName: runtimeOptions.speechifyTtsVoiceName,
+    speechifyTtsConsentName: runtimeOptions.speechifyTtsConsentName,
+    speechifyTtsConsentEmail: runtimeOptions.speechifyTtsConsentEmail,
+    speechifyTtsVoiceLocale: runtimeOptions.speechifyTtsVoiceLocale,
+    speechifyTtsVoiceGender: runtimeOptions.speechifyTtsVoiceGender,
+    humeTtsVoice: runtimeOptions.humeTtsVoice,
+    humeTtsVoiceProvider: runtimeOptions.humeTtsVoiceProvider,
+    cartesiaTtsVoice: runtimeOptions.cartesiaTtsVoice,
+    cartesiaTtsLanguage: runtimeOptions.cartesiaTtsLanguage,
+    ...pick(runtimeOptions, IMAGE_PRICING_MODEL_KEYS),
+    imageProviderConcurrency: runtimeOptions.imageProviderConcurrency,
+    imageLocalConcurrency: runtimeOptions.imageLocalConcurrency,
+    imageAspectRatio: runtimeOptions.imageAspectRatio,
+    imageSize: runtimeOptions.imageSize,
+    imageQuality: runtimeOptions.imageQuality,
+    imageFormat: runtimeOptions.imageFormat,
+    imageBackground: runtimeOptions.imageBackground,
+    imageCount: runtimeOptions.imageCount,
+    imageInputs: runtimeOptions.imageInputs,
+    imageMask: runtimeOptions.imageMask,
+    imageResponseMode: runtimeOptions.imageResponseMode,
+    geminiSearchGrounding: runtimeOptions.geminiSearchGrounding,
+    imageCompression: runtimeOptions.imageCompression,
+    ...pick(runtimeOptions, VIDEO_PRICING_MODEL_KEYS),
+    videoProviderConcurrency: runtimeOptions.videoProviderConcurrency,
+    videoLocalConcurrency: runtimeOptions.videoLocalConcurrency,
+    allVideo: runtimeOptions.allVideo,
+    videoDuration: runtimeOptions.videoDuration,
+    videoSize: runtimeOptions.videoSize,
+    videoAspectRatio: runtimeOptions.videoAspectRatio,
+    videoResolution: runtimeOptions.videoResolution,
+    videoMode: runtimeOptions.videoMode,
+    videoInputImage: runtimeOptions.videoInputImage,
+    videoLastFrame: runtimeOptions.videoLastFrame,
+    videoReferenceImages: runtimeOptions.videoReferenceImages,
+    videoInputVideo: runtimeOptions.videoInputVideo,
+    replicateVideoSeed: runtimeOptions.replicateVideoSeed,
+    replicateVideoGenerateAudio: runtimeOptions.replicateVideoGenerateAudio,
+    replicateVideoReferenceVideos: runtimeOptions.replicateVideoReferenceVideos,
+    replicateVideoReferenceAudios: runtimeOptions.replicateVideoReferenceAudios,
+    replicateVideoNegativePrompt: runtimeOptions.replicateVideoNegativePrompt,
+    replicateVideoAudio: runtimeOptions.replicateVideoAudio,
+    replicateVideoPromptExpansion: runtimeOptions.replicateVideoPromptExpansion,
+    replicateVideoMultiPrompt: runtimeOptions.replicateVideoMultiPrompt,
+    replicateVideoMultiClip: runtimeOptions.replicateVideoMultiClip,
+    falVideoGenerateAudio: runtimeOptions.falVideoGenerateAudio,
+    falVideoReferenceVideos: runtimeOptions.falVideoReferenceVideos,
+    falVideoReferenceAudios: runtimeOptions.falVideoReferenceAudios,
+    grokVideoStorageFilename: runtimeOptions.grokVideoStorageFilename,
+    grokVideoStorageExpiresAfter: runtimeOptions.grokVideoStorageExpiresAfter,
+    ...pick(runtimeOptions, MUSIC_PRICING_MODEL_KEYS),
+    musicProviderConcurrency: runtimeOptions.musicProviderConcurrency,
+    musicLocalConcurrency: runtimeOptions.musicLocalConcurrency,
+    musicDuration: runtimeOptions.musicDuration,
+    musicLyricsFile: runtimeOptions.musicLyricsFile,
+    musicInstrumental: runtimeOptions.musicInstrumental,
+    skipLLM: runtimeOptions.skipLLM,
+    prompts: runtimeOptions.prompts,
+    promptFile: runtimeOptions.promptFile,
+    renderedText: runtimeOptions.renderedText,
+    renderedOutDir: runtimeOptions.renderedOutDir,
+    trackList: runtimeOptions.trackList,
+    promptMd: runtimeOptions.promptMd,
+    outputDir
+  }
+}
 
 export const processMediaSingle = async (
   target: string,
   baseDir: string,
-  llmDefaults: RuntimeOptions,
+  llmDefaults: WriteRuntimeOptions,
   preflightEstimate?: AggregatedPriceEstimate,
   batchChildContext?: BatchChildRunContext
 ): Promise<{ outputDir: string, info: { url: string, title: string, channel: string, channelURL?: string, publishDate?: string, duration: string } }> => {
-  const llmConfig = resolveLLMDefaults(llmDefaults)
-
   if (llmDefaults.split) {
     l.write('info', 'Audio will be split into 30-minute segments for transcription')
   }
@@ -124,14 +191,12 @@ export const processMediaSingle = async (
     fallbackLabel: meta.title
   })
 
-  const baseOptions: Record<string, unknown> = {
-    ...(isUrl ? { url: target } : exists ? { filePath: target } : { url: target }),
-    ...pickProcessingForwardOptions(llmDefaults),
-    ...buildLLMModelOptions(llmConfig),
-    outputDir: baseDir
-  }
-
-  const options: ProcessingOptions = validateData(ProcessingOptionsSchema, baseOptions, 'processing options')
+  const source: ProcessingSource = isUrl
+    ? { url: target }
+    : exists
+      ? { filePath: target }
+      : { url: target }
+  const options = buildProcessingOptions(source, baseDir, llmDefaults)
 
   const outDir = await processVideo(options, meta, preflightEstimate, {
     ...(batchOutputDir ? { outputDir: batchOutputDir } : {}),
@@ -207,14 +272,14 @@ const mergeBatchItemMetadata = (
 }
 
 const hasYtDlpPassthroughArgs = (
-  opts: Pick<RuntimeOptions, 'ytDlpPassthroughArgs'>
-): opts is Pick<RuntimeOptions, 'ytDlpPassthroughArgs'> & { ytDlpPassthroughArgs: string[] } =>
+  opts: DownloadRuntimeOptions
+): opts is DownloadRuntimeOptions & { ytDlpPassthroughArgs: string[] } =>
   Array.isArray(opts.ytDlpPassthroughArgs) && opts.ytDlpPassthroughArgs.length > 0
 
 export const buildDownloadMediaOptions = (
   target: string,
   outputDir: string,
-  opts: Pick<RuntimeOptions, 'keepOriginalMedia' | 'bestQuality' | 'ytDlpPassthroughArgs'>,
+  opts: Pick<DownloadMediaRuntimeOptions, 'keepOriginalMedia' | 'bestQuality' | 'ytDlpPassthroughArgs'>,
   options: {
     isUrl: boolean
     exists: boolean
@@ -232,10 +297,10 @@ export const buildDownloadMediaOptions = (
   }
 }
 
-const buildDownloadManifestEntry = (
+const buildDownloadItemRecord = (
   step1Metadata: Record<string, unknown>,
   web?: WebArticleMetadata
-): Record<string, unknown> => ({
+): PipelineItemRecord => ({
   step1: step1Metadata,
   ...(web ? { web } : {}),
   cost: {
@@ -246,7 +311,7 @@ const buildDownloadManifestEntry = (
 
 export const processMetadataMedia = async (
   target: string,
-  opts: RuntimeOptions,
+  opts: Pick<SharedPipelineOptions, 'outputRootDir'> & MetadataOutputOptions,
   baseDir: string,
   batchItem?: BatchItem,
   batchChildContext?: BatchChildRunContext
@@ -290,7 +355,7 @@ export const processMetadataMedia = async (
 export const processDownloadMedia = async (
   target: string,
   baseDir: string,
-  opts: RuntimeOptions,
+  opts: DownloadMediaRuntimeOptions,
   batchItem?: BatchItem,
   batchChildContext?: BatchChildRunContext
 ): Promise<BatchItemProcessResult> => {
@@ -320,16 +385,18 @@ export const processDownloadMedia = async (
   const dlOpts = buildDownloadMediaOptions(target, outputDir, opts, { isUrl, exists, batchItem })
 
   const { metadata: step1Metadata } = await downloadAudio(dlOpts, meta)
-  const manifestEntry = buildDownloadManifestEntry(step1Metadata)
+  const itemRecord = buildDownloadItemRecord(step1Metadata)
 
   if (useFlatBatchOutput) {
     l.write('info', `Saved media file: ${step1Metadata.audioFileName}`)
-    return { manifestEntry }
+    return { itemRecord }
   }
 
-  await writeRunManifest(outputDir, 'download', manifestEntry)
+  await writeManifest(outputDir, createManifest('download', 'single', [
+    createPipelineItemFromRecord(outputDir, itemRecord, { status: 'full' })
+  ]))
 
-  l.report.complete(outputDir, { audio: step1Metadata.audioFileName, run: 'run.json' })
+  l.report.complete(outputDir, { audio: step1Metadata.audioFileName, manifest: PIPELINE_MANIFEST_FILE })
 
   return { outputDir }
 }

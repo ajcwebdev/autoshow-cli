@@ -1,4 +1,5 @@
 import { describe, expect, test } from 'bun:test'
+import { estimateLlmCostFromRegistry } from '~/cli/commands/process-steps/step-8-comic/comic-utils/structured-script-utils/llm-cost'
 import { getExtractPricing, getLlmCost, getModelRegistry } from '~/cli/commands/setup-and-utilities/models/model-loader'
 import { resolveCheapestModelForFlag } from '~/cli/commands/setup-and-utilities/models/cheapest-models'
 import { computeActualCosts } from '~/utils/pricing/compute-actual-costs'
@@ -21,6 +22,27 @@ const buildStep3CostMetadata = (overrides: Partial<Step3Metadata> = {}): Step3Me
 })
 
 describe('price mode contracts', () => {
+  test('comic LLM estimates convert canonical cents rates to dollars', () => {
+      expect(estimateLlmCostFromRegistry('gpt-5.5', 1_000_000, 1_000_000)).toBe(35)
+    })
+
+  test('retired Gemini LLM benchmark results retain historical token pricing', () => {
+      const metadata = buildStep3CostMetadata({
+        llmService: 'gemini',
+        llmModel: 'gemini-3.1-flash-lite-preview',
+        inputTokenCount: 1_000_000,
+        outputTokenCount: 1_000_000
+      })
+
+      expect(computeActualCosts({ step3: metadata }).steps[0]).toMatchObject({
+        step: 'llm',
+        provider: 'gemini',
+        model: 'gemini-3.1-flash-lite-preview',
+        cost: 175,
+        costSource: 'provider_usage'
+      })
+    })
+
   test('shared token pricing helper computes flat cents-per-million rates', () => {
       const cost = computeTokenCost({
         inputCostPer1MCents: 20,
@@ -115,12 +137,10 @@ describe('price mode contracts', () => {
       expect(entry.pricingNotes).toContain('priority pricing')
       expect(entry.tokenPricingBands?.[0]).toMatchObject({
         label: 'standard-up-to-512k',
-        cachedInputCostPer1MUSD: 0.12,
         cachedInputCostPer1MCents: 12
       })
       expect(entry.tokenPricingBands?.[1]).toMatchObject({
         label: 'standard-over-512k',
-        cachedInputCostPer1MUSD: 0.24,
         cachedInputCostPer1MCents: 24
       })
     })
@@ -161,11 +181,8 @@ describe('price mode contracts', () => {
       expect(computeTokenCost(rates, 200_001, 1000).totalCost).toBeCloseTo(81.2004)
       expect(entry).toMatchObject({
         pricingCheckedAt: '2026-07-23',
-        inputCostPer1MUSD: 2,
         inputCostPer1MCents: 200,
-        cachedInputCostPer1MUSD: 0.3,
         cachedInputCostPer1MCents: 30,
-        outputCostPer1MUSD: 6,
         outputCostPer1MCents: 600,
         estimation: {
           msPer1KTokens: 11318,
@@ -173,7 +190,6 @@ describe('price mode contracts', () => {
         }
       })
       expect(entry.tokenPricingBands?.[1]).toMatchObject({
-        cachedInputCostPer1MUSD: 0.6,
         cachedInputCostPer1MCents: 60
       })
     })
@@ -205,15 +221,11 @@ describe('price mode contracts', () => {
       })
       expect(entry).toMatchObject({
         pricingCheckedAt: '2026-07-23',
-        costPerMInputTokensUSD: 2,
         costPerMInputTokensCents: 200,
-        costPerMCachedInputTokensUSD: 0.3,
         costPerMCachedInputTokensCents: 30,
-        costPerMOutputTokensUSD: 6,
         costPerMOutputTokensCents: 600
       })
       expect(entry.tokenPricingBands?.[1]).toMatchObject({
-        cachedInputCostPer1MUSD: 0.6,
         cachedInputCostPer1MCents: 60
       })
       expect(entry.higherContextPricing).toBeUndefined()
@@ -285,12 +297,10 @@ describe('price mode contracts', () => {
       }
       expect(kimiEntry).toMatchObject({
         pricingTier: 'Together AI serverless token pricing',
-        cachedInputCostPer1MUSD: 0.2,
         cachedInputCostPer1MCents: 20
       })
       expect(glmEntry).toMatchObject({
         pricingSourceUrl: 'https://docs.together.ai/docs/inference/pricing',
-        cachedInputCostPer1MUSD: 0.26,
         cachedInputCostPer1MCents: 26
       })
     })
@@ -491,7 +501,6 @@ describe('price mode contracts', () => {
       }
       expect(kimiK3).toMatchObject({
         pricingSourceUrl: 'https://platform.kimi.ai/docs/pricing/chat-k3',
-        cachedInputCostPer1MUSD: 0.3,
         cachedInputCostPer1MCents: 30
       })
     })

@@ -29,6 +29,3 @@ export const getFallbackPageInputPath = (fallbackDir: string, pageNumber: number
 
 export const getFallbackPartialTextPath = (fallbackDir: string): string =>
   join(fallbackDir, HOSTED_OCR_PDF_PARTIAL_TEXT_FILE)
-
-export const fallbackStateExists = async (fallbackDir: string | undefined): Promise<boolean> =>
-  fallbackDir !== undefined && await Bun.file(getFallbackStatePath(fallbackDir)).exists()

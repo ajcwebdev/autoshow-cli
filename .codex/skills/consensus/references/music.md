@@ -1,6 +1,6 @@
 # Music Consensus
 
-Use this category for multi-provider AutoShow music runs with `run.json` metadata and generated music files in the run directory root.
+Use this category for multi-provider AutoShow music runs with canonical `manifest.json` metadata and generated music files in the run directory root.
 
 ## Packet
 

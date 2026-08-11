@@ -1,4 +1,4 @@
-import type { ClassifyFetchRetryOptions, RetryClass, RetryDecision, SttRequestMetrics, SttRetryMetrics } from '~/types'
+import type { RetryClass, RetryDecision, SttRequestMetrics, SttRetryMetrics } from '~/types'
 import { classifyFetchRetry } from '~/utils/retries'
 export const createSttRetryMetrics = (): SttRetryMetrics => ({
   retryCount: 0,
@@ -40,10 +40,9 @@ export const sttRetryMetricsToCallbacks = (
 
 export const classifySttFetchRetryWithMetrics = (
   metrics: SttRetryMetrics,
-  retryClass: RetryClass,
-  options: ClassifyFetchRetryOptions = {}
+  retryClass: RetryClass
 ) => (error: unknown): RetryDecision => {
-  const decision = classifyFetchRetry(error, retryClass, options)
+  const decision = classifyFetchRetry(error, retryClass)
   recordSttRetryMetric(metrics, error, decision)
   return decision
 }

@@ -37,6 +37,7 @@ export type CliRawParsed = {
   doubleDash: string[]
   explicitFlags: Set<string>
   flagOccurrences: CliFlagOccurrence[]
+  flagOccurrenceIndices: number[]
   unknown: Record<string, unknown>
   positionals: Array<{ value: string, index: number }>
 }
@@ -71,9 +72,9 @@ export type CliCommandDefinition = {
   description: string
   parameters?: readonly CliParameterDefinition[]
   flags?: CliFlagsDefinition
+  subcommands?: readonly CliCommandDefinition[]
   help?: {
     group?: string
-    subcommands?: ReadonlyArray<readonly [name: string, description: string]>
     examples?: ReadonlyArray<readonly [command: string, description: string]>
     notes?: readonly string[]
   }

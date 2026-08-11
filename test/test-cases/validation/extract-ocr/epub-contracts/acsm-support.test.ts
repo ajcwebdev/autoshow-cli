@@ -16,6 +16,7 @@ import {
   rm,
   runOcr,
   tmpdir,
+  withStandardEpubContainer,
   writeFile,
   writeStoredZip
 } from './shared'
@@ -24,7 +25,7 @@ import { resolveInputRoutingForCommand } from '~/cli/commands/process-steps/step
 import { ACSM_PRICE_NOTE, fulfillAcsmToDocument, resolveAcsmFulfillCommand } from '~/cli/commands/process-steps/step-1-download/document/acsm-fulfillment'
 import { buildAggregatedPriceEstimate } from '~/utils/pricing/aggregate-pricing'
 import { runCommand } from '../../../../test-utils/test-helpers'
-import type { AcsmFakeFulfillMode, RuntimeOptions } from '~/types'
+import type { AcsmFakeFulfillMode, CommandPricingOptions } from '~/types'
 
 const EXAMPLE_PDF_PATH = resolve('input/examples/document/1-document.pdf')
 const tempDirs: string[] = []
@@ -57,14 +58,7 @@ const writeFakeMutool = async (binDir: string): Promise<void> => {
   await chmod(fakeMutoolPath, 0o755)
 }
 
-const encryptedSpineEpubFiles = (): Record<string, string> => ({
-  'META-INF/container.xml': `
-    <container>
-      <rootfiles>
-        <rootfile full-path="OEBPS/content.opf" media-type="application/oebps-package+xml"/>
-      </rootfiles>
-    </container>
-  `,
+const encryptedSpineEpubFiles = (): Record<string, string> => withStandardEpubContainer({
   'META-INF/encryption.xml': `
     <encryption xmlns:enc="http://www.w3.org/2001/04/xmlenc#">
       <enc:EncryptedData>
@@ -405,7 +399,7 @@ test('ACSM --price does not invoke fulfillment and reports omitted page-priced O
   const estimate = await buildAggregatedPriceEstimate('extract', acsmPath, {
     step2SelectionOrigins: { 'kimi-ocr': 'explicit' },
     kimiOcrModels: ['kimi-k2.6']
-  } as unknown as RuntimeOptions)
+  } as unknown as CommandPricingOptions)
   expect(estimate.steps).toHaveLength(0)
   expect(estimate.notes).toContain(ACSM_PRICE_NOTE)
 

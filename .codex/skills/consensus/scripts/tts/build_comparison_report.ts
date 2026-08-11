@@ -11,7 +11,7 @@ import {
   formatCents,
   formatProcessingSeconds,
   isLocalService,
-  loadTtsRunJson,
+  loadTtsManifestRecord,
   makeProviderKey,
   probeAudio,
   roundtripWer,
@@ -536,25 +536,25 @@ export async function buildReport(
   inputTextPath: string,
   roundtripDir: string | null,
 ) {
-  const runJson = loadTtsRunJson(runDir);
+  const manifestRecord = loadTtsManifestRecord(runDir);
   const inputText = readFileSync(inputTextPath, "utf8").trim();
   const charCount = inputText.length;
   const wordCount = tokenize(inputText).length;
   const warnings: string[] = [];
 
-  const { found, missing } = discoverAudioFiles(runDir, runJson.metadata.tts);
+  const { found, missing } = discoverAudioFiles(runDir, manifestRecord.metadata.tts);
   if (missing.length > 0) {
     warnings.push(`Missing audio files: ${missing.join(", ")}`);
   }
 
-  const costLookup = buildCostLookup(runJson);
-  const timingLookup = buildTimingLookup(runJson);
+  const costLookup = buildCostLookup(manifestRecord);
+  const timingLookup = buildTimingLookup(manifestRecord);
   const voiceQualityScores = loadVoiceQualityScores(runDir);
   const hasRoundtrip = roundtripDir !== null;
 
   const providerData: ProviderData[] = [];
 
-  for (const entry of runJson.metadata.tts) {
+  for (const entry of manifestRecord.metadata.tts) {
     const providerKey = makeProviderKey(entry.ttsService, entry.ttsModel);
     const audioPath = found.get(providerKey);
 
@@ -894,7 +894,7 @@ ${buildRankingTable(rankedCloudWithTiers, true)}
 
 - Each provider in \`metadata.tts[]\` was evaluated based on its audio output.
 - Audio duration was measured via ffprobe to compute speaking rate (characters per second).
-- Cost and processing time were extracted from \`run.json\` metadata.
+- Cost and processing time were extracted from \`manifest.json\` metadata.
 - Providers are separated into local models and cloud services for independent comparison.
 - Overall ranking combines all providers using roundtrip WER accuracy when present, neutral 50/100 accuracy when missing, normalized processing speed, and normalized cost efficiency.
 - Tier breakdown assigns local and third-party providers independently using balanced overall group rank.

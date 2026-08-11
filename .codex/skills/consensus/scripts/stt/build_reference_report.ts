@@ -6,11 +6,11 @@ import { resolve } from "node:path";
 
 import {
   computeProviderSegmentStats,
-  durationSecondsFromRun,
+  durationSecondsFromManifest,
   formatCents,
   formatProcessingSeconds,
   loadProviderRuns,
-  loadRunJson,
+  loadSttManifestRecord,
   mapProviderSpeakers,
   normalizeText,
   parseClock,
@@ -978,12 +978,12 @@ function buildProviderGroups(providers: SttMetricProvider[], runDurationSeconds:
 }
 
 export function buildReport(runDir: string, referencePath: string, preservedProviders: SttMetricProvider[] = []) {
-  const runJson = loadRunJson(runDir);
+  const manifestRecord = loadSttManifestRecord(runDir);
   const { providers, warnings } = loadProviderRuns(runDir);
   if (providers.length === 0) {
     throw new Error(`No providers/*/result.json files found under ${runDir}`);
   }
-  const runDurationSeconds = durationSecondsFromRun(runJson, providers);
+  const runDurationSeconds = durationSecondsFromManifest(manifestRecord, providers);
   const referenceSegments = parseReferenceTranscript(referencePath, runDurationSeconds);
 
   const scoredProviders = providers.map((provider) => {
@@ -1096,7 +1096,7 @@ export function buildReport(runDir: string, referencePath: string, preservedProv
       `The cheapest ${subject} ${joinProviderNames(cheapestProviders)} at ${formatCents(cheapestCost)}.`,
     );
   } else {
-    notes.push("Actual provider cost data was unavailable in `run.json`.");
+    notes.push("Actual provider cost data was unavailable in `manifest.json`.");
   }
 
   if (providersWithTime.length > 0) {
@@ -1107,7 +1107,7 @@ export function buildReport(runDir: string, referencePath: string, preservedProv
       `\`${fastestProvider.provider}\` was the fastest provider in this set at ${((fastestProvider.actualProcessingTimeMs as number) / 1000).toFixed(2)}s.`,
     );
   } else {
-    notes.push("Actual provider timing data was unavailable in `run.json`.");
+    notes.push("Actual provider timing data was unavailable in `manifest.json`.");
   }
 
   if (largestSpeakerPenalty.speakerPenalty > 0) {
@@ -1172,13 +1172,13 @@ ${providerList}
 - Ranking metric: strict speaker-aware word error rate (WER)
 - Score formula: \`max(0, 100 * (1 - speakerAwareWER))\`
 - WER formula: \`(Substitutions + Deletions + Insertions) / Reference Word Count\`
-- Cost and processing time source: actual per-provider billing and timing data from \`run.json\` when available
+- Cost and processing time source: actual per-provider billing and timing data from \`manifest.json\` when available
 
 ## Method
 
 - The consolidated transcript in \`${referenceName}\` was treated as the gold reference.
 - Timestamps were used to map provider speaker labels onto canonical gold speakers by segment overlap.
-- Gold segment end times were derived from the next gold segment start, with the final segment ending at the run duration from \`run.json\`.
+- Gold segment end times were derived from the next gold segment start, with the final segment ending at the run duration from \`manifest.json\`.
 - Provider scoring used \`result.json.result.segments\` for all discovered providers under \`providers/\`; \`transcription.txt\` was ignored.${preservedProviders.length > 0 ? " Previously scored rows whose source result is no longer retained were preserved explicitly." : " Pre-existing comparison reports were ignored."}
 - Text normalization applied before tokenization: lowercasing, curly quote/dash normalization, contraction expansion (it's -> it is), abbreviation expansion (mr. -> mister), currency symbol conversion ($50 -> 50 dollars), filler word removal (um, uh, etc.), and remaining punctuation stripping.
 - Tokenization used a word/number regex, so punctuation-only tokens were ignored.

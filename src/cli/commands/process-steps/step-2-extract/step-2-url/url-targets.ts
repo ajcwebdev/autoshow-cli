@@ -1,4 +1,4 @@
-import type { HtmlArticleBackend, RuntimeOptions, Step2ProviderSelectionFilter, UrlArticleBackendPlan, UrlArticleTarget } from '~/types'
+import type { HtmlArticleBackend, Step2ProviderSelectionFilter, UrlArticleBackendPlan, UrlArticleTarget, UrlSelectionOptions } from '~/types'
 import { LOCAL_URL_ARTICLE_BACKENDS, URL_ARTICLE_BACKENDS } from '../step-2-shared/provider-registry'
 import { collectUrlProviderSpecs } from './url-cli'
 import { isRemoteSource } from './url-utils'
@@ -47,7 +47,7 @@ export const uniqueUrlTargets = (
 ): UrlArticleTarget[] => uniqueBackends(getUrlTargetBackends(targets)).map(toUrlArticleTarget)
 
 export const collectUrlTargets = (
-  options: Pick<RuntimeOptions, 'urlBackend' | 'urlBackendExplicit' | 'urlBackends' | 'step2SelectionOrigins'>,
+  options: UrlSelectionOptions,
   filter?: Step2ProviderSelectionFilter
 ): UrlArticleTarget[] =>
   collectUrlProviderSpecs(options, filter).flatMap((spec) => {
@@ -59,7 +59,7 @@ export const collectUrlTargets = (
 
 export const resolveUrlArticleBackendPlan = (
   source: string,
-  opts: RuntimeOptions
+  opts: UrlSelectionOptions
 ): UrlArticleBackendPlan => {
   const remote = isRemoteSource(source)
   const sourceRef = remote ? { url: source } : { filePath: source }

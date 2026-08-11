@@ -1,6 +1,6 @@
 import { join } from "node:path"
 import { isLocalService, makeProviderKey, probeAudio } from '../tts-eval-lib'
-import type { loadTtsRunJson } from '../tts-eval-lib'
+import type { loadTtsManifestMetadata } from '../tts-eval-lib'
 import type { AudioProperties, ComponentScore, ContentType, HeuristicResult, MetricFixtures, PaidFailurePolicy, ProviderVoiceQualityEntry, VoiceQualityReportMode } from '~/types'
 import { readEnv } from '~/utils/validate/env-utils'
 import { computeHeuristics, normalizeAudio, readPcm16MonoWav } from './audio-heuristics'
@@ -16,7 +16,7 @@ export async function evaluateProvider(options: {
   inputText: string;
   inputCharCount: number;
   inputWordCount: number;
-  entry: ReturnType<typeof loadTtsRunJson>["metadata"]["tts"][number];
+  entry: Awaited<ReturnType<typeof loadTtsManifestMetadata>>["tts"][number];
   audioPath: string | undefined;
   fixtures: MetricFixtures | null;
   roundtripDir: string | null;

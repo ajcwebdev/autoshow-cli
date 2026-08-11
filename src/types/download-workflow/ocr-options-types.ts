@@ -1,4 +1,4 @@
-import type { OcrConcurrencyMode, OutputFormat } from '~/types'
+import type { OcrConcurrencyMode, OutputFormat, ResolvedLLMModelOptions } from '~/types'
 
 export type OcrRuntimeOptions = {
   ocrConcurrency: number | undefined
@@ -33,5 +33,12 @@ export type OcrRuntimeOptions = {
   pdfChapterMode: 'local' | 'auto' | 'llm'
   useEpubBun: boolean
 }
+
+export type OcrExtractionOptions = OcrRuntimeOptions & {
+  outputRootDir: string
+  configPath: string | undefined
+  step2SelectionOrigins: Partial<Record<string, 'default' | 'explicit' | 'all-shortcut'>>
+  hostedOcrTokenProfilePath?: string | undefined
+} & ResolvedLLMModelOptions
 
 export type OcrRuntimeOptionKey = keyof OcrRuntimeOptions

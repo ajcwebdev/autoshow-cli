@@ -2,26 +2,18 @@ import { existsSync } from 'node:fs'
 import { basename, extname } from 'node:path'
 import { CLIUsageError, InfraError } from '~/utils/error-handler'
 
-type UnknownLocalMimePolicy =
-  | { mode: 'fallback', mimeType: string }
-  | { mode: 'throw' }
-
-type FetchedContentTypePolicy =
-  | { mode: 'prefix', prefix: string }
-  | { mode: 'allowed' }
+type MediaReferencePolicy =
+  | { mode: 'strict' }
+  | { mode: 'lenient', contentTypePrefix: string, fallbackMimeType: string }
 
 export interface MediaKindSpec {
   allowedMimeTypes: readonly string[]
   mimeByExtension: Readonly<Record<string, string>>
   mimeAliases: Readonly<Record<string, string>>
   dataUrlPattern: RegExp
-  enforceAllowedDataMime: boolean
-  unknownLocalMime: UnknownLocalMimePolicy
-  fetchedContentType: FetchedContentTypePolicy
-  fetchedFallbackMimeType?: string | undefined
+  policy: MediaReferencePolicy
   accept: string
   defaultFileName: (mimeType: string) => string
-  prettyMimeList: string
   errors: {
     download: (status: number, url: string) => string
     unsupportedLocal: (value: string) => string
@@ -30,7 +22,6 @@ export interface MediaKindSpec {
   }
   downloadError: {
     stage: string
-    includeStatus: boolean
   }
 }
 
@@ -134,7 +125,7 @@ export const createMediaReferenceEngine = (spec: MediaKindSpec): {
 
   const dataUrlToBytes = (value: string): MediaReferenceBytes => {
     const parsed = parseDataUrl(value)
-    if (!parsed || (spec.enforceAllowedDataMime && !spec.allowedMimeTypes.includes(parsed.mimeType))) {
+    if (!parsed || (spec.policy.mode === 'strict' && !spec.allowedMimeTypes.includes(parsed.mimeType))) {
       throw CLIUsageError(spec.errors.unsupportedDataUrl())
     }
     return {
@@ -149,19 +140,19 @@ export const createMediaReferenceEngine = (spec: MediaKindSpec): {
     if (!response.ok) {
       throw InfraError(spec.errors.download(response.status, url), {
         stage: spec.downloadError.stage,
-        ...(spec.downloadError.includeStatus ? { status: response.status } : {})
+        status: response.status
       })
     }
     const responseMimeType = normalizeMimeType(response.headers.get('content-type') ?? undefined)
     const acceptsResponseMime = responseMimeType !== undefined && (
-      spec.fetchedContentType.mode === 'prefix'
-        ? responseMimeType.startsWith(spec.fetchedContentType.prefix)
+      spec.policy.mode === 'lenient'
+        ? responseMimeType.startsWith(spec.policy.contentTypePrefix)
         : spec.allowedMimeTypes.includes(responseMimeType)
     )
     const mimeType = acceptsResponseMime
       ? responseMimeType
-      : getUrlMimeType(url) ?? spec.fetchedFallbackMimeType
-    if (!mimeType || (spec.fetchedContentType.mode === 'allowed' && !spec.allowedMimeTypes.includes(mimeType))) {
+      : getUrlMimeType(url) ?? (spec.policy.mode === 'lenient' ? spec.policy.fallbackMimeType : undefined)
+    if (!mimeType || (spec.policy.mode === 'strict' && !spec.allowedMimeTypes.includes(mimeType))) {
       throw CLIUsageError(spec.errors.unsupportedUrl(url))
     }
     const urlName = basename(new URL(url).pathname)
@@ -174,8 +165,8 @@ export const createMediaReferenceEngine = (spec: MediaKindSpec): {
 
   const localFileToBytes = async (value: string): Promise<MediaReferenceBytes> => {
     const detectedMimeType = getLocalMimeType(value)
-    const mimeType = detectedMimeType ?? (spec.unknownLocalMime.mode === 'fallback' ? spec.unknownLocalMime.mimeType : undefined)
-    if (!mimeType || (spec.unknownLocalMime.mode === 'throw' && !spec.allowedMimeTypes.includes(mimeType))) {
+    const mimeType = detectedMimeType ?? (spec.policy.mode === 'lenient' ? spec.policy.fallbackMimeType : undefined)
+    if (!mimeType || (spec.policy.mode === 'strict' && !spec.allowedMimeTypes.includes(mimeType))) {
       throw CLIUsageError(spec.errors.unsupportedLocal(value))
     }
     return {

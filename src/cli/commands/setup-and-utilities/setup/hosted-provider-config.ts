@@ -229,11 +229,10 @@ export const HOSTED_PROVIDER_ENV_CHECKS = [
   }
 ] as const satisfies readonly HostedProviderEnvCheck[]
 
-// `setup --step image` / `--step video` used to carry their own literal env-key
-// lists, which drifted as providers were added and removed. Derive them from the
-// config paths the master list already records, so a new provider only has to be
-// registered once. `assertHostedProviderCoverage` is the guard that the two stay
-// in step.
+// Focused setup steps used to carry their own literal env-key lists, which drifted
+// as providers were added and removed. Derive them from the config paths the
+// master list already records, so a new provider only has to be registered once.
+// Setup provider-coverage contracts pin each derived set to its selector registry.
 export const getHostedProviderEnvKeysForConfigPrefix = (
   configPathPrefix: string
 ): string[] => [...new Set(

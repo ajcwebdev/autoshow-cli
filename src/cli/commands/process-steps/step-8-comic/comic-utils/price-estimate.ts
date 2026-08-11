@@ -339,8 +339,13 @@ export const estimateCharacterSketchPrice = async (
   const catalog = loadCharacterCatalog()
   const key = catalog.requireKey(options.character)
   const character = catalog.get(key)
+  const sourcePath = existsSync(character.sourcePath)
+    ? character.sourcePath
+    : character.generationReferencePath
+  if (!sourcePath) throw CLIUsageError(`Character "${key}" has no source image or generationReference`)
+  const referenceCount = options.revise && character.sourcePath !== character.outlineSheetPath ? 2 : 1
   validateImageSizeForModels(size, models)
-  validateReferenceImageCount(models[0]!, options.revise ? 2 : 1, `character-sketch ${options.revise ? 'revision' : 'generation'}`)
+  validateReferenceImageCount(models[0]!, referenceCount, `character-sketch ${options.revise ? 'revision' : 'generation'}`)
   if (options.revise) {
     await requireCurrentCharacterSketch(key, character)
   }
@@ -348,10 +353,10 @@ export const estimateCharacterSketchPrice = async (
   l(`${bold('Comic')} - Price Estimate: reference-sketch --character`)
   l(`${cyan('='.repeat(50))}\n`)
   l(`  Character: ${key}`)
-  l(`  Source:    ${character.sourcePath}`)
+  l(`  Source:    ${sourcePath}`)
   l(`  Model:     ${models[0]}`)
   l(`  Size:    ${size}  Quality: ${quality}`)
-  l(`  References per view: ${options.revise ? 2 : 1}`)
+  l(`  References per view: ${referenceCount}`)
   l('')
   l(`  Views: ${CHARACTER_SKETCH_VIEWS.join(', ')}; the sheet is composed locally after all succeed.`)
   printImageEstimateTable(models, quality, size, CHARACTER_SKETCH_VIEWS.length, 'view')
@@ -411,7 +416,7 @@ const validatePriceReferenceGroup = async (panelPromptsDir: string, panelNumbers
   const locationPlaceholders = locations.map((_, index) => `__location-${index + 1}__`)
   const designPlaceholders = designs.map((_, index) => `__design-${index + 1}__`)
   for (const model of models) {
-    applyReferenceImageLimits([...primary.primaryCharacterRefs, ...locationPlaceholders, ...designPlaceholders], [...primary.primaryCharacterRefs, ...locationPlaceholders, ...designPlaceholders], [], [...locationPlaceholders, ...designPlaceholders], primary.missingPrimaryCharacterRefs, model)
+    applyReferenceImageLimits([...primary.primaryCharacterRefs, ...locationPlaceholders, ...designPlaceholders], [], [...locationPlaceholders, ...designPlaceholders], primary.missingPrimaryCharacterRefs, model)
   }
   return primary.primaryCharacterRefs.length + locations.length + designs.length
 }

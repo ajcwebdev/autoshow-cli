@@ -138,7 +138,7 @@ export const runMistralStt = async (
     const transcribeStartedAt = Date.now()
     rawPayload = await withRetry(
       {
-        retryClass: 'runtime_http_create_conservative',
+        retryClass: 'runtime_http_create_retriable',
         operationName: 'mistral-stt',
         policy: { maxAttempts: 4 },
         timeoutMs: REQUEST_TIMEOUT_MS
@@ -179,7 +179,7 @@ export const runMistralStt = async (
           }
         }
 
-        const decision = classifyFetchRetry(error, 'runtime_http_create_conservative', { retryAbortOnConservative: true })
+        const decision = classifyFetchRetry(error, 'runtime_http_create_retriable')
         if (decision.shouldRetry) {
           retryCount += 1
         }
@@ -188,7 +188,7 @@ export const runMistralStt = async (
     )
     transcribeMs += Date.now() - transcribeStartedAt
   } catch (error) {
-    throwMistralErrorWithContext(error, 'transcribe', 'runtime_http_create_conservative')
+    throwMistralErrorWithContext(error, 'transcribe', 'runtime_http_create_retriable')
   }
 
   const payload = validateData(MistralTranscriptionResponseSchema, rawPayload, 'Mistral STT response')

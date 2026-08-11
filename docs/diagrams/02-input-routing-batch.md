@@ -22,7 +22,7 @@ resolveProcessTargetDoubleDash()
         +--> otherwise one target can come after "--"
         |
         v
-load config + merge config flags + build RuntimeOptions
+load config + merge config flags + compose command/domain option slices
         |
         +--> extract: normalize generic provider flags after preliminary route checks
         +--> write: normalize step selectors and generic TTS options
@@ -112,98 +112,91 @@ The document family includes `.pdf`, `.epub`, `.acsm`, `.docx`, `.pptx`, `.xlsx`
 | X Space | X API metadata lookup | Space audio download | X Space route | X Space report + LLM |
 | Text input | unsupported | unsupported | unsupported | only when `--text-input` is active |
 
-Unsupported batch items are kept in the parent manifest with `completionStatus: "skipped"` and a `skipReason`. They are not sent to child batch execution.
+Unsupported batch items are kept in the parent manifest with item `status: "skipped"` and a `metadata.skipReason`. They are not sent to child batch execution.
 
 ## Batch Manifests
 
-Non-extract batches write one schema v2 `batch.json` and, for source-backed batches, a companion `source.json`:
+Every batch root writes the same unversioned canonical `manifest.json` used by a single run. Source-backed batch data is the optional top-level `source` object; it is not duplicated in a companion file.
 
-```jsonc
-// batch.json
+```json
 {
-  "schemaVersion": 2,
-  "kind": "write",
-  "items": [
-    {
-      "url": "file://input/file.mp3",
-      "title": "file",
-      "channel": "Local",
-      "duration": "Unknown",
-      "outputDir": "2026-06-10_12-00-00_file",
-      "completionStatus": "full"
-    }
-  ],
+  "command": "download",
+  "scope": "batch",
+  "createdAt": "2026-08-10T17:00:00.000Z",
+  "updatedAt": "2026-08-10T17:00:05.000Z",
   "source": {
     "sourceKind": "youtube_channel",
     "sourceUrl": "https://...",
     "title": "Channel title",
     "author": "Author",
     "selectedCount": 10
-  }
+  },
+  "items": [
+    {
+      "input": "file://input/file.mp3",
+      "outputDir": "2026-06-10_12-00-00_file",
+      "status": "full",
+      "metadata": {
+        "title": "file",
+        "channel": "Local",
+        "duration": "Unknown"
+      },
+      "providers": []
+    }
+  ]
 }
 ```
 
-```jsonc
-// source.json
-{
-  "sourceKind": "podcast_rss",
-  "sourceUrl": "https://...",
-  "title": "Feed title",
-  "author": "Publisher",
-  "selectedCount": 5
-}
-```
-
-Extract batches are route-aware. The parent manifest is `extract-batch.json`; child batches live under `media/`, `document/`, and `x-space/` when those routes are present.
+Extract batches are route-aware. The parent manifest is `manifest.json`; child batches live under `media/`, `document/`, `article/`, and `x-space/` when those routes are present.
 
 ```
 output/YYYY-MM-DD_HH-MM-SS_<batch-label>/
-  extract-batch.json
+  manifest.json
   media/
-    batch.json
-    source.json                # optional source-backed batch metadata, per child batch
-    stt-summary.json           # media child summary, including caption usage
+    manifest.json
     <item-output>/
   document/
-    batch.json
+    manifest.json
+    <item-output>/
+  article/
+    manifest.json
     <item-output>/
   x-space/
-    batch.json
+    manifest.json
     <item-output>/
 ```
 
-```jsonc
-// extract-batch.json
+```json
 {
-  "schemaVersion": 2,
+  "command": "extract",
+  "scope": "batch",
   "createdAt": "2026-06-10T17:00:00.000Z",
+  "updatedAt": "2026-06-10T17:00:05.000Z",
   "items": [
     {
       "input": "input/video.mp4",
       "inputFamily": "media",
       "extractRoute": "media",
-      "childBatchEntry": { "route": "media", "index": 0 },
-      "completionStatus": "full",
-      "outputDir": "media/2026-06-10_12-00-00_video"
+      "outputDir": "media/2026-06-10_12-00-00_video",
+      "child": { "route": "media", "index": 0, "manifestDir": "media" },
+      "status": "full",
+      "metadata": {},
+      "providers": []
     },
     {
       "input": "input/unknown.bin",
       "inputFamily": "unsupported",
-      "completionStatus": "skipped",
-      "skipReason": "Unsupported input type"
+      "status": "skipped",
+      "metadata": { "skipReason": "Unsupported input type" },
+      "providers": []
     }
-  ],
-  "childBatches": {
-    "media": "media",
-    "document": "document",
-    "x-space": "x-space"
-  }
+  ]
 }
 ```
 
-`executeExtractBatchPlan()` writes the initial parent manifest, partitions runnable items by extract route, executes each child plan, then updates the parent entries with child indexes, final completion status, skip reasons, and relative output directories.
+`executeExtractBatchPlan()` writes the initial parent manifest, partitions runnable items by extract route, executes each child plan, then updates the parent items with their final status and containment-checked relative output directories. Each runnable parent item links to its child through `{ route, index, manifestDir }`; `manifestDir` names the child directory relative to the parent root, never a manifest filename.
 
-The media child uses the STT batch coordinator and writes `stt-summary.json`, including totals for caption-backed, STT fallback, skipped, incomplete, and failed items.
+The media child uses the STT batch coordinator and records caption-backed or STT routing in ordinary item metadata. Counts and resume views are derived from canonical item and provider states rather than persisted in a second summary artifact.
 
 ## Entry Points
 
@@ -211,7 +204,7 @@ The media child uses the STT batch coordinator and writes `stt-summary.json`, in
 |--------|-----------------|----------------|
 | Directory | `resolveProcessTargetPlan()` -> `planProcessTargetBatchExecution()` | `collectInputFiles()` plus optional `input/2-urls.md`. |
 | Input list | `resolveInputListBatch()` | Line parser for `.md`/`.txt`, markdown links, bullets, and relative paths. |
-| Podcast or YouTube source | `tryResolveBatchSource()` | Feed/channel/source enumeration plus `source.json`. |
+| Podcast or YouTube source | `tryResolveBatchSource()` | Feed/channel/source enumeration stored in the canonical manifest's optional `source` object. |
 | YouTube collection | `resolveYoutubeCollectionItems()` | Playlist/channel collection expansion. |
 | Text-input write | `collectTextInputFiles()` or single `.md`/`.txt` | Raw text source files for `write --text-input`. |
 | Single item | `handleSingleTarget()` | Route resolved by `resolveInputRoutingForCommand()`. |

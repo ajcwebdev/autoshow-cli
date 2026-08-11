@@ -1,15 +1,3 @@
-export type DownloadProfileId = 'bun-fetch-default' | 'bun-fetch-large-asset'
-
-export type DownloadProfile = {
-  engine: 'bun-fetch'
-  profileId: DownloadProfileId
-  // Aborts only when no bytes arrive for this long, so transfer size never
-  // decides success. A total-transfer cap would fail large assets on slow links.
-  stallTimeoutMs: number
-  // Backstop against a peer that dribbles bytes forever without finishing.
-  totalTimeoutMs: number
-}
-
 export type DownloadFlowId =
   | 'uv-release'
   | 'yt-dlp-binary'
@@ -33,7 +21,6 @@ export type DownloadFlowId =
 export type DownloadRequest = {
   url: string
   destination: string
-  headers?: Record<string, string>
   expectedMinBytes?: number
   sha256?: string
   flowId?: DownloadFlowId
@@ -49,12 +36,4 @@ export type DownloadRequest = {
 // bytes already on disk came from the same URL.
 export type PartialDownloadMetadata = {
   url: string
-}
-
-export type DownloadResult = {
-  success: boolean
-  bytes: number
-  engine: 'bun-fetch'
-  profileId: DownloadProfileId
-  durationMs: number
 }

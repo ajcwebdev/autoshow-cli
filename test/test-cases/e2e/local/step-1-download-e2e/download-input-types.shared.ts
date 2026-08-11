@@ -2,7 +2,8 @@ import { test, expect, beforeAll, afterAll } from 'bun:test'
 import { readdir, rm } from 'node:fs/promises'
 import { basename, dirname, join } from 'node:path'
 import { runCommand, fileExists, findLatestDirectory, cleanupTestOutput, OUTPUT_DIR } from '../../../../test-utils/test-helpers'
-import { readBatchItems, readBatchSource, readRunMetadata } from '../../../../test-utils/manifest-helpers'
+import { readCanonicalItemRecords, readCanonicalSource, readCanonicalRecord } from '../../../../test-utils/manifest-helpers'
+import { PIPELINE_MANIFEST_FILE } from '~/cli/commands/process-steps/pipeline-manifest'
 import type {
   DownloadE2eBatchCase,
   DownloadE2eBatchSource,
@@ -107,7 +108,10 @@ const resolveBatchOutputDir = async (outputDir: string | null, dirsBefore: Set<s
   if (outputDir) {
     const candidates = [outputDir, dirname(outputDir)]
     for (const candidate of candidates) {
-      if (await fileExists(`${candidate}/source.json`) && await fileExists(`${candidate}/batch.json`)) {
+      if (
+        await fileExists(join(candidate, PIPELINE_MANIFEST_FILE))
+        && await readCanonicalSource(candidate) !== undefined
+      ) {
         rememberDir(candidate)
         return candidate
       }
@@ -165,8 +169,8 @@ export const defineSingleCaseTest = (tc: DownloadE2eSingleCase): void => {
     }
     rememberDir(outputDir)
 
-    expect(await fileExists(`${outputDir}/run.json`)).toBe(true)
-    const metadata = parseMetadata(await readRunMetadata(outputDir))
+    expect(await fileExists(join(outputDir, PIPELINE_MANIFEST_FILE))).toBe(true)
+    const metadata = parseMetadata(await readCanonicalRecord(outputDir))
     expect(metadata.step1).toBeDefined()
 
     await tc.checks(metadata, outputDir)
@@ -195,11 +199,12 @@ export const defineBatchCaseTest = (tc: DownloadE2eBatchCase): void => {
       return
     }
 
-    expect(await fileExists(`${batchDir}/source.json`)).toBe(true)
-    expect(await fileExists(`${batchDir}/batch.json`)).toBe(true)
-    const infoEntries = await readBatchItems(batchDir)
+    expect(await fileExists(join(batchDir, PIPELINE_MANIFEST_FILE))).toBe(true)
+    const infoEntries = await readCanonicalItemRecords(batchDir)
 
-    const source = parseBatchSource(await readBatchSource(batchDir))
+    const canonicalSource = await readCanonicalSource(batchDir)
+    expect(canonicalSource).toBeDefined()
+    const source = parseBatchSource(canonicalSource)
     expect(source.sourceKind).toBe(tc.expectedSourceKind)
     if (tc.expectedSelectedCount !== undefined) {
       expect(source.selectedCount).toBe(tc.expectedSelectedCount)
@@ -225,9 +230,9 @@ export const defineBatchCaseTest = (tc: DownloadE2eBatchCase): void => {
       return
     }
 
-    expect(await fileExists(`${firstItemDir}/run.json`)).toBe(true)
+    expect(await fileExists(join(firstItemDir, PIPELINE_MANIFEST_FILE))).toBe(true)
     expect(infoEntries.length).toBe(itemDirs.length)
-    const rawMetadata = await readRunMetadata(firstItemDir)
+    const rawMetadata = await readCanonicalRecord(firstItemDir)
     const firstInfoEntry = asRecord(infoEntries[0])
     expect(firstInfoEntry).not.toBeNull()
     if (!firstInfoEntry) {
@@ -243,7 +248,7 @@ export const defineBatchCaseTest = (tc: DownloadE2eBatchCase): void => {
       ...rawMetadata,
       outputDir: normalizeOutputDir(firstItemDir)
     })
-    const metadata = parseMetadata(await readRunMetadata(firstItemDir))
+    const metadata = parseMetadata(await readCanonicalRecord(firstItemDir))
     expect(metadata.step1).toBeDefined()
     await assertDownloadOnlyArtifacts(firstItemDir, metadata)
   })

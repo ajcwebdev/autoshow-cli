@@ -6,6 +6,7 @@ import {
 import { writeFile } from 'node:fs/promises'
 import { join } from 'node:path'
 import type { RankingSurfaceName, TtsRankingEntry } from '~/types'
+import { writeSingleManifestFixture } from '../../../../test-utils/manifest-helpers'
 import {
   deprecatedOverallTierKey,
   deprecatedTierSplitKey,
@@ -46,10 +47,7 @@ describe('grouped report contracts', () => {
         'cartesia/sonic-3': { humanSpeechScore: 94, medianWer: 0.08 }
       }
 
-      await writeJson(join(runDir, 'run.json'), {
-        schemaVersion: 2,
-        kind: 'tts',
-        metadata: {
+      await writeSingleManifestFixture(runDir, 'tts', {
           tts: ttsEntries,
           cost: {
             actual: {
@@ -70,7 +68,6 @@ describe('grouped report contracts', () => {
               }))
             }
           }
-        }
       })
 
       await writeJson(join(runDir, 'voice-quality-report.json'), {

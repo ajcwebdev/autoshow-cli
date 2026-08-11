@@ -1,9 +1,7 @@
 import { isRecord } from '~/utils/rest-client'
-import type { AsyncSttLifecycleMetrics, AsyncSttLifecycleOptions, AsyncSttPollLoopOptions, RetryClass, Step2Metadata, Step2RuntimeMetadata, TranscriptionResult } from '~/types'
+import type { AsyncSttLifecycleHooks, AsyncSttLifecycleMetrics, AsyncSttLifecycleOptions, AsyncSttPollLoopOptions, RetryClass, Step2Metadata, Step2RuntimeMetadata, TranscriptionResult } from '~/types'
 import * as l from '~/utils/app-logger/app-logger'
 import { InfraError, InternalError } from '~/utils/error-handler'
-import { readProviderResultEntry } from '../../manifest-utils'
-import { readSttProviderCheckpoint, writeSttProviderCheckpoint } from './stt-manifest'
 import { logSttAsyncJobLifecycle, logSttCleanupFailure, logSttSegmentLifecycle } from './stt-logging'
 import { buildStep2TimingMetadata } from './stt-timing-metadata'
 
@@ -12,6 +10,11 @@ const DEFAULT_POLL_DEADLINE_MS = 10 * 60 * 1000
 const MAX_POLL_DEADLINE_MS = 30 * 60 * 1000
 const POLL_DEADLINE_AUDIO_MULTIPLIER_MS = 250
 const ASYNC_STT_RESUME_PROBE_DELAYS_MS = [0, 30_000, 60_000, 120_000, 240_000] as const
+
+const getAsyncSttProgressKey = (segmentNumber: number | undefined): string =>
+  segmentNumber === undefined
+    ? 'whole'
+    : `segment-${String(segmentNumber).padStart(3, '0')}`
 
 
 const parseCleanupState = (value: unknown): Step2RuntimeMetadata['cleanup'] | undefined => {
@@ -63,55 +66,45 @@ export const parseStep2RuntimeMetadata = (
   }
 }
 
-export const readPersistedAsyncSttRuntime = async (
-  outputDir: string,
-  expected: Pick<Step2Metadata, 'transcriptionService' | 'transcriptionModel'>
-): Promise<Step2RuntimeMetadata | undefined> => {
-  const readCheckpointRuntime = async (): Promise<Step2RuntimeMetadata | undefined> => {
-    const checkpointMetadata = await readSttProviderCheckpoint(outputDir)
-    if (
-      checkpointMetadata
-      && checkpointMetadata['transcriptionService'] === expected.transcriptionService
-      && checkpointMetadata['transcriptionModel'] === expected.transcriptionModel
-    ) {
-      return parseStep2RuntimeMetadata(checkpointMetadata['runtime'])
-    }
-
-    return undefined
-  }
-
-  const providerResult = await readProviderResultEntry(outputDir)
+export const readPersistedAsyncSttProgressMetadata = async (
+  lifecycle: AsyncSttLifecycleHooks | undefined,
+  expected: Pick<Step2Metadata, 'transcriptionService' | 'transcriptionModel'>,
+  segmentNumber?: number | undefined
+): Promise<Record<string, unknown> | undefined> => {
+  const progress = await lifecycle?.readProgressMetadata?.(getAsyncSttProgressKey(segmentNumber))
   if (
-    providerResult
-    && providerResult.metadata['transcriptionService'] === expected.transcriptionService
-    && providerResult.metadata['transcriptionModel'] === expected.transcriptionModel
+    progress
+    && progress['transcriptionService'] === expected.transcriptionService
+    && progress['transcriptionModel'] === expected.transcriptionModel
   ) {
-    return parseStep2RuntimeMetadata(providerResult.metadata['runtime'])
+    return progress
   }
-
-  return await readCheckpointRuntime()
+  return undefined
 }
 
-const writeAsyncSttProgressMetadata = async (
-  outputDir: string,
-  metadata: Step2Metadata
-): Promise<void> => {
-  await writeSttProviderCheckpoint(
-    outputDir,
-    metadata.transcriptionService,
-    metadata.transcriptionModel,
-    metadata as unknown as Record<string, unknown>
-  )
-}
+export const readPersistedAsyncSttRuntime = async (
+  lifecycle: AsyncSttLifecycleHooks | undefined,
+  expected: Pick<Step2Metadata, 'transcriptionService' | 'transcriptionModel'>,
+  segmentNumber?: number | undefined
+): Promise<Step2RuntimeMetadata | undefined> =>
+  parseStep2RuntimeMetadata((await readPersistedAsyncSttProgressMetadata(
+    lifecycle,
+    expected,
+    segmentNumber
+  ))?.['runtime'])
 
 export const createAsyncSttProgressMetadataPersister = (
-  outputDir: string,
+  lifecycle: AsyncSttLifecycleHooks | undefined,
+  segmentNumber: number | undefined,
   buildProgressMetadata: (runtime: Step2RuntimeMetadata) => Step2Metadata,
   setRuntime: (runtime: Step2RuntimeMetadata) => void
 ): (runtime: Step2RuntimeMetadata) => Promise<void> =>
   async (runtime) => {
     setRuntime(runtime)
-    await writeAsyncSttProgressMetadata(outputDir, buildProgressMetadata(runtime))
+    await lifecycle?.writeProgressMetadata?.(
+      getAsyncSttProgressKey(segmentNumber),
+      buildProgressMetadata(runtime)
+    )
   }
 
 export const createAsyncSttJobReadyNotifier = (
@@ -349,10 +342,10 @@ export const runAsyncSttJobLifecycle = async <TStatus, TTranscript, TUpload = un
   options: AsyncSttLifecycleOptions<TStatus, TTranscript, TUpload>
 ): Promise<{ result: TranscriptionResult, metadata: Step2Metadata }> => {
   const metrics = createAsyncSttLifecycleMetrics(options.runMode)
-  let runtime = await readPersistedAsyncSttRuntime(options.outputDir, {
+  let runtime = await readPersistedAsyncSttRuntime(options.lifecycle, {
     transcriptionService: options.providerService,
     transcriptionModel: options.modelName
-  })
+  }, options.segment?.segmentNumber)
   let jobId = runtime?.remoteJobId
   let lastKnownJobStatus: TStatus | undefined
   let resumedExistingJob = false
@@ -398,7 +391,8 @@ export const runAsyncSttJobLifecycle = async <TStatus, TTranscript, TUpload = un
   })
 
   const persistProgressMetadata = createAsyncSttProgressMetadataPersister(
-    options.outputDir,
+    options.lifecycle,
+    options.segment?.segmentNumber,
     buildProgressMetadata,
     (nextRuntime) => { runtime = nextRuntime }
   )

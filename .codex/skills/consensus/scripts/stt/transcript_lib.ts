@@ -2,6 +2,8 @@
 
 import { existsSync, readFileSync, readdirSync } from "node:fs";
 import { basename, dirname, join } from "node:path";
+import { loadCanonicalRunRecord } from "../shared/pipeline_manifest";
+import type { PipelineProviderState } from "../shared/pipeline_manifest";
 
 export interface Segment {
   start: number;
@@ -41,17 +43,13 @@ interface RunStepTimingEntry {
   processingTimeMs?: number;
 }
 
-interface RunProviderState {
-  artifactDir?: string;
-}
-
-interface RunJson {
-  metadata?: {
+interface SttManifestRecord {
+  providers: PipelineProviderState[];
+  metadata: {
     step1?: {
       duration?: string;
       durationSeconds?: number;
     };
-    providerStates?: RunProviderState[];
     cost?: {
       actual?: {
         steps?: RunStepCostEntry[];
@@ -65,29 +63,26 @@ interface RunJson {
   };
 }
 
-interface ProviderResultPayload {
-  provider?: string;
-  model?: string;
-  metadata?: {
-    tokenCount?: number;
-    processingTime?: number;
-  };
-  result?: {
+interface SttProviderResult {
+  text?: string;
+  segments?: Array<{
+    start?: string;
+    end?: string;
+    speaker?: string;
     text?: string;
-    segments?: Array<{
-      start?: string;
-      end?: string;
-      speaker?: string;
-      text?: string;
-    }>;
-    evidence?: {
-      timingQuality?: string;
-      capabilities?: {
-        hasSpeakerLabels?: boolean;
-      };
-      rawResponse?: unknown;
+  }>;
+  evidence?: {
+    timingQuality?: string;
+    capabilities?: {
+      hasSpeakerLabels?: boolean;
     };
+    rawResponse?: unknown;
   };
+}
+
+interface SttProviderMetadata {
+  tokenCount?: number;
+  processingTime?: number;
 }
 
 const TRANSCRIPT_LINE_RE = /^\[(?<start>[^\]]+)\]\s+\[(?<speaker>[^\]]+)\]\s+(?<text>.+)$/;
@@ -169,10 +164,6 @@ const CURRENCY_PATTERNS: Array<[RegExp, string]> = [
 ];
 
 const FILLER_WORDS = new Set(["um", "uh", "hmm", "mhm", "ah", "er"]);
-
-export function readJson<T>(path: string): T {
-  return JSON.parse(readFileSync(path, "utf8")) as T;
-}
 
 export function parseClock(value: string): number {
   const trimmed = value.trim();
@@ -404,17 +395,21 @@ export function overlapSeconds(left: Segment, right: Segment): number {
   return Math.max(0, Math.min(left.end, right.end) - Math.max(left.start, right.start));
 }
 
-export function loadRunJson(runDir: string): RunJson {
-  return readJson<RunJson>(join(runDir, "run.json"));
+export function loadSttManifestRecord(runDir: string): SttManifestRecord {
+  const record = loadCanonicalRunRecord(runDir, "extract", "media");
+  return {
+    providers: record.item.providers,
+    metadata: record.metadata as SttManifestRecord["metadata"],
+  };
 }
 
-export function durationSecondsFromRun(runJson: RunJson, providers: ProviderRun[] = []): number {
-  const numericDuration = runJson.metadata?.step1?.durationSeconds;
+export function durationSecondsFromManifest(manifestRecord: SttManifestRecord, providers: ProviderRun[] = []): number {
+  const numericDuration = manifestRecord.metadata.step1?.durationSeconds;
   if (typeof numericDuration === "number" && Number.isFinite(numericDuration) && numericDuration > 0) {
     return numericDuration;
   }
 
-  const duration = runJson.metadata?.step1?.duration?.trim();
+  const duration = manifestRecord.metadata.step1?.duration?.trim();
   if (duration && duration.toLowerCase() !== "unknown") {
     return parseClock(duration);
   }
@@ -432,18 +427,18 @@ export function durationSecondsFromRun(runJson: RunJson, providers: ProviderRun[
   }
 
   if (!duration) {
-    throw new Error("run.json is missing metadata.step1.duration and provider segment ends are unavailable");
+    throw new Error("Canonical STT manifest item is missing metadata.step1.duration and provider segment ends are unavailable");
   }
-  throw new Error(`run.json metadata.step1.duration is ${JSON.stringify(duration)} and provider segment ends are unavailable`);
+  throw new Error(`Canonical STT manifest metadata.step1.duration is ${JSON.stringify(duration)} and provider segment ends are unavailable`);
 }
 
 function makeProviderLookupKey(provider: string, model: string): string {
   return `${provider}::${model}`;
 }
 
-function actualCostLookup(runJson: RunJson): Map<string, number> {
+function actualCostLookup(manifestRecord: SttManifestRecord): Map<string, number> {
   const lookup = new Map<string, number>();
-  const steps = runJson.metadata?.cost?.actual?.steps ?? [];
+  const steps = manifestRecord.metadata.cost?.actual?.steps ?? [];
   for (const step of steps) {
     if (step.provider && step.model && step.cost !== undefined) {
       lookup.set(makeProviderLookupKey(step.provider, step.model), Number(step.cost));
@@ -452,9 +447,9 @@ function actualCostLookup(runJson: RunJson): Map<string, number> {
   return lookup;
 }
 
-function actualTimingLookup(runJson: RunJson): Map<string, number> {
+function actualTimingLookup(manifestRecord: SttManifestRecord): Map<string, number> {
   const lookup = new Map<string, number>();
-  const steps = runJson.metadata?.timing?.actual?.steps ?? [];
+  const steps = manifestRecord.metadata.timing?.actual?.steps ?? [];
   for (const step of steps) {
     if (step.provider && step.model && step.processingTimeMs !== undefined) {
       lookup.set(makeProviderLookupKey(step.provider, step.model), Number(step.processingTimeMs));
@@ -464,12 +459,12 @@ function actualTimingLookup(runJson: RunJson): Map<string, number> {
 }
 
 export function loadProviderRuns(runDir: string): { providers: ProviderRun[]; warnings: string[] } {
-  const runJson = loadRunJson(runDir);
-  const costLookup = actualCostLookup(runJson);
-  const timingLookup = actualTimingLookup(runJson);
+  const manifestRecord = loadSttManifestRecord(runDir);
+  const costLookup = actualCostLookup(manifestRecord);
+  const timingLookup = actualTimingLookup(manifestRecord);
   const warnings: string[] = [];
 
-  const providerStates = runJson.metadata?.providerStates ?? [];
+  const providerStates = manifestRecord.providers;
   const expectedDirs = new Set(
     providerStates
       .map((state) => state.artifactDir)
@@ -488,7 +483,7 @@ export function loadProviderRuns(runDir: string): { providers: ProviderRun[]; wa
   const missingResultDirs = [...expectedDirs].filter((dir) => !discoveredDirs.has(dir)).sort();
   if (missingResultDirs.length > 0) {
     warnings.push(
-      "run.json references provider artifact directories that are missing result.json files: " +
+      "manifest.json references provider artifact directories that are missing result.json files: " +
         missingResultDirs.join(", "),
     );
   }
@@ -496,20 +491,29 @@ export function loadProviderRuns(runDir: string): { providers: ProviderRun[]; wa
   const extraResultDirs = [...discoveredDirs].filter((dir) => !expectedDirs.has(dir)).sort();
   if (extraResultDirs.length > 0) {
     warnings.push(
-      "Found provider result.json files not listed in run.json providerStates: " +
+      "Found provider result.json files not listed in manifest.json provider states: " +
         extraResultDirs.join(", "),
     );
   }
 
-  const providers = resultPaths.map((resultPath) => {
-    const payload = readJson<ProviderResultPayload>(resultPath);
-    const provider = payload.provider;
-    const model = payload.model;
-    if (!provider || !model) {
-      throw new Error(`${resultPath} is missing provider/model metadata`);
+  const providers = resultPaths.flatMap((resultPath) => {
+    const directoryName = basename(dirname(resultPath));
+    const state = providerStates.find((providerState) => basename(providerState.artifactDir) === directoryName);
+    if (!state) {
+      return [];
     }
-    const evidence = payload.result?.evidence;
-    const segments = (payload.result?.segments ?? [])
+    if (state.status !== "succeeded") {
+      return [];
+    }
+    const provider = state.service;
+    const model = state.model;
+    if (typeof model !== "string") {
+      throw new Error(`${resultPath} has no model identity in manifest.json`);
+    }
+    const metadata = state.metadata as SttProviderMetadata;
+    const result = JSON.parse(readFileSync(resultPath, "utf8")) as SttProviderResult;
+    const evidence = result.evidence;
+    const segments = (result.segments ?? [])
       .map((item) => {
         const rawStart = String(item.start ?? "0:00");
         const rawEnd = String(item.end ?? rawStart);
@@ -538,24 +542,24 @@ export function loadProviderRuns(runDir: string): { providers: ProviderRun[]; wa
       });
     const transcriptionPath = join(dirname(resultPath), "transcription.txt");
     const lookupKey = makeProviderLookupKey(provider, model);
-    return {
-      directoryName: basename(dirname(resultPath)),
+    return [{
+      directoryName,
       provider,
       model,
       providerKey: `${provider}/${model}`,
       resultPath,
       transcriptionPath: existsSync(transcriptionPath) ? transcriptionPath : null,
       segments,
-      text: String(payload.result?.text ?? "").trim(),
-      tokenCount: payload.metadata?.tokenCount ?? null,
+      text: String(result.text ?? "").trim(),
+      tokenCount: metadata.tokenCount ?? null,
       processingTimeMs:
         timingLookup.get(lookupKey) ??
-        (payload.metadata?.processingTime !== undefined ? Number(payload.metadata.processingTime) : null),
+        (metadata.processingTime !== undefined ? Number(metadata.processingTime) : null),
       actualCostCents: costLookup.get(lookupKey) ?? null,
       timingQuality: typeof evidence?.timingQuality === "string" ? evidence.timingQuality : null,
       hasSpeakerLabels: typeof evidence?.capabilities?.hasSpeakerLabels === "boolean" ? evidence.capabilities.hasSpeakerLabels : null,
       rawResponse: evidence && "rawResponse" in evidence ? evidence.rawResponse : undefined,
-    } satisfies ProviderRun;
+    } satisfies ProviderRun];
   });
 
   return { providers, warnings };

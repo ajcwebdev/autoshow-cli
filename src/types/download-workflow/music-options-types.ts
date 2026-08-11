@@ -11,5 +11,3 @@ export type MusicRuntimeOptions = {
   musicLyricsFile: string | undefined
   musicInstrumental: boolean | undefined
 }
-
-export type MusicRuntimeOptionKey = keyof MusicRuntimeOptions

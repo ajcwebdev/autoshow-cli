@@ -1,4 +1,8 @@
-import type { AggregatedPriceEstimate, DocumentMetadata, ExtractionMetadata, ProcessDocumentOutput, ProviderIdentityBase, RuntimeOptions, Step1SourceRef, Step3Metadata, WebArticleMetadata } from '~/types'
+import type { AggregatedPriceEstimate, DocumentMetadata, ExtractionMetadata, OcrRuntimeOptions, ProcessDocumentOutput, ProviderIdentityBase, ResolvedLLMModelOptions, SharedPipelineOptions, Step1SourceRef, Step3Metadata, WebArticleMetadata, WriteRuntimeOptions } from '~/types'
+
+export type DocumentExtractionOptions = OcrRuntimeOptions
+  & ResolvedLLMModelOptions
+  & Pick<SharedPipelineOptions, 'outputRootDir' | 'configPath' | 'step2SelectionOrigins'>
 
 export type WriteDocumentOutputMetadataOptions = {
   step1: DocumentMetadata
@@ -26,14 +30,14 @@ export type WriteDocumentOutputMetadataOptions = {
   web?: WebArticleMetadata | undefined
   errors?: Array<ProviderIdentityBase & { message: string, category?: string, failureKind?: string, retryable?: boolean, quota?: boolean, providerWide?: boolean, blockedReason?: string, errorFile?: string }> | undefined
   ocrConcurrency?: number | undefined
-  ocrConcurrencyMode?: RuntimeOptions['ocrConcurrencyMode'] | undefined
+  ocrConcurrencyMode?: OcrRuntimeOptions['ocrConcurrencyMode'] | undefined
   ocrProviderConcurrency?: number | undefined
   ocrLocalConcurrency?: number | undefined
 }
 
 export type RunExtractedDocumentWriteOptions = {
   target: string
-  opts: RuntimeOptions
+  opts: WriteRuntimeOptions
   extraction: ProcessDocumentOutput
   sourceRef?: Step1SourceRef | undefined
   preflightEstimate?: AggregatedPriceEstimate | undefined

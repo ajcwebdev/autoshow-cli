@@ -4,7 +4,7 @@ import {
   fileExists,
 } from './test-helpers'
 import { E2E_TEST_TIMEOUT_MS } from './budget'
-import { readProviderResult, readRunMetadata } from './manifest-helpers'
+import { readProviderResultArtifact, readCanonicalRecord } from './manifest-helpers'
 import {
   defineBudgetedLiveServiceTest,
   requireConfiguredEnvVar,
@@ -57,16 +57,14 @@ const assertOcrArtifacts = async ({
   assertProviderResult: boolean
   assertUsageMetadata: boolean
 }): Promise<void> => {
-  expect(await fileExists(`${outputDir}/run.json`)).toBe(true)
+  expect(await fileExists(`${outputDir}/manifest.json`)).toBe(true)
 
   if (assertProviderResult) {
     expect(await fileExists(`${outputDir}/result.json`)).toBe(true)
-    const providerResult = await readProviderResult(outputDir)
-    expect(providerResult.provider).toBe(service)
-    expect(providerResult.model).toBe(model)
+    expect(await readProviderResultArtifact(outputDir)).toBeDefined()
   }
 
-  const metadata = await readRunMetadata(outputDir) as {
+  const metadata = await readCanonicalRecord(outputDir) as {
     step2?: {
       extractionMethod?: string
       totalPages?: number

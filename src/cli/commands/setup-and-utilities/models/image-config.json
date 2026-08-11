@@ -11,7 +11,6 @@
         "pricingCurrency": "USD",
         "pricingTier": "Paid tier standard pay-as-you-go",
         "pricingNotes": "Default registry rate is the published 1K output-image estimate. Text/image input tokens are not estimated locally.",
-        "costPerImageUSD": 0.0336,
         "costPerImageCents": 3.36,
         "estimation": {
           "costMultiplier": 1,
@@ -25,7 +24,6 @@
         "pricingCurrency": "USD",
         "pricingTier": "Paid tier standard pay-as-you-go",
         "pricingNotes": "Default registry rate is the published 1K output-image estimate. Text/image input tokens and other output resolutions are not estimated locally.",
-        "costPerImageUSD": 0.067,
         "costPerImageCents": 6.7,
         "estimation": {
           "costMultiplier": 1,
@@ -39,7 +37,6 @@
         "pricingCurrency": "USD",
         "pricingTier": "Paid tier standard pay-as-you-go",
         "pricingNotes": "Default registry rate is the published 1K/2K output-image estimate. Text/image input tokens and 4K output are not estimated locally.",
-        "costPerImageUSD": 0.134,
         "costPerImageCents": 13.4,
         "estimation": {
           "costMultiplier": 1,
@@ -60,7 +57,6 @@
         "pricingCurrency": "USD",
         "pricingTier": "Standard pay-as-you-go",
         "pricingNotes": "Default registry rate is the published GPT Image 2 1024x1024 medium output-image estimate. Flexible size/quality estimates are handled in the OpenAI image pricing helper; text and image input tokens are not estimated locally.",
-        "costPerImageUSD": 0.053,
         "costPerImageCents": 5.3,
         "estimation": {
           "costMultiplier": 1,
@@ -82,7 +78,6 @@
         "pricingCurrency": "USD",
         "pricingTier": "Standard pay-as-you-go",
         "pricingNotes": "Default registry rate is the published 1K output-image price. xAI bills image inputs separately for image editing; local estimates do not count input images.",
-        "costPerImageUSD": 0.05,
         "costPerImageCents": 5,
         "estimation": {
           "costMultiplier": 1,
@@ -96,7 +91,6 @@
         "pricingCurrency": "USD",
         "pricingTier": "Standard pay-as-you-go",
         "pricingNotes": "Default registry rate is the published 1K output-image price. xAI bills image inputs separately for image editing; local estimates do not count input images.",
-        "costPerImageUSD": 0.02,
         "costPerImageCents": 2,
         "estimation": {
           "costMultiplier": 1,
@@ -118,7 +112,6 @@
         "pricingCurrency": "USD",
         "pricingTier": "BFL FLUX.2 API megapixel pricing reference",
         "pricingNotes": "Published starting price for the first output megapixel. Additional output megapixels increase the exact provider cost; provider quotes override this registry estimate when available.",
-        "costPerImageUSD": 0.014,
         "costPerImageCents": 1.4,
         "estimation": {
           "costMultiplier": 1,
@@ -133,7 +126,6 @@
         "pricingCurrency": "USD",
         "pricingTier": "BFL FLUX.2 API megapixel pricing reference",
         "pricingNotes": "Published starting price for the first output megapixel. Additional output megapixels increase the exact provider cost; provider quotes override this registry estimate when available.",
-        "costPerImageUSD": 0.015,
         "costPerImageCents": 1.5,
         "estimation": {
           "costMultiplier": 1,
@@ -147,7 +139,6 @@
         "pricingCurrency": "USD",
         "pricingTier": "BFL FLUX.2 API megapixel pricing reference",
         "pricingNotes": "BFL FLUX.2 prices scale with model variant, output megapixels, and image inputs. AutoShow keeps a model-level reference estimate for --price; actual provider quotes/usage should override when available. Discounts, enterprise pricing, taxes, and provider credits are ignored.",
-        "costPerImageUSD": 0.03,
         "costPerImageCents": 3,
         "estimation": {
           "costMultiplier": 1,
@@ -161,7 +152,6 @@
         "pricingCurrency": "USD",
         "pricingTier": "BFL FLUX.2 API megapixel pricing reference",
         "pricingNotes": "BFL FLUX.2 prices scale with model variant, output megapixels, and image inputs. AutoShow keeps a model-level reference estimate for --price; actual provider quotes/usage should override when available. Discounts, enterprise pricing, taxes, and provider credits are ignored.",
-        "costPerImageUSD": 0.07,
         "costPerImageCents": 7,
         "estimation": {
           "costMultiplier": 1,
@@ -175,7 +165,6 @@
         "pricingCurrency": "USD",
         "pricingTier": "BFL FLUX.2 API megapixel pricing reference",
         "pricingNotes": "BFL FLUX.2 prices scale with model variant, output megapixels, and image inputs. AutoShow keeps a model-level reference estimate for --price; actual provider quotes/usage should override when available. Discounts, enterprise pricing, taxes, and provider credits are ignored.",
-        "costPerImageUSD": 0.06,
         "costPerImageCents": 6,
         "estimation": {
           "costMultiplier": 1,
@@ -196,7 +185,6 @@
         "pricingCurrency": "USD",
         "pricingTier": "Recraft API unit pricing",
         "pricingNotes": "Raster image generation for Recraft V4.1 standard models is listed at $0.04 / 40 API units per image. Discounts, taxes, and provider credits are ignored.",
-        "costPerImageUSD": 0.04,
         "costPerImageCents": 4,
         "estimation": {
           "costMultiplier": 1,
@@ -210,7 +198,6 @@
         "pricingCurrency": "USD",
         "pricingTier": "Recraft API unit pricing",
         "pricingNotes": "Raster image generation for Recraft Pro models is listed at $0.25 / 250 API units per image. Discounts, taxes, and provider credits are ignored.",
-        "costPerImageUSD": 0.25,
         "costPerImageCents": 25,
         "estimation": {
           "costMultiplier": 1,
@@ -224,7 +211,6 @@
         "pricingCurrency": "USD",
         "pricingTier": "Recraft API unit pricing",
         "pricingNotes": "Raster image generation for Recraft V4.1 Utility standard models is listed at $0.04 / 40 API units per image. Discounts, taxes, and provider credits are ignored.",
-        "costPerImageUSD": 0.04,
         "costPerImageCents": 4,
         "estimation": {
           "costMultiplier": 1,
@@ -238,7 +224,6 @@
         "pricingCurrency": "USD",
         "pricingTier": "Recraft API unit pricing",
         "pricingNotes": "Raster image generation for Recraft Pro models is listed at $0.25 / 250 API units per image. Discounts, taxes, and provider credits are ignored.",
-        "costPerImageUSD": 0.25,
         "costPerImageCents": 25,
         "estimation": {
           "costMultiplier": 1,
@@ -260,7 +245,6 @@
         "pricingCurrency": "USD",
         "pricingTier": "Replicate official model per-output-image pricing",
         "pricingNotes": "Replicate lists this model at $0.04 per output image. Local estimates cover generated outputs only; provider-reported billing should override if returned.",
-        "costPerImageUSD": 0.04,
         "costPerImageCents": 4,
         "estimation": {
           "costMultiplier": 1,
@@ -275,7 +259,6 @@
         "pricingCurrency": "USD",
         "pricingTier": "Replicate official model per-output-image pricing",
         "pricingNotes": "Replicate lists this model at $0.035 per output image. Local estimates cover generated outputs only; provider-reported billing should override if returned.",
-        "costPerImageUSD": 0.035,
         "costPerImageCents": 3.5,
         "estimation": {
           "costMultiplier": 1,
@@ -290,7 +273,6 @@
         "pricingCurrency": "USD",
         "pricingTier": "Replicate official model resolution-aware per-output-image pricing",
         "pricingNotes": "Replicate lists 1K output at $0.045 and 2K output at $0.09 per image. The registry base rate is the 1K default; resolution-aware preflight selects the 2K rate when requested.",
-        "costPerImageUSD": 0.045,
         "costPerImageCents": 4.5,
         "estimation": {
           "costMultiplier": 1,
@@ -305,7 +287,6 @@
         "pricingCurrency": "USD",
         "pricingTier": "Replicate official model per-output-image pricing",
         "pricingNotes": "Replicate lists Ideogram 4 Turbo at $0.03 per output image.",
-        "costPerImageUSD": 0.03,
         "costPerImageCents": 3,
         "estimation": {
           "costMultiplier": 1,
@@ -320,7 +301,6 @@
         "pricingCurrency": "USD",
         "pricingTier": "Replicate official model per-output-image pricing",
         "pricingNotes": "Replicate lists Ideogram 4 Balanced at $0.06 per output image.",
-        "costPerImageUSD": 0.06,
         "costPerImageCents": 6,
         "estimation": {
           "costMultiplier": 1,
@@ -335,7 +315,6 @@
         "pricingCurrency": "USD",
         "pricingTier": "Replicate official model per-output-image pricing",
         "pricingNotes": "Replicate lists Ideogram 4 Quality at $0.10 per output image.",
-        "costPerImageUSD": 0.1,
         "costPerImageCents": 10,
         "estimation": {
           "costMultiplier": 1,
@@ -350,7 +329,6 @@
         "pricingCurrency": "USD",
         "pricingTier": "Replicate community model H100 runtime estimate",
         "pricingNotes": "Pinned to version d5bfa4984edc317383025be5fd59a6a2d2b1992cf98bdddd788e5d5fa12a3ba4. The default estimate uses a published 34.6-second 1024x1024 example and Replicate H100 runtime pricing; actual cost varies with runtime, resolution, prompt enhancement, and output count.",
-        "costPerImageUSD": 0.0528,
         "costPerImageCents": 5.28,
         "estimation": {
           "costMultiplier": 1,
@@ -365,7 +343,6 @@
         "pricingCurrency": "USD",
         "pricingTier": "Replicate community model H100 runtime estimate",
         "pricingNotes": "Pinned to version fb19aa909fb366cdbdc06a87be3753aea6954346780bac847cccf8f32ad2626f. The default estimate uses a published approximately 7.5-second 1024x1024 example and Replicate H100 runtime pricing; actual cost varies with runtime, resolution, prompt enhancement, and output count.",
-        "costPerImageUSD": 0.0115,
         "costPerImageCents": 1.15,
         "estimation": {
           "costMultiplier": 1,
@@ -379,7 +356,6 @@
         "pricingCurrency": "USD",
         "pricingTier": "Replicate official model per-output-image pricing",
         "pricingNotes": "Replicate lists this model at $0.075 per output image. Local estimates cover generated outputs only; provider-reported billing should override if returned.",
-        "costPerImageUSD": 0.075,
         "costPerImageCents": 7.5,
         "estimation": {
           "costMultiplier": 1,
@@ -393,7 +369,6 @@
         "pricingCurrency": "USD",
         "pricingTier": "Replicate official model per-output-image pricing",
         "pricingNotes": "Replicate lists this model at $0.035 per output image. Local estimates cover generated outputs only; provider-reported billing should override if returned.",
-        "costPerImageUSD": 0.035,
         "costPerImageCents": 3.5,
         "estimation": {
           "costMultiplier": 1,
@@ -408,7 +383,6 @@
         "pricingCurrency": "USD",
         "pricingTier": "Replicate official model per-output-image pricing",
         "pricingNotes": "Replicate lists this model at $0.03 per output image. Local estimates cover generated outputs only; provider-reported billing should override if returned.",
-        "costPerImageUSD": 0.03,
         "costPerImageCents": 3,
         "estimation": {
           "costMultiplier": 1,
@@ -423,7 +397,6 @@
         "pricingCurrency": "USD",
         "pricingTier": "Replicate official model per-output-image pricing",
         "pricingNotes": "Replicate lists this model at $0.03 per output image. Local estimates cover generated outputs only; provider-reported billing should override if returned.",
-        "costPerImageUSD": 0.03,
         "costPerImageCents": 3,
         "estimation": {
           "costMultiplier": 1,
@@ -444,7 +417,6 @@
         "pricingCurrency": "USD",
         "pricingTier": "Luma Agents API pay-as-you-go per-image pricing",
         "pricingNotes": "Luma uni-1 lists text-to-image at $0.0404 per image; image edits and reference images add ~$0.003 each. Local estimates use the text-to-image rate as a reference; provider billing should override when available.",
-        "costPerImageUSD": 0.0404,
         "costPerImageCents": 4.04,
         "estimation": {
           "costMultiplier": 1,
@@ -458,7 +430,6 @@
         "pricingCurrency": "USD",
         "pricingTier": "Luma Agents API pay-as-you-go per-image pricing",
         "pricingNotes": "Luma uni-1-max lists text-to-image at $0.10 per image; image edits and reference images add ~$0.003 each. Local estimates use the text-to-image rate as a reference; provider billing should override when available.",
-        "costPerImageUSD": 0.1,
         "costPerImageCents": 10,
         "estimation": {
           "costMultiplier": 1,
@@ -480,7 +451,6 @@
         "pricingCurrency": "USD",
         "pricingTier": "fal.ai per-output-megapixel pricing",
         "pricingNotes": "fal.ai reports $0.01 per output megapixel. The registry default assumes a 1024x1024 output.",
-        "costPerImageUSD": 0.01,
         "costPerImageCents": 1,
         "estimation": { "costMultiplier": 1, "msPerImage": 60000 }
       },
@@ -492,7 +462,6 @@
         "pricingCurrency": "USD",
         "pricingTier": "fal.ai compute-second pricing",
         "pricingNotes": "fal.ai reports $0.00007 per compute second. The provisional default assumes 30 compute seconds; actual billing varies with runtime.",
-        "costPerImageUSD": 0.0021,
         "costPerImageCents": 0.21,
         "estimation": { "costMultiplier": 1, "msPerImage": 30000 }
       },
@@ -504,7 +473,6 @@
         "pricingCurrency": "USD",
         "pricingTier": "fal.ai credit-unit pricing",
         "pricingNotes": "fal.ai reports a 1.5-credit unit price. The registry conservatively records the returned $1.50 unit price until output credit consumption is calibrated.",
-        "costPerImageUSD": 1.5,
         "costPerImageCents": 150,
         "estimation": { "costMultiplier": 1, "msPerImage": 45000 }
       },
@@ -516,7 +484,6 @@
         "pricingCurrency": "USD",
         "pricingTier": "fal.ai compute-second pricing",
         "pricingNotes": "fal.ai reports $0.00017 per compute second. The provisional default assumes 30 compute seconds; actual billing varies with runtime.",
-        "costPerImageUSD": 0.0051,
         "costPerImageCents": 0.51,
         "estimation": { "costMultiplier": 1, "msPerImage": 30000 }
       },
@@ -528,7 +495,6 @@
         "pricingCurrency": "USD",
         "pricingTier": "fal.ai per-output-image pricing",
         "pricingNotes": "fal.ai reports $0.25 per output image for both text-to-image and edit routes.",
-        "costPerImageUSD": 0.25,
         "costPerImageCents": 25,
         "estimation": { "costMultiplier": 1, "msPerImage": 30000 }
       }

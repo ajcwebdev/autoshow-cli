@@ -10,9 +10,7 @@
         "pricingCurrency": "USD",
         "pricingTier": "OpenAI API standard audio generation pricing",
         "pricingNotes": "OpenAI GPT-4o Mini TTS estimates use published text-input and audio-output character rates. Custom voice consent/setup costs are handled separately when selected; free credits, batch/flex/priority prices, enterprise pricing, taxes, and provider credits are ignored.",
-        "inputCostPer1MCharsUSD": 0.6,
         "inputCostPer1MCharsCents": 60,
-        "outputCostPer1MCharsUSD": 12,
         "outputCostPer1MCharsCents": 1200,
         "estimation": {
           "costMultiplier": 1,
@@ -26,9 +24,7 @@
         "pricingCurrency": "USD",
         "pricingTier": "OpenAI API standard audio generation pricing",
         "pricingNotes": "OpenAI TTS-1 bills per input character; there is no separate text-input rate. Free credits, batch/flex/priority prices, enterprise pricing, taxes, and provider credits are ignored. Previous generation; verify provider retirement status at the next hosted-TTS model refresh.",
-        "inputCostPer1MCharsUSD": 0,
         "inputCostPer1MCharsCents": 0,
-        "outputCostPer1MCharsUSD": 15,
         "outputCostPer1MCharsCents": 1500,
         "estimation": {
           "costMultiplier": 1,
@@ -42,9 +38,7 @@
         "pricingCurrency": "USD",
         "pricingTier": "OpenAI API standard audio generation pricing",
         "pricingNotes": "OpenAI TTS-1 HD bills per input character; there is no separate text-input rate. Free credits, batch/flex/priority prices, enterprise pricing, taxes, and provider credits are ignored. Previous generation; verify provider retirement status at the next hosted-TTS model refresh.",
-        "inputCostPer1MCharsUSD": 0,
         "inputCostPer1MCharsCents": 0,
-        "outputCostPer1MCharsUSD": 30,
         "outputCostPer1MCharsCents": 3000,
         "estimation": {
           "costMultiplier": 1,

@@ -186,7 +186,7 @@ bun autoshow extract https://ajcwebdev.com --url-provider zyte
 
 ## URL Output
 
-Single-backend article extraction writes one top-level extraction artifact plus `run.json`:
+Single-backend article extraction writes one top-level extraction artifact plus `manifest.json`:
 
 ```text
 output/YYYY-MM-DD_HH-MM-SS_article/
@@ -194,7 +194,7 @@ output/YYYY-MM-DD_HH-MM-SS_article/
   result.json         # if --format json
   extraction.tsv      # if --format tsv
   extraction.hocr     # if --format hocr
-  run.json
+  manifest.json
 ```
 
 `--all-providers` writes fixed per-provider artifacts instead of a top-level extraction:
@@ -220,10 +220,10 @@ output/YYYY-MM-DD_HH-MM-SS_article/
     zyte/
       extraction.txt
       result.json
-  run.json
+  manifest.json
 ```
 
-Each provider `result.json` is a provider-result envelope with the URL extraction metadata and structured extraction result. The root `run.json` records `completionStatus`, `requestedProviders`, `providerStates`, `missingProviders`, `errors` when present, estimated and actual cost data, and per-provider timing data.
+Each provider `result.json` is a raw URL-domain payload containing extraction metadata and the structured extraction result. It has no manifest version or kind and never controls resume. The root `manifest.json` stores one item status and one canonical provider entry per selected backend, including identity, attempts, options, metadata, result/error state, and artifact directory; cost and timing remain ordinary item/provider metadata.
 
 Incomplete runs can still leave useful provider artifacts. For example, local `.html --all-providers` succeeds with `defuddle`, marks hosted providers skipped, and records an `incomplete` status because those hosted providers were requested by the shortcut.
 
@@ -287,7 +287,7 @@ X Space extraction writes three files to the output directory:
 
 - `result.json` - full JSON artifact with Space metadata, user profiles, post references, sources, and error details
 - `extraction.md` - Markdown report with summary table, Spaces table, posts table, and errors
-- `run.json` - run manifest
+- `manifest.json` - canonical single-run manifest
 
 ## X Space Batch Support
 

@@ -1,7 +1,7 @@
-import type { SttManifestProviderSummary } from '~/types'
+import type { PipelineItemStatus, SttProviderSummary } from '~/types'
 
 export type SttBatchItemSummary = {
   label: string
-  completionStatus: 'full' | 'incomplete' | 'failed' | 'skipped'
-  providers: SttManifestProviderSummary[]
+  completionStatus: PipelineItemStatus
+  providers: SttProviderSummary[]
 }

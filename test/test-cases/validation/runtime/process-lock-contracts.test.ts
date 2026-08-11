@@ -5,6 +5,8 @@ import { join } from 'node:path'
 import { withProcessLock } from '~/utils/process-lock'
 
 const tempDirs: string[] = []
+const heartbeatReleaseFixturePath = new URL('../fixtures/process-lock-heartbeat-release.ts', import.meta.url).pathname
+const twoWaiterRaceFixturePath = new URL('../fixtures/process-lock-two-waiter-race.ts', import.meta.url).pathname
 
 const exists = async (path: string): Promise<boolean> => {
   try {
@@ -57,17 +59,25 @@ const childEnvWithLockRoot = (lockRoot: string): Record<string, string> => {
 const spawnLockChild = (
   label: string,
   holdMs: number,
-  lockRoot: string
+  lockRoot: string,
+  options: {
+    blockHeartbeat?: boolean
+    staleMs?: number
+  } = {}
 ): ReturnType<typeof Bun.spawn> => {
+  const hold = options.blockHeartbeat
+    ? `Bun.sleepSync(${holdMs})`
+    : `await Bun.sleep(${holdMs})`
+  const staleMs = options.staleMs ?? 1000
   const code = `
     import { withProcessLock } from './src/utils/process-lock.ts'
     const lockRoot = process.env.LOCK_ROOT
     if (!lockRoot) throw new Error('missing LOCK_ROOT')
     await withProcessLock('cross-process-lock', async () => {
       console.log('${label}:enter:' + Date.now())
-      await Bun.sleep(${holdMs})
+      ${hold}
       console.log('${label}:exit:' + Date.now())
-    }, { lockRoot, waitMs: 5, heartbeatMs: 10, staleMs: 1000 })
+    }, { lockRoot, waitMs: 5, heartbeatMs: 10, staleMs: ${staleMs} })
   `
 
   return Bun.spawn([process.execPath, '--eval', code], {
@@ -148,6 +158,70 @@ test('process lock serializes separate processes', async () => {
 
   expect(firstExit).toBeGreaterThan(0)
   expect(secondEnter).toBeGreaterThanOrEqual(firstExit)
+})
+
+test('process lock keeps a live same-host owner when its heartbeat is late', async () => {
+  const lockRoot = await makeTempRoot()
+  const options = { blockHeartbeat: true, staleMs: 50 }
+  const first = spawnLockChild('first', 300, lockRoot, options)
+  const lockOwnerPath = join(lockRoot, 'cross-process-lock', 'owner.json')
+
+  for (let attempt = 0; attempt < 400 && !await exists(lockOwnerPath); attempt += 1) {
+    await Bun.sleep(5)
+  }
+  expect(await exists(lockOwnerPath)).toBe(true)
+
+  const second = spawnLockChild('second', 0, lockRoot, options)
+  const [firstResult, secondResult] = await Promise.all([
+    collectChild(first),
+    collectChild(second)
+  ])
+
+  expect(firstResult.exitCode).toBe(0)
+  expect(secondResult.exitCode).toBe(0)
+  expect(firstResult.stderr).toBe('')
+  expect(secondResult.stderr).toBe('')
+
+  const lines = `${firstResult.stdout}\n${secondResult.stdout}`.trim().split('\n')
+  const firstExit = Number(lines.find((line) => line.startsWith('first:exit:'))?.split(':')[2] ?? '0')
+  const secondEnter = Number(lines.find((line) => line.startsWith('second:enter:'))?.split(':')[2] ?? '0')
+
+  expect(firstExit).toBeGreaterThan(0)
+  expect(secondEnter).toBeGreaterThanOrEqual(firstExit)
+})
+
+test('process lock finishes an in-flight heartbeat before release', async () => {
+  const lockRoot = await makeTempRoot()
+  const child = Bun.spawn([process.execPath, heartbeatReleaseFixturePath], {
+    stdout: 'pipe',
+    stderr: 'pipe',
+    env: childEnvWithLockRoot(lockRoot)
+  })
+
+  const result = await collectChild(child)
+  expect(result).toEqual({
+    stdout: 'released\n',
+    stderr: '',
+    exitCode: 0
+  })
+  expect(await readdir(lockRoot)).toEqual([])
+})
+
+test('process lock serializes two waiters that race to reap a dead owner', async () => {
+  const lockRoot = await makeTempRoot()
+  const child = Bun.spawn([process.execPath, twoWaiterRaceFixturePath], {
+    stdout: 'pipe',
+    stderr: 'pipe',
+    env: childEnvWithLockRoot(lockRoot)
+  })
+
+  const result = await collectChild(child)
+  expect(result).toEqual({
+    stdout: '["holder-enter","holder-exit","delayed-enter"]\n',
+    stderr: '',
+    exitCode: 0
+  })
+  expect(await readdir(lockRoot)).toEqual([])
 })
 
 test('process lock releases after success and failure', async () => {

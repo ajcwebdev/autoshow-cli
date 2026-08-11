@@ -29,5 +29,3 @@ export type ImageRuntimeOptions = {
   geminiSearchGrounding: boolean | undefined
   imageCompression: number | undefined
 }
-
-export type ImageRuntimeOptionKey = keyof ImageRuntimeOptions

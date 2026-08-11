@@ -15,7 +15,7 @@ import { runGlmModel } from './write-services/write-glm/run-glm'
 import { runKimiModel } from './write-services/kimi/run-kimi'
 import { runTogetherModel } from './write-services/write-together/run-together'
 import { runCerebrasModel } from './write-services/write-cerebras/run-cerebras'
-import { resolveStructuredStrategy, shouldApplyStrictMode } from './structured-output/capabilities'
+import { resolveStructuredStrategy, resolveValidationRetryBudget, shouldApplyStrictMode } from './structured-output/capabilities'
 import { buildStructuredInstructionSuffix, resolveStructuredSchema } from './structured-output/schema-resolver'
 import { isSongLyricsPreset } from './structured-output/preset-registry'
 import { parseAndValidateStructured } from './structured-output/validator'
@@ -24,6 +24,7 @@ import { renderToPlainText } from './structured-output/renderers'
 import { readPromptFile } from './text-input-utils'
 import { runLlmProviderTargetPools } from './llm-provider-pool'
 import { DEFAULT_CLI_CONCURRENCY } from '~/utils/concurrency-defaults'
+import { buildStructuredValidationFailureEnvelope, isStructuredValidationFailureEnvelope } from './structured-output/validation-failure'
 const sanitizeModelName = (model: string): string =>
   model.replace(/[/\\:*?"<>|]/g, '-')
 
@@ -85,6 +86,7 @@ export const runLlmTargetsForStructuredPrompt = async (
   }, async (index, target) => {
     try {
       const structuredMode = resolveStructuredStrategy(target.service)
+      const validationRetryBudget = resolveValidationRetryBudget(target.service)
 
       let parsedJson: unknown
       let metadata = undefined as StructuredRunResult['metadata'] | undefined
@@ -95,7 +97,7 @@ export const runLlmTargetsForStructuredPrompt = async (
           options.prompt,
           target.model,
           options.structuredSchema,
-          2,
+          validationRetryBudget,
           options.structuredValidationContext
         )
         parsedJson = compatResponse.parsedJson
@@ -111,9 +113,8 @@ export const runLlmTargetsForStructuredPrompt = async (
         let response = await target.run(options.prompt, target.model, structuredOpts)
         let validation = parseAndValidateStructured(options.structuredSchema.schema, response.result, options.structuredValidationContext)
 
-        const shouldRetryValidation = target.service === 'anthropic' || target.service === 'gemini' || target.service === 'glm' || target.service === 'kimi' || target.service === 'together' || target.service === 'cerebras'
-        if (!validation.success && shouldRetryValidation) {
-          l.warn(`Structured validation retry for ${target.label}/${target.model}: ${validation.issue ?? 'validation failed'}`)
+        for (let retry = 1; !validation.success && retry <= validationRetryBudget; retry++) {
+          l.warn(`Structured validation retry ${retry}/${validationRetryBudget} for ${target.label}/${target.model}: ${validation.issue ?? 'validation failed'}`)
           response = await target.run(options.prompt, target.model, structuredOpts)
           validation = parseAndValidateStructured(options.structuredSchema.schema, response.result, options.structuredValidationContext)
         }
@@ -123,10 +124,7 @@ export const runLlmTargetsForStructuredPrompt = async (
         } else {
           const issue = validation.issue ?? 'Schema validation failed'
           l.warn(`Structured validation fallback for ${target.label}/${target.model}: ${issue}`)
-          parsedJson = {
-            _raw: response.result,
-            _validationError: issue
-          }
+          parsedJson = buildStructuredValidationFailureEnvelope(response.result, issue)
         }
 
         metadata = response.metadata
@@ -143,7 +141,8 @@ export const runLlmTargetsForStructuredPrompt = async (
           outputFileName: fileName,
           outputFormat: 'json',
           structuredMode,
-          structuredPresetNames: options.structuredSchema.presetNames
+          structuredPresetNames: options.structuredSchema.presetNames,
+          validationFailed: isStructuredValidationFailureEnvelope(parsedJson)
         },
         renderedText,
         parsedJson

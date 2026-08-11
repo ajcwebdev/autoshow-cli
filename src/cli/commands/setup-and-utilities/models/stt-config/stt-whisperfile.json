@@ -5,7 +5,6 @@
     "models": {
       "tiny": {
         "description": "Tiny — fastest, lowest accuracy",
-        "costPerHourUSD": 0,
         "costPerHourCents": 0,
         "limits": {
           "notes": "Local whisperfile transcription runs on the local machine rather than a hosted API, so provider-side upload and duration caps do not apply."
@@ -16,7 +15,6 @@
       },
       "tiny.en": {
         "description": "Tiny English-only — fastest, lowest accuracy",
-        "costPerHourUSD": 0,
         "costPerHourCents": 0,
         "limits": {
           "notes": "Local whisperfile transcription runs on the local machine rather than a hosted API, so provider-side upload and duration caps do not apply."
@@ -27,7 +25,6 @@
       },
       "small": {
         "description": "Small — balanced speed and accuracy",
-        "costPerHourUSD": 0,
         "costPerHourCents": 0,
         "limits": {
           "notes": "Local whisperfile transcription runs on the local machine rather than a hosted API, so provider-side upload and duration caps do not apply."
@@ -35,7 +32,6 @@
       },
       "small.en": {
         "description": "Small English-only — balanced speed and accuracy",
-        "costPerHourUSD": 0,
         "costPerHourCents": 0,
         "limits": {
           "notes": "Local whisperfile transcription runs on the local machine rather than a hosted API, so provider-side upload and duration caps do not apply."
@@ -43,7 +39,6 @@
       },
       "medium": {
         "description": "Medium — good accuracy, moderate speed",
-        "costPerHourUSD": 0,
         "costPerHourCents": 0,
         "limits": {
           "notes": "Local whisperfile transcription runs on the local machine rather than a hosted API, so provider-side upload and duration caps do not apply."
@@ -51,7 +46,6 @@
       },
       "medium.en": {
         "description": "Medium English-only — good accuracy, moderate speed",
-        "costPerHourUSD": 0,
         "costPerHourCents": 0,
         "limits": {
           "notes": "Local whisperfile transcription runs on the local machine rather than a hosted API, so provider-side upload and duration caps do not apply."
@@ -59,7 +53,6 @@
       },
       "large-v2": {
         "description": "Large v2 — highest accuracy, slowest",
-        "costPerHourUSD": 0,
         "costPerHourCents": 0,
         "limits": {
           "notes": "Local whisperfile transcription runs on the local machine rather than a hosted API, so provider-side upload and duration caps do not apply."
@@ -70,7 +63,6 @@
       },
       "large-v3": {
         "description": "Large v3 — highest accuracy, slowest",
-        "costPerHourUSD": 0,
         "costPerHourCents": 0,
         "limits": {
           "notes": "Local whisperfile transcription runs on the local machine rather than a hosted API, so provider-side upload and duration caps do not apply."

@@ -6,8 +6,7 @@ import * as l from '~/utils/app-logger/app-logger'
 
 const INCLUDE_PATHS = [
   "*",
-  "src",
-  // "test"
+  "src"
 ]
 
 const IGNORE_PATHS = [

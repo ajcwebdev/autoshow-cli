@@ -1,14 +1,58 @@
-import type { CliFlagDefinition, ProviderIdentityBase, RuntimeOptions, Step2Modality, Step2ProviderSelectionOrigin } from '~/types'
+import type { CliFlagDefinition, HtmlArticleBackend, OcrRuntimeOptions, ProviderIdentityBase, Step2Modality, Step2ProviderSelectionOrigin, SttRuntimeOptions } from '~/types'
+import type { STEP2_OCR_PROVIDER_REGISTRY } from '~/cli/commands/process-steps/step-2-extract/step-2-shared/provider-registry/ocr-providers'
+import type { STEP2_STT_PROVIDER_REGISTRY } from '~/cli/commands/process-steps/step-2-extract/step-2-shared/provider-registry/stt-providers'
 
-export type OcrModelOverrideOptions = {
-  mistralOcrModel?: string | undefined
-  glmOcrModel?: string | undefined
-  kimiOcrModel?: string | undefined
-  openaiOcrModel?: string | undefined
-  grokOcrModel?: string | undefined
-  anthropicOcrModel?: string | undefined
-  geminiOcrModel?: string | undefined
-  deepinfraOcrModel?: string | undefined
+export type Step2ProviderOptionSurface = SttRuntimeOptions & OcrRuntimeOptions & {
+  useReverb: boolean
+}
+
+type RegistrySelectionOptionKey<Entry> = Entry extends {
+  selection: infer Selection
+}
+  ? Selection extends { type: 'boolean', runtimeKey: infer Key extends keyof Step2ProviderOptionSurface }
+    ? Key
+    : Selection extends {
+      type: 'models'
+      runtimeModelsKey: infer ModelsKey extends keyof Step2ProviderOptionSurface
+      runtimeModelKey: infer ModelKey extends keyof Step2ProviderOptionSurface
+    }
+      ? ModelsKey | ModelKey
+      : never
+  : never
+
+type RegistryModelOptionKey<Entry> = Entry extends {
+  selection: {
+    type: 'models'
+    runtimeModelKey: infer Key extends keyof Step2ProviderOptionSurface
+  }
+} ? Key : never
+
+type SttRegistryEntry = typeof STEP2_STT_PROVIDER_REGISTRY[number]
+type OcrRegistryEntry = typeof STEP2_OCR_PROVIDER_REGISTRY[number]
+
+export type SttSelectionOptions = Partial<Pick<
+  Step2ProviderOptionSurface,
+  RegistrySelectionOptionKey<SttRegistryEntry>
+>> & Step2SelectionOriginOptions
+
+export type OcrSelectionOptions = Partial<Pick<
+  Step2ProviderOptionSurface,
+  RegistrySelectionOptionKey<OcrRegistryEntry>
+>> & Step2SelectionOriginOptions
+
+export type OcrModelOverrideOptions = Partial<Pick<
+  Step2ProviderOptionSurface,
+  RegistryModelOptionKey<OcrRegistryEntry>
+>>
+
+export type Step2SelectionOriginOptions = {
+  step2SelectionOrigins?: Partial<Record<string, Step2ProviderSelectionOrigin>> | undefined
+}
+
+export type UrlSelectionOptions = Step2SelectionOriginOptions & {
+  urlBackend: HtmlArticleBackend
+  urlBackendExplicit: boolean
+  urlBackends: HtmlArticleBackend[] | undefined
 }
 
 
@@ -61,8 +105,8 @@ export type Step2BooleanProviderRegistryEntry = Step2ProviderRegistryEntryBase &
 export type Step2ModelProviderRegistryEntry = Step2ProviderRegistryEntryBase & {
   selection: {
     type: 'models'
-    runtimeModelsKey: keyof RuntimeOptions
-    runtimeModelKey: keyof RuntimeOptions
+    runtimeModelsKey: keyof Step2ProviderOptionSurface
+    runtimeModelKey: keyof Step2ProviderOptionSurface
     supportedModels: readonly string[]
     validateModel: (value: string) => string
   }
@@ -85,8 +129,10 @@ export type Step2ProviderRegistryEntry =
 
 export type ProviderRunStateBase<TService extends string, TError> = ProviderIdentityBase<TService> & {
   artifactDir: string
-  status: 'succeeded' | 'missing' | 'failed' | 'skipped'
+  status: 'running' | 'succeeded' | 'missing' | 'failed' | 'skipped'
   attempts: number
+  metadata?: Record<string, unknown> | undefined
+  result?: Record<string, unknown> | undefined
   lastError?: TError | undefined
 }
 
@@ -100,65 +146,9 @@ export type ProviderErrorSummaryFields = {
 }
 
 
-export type OcrStep2ResolutionOptions = Pick<
-  RuntimeOptions,
-  | 'useTesseract'
-  | 'step2SelectionOrigins'
-  | 'mistralOcrModel'
-  | 'mistralOcrModels'
-  | 'glmOcrModel'
-  | 'glmOcrModels'
-  | 'kimiOcrModel'
-  | 'kimiOcrModels'
-  | 'openaiOcrModel'
-  | 'openaiOcrModels'
-  | 'grokOcrModel'
-  | 'grokOcrModels'
-  | 'anthropicOcrModel'
-  | 'anthropicOcrModels'
-  | 'geminiOcrModel'
-  | 'geminiOcrModels'
-  | 'deepinfraOcrModel'
-  | 'deepinfraOcrModels'
-  | 'useEpubBun'
-  | 'urlBackend'
-  | 'urlBackendExplicit'
-  | 'urlBackends'
-> & {
+export type OcrStep2ResolutionOptions = OcrSelectionOptions & Partial<Pick<OcrRuntimeOptions, 'useEpubBun'>> & Partial<UrlSelectionOptions> & {
   preparedMarkdown?: string | undefined
   localHtmlDocument?: boolean | undefined
 }
 
-export type SttStep2ResolutionOptions = Pick<
-  RuntimeOptions,
-  | 'useReverb'
-  | 'step2SelectionOrigins'
-  | 'whisperModel'
-  | 'whisperModels'
-  | 'deepinfraSttModel'
-  | 'deepinfraSttModels'
-  | 'deepgramSttModel'
-  | 'deepgramSttModels'
-  | 'sonioxSttModel'
-  | 'sonioxSttModels'
-  | 'speechmaticsSttModel'
-  | 'speechmaticsSttModels'
-  | 'revSttModel'
-  | 'revSttModels'
-  | 'groqSttModel'
-  | 'groqSttModels'
-  | 'grokSttModel'
-  | 'grokSttModels'
-  | 'mistralSttModel'
-  | 'mistralSttModels'
-  | 'assemblyaiSttModel'
-  | 'assemblyaiSttModels'
-  | 'gladiaSttModel'
-  | 'gladiaSttModels'
-  | 'happyscribeSttModel'
-  | 'happyscribeSttModels'
-  | 'supadataSttModel'
-  | 'supadataSttModels'
-  | 'scrapecreatorsSttModel'
-  | 'scrapecreatorsSttModels'
->
+export type SttStep2ResolutionOptions = SttSelectionOptions

@@ -5,7 +5,7 @@ import {
   fileExists,
   findLatestDirectory,
 } from '../../../../test-utils/test-helpers'
-import { readRunMetadata } from '../../../../test-utils/manifest-helpers'
+import { readCanonicalRecord } from '../../../../test-utils/manifest-helpers'
 import { requireConfiguredEnvVars } from '../../../../test-utils/service-test-kit'
 
 const MUSIC_GEN_TITLE = 'music-gen'
@@ -34,7 +34,7 @@ budgetedTest('music-multi-minimax-music-3.0-gemini-lyria-3-clip-preview', 'multi
   expect(await fileExists(`${outputDir}/generated-music-minimax-music-3.0.mp3`)).toBe(true)
   expect(await fileExists(`${outputDir}/generated-music-gemini-lyria-3-clip-preview.mp3`)).toBe(true)
 
-  const metadata = await readRunMetadata(outputDir) as {
+  const metadata = await readCanonicalRecord(outputDir) as {
     music?: Array<{ musicService?: string; musicModel?: string; lyricsSource?: string }>
   }
   const musicArr = metadata.music ?? []
@@ -49,4 +49,3 @@ budgetedTest('music-multi-minimax-music-3.0-gemini-lyria-3-clip-preview', 'multi
     && m.lyricsSource === 'provided'
   )).toBe(true)
 })
-

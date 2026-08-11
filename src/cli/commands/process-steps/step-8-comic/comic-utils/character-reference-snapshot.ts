@@ -1,6 +1,7 @@
 import { createHash, randomUUID } from 'node:crypto'
+import { existsSync, readFileSync } from 'node:fs'
 import { copyFile, mkdir, rename } from 'node:fs/promises'
-import { basename, dirname, extname, join, relative, resolve } from 'node:path'
+import { basename, dirname, extname, isAbsolute, join, relative, resolve, sep } from 'node:path'
 import * as v from 'valibot'
 import type { CharacterCatalogService, CharacterKey } from '~/types'
 import { checksumFile, requireCurrentCharacterSketch } from '../comic-commands/process-scenes/character-utils'
@@ -89,17 +90,17 @@ export const createCharacterReferenceSnapshot = async (
   return manifest
 }
 
-export const loadAndVerifyCharacterReferenceSnapshot = async (
+export const loadAndVerifyCharacterReferenceSnapshot = (
   runDirectory: string,
   expectedSnapshotId?: string,
-): Promise<CharacterReferenceManifest> => {
+): CharacterReferenceManifest => {
   const path = getCharacterReferenceManifestPath(runDirectory)
-  if (!(await Bun.file(path).exists())) {
+  if (!existsSync(path)) {
     throw InfraError(`Missing ${basename(path)}. Rebuild panel prompts; legacy panel bundles are not supported.`, { stage: 'comic:reference-snapshot' })
   }
   let manifest: CharacterReferenceManifest
   try {
-    manifest = v.parse(CharacterReferenceManifestSchema, JSON.parse(await Bun.file(path).text()))
+    manifest = v.parse(CharacterReferenceManifestSchema, JSON.parse(readFileSync(path, 'utf8')))
   } catch (error) {
     throw ValidationError(`Invalid character reference manifest at ${path}. Rebuild panel prompts with schemaVersion 2.`, { stage: 'comic:reference-snapshot', cause: error instanceof Error ? error : undefined })
   }
@@ -108,11 +109,12 @@ export const loadAndVerifyCharacterReferenceSnapshot = async (
   }
   for (const character of manifest.characters) {
     for (const asset of character.assets) {
+      if (isAbsolute(asset.path)) throw ValidationError(`Unsafe snapshot asset path "${asset.path}"`, { stage: 'comic:reference-snapshot' })
       const assetPath = resolve(runDirectory, asset.path)
       const rel = relative(resolve(runDirectory), assetPath)
-      if (rel.startsWith('..') || rel === '') throw ValidationError(`Unsafe snapshot asset path "${asset.path}"`, { stage: 'comic:reference-snapshot' })
-      if (!(await Bun.file(assetPath).exists())) throw InfraError(`Snapshot asset is missing: ${asset.path}`, { stage: 'comic:reference-snapshot' })
-      const checksum = await checksumFile(assetPath)
+      if (rel === '' || rel === '..' || rel.startsWith(`..${sep}`) || isAbsolute(rel)) throw ValidationError(`Unsafe snapshot asset path "${asset.path}"`, { stage: 'comic:reference-snapshot' })
+      if (!existsSync(assetPath)) throw InfraError(`Snapshot asset is missing: ${asset.path}`, { stage: 'comic:reference-snapshot' })
+      const checksum = createHash('sha256').update(readFileSync(assetPath)).digest('hex')
       if (checksum !== asset.sha256) throw ValidationError(`Snapshot asset was modified or corrupted: ${asset.path}`, { stage: 'comic:reference-snapshot' })
     }
   }

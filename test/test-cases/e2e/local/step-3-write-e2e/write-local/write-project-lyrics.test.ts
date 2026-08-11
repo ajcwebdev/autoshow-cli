@@ -10,7 +10,8 @@ import {
   runCommand,
   stopLlamaServer
 } from '../../../../../test-utils/test-helpers'
-import { readBatchManifest, readRunManifest } from '../../../../../test-utils/manifest-helpers'
+import { readCanonicalManifest, readCanonicalRecord } from '../../../../../test-utils/manifest-helpers'
+import { PIPELINE_MANIFEST_FILE } from '~/cli/commands/process-steps/pipeline-manifest'
 import type { WriteLyricsProjectFixture } from '~/types'
 
 const PROJECT_PREFIX = 'autoshow-write-lyrics'
@@ -90,10 +91,11 @@ budgetedTest('write-project-lyrics-single-default-llama', 'write project single-
 
   expect(result.outputDir).not.toBeNull()
   if (result.outputDir) {
-    const manifest = await readRunManifest(result.outputDir)
-    expect(manifest.kind).toBe('write')
-    expect((manifest.metadata['source'] as Record<string, unknown>)['kind']).toBe('text-input')
-    const step3 = manifest.metadata['step3'] as Record<string, unknown>
+    const manifest = await readCanonicalManifest(result.outputDir)
+    const record = await readCanonicalRecord(result.outputDir)
+    expect(manifest.command).toBe('write')
+    expect((record['source'] as Record<string, unknown>)['kind']).toBe('text-input')
+    const step3 = record['step3'] as Record<string, unknown>
     expect(step3['llmService']).toBe('llama.cpp')
   }
 }, E2E_TEST_TIMEOUT_MS)
@@ -115,7 +117,7 @@ budgetedTest('write-project-lyrics-directory-default-llama', 'write project dire
   expect(result.exitCode).toBe(0)
 
   const parsedOutputDir = result.outputDir ? resolve(process.cwd(), result.outputDir) : null
-  const batchDir = parsedOutputDir && await fileExists(join(parsedOutputDir, 'batch.json'))
+  const batchDir = parsedOutputDir && await fileExists(join(parsedOutputDir, PIPELINE_MANIFEST_FILE))
     ? parsedOutputDir
     : await findLatestDirectory('text', result.outputRoot)
   expect(batchDir).not.toBeNull()
@@ -125,15 +127,19 @@ budgetedTest('write-project-lyrics-directory-default-llama', 'write project dire
   expect(await fileExists(join(project.lyricsDir, `${project.trackTwoStem}-llama.md`))).toBe(true)
 
   if (batchDir) {
-    const manifest = await readBatchManifest(resolve(process.cwd(), batchDir))
-    expect(manifest.kind).toBe('write')
+    const resolvedBatchDir = resolve(process.cwd(), batchDir)
+    const manifest = await readCanonicalManifest(resolvedBatchDir)
+    expect(manifest.command).toBe('write')
     expect(manifest.items).toHaveLength(2)
 
-    for (const item of manifest.items as Array<Record<string, unknown>>) {
-      const outputDir = resolve(process.cwd(), String(item['outputDir']))
-      expect(await fileExists(`${outputDir}/run.json`)).toBe(true)
-      const childManifest = await readRunManifest(outputDir)
-      expect(childManifest.kind).toBe('write')
+    for (const item of manifest.items) {
+      if (!item.outputDir) {
+        throw new Error('Expected write batch item outputDir')
+      }
+      const outputDir = resolve(resolvedBatchDir, item.outputDir)
+      expect(await fileExists(join(outputDir, PIPELINE_MANIFEST_FILE))).toBe(true)
+      const childManifest = await readCanonicalManifest(outputDir)
+      expect(childManifest.command).toBe('write')
     }
   }
 }, E2E_TEST_TIMEOUT_MS)

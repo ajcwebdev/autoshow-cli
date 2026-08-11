@@ -1,7 +1,7 @@
 This TTS consensus evaluation used existing AutoShow run metadata, local audio probing from the consensus workflow, and roundtrip speech-to-text transcription. No generated audio was subjectively listened to or judged during this evaluation.
 
 Evidence sources:
-- run.json metadata for the 16 requested providers: cost (actual computed usage), processing timing (wall), speaker, audio file size, and chunk count.
+- manifest.json metadata for the 16 requested providers: cost (actual computed usage), processing timing (wall), speaker, audio file size, and chunk count.
 - Local ffprobe audio probing to measure each output's duration and derive characters-per-second speaking rate. All 16 audio files were present and probed successfully (durations 28.0s to 45.9s).
 - Roundtrip STT transcription performed on 2026-06-15 using groq/whisper-large-v3 as a single consistent recognizer for all 16 clips. Each generated WAV was transcribed back to text and timestamps were stripped before comparison.
 
@@ -17,6 +17,6 @@ Provider groups:
 
 Rankings exposed in the comparison report:
 - Price: zero monetary cost for local models (none here) and reported monetary cost for services.
-- Speed: processing time from run.json metadata.
+- Speed: processing time from manifest.json metadata.
 - Automated quality: roundtrip WER-derived accuracy (described above).
 - Human quality: unavailable, with reason.

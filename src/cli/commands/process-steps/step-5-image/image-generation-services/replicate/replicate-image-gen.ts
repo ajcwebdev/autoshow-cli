@@ -1,8 +1,7 @@
 import { REPLICATE_DEFAULT_BASE_URL } from '~/utils/base-urls'
 import { requireApiKey } from '~/utils/validate/env-utils'
 
-export const getReplicateBaseUrl = (baseUrl: string = REPLICATE_DEFAULT_BASE_URL): string =>
-  baseUrl.replace(/\/+$/, '')
+export const getReplicateBaseUrl = (): string => REPLICATE_DEFAULT_BASE_URL.replace(/\/+$/, '')
 
 export const ensureReplicateSetup = async (label: string): Promise<string> => requireApiKey('REPLICATE_API_TOKEN', 'image:replicate', label)
 

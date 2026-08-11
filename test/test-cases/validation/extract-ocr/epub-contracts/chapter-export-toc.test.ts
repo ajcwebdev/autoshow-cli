@@ -1,15 +1,8 @@
 import { expect, test } from 'bun:test'
-import { buildEpubTextOutput, createReader, inspectEpubWithReader } from './shared'
+import { buildEpubTextOutput, createStandardEpubReader, inspectEpubWithReader } from './shared'
 
 test('EPUB chapter export groups spine fragments by TOC starts', async () => {
-  const inspected = await inspectEpubWithReader(createReader({
-    'META-INF/container.xml': `
-      <container>
-        <rootfiles>
-          <rootfile full-path="OEBPS/content.opf" media-type="application/oebps-package+xml"/>
-        </rootfiles>
-      </container>
-    `,
+  const inspected = await inspectEpubWithReader(createStandardEpubReader({
     'OEBPS/content.opf': `
       <package>
         <manifest>
@@ -71,14 +64,7 @@ test('EPUB chapter export groups spine fragments by TOC starts', async () => {
 })
 
 test('EPUB chapter export splits multiple TOC fragments within one spine file', async () => {
-  const inspected = await inspectEpubWithReader(createReader({
-    'META-INF/container.xml': `
-      <container>
-        <rootfiles>
-          <rootfile full-path="OEBPS/content.opf" media-type="application/oebps-package+xml"/>
-        </rootfiles>
-      </container>
-    `,
+  const inspected = await inspectEpubWithReader(createStandardEpubReader({
     'OEBPS/content.opf': `
       <package>
         <manifest>

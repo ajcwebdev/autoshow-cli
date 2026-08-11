@@ -1,5 +1,6 @@
 import { isRecord } from '~/utils/rest-client'
 import { getExtractPricing } from '~/cli/commands/setup-and-utilities/models/model-loader'
+import { isTokenPricedOcrProvider } from '~/types'
 import type { ActualCostBreakdown, AggregatedPriceEstimate, CollectEstimatedExtractTargetsOptions, EstimatedCostBreakdown, EstimatedStepEntry, ExtractEstimateProvider, ExtractEstimateTarget, ExtractionMetadata, OcrModelFallbackOptions, PartialExtractionMetadata, Step3Metadata } from '~/types'
 import { resolveExtractionProviderModel } from '~/utils/extraction-provider-model'
 import { toArray } from '~/utils/text-utils'
@@ -8,7 +9,6 @@ import { ANTHROPIC_OCR_PRICE_NOTE, DEEPINFRA_OCR_PRICE_NOTE, FIRECRAWL_PRICE_NOT
 import { resolveHostedOcrModeFromExtractionMethod } from './ocr-utils/hosted-ocr-token-profiles'
 import { getUsageNumber } from './ocr-utils/hosted-ocr-utils'
 
-const TOKEN_PRICED_OCR_PROVIDERS = new Set(['glm', 'kimi', 'openai', 'grok', 'anthropic', 'gemini', 'deepinfra'])
 const OCR_DIAGNOSTIC_PROVIDERS = new Set([
   'mistral',
   'glm',
@@ -63,7 +63,7 @@ const withObservedTokenUsage = (
 ): ExtractEstimateTarget => {
   if (
     !useObservedUsage
-    || !TOKEN_PRICED_OCR_PROVIDERS.has(target.provider)
+    || !isTokenPricedOcrProvider(target.provider)
     || typeof entry.promptTokens !== 'number'
     || typeof entry.completionTokens !== 'number'
   ) {
@@ -491,7 +491,7 @@ export const buildOcrCostDiagnostics = (
         costCents: actualCostCents - predictedCostCents,
         ...(predictedCostCents > 0 ? { percent: ((actualCostCents - predictedCostCents) / predictedCostCents) * 100 } : {})
       },
-      source: TOKEN_PRICED_OCR_PROVIDERS.has(provider)
+      source: isTokenPricedOcrProvider(provider)
         ? retryUsageIncluded ? 'token_usage_with_schema_retries' : 'token_usage'
         : 'page_pricing'
     })

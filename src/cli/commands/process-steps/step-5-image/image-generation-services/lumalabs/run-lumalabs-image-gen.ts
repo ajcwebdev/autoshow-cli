@@ -59,7 +59,7 @@ const extractErrorMessage = (payload: unknown): string | undefined =>
 export const runLumalabsImageGen = async (
   prompt: string,
   outputDir: string,
-  options: { model: LumalabsImageModel, aspectRatio?: string | undefined, outputFormat?: string | undefined, inputs?: string[] | undefined, baseUrl?: string | undefined }
+  options: { model: LumalabsImageModel, aspectRatio?: string | undefined, outputFormat?: string | undefined, inputs?: string[] | undefined }
 ): Promise<{ imagePaths: string[], metadata: Step5Metadata }> => {
   const apiKey = await ensureLumalabsImageGenSetup()
   const aspectRatio = normalizeLumalabsAspectRatio(options.aspectRatio)
@@ -101,7 +101,7 @@ export const runLumalabsImageGen = async (
     intervalMs: POLL_INTERVAL_MS,
     deadlineMs: POLL_TIMEOUT_MS,
     create: {
-      url: `${getLumalabsBaseUrl(options.baseUrl)}/generations`,
+      url: `${getLumalabsBaseUrl()}/generations`,
       init: withImageProviderHeaders({
         method: 'POST',
         headers: { 'content-type': 'application/json' },
@@ -115,7 +115,7 @@ export const runLumalabsImageGen = async (
       formatErrorBody: (payload) => extractErrorMessage(payload) ?? 'Unknown error'
     },
     poll: (created) => ({
-      url: `${getLumalabsBaseUrl(options.baseUrl)}/generations/${encodeURIComponent(created.id)}`,
+      url: `${getLumalabsBaseUrl()}/generations/${encodeURIComponent(created.id)}`,
       init: withImageProviderHeaders({ method: 'GET' }, { authorization: `Bearer ${apiKey}` }),
       schema: LumalabsGenerationSchema,
       context: 'Luma Labs image generation poll response',

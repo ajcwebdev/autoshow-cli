@@ -1,17 +1,9 @@
 import { getExtractEstimation, getExtractPricing } from '~/cli/commands/setup-and-utilities/models/model-loader'
 import { estimateOcrTokenUsage } from '~/cli/commands/process-steps/step-2-extract/step-2-ocr/ocr-utils/extract-pricing'
+import { isTokenPricedOcrProvider } from '~/types'
 import type { CostSource, EstimatedStepEntry, ExtractionMetadata, StepCostEntry, TokenPricedOcrProvider } from '~/types'
 import { applyCostMultiplier } from './cost-helpers'
 import { computeTokenCost } from './token-pricing'
-const TOKEN_PRICED_OCR_PROVIDERS = new Set<TokenPricedOcrProvider>([
-  'glm',
-  'kimi',
-  'openai',
-  'grok',
-  'anthropic',
-  'gemini',
-  'deepinfra'
-])
 
 const PAGE_PRICED_EXTRACT_PROVIDERS = new Set([
   'defuddle',
@@ -34,8 +26,7 @@ const LOCAL_ZERO_PROVIDERS = new Set([
   'kitten'
 ])
 
-export const isTokenPricedOcrProvider = (provider: string): provider is TokenPricedOcrProvider =>
-  TOKEN_PRICED_OCR_PROVIDERS.has(provider as TokenPricedOcrProvider)
+export { isTokenPricedOcrProvider } from '~/types'
 
 export const isPagePricedExtractProvider = (provider: string): boolean =>
   PAGE_PRICED_EXTRACT_PROVIDERS.has(provider)

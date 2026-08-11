@@ -1,5 +1,5 @@
 import { describe, expect, test } from 'bun:test'
-import { buildOptsFromFlags } from '~/cli/commands/process-steps/step-1-download/download-targets/build-opts-from-flags/build-options-from-flags'
+import { buildOptsFromFlags } from '~/cli/options/option-resolution/build-options-from-flags'
 import { collectExplicitOcrTargets } from '~/cli/commands/process-steps/step-2-extract/step-2-ocr/ocr-targets'
 import { collectSttTargets, collectSttTargetsForSource } from '~/cli/commands/process-steps/step-2-extract/step-2-stt/stt-targets'
 import {
@@ -118,7 +118,7 @@ describe('provider selection contracts', () => {
 
     const explicitOpts = buildOptsFromFlags(false, {
       'url-provider': 'spider'
-    }, [], {}, new Set(['url-provider']))
+    }, {}, new Set(['url-provider']))
     expect(collectStep2ProviderSelections('url', explicitOpts).map((selection) => ({
       service: selection.targetService,
       model: selection.model,
@@ -135,7 +135,7 @@ describe('provider selection contracts', () => {
 
     const allUrlOpts = buildOptsFromFlags(false, {
       'all-url': true
-    }, [], {}, new Set(['all-url']))
+    }, {}, new Set(['all-url']))
     expect(collectUrlArticleTargets(allUrlOpts)).toEqual(
       HOSTED_URL_ARTICLE_BACKENDS.map((backend) => ({ service: backend, model: backend }))
     )
@@ -149,7 +149,7 @@ describe('provider selection contracts', () => {
 
     const allLocalUrlOpts = buildOptsFromFlags(false, {
       'all-local-url': true
-    }, [], {}, new Set(['all-local-url']))
+    }, {}, new Set(['all-local-url']))
     expect(collectUrlArticleTargets(allLocalUrlOpts)).toEqual([{
       service: 'defuddle',
       model: 'defuddle'
@@ -159,7 +159,7 @@ describe('provider selection contracts', () => {
   test('article planned routing includes standardized URL providers', () => {
     const allUrlOpts = buildOptsFromFlags(false, {
       'all-url': true
-    }, [], {}, new Set(['all-url']))
+    }, {}, new Set(['all-url']))
     expect(resolveOcrStep2ExecutionFromFormat('html', allUrlOpts)).toEqual({
       route: 'article',
       sourceKind: 'article',
@@ -173,7 +173,7 @@ describe('provider selection contracts', () => {
     const localHtmlHostedOpts = {
       ...buildOptsFromFlags(false, {
         'url-provider': 'firecrawl'
-      }, [], {}, new Set(['url-provider'])),
+      }, {}, new Set(['url-provider'])),
       localHtmlDocument: true
     }
     expect(resolveOcrStep2ExecutionFromFormat('html', localHtmlHostedOpts)).toEqual({
@@ -292,11 +292,11 @@ describe('provider selection contracts', () => {
     const opts = buildOptsFromFlags(false, {
       'supadata-stt': 'auto',
       'scrapecreators-stt': 'youtube-transcript'
-    }, [], {}, new Set(['supadata-stt', 'scrapecreators-stt']))
+    }, {}, new Set(['supadata-stt', 'scrapecreators-stt']))
     const combinedAllAndExplicit = buildOptsFromFlags(false, {
       'all-stt': true,
       'supadata-stt': 'auto'
-    }, [], {}, new Set(['all-stt', 'supadata-stt']))
+    }, {}, new Set(['all-stt', 'supadata-stt']))
 
     expect(collectSttTargetsForSource(opts, { filePath: 'input/examples/video/local.mp4' })).toEqual([
       {

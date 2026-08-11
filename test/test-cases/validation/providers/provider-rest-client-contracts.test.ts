@@ -154,7 +154,7 @@ describe('provider REST client differential contracts', () => {
     const replicateError = await captureError(clients[3] as ClientCase)
     expect(replicateError).toMatchObject({
       kind: 'retry_exhausted',
-      retryClass: 'runtime_http_create_conservative'
+      retryClass: 'runtime_http_create_retriable'
     })
     expect((replicateError.cause as Error).name).toBe('AbortError')
     expect(replicateCalls).toHaveLength(2)

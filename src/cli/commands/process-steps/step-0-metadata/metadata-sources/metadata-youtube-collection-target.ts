@@ -1,7 +1,6 @@
 import * as v from 'valibot'
 import * as l from '~/utils/app-logger/app-logger'
 import { exec } from '~/utils/cli-utils'
-import type { ProcessCommand } from '~/types'
 import { isLikelyUrl } from '../metadata-targets/metadata-input-classifier'
 import { validateDataSafe } from '~/utils/validate/validation'
 import { buildYtDlpListArgs, buildYtDlpFailureMessage } from '~/cli/commands/process-steps/shared/shared-yt-dlp-options'
@@ -62,10 +61,8 @@ const getYoutubeCollectionItems = async (url: string): Promise<string[]> => {
 }
 
 export const resolveYoutubeCollectionItems = async (
-  resolvedTarget: string,
-  command: ProcessCommand
+  resolvedTarget: string
 ): Promise<string[] | null> => {
-  void command
   if (!isLikelyUrl(resolvedTarget) || !isYoutubeUrl(resolvedTarget)) {
     return null
   }

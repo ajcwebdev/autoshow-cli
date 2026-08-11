@@ -98,7 +98,7 @@ export const classifyOcrCreateRetry = (error: unknown): RetryDecision => {
   }
   return withOcrRateLimitRetryDelay(
     error,
-    classifyFetchRetry(error, 'runtime_http_create_conservative', { retryAbortOnConservative: true })
+    classifyFetchRetry(error, 'runtime_http_create_retriable')
   )
 }
 
@@ -147,7 +147,7 @@ export const withOcrCreateRetry = async <T>(
   const options = resolveCreateRetryOptions(classifierOrOptions)
   return await withRetry(
     {
-      retryClass: 'runtime_http_create_conservative',
+      retryClass: 'runtime_http_create_retriable',
       operationName,
       policy: OCR_CREATE_RETRY_POLICY,
       timeoutMs: OCR_REQUEST_TIMEOUT_MS,
@@ -165,7 +165,7 @@ export const withOcrPageRequestRetry = async <T>(
 ): Promise<T> =>
   await withRetry(
     {
-      retryClass: 'runtime_http_create_conservative',
+      retryClass: 'runtime_http_create_retriable',
       operationName,
       policy: {
         ...OCR_PAGE_REQUEST_RETRY_POLICY,
@@ -174,12 +174,7 @@ export const withOcrPageRequestRetry = async <T>(
       timeoutMs: options.timeoutMs ?? OCR_PAGE_REQUEST_TIMEOUT_MS,
       onRetryAttempt: (error, decision) => notifyRetryablePressure(options.onRetryable, error, decision),
       ...(options.attempts === undefined
-        ? {
-            maxAttemptsForRetry: (error, decision) =>
-              decision.shouldRetry && getStatusFromError(error) === 429
-                ? OCR_PAGE_RATE_LIMIT_REQUEST_ATTEMPTS
-                : undefined
-          }
+        ? { rateLimitMaxAttempts: OCR_PAGE_RATE_LIMIT_REQUEST_ATTEMPTS }
         : {})
     },
     operation,

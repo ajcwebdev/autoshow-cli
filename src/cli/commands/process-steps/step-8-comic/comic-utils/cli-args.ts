@@ -2,9 +2,6 @@ import {
   IMAGE_GENERATION_QUALITIES,
 } from '~/types'
 import { findRegistryServiceForModel } from '~/cli/commands/setup-and-utilities/models/model-loader/registry'
-import { GLOBAL_FLAG_DEFINITIONS } from '~/cli/global-flags'
-import { NativeMissingFlagValueError } from '~/cli/native/native-errors'
-import { parseCommandArgv } from '~/cli/native/native-parser'
 import { CLIUsageError } from '~/utils/error-handler'
 import { DEFAULT_CLI_CONCURRENCY } from '~/utils/concurrency-defaults'
 import {
@@ -22,9 +19,7 @@ import {
   validateComicGridOptions,
 } from '../comic-commands/generate-images/comic-page-utils'
 import type {
-  CliCommandDefinition,
   CliCommandContext,
-  CliParseResult,
   ParsedDraftCommandArgs,
   ParsedGenerateBaseArgs,
   ParsedGenerateImagesArgs,
@@ -53,59 +48,6 @@ const IMAGE_QUALITY_OPTIONS = new Set<string>(IMAGE_GENERATION_QUALITIES)
 const DRAFT_SCENES_ONLY_OPTIONS = new Set<string>(DRAFT_SCENES_ONLY_VALUES)
 const GENERATE_IMAGES_TARGET_OPTIONS = new Set<string>(GENERATE_IMAGES_TARGET_VALUES)
 
-// Comic historically rejected inline assignments while the native parser accepts them.
-// Keep that grammar fork explicit until the public comic surface deliberately changes.
-const assertComicFlagGrammar = (args: readonly string[]): void => {
-  for (const argument of args) {
-    if (argument === '--' || (argument.startsWith('--') && argument.includes('='))) {
-      throw CLIUsageError(`Unknown argument: ${argument}`)
-    }
-  }
-}
-
-export const parseComicSubcommandArgv = (
-  args: string[],
-  command: CliCommandDefinition
-): CliParseResult => {
-  assertComicFlagGrammar(args)
-  const parseDefinition = command.parameters?.some(parameter => parameter.key === '<script-path>')
-    ? {
-        ...command,
-        parameters: command.parameters.map(parameter =>
-          parameter.key === '<script-path>' ? { ...parameter, key: '[script-path]' } : parameter
-        )
-      }
-    : command
-  try {
-    return parseCommandArgv([command.name, ...args], parseDefinition, GLOBAL_FLAG_DEFINITIONS)
-  } catch (error) {
-    if (error instanceof NativeMissingFlagValueError) {
-      throw CLIUsageError(`Missing value for --${error.flagName}`)
-    }
-    throw error
-  }
-}
-
-const assertKnownFlags = (parsed: ComicParsedArgs): void => {
-  const unknown = parsed.rawParsed.flagOccurrences.find(occurrence => !occurrence.known)
-  if (unknown) {
-    throw CLIUsageError(`Unknown argument: ${unknown.raw}`)
-  }
-}
-
-const assertSpecifiedOnce = (
-  parsed: ComicParsedArgs,
-  name: string,
-  message: string
-): void => {
-  let seen = false
-  for (const occurrence of parsed.rawParsed.flagOccurrences) {
-    if (occurrence.name !== name) continue
-    if (seen) throw CLIUsageError(message)
-    seen = true
-  }
-}
-
 const stringFlag = (parsed: ComicParsedArgs, name: string): string | undefined => {
   if (!parsed.rawParsed.explicitFlags.has(name)) return undefined
   const value = parsed.flags[name]
@@ -118,14 +60,8 @@ const enabledFlag = (parsed: ComicParsedArgs, name: string): boolean | undefined
 }
 
 const readScriptPath = (parsed: ComicParsedArgs): string | undefined => {
-  const values = parsed.rawParsed.positionals.map(position => position.value)
-  if (values.length > 1) throw CLIUsageError('Script path can only be specified once')
-  return values[0]
-}
-
-const assertNoPositionals = (parsed: ComicParsedArgs): void => {
-  const first = parsed.rawParsed.positionals[0]?.value
-  if (first !== undefined) throw CLIUsageError(`Unknown argument: ${first}`)
+  const scriptPath = parsed.parameters['script-path']
+  return typeof scriptPath === 'string' ? scriptPath : undefined
 }
 
 const isPositiveInteger = (value: string): boolean =>
@@ -195,17 +131,11 @@ const assignSharedImageOptions = (
 }
 
 export const coerceAndValidateDraftScenes = (parsed: ComicParsedArgs): ParsedDraftCommandArgs => {
-  assertKnownFlags(parsed)
-  assertSpecifiedOnce(parsed, 'llm-model', 'LLM model can only be specified once')
-  assertSpecifiedOnce(parsed, 'only', 'Only can only be specified once')
-  assertSpecifiedOnce(parsed, 'concurrency', 'Concurrency can only be specified once')
-
-  const output: ParsedDraftCommandArgs = { showHelp: false }
   const scriptPath = readScriptPath(parsed)
+  const output: ParsedDraftCommandArgs = { showHelp: false, scriptPath: scriptPath as string }
   const llmModel = stringFlag(parsed, 'llm-model')
   const only = stringFlag(parsed, 'only')
   const concurrency = stringFlag(parsed, 'concurrency')
-  if (scriptPath !== undefined) output.scriptPath = scriptPath
   if (enabledFlag(parsed, 'price') === true) output.price = true
   if (llmModel !== undefined) output.llmModel = parseLlmModel(llmModel)
   if (only !== undefined) {
@@ -219,22 +149,6 @@ export const coerceAndValidateDraftScenes = (parsed: ComicParsedArgs): ParsedDra
 }
 
 export const coerceAndValidateReferenceSketch = (parsed: ComicParsedArgs): ParsedReferenceSketchArgs => {
-  assertKnownFlags(parsed)
-  assertNoPositionals(parsed)
-  assertSpecifiedOnce(parsed, 'character', 'Character can only be specified once')
-  assertSpecifiedOnce(parsed, 'location', 'Location can only be specified once')
-  assertSpecifiedOnce(parsed, 'view', 'View can only be specified once')
-  assertSpecifiedOnce(parsed, 'llm-model', '--llm-model can only be specified once')
-  assertSpecifiedOnce(parsed, 'qa-model', '--qa-model can only be specified once')
-  assertSpecifiedOnce(parsed, 'qa', 'QA can only be specified once')
-  assertSpecifiedOnce(parsed, 'max-repairs', 'Max repairs can only be specified once')
-  assertSpecifiedOnce(parsed, 'image-model', 'Image model can only be specified once')
-  assertSpecifiedOnce(parsed, 'size', 'Size can only be specified once')
-  assertSpecifiedOnce(parsed, 'quality', 'Quality can only be specified once')
-  assertSpecifiedOnce(parsed, 'revise', 'Revise can only be specified once')
-  assertSpecifiedOnce(parsed, 'notes', 'Notes can only be specified once')
-  assertSpecifiedOnce(parsed, 'concurrency', 'Concurrency can only be specified once')
-
   const output: ParsedReferenceSketchArgs = { showHelp: false }
   const character = stringFlag(parsed, 'character')
   const location = stringFlag(parsed, 'location')
@@ -277,34 +191,16 @@ export const coerceAndValidateReferenceSketch = (parsed: ComicParsedArgs): Parse
 }
 
 export const coerceAndValidateGenerateImages = (parsed: ComicParsedArgs): ParsedGenerateImagesArgs => {
-  assertKnownFlags(parsed)
-  assertSpecifiedOnce(parsed, 'qa', 'QA can only be specified once')
-  assertSpecifiedOnce(parsed, 'qa-model', 'QA model can only be specified once')
-  assertSpecifiedOnce(parsed, 'max-repairs', 'Max repairs can only be specified once')
-  assertSpecifiedOnce(parsed, 'target', 'Target can only be specified once')
-  assertSpecifiedOnce(parsed, 'llm-model', 'LLM model can only be specified once')
-  assertSpecifiedOnce(parsed, 'concurrency', 'Concurrency can only be specified once')
-  assertSpecifiedOnce(parsed, 'panels', 'Panels can only be specified once')
-  assertSpecifiedOnce(parsed, 'panels-per-image', 'Panels per image can only be specified once')
-  assertSpecifiedOnce(parsed, 'grid', 'Grid can only be specified once')
-  assertSpecifiedOnce(parsed, 'image-model', 'Image model can only be specified once')
-  assertSpecifiedOnce(parsed, 'variation', 'Variation can only be specified once')
-  assertSpecifiedOnce(parsed, 'size', 'Size can only be specified once')
-  assertSpecifiedOnce(parsed, 'quality', 'Quality can only be specified once')
-  assertSpecifiedOnce(parsed, 'force', 'Force can only be specified once')
-
-  const output: ParsedGenerateBaseArgs = { showHelp: false }
   const scriptPath = readScriptPath(parsed)
+  const output: ParsedGenerateBaseArgs = { showHelp: false, scriptPath: scriptPath as string }
   const qaModel = stringFlag(parsed, 'qa-model')
   const maxRepairs = stringFlag(parsed, 'max-repairs')
   const targetValue = stringFlag(parsed, 'target')
-  const llmModel = stringFlag(parsed, 'llm-model')
   const concurrency = stringFlag(parsed, 'concurrency')
   const panels = stringFlag(parsed, 'panels')
   const panelsPerImage = stringFlag(parsed, 'panels-per-image')
   const grid = stringFlag(parsed, 'grid')
   const variation = stringFlag(parsed, 'variation')
-  if (scriptPath !== undefined) output.scriptPath = scriptPath
   if (enabledFlag(parsed, 'price') === true) output.price = true
   const qa = enabledFlag(parsed, 'qa')
   if (qa !== undefined) output.qa = qa
@@ -321,7 +217,6 @@ export const coerceAndValidateGenerateImages = (parsed: ComicParsedArgs): Parsed
     }
     output.target = targetValue as NonNullable<ParsedGenerateBaseArgs['target']>
   }
-  if (llmModel !== undefined) output.llmModel = parseLlmModel(llmModel)
   if (concurrency !== undefined) output.concurrency = parseConcurrencyValue(concurrency)
   if (panels !== undefined) output.panels = parsePanelSelector(panels)
   if (panelsPerImage !== undefined) {

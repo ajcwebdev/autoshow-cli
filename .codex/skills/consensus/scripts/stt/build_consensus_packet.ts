@@ -6,11 +6,11 @@ import { resolve } from "node:path";
 import {
   chooseBaselineProvider,
   dominantOverlapSpeaker,
-  durationSecondsFromRun,
+  durationSecondsFromManifest,
   formatCents,
   formatProcessingSeconds,
   loadProviderRuns,
-  loadRunJson,
+  loadSttManifestRecord,
   mergeOverlapText,
   overlappingProviderSegments,
 } from "./transcript_lib.ts";
@@ -71,12 +71,12 @@ function parseArgs(argv: string[]): ParsedArgs {
 }
 
 export function buildPacket(runDir: string) {
-  const runJson = loadRunJson(runDir);
+  const manifestRecord = loadSttManifestRecord(runDir);
   const { providers, warnings } = loadProviderRuns(runDir);
   if (providers.length === 0) {
     throw new Error(`No providers/*/result.json files found under ${runDir}`);
   }
-  const runDurationSeconds = durationSecondsFromRun(runJson, providers);
+  const runDurationSeconds = durationSecondsFromManifest(manifestRecord, providers);
 
   const { baseline, agreement } = chooseBaselineProvider(providers);
 

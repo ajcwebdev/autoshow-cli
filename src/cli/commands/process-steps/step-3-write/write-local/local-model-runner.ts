@@ -36,7 +36,7 @@ export const runLocalModel = async (
         attempt: async (signal) => {
           const requestModel = await profile.ensureServerRunning(model)
           const startTime = Date.now()
-          const completion = await requestLocalCompletion(profile, prompt, requestModel, signal)
+          const completion = await requestLocalCompletion(profile, prompt, requestModel, structuredOpts, signal)
           const processingTime = Date.now() - startTime
 
           const metadata: Step3Metadata = {

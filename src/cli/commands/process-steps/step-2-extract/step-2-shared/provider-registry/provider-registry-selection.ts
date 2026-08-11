@@ -1,4 +1,4 @@
-import type { HtmlArticleBackend, ProviderSpec, RuntimeOptions, Step2Command, Step2ProviderSelectionFilter, Step2ProviderSelectionOrigin, Step2ResolvedProviderSelection, Step2ShortcutFlag, UrlArticleTarget } from '~/types'
+import type { HtmlArticleBackend, ProviderSpec, Step2Command, Step2ProviderOptionSurface, Step2ProviderSelectionFilter, Step2ProviderSelectionOrigin, Step2ResolvedProviderSelection, Step2ShortcutFlag, UrlArticleTarget } from '~/types'
 import { getStep2ProviderEntries, getStep2ProviderEntry } from './entries'
 import { URL_ARTICLE_BACKENDS } from './url-providers'
 
@@ -25,14 +25,14 @@ const appendProviderSelection = (
 }
 
 const readRuntimeValue = (
-  options: Record<string, unknown>,
-  key: keyof RuntimeOptions
-): unknown => options[key]
+  options: object,
+  key: keyof Step2ProviderOptionSurface
+): unknown => (options as Partial<Record<keyof Step2ProviderOptionSurface, unknown>>)[key]
 
 const readSelectionOrigins = (
-  options: Record<string, unknown>
+  options: object
 ): Partial<Record<string, Step2ProviderSelectionOrigin>> => {
-  const value = options['step2SelectionOrigins']
+  const value = (options as { step2SelectionOrigins?: unknown }).step2SelectionOrigins
   if (!value || typeof value !== 'object' || Array.isArray(value)) {
     return {}
   }
@@ -50,21 +50,21 @@ const isUrlBackend = (value: unknown): value is HtmlArticleBackend =>
   typeof value === 'string' && (URL_ARTICLE_BACKENDS as readonly string[]).includes(value)
 
 const readUrlBackendSelection = (
-  options: Record<string, unknown>,
+  options: object,
   backend: string,
   selectionOrigins: Partial<Record<string, Step2ProviderSelectionOrigin>>,
   flagName: string
 ): Step2ProviderSelectionOrigin | undefined => {
-  const urlBackends = options['urlBackends']
+  const urlBackends = (options as { urlBackends?: unknown }).urlBackends
   if (Array.isArray(urlBackends) && urlBackends.length > 0) {
     return urlBackends.includes(backend)
       ? selectionOrigins[flagName] ?? 'all-shortcut'
       : undefined
   }
 
-  const urlBackend = options['urlBackend']
+  const urlBackend = (options as { urlBackend?: unknown }).urlBackend
   if (urlBackend === backend || (urlBackend === undefined && backend === 'defuddle')) {
-    return selectionOrigins[flagName] ?? (options['urlBackendExplicit'] === true ? 'explicit' : 'default')
+    return selectionOrigins[flagName] ?? ((options as { urlBackendExplicit?: unknown }).urlBackendExplicit === true ? 'explicit' : 'default')
   }
 
   return undefined
@@ -97,7 +97,7 @@ export const isStep2BooleanProviderSelected = (
 
 export const collectStep2ProviderSpecs = (
   step: Step2Command,
-  options: Record<string, unknown>,
+  options: object,
   filter?: Step2ProviderSelectionFilter
 ): ProviderSpec[] => {
   const specs: ProviderSpec[] = []
@@ -112,7 +112,7 @@ export const collectStep2ProviderSpecs = (
 
 export const collectStep2ProviderSelections = (
   step: Step2Command,
-  options: Record<string, unknown>,
+  options: object,
   filter?: Step2ProviderSelectionFilter
 ): Step2ResolvedProviderSelection[] => {
   const selections: Step2ResolvedProviderSelection[] = []
@@ -201,7 +201,7 @@ export const collectStep2ProviderSelections = (
 }
 
 export const collectUrlArticleTargets = (
-  options: Record<string, unknown>,
+  options: object,
   filter?: Step2ProviderSelectionFilter
 ): UrlArticleTarget[] =>
   collectStep2ProviderSelections('url', options, filter)

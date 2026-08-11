@@ -1,8 +1,10 @@
-import type { ProcessingOptions, ProviderTargetBase, ResourceGate, Step4Metadata, TtsProvider, TtsRuntimeOptionKey } from '~/types'
-export type TtsOptions = Pick<
-  ProcessingOptions,
-  TtsRuntimeOptionKey | 'ttsProviderConcurrency' | 'ttsLocalConcurrency' | 'ttsChunkConcurrency'
-> & {
+import type { ProviderTargetBase, ResourceGate, Step4Metadata, TtsProvider, TtsRuntimeOptions } from '~/types'
+
+export type TtsOptions = Partial<TtsRuntimeOptions & {
+  ttsProviderConcurrency: number
+  ttsLocalConcurrency: number
+  ttsChunkConcurrency: number
+}> & {
   generationResourceGate?: ResourceGate | undefined
   hostedTtsChunkScheduler?: HostedTtsChunkScheduler | undefined
 }
@@ -24,10 +26,6 @@ export type SpeakerVoiceRegistry = {
 export type HostedTtsChunkRateLimitFeedback = {
   retryAfterMs?: number | undefined
   delayMs?: number | undefined
-}
-
-export type HostedTtsChunkRetryFeedback = {
-  status?: number | undefined
 }
 
 export type HostedTtsChunkJobContext = {
@@ -109,7 +107,7 @@ export type HostedTtsChunkScheduler = {
     options?: HostedTtsRunChunksOptions | undefined
   ) => Promise<T[]>
   notifyRateLimit: (provider: TtsProvider, feedback?: HostedTtsChunkRateLimitFeedback | undefined) => void
-  notifyRetry: (provider: TtsProvider, feedback?: HostedTtsChunkRetryFeedback | undefined) => void
+  notifyRetry: (provider: TtsProvider) => void
   getProviderSnapshot: (provider: TtsProvider) => HostedTtsChunkSchedulerSnapshot
   getTelemetry: () => HostedTtsSchedulerTelemetry
 }

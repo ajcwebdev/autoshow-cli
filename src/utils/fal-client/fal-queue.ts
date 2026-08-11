@@ -41,8 +41,7 @@ const readErrorBody = async (response: Response): Promise<string> => {
   return body.trim().length > 0 ? body : 'No response body'
 }
 
-export const getFalQueueBaseUrl = (baseUrl: string = FAL_QUEUE_DEFAULT_BASE_URL): string =>
-  baseUrl.replace(/\/+$/, '')
+export const getFalQueueBaseUrl = (): string => FAL_QUEUE_DEFAULT_BASE_URL.replace(/\/+$/, '')
 
 export const cancelFalQueueRequest = async (apiKey: string, cancelUrl: string): Promise<void> => {
   try {
@@ -56,13 +55,12 @@ export const runFalQueue = async <T>(options: {
   apiKey: string
   endpointId: string
   input: Record<string, unknown>
-  baseUrl?: string | undefined
+  /** Test-only override that keeps queue-polling contract tests fast. */
   pollIntervalMs?: number | undefined
-  timeoutMs?: number | undefined
   operationName: string
   onStatus?: ((status: FalQueueStatus) => void) | undefined
 }): Promise<{ requestId: string, output: T }> => {
-  const baseUrl = getFalQueueBaseUrl(options.baseUrl)
+  const baseUrl = getFalQueueBaseUrl()
   const headers = headersFor(options.apiKey)
   let submission: FalQueueStatus | undefined
 
@@ -90,7 +88,7 @@ export const runFalQueue = async <T>(options: {
       : await pollUntil({
           operationName: options.operationName,
           intervalMs: options.pollIntervalMs ?? 5_000,
-          deadlineMs: options.timeoutMs ?? MEDIA_GENERATION_TIMEOUT_MS,
+          deadlineMs: MEDIA_GENERATION_TIMEOUT_MS,
           pollFn: async () => {
             const response = await fetch(statusUrl, { headers })
             if (!response.ok) {
@@ -119,7 +117,7 @@ export const runFalQueue = async <T>(options: {
         }
         return response
       },
-      (error) => classifyFetchRetry(error, 'runtime_http_read', { retryAbortOnConservative: true })
+      (error) => classifyFetchRetry(error, 'runtime_http_read')
     )
 
     return { requestId: submission.request_id, output: await resultResponse.json() as T }

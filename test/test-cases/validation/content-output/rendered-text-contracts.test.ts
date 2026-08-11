@@ -9,6 +9,7 @@ import {
   writeRenderedTextArtifacts
 } from '~/cli/commands/process-steps/step-3-write/text-input-utils'
 import { renderToPlainText } from '~/cli/commands/process-steps/step-3-write/structured-output/renderers'
+import { buildStructuredValidationFailureEnvelope } from '~/cli/commands/process-steps/step-3-write/structured-output/validation-failure'
 
 const buildStep3Metadata = (overrides: Partial<Step3Metadata> = {}): Step3Metadata => ({
   llmService: 'gemini',
@@ -78,6 +79,27 @@ test('song lyric renderer assembles sections with headers', () => {
     'Bridge\n\nBridge line\n\n' +
     'Chorus\n\nFinal hook'
   )
+})
+
+test('structured validation failures render as marked diagnostics with fenced raw output', () => {
+  const rendered = renderToPlainText(buildStructuredValidationFailureEnvelope(
+    'not json\n```\nstill raw',
+    'Response was not valid JSON'
+  ), ['content'])
+
+  expect(rendered).toBe([
+    '## Structured Validation Error',
+    '',
+    'Response was not valid JSON',
+    '',
+    '## Raw Output',
+    '',
+    '````text',
+    'not json',
+    '```',
+    'still raw',
+    '````'
+  ].join('\n'))
 })
 
 test('rendered text track headers replace duplicate song title headings', async () => {

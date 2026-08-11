@@ -1,7 +1,8 @@
 #!/usr/bin/env bun
 
-import { existsSync, readFileSync } from "node:fs";
+import { existsSync } from "node:fs";
 import { join } from "node:path";
+import { loadCanonicalRunRecord } from "../shared/pipeline_manifest";
 
 export interface MusicEntryMetadata {
   musicService: string;
@@ -36,9 +37,7 @@ interface RunStepTimingEntry {
   inputValue?: number;
 }
 
-export interface MusicRunJson {
-  schemaVersion?: number;
-  kind: string;
+export interface MusicManifestRecord {
   metadata: {
     music: MusicEntryMetadata[];
     input?: string;
@@ -74,19 +73,12 @@ export interface MusicProviderEvidence {
   costCents: number | null;
 }
 
-export function readJson<T>(path: string): T {
-  return JSON.parse(readFileSync(path, "utf8")) as T;
-}
-
-export function loadMusicRunJson(runDir: string): MusicRunJson {
-  const runJson = readJson<MusicRunJson>(join(runDir, "run.json"));
-  if (runJson.kind !== "music") {
-    throw new Error(`run.json kind is "${runJson.kind}", expected "music"`);
+export function loadMusicManifestRecord(runDir: string): MusicManifestRecord {
+  const metadata = loadCanonicalRunRecord(runDir, "music").metadata;
+  if (!Array.isArray(metadata.music) || metadata.music.length === 0) {
+    throw new Error("Canonical music manifest item metadata.music is missing or empty");
   }
-  if (!Array.isArray(runJson.metadata?.music) || runJson.metadata.music.length === 0) {
-    throw new Error("run.json metadata.music is missing or empty");
-  }
-  return runJson;
+  return { metadata: metadata as MusicManifestRecord["metadata"] };
 }
 
 export function makeProviderKey(service: string, model: string): string {
@@ -110,10 +102,10 @@ export function discoverMusicFiles(
   return { found, missing };
 }
 
-export function buildCostLookup(runJson: MusicRunJson): Map<string, number> {
+export function buildCostLookup(manifestRecord: MusicManifestRecord): Map<string, number> {
   const lookup = new Map<string, number>();
-  const estimatedSteps = runJson.metadata.cost?.estimated?.steps ?? [];
-  const actualSteps = runJson.metadata.cost?.actual?.steps ?? [];
+  const estimatedSteps = manifestRecord.metadata.cost?.estimated?.steps ?? [];
+  const actualSteps = manifestRecord.metadata.cost?.actual?.steps ?? [];
   for (const step of estimatedSteps) {
     if (step.provider && step.model && step.cost !== undefined) {
       lookup.set(makeProviderKey(step.provider, step.model), Number(step.cost));
@@ -127,10 +119,10 @@ export function buildCostLookup(runJson: MusicRunJson): Map<string, number> {
   return lookup;
 }
 
-export function buildTimingLookup(runJson: MusicRunJson): Map<string, number> {
+export function buildTimingLookup(manifestRecord: MusicManifestRecord): Map<string, number> {
   const lookup = new Map<string, number>();
-  const estimatedSteps = runJson.metadata.timing?.estimated?.steps ?? [];
-  const actualSteps = runJson.metadata.timing?.actual?.steps ?? [];
+  const estimatedSteps = manifestRecord.metadata.timing?.estimated?.steps ?? [];
+  const actualSteps = manifestRecord.metadata.timing?.actual?.steps ?? [];
   for (const step of estimatedSteps) {
     if (step.provider && step.model && step.processingTimeMs !== undefined) {
       lookup.set(makeProviderKey(step.provider, step.model), Number(step.processingTimeMs));

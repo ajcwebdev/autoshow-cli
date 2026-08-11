@@ -40,7 +40,7 @@ runLlmProviderTargetPools()
           |
           v
 text.json or text-<model>.json
-Step3Metadata in run.json
+Step3Metadata in items[].metadata
 ```
 
 Current LLM models:

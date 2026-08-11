@@ -2891,7 +2891,7 @@
   "qualityPolicy": "Text benchmark quality is unavailable unless explicit future quality fields are present. Length, speed, cost, output existence, schema validity, and subjective judgment are not quality proxies.",
   "notes": [
     "Text mode scores existing write outputs only and does not call LLM providers.",
-    "Price rankings use local zero monetary cost and reported actual or estimated service costs from run.json.",
+    "Price rankings use local zero monetary cost and reported actual or estimated service costs from manifest.json.",
     "Speed rankings prefer normalized msPerUnit timing when present, falling back to wall-clock processing time.",
     "Automated and human quality rankings require explicit quality fields and are otherwise unavailable."
   ]

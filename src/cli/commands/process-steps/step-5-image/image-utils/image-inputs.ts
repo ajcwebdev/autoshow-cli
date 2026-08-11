@@ -29,20 +29,16 @@ const imageReferenceEngine = createMediaReferenceEngine({
   mimeByExtension: MIME_BY_EXTENSION,
   mimeAliases: {},
   dataUrlPattern: /^data:image\/[a-z0-9.+-]+;base64,/i,
-  enforceAllowedDataMime: false,
-  unknownLocalMime: { mode: 'fallback', mimeType: 'image/png' },
-  fetchedContentType: { mode: 'prefix', prefix: 'image/' },
-  fetchedFallbackMimeType: 'image/png',
+  policy: { mode: 'lenient', contentTypePrefix: 'image/', fallbackMimeType: 'image/png' },
   accept: 'image/*,*/*;q=0.8',
   defaultFileName: mimeType => `image.${EXTENSION_BY_MIME[mimeType] ?? 'png'}`,
-  prettyMimeList: 'image',
   errors: {
     download: (status, url) => `Image reference download failed (${status}): ${url}`,
     unsupportedLocal: value => `Unsupported local image input "${value}".`,
     unsupportedUrl: url => `Unsupported image URL "${url}".`,
     unsupportedDataUrl: () => 'Unsupported image data URL.'
   },
-  downloadError: { stage: 'image:inputs', includeStatus: true }
+  downloadError: { stage: 'image:inputs' }
 })
 
 const prettyMimeList = (mimeTypes: readonly string[]): string =>

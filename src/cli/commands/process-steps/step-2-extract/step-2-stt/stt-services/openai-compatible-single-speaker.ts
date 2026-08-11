@@ -80,12 +80,12 @@ const withCompatibleTranscriptionRetry = async <T>(
 ): Promise<T> =>
   await withRetry(
     {
-      retryClass: 'runtime_http_create_conservative',
+      retryClass: 'runtime_http_create_retriable',
       operationName,
       timeoutMs: REQUEST_TIMEOUT_MS
     },
     operation,
-    classifySttFetchRetryWithMetrics(retryMetrics, 'runtime_http_create_conservative', { retryAbortOnConservative: true })
+    classifySttFetchRetryWithMetrics(retryMetrics, 'runtime_http_create_retriable')
   )
 
 export const runOpenAICompatibleSingleSpeakerStt = async (

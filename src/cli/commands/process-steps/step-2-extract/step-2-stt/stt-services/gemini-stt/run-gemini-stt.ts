@@ -259,7 +259,7 @@ export const runGeminiStt = async (
 
   const response = await withRetry(
     {
-      retryClass: 'runtime_http_create_conservative',
+      retryClass: 'runtime_http_create_retriable',
       operationName: 'gemini-stt',
       policy: { maxAttempts: 3 }
     },

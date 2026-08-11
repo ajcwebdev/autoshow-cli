@@ -17,10 +17,9 @@ import { classifySttSplitLimitError } from './split-limits'
 import { runAdaptiveSplitTranscription } from './split-execution'
 const persistTranscriptionStructuredArtifact = async (
   outputDir: string,
-  result: TranscriptionResult,
-  metadata: Step2Metadata
+  result: TranscriptionResult
 ): Promise<void> => {
-  await writeSttResultArtifact(outputDir, metadata, result)
+  await writeSttResultArtifact(outputDir, result)
 }
 
 const logAutoSplitDecision = (
@@ -63,13 +62,13 @@ export const sttTarget = async (
 
   if (target.service === 'supadata') {
     const transcription = await dispatchStt(target, audioPath, outputDir, 0, effectiveOptions)
-    await persistTranscriptionStructuredArtifact(outputDir, transcription.result, transcription.metadata)
+    await persistTranscriptionStructuredArtifact(outputDir, transcription.result)
     return transcription
   }
 
   if (target.service === 'scrapecreators') {
     const transcription = await dispatchStt(target, audioPath, outputDir, 0, effectiveOptions)
-    await persistTranscriptionStructuredArtifact(outputDir, transcription.result, transcription.metadata)
+    await persistTranscriptionStructuredArtifact(outputDir, transcription.result)
     return transcription
   }
 
@@ -95,7 +94,7 @@ export const sttTarget = async (
 
   try {
     const transcription = await dispatchStt(target, audioPath, outputDir, 0, effectiveOptions)
-    await persistTranscriptionStructuredArtifact(outputDir, transcription.result, transcription.metadata)
+    await persistTranscriptionStructuredArtifact(outputDir, transcription.result)
     return transcription
   } catch (error) {
     const splitLimitClassification = classifySttSplitLimitError(target, error)

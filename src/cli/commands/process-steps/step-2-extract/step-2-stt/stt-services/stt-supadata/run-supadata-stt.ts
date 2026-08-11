@@ -15,11 +15,11 @@ import {
   buildAsyncSttResumeProbeError,
   createAsyncSttJobReadyNotifier,
   createAsyncSttProgressMetadataPersister,
+  parseStep2RuntimeMetadata,
   pollAsyncSttJobUntilComplete,
-  readPersistedAsyncSttRuntime,
+  readPersistedAsyncSttProgressMetadata,
 } from '~/cli/commands/process-steps/step-2-extract/step-2-stt/async-lifecycle'
 import { buildStep2TimingMetadata } from '~/cli/commands/process-steps/step-2-extract/step-2-stt/stt-timing-metadata'
-import { readSttProviderCheckpoint } from '~/cli/commands/process-steps/step-2-extract/step-2-stt/stt-manifest'
 import { getSupadataBaseUrl, isSupadataSupportedSourceUrl } from './supadata'
 import { requireApiKey } from '~/utils/validate/env-utils'
 import { InfraError, InternalError } from '~/utils/error-handler'
@@ -98,16 +98,14 @@ export const runSupadataStt = async (
   let requestCount = 0
   let retryCount = 0
   let rateLimitCount = 0
-  const persistedCheckpointMetadata = await readSttProviderCheckpoint(outputDir)
-  const persistedBilling = persistedCheckpointMetadata
-    && persistedCheckpointMetadata['transcriptionService'] === 'supadata'
-    && persistedCheckpointMetadata['transcriptionModel'] === modelName
-      ? parsePersistedSupadataBilling(persistedCheckpointMetadata)
-      : undefined
-  let runtime = await readPersistedAsyncSttRuntime(outputDir, {
+  const persistedProgressMetadata = await readPersistedAsyncSttProgressMetadata(lifecycle, {
     transcriptionService: 'supadata',
     transcriptionModel: modelName
-  })
+  }, segmentNumber)
+  const persistedBilling = persistedProgressMetadata
+    ? parsePersistedSupadataBilling(persistedProgressMetadata)
+    : undefined
+  let runtime = parseStep2RuntimeMetadata(persistedProgressMetadata?.['runtime'])
   let billedCredits = persistedBilling?.creditsUsed
   let creditRateCents = persistedBilling?.creditRateCents ?? getSupadataCreditRateCents()
   let billingSource = persistedBilling?.source
@@ -147,7 +145,7 @@ export const runSupadataStt = async (
 
     billedCredits = credits
     creditRateCents = getSupadataCreditRateCents()
-    billingSource = 'response-header'
+    billingSource = 'response_header'
   }
 
   const buildTimingMetadata = (): Step2Metadata['timings'] =>
@@ -174,7 +172,8 @@ export const runSupadataStt = async (
   })
 
   const persistProgressMetadata = createAsyncSttProgressMetadataPersister(
-    outputDir,
+    lifecycle,
+    segmentNumber,
     buildProgressMetadata,
     (nextRuntime) => { runtime = nextRuntime }
   )
@@ -213,7 +212,7 @@ export const runSupadataStt = async (
       createMs += Date.now() - createStartedAt
       createCount += 1
     } catch (error) {
-      attachSupadataErrorContext(error, 'create', 'runtime_http_create_conservative')
+      attachSupadataErrorContext(error, 'create', 'runtime_http_create_retriable')
     }
     if (!createResult) {
       throw InfraError('Supadata transcript request did not return a response', { stage: 'stt:supadata' })
@@ -225,7 +224,7 @@ export const runSupadataStt = async (
       if (!jobPayload) {
         throw Object.assign(new Error('Supadata returned 202 without a jobId'), {
           stage: 'create',
-          retryClass: 'runtime_http_create_conservative' as const,
+          retryClass: 'runtime_http_create_retriable' as const,
           rawResponse: createResult.payload
         })
       }
@@ -255,7 +254,7 @@ export const runSupadataStt = async (
       if (!transcriptPayload) {
         throw Object.assign(new Error('Supadata returned an invalid transcript payload'), {
           stage: 'create',
-          retryClass: 'runtime_http_create_conservative' as const,
+          retryClass: 'runtime_http_create_retriable' as const,
           retryable: false,
           rawResponse: createResult.payload
         })

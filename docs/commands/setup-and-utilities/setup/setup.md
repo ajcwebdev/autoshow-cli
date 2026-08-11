@@ -31,13 +31,13 @@ Use full setup on a clean machine when you want local download, OCR, STT, write,
 
 ## Disk and Network Requirements
 
-A full `bun autoshow setup` downloads several gigabytes and builds a number of tools from source. Budget roughly **12 GB free** and expect 5-10 minutes on a fast connection. A re-run with everything already installed takes a few seconds.
+A full `bun autoshow setup` downloads several gigabytes and builds a number of tools from source. Budget roughly **10 GB free** and expect 5-10 minutes on a fast connection. A re-run with everything already installed takes a few seconds.
 
 Setup writes to four places, not just the repo:
 
 | Location | Holds | Approx. size |
 | --- | --- | --- |
-| `runtime/` | Managed binaries, Python envs, and local models | ~9 GiB |
+| `runtime/` | Managed binaries, Python envs, and local models | ~7 GiB |
 | `~/.cache/uv` (macOS and Linux) | uv's shared Python package cache | ~2.5 GB |
 | `~/Library/Caches/llama.cpp` (macOS), `~/.cache/llama.cpp` (Linux) | llama.cpp `-hf` model weights | a few hundred MB per model |
 | `~/.cache/huggingface/hub` | Reverb and Kitten TTS model weights | ~1 GB |
@@ -45,6 +45,7 @@ Setup writes to four places, not just the repo:
 Notes:
 
 - The Setup Summary prints the current `runtime/` size under the `disk` row, in the same units as `du -h`.
+- Installs created before the Whisper CoreML pipeline was retired may retain `runtime/bin/whisper-coreml-env` and encoder directories under `runtime/models/whisper`. Full setup reports those legacy artifacts and their sizes as safe to delete.
 - `runtime/build` holds only transient source trees. Each installer removes its own tree on success, and a full setup prunes whatever is left over.
 - Downloads stream to a `<file>.part` alongside the destination and resume from there, so an interrupted transfer does not restart from zero. Large assets abort only after **60 seconds with no bytes received**, not after a fixed total transfer time, so a slow connection does not by itself cause a failure.
 - At most three downloads transfer at once. Setup starts eight tasks in parallel, and letting all of them pull at once divides the connection rather than finishing anything sooner.

@@ -10,7 +10,6 @@
         "pricingCurrency": "USD",
         "pricingTier": "Base/reference heuristic",
         "pricingNotes": "Spider pricing can depend on scrape mode, compute, and bandwidth. AutoShow keeps a conservative base/reference per-page heuristic for dry-run totals; free credits, discounts, enterprise pricing, taxes, and provider credits are ignored.",
-        "costPer1kPagesUSD": 1.2,
         "costPer1kPagesCents": 120,
         "limits": {
           "notes": "Spider publishes usage billing based on bandwidth and compute rather than a fixed per-page scrape price. AutoShow uses a conservative heuristic per-page estimate for dry-run totals."

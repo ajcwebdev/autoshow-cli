@@ -10,8 +10,6 @@
         "pricingCurrency": "USD",
         "pricingTier": "DeepInfra public per-token model pricing",
         "pricingNotes": "DeepInfra lists Qwen/Qwen3-VL-235B-A22B-Instruct at $0.20/1M input tokens, $0.11/1M cached input tokens, and $0.88/1M output tokens. OCR estimates use non-cached token rates; discounts, enterprise pricing, taxes, and provider credits are ignored.",
-        "costPerMInputTokensUSD": 0.2,
-        "costPerMOutputTokensUSD": 0.88,
         "costPerMInputTokensCents": 20,
         "costPerMOutputTokensCents": 88,
         "limits": {
@@ -32,8 +30,6 @@
         "pricingCurrency": "USD",
         "pricingTier": "DeepInfra public per-token model pricing",
         "pricingNotes": "DeepInfra lists Qwen/Qwen3-VL-30B-A3B-Instruct at $0.15/1M input tokens and $0.60/1M output tokens. OCR estimates use these public rates; discounts, enterprise pricing, taxes, and provider credits are ignored.",
-        "costPerMInputTokensUSD": 0.15,
-        "costPerMOutputTokensUSD": 0.6,
         "costPerMInputTokensCents": 15,
         "costPerMOutputTokensCents": 60,
         "limits": {

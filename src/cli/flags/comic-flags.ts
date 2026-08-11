@@ -68,16 +68,12 @@ const generateImagesVariationFlag = {
 
 const generateImagesForceFlag = {
   force: {
-    description: colorizeHelpDescription('Rebuild and overwrite existing outputs, including scene drafts and panel prompts'),
+    description: colorizeHelpDescription('Regenerate and overwrite image outputs only'),
     type: Boolean,
     short: 'f',
     default: false,
     negatable: false
   }
-} as const satisfies CliFlagsDefinition
-
-const generateImagesLlmFlag = {
-  'llm-model': strFlag(colorizeHelpDescription(`Text model used when scene drafts or panel prompts must be rebuilt (default: ${DEFAULT_LLM_MODEL})`))
 } as const satisfies CliFlagsDefinition
 
 export const generateImagesFlags = {
@@ -86,7 +82,6 @@ export const generateImagesFlags = {
   ...withHelpGroup(generateImagesVariationFlag, 'comic-image'),
   ...withHelpGroup({ size: comicImageFlags.size, quality: comicImageFlags.quality }, 'comic-image'),
   ...withHelpGroup(comicQaFlags, 'comic-qa'),
-  ...withHelpGroup(generateImagesLlmFlag, 'comic-stages'),
   ...withHelpGroup(generateImagesForceFlag, 'comic-run'),
   ...withHelpGroup(comicConcurrencyFlag, 'comic-run'),
   ...withHelpGroup(comicPriceFlag, 'pricing')

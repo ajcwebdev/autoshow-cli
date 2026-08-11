@@ -26,7 +26,7 @@ describe('logging contracts', () => {
       const table = createHumanTable([
         {
           status: 'completed',
-          path: 'output/run/run.json',
+          path: 'output/run/manifest.json',
           providerModel: 'openai/gpt-5.5',
           durationMs: '1250ms',
           cost: '1.25000\u00a2'
@@ -45,7 +45,7 @@ describe('logging contracts', () => {
         {
           status: 'completed',
           cost: '1.25000\u00a2',
-          path: 'output/run/run.json',
+          path: 'output/run/manifest.json',
           providerModel: 'openai/gpt-5.5',
           durationMs: '1250ms'
         },
@@ -128,7 +128,7 @@ describe('logging contracts', () => {
 
   test('NO_COLOR disables human table ANSI output', () => {
       const rendered = withColorEnv({ noColor: '1' }, () => renderHumanTable(createHumanTable([
-        { status: 'failed', cost: '2.00000\u00a2', path: 'output/run/run.json' }
+        { status: 'failed', cost: '2.00000\u00a2', path: 'output/run/manifest.json' }
       ], ['status', 'cost', 'path'])))
 
       expect(hasAnsi(rendered)).toBe(false)
@@ -136,10 +136,10 @@ describe('logging contracts', () => {
 
   test('human artifact/path table rendering omits artifact/path header row', () => {
       const rendered = stripAnsi(renderHumanTable(createHumanTable([
-        { artifact: 'run', path: 'output/run/run.json' }
+        { artifact: 'manifest', path: 'output/run/manifest.json' }
       ], ['artifact', 'path'])))
 
-      expect(rendered).toContain('\u2502 run \u2502 output/run/run.json')
+      expect(rendered).toContain('\u2502 manifest \u2502 output/run/manifest.json')
       expect(rendered).not.toContain('\u2502 artifact \u2502 path')
       expect(rendered).not.toContain('\u2502 0 \u2502')
     })
@@ -177,13 +177,13 @@ describe('logging contracts', () => {
     })
 
   test('long Locations paths render as sidecar details outside the boxed table', () => {
-      const longPath = 'output/2026-05-13_22-39-03-656_ajcwebdevs-content-archive/run.json'
-      const table = createLocationsTable([{ artifact: 'runManifest', path: longPath }])
+      const longPath = 'output/2026-05-13_22-39-03-656_ajcwebdevs-content-archive/manifest.json'
+      const table = createLocationsTable([{ artifact: 'manifest', path: longPath }])
       const rendered = stripAnsi(renderHumanTable(table))
 
       expect(table.rows).toEqual([])
-      expect(table.details).toEqual([{ label: 'runManifest', value: longPath }])
-      expect(rendered).toBe(`  run manifest: ${longPath}`)
+      expect(table.details).toEqual([{ label: 'manifest', value: longPath }])
+      expect(rendered).toBe(`  manifest: ${longPath}`)
       expect(rendered).not.toContain('\u250c')
       expect(rendered).not.toContain(`\u2502 ${longPath}`)
     })
@@ -220,7 +220,7 @@ describe('logging contracts', () => {
       const { logger, writes } = createCapturingLogger()
       const reporter = createReporter(logger)
 
-      reporter.complete('output/run', { speech: 'speech.wav', run: 'run.json' }, {
+      reporter.complete('output/run', { speech: 'speech.wav', manifest: 'manifest.json' }, {
         includeOutputDir: false
       })
 
@@ -231,14 +231,14 @@ describe('logging contracts', () => {
 
   test('short filenames and short paths remain inline in human tables', () => {
       const table = createHumanTable([
-        { artifact: 'run', path: 'output/run/run.json' },
+        { artifact: 'manifest', path: 'output/run/manifest.json' },
         { artifact: 'audio', path: 'speech.wav' }
       ], ['artifact', 'path'])
       const rendered = stripAnsi(renderHumanTable(table))
 
       expect(table.details).toBeUndefined()
-      expect(rendered).toContain('\u2502 run   \u2502 output/run/run.json')
-      expect(rendered).toContain('\u2502 audio \u2502 speech.wav')
+      expect(rendered).toContain('\u2502 manifest \u2502 output/run/manifest.json')
+      expect(rendered).toContain('\u2502 audio    \u2502 speech.wav')
     })
 
   test('verbose error-like table cells render as sidecar details outside the box', () => {
@@ -289,7 +289,7 @@ describe('logging contracts', () => {
 
   test('lifted path details are redacted like table cells', () => {
       const secret = 'secret-value-123'
-      const longPath = `output/2026-05-13_12-34-56-789_process-video_with-a-very-long-title/OPENAI_API_KEY=${secret}/run.json`
+      const longPath = `output/2026-05-13_12-34-56-789_process-video_with-a-very-long-title/OPENAI_API_KEY=${secret}/manifest.json`
       const events: LogSinkEvent[] = []
       const logger = createLogger({
         runId: 'run-id',
@@ -297,7 +297,7 @@ describe('logging contracts', () => {
       })
 
       logger.write('info', 'Locations', {
-        humanTable: createLocationsTable([{ artifact: 'runManifest', path: longPath }])
+        humanTable: createLocationsTable([{ artifact: 'manifest', path: longPath }])
       })
 
       const detailValue = events[0]?.humanTable?.details?.[0]?.value
@@ -306,7 +306,7 @@ describe('logging contracts', () => {
 
       const captured = captureConsole(() => createJsonSink()(events[0] as LogSinkEvent))
       expect(JSON.parse(captured.stdout[0] as string).humanTable.details[0]).toEqual({
-        label: 'runManifest',
+        label: 'manifest',
         value: detailValue
       })
     })

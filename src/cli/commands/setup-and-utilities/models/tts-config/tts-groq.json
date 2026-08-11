@@ -18,7 +18,6 @@
         "pricingCurrency": "USD",
         "pricingTier": "On-demand pay-as-you-go",
         "pricingNotes": "Groq lists canopylabs/orpheus-v1-english Text-To-Speech as billed at $22 / 1M characters. Stored as a single character rate to avoid double-counting input text.",
-        "costPer1kCharsUSD": 0.022,
         "costPer1kCharsCents": 2.2,
         "estimation": {
           "costMultiplier": 1,

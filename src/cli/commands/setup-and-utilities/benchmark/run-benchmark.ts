@@ -15,7 +15,7 @@ import { runTextBenchmark } from './run-text-benchmark'
 import { runTtsBenchmark } from './run-tts-benchmark'
 import { runVideoBenchmark } from './run-video-benchmark/run-video-benchmark'
 import { computeWER } from './wer'
-import type { AudioVariant, BenchmarkAttemptRecord, BenchmarkAttemptStatus, BenchmarkFlags, BenchmarkReport, BenchmarkScoreEntry, SttServiceSpec, VariantTranscription } from '~/types'
+import type { AudioVariant, BenchmarkAttemptRecord, BenchmarkAttemptStatus, BenchmarkFlags, BenchmarkReport, BenchmarkScoreEntry, BenchmarkServiceResolutionOptions, SttServiceSpec, VariantTranscription } from '~/types'
 import { getFfmpegBinary } from '~/utils/runtime-paths'
 
 const WER_THRESHOLD = 0.10
@@ -260,7 +260,8 @@ const computeSummary = (
 
 export const runBenchmark = async (
   input: string | undefined,
-  flags: BenchmarkFlags
+  flags: BenchmarkFlags,
+  options: { serviceResolution?: BenchmarkServiceResolutionOptions | undefined } = {}
 ): Promise<void> => {
   const selectedModes = [flags.image, flags.text, flags.tts, flags.video].filter((value) => value === true).length
   if (selectedModes > 1) {
@@ -289,6 +290,17 @@ export const runBenchmark = async (
 
   if (!input) {
     throw CLIUsageError('Input audio file path is required. Usage: bun autoshow benchmark <audio-file>')
+  }
+
+  // Resolve and validate the complete paid-service surface before Phase 1 can create artifacts,
+  // run ffmpeg, or reach the reference provider.
+  const services = resolveAvailableServices(flags['stt-services'], options.serviceResolution)
+  const ref = parseReferenceStt(flags['reference-stt'])
+  if (services.length === 0) {
+    const selection = flags['stt-services']
+      ? ` from --stt-services "${flags['stt-services']}"`
+      : ''
+    throw CLIUsageError(`No available STT benchmark services resolved${selection}. Configure credentials, install the managed whisper binary, or choose another supported service.`)
   }
 
   const bitrates = flags.bitrates.split(',').map(s => Number.parseInt(s.trim(), 10)).filter(n => !Number.isNaN(n))
@@ -337,7 +349,6 @@ export const runBenchmark = async (
 
   // Phase 3: Resolve available services and get reference transcription
   l.write('info','\n--- Phase 3: Reference Transcription ---')
-  const ref = parseReferenceStt(flags['reference-stt'])
   const refSpec: SttServiceSpec = { service: ref.service, model: ref.model, envVar: undefined }
 
   l.write('info',`Transcribing source with reference: ${ref.service}:${ref.model}`)
@@ -361,7 +372,6 @@ export const runBenchmark = async (
 
   // Phase 4: Transcribe all variants through all services
   l.write('info','\n--- Phase 4: Transcribe Variants ---')
-  const services = resolveAvailableServices(flags['stt-services'])
   l.write('info', 'Benchmark Matrix', {
     category: 'pipeline',
     humanTable: createKeyValueTable([

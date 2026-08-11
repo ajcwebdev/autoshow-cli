@@ -137,7 +137,7 @@ describe('OpenAI REST audio and STT contracts', () => {
           kind: 'retry_exhausted',
           status: 400,
           stage: 'transcribe',
-          retryClass: 'runtime_http_create_conservative'
+          retryClass: 'runtime_http_create_retriable'
         })
         expect((error as Error).message).toStartWith('grok-stt failed after 2/4 attempts')
         expect((error as Error).cause).toMatchObject({

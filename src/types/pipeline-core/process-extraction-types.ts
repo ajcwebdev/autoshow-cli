@@ -1,6 +1,7 @@
 import * as v from 'valibot'
 import type { DocFormat, HostedOcrScheduler, ProviderIdentityBase } from '~/types'
 import { DEFAULT_OCR_CONCURRENCY } from '~/utils/concurrency-defaults'
+import { COST_SOURCES } from '../costing/pricing-vocabularies'
 
 export type DetectResult = DocFormat | 'acsm' | null
 
@@ -23,16 +24,7 @@ export type WebArticleMetadata = {
   description?: string
 }
 
-const CostSourceSchema = v.picklist([
-  'provider_usage',
-  'provider_quote',
-  'response_header',
-  'computed_usage',
-  'registry_fallback',
-  'partial_provider_usage',
-  'heuristic',
-  'local_zero'
-])
+const CostSourceSchema = v.picklist(COST_SOURCES)
 
 export const ExtractionOptionsSchema = v.object({
   filePath: v.string(),

@@ -18,15 +18,12 @@ const PricingProvenanceFields = {
   pricingNotes: v.optional(v.string(), undefined)
 }
 
-const TokenPricingBandSchema = v.object({
+const TokenPricingBandSchema = v.strictObject({
   label: v.optional(v.string(), undefined),
   minInputTokens: v.optional(v.pipe(v.number(), v.minValue(0)), undefined),
   maxInputTokens: v.optional(v.pipe(v.number(), v.minValue(0)), undefined),
-  inputCostPer1MUSD: v.optional(v.number(), undefined),
   inputCostPer1MCents: v.number(),
-  cachedInputCostPer1MUSD: v.optional(v.number(), undefined),
   cachedInputCostPer1MCents: v.optional(v.number(), undefined),
-  outputCostPer1MUSD: v.optional(v.number(), undefined),
   outputCostPer1MCents: v.number(),
   note: v.optional(v.string(), undefined)
 })
@@ -45,11 +42,10 @@ export const SttLimitsSchema = v.object({
   notes: v.optional(v.string(), undefined)
 })
 
-const SttModelSchema = v.object({
+const SttModelSchema = v.strictObject({
   description: v.string(),
   ...PricingProvenanceFields,
-  costPerHourUSD: v.optional(v.number(), undefined),
-  costPerHourCents: v.optional(v.number(), undefined),
+  costPerHourCents: v.number(),
   billing: v.optional(SttBillingSchema, undefined),
   estimation: v.optional(SttEstimationSchema, undefined),
   limits: v.optional(SttLimitsSchema, undefined)
@@ -69,16 +65,12 @@ export const ExtractLimitsSchema = v.object({
   notes: v.optional(v.string(), undefined)
 })
 
-const ExtractModelSchema = v.object({
+const ExtractModelSchema = v.strictObject({
   description: v.string(),
   ...PricingProvenanceFields,
-  costPer1kPagesUSD: v.optional(v.number(), undefined),
   costPer1kPagesCents: v.optional(v.number(), undefined),
-  costPerMInputTokensUSD: v.optional(v.number(), undefined),
   costPerMInputTokensCents: v.optional(v.number(), undefined),
-  costPerMCachedInputTokensUSD: v.optional(v.number(), undefined),
   costPerMCachedInputTokensCents: v.optional(v.number(), undefined),
-  costPerMOutputTokensUSD: v.optional(v.number(), undefined),
   costPerMOutputTokensCents: v.optional(v.number(), undefined),
   tokenPricingBands: v.optional(v.array(TokenPricingBandSchema), undefined),
   higherContextPricing: v.optional(HigherContextPricingSchema, undefined),
@@ -98,14 +90,11 @@ const ExtractServiceSchema = v.object({
   models: v.record(v.string(), ExtractModelSchema)
 })
 
-const LlmModelSchema = v.object({
+const LlmModelSchema = v.strictObject({
   description: v.string(),
   ...PricingProvenanceFields,
-  inputCostPer1MUSD: v.number(),
   inputCostPer1MCents: v.number(),
-  cachedInputCostPer1MUSD: v.optional(v.number(), undefined),
   cachedInputCostPer1MCents: v.optional(v.number(), undefined),
-  outputCostPer1MUSD: v.number(),
   outputCostPer1MCents: v.number(),
   tokenPricingBands: v.optional(v.array(TokenPricingBandSchema), undefined),
   higherContextPricing: v.optional(HigherContextPricingSchema, undefined),
@@ -121,14 +110,11 @@ const LlmServiceSchema = v.object({
   models: v.record(v.string(), LlmModelSchema)
 })
 
-const TtsModelSchema = v.object({
+const TtsModelSchema = v.strictObject({
   description: v.string(),
   ...PricingProvenanceFields,
-  costPer1kCharsUSD: v.optional(v.number(), undefined),
   costPer1kCharsCents: v.optional(v.number(), undefined),
-  inputCostPer1MCharsUSD: v.optional(v.number(), undefined),
   inputCostPer1MCharsCents: v.optional(v.number(), undefined),
-  outputCostPer1MCharsUSD: v.optional(v.number(), undefined),
   outputCostPer1MCharsCents: v.optional(v.number(), undefined),
   hfRepo: v.optional(v.string(), undefined),
   limits: v.optional(v.object({
@@ -152,10 +138,9 @@ const ImageReferenceCapabilitiesSchema = v.strictObject({
   maxInputs: v.pipe(v.number(), v.integer(), v.minValue(0))
 })
 
-const ImageModelSchema = v.object({
+const ImageModelSchema = v.strictObject({
   description: v.string(),
   ...PricingProvenanceFields,
-  costPerImageUSD: v.number(),
   costPerImageCents: v.number(),
   referenceImages: v.optional(ImageReferenceCapabilitiesSchema, undefined),
   estimation: v.optional(v.object({
@@ -171,14 +156,11 @@ const ImageServiceSchema = v.object({
   models: v.record(v.string(), ImageModelSchema)
 })
 
-const MusicModelSchema = v.object({
+const MusicModelSchema = v.strictObject({
   description: v.string(),
   ...PricingProvenanceFields,
-  costPerTrackUSD: v.optional(v.number(), undefined),
   costPerTrackCents: v.optional(v.number(), undefined),
-  costPerMinuteUSD: v.optional(v.number(), undefined),
   costPerMinuteCents: v.optional(v.number(), undefined),
-  lyricsCostPerTrackUSD: v.optional(v.number(), undefined),
   lyricsCostPerTrackCents: v.optional(v.number(), undefined),
   estimation: v.optional(v.object({
     costMultiplier: v.optional(v.number(), undefined),
@@ -202,24 +184,18 @@ const VideoCostPerSecondByResolutionSchema = v.record(
   v.number()
 )
 
-const VideoModelSchema = v.object({
+const VideoModelSchema = v.strictObject({
   description: v.string(),
   ...PricingProvenanceFields,
-  baseCostPerSecondUSD: v.optional(v.number(), undefined),
   baseCostPerSecondCents: v.optional(v.number(), undefined),
-  baseJobFeeUSD: v.optional(v.number(), undefined),
   baseJobFeeCents: v.optional(v.number(), undefined),
   resolutionMultiplier720p: v.optional(v.number(), undefined),
   resolutionMultiplier1080p: v.optional(v.number(), undefined),
   blockSizeSec: v.optional(v.number(), undefined),
-  blockCost720pUSD: v.optional(v.number(), undefined),
   blockCost720pCents: v.optional(v.number(), undefined),
-  blockCost1080pUSD: v.optional(v.number(), undefined),
   blockCost1080pCents: v.optional(v.number(), undefined),
   fixedCostByResolutionDurationCents: v.optional(VideoFixedCostMatrixSchema, undefined),
-  inputImageCostUSD: v.optional(v.number(), undefined),
   inputImageCostCents: v.optional(v.number(), undefined),
-  inputVideoCostPerSecondUSD: v.optional(v.number(), undefined),
   inputVideoCostPerSecondCents: v.optional(v.number(), undefined),
   costPerSecondByResolutionCents: v.optional(VideoCostPerSecondByResolutionSchema, undefined),
   audioCostPerSecondByResolutionCents: v.optional(VideoCostPerSecondByResolutionSchema, undefined),

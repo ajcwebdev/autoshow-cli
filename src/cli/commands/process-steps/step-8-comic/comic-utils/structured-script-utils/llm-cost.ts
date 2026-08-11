@@ -18,7 +18,7 @@ export const estimateLlmCostFromRegistry = (
   }
 
   return (
-    (inputTokens / 1_000_000) * model.inputCostPer1MUSD +
-    (outputTokens / 1_000_000) * model.outputCostPer1MUSD
-  )
+    (inputTokens / 1_000_000) * model.inputCostPer1MCents +
+    (outputTokens / 1_000_000) * model.outputCostPer1MCents
+  ) / 100
 }

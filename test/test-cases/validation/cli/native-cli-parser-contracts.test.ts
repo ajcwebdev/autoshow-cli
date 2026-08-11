@@ -34,6 +34,11 @@ const globalFlags = {
   'config-path': {
     description: 'Config path',
     type: String
+  },
+  tag: {
+    description: 'Repeatable global tag',
+    type: [String] as [StringConstructor],
+    default: [] as string[]
   }
 } as const satisfies CliFlagsDefinition
 
@@ -104,7 +109,25 @@ const variadicCommand = defineCliCommand({
   }
 }, () => {})
 
-const commands = [runCommand, linksCommand, subcommandsCommand, variadicCommand] as const satisfies readonly CliCommandDefinition[]
+const nestedRunCommand = defineCliCommand({
+  name: 'nested run',
+  description: 'Nested command parser fixture',
+  parameters: [{ key: '<input>', description: 'Input value' }],
+  flags: {
+    name: {
+      description: 'Name',
+      type: String
+    }
+  }
+}, () => {})
+
+const nestedCommand = defineCliCommand({
+  name: 'nested',
+  description: 'Nested command parent fixture',
+  subcommands: [nestedRunCommand]
+}, () => {})
+
+const commands = [runCommand, linksCommand, subcommandsCommand, variadicCommand, nestedCommand] as const satisfies readonly CliCommandDefinition[]
 
 const root: CliRootDefinition = {
   scriptName: 'bun test-cli',
@@ -270,7 +293,32 @@ describe('native CLI parser contracts', () => {
     expect(parsed.flags['help']).toBe(true)
   })
 
-  test('native dispatcher rejects unknown flags except for links selectors', async () => {
+  test('routes one subcommand level and parses global flags exactly once', () => {
+    const parsed = parseNativeCli([
+      'nested',
+      '--tag',
+      'before',
+      'run',
+      'input.txt',
+      '--tag=after',
+      '--name=fixture'
+    ], commands, globalFlags)
+
+    expect(parsed.mode).toBe('command')
+    expect(parsed.command).toBe(nestedRunCommand)
+    expect(parsed.calledAs).toBe('nested run')
+    expect(parsed.parameters.input).toBe('input.txt')
+    expect(parsed.flags['tag']).toEqual(['before', 'after'])
+    expect(parsed.rawParsed.flagOccurrences.filter((occurrence) => occurrence.name === 'tag')).toHaveLength(2)
+    expect(parseNativeCli(['nested'], commands, globalFlags).mode).toBe('help')
+    expect(parseNativeCli(['nested', 'run', '--help'], commands, globalFlags).command).toBe(nestedRunCommand)
+    expect(parseNativeCli(['help', 'nested', 'run'], commands, globalFlags).command).toBe(nestedRunCommand)
+    expect(parseNativeCli(['nested', '--unknown'], commands, globalFlags).rawParsed.unknown).toEqual({ unknown: true })
+    expect(() => parseNativeCli(['nested', 'run', 'input.txt', 'extra.txt'], commands, globalFlags))
+      .toThrow('Unexpected parameter "extra.txt"')
+  })
+
+  test('native dispatcher rejects unknown flags unless a command explicitly permits them', async () => {
     await expect(dispatchNativeCli(['run', 'input.txt', '--unknown'], root, commands))
       .rejects.toThrow(NativeUnknownFlagError)
 

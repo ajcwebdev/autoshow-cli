@@ -1,11 +1,11 @@
-import type { PreparedSttMedia, ResolvedStep2Execution, RuntimeOptions, Step2Metadata, SttProviderState, SttTarget } from '~/types'
+import type { ResolvedStep2Execution, Step2Metadata, SttProviderState, SttStep2ResolutionOptions, SttTarget } from '~/types'
 import { mergeStep2TimingMetadata } from '../stt-timing-metadata'
 import { formatSttTargetLabel } from '../stt-targets'
 import { resolveSttStep2Execution } from '../../step-2-shared/resolved-step2'
 
 export const resolveRecordedSttStep2 = (
   requestedTargets: Array<Pick<SttTarget, 'service' | 'model'>>,
-  options: RuntimeOptions
+  options: SttStep2ResolutionOptions
 ): ResolvedStep2Execution => {
   const resolved = resolveSttStep2Execution(options)
   const resolvedProviders = resolved.route === 'stt' ? resolved.providers : []
@@ -43,12 +43,4 @@ export const withMergedStep2Timings = (
     ...metadata,
     timings: mergedTimings
   }
-}
-
-export const resolveTargetAudioPath = (
-  _target: SttTarget,
-  prepared: PreparedSttMedia
-): string => {
-  const sourceMediaPath = prepared.executionArtifacts.sourceMediaPath
-  return sourceMediaPath
 }

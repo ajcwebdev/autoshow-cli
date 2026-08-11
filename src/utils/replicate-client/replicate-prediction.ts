@@ -195,15 +195,15 @@ export const runReplicatePrediction = async (
         ...(signal ? { signal } : {})
       },
       'prediction create',
-      'runtime_http_create_conservative'
+      'runtime_http_create_retriable'
     )
     return parsePredictionPayload(payload, 'Replicate prediction create')
   }
 
   const created = await withRetry(
-    { retryClass: 'runtime_http_create_conservative', operationName: `${options.operationName}-create` },
+    { retryClass: 'runtime_http_create_retriable', operationName: `${options.operationName}-create` },
     createPrediction,
-    (error) => classifyFetchRetry(error, 'runtime_http_create_conservative', { retryAbortOnConservative: true })
+    (error) => classifyFetchRetry(error, 'runtime_http_create_retriable')
   )
   options.onStatus?.(created)
 
@@ -240,7 +240,7 @@ export const runReplicatePrediction = async (
           )
           return parsePredictionPayload(payload, 'Replicate prediction poll')
         },
-        (error) => classifyFetchRetry(error, 'runtime_http_read', { retryAbortOnConservative: true })
+        (error) => classifyFetchRetry(error, 'runtime_http_read')
       )
       options.onStatus?.(prediction)
       return prediction

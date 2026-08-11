@@ -1,6 +1,6 @@
 import { stat } from 'node:fs/promises'
 import { join, resolve as pathResolve } from 'node:path'
-import { writeRunManifest } from '~/cli/commands/process-steps/manifest-utils'
+import { createManifest, createPipelineItemFromRecord, writeManifest } from '~/cli/commands/process-steps/pipeline-manifest'
 import { isLikelyUrl } from '~/cli/commands/process-steps/step-0-metadata/metadata-targets/metadata-input-classifier'
 import { downloadDocument } from '~/cli/commands/process-steps/step-1-download/document/dl-document'
 import { buildOcrCostDiagnostics, collectEstimatedExtractTargets, resolveDocumentWriteEstimatedCosts, resolveDocumentWriteObservedEstimateCosts } from '~/cli/commands/process-steps/step-2-extract/step-2-ocr/ocr-costs'
@@ -10,7 +10,7 @@ import { runLLM } from '~/cli/commands/process-steps/step-3-write/run-llm'
 import { writeShowNoteArtifacts } from '~/cli/commands/process-steps/step-3-write/show-note-artifacts'
 import { writeRenderedTextArtifacts } from '~/cli/commands/process-steps/step-3-write/text-input-utils'
 import { logWriteManifestConsoleSummary } from '~/cli/commands/process-steps/write-manifest-log/write-manifest-log'
-import type { AggregatedPriceEstimate, BatchChildRunContext, ExtractionMetadata, ExtractionOptions, PreparedDocument, RunExtractedDocumentWriteOptions, RuntimeOptions, Step1SourceRef, Step3Metadata, TranscriptionResult, VideoMetadata, WriteDocumentOutputMetadataOptions } from '~/types'
+import type { AggregatedPriceEstimate, BatchChildRunContext, DocumentExtractionOptions, ExtractionMetadata, ExtractionOptions, PreparedDocument, ResolvedLLMModelOptions, RunExtractedDocumentWriteOptions, Step1SourceRef, Step3Metadata, TranscriptionResult, VideoMetadata, WriteDocumentOutputMetadataOptions, WriteRuntimeOptions } from '~/types'
 import * as l from '~/utils/app-logger/app-logger'
 import { InternalError } from '~/utils/error-handler'
 import { logLocationsTable } from '~/utils/app-logger/human-table/human-table'
@@ -18,9 +18,9 @@ import { buildAggregatedPriceEstimate } from '~/utils/pricing/aggregate-pricing'
 import { buildAggregateTiming } from '~/utils/pricing/aggregate-pricing/timing'
 import { computeActualCosts } from '~/utils/pricing/compute-actual-costs'
 import { computeActualProcessingTimes, computeEstimatedProcessingTimes } from '~/utils/pricing/compute-processing-time'
-import { buildLLMModelOptions, resolveLLMDefaults } from '../options/model-option-llm-defaults'
+import { buildLLMModelOptions, resolveLLMDefaults } from '~/cli/options/option-resolution/model-option-llm-defaults'
 
-const hasConfiguredLlmProvider = (opts: RuntimeOptions): boolean =>
+const hasConfiguredLlmProvider = (opts: ResolvedLLMModelOptions): boolean =>
   [
     ...(opts.llamaModels ?? (opts.llamaModel ? [opts.llamaModel] : [])),
     ...(opts.openaiModels ?? (opts.openaiModel ? [opts.openaiModel] : [])),
@@ -46,7 +46,7 @@ const toDocumentSourceUrl = (target: string): string => {
 const buildEstimateMatchKey = (step: string, provider: string, model: string): string =>
   `${step}::${provider}::${model}`
 
-export const buildExtractionCallOpts = (target: string, baseDir: string, opts: RuntimeOptions): Partial<ExtractionOptions> => {
+export const buildExtractionCallOpts = (target: string, baseDir: string, opts: DocumentExtractionOptions): Partial<ExtractionOptions> => {
   const step2SelectionOrigins = opts.step2SelectionOrigins
     ? Object.fromEntries(
         Object.entries(opts.step2SelectionOrigins).filter(([, value]) => value !== undefined)
@@ -275,7 +275,9 @@ const writeDocumentOutputMetadata = async (
     ...(errors && errors.length > 0 ? { errors } : {}),
   }
 
-  await writeRunManifest(outputDir, 'write', manifestMetadata)
+  await writeManifest(outputDir, createManifest('write', 'single', [
+    createPipelineItemFromRecord(outputDir, manifestMetadata, { status: completionStatus ?? 'full' })
+  ]))
   logWriteManifestConsoleSummary(outputDir, manifestMetadata, {
     promptArtifact: typeof artifactFiles['prompt'] === 'string' ? artifactFiles['prompt'] : 'prompt.md',
     ...(typeof artifactFiles['rendered'] === 'string' ? { step3RenderedOutput: artifactFiles['rendered'] } : {})
@@ -382,7 +384,7 @@ export const runExtractedDocumentWrite = async ({
   const artifactFiles: Record<string, string> = {
     ...(extraArtifactFiles ?? {}),
     prompt: 'prompt.md',
-    run: 'run.json',
+    manifest: 'manifest.json',
     ...renderedArtifacts.internalArtifacts,
     ...showNoteArtifacts.internalArtifacts
   }
@@ -434,7 +436,7 @@ export const runExtractedDocumentWrite = async ({
 export const runDocumentWrite = async (
   target: string,
   baseDir: string,
-  opts: RuntimeOptions,
+  opts: WriteRuntimeOptions,
   sourceRef?: Step1SourceRef,
   preparedDocument?: PreparedDocument,
   preflightEstimate?: AggregatedPriceEstimate,

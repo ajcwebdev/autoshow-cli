@@ -129,7 +129,7 @@ const toScrapeCreatorsHttpError = (
     status: response.status,
     headers: response.headers,
     stage: 'create',
-    retryClass: 'runtime_http_create_conservative' as RetryClass,
+    retryClass: 'runtime_http_create_retriable' as RetryClass,
     rawResponse: payload
   } satisfies Partial<ScrapeCreatorsHttpError>
 )
@@ -268,7 +268,7 @@ export const runScrapeCreatorsStt = async (
 
   const payload = await withRetry(
     {
-      retryClass: 'runtime_http_create_conservative',
+      retryClass: 'runtime_http_create_retriable',
       operationName: 'scrapecreators-youtube-transcript',
       policy: { maxAttempts: 3 },
       timeoutMs: REQUEST_TIMEOUT_MS
@@ -292,7 +292,7 @@ export const runScrapeCreatorsStt = async (
       if (!parsed) {
         throw Object.assign(new Error('ScrapeCreators returned an invalid transcript payload'), {
           stage: 'create',
-          retryClass: 'runtime_http_create_conservative' as RetryClass,
+          retryClass: 'runtime_http_create_retriable' as RetryClass,
           retryable: false,
           rawResponse: responsePayload
         })
@@ -301,7 +301,7 @@ export const runScrapeCreatorsStt = async (
       return parsed
     },
     (error) => {
-      const decision = classifyFetchRetry(error, 'runtime_http_create_conservative', { retryAbortOnConservative: true })
+      const decision = classifyFetchRetry(error, 'runtime_http_create_retriable')
       if (decision.shouldRetry) {
         retryCount += 1
         if ((error as { status?: unknown }).status === 429) {
@@ -345,7 +345,7 @@ export const runScrapeCreatorsStt = async (
       creditsUsed,
       creditRateCents,
       totalCost: convertScrapeCreatorsCreditsToCents(creditsUsed, creditRateCents),
-      source: 'fallback-estimate',
+      source: 'registry_fallback',
       mode: 'url'
     }
   }

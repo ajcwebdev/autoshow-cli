@@ -7,7 +7,7 @@ import {
   STABLE_TTS_MD_PATH,
   STABLE_TTS_MD_TITLE,
 } from '../../../../../test-utils/test-helpers'
-import { readRunMetadata } from '../../../../../test-utils/manifest-helpers'
+import { readCanonicalRecord } from '../../../../../test-utils/manifest-helpers'
 import { requireConfiguredEnvVar } from '../../../../../test-utils/service-test-kit'
 import { mistralRefAudioPath, mistralTtsModel } from './cases'
 
@@ -32,7 +32,7 @@ budgetedTest('tts-mistral-voxtral-mini-tts-2603-ref-audio', 'mistral reference a
   if (outputDir) {
     expect(await fileExists(`${outputDir}/speech.wav`)).toBe(true)
 
-    const metadata = await readRunMetadata(outputDir) as {
+    const metadata = await readCanonicalRecord(outputDir) as {
       tts?: Array<{ ttsService?: string, ttsModel?: string, speaker?: string }>
     }
     expect(metadata.tts?.[0]?.ttsService).toBe('mistral')
@@ -40,4 +40,3 @@ budgetedTest('tts-mistral-voxtral-mini-tts-2603-ref-audio', 'mistral reference a
     expect(metadata.tts?.[0]?.speaker).toBe('ref_audio:anthony-voice.mp3')
   }
 }, E2E_TEST_TIMEOUT_MS)
-

@@ -13,7 +13,7 @@ import {
   formatFileSize,
   formatProcessingSeconds,
   isFiniteNumber,
-  loadMusicRunJson,
+  loadMusicManifestRecord,
   makeProviderKey,
   normalizeLowerIsBetter,
   nullableNumber,
@@ -116,19 +116,19 @@ function joinProviderNames(providers: Array<{ providerKey: string }>): string {
 }
 
 export async function buildReport(runDir: string) {
-  const runJson = loadMusicRunJson(runDir);
+  const manifestRecord = loadMusicManifestRecord(runDir);
   const warnings: string[] = [];
 
-  const { found, missing } = discoverMusicFiles(runDir, runJson.metadata.music);
+  const { found, missing } = discoverMusicFiles(runDir, manifestRecord.metadata.music);
   if (missing.length > 0) {
     warnings.push(`Missing music files: ${missing.join(", ")}`);
   }
 
-  const costLookup = buildCostLookup(runJson);
-  const timingLookup = buildTimingLookup(runJson);
+  const costLookup = buildCostLookup(manifestRecord);
+  const timingLookup = buildTimingLookup(manifestRecord);
   const providerData: Array<Omit<RankedProvider, "rank">> = [];
 
-  for (const entry of runJson.metadata.music) {
+  for (const entry of manifestRecord.metadata.music) {
     const providerKey = makeProviderKey(entry.musicService, entry.musicModel);
     const musicPath = found.get(providerKey) ?? "";
     const musicExists = musicPath.length > 0;
@@ -241,7 +241,7 @@ export async function buildReport(runDir: string) {
 ## Method
 
 - Each provider in \`metadata.music[]\` was evaluated from one AutoShow music run directory.
-- Cost and processing time were extracted from \`run.json\` metadata.
+- Cost and processing time were extracted from \`manifest.json\` metadata.
 - Ranking uses price-speed scoring: 50% cost efficiency and 50% processing speed.
 - Lower cost and lower processing time are better; missing cost or timing receives a neutral component score of 50.
 - If all available values for a metric are equal, providers with that metric receive 100 for that component.

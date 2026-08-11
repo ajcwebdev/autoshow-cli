@@ -2,7 +2,7 @@ import { expect } from 'bun:test'
 import { rm } from 'node:fs/promises'
 import { budgetedTest } from '../../../../../test-utils/budget'
 import { runCommand, fileExists } from '../../../../../test-utils/test-helpers'
-import { readRunMetadata } from '../../../../../test-utils/manifest-helpers'
+import { readCanonicalRecord } from '../../../../../test-utils/manifest-helpers'
 import { requireConfiguredEnvVar } from '../../../../../test-utils/service-test-kit'
 import type { OcrE2eExtractMetadata } from '~/types'
 
@@ -27,7 +27,7 @@ budgetedTest('extract-firecrawl-url', 'bun autoshow extract https://ajcwebdev.co
 
     expect(await fileExists(`${outputDir}/extraction.txt`)).toBe(true)
 
-    const metadata = await readRunMetadata(outputDir) as OcrE2eExtractMetadata
+    const metadata = await readCanonicalRecord(outputDir) as OcrE2eExtractMetadata
     expect(metadata.step1?.format).toBe('html')
     expect(metadata.step2?.extractionMethod).toBe('html+firecrawl')
   } finally {

@@ -27,7 +27,7 @@ export const estimateScrapeCreatorsCost = (): { credits: number, totalCost: numb
 export const computeScrapeCreatorsActualCost = (
   billedCredits?: number | undefined,
   creditRateCents = getScrapeCreatorsCreditRateCents()
-): { creditsUsed: number, totalCost: number, source: 'fallback-estimate' } => {
+): { creditsUsed: number, totalCost: number, source: 'registry_fallback' } => {
   const creditsUsed = typeof billedCredits === 'number' && Number.isFinite(billedCredits)
     ? Math.max(0, billedCredits)
     : estimateScrapeCreatorsCredits()
@@ -35,6 +35,6 @@ export const computeScrapeCreatorsActualCost = (
   return {
     creditsUsed,
     totalCost: convertScrapeCreatorsCreditsToCents(creditsUsed, creditRateCents),
-    source: 'fallback-estimate'
+    source: 'registry_fallback'
   }
 }

@@ -1,12 +1,12 @@
 import { basename } from 'node:path'
-import type { AggregatedPriceEstimate, EffectiveSttProviderConcurrency, PreparedSttMedia, ProviderFailure, RuntimeOptions, StepTimingCost, SttBatchCoordinator, SttBatchCostTiming, SttBatchDerivedState, SttProviderState, SttProviderSuccess, SttTarget } from '~/types'
+import type { AggregatedPriceEstimate, EffectiveSttProviderConcurrency, PreparedSttMedia, ProviderFailure, StepTimingCost, SttBatchCoordinator, SttBatchCostTiming, SttBatchDerivedState, SttExtractionOptions, SttProviderState, SttProviderSuccess, SttTarget } from '~/types'
 import * as l from '~/utils/app-logger/app-logger'
 import { createKeyValueTable } from '~/utils/app-logger/human-table/human-table'
 import { computeActualCosts } from '~/utils/pricing/compute-actual-costs'
 import { computeActualProcessingTimes, computeEstimatedProcessingTimes } from '~/utils/pricing/compute-processing-time'
-import { logRunManifestLocation } from '~/cli/commands/process-steps/write-manifest-log/write-manifest-log'
+import { logManifestLocation } from '~/cli/commands/process-steps/write-manifest-log/write-manifest-log'
 import { describeSttBatchProviderSlotLimits, SttPartialCompletionError } from '../batch'
-import { writeSttRunManifest } from '../stt-manifest'
+import { writePipelineItemRecords } from '../../../pipeline-manifest'
 import { buildMetadataErrorEntries, buildMissingProviders, buildProviderStates, resolveCompletionStatus, summarizeSttProviderStates, toRequestedProvider } from '../stt-batch/stt-run-state'
 import { filterEstimatedSttCosts, resolveSttEstimatedCosts } from '../stt-costs'
 import { logSttProviderFailures, logSttProviderSkips, logSttRunStatus } from '../stt-logging'
@@ -61,7 +61,7 @@ export const computeSttBatchDerivedState = ({
 
 
 /**
- * Computes estimated/actual cost and timing for the batch, then writes the run manifest.
+ * Computes estimated/actual cost and timing for the batch, then writes the canonical manifest.
  */
 export const finalizeSttBatchCostTiming = async ({
   outputDir,
@@ -77,7 +77,7 @@ export const finalizeSttBatchCostTiming = async ({
 }: {
   outputDir: string
   requestedTargets: SttTarget[]
-  options: RuntimeOptions
+  options: SttExtractionOptions
   prepared: PreparedSttMedia
   preflightEstimate?: AggregatedPriceEstimate | undefined
   processStart: number
@@ -150,9 +150,9 @@ export const finalizeSttBatchCostTiming = async ({
     timing,
     ...(metadataErrors.length > 0 ? { errors: metadataErrors } : {})
   }, null, 2)
-  await writeSttRunManifest(outputDir, JSON.parse(metadataJson) as Record<string, unknown>)
-  logRunManifestLocation(outputDir, l, 'extract')
-  l.debug(`Run manifest:\n${metadataJson}`)
+  await writePipelineItemRecords(outputDir, 'extract', 'single', [JSON.parse(metadataJson)], { extractRoute: 'media' })
+  logManifestLocation(outputDir, l, 'extract')
+  l.debug(`Canonical manifest item metadata:\n${metadataJson}`)
 
   return { cost, timing }
 }
@@ -202,7 +202,7 @@ export const reportSttBatchOutcome = ({
     logSttProviderSkips(l, skippedProviderStates)
     const artifactFiles: Record<string, string> = {
       prompt: 'prompt.md',
-      run: 'run.json'
+      manifest: 'manifest.json'
     }
     artifactFiles['audio'] = basename(prepared.outputArtifacts.sourceMediaPath)
     if (successfulProviders.some((entry) => entry.metadata.transcriptionService === YOUTUBE_CAPTIONS_SERVICE)) {

@@ -1,6 +1,6 @@
 # TTS Consensus
 
-Use this category for AutoShow text-to-speech runs with `run.json` metadata, generated audio files in the run directory root, and the original input text.
+Use this category for AutoShow text-to-speech runs with canonical `manifest.json` metadata, generated audio files in the run directory root, and the original input text.
 
 ## Packet
 

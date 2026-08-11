@@ -38,17 +38,17 @@ This applies to:
 It does not apply to:
 
 - Running provider calls during price mode.
-- Mutating existing `run.json`, `batch.json`, or provider artifacts during price mode.
+- Mutating the canonical `manifest.json` or raw provider artifacts during price mode.
 - Changing existing execution behavior when `--price` is omitted.
 
 ## API / Type Impact
 
 - `resume` accepts `--price` as a boolean flag.
-- `RuntimeOptions.price` becomes meaningful for resume dispatch.
+- The shared price/preflight option slice becomes meaningful for resume dispatch.
 - Price-mode resume exits after reporting estimates and before invoking provider runners.
 - Unsupported or insufficiently resumable manifests should produce usage errors rather than silently estimating the wrong work.
 - `resume` declares no flag named after a provider. Provider-named option flags exit at argv-parse time with `Unexpected flag: <name>`, the same path that already rejects removed pipeline-prefixed aliases on `image`, `video`, and `music`.
-- `RuntimeOptions` fields for the removed knobs are populated from `buildOptsFromFlags` defaults or from `autoshow.config` on resume, never from resume's own CLI surface. Config values still reach resume because `mergeConfigIntoRawFlags` injects flag names inside the command action, after the unknown-flag check.
+- Resume composes command-specific STT, OCR, URL, LLM, TTS, image, video, or music options plus named shared price and concurrency controls. Provider-named knobs remain outside resume's CLI surface; when a domain cannot reconstruct a tuning value from the canonical provider entry, its option slice resolves that value from `autoshow.config` or the provider default after config merging.
 
 ## Rationale
 
@@ -68,9 +68,9 @@ Positive outcomes:
 Negative outcomes:
 
 - Resume handlers need a dry-run planning path in addition to execution.
-- Some estimates will remain heuristic when manifests do not contain exact source size, duration, prompt, or page-count metadata.
+- Some estimates will remain heuristic when canonical item/provider metadata does not contain exact source size, duration, prompt, or page-count evidence.
 - Tests that asserted `resume --price` was rejected were replaced with dry-run estimate contracts.
-- Resumed runs use provider defaults for the removed per-provider tuning knobs, because manifests record `requestedProviders` and `input` but never per-provider tuning values. Both execution and `--price` estimates reflect defaults rather than the original run's tuning unless the value is set in `autoshow.config`.
+- The canonical provider `options` object is the only persisted slot for provider options. Any provider-specific tuning value a resume domain cannot reconstruct from that entry falls back to `autoshow.config` or the provider default, and execution and `--price` use the same resolved value.
 
 ## Trade-offs
 
@@ -88,7 +88,7 @@ Negative outcomes:
 | Add a shared resume price-planning path that resolves the same targets execution would run | CLI maintainers | Implemented |
 | Implement extract resume estimates for STT, OCR, and URL routes without provider calls | Extract maintainers | Implemented |
 | Implement write resume estimates for selected missing LLM targets using stored `prompt.md`/prompt metadata | Write maintainers | Implemented |
-| Implement generation resume estimates for TTS, image, video, and music using stored `input` plus selected missing providers | Generation maintainers | Implemented |
+| Implement generation resume estimates for TTS, image, video, and music using canonical item input plus selected missing/failed provider entries | Generation maintainers | Implemented |
 | Ensure `--price` does not write manifests or artifacts and exits before provider execution | CLI maintainers | Implemented |
 | Update resume docs to document `--price` and remove the "does not define `--price`" note | Docs maintainers | Implemented |
 | Replace tests expecting `resume --price` rejection with dry-run estimate contracts | Test maintainers | Implemented |

@@ -99,14 +99,6 @@ export const classifySttSplitLimitError = (
   return undefined
 }
 
-export const shouldRetrySplitTranscriptionAfterError = (
-  target: SplitPolicyTarget,
-  _splitRequested: boolean,
-  error: unknown
-): boolean => {
-  return classifySttSplitLimitError(target, error) !== undefined
-}
-
 export const resolveAdaptiveSplitSegmentDurationMinutes = (
   previousSegmentDurationMinutes: number,
   error: unknown

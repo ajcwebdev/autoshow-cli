@@ -1,5 +1,5 @@
 import { collectLlmTargets } from '~/cli/commands/process-steps/step-3-write/run-llm'
-import { resolveStructuredStrategy, shouldApplyStrictMode } from '~/cli/commands/process-steps/step-3-write/structured-output/capabilities'
+import { resolveStructuredStrategy, resolveValidationRetryBudget, shouldApplyStrictMode } from '~/cli/commands/process-steps/step-3-write/structured-output/capabilities'
 import { runCompatFallback } from '~/cli/commands/process-steps/step-3-write/structured-output/compat-fallback'
 import { findRegistryServiceForModel } from '~/cli/commands/setup-and-utilities/models/model-loader/registry'
 import { CLIUsageError, InternalError } from '~/utils/error-handler'
@@ -47,7 +47,7 @@ export const resolveComicLlmTarget = (modelId: string): LLMTarget => {
 // Runs a structured-JSON prompt through the shared LLM dispatch, returning the raw
 // model text plus token metadata. Callers keep their own JSON normalization and
 // schema validation. Native-structured providers send the JSON schema server-side;
-// schema-guided providers (minimax, llama.cpp, llamafile) embed it via runCompatFallback.
+// schema-guided providers embed it via runCompatFallback.
 export const runComicStructuredLlm = async (
   prompt: string,
   schema: ComicStructuredSchema,
@@ -64,7 +64,7 @@ export const runComicStructuredLlm = async (
       schema: schema.valibotSchema,
       jsonSchema: schema.jsonSchema,
     }
-    const compat = await runCompatFallback(target, prompt, target.model, resolvedSchema, 2, validationContext)
+    const compat = await runCompatFallback(target, prompt, target.model, resolvedSchema, resolveValidationRetryBudget(target.service), validationContext)
     return { text: compat.rawResponse, metadata: compat.metadata }
   }
 

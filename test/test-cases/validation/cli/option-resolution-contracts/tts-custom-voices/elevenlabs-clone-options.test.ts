@@ -2,7 +2,7 @@ import { describe, expect, test } from 'bun:test'
 import { mkdtemp, rm, writeFile } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
-import { buildOptsFromFlags } from '~/cli/commands/process-steps/step-1-download/download-targets/build-opts-from-flags/build-options-from-flags'
+import { buildOptsFromFlags } from '~/cli/options/option-resolution/build-options-from-flags'
 import { collectTtsTargets } from '~/cli/commands/process-steps/step-4-tts/tts-targets'
 import { ELEVENLABS_TTS_IVC_SETUP_MS, validateElevenLabsTtsIvcAudio } from '~/cli/commands/process-steps/step-4-tts/tts-services/tts-elevenlabs/elevenlabs-ivc'
 import { LOCAL_SHORT_AUDIO_PATH } from './shared'
@@ -15,7 +15,7 @@ describe('ElevenLabs clone option contracts', () => {
         'elevenlabs-tts-ref-audio': 'input/examples/audio/anthony-voice.mp3',
         'elevenlabs-tts-voice-name': 'AutoShow Anthony',
         'elevenlabs-tts-clone-remove-background-noise': true
-      }, [], {}, new Set(), flagOccurrencesFromValues({
+      }, {}, new Set(), flagOccurrencesFromValues({
         'elevenlabs-tts': ['eleven_v3'],
         'elevenlabs-tts-ref-audio': 'input/examples/audio/anthony-voice.mp3',
         'elevenlabs-tts-voice-name': 'AutoShow Anthony',

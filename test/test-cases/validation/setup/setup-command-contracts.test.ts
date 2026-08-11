@@ -27,9 +27,13 @@ import {
 } from '~/cli/commands/setup-and-utilities/setup/hosted-provider-config'
 import {
   STANDALONE_IMAGE_PROVIDER_TARGETS,
+  STANDALONE_MUSIC_PROVIDER_TARGETS,
+  STANDALONE_TTS_PROVIDER_TARGETS,
+  WRITE_LLM_PROVIDER_TARGETS,
+  WRITE_STT_PROVIDER_TARGETS,
   STANDALONE_VIDEO_PROVIDER_TARGETS
 } from '~/cli/flags/service-selector-normalization/provider-targets'
-import { downloadKittenTtsModel, runConcurrentSetupTasks, runInherit, shouldReportReclaimedBuildTrees } from '~/cli/commands/setup-and-utilities/setup/run-complete-setup'
+import { collectReclaimableWhisperCoremlArtifacts, downloadKittenTtsModel, runConcurrentSetupTasks, runInherit, shouldReportReclaimedBuildTrees } from '~/cli/commands/setup-and-utilities/setup/run-complete-setup'
 import { formatSetupElapsed, formatSetupHeartbeatLine } from '~/cli/commands/setup-and-utilities/setup/setup-heartbeat'
 import { setCompactSetupMode } from '~/utils/setup-output-mode'
 import { resolveRuntimeToolInfo, ytDlpManagedBinaryPath } from '~/utils/runtime-paths'
@@ -165,7 +169,7 @@ describe('setup command contracts', () => {
     })
 
     expect(result.exitCode).toBe(2)
-    expect(`${result.stdout}\n${result.stderr}`).toContain('Invalid model "bogus" for --provider whisperfile[=model]')
+    expect(`${result.stdout}\n${result.stderr}`).toContain('Invalid model "bogus" for --provider/--stt whisperfile[=model]')
   })
 
   test('setup --models rejects an unknown llamafile bundle before downloading', async () => {
@@ -205,16 +209,14 @@ describe('setup command contracts', () => {
     expect(source).toContain('installManagedQpdfMacos')
   })
 
-  test('full setup covers doctor-managed local OCR runtimes and music assets', async () => {
+  test('full setup covers doctor-managed local OCR runtimes and Whisper models without CoreML conversion', async () => {
     const source = await Bun.file('src/cli/commands/setup-and-utilities/setup/run-complete-setup.ts').text()
 
     expect(source).toContain("export const defaultMusicWhisperModel = 'large-v3-turbo'")
-    // Both models are still fetched and converted; the music model's download
-    // now overlaps the default model's CoreML conversion.
-    expect(source).toContain('await fetchWhisperModel(defaultWhisperModel)')
-    expect(source).toContain('await fetchWhisperModel(defaultMusicWhisperModel)')
-    expect(source).toContain('await convertWhisperModelToCoreml(defaultWhisperModel)')
-    expect(source).toContain('await convertWhisperModelToCoreml(defaultMusicWhisperModel)')
+    expect(source).toContain('await downloadWhisperModel(defaultWhisperModel)')
+    expect(source).toContain('await downloadWhisperModel(defaultMusicWhisperModel)')
+    expect(source).not.toContain('convertWhisperModelToCoreml')
+    expect(source).not.toContain('fetchWhisperModel')
     expect(source).toContain("{ label: 'OCR', run: setupTesseractOcr }")
     expect(source).toContain("['tesseract', hasRuntimeTool('tesseract')]")
     expect(source).toContain('[`whisper ${defaultMusicWhisperModel}`, await pathExists(`${whisperModelsDir}/ggml-${defaultMusicWhisperModel}.bin`)]')
@@ -254,12 +256,38 @@ describe('setup command contracts', () => {
     expect(combinedSource).not.toContain('test -x')
   })
 
-  test('Whisper CoreML setup uses the committed helper scripts directory', async () => {
-    const source = await Bun.file('src/cli/commands/process-steps/step-2-extract/step-2-stt/stt-local/whisper/whisper.ts').text()
+  test('retired Whisper CoreML artifacts are reclaimable but no longer provisioned or recorded at runtime', async () => {
+    const root = await mkdtemp(join(tmpdir(), 'autoshow-retired-coreml-'))
+    try {
+      const coremlEnvDir = join(root, 'bin', 'whisper-coreml-env')
+      const modelsDir = join(root, 'models')
+      const compiledEncoder = join(modelsDir, 'ggml-tiny-encoder.mlmodelc')
+      const packagedEncoder = join(modelsDir, 'ggml-base-encoder.mlpackage')
+      await mkdir(coremlEnvDir, { recursive: true })
+      await mkdir(compiledEncoder, { recursive: true })
+      await mkdir(packagedEncoder, { recursive: true })
+      await mkdir(join(modelsDir, 'not-an-encoder'), { recursive: true })
+      await writeFile(join(coremlEnvDir, 'python'), 'legacy env')
+      await writeFile(join(compiledEncoder, 'model.mil'), 'legacy compiled encoder')
+      await writeFile(join(packagedEncoder, 'Manifest.json'), '{}')
 
-    expect(source).toContain("'whisper-scripts'")
-    expect(await Bun.file('src/cli/commands/process-steps/step-2-extract/step-2-stt/stt-local/whisper/whisper-scripts/convert-whisper-to-coreml.py').exists()).toBe(true)
-    expect(await Bun.file('src/cli/commands/process-steps/step-2-extract/step-2-stt/stt-local/whisper/whisper-scripts/validate-coreml.py').exists()).toBe(true)
+      const artifacts = await collectReclaimableWhisperCoremlArtifacts({ coremlEnvDir, modelsDir })
+      expect(artifacts.map(({ path }) => path)).toEqual([
+        coremlEnvDir,
+        packagedEncoder,
+        compiledEncoder
+      ])
+      expect(artifacts.every(({ bytes }) => bytes > 0)).toBe(true)
+
+      const whisperSource = await Bun.file('src/cli/commands/process-steps/step-2-extract/step-2-stt/stt-local/whisper/whisper.ts').text()
+      const runtimeSource = await Bun.file('src/cli/commands/process-steps/step-2-extract/step-2-stt/stt-local/whisper/run-whisper.ts').text()
+      expect(whisperSource.toLowerCase()).not.toContain('coreml')
+      expect(runtimeSource.toLowerCase()).not.toContain('coreml')
+      expect(await Bun.file('src/cli/commands/process-steps/step-2-extract/step-2-stt/stt-local/whisper/whisper-scripts/convert-whisper-to-coreml.py').exists()).toBe(false)
+      expect(await Bun.file('src/cli/commands/process-steps/step-2-extract/step-2-stt/stt-local/whisper/whisper-scripts/validate-coreml.py').exists()).toBe(false)
+    } finally {
+      await rm(root, { recursive: true, force: true })
+    }
   })
 
   test('local runtime wrappers use the committed helper scripts directories', async () => {
@@ -926,6 +954,54 @@ describe('setup command contracts', () => {
     for (const flagName of Object.values(targets)) {
       const envVar = findHostedProviderEnvKeyForConfigPath(configPathFor(flagName))
       if (envVar === undefined) unmapped.push(flagName)
+      else expected.add(envVar)
+    }
+
+    expect(unmapped).toEqual([])
+    expect([...getHostedProviderEnvKeysForConfigPrefix(prefix)].sort()).toEqual([...expected].sort())
+  })
+
+  test('transcription setup env keys cover registered engines with explicit local exceptions', () => {
+    const prefix = 'defaults.extract.stt.'
+    const configPathOverrides: Readonly<Record<string, string>> = {
+      'reverb-stt': `${prefix}reverb`
+    }
+    const enginesWithoutHostedCredentials = new Set<string>([
+      'whisper-stt',
+      'whisperfile-stt'
+    ])
+    const expected = new Set<string>()
+    const unmapped: string[] = []
+
+    for (const target of Object.values(WRITE_STT_PROVIDER_TARGETS)) {
+      if (enginesWithoutHostedCredentials.has(target)) continue
+      const suffix = target.replace(/-([a-z])/g, (_match, letter: string) => letter.toUpperCase())
+      const configPath = configPathOverrides[target] ?? `${prefix}${suffix}`
+      const envVar = findHostedProviderEnvKeyForConfigPath(configPath)
+      if (envVar === undefined) unmapped.push(target)
+      else expected.add(envVar)
+    }
+
+    expect(unmapped).toEqual([])
+    expect([...getHostedProviderEnvKeysForConfigPrefix(prefix)].sort()).toEqual([...expected].sort())
+    expect(expected).not.toContain('OPENAI_API_KEY')
+    expect(expected).not.toContain('GLM_API_KEY')
+    expect(expected).not.toContain('ELEVENLABS_API_KEY')
+  })
+
+  test.each([
+    ['write', WRITE_LLM_PROVIDER_TARGETS, 'defaults.llm.', new Set<string>(['llama', 'llamafile'])],
+    ['tts', STANDALONE_TTS_PROVIDER_TARGETS, 'defaults.post.tts.', new Set<string>(['kitten-tts'])],
+    ['music', STANDALONE_MUSIC_PROVIDER_TARGETS, 'defaults.post.music.', new Set<string>()]
+  ] as const)('%s setup env keys cover registered providers with explicit local exclusions', (_step, targets, prefix, localTargets) => {
+    const expected = new Set<string>()
+    const unmapped: string[] = []
+
+    for (const target of Object.values(targets)) {
+      if (localTargets.has(target)) continue
+      const suffix = target.replace(/-([a-z])/g, (_match, letter: string) => letter.toUpperCase())
+      const envVar = findHostedProviderEnvKeyForConfigPath(`${prefix}${suffix}`)
+      if (envVar === undefined) unmapped.push(target)
       else expected.add(envVar)
     }
 

@@ -5,7 +5,7 @@ import { logExtractManifestConsoleSummary } from '~/cli/commands/process-steps/w
 import { isEpubInspectMode, writeExtractionArtifact, writeProviderArtifacts } from './ocr-artifacts'
 import { buildDocumentMetadataPayload, resolveRecordedOcrStep2 } from './ocr-document-metadata'
 import { logOcrProviderLifecycle } from './ocr-logging'
-import { writeOcrRunManifest } from './ocr-manifest'
+import { writePipelineItemRecords } from '../../pipeline-manifest'
 import { collectPartialStep2Metadata } from './ocr-partial-step2'
 import { runOcrProviderTargetPools } from './ocr-provider-pool'
 import {
@@ -93,7 +93,7 @@ const createOcrCheckpointWriter = (params: {
         ocrLocalConcurrency: opts.ocrLocalConcurrency,
         hostedOcrScheduler: hostedOcrScheduler.snapshot()
       })
-      await writeOcrRunManifest(outputDir, checkpointMetadata)
+      await writePipelineItemRecords(outputDir, 'extract', 'single', [checkpointMetadata], { extractRoute: 'document' })
     })
   }
 
@@ -134,7 +134,6 @@ const createOcrProviderTargetRunner = (params: {
 
       await writeProviderArtifacts(
         providerDir,
-        target,
         extracted.result,
         extracted.step2Metadata,
         opts.outputFormat ?? 'text',
@@ -200,7 +199,7 @@ const createOcrProviderTargetRunner = (params: {
   }
 }
 
-const finalizeOcrBatchManifest = async (params: {
+const finalizeOcrProviderBatch = async (params: {
   ctx: OcrBatchRunContext
   resolvedStep2: ResolvedStep2Execution
   primaryTarget: OcrTarget | undefined
@@ -256,7 +255,7 @@ const finalizeOcrBatchManifest = async (params: {
     ocrLocalConcurrency: opts.ocrLocalConcurrency,
     hostedOcrScheduler: hostedOcrScheduler.snapshot()
   })
-  await writeOcrRunManifest(outputDir, writtenMetadata)
+  await writePipelineItemRecords(outputDir, 'extract', 'single', [writtenMetadata], { extractRoute: 'document' })
   await persistHostedOcrThroughputProfiles(hostedOcrScheduler.snapshot(), {
     completionStatus
   }).catch((error) => {
@@ -342,7 +341,7 @@ export const runOcrMultiProviderBatch = async (ctx: OcrBatchRunContext): Promise
     partialStep2,
     primary,
     firstSuccess
-  } = await finalizeOcrBatchManifest({
+  } = await finalizeOcrProviderBatch({
     ctx,
     resolvedStep2,
     primaryTarget,

@@ -1,5 +1,6 @@
 import { describe, expect, test } from 'bun:test'
-import { getModelRegistry } from '~/cli/commands/setup-and-utilities/models/model-loader'
+import { safeParse } from 'valibot'
+import { getModelRegistry, ModelRegistrySchema } from '~/cli/commands/setup-and-utilities/models/model-loader'
 import type { JsonObject, ModelRegistry, RegistryModelRecord } from '~/types'
 import { isRecord } from './shared'
 
@@ -11,72 +12,55 @@ const PRICING_PROVENANCE_FIELDS = [
 ] as const
 
 const PRICE_FIELD_NAMES = [
-  'costPerHourUSD',
   'costPerHourCents',
-  'costPer1kPagesUSD',
   'costPer1kPagesCents',
-  'costPerMInputTokensUSD',
   'costPerMInputTokensCents',
-  'costPerMCachedInputTokensUSD',
   'costPerMCachedInputTokensCents',
-  'costPerMOutputTokensUSD',
   'costPerMOutputTokensCents',
-  'inputCostPer1MUSD',
   'inputCostPer1MCents',
-  'cachedInputCostPer1MUSD',
   'cachedInputCostPer1MCents',
-  'outputCostPer1MUSD',
   'outputCostPer1MCents',
-  'costPer1kCharsUSD',
   'costPer1kCharsCents',
-  'inputCostPer1MCharsUSD',
   'inputCostPer1MCharsCents',
-  'outputCostPer1MCharsUSD',
   'outputCostPer1MCharsCents',
-  'costPerImageUSD',
   'costPerImageCents',
-  'costPerTrackUSD',
   'costPerTrackCents',
-  'costPerMinuteUSD',
   'costPerMinuteCents',
-  'lyricsCostPerTrackUSD',
   'lyricsCostPerTrackCents',
-  'baseCostPerSecondUSD',
   'baseCostPerSecondCents',
-  'baseJobFeeUSD',
   'baseJobFeeCents',
-  'blockCost720pUSD',
   'blockCost720pCents',
-  'blockCost1080pUSD',
   'blockCost1080pCents',
-  'inputImageCostUSD',
   'inputImageCostCents',
-  'inputVideoCostPerSecondUSD',
   'inputVideoCostPerSecondCents'
 ] as const
 
-const USD_CENTS_FIELD_PAIRS = [
-  ['costPerHourUSD', 'costPerHourCents'],
-  ['costPer1kPagesUSD', 'costPer1kPagesCents'],
-  ['costPerMInputTokensUSD', 'costPerMInputTokensCents'],
-  ['costPerMCachedInputTokensUSD', 'costPerMCachedInputTokensCents'],
-  ['costPerMOutputTokensUSD', 'costPerMOutputTokensCents'],
-  ['inputCostPer1MUSD', 'inputCostPer1MCents'],
-  ['cachedInputCostPer1MUSD', 'cachedInputCostPer1MCents'],
-  ['outputCostPer1MUSD', 'outputCostPer1MCents'],
-  ['costPer1kCharsUSD', 'costPer1kCharsCents'],
-  ['inputCostPer1MCharsUSD', 'inputCostPer1MCharsCents'],
-  ['outputCostPer1MCharsUSD', 'outputCostPer1MCharsCents'],
-  ['costPerImageUSD', 'costPerImageCents'],
-  ['costPerTrackUSD', 'costPerTrackCents'],
-  ['costPerMinuteUSD', 'costPerMinuteCents'],
-  ['lyricsCostPerTrackUSD', 'lyricsCostPerTrackCents'],
-  ['baseCostPerSecondUSD', 'baseCostPerSecondCents'],
-  ['baseJobFeeUSD', 'baseJobFeeCents'],
-  ['blockCost720pUSD', 'blockCost720pCents'],
-  ['blockCost1080pUSD', 'blockCost1080pCents'],
-  ['inputImageCostUSD', 'inputImageCostCents'],
-  ['inputVideoCostPerSecondUSD', 'inputVideoCostPerSecondCents']
+const RETIRED_USD_MODEL_FIELDS_BY_CATEGORY = {
+  stt: ['costPerHourUSD'],
+  extract: [
+    'costPer1kPagesUSD',
+    'costPerMInputTokensUSD',
+    'costPerMCachedInputTokensUSD',
+    'costPerMOutputTokensUSD'
+  ],
+  llm: ['inputCostPer1MUSD', 'cachedInputCostPer1MUSD', 'outputCostPer1MUSD'],
+  tts: ['costPer1kCharsUSD', 'inputCostPer1MCharsUSD', 'outputCostPer1MCharsUSD'],
+  image: ['costPerImageUSD'],
+  music: ['costPerTrackUSD', 'costPerMinuteUSD', 'lyricsCostPerTrackUSD'],
+  video: [
+    'baseCostPerSecondUSD',
+    'baseJobFeeUSD',
+    'blockCost720pUSD',
+    'blockCost1080pUSD',
+    'inputImageCostUSD',
+    'inputVideoCostPerSecondUSD'
+  ]
+} as const satisfies Record<keyof ModelRegistry, readonly string[]>
+
+const RETIRED_USD_TOKEN_BAND_FIELDS = [
+  'inputCostPer1MUSD',
+  'cachedInputCostPer1MUSD',
+  'outputCostPer1MUSD'
 ] as const
 
 const CREDIT_PRICED_MODEL_KEYS = new Set([
@@ -148,22 +132,6 @@ const validatePricingProvenance = (record: RegistryModelRecord): string[] =>
     return []
   })
 
-const collectUsdCentsMismatches = (
-  entry: JsonObject,
-  path: string
-): string[] =>
-  USD_CENTS_FIELD_PAIRS.flatMap(([usdField, centsField]) => {
-    const usd = entry[usdField]
-    const cents = entry[centsField]
-    if (typeof usd !== 'number' || typeof cents !== 'number') {
-      return []
-    }
-    const expectedCents = usd * 100
-    return Math.abs(expectedCents - cents) < 1e-9
-      ? []
-      : [`${path}: ${usdField}=${usd} but ${centsField}=${cents}`]
-  })
-
 describe('price mode contracts', () => {
   test('paid API registry entries declare pricing provenance', () => {
       const missing = getRegistryModelRecords()
@@ -173,24 +141,38 @@ describe('price mode contracts', () => {
       expect(missing).toEqual([])
     })
 
-  test('registry USD and cents pricing fields agree', () => {
-      const mismatches = getRegistryModelRecords().flatMap((record) => {
-        const path = `${record.step}/${record.provider}/${record.model}`
-        const tokenPricingBands = record.entry['tokenPricingBands']
-        const bandMismatches = Array.isArray(tokenPricingBands)
-          ? tokenPricingBands.flatMap((band, index) =>
-              isRecord(band)
-                ? collectUsdCentsMismatches(band, `${path}.tokenPricingBands[${index}]`)
-                : [`${path}.tokenPricingBands[${index}]: invalid band`]
-            )
-          : []
+  test('registry schemas reject retired USD pricing fields', () => {
+      const acceptedModelFields = (Object.entries(RETIRED_USD_MODEL_FIELDS_BY_CATEGORY) as Array<[
+        keyof ModelRegistry,
+        readonly string[]
+      ]>).flatMap(([category, fields]) =>
+        fields.flatMap((field) => {
+          const registry = structuredClone(getModelRegistry())
+          const services = registry[category] as Record<string, { models: Record<string, JsonObject> }>
+          const service = Object.values(services)[0]
+          const model = Object.values(service?.models ?? {})[0]
+          if (!model) {
+            throw new Error(`Missing ${category} registry model fixture`)
+          }
+          model[field] = 1
+          return safeParse(ModelRegistrySchema, registry).success
+            ? [`${category}.${field}`]
+            : []
+        })
+      )
 
-        return [
-          ...collectUsdCentsMismatches(record.entry, path),
-          ...bandMismatches
-        ]
+      const acceptedTokenBandFields = RETIRED_USD_TOKEN_BAND_FIELDS.flatMap((field) => {
+        const registry = structuredClone(getModelRegistry())
+        const band = registry.llm['minimax']?.models['MiniMax-M3']?.tokenPricingBands?.[0]
+        if (!band) {
+          throw new Error('Missing MiniMax-M3 token pricing band fixture')
+        }
+        ;(band as unknown as JsonObject)[field] = 1
+        return safeParse(ModelRegistrySchema, registry).success
+          ? [`llm.tokenPricingBands.${field}`]
+          : []
       })
 
-      expect(mismatches).toEqual([])
+      expect([...acceptedModelFields, ...acceptedTokenBandFields]).toEqual([])
     })
 })

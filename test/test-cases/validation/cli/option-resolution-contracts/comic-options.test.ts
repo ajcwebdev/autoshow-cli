@@ -29,8 +29,7 @@ import {
   DEFAULT_LLM_MODEL,
   coerceAndValidateDraftScenes,
   coerceAndValidateGenerateImages,
-  coerceAndValidateReferenceSketch,
-  parseComicSubcommandArgv
+  coerceAndValidateReferenceSketch
 } from '~/cli/commands/process-steps/step-8-comic/comic-utils/cli-args'
 import {
   draftScenesCommandDefinition,
@@ -43,6 +42,8 @@ import {
   referenceSketchFlags
 } from '~/cli/flags/comic-flags'
 import { findRegistryServiceForModel } from '~/cli/commands/setup-and-utilities/models/model-loader/registry'
+import { GLOBAL_FLAG_DEFINITIONS } from '~/cli/global-flags'
+import { parseCommandInvocation } from '~/cli/native/native-parser'
 import {
   getPageComicImageFilename,
   getPageComicImagePath,
@@ -56,14 +57,17 @@ import type { PanelBundleData, PromptsConfig } from '~/types'
 
 const engineeringBayLocation = { key: 'engineering-bay', raw: 'INT. ENGINEERING BAY' }
 
+const parseSubcommandArgs = (args: string[], command: typeof draftScenesCommandDefinition | typeof generateImagesCommandDefinition | typeof referenceSketchCommandDefinition) =>
+  parseCommandInvocation([command.name, ...args], command, GLOBAL_FLAG_DEFINITIONS)
+
 const parseDraftScenesArgs = (args: string[]) =>
-  coerceAndValidateDraftScenes(parseComicSubcommandArgv(args, draftScenesCommandDefinition))
+  coerceAndValidateDraftScenes(parseSubcommandArgs(args, draftScenesCommandDefinition))
 
 const parseGenerateImagesArgs = (args: string[]) =>
-  coerceAndValidateGenerateImages(parseComicSubcommandArgv(args, generateImagesCommandDefinition))
+  coerceAndValidateGenerateImages(parseSubcommandArgs(args, generateImagesCommandDefinition))
 
 const parseReferenceSketchArgs = (args: string[]) =>
-  coerceAndValidateReferenceSketch(parseComicSubcommandArgv(args, referenceSketchCommandDefinition))
+  coerceAndValidateReferenceSketch(parseSubcommandArgs(args, referenceSketchCommandDefinition))
 
 describe('option resolution contracts', () => {
   test('comic scene drafting defaults to gpt-5.6-sol', () => {
@@ -130,18 +134,19 @@ describe('option resolution contracts', () => {
   test('comic generate-images grid args reject invalid values and combinations', () => {
       expect(() => parseComicGridSpec('2x3')).not.toThrow()
       expect(() => parseGenerateImagesArgs(['script.md', '--panels-per-image', '1', '--grid', '0x3'])).toThrow('Invalid grid "0x3"')
-      expect(() => parseGenerateImagesArgs(['script.md', '--panels-per-image', '1', '--grid', '2x3', '--grid', '3x2'])).toThrow('Grid can only be specified once')
+      expect(parseGenerateImagesArgs(['script.md', '--panels-per-image', '1', '--grid', '2x3', '--grid', '3x2']).grid).toEqual({ columns: 3, rows: 2 })
       expect(() => parseGenerateImagesArgs(['script.md', '--target', 'sketches', '--panels-per-image', '1', '--grid', '2x3'])).toThrow('--grid only applies when --target is images or both')
       expect(() => parseGenerateImagesArgs(['script.md', '--grid', '2x3'])).toThrow('--grid requires --panels-per-image 1')
       expect(() => parseGenerateImagesArgs(['script.md', '--panels-per-image', '1', '--grid', '2x3', '--size', '1024x1024'])).toThrow('--grid requires --size 1536x1024')
     })
 
   test('comic generate-images rejects removed option spellings as unknown arguments', () => {
-      expect(() => parseGenerateImagesArgs(['script.md', '--panel-limit', '3'])).toThrow('Unknown argument: --panel-limit')
-      expect(() => parseGenerateImagesArgs(['script.md', '--panel', '2'])).toThrow('Unknown argument: --panel')
-      expect(() => parseGenerateImagesArgs(['script.md', '--chunk', '2'])).toThrow('Unknown argument: --chunk')
-      expect(() => parseGenerateImagesArgs(['script.md', '--sketch-group-size', '8'])).toThrow('Unknown argument: --sketch-group-size')
-      expect(() => parseGenerateImagesArgs(['script.md', '--sketch-panels', '1-4'])).toThrow('Unknown argument: --sketch-panels')
+      expect(() => parseGenerateImagesArgs(['script.md', '--llm-model', 'gpt-5.5'])).toThrow('Unexpected flag: llmModel')
+      expect(() => parseGenerateImagesArgs(['script.md', '--panel-limit', '3'])).toThrow('Unexpected flag: panelLimit')
+      expect(() => parseGenerateImagesArgs(['script.md', '--panel', '2'])).toThrow('Unexpected flag: panel')
+      expect(() => parseGenerateImagesArgs(['script.md', '--chunk', '2'])).toThrow('Unexpected flag: chunk')
+      expect(() => parseGenerateImagesArgs(['script.md', '--sketch-group-size', '8'])).toThrow('Unexpected flag: sketchGroupSize')
+      expect(() => parseGenerateImagesArgs(['script.md', '--sketch-panels', '1-4'])).toThrow('Unexpected flag: sketchPanels')
     })
 
   test('comic generate-images variation args reject duplicates and unknown values', () => {
@@ -546,12 +551,12 @@ describe('comic native parser definitions', () => {
     expect(referenceSketchCommandDefinition.flags).toBe(referenceSketchFlags)
   })
 
-  test('preserves once-only errors and the legacy no-inline-assignment grammar', () => {
-    expect(() => parseGenerateImagesArgs(['script.md', '--grid', '2x3', '--grid', '3x2']))
-      .toThrow('Grid can only be specified once')
-    expect(() => parseGenerateImagesArgs(['script.md', '--grid=2x3']))
-      .toThrow('Unknown argument: --grid=2x3')
-    expect(() => parseGenerateImagesArgs(['script.md', '--qa=false']))
-      .toThrow('Unknown argument: --qa=false')
+  test('uses native inline assignment, separator, last-wins, and positional rules', () => {
+    expect(parseGenerateImagesArgs(['script.md', '--panels-per-image=1', '--grid=2x3', '--grid=3x2']).grid)
+      .toEqual({ columns: 3, rows: 2 })
+    expect(parseGenerateImagesArgs(['script.md', '--qa=false']).qa).toBe(false)
+    expect(parseGenerateImagesArgs(['script.md', '--target=sketches', '--']).target).toBe('sketches')
+    expect(() => parseGenerateImagesArgs(['script.md', 'extra.md']))
+      .toThrow('Unexpected parameter "extra.md"')
   })
 })

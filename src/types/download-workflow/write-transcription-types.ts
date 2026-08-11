@@ -1,6 +1,7 @@
-import type { MistralSttPassController, PreparedSttMedia, ProcessingOptions, RuntimeOptions, Step2Metadata, SttProviderSuccess, SttTarget, TranscriptionResult } from '~/types'
+import type { MistralSttPassController, PreparedSttMedia, ProcessingOptions, SharedPipelineOptions, Step2Metadata, SttProviderSuccess, SttRuntimeOptions, SttTarget, TranscriptionResult } from '~/types'
 
-export type ProcessVideoRuntimeOptions = Pick<RuntimeOptions, 'outputRootDir' | 'sttProviderConcurrency' | 'sttLocalConcurrency' | 'sttSegmentConcurrency'>
+export type ProcessVideoRuntimeOptions = Pick<SharedPipelineOptions, 'outputRootDir'>
+  & Pick<SttRuntimeOptions, 'sttProviderConcurrency' | 'sttLocalConcurrency' | 'sttSegmentConcurrency'>
   & { outputDir?: string | undefined }
 
 export type WriteSttFailure = {

@@ -1,5 +1,5 @@
 import * as l from '~/utils/app-logger/app-logger'
-import type { ProcessCommand, ResolvedBatch, RuntimeOptions } from '~/types'
+import type { ProcessCommand, ProcessPlanningOptions, ResolvedBatch } from '~/types'
 import { CLIUsageError } from '~/utils/error-handler'
 import { readInputList } from '../metadata-targets/metadata-input-collection'
 import { resolveListBatchItems } from './metadata-list-batch-resolver'
@@ -7,7 +7,7 @@ import { resolveListBatchItems } from './metadata-list-batch-resolver'
 export const resolveInputListBatch = async (
   resolvedTarget: string,
   command: ProcessCommand,
-  opts: RuntimeOptions
+  opts: ProcessPlanningOptions
 ): Promise<ResolvedBatch> => {
   l.write('info', `Reading inputs from ${resolvedTarget}`)
   const items = await readInputList(resolvedTarget)

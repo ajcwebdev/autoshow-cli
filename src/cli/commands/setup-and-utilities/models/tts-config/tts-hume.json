@@ -10,7 +10,6 @@
         "pricingCurrency": "USD",
         "pricingTier": "Hume Octave 2 API pay-as-you-go TTS pricing",
         "pricingNotes": "Hume Octave 2 TTS is estimated at $0.15/1K characters. Plan inclusions, custom voice terms, enterprise pricing, taxes, and provider credits are ignored.",
-        "costPer1kCharsUSD": 0.15,
         "costPer1kCharsCents": 15,
         "estimation": {
           "costMultiplier": 1,

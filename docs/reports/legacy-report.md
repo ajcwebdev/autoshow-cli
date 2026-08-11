@@ -1,67 +1,65 @@
-# Legacy and Backwards-Compatibility Audit
+# Legacy Removal Completion Report
 
-Three audits and thirty-five waves, all landed 2026-08-06/07. **Nothing in this document is open.** It is kept for three things: the guards in §2, which are load-bearing and shaped the way they are for reasons worth knowing before editing them; the decisions in §4, which exist so they are not re-litigated; and the rebuild trails in §3 for the two large removals most likely to need reversing.
+Status: Completed
 
-The durable finding was never the dead code — it was **drift**: hand-maintained lists that silently stopped mirroring their registries, docs prescribing env vars the CLI no longer reads, schemas documenting capabilities never implemented. Dead code is harmless until someone reads it; drift actively misleads. Every user-visible defect these audits found was drift, and §2 is the set of guards that now make each class of it self-detecting.
+Implementation date: 2026-08-10
 
-Three lessons that outlived their waves:
+## Outcome
 
-- A `[verified]` mark records that a finding's *observation* was confirmed, never that its *prescription* was. Several findings would have made things worse applied as written — a new dead alias, a regressed warning suppression, a fleet of non-resumable manifests — and roughly a third of the prescribed test retargets turned out to restate something the file already contained verbatim.
-- Never bump an artifact `schemaVersion` without shipping the upgrader in the same change. Four hard `schemaVersion !== 2` rejects exist with no migration code anywhere, so a bump alone makes every manifest on disk non-resumable. Still true; see the `'x-space'` note in §3.
-- Dead *symbols* and dead *reachability behind live symbols* are different classes. Optional parameters no caller passes survive symbol-level sweeps and need per-option call-site enumeration to find, which is why a whole wave of them survived two audits.
+The legacy-removal program is complete. Every approved mechanical removal and deep refactor landed, the pipeline now has one canonical manifest concept, and the catch-all runtime option architecture is gone. There is no active legacy-removal backlog from this program.
 
-## 1. Verification bar
+## Completion matrix
 
-Per change: `bun run check`, then the no-cost smoke set (`cli-help-contracts`, `cli-usage-errors`, `option-resolution-contracts/`). `bun test test/test-cases/validation/` is green at 1266 tests across 186 files; treat any failure as real — the old standing allowance for pre-existing failures was withdrawn 2026-08-07. One known exception, unrelated to any wave: `process-lock-contracts.test.ts`'s "process lock serializes separate processes" is timing-sensitive and flaked three times in eight full-suite runs on 2026-08-07, always passing on immediate re-run. That rate is high enough to be worth fixing rather than tolerating — it is the one thing in this document that arguably still deserves work, though no audit finding raised it. Never run paid-provider commands to verify anything in this document; paid e2e suites cited as pins are read-only citations, not instructions to execute.
+| ID | Category | Completed result |
+|---|---|---|
+| `LR-M1` | Mechanical | Deleted the dead hosted-target-count chain: the ignored concurrency input, target-count calculator, supporting type/context plumbing, call arguments, and now-unused imports. The live explicit, configured, `all-*`, and default concurrency behavior remains unchanged. |
+| `LR-M2` | Mechanical | Removed the phantom double-dash argument from `buildOptsFromFlags` and all call sites. The real write-path passthrough remains at its actual ownership boundary. An AST/arity guard now rejects the obsolete call shape. |
+| `LR-M3` | Mechanical | Removed production-unreachable and test-only helpers, facades, constants, types, exports, and their API-only tests after repository-wide reachability checks. Live behavior contracts were retained rather than preserving dead APIs for test count. |
+| `LR-M4` | Mechanical | Removed no-op parameters, feedback payloads, and single-policy facades whose inputs could not affect output, while retaining the underlying retry, completion, parsing, media, and scheduling behavior. |
+| `LR-M5` | Mechanical | Removed the setup benchmark's phantom `engine` field/column and the commented-out Repomix test include. Neither represented a live selectable behavior. |
+| `LR-D1` | Deep | Replaced all pipeline, batch, extract, provider-result, and checkpoint manifest variants with one unversioned canonical `manifest.json`; deleted version/kind dispatch, compatibility readers, migration paths, old envelope types, route adapters, duplicate provider control state, and alternate manifest filenames. |
+| `LR-D2` | Deep | Eliminated `RuntimeOptions` rather than renaming it. Consumers now accept composed domain slices or minimal generics, `ResolvedFlagContext` owns flag-building context, `WriteRuntimeOptions` exists only for the full write pipeline, broad casts are gone, and command-neutral option resolution lives under `src/cli/options/option-resolution/`. |
 
-Two conventions the waves converged on, worth reusing: re-confirm unreachability by enumerating construction sites and call sites immediately *before* a removal rather than trusting the finding, and negative-control a new guard by breaking the thing it claims to catch, then restoring the file and re-comparing bytes.
+## Canonical manifest clean break
 
-## 2. Shipped guards
+There is one manifest format and one filename: unversioned `manifest.json`. It is not a “v4 manifest,” and there is no manifest version or kind to validate, migrate, infer, or support for compatibility. Existing legacy run directories must be rerun.
 
-Each replaced a hand-maintained mirror with a derived source or a two-direction pin. Where a clause below explains *why* a guard is shaped oddly, that clause is the reason it works — check it before simplifying.
+The canonical record stores ordinary command, scope, source, item, child-link, metadata, and provider-state data. Direct provider `result.json` artifacts remain domain payloads only: they are non-authoritative for control state, cannot establish resume eligibility, and are never accepted as manifests. Async provider progress updates the matching canonical provider entry.
 
-- `registry-derived-config-keys.test.ts` — every step-2 registry `configPath` parses under the strict config schema.
-- `getHostedProviderEnvKeysForConfigPrefix` — setup's credential catalogs are derived, not typed.
-- `help-flag-groups.test.ts` — declared and claimed help groups are equal in both directions. Caught a stale key on its first run.
-- `buildConfigPatchFromFlags`'s discarded-flag warning — a flag with no config destination says so instead of succeeding silently.
-- `explicit-runtime-exclusions.test.ts` — `RUNTIME_ONLY_FLAGS` stays disjoint from `FLAG_TO_CONFIG_PATH`, with `prompt`'s premise pinned separately.
-- `RETIRED_MUSIC_MODEL_RATES` — retiring a priced model means moving its rate to a historical table, not deleting it.
-- `links-registry-contracts.test.ts` plus the derived `fixtures/registry.ts` — links fixture expectations are read from the `model-links/*.json` registries at runtime. Accepted residual: expectations and production read the same JSON, so a truncated registry propagates silently. Add a small hand-pinned sentinel only if that becomes credible — a generator writing literal fixtures would be strictly worse, since it reintroduces the on-disk copy that caused the original drift.
-- `llm-defaults.test.ts` — every `--llm` provider target has a `FLAG_TO_CONFIG_PATH` entry, so a provider the help advertises cannot silently save nothing.
-- `model-selector-messages.test.ts` — every `createModelValidator` key resolves to a public selector, and every provider target round-trips to its own selector. The key list is **collected at construction**, so it cannot be hand-maintained.
-- `model-flags-and-ordering.test.ts`'s URL partition pin — `LOCAL_URL_ARTICLE_BACKENDS` and `HOSTED_URL_ARTICLE_BACKENDS` must partition `URL_ARTICLE_BACKENDS`, asserted through `isLocalUrlBackend` **against the hosted list rather than the local one**, so the check cannot restate the implementation.
-- `benchmark-contracts.test.ts`'s whisper-probe pin — the probe must call its injected `exists` with exactly `whisperBinaryPath`, imported from the module the whisper *runner* executes. Both arms go through the **injected** probe, so the guard does not depend on whether whisper is installed on the machine running the suite.
-- `shipped-fixture-contracts.test.ts` — every path `git ls-files input/` reports must survive `git check-ignore --no-index`. `--no-index` is load-bearing: plain `check-ignore` reports nothing for tracked paths, which is precisely how the old breakage stayed invisible. Two further cases pin `MISTRAL_DEFAULT_REF_AUDIO` as shippable-and-present, and five hypothetical personal-media paths as still ignored — that last one keeps the allowlist from being "simplified" into a glob, and needs no file on disk.
-- `image-command-flag-spellings.test.ts` — `imageCommandOptionNames` and the flags the `image` command registers agree in both directions, and every internal spelling retargets to exactly its public one, so **a key that is a prefix of another key cannot silently rewrite it**.
-- `prompt-loader-contracts.test.ts`'s preset loop — song-lyric preset coverage runs through `resolveStructuredSchema`, which validates against `preset-registry.ts`, rather than through a lookup that compared a prompt entry's own string to itself.
+The retained safety boundary validates the sole current shape, checks relative-path containment, enforces parent-child identity and links, and serializes atomic item/provider updates. The no-legacy guard covers production code and tests, committed pipeline fixtures, expected-output inventories, the consensus skill, README, ADR-002, and current command, diagram, test, and release documentation. Planning reports and unrelated domain schemas are outside that scan; the test runner's `.active-run.json` and one intentionally unsupported `source.json` CLI error fixture are explicit filename exemptions. All 39 committed `docs/benchmarks/**/manifest.json` files use the canonical shape.
 
-## 3. What changed
+## Runtime option boundaries
 
-**Mechanical series (waves 1-17, net −742 lines).** Obvious dead code across `src/`, `test/`, `scripts/`, `package.json`, `Dockerfile`; ~40 further deletions once the second audit reorganized by *kind* of legacy rather than region of tree; then 64 removals from the third audit's per-finding adversarial pass — dead exports, files and directories; options no caller passes and the branches they feed; registry schema fields and prompt plumbing nothing reads; the `ttsFlags` sweep from 72 definitions to the 21 the parser registers; test residue, docs drift, and infra. Seven user-visible drift defects were fixed by deriving the drifted list from its registry rather than patching it (§2). ADRs 001-005 were annotated as history rather than rewritten, which is the convention for this repo.
+STT, OCR, URL extraction, TTS, image, video, music, pricing, planning, preflight, expected-output, batch, and resume paths now request only their domain requirements. Shared fields are composed explicitly instead of flowing through an all-command bag. Positive typed projection replaced exclusion mirrors, and differential option contracts preserve defaults, configured and explicit origins, repeatable values, provider shortcuts, model selection, and concurrency behavior.
 
-**Decision series (waves 1-18).** Grouped by what a future reader might need:
+## Measured source and test change
 
-*Rebuild trails — removals to reverse mechanically if the feature ever ships.* The `costPer1kOutputChars` chain came out across nine sites in one change (two `ExtractModelSchema` fields, `getExtractPricing`'s return field and converter read, `ExtractStepEstimate` and `EstimatedStepEntry`, the `preflightToEstimated` copy, both `reporter.ts` arms, the `buildRatesUsed` spread, `formatRatesSummary`'s `/1k chars` arm, two `registry-provenance.test.ts` allowlist entries) — rebuild from that list or git history if a per-character-priced extract provider ships. The URL capability seam came out end to end (−248 lines): `url-provider-adapter.ts` deleted, plus the `capabilities` adapter field, six `*_CAPABILITIES` arrays, six assert calls, twelve option fields no caller could set, and the firecrawl/spider request-body mappings behind them — rebuild the same way if those flags ever ship. Zyte had a declared `'structured-extraction'` capability with no implementation at all.
+The text diff against `HEAD`, measured across `src/` and `test/` with 20% rename detection, is:
 
-*Catalog and pricing.* `mistral-ocr-latest` dropped (byte-for-byte duplicate of `mistral-ocr-4-0`, made `--all-ocr` pay twice), with a rejection pin guarding its return and ADR-011 annotated. Speechify's unread `voices` array deleted — the TS constants stay the single home, since they encode an allow/deny distinction the flat list erased. `tts-1`/`tts-1-hd` kept: the retirement question is unverifiable without calling the API, so it is recorded in both `pricingNotes` rows and as an ADR-018 follow-up, to be answered from published docs at the next hosted-TTS refresh.
+| Scope | Added | Removed | Net |
+|---|---:|---:|---:|
+| `src/` | 3,722 | 4,114 | -392 |
+| `test/` | 2,278 | 1,735 | +543 |
+| Combined | 6,000 | 5,849 | +151 |
 
-*CLI surface.* llamafile got the config destination its `--llm` help already advertised (both halves needed: the `FLAG_TO_CONFIG_PATH` entry alone would persist `true`, which `ModelArraySchema` then rejects on read). All 68 model validators stopped naming internal target flags in rejection messages, fixed centrally in `model-validation.ts`. The `image` command's rename map became the single home for its two spellings and now retargets usage errors as well as help text — the fix is one boundary retarget in `renameFlagSpellings`, not per-site edits, because the prose clauses would otherwise still be wrong. `--tts-voice` typed alongside dialogue flags is now a hard error rather than a silent discard. Multi-speaker mode derives from `--tts-speaker` mappings only, so a `ttsDialogueFormat` inherited from config defaults warns and continues single-speaker instead of aborting step 4 after three paid steps — the shared `assertDialogueFormatIsUsable` gives the typed flag an error and the config default a warning from one home.
+Production shrank by 392 lines while stronger canonical-shape, negative, differential, and source-guard coverage added 543 net test lines, producing an aggregate increase of 151 lines. Documentation, committed benchmark data, consensus scripts and fixtures, and binary assets are outside this measurement. Rename detection removes matched relocation churn; the gross added and removed counts still include ordinary edit churn.
 
-*Architecture.* The `'x-space'` route overload got `URL_ARTICLE_ROUTE` and a written reason without moving a persisted byte — no rename and no `schemaVersion` bump, since the four hard rejects still have no upgrader; the split-plus-upgrader path stays recorded in ADR-002 as the end state if ever funded. One literal stays bare deliberately: `isExtractRoute` tests the persisted route set, not the overload, and both comments say so. `isLocalUrlBackend` reads the registry's `all-local-url` label instead of the `'defuddle'` literal. The run-level `baseUrl` parameters left all four write providers and the two config helpers they fed, closing ADR-005's pass-4 follow-up as "none" — config-level injection is untouched and is where endpoint control lives.
+## Verification record
 
-*Benchmarks and fixtures.* The whisper probe stopped looking for a `whisper-cpp` command this project never puts on `PATH` — the practical effect of that bug was that `--stt-services whisper` silently resolved zero services on every machine — and now file-checks `runtime/bin/whisper-cli`. The five-model whisper array became `['base']`, with other sizes opted in through `--stt-services service:model`, the same spelling `--reference-stt` already uses. `.gitignore`'s `input/` rules became a working negation chain: line 7's bare `input` had excluded the whole directory, and git will not descend into an excluded directory, so all 21 negations under it were dead and the 23 tracked fixtures were pure force-add residue. **The chain must stay contiguous at the end of the file** — splitting it above the global binary globs is how it broke the first time, and a header comment says so. Result: 26 files shippable, 11 personal-media files still ignored; the maintainer's `git add input/examples` landed in commit 1938efc2.
+- `bun run check`: passed.
+- Safe CLI contract set: 208 passed, 0 failed, 5,251 assertions.
+- Combined focused local/no-cost contracts: 124 passed, 0 failed, 948 assertions.
+- Canonical-manifest plus no-legacy-guard subset: 10 passed, 0 failed, 115 assertions. This was a focused subset/rerun and is not added to the combined total above.
+- The no-legacy persistence guard contributes 3 passing tests within that subset.
 
-*Guards blessed rather than changed.* The `stt`/`ocr` tombstone in `cli-usage-errors.test.ts` is kept and commented — nothing in the parser reserves those names, so that test **is** the entire reservation, which is what makes deleting it consequential. The combined-report deny-list now matches at key position; `balancedComposite` is a real in-memory field that stays out of the JSON only by routing, so the regression it guards is concrete, while the six placement-surface entries guard a revert against ADR-014:90. Note for anyone widening it: `"thresholds"` is a live key in per-run OCR artifacts under the same benchmark root.
+No paid-provider, quota-bearing, smoke/e2e, or full-suite execution was performed. `bun run t` and `bun test/test-runner.ts` were not run.
 
-**Known residuals, all deliberate.** Bare `--llm llamafile` still selects no model (`llamafile` has no `DEFAULT_LOCAL_MODEL_BY_FLAG` entry, unchanged from before). `setup --models whisperfile:bogus` names `--provider whisperfile[=model]` — a real spelling that accepts that model, but not the one the user typed. `--tts-ref-audio` conflicts with dialogue mode the same way `--tts-voice` did and was left out of scope. Unknown `--stt-services` names are silently filtered rather than rejected, asymmetric with `parseReferenceStt`'s hard error. `input/examples/video/` is absent from the ignore chain on purpose: all five references are to the hosted copy.
+## Retained distinctions
 
-## 4. Cleared — do not re-litigate
+- Domain-specific retry classification, polling cadence, remote-resource cleanup, and terminal-state policy remain live behavior; only dead wrappers and non-influential inputs were removed.
+- Versioned schemas unrelated to pipeline persistence remain valid where they describe comic artifacts, reports, links, or test-runner records. They are not manifest compatibility paths.
+- No provider model was retired, and no CoreML behavior was removed or changed.
 
-- **`schemaVersion` optional on `run.json` shapes** — refuted. The finder wanted it required; the skeptic showed the type is correct as-is.
-- **`.gitignore`'s `runtime/auth/` line** — refuted. It looks shadowed by the bare `runtime/` rule, but `docs/cookies.md` documents `runtime/auth/` as the home for browser session credentials, and the file already contains negations that pierce `runtime/`. Defense-in-depth for a documented secrets path, not seed residue.
-- **`downloadFile` still returns a `DownloadResult` no caller reads** — deliberate; scoped out as a signature change.
-- **The `CLIUsageError` name-string arm** — `isCLIUsageError` is `instanceof`-only. The class's own `name` stays: it is a diagnostics label, not a control-flow key, and renaming it would change every serialized diagnostic payload.
-- Kept from the first audit: `llama` vs `llama.cpp` naming, the `*-targets.ts` barrels, `fromLegacyCheck`, bare model names in `setup --models`, `--concurrency` runner rejection, `ttsSpeaker` for `--kitten-voice`, `structured-output/compat-fallback.ts`.
-- Checked and live, not residue: `rolling-shingle-approximation`, the five per-provider `-tts` arms in `resolveCheapestModelForFlag`, the local `selectorArgToInternalArgs`, `decodeLegacyPuaText` and friends.
-- Owner-declined and not re-proposed: the singular `<provider>ImageModel`/`VideoModel`/`MusicModel` fields, and the two-image character identity cards.
-- ADR-002's module inventory still names the deleted `writeUrlBatchManifest` — kept per the annotate-as-history convention.
+## Final status
+
+All `LR-M1` through `LR-M5`, `LR-D1`, and `LR-D2` work is complete. No proposed sequence, planning range, migration phase, compatibility tail, or active backlog remains.

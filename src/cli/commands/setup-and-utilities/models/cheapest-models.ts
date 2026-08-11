@@ -3,12 +3,14 @@ import { getModelRegistry } from './model-loader'
 import { InternalError } from '~/utils/error-handler'
 import type { CheapestVideoSelection } from '~/types'
 import { DEFAULT_DEEPINFRA_OCR_MODEL } from './ocr-models'
+import { SUPPORTED_LLAMAFILE_MODELS } from './llm-models'
 
 const PERFORMANCE_TIE_BREAKERS = ['mini', 'nano', 'micro', 'flash', 'turbo', 'fast', 'small']
 
 const DEFAULT_LOCAL_MODEL_BY_FLAG = {
   whisper: 'tiny',
   llama: 'ggml-org/gemma-3-270m-it-GGUF',
+  llamafile: SUPPORTED_LLAMAFILE_MODELS[0],
   'kitten-tts': 'kitten-tts-nano-0.8-int8',
 } as const satisfies Record<string, string>
 
@@ -62,17 +64,8 @@ const selectCheapestRegistryModel = <T extends Record<string, unknown>>(
   })
 
 const sttHourlyCost = (model: {
-  costPerHourUSD?: number | undefined
-  costPerHourCents?: number | undefined
-}): number => {
-  if (typeof model.costPerHourCents === 'number') {
-    return model.costPerHourCents
-  }
-  if (typeof model.costPerHourUSD === 'number') {
-    return model.costPerHourUSD * 100
-  }
-  return Number.POSITIVE_INFINITY
-}
+  costPerHourCents: number
+}): number => model.costPerHourCents
 
 const qualityRank = (selection: { size?: string | undefined, resolution?: string | undefined }): number => {
   if (selection.size === '1024x1792' || selection.size === '1792x1024') return 2
@@ -116,20 +109,11 @@ const selectCheapestExtractModel = (service: 'mistral' | 'glm' | 'kimi' | 'opena
     if (typeof model.costPer1kPagesCents === 'number') {
       return model.costPer1kPagesCents / 1000
     }
-    if (typeof model.costPer1kPagesUSD === 'number') {
-      return (model.costPer1kPagesUSD * 100) / 1000
-    }
     if (typeof model.costPerMInputTokensCents === 'number' && typeof model.costPerMOutputTokensCents === 'number') {
       const promptTokensPerPage = model.estimation?.promptTokensPerPage ?? DEFAULT_OCR_INPUT_TOKENS_PER_PAGE
       const completionTokensPerPage = model.estimation?.completionTokensPerPage ?? DEFAULT_OCR_OUTPUT_TOKENS_PER_PAGE
       return (promptTokensPerPage / 1_000_000) * model.costPerMInputTokensCents
         + (completionTokensPerPage / 1_000_000) * model.costPerMOutputTokensCents
-    }
-    if (typeof model.costPerMInputTokensUSD === 'number' && typeof model.costPerMOutputTokensUSD === 'number') {
-      const promptTokensPerPage = model.estimation?.promptTokensPerPage ?? DEFAULT_OCR_INPUT_TOKENS_PER_PAGE
-      const completionTokensPerPage = model.estimation?.completionTokensPerPage ?? DEFAULT_OCR_OUTPUT_TOKENS_PER_PAGE
-      return (promptTokensPerPage / 1_000_000) * (model.costPerMInputTokensUSD * 100)
-        + (completionTokensPerPage / 1_000_000) * (model.costPerMOutputTokensUSD * 100)
     }
     return Number.POSITIVE_INFINITY
   })
@@ -156,14 +140,8 @@ const selectCheapestTtsModel = (service: string): string => {
     if (typeof model.costPer1kCharsCents === 'number') {
       return model.costPer1kCharsCents
     }
-    if (typeof model.costPer1kCharsUSD === 'number') {
-      return model.costPer1kCharsUSD * 100
-    }
     if (typeof model.inputCostPer1MCharsCents === 'number' && typeof model.outputCostPer1MCharsCents === 'number') {
       return (model.inputCostPer1MCharsCents + model.outputCostPer1MCharsCents) / 1000
-    }
-    if (typeof model.inputCostPer1MCharsUSD === 'number' && typeof model.outputCostPer1MCharsUSD === 'number') {
-      return ((model.inputCostPer1MCharsUSD + model.outputCostPer1MCharsUSD) * 100) / 1000
     }
     return Number.POSITIVE_INFINITY
   })
@@ -175,11 +153,7 @@ const selectCheapestImageModel = (service: string): string => {
     throw InternalError(`Missing image service config: ${service}`, { stage: 'models:cheapest' })
   }
 
-  return selectCheapestRegistryModel(serviceConfig.models, (model) =>
-    typeof model.costPerImageCents === 'number'
-      ? model.costPerImageCents
-      : model.costPerImageUSD * 100
-  )
+  return selectCheapestRegistryModel(serviceConfig.models, (model) => model.costPerImageCents)
 }
 
 const selectCheapestMusicModel = (service: string): string => {
@@ -192,14 +166,8 @@ const selectCheapestMusicModel = (service: string): string => {
     if (typeof model.costPerTrackCents === 'number') {
       return model.costPerTrackCents
     }
-    if (typeof model.costPerTrackUSD === 'number') {
-      return model.costPerTrackUSD * 100
-    }
     if (typeof model.costPerMinuteCents === 'number') {
       return model.costPerMinuteCents
-    }
-    if (typeof model.costPerMinuteUSD === 'number') {
-      return model.costPerMinuteUSD * 100
     }
     return Number.POSITIVE_INFINITY
   })

@@ -26,18 +26,18 @@ type VisionBenchmarkReportSummary = {
   providers: Array<{ rank: number, providerKey: string, qualityScore: number }>
 }
 
-export type VisionBenchmarkDescriptor<TFlags, TRunJson, TProvider, TReport extends VisionBenchmarkReportSummary> = {
+export type VisionBenchmarkDescriptor<TFlags, TManifestView, TProvider, TReport extends VisionBenchmarkReportSummary> = {
   label: 'Image' | 'Video'
   usage: string
   artifactLabel: 'images' | 'videos'
   artifactCountKey: 'imageCount' | 'videoCount'
   defaultJudgeModel: string
   judgeModel: (flags: TFlags) => string | undefined
-  load: (runDir: string) => Promise<{ runJson: TRunJson, providers: TProvider[] }>
+  load: (runDir: string) => Promise<{ manifestView: TManifestView, providers: TProvider[] }>
   artifactCount: (provider: TProvider) => number
   prepare?: (() => void) | undefined
   framesPerArtifact?: number | undefined
-  writeQualityReports: (runDir: string, runJson: TRunJson, providers: readonly TProvider[], judgeModel: string) => Promise<VisionQualityReportOutput<TReport>>
+  writeQualityReports: (runDir: string, manifestView: TManifestView, providers: readonly TProvider[], judgeModel: string) => Promise<VisionQualityReportOutput<TReport>>
   writeComparisonReports: (runDir: string, report: TReport) => Promise<{ jsonOut: string, markdownOut: string }>
 }
 
@@ -266,14 +266,14 @@ export const writeVisionQualityJson = async (runDir: string, category: 'image' |
   return jsonOut
 }
 
-export const runVisionBenchmark = async <TFlags, TRunJson, TProvider, TReport extends VisionBenchmarkReportSummary>(
+export const runVisionBenchmark = async <TFlags, TManifestView, TProvider, TReport extends VisionBenchmarkReportSummary>(
   input: string | undefined,
   flags: TFlags,
-  descriptor: VisionBenchmarkDescriptor<TFlags, TRunJson, TProvider, TReport>
+  descriptor: VisionBenchmarkDescriptor<TFlags, TManifestView, TProvider, TReport>
 ): Promise<void> => {
   if (!input) throw CLIUsageError(`${descriptor.label} run directory is required. Usage: ${descriptor.usage}`)
   const runDir = resolve(input)
-  const { runJson, providers } = await descriptor.load(runDir)
+  const { manifestView, providers } = await descriptor.load(runDir)
   descriptor.prepare?.()
   const judgeModel = descriptor.judgeModel(flags) ?? descriptor.defaultJudgeModel
   const artifactCount = providers.reduce((sum, provider) => sum + descriptor.artifactCount(provider), 0)
@@ -293,7 +293,7 @@ export const runVisionBenchmark = async <TFlags, TRunJson, TProvider, TReport ex
     }
   })
 
-  const { report, jsonOut, markdownOut } = await descriptor.writeQualityReports(runDir, runJson, providers, judgeModel)
+  const { report, jsonOut, markdownOut } = await descriptor.writeQualityReports(runDir, manifestView, providers, judgeModel)
   const comparison = await descriptor.writeComparisonReports(runDir, report)
   l.write('info', `${descriptor.label} Benchmark Report`, {
     category: 'artifact',

@@ -1,6 +1,6 @@
 import { resolve } from 'node:path'
 import { pathToFileURL } from 'node:url'
-import type { AggregatedPriceEstimate, BatchChildRunContext, RuntimeOptions, Step3Metadata, Step4Metadata, Step5Metadata, Step6VideoMetadata, Step7MusicMetadata, StepTimingCost, TranscriptionResult, VideoMetadata } from '~/types'
+import type { AggregatedPriceEstimate, BatchChildRunContext, Step3Metadata, Step4Metadata, Step5Metadata, Step6VideoMetadata, Step7MusicMetadata, StepTimingCost, TranscriptionResult, VideoMetadata, WriteRuntimeOptions } from '~/types'
 import * as l from '~/utils/app-logger/app-logger'
 import { runWithLogContext } from '~/utils/app-logger/app-logger'
 import { InfraError, ValidationError } from '~/utils/error-handler'
@@ -9,7 +9,7 @@ import { ensureDirectory } from '~/utils/cli-utils'
 import { reserveBatchChildOutputDir } from '~/cli/commands/process-steps/batch-child-output'
 import { resolveRunDirectory } from '~/cli/commands/process-steps/run-dir'
 import { sanitizeTitleSlug } from '~/cli/commands/process-steps/step-1-download/audio/metadata-utils'
-import { buildLLMModelOptions, resolveLLMDefaults } from '~/cli/commands/process-steps/step-1-download/download-targets/options/model-option-llm-defaults'
+import { buildLLMModelOptions, resolveLLMDefaults } from '~/cli/options/option-resolution/model-option-llm-defaults'
 import { runLLM } from './run-llm'
 import {
   buildTextInputPrompt,
@@ -30,7 +30,7 @@ import { preflightToEstimated } from '~/utils/pricing/compute-costs'
 import { computeEstimatedCosts } from '~/utils/pricing/compute-estimated-costs'
 import { computeActualProcessingTimes, computeEstimatedProcessingTimes } from '~/utils/pricing/compute-processing-time'
 import { serializeOneOrMany } from '~/cli/commands/process-steps/target-runner'
-import { writeRunManifest } from '~/cli/commands/process-steps/manifest-utils'
+import { createManifest, createPipelineItemFromRecord, PIPELINE_MANIFEST_FILE, writeManifest } from '~/cli/commands/process-steps/pipeline-manifest'
 import { logWriteManifestConsoleSummary } from '~/cli/commands/process-steps/write-manifest-log/write-manifest-log'
 import { writeShowNoteArtifacts } from './show-note-artifacts'
 
@@ -124,7 +124,7 @@ const buildStepSummaries = (
 export const runTextWrite = async (
   inputPath: string,
   baseDir: string,
-  opts: RuntimeOptions,
+  opts: WriteRuntimeOptions,
   preflightEstimate?: AggregatedPriceEstimate,
   batchChildContext?: BatchChildRunContext
 ): Promise<{ outputDir: string }> => {
@@ -346,7 +346,9 @@ export const runTextWrite = async (
     ...(timing ? { timing } : {}),
   }
 
-  await writeRunManifest(outputDir, 'write', manifestMetadata)
+  await writeManifest(outputDir, createManifest('write', 'single', [
+    createPipelineItemFromRecord(outputDir, manifestMetadata, { status: 'full' })
+  ]))
   logWriteManifestConsoleSummary(outputDir, manifestMetadata, {
     promptArtifact: 'prompt.md',
     ...(step3Results.length === 1 && typeof renderedArtifacts.internalArtifacts['rendered'] === 'string'
@@ -357,7 +359,7 @@ export const runTextWrite = async (
   const totalTimeMs = actualTiming.totalProcessingTimeMs
   const artifactFiles: Record<string, string> = {
     prompt: 'prompt.md',
-    run: 'run.json',
+    manifest: PIPELINE_MANIFEST_FILE,
     ...renderedArtifacts.internalArtifacts,
     ...showNoteArtifacts.internalArtifacts
   }

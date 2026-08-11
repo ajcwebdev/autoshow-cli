@@ -42,6 +42,96 @@ export const STANDALONE_MUSIC_PROVIDER_TARGETS = {
   gemini: 'gemini-music'
 } as const satisfies Record<string, string>
 
+type GenerationSelectionField = {
+  readonly modelsKey: string
+  readonly modelKey: string
+}
+
+type GenerationSelectionFields<TProviderTargets extends Readonly<Record<string, string>>> = {
+  readonly [Service in keyof TProviderTargets]: GenerationSelectionField
+}
+
+type GenerationSelectionDescriptor = {
+  readonly providerTargets: Readonly<Record<string, string>>
+  readonly selections: Readonly<Record<string, GenerationSelectionField>>
+}
+
+type GenerationPricingProviders<TDescriptor extends GenerationSelectionDescriptor> = Array<{
+  [Service in keyof TDescriptor['providerTargets'] & keyof TDescriptor['selections'] & string]: {
+    service: Service
+    modelsKey: TDescriptor['selections'][Service]['modelsKey']
+    modelKey: TDescriptor['selections'][Service]['modelKey']
+  }
+}[keyof TDescriptor['providerTargets'] & keyof TDescriptor['selections'] & string]>
+
+const defineGenerationSelectionDescriptor = <
+  const TProviderTargets extends Readonly<Record<string, string>>,
+  const TSelections extends GenerationSelectionFields<TProviderTargets>
+>(
+  providerTargets: TProviderTargets,
+  selections: TSelections & Record<Exclude<keyof TSelections, keyof TProviderTargets>, never>
+) => ({ providerTargets, selections })
+
+export const deriveGenerationPricingProviders = <const TDescriptor extends GenerationSelectionDescriptor>(
+  descriptor: TDescriptor
+): GenerationPricingProviders<TDescriptor> =>
+  Object.keys(descriptor.providerTargets).map((service) => ({
+    service,
+    modelsKey: descriptor.selections[service]!.modelsKey,
+    modelKey: descriptor.selections[service]!.modelKey
+  })) as GenerationPricingProviders<TDescriptor>
+
+export const deriveGenerationResumeModelFields = <const TDescriptor extends GenerationSelectionDescriptor>(
+  descriptor: TDescriptor
+): Readonly<Record<string, readonly [modelsKey: string, modelKey: string]>> =>
+  Object.fromEntries(Object.keys(descriptor.providerTargets).map((service) => [
+    service,
+    [descriptor.selections[service]!.modelsKey, descriptor.selections[service]!.modelKey] as const
+  ]))
+
+export const deriveGenerationResumeProviderFlags = <const TDescriptor extends GenerationSelectionDescriptor>(
+  descriptor: TDescriptor,
+  allProvidersFlag: string
+): readonly string[] => [allProvidersFlag, ...Object.values(descriptor.providerTargets)]
+
+export const IMAGE_GENERATION_SELECTION = defineGenerationSelectionDescriptor(
+  STANDALONE_IMAGE_PROVIDER_TARGETS,
+  {
+    gemini: { modelsKey: 'geminiImageModels', modelKey: 'geminiImageModel' },
+    openai: { modelsKey: 'openaiImageModels', modelKey: 'openaiImageModel' },
+    grok: { modelsKey: 'grokImageModels', modelKey: 'grokImageModel' },
+    bfl: { modelsKey: 'bflImageModels', modelKey: 'bflImageModel' },
+    recraft: { modelsKey: 'recraftImageModels', modelKey: 'recraftImageModel' },
+    replicate: { modelsKey: 'replicateImageModels', modelKey: 'replicateImageModel' },
+    lumalabs: { modelsKey: 'lumalabsImageModels', modelKey: 'lumalabsImageModel' },
+    fal: { modelsKey: 'falImageModels', modelKey: 'falImageModel' }
+  }
+)
+
+export const VIDEO_GENERATION_SELECTION = defineGenerationSelectionDescriptor(
+  STANDALONE_VIDEO_PROVIDER_TARGETS,
+  {
+    gemini: { modelsKey: 'geminiVideoModels', modelKey: 'geminiVideoModel' },
+    minimax: { modelsKey: 'minimaxVideoModels', modelKey: 'minimaxVideoModel' },
+    glm: { modelsKey: 'glmVideoModels', modelKey: 'glmVideoModel' },
+    grok: { modelsKey: 'grokVideoModels', modelKey: 'grokVideoModel' },
+    runway: { modelsKey: 'runwayVideoModels', modelKey: 'runwayVideoModel' },
+    ltx: { modelsKey: 'ltxVideoModels', modelKey: 'ltxVideoModel' },
+    replicate: { modelsKey: 'replicateVideoModels', modelKey: 'replicateVideoModel' },
+    lumalabs: { modelsKey: 'lumalabsVideoModels', modelKey: 'lumalabsVideoModel' },
+    fal: { modelsKey: 'falVideoModels', modelKey: 'falVideoModel' }
+  }
+)
+
+export const MUSIC_GENERATION_SELECTION = defineGenerationSelectionDescriptor(
+  STANDALONE_MUSIC_PROVIDER_TARGETS,
+  {
+    elevenlabs: { modelsKey: 'elevenlabsMusicModels', modelKey: 'elevenlabsMusicModel' },
+    minimax: { modelsKey: 'minimaxMusicModels', modelKey: 'minimaxMusicModel' },
+    gemini: { modelsKey: 'geminiMusicModels', modelKey: 'geminiMusicModel' }
+  }
+)
+
 export const WRITE_STT_PROVIDER_TARGETS = {
   reverb: 'reverb-stt',
   deepinfra: 'deepinfra-stt',
@@ -59,7 +149,8 @@ export const WRITE_STT_PROVIDER_TARGETS = {
   scrapecreators: 'scrapecreators-stt',
   gemini: 'gemini-stt',
   together: 'together-stt',
-  whisper: 'whisper-stt'
+  whisper: 'whisper-stt',
+  whisperfile: 'whisperfile-stt'
 } as const satisfies Record<string, string>
 
 export const WRITE_OCR_PROVIDER_TARGETS = {

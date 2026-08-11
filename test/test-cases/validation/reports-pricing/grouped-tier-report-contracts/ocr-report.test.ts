@@ -6,7 +6,7 @@ import {
 import { writeFile } from 'node:fs/promises'
 import { join } from 'node:path'
 import type { MetricName, MetricRankingEntry } from '~/types'
-import { writeMultiProviderRunFixture } from '../../../../test-utils/manifest-helpers'
+import { writeMultiProviderManifestFixture } from '../../../../test-utils/manifest-helpers'
 import {
   deprecatedOverallTierKey,
   deprecatedTierSplitKey,
@@ -29,8 +29,9 @@ describe('grouped report contracts', () => {
         { dir: 'openai-gpt-4o-mini', provider: 'openai', model: 'gpt-4o-mini', text: 'alpha gamma', processingTime: 3000, cost: 0.5 }
       ]
 
-      await writeMultiProviderRunFixture(runDir, {
-        kind: 'extract',
+      await writeMultiProviderManifestFixture(runDir, {
+        command: 'extract',
+        extractRoute: 'document',
         metadata: {
           step2: [{ extractionMethod: 'ocr', totalPages: 1, ocrPages: 1, textPages: 0 }]
         },

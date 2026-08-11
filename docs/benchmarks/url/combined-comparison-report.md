@@ -1,6 +1,6 @@
 # Combined URL Provider Comparison Report
 
-This report is generated exclusively from the committed `run.json` and `provider-comparison-report.json` artifacts. It does not rerun URL extraction providers or regenerate consensus extractions.
+This report is generated exclusively from the committed `manifest.json` and `provider-comparison-report.json` artifacts. It does not rerun URL extraction providers or regenerate consensus extractions.
 
 ## Source Inventory
 

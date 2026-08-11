@@ -9,7 +9,7 @@ import {
   buildTimingLookup,
   discoverVideoFiles,
   entryProcessingTime,
-  loadVideoRunJson,
+  loadVideoManifestRecord,
   makeProviderKey,
   nullableNumber,
 } from "./video_eval_lib.ts";
@@ -70,19 +70,19 @@ function parseArgs(argv: string[]): ParsedArgs {
 }
 
 export async function buildPacket(runDir: string) {
-  const runJson = loadVideoRunJson(runDir);
+  const manifestRecord = loadVideoManifestRecord(runDir);
   const warnings: string[] = [];
 
-  const { found, missing } = discoverVideoFiles(runDir, runJson.metadata.video);
+  const { found, missing } = discoverVideoFiles(runDir, manifestRecord.metadata.video);
   if (missing.length > 0) {
     warnings.push(`Missing video files: ${missing.join(", ")}`);
   }
 
-  const costLookup = buildCostLookup(runJson);
-  const timingLookup = buildTimingLookup(runJson);
+  const costLookup = buildCostLookup(manifestRecord);
+  const timingLookup = buildTimingLookup(manifestRecord);
 
   const providers: VideoProviderEvidence[] = [];
-  for (const entry of runJson.metadata.video) {
+  for (const entry of manifestRecord.metadata.video) {
     const providerKey = makeProviderKey(entry.videoGenService, entry.videoGenModel);
     const videoPath = found.get(providerKey) ?? "";
     const videoExists = videoPath.length > 0;

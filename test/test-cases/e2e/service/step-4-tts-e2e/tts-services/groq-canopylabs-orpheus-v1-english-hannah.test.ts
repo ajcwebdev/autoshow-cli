@@ -5,7 +5,7 @@ import {
   findLatestDirectory,
   runCommand,
 } from '../../../../../test-utils/test-helpers'
-import { readRunMetadata } from '../../../../../test-utils/manifest-helpers'
+import { readCanonicalRecord } from '../../../../../test-utils/manifest-helpers'
 import { requireConfiguredEnvVar } from '../../../../../test-utils/service-test-kit'
 
 const SHORT_TTS_INPUT_PATH = 'input/examples/tts/0-tts-short.txt'
@@ -32,7 +32,7 @@ budgetedTest('tts-groq-canopylabs/orpheus-v1-english', 'orpheus english with --t
   if (outputDir) {
     expect(await fileExists(`${outputDir}/speech.wav`)).toBe(true)
 
-    const metadata = await readRunMetadata(outputDir) as {
+    const metadata = await readCanonicalRecord(outputDir) as {
       tts?: Array<{ ttsService?: string, ttsModel?: string, speaker?: string }>
     }
     expect(metadata.tts?.[0]?.ttsService).toBe('groq')

@@ -10,7 +10,6 @@
         "pricingCurrency": "USD",
         "pricingTier": "ElevenLabs API text-to-speech pricing",
         "pricingNotes": "ElevenLabs v3 TTS is estimated at $0.10/1K characters. Voice cloning setup costs are handled separately when a normal CLI option requests cloning; subscription inclusions, discounts, enterprise pricing, taxes, and provider credits are ignored.",
-        "costPer1kCharsUSD": 0.1,
         "costPer1kCharsCents": 10,
         "limits": { "maxInputCharacters": 5000 },
         "estimation": {
@@ -25,7 +24,6 @@
         "pricingCurrency": "USD",
         "pricingTier": "ElevenLabs API text-to-speech pricing",
         "pricingNotes": "ElevenLabs Multilingual v2 TTS is estimated at $0.10/1K characters. Timing is provisional pending separately approved calibration. Subscription inclusions, discounts, enterprise pricing, taxes, and provider credits are ignored.",
-        "costPer1kCharsUSD": 0.1,
         "costPer1kCharsCents": 10,
         "limits": { "maxInputCharacters": 10000 },
         "estimation": { "costMultiplier": 1, "msPer1KChars": 35885 }
@@ -37,7 +35,6 @@
         "pricingCurrency": "USD",
         "pricingTier": "ElevenLabs API text-to-speech pricing",
         "pricingNotes": "ElevenLabs Flash v2.5 TTS is estimated at $0.05/1K characters. Timing is provisional pending separately approved calibration. Subscription inclusions, discounts, enterprise pricing, taxes, and provider credits are ignored.",
-        "costPer1kCharsUSD": 0.05,
         "costPer1kCharsCents": 5,
         "limits": { "maxInputCharacters": 40000 },
         "estimation": { "costMultiplier": 1, "msPer1KChars": 35885 }

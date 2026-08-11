@@ -35,7 +35,7 @@ bun scripts/run.ts url build-combined-report "$ROOT_DIR"
 ```
 
 The command discovers each `provider-comparison-report.json` below the root and
-reads optional sibling `run.json` metadata for article titles and source URLs. It
+reads optional sibling `manifest.json` metadata for article titles and source URLs. It
 uses only committed local artifacts and never reruns providers or regenerates a
 consensus extraction.
 

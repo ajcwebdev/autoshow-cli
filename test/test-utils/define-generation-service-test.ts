@@ -1,7 +1,7 @@
 import { expect, test } from 'bun:test'
 import type { MusicServiceModelCase, RunCommandOptions, VideoTestService } from '~/types'
 import { E2E_TEST_TIMEOUT_MS } from './budget'
-import { readRunMetadata } from './manifest-helpers'
+import { readCanonicalRecord } from './manifest-helpers'
 import {
   defineBudgetedLiveServiceTest,
   defineInvalidModelTest,
@@ -80,7 +80,7 @@ export const defineGenerationServiceTest = <
       const artifactFile = Bun.file(artifactPath)
       expect(artifactFile.size).toBeGreaterThan(0)
 
-      const metadata = await readRunMetadata(outputDir)
+      const metadata = await readCanonicalRecord(outputDir)
       const metadataEntry = (metadata[profile.metadataKey] as Array<Record<string, unknown>> | undefined)?.[0]
       const expected = profile.expectedMetadata(modelCase, { fileName, fileSize: artifactFile.size }, options)
       for (const [key, value] of Object.entries(expected)) {

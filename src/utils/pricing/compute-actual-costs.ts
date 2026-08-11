@@ -1,10 +1,12 @@
 import {
   getImageCost,
   getLlmCost,
-  getMusicModelMeta
+  getMusicModelMeta,
+  getRetiredModelRate
 } from '~/cli/commands/setup-and-utilities/models/model-loader'
 import { estimateImageCosts } from '~/cli/commands/process-steps/step-5-image/image-utils/image-pricing'
 import { estimateVideoCost } from '~/cli/commands/process-steps/step-6-video/video-utils/video-pricing'
+import { isCostSource } from '~/types'
 import type { ActualCostBreakdown, ComputeActualCostsInput, CostSource, ExtractionMetadata, Step2Metadata, Step5Metadata, Step6VideoMetadata, StepCostEntry } from '~/types'
 import {
   computeSttCost,
@@ -31,41 +33,10 @@ import { walkRunSteps } from './run-step-walk'
 const normalizeDurationSeconds = (value: number): number =>
   Number.isFinite(value) ? Math.max(0, value) : 0
 
-const COST_SOURCES = new Set<CostSource>([
-  'provider_usage',
-  'provider_quote',
-  'response_header',
-  'computed_usage',
-  'registry_fallback',
-  'partial_provider_usage',
-  'heuristic',
-  'local_zero'
-])
-
 const normalizeCostSource = (value: unknown, fallback: CostSource): CostSource =>
-  typeof value === 'string' && COST_SOURCES.has(value as CostSource)
-    ? value as CostSource
+  isCostSource(value)
+    ? value
     : fallback
-
-const mapBillingCostSource = (source: unknown): CostSource => {
-  switch (source) {
-    case 'provider_usage':
-    case 'provider_quote':
-    case 'response_header':
-      return source
-    case 'response-header':
-      return 'response_header'
-    case 'registry_fallback':
-    case 'fallback-estimate':
-      return 'registry_fallback'
-    case 'partial_provider_usage':
-      return 'partial_provider_usage'
-    case 'heuristic':
-      return 'heuristic'
-    default:
-      return 'computed_usage'
-  }
-}
 
 const resolveSttBillingDurationSeconds = (input: ComputeActualCostsInput): number => {
   if (typeof input.audioDurationSeconds === 'number') {
@@ -108,7 +79,7 @@ const computeActualSttCharge = (
     )
     return {
       cost: actual.totalCost,
-      costSource: metadata.billing?.source ? mapBillingCostSource(metadata.billing.source) : 'computed_usage',
+      costSource: metadata.billing?.source ?? 'computed_usage',
       inputMetric: 'credits',
       inputValue: actual.creditsUsed
     }
@@ -121,7 +92,7 @@ const computeActualSttCharge = (
     )
     return {
       cost: actual.totalCost,
-      costSource: metadata.billing?.source ? mapBillingCostSource(metadata.billing.source) : 'computed_usage',
+      costSource: metadata.billing?.source ?? 'computed_usage',
       inputMetric: 'credits',
       inputValue: actual.creditsUsed
     }
@@ -139,7 +110,7 @@ const computeActualSttCharge = (
     ) {
       return {
         cost: metadata.billing.totalCost,
-        costSource: mapBillingCostSource(metadata.billing.source),
+        costSource: metadata.billing.source ?? 'computed_usage',
         inputMetric: 'tokens',
         inputValue: typeof totalTokens === 'number' && Number.isFinite(totalTokens)
           ? totalTokens
@@ -151,7 +122,7 @@ const computeActualSttCharge = (
 
     return {
       cost: metadata.billing.totalCost,
-      costSource: mapBillingCostSource(metadata.billing.source),
+      costSource: metadata.billing.source ?? 'computed_usage',
       inputMetric: 'durationSeconds',
       inputValue: durationSeconds
     }
@@ -165,30 +136,49 @@ const computeActualSttCharge = (
   }
 }
 
-// Music models dropped from the active registry whose benchmark artifacts are
-// still committed. ADR-018 replaced MiniMax `music-2.6` with `music-3.0` and
-// required it to survive "only in historical benchmark and result readers" —
-// this is that reader. Without a row here `getMusicModelMeta` returns undefined
-// and every archived run reprices to $0 instead of failing loudly. Rates are the
-// registry values as of the last refresh that carried the model.
-const RETIRED_MUSIC_MODEL_RATES: Readonly<Record<string, {
-  costPerTrackCents: number
-  lyricsCostPerTrackCents: number
-}>> = {
-  'minimax:music-2.6': { costPerTrackCents: 15, lyricsCostPerTrackCents: 1 }
-}
-
 const countGrokVideoInputImages = (entry: Step6VideoMetadata): number =>
   (entry.inputImage ? 1 : 0) + (entry.referenceImages?.length ?? 0)
 
 const countReplicateVideoInputs = (entry: Step6VideoMetadata): number =>
   (entry.inputVideo ? 1 : 0) + (entry.referenceVideos?.length ?? 0)
 
-const estimateActualVideoFallbackCost = (entry: Step6VideoMetadata): number => {
-  if (entry.videoGenService === 'replicate' && entry.videoGenModel === 'alibaba/happyhorse-1.0') {
-    const durationSeconds = typeof entry.videoDuration === 'number' ? entry.videoDuration : 5
-    return durationSeconds * (entry.videoResolution === '1080p' ? 28 : 14)
+const estimateRetiredVideoFallbackCost = (entry: Step6VideoMetadata): number | undefined => {
+  const meta = getRetiredModelRate('video', entry.videoGenService, entry.videoGenModel)
+  if (!meta) return undefined
+
+  const durationSeconds = typeof entry.videoDuration === 'number' ? entry.videoDuration : 5
+  const resolution = entry.videoResolution ?? '720p'
+  const resolutionRate = meta.costPerSecondByResolutionCents?.[resolution]
+  if (typeof resolutionRate === 'number') return durationSeconds * resolutionRate
+
+  const fixedCost = meta.fixedCostByResolutionDurationCents?.[resolution]?.[String(durationSeconds)]
+  if (typeof fixedCost === 'number') return fixedCost
+
+  if (typeof meta.blockSizeSec === 'number') {
+    const blockRate = resolution === '1080p'
+      ? meta.blockCost1080pCents ?? meta.blockCost720pCents
+      : meta.blockCost720pCents
+    if (typeof blockRate === 'number') {
+      return Math.max(1, Math.ceil(durationSeconds / meta.blockSizeSec)) * blockRate
+    }
   }
+
+  if (typeof meta.baseCostPerSecondCents === 'number') {
+    const multiplier = resolution === '1080p'
+      ? meta.resolutionMultiplier1080p ?? 1
+      : resolution === '720p'
+        ? meta.resolutionMultiplier720p ?? 1
+        : 1
+    return durationSeconds * meta.baseCostPerSecondCents * multiplier
+  }
+
+  return meta.baseJobFeeCents
+}
+
+const estimateActualVideoFallbackCost = (entry: Step6VideoMetadata): number => {
+  const retiredCost = estimateRetiredVideoFallbackCost(entry)
+  if (typeof retiredCost === 'number') return retiredCost
+
   const estimate = estimateVideoCost({
     ...(entry.videoGenService === 'gemini' ? { geminiVideoModel: entry.videoGenModel } : {}),
     ...(entry.videoGenService === 'minimax' ? { minimaxVideoModel: entry.videoGenModel } : {}),
@@ -383,7 +373,6 @@ export const computeActualCosts = (input: ComputeActualCostsInput): ActualCostBr
       },
       music: (metadata) => {
         const meta = getMusicModelMeta(metadata.musicService, metadata.musicModel)
-        const retired = RETIRED_MUSIC_MODEL_RATES[`${metadata.musicService}:${metadata.musicModel}`]
         let cost = 0
         if (typeof metadata.providerCostCents === 'number') {
           cost = metadata.providerCostCents
@@ -395,11 +384,6 @@ export const computeActualCosts = (input: ComputeActualCostsInput): ActualCostBr
             }
           } else if (typeof meta.costPerMinuteCents === 'number' && typeof metadata.musicDurationMs === 'number') {
             cost = meta.costPerMinuteCents * (metadata.musicDurationMs / 60000)
-          }
-        } else if (retired) {
-          cost = retired.costPerTrackCents
-          if (metadata.lyricsSource === 'generated') {
-            cost += retired.lyricsCostPerTrackCents
           }
         }
         steps.push({

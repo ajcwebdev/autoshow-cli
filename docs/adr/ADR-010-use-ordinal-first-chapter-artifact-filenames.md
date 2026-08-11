@@ -76,7 +76,7 @@ Positive outcomes:
 
 - EPUB and PDF chapter files share one documented filename shape.
 - Chapter files sort by logical order even when PDF source pages skip front matter.
-- Source location remains visible in the path without requiring `run.json`.
+- Source location remains visible in the path without requiring `manifest.json`.
 - Split parts continue sorting after their parent chapter base name.
 
 Negative outcomes:

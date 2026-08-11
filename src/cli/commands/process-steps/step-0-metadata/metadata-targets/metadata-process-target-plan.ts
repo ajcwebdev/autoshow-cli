@@ -1,6 +1,6 @@
 import * as l from '~/utils/app-logger/app-logger'
 import { CLIUsageError } from '~/utils/error-handler'
-import type { BatchExecutionPlan, BatchItem, ProcessCommand, ResolvedBatch, ResolvedProcessTargetPlan, RuntimeOptions } from '~/types'
+import type { BatchExecutionPlan, BatchItem, ProcessCommand, ProcessPlanningOptions, ResolvedBatch, ResolvedProcessTargetPlan } from '~/types'
 import {
   classifyTopLevelTarget,
   collectInputFiles,
@@ -17,7 +17,7 @@ import { collectTextInputFiles, isTextInputPath } from '~/cli/commands/process-s
 export const resolveProcessTargetPlan = async (
   command: ProcessCommand,
   resolvedTarget: string,
-  opts: RuntimeOptions
+  opts: ProcessPlanningOptions
 ): Promise<ResolvedProcessTargetPlan> => {
   if (command === 'write' && opts.textInput) {
     if (/^https?:\/\//i.test(resolvedTarget)) {
@@ -75,7 +75,7 @@ export const resolveProcessTargetPlan = async (
     return { kind: 'resolved_batch', resolvedBatch: resolved }
   }
 
-  const youtubeCollectionItems = await resolveYoutubeCollectionItems(resolvedTarget, command)
+  const youtubeCollectionItems = await resolveYoutubeCollectionItems(resolvedTarget)
   if (youtubeCollectionItems) {
     return { kind: 'youtube_collection', targets: youtubeCollectionItems }
   }
@@ -86,7 +86,7 @@ export const resolveProcessTargetPlan = async (
 const planResolvedBatchExecution = async (
   resolvedBatch: ResolvedBatch,
   command: ProcessCommand,
-  opts: RuntimeOptions,
+  opts: ProcessPlanningOptions,
   label: string
 ): Promise<BatchExecutionPlan> => {
   const batchPlan = await planBatchInputsForCommand(
@@ -100,7 +100,7 @@ const planResolvedBatchExecution = async (
     label,
     items: batchPlan.items,
     ...(batchPlan.selectedItems ? { selectedItems: batchPlan.selectedItems } : {}),
-    initialEntries: batchPlan.initialEntries,
+    initialRecords: batchPlan.initialRecords,
     resultEntryIndexes: batchPlan.resultEntryIndexes,
     plannedInputs: batchPlan.plannedInputs,
     source: resolvedBatch.source,
@@ -111,7 +111,7 @@ const planResolvedBatchExecution = async (
 const planDirectoryBatchExecution = async (
   resolvedTarget: string,
   command: ProcessCommand,
-  opts: RuntimeOptions
+  opts: ProcessPlanningOptions
 ): Promise<BatchExecutionPlan | undefined> => {
   const allFiles = command === 'write' && opts.textInput
     ? await collectTextInputFiles(resolvedTarget)
@@ -144,7 +144,7 @@ const planDirectoryBatchExecution = async (
         : 'files',
     items: batchPlan.items,
     ...(batchPlan.selectedItems ? { selectedItems: batchPlan.selectedItems } : {}),
-    initialEntries: batchPlan.initialEntries,
+    initialRecords: batchPlan.initialRecords,
     resultEntryIndexes: batchPlan.resultEntryIndexes,
     plannedInputs: batchPlan.plannedInputs
   }
@@ -153,7 +153,7 @@ const planDirectoryBatchExecution = async (
 export const planProcessTargetBatchExecution = async (
   plan: ResolvedProcessTargetPlan,
   command: ProcessCommand,
-  opts: RuntimeOptions,
+  opts: ProcessPlanningOptions,
   resolvedTarget: string
 ): Promise<BatchExecutionPlan | undefined> => {
   if (plan.kind === 'directory') {
@@ -179,7 +179,7 @@ export const planProcessTargetBatchExecution = async (
       label: 'youtube_collection',
       items: batchPlan.items,
       ...(batchPlan.selectedItems ? { selectedItems: batchPlan.selectedItems } : {}),
-      initialEntries: batchPlan.initialEntries,
+      initialRecords: batchPlan.initialRecords,
       resultEntryIndexes: batchPlan.resultEntryIndexes,
       plannedInputs: batchPlan.plannedInputs
     }

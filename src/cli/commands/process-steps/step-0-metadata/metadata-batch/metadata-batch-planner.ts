@@ -1,19 +1,19 @@
 import * as l from '~/utils/app-logger/app-logger'
 import { isExtractCommand, usesExtractInputRouting } from '~/cli/commands/process-steps/process-command-kinds'
-import type { BatchItem, BatchManifestEntry, PlannedBatchInput, ProcessCommand, RuntimeOptions } from '~/types'
-import { buildBatchManifestEntryForItem } from './batch-manifest-entry'
+import type { BatchItem, PipelineItemRecord, PlannedBatchInput, ProcessCommand, ProcessPlanningOptions } from '~/types'
+import { buildPipelineItemRecord } from './pipeline-item-record-builder'
 import { describeUnsupportedInputForCommand, resolveInputRoutingForCommand } from '../metadata-targets/metadata-input-routing'
 
 export const planBatchInputsForCommand = async (
   command: ProcessCommand,
   items: string[],
-  opts: RuntimeOptions,
+  opts: ProcessPlanningOptions,
   selectedItems?: Array<BatchItem | undefined>,
   logSkips = true
 ): Promise<{
   items: string[]
   selectedItems?: Array<BatchItem | undefined>
-  initialEntries: BatchManifestEntry[]
+  initialRecords: PipelineItemRecord[]
   resultEntryIndexes: number[]
   plannedInputs: PlannedBatchInput[]
 }> => {
@@ -21,8 +21,8 @@ export const planBatchInputsForCommand = async (
     return {
       items,
       ...(selectedItems ? { selectedItems } : {}),
-      initialEntries: items.map((item, index) => ({
-        ...buildBatchManifestEntryForItem(item, selectedItems?.[index]),
+      initialRecords: items.map((item, index) => ({
+        ...buildPipelineItemRecord(item, selectedItems?.[index]),
         sourceKind: 'text-input'
       })),
       resultEntryIndexes: items.map((_, index) => index),
@@ -43,7 +43,7 @@ export const planBatchInputsForCommand = async (
     return {
       items,
       ...(selectedItems ? { selectedItems } : {}),
-      initialEntries: items.map((item, index) => buildBatchManifestEntryForItem(item, selectedItems?.[index])),
+      initialRecords: items.map((item, index) => buildPipelineItemRecord(item, selectedItems?.[index])),
       resultEntryIndexes: items.map((_, index) => index),
       plannedInputs: items.map((item, index) => ({
         input: item,
@@ -59,15 +59,15 @@ export const planBatchInputsForCommand = async (
 
   const filteredItems: string[] = []
   const filteredSelectedItems: Array<BatchItem | undefined> = []
-  const initialEntries: BatchManifestEntry[] = []
+  const initialRecords: PipelineItemRecord[] = []
   const resultEntryIndexes: number[] = []
   const plannedInputs: PlannedBatchInput[] = []
 
   for (const [index, item] of items.entries()) {
     const batchItem = selectedItems?.[index]
     const routing = await resolveInputRoutingForCommand(command, item, opts)
-    const entryBase = {
-      ...buildBatchManifestEntryForItem(item, batchItem),
+    const recordBase = {
+      ...buildPipelineItemRecord(item, batchItem),
       ...(routing.family !== 'unsupported' ? { inputFamily: routing.family } : {}),
       step2Route: routing.step2Route,
       resolvedStep2: routing.resolvedStep2,
@@ -86,8 +86,8 @@ export const planBatchInputsForCommand = async (
       if (logSkips && isExtractCommand(command)) {
         l.warn(`Skipping ${routing.family} input in ${command} batch: ${item} (${reason})`)
       }
-      initialEntries.push({
-        ...entryBase,
+      initialRecords.push({
+        ...recordBase,
         completionStatus: 'skipped',
         inputFamily: routing.family,
         skipReason: reason
@@ -95,8 +95,8 @@ export const planBatchInputsForCommand = async (
       continue
     }
 
-    initialEntries.push(entryBase)
-    resultEntryIndexes.push(initialEntries.length - 1)
+    initialRecords.push(recordBase)
+    resultEntryIndexes.push(initialRecords.length - 1)
     filteredItems.push(item)
     if (batchItem) {
       filteredSelectedItems.push(batchItem)
@@ -106,7 +106,7 @@ export const planBatchInputsForCommand = async (
   return {
     items: filteredItems,
     ...(selectedItems ? { selectedItems: filteredSelectedItems } : {}),
-    initialEntries,
+    initialRecords,
     resultEntryIndexes,
     plannedInputs
   }

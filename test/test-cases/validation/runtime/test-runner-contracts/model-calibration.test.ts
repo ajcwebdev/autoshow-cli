@@ -17,12 +17,32 @@ import { buildModelCalibrationReport } from '../../../../test-runner/model-calib
 
 const tempDirs: string[] = []
 
+const canonicalManifest = (
+  command: string,
+  metadata: Record<string, unknown>,
+  options: {
+    extractRoute?: 'media' | 'document'
+    providers?: Record<string, unknown>[]
+  } = {}
+) => ({
+  command,
+  scope: 'single',
+  createdAt: '2026-05-01T00:00:00.000Z',
+  updatedAt: '2026-05-01T00:00:00.000Z',
+  items: [{
+    ...(options.extractRoute ? { extractRoute: options.extractRoute } : {}),
+    status: 'full',
+    metadata,
+    providers: options.providers ?? []
+  }]
+})
+
 afterEach(async () => {
   await Promise.all(tempDirs.splice(0).map((dir) => rm(dir, { recursive: true, force: true })))
 })
 
 describe('test-runner contracts', () => {
-  test('model calibration scans copied run manifests and reports recommendations', async () => {
+  test('model calibration scans copied canonical manifests and reports recommendations', async () => {
       const dir = await mkdtemp(join(tmpdir(), 'autoshow-calibration-run-manifest-'))
       tempDirs.push(dir)
 
@@ -34,7 +54,6 @@ describe('test-runner contracts', () => {
           models: {
             'gpt-image-2': {
               description: 'GPT Image 2',
-              costPerImageUSD: 0.08,
               costPerImageCents: 8,
               estimation: {
                 costMultiplier: 1,
@@ -49,10 +68,7 @@ describe('test-runner contracts', () => {
       const runDir = join(dir, '2026-05-01_00-00-00_test-run')
       const copiedRunDir = join(runDir, 'run')
       await mkdir(copiedRunDir, { recursive: true })
-      await writeFile(join(copiedRunDir, '2026-05-01_00-00-01_image-gen.json'), `${JSON.stringify({
-        schemaVersion: 2,
-        kind: 'image',
-        metadata: {
+      await writeFile(join(copiedRunDir, '2026-05-01_00-00-01_image-gen.json'), `${JSON.stringify(canonicalManifest('image', {
           cost: {
             estimated: {
               steps: [{
@@ -88,8 +104,7 @@ describe('test-runner contracts', () => {
               }]
             }
           }
-        }
-      }, null, 2)}\n`)
+      }), null, 2)}\n`)
 
       const report = await buildModelCalibrationReport(dir, { image: configPath })
       const configAfterCalibration = await readFile(configPath, 'utf8')
@@ -153,10 +168,7 @@ describe('test-runner contracts', () => {
       const runDir = join(runsRoot, '2026-05-01_00-00-00_test-run')
       const copiedRunDir = join(runDir, 'run')
       await mkdir(copiedRunDir, { recursive: true })
-      await writeFile(join(copiedRunDir, '2026-05-01_00-00-01_stt.json'), `${JSON.stringify({
-        schemaVersion: 2,
-        kind: 'stt',
-        metadata: {
+      await writeFile(join(copiedRunDir, '2026-05-01_00-00-01_stt.json'), `${JSON.stringify(canonicalManifest('extract', {
           timing: {
             actual: {
               steps: [{
@@ -169,8 +181,18 @@ describe('test-runner contracts', () => {
               }]
             }
           }
-        }
-      }, null, 2)}\n`)
+      }, {
+        extractRoute: 'media',
+        providers: [{
+          service: 'deepgram',
+          model: 'nova-3',
+          artifactDir: 'providers/deepgram-nova-3',
+          status: 'succeeded',
+          attempts: 1,
+          options: {},
+          metadata: { transcriptionService: 'deepgram', transcriptionModel: 'nova-3', processingTime: 3000 }
+        }]
+      }), null, 2)}\n`)
 
       const report = await buildModelCalibrationReport(runsRoot, { stt: configDir })
 
@@ -235,10 +257,7 @@ describe('test-runner contracts', () => {
       const runDir = join(runsRoot, '2026-05-01_00-00-00_test-run')
       const copiedRunDir = join(runDir, 'run')
       await mkdir(copiedRunDir, { recursive: true })
-      await writeFile(join(copiedRunDir, '2026-05-01_00-00-01_extract.json'), `${JSON.stringify({
-        schemaVersion: 2,
-        kind: 'extract',
-        metadata: {
+      await writeFile(join(copiedRunDir, '2026-05-01_00-00-01_extract.json'), `${JSON.stringify(canonicalManifest('extract', {
           timing: {
             actual: {
               steps: [{
@@ -251,8 +270,18 @@ describe('test-runner contracts', () => {
               }]
             }
           }
-        }
-      }, null, 2)}\n`)
+      }, {
+        extractRoute: 'document',
+        providers: [{
+          service: 'mistral',
+          model: 'mistral-ocr-4-0',
+          artifactDir: 'providers/mistral-mistral-ocr-4-0',
+          status: 'succeeded',
+          attempts: 1,
+          options: {},
+          metadata: { ocrService: 'mistral', ocrModel: 'mistral-ocr-4-0', processingTime: 4500 }
+        }]
+      }), null, 2)}\n`)
 
       const report = await buildModelCalibrationReport(runsRoot, { extract: configDir })
 
