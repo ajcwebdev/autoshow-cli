@@ -2,10 +2,10 @@
 
 ## Status
 
-- **Decision Status:** Proposed
+- **Decision Status:** Accepted
 - **Date Created:** 2026-08-10
 - **Date Updated:** 2026-08-11
-- **Verification Status:** Phase 0 passed local no-network verification; Phases 1-3 remain pending
+- **Verification Status:** Phases 0-4 passed local no-network verification; Phase 3 and Phase 4 provider contracts are covered by `tts-advanced-provider-phase-3.test.ts` and `tts-advanced-provider-phase-4.test.ts`
 
 ## Context
 
@@ -17,7 +17,15 @@ The repository audit in `docs/reports/comic-character-tts-options-report.md` fou
 
 The report identified additional pre-Phase 0 correctness defects and incomplete contracts: Gemini did not enforce its exactly-two-speaker native limit and could split raw speaker-formatted text at unsafe boundaries; hosted turn setup fanned out through an unbounded `Promise.all`; multi-target and native completion could advertise dialogue paths that were never promoted while batch execution silently discarded dialogue artifacts during workspace cleanup; the generic screenplay parser stripped delivery and silently dropped some content; one unqualified speaker map was reused across incompatible provider namespaces; remote clone/reference setup was not provisioned once per character; Speechify resolved consent, locale, and gender data that its request did not fully serialize; provider catalogs and OpenAI custom-voice/model contracts had drifted; manifests and benchmarks could not distinguish multiple voices using one provider/model; and all audio was silently collapsed to mono 16 kHz PCM without a comic mastering contract.
 
-Phase 0 was implemented on 2026-08-11. The generic TTS path now carries immutable explicit per-turn invocations through all 12 adapters; validates actual A/B/A request serialization; uses strict Gemini native planning for exactly two speakers and turn-safe batching; bounds, orders, cancels, and cleans dialogue work; rejects synthesis-time creation defaults before provider setup; protects authorized unnamed Mistral references behind opaque checksum-validated assets; retains strategy-appropriate render artifacts; and persists operation-scoped target identities with strict `ttsAudio` projections and append-only render history. ADR-018 now records the refreshed provider catalogs. Comic voice registration, approval, immutable scene snapshots, advanced native-provider lifecycle support, mastering, and `comic generate-audio` remain work for Phases 1-3.
+Phase 0 was implemented on 2026-08-11. The generic TTS path now carries immutable explicit per-turn invocations through all 12 adapters; validates actual A/B/A request serialization; uses strict Gemini native planning for exactly two speakers and turn-safe batching; bounds, orders, cancels, and cleans dialogue work; rejects synthesis-time creation defaults before provider setup; protects authorized unnamed Mistral references behind opaque checksum-validated assets; retains strategy-appropriate render artifacts; and persists operation-scoped target identities with strict `ttsAudio` projections and append-only render history. ADR-018 now records the refreshed provider catalogs.
+
+Phase 1 was implemented on 2026-08-11. The protected store now retains content-addressed purpose and retention policies for references, candidate previews, auditions, consent, and reconciliation evidence; validates owner-only roots and disposable workspaces; and keeps protected and ordinary output roots disjoint. Shared strict schemas cover voice briefs, candidates/materialization, consent, append-preserved registrations, a current approval index, canonical auditions, lifecycle state, and crash-safe provisioning journals. The shared `voice` surface and comic-native `comic reference-voice` alias import existing resources, protect consent, plan or execute Mistral saved-reference creation, audition, approve, reconcile, retire, revoke, explicitly delete eligible project-owned resources, and inspect state. Mistral creation is confined to management, and management price paths make no provider calls or artifact writes.
+
+Phase 2 was implemented on 2026-08-11. Comic now writes one canonical `command: 'comic'` scene manifest, structured-script v4 embeds exact source identity and Unicode source spans, and `comic generate-audio` selects only an exact compatible existing scene run. Provider-neutral dialogue plans preserve delivery/effect intent and explicit overlap nodes; all selected targets and roles resolve through one immutable approved aggregate voice snapshot and append-only index. The command performs deterministic static validation and a read-only all-target readiness pass before a shared dispatch barrier, then reuses the Phase 0 branch/render/admission/result/audio-run machinery under the strict `comicAudio` namespace. It supports strict two-speaker Gemini native planning, approved Mistral saved/reference consumption, segmented fallback, operation-scoped resume, explicit 16/24-bit mono/stereo WAV mastering, and targetless local completion for a zero-turn scene. Its price path performs no provider calls or artifact writes.
+
+Phase 3 was implemented on 2026-08-11 after rechecking the official ElevenLabs and Hume documentation. Dated capability fixtures and typed advanced ports now cover catalog discovery, protected candidate design/materialization, clone state, resource inspection/deletion, and Hume continuation validation. ElevenLabs normalizes account/shared catalogs, legacy default expiry, verification state, eligibility-proved remix lineage, Instant/Professional clone outcomes, and bounded turn-safe Text-to-Dialogue with prepared-text alignment. Hume normalizes stock/custom stable IDs, Octave 1 design saved for Octave 2, platform-gated clone state, unique name-to-ID deletion proof, model-constrained direction/timing, one-to-five native utterance takes, word/phoneme timing, and selected-generation continuation. Generic and comic planning select those native strategies only when exact intent is representable, otherwise retaining the existing approved-voice segmented repair path. Execution readiness checks every approved ElevenLabs/Hume resource before the shared dispatch barrier, and management price modes remain zero-call and zero-write.
+
+Phase 4 was implemented on 2026-08-11 after rechecking the official MiniMax, Cartesia, and Speechify documentation. Dated capability fixtures and adapters now cover MiniMax system/account catalogs, temporary Voice Design, protected upload-and-clone activation state, and typed deletion; Cartesia public/account cursor catalogs, protected instant clone, gated Pro Voice Clone state, and lifecycle; and Speechify shared/personal cursor catalogs, protected consent-bearing personal clone, model-aware readiness, word timing, and lifecycle. The fixtures explicitly mark Cartesia and Speechify text-prompt design and all three providers' native multi-speaker dialogue as unsupported, so generic and comic rendering retain the segmented baseline. Readiness now checks every approved resource for all five advanced providers before dispatch. Voice-quality benchmark identity now uses the adapter target plus render and optional registration/snapshot-entry/character identity, with an explicit non-reusable `legacy:` fallback. Generic/comic help, capability tables, output documentation, examples, and Speechify consent/locale/gender serialization were updated. No new provider is proposed because this implementation did not demonstrate a remaining casting or privacy gap.
 
 Provider capabilities are also much richer than the current adapters. ElevenLabs combines a large voice library, Voice Design, remixing, instant and professional cloning, native Text-to-Dialogue, and dialogue timestamps. Hume Octave combines a voice library, Voice Design, cloning/import, per-utterance acting direction, multi-utterance contextual rendering, timestamps, and cross-request continuation. Mistral already supports one-off and saved reference voices; Gemini has native exactly-two-speaker synthesis; MiniMax, xAI, Speechify, and Cartesia expose custom-voice paths; Deepgram has a much larger demographically tagged stock catalog than AutoShow registers. The architecture needs to expose these differences without reducing every provider to one `voice` string or forcing comic to build provider clients of its own.
 
@@ -1431,6 +1439,7 @@ The visual character schema remains unchanged. Voice metadata uses separate vers
 
 <protected-voice-store>/
   assets/<opaque-asset-id>
+  policies/<opaque-asset-id>/<content-identified-policy-or-consent-revocation>.json
   work/<opaque-attempt-id>/
 ```
 
@@ -2054,18 +2063,18 @@ Negative outcomes:
 | Phase 0: add deterministic all-target validation, minimal protected ingestion for unnamed Mistral request references, and rejection of explicit/configured/inherited creation defaults before target collection in render/resume/price paths | CLI and config maintainers | Done on 2026-08-11 |
 | Phase 0: add the bounded dialogue selector, cancellation, ordered results, provider-lane telemetry, local resource gating, and safe workspace cleanup; update ADR-008's current-state inventory | Scheduling maintainers | Done on 2026-08-11 |
 | Phase 0: repair Speechify request serialization/local-only classification and refresh or locally reject stale xAI, Deepgram, Gemini, OpenAI, and Groq contracts through ADR-018 wherever selectors change | TTS provider maintainers | Done on 2026-08-11 |
-| Phase 1: extend the protected asset store with audition/consent/preview/reconciliation policy, add crash-safe provisioning journals/locks, pending/verification/approval/reconciliation/retention/deletion state, consent/provenance policy, and shared `voice` management | Voice lifecycle maintainers | Pending |
-| Phase 1: add versioned `character-voices.json`, append-preserving registrations/current index, standard audition/take metadata with opaque asset references, and atomic local approval | Comic maintainers | Pending |
-| Phase 1: retain Phase 0's strict synthesis/config separation, add management-only creation resolution, and provide the complete managed migration path without a retired persistence reader | CLI and config maintainers | Pending |
-| Phase 2: extend `PROCESS_COMMANDS` and canonical persistence for comic, migrate structured-script to v4/source identity, and implement exact compatible-run selection | Comic and manifest maintainers | Pending |
-| Phase 2: add provider-neutral dialogue plans, compound/overlap role policies, all-target casting, create-only aggregate snapshots/append-only index, preliminary branch plans, all-target readiness, final provider plans/results, and `comic generate-audio` | Comic maintainers | Pending |
-| Phase 2: add segmented/native-generation-slot/effect/mix caches, current-render cache materialization, selected takes, configurable mastering, timing normalization, licensed asset snapshots, timelines, `audio-run.json`, and canonical dependency-aware resume | Audio workflow maintainers | Pending |
-| Phase 2: reuse Phase 0's strict Gemini exactly-two-speaker native planning and turn-safe partitioning in comic; consume only approved Mistral saved voices or approved request-reference registrations whose protected locator is captured in the scene snapshot; keep transient unnamed request references generic-TTS-only | Gemini and Mistral maintainers | Pending |
-| Phase 3: implement ElevenLabs discovery/import, design/remix lineage, clone state, pre-approval audition, lifecycle, bounded native Text-to-Dialogue takes, prepared-text alignment, access readiness, and segmented repair | ElevenLabs adapter maintainers | Pending |
-| Phase 3: implement Hume discovery, design, clone/import state, pre-approval audition, safe lifecycle, model-constrained acting/timing, native takes, selected-take continuation, access readiness, and segmented repair | Hume adapter maintainers | Pending |
-| Phase 4: add remaining MiniMax, Cartesia, and Speechify catalog/design/clone/dialogue facets, then propose a new provider only for a demonstrated casting or privacy gap | TTS provider maintainers | Pending |
-| Make benchmark keys voice-aware and update generic/comic TTS help, capability tables, output documentation, and examples | Documentation and benchmark maintainers | Pending |
-| Recheck ElevenLabs and Hume official limits, access tiers, preview status, and lifecycle endpoints immediately before implementation and record check dates in capability fixtures | TTS provider maintainers | Pending |
+| Phase 1: extend the protected asset store with audition/consent/preview/reconciliation policy, add crash-safe provisioning journals/locks, pending/verification/approval/reconciliation/retention/deletion state, consent/provenance policy, and shared `voice` management | Voice lifecycle maintainers | Done on 2026-08-11 |
+| Phase 1: add versioned `character-voices.json`, append-preserving registrations/current index, standard audition/take metadata with opaque asset references, and atomic local approval | Comic maintainers | Done on 2026-08-11 |
+| Phase 1: retain Phase 0's strict synthesis/config separation, add management-only creation resolution, and provide the complete managed migration path without a retired persistence reader | CLI and config maintainers | Done on 2026-08-11 |
+| Phase 2: extend `PROCESS_COMMANDS` and canonical persistence for comic, migrate structured-script to v4/source identity, and implement exact compatible-run selection | Comic and manifest maintainers | Done on 2026-08-11 |
+| Phase 2: add provider-neutral dialogue plans, compound/overlap role policies, all-target casting, create-only aggregate snapshots/append-only index, preliminary branch plans, all-target readiness, final provider plans/results, and `comic generate-audio` | Comic maintainers | Done on 2026-08-11 |
+| Phase 2: add segmented/native-generation-slot/effect/mix caches, current-render cache materialization, selected takes, configurable mastering, timing normalization, licensed asset snapshots, timelines, `audio-run.json`, and canonical dependency-aware resume | Audio workflow maintainers | Done on 2026-08-11 |
+| Phase 2: reuse Phase 0's strict Gemini exactly-two-speaker native planning and turn-safe partitioning in comic; consume only approved Mistral saved voices or approved request-reference registrations whose protected locator is captured in the scene snapshot; keep transient unnamed request references generic-TTS-only | Gemini and Mistral maintainers | Done on 2026-08-11 |
+| Phase 3: implement ElevenLabs discovery/import, design/remix lineage, clone state, pre-approval audition, lifecycle, bounded native Text-to-Dialogue takes, prepared-text alignment, access readiness, and segmented repair | ElevenLabs adapter maintainers | Done on 2026-08-11 |
+| Phase 3: implement Hume discovery, design, clone/import state, pre-approval audition, safe lifecycle, model-constrained acting/timing, native takes, selected-take continuation, access readiness, and segmented repair | Hume adapter maintainers | Done on 2026-08-11 |
+| Phase 4: add remaining MiniMax, Cartesia, and Speechify catalog/design/clone/dialogue facets, then propose a new provider only for a demonstrated casting or privacy gap | TTS provider maintainers | Done on 2026-08-11; no demonstrated gap requires another provider |
+| Make benchmark keys voice-aware and update generic/comic TTS help, capability tables, output documentation, and examples | Documentation and benchmark maintainers | Done on 2026-08-11 |
+| Recheck ElevenLabs and Hume official limits, access tiers, preview status, and lifecycle endpoints immediately before implementation and record check dates in capability fixtures | TTS provider maintainers | Done on 2026-08-11 |
 
 ## Test Plan
 
@@ -2125,6 +2134,15 @@ Hume mocked contracts must prove:
 - Hume deletion requires a fresh unique name-to-expected-ID proof or becomes an external action.
 - Segmented repair uses the same approved snapshots.
 
+MiniMax, Cartesia, and Speechify mocked contracts must prove:
+
+- Every dated fixture validates and declares catalog, clone, design, lifecycle, timing, and dialogue support without inferring native multi-speaker behavior from single-voice synthesis, streaming context, or voice-mixing features.
+- MiniMax normalizes system/generated/cloned catalogs, decodes bounded hexadecimal design previews, preserves the seven-day pre-activation lifetime, uploads exactly one protected clone sample before creation, and selects the registered generated-or-cloned resource class for deletion.
+- Cartesia preserves cursor and ownership semantics under the pinned API version, uploads exactly one protected instant-clone sample with language, reports Pro Voice Clone as an external dashboard action, and never exposes a text-prompt design or native-dialogue port.
+- Speechify preserves shared/personal catalog and model compatibility, serializes locale, normalized gender, JSON consent, and idempotency for one verified 10–30 second protected sample, excludes contact PII from ordinary results, and never exposes a text-prompt design or native-dialogue port.
+- Read-only readiness blocks missing, inactive, expired, inaccessible, or model-incompatible approved resources before the shared dispatch barrier, while synthesis price and management price perform no provider calls.
+- Multiple current rows on one provider/model retain distinct target/render/binding benchmark identity, while incomplete pre-ADR records use only the explicit non-reusable `legacy:` key.
+
 For this proposed ADR documentation change, run the default repository verification and whitespace check:
 
 ```bash
@@ -2146,6 +2164,8 @@ bun test test/test-cases/validation/media-generation/tts-audio-run-artifacts.tes
 bun test test/test-cases/validation/media-generation/tts-hybrid-repair-compatibility.test.ts
 bun test test/test-cases/validation/media-generation/tts-native-batch-cache-and-takes.test.ts
 bun test test/test-cases/validation/media-generation/tts-voice-provisioning-lifecycle.test.ts
+bun test test/test-cases/validation/media-generation/tts-advanced-provider-phase-3.test.ts
+bun test test/test-cases/validation/media-generation/tts-advanced-provider-phase-4.test.ts
 bun test test/test-cases/validation/media-generation/tts-dialogue-contracts.test.ts
 bun test test/test-cases/validation/media-generation/tts-batch-output-contracts.test.ts
 bun test test/test-cases/validation/cli/option-resolution-contracts/tts-request-controls.test.ts
@@ -2218,6 +2238,7 @@ Do not run `bun run t`, `bun test/test-runner.ts`, a hosted TTS command, a provi
 - [ElevenLabs search account voices](https://elevenlabs.io/docs/api-reference/voices/search)
 - [ElevenLabs get a voice](https://elevenlabs.io/docs/api-reference/voices/get)
 - [ElevenLabs delete a voice](https://elevenlabs.io/docs/api-reference/voices/delete)
+- [Mistral Audio Voices endpoints](https://docs.mistral.ai/api/endpoint/audio/voices)
 - [Hume Text to Speech overview](https://dev.hume.ai/docs/text-to-speech-tts/overview)
 - [Hume synchronous JSON synthesis](https://dev.hume.ai/reference/text-to-speech-tts/synthesize-json)
 - [Hume acting instructions](https://dev.hume.ai/docs/text-to-speech-tts/acting-instructions)
@@ -2229,3 +2250,18 @@ Do not run `bun run t`, `bun test/test-runner.ts`, a hosted TTS command, a provi
 - [Hume list voices](https://dev.hume.ai/reference/voices/list)
 - [Hume create a voice from a generation](https://dev.hume.ai/reference/voices/create)
 - [Hume delete voice](https://dev.hume.ai/reference/voices/delete)
+- [MiniMax API overview](https://platform.minimax.io/docs/api-reference/api-overview)
+- [MiniMax voice catalog](https://platform.minimax.io/docs/api-reference/voice-management-get)
+- [MiniMax Voice Design](https://platform.minimax.io/docs/api-reference/voice-design-design)
+- [MiniMax upload clone audio](https://platform.minimax.io/docs/api-reference/voice-cloning-uploadcloneaudio)
+- [MiniMax Voice Clone](https://platform.minimax.io/docs/api-reference/voice-cloning-clone)
+- [MiniMax text-to-audio](https://platform.minimax.io/docs/api-reference/speech-t2a-http)
+- [Cartesia list voices](https://docs.cartesia.ai/api-reference/voices/list)
+- [Cartesia clone voice](https://docs.cartesia.ai/api-reference/voices/clone)
+- [Cartesia delete voice](https://docs.cartesia.ai/api-reference/voices/delete)
+- [Cartesia TTS bytes](https://docs.cartesia.ai/api-reference/tts/bytes)
+- [Speechify list voices](https://docs.speechify.ai/build/api-reference/v1/voices/get)
+- [Speechify create voice](https://docs.speechify.ai/build/api-reference/v1/voices/post)
+- [Speechify get voice](https://docs.speechify.ai/build/api-reference/v1/voices/-id-/get)
+- [Speechify delete voice](https://docs.speechify.ai/build/api-reference/v1/voices/-id-/delete)
+- [Speechify voice cloning overview](https://docs.speechify.ai/build/guides/voice-cloning/overview)

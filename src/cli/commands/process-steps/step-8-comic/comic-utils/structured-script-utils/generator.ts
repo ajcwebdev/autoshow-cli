@@ -7,6 +7,9 @@ import { getStructuredScriptPath } from '../project-paths'
 import { reviewStructuredScriptWithLlm } from './llm-review'
 import { parseScriptMarkdownToStructuredData } from './structured-script-parser'
 import { calculateCost } from './usage-cost'
+import { createComicSourceIdentity, createStructuredScriptArtifactRef, validateStructuredScriptSourceSpans } from '../comic-audio-contracts'
+import { writeInitialComicStructureManifest } from '../comic-manifest'
+import { getSceneOutputDirectory } from '../project-paths'
 
 export const generateStructuredScript = async (
   scriptPath: string,
@@ -24,14 +27,17 @@ export const generateStructuredScript = async (
   }
 
   try {
-    const content = await Bun.file(scriptPath).text()
+    const sourceBytes = new Uint8Array(await Bun.file(scriptPath).arrayBuffer())
+    const content = new TextDecoder().decode(sourceBytes)
 
     if (!content.trim()) {
       l.dim(`Skipping empty file: ${basename(scriptPath)}`)
       return stats
     }
 
-    let structuredScript = parseScriptMarkdownToStructuredData(content, scriptPath)
+    const sourceIdentity = await createComicSourceIdentity(scriptPath, sourceBytes)
+    const createdAt = new Date().toISOString()
+    let structuredScript = parseScriptMarkdownToStructuredData(content, scriptPath, { sourceIdentity })
     let reviewModel: string | undefined
 
     if (options.llmModel) {
@@ -53,9 +59,18 @@ export const generateStructuredScript = async (
       structuredScript = review.structuredScript
     }
 
+    validateStructuredScriptSourceSpans(structuredScript, content)
+
     const outputPath = getStructuredScriptPath(sceneSlug)
     await mkdir(dirname(outputPath), { recursive: true })
-    await Bun.write(outputPath, JSON.stringify(structuredScript, null, 2))
+    const structuredBytes = `${JSON.stringify(structuredScript, null, 2)}\n`
+    await Bun.write(outputPath, structuredBytes)
+    await writeInitialComicStructureManifest({
+      sceneRunDir: getSceneOutputDirectory(sceneSlug),
+      createdAt,
+      sourceIdentity,
+      structuredScript: createStructuredScriptArtifactRef(structuredBytes),
+    })
     stats.filesProcessed++
     comicLog.line('structured-script generated', [
       `source=${basename(scriptPath)}`,

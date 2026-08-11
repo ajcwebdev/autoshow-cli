@@ -223,7 +223,7 @@ bun autoshow benchmark docs/benchmarks/tts/<run> --tts --tts-mode local
 - Use `resume` to backfill missing extract, write LLM, TTS, image, video, or music providers in an existing output directory, including `extract` parent batches.
 - Use `config --show`, `config --reset`, or selector flags such as `--llm`, `--stt`, `--image`, and `--max-cents` to inspect or persist reusable CLI defaults.
 - Use `links` to fetch the curated provider documentation registry, either all docs, a global section such as `stt`, a provider section such as `--recraft image`, or URLs listed in a local `.md` / `.txt` file.
-- Use `benchmark` for STT quality benchmarks, existing TTS run scoring, or existing image/video generation judging. For no-cost local checks, keep STT benchmarking on `--stt-services whisper --reference-stt whisper:<model>` and use `--tts --tts-mode local`; image/video judging and full TTS scoring can call hosted judge/STT services when credentials are configured.
+- Use `benchmark` for STT quality benchmarks, existing TTS run scoring, or existing image/video generation judging. Current TTS benchmark rows use target/render and optional registration/snapshot-entry/character identity so multiple voices on one provider/model remain distinct; pre-ADR rows use the explicit `legacy:` fallback. For no-cost local checks, keep STT benchmarking on `--stt-services whisper --reference-stt whisper:<model>` and use `--tts --tts-mode local`; image/video judging and full TTS scoring can call hosted judge/STT services when credentials are configured.
 
 ## Pricing Preflight
 

@@ -58,6 +58,7 @@ export const normalizeStructuredScriptData = (
   options: {
     scriptSlug: string
     sourceFile: string
+    sourceIdentity?: StructuredScriptData['sourceIdentity']
     sourceSegments?: StructuredScriptSourceSegment[]
     beatLocations?: StructuredScriptBeat['location'][]
     sceneLocation?: StructuredScriptData['scene']['location']
@@ -98,6 +99,7 @@ export const normalizeStructuredScriptData = (
     ...(options.sceneLocation ? { scene: { ...data.scene, location: options.sceneLocation } } : {}),
     scriptSlug: options.scriptSlug,
     sourceFile: options.sourceFile,
+    ...(options.sourceIdentity ? { sourceIdentity: options.sourceIdentity } : {}),
     characterKeys,
     beats,
     sourceSegments: options.sourceSegments ?? buildSourceSegmentsFromBeats(beats),

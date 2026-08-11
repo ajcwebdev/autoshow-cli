@@ -111,6 +111,11 @@ export interface PaidFailurePolicy {
 export interface ProviderVoiceQualityEntry extends Pick<TtsMetadataBase, 'ttsService' | 'ttsModel' | 'audioFileName' | 'audioFileSize'> {
   rank: number;
   providerKey: string;
+  targetKey: string | null;
+  renderIdentity: string | null;
+  registrationId: string | null;
+  snapshotEntryId: string | null;
+  characterIdentity: string | null;
   group: "local" | "cloud";
   speaker: string | null;
   audioExists: boolean;

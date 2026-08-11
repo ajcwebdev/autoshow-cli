@@ -154,10 +154,8 @@ Resume accepts only provider-neutral TTS options. Provider-named tuning flags su
 | `--tts-voice <provider=value|value>` | Generic TTS voice selector |
 | `--tts-speed <provider=value|value>` | Generic TTS speed |
 | `--tts-language <provider=value|value>` | Generic TTS language |
-| `--tts-ref-audio <provider=path|path>` | Generic TTS reference audio path |
-| `--tts-voice-name <provider=value|value>` | Generic created/saved voice label |
-| `--tts-consent-name <provider=value|value>` | Generic consent recording name |
-| `--tts-consent-email <provider=value|value>` | Generic consent email |
+| `--tts-ref-audio <provider=path|path>` | Explicit authorized one-off reference input where the synthesis adapter supports it |
+| `--tts-voice-name`, `--tts-consent-name`, `--tts-consent-email` | Retired creation inputs; rejected with guidance to run voice management separately |
 | `--tts-text-normalization <provider=value|value>` | Generic text normalization |
 | `--tts-instructions <provider=value|value>` | Generic voice/style instructions |
 | `--tts-output-format <provider=value|value>` | Generic output format |
@@ -166,6 +164,8 @@ Resume accepts only provider-neutral TTS options. Provider-named tuning flags su
 | `--tts-speaker <SPEAKER=VOICE\|path>` | Multi-speaker TTS voice mapping; repeatable |
 
 Use `--tts-speaker SPEAKER=VOICE` for multi-speaker resumes instead of provider-specific speaker flags. To change provider tuning on a resumed run, set it under `defaults` in `autoshow.config` or rerun the original `tts` command.
+
+Resume never creates, imports, saves, verifies, approves, reconciles, or deletes provider voices. Complete those operations through `bun autoshow voice ...` before starting or resuming synthesis.
 
 ## Image, Video, And Music Options
 

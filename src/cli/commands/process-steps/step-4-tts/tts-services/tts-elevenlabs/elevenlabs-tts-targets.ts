@@ -4,6 +4,8 @@ import { ensureElevenLabsTtsSetup } from './elevenlabs-tts'
 import { runElevenLabsTts } from './run-elevenlabs-tts'
 import { resolveTtsTargetInvocationVoiceId } from '../../tts-targets/multi-speaker-capability'
 import { resolveTtsTargetInvocationControls } from '../../tts-targets/tts-invocation-controls'
+import { getSpeakerVoice, normalizeDialogueText, parseSpeakerVoiceMappings, resolveDialogueFormat } from '../../dialogue-normalizer'
+import { runElevenLabsNativeDialogue } from './elevenlabs-native-dialogue'
 export const collectElevenLabsTtsTargets = (
   selection: TtsTargetSelection
 ): TtsTarget[] => {
@@ -35,6 +37,29 @@ export const collectElevenLabsTtsTargets = (
         })
         await ensureElevenLabsTtsSetup()
         invocation?.signal?.throwIfAborted()
+        if (!invocation && model === 'eleven_v3' && opts.ttsSpeakers?.length) {
+          const registry = parseSpeakerVoiceMappings(opts.ttsSpeakers)
+          const dialogue = opts.ttsCanonicalTurns
+            ? opts.ttsCanonicalTurns.map(turn => ({ turnId: turn.turnId, speaker: turn.speaker, text: turn.text }))
+            : normalizeDialogueText(text, resolveDialogueFormat(opts), registry).turns.map((turn, index) => ({ turnId: `dialogue-turn-${String(index + 1).padStart(3, '0')}`, ...turn }))
+          return await runElevenLabsNativeDialogue(dialogue.map(turn => ({
+            turnId: turn.turnId,
+            subjectKey: turn.speaker,
+            speaker: turn.speaker,
+            canonicalText: turn.text,
+            voiceId: getSpeakerVoice(registry, turn.speaker).voice
+          })), outputDir, {
+            model,
+            controls: {
+              outputFormat: controls.outputFormat,
+              languageCode: controls.languageCode,
+              seed: controls.seed,
+              textNormalization: controls.textNormalization
+            },
+            chunkScheduler: opts.hostedTtsChunkScheduler,
+            requestEvidence
+          })
+        }
         return await runElevenLabsTts(text, outputDir, {
           model,
           voiceId: invocationVoiceId ?? voiceId,

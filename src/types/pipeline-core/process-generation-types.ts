@@ -17,7 +17,7 @@ export type TtsMetadataBase<TService extends string = string> = {
 export type Step4Metadata = TtsMetadataBase<TtsProvider> & {
   clonedVoiceId?: string | undefined
   cloneCostCents?: number | undefined
-  operation?: 'tts-synthesis' | undefined
+  operation?: 'tts-synthesis' | 'comic-audio' | undefined
   targetKey?: string | undefined
   transport?: string | undefined
   artifactDir?: string | undefined
@@ -26,6 +26,7 @@ export type Step4Metadata = TtsMetadataBase<TtsProvider> & {
   audioRunId?: string | undefined
   renderStrategy?: ProviderRenderStrategy | undefined
   ttsAudio?: CanonicalAudioProviderProjection | undefined
+  comicAudio?: CanonicalAudioProviderProjection | undefined
 }
 
 export const TtsScriptOutputSchema = v.object({

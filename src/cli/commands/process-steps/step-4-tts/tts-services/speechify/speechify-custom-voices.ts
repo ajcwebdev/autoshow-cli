@@ -1,7 +1,6 @@
 import { stat } from 'node:fs/promises'
 import { basename, extname } from 'node:path'
 import * as v from 'valibot'
-import * as l from '~/utils/app-logger/app-logger'
 import { getAudioDuration } from '~/cli/commands/process-steps/step-2-extract/step-2-stt/stt-utils/audio-splitter'
 import { withRetry, classifyFetchRetry } from '~/utils/retries'
 import { validateData } from '~/utils/validate/validation'
@@ -124,15 +123,15 @@ const validateSpeechifyTtsCustomVoiceAudio = async (
     if (Number.isFinite(detectedDuration) && detectedDuration > 0) {
       durationSeconds = detectedDuration
     }
-  } catch (error) {
-    const message = error instanceof Error ? error.message : String(error)
-    l.warn(`Could not determine Speechify TTS custom voice reference audio duration; continuing anyway: ${message}`)
+  } catch {
+    throw CLIUsageError('Speechify TTS custom voice reference audio duration could not be verified before upload.')
   }
 
-  if (durationSeconds !== undefined) {
-    if (durationSeconds < SPEECHIFY_TTS_CUSTOM_VOICE_MIN_SECONDS || durationSeconds > SPEECHIFY_TTS_CUSTOM_VOICE_MAX_SECONDS) {
-      throw CLIUsageError(`Speechify TTS custom voice reference audio must be 10-30 seconds when duration can be detected; got ${durationSeconds.toFixed(2)}s.`)
-    }
+  if (durationSeconds === undefined) {
+    throw CLIUsageError('Speechify TTS custom voice reference audio duration could not be verified before upload.')
+  }
+  if (durationSeconds < SPEECHIFY_TTS_CUSTOM_VOICE_MIN_SECONDS || durationSeconds > SPEECHIFY_TTS_CUSTOM_VOICE_MAX_SECONDS) {
+    throw CLIUsageError(`Speechify TTS custom voice reference audio must be 10-30 seconds; got ${durationSeconds.toFixed(2)}s.`)
   }
 
   return {
@@ -185,14 +184,16 @@ const createSpeechifyTtsCustomVoice = async (
   const voiceName = options.voiceName?.trim() || defaultSpeechifyTtsCustomVoiceName()
   const locale = resolveSpeechifyTtsCustomVoiceLocale(options.locale)
   const gender = validateSpeechifyTtsCustomVoiceGender(options.gender)
-  resolveSpeechifyTtsCustomVoiceConsent(options.consentName, options.consentEmail)
+  const consent = resolveSpeechifyTtsCustomVoiceConsent(options.consentName, options.consentEmail)
 
   const data = await withRetry(
     { retryClass: 'runtime_http_create_conservative', operationName: 'speechify-tts-custom-voice-create' },
     async (signal) => {
       const form = new FormData()
       form.append('name', voiceName)
-      form.append('consent', 'true')
+      form.append('locale', locale)
+      form.append('gender', gender === 'notSpecified' ? 'not_specified' : gender)
+      form.append('consent', JSON.stringify(consent))
       appendAudioFile(form, 'sample', sourceAudio)
 
       const response = await fetch(`${baseURL}/v1/voices`, {

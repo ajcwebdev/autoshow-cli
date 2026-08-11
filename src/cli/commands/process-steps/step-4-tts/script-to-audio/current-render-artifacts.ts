@@ -28,7 +28,7 @@ export type CurrentTtsObservedTurn = {
 
 export type CurrentTtsRenderArtifacts = {
   artifactDir: string
-  operation: 'tts-synthesis'
+  operation: 'tts-synthesis' | 'comic-audio'
   targetKey: string
   transport: string
   renderIdentity: string
@@ -126,8 +126,9 @@ export const buildCurrentTtsProviderState = (
 const getTtsProjectionOrThrow = (
   state: PipelineProviderState
 ): CanonicalAudioProviderProjection => {
-  const resultProjection = state.result?.['ttsAudio']
-  const metadataProjection = state.metadata['ttsAudio']
+  const namespace = state.operation === 'comic-audio' ? 'comicAudio' : 'ttsAudio'
+  const resultProjection = state.result?.[namespace]
+  const metadataProjection = state.metadata[namespace]
   if (
     !resultProjection
     || !metadataProjection
@@ -347,7 +348,7 @@ export const appendCurrentTtsProviderState = (
   incoming: PipelineProviderState
 ): PipelineProviderState => {
   if (
-    current.operation !== 'tts-synthesis'
+    (current.operation !== 'tts-synthesis' && current.operation !== 'comic-audio')
     || incoming.operation !== current.operation
     || incoming.targetKey !== current.targetKey
     || incoming.transport !== current.transport
@@ -362,12 +363,13 @@ export const appendCurrentTtsProviderState = (
     getTtsProjectionOrThrow(incoming)
   )
   const projected = projectCanonicalAudioProviderStatus(projection)
+  const namespace = current.operation === 'comic-audio' ? 'comicAudio' : 'ttsAudio'
   return {
     ...current,
     status: projected.status,
     attempts: projected.attempts,
-    metadata: { ...current.metadata, ...incoming.metadata, ttsAudio: projection },
-    result: { ttsAudio: projection },
+    metadata: { ...current.metadata, ...incoming.metadata, [namespace]: projection },
+    result: { [namespace]: projection },
     ...(projected.status === 'failed'
       ? { error: incoming.error ?? current.error ?? { message: 'TTS resume failed.', retryable: true } }
       : { error: undefined })

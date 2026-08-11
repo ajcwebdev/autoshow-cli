@@ -2,13 +2,14 @@ import { lstat, readFile, readdir, realpath, rename, rm } from 'node:fs/promises
 import { isAbsolute, join, posix, relative, resolve, sep } from 'node:path'
 import { createHash, randomUUID } from 'node:crypto'
 import { PIPELINE_ITEM_STATUSES, PIPELINE_PROVIDER_STATUSES, PROCESS_COMMANDS } from '~/types'
-import type { AccountCapabilityObservation, AnyCapabilityRecord, AudioRun, CacheMaterializationPlan, ExtractRoute, GenericTtsDialoguePlan, GenericTtsSourceIdentity, InputFamily, PipelineItemRecord, PipelineManifest, PipelineManifestChildLink, PipelineManifestItem, PipelineProviderState, ProcessCommand, ProviderBatchInvocationPlan, ProviderBatchResult, ProviderReadinessResult, ProviderRenderBranchPlan, ProviderRenderPlan, ProviderRenderResult, RenderAdmissionJournalSnapshot } from '~/types'
+import type { AccountCapabilityObservation, AnyCapabilityRecord, AudioRun, CacheMaterializationPlan, CanonicalComicItemMetadata, ComicDialoguePlan, ComicSourceIdentity, ExtractRoute, GenericTtsDialoguePlan, GenericTtsSourceIdentity, InputFamily, PipelineItemRecord, PipelineManifest, PipelineManifestChildLink, PipelineManifestItem, PipelineProviderState, ProcessCommand, ProviderBatchInvocationPlan, ProviderBatchResult, ProviderReadinessResult, ProviderRenderBranchPlan, ProviderRenderPlan, ProviderRenderResult, RenderAdmissionJournalSnapshot } from '~/types'
 import { CLIUsageError } from '~/utils/error-handler'
 import { isRecord } from '~/utils/rest-client'
 import { canonicalTargetKey } from '~/utils/canonical-target-key'
 import { assertContentIdentity, computeLegacySingleRenderIdentity, hashCanonicalTtsValue } from './step-4-tts/script-to-audio/contract-identity'
 import { validateAccountCapabilityObservation, validateCacheMaterializationPlan, validateCapabilityFacetSet, validateGenericTtsDialoguePlan, validateGenericTtsSourceIdentity, validateProviderBatchResult, validateProviderRenderPlanIdentity, validateProviderRenderResult, validateRenderAdmissionJournalSnapshot } from './step-4-tts/script-to-audio/contract-validation'
 import { parseTtsDialoguePlanArtifactRef, readTtsDialoguePlanArtifact } from './step-4-tts/script-to-audio/item-dialogue-plan-artifact'
+import { validateComicDialoguePlan, validateComicSourceIdentity } from './step-8-comic/comic-utils/comic-audio-contracts'
 
 export const PIPELINE_MANIFEST_FILE = 'manifest.json'
 
@@ -988,11 +989,13 @@ const validateProjectionArtifactJson = (
     return
   }
   if (kind === 'source-identity') {
-    validateGenericTtsSourceIdentity(value as unknown as GenericTtsSourceIdentity)
+    if (typeof value['canonicalPath'] === 'string') validateComicSourceIdentity(value as unknown as ComicSourceIdentity)
+    else validateGenericTtsSourceIdentity(value as unknown as GenericTtsSourceIdentity)
     return
   }
   if (kind === 'dialogue-plan') {
-    validateGenericTtsDialoguePlan(value as unknown as GenericTtsDialoguePlan)
+    if (typeof value['sceneRunIdentity'] === 'string') validateComicDialoguePlan(value as unknown as ComicDialoguePlan)
+    else validateGenericTtsDialoguePlan(value as unknown as GenericTtsDialoguePlan)
     return
   }
   if (kind === 'capability-fixture') {
@@ -1615,6 +1618,7 @@ const validateProjectionArtifactGraphLinks = (
     subjectKey: turn['subjectKey'],
     originalSpeakerLabel: turn['originalSpeakerLabel'],
     canonicalText: turn['canonicalText'],
+    ...(turn['sourceSpans'] !== undefined ? { sourceSpans: turn['sourceSpans'] } : {}),
     ...(turn['delivery'] !== undefined ? { delivery: turn['delivery'] } : {}),
     ...(turn['effect'] !== undefined ? { effect: turn['effect'] } : {})
   })
@@ -2291,6 +2295,32 @@ const verifyManifestProjectionArtifacts = async (
   rootDir: string,
   manifest: PipelineManifest
 ): Promise<boolean> => {
+  const verifyComicItemArtifacts = async (item: PipelineManifestItem): Promise<boolean> => {
+    const comic = item.metadata['comic']
+    if (!isRecord(comic) || !isRecord(comic['stages']) || !isRecord(comic['audio'])) return false
+    const references: Array<{ path: string, sha256: string }> = []
+    for (const stage of Object.values(comic['stages'])) {
+      if (!isRecord(stage) || !Array.isArray(stage['artifactRefs'])) return false
+      for (const ref of stage['artifactRefs']) if (isRecord(ref) && typeof ref['path'] === 'string' && typeof ref['sha256'] === 'string') references.push({ path: ref['path'], sha256: ref['sha256'] })
+    }
+    const audio = comic['audio']
+    for (const key of ['structuredScript', 'dialoguePlanRef', 'snapshotRef', 'mixPlanRef', 'finalTimelineRef'] as const) {
+      const ref = audio[key]
+      if (isRecord(ref) && typeof ref['path'] === 'string' && typeof ref['sha256'] === 'string') references.push({ path: ref['path'], sha256: ref['sha256'] })
+    }
+    if (Array.isArray(audio['finalOutputRefs'])) for (const ref of audio['finalOutputRefs']) if (isRecord(ref) && typeof ref['path'] === 'string' && typeof ref['sha256'] === 'string') references.push({ path: ref['path'], sha256: ref['sha256'] })
+    for (const ref of references) {
+      if (!isSafeRelativePath(rootDir, ref.path)) return false
+      try {
+        const bytes = await readFile(resolve(rootDir, ref.path))
+        if (createHash('sha256').update(bytes).digest('hex') !== ref.sha256) return false
+      } catch {
+        return false
+      }
+    }
+    return true
+  }
+
   const verifyTtsItemDialoguePlan = async (item: PipelineManifestItem, itemIndex: number): Promise<boolean> => {
     const synthesisProviders = item.providers.filter((provider) =>
       provider.operation === 'tts-synthesis'
@@ -2339,6 +2369,7 @@ const verifyManifestProjectionArtifacts = async (
       if (!await verifyProviderProjectionArtifacts(rootDir, provider)) return false
     }
     if (manifest.command === 'tts' && !await verifyTtsItemDialoguePlan(item, itemIndex)) return false
+    if (manifest.command === 'comic' && !await verifyComicItemArtifacts(item)) return false
   }
   return true
 }
@@ -2429,14 +2460,14 @@ const assertAppendOnlyManifestAudioState = (
   if (before.command !== after.command || before.scope !== after.scope || before.createdAt !== after.createdAt) {
     throw CLIUsageError('A canonical manifest cannot change its command, scope, or creation identity.')
   }
-  if (before.command !== 'tts') return
+  if (before.command !== 'tts' && before.command !== 'comic') return
   if (before.items.length !== after.items.length) {
-    throw CLIUsageError('A canonical TTS manifest cannot replace or remove existing items.')
+      throw CLIUsageError('A canonical audio manifest cannot replace or remove existing items.')
   }
   for (const [itemIndex, oldItem] of before.items.entries()) {
     const nextItem = after.items[itemIndex]
     if (!nextItem || oldItem.input !== nextItem.input) {
-      throw CLIUsageError('A canonical TTS manifest cannot reorder or replace an existing item.')
+      throw CLIUsageError('A canonical audio manifest cannot reorder or replace an existing item.')
     }
     for (const oldProvider of oldItem.providers) {
       if (
@@ -2590,6 +2621,75 @@ const expectedTtsItemStatus = (providers: readonly PipelineProviderState[]): Pip
   return 'incomplete'
 }
 
+const parseComicStageRecord = (
+  value: unknown,
+  providers: readonly PipelineProviderState[],
+  operation: 'comic-structure' | 'comic-image' | 'comic-audio'
+): { requirement: 'not-requested' | 'required' | 'optional', status: PipelineManifestItem['status'] } | undefined => {
+  if (!isRecord(value) || !hasOnlyKeys(value, ['requirement', 'status', 'execution', 'targetKeys', 'artifactRefs']) || !ITEM_STATUS_SET.has(value['status'] as string) || !Array.isArray(value['targetKeys']) || !Array.isArray(value['artifactRefs'])) return undefined
+  if (value['artifactRefs'].some(ref => !isRecord(ref) || !hasOnlyKeys(ref, ['path', 'sha256']) || !isStrictArtifactRelativePath(ref['path']) || !isSha256(ref['sha256']))) return undefined
+  const execution = value['execution']
+  if (value['requirement'] === 'not-requested') {
+    if (value['status'] !== 'skipped' || !isRecord(execution) || !hasOnlyKeys(execution, ['kind', 'reason']) || execution['kind'] !== 'none' || execution['reason'] !== 'not-requested' || value['targetKeys'].length !== 0 || value['artifactRefs'].length !== 0) return undefined
+    return { requirement: 'not-requested', status: 'skipped' }
+  }
+  if (value['requirement'] !== 'required' && value['requirement'] !== 'optional') return undefined
+  if (!isRecord(execution)) return undefined
+  if (execution['kind'] === 'local') {
+    if (!hasOnlyKeys(execution, ['kind', 'state', 'policyReason']) || !PROVIDER_STATUS_SET.has(execution['state'] as string) || value['targetKeys'].length !== 0) return undefined
+    const state = execution['state'] as PipelineProviderState['status']
+    const expected = state === 'succeeded' ? 'full' : state === 'skipped' ? 'skipped' : state === 'failed' ? 'failed' : 'incomplete'
+    if (value['status'] !== expected || (state === 'skipped' && (typeof execution['policyReason'] !== 'string' || !execution['policyReason'].trim()))) return undefined
+  } else if (execution['kind'] === 'provider-targets') {
+    if (!hasOnlyKeys(execution, ['kind']) || value['targetKeys'].length === 0 || value['targetKeys'].some(key => typeof key !== 'string') || new Set(value['targetKeys'] as string[]).size !== value['targetKeys'].length) return undefined
+    const owned = (value['targetKeys'] as string[]).map(key => providers.filter(provider => provider.targetKey === key && provider.operation === operation))
+    if (owned.some(matches => matches.length !== 1)) return undefined
+    const statuses = owned.map(matches => (matches[0] as PipelineProviderState).status)
+    const successCount = statuses.filter(status => status === 'succeeded').length
+    const expected = statuses.every(status => status === 'skipped')
+      ? 'skipped'
+      : successCount > 0 && statuses.every(status => status === 'succeeded' || status === 'skipped')
+        ? 'full'
+        : successCount === 0 && statuses.every(status => status === 'failed' || status === 'skipped') && statuses.includes('failed')
+          ? 'failed'
+          : 'incomplete'
+    if (value['status'] !== expected) return undefined
+  } else return undefined
+  return { requirement: value['requirement'], status: value['status'] as PipelineManifestItem['status'] }
+}
+
+const expectedComicItemStatus = (
+  item: PipelineManifestItem
+): PipelineManifestItem['status'] | undefined => {
+  const metadata = item.metadata['comic']
+  if (!isRecord(metadata) || !hasOnlyKeys(metadata, ['schemaVersion', 'stages', 'audio']) || metadata['schemaVersion'] !== 1 || !isRecord(metadata['stages']) || !isRecord(metadata['audio']) || !hasOnlyKeys(metadata['stages'], ['structure', 'image', 'audio'])) return undefined
+  const stages = [
+    parseComicStageRecord(metadata['stages']['structure'], item.providers, 'comic-structure'),
+    parseComicStageRecord(metadata['stages']['image'], item.providers, 'comic-image'),
+    parseComicStageRecord(metadata['stages']['audio'], item.providers, 'comic-audio'),
+  ]
+  if (stages.some(stage => stage === undefined)) return undefined
+  const audio = metadata['audio']
+  if (!hasOnlyKeys(audio, ['sceneRunIdentity', 'structuredScript', 'dialoguePlanId', 'dialoguePlanRef', 'snapshotId', 'snapshotRef', 'selectedAudioRuns', 'publishedAudioRunId', 'mixPlanRef', 'finalTimelineRef', 'finalOutputRefs'])) return undefined
+  if (audio['sceneRunIdentity'] !== undefined && !isSha256(audio['sceneRunIdentity'])) return undefined
+  if (audio['dialoguePlanId'] !== undefined && !isSha256(audio['dialoguePlanId'])) return undefined
+  if (audio['snapshotId'] !== undefined && !isSha256(audio['snapshotId'])) return undefined
+  const structured = audio['structuredScript']
+  if (structured !== undefined && (!isRecord(structured) || !hasOnlyKeys(structured, ['path', 'artifactSchemaVersion', 'sha256']) || structured['path'] !== 'metadata/structured-script.json' || structured['artifactSchemaVersion'] !== 4 || !isSha256(structured['sha256']))) return undefined
+  for (const key of ['dialoguePlanRef', 'snapshotRef', 'mixPlanRef', 'finalTimelineRef'] as const) {
+    const ref = audio[key]
+    if (ref !== undefined && (!isRecord(ref) || !hasOnlyKeys(ref, ['path', 'sha256']) || !isStrictArtifactRelativePath(ref['path']) || !isSha256(ref['sha256']))) return undefined
+  }
+  if (audio['finalOutputRefs'] !== undefined && (!Array.isArray(audio['finalOutputRefs']) || audio['finalOutputRefs'].some(ref => !isRecord(ref) || !hasOnlyKeys(ref, ['path', 'sha256']) || !isStrictArtifactRelativePath(ref['path']) || !isSha256(ref['sha256'])))) return undefined
+  if (audio['selectedAudioRuns'] !== undefined && (!Array.isArray(audio['selectedAudioRuns']) || audio['selectedAudioRuns'].some(ref => !isRecord(ref) || !hasOnlyKeys(ref, ['targetKey', 'renderIdentity', 'audioRunId', 'audioRunRef', 'audioRunSha256']) || !Object.values(ref).every(value => typeof value === 'string') || !isSha256(ref['audioRunSha256'])))) return undefined
+  const required = stages.filter(stage => stage?.requirement === 'required') as Array<{ requirement: 'required', status: PipelineManifestItem['status'] }>
+  if (required.length === 0) return undefined
+  if (required.every(stage => stage.status === 'full' || stage.status === 'skipped') && required.some(stage => stage.status === 'full')) return 'full'
+  if (required.every(stage => stage.status === 'skipped')) return 'skipped'
+  if (required.every(stage => stage.status === 'failed' || stage.status === 'skipped') && required.some(stage => stage.status === 'failed')) return 'failed'
+  return 'incomplete'
+}
+
 const parseManifest = (
   rootDir: string,
   value: unknown,
@@ -2646,6 +2746,24 @@ const parseManifest = (
       if (expectedStatus === undefined || item.status !== expectedStatus) return undefined
       for (const provider of item.providers) attachLegacyTtsProviderIdentity(item, provider)
     }
+  }
+
+  if (value['command'] === 'comic') {
+    if (value['scope'] !== 'single' || items.length !== 1 || !isRecord(value['source'])) return undefined
+    try {
+      validateComicSourceIdentity(value['source'] as unknown as ComicSourceIdentity)
+    } catch {
+      return undefined
+    }
+    const item = items[0]
+    if (!item || item.input !== value['source']['canonicalPath'] || item.outputDir !== '.') return undefined
+    const expectedStatus = expectedComicItemStatus(item)
+    if (!expectedStatus || item.status !== expectedStatus) return undefined
+    const targetOwners = new Map<string, number>()
+    const comic = item.metadata['comic'] as unknown as CanonicalComicItemMetadata
+    for (const stage of Object.values(comic.stages)) for (const targetKey of stage.targetKeys) targetOwners.set(targetKey, (targetOwners.get(targetKey) ?? 0) + 1)
+    if ([...targetOwners.values()].some(count => count !== 1)) return undefined
+    if (item.providers.some(provider => provider.operation?.startsWith('comic-') && !targetOwners.has(provider.targetKey ?? ''))) return undefined
   }
 
   return {

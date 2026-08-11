@@ -108,9 +108,9 @@ describe('canonical pipeline manifest', () => {
     run: async () => { throw new Error('not called') }
   })
 
-  test('every command and scope uses one unversioned top-level shape', async () => {
+  test('every generic command and scope uses one unversioned top-level shape', async () => {
     await withTempDir('autoshow-canonical-manifest-', async (dir) => {
-      for (const command of PROCESS_COMMANDS) {
+      for (const command of PROCESS_COMMANDS.filter(candidate => candidate !== 'comic')) {
         for (const scope of ['single', 'batch'] as const) {
           const caseDir = join(dir, `${command}-${scope}`)
           await mkdir(caseDir)
@@ -137,6 +137,7 @@ describe('canonical pipeline manifest', () => {
           expect((stored as unknown as Record<string, unknown>)['kind']).toBeUndefined()
         }
       }
+      expect(PROCESS_COMMANDS).toContain('comic')
     })
   })
 

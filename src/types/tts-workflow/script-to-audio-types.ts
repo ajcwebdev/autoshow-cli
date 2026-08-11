@@ -273,6 +273,14 @@ export type VoiceEffectPlan = {
   settingsHash: string
 }
 
+export type CanonicalDialogueSourceSpan = {
+  kind: 'spoken-text' | 'delivery' | 'stage-direction' | 'timing' | 'voice-effect' | 'simultaneous-speech' | 'scene-boundary'
+  start: number
+  end: number
+  indexUnit: 'unicode-scalar-value'
+  text: string
+}
+
 export type CanonicalDialogueTurn = {
   turnId: string
   sourceSegmentId: string
@@ -280,6 +288,7 @@ export type CanonicalDialogueTurn = {
   subjectKey: string
   originalSpeakerLabel: string
   canonicalText: string
+  sourceSpans?: CanonicalDialogueSourceSpan[] | undefined
   delivery?: DeliveryPlan | undefined
   effect?: VoiceEffectPlan | undefined
 }
@@ -693,10 +702,117 @@ export type ProviderReadinessResult = {
   errors: SanitizedProviderError[]
 }
 
-export type VoiceCatalogPort = { list: (cursor?: string | undefined) => Promise<unknown> }
-export type VoiceDesignPort = { createCandidate: (request: unknown) => Promise<unknown> }
-export type VoiceClonePort = { clone: (request: unknown) => Promise<unknown> }
-export type VoiceLifecyclePort = { inspect: (voice: ProviderVoiceRef) => Promise<unknown> }
+export type ProviderVoiceCatalogEntry = {
+  provider: TtsProvider
+  resourceId: string
+  name: string
+  source: 'provider-library' | 'shared-library' | 'account'
+  origin: VoiceOrigin
+  providerRevision?: string | undefined
+  previewUrl?: string | undefined
+  description?: string | undefined
+  labels: Record<string, string>
+  modelIds: string[]
+  state: 'available' | 'pending' | 'verification-required' | 'expired' | 'unavailable'
+  expiresAt?: string | undefined
+  sanitizedMetadata: SanitizedProviderVoiceMetadata
+}
+
+export type ProviderVoiceCatalogPage = {
+  schemaVersion: 1
+  provider: TtsProvider
+  entries: ProviderVoiceCatalogEntry[]
+  nextCursor?: string | undefined
+  checkedAt: string
+}
+
+export type ProviderVoiceDesignRequest = {
+  description: string
+  previewText: string
+  candidateCount: number
+  creationModel: string
+  sourceVoice?: ProviderVoiceRef | undefined
+  eligibilitySnapshotHash?: string | undefined
+  seed?: number | undefined
+}
+
+export type ProviderVoiceDesignPreview = {
+  providerCandidateId: string
+  providerOperationId?: string | undefined
+  audioBase64: string
+  mediaType: string
+  durationMs?: number | undefined
+  expiresAt?: string | undefined
+  sanitizedMetadata: SanitizedProviderVoiceMetadata
+}
+
+export type ProviderVoiceDesignResult = {
+  schemaVersion: 1
+  provider: TtsProvider
+  operation: 'design' | 'remix'
+  creationModel: string
+  previews: ProviderVoiceDesignPreview[]
+  checkedAt: string
+}
+
+export type ProviderVoiceMaterializationRequest = {
+  providerCandidateId: string
+  desiredName: string
+  localAttemptId: string
+  sourceVoice?: ProviderVoiceRef | undefined
+  eligibilitySnapshotHash?: string | undefined
+}
+
+export type ProviderVoiceCloneRequest = {
+  cloneKind: 'instant' | 'professional'
+  desiredName: string
+  localAttemptId: string
+  protectedSamples: ProtectedAssetRef[]
+  consentRecordRef: string
+  provenanceRef: string
+  description?: string | undefined
+}
+
+export type ProviderVoiceMutationResult = {
+  schemaVersion: 1
+  provider: TtsProvider
+  state: 'ready' | 'pending' | 'verification-required' | 'external-action-required'
+  providerVoice?: ProviderVoiceRef | undefined
+  providerOperationId?: string | undefined
+  action?: string | undefined
+  sanitizedMetadata: SanitizedProviderVoiceMetadata
+  checkedAt: string
+}
+
+export type ProviderVoiceInspection = {
+  schemaVersion: 1
+  provider: TtsProvider
+  providerVoice: ProviderVoiceRef
+  state: 'available' | 'pending' | 'verification-required' | 'missing' | 'expired'
+  providerRevision?: string | undefined
+  deletion: VoiceDeletionEligibility
+  sanitizedMetadata: SanitizedProviderVoiceMetadata
+  checkedAt: string
+}
+
+export type ProviderVoiceDeleteRequest = {
+  providerVoice: ProviderVoiceRef
+  expectedResourceId: string
+  expectedName?: string | undefined
+}
+
+export type VoiceCatalogPort = {
+  list: (input?: { cursor?: string | undefined, source?: 'provider-library' | 'shared-library' | 'account' | undefined }) => Promise<ProviderVoiceCatalogPage>
+}
+export type VoiceDesignPort = {
+  createCandidate: (request: ProviderVoiceDesignRequest) => Promise<ProviderVoiceDesignResult>
+  materializeCandidate: (request: ProviderVoiceMaterializationRequest) => Promise<ProviderVoiceMutationResult>
+}
+export type VoiceClonePort = { clone: (request: ProviderVoiceCloneRequest) => Promise<ProviderVoiceMutationResult> }
+export type VoiceLifecyclePort = {
+  inspect: (voice: ProviderVoiceRef) => Promise<ProviderVoiceInspection>
+  delete: (request: ProviderVoiceDeleteRequest) => Promise<{ deletedAt: string }>
+}
 export type VoiceAuditionPort = { audition: (request: ExplicitVoiceSynthesisRequest) => Promise<ProviderBatchSynthesisResponse> }
 export type NativeDialoguePort = { render: (request: ExplicitVoiceSynthesisRequest) => Promise<ProviderBatchSynthesisResponse> }
 export type ContinuationPort = { validate: (continuation: ResolvedContinuationInput) => LocalPreflightResult }

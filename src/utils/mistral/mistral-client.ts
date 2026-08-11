@@ -57,12 +57,14 @@ const mistralFetch = createProviderRestClient<MistralFetchOptions, MistralRestEr
 export const mistralJsonRequest = async <T = unknown>(
   options: MistralJsonRequestOptions
 ): Promise<T> => {
+  const { body, method, ...requestOptions } = options
   const response = await mistralFetch({
-    ...options,
+    ...requestOptions,
+    method: method ?? 'POST',
     headers: {
       'content-type': 'application/json'
     },
-    body: JSON.stringify(options.body)
+    ...(body === undefined ? {} : { body: JSON.stringify(body) })
   })
   return await readJsonResponse(response, options.errorMessagePrefix) as T
 }

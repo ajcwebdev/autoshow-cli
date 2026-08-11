@@ -39,10 +39,11 @@ export function fixtureForProvider(
   fixtures: MetricFixtures | null,
   providerKey: string,
   audioFileName: string,
+  legacyProviderKey?: string,
 ): MetricFixtureProvider | null {
   const providers = fixtures?.providers;
   if (!providers) return null;
-  return providers[providerKey] ?? providers[audioFileName] ?? null;
+  return providers[providerKey] ?? providers[audioFileName] ?? (legacyProviderKey ? providers[legacyProviderKey] : undefined) ?? null;
 }
 
 export function finiteNumber(value: unknown): number | null {

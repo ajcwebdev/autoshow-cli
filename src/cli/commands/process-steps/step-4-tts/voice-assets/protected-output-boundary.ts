@@ -60,8 +60,17 @@ export const assertProtectedStoreOutputDisjoint = async (
     || isSameOrContained(canonicalStore, canonicalOutput)
   ) {
     throw CLIUsageError(
-      'TTS output and the protected Mistral reference store must be disjoint directories.',
+      'Output and the protected voice asset store must be disjoint directories.',
       'Choose an --output-dir/--output-root outside the protected runtime store and do not connect them through a symbolic link.'
     )
+  }
+}
+
+export const assertProtectedStoresOutputDisjoint = async (
+  outputPath: string,
+  protectedStoreRoots: readonly string[]
+): Promise<void> => {
+  for (const protectedStoreRoot of protectedStoreRoots) {
+    await assertProtectedStoreOutputDisjoint(outputPath, protectedStoreRoot)
   }
 }

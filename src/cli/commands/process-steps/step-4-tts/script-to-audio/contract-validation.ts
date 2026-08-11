@@ -143,6 +143,12 @@ export const validateProviderVoiceRef = (voice: ProviderVoiceRef): ProviderVoice
     if (voice.namespace === 'provider' && voice.accountScopeHash !== undefined) {
       throw CLIUsageError('Provider-namespaced voice forbids accountScopeHash.')
     }
+    if (voice.derivedFrom) {
+      if (!voice.derivedFrom.sourceRef.trim() || !voice.derivedFrom.localAttemptId.trim()) throw CLIUsageError('Remote voice lineage requires source and local-attempt identity.')
+      assertSha256(voice.derivedFrom.sourceIdentityHash, 'Remote voice lineage source identity hash')
+      if (voice.derivedFrom.eligibilitySnapshotHash !== undefined) assertSha256(voice.derivedFrom.eligibilitySnapshotHash, 'Remote voice lineage eligibility snapshot hash')
+      if (voice.derivedFrom.operation === 'remixed-from' && !voice.derivedFrom.eligibilitySnapshotHash) throw CLIUsageError('Remixed voice lineage requires its eligibility snapshot hash.')
+    }
   } else if (voice.kind === 'reference-asset') {
     assertSha256(voice.protectedAsset.sha256, 'Protected voice asset checksum')
     if (!voice.authorizationRef.trim()) throw CLIUsageError('Reference voice requires an authorization reference.')
@@ -407,6 +413,7 @@ export const validateProviderRenderPlanIdentity = (plan: ProviderRenderPlan): Pr
 
   const turns = plan.nodes.flatMap((node) => node.kind === 'turn' ? [node.turn] : node.turns)
   if (turns.length === 0) throw CLIUsageError('Provider render plan requires speakable resolved turns.')
+  if (plan.nodes.some(node => node.kind === 'overlap' && (!node.groupId.trim() || node.turns.length < 2))) throw CLIUsageError('Provider render overlap nodes require a stable group ID and at least two resolved turns.')
   assertUnique(turns.map((turn) => turn.turnId), 'Provider render turn IDs')
   for (const turn of turns) {
     if (!turn.turnId.trim() || !turn.sourceSegmentId.trim() || !turn.subjectKey.trim() || !turn.originalSpeakerLabel.trim() || !turn.canonicalText.trim()) {

@@ -1,4 +1,4 @@
-import { lstat, readdir } from 'node:fs/promises'
+import { lstat, mkdir, readdir } from 'node:fs/promises'
 import { randomUUID } from 'node:crypto'
 import { dirname, extname, join, relative, resolve, sep } from 'node:path'
 import type {
@@ -7,9 +7,12 @@ import type {
   AnyCapabilityRecord,
   CanonicalAudioProviderProjection,
   CanonicalDialogueTurn,
+  ComicDialoguePlan,
+  ComicTtsRenderContext,
   GenericTtsDialoguePlan,
   GenericTtsSourceIdentity,
   ObservedAudioFormat,
+  NormalizedTiming,
   ObservedProviderRequest,
   PipelineProviderState,
   PlannedCost,
@@ -29,6 +32,7 @@ import type {
   ResolvedVoiceBinding,
   SanitizedProviderError,
   TtsOptions,
+  TtsMasteringProfile,
   TtsRequestEvidenceScope,
   TtsSerializedRequestObservation,
   TtsTarget,
@@ -45,10 +49,12 @@ import {
 } from '~/cli/commands/setup-and-utilities/models/setup-model-options'
 import { CLIUsageError, InternalError } from '~/utils/error-handler'
 import { getFfprobeBinary } from '~/utils/runtime-paths'
-import { concatAndConvertToWav, splitTextIntoChunks } from '../tts-utils/audio-utils'
+import { concatAndConvertToWav, filterAudioToWav, mixAudioToWav, splitTextIntoChunks } from '../tts-utils/audio-utils'
 import { resolveTtsChunkCharacterLimit, TTS_CHUNK_CHARACTER_LIMITS } from '../tts-utils/tts-chunking'
 import { getSpeakerVoice, isMultiSpeakerRequested, normalizeDialogueFromOptions, normalizeDialogueText, parseSpeakerVoiceMappings, resolveDialogueFormat } from '../dialogue-normalizer'
 import { resolveGeminiDialogueStrategyForText, splitGeminiNativeDialogueText } from '../tts-services/tts-gemini/gemini-tts-config'
+import { planElevenLabsNativeDialogueBatches } from '../tts-services/tts-elevenlabs/elevenlabs-native-dialogue'
+import { planHumeNativeUtteranceBatches } from '../tts-services/hume/hume-native-utterances'
 import { createTtsTargetSelection } from '../tts-targets/tts-target-selection'
 import {
   normalizeTtsTurnControls,
@@ -110,7 +116,7 @@ type AttemptTurn = {
   sourceIndex: number
   canonical: CanonicalDialogueTurn
   voice: { kind: 'provider-id' | 'reference-asset' | 'local-model-voice', value?: string | undefined, valueHash: string }
-  binding: Extract<ResolvedVoiceBinding, { kind: 'transient-provider-voice' }>
+  binding: ResolvedVoiceBinding
   controls: TypedProviderSynthesisSettings
   effectiveControls: Readonly<Record<string, unknown>>
 }
@@ -125,7 +131,16 @@ type AttemptSlot = {
   expectedEndpointKind: string
   expectedSerializerVersion: string
 }
-type RecordedOutput = { path: string, relativeToBatchResult: string, sha256: string, format: ObservedAudioFormat, durationMs: number }
+type RecordedOutput = {
+  path: string
+  relativeToBatchResult: string
+  sha256: string
+  format: ObservedAudioFormat
+  durationMs: number
+  timing?: NormalizedTiming<'take-audio-ms'> | undefined
+  providerGenerationId?: string | undefined
+  warnings?: readonly string[] | undefined
+}
 type RuntimeRequest = {
   slot: AttemptSlot
   invocationFile: WrittenJson<ProviderBatchInvocationPlan>
@@ -163,6 +178,7 @@ export type CreateCurrentTtsRenderAttemptOptions = {
   ttsOptions: TtsOptions
   sourceIdentity?: GenericTtsSourceIdentity | undefined
   dialoguePlan?: GenericTtsDialoguePlan | undefined
+  comicContext?: ComicTtsRenderContext | undefined
   /** Canonical provider-attempt count retained before preparing this render. */
   priorAttemptCount?: number | undefined
   /** Verified completed slots from an earlier attempt of this exact render. */
@@ -200,6 +216,7 @@ const readObservedAudio = async (rootDir: string, path: string): Promise<{ bytes
   const bytes = (await readContainedArtifactFile(rootDir, contained(rootDir, path))).bytes
   let sampleRate = 0
   let channels = 0
+  let bitsPerSample = 16
   let byteRate = 0
   let dataBytes = 0
   if (bytes.length >= 12 && bytes.toString('ascii', 0, 4) === 'RIFF' && bytes.toString('ascii', 8, 12) === 'WAVE') {
@@ -211,11 +228,12 @@ const readObservedAudio = async (rootDir: string, path: string): Promise<{ bytes
         channels = bytes.readUInt16LE(content + 2)
         sampleRate = bytes.readUInt32LE(content + 4)
         byteRate = bytes.readUInt32LE(content + 8)
+        bitsPerSample = bytes.readUInt16LE(content + 14)
       } else if (kind === 'data') dataBytes += Math.min(size, Math.max(0, bytes.length - content))
       offset = content + size + (size % 2)
     }
     if (sampleRate <= 0 || channels <= 0) throw CLIUsageError(`Retained TTS WAV output has no valid audio format metadata: ${path}`)
-    return { bytes, format: { codec: 'pcm_s16le', container: 'wav', sampleRate, channels }, durationMs: byteRate > 0 ? Math.round(dataBytes / byteRate * 1000) : 0 }
+    return { bytes, format: { codec: bitsPerSample === 24 ? 'pcm_s24le' : 'pcm_s16le', container: 'wav', sampleRate, channels }, durationMs: byteRate > 0 ? Math.round(dataBytes / byteRate * 1000) : 0 }
   }
 
   const probe = Bun.spawn([
@@ -365,7 +383,8 @@ const resolveEffectiveInvocationControls = (
 const serializerContract = (
   target: TtsTarget,
   voiceValue: string,
-  effectiveControls: Readonly<Record<string, unknown>>
+  effectiveControls: Readonly<Record<string, unknown>>,
+  strategy: ProviderRenderStrategy = 'segmented'
 ): { endpointKind: string, serializerVersion: string, controls: unknown } => {
   const stringValue = (key: string): string | undefined => typeof effectiveControls[key] === 'string' ? effectiveControls[key] : undefined
   const numberValue = (key: string): number | undefined => typeof effectiveControls[key] === 'number' ? effectiveControls[key] : undefined
@@ -386,12 +405,24 @@ const serializerContract = (
     case 'cartesia':
       return { endpointKind: 'speech-synthesis', serializerVersion: 'cartesia.tts.phase-0-v1', controls: { ...(stringValue('language') ? { language: stringValue('language') } : {}), outputFormat: { container: 'wav', encoding: 'pcm_s16le', sample_rate: 24000 }, version: '2026-03-01' } }
     case 'hume':
+      if (strategy === 'native-utterances') return { endpointKind: 'native-utterance-synthesis', serializerVersion: 'hume.native-utterances.phase-3-v1', controls: { version: '2', format: { type: 'mp3' }, numGenerations: 1, includeTimestampTypes: ['word', 'phoneme'] } }
       return { endpointKind: 'speech-synthesis', serializerVersion: 'hume.tts.phase-0-v1', controls: { version: '2', format: { type: 'mp3' }, numGenerations: 1, ...(numberValue('speed') !== undefined ? { speed: numberValue('speed') } : {}), ...(numberValue('trailingSilence') !== undefined ? { trailingSilence: numberValue('trailingSilence') } : {}) } }
     case 'speechify':
       return { endpointKind: 'speech-synthesis', serializerVersion: 'speechify.tts.phase-0-v1', controls: { audioFormat: stringValue('audioFormat') ?? 'mp3', ...(stringValue('language') ? { language: stringValue('language') } : {}) } }
     case 'deepgram':
       return { endpointKind: 'speech-synthesis', serializerVersion: 'deepgram.tts.phase-0-v1', controls: { ...(stringValue('encoding') ? { encoding: stringValue('encoding') } : {}), ...(stringValue('container') ? { container: stringValue('container') } : {}), ...(numberValue('bitRate') !== undefined ? { bitRate: numberValue('bitRate') } : {}), ...(numberValue('sampleRate') !== undefined ? { sampleRate: numberValue('sampleRate') } : {}), ...(numberValue('speed') !== undefined ? { speed: numberValue('speed') } : {}) } }
     case 'elevenlabs': {
+      if (strategy === 'native-dialogue') return {
+        endpointKind: 'text-to-dialogue-with-timestamps',
+        serializerVersion: 'elevenlabs.dialogue.phase-3-v1',
+        controls: {
+          outputFormat: stringValue('outputFormat') ?? 'mp3_44100_128',
+          modelId: 'eleven_v3',
+          ...(stringValue('languageCode') ? { languageCode: stringValue('languageCode') } : {}),
+          ...(numberValue('seed') !== undefined ? { seed: numberValue('seed') } : {}),
+          ...(stringValue('textNormalization') ? { textNormalization: stringValue('textNormalization') } : {})
+        }
+      }
       const voiceSettings = {
         ...(numberValue('stability') !== undefined ? { stability: numberValue('stability') } : {}),
         ...(numberValue('similarityBoost') !== undefined ? { similarity_boost: numberValue('similarityBoost') } : {}),
@@ -495,9 +526,11 @@ const buildCapabilityFixture = (
         ? ['provider-id' as const, 'reference-asset' as const]
         : ['provider-id' as const]
   const constraints = feature === 'native-dialogue'
-    ? { voiceKinds, maxCharacters: chunkLimit(target), supportedOutputFormats: ['wav'], minSpeakers: 2, maxSpeakers: 2 }
+    ? target.service === 'elevenlabs'
+      ? { voiceKinds, maxCharacters: 2000, supportedOutputFormats: ['mp3', 'wav', 'pcm'], minSpeakers: 1, maxSpeakers: 10 }
+      : { voiceKinds, maxCharacters: chunkLimit(target), supportedOutputFormats: ['wav'], minSpeakers: 2, maxSpeakers: 2 }
     : feature === 'native-utterances'
-      ? { voiceKinds, maxCharacters: chunkLimit(target), supportedOutputFormats: ['wav'], maxUtterances: 1, maxTakesPerRequest: 1 }
+      ? { voiceKinds, maxCharacters: target.service === 'hume' ? 5000 : chunkLimit(target), supportedOutputFormats: ['mp3', 'wav', 'pcm'], maxTakesPerRequest: target.service === 'hume' ? 5 : 1 }
       : { voiceKinds, maxCharacters: chunkLimit(target), supportedOutputFormats: ['wav'] }
   const record = {
     scope,
@@ -535,8 +568,108 @@ const voiceBinding = (target: TtsTarget, kind: AttemptTurn['voice']['kind'], val
   }
 }
 
-const flattenPlanTurns = (plan: GenericTtsDialoguePlan): CanonicalDialogueTurn[] =>
+const flattenPlanTurns = (plan: GenericTtsDialoguePlan | ComicDialoguePlan): CanonicalDialogueTurn[] =>
   plan.nodes.flatMap((node) => node.kind === 'turn' ? [node.turn] : node.turns)
+
+const bindingIdentityHash = (binding: ResolvedVoiceBinding): string =>
+  binding.kind === 'approved-snapshot' ? binding.entryHash : binding.identityHash
+
+const requestedOutput = (options: Pick<CreateCurrentTtsRenderAttemptOptions, 'ttsOptions'>) => options.ttsOptions.ttsMasteringProfile
+  ? {
+      codec: options.ttsOptions.ttsMasteringProfile.codec,
+      container: options.ttsOptions.ttsMasteringProfile.container,
+      sampleRate: options.ttsOptions.ttsMasteringProfile.sampleRate,
+      channels: options.ttsOptions.ttsMasteringProfile.channels,
+    }
+  : REQUESTED_OUTPUT
+
+const localVoiceEffectFilter = (turn: CanonicalDialogueTurn): string | undefined => {
+  const kind = turn.effect?.kind ?? ''
+  if (!/(?:radio|intercom|telephone|computer)/u.test(kind)) return undefined
+  return 'highpass=f=250,lowpass=f=3500,acompressor=threshold=-18dB:ratio=3:attack=10:release=100'
+}
+
+const assembleComicSegmentedAudio = async (input: {
+  dialoguePlan: ComicDialoguePlan
+  turns: readonly CanonicalDialogueTurn[]
+  slots: readonly Pick<AttemptSlot, 'generationSlotId' | 'turnIds'>[]
+  outputPathsBySlot: ReadonlyMap<string, readonly string[]>
+  masteringDir: string
+  providerLabel: string
+  profile: TtsMasteringProfile
+}): Promise<string> => {
+  const turnAudio = new Map<string, string>()
+  for (const turn of input.turns) {
+    const turnDir = join(input.masteringDir, 'turns', turn.turnId)
+    await mkdir(turnDir, { recursive: true })
+    const chunkPaths = input.slots.filter(slot => slot.turnIds.includes(turn.turnId)).flatMap((slot) => {
+      const paths = input.outputPathsBySlot.get(slot.generationSlotId)
+      if (!paths) throw CLIUsageError(`Comic assembly is missing generation slot ${slot.generationSlotId}.`)
+      return [...paths]
+    })
+    if (chunkPaths.length === 0) throw CLIUsageError(`Comic assembly has no retained provider output for ${turn.turnId}.`)
+    const concatenated = await concatAndConvertToWav(chunkPaths, turnDir, `${input.providerLabel}-${turn.turnId}`, undefined, input.profile)
+    const effectFilter = localVoiceEffectFilter(turn)
+    if (effectFilter) {
+      const effected = join(turnDir, 'effected.wav')
+      await filterAudioToWav(concatenated, effected, `${input.providerLabel}-${turn.turnId}`, effectFilter, input.profile)
+      turnAudio.set(turn.turnId, effected)
+    } else {
+      turnAudio.set(turn.turnId, concatenated)
+    }
+  }
+  const nodePaths: string[] = []
+  for (const [nodeIndex, node] of input.dialoguePlan.nodes.entries()) {
+    if (node.kind === 'turn') {
+      const path = turnAudio.get(node.turn.turnId)
+      if (!path) throw CLIUsageError(`Comic assembly lost turn ${node.turn.turnId}.`)
+      nodePaths.push(path)
+      continue
+    }
+    const overlapPaths = node.turns.map((turn) => {
+      const path = turnAudio.get(turn.turnId)
+      if (!path) throw CLIUsageError(`Comic overlap assembly lost turn ${turn.turnId}.`)
+      return path
+    })
+    const overlapDir = join(input.masteringDir, 'overlaps', `${String(nodeIndex + 1).padStart(3, '0')}-${node.groupId}`)
+    await mkdir(overlapDir, { recursive: true })
+    nodePaths.push(await mixAudioToWav(overlapPaths, join(overlapDir, 'speech.wav'), `${input.providerLabel}-${node.groupId}`, input.profile))
+  }
+  if (nodePaths.length === 0) throw CLIUsageError('Comic segmented assembly has no dialogue nodes.')
+  const assemblyDir = join(input.masteringDir, 'assembly')
+  await mkdir(assemblyDir, { recursive: true })
+  return await concatAndConvertToWav(nodePaths, assemblyDir, `${input.providerLabel}-comic-assembly`, undefined, input.profile)
+}
+
+const comicTimelineLayout = (
+  dialoguePlan: ComicDialoguePlan,
+  durationForTurn: (turnId: string) => number
+): {
+  turns: Array<{ turnId: string, subjectKey: string, startMs: number, endMs: number }>
+  overlaps: Array<{ groupId: string, start: number, end: number }>
+} => {
+  let cursorMs = 0
+  const turns: Array<{ turnId: string, subjectKey: string, startMs: number, endMs: number }> = []
+  const overlaps: Array<{ groupId: string, start: number, end: number }> = []
+  for (const node of dialoguePlan.nodes) {
+    if (node.kind === 'turn') {
+      const startMs = cursorMs
+      cursorMs += durationForTurn(node.turn.turnId)
+      turns.push({ turnId: node.turn.turnId, subjectKey: node.turn.subjectKey, startMs, endMs: cursorMs })
+      continue
+    }
+    const startMs = cursorMs
+    let endMs = startMs
+    for (const turn of node.turns) {
+      const turnEndMs = startMs + durationForTurn(turn.turnId)
+      turns.push({ turnId: turn.turnId, subjectKey: turn.subjectKey, startMs, endMs: turnEndMs })
+      endMs = Math.max(endMs, turnEndMs)
+    }
+    cursorMs = endMs
+    overlaps.push({ groupId: node.groupId, start: startMs, end: endMs })
+  }
+  return { turns, overlaps }
+}
 
 const chunkLimit = (target: TtsTarget): number =>
   target.service === 'kitten'
@@ -561,6 +694,124 @@ const defaultVoiceValue = (target: TtsTarget): string => {
 }
 
 const planInputs = (options: CreateCurrentTtsRenderAttemptOptions, capabilityFixtureHash: string) => {
+  if (options.comicContext) {
+    const context = options.comicContext
+    if (context.operation !== 'comic-audio') throw CLIUsageError('Comic render context requires operation comic-audio.')
+    if (canonicalTtsJson(context.sourceIdentity) !== canonicalTtsJson(context.dialoguePlan.sourceIdentity)) throw CLIUsageError('Comic dialogue plan does not bind the exact source identity.')
+    if (context.dialoguePlan.dialoguePlanId !== hashCanonicalTtsValue({
+      schemaVersion: context.dialoguePlan.schemaVersion,
+      sceneRunIdentity: context.dialoguePlan.sceneRunIdentity,
+      sourceIdentity: context.dialoguePlan.sourceIdentity,
+      structuredScript: context.dialoguePlan.structuredScript,
+      createdAt: context.dialoguePlan.createdAt,
+      nodes: context.dialoguePlan.nodes,
+    })) throw CLIUsageError('Comic dialogue plan identity is invalid.')
+    if (context.voiceSnapshot.dialoguePlanId !== context.dialoguePlan.dialoguePlanId || context.voiceSnapshot.sceneRunIdentity !== context.dialoguePlan.sceneRunIdentity) throw CLIUsageError('Comic voice snapshot does not bind the selected scene/dialogue plan.')
+    const canonicalTurns = flattenPlanTurns(context.dialoguePlan)
+    const normalizedTurnControls = normalizeTtsTurnControls(
+      options.ttsOptions.ttsTurnControls,
+      canonicalTurns.map(turn => turn.turnId)
+    )
+    const selection = createTtsTargetSelection(options.ttsOptions)
+    const entriesById = new Map(context.voiceSnapshot.entries.map(entry => [entry.entryId, entry] as const))
+    const turns: AttemptTurn[] = canonicalTurns.map((canonical, sourceIndex) => {
+      const entryId = context.snapshotEntryIdByTurnId[canonical.turnId]
+      const entry = entryId ? entriesById.get(entryId) : undefined
+      if (!entry || entry.provider !== options.target.service || entry.providerModel !== options.target.model || entry.subjectKey !== canonical.subjectKey) {
+        throw CLIUsageError(`Comic turn ${canonical.turnId} has no exact approved snapshot binding for ${options.target.service}/${options.target.model}.`)
+      }
+      const providerVoice = entry.providerVoice
+      if (providerVoice.provider !== options.target.service) throw CLIUsageError(`Comic snapshot voice for ${canonical.turnId} belongs to another provider.`)
+      if (providerVoice.kind === 'shared-library-resource') throw CLIUsageError(`Comic snapshot voice for ${canonical.turnId} must be imported into an account resource before synthesis.`)
+      const protectedAsset = providerVoice.kind === 'reference-asset' ? providerVoice.protectedAsset : undefined
+      const voice = providerVoice.kind === 'reference-asset'
+        ? { kind: 'reference-asset' as const, valueHash: providerVoice.protectedAsset.sha256 }
+        : providerVoice.kind === 'local-model-voice'
+          ? { kind: 'local-model-voice' as const, value: providerVoice.voiceLocator, valueHash: sha256Bytes(providerVoice.voiceLocator) }
+          : { kind: 'provider-id' as const, value: providerVoice.resourceId, valueHash: sha256Bytes(providerVoice.resourceId) }
+      const invocation: TtsTargetInvocation = Object.freeze({
+        sourceId: canonical.turnId,
+        sourceIndex,
+        speaker: context.providerSpeakerLabelByTurnId[canonical.turnId] ?? canonical.originalSpeakerLabel,
+        voice: Object.freeze(providerVoice.kind === 'reference-asset'
+          ? { kind: 'ref-audio' as const, value: `ref_audio:${providerVoice.protectedAsset.assetId}`, protectedAsset: providerVoice.protectedAsset, authorizationRef: providerVoice.authorizationRef }
+          : { kind: 'id' as const, value: voice.value as string }),
+        controls: resolveTtsTurnControlOverrides(options.target.service, canonical.turnId, normalizedTurnControls)
+      })
+      const effectiveControls = resolveEffectiveInvocationControls(options.target, invocation, selection)
+      const controls = typedSettings(options.target, effectiveControls, protectedAsset)
+      const binding: Extract<ResolvedVoiceBinding, { kind: 'approved-snapshot' }> = {
+        kind: 'approved-snapshot',
+        snapshotId: context.voiceSnapshot.snapshotId,
+        entryId: entry.entryId,
+        entryHash: entry.entryHash,
+        providerVoice,
+        providerModel: entry.providerModel,
+        ...(entry.providerRevision ? { providerRevision: entry.providerRevision } : {}),
+        settingsSchema: entry.settingsSchema,
+        synthesisSettings: entry.synthesisSettings,
+        capabilityFixtureHash: entry.capabilityFixtureHash,
+      }
+      return { sourceIndex, canonical, voice, binding, controls, effectiveControls }
+    })
+    const registry = parseSpeakerVoiceMappings(options.ttsOptions.ttsSpeakers)
+    const normalizedText = canonicalTurns.map(turn => `${context.providerSpeakerLabelByTurnId[turn.turnId] ?? turn.originalSpeakerLabel}: ${turn.canonicalText}`).join('\n')
+    const distinctSpeakers = new Set(canonicalTurns.map(turn => (context.providerSpeakerLabelByTurnId[turn.turnId] ?? turn.originalSpeakerLabel).normalize('NFKC').trim().toLocaleUpperCase('en-US')))
+    const hasSegmentedOnlyIntent = context.dialoguePlan.nodes.some(node => node.kind === 'overlap')
+      || canonicalTurns.some(turn => turn.delivery !== undefined || turn.effect !== undefined)
+    const hasTurnControls = canonicalTurns.some(turn => {
+      const keys = Object.keys(normalizedTurnControls?.[turn.turnId]?.[options.target.service] ?? {})
+      return keys.length > 0 && !(options.target.service === 'hume' && keys.every(key => key === 'speed' || key === 'trailingSilence'))
+    })
+    const geminiNative = options.target.service === 'gemini'
+      && distinctSpeakers.size === 2
+      && !hasTurnControls
+      && resolveGeminiDialogueStrategyForText(normalizedText, registry, TTS_CHUNK_CHARACTER_LIMITS.gemini, 'auto') === 'native'
+    const elevenLabsNative = options.target.service === 'elevenlabs' && options.target.model === 'eleven_v3' && !hasTurnControls
+    const humeNative = options.target.service === 'hume' && options.target.model === 'octave-2' && !hasTurnControls && canonicalTurns.reduce((sum, turn) => sum + [...turn.canonicalText].length, 0) <= 5000
+    const nativeEligible = canonicalTurns.length > 0 && !hasSegmentedOnlyIntent && (geminiNative || elevenLabsNative || humeNative)
+    if (context.modePreference === 'native' && !nativeEligible) throw CLIUsageError('Comic native mode requires a provider-native eligible target whose speaker, direction, control, and request limits can be represented exactly.')
+    const native = context.modePreference !== 'segmented' && nativeEligible
+    const strategy: ProviderRenderStrategy = native ? humeNative ? 'native-utterances' : 'native-dialogue' : 'segmented'
+    const limit = chunkLimit(options.target)
+    let nativeTurnCursor = 0
+    const nativeGroups = geminiNative
+      ? splitGeminiNativeDialogueText(normalizedText, registry, limit).map((providerText) => {
+          const chunkDialogue = normalizeDialogueText(providerText, resolveDialogueFormat(options.ttsOptions), registry)
+          const groupedTurns = turns.slice(nativeTurnCursor, nativeTurnCursor + chunkDialogue.turns.length)
+          if (groupedTurns.length !== chunkDialogue.turns.length || groupedTurns.some((turn, index) => turn.canonical.canonicalText !== chunkDialogue.turns[index]?.text)) throw CLIUsageError('Gemini comic native partition did not preserve exact turn boundaries.')
+          nativeTurnCursor += groupedTurns.length
+          return { turnIds: groupedTurns.map(turn => turn.canonical.turnId), providerTexts: [providerText] }
+        })
+      : elevenLabsNative
+        ? planElevenLabsNativeDialogueBatches(turns.map(turn => ({ turnId: turn.canonical.turnId, subjectKey: turn.canonical.subjectKey, speaker: context.providerSpeakerLabelByTurnId[turn.canonical.turnId] ?? turn.canonical.originalSpeakerLabel, canonicalText: turn.canonical.canonicalText, voiceId: turn.voice.value ?? turn.voice.valueHash }))).map(batch => ({ turnIds: batch.turns.map(turn => turn.turnId), providerTexts: [batch.providerText] }))
+        : humeNative
+          ? planHumeNativeUtteranceBatches(turns.map(turn => ({ turnId: turn.canonical.turnId, subjectKey: turn.canonical.subjectKey, speaker: context.providerSpeakerLabelByTurnId[turn.canonical.turnId] ?? turn.canonical.originalSpeakerLabel, canonicalText: turn.canonical.canonicalText, voiceId: turn.voice.value ?? turn.voice.valueHash }))).map(batch => ({ turnIds: batch.turns.map(turn => turn.turnId), providerTexts: [batch.providerText] }))
+          : []
+    const slotGroups: Array<{ turnIds: string[], providerTexts: string[] }> = native
+      ? nativeGroups
+      : turns.map(turn => ({ turnIds: [turn.canonical.turnId], providerTexts: splitTextIntoChunks(turn.canonical.canonicalText, limit) }))
+    if (geminiNative && native && nativeTurnCursor !== turns.length) throw CLIUsageError('Gemini comic native partition omitted turns.')
+    let includesSetup = true
+    const slots: AttemptSlot[] = []
+    const batches = slotGroups.map((group, batchIndex) => {
+      const batchId = `batch-${String(batchIndex + 1).padStart(3, '0')}-${hashCanonicalTtsValue(group.turnIds).slice(0, 12)}`
+      const primaryTurn = turns.find(turn => turn.canonical.turnId === group.turnIds[0]) as AttemptTurn
+      const contract = serializerContract(options.target, primaryTurn.voice.value ?? primaryTurn.voice.valueHash, primaryTurn.effectiveControls, strategy)
+      const generationSlots = group.providerTexts.map((providerText, slotIndex) => {
+        const cost = plannedCost(options.target, [...providerText].length, includesSetup)
+        includesSetup = false
+        const slot = { batchId, generationSlotId: `${batchId}-slot-${String(slotIndex + 1).padStart(3, '0')}`, slotIndex, turnIds: group.turnIds, providerText, plannedCost: cost, expectedRequestControlsHash: hashCanonicalTtsValue(contract.controls), expectedEndpointKind: contract.endpointKind, expectedSerializerVersion: contract.serializerVersion }
+        slots.push(slot)
+        return { generationSlotId: slot.generationSlotId, slotIndex, requestedTakeCount: 1, plannedCost: cost }
+      })
+      const requestControls = requestSettings(primaryTurn.controls)
+      requestControls.values['serializerControlsHash'] = hashCanonicalTtsValue(contract.controls)
+      return { batchId, orderedTurnIds: group.turnIds, requestControls, generationSlots, takeSelectionPolicy: 'sole-take' as const, continuation: { kind: 'none' as const }, plannedCost: sumCosts(generationSlots.map(slot => slot.plannedCost)) }
+    })
+    if (turns.length === 0 || slots.length === 0) throw CLIUsageError('Comic render planning requires at least one dialogue turn and generation slot.')
+    return { sourceIdentity: context.sourceIdentity, dialoguePlan: context.dialoguePlan, turns, batches, slots, strategy, normalizedText }
+  }
   const fallbackSource = createInlineTtsSourceIdentity(options.sourceText)
   const sourceIdentity = options.sourceIdentity ?? fallbackSource
   if (sourceIdentity.sourceKind === 'inline' && sourceIdentity.contentSha256 !== sha256Bytes(options.sourceText)) {
@@ -581,8 +832,10 @@ const planInputs = (options: CreateCurrentTtsRenderAttemptOptions, capabilityFix
     options.ttsOptions.ttsTurnControls,
     canonicalTurns.map((turn) => turn.turnId)
   )
-  const hasProviderTurnControls = canonicalTurns.some((turn) =>
-    Object.keys(normalizedTurnControls?.[turn.turnId]?.[options.target.service] ?? {}).length > 0)
+  const hasProviderTurnControls = canonicalTurns.some((turn) => {
+    const keys = Object.keys(normalizedTurnControls?.[turn.turnId]?.[options.target.service] ?? {})
+    return keys.length > 0 && !(options.target.service === 'hume' && keys.every(key => key === 'speed' || key === 'trailingSilence'))
+  })
   const selection = createTtsTargetSelection(options.ttsOptions)
   const turns: AttemptTurn[] = canonicalTurns.map((canonical, sourceIndex) => {
     const mapping = registry ? getSpeakerVoice(registry, canonical.originalSpeakerLabel) : undefined
@@ -622,13 +875,17 @@ const planInputs = (options: CreateCurrentTtsRenderAttemptOptions, capabilityFix
     return { sourceIndex, canonical, ...bound, controls: settings, effectiveControls }
   })
   const normalizedDialogue = registry ? normalizeDialogueFromOptions(options.sourceText, options.ttsOptions) : undefined
-  const native = options.target.service === 'gemini' && registry
-    ? !hasProviderTurnControls && resolveGeminiDialogueStrategyForText(normalizedDialogue?.normalizedText ?? '', registry, TTS_CHUNK_CHARACTER_LIMITS.gemini, 'auto') === 'native'
+  const hasNativeBlockingIntent = canonicalTurns.some(turn => turn.delivery !== undefined || turn.effect !== undefined)
+  const geminiNative = options.target.service === 'gemini' && registry
+    ? !hasProviderTurnControls && !hasNativeBlockingIntent && resolveGeminiDialogueStrategyForText(normalizedDialogue?.normalizedText ?? '', registry, TTS_CHUNK_CHARACTER_LIMITS.gemini, 'auto') === 'native'
     : false
-  const strategy: ProviderRenderStrategy = native ? 'native-dialogue' : 'segmented'
+  const elevenLabsNative = options.target.service === 'elevenlabs' && options.target.model === 'eleven_v3' && registry !== undefined && !hasProviderTurnControls && !hasNativeBlockingIntent
+  const humeNative = options.target.service === 'hume' && options.target.model === 'octave-2' && registry !== undefined && !hasProviderTurnControls && !hasNativeBlockingIntent && canonicalTurns.reduce((sum, turn) => sum + [...turn.canonicalText].length, 0) <= 5000
+  const native = geminiNative || elevenLabsNative || humeNative
+  const strategy: ProviderRenderStrategy = native ? humeNative ? 'native-utterances' : 'native-dialogue' : 'segmented'
   const limit = chunkLimit(options.target)
   let nativeTurnCursor = 0
-  const slotGroups: Array<{ turnIds: string[], providerTexts: string[] }> = native && registry
+  const nativeGroups = geminiNative && registry
     ? splitGeminiNativeDialogueText(normalizedDialogue?.normalizedText ?? '', registry, limit).map((providerText) => {
         const chunkDialogue = normalizeDialogueText(providerText, resolveDialogueFormat(options.ttsOptions), registry)
         const groupedTurns = turns.slice(nativeTurnCursor, nativeTurnCursor + chunkDialogue.turns.length)
@@ -639,15 +896,22 @@ const planInputs = (options: CreateCurrentTtsRenderAttemptOptions, capabilityFix
         nativeTurnCursor += groupedTurns.length
         return { turnIds: groupedTurns.map((turn) => turn.canonical.turnId), providerTexts: [providerText] }
       })
+    : elevenLabsNative && registry
+      ? planElevenLabsNativeDialogueBatches(turns.map(turn => ({ turnId: turn.canonical.turnId, subjectKey: turn.canonical.subjectKey, speaker: turn.canonical.originalSpeakerLabel, canonicalText: turn.canonical.canonicalText, voiceId: getSpeakerVoice(registry, turn.canonical.originalSpeakerLabel).voice }))).map(batch => ({ turnIds: batch.turns.map(turn => turn.turnId), providerTexts: [batch.providerText] }))
+      : humeNative && registry
+        ? planHumeNativeUtteranceBatches(turns.map(turn => ({ turnId: turn.canonical.turnId, subjectKey: turn.canonical.subjectKey, speaker: turn.canonical.originalSpeakerLabel, canonicalText: turn.canonical.canonicalText, voiceId: getSpeakerVoice(registry, turn.canonical.originalSpeakerLabel).voice }))).map(batch => ({ turnIds: batch.turns.map(turn => turn.turnId), providerTexts: [batch.providerText] }))
+        : []
+  const slotGroups: Array<{ turnIds: string[], providerTexts: string[] }> = native
+    ? nativeGroups
     : turns.map((turn) => ({ turnIds: [turn.canonical.turnId], providerTexts: splitTextIntoChunks(turn.canonical.canonicalText, limit) }))
-  if (native && nativeTurnCursor !== turns.length) throw CLIUsageError('Gemini native dialogue partition omitted normalized turns.')
+  if (geminiNative && nativeTurnCursor !== turns.length) throw CLIUsageError('Gemini native dialogue partition omitted normalized turns.')
   let includesSetup = true
   const slots: AttemptSlot[] = []
   const batches = slotGroups.map((group, batchIndex) => {
     const batchId = `batch-${String(batchIndex + 1).padStart(3, '0')}-${hashCanonicalTtsValue(group.turnIds).slice(0, 12)}`
     const primaryTurn = turns.find((turn) => turn.canonical.turnId === group.turnIds[0]) as AttemptTurn
     const primaryVoiceValue = primaryTurn.voice.value ?? primaryTurn.voice.valueHash
-    const contract = serializerContract(options.target, primaryVoiceValue, primaryTurn.effectiveControls)
+    const contract = serializerContract(options.target, primaryVoiceValue, primaryTurn.effectiveControls, strategy)
     const generationSlots = group.providerTexts.map((providerText, slotIndex) => {
       const cost = plannedCost(options.target, [...providerText].length, includesSetup)
       includesSetup = false
@@ -680,7 +944,8 @@ const sumCosts = (costs: readonly PlannedCost[]): PlannedCost => {
 export type PureCurrentTtsRenderPlanOptions = Omit<CreateCurrentTtsRenderAttemptOptions, 'outputDir' | 'artifactRoot' | 'onProviderState' | 'priorAttemptCount' | 'recoveredSlots' | 'retainedCumulativePlannedCost' | 'now'>
 
 const buildPureCurrentTtsRenderPlan = (options: PureCurrentTtsRenderPlanOptions) => {
-  const operation = 'tts-synthesis' as const
+  const operation = options.comicContext ? 'comic-audio' as const : 'tts-synthesis' as const
+  if (options.target.operation && options.target.operation !== operation) throw CLIUsageError('TTS target operation does not match its render context.')
   const transport = options.target.transport ?? (options.target.service === 'kitten' ? 'local-process' : 'hosted-api')
   const targetKey = options.target.targetKey ?? canonicalTargetKey(operation, options.target.service, options.target.model, transport)
   const capabilitySeed = hashCanonicalTtsValue({ schemaVersion: 1, provider: options.target.service, model: options.target.model, transport, adapterSchemaVersion: SCHEMA_VERSION })
@@ -689,11 +954,14 @@ const buildPureCurrentTtsRenderPlan = (options: PureCurrentTtsRenderPlanOptions)
   const capabilityFixtureHash = capability.capabilityFixtureHash
   const capabilityScopeHash = capability.capabilityScopeHash
   const planned = planInputs({ ...options, outputDir: '.' }, capabilityFixtureHash)
-  const voiceContextKey = computeVoiceContextKey({
-    kind: 'transient',
-    turns: planned.turns.map((turn) => ({ turnId: turn.canonical.turnId, bindingIdentityHash: turn.binding.identityHash }))
-  })
-  const outputProfileHash = hashCanonicalTtsValue(REQUESTED_OUTPUT)
+  const voiceContext = options.comicContext
+    ? { kind: 'approved-snapshot' as const, snapshotId: options.comicContext.voiceSnapshot.snapshotId }
+    : { kind: 'transient' as const, bindingIdentityHashes: planned.turns.map(turn => bindingIdentityHash(turn.binding)) }
+  const voiceContextKey = computeVoiceContextKey(options.comicContext
+    ? { kind: 'approved-snapshot', snapshotId: options.comicContext.voiceSnapshot.snapshotId }
+    : { kind: 'transient', turns: planned.turns.map((turn) => ({ turnId: turn.canonical.turnId, bindingIdentityHash: bindingIdentityHash(turn.binding) })) })
+  const requestedAudioOutput = requestedOutput(options)
+  const outputProfileHash = hashCanonicalTtsValue(requestedAudioOutput)
   const synthesisSettingsHash = hashCanonicalTtsValue({
     nodes: planned.turns.map((turn) => ({
       turnId: turn.canonical.turnId,
@@ -704,6 +972,26 @@ const buildPureCurrentTtsRenderPlan = (options: PureCurrentTtsRenderPlanOptions)
     batchRequestControls: planned.batches.map((batch) => ({ batchId: batch.batchId, requestControls: batch.requestControls }))
   })
   const plannedRenderCost = sumCosts(planned.slots.map((slot) => slot.plannedCost))
+  const resolvedTurnById = new Map(planned.turns.map((turn) => [turn.canonical.turnId, {
+    ...turn.canonical,
+    providerText: preparedText(turn.canonical.canonicalText),
+    voice: turn.binding,
+    providerControls: turn.controls,
+    ...(turn.canonical.delivery ? { providerDelivery: { schemaVersion: 1 as const, settingsSchema: 'generic-tts.delivery.v1', values: { description: turn.canonical.delivery.description } } } : {})
+  }] as const))
+  const resolvedNodes = planned.dialoguePlan.nodes.map((node) => {
+    if (node.kind === 'turn') {
+      const turn = resolvedTurnById.get(node.turn.turnId)
+      if (!turn) throw CLIUsageError(`Provider render plan lost dialogue turn ${node.turn.turnId}.`)
+      return { kind: 'turn' as const, turn }
+    }
+    const turns = node.turns.map((sourceTurn) => {
+      const turn = resolvedTurnById.get(sourceTurn.turnId)
+      if (!turn) throw CLIUsageError(`Provider render plan lost overlap turn ${sourceTurn.turnId}.`)
+      return turn
+    })
+    return { kind: 'overlap' as const, groupId: node.groupId, turns }
+  })
   const branchCandidate = withIdentity({
     strategy: planned.strategy,
     requiredCapabilityScopeHashes: [capabilityScopeHash],
@@ -724,11 +1012,11 @@ const buildPureCurrentTtsRenderPlan = (options: PureCurrentTtsRenderPlanOptions)
     sourceIdentityHash: planned.sourceIdentity.identityHash,
     targetKey,
     voiceContextKey,
-    voiceContext: { kind: 'transient' as const, bindingIdentityHashes: planned.turns.map((turn) => turn.binding.identityHash) },
+    voiceContext,
     provider: options.target.service,
     model: options.target.model,
     transport,
-    modePreference: 'auto' as const,
+    modePreference: options.comicContext?.modePreference ?? 'auto' as const,
     candidateStrategies: [branchCandidate],
     synthesisSettingsHash,
     outputProfileHash,
@@ -759,21 +1047,12 @@ const buildPureCurrentTtsRenderPlan = (options: PureCurrentTtsRenderPlanOptions)
     outputProfileHash,
     capabilityFixtureHash,
     requiredCapabilityScopeHashes: [capabilityScopeHash],
-    resolvedVoiceRevisionHashes: [],
-    requestedOutput: REQUESTED_OUTPUT,
+    resolvedVoiceRevisionHashes: planned.turns.flatMap(turn => turn.binding.kind === 'approved-snapshot' && turn.binding.providerRevision ? [hashCanonicalTtsValue(turn.binding.providerRevision)] : []),
+    requestedOutput: requestedAudioOutput,
     batches: planned.batches,
     plannedCost: plannedRenderCost,
     strategyArtifacts,
-    nodes: planned.turns.map((turn) => ({
-      kind: 'turn' as const,
-      turn: {
-        ...turn.canonical,
-        providerText: preparedText(turn.canonical.canonicalText),
-        voice: turn.binding,
-        providerControls: turn.controls,
-        ...(turn.canonical.delivery ? { providerDelivery: { schemaVersion: 1 as const, settingsSchema: 'generic-tts.delivery.v1', values: { description: turn.canonical.delivery.description } } } : {})
-      }
-    })),
+    nodes: resolvedNodes,
     strategy: planned.strategy,
     voiceContext: branchPlan.voiceContext
   }
@@ -792,7 +1071,7 @@ export const planCurrentTtsRenderIdentity = (
 }
 
 export type PureCurrentTtsReadinessPlan = Readonly<{
-  operation: 'tts-synthesis'
+  operation: 'tts-synthesis' | 'comic-audio'
   transport: string
   targetKey: string
   capability: CapabilityFixture
@@ -833,7 +1112,7 @@ export const assertCurrentTtsProviderStateSafeForRedispatch = async (options: {
   state: PipelineProviderState
   expectedRenderIdentity: string
 }): Promise<void> => {
-  const projection = options.state.result?.['ttsAudio'] as CanonicalAudioProviderProjection | undefined
+  const projection = readAudioProjection(options.state)
   const render = projection?.renderHistory.find((entry) => entry.renderIdentity === options.expectedRenderIdentity)
   if (!projection || !render) {
     throw CLIUsageError(`Stored TTS target ${options.state.service}/${options.state.model ?? ''} does not match the exact planned render identity; rebuild instead of resuming it.`)
@@ -878,21 +1157,33 @@ const stateForProjection = (
   error?: SanitizedProviderError | undefined
 ): PipelineProviderState => {
   const projected = projectCanonicalAudioProviderStatus(projection)
+  const operation = target.operation ?? 'tts-synthesis'
+  const namespace = operation === 'comic-audio' ? 'comicAudio' : 'ttsAudio'
   return {
     service: target.service,
     model: target.model,
     local: target.service === 'kitten',
-    operation: 'tts-synthesis',
+    operation,
     targetKey,
     transport,
     artifactDir,
     status: projected.status,
     attempts: projected.attempts,
     options: {},
-    metadata: { ttsAudio: projection },
-    result: { ttsAudio: projection },
+    metadata: { [namespace]: projection },
+    result: { [namespace]: projection },
     ...(error ? { error } : {})
   }
+}
+
+const readAudioProjection = (state: PipelineProviderState): CanonicalAudioProviderProjection | undefined => {
+  const namespace = state.operation === 'comic-audio' ? 'comicAudio' : 'ttsAudio'
+  return state.result?.[namespace] as CanonicalAudioProviderProjection | undefined
+}
+
+const readAudioMetadataProjection = (state: PipelineProviderState): CanonicalAudioProviderProjection | undefined => {
+  const namespace = state.operation === 'comic-audio' ? 'comicAudio' : 'ttsAudio'
+  return state.metadata[namespace] as CanonicalAudioProviderProjection | undefined
 }
 
 type LoadedRecoveryBatch = CurrentTtsRecoveredGenerationSlot
@@ -920,7 +1211,7 @@ export const resolveCurrentTtsPriorAdmittedAttemptCount = async (options: {
   state: PipelineProviderState
 }): Promise<number> => {
   const retainedCount = options.state.attempts
-  const projection = options.state.result?.['ttsAudio'] as CanonicalAudioProviderProjection | undefined
+  const projection = readAudioProjection(options.state)
   const active = projection?.activeWork
   if (!projection || active?.kind !== 'render' || retainedCount === 0) return retainedCount
   const render = projection.renderHistory.find((entry) => entry.renderIdentity === active.renderIdentity)
@@ -1009,8 +1300,8 @@ export const prepareCurrentTtsCompletedRecovery = async (options: PureCurrentTts
   if (options.state.targetKey !== pure.targetKey || options.state.artifactDir.trim().length === 0) {
     throw CLIUsageError('Stored TTS provider state does not bind the exact planned target identity.')
   }
-  const resultProjection = options.state.result?.['ttsAudio'] as CanonicalAudioProviderProjection | undefined
-  const metadataProjection = options.state.metadata['ttsAudio'] as CanonicalAudioProviderProjection | undefined
+  const resultProjection = readAudioProjection(options.state)
+  const metadataProjection = readAudioMetadataProjection(options.state)
   if (!resultProjection || !metadataProjection || canonicalTtsJson(resultProjection) !== canonicalTtsJson(metadataProjection)) {
     throw CLIUsageError('Stored TTS provider state is missing one exact canonical projection.')
   }
@@ -1371,42 +1662,64 @@ export const prepareCurrentTtsCompletedRecovery = async (options: PureCurrentTts
         throw InternalError('Completed TTS recovery did not promote one aggregate provider result.', { stage: 'tts:reconciliation' })
       }
       const orderedOutputs = orderedBatches.flatMap((batch) => batch.outputPaths)
-      const assembledPath = await concatAndConvertToWav(orderedOutputs, workspaceDir, `${options.target.service}-recovery`)
+      const masteringProfile = options.ttsOptions.ttsMasteringProfile
+      const assembledPath = options.comicContext && pure.planned.strategy === 'segmented'
+        ? await assembleComicSegmentedAudio({
+            dialoguePlan: options.comicContext.dialoguePlan,
+            turns: pure.planned.turns.map(turn => turn.canonical),
+            slots: pure.planned.slots,
+            outputPathsBySlot: new Map(orderedBatches.map(batch => [batch.value.generationSlotId, batch.outputPaths] as const)),
+            masteringDir: workspaceDir,
+            providerLabel: `${options.target.service}-recovery`,
+            profile: masteringProfile ?? (() => { throw CLIUsageError('Comic segmented recovery requires an explicit mastering profile.') })(),
+          })
+        : await concatAndConvertToWav(orderedOutputs, workspaceDir, `${options.target.service}-recovery`, undefined, masteringProfile)
       const recoveryAt = terminalJournal.capturedAt
       const audioRunRoot = `${renderRoot}/results/${activeRenderResult.resultIdentity}/recovery-audio-run-${terminalJournal.snapshotId.slice(0, 16)}`
       const finalPath = `${audioRunRoot}/final.wav`
       await copyCreateOnly(options.rootDir, assembledPath, finalPath)
       const finalAudio = await readObservedAudio(options.rootDir, finalPath)
       const speechSources = activeRenderResult.outputs.map((output) => ({ kind: 'provider-output' as const, sourceId: output.outputId, resultIdentity: activeRenderResult.resultIdentity, batchResultId: output.batchResultId, outputId: output.outputId, artifactRef: output.artifactRef, sha256: output.sha256 }))
-      const assemblyParametersHash = hashCanonicalTtsValue({ sourceIds: speechSources.map((source) => source.sourceId), strategy: pure.planned.strategy, requestedOutput: REQUESTED_OUTPUT, recoveryJournalSnapshotId: terminalJournal.snapshotId })
+      const assemblyParametersHash = hashCanonicalTtsValue({ sourceIds: speechSources.map((source) => source.sourceId), strategy: pure.planned.strategy, requestedOutput: requestedOutput(options), recoveryJournalSnapshotId: terminalJournal.snapshotId, dialogueNodes: pure.planned.dialoguePlan.nodes })
       const mixPlan = withIdentity({
         schemaVersion: 1 as const,
         renderIdentity: pure.renderIdentity,
         outputProfileHash: pure.outputProfileHash,
         sources: speechSources,
-        operations: [{ kind: speechSources.length > 1 ? 'ordered-concat' : 'single-source', parametersHash: assemblyParametersHash }],
+        operations: [{ kind: options.comicContext && pure.planned.strategy === 'segmented' ? 'dialogue-node-assembly' : speechSources.length > 1 ? 'ordered-concat' : 'single-source', parametersHash: assemblyParametersHash }],
         createdAt: recoveryAt
       }, 'mixPlanId')
       const mixPlanFile = await writeJsonCreateOnly(options.rootDir, `${audioRunRoot}/mix-plan.json`, mixPlan)
-      const transcodeParametersHash = hashCanonicalTtsValue({ codec: 'pcm_s16le', sampleRate: 16000, channels: 1, container: 'wav', orderedConcat: speechSources.length > 1 })
+      const transcodeParametersHash = hashCanonicalTtsValue({ ...requestedOutput(options), orderedConcat: speechSources.length > 1 })
       const transformOperation = {
         operationId: hashCanonicalTtsValue({ kind: 'transcode', transcodeParametersHash, finalDurationMs: finalAudio.durationMs }),
         kind: 'transcode' as const,
         finalRangeMs: { start: 0, end: finalAudio.durationMs },
         parametersHash: transcodeParametersHash
       }
-      const ledger = withIdentity({ schemaVersion: 1 as const, renderIdentity: pure.renderIdentity, operations: [transformOperation] }, 'transformLedgerId')
-      const ledgerFile = await writeJsonCreateOnly(options.rootDir, `${audioRunRoot}/transform-ledger.json`, ledger)
-      let timelineCursorMs = 0
-      const assembledTurns = pure.planned.turns.map((turn) => {
-        const durationMs = loadedBatches
-          .filter((batch) => batch.value.requestedTurnIds.length === 1 && batch.value.requestedTurnIds[0] === turn.canonical.turnId)
+      const turnDuration = (turnId: string): number => loadedBatches
+          .filter((batch) => batch.value.requestedTurnIds.length === 1 && batch.value.requestedTurnIds[0] === turnId)
           .flatMap((batch) => batch.value.outputs)
           .reduce((sum, output) => sum + (output.durationMs ?? 0), 0)
-        const startMs = timelineCursorMs
-        timelineCursorMs += durationMs
-        return { turnId: turn.canonical.turnId, subjectKey: turn.canonical.subjectKey, startMs, endMs: timelineCursorMs }
+      const layout = options.comicContext ? comicTimelineLayout(options.comicContext.dialoguePlan, turnDuration) : undefined
+      let genericTimelineCursorMs = 0
+      const assembledTurns = layout?.turns ?? pure.planned.turns.map((turn) => {
+        const startMs = genericTimelineCursorMs
+        genericTimelineCursorMs += turnDuration(turn.canonical.turnId)
+        return { turnId: turn.canonical.turnId, subjectKey: turn.canonical.subjectKey, startMs, endMs: genericTimelineCursorMs }
       })
+      const effectOperations = assembledTurns.flatMap((assembled) => {
+        const turn = pure.planned.turns.find(candidate => candidate.canonical.turnId === assembled.turnId)?.canonical
+        if (!turn?.effect || !localVoiceEffectFilter(turn)) return []
+        const parametersHash = hashCanonicalTtsValue(turn.effect)
+        return [{ operationId: hashCanonicalTtsValue({ kind: 'effect', turnId: assembled.turnId, parametersHash, finalRangeMs: { start: assembled.startMs, end: assembled.endMs } }), kind: 'effect' as const, finalRangeMs: { start: assembled.startMs, end: assembled.endMs }, parametersHash }]
+      })
+      const overlapOperations = (layout?.overlaps ?? []).map((overlap) => {
+        const parametersHash = hashCanonicalTtsValue({ groupId: overlap.groupId })
+        return { operationId: hashCanonicalTtsValue({ kind: 'overlap', groupId: overlap.groupId, parametersHash, finalRangeMs: { start: overlap.start, end: overlap.end } }), kind: 'overlap' as const, finalRangeMs: { start: overlap.start, end: overlap.end }, parametersHash }
+      })
+      const ledger = withIdentity({ schemaVersion: 1 as const, renderIdentity: pure.renderIdentity, operations: [transformOperation, ...effectOperations, ...overlapOperations] }, 'transformLedgerId')
+      const ledgerFile = await writeJsonCreateOnly(options.rootDir, `${audioRunRoot}/transform-ledger.json`, ledger)
       const hasTiming = pure.planned.strategy === 'segmented' && assembledTurns.every((turn) => turn.endMs > turn.startMs)
       const timeline = withIdentity({
         schemaVersion: 1 as const,
@@ -1506,114 +1819,29 @@ export const createCurrentTtsRenderAttempt = async (
 ): Promise<CurrentTtsRenderAttempt> => {
   const now = options.now ?? (() => new Date().toISOString())
   const purePlan = buildPureCurrentTtsRenderPlan(options)
-  const operation = 'tts-synthesis' as const
-  const transport = options.target.transport ?? (options.target.service === 'kitten' ? 'local-process' : 'hosted-api')
-  const targetKey = options.target.targetKey ?? canonicalTargetKey(operation, options.target.service, options.target.model, transport)
+  const {
+    operation,
+    transport,
+    targetKey,
+    capability,
+    capabilityFixtureHash,
+    capabilityScopeHash,
+    planned,
+    voiceContextKey,
+    outputProfileHash,
+    synthesisSettingsHash,
+    plannedRenderCost,
+    branchCandidate,
+    branchPlan,
+    strategyArtifacts,
+    renderPlanId,
+    renderIdentity,
+    renderPlan,
+  } = purePlan
   const artifactRoot = (options.artifactRoot ?? 'providers').replace(/\/+$/, '')
   if (!artifactRoot || artifactRoot.includes('\\') || artifactRoot.split('/').some((part) => !part || part === '.' || part === '..')) throw CLIUsageError(`Invalid TTS provider artifact root: ${artifactRoot}`)
   const targetRelativeDir = `${artifactRoot}/${targetKey}`
   const targetDir = `${options.outputDir}/${targetRelativeDir}`
-  const capabilitySeed = hashCanonicalTtsValue({ schemaVersion: 1, provider: options.target.service, model: options.target.model, transport, adapterSchemaVersion: SCHEMA_VERSION })
-  const draft = planInputs(options, capabilitySeed)
-  const capability = buildCapabilityFixture(options.target, transport, draft.strategy)
-  const capabilityFixtureHash = capability.capabilityFixtureHash
-  const capabilityScopeHash = capability.capabilityScopeHash
-  const planned = planInputs(options, capabilityFixtureHash)
-  const voiceContextKey = computeVoiceContextKey({
-    kind: 'transient',
-    turns: planned.turns.map((turn) => ({ turnId: turn.canonical.turnId, bindingIdentityHash: turn.binding.identityHash }))
-  })
-  const outputProfileHash = hashCanonicalTtsValue(REQUESTED_OUTPUT)
-  const synthesisSettingsHash = hashCanonicalTtsValue({
-    nodes: planned.turns.map((turn) => ({
-      turnId: turn.canonical.turnId,
-      voiceSynthesisSettings: turn.binding.synthesisSettings,
-      providerControls: turn.controls,
-      ...(turn.canonical.delivery ? { providerDelivery: { schemaVersion: 1, settingsSchema: 'generic-tts.delivery.v1', values: { description: turn.canonical.delivery.description } } } : {})
-    })),
-    batchRequestControls: planned.batches.map((batch) => ({ batchId: batch.batchId, requestControls: batch.requestControls }))
-  })
-  const plannedRenderCost = sumCosts(planned.slots.map((slot) => slot.plannedCost))
-  const branchCandidate = withIdentity({
-    strategy: planned.strategy,
-    requiredCapabilityScopeHashes: [capabilityScopeHash],
-    batchSketches: planned.batches.map((batch) => ({
-      orderedTurnIds: batch.orderedTurnIds,
-      requestControlsHash: hashCanonicalTtsValue(batch.requestControls),
-      generationSlots: batch.generationSlots.map((slot) => ({ slotIndex: slot.slotIndex, requestedTakeCount: slot.requestedTakeCount, plannedCost: slot.plannedCost })),
-      takeSelectionPolicy: batch.takeSelectionPolicy,
-      continuationPlanHash: hashCanonicalTtsValue(batch.continuation)
-    })),
-    requestedOutputHash: outputProfileHash,
-    plannedCost: plannedRenderCost
-  }, 'candidateId')
-  const branchPlan = withIdentity({
-    schemaVersion: 1 as const,
-    operation,
-    dialoguePlanId: planned.dialoguePlan.dialoguePlanId,
-    sourceIdentityHash: planned.sourceIdentity.identityHash,
-    targetKey,
-    voiceContextKey,
-    voiceContext: { kind: 'transient' as const, bindingIdentityHashes: planned.turns.map((turn) => turn.binding.identityHash) },
-    provider: options.target.service,
-    model: options.target.model,
-    transport,
-    modePreference: 'auto' as const,
-    candidateStrategies: [branchCandidate],
-    synthesisSettingsHash,
-    outputProfileHash,
-    capabilityFixtureHash
-  }, 'branchPlanId')
-  const textArtifactSha = (value: string): string => sha256Bytes(value.endsWith('\n') ? value : `${value}\n`)
-  const jsonArtifactSha = (value: unknown): string => sha256Bytes(`${canonicalTtsJson(value)}\n`)
-  const strategyArtifacts = {
-    sourceIdentity: { identityHash: planned.sourceIdentity.identityHash, path: 'source-identity.json', sha256: jsonArtifactSha(planned.sourceIdentity) },
-    dialoguePlan: { dialoguePlanId: planned.dialoguePlan.dialoguePlanId, path: 'dialogue-plan.json', sha256: jsonArtifactSha(planned.dialoguePlan) },
-    normalizedDialogue: { path: 'strategy/dialogue-normalized.txt', sha256: textArtifactSha(planned.normalizedText) },
-    turns: planned.turns.map((turn) => ({ turnId: turn.canonical.turnId, path: `strategy/turns/${turn.canonical.turnId}.txt`, sha256: textArtifactSha(turn.canonical.canonicalText) })),
-    generationSlots: planned.slots.map((slot) => ({ generationSlotId: slot.generationSlotId, path: `strategy/generation-slots/${slot.generationSlotId}.txt`, sha256: textArtifactSha(slot.providerText) }))
-  }
-  const planBase = {
-    schemaVersion: 1 as const,
-    branchPlanId: branchPlan.branchPlanId,
-    branchCandidateId: branchCandidate.candidateId,
-    operation,
-    dialoguePlanId: planned.dialoguePlan.dialoguePlanId,
-    sourceIdentityHash: planned.sourceIdentity.identityHash,
-    targetKey,
-    voiceContextKey,
-    provider: options.target.service,
-    model: options.target.model,
-    transport,
-    synthesisSettingsHash,
-    outputProfileHash,
-    capabilityFixtureHash,
-    requiredCapabilityScopeHashes: [capabilityScopeHash],
-    resolvedVoiceRevisionHashes: [],
-    requestedOutput: REQUESTED_OUTPUT,
-    batches: planned.batches,
-    plannedCost: plannedRenderCost,
-    strategyArtifacts,
-    nodes: planned.turns.map((turn) => ({
-      kind: 'turn' as const,
-      turn: {
-        ...turn.canonical,
-        providerText: preparedText(turn.canonical.canonicalText),
-        voice: turn.binding,
-        providerControls: turn.controls,
-        ...(turn.canonical.delivery ? { providerDelivery: { schemaVersion: 1 as const, settingsSchema: 'generic-tts.delivery.v1', values: { description: turn.canonical.delivery.description } } } : {})
-      }
-    })),
-    strategy: planned.strategy,
-    voiceContext: branchPlan.voiceContext
-  }
-  const renderPlanId = hashCanonicalTtsValue(planBase)
-  const renderIdentity = computeRenderIdentity({ renderPlanId, targetKey, strategy: planned.strategy, voiceContextKey, synthesisSettingsHash, outputProfileHash })
-  const renderPlan = { ...planBase, renderPlanId, renderIdentity } as ProviderRenderPlan
-  validateProviderRenderPlanIdentity(renderPlan)
-  if (canonicalTtsJson(renderPlan) !== canonicalTtsJson(purePlan.renderPlan)) {
-    throw CLIUsageError('Pure TTS render planning diverged from durable attempt planning; no artifacts were written.')
-  }
   if ((options.recoveredSlots?.length ?? 0) > 0 && planned.strategy !== 'segmented') {
     throw CLIUsageError('Recovered TTS generation slots may seed only an immutable segmented render.')
   }
@@ -1689,7 +1917,12 @@ export const createCurrentTtsRenderAttempt = async (
     capabilityFixture: { capabilityFixtureHash, path: contained(targetDir, capabilityFixtureFile.path), sha256: capabilityFixtureFile.sha256 },
     capabilityObservations: [capabilityObservation],
     candidateReadiness: [{ candidateId: branchCandidate.candidateId, strategy: planned.strategy, requiredCapabilityScopeHashes: [capabilityScopeHash], accountObservationHashes: [capabilityObservation.observationHash], status: 'ready' as const, errors: [] }],
-    resolvedVoices: planned.turns.map((turn) => ({ locatorHash: turn.binding.identityHash, providerVoice: turn.binding.providerVoice, externallyMutable: turn.binding.providerVoice.kind === 'remote-resource' })),
+    resolvedVoices: planned.turns.map((turn) => ({
+      locatorHash: bindingIdentityHash(turn.binding),
+      providerVoice: turn.binding.providerVoice,
+      ...(turn.binding.kind === 'approved-snapshot' && turn.binding.providerRevision ? { providerRevision: turn.binding.providerRevision } : {}),
+      externallyMutable: turn.binding.providerVoice.kind === 'remote-resource'
+    })),
     checkedAt: readinessCheckedAt,
     errors: []
   }, 'readinessResultHash') as ProviderReadinessResult
@@ -1928,12 +2161,18 @@ export const createCurrentTtsRenderAttempt = async (
         generatedBatch: {
           batchId: slot.batchId,
           generationSlotId: slot.generationSlotId,
-          takes: outputs.map((output) => ({
+          takes: outputs.map((output, outputIndex) => ({
+            ...(() => {
+              const recorded = recordedOutputs[outputIndex]
+              return recorded?.providerGenerationId
+                ? { providerGenerationId: recorded.providerGenerationId, continuationCandidate: { kind: 'provider-generation-id' as const, value: recorded.providerGenerationId } }
+                : {}
+            })(),
             takeId: `take-${hashCanonicalTtsValue({ generationSlotId: slot.generationSlotId, outputId: output.outputId, sha256: output.sha256 }).slice(0, 24)}`,
             generationSlotId: slot.generationSlotId,
             audio: { artifactRef: output.artifactRef, outputId: output.outputId, sha256: output.sha256, format: output.format },
             durationMs: output.durationMs ?? 0,
-            timing: {
+            timing: recordedOutputs[outputIndex]?.timing ?? {
               availability: 'unavailable' as const,
               clock: 'take-audio-ms' as const,
               provenance: 'unavailable' as const,
@@ -1943,7 +2182,7 @@ export const createCurrentTtsRenderAttempt = async (
               })),
               reason: 'Provider timing was not exposed by the adapter.'
             },
-            warnings: []
+            warnings: [...(recordedOutputs[outputIndex]?.warnings ?? [])]
           })),
           batchCost: { planned: slot.plannedCost, observed: [] },
           costEvidence: [],
@@ -2042,7 +2281,8 @@ export const createCurrentTtsRenderAttempt = async (
       if (hashCanonicalTtsValue(observation.continuation ?? { kind: 'none' }) !== hashCanonicalTtsValue({ kind: 'none' })) throw CLIUsageError('TTS serializer continuation differs from the immutable render plan; dispatch was blocked.')
       for (const turnId of slot.turnIds) {
         const plannedTurn = planned.turns.find((turn) => turn.canonical.turnId === turnId) as AttemptTurn
-        const serializedVoice = observation.voices.find((voice) => voice.speaker?.trim().toUpperCase() === plannedTurn.canonical.subjectKey.trim().toUpperCase()) ?? (slot.turnIds.length === 1 ? observation.voices[0] : undefined)
+        const expectedSpeaker = options.comicContext?.providerSpeakerLabelByTurnId[turnId] ?? plannedTurn.canonical.subjectKey
+        const serializedVoice = observation.voices.find((voice) => voice.speaker?.trim().toUpperCase() === expectedSpeaker.trim().toUpperCase()) ?? (slot.turnIds.length === 1 ? observation.voices[0] : undefined)
         const serializedVoiceHash = serializedVoice?.valueHash ?? (serializedVoice?.value ? sha256Bytes(serializedVoice.value) : undefined)
         if (!serializedVoice || serializedVoice.kind !== plannedTurn.voice.kind || serializedVoiceHash !== plannedTurn.voice.valueHash) throw CLIUsageError(`TTS serializer voice differs from the immutable binding for ${plannedTurn.canonical.turnId}; dispatch was blocked.`)
       }
@@ -2081,7 +2321,8 @@ export const createCurrentTtsRenderAttempt = async (
           actualContinuationHash: hashCanonicalTtsValue(observation.continuation ?? { kind: 'none' }),
           turns: turnIds.map((turnId) => {
             const turn = planned.turns.find((entry) => entry.canonical.turnId === turnId) as AttemptTurn
-            const serializedVoice = observation.voices.find((voice) => voice.speaker?.trim().toUpperCase() === turn.canonical.subjectKey.trim().toUpperCase()) ?? observation.voices[0]
+            const expectedSpeaker = options.comicContext?.providerSpeakerLabelByTurnId[turnId] ?? turn.canonical.subjectKey
+            const serializedVoice = observation.voices.find((voice) => voice.speaker?.trim().toUpperCase() === expectedSpeaker.trim().toUpperCase()) ?? (turnIds.length === 1 ? observation.voices[0] : undefined)
             if (!serializedVoice) throw CLIUsageError('TTS serializer did not expose the serialized voice before dispatch.')
             return {
               turnId,
@@ -2164,7 +2405,7 @@ export const createCurrentTtsRenderAttempt = async (
         throw error
       }
     },
-    recordOutput: async ({ chunkIndex, path, outputIndex = 1 }) => await locked(async () => {
+    recordOutput: async ({ chunkIndex, path, outputIndex = 1, timing, providerGenerationId, warnings }) => await locked(async () => {
       const slot = slotFor(invocation, { chunkIndex } as TtsSerializedRequestObservation)
       if (!journalFile || !runtimeRequests.some((entry) => entry.slot.generationSlotId === slot.generationSlotId)) {
         throw CLIUsageError('TTS serializer output does not bind one dispatched generation slot.')
@@ -2174,7 +2415,16 @@ export const createCurrentTtsRenderAttempt = async (
       const destination = `${batchResultDir}/audio-${String(outputIndex).padStart(3, '0')}${suffix}`
       await copyCreateOnly(options.outputDir, path, destination)
       const audio = await readObservedAudio(options.outputDir, destination)
-      const recorded = { path: destination, relativeToBatchResult: contained(batchResultDir, destination), sha256: sha256Bytes(audio.bytes), format: audio.format, durationMs: audio.durationMs }
+      const recorded = {
+        path: destination,
+        relativeToBatchResult: contained(batchResultDir, destination),
+        sha256: sha256Bytes(audio.bytes),
+        format: audio.format,
+        durationMs: audio.durationMs,
+        ...(timing ? { timing } : {}),
+        ...(providerGenerationId ? { providerGenerationId } : {}),
+        ...(warnings ? { warnings: [...warnings] } : {})
+      }
       outputsBySlot.set(slot.generationSlotId, [...(outputsBySlot.get(slot.generationSlotId) ?? []), recorded])
     }),
     complete: async ({ chunkIndex }) => await locked(async () => {
@@ -2306,45 +2556,102 @@ export const createCurrentTtsRenderAttempt = async (
     if (!resultFile || resultFile.value.status !== 'succeeded') throw CLIUsageError('TTS provider attempt did not close as a complete success.')
     const audioRunRoot = `${renderRoot}/results/${resultFile.value.resultIdentity}/audio-run`
     const finalPath = `${audioRunRoot}/final.wav`
-    await copyCreateOnly(options.outputDir, audioPath, finalPath)
+    const masteringDir = `${attemptRoot}/mastering`
+    await mkdir(masteringDir, { recursive: true })
+    const masteringProfile = options.ttsOptions.ttsMasteringProfile
+    let masteredPath: string
+    if (options.comicContext && planned.strategy === 'segmented') {
+      if (!masteringProfile) throw CLIUsageError('Comic segmented assembly requires an explicit mastering profile.')
+      const resultBySlot = new Map(batchResultFiles.map(file => [file.value.generationSlotId, file] as const))
+      const outputPathsBySlot = new Map(planned.slots.map((slot) => {
+        const file = resultBySlot.get(slot.generationSlotId)
+        if (!file) throw CLIUsageError(`Comic assembly is missing generation slot ${slot.generationSlotId}.`)
+        return [slot.generationSlotId, file.value.outputs.map(output => resolveRetainedPath(dirname(resolve(options.outputDir, file.path)), output.artifactRef, `Comic generation slot ${slot.generationSlotId} provider output`))] as const
+      }))
+      masteredPath = await assembleComicSegmentedAudio({ dialoguePlan: options.comicContext.dialoguePlan, turns: planned.turns.map(turn => turn.canonical), slots: planned.slots, outputPathsBySlot, masteringDir, providerLabel: options.target.service, profile: masteringProfile })
+    } else {
+      masteredPath = await concatAndConvertToWav([audioPath], masteringDir, `${options.target.service}-mastering`, undefined, masteringProfile)
+    }
+    await copyCreateOnly(options.outputDir, masteredPath, finalPath)
     const finalAudio = await readObservedAudio(options.outputDir, finalPath)
     const speechSources = resultFile.value.outputs.map((output) => ({ kind: 'provider-output' as const, sourceId: output.outputId, resultIdentity: resultFile.value.resultIdentity, batchResultId: output.batchResultId, outputId: output.outputId, artifactRef: output.artifactRef, sha256: output.sha256 }))
-    const assemblyParametersHash = hashCanonicalTtsValue({ sourceIds: speechSources.map((source) => source.sourceId), strategy: planned.strategy, requestedOutput: REQUESTED_OUTPUT })
+    const assemblyParametersHash = hashCanonicalTtsValue({ sourceIds: speechSources.map((source) => source.sourceId), strategy: planned.strategy, requestedOutput: requestedOutput(options), dialogueNodes: planned.dialoguePlan.nodes })
     const mixPlan = withIdentity({
       schemaVersion: 1 as const,
       renderIdentity,
       outputProfileHash,
       sources: speechSources,
-      operations: [{ kind: speechSources.length > 1 ? 'ordered-concat' : 'single-source', parametersHash: assemblyParametersHash }],
+      operations: [{ kind: options.comicContext && planned.strategy === 'segmented' ? 'dialogue-node-assembly' : speechSources.length > 1 ? 'ordered-concat' : 'single-source', parametersHash: assemblyParametersHash }],
       createdAt: now()
     }, 'mixPlanId')
     const mixPlanFile = await writeJson(options.outputDir, `${audioRunRoot}/mix-plan.json`, mixPlan)
-    const transcodeParametersHash = hashCanonicalTtsValue({ codec: 'pcm_s16le', sampleRate: 16000, channels: 1, container: 'wav', orderedConcat: speechSources.length > 1 })
+    const transcodeParametersHash = hashCanonicalTtsValue({ ...requestedOutput(options), orderedConcat: speechSources.length > 1 })
     const transformOperation = {
       operationId: hashCanonicalTtsValue({ kind: 'transcode', transcodeParametersHash, finalDurationMs: finalAudio.durationMs }),
       kind: 'transcode' as const,
       finalRangeMs: { start: 0, end: finalAudio.durationMs },
       parametersHash: transcodeParametersHash
     }
-    const ledger = withIdentity({ schemaVersion: 1 as const, renderIdentity, operations: [transformOperation] }, 'transformLedgerId')
-    const ledgerFile = await writeJson(options.outputDir, `${audioRunRoot}/transform-ledger.json`, ledger)
-    let timelineCursorMs = 0
-    const assembledTurns = planned.turns.map((turn) => {
-      const durationMs = batchResultFiles
-        .filter((file) => file.value.requestedTurnIds.length === 1 && file.value.requestedTurnIds[0] === turn.canonical.turnId)
+    const turnDuration = (turnId: string): number => {
+      return batchResultFiles
+        .filter((file) => file.value.requestedTurnIds.length === 1 && file.value.requestedTurnIds[0] === turnId)
         .flatMap((file) => file.value.outputs)
         .reduce((sum, output) => sum + (output.durationMs ?? 0), 0)
-      const startMs = timelineCursorMs
-      timelineCursorMs += durationMs
-      return { turnId: turn.canonical.turnId, subjectKey: turn.canonical.subjectKey, startMs, endMs: timelineCursorMs }
+    }
+    const layout = options.comicContext ? comicTimelineLayout(options.comicContext.dialoguePlan, turnDuration) : undefined
+    let genericTimelineCursorMs = 0
+    const assembledTurns = layout?.turns ?? planned.turns.map((turn) => {
+      const startMs = genericTimelineCursorMs
+      genericTimelineCursorMs += turnDuration(turn.canonical.turnId)
+      return { turnId: turn.canonical.turnId, subjectKey: turn.canonical.subjectKey, startMs, endMs: genericTimelineCursorMs }
     })
+    const effectOperations = assembledTurns.flatMap((assembled) => {
+      const turn = planned.turns.find(candidate => candidate.canonical.turnId === assembled.turnId)?.canonical
+      if (!turn?.effect || !localVoiceEffectFilter(turn)) return []
+      const parametersHash = hashCanonicalTtsValue(turn.effect)
+      return [{ operationId: hashCanonicalTtsValue({ kind: 'effect', turnId: assembled.turnId, parametersHash, finalRangeMs: { start: assembled.startMs, end: assembled.endMs } }), kind: 'effect' as const, finalRangeMs: { start: assembled.startMs, end: assembled.endMs }, parametersHash }]
+    })
+    const overlapOperations = (layout?.overlaps ?? []).map((overlap) => {
+      const parametersHash = hashCanonicalTtsValue({ groupId: overlap.groupId })
+      return { operationId: hashCanonicalTtsValue({ kind: 'overlap', groupId: overlap.groupId, parametersHash, finalRangeMs: { start: overlap.start, end: overlap.end } }), kind: 'overlap' as const, finalRangeMs: { start: overlap.start, end: overlap.end }, parametersHash }
+    })
+    const ledger = withIdentity({ schemaVersion: 1 as const, renderIdentity, operations: [transformOperation, ...effectOperations, ...overlapOperations] }, 'transformLedgerId')
+    const ledgerFile = await writeJson(options.outputDir, `${audioRunRoot}/transform-ledger.json`, ledger)
     const hasAssembledTurnTiming = planned.strategy === 'segmented' && assembledTurns.every((turn) => turn.endMs > turn.startMs)
+    let nativeCursorMs = 0
+    const nativeTimingParts = batchResultFiles.map((file) => {
+      const take = file.value.generatedBatch?.takes[0]
+      const timing = take?.timing
+      const offsetMs = nativeCursorMs
+      nativeCursorMs += take?.durationMs ?? file.value.outputs[0]?.durationMs ?? 0
+      if (!timing || timing.availability !== 'timed') return undefined
+      const shiftToken = (token: NonNullable<typeof timing.words>[number]) => ({ ...token, startMs: token.startMs + offsetMs, endMs: token.endMs + offsetMs })
+      return {
+        provenance: timing.provenance,
+        turns: timing.turns.map(turn => ({ ...turn, startMs: turn.startMs + offsetMs, endMs: turn.endMs + offsetMs })),
+        words: timing.words?.map(shiftToken) ?? [],
+        phonemes: timing.phonemes?.map(shiftToken) ?? [],
+        characters: timing.characters?.map(shiftToken) ?? []
+      }
+    })
+    const hasNativeTiming = planned.strategy !== 'segmented' && nativeTimingParts.length > 0 && nativeTimingParts.every(part => part !== undefined)
+    const nativeTiming = hasNativeTiming
+      ? {
+          availability: 'timed' as const,
+          clock: 'final-audio-ms' as const,
+          provenance: nativeTimingParts.some(part => part?.provenance === 'provider-alignment') ? 'provider-alignment' as const : 'provider-native' as const,
+          turns: nativeTimingParts.flatMap(part => part?.turns ?? []),
+          ...(nativeTimingParts.some(part => (part?.words.length ?? 0) > 0) ? { words: nativeTimingParts.flatMap(part => part?.words ?? []) } : {}),
+          ...(nativeTimingParts.some(part => (part?.phonemes.length ?? 0) > 0) ? { phonemes: nativeTimingParts.flatMap(part => part?.phonemes ?? []) } : {}),
+          ...(nativeTimingParts.some(part => (part?.characters.length ?? 0) > 0) ? { characters: nativeTimingParts.flatMap(part => part?.characters ?? []) } : {})
+        }
+      : undefined
     const timeline = withIdentity({
       schemaVersion: 1 as const,
       renderIdentity,
-      timing: hasAssembledTurnTiming
+      timing: nativeTiming ?? (hasAssembledTurnTiming
         ? { availability: 'timed' as const, clock: 'final-audio-ms' as const, provenance: 'assembled-segments' as const, turns: assembledTurns }
-        : { availability: 'unavailable' as const, clock: 'final-audio-ms' as const, provenance: 'unavailable' as const, turns: planned.turns.map((turn) => ({ turnId: turn.canonical.turnId, subjectKey: turn.canonical.subjectKey })), reason: 'Native/provider timing was not exposed at exact turn boundaries.' },
+        : { availability: 'unavailable' as const, clock: 'final-audio-ms' as const, provenance: 'unavailable' as const, turns: planned.turns.map((turn) => ({ turnId: turn.canonical.turnId, subjectKey: turn.canonical.subjectKey })), reason: 'Native/provider timing was not exposed at exact turn boundaries.' }),
       speechSources,
       transformLedgerRef: { path: contained(audioRunRoot, ledgerFile.path), sha256: ledgerFile.sha256 }
     }, 'timelineId')
@@ -2364,8 +2671,8 @@ export const createCurrentTtsRenderAttempt = async (
       createdAt: now()
     }, 'audioRunId') as AudioRun
     const audioRunFile = await writeJson(options.outputDir, `${audioRunRoot}/audio-run.json`, audioRun)
-    if (resolve(audioPath) !== resolve(reportedOutputPath)) {
-      await copyCreateOnly(options.outputDir, audioPath, reportedOutputPath)
+    if (resolve(masteredPath) !== resolve(reportedOutputPath)) {
+      await copyCreateOnly(options.outputDir, masteredPath, reportedOutputPath)
     }
     const reportedAudio = (await readContainedArtifactFile(options.outputDir, contained(options.outputDir, reportedOutputPath))).bytes
     const outputRefs = [{ path: contained(targetDir, finalPath), sha256: sha256Bytes(finalAudio.bytes) }]

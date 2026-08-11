@@ -44,9 +44,9 @@ const helpEnv = { NO_COLOR: '1' }
 const removedSetupCommand = ['so', 'ck'].join('')
 const topLevelCommands = [
   'version', 'help', 'config', 'setup', 'links', 'resume', 'benchmark',
-  'metadata', 'download', 'extract', 'write', 'tts', 'image', 'video', 'music', 'comic'
+  'metadata', 'download', 'extract', 'write', 'tts', 'voice', 'image', 'video', 'music', 'comic'
 ] as const
-const comicSubcommands = ['draft-scenes', 'generate-images', 'reference-sketch'] as const
+const comicSubcommands = ['draft-scenes', 'generate-images', 'reference-sketch', 'reference-voice'] as const
 
 const getSection = (output: string, heading: string, nextHeading?: string): string => {
   const start = output.indexOf(heading)
@@ -88,7 +88,7 @@ test('root help groups setup utilities separately from processing commands', asy
   const result = await runCommand(['src/cli/create-cli.ts', '--help'], { env: helpEnv })
 
   expect(result.exitCode).toBe(0)
-  expect(result.stdout).toContain('Extract and write content, generate speech, images, video, and music, and build comic workflows')
+  expect(result.stdout).toContain('Extract and write content, manage voices, generate speech, images, video, and music, and build comic workflows')
 
   const setupSection = getSection(result.stdout, '  Setup & Utilities\n', '  Processing & Generation\n')
   const processingSection = getSection(result.stdout, '  Processing & Generation\n')

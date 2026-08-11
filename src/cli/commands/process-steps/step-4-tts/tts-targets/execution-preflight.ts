@@ -106,6 +106,99 @@ const blockedMediaRuntimeObservation = (
   }
 })
 
+const advancedVoiceBlockedObservation = (
+  targetKey: string,
+  code: string,
+  message: string,
+  retryable: boolean
+): TtsExecutionReadinessObservation => ({
+  targetKey,
+  accountState: 'unavailable',
+  status: 'blocked',
+  error: { phase: 'readiness', code, message, retryable, blockedReason: code }
+})
+
+const checkAdvancedVoiceReadiness = async (
+  target: TtsTarget,
+  apiKey: string
+): Promise<TtsExecutionReadinessObservation> => {
+  const targetKey = target.targetKey as string
+  const voiceIds = [...new Set(target.readinessVoiceIds ?? [])]
+  if (voiceIds.length === 0 || !['elevenlabs', 'hume', 'minimax', 'cartesia', 'speechify'].includes(target.service)) {
+    return { targetKey, accountState: 'available', status: 'ready' }
+  }
+  try {
+    if (target.service === 'elevenlabs') {
+      const results = await Promise.all(voiceIds.map(async voiceId => {
+        const response = await fetch(`https://api.elevenlabs.io/v1/voices/${encodeURIComponent(voiceId)}`, { headers: { 'xi-api-key': apiKey } })
+        if (!response.ok) return false
+        const payload = await response.json() as { voice_id?: unknown, high_quality_base_model_ids?: unknown, sharing?: { disable_at_unix?: unknown } | null, fine_tuning?: { state?: Record<string, unknown> } | null }
+        if (payload.voice_id !== voiceId) return false
+        const relevantFineTuningState = payload.fine_tuning?.state?.[target.model]
+        if (relevantFineTuningState === 'not_verified' || relevantFineTuningState === 'not_started' || relevantFineTuningState === 'failed') return false
+        const modelIds = Array.isArray(payload.high_quality_base_model_ids) ? payload.high_quality_base_model_ids.filter(value => typeof value === 'string') : []
+        if (modelIds.length > 0 && !modelIds.includes(target.model)) return false
+        const disableAtUnix = payload.sharing?.disable_at_unix
+        return typeof disableAtUnix !== 'number' || disableAtUnix * 1000 > Date.now()
+      }))
+      if (results.some(ready => !ready)) return advancedVoiceBlockedObservation(targetKey, 'elevenlabs-voice-not-ready', 'One or more approved ElevenLabs voices are missing, inaccessible, or not synthesis-ready for the configured account.', false)
+      return { targetKey, accountState: 'available', status: 'ready' }
+    }
+    if (target.service === 'hume') {
+      const responses = await Promise.all(['HUME_AI', 'CUSTOM_VOICE'].map(async provider => {
+        const response = await fetch(`https://api.hume.ai/v0/tts/voices?${new URLSearchParams({ provider })}`, { headers: { 'X-Hume-Api-Key': apiKey } })
+        if (!response.ok) throw new Error(`HTTP ${response.status}`)
+        const payload = await response.json() as unknown
+        return Array.isArray(payload) ? payload : payload && typeof payload === 'object' && Array.isArray((payload as { voices?: unknown }).voices) ? (payload as { voices: unknown[] }).voices : []
+      }))
+      const availableIds = new Set(responses.flat().flatMap(value => value && typeof value === 'object' && !Array.isArray(value) && typeof (value as { id?: unknown }).id === 'string' ? [(value as { id: string }).id] : []))
+      if (voiceIds.some(voiceId => !availableIds.has(voiceId))) return advancedVoiceBlockedObservation(targetKey, 'hume-voice-not-ready', 'One or more approved Hume voices are missing or inaccessible for the configured account.', false)
+      return { targetKey, accountState: 'available', status: 'ready' }
+    }
+    if (target.service === 'minimax') {
+      const response = await fetch('https://api.minimax.io/v1/get_voice', {
+        method: 'POST',
+        headers: { Authorization: `Bearer ${apiKey}`, 'Content-Type': 'application/json' },
+        body: JSON.stringify({ voice_type: 'all' })
+      })
+      if (!response.ok) throw new Error(`HTTP ${response.status}`)
+      const payload = await response.json() as Record<string, unknown>
+      const baseResponse = payload['base_resp']
+      const statusCode = baseResponse && typeof baseResponse === 'object' && !Array.isArray(baseResponse) ? (baseResponse as Record<string, unknown>)['status_code'] : undefined
+      if (typeof statusCode === 'number' && statusCode !== 0) throw new Error('MiniMax base response failed')
+      const availableIds = new Set(['system_voice', 'voice_cloning', 'voice_generation'].flatMap(key => {
+        const voices = payload[key]
+        return Array.isArray(voices) ? voices.flatMap(value => value && typeof value === 'object' && !Array.isArray(value) && typeof (value as { voice_id?: unknown }).voice_id === 'string' ? [(value as { voice_id: string }).voice_id] : []) : []
+      }))
+      if (voiceIds.some(voiceId => !availableIds.has(voiceId))) return advancedVoiceBlockedObservation(targetKey, 'minimax-voice-not-ready', 'One or more approved MiniMax voices are missing, inactive, expired, or inaccessible for the configured account.', false)
+      return { targetKey, accountState: 'available', status: 'ready' }
+    }
+    if (target.service === 'cartesia') {
+      const results = await Promise.all(voiceIds.map(async voiceId => {
+        const response = await fetch(`https://api.cartesia.ai/voices/${encodeURIComponent(voiceId)}`, { headers: { Authorization: `Bearer ${apiKey}`, 'Cartesia-Version': '2026-03-01' } })
+        if (!response.ok) return false
+        const payload = await response.json() as { id?: unknown }
+        return payload.id === voiceId
+      }))
+      if (results.some(ready => !ready)) return advancedVoiceBlockedObservation(targetKey, 'cartesia-voice-not-ready', 'One or more approved Cartesia voices are missing or inaccessible for the configured account.', false)
+      return { targetKey, accountState: 'available', status: 'ready' }
+    }
+    const results = await Promise.all(voiceIds.map(async voiceId => {
+      const response = await fetch(`https://api.speechify.ai/v1/voices/${encodeURIComponent(voiceId)}`, { headers: { Authorization: `Bearer ${apiKey}` } })
+      if (!response.ok) return false
+      const payload = await response.json() as { id?: unknown, models?: unknown }
+      if (payload.id !== voiceId) return false
+      const modelIds = Array.isArray(payload.models) ? payload.models.flatMap(value => value && typeof value === 'object' && !Array.isArray(value) && typeof (value as { name?: unknown }).name === 'string' ? [(value as { name: string }).name] : []) : []
+      return modelIds.length === 0 || modelIds.includes(target.model)
+    }))
+    if (results.some(ready => !ready)) return advancedVoiceBlockedObservation(targetKey, 'speechify-voice-not-ready', 'One or more approved Speechify voices are missing, inaccessible, or unavailable for the selected model.', false)
+    return { targetKey, accountState: 'available', status: 'ready' }
+  } catch {
+    const label = target.service === 'elevenlabs' ? 'ElevenLabs' : target.service === 'hume' ? 'Hume' : target.service === 'minimax' ? 'MiniMax' : target.service === 'cartesia' ? 'Cartesia' : 'Speechify'
+    return advancedVoiceBlockedObservation(targetKey, `${target.service}-readiness-inspection-failed`, `${label} read-only voice readiness inspection failed before synthesis.`, true)
+  }
+}
+
 export const validateTtsTargetsForExecution = (
   targets: readonly TtsTarget[]
 ): Promise<TtsExecutionReadinessObservation[]> => {
@@ -115,15 +208,15 @@ export const validateTtsTargetsForExecution = (
   const targetKeys = new Set<string>()
   for (const target of targets) {
     if (
-      target.operation !== 'tts-synthesis'
+      (target.operation !== 'tts-synthesis' && target.operation !== 'comic-audio')
       || !target.targetKey
       || !target.transport
       || !target.model.trim()
     ) {
-      throw CLIUsageError(`TTS target ${target.service}/${target.model} is missing complete operation-scoped execution identity.`)
+      throw CLIUsageError(`Audio target ${target.service}/${target.model} is missing complete operation-scoped execution identity.`)
     }
     if (target.targetKey !== canonicalTargetKey(target.operation, target.service, target.model, target.transport)) {
-      throw CLIUsageError(`TTS target ${target.service}/${target.model} has a non-canonical operation-scoped execution identity.`)
+      throw CLIUsageError(`Audio target ${target.service}/${target.model} has a non-canonical operation-scoped execution identity.`)
     }
     if (targetKeys.has(target.targetKey)) {
       throw CLIUsageError(`Duplicate operation-scoped TTS execution target: ${target.targetKey}`)
@@ -156,7 +249,7 @@ export const validateTtsTargetsForExecution = (
       }
     }
 
-    return targets.map((target): TtsExecutionReadinessObservation => {
+    return await Promise.all(targets.map(async (target): Promise<TtsExecutionReadinessObservation> => {
       if (target.service === 'kitten') {
         if (kittenProbeError !== undefined) {
           return blockedKittenObservation(
@@ -182,9 +275,10 @@ export const validateTtsTargetsForExecution = (
         return { targetKey: target.targetKey as string, accountState: 'available', status: 'ready' }
       }
       const credential = HOSTED_TTS_CREDENTIALS[target.service]
-      return readEnv(credential.env)
-        ? { targetKey: target.targetKey as string, accountState: 'available', status: 'ready' }
+      const apiKey = readEnv(credential.env)
+      return apiKey
+        ? await checkAdvancedVoiceReadiness(target, apiKey)
         : missingCredentialObservation(target.targetKey as string, credential.env, credential.label)
-    })
+    }))
   })()
 }

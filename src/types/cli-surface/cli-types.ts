@@ -1,6 +1,6 @@
 import type { BatchRuntimeOptions, HostedTtsChunkScheduler, HtmlArticleBackend, ImageRuntimeOptions, MusicRuntimeOptions, OcrRuntimeOptions, OcrSelectionOptions, ResolvedLLMModelOptions, ResourceGate, SttRuntimeOptions, SttSelectionOptions, TtsRuntimeOptions, VideoRuntimeOptions } from '~/types'
 
-export const PROCESS_COMMANDS = ['metadata', 'download', 'extract', 'write', 'tts', 'image', 'video', 'music'] as const
+export const PROCESS_COMMANDS = ['metadata', 'download', 'extract', 'write', 'tts', 'image', 'video', 'music', 'comic'] as const
 
 export type ProcessCommand = typeof PROCESS_COMMANDS[number]
 

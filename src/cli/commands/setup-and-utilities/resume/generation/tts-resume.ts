@@ -271,6 +271,7 @@ export const resolveStoredTtsTargetsForResume = async (
   const input = await resolveStoredTtsResumeInput(target.dir)
   const targetKeys = new Set(mistralProviders.flatMap((provider) => provider.targetKey ? [provider.targetKey] : []))
   const sourceContext = await resolveTtsResumeSourceContext(target.dir, input, item.providers, targetKeys)
+  if (!sourceContext.dialoguePlan) throw CLIUsageError('Stored generic TTS resume source is missing its dialogue plan.')
   const turns = sourceContext.dialoguePlan.nodes.flatMap((node) => node.kind === 'turn' ? [node.turn] : node.turns)
 
   for (const provider of mistralProviders) {

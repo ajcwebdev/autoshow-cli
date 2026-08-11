@@ -280,7 +280,7 @@ Important metadata fields by step:
 | Step 2 STT | transcription service, model, output files, segment counts, token/character counts, timings, runtime/provider info, billing/cost fields, caption fields `captionKind`, `captionLanguage`, `captionFormat` for YouTube captions. |
 | Step 2 extraction | extraction method, provider/model/backend, format, page counts, OCR/text page counts, language/DPI/chapter fields, HTML/web/source info, conversion/normalization details, provider cost/usage and timing. |
 | Step 3 LLM | LLM service/model, output file, token counts, structured mode/preset names, processing time, provider cost/usage. |
-| Step 4 TTS | TTS provider/model, voice/speaker/language, audio file names/sizes, chunk counts, clone/custom voice metadata, processing time, provider cost. |
+| Step 4 TTS | TTS provider/model, voice/speaker/language, audio file names/sizes, chunk counts, operation-scoped target/transport, voice/settings/output-aware render/result/audio-run identities, canonical `ttsAudio` projection, processing time, and provider cost. Voice creation and protected consent/sample data are not synthesis metadata. |
 | Step 5 image | image provider/model, file names/sizes, image count/dimensions, size/quality/format, request mode, revised prompt, returned model, moderation/grounding, provider cost. |
 | Step 6 video | video provider/model, file name/size/duration, request mode, resolution/aspect ratio, input/reference media, provider IDs/URLs/progress/moderation/storage, provider cost. |
 | Step 7 music | music provider/model, file name/size/duration, lyrics source, generated lyrics/title/style fields, audio technical metadata, provider IDs/traces, provider cost. |

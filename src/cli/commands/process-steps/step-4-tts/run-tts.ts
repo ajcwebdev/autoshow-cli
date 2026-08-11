@@ -1,4 +1,4 @@
-import type { GenericTtsDialoguePlan, GenericTtsSourceIdentity, PipelineProviderState, SanitizedProviderError, Step4Metadata, TtsOptions, TtsTarget } from '~/types'
+import type { ComicTtsRenderContext, GenericTtsDialoguePlan, GenericTtsSourceIdentity, PipelineProviderState, SanitizedProviderError, Step4Metadata, TtsOptions, TtsTarget } from '~/types'
 import { sanitizeModelName, runTargets } from '~/cli/commands/process-steps/target-runner'
 import { DEFAULT_CLI_CONCURRENCY } from '~/utils/concurrency-defaults'
 import {
@@ -22,7 +22,7 @@ const getMetadataAudioPath = (outputDir: string, metadata: Step4Metadata): strin
 
 type WorkingTtsMetadata = Step4Metadata & {
   _ttsObservedTurns?: CurrentTtsObservedTurn[] | undefined
-  _ttsRenderStrategy?: 'native-dialogue' | 'segmented' | undefined
+  _ttsRenderStrategy?: 'native-dialogue' | 'native-utterances' | 'segmented' | undefined
 }
 
 type WorkingTtsResult = Step4Metadata & {
@@ -30,8 +30,9 @@ type WorkingTtsResult = Step4Metadata & {
 }
 
 export type TtsRunSourceContext = {
-  sourceIdentity: GenericTtsSourceIdentity
-  dialoguePlan: GenericTtsDialoguePlan
+  sourceIdentity?: GenericTtsSourceIdentity | undefined
+  dialoguePlan?: GenericTtsDialoguePlan | undefined
+  comicContext?: ComicTtsRenderContext | undefined
   artifactOutputDir?: string | undefined
   artifactRoot?: string | undefined
   retainedProviderStates?: PipelineProviderState[] | undefined
@@ -84,14 +85,15 @@ export const validateTtsRenderInputsForTargets = (
   targets: TtsTarget[],
   text: string,
   options: TtsOptions,
-  sourceContext?: Pick<TtsRunSourceContext, 'sourceIdentity' | 'dialoguePlan'> | undefined
+  sourceContext?: Pick<TtsRunSourceContext, 'sourceIdentity' | 'dialoguePlan' | 'comicContext'> | undefined
 ): void => {
   for (const target of targets) validateCurrentTtsRenderAttemptInputs({
     target,
     sourceText: text,
     ttsOptions: options,
     sourceIdentity: sourceContext?.sourceIdentity,
-    dialoguePlan: sourceContext?.dialoguePlan
+    dialoguePlan: sourceContext?.dialoguePlan,
+    comicContext: sourceContext?.comicContext
   })
 }
 
@@ -128,6 +130,7 @@ export const runTtsTargets = async (
         ttsOptions: _options,
         sourceIdentity: sourceContext?.sourceIdentity,
         dialoguePlan: sourceContext?.dialoguePlan,
+        comicContext: sourceContext?.comicContext,
         readiness,
         peerBlocked: readiness.status === 'ready'
       })
@@ -157,7 +160,8 @@ export const runTtsTargets = async (
       await sourceContext?.onProviderState?.(state)
     }
     const retainedState = target.targetKey ? retainedByTargetKey.get(target.targetKey) : undefined
-    const retainedProjection = retainedState?.result?.['ttsAudio'] as { activeWork?: { kind?: unknown } } | undefined
+    const retainedNamespace = retainedState?.operation === 'comic-audio' ? 'comicAudio' : 'ttsAudio'
+    const retainedProjection = retainedState?.result?.[retainedNamespace] as { activeWork?: { kind?: unknown } } | undefined
     let recoveredSlots: Extract<NonNullable<Awaited<ReturnType<typeof prepareCurrentTtsCompletedRecovery>>>, { kind: 'partial-slots' }>['recoveredSlots'] | undefined
     let retainedCumulativePlannedCost: Extract<NonNullable<Awaited<ReturnType<typeof prepareCurrentTtsCompletedRecovery>>>, { kind: 'partial-slots' }>['retainedCumulativePlannedCost'] | undefined
     if (retainedState && retainedProjection?.activeWork?.kind === 'render') {
@@ -169,6 +173,7 @@ export const runTtsTargets = async (
         ttsOptions: options,
         sourceIdentity: sourceContext?.sourceIdentity,
         dialoguePlan: sourceContext?.dialoguePlan,
+        comicContext: sourceContext?.comicContext,
         onProviderState
       })
       if (recovery) {
@@ -196,6 +201,7 @@ export const runTtsTargets = async (
       ttsOptions: options,
       sourceIdentity: sourceContext?.sourceIdentity,
       dialoguePlan: sourceContext?.dialoguePlan,
+      comicContext: sourceContext?.comicContext,
       priorAttemptCount,
       recoveredSlots,
       retainedCumulativePlannedCost,
@@ -259,7 +265,9 @@ export const runTtsTargets = async (
           resultIdentity: renderArtifacts.resultIdentity,
           audioRunId: renderArtifacts.audioRunId,
           renderStrategy: renderArtifacts.strategy,
-          ttsAudio: renderArtifacts.projection,
+          ...(renderArtifacts.operation === 'comic-audio'
+            ? { comicAudio: renderArtifacts.projection }
+            : { ttsAudio: renderArtifacts.projection }),
           _renderArtifacts: renderArtifacts
         } as WorkingTtsResult
       }
@@ -281,7 +289,9 @@ export const runTtsTargets = async (
           resultIdentity: renderArtifacts.resultIdentity,
           audioRunId: renderArtifacts.audioRunId,
           renderStrategy: renderArtifacts.strategy,
-          ttsAudio: renderArtifacts.projection,
+          ...(renderArtifacts.operation === 'comic-audio'
+            ? { comicAudio: renderArtifacts.projection }
+            : { ttsAudio: renderArtifacts.projection }),
           _renderArtifacts: renderArtifacts
         } as WorkingTtsResult
       } catch (error) {

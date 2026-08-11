@@ -3,7 +3,7 @@ import { tmpdir } from "node:os"
 import { basename, join, resolve } from "node:path"
 import { rankVoiceQualityProviders } from '~/utils/voice-quality-scoring'
 import * as l from '~/utils/app-logger/app-logger'
-import { discoverAudioFiles, loadTtsManifestMetadata, makeProviderKey, tokenize } from '../tts-eval-lib'
+import { discoverAudioFiles, loadTtsManifestMetadata, makeTtsBenchmarkKey, tokenize } from '../tts-eval-lib'
 import type { ContentType, MetricFixtures, ProviderVoiceQualityEntry, ScoreCoverage, VoiceQualityReportMode, VoiceQualityReportOptions } from '~/types'
 import { HUMAN_SPEECH_WEIGHTS, NATURALNESS_WEIGHTS, SPEECH_QUALITY_WEIGHTS } from './voice-quality-report-constants'
 import { evaluateProvider } from './provider-evaluation'
@@ -262,7 +262,7 @@ export async function buildVoiceQualityReport(args: VoiceQualityReportOptions) {
   try {
     const providerEntries: Array<Omit<ProviderVoiceQualityEntry, "rank">> = [];
     for (const entry of manifestMetadata.tts) {
-      const providerKey = makeProviderKey(entry.ttsService, entry.ttsModel);
+      const providerKey = makeTtsBenchmarkKey(entry);
       const evaluated = await evaluateProvider({
         runDir: args.runDir,
         inputText,

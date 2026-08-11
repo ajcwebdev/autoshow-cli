@@ -223,7 +223,9 @@ describe('TTS provider service contracts', () => {
       })
       expect(calls[0]?.headers.get('authorization')).toBe('Bearer speechify-key')
       expect(calls[0]?.form?.get('name')).toBe('AutoShow Anthony')
-      expect(calls[0]?.form?.get('consent')).toBe('true')
+      expect(calls[0]?.form?.get('locale')).toBe('en-US')
+      expect(calls[0]?.form?.get('gender')).toBe('not_specified')
+      expect(calls[0]?.form?.get('consent')).toBe(JSON.stringify({ fullName: 'Anthony Example', email: 'anthony@example.com' }))
       const sample = calls[0]?.form?.get('sample')
       expect(sample).toMatchObject({ name: 'speechify-sample.mp3', type: 'audio/mpeg' })
       expect(calls[1]).toMatchObject({

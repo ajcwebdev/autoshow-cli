@@ -251,6 +251,7 @@ export const createCurrentTtsBlockedReadinessState = async (
   if (projected.status !== 'failed' || projected.attempts !== 0) {
     throw CLIUsageError('TTS branch-only readiness failure did not project failed with zero attempts.')
   }
+  const namespace = plan.operation === 'comic-audio' ? 'comicAudio' : 'ttsAudio'
   return {
     service: options.target.service,
     model: options.target.model,
@@ -262,8 +263,8 @@ export const createCurrentTtsBlockedReadinessState = async (
     status: projected.status,
     attempts: projected.attempts,
     options: {},
-    metadata: { ttsAudio: projection },
-    result: { ttsAudio: projection },
+    metadata: { [namespace]: projection },
+    result: { [namespace]: projection },
     error: projectedError
   }
 }

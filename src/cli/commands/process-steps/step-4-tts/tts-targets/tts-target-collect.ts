@@ -79,7 +79,7 @@ export const collectTtsTargets = (options: TtsOptions): TtsTarget[] => {
     for (const target of targets) {
       const strategy = target.service === 'gemini' && selection.speakerVoiceRegistry
         ? resolveGeminiDialogueStrategy(selection.speakerVoiceRegistry.entries.length, 'auto')
-        : getMultiSpeakerStrategy(target.service)
+        : getMultiSpeakerStrategy(target.service, target.model)
       if (strategy) {
         target.multiSpeakerStrategy = strategy
       }

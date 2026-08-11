@@ -169,7 +169,7 @@ const CONTROL_SPECS = {
 } as const satisfies Record<TtsProvider, ProviderControlSpecs>
 
 const PROVIDERS = new Set<TtsProvider>(Object.keys(CONTROL_SPECS) as TtsProvider[])
-const CANONICAL_TURN_ID_RE = /^dialogue-turn-\d{3,}$/
+const CANONICAL_TURN_ID_RE = /^dialogue-turn-\d{3,}(?:-\d{2,})?$/
 
 const invalidControl = (provider: TtsProvider, key: string, detail: string): Error =>
   CLIUsageError(`Invalid per-turn ${provider} TTS control ${key}: ${detail}.`)
@@ -276,7 +276,7 @@ export const normalizeTtsTurnControls = (
 
   for (const sourceId of Object.keys(controlsByTurn).sort()) {
     if (!CANONICAL_TURN_ID_RE.test(sourceId)) {
-      throw CLIUsageError(`Per-turn TTS controls require canonical dialogue-turn-NNN keys; received ${sourceId}.`)
+      throw CLIUsageError(`Per-turn TTS controls require canonical dialogue-turn-NNN or dialogue-turn-NNN-NN keys; received ${sourceId}.`)
     }
     if (expected && !expected.has(sourceId)) {
       throw CLIUsageError(`Per-turn TTS controls reference unknown dialogue turn ${sourceId}.`)

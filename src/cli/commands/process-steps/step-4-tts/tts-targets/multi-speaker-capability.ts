@@ -19,9 +19,13 @@ const MULTI_SPEAKER_CAPABILITY: Partial<Record<TtsProvider, MultiSpeakerStrategy
 const REF_AUDIO_PROVIDERS = new Set<TtsProvider>(['mistral'])
 
 export const getMultiSpeakerStrategy = (
-  provider: TtsProvider
-): MultiSpeakerStrategy | undefined =>
-  MULTI_SPEAKER_CAPABILITY[provider]
+  provider: TtsProvider,
+  model?: string | undefined
+): MultiSpeakerStrategy | undefined => {
+  if (provider === 'elevenlabs' && model === 'eleven_v3') return 'native'
+  if (provider === 'hume' && model === 'octave-2') return 'native'
+  return MULTI_SPEAKER_CAPABILITY[provider]
+}
 
 export const supportsRefAudioMultiSpeaker = (provider: TtsProvider): boolean =>
   REF_AUDIO_PROVIDERS.has(provider)

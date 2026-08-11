@@ -16,7 +16,7 @@ import type { CliCommandContext, CliCommandDefinition, CliRootDefinition } from 
 
 // Commands that only read, resume, or configure existing directories. Accepting --output-dir there
 // would silently do nothing, so it is rejected instead.
-const COMMANDS_WITHOUT_RUN_DIRECTORIES = new Set(['config', 'setup', 'links', 'resume'])
+const COMMANDS_WITHOUT_RUN_DIRECTORIES = new Set(['config', 'setup', 'links', 'resume', 'voice', 'comic reference-voice'])
 
 const formatVersion = (version: string): string =>
   version.startsWith('v') ? version : `v${version}`
@@ -79,7 +79,7 @@ export const dispatchNativeCli = async (
 
   const outputDir = typeof parsed.flags['output-dir'] === 'string' ? parsed.flags['output-dir'] : undefined
   if (parsed.rawParsed.explicitFlags.has('output-dir')) {
-    if (COMMANDS_WITHOUT_RUN_DIRECTORIES.has(command.name)) {
+    if (COMMANDS_WITHOUT_RUN_DIRECTORIES.has(command.name) || COMMANDS_WITHOUT_RUN_DIRECTORIES.has(command.name.split(' ')[0]!)) {
       throw CLIUsageError(
         `--output-dir is not supported by "${command.name}" because it does not create a run directory.`,
         'Use --output-root to change the base output directory.'

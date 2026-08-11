@@ -1,6 +1,6 @@
 # comic
 
-Draft comic scene JSON with exhaustive shot plans, build reviewed v4 panel bundles, generate QA-approved panel/page images, and create reusable character and canonical location references.
+Draft comic scene JSON with exhaustive shot plans, build reviewed v4 panel bundles, generate QA-approved panel/page images, manage approved character voices, and render multi-speaker scene audio.
 
 ## Outline
 
@@ -11,6 +11,7 @@ Draft comic scene JSON with exhaustive shot plans, build reviewed v4 panel bundl
 - [Walkthrough: 01-opening](#walkthrough-01-opening)
 - [draft-scenes](#draft-scenes)
 - [generate-images](#generate-images)
+- [generate-audio](#generate-audio)
 - [reference-sketch](#reference-sketch)
 - [Output](#output)
 - [Clean-break migration](#clean-break-migration)
@@ -24,13 +25,16 @@ Draft comic scene JSON with exhaustive shot plans, build reviewed v4 panel bundl
 1. Draft structured scene JSON from episode scripts.
 2. Generate the reusable character and canonical location references that panel prompts require.
 3. Build panel prompts, review sketches, final panel images, and grouped page images.
+4. Resolve approved provider-qualified voice registrations into an immutable scene snapshot and render canonical multi-speaker audio.
 
 The public subcommands are:
 
 ```bash
 bun autoshow comic draft-scenes
 bun autoshow comic generate-images
+bun autoshow comic generate-audio
 bun autoshow comic reference-sketch
+bun autoshow comic reference-voice
 ```
 
 ## Setup
@@ -47,7 +51,7 @@ XAI_API_KEY=...
 - `GEMINI_API_KEY` is required for Gemini text and image models.
 - `XAI_API_KEY` is required for Grok text and image models.
 - Text and image models resolve against the central registries, so any other centrally-registered provider you select (e.g. BFL, Recraft, Replicate, Lumalabs for images) needs its own provider key set. See the [Supported Models](#supported-models) registries for the full list.
-- `--price` is side-effect-free and does not call image or LLM generation APIs.
+- `--price` is side-effect-free and does not call image or LLM generation APIs. `comic generate-audio --price` performs static source, casting, strategy, and cost planning without provider calls or artifact writes.
 
 ### Character catalog v3
 
@@ -66,6 +70,9 @@ Canonical project-root paths:
 | Episode scripts | `input/scripts/NN-script/*.md` |
 | Character source images | `input/characters/` |
 | Per-run scene workspace (prompts, scenes, panels, pages, sketches) | `output/<YYYY-MM-DD_HH-MM-SS-mmm>_<scene-slug>/` |
+| Canonical scene manifest | `output/<timestamp>_<scene-slug>/manifest.json` |
+| Immutable dialogue plans and voice snapshots | `output/<timestamp>_<scene-slug>/metadata/dialogue-plans/`, `output/<timestamp>_<scene-slug>/assets/voice-references/` |
+| Provider render evidence and final audio | `output/<timestamp>_<scene-slug>/audio/providers/`, `output/<timestamp>_<scene-slug>/audio/final/` |
 | Character outline sheets and provenance | `input/characters/<source-stem>--outline-sheet.png`, `input/characters/character-sketches.json` |
 | Canonical location specs, per-view images, and provenance | `input/locations/locations-reference.json`, `input/locations/<key>--reference.png`, `input/locations/<key>--reference-{reverse,side}.png`, `input/locations/location-sketches.json` |
 
@@ -74,6 +81,7 @@ Canonical project-root paths:
 ```bash
 bun autoshow comic draft-scenes <script-path> [--only structure|prompt|scene|panel-prompts] [--price]
 bun autoshow comic generate-images <script-path> [--target images|sketches|both] [--panels <all|range|list>] [--panels-per-image <n>] [--no-qa] [--max-repairs <n>] [--force] [--price]
+bun autoshow comic generate-audio <script-path> [--provider <provider[=model]>] [--profile <key>] [--mode auto|native|segmented] [--role <label=role:key>] [--sample-rate <hz>] [--channels 1|2] [--codec pcm_s16le|pcm_s24le] [--price]
 bun autoshow comic reference-sketch (--character <key> | --location <key> [--view establishing|reverse|side]) [--revise --notes <text>] [--price]
 ```
 
@@ -97,7 +105,7 @@ bun autoshow comic generate-images input/scripts/01-script/01-opening.md --targe
 bun autoshow comic generate-images input/scripts/01-script/01-opening.md --target sketches --panels 1-4
 ```
 
-`draft-scenes` is required first because `generate-images` only consumes newly reviewed v4 scene artifacts. This writes final panel images under the scene's run directory, e.g. `output/<timestamp>_01-opening/panels/`; grouped page images land in `pages/` when `--panels-per-image` is above one or `--grid` is used. Image generation reads only schema-version-4 panel bundles and the plural location snapshot index; older bundles fail validation and must be rebuilt with `draft-scenes`.
+`draft-scenes` is required first because image and audio generation consume the exact canonical scene run and reviewed v4 artifacts. This writes final panel images under the scene's run directory, e.g. `output/<timestamp>_01-opening/panels/`; grouped page images land in `pages/` when `--panels-per-image` is above one or `--grid` is used. Image generation reads only schema-version-4 panel bundles and the plural location snapshot index; audio generation reads only structured-script v4 with an embedded exact source identity. Older bundles fail validation and must be rebuilt with `draft-scenes`.
 
 ### 1. Create structured script JSON
 
@@ -192,7 +200,7 @@ bun autoshow comic draft-scenes input/scripts/01-script/01-opening.md --only pan
 - `--only scene` drafts scene JSON from an existing prompt bundle.
 - `--only panel-prompts` builds stable panel prompt bundles from existing scene JSON and does not call an API.
 - Scene drafting validates generated JSON before writing it.
-- Structured scripts require `schemaVersion: 3`; reviewed scenes and panel bundles require `schemaVersion: 4`. These are comic-domain artifact schemas, not pipeline manifests. Each schema pins its version exactly and there is no migration reader, so an artifact written by an earlier version is rejected rather than upgraded — rerun `draft-scenes` to rebuild it. Invalid model output is saved as `scene.invalid.json` with validation details.
+- Structured scripts, reviewed scenes, and panel bundles require `schemaVersion: 4`. Structured scripts embed a content-addressed source identity and exact Unicode source spans. These are comic-domain artifact schemas, not pipeline manifests. Each schema pins its version exactly and there is no migration reader, so an artifact written by an earlier version is rejected rather than upgraded — rerun `draft-scenes` to rebuild it. Invalid model output is saved as `scene.invalid.json` with validation details.
 - Every panel has an exhaustive prose `shotPlan` covering camera, composition, exact blocking/acting/eyelines, props, balloon placement, and exclusions. Script-authored staging and exact cast/dialogue take precedence over inferred shot details. Permanent location topology remains canonical unless the script explicitly changes the set as a story event.
 - `panel.characterKeys` is authoritative for visibility. Descriptions, speech text, and source segments never add visual references implicitly. There is no arbitrary cast-count ceiling: every script-required visible character belongs in the panel. Generation still preflights the selected model's actual reference-image input capability.
 - On-screen character speakers must be visible; offscreen character speakers must not be listed as visible.
@@ -259,6 +267,49 @@ bun autoshow comic generate-images input/scripts/01-script/01-opening.md --targe
 - QA defaults on for individual and grouped outputs. Each output runs initial generation, strict GPT-5.6 Sol judgment, then at most two repair attempts by default. The first repair edits the exact failed image. If the same hard check survives two consecutive judgments, the next repair starts a completely new image from the canonical character and location references instead of chaining another edit; if that check stagnates for two more judgments after the restart, repair stops early. Canonical character images and immutable catalog descriptions have highest visual precedence for identity, physical embodiment, projection/display medium, anatomy, costume, and character-specific required props. A source or shot-plan contradiction cannot excuse a character-canon violation; QA treats it as a hard identity failure. Set continuity is independently strict: QA emits a structured audit for every canonical anchor as correctly placed, genuinely outside the crop, missing, relocated, duplicated, mirrored, or redesigned. An anchor whose canonical region is in frame must remain visibly identifiable; character or prop blocking never excuses its absence. Permanent anchors may be foreshortened or shown from another camera position, but they may not be relocated, hidden, removed from an otherwise revealing view, duplicated, mirrored, or redesigned without an explicit story event. This check does not require the canonical reference camera or repeated compositions. Cast, location, non-conflicting source staging, dialogue wording/completeness, speaker attribution, and panel structure also stay strict. Harmless typography substitutions—such as `...` for `…`, straight for curly quotation marks, or a hyphen for an em/en dash—do not fail dialogue QA when wording, meaning, speaker, and pacing are unchanged. Minor body-width, proportion, shading, detail, or stylization variance remains advisory when the character is clearly recognizable and preserves canonical design cues. Inferred shot-plan framing/staging receives one targeted edit; if that check alone remains unresolved afterward, it is explicitly recorded as waived and becomes advisory. All attempts and judgments are preserved, restart/stop decisions are recorded in attempt QA JSON, and only an attempt with no remaining hard failure is promoted. Exhaustion or stagnation omits the canonical output, continues other selected work, writes reports, and exits nonzero.
 - Named anchor assemblies are preserved and audited component by component. A visible desk, console, shelf, rack, berth, or counter does not excuse omission of its named computer, keyboard, control unit, appliance, instrument, or other recurring component, and generic clutter is not a substitute. If an anchor cannot remain visibly identifiable, its entire canonical region must be outside the crop.
 - `--price` makes no writes or provider calls and separately reports initial image/judge calls plus maximum edit/judge calls.
+
+## generate-audio
+
+`generate-audio` consumes an existing compatible scene run and approved current voice registrations. It never creates, clones, approves, or deletes voices during synthesis.
+
+### Options
+
+| Flag | Description | Default |
+|------|-------------|---------|
+| `--provider <provider[=model]>` | Select a TTS provider/model; repeatable | `kitten` |
+| `--all-providers` / `--all-local` | Select every hosted or local TTS target | `false` |
+| `--profile <key>` | Select the approved registration profile for every subject/target | `default` |
+| `--mode <mode>` | `auto`, strict `native`, or `segmented` | `auto` |
+| `--role <label=subject>` | Resolve an uncatalogued or compound label to `role:key` or `voice:key`; repeatable | none |
+| `--sample-rate <hz>` | Final WAV sample rate | `48000` |
+| `--channels <count>` | Final WAV channels, `1` or `2` | `2` |
+| `--codec <codec>` | `pcm_s16le` or `pcm_s24le` | `pcm_s24le` |
+| `--price` | Plan source identity, casting, strategy, generation slots, and cost without calls or writes | `false` |
+
+### Examples
+
+```bash
+bun autoshow comic generate-audio 01-01 --provider gemini=gemini-3.1-flash-tts-preview --profile default
+bun autoshow comic generate-audio 01-01 --provider mistral=voxtral-mini-tts-2603 --mode segmented
+bun autoshow comic generate-audio 01-01 --provider minimax=speech-2.8-hd --mode segmented
+bun autoshow comic generate-audio 01-01 --provider cartesia=sonic-3.5-2026-05-04 --mode auto
+bun autoshow comic generate-audio 01-01 --provider speechify=simba-3.0 --mode auto
+bun autoshow comic generate-audio 01-01 --provider gemini --role "SHIP COMPUTER=role:computer"
+bun autoshow comic generate-audio 01-01 --all-providers --price
+```
+
+### Behavior
+
+- With `--output-dir`, the command validates that exact existing directory and never falls back. Without it, the command scans matching timestamped scene directories newest-first and skips incompatible or corrupt candidates until it finds an exact source-path, source-byte, manifest, structured-script-v4, and checksum match.
+- Every speakable source segment becomes one provider-neutral dialogue node. Compound speech remains an explicit overlap unless `--role` deliberately casts the complete label to one logical subject. Uncatalogued speaking roles fail before readiness.
+- Casting is all-target and profile-qualified. Every speaking subject must have one current approved-ready registration for each selected provider/model/profile. A single aggregate immutable snapshot captures those registrations, protected reference identities, consent authorization, settings, revisions, and audition evidence.
+- The shared TTS subsystem owns provider readiness, immutable branch/final plans, generation slots, admission evidence, render results, audio runs, timing, mix/transform ledgers, final timelines, resume safety, and provider calls. Comic writes provider projections only under `comicAudio` and keeps image/structure stage state intact.
+- Gemini native dialogue is eligible only for exactly two distinct provider speakers. ElevenLabs `eleven_v3` uses bounded turn-safe Text-to-Dialogue requests with provider alignment, and Hume `octave-2` uses ordered native utterances with supported per-turn speed/trailing-silence controls and provider timing. MiniMax, Cartesia, and Speechify expose single-voice synthesis requests rather than native speaker dialogue, so `auto` selects segmented rendering for them and strict `--mode native` fails locally before a provider call. Mistral consumes only approved saved voices or approved protected request-reference registrations from the scene snapshot.
+- MiniMax, Cartesia, and Speechify approved voices participate through the same provider-qualified snapshot as every other target. Create or discover them through the shared `voice`/`comic reference-voice` management surface, complete canonical audition and explicit approval, and then render; `generate-audio` never invokes design or clone facets.
+- Authored overlap nodes and local-only voice-effect intent force segmented rendering so they are not silently dropped. Segmented assembly mixes overlap children on one timeline, applies the supported radio/intercom/telephone/computer filter profile, and records the effect/overlap transforms in the content-identified mix ledger and final timeline.
+- A scene with zero speakable turns completes locally with an empty dialogue plan and no snapshot, provider state, synthesis request, audio run, or output.
+- Final mastering is explicit and identity-bearing. Changing sample rate, channels, or codec changes the output-profile and render identities; it does not claim that upsampling restores provider source quality.
+- Each provider writes immutable work below `audio/providers/<safe-target-key>/`, while the selected mastered result is promoted to `audio/final/<target-key>.wav`. Provider projections persist the exact `targetKey`, `renderIdentity`, `resultIdentity`, and `audioRunId`; benchmark consumers use voice/render and optional snapshot-entry/character identity rather than collapsing rows by provider/model.
 
 ## reference-sketch
 
@@ -328,6 +379,12 @@ output/<YYYY-MM-DD_HH-MM-SS-mmm>_01-opening/
     location-references/<snapshot-id>/
     design-references.json           # only when reviewed panels declare designReferences
     design-references/<snapshot-id>/
+    voice-references/<snapshot-id>/
+  audio/
+    providers/<safe-target-key>/
+      branches/<branch-plan-id>/
+      renders/<render-identity>/
+    final/<target-key>.wav
   panels/
   pages/
   sketches/

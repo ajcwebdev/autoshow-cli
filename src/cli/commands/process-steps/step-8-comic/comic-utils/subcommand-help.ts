@@ -1,20 +1,24 @@
 import {
   draftScenesFlags,
+  comicGenerateAudioFlags,
   generateImagesFlags,
   referenceSketchFlags
 } from '~/cli/flags/comic-flags'
 import { defineCliCommand } from '~/cli/native/native-types'
 import {
   DRAFT_SCENES_COMMAND,
+  GENERATE_AUDIO_COMMAND,
   GENERATE_IMAGES_COMMAND,
   REFERENCE_SKETCH_COMMAND
 } from './cli-args'
 import {
   handleDraftScenes,
+  handleGenerateAudio,
   handleGenerateImages,
   handleReferenceSketch,
 } from './subcommand-handlers'
 import type { CliCommandDefinition } from '~/types'
+import { referenceVoiceCommandDefinition } from '../comic-commands/reference-voice/reference-voice-command'
 
 const SCRIPT_PATH_PARAMETER = {
   key: '<script-path>',
@@ -26,6 +30,7 @@ const ARTIFACT_NOTE = 'Comic artifacts are read from input and written under out
 export const DRAFT_SCENES_DESCRIPTION = 'Run script markdown to structured script JSON to draft prompt bundles to scene JSON to panel prompt bundles'
 export const GENERATE_IMAGES_DESCRIPTION = 'Run panel prompt bundles to review sketches and/or final panel images'
 export const REFERENCE_SKETCH_DESCRIPTION = 'Generate and register a character sheet or one canonical location view'
+export const GENERATE_AUDIO_DESCRIPTION = 'Render approved character voices from an existing compatible structured comic scene'
 
 export const draftScenesCommandDefinition = defineCliCommand({
   name: `comic ${DRAFT_SCENES_COMMAND}`,
@@ -68,6 +73,26 @@ export const generateImagesCommandDefinition = defineCliCommand({
   }
 }, handleGenerateImages)
 
+export const generateAudioCommandDefinition = defineCliCommand({
+  name: `comic ${GENERATE_AUDIO_COMMAND}`,
+  description: GENERATE_AUDIO_DESCRIPTION,
+  parameters: [SCRIPT_PATH_PARAMETER],
+  flags: comicGenerateAudioFlags,
+  help: {
+    examples: [
+      [`bun autoshow comic ${GENERATE_AUDIO_COMMAND} 05-01 --provider gemini=gemini-2.5-pro-preview-tts`, 'Render with approved Gemini castings'],
+      [`bun autoshow comic ${GENERATE_AUDIO_COMMAND} 05-01 --provider mistral=voxtral-mini-tts-2603 --mode segmented`, 'Render approved Mistral saved/reference voices'],
+      [`bun autoshow comic ${GENERATE_AUDIO_COMMAND} 05-01 --all-providers --profile default --price`, 'Plan every selected target without calls or writes'],
+    ],
+    notes: [
+      'The command consumes a compatible existing comic scene run and never creates a replacement run.',
+      'Every speaking subject requires an approved current registration for every selected provider/model/profile.',
+      'Price mode performs static planning only and writes no canonical, domain, or protected artifacts.',
+      ARTIFACT_NOTE,
+    ],
+  },
+}, handleGenerateAudio)
+
 export const referenceSketchCommandDefinition = defineCliCommand({
   name: `comic ${REFERENCE_SKETCH_COMMAND}`,
   description: REFERENCE_SKETCH_DESCRIPTION,
@@ -92,5 +117,7 @@ export const referenceSketchCommandDefinition = defineCliCommand({
 export const COMIC_SUBCOMMAND_DEFINITIONS = [
   draftScenesCommandDefinition,
   generateImagesCommandDefinition,
+  generateAudioCommandDefinition,
   referenceSketchCommandDefinition,
+  referenceVoiceCommandDefinition,
 ] as const satisfies readonly CliCommandDefinition[]

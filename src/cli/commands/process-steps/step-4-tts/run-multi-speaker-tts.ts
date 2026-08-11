@@ -34,7 +34,7 @@ const cloneProtectedAssetRef = (asset: ProtectedAssetRef): Readonly<ProtectedAss
 
 type MultiSpeakerRunMetadata = Step4Metadata & {
   _ttsObservedTurns: CurrentTtsObservedTurn[]
-  _ttsRenderStrategy: 'native-dialogue' | 'segmented'
+  _ttsRenderStrategy: 'native-dialogue' | 'native-utterances' | 'segmented'
 }
 
 const buildObservedVoice = (
@@ -69,12 +69,21 @@ export const runMultiSpeakerTts = async (
 ): Promise<{ audioPath: string, metadata: Step4Metadata }> => {
   const registry = parseSpeakerVoiceMappings(options.ttsSpeakers)
   const format = resolveDialogueFormat(options)
-  const dialogue = normalizeDialogueText(text, format, registry)
-  const turnIds = dialogue.turns.map((_turn, sourceIndex) =>
-    `dialogue-turn-${String(sourceIndex + 1).padStart(3, '0')}`)
+  const dialogue = options.ttsCanonicalTurns
+    ? {
+        turns: options.ttsCanonicalTurns.map(turn => ({ speaker: turn.speaker, text: turn.text })),
+        normalizedText: options.ttsCanonicalTurns.map(turn => `${turn.speaker}: ${turn.text}`).join('\n'),
+        spokenCharacterCount: options.ttsCanonicalTurns.reduce((sum, turn) => sum + [...turn.text].length, 0),
+      }
+    : normalizeDialogueText(text, format, registry)
+  const turnIds = options.ttsCanonicalTurns
+    ? options.ttsCanonicalTurns.map(turn => turn.turnId)
+    : dialogue.turns.map((_turn, sourceIndex) => `dialogue-turn-${String(sourceIndex + 1).padStart(3, '0')}`)
   const turnControls = normalizeTtsTurnControls(options.ttsTurnControls, turnIds)
-  const hasProviderTurnControls = turnIds.some(sourceId =>
-    Object.keys(turnControls?.[sourceId]?.[target.service] ?? {}).length > 0)
+  const hasProviderTurnControls = turnIds.some(sourceId => {
+    const keys = Object.keys(turnControls?.[sourceId]?.[target.service] ?? {})
+    return keys.length > 0 && !(target.service === 'hume' && keys.every(key => key === 'speed' || key === 'trailingSilence'))
+  })
   const normalizedPath = `${outputDir}/dialogue-normalized.txt`
   await Bun.write(normalizedPath, `${dialogue.normalizedText}\n`)
 
@@ -97,7 +106,7 @@ export const runMultiSpeakerTts = async (
         _ttsObservedTurns: dialogue.turns.map((turn, sourceIndex) => {
           const mapping = getSpeakerVoice(registry, turn.speaker)
           return {
-            turnId: `dialogue-turn-${String(sourceIndex + 1).padStart(3, '0')}`,
+            turnId: turnIds[sourceIndex] as string,
             sourceIndex,
             speaker: turn.speaker,
             text: turn.text,
@@ -105,7 +114,7 @@ export const runMultiSpeakerTts = async (
             outputPath: result.audioPath
           }
         }),
-        _ttsRenderStrategy: 'native-dialogue'
+        _ttsRenderStrategy: target.service === 'hume' ? 'native-utterances' : 'native-dialogue'
       } as MultiSpeakerRunMetadata
     }
   }
@@ -153,7 +162,8 @@ export const runMultiSpeakerTts = async (
         [...recovered.paths],
         workspaceDir,
         `${target.service}-recovered-turn-${index}`,
-        signal
+        signal,
+        options.ttsMasteringProfile
       )
     } else {
       const release = target.service === 'kitten' && options.generationResourceGate
@@ -198,7 +208,7 @@ export const runMultiSpeakerTts = async (
   })
 
   const segmentPaths = segmentResults.map((result) => result.path)
-  const audioPath = await concatAndConvertToWav(segmentPaths, outputDir, target.service)
+  const audioPath = await concatAndConvertToWav(segmentPaths, outputDir, target.service, undefined, options.ttsMasteringProfile)
   const result = finalizeTtsRun({
     service: target.service,
     model: target.model,

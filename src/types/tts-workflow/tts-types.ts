@@ -1,4 +1,4 @@
-import type { ProtectedAssetRef, ProviderTargetBase, ResourceGate, Step4Metadata, TtsProvider, TtsRuntimeOptions } from '~/types'
+import type { ComicDialoguePlan, ComicSourceIdentity, ProtectedAssetRef, ProviderTargetBase, ResourceGate, Step4Metadata, TtsProvider, TtsRuntimeOptions, VoiceReferenceManifest } from '~/types'
 
 export type TtsOptions = Partial<TtsRuntimeOptions & {
   ttsProviderConcurrency: number
@@ -13,6 +13,31 @@ export type TtsOptions = Partial<TtsRuntimeOptions & {
    * and provider before render planning.
    */
   ttsTurnControls?: TtsTurnControls | undefined
+  /** Internal canonical dialogue sequence used by structured callers after source planning. */
+  ttsCanonicalTurns?: readonly { turnId: string, speaker: string, text: string }[] | undefined
+  /** Internal mastering contract used by comic audio; it is not a config or generic CLI option. */
+  ttsMasteringProfile?: TtsMasteringProfile | undefined
+}
+
+export type TtsMasteringProfile = {
+  schemaVersion: 1
+  sampleRate: number
+  channels: 1 | 2
+  codec: 'pcm_s16le' | 'pcm_s24le'
+  container: 'wav'
+}
+
+export type ComicTtsRenderContext = {
+  operation: 'comic-audio'
+  sourceIdentity: ComicSourceIdentity
+  dialoguePlan: ComicDialoguePlan
+  voiceSnapshot: VoiceReferenceManifest
+  snapshotEntryIdByTurnId: Readonly<Record<string, string>>
+  providerSpeakerLabelByTurnId: Readonly<Record<string, string>>
+  modePreference: 'auto' | 'native' | 'segmented'
+  /** Bounded native alternatives. More than one requires an explicit deterministic policy. */
+  nativeTakeCount?: number | undefined
+  nativeTakeSelectionPolicy?: 'manual' | 'first-generated' | undefined
 }
 
 export type MultiSpeakerStrategy = 'native' | 'segment-and-concat'
@@ -106,6 +131,9 @@ export type TtsRequestEvidenceScope = Readonly<{
     chunkIndex: number
     path: string
     outputIndex?: number | undefined
+    timing?: import('./script-to-audio-types').NormalizedTiming<'take-audio-ms'> | undefined
+    providerGenerationId?: string | undefined
+    warnings?: readonly string[] | undefined
   }) => Promise<void>
   complete: (request: { chunkIndex: number }) => Promise<void>
 }>
@@ -208,11 +236,13 @@ export type HostedTtsBatchCoordinator = HostedTtsChunkScheduler & {
 }
 
 export type TtsTarget = ProviderTargetBase<TtsProvider> & {
-  operation?: 'tts-synthesis' | undefined
+  operation?: 'tts-synthesis' | 'comic-audio' | undefined
   targetKey?: string | undefined
   transport?: string | undefined
   protectedVoiceAsset?: ProtectedAssetRef | undefined
   protectedSpeakerVoiceAssets?: Readonly<Record<string, ProtectedAssetRef>> | undefined
+  /** Stable IDs inspected read-only at the all-target execution-readiness barrier. */
+  readinessVoiceIds?: readonly string[] | undefined
   voice?: string
   multiSpeakerStrategy?: MultiSpeakerStrategy
   setupCostCents?: number | undefined

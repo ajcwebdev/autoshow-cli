@@ -1,4 +1,5 @@
-import { boolFlag, strFlag, withHelpGroup } from './flag-utils'
+import { boolFlag, pickFlags, strFlag, strListFlag, withHelpGroup } from './flag-utils'
+import { ttsCommandFlags } from './tts-flags'
 import { colorizeHelpDescription } from '~/cli/help-colors'
 import {
   DEFAULT_LLM_MODEL,
@@ -85,6 +86,30 @@ export const generateImagesFlags = {
   ...withHelpGroup(generateImagesForceFlag, 'comic-run'),
   ...withHelpGroup(comicConcurrencyFlag, 'comic-run'),
   ...withHelpGroup(comicPriceFlag, 'pricing')
+} as const satisfies CliFlagsDefinition
+
+const comicAudioSelectionFlags = pickFlags(ttsCommandFlags, [
+  'provider',
+  'all-providers',
+  'all-local',
+  'provider-concurrency',
+  'local-concurrency',
+  'tts-chunk-concurrency',
+])
+
+const comicAudioContractFlags = {
+  profile: strFlag(colorizeHelpDescription('Approved casting profile key (default: default)')),
+  mode: strFlag(colorizeHelpDescription('Render strategy: auto|native|segmented (default: auto)')),
+  role: strListFlag(colorizeHelpDescription('Map an uncatalogued or compound speaker label to a logical voice subject, LABEL=role:key or LABEL=voice:key; repeatable')),
+  'sample-rate': strFlag(colorizeHelpDescription('Final WAV sample rate in Hz (default: 48000)')),
+  channels: strFlag(colorizeHelpDescription('Final channel count: 1|2 (default: 2)')),
+  codec: strFlag(colorizeHelpDescription('Final PCM codec: pcm_s16le|pcm_s24le (default: pcm_s24le)')),
+} as const satisfies CliFlagsDefinition
+
+export const comicGenerateAudioFlags = {
+  ...withHelpGroup(comicAudioSelectionFlags, 'provider-selection'),
+  ...withHelpGroup(comicAudioContractFlags, 'comic-audio'),
+  ...withHelpGroup(comicPriceFlag, 'pricing'),
 } as const satisfies CliFlagsDefinition
 
 const referenceSketchSheetFlags = {
