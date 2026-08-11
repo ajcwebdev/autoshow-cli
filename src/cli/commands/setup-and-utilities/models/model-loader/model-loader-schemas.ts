@@ -129,6 +129,9 @@ const TtsModelSchema = v.strictObject({
 const TtsServiceSchema = v.object({
   description: v.string(),
   type: v.picklist(['local', 'api']),
+  catalogSourceUrl: v.optional(v.string(), undefined),
+  catalogCheckedAt: v.optional(v.string(), undefined),
+  catalogNotes: v.optional(v.string(), undefined),
   voices: v.optional(v.array(v.string()), undefined),
   models: v.record(v.string(), TtsModelSchema)
 })

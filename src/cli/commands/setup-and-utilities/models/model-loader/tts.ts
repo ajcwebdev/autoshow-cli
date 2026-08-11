@@ -61,3 +61,11 @@ export const getGroqTtsVoices = (): readonly string[] => {
 export const getGrokTtsVoices = (): readonly string[] => {
   return getModelRegistry().tts['grok']?.voices ?? []
 }
+
+export const getOpenAITtsVoices = (): readonly string[] => {
+  return getModelRegistry().tts['openai']?.voices ?? []
+}
+
+export const getGeminiTtsVoices = (): readonly string[] => {
+  return getModelRegistry().tts['gemini']?.voices ?? []
+}

@@ -4,20 +4,25 @@ import { finalizeTtsRun } from '~/cli/commands/process-steps/step-4-tts/tts-util
 import { classifyHostedTtsRetry, withHostedTtsRetry } from '~/cli/commands/process-steps/step-4-tts/tts-utils/hosted-tts-retry'
 import { logTtsConfig } from '~/cli/commands/process-steps/step-4-tts/tts-utils/log-tts-config'
 import { TTS_CHUNK_CHARACTER_LIMITS } from '~/cli/commands/process-steps/step-4-tts/tts-utils/tts-chunking'
-import { GEMINI_DEFAULT_TTS_VOICE } from '~/cli/commands/setup-and-utilities/models/setup-model-options'
-import type { GeminiInlineAudioInfo, GeminiTtsModel, HostedTtsChunkScheduler, SpeakerVoiceRegistry, Step4Metadata } from '~/types'
+import { GEMINI_DEFAULT_TTS_VOICE, validateGeminiTtsVoice } from '~/cli/commands/setup-and-utilities/models/setup-model-options'
+import type { GeminiInlineAudioInfo, GeminiTtsModel, HostedTtsChunkScheduler, SpeakerVoiceRegistry, Step4Metadata, TtsRequestEvidenceScope } from '~/types'
 import { exec } from '~/utils/cli-utils'
 import { getFfmpegBinary } from '~/utils/runtime-paths'
 import { geminiGenerateContent } from '~/utils/gemini/gemini-rest'
 import { requireApiKey } from '~/utils/validate/env-utils'
 import { InfraError, ValidationError } from '~/utils/error-handler'
+import { dispatchTtsProviderRequest } from '../../script-to-audio/tts-request-evidence'
 import {
 buildGeminiSpeakerVoiceConfigs,
 formatSpeakerRegistrySummary,
+splitGeminiNativeDialogueText,
 validateGeminiMultiSpeakerTranscriptFromRegistry
 } from './gemini-tts-config'
 
 const classifyGeminiTtsRetry = (error: unknown) => {
+  if (error instanceof Error && (error as Error & { ttsAdmissionAmbiguous?: boolean }).ttsAdmissionAmbiguous === true) {
+    return { shouldRetry: false, delayMs: 0, reason: 'provider admission outcome is ambiguous' }
+  }
   const hostedDecision = classifyHostedTtsRetry(error)
   return hostedDecision.shouldRetry ? hostedDecision : classifyGeminiRetry(error)
 }
@@ -51,16 +56,21 @@ export const runGeminiTts = async (
     model: GeminiTtsModel
     voiceId?: string | undefined
     speakerVoiceRegistry?: SpeakerVoiceRegistry | undefined
+    languageCode?: string | undefined
+    abortSignal?: AbortSignal | undefined
     chunkConcurrency?: number | undefined
     chunkScheduler?: HostedTtsChunkScheduler | undefined
+    requestEvidence?: TtsRequestEvidenceScope | undefined
   }
 ): Promise<{ audioPath: string, metadata: Step4Metadata }> => {
   const registry = options.speakerVoiceRegistry
   const isMultiSpeaker = Boolean(registry)
   const voiceId = isMultiSpeaker
     ? undefined
-    : options.voiceId?.trim() || GEMINI_DEFAULT_TTS_VOICE
-  const chunks = splitTextIntoChunks(text, TTS_CHUNK_CHARACTER_LIMITS.gemini)
+    : validateGeminiTtsVoice(options.voiceId?.trim() || GEMINI_DEFAULT_TTS_VOICE)
+  const chunks = registry
+    ? splitGeminiNativeDialogueText(text, registry, TTS_CHUNK_CHARACTER_LIMITS.gemini)
+    : splitTextIntoChunks(text, TTS_CHUNK_CHARACTER_LIMITS.gemini)
   if (chunks.length === 0) {
     throw ValidationError('Gemini TTS input text is empty', { stage: 'tts:gemini' })
   }
@@ -95,38 +105,45 @@ export const runGeminiTts = async (
   try {
     const chunkPathGroups = await runTtsChunks(chunks, options.chunkConcurrency, async (chunk, index) => {
       const chunkIndex = index + 1
+      const speakerVoiceConfigs = registry ? buildGeminiSpeakerVoiceConfigs(registry) : undefined
+      const generationConfig = {
+        responseModalities: ['AUDIO'],
+        speechConfig: {
+          ...(options.languageCode ? { languageCode: options.languageCode } : {}),
+          ...(speakerVoiceConfigs
+            ? { multiSpeakerVoiceConfig: { speakerVoiceConfigs } }
+            : { voiceConfig: { prebuiltVoiceConfig: { voiceName: voiceId as string } } })
+        }
+      }
       const response = await withHostedTtsRetry(
         {
           operationName: `gemini-tts-chunk-${chunkIndex}`,
+          abortSignal: options.abortSignal,
           classifier: classifyGeminiTtsRetry,
           ttsProvider: 'gemini',
           chunkScheduler: options.chunkScheduler
         },
-        async (signal) => {
-          return await geminiGenerateContent(apiKey, {
+        async (signal, requestAttempt) => await dispatchTtsProviderRequest(options.requestEvidence, {
+          chunkIndex,
+          endpointKind: 'generate-content-audio',
+          serializerVersion: 'gemini.tts.phase-0-v1',
+          serializedRequest: { model: options.model, contents: chunk, generationConfig },
+          providerText: chunk,
+          voiceField: registry ? 'speechConfig.multiSpeakerVoiceConfig' : 'speechConfig.voiceConfig',
+          voices: speakerVoiceConfigs
+            ? speakerVoiceConfigs.map((entry) => ({ kind: 'provider-id' as const, value: entry.voiceConfig.prebuiltVoiceConfig.voiceName, speaker: entry.speaker }))
+            : [{ kind: 'provider-id' as const, value: voiceId as string }],
+          requestControls: {
+            responseModalities: generationConfig.responseModalities,
+            ...(options.languageCode ? { languageCode: options.languageCode } : {})
+          },
+          continuation: { kind: 'none' }
+        }, requestAttempt, async () => await geminiGenerateContent(apiKey, {
             model: options.model,
             contents: chunk,
-            generationConfig: {
-              responseModalities: ['AUDIO'],
-              speechConfig: {
-                ...(registry
-                  ? {
-                      multiSpeakerVoiceConfig: {
-                        speakerVoiceConfigs: buildGeminiSpeakerVoiceConfigs(registry)
-                      }
-                    }
-                  : {
-                      voiceConfig: {
-                        prebuiltVoiceConfig: {
-                          voiceName: voiceId as string
-                        }
-                      }
-                    })
-              }
-            },
+            generationConfig,
             abortSignal: signal
-          })
-        }
+          }))
       )
 
       const pathsForChunk: string[] = []
@@ -176,7 +193,7 @@ export const runGeminiTts = async (
               wavChunkPath
             ]
 
-        const ffmpeg = await exec(getFfmpegBinary(), ffmpegArgs)
+        const ffmpeg = await exec(getFfmpegBinary(), ffmpegArgs, { signal: options.abortSignal })
         if (ffmpeg.exitCode !== 0) {
           throw InfraError(`Failed to convert Gemini audio chunk to WAV: ${ffmpeg.stderr.trim()}`, { stage: 'tts:gemini' })
         }
@@ -184,16 +201,18 @@ export const runGeminiTts = async (
         await Bun.$`rm -f ${rawPath}`.quiet().nothrow()
         pathsForChunk.push(wavChunkPath)
         chunkPaths.push(wavChunkPath)
+        await options.requestEvidence?.recordOutput({ chunkIndex, outputIndex: audioPartIndex, path: wavChunkPath })
       }
+      if (pathsForChunk.length > 0) await options.requestEvidence?.complete({ chunkIndex })
       return pathsForChunk
-    }, { provider: 'gemini', scheduler: options.chunkScheduler })
+    }, { provider: 'gemini', scheduler: options.chunkScheduler, abortSignal: options.abortSignal })
     const orderedChunkPaths = chunkPathGroups.flat()
 
     if (orderedChunkPaths.length === 0) {
       throw InfraError('Gemini TTS returned no audio data', { stage: 'tts:gemini' })
     }
 
-    const audioPath = await concatAndConvertToWav(orderedChunkPaths, outputDir, 'Gemini')
+    const audioPath = await concatAndConvertToWav(orderedChunkPaths, outputDir, 'Gemini', options.abortSignal)
     return finalizeTtsRun({
       service: 'gemini',
       model: options.model,

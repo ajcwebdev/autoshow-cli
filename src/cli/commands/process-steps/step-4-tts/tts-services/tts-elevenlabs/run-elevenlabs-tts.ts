@@ -4,12 +4,12 @@ import { runHostedTtsChunkPipeline } from '~/cli/commands/process-steps/step-4-t
 import { logTtsConfig } from '~/cli/commands/process-steps/step-4-tts/tts-utils/log-tts-config'
 import { resolveTtsChunkCharacterLimit } from '~/cli/commands/process-steps/step-4-tts/tts-utils/tts-chunking'
 import { ELEVENLABS_DEFAULT_VOICE_ID } from '~/cli/commands/setup-and-utilities/models/setup-model-options'
-import type { ElevenLabsTtsIvcOptions, ElevenlabsTtsModel, ElevenLabsTtsRequestControls, ElevenLabsTtsVoiceSettings, HostedTtsChunkScheduler, Step4Metadata } from '~/types'
+import type { ElevenlabsTtsModel, ElevenLabsTtsRequestControls, ElevenLabsTtsVoiceSettings, HostedTtsChunkScheduler, Step4Metadata, TtsRequestEvidenceScope } from '~/types'
 import { ELEVENLABS_DEFAULT_BASE_URL } from '~/utils/base-urls'
 import { requireApiKey } from '~/utils/validate/env-utils'
 import { ValidationError } from '~/utils/error-handler'
-import { ensureElevenLabsTtsIvcVoice } from './elevenlabs-ivc'
 import { httpResponseError } from '~/utils/rest-client'
+import { dispatchTtsProviderRequest } from '../../script-to-audio/tts-request-evidence'
 
 const parsePronunciationDictionaryLocator = (
   value: string
@@ -35,10 +35,11 @@ export const runElevenLabsTts = async (
   options: {
     model: ElevenlabsTtsModel
     voiceId?: string | undefined
-    clone?: ElevenLabsTtsIvcOptions | undefined
     controls?: ElevenLabsTtsRequestControls | undefined
+    abortSignal?: AbortSignal | undefined
     chunkConcurrency?: number | undefined
     chunkScheduler?: HostedTtsChunkScheduler | undefined
+    requestEvidence?: TtsRequestEvidenceScope | undefined
   }
 ): Promise<{ audioPath: string, metadata: Step4Metadata }> => {
   const apiKey = requireApiKey('ELEVENLABS_API_KEY', 'tts:elevenlabs', 'ElevenLabs TTS')
@@ -50,29 +51,20 @@ export const runElevenLabsTts = async (
   }
 
   const startTime = Date.now()
-  const cloneResult = options.clone
-    ? await ensureElevenLabsTtsIvcVoice(baseURL, apiKey, options.clone)
-    : undefined
-  const voiceId = cloneResult?.voiceId ?? options.voiceId?.trim() ?? ELEVENLABS_DEFAULT_VOICE_ID
+  const voiceId = options.voiceId?.trim() ?? ELEVENLABS_DEFAULT_VOICE_ID
   const outputFormat = options.controls?.outputFormat?.trim() || 'mp3_44100_128'
   const languageCode = options.controls?.languageCode?.trim() || undefined
   const pronunciationDictionaryLocators = options.controls?.pronunciationDictionaryLocators
     ?.map((item) => item.trim())
     .filter(Boolean)
     .map(parsePronunciationDictionaryLocator)
-  const speaker = cloneResult
-    ? `ref_audio:${cloneResult.sourceAudio.basename}`
-    : voiceId
+  const speaker = voiceId
 
   logTtsConfig('ElevenLabs', [
     { label: 'model', value: options.model },
-    {
-      label: cloneResult ? 'reference audio' : 'voice',
-      value: cloneResult ? cloneResult.sourceAudio.basename : voiceId
-    },
+    { label: 'voice', value: voiceId },
     { label: 'output format', value: outputFormat },
     { label: 'language', value: languageCode },
-    ...(cloneResult ? [{ label: 'cloned voice_id', value: cloneResult.voiceId }] : []),
     { label: 'chunk count', value: chunks.length }
   ])
 
@@ -85,10 +77,11 @@ export const runElevenLabsTts = async (
     outputDir,
     chunkExtension: 'mp3',
     startTime,
+    abortSignal: options.abortSignal,
     chunkConcurrency: options.chunkConcurrency,
     chunkScheduler: options.chunkScheduler,
-    ...(cloneResult ? { extraMetadata: { clonedVoiceId: cloneResult.voiceId, cloneCostCents: 0 } } : {}),
-    fetchChunkAudio: async ({ chunk, signal }) => {
+    requestEvidence: options.requestEvidence,
+    fetchChunkAudio: async ({ chunk, chunkIndex, signal, requestAttempt, retryReasonCode }) => {
       const params = new URLSearchParams({ output_format: outputFormat })
       if (typeof options.controls?.optimizeStreamingLatency === 'number') {
         params.set('optimize_streaming_latency', String(options.controls.optimizeStreamingLatency))
@@ -105,7 +98,34 @@ export const runElevenLabsTts = async (
           ? { pronunciation_dictionary_locators: pronunciationDictionaryLocators }
           : {}),
       }
-      const response = await fetch(`${baseURL}/text-to-speech/${encodeURIComponent(voiceId)}?${params.toString()}`, {
+      return await dispatchTtsProviderRequest(options.requestEvidence, {
+        chunkIndex,
+        endpointKind: 'speech-synthesis',
+        serializerVersion: 'elevenlabs.tts.phase-0-v1',
+        serializedRequest: {
+          path: `/text-to-speech/${encodeURIComponent(voiceId)}`,
+          query: Object.fromEntries(params),
+          body: requestBody
+        },
+        providerText: chunk,
+        voiceField: 'path.voice_id',
+        voices: [{ kind: 'provider-id', value: voiceId }],
+        requestControls: {
+          outputFormat,
+          ...(languageCode ? { languageCode } : {}),
+          ...(hasVoiceSettings(voiceSettings) ? { voiceSettings } : {}),
+          ...(typeof options.controls?.seed === 'number' ? { seed: options.controls.seed } : {}),
+          ...(options.controls?.textNormalization ? { textNormalization: options.controls.textNormalization } : {}),
+          ...(pronunciationDictionaryLocators && pronunciationDictionaryLocators.length > 0
+            ? { pronunciationDictionaryLocators }
+            : {}),
+          ...(typeof options.controls?.optimizeStreamingLatency === 'number'
+            ? { optimizeStreamingLatency: options.controls.optimizeStreamingLatency }
+            : {})
+        },
+        continuation: { kind: 'none' }
+      }, { attempt: requestAttempt, ...(retryReasonCode ? { retryReasonCode } : {}) }, async ({ accepted }) => {
+        const response = await fetch(`${baseURL}/text-to-speech/${encodeURIComponent(voiceId)}?${params.toString()}`, {
         method: 'POST',
         headers: {
           'xi-api-key': apiKey,
@@ -120,8 +140,9 @@ export const runElevenLabsTts = async (
         const errText = await readElevenLabsError(response)
         throw httpResponseError(`ElevenLabs TTS failed (${response.status}): ${errText}`, response)
       }
-
+      await accepted({ fields: { httpStatus: response.status } })
       return new Uint8Array(await response.arrayBuffer())
+      })
     }
   })
 }

@@ -1,73 +1,64 @@
-import { basename } from 'node:path'
 import type { ElevenlabsTtsModel, TtsTarget, TtsTargetSelection } from '~/types'
 import { validateElevenlabsTtsModel } from '~/cli/commands/setup-and-utilities/models/setup-model-options'
 import { ensureElevenLabsTtsSetup } from './elevenlabs-tts'
 import { runElevenLabsTts } from './run-elevenlabs-tts'
-import {
-  createElevenLabsTtsIvcContext,
-  ELEVENLABS_TTS_IVC_COST_CENTS,
-  ELEVENLABS_TTS_IVC_SETUP_MS,
-  ELEVENLABS_TTS_IVC_SETUP_NOTE
-} from './elevenlabs-ivc'
+import { resolveTtsTargetInvocationVoiceId } from '../../tts-targets/multi-speaker-capability'
+import { resolveTtsTargetInvocationControls } from '../../tts-targets/tts-invocation-controls'
 export const collectElevenLabsTtsTargets = (
   selection: TtsTargetSelection
 ): TtsTarget[] => {
   const targets: TtsTarget[] = []
-  const elevenLabsCloneContext = selection.elevenLabsCloneRefAudioPath ? createElevenLabsTtsIvcContext() : undefined
-  let elevenLabsCloneEstimateAttached = false
 
   for (const rawModel of selection.elevenlabsModels) {
     const model: ElevenlabsTtsModel = validateElevenlabsTtsModel(rawModel)
     const voiceId = selection.elevenLabsVoiceId
-    const clone = selection.elevenLabsCloneRefAudioPath
-      ? {
-          refAudioPath: selection.elevenLabsCloneRefAudioPath,
-          ...(selection.elevenLabsCloneVoiceName ? { voiceName: selection.elevenLabsCloneVoiceName } : {}),
-          removeBackgroundNoise: selection.elevenLabsCloneRemoveBackgroundNoise,
-          context: elevenLabsCloneContext
-        }
-      : undefined
-    const attachCloneEstimate = clone !== undefined && !elevenLabsCloneEstimateAttached
-    if (attachCloneEstimate) {
-      elevenLabsCloneEstimateAttached = true
-    }
 
     targets.push({
       service: 'elevenlabs',
       model,
-      ...(clone
-        ? { voice: `ref_audio:${basename(clone.refAudioPath)}` }
-        : voiceId ? { voice: voiceId } : {}),
-      ...(attachCloneEstimate
-        ? {
-            setupCostCents: ELEVENLABS_TTS_IVC_COST_CENTS,
-            setupTimeMs: ELEVENLABS_TTS_IVC_SETUP_MS,
-            setupNote: ELEVENLABS_TTS_IVC_SETUP_NOTE
-          }
-        : {}),
-      run: async (text, outputDir, opts) => {
+      ...(voiceId ? { voice: voiceId } : {}),
+      run: async (text, outputDir, opts, invocation, requestEvidence) => {
+        invocation?.signal?.throwIfAborted()
+        const invocationVoiceId = resolveTtsTargetInvocationVoiceId('elevenlabs', invocation)
+        const controls = resolveTtsTargetInvocationControls('elevenlabs', invocation, {
+          outputFormat: selection.elevenLabsOutputFormat,
+          languageCode: selection.elevenLabsLanguageCode,
+          stability: selection.elevenLabsStability,
+          similarityBoost: selection.elevenLabsSimilarityBoost,
+          style: selection.elevenLabsStyle,
+          ...(selection.elevenLabsUseSpeakerBoost ? { useSpeakerBoost: true } : {}),
+          speed: selection.elevenLabsSpeed,
+          seed: selection.elevenLabsSeed,
+          textNormalization: selection.elevenLabsTextNormalization,
+          pronunciationDictionaryLocators: selection.elevenLabsPronunciationDictionaryLocators,
+          optimizeStreamingLatency: selection.elevenLabsOptimizeStreamingLatency,
+        })
         await ensureElevenLabsTtsSetup()
+        invocation?.signal?.throwIfAborted()
         return await runElevenLabsTts(text, outputDir, {
           model,
-          voiceId,
-          clone,
+          voiceId: invocationVoiceId ?? voiceId,
           controls: {
-            outputFormat: selection.elevenLabsOutputFormat,
-            languageCode: selection.elevenLabsLanguageCode,
+            outputFormat: controls.outputFormat,
+            languageCode: controls.languageCode,
             voiceSettings: {
-              stability: selection.elevenLabsStability,
-              similarity_boost: selection.elevenLabsSimilarityBoost,
-              style: selection.elevenLabsStyle,
-              ...(selection.elevenLabsUseSpeakerBoost ? { use_speaker_boost: true } : {}),
-              speed: selection.elevenLabsSpeed
+              ...(typeof controls.stability === 'number' ? { stability: controls.stability } : {}),
+              ...(typeof controls.similarityBoost === 'number' ? { similarity_boost: controls.similarityBoost } : {}),
+              ...(typeof controls.style === 'number' ? { style: controls.style } : {}),
+              ...(typeof controls.useSpeakerBoost === 'boolean' ? { use_speaker_boost: controls.useSpeakerBoost } : {}),
+              ...(typeof controls.speed === 'number' ? { speed: controls.speed } : {})
             },
-            seed: selection.elevenLabsSeed,
-            textNormalization: selection.elevenLabsTextNormalization,
-            pronunciationDictionaryLocators: selection.elevenLabsPronunciationDictionaryLocators,
-            optimizeStreamingLatency: selection.elevenLabsOptimizeStreamingLatency
+            seed: controls.seed,
+            textNormalization: controls.textNormalization,
+            pronunciationDictionaryLocators: controls.pronunciationDictionaryLocators
+              ? [...controls.pronunciationDictionaryLocators]
+              : undefined,
+            optimizeStreamingLatency: controls.optimizeStreamingLatency
           },
           chunkConcurrency: opts.ttsChunkConcurrency,
-          chunkScheduler: opts.hostedTtsChunkScheduler
+          chunkScheduler: opts.hostedTtsChunkScheduler,
+          abortSignal: invocation?.signal,
+          requestEvidence
         })
       }
     })

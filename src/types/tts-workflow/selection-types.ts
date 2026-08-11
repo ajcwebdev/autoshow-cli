@@ -31,9 +31,6 @@ export type TtsTargetSelection = {
   deepgramBitRate: number | undefined
   deepgramSampleRate: number | undefined
   deepgramSpeed: number | undefined
-  elevenLabsCloneRefAudioPath: string | undefined
-  elevenLabsCloneVoiceName: string | undefined
-  elevenLabsCloneRemoveBackgroundNoise: boolean
   elevenLabsVoiceId: string | undefined
   elevenLabsOutputFormat: string | undefined
   elevenLabsLanguageCode: string | undefined
@@ -46,12 +43,6 @@ export type TtsTargetSelection = {
   elevenLabsTextNormalization: string | undefined
   elevenLabsPronunciationDictionaryLocators: string[] | undefined
   elevenLabsOptimizeStreamingLatency: number | undefined
-  speechifyCustomVoiceRefAudioPath: string | undefined
-  speechifyCustomVoiceName: string | undefined
-  speechifyCustomVoiceConsentName: string | undefined
-  speechifyCustomVoiceConsentEmail: string | undefined
-  speechifyCustomVoiceLocale: string | undefined
-  speechifyCustomVoiceGender: string | undefined
   speechifyVoiceId: string | undefined
   speechifyAudioFormat: string | undefined
   speechifyLanguage: string | undefined
@@ -64,12 +55,7 @@ export type TtsTargetSelection = {
   grokLanguage: string | undefined
   grokTextNormalization: boolean
   mistralVoiceId: string | undefined
-  mistralRefAudioPath: string | undefined
-  mistralVoiceName: string | undefined
   geminiVoiceId: string | undefined
   deepgramVoiceId: string | undefined
-  hasElevenLabsCloneFlags: boolean
-  hasSpeechifyCustomVoiceFlags: boolean
-  hasElevenLabsVoiceNameOnly: boolean
   dialogueRequested: boolean
 }

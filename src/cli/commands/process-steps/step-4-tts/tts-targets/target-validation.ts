@@ -5,8 +5,8 @@ import {
   validateGroqTtsVoice
 } from '~/cli/commands/setup-and-utilities/models/setup-model-options'
 import { resolveDialogueFormat } from '../dialogue-normalizer'
-import { validateSpeechifyTtsCustomVoiceGender } from '../tts-services/speechify/speechify-custom-voices'
-import { getMultiSpeakerStrategy, supportsRefAudioMultiSpeaker } from './multi-speaker-capability'
+import { getMultiSpeakerStrategy } from './multi-speaker-capability'
+import { getMistralProtectedSpeakerReferences } from '../voice-assets/mistral-protected-reference-binding'
 
 const requireProviderSelectionMessage = (
   label: string,
@@ -46,6 +46,12 @@ export const validateTtsTargetSelection = (
     if (selectedProviders.length === 0) {
       throw CLIUsageError('Multi-speaker TTS requires at least one TTS provider.')
     }
+    if (selectedProviders.length !== 1) {
+      throw CLIUsageError(
+        'The current --tts-speaker SPEAKER=VOICE mapping is provider-specific and requires exactly one TTS provider. '
+        + 'Run providers separately or use a provider-qualified cast record so voice identifiers cannot cross provider namespaces.'
+      )
+    }
 
     const hasCapable = selectedProviders.some((p) => getMultiSpeakerStrategy(p.provider) !== undefined)
     if (!hasCapable) {
@@ -54,13 +60,27 @@ export const validateTtsTargetSelection = (
 
     const refAudioSpeakers = registry.entries.filter((e) => e.voiceKind === 'ref-audio')
     if (refAudioSpeakers.length > 0) {
-      for (const { provider, models } of selectedProviders) {
-        if (models.length > 0 && !supportsRefAudioMultiSpeaker(provider)) {
-          throw CLIUsageError(
-            `Provider ${provider} does not support reference audio for multi-speaker TTS. `
-            + `Use voice IDs instead of file paths in --tts-speaker mappings, or remove ${provider}.`
-          )
-        }
+      const selected = selectedProviders[0]
+      if (selected?.provider !== 'mistral') {
+        throw CLIUsageError(
+          `--tts-speaker SPEAKER=path is supported only by one explicitly selected Mistral TTS target, not ${selected?.provider ?? 'the selected provider'}.`,
+          'Use existing provider voice IDs for this target, or run standalone `tts` with one Mistral provider and explicit reference paths.'
+        )
+      }
+      const protectedReferences = getMistralProtectedSpeakerReferences(options)
+      const protectedBySpeaker = new Map(protectedReferences?.entries.map((entry) => [entry.speakerKey, entry]) ?? [])
+      if (
+        !protectedReferences
+        || protectedBySpeaker.size !== refAudioSpeakers.length
+        || refAudioSpeakers.some((entry) => {
+          const protectedReference = protectedBySpeaker.get(entry.normalizedSpeaker)
+          return !protectedReference || entry.voice !== `ref_audio:${protectedReference.protectedAsset.assetId}`
+        })
+      ) {
+        throw CLIUsageError(
+          'Mistral dialogue reference paths must cross protected ingestion as exact per-speaker opaque assets before target collection.',
+          'Pass every SPEAKER=path mapping explicitly to standalone `tts`; config, inherited paths, and copied runtime options are not authorized.'
+        )
       }
     }
   }
@@ -115,19 +135,6 @@ export const validateTtsTargetSelection = (
     throw CLIUsageError(requireProviderSelectionMessage('Deepgram TTS', 'deepgram', 'request control flags'))
   }
 
-  if (selection.mistralVoiceName && selection.mistralModels.length === 0) {
-    throw CLIUsageError(requireProviderSelectionMessage('Mistral TTS', 'mistral', 'saved voice creation'))
-  }
-  if (selection.mistralVoiceName && !selection.mistralRefAudioPath) {
-    throw CLIUsageError('Mistral TTS --mistral-tts-voice-name requires --mistral-tts-ref-audio.')
-  }
-  if (selection.mistralVoiceName && selection.mistralVoiceId) {
-    throw CLIUsageError('Mistral TTS saved voice creation cannot be combined with --mistral-tts-voice.')
-  }
-
-  if (selection.hasElevenLabsCloneFlags && selection.elevenlabsModels.length === 0) {
-    throw CLIUsageError(requireProviderSelectionMessage('ElevenLabs TTS', 'elevenlabs', 'IVC flags'))
-  }
   const hasElevenLabsRequestControlFlags = Boolean(
     selection.elevenLabsOutputFormat
     || selection.elevenLabsLanguageCode
@@ -144,39 +151,8 @@ export const validateTtsTargetSelection = (
   if (hasElevenLabsRequestControlFlags && selection.elevenlabsModels.length === 0) {
     throw CLIUsageError(requireProviderSelectionMessage('ElevenLabs TTS', 'elevenlabs', 'request control flags'))
   }
-  if (selection.hasElevenLabsCloneFlags && !selection.elevenLabsCloneRefAudioPath) {
-    throw CLIUsageError('ElevenLabs TTS IVC creation requires --elevenlabs-tts-ref-audio.')
-  }
-  if (selection.hasElevenLabsCloneFlags && selection.elevenLabsVoiceId) {
-    throw CLIUsageError('ElevenLabs TTS IVC creation cannot be combined with --elevenlabs-voice. Use --elevenlabs-tts-voice-name for the created voice label.')
-  }
-  if (selection.hasElevenLabsVoiceNameOnly) {
-    throw CLIUsageError('ElevenLabs TTS --elevenlabs-tts-voice-name requires --elevenlabs-tts-ref-audio.')
-  }
-
-  if (selection.hasSpeechifyCustomVoiceFlags && selection.speechifyModels.length === 0) {
-    throw CLIUsageError(requireProviderSelectionMessage('Speechify TTS', 'speechify', 'custom voice flags'))
-  }
-  if (selection.hasSpeechifyCustomVoiceFlags && selection.speechifyModels.includes('simba-3.2')) {
-    throw CLIUsageError('Speechify simba-3.2 does not support immediate custom-voice creation because each clone requires prior manual approval. Use simba-3.0 for self-serve cloning or pass an already approved voice ID.')
-  }
   if ((selection.speechifyAudioFormat || selection.speechifyLanguage) && selection.speechifyModels.length === 0) {
     throw CLIUsageError(requireProviderSelectionMessage('Speechify TTS', 'speechify', 'request control flags'))
-  }
-  if (selection.hasSpeechifyCustomVoiceFlags && !selection.speechifyCustomVoiceRefAudioPath) {
-    throw CLIUsageError('Speechify TTS custom voice creation requires --speechify-tts-ref-audio.')
-  }
-  if (selection.hasSpeechifyCustomVoiceFlags && selection.speechifyVoiceId) {
-    throw CLIUsageError('Speechify TTS custom voice creation cannot be combined with --speechify-voice. Use --speechify-tts-voice-name for the created voice label.')
-  }
-  if (selection.speechifyCustomVoiceRefAudioPath && !selection.speechifyCustomVoiceConsentName) {
-    throw CLIUsageError('Speechify TTS custom voice creation requires --speechify-tts-consent-name.')
-  }
-  if (selection.speechifyCustomVoiceRefAudioPath && !selection.speechifyCustomVoiceConsentEmail) {
-    throw CLIUsageError('Speechify TTS custom voice creation requires --speechify-tts-consent-email.')
-  }
-  if (selection.speechifyCustomVoiceGender) {
-    validateSpeechifyTtsCustomVoiceGender(selection.speechifyCustomVoiceGender)
   }
 
   if ((selection.humeVoice || selection.humeVoiceProvider) && selection.humeModels.length === 0) {

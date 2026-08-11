@@ -17,6 +17,37 @@ const makeTempRoot = async (prefix: string): Promise<string> => {
   return root
 }
 
+const writeLegacyTtsManifestFixture = async (
+  runDir: string,
+  metadata: Record<string, unknown>
+): Promise<void> => {
+  const at = new Date(0).toISOString()
+  await writeFile(join(runDir, 'manifest.json'), `${JSON.stringify({
+    command: 'tts',
+    scope: 'single',
+    createdAt: at,
+    updatedAt: at,
+    items: [{
+      status: 'full',
+      metadata,
+      providers: [{
+        service: 'kitten',
+        model: 'kitten-tts-nano',
+        local: true,
+        artifactDir: '.',
+        status: 'succeeded',
+        attempts: 1,
+        options: {},
+        metadata: {
+          audioFileName: 'speech.wav',
+          audioFileSize: 10,
+          processingTime: 100
+        }
+      }]
+    }]
+  }, null, 2)}\n`)
+}
+
 afterEach(async () => {
   await Promise.all(repoFixtureFiles.splice(0).map((path) => rm(path, { force: true })))
   await Promise.all(repoFixtureDirs.splice(0).map((dir) => rm(dir, { recursive: true, force: true })))
@@ -98,7 +129,7 @@ test('benchmark --tts rejects canonical manifests for another command', async ()
 
 test('benchmark --tts rejects missing source text without override', async () => {
   const runDir = await makeTempRoot('autoshow-tts-benchmark-text-')
-  await writeSingleManifestFixture(runDir, 'tts', {
+  await writeLegacyTtsManifestFixture(runDir, {
     tts: [{
       ttsService: 'kitten',
       ttsModel: 'kitten-tts-nano',
@@ -127,7 +158,7 @@ test('benchmark --image rejects missing image run directory', async () => {
 
 test('benchmark --image rejects canonical manifests for another command', async () => {
   const runDir = await makeTempRoot('autoshow-image-benchmark-kind-')
-  await writeSingleManifestFixture(runDir, 'tts', {})
+  await writeSingleManifestFixture(runDir, 'extract', {}, { extractRoute: 'media' })
 
   await expectUsageExit(
     ['benchmark', runDir, '--image'],
@@ -158,7 +189,7 @@ test('benchmark --text rejects missing write run directory', async () => {
 
 test('benchmark --text rejects canonical manifests for another command', async () => {
   const runDir = await makeTempRoot('autoshow-text-benchmark-kind-')
-  await writeSingleManifestFixture(runDir, 'tts', {})
+  await writeSingleManifestFixture(runDir, 'extract', {}, { extractRoute: 'media' })
 
   await expectUsageExit(
     ['benchmark', runDir, '--text'],
@@ -472,10 +503,17 @@ test('tts rejects --tts-voice combined with dialogue flags', async () => {
 })
 
 test('tts rejects reference audio and saved voice names combined with dialogue flags', async () => {
-  const expectedMessage = 'Voice identity options such as --tts-ref-audio and --tts-voice-name cannot be combined with --tts-speaker/--tts-dialogue-format; per-speaker voices come from --tts-speaker mappings.'
-  for (const [flag, value] of [
-    ['--tts-ref-audio', 'input/examples/audio/anthony-voice.mp3'],
-    ['--tts-voice-name', 'AutoShowVoice']
+  for (const [flag, value, expectedMessage] of [
+    [
+      '--tts-ref-audio',
+      'input/examples/audio/anthony-voice.mp3',
+      'Voice identity options such as --tts-ref-audio and --tts-voice-name cannot be combined with --tts-speaker/--tts-dialogue-format; per-speaker voices come from --tts-speaker mappings.'
+    ],
+    [
+      '--tts-voice-name',
+      'AutoShowVoice',
+      'Explicit synthesis option --mistral-tts-voice-name cannot perform named saved-reference creation during TTS synthesis.'
+    ]
   ] as const) {
     await expectUsageExit(
       ['tts', 'input/examples/tts/1-tts.md', '--provider', 'mistral=voxtral-mini-tts-2603', flag, value, '--tts-dialogue-format', 'labeled', '--tts-speaker', 'Host=Jasper', '--price'],
@@ -487,17 +525,17 @@ test('tts rejects reference audio and saved voice names combined with dialogue f
 test('write rejects explicit TTS voice identity combined with dialogue flags', async () => {
   await expectUsageExit(
     ['write', 'input/examples/tts/1-tts.md', '--tts', 'mistral=voxtral-mini-tts-2603', '--tts-ref-audio', 'input/examples/audio/anthony-voice.mp3', '--tts-dialogue-format', 'labeled', '--tts-speaker', 'Host=Jasper', '--price'],
-    'Voice identity options such as --tts-ref-audio and --tts-voice-name cannot be combined with --tts-speaker/--tts-dialogue-format; per-speaker voices come from --tts-speaker mappings.'
+    '--mistral-tts-ref-audio is an authorized edge input only for the standalone `tts` command.'
   )
 })
 
 test('resume rejects explicit TTS voice identity combined with dialogue flags', async () => {
   const runDir = await makeTempRoot('autoshow-resume-tts-dialogue-')
-  await writeSingleManifestFixture(runDir, 'tts', {})
+  await writeLegacyTtsManifestFixture(runDir, { tts: [] })
 
   await expectUsageExit(
     ['resume', runDir, '--provider', 'mistral=voxtral-mini-tts-2603', '--tts-voice-name', 'AutoShowVoice', '--tts-dialogue-format', 'labeled', '--tts-speaker', 'Host=Jasper', '--price'],
-    'Voice identity options such as --tts-ref-audio and --tts-voice-name cannot be combined with --tts-speaker/--tts-dialogue-format; per-speaker voices come from --tts-speaker mappings.'
+    'Explicit synthesis option --mistral-tts-voice-name cannot perform named saved-reference creation during TTS synthesis.'
   )
 })
 

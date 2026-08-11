@@ -1,6 +1,6 @@
 import { describe, expect, test } from 'bun:test'
 import { installVoiceQualityReportHooks, join, makeTempRoot, mkdir, runCommand, writeFile, writeJson, writeSyntheticWav } from './shared'
-import { writeSingleManifestFixture } from '../../../../test-utils/manifest-helpers'
+import { writeLegacyTtsManifestFixture } from '../../../../test-utils/manifest-helpers'
 
 installVoiceQualityReportHooks()
 
@@ -41,7 +41,7 @@ describe('voice quality CLI report generation contracts', () => {
       }
     ]
 
-    await writeSingleManifestFixture(runDir, 'tts', {
+    await writeLegacyTtsManifestFixture(runDir, {
         input: inputText,
         tts: ttsEntries,
         timing: {

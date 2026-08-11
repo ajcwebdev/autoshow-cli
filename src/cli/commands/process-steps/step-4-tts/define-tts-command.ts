@@ -1,11 +1,12 @@
 import { mkdtemp, rename, rm, stat } from 'node:fs/promises'
 import { basename, extname, join } from 'node:path'
-import { buildProviderStepSummaries, createGenerationOutputDir, getGenerationExpectedOutputDir, resolveMaxCentsFromFlags, writeGenerationMetadata } from '~/cli/commands/process-steps/generation-command-utils'
-import { writePipelineItemRecords } from '~/cli/commands/process-steps/pipeline-manifest'
+import { buildProviderStepSummaries, createGenerationOutputDir, getGenerationExpectedOutputDir, resolveMaxCentsFromFlags } from '~/cli/commands/process-steps/generation-command-utils'
+import { createManifest, createPipelineItemFromRecord, updateManifest, writeManifest } from '~/cli/commands/process-steps/pipeline-manifest'
 import { buildPipelineItemRecord } from '~/cli/commands/process-steps/step-0-metadata/metadata-batch/pipeline-item-record-builder'
 import { sanitizeTitleSlug } from '~/cli/commands/process-steps/step-1-download/audio/metadata-utils'
 import { logBatchCompletionTable, logBatchItemStatus } from '~/cli/commands/process-steps/step-1-download/download-targets/download-batch/download-batch-summary'
 import { buildOptsFromFlags } from '~/cli/options/option-resolution/build-options-from-flags'
+import { resolveStandaloneMistralTtsCliReferenceInput, resolveStandaloneMistralTtsSpeakerReferenceInputs } from '~/cli/options/option-resolution/tts-options'
 import { logSuitePriceSummary } from '~/cli/commands/process-steps/step-1-download/download-targets/suite-price-logging'
 import { collectTextInputFiles, isTextInputPath } from '~/cli/commands/process-steps/step-3-write/text-input-utils'
 import { ttsCommandFlags } from '~/cli/flags/tts-flags'
@@ -13,7 +14,7 @@ import { normalizeGenericProviderSelectorFlags } from '~/cli/flags/service-selec
 import { assertNoVoiceIdentityWithDialogue, normalizeGenericTtsOptionFlags } from '~/cli/flags/service-selector-normalization/generic-tts-option-selectors'
 import { STANDALONE_TTS_PROVIDER_TARGETS } from '~/cli/flags/service-selector-normalization/provider-targets'
 import { defineCliCommand } from '~/cli/native/native-types'
-import type { ActualCostBreakdown, AggregatedPriceEstimate, CompletedTtsBatchItem, EstimatedCostBreakdown, HostedTtsSchedulerTelemetry, PipelineItemRecord, PreparedTtsInput, PreparedTtsRun, Step4Metadata, StepTimingBreakdown, SuccessfulTtsBatchItem, TtsBatchEstimateReport, TtsBatchItemAccumulator, TtsBatchPlanItem, TtsOptions, TtsTarget } from '~/types'
+import type { ActualCostBreakdown, AggregatedPriceEstimate, CompletedTtsBatchItem, EstimatedCostBreakdown, HostedTtsSchedulerTelemetry, PipelineItemRecord, PipelineProviderState, PreparedTtsInput, PreparedTtsRun, Step4Metadata, StepTimingBreakdown, SuccessfulTtsBatchItem, TtsBatchEstimateReport, TtsBatchItemAccumulator, TtsBatchPlanItem, TtsOptions, TtsTarget } from '~/types'
 import { DEFAULT_CLI_CONCURRENCY } from '~/utils/concurrency-defaults'
 import { CLIUsageError, InfraError } from '~/utils/error-handler'
 import * as l from '~/utils/app-logger/app-logger'
@@ -27,12 +28,20 @@ import { preflightToEstimated } from '~/utils/pricing/compute-costs'
 import { computeEstimatedCosts } from '~/utils/pricing/compute-estimated-costs'
 import { computeActualProcessingTimes, computeEstimatedProcessingTimes } from '~/utils/pricing/compute-processing-time'
 import { evaluatePreflightEstimate } from '~/utils/pricing/preflight'
-import { mapWithConcurrency } from '~/utils/run-with-concurrency'
+import { createResourceGate } from '~/utils/resource-gate'
 import { assertDialogueFormatIsUsable, isMultiSpeakerRequested, normalizeDialogueFromOptions } from './dialogue-normalizer'
-import { runTtsForTargets } from './run-tts'
+import { runTtsForTargets, validateTtsRenderInputsForTargets } from './run-tts'
+import type { TtsRunSourceContext } from './run-tts'
 import { buildTtsBatchEstimateSummary, computeSuccessfulTtsBatchActualCost } from './tts-batch-summary'
-import { buildEstimatedTtsTargets, buildTtsArtifactMap, collectTtsTargets, getTtsArtifactFileName } from './tts-targets'
+import { buildEstimatedTtsTargets, buildTtsArtifactMap, collectTtsTargets, getTtsArtifactFileName, mergeTtsExecutionReadinessObservations, validateTtsTargetsForExecution } from './tts-targets'
+import type { TtsExecutionReadinessObservation } from './tts-targets'
 import { createHostedTtsBatchCoordinator } from './tts-utils/hosted-tts-chunk-scheduler'
+import { materializeStandaloneMistralReference, planStandaloneMistralReference, planStandaloneMistralSpeakerReferences } from './voice-assets/standalone-mistral-reference'
+import { hasMistralProtectedReferences } from './voice-assets/mistral-protected-reference-binding'
+import { appendCurrentTtsProviderState } from './script-to-audio/current-render-artifacts'
+import { createBatchItemTtsSourceIdentity, createFileTtsSourceIdentity, createGenericTtsDialoguePlan, createSingleTurnTtsDialoguePlan } from './script-to-audio/generic-dialogue-plan'
+import { bindTtsDialoguePlanArtifact, materializeTtsDialoguePlanArtifact } from './script-to-audio/item-dialogue-plan-artifact'
+import type { TtsDialoguePlanArtifactRef } from './script-to-audio/item-dialogue-plan-artifact'
 
 const formatCents = (amount: number): string => `${amount.toFixed(3)}¢`
 
@@ -69,19 +78,32 @@ const getInputStem = (inputPath: string): string =>
 
 const prepareTtsInput = async (
   inputPath: string,
-  ttsOptions: TtsOptions
+  ttsOptions: TtsOptions,
+  createdAt: string
 ): Promise<PreparedTtsInput> => {
-  const text = await Bun.file(inputPath).text()
+  const sourceBytes = new Uint8Array(await Bun.file(inputPath).arrayBuffer())
+  const text = new TextDecoder().decode(sourceBytes)
   if (!text.trim()) {
     throw CLIUsageError(`Input file is empty: ${inputPath}`)
   }
 
   const dialogueRequested = isMultiSpeakerRequested(ttsOptions)
   const dialoguePreview = dialogueRequested ? normalizeDialogueFromOptions(text, ttsOptions) : undefined
+  const sourceIdentity = await createFileTtsSourceIdentity(inputPath, sourceBytes)
+  const dialoguePlan = dialogueRequested
+    ? createGenericTtsDialoguePlan(sourceIdentity, text, ttsOptions, createdAt)
+    : createSingleTurnTtsDialoguePlan(sourceIdentity, text, createdAt)
+  const manifestInputPath = sourceIdentity.sourceLocator.kind === 'file'
+    ? sourceIdentity.sourceLocator.canonicalPath
+    : inputPath
 
   return {
     inputPath,
+    manifestInputPath,
+    sourceBytes,
     text,
+    sourceIdentity,
+    dialoguePlan,
     ttsCharacterCount: dialoguePreview?.spokenCharacterCount ?? text.length,
     ttsTimingInputText: dialoguePreview
       ? dialoguePreview.turns.map((turn) => turn.text).join('\n')
@@ -89,6 +111,63 @@ const prepareTtsInput = async (
     dialogueRequested,
     ...(dialoguePreview ? { dialogueTurnCount: dialoguePreview.turns.length } : {})
   }
+}
+
+const reduceTtsProviderStates = (
+  providers: readonly PipelineProviderState[]
+): 'full' | 'incomplete' | 'failed' | 'skipped' => {
+  if (providers.length === 0) {
+    throw CLIUsageError('A canonical TTS item requires every requested target\'s real lifecycle state.')
+  }
+  if (providers.every((provider) => provider.status === 'skipped')) return 'skipped'
+  if (
+    providers.some((provider) => provider.status === 'succeeded')
+    && providers.every((provider) => provider.status === 'succeeded' || provider.status === 'skipped')
+  ) return 'full'
+  if (
+    providers.some((provider) => provider.status === 'failed')
+    && providers.every((provider) => provider.status === 'failed' || provider.status === 'skipped')
+  ) return 'failed'
+  return 'incomplete'
+}
+
+const requestedTtsProviders = (targets: readonly TtsTarget[]) => targets.map((target) => ({
+  service: target.service,
+  model: target.model,
+  local: target.service === 'kitten',
+  operation: target.operation,
+  targetKey: target.targetKey,
+  transport: target.transport
+}))
+
+const orderedTtsProviderStates = (
+  targets: readonly TtsTarget[],
+  states: ReadonlyMap<string, PipelineProviderState>
+): PipelineProviderState[] => targets.map((target) => {
+  if (!target.targetKey) {
+    throw CLIUsageError(`TTS target ${target.service}/${target.model} is missing its operation-scoped targetKey.`)
+  }
+  const state = states.get(target.targetKey)
+  if (!state) {
+    throw CLIUsageError(`TTS lifecycle did not durably prepare ${target.service}/${target.model} before dispatch.`)
+  }
+  return state
+})
+
+const writeInitialTtsManifest = async (
+  rootDir: string,
+  scope: 'single' | 'batch',
+  records: PipelineItemRecord[],
+  createdAt: string,
+  source?: Record<string, unknown> | undefined
+): Promise<void> => {
+  const manifest = createManifest(
+    'tts',
+    scope,
+    records.map((record) => createPipelineItemFromRecord(rootDir, record, scope === 'single' ? { outputDir: rootDir } : {})),
+    source
+  )
+  await writeManifest(rootDir, { ...manifest, createdAt, updatedAt: createdAt })
 }
 
 const buildTtsEstimateForInput = async (
@@ -185,21 +264,87 @@ const runPreparedTtsInput = async (
   outputDir: string,
   ttsOptions: TtsOptions,
   targets: TtsTarget[],
-  preflightEstimate: AggregatedPriceEstimate
+  preflightEstimate: AggregatedPriceEstimate,
+  createdAt: string,
+  executionReadiness: readonly TtsExecutionReadinessObservation[]
 ): Promise<Step4Metadata[]> => {
-  const run = await synthesizePreparedTtsInput(prepared, outputDir, ttsOptions, targets, preflightEstimate)
-
-  await writeGenerationMetadata(outputDir, 'tts', run.metadata, run.cost, run.timing, {
-    input: prepared.text,
-    requestedProviders: targets.map((t) => ({ service: t.service, model: t.model })),
-    completedProviders: run.metadata.map((entry) => ({ service: entry.ttsService, model: entry.ttsModel }))
+  const lifecycleStates = new Map<string, PipelineProviderState>()
+  const dialoguePlanArtifact = await materializeTtsDialoguePlanArtifact(outputDir, prepared.dialoguePlan)
+  const run = await synthesizePreparedTtsInputForTargets(prepared, outputDir, ttsOptions, targets, preflightEstimate, {
+    executionReadiness,
+    beforeDispatch: async (preparedStates) => {
+      for (const unboundState of preparedStates) {
+        const state = bindTtsDialoguePlanArtifact(unboundState, dialoguePlanArtifact)
+        if (!state.targetKey) {
+          throw CLIUsageError('TTS lifecycle produced a prepared state without an operation-scoped targetKey.')
+        }
+        lifecycleStates.set(state.targetKey, state)
+      }
+      const providerStates = orderedTtsProviderStates(targets, lifecycleStates)
+      await writeInitialTtsManifest(outputDir, 'single', [{
+        ...buildPipelineItemRecord(prepared.manifestInputPath),
+        input: prepared.manifestInputPath,
+        inputKind: 'text',
+        characterCount: prepared.ttsCharacterCount,
+        completionStatus: reduceTtsProviderStates(providerStates),
+        requestedProviders: requestedTtsProviders(targets),
+        providerStates,
+        tts: [],
+        cost: { estimated: preflightToEstimated(preflightEstimate) }
+      }], createdAt)
+    },
+    onProviderState: async (unboundState) => {
+      const state = bindTtsDialoguePlanArtifact(unboundState, dialoguePlanArtifact)
+      if (!state.targetKey) {
+        throw CLIUsageError('TTS lifecycle produced a provider state without an operation-scoped targetKey.')
+      }
+      let committed: PipelineProviderState | undefined
+      await updateManifest(outputDir, (manifest) => {
+        if (manifest.command !== 'tts' || manifest.scope !== 'single' || manifest.items.length !== 1) {
+          throw CLIUsageError('TTS lifecycle can update only its canonical single-run manifest.')
+        }
+        const item = manifest.items[0]
+        if (!item) throw CLIUsageError('Canonical single-run TTS manifest is missing its item.')
+        const providerIndex = item.providers.findIndex((provider) => provider.targetKey === state.targetKey)
+        const current = item.providers[providerIndex]
+        if (!current) {
+          throw CLIUsageError(`Canonical single-run TTS manifest is missing lifecycle state for ${state.targetKey}.`)
+        }
+        committed = appendCurrentTtsProviderState(current, state)
+        const providers = item.providers.slice()
+        providers[providerIndex] = committed
+        return {
+          ...manifest,
+          items: [{ ...item, providers, status: reduceTtsProviderStates(providers) }]
+        }
+      })
+      lifecycleStates.set(state.targetKey, committed as PipelineProviderState)
+    }
+  })
+  await updateManifest(outputDir, (manifest) => {
+    if (manifest.command !== 'tts' || manifest.scope !== 'single' || manifest.items.length !== 1) {
+      throw CLIUsageError('TTS completion can update only its canonical single-run manifest.')
+    }
+    const item = manifest.items[0]
+    if (!item) throw CLIUsageError('Canonical single-run TTS manifest is missing its item.')
+    return {
+      ...manifest,
+      items: [{
+        ...item,
+        input: prepared.manifestInputPath,
+        status: reduceTtsProviderStates(item.providers),
+        metadata: { ...item.metadata, tts: run.metadata, cost: run.cost, timing: run.timing }
+      }]
+    }
   })
 
   l.report.complete(
     outputDir,
     {
       ...buildTtsArtifactMap(run.metadata, 'audio'),
-      ...(prepared.dialogueRequested ? { dialogue: 'dialogue-normalized.txt', segments: 'segments/' } : {}),
+      ...Object.fromEntries(run.metadata.flatMap((entry) => entry.artifactDir
+        ? [[`render-${entry.ttsService}-${sanitizeTitleSlug(entry.ttsModel, 120)}`, entry.artifactDir]]
+        : [])),
       manifest: 'manifest.json'
     },
     {
@@ -220,25 +365,20 @@ const runPreparedTtsInput = async (
   return run.metadata
 }
 
-const synthesizePreparedTtsInput = async (
-  prepared: PreparedTtsInput,
-  outputDir: string,
-  ttsOptions: TtsOptions,
-  targets: TtsTarget[],
-  preflightEstimate: AggregatedPriceEstimate
-): Promise<PreparedTtsRun> => {
-  return await synthesizePreparedTtsInputForTargets(prepared, outputDir, ttsOptions, targets, preflightEstimate)
-}
-
 const synthesizePreparedTtsInputForTargets = async (
   prepared: PreparedTtsInput,
   outputDir: string,
   ttsOptions: TtsOptions,
   targets: TtsTarget[],
-  preflightEstimate: AggregatedPriceEstimate
+  preflightEstimate: AggregatedPriceEstimate,
+  lifecycle?: Pick<TtsRunSourceContext, 'artifactOutputDir' | 'artifactRoot' | 'executionReadiness' | 'resolveReportedOutput' | 'beforeDispatch' | 'onProviderState'> | undefined
 ): Promise<PreparedTtsRun> => {
   const { metadata } = await runWithLogContext({ step: 'step-4-tts' }, async () =>
-    await runTtsForTargets(prepared.text, outputDir, ttsOptions, targets)
+    await runTtsForTargets(prepared.text, outputDir, ttsOptions, targets, {
+      sourceIdentity: prepared.sourceIdentity,
+      dialoguePlan: prepared.dialoguePlan,
+      ...lifecycle
+    })
   )
 
   const estimatedTtsTargets = buildEstimatedTtsTargets(targets)
@@ -272,7 +412,7 @@ const synthesizePreparedTtsInputForTargets = async (
   return { metadata, cost, timing }
 }
 
-const runSingleTtsInput = async (
+export const runSingleTtsInput = async (
   inputPath: string,
   ttsOptions: StandaloneTtsCommandOptions,
   targets: TtsTarget[],
@@ -282,7 +422,9 @@ const runSingleTtsInput = async (
     throw CLIUsageError(`tts only accepts .md or .txt files. Got: ${inputPath}`)
   }
 
-  const prepared = await prepareTtsInput(inputPath, ttsOptions)
+  const createdAt = new Date().toISOString()
+  const prepared = await prepareTtsInput(inputPath, ttsOptions, createdAt)
+  validateTtsRenderInputsForTargets(targets, prepared.text, ttsOptions, prepared)
   const { estimate: preflightEstimate, shouldExit } = evaluatePreflightEstimate(
     await buildTtsEstimateForInput(prepared, ttsOptions),
     ttsOptions,
@@ -291,26 +433,50 @@ const runSingleTtsInput = async (
   if (shouldExit) {
     l.report.expectedOutput(
       getGenerationExpectedOutputDir('./output/<timestamp>_<label>/'),
-      prepared.dialogueRequested
-        ? ['dialogue-normalized.txt', 'segments/', 'speech.wav', 'manifest.json']
-        : [...targets.map((target) => getTtsArtifactFileName(target, targets.length === 1)), 'manifest.json']
+      [
+        ...targets.map((target) => getTtsArtifactFileName(target, targets.length === 1)),
+        ...targets.flatMap((target) => target.targetKey ? [`providers/${target.targetKey}/`] : []),
+        'manifest.json'
+      ]
     )
     return
   }
 
+  let executionReadiness = await validateTtsTargetsForExecution(targets)
+  const hasProtectedMistralReference = hasMistralProtectedReferences(ttsOptions)
+  if (executionReadiness.every((entry) => entry.status === 'ready')) {
+    ttsOptions = await materializeStandaloneMistralReference(ttsOptions)
+    if (hasProtectedMistralReference) {
+      targets = collectTtsTargets(ttsOptions)
+      executionReadiness = mergeTtsExecutionReadinessObservations(
+        executionReadiness,
+        await validateTtsTargetsForExecution(targets)
+      )
+    }
+  }
   const outputDir = await createGenerationOutputDir(getInputStem(inputPath))
-  await runPreparedTtsInput(prepared, outputDir, ttsOptions, targets, preflightEstimate)
+  await runPreparedTtsInput(prepared, outputDir, ttsOptions, targets, preflightEstimate, createdAt, executionReadiness)
 }
 
 const buildTtsBatchInitialRecords = (
-  preparedInputs: PreparedTtsInput[]
+  preparedInputs: PreparedTtsInput[],
+  targets: TtsTarget[],
+  accumulators: TtsBatchItemAccumulator[]
 ): PipelineItemRecord[] =>
-  preparedInputs.map((prepared) => ({
-    ...buildPipelineItemRecord(prepared.inputPath),
-    input: prepared.inputPath,
+  preparedInputs.map((prepared, index) => {
+    const accumulator = accumulators[index]
+    if (!accumulator) throw CLIUsageError(`Missing TTS batch lifecycle accumulator for item ${index + 1}.`)
+    const providerStates = orderedTtsProviderStates(targets, accumulator.providerStates)
+    return {
+    ...buildPipelineItemRecord(prepared.manifestInputPath),
+    input: prepared.manifestInputPath,
     inputKind: 'text',
-    characterCount: prepared.ttsCharacterCount
-  }))
+    characterCount: prepared.ttsCharacterCount,
+    completionStatus: reduceTtsProviderStates(providerStates),
+    requestedProviders: requestedTtsProviders(targets),
+    providerStates
+  }
+  })
 
 const buildTtsBatchItemStem = (inputPath: string, fallbackLabel: string): string => {
   const slug = sanitizeTitleSlug(getInputStem(inputPath), 180)
@@ -374,7 +540,7 @@ const reserveTtsBatchItemStem = async (
   }
 }
 
-const moveTtsBatchAudioFiles = async (
+export const moveTtsBatchAudioFiles = async (
   workspaceDir: string,
   batchDir: string,
   itemStem: string,
@@ -517,7 +683,8 @@ const createTtsBatchAccumulators = (
     characterCount: plan.prepared.ttsCharacterCount,
     metadata: [],
     runs: [],
-    errors: []
+    errors: [],
+    providerStates: new Map()
   }))
 
 const mergePreparedTtsRuns = (
@@ -578,6 +745,104 @@ const logHostedTtsSchedulerSummary = (
   })
 }
 
+type TtsBatchLifecycleCoordinator = {
+  beforeDispatch: (itemIndex: number, preparedStates: PipelineProviderState[]) => Promise<void>
+  onProviderState: (itemIndex: number, state: PipelineProviderState) => Promise<void>
+  abortPreparation: (error: unknown) => void
+}
+
+const createTtsBatchLifecycleCoordinator = (options: {
+  batchDir: string
+  createdAt: string
+  preparedInputs: PreparedTtsInput[]
+  dialoguePlanArtifacts: TtsDialoguePlanArtifactRef[]
+  targets: TtsTarget[]
+  accumulators: TtsBatchItemAccumulator[]
+  source: Record<string, unknown>
+}): TtsBatchLifecycleCoordinator => {
+  let initialized = false
+  let initializationError: unknown
+  let initialization: Promise<void> | undefined
+  let releasePreparationBarrier = (): void => {}
+  const preparationBarrier = new Promise<void>((resolve) => {
+    releasePreparationBarrier = resolve
+  })
+
+  const allItemsPrepared = (): boolean => options.accumulators.every((accumulator) =>
+    options.targets.every((target) => target.targetKey !== undefined && accumulator.providerStates.has(target.targetKey))
+  )
+
+  const initializeIfComplete = (): void => {
+    if (initialized || initialization || initializationError !== undefined || !allItemsPrepared()) return
+    initialization = (async () => {
+      const records = buildTtsBatchInitialRecords(options.preparedInputs, options.targets, options.accumulators)
+      await writeInitialTtsManifest(options.batchDir, 'batch', records, options.createdAt, options.source)
+      initialized = true
+    })().catch((error: unknown) => {
+      initializationError = error
+    }).finally(() => {
+      releasePreparationBarrier()
+    })
+  }
+
+  const waitForInitialization = async (): Promise<void> => {
+    initializeIfComplete()
+    if (!initialized) await preparationBarrier
+    if (initialization) await initialization
+    if (initializationError !== undefined) throw initializationError
+    if (!initialized) throw CLIUsageError('TTS batch preparation ended before every requested target had a real durable lifecycle state.')
+  }
+
+  return {
+    beforeDispatch: async (itemIndex, preparedStates) => {
+      const accumulator = options.accumulators[itemIndex]
+      if (!accumulator) throw CLIUsageError(`Missing TTS batch lifecycle accumulator for item ${itemIndex + 1}.`)
+      const dialoguePlanArtifact = options.dialoguePlanArtifacts[itemIndex]
+      if (!dialoguePlanArtifact) throw CLIUsageError(`Missing canonical dialogue-plan artifact for TTS batch item ${itemIndex + 1}.`)
+      for (const unboundState of preparedStates) {
+        const state = bindTtsDialoguePlanArtifact(unboundState, dialoguePlanArtifact)
+        if (!state.targetKey) throw CLIUsageError('TTS batch lifecycle produced a prepared state without an operation-scoped targetKey.')
+        accumulator.providerStates.set(state.targetKey, state)
+      }
+      await waitForInitialization()
+    },
+    onProviderState: async (itemIndex, unboundState) => {
+      const dialoguePlanArtifact = options.dialoguePlanArtifacts[itemIndex]
+      if (!dialoguePlanArtifact) throw CLIUsageError(`Missing canonical dialogue-plan artifact for TTS batch item ${itemIndex + 1}.`)
+      const state = bindTtsDialoguePlanArtifact(unboundState, dialoguePlanArtifact)
+      if (!state.targetKey) throw CLIUsageError('TTS batch lifecycle produced a provider state without an operation-scoped targetKey.')
+      await waitForInitialization()
+      const accumulator = options.accumulators[itemIndex]
+      if (!accumulator) throw CLIUsageError(`Missing TTS batch lifecycle accumulator for item ${itemIndex + 1}.`)
+      let committed: PipelineProviderState | undefined
+      await updateManifest(options.batchDir, (manifest) => {
+        if (manifest.command !== 'tts' || manifest.scope !== 'batch' || manifest.items.length !== options.preparedInputs.length) {
+          throw CLIUsageError('TTS batch lifecycle can update only its complete canonical batch manifest.')
+        }
+        const item = manifest.items[itemIndex]
+        if (!item || item.input !== options.preparedInputs[itemIndex]?.manifestInputPath) {
+          throw CLIUsageError(`Canonical TTS batch item ${itemIndex + 1} changed identity during synthesis.`)
+        }
+        const providerIndex = item.providers.findIndex((provider) => provider.targetKey === state.targetKey)
+        const current = item.providers[providerIndex]
+        if (!current) throw CLIUsageError(`Canonical TTS batch item ${itemIndex + 1} is missing lifecycle state for ${state.targetKey}.`)
+        committed = appendCurrentTtsProviderState(current, state)
+        const providers = item.providers.slice()
+        providers[providerIndex] = committed
+        const items = manifest.items.slice()
+        items[itemIndex] = { ...item, providers, status: reduceTtsProviderStates(providers) }
+        return { ...manifest, items }
+      })
+      accumulator.providerStates.set(state.targetKey, committed as PipelineProviderState)
+    },
+    abortPreparation: (error) => {
+      if (initialized || initializationError !== undefined) return
+      initializationError = error
+      releasePreparationBarrier()
+    }
+  }
+}
+
 const runTtsBatchPlanForTargets = async (
   plan: TtsBatchPlanItem,
   accumulator: TtsBatchItemAccumulator,
@@ -585,7 +850,9 @@ const runTtsBatchPlanForTargets = async (
   ttsOptions: TtsOptions,
   targets: TtsTarget[],
   allTargets: TtsTarget[],
-  preflightEstimate: AggregatedPriceEstimate
+  executionReadiness: readonly TtsExecutionReadinessObservation[],
+  preflightEstimate: AggregatedPriceEstimate,
+  lifecycleCoordinator: TtsBatchLifecycleCoordinator
 ): Promise<void> => {
   if (targets.length === 0) {
     return
@@ -597,38 +864,63 @@ const runTtsBatchPlanForTargets = async (
       plan.workspaceDir,
       ttsOptions,
       targets,
-      preflightEstimate
+      preflightEstimate,
+      {
+        artifactOutputDir: batchDir,
+        artifactRoot: `items/${accumulator.itemStem}/providers`,
+        executionReadiness,
+        resolveReportedOutput: (target) => {
+          const fileName = getTtsBatchAudioFileName(
+            accumulator.itemStem,
+            {
+              ttsService: target.service,
+              ttsModel: target.model,
+              audioFileName: getTtsArtifactFileName(target, allTargets.length === 1)
+            },
+            allTargets.length === 1
+          )
+          return { path: join(batchDir, fileName), fileName }
+        },
+        beforeDispatch: async (preparedStates) => await lifecycleCoordinator.beforeDispatch(plan.index, preparedStates),
+        onProviderState: async (state) => await lifecycleCoordinator.onProviderState(plan.index, state)
+      }
     )
-    const metadata = await moveTtsBatchAudioFiles(
-      plan.workspaceDir,
-      batchDir,
-      plan.itemStem,
-      run.metadata,
-      allTargets.length === 1
-    )
-    run.metadata = metadata
+    const metadata = run.metadata
     run.cost.estimated = run.cost.observedEstimate
     accumulator.metadata.push(...metadata)
     accumulator.runs.push(run)
   } catch (error) {
+    lifecycleCoordinator.abortPreparation(error)
     accumulator.errors.push(error instanceof Error ? error.message : String(error))
   }
 }
 
-const runTtsDirectoryBatch = async (
+export const runTtsDirectoryBatch = async (
   inputPath: string,
   ttsOptions: StandaloneTtsCommandOptions,
   targets: TtsTarget[],
   maxCents: number | undefined
 ): Promise<void> => {
+  const createdAt = new Date().toISOString()
   const inputFiles = await collectTextInputFiles(inputPath)
   if (inputFiles.length === 0) {
     l.warn(`No .md or .txt files found in ${inputPath}`)
     return
   }
 
-  const preparedInputs = await Promise.all(inputFiles.map((file) => prepareTtsInput(file, ttsOptions)))
+  const preparedInputs = await Promise.all(inputFiles.map(async (file, index) => {
+    const prepared = await prepareTtsInput(file, ttsOptions, createdAt)
+    const sourceIdentity = await createBatchItemTtsSourceIdentity(inputPath, index, prepared.sourceBytes)
+    return {
+      ...prepared,
+      sourceIdentity,
+      dialoguePlan: prepared.dialogueRequested
+        ? createGenericTtsDialoguePlan(sourceIdentity, prepared.text, ttsOptions, createdAt)
+        : createSingleTurnTtsDialoguePlan(sourceIdentity, prepared.text, createdAt)
+    }
+  }))
   const concurrency = Math.max(1, ttsOptions.batchConcurrency ?? DEFAULT_CLI_CONCURRENCY)
+  for (const prepared of preparedInputs) validateTtsRenderInputsForTargets(targets, prepared.text, ttsOptions, prepared)
   const shouldLogEstimates = ttsOptions.price || maxCents !== undefined
   const estimateReport = await reportTtsBatchEstimates(preparedInputs, ttsOptions, targets, shouldLogEstimates, concurrency)
   enforceTtsBatchBudget(estimateReport.totalEstimatedCost, maxCents, ttsOptions.allowOverBudget)
@@ -637,15 +929,39 @@ const runTtsDirectoryBatch = async (
     return
   }
 
+  let executionReadiness = await validateTtsTargetsForExecution(targets)
+  const hasProtectedMistralReference = hasMistralProtectedReferences(ttsOptions)
+  if (executionReadiness.every((entry) => entry.status === 'ready')) {
+    ttsOptions = await materializeStandaloneMistralReference(ttsOptions)
+    if (hasProtectedMistralReference) {
+      targets = collectTtsTargets(ttsOptions)
+      executionReadiness = mergeTtsExecutionReadinessObservations(
+        executionReadiness,
+        await validateTtsTargetsForExecution(targets)
+      )
+    }
+  }
   const batchDir = await createGenerationOutputDir(getInputStem(inputPath))
+  const dialoguePlanArtifacts = await Promise.all(preparedInputs.map(async (prepared) =>
+    await materializeTtsDialoguePlanArtifact(batchDir, prepared.dialoguePlan)
+  ))
   const batchSource = {
     sourceKind: 'directory',
     sourceUrl: inputPath,
     title: getInputStem(inputPath),
     selectedCount: preparedInputs.length
   }
-  const finalRecords = buildTtsBatchInitialRecords(preparedInputs)
-  await writePipelineItemRecords(batchDir, 'tts', 'batch', finalRecords, { source: batchSource })
+  const plans = await createTtsBatchPlanItems(batchDir, preparedInputs, targets)
+  const accumulators = createTtsBatchAccumulators(plans)
+  const lifecycleCoordinator = createTtsBatchLifecycleCoordinator({
+    batchDir,
+    createdAt,
+    preparedInputs,
+    dialoguePlanArtifacts,
+    targets,
+    accumulators,
+    source: batchSource
+  })
   logLocationsTable(l, [{ artifact: 'manifest', path: `${batchDir}/manifest.json` }])
 
   if (concurrency > 1) {
@@ -657,8 +973,6 @@ const runTtsDirectoryBatch = async (
   let fail = 0
   const successfulItems: SuccessfulTtsBatchItem[] = []
   const completedItems: CompletedTtsBatchItem[] = []
-  const plans = await createTtsBatchPlanItems(batchDir, preparedInputs, targets)
-  const accumulators = createTtsBatchAccumulators(plans)
   const hostedTargets = targets.filter((target) => target.service !== 'kitten')
   const localTargets = targets.filter((target) => target.service === 'kitten')
   let schedulerTelemetry: HostedTtsSchedulerTelemetry | undefined
@@ -670,15 +984,18 @@ const runTtsDirectoryBatch = async (
       logBatchItemStatus('info', plan.prepared.inputPath, 'processing')
     }
 
-    if (hostedTargets.length > 0) {
-      const hostedCoordinator = createHostedTtsBatchCoordinator(ttsOptions.ttsChunkConcurrency)
+    const runPromises: Promise<void>[] = []
+    const hostedCoordinator = hostedTargets.length > 0
+      ? createHostedTtsBatchCoordinator(ttsOptions.ttsChunkConcurrency)
+      : undefined
+    if (hostedCoordinator) {
       const hostedOptions: TtsOptions = {
         ...ttsOptions,
         hostedTtsChunkScheduler: hostedCoordinator,
         ttsProviderConcurrency: Math.max(hostedTargets.length, ttsOptions.ttsProviderConcurrency ?? 1)
       }
-      const expectedHostedJobs = countExpectedHostedChunkJobs(plans, hostedTargets)
-      const hostedRuns = plans.map((plan) =>
+      for (const plan of plans) {
+        runPromises.push(
         runWithLogContext({ batchId: basename(batchDir), itemIndex: plan.index + 1, itemCount: preparedInputs.length }, async () =>
           await runTtsBatchPlanForTargets(
             plan,
@@ -687,11 +1004,41 @@ const runTtsDirectoryBatch = async (
             hostedOptions,
             hostedTargets,
             targets,
-            estimateReport.estimates[plan.index] ?? await buildTtsEstimateForInput(plan.prepared, ttsOptions)
+            executionReadiness,
+            estimateReport.estimates[plan.index] ?? await buildTtsEstimateForInput(plan.prepared, ttsOptions),
+            lifecycleCoordinator
           )
         )
-      )
+        )
+      }
+    }
 
+    if (localTargets.length > 0) {
+      const localOptions: TtsOptions = {
+        ...ttsOptions,
+        generationResourceGate: createResourceGate({ capacity: concurrency })
+      }
+      for (const plan of plans) {
+        runPromises.push(
+          runWithLogContext({ batchId: basename(batchDir), itemIndex: plan.index + 1, itemCount: preparedInputs.length }, async () =>
+            await runTtsBatchPlanForTargets(
+              plan,
+              accumulators[plan.index] as TtsBatchItemAccumulator,
+              batchDir,
+              localOptions,
+              localTargets,
+              targets,
+              executionReadiness,
+              estimateReport.estimates[plan.index] ?? await buildTtsEstimateForInput(plan.prepared, ttsOptions),
+              lifecycleCoordinator
+            )
+          )
+        )
+      }
+    }
+
+    if (hostedCoordinator) {
+      const expectedHostedJobs = countExpectedHostedChunkJobs(plans, hostedTargets)
       const registeredAllJobs = expectedHostedJobs === 0
         ? true
         : await hostedCoordinator.waitForRegisteredJobs(expectedHostedJobs, 1_000)
@@ -699,42 +1046,32 @@ const runTtsDirectoryBatch = async (
         l.debug(`Hosted TTS scheduler registered ${hostedCoordinator.getRegisteredJobCount()}/${expectedHostedJobs} expected chunk jobs before release`)
       }
       hostedCoordinator.start()
-      await Promise.all(hostedRuns)
-      schedulerTelemetry = hostedCoordinator.getTelemetry()
-      logHostedTtsSchedulerSummary(schedulerTelemetry)
     }
 
-    if (localTargets.length > 0) {
-      await mapWithConcurrency(concurrency, plans, async (plan) => {
-        await runWithLogContext({ batchId: basename(batchDir), itemIndex: plan.index + 1, itemCount: preparedInputs.length }, async () =>
-          await runTtsBatchPlanForTargets(
-            plan,
-            accumulators[plan.index] as TtsBatchItemAccumulator,
-            batchDir,
-            ttsOptions,
-            localTargets,
-            targets,
-            estimateReport.estimates[plan.index] ?? await buildTtsEstimateForInput(plan.prepared, ttsOptions)
-          )
-        )
-      })
+    await Promise.all(runPromises)
+    if (hostedCoordinator) {
+      schedulerTelemetry = hostedCoordinator.getTelemetry()
+      logHostedTtsSchedulerSummary(schedulerTelemetry)
     }
   } finally {
     await Promise.all(plans.map((plan) => rm(plan.workspaceDir, { recursive: true, force: true })))
   }
 
+  const finalRecords = buildTtsBatchInitialRecords(preparedInputs, targets, accumulators)
   for (const accumulator of accumulators) {
     const metadata = sortTtsMetadataByTargetOrder(accumulator.metadata, targets)
     const errors = accumulator.errors.map((message) => ({ message }))
     if (metadata.length === 0) {
       fail++
+      const failureMessage = accumulator.errors.join('; ') || 'No providers completed'
       finalRecords[accumulator.index] = {
         ...(finalRecords[accumulator.index] ?? {}),
         audioStem: accumulator.itemStem,
         completionStatus: 'failed',
+        providerStates: orderedTtsProviderStates(targets, accumulator.providerStates),
         ...(errors.length > 0 ? { errors } : {})
       }
-      logBatchItemStatus('error', accumulator.inputPath, 'failed', accumulator.errors.join('; ') || 'No providers completed')
+      logBatchItemStatus('error', accumulator.inputPath, 'failed', failureMessage)
       continue
     }
 
@@ -764,6 +1101,7 @@ const runTtsDirectoryBatch = async (
       audioStem: accumulator.itemStem,
       completionStatus: isPartial ? 'incomplete' : 'full',
       tts: metadata,
+      providerStates: orderedTtsProviderStates(targets, accumulator.providerStates),
       ...(errors.length > 0 ? { errors } : {})
     }
   }
@@ -784,15 +1122,36 @@ const runTtsDirectoryBatch = async (
     },
     schedulerTelemetry
   )
-  await writePipelineItemRecords(batchDir, 'tts', 'batch', finalRecords, { source: completedBatchSource })
+  await updateManifest(batchDir, (manifest) => {
+    if (manifest.command !== 'tts' || manifest.scope !== 'batch' || manifest.items.length !== finalRecords.length) {
+      throw CLIUsageError('TTS batch completion can update only its complete canonical batch manifest.')
+    }
+    const items = finalRecords.map((record, index) => {
+      const next = createPipelineItemFromRecord(batchDir, record)
+      const current = manifest.items[index]
+      if (!current || current.input !== next.input) {
+        throw CLIUsageError(`Canonical TTS batch item ${index + 1} changed identity before completion.`)
+      }
+      return next
+    })
+    return { ...manifest, source: completedBatchSource, items }
+  })
   logBatchCompletionTable(ok, partial, 0, fail)
   l.report.complete(batchDir, {
     manifest: 'manifest.json',
     ...Object.fromEntries(
       completedItems.flatMap((item) =>
-        item.metadata.map((entry) => [
-          `audio-${item.itemStem}-${entry.ttsService}-${sanitizeTitleSlug(entry.ttsModel, 120)}`,
-          entry.audioFileName
+        item.metadata.flatMap((entry) => [
+          [
+            `audio-${item.itemStem}-${entry.ttsService}-${sanitizeTitleSlug(entry.ttsModel, 120)}`,
+            entry.audioFileName
+          ],
+          ...(entry.artifactDir
+            ? [[
+                `render-${item.itemStem}-${entry.ttsService}-${sanitizeTitleSlug(entry.ttsModel, 120)}`,
+                entry.artifactDir
+              ]]
+            : [])
         ])
       )
     )
@@ -818,7 +1177,7 @@ export const ttsCommand = defineCliCommand({
     examples: [
       ['bun autoshow tts input/examples/tts/1-tts.md --provider kitten=kitten-tts-nano-0.8-int8', 'Generate speech with local Kitten TTS'],
       ['bun autoshow tts input/examples/tts/1-tts.md --provider elevenlabs=eleven_v3', 'Generate speech with ElevenLabs'],
-      ['bun autoshow tts input/examples/tts/1-tts.md --provider elevenlabs=eleven_v3 --tts-ref-audio input/examples/audio/anthony-voice.mp3', 'Clone a voice with ElevenLabs IVC'],
+      ['bun autoshow tts input/examples/tts/1-tts.md --provider elevenlabs=eleven_v3 --tts-voice YOUR_EXISTING_VOICE_ID', 'Use an existing ElevenLabs voice'],
       ['bun autoshow tts input/examples/tts/1-tts.md --provider minimax=speech-2.8-turbo --tts-voice English_expressive_narrator', 'Use a MiniMax voice ID'],
       ['bun autoshow tts input/examples/tts/1-tts.md --provider mistral=voxtral-mini-tts-2603 --tts-ref-audio input/examples/audio/anthony-voice.mp3', 'Generate speech with Mistral Voxtral']
     ]
@@ -842,17 +1201,57 @@ export const ttsCommand = defineCliCommand({
     providerNormalized.flagOccurrences,
     'kitten'
   )
-  const ttsOptions: StandaloneTtsCommandOptions = buildOptsFromFlags(
-    true,
+  const speakerReferenceInputs = resolveStandaloneMistralTtsSpeakerReferenceInputs(
     ttsNormalized.flags,
+    {
+      explicitFlags: ttsNormalized.explicitFlags,
+      flagOccurrences: ttsNormalized.flagOccurrences,
+      cliReferenceInput: 'standalone-mistral'
+    }
+  )
+  const rawSpeakerMappings = Array.isArray(ttsNormalized.flags['tts-speaker'])
+    ? ttsNormalized.flags['tts-speaker'].filter((value): value is string => typeof value === 'string')
+    : typeof ttsNormalized.flags['tts-speaker'] === 'string'
+      ? [ttsNormalized.flags['tts-speaker']]
+      : undefined
+  const speakerReferencePlan = await planStandaloneMistralSpeakerReferences(
+    rawSpeakerMappings,
+    speakerReferenceInputs
+  )
+  const sanitizedFlags = speakerReferencePlan
+    ? { ...ttsNormalized.flags, 'tts-speaker': [...speakerReferencePlan.ttsSpeakers] }
+    : ttsNormalized.flags
+  const ttsOptionResolutionAuthority = {
+    cliReferenceInput: 'standalone-mistral',
+    ...(speakerReferencePlan ? { mistralSpeakerReferences: 'sanitized' as const } : {})
+  } as const
+  const unresolvedTtsOptions: StandaloneTtsCommandOptions = buildOptsFromFlags(
+    true,
+    sanitizedFlags,
     { defaultTtsEngine: 'kitten' },
     ttsNormalized.explicitFlags,
-    ttsNormalized.flagOccurrences
+    {
+      flagOccurrences: ttsNormalized.flagOccurrences,
+      ttsOptionResolutionAuthority
+    }
+  )
+  const referenceInput = resolveStandaloneMistralTtsCliReferenceInput(
+    ttsNormalized.flags,
+    {
+      explicitFlags: ttsNormalized.explicitFlags,
+      cliReferenceInput: 'standalone-mistral'
+    }
   )
 
-  assertDialogueFormatIsUsable(ttsOptions, ttsNormalized.explicitFlags)
+  assertDialogueFormatIsUsable(unresolvedTtsOptions, ttsNormalized.explicitFlags)
 
-  assertNoVoiceIdentityWithDialogue(ttsOptions, ttsNormalized.explicitFlags)
+  assertNoVoiceIdentityWithDialogue(unresolvedTtsOptions, ttsNormalized.explicitFlags)
+
+  const protectedSpeakerOptions = speakerReferencePlan?.attach(unresolvedTtsOptions) ?? unresolvedTtsOptions
+  const ttsOptions = await planStandaloneMistralReference(
+    protectedSpeakerOptions,
+    referenceInput
+  )
 
   const targets = collectTtsTargets(ttsOptions)
 

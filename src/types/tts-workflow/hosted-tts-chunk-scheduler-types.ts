@@ -47,6 +47,9 @@ export type HostedTtsChunkJob<T = any> = HostedTtsChunkJobContext & {
   lastSelectedAtMs: number
   failed: boolean
   settled: boolean
+  failureReason?: unknown
+  abortSignal?: AbortSignal | undefined
+  abortListener?: (() => void) | undefined
 }
 
 export type HostedTtsChunkSchedulerOptions = {

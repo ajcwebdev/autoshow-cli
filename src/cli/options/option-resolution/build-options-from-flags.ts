@@ -1,6 +1,6 @@
 import { getOutputRoot } from '~/cli/commands/process-steps/output-root'
 import { isStep2BooleanProviderSelected } from '~/cli/commands/process-steps/step-2-extract/step-2-shared/provider-registry'
-import type { BuildOptsDefaults, CliFlagOccurrence, ResolvedFlagContext } from '~/types'
+import type { BuildOptsDefaults, CliFlagOccurrence, ResolvedFlagContext, TtsOptionResolutionAuthority } from '~/types'
 import {
   readBooleanFlag,
   readOptionalStringFlag
@@ -23,13 +23,28 @@ export { collectRepeatableModelFlagOccurrences, REPEATABLE_MODEL_FLAGS, normaliz
 
 const emptyYtDlpPassthroughArgs = (): string[] | undefined => undefined
 
+type BuildOptsResolutionContext = Readonly<{
+  flagOccurrences?: readonly CliFlagOccurrence[] | undefined
+  ttsOptionResolutionAuthority?: TtsOptionResolutionAuthority | undefined
+}>
+
+const isBuildOptsResolutionContext = (
+  value: readonly CliFlagOccurrence[] | BuildOptsResolutionContext
+): value is BuildOptsResolutionContext => !Array.isArray(value)
+
 export const buildOptsFromFlags = (
   skipLLM: boolean,
   flags: Record<string, unknown>,
   defaults: BuildOptsDefaults = {},
   explicitFlags: Set<string> = new Set(),
-  flagOccurrences: readonly CliFlagOccurrence[] = []
+  occurrencesOrContext: readonly CliFlagOccurrence[] | BuildOptsResolutionContext = []
 ) => {
+  const flagOccurrences = isBuildOptsResolutionContext(occurrencesOrContext)
+    ? occurrencesOrContext.flagOccurrences ?? []
+    : occurrencesOrContext
+  const ttsOptionResolutionAuthority = isBuildOptsResolutionContext(occurrencesOrContext)
+    ? occurrencesOrContext.ttsOptionResolutionAuthority ?? {}
+    : {}
   const rawModelOccurrences = collectRepeatableModelFlagOccurrences(flagOccurrences)
 
   const mergedFlags: Record<string, unknown> = { ...flags }
@@ -145,7 +160,11 @@ export const buildOptsFromFlags = (
     renderedOutDir: readOptionalStringFlag(mergedFlags, 'rendered-out-dir'),
     trackList: readOptionalStringFlag(mergedFlags, 'track-list'),
     promptMd: readBooleanFlag(mergedFlags, 'prompt-md'),
-    ...buildTtsOptions(mergedFlags, flagOccurrences, modelOptions),
+    ...buildTtsOptions(mergedFlags, flagOccurrences, modelOptions, {
+      explicitFlags,
+      configuredFlags,
+      ...ttsOptionResolutionAuthority
+    }),
     markdown: readBooleanFlag(mergedFlags, 'markdown'),
     save: readBooleanFlag(mergedFlags, 'save'),
   }

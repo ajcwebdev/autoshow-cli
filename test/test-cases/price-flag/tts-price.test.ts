@@ -2,6 +2,7 @@ import { expect, test } from 'bun:test'
 import {
   SUPPORTED_DEEPGRAM_TTS_MODELS,
   SUPPORTED_GROK_TTS_VOICES,
+  SUPPORTED_GROQ_ARABIC_TTS_VOICES,
   SUPPORTED_GROQ_ENGLISH_TTS_VOICES,
   SUPPORTED_HUME_TTS_MODELS,
   SUPPORTED_CARTESIA_TTS_MODELS,
@@ -12,8 +13,8 @@ import { runCommand, STABLE_EXAMPLE_AUDIO_URL, STABLE_TTS_MD_PATH } from '../../
 
 const MISTRAL_TTS_MODEL = 'voxtral-mini-tts-2603'
 const MISTRAL_REF_AUDIO_PATH = 'input/examples/audio/anthony-voice.mp3'
-const REMOVED_GROQ_TTS_MODEL = ['canopylabs/orpheus', 'arabic-saudi'].join('-')
-const REMOVED_GROQ_TTS_VOICE = ['no', 'ura'].join('')
+const INVALID_GROQ_TTS_MODEL = 'canopylabs/orpheus-legacy'
+const INVALID_GROQ_TTS_VOICE = 'not-a-groq-voice'
 
 const NO_PAID_TTS_ENV = {
   ANTHROPIC_API_KEY: '',
@@ -131,7 +132,7 @@ defineTTSServicePriceTests({
 })
 
 defineTTSServicePriceTests({
-  models: ['canopylabs/orpheus-v1-english'],
+  models: ['canopylabs/orpheus-v1-english', 'canopylabs/orpheus-arabic-saudi'],
   provider: 'groq',
   ttsService: 'groq',
 })
@@ -179,6 +180,12 @@ defineTTSVoicePriceTests({
 })
 
 defineTTSVoicePriceTests({
+  provider: 'groq',
+  model: 'canopylabs/orpheus-arabic-saudi',
+  voices: SUPPORTED_GROQ_ARABIC_TTS_VOICES,
+})
+
+defineTTSVoicePriceTests({
   provider: 'grok',
   model: 'grok-tts',
   voices: SUPPORTED_GROK_TTS_VOICES,
@@ -192,13 +199,15 @@ for (const model of SUPPORTED_DEEPGRAM_TTS_MODELS) {
   })
 }
 
-test('mistral --price works without a voice source', async () => {
+test('mistral --price works with an existing voice source', async () => {
   const result = await runTtsPriceCommand([
     'src/cli/create-cli.ts',
     'tts',
     STABLE_TTS_MD_PATH,
     '--provider',
     `mistral=${MISTRAL_TTS_MODEL}`,
+    '--tts-voice',
+    'voice_abc123',
     '--price'
   ])
 
@@ -240,7 +249,7 @@ test('rejects invalid deepgram voice override before API request in price mode',
   expect(`${result.stdout}\n${result.stderr}`).toContain('Invalid --deepgram-voice "invalid-model"')
 })
 
-test('rejects removed Groq voice before API request in price mode', async () => {
+test('rejects invalid Groq voice before API request in price mode', async () => {
   const result = await runTtsPriceCommand([
     'src/cli/create-cli.ts',
     'tts',
@@ -248,28 +257,28 @@ test('rejects removed Groq voice before API request in price mode', async () => 
     '--provider',
     'groq=canopylabs/orpheus-v1-english',
     '--tts-voice',
-    REMOVED_GROQ_TTS_VOICE,
+    INVALID_GROQ_TTS_VOICE,
     '--price'
   ])
 
   expect(result.exitCode).not.toBe(0)
   expect(result.outputDir).toBeNull()
-  expect(`${result.stdout}\n${result.stderr}`).toContain(`Invalid --tts-voice groq="${REMOVED_GROQ_TTS_VOICE}"`)
+  expect(`${result.stdout}\n${result.stderr}`).toContain(`Invalid --tts-voice groq="${INVALID_GROQ_TTS_VOICE}"`)
 })
 
-test('rejects removed Groq model before API request in price mode', async () => {
+test('rejects invalid Groq model before API request in price mode', async () => {
   const result = await runTtsPriceCommand([
     'src/cli/create-cli.ts',
     'tts',
     STABLE_TTS_MD_PATH,
     '--provider',
-    `groq=${REMOVED_GROQ_TTS_MODEL}`,
+    `groq=${INVALID_GROQ_TTS_MODEL}`,
     '--price'
   ])
 
   expect(result.exitCode).not.toBe(0)
   expect(result.outputDir).toBeNull()
-  expect(`${result.stdout}\n${result.stderr}`).toContain(`Invalid model "${REMOVED_GROQ_TTS_MODEL}" for --provider/--tts groq[=model]`)
+  expect(`${result.stdout}\n${result.stderr}`).toContain(`Invalid model "${INVALID_GROQ_TTS_MODEL}" for --provider/--tts groq[=model]`)
 })
 
 test('rejects invalid grok voice override before API request in price mode', async () => {

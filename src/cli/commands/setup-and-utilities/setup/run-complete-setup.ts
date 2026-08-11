@@ -19,7 +19,7 @@ import { checkLlamaInstalled, runLlamaSetup } from '~/cli/commands/process-steps
 import { ensureLlamaModelDownloaded } from '~/cli/commands/process-steps/step-3-write/write-local/llama/run-llama'
 import { resolveLlamaCacheClearPaths } from '~/cli/commands/process-steps/step-3-write/write-local/llama/llama-model-cache'
 import { llamaSetupModelsMetadataPath } from '~/cli/commands/process-steps/step-3-write/write-local/llama/llama-model-metadata'
-import { ensureKittenTtsSetup, setupKittenTts } from '~/cli/commands/process-steps/step-4-tts/tts-local/kitten/kitten-tts'
+import { ensureKittenTtsSetup, setupKittenTts } from '~/cli/commands/process-steps/step-4-tts/tts-local/kitten/kitten-tts-setup'
 import { hasCachedKittenTtsModel, resolveKittenTtsCacheClearPaths } from '~/cli/commands/process-steps/step-4-tts/tts-local/kitten/kitten-tts-model-cache'
 import { SUPPORTED_KITTEN_TTS_MODELS, SUPPORTED_LLAMA_MODELS } from '~/cli/commands/setup-and-utilities/models/setup-model-options'
 import { DEFAULT_KITTEN_TTS_MODEL } from '~/cli/commands/setup-and-utilities/models/tts-models'

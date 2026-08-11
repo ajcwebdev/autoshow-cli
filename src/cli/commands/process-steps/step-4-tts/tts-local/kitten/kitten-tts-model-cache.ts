@@ -1,4 +1,4 @@
-import { readdir, stat } from 'node:fs/promises'
+import { readFile, stat } from 'node:fs/promises'
 import { homedir } from 'node:os'
 import { join } from 'node:path'
 import { getKittenHfRepo } from '~/cli/commands/setup-and-utilities/models/model-loader'
@@ -38,31 +38,51 @@ const resolvesToNonEmptyFile = async (path: string): Promise<boolean> => {
   }
 }
 
-const directoryHasFiles = async (root: string): Promise<boolean> => {
-  let entries
+const readRequiredSnapshotName = async (path: string): Promise<string | undefined> => {
   try {
-    entries = await readdir(root, { withFileTypes: true })
+    const value = (await readFile(path, 'utf8')).trim()
+    return /^[a-f0-9]{40,64}$/.test(value) ? value : undefined
   } catch {
-    return false
+    return undefined
   }
-
-  for (const entry of entries) {
-    const path = join(root, entry.name)
-    if (entry.isDirectory()) {
-      if (await directoryHasFiles(path)) return true
-      continue
-    }
-    if (await resolvesToNonEmptyFile(path)) return true
-  }
-  return false
 }
 
-// A repo directory can survive as an empty shell after an interrupted download,
-// so presence of the directory alone is not evidence the weights are there.
+const readKittenSnapshotManifest = async (
+  snapshotDir: string
+): Promise<{ modelFile: string, voicesFile: string } | undefined> => {
+  try {
+    const value = JSON.parse(await readFile(join(snapshotDir, 'config.json'), 'utf8')) as Record<string, unknown>
+    const modelFile = typeof value['model_file'] === 'string' ? value['model_file'].trim() : ''
+    const voicesFile = typeof value['voices'] === 'string' ? value['voices'].trim() : ''
+    if (
+      !modelFile.endsWith('.onnx')
+      || !voicesFile.endsWith('.npz')
+      || modelFile.includes('/')
+      || modelFile.includes('\\')
+      || voicesFile.includes('/')
+      || voicesFile.includes('\\')
+    ) return undefined
+    return { modelFile, voicesFile }
+  } catch {
+    return undefined
+  }
+}
+
+// HuggingFace writes refs/main last enough to identify the selected immutable snapshot. A usable
+// Kitten snapshot then consists of its parseable manifest plus the exact ONNX and voice assets it
+// names, with every snapshot symlink resolving to a non-empty blob. This stays read-only and never
+// asks huggingface_hub to repair or download an interrupted cache.
 export const hasCachedKittenTtsModel = async (model: string): Promise<boolean> => {
   const repoDir = kittenTtsRepoDir(model)
   if (!repoDir) return false
-  return await directoryHasFiles(join(repoDir, 'snapshots'))
+  const revision = await readRequiredSnapshotName(join(repoDir, 'refs', 'main'))
+  if (!revision) return false
+  const snapshotDir = join(repoDir, 'snapshots', revision)
+  if (!await resolvesToNonEmptyFile(join(snapshotDir, 'config.json'))) return false
+  const manifest = await readKittenSnapshotManifest(snapshotDir)
+  if (!manifest) return false
+  return await resolvesToNonEmptyFile(join(snapshotDir, manifest.modelFile))
+    && await resolvesToNonEmptyFile(join(snapshotDir, manifest.voicesFile))
 }
 
 export const resolveKittenTtsCacheClearPaths = (model: string): string[] => {

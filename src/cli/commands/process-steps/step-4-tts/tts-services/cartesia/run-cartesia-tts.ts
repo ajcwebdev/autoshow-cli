@@ -1,4 +1,4 @@
-import type { CartesiaTtsModel, HostedTtsChunkScheduler, Step4Metadata } from '~/types'
+import type { CartesiaTtsModel, HostedTtsChunkScheduler, Step4Metadata, TtsRequestEvidenceScope } from '~/types'
 import { logTtsConfig } from '~/cli/commands/process-steps/step-4-tts/tts-utils/log-tts-config'
 import { splitTextIntoChunks } from '~/cli/commands/process-steps/step-4-tts/tts-utils/audio-utils'
 import { TTS_CHUNK_CHARACTER_LIMITS } from '~/cli/commands/process-steps/step-4-tts/tts-utils/tts-chunking'
@@ -11,6 +11,7 @@ import { requireApiKey } from '~/utils/validate/env-utils'
 import { CARTESIA_DEFAULT_BASE_URL } from '~/utils/base-urls'
 import { ValidationError } from '~/utils/error-handler'
 import { httpResponseError } from '~/utils/rest-client'
+import { dispatchTtsProviderRequest } from '../../script-to-audio/tts-request-evidence'
 const CARTESIA_DEFAULT_VERSION = '2026-03-01'
 
 const trimTrailingSlash = (value: string): string => value.replace(/\/+$/, '')
@@ -27,8 +28,10 @@ export const runCartesiaTts = async (
     model: CartesiaTtsModel
     voiceId?: string | undefined
     language?: string | undefined
+    abortSignal?: AbortSignal | undefined
     chunkConcurrency?: number | undefined
     chunkScheduler?: HostedTtsChunkScheduler | undefined
+    requestEvidence?: TtsRequestEvidenceScope | undefined
   }
 ): Promise<{ audioPath: string, metadata: Step4Metadata }> => {
   const apiKey = requireApiKey('CARTESIA_API_KEY', 'tts:cartesia', 'Cartesia TTS')
@@ -60,10 +63,34 @@ export const runCartesiaTts = async (
     outputDir,
     chunkExtension: 'wav',
     startTime: Date.now(),
+    abortSignal: options.abortSignal,
     chunkConcurrency: options.chunkConcurrency,
     chunkScheduler: options.chunkScheduler,
-    fetchChunkAudio: async ({ chunk, signal }) => {
-      const response = await fetch(`${baseURL}/tts/bytes`, {
+    requestEvidence: options.requestEvidence,
+    fetchChunkAudio: async ({ chunk, chunkIndex, signal, requestAttempt, retryReasonCode }) => {
+      const requestBody = {
+        model_id: options.model,
+        transcript: chunk,
+        voice: { mode: 'id', id: voice },
+        ...(language ? { language } : {}),
+        output_format: { container: 'wav', encoding: 'pcm_s16le', sample_rate: 24000 }
+      }
+      return await dispatchTtsProviderRequest(options.requestEvidence, {
+        chunkIndex,
+        endpointKind: 'speech-synthesis',
+        serializerVersion: 'cartesia.tts.phase-0-v1',
+        serializedRequest: { path: '/tts/bytes', version, body: requestBody },
+        providerText: chunk,
+        voiceField: 'voice.id',
+        voices: [{ kind: 'provider-id', value: voice }],
+        requestControls: {
+          ...(language ? { language } : {}),
+          outputFormat: requestBody.output_format,
+          version
+        },
+        continuation: { kind: 'none' }
+      }, { attempt: requestAttempt, ...(retryReasonCode ? { retryReasonCode } : {}) }, async ({ accepted }) => {
+        const response = await fetch(`${baseURL}/tts/bytes`, {
         method: 'POST',
         headers: {
           Authorization: `Bearer ${apiKey}`,
@@ -71,20 +98,7 @@ export const runCartesiaTts = async (
           'Content-Type': 'application/json',
           Accept: 'application/octet-stream'
         },
-        body: JSON.stringify({
-          model_id: options.model,
-          transcript: chunk,
-          voice: {
-            mode: 'id',
-            id: voice
-          },
-          ...(language ? { language } : {}),
-          output_format: {
-            container: 'wav',
-            encoding: 'pcm_s16le',
-            sample_rate: 24000
-          }
-        }),
+        body: JSON.stringify(requestBody),
         ...(signal ? { signal } : {})
       })
 
@@ -92,8 +106,9 @@ export const runCartesiaTts = async (
         const errText = await readCartesiaError(response)
         throw httpResponseError(`Cartesia TTS failed (${response.status}): ${errText}`, response)
       }
-
+      await accepted({ fields: { httpStatus: response.status } })
       return new Uint8Array(await response.arrayBuffer())
+      })
     }
   })
 }

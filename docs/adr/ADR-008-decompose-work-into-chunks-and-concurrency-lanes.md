@@ -4,13 +4,13 @@
 
 - **Decision Status:** Accepted
 - **Date Created:** 2026-07-10
-- **Date Updated:** 2026-07-25
+- **Date Updated:** 2026-08-11
 - **Verification Status:** Passed
 - **Supersession:** Reframed from the narrower record "Schedule Hosted TTS as a Provider Work Queue" to the broader topic it now serves. The hosted TTS work-queue decision, its trade study, and its scheduling model are preserved below as one documented lane among several.
 
 ## Context
 
-This project splits work into smaller units in at least seven distinct ways, and bounds how many of those units run at once with at least nine distinct controls. Until now only one pairing was written down: hosted TTS chunks under `--tts-chunk-concurrency`, sitting inside directory batches under `--batch-concurrency`.
+This project splits work into smaller units in at least ten distinct ways, and bounds how many of those units run at once with at least nine distinct controls. Until now only one pairing was written down: hosted TTS chunks under `--tts-chunk-concurrency`, sitting inside directory batches under `--batch-concurrency`.
 
 That was too narrow to be useful. `--batch-concurrency` governs every batch-capable command, not just TTS. `--ocr-concurrency` drives a completely separate adaptive page scheduler with its own auto/fixed mode contract. `--split` produces STT time segments that are then bounded by `--stt-segment-concurrency`. `--provider-concurrency` and `--local-concurrency` sit between all of these as a shared middle layer. Each is documented in its own command page, but the relationships between them are documented nowhere.
 
@@ -100,7 +100,7 @@ Every mechanism that turns one unit of work into many.
 | PDF page-chunk fallback | single-page PDF or rendered PNG | inherits the OCR page cap | forced per-page above 20 pages | `step-2-ocr/ocr-utils/pdf-chunk-fallback.ts` |
 | Chapter/export splitting | chapter file | `--chapters`, `--length`, `--pdf-chapter-mode` | `--pdf-chapter-mode local` | `step-2-ocr/chapter-export-defaults.ts`, `chapter-artifact-filenames.ts` |
 | Comic panel grouping | N panels per generated image | `--panels-per-image`, comic `--concurrency` | `10` | `step-8-comic/comic-commands/generate-images/comic-page-utils.ts` |
-| Multi-speaker TTS segments | one dialogue turn | none; hosted turns fan out unbounded | n/a | `step-4-tts/run-multi-speaker-tts.ts` |
+| Multi-speaker TTS segments | one dialogue turn | `--tts-chunk-concurrency` for hosted targets; `--local-concurrency` for Kitten | `30` / `10` | `step-4-tts/run-multi-speaker-tts.ts`, `step-4-tts/dialogue-work-selector.ts` |
 
 Ordering and failure semantics differ per mechanism, and the differences are load-bearing:
 
@@ -110,6 +110,7 @@ Ordering and failure semantics differ per mechanism, and the differences are loa
 | Provider targets | results written back by original `index`, so output order always matches input target order | per-target `try`/`catch`; a failing target never aborts siblings; callers decide whether to throw |
 | STT segments | merged by sorting on `segmentIndex` | first error aborts scheduling and rethrows |
 | Hosted TTS chunks | concatenated in chunk order per file | a failed chunk cancels only its owning file |
+| Multi-speaker TTS turns | written back by source index before concatenation, regardless of completion order | first failure aborts the shared dialogue signal, prevents queued turns from starting, drains active turns, removes every `.work-*` directory, and rethrows the first failure |
 | OCR pages | written into a pre-sized results array, so order is by page index | first error stops scheduling; in-flight work drains; remaining pages marked `canceled` in the audit |
 
 Deliberately absent: there is no video scene or shot splitting (one clip per target), no music generation segmentation (one request per target), and no transcript or context-window chunking in `step-3-write`, which sends whole prompts.
@@ -123,6 +124,7 @@ The controls nest from outermost to innermost:
   └─ --provider-concurrency    hosted targets per item      runProviderTargetScheduler (hosted pool)
      --local-concurrency       local targets per item       runProviderTargetScheduler (local pool)
        └─ generation resource gate  cross-step 4/5/6/7 cap  createResourceGate (FIFO semaphore)
+          ├─ dialogue turn selector    hosted/local turn cap  runDialogueWorkSelector
           ├─ --tts-chunk-concurrency   AIMD per TTS provider, run-global   HostedTtsBatchCoordinatorImpl
           ├─ --ocr-concurrency         auto AIMD / fixed cap per OCR lane  HostedOcrSchedulerImpl
           ├─ STT slot profiles         launch 1-4, poll min(8, batchConc)  SttBatchCoordinator
@@ -134,7 +136,7 @@ Layer 1, batch items. `--batch-concurrency` is defined in `batchFlags` and resol
 
 Layer 2, provider targets. `runProviderTargetScheduler` splits targets into a hosted pool and a local pool that run concurrently, each a bounded worker pool. Within a pool, entries sort by descending `priority` then ascending `index`, which OCR uses to start the slowest providers first. The scheduler contains no retry or backoff of its own. An optional `resourceGate` is acquired inside each worker; `createGenerationResourceGate` uses this to cap total simultaneous work across steps 4 through 7, with capacity set to the maximum of all their provider and local values.
 
-Layer 3, provider lanes. Four schedulers implement this layer, and they diverge in three ways worth knowing:
+Layer 3, provider lanes and bounded inner work. Four provider schedulers implement the pressure layer, while multi-speaker TTS adds a bounded per-dialogue selector before individual turn invocations. They diverge in three ways worth knowing:
 
 - **Lane scope.** Hosted OCR keys lanes by `service:scopeLabel`, defaulting to `env-api-key`, so multiple models of one provider share a rate-limit budget and dispatch round-robin. Hosted TTS keys lanes by provider only, with every lane initialized to the same cap and no API-key scoping.
 - **Sharing across batch items.** `SttBatchCoordinator` is created once per batch and shared across all items when there is more than one item and more than one target, so slot accounting is global; it even sizes async poll slots from `--batch-concurrency` directly. `HostedOcrSchedulerImpl` is created per document, so `--batch-concurrency` and `--ocr-concurrency` multiply. `HostedTtsBatchCoordinatorImpl` is run-scoped for directory batches, registered with deferred start behind a one-second registration barrier.
@@ -143,6 +145,8 @@ Layer 3, provider lanes. Four schedulers implement this layer, and they diverge 
 `--ocr-concurrency` carries a mode contract the other flags do not have. It has no CLI default, so an unset value is distinguishable from an explicit one: unset means `auto` and lets the scheduler size its own cap from page count, while any explicit value means `fixed` and becomes a hard cap. Local OCR ignores the adaptive path entirely and runs two independent pools, one for rendering sized at `min(cpuCount, 4)` and one for OCR itself.
 
 `--split` is likewise not a simple on/off. Splitting also happens automatically when a file exceeds a provider's attachment cap, duration cap, or request budget, so an unsplit-looking command can still produce segments. The 30-minute default is shrunk per provider by the duration cap, the request budget, and a bytes-per-second estimate against 95% of the attachment cap. When a provider still rejects a segment, up to four adaptive passes halve the segment length down to a 60-second floor.
+
+Multi-speaker TTS uses `runDialogueWorkSelector` as a bounded preparation and invocation layer. Hosted targets use the normalized `--tts-chunk-concurrency` value and Kitten uses `--local-concurrency`. The selector assigns one safe `.work-*` directory per source turn, preserves source order when work completes out of order, shares one `AbortSignal` across active invocations, and removes all temporary workspaces before returning or rethrowing. Hosted provider request pressure remains controlled by the run-scoped chunk coordinator beneath this selector; the selector bounds materialized turn work and does not replace provider-wide AIMD or retry behavior.
 
 Two reassembly details are easy to miss. Timestamp offsetting for split STT happens inside each provider adapter rather than at merge time. Speaker labels are not reconciled across segments: each segment diarizes independently and the capability flag is simply ORed, so speaker identities are per-segment.
 
@@ -168,6 +172,7 @@ Text chunking itself is character-count based. Every provider uses a 2000-charac
 - `--tts-chunk-concurrency` is the provider-wide hosted maximum for the current run, not a per-file value.
 - `--batch-concurrency` means file lifecycle and local-work concurrency for hosted TTS batches, not remote provider request concurrency.
 - `--ocr-concurrency` carries a two-state mode contract on `ocrConcurrencyMode`: absent means `auto` and the hosted scheduler sizes its own cap; present means `fixed` and the value is a hard cap. The flag intentionally declares no CLI default so the two states stay distinguishable after config merging.
+- Multi-speaker turn callbacks receive an immutable explicit invocation and one shared cancellation signal; provider adapters must consume that invocation rather than capture a selection-time voice.
 - Scheduler telemetry appears in run metadata: provider max/current limits, started and completed chunks, retry counts, 429 counts, queue wait, active time, pause time, and chunk latency percentiles.
 
 ## Consequences
@@ -213,6 +218,8 @@ Negative outcomes:
 | Emit a hosted TTS scheduler summary at the end of batch runs | TTS maintainers | Done in `define-tts-command.ts` |
 | Add deterministic unit tests for fair queueing, small-file completion, provider-independent lanes, 429 backoff, and success ramp-up | TTS maintainers | Done |
 | Add mocked Grok/OpenAI provider contract tests proving concurrent files share the coordinator and preserve final audio order | TTS maintainers | Done |
+| Replace unbounded multi-speaker turn fan-out with a bounded, ordered, cancellable selector that owns safe turn workspaces | TTS maintainers | Done in `step-4-tts/dialogue-work-selector.ts` and `run-multi-speaker-tts.ts` |
+| Add deterministic selector tests for caps, reverse completion, queued cancellation, invocation signals, and cleanup | TTS maintainers | Done in `tts-dialogue-work-selector.test.ts` |
 
 ## Follow-up Actions
 
@@ -240,6 +247,10 @@ Negative outcomes:
   - Grok concurrent file jobs share one coordinator.
   - OpenAI or Groq chunked jobs preserve chunk order and final concatenation.
   - Provider retry wrappers report 429 feedback to the coordinator.
+- Contract-test multi-speaker turn selection with local fakes:
+  - Active work never exceeds the hosted or local cap.
+  - Reverse completion still yields source-ordered segment concatenation.
+  - One failed turn aborts active work, prevents queued starts, and leaves no `.work-*` directories.
 - CLI tests:
   - Help still describes `--tts-chunk-concurrency` as hosted provider-wide.
   - Estimates for multi-file hosted TTS use the shared queue model.

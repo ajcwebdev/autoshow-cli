@@ -2,7 +2,7 @@ import { describe, expect, test } from 'bun:test'
 import { mkdir } from 'node:fs/promises'
 import { join } from 'node:path'
 import { runElevenLabsTts } from '~/cli/commands/process-steps/step-4-tts/tts-services/tts-elevenlabs/run-elevenlabs-tts'
-import { createElevenLabsTtsIvcContext } from '~/cli/commands/process-steps/step-4-tts/tts-services/tts-elevenlabs/elevenlabs-ivc'
+import { createElevenLabsTtsIvcContext, ensureElevenLabsTtsIvcVoice } from '~/cli/commands/process-steps/step-4-tts/tts-services/tts-elevenlabs/elevenlabs-ivc'
 import { installMockFetch, jsonResponse, setupContractSuiteLifecycle } from '../../../../../test-utils/rest-contract-helpers'
 import { LOCAL_SHORT_AUDIO_PATH } from './shared'
 
@@ -12,7 +12,7 @@ const tempDirs = setupContractSuiteLifecycle({
 })
 
 describe('ElevenLabs clone flow contracts', () => {
-  test('elevenlabs clone flow creates once and reuses cloned voice across runs', async () => {
+  test('the separate ElevenLabs management helper creates once and synthesis consumes only its returned voice ID', async () => {
       const tempDir = await tempDirs.make()
         process.env['ELEVENLABS_API_KEY'] = 'test-key'
         const audioBytes = await Bun.file(LOCAL_SHORT_AUDIO_PATH).arrayBuffer()
@@ -41,13 +41,15 @@ describe('ElevenLabs clone flow contracts', () => {
           removeBackgroundNoise: true,
           context
         }
+        const firstVoice = await ensureElevenLabsTtsIvcVoice('https://api.elevenlabs.io/v1', 'test-key', clone)
+        const secondVoice = await ensureElevenLabsTtsIvcVoice('https://api.elevenlabs.io/v1', 'test-key', clone)
         const first = await runElevenLabsTts('Hello from the first run.', firstDir, {
           model: 'eleven_v3',
-          clone
+          voiceId: firstVoice.voiceId
         })
         const second = await runElevenLabsTts('Hello from the second run.', secondDir, {
           model: 'eleven_v3',
-          clone
+          voiceId: secondVoice.voiceId
         })
 
         expect(await Bun.file(first.audioPath).exists()).toBe(true)
@@ -72,19 +74,15 @@ describe('ElevenLabs clone flow contracts', () => {
           }
         ])
         expect(first.metadata).toMatchObject({
-          speaker: 'ref_audio:anthony-voice.mp3',
-          clonedVoiceId: 'voice_elevenlabs_mock',
-          cloneCostCents: 0
+          speaker: 'voice_elevenlabs_mock'
         })
         expect(second.metadata).toMatchObject({
-          speaker: 'ref_audio:anthony-voice.mp3',
-          clonedVoiceId: 'voice_elevenlabs_mock',
-          cloneCostCents: 0
+          speaker: 'voice_elevenlabs_mock'
         })
     })
 
   test('elevenlabs clone flow fails clearly when verification is required', async () => {
-      const tempDir = await tempDirs.make('autoshow-elevenlabs-verify-')
+      await tempDirs.make('autoshow-elevenlabs-verify-')
 
         process.env['ELEVENLABS_API_KEY'] = 'test-key'
         installMockFetch((call) => {
@@ -97,17 +95,14 @@ describe('ElevenLabs clone flow contracts', () => {
           throw new Error(`Unexpected ElevenLabs verification mock fetch: ${call.method} ${call.url}`)
         })
 
-        await expect(runElevenLabsTts('Hello.', tempDir, {
-          model: 'eleven_v3',
-          clone: {
-            refAudioPath: 'input/examples/audio/anthony-voice.mp3',
-            context: createElevenLabsTtsIvcContext()
-          }
+        await expect(ensureElevenLabsTtsIvcVoice('https://api.elevenlabs.io/v1', 'test-key', {
+          refAudioPath: 'input/examples/audio/anthony-voice.mp3',
+          context: createElevenLabsTtsIvcContext()
         })).rejects.toThrow('Verify it in ElevenLabs, then rerun with --elevenlabs-voice voice_requires_verify')
     })
 
   test('elevenlabs clone flow surfaces API errors without synthesis', async () => {
-      const tempDir = await tempDirs.make('autoshow-elevenlabs-error-')
+      await tempDirs.make('autoshow-elevenlabs-error-')
       let synthesisCalls = 0
 
         process.env['ELEVENLABS_API_KEY'] = 'test-key'
@@ -128,12 +123,9 @@ describe('ElevenLabs clone flow contracts', () => {
         })
 
         try {
-          await runElevenLabsTts('Hello.', tempDir, {
-            model: 'eleven_v3',
-            clone: {
-              refAudioPath: 'input/examples/audio/anthony-voice.mp3',
-              context: createElevenLabsTtsIvcContext()
-            }
+          await ensureElevenLabsTtsIvcVoice('https://api.elevenlabs.io/v1', 'test-key', {
+            refAudioPath: 'input/examples/audio/anthony-voice.mp3',
+            context: createElevenLabsTtsIvcContext()
           })
           throw new Error('expected ElevenLabs IVC failure')
         } catch (error) {

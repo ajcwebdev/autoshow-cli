@@ -57,7 +57,10 @@ const summarizeMetric = (samples: readonly number[]): HostedTtsMetricSummary => 
 }
 
 const hasRemainingChunks = (job: HostedTtsChunkJob): boolean =>
-  !job.failed && !job.settled && job.nextChunkIndex < job.chunks.length
+  !job.failed
+  && !job.settled
+  && job.abortSignal?.aborted !== true
+  && job.nextChunkIndex < job.chunks.length
 
 const remainingChunks = (job: HostedTtsChunkJob): number =>
   Math.max(0, job.chunks.length - job.completedChunks)
@@ -148,8 +151,30 @@ export class HostedTtsBatchCoordinatorImpl implements HostedTtsBatchCoordinator 
     }, waitMs)
   }
 
+  #detachAbortListener(job: HostedTtsChunkJob): void {
+    if (job.abortSignal && job.abortListener) {
+      job.abortSignal.removeEventListener('abort', job.abortListener)
+    }
+    job.abortSignal = undefined
+    job.abortListener = undefined
+  }
+
   #removeSettledJobs(state: HostedTtsProviderChunkState): void {
     state.jobs = state.jobs.filter((job) => !job.settled || job.active > 0)
+    if (!state.jobs.some(hasRemainingChunks) && state.wakeTimer !== undefined) {
+      clearTimeout(state.wakeTimer)
+      state.wakeTimer = undefined
+    }
+  }
+
+  #cancelJob(state: HostedTtsProviderChunkState, job: HostedTtsChunkJob, reason: unknown): void {
+    if (job.settled) {
+      return
+    }
+    job.failed = true
+    job.failureReason ??= reason
+    this.#settleFailedJobIfInactive(state, job)
+    this.#drain(state)
   }
 
   #selectJob(state: HostedTtsProviderChunkState): HostedTtsChunkJob | undefined {
@@ -217,7 +242,19 @@ export class HostedTtsBatchCoordinatorImpl implements HostedTtsBatchCoordinator 
     }
 
     job.settled = true
+    this.#detachAbortListener(job)
     job.resolve(job.results)
+    this.#removeSettledJobs(state)
+  }
+
+  #settleFailedJobIfInactive(state: HostedTtsProviderChunkState, job: HostedTtsChunkJob): void {
+    if (job.settled || !job.failed || job.active > 0) {
+      return
+    }
+
+    job.settled = true
+    this.#detachAbortListener(job)
+    job.reject(job.failureReason ?? new Error('Hosted TTS chunk job failed'))
     this.#removeSettledJobs(state)
   }
 
@@ -246,12 +283,9 @@ export class HostedTtsBatchCoordinatorImpl implements HostedTtsBatchCoordinator 
         state.stats.completedChunks += 1
       } catch (error) {
         job.failed = true
+        job.failureReason ??= error
         job.failedChunks += 1
         state.stats.failedChunks += 1
-        if (!job.settled) {
-          job.settled = true
-          job.reject(error)
-        }
       } finally {
         const activeLatencyMs = Math.max(0, Date.now() - activeStartedAtMs)
         job.activeLatencySamplesMs.push(activeLatencyMs)
@@ -259,9 +293,10 @@ export class HostedTtsBatchCoordinatorImpl implements HostedTtsBatchCoordinator 
         job.active = Math.max(0, job.active - 1)
         state.active = Math.max(0, state.active - 1)
 
-        if (succeeded) {
+        if (succeeded && !job.failed) {
           this.#recordSuccess(job.provider)
         }
+        this.#settleFailedJobIfInactive(state, job)
         this.#settleJobIfComplete(state, job)
         this.#drain(state)
       }
@@ -298,6 +333,7 @@ export class HostedTtsBatchCoordinatorImpl implements HostedTtsBatchCoordinator 
     runChunk: (chunk: string, index: number) => Promise<T>,
     options: HostedTtsRunChunksOptions = {}
   ): Promise<T[]> {
+    options.abortSignal?.throwIfAborted()
     if (chunks.length === 0) {
       return []
     }
@@ -328,6 +364,7 @@ export class HostedTtsBatchCoordinatorImpl implements HostedTtsBatchCoordinator 
       lastSelectedAtMs: 0,
       failed: false,
       settled: false,
+      abortSignal: options.abortSignal,
       resolve: () => undefined,
       reject: () => undefined
     }
@@ -341,6 +378,20 @@ export class HostedTtsBatchCoordinatorImpl implements HostedTtsBatchCoordinator 
       job.resolve = resolve
       job.reject = reject
     })
+
+    const abortSignal = options.abortSignal
+    if (abortSignal) {
+      const abortListener = (): void => this.#cancelJob(
+        state,
+        job,
+        abortSignal.reason ?? new DOMException('The operation was aborted.', 'AbortError')
+      )
+      job.abortListener = abortListener
+      abortSignal.addEventListener('abort', abortListener, { once: true })
+      if (abortSignal.aborted) {
+        abortListener()
+      }
+    }
 
     this.#drain(state)
     return await promise
@@ -390,7 +441,12 @@ export class HostedTtsBatchCoordinatorImpl implements HostedTtsBatchCoordinator 
       maxLimit: state.maxLimit,
       currentLimit: state.currentLimit,
       active: state.active,
-      queued: state.jobs.reduce((sum, job) => sum + Math.max(0, job.chunks.length - job.nextChunkIndex), 0),
+      queued: state.jobs.reduce(
+        (sum, job) => hasRemainingChunks(job)
+          ? sum + Math.max(0, job.chunks.length - job.nextChunkIndex)
+          : sum,
+        0
+      ),
       pauseUntilMs: state.pauseUntilMs,
       successStreak: state.successStreak
     }

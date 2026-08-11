@@ -19,6 +19,7 @@ export type RunProviderTargetSchedulerOptions<TTarget, TResult> = {
   getPool: (target: TTarget) => TargetPoolKind
   runTarget: (index: number, target: TTarget) => Promise<TResult>
   resourceGate?: ResourceGate | undefined
+  getResourceGate?: ((target: TTarget) => ResourceGate | undefined) | undefined
   onLifecycle?: ((event: {
     index: number
     target: TTarget

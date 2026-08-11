@@ -13,8 +13,6 @@ export type TtsRuntimeOptions = {
   mistralTtsModels: string[] | undefined
   mistralTtsModel: string | undefined
   mistralTtsVoice: string | undefined
-  mistralTtsRefAudio: string | undefined
-  mistralTtsVoiceName: string | undefined
   ttsDialogueFormat: 'screenplay' | 'labeled' | undefined
   ttsSpeakers: string[] | undefined
   openaiTtsModels: string[] | undefined
@@ -28,9 +26,6 @@ export type TtsRuntimeOptions = {
   elevenlabsTtsModels: string[] | undefined
   elevenlabsTtsModel: string | undefined
   elevenlabsVoiceId: string | undefined
-  elevenlabsTtsRefAudio: string | undefined
-  elevenlabsTtsVoiceName: string | undefined
-  elevenlabsTtsCloneRemoveBackgroundNoise: boolean
   elevenlabsTtsOutputFormat: string | undefined
   elevenlabsTtsLanguageCode: string | undefined
   elevenlabsTtsStability: number | undefined
@@ -65,12 +60,6 @@ export type TtsRuntimeOptions = {
   speechifyVoice: string | undefined
   speechifyTtsAudioFormat: string | undefined
   speechifyTtsLanguage: string | undefined
-  speechifyTtsRefAudio: string | undefined
-  speechifyTtsVoiceName: string | undefined
-  speechifyTtsConsentName: string | undefined
-  speechifyTtsConsentEmail: string | undefined
-  speechifyTtsVoiceLocale: string | undefined
-  speechifyTtsVoiceGender: string | undefined
   humeTtsModels: string[] | undefined
   humeTtsModel: string | undefined
   humeTtsVoice: string | undefined
@@ -82,3 +71,25 @@ export type TtsRuntimeOptions = {
 }
 
 export type TtsRuntimeOptionKey = keyof TtsRuntimeOptions
+
+// These keys remain readable only long enough to reject legacy CLI/config creation inputs with
+// migration guidance. They are deliberately not part of any synthesis runtime option bag.
+export type TtsLegacyCreationDiagnosticOptions = {
+  mistralTtsVoiceName: string | undefined
+  elevenlabsTtsRefAudio: string | undefined
+  elevenlabsTtsVoiceName: string | undefined
+  elevenlabsTtsCloneRemoveBackgroundNoise: boolean
+  speechifyTtsRefAudio: string | undefined
+  speechifyTtsVoiceName: string | undefined
+  speechifyTtsConsentName: string | undefined
+  speechifyTtsConsentEmail: string | undefined
+  speechifyTtsVoiceLocale: string | undefined
+  speechifyTtsVoiceGender: string | undefined
+}
+
+export type TtsLegacyCreationDiagnosticOptionKey = keyof TtsLegacyCreationDiagnosticOptions
+
+export type TtsOptionResolutionAuthority = Readonly<{
+  cliReferenceInput?: 'standalone-mistral' | undefined
+  mistralSpeakerReferences?: 'sanitized' | undefined
+}>

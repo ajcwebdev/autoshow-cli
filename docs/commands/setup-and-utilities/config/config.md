@@ -160,8 +160,7 @@ Representative JSON shape:
         "grokTtsLanguage": "auto",
         "grokTtsTextNormalization": true,
         "mistralTts": ["voxtral-mini-tts-2603"],
-        "mistralTtsRefAudio": "input/examples/audio/anthony-voice.mp3",
-        "mistralTtsVoiceName": "AutoShowAnthony",
+        "mistralTtsVoice": "voice_existing",
         "ttsDialogueFormat": "screenplay",
         "ttsSpeakers": ["Host=Kore", "Guest=Puck"],
         "openaiTts": ["gpt-4o-mini-tts-2025-12-15"],
@@ -285,16 +284,16 @@ Model-selecting fields are arrays of models, not single strings.
 | Field | Flag |
 |-------|------|
 | `kittenTts`, `elevenlabsTts`, `minimaxTts`, `groqTts`, `grokTts`, `mistralTts`, `openaiTts`, `geminiTts`, `deepgramTts`, `speechifyTts`, `humeTts`, `cartesiaTts` | `--tts provider[=model]` |
-| `ttsSpeaker`, `groqVoice`, `grokTtsVoice`, `grokTtsLanguage`, `grokTtsTextNormalization`, `mistralTtsVoice`, `mistralTtsRefAudio`, `mistralTtsVoiceName` | generic `--tts-*` voice/reference flags or matching provider-specific controls |
+| `ttsSpeaker`, `groqVoice`, `grokTtsVoice`, `grokTtsLanguage`, `grokTtsTextNormalization`, `mistralTtsVoice` | generic `--tts-*` voice flags or matching provider-specific controls |
 | `ttsDialogueFormat`, `ttsSpeakers` | `--tts-dialogue-format`, `--tts-speaker` |
 | `openaiVoice`, `openaiTtsInstructions`, `openaiTtsSpeed` | generic `--tts-*` flags |
 | `geminiVoice` | Gemini voice flag |
-| `elevenlabsVoice`, `elevenlabsTtsRefAudio`, `elevenlabsTtsVoiceName`, `elevenlabsTtsCloneRemoveBackgroundNoise`, `elevenlabsTtsOutputFormat`, `elevenlabsTtsLanguageCode`, `elevenlabsTtsStability`, `elevenlabsTtsSimilarityBoost`, `elevenlabsTtsStyle`, `elevenlabsTtsUseSpeakerBoost`, `elevenlabsTtsSpeed`, `elevenlabsTtsSeed`, `elevenlabsTtsTextNormalization`, `elevenlabsTtsPronunciationDictionaryLocators`, `elevenlabsTtsOptimizeStreamingLatency` | ElevenLabs reusable voice/clone and synthesis flags |
+| `elevenlabsVoice`, `elevenlabsTtsOutputFormat`, `elevenlabsTtsLanguageCode`, `elevenlabsTtsStability`, `elevenlabsTtsSimilarityBoost`, `elevenlabsTtsStyle`, `elevenlabsTtsUseSpeakerBoost`, `elevenlabsTtsSpeed`, `elevenlabsTtsSeed`, `elevenlabsTtsTextNormalization`, `elevenlabsTtsPronunciationDictionaryLocators`, `elevenlabsTtsOptimizeStreamingLatency` | ElevenLabs existing-voice and synthesis flags |
 | `minimaxTtsVoice`, `minimaxTtsLanguageBoost`, `minimaxTtsSpeed`, `minimaxTtsVolume`, `minimaxTtsPitch`, `minimaxTtsEmotion`, `minimaxTtsEnglishNormalization`, `minimaxTtsPronunciations` | MiniMax voice and synthesis control flags |
-| `deepgramVoice`, `deepgramTtsEncoding`, `deepgramTtsContainer`, `deepgramTtsBitRate`, `deepgramTtsSampleRate`, `deepgramTtsSpeed`, `speechifyVoice`, `speechifyTtsAudioFormat`, `speechifyTtsLanguage`, `humeTtsVoice`, `humeTtsVoiceProvider`, `cartesiaTtsVoice`, `cartesiaTtsLanguage` | provider voice/reference, output, and reusable setup flags |
+| `deepgramVoice`, `deepgramTtsEncoding`, `deepgramTtsContainer`, `deepgramTtsBitRate`, `deepgramTtsSampleRate`, `deepgramTtsSpeed`, `speechifyVoice`, `speechifyTtsAudioFormat`, `speechifyTtsLanguage`, `humeTtsVoice`, `humeTtsVoiceProvider`, `cartesiaTtsVoice`, `cartesiaTtsLanguage` | provider voice, output, and reusable synthesis flags |
 | `providerConcurrency`, `localConcurrency`, `chunkConcurrency` | `--provider-concurrency`, `--local-concurrency`, `--tts-chunk-concurrency` |
 
-Speechify custom-voice creation fields (`--speechify-tts-ref-audio`, `--speechify-tts-voice-name`, `--speechify-tts-consent-*`, `--speechify-tts-voice-locale`, `--speechify-tts-voice-gender`) are runtime-only and are not persisted.
+ElevenLabs and Speechify custom-voice creation fields are not synthesis defaults and are rejected by the strict config schema. Current synthesis configuration accepts only an existing provider voice ID; managed provisioning and import belong to the future voice-management and `comic reference-voice` workflows rather than this config file.
 
 `ttsSpeakers` is what selects multi-speaker TTS, so a saved `ttsDialogueFormat` with no saved `ttsSpeakers` is inert: runs that inherit it log a warning and continue as single-speaker rather than failing at step 4.
 

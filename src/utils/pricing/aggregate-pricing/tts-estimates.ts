@@ -1,5 +1,5 @@
-import type { ProcessingOptions, TtsOptions, TtsStepEstimate } from '~/types'
-import { estimateTtsCosts } from '~/cli/commands/process-steps/step-4-tts/tts-utils/tts-pricing'
+import type { ProcessingOptions, TtsOptions, TtsStepEstimate, TtsTarget } from '~/types'
+import { estimateTtsCosts, estimateTtsTargetCosts } from '~/cli/commands/process-steps/step-4-tts/tts-utils/tts-pricing'
 import { getTtsEstimation } from '~/cli/commands/setup-and-utilities/models/model-loader'
 import { resolvePromptTokenEstimate } from '~/prompts/prompt-loader'
 import { applyCostMultiplier } from '~/utils/pricing/cost-helpers'
@@ -14,10 +14,12 @@ export const estimateTtsCharacterCountFromPrompts = async (
   return Math.max(0, Math.round(estimatedOutputTokens * ESTIMATED_TTS_CHARACTERS_PER_TOKEN))
 }
 
-export const buildTtsEstimates = async (opts: TtsOptions, characterCount: number): Promise<TtsStepEstimate[]> => {
-  const normalizedCharacterCount = Math.max(0, Math.floor(characterCount))
+const buildTtsEstimatesFromCosts = async (
+  opts: TtsOptions,
+  costs: ReturnType<typeof estimateTtsTargetCosts>
+): Promise<TtsStepEstimate[]> => {
   const estimates: TtsStepEstimate[] = []
-  for (const cost of estimateTtsCosts(opts, normalizedCharacterCount)) {
+  for (const cost of costs) {
     const estimation = getTtsEstimation(cost.provider, cost.model)
     estimates.push({
       step: 'tts' as const,
@@ -37,3 +39,20 @@ export const buildTtsEstimates = async (opts: TtsOptions, characterCount: number
   }
   return estimates
 }
+
+export const buildTtsTargetEstimates = async (
+  targets: readonly TtsTarget[],
+  opts: TtsOptions,
+  characterCount: number
+): Promise<TtsStepEstimate[]> => buildTtsEstimatesFromCosts(
+  opts,
+  estimateTtsTargetCosts(targets, Math.max(0, Math.floor(characterCount)))
+)
+
+export const buildTtsEstimates = async (
+  opts: TtsOptions,
+  characterCount: number
+): Promise<TtsStepEstimate[]> => buildTtsEstimatesFromCosts(
+  opts,
+  estimateTtsCosts(opts, Math.max(0, Math.floor(characterCount)))
+)

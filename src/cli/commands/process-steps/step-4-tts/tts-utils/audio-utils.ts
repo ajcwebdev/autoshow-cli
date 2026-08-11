@@ -44,7 +44,10 @@ export const runTtsChunks = async <T>(
 ): Promise<T[]> => {
   if (options.provider) {
     const scheduler = options.scheduler ?? createHostedTtsChunkScheduler(concurrency)
-    return await scheduler.runChunks(options.provider, chunks, runChunk, { job: options.job })
+    return await scheduler.runChunks(options.provider, chunks, runChunk, {
+      job: options.job,
+      abortSignal: options.abortSignal
+    })
   }
 
   const normalizedConcurrency = normalizeTtsChunkConcurrency(concurrency)
@@ -83,8 +86,10 @@ export const runTtsChunks = async <T>(
 export const concatAndConvertToWav = async (
   chunkPaths: string[],
   outputDir: string,
-  providerLabel: string
+  providerLabel: string,
+  abortSignal?: AbortSignal | undefined
 ): Promise<string> => {
+  abortSignal?.throwIfAborted()
   const wavPath = `${outputDir}/speech.wav`
 
   if (chunkPaths.length === 1) {
@@ -95,7 +100,7 @@ export const concatAndConvertToWav = async (
       '-c:a', 'pcm_s16le',
       '-y',
       wavPath
-    ])
+    ], { signal: abortSignal })
     if (ffmpeg.exitCode !== 0) {
       throw InfraError(`Failed to convert ${providerLabel} audio to WAV: ${ffmpeg.stderr.trim()}`, { stage: 'tts:audio-utils' })
     }
@@ -118,7 +123,7 @@ export const concatAndConvertToWav = async (
       '-c:a', 'pcm_s16le',
       '-y',
       wavPath
-    ])
+    ], { signal: abortSignal })
 
     if (ffmpeg.exitCode !== 0) {
       throw InfraError(`Failed to concatenate ${providerLabel} audio chunks: ${ffmpeg.stderr.trim()}`, { stage: 'tts:audio-utils' })
@@ -134,8 +139,10 @@ export const convertAudioToWav = async (
   inputPath: string,
   outputPath: string,
   providerLabel: string,
-  purposeLabel = 'audio'
+  purposeLabel = 'audio',
+  abortSignal?: AbortSignal | undefined
 ): Promise<string> => {
+  abortSignal?.throwIfAborted()
   const ffmpeg = await exec(getFfmpegBinary(), [
     '-i', inputPath,
     '-vn',
@@ -145,7 +152,7 @@ export const convertAudioToWav = async (
     '-c:a', 'pcm_s16le',
     '-y',
     outputPath
-  ])
+  ], { signal: abortSignal })
 
   if (ffmpeg.exitCode !== 0) {
     throw InfraError(`Failed to convert ${providerLabel} ${purposeLabel} to WAV: ${ffmpeg.stderr.trim()}`, { stage: 'tts:audio-utils' })

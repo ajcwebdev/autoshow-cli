@@ -1,4 +1,4 @@
-import type { ProviderTargetBase, ResourceGate, Step4Metadata, TtsProvider, TtsRuntimeOptions } from '~/types'
+import type { ProtectedAssetRef, ProviderTargetBase, ResourceGate, Step4Metadata, TtsProvider, TtsRuntimeOptions } from '~/types'
 
 export type TtsOptions = Partial<TtsRuntimeOptions & {
   ttsProviderConcurrency: number
@@ -7,9 +7,16 @@ export type TtsOptions = Partial<TtsRuntimeOptions & {
 }> & {
   generationResourceGate?: ResourceGate | undefined
   hostedTtsChunkScheduler?: HostedTtsChunkScheduler | undefined
+  /**
+   * Internal synthesis input for canonical dialogue turns. This is deliberately not part of
+   * TtsRuntimeOptions or config persistence: callers must bind controls to the immutable turn ID
+   * and provider before render planning.
+   */
+  ttsTurnControls?: TtsTurnControls | undefined
 }
 
 export type MultiSpeakerStrategy = 'native' | 'segment-and-concat'
+export type GeminiDialogueMode = 'auto' | 'native' | 'segmented'
 
 export type SpeakerVoiceMapping = {
   speaker: string
@@ -22,6 +29,86 @@ export type SpeakerVoiceRegistry = {
   entries: SpeakerVoiceMapping[]
   bySpeaker: Map<string, SpeakerVoiceMapping>
 }
+
+export type TtsTargetVoiceSource =
+  | Readonly<{ kind: 'id', value: string }>
+  | Readonly<{
+      kind: 'ref-audio'
+      value: string
+      protectedAsset?: ProtectedAssetRef | undefined
+      authorizationRef?: string | undefined
+    }>
+
+export type TtsTargetInvocationControlValue = string | number | boolean | null | readonly string[]
+
+export type TtsTargetInvocationControls = Readonly<Record<string, TtsTargetInvocationControlValue>>
+
+export type TtsTurnControls = Readonly<Record<
+  string,
+  Readonly<Partial<Record<TtsProvider, TtsTargetInvocationControls>>>
+>>
+
+export type TtsTargetInvocation = Readonly<{
+  sourceId: string
+  sourceIndex: number
+  speaker: string
+  voice: TtsTargetVoiceSource
+  controls: TtsTargetInvocationControls
+  signal?: AbortSignal | undefined
+}>
+
+export type TtsSerializedVoiceObservation = Readonly<{
+  kind: 'provider-id' | 'reference-asset' | 'local-model-voice'
+  value?: string | undefined
+  valueHash?: string | undefined
+  speaker?: string | undefined
+}>
+
+export type TtsSerializedRequestObservation = Readonly<{
+  chunkIndex: number
+  endpointKind: string
+  serializerVersion: string
+  serializedRequest: unknown
+  providerText: string
+  voiceField: string
+  voices: readonly TtsSerializedVoiceObservation[]
+  requestControls?: unknown
+  continuation?: unknown
+}>
+
+export type TtsProviderRequestAttempt = Readonly<{
+  attempt: number
+  retryReasonCode?: string | undefined
+}>
+
+export type TtsProviderRequestAcceptance = Readonly<{
+  providerRequestId?: string | undefined
+  fields?: Readonly<Record<string, string | number | boolean | null>> | undefined
+}>
+
+export type TtsProviderRequestLifecycle = Readonly<{
+  accepted: (acceptance?: TtsProviderRequestAcceptance | undefined) => Promise<void>
+}>
+
+export type TtsRequestEvidenceScope = Readonly<{
+  forInvocation?: ((invocation: TtsTargetInvocation) => TtsRequestEvidenceScope) | undefined
+  /** Returns verified retained outputs only when every planned slot in this invocation is complete. */
+  recoverCompletedOutputs?: (() => Promise<Readonly<{
+    paths: readonly string[]
+    generationSlotIds: readonly string[]
+  }> | undefined>) | undefined
+  dispatch: <T>(
+    observation: TtsSerializedRequestObservation,
+    requestAttempt: TtsProviderRequestAttempt,
+    operation: (lifecycle: TtsProviderRequestLifecycle) => Promise<T>
+  ) => Promise<T>
+  recordOutput: (output: {
+    chunkIndex: number
+    path: string
+    outputIndex?: number | undefined
+  }) => Promise<void>
+  complete: (request: { chunkIndex: number }) => Promise<void>
+}>
 
 export type HostedTtsChunkRateLimitFeedback = {
   retryAfterMs?: number | undefined
@@ -97,6 +184,7 @@ export type HostedTtsSchedulerTelemetry = {
 
 export type HostedTtsRunChunksOptions = {
   job?: HostedTtsChunkJobContext | undefined
+  abortSignal?: AbortSignal | undefined
 }
 
 export type HostedTtsChunkScheduler = {
@@ -120,12 +208,23 @@ export type HostedTtsBatchCoordinator = HostedTtsChunkScheduler & {
 }
 
 export type TtsTarget = ProviderTargetBase<TtsProvider> & {
+  operation?: 'tts-synthesis' | undefined
+  targetKey?: string | undefined
+  transport?: string | undefined
+  protectedVoiceAsset?: ProtectedAssetRef | undefined
+  protectedSpeakerVoiceAssets?: Readonly<Record<string, ProtectedAssetRef>> | undefined
   voice?: string
   multiSpeakerStrategy?: MultiSpeakerStrategy
   setupCostCents?: number | undefined
   setupTimeMs?: number | undefined
   setupNote?: string | undefined
-  run: (text: string, outputDir: string, opts: TtsOptions) => Promise<{ audioPath: string, metadata: Step4Metadata }>
+  run: (
+    text: string,
+    outputDir: string,
+    opts: TtsOptions,
+    invocation?: TtsTargetInvocation | undefined,
+    requestEvidence?: TtsRequestEvidenceScope | undefined
+  ) => Promise<{ audioPath: string, metadata: Step4Metadata }>
 }
 
 

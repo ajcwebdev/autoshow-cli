@@ -1,10 +1,95 @@
-import { validateCartesiaTtsVoice, validateDeepgramTtsVoice, validateElevenLabsTtsTextNormalization, validateGrokTtsLanguage, validateGrokTtsVoice, validateGroqTtsVoice, validateHumeTtsVoice, validateHumeTtsVoiceProvider, validateKittenTtsModel, validateKittenTtsSpeaker, validateMinimaxTtsEmotion, validateMinimaxTtsLanguageBoost, validateSpeechifyTtsAudioFormat, validateSpeechifyTtsVoice } from '~/cli/commands/setup-and-utilities/models/setup-model-options'
-import type { CliFlagOccurrence, ResolvedModelOptions, TtsRuntimeOptionKey, TtsRuntimeOptions } from '~/types'
+import { validateCartesiaTtsVoice, validateDeepgramTtsVoice, validateElevenLabsTtsTextNormalization, validateGeminiTtsVoice, validateGrokTtsLanguage, validateGrokTtsVoice, validateGroqTtsVoice, validateHumeTtsVoice, validateHumeTtsVoiceProvider, validateKittenTtsModel, validateKittenTtsSpeaker, validateMinimaxTtsEmotion, validateMinimaxTtsLanguageBoost, validateSpeechifyTtsAudioFormat, validateSpeechifyTtsVoice } from '~/cli/commands/setup-and-utilities/models/setup-model-options'
+import type { CliFlagOccurrence, ResolvedModelOptions, TtsCliReferenceInput, TtsLegacyCreationDiagnosticOptions, TtsOptionResolutionAuthority, TtsRuntimeOptionKey, TtsRuntimeOptions } from '~/types'
 import { parseOptionalNumberFlag, parseTtsDialogueFormat, readBooleanFlag, readOptionalOccurrenceStringFlag, readOptionalStringFlag, readOptionalStringListFlag, readStringFlag } from './flag-readers'
 import { validateCliValue } from './download-model-options'
 import { pick } from '~/utils/cli-utils'
+import { validateTtsSynthesisCreationOptions } from '~/cli/commands/process-steps/step-4-tts/synthesis-creation-guard'
+import { CLIUsageError } from '~/utils/error-handler'
+import { MISTRAL_CLI_REFERENCE_AUTHORIZATION } from '~/cli/commands/process-steps/step-4-tts/voice-assets/mistral-request-reference-policy'
+import { parseSpeakerVoiceMappings } from '~/cli/commands/process-steps/step-4-tts/dialogue-normalizer'
 
 const DEFAULT_KITTEN_TTS_SPEAKER = 'Jasper'
+
+type TtsOptionResolutionContext = TtsOptionResolutionAuthority & {
+  explicitFlags?: ReadonlySet<string> | undefined
+  configuredFlags?: ReadonlySet<string> | undefined
+}
+
+export const resolveStandaloneMistralTtsCliReferenceInput = (
+  flags: Record<string, unknown>,
+  context: TtsOptionResolutionContext = {}
+): TtsCliReferenceInput | undefined => {
+  const sourcePath = readOptionalStringFlag(flags, 'mistral-tts-ref-audio')?.trim()
+  if (!sourcePath) return undefined
+
+  if (context.cliReferenceInput !== 'standalone-mistral') {
+    throw CLIUsageError(
+      '--mistral-tts-ref-audio is an authorized edge input only for the standalone `tts` command.',
+      'Use standalone `tts` with an explicit request reference, or create/import a voice with the shared `voice` command or `comic reference-voice` and synthesize with --mistral-tts-voice.'
+    )
+  }
+  if (!context.explicitFlags?.has('mistral-tts-ref-audio')) {
+    const origin = context.configuredFlags?.has('mistral-tts-ref-audio') ? 'Configured' : 'Inherited'
+    throw CLIUsageError(
+      `${origin} --mistral-tts-ref-audio paths cannot be used as synthesis defaults.`,
+      'Pass an authorized unnamed reference explicitly for this standalone Mistral TTS request, or create/import a voice with the shared `voice` command or `comic reference-voice` and synthesize with --mistral-tts-voice.'
+    )
+  }
+
+  return {
+    sourcePath,
+    authorizationRef: MISTRAL_CLI_REFERENCE_AUTHORIZATION
+  }
+}
+
+export const resolveStandaloneMistralTtsSpeakerReferenceInputs = (
+  flags: Record<string, unknown>,
+  context: TtsOptionResolutionContext & { flagOccurrences?: readonly CliFlagOccurrence[] | undefined } = {}
+): TtsCliReferenceInput[] => {
+  const values = readOptionalStringListFlag(flags, 'tts-speaker')
+  const registry = parseSpeakerVoiceMappings(values)
+  const referenceEntries = registry.entries.filter((entry) => entry.voiceKind === 'ref-audio')
+  if (referenceEntries.length === 0) return []
+
+  if (context.cliReferenceInput !== 'standalone-mistral') {
+    throw CLIUsageError(
+      '--tts-speaker SPEAKER=path is an authorized edge input only for the standalone `tts` command.',
+      'Use standalone `tts` with one explicitly selected Mistral provider, or create/import voices with the shared `voice` command or `comic reference-voice`.'
+    )
+  }
+
+  const explicitOccurrences = (context.flagOccurrences ?? [])
+    .filter((occurrence) => occurrence.name === 'tts-speaker' && typeof occurrence.value === 'string')
+    .map((occurrence) => occurrence.value as string)
+  const remainingExplicitValues = new Map<string, number>()
+  for (const value of explicitOccurrences) {
+    remainingExplicitValues.set(value, (remainingExplicitValues.get(value) ?? 0) + 1)
+  }
+
+  return registry.entries.flatMap((entry, index) => {
+    if (entry.voiceKind !== 'ref-audio') return []
+    const raw = values?.[index]
+    const explicitCount = raw === undefined ? 0 : remainingExplicitValues.get(raw) ?? 0
+    const explicitlyAuthorized = explicitOccurrences.length > 0
+      ? explicitCount > 0
+      : context.explicitFlags?.has('tts-speaker') === true
+    if (!explicitlyAuthorized) {
+      const origin = context.configuredFlags?.has('tts-speaker') ? 'Configured' : 'Inherited'
+      throw CLIUsageError(
+        `${origin} --tts-speaker SPEAKER=path mappings cannot be used as synthesis defaults.`,
+        'Pass each Mistral request reference explicitly to standalone `tts`, or create/import voices with the shared `voice` command or `comic reference-voice`.'
+      )
+    }
+    if (raw !== undefined && explicitOccurrences.length > 0) {
+      remainingExplicitValues.set(raw, explicitCount - 1)
+    }
+    return [{
+      speakerKey: entry.normalizedSpeaker,
+      sourcePath: entry.voice,
+      authorizationRef: MISTRAL_CLI_REFERENCE_AUTHORIZATION
+    }]
+  })
+}
 
 export const TTS_MODEL_KEYS = [
   'elevenlabsTtsModels', 'elevenlabsTtsModel', 'minimaxTtsModels', 'minimaxTtsModel',
@@ -18,7 +103,11 @@ export const TTS_MODEL_KEYS = [
 export const buildTtsOptions = (
   flags: Record<string, unknown>,
   flagOccurrences: readonly CliFlagOccurrence[],
-  modelOptions: ResolvedModelOptions
+  modelOptions: ResolvedModelOptions,
+  originContext: {
+    explicitFlags?: ReadonlySet<string> | undefined
+    configuredFlags?: ReadonlySet<string> | undefined
+  } & TtsOptionResolutionAuthority = {}
 ): TtsRuntimeOptions => {
   const {
     kittenTtsModelValues,
@@ -31,7 +120,34 @@ export const buildTtsOptions = (
     cartesiaTtsModels,
   } = modelOptions
 
-  return {
+  const creationDiagnostics: TtsLegacyCreationDiagnosticOptions = {
+    mistralTtsVoiceName: readOptionalOccurrenceStringFlag(flagOccurrences, 'mistral-tts-voice-name') ?? readOptionalStringFlag(flags, 'mistral-tts-voice-name'),
+    elevenlabsTtsRefAudio: readOptionalStringFlag(flags, 'elevenlabs-tts-ref-audio'),
+    elevenlabsTtsVoiceName: readOptionalOccurrenceStringFlag(flagOccurrences, 'elevenlabs-tts-voice-name') ?? readOptionalStringFlag(flags, 'elevenlabs-tts-voice-name'),
+    elevenlabsTtsCloneRemoveBackgroundNoise: readBooleanFlag(flags, 'elevenlabs-tts-clone-remove-background-noise'),
+    speechifyTtsRefAudio: readOptionalStringFlag(flags, 'speechify-tts-ref-audio'),
+    speechifyTtsVoiceName: readOptionalOccurrenceStringFlag(flagOccurrences, 'speechify-tts-voice-name') ?? readOptionalStringFlag(flags, 'speechify-tts-voice-name'),
+    speechifyTtsConsentName: readOptionalOccurrenceStringFlag(flagOccurrences, 'speechify-tts-consent-name') ?? readOptionalStringFlag(flags, 'speechify-tts-consent-name'),
+    speechifyTtsConsentEmail: readOptionalStringFlag(flags, 'speechify-tts-consent-email'),
+    speechifyTtsVoiceLocale: readOptionalStringFlag(flags, 'speechify-tts-voice-locale'),
+    speechifyTtsVoiceGender: readOptionalStringFlag(flags, 'speechify-tts-voice-gender')
+  }
+  validateTtsSynthesisCreationOptions(creationDiagnostics, originContext)
+  resolveStandaloneMistralTtsCliReferenceInput(flags, originContext)
+
+  const ttsSpeakers = readOptionalStringListFlag(flags, 'tts-speaker')
+  if (
+    parseSpeakerVoiceMappings(ttsSpeakers).entries.some((entry) => entry.voiceKind === 'ref-audio')
+    && originContext.mistralSpeakerReferences !== 'sanitized'
+  ) {
+    const origin = originContext.configuredFlags?.has('tts-speaker') ? 'Configured' : 'Inherited'
+    throw CLIUsageError(
+      `${origin} --tts-speaker SPEAKER=path mappings cannot enter generic TTS runtime options.`,
+      'Pass each path explicitly to standalone `tts` with one Mistral provider so it can cross protected ingestion, or use existing provider voice IDs.'
+    )
+  }
+
+  const options: TtsRuntimeOptions = {
     ...pick(modelOptions, TTS_MODEL_KEYS),
     ttsSpeaker: (() => {
       const raw = readStringFlag(flags, 'kitten-voice', DEFAULT_KITTEN_TTS_SPEAKER)
@@ -54,10 +170,8 @@ export const buildTtsOptions = (
     })(),
     grokTtsTextNormalization: readBooleanFlag(flags, 'grok-tts-text-normalization'),
     mistralTtsVoice: readOptionalStringFlag(flags, 'mistral-tts-voice'),
-    mistralTtsRefAudio: readOptionalStringFlag(flags, 'mistral-tts-ref-audio'),
-    mistralTtsVoiceName: readOptionalOccurrenceStringFlag(flagOccurrences, 'mistral-tts-voice-name') ?? readOptionalStringFlag(flags, 'mistral-tts-voice-name'),
     ttsDialogueFormat: parseTtsDialogueFormat(readOptionalStringFlag(flags, 'tts-dialogue-format')),
-    ttsSpeakers: readOptionalStringListFlag(flags, 'tts-speaker'),
+    ttsSpeakers,
     speechifyVoice: (() => {
       const value = readOptionalStringFlag(flags, 'speechify-voice')
       if (value === undefined) return undefined
@@ -70,12 +184,6 @@ export const buildTtsOptions = (
       return validateCliValue(validateSpeechifyTtsAudioFormat, value)
     })(),
     speechifyTtsLanguage: readOptionalStringFlag(flags, 'speechify-tts-language'),
-    speechifyTtsRefAudio: readOptionalStringFlag(flags, 'speechify-tts-ref-audio'),
-    speechifyTtsVoiceName: readOptionalOccurrenceStringFlag(flagOccurrences, 'speechify-tts-voice-name') ?? readOptionalStringFlag(flags, 'speechify-tts-voice-name'),
-    speechifyTtsConsentName: readOptionalOccurrenceStringFlag(flagOccurrences, 'speechify-tts-consent-name') ?? readOptionalStringFlag(flags, 'speechify-tts-consent-name'),
-    speechifyTtsConsentEmail: readOptionalStringFlag(flags, 'speechify-tts-consent-email'),
-    speechifyTtsVoiceLocale: readOptionalStringFlag(flags, 'speechify-tts-voice-locale'),
-    speechifyTtsVoiceGender: readOptionalStringFlag(flags, 'speechify-tts-voice-gender'),
     humeTtsVoice: (() => {
       const value = readOptionalOccurrenceStringFlag(flagOccurrences, 'hume-tts-voice') ?? readOptionalStringFlag(flags, 'hume-tts-voice')
       if (value === undefined) return undefined
@@ -103,7 +211,12 @@ export const buildTtsOptions = (
     openaiVoiceId: readOptionalStringFlag(flags, 'openai-voice'),
     openaiTtsInstructions: readOptionalOccurrenceStringFlag(flagOccurrences, 'openai-tts-instructions') ?? readOptionalStringFlag(flags, 'openai-tts-instructions'),
     openaiTtsSpeed: parseOptionalNumberFlag(readOptionalStringFlag(flags, 'openai-tts-speed'), 'openai-tts-speed', { min: 0.25, max: 4 }),
-    geminiVoiceId: readOptionalStringFlag(flags, 'gemini-voice'),
+    geminiVoiceId: (() => {
+      const value = readOptionalStringFlag(flags, 'gemini-voice')
+      if (value === undefined) return undefined
+      if (modelOptions.geminiTtsModels === undefined) return value
+      return validateCliValue(validateGeminiTtsVoice, value)
+    })(),
     deepgramVoiceId: (() => {
       const value = readOptionalStringFlag(flags, 'deepgram-voice')
       if (value === undefined) return undefined
@@ -115,9 +228,6 @@ export const buildTtsOptions = (
     deepgramTtsBitRate: parseOptionalNumberFlag(readOptionalStringFlag(flags, 'deepgram-tts-bit-rate'), 'deepgram-tts-bit-rate', { min: 1, max: 1000000, integer: true }),
     deepgramTtsSampleRate: parseOptionalNumberFlag(readOptionalStringFlag(flags, 'deepgram-tts-sample-rate'), 'deepgram-tts-sample-rate', { min: 1, max: 192000, integer: true }),
     deepgramTtsSpeed: parseOptionalNumberFlag(readOptionalStringFlag(flags, 'deepgram-tts-speed'), 'deepgram-tts-speed', { min: 0.5, max: 2 }),
-    elevenlabsTtsRefAudio: readOptionalStringFlag(flags, 'elevenlabs-tts-ref-audio'),
-    elevenlabsTtsVoiceName: readOptionalOccurrenceStringFlag(flagOccurrences, 'elevenlabs-tts-voice-name') ?? readOptionalStringFlag(flags, 'elevenlabs-tts-voice-name'),
-    elevenlabsTtsCloneRemoveBackgroundNoise: readBooleanFlag(flags, 'elevenlabs-tts-clone-remove-background-noise'),
     elevenlabsTtsOutputFormat: readOptionalStringFlag(flags, 'elevenlabs-tts-output-format'),
     elevenlabsTtsLanguageCode: readOptionalStringFlag(flags, 'elevenlabs-tts-language-code'),
     elevenlabsTtsStability: parseOptionalNumberFlag(readOptionalStringFlag(flags, 'elevenlabs-tts-stability'), 'elevenlabs-tts-stability', { min: 0, max: 1 }),
@@ -151,4 +261,6 @@ export const buildTtsOptions = (
     minimaxTtsPronunciations: readOptionalStringListFlag(flags, 'minimax-tts-pronunciation'),
     elevenlabsVoiceId: readOptionalStringFlag(flags, 'elevenlabs-voice'),
   }
+
+  return options
 }

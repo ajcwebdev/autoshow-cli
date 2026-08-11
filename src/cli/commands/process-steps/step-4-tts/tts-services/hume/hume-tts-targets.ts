@@ -6,6 +6,9 @@ import {
 } from '~/cli/commands/setup-and-utilities/models/setup-model-options'
 import { ensureHumeTtsSetup } from './hume-tts'
 import { runHumeTts } from './run-hume-tts'
+import { resolveTtsTargetInvocationVoiceId } from '../../tts-targets/multi-speaker-capability'
+import { resolveTtsTargetInvocationControls } from '../../tts-targets/tts-invocation-controls'
+
 export const collectHumeTtsTargets = (
   selection: TtsTargetSelection
 ): TtsTarget[] => {
@@ -19,14 +22,20 @@ export const collectHumeTtsTargets = (
       service: 'hume',
       model,
       ...(voice ? { voice } : {}),
-      run: async (text, outputDir, opts) => {
+      run: async (text, outputDir, opts, invocation, requestEvidence) => {
+        const invocationVoice = resolveTtsTargetInvocationVoiceId('hume', invocation)
+        const controls = resolveTtsTargetInvocationControls('hume', invocation, {})
         await ensureHumeTtsSetup()
         return await runHumeTts(text, outputDir, {
           model,
-          voice,
+          voice: invocationVoice ?? voice,
           voiceProvider,
+          speed: controls.speed,
+          trailingSilence: controls.trailingSilence,
           chunkConcurrency: opts.ttsChunkConcurrency,
-          chunkScheduler: opts.hostedTtsChunkScheduler
+          chunkScheduler: opts.hostedTtsChunkScheduler,
+          abortSignal: invocation?.signal,
+          requestEvidence
         })
       }
     })

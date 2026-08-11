@@ -1,4 +1,4 @@
-import type { HostedTtsChunkScheduler, MinimaxTtsModel } from '~/types'
+import type { HostedTtsChunkScheduler, MinimaxTtsModel, TtsRequestEvidenceScope } from '~/types'
 
 export type MinimaxTtsOptions = {
   model: MinimaxTtsModel
@@ -10,6 +10,8 @@ export type MinimaxTtsOptions = {
   emotion?: string | undefined
   englishNormalization?: boolean | undefined
   pronunciations?: string[] | undefined
+  abortSignal?: AbortSignal | undefined
   chunkConcurrency?: number | undefined
   chunkScheduler?: HostedTtsChunkScheduler | undefined
+  requestEvidence?: TtsRequestEvidenceScope | undefined
 }

@@ -250,7 +250,7 @@ describe('resumable downloads', () => {
 })
 
 describe('HuggingFace cache detection', () => {
-  test('treats a snapshot of symlinks as cached and a dangling snapshot as missing', async () => {
+  test('requires one complete manifest-bound Kitten snapshot and rejects interrupted caches', async () => {
     const hubCache = await makeTempDir()
     process.env['HUGGINGFACE_HUB_CACHE'] = hubCache
 
@@ -258,16 +258,32 @@ describe('HuggingFace cache detection', () => {
     // readdir isFile() check sees nothing and the guard never fires.
     const repoDir = join(hubCache, 'models--KittenML--kitten-tts-nano-0.8-int8')
     const blobs = join(repoDir, 'blobs')
-    const snapshot = join(repoDir, 'snapshots', 'abc123')
+    const revision = 'a'.repeat(40)
+    const snapshot = join(repoDir, 'snapshots', revision)
     await mkdir(blobs, { recursive: true })
     await mkdir(snapshot, { recursive: true })
+    await mkdir(join(repoDir, 'refs'), { recursive: true })
+    await Bun.write(join(repoDir, 'refs', 'main'), revision)
+    await Bun.write(join(blobs, 'config'), JSON.stringify({
+      model_file: 'model.onnx',
+      voices: 'voices.npz'
+    }))
     await Bun.write(join(blobs, 'weights'), 'model bytes')
+    await Bun.write(join(blobs, 'voices'), 'voice bytes')
+    await symlink(join(blobs, 'config'), join(snapshot, 'config.json'))
     await symlink(join(blobs, 'weights'), join(snapshot, 'model.onnx'))
+    await symlink(join(blobs, 'voices'), join(snapshot, 'voices.npz'))
 
     expect(await hasCachedKittenTtsModel('kitten-tts-nano-0.8-int8')).toBe(true)
 
     // A pruned blob leaves the link behind; that is not a usable cache.
     await rm(join(blobs, 'weights'), { force: true })
+    expect(await hasCachedKittenTtsModel('kitten-tts-nano-0.8-int8')).toBe(false)
+
+    // An interrupted cache containing the model but not the manifest-selected voices is also not
+    // execution-ready and must never be allowed to fall through to an online repair after admission.
+    await Bun.write(join(blobs, 'weights'), 'restored model bytes')
+    await rm(join(blobs, 'voices'), { force: true })
     expect(await hasCachedKittenTtsModel('kitten-tts-nano-0.8-int8')).toBe(false)
   })
 })

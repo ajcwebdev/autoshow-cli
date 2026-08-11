@@ -1,53 +1,106 @@
-import { basename } from 'node:path'
-import type { MistralTtsModel, TtsOptions, TtsTarget, TtsTargetSelection } from '~/types'
+import type { MistralTtsModel, TtsTarget, TtsTargetSelection } from '~/types'
 import { validateMistralTtsModel } from '~/cli/commands/setup-and-utilities/models/setup-model-options'
-import { MISTRAL_DEFAULT_REF_AUDIO } from '~/cli/commands/setup-and-utilities/models/tts-models'
 import { runMistralTts } from './run-mistral-tts'
-import { CLIUsageError } from '~/utils/error-handler'
-const trimmed = (value: string | undefined): string | undefined => value?.trim() || undefined
-
-const resolveRuntimeMistralVoiceOptions = (
-  opts: TtsOptions
-): { voiceId: string | undefined, refAudioPath: string | undefined, voiceName: string | undefined } => ({
-  voiceId: trimmed(opts.mistralTtsVoice),
-  refAudioPath: trimmed(opts.mistralTtsRefAudio),
-  voiceName: trimmed(opts.mistralTtsVoiceName)
-})
+import { CLIUsageError, InternalError } from '~/utils/error-handler'
+import { resolveTtsTargetInvocationVoice } from '../../tts-targets/multi-speaker-capability'
+import type { MistralProtectedReferenceBinding, MistralProtectedSpeakerReferenceBinding } from '../../voice-assets/mistral-protected-reference-binding'
+import { normalizeDialogueSpeakerKey } from '../../dialogue-normalizer'
+import { MISTRAL_CLI_REFERENCE_AUTHORIZATION } from '../../voice-assets/mistral-request-reference-policy'
+import { resolveTtsTargetInvocationControls } from '../../tts-targets/tts-invocation-controls'
 
 export const collectMistralTtsTargets = (
-  selection: TtsTargetSelection
+  selection: TtsTargetSelection,
+  protectedReference?: MistralProtectedReferenceBinding | undefined,
+  protectedSpeakerReferences?: MistralProtectedSpeakerReferenceBinding | undefined
 ): TtsTarget[] => {
   const targets: TtsTarget[] = []
   for (const rawModel of selection.mistralModels) {
     const model: MistralTtsModel = validateMistralTtsModel(rawModel)
     const voiceId = selection.mistralVoiceId
-    const refAudioPath = selection.mistralRefAudioPath
-    const voiceName = selection.mistralVoiceName
-    if (voiceId && refAudioPath) {
+    if (voiceId && (protectedReference || protectedSpeakerReferences)) {
       throw CLIUsageError('Mistral TTS requires exactly one voice source. Use either --mistral-tts-voice or --mistral-tts-ref-audio, not both.')
     }
-    if (voiceName && !refAudioPath) {
-      throw CLIUsageError('Mistral TTS --mistral-tts-voice-name requires --mistral-tts-ref-audio.')
+    if (protectedReference && protectedSpeakerReferences) {
+      throw CLIUsageError('Standalone Mistral reference audio cannot be combined with per-speaker dialogue references.')
     }
-    if (voiceName && voiceId) {
-      throw CLIUsageError('Mistral TTS saved voice creation cannot be combined with --mistral-tts-voice.')
+    if (!voiceId && !protectedReference && !selection.multiSpeakerRequested) {
+      throw CLIUsageError(
+        'Mistral TTS synthesis requires an existing voice ID or an explicitly authorized unnamed request reference.',
+        'Pass --mistral-tts-voice with an existing voice, or use standalone --mistral-tts-ref-audio so the reference crosses protected ingestion before target collection.'
+      )
     }
 
-    const effectiveRefAudio = refAudioPath ?? (voiceId ? undefined : MISTRAL_DEFAULT_REF_AUDIO)
+    const speakerReferenceByKey = new Map(protectedSpeakerReferences?.entries.map((entry) => [entry.speakerKey, entry]) ?? [])
+    const protectedSpeakerVoiceAssets = Object.freeze(Object.fromEntries(
+      [...speakerReferenceByKey].map(([speakerKey, entry]) => [speakerKey, entry.protectedAsset])
+    ))
 
     targets.push({
       service: 'mistral',
       model,
-      ...(voiceId ? { voice: voiceId } : effectiveRefAudio ? { voice: voiceName ? `saved_voice:${voiceName}` : `ref_audio:${basename(effectiveRefAudio)}` } : {}),
-      run: async (text, outputDir, opts) => {
-        const resolved = resolveRuntimeMistralVoiceOptions(opts)
+      ...(protectedReference ? { protectedVoiceAsset: protectedReference.protectedAsset } : {}),
+      ...(speakerReferenceByKey.size > 0 ? { protectedSpeakerVoiceAssets } : {}),
+      ...(voiceId
+        ? { voice: voiceId }
+        : protectedReference
+          ? { voice: `ref_audio:${protectedReference.protectedAsset.assetId}` }
+          : {}),
+      run: async (text, outputDir, opts, invocation, requestEvidence) => {
+        const invocationVoice = resolveTtsTargetInvocationVoice('mistral', invocation)
+        const controls = resolveTtsTargetInvocationControls('mistral', invocation, {
+          responseFormat: 'wav',
+        })
+        const speakerReference = invocationVoice?.kind === 'ref-audio'
+          ? speakerReferenceByKey.get(normalizeDialogueSpeakerKey(invocation?.speaker ?? ''))
+          : undefined
+        const invocationAsset = invocationVoice?.kind === 'ref-audio' ? invocationVoice.protectedAsset : undefined
+        if (invocationVoice?.kind === 'ref-audio' && (
+          !speakerReference
+          || invocationVoice.value !== `ref_audio:${speakerReference.protectedAsset.assetId}`
+          || invocationVoice.authorizationRef !== MISTRAL_CLI_REFERENCE_AUTHORIZATION
+          || invocationAsset?.storeId !== speakerReference.protectedAsset.storeId
+          || invocationAsset?.assetId !== speakerReference.protectedAsset.assetId
+          || invocationAsset?.sha256 !== speakerReference.protectedAsset.sha256
+        )) {
+          throw CLIUsageError(
+            'Mistral dialogue reference invocation does not bind its exact protected speaker asset.',
+            'Pass each SPEAKER=path mapping explicitly to standalone `tts`; raw paths and copied invocation identities are rejected.'
+          )
+        }
+        const resolvedVoiceId = invocationVoice?.kind === 'id' ? invocationVoice.value : voiceId
+        let protectedRefAudioPath: string | undefined
+        let activeProtectedReference: { protectedAsset: { assetId: string }, sourceExtension: string } | undefined
+        if (invocationVoice?.kind === 'ref-audio') {
+          const materializedSpeakerReference = protectedSpeakerReferences?.materialization === 'materialized'
+            ? protectedSpeakerReferences.entries.find((entry) => entry.speakerKey === normalizeDialogueSpeakerKey(invocation?.speaker ?? ''))
+            : undefined
+          if (!materializedSpeakerReference) {
+            throw InternalError('A non-materialized Mistral speaker reference plan cannot execute synthesis.', { stage: 'tts:mistral' })
+          }
+          protectedRefAudioPath = await materializedSpeakerReference.resolve()
+          activeProtectedReference = materializedSpeakerReference
+        } else if (!invocationVoice && protectedReference) {
+          if (protectedReference.materialization !== 'materialized') {
+            throw InternalError('A non-materialized Mistral reference plan cannot execute synthesis.', { stage: 'tts:mistral' })
+          }
+          protectedRefAudioPath = await protectedReference.resolve()
+          activeProtectedReference = protectedReference
+        }
         return await runMistralTts(text, outputDir, {
           model,
-          voiceId: resolved.voiceId,
-          refAudioPath: resolved.refAudioPath ?? (resolved.voiceId ? undefined : MISTRAL_DEFAULT_REF_AUDIO),
-          voiceName: resolved.voiceName,
+          voiceId: resolvedVoiceId,
+          refAudioPath: protectedRefAudioPath,
+          responseFormat: controls.responseFormat,
+          ...(activeProtectedReference ? {
+            protectedReference: {
+              assetId: activeProtectedReference.protectedAsset.assetId,
+              sourceExtension: activeProtectedReference.sourceExtension
+            }
+          } : {}),
           chunkConcurrency: opts.ttsChunkConcurrency,
-          chunkScheduler: opts.hostedTtsChunkScheduler
+          chunkScheduler: opts.hostedTtsChunkScheduler,
+          abortSignal: invocation?.signal,
+          requestEvidence
         })
       }
     })

@@ -1,6 +1,6 @@
 # Comic Character Voice and Multi-Character TTS Options
 
-Assessment date: 2026-08-10. Repository baseline: `1bba61c2`. Status: analysis and recommendation only; no TTS or comic implementation is included in this report, and no provider API was called while preparing it.
+Assessment date: 2026-08-10. Repository baseline: `1bba61c2`. Status: historical analysis and recommendation; no provider API was called while preparing it. Phase 0 implementation status was added on 2026-08-11 without rewriting the baseline findings.
 
 ## Purpose
 
@@ -14,7 +14,13 @@ The report distinguishes three separate questions that should not be collapsed i
 
 Provider features and access conditions change quickly. External claims below are based on official product or API documentation checked on the assessment date and should be revalidated immediately before implementation.
 
-## Executive conclusion
+## Phase 0 implementation update
+
+The critical baseline defects documented below were repaired on 2026-08-11 as Phase 0 of ADR-020. All 12 adapters now receive immutable explicit per-turn voice invocations, with mocked A/B/A tests asserting the final provider serializer instead of requested metadata. Gemini native dialogue is restricted to exactly two speakers and partitions only at whole-turn boundaries; other speaker counts use the segmented route. Dialogue work is bounded, source-ordered, cancellable, and workspace-safe. Canonical provider state now uses operation-scoped target identities and strict `ttsAudio` projections, while retained render artifacts record observed per-turn voice identities, normalized dialogue, segments, results, checksums, and audio-run linkage.
+
+Synthesis-time ElevenLabs and Speechify creation fields and named Mistral save requests now fail before provider collection with management-migration guidance. Authorized unnamed standalone and per-speaker Mistral references are validated before synthesis, ingested once per unique asset into an owner-only protected store, represented thereafter only by opaque checksum-bound references, and merely hashed without mutation during price planning. The Deepgram catalog now contains the complete checked 91-voice Aura-2 set, and xAI, Gemini, Groq, and OpenAI selectors were refreshed through ADR-018. The comic voice catalog, audition/approval lifecycle, immutable scene snapshots, mastering pipeline, and `comic generate-audio` remain unimplemented; the rest of this report should be read as the 2026-08-10 baseline that motivated those changes.
+
+## Baseline executive conclusion
 
 AutoShow has most of the low-level pieces needed for comic dialogue, but it does not yet have a trustworthy character-voice workflow.
 
@@ -63,7 +69,7 @@ The generic TTS CLI already exposes global voice, speed, language, reference-aud
 
 The current normalized turn contains only `speaker` and `text`. The generic screenplay parser strips leading delivery parentheticals and discards action directions, so routing comic Markdown through it would lose information the comic parser has already captured. A comic implementation should pass prepared structured turns beneath this parser instead of serializing and reparsing the script.
 
-### Critical multi-speaker correctness defect
+### Baseline critical multi-speaker correctness defect
 
 The segmented runner resolves a mapping and calls `overrideVoiceForProvider` for every turn at `src/cli/commands/process-steps/step-4-tts/run-multi-speaker-tts.ts:42-54`. That looks correct at the orchestration layer. Most collected targets, however, close over the original voice or clone selection and ignore the voice fields in the per-invocation options:
 
@@ -84,7 +90,7 @@ The practical effect is severe: an OpenAI mapping such as `Alice=alloy` and `Bob
 
 The current documentation's statement that dialogue works with every provider is therefore inaccurate. The existing OpenAI dialogue contract test checks output ordering by input text but does not assert the voice sent in each request; the Mistral test is the only existing provider contract that proves distinct reference requests.
 
-| Current route | Distinct voices actually honored | Production limitations |
+| Baseline route on 2026-08-10 | Distinct voices actually honored | Production limitations |
 |---|---|---|
 | Gemini native | Yes | Provider allows exactly two speakers; the repository does not enforce that ceiling, and generic text chunking can split speaker-formatted dialogue unsafely. |
 | Mistral segmented | Yes | Repeated reference preparation is inefficient; there is no character registry, segment cache, or saved-resource lifecycle. |
@@ -414,7 +420,7 @@ Provider comparison should evaluate identity match, consistency across lines, em
 
 ## Recommended delivery sequence
 
-### Phase 0 — establish truthful behavior
+### Phase 0 — establish truthful behavior (complete 2026-08-11)
 
 1. Fix per-turn voice dispatch for every segmented adapter.
 2. Add provider contract tests that assert the actual request voice or reference for each speaker, not only audio ordering.

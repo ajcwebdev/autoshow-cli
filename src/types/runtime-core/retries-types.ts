@@ -9,6 +9,7 @@ export type PollOptions<T> = {
   isFailed?: (result: T) => { failed: true, reason: string } | { failed: false }
   intervalMs: number
   deadlineMs: number
+  abortSignal?: AbortSignal | undefined
 }
 
 export type RetryContext = {
@@ -16,6 +17,7 @@ export type RetryContext = {
   operationName: string
   policy?: Partial<RetryPolicy>
   timeoutMs?: number
+  abortSignal?: AbortSignal | undefined
   onRetryAttempt?: (error: unknown, decision: RetryDecision) => void
   rateLimitMaxAttempts?: number | undefined
 }

@@ -2,7 +2,8 @@ import { describe, expect, test } from 'bun:test'
 import { createHostedTtsChunkScheduler } from '~/cli/commands/process-steps/step-4-tts/tts-utils/hosted-tts-chunk-scheduler'
 import { withHostedTtsRetry } from '~/cli/commands/process-steps/step-4-tts/tts-utils/hosted-tts-retry'
 import { AppError } from '~/utils/error-handler'
-import { classifyFetchRetry, withRetry } from '~/utils/retries'
+import { exec } from '~/utils/cli-utils'
+import { classifyFetchRetry, pollUntil, withRetry } from '~/utils/retries'
 
 const FAST_RETRY_POLICY = {
   baseDelayMs: 0,
@@ -347,4 +348,75 @@ describe('retry error contracts', () => {
       (error) => classifyFetchRetry(error, 'runtime_http_read')
     )).rejects.toBe(original)
   })
+
+  test('withHostedTtsRetry aborts a Retry-After backoff promptly', async () => {
+    const controller = new AbortController()
+    const cancellation = new Error('cancel hosted TTS retry backoff')
+    let attempts = 0
+    const startedAt = Date.now()
+    const run = withHostedTtsRetry(
+      {
+        operationName: 'hosted-tts-abort-backoff',
+        abortSignal: controller.signal,
+        policy: {
+          ...FAST_RETRY_POLICY,
+          maxAttempts: 2
+        }
+      },
+      async () => {
+        attempts += 1
+        throw Object.assign(new Error('rate limited'), {
+          status: 429,
+          headers: new Headers({ 'retry-after': '10' })
+        })
+      }
+    )
+    setTimeout(() => controller.abort(cancellation), 20)
+    await expect(run).rejects.toBe(cancellation)
+
+    expect(attempts).toBe(1)
+    expect(Date.now() - startedAt).toBeLessThan(2_000)
+  }, 5_000)
+
+  test('pollUntil aborts its interval wait without issuing another poll', async () => {
+    const controller = new AbortController()
+    const cancellation = new Error('cancel provider status polling')
+    let polls = 0
+    const run = pollUntil({
+      operationName: 'abortable-provider-status-poll',
+      intervalMs: 10_000,
+      deadlineMs: 20_000,
+      abortSignal: controller.signal,
+      pollFn: async () => {
+        polls += 1
+        return { done: false }
+      },
+      isDone: result => result.done
+    })
+
+    while (polls === 0) await Bun.sleep(1)
+    const startedAt = Date.now()
+    controller.abort(cancellation)
+
+    await expect(run).rejects.toBe(cancellation)
+    expect(polls).toBe(1)
+    expect(Date.now() - startedAt).toBeLessThan(2_000)
+  }, 5_000)
+
+  test('exec terminates a subprocess promptly when its signal is aborted', async () => {
+    const controller = new AbortController()
+    const cancellation = new Error('cancel local subprocess')
+    const startedAt = Date.now()
+    const run = exec(process.execPath, ['-e', 'setTimeout(() => {}, 10_000)'], {
+      signal: controller.signal,
+      retry: {
+        operationName: 'abortable subprocess',
+        maxAttempts: 3
+      }
+    })
+    setTimeout(() => controller.abort(cancellation), 20)
+    await expect(run).rejects.toBe(cancellation)
+
+    expect(Date.now() - startedAt).toBeLessThan(2_000)
+  }, 5_000)
 })

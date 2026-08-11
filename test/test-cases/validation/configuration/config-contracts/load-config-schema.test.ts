@@ -41,8 +41,6 @@ describe('config load schema contracts', () => {
             speechifyTtsLanguage: 'en-US',
             mistralTts: ['voxtral-mini-tts-2603'],
             mistralTtsVoice: 'voice_abc123',
-            mistralTtsRefAudio: 'input/examples/audio/anthony-voice.mp3',
-            mistralTtsVoiceName: 'AutoShow Saved Voice',
             deepgramTtsEncoding: 'linear16',
             deepgramTtsContainer: 'wav',
             deepgramTtsBitRate: 128000,
@@ -51,9 +49,6 @@ describe('config load schema contracts', () => {
             openaiTts: ['gpt-4o-mini-tts-2025-12-15'],
             openaiVoice: 'alloy',
             elevenlabsTts: ['eleven_v3'],
-            elevenlabsTtsRefAudio: 'input/examples/audio/anthony-voice.mp3',
-            elevenlabsTtsVoiceName: 'AutoShow Anthony',
-            elevenlabsTtsCloneRemoveBackgroundNoise: true,
             elevenlabsTtsOutputFormat: 'mp3_22050_32',
             elevenlabsTtsLanguageCode: 'en',
             elevenlabsTtsStability: 0.4,
@@ -92,6 +87,22 @@ describe('config load schema contracts', () => {
     const configPath = await writeTempConfig(fullConfig)
 
     await expect(loadConfig(configPath)).resolves.toMatchObject(fullConfig)
+  })
+
+  test('loadConfig rejects synthesis-time voice creation and raw reference defaults with migration guidance', async () => {
+    const mistralReference = await writeTempConfig({
+      defaults: { post: { tts: { mistralTtsRefAudio: 'private-reference.wav' } } }
+    })
+    const elevenLabsClone = await writeTempConfig({
+      defaults: { post: { tts: { elevenlabsTtsRefAudio: 'private-reference.wav' } } }
+    })
+    const speechifyConsent = await writeTempConfig({
+      defaults: { post: { tts: { speechifyTtsConsentEmail: 'performer@example.com' } } }
+    })
+
+    await expect(loadConfig(mistralReference)).rejects.toThrow('Configured --mistral-tts-ref-audio paths cannot be used as synthesis defaults')
+    await expect(loadConfig(elevenLabsClone)).rejects.toThrow('Configured synthesis default --elevenlabs-tts-ref-audio')
+    await expect(loadConfig(speechifyConsent)).rejects.toThrow('Configured synthesis default --speechify-tts-consent-email')
   })
 
   test('removed schema shapes are rejected', async () => {

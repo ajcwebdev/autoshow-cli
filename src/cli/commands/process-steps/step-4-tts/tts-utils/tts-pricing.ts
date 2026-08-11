@@ -1,10 +1,13 @@
 import { getTtsCost, getTtsPricing } from '~/cli/commands/setup-and-utilities/models/model-loader'
-import type { TtsCostEstimate, TtsOptions, TtsRateEstimate } from '~/types'
+import type { TtsCostEstimate, TtsOptions, TtsRateEstimate, TtsTarget } from '~/types'
 import { collectTtsTargets } from '../tts-targets'
 
-export const estimateTtsCosts = (opts: TtsOptions, characterCount: number): TtsCostEstimate[] => {
+export const estimateTtsTargetCosts = (
+  targets: readonly TtsTarget[],
+  characterCount: number
+): TtsCostEstimate[] => {
   const normalizedCharCount = Math.max(0, Math.floor(characterCount))
-  return collectTtsTargets(opts).map((target) => {
+  return targets.map((target) => {
     const pricing = getTtsPricing(target.service, target.model)
     const hasDualRates = pricing.inputCostPer1MCharsCents !== undefined && pricing.outputCostPer1MCharsCents !== undefined
     const rate: TtsRateEstimate = hasDualRates
@@ -45,3 +48,6 @@ export const estimateTtsCosts = (opts: TtsOptions, characterCount: number): TtsC
     }
   })
 }
+
+export const estimateTtsCosts = (opts: TtsOptions, characterCount: number): TtsCostEstimate[] =>
+  estimateTtsTargetCosts(collectTtsTargets(opts), characterCount)

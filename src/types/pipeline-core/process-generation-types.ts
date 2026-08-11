@@ -1,5 +1,5 @@
 import * as v from 'valibot'
-import type { ImageProvider, MusicProvider, TtsProvider, VideoProvider } from '~/types'
+import type { CanonicalAudioProviderProjection, ImageProvider, MusicProvider, ProviderRenderStrategy, TtsProvider, VideoProvider } from '~/types'
 
 type GenerationProviderCostSource = 'provider_usage' | 'provider_quote' | 'registry_fallback'
 
@@ -17,6 +17,15 @@ export type TtsMetadataBase<TService extends string = string> = {
 export type Step4Metadata = TtsMetadataBase<TtsProvider> & {
   clonedVoiceId?: string | undefined
   cloneCostCents?: number | undefined
+  operation?: 'tts-synthesis' | undefined
+  targetKey?: string | undefined
+  transport?: string | undefined
+  artifactDir?: string | undefined
+  renderIdentity?: string | undefined
+  resultIdentity?: string | undefined
+  audioRunId?: string | undefined
+  renderStrategy?: ProviderRenderStrategy | undefined
+  ttsAudio?: CanonicalAudioProviderProjection | undefined
 }
 
 export const TtsScriptOutputSchema = v.object({

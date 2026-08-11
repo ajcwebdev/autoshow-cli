@@ -82,7 +82,7 @@ describe('config image and TTS default contracts', () => {
     })
   })
 
-  test('buildConfigPatchFromFlags saves and merges Mistral TTS defaults', () => {
+  test('buildConfigPatchFromFlags persists safe Mistral defaults but excludes request references and save intent', () => {
     expectConfigPatchRoundTrip({
       'mistral-tts': ['voxtral-mini-tts-2603'],
       'mistral-tts-voice': 'voice_abc123',
@@ -90,10 +90,8 @@ describe('config image and TTS default contracts', () => {
       'mistral-tts-voice-name': 'AutoShow Saved Voice'
     }, 'tts', {
       mistralTts: ['voxtral-mini-tts-2603'],
-      mistralTtsVoice: 'voice_abc123',
-      mistralTtsRefAudio: 'input/examples/audio/anthony-voice.mp3',
-      mistralTtsVoiceName: 'AutoShow Saved Voice'
-    })
+      mistralTtsVoice: 'voice_abc123'
+    }, { merge: false })
   })
 
   test('buildConfigPatchFromFlags saves and merges MiniMax TTS voice defaults', () => {
@@ -167,17 +165,14 @@ describe('config image and TTS default contracts', () => {
     })
   })
 
-  test('buildConfigPatchFromFlags saves and merges ElevenLabs TTS clone defaults', () => {
+  test('buildConfigPatchFromFlags excludes ElevenLabs synthesis-time clone intent', () => {
     expectConfigPatchRoundTrip({
       'elevenlabs-tts': ['eleven_v3'],
       'elevenlabs-tts-ref-audio': 'input/examples/audio/anthony-voice.mp3',
       'elevenlabs-tts-voice-name': 'AutoShow Anthony',
       'elevenlabs-tts-clone-remove-background-noise': true
     }, 'tts', {
-      elevenlabsTts: ['eleven_v3'],
-      elevenlabsTtsRefAudio: 'input/examples/audio/anthony-voice.mp3',
-      elevenlabsTtsVoiceName: 'AutoShow Anthony',
-      elevenlabsTtsCloneRemoveBackgroundNoise: true
-    })
+      elevenlabsTts: ['eleven_v3']
+    }, { merge: false })
   })
 })

@@ -53,19 +53,24 @@ export const runTargets = async <TTarget extends ProviderIdentity, TResult>(
       local: DEFAULT_CLI_CONCURRENCY
     },
     resourceGate: opts.resourceGate,
+    getResourceGate: opts.getResourceGate,
     getPool: opts.getTargetPool ?? (() => 'hosted'),
     runTarget: async (_index, target) => {
-      const workspaceDir = singleTarget ? outputDir : opts.getWorkspaceDir(outputDir, target)
+      const usesWorkspace = !singleTarget || opts.useWorkspaceForSingleTarget === true
+      const workspaceDir = usesWorkspace ? opts.getWorkspaceDir(outputDir, target) : outputDir
 
-      if (!singleTarget) {
+      if (usesWorkspace) {
         await mkdir(workspaceDir, { recursive: true })
       }
 
       try {
         const result = await opts.runTarget(target, workspaceDir)
         return await opts.finalizeTarget(target, result, singleTarget)
+      } catch (error) {
+        await opts.onTargetFailure?.(target, error, workspaceDir)
+        throw error
       } finally {
-        if (!singleTarget) {
+        if (usesWorkspace) {
           await rm(workspaceDir, { recursive: true, force: true })
         }
       }
@@ -101,6 +106,7 @@ export const runSingleFileTargets = async <TTarget extends ProviderIdentity, TMe
       `${dir}/${opts.workspacePrefix}-${target.service}-${sanitizeModelName(target.model)}`,
     concurrency: opts.concurrency,
     resourceGate: opts.resourceGate,
+    getResourceGate: opts.getResourceGate,
     getTargetPool: opts.getTargetPool,
     getTargetPriority: opts.getTargetPriority,
     runTarget: opts.runTarget,

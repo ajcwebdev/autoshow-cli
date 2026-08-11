@@ -1,0 +1,67 @@
+import { lstat, realpath } from 'node:fs/promises'
+import { basename, dirname, isAbsolute, relative, resolve, sep } from 'node:path'
+import { CLIUsageError } from '~/utils/error-handler'
+
+const hasErrorCode = (error: unknown, code: string): boolean =>
+  error !== null
+  && typeof error === 'object'
+  && 'code' in error
+  && (error as { code?: unknown }).code === code
+
+// Canonicalize the longest existing prefix, then reattach an unresolved suffix. This catches an
+// overlap through a symlink even when the eventual output/store child does not exist yet.
+const canonicalProspectivePath = async (input: string): Promise<string> => {
+  let cursor = resolve(input)
+  const suffix: string[] = []
+  while (true) {
+    let exists = false
+    try {
+      await lstat(cursor)
+      exists = true
+    } catch (error) {
+      if (!hasErrorCode(error, 'ENOENT')) {
+        throw CLIUsageError('Unable to inspect the TTS output/protected-store path boundary.')
+      }
+    }
+    if (exists) {
+      try {
+        const canonicalPrefix = await realpath(cursor)
+        return resolve(canonicalPrefix, ...suffix)
+      } catch {
+        throw CLIUsageError('Unable to resolve the TTS output/protected-store path boundary; dangling symbolic links are not allowed.')
+      }
+    } else {
+      const parent = dirname(cursor)
+      if (parent === cursor) {
+        throw CLIUsageError('Unable to resolve the TTS output/protected-store path boundary.')
+      }
+      suffix.unshift(basename(cursor))
+      cursor = parent
+    }
+  }
+}
+
+const isSameOrContained = (root: string, candidate: string): boolean => {
+  if (root === candidate) return true
+  const child = relative(root, candidate)
+  return child !== '' && child !== '..' && !child.startsWith(`..${sep}`) && !isAbsolute(child)
+}
+
+export const assertProtectedStoreOutputDisjoint = async (
+  outputPath: string,
+  protectedStoreRoot: string
+): Promise<void> => {
+  const [canonicalOutput, canonicalStore] = await Promise.all([
+    canonicalProspectivePath(outputPath),
+    canonicalProspectivePath(protectedStoreRoot)
+  ])
+  if (
+    isSameOrContained(canonicalOutput, canonicalStore)
+    || isSameOrContained(canonicalStore, canonicalOutput)
+  ) {
+    throw CLIUsageError(
+      'TTS output and the protected Mistral reference store must be disjoint directories.',
+      'Choose an --output-dir/--output-root outside the protected runtime store and do not connect them through a symbolic link.'
+    )
+  }
+}

@@ -3,7 +3,7 @@ import { joinOutputRoot } from '~/cli/commands/process-steps/output-root'
 import { claimPinnedRunDir, getPinnedRunDir } from '~/cli/commands/process-steps/run-dir'
 import { createUniqueDirectoryName } from '~/cli/commands/process-steps/step-1-download/audio/metadata-utils'
 import { loadConfig, resolveConfigPath, resolveMaxCents } from '~/cli/commands/setup-and-utilities/config/config-loader'
-import type { GenerationCostStep, LogLevel, MediaGenerationStatus, StepTimingCost, TableLogger } from '~/types'
+import type { GenerationCostStep, LogLevel, MediaGenerationStatus, PipelineProviderState, StepTimingCost, TableLogger } from '~/types'
 import { ensureDirectory } from '~/utils/cli-utils'
 import { CLIUsageError, isCLIUsageError } from '~/utils/error-handler'
 import * as l from '~/utils/app-logger/app-logger'
@@ -174,11 +174,38 @@ export const writeGenerationMetadata = async <T,>(
   timing: unknown,
   manifestContext?: {
     input: string
-    requestedProviders: Array<{ service: string, model: string }>
+    requestedProviders: Array<{
+      service: string
+      model: string
+      local?: boolean | undefined
+      operation?: string | undefined
+      targetKey?: string | undefined
+      transport?: string | undefined
+    }>
     completedProviders: Array<{ service: string, model: string }>
+    providerStates?: PipelineProviderState[] | undefined
   }
 ): Promise<void> => {
   const completedKeys = new Set((manifestContext?.completedProviders ?? []).map((provider) => getGenerationTargetKey(provider.service, provider.model)))
+  const providerStates = manifestContext?.providerStates ?? manifestContext?.requestedProviders.map((provider) => ({
+    ...provider,
+    artifactDir: '.',
+    status: completedKeys.has(getGenerationTargetKey(provider.service, provider.model)) ? 'succeeded' as const : 'missing' as const,
+    attempts: completedKeys.has(getGenerationTargetKey(provider.service, provider.model)) ? 1 : 0
+  }))
+  const ttsItemStatus = metadataKey === 'tts' && providerStates
+    ? providerStates.every((provider) => provider.status === 'skipped')
+      ? 'skipped' as const
+      : providerStates.some((provider) => provider.status === 'succeeded')
+        && providerStates.every((provider) => provider.status === 'succeeded' || provider.status === 'skipped')
+        ? 'full' as const
+        : providerStates.some((provider) => provider.status === 'succeeded')
+          ? 'incomplete' as const
+          : providerStates.some((provider) => provider.status === 'failed')
+            && providerStates.every((provider) => provider.status === 'failed' || provider.status === 'skipped')
+            ? 'failed' as const
+            : 'incomplete' as const
+    : undefined
   const manifestMetadata = {
     [metadataKey]: metadata,
     cost: cost as Record<string, unknown>,
@@ -186,20 +213,15 @@ export const writeGenerationMetadata = async <T,>(
     ...(manifestContext ? {
       input: manifestContext.input,
       requestedProviders: manifestContext.requestedProviders,
-      providerStates: manifestContext.requestedProviders.map((provider) => ({
-        ...provider,
-        artifactDir: '.',
-        status: completedKeys.has(getGenerationTargetKey(provider.service, provider.model)) ? 'succeeded' : 'missing',
-        attempts: completedKeys.has(getGenerationTargetKey(provider.service, provider.model)) ? 1 : 0
-      }))
+      providerStates
     } : {})
   }
   const command = metadataKey as 'tts' | 'image' | 'video' | 'music'
   await writeManifest(outputDir, createManifest(command, 'single', [
     createPipelineItemFromRecord(outputDir, manifestMetadata, {
-      status: manifestContext && manifestContext.requestedProviders.some((provider) => !completedKeys.has(getGenerationTargetKey(provider.service, provider.model)))
+      status: ttsItemStatus ?? (manifestContext && manifestContext.requestedProviders.some((provider) => !completedKeys.has(getGenerationTargetKey(provider.service, provider.model)))
         ? 'incomplete'
-        : 'full'
+        : 'full')
     })
   ]))
 }

@@ -1,5 +1,5 @@
-import type { MultiSpeakerStrategy, SpeakerVoiceMapping, TtsOptions, TtsProvider } from '~/types'
-import { InternalError } from '~/utils/error-handler'
+import type { MultiSpeakerStrategy, TtsProvider, TtsTargetInvocation, TtsTargetVoiceSource } from '~/types'
+import { CLIUsageError } from '~/utils/error-handler'
 
 const MULTI_SPEAKER_CAPABILITY: Partial<Record<TtsProvider, MultiSpeakerStrategy>> = {
   gemini: 'native',
@@ -16,28 +16,7 @@ const MULTI_SPEAKER_CAPABILITY: Partial<Record<TtsProvider, MultiSpeakerStrategy
   kitten: 'segment-and-concat',
 }
 
-const REF_AUDIO_PROVIDERS = new Set<TtsProvider>(['mistral', 'elevenlabs', 'speechify'])
-
-const VOICE_ID_FIELD_BY_PROVIDER: Partial<Record<TtsProvider, keyof TtsOptions>> = {
-  openai: 'openaiVoiceId',
-  gemini: 'geminiVoiceId',
-  deepgram: 'deepgramVoiceId',
-  groq: 'groqVoiceId',
-  grok: 'grokTtsVoice',
-  mistral: 'mistralTtsVoice',
-  elevenlabs: 'elevenlabsVoiceId',
-  speechify: 'speechifyVoice',
-  hume: 'humeTtsVoice',
-  cartesia: 'cartesiaTtsVoice',
-  minimax: 'minimaxTtsVoice',
-  kitten: 'ttsSpeaker',
-}
-
-const REF_AUDIO_FIELD_BY_PROVIDER: Partial<Record<TtsProvider, keyof TtsOptions>> = {
-  mistral: 'mistralTtsRefAudio',
-  elevenlabs: 'elevenlabsTtsRefAudio',
-  speechify: 'speechifyTtsRefAudio',
-}
+const REF_AUDIO_PROVIDERS = new Set<TtsProvider>(['mistral'])
 
 export const getMultiSpeakerStrategy = (
   provider: TtsProvider
@@ -47,37 +26,23 @@ export const getMultiSpeakerStrategy = (
 export const supportsRefAudioMultiSpeaker = (provider: TtsProvider): boolean =>
   REF_AUDIO_PROVIDERS.has(provider)
 
-export const overrideVoiceForProvider = (
+export const resolveTtsTargetInvocationVoice = (
   service: TtsProvider,
-  opts: TtsOptions,
-  mapping: SpeakerVoiceMapping
-): TtsOptions => {
-  const overridden = { ...opts }
-  const writable = overridden as Record<string, unknown>
-  if (mapping.voiceKind === 'ref-audio') {
-    const field = REF_AUDIO_FIELD_BY_PROVIDER[service]
-    if (!field) {
-      throw InternalError(`Provider ${service} does not support reference audio for multi-speaker TTS.`, { stage: 'tts:multi-speaker' })
-    }
-    writable[field] = mapping.voice
-    const voiceField = VOICE_ID_FIELD_BY_PROVIDER[service]
-    if (voiceField) {
-      delete writable[voiceField]
-    }
-  } else {
-    const field = VOICE_ID_FIELD_BY_PROVIDER[service]
-    if (!field) {
-      throw InternalError(`Provider ${service} does not support voice ID override for multi-speaker TTS.`, { stage: 'tts:multi-speaker' })
-    }
-    writable[field] = mapping.voice
-    const refAudioField = REF_AUDIO_FIELD_BY_PROVIDER[service]
-    if (refAudioField) {
-      delete writable[refAudioField]
-    }
+  invocation: TtsTargetInvocation | undefined
+): TtsTargetVoiceSource | undefined => {
+  const voice = invocation?.voice
+  if (voice?.kind === 'ref-audio' && !supportsRefAudioMultiSpeaker(service)) {
+    throw CLIUsageError(
+      `Provider ${service} does not support reference audio for explicit multi-speaker TTS invocation.`
+    )
   }
+  return voice
+}
 
-  if (service === 'mistral') {
-    delete writable['mistralTtsVoiceName']
-  }
-  return overridden
+export const resolveTtsTargetInvocationVoiceId = (
+  service: TtsProvider,
+  invocation: TtsTargetInvocation | undefined
+): string | undefined => {
+  const voice = resolveTtsTargetInvocationVoice(service, invocation)
+  return voice?.kind === 'id' ? voice.value : undefined
 }

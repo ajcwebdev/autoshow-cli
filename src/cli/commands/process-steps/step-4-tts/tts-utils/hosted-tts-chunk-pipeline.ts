@@ -17,10 +17,17 @@ export const runHostedTtsChunkPipeline = async (
       const audioBytes = await withHostedTtsRetry(
         {
           operationName: `${provider}-tts-chunk-${chunkIndex}`,
+          abortSignal: options.abortSignal,
           ttsProvider: provider,
           chunkScheduler
         },
-        async (signal) => await options.fetchChunkAudio({ chunk, chunkIndex, signal })
+        async (signal, requestAttempt) => await options.fetchChunkAudio({
+          chunk,
+          chunkIndex,
+          signal,
+          requestAttempt: requestAttempt.attempt,
+          ...(requestAttempt.retryReasonCode ? { retryReasonCode: requestAttempt.retryReasonCode } : {})
+        })
       )
 
       if (audioBytes.byteLength === 0) {
@@ -28,11 +35,13 @@ export const runHostedTtsChunkPipeline = async (
       }
 
       await Bun.write(chunkPath, audioBytes)
+      await options.requestEvidence?.recordOutput({ chunkIndex, path: chunkPath })
+      await options.requestEvidence?.complete({ chunkIndex })
       chunkPaths.push(chunkPath)
       return chunkPath
-    }, { provider, scheduler: chunkScheduler })
+    }, { provider, scheduler: chunkScheduler, abortSignal: options.abortSignal })
 
-    const audioPath = await concatAndConvertToWav(orderedChunkPaths, outputDir, providerLabel)
+    const audioPath = await concatAndConvertToWav(orderedChunkPaths, outputDir, providerLabel, options.abortSignal)
     const result = finalizeTtsRun({
       service: provider,
       model: options.model,

@@ -3,11 +3,12 @@ import { runHostedTtsChunkPipeline } from '~/cli/commands/process-steps/step-4-t
 import { logTtsConfig } from '~/cli/commands/process-steps/step-4-tts/tts-utils/log-tts-config'
 import { TTS_CHUNK_CHARACTER_LIMITS } from '~/cli/commands/process-steps/step-4-tts/tts-utils/tts-chunking'
 import { HUME_DEFAULT_TTS_VOICE, validateHumeTtsVoice, validateHumeTtsVoiceProvider } from '~/cli/commands/setup-and-utilities/models/setup-model-options'
-import type { HostedTtsChunkScheduler, HumeTtsModel, HumeVoicePayload, Step4Metadata } from '~/types'
+import type { HostedTtsChunkScheduler, HumeTtsModel, HumeVoicePayload, Step4Metadata, TtsRequestEvidenceScope } from '~/types'
 import { HUME_DEFAULT_BASE_URL } from '~/utils/base-urls'
 import { requireApiKey } from '~/utils/validate/env-utils'
 import { ValidationError } from '~/utils/error-handler'
 import { httpResponseError } from '~/utils/rest-client'
+import { dispatchTtsProviderRequest } from '../../script-to-audio/tts-request-evidence'
 
 const UUID_LIKE_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i
 
@@ -43,8 +44,12 @@ export const runHumeTts = async (
     model: HumeTtsModel
     voice?: string | undefined
     voiceProvider?: string | undefined
+    speed?: number | undefined
+    trailingSilence?: number | undefined
+    abortSignal?: AbortSignal | undefined
     chunkConcurrency?: number | undefined
     chunkScheduler?: HostedTtsChunkScheduler | undefined
+    requestEvidence?: TtsRequestEvidenceScope | undefined
   }
 ): Promise<{ audioPath: string, metadata: Step4Metadata }> => {
   const apiKey = requireApiKey('HUME_API_KEY', 'tts:hume', 'Hume TTS')
@@ -62,6 +67,8 @@ export const runHumeTts = async (
     { label: 'model', value: options.model },
     { label: 'voice', value: voice.label },
     { label: 'voice provider', value: voice.provider },
+    { label: 'speed', value: options.speed },
+    { label: 'trailing silence', value: options.trailingSilence },
     { label: 'chunk count', value: chunks.length }
   ])
 
@@ -74,25 +81,47 @@ export const runHumeTts = async (
     outputDir,
     chunkExtension: 'mp3',
     startTime: Date.now(),
+    abortSignal: options.abortSignal,
     chunkConcurrency: options.chunkConcurrency,
     chunkScheduler: options.chunkScheduler,
-    fetchChunkAudio: async ({ chunk, signal }) => {
-      const response = await fetch(`${baseURL}/v0/tts/file`, {
+    requestEvidence: options.requestEvidence,
+    fetchChunkAudio: async ({ chunk, chunkIndex, signal, requestAttempt, retryReasonCode }) => {
+      const requestBody = {
+        version: '2',
+        format: { type: 'mp3' },
+        num_generations: 1,
+        utterances: [{
+          text: chunk,
+          voice: voice.payload,
+          ...(typeof options.speed === 'number' ? { speed: options.speed } : {}),
+          ...(typeof options.trailingSilence === 'number' ? { trailing_silence: options.trailingSilence } : {})
+        }]
+      }
+      return await dispatchTtsProviderRequest(options.requestEvidence, {
+        chunkIndex,
+        endpointKind: 'speech-synthesis',
+        serializerVersion: 'hume.tts.phase-0-v1',
+        serializedRequest: { path: '/v0/tts/file', body: requestBody },
+        providerText: chunk,
+        voiceField: 'utterances[].voice',
+        voices: [{ kind: 'provider-id', value: voice.label }],
+        requestControls: {
+          version: requestBody.version,
+          format: requestBody.format,
+          numGenerations: requestBody.num_generations,
+          ...(typeof options.speed === 'number' ? { speed: options.speed } : {}),
+          ...(typeof options.trailingSilence === 'number' ? { trailingSilence: options.trailingSilence } : {})
+        },
+        continuation: { kind: 'none' }
+      }, { attempt: requestAttempt, ...(retryReasonCode ? { retryReasonCode } : {}) }, async ({ accepted }) => {
+        const response = await fetch(`${baseURL}/v0/tts/file`, {
         method: 'POST',
         headers: {
           'X-Hume-Api-Key': apiKey,
           'Content-Type': 'application/json',
           Accept: 'application/octet-stream'
         },
-        body: JSON.stringify({
-          version: '2',
-          format: { type: 'mp3' },
-          num_generations: 1,
-          utterances: [{
-            text: chunk,
-            voice: voice.payload
-          }]
-        }),
+        body: JSON.stringify(requestBody),
         ...(signal ? { signal } : {})
       })
 
@@ -100,8 +129,9 @@ export const runHumeTts = async (
         const errText = await readHumeError(response)
         throw httpResponseError(`Hume TTS failed (${response.status}): ${errText}`, response)
       }
-
+      await accepted({ fields: { httpStatus: response.status } })
       return new Uint8Array(await response.arrayBuffer())
+      })
     }
   })
 }

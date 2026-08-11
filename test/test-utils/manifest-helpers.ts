@@ -68,6 +68,52 @@ export const writeSingleManifestFixture = async (
   await writePipelineItemRecords(rootDir, command, 'single', [record], options)
 }
 
+export const writeLegacyTtsManifestFixture = async (
+  rootDir: string,
+  record: Record<string, unknown>
+): Promise<void> => {
+  const rawEntries = Array.isArray(record['tts']) ? record['tts'] : []
+  const entries = rawEntries.filter((entry): entry is Record<string, unknown> =>
+    isRecord(entry)
+    && typeof entry['ttsService'] === 'string'
+    && typeof entry['ttsModel'] === 'string'
+  )
+  if (entries.length === 0) {
+    throw new Error('A legacy TTS manifest fixture requires at least one TTS metadata entry.')
+  }
+
+  const metadata = { ...record }
+  delete metadata['input']
+  delete metadata['outputDir']
+  delete metadata['completionStatus']
+
+  const now = new Date().toISOString()
+  await mkdir(rootDir, { recursive: true })
+  await Bun.write(join(rootDir, PIPELINE_MANIFEST_FILE), `${JSON.stringify({
+    command: 'tts',
+    scope: 'single',
+    createdAt: now,
+    updatedAt: now,
+    items: [{
+      ...(typeof record['input'] === 'string' ? { input: record['input'] } : {}),
+      outputDir: '.',
+      status: 'full',
+      metadata,
+      providers: entries.map((entry) => ({
+        service: entry['ttsService'],
+        model: entry['ttsModel'],
+        local: entry['ttsService'] === 'kitten',
+        artifactDir: '.',
+        status: 'succeeded',
+        attempts: 1,
+        options: {},
+        metadata: entry,
+        result: entry
+      }))
+    }]
+  }, null, 2)}\n`)
+}
+
 export const readCanonicalItemRecords = async (pathOrDir: string): Promise<Record<string, unknown>[]> => {
   const rootDir = resolveRootDir(pathOrDir)
   return (await readCanonicalManifest(rootDir)).items.map((item) => derivePipelineItemRecord(rootDir, item))

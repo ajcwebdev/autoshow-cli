@@ -227,6 +227,52 @@ const computeDelay = (attempt: number, baseDelayMs: number, maxDelayMs: number, 
   return Math.min(delay, maxDelayMs)
 }
 
+const sleepWithAbortSignal = async (
+  delayMs: number,
+  signal?: AbortSignal | undefined
+): Promise<void> => {
+  signal?.throwIfAborted()
+  if (!signal) {
+    await Bun.sleep(delayMs)
+    return
+  }
+
+  await new Promise<void>((resolve, reject) => {
+    let settled = false
+    const cleanup = (): void => {
+      signal.removeEventListener('abort', onAbort)
+    }
+    const onAbort = (): void => {
+      if (settled) return
+      settled = true
+      clearTimeout(timer)
+      cleanup()
+      reject(signal.reason ?? new DOMException('The operation was aborted.', 'AbortError'))
+    }
+    const timer = setTimeout(() => {
+      if (settled) return
+      settled = true
+      cleanup()
+      resolve()
+    }, delayMs)
+    signal.addEventListener('abort', onAbort, { once: true })
+    if (signal.aborted) onAbort()
+  })
+}
+
+const resolveAttemptSignal = (
+  timeoutMs: number | undefined,
+  abortSignal: AbortSignal | undefined
+): AbortSignal | undefined => {
+  const timeoutSignal = typeof timeoutMs === 'number'
+    ? AbortSignal.timeout(timeoutMs)
+    : undefined
+  if (timeoutSignal && abortSignal) {
+    return AbortSignal.any([timeoutSignal, abortSignal])
+  }
+  return timeoutSignal ?? abortSignal
+}
+
 const toErrorCause = (error: unknown): Error => {
   if (error instanceof Error) {
     return error
@@ -264,6 +310,7 @@ export const withRetry = async <T>(
   operation: (signal?: AbortSignal) => Promise<T>,
   classifier?: RetryClassifier
 ): Promise<T> => {
+  ctx.abortSignal?.throwIfAborted()
   const policy = getRetryPolicy(ctx.retryClass, ctx.policy)
   let maxAttempts = policy.maxAttempts
   const startedAt = Date.now()
@@ -273,12 +320,12 @@ export const withRetry = async <T>(
   let stopReason = 'max attempts reached'
 
   for (let attempt = 0; attempt < maxAttempts; attempt++) {
+    ctx.abortSignal?.throwIfAborted()
     try {
-      const signal = typeof ctx.timeoutMs === 'number'
-        ? AbortSignal.timeout(ctx.timeoutMs)
-        : undefined
+      const signal = resolveAttemptSignal(ctx.timeoutMs, ctx.abortSignal)
       return await operation(signal)
     } catch (error) {
+      ctx.abortSignal?.throwIfAborted()
       lastError = error
       attemptsMade = attempt + 1
 
@@ -314,7 +361,7 @@ export const withRetry = async <T>(
             reason: decision.reason,
             delayMs: decision.delayMs
           }, { retryClass: ctx.retryClass })
-          await Bun.sleep(decision.delayMs)
+          await sleepWithAbortSignal(decision.delayMs, ctx.abortSignal)
           continue
         }
 
@@ -334,7 +381,7 @@ export const withRetry = async <T>(
         reason,
         delayMs: Math.round(delay)
       }, { retryClass: ctx.retryClass })
-      await Bun.sleep(delay)
+      await sleepWithAbortSignal(delay, ctx.abortSignal)
     }
   }
 
@@ -400,10 +447,12 @@ export const runLocalModelWithRetry = async <T>(opts: {
 
 export const pollUntil = async <T>(opts: PollOptions<T>): Promise<T> => {
   const deadline = Date.now() + opts.deadlineMs
-  const { operationName, pollFn, isDone, isFailed, intervalMs } = opts
+  const { operationName, pollFn, isDone, isFailed, intervalMs, abortSignal } = opts
 
   while (Date.now() < deadline) {
+    abortSignal?.throwIfAborted()
     const result = await pollFn()
+    abortSignal?.throwIfAborted()
 
     if (isDone(result)) {
       return result
@@ -423,9 +472,10 @@ export const pollUntil = async <T>(opts: PollOptions<T>): Promise<T> => {
     const remaining = deadline - Date.now()
     if (remaining <= 0) break
 
-    await Bun.sleep(Math.min(intervalMs, remaining))
+    await sleepWithAbortSignal(Math.min(intervalMs, remaining), abortSignal)
   }
 
+  abortSignal?.throwIfAborted()
   throw new AppError(`${operationName}: deadline exceeded (${opts.deadlineMs}ms)`, {
     kind: 'retry_exhausted',
     stage: operationName,

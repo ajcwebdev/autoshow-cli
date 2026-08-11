@@ -1,15 +1,20 @@
 import type { TtsOptions } from '~/types'
-import { validateGeminiMultiSpeakerTranscriptFromRegistry } from '../tts-services/tts-gemini/gemini-tts-config'
-import { isMultiSpeakerRequested, parseSpeakerVoiceMappings } from '../dialogue-normalizer'
+import { resolveGeminiDialogueStrategy, validateGeminiMultiSpeakerTranscriptFromRegistry } from '../tts-services/tts-gemini/gemini-tts-config'
+import { isMultiSpeakerRequested, normalizeDialogueText, parseSpeakerVoiceMappings, resolveDialogueFormat } from '../dialogue-normalizer'
 
 export const validateTtsInput = (text: string, options: TtsOptions): void => {
-  const geminiModels = options.geminiTtsModels ?? (options.geminiTtsModel ? [options.geminiTtsModel] : [])
-  if (geminiModels.length === 0) {
+  if (!isMultiSpeakerRequested(options)) {
     return
   }
 
-  if (isMultiSpeakerRequested(options)) {
-    const registry = parseSpeakerVoiceMappings(options.ttsSpeakers)
-    validateGeminiMultiSpeakerTranscriptFromRegistry(text, registry)
+  const registry = parseSpeakerVoiceMappings(options.ttsSpeakers)
+  const dialogue = normalizeDialogueText(text, resolveDialogueFormat(options), registry)
+
+  const geminiModels = options.geminiTtsModels ?? (options.geminiTtsModel ? [options.geminiTtsModel] : [])
+  if (
+    geminiModels.length > 0
+    && resolveGeminiDialogueStrategy(registry.entries.length, 'auto') === 'native'
+  ) {
+    validateGeminiMultiSpeakerTranscriptFromRegistry(dialogue.normalizedText, registry)
   }
 }

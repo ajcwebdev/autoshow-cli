@@ -1,4 +1,4 @@
-import type { DeepgramTtsModel, HostedTtsChunkScheduler, Step4Metadata } from '~/types'
+import type { DeepgramTtsModel, HostedTtsChunkScheduler, Step4Metadata, TtsRequestEvidenceScope } from '~/types'
 import { logTtsConfig } from '~/cli/commands/process-steps/step-4-tts/tts-utils/log-tts-config'
 import { splitTextIntoChunks } from '~/cli/commands/process-steps/step-4-tts/tts-utils/audio-utils'
 import { TTS_CHUNK_CHARACTER_LIMITS } from '~/cli/commands/process-steps/step-4-tts/tts-utils/tts-chunking'
@@ -9,6 +9,7 @@ import { DEEPGRAM_DEFAULT_BASE_URL } from '~/utils/base-urls'
 import { InfraError } from '~/utils/error-handler'
 import { readDeepgramError } from './deepgram-utils'
 import { httpResponseError } from '~/utils/rest-client'
+import { dispatchTtsProviderRequest } from '../../script-to-audio/tts-request-evidence'
 
 const trimTrailingSlash = (value: string): string => value.replace(/\/+$/, '')
 
@@ -23,8 +24,10 @@ export const runDeepgramTts = async (
     bitRate?: number | undefined
     sampleRate?: number | undefined
     speed?: number | undefined
+    abortSignal?: AbortSignal | undefined
     chunkConcurrency?: number | undefined
     chunkScheduler?: HostedTtsChunkScheduler | undefined
+    requestEvidence?: TtsRequestEvidenceScope | undefined
   }
 ): Promise<{ audioPath: string, metadata: Step4Metadata }> => {
   const apiKey = requireApiKey('DEEPGRAM_API_KEY', 'tts:deepgram', 'Deepgram TTS')
@@ -60,9 +63,11 @@ export const runDeepgramTts = async (
     outputDir,
     chunkExtension: 'mp3',
     startTime: Date.now(),
+    abortSignal: options.abortSignal,
     chunkConcurrency: options.chunkConcurrency,
     chunkScheduler: options.chunkScheduler,
-    fetchChunkAudio: async ({ chunk, signal }) => {
+    requestEvidence: options.requestEvidence,
+    fetchChunkAudio: async ({ chunk, chunkIndex, signal, requestAttempt, retryReasonCode }) => {
       const params = new URLSearchParams({ model: voice })
       if (encoding) params.set('encoding', encoding)
       if (container) params.set('container', container)
@@ -70,14 +75,32 @@ export const runDeepgramTts = async (
       if (typeof options.sampleRate === 'number') params.set('sample_rate', String(options.sampleRate))
       if (typeof options.speed === 'number') params.set('speed', String(options.speed))
 
-      const response = await fetch(`${baseURL}/v1/speak?${params.toString()}`, {
+      const requestBody = { text: chunk }
+      return await dispatchTtsProviderRequest(options.requestEvidence, {
+        chunkIndex,
+        endpointKind: 'speech-synthesis',
+        serializerVersion: 'deepgram.tts.phase-0-v1',
+        serializedRequest: { path: '/v1/speak', query: Object.fromEntries(params), body: requestBody },
+        providerText: chunk,
+        voiceField: 'query.model',
+        voices: [{ kind: 'provider-id', value: voice }],
+        requestControls: {
+          ...(encoding ? { encoding } : {}),
+          ...(container ? { container } : {}),
+          ...(typeof options.bitRate === 'number' ? { bitRate: options.bitRate } : {}),
+          ...(typeof options.sampleRate === 'number' ? { sampleRate: options.sampleRate } : {}),
+          ...(typeof options.speed === 'number' ? { speed: options.speed } : {})
+        },
+        continuation: { kind: 'none' }
+      }, { attempt: requestAttempt, ...(retryReasonCode ? { retryReasonCode } : {}) }, async ({ accepted }) => {
+        const response = await fetch(`${baseURL}/v1/speak?${params.toString()}`, {
         method: 'POST',
         headers: {
           Authorization: `Token ${apiKey}`,
           'Content-Type': 'application/json',
           Accept: 'audio/mpeg'
         },
-        body: JSON.stringify({ text: chunk }),
+        body: JSON.stringify(requestBody),
         ...(signal ? { signal } : {})
       })
 
@@ -85,8 +108,9 @@ export const runDeepgramTts = async (
         const errText = await readDeepgramError(response)
         throw httpResponseError(`Deepgram TTS failed (${response.status}): ${errText}`, response)
       }
-
+      await accepted({ fields: { httpStatus: response.status } })
       return new Uint8Array(await response.arrayBuffer())
+      })
     }
   })
 }

@@ -1,8 +1,12 @@
-import type { ActualCostBreakdown, AggregatedPriceEstimate, EstimatedCostBreakdown, Step4Metadata, StepTimingBreakdown, TtsBatchEstimateSummary } from '~/types'
+import type { ActualCostBreakdown, AggregatedPriceEstimate, EstimatedCostBreakdown, GenericTtsDialoguePlan, GenericTtsSourceIdentity, PipelineProviderState, Step4Metadata, StepTimingBreakdown, TtsBatchEstimateSummary } from '~/types'
 
 export type PreparedTtsInput = {
   inputPath: string
+  manifestInputPath: string
+  sourceBytes: Uint8Array
   text: string
+  sourceIdentity: GenericTtsSourceIdentity
+  dialoguePlan: GenericTtsDialoguePlan
   ttsCharacterCount: number
   ttsTimingInputText: string
   dialogueRequested: boolean
@@ -53,4 +57,5 @@ export type TtsBatchItemAccumulator = {
   metadata: Step4Metadata[]
   runs: PreparedTtsRun[]
   errors: string[]
+  providerStates: Map<string, PipelineProviderState>
 }
