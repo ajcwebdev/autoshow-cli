@@ -6,31 +6,40 @@
 - **Date Created:** 2026-07-13
 - **Date Updated:** 2026-08-13
 - **Verification Status:** Passed
-- **Supersession:** Reframes the former hosted LLM/OCR refresh record as the durable policy shared by write, OCR, STT, TTS, music, image, and video registries and directly absorbs the complete record "Normalize Cross-Provider Reasoning Configuration". The 2026 provider/model additions, replacements, removals, transport corrections, and selector counts moved to ADR-013; paid-approval gates, calibration evidence, benchmark artifacts, and generated-report contracts moved to ADR-012.
+- **Supersession:** Owns the durable registry, lifecycle, capability, and reasoning policy shared by the write, OCR, STT, TTS, music, image, and video registries. Dated provider/model refresh history belongs to [ADR-013](ADR-013-2026-hosted-model-refresh-ledger.md); paid-approval gates, calibration evidence, and generated-report contracts belong to [ADR-012](ADR-012-benchmark-evidence-and-generated-report-architecture.md).
 
 ## Context
 
 AutoShow's hosted-model registries are public CLI, configuration, pricing, resume, artifact, benchmark, and documentation surfaces. Accepted model arrays determine selector types and validation; registry metadata determines prices, timing estimates, limits, lifecycle eligibility, and capabilities; bare selectors and `--all-*` flags determine execution targets; provider adapters determine whether each advertised selector can actually run with its supported controls and modes; and historical readers determine whether old artifacts remain attributable and repricable.
 
-The 2026 refreshes across write/OCR, STT, TTS/music, and image/video repeatedly reached the same architectural conclusions. A model selector is a complete runtime promise, not a validator string. Concrete identity, lifecycle, pricing, defaults, all-provider expansion, request construction, response parsing, help, resume behavior, historical identity, and local contracts must move together. Moving aliases, availability tiers, voice IDs, free billing variants, and transport-incompatible products are not equivalent model selectors.
+A model selector is therefore a complete runtime promise, not a validator string. Concrete identity, lifecycle, pricing, defaults, all-provider expansion, request construction, response parsing, help, resume behavior, historical identity, and local contracts must move together. Moving aliases, availability tiers, voice IDs, free billing variants, and transport-incompatible products are not equivalent model selectors.
 
-Reasoning policy is part of that capability promise. Hosted LLM-backed write and OCR adapters previously hardcoded incompatible provider-local fields: Groq low effort, Gemini low thinking, Kimi K2.x disabled thinking, Kimi K3 always-on reasoning with no `thinking` field, GLM disabled thinking, Anthropic defaults, and local llama template controls. Those hidden choices affected tokens, latency, price, cache identity, manifests, and resume compatibility without one typed surface.
+Reasoning policy is part of that capability promise. Hosted LLM-backed write and OCR adapters previously hardcoded incompatible provider-local fields — per-provider effort levels, binary `thinking` toggles, always-on reasoning with no toggle at all — and those hidden choices affected tokens, latency, price, cache identity, manifests, and resume compatibility without one typed surface.
 
 Lifecycle transitions also need a reusable contract. A deprecated model can remain cheaper than its successor, so array order and price alone cannot determine safe defaults. A wall-clock switch makes the same installed commit resolve differently over time. Removing a selector without historical rates breaks committed cost evidence, while silently substituting a successor misstates provider identity.
 
-This record therefore owns the durable registry, lifecycle, capability, reasoning, pricing-provenance, and historical-identity rules. ADR-013 records which models changed in the 2026 refresh; ADR-012 owns the evidence used to validate and benchmark those changes.
+Why now: repeated refreshes across write/OCR, STT, TTS/music, and image/video each rediscovered the same rules per modality, so the registry contract needs one authority that dated catalogs and benchmark evidence can reference instead of restating.
 
 ## Options Considered
 
 | Option | Pros | Cons | Quantitative Notes |
 |---|---|---|---|
 | **One durable cross-modality registry/lifecycle/capability policy with separate refresh and evidence records** | Gives every model family the same identity, eligibility, pricing, reasoning, validation, resume, and historical rules while keeping dated catalogs and benchmark chronology elsewhere | Requires maintainers to update three authorities when a refresh includes both policy-significant and evidence-significant work | Governs 7 hosted surfaces: write, OCR, STT, TTS, music, image, and video |
-| Keep one policy inside each modality refresh record | Keeps provider details close to their original implementation | Repeats fixed-ID, retirement, pricing, approval, and validation rules and lets modalities drift | Previously split across 5 refresh/capability records plus the report record |
-| Merge policy, provider chronology, and benchmark evidence into one omnibus record | Makes one file exhaustive | Buries stable rules in release-by-release detail and makes routine refreshes rewrite the architecture authority | More than 1,200 lines across the six input records before reorganization |
+| Keep one policy inside each modality refresh record | Keeps provider details close to their original implementation | Repeats fixed-ID, retirement, pricing, approval, and validation rules and lets modalities drift | 7 near-duplicate rule sets to keep in sync |
+| Merge policy, provider chronology, and benchmark evidence into one omnibus record | Makes one file exhaustive | Buries stable rules in release-by-release detail and makes routine refreshes rewrite the architecture authority | Every refresh edits the architecture authority |
 | Update selector validators without a shared policy | Produces small diffs | Can advertise models with wrong pricing, modes, voices, request fields, defaults, resume behavior, or historical attribution | No reliable runtime promise |
 | Mirror provider aliases and capability names directly | Closely follows upstream documentation | Makes manifests non-reproducible and the public CLI provider-specific | At least one moving or duplicate identity per affected provider |
 
 ## Decision
+
+Govern every hosted-model registry with one shared policy covering selector identity, runtime contract completeness, lifecycle metadata, pricing provenance, and normalized reasoning capability.
+
+This applies to:
+
+- the hosted write, OCR, STT, TTS, music, image, and video registries and every consumer that resolves selectors through them;
+- the CLI surfaces those registries feed: validation, defaults, `--all-*` expansion, help, pricing, resume, and manifests;
+- historical readers for retired selectors and their preserved rates; and
+- not local inference template controls, dated refresh chronology (ADR-013), or benchmark evidence (ADR-012).
 
 ### Concrete selector identity and eligibility
 
@@ -81,36 +90,19 @@ Registry rates come from dated primary provider evidence and preserve the provid
 
 New models may temporarily reuse the nearest same-family token, latency, or duration heuristic only when the registry labels it provisional and keeps published rates separate. OCR evidence does not authorize a write heuristic, and one quality/timing sample does not override published token rates. Calibration promotion requires the healthy, model/mode/reasoning-qualified evidence contract in ADR-009 and the paid-approval/evidence rules in ADR-012.
 
-No model refresh authorizes a paid or quota-limited provider call. Local validation and `--price` run first; any live calibration or benchmark requires immediate explicit approval naming the exact command, provider, and reported cost or quota risk.
-
 ### Normalized reasoning capability
 
 Expose `--reasoning-effort <default|disabled|minimal|low|medium|high|max>` as the single public reasoning control for hosted LLM-backed write and OCR workflows and central consumers that dispatch through them.
 
 Per-model capability metadata declares whether reasoning is unsupported, optional, or required; whether `disabled` is legal; and which normalized named levels are accepted. Resolve capabilities only after model selection. Reject unsupported combinations before pricing or dispatch; never silently downgrade, promote, or reinterpret an effort.
 
-Provider request builders map the validated normalized policy to native fields such as OpenAI Responses `reasoning.effort` (`disabled` maps to native `none`), Anthropic `output_config.effort`, Gemini thinking levels, xAI/Groq/Kimi named efforts, and binary `thinking` or `reasoning.enabled` controls. An omitted flag preserves the adapter behavior immediately preceding this policy; explicit `default` emits no provider override and delegates to the provider default.
+Provider request builders map the validated normalized policy to native fields such as OpenAI Responses `reasoning.effort` (`disabled` maps to native `none`), Anthropic `output_config.effort`, Gemini thinking levels, xAI/Groq/Kimi named efforts, and binary `thinking` or `reasoning.enabled` controls. An omitted flag leaves each adapter's existing default behavior unchanged; explicit `default` emits no provider override and delegates to the provider default.
 
-Write and OCR manifests, estimates, result diagnostics, resume identity, and hosted OCR page-cache identity record requested and effective reasoning policies whenever the flag affects behavior. Resume rejects an explicit policy that differs from stored effective policy. Local inference template controls remain outside this hosted policy until their supported levels and performance implications are separately audited.
+Write and OCR manifests, estimates, result diagnostics, resume identity, and hosted OCR page-cache identity record requested and effective reasoning policies whenever the flag affects behavior. Resume rejects an explicit policy that differs from stored effective policy. Local inference template controls remain outside this hosted policy until their supported levels and performance implications are separately audited. Provider-specific levels outside the seven-value surface (e.g. `xhigh`) require an explicit public-enum expansion.
 
-Provider-specific levels such as `xhigh` are outside the accepted seven-value surface. They may be added only through an explicit public-enum expansion with capability and request-mapping evidence.
+### Adjacent authorities
 
-### Refresh and evidence boundaries
-
-Provider/model refresh implementation history, selector counts, additions, replacements, removals, and adapter corrections belong to ADR-013. Curated primary-source links and `.refresh.json` metadata belong to the `links` workflow governed by ADR-011.
-
-Paid-approval gates, no-cost preflight results, calibration samples, benchmark artifact repair/compaction, generated report schemas, ranking/tiering, and regeneration evidence belong to ADR-012. Runtime lane scheduling remains ADR-008, extract execution remains ADR-009, and pipeline state/resume/price dry-run behavior remains ADR-002.
-
-## API / Type Impact
-
-- All hosted model unions and registry schemas represent concrete active identities plus separate historical readers.
-- Lifecycle metadata is optional and defaults to active/eligible, preserving existing entries until a transition is explicitly modeled.
-- `write`, hosted OCR `extract`, and matching resume paths accept the seven-value `--reasoning-effort` surface only where selected models advertise support.
-- Provider options receive a normalized reasoning policy; provider request builders retain ownership of native field shapes.
-- Manifests distinguish omitted reasoning from explicit `default` and store requested/effective policy when material.
-- Bare defaults and all-provider expansions filter lifecycle eligibility and never depend on wall-clock time.
-- Removed selectors fail locally with concrete successor guidance when available; completed historical artifacts remain readable and repricable.
-- Capability-specific validation rejects unsupported voice, language, format, duration, resolution, reference, operation, reasoning, and mode combinations before provider work.
+Refresh chronology belongs to ADR-013; benchmark and report evidence to ADR-012; curated primary-source links and `.refresh.json` metadata to ADR-011; lane scheduling to ADR-008; extract execution to ADR-009; and resume and price dry-run behavior to ADR-002.
 
 ## Rationale
 
@@ -156,9 +148,15 @@ The policy is implemented across the model registries and loaders under `src/cli
 
 `ReasoningCapabilitiesSchema` and `reasoning-resolver.ts` provide `NORMALIZED_REASONING_EFFORTS`, `parseReasoningEffort`, `getReasoningCapabilities`, and `resolveReasoningPolicy`. Hosted write and OCR dispatch validate every selected target before multi-provider price calculation or execution. The resolver preserves omitted versus explicit-default behavior and maps native provider payloads without silent coercion.
 
-The generic lifecycle mechanism validates evidence dates and concrete same-service replacements, filters cheapest defaults and all-provider expansion, and keeps selection independent of the current date. The completed Gemini 3.1 Flash-Lite transition demonstrated the full contract: automatic eligibility moved first, active selection was later retired at the project boundary, current config was removed, historical rates and concrete stored identity remained, and successor selection stayed explicit and additive.
+The generic lifecycle mechanism validates evidence dates and concrete same-service replacements, filters cheapest defaults and all-provider expansion, and keeps selection independent of the current date. A full deprecate-then-retire transition has run end to end under this contract: automatic eligibility was withdrawn first, active selection was retired later, current config was removed, historical rates and stored identity remained readable, and successor selection stayed explicit and additive. ADR-013 records which models moved through each step.
 
-Other implemented examples include removal of duplicate `mistral-ocr-latest`; preservation of retired MiniMax Music 2.6 and Replicate HappyHorse 1.0 rates; exact model-specific TTS voices and formats; stable fal.ai selectors with explicit mode routing; raster-only hosted image generation; and local rejection of transport-incompatible streaming/realtime products.
+## API / Type Impact
+
+- All hosted model unions and registry schemas represent concrete active identities plus separate historical readers.
+- Lifecycle metadata is optional and defaults to active/eligible, preserving existing entries until a transition is explicitly modeled.
+- `write`, hosted OCR `extract`, and matching resume paths accept the seven-value `--reasoning-effort` surface only where selected models advertise support.
+- Provider options receive a normalized reasoning policy; provider request builders retain ownership of native field shapes.
+- Manifests distinguish omitted reasoning from explicit `default` and store requested/effective policy when material.
 
 ## Follow-up Actions
 
@@ -176,7 +174,7 @@ Other implemented examples include removal of duplicate `mistral-ocr-latest`; pr
 - Lifecycle contracts cover valid evidence dates, same-service concrete replacements, no moving aliases, deterministic defaults, all-expansion eligibility, successor guidance, historical identity, and no wall-clock selection.
 - Capability contracts prove active-selector acceptance, removed-selector rejection, exact all-provider expansion, complete pricing metadata, and local rejection of unsupported controls.
 - Do not run `bun run t`, `bun test/test-runner.ts`, provider smoke tests, paid provider commands, or quota-risk E2E paths. Any live calibration or benchmark requires immediate explicit approval naming the exact command and expected cost or quota risk.
-- Consolidation verification on 2026-08-13 passed `bun run check`, `bun t --price` across 165 mapped commands, local link/sequence checks, and the targeted reasoning, pricing, registry, resume, and provider-selection contracts without a provider call.
+- Last verified 2026-08-13: `bun run check`, `bun t --price` across 165 mapped commands, and the targeted reasoning, pricing, registry, resume, and provider-selection contracts all passed without a provider call.
 
 ## References
 
@@ -188,6 +186,7 @@ Other implemented examples include removal of duplicate `mistral-ocr-latest`; pr
 - Benchmark evidence and generated reports: [ADR-012](ADR-012-benchmark-evidence-and-generated-report-architecture.md)
 - Dated hosted-model refresh ledger: [ADR-013](ADR-013-2026-hosted-model-refresh-ledger.md)
 - Character voice and multi-speaker architecture: [ADR-014](ADR-014-add-character-voice-references-and-multi-speaker-script-to-audio.md)
+- Write command documentation: `docs/commands/process-steps/step-3-write/write-text.md`
 - Model registries and configuration: `src/cli/commands/setup-and-utilities/models/`
 - Lifecycle resolver and schemas: `src/cli/commands/setup-and-utilities/models/model-loader/model-lifecycle.ts`, `src/cli/commands/setup-and-utilities/models/model-loader/model-loader-schemas.ts`
 - Retired rates: `src/cli/commands/setup-and-utilities/models/model-loader/retired-model-rates.ts`, `src/cli/commands/pricing-orchestration/compute-actual-costs.ts`

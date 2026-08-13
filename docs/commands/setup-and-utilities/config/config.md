@@ -123,7 +123,7 @@ Representative JSON shape:
         "openaiOcr": ["gpt-5.4-nano"],
         "grokOcr": ["grok-4.3"],
         "anthropicOcr": ["claude-haiku-4-5"],
-        "geminiOcr": ["gemini-3.1-flash-lite"],
+        "geminiOcr": ["gemini-3.5-flash-lite"],
         "deepinfraOcr": ["Qwen/Qwen3-VL-30B-A3B-Instruct"],
         "chapters": true,
         "length": 50,
@@ -134,7 +134,7 @@ Representative JSON shape:
       "llama": ["ggml-org/gemma-3-270m-it-GGUF"],
       "openai": ["gpt-5.5", "gpt-5.4-mini"],
       "groq": ["openai/gpt-oss-20b"],
-      "gemini": ["gemini-3.1-flash-lite"],
+      "gemini": ["gemini-3.5-flash-lite"],
       "anthropic": ["claude-haiku-4-5"],
       "minimax": ["MiniMax-M3"],
       "grok": ["grok-4.3"],
@@ -293,7 +293,7 @@ Model-selecting fields are arrays of models, not single strings.
 | `deepgramVoice`, `deepgramTtsEncoding`, `deepgramTtsContainer`, `deepgramTtsBitRate`, `deepgramTtsSampleRate`, `deepgramTtsSpeed`, `speechifyVoice`, `speechifyTtsAudioFormat`, `speechifyTtsLanguage`, `humeTtsVoice`, `humeTtsVoiceProvider`, `cartesiaTtsVoice`, `cartesiaTtsLanguage` | provider voice, output, and reusable synthesis flags |
 | `providerConcurrency`, `localConcurrency`, `chunkConcurrency` | `--provider-concurrency`, `--local-concurrency`, `--tts-chunk-concurrency` |
 
-ElevenLabs and Speechify custom-voice creation fields are not synthesis defaults and are rejected by the strict config schema. Current synthesis configuration accepts only an existing provider voice ID; managed provisioning and import belong to the future voice-management and `comic reference-voice` workflows rather than this config file.
+ElevenLabs and Speechify custom-voice creation fields describe one-off provisioning rather than synthesis defaults and are rejected by the strict config schema. Current synthesis configuration accepts an existing provider voice ID.
 
 `ttsSpeakers` is what selects multi-speaker TTS, so a saved `ttsDialogueFormat` with no saved `ttsSpeakers` is inert: runs that inherit it log a warning and continue as single-speaker rather than failing at step 4.
 

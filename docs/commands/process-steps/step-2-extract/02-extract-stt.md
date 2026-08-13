@@ -111,16 +111,15 @@ bun autoshow extract https://www.youtube.com/@channelname --youtube-captions --b
 
 ## Transcript Videos
 
-`extract --transcript-video` renders a local MP4 from existing STT artifacts. It does not call an STT provider. The normal path is a media extract output directory; AutoShow reads its canonical `manifest.json`, infers the saved audio file, and renders the root raw `result.json` payload or the single completed provider payload. Multi-provider runs with more than one result require `--transcript-result`.
+`extract --transcript-video` renders a local MP4 from existing STT artifacts without calling an STT provider. AutoShow reads the `manifest.json` in a media extract output directory, infers the audio file, and renders the raw `result.json` payload or completed provider payload. Multi-provider runs with more than one result require `--transcript-result`.
 
-First produce a diarized STT run from a committed example file. Soniox diarizes by default, so the transcript carries speaker labels; any other provider from [Diarized STT](#diarized-stt) works the same way. `--output-dir` pins the run directory so every later command can name it directly instead of guessing a timestamp.
+To produce a diarized STT run with speaker labels (using Soniox or another provider from [Diarized STT](#diarized-stt)):
 
 ```bash
-# Soniox is a hosted provider and needs SONIOX_API_KEY in the environment
 bun autoshow extract input/examples/audio/1-audio.mp3 --provider soniox --output-dir output/transcript-demo
 ```
 
-That single-provider run writes `1-audio.mp3`, `transcription.txt`, and a raw domain `result.json` into `output/transcript-demo`, with `[HH:MM:SS.mmm] [speaker] text` lines in the transcript. The result payload is a user-facing transcription artifact, not resume/control state.
+This writes `1-audio.mp3`, `transcription.txt`, and raw domain `result.json` into `output/transcript-demo`.
 
 ```bash
 # render from that completed media extract directory
@@ -133,7 +132,7 @@ bun autoshow extract --transcript-video --audio input/examples/audio/1-audio.mp3
 bun autoshow extract --transcript-video --audio input/examples/audio/1-audio.mp3 --transcript-text output/transcript-demo/transcription.txt
 ```
 
-A multi-provider run writes one result per provider under `providers/<service>-<model>/` and no root `result.json`, so pick the diarized provider result explicitly. `--provider soniox` resolves to the supported Soniox model, `stt-async-v5`, which is what names the directory.
+A multi-provider run writes results per provider under `providers/<service>-<model>/` without a root `result.json`. Pass `--transcript-result` explicitly to select a provider result. `--provider soniox` resolves to `stt-async-v5`.
 
 ```bash
 # one hosted diarized provider and one local provider over the same example file
@@ -143,11 +142,9 @@ bun autoshow extract input/examples/audio/1-audio.mp3 --provider soniox --provid
 bun autoshow extract output/transcript-demo-multi --transcript-video --transcript-result output/transcript-demo-multi/providers/soniox-stt-async-v5/result.json
 ```
 
-Without `--output-dir` each command creates its own timestamped directory (`output/<timestamp>_1-audio`, `output/<timestamp>_transcript-video-<label>`). The output directory contains `<label>.mp4`, `<label>.vtt`, `<label>.srt`, and `manifest.json`. When the STT result carries native per-word timings, cues are built from those words rather than from segment stamps, so the on-screen line matches the audio. The active line is drawn between the previous and next lines, with the speaker shown as a colour-coded label on the active line only; `.vtt`/`.srt` keep the speaker inline. Cues also fall back to `result.json` segments or `[HH:MM:SS.mmm] [speaker] text` transcript lines when a provider reports no word timings. The renderer uses the same fixed 1920x1080 local ffmpeg pipeline as lyric videos, with `--font` and `--keep-tmp` available for transcript-video rendering.
+Without `--output-dir`, each command creates a timestamped directory (`output/<timestamp>_<label>`). The output contains `<label>.mp4`, `<label>.vtt`, `<label>.srt`, and `manifest.json`. Cues use native per-word timings when available, falling back to segment timestamps or `[HH:MM:SS.mmm] [speaker] text` lines. The renderer uses a fixed 1920x1080 ffmpeg pipeline, with `--font` and `--keep-tmp` available.
 
 ## URL/streaming/source-URL STT
-
-These services either work best with provider-side URLs or have source-URL-specific behavior.
 
 ### Happy Scribe
 
@@ -156,7 +153,7 @@ These services either work best with provider-side URLs or have source-URL-speci
 | Selector | `--provider happyscribe[=<model>]` |
 | Models | `auto` |
 | Organization | `--stt-happyscribe-organization-id <id>` |
-| Language | Fixed to `en-US` in v1 |
+| Language | Fixed to `en-US` |
 | Diarization | Enabled by default; `--speaker-count` is ignored |
 
 ```bash
@@ -164,7 +161,7 @@ bun autoshow extract https://ajc.pics/autoshow/examples/1-audio.mp3 --provider h
 bun autoshow extract https://ajc.pics/autoshow/examples/1-audio.mp3 --provider happyscribe --stt-happyscribe-organization-id org_123
 ```
 
-Organization resolution order is CLI `--stt-happyscribe-organization-id`, config default, then auto-select only when the API key can access exactly one organization. Non-English audio and multilingual audio are unsupported and may produce poor transcripts.
+Organization resolution order: CLI `--stt-happyscribe-organization-id`, config default, then auto-select if the API key accesses exactly one organization.
 
 ### Supadata
 
@@ -181,7 +178,7 @@ bun autoshow extract https://www.tiktok.com/@example/video/1234567890 --provider
 bun autoshow extract https://example.com/audio/interview.mp3 --provider supadata=auto --price
 ```
 
-Supadata requires a public source URL and cannot transcribe local file inputs through the AutoShow CLI. AutoShow exposes only Supadata `auto` mode: it tries provider-native transcripts first and generates a transcript when needed. Supadata treats direct media/file URLs as generated transcripts. `--stt-supadata-lang` is sent with the auto request, but generated transcripts ignore that flag.
+Supadata requires a public source URL. It tries provider-native transcripts first (`auto` mode) and generates a transcript when needed. Direct media/file URLs are treated as generated transcripts.
 
 ### ScrapeCreators
 
@@ -197,7 +194,7 @@ bun autoshow extract "https://www.youtube.com/watch?v=MORMZXEaONk" --provider sc
 bun autoshow extract https://youtu.be/dQw4w9WgXcQ --provider scrapecreators=youtube-transcript --stt-scrapecreators-lang es
 ```
 
-ScrapeCreators is transcript retrieval, not general audio transcription. AutoShow calls `GET /v1/youtube/video/transcript` with the source URL and requested language, then normalizes returned timed transcript entries into `transcription.txt` and structured STT artifacts. It does not replace `--youtube-captions`; use ScrapeCreators when you want it as an explicit paid provider in the same target set as other STT providers.
+ScrapeCreators retrieves YouTube transcripts via `GET /v1/youtube/video/transcript` and normalizes them into `transcription.txt` and structured STT artifacts.
 
 ### Gladia
 
@@ -212,11 +209,9 @@ bun autoshow extract https://ajc.pics/autoshow/examples/1-audio.mp3 --provider g
 bun autoshow extract https://ajc.pics/autoshow/examples/1-audio.mp3 --provider gladia --speaker-count 2
 ```
 
-Bare `--provider gladia` selects the tied cheapest model `solaria-1`; `--all-providers` includes both active Solaria models. Select `solaria-3` explicitly when its supported-language profile fits the source.
+Bare `--provider gladia` selects `solaria-1`. `--all-providers` includes both active Solaria models.
 
 ## Non-diarized STT
-
-These providers are documented as single-speaker or non-diarized in the CLI.
 
 ### Whisper.cpp
 
@@ -244,7 +239,7 @@ bun autoshow extract https://ajc.pics/autoshow/examples/1-audio.mp3 --provider w
 bun autoshow extract https://ajc.pics/autoshow/examples/1-audio.mp3 --provider whisperfile=large-v3
 ```
 
-Whisperfile is a self-contained alternative to the `whisper.cpp` build: each model is a single Cosmopolitan APE binary with the GGML weights embedded, so it runs with no compiler toolchain. AutoShow launches it through a shell (`sh <binary>`) because macOS cannot `exec` the APE format directly. Output carries native word timing but no diarization. Whisperfile is included by `--all-local`. Unlike `--provider whisper`, the whisperfile selector has no default model, so always pass an explicit model. Whisperfile is selectable through `--provider whisperfile=<model>` on `extract` and `resume`, and through `--stt whisperfile=<model>` on `write` and `config`.
+Whisperfile runs prebuilt APE binaries from HuggingFace with embedded GGML weights. Output carries native word timing. Included by `--all-local`. Requires an explicit model selector (`--provider whisperfile=<model>` or `--stt whisperfile=<model>`).
 
 ### Groq
 
@@ -279,7 +274,7 @@ bun autoshow extract https://ajc.pics/autoshow/examples/1-audio.mp3 --provider d
 bun autoshow extract https://ajc.pics/autoshow/examples/1-audio.mp3 --provider together
 ```
 
-Both models use Together's serverless batch transcription endpoint at `$0.0015` per audio minute. The bare selector chooses Parakeet under the standard cheapest-model tie-breaker. AutoShow requests verbose segment timestamps from both models, and its request builder keeps optional decoding prompts model-aware because Together supports them only on Whisper.
+Both models use Together's batch endpoint at `$0.0015`/min. Bare `--provider together` defaults to `parakeet-tdt-0.6b-v3`.
 
 ### Gemini STT
 
@@ -293,8 +288,6 @@ Both models use Together's serverless batch transcription endpoint at `$0.0015` 
 bun autoshow extract https://ajc.pics/autoshow/examples/1-audio.mp3 --provider gemini
 ```
 
-The retired `gemini-3-flash-preview` selector remains readable in completed historical benchmark artifacts but cannot be selected for new work.
-
 ### Mistral
 
 | Option | Value |
@@ -306,11 +299,9 @@ The retired `gemini-3-flash-preview` selector remains readable in completed hist
 bun autoshow extract https://ajc.pics/autoshow/examples/1-audio.mp3 --provider mistral
 ```
 
-Mistral STT follows the current documented Voxtral Mini Transcribe 2 limits: up to 500 MB per audio transcription request and approximately 3 hours of audio per request. Requests are internally serialized across batch items and split segments to reduce provider-side rate limits.
+Mistral STT (Voxtral Mini Transcribe 2) supports up to 500 MB and ~3 hours of audio per request. Requests are serialized across batch items and segments.
 
 ## Diarized STT
-
-These engines either support diarization directly or AutoShow enables diarization for them.
 
 ### Reverb
 
@@ -336,8 +327,6 @@ bun autoshow extract https://ajc.pics/autoshow/examples/1-audio.mp3 --provider r
 bun autoshow extract https://ajc.pics/autoshow/examples/1-audio.mp3 --provider grok=speech-to-text
 ```
 
-Grok STT sends `format=true`, `language=en`, and `diarize=true` to xAI's REST STT endpoint and records word timing, confidence, and speaker evidence when the response includes it.
-
 ### Deepgram
 
 | Option | Value |
@@ -348,8 +337,6 @@ Grok STT sends `format=true`, `language=en`, and `diarize=true` to xAI's REST ST
 ```bash
 bun autoshow extract https://ajc.pics/autoshow/examples/1-audio.mp3 --provider deepgram=nova-3
 ```
-
-AutoShow exposes only Deepgram's concrete general-purpose `nova-3` family selector. The redundant `nova-3-general` specialization and domain-specific `nova-3-medical` model are intentionally excluded from the general-purpose hosted STT registry.
 
 ### Soniox
 
@@ -374,7 +361,7 @@ bun autoshow extract https://ajc.pics/autoshow/examples/1-audio.mp3 --provider s
 bun autoshow extract https://ajc.pics/autoshow/examples/1-audio.mp3 --provider speechmatics=melia-1
 ```
 
-Bare `--provider speechmatics` selects the cheaper `melia-1` model. Melia uses Speechmatics' required `language: "multi"` selector for multilingual detection and code-switching; `enhanced` retains `language: "auto"` for automatic single-language identification and remains available explicitly for maximum per-language accuracy.
+Bare `--provider speechmatics` selects `melia-1` (multilingual). `enhanced` uses single-language detection for maximum per-language accuracy.
 
 ### Rev
 
@@ -399,41 +386,27 @@ bun autoshow extract https://ajc.pics/autoshow/examples/1-audio.mp3 --provider r
 bun autoshow extract https://ajc.pics/autoshow/examples/1-audio.mp3 --provider assemblyai
 ```
 
-The bare AssemblyAI selector uses the lowest-cost active model, `universal-2`. Select `universal-3-5-pro` explicitly for the flagship model. `--all-providers` includes both models in the order shown above.
+Bare `--provider assemblyai` defaults to `universal-2`. Select `universal-3-5-pro` explicitly for the flagship model.
 
 ## STT Pricing And Manifests
 
-Happy Scribe price preflight is intentionally side-effect free.
+Happy Scribe:
+- `--price` uses the published rate of `$0.01/min` and local timing without remote uploads or order creation.
+- Execution records Happy Scribe billing in `step2.billing` using `totalCost`, `creditsUsed`, `creditRateCents`, `source: "provider_quote"`, and `mode: "order"` (or `mode: "segment_sum"` for split runs).
 
-- `--price` never creates Happy Scribe uploads or draft orders. Preflight uses the published AI rate of `$0.01/min` and the local timing registry.
-- If preflight cannot resolve a unique organization, AutoShow still prints the generic estimate. Execution needs an explicit organization override before exact billing can be captured.
-- During execution, AutoShow records Happy Scribe billing in `step2.billing` using `totalCost`, `creditsUsed`, `creditRateCents`, `source: "provider_quote"`, and `mode: "order"` when the selected organization reports `currency: "usd"`. Non-USD execution is rejected in v1. If exact provider billing is unavailable, AutoShow falls back to registry math with `source: "registry_fallback"`.
-- Happy Scribe split runs submit one order per segment and merge segment billing into `step2.billing.mode: "segment_sum"`.
+Supadata:
+- `--price` uses the reference rate of `$10 / 1,000 credits` (`1.00 cent/credit`).
+- Native estimates 1 credit per request; generated transcripts estimate from duration (~2 credits/min). `auto` estimates as the higher of native vs generated.
+- Execution records credit counts from response headers when available.
 
-Supadata price estimates use provider credits.
-
-- `--price` uses the published Basic/Pro auto-recharge reference rate of `$10 / 1,000 credits`, or `1.00 cents/credit`.
-- `native` estimates one transcript request credit, including transcript-unavailable responses.
-- `generate` estimates AI generation from media duration at roughly `2 credits/min`.
-- `auto` is priced conservatively as the higher of one native transcript request credit or generated transcript credits from media duration.
-- Direct media/file URLs are treated as generated transcripts by Supadata, so they estimate from media duration even when `auto` is selected.
-- Published credit pricing can vary by plan, billing setup, promotions, or enterprise terms; AutoShow's preflight uses the Basic/Pro auto-recharge reference rate for consistency.
-- During execution, Supadata billing metadata records credit counts from provider response headers when available.
-
-ScrapeCreators price estimates use one fixed transcript-request credit.
-
-- `--price` uses the published Freelance reference rate of `$47 / 25,000 credits`, or `0.188` cents per YouTube transcript request.
-- Business pricing is lower at `$497 / 500,000 credits`, or `0.0994` cents per request, but AutoShow does not use that as the default estimator.
-- Estimates and actual fallback billing ignore media duration because ScrapeCreators charges the retrieval request, not transcription minutes.
+ScrapeCreators:
+- `--price` uses the Freelance reference rate of `$47 / 25,000 credits` (`0.188 cents/request`).
+- Estimates and actual billing ignore media duration because ScrapeCreators charges per retrieval request.
 
 ## STT Notes
 
-- Before any hosted STT provider upload, AutoShow stages one shared stripped audio-only artifact. The default hosted artifact is mono AAC-LC in `.m4a` capped at 96 kbps, preserves the original sample rate, and drops cover art/chapters/metadata/extra streams. Low-bitrate mono `.m4a`/AAC and `.mp3` inputs stay on a stream-copy cleanup path instead of taking a second lossy encode. Supadata and ScrapeCreators use public source URLs instead of local uploads.
-- Single-provider local/upload STT runs write root `transcription.txt` plus a raw root `result.json`; URL transcript retrieval providers write their raw payload under the provider directory.
-- Hosted multi-provider runs write one transcript and one raw structured payload per provider under `providers/<service>-<model>/`.
-- `--youtube-captions` is English-only in v1 and only applies to YouTube inputs.
-- For YouTube channels and playlists, `--youtube-captions` is evaluated per selected video in the batch. Use `--batch-all` when you want the full channel or playlist instead of the default batch limit.
-- If captions are found, the selected STT providers are skipped for that item and the caption result becomes the transcript source.
-- Caption-backed transcripts are recorded as service `youtube-captions` with model `subtitle-track` in pricing and the canonical provider entry.
-- STT batch roots include one `manifest.json`, which records per-item caption-vs-STT routing alongside the item status. Batch totals are derived from the items rather than written to a separate summary file.
+- Before hosted provider upload, AutoShow stages a shared mono AAC-LC `.m4a` audio artifact (96 kbps, original sample rate, metadata stripped). Low-bitrate mono inputs stay on a stream-copy path. Supadata and ScrapeCreators use public source URLs directly.
+- Single-provider runs write root `transcription.txt` and `result.json`. Hosted multi-provider runs write outputs per provider under `providers/<service>-<model>/`.
+- `--youtube-captions` is English-only and applies to YouTube inputs. If captions are found, STT providers are skipped and recorded as service `youtube-captions` with model `subtitle-track`.
+- STT batch roots include `manifest.json` recording item status and routing.
 - Backfill existing STT outputs with top-level [`resume`](../../setup-and-utilities/resume/resume.md).

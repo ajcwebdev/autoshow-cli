@@ -9,6 +9,7 @@ import { downloadCommand } from '~/cli/commands/process-steps/step-1-download/de
 import { extractCommand } from '~/cli/commands/process-steps/step-2-extract/define-extract-command'
 import { writeCommand } from '~/cli/commands/process-steps/step-3-write/define-write-command'
 import { ttsCommand } from '~/cli/commands/process-steps/step-4-tts/define-tts-command'
+import { voiceCommand } from '~/cli/commands/process-steps/step-4-tts/voice-management/define-voice-command'
 import { imageCommand } from '~/cli/commands/process-steps/step-5-image/define-image-command'
 import { videoCommand } from '~/cli/commands/process-steps/step-6-video/define-video-command'
 import { musicCommand } from '~/cli/commands/process-steps/step-7-music/define-music-command'
@@ -27,6 +28,7 @@ const commandByDoc = {
   'process-steps/step-2-extract/04-extract-url.md': extractCommand,
   'process-steps/step-3-write/write-text.md': writeCommand,
   'process-steps/step-4-tts/text-to-speech.md': ttsCommand,
+  'process-steps/step-4-tts/voice-management.md': voiceCommand,
   'process-steps/step-5-image/text-to-image.md': imageCommand,
   'process-steps/step-6-video/text-to-video-services.md': videoCommand,
   'process-steps/step-7-music/text-to-music-services.md': musicCommand,

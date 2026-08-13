@@ -22,11 +22,10 @@ bun t \
 
 ## Current Coverage
 
-- `test/test-cases/e2e/local/step-1-download-e2e/download-input-types-local-file.test.ts` covers the hosted example audio URL and local PDF inputs. This remains part of [Local Tests](local-tests.md).
 - `test/test-cases/e2e/local/step-1-download-e2e/download-input-types-direct-url.test.ts` covers hosted audio and video URLs plus URL-list batching for direct URLs.
-- `test/test-cases/e2e/local/step-1-download-e2e/download-input-types-feed-or-channel.test.ts` covers RSS feed batching served from a local HTTP feed fixture. YouTube channel batching is not currently covered.
+- `test/test-cases/e2e/local/step-1-download-e2e/download-input-types-feed-or-channel.test.ts` covers RSS feed batching served from a local HTTP feed fixture.
 - `test/test-cases/e2e/local/step-1-download-e2e/download-input-types-streaming.test.ts` covers YouTube and Twitch streaming URLs.
-- No-cost validation coverage lives in `test/test-cases/validation/cli/option-resolution-contracts/download-extract-url-options.test.ts` and `test/test-cases/validation/ingest/input-contracts.test.ts`. No standalone step 1 price-only file currently exists in `test/test-cases/price-flag/`; coverage stays in the step 1 e2e suites above.
+- No-cost validation coverage lives in `test/test-cases/validation/cli/option-resolution-contracts/download-extract-url-options.test.ts` and `test/test-cases/validation/ingest/input-contracts.test.ts`.
 
 ## Price Preflight
 
@@ -36,7 +35,7 @@ bun t test/test-cases/e2e/local/step-1-download-e2e/download-input-types-streami
 bun t test/test-cases/e2e/local/step-1-download-e2e/download-input-types-feed-or-channel.test.ts --price
 ```
 
-These download mappings are report-only entries in `test/test-runner/price-commands/registry/download.ts`. `--budget` does not currently skip step 1 download tests.
+These download mappings are report-only entries in `test/test-runner/price-commands/registry/download.ts`.
 
 ## Related Docs
 

@@ -24,17 +24,16 @@ Live image generation tests run only when their provider key is configured: `OPE
 
 ## Current Coverage
 
-- The shared `defineImageServiceTest` helper covers invalid model rejection, real generation, and metadata checks when the required API key is configured. `--price` coverage is mapped through the test-runner price registry and focused price-flag tests.
-- OpenAI coverage is split across `openai-gpt-image-2.test.ts` and `openai-gpt-image-2-pipeline.test.ts`; it includes `gpt-image-2` low-quality `1024x1536` generation and `write` pipeline integration with `--image openai=...`. Multi-provider `--price` output is covered by `test/test-cases/price-flag/image-price.test.ts`.
+- The shared `defineImageServiceTest` helper covers invalid model rejection, real generation, and metadata checks when the required API key is configured. `--price` coverage is mapped through the test-runner price registry and focused price-flag tests (`test/test-cases/price-flag/image-price.test.ts`).
+- OpenAI coverage (`openai-gpt-image-2.test.ts`, `openai-gpt-image-2-pipeline.test.ts`) includes `gpt-image-2` low-quality `1024x1536` generation and `write` pipeline integration with `--image openai=...`.
 - `gemini-image-gen.test.ts` covers native Gemini image generation and shared image options.
 - BFL coverage is split across FLUX.2 generation files plus `bfl-validation.test.ts` for unsupported flag and invalid size validation. Validation and mocked REST contracts cover numbered `--image-input` reference fields, polling/download handling, and output extension handling.
-- `test/test-cases/validation/providers/provider-selection-contracts/` covers provider-specific shared image flag acceptance and rejection, including the refreshed Gemini model capabilities and BFL Klein input limits; Recraft raster count, size/aspect, removed-vector-selector, and unsupported flag validation; Luma Labs aspect ratio, format, and input count; and Replicate per-model-family controls.
+- `test/test-cases/validation/providers/provider-selection-contracts/` covers provider-specific shared image flag acceptance and rejection, including Gemini model capabilities, BFL Klein input limits, Recraft raster/vector validation, Luma Labs aspect ratio, format, and input count, and Replicate per-model-family controls.
 - `test/test-cases/validation/providers/image-provider-rest-contracts.test.ts` covers mocked BFL, Recraft, and Replicate request payloads and download handling without calling hosted providers.
-- Recraft validation rejects removed SVG/vector selectors and unsupported shared flags without calling the hosted provider.
-- Grok coverage is split across `grok-imagine-image.test.ts` and `grok-imagine-image-quality.test.ts` for generation, `--image-aspect-ratio`, and `--image-size`.
+- Grok coverage (`grok-imagine-image.test.ts`, `grok-imagine-image-quality.test.ts`) covers generation, `--image-aspect-ratio`, and `--image-size`.
 - Replicate live e2e coverage uses `replicate-image.test.ts` for Seedream, Ideogram V4, pinned ERNIE, Qwen, and Wan model generation with family-specific size, aspect-ratio, count, reference, and format options.
-- Luma Labs live e2e coverage uses `lumalabs-uni-1.test.ts` and `lumalabs-uni-1-max.test.ts` for text-to-image generation; `lumalabs-validation.test.ts` is local validation of unsupported shared flags.
-- fal.ai local REST coverage uses `fal-provider-contracts.test.ts` to exercise queue submission, polling, result retrieval, downloads, authentication, and the current endpoint route for all five registered fal.ai image selectors without consuming provider credits. Optional live coverage is defined in `fal-image.test.ts` but was not executed during implementation.
+- Luma Labs live e2e coverage uses `lumalabs-uni-1.test.ts` and `lumalabs-uni-1-max.test.ts` for text-to-image generation; `lumalabs-validation.test.ts` covers local validation of unsupported shared flags.
+- fal.ai coverage uses `fal-provider-contracts.test.ts` for local REST simulation (queue submission, polling, retrieval, downloads, authentication) across registered fal.ai image selectors, and `fal-image.test.ts` for live provider execution.
 
 ## Price Preflight
 

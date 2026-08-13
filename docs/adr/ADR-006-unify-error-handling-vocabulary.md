@@ -138,47 +138,21 @@ Negative outcomes:
 
 ## Implementation Note
 
-All three areas are **implemented**; the actions below record the completed work.
+The unified `AppError` taxonomy (`InfraError`, `InternalError`, `ValidationError`), centralized `isCLIUsageError`, `rethrowAsUsage` validator wrapping, structured retry handling in `pollUntil`, provider failure classification registry in `test/test-utils/provider-failure-classifiers.ts`, and `[HH:MM:SS.MMM]` human log format are fully implemented and verified.
 
-`src/`:
+## Test Plan
 
-| Action | Owner | Current State |
-|---|---|---|
-| Add and export `InfraError`/`InternalError`/`ValidationError` factory helpers | CLI maintainers | Implemented in `error-handler.ts` |
-| Sweep plain `new Error()` calls to an appropriate kind with `stage` and `hints` | CLI maintainers | Implemented across process steps and shared runtime modules |
-| Rewrite and centralize `isCLIUsageError`; remove five local copies | CLI maintainers | Implemented in `error-handler.ts` and former importer sites |
-| Convert `UnsupportedArtifactSchemaError` to extend `AppUsageError` | CLI maintainers | Implemented in `manifest-utils.ts`, then removed with the legacy-manifest tombstones it served |
-| Retire `LEGACY_ERROR_HINTS` and move remediation to throw sites | CLI maintainers | Implemented in `error-handler.ts` and throw sites |
-| Make `pollUntil` throw a structured `AppError` | CLI maintainers | Implemented in `retries.ts` |
-| Route validator wrapping through `rethrowAsUsage` | CLI maintainers | Implemented in comic and download-model command definitions |
+Run default verification (`bun run check`) and local, no-cost contract validation suites:
 
-`test/`:
+```bash
+bun run check
+bun test test/test-cases/validation/cli/cli-usage-errors.test.ts
+```
 
-| Action | Owner | Current State |
-|---|---|---|
-| Create the shared provider-failure predicate registry | Test maintainers | Implemented in `test/test-utils/provider-failure-classifiers.ts` |
-| Reconcile the Gemini predicates into named, non-overlapping functions | Test maintainers | Implemented in the predicate registry |
-| Point availability and adaptive-pressure classifiers at the registry | Test maintainers | Implemented in service-test and adaptive-concurrency utilities |
-| Add a shared transient-retry helper and adopt it in the LLM factory | Test maintainers | Implemented in service-test and LLM-write utilities |
-| Delete two unreachable exit-code assertions | Test maintainers | Implemented in the affected test utilities |
-| Register `unhandledRejection` and `uncaughtException` handlers | Test maintainers | Implemented in `test-runner.ts` |
-
-`diagnostics`:
-
-| Action | Owner | Current State |
-|---|---|---|
-| Render human application timestamps as local `[HH:MM:SS.MMM]` | App logger maintainers | Implemented in `src/utils/app-logger/sinks/human-sink.ts` |
-| Make `formatTimedOutputPrefix` return the same wall-clock shape | Test maintainers | Implemented in `test/test-runner/utils.ts` |
-| Add ANSI-aware duplicate timestamp suppression | Test maintainers | Implemented in `test/test-runner/runner.ts` |
-| Consolidate price-command and single-variant budget output into one line per logical result | Test maintainers | Implemented in `test/test-runner/runner.ts` |
-
-**Verification (for the implementing pass):**
-1. `bun run check` and lint clean — no dangling `new Error` in the swept clusters, no broken imports from the deleted local guards.
-2. `grep -rn "LEGACY_ERROR_HINTS" src` returns nothing; `grep -rn "name === 'CLIUsageError'" src` returns only the single fallback inside `isCLIUsageError`; `grep -rn "new Error(" src/cli/commands/process-steps | wc -l` drops toward zero.
-3. `rg -n 'isGeminiTransientUnavailable|isMinimaxTransientUnavailable' test/` → only the registry + importers; `rg -n 'expect\(result\.exitCode\)\.toBe\(0\)' test/test-utils/` → no matches; `rg -n 'unhandledRejection|uncaughtException' test/test-runner.ts` → both present.
-4. Benchmark (text/TTS), comic command, and manifest-schema paths pass; a usage error still exits 2 while an operational failure exits 1 with its hint rendered; transient-skip still produces `test.skip` (not failures) when env vars are absent.
-
-**Verification (for the diagnostic-rendering pass):** `bun run check` passed, and the complete no-cost price suite passed all 165 pricing specs with one `[HH:MM:SS.MMM]` prefix per line and 172 preflight lines. ADR-002 retains the duration matrix and price-specific verification details.
+1. Verification confirms `bun run check` and lint clean — no dangling `new Error` in swept clusters.
+2. `grep -rn "LEGACY_ERROR_HINTS" src` returns nothing; `grep -rn "name === 'CLIUsageError'" src` returns only the single fallback inside `isCLIUsageError`.
+3. Benchmark (text/TTS), comic command, and manifest-schema paths pass; a usage error still exits 2 while an operational failure exits 1 with its hint rendered.
+4. Complete no-cost price suite passes all pricing specs with one `[HH:MM:SS.MMM]` prefix per line. ADR-002 retains the duration matrix and price-specific verification details.
 
 ## References
 
@@ -193,22 +167,3 @@ All three areas are **implemented**; the actions below record the completed work
 - Test timestamp formatter and console wrapper: `test/test-runner/utils.ts`, `test/test-runner/runner.ts`
 - Discovery-cache companion: [ADR-001](ADR-001-source-ingestion-and-normalization.md)
 - Price-planning and no-cost-verification companion: [ADR-002](ADR-002-pipeline-state-resume-and-dry-run-planning.md)
-
-## History
-
-**2026-08-07 — the `name === 'CLIUsageError'` fallback was retired.**
-
-Decision item 2 above rewrote `isCLIUsageError` to `error instanceof AppUsageError || (error instanceof Error && error.name === 'CLIUsageError')`, keeping the name match "only as a cross-realm fallback", and the Keep table recorded the rationale as preserving cross-realm and opt-in semantics *during the migration*. Both justifications have since expired:
-
-- The opt-in client the fallback existed for, `UnsupportedArtifactSchemaError`, was first converted to `extends AppUsageError` (as this ADR prescribed) and then deleted outright with the legacy-manifest tombstones. Nothing in the tree assigns that name except `AppUsageError` itself, which already satisfies the `instanceof` arm.
-- There is no realm boundary in this codebase — no workers, no `node:vm`, no CommonJS `require`, and every dynamic import resolves through the same alias into one module graph, so there is no way to end up with two `AppUsageError` class identities. Errors that cross the subprocess boundary in tests are compared as exit codes and stderr text, never as objects.
-
-`isCLIUsageError` is now `instanceof`-only and returns an `error is AppUsageError` type predicate, which also retired the `as Error` cast in `usageMessage`. The verification step above that greps for `name === 'CLIUsageError'` in `src` now expects **zero** hits inside `isCLIUsageError` rather than one; the remaining occurrence is the `this.name` assignment in the `AppUsageError` constructor.
-
-That assignment stays deliberately. After this change it is a diagnostics label rather than a control-flow key — `serializeError` writes it into every diagnostic payload — so renaming it to match the class would change on-disk diagnostics for no behavioral gain. The class-name/error-name divergence is intentional, not residue.
-
-Behavior change worth naming: an arbitrary `Error` carrying `name = 'CLIUsageError'` no longer exits 2 with `Usage error: <message>`; it exits 1. That is the "lose the opt-in-by-arbitrary-class trick" consequence this ADR already accepted, now applied to the name-based escape hatch as well. It is pinned by a negative assertion in `app-error-contracts.test.ts` so the arm cannot be silently reintroduced.
-
-**2026-08-13 — low-level plain `new Error` throws refactored.**
-
-Remaining plain `new Error(...)` calls in batch execution, single-target validation assertions, and ACSM fulfillment result checks were refactored to structured `AppError` factory calls (`InfraError`, `ValidationError`). All pipeline error throws now carry structured diagnostic `stage` metadata and remediation hints.

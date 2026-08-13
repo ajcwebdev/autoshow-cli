@@ -1,6 +1,6 @@
 # image
 
-Generate images from a text prompt with the hosted image providers.
+Generate images from a text prompt with hosted image providers.
 
 ## Outline
 
@@ -23,13 +23,11 @@ Generate images from a text prompt with the hosted image providers.
 
 ## Setup
 
-There are no local image-generation models in this project.
+Image providers are hosted API services.
 
 ```bash
-# hosted provider readiness check; image providers are API-based
 bun autoshow setup --step image
 ```
-
 
 ### Environment
 
@@ -50,29 +48,29 @@ FAL_API_KEY=...
 bun autoshow image <prompt> [flags]
 ```
 
-`--provider` selectors accept an omitted model value and then resolve to the cheapest supported model. Model-selecting flags are repeatable, including repeated flags from the same provider.
+Bare `--provider` flags without a model value resolve to the cheapest supported model. Model selection flags are repeatable.
 
 ## Shared Image Options
 
-The standalone `image` command drops the `image-` prefix these options carry everywhere else: `--size` here is `--image-size` on `write`, `config`, and `resume`. One resume flag set serves image, video, music, and OCR, where the short names would collide, so [ADR-002](../../../adr/ADR-002-pipeline-state-resume-and-dry-run-planning.md) keeps the prefixes on those surfaces. Rejections from this command are reported in this command's spellings.
+The standalone `image` command uses `--size` instead of `--image-size` (which carries the prefix on `write`, `config`, and `resume` to avoid collisions per [ADR-002](../../../adr/ADR-002-pipeline-state-resume-and-dry-run-planning.md)).
 
 | Flag | Description |
 |------|-------------|
 | `--all-providers` | Select every supported image provider/model |
 | `--provider-concurrency <n>` | Hosted image providers/models to run concurrently per item; default `10` |
-| `--aspect-ratio <ratio>` | Provider-dependent aspect ratio control; Recraft sends this as its `size` value when `--size` is absent |
-| `--size <size>` | Provider-dependent size or resolution control; Recraft sends this as its `size` value |
+| `--aspect-ratio <ratio>` | Provider-dependent aspect ratio control |
+| `--size <size>` | Provider-dependent size or resolution control |
 | `--quality <q>` | OpenAI quality: `low`, `medium`, `high`, or `auto` |
-| `--format <fmt>` | OpenAI/BFL/fal.ai output format: `png`, `jpeg`, or `webp`; Replicate Seedream 5/ERNIE and Luma Labs accept `png` or `jpeg` |
+| `--format <fmt>` | Output format: `png`, `jpeg`, or `webp` depending on provider |
 | `--background <bg>` | OpenAI background mode: `transparent`, `opaque`, or `auto` |
-| `--count <n>` | Number of images in one request for OpenAI/Grok `1-10`, Recraft `1-6`, Replicate Wan/ERNIE `1-4`, or fal.ai `1-4` |
-| `--input <path-or-url>` | Repeatable source/reference image for OpenAI, Grok, native Gemini, BFL, Replicate, Luma Labs, or fal.ai edits/references |
-| `--mask <path>` | OpenAI mask image for inpainting/edit workflows |
+| `--count <n>` | Number of images per request (OpenAI/Grok: `1-10`, Recraft: `1-6`, Replicate/fal.ai: `1-4`) |
+| `--input <path-or-url>` | Repeatable source/reference image for edits or image-to-image workflows |
+| `--mask <path>` | OpenAI mask image for inpainting |
 | `--compression <0-100>` | OpenAI JPEG/WebP output compression |
 | `--response-mode <image\|text-image>` | Native Gemini response mode |
-| `--search-grounding` | Enable native Gemini search grounding metadata (gemini-3.1-flash-image and gemini-3-pro-image) |
+| `--search-grounding` | Enable native Gemini search grounding metadata |
 | `--price` | Show the aggregated estimate and exit |
-| `--output-dir <dir>` | Global flag: pin an exact run directory instead of `output/<timestamp>_image-gen/` |
+| `--output-dir <dir>` | Global flag: pin output directory instead of `output/<timestamp>_image-gen/` |
 
 ```bash
 bun autoshow image "a clean studio product photo of a red enamel camping mug on white seamless" --provider openai=gpt-image-2 --size 1024x1024 --format png --output-dir output/mug-base
@@ -81,7 +79,7 @@ bun autoshow image "turn this into a premium catalog product photo with a soft g
 
 ## Workflow: Generate, Then Edit
 
-Image runs write their files under `output/<timestamp>_image-gen/` unless you pass `--output-dir <dir>`. Run the commands in this block in order: the later commands read the file created by the first command.
+Image runs write to `output/<timestamp>_image-gen/` unless `--output-dir <dir>` is specified.
 
 ```bash
 # 1. Generate the base image.
@@ -91,7 +89,7 @@ bun autoshow image "a clean studio product photo of a red enamel camping mug on 
 bun autoshow image "make the mug matte black, keep the same camera angle, and place it on a walnut desk" --provider openai=gpt-image-2 --input output/mug-base/generated-image.png --format webp --compression 80 --output-dir output/mug-edit
 ```
 
-The same generated file can also be used as a reference input for native Gemini, Grok, BFL, or Replicate workflows:
+The generated file can also serve as a reference input across other providers:
 
 ```bash
 bun autoshow image "restyle this product image as a 1960s travel poster" --provider gemini=gemini-3.1-flash-lite-image --input output/mug-base/generated-image.png --output-dir output/mug-gemini
@@ -102,18 +100,16 @@ bun autoshow image "place the same mug on a rustic breakfast table" --provider r
 
 ## Image Services
 
-Each service example below that edits or references an image first generates the base image into `output/mug-base/`, so the blocks are self-contained. Run the commands in each block in order: the edit and reference commands read the file created by the generate command above them. Note the generated file name is provider-dependent (for example, Grok writes `generated-image.jpg`).
-
 ### Gemini
 
 | Option | Value |
 |--------|-------|
 | Selector | `--provider gemini[=<model>]` |
 | Models | `gemini-3.1-flash-lite-image`, `gemini-3.1-flash-image`, `gemini-3-pro-image` |
-| Size | `gemini-3.1-flash-lite-image`: `1K`; other models: `1K\|2K\|4K` |
-| Aspect ratio | Standard models: `1:1`, `2:3`, `3:2`, `3:4`, `4:3`, `4:5`, `5:4`, `9:16`, `16:9`, or `21:9`; `gemini-3.1-flash-image` also supports `1:4`, `4:1`, `1:8`, and `8:1` |
-| Count | Native Gemini returns one image per request |
-| References | Repeatable `--input`; up to 14 images |
+| Size | `1K` (`gemini-3.1-flash-lite-image`); `1K\|2K\|4K` (other models) |
+| Aspect ratio | `1:1`, `2:3`, `3:2`, `3:4`, `4:3`, `4:5`, `5:4`, `9:16`, `16:9`, `21:9` (`gemini-3.1-flash-image` adds `1:4`, `4:1`, `1:8`, `8:1`) |
+| Count | 1 image per request |
+| References | Repeatable `--input` (up to 14 images) |
 
 ```bash
 bun autoshow image "a serene mountain lake at dawn" --provider gemini=gemini-3.1-flash-lite-image --size 1K --aspect-ratio 16:9
@@ -128,19 +124,17 @@ bun autoshow image "a detailed editorial data visualization" --provider gemini=g
 |--------|-------|
 | Selector | `--provider openai[=<model>]` |
 | Models | `gpt-image-2` |
-| Size | `auto`, `1024x1024`, `1536x1024`, `1024x1536`; `gpt-image-2` also accepts constrained `WIDTHxHEIGHT` values |
+| Size | `auto`, `1024x1024`, `1536x1024`, `1024x1536`, or custom `WIDTHxHEIGHT` |
 | Quality | `--quality low\|medium\|high\|auto` |
 | Format/background | `--format png\|jpeg\|webp`, `--background transparent\|opaque\|auto` |
 | Count | `--count 1-10` |
-| Edit/reference | `--input` and optional `--mask` with `gpt-image-2` |
+| Edit/reference | `--input` with optional `--mask` |
 
 ```bash
 bun autoshow image "a clean studio product photo of a red enamel camping mug on white seamless" --provider openai=gpt-image-2 --size 1024x1024 --format png --output-dir output/mug-base
 bun autoshow image "make the mug matte black, keep the same camera angle, and place it on a walnut desk" --provider openai=gpt-image-2 --input output/mug-base/generated-image.png --format webp --compression 80 --output-dir output/mug-edit
 bun autoshow image "a product sketch of the same travel mug concept" --provider openai=gpt-image-2 --size 1024x1024 --quality low
 ```
-
-`gpt-image-2` accepts `auto` or `WIDTHxHEIGHT` when max edge is 3840 or less, both edges are multiples of 16, aspect ratio is at most 3:1, and total pixels are 655,360 through 8,294,400. It rejects `--background transparent`.
 
 ### Grok
 
@@ -149,17 +143,15 @@ bun autoshow image "a product sketch of the same travel mug concept" --provider 
 | Selector | `--provider grok[=<model>]` |
 | Models | `grok-imagine-image-quality`, `grok-imagine-image` |
 | Size | `--size 1K\|2K` |
-| Aspect ratio | `1:1`, `16:9`, `9:16`, `4:3`, `3:4`, `3:2`, `2:3`, `2:1`, `1:2`, `19.5:9`, `9:19.5`, `20:9`, `9:20`, or `auto` |
+| Aspect ratio | `1:1`, `16:9`, `9:16`, `4:3`, `3:4`, `3:2`, `2:3`, `2:1`, `1:2`, `19.5:9`, `9:19.5`, `20:9`, `9:20`, `auto` |
 | Count | `--count 1-10` |
-| Edit/reference | Up to three `--input` values with `grok-imagine-image-quality` |
+| Edit/reference | Up to 3 `--input` images with `grok-imagine-image-quality` |
 
 ```bash
 bun autoshow image "a clean studio product photo of a red enamel camping mug on white seamless" --provider grok=grok-imagine-image-quality --size 1K --output-dir output/mug-base
 bun autoshow image "turn the generated mug into a glossy magazine ad on a warm kitchen counter" --provider grok=grok-imagine-image-quality --input output/mug-base/generated-image.jpg --size 1K --output-dir output/mug-grok
 bun autoshow image "a futuristic observatory at sunset" --provider grok=grok-imagine-image-quality --aspect-ratio 16:9 --size 1K --count 4
 ```
-
-Grok responses include provider-reported billed cost when available, and that actual value is stored in canonical item/provider metadata.
 
 ### BFL
 
@@ -169,14 +161,12 @@ Grok responses include provider-reported billed cost when available, and that ac
 | Models | `flux-2-klein-4b`, `flux-2-klein-9b`, `flux-2-pro`, `flux-2-max`, `flux-2-flex` |
 | Size | `--size WIDTHxHEIGHT` |
 | Format | `--format jpeg\|png\|webp` |
-| References | Repeatable `--input`; up to four images for Klein or eight for Pro/Max/Flex |
+| References | Repeatable `--input` (up to 4 images for Klein, 8 for Pro/Max/Flex) |
 
 ```bash
 bun autoshow image "a cinematic product photo of a red enamel camping mug" --provider bfl=flux-2-klein-4b --size 1024x1024 --format png --output-dir output/mug-base
 bun autoshow image "place the same mug in a cozy cabin kitchen" --provider bfl=flux-2-klein-9b --input output/mug-base/generated-image.png --size 1024x1024 --output-dir output/mug-bfl
 ```
-
-BFL rejects `--aspect-ratio`, `--quality`, `--background`, `--mask`, and `--count`.
 
 ### Recraft
 
@@ -185,7 +175,7 @@ BFL rejects `--aspect-ratio`, `--quality`, `--background`, `--mask`, and `--coun
 | Selector | `--provider recraft[=<model>]` |
 | Models | `recraftv4_1`, `recraftv4_1_pro`, `recraftv4_1_utility`, `recraftv4_1_utility_pro` |
 | Count | `--count 1-6`; default `1` |
-| Size/aspect | Use either `--size <Recraft size>` or `--aspect-ratio <ratio>`, not both |
+| Size/aspect | Use either `--size` or `--aspect-ratio`, not both |
 | Output | PNG |
 
 ```bash
@@ -193,11 +183,7 @@ bun autoshow image "a premium product photo of a red enamel camping mug on white
 bun autoshow image "a compact illustrated travel postcard of a desert observatory" --provider recraft --aspect-ratio 16:9
 ```
 
-`--provider recraft` with no model resolves to `recraftv4_1`, the lowest-cost remaining Recraft raster generation model in the local pricing table. Recraft generation maps both `--size` and `--aspect-ratio` to the API `size` field, so AutoShow rejects using both in one request.
-
-Supported aspect ratios are `1:1`, `2:1`, `1:2`, `3:2`, `2:3`, `4:3`, `3:4`, `5:4`, `4:5`, `6:10`, `14:10`, `10:14`, `16:9`, and `9:16`. Standard V4.1 models accept 1MP exact sizes such as `1024x1024`, `1536x768`, and `1280x832`; Pro V4.1 models accept the corresponding 4MP sizes such as `2048x2048`, `3072x1536`, and `2560x1664`. SVG/vector generation models are intentionally unsupported.
-
-This command intentionally uses Recraft generation only. It does not expose Recraft style creation, prompt enhancement, vectorization, background removal, upscale, inpaint/outpaint, or image-to-image controls. Recraft rejects `--input`, `--mask`, `--quality`, `--format`, `--background`, `--compression`, `--response-mode`, and `--search-grounding`.
+Standard V4.1 models accept 1MP sizes (`1024x1024`, `1536x768`, etc.); Pro V4.1 models accept 4MP sizes (`2048x2048`, `3072x1536`, etc.).
 
 ### Replicate
 
@@ -205,11 +191,11 @@ This command intentionally uses Recraft generation only. It does not expose Recr
 |--------|-------|
 | Selector | `--provider replicate[=<model>]` |
 | Models | `bytedance/seedream-4.5`, `bytedance/seedream-5-lite`, `bytedance/seedream-5-pro`, `ideogram-ai/ideogram-v4-turbo`, `ideogram-ai/ideogram-v4-balanced`, `ideogram-ai/ideogram-v4-quality`, `prunaai/ernie-image`, `prunaai/ernie-image-turbo`, `qwen/qwen-image-2-pro`, `qwen/qwen-image-2`, `wan-video/wan-2.7-image-pro`, `wan-video/wan-2.7-image` |
-| Size | Seedream, Ideogram, ERNIE, and Wan models; model-family-dependent values (see below) |
-| Aspect ratio | Seedream and Qwen models only; model-family-dependent values (see below) |
-| Count | `--count 1-4` with Wan and ERNIE models; other families return one image per request |
-| Format | `--format png\|jpeg` with Seedream 5 and ERNIE models |
-| References | Repeatable `--input`; up to fourteen images for Seedream 4.5/5-Lite, ten for Seedream 5-Pro, one for Qwen, or nine for Wan |
+| Size | Model-family dependent (`2K`/`4K`/`WIDTHxHEIGHT` for Seedream, preset sizes for Ideogram, custom sizes for ERNIE/Wan) |
+| Aspect ratio | Seedream and Qwen models only |
+| Count | `--count 1-4` (Wan/ERNIE models); 1 image per request for others |
+| Format | `--format png\|jpeg` (Seedream 5/ERNIE models) |
+| References | Repeatable `--input` (up to 14 for Seedream 4.5/5-Lite, 10 for Seedream 5-Pro, 1 for Qwen, 9 for Wan) |
 
 ```bash
 bun autoshow image "a polished launch poster for a sci-fi audio drama" --provider replicate=wan-video/wan-2.7-image --size 2K --count 2
@@ -217,25 +203,21 @@ bun autoshow image "a clean studio product photo of a red enamel camping mug on 
 bun autoshow image "place the same mug on a rustic breakfast table" --provider replicate=bytedance/seedream-4.5 --input output/mug-base/generated-image.jpg --output-dir output/mug-replicate
 ```
 
-`--provider replicate` with no model resolves to `prunaai/ernie-image-turbo`, the lowest-cost Replicate image model under the pinned default-runtime estimate in the local pricing table. Option support varies by model family. Seedream accepts `--size` (`2K`, `4K`, or `WIDTHxHEIGHT` with each edge 1024 through 4096 pixels on `seedream-4.5`; `2K` or `3K` on `seedream-5-lite`; `1K` or `2K` on `seedream-5-pro`) and `--aspect-ratio` `1:1`, `4:3`, `3:4`, `16:9`, `9:16`, `3:2`, `2:3`, `21:9`, or `match_input_image`; Seedream 5 Lite and Pro also accept `--format png|jpeg`, and Pro accepts up to 10 `--input` references. Ideogram V4 Turbo, Balanced, and Quality are text-to-image only and accept optional `--size WIDTHxHEIGHT` preset resolutions (such as `2048x2048`, `1440x2880`, `2880x1440`, `1664x2496`, `2496x1664`, `1792x2240`, `2240x1792`, `1440x2560`, `2560x1440`, `1600x2560`, `2560x1600`, `1728x2304`, `2304x1728`, `1296x3168`, `3168x1296`, `1152x2944`, `2944x1152`, `1248x3328`, `3328x1248`, `1280x3072`, or `3072x1280`). ERNIE and ERNIE Turbo are pinned community deployments that accept `--size WIDTHxHEIGHT` with each edge from 64 through 2048 pixels, `--count 1-4`, and `--format png|jpeg`; they do not accept reference images. Qwen rejects `--size` and accepts `--aspect-ratio` `1:1`, `16:9`, `9:16`, `4:3`, `3:4`, `3:2`, `2:3`, `2:1`, or `1:2`. Wan rejects `--aspect-ratio` and accepts `--size` `1K`, `2K`, or `WIDTHxHEIGHT` with each edge 256 through 4096 pixels; `--size 4K` works only for `wan-2.7-image-pro` text-to-image requests without `--input`. Replicate rejects `--quality`, `--background`, `--mask`, `--compression`, `--response-mode`, and `--search-grounding`. Seedream 5 Pro estimates select its published 1K or 2K output price; ERNIE estimates use the pinned version's published example runtime on Replicate H100 hardware and therefore vary with actual runtime and resolution. Registry fallback estimates are recorded in canonical item metadata when provider billing is unavailable.
-
 ### Luma Labs
 
 | Option | Value |
 |--------|-------|
 | Selector | `--provider lumalabs[=<model>]` |
 | Models | `uni-1`, `uni-1-max` |
-| Aspect ratio | `16:9`, `4:3`, `3:2`, `1:1`, `2:3`, `3:4`, `9:16`, `2:1`, or `1:2` |
+| Aspect ratio | `16:9`, `4:3`, `3:2`, `1:1`, `2:3`, `3:4`, `9:16`, `2:1`, `1:2` |
 | Format | `--format png\|jpeg`; default `png` |
-| References | Repeatable `--input`; up to nine images |
+| References | Repeatable `--input` (up to 9 images) |
 
 ```bash
 bun autoshow image "a quiet editorial product photo of a red enamel camping mug" --provider lumalabs=uni-1 --aspect-ratio 1:1 --format png --output-dir output/mug-base
 bun autoshow image "make the mug matte black and keep the same camera angle" --provider lumalabs=uni-1 --input output/mug-base/generated-image.png --output-dir output/mug-lumalabs-edit
 bun autoshow image "a serene mountain lake at dawn" --provider lumalabs=uni-1-max --aspect-ratio 16:9
 ```
-
-Luma Labs runs against the Luma Agents API (`POST /v1/generations`, polled until `completed`). With no `--input`, the request is a text-to-image generation; with one `--input`, it is an image edit whose source is that reference, and any additional `--input` values are passed as extra image references. `--provider lumalabs` with no model resolves to `uni-1`, the lower-cost model. Luma Labs rejects `--size`, `--quality`, `--background`, `--count`, `--mask`, `--response-mode`, `--search-grounding`, and `--compression`. Local estimates use the per-image text-to-image rate (`uni-1` at `$0.0404`, `uni-1-max` at `$0.10`); provider billing should override when available.
 
 ### fal.ai
 
@@ -245,7 +227,7 @@ Luma Labs runs against the Luma Agents API (`POST /v1/generations`, polled until
 | Models | `fal-ai/hidream-o1-image`, `microsoft/mai-image-2.5`, `microsoft/mai-image-2.5-pro`, `alibaba/qwen-image-3`, `reve/2.1` |
 | Count | `--count 1-4`; default `1` |
 | Format | `--format png\|jpeg\|webp`; default `png` |
-| References | HiDream accepts up to nine reference images; Qwen accepts up to three; Reve accepts one; MAI is text-to-image only |
+| References | HiDream (up to 9), Qwen (up to 3), Reve (1); MAI is text-to-image only |
 
 ```bash
 bun autoshow image "a technical cutaway illustration of a lunar greenhouse" --provider fal=fal-ai/hidream-o1-image --size 1024x1024
@@ -253,25 +235,14 @@ bun autoshow image "a typographic launch poster" --provider fal=alibaba/qwen-ima
 bun autoshow image "turn this into a dusk scene" --provider fal=reve/2.1 --input output/mug-base/generated-image.png --aspect-ratio 16:9
 ```
 
-fal.ai uses `FAL_API_KEY` and the hosted queue API. HiDream and Qwen use `--size WIDTHxHEIGHT`; MAI and Reve use `--aspect-ratio`. Qwen and Reve automatically select their edit endpoints when `--input` is present. Shared OpenAI-only quality, background, mask, response-mode, grounding, and compression controls are rejected. `--provider fal` resolves to the lowest-cost registered fal.ai image model.
-
 ## Output
 
-- Standalone `image` runs always write `manifest.json`.
-- Gemini writes `generated-image.png`.
-- OpenAI writes `generated-image.<format>`, plus numbered variants for `--count`.
-- Grok writes `generated-image.jpg`, plus numbered variants for `--count`.
-- BFL writes `generated-image.jpg`, `generated-image.png`, or `generated-image.webp`.
-- Recraft writes `generated-image.png`, plus numbered variants for `--count`.
-- Replicate writes `generated-image.jpg` for `seedream-4.5`, `generated-image.png` or `generated-image.jpg` for Seedream 5 and ERNIE models, and `generated-image.png` for Qwen, Ideogram, and Wan models, plus numbered variants for Wan/ERNIE `--count`.
-- Luma Labs writes `generated-image.png` or `generated-image.jpg`.
-- fal.ai writes `generated-image.png`, `generated-image.jpg`, or `generated-image.webp`, plus numbered variants for `--count`.
-- Multi-provider runs rename outputs to include the provider and model, such as `generated-image-openai-gpt-image-2.png`; slashes in Replicate model names become dashes, such as `generated-image-replicate-wan-video-wan-2.7-image.png`.
-- `--output-dir` controls the run directory; generated file names remain provider-dependent and deterministic inside that directory.
-- `manifest.json` uses the canonical single-run shape. Its sole item's metadata includes `image`, `cost`, and `timing`; `image` is always an array, and each entry includes `imageFileNames`.
+- Single-provider runs write `generated-image.<ext>` (plus numbered variants for `--count > 1`) and `manifest.json`.
+- Multi-provider runs write `generated-image-<provider>-<sanitized-model>.<ext>` per provider/model target and `manifest.json`.
+- `--output-dir` controls the destination directory.
+- `manifest.json` records single-run item metadata including `image` targets array, `cost`, and `timing`.
 
 ## Notes
 
-- OpenAI documents these latency caveats for GPT Image models: low quality is fastest, square images are typically fastest, JPEG is faster than PNG, and complex prompts can take up to about 2 minutes.
-- `gpt-image-2` estimate table: `1024x1024` costs about `0.6¢` low, `5.3¢` medium, `21.1¢` high; `1024x1536` and `1536x1024` cost about `0.5¢` low, `4.1¢` medium, `16.5¢` high. `auto` estimates as `1024x1024` medium; other valid flexible sizes use the `5.3¢` fallback and should be checked with OpenAI's calculator.
-- Recraft prices are per generated raster image and vary by model family; use `--price` to inspect the local estimate before running.
+- **OpenAI Latency**: Low quality is fastest; JPEG output is faster than PNG.
+- **Pricing & Estimates**: Recraft prices vary by model family; use `--price` to check estimated cost before running.

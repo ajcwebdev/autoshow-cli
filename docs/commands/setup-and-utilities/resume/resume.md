@@ -102,8 +102,6 @@ bun autoshow resume ./output/2026-04-22_12-00-00-000_run --provider gemini=lyria
 bun autoshow resume ./output/2026-04-22_12-00-00-000_run --all-providers
 ```
 
-Gemini 3.1 Flash-Lite remains available as an explicit write or OCR resume target during its transition window, so a historical target can retain its concrete identity. It is excluded from bare and all-provider selection, and resume never rewrites it silently to Gemini 3.5 Flash-Lite. After the announced 2027-05-07 shutdown, a separate dated refresh will retire the active selector and require the replacement explicitly.
-
 ## Shared Flags
 
 | Flag | Description |

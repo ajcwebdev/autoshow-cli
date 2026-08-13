@@ -6,7 +6,6 @@
 - **Date Created:** 2026-07-24
 - **Date Updated:** 2026-08-13
 - **Verification Status:** Passed
-- **Supersession:** Restores the complete "Docker Image Trade Study for CLI Distribution" as an independently discoverable authority after it was temporarily absorbed into ADR-004, and absorbs the container-specific `DOCKER_CONTAINER` removal and consequences formerly recorded in ADR-005. ADR-004 remains authoritative for host setup and toolchain lifecycle; ADR-005 remains authoritative for the rest of the environment-variable cleanup.
 
 ## Context
 
@@ -14,23 +13,11 @@ AutoShow is a Bun-native, run-to-completion CLI. It executes TypeScript directly
 
 The Docker distribution must provide a useful local baseline without pretending to contain every AutoShow capability. Its local-lite contract is `ffmpeg` and `ffprobe`, `yt-dlp`, Tesseract OCR with English data, MuPDF `mutool`, `qpdf`, and Calibre `ebook-convert`. Heavy local STT, LLM, and TTS engines, model weights, Defuddle, and hosted-provider credentials remain outside the image.
 
-ADR-005 removed the `DOCKER_CONTAINER` environment-variable bypass. The CLI therefore does not maintain a container-only setup or health path: normal Linux resolution and checks apply inside the image. System tools installed under standard locations resolve through the existing Linux `PATH` fallback, while an omitted promised tool becomes a real setup, doctor, or workflow failure rather than something hidden by container detection.
+ADR-005 removed the `DOCKER_CONTAINER` environment-variable bypass, so the CLI maintains no container-only setup or health path. Normal Linux resolution and checks apply inside the image: system tools installed under standard locations resolve through the existing Linux `PATH` fallback, and an omitted promised tool becomes a real setup, doctor, or workflow failure rather than something hidden by container detection.
 
-Local arm64 observations of the Bun bases available when the image was selected found:
+Local arm64 evaluation of the available Bun bases found that `oven/bun:1.3.14-alpine` can install the media, OCR, MuPDF, qpdf, Python, certificate, and download dependencies, but its package repositories do not supply Calibre. Both `oven/bun:1.3.14-slim` and `oven/bun:1.3.14` are Debian 13 and can install the complete local-lite set through `apt`, including `calibre` and `tesseract-ocr-eng`. The base-only sizes recorded below were inputs to the decision, not final image-size promises.
 
-- `oven/bun:1.3.14-alpine` uses Alpine 3.22 and can install the media, OCR, MuPDF, qpdf, Python, certificate, and download dependencies, but its package repositories do not supply Calibre.
-- The `yt-dlp` zipapp runs under Alpine `python3`, and Alpine places English Tesseract data at `/usr/share/tessdata/eng.traineddata`.
-- `oven/bun:1.3.14-slim` and `oven/bun:1.3.14` use Debian 13 and can install the complete local-lite set through `apt`, including `calibre` and `tesseract-ocr-eng`.
-
-The locally observed base-only sizes were inputs to the decision, not final image-size promises:
-
-| Base image | Distribution | Docker disk usage | Content size |
-|---|---|---:|---:|
-| `oven/bun:1.3.14-alpine` | Alpine 3.22 | 146 MB | 43.7 MB |
-| `oven/bun:1.3.14-slim` | Debian 13 slim | 269 MB | 67.6 MB |
-| `oven/bun:1.3.14` | Debian 13 | 335 MB | 87.1 MB |
-
-Why now: Docker distribution had grown from a base-image trade study into a complete build, runtime, user-mount, credential, and GHCR publication contract. Keeping that material inside the much larger host setup ADR obscured both authorities and left the implemented registry decision attached to a completed macOS toolchain plan.
+Why now: container users were paying the full native onboarding cost for a tool set that installs cleanly from one package manager, and the Docker surface had grown from a base-image question into a build, runtime, mount, credential, and publication contract that needs a single authority.
 
 ## Options Considered
 
@@ -55,7 +42,7 @@ Why now: Docker distribution had grown from a base-image trade study into a comp
 | Option | Pros | Cons | Quantitative Notes |
 |---|---|---|---|
 | **Publish multi-architecture images to GHCR from release tags and explicit manual dispatches** | Keeps source and package identity together on GitHub; gives users a prebuilt image; supports release and recovery publication | Adds registry, CI, tag, cache, and provenance maintenance | `linux/amd64` and `linux/arm64`; semantic-version and `latest` tags plus an optional manual tag |
-| Support local builds only | Smallest release-operations surface | Every user pays the build cost and cannot pin a project-published image | Initially deferred, then rejected when GHCR publishing was implemented |
+| Support local builds only | Smallest release-operations surface | Every user pays the build cost and cannot pin a project-published image | Rejected once GHCR publishing shipped |
 | Publish to a separate registry | Could serve users already centered on another registry | Adds another account, credential, retention, and identity boundary without a demonstrated need | Rejected; no second registry is configured |
 
 ## Decision
@@ -80,20 +67,16 @@ This applies to:
 - Direct image invocation, bind mounts, credential injection, runtime-cache behavior, in-container path resolution, and host ownership guidance.
 - GHCR image tags, multi-architecture publication, caching, and provenance.
 - Removal of container-specific runtime bypasses: the image follows normal Linux setup, resolution, and health behavior.
-- No heavyweight local engines, model weights, Defuddle, provider credentials, server ports, or web health checks in the image.
-- No replacement of native host setup, whose lifecycle remains governed by ADR-004.
 
-## Implementation Note
+It does not apply to:
 
-The image recipe, build-context exclusions, user documentation, and README pointer are implemented in `Dockerfile`, `.dockerignore`, `docs/docker.md`, and `README.md`. The runtime is non-root, the local-lite system packages are installed during the build, the `yt-dlp` download is checksum-pinned, and the Tesseract wrapper preserves English-data resolution when runtime state is mounted. The project exposes no separate host-side Docker launcher; users call the image entrypoint directly.
-
-The publication decision is implemented in `.github/workflows/docker-publish.yml`. It publishes GHCR manifests for `linux/amd64` and `linux/arm64` on release tags or explicit manual dispatch, with GitHub Actions layer caching and OCI provenance.
+- Heavyweight local engines, model weights, Defuddle, provider credentials, server ports, or web health checks, none of which are in the image.
+- Native host setup, whose lifecycle remains governed by ADR-004, or a second host-side Docker launcher, which the project does not maintain.
 
 ## Rationale
 
 - Debian slim is the smallest observed base that supplies the complete current local-lite package set through one package manager. Alpine's Calibre gap would make documented ebook behavior diverge from the image.
-- The existing Linux `PATH` resolver discovers the baked tools without a production-only container branch.
-- Removing `DOCKER_CONTAINER` avoids a second hidden runtime contract. Container behavior is ordinary Linux behavior backed by a complete declared tool set.
+- The existing Linux `PATH` resolver discovers the baked tools without a production-only container branch, so container behavior stays ordinary Linux behavior backed by a complete declared tool set.
 - A run-to-completion CLI needs a direct entrypoint and offline doctor command, not ports, a resident process, or an HTTP health probe.
 - Keeping `bun autoshow` and the image entrypoint as the only command surfaces avoids a second layer of argument, mount, credential, and image-selection behavior.
 - Non-root execution, a narrow build context, checksum-pinned direct downloads, runtime-only credentials, and OCI provenance make the distribution boundary explicit and inspectable.
@@ -115,10 +98,8 @@ Negative outcomes:
 
 - Debian slim starts larger than Alpine, and final size also includes system packages, production dependencies, and source files.
 - Debian supplies package versions rather than the SHA-pinned source-build lifecycle used for some native macOS tools.
-- Heavy local engines, model weights, and Defuddle are unavailable unless users build or mount a separate extension.
-- `setup --doctor` can warn about deliberately omitted engines, models, or provider keys; image users must interpret those warnings against the declared scope.
-- Bind-mounted output and runtime directories may require explicit UID/GID handling on Linux hosts.
-- Docker users must repeat or orchestrate their own `docker run` mount, work-directory, credential, and user options for recurring commands.
+- Heavy local engines, model weights, and Defuddle are unavailable unless users build or mount a separate extension, and `setup --doctor` can warn about those deliberately omitted engines, models, or provider keys.
+- Bind-mounted output and runtime directories may require explicit UID/GID handling on Linux hosts, and Docker users must repeat or orchestrate their own `docker run` options for recurring commands.
 - Maintainers own a two-architecture registry workflow, tag behavior, cache configuration, provenance output, base-image updates, and direct-download pin alignment.
 - Publishing provides provenance but no independent signing policy or custom GHCR retention contract.
 
@@ -135,19 +116,22 @@ Negative outcomes:
 | OCI provenance and source-aligned `yt-dlp` integrity | No separate signature or custom retention program |
 | Additive container distribution | Native host setup remains a second maintained path |
 
-## Keep (with rationale)
+## Implementation Note
 
-- Native `bun autoshow setup` remains the supported route for macOS and for heavy local engines such as whisper.cpp, llama.cpp, Reverb, and Kitten TTS. The image is additive rather than a replacement.
-- Heavy local engines and model weights remain outside the local-lite image because they materially change build time, image size, hardware assumptions, and update policy.
-- The CLI image exposes no ports, web-app build arguments, or HTTP `HEALTHCHECK` because the process runs to completion and already has an offline doctor command.
-- Local image builds remain supported even though GHCR publishes release images.
-- Provider credentials remain runtime inputs and must never be copied into an image layer.
-- Docker execution remains a direct image invocation; the project does not maintain a second host-side launcher contract.
+The image recipe, build-context exclusions, user documentation, and README pointer are implemented in `Dockerfile`, `.dockerignore`, `docs/docker.md`, and `README.md`. The runtime is non-root, the local-lite system packages are installed during the build, the `yt-dlp` download is checksum-pinned, and the Tesseract wrapper preserves English-data resolution when runtime state is mounted.
+
+Publication is implemented in `.github/workflows/docker-publish.yml`, which pushes GHCR manifests for `linux/amd64` and `linux/arm64` on release tags or explicit manual dispatch, with GitHub Actions layer caching and OCI provenance. Local image builds remain supported alongside the published images.
 
 ## Test Plan
 
-- `bun test test/test-cases/validation/cli/docker-image-contracts.test.ts` verifies that the Docker `yt-dlp` URL and SHA-256 exactly match native Linux dependency metadata and that download, checksum, and executable installation occur in the safe order.
-- The same contract suite verifies that the retired host-side launcher is absent and that `docs/docker.md` documents direct `bun autoshow` and `docker run` commands without reintroducing a project launcher.
+Run default verification (`bun run check`) and local, no-cost contract validation suites:
+
+```bash
+bun run check
+bun test test/test-cases/validation/cli/docker-image-contracts.test.ts
+```
+
+- `bun test test/test-cases/validation/cli/docker-image-contracts.test.ts` verifies that the Docker `yt-dlp` URL and SHA-256 exactly match native Linux dependency metadata, that download, checksum, and executable installation occur in the safe order, and that `docs/docker.md` documents direct `bun autoshow` and `docker run` commands without reintroducing a project launcher.
 - Static review verifies that `Dockerfile` uses the non-root `bun` user, an absolute CLI entrypoint, the declared package set, Tesseract fallback behavior, and no credential copy; `.dockerignore` excludes runtime and secret-bearing paths.
 - Static review verifies that `.github/workflows/docker-publish.yml` publishes only from release tags or explicit manual dispatch, targets `linux/amd64` and `linux/arm64`, enables layer caching and provenance, and has only `contents: read` and `packages: write` permissions.
 - Repository verification uses `bun run check`, `bun t --price`, and `git diff --check`; no paid or quota-limited provider execution is part of Docker verification.
@@ -155,7 +139,7 @@ Negative outcomes:
 ## References
 
 - Host setup and toolchain lifecycle: [ADR-004](ADR-004-manage-setup-runtime-and-toolchain-lifecycle.md)
-- Environment-variable policy and the remaining cleanup passes: [ADR-005](ADR-005-reduce-environment-variable-surface-area.md)
+- Environment-variable policy: [ADR-005](ADR-005-reduce-environment-variable-surface-area.md)
 - Extract and current local OCR scope: [ADR-009](ADR-009-extract-execution-and-artifact-contracts.md)
 - `Dockerfile`
 - `.dockerignore`

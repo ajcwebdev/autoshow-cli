@@ -10,7 +10,6 @@ Download media or documents and collect metadata without running transcription, 
 - [Output](#output)
 - [Examples](#examples)
 - [Setup and Environment](#setup-and-environment)
-- [Processing Step Layout](#processing-step-layout)
 
 ```bash
 bun autoshow download <input>
@@ -188,28 +187,3 @@ Setup details are centralized in [`setup.md`](../../setup-and-utilities/setup/se
 For YouTube inputs, anonymous `yt-dlp` requests may be rate-limited or challenged. When that happens, pass `--cookies <file>` or `--cookies-from-browser <browser>` to `download` / `extract`.
 
 For X post URL inputs, set `X_BEARER_TOKEN` so AutoShow can resolve the linked Space before downloading. X Space playback itself is handled by yt-dlp and may require the same cookie setup as other authenticated media sources.
-
-## Processing Step Layout
-
-CLI commands are split between runtime processing steps and setup/utilities:
-
-```text
-src/cli/commands/
-  process-steps/
-    step-0-metadata/
-    step-1-download/
-    step-2-extract/
-    step-3-write/
-    step-4-tts/
-    step-5-image/
-    step-6-video/
-    step-7-music/
-    step-8-comic/
-  setup-and-utilities/
-    benchmark/
-    config/
-    links/
-    models/
-    resume/
-    setup/
-```

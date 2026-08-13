@@ -288,6 +288,7 @@ Token counts are reference-tokenizer estimates using `tiktoken` with `o200k_base
 | Flag | Type | Description |
 |------|------|-------------|
 | `--refresh` | Boolean | Write a refresh metadata sidecar with per-link SHA-256 hashes, reference token counts, and change status. |
+| `--refresh-only` | Boolean | Update the refresh metadata sidecar without overwriting an existing Markdown bundle file. |
 
 Global flags like `--config-path` and `--allow-over-budget` may still appear in help output, but they do not change link selection or the output file path for this command.
 
@@ -295,10 +296,10 @@ Global flags like `--config-path` and `--allow-over-budget` may still appear in 
 
 - Provider and section coverage comes entirely from `src/cli/commands/setup-and-utilities/links/model-links/`.
 - The generated file is always a single combined markdown file. There is no CLI flag to choose a different output path.
-- `--refresh` always rewrites the combined markdown and metadata sidecar. There is no `--refresh-only` mode.
+- `--refresh` rewrites both the combined markdown and metadata sidecar. `--refresh-only` updates the metadata sidecar while leaving an existing markdown bundle file unchanged.
 - Curated `.md` / `.txt` endpoints and normal HTML docs pages can be mixed in the same provider/section selection. HTML pages are converted locally first; if that extraction fails, the command falls back to Firecrawl article extraction before marking the URL failed.
 - Direct URL mode uses the same fetch and HTML-to-markdown conversion path as curated registry links.
 - Input file entries must be remote documentation/page URLs; local file entries inside the input file are ignored.
 - Documentation links with a `blob:https://` or `blob:http://` wrapper are fetched through the underlying HTTP URL while preserving the original source marker in the output.
 - Selection filenames are derived from normalized provider and section selections, lowercased, deduped, and sorted into a stable order. Input-file filenames use the sanitized input basename. Direct URL filenames use the sanitized URL host and path.
-- Provider selectors are parsed manually from argv, so they are documented here even though they do not appear in the standard help flag list. `--refresh` is a real command flag and appears in `bun autoshow links --help`.
+- Provider selectors are parsed manually from argv, so they are documented here even though they do not appear in the standard help flag list. `--refresh` and `--refresh-only` are real command flags and appear in `bun autoshow links --help`.

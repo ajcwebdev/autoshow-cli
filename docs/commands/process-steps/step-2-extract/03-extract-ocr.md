@@ -168,7 +168,7 @@ bun autoshow extract input/examples/document/1-epub.epub --no-chapters
 - The ordinal sorts by logical chapter order. The source index is the original EPUB source/spine section index, padded to at least 3 digits and never truncated.
 - `--length <n>` splits oversized section files using the same base name with `-part-NN` suffixes, widened to `-part-NNN` at 100 or more generated files.
 - `--no-chapters` disables EPUB chapter files and leaves only the top-level extracted text unless another export flag such as `--length` is present.
-- `--no-chapters --length <n>` keeps the legacy `chunks/` side artifacts for EPUB native text.
+- `--no-chapters --length <n>` keeps `chunks/` side artifacts for EPUB native text.
 - `--chapters`, `--no-chapters`, and `--length` are ignored for non-EPUB/non-PDF inputs and for EPUB runs that use a hosted OCR engine or image/PDF OCR path.
 
 ## PDF Chapter Detection
@@ -223,8 +223,6 @@ bun autoshow extract input/examples/document/1-document.pdf --provider mistral=m
 
 Passing `--provider mistral` keeps the cheapest Mistral OCR default, `mistral-ocr-2512`. `mistral-ocr-4-0` uses the OCR 4 page rate; AutoShow does not bill annotated-page mode because it does not request document or bbox annotations. The `mistral-ocr-latest` alias is not accepted — AutoShow registers concrete model IDs only, so name `mistral-ocr-4-0` directly.
 
-No numeric Mistral OCR file-size/page-count caps were found in `project/links/mistral-general-ocr-links.md`, so this CLI does not enforce any new numeric limits for that provider from that source.
-
 Mistral OCR normalizes `WEBP`, `GIF`, and `BMP` direct-image inputs to `PNG` locally before upload.
 
 ### GLM OCR
@@ -239,7 +237,7 @@ Mistral OCR normalizes `WEBP`, `GIF`, and `BMP` direct-image inputs to `PNG` loc
 bun autoshow extract input/examples/document/1-document.pdf --provider glm=glm-ocr
 ```
 
-GLM OCR currently enforces the bundled docs caps from `project/links/glm-all-links.md`: images up to 10 MB, PDFs up to 50 MB, and PDFs up to 100 pages.
+GLM OCR enforces provider caps: images up to 10 MB, PDFs up to 50 MB, and PDFs up to 100 pages.
 
 GLM OCR normalizes `WEBP`, `GIF`, and `BMP` direct-image inputs to `PNG` locally before upload. `TIF/TIFF` inputs are normalized to `PNG` when ImageMagick is available; otherwise they are rejected with a usage error.
 
@@ -267,7 +265,7 @@ Kimi OCR uses token pricing estimates and recorded usage when available.
 | `kimi-k3` | $3.00 / 1M cache-miss tokens | $15.00 / 1M tokens | 4,265 input + 516 output tokens reused from K2.6, about $0.0205/page or $20.54/1K pages | 16,355 ms/page (provisional) |
 
 - Passing `--provider kimi` keeps the cheapest/general Kimi OCR default, `kimi-k2.6`.
-- Kimi OCR price mode uses cache-miss input/output pricing from `project/links/kimi-general-ocr-text-links.md`. Cached input pricing is not used because OCR image requests are not cache-stable.
+- Kimi OCR price mode uses cache-miss input/output pricing. Cached input pricing is not used because OCR image requests are not cache-stable.
 - Kimi OCR disables thinking for `kimi-k2.6`. Kimi K3 thinking is always on and rejects the `thinking` field, so AutoShow omits it for `kimi-k3`; its page heuristics are reused from K2.6 and are provisional until calibrated.
 - Actual Kimi OCR runs write `promptTokens` and `completionTokens` into the canonical provider metadata when the API returns usage.
 
@@ -285,11 +283,11 @@ bun autoshow extract input/examples/document/1-document.pdf --provider openai=gp
 bun autoshow extract input/examples/document/1-document.pdf --provider openai=gpt-5.4-nano
 ```
 
-OpenAI OCR normalizes `BMP` inputs to `PNG` locally before upload. `TIF/TIFF` inputs are normalized to `PNG` when ImageMagick is available; otherwise they are rejected with a usage error. OpenAI OCR currently enforces the bundled PDF size cap from `project/links/openai-general-ocr-text-links.md`: PDFs up to 50 MB.
+OpenAI OCR normalizes `BMP` inputs to `PNG` locally before upload. `TIF/TIFF` inputs are normalized to `PNG` when ImageMagick is available; otherwise they are rejected with a usage error. OpenAI OCR enforces a PDF size cap of 50 MB.
 
 Passing `--provider openai` on an OCR-routed `extract` run keeps the existing cheapest OpenAI OCR default. The concrete GPT-5.6 tier IDs above are available when selected explicitly or through `--all-providers`; the `gpt-5.6` alias is not registered separately.
 
-GPT-5.6 OCR price mode uses post-run calibrated page heuristics from the 2026-07-13 OCR resume calibration run:
+GPT-5.6 OCR price mode uses calibrated page heuristics:
 
 | OpenAI OCR model | Price-mode page heuristic | Initial speed estimate |
 |------------------|---------------------------|------------------------|
@@ -332,9 +330,9 @@ bun autoshow extract input/examples/document/1-document.pdf --provider anthropic
 bun autoshow extract input/examples/document/1-document.pdf --provider anthropic=claude-opus-5
 ```
 
-Anthropic OCR normalizes `BMP` inputs to `PNG` locally before upload. `TIF/TIFF` inputs are normalized to `PNG` when ImageMagick is available; otherwise they are rejected with a usage error. It currently enforces conservative first-party Claude limits from `project/links/claude-general-ocr-text-links.md`: direct images up to 5 MB each, PDF uploads through the Files API, and only standard unencrypted PDFs. Eligible PDFs are sent through the Files API; larger or failing documents fall back to per-page PDF chunk OCR through the Files API. Uploaded files are deleted best-effort after each run. Passing `--provider anthropic` without a model on an OCR-routed `extract` run keeps the cheapest Anthropic OCR default, `claude-haiku-4-5`; Fable, Opus, and Sonnet run only when selected explicitly or through `--all-providers`. Limited-availability `claude-mythos-5` is intentionally not registered.
+Anthropic OCR normalizes `BMP` inputs to `PNG` locally before upload. `TIF/TIFF` inputs are normalized to `PNG` when ImageMagick is available; otherwise they are rejected with a usage error. Direct images are capped at 5 MB each. Eligible standard unencrypted PDFs are sent through the Files API; larger or failing documents fall back to per-page PDF chunk OCR through the Files API. Uploaded files are deleted best-effort after each run. Passing `--provider anthropic` without a model on an OCR-routed `extract` run keeps the cheapest Anthropic OCR default, `claude-haiku-4-5`; Fable, Opus, and Sonnet run when selected explicitly or through `--all-providers`.
 
-Claude Fable 5 OCR price mode uses the post-run calibrated page heuristic from the 2026-07-13 OCR resume calibration run:
+Claude Fable 5 OCR price mode uses calibrated page heuristics:
 
 | Anthropic OCR model | Price-mode page heuristic | Initial speed estimate |
 |---------------------|---------------------------|------------------------|
@@ -348,7 +346,6 @@ Claude Fable 5 OCR price mode uses the post-run calibrated page heuristic from t
 | Selector | `--provider gemini[=<model>]` |
 | Models | `gemini-3.1-pro-preview`, `gemini-3.5-flash`, `gemini-3.6-flash`, `gemini-3.5-flash-lite` |
 | Bare default | `gemini-3.5-flash-lite` |
-| Retired selector | `gemini-3.1-flash-lite` is rejected with guidance to use `gemini-3.5-flash-lite`; historical pricing and manifest identity remain readable |
 | Direct input support | PDF plus `PNG`, `JPG`, `WEBP`, and `BMP` |
 
 ```bash
@@ -357,7 +354,7 @@ bun autoshow extract input/examples/document/1-document.pdf --provider gemini=ge
 bun autoshow extract input/examples/document/1-document.pdf --provider gemini=gemini-3.6-flash
 ```
 
-Gemini OCR normalizes `GIF` inputs to `PNG` locally before upload. `TIF/TIFF` inputs are normalized to `PNG` when ImageMagick is available; otherwise they are rejected with a usage error. It currently enforces the bundled docs caps from `project/links/gemini-general-ocr-text-links.md`: inline PDFs up to 50 MB, inline non-PDF inputs up to 100 MB, Files API uploads up to 2 GB per file, and PDFs up to 1000 pages. Passing `--provider gemini` resolves to `gemini-3.5-flash-lite`. The retired `gemini-3.1-flash-lite` selector is absent from active validation and `--all-providers`; direct selection names `gemini-3.5-flash-lite` as the replacement, and an unfinished historical resume requires that replacement to be added explicitly as a distinct target. Gemini 3.6 Flash (`$1.50 / 1M input`, `$7.50 / 1M output`) and Gemini 3.5 Flash-Lite (`$0.30 / 1M input`, `$2.50 / 1M output`) use flat Standard rates with no published context tiers, and both reuse Gemini 3.1 Flash-Lite's page heuristic of 1,157 input and 1,626 output tokens at 2,921 ms/page until calibrated. Google still listed 2027-05-07 as the earliest shutdown date and `gemini-3.5-flash-lite` as the replacement when AutoShow retired the old selector on 2026-08-13.
+Gemini OCR normalizes `GIF` inputs to `PNG` locally before upload. `TIF/TIFF` inputs are normalized to `PNG` when ImageMagick is available; otherwise they are rejected with a usage error. Caps include inline PDFs up to 50 MB, inline non-PDF inputs up to 100 MB, Files API uploads up to 2 GB per file, and PDFs up to 1000 pages. Passing `--provider gemini` resolves to `gemini-3.5-flash-lite`. Gemini 3.6 Flash (`$1.50 / 1M input`, `$7.50 / 1M output`) and Gemini 3.5 Flash-Lite (`$0.30 / 1M input`, `$2.50 / 1M output`) use flat Standard rates with no published context tiers.
 
 ### DeepInfra OCR
 
@@ -384,7 +381,6 @@ DeepInfra OCR uses token pricing estimates and recorded usage when available.
 
 - DeepInfra OCR price mode uses model-specific token heuristics. Actual runs write `promptTokens` and `completionTokens` into the canonical provider metadata when DeepInfra returns usage.
 - Cached-token pricing is not used for OCR estimates because AutoShow sends direct or rendered page images and those image requests are not cache-stable.
-- DeepInfra implementation details are based on DeepInfra's [Vision & OCR](https://docs.deepinfra.com/chat/vision), [OpenAI-compatible Chat Completions](https://docs.deepinfra.com/api-reference/chat-completions/openai-chat-completions), and [OCR catalog](https://deepinfra.com/models/ocr) docs.
 
 ## OCR Notes
 
@@ -395,8 +391,8 @@ DeepInfra OCR uses token pricing estimates and recorded usage when available.
 - Office inputs always use native extraction; OCR flags are ignored with a warning.
 - Config defaults can persist chapter export settings under `defaults.extract.ocr.chapters`, `defaults.extract.ocr.length`, and `defaults.extract.ocr.pdfChapterMode`.
 - Backfill existing OCR outputs with top-level [`resume`](../../setup-and-utilities/resume/resume.md).
-- Grok OCR refers to xAI `grok-4.3`. Groq `openai/gpt-oss-20b` and `openai/gpt-oss-120b` are LLM text models in this project and are not OCR benchmark targets.
-- MiniMax `MiniMax-M3` and GLM `glm-5.1` are LLM text models here. Use `glm-ocr` for GLM OCR coverage.
+- Grok OCR uses xAI `grok-4.3`.
+- GLM OCR uses `glm-ocr`.
 
 ## Incomplete Runs and Blocked Providers
 

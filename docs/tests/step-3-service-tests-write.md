@@ -20,8 +20,8 @@ bun t test/test-cases/e2e/service/step-3-write-e2e/write-services/
 ## Current Coverage
 
 - Provider-backed write coverage lives in model-level files under `test/test-cases/e2e/service/step-3-write-e2e/write-services/`.
-- The suite uses `defineLLMWriteTest` to verify service-backed write runs, output artifacts, and canonical item `metadata.step3` when the required API key is configured.
-- Current live service providers are OpenAI, Anthropic, Gemini, Groq, MiniMax, Grok, GLM, and Kimi. The GLM case covers `--llm glm=glm-5.1` and requires `GLM_API_KEY`; the Kimi case covers `--llm kimi=kimi-k2.6` and requires `KIMI_API_KEY`.
+- The suite uses `defineLLMWriteTest` to verify service-backed write runs, output artifacts, and canonical item `metadata.step3` when provider API keys are configured.
+- Live service providers include OpenAI, Anthropic, Gemini, Groq, MiniMax, Grok, GLM, and Kimi.
 - No-cost REST contract coverage verifies Together model mapping, Cerebras public model IDs (`gpt-oss-120b`, `zai-glm-4.7`), bearer auth, structured-output routing, and canonical item `metadata.step3` without calling provider APIs.
 
 ## Price Preflight
@@ -31,7 +31,7 @@ bun t test/test-cases/e2e/service/step-3-write-e2e/write-services/ --price
 bun t test/test-cases/e2e/service/step-3-write-e2e/write-services/ --budget 2500
 ```
 
-The directory-wide `--price` selection resolves OpenAI, Anthropic, Gemini, Groq, MiniMax, Grok, GLM, and Kimi price mappings. Unit pricing contracts cover Together serverless estimates and Cerebras public endpoint estimates. Live service tests skip providers whose API key is not configured.
+The directory-wide `--price` selection resolves OpenAI, Anthropic, Gemini, Groq, MiniMax, Grok, GLM, and Kimi price mappings. Unit pricing contracts cover Together serverless and Cerebras public endpoint estimates. Live service tests skip providers whose API key is not configured.
 
 ## Related Docs
 

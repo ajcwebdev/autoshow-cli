@@ -90,7 +90,7 @@ bun autoshow voice audition vr_ID --generation-id GENERATION_SHA256 --representa
 bun autoshow voice approve vr_ID --generation-id AUDITIONED_GENERATION_SHA256 --actor-id casting_editor
 ```
 
-Approval appends a new content-identified registration generation and atomically advances the sole current pointer for `(subject, provider, provider model, profile)`. This model-qualified key permits one subject to hold independent approved Hume Octave 1 and Octave 2 selections that refer to the same provider voice resource. Version 1 current indexes are migrated in memory by resolving each selection's model from its registration, then rewritten as version 2 on the next mutation. Approval does not create a scene snapshot; scene snapshots belong to ADR-014 Phase 2.
+Approval appends a new content-identified registration generation and atomically advances the sole current pointer for `(subject, provider, provider model, profile)`. This model-qualified key permits one subject to hold independent approved Hume Octave 1 and Octave 2 selections that refer to the same provider voice resource. Approval does not create a scene snapshot.
 
 ## Lifecycle
 

@@ -21,11 +21,8 @@ bun t test/test-cases/e2e/service/step-2-ocr-e2e/ocr-services/
 
 - Model-level files under `test/test-cases/e2e/service/step-2-ocr-e2e/ocr-services/` cover PDF and image extraction with `--provider mistral=mistral-ocr-2512`, `--provider glm=glm-ocr`, `--provider kimi=kimi-k2.6`, `--provider openai=gpt-5.4-nano`, `--provider gemini=gemini-3.5-flash-lite`, and `--provider deepinfra=Qwen/Qwen3-VL-30B-A3B-Instruct`.
 - Dedicated image-only OCR files cover `--provider openai=gpt-5.5`, `--provider grok=grok-4.3`, `--provider gemini=gemini-3.1-pro-preview`, and `--provider anthropic=claude-opus-4-8` / `--provider anthropic=claude-sonnet-5`. These are live provider tests and should not be run without explicit paid-provider approval.
-- Kimi OCR tests are gated on `KIMI_API_KEY` and assert `ocrService: "kimi"`, the requested `ocrModel`, and recorded `promptTokens` / `completionTokens` when the provider returns usage.
-- DeepInfra OCR tests are gated on `DEEPINFRA_API_KEY` and assert `ocrService: "deepinfra"`, the requested `ocrModel`, and recorded `promptTokens` / `completionTokens` when the provider returns usage.
-- `test/test-cases/e2e/service/step-2-ocr-e2e/ocr-services/ocr-firecrawl.test.ts` covers remote article extraction with `--url-provider firecrawl`, writes `extraction.txt`, and records `extractionMethod: "html+firecrawl"` in the canonical provider metadata.
-- `test/test-cases/e2e/service/step-2-ocr-e2e/ocr-services/ocr-glm-reader.test.ts` covers remote article extraction with `--url-provider glm-reader`, writes `extraction.txt`, and records `extractionMethod: "html+glm-reader"` in the canonical provider metadata.
-- `test/test-cases/e2e/service/step-2-ocr-e2e/ocr-services/ocr-supadata.test.ts` covers remote article extraction with `--url-provider supadata`, writes `extraction.txt`, and records `extractionMethod: "html+supadata"` in the canonical provider metadata.
+- Kimi and DeepInfra OCR tests are gated on `KIMI_API_KEY` / `DEEPINFRA_API_KEY` and assert provider/model metadata and token usage when returned.
+- Dedicated URL extraction files (`ocr-firecrawl.test.ts`, `ocr-glm-reader.test.ts`, `ocr-supadata.test.ts`) cover remote article extraction with `--url-provider` (firecrawl, glm-reader, supadata), write `extraction.txt`, and record canonical provider metadata.
 - Hosted article and local HTML input validation also lives in `test/test-cases/validation/ingest/input-contracts.test.ts`. Mocked URL backend contracts for Firecrawl v2, Spider, Supadata, Zyte, GLM Reader, Defuddle, and route-aware `--all-providers` provider artifacts live in `test/test-cases/validation/ingest/html-url-backends-contracts/`.
 - `test/test-cases/validation/cli/option-resolution-contracts/` covers all-backend expansion, URL concurrency defaults, conflict handling with `--url-provider`, and expected provider artifact paths without live API calls.
 - Native EPUB cleanup and export validation lives in `test/test-cases/validation/extract-ocr/epub-contracts/`.
@@ -35,19 +32,11 @@ bun t test/test-cases/e2e/service/step-2-ocr-e2e/ocr-services/
 ```bash
 bun t test/test-cases/e2e/service/step-2-ocr-e2e/ocr-services/ --price
 bun t test/test-cases/e2e/service/step-2-ocr-e2e/ocr-services/ --budget 2500
-bun t test/test-cases/e2e/service/step-2-ocr-e2e/ocr-services/ocr-supadata.test.ts --price
-bun t test/test-cases/e2e/service/step-2-ocr-e2e/ocr-services/ocr-supadata.test.ts --budget 2500
-bun t test/test-cases/e2e/service/step-2-ocr-e2e/ocr-services/ocr-firecrawl.test.ts --price
-bun t test/test-cases/e2e/service/step-2-ocr-e2e/ocr-services/ocr-firecrawl.test.ts --budget 2500
-bun t test/test-cases/e2e/service/step-2-ocr-e2e/ocr-services/ocr-glm-reader.test.ts --price
-bun t test/test-cases/e2e/service/step-2-ocr-e2e/ocr-services/ocr-glm-reader.test.ts --budget 2500
 ```
 
 The mapped OCR price preflight covers the model-level service files plus Supadata, Firecrawl, and GLM Reader URL extraction.
 
 `extract <url> --all-providers --price` is covered by the local validation suite. Do not run live all-provider URL e2e coverage unless hosted URL provider API usage has been explicitly approved.
-
-Groq GPT-OSS, MiniMax M3, and GLM `glm-5.1` remain write/LLM models for this project. They are intentionally not mapped as OCR service tests or OCR budget-preflight targets.
 
 ## Related Docs
 

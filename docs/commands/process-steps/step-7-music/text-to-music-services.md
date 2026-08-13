@@ -4,18 +4,44 @@ Generate music from a text prompt with hosted providers, or render local lyric v
 
 ## Outline
 
+- [Setup](#setup)
+  - [Environment](#environment)
 - [Usage](#usage)
 - [Modes](#modes)
-- [Environment](#environment)
-- [Setup](#setup)
 - [Shared Music Options](#shared-music-options)
-- [Music Services And Modes](#music-services-and-modes)
+- [Music Services](#music-services)
   - [ElevenLabs](#elevenlabs)
   - [MiniMax](#minimax)
   - [Gemini](#gemini)
   - [Lyric-Video Rendering](#lyric-video-rendering)
+- [Pricing Notes](#pricing-notes)
 - [Output](#output)
 - [Notes](#notes)
+
+## Setup
+
+```bash
+bun autoshow setup --step music
+```
+
+The music setup step checks hosted music API readiness and local lyric-video prerequisites:
+
+- `ffmpeg` and `ffprobe`
+- ffmpeg `ass` subtitle filter, or `pango-view` plus ImageMagick `convert` for fallback overlays
+- `whisper-cli`
+- Local Whisper `large-v3-turbo` model
+
+### Environment
+
+There are no local music-generation models in this project.
+
+```bash
+ELEVENLABS_API_KEY=...
+MINIMAX_API_KEY=...
+GEMINI_API_KEY=...
+```
+
+Lyric-video rendering uses local tools and does not require hosted API keys.
 
 ## Usage
 
@@ -39,34 +65,9 @@ bun autoshow music --batch
 
 Do not mix hosted generation flags with lyric-video flags.
 
-## Environment
-
-There are no local music-generation models in this project.
-
-```bash
-ELEVENLABS_API_KEY=...
-MINIMAX_API_KEY=...
-GEMINI_API_KEY=...
-```
-
-Lyric-video rendering uses local tools and does not require hosted API keys.
-
-## Setup
-
-```bash
-bun autoshow setup --step music
-```
-
-The music setup step checks hosted music API readiness and local lyric-video prerequisites:
-
-- `ffmpeg` and `ffprobe`
-- ffmpeg `ass` subtitle filter, or `pango-view` plus ImageMagick `convert` for fallback overlays
-- `whisper-cli`
-- the local Whisper `large-v3-turbo` model
-
 ## Shared Music Options
 
-The standalone `music` command drops the `music-` prefix these options carry everywhere else: `--duration` here is `--music-duration` on `write`, `config`, and `resume`. One resume flag set serves image, video, music, and OCR, where the short names would collide, so [ADR-002](../../../adr/ADR-002-pipeline-state-resume-and-dry-run-planning.md) keeps the prefixes on those surfaces.
+The standalone `music` command drops the `music-` prefix these options carry on `write`, `config`, and `resume` (e.g. `--duration` vs `--music-duration`).
 
 Hosted generation flags:
 
@@ -100,7 +101,7 @@ bun autoshow music "chill lo-fi beat" --provider elevenlabs=music_v2 --provider 
 bun autoshow music "chill lo-fi beat" --provider elevenlabs=music_v2 --provider minimax=music-3.0 --price
 ```
 
-## Music Services And Modes
+## Music Services
 
 ### ElevenLabs
 
@@ -108,7 +109,7 @@ bun autoshow music "chill lo-fi beat" --provider elevenlabs=music_v2 --provider 
 |--------|-------|
 | Selector | `--provider elevenlabs[=<model>]` |
 | Models | `music_v1`, `music_v2` |
-| Duration | `--duration <seconds>` from `3` to `600`; defaults to 180 seconds for estimates when omitted |
+| Duration | `--duration <seconds>` from `3` to `600`; default 180 seconds |
 | Instrumental | `--instrumental` |
 
 ```bash
@@ -117,7 +118,7 @@ bun autoshow music "lo-fi chillhop with soft piano and vinyl texture" --provider
 bun autoshow music "lo-fi chillhop with soft piano and vinyl texture" --provider elevenlabs=music_v2 --price
 ```
 
-ElevenLabs returns audio directly. Music v1 produces `mp3_44100_128`; Music v2 produces `mp3_48000_192`. Price estimation uses the explicit `--duration` when provided; otherwise it falls back to `180` seconds. Music v1 remains the bare-provider selection during ElevenLabs' documented API transition period; select `music_v2` explicitly for the next-generation model.
+ElevenLabs returns audio directly. Music v1 produces `mp3_44100_128`; Music v2 produces `mp3_48000_192`.
 
 ### MiniMax
 
@@ -125,7 +126,7 @@ ElevenLabs returns audio directly. Music v1 produces `mp3_44100_128`; Music v2 p
 |--------|-------|
 | Selector | `--provider minimax[=<model>]` |
 | Models | `music-3.0` |
-| Lyrics | `--lyrics-file <path>`; lyrics are auto-generated when omitted |
+| Lyrics | `--lyrics-file <path>`; auto-generated when omitted |
 | Instrumental | `--instrumental` |
 
 ```bash
@@ -135,7 +136,7 @@ bun autoshow music "ambient piano instrumental with soft tape saturation" --prov
 bun autoshow music "indie pop, nostalgic summer road trip vibe" --provider minimax=music-3.0 --price
 ```
 
-MiniMax auto-generates lyrics when `--lyrics-file` is omitted. Price estimation includes the extra lyrics-generation cost when lyrics are auto-generated. `music-3.0` supports instrumental mode; when instrumental mode is omitted, it generates with lyrics or auto-generated lyrics. `--duration` is currently ignored by MiniMax. The previous-generation `music-2.6` identity is rejected for new runs and no longer resolves against the model registry, so historical benchmark artifacts re-priced today fall back to default estimates.
+MiniMax auto-generates lyrics when `--lyrics-file` is omitted. `music-3.0` supports instrumental mode. `--duration` is ignored by MiniMax.
 
 ### Gemini
 
@@ -143,7 +144,7 @@ MiniMax auto-generates lyrics when `--lyrics-file` is omitted. Price estimation 
 |--------|-------|
 | Selector | `--provider gemini[=<model>]` |
 | Models | `lyria-3-clip-preview`, `lyria-3-pro-preview` |
-| Duration | Gemini Clip is fixed at 30 seconds; Gemini Pro uses `--duration` when provided |
+| Duration | Gemini Clip is fixed at 30 seconds; Gemini Pro uses `--duration` (default 120 seconds) |
 | Lyrics/instrumental | `--lyrics-file <path>` or `--instrumental` |
 
 ```bash
@@ -153,7 +154,7 @@ bun autoshow music input/examples/tts/1-tts.md --provider gemini=lyria-3-pro-pre
 bun autoshow music "ambient piano and strings" --provider gemini=lyria-3-clip-preview --price
 ```
 
-Gemini Lyria 3 Clip always generates a 30-second MP3 clip. Lyria 3 Pro uses duration instructions from `--duration`, or a 120-second timing estimate when omitted. `--lyrics-file` appends lyrics to the prompt. If `--instrumental` is also set, instrumental wins and the lyrics file is ignored with a warning.
+Gemini Lyria 3 Clip always generates a 30-second MP3 clip. Lyria 3 Pro uses duration instructions from `--duration`, or a 120-second timing estimate when omitted. `--lyrics-file` appends lyrics to the prompt. If `--instrumental` is also set, instrumental takes precedence and the lyrics file is ignored with a warning.
 
 ### Lyric-Video Rendering
 
@@ -176,64 +177,22 @@ bun autoshow music --input-dir input/examples/lyrics --batch --model small
 bun autoshow music --batch --model tiny
 ```
 
-Lyric-video rendering uses local Whisper captions and ffmpeg rendering. In rerender mode, the output stem comes from the caption filename, not the audio filename. If an image beside the lyric-video audio file matches by exact basename or track number, it is used as the background; otherwise a spectrogram background is rendered.
+Lyric-video rendering uses local Whisper captions and ffmpeg rendering. In rerender mode, output stems come from the caption filename. If an image beside the lyric-video audio file matches by exact basename or track number, it is used as the background; otherwise a spectrogram background is rendered.
 
-```bash
-# Write pipeline
-bun autoshow write https://ajc.pics/autoshow/examples/1-audio.mp3 --llm openai=gpt-5.5 --music elevenlabs=music_v2 --music-duration 20
-bun autoshow write https://ajc.pics/autoshow/examples/1-audio.mp3 --music minimax=music-3.0 --music-lyrics-file input/examples/tts/1-tts.md
-bun autoshow write https://ajc.pics/autoshow/examples/1-audio.mp3 --llm openai=gpt-5.5 --music gemini=lyria-3-pro-preview --music-duration 120
-bun autoshow write https://ajc.pics/autoshow/examples/1-audio.mp3 --music minimax=music-3.0 --price
-```
+## Pricing Notes
+
+- **ElevenLabs**: Uses explicit `--duration` when provided; otherwise estimates using `180` seconds.
+- **MiniMax**: Price estimation includes the extra lyrics-generation cost when lyrics are auto-generated.
+- **Gemini**: `lyria-3-clip-preview` is a fixed 30-second clip; `lyria-3-pro-preview` uses `--duration` or defaults to 120 seconds.
 
 ## Output
 
-Hosted single-provider runs write:
-
-```text
-output/YYYY-MM-DD_HH-mm-ss_music-gen/
-  generated-music.mp3
-  manifest.json
-```
-
-Multi-provider runs write one file per provider:
-
-```text
-output/YYYY-MM-DD_HH-mm-ss_music-gen/
-  generated-music-elevenlabs-music_v2.mp3
-  generated-music-minimax-music-3.0.mp3
-  generated-music-gemini-lyria-3-clip-preview.mp3
-  manifest.json
-```
-
-`manifest.json` uses the canonical single-run shape. Its sole item's metadata includes `music`, `cost`, and `timing`; `music` is always an array, even when only one provider succeeds.
-
-For hosted music generation, `--output-dir` controls the run directory; generated file names remain provider-dependent and deterministic inside that directory.
-
-Lyric-video single runs write:
-
-```text
-output/YYYY-MM-DD_HH-MM-SS-sss_music-lyrics-<stem>/
-  <stem>.mp4
-  <stem>.vtt
-  <stem>.srt
-  manifest.json
-  .lyrics-tmp/          # only when --keep-tmp is set
-```
-
-Lyric-video batch runs write:
-
-```text
-output/YYYY-MM-DD_HH-MM-SS-sss_music-lyrics-batch/
-  manifest.json
-  <slug>/
-    <stem>.mp4
-    <stem>.vtt
-    <stem>.srt
-    manifest.json
-```
-
-Lyric-video `manifest.json` uses the same canonical shape with `command: "music"`, `scope: "single"`, and item metadata `mode: "lyric-video"`. It records source audio, optional captions source, transcription mode and model, cue counts, render settings, artifact filenames, and timing metrics.
+- Single-target hosted runs write `generated-music.mp3` and `manifest.json`.
+- Multi-target hosted runs write `generated-music-<provider>-<sanitized-model>.mp3` per target and `manifest.json`.
+- `--output-dir` sets the run directory; output filenames remain provider-deterministic.
+- Lyric-video single runs write `<stem>.mp4`, `<stem>.vtt`, `<stem>.srt`, and `manifest.json` (plus `.lyrics-tmp/` when `--keep-tmp` is set).
+- Lyric-video batch runs write `<slug>/<stem>.mp4`, `<stem>.vtt`, `<stem>.srt`, and `manifest.json`.
+- `manifest.json` records single-run metadata including `music` array, `cost`, and `timing`.
 
 ## Notes
 
