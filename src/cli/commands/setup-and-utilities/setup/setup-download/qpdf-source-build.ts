@@ -2,7 +2,7 @@ import { join } from 'node:path'
 import { runCapture } from '~/cli/commands/setup-and-utilities/setup/run-complete-setup'
 import { InfraError } from '~/utils/error-handler'
 
-export const QPDF_SOURCE_RECIPE_STAMP = 'qpdf-12.3.2-static-native-libjpeg-turbo-3.2.0-v1\n'
+export const QPDF_SOURCE_RECIPE_STAMP = 'qpdf-12.3.2-static-native-libjpeg-turbo-3.2.0-v2\n'
 
 export const LIBJPEG_TURBO_SOURCE_BUILD_FLAGS = [
   '-DCMAKE_BUILD_TYPE=Release',
@@ -17,9 +17,11 @@ export const QPDF_SOURCE_BUILD_FLAGS = [
   '-DCMAKE_BUILD_TYPE=Release',
   '-DBUILD_SHARED_LIBS=OFF',
   '-DBUILD_STATIC_LIBS=ON',
+  '-DPKG_CONFIG_EXECUTABLE=/usr/bin/false',
   '-DUSE_IMPLICIT_CRYPTO=OFF',
   '-DREQUIRE_CRYPTO_NATIVE=ON',
   '-DDEFAULT_CRYPTO=native',
+  '-DSHOW_FAILED_TEST_OUTPUT=ON',
   '-DBUILD_DOC=OFF',
   '-DINSTALL_MANUAL=OFF',
   '-DINSTALL_EXAMPLES=OFF'
@@ -69,18 +71,17 @@ export const buildQpdfCmakeArguments = (
   `-DCMAKE_PREFIX_PATH=${layout.libjpegTurboInstallDir}`,
   `-DCMAKE_LIBRARY_PATH=${join(layout.libjpegTurboInstallDir, 'lib')}`,
   `-DCMAKE_INCLUDE_PATH=${join(layout.libjpegTurboInstallDir, 'include')}`,
+  `-DLIBJPEG_LIB_PATH=${join(layout.libjpegTurboInstallDir, 'lib/libjpeg.a')}`,
+  `-DLIBJPEG_H_PATH=${join(layout.libjpegTurboInstallDir, 'include')}`,
   ...QPDF_SOURCE_BUILD_FLAGS
 ], deploymentTarget)
 
 export const buildQpdfSourceEnvironment = (
-  layout: QpdfSourceBuildLayout
-): Record<string, string | undefined> => {
-  const pkgConfigDir = join(layout.libjpegTurboInstallDir, 'lib/pkgconfig')
-  return {
-    PKG_CONFIG_PATH: pkgConfigDir,
-    PKG_CONFIG_LIBDIR: pkgConfigDir
-  }
-}
+  _layout: QpdfSourceBuildLayout
+): Record<string, string | undefined> => ({
+  PKG_CONFIG_PATH: undefined,
+  PKG_CONFIG_LIBDIR: undefined
+})
 
 const allowedMacosDynamicLibraryReference = (path: string): boolean =>
   path.startsWith('/usr/lib/') ||

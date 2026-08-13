@@ -143,8 +143,8 @@ const buildQpdf = async (
   const qpdfEnvironment = buildQpdfSourceEnvironment(layout)
   await runChecked('cmake', buildQpdfCmakeArguments(layout, join(buildRoot, 'install/qpdf'), MANAGED_UNSIGNED_DEPLOYMENT_TARGET), { env: qpdfEnvironment })
   await runChecked('cmake', ['--build', layout.qpdfCmakeBuildDir, '--parallel', String(jobs)], { env: qpdfEnvironment })
-  if (runUpstreamTests) await runChecked('ctest', ['--test-dir', layout.qpdfCmakeBuildDir, '--output-on-failure'], { env: qpdfEnvironment })
   await assertPortableQpdfDynamicLibraryClosure(layout.builtQpdfPath)
+  if (runUpstreamTests) await runChecked('ctest', ['--test-dir', layout.qpdfCmakeBuildDir, '--output-on-failure'], { env: qpdfEnvironment })
   return {
     tool: 'qpdf',
     binaryPath: layout.builtQpdfPath,

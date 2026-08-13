@@ -192,6 +192,14 @@ describe('Phase 4 producer hardening contracts', () => {
     ])
   })
 
+  test('checks qpdf portability before running its upstream test suite', async () => {
+    const source = await Bun.file(join(PROJECT_ROOT, 'src/tools/macos-toolchain-producer.ts')).text()
+    const buildStart = source.indexOf('const buildQpdf = async')
+    const buildEnd = source.indexOf('export const buildManagedUnsignedTool', buildStart)
+    const buildSource = source.slice(buildStart, buildEnd)
+    expect(buildSource.indexOf('await assertPortableQpdfDynamicLibraryClosure')).toBeLessThan(buildSource.indexOf("await runChecked('ctest'"))
+  })
+
   test('parses the exact deployment target and detects build paths and credential shapes', () => {
     expect(parseMacosDeploymentTarget(' platform MACOS\n    minos 15.0\n      sdk 15.5\n')).toBe('15.0')
     expect(parseMacosDeploymentTarget('no build command')).toBeUndefined()
