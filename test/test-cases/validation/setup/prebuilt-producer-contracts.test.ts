@@ -15,6 +15,7 @@ import {
   parseManagedUnsignedVerificationManifest,
   parseManagedUnsignedVerificationPayloadManifest
 } from '~/cli/commands/setup-and-utilities/setup/setup-download/unsigned-prebuilt-artifact'
+import { buildMupdfMakeArguments } from '~/cli/commands/setup-and-utilities/setup/setup-download/mupdf-source-build'
 import type { ManagedArtifactToolId, ManagedPrebuiltProducer, ManagedUnsignedVerificationBundle } from '~/types'
 import { PROJECT_ROOT } from '~/utils/runtime-paths'
 import { setupContractSuiteLifecycle } from '../../../test-utils/rest-contract-helpers'
@@ -180,6 +181,17 @@ describe('Phase 4 staged consumer and source fallback', () => {
 })
 
 describe('Phase 4 producer hardening contracts', () => {
+  test('disables host libcrypto discovery in the shared MuPDF recipe', () => {
+    expect(buildMupdfMakeArguments(4)).toEqual([
+      '-j', '4',
+      'build=release',
+      'HAVE_X11=no',
+      'HAVE_GLUT=no',
+      'HAVE_OBJCOPY=no',
+      'HAVE_LIBCRYPTO=no'
+    ])
+  })
+
   test('parses the exact deployment target and detects build paths and credential shapes', () => {
     expect(parseMacosDeploymentTarget(' platform MACOS\n    minos 15.0\n      sdk 15.5\n')).toBe('15.0')
     expect(parseMacosDeploymentTarget('no build command')).toBeUndefined()
