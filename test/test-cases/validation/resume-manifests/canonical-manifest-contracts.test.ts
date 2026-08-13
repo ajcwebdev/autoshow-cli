@@ -390,6 +390,46 @@ describe('canonical pipeline manifest', () => {
     })
   })
 
+  test('cumulative same-render provider updates append each pointer occurrence only once', async () => {
+    await withTempDir('autoshow-tts-cumulative-pointer-history-', async (dir) => {
+      const target = ttsTarget('fixture-cumulative-pointer-history')
+      const initial = await materializeFailedTtsProviderState(dir, target, 'Cumulative pointer fixture.')
+      const withAnotherFailure = (state: PipelineProviderState, offsetMs: number): PipelineProviderState => {
+        const next = structuredClone(state)
+        const projection = next.result?.['ttsAudio'] as CanonicalAudioProviderProjection
+        const render = projection.renderHistory[0]
+        const previous = render?.events.at(-1)
+        if (!render || !previous || previous.status !== 'failed') throw new Error('Expected one failed fixture render')
+        const eventSequence = previous.sequence + 1
+        const at = new Date(Date.parse(previous.at) + offsetMs).toISOString()
+        render.events.push({ ...previous, sequence: eventSequence, at })
+        projection.activeWork = { kind: 'render', renderIdentity: render.renderIdentity, eventSequence }
+        projection.pointerEvents.push({
+          sequence: projection.pointerEvents.length + 1,
+          action: 'activate-render',
+          renderIdentity: render.renderIdentity,
+          eventSequence,
+          actor: { namespace: 'local-user', actorId: 'fixture' },
+          at
+        })
+        next.metadata['ttsAudio'] = projection
+        next.result = { ttsAudio: projection }
+        return next
+      }
+
+      const firstIncoming = withAnotherFailure(initial, 1)
+      const afterFirst = appendCurrentTtsProviderState(initial, firstIncoming)
+      const initialPointers = (initial.result?.['ttsAudio'] as CanonicalAudioProviderProjection).pointerEvents.length
+      expect((afterFirst.result?.['ttsAudio'] as CanonicalAudioProviderProjection).pointerEvents).toHaveLength(initialPointers + 1)
+
+      const secondIncoming = withAnotherFailure(firstIncoming, 1)
+      const afterSecond = appendCurrentTtsProviderState(afterFirst, secondIncoming)
+      const pointers = (afterSecond.result?.['ttsAudio'] as CanonicalAudioProviderProjection).pointerEvents
+      expect(pointers).toHaveLength(initialPointers + 2)
+      expect(pointers.map((pointer) => pointer.sequence)).toEqual(pointers.map((_, index) => index + 1))
+    })
+  })
+
   test('different-render zero-request failures retain both plans and remap readiness authorizations', async () => {
     await withTempDir('autoshow-tts-different-render-history-', async (dir) => {
       const target = ttsTarget('fixture-different-render-history')

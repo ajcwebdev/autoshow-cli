@@ -12,7 +12,7 @@ import { updateComicAudioManifest, updateComicImageManifest, writeInitialComicSt
 import { resolveCompatibleComicSceneRun } from '~/cli/commands/process-steps/step-8-comic/comic-utils/compatible-scene-run'
 import { readManifest } from '~/cli/commands/process-steps/pipeline-manifest'
 import { mixAudioToWav } from '~/cli/commands/process-steps/step-4-tts/tts-utils/audio-utils'
-import { generateComicAudio } from '~/cli/commands/process-steps/step-8-comic/comic-commands/generate-audio/generate-audio-command'
+import { assertVoiceSnapshotCoversSelectedTargets, generateComicAudio } from '~/cli/commands/process-steps/step-8-comic/comic-commands/generate-audio/generate-audio-command'
 import { configurePinnedRunDir, resetPinnedRunDir } from '~/cli/commands/process-steps/run-dir'
 import { writeVoiceReferenceManifest } from '~/cli/commands/process-steps/step-8-comic/comic-utils/voice-reference-snapshot'
 import { createMockWavBytes, createSyntheticWavBytes } from '../../../test-utils/media-fixtures'
@@ -22,7 +22,7 @@ const HASH_A = 'a'.repeat(64)
 const HASH_B = 'b'.repeat(64)
 const CREATED_AT = '2026-08-11T00:00:00.000Z'
 
-setupContractSuiteLifecycle({ envKeys: ['OPENAI_API_KEY'], tempPrefix: 'autoshow-comic-audio-phase-2-' })
+setupContractSuiteLifecycle({ envKeys: ['OPENAI_API_KEY', 'HUME_API_KEY'], tempPrefix: 'autoshow-comic-audio-phase-2-' })
 
 const buildStructured = (sourceIdentity: Awaited<ReturnType<typeof createComicSourceIdentity>>, exactSource?: string): StructuredScriptData => {
   const readyQuestionStart = exactSource ? [...exactSource.slice(0, exactSource.indexOf('Ready?'))].length : 0
@@ -163,6 +163,35 @@ describe('comic audio phase 2 contracts', () => {
     expect(collapsed.nodes).toEqual([expect.objectContaining({ kind: 'turn', turn: expect.objectContaining({ subjectKey: 'role:chorus' }) })])
   })
 
+  test('dialogue planning separates comms delivery and resolves loose-comedy timing cues', async () => {
+    const root = await mkdtemp(join(tmpdir(), 'autoshow-comic-audio-pacing-'))
+    const sourcePath = join(root, 'scene.md')
+    await writeFile(sourcePath, 'paced scene')
+    const sourceIdentity = await createComicSourceIdentity(sourcePath, 'paced scene')
+    const structured = buildStructured(sourceIdentity)
+    structured.sourceSegments = [{
+      ...structured.sourceSegments[0]!,
+      text: 'Ready? Now.',
+      delivery: 'over comms, controlled urgency',
+      sourceSpans: [
+        { kind: 'spoken-text', start: 0, end: 6, indexUnit: 'unicode-scalar-value', text: 'Ready?' },
+        { kind: 'timing', start: 7, end: 13, indexUnit: 'unicode-scalar-value', text: '(beat)' },
+        { kind: 'spoken-text', start: 14, end: 18, indexUnit: 'unicode-scalar-value', text: 'Now.' },
+      ]
+    }]
+    const bytes = `${canonicalTtsJson(structured)}\n`
+    const ref = createStructuredScriptArtifactRef(bytes)
+    const sceneRunIdentity = computeSceneRunIdentity(sourceIdentity, ref)
+    const plan = createComicDialoguePlan({ structuredScript: structured, sourceIdentity, structuredScriptRef: ref, sceneRunIdentity, createdAt: CREATED_AT, pacingProfile: 'loose-comedy' })
+    const plannedTurn = plan.nodes[0]?.kind === 'turn' ? plan.nodes[0].turn : undefined
+
+    expect(plan.schemaVersion).toBe(2)
+    expect(plan.pacing).toEqual({ profile: 'loose-comedy', interTurnMs: 350 })
+    expect(plannedTurn?.delivery?.description).toBe('controlled urgency')
+    expect(plannedTurn?.effect?.kind).toBe('radio')
+    expect(plannedTurn?.timingCues).toEqual([expect.objectContaining({ kind: 'beat', afterTextOffset: 6, durationMs: 750 })])
+  })
+
   test('Gemini comic planning binds approved snapshot entries and selects native only for exactly two speakers', async () => {
     const root = await mkdtemp(join(tmpdir(), 'autoshow-comic-audio-plan-'))
     const sourcePath = join(root, 'scene.md')
@@ -221,6 +250,26 @@ describe('comic audio phase 2 contracts', () => {
     expect(observations[0]?.targetKey).toBe(target.targetKey)
   })
 
+  test('shared read-only execution readiness reuses one Hume catalog probe across model targets', async () => {
+    process.env['HUME_API_KEY'] = 'hume-test-key'
+    const calls = installMockFetch((input) => new Response(JSON.stringify({
+      page_number: 0,
+      page_size: 100,
+      total_pages: 1,
+      voices_page: [{ id: 'voice-shared', name: 'Shared', provider: new URL(input.url).searchParams.get('provider') }]
+    }), { status: 200, headers: { 'content-type': 'application/json' } }))
+    const targets: TtsTarget[] = ['octave-1', 'octave-2'].map(model => ({
+      service: 'hume', model, operation: 'comic-audio', transport: 'hosted-api',
+      targetKey: canonicalTargetKey('comic-audio', 'hume', model, 'hosted-api'),
+      readinessVoiceIds: ['voice-shared'],
+      run: async () => { throw new Error('provider must not run during readiness') },
+    }))
+    const observations = await validateTtsTargetsForExecution(targets)
+    expect(observations.map(observation => observation.status)).toEqual(['ready', 'ready'])
+    expect(calls).toHaveLength(2)
+    expect(calls.map(call => new URL(call.url).searchParams.get('provider')).sort()).toEqual(['CUSTOM_VOICE', 'HUME_AI'])
+  })
+
   test('targetless zero-turn command completes locally without provider state', async () => {
     const root = await mkdtemp(join(tmpdir(), 'autoshow-comic-audio-empty-'))
     const sourcePath = join(root, 'silent-scene.md')
@@ -270,10 +319,22 @@ describe('comic audio phase 2 contracts', () => {
     const root = await mkdtemp(join(tmpdir(), 'autoshow-comic-audio-command-'))
     const sourcePath = join(root, 'scene.md')
     const sceneRunDir = join(root, 'run')
-    const sourceText = '# Episode\n\n## Scene\n\n**PILOT**\nReady?\n\n**NAVIGATOR**\nReady.\n'
+    const sourceText = '# Episode\n\n## Scene\n\n**PILOT**\nReady? (beat) Go.\n\n**NAVIGATOR**\nReady.\n'
     await writeFile(sourcePath, sourceText)
     const sourceIdentity = await createComicSourceIdentity(sourcePath, sourceText)
     const structured = buildStructured(sourceIdentity, sourceText)
+    const firstSpokenStart = [...sourceText.slice(0, sourceText.indexOf('Ready?'))].length
+    const timingStart = [...sourceText.slice(0, sourceText.indexOf('(beat)'))].length
+    const secondSpokenStart = [...sourceText.slice(0, sourceText.indexOf('Go.'))].length
+    structured.sourceSegments[0] = {
+      ...structured.sourceSegments[0]!,
+      text: 'Ready? Go.',
+      sourceSpans: [
+        { kind: 'spoken-text', start: firstSpokenStart, end: firstSpokenStart + 6, indexUnit: 'unicode-scalar-value', text: 'Ready?' },
+        { kind: 'timing', start: timingStart, end: timingStart + 6, indexUnit: 'unicode-scalar-value', text: '(beat)' },
+        { kind: 'spoken-text', start: secondSpokenStart, end: secondSpokenStart + 3, indexUnit: 'unicode-scalar-value', text: 'Go.' },
+      ]
+    }
     const structuredBytes = `${canonicalTtsJson(structured)}\n`
     const structuredRef = createStructuredScriptArtifactRef(structuredBytes)
     await mkdir(join(sceneRunDir, 'metadata'), { recursive: true })
@@ -303,7 +364,8 @@ describe('comic audio phase 2 contracts', () => {
     const manifest = await readManifest(sceneRunDir)
     const provider = manifest?.items[0]?.providers[0]
     const comic = manifest?.items[0]?.metadata['comic'] as never as { stages: { audio: { status: string } }, audio: { selectedAudioRuns?: unknown[], finalOutputRefs?: Array<{ path: string }> } }
-    expect(calls.map(call => call.bodyJson?.['voice']).sort()).toEqual(['alloy', 'onyx'])
+    expect(calls.map(call => call.bodyJson?.['voice']).sort()).toEqual(['alloy', 'alloy', 'onyx'])
+    expect(calls.filter(call => call.bodyJson?.['voice'] === 'alloy').map(call => call.bodyJson?.['input'])).toEqual(['Ready?', 'Go.'])
     expect(provider).toEqual(expect.objectContaining({ operation: 'comic-audio', status: 'succeeded' }))
     expect(provider?.result?.['comicAudio']).toEqual(expect.objectContaining({ selectedSuccess: expect.any(Object) }))
     expect(comic.stages.audio.status).toBe('full')
@@ -318,6 +380,30 @@ describe('comic audio phase 2 contracts', () => {
     const entries = [first, second].sort((left, right) => [left.provider, left.providerModel, left.profileKey, left.subjectKey, left.registrationId, left.generationId, left.entryId].join('\0').localeCompare([right.provider, right.providerModel, right.profileKey, right.subjectKey, right.registrationId, right.generationId, right.entryId].join('\0')))
     const base = { schemaVersion: 1 as const, sceneRunIdentity: HASH_A, dialoguePlanId: HASH_B, catalogHash: HASH_A, briefSetHash: HASH_B, createdAt: CREATED_AT, entries }
     expect(() => validateVoiceReferenceManifest({ ...base, snapshotId: hashCanonicalTtsValue(base) })).toThrow(/duplicate provider\/model\/profile\/subject bindings/)
+  })
+
+  test('aggregate snapshots permit an already-contained target subset but reject a recast', () => {
+    const entries = [
+      snapshotEntry('navigator', 'onyx', 'openai'),
+      snapshotEntry('pilot', 'alloy', 'openai'),
+      snapshotEntry('navigator', 'Puck'),
+      snapshotEntry('pilot', 'Kore'),
+    ].sort((left, right) => [left.provider, left.providerModel, left.profileKey, left.subjectKey, left.registrationId, left.generationId, left.entryId].join('\0').localeCompare([right.provider, right.providerModel, right.profileKey, right.subjectKey, right.registrationId, right.generationId, right.entryId].join('\0')))
+    const base = { schemaVersion: 1 as const, sceneRunIdentity: HASH_A, dialoguePlanId: HASH_B, catalogHash: HASH_A, briefSetHash: HASH_B, createdAt: CREATED_AT, entries }
+    const snapshot = validateVoiceReferenceManifest({ ...base, snapshotId: hashCanonicalTtsValue(base) })
+
+    expect(() => assertVoiceSnapshotCoversSelectedTargets({
+      snapshot,
+      targets: [{ service: 'openai', model: 'gpt-4o-mini-tts-2025-12-15' }],
+      subjectKeys: ['pilot', 'navigator'],
+      profileKey: 'default',
+    })).not.toThrow()
+    expect(() => assertVoiceSnapshotCoversSelectedTargets({
+      snapshot,
+      targets: [{ service: 'hume', model: 'octave-1' }],
+      subjectKeys: ['pilot', 'navigator'],
+      profileKey: 'default',
+    })).toThrow(/immutable superset/)
   })
 
   test('canonical image and audio stage updates preserve each other and replace only their own provider targets', async () => {

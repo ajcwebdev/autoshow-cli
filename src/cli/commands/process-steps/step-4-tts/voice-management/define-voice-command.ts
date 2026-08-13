@@ -30,6 +30,7 @@ import { createMiniMaxAdvancedProvider, MINIMAX_ADVANCED_CAPABILITY_FIXTURE } fr
 import { createCartesiaAdvancedProvider, CARTESIA_ADVANCED_CAPABILITY_FIXTURE } from '../tts-services/cartesia/cartesia-advanced-provider'
 import { createSpeechifyAdvancedProvider, SPEECHIFY_ADVANCED_CAPABILITY_FIXTURE } from '../tts-services/speechify/speechify-advanced-provider'
 import { createAdvancedVoiceCandidates, loadVoiceCandidate, materializeAdvancedVoiceCandidate } from './advanced-voice-management'
+import { getTtsPricing } from '~/cli/commands/setup-and-utilities/models/model-loader'
 
 const TTS_PROVIDERS = ['kitten', 'elevenlabs', 'minimax', 'groq', 'grok', 'mistral', 'openai', 'gemini', 'deepgram', 'speechify', 'hume', 'cartesia'] as const
 const CONSENT_ACTIONS: VoiceConsentAction[] = ['upload', 'new-synthesis', 'cache-reuse', 'resume', 'export', 'retention', 'deletion']
@@ -83,7 +84,8 @@ const optionalFlag = (ctx: CliCommandContext, name: string): string | undefined 
 }
 
 const parameter = (ctx: CliCommandContext, name: string): string => {
-  const value = ctx.parameters[name]
+  const kebabName = name.replace(/[A-Z]/g, letter => `-${letter.toLowerCase()}`)
+  const value = ctx.parameters[name] ?? ctx.parameters[kebabName]
   if (typeof value !== 'string' || !value.trim()) throw CLIUsageError(`${name} is required.`)
   return value.trim()
 }
@@ -210,7 +212,7 @@ const handleDiscover = async (ctx: CliCommandContext): Promise<void> => {
   if (sourceRaw !== 'account' && sourceRaw !== 'provider-library' && sourceRaw !== 'shared-library') throw CLIUsageError('--source must be account, provider-library, or shared-library.')
   if (sourceRaw === 'shared-library' && provider !== 'elevenlabs') throw CLIUsageError(`${provider} does not expose an ElevenLabs-style shared-owner voice-library namespace.`)
   const cursor = optionalFlag(ctx, 'cursor')
-  if (cursor && (provider === 'hume' || provider === 'minimax')) throw CLIUsageError(`${provider} voice discovery is not paginated and does not accept --cursor.`)
+  if (cursor && provider === 'minimax') throw CLIUsageError(`${provider} voice discovery is not paginated and does not accept --cursor.`)
   if (ctx.flags['price'] === true) {
     console.log(JSON.stringify({ operation: 'voice-discover', provider, mutation: false, providerCalls: 0, capabilityFixtureHash: advancedCapabilityFixtureHash(provider) }, null, 2))
     return
@@ -239,6 +241,7 @@ const handleDesign = async (ctx: CliCommandContext): Promise<void> => {
   const seed = seedRaw === undefined ? undefined : Number(seedRaw)
   if (seed !== undefined && (!Number.isInteger(seed) || seed < 0)) throw CLIUsageError('--seed must be a non-negative integer.')
   if (provider === 'elevenlabs') {
+    if (creationModel !== 'eleven_ttv_v3' && creationModel !== 'eleven_multilingual_ttv_v2') throw CLIUsageError('ElevenLabs Voice Design creation model must be eleven_ttv_v3 or eleven_multilingual_ttv_v2; synthesis model IDs such as eleven_v3 are not design model IDs.')
     if (candidateCount > 3) throw CLIUsageError('ElevenLabs Voice Design supports one to three bounded previews per operation.')
     if (description.length < 20 || description.length > 1000) throw CLIUsageError('ElevenLabs Voice Design description must contain 20-1000 characters.')
     if (previewText.length < 100 || previewText.length > 1000) throw CLIUsageError('ElevenLabs Voice Design preview text must contain 100-1000 characters.')
@@ -254,7 +257,12 @@ const handleDesign = async (ctx: CliCommandContext): Promise<void> => {
   }
   await requireBrief(subjectKey, profileKey)
   if (ctx.flags['price'] === true) {
-    console.log(JSON.stringify({ operation: sourceVoiceId ? 'voice-remix-candidates' : 'voice-design-candidates', provider, providerModel, creationModel, candidateCount, estimatedCostCents: null, pricing: 'provider-conditional', mutation: false, providerCalls: 0 }, null, 2))
+    const pricingModel = provider === 'hume' ? creationModel : providerModel
+    const rate = getTtsPricing(provider, pricingModel).costPer1kCharsCents
+    if (rate === undefined) throw CLIUsageError(`Voice design pricing is unavailable for ${provider}/${pricingModel}; provider dispatch is blocked.`)
+    const billedGenerations = provider === 'hume' ? candidateCount : 1
+    const estimatedCostCents = ([...previewText].length / 1000) * rate * billedGenerations
+    console.log(JSON.stringify({ operation: sourceVoiceId ? 'voice-remix-candidates' : 'voice-design-candidates', provider, providerModel, creationModel, candidateCount, characterCount: [...previewText].length, billedGenerations, estimatedCostCents, pricing: 'registry-character-rate', mutation: false, providerCalls: 0 }, null, 2))
     return
   }
   await assertProtectedStoreOutputDisjoint(getCharactersRoot(), MANAGED_VOICE_STORE_ROOT)
@@ -291,7 +299,7 @@ const handleMaterialize = async (ctx: CliCommandContext): Promise<void> => {
   const consentRef = optionalFlag(ctx, 'consent-ref')
   const consent = await optionalConsent(consentRef)
   if (ctx.flags['price'] === true) {
-    console.log(JSON.stringify({ operation: 'voice-materialize-candidate', provider, candidateId, estimatedCostCents: null, pricing: 'provider-conditional', mutation: false, providerCalls: 0 }, null, 2))
+    console.log(JSON.stringify({ operation: 'voice-materialize-candidate', provider, candidateId, estimatedCostCents: 0, pricing: 'no-usage-charge', mutation: false, providerCalls: 0 }, null, 2))
     return
   }
   await assertProtectedStoreOutputDisjoint(getCharactersRoot(), MANAGED_VOICE_STORE_ROOT)
@@ -390,7 +398,7 @@ const handleApprove = async (ctx: CliCommandContext): Promise<void> => {
   const audition = await loadVoiceAuditionManifestForRegistration(getCharactersRoot(), registrationId, generationId)
   const catalog = await loadVoiceRegistrationCatalog(getCharactersRoot())
   const current = await loadCurrentVoiceRegistrationIndex(getCharactersRoot(), catalog)
-  const prior = current.selections.find(entry => entry.subjectKey === registration.subjectKey && entry.provider === registration.provider && entry.profileKey === registration.profileKey)
+  const prior = current.selections.find(entry => entry.subjectKey === registration.subjectKey && entry.provider === registration.provider && entry.providerModel === registration.providerModel && entry.profileKey === registration.profileKey)
   const actor = validateAuditActorRef({ namespace: 'local-user', actorId: requiredFlag(ctx, 'actor-id') })
   const consent = registration.consentRecordRef ? await loadVoiceConsentRecord(managedVoiceAssetStore, registration.consentRecordRef) : undefined
   const approved = await approveVoiceRegistration({
@@ -670,6 +678,7 @@ export const voiceCommand = defineCliCommand({
       ['bun autoshow voice discover --provider elevenlabs --source account', 'Inspect an advanced provider voice catalog'],
       ['bun autoshow voice discover --provider cartesia --source provider-library --price', 'Validate Cartesia catalog discovery without provider calls'],
       ['bun autoshow voice design hero --provider hume --model octave-2 --creation-model octave-1 --description "Warm, weathered guide" --preview-text "A representative passage of at least one hundred characters..." --price', 'Plan bounded design candidates without provider calls'],
+      ['bun autoshow voice design hero --provider elevenlabs --model eleven_v3 --creation-model eleven_ttv_v3 --description "Warm, weathered guide" --preview-text "A representative passage of at least one hundred characters..." --price', 'Plan ElevenLabs Voice Design v3 without provider calls'],
       ['bun autoshow voice design hero --provider minimax --model speech-2.8-hd --creation-model voice-design --description "Warm, weathered guide" --preview-text "A short representative passage." --candidates 1 --price', 'Plan one temporary MiniMax design candidate without provider calls'],
       ['bun autoshow voice audition vr_123 --generation-id SHA256 --representative-line "We leave at dawn." --price', 'Estimate a canonical audition without provider calls'],
       ['bun autoshow voice approve vr_123 --generation-id SHA256 --actor-id editor', 'Approve an audition locally']

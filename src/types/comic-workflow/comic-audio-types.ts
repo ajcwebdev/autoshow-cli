@@ -24,12 +24,16 @@ export type StructuredScriptArtifactRef = {
 }
 
 export type ComicDialoguePlan = {
-  schemaVersion: 1
+  schemaVersion: 2
   dialoguePlanId: string
   sceneRunIdentity: string
   sourceIdentity: ComicSourceIdentity
   structuredScript: StructuredScriptArtifactRef
   createdAt: string
+  pacing: {
+    profile: 'none' | 'loose-comedy'
+    interTurnMs: number
+  }
   nodes: CanonicalDialoguePlanNode[]
 }
 
@@ -136,6 +140,8 @@ export type CanonicalComicItemMetadata = {
 }
 
 export type ComicAudioMode = 'auto' | 'native' | 'segmented'
+export type ComicAudioDeliveryPolicy = 'strict' | 'best-effort'
+export type ComicAudioPacingProfile = 'none' | 'loose-comedy'
 
 export type ComicAudioRolePolicy = {
   speakerLabel: string
@@ -148,6 +154,8 @@ export type ComicGenerateAudioOptions = {
   outputDir?: string | undefined
   profileKey: string
   mode: ComicAudioMode
+  deliveryPolicy: ComicAudioDeliveryPolicy
+  pacingProfile: ComicAudioPacingProfile
   rolePolicies: ComicAudioRolePolicy[]
   sampleRate: number
   channels: 1 | 2

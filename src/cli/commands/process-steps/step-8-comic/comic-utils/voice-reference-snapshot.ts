@@ -70,6 +70,7 @@ export const buildVoiceReferenceManifest = async (input: {
       const selection = current.selections.find(candidate =>
         candidate.subjectKey === subjectKey
         && candidate.provider === target.provider
+        && candidate.providerModel === target.model
         && candidate.profileKey === input.profileKey
       )
       if (!selection) throw CLIUsageError(`No approved current ${target.provider}/${input.profileKey} voice registration exists for ${subjectKey}.`)

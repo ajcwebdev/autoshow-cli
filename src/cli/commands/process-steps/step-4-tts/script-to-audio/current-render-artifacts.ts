@@ -293,23 +293,39 @@ const appendCurrentTtsProjection = (
     if (event.action === 'select-success') return canonicalTtsJson({ action: event.action, renderIdentity: event.renderIdentity, eventSequence: event.eventSequence, resultIdentity: event.resultIdentity, audioRunId: event.audioRunId })
     return canonicalTtsJson(withoutSequence(event))
   }
-  const existingPointerIdentities = new Set(pointerEvents.map(pointerIdentity))
+  const existingPointerOccurrences = new Map<string, number>()
+  for (const event of pointerEvents) {
+    const identity = pointerIdentity(event)
+    existingPointerOccurrences.set(identity, (existingPointerOccurrences.get(identity) ?? 0) + 1)
+  }
+  const incomingPointerOccurrences = new Map<string, number>()
   const reactivatedBranches = new Set<string>()
+  const incomingActiveRenderPointerIdentity = incoming.activeWork?.kind === 'render'
+    ? canonicalTtsJson({
+        action: 'activate-render',
+        renderIdentity: incoming.activeWork.renderIdentity,
+        eventSequence: eventSequenceByIncoming.get(`${incoming.activeWork.renderIdentity}\0${incoming.activeWork.eventSequence}`)
+          ?? incoming.activeWork.eventSequence
+      })
+    : undefined
+  let reactivatedRender = false
   for (const event of remappedIncomingPointers) {
     const identity = pointerIdentity(event as CanonicalAudioProviderProjection['pointerEvents'][number])
-    const latestIdentity = pointerEvents.length > 0
-      ? pointerIdentity(pointerEvents[pointerEvents.length - 1] as CanonicalAudioProviderProjection['pointerEvents'][number])
-      : undefined
+    const occurrence = (incomingPointerOccurrences.get(identity) ?? 0) + 1
+    incomingPointerOccurrences.set(identity, occurrence)
+    const existingOccurrences = existingPointerOccurrences.get(identity) ?? 0
     const isBranchReactivation = event.action === 'activate-branch'
       && branchesWithNewReadiness.has(event.branchPlanId)
       && !reactivatedBranches.has(event.branchPlanId)
-      && latestIdentity !== identity
-    const isRenderReactivation = event.action === 'activate-render' && latestIdentity !== identity
-    const isExplicitReactivation = isBranchReactivation || isRenderReactivation
-    if (existingPointerIdentities.has(identity) && !isExplicitReactivation) continue
+    const isRenderReactivation = event.action === 'activate-render'
+      && branchesWithNewReadiness.size > 0
+      && identity === incomingActiveRenderPointerIdentity
+      && !reactivatedRender
+    if (occurrence <= existingOccurrences && !isBranchReactivation && !isRenderReactivation) continue
     pointerEvents.push({ ...event, sequence: pointerSequence++ } as CanonicalAudioProviderProjection['pointerEvents'][number])
+    existingPointerOccurrences.set(identity, Math.max(occurrence, existingOccurrences + 1))
     if (isBranchReactivation && event.action === 'activate-branch') reactivatedBranches.add(event.branchPlanId)
-    existingPointerIdentities.add(identity)
+    if (isRenderReactivation) reactivatedRender = true
   }
 
   const activeWork = incoming.activeWork?.kind === 'render'

@@ -80,6 +80,28 @@ describe('TTS provider service contracts', () => {
       })
     }, 10_000)
 
+  test('Hume Octave 1 selects API version 1 and serializes acting descriptions', async () => {
+      const dir = await makeTempDir('autoshow-hume-tts-octave-1-')
+      const audioBytes = await Bun.file(LOCAL_SHORT_AUDIO_PATH).arrayBuffer()
+      process.env['HUME_API_KEY'] = 'hume-key'
+      const calls = installMockFetch(() => new Response(audioBytes, { status: 200, headers: { 'content-type': 'audio/mpeg' } }))
+
+      await runHumeTts('Directed synthesis.', dir, {
+        model: 'octave-1',
+        voice: '123e4567-e89b-12d3-a456-426614174000',
+        description: 'quiet reassurance'
+      })
+
+      expect(calls[0]?.bodyJson).toMatchObject({
+        version: '1',
+        utterances: [{
+          text: 'Directed synthesis.',
+          voice: { id: '123e4567-e89b-12d3-a456-426614174000' },
+          description: 'quiet reassurance'
+        }]
+      })
+    }, 10_000)
+
   test('Hume TTS includes non-OK response text in errors', async () => {
       const dir = await makeTempDir('autoshow-hume-tts-error-')
       process.env['HUME_API_KEY'] = 'hume-key'

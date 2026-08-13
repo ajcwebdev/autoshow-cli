@@ -273,6 +273,13 @@ export type VoiceEffectPlan = {
   settingsHash: string
 }
 
+export type DialogueTimingCue = {
+  kind: 'beat' | 'pause' | 'long-pause'
+  afterTextOffset: number
+  durationMs: number
+  sourceSpan: CanonicalDialogueSourceSpan
+}
+
 export type CanonicalDialogueSourceSpan = {
   kind: 'spoken-text' | 'delivery' | 'stage-direction' | 'timing' | 'voice-effect' | 'simultaneous-speech' | 'scene-boundary'
   start: number
@@ -291,6 +298,7 @@ export type CanonicalDialogueTurn = {
   sourceSpans?: CanonicalDialogueSourceSpan[] | undefined
   delivery?: DeliveryPlan | undefined
   effect?: VoiceEffectPlan | undefined
+  timingCues?: DialogueTimingCue[] | undefined
 }
 
 export type CanonicalDialoguePlanNode =

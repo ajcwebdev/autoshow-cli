@@ -5,6 +5,7 @@ import { join } from 'node:path'
 import type { CharacterVoiceBrief, ProviderVoiceRef, TtsRequestEvidenceScope, TtsSerializedRequestObservation, TtsTarget, TtsVoiceProvider } from '~/types'
 import { validateProviderVoiceRef } from '~/cli/commands/process-steps/step-4-tts/script-to-audio/contract-validation'
 import { planCurrentTtsReadiness } from '~/cli/commands/process-steps/step-4-tts/script-to-audio/current-render-attempt'
+import { listHumeVoiceIdsForReadiness } from '~/cli/commands/process-steps/step-4-tts/tts-targets/execution-preflight'
 import type { AdvancedProviderHttpRequest } from '~/cli/commands/process-steps/step-4-tts/script-to-audio/advanced-provider-contracts'
 import { hashCanonicalTtsValue } from '~/cli/commands/process-steps/step-4-tts/script-to-audio/contract-identity'
 import {
@@ -105,16 +106,50 @@ describe('Phase 3 capability and catalog contracts', () => {
   })
 
   test('Hume normalizes stable library/custom IDs and rejects ambiguous display names', async () => {
-    const request: AdvancedProviderHttpRequest = async <T>(input: Parameters<AdvancedProviderHttpRequest>[0]): Promise<T> => [
-      { id: input.query?.['provider'] === 'CUSTOM_VOICE' ? 'custom-1' : 'stock-1', name: 'Guide', provider: input.query?.['provider'] }
-    ] as T
+    const calls: Parameters<AdvancedProviderHttpRequest>[0][] = []
+    const request: AdvancedProviderHttpRequest = async <T>(input: Parameters<AdvancedProviderHttpRequest>[0]): Promise<T> => {
+      calls.push(input)
+      return {
+        page_number: Number(input.query?.['page_number'] ?? '0'), page_size: 100, total_pages: 2,
+        voices_page: [{ id: input.query?.['provider'] === 'CUSTOM_VOICE' ? 'custom-1' : 'stock-1', name: 'Guide', provider: input.query?.['provider'] }]
+      } as T
+    }
     const adapter = createHumeAdvancedProvider({ apiKey: 'hume-key', request, now: () => CHECKED_AT })
     const stock = await adapter.catalog!.list({ source: 'provider-library' })
-    const custom = await adapter.catalog!.list({ source: 'account' })
+    const custom = await adapter.catalog!.list({ source: 'account', cursor: '1' })
     expect(stock.entries[0]).toEqual(expect.objectContaining({ resourceId: 'stock-1', origin: 'provider-stock' }))
     expect(custom.entries[0]).toEqual(expect.objectContaining({ resourceId: 'custom-1', origin: 'imported-custom' }))
+    expect(stock.nextCursor).toBe('1')
+    expect(custom.nextCursor).toBeUndefined()
+    expect(calls).toEqual([
+      expect.objectContaining({ query: { provider: 'HUME_AI', page_number: '0', page_size: '100' } }),
+      expect.objectContaining({ query: { provider: 'CUSTOM_VOICE', page_number: '1', page_size: '100' } })
+    ])
     expect(resolveUniqueHumeVoiceName(custom.entries, 'Guide').resourceId).toBe('custom-1')
     expect(() => resolveUniqueHumeVoiceName([...custom.entries, { ...custom.entries[0]!, resourceId: 'custom-2' }], 'Guide')).toThrow('exactly one stable provider ID')
+  })
+
+  test('Hume readiness collects every voice-catalog page from both namespaces', async () => {
+    const calls: string[] = []
+    const fetchImpl = (async (input: Parameters<typeof fetch>[0]) => {
+      const url = new URL(String(input))
+      calls.push(url.search)
+      const provider = url.searchParams.get('provider')
+      const pageNumber = Number(url.searchParams.get('page_number'))
+      return Response.json({
+        page_number: pageNumber,
+        page_size: 100,
+        total_pages: provider === 'CUSTOM_VOICE' ? 2 : 1,
+        voices_page: [{ id: `${provider}-${pageNumber}`, name: 'Voice', provider }]
+      })
+    }) as typeof fetch
+    const ids = await listHumeVoiceIdsForReadiness('hume-key', fetchImpl)
+    expect([...ids]).toEqual(['HUME_AI-0', 'CUSTOM_VOICE-0', 'CUSTOM_VOICE-1'])
+    expect(calls).toEqual([
+      '?provider=HUME_AI&page_number=0&page_size=100',
+      '?provider=CUSTOM_VOICE&page_number=0&page_size=100',
+      '?provider=CUSTOM_VOICE&page_number=1&page_size=100'
+    ])
   })
 })
 
@@ -282,10 +317,10 @@ describe('Phase 3 native planning, prepared text, timing, and continuation', () 
 
   test('ElevenLabs delivery tags retain scalar source maps and provider alignment maps back to turns', () => {
     const prepared = prepareElevenLabsDialogueText('Hi 👋', 'softly')
-    expect(prepared.providerText).toBe('[softly] Hi 👋')
+    expect(prepared.providerText).toBe('[whispers] Hi 👋')
     expect(prepared.spans).toEqual([
-      { kind: 'provider-only', providerStart: 0, providerEnd: 9, transform: 'v3-delivery-audio-tag' },
-      { kind: 'mapped', canonicalStart: 0, canonicalEnd: 4, providerStart: 9, providerEnd: 13 }
+      { kind: 'provider-only', providerStart: 0, providerEnd: 11, transform: 'v3-delivery-audio-tag' },
+      { kind: 'mapped', canonicalStart: 0, canonicalEnd: 4, providerStart: 11, providerEnd: 15 }
     ])
     const batches = planElevenLabsNativeDialogueBatches([
       { turnId: 'one', subjectKey: 'hero', speaker: 'Hero', canonicalText: 'Hi 👋', voiceId: 'voice-1', delivery: 'softly' },
@@ -317,6 +352,17 @@ describe('Phase 3 native planning, prepared text, timing, and continuation', () 
     expect(timing.characters?.find(character => character.text === '[')?.canonicalStart).toBeUndefined()
     expect(timing.characters?.find(character => character.text === 'H')?.canonicalStart).toBe(0)
     expect(timing.characters?.find(character => character.turnId === 'two')?.providerStart).toBe(0)
+  })
+
+  test('ElevenLabs delivery tags serialize only documented bounded controls and never arbitrary stage prose', () => {
+    const prepared = prepareElevenLabsDialogueText('Ready.', 'Relaxed, low-key, and casually precise; shifts into focused pilot mode — never rushed/forced')
+    expect(prepared.providerText).toBe('Ready.')
+    expect(prepared.spans).toEqual([
+      { kind: 'mapped', canonicalStart: 0, canonicalEnd: 6, providerStart: 0, providerEnd: 6 }
+    ])
+
+    expect(prepareElevenLabsDialogueText('No.', 'quietly indignant').providerText).toBe('[whispers] [angry] No.')
+    expect(prepareElevenLabsDialogueText('Hold on.', 'exhaling, filing this away for later').providerText).toBe('[exhales] Hold on.')
   })
 
   test('Hume enforces Octave 2 direction constraints and maps nested word/phoneme timestamps to source turns', () => {

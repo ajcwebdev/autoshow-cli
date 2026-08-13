@@ -547,6 +547,7 @@ export const validateSpeechifyTtsAudioFormat = (value: string): string => {
 }
 
 export const SUPPORTED_HUME_TTS_MODELS = [
+  'octave-1',
   'octave-2'
 ] as const satisfies readonly string[]
 

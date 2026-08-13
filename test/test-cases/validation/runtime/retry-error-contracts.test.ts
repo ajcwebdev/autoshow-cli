@@ -1,7 +1,7 @@
 import { describe, expect, test } from 'bun:test'
 import { createHostedTtsChunkScheduler } from '~/cli/commands/process-steps/step-4-tts/tts-utils/hosted-tts-chunk-scheduler'
 import { withHostedTtsRetry } from '~/cli/commands/process-steps/step-4-tts/tts-utils/hosted-tts-retry'
-import { AppError } from '~/utils/error-handler'
+import { AppError, CLIUsageError } from '~/utils/error-handler'
 import { exec } from '~/utils/cli-utils'
 import { classifyFetchRetry, pollUntil, withRetry } from '~/utils/retries'
 
@@ -150,6 +150,22 @@ describe('retry error contracts', () => {
         throw badRequest
       }
     )).rejects.toBe(badRequest)
+    expect(attempts).toBe(1)
+  })
+
+  test('withHostedTtsRetry does not retry deterministic local contract errors', async () => {
+    let attempts = 0
+    const contractError = CLIUsageError('serializer evidence does not match the immutable plan')
+    await expect(withHostedTtsRetry(
+      {
+        operationName: 'hosted-tts-local-contract-error',
+        policy: { ...FAST_RETRY_POLICY, maxAttempts: 4 }
+      },
+      async () => {
+        attempts += 1
+        throw contractError
+      }
+    )).rejects.toBe(contractError)
     expect(attempts).toBe(1)
   })
 

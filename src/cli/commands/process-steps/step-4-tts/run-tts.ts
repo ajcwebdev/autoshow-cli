@@ -14,7 +14,7 @@ import { runMultiSpeakerTts } from './run-multi-speaker-tts'
 import { CLIUsageError, InternalError } from '~/utils/error-handler'
 import { createHostedTtsChunkScheduler } from './tts-utils/hosted-tts-chunk-scheduler'
 import type { CurrentTtsObservedTurn, CurrentTtsRenderArtifacts } from './script-to-audio/current-render-artifacts'
-import { createCurrentTtsRenderAttempt, prepareCurrentTtsCompletedRecovery, resolveCurrentTtsPriorAdmittedAttemptCount, validateCurrentTtsRenderAttemptInputs } from './script-to-audio/current-render-attempt'
+import { createCurrentTtsRenderAttempt, planCurrentTtsRenderIdentity, prepareCurrentTtsCompletedRecovery, resolveCurrentTtsPriorAdmittedAttemptCount, validateCurrentTtsRenderAttemptInputs } from './script-to-audio/current-render-attempt'
 import { createCurrentTtsBlockedReadinessState } from './script-to-audio/current-readiness-attempt'
 
 const getMetadataAudioPath = (outputDir: string, metadata: Step4Metadata): string =>
@@ -26,7 +26,41 @@ type WorkingTtsMetadata = Step4Metadata & {
 }
 
 type WorkingTtsResult = Step4Metadata & {
-  _renderArtifacts: CurrentTtsRenderArtifacts
+  _renderArtifacts?: CurrentTtsRenderArtifacts | undefined
+}
+
+const selectBoundedExecutionOptions = (
+  options: TtsOptions,
+  selection: readonly { turnId: string, providerSegmentIndex: number }[] | undefined
+): TtsOptions => {
+  if (!selection) return options
+  const selectedByTurn = new Map<string, number[]>()
+  for (const entry of selection) selectedByTurn.set(entry.turnId, [...(selectedByTurn.get(entry.turnId) ?? []), entry.providerSegmentIndex])
+  const selectedTurns = options.ttsCanonicalTurns?.flatMap((turn) => {
+    const indexes = selectedByTurn.get(turn.turnId)
+    if (!indexes?.length) return []
+    const providerSegments = turn.providerSegments?.length ? turn.providerSegments : [turn.text]
+    return [{
+      ...turn,
+      providerSegments: indexes.map((index) => {
+        const segment = providerSegments[index]
+        if (segment === undefined) throw CLIUsageError(`Bounded TTS execution selected missing provider segment ${index} for ${turn.turnId}.`)
+        return segment
+      }),
+      providerSegmentIndexes: indexes
+    }]
+  })
+  if (!selectedTurns?.length) throw CLIUsageError('Bounded TTS execution did not select any canonical dialogue turns.')
+  const selectedTurnIds = new Set(selectedTurns.map(turn => turn.turnId))
+  const selectedTurnControls = options.ttsTurnControls
+    ? Object.fromEntries(Object.entries(options.ttsTurnControls).filter(([turnId]) => selectedTurnIds.has(turnId)))
+    : undefined
+  return {
+    ...options,
+    ttsCanonicalTurns: selectedTurns,
+    ...(selectedTurnControls ? { ttsTurnControls: selectedTurnControls } : {}),
+    ttsChunkConcurrency: 1
+  }
 }
 
 export type TtsRunSourceContext = {
@@ -161,10 +195,21 @@ export const runTtsTargets = async (
     }
     const retainedState = target.targetKey ? retainedByTargetKey.get(target.targetKey) : undefined
     const retainedNamespace = retainedState?.operation === 'comic-audio' ? 'comicAudio' : 'ttsAudio'
-    const retainedProjection = retainedState?.result?.[retainedNamespace] as { activeWork?: { kind?: unknown } } | undefined
+    const retainedProjection = retainedState?.result?.[retainedNamespace] as { activeWork?: { kind?: unknown }, renderHistory?: Array<{ renderIdentity?: unknown }> } | undefined
     let recoveredSlots: Extract<NonNullable<Awaited<ReturnType<typeof prepareCurrentTtsCompletedRecovery>>>, { kind: 'partial-slots' }>['recoveredSlots'] | undefined
     let retainedCumulativePlannedCost: Extract<NonNullable<Awaited<ReturnType<typeof prepareCurrentTtsCompletedRecovery>>>, { kind: 'partial-slots' }>['retainedCumulativePlannedCost'] | undefined
-    if (retainedState && retainedProjection?.activeWork?.kind === 'render') {
+    const plannedRenderIdentity = retainedState && retainedProjection?.activeWork?.kind === 'render'
+      ? planCurrentTtsRenderIdentity({
+          target,
+          sourceText: text,
+          ttsOptions: options,
+          sourceIdentity: sourceContext?.sourceIdentity,
+          dialoguePlan: sourceContext?.dialoguePlan,
+          comicContext: sourceContext?.comicContext,
+        }).renderIdentity
+      : undefined
+    const retainedHasPlannedRender = plannedRenderIdentity !== undefined && retainedProjection?.renderHistory?.some(render => render.renderIdentity === plannedRenderIdentity) === true
+    if (retainedState && retainedProjection?.activeWork?.kind === 'render' && retainedHasPlannedRender) {
       const recovery = await prepareCurrentTtsCompletedRecovery({
         rootDir: sourceContext?.recoveryRootDir ?? sourceContext?.artifactOutputDir ?? outputDir,
         state: retainedState,
@@ -274,8 +319,30 @@ export const runTtsTargets = async (
       const attempt = attempts.get(target)
       if (!attempt) throw InternalError(`Missing prepared TTS render attempt for ${target.service}/${target.model}.`, { stage: 'tts:run' })
       try {
-        const { audioPath, metadata: rawMetadata } = await target.run(text, workspaceDir, options, undefined, attempt.requestEvidence)
+        const executionOptions = selectBoundedExecutionOptions(options, attempt.executionSelection)
+        const { audioPath, metadata: rawMetadata } = await target.run(text, workspaceDir, executionOptions, undefined, attempt.requestEvidence)
         const { _ttsObservedTurns: _ignoredTurns, _ttsRenderStrategy: _ignoredStrategy, ...metadata } = rawMetadata as WorkingTtsMetadata
+        if (attempt.executionSelection) {
+          const checkpoint = await attempt.finalizeCheckpoint()
+          return {
+            ...metadata,
+            audioFileName: rawMetadata.audioFileName,
+            audioFileSize: Bun.file(audioPath).size,
+            operation: checkpoint.operation,
+            targetKey: checkpoint.targetKey,
+            transport: checkpoint.transport,
+            artifactDir: checkpoint.artifactDir,
+            renderIdentity: checkpoint.renderIdentity,
+            renderStrategy: checkpoint.strategy,
+            generationCheckpoint: {
+              completedGenerationSlotIds: checkpoint.completedGenerationSlotIds,
+              remainingGenerationSlotCount: checkpoint.remainingGenerationSlotCount
+            },
+            ...(checkpoint.operation === 'comic-audio'
+              ? { comicAudio: checkpoint.projection }
+              : { ttsAudio: checkpoint.projection })
+          } as WorkingTtsResult
+        }
         const renderArtifacts = await attempt.finalizeSuccess(audioPath, reportedOutput.path)
         return {
           ...metadata,
@@ -349,14 +416,14 @@ export const runTtsForTargets = async (
     }))
     const metadata = await runTtsTargets(wrappedTargets, text, outputDir, options, sourceContext)
     return {
-      audioPaths: metadata.map((entry) => getMetadataAudioPath(outputDir, entry)),
+      audioPaths: metadata.filter((entry) => !entry.generationCheckpoint).map((entry) => getMetadataAudioPath(outputDir, entry)),
       metadata
     }
   }
 
   const metadata = await runTtsTargets(targets, text, outputDir, options, sourceContext)
   return {
-    audioPaths: metadata.map((entry) => getMetadataAudioPath(outputDir, entry)),
+    audioPaths: metadata.filter((entry) => !entry.generationCheckpoint).map((entry) => getMetadataAudioPath(outputDir, entry)),
     metadata
   }
 }

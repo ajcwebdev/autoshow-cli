@@ -71,7 +71,7 @@ export const runMultiSpeakerTts = async (
   const format = resolveDialogueFormat(options)
   const dialogue = options.ttsCanonicalTurns
     ? {
-        turns: options.ttsCanonicalTurns.map(turn => ({ speaker: turn.speaker, text: turn.text })),
+        turns: options.ttsCanonicalTurns.map(turn => ({ speaker: turn.speaker, text: turn.text, providerSegments: turn.providerSegments, providerSegmentIndexes: turn.providerSegmentIndexes })),
         normalizedText: options.ttsCanonicalTurns.map(turn => `${turn.speaker}: ${turn.text}`).join('\n'),
         spokenCharacterCount: options.ttsCanonicalTurns.reduce((sum, turn) => sum + [...turn.text].length, 0),
       }
@@ -128,7 +128,7 @@ export const runMultiSpeakerTts = async (
     workspaceDir: string,
     signal: AbortSignal
   ): Promise<{ path: string, turn: CurrentTtsObservedTurn }> => {
-    const turn = dialogue.turns[i] as { speaker: string, text: string }
+    const turn = dialogue.turns[i] as { speaker: string, text: string, providerSegments?: readonly string[] | undefined, providerSegmentIndexes?: readonly number[] | undefined }
     const speakerMapping = getSpeakerVoice(registry, turn.speaker)
     const index = String(i + 1).padStart(3, '0')
     const segmentFileName = `segment-${index}-${sanitizeSegmentName(turn.speaker)}.wav`
@@ -138,7 +138,7 @@ export const runMultiSpeakerTts = async (
       ? target.protectedSpeakerVoiceAssets?.[speakerMapping.normalizedSpeaker] ?? target.protectedVoiceAsset
       : undefined
     const invocationProtectedAsset = protectedAsset ? cloneProtectedAssetRef(protectedAsset) : undefined
-    const invocation: TtsTargetInvocation = Object.freeze({
+    const baseInvocation: TtsTargetInvocation = Object.freeze({
       sourceId: turnIds[i] as string,
       sourceIndex: i,
       speaker: turn.speaker,
@@ -152,32 +152,50 @@ export const runMultiSpeakerTts = async (
       controls: resolveTtsTurnControlOverrides(target.service, turnIds[i] as string, turnControls),
       signal
     })
-    const invocationEvidence = requestEvidence?.forInvocation?.(invocation) ?? requestEvidence
-    const recovered = await invocationEvidence?.recoverCompletedOutputs?.()
-    let turnAudioPath: string
+    const providerSegments = turn.providerSegments?.length ? [...turn.providerSegments] : [turn.text]
+    const providerSegmentIndexes = turn.providerSegmentIndexes?.length
+      ? [...turn.providerSegmentIndexes]
+      : providerSegments.map((_segment, providerSegmentIndex) => providerSegmentIndex)
+    if (providerSegmentIndexes.length !== providerSegments.length) throw new Error('Canonical TTS provider segment indexes do not match the selected provider segments.')
+    const providerSegmentPaths: string[] = []
     let observedSpeaker: string | undefined
-    if (recovered) {
-      signal.throwIfAborted()
-      turnAudioPath = await concatAndConvertToWav(
-        [...recovered.paths],
-        workspaceDir,
-        `${target.service}-recovered-turn-${index}`,
-        signal,
-        options.ttsMasteringProfile
-      )
-    } else {
-      const release = target.service === 'kitten' && options.generationResourceGate
-        ? await options.generationResourceGate.acquire()
-        : undefined
-      try {
+    for (const [selectedSegmentIndex, providerText] of providerSegments.entries()) {
+      const providerSegmentIndex = providerSegmentIndexes[selectedSegmentIndex] as number
+      const invocation: TtsTargetInvocation = Object.freeze({ ...baseInvocation, providerSegmentIndex })
+      const invocationEvidence = requestEvidence?.forInvocation?.(invocation) ?? requestEvidence
+      const recovered = await invocationEvidence?.recoverCompletedOutputs?.()
+      const providerSegmentWorkspace = `${workspaceDir}/provider-segment-${String(providerSegmentIndex + 1).padStart(3, '0')}`
+      await ensureDirectory(providerSegmentWorkspace)
+      if (recovered) {
         signal.throwIfAborted()
-        const result = await target.run(turn.text, workspaceDir, options, invocation, invocationEvidence)
-        turnAudioPath = result.audioPath
-        observedSpeaker = result.metadata.speaker?.trim()
-      } finally {
-        release?.()
+        providerSegmentPaths.push(await concatAndConvertToWav(
+          [...recovered.paths],
+          providerSegmentWorkspace,
+          `${target.service}-recovered-provider-segment-${String(providerSegmentIndex + 1).padStart(3, '0')}`,
+          signal,
+          options.ttsMasteringProfile
+        ))
+      } else {
+        const release = target.service === 'kitten' && options.generationResourceGate
+          ? await options.generationResourceGate.acquire()
+          : undefined
+        try {
+          signal.throwIfAborted()
+          const result = await target.run(providerText, providerSegmentWorkspace, options, invocation, invocationEvidence)
+          providerSegmentPaths.push(result.audioPath)
+          observedSpeaker = result.metadata.speaker?.trim() ?? observedSpeaker
+        } finally {
+          release?.()
+        }
       }
     }
+    const turnAudioPath = await concatAndConvertToWav(
+      providerSegmentPaths,
+      workspaceDir,
+      `${target.service}-turn-${index}`,
+      signal,
+      options.ttsMasteringProfile
+    )
     await rename(turnAudioPath, segmentPath)
     const observedVoice = speakerMapping.voiceKind === 'id' && observedSpeaker
       ? observedSpeaker
@@ -185,7 +203,7 @@ export const runMultiSpeakerTts = async (
     return {
       path: segmentPath,
       turn: {
-        turnId: invocation.sourceId,
+        turnId: baseInvocation.sourceId,
         sourceIndex: i,
         speaker: turn.speaker,
         text: turn.text,

@@ -4,7 +4,8 @@ import { join } from 'node:path'
 import { runTtsForTargets } from '~/cli/commands/process-steps/step-4-tts/run-tts'
 import { writeGenerationMetadata } from '~/cli/commands/process-steps/generation-command-utils'
 import { PIPELINE_MANIFEST_FILE, readManifest, writeManifest } from '~/cli/commands/process-steps/pipeline-manifest'
-import { buildCurrentTtsProviderState } from '~/cli/commands/process-steps/step-4-tts/script-to-audio/current-render-artifacts'
+import { appendCurrentTtsProviderState, buildCurrentTtsProviderState } from '~/cli/commands/process-steps/step-4-tts/script-to-audio/current-render-artifacts'
+import { planCurrentTtsResumePrice } from '~/cli/commands/process-steps/step-4-tts/script-to-audio/current-render-attempt'
 import { createGenericTtsDialoguePlan, createInlineTtsSourceIdentity, createSingleTurnTtsDialoguePlan } from '~/cli/commands/process-steps/step-4-tts/script-to-audio/generic-dialogue-plan'
 import { bindTtsDialoguePlanArtifact, materializeTtsDialoguePlanArtifact } from '~/cli/commands/process-steps/step-4-tts/script-to-audio/item-dialogue-plan-artifact'
 import { canonicalTtsJson, hashCanonicalRecordWithout, hashCanonicalTtsValue, sha256Bytes } from '~/cli/commands/process-steps/step-4-tts/script-to-audio/contract-identity'
@@ -148,6 +149,39 @@ const createDialogueFixtureTarget = (
   }
 }
 
+const createRejectedDialogueFixtureTarget = (
+  calls: number[],
+  model = 'fixture-dialogue-recovery-model'
+): TtsTarget => ({
+  service: 'openai',
+  model,
+  operation: 'tts-synthesis',
+  transport: 'hosted-api',
+  targetKey: canonicalTargetKey('tts-synthesis', 'openai', model, 'hosted-api'),
+  multiSpeakerStrategy: 'segment-and-concat',
+  run: async (text, _outputDir, _options, invocation, requestEvidence) => {
+    const sourceIndex = invocation?.sourceIndex ?? -1
+    calls.push(sourceIndex)
+    const voice = invocation?.voice.value ?? 'alloy'
+    await requestEvidence?.dispatch({
+      chunkIndex: 1,
+      endpointKind: 'speech-synthesis',
+      serializerVersion: 'openai.tts.phase-0-v1',
+      serializedRequest: { body: { input: text, voice, response_format: 'wav' } },
+      providerText: text,
+      voiceField: 'voice',
+      voices: [{ kind: 'provider-id', value: voice }],
+      requestControls: { responseFormat: 'wav' },
+      continuation: { kind: 'none' }
+    }, { attempt: 1 }, async () => {
+      const error = new Error('fixture provider rejected request')
+      Object.defineProperty(error, 'status', { value: 400, configurable: true })
+      throw error
+    })
+    throw new Error('fixture rejection unexpectedly returned')
+  }
+})
+
 const latestJournalForState = async (
   rootDir: string,
   state: PipelineProviderState
@@ -220,6 +254,87 @@ describe('TTS completed-render recovery', () => {
         onProviderState: async () => {}
       })).rejects.toThrow('automatic redispatch is blocked')
       expect(providerCalls).toBe(callsBeforeResume)
+    })
+  })
+
+  test('advances an earlier attempt orphan frontier and reports its accepted request without redispatch', async () => {
+    await withTempDir('autoshow-tts-historical-orphan-reconciliation-', async (dir) => {
+      const text = 'Host: Retain this turn.\nGuest: Lose this accepted response.'
+      const sourceIdentity = createInlineTtsSourceIdentity(text)
+      const dialoguePlan = createGenericTtsDialoguePlan(sourceIdentity, text, DIALOGUE_OPTIONS, new Date(0).toISOString())
+      const firstCalls: number[] = []
+      let retainedBeforeAccepted: PipelineProviderState | undefined
+      let injected = false
+      await expect(runTtsForTargets(text, dir, DIALOGUE_OPTIONS, [createDialogueFixtureTarget(firstCalls)], {
+        sourceIdentity,
+        dialoguePlan,
+        beforeDispatch: async () => {},
+        onProviderState: async (state) => {
+          const journal = await latestJournalForState(dir, state)
+          const secondRequest = journal?.requests.find((request) => request.requestOrdinal === 2)
+          if (!injected && secondRequest?.transitions.at(-1)?.state === 'provider-accepted') {
+            injected = true
+            throw new Error('fixture crash after historical provider acceptance')
+          }
+          if (injected) throw new Error('fixture canonical commit remains unavailable')
+          retainedBeforeAccepted = state
+        }
+      })).rejects.toThrow('No TTS outputs were generated')
+      if (!retainedBeforeAccepted) throw new Error('Missing pre-acceptance historical provider state')
+      expect(firstCalls).toEqual([0, 1])
+      const orphanPrice = await planCurrentTtsResumePrice({
+        rootDir: dir,
+        state: retainedBeforeAccepted,
+        target: createDialogueFixtureTarget([]),
+        sourceText: text,
+        ttsOptions: DIALOGUE_OPTIONS,
+        sourceIdentity,
+        dialoguePlan
+      })
+      expect(orphanPrice.reconciliationBlockers).toEqual([expect.objectContaining({ state: 'provider-accepted', attempt: 1, requestOrdinal: 2 })])
+
+      const rejectedCalls: number[] = []
+      const rejectedStates: PipelineProviderState[] = []
+      let mergedRejectedState = retainedBeforeAccepted
+      await expect(runTtsForTargets(text, dir, { ...DIALOGUE_OPTIONS, ttsAllowAmbiguousRedispatch: true }, [createRejectedDialogueFixtureTarget(rejectedCalls)], {
+        sourceIdentity,
+        dialoguePlan,
+        retainedProviderStates: [retainedBeforeAccepted],
+        recoveryRootDir: dir,
+        beforeDispatch: async () => {},
+        onProviderState: async (state) => {
+          mergedRejectedState = appendCurrentTtsProviderState(mergedRejectedState, state)
+          rejectedStates.push(mergedRejectedState)
+        }
+      })).rejects.toThrow('No TTS outputs were generated')
+      expect(rejectedCalls).toEqual([1])
+      const rejectedState = rejectedStates.at(-1)
+      if (!rejectedState) throw new Error('Missing rejected follow-up provider state')
+
+      const price = await planCurrentTtsResumePrice({
+        rootDir: dir,
+        state: rejectedState,
+        target: createDialogueFixtureTarget([]),
+        sourceText: text,
+        ttsOptions: DIALOGUE_OPTIONS,
+        sourceIdentity,
+        dialoguePlan
+      })
+      expect(price.recoveredSlotCount).toBe(1)
+      expect(price.unresolvedSlotCount).toBe(1)
+      expect(price.plannedSlotCount).toBe(1)
+      expect(price.reconciliationBlockers).toEqual([expect.objectContaining({ state: 'provider-accepted', attempt: 1, requestOrdinal: 2 })])
+
+      const blockedCalls: number[] = []
+      await expect(runTtsForTargets(text, dir, DIALOGUE_OPTIONS, [createDialogueFixtureTarget(blockedCalls)], {
+        sourceIdentity,
+        dialoguePlan,
+        retainedProviderStates: [rejectedState],
+        recoveryRootDir: dir,
+        beforeDispatch: async () => {},
+        onProviderState: async () => {}
+      })).rejects.toThrow(/provider-accepted provider work in attempt 1, request 2/)
+      expect(blockedCalls).toEqual([])
     })
   })
 
@@ -302,6 +417,118 @@ describe('TTS completed-render recovery', () => {
       const manifest = await readManifest(dir)
       expect(manifest?.items[0]?.status).toBe('full')
       expect(manifest?.items[0]?.providers[0]?.result).toEqual({ ttsAudio: metadata.ttsAudio })
+    })
+  })
+
+  test('checkpoints exactly one unresolved segmented slot without publishing a final audio run', async () => {
+    await withTempDir('autoshow-tts-one-slot-checkpoint-', async (dir) => {
+      const text = 'Host: First turn.\nGuest: Second turn.\nHost: Third turn.'
+      const checkpointOptions: TtsOptions = {
+        ...DIALOGUE_OPTIONS,
+        ttsMaxGenerationSlots: 1,
+        ttsTurnControls: {
+          'dialogue-turn-001': { openai: {} },
+          'dialogue-turn-002': { openai: {} },
+          'dialogue-turn-003': { openai: {} }
+        },
+        ttsCanonicalTurns: [
+          { turnId: 'dialogue-turn-001', speaker: 'Host', text: 'First turn.' },
+          { turnId: 'dialogue-turn-002', speaker: 'Guest', text: 'Second turn.' },
+          { turnId: 'dialogue-turn-003', speaker: 'Host', text: 'Third turn.' }
+        ]
+      }
+      const sourceIdentity = createInlineTtsSourceIdentity(text)
+      const dialoguePlan = createGenericTtsDialoguePlan(sourceIdentity, text, checkpointOptions, new Date(0).toISOString())
+      const firstCalls: number[] = []
+      const firstTarget = createDialogueFixtureTarget(firstCalls)
+      const reportedOutput = join(dir, 'must-not-exist.wav')
+      const first = await runTtsForTargets(text, dir, checkpointOptions, [firstTarget], {
+        sourceIdentity,
+        dialoguePlan,
+        resolveReportedOutput: () => ({ path: reportedOutput, fileName: 'must-not-exist.wav' }),
+        beforeDispatch: async () => {},
+        onProviderState: async () => {}
+      })
+
+      expect(firstCalls).toHaveLength(1)
+      expect(first.audioPaths).toEqual([])
+      expect(await Bun.file(reportedOutput).exists()).toBe(false)
+      expect(first.metadata[0]?.generationCheckpoint?.completedGenerationSlotIds).toHaveLength(1)
+      expect(first.metadata[0]?.generationCheckpoint?.remainingGenerationSlotCount).toBe(2)
+      expect(first.metadata[0]?.ttsAudio?.selectedSuccess).toBeUndefined()
+      expect(first.metadata[0]?.ttsAudio?.renderHistory[0]?.events.at(-1)?.status).toBe('running')
+      const firstState = buildCurrentTtsProviderState(first.metadata[0]!)
+      expect(firstState.status).toBe('running')
+      const firstJournal = await latestJournalForState(dir, firstState)
+      expect(firstJournal?.plannedRequestCount).toBe(1)
+      expect(firstJournal?.requests).toHaveLength(1)
+
+      const secondCalls: number[] = []
+      const second = await runTtsForTargets(text, dir, checkpointOptions, [createDialogueFixtureTarget(secondCalls)], {
+        sourceIdentity,
+        dialoguePlan,
+        retainedProviderStates: [firstState],
+        recoveryRootDir: dir,
+        resolveReportedOutput: () => ({ path: reportedOutput, fileName: 'must-not-exist.wav' }),
+        beforeDispatch: async () => {},
+        onProviderState: async () => {}
+      })
+
+      expect(secondCalls).toHaveLength(1)
+      expect(second.audioPaths).toEqual([])
+      expect(await Bun.file(reportedOutput).exists()).toBe(false)
+      expect(second.metadata[0]?.generationCheckpoint?.completedGenerationSlotIds).toHaveLength(2)
+      expect(second.metadata[0]?.generationCheckpoint?.remainingGenerationSlotCount).toBe(1)
+      expect(second.metadata[0]?.ttsAudio?.selectedSuccess).toBeUndefined()
+      const secondSlotIds = second.metadata[0]?.generationCheckpoint?.completedGenerationSlotIds ?? []
+      expect(new Set(secondSlotIds).size).toBe(2)
+      const secondState = buildCurrentTtsProviderState(second.metadata[0]!)
+      const { ttsMaxGenerationSlots: _checkpointLimit, ...unboundedOptions } = checkpointOptions
+      const partialPrice = await planCurrentTtsResumePrice({
+        rootDir: dir,
+        state: secondState,
+        target: createDialogueFixtureTarget([]),
+        sourceText: text,
+        ttsOptions: unboundedOptions,
+        sourceIdentity,
+        dialoguePlan
+      })
+      const unresolvedSlot = partialPrice.readiness.renderPlan.batches
+        .flatMap((batch) => batch.generationSlots)
+        .find((slot) => !secondSlotIds.includes(slot.generationSlotId))
+      if (!unresolvedSlot) throw new Error('Missing unresolved pricing fixture slot')
+      expect(partialPrice.recoveryKind).toBe('partial-slots')
+      expect(partialPrice.recoveredSlotCount).toBe(2)
+      expect(partialPrice.unresolvedSlotCount).toBe(1)
+      expect(partialPrice.plannedSlotCount).toBe(1)
+      expect(partialPrice.plannedCost).toEqual(unresolvedSlot.plannedCost)
+
+      const thirdCalls: number[] = []
+      const third = await runTtsForTargets(text, dir, checkpointOptions, [createDialogueFixtureTarget(thirdCalls)], {
+        sourceIdentity,
+        dialoguePlan,
+        retainedProviderStates: [secondState],
+        recoveryRootDir: dir,
+        resolveReportedOutput: () => ({ path: reportedOutput, fileName: 'must-not-exist.wav' }),
+        beforeDispatch: async () => {},
+        onProviderState: async () => {}
+      })
+      expect(thirdCalls).toHaveLength(1)
+      expect(third.metadata[0]?.generationCheckpoint?.remainingGenerationSlotCount).toBe(0)
+      const completedPrice = await planCurrentTtsResumePrice({
+        rootDir: dir,
+        state: buildCurrentTtsProviderState(third.metadata[0]!),
+        target: createDialogueFixtureTarget([]),
+        sourceText: text,
+        ttsOptions: unboundedOptions,
+        sourceIdentity,
+        dialoguePlan
+      })
+      expect(completedPrice.recoveryKind).toBe('complete-render')
+      expect(completedPrice.recoveredSlotCount).toBe(3)
+      expect(completedPrice.unresolvedSlotCount).toBe(0)
+      expect(completedPrice.plannedSlotCount).toBe(0)
+      expect(completedPrice.plannedCost).toEqual({ amounts: [] })
     })
   })
 

@@ -4,6 +4,7 @@ import type {
   PipelineManifest,
   PipelineManifestItem,
   PipelineProviderState,
+  Step4Metadata,
   StructuredScriptArtifactRef,
 } from '~/types'
 import { CLIUsageError } from '~/utils/error-handler'
@@ -107,6 +108,7 @@ export const updateComicAudioManifest = async (input: {
   stage: CanonicalComicItemMetadata['stages']['audio']
   audio: CanonicalComicItemMetadata['audio']
   providers?: PipelineProviderState[] | undefined
+  ttsEvaluation?: Step4Metadata[] | undefined
 }): Promise<PipelineManifest> => await updateManifest(input.sceneRunDir, (manifest) => {
   if (manifest.command !== 'comic' || manifest.scope !== 'single' || manifest.items.length !== 1 || canonicalTtsJson(manifest.source) !== canonicalTtsJson(input.sourceIdentity)) {
     throw CLIUsageError('Comic audio can update only the exact compatible canonical scene manifest.')
@@ -114,13 +116,24 @@ export const updateComicAudioManifest = async (input: {
   const item = manifest.items[0]
   if (!item || item.input !== input.sourceIdentity.canonicalPath) throw CLIUsageError('Canonical comic source changed during audio generation.')
   const prior = comicMetadata(item)
+  if (input.providers?.some(provider => provider.operation !== 'comic-audio')) throw CLIUsageError('Comic audio stage updates may replace only comic-audio provider states.')
   const providers = input.providers === undefined
     ? item.providers
-    : [
-        ...item.providers.filter(provider => provider.operation !== 'comic-audio'),
-        ...input.providers,
-      ]
-  if (input.providers?.some(provider => provider.operation !== 'comic-audio')) throw CLIUsageError('Comic audio stage updates may replace only comic-audio provider states.')
+    : (() => {
+        const incomingByTarget = new Map(input.providers.map(provider => [provider.targetKey, provider] as const))
+        const priorAudio = item.providers.filter(provider => provider.operation === 'comic-audio')
+        const mergedAudio = priorAudio.map(provider => {
+          const incoming = incomingByTarget.get(provider.targetKey)
+          if (!incoming) return provider
+          incomingByTarget.delete(provider.targetKey)
+          return appendCurrentTtsProviderState(provider, incoming)
+        })
+        return [
+          ...item.providers.filter(provider => provider.operation !== 'comic-audio'),
+          ...mergedAudio,
+          ...incomingByTarget.values(),
+        ]
+      })()
   const requiredStages = [prior.stages.structure, prior.stages.image, input.stage].filter(stage => stage.requirement === 'required')
   const status = requiredStages.every(stage => stage.status === 'full' || stage.status === 'skipped') && requiredStages.some(stage => stage.status === 'full')
     ? 'full' as const
@@ -135,6 +148,7 @@ export const updateComicAudioManifest = async (input: {
     providers,
     metadata: {
       ...item.metadata,
+      ...(input.ttsEvaluation ? { tts: input.ttsEvaluation } : {}),
       comic: {
         schemaVersion: 1,
         stages: { ...prior.stages, audio: input.stage },

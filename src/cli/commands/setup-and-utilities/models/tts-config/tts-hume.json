@@ -3,6 +3,19 @@
     "description": "Hume Octave cloud text-to-speech",
     "type": "api",
     "models": {
+      "octave-1": {
+        "description": "Hume Octave 1 expressive text-to-speech with acting descriptions",
+        "pricingSourceUrl": "https://www.hume.ai/pricing",
+        "pricingCheckedAt": "2026-05-31",
+        "pricingCurrency": "USD",
+        "pricingTier": "Hume Octave API pay-as-you-go TTS pricing",
+        "pricingNotes": "Hume Octave 1 TTS is estimated at $0.15/1K characters. Plan inclusions, custom voice terms, enterprise pricing, taxes, and provider credits are ignored.",
+        "costPer1kCharsCents": 15,
+        "estimation": {
+          "costMultiplier": 1,
+          "msPer1KChars": 3000
+        }
+      },
       "octave-2": {
         "description": "Hume Octave 2 expressive text-to-speech",
         "pricingSourceUrl": "https://www.hume.ai/pricing",

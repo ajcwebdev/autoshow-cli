@@ -87,7 +87,7 @@ export const generateAudioCommandDefinition = defineCliCommand({
     notes: [
       'The command consumes a compatible existing comic scene run and never creates a replacement run.',
       'Every speaking subject requires an approved current registration for every selected provider/model/profile.',
-      'Price mode performs static planning only and writes no canonical, domain, or protected artifacts.',
+      'Price mode performs read-only planning, includes compatible retained render progress, and writes no canonical, domain, or protected artifacts.',
       ARTIFACT_NOTE,
     ],
   },

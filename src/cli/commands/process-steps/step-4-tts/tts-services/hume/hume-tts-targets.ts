@@ -58,6 +58,7 @@ export const collectHumeTtsTargets = (
           voiceProvider,
           speed: controls.speed,
           trailingSilence: controls.trailingSilence,
+          description: controls.description,
           chunkConcurrency: opts.ttsChunkConcurrency,
           chunkScheduler: opts.hostedTtsChunkScheduler,
           abortSignal: invocation?.signal,

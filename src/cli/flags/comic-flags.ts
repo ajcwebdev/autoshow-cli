@@ -100,6 +100,10 @@ const comicAudioSelectionFlags = pickFlags(ttsCommandFlags, [
 const comicAudioContractFlags = {
   profile: strFlag(colorizeHelpDescription('Approved casting profile key (default: default)')),
   mode: strFlag(colorizeHelpDescription('Render strategy: auto|native|segmented (default: auto)')),
+  'delivery-policy': strFlag(colorizeHelpDescription('Authored delivery handling: strict|best-effort (default: strict)')),
+  'pacing-profile': strFlag(colorizeHelpDescription('Deterministic local dialogue pacing: none|loose-comedy (default: none)')),
+  'allow-ambiguous-redispatch': boolFlag(colorizeHelpDescription('Explicitly authorize repurchasing a provider-admitted slot that has no recoverable audio')),
+  'max-generation-slots': strFlag(colorizeHelpDescription('Generate at most this many unresolved immutable slots, checkpoint, and exit without a final WAV')),
   role: strListFlag(colorizeHelpDescription('Map an uncatalogued or compound speaker label to a logical voice subject, LABEL=role:key or LABEL=voice:key; repeatable')),
   'sample-rate': strFlag(colorizeHelpDescription('Final WAV sample rate in Hz (default: 48000)')),
   channels: strFlag(colorizeHelpDescription('Final channel count: 1|2 (default: 2)')),

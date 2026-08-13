@@ -5,6 +5,7 @@ import { canonicalTargetKey } from '~/utils/canonical-target-key'
 import { getFfmpegBinary, getFfprobeBinary } from '~/utils/runtime-paths'
 import { isKittenTtsSetupReady } from '../tts-local/kitten/kitten-tts-targets'
 import { hasCachedKittenTtsModel } from '../tts-local/kitten/kitten-tts-model-cache'
+import { parseHumeVoiceCatalogEnvelope } from '../tts-services/hume/hume-advanced-provider'
 
 const HOSTED_TTS_CREDENTIALS = {
   elevenlabs: { env: 'ELEVENLABS_API_KEY', label: 'ElevenLabs TTS' },
@@ -118,6 +119,29 @@ const advancedVoiceBlockedObservation = (
   error: { phase: 'readiness', code, message, retryable, blockedReason: code }
 })
 
+export const listHumeVoiceIdsForReadiness = async (
+  apiKey: string,
+  fetchImpl: typeof fetch = fetch
+): Promise<Set<string>> => {
+  const availableIds = new Set<string>()
+  for (const provider of ['HUME_AI', 'CUSTOM_VOICE'] as const) {
+    let pageNumber = 0
+    let totalPages = 1
+    do {
+      const response = await fetchImpl(`https://api.hume.ai/v0/tts/voices?${new URLSearchParams({ provider, page_number: String(pageNumber), page_size: '100' })}`, { headers: { 'X-Hume-Api-Key': apiKey } })
+      if (!response.ok) throw new Error(`HTTP ${response.status}`)
+      const page = parseHumeVoiceCatalogEnvelope(await response.json())
+      if (page.pageNumber !== pageNumber) throw new Error('Hume voice catalog returned an unexpected page number.')
+      for (const value of page.voices) {
+        if (value && typeof value === 'object' && !Array.isArray(value) && typeof (value as { id?: unknown }).id === 'string') availableIds.add((value as { id: string }).id)
+      }
+      totalPages = page.totalPages
+      pageNumber++
+    } while (pageNumber < totalPages)
+  }
+  return availableIds
+}
+
 const checkAdvancedVoiceReadiness = async (
   target: TtsTarget,
   apiKey: string
@@ -145,13 +169,7 @@ const checkAdvancedVoiceReadiness = async (
       return { targetKey, accountState: 'available', status: 'ready' }
     }
     if (target.service === 'hume') {
-      const responses = await Promise.all(['HUME_AI', 'CUSTOM_VOICE'].map(async provider => {
-        const response = await fetch(`https://api.hume.ai/v0/tts/voices?${new URLSearchParams({ provider })}`, { headers: { 'X-Hume-Api-Key': apiKey } })
-        if (!response.ok) throw new Error(`HTTP ${response.status}`)
-        const payload = await response.json() as unknown
-        return Array.isArray(payload) ? payload : payload && typeof payload === 'object' && Array.isArray((payload as { voices?: unknown }).voices) ? (payload as { voices: unknown[] }).voices : []
-      }))
-      const availableIds = new Set(responses.flat().flatMap(value => value && typeof value === 'object' && !Array.isArray(value) && typeof (value as { id?: unknown }).id === 'string' ? [(value as { id: string }).id] : []))
+      const availableIds = await listHumeVoiceIdsForReadiness(apiKey)
       if (voiceIds.some(voiceId => !availableIds.has(voiceId))) return advancedVoiceBlockedObservation(targetKey, 'hume-voice-not-ready', 'One or more approved Hume voices are missing or inaccessible for the configured account.', false)
       return { targetKey, accountState: 'available', status: 'ready' }
     }
@@ -249,6 +267,8 @@ export const validateTtsTargetsForExecution = (
       }
     }
 
+    const humeReadinessByVoiceSet = new Map<string, Promise<TtsExecutionReadinessObservation>>()
+
     return await Promise.all(targets.map(async (target): Promise<TtsExecutionReadinessObservation> => {
       if (target.service === 'kitten') {
         if (kittenProbeError !== undefined) {
@@ -276,6 +296,16 @@ export const validateTtsTargetsForExecution = (
       }
       const credential = HOSTED_TTS_CREDENTIALS[target.service]
       const apiKey = readEnv(credential.env)
+      if (apiKey && target.service === 'hume' && (target.readinessVoiceIds?.length ?? 0) > 0) {
+        const voiceSetKey = [...new Set(target.readinessVoiceIds)].sort().join('\0')
+        let probe = humeReadinessByVoiceSet.get(voiceSetKey)
+        if (!probe) {
+          probe = checkAdvancedVoiceReadiness(target, apiKey)
+          humeReadinessByVoiceSet.set(voiceSetKey, probe)
+        }
+        const observation = await probe
+        return { ...observation, targetKey: target.targetKey as string }
+      }
       return apiKey
         ? await checkAdvancedVoiceReadiness(target, apiKey)
         : missingCredentialObservation(target.targetKey as string, credential.env, credential.label)

@@ -5,7 +5,7 @@ import type { CharacterCatalogService, CharacterKey, ComicSourceIdentity, Struct
 import { loadCharacterCatalog, normalizeCharacterLookup } from '../character-reference-config'
 import { getCharactersFromMentions, isUncataloguedSpokenSpeakerLabel, uniqueCharacters } from './character-detection'
 import { buildSourceSegmentsFromBeats } from './source-segments'
-import { buildBeat, expandScriptBlocks, extractLeadingDelivery, extractLocationSlugline, extractSingleBoldLine, isCaptionSpeakerLabel, isPanelNoteBlock, isParentheticalBlock, isTimingOnlyDirection, isTransitionText, looksLikeLabeledActionFragment, normalizeBlockText, normalizeLineEndings, parseHeading, parseLocation, parseMetadataEntry, resolveFallbackSceneLocation, splitIntoBlocks, stripEmphasisWrapper, stripInlineStageDirections, trimPanelNote, trimParenthetical } from './markdown-blocks'
+import { buildBeat, expandScriptBlocks, extractInlineTimingDelivery, extractLeadingDelivery, extractLocationSlugline, extractSingleBoldLine, isCaptionSpeakerLabel, isPanelNoteBlock, isParentheticalBlock, isTimingOnlyDirection, isTransitionText, looksLikeLabeledActionFragment, normalizeBlockText, normalizeLineEndings, parseHeading, parseLocation, parseMetadataEntry, resolveFallbackSceneLocation, splitIntoBlocks, stripEmphasisWrapper, stripInlineStageDirections, trimPanelNote, trimParenthetical } from './markdown-blocks'
 import { ValidationError } from '~/utils/error-handler'
 import { readLocationReferenceCatalogSync, resolveLocationCatalogEntry, type LocationReferenceCatalog } from '../location-reference'
 import { hashCanonicalTtsValue, sha256Bytes } from '../../../step-4-tts/script-to-audio/contract-identity'
@@ -28,26 +28,52 @@ const sourceSpan = (
   text: source.slice(start, end),
 })
 
+const spokenSourceSpans = (
+  source: string,
+  canonicalText: string,
+  start: number,
+  end: number
+): StructuredSourceSpan[] => {
+  const words = [...canonicalText.matchAll(/\S+/gu)].map(match => match[0])
+  if (words.length === 0) return []
+  const ranges: Array<{ start: number, end: number }> = []
+  let cursor = start
+  for (const word of words) {
+    const index = source.indexOf(word, cursor)
+    if (index < cursor || index + word.length > end) return []
+    const prior = ranges.at(-1)
+    if (prior && /^\s*$/u.test(source.slice(prior.end, index))) prior.end = index + word.length
+    else ranges.push({ start: index, end: index + word.length })
+    cursor = index + word.length
+  }
+  return ranges.map(range => sourceSpan(source, 'spoken-text', range.start, range.end))
+}
+
 const attachSourceSpans = (source: string, beats: StructuredScriptBeat[]): StructuredScriptBeat[] => {
   let cursor = 0
   return beats.map((beat) => {
     const speakerAnchor = beat.speakerLabel ? `**${beat.speakerLabel}**` : undefined
     const anchorIndex = speakerAnchor ? source.indexOf(speakerAnchor, cursor) : -1
-    const textIndex = source.indexOf(beat.text, Math.max(cursor, anchorIndex))
+    const textSearchStart = anchorIndex >= 0 && speakerAnchor ? anchorIndex + speakerAnchor.length : Math.max(cursor, anchorIndex)
+    const textIndex = source.indexOf(beat.text, textSearchStart)
     const blockStart = anchorIndex >= 0 ? anchorIndex : textIndex >= 0 ? textIndex : cursor
-    const boundarySearchStart = Math.max(blockStart + 1, textIndex + beat.text.length)
+    const boundarySearchStart = Math.max(blockStart + 1, textIndex >= 0 ? textIndex + beat.text.length : textSearchStart)
     const boundaryMatch = /\r?\n\r?\n/u.exec(source.slice(boundarySearchStart))
     const nextBoundary = boundaryMatch?.index === undefined ? -1 : boundarySearchStart + boundaryMatch.index
     const blockEnd = nextBoundary >= 0 ? nextBoundary : source.length
-    const block = source.slice(blockStart, blockEnd)
+    const nextSpeakerBoundaryMatch = /\r?\n\r?\n\*\*[^*\r\n]+\*\*/u.exec(source.slice(textSearchStart))
+    const nextSpeakerBoundary = nextSpeakerBoundaryMatch?.index === undefined ? source.length : textSearchStart + nextSpeakerBoundaryMatch.index
+    const spanSearchEnd = textIndex < 0 && (beat.type === 'dialogue' || beat.type === 'narration') ? nextSpeakerBoundary : blockEnd
+    const block = source.slice(blockStart, spanSearchEnd)
     const spans: StructuredSourceSpan[] = []
 
     if (textIndex >= 0) spans.push(sourceSpan(source, beat.type === 'transition' ? 'scene-boundary' : 'spoken-text', textIndex, textIndex + beat.text.length))
+    else if (beat.type === 'dialogue' || beat.type === 'narration') spans.push(...spokenSourceSpans(source, beat.text, textSearchStart, spanSearchEnd))
     if (beat.delivery) {
       const deliveryIndex = block.indexOf(beat.delivery)
       if (deliveryIndex >= 0) spans.push(sourceSpan(source, 'delivery', blockStart + deliveryIndex, blockStart + deliveryIndex + beat.delivery.length))
     }
-    for (const match of block.matchAll(/\(([^)]*(?:beat|pause|silence|moment)[^)]*)\)/giu)) {
+    for (const match of block.matchAll(/\(\s*(?:(?:(?:a|an|another|one|two|long|short|brief|slight|small|awkward|uncomfortable|heavy|dead|stunned|very)\s+)*(?:beat|beats|pause|pauses|silence|moment|moments))(?:\s*,\s*[^)]*)?\s*\)/giu)) {
       if (match.index === undefined) continue
       spans.push(sourceSpan(source, 'timing', blockStart + match.index, blockStart + match.index + match[0].length))
     }
@@ -62,7 +88,7 @@ const attachSourceSpans = (source: string, beats: StructuredScriptBeat[]): Struc
     if ((beat.speakerKeys?.length ?? 0) > 1 && anchorIndex >= 0 && speakerAnchor) {
       spans.push(sourceSpan(source, 'simultaneous-speech', anchorIndex, anchorIndex + speakerAnchor.length))
     }
-    if (spans.length === 0 && blockStart < blockEnd) spans.push(sourceSpan(source, 'stage-direction', blockStart, blockEnd))
+    if (spans.length === 0 && blockStart < spanSearchEnd) spans.push(sourceSpan(source, 'stage-direction', blockStart, spanSearchEnd))
     cursor = Math.max(cursor, blockEnd)
     return { ...beat, sourceSpans: spans.sort((left, right) => left.start - right.start || left.end - right.end || left.kind.localeCompare(right.kind)) }
   })
@@ -344,9 +370,13 @@ export const parseScriptMarkdownToStructuredData = (
       const spokenText = stripInlineStageDirections(dialogue.text)
       const mentions = detectCharacterMentions(spokenText)
       const mentionedCharacters = getCharactersFromMentions(mentions)
-      const rawDelivery = pendingDelivery ?? dialogue.delivery
+      const deliveryParts = [pendingDelivery, dialogue.delivery, ...extractInlineTimingDelivery(dialogue.text)]
+        .flatMap(value => value?.split(',') ?? [])
+        .map(value => value.trim())
+        .filter(value => value && !isTimingOnlyDirection(value))
+        .filter((value, index, all) => all.indexOf(value) === index)
       // Timing notation is pacing, not an acting note, and must not reach speech tone.
-      const delivery = rawDelivery && !isTimingOnlyDirection(rawDelivery) ? rawDelivery : undefined
+      const delivery = deliveryParts.length > 0 ? deliveryParts.join(', ') : undefined
       const characters = uniqueCharacters([
         ...activeSpeakerCharacters,
         ...mentionedCharacters,

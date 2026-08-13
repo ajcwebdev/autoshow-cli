@@ -247,6 +247,7 @@ export type VoiceRegistrationCatalog = {
 export type CurrentVoiceRegistrationSelection = {
   subjectKey: string
   provider: TtsProvider
+  providerModel: string
   profileKey: string
   registrationId: string
   generationId: string
@@ -254,7 +255,7 @@ export type CurrentVoiceRegistrationSelection = {
 }
 
 export type CurrentVoiceRegistrationIndex = {
-  schemaVersion: 1
+  schemaVersion: 2
   revision: number
   selections: CurrentVoiceRegistrationSelection[]
 }

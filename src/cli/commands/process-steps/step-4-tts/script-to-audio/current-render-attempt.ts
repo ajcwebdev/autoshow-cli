@@ -49,11 +49,11 @@ import {
 } from '~/cli/commands/setup-and-utilities/models/setup-model-options'
 import { CLIUsageError, InternalError } from '~/utils/error-handler'
 import { getFfprobeBinary } from '~/utils/runtime-paths'
-import { concatAndConvertToWav, filterAudioToWav, mixAudioToWav, splitTextIntoChunks } from '../tts-utils/audio-utils'
+import { concatAndConvertToWav, createSilenceWav, filterAudioToWav, mixAudioToWav, splitTextIntoChunks } from '../tts-utils/audio-utils'
 import { resolveTtsChunkCharacterLimit, TTS_CHUNK_CHARACTER_LIMITS } from '../tts-utils/tts-chunking'
 import { getSpeakerVoice, isMultiSpeakerRequested, normalizeDialogueFromOptions, normalizeDialogueText, parseSpeakerVoiceMappings, resolveDialogueFormat } from '../dialogue-normalizer'
 import { resolveGeminiDialogueStrategyForText, splitGeminiNativeDialogueText } from '../tts-services/tts-gemini/gemini-tts-config'
-import { planElevenLabsNativeDialogueBatches } from '../tts-services/tts-elevenlabs/elevenlabs-native-dialogue'
+import { planElevenLabsNativeDialogueBatches, prepareElevenLabsDialogueText } from '../tts-services/tts-elevenlabs/elevenlabs-native-dialogue'
 import { planHumeNativeUtteranceBatches } from '../tts-services/hume/hume-native-utterances'
 import { createTtsTargetSelection } from '../tts-targets/tts-target-selection'
 import {
@@ -130,6 +130,7 @@ type AttemptSlot = {
   expectedRequestControlsHash: string
   expectedEndpointKind: string
   expectedSerializerVersion: string
+  timingSegmentIndex?: number | undefined
 }
 type RecordedOutput = {
   path: string
@@ -166,7 +167,23 @@ export type CurrentTtsRecoveredGenerationSlot = Readonly<{
 export type CurrentTtsRenderAttempt = {
   requestEvidence: TtsRequestEvidenceScope
   preparedState: PipelineProviderState
+  executionSelection?: readonly {
+    generationSlotId: string
+    turnId: string
+    providerSegmentIndex: number
+  }[] | undefined
   finalizeSuccess: (audioPath: string, reportedOutputPath: string) => Promise<CurrentTtsRenderArtifacts>
+  finalizeCheckpoint: () => Promise<{
+    artifactDir: string
+    operation: 'tts-synthesis' | 'comic-audio'
+    targetKey: string
+    transport: string
+    renderIdentity: string
+    strategy: ProviderRenderStrategy
+    projection: CanonicalAudioProviderProjection
+    completedGenerationSlotIds: string[]
+    remainingGenerationSlotCount: number
+  }>
   finalizeFailure: (error: unknown) => Promise<PipelineProviderState>
 }
 
@@ -406,7 +423,7 @@ const serializerContract = (
       return { endpointKind: 'speech-synthesis', serializerVersion: 'cartesia.tts.phase-0-v1', controls: { ...(stringValue('language') ? { language: stringValue('language') } : {}), outputFormat: { container: 'wav', encoding: 'pcm_s16le', sample_rate: 24000 }, version: '2026-03-01' } }
     case 'hume':
       if (strategy === 'native-utterances') return { endpointKind: 'native-utterance-synthesis', serializerVersion: 'hume.native-utterances.phase-3-v1', controls: { version: '2', format: { type: 'mp3' }, numGenerations: 1, includeTimestampTypes: ['word', 'phoneme'] } }
-      return { endpointKind: 'speech-synthesis', serializerVersion: 'hume.tts.phase-0-v1', controls: { version: '2', format: { type: 'mp3' }, numGenerations: 1, ...(numberValue('speed') !== undefined ? { speed: numberValue('speed') } : {}), ...(numberValue('trailingSilence') !== undefined ? { trailingSilence: numberValue('trailingSilence') } : {}) } }
+      return { endpointKind: 'speech-synthesis', serializerVersion: 'hume.tts.phase-0-v1', controls: { version: target.model === 'octave-1' ? '1' : '2', format: { type: 'mp3' }, numGenerations: 1, ...(numberValue('speed') !== undefined ? { speed: numberValue('speed') } : {}), ...(numberValue('trailingSilence') !== undefined ? { trailingSilence: numberValue('trailingSilence') } : {}), ...(stringValue('description') ? { description: stringValue('description') } : {}) } }
     case 'speechify':
       return { endpointKind: 'speech-synthesis', serializerVersion: 'speechify.tts.phase-0-v1', controls: { audioFormat: stringValue('audioFormat') ?? 'mp3', ...(stringValue('language') ? { language: stringValue('language') } : {}) } }
     case 'deepgram':
@@ -592,7 +609,7 @@ const localVoiceEffectFilter = (turn: CanonicalDialogueTurn): string | undefined
 const assembleComicSegmentedAudio = async (input: {
   dialoguePlan: ComicDialoguePlan
   turns: readonly CanonicalDialogueTurn[]
-  slots: readonly Pick<AttemptSlot, 'generationSlotId' | 'turnIds'>[]
+  slots: readonly Pick<AttemptSlot, 'generationSlotId' | 'turnIds' | 'timingSegmentIndex'>[]
   outputPathsBySlot: ReadonlyMap<string, readonly string[]>
   masteringDir: string
   providerLabel: string
@@ -602,13 +619,31 @@ const assembleComicSegmentedAudio = async (input: {
   for (const turn of input.turns) {
     const turnDir = join(input.masteringDir, 'turns', turn.turnId)
     await mkdir(turnDir, { recursive: true })
-    const chunkPaths = input.slots.filter(slot => slot.turnIds.includes(turn.turnId)).flatMap((slot) => {
+    const turnSlots = input.slots.filter(slot => slot.turnIds.includes(turn.turnId))
+    if (turnSlots.length === 0) throw CLIUsageError(`Comic assembly has no retained provider output for ${turn.turnId}.`)
+    const segmentPaths = new Map<number, string[]>()
+    for (const slot of turnSlots) {
       const paths = input.outputPathsBySlot.get(slot.generationSlotId)
       if (!paths) throw CLIUsageError(`Comic assembly is missing generation slot ${slot.generationSlotId}.`)
-      return [...paths]
-    })
-    if (chunkPaths.length === 0) throw CLIUsageError(`Comic assembly has no retained provider output for ${turn.turnId}.`)
-    const concatenated = await concatAndConvertToWav(chunkPaths, turnDir, `${input.providerLabel}-${turn.turnId}`, undefined, input.profile)
+      const segmentIndex = slot.timingSegmentIndex ?? 0
+      segmentPaths.set(segmentIndex, [...(segmentPaths.get(segmentIndex) ?? []), ...paths])
+    }
+    const offsets = [...new Set((turn.timingCues ?? []).map(cue => cue.afterTextOffset))].sort((left, right) => left - right)
+    const cueDurationByOffset = new Map(offsets.map(offset => [offset, (turn.timingCues ?? []).filter(cue => cue.afterTextOffset === offset).reduce((sum, cue) => sum + cue.durationMs, 0)] as const))
+    const assembledParts: string[] = []
+    for (let segmentIndex = 0; segmentIndex <= offsets.length; segmentIndex += 1) {
+      const chunks = segmentPaths.get(segmentIndex)
+      if (chunks?.length) {
+        const segmentDir = join(turnDir, `segment-${String(segmentIndex + 1).padStart(3, '0')}`)
+        await mkdir(segmentDir, { recursive: true })
+        assembledParts.push(await concatAndConvertToWav(chunks, segmentDir, `${input.providerLabel}-${turn.turnId}-segment-${segmentIndex + 1}`, undefined, input.profile))
+      }
+      const offset = offsets[segmentIndex]
+      const durationMs = offset === undefined ? undefined : cueDurationByOffset.get(offset)
+      if (durationMs) assembledParts.push(await createSilenceWav(join(turnDir, `pause-${String(segmentIndex + 1).padStart(3, '0')}-${durationMs}ms.wav`), durationMs, input.profile))
+    }
+    if (assembledParts.length === 0) throw CLIUsageError(`Comic assembly has no speech or timing parts for ${turn.turnId}.`)
+    const concatenated = await concatAndConvertToWav(assembledParts, turnDir, `${input.providerLabel}-${turn.turnId}`, undefined, input.profile)
     const effectFilter = localVoiceEffectFilter(turn)
     if (effectFilter) {
       const effected = join(turnDir, 'effected.wav')
@@ -638,37 +673,71 @@ const assembleComicSegmentedAudio = async (input: {
   if (nodePaths.length === 0) throw CLIUsageError('Comic segmented assembly has no dialogue nodes.')
   const assemblyDir = join(input.masteringDir, 'assembly')
   await mkdir(assemblyDir, { recursive: true })
-  return await concatAndConvertToWav(nodePaths, assemblyDir, `${input.providerLabel}-comic-assembly`, undefined, input.profile)
+  const pacedNodePaths: string[] = []
+  for (const [index, path] of nodePaths.entries()) {
+    pacedNodePaths.push(path)
+    if (index < nodePaths.length - 1 && input.dialoguePlan.pacing.interTurnMs > 0) {
+      pacedNodePaths.push(await createSilenceWav(join(assemblyDir, `inter-turn-${String(index + 1).padStart(3, '0')}-${input.dialoguePlan.pacing.interTurnMs}ms.wav`), input.dialoguePlan.pacing.interTurnMs, input.profile))
+    }
+  }
+  return await concatAndConvertToWav(pacedNodePaths, assemblyDir, `${input.providerLabel}-comic-assembly`, undefined, input.profile)
 }
 
 const comicTimelineLayout = (
   dialoguePlan: ComicDialoguePlan,
-  durationForTurn: (turnId: string) => number
+  durationForTurn: (turnId: string) => number,
+  durationForTimingSegment?: ((turnId: string, segmentIndex: number) => number) | undefined
 ): {
   turns: Array<{ turnId: string, subjectKey: string, startMs: number, endMs: number }>
   overlaps: Array<{ groupId: string, start: number, end: number }>
+  pauses: Array<{ kind: 'authored' | 'inter-turn', turnId?: string | undefined, start: number, end: number, parameters: unknown }>
 } => {
   let cursorMs = 0
   const turns: Array<{ turnId: string, subjectKey: string, startMs: number, endMs: number }> = []
   const overlaps: Array<{ groupId: string, start: number, end: number }> = []
-  for (const node of dialoguePlan.nodes) {
+  const pauses: Array<{ kind: 'authored' | 'inter-turn', turnId?: string | undefined, start: number, end: number, parameters: unknown }> = []
+  const advanceTurn = (turn: CanonicalDialogueTurn, startMs: number): number => {
+    const cues = turn.timingCues ?? []
+    if (!durationForTimingSegment || cues.length === 0) return startMs + durationForTurn(turn.turnId) + cues.reduce((sum, cue) => sum + cue.durationMs, 0)
+    const offsets = [...new Set(cues.map(cue => cue.afterTextOffset))].sort((left, right) => left - right)
+    let turnCursor = startMs
+    for (let segmentIndex = 0; segmentIndex <= offsets.length; segmentIndex += 1) {
+      turnCursor += durationForTimingSegment(turn.turnId, segmentIndex)
+      const offset = offsets[segmentIndex]
+      if (offset === undefined) continue
+      const boundaryCues = cues.filter(cue => cue.afterTextOffset === offset)
+      const durationMs = boundaryCues.reduce((sum, cue) => sum + cue.durationMs, 0)
+      pauses.push({ kind: 'authored', turnId: turn.turnId, start: turnCursor, end: turnCursor + durationMs, parameters: { afterTextOffset: offset, cues: boundaryCues } })
+      turnCursor += durationMs
+    }
+    return turnCursor
+  }
+  for (const [nodeIndex, node] of dialoguePlan.nodes.entries()) {
     if (node.kind === 'turn') {
       const startMs = cursorMs
-      cursorMs += durationForTurn(node.turn.turnId)
+      cursorMs = advanceTurn(node.turn, startMs)
       turns.push({ turnId: node.turn.turnId, subjectKey: node.turn.subjectKey, startMs, endMs: cursorMs })
+      if (nodeIndex < dialoguePlan.nodes.length - 1 && dialoguePlan.pacing.interTurnMs > 0) {
+        pauses.push({ kind: 'inter-turn', start: cursorMs, end: cursorMs + dialoguePlan.pacing.interTurnMs, parameters: { profile: dialoguePlan.pacing.profile, nodeIndex } })
+        cursorMs += dialoguePlan.pacing.interTurnMs
+      }
       continue
     }
     const startMs = cursorMs
     let endMs = startMs
     for (const turn of node.turns) {
-      const turnEndMs = startMs + durationForTurn(turn.turnId)
+      const turnEndMs = advanceTurn(turn, startMs)
       turns.push({ turnId: turn.turnId, subjectKey: turn.subjectKey, startMs, endMs: turnEndMs })
       endMs = Math.max(endMs, turnEndMs)
     }
     cursorMs = endMs
     overlaps.push({ groupId: node.groupId, start: startMs, end: endMs })
+    if (nodeIndex < dialoguePlan.nodes.length - 1 && dialoguePlan.pacing.interTurnMs > 0) {
+      pauses.push({ kind: 'inter-turn', start: cursorMs, end: cursorMs + dialoguePlan.pacing.interTurnMs, parameters: { profile: dialoguePlan.pacing.profile, nodeIndex } })
+      cursorMs += dialoguePlan.pacing.interTurnMs
+    }
   }
-  return { turns, overlaps }
+  return { turns, overlaps, pauses }
 }
 
 const chunkLimit = (target: TtsTarget): number =>
@@ -693,6 +762,47 @@ const defaultVoiceValue = (target: TtsTarget): string => {
   }
 }
 
+const splitCanonicalTextAtTimingCues = (turn: CanonicalDialogueTurn): string[] => {
+  const scalars = [...turn.canonicalText]
+  const offsets = [...new Set((turn.timingCues ?? []).map(cue => cue.afterTextOffset))].sort((left, right) => left - right)
+  const parts: string[] = []
+  let cursor = 0
+  for (const offset of offsets) {
+    parts.push(scalars.slice(cursor, offset).join('').trim())
+    cursor = offset
+  }
+  parts.push(scalars.slice(cursor).join('').trim())
+  return parts
+}
+
+export const prepareComicSegmentedProviderTexts = (
+  turn: CanonicalDialogueTurn,
+  target: TtsTarget
+): { providerTexts: string[], timingSegmentIndexes: number[] } => {
+  const providerTexts: string[] = []
+  const timingSegmentIndexes: number[] = []
+  const limit = chunkLimit(target)
+  for (const [timingSegmentIndex, segment] of splitCanonicalTextAtTimingCues(turn).entries()) {
+    if (!segment) continue
+    const prepared = target.service === 'elevenlabs' && target.model === 'eleven_v3'
+      ? prepareElevenLabsDialogueText(segment, turn.delivery?.description).providerText
+      : segment
+    for (const chunk of splitTextIntoChunks(prepared, limit)) {
+      providerTexts.push(chunk)
+      timingSegmentIndexes.push(timingSegmentIndex)
+    }
+  }
+  return { providerTexts, timingSegmentIndexes }
+}
+
+const segmentedSlotGroup = (
+  turn: AttemptTurn,
+  target: TtsTarget
+): { turnIds: string[], providerTexts: string[], timingSegmentIndexes: number[] } => {
+  const { providerTexts, timingSegmentIndexes } = prepareComicSegmentedProviderTexts(turn.canonical, target)
+  return { turnIds: [turn.canonical.turnId], providerTexts, timingSegmentIndexes }
+}
+
 const planInputs = (options: CreateCurrentTtsRenderAttemptOptions, capabilityFixtureHash: string) => {
   if (options.comicContext) {
     const context = options.comicContext
@@ -704,6 +814,7 @@ const planInputs = (options: CreateCurrentTtsRenderAttemptOptions, capabilityFix
       sourceIdentity: context.dialoguePlan.sourceIdentity,
       structuredScript: context.dialoguePlan.structuredScript,
       createdAt: context.dialoguePlan.createdAt,
+      pacing: context.dialoguePlan.pacing,
       nodes: context.dialoguePlan.nodes,
     })) throw CLIUsageError('Comic dialogue plan identity is invalid.')
     if (context.voiceSnapshot.dialoguePlanId !== context.dialoguePlan.dialoguePlanId || context.voiceSnapshot.sceneRunIdentity !== context.dialoguePlan.sceneRunIdentity) throw CLIUsageError('Comic voice snapshot does not bind the selected scene/dialogue plan.')
@@ -788,9 +899,9 @@ const planInputs = (options: CreateCurrentTtsRenderAttemptOptions, capabilityFix
         : humeNative
           ? planHumeNativeUtteranceBatches(turns.map(turn => ({ turnId: turn.canonical.turnId, subjectKey: turn.canonical.subjectKey, speaker: context.providerSpeakerLabelByTurnId[turn.canonical.turnId] ?? turn.canonical.originalSpeakerLabel, canonicalText: turn.canonical.canonicalText, voiceId: turn.voice.value ?? turn.voice.valueHash }))).map(batch => ({ turnIds: batch.turns.map(turn => turn.turnId), providerTexts: [batch.providerText] }))
           : []
-    const slotGroups: Array<{ turnIds: string[], providerTexts: string[] }> = native
+    const slotGroups: Array<{ turnIds: string[], providerTexts: string[], timingSegmentIndexes?: number[] | undefined }> = native
       ? nativeGroups
-      : turns.map(turn => ({ turnIds: [turn.canonical.turnId], providerTexts: splitTextIntoChunks(turn.canonical.canonicalText, limit) }))
+      : turns.map(turn => segmentedSlotGroup(turn, options.target))
     if (geminiNative && native && nativeTurnCursor !== turns.length) throw CLIUsageError('Gemini comic native partition omitted turns.')
     let includesSetup = true
     const slots: AttemptSlot[] = []
@@ -801,7 +912,8 @@ const planInputs = (options: CreateCurrentTtsRenderAttemptOptions, capabilityFix
       const generationSlots = group.providerTexts.map((providerText, slotIndex) => {
         const cost = plannedCost(options.target, [...providerText].length, includesSetup)
         includesSetup = false
-        const slot = { batchId, generationSlotId: `${batchId}-slot-${String(slotIndex + 1).padStart(3, '0')}`, slotIndex, turnIds: group.turnIds, providerText, plannedCost: cost, expectedRequestControlsHash: hashCanonicalTtsValue(contract.controls), expectedEndpointKind: contract.endpointKind, expectedSerializerVersion: contract.serializerVersion }
+        const timingSegmentIndex = group.timingSegmentIndexes?.[slotIndex]
+        const slot = { batchId, generationSlotId: `${batchId}-slot-${String(slotIndex + 1).padStart(3, '0')}`, slotIndex, turnIds: group.turnIds, providerText, plannedCost: cost, expectedRequestControlsHash: hashCanonicalTtsValue(contract.controls), expectedEndpointKind: contract.endpointKind, expectedSerializerVersion: contract.serializerVersion, ...(timingSegmentIndex !== undefined ? { timingSegmentIndex } : {}) }
         slots.push(slot)
         return { generationSlotId: slot.generationSlotId, slotIndex, requestedTakeCount: 1, plannedCost: cost }
       })
@@ -967,17 +1079,19 @@ const buildPureCurrentTtsRenderPlan = (options: PureCurrentTtsRenderPlanOptions)
       turnId: turn.canonical.turnId,
       voiceSynthesisSettings: turn.binding.synthesisSettings,
       providerControls: turn.controls,
-      ...(turn.canonical.delivery ? { providerDelivery: { schemaVersion: 1, settingsSchema: 'generic-tts.delivery.v1', values: { description: turn.canonical.delivery.description } } } : {})
+      ...(turn.canonical.delivery ? { providerDelivery: { schemaVersion: 1, settingsSchema: 'generic-tts.delivery.v1', values: { description: turn.canonical.delivery.description, disposition: options.comicContext?.deliveryDispositionByTurnId?.[turn.canonical.turnId] ?? 'serialized' } } } : {})
     })),
     batchRequestControls: planned.batches.map((batch) => ({ batchId: batch.batchId, requestControls: batch.requestControls }))
   })
   const plannedRenderCost = sumCosts(planned.slots.map((slot) => slot.plannedCost))
   const resolvedTurnById = new Map(planned.turns.map((turn) => [turn.canonical.turnId, {
     ...turn.canonical,
-    providerText: preparedText(turn.canonical.canonicalText),
+    providerText: options.comicContext && options.target.service === 'elevenlabs' && options.target.model === 'eleven_v3'
+      ? prepareElevenLabsDialogueText(turn.canonical.canonicalText, turn.canonical.delivery?.description)
+      : preparedText(turn.canonical.canonicalText),
     voice: turn.binding,
     providerControls: turn.controls,
-    ...(turn.canonical.delivery ? { providerDelivery: { schemaVersion: 1 as const, settingsSchema: 'generic-tts.delivery.v1', values: { description: turn.canonical.delivery.description } } } : {})
+    ...(turn.canonical.delivery ? { providerDelivery: { schemaVersion: 1 as const, settingsSchema: 'generic-tts.delivery.v1', values: { description: turn.canonical.delivery.description, disposition: options.comicContext?.deliveryDispositionByTurnId?.[turn.canonical.turnId] ?? 'serialized' } } } : {})
   }] as const))
   const resolvedNodes = planned.dialoguePlan.nodes.map((node) => {
     if (node.kind === 'turn') {
@@ -1192,6 +1306,7 @@ export type CurrentTtsCompletedRecovery = {
   kind: 'complete-render'
   preparedState: PipelineProviderState
   chunkCount: number
+  reconciliationBlockers: readonly CurrentTtsReconciliationBlocker[]
   finalize: (workspaceDir: string, reportedOutputPath: string) => Promise<CurrentTtsRenderArtifacts>
 }
 
@@ -1199,12 +1314,22 @@ export type CurrentTtsPartialRecovery = {
   kind: 'partial-slots'
   recoveredSlots: readonly CurrentTtsRecoveredGenerationSlot[]
   retainedCumulativePlannedCost: PlannedCost
+  reconciliationBlockers: readonly CurrentTtsReconciliationBlocker[]
 }
 
 export type CurrentTtsSafeRedispatch = {
   kind: 'safe-redispatch'
   retainedCumulativePlannedCost: PlannedCost
+  reconciliationBlockers: readonly CurrentTtsReconciliationBlocker[]
 }
+
+export type CurrentTtsReconciliationBlocker = Readonly<{
+  generationSlotId: string
+  state: RenderAdmissionJournalSnapshot['requests'][number]['transitions'][number]['state']
+  attempt: number
+  invocationId: string
+  requestOrdinal: number
+}>
 
 export const resolveCurrentTtsPriorAdmittedAttemptCount = async (options: {
   rootDir: string
@@ -1295,6 +1420,7 @@ export const prepareCurrentTtsCompletedRecovery = async (options: PureCurrentTts
   rootDir: string
   state: PipelineProviderState
   onProviderState?: ((state: PipelineProviderState) => Promise<void>) | undefined
+  reconciliationMode?: 'enforce' | 'report' | undefined
 }): Promise<CurrentTtsCompletedRecovery | CurrentTtsPartialRecovery | CurrentTtsSafeRedispatch | undefined> => {
   const pure = buildPureCurrentTtsRenderPlan(options)
   if (options.state.targetKey !== pure.targetKey || options.state.artifactDir.trim().length === 0) {
@@ -1343,59 +1469,68 @@ export const prepareCurrentTtsCompletedRecovery = async (options: PureCurrentTts
   }
   let terminalJournalEvidence = directJournalEvidence.at(-1)
   if (!terminalJournalEvidence) return undefined
-  const orphanJournalCandidates: RetainedJournalEvidence[] = []
-  for (const name of (await readdir(terminalJournalEvidence.attemptRoot)).filter((entry) => /^admission-journal-\d+\.json$/.test(entry)).sort()) {
-    const path = resolve(terminalJournalEvidence.attemptRoot, name)
-    const retained = await readContainedArtifactFile(options.rootDir, contained(options.rootDir, path))
-    let value: RenderAdmissionJournalSnapshot
-    try {
-      value = JSON.parse(retained.bytes.toString('utf8')) as RenderAdmissionJournalSnapshot
-      validateRenderAdmissionJournalSnapshot(value)
-    } catch {
-      throw CLIUsageError('Stored TTS attempt contains an invalid orphan admission-journal artifact; reconciliation is required.')
+  const terminalDirectJournal = terminalJournalEvidence
+  const directJournalEvidenceByAttemptRoot = new Map<string, RetainedJournalEvidence[]>()
+  for (const evidence of directJournalEvidence) {
+    const entries = directJournalEvidenceByAttemptRoot.get(evidence.attemptRoot) ?? []
+    entries.push(evidence)
+    directJournalEvidenceByAttemptRoot.set(evidence.attemptRoot, entries)
+  }
+  for (const [attemptRoot, directAttemptEvidence] of directJournalEvidenceByAttemptRoot) {
+    let attemptFrontier = directAttemptEvidence.at(-1) as RetainedJournalEvidence
+    const orphanJournalCandidates: RetainedJournalEvidence[] = []
+    for (const name of (await readdir(attemptRoot)).filter((entry) => /^admission-journal-\d+\.json$/.test(entry)).sort()) {
+      const path = resolve(attemptRoot, name)
+      const retained = await readContainedArtifactFile(options.rootDir, contained(options.rootDir, path))
+      let value: RenderAdmissionJournalSnapshot
+      try {
+        value = JSON.parse(retained.bytes.toString('utf8')) as RenderAdmissionJournalSnapshot
+        validateRenderAdmissionJournalSnapshot(value)
+      } catch {
+        throw CLIUsageError('Stored TTS attempt contains an invalid orphan admission-journal artifact; reconciliation is required.')
+      }
+      if (knownJournalSnapshots.has(value.snapshotId)) continue
+      if (
+        value.journalId !== attemptFrontier.value.journalId
+        || value.renderIdentity !== pure.renderIdentity
+        || value.renderPlanId !== pure.renderPlanId
+        || value.invocationId !== attemptFrontier.value.invocationId
+        || value.attempt !== attemptFrontier.value.attempt
+      ) throw CLIUsageError('Stored TTS attempt contains a cross-attempt orphan journal; reconciliation is required.')
+      orphanJournalCandidates.push({ value, path, sha256: retained.sha256, attemptRoot })
     }
-    if (knownJournalSnapshots.has(value.snapshotId)) continue
-    if (
-      value.journalId !== terminalJournalEvidence.value.journalId
-      || value.renderIdentity !== pure.renderIdentity
-      || value.renderPlanId !== pure.renderPlanId
-      || value.invocationId !== terminalJournalEvidence.value.invocationId
-      || value.attempt !== terminalJournalEvidence.value.attempt
-    ) throw CLIUsageError('Stored TTS attempt contains a cross-attempt orphan journal; reconciliation is required.')
-    orphanJournalCandidates.push({ value, path, sha256: retained.sha256, attemptRoot: terminalJournalEvidence.attemptRoot })
+    // A canonical event may point at a later snapshot without publishing every
+    // immutable ancestor as its own event. Those older files are retained chain
+    // evidence, not orphan descendants of the canonical frontier.
+    const attemptJournalBySnapshot = new Map<string, RetainedJournalEvidence>(
+      directAttemptEvidence.map((entry) => [entry.value.snapshotId, entry])
+    )
+    for (const candidate of orphanJournalCandidates) attemptJournalBySnapshot.set(candidate.value.snapshotId, candidate)
+    let ancestor = attemptFrontier
+    while (ancestor.value.previousSnapshotId) {
+      const candidate = attemptJournalBySnapshot.get(ancestor.value.previousSnapshotId)
+      if (!candidate) break
+      validateRenderAdmissionJournalSnapshot(ancestor.value, candidate.value)
+      const orphanIndex = orphanJournalCandidates.indexOf(candidate)
+      if (orphanIndex >= 0) orphanJournalCandidates.splice(orphanIndex, 1)
+      ancestor = candidate
+    }
+    while (true) {
+      const children = orphanJournalCandidates.filter((candidate) => candidate.value.previousSnapshotId === attemptFrontier.value.snapshotId)
+      if (children.length === 0) break
+      if (children.length !== 1) throw CLIUsageError('Stored TTS attempt contains a forked orphan journal chain; reconciliation is required.')
+      const child = children[0] as RetainedJournalEvidence
+      validateRenderAdmissionJournalSnapshot(child.value, attemptFrontier.value)
+      attemptFrontier = child
+      knownJournalSnapshots.add(child.value.snapshotId)
+      orphanJournalCandidates.splice(orphanJournalCandidates.indexOf(child), 1)
+    }
+    if (orphanJournalCandidates.length > 0) {
+      throw CLIUsageError('Stored TTS attempt contains an unchained orphan journal; reconciliation is required.')
+    }
+    journalEvidenceById.set(attemptFrontier.value.journalId, attemptFrontier)
+    if (attemptRoot === terminalDirectJournal.attemptRoot) terminalJournalEvidence = attemptFrontier
   }
-  // A canonical event may point at a later snapshot without publishing every
-  // immutable ancestor as its own event. Those older files are retained chain
-  // evidence, not orphan descendants of the canonical frontier.
-  const attemptJournalBySnapshot = new Map<string, RetainedJournalEvidence>(
-    directJournalEvidence
-      .filter((entry) => entry.attemptRoot === terminalJournalEvidence?.attemptRoot)
-      .map((entry) => [entry.value.snapshotId, entry])
-  )
-  for (const candidate of orphanJournalCandidates) attemptJournalBySnapshot.set(candidate.value.snapshotId, candidate)
-  let ancestor = terminalJournalEvidence
-  while (ancestor.value.previousSnapshotId) {
-    const candidate = attemptJournalBySnapshot.get(ancestor.value.previousSnapshotId)
-    if (!candidate) break
-    validateRenderAdmissionJournalSnapshot(ancestor.value, candidate.value)
-    const orphanIndex = orphanJournalCandidates.indexOf(candidate)
-    if (orphanIndex >= 0) orphanJournalCandidates.splice(orphanIndex, 1)
-    ancestor = candidate
-  }
-  while (true) {
-    const children = orphanJournalCandidates.filter((candidate) => candidate.value.previousSnapshotId === terminalJournalEvidence?.value.snapshotId)
-    if (children.length === 0) break
-    if (children.length !== 1) throw CLIUsageError('Stored TTS attempt contains a forked orphan journal chain; reconciliation is required.')
-    const child = children[0] as RetainedJournalEvidence
-    validateRenderAdmissionJournalSnapshot(child.value, terminalJournalEvidence.value)
-    terminalJournalEvidence = child
-    knownJournalSnapshots.add(child.value.snapshotId)
-    orphanJournalCandidates.splice(orphanJournalCandidates.indexOf(child), 1)
-  }
-  if (orphanJournalCandidates.length > 0) {
-    throw CLIUsageError('Stored TTS attempt contains an unchained orphan journal; reconciliation is required.')
-  }
-  journalEvidenceById.set(terminalJournalEvidence.value.journalId, terminalJournalEvidence)
 
   type RetainedBatchCandidate = {
     batchId: string
@@ -1505,6 +1640,7 @@ export const prepareCurrentTtsCompletedRecovery = async (options: PureCurrentTts
   const completedSlotIds = new Set<string>()
   const retainedAttemptCosts: PlannedCost[] = []
   const costedDispatches = new Set<string>()
+  const reconciliationBlockers: CurrentTtsReconciliationBlocker[] = []
   for (const evidence of journalEvidenceById.values()) {
     for (const request of evidence.value.requests) {
       if (!plannedSlotIds.includes(request.generationSlotId)) {
@@ -1524,18 +1660,30 @@ export const prepareCurrentTtsCompletedRecovery = async (options: PureCurrentTts
     }
   }
   for (const slotId of plannedSlotIds) {
-    const requests = [...journalEvidenceById.values()].flatMap((evidence) => evidence.value.requests.filter((request) => request.generationSlotId === slotId))
-    const terminalStates = requests.map((request) => request.transitions.at(-1)?.state)
-    if (terminalStates.filter((state) => state === 'completed').length > 1) {
+    const requests = [...journalEvidenceById.values()].flatMap((evidence) => evidence.value.requests
+      .filter((request) => request.generationSlotId === slotId)
+      .map((request) => ({ evidence, request })))
+    const completedRequestCount = requests.filter(({ request }) => request.transitions.at(-1)?.state === 'completed').length
+    if (completedRequestCount > 1) {
       throw CLIUsageError(`Stored TTS generation slot ${slotId} has more than one completed deliberate request.`)
     }
-    const unsafe = terminalStates.find((state) =>
-      state !== 'completed'
-      && state !== 'prepared'
-      && state !== 'provider-rejected'
-      && state !== 'confirmed-not-admitted')
-    if (unsafe !== undefined) {
-      throw CLIUsageError(`Stored TTS generation slot ${slotId} has ${unsafe} provider work; automatic redispatch is blocked pending reconciliation.`)
+    const hasRecoveredSuccess = loadedBatches.some((batch) => batch.value.generationSlotId === slotId)
+    const unsafeRequests = hasRecoveredSuccess ? [] : requests.filter(({ request }) => {
+      const state = request.transitions.at(-1)?.state
+      return state !== undefined
+        && state !== 'completed'
+        && state !== 'prepared'
+        && state !== 'provider-rejected'
+        && state !== 'confirmed-not-admitted'
+    })
+    for (const { evidence, request } of unsafeRequests) {
+      const state = request.transitions.at(-1)?.state
+      if (!state) continue
+      reconciliationBlockers.push({ generationSlotId: slotId, state, attempt: evidence.value.attempt, invocationId: evidence.value.invocationId, requestOrdinal: request.requestOrdinal })
+    }
+    const blocker = reconciliationBlockers.find((entry) => entry.generationSlotId === slotId)
+    if (blocker && options.reconciliationMode !== 'report' && options.ttsOptions.ttsAllowAmbiguousRedispatch !== true) {
+      throw CLIUsageError(`Stored TTS generation slot ${slotId} has ${blocker.state} provider work in attempt ${blocker.attempt}, request ${blocker.requestOrdinal}; automatic redispatch is blocked pending reconciliation.`)
     }
   }
   for (const batch of loadedBatches) {
@@ -1554,14 +1702,14 @@ export const prepareCurrentTtsCompletedRecovery = async (options: PureCurrentTts
       throw CLIUsageError(`Stored completed TTS generation slot ${slotId} has no exact promoted batch result.`)
     }
   }
-  if (loadedBatches.length === 0) return { kind: 'safe-redispatch', retainedCumulativePlannedCost }
+  if (loadedBatches.length === 0) return { kind: 'safe-redispatch', retainedCumulativePlannedCost, reconciliationBlockers }
   const allCompleted = loadedBatches.length === plannedSlotIds.length
     && plannedSlotIds.every((slotId) => loadedBatches.some((batch) => batch.value.generationSlotId === slotId))
   if (!allCompleted) {
     if (pure.planned.strategy !== 'segmented') {
       throw CLIUsageError('Partial completed-slot recovery is supported only for immutable segmented dialogue renders; redispatch is blocked.')
     }
-    return { kind: 'partial-slots', recoveredSlots: loadedBatches, retainedCumulativePlannedCost }
+    return { kind: 'partial-slots', recoveredSlots: loadedBatches, retainedCumulativePlannedCost, reconciliationBlockers }
   }
 
   let terminalJournal = terminalJournalEvidence.value
@@ -1599,6 +1747,7 @@ export const prepareCurrentTtsCompletedRecovery = async (options: PureCurrentTts
     kind: 'complete-render',
     preparedState: options.state,
     chunkCount: plannedSlotIds.length,
+    reconciliationBlockers,
     finalize: async (workspaceDir, reportedOutputPath) => {
       const orderedBatches = pure.planned.slots.map((slot) => loadedBatches.find((batch) => batch.value.generationSlotId === slot.generationSlotId) as LoadedRecoveryBatch)
       if (!renderResult || !resultPath || !resultSha256) {
@@ -1701,7 +1850,11 @@ export const prepareCurrentTtsCompletedRecovery = async (options: PureCurrentTts
           .filter((batch) => batch.value.requestedTurnIds.length === 1 && batch.value.requestedTurnIds[0] === turnId)
           .flatMap((batch) => batch.value.outputs)
           .reduce((sum, output) => sum + (output.durationMs ?? 0), 0)
-      const layout = options.comicContext ? comicTimelineLayout(options.comicContext.dialoguePlan, turnDuration) : undefined
+      const timingSegmentDuration = (turnId: string, segmentIndex: number): number => {
+        const slotIds = new Set(pure.planned.slots.filter(slot => slot.turnIds.length === 1 && slot.turnIds[0] === turnId && (slot.timingSegmentIndex ?? 0) === segmentIndex).map(slot => slot.generationSlotId))
+        return loadedBatches.filter(batch => slotIds.has(batch.value.generationSlotId)).flatMap(batch => batch.value.outputs).reduce((sum, output) => sum + (output.durationMs ?? 0), 0)
+      }
+      const layout = options.comicContext ? comicTimelineLayout(options.comicContext.dialoguePlan, turnDuration, timingSegmentDuration) : undefined
       let genericTimelineCursorMs = 0
       const assembledTurns = layout?.turns ?? pure.planned.turns.map((turn) => {
         const startMs = genericTimelineCursorMs
@@ -1718,7 +1871,11 @@ export const prepareCurrentTtsCompletedRecovery = async (options: PureCurrentTts
         const parametersHash = hashCanonicalTtsValue({ groupId: overlap.groupId })
         return { operationId: hashCanonicalTtsValue({ kind: 'overlap', groupId: overlap.groupId, parametersHash, finalRangeMs: { start: overlap.start, end: overlap.end } }), kind: 'overlap' as const, finalRangeMs: { start: overlap.start, end: overlap.end }, parametersHash }
       })
-      const ledger = withIdentity({ schemaVersion: 1 as const, renderIdentity: pure.renderIdentity, operations: [transformOperation, ...effectOperations, ...overlapOperations] }, 'transformLedgerId')
+      const pauseOperations = (layout?.pauses ?? []).map((pause) => {
+        const parametersHash = hashCanonicalTtsValue(pause.parameters)
+        return { operationId: hashCanonicalTtsValue({ kind: 'pause', parametersHash, finalRangeMs: { start: pause.start, end: pause.end } }), kind: 'pause' as const, finalRangeMs: { start: pause.start, end: pause.end }, parametersHash }
+      })
+      const ledger = withIdentity({ schemaVersion: 1 as const, renderIdentity: pure.renderIdentity, operations: [transformOperation, ...effectOperations, ...overlapOperations, ...pauseOperations] }, 'transformLedgerId')
       const ledgerFile = await writeJsonCreateOnly(options.rootDir, `${audioRunRoot}/transform-ledger.json`, ledger)
       const hasTiming = pure.planned.strategy === 'segmented' && assembledTurns.every((turn) => turn.endMs > turn.startMs)
       const timeline = withIdentity({
@@ -1814,6 +1971,56 @@ export const prepareCurrentTtsCompletedRecovery = async (options: PureCurrentTts
   }
 }
 
+export type CurrentTtsResumePricePlan = Readonly<{
+  readiness: PureCurrentTtsReadinessPlan
+  plannedCost: PlannedCost
+  plannedSlotCount: number
+  unresolvedSlotCount: number
+  recoveredSlotCount: number
+  recoveryKind: 'none' | CurrentTtsCompletedRecovery['kind'] | CurrentTtsPartialRecovery['kind'] | CurrentTtsSafeRedispatch['kind']
+  reconciliationBlockers: readonly CurrentTtsReconciliationBlocker[]
+}>
+
+export const planCurrentTtsResumePrice = async (options: PureCurrentTtsRenderPlanOptions & {
+  rootDir: string
+  state?: PipelineProviderState | undefined
+}): Promise<CurrentTtsResumePricePlan> => {
+  const { rootDir, state, ...planOptions } = options
+  const readiness = planCurrentTtsReadiness(planOptions)
+  const slots = readiness.renderPlan.batches.flatMap((batch) => batch.generationSlots)
+  const requestedSlotLimit = planOptions.ttsOptions.ttsMaxGenerationSlots
+  if (requestedSlotLimit !== undefined && (!Number.isSafeInteger(requestedSlotLimit) || requestedSlotLimit <= 0)) {
+    throw CLIUsageError('TTS maximum generation slots must be a positive safe integer.')
+  }
+  const projection = state ? readAudioProjection(state) : undefined
+  const retainedHasPlannedRender = projection?.activeWork?.kind === 'render'
+    && projection.renderHistory.some((render) => render.renderIdentity === readiness.renderIdentity)
+  const recovery = state && retainedHasPlannedRender
+    ? await prepareCurrentTtsCompletedRecovery({ rootDir, state, ...planOptions, reconciliationMode: 'report' })
+    : undefined
+  const recoveredIds = new Set(recovery?.kind === 'complete-render'
+    ? slots.map((slot) => slot.generationSlotId)
+    : recovery?.kind === 'partial-slots'
+      ? recovery.recoveredSlots.map((slot) => slot.value.generationSlotId)
+      : [])
+  const unresolvedSlots = slots.filter((slot) => !recoveredIds.has(slot.generationSlotId))
+  const selectedSlots = requestedSlotLimit === undefined
+    ? unresolvedSlots
+    : unresolvedSlots.slice(0, requestedSlotLimit)
+  const plannedCost = recovery === undefined && requestedSlotLimit === undefined
+    ? readiness.plannedCost
+    : sumCosts(selectedSlots.map((slot) => slot.plannedCost))
+  return {
+    readiness,
+    plannedCost,
+    plannedSlotCount: selectedSlots.length,
+    unresolvedSlotCount: unresolvedSlots.length,
+    recoveredSlotCount: slots.length - unresolvedSlots.length,
+    recoveryKind: recovery?.kind ?? 'none',
+    reconciliationBlockers: recovery?.reconciliationBlockers ?? []
+  }
+}
+
 export const createCurrentTtsRenderAttempt = async (
   options: CreateCurrentTtsRenderAttemptOptions
 ): Promise<CurrentTtsRenderAttempt> => {
@@ -1864,8 +2071,17 @@ export const createCurrentTtsRenderAttempt = async (
   if (unresolvedSlots.length === 0) {
     throw CLIUsageError('A new TTS provider attempt requires at least one unresolved immutable generation slot.')
   }
-  const unresolvedBatchIds = [...new Set(unresolvedSlots.map((slot) => slot.batchId))]
-  const unresolvedPlannedCost = sumCosts(unresolvedSlots.map((slot) => slot.plannedCost))
+  const requestedSlotLimit = options.ttsOptions.ttsMaxGenerationSlots
+  if (requestedSlotLimit !== undefined && (!Number.isSafeInteger(requestedSlotLimit) || requestedSlotLimit <= 0)) {
+    throw CLIUsageError('TTS maximum generation slots must be a positive safe integer.')
+  }
+  if (requestedSlotLimit !== undefined && planned.strategy !== 'segmented') {
+    throw CLIUsageError('Bounded generation-slot execution is supported only for segmented TTS renders.')
+  }
+  const attemptSlots = requestedSlotLimit === undefined ? unresolvedSlots : unresolvedSlots.slice(0, requestedSlotLimit)
+  const attemptSlotIds = new Set(attemptSlots.map((slot) => slot.generationSlotId))
+  const unresolvedBatchIds = [...new Set(attemptSlots.map((slot) => slot.batchId))]
+  const unresolvedPlannedCost = sumCosts(attemptSlots.map((slot) => slot.plannedCost))
   const cumulativePlannedCost = sumCosts([
     options.retainedCumulativePlannedCost ?? { amounts: [] },
     unresolvedPlannedCost
@@ -1955,9 +2171,9 @@ export const createCurrentTtsRenderAttempt = async (
     renderIdentity,
     invocationId,
     attempt: attemptNumber,
-    plannedRequestCount: unresolvedSlots.length,
+    plannedRequestCount: attemptSlots.length,
     plannedBatchIds: unresolvedBatchIds,
-    plannedGenerationSlots: unresolvedSlots.map((slot) => ({ batchId: slot.batchId, generationSlotId: slot.generationSlotId })),
+    plannedGenerationSlots: attemptSlots.map((slot) => ({ batchId: slot.batchId, generationSlotId: slot.generationSlotId })),
     requests: [],
     recordedBatchResults: [],
     capturedAt: now()
@@ -2249,14 +2465,18 @@ export const createCurrentTtsRenderAttempt = async (
     const candidates = invocation
       ? planned.slots.filter((slot) => slot.turnIds.includes(invocation.sourceId))
       : planned.slots
-    const slot = candidates[observation.chunkIndex - 1]
+    const providerSegmentOffset = invocation?.providerSegmentIndex ?? 0
+    const slot = candidates[providerSegmentOffset + observation.chunkIndex - 1]
     if (!slot) throw CLIUsageError(`Serializer emitted unplanned TTS chunk ${observation.chunkIndex}; dispatch was blocked before transport.`)
     return slot
   }
   const scopeFor = (invocation?: TtsTargetInvocation | undefined): TtsRequestEvidenceScope => ({
     forInvocation: (child) => scopeFor(child),
     recoverCompletedOutputs: invocation ? async () => {
-      const invocationSlots = planned.slots.filter((slot) => slot.turnIds.includes(invocation.sourceId))
+      const turnSlots = planned.slots.filter((slot) => slot.turnIds.includes(invocation.sourceId))
+      const invocationSlots = invocation.providerSegmentIndex === undefined
+        ? turnSlots
+        : turnSlots.slice(invocation.providerSegmentIndex, invocation.providerSegmentIndex + 1)
       const recovered = invocationSlots.flatMap((slot) => {
         const retained = recoveredBySlot.get(slot.generationSlotId)
         return retained ? [retained] : []
@@ -2272,6 +2492,9 @@ export const createCurrentTtsRenderAttempt = async (
     } : undefined,
     dispatch: async (observation, attempt, operationFn) => {
       const slot = slotFor(invocation, observation)
+      if (!attemptSlotIds.has(slot.generationSlotId)) {
+        throw CLIUsageError(`TTS generation slot ${slot.generationSlotId} is outside this bounded execution checkpoint.`)
+      }
       if (recoveredBySlot.has(slot.generationSlotId)) {
         throw CLIUsageError(`TTS generation slot ${slot.generationSlotId} already has verified retained output; provider redispatch is blocked.`)
       }
@@ -2460,24 +2683,29 @@ export const createCurrentTtsRenderAttempt = async (
     for (const slot of touchedSlots) {
       currentBatchResultFiles.push(await promoteBatchResult(slot, closingError))
     }
-    const batchResultFiles = planned.slots.map((slot) => {
-      const file = [...recoveredBatchFiles, ...currentBatchResultFiles]
-        .find((entry) => entry.value.generationSlotId === slot.generationSlotId)
-      if (!file) throw InternalError(`TTS provider attempt did not resolve generation slot ${slot.generationSlotId}.`, { stage: 'tts:reconciliation' })
-      return file
-    })
+    const batchResultFiles = [...recoveredBatchFiles, ...currentBatchResultFiles]
+      .filter((file, index, files) => files.findIndex((candidate) => candidate.value.generationSlotId === file.value.generationSlotId) === index)
+      .sort((left, right) => planned.slots.findIndex((slot) => slot.generationSlotId === left.value.generationSlotId) - planned.slots.findIndex((slot) => slot.generationSlotId === right.value.generationSlotId))
     const batchRefs: ProviderBatchResultRef[] = batchResultFiles.map((file) => ({ batchId: file.value.batchId, generationSlotId: file.value.generationSlotId, batchResultId: file.value.batchResultId, artifactRef: contained(renderRoot, file.path), sha256: file.sha256 }))
     const allObserved = batchResultFiles.flatMap((file) => file.value.observedRequests)
     const requestedTurnIds = planned.turns.map((turn) => turn.canonical.turnId)
     const turnOutcomes = requestedTurnIds.map((turnId) => {
       const results = batchResultFiles.map((file) => file.value).filter((result) => result.requestedTurnIds.includes(turnId))
-      const status = results.length === 0 ? 'unstarted' as const : results.every((result) => result.status === 'succeeded') ? 'succeeded' as const : results.some((result) => result.status === 'ambiguous') ? 'ambiguous' as const : 'failed' as const
+      const expectedSlotIds = planned.slots.filter((slot) => slot.turnIds.includes(turnId)).map((slot) => slot.generationSlotId)
+      const completedSlotIds = new Set(results.map((result) => result.generationSlotId))
+      const status = results.some((result) => result.status === 'ambiguous')
+        ? 'ambiguous' as const
+        : results.some((result) => result.status === 'failed' || result.status === 'partial')
+          ? 'failed' as const
+          : expectedSlotIds.every((slotId) => completedSlotIds.has(slotId))
+            ? 'succeeded' as const
+            : 'unstarted' as const
       const linkedRequests = allObserved.filter((request) => request.turns.some((turn) => turn.turnId === turnId))
       return {
         turnId,
         status,
         observedRequests: linkedRequests.map((request) => ({ invocationId: request.invocationId, requestOrdinal: request.requestOrdinal })),
-        batchIds: [...new Set(results.map((result) => result.batchId))],
+        batchIds: results.map((result) => result.batchId),
         generationSlotIds: results.map((result) => result.generationSlotId),
         outputIds: status === 'succeeded' ? results.flatMap((result) => result.outputs.map((output) => output.outputId)) : [],
         ...(status === 'succeeded' ? {} : { error: closingError ?? { phase: 'synthesis' as const, code: status === 'unstarted' ? 'generation_slot_unstarted' : status === 'ambiguous' ? 'provider_outcome_ambiguous' : 'provider_request_failed', message: status === 'unstarted' ? 'Generation slot was not dispatched.' : status === 'ambiguous' ? 'Provider admission outcome is ambiguous.' : 'Provider request failed.', retryable: status !== 'failed' } })
@@ -2548,6 +2776,7 @@ export const createCurrentTtsRenderAttempt = async (
 
   const finalizeSuccess = async (audioPath: string, reportedOutputPath: string): Promise<CurrentTtsRenderArtifacts> => {
     if (terminalState) throw CLIUsageError('TTS render attempt was already finalized.')
+    if (requestedSlotLimit !== undefined) throw CLIUsageError('A bounded TTS generation checkpoint cannot publish a complete audio run.')
     if (
       runtimeRequests.length === 0
       || planned.slots.some((slot) => !recoveredBySlot.has(slot.generationSlotId) && !(outputsBySlot.get(slot.generationSlotId)?.length))
@@ -2598,7 +2827,11 @@ export const createCurrentTtsRenderAttempt = async (
         .flatMap((file) => file.value.outputs)
         .reduce((sum, output) => sum + (output.durationMs ?? 0), 0)
     }
-    const layout = options.comicContext ? comicTimelineLayout(options.comicContext.dialoguePlan, turnDuration) : undefined
+    const timingSegmentDuration = (turnId: string, segmentIndex: number): number => {
+      const slotIds = new Set(planned.slots.filter(slot => slot.turnIds.length === 1 && slot.turnIds[0] === turnId && (slot.timingSegmentIndex ?? 0) === segmentIndex).map(slot => slot.generationSlotId))
+      return batchResultFiles.filter(file => slotIds.has(file.value.generationSlotId)).flatMap(file => file.value.outputs).reduce((sum, output) => sum + (output.durationMs ?? 0), 0)
+    }
+    const layout = options.comicContext ? comicTimelineLayout(options.comicContext.dialoguePlan, turnDuration, timingSegmentDuration) : undefined
     let genericTimelineCursorMs = 0
     const assembledTurns = layout?.turns ?? planned.turns.map((turn) => {
       const startMs = genericTimelineCursorMs
@@ -2615,7 +2848,11 @@ export const createCurrentTtsRenderAttempt = async (
       const parametersHash = hashCanonicalTtsValue({ groupId: overlap.groupId })
       return { operationId: hashCanonicalTtsValue({ kind: 'overlap', groupId: overlap.groupId, parametersHash, finalRangeMs: { start: overlap.start, end: overlap.end } }), kind: 'overlap' as const, finalRangeMs: { start: overlap.start, end: overlap.end }, parametersHash }
     })
-    const ledger = withIdentity({ schemaVersion: 1 as const, renderIdentity, operations: [transformOperation, ...effectOperations, ...overlapOperations] }, 'transformLedgerId')
+    const pauseOperations = (layout?.pauses ?? []).map((pause) => {
+      const parametersHash = hashCanonicalTtsValue(pause.parameters)
+      return { operationId: hashCanonicalTtsValue({ kind: 'pause', parametersHash, finalRangeMs: { start: pause.start, end: pause.end } }), kind: 'pause' as const, finalRangeMs: { start: pause.start, end: pause.end }, parametersHash }
+    })
+    const ledger = withIdentity({ schemaVersion: 1 as const, renderIdentity, operations: [transformOperation, ...effectOperations, ...overlapOperations, ...pauseOperations] }, 'transformLedgerId')
     const ledgerFile = await writeJson(options.outputDir, `${audioRunRoot}/transform-ledger.json`, ledger)
     const hasAssembledTurnTiming = planned.strategy === 'segmented' && assembledTurns.every((turn) => turn.endMs > turn.startMs)
     let nativeCursorMs = 0
@@ -2683,5 +2920,69 @@ export const createCurrentTtsRenderAttempt = async (
     return { artifactDir: targetRelativeDir, operation, targetKey, transport, renderIdentity, resultIdentity: resultFile.value.resultIdentity, audioRunId: audioRun.audioRunId, strategy: planned.strategy, projection: currentProjection }
   }
 
-  return { requestEvidence: scopeFor(), preparedState, finalizeSuccess, finalizeFailure }
+  const finalizeCheckpoint = async () => {
+    if (terminalState) throw CLIUsageError('TTS render attempt was already finalized.')
+    if (requestedSlotLimit === undefined) throw CLIUsageError('An unbounded TTS render cannot finalize as a generation checkpoint.')
+    if (
+      runtimeRequests.length === 0
+      || attemptSlots.some((slot) => !(outputsBySlot.get(slot.generationSlotId)?.length))
+    ) throw CLIUsageError('Bounded TTS execution did not durably complete every admitted generation slot.')
+    const checkpointReason: SanitizedProviderError = {
+      phase: 'synthesis',
+      code: 'generation_slot_limit_reached',
+      message: `Bounded TTS execution completed ${attemptSlots.length} generation slot(s); the immutable render remains incomplete.`,
+      retryable: true
+    }
+    const { resultFile, batchResultFiles } = await closeProviderAttempt(checkpointReason)
+    if (!resultFile || (resultFile.value.status !== 'partial' && resultFile.value.status !== 'succeeded')) {
+      throw CLIUsageError('Bounded TTS generation checkpoint did not close with durable successful slot evidence.')
+    }
+    const at = now()
+    const activeJournal = requireJournalFile()
+    events.push({
+      sequence: events.length + 1,
+      status: 'running',
+      at,
+      attempt: attemptNumber,
+      readinessAuthorization,
+      admissionJournalSnapshotId: journal.snapshotId,
+      admissionJournalRef: contained(targetDir, activeJournal.path),
+      admissionJournalSha256: activeJournal.sha256,
+      providerRenderResultIdentity: resultFile.value.resultIdentity,
+      providerRenderResultRef: contained(targetDir, resultFile.path),
+      providerRenderResultSha256: resultFile.sha256,
+      batchProgress: buildBatchProgress(batchResultFiles)
+    })
+    pointerEvents.push({ sequence: pointerEvents.length + 1, action: 'activate-render', renderIdentity, eventSequence: events.length, actor: LOCAL_ACTOR, at })
+    currentProjection = buildProjection()
+    terminalState = stateForProjection(options.target, targetKey, transport, targetRelativeDir, currentProjection)
+    await publish(terminalState)
+    const completedGenerationSlotIds = [...new Set([
+      ...recoveredBySlot.keys(),
+      ...attemptSlots.map((slot) => slot.generationSlotId)
+    ])]
+    return {
+      artifactDir: targetRelativeDir,
+      operation,
+      targetKey,
+      transport,
+      renderIdentity,
+      strategy: planned.strategy,
+      projection: currentProjection,
+      completedGenerationSlotIds,
+      remainingGenerationSlotCount: planned.slots.length - completedGenerationSlotIds.length
+    }
+  }
+
+  const executionSelection = requestedSlotLimit === undefined
+    ? undefined
+    : attemptSlots.map((slot) => {
+        if (slot.turnIds.length !== 1) throw CLIUsageError('Bounded segmented execution requires each generation slot to bind exactly one dialogue turn.')
+        return {
+          generationSlotId: slot.generationSlotId,
+          turnId: slot.turnIds[0] as string,
+          providerSegmentIndex: slot.slotIndex
+        }
+      })
+  return { requestEvidence: scopeFor(), preparedState, executionSelection, finalizeSuccess, finalizeCheckpoint, finalizeFailure }
 }

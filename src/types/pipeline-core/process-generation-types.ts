@@ -25,6 +25,10 @@ export type Step4Metadata = TtsMetadataBase<TtsProvider> & {
   resultIdentity?: string | undefined
   audioRunId?: string | undefined
   renderStrategy?: ProviderRenderStrategy | undefined
+  generationCheckpoint?: {
+    completedGenerationSlotIds: string[]
+    remainingGenerationSlotCount: number
+  } | undefined
   ttsAudio?: CanonicalAudioProviderProjection | undefined
   comicAudio?: CanonicalAudioProviderProjection | undefined
 }

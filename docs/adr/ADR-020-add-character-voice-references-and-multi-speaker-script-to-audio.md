@@ -21,7 +21,7 @@ Phase 0 was implemented on 2026-08-11. The generic TTS path now carries immutabl
 
 Phase 1 was implemented on 2026-08-11. The protected store now retains content-addressed purpose and retention policies for references, candidate previews, auditions, consent, and reconciliation evidence; validates owner-only roots and disposable workspaces; and keeps protected and ordinary output roots disjoint. Shared strict schemas cover voice briefs, candidates/materialization, consent, append-preserved registrations, a current approval index, canonical auditions, lifecycle state, and crash-safe provisioning journals. The shared `voice` surface and comic-native `comic reference-voice` alias import existing resources, protect consent, plan or execute Mistral saved-reference creation, audition, approve, reconcile, retire, revoke, explicitly delete eligible project-owned resources, and inspect state. Mistral creation is confined to management, and management price paths make no provider calls or artifact writes.
 
-Phase 2 was implemented on 2026-08-11. Comic now writes one canonical `command: 'comic'` scene manifest, structured-script v4 embeds exact source identity and Unicode source spans, and `comic generate-audio` selects only an exact compatible existing scene run. Provider-neutral dialogue plans preserve delivery/effect intent and explicit overlap nodes; all selected targets and roles resolve through one immutable approved aggregate voice snapshot and append-only index. The command performs deterministic static validation and a read-only all-target readiness pass before a shared dispatch barrier, then reuses the Phase 0 branch/render/admission/result/audio-run machinery under the strict `comicAudio` namespace. It supports strict two-speaker Gemini native planning, approved Mistral saved/reference consumption, segmented fallback, operation-scoped resume, explicit 16/24-bit mono/stereo WAV mastering, and targetless local completion for a zero-turn scene. Its price path performs no provider calls or artifact writes.
+Phase 2 was implemented on 2026-08-11. Comic now writes one canonical `command: 'comic'` scene manifest, structured-script v4 embeds exact source identity and Unicode source spans, and `comic generate-audio` selects only an exact compatible existing scene run. Provider-neutral dialogue plans preserve delivery/effect intent, authored timing cues, deterministic pacing, and explicit overlap nodes; all selected targets and roles resolve through one immutable approved aggregate voice snapshot and append-only model-qualified index. The command performs deterministic static validation and a read-only all-target readiness pass before a shared dispatch barrier, then reuses the Phase 0 branch/render/admission/result/audio-run machinery under the strict `comicAudio` namespace. It supports strict two-speaker Gemini native planning, Hume Octave 1 acting descriptions, explicit best-effort delivery evidence for models such as Hume Octave 2, approved Mistral saved/reference consumption, segmented fallback, operation-scoped resume, explicit 16/24-bit mono/stereo WAV mastering, and targetless local completion for a zero-turn scene. Its price path performs no provider calls or artifact writes.
 
 Phase 3 was implemented on 2026-08-11 after rechecking the official ElevenLabs and Hume documentation. Dated capability fixtures and typed advanced ports now cover catalog discovery, protected candidate design/materialization, clone state, resource inspection/deletion, and Hume continuation validation. ElevenLabs normalizes account/shared catalogs, legacy default expiry, verification state, eligibility-proved remix lineage, Instant/Professional clone outcomes, and bounded turn-safe Text-to-Dialogue with prepared-text alignment. Hume normalizes stock/custom stable IDs, Octave 1 design saved for Octave 2, platform-gated clone state, unique name-to-ID deletion proof, model-constrained direction/timing, one-to-five native utterance takes, word/phoneme timing, and selected-generation continuation. Generic and comic planning select those native strategies only when exact intent is representable, otherwise retaining the existing approved-voice segmented repair path. Execution readiness checks every approved ElevenLabs/Hume resource before the shared dispatch barrier, and management price modes remain zero-call and zero-write.
 
@@ -402,10 +402,12 @@ type VoiceRegistration =
     }
 
 type CurrentVoiceRegistrationIndex = {
-  schemaVersion: 1
+  schemaVersion: 2
+  revision: number
   selections: Array<{
     subjectKey: string
     provider: TtsProvider
+    providerModel: string
     profileKey: string
     registrationId: string
     generationId: string
@@ -544,6 +546,12 @@ type CanonicalDialogueTurn = {
   canonicalText: string
   delivery?: DeliveryPlan
   effect?: VoiceEffectPlan
+  timingCues?: Array<{
+    kind: 'beat' | 'pause' | 'long-pause'
+    afterTextOffset: number
+    durationMs: number
+    sourceSpan: CanonicalDialogueSourceSpan
+  }>
 }
 
 type CanonicalDialoguePlanNode =
@@ -551,12 +559,16 @@ type CanonicalDialoguePlanNode =
   | { kind: 'overlap', groupId: string, turns: CanonicalDialogueTurn[] }
 
 type ComicDialoguePlan = {
-  schemaVersion: 1
+  schemaVersion: 2
   dialoguePlanId: string
   sceneRunIdentity: string
   sourceIdentity: ComicSourceIdentity
   structuredScript: StructuredScriptArtifactRef
   createdAt: string
+  pacing: {
+    profile: 'none' | 'loose-comedy'
+    interTurnMs: number
+  }
   nodes: CanonicalDialoguePlanNode[]
 }
 
@@ -1456,6 +1468,8 @@ Reference, audition, candidate-preview, consent, and reconciliation-evidence rec
 Every ordinary artifact uses `ProtectedAssetRef` and stores only opaque store/asset IDs, SHA-256 checksums, non-secret authorization references, and allowlisted metadata. `storeId` and `assetId` must match `^[a-z0-9][a-z0-9_-]{0,127}$`, cannot contain dots or path separators, and resolve only through a registered store adapter; they are never joined as user-supplied paths. Audit attribution uses `AuditActorRef`, an opaque local/project/automation ID that cannot contain an email, display name, or contact field. Ordinary artifacts never store an absolute protected path, performer email, contact details, consent bytes, reference/audition bytes, API key, or raw provider response. Temporary decoding, conversion, upload preparation, and reconciliation happen in an owner-only workspace outside the scene run and are removed after the relevant durable journal/result checkpoint. Because comic accepts arbitrary `--output-dir` destinations, protected bytes are never copied into a scene run. A request-time reference must be materialized into the authorized immutable protected store to support a later provider call; if rights, consent, provider terms, or retention policy forbid that, the registration and dependent run are explicitly non-resumable for new provider synthesis and may reuse only output whose reuse remains authorized.
 
 After the dialogue plan exists and every target/profile casting resolves locally, comic writes one aggregate immutable `VoiceReferenceManifest` for the exact scene-run and dialogue-plan identities. Its `snapshotId` uses the complete canonical-record projection defined above—not entries alone—and it includes every selected character and non-character role for every planned comparison target. A later final comic `ProviderRenderPlan` refers to that ID through its approved `voiceContext` and one exact snapshot member per resolved turn; the provider-neutral dialogue plan never embeds a mutable current pointer.
+
+A corrective invocation may select a strict provider/model subset of an existing aggregate snapshot. The retained snapshot must still be the exact complete cross-product of its target, profile, and speaking-subject sets, every selected binding must already be present, and the invocation preserves unselected target histories and aggregate stage keys. This permits isolated serializer or output repair without recasting, querying a blocked peer provider, or replacing the scene snapshot.
 
 Project registrations are append-preserving and `character-voice-current.json` is the sole mutable current pointer. Scene snapshot files are create-only: writing identical bytes at an existing `snapshotId` is idempotent, while the same ID with different bytes is corruption. `voice-reference-snapshots.json` is an atomically updated append-only index whose existing entries cannot be changed or removed and in which each render identity maps to exactly one snapshot ID. Changing a current registration later cannot alter a prior scene, snapshot, provider plan, cache key, or result. This borrows atomic writing and checksum validation from the visual-reference implementation while deliberately strengthening its overwriteable singleton index into append-only content identity.
 

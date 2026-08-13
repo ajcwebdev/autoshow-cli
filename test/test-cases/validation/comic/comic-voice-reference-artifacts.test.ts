@@ -2,12 +2,14 @@ import { afterEach, describe, expect, test } from 'bun:test'
 import { mkdtemp, readFile, rm } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
-import type { CharacterVoiceBrief, ProtectedAssetRef, VoiceAuditionManifest } from '~/types'
+import type { CharacterVoiceBrief, ProtectedAssetRef, VoiceAuditionManifest, VoiceRegistration } from '~/types'
 import {
   approveVoiceRegistration,
+  beginVoiceRegistrationDeletion,
   loadCurrentVoiceRegistrationIndex,
   loadVoiceRegistrationCatalog,
   recordVoiceAudition,
+  requireCurrentVoiceRegistration,
   resolveCharacterVoiceRegistryPaths,
   transitionVoiceRegistrationLifecycle,
   writeCharacterVoiceBriefCatalog,
@@ -37,7 +39,8 @@ const protectedAudio: ProtectedAssetRef = {
   storeId: 'managed_voice_assets_v1', assetId: `sha256_${'a'.repeat(64)}`, sha256: 'a'.repeat(64)
 }
 
-const auditionFor = (registrationId: string, providerVoice: VoiceAuditionManifest['providerVoice']): VoiceAuditionManifest => {
+const auditionFor = (registration: VoiceRegistration): VoiceAuditionManifest => {
+  if (registration.provisioning.state !== 'ready') throw new Error('Test registration must be ready.')
   const item = (itemId: string, category: VoiceAuditionManifest['items'][number]['category']) => ({
     itemId, category, canonicalText: `${category} text`, providerText: `${category} text`,
     takes: [{ takeId: `${itemId}-1`, protectedAudio, sha256: protectedAudio.sha256, cost: { amounts: [] }, warnings: [] }],
@@ -45,13 +48,13 @@ const auditionFor = (registrationId: string, providerVoice: VoiceAuditionManifes
   })
   const withoutId = {
     schemaVersion: 1 as const,
-    registrationDraftId: registrationId,
-    provider: 'openai' as const,
-    providerModel: 'gpt-4o-mini-tts-2025-12-15',
-    providerVoice,
-    capabilityFixtureHash: 'b'.repeat(64),
-    settingsSchema: 'openai.voice-defaults.v1',
-    synthesisSettings: { schemaVersion: 1 as const, settingsSchema: 'openai.voice-defaults.v1', values: {} },
+    registrationDraftId: registration.registrationId,
+    provider: registration.provider,
+    providerModel: registration.providerModel,
+    providerVoice: registration.provisioning.providerVoice,
+    capabilityFixtureHash: registration.capabilityFixtureHash,
+    settingsSchema: registration.settingsSchema,
+    synthesisSettings: registration.synthesisSettings,
     items: [item('neutral', 'neutral'), item('representative', 'representative'), item('pronunciation', 'pronunciation'), item('comparison', 'comparison')],
     plannedCost: { amounts: [] }, warnings: [], createdAt: '2026-08-11T00:00:00.000Z'
   }
@@ -73,7 +76,7 @@ describe('Phase 1 comic voice reference artifacts', () => {
     })
     const { appendVoiceRegistration } = await import('~/cli/commands/process-steps/step-4-tts/voice-management/character-voice-registry')
     await appendVoiceRegistration(root, draft)
-    const audition = auditionFor(draft.registrationId, providerVoice)
+    const audition = auditionFor(draft)
     const auditioned = await recordVoiceAudition({ charactersRoot: root, registrationId: draft.registrationId, generationId: draft.generationId, audition, recordedAt: '2026-08-11T00:01:00.000Z' })
     const approved = await approveVoiceRegistration({
       charactersRoot: root, registrationId: draft.registrationId, generationId: auditioned.generationId, audition,
@@ -111,10 +114,40 @@ describe('Phase 1 comic voice reference artifacts', () => {
     const draft = buildReadyVoiceRegistrationDraft({ subjectKey: 'hero', profileKey: 'default', provider: 'openai', providerModel: 'gpt-4o-mini-tts-2025-12-15', providerVoice, brief, provenanceRef: 'project:casting', capabilityFixtureHash: 'b'.repeat(64) })
     const { appendVoiceRegistration } = await import('~/cli/commands/process-steps/step-4-tts/voice-management/character-voice-registry')
     await appendVoiceRegistration(root, draft)
-    const audition = auditionFor(draft.registrationId, providerVoice)
+    const audition = auditionFor(draft)
     const auditioned = await recordVoiceAudition({ charactersRoot: root, registrationId: draft.registrationId, generationId: draft.generationId, audition })
     await approveVoiceRegistration({ charactersRoot: root, registrationId: draft.registrationId, generationId: auditioned.generationId, audition, approvedBy: { namespace: 'local-user', actorId: 'editor_one' }, expectedIndexRevision: 0 })
     await expect(approveVoiceRegistration({ charactersRoot: root, registrationId: draft.registrationId, generationId: auditioned.generationId, audition, approvedBy: { namespace: 'local-user', actorId: 'editor_two' }, expectedIndexRevision: 0 })).rejects.toThrow('expected revision 0, found 1')
+  })
+
+  test('model-qualified current selections coexist for one shared Hume resource and block unsafe deletion', async () => {
+    const root = await makeRoot()
+    const humeBrief: CharacterVoiceBrief = { ...brief, allowedOrigins: ['designed'] }
+    await writeCharacterVoiceBriefCatalog(root, { schemaVersion: 1, briefs: [humeBrief] })
+    const providerVoice = {
+      kind: 'remote-resource' as const, provider: 'hume' as const, resourceId: 'shared-hume-voice', namespace: 'account' as const, accountScopeHash: 'c'.repeat(64),
+      origin: 'designed' as const, ownership: 'project' as const,
+      deletion: { state: 'eligible' as const, checkedAt: '2026-08-11T00:00:00.000Z' }
+    }
+    const { appendVoiceRegistration } = await import('~/cli/commands/process-steps/step-4-tts/voice-management/character-voice-registry')
+    let expectedIndexRevision = 0
+    for (const providerModel of ['octave-1', 'octave-2']) {
+      const draft = buildReadyVoiceRegistrationDraft({ subjectKey: 'hero', profileKey: 'default', provider: 'hume', providerModel, providerVoice, brief: humeBrief, provenanceRef: 'project:casting', capabilityFixtureHash: 'b'.repeat(64) })
+      await appendVoiceRegistration(root, draft)
+      const audition = auditionFor(draft)
+      const auditioned = await recordVoiceAudition({ charactersRoot: root, registrationId: draft.registrationId, generationId: draft.generationId, audition })
+      await approveVoiceRegistration({ charactersRoot: root, registrationId: draft.registrationId, generationId: auditioned.generationId, audition, approvedBy: { namespace: 'local-user', actorId: 'editor' }, expectedIndexRevision })
+      expectedIndexRevision += 1
+    }
+
+    const catalog = await loadVoiceRegistrationCatalog(root)
+    const current = await loadCurrentVoiceRegistrationIndex(root, catalog)
+    expect(current.schemaVersion).toBe(2)
+    expect(current.selections.map(selection => selection.providerModel).sort()).toEqual(['octave-1', 'octave-2'])
+    const octave1 = await requireCurrentVoiceRegistration(root, 'hero', 'hume', 'octave-1', 'default')
+    const octave2 = await requireCurrentVoiceRegistration(root, 'hero', 'hume', 'octave-2', 'default')
+    expect(octave1.registrationId).not.toBe(octave2.registrationId)
+    await expect(beginVoiceRegistrationDeletion({ charactersRoot: root, registrationId: octave1.registrationId, generationId: octave1.generationId })).rejects.toThrow('shares the same provider resource')
   })
 
   test('canonical audition validation rejects approval without required comparison coverage', async () => {
@@ -125,7 +158,7 @@ describe('Phase 1 comic voice reference artifacts', () => {
       deletion: { state: 'provider-managed' as const, checkedAt: '2026-08-11T00:00:00.000Z' }
     }
     const draft = buildReadyVoiceRegistrationDraft({ subjectKey: 'hero', profileKey: 'default', provider: 'openai', providerModel: 'gpt-4o-mini-tts-2025-12-15', providerVoice, brief, provenanceRef: 'project:casting', capabilityFixtureHash: 'b'.repeat(64) })
-    const incomplete = auditionFor(draft.registrationId, providerVoice)
+    const incomplete = auditionFor(draft)
     incomplete.items = incomplete.items.filter(item => item.category !== 'comparison')
     await expect(recordVoiceAudition({ charactersRoot: root, registrationId: draft.registrationId, generationId: draft.generationId, audition: incomplete })).rejects.toThrow('invalid auditionId')
   })
@@ -141,7 +174,7 @@ describe('Phase 1 comic voice reference artifacts', () => {
     const draft = buildReadyVoiceRegistrationDraft({ subjectKey: 'hero', profileKey: 'default', provider: 'openai', providerModel: 'gpt-4o-mini-tts-2025-12-15', providerVoice, brief, provenanceRef: 'project:casting', capabilityFixtureHash: 'b'.repeat(64) })
     const { appendVoiceRegistration } = await import('~/cli/commands/process-steps/step-4-tts/voice-management/character-voice-registry')
     await appendVoiceRegistration(root, draft)
-    const audition = auditionFor(draft.registrationId, providerVoice)
+    const audition = auditionFor(draft)
     const auditioned = await recordVoiceAudition({ charactersRoot: root, registrationId: draft.registrationId, generationId: draft.generationId, audition })
     const approved = await approveVoiceRegistration({ charactersRoot: root, registrationId: draft.registrationId, generationId: auditioned.generationId, audition, approvedBy: { namespace: 'local-user', actorId: 'editor' }, expectedIndexRevision: 0 })
     const revoked = await transitionVoiceRegistrationLifecycle({ charactersRoot: root, registrationId: approved.registrationId, generationId: approved.generationId, action: 'revoke', reason: 'Authorization withdrawn', transitionedAt: '2026-08-11T02:00:00.000Z' })

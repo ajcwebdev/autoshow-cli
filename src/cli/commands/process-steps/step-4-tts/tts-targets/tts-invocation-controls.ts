@@ -65,6 +65,7 @@ export type TtsInvocationControlsByProvider = {
   hume: Readonly<{
     speed?: OptionalControl<number>
     trailingSilence?: OptionalControl<number>
+    description?: OptionalControl<string>
   }>
   cartesia: Readonly<{ language?: OptionalControl<string> }>
 }
@@ -162,6 +163,7 @@ const CONTROL_SPECS = {
   hume: {
     speed: { kind: 'number', min: 0, max: 4, exclusiveMin: true },
     trailingSilence: { kind: 'number', min: 0, max: 60 },
+    description: { kind: 'string', normalize: trim },
   },
   cartesia: {
     language: { kind: 'string', normalize: trim },

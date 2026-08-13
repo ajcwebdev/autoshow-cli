@@ -46,6 +46,7 @@ export const runHumeTts = async (
     voiceProvider?: string | undefined
     speed?: number | undefined
     trailingSilence?: number | undefined
+    description?: string | undefined
     abortSignal?: AbortSignal | undefined
     chunkConcurrency?: number | undefined
     chunkScheduler?: HostedTtsChunkScheduler | undefined
@@ -69,6 +70,7 @@ export const runHumeTts = async (
     { label: 'voice provider', value: voice.provider },
     { label: 'speed', value: options.speed },
     { label: 'trailing silence', value: options.trailingSilence },
+    { label: 'acting description', value: options.description },
     { label: 'chunk count', value: chunks.length }
   ])
 
@@ -87,14 +89,15 @@ export const runHumeTts = async (
     requestEvidence: options.requestEvidence,
     fetchChunkAudio: async ({ chunk, chunkIndex, signal, requestAttempt, retryReasonCode }) => {
       const requestBody = {
-        version: '2',
+        version: options.model === 'octave-1' ? '1' : '2',
         format: { type: 'mp3' },
         num_generations: 1,
         utterances: [{
           text: chunk,
           voice: voice.payload,
           ...(typeof options.speed === 'number' ? { speed: options.speed } : {}),
-          ...(typeof options.trailingSilence === 'number' ? { trailing_silence: options.trailingSilence } : {})
+          ...(typeof options.trailingSilence === 'number' ? { trailing_silence: options.trailingSilence } : {}),
+          ...(options.model === 'octave-1' && options.description ? { description: options.description } : {})
         }]
       }
       return await dispatchTtsProviderRequest(options.requestEvidence, {
@@ -110,7 +113,8 @@ export const runHumeTts = async (
           format: requestBody.format,
           numGenerations: requestBody.num_generations,
           ...(typeof options.speed === 'number' ? { speed: options.speed } : {}),
-          ...(typeof options.trailingSilence === 'number' ? { trailingSilence: options.trailingSilence } : {})
+          ...(typeof options.trailingSilence === 'number' ? { trailingSilence: options.trailingSilence } : {}),
+          ...(options.model === 'octave-1' && options.description ? { description: options.description } : {})
         },
         continuation: { kind: 'none' }
       }, { attempt: requestAttempt, ...(retryReasonCode ? { retryReasonCode } : {}) }, async ({ accepted }) => {

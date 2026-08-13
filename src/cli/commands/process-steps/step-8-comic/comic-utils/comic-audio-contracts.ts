@@ -92,12 +92,13 @@ export const computeSceneRunIdentity = (
 }
 
 export const validateComicDialoguePlan = (plan: ComicDialoguePlan): ComicDialoguePlan => {
-  if (plan.schemaVersion !== 1 || !SHA256.test(plan.sceneRunIdentity)) throw CLIUsageError('Comic dialogue plan requires schemaVersion 1 and a scene-run identity.')
+  if (plan.schemaVersion !== 2 || !SHA256.test(plan.sceneRunIdentity)) throw CLIUsageError('Comic dialogue plan requires schemaVersion 2 and a scene-run identity.')
   validateComicSourceIdentity(plan.sourceIdentity)
   if (computeSceneRunIdentity(plan.sourceIdentity, plan.structuredScript) !== plan.sceneRunIdentity) {
     throw CLIUsageError('Comic dialogue plan sceneRunIdentity does not bind its source and structured script.')
   }
   assertIsoDate(plan.createdAt, 'Comic dialogue plan createdAt')
+  if (!['none', 'loose-comedy'].includes(plan.pacing.profile) || !Number.isSafeInteger(plan.pacing.interTurnMs) || plan.pacing.interTurnMs < 0) throw CLIUsageError('Comic dialogue plan requires a supported deterministic pacing profile.')
   const turns = plan.nodes.flatMap(node => node.kind === 'turn' ? [node.turn] : node.turns)
   const turnIds = turns.map(turn => turn.turnId)
   if (new Set(turnIds).size !== turnIds.length) throw CLIUsageError('Comic dialogue plan contains duplicate turn IDs.')
@@ -113,6 +114,9 @@ export const validateComicDialoguePlan = (plan: ComicDialoguePlan): ComicDialogu
     }
     if (!turn.sourceSpans?.length || turn.sourceSpans.some(span => !Number.isSafeInteger(span.start) || !Number.isSafeInteger(span.end) || span.start < 0 || span.end <= span.start || span.indexUnit !== 'unicode-scalar-value' || !span.text)) {
       throw CLIUsageError(`Comic dialogue turn ${turn.turnId} requires exact zero-based half-open Unicode source spans.`)
+    }
+    if (turn.timingCues?.some(cue => !['beat', 'pause', 'long-pause'].includes(cue.kind) || !Number.isSafeInteger(cue.afterTextOffset) || cue.afterTextOffset < 0 || cue.afterTextOffset > [...turn.canonicalText].length || !Number.isSafeInteger(cue.durationMs) || cue.durationMs <= 0 || cue.sourceSpan.kind !== 'timing')) {
+      throw CLIUsageError(`Comic dialogue turn ${turn.turnId} contains an invalid timing cue.`)
     }
   }
   for (const node of plan.nodes) {

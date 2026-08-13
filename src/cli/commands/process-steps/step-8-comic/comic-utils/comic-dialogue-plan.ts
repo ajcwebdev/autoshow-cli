@@ -5,6 +5,7 @@ import type {
   CanonicalDialoguePlanNode,
   CanonicalDialogueTurn,
   ComicAudioRolePolicy,
+  ComicAudioPacingProfile,
   ComicDialoguePlan,
   ComicSourceIdentity,
   StructuredScriptArtifactRef,
@@ -15,6 +16,37 @@ import { canonicalTtsJson, hashCanonicalTtsValue, sha256Bytes } from '../../step
 import { validateComicDialoguePlan } from './comic-audio-contracts'
 
 const normalizeLabel = (value: string): string => value.normalize('NFKC').trim().replace(/\s+/g, ' ').toUpperCase()
+
+const TIMING_DIRECTION = /^(?:(?:a\s+)?(?:long|heavy)\s+)?(?:beat|pause|moment)$/iu
+const COMMS_DIRECTION = /\b(?:over|into)\s+(?:the\s+)?comms?\b/iu
+
+const cleanDirection = (value: string): string => value.normalize('NFKC').trim().replace(/^\(|\)$/g, '').trim()
+
+const timingDuration = (value: string): { kind: 'beat' | 'pause' | 'long-pause', durationMs: number } => {
+  const normalized = cleanDirection(value).toLowerCase()
+  if (/\b(?:long|heavy)\b/u.test(normalized)) return { kind: 'long-pause', durationMs: 1800 }
+  if (/\b(?:pause|moment)\b/u.test(normalized)) return { kind: 'pause', durationMs: 1200 }
+  return { kind: 'beat', durationMs: 750 }
+}
+
+const timingCuesFor = (segment: StructuredScriptData['sourceSegments'][number]): CanonicalDialogueTurn['timingCues'] => {
+  const spans = [...(segment.sourceSpans ?? [])].sort((left, right) => left.start - right.start)
+  const cues: NonNullable<CanonicalDialogueTurn['timingCues']> = []
+  let canonicalCursor = 0
+  for (const span of spans) {
+    if (span.kind === 'spoken-text') {
+      const spoken = span.text.trim()
+      if (!spoken) continue
+      const index = segment.text.indexOf(spoken, canonicalCursor)
+      if (index >= canonicalCursor) canonicalCursor = index + spoken.length
+      continue
+    }
+    if (span.kind !== 'timing') continue
+    const resolved = timingDuration(span.text)
+    cues.push({ ...resolved, afterTextOffset: canonicalCursor, sourceSpan: span })
+  }
+  return cues.length > 0 ? cues : undefined
+}
 
 const rolePolicyMap = (policies: readonly ComicAudioRolePolicy[]): ReadonlyMap<string, string> => {
   const result = new Map<string, string>()
@@ -31,6 +63,7 @@ const voiceEffectFor = (segment: StructuredScriptData['sourceSegments'][number])
   const effects = [
     ...[...segment.speakerLabel?.matchAll(/(?:\bV\.O\.|\bO\.S\.|\bOFFSCREEN\b|\bRADIO\b|\bINTERCOM\b|\bTELEPHONE\b|\bCOMPUTER\b)/giu) ?? []].map(match => match[0].toUpperCase()),
     ...(segment.sourceSpans ?? []).filter(span => span.kind === 'voice-effect').map(span => span.text.normalize('NFKC').trim().toUpperCase()),
+    ...(segment.delivery && COMMS_DIRECTION.test(segment.delivery) ? ['RADIO'] : []),
   ].filter((value, index, all) => value && all.indexOf(value) === index)
   if (effects.length === 0) return undefined
   const kind = effects.join('+').replace(/[^A-Z0-9]+/g, '-').replace(/^-+|-+$/g, '').toLowerCase()
@@ -39,10 +72,13 @@ const voiceEffectFor = (segment: StructuredScriptData['sourceSegments'][number])
 
 const deliveryFor = (segment: StructuredScriptData['sourceSegments'][number]): CanonicalDialogueTurn['delivery'] | undefined => {
   const descriptions = [
-    ...(segment.delivery ? [segment.delivery] : []),
-    ...(segment.sourceSpans ?? []).filter(span => span.kind === 'timing' || span.kind === 'stage-direction').map(span => span.text),
-  ].map(value => value.trim()).filter(Boolean)
-  return descriptions.length > 0 ? { kind: 'source', description: descriptions.join('; ') } : undefined
+    ...(segment.delivery?.split(',') ?? []),
+    ...(segment.sourceSpans ?? []).filter(span => span.kind === 'stage-direction').map(span => span.text),
+  ]
+    .map(cleanDirection)
+    .filter(value => value && !TIMING_DIRECTION.test(value) && !COMMS_DIRECTION.test(value))
+    .filter((value, index, all) => all.indexOf(value) === index)
+  return descriptions.length > 0 ? { kind: 'source', description: descriptions.join(', ') } : undefined
 }
 
 const turn = (input: {
@@ -61,6 +97,7 @@ const turn = (input: {
   sourceSpans: input.segment.sourceSpans,
   ...(deliveryFor(input.segment) ? { delivery: deliveryFor(input.segment) } : {}),
   ...(voiceEffectFor(input.segment) ? { effect: voiceEffectFor(input.segment) } : {}),
+  ...(timingCuesFor(input.segment) ? { timingCues: timingCuesFor(input.segment) } : {}),
 })
 
 export const createComicDialoguePlan = (input: {
@@ -69,6 +106,7 @@ export const createComicDialoguePlan = (input: {
   structuredScriptRef: StructuredScriptArtifactRef
   sceneRunIdentity: string
   createdAt: string
+  pacingProfile?: ComicAudioPacingProfile | undefined
   rolePolicies?: readonly ComicAudioRolePolicy[] | undefined
 }): ComicDialoguePlan => {
   if (input.structuredScript.schemaVersion !== 4 || canonicalTtsJson(input.structuredScript.sourceIdentity) !== canonicalTtsJson(input.sourceIdentity)) {
@@ -98,11 +136,15 @@ export const createComicDialoguePlan = (input: {
   })
 
   const base = {
-    schemaVersion: 1 as const,
+    schemaVersion: 2 as const,
     sceneRunIdentity: input.sceneRunIdentity,
     sourceIdentity: input.sourceIdentity,
     structuredScript: input.structuredScriptRef,
     createdAt: input.createdAt,
+    pacing: {
+      profile: input.pacingProfile ?? 'none',
+      interTurnMs: input.pacingProfile === 'loose-comedy' ? 350 : 0,
+    },
     nodes,
   }
   return validateComicDialoguePlan({ ...base, dialoguePlanId: hashCanonicalTtsValue(base) })

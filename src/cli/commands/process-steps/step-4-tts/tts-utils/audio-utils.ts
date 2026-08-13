@@ -188,6 +188,29 @@ export const filterAudioToWav = async (
   return outputPath
 }
 
+export const createSilenceWav = async (
+  outputPath: string,
+  durationMs: number,
+  profile: TtsMasteringProfile,
+  abortSignal?: AbortSignal | undefined
+): Promise<string> => {
+  if (!Number.isSafeInteger(durationMs) || durationMs <= 0) throw InfraError('Silence duration must be a positive integer number of milliseconds.', { stage: 'tts:audio-utils' })
+  abortSignal?.throwIfAborted()
+  const channelLayout = profile.channels === 1 ? 'mono' : 'stereo'
+  const ffmpeg = await exec(getFfmpegBinary(), [
+    '-f', 'lavfi',
+    '-i', `anullsrc=r=${profile.sampleRate}:cl=${channelLayout}`,
+    '-t', (durationMs / 1000).toFixed(3),
+    '-ar', String(profile.sampleRate),
+    '-ac', String(profile.channels),
+    '-c:a', profile.codec,
+    '-y',
+    outputPath,
+  ], { signal: abortSignal })
+  if (ffmpeg.exitCode !== 0) throw InfraError(`Failed to create deterministic silence: ${ffmpeg.stderr.trim()}`, { stage: 'tts:audio-utils' })
+  return outputPath
+}
+
 export const convertAudioToWav = async (
   inputPath: string,
   outputPath: string,

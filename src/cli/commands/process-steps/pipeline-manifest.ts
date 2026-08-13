@@ -1620,7 +1620,8 @@ const validateProjectionArtifactGraphLinks = (
     canonicalText: turn['canonicalText'],
     ...(turn['sourceSpans'] !== undefined ? { sourceSpans: turn['sourceSpans'] } : {}),
     ...(turn['delivery'] !== undefined ? { delivery: turn['delivery'] } : {}),
-    ...(turn['effect'] !== undefined ? { effect: turn['effect'] } : {})
+    ...(turn['effect'] !== undefined ? { effect: turn['effect'] } : {}),
+    ...(turn['timingCues'] !== undefined ? { timingCues: turn['timingCues'] } : {})
   })
   for (const reference of referencesForKind('render-plan')) {
     const value = jsonAt(reference)
@@ -1871,11 +1872,11 @@ const validateProjectionArtifactGraphLinks = (
     if (Array.isArray(value['generatedBatches'])) {
       for (const generated of value['generatedBatches']) {
         if (!isRecord(generated)) return false
-        const matches = [...batchResults.values()].filter((batch) =>
-          batch.value['batchId'] === generated['batchId']
-          && batch.value['generationSlotId'] === generated['generationSlotId']
+        const matches = aggregateBatches.filter((batch) =>
+          batch['batchId'] === generated['batchId']
+          && batch['generationSlotId'] === generated['generationSlotId']
         )
-        if (matches.length !== 1 || canonicalManifestJson(matches[0]?.value['generatedBatch']) !== canonicalManifestJson(generated)) return false
+        if (matches.length !== 1 || canonicalManifestJson(matches[0]?.['generatedBatch']) !== canonicalManifestJson(generated)) return false
       }
     }
     const requestSort = (left: Record<string, unknown>, right: Record<string, unknown>): number =>
@@ -2231,10 +2232,14 @@ const verifyProviderProjectionArtifacts = async (
 
     const checked = new Map<string, { sha256: string, json?: Record<string, unknown> | undefined }>()
     const expanded = new Set<string>()
+    const visitedReferences = new Set<string>()
     for (let referenceIndex = 0; referenceIndex < references.files.length; referenceIndex += 1) {
-      if (references.files.length > 10_000) return false
       const reference = references.files[referenceIndex]
       if (!reference) return false
+      const visitedKey = canonicalManifestJson(reference)
+      if (visitedReferences.has(visitedKey)) continue
+      visitedReferences.add(visitedKey)
+      if (visitedReferences.size > 10_000) return false
       const referenceKey = projectionArtifactReferenceKey(reference)
       const prior = checked.get(referenceKey)
       let json: Record<string, unknown> | undefined
@@ -2272,7 +2277,11 @@ const verifyProviderProjectionArtifacts = async (
       if (reference.kind !== 'audio' && reference.kind !== 'strategy-text') {
         if (!json) return false
         validateProjectionArtifactJson(reference.kind, json)
-        const expansionKey = canonicalManifestJson({ path: reference.path, kind: reference.kind, context: reference.context })
+        const expansionKey = canonicalManifestJson({
+          path: reference.path,
+          kind: reference.kind,
+          context: reference.kind === 'admission-journal' ? undefined : reference.context
+        })
         if (!expanded.has(expansionKey)) {
           expanded.add(expansionKey)
           if (reference.kind === 'admission-journal') {

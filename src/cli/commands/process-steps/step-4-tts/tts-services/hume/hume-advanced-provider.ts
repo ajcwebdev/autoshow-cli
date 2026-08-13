@@ -38,7 +38,7 @@ const evidence = (refs: readonly string[]) => buildCapabilityDocumentationEviden
 const capabilityRecords = [
   { scope: { provider: 'hume', feature: 'turn-synthesis' as const }, maturity: 'stable' as const, channel: 'api' as const, adapterSupport: 'implemented' as const, requirements: [], constraints: { voiceKinds: ['provider-id' as const], maxCharacters: 5000, supportedOutputFormats: ['mp3', 'wav', 'pcm'] }, documentationEvidence: evidence([DOCS.overview, DOCS.synthesis]) },
   { scope: { provider: 'hume', feature: 'native-utterances' as const, model: 'octave-2', transport: 'hosted-api' }, maturity: 'preview' as const, channel: 'api' as const, adapterSupport: 'implemented' as const, requirements: [], constraints: { voiceKinds: ['provider-id' as const], maxCharacters: 5000, supportedOutputFormats: ['mp3', 'wav', 'pcm'], maxTakesPerRequest: 5 }, documentationEvidence: evidence([DOCS.overview, DOCS.synthesis]) },
-  { scope: { provider: 'hume', feature: 'voice-catalog' as const }, maturity: 'stable' as const, channel: 'api' as const, adapterSupport: 'implemented' as const, requirements: [], constraints: { paginated: false, stableResourceIds: true }, documentationEvidence: evidence([DOCS.management]) },
+  { scope: { provider: 'hume', feature: 'voice-catalog' as const }, maturity: 'stable' as const, channel: 'api' as const, adapterSupport: 'implemented' as const, requirements: [], constraints: { paginated: true, stableResourceIds: true }, documentationEvidence: evidence([DOCS.management]) },
   { scope: { provider: 'hume', feature: 'voice-design' as const, model: 'octave-1', transport: 'hosted-api' }, maturity: 'stable' as const, channel: 'api' as const, adapterSupport: 'implemented' as const, requirements: [], constraints: { requiresConsent: false, createsRemoteResource: true }, documentationEvidence: evidence([DOCS.design]) },
   { scope: { provider: 'hume', feature: 'instant-clone' as const }, maturity: 'stable' as const, channel: 'ui-only' as const, adapterSupport: 'planned' as const, requirements: [{ kind: 'plan' as const }], constraints: { requiresConsent: true, createsRemoteResource: true }, reason: 'The documented clone workflow is subscription-gated and currently performed in the Hume platform; the adapter reports the external action and imports its stable custom voice ID.', documentationEvidence: evidence([DOCS.clone]) },
   { scope: { provider: 'hume', feature: 'voice-import' as const }, maturity: 'stable' as const, channel: 'api' as const, adapterSupport: 'implemented' as const, requirements: [], constraints: { requiresConsent: false, createsRemoteResource: false }, documentationEvidence: evidence([DOCS.voice, DOCS.management]) },
@@ -57,9 +57,27 @@ const record = (value: unknown, label: string): JsonRecord => {
   return value as JsonRecord
 }
 const string = (value: unknown): string | undefined => typeof value === 'string' && value.trim() ? value.trim() : undefined
-const voiceArray = (payload: unknown): unknown[] => Array.isArray(payload)
-  ? payload
-  : Array.isArray(record(payload, 'voice catalog')['voices']) ? record(payload, 'voice catalog')['voices'] as unknown[] : []
+export type HumeVoiceCatalogEnvelope = Readonly<{
+  voices: unknown[]
+  pageNumber: number
+  totalPages: number
+}>
+
+export const parseHumeVoiceCatalogEnvelope = (payload: unknown): HumeVoiceCatalogEnvelope => {
+  if (Array.isArray(payload)) return { voices: payload, pageNumber: 0, totalPages: 1 }
+  const response = record(payload, 'voice catalog')
+  const voices = Array.isArray(response['voices_page'])
+    ? response['voices_page'] as unknown[]
+    : Array.isArray(response['voices']) ? response['voices'] as unknown[] : []
+  const pageNumber = typeof response['page_number'] === 'number' && Number.isInteger(response['page_number']) && response['page_number'] >= 0
+    ? response['page_number']
+    : 0
+  const totalPages = typeof response['total_pages'] === 'number' && Number.isInteger(response['total_pages']) && response['total_pages'] >= 0
+    ? response['total_pages']
+    : 1
+  if (totalPages > 10_000 || pageNumber >= Math.max(totalPages, 1)) throw CLIUsageError('Hume voice catalog pagination metadata is invalid.')
+  return { voices, pageNumber, totalPages }
+}
 
 const mapVoice = (value: unknown): ProviderVoiceCatalogEntry => {
   const voice = record(value, 'voice')
@@ -107,12 +125,30 @@ export const createHumeAdvancedProvider = (options: HumeAdvancedProviderOptions)
   const now = options.now ?? (() => new Date().toISOString())
   const accountScopeHash = providerAccountScopeHash('hume', options.apiKey)
 
-  const listVoices = async (source?: 'provider-library' | 'shared-library' | 'account'): Promise<ProviderVoiceCatalogPage> => {
+  const listVoices = async (source?: 'provider-library' | 'shared-library' | 'account', cursor?: string): Promise<ProviderVoiceCatalogPage> => {
     if (source === 'shared-library') throw CLIUsageError('Hume has a provider library, not an ElevenLabs-style shared-owner voice namespace.')
-    const payload = await request({ method: 'GET', path: '/v0/tts/voices', query: source === 'account' ? { provider: 'CUSTOM_VOICE' } : { provider: 'HUME_AI' } })
-    return { schemaVersion: 1, provider: 'hume', entries: voiceArray(payload).map(mapVoice), checkedAt: now() }
+    const pageNumber = cursor ?? '0'
+    if (!/^(0|[1-9]\d*)$/.test(pageNumber)) throw CLIUsageError('Hume voice catalog cursor must be a zero-based page number.')
+    const payload = await request({ method: 'GET', path: '/v0/tts/voices', query: {
+      provider: source === 'account' ? 'CUSTOM_VOICE' : 'HUME_AI',
+      page_number: pageNumber,
+      page_size: '100'
+    } })
+    const envelope = parseHumeVoiceCatalogEnvelope(payload)
+    const nextCursor = envelope.pageNumber + 1 < envelope.totalPages ? String(envelope.pageNumber + 1) : undefined
+    return { schemaVersion: 1, provider: 'hume', entries: envelope.voices.map(mapVoice), ...(nextCursor ? { nextCursor } : {}), checkedAt: now() }
   }
-  const catalog: VoiceCatalogPort = { list: async input => await listVoices(input?.source) }
+  const listAllVoices = async (source: 'provider-library' | 'account'): Promise<ProviderVoiceCatalogEntry[]> => {
+    const entries: ProviderVoiceCatalogEntry[] = []
+    let cursor: string | undefined
+    do {
+      const page = await listVoices(source, cursor)
+      entries.push(...page.entries)
+      cursor = page.nextCursor
+    } while (cursor)
+    return entries
+  }
+  const catalog: VoiceCatalogPort = { list: async input => await listVoices(input?.source, input?.cursor) }
 
   const design: VoiceDesignPort = {
     createCandidate: async designRequest => {
@@ -174,8 +210,8 @@ export const createHumeAdvancedProvider = (options: HumeAdvancedProviderOptions)
 
   const inspect = async (voice: ProviderVoiceRef): Promise<ProviderVoiceInspection> => {
     if (voice.provider !== 'hume' || voice.kind !== 'remote-resource') throw CLIUsageError('Hume inspection requires a Hume remote voice resource.')
-    const page = await listVoices(voice.namespace === 'account' ? 'account' : 'provider-library')
-    const matching = page.entries.filter(entry => entry.resourceId === voice.resourceId)
+    const entries = await listAllVoices(voice.namespace === 'account' ? 'account' : 'provider-library')
+    const matching = entries.filter(entry => entry.resourceId === voice.resourceId)
     if (matching.length === 0) return { schemaVersion: 1, provider: 'hume', providerVoice: voice, state: 'missing', deletion: voice.deletion, sanitizedMetadata: {}, checkedAt: now() }
     return { schemaVersion: 1, provider: 'hume', providerVoice: voice, state: 'available', deletion: voice.deletion, sanitizedMetadata: matching[0]?.sanitizedMetadata ?? {}, checkedAt: now() }
   }
@@ -188,9 +224,9 @@ export const createHumeAdvancedProvider = (options: HumeAdvancedProviderOptions)
       if (voice.accountScopeHash !== accountScopeHash) throw CLIUsageError('Hume deletion credentials do not match the registered account scope.')
       const expectedName = deleteRequest.expectedName?.trim()
       if (!expectedName) throw CLIUsageError('Hume deletion requires the expected mutable name for a fresh unique proof.')
-      const custom = await listVoices('account')
+      const custom = await listAllVoices('account')
       let resolved: ProviderVoiceCatalogEntry
-      try { resolved = resolveUniqueHumeVoiceName(custom.entries, expectedName) }
+      try { resolved = resolveUniqueHumeVoiceName(custom, expectedName) }
       catch { throw CLIUsageError('Hume deletion requires a fresh unique name-to-expected-ID proof; use an external action when the name is ambiguous or changed.') }
       if (resolved.resourceId !== voice.resourceId) throw CLIUsageError('Hume deletion requires a fresh unique name-to-expected-ID proof; use an external action when the name is ambiguous or changed.')
       await request({ method: 'DELETE', path: '/v0/tts/voices', query: { name: expectedName } })

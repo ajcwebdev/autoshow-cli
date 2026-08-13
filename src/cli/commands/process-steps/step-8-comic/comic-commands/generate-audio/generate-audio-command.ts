@@ -4,10 +4,13 @@ import type {
   ApprovedVoiceSnapshotEntry,
   CliCommandContext,
   ComicAudioMode,
+  ComicAudioDeliveryPolicy,
+  ComicAudioPacingProfile,
   ComicAudioRolePolicy,
   ComicTtsRenderContext,
   PipelineProviderState,
   ProtectedAssetRef,
+  Step4Metadata,
   TtsOptions,
   TtsTarget,
   TtsTurnControls,
@@ -17,7 +20,7 @@ import { normalizeGenericProviderSelectorFlags } from '~/cli/flags/service-selec
 import { STANDALONE_TTS_PROVIDER_TARGETS } from '~/cli/flags/service-selector-normalization/provider-targets'
 import { getCharactersRoot } from '~/cli/commands/process-steps/characters-root'
 import { canonicalTargetKey, sha256Bytes } from '../../../step-4-tts/script-to-audio/contract-identity'
-import { planCurrentTtsReadiness } from '../../../step-4-tts/script-to-audio/current-render-attempt'
+import { planCurrentTtsResumePrice, prepareComicSegmentedProviderTexts } from '../../../step-4-tts/script-to-audio/current-render-attempt'
 import { runTtsForTargets, validateTtsRenderInputsForTargets } from '../../../step-4-tts/run-tts'
 import { collectTtsTargets, validateTtsTargetsForExecution } from '../../../step-4-tts/tts-targets'
 import { createResourceGate } from '~/utils/resource-gate'
@@ -27,6 +30,7 @@ import * as l from '~/utils/app-logger/app-logger'
 import { createComicDialoguePlan, writeComicDialoguePlan } from '../../comic-utils/comic-dialogue-plan'
 import { resolveCompatibleComicSceneRun } from '../../comic-utils/compatible-scene-run'
 import { appendComicAudioProviderState, updateComicAudioManifest } from '../../comic-utils/comic-manifest'
+import { readManifest } from '../../../pipeline-manifest'
 import { bindSnapshotRenderIdentities, buildVoiceReferenceManifest, loadVoiceReferenceManifest, writeVoiceReferenceManifest } from '../../comic-utils/voice-reference-snapshot'
 import { assertProtectedStoreOutputDisjoint } from '../../../step-4-tts/voice-assets/protected-output-boundary'
 import { MANAGED_VOICE_STORE_ROOT } from '../../../step-4-tts/voice-management/managed-voice-store'
@@ -45,6 +49,12 @@ const parseInteger = (value: unknown, fallback: number, label: string): number =
   return Number(value)
 }
 
+const parseOptionalPositiveInteger = (value: unknown, label: string): number | undefined => {
+  if (value === undefined) return undefined
+  if (typeof value !== 'string' || !/^\d+$/.test(value) || Number(value) <= 0 || !Number.isSafeInteger(Number(value))) throw CLIUsageError(`${label} must be a positive safe integer.`)
+  return Number(value)
+}
+
 const parseRolePolicies = (values: readonly string[]): ComicAudioRolePolicy[] => values.map((value) => {
   const separator = value.indexOf('=')
   const speakerLabel = value.slice(0, separator).trim()
@@ -57,6 +67,18 @@ const parseMode = (value: unknown): ComicAudioMode => {
   const mode = value ?? 'auto'
   if (mode !== 'auto' && mode !== 'native' && mode !== 'segmented') throw CLIUsageError('--mode must be auto, native, or segmented.')
   return mode
+}
+
+const parseDeliveryPolicy = (value: unknown): ComicAudioDeliveryPolicy => {
+  const policy = value ?? 'strict'
+  if (policy !== 'strict' && policy !== 'best-effort') throw CLIUsageError('--delivery-policy must be strict or best-effort.')
+  return policy
+}
+
+const parsePacingProfile = (value: unknown): ComicAudioPacingProfile => {
+  const profile = value ?? 'none'
+  if (profile !== 'none' && profile !== 'loose-comedy') throw CLIUsageError('--pacing-profile must be none or loose-comedy.')
+  return profile
 }
 
 const flattenTurns = (plan: Awaited<ReturnType<typeof createComicDialoguePlan>>) =>
@@ -94,6 +116,7 @@ const buildTargetExecution = (input: {
   snapshot: Awaited<ReturnType<typeof buildVoiceReferenceManifest>>
   dialoguePlan: Awaited<ReturnType<typeof createComicDialoguePlan>>
   mode: ComicAudioMode
+  deliveryPolicy: ComicAudioDeliveryPolicy
   sampleRate: number
   channels: 1 | 2
   codec: 'pcm_s16le' | 'pcm_s24le'
@@ -115,6 +138,7 @@ const buildTargetExecution = (input: {
   const speakers = new Map<string, string>()
   const protectedSpeakerVoiceAssets: Record<string, ProtectedAssetRef> = {}
   const turnControls: Record<string, Record<string, ApprovedVoiceSnapshotEntry['synthesisSettings']['values']>> = {}
+  const deliveryDispositionByTurnId: Record<string, 'none' | 'serialized' | 'unsupported-best-effort'> = {}
   const canonicalTurns = turns.map((turn) => {
     let speaker = subjectLabels.get(turn.subjectKey)
     if (!speaker) {
@@ -134,8 +158,25 @@ const buildTargetExecution = (input: {
     if (locator.protectedAsset) protectedSpeakerVoiceAssets[speaker] = locator.protectedAsset
     providerSpeakerLabelByTurnId[turn.turnId] = speaker
     snapshotEntryIdByTurnId[turn.turnId] = entry.entryId
-    turnControls[turn.turnId] = { [target.service]: entry.synthesisSettings.values }
-    return { turnId: turn.turnId, speaker, text: turn.canonicalText }
+    const delivery = turn.delivery?.description
+    if (delivery && target.service === 'hume' && target.model === 'octave-2') {
+      if (input.deliveryPolicy === 'strict') throw CLIUsageError(`Hume Octave 2 cannot serialize authored delivery for ${turn.turnId}; use --delivery-policy best-effort to record the degradation.`)
+      deliveryDispositionByTurnId[turn.turnId] = 'unsupported-best-effort'
+    } else {
+      deliveryDispositionByTurnId[turn.turnId] = delivery ? 'serialized' : 'none'
+    }
+    turnControls[turn.turnId] = {
+      [target.service]: {
+        ...entry.synthesisSettings.values,
+        ...(delivery && target.service === 'hume' && target.model === 'octave-1' ? { description: delivery } : {}),
+      }
+    }
+    return {
+      turnId: turn.turnId,
+      speaker,
+      text: turn.canonicalText,
+      providerSegments: prepareComicSegmentedProviderTexts(turn, target).providerTexts,
+    }
   })
   const ttsSpeakers = [...speakers].map(([speaker, locator]) => `${speaker}=${locator}`)
   const options: TtsOptions = {
@@ -159,6 +200,8 @@ const buildTargetExecution = (input: {
     snapshotEntryIdByTurnId,
     providerSpeakerLabelByTurnId,
     modePreference: input.mode,
+    deliveryPolicy: input.deliveryPolicy,
+    deliveryDispositionByTurnId,
   }
   return { target, options, sourceText: canonicalTurns.map(turn => `${turn.speaker}: ${turn.text}`).join('\n'), context }
 }
@@ -175,17 +218,39 @@ const stageArtifactRefs = (input: {
   ...(input.extra ?? []).map(ref => ({ path: ref.path, sha256: ref.sha256 })),
 ]
 
-const providerStageStatus = (states: readonly PipelineProviderState[]): 'full' | 'incomplete' | 'failed' | 'skipped' => {
-  if (states.every(state => state.status === 'skipped')) return 'skipped'
-  if (states.some(state => state.status === 'succeeded') && states.every(state => state.status === 'succeeded' || state.status === 'skipped')) return 'full'
-  if (states.some(state => state.status === 'failed') && states.every(state => state.status === 'failed' || state.status === 'skipped')) return 'failed'
+const providerStageStatus = (targetKeys: readonly string[], states: readonly PipelineProviderState[]): 'full' | 'incomplete' | 'failed' | 'skipped' => {
+  const owned = targetKeys.map(targetKey => states.find(state => state.targetKey === targetKey))
+  if (owned.some(state => !state)) return 'incomplete'
+  const selected = owned as PipelineProviderState[]
+  if (selected.every(state => state.status === 'skipped')) return 'skipped'
+  if (selected.some(state => state.status === 'succeeded') && selected.every(state => state.status === 'succeeded' || state.status === 'skipped')) return 'full'
+  if (selected.some(state => state.status === 'failed') && selected.every(state => state.status === 'failed' || state.status === 'skipped')) return 'failed'
   return 'incomplete'
+}
+
+export const assertVoiceSnapshotCoversSelectedTargets = (input: {
+  snapshot: Awaited<ReturnType<typeof buildVoiceReferenceManifest>>
+  targets: ReadonlyArray<{ service: string, model: string }>
+  subjectKeys: readonly string[]
+  profileKey: string
+}): void => {
+  const selectedTargets = new Set(input.targets.map(target => `${target.service}\0${target.model}`))
+  const snapshotTargets = new Set(input.snapshot.entries.map(entry => `${entry.provider}\0${entry.providerModel}`))
+  const selectedBindings = new Set(input.targets.flatMap(target => input.subjectKeys.map(subjectKey => `${target.service}\0${target.model}\0${input.profileKey}\0${subjectKey}`)))
+  const completeSnapshotBindings = new Set([...snapshotTargets].flatMap(target => {
+    const [provider, model] = target.split('\0')
+    return input.subjectKeys.map(subjectKey => `${provider}\0${model}\0${input.profileKey}\0${subjectKey}`)
+  }))
+  const snapshotBindings = new Set(input.snapshot.entries.map(entry => `${entry.provider}\0${entry.providerModel}\0${entry.profileKey}\0${entry.subjectKey}`))
+  if ([...selectedTargets].some(key => !snapshotTargets.has(key)) || completeSnapshotBindings.size !== input.snapshot.entries.length || snapshotBindings.size !== input.snapshot.entries.length || [...completeSnapshotBindings].some(key => !snapshotBindings.has(key)) || [...selectedBindings].some(key => !snapshotBindings.has(key))) throw CLIUsageError('Retained scene snapshot is not a complete immutable superset of the selected provider/model/profile/subject bindings; start a new canonical scene run for a recast.')
 }
 
 export const generateComicAudio = async (ctx: CliCommandContext, scriptPath: string): Promise<void> => {
   const flags = ctx.flags as Record<string, unknown>
   const profileKey = typeof flags['profile'] === 'string' && flags['profile'].trim() ? flags['profile'].trim() : DEFAULT_PROFILE
   const mode = parseMode(flags['mode'])
+  const deliveryPolicy = parseDeliveryPolicy(flags['delivery-policy'])
+  const pacingProfile = parsePacingProfile(flags['pacing-profile'])
   const rolePolicies = parseRolePolicies(repeatableStrings(flags['role']))
   const sampleRate = parseInteger(flags['sample-rate'], DEFAULT_SAMPLE_RATE, '--sample-rate')
   const channelsValue = parseInteger(flags['channels'], 2, '--channels')
@@ -195,6 +260,8 @@ export const generateComicAudio = async (ctx: CliCommandContext, scriptPath: str
   if (codecValue !== 'pcm_s16le' && codecValue !== 'pcm_s24le') throw CLIUsageError('--codec must be pcm_s16le or pcm_s24le.')
   const codec = codecValue
   const price = flags['price'] === true
+  const allowAmbiguousRedispatch = flags['allow-ambiguous-redispatch'] === true
+  const maxGenerationSlots = parseOptionalPositiveInteger(flags['max-generation-slots'], '--max-generation-slots')
   const providerNormalized = normalizeGenericProviderSelectorFlags(
     flags,
     ctx.rawParsed.explicitFlags,
@@ -210,6 +277,9 @@ export const generateComicAudio = async (ctx: CliCommandContext, scriptPath: str
     providerNormalized.explicitFlags,
     { flagOccurrences: providerNormalized.flagOccurrences }
   ) as TtsOptions)
+  baseOptions.ttsAllowAmbiguousRedispatch = allowAmbiguousRedispatch
+  baseOptions.ttsMaxGenerationSlots = maxGenerationSlots
+  if (allowAmbiguousRedispatch) l.write('warn', 'Ambiguous TTS redispatch is explicitly authorized for this run; a provider-admitted slot without retained audio may be purchased again.')
   const compatible = await resolveCompatibleComicSceneRun({ scriptPath })
   await assertProtectedStoreOutputDisjoint(compatible.sceneRunDir, MANAGED_VOICE_STORE_ROOT)
   const dialoguePlan = createComicDialoguePlan({
@@ -218,6 +288,7 @@ export const generateComicAudio = async (ctx: CliCommandContext, scriptPath: str
     structuredScriptRef: compatible.comicMetadata.audio.structuredScript as NonNullable<typeof compatible.comicMetadata.audio.structuredScript>,
     sceneRunIdentity: compatible.comicMetadata.audio.sceneRunIdentity as string,
     createdAt: compatible.manifest.createdAt,
+    pacingProfile,
     rolePolicies,
   })
   const turns = flattenTurns(dialoguePlan)
@@ -257,23 +328,40 @@ export const generateComicAudio = async (ctx: CliCommandContext, scriptPath: str
       profileKey,
       createdAt: compatible.manifest.createdAt,
     })
-  const expectedSnapshotTargets = new Set(targets.map(target => `${target.service}\0${target.model}`))
-  const snapshotTargets = new Set(snapshot.entries.map(entry => `${entry.provider}\0${entry.providerModel}`))
   const snapshotSubjects = [...new Set(turns.map(turn => turn.subjectKey))]
-  const expectedSnapshotBindings = new Set(targets.flatMap(target => snapshotSubjects.map(subjectKey => `${target.service}\0${target.model}\0${profileKey}\0${subjectKey}`)))
-  const snapshotBindings = new Set(snapshot.entries.map(entry => `${entry.provider}\0${entry.providerModel}\0${entry.profileKey}\0${entry.subjectKey}`))
-  if (expectedSnapshotTargets.size !== snapshotTargets.size || [...expectedSnapshotTargets].some(key => !snapshotTargets.has(key)) || expectedSnapshotBindings.size !== snapshot.entries.length || snapshotBindings.size !== snapshot.entries.length || [...expectedSnapshotBindings].some(key => !snapshotBindings.has(key))) throw CLIUsageError('Retained scene snapshot does not match the exact selected provider/model/profile/subject set; start a new canonical scene run for a recast.')
+  assertVoiceSnapshotCoversSelectedTargets({ snapshot, targets, subjectKeys: snapshotSubjects, profileKey })
   baseOptions.hostedTtsChunkScheduler ??= createHostedTtsChunkScheduler(baseOptions.ttsChunkConcurrency)
   const hostedResourceGate = createResourceGate({ capacity: baseOptions.ttsProviderConcurrency ?? DEFAULT_CLI_CONCURRENCY })
   const localResourceGate = createResourceGate({ capacity: baseOptions.ttsLocalConcurrency ?? DEFAULT_CLI_CONCURRENCY })
-  const executions = targets.map(target => buildTargetExecution({ target, baseOptions, snapshot, dialoguePlan, mode, sampleRate, channels, codec, resourceGate: target.service === 'kitten' ? localResourceGate : hostedResourceGate }))
+  const executions = targets.map(target => buildTargetExecution({ target, baseOptions, snapshot, dialoguePlan, mode, deliveryPolicy, sampleRate, channels, codec, resourceGate: target.service === 'kitten' ? localResourceGate : hostedResourceGate }))
   for (const execution of executions) validateTtsRenderInputsForTargets([execution.target], execution.sourceText, execution.options, { comicContext: execution.context })
 
   if (price) {
     for (const execution of executions) {
-      const planned = planCurrentTtsReadiness({ target: execution.target, sourceText: execution.sourceText, ttsOptions: execution.options, comicContext: execution.context })
-      const cost = planned.plannedCost.amounts.map(amount => `${amount.amount.toFixed(4)} ${amount.currency}`).join(', ') || '0'
-      l.write('info', `${execution.target.service}/${execution.target.model}: ${planned.strategy}, ${cost}`)
+      const retainedState = compatible.manifest.items[0]?.providers.find((state) => state.targetKey === execution.target.targetKey)
+      const estimate = await planCurrentTtsResumePrice({
+        rootDir: compatible.sceneRunDir,
+        state: retainedState,
+        target: execution.target,
+        sourceText: execution.sourceText,
+        ttsOptions: execution.options,
+        comicContext: execution.context
+      })
+      const cost = estimate.plannedCost.amounts.map(amount => `${amount.amount.toFixed(4)} ${amount.currency}`).join(', ') || '0'
+      const resumeDetail = maxGenerationSlots !== undefined
+        ? `, ${estimate.plannedSlotCount} unresolved slot checkpoint`
+        : estimate.recoveredSlotCount === 0
+          ? ''
+          : estimate.unresolvedSlotCount === 0
+            ? ', 0 unresolved slots, local finalization only'
+            : `, ${estimate.unresolvedSlotCount} unresolved slots remaining`
+      const blockedSlotCount = new Set(estimate.reconciliationBlockers.map((blocker) => blocker.generationSlotId)).size
+      const reconciliationDetail = blockedSlotCount === 0
+        ? ''
+        : allowAmbiguousRedispatch
+          ? `, ${blockedSlotCount} ambiguous slot redispatch authorized`
+          : `, blocked: ${blockedSlotCount} unresolved ${blockedSlotCount === 1 ? 'slot requires' : 'slots require'} reconciliation`
+      l.write('info', `${execution.target.service}/${execution.target.model}: ${estimate.readiness.strategy}, ${cost}${resumeDetail}${reconciliationDetail}`)
     }
     return
   }
@@ -299,6 +387,7 @@ export const generateComicAudio = async (ctx: CliCommandContext, scriptPath: str
 
   const readiness = await validateTtsTargetsForExecution(executions.map(execution => execution.target))
   const targetKeys = executions.map(execution => execution.target.targetKey as string)
+  const stageTargetKeys = [...new Set([...compatible.comicMetadata.stages.audio.targetKeys, ...targetKeys])]
   const prepared = new Map<string, PipelineProviderState>()
   let releaseBarrier!: () => void
   let rejectBarrier!: (error: unknown) => void
@@ -310,10 +399,12 @@ export const generateComicAudio = async (ctx: CliCommandContext, scriptPath: str
       barrierCommitStarted = true
       try {
         const ordered = targetKeys.map(targetKey => prepared.get(targetKey) as PipelineProviderState)
+        const priorByTarget = new Map((compatible.manifest.items[0]?.providers ?? []).map(provider => [provider.targetKey, provider] as const))
+        for (const state of ordered) priorByTarget.set(state.targetKey, state)
         await updateComicAudioManifest({
           sceneRunDir: compatible.sceneRunDir,
           sourceIdentity: compatible.sourceIdentity,
-          stage: { requirement: 'required', status: providerStageStatus(ordered), execution: { kind: 'provider-targets' }, targetKeys: targetKeys as [string, ...string[]], artifactRefs: baseArtifacts },
+          stage: { requirement: 'required', status: providerStageStatus(stageTargetKeys, [...priorByTarget.values()]), execution: { kind: 'provider-targets' }, targetKeys: stageTargetKeys as [string, ...string[]], artifactRefs: baseArtifacts },
           audio: audioMetadata,
           providers: ordered,
         })
@@ -340,7 +431,7 @@ export const generateComicAudio = async (ctx: CliCommandContext, scriptPath: str
           comicContext: execution.context,
           resolveReportedOutput: (target) => ({ path: join(compatible.sceneRunDir, 'audio', 'final', `${target.targetKey}.wav`), fileName: `audio/final/${target.targetKey}.wav` }),
           beforeDispatch,
-          onProviderState: async (state) => { await appendComicAudioProviderState({ sceneRunDir: compatible.sceneRunDir, sourceIdentity: compatible.sourceIdentity, targetKeys, state }) },
+          onProviderState: async (state) => { await appendComicAudioProviderState({ sceneRunDir: compatible.sceneRunDir, sourceIdentity: compatible.sourceIdentity, targetKeys: stageTargetKeys, state }) },
         }
       )
     } catch (error) {
@@ -352,7 +443,9 @@ export const generateComicAudio = async (ctx: CliCommandContext, scriptPath: str
   if (failures.length > 0) throw CLIUsageError(`Comic audio failed for ${failures.length}/${executions.length} target(s): ${failures.map(error => error instanceof Error ? error.message : String(error)).join('; ')}`)
 
   const metadata = settled.flatMap(result => result.status === 'fulfilled' ? result.value.metadata : [])
-  const selectedAudioRuns = metadata.map((entry) => {
+  const completedMetadata = metadata.filter((entry) => !entry.generationCheckpoint)
+  const checkpoints = metadata.flatMap((entry) => entry.generationCheckpoint ? [{ entry, checkpoint: entry.generationCheckpoint }] : [])
+  const selectedAudioRuns = completedMetadata.map((entry) => {
     if (!entry.targetKey || !entry.renderIdentity || !entry.audioRunId || !entry.comicAudio?.selectedSuccess) throw CLIUsageError('Completed comic target is missing selected audio-run evidence.')
     const selected = entry.comicAudio.selectedSuccess
     const render = entry.comicAudio.renderHistory.find(candidate => candidate.renderIdentity === selected.renderIdentity)
@@ -360,16 +453,49 @@ export const generateComicAudio = async (ctx: CliCommandContext, scriptPath: str
     if (!event?.audioRunRef || !event.audioRunSha256 || !entry.artifactDir) throw CLIUsageError('Completed comic target audio run is not checksum-bound.')
     return { targetKey: entry.targetKey, renderIdentity: entry.renderIdentity, audioRunId: entry.audioRunId, audioRunRef: `${entry.artifactDir}/${event.audioRunRef}`, audioRunSha256: event.audioRunSha256 }
   })
-  const finalOutputRefs = await Promise.all(metadata.map(async entry => {
+  const finalOutputRefs = await Promise.all(completedMetadata.map(async entry => {
     const path = entry.audioFileName
     return { path, sha256: sha256Bytes(new Uint8Array(await Bun.file(join(compatible.sceneRunDir, path)).arrayBuffer())) }
   }))
+  const selectedRunByTarget = new Map((compatible.comicMetadata.audio.selectedAudioRuns ?? []).map(run => [run.targetKey, run] as const))
+  for (const run of selectedAudioRuns) selectedRunByTarget.set(run.targetKey, run)
+  const mergedSelectedAudioRuns = [...selectedRunByTarget.values()].sort((left, right) => left.targetKey.localeCompare(right.targetKey))
+  const finalOutputByPath = new Map((compatible.comicMetadata.audio.finalOutputRefs ?? []).map(ref => [ref.path, ref] as const))
+  for (const ref of finalOutputRefs) finalOutputByPath.set(ref.path, ref)
+  const mergedFinalOutputRefs = [...finalOutputByPath.values()].sort((left, right) => left.path.localeCompare(right.path))
+  const nextEvaluation = completedMetadata.map(entry => ({
+    ttsService: entry.ttsService,
+    ttsModel: entry.ttsModel,
+    ...(entry.speaker ? { speaker: entry.speaker } : {}),
+    ...(entry.language ? { language: entry.language } : {}),
+    processingTime: entry.processingTime,
+    audioFileName: entry.audioFileName,
+    audioFileSize: entry.audioFileSize,
+    chunkCount: entry.chunkCount,
+  }))
+  const evaluationByTarget = new Map<string, Step4Metadata>()
+  const priorEvaluation = compatible.manifest.items[0]?.metadata['tts']
+  if (Array.isArray(priorEvaluation)) for (const entry of priorEvaluation as Step4Metadata[]) evaluationByTarget.set(`${entry.ttsService}\0${entry.ttsModel}`, entry)
+  for (const entry of nextEvaluation) evaluationByTarget.set(`${entry.ttsService}\0${entry.ttsModel}`, entry)
+  const currentManifest = await readManifest(compatible.sceneRunDir)
+  const currentProviders = currentManifest?.items[0]?.providers ?? []
+  const finalStageStatus = providerStageStatus(stageTargetKeys, currentProviders)
+  const completeEvaluation = [...evaluationByTarget.values()].filter(entry => currentProviders.some(provider => provider.targetKey && stageTargetKeys.includes(provider.targetKey) && provider.service === entry.ttsService && provider.model === entry.ttsModel && provider.status === 'succeeded'))
+  const artifactRefByPath = new Map([...compatible.comicMetadata.stages.audio.artifactRefs, ...stageArtifactRefs({ structured: structuredRef, dialogue: dialogueRef, snapshot: snapshotRef, extra: [...mergedSelectedAudioRuns.map(run => ({ path: run.audioRunRef, sha256: run.audioRunSha256 })), ...mergedFinalOutputRefs] })].map(ref => [ref.path, ref] as const))
   await bindSnapshotRenderIdentities(compatible.sceneRunDir, snapshot.snapshotId, metadata.flatMap(entry => entry.renderIdentity ? [entry.renderIdentity] : []))
   await updateComicAudioManifest({
     sceneRunDir: compatible.sceneRunDir,
     sourceIdentity: compatible.sourceIdentity,
-    stage: { requirement: 'required', status: 'full', execution: { kind: 'provider-targets' }, targetKeys: targetKeys as [string, ...string[]], artifactRefs: stageArtifactRefs({ structured: structuredRef, dialogue: dialogueRef, snapshot: snapshotRef, extra: [...selectedAudioRuns.map(run => ({ path: run.audioRunRef, sha256: run.audioRunSha256 })), ...finalOutputRefs] }) },
-    audio: { ...audioMetadata, selectedAudioRuns, publishedAudioRunId: selectedAudioRuns.length === 1 ? selectedAudioRuns[0]?.audioRunId : undefined, finalOutputRefs },
+    stage: { requirement: 'required', status: finalStageStatus, execution: { kind: 'provider-targets' }, targetKeys: stageTargetKeys as [string, ...string[]], artifactRefs: [...artifactRefByPath.values()] },
+    audio: { ...audioMetadata, selectedAudioRuns: mergedSelectedAudioRuns, publishedAudioRunId: stageTargetKeys.length === 1 && mergedSelectedAudioRuns.length === 1 ? mergedSelectedAudioRuns[0]?.audioRunId : undefined, finalOutputRefs: mergedFinalOutputRefs },
+    ttsEvaluation: completeEvaluation,
   })
-  l.write('info', `Comic audio complete: ${compatible.sceneRunDir}`)
+  if (checkpoints.length > 0) {
+    for (const { entry, checkpoint } of checkpoints) {
+      l.write('info', `${entry.ttsService}/${entry.ttsModel} generation checkpoint complete: ${checkpoint.completedGenerationSlotIds.length} retained, ${checkpoint.remainingGenerationSlotCount} remaining.`)
+    }
+    l.write('info', `Comic audio generation checkpoint saved; no final WAV was published: ${compatible.sceneRunDir}`)
+    return
+  }
+  l.write('info', finalStageStatus === 'full' ? `Comic audio complete: ${compatible.sceneRunDir}` : `Comic audio target update complete; aggregate stage remains ${finalStageStatus}: ${compatible.sceneRunDir}`)
 }

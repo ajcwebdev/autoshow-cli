@@ -752,6 +752,44 @@ describe('canonical TTS resume', () => {
     })
   })
 
+  test('explicit one-run authorization permits repurchasing an admitted slot with no recoverable output', async () => {
+    await withTempDir('autoshow-tts-resume-authorized-redispatch-', async (dir) => {
+      const text = 'Explicitly repurchase this lost admitted request.'
+      const inputPath = join(dir, 'source.txt')
+      await Bun.write(inputPath, text)
+      const sourceIdentity = await createFileTtsSourceIdentity(inputPath, text)
+      const dialoguePlan = createSingleTurnTtsDialoguePlan(sourceIdentity, text)
+      const target = { ...ttsTarget(), voice: 'alloy' }
+      const failed = await materializeFailedProviderState({ rootDir: dir, target, text, sourceIdentity, dialoguePlan, admitted: true })
+      await writeManifest(dir, createManifest('tts', 'single', [createManifestItem(dir, {
+        input: canonicalFileInput(sourceIdentity),
+        status: 'failed',
+        metadata: { tts: [] },
+        providers: [failed]
+      })]))
+      let providerCalls = 0
+      const candidate = successfulTarget(target, () => { providerCalls += 1 })
+
+      const resumed = await ttsResumeConfig.runMissingTargets(
+        [candidate],
+        text,
+        dir,
+        { ttsAllowAmbiguousRedispatch: true },
+        {
+          outputDir: dir,
+          runtimeOptions: {},
+          targets: [candidate],
+          existingEntries: [],
+          currentManifestMetadata: {},
+          currentProviderStates: [failed]
+        }
+      )
+      expect(providerCalls).toBe(1)
+      expect(resumed).toHaveLength(1)
+      expect(resumed[0]?.resultIdentity).toHaveLength(64)
+    })
+  })
+
   test('price rejects retained ambiguous work without a provider call or manifest write', async () => {
     await withTempDir('autoshow-tts-resume-price-admitted-', async (dir) => {
       const text = 'Do not price a second admitted request.'

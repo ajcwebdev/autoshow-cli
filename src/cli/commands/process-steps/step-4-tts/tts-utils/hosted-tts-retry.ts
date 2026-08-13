@@ -1,4 +1,5 @@
 import type { HostedTtsRetryAttemptContext, HostedTtsRetryOptions, RetryClassifier, RetryDecision, RetryPolicy } from '~/types'
+import { AppError } from '~/utils/error-handler'
 import { classifyFetchRetry, parseRetryAfterMs, withRetry } from '~/utils/retries'
 import { MEDIA_GENERATION_TIMEOUT_MS } from '~/utils/timeouts'
 
@@ -13,6 +14,8 @@ const HOSTED_TTS_RETRY_POLICY: RetryPolicy = {
 export const classifyHostedTtsRetry: RetryClassifier = (error) =>
   error instanceof Error && (error as Error & { ttsAdmissionAmbiguous?: boolean }).ttsAdmissionAmbiguous === true
     ? { shouldRetry: false, delayMs: 0, reason: 'provider admission outcome is ambiguous' }
+    : error instanceof AppError && (error.kind === 'usage' || error.kind === 'validation' || error.kind === 'internal')
+      ? { shouldRetry: false, delayMs: 0, reason: `deterministic ${error.kind} error` }
     : classifyFetchRetry(error, 'runtime_http_create_retriable')
 
 const getErrorHeaders = (error: unknown): Headers | undefined => {

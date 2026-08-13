@@ -207,11 +207,23 @@ export const loadCurrentVoiceRegistrationIndex = async (
   catalog?: VoiceRegistrationCatalog | undefined
 ): Promise<CurrentVoiceRegistrationIndex> => {
   const path = resolveCharacterVoiceRegistryPaths(charactersRoot).current
-  const value = await readJson(path, { schemaVersion: 1, revision: 0, selections: [] })
+  const value = await readJson(path, { schemaVersion: 2, revision: 0, selections: [] })
   if (!isRecord(value)) throw ValidationError(`Invalid current voice index at ${path}.`, { stage: 'comic:voice-registry' })
   assertAllowedKeys(value, ['schemaVersion', 'revision', 'selections'], 'Current voice index')
   try {
-    return validateCurrentVoiceRegistrationIndex(value as CurrentVoiceRegistrationIndex, catalog)
+    const migrated = value['schemaVersion'] === 1 && Array.isArray(value['selections'])
+      ? {
+          schemaVersion: 2 as const,
+          revision: typeof value['revision'] === 'number' ? value['revision'] : 0,
+          selections: value['selections'].map((selection) => {
+            if (!isRecord(selection)) return selection
+            const registration = catalog?.registrations.find(candidate => candidate.registrationId === selection['registrationId'] && candidate.generationId === selection['generationId'])
+            if (!registration) throw CLIUsageError('Legacy current voice selection cannot resolve its provider model during migration.')
+            return { ...selection, providerModel: registration.providerModel }
+          })
+        }
+      : value
+    return validateCurrentVoiceRegistrationIndex(migrated as CurrentVoiceRegistrationIndex, catalog)
   } catch (error) {
     throw ValidationError(`Invalid current voice index at ${path}: ${error instanceof Error ? error.message : String(error)}`, { stage: 'comic:voice-registry' })
   }
@@ -324,12 +336,13 @@ const removeCurrentSelectionUnlocked = async (
   const selections = current.selections.filter(selection => !(
     selection.subjectKey === registration.subjectKey
     && selection.provider === registration.provider
+    && selection.providerModel === registration.providerModel
     && selection.profileKey === registration.profileKey
     && selection.registrationId === registration.registrationId
     && selection.generationId === registration.generationId
   ))
   if (selections.length === current.selections.length) return current
-  const next: CurrentVoiceRegistrationIndex = { schemaVersion: 1, revision: current.revision + 1, selections }
+  const next: CurrentVoiceRegistrationIndex = { schemaVersion: 2, revision: current.revision + 1, selections }
   validateCurrentVoiceRegistrationIndex(next)
   // Removing authority before recording the terminal generation is conservative across a crash:
   // an interrupted revocation/retirement can leave no current selection, never a revoked one.
@@ -434,6 +447,16 @@ export const beginVoiceRegistrationDeletion = async (input: {
   if (source.provisioning.providerVoice.ownership !== 'project' || source.provisioning.providerVoice.deletion.state !== 'eligible') {
     throw CLIUsageError('Voice deletion is allowed only for an eligibility-checked project-owned resource.')
   }
+  const sourceVoice = source.provisioning.providerVoice
+  const current = await loadCurrentVoiceRegistrationIndex(input.charactersRoot, catalog)
+  const sharedCurrent = current.selections
+    .filter(selection => selection.registrationId !== source.registrationId || selection.generationId !== source.generationId)
+    .map(selection => catalog.registrations.find(registration => registration.registrationId === selection.registrationId && registration.generationId === selection.generationId))
+    .find((registration) => registration?.provisioning.state === 'ready'
+      && registration.provisioning.providerVoice.kind === 'remote-resource'
+      && registration.provisioning.providerVoice.provider === sourceVoice.provider
+      && registration.provisioning.providerVoice.resourceId === sourceVoice.resourceId)
+  if (sharedCurrent) throw CLIUsageError(`Voice deletion is blocked because current registration ${sharedCurrent.registrationId} shares the same provider resource.`)
   const at = input.requestedAt ?? new Date().toISOString()
   const auditionId = priorAuditionId(source)
   const pending = registrationWithComputedGeneration({
@@ -444,7 +467,6 @@ export const beginVoiceRegistrationDeletion = async (input: {
     cleanupState: { state: 'deletion-pending', requestedAt: at },
     updatedAt: at
   } as VoiceRegistration)
-  const current = await loadCurrentVoiceRegistrationIndex(input.charactersRoot, catalog)
   await removeCurrentSelectionUnlocked(paths, current, source, at)
   catalog = await appendRegistrationUnlocked(paths, catalog, pending)
   return pending
@@ -502,8 +524,8 @@ export const approveVoiceRegistration = async (
     assertVoiceConsentAllows(input.consent, 'new-synthesis')
   }
   if (source.approval.auditionId !== input.audition.auditionId || input.audition.registrationDraftId !== source.registrationId) throw CLIUsageError('Voice approval audition does not match the exact registration generation.')
-  const selectionKey = `${source.subjectKey}\0${source.provider}\0${source.profileKey}`
-  const priorSelection = current.selections.find(selection => `${selection.subjectKey}\0${selection.provider}\0${selection.profileKey}` === selectionKey)
+  const selectionKey = `${source.subjectKey}\0${source.provider}\0${source.providerModel}\0${source.profileKey}`
+  const priorSelection = current.selections.find(selection => `${selection.subjectKey}\0${selection.provider}\0${selection.providerModel}\0${selection.profileKey}` === selectionKey)
   if (input.expectedCurrentGenerationId !== priorSelection?.generationId) throw CLIUsageError('Current voice generation changed during approval.')
   const approvedAt = input.approvedAt ?? new Date().toISOString()
   const approvedInput: VoiceRegistration = {
@@ -523,15 +545,16 @@ export const approveVoiceRegistration = async (
   const nextSelection = {
     subjectKey: approved.subjectKey,
     provider: approved.provider,
+    providerModel: approved.providerModel,
     profileKey: approved.profileKey,
     registrationId: approved.registrationId,
     generationId: approved.generationId,
     updatedAt: approvedAt
   }
   const nextIndex: CurrentVoiceRegistrationIndex = {
-    schemaVersion: 1,
+    schemaVersion: 2,
     revision: current.revision + 1,
-    selections: [...current.selections.filter(selection => `${selection.subjectKey}\0${selection.provider}\0${selection.profileKey}` !== selectionKey), nextSelection]
+    selections: [...current.selections.filter(selection => `${selection.subjectKey}\0${selection.provider}\0${selection.providerModel}\0${selection.profileKey}` !== selectionKey), nextSelection]
   }
   validateCurrentVoiceRegistrationIndex(nextIndex, catalog)
   await atomicWriteJson(paths.current, nextIndex)
@@ -542,12 +565,13 @@ export const requireCurrentVoiceRegistration = async (
   charactersRoot: string,
   subjectKey: string,
   provider: VoiceRegistration['provider'],
+  providerModel: string,
   profileKey: string
 ): Promise<VoiceRegistration> => {
   const catalog = await loadVoiceRegistrationCatalog(charactersRoot)
   const current = await loadCurrentVoiceRegistrationIndex(charactersRoot, catalog)
-  const selection = current.selections.find(entry => entry.subjectKey === subjectKey && entry.provider === provider && entry.profileKey === profileKey)
-  if (!selection) throw InfraError(`No approved current ${provider}/${profileKey} voice is registered for ${subjectKey}.`, { stage: 'comic:voice-registry' })
+  const selection = current.selections.find(entry => entry.subjectKey === subjectKey && entry.provider === provider && entry.providerModel === providerModel && entry.profileKey === profileKey)
+  if (!selection) throw InfraError(`No approved current ${provider}/${providerModel}/${profileKey} voice is registered for ${subjectKey}.`, { stage: 'comic:voice-registry' })
   const registration = catalog.registrations.find(entry => entry.registrationId === selection.registrationId && entry.generationId === selection.generationId)
   if (!registration || registration.approval.state !== 'approved' || registration.provisioning.state !== 'ready') {
     throw ValidationError('Current voice index does not resolve to an approved ready registration.', { stage: 'comic:voice-registry' })

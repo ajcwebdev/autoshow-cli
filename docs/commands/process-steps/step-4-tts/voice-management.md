@@ -56,7 +56,7 @@ Advanced Voice Design is a two-step operation for ElevenLabs, Hume, and MiniMax.
 
 ```bash
 bun autoshow voice design hero --provider hume --model octave-2 --creation-model octave-1 --description "Warm, weathered guide" --preview-text "A representative passage of at least one hundred characters that exercises the intended voice..." --candidates 3 --price
-bun autoshow voice design hero --provider elevenlabs --model eleven_v3 --creation-model eleven_v3 --description "Warm, weathered guide" --preview-text "A representative passage of at least one hundred characters that exercises the intended voice..." --source-voice-id SOURCE_ID --eligibility-snapshot-hash SHA256 --price
+bun autoshow voice design hero --provider elevenlabs --model eleven_v3 --creation-model eleven_ttv_v3 --description "Warm, weathered guide" --preview-text "A representative passage of at least one hundred characters that exercises the intended voice..." --price
 bun autoshow voice design hero --provider minimax --model speech-2.8-hd --creation-model voice-design --description "Warm, weathered guide" --preview-text "A short representative passage." --candidates 1 --price
 bun autoshow voice materialize CANDIDATE_ID --provider hume --subject-key hero --voice-name HeroGuide --provenance-ref project:casting --price
 ```
@@ -90,7 +90,7 @@ bun autoshow voice audition vr_ID --generation-id GENERATION_SHA256 --representa
 bun autoshow voice approve vr_ID --generation-id AUDITIONED_GENERATION_SHA256 --actor-id casting_editor
 ```
 
-Approval appends a new content-identified registration generation and atomically advances the sole current pointer for `(subject, provider, profile)`. It does not create a scene snapshot; scene snapshots belong to ADR-020 Phase 2.
+Approval appends a new content-identified registration generation and atomically advances the sole current pointer for `(subject, provider, provider model, profile)`. This model-qualified key permits one subject to hold independent approved Hume Octave 1 and Octave 2 selections that refer to the same provider voice resource. Version 1 current indexes are migrated in memory by resolving each selection's model from its registration, then rewritten as version 2 on the next mutation. Approval does not create a scene snapshot; scene snapshots belong to ADR-020 Phase 2.
 
 ## Lifecycle
 
@@ -98,7 +98,7 @@ Approval appends a new content-identified registration generation and atomically
 
 `inspect` performs a read-only provider check for ready ElevenLabs, Hume, MiniMax, Cartesia, Speechify, and Mistral account resources unless `--price` is supplied. MiniMax designed and cloned voices remain pending until activation makes them visible in the account catalog. Expired, missing, pending, or verification-required resources never become synthesis-ready merely because a local registration exists.
 
-`delete` is an explicit provider-mutating action for eligibility-checked, project-owned Mistral, ElevenLabs, Hume, MiniMax, Cartesia, and Speechify resources and requires `--confirm-voice-id` to equal the exact resource ID. Hume's endpoint deletes by mutable name, so Hume additionally requires `--expected-name`; AutoShow immediately refreshes the custom catalog and proceeds only when that name resolves uniquely to the expected ID. MiniMax deletion selects the clone or generated-voice resource class from the registered origin. Cartesia and Speechify delete only project-owned account/personal resources. AutoShow first appends a local `deletion-pending` generation, then records a terminal deleted tombstone after the provider confirms deletion.
+`delete` is an explicit provider-mutating action for eligibility-checked, project-owned Mistral, ElevenLabs, Hume, MiniMax, Cartesia, and Speechify resources and requires `--confirm-voice-id` to equal the exact resource ID. A resource cannot be deleted while another current model-qualified registration shares its provider/resource identity. Hume's endpoint deletes by mutable name, so Hume additionally requires `--expected-name`; AutoShow immediately refreshes the custom catalog and proceeds only when that name resolves uniquely to the expected ID. MiniMax deletion selects the clone or generated-voice resource class from the registered origin. Cartesia and Speechify delete only project-owned account/personal resources. AutoShow first appends a local `deletion-pending` generation, then records a terminal deleted tombstone after the provider confirms deletion.
 
 ## Advanced Provider Capabilities
 
@@ -129,6 +129,6 @@ Registration and audition generations are create-only and content-identified. Th
 
 ## Price Safety
 
-Management `--price` modes perform local validation and estimate only. They make no provider calls and write neither protected nor ordinary artifacts. Ordinary `tts`, `write`, resume, configuration loading, and synthesis price paths cannot express provider resource creation.
+Management `--price` modes perform local validation and estimate only. They make no provider calls and write neither protected nor ordinary artifacts. Voice Design reports a numeric preview estimate from the exact provider, creation model, character count, and candidate count; ElevenLabs charges its preview text once while Hume charges it for each requested candidate. Materialization reports zero estimated provider cost because the supported design flows include saving the selected resource. Ordinary `tts`, `write`, resume, configuration loading, and synthesis price paths cannot express provider resource creation.
 
-Provider prices and eligibility can change. Advanced design/materialization price output therefore reports provider-conditional pricing instead of fabricating a fixed amount; use the provider console to confirm current spend before removing `--price`.
+Provider prices and eligibility can change. Treat the estimate as a preflight derived from AutoShow's dated pricing configuration and use the provider console when account-specific terms matter.

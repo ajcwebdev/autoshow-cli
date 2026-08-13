@@ -347,18 +347,34 @@ describe('comic source coverage contracts', () => {
       '',
       '**COMMANDER**',
       'Something strong. (a long pause) Something hot.',
+      '',
+      '**PILOT**',
+      '(beat, checking)',
+      'Seven. Go now.',
+      '',
+      '**CAPTAIN**',
+      'Too much energy? (beat, quietly indignant) They were not supposed to melt.',
     ].join('\n'), 'input/test-timing-notation.md')
 
     const captainBeat = structured.beats.find(beat => beat.speakerKey === 'captain')
     const engineerBeat = structured.beats.find(beat => beat.speakerKey === 'engineer')
     const commanderBeat = structured.beats.find(beat => beat.speakerKey === 'commander')
+    const pilotBeat = structured.beats.find(beat => beat.speakerKey === 'pilot')
+    const captainBeats = structured.beats.filter(beat => beat.speakerKey === 'captain')
+    const inlineCaptainBeat = captainBeats.find(beat => beat.text.startsWith('Too much energy'))
 
     expect(captainBeat?.text).toBe('Respectfully, sir, that doesn’t matter. We have five cycles.')
     expect(commanderBeat?.text).toBe('Something strong. Something hot.')
     // "(pause)" is pacing, not an acting note, so it must not become a speech tone.
     expect(engineerBeat?.text).toBe('Hire a doctor?')
     expect(engineerBeat?.delivery).toBeUndefined()
+    expect(pilotBeat?.delivery).toBe('checking')
+    expect(inlineCaptainBeat?.text).toBe('Too much energy? They were not supposed to melt.')
+    expect(inlineCaptainBeat?.delivery).toBe('quietly indignant')
     expect(structured.sourceSegments.some(segment => segment.text.includes('beat'))).toBe(false)
+    const inlineSegment = structured.sourceSegments.find(segment => segment.text.startsWith('Too much energy'))
+    expect(inlineSegment?.sourceSpans.filter(span => span.kind === 'spoken-text')).toHaveLength(2)
+    expect(inlineSegment?.sourceSpans.filter(span => span.kind === 'timing')).toHaveLength(1)
   })
 
   test('structured parser classifies action prose as unlettered direction and captions as narration', () => {

@@ -1,6 +1,6 @@
 # TTS Consensus
 
-Use this category for AutoShow text-to-speech runs with canonical `manifest.json` metadata, generated audio files in the run directory root, and the original input text.
+Use this category for AutoShow text-to-speech runs with canonical `manifest.json` metadata, generated audio files, and the original input text. The loader accepts ordinary `command: "tts"` runs and completed `command: "comic"` audio runs that retain their final outputs in place and expose `metadata.tts` evaluation entries; comic provider cost is recovered from each selected canonical render result without copying or restaging audio.
 
 ## Packet
 

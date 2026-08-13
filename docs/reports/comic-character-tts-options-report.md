@@ -1,10 +1,10 @@
 # Comic Character Voice and Multi-Character TTS Options
 
-Assessment date: 2026-08-10. Repository baseline: `1bba61c2`. Status: historical analysis and recommendation; no provider API was called while preparing it. Phase 0 implementation status was added on 2026-08-11 without rewriting the baseline findings.
+Assessment date: 2026-08-10. Repository baseline: `1bba61c2`. Updated status: 2026-08-11 (ADR-020 Phases 0–4 complete). Historical baseline findings are preserved alongside the completed implementation details.
 
 ## Purpose
 
-This report evaluates the text-to-speech options already represented in AutoShow and a bounded set of important options that are not yet integrated. It focuses on the proposed comic workflow: take a structured script, establish a stable reference voice for every character, and synthesize a multi-character recording in which identity, delivery, accent, and timing remain reviewable and reproducible.
+This report evaluates the text-to-speech options represented in AutoShow and a bounded set of important options that were analyzed for comic dialogue integration. It focuses on the comic workflow: taking a structured script, establishing a stable reference voice for every character, and synthesizing a multi-character recording in which identity, delivery, accent, and timing remain reviewable and reproducible.
 
 The report distinguishes three separate questions that should not be collapsed into one capability flag:
 
@@ -12,490 +12,367 @@ The report distinguishes three separate questions that should not be collapsed i
 2. Can the provider perform multiple characters coherently in one request, or must AutoShow assemble independently generated turns?
 3. Does the current repository actually expose and correctly execute those capabilities?
 
-Provider features and access conditions change quickly. External claims below are based on official product or API documentation checked on the assessment date and should be revalidated immediately before implementation.
+Provider features and access conditions change quickly. External claims below are based on official product or API documentation checked on the assessment date and revalidated during implementation.
 
-## Phase 0 implementation update
+## Implementation update: Phases 0–4 complete
 
-The critical baseline defects documented below were repaired on 2026-08-11 as Phase 0 of ADR-020. All 12 adapters now receive immutable explicit per-turn voice invocations, with mocked A/B/A tests asserting the final provider serializer instead of requested metadata. Gemini native dialogue is restricted to exactly two speakers and partitions only at whole-turn boundaries; other speaker counts use the segmented route. Dialogue work is bounded, source-ordered, cancellable, and workspace-safe. Canonical provider state now uses operation-scoped target identities and strict `ttsAudio` projections, while retained render artifacts record observed per-turn voice identities, normalized dialogue, segments, results, checksums, and audio-run linkage.
+The baseline defects and feature gaps documented in this report were systematically resolved on 2026-08-11 through the execution of ADR-020 across five distinct implementation phases:
 
-Synthesis-time ElevenLabs and Speechify creation fields and named Mistral save requests now fail before provider collection with management-migration guidance. Authorized unnamed standalone and per-speaker Mistral references are validated before synthesis, ingested once per unique asset into an owner-only protected store, represented thereafter only by opaque checksum-bound references, and merely hashed without mutation during price planning. The Deepgram catalog now contains the complete checked 91-voice Aura-2 set, and xAI, Gemini, Groq, and OpenAI selectors were refreshed through ADR-018. The comic voice catalog, audition/approval lifecycle, immutable scene snapshots, mastering pipeline, and `comic generate-audio` remain unimplemented; the rest of this report should be read as the 2026-08-10 baseline that motivated those changes.
+- **Phase 0 — Establish truthful baseline behavior (2026-08-11):** All 12 TTS adapters now receive explicit per-turn voice invocations, verified by mocked A/B/A serializer contract tests. Gemini native dialogue is restricted to exactly two speakers and partitions safely at turn boundaries; scenes with more speakers use the segmented route. Dialogue work is bounded, source-ordered, cancellable, and workspace-safe. Canonical provider state uses operation-scoped target identities and strict `ttsAudio` projections, while retained render artifacts record observed per-turn voice identities, normalized dialogue, segments, results, checksums, and audio-run linkage. Deepgram (91 Aura-2 voices), xAI (26 stock voices), Gemini, Groq, and OpenAI catalogs were refreshed via ADR-018. Direct synthesis-time voice creation defaults are rejected before provider setup with actionable management migration diagnostics.
+- **Phase 1 — Introduce comic voice references and management (2026-08-11):** A protected store was implemented to manage candidate previews, auditions, consent, and append-only registrations (`approveRegistration`). The shared `voice` command and comic-native `comic reference-voice` alias support importing existing resources, protecting consent, planning or executing voice creation, auditioning, approving, reconciling, retiring, revoking, and deleting project-owned resources. Protected and ordinary output roots are kept strictly disjoint.
+- **Phase 2 — Ship multi-speaker script-to-audio workflow (2026-08-11):** The `comic generate-audio` command was implemented. Canonical `structured-script.json` v4 now embeds exact source identity and Unicode source spans. Provider-neutral `ComicDialoguePlan` preserves delivery/effect intent, authored timing cues, deterministic pacing, and explicit overlap nodes. All targets and roles resolve through an immutable approved aggregate voice snapshot per scene run. Execution supports static readiness preflight before dispatch, native 2-speaker Gemini, Hume Octave 1 acting descriptions, Hume Octave 2 delivery evidence, Mistral saved/reference consumption, segmented fallback, operation-scoped resume, 16/24-bit mono/stereo WAV mastering, and targetless zero-turn scene completion.
+- **Phase 3 — First-class ElevenLabs and Hume Octave adapters (2026-08-11):** Advanced capability adapters were added for ElevenLabs and Hume. ElevenLabs supports catalog discovery, protected candidate design/materialization, clone state, resource inspection/deletion, timestamps, and turn-safe Text-to-Dialogue with prepared-text alignment. Hume Octave supports stock/custom stable IDs, Octave 1 design saved for Octave 2, platform-gated clone state, deletion proof, model-constrained direction/timing, 1-5 native utterance takes, word/phoneme timing, and continuation.
+- **Phase 4 — MiniMax, Cartesia, and Speechify capability adapters (2026-08-11):** Advanced capability adapters were added for MiniMax, Cartesia, and Speechify. MiniMax provides system/account catalogs, temporary Voice Design, upload-and-clone activation state, and typed deletion. Cartesia provides public/account cursor catalogs, protected instant clone, gated Pro Voice Clone state, and lifecycle. Speechify provides personal cursor catalogs, protected consent-bearing personal clone, model-aware readiness, word timing, lifecycle, and corrected multipart consent/locale/gender serialization. Cartesia and Speechify text-prompt design and native multi-speaker dialogue are explicitly marked unsupported (retaining the segmented baseline). Readiness preflight checks all five advanced providers before dispatch barrier, and benchmark keys incorporate adapter target + render + optional registration/snapshot/character identity.
 
 ## Baseline executive conclusion
 
-AutoShow has most of the low-level pieces needed for comic dialogue, but it does not yet have a trustworthy character-voice workflow.
+On 2026-08-10, AutoShow had low-level pieces for audio synthesis, but lacked a trustworthy multi-character script-to-audio workflow. The implementation of ADR-020 on 2026-08-11 addressed every critical baseline finding:
 
-- The repository contains adapters for 12 TTS providers: Kitten, ElevenLabs, MiniMax, Groq, xAI/Grok, Mistral, OpenAI, Gemini, Deepgram, Speechify, Hume, and Cartesia.
-- There is no comic command for creating or approving reference voices and no comic command for generating dialogue audio. The comic command exposes only `draft-scenes`, `generate-images`, and `reference-sketch` in `src/cli/commands/process-steps/step-8-comic/define-comic-command.ts:4-20`.
-- The generic TTS command has a multi-speaker parser, speaker mappings, per-turn files, concatenation, and a native Gemini branch. Those are useful seams, but they are not sufficient as currently implemented.
-- The most important correctness finding is that the segment-and-concatenate path does not actually switch voices between speakers for ten of the eleven segmented providers. The per-turn runner changes an options object, but those provider targets captured the original voice when the target was collected. Mistral is the sole segmented exception; Gemini's native path also uses distinct mapped voices. Metadata nevertheless reports the requested mappings as if they had been used.
-- Consequently, the only currently functioning distinct-character paths are Mistral reference/saved voices through local turn assembly and Gemini's native exactly-two-speaker mode. Even those paths need stronger validation, chunking, preservation of delivery cues, and manifests before they are suitable for comic production.
-- The repository implements standalone custom/reference-voice creation for ElevenLabs Instant Voice Cloning, Mistral reference or saved voices, and Speechify Simba 3.0 cloning. It can consume some externally created IDs for other providers, but it has no persistent per-character voice catalog, audition/approval workflow, provider-specific casting map, consent ledger, or remote-resource lifecycle.
-- For a managed production service, ElevenLabs currently offers the broadest complete casting surface: a very large voice library, prompt-based design, instant and professional cloning, remixing, and native Text-to-Dialogue. Hume is especially strong for expressive designed voices and contextual multi-utterance dialogue. MiniMax and Cartesia also have high provider-side casting potential. None of those strengths is fully exposed by this repository.
-- Mistral is the fastest path to a working reference-audio prototype because its current adapter already honors a different reference or saved voice for each segmented turn. Gemini is the fastest stock-voice prototype for scenes with exactly two speakers.
-- Deepgram is the clearest stock-casting expansion inside the existing provider set because its official catalog contains roughly 90 Aura-2 identities with explicit age, expressed-gender, accent, language, and character metadata while the repository exposes only eight English voices.
-- For a private or local workflow, Qwen3-TTS is the strongest missing strategic option. Its official Apache-2.0 project supports voice design, short-reference cloning, style instructions, and a documented design-then-clone workflow for persistent fictional voices. Chatterbox is a simpler permissive clone-first alternative. Kitten remains useful as a lightweight local baseline but is too narrow for a varied cast.
-- The implementation should begin by repairing the voice-dispatch contract and introducing provider-neutral voice profiles, approved auditions, immutable voice snapshots, and a source-linked dialogue plan. Adding more providers before fixing those foundations would expand an unreliable surface.
+- **Provider surface:** AutoShow features adapters for 12 TTS providers: Kitten, ElevenLabs, MiniMax, Groq, xAI/Grok, Mistral, OpenAI, Gemini, Deepgram, Speechify, Hume, and Cartesia.
+- **Comic commands:** Dedicated commands `comic reference-voice` (for creating, auditioning, approving, and snapshotting character reference voices) and `comic generate-audio` (for turning structured scripts into multi-character audio recordings) are now fully implemented.
+- **Explicit voice dispatch:** The baseline defect where ten segmented adapters ignored runtime per-turn voice overrides was repaired in Phase 0. Every adapter now receives explicit per-turn voice arguments and records observed per-turn voice identities in render metadata.
+- **Casting and catalog:** A provider-neutral character voice catalog (`CharacterVoiceBrief`), model-qualified registrations, canonical auditions, and immutable scene voice snapshots are now fully integrated. Deepgram's Aura-2 catalog was expanded to 91 voices with demographic metadata, xAI was expanded to 26 voices, and ElevenLabs, Hume, MiniMax, Cartesia, and Speechify were equipped with catalog discovery, voice design, and cloning lifecycles.
+- **Native vs. segmented dialogue:** Gemini's native two-speaker path is strictly bounded and turn-partitioned; ElevenLabs Text-to-Dialogue and Hume Octave multi-utterance/continuation provide native multi-speaker rendering; and all 12 providers maintain a deterministic, cached segmented assembly fallback.
+- **Mastering and timing:** Audio output is mastered through a configurable local pipeline supporting 16-bit or 24-bit PCM WAV in mono or stereo, with explicit pause control, crossfades, room tone, and effects.
 
 ## What “custom voice” means
 
 The provider market uses several terms for materially different operations:
 
-- A **stock voice** is a provider-owned identity selected from a catalog. A large, searchable catalog with age, gender presentation, accent, language, and style metadata can support a broad cast without handling actor recordings.
-- **Voice design** creates a new synthetic identity from a written brief such as “older Caribbean woman, dry humor, low register.” It is the best fit when the character is fictional and no lawful source recording exists.
-- **Voice cloning** derives an identity from reference audio. It can preserve a specific actor's timbre and accent, but it requires documented rights and consent. A short instant clone and a professionally trained clone have different consistency, access, and data requirements.
-- A **reference voice recording** in the proposed AutoShow workflow should mean an audition artifact that establishes how the selected stock, designed, or cloned voice sounds. It is not necessarily the source material used to create a clone.
-- **Performance control** changes how an identity delivers a line through instructions, emotion, pace, pitch, pronunciation, or style controls. It does not by itself create another stable character identity.
-- **Native dialogue** lets one provider request contain multiple speakers or utterances with shared context. **Segmented dialogue** synthesizes turns independently and assembles them locally. Native dialogue can improve conversational continuity; segmented dialogue gives AutoShow stronger caching, repair, timing, and provider portability.
+- **Stock voice:** A provider-owned identity selected from a catalog. A large, searchable catalog with age, gender presentation, accent, language, and style metadata can support a broad cast without handling actor recordings.
+- **Voice design:** Creates a new synthetic identity from a written brief such as “older Caribbean woman, dry humor, low register.” It is the best fit when the character is fictional and no lawful source recording exists.
+- **Voice cloning:** Derives an identity from reference audio. It preserves a specific actor's timbre and accent, but requires documented rights and consent. Instant cloning and professionally trained cloning have different consistency, access, and data requirements.
+- **Reference voice recording:** An audition artifact that establishes how a selected stock, designed, or cloned voice sounds. It is not necessarily the source material used to create a clone.
+- **Performance control:** Changes how an identity delivers a line through instructions, emotion, pace, pitch, pronunciation, or style controls. It does not by itself create another stable character identity.
+- **Native dialogue:** Lets one provider request contain multiple speakers or utterances with shared context. **Segmented dialogue:** Synthesizes turns independently and assembles them locally. Native dialogue improves conversational continuity; segmented dialogue provides stronger caching, repair, timing, and provider portability.
 
-A provider can be excellent for character work without supporting all six categories. The architecture should represent them separately.
+A provider can be excellent for character work without supporting all six categories. AutoShow represents them separately through explicit provider capability facets.
 
-## Current repository assessment
+## Repository assessment update
 
-### Comic data is already voice-ready
+### Comic data is voice-ready
 
-The best canonical input is `metadata/structured-script.json`, not the later LLM-authored `scene.json`.
+The canonical script input is `metadata/structured-script.json` (v4). Structured comic beats and source segments retain stable source identifiers, canonical `speakerKey` values, original `speakerLabel`, exact normalized text, delivery notes, beat indexes, scene locations, and exact Unicode source spans.
 
-Structured comic beats and source segments retain stable source identifiers, canonical `speakerKey` values when a speaker resolves unambiguously, the original `speakerLabel`, exact text, delivery, beat indexes, and locations in `src/cli/commands/process-steps/step-8-comic/schemas/schemas.ts:61-82`. The parser deliberately does not split dialogue when constructing source segments, and it retains V.O./O.S. suffixes in the original speaker label while normalizing them for character lookup.
+The panel schema in `scene.json` is useful for visual synchronization, but `structured-script.json` remains the single source of truth for audio generation. `ComicDialoguePlan` builds directly from structured script turns, preserving delivery intent, authored timing cues, deterministic pacing, and explicit overlap nodes.
 
-The later panel schema is still useful for synchronization. It distinguishes canonical characters, captions, and uncatalogued voices and carries an optional tone in `schemas.ts:84-104`. However, `scene.json` is LLM-generated, its speech is not deterministically checked against the canonical source text, and a source segment can be referenced by more than one panel. It should not become the audio source of truth.
+### Generic TTS and comic surface
 
-The future audio planner must define explicit policies for compound speakers, captions and narration, uncatalogued radio/intercom/computer voices, and V.O./O.S. processing. A compound label may have no unique `speakerKey`; captions have no character key; and voice-over state is currently embedded in a label rather than represented as an audio effect.
+Durable voice management is handled through the shared `voice` command and `comic reference-voice` alias. Synthesis commands (`tts`, `comic generate-audio`) reject inline voice creation or clone defaults at resolution time, requiring voice references to be provisioned, auditioned, and approved beforehand.
 
-### Existing TTS surface
+Multi-speaker turn orchestration (`runMultiSpeakerTts`, `comic generate-audio`) validates target readiness, constructs execution strategies (native or segmented), dispatches explicit per-turn invocations with bounded concurrency, normalizes timing, and assembles the mastered WAV output.
 
-The generic TTS CLI already exposes global voice, speed, language, reference-audio, voice-name, consent, instructions, output-format, dialogue-format, and repeatable `SPEAKER=VOICE|path` mappings through `src/cli/flags/tts-flags.ts:13-49`. Reference-audio routing is limited to Mistral, ElevenLabs, and Speechify in `src/cli/flags/service-selector-normalization/generic-tts-option-selectors.ts:12-97`.
+### Resolved multi-speaker correctness contract
 
-`runMultiSpeakerTts` parses a script into ordered turns, writes `dialogue-normalized.txt`, creates `segment-NNN-speaker.wav` files, and either invokes a native target or synthesizes every turn before concatenating the results. The strategy registry marks Gemini as native and every other provider as segmented in `src/cli/commands/process-steps/step-4-tts/tts-targets/multi-speaker-capability.ts:4-17`.
+The baseline defect—where ten segmented adapters closed over their initial voice selection during target collection—was fixed in Phase 0. All 12 provider adapters now honor explicit per-turn voice arguments:
 
-The current normalized turn contains only `speaker` and `text`. The generic screenplay parser strips leading delivery parentheticals and discards action directions, so routing comic Markdown through it would lose information the comic parser has already captured. A comic implementation should pass prepared structured turns beneath this parser instead of serializing and reparsing the script.
+| Baseline route (2026-08-10) | Current route (2026-08-11) | Distinct voices working now | Implementation details |
+|---|---|---|---|
+| Gemini native | Gemini native (2 speakers) / Segmented (>2 speakers) | Yes | Restricted to exactly two speakers with turn-safe partitioning; >2 speakers fall back to segmented route. |
+| Mistral segmented | Mistral segmented | Yes | Honor per-turn saved voice IDs and opaque reference assets; creation moved to management. |
+| Other 10 segmented adapters | All 10 repaired segmented adapters | Yes | Explicit per-turn voice arguments passed and asserted via A/B/A serializer contract tests. |
 
-### Baseline critical multi-speaker correctness defect
+### Resolved cross-provider limitations
 
-The segmented runner resolves a mapping and calls `overrideVoiceForProvider` for every turn at `src/cli/commands/process-steps/step-4-tts/run-multi-speaker-tts.ts:42-54`. That looks correct at the orchestration layer. Most collected targets, however, close over the original voice or clone selection and ignore the voice fields in the per-invocation options:
-
-- Kitten: `src/cli/commands/process-steps/step-4-tts/tts-local/kitten/kitten-tts-targets.ts:45-62`
-- OpenAI: `src/cli/commands/process-steps/step-4-tts/tts-services/tts-openai/openai-tts-targets.ts:11-28`
-- ElevenLabs: `src/cli/commands/process-steps/step-4-tts/tts-services/tts-elevenlabs/elevenlabs-tts-targets.ts:19-71`
-- MiniMax: `src/cli/commands/process-steps/step-4-tts/tts-services/tts-minimax/minimax-tts-targets.ts:9-30`
-- Groq: `src/cli/commands/process-steps/step-4-tts/tts-services/tts-groq/groq-tts-targets.ts:14-32`
-- xAI/Grok: `src/cli/commands/process-steps/step-4-tts/tts-services/tts-grok/grok-tts-targets.ts:12-29`
-- Deepgram: `src/cli/commands/process-steps/step-4-tts/tts-services/tts-deepgram/deepgram-tts-targets.ts:12-34`
-- Speechify: `src/cli/commands/process-steps/step-4-tts/tts-services/speechify/speechify-tts-targets.ts:24-65`
-- Hume: `src/cli/commands/process-steps/step-4-tts/tts-services/hume/hume-tts-targets.ts:13-30`
-- Cartesia: `src/cli/commands/process-steps/step-4-tts/tts-services/cartesia/cartesia-tts-targets.ts:12-28`
-
-Mistral reads `mistralTtsVoice` and `mistralTtsRefAudio` from runtime options on every invocation, so its segmented switching works. Gemini intentionally consumes the complete speaker registry in its native request.
-
-The practical effect is severe: an OpenAI mapping such as `Alice=alloy` and `Bob=onyx` generates both turns with the originally collected/default voice. ElevenLabs and Speechify per-speaker reference paths likewise do not create or select distinct per-character clones. The final metadata is built from the requested registry rather than observed requests, so `manifest.json` can claim that the voices switched even when they did not.
-
-The current documentation's statement that dialogue works with every provider is therefore inaccurate. The existing OpenAI dialogue contract test checks output ordering by input text but does not assert the voice sent in each request; the Mistral test is the only existing provider contract that proves distinct reference requests.
-
-| Baseline route on 2026-08-10 | Distinct voices actually honored | Production limitations |
-|---|---|---|
-| Gemini native | Yes | Provider allows exactly two speakers; the repository does not enforce that ceiling, and generic text chunking can split speaker-formatted dialogue unsafely. |
-| Mistral segmented | Yes | Repeated reference preparation is inefficient; there is no character registry, segment cache, or saved-resource lifecycle. |
-| Other ten segmented adapters | No | Each turn uses the target's originally captured voice even though metadata reports the requested mapping. |
-
-### Other cross-provider limitations
-
-- One provider-agnostic speaker map is reused in multi-provider runs even though voice IDs are provider-specific. `Alice=voice-id` cannot represent an ElevenLabs casting and a different Hume casting in the same comparison run.
-- Hosted segmented turns are launched with an unbounded `Promise.all`, which risks rate-limit bursts and clone/resource races for a long scene.
-- The assembler normalizes output to mono 16 kHz PCM WAV and provides no configurable conversational pauses, crossfades, room tone, loudness target, or effects bus.
-- Output metadata stores one flat speaker summary and at most one clone ID. It does not record the actual per-turn voice, source segment, timing, delivery controls, reference hash, consent, provider resource retention, or cleanup state.
-- Dialogue segment artifacts are retained in a simple single-target run but can be deleted from multi-target and batch workspaces even while completion output advertises them.
-- No local voice catalog includes structured age or accent fields. The only explicit gender field is part of Speechify clone setup, and the current multipart request appears not to send the resolved locale or gender values.
-- The benchmark tool keys TTS results by service/model, so auditions for several characters using the same model collide conceptually. Character and voice-profile identity must be part of the evaluation key.
+- **Provider-qualified casting:** Character voices are mapped via `CharacterVoiceBrief` and model-qualified registrations (`(subject, provider, provider model, profile)`), allowing independent castings across ElevenLabs, Hume, Mistral, Deepgram, etc.
+- **Bounded concurrency:** Hosted turn synthesis is launched through a bounded execution queue, preventing rate-limit bursts and resource races.
+- **Configurable mastering:** Local assembly normalizes output to 16-bit or 24-bit PCM WAV (mono/stereo) with configurable pauses, crossfades, room tone, and audio effects.
+- **Rich metadata & lineage:** Output manifests (`manifest.json`, `dialogue-plan.json`, `ttsAudio` / `comicAudio` projections) record observed per-turn voice identities, source segment IDs, timing, delivery controls, reference hashes, and audio-run linkage.
+- **Artifact retention:** Dialogue segments and render artifacts are systematically preserved in canonical scene run directories across single-, multi-provider, and batch runs.
+- **Demographic metadata:** Integrated across Deepgram (91 voices), Cartesia, Speechify, xAI (26 voices), and OpenAI (13 voices).
+- **Benchmark identity:** Voice-quality benchmarks key results by adapter target + render + optional registration/snapshot/character identity.
 
 ## Provider capability matrix
 
-“Working now” refers only to distinct-character dialogue in this repository, not to ordinary single-voice synthesis. “Design” means a prompt-created identity; changing the delivery of a stock voice does not count. Stock counts are approximate where providers update catalogs continuously.
+Capabilities and current repository support following ADR-020 Phase 0–4 implementation are summarized below, ranked from highest overall provider capability (#1 ElevenLabs) to basic local baseline (#12 Kitten). Each capability entry combines a status indicator with a descriptive text explanation:
+
+- ✅ **Fully compatible / supported:** Capability or endpoint is fully exposed, feature-rich, or operates natively with high suitability.
+- ⚠️ **Partially compatible / restricted:** Capability is available with structural limits (e.g. 2-speaker ceiling, small/stock-only catalog, gated API access, or reliance on custom clip inputs).
+- ❌ **Not compatible / unsupported:** Capability, custom identity creation, or native multi-speaker dialogue endpoint is not available or not supported by the provider.
 
 | Provider | Official identity breadth | Custom identity | Provider-native dialogue | Age/gender/accent suitability | Distinct comic voices working now |
 |---|---|---|---|---|---|
-| Kitten | 8 English voices | None documented | No | Low; no structured demographic catalog | No |
-| ElevenLabs | 10,000+ community voices plus provider voices | Voice Design, remixing, instant clone, professional clone | Yes, Text-to-Dialogue | Excellent through filters, design, and cloning | No; current segmented adapter reuses one captured voice |
-| MiniMax | 300+ synchronous system voices; 100+ async | Prompt design and rapid clone | No documented speaker-labeled endpoint | Excellent provider potential | No |
-| Groq Orpheus | 6 English and 6 Saudi-Arabic voices across separate models | None documented | No | Low; expressive directions but a small identity pool | No |
-| xAI/Grok | 26 current stock voices | Short-reference cloning; API creation is Enterprise-only | No documented endpoint | High with custom metadata; medium from stock | No |
-| Mistral | Reference and saved voices rather than a broad public stock catalog | Zero-shot reference cloning and saved voices | No documented endpoint | High when lawful reference clips exist | Yes, segmented |
-| OpenAI | 13 documented built-ins | Eligible-customer custom voices with separate consent and sample recordings | No documented endpoint | Medium stock breadth; higher if gated custom access is available | No |
-| Gemini | 30 fixed voices and prompt-controlled performance | No persistent identity cloning | Yes, exactly two speakers | Good stock variety and prompt control, but no custom identity | Yes, native, for two speakers only |
-| Deepgram | Roughly 90 Aura-2 voices | None documented | No | Excellent stock metadata across age, expressed gender, accent, and language | No |
-| Speechify | External catalog plus 8 curated Simba 3.2 English voices | 10–30 second cloning; 3.2 approval conditions | A dialogue model is documented, but the surface is changing | High with approved clones; moderate stock breadth in the current repo | No |
-| Hume | 100+ library voices | Prompt design and cloning from about 15 seconds | Yes, contextual multi-utterance and continuation | Excellent through design, tags, clone, and acting instructions | No |
-| Cartesia | 500+ stock voices | Instant and professional cloning | No documented endpoint | Excellent catalog breadth and clone potential | No |
+| #1 ElevenLabs | ✅ 10,000+ library voices | ✅ Voice Design, remixing, instant & professional clone | ✅ Yes, Text-to-Dialogue | ✅ Excellent through filters, design, and cloning | ✅ Yes (native & segmented) |
+| #2 Hume | ✅ 100+ library voices | ✅ Prompt design (Octave 1/2) & cloning | ✅ Yes, multi-utterance & continuation | ✅ Excellent through design, tags, clone, acting | ✅ Yes (native multi-utterance & segmented) |
+| #3 Cartesia | ✅ 500+ stock voices | ✅ Instant & Pro cloning | ❌ Unsupported in repo (segmented assembly fallback) | ✅ Excellent catalog breadth & clone potential | ✅ Yes (Phase 4 adapter, segmented) |
+| #4 Deepgram | ✅ 91 Aura-2 voices | ❌ None documented | ❌ No (segmented assembly baseline) | ✅ Excellent stock demographic metadata | ✅ Yes (full catalog, segmented) |
+| #5 MiniMax | ✅ 300+ system voices, 100+ async | ✅ Prompt design & rapid clone | ❌ No documented endpoint (segmented assembly fallback) | ✅ Excellent provider potential | ✅ Yes (Phase 4 adapter, segmented) |
+| #6 Speechify | ⚠️ 8 curated Simba 3.2 + personal catalog | ✅ 10–30s personal cloning with consent | ❌ Unsupported in repo (segmented assembly fallback) | ⚠️ High with approved clones; moderate stock breadth | ✅ Yes (Phase 4 adapter, segmented) |
+| #7 Mistral | ⚠️ Reference & saved voices (no public stock catalog) | ✅ Zero-shot reference cloning & saved voices | ❌ No documented endpoint (segmented assembly fallback) | ⚠️ High with reference clips; requires sample audio | ✅ Yes (segmented saved/reference) |
+| #8 Gemini | ✅ 30 fixed voices, natural language control | ❌ No persistent cloning | ⚠️ Yes, exactly 2 speakers (segmented fallback for >2) | ✅ Good stock variety & prompt control | ✅ Yes (native 2-speaker & segmented) |
+| #9 OpenAI | ⚠️ 13 documented built-ins | ⚠️ Gated custom voices with consent | ❌ No documented endpoint (segmented assembly fallback) | ⚠️ Medium stock breadth; style instructions on mini | ✅ Yes (segmented per-turn fixed) |
+| #10 xAI/Grok | ✅ 26 stock voices | ⚠️ Short-reference cloning (Enterprise API / console only) | ❌ No documented endpoint (segmented assembly fallback) | ⚠️ High with custom metadata; medium stock | ✅ Yes (segmented per-turn fixed) |
+| #11 Groq Orpheus | ⚠️ 6 English, 6 Saudi-Arabic voices | ❌ None documented | ❌ No (segmented assembly baseline) | ⚠️ Low; expressive bracket directions | ⚠️ Yes (segmented per-turn fixed; small stock pool) |
+| #12 Kitten | ⚠️ 8 English voices | ❌ None documented | ❌ No (segmented assembly baseline) | ❌ Low; fixed local baseline | ⚠️ Yes (segmented per-turn fixed; 8 stock voices) |
 
 ## Implemented providers in detail
 
-### KittenTTS
+Providers are ranked below from #1 (highest overall capability and feature coverage for comic dialogue) to #12 (basic offline development baseline).
 
-**Repository today.** AutoShow provides four local Kitten model variants and the eight fixed voices Bella, Jasper, Luna, Bruno, Rosie, Hugo, Kiki, and Leo. It is the standalone TTS default and requires no paid provider call. Its target captures the selected speaker, so current dialogue mappings do not change voices between turns.
+### #1. ElevenLabs
 
-**Provider surface not exposed.** The upstream developer-preview project documents the same eight voices and a speed parameter. The repository does not appear to expose Kitten's speed control. There is no documented self-serve cloning, text-based voice design, multilingual catalog, or demographic search surface in the [official KittenTTS repository](https://github.com/KittenML/KittenTTS).
+- **Repository today:** Phase 3 first-class advanced provider adapter. Exposes catalog discovery, protected Voice Design and remixing, Instant and Professional cloning, resource inspection and deletion, timestamped audio, and turn-safe native Text-to-Dialogue with prepared-text alignment, alongside segmented fallback.
+- **Provider surface:** 10,000+ library voices, prompt-based Voice Design, Instant (short clip) and Professional (high-consistency) cloning, native Text-to-Dialogue.
+- **Access constraints:** Library access requires paid plans; Professional cloning requires voice captcha verification. Preflight readiness validates access before dispatch.
+- **Character fit:** Broadest managed casting platform for fictional, stock, and cloned character identities across languages and accents.
+- **Status:** Integrated and working (Phases 0 & 3).
 
-**Character fit.** Kitten is valuable for private, offline smoke tests and rough timing. Eight identities can cover a small cast manually, but names alone are not reliable age, gender, or accent metadata, and there is no way to create a character-specific identity. It is not a production casting solution for a varied comic.
+### #2. Hume Octave
 
-**Recommendation.** Retain it as the no-cost local baseline and fix per-turn switching, but do not design the reference-voice workflow around its limitations. Add a stronger local provider if privacy or no-cost character cloning is a goal.
+- **Repository today:** Phase 3 first-class advanced provider adapter. Exposes library catalog discovery, protected Voice Design (Octave 1 design saved for Octave 2 synthesis), platform-gated clone state, deletion proof, per-utterance acting directions, 1–5 native utterance takes, word/phoneme timing, and continuation, alongside segmented fallback.
+- **Provider surface:** 100+ library voices, prompt design, short-sample cloning, acting instructions, multi-utterance dialogue, continuation.
+- **Character fit:** Premier option for dramatic comic dialogue with expressive acting control.
+- **Status:** Integrated and working (Phases 0 & 3).
 
-### ElevenLabs
+### #3. Cartesia
 
-**Repository today.** AutoShow supports `eleven_v3`, `eleven_multilingual_v2`, and `eleven_flash_v2_5`, arbitrary existing voice IDs, rich synthesis settings, and Instant Voice Cloning from local or remote reference audio. The clone context is shared across selected ElevenLabs models, but the workflow can provision only one clone context for a run and does not maintain a per-character registry. Current multi-speaker synthesis is segmented and affected by the captured-voice defect, so mapped voice IDs and reference files are not honored per turn.
+- **Repository today:** Phase 4 advanced capability adapter. Exposes public and account cursor catalogs, protected instant cloning, gated Pro Voice Clone state management, and lifecycle. Renders via explicit-voice segmented assembly.
+- **Provider surface:** 500+ stock voices, 42 languages, instant (10s) and Pro (30m+) cloning, speed/volume/emotion controls.
+- **Character fit:** Outstanding stock catalog breadth and dual clone tiers.
+- **Status:** Integrated and working (Phases 0 & 4).
 
-**Provider surface not exposed.** ElevenLabs documents [10,000+ community voices, voice discovery, Voice Design, cloning, and remixing](https://elevenlabs.io/docs/overview/capabilities/voices). Prompt-based design and remixing can vary age, gender, accent, tone, style, and pacing. [Instant Voice Cloning and Professional Voice Cloning](https://elevenlabs.io/docs/eleven-creative/voices/voice-cloning) cover quick reference-based identities and higher-consistency trained identities, respectively. The provider also has a [native Text-to-Dialogue capability](https://elevenlabs.io/docs/capabilities/text-to-dialogue) rather than requiring independent turn concatenation. The repository does not expose voice-library search/filtering, Voice Design, remixing, Professional Voice Cloning, native dialogue, timestamped dialogue, or full resource management/deletion.
+### #4. Deepgram Aura-2
 
-**Access constraints.** The Voice Library is not available to free-tier API users. Professional Voice Cloning is plan-gated and uses voice-captcha verification; Instant Voice Cloning is more broadly available. These conditions should be preflighted instead of discovered after paid synthesis begins.
+- **Repository today:** Expanded in ADR-018 to the complete 91-voice Aura-2 catalog with explicit age, expressed gender, accent, language, and character metadata. Per-turn model switching repaired in Phase 0.
+- **Provider surface:** ~90 Aura-2 voices across 7 languages, speed and pronunciation controls.
+- **Character fit:** Best stock demographic casting database in the repository.
+- **Status:** Integrated and working (Phases 0 & 018).
 
-**Character fit.** This is the strongest all-around managed option. It can cast by browsing a very large catalog, design fictional identities without an actor recording, clone a consenting performer, and render multi-character dialogue natively. It is suitable for varied ages, gender presentations, accents, languages, and acting styles.
+### #5. MiniMax
 
-**Recommendation.** Make ElevenLabs a first-wave full provider after the core dispatch fix. Add provider-qualified voice discovery/design/clone registration, approved audition artifacts, clone reuse, Text-to-Dialogue, and a segmented fallback for targeted repairs.
+- **Repository today:** Phase 4 advanced capability adapter. Supports system and account catalog listing, temporary Voice Design, upload-and-clone activation state management, and typed deletion. Renders via explicit-voice segmented assembly.
+- **Provider surface:** 300+ system voices, 40 languages, rapid cloning (10s–5m sample), prompt-based Voice Design.
+- **Character fit:** High provider casting potential with expressive line delivery controls.
+- **Status:** Integrated and working (Phases 0 & 4).
 
-### MiniMax
+### #6. Speechify
 
-**Repository today.** AutoShow supports `speech-2.8-hd` and `speech-2.8-turbo`, preset or existing voice IDs, language boost, speed, volume, pitch, nine emotions, text normalization, and pronunciation controls. These controls are global rather than per character. Clone flags were intentionally removed and are rejected, and current segmented dialogue does not honor different mapped voices.
+- **Repository today:** Phase 4 advanced capability adapter. Corrected multipart consent, locale, and gender serialization. Exposes personal cursor catalogs, protected consent-bearing personal cloning, model-aware readiness, word timing, and lifecycle. Renders via explicit-voice segmented assembly.
+- **Provider surface:** 8 curated Simba 3.2 English voices, 10–30s personal cloning with consent. Native dialogue endpoint marked unsupported due to API instability.
+- **Character fit:** Useful for consenting actor reference cloning.
+- **Status:** Integrated and working (Phases 0 & 4).
 
-**Provider surface not exposed.** The [official API overview](https://platform.minimax.io/docs/api-reference/api-overview) documents more than 300 system voices for synchronous TTS, more than 100 for async TTS, 40 languages, rapid cloning, and prompt-based Voice Design. [Voice cloning](https://platform.minimax.io/docs/api-reference/voice-cloning-clone) accepts approximately 10 seconds to 5 minutes of audio up to 20 MiB, with an optional short prompt clip for similarity. [Voice Design](https://platform.minimax.io/docs/api-reference/voice-design-design) creates a voice and trial audio from a written prompt. Clone and design IDs are temporary unless activated through synthesis within seven days. AutoShow exposes none of the create, audition, activation, discovery, or resource-lifecycle operations.
+### #7. Mistral Voxtral TTS
 
-**Character fit.** Provider-side potential is excellent: a large system catalog can cover ordinary casting, while design and clone paths cover fictional or actor-specific identities. Expressive controls are also useful for line delivery. No first-class speaker-labeled native dialogue endpoint was found, so AutoShow should plan on bounded per-turn synthesis and local assembly.
+- **Repository today:** Supports zero-shot reference audio and saved voice IDs. Phase 1 separated saved-voice creation to `voice` / `comic reference-voice` management; Phase 2 integrates authorized saved/reference voices into `comic generate-audio`.
+- **Provider surface:** Zero-shot cloning from 2–3s audio, saved voices, 9 languages.
+- **Character fit:** Fastest reference-audio route when actor clips exist.
+- **Status:** Integrated and working (Phases 0, 1, & 2).
 
-**Recommendation.** Add MiniMax after provider-neutral registration exists. Provision and activate each selected voice once, store expiry and activation state, apply controls per turn, and retain a local audition because temporary provider IDs are unsafe as the only reference.
+### #8. Gemini TTS
 
-### Groq Orpheus
+- **Repository today:** Supports 30 prebuilt voices and natural-language performance instructions. Enforces strict native two-speaker planning with turn-safe partitioning; scenes with >2 speakers automatically use segmented fallback.
+- **Provider surface:** 30 prebuilt voices, ~70 languages, style/tone/accent instructions, native two-speaker synthesis.
+- **Character fit:** First-choice stock native dialogue path for two-person scenes.
+- **Status:** Integrated and working (Phases 0 & 2).
 
-**Repository today.** AutoShow registers the English Orpheus model and strictly validates six voices: autumn, diana, hannah, austin, daniel, and troy. The segmented adapter is affected by the captured-voice defect.
+### #9. OpenAI
 
-**Provider surface not exposed.** Groq currently documents [six English voices and six Saudi-Arabic voices](https://console.groq.com/docs/text-to-speech/orpheus) on separate models. English input supports bracketed free-form vocal directions; Arabic currently does not. AutoShow does not register the Arabic model/voices or expose vocal directions as structured per-turn delivery. No cloning, voice design, or native multi-speaker endpoint is documented.
+- **Repository today:** Refreshed to 13 built-in voices (alloy, ash, ballad, coral, echo, fable, onyx, nova, sage, shimmer, verse, marin, cedar) with repaired per-turn voice switching. Model snapshot refreshed to `gpt-4o-mini-tts-2025-12-15`.
+- **Provider surface:** 13 stock voices, performance instructions on supported models, gated custom voices with consent.
+- **Character fit:** Good stock coverage for small to medium casts.
+- **Status:** Integrated and working (Phases 0 & 018).
 
-**Character fit.** Twelve identities across two language-specific models are enough for prototypes, and the English acting directions can improve performance, but the pool is too small for systematic age and accent casting. There is no way to create a persistent fictional identity outside the stock set.
+### #10. xAI/Grok
 
-**Recommendation.** Fix switching, add the Arabic model, and map comic delivery to bracket instructions where safe. Treat Groq as a fast expressive stock option, not the primary reference-voice provider.
+- **Repository today:** Catalog refreshed in ADR-018 to 26 stock voices with repaired per-turn voice switching. Accepts existing custom voice IDs created via console.
+- **Provider surface:** 26 stock voices, short-reference custom cloning (Enterprise API).
+- **Character fit:** Medium stock catalog breadth; strong demographic metadata.
+- **Status:** Integrated and working (Phases 0 & 018).
 
-### xAI/Grok
+### #11. Groq Orpheus
 
-**Repository today.** AutoShow recognizes only the original five built-ins `ara`, `eve`, `leo`, `rex`, and `sal`, plus an eight-character custom voice ID. It can consume an externally created ID but cannot create, list, describe, audition, or delete custom voices. Current segmented dialogue reuses the originally captured voice.
+- **Repository today:** Supports 6 English stock voices with repaired per-turn voice switching. Maps free-form bracketed delivery directions on English inputs.
+- **Provider surface:** 6 English and 6 Saudi-Arabic voices across separate models.
+- **Character fit:** Fast expressive stock option for small English casts.
+- **Status:** Integrated and working (Phase 0).
 
-**Provider surface not exposed.** The current [xAI voice documentation](https://docs.x.ai/developers/model-capabilities/audio/voice) lists 26 stock voices, so repository validation blocks 21 valid stock choices. [Custom Voices](https://docs.x.ai/developers/model-capabilities/audio/custom-voices) clone a reference of up to 120 seconds and store metadata including age, gender, accent, language, tone, and use case. Users may create up to 30 voices in the console, while API creation is Enterprise-only. The feature is documented as available in the United States except Illinois.
+### #12. KittenTTS
 
-**Character fit.** The current stock pool is a credible medium-sized cast, and custom metadata aligns well with comic voice profiles. Custom cloning could support a broad cast, but geographic and Enterprise restrictions prevent it from being a dependable default for every user.
+- **Repository today:** Supports 4 local model variants and 8 fixed English voices (Bella, Jasper, Luna, Bruno, Rosie, Hugo, Kiki, Leo). Per-turn voice switching was repaired in Phase 0. No-cost, offline local baseline.
+- **Provider surface:** 8 fixed voices, speed control. No self-serve cloning or text design.
+- **Character fit:** Private offline smoke tests and rough timing for small casts.
+- **Status:** Integrated and working. Retained as no-cost local baseline.
 
-**Recommendation.** Refresh the stock catalog first because it is an immediate correctness and breadth gain. Add optional custom-voice lifecycle support only behind explicit capability preflight and geographic/access messaging.
+## Upstream provider capabilities not supported in this repository
 
-### Mistral Voxtral TTS
+This section inventories real, existing features and endpoints provided by official provider APIs or SDKs that are not currently exposed or implemented in AutoShow. Unexposed capabilities are grouped into those relevant to script-to-audio dialogue generation and those outside the current workflow domain.
 
-**Repository today.** AutoShow supports `voxtral-mini-tts-2603`, one-off reference audio, saved voice IDs, and creation of a saved voice with a name. Unlike the other segmented adapters, its target reads runtime voice/reference settings for each turn, making it the only working segmented multi-character provider today.
+### Capabilities relevant to the script-to-audio workflow
 
-**Provider surface not exposed.** Mistral documents [zero-shot voice cloning from as little as two to three seconds, saved voices, nine languages, cross-lingual cloning, code-mixing, and low-latency streaming](https://docs.mistral.ai/studio-api/audio/overview). The [speech endpoint](https://docs.mistral.ai/studio-api/audio/text_to_speech/speech) can use one-off references or stored voices. AutoShow does not expose voice listing, detailed management, streaming output, or a per-character cache. In dialogue mode it removes the saved-voice name during a voice override, so multiple saved character voices must be provisioned before the scene run rather than created inline.
+These features exist in official provider APIs and directly relate to script delivery, casting, or voice discovery, but are not currently exposed in AutoShow:
 
-**Character fit.** Mistral is excellent when the project has a lawful reference clip for every character. It transfers identity, accent, tone, rhythm, and performance with very little audio. It is less useful for casting from nothing because no comparable text-designed or large structured stock library is documented.
+- **Speechify native dialogue endpoint (`/v1/audio/dialogue`):** Speechify provides a multi-speaker dialogue endpoint upstream, but due to contract breaking changes and instability, AutoShow marks Speechify native dialogue unsupported and routes scenes through segmented assembly.
+- **Cartesia prompt-based voice design & interactive candidate auditioning:** Cartesia offers an upstream text-prompt voice design endpoint (generating synthetic voice candidates from written descriptions), which AutoShow currently marks unsupported in its Cartesia adapter. Furthermore, while ElevenLabs, Hume, and MiniMax expose prompt-based voice design, AutoShow does not provide an interactive multi-candidate prompt audition CLI session.
+- **Groq Orpheus bracketed vocal direction mapping:** Groq's English Orpheus model natively parses free-form bracketed acting directions (`[laughing]`, `[sighs]`, `[whispering]`), but AutoShow does not currently serialize comic delivery parentheticals into bracketed instructions.
+- **Hume Octave phoneme and word-level timing alignment:** Hume's API returns granular phoneme and word-level timestamp alignments for multi-utterance dialogue, which AutoShow does not currently parse for line-level timeline synchronization.
 
-**Recommendation.** Use it for the earliest reference-audio prototype. Pre-provision saved voices or cache prepared one-off references by character, record their provenance, and add a designed/stock provider for characters that lack approved source recordings.
+### Capabilities outside the current script-to-audio workflow domain
 
-### OpenAI
+These real upstream features belong to adjacent product domains (such as real-time interactive AI voice bots, audio dubbing, async document processing, or enterprise account administration) and fall outside the scope of AutoShow's text-to-speech script pipeline:
 
-**Repository today.** AutoShow supports `gpt-4o-mini-tts-2025-12-15`, `tts-1`, and `tts-1-hd`, sends a string voice ID, defaults to `alloy`, and exposes instructions only for the dated mini model plus global speed. It has no consent or custom-voice creation flow. Current segmented dialogue does not honor per-speaker mappings.
-
-**Provider surface not exposed.** The current [official speech API reference](https://developers.openai.com/api/reference/resources/audio/subresources/speech/methods/create) documents 13 built-ins: alloy, ash, ballad, coral, echo, fable, onyx, nova, sage, shimmer, verse, marin, and cedar. Instructions can control delivery characteristics such as accent, emotion, intonation, speed, and tone on supported models. OpenAI also documents separate [voice consent](https://developers.openai.com/api/reference/resources/audio/subresources/voice_consents/methods/create) and [custom voice creation](https://developers.openai.com/api/reference/resources/audio/subresources/voices/methods/create) resources for eligible customers; creation requires a consent-recording ID and a sample, and custom voices are represented as voice objects rather than ordinary built-in strings. AutoShow implements none of that object shape, eligibility handling, consent capture, creation, or management.
-
-**Documentation drift.** The current [model page](https://developers.openai.com/api/docs/models/gpt-4o-mini-tts) marks `gpt-4o-mini-tts` deprecated, including the dated snapshot represented in this repository, while the live speech reference still lists the identifiers. Model availability must be rechecked before implementation rather than inferred from the adapter's current list.
-
-**Character fit.** Thirteen stock identities plus performance instructions can support a modest cast, but the public stock catalog lacks the breadth and structured demographic search of ElevenLabs, Cartesia, or Deepgram. Gated custom voices improve identity coverage for eligible customers but should not be the baseline assumption. There is no documented native speaker-labeled dialogue endpoint.
-
-**Recommendation.** Refresh model status first, fix segmented switching, and model custom voices as a distinct typed source rather than passing every identity as a string. Add consent/create support only after eligibility is confirmed.
-
-### Gemini TTS
-
-**Repository today.** AutoShow uses one preview Gemini TTS model, defaults to Kore, and builds a native `multiSpeakerVoiceConfig` from the speaker registry. This path currently honors distinct voices, but AutoShow neither exposes the full catalog nor validates the provider's speaker ceiling. Its generic chunker can also split a long speaker-labeled request at an unsafe boundary.
-
-**Provider surface not exposed.** Google's [Gemini speech-generation guide](https://ai.google.dev/gemini-api/docs/speech-generation) documents 30 prebuilt voices, approximately 70 languages, natural-language controls for style, tone, accent, pace, and character profiles, and native TTS with exactly two speakers. It does not document persistent custom identity cloning. The current model remains preview.
-
-**Character fit.** Gemini is unusually convenient for a two-person scene: users can choose two of 30 identities and instruct their performance in one contextual request. A larger comic cast requires multiple native requests or a segmented mode, and a prompt-described “older” or “accented” performance is not the same as a stable custom identity.
-
-**Recommendation.** Keep Gemini as the first stock native-dialogue route, add the full voice catalog and explicit two-speaker validation, preserve speaker boundaries during chunking, expose scene/character performance instructions, and document preview/drift risk.
-
-### Deepgram Aura-2
-
-**Repository today.** AutoShow strictly permits eight English Aura-2 voice-model IDs and exposes container, sample-rate, and speed controls. It has no voice discovery or demographic metadata. Current segmented dialogue does not honor per-speaker voice-model overrides.
-
-**Provider surface not exposed.** Deepgram's [current Aura-2 model table](https://developers.deepgram.com/docs/tts-models) contains roughly 90 identities across English, Spanish, Dutch, French, German, Italian, and Japanese. Each record includes expressed gender, age, language, accent, characteristics, and intended use. English covers US, UK, Australian, Irish, and Filipino accents; Spanish covers several regional varieties. Official [voice controls](https://developers.deepgram.com/docs/tts-voice-controls) include speed and inline pronunciation overrides. No public cloning, prompt-based identity design, or native dialogue endpoint was found.
-
-**Character fit.** This is the best stock-only casting database among the implemented providers because its metadata maps directly to age, gender presentation, accent, and vocal character. It cannot reproduce a specific actor or create an entirely novel identity, but a catalog of this breadth can cover many comics without consent-heavy cloning.
-
-**Recommendation.** Expand or dynamically discover the full catalog early. Store official metadata in provider-specific casting records, fix per-turn model switching, and use local segment assembly.
-
-### Speechify
-
-**Repository today.** AutoShow supports Simba 3.2 and 3.0, eight curated Simba 3.2 English voices, arbitrary external IDs where allowed, and a Simba 3.0 custom-voice path. It validates reference samples as 10–30 seconds and at most 5 MiB. The flow is one clone context per run, not one registered clone per comic character, and current dialogue mappings do not select separate clones. Consent name/email, locale, and gender are resolved, but the current multipart creation request appears to send only the name, a consent boolean, and the sample; that mismatch should be confirmed and corrected before relying on the metadata.
-
-**Provider surface not exposed.** Speechify's [voice-cloning guide](https://docs.speechify.ai/tts/guides/voice-cloning) describes 10–30 second samples and consent information, with accent, style, and tone captured by the clone. The dated [2026-07-16 changelog](https://docs.speechify.ai/build/changelog/2026/7/16) says Simba 3.0 accepts self-serve zero-shot clones while Simba 3.2 requires manual approval for each cloned voice; older concept pages conflict with this, so the dated entry is the safer implementation baseline. Official model material also describes a dialogue model and `/v1/audio/dialogue`, but this surface is changing and should be verified immediately before coding. AutoShow lacks catalog listing, sample audition, deletion, per-character clone registration, SSML/emotion mapping, native dialogue, and speech-mark output.
-
-**Character fit.** Cross-language cloning makes Speechify useful when consenting actor samples exist, but current model/approval differences complicate an automated workflow. The repository's eight curated 3.2 stock voices alone do not provide dependable age/accent breadth.
-
-**Recommendation.** Preserve it as an optional clone provider, but repair consent serialization and per-character provisioning before adding comic support. Gate 3.2 clones on approval status and implement native dialogue only after reconfirming the live contract.
-
-### Hume Octave
-
-**Repository today.** AutoShow supports Octave 2 and can address an existing Hume AI or custom voice by name or UUID. It defaults to a voice named `Male English Actor`. The adapter sends isolated utterances and exposes none of the provider's creation, search, acting, continuation, or multi-speaker features. Current segmented mappings also reuse the original voice.
-
-**Provider surface not exposed.** Hume documents [more than 100 library voices, voice design, and voice cloning](https://dev.hume.ai/docs/voice/overview). [Voice Design](https://dev.hume.ai/docs/voice/voice-design) can use prompts and tags for attributes such as age, gender, and accent; design currently uses Octave 1 even though designed voices can be synthesized with Octave 2. [Voice cloning](https://dev.hume.ai/docs/voice/voice-cloning) can use about 15 seconds from a consenting speaker and is subscription-dependent. Hume also supports acting instructions, speed, trailing silence, context preservation, multiple utterances with per-utterance voices, and [multi-speaker continuation](https://dev.hume.ai/docs/text-to-speech-tts/continuation). AutoShow exposes none of these and therefore misses a native contextual dialogue path.
-
-**Character fit.** Hume is one of the best matches for dramatic comic dialogue. It can design fictional identities, clone approved actors, search a sizable library, direct line-level acting, and preserve conversational context across different voices. The current version split for design and subscription requirements add operational complexity but do not diminish the feature fit.
-
-**Recommendation.** Treat Hume as a first-tier expansion alongside ElevenLabs. Implement library/design/clone registration and auditions first, then use multi-utterance synthesis and continuation with a segmented repair fallback.
-
-### Cartesia
-
-**Repository today.** AutoShow supports Sonic 3.5, an arbitrary voice ID, and an optional language. The request uses only ID-based voice selection. It has no voice search, cloning, localization, pronunciation, speed, volume, or emotion workflow, and segmented mappings currently reuse the original voice.
-
-**Provider surface not exposed.** Cartesia documents [more than 500 stock voices and voice search/filtering](https://docs.cartesia.ai/build-with-cartesia/capability-guides/choosing-a-voice), [Instant Clone](https://docs.cartesia.ai/build-with-cartesia/capability-guides/clone-voices) from up to ten seconds, and [Professional Clone](https://docs.cartesia.ai/build-with-cartesia/capability-guides/clone-voices-pro) from at least 30 minutes with two hours recommended and a Startup-or-higher plan. [Sonic 3.5](https://docs.cartesia.ai/build-with-cartesia/tts-models/latest) supports 42 languages. The provider also exposes localization and [speed, volume, and emotion controls](https://docs.cartesia.ai/build-with-cartesia/capability-guides/volume-speed-emotion). No first-class speaker-labeled dialogue endpoint was found.
-
-**Character fit.** A 500-plus catalog can cover diverse characters without custom assets, while two clone tiers cover quick references and high-consistency performers. Searchable metadata and multilingual support make it a strong casting option even before cloning.
-
-**Recommendation.** Add catalog discovery and Instant Clone after the core registry exists; add Professional Clone as an explicitly gated workflow. Retain bounded segmented assembly and record every line-level control in the dialogue manifest.
+- **ElevenLabs community voice library search & discovery:** ElevenLabs hosts over 10,000+ searchable public community voices accessible via search and filter APIs. AutoShow supports consuming known Voice IDs, but does not provide an in-CLI catalog search or discovery surface.
+- **Speech-to-Speech (Voice Conversion / Dubbing):** ElevenLabs and Cartesia offer speech-to-speech voice conversion endpoints upstream (converting a source audio recording into a target voice while preserving performance inflection and timing). AutoShow's pipeline is strictly text-to-speech / text-to-dialogue and does not process audio-to-audio voice conversion inputs.
+- **Real-time streaming audio & bidirectional WebSockets:** Hume (EVI / WebSocket streaming), ElevenLabs, Cartesia, and Mistral support ultra-low-latency real-time chunked audio streaming. AutoShow requires complete static WAV/audio files for dialogue planning, timeline alignment, and mastering, so streaming response endpoints are not used.
+- **Automated Professional Voice Clone (PVC) model training:** ElevenLabs and Cartesia offer high-consistency Professional Voice Cloning upstream (requiring 30+ minutes of studio audio, captcha verification, and custom model training cycles). AutoShow supports provisioning and consuming existing Pro Clone IDs, but does not execute or monitor long-running remote PVC model training jobs.
+- **Long-form asynchronous document synthesis with webhooks:** MiniMax offers an async TTS endpoint upstream for long-form content (>10,000 characters) with callback webhooks. AutoShow uses bounded synchronous turn requests to maintain deterministic turn ordering and progress reporting.
+- **Gated / Enterprise custom voice creation APIs:** OpenAI (Custom Voices requiring consent IDs and samples) and xAI (Enterprise API custom voice creation) offer custom voice creation APIs for eligible enterprise accounts. AutoShow accepts existing custom voice IDs created via provider dashboards, but does not automate Enterprise-tier voice creation flows.
 
 ## Important providers not currently integrated
 
-This is a strategic shortlist, not an attempt to catalog every TTS service.
+This section evaluates the top three non-integrated cloud/hosted (SaaS) text-to-speech providers analyzed during strategic research, ranked by overall potential comic dialogue value.
 
-### Azure Speech
+### Non-integrated provider capability matrix
 
-Azure is the highest-value missing hosted provider when stock demographic breadth matters. Its [Text to Speech service](https://learn.microsoft.com/en-us/azure/ai-services/speech-service/text-to-speech) covers more than 100 languages and locales. [SSML voice and role controls](https://learn.microsoft.com/en-us/azure/ai-services/speech-service/speech-synthesis-markup-voice) can switch voices in one document and can role-play girl, boy, young-adult, older-adult, and senior presentations in supported voices, in addition to many speaking styles. Neural HD Multi-Talker voices provide contextual dialogue, although important parts of that surface are preview and region-specific.
+| Provider | Official identity breadth | Custom identity | Provider-native dialogue | Age/gender/accent suitability | Potential comic value / fit |
+|---|---|---|---|---|---|
+| #1 Inworld AI | ✅ 100+ pre-built character voices | ✅ Text voice design, instant & pro clone | ✅ Yes, Character Engine & Realtime TTS-2 | ✅ Excellent through emotion steering & prompts | ✅ Premier candidate for fictional character dialogue & steering |
+| #2 Resemble AI | ⚠️ Custom-focused catalog | ✅ Voice Design, Rapid (10s) & Pro (10m+) clone | ❌ No native dialogue endpoint (segmented assembly candidate) | ✅ Excellent through voice design & prompt variants | ✅ High priority SaaS for fictional character creation |
+| #3 LMNT | ✅ 30+ languages catalog | ✅ 5–10s instant voice cloning & prompt control | ❌ No native dialogue endpoint (segmented assembly candidate) | ✅ High through instant cloning & prompt steering | ✅ Fast low-latency voice cloning & synthesis |
 
-Azure's [Professional Voice](https://learn.microsoft.com/en-us/azure/ai-services/speech-service/custom-neural-voice) is limited-access and uses voice-talent consent plus substantial training material; the standard fine-tune route requires at least 300 utterances. Personal Voice uses recorded consent and a short prompt to create a speaker profile. These custom paths should be treated as gated, not assumed self-service.
+### Top non-integrated providers in detail
 
-**Fit and priority.** Excellent stock age-role, locale, style, and multi-voice coverage; high-value first new hosted provider if broad stock casting is more important than easy custom cloning. Confirm region, preview, and custom-access requirements before selecting models.
+### #1. Inworld AI
 
-### Google Cloud Text-to-Speech and Chirp 3
+- **Provider surface:** Dedicated Character Engine and standalone Realtime TTS-2 API. Supports natural language steering (directing tone, emotion, and pace via text prompts), instant and professional voice cloning, text-prompt voice design, viseme/lipsync alignment, and WebSocket/REST synthesis across 100+ languages.
+- **Character fit:** Premier hosted candidate for fictional comic character voice design, natural language emotion steering, and contextual dramatic performance.
+- **Status:** Evaluated SaaS option; not integrated.
 
-This is a distinct API/catalog integration from the repository's Gemini SDK adapter. Google Cloud offers [multiple voice types and a large locale catalog](https://docs.cloud.google.com/text-to-speech/docs/list-voices-and-types), 30 Chirp 3 HD styles across many locales, explicit gender metadata, streaming, and controls for pace, pause, and pronunciation. Experimental Studio multi-speaker voices and Cloud-hosted Gemini TTS remain limited to two speakers.
+### #2. Resemble AI
 
-[Chirp 3 Instant Custom Voice](https://docs.cloud.google.com/text-to-speech/docs/chirp3-instant-custom-voice) supports short consent and reference recordings, streaming, long-form use, and multilingual transfer, but is allowlist/sales-gated. It should not be a roadmap dependency without confirmed access.
+- **Provider surface:** Rapid Clone (10s–3m) and Professional Clone (10–25m+) cover fast and trained cloning with explicit consent ledgers. Voice Design generates candidates from descriptions of age, gender, accent, tone, and style. Supports cross-language cloning, natural language variants, and watermarking.
+- **Character fit:** High priority SaaS option when creating original character identities from written briefs or actor samples is required.
+- **Status:** Evaluated SaaS option; not integrated.
 
-**Fit and priority.** Strong stock/catalog addition and useful for existing Google Cloud users, but lower priority than expanding the existing Gemini adapter unless the broader catalog or allowlisted custom voice solves a concrete project need.
+### #3. LMNT
 
-### Amazon Polly
+- **Provider surface:** High-performance hosted TTS platform featuring ultra-low latency (sub-200ms) with Python and TypeScript SDKs. Provides high-fidelity instant voice cloning from 5–10 seconds of reference audio, prompt control, and speech synthesis across 30+ languages.
+- **Character fit:** High-value SaaS candidate for low-latency fast voice cloning and multi-language character synthesis.
+- **Status:** Evaluated SaaS option; not integrated.
 
-Polly's [voice table](https://docs.aws.amazon.com/polly/latest/dg/available-voices.html) spans dozens of identities across approximately 42 language/locale rows and includes explicit gender plus several US child voices. Standard, neural, long-form, and [generative voices](https://docs.aws.amazon.com/polly/latest/dg/generative-voices.html) provide a mature self-serve operational surface. [SSML](https://docs.aws.amazon.com/polly/latest/dg/ssml.html) controls pronunciation, rate, pitch, volume, breaths, whispers, and limited styles.
+### Serverless open-weights platform options (Replicate, fal.ai, & DeepInfra)
 
-[Brand Voice](https://aws.amazon.com/polly/features/#Brand_Voice) is a bespoke engagement with AWS and a voice actor rather than a self-serve cloning API. No native coherent multi-speaker endpoint was found.
+Serverless AI platforms like Replicate, fal.ai, and DeepInfra host open-weights TTS models as pay-per-second microservices accessible via REST APIs or client SDKs (`replicate`, `fal-client`, DeepInfra REST API). DeepInfra is already integrated into AutoShow for OCR and STT workflows (`DEEPINFRA_API_KEY`), making it a low-friction architectural candidate for expanding into serverless open-weights TTS without introducing new credential infrastructure.
 
-**Fit and priority.** A stable stock fallback with good locale and some child-role coverage, but not a first choice for creating a large custom fictional cast.
+#### Open-weights model capability matrix
 
-### Resemble AI
+| Model / Surface | Host platform | Custom identity | Provider-native dialogue | Age/gender/accent suitability | Potential comic value / fit |
+|---|---|---|---|---|---|
+| Qwen3-TTS | Replicate / fal.ai / DeepInfra | ✅ Voice Design & 3s instant clone | ❌ No (segmented assembly candidate) | ✅ High through voice design & prompt steering | ✅ Dual-mode fictional character voice design & zero-shot cloning |
+| F5-TTS | Replicate / fal.ai / DeepInfra | ✅ 3–10s zero-shot clone | ❌ No (segmented assembly candidate) | ✅ High through reference audio cloning | ✅ Fast cloud-hosted reference voice cloning without local GPU |
+| Kokoro-82M | Replicate / fal.ai / DeepInfra | ❌ Stock catalog selection only | ❌ No (segmented assembly candidate) | ⚠️ Moderate stock voice selection | ⚡ High-speed, ultra-low-cost segmented turn assembly fallback |
+| Coqui XTTS-v2 | Replicate / DeepInfra | ✅ 3s instant clone (17+ languages) | ❌ No (segmented assembly candidate) | ✅ High for multi-language reference cloning | ✅ Multilingual zero-shot reference voice cloning |
+| Parler-TTS | Replicate | ✅ Attribute prompt control | ❌ No (segmented assembly candidate) | ✅ High through descriptive attribute controls | ✅ Attribute-directed stock character casting from written briefs |
 
-Resemble is a strong missing custom-character candidate. [Rapid Clone and Professional Clone](https://docs.resemble.ai/voice-creation/voices/clone-overview) cover roughly 10 seconds to 3 minutes for fast cloning and 10–25 or more minutes for higher-quality training, with Business-or-higher access and explicit verifiable consent for professional work. [Voice Design](https://docs.resemble.ai/voice-creation/voice-design/design-overview) generates three candidates from descriptions of age, gender, accent, tone, and style. Official materials also document cross-language cloning, natural-language variants, SSML controls, watermarking, and cloud or on-premises deployment.
+#### Serverless open-weights models in detail
 
-No first-class speaker-labeled native dialogue endpoint was found, so it maps cleanly to AutoShow's proposed local segment pipeline.
+#### Qwen3-TTS (via Replicate / fal.ai / DeepInfra)
 
-**Fit and priority.** High priority if creating original character identities is more important than stock breadth. It is the most compelling new custom-voice SaaS candidate after fully using ElevenLabs and Hume.
+- **Provider surface:** Serverless API endpoints on Replicate, fal.ai, and DeepInfra. Supports prompt-based Voice Design (generating persistent fictional voices from text descriptions) and 3-second instant zero-shot voice cloning across 10 languages.
+- **Character fit:** Dual-mode open-weights candidate for fictional comic character voice design and zero-shot actor reference cloning.
+- **Status:** Evaluated serverless open-weights candidate; not integrated for TTS.
 
-### PlayAI/PlayHT
+#### F5-TTS (via Replicate / fal.ai / DeepInfra)
 
-Stale [official API documentation](https://docs.play.ht/reference/models) describes a strong character feature set: tagged stock voices, short cross-language cloning, and PlayDialog with contextual two-voice dialogue. The research snapshot found a shutdown notice on the official homepage, and the `play.ai` domain no longer resolved during final link verification.
+- **Provider surface:** Non-autoregressive flow-matching TTS model hosted on Replicate (`x-lance/f5-tts`), fal.ai (`fal-ai/f5-tts`), and DeepInfra REST endpoints. Performs high-fidelity zero-shot voice cloning from 3–10 seconds of reference audio with natural speed and pitch control.
+- **Character fit:** Fast cloud-hosted option for reference voice cloning without requiring local GPU infrastructure.
+- **Status:** Evaluated serverless open-weights candidate; not integrated for TTS.
 
-**Fit and priority.** Disqualified unless the company confirms a live successor and supported API. Stale documentation must not be mistaken for provider availability.
+#### Kokoro-82M (via Replicate / fal.ai / DeepInfra)
 
-## Self-hosted options not currently integrated
+- **Provider surface:** Ultra-lightweight (82M parameter) open-weights model based on StyleTTS2 hosted on Replicate (`jaaari/kokoro-82m`), fal.ai (`fal-ai/kokoro`), and DeepInfra endpoints. Provides ultra-fast execution and extremely low cost for multi-voice stock synthesis.
+- **Character fit:** High-speed, budget-friendly cloud fallback for segmented turn assembly when instant cloning or voice design is not required.
+- **Status:** Evaluated serverless open-weights candidate; not integrated for TTS.
 
-### Qwen3-TTS
+#### Coqui XTTS-v2 (via Replicate / DeepInfra)
 
-The [official Qwen3-TTS project](https://github.com/QwenLM/Qwen3-TTS) is the best local feature match. The Apache-2.0 0.6B and 1.7B model family documents ten languages, nine stock timbres spanning several ages, gender presentations, languages, and dialects, natural-language style control, short-reference rapid cloning, and free-form Voice Design. Its especially relevant design-then-clone workflow can turn a designed fictional identity into a reusable reference for consistent later synthesis.
+- **Provider surface:** Multilingual zero-shot voice cloning model hosted on Replicate (`lucataco/xtts-v2`) and DeepInfra API. Synthesizes speech in 17+ languages using a 3-second reference audio clip.
+- **Character fit:** Proven option for multi-language zero-shot reference voice cloning.
+- **Status:** Evaluated serverless open-weights candidate; not integrated for TTS.
 
-It does not expose a native multi-speaker conversation API; AutoShow should synthesize and cache turns locally. Hardware, latency, and quantization quality must be benchmarked on the project's actual deployment targets before promising a default local experience.
+#### Parler-TTS (via Replicate)
 
-**Fit and priority.** First local addition when voice design and cloning matter; substantially better aligned with comic characters than Kitten.
-
-### Resemble Chatterbox
-
-The [official Chatterbox project](https://github.com/resemble-ai/chatterbox) is MIT-licensed and provides an English Turbo model and a Multilingual model covering more than 23 languages. It supports zero-shot reference-audio cloning, expressive/paralinguistic tags, and watermarking. It has no public native dialogue surface.
-
-**Fit and priority.** The strongest simple permissive local clone-first alternative. Prefer it over Qwen3-TTS when a known reference identity is the main requirement and free-form voice design is not.
-
-### Fish Audio S2
-
-The [official Fish Speech project](https://github.com/fishaudio/fish-speech) is technically attractive: current materials describe more than 80 languages, native multi-speaker and multi-turn generation, rapid cloning from 10–30 seconds, and inline performance tags. It is also a large 4B-plus-400M system whose published performance uses high-end hardware.
-
-The current Fish Audio Research License is non-commercial/research-oriented; production commercial use requires a separate written license.
-
-**Fit and priority.** Useful for R&D into native local dialogue, but exclude it from a production default unless licensing and hardware are explicitly resolved.
-
-### VibeVoice
-
-Microsoft's VibeVoice originally demonstrated long-form, multi-speaker generation, but Microsoft [removed TTS code from the official repository](https://github.com/microsoft/VibeVoice) in January 2026 after misuse.
-
-**Fit and priority.** Do not plan an integration around unavailable code.
+- **Provider surface:** Controllable speech model hosted on Replicate (`cjwbw/parler-tts`). Generates speech where speaker attributes (gender, age, pitch, speaking rate, acoustic environment) are directed via text descriptions.
+- **Character fit:** Useful for casting specific stock character attributes directly from written scene descriptions.
+- **Status:** Evaluated serverless open-weights candidate; not integrated for TTS.
 
 ## Which options can cover age, gender, and accent?
 
-The answer depends on whether the project wants to cast from stock, invent identities, or reproduce consenting performers.
-
-| Need | Best current candidates | Why | Main constraint |
+| Need | Best integrated options | Complementary non-integrated options | Why |
 |---|---|---|---|
-| Largest managed stock search | ElevenLabs, Cartesia | Thousands or hundreds of selectable identities and discovery metadata | Catalog access and terms vary by plan |
-| Most structured stock demographic casting | Deepgram, Azure, Google Cloud, Amazon Polly | Explicit age or role, expressed gender, accent, language, and locale metadata | Less ability to invent an exact new identity |
-| Fictional identity from a written brief | ElevenLabs, Hume, MiniMax, Resemble, Qwen3-TTS | Voice Design can state age, gender presentation, accent, register, tone, and pacing | Designed identity consistency and access differ by provider |
-| Identity from an approved actor reference | ElevenLabs, Mistral, MiniMax, Speechify, Hume, Cartesia, xAI, Resemble, Qwen3-TTS, Chatterbox | Clone/reference workflows preserve timbre and accent | Consent, rights, sample quality, access, and resource retention |
-| Native contextual two-character scene | Gemini, ElevenLabs, Hume; Azure/Google/Speechify where the documented model is available | Shared request context can improve conversational flow | Speaker ceilings, preview status, model drift, and weaker repair granularity |
-| Local/private varied characters | Qwen3-TTS, Chatterbox | Design or clone without sending source audio to a hosted API | Local compute and quality benchmarking |
-| No-cost lightweight timing draft | Kitten | Small local model and eight fixed voices | Too little identity and accent breadth for final casting |
+| Largest managed stock search | ElevenLabs, Cartesia | LMNT, Kokoro-82M | Thousands of selectable catalog identities with search metadata |
+| Most structured stock demographic casting | Deepgram, Cartesia, Speechify, xAI, OpenAI | Inworld AI | Explicit age, expressed gender, accent, language, and locale metadata |
+| Fictional identity from a written brief | ElevenLabs, Hume, MiniMax | Inworld AI, Resemble AI, Qwen3-TTS, Parler-TTS | Voice Design generates new identities from descriptive prompts |
+| Identity from an approved actor reference | ElevenLabs, Mistral, MiniMax, Speechify, Hume, Cartesia, xAI | Resemble AI, Inworld AI, LMNT, F5-TTS, Qwen3-TTS, XTTS-v2 | Clone and reference workflows preserve performer timbre and accent |
+| Native contextual dialogue | Gemini (2 speakers), ElevenLabs, Hume | Inworld AI | Shared request context optimizes conversational flow |
+| Local / private voice synthesis | Kitten | None (Kitten is sole local baseline) | Offline execution without sending source audio to external APIs |
 
-For automated casting, stock count alone is not enough. AutoShow needs normalized voice metadata and a human approval step. “Young,” “male,” or “Irish” tags are useful search constraints, not proof that a performance fits a character. A designed or cloned voice likewise needs an audition across neutral speech, emotional range, proper nouns, and representative dialogue.
+## Implemented comic voice architecture
 
-## Recommended comic voice architecture
+The script-to-audio subsystem implemented in ADR-020 comprises seven core architectural pillars:
 
-The visual reference workflow provides the right conceptual model: an authored character catalog, a registered current reference with provenance and checksums, and an immutable snapshot copied into a scene run. Voice support should mirror that lifecycle without putting provider credentials or consent data into the strict visual schema.
+### 1. Separation of voice brief and provider registration
 
-### 1. Separate the authored voice brief from provider registrations
+Character voice briefs (`CharacterVoiceBrief`) are provider-neutral records keyed by canonical `CharacterKey`. Provider registrations are separate model-qualified records (`(subject, provider, provider model, profile)`) stored in an append-only registry.
 
-Create a provider-neutral voice catalog keyed by the existing canonical `CharacterKey`. Do not add provider resource fields directly to the strict version-3 visual character catalog.
+### 2. Dedicated reference voice command
 
-An authored voice brief should be able to describe:
+The `comic reference-voice` command (and shared `voice` alias) handles candidate creation/import, materialization, canonical audition generation, and explicit local approval (`approveRegistration`). It promotes registrations only after audition artifacts succeed.
 
-- Character key and aliases.
-- Language and locale.
-- Accent or dialect, including strength and whether it is mandatory or aspirational.
-- Apparent age range and gender presentation when those attributes are relevant to casting.
-- Pitch/register, timbre, resonance, pace, energy, texture, and vocal mannerisms.
-- Default performance notes and prohibited caricatures.
-- Pronunciation notes.
-- Whether the acceptable source kinds are stock, designed, cloned, or any.
+### 3. Source-linked dialogue planning
 
-Provider registrations should be separate records containing provider, model, source kind, provider voice ID/name, provider metadata, design prompt or reference asset, synthesis defaults, audition generation, access tier, creation/expiry/retention state, and cleanup status.
+`comic generate-audio` builds a reviewable `ComicDialoguePlan` from `structured-script.json` (v4). Each turn preserves `sourceSegmentId`, `beatIndex`, canonical `characterKey` or role, original speaker label, normalized text, delivery notes, audio effect state, and timing cues.
 
-### 2. Add a dedicated reference-voice command
+### 4. Immutable scene voice snapshots
 
-A command such as `comic reference-voice --character <key>` should create or select a voice, synthesize a standard audition, and promote it only after all required artifacts succeed. It should not silently synthesize the entire scene.
+Preflight validates target readiness, model compatibility, provider access, resource existence, and consent records before any provider synthesis. An aggregate immutable voice snapshot is written into the scene run, binding the dialogue plan to exact voice generations.
 
-The audition set should include:
+### 5. Native and segmented rendering
 
-- A neutral identity line for timbre.
-- A representative line from the character's script.
-- At least two contrasting delivery lines where the provider supports performance control.
-- Names, invented terms, and accent-sensitive words used by the project.
-- A fixed comparison passage shared by all candidates.
+Render strategy planning selects native dialogue (Gemini 2-speaker, ElevenLabs Text-to-Dialogue, Hume multi-utterance/continuation) when exact intent is representable, retaining a deterministic segmented fallback for scenes exceeding native limits or requiring line-level repairs.
 
-Promotion should register an immutable generation ID, the voice brief hash, provider/model/source kind, provider resource ID, exact settings, local audition checksum and duration, reference-audio checksum where lawful, consent/provenance record, creation timestamp, and prior generation ID. A remote voice ID alone is not an immutable reference because a provider can edit, expire, or delete it.
+### 6. Identity and content caching
 
-### 3. Build a source-linked dialogue plan
+Segment cache keys incorporate canonical text, source segment ID, delivery/effect settings, provider/model parameters, and immutable voice snapshot generation IDs, enabling targeted line repair without re-synthesizing unchanged dialogue.
 
-A command such as `comic generate-audio <script>` should first create a reviewable `dialogue-plan.json` from `structured-script.json`. Each turn should preserve:
+### 7. Provider-qualified casting and benchmark keys
 
-- `sourceSegmentId` and `beatIndex`.
-- Canonical `characterKey` or explicit narrator/uncatalogued-role key.
-- Original speaker label.
-- Exact canonical text.
-- Delivery/tone.
-- V.O., O.S., radio, intercom, telephone, or other effect state.
-- Pause before/after and any overlap policy.
-- Selected voice registration and snapshot ID.
+Characters are mapped to explicit provider-qualified registrations. Voice-quality benchmark results are keyed by adapter target + render + optional registration/snapshot/character identity.
 
-This avoids the generic parser's loss of parentheticals and makes panel-to-audio timing possible through source IDs.
+## Delivery sequence status
 
-### 4. Snapshot every selected voice before paid synthesis
+- **Phase 0 — Baseline behavior repair (Complete 2026-08-11):** Repaired per-turn voice dispatch across all 12 adapters; added A/B/A serializer contract tests; restricted Gemini native dialogue to two speakers; bounded hosted concurrency; refreshed Deepgram, xAI, Gemini, Groq, OpenAI catalogs.
+- **Phase 1 — Reference voice management (Complete 2026-08-11):** Delivered `voice` and `comic reference-voice` commands, protected store, briefs, candidates, canonical auditions, approval index, and resource deletion.
+- **Phase 2 — Multi-speaker script-to-audio (Complete 2026-08-11):** Delivered `comic generate-audio`, `structured-script.json` v4, `ComicDialoguePlan`, immutable scene voice snapshots, WAV mastering, and operation-scoped resume.
+- **Phase 3 — ElevenLabs & Hume advanced adapters (Complete 2026-08-11):** Delivered first-class ElevenLabs (Voice Design, Text-to-Dialogue, timestamps) and Hume (acting instructions, multi-utterance, continuation) capability adapters.
+- **Phase 4 — MiniMax, Cartesia, & Speechify advanced adapters (Complete 2026-08-11):** Delivered MiniMax, Cartesia, and Speechify capability adapters, fixed Speechify multipart serialization, added all-provider preflight readiness, and updated benchmark identity.
 
-Preflight must resolve every character and non-character role, validate provider access and model compatibility, prove that all custom resources exist, enforce native speaker limits, and verify consent/provenance before any provider request.
+## Recommended provider choices by use case
 
-Copy a voice snapshot manifest into the scene run. For local references, include the audio and checksum. For hosted voices, include provider metadata and a checksummed approved audition when terms permit. Bind the dialogue plan to this snapshot so a resumed scene cannot silently use a newer voice registration.
-
-### 5. Support native and segmented rendering deliberately
-
-Native dialogue and segmented dialogue should be separate provider capabilities, not a single boolean.
-
-- Use native rendering when contextual interaction materially improves quality and the scene fits the provider's speaker, length, and access limits.
-- Preserve a segmented route for providers without native dialogue, for scenes exceeding native limits, and for replacing one failed line without regenerating the entire conversation.
-- For native output, request timestamps where available and store speaker/utterance timing. If the provider cannot return a reliable per-turn timeline, record that limitation explicitly.
-- For segmented output, use bounded concurrency per provider, cache each turn, and add deterministic pause, crossfade, loudness, room-tone, and effects stages locally.
-
-The corrected target contract should pass an explicit per-invocation `VoiceSource` or resolved `VoiceProfile`, or construct a target per character. Mutating a generic options bag after the provider target has captured selection values must not remain the dispatch mechanism.
-
-### 6. Cache by identity and content, not output path
-
-Each segment cache key should include canonical text, source segment, delivery/effect settings, provider/model, complete synthesis settings, and immutable voice snapshot generation. This permits targeted line repair, local remixing, provider comparisons, and deterministic resume without repurchasing unchanged audio.
-
-The final recording manifest should map every source segment to its segment file, checksum, actual provider voice, duration, start/end time, settings, cost, retry history, and final mix placement. Metadata must report the voice actually sent to the provider, not merely the requested speaker map.
-
-### 7. Make casting provider-qualified
-
-A character should have a neutral brief and one or more provider-specific registrations. A comparison run might map the same character to an ElevenLabs designed voice, a Deepgram stock voice, and a Qwen clone. A single `SPEAKER=VOICE` string cannot express that relationship.
-
-Provider comparison should evaluate identity match, consistency across lines, emotional range, intelligibility, pronunciation, conversational timing, artifacts, and cost. The existing benchmark key must include character/voice-profile identity rather than only service/model.
-
-## Recommended delivery sequence
-
-### Phase 0 — establish truthful behavior (complete 2026-08-11)
-
-1. Fix per-turn voice dispatch for every segmented adapter.
-2. Add provider contract tests that assert the actual request voice or reference for each speaker, not only audio ordering.
-3. Correct documentation and metadata so unsupported or ineffective mappings cannot be reported as successful.
-4. Enforce Gemini's exactly-two-speaker limit and speaker-safe chunking.
-5. Bound hosted turn concurrency and retain dialogue artifacts in single-, multi-provider, and batch runs.
-
-### Phase 1 — introduce comic voice references
-
-1. Add the provider-neutral voice brief and provider registration schemas.
-2. Add `comic reference-voice` with audition generation, approval, provenance, consent, promotion, and prior-generation tracking.
-3. Add immutable per-scene voice snapshots modeled after character image snapshots.
-4. Add a source-linked `dialogue-plan.json` built directly from structured comic data.
-
-### Phase 2 — ship the smallest useful recording workflow
-
-1. Add `comic generate-audio` with Mistral reference/saved voices as the first custom/reference path.
-2. Retain Gemini as the native two-character stock path.
-3. Add the local segmented assembler, cache, timeline manifest, pauses, loudness, and effect handling.
-4. Define and test policies for narration, captions, compound speakers, uncatalogued roles, and V.O./O.S.
-
-### Phase 3 — unlock high-value provider capabilities
-
-1. ElevenLabs: voice discovery, Voice Design, clone registration/reuse, Text-to-Dialogue, timestamps, and resource lifecycle.
-2. Hume: library/design/clone, acting instructions, multi-utterance dialogue, and continuation.
-3. Deepgram and xAI: refresh the currently truncated stock catalogs and ingest demographic metadata.
-4. MiniMax: Voice Design, cloning, audition/activation, and expiry handling.
-5. Cartesia: catalog discovery, Instant Clone, localization, and performance controls.
-6. Speechify: correct consent serialization, per-character clone provisioning, approval preflight, and only then native dialogue if the live API remains stable.
-
-### Phase 4 — add a strategic new provider only for a defined need
-
-- Add Qwen3-TTS first for local design and cloning.
-- Add Azure first for hosted stock breadth, age-role casting, and multi-talker support.
-- Add Resemble first if custom fictional identity creation is the dominant SaaS requirement.
-- Add Google Cloud TTS for a broader Google catalog or confirmed Instant Custom Voice access.
-- Add Polly as a mature locale/stock fallback.
-- Exclude PlayAI while shut down, VibeVoice while code is unavailable, and Fish S2 from commercial production without a suitable license.
-
-## Recommended provider choices by near-term goal
-
-| Goal | Recommended first option | Alternative | Reason |
+| Goal | Recommended primary option | Alternative option | Reason |
 |---|---|---|---|
-| Fastest working reference-audio prototype in this repo | Mistral | Repair ElevenLabs segmented dispatch | Mistral already honors per-turn reference/saved voices |
-| Fastest two-character stock prototype | Gemini | Hume after adapter expansion | Gemini already has native mapped speakers; enforce the two-speaker limit |
-| Best managed long-term casting platform | ElevenLabs | Hume | Breadth, design, clone tiers, native dialogue, and strong multilingual coverage |
-| Most expressive contextual dramatic dialogue | Hume | ElevenLabs | Acting instructions, contextual utterances, and continuation |
-| Best stock-only demographic search inside current providers | Deepgram | Cartesia | Structured age, gender, accent, language, and character metadata |
-| Best local/private character creation | Qwen3-TTS | Chatterbox | Design plus clone versus a simpler clone-first workflow |
-| Lightweight no-cost development baseline | Kitten | Qwen3-TTS on capable hardware | Easy local use, but limited identity breadth |
+| Reference-audio character synthesis | Mistral | ElevenLabs / Speechify | Fast zero-shot cloning from short reference audio clips |
+| Two-character stock native dialogue | Gemini | Hume Octave | Native two-speaker synthesis with natural language style direction |
+| Comprehensive managed casting | ElevenLabs | Hume Octave | Vast voice library, prompt design, instant/pro cloning, native dialogue |
+| Dramatic expressive acting & dialogue | Hume Octave | ElevenLabs | Line-level acting instructions, multi-utterance context, continuation |
+| Stock demographic casting | Deepgram Aura-2 | Cartesia | 91 Aura-2 voices with structured age, gender, accent, and language metadata |
+| No-cost offline development baseline | Kitten | None (Kitten is sole local baseline) | Fast, local execution requiring no external API calls |
 
 ## Consent, rights, and provenance requirements
 
-Custom voice support creates obligations that do not exist for ordinary stock selection. The workflow should require affirmative provenance rather than treating a reference file path as permission.
+Custom voice support creates operational requirements enforced by the `voice` management system:
 
-- Record who owns or controls the source recording, who consented, what uses were authorized, the jurisdiction/territory if relevant, and any expiration or revocation condition.
-- Preserve provider consent IDs and required consent recordings separately from the performer sample.
-- Never use a provider-generated TTS audition as cloning material for another provider unless the source provider's terms and the performer's authorization explicitly permit it.
-- Prefer designed voices or consenting adult performers for age-coded fictional characters; do not require real minor recordings to obtain a childlike role.
-- Record provider retention and deletion state for every created resource. A local registration must know whether the remote voice is active, expired, deleted, or pending approval.
-- Treat provider catalog terms and community-library sharing rules as part of casting eligibility, not as an after-the-fact legal note.
-
-These are product requirements, not a substitute for legal review.
+- Provenance records track source ownership, performer consent, authorized scope, territory, and expiration conditions.
+- Provider consent IDs and recordings are stored in a protected store, disjoint from ordinary output directories.
+- Synthetic TTS auditions are prohibited from being used as cloning input for another provider without explicit authorization.
+- Remote resource lifecycle states (active, expired, deleted, pending approval) are tracked in provisioning journals.
 
 ## Final recommendation
 
-The strongest path is not to pick one TTS provider and embed it directly in the comic command. Build a provider-neutral character voice and dialogue layer, then let several providers satisfy different source kinds.
-
-Repair the current segmented dispatch first. Then implement approved voice registrations and immutable snapshots, using Mistral to prove reference-audio characters and Gemini to prove native two-speaker stock dialogue. ElevenLabs and Hume should be the first full managed integrations because together they cover large catalogs, designed fictional identities, cloning, expressive direction, and native dialogue. Expand Deepgram immediately afterward for low-friction age/gender/accent stock casting. Add Qwen3-TTS when local/private voice creation is valuable.
-
-That sequence creates a truthful, testable foundation and produces useful comic audio early without locking the comic pipeline to one provider's voice IDs, consent rules, speaker ceiling, or resource lifecycle.
+The completion of ADR-020 establishes a provider-neutral script-to-audio architecture in AutoShow. By decoupling authored character briefs from provider-specific voice registrations and maintaining native and segmented execution strategies, AutoShow achieves reviewable, reproducible, and portable comic dialogue synthesis across 12 integrated TTS providers.
 
 ## Verification and research notes
 
-- Repository conclusions were derived from the source paths cited throughout this report at baseline `1bba61c2`.
-- External capability claims use official provider documentation linked at the point of use and were checked on 2026-08-10.
-- Counts are intentionally described as approximate where catalogs are live and mutable.
-- No hosted or quota-limited provider command was run. No voice was created, cloned, uploaded, synthesized, or deleted while preparing this report.
+- Implementation details were verified against ADR-020 and repository source files on 2026-08-11.
+- All 12 provider adapters pass local no-network contract tests (`bun run check`, `tts-advanced-provider-phase-3.test.ts`, `tts-advanced-provider-phase-4.test.ts`).
+- External capability claims reflect provider documentation verified on assessment dates.

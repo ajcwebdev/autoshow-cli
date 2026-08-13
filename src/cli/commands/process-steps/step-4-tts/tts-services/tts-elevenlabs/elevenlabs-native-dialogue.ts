@@ -40,24 +40,45 @@ export type ElevenLabsNativeDialogueBatch = {
   providerText: string
 }
 
-const safeAudioTag = (delivery: string): string => {
-  const normalized = delivery.normalize('NFKC').trim().replace(/[\[\]]/g, '').replace(/\s+/g, ' ')
-  if (!normalized || normalized.length > 80 || !/^[\p{L}\p{N} .,'’!?-]+$/u.test(normalized)) {
-    throw CLIUsageError(`ElevenLabs native dialogue cannot safely represent delivery direction "${delivery}".`)
-  }
-  return `[${normalized}] `
+const ELEVENLABS_DOCUMENTED_ACTION_TAGS = [
+  { tag: 'whispers', pattern: /\b(?:whisper(?:s|ed|ing)?|softly|quiet(?:ly)?|under (?:his|her|their) breath)\b/i },
+  { tag: 'shouts', pattern: /\b(?:shout(?:s|ed|ing)?|yell(?:s|ed|ing)?|roar(?:s|ed|ing)?|scream(?:s|ed|ing)?)\b/i },
+  { tag: 'exhales', pattern: /\bexhal(?:e|es|ed|ing)\b/i },
+  { tag: 'sighs', pattern: /\bsigh(?:s|ed|ing)?\b/i },
+  { tag: 'laughs', pattern: /\b(?:laugh(?:s|ed|ing)?|chuckl(?:e|es|ed|ing)|giggl(?:e|es|ed|ing))\b/i },
+] as const
+
+const ELEVENLABS_DOCUMENTED_EMOTION_TAGS = [
+  { tag: 'sarcastic', pattern: /\b(?:sarcastic|sarcasm|dry|deadpan|wry)\b/i },
+  { tag: 'curious', pattern: /\b(?:curious|curiosity|questioning|wondering)\b/i },
+  { tag: 'excited', pattern: /\b(?:excited|delighted|gleeful|glee|ecstatic|enthusiastic|thrilled|grinning)\b/i },
+  { tag: 'mischievously', pattern: /\b(?:mischievous|mischievously|sly|playful)\b/i },
+  { tag: 'crying', pattern: /\b(?:crying|cries|sob(?:s|bed|bing)?|tearful)\b/i },
+  { tag: 'angry', pattern: /\b(?:angry|furious|rage|indignant)\b/i },
+  { tag: 'sad', pattern: /\b(?:sad|wistful|whistful|melancholy|mournful|wounded)\b/i },
+  { tag: 'happily', pattern: /\b(?:happy|happily|cheerful|jolly)\b/i },
+] as const
+
+const documentedAudioTags = (delivery: string): string[] => {
+  const normalized = delivery.normalize('NFKC')
+  const action = ELEVENLABS_DOCUMENTED_ACTION_TAGS.find(candidate => candidate.pattern.test(normalized))?.tag
+  const emotion = ELEVENLABS_DOCUMENTED_EMOTION_TAGS.find(candidate => candidate.pattern.test(normalized))?.tag
+  return [...(action ? [action] : []), ...(emotion ? [emotion] : [])]
 }
+
+const safeAudioTag = (delivery: string): string => documentedAudioTags(delivery).map(tag => `[${tag}]`).join(' ')
 
 export const prepareElevenLabsDialogueText = (canonicalText: string, delivery?: string | undefined): PreparedProviderText => {
   const canonicalLength = [...canonicalText].length
-  const prefix = delivery ? safeAudioTag(delivery) : ''
+  const audioTags = delivery ? safeAudioTag(delivery) : ''
+  const prefix = audioTags ? `${audioTags} ` : ''
   const prefixLength = [...prefix].length
   const providerText = `${prefix}${canonicalText}`
   return {
     schemaVersion: 1,
     canonicalText,
     providerText,
-    preparationVersion: 'elevenlabs-v3-dialogue-v1',
+    preparationVersion: 'elevenlabs-v3-dialogue-v2',
     canonicalIndexUnit: 'unicode-scalar-value',
     providerIndexUnit: 'provider-character-array-index',
     spans: [

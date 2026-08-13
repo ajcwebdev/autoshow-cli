@@ -409,14 +409,15 @@ export const validateCurrentVoiceRegistrationIndex = (
   catalog?: VoiceRegistrationCatalog | undefined
 ): CurrentVoiceRegistrationIndex => {
   assertAllowedKeys(index, ['schemaVersion', 'revision', 'selections'], 'Current voice registration index')
-  if (index.schemaVersion !== 1 || !Number.isInteger(index.revision) || index.revision < 0) throw CLIUsageError('Current voice index requires schemaVersion 1 and a non-negative revision.')
+  if (index.schemaVersion !== 2 || !Number.isInteger(index.revision) || index.revision < 0) throw CLIUsageError('Current voice index requires schemaVersion 2 and a non-negative revision.')
   if (!Array.isArray(index.selections)) throw CLIUsageError('Current voice index selections must be an array.')
-  assertUnique(index.selections.map(selection => `${selection.subjectKey}\0${selection.provider}\0${selection.profileKey}`), 'Current voice selection keys')
+  assertUnique(index.selections.map(selection => `${selection.subjectKey}\0${selection.provider}\0${selection.providerModel}\0${selection.profileKey}`), 'Current voice selection keys')
   for (const selection of index.selections) {
-    assertAllowedKeys(selection, ['subjectKey', 'provider', 'profileKey', 'registrationId', 'generationId', 'updatedAt'], 'Current voice registration selection')
+    assertAllowedKeys(selection, ['subjectKey', 'provider', 'providerModel', 'profileKey', 'registrationId', 'generationId', 'updatedAt'], 'Current voice registration selection')
     assertSubjectKey(selection.subjectKey, 'Current voice subject key')
     assertSafeKey(selection.profileKey, 'Current voice profile key')
     if (!TTS_PROVIDERS.has(selection.provider)) throw CLIUsageError('Current voice selection has an unsupported provider.')
+    if (!selection.providerModel.trim()) throw CLIUsageError('Current voice selection requires a provider model.')
     assertSafeKey(selection.registrationId, 'Current voice registration ID')
     assertSha256(selection.generationId, 'Current voice generation ID')
     assertIsoDate(selection.updatedAt, 'Current voice selection updatedAt')
@@ -428,7 +429,7 @@ export const validateCurrentVoiceRegistrationIndex = (
       if (!registration || registration.approval.state !== 'approved' || registration.provisioning.state !== 'ready') {
         throw CLIUsageError('Current voice selection must resolve to one approved ready registration generation.')
       }
-      if (registration.subjectKey !== selection.subjectKey || registration.provider !== selection.provider || registration.profileKey !== selection.profileKey) {
+      if (registration.subjectKey !== selection.subjectKey || registration.provider !== selection.provider || registration.providerModel !== selection.providerModel || registration.profileKey !== selection.profileKey) {
         throw CLIUsageError('Current voice selection identity does not match its registration generation.')
       }
     }

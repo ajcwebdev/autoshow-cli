@@ -17,6 +17,7 @@ import { collectTtsTargets } from '../tts-targets'
 import { estimateTtsTargetCosts } from '../tts-utils/tts-pricing'
 import { computeVoiceAuditionId, assertVoiceConsentAllows, validateVoiceAuditionManifest } from './voice-management-contracts'
 import { hashCharacterVoiceBrief } from './character-voice-registry'
+import { prepareElevenLabsDialogueText } from '../tts-services/tts-elevenlabs/elevenlabs-native-dialogue'
 
 export type CanonicalVoiceAuditionPassage = {
   itemId: string
@@ -135,23 +136,33 @@ export const runCanonicalVoiceAudition = async (input: {
   await input.protectedStore.withWorkspace(`audition-${registration.registrationId}`, async workspace => {
     for (const passage of plan.passages) {
       const takes: VoiceAuditionItem['takes'] = []
+      const providerText = registration.provider === 'elevenlabs' && registration.providerModel === 'eleven_v3'
+        ? prepareElevenLabsDialogueText(passage.text, passage.delivery).providerText
+        : passage.text
+      const deliveryUnsupported = Boolean(passage.delivery && registration.provider === 'hume' && registration.providerModel === 'octave-2')
       for (let takeIndex = 0; takeIndex < plan.takeCount; takeIndex += 1) {
+        if (registration.provider === 'hume' && (items.length > 0 || takeIndex > 0)) {
+          await new Promise(resolve => setTimeout(resolve, 7000))
+        }
         const takeId = `${passage.itemId}-${takeIndex + 1}`
         const outputDir = `${workspace}/${takeId}`
         await mkdir(outputDir, { recursive: true })
-        const result = await target.run(passage.text, outputDir, options, {
+        const result = await target.run(providerText, outputDir, options, {
           sourceId: `audition:${registration.registrationId}:${passage.itemId}:${takeIndex + 1}`,
           sourceIndex: takeIndex,
           speaker: registration.subjectKey,
           voice: { kind: 'id', value: providerVoiceId },
-          controls: Object.freeze({ ...registration.synthesisSettings.values })
+          controls: Object.freeze({
+            ...registration.synthesisSettings.values,
+            ...(passage.delivery && registration.provider === 'hume' && registration.providerModel === 'octave-1' ? { description: passage.delivery } : {})
+          })
         })
         const bytes = new Uint8Array(await Bun.file(result.audioPath).arrayBuffer())
         const protectedAudio = await input.protectedStore.storeBytes!(bytes, {
           schemaVersion: 1,
           purpose: 'audition-audio',
           authorizationRef: `voice-audition:${registration.registrationId}`,
-          retention: { mode: 'retain-until-revoked', obligationRef: registration.retention.obligationRef },
+          retention: { mode: 'retain-until-revoked', ...(registration.retention.obligationRef ? { obligationRef: registration.retention.obligationRef } : {}) },
           ...(registration.consentRecordRef ? { consentRecordRef: registration.consentRecordRef } : {}),
           createdAt
         })
@@ -165,14 +176,14 @@ export const runCanonicalVoiceAudition = async (input: {
               currency: 'USD'
             }))
           },
-          warnings: []
+          warnings: deliveryUnsupported ? ['Hume Octave 2 does not serialize acting descriptions; this audition take retains the canonical delivery as unsupported evidence.'] : []
         })
       }
       items.push({
         itemId: passage.itemId,
         category: passage.category,
         canonicalText: passage.text,
-        providerText: passage.text,
+        providerText,
         ...(passage.delivery ? { delivery: passage.delivery } : {}),
         takes,
         selectedTakeId: takes[0]!.takeId
