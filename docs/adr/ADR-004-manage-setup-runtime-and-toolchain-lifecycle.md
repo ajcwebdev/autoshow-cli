@@ -6,32 +6,13 @@
 - **Date Created:** 2026-06-12
 - **Date Updated:** 2026-08-13
 - **Verification Status:** Passed
-- **Supersession:** Consolidates the separate Docker distribution record, "Docker Image Trade Study for CLI Distribution", merged on 2026-07-24; the complete setup reliability, reporting, and performance record formerly titled "Make Setup Downloads Resumable and Setup Reporting Truthful"; the complete standalone "ADR-004 Phase 5 macOS Toolchain Distribution Review"; and the ACSM plugin, managed Python, wrapper, resolver, authorization-helper, doctor, and setup/help mechanics formerly recorded in ADR-001. ADR-001 retains book-like ingestion, fulfillment, authorization, conversion, and extraction policy.
+- **Supersession:** Consolidates the complete setup reliability, reporting, and performance record formerly titled "Make Setup Downloads Resumable and Setup Reporting Truthful"; the complete standalone "ADR-004 Phase 5 macOS Toolchain Distribution Review"; and the ACSM plugin, managed Python, wrapper, resolver, authorization-helper, doctor, and setup/help mechanics formerly recorded in ADR-001. The previously absorbed "Docker Image Trade Study for CLI Distribution" and all Docker distribution authority moved to ADR-015 on 2026-08-13. ADR-001 retains book-like ingestion, fulfillment, authorization, conversion, and extraction policy.
 
 ## Context
 
-AutoShow promises one "local-lite" tool set — FFmpeg and `ffprobe`, `yt-dlp`, MuPDF `mutool`, `qpdf`, Calibre `ebook-convert`, Tesseract with English trained data, and OCRmyPDF — and has to provision it in three environments: a macOS host, a Linux host, and a container. All three are governed by one contract, the resolver precedence in `resolveRuntimeToolInfo` (`src/utils/runtime-paths.ts`): an explicit `--bin-dir`/`AUTOSHOW_BIN_DIR` or per-tool override first, then an AutoShow-managed artifact under `runtime/`, then `PATH` for tools AutoShow does not own. The provisioning decision for each environment is which of those three tiers supplies the tools.
+AutoShow promises one "local-lite" tool set — FFmpeg and `ffprobe`, `yt-dlp`, MuPDF `mutool`, `qpdf`, Calibre `ebook-convert`, Tesseract with English trained data, and OCRmyPDF — and has to provision it on macOS and Linux hosts. Both host environments are governed by the resolver precedence in `resolveRuntimeToolInfo` (`src/utils/runtime-paths.ts`): an explicit `--bin-dir`/`AUTOSHOW_BIN_DIR` or per-tool override first, then an AutoShow-managed artifact under `runtime/`, then `PATH` for tools AutoShow does not own. The provisioning decision for each host is which of those tiers supplies the tools. Docker distribution is governed separately by ADR-015.
 
 Host provisioning. The local dependency report showed macOS setup still using Homebrew for several tools while most AutoShow-managed local dependencies already lived under `runtime/`. That mixed model made setup behavior less reproducible: managed binaries, Python environments, and models are cacheable project artifacts, but Homebrew installs mutate global machine state and can vary by host, tap state, bottle availability, and the user's existing package manager configuration. The macOS Homebrew-managed setup paths covered FFmpeg and `ffprobe`, `yt-dlp`, MuPDF `mutool`, Calibre `ebook-convert`, Tesseract and English language data, and OCRmyPDF. Host build prerequisites such as Apple/Xcode tooling, command line developer tools, `cmake`, and compiler/runtime components remain explicit external prerequisites, not AutoShow-installed dependencies. Linux hosts continue to use `apt`.
-
-Container provisioning. `autoshow-cli` is a Bun-native CLI whose largest onboarding cost is exactly that host setup: `bun autoshow setup` either source-builds tools on macOS or `sudo apt`-installs them on Linux, may download binaries, and optionally fetches multi-GB model weights. A new user must run this flow before the CLI is usable, and the result varies with host OS, installed compilers, package-manager state, and available system packages. The CLI runs TypeScript directly via Bun (`autoshow` is `bun src/cli/create-cli.ts`) with no compile/bundle step, no `.output`, no `bin` field, and no HTTP server; it runs to completion and exits, and its only "health" surface is the offline `bun autoshow setup --doctor` check (`src/cli/commands/setup-and-utilities/setup/run-doctor.ts`). There was no `Dockerfile`, `.dockerignore`, Docker documentation, or Docker CI in the repo. [ADR-005](ADR-005-reduce-environment-variable-surface-area.md) removed the `DOCKER_CONTAINER` skip-guard, so Linux now always runs install/health paths: an image must bake the tools it promises or explicitly document omitted tools as unsupported. Because the Linux resolver already falls back to `PATH` via `Bun.which`, tools installed into a standard location such as `/usr/bin` are found with no production code change.
-
-Container base image observations. Local checks of the available arm64 Bun base images found:
-
-- `oven/bun:1.3.14-alpine` is Alpine 3.22. It can install `ffmpeg`, `tesseract-ocr`, `tesseract-ocr-data-eng`, `mupdf-tools`, `qpdf`, `python3`, `ca-certificates`, and `curl` from `apk`, but it cannot install `calibre` from `apk`.
-- The `yt-dlp` zipapp runs under Alpine `python3`.
-- Alpine installs English Tesseract data at `/usr/share/tessdata/eng.traineddata`.
-- `oven/bun:1.3.14-slim` and `oven/bun:1.3.14` are Debian GNU/Linux 13 (trixie). Both can install the full local-lite package set with `apt`, including `calibre` for `ebook-convert` and `tesseract-ocr-eng` for English Tesseract data.
-
-Locally observed arm64 base image sizes, before any AutoShow packages are added:
-
-| Base image | Distro | Docker disk usage | Content size |
-|---|---|---:|---:|
-| `oven/bun:1.3.14-alpine` | Alpine 3.22 | 146 MB | 43.7 MB |
-| `oven/bun:1.3.14-slim` | Debian 13 slim | 269 MB | 67.6 MB |
-| `oven/bun:1.3.14` | Debian 13 | 335 MB | 87.1 MB |
-
-These are local base-image observations only. They are not final built image sizes, because the final image size depends on the selected package set, package manager cache cleanup, `node_modules`, and any copied project files.
 
 Setup reliability evidence. An audited full setup took 426.4 seconds and reported success despite two 60-second Whisper download timeouts and incomplete readiness checks. The flat `AbortSignal.timeout(60_000)` stayed armed through body streaming, imposing a roughly 200 Mbps floor on the 1.5 GB `ggml-large-v3-turbo.bin`; retries deleted the destination and restarted from byte zero; whole bodies were buffered in memory; the largest models lacked SHA-256 pins; and eight concurrent setup tasks divided available bandwidth. Reporting could still end with unconditional success and exit 0 after a warning summary. Doctor probed the ACSM wrapper's early-returning `--version` path rather than activation readiness, omitted qpdf and CoreML encoders, and trusted a 236-byte llama marker instead of the cached GGUF. The run also left roughly 3.3 GB of removable build trees and CoreML source checkpoints and gave users no truthful disk or bandwidth accounting.
 
@@ -43,7 +24,7 @@ Prebuilt distribution evidence. The setup performance record measured the 175.18
 
 A local arm64 audit also found that the current qpdf source build is not a distributable fallback as built on the measured host: its `libqpdf` has absolute dynamic references to Homebrew `libjpeg` and OpenSSL. A no-cost proof build corrected that by pinning libjpeg-turbo 3.2.0 (`sha256:6f30092cef9fb839779646608f4ee14ae3cbac989c47fa05e841b0841f09878e`), statically linking qpdf and libjpeg, selecting qpdf's native crypto provider, and setting a macOS 15.0 deployment target. The resulting 3.8 MB arm64 `qpdf` linked only `/usr/lib/libz.1.dylib`, `/usr/lib/libc++.1.dylib`, and `/usr/lib/libSystem.B.dylib`; version, PDF validation, AES-256 encryption, and linearization checks passed. The existing 40 MB arm64 `mutool` likewise links only `/usr/lib/libSystem.B.dylib`. Unsigned proof ZIPs were 1.2 MB for qpdf and 29 MB for MuPDF, small enough that release storage is not a limiting force. This proves the portable qpdf recipe on one architecture; it does not substitute for the accepted two-architecture CI, signing, notarization, or clean-host verification gates below.
 
-Why now: host and container provisioning, acquisition integrity, setup health/reporting, performance topology, and ACSM runtime supply are one lifecycle. Keeping them in separate records obscured the owner of downloads, provenance, staging, promotion, cleanup, doctor truth, and setup-only plugin mechanics. This consolidation gives setup one authority while leaving source-format and fulfillment policy in ADR-001.
+Why now: host provisioning, acquisition integrity, setup health/reporting, performance topology, and ACSM runtime supply are one lifecycle. Keeping them in separate records obscured the owner of downloads, provenance, staging, promotion, cleanup, doctor truth, and setup-only plugin mechanics. This consolidation gives host setup one authority while leaving source-format and fulfillment policy in ADR-001 and Docker distribution in ADR-015.
 
 ## Options Considered
 
@@ -54,20 +35,6 @@ Why now: host and container provisioning, acquisition integrity, setup health/re
 | Keep Homebrew on macOS | Lowest implementation cost; continues using familiar package names; preserves current installer branches | Keeps global package-manager mutation; remains dependent on user Homebrew state; preserves platform drift from existing `runtime/` patterns | No migration work; keeps six active Homebrew-managed install paths |
 | **Runtime-managed macOS dependencies** | Aligns macOS with existing managed runtime patterns; supports version pinning, checksums, provenance metadata, and cacheable installs; avoids global package-manager mutation | Requires direct download, build, or runtime install flows for each affected tool; needs architecture and license review | Chosen. Removes six active Homebrew-managed install paths: FFmpeg/ffprobe, `yt-dlp`, `mutool`, `ebook-convert`, Tesseract, and OCRmyPDF |
 | Manual user-installed dependencies | Simplest code; avoids maintaining binary download logic | Worse onboarding; weakens `setup` and `setup --doctor`; makes local runs less self-contained and harder to reproduce | Would turn setup into guidance for these tools instead of installation |
-| Container-only or package-manager-only setup | Reproducible in CI and scripted environments; can centralize dependency versions outside the CLI | Poor native macOS developer experience; shifts local setup burden to Docker or external package-manager policy; does not fit current local-first workflow | Useful for CI, but too narrow as the main native macOS setup story |
-
-The rejected "container-only or package-manager-only setup" row is not a rejection of containers — it is a rejection of containers as the *only* provisioning story. The image selected below is additive to host setup, and the second table chooses its base.
-
-### Container Base Image
-
-For this decision, "full local-lite" in an image means `ffmpeg` and `ffprobe`, `yt-dlp`, Tesseract OCR with English trained data, MuPDF `mutool`, `qpdf`, Calibre `ebook-convert`, and the support packages needed to fetch and run those tools, such as `python3`, `ca-certificates`, and `curl`.
-
-| Option | Pros | Cons | Quantitative Notes |
-|---|---|---|---|
-| **Debian slim full local-lite (`oven/bun:1.3.14-slim`)** | Covers hosted workflows, local audio/video helpers, OCR, PDF/document tools, and Calibre through one `apt` path | Larger and less Alpine-aligned than the smallest option | 269 MB disk usage / 67.6 MB content size before project packages |
-| Alpine without Calibre (`oven/bun:1.3.14-alpine`) | Smallest base; highest fidelity to the original Alpine goal; `apk` covers most local-lite tools | Cannot provide Calibre-backed ebook conversion and therefore narrows supported functionality | 146 MB disk usage / 43.7 MB content size before project packages |
-| Full Bun Debian full local-lite (`oven/bun:1.3.14`) | Provides the same complete local-lite coverage through one `apt` path | Largest base with no identified functionality gain over Debian slim | 335 MB disk usage / 87.1 MB content size before project packages |
-
 ### macOS MuPDF and qpdf Delivery
 
 | Option | Pros | Cons | Quantitative Notes |
@@ -96,7 +63,7 @@ For this decision, "full local-lite" in an image means `ffmpeg` and `ffprobe`, `
 
 ## Decision
 
-AutoShow provisions the local-lite toolchain from project-owned sources in every environment: managed `runtime/` artifacts on a macOS host, `apt` on a Linux host, and baked-in `apt` packages in the distribution image. Nothing resolves through a global package manager AutoShow does not control, and nothing resolves implicitly through `PATH` on macOS.
+AutoShow provisions the local-lite toolchain through managed `runtime/` artifacts on a macOS host and `apt` on a Linux host. Nothing resolves through a global package manager AutoShow does not control, and nothing resolves implicitly through `PATH` on macOS.
 
 Host provisioning. macOS setup must not invoke Homebrew for AutoShow-installed local dependencies. Affected tools are installed, resolved, and reported as project-local managed runtime dependencies under `runtime/`, following the existing patterns used for managed `uv`/`uvx`, whisper.cpp, llama.cpp, Defuddle, Python environments, and local model assets. Resolver precedence is:
 
@@ -114,24 +81,18 @@ macOS MuPDF/qpdf delivery. AutoShow builds both tools from exact project-pinned 
 
 MuPDF retains its current release build flags. qpdf is a static CLI build with qpdf's native crypto provider and a pinned static libjpeg-turbo input; neither result may contain a non-system absolute dynamic-library path. The source install records a target compatible with the host that compiles it. The existing `runtime/bin` resolver shims remain the public managed paths, and explicit `--bin-dir` tools retain precedence without being required to carry AutoShow provenance.
 
-Container provisioning. The distribution image adopts the Debian slim full local-lite option using `ARG BUN_BASE_IMAGE=oven/bun:1.3.14-slim`. The implementation adds an in-repo multi-stage `Dockerfile`; a `.dockerignore` that excludes host runtime artifacts, inputs, outputs, credentials, tests, and docs from the build context; `docs/docker.md` with build/run, bind mount, env-file, runtime cache, and ownership guidance; and a README pointer to the Docker documentation. The image installs the full local-lite package set at build time with `apt` — `ffmpeg`, `tesseract-ocr`, `tesseract-ocr-eng`, `mupdf-tools`, `qpdf`, `calibre`, `python3`, `ca-certificates`, and `curl` — and downloads the `yt-dlp` zipapp from GitHub releases into `/usr/local/bin`. It runs as the non-root `bun` user supplied by the official Bun base image and uses a plain `ENTRYPOINT ["bun", "src/cli/create-cli.ts"]`.
-
 This applies to:
 
 - AutoShow-installed, runtime-managed dependencies on macOS.
 - All setup downloads, transfer admission, integrity checks, retry/resume behavior, health guards, performance artifacts, progress, summaries, cleanup, and doctor reporting.
 - Setup-managed ACSM plugin acquisition, managed Python and generated wrappers, resolver precedence, authorization helper/readiness reporting, and setup/help mechanics; ADR-001 remains authoritative for lawful user authorization, the fulfillment command contract, source classification, conversion metadata, and extraction behavior.
 - Hermetic, pinned MuPDF and qpdf source builds on supported macOS hosts, with no project-published executable archive path.
-- The Debian slim, full local-lite CLI image and its bundled system tools.
 - No user-managed tools, host build prerequisites, Linux host package management, or other platform setup behavior; no project-hosted prebuilt scope is active.
-- No registry publishing, Docker CI, heavyweight local engines, model weights, Defuddle, or provider credentials in the image.
 - No implicit hosted-provider key validation during setup; validating credentials would call provider APIs and remains an explicit opt-in workflow.
 
 ## Implementation Note
 
 Host. Implemented on 2026-06-12. macOS setup resolves AutoShow-owned local tools through explicit override environment variables first, then managed artifacts under `runtime/`, without implicit `PATH` fallback. The managed macOS set covers FFmpeg/ffprobe, `yt-dlp`, MuPDF `mutool`, Calibre `ebook-convert`, Tesseract with `eng.traineddata`, and OCRmyPDF with managed Ghostscript/qpdf support. Every managed macOS download path is pinned with a SHA-256 checksum in the dependency metadata defaults or `config/deps.json` overrides.
-
-Container. Debian installs Tesseract language data under `/usr/share/tesseract-ocr/5/tessdata`, while AutoShow's local OCR code passes a project-local `TESSDATA_PREFIX` under `runtime/tools/tessdata`. The Docker image therefore creates `/app/runtime/tools/tessdata` as a symlink to the Debian data directory and adds a small `/usr/local/bin/tesseract` wrapper that falls back to the Debian data directory when a bind-mounted `runtime/` hides the symlink.
 
 Prebuilt decision. Withdrawn on 2026-08-13 after Phases 1 through 5 established the technical, portability, provenance, and redistribution boundaries. The project owner declined the permanent Apple credential, signing, notarization, protected-rehearsal, and release-operations burden required to distribute trusted macOS executables. Both toolchain Actions workflows, the signed producer implementation, signed release commands, protected-producer contracts, and the empty `macos-toolchain-release` environment were removed. No artifact was signed, notarized, drafted, published, configured, or activated, and Phases 7 through 9 were canceled. The retained source recipe, source provenance, staged atomic promotion, health checks, and offline doctor behavior are the final production design.
 
@@ -301,14 +262,6 @@ Host provisioning:
 - Using the same dependency-management model across local tools reduces platform drift. A setup or doctor report can explain whether AutoShow is using a user override, a managed runtime artifact, or an external prerequisite instead of implicitly relying on whatever Homebrew installed globally.
 - The target pattern already existed in the codebase: on Linux, setup downloads the official `yt-dlp` release binary directly to `ytDlpManagedBinaryPath` instead of using a system package manager (`src/cli/commands/setup-and-utilities/setup/setup-download/dl-audio/audio.ts`). The macOS migration for `yt-dlp` was therefore reuse of an existing flow rather than new work, which lowered the cost of the first migration step.
 
-Container provisioning:
-
-- Full local-lite and Alpine are in tension. Alpine 3.22 can cover OCR, media helpers, MuPDF, `qpdf`, and `yt-dlp`, but not Calibre `ebook-convert`. Treating Alpine as full local-lite would produce an image whose documented behavior diverges from its package reality.
-- Debian slim is the smallest observed base that can install the complete local-lite package set through one package manager. It is larger than Alpine before AutoShow packages are added, but it avoids a Calibre gap.
-- The full Bun Debian image offers the same `apt` package availability as slim with a larger starting point. It may be useful if maintainers prefer the less-minimal official Bun base, but the size tradeoff should be chosen deliberately.
-- The existing Linux `PATH` fallback means all three options can use system package locations without production code changes, provided every promised runtime tool is installed during image build.
-- Because ADR-005 removed Docker-specific setup skips, omitted tools are not a cosmetic issue. A container that leaves out Calibre must document that Calibre-dependent setup/doctor checks and ebook workflows are outside its supported scope.
-
 MuPDF/qpdf source-only conclusion:
 
 - The removable compile/link work is half of the selected cold median, but exact upstream macOS CLI artifacts do not exist for the pinned versions, so avoiding that time would require AutoShow to own binary production and release operations.
@@ -333,10 +286,6 @@ Positive outcomes:
 - `setup --doctor` reports managed runtime sources consistently.
 - macOS dependency management aligns with existing managed uv, whisper.cpp, llama.cpp, Defuddle, Python environment, and model-asset patterns.
 - CI and developer setup become less sensitive to machine-local package manager state.
-- The first Docker image covers the complete local-lite package set, including Calibre-backed convertible ebook workflows.
-- Users can build and run the CLI without installing Bun or local-lite tools on the host.
-- The image reuses the existing Linux `PATH` fallback and needs no production code changes.
-- The locally observed base sizes are framed as base-image inputs to the decision, not as promises about final build size.
 - Managed manifests make the installed source tool's target, version, and integrity inspectable offline.
 - The qpdf fallback stops depending on absolute Homebrew library paths.
 - Large downloads survive slow links and interruptions without whole-body buffering or byte-zero retries, and pinned model integrity fails closed.
@@ -352,10 +301,6 @@ Negative outcomes:
 - OCRmyPDF and Tesseract may require more careful runtime packaging than single static binaries.
 - Calibre was installed as a Homebrew cask, meaning a GUI app bundle rather than a CLI formula; replacing it required sourcing `ebook-convert` from the official Calibre app distribution, which is materially harder than swapping in a static binary.
 - Existing users with working Homebrew installs may see a one-time runtime download or build cost.
-- The image starts from a larger base than the original Alpine goal.
-- The image uses Debian package versions rather than AutoShow's macOS SHA-pinned managed source builds.
-- Heavyweight local engines, model weights, Defuddle, provider credentials, registry publishing, and Docker CI remain out of scope.
-- Host bind-mounted `output/` and `runtime/` directories may need writable ownership or a `--user "$(id -u):$(id -g)"` run option on Linux hosts.
 - The Phase 3–5 prebuilt research remains historical evidence and local contract coverage, but no production candidate, URL, checksum pin, or release lifecycle is maintained.
 - Resumable downloads maintain `.part` and `.part.json` state; completed-file checksum verification adds one full read, roughly 1–2 seconds for a 1.5 GB model on the measured NVMe host.
 - Setup now exits non-zero for partial installs that older automation may have accepted, and upstream same-name model republishing becomes a visible checksum failure.
@@ -369,9 +314,6 @@ Negative outcomes:
 | No mutation of global Homebrew state for AutoShow-owned tools | MuPDF and qpdf compile locally on a cold host |
 | Uniform resolver and doctor reporting across managed local dependencies | Calibre, OCRmyPDF, and Tesseract require more involved packaging |
 | Cacheable project-local artifacts across developer machines and CI | Existing users may incur a one-time managed-runtime download or build |
-| Debian slim provides complete local-lite packages through one `apt` path | The base is larger than Alpine and less faithful to the original small-image goal |
-| Calibre-backed ebook workflows match the documented local-lite capability | The image inherits Debian package versions instead of macOS-style pinned source builds |
-| Existing Linux `PATH` resolution works without production code changes | Host bind mounts may require explicit ownership handling |
 | Avoid an Apple credential and binary release program | Retain 87.673s of measured MuPDF/qpdf compile/link work on eligible cold installs |
 | Hermetic static qpdf runtime with native crypto | Add and maintain a pinned libjpeg-turbo source input for qpdf builds |
 | Offline installed-file provenance and integrity checks | Pay a small doctor/setup hashing cost and maintain a versioned manifest schema |
@@ -383,9 +325,6 @@ Negative outcomes:
 
 ## Keep (with rationale)
 
-- The host `bun autoshow setup` path remains the supported route for macOS and for heavy local engines such as whisper.cpp, llama.cpp, Reverb, and Kitten TTS. The Docker image is additive, not a replacement for host setup — this is the seam that keeps both halves of this record coherent.
-- Heavy local engines and model weights remain out of scope for the first end-user image. They would materially change build time, image size, and update policy.
-- A run-to-completion CLI image still should not expose ports, define an HTTP `HEALTHCHECK`, or add web-app build arguments. Those sibling-image conventions do not apply to this CLI.
 - Retired Whisper CoreML environments and model artifacts are reclaimable and are no longer provisioned or recorded; the earlier 654 MB cache-retention decision applied only while conversion remained active.
 - `config/deps.json` remains an optional supported override merged over defaults rather than dead configuration.
 - HuggingFace downloads keep their own 120-second per-file budget and classifier but participate in shared transfer admission.
@@ -529,10 +468,6 @@ The original prebuilt investigation was divided into nine ordered phases with an
 - **Reason:** These phases existed only to publish, benchmark, and activate the signed prebuilts retired in Phase 6. No release, production metadata, or runtime behavior exists to promote.
 - **Future boundary:** A future prebuilt proposal starts with a new ADR and must independently justify its operational owner, trust chain, performance threshold, and release lifecycle.
 
-### Independent deferred phase: Decide container registry publication
-
-This phase is not part of the retired prebuilt sequence and does not block the completed host/container decision. When maintainers have registry demand and final image-size/usage evidence, make one separate decision that either keeps local image builds as the supported boundary or accepts a named registry, retention policy, multi-architecture producer, provenance/signing contract, and CI verification. Do not add registry publishing as incidental work in a macOS toolchain change.
-
 ## Implementation Ledger
 
 | Action | Owner | Current State |
@@ -549,12 +484,6 @@ This phase is not part of the retired prebuilt sequence and does not block the c
 | Phase 5 — Record exact MuPDF and qpdf/libjpeg-turbo redistribution, source, SBOM, and notice approvals | Repository owner and compliance reviewers | Complete — exact component approval references, source/linkage boundary, same-release source access, AutoShow tag-source URLs, SPDX input licenses, expanded MuPDF bundled-code/resource notices, exact six-file package inventories, no-written-offer decision, mandatory user notice, and reviewer-role identities are recorded and fail closed on drift; production remains source-only on 2026-08-13 |
 | Phase 6 — Close the prebuilt track without an Apple release program | Repository owner and release engineering | Complete — removed both toolchain workflows, signed/notarized producer and draft commands, protected contracts, and the empty release environment; no release or production candidate exists and source builds remain final |
 | Phases 7–9 — Publish, benchmark, and activate project-hosted macOS prebuilts | Release and setup maintainers | Withdrawn — canceled with the prebuilt track; any future proposal requires a new ADR |
-
-## Follow-up Actions
-
-| Action | Owner | Current State |
-|---|---|---|
-| Decide whether the container image needs registry publication and, if accepted, define its producer, retention, provenance, signing, and CI contract | Maintainers | Complete — implemented via `.github/workflows/docker-publish.yml` publishing multi-arch images (`linux/amd64`, `linux/arm64`) to GHCR on tag releases (`v*.*.*`) or manual `workflow_dispatch` with layer caching, OCI provenance attestations, and license notices |
 
 ## Test Plan
 
@@ -580,12 +509,13 @@ This phase is not part of the retired prebuilt sequence and does not block the c
 
 ## Assumptions
 
-- The original host and container decisions are accepted and implemented; macOS setup no longer invokes Homebrew for AutoShow-owned tools (verified: zero `brew` invocations remain in `src`).
+- The original host setup decision is accepted and implemented; macOS setup no longer invokes Homebrew for AutoShow-owned tools (verified: zero `brew` invocations remain in `src`).
 - The prebuilt distribution investigation stopped at the completed Phase 5 safe boundary. No artifact was signed, notarized, published, configured, or activated; Phases 6–9 impose no remaining work; and source builds are the accepted final path.
 
 ## References
 
 - Related ADR: [ADR-005](ADR-005-reduce-environment-variable-surface-area.md)
+- Docker image distribution: [ADR-015](ADR-015-distribute-the-cli-as-a-docker-image.md)
 - Error, retry, and diagnostic vocabulary: [ADR-006](ADR-006-unify-error-handling-vocabulary.md)
 - Ingestion and ACSM fulfillment-policy boundary: [ADR-001](ADR-001-source-ingestion-and-normalization.md)
 - Setup audit that produced the acquisition/reporting decision: `docs/reports/setup-command-audit.md`
@@ -615,7 +545,6 @@ This phase is not part of the retired prebuilt sequence and does not block the c
 - Phase 5 redistribution approval record: [Phase 5 Distribution Approval Record](#phase-5-distribution-approval-record)
 - Shared approved notice writer and SPDX generator used by local unsigned research packages: `src/cli/commands/setup-and-utilities/setup/setup-download/managed-toolchain-package.ts`
 - Repository-owned producer PDF fixture: `test/fixtures/setup/managed-toolchain-smoke.pdf`
-- Docker user documentation: `docs/docker.md`
 - MuPDF 1.27.2 upstream release: [ArtifexSoftware/mupdf-downloads 1.27.2](https://github.com/ArtifexSoftware/mupdf-downloads/releases/tag/1.27.2)
 - MuPDF license: [ArtifexSoftware/mupdf](https://github.com/ArtifexSoftware/mupdf)
 - qpdf 12.3.2 upstream release: [qpdf 12.3.2](https://github.com/qpdf/qpdf/releases/tag/v12.3.2)

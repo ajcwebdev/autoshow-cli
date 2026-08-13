@@ -4,8 +4,9 @@
 
 - **Decision Status:** Accepted
 - **Date Created:** 2026-06-13
-- **Date Updated:** 2026-08-07
+- **Date Updated:** 2026-08-13
 - **Verification Status:** Passed
+- **Supersession:** The `DOCKER_CONTAINER` removal and its container-runtime consequences moved to ADR-015 on 2026-08-13. This record remains authoritative for the other four environment-variable cleanup passes.
 
 <!-- This record synthesizes four sequential passes over the env-var surface. All four are Accepted and implemented. Each Decision sub-part carries its own state tag, and the Keep table reflects the FINAL state with notes on where an earlier "keep" was later removed. -->
 
@@ -31,7 +32,7 @@ Why now: the configuration audit exposed dead knobs, misleading documentation, a
 | Option | Pros | Cons | Quantitative Notes |
 |---|---|---|---|
 | Leave the surface as-is | Zero work | `.env.example` keeps documenting non-functional vars; bugs persist | Rejected each round |
-| **Pass 1: full prune across both namespaces + fix `SCRAPECREATORS_BASE_URL`** | Smallest honest surface; aligns `.env.example` with behavior; preserves seams/security knobs | Touches production + test + docs; removes some escape hatches and Docker guards | Chosen; removes 17, fixes 1 |
+| **Pass 1: full prune across both namespaces + fix `SCRAPECREATORS_BASE_URL`** | Smallest honest surface; aligns `.env.example` with behavior; preserves seams/security knobs | Touches production + test + docs; removes some escape hatches | Chosen here; removes 16, fixes 1; ADR-015 owns the additional container flag removal |
 | **Pass 2: mechanism-change prune + doc cleanup + two fixes** | Converts env IPC/reads to argv/OS-API/parameters; closes a trust-gate gap | Touches production + Python + docs; drops the macOS custom-build-flag hatch | Chosen; removes ~9 reads, deletes 5 doc entries, fixes 2 |
 | **Pass 3: prune test-only cruft + consolidate 6 binary vars → 1 `AUTOSHOW_BIN_DIR`** | Smallest surface short of breaking seams; one injection mechanism; preserves the macOS hatch | Updates five contract suites + doctor labels | Chosen; removes ~14 reads, 6→1 binary vars (net −5) |
 | **Pass 4: base-URL env reads → typed `baseUrl` params, then delete the dead trust gate** | Largest cut; every seam preserved as a typed param; deletes a whole security module guarding nothing reachable | Drops runtime proxy/self-host repointing; ~17 providers + ~10 suites edited | Chosen; removes ~19 names |
@@ -43,7 +44,7 @@ Why now: the configuration audit exposed dead knobs, misleading documentation, a
 
 ### Pass 1 — delete dead/redundant/decorative vars; fix the one inconsistent override *(Accepted)*
 
-Remove 17 vars. `AUTOSHOW_`-prefixed dead `.env.example` keys (7): `AUTOSHOW_LOG_FORMAT`, `AUTOSHOW_LOG_LEVEL`, `AUTOSHOW_MEDIA_GENERATION_TIMEOUT_MS`, `AUTOSHOW_LLM_REQUEST_TIMEOUT_MS`, `AUTOSHOW_OCR_REQUEST_TIMEOUT_MS`, `AUTOSHOW_OCR_POLL_DEADLINE_MS`, `AUTOSHOW_LINKS_FETCH_TIMEOUT_MS` (logger format comes from `NODE_ENV` + CLI flags; `timeouts.ts` exports fixed constants). Redundant/dead (2): `AUTOSHOW_GENERATION_RESOURCE_CAPACITY` (capacity derives from the concurrency flags), `AUTOSHOW_TEST_BUDGET_HUNDREDTH_CENTS` (set/forwarded but read by nothing). Unused binary overrides (3): `AUTOSHOW_TESSERACT_BIN`, `AUTOSHOW_OCRMYPDF_BIN`, `AUTOSHOW_TESSDATA_PREFIX`. Non-prefixed (5): `NODE_ENV` (logging only), `HOSTNAME`/`HOST` (logging decoration), `ENV_FILE` (always `.env`), `DOCKER_CONTAINER` (drop the Docker skip-guards), `AGENT` (dead test fixture). **Fix, not remove:** wire `SCRAPECREATORS_BASE_URL` to the universal `readEnv(...) ?? DEFAULT` pattern so production honors the override (and its contract test passes). Operative rule for binary overrides: **keep iff it is a common tool OR a test seam.**
+Remove 16 vars. `AUTOSHOW_`-prefixed dead `.env.example` keys (7): `AUTOSHOW_LOG_FORMAT`, `AUTOSHOW_LOG_LEVEL`, `AUTOSHOW_MEDIA_GENERATION_TIMEOUT_MS`, `AUTOSHOW_LLM_REQUEST_TIMEOUT_MS`, `AUTOSHOW_OCR_REQUEST_TIMEOUT_MS`, `AUTOSHOW_OCR_POLL_DEADLINE_MS`, `AUTOSHOW_LINKS_FETCH_TIMEOUT_MS` (logger format comes from `NODE_ENV` + CLI flags; `timeouts.ts` exports fixed constants). Redundant/dead (2): `AUTOSHOW_GENERATION_RESOURCE_CAPACITY` (capacity derives from the concurrency flags), `AUTOSHOW_TEST_BUDGET_HUNDREDTH_CENTS` (set/forwarded but read by nothing). Unused binary overrides (3): `AUTOSHOW_TESSERACT_BIN`, `AUTOSHOW_OCRMYPDF_BIN`, `AUTOSHOW_TESSDATA_PREFIX`. Non-prefixed (4): `NODE_ENV` (logging only), `HOSTNAME`/`HOST` (logging decoration), `ENV_FILE` (always `.env`), `AGENT` (dead test fixture). ADR-015 owns the separately removed container-detection flag. **Fix, not remove:** wire `SCRAPECREATORS_BASE_URL` to the universal `readEnv(...) ?? DEFAULT` pattern so production honors the override (and its contract test passes). Operative rule for binary overrides: **keep iff it is a common tool OR a test seam.**
 
 ### Pass 2 — change mechanisms; clean dead docs; two fixes *(Accepted)*
 
@@ -91,7 +92,7 @@ Positive outcomes:
 
 Negative outcomes:
 - Removes user escape hatches: tesseract/ocrmypdf binary paths and the tessdata dir (pass 1), custom macOS build flags (pass 2), per-tool `AUTOSHOW_*_BIN` (pass 3 → place the binary in an `AUTOSHOW_BIN_DIR` directory), and runtime proxy/self-host repointing via `X_BASE_URL` (pass 4 → run a local proxy presenting the default host, or restore the seam in a fork).
-- Dropping the Docker guards means Linux always runs the install/health paths; container builds must tolerate them. The PaddleOCR argv change requires TS and Python to agree on argument order (a mismatch is a runtime error, caught fast). Refactor-wide misses (binary seams, ~17 providers + ~10 suites) surface as typecheck/test failures (CI), not silent misses.
+- The PaddleOCR argv change requires TS and Python to agree on argument order (a mismatch is a runtime error, caught fast). Refactor-wide misses (binary seams, ~17 providers + ~10 suites) surface as typecheck/test failures (CI), not silent misses.
 
 ## Trade-offs
 
@@ -116,7 +117,7 @@ Negative outcomes:
 
 **Verification (per pass):**
 1. `bun run typecheck` and lint — no dangling references to removed vars, deleted helpers (`readEnvCapacity`, `resolveE2EChildTimeoutDefaults`), the deleted gate, or `provider-url-policy.ts`.
-2. Grep sweeps return **zero** matches for the removed names — the pass-1/2 dead keys (`DOCKER_CONTAINER`, `ENV_FILE`, `AGENT`, `HOSTNAME`/`HOST`/`NODE_ENV`, the yt-dlp + `AUTOSHOW_URL_REQUEST_*` doc names, `HF_TOKEN`), the pass-3 set (`AUTOSHOW_(FFMPEG|FFPROBE|YTDLP|MUTOOL|EBOOK_CONVERT|DEFUDDLE)_BIN`, `AUTOSHOW_TEST_ADAPTIVE_(MAX_ATTEMPTS|INITIAL_PROVIDER_LIMIT|GROUP_INITIAL_LIMITS|RATE_LIMIT_COOLDOWN_MS|TRANSIENT_COOLDOWN_MS|SUCCESS_STREAK|ACQUIRE_POLL_MS|LOCK_WAIT_MS|LOCK_STALE_MS|STATE_DIR)`, `AUTOSHOW_TEST_RUN_ID`, `AUTOSHOW_SERVICE_TEST_`), and the pass-4 base-URL family + `assertProviderBaseUrlTrusted`/`assertReplicateUrlTrusted`.
+2. Grep sweeps return **zero** matches for the removed names — the pass-1/2 dead keys (`ENV_FILE`, `AGENT`, `HOSTNAME`/`HOST`/`NODE_ENV`, the yt-dlp + `AUTOSHOW_URL_REQUEST_*` doc names, `HF_TOKEN`), the pass-3 set (`AUTOSHOW_(FFMPEG|FFPROBE|YTDLP|MUTOOL|EBOOK_CONVERT|DEFUDDLE)_BIN`, `AUTOSHOW_TEST_ADAPTIVE_(MAX_ATTEMPTS|INITIAL_PROVIDER_LIMIT|GROUP_INITIAL_LIMITS|RATE_LIMIT_COOLDOWN_MS|TRANSIENT_COOLDOWN_MS|SUCCESS_STREAK|ACQUIRE_POLL_MS|LOCK_WAIT_MS|LOCK_STALE_MS|STATE_DIR)`, `AUTOSHOW_TEST_RUN_ID`, `AUTOSHOW_SERVICE_TEST_`), and the pass-4 base-URL family + `assertProviderBaseUrlTrusted`/`assertReplicateUrlTrusted`.
 3. Contract suites pass against the new seams: logging, process-lock (`LOCK_ROOT`), OCR/epub/html-url/links binary seams (via `AUTOSHOW_BIN_DIR`), adaptive-concurrency (typed config), service-test-kit, scrapecreators, voice-quality-report, and the migrated base-URL provider suites (each still asserting the request reached the param-supplied host).
 4. Sanity-run the CLI: default → human logs, `--json` → JSON logs; `doctor`/`setup` reports tools via managed/`AUTOSHOW_BIN_DIR`/`PATH` (and as `override` on macOS where `PATH` is never consulted); YouTube cookies via `--cookies-from-browser`; PaddleOCR runs a non-default max-side via argv; Reverb activates with `HUGGINGFACE_TOKEN`; each provider targets its `base-urls.ts` default with no env, and a now-defunct `*_BASE_URL` has no effect.
 
@@ -127,6 +128,7 @@ Negative outcomes:
 
 ## References
 
+- Docker distribution and the extracted container flag decision: [ADR-015](ADR-015-distribute-the-cli-as-a-docker-image.md)
 - Historical inventory of record: the retired `env-vars.md`
 - Pass-1 source plans/reports: `project/plans/env-vars-autoshow-plan.md`, `project/plans/env-vars-other-plan.md`; `project/reports/env-vars-autoshow.md`, `project/reports/env-vars-other.md`, `project/reports/env-vars-third-party.md`
 - Originating task: `todo/clean.md`
