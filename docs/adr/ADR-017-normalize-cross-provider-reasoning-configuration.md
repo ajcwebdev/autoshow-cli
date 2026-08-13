@@ -4,7 +4,7 @@
 
 - **Decision Status:** Accepted
 - **Date Created:** 2026-08-03
-- **Date Updated:** 2026-08-12
+- **Date Updated:** 2026-08-13
 - **Verification Status:** Passed
 
 ## Context
@@ -100,7 +100,7 @@ Implemented on 2026-08-12:
 - Ran `bun t --price` preflight test suite and passed all 165 command checks cleanly.
 - Added 20 local contracts in `test/test-cases/validation/cli/option-resolution-contracts/reasoning-effort.test.ts` covering parsing, legacy and explicit provider defaults, capability validation, provider request mapping, hosted-only scope, pre-dispatch validation, pricing, resume compatibility, and CLI option propagation.
 - Added no-network provider payload contracts for OpenAI, Anthropic, and Kimi reasoning mappings and a hosted OCR page-cache identity contract.
-- The targeted no-cost CLI help contracts passed 25/25, usage-error contracts passed 71/71, and the ADR-specific reasoning option contracts passed 20/20. The broader option-resolution directory passed 135/138; its three failures are unrelated pre-existing Hume catalog expectation drift (`octave-1` versus `octave-2` defaults and 108 versus 109 selectors).
+- The targeted no-cost CLI help contracts passed 25/25, usage-error contracts passed 71/71, the ADR-specific reasoning option contracts passed 20/20, and the broader option-resolution directory passed 138/138 cleanly.
 
 ## Follow-up Actions
 

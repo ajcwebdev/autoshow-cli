@@ -14,7 +14,7 @@ Install local runtimes and prerequisite tools. Focused setup utilities also cove
 
 ## Step Setup Docs
 
-- Step 2 extract: [`01-extract.md`](../../process-steps/step-2-extract/01-extract.md) — [STT setup](../../process-steps/step-2-extract/02-extract-stt.md#stt-setup) | [OCR setup](../../process-steps/step-2-extract/03-extract-ocr.md#ocr-setup) | [X Space setup](../../process-steps/step-2-extract/04-extract-url.md#x-space-setup)
+- Step 2 Extract: [`01-extract.md`](../../process-steps/step-2-extract/01-extract.md) — [STT setup](../../process-steps/step-2-extract/02-extract-stt.md#stt-setup) | [OCR setup](../../process-steps/step-2-extract/03-extract-ocr.md#ocr-setup) | [X Space setup](../../process-steps/step-2-extract/04-extract-url.md#x-space-setup)
 - Step 3 Write: [`write-text.md#setup`](../../process-steps/step-3-write/write-text.md#setup)
 - Step 4 TTS: [`text-to-speech.md#setup`](../../process-steps/step-4-tts/text-to-speech.md#setup)
 - Step 5 Image: [`text-to-image.md#setup`](../../process-steps/step-5-image/text-to-image.md#setup)

@@ -4,11 +4,10 @@
 
 - **Decision Status:** Accepted
 - **Date Created:** 2026-06-12
-- **Date Updated:** 2026-07-23
+- **Date Updated:** 2026-08-13
 - **Verification Status:** Passed
 
-<!-- This record synthesizes three sequenced type-cleanup phases. All three are
-     Accepted and implemented. Each Decision sub-part carries its own state tag. -->
+<!-- This record synthesizes three sequenced type-cleanup phases. All three are Accepted and implemented. Each Decision sub-part carries its own state tag. -->
 
 ## Context
 

@@ -4,7 +4,7 @@
 
 - **Decision Status:** Accepted
 - **Date Created:** 2026-07-10
-- **Date Updated:** 2026-08-12
+- **Date Updated:** 2026-08-13
 - **Verification Status:** Passed
 - **Supersession:** Reframed from the narrower record "Schedule Hosted TTS as a Provider Work Queue" to the broader topic it now serves. The hosted TTS work-queue decision, its trade study, and its scheduling model are preserved below as one documented lane among several.
 
@@ -91,16 +91,16 @@ Every mechanism that turns one unit of work into many.
 
 | Mechanism | Unit produced | Control | Default | Implementation |
 |---|---|---|---|---|
-| Batch item fan-out | one input file/URL through the full pipeline | `--batch-concurrency` | `10` | `step-1-download/download-targets/download-batch/process-download-batch.ts` |
-| Provider target fan-out | one `(service, model)` pair for one item | `--provider-concurrency`, `--local-concurrency` | `10` / `10` | `process-steps/provider-target-scheduler.ts` |
-| STT audio splitting | contiguous time segment | `--split` plus automatic policy triggers | 30 min, shrunk per provider | `step-2-stt/stt-split-policy.ts`, `stt-utils/audio-splitter.ts` |
-| STT segment execution | one segment request | `--stt-segment-concurrency` | `10`; local and `mistral` clamp to `1` | `step-2-stt/run-stt/split-execution.ts` |
-| Hosted TTS text chunking | text chunk | `--tts-chunk-concurrency` | `30`; `50` for Grok-only hosted TTS | `step-4-tts/tts-utils/tts-chunking.ts`, `hosted-tts-chunk-scheduler.ts` |
-| OCR page processing | one page | `--ocr-concurrency` | local `10`; hosted `auto` | `step-2-ocr/ocr-utils/page-processor.ts`, `hosted-ocr-scheduler.ts` |
-| PDF page-chunk fallback | single-page PDF or rendered PNG | inherits the OCR page cap | forced per-page above 20 pages | `step-2-ocr/ocr-utils/pdf-chunk-fallback.ts` |
-| Chapter/export splitting | chapter file | `--chapters`, `--length`, `--pdf-chapter-mode` | `--pdf-chapter-mode local` | `step-2-ocr/chapter-export-defaults.ts`, `chapter-artifact-filenames.ts` |
-| Comic panel grouping | N panels per generated image | `--panels-per-image`, comic `--concurrency` | `10` | `step-8-comic/comic-commands/generate-images/comic-page-utils.ts` |
-| Multi-speaker TTS segments | one dialogue turn | `--tts-chunk-concurrency` for hosted targets; `--local-concurrency` for Kitten | `30` / `10` | `step-4-tts/run-multi-speaker-tts.ts`, `step-4-tts/dialogue-work-selector.ts` |
+| Batch item fan-out | one input file/URL through the full pipeline | `--batch-concurrency` | `10` | `src/cli/commands/process-steps/step-1-download/download-targets/download-batch/process-download-batch.ts` |
+| Provider target fan-out | one `(service, model)` pair for one item | `--provider-concurrency`, `--local-concurrency` | `10` / `10` | `src/cli/commands/process-steps/provider-target-scheduler.ts` |
+| STT audio splitting | contiguous time segment | `--split` plus automatic policy triggers | 30 min, shrunk per provider | `src/cli/commands/process-steps/step-2-extract/step-2-stt/stt-split-policy.ts`, `src/cli/commands/process-steps/step-2-extract/step-2-stt/stt-utils/audio-splitter.ts` |
+| STT segment execution | one segment request | `--stt-segment-concurrency` | `10`; local and `mistral` clamp to `1` | `src/cli/commands/process-steps/step-2-extract/step-2-stt/run-stt/split-execution.ts` |
+| Hosted TTS text chunking | text chunk | `--tts-chunk-concurrency` | `30`; `50` for Grok-only hosted TTS | `src/cli/commands/process-steps/step-4-tts/tts-utils/tts-chunking.ts`, `src/cli/commands/process-steps/step-4-tts/tts-utils/hosted-tts-chunk-scheduler.ts` |
+| OCR page processing | one page | `--ocr-concurrency` | local `10`; hosted `auto` | `src/cli/commands/process-steps/step-2-extract/step-2-ocr/ocr-utils/page-processor.ts`, `src/cli/commands/process-steps/step-2-extract/step-2-ocr/ocr-utils/hosted-ocr-scheduler.ts` |
+| PDF page-chunk fallback | single-page PDF or rendered PNG | inherits the OCR page cap | forced per-page above 20 pages | `src/cli/commands/process-steps/step-2-extract/step-2-ocr/ocr-utils/pdf-chunk-fallback.ts` |
+| Chapter/export splitting | chapter file | `--chapters`, `--length`, `--pdf-chapter-mode` | `--pdf-chapter-mode local` | `src/cli/commands/process-steps/step-2-extract/step-2-ocr/chapter-export-defaults.ts`, `src/cli/commands/process-steps/step-2-extract/step-2-ocr/chapter-artifact-filenames.ts` |
+| Comic panel grouping | N panels per generated image | `--panels-per-image`, comic `--concurrency` | `10` | `src/cli/commands/process-steps/step-8-comic/comic-commands/generate-images/comic-page-utils.ts` |
+| Multi-speaker TTS segments | one dialogue turn | `--tts-chunk-concurrency` for hosted targets; `--local-concurrency` for Kitten | `30` / `10` | `src/cli/commands/process-steps/step-4-tts/run-multi-speaker-tts.ts`, `src/cli/commands/process-steps/step-4-tts/dialogue-work-selector.ts` |
 
 Ordering and failure semantics differ per mechanism, and the differences are load-bearing:
 
@@ -128,7 +128,7 @@ The controls nest from outermost to innermost:
           ├─ --tts-chunk-concurrency   AIMD per TTS provider, run-global   HostedTtsBatchCoordinatorImpl
           ├─ --ocr-concurrency         auto AIMD / fixed cap per OCR lane  HostedOcrSchedulerImpl
           ├─ STT slot profiles         launch 1-4, poll min(8, batchConc)  SttBatchCoordinator
-          └─ --stt-segment-concurrency split segments per provider         split-execution.ts
+          └─ --stt-segment-concurrency split segments per provider         src/cli/commands/process-steps/step-2-extract/step-2-stt/run-stt/split-execution.ts
              └─ withRetry              per-request backoff and jitter      src/utils/retries.ts
 ```
 
@@ -212,17 +212,17 @@ Negative outcomes:
 
 | Action | Owner | Current State |
 |---|---|---|
-| Add a `HostedTtsBatchCoordinator` that owns provider lanes, file jobs, chunk jobs, pressure state, and scheduler telemetry | TTS maintainers | Done in `step-4-tts/tts-utils/hosted-tts-chunk-scheduler.ts` |
+| Add a `HostedTtsBatchCoordinator` that owns provider lanes, file jobs, chunk jobs, pressure state, and scheduler telemetry | TTS maintainers | Done in `src/cli/commands/process-steps/step-4-tts/tts-utils/hosted-tts-chunk-scheduler.ts` |
 | Split hosted provider runners so chunk request execution can be supplied as a callback to the coordinator while preserving ordered concatenation | TTS maintainers | Done via `runTtsChunks` job registration |
 | Pre-scan TTS directory inputs to compute hosted chunk counts before provider requests start | TTS maintainers | Done |
 | Replace per-file `runTtsChunks` worker fan-out with central work selection that starts chunks only when provider capacity is available | TTS maintainers | Done |
-| Keep the existing provider-scoped AIMD/backoff behavior as the pressure-control layer and feed all hosted 429s into it | TTS maintainers | Done via `hosted-tts-retry.ts` |
-| Rework hosted TTS wall-time estimates to use total chunks, provider cap, adaptive effective capacity, and observed/provider-profile chunk latency | TTS maintainers | Done in `tts-batch-summary.ts` |
-| Emit a hosted TTS scheduler summary at the end of batch runs | TTS maintainers | Done in `define-tts-command.ts` |
+| Keep the existing provider-scoped AIMD/backoff behavior as the pressure-control layer and feed all hosted 429s into it | TTS maintainers | Done via `src/cli/commands/process-steps/step-4-tts/tts-utils/hosted-tts-retry.ts` |
+| Rework hosted TTS wall-time estimates to use total chunks, provider cap, adaptive effective capacity, and observed/provider-profile chunk latency | TTS maintainers | Done in `src/cli/commands/process-steps/step-4-tts/tts-batch-summary.ts` |
+| Emit a hosted TTS scheduler summary at the end of batch runs | TTS maintainers | Done in `src/cli/commands/process-steps/step-4-tts/define-tts-command.ts` |
 | Add deterministic unit tests for fair queueing, small-file completion, provider-independent lanes, 429 backoff, and success ramp-up | TTS maintainers | Done |
 | Add mocked Grok/OpenAI provider contract tests proving concurrent files share the coordinator and preserve final audio order | TTS maintainers | Done |
-| Replace unbounded multi-speaker turn fan-out with a bounded, ordered, cancellable selector that owns safe turn workspaces | TTS maintainers | Done in `step-4-tts/dialogue-work-selector.ts` and `run-multi-speaker-tts.ts` |
-| Add deterministic selector tests for caps, reverse completion, queued cancellation, invocation signals, and cleanup | TTS maintainers | Done in `tts-dialogue-work-selector.test.ts` |
+| Replace unbounded multi-speaker turn fan-out with a bounded, ordered, cancellable selector that owns safe turn workspaces | TTS maintainers | Done in `src/cli/commands/process-steps/step-4-tts/dialogue-work-selector.ts` and `src/cli/commands/process-steps/step-4-tts/run-multi-speaker-tts.ts` |
+| Add deterministic selector tests for caps, reverse completion, queued cancellation, invocation signals, and cleanup | TTS maintainers | Done in `test/test-cases/validation/media-generation/tts-dialogue-work-selector.test.ts` |
 
 ## Completed Scheduler Alignment
 
@@ -240,11 +240,11 @@ This subordinate implementation completed the previously recommended five-phase 
 
 | Phase | Completed Behavior | Evidence |
 |---|---|---|
-| 1. Fair-share window | Every TTS selection recomputes `ceil(currentLimit / runnableJobs)`, clamps it to at least one, honors the internal `maxActiveChunksPerJob` override, and leaves already-active chunks alone if a lower AIMD limit or new job shrinks the share. The batch estimator simulates the same selector. | `hosted-tts-chunk-scheduler.ts`, `tts-batch-summary.ts`, dynamic-window scheduler contracts |
+| 1. Fair-share window | Every TTS selection recomputes `ceil(currentLimit / runnableJobs)`, clamps it to at least one, honors the internal `maxActiveChunksPerJob` override, and leaves already-active chunks alone if a lower AIMD limit or new job shrinks the share. The batch estimator simulates the same selector. | `src/cli/commands/process-steps/step-4-tts/tts-utils/hosted-tts-chunk-scheduler.ts`, `src/cli/commands/process-steps/step-4-tts/tts-batch-summary.ts`, dynamic-window scheduler contracts |
 | 2. Deterministic aging | Runnable eligible jobs accrue integer dispatch debt whenever another job wins. Debt at the runnable-job threshold takes precedence over shortest-remaining selection, and monotonic dispatch sequence replaces wall-clock fairness. | Replenished-short-job starvation contract and deterministic start-order assertions |
 | 3. Exact attribution | Each selected chunk receives a frozen admission token and frozen public context. `withHostedTtsRetry`, `notifyRetry`, and `notifyRateLimit` carry that token; a coordinator-owned weak association resolves the exact job. Batch target and dialogue adapters supply stable run-local input, target, turn, and segment context. | Exact two-job retry/429 reconciliation contract; provider totals equal summed job totals |
-| 4. Lane scope and OCR lifetime | The shared lane key is `service:scopeLabel`; credential-like labels and 64-hex hashes are rejected. TTS state is keyed by lane, with independent pressure for different scopes. Extract and write document batches create one OCR coordinator and per-document queue adapters; standalone OCR remains document-scoped. | Same-provider/different-scope TTS contract; two-document OCR cap contract; `batch-executor.ts` run boundary |
-| 5. Shared contract | Scheduler-neutral types define lane identity, admission/completion, pressure feedback, cancellation, and telemetry vocabulary. TTS consumes identity, admissions, and pressure feedback; OCR consumes identity and pressure feedback; STT projects its unchanged provider/model policy through the same identity. Concrete schedulers remain separate. | `provider-lane-contract.ts`, `provider-lane-contract-types.ts`, TTS/OCR/STT adapters and identity contracts |
+| 4. Lane scope and OCR lifetime | The shared lane key is `service:scopeLabel`; credential-like labels and 64-hex hashes are rejected. TTS state is keyed by lane, with independent pressure for different scopes. Extract and write document batches create one OCR coordinator and per-document queue adapters; standalone OCR remains document-scoped. | Same-provider/different-scope TTS contract; two-document OCR cap contract; `src/cli/commands/process-steps/step-1-download/download-targets/download-batch/batch-executor.ts` run boundary |
+| 5. Shared contract | Scheduler-neutral types define lane identity, admission/completion, pressure feedback, cancellation, and telemetry vocabulary. TTS consumes identity, admissions, and pressure feedback; OCR consumes identity and pressure feedback; STT projects its unchanged provider/model policy through the same identity. Concrete schedulers remain separate. | `src/cli/commands/process-steps/provider-lane-contract.ts`, `src/types/generation-core/provider-lane-contract-types.ts`, TTS/OCR/STT adapters and identity contracts |
 
 ### Alternatives retained from the recommendation
 
@@ -313,12 +313,12 @@ Verification on 2026-08-12 passed `bun run check`, `git diff --check`, all 165 m
 - Shared provider-lane contract: `src/cli/commands/process-steps/provider-lane-contract.ts`, `src/types/generation-core/provider-lane-contract-types.ts`
 - Hosted TTS coordinator: `src/cli/commands/process-steps/step-4-tts/tts-utils/hosted-tts-chunk-scheduler.ts`
 - Hosted TTS retry feedback: `src/cli/commands/process-steps/step-4-tts/tts-utils/hosted-tts-retry.ts`
-- TTS chunking limits: `src/cli/commands/process-steps/step-4-tts/tts-utils/tts-chunking.ts`, `tts-utils/audio-utils.ts`
-- TTS batch entry point: `src/cli/commands/process-steps/step-4-tts/run-tts.ts`, `step-4-tts/define-tts-command.ts`
+- TTS chunking limits: `src/cli/commands/process-steps/step-4-tts/tts-utils/tts-chunking.ts`, `src/cli/commands/process-steps/step-4-tts/tts-utils/audio-utils.ts`
+- TTS batch entry point: `src/cli/commands/process-steps/step-4-tts/run-tts.ts`, `src/cli/commands/process-steps/step-4-tts/define-tts-command.ts`
 - Hosted OCR scheduler: `src/cli/commands/process-steps/step-2-extract/step-2-ocr/ocr-utils/hosted-ocr-scheduler.ts`
 - Run-scoped OCR batch boundary: `src/cli/commands/process-steps/step-1-download/download-targets/download-batch/batch-executor.ts`
-- OCR page processing: `src/cli/commands/process-steps/step-2-extract/step-2-ocr/ocr-utils/page-processor.ts`, `ocr-utils/pdf-chunk-fallback.ts`
-- STT batch coordinator: `src/cli/commands/process-steps/step-2-extract/step-2-stt/stt-batch/stt-batch.ts`, `stt-batch/stt-batch-coordinator.ts`, `stt-batch/stt-batch-policy.ts`
-- STT splitting: `src/cli/commands/process-steps/step-2-extract/step-2-stt/stt-split-policy.ts`, `stt-utils/audio-splitter.ts`, `run-stt/split-execution.ts`
+- OCR page processing: `src/cli/commands/process-steps/step-2-extract/step-2-ocr/ocr-utils/page-processor.ts`, `src/cli/commands/process-steps/step-2-extract/step-2-ocr/ocr-utils/pdf-chunk-fallback.ts`
+- STT batch coordinator: `src/cli/commands/process-steps/step-2-extract/step-2-stt/stt-batch/stt-batch.ts`, `src/cli/commands/process-steps/step-2-extract/step-2-stt/stt-batch/stt-batch-coordinator.ts`, `src/cli/commands/process-steps/step-2-extract/step-2-stt/stt-batch/stt-batch-policy.ts`
+- STT splitting: `src/cli/commands/process-steps/step-2-extract/step-2-stt/stt-split-policy.ts`, `src/cli/commands/process-steps/step-2-extract/step-2-stt/stt-utils/audio-splitter.ts`, `src/cli/commands/process-steps/step-2-extract/step-2-stt/run-stt/split-execution.ts`
 - Retry policies: `src/utils/retries.ts`
 - Command docs: `docs/commands/process-steps/step-4-tts/text-to-speech.md`, `docs/commands/process-steps/step-2-extract/02-extract-stt.md`, `docs/commands/process-steps/step-2-extract/03-extract-ocr.md`

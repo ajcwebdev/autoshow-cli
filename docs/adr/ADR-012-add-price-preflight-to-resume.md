@@ -92,8 +92,8 @@ Negative outcomes:
 | Ensure `--price` does not write manifests or artifacts and exits before provider execution | CLI maintainers | Implemented |
 | Update resume docs to document `--price` and remove the "does not define `--price`" note | Docs maintainers | Implemented |
 | Replace tests expecting `resume --price` rejection with dry-run estimate contracts | Test maintainers | Implemented |
-| Rebuild `resumeFlags` as `pickFlags` allow-lists reusing the option-name constants already exported by `tts-flags.ts`, `image-flags.ts`, and `video-flags.ts`, so new provider flags cannot leak into resume | CLI maintainers | Implemented |
-| Remove the 37 provider-named option flags resume inherited by `omitFlags` deny-list: 23 TTS tuning flags, 7 `--replicate-video-*`, 2 `--grok-video-storage-*`, `--gemini-search-grounding`, and 4 `--stt-*` provider params plus their 4 hidden legacy aliases | CLI maintainers | Implemented |
+| Rebuild `resumeFlags` as `pickFlags` allow-lists reusing the option-name constants already exported by `src/cli/flags/tts-flags.ts`, `src/cli/flags/image-flags.ts`, and `src/cli/flags/video-flags.ts`, so new provider flags cannot leak into resume | CLI maintainers | Implemented |
+| Remove the 37 provider-named option flags resume inherited by `omitFlags` deny-list: 19 TTS tuning flags, 7 `--replicate-video-*`, 2 `--grok-video-storage-*`, `--gemini-search-grounding`, and 4 `--stt-*` provider params plus their 4 hidden legacy aliases | CLI maintainers | Implemented |
 | Delete the resume-only aggregates `sttFlags` (`src/cli/flags/stt-flags.ts`) and `ocrCommandFlags`, which existed only to be stripped back down by resume | CLI maintainers | Implemented |
 | Keep `--image-*`/`--video-*`/`--music-*` prefixes on resume instead of the short standalone-command names, since one resume flag set serves image, video, music, and OCR and the short names collide | CLI maintainers | Implemented |
 

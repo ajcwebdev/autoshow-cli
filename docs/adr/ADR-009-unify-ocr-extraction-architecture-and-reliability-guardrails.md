@@ -35,7 +35,7 @@ For token-priced OCR, keep published rates and prompt/completion shapes explicit
 
 Derive actionable OCR batch diagnostics from the final canonical manifest and child provider records. Emit the versioned `ocr-batch-diagnostics.json` and a human table only when a deterministic blocker affects multiple items, partial provider usage exists, actual cost is missing for attempted hosted work, or absolute estimate error exceeds 20%. The report is sanitized, deterministically ordered, tied to the exact source manifest by SHA-256, regenerable after resume, and never resume authority.
 
-Keep provider-neutral pricing primitives under `src/utils/pricing/`, command-wide pricing orchestration under `src/cli/commands/pricing-orchestration/`, extraction-specific estimate orchestration under `step-2-extract/extract-pricing/`, and the Step 1 document-write prompt helper beside its sole consumer.
+Keep provider-neutral pricing primitives under `src/utils/pricing/`, command-wide pricing orchestration under `src/cli/commands/pricing-orchestration/`, extraction-specific estimate orchestration under `src/cli/commands/process-steps/step-2-extract/extract-pricing/`, and the Step 1 document-write prompt helper beside its sole consumer.
 
 ## Rationale
 
@@ -110,7 +110,7 @@ bun autoshow extract input/examples/document/4-document.pdf --provider gemini=ge
 
 Final write/document OCR batches and resumed OCR batches derive `ocr-batch-diagnostics.json` after the canonical manifest write. The derivation aggregates concrete provider/model targets, sanitized blocker categories, affected/attempted item counts, attempts, retries, rate-limit failures, retry-after delay, estimated cost, actual cost, partial-provider cost, partial-usage item count, and unknown actual-cost item count. A clean derivation removes a stale diagnostic left by an earlier actionable state.
 
-The Step 1 prompt helper moved to `step-1-download/download-targets/single/document-write-prompt.ts`. Pure token-cost, profile-selection, and projection logic moved to `src/utils/pricing/ocr-token-pricing.ts`; OCR page/model/profile orchestration moved to `step-2-extract/extract-pricing/`; and command-aware aggregate, preflight, actual-cost, timing, and provider pricing orchestration moved from `src/utils/pricing/` to `src/cli/commands/pricing-orchestration/`. No retired-path compatibility re-export remains.
+The Step 1 prompt helper moved to `src/cli/commands/process-steps/step-1-download/download-targets/single/document-write-prompt.ts`. Pure token-cost, profile-selection, and projection logic moved to `src/utils/pricing/ocr-token-pricing.ts`; OCR page/model/profile orchestration moved to `src/cli/commands/process-steps/step-2-extract/extract-pricing/`; and command-aware aggregate, preflight, actual-cost, timing, and provider pricing orchestration moved from `src/utils/pricing/` to `src/cli/commands/pricing-orchestration/`. No retired-path compatibility re-export remains.
 
 ## API / Type Impact
 

@@ -99,8 +99,8 @@ Accepted provider selectors are the lowercase names below.
 | `--deepinfra` | `general`, `models`, `ocr`, `stt` |
 | `--drive` | `general` |
 | `--elevenlabs` | `models`, `music`, `tts` |
-| `--firecrawl` | `general`, `url` |
 | `--fal` | `general`, `image`, `video` |
+| `--firecrawl` | `general`, `url` |
 | `--gemini` | `general`, `image`, `models`, `music`, `ocr`, `stt`, `text`, `tts`, `video` |
 | `--gladia` | `general`, `stt` |
 | `--glm` | `general`, `models`, `ocr`, `text`, `url` |

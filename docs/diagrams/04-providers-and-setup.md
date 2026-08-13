@@ -144,6 +144,7 @@ These checks come from `HOSTED_PROVIDER_ENV_CHECKS`:
 | `LTXV_API_KEY` | LTX video |
 | `MISTRAL_API_KEY` | Mistral STT/OCR/TTS |
 | `BFL_API_KEY` | BFL image |
+| `FAL_API_KEY` | fal.ai image/video |
 | `RECRAFT_API_TOKEN` | Recraft image |
 | `REPLICATE_API_TOKEN` | Replicate image/video |
 | `LUMA_AGENTS_API_KEY` | Luma Labs image/video |
@@ -188,7 +189,7 @@ These checks come from `HOSTED_PROVIDER_ENV_CHECKS`:
 | `write` | Route-specific extract dependencies plus llama.cpp or llamafile for local LLM. | Selected hosted LLM key. |
 | `write --text-input` | local `.md`/`.txt` files; llama.cpp or llamafile if using local LLM. | Selected hosted LLM/generation keys. |
 | `tts --provider kitten` | Kitten TTS Python env and models. | Hosted TTS key for hosted providers. |
-| `image` | none for hosted-only providers. | `GEMINI_API_KEY`, `OPENAI_API_KEY`, `XAI_API_KEY`, `BFL_API_KEY`, `RECRAFT_API_TOKEN`, `REPLICATE_API_TOKEN`, or `LUMA_AGENTS_API_KEY`. |
-| `video` | local input media/image validation where used. | `GEMINI_API_KEY`, `MINIMAX_API_KEY`, `GLM_API_KEY`, `XAI_API_KEY`, `RUNWAYML_API_SECRET`, `LTXV_API_KEY`, `REPLICATE_API_TOKEN`, or `LUMA_AGENTS_API_KEY`. |
+| `image` | none for hosted-only providers. | `GEMINI_API_KEY`, `OPENAI_API_KEY`, `XAI_API_KEY`, `BFL_API_KEY`, `FAL_API_KEY`, `RECRAFT_API_TOKEN`, `REPLICATE_API_TOKEN`, or `LUMA_AGENTS_API_KEY`. |
+| `video` | local input media/image validation where used. | `GEMINI_API_KEY`, `MINIMAX_API_KEY`, `GLM_API_KEY`, `XAI_API_KEY`, `RUNWAYML_API_SECRET`, `LTXV_API_KEY`, `FAL_API_KEY`, `REPLICATE_API_TOKEN`, or `LUMA_AGENTS_API_KEY`. |
 | `music` hosted | none for hosted-only generation. | `ELEVENLABS_API_KEY`, `MINIMAX_API_KEY`, or `GEMINI_API_KEY`. |
 | `music --audio`/`--batch` | ffmpeg, ffprobe, subtitle render helpers, `whisper-cli`, local Whisper `large-v3-turbo`. | No hosted music key required for local lyric-video rendering. |

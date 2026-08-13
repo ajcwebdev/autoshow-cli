@@ -16,7 +16,7 @@ Two source classes need that conversion, and they need it for different reasons.
 
 Convertible ebook formats. Several ebook formats are closer to EPUB than to PDF/image OCR workflows, but treating each format separately would duplicate chapter logic and increase maintenance. Step 1 has an explicit convertible ebook registry for MOBI/AZW/AZW3/FB2/LIT/PRC inputs, runs Calibre `ebook-convert` into a temporary EPUB, records the original source format and conversion chain, and passes the normalized EPUB into Step 2. Step 2 preserves `normalizedFrom` and `conversionChain` metadata during EPUB extraction and inspection.
 
-ACSM fulfillment documents. ACSM files are different from every other input in this class: they are Adobe Content Server fulfillment documents, not the final book files. Turning an ACSM into an EPUB or PDF requires a user-authorized fulfillment flow that can contact Adobe or distributor servers and may produce DRM-protected output. The resulting EPUB/PDF can then use AutoShow's existing document extraction behavior, but the ACSM itself must never be treated as directly extractable text. The trade study in `docs/report/acsm-support-report.md` identified several reader-side paths: `libgourou`, the Calibre ACSM Input plugin / DeACSM, Adobe Digital Editions / ByteBooks, online ACSM services, and commercial desktop converters. The deeper plugin notes in `docs/report/calibre-acsm-plugin-docs.md` show that the Calibre plugin can fulfill ACSM files without requiring Adobe Digital Editions, supports multiple authorization paths, and also exposes standalone scripts such as `fulfill.py`.
+ACSM fulfillment documents. ACSM files are different from every other input in this class: they are Adobe Content Server fulfillment documents, not the final book files. Turning an ACSM into an EPUB or PDF requires a user-authorized fulfillment flow that can contact Adobe or distributor servers and may produce DRM-protected output. The resulting EPUB/PDF can then use AutoShow's existing document extraction behavior, but the ACSM itself must never be treated as directly extractable text. The trade study in `docs/reports/acsm-support-report.md` identified several reader-side paths: `libgourou`, the Calibre ACSM Input plugin / DeACSM, Adobe Digital Editions / ByteBooks, online ACSM services, and commercial desktop converters. The deeper plugin notes in `docs/reports/calibre-acsm-plugin-docs.md` show that the Calibre plugin can fulfill ACSM files without requiring Adobe Digital Editions, supports multiple authorization paths, and also exposes standalone scripts such as `fulfill.py`.
 
 Why now: both halves are implemented in the current project state — Calibre-backed ebook normalization at the Step 1 boundary and setup-managed ACSM fulfillment through `calibre-acsm-fulfill` — and they share one ingestion contract, one explicit-registry rule, and one conversion-metadata shape. Recording them as one decision keeps that contract in a single place instead of splitting it across two records that must be read together.
 
@@ -179,8 +179,8 @@ Do not run live Adobe, distributor, hosted OCR, paid-provider, smoke, e2e, or fu
 
 ## References
 
-- Trade study: `docs/report/acsm-support-report.md`
-- Calibre plugin notes: `docs/report/calibre-acsm-plugin-docs.md`
+- Trade study: `docs/reports/acsm-support-report.md`
+- Calibre plugin notes: `docs/reports/calibre-acsm-plugin-docs.md`
 - Convertible ebook registry: `src/cli/commands/process-steps/step-1-download/document/convertible-ebooks.ts`
 - Metadata-side convertible ebook registry: `src/cli/commands/process-steps/step-0-metadata/formats/metadata-convertible-ebooks.ts`
 - Step 1 document preparation and Calibre normalization: `src/cli/commands/process-steps/step-1-download/document/dl-document.ts`

@@ -37,6 +37,7 @@ The price checks cover:
 - Runway: `gen4.5`
 - LTX: `ltx-2-3-fast`, `ltx-2-3-pro`
 - Replicate: `alibaba/happyhorse-1.1`, `bytedance/seedance-2.0`, `bytedance/seedance-2.0-fast`, `kwaivgi/kling-v3-video`, `kwaivgi/kling-v3-omni-video`, `pixverse/pixverse-v6`, `runwayml/aleph-2`, `wan-video/wan-2.7-t2v`
+- fal: `minimax/h3`, `fal-ai/pixverse/c1`
 
 ## Related Docs
 

@@ -50,7 +50,7 @@ XAI_API_KEY=...
 - `OPENAI_API_KEY` is required for OpenAI text and image models.
 - `GEMINI_API_KEY` is required for Gemini text and image models.
 - `XAI_API_KEY` is required for Grok text and image models.
-- Text and image models resolve against the central registries, so any other centrally-registered provider you select (e.g. BFL, Recraft, Replicate, Lumalabs for images) needs its own provider key set. See the [Supported Models](#supported-models) registries for the full list.
+- Text and image models resolve against the central registries, so any other centrally-registered provider you select (e.g. BFL, Recraft, Replicate, Lumalabs, fal for images) needs its own provider key set. See the [Supported Models](#supported-models) registries for the full list.
 - `--price` is side-effect-free and does not call image or LLM generation APIs. `comic generate-audio --price` performs static source, casting, strategy, and cost planning without provider calls or artifact writes.
 
 ### Character catalog v3
@@ -85,7 +85,7 @@ bun autoshow comic generate-audio <script-path> [--provider <provider[=model]>] 
 bun autoshow comic reference-sketch (--character <key> | --location <key> [--view establishing|reverse|side]) [--revise --notes <text>] [--price]
 ```
 
-The `<script-path>` argument also accepts strict episode-scene shorthand: `01-01` resolves to the single Markdown file in `input/scripts/02-script/` whose filename starts with `01-`.
+The `<script-path>` argument also accepts strict episode-scene shorthand: `01-01` resolves to the single Markdown file in `input/scripts/01-script/` whose filename starts with `01-`.
 
 ## Walkthrough: 01-opening
 
@@ -180,7 +180,7 @@ bun autoshow comic generate-images input/scripts/01-script/01-opening.md --targe
 
 | Flag | Description | Default |
 |------|-------------|---------|
-| `--llm-model <model>` | Use a supported OpenAI, Gemini, or Grok text model | `gpt-5.6-sol` |
+| `--llm-model <model>` | Use a supported text model from the central LLM registry | `gpt-5.6-sol` |
 
 ### Examples
 
@@ -335,7 +335,9 @@ For a new prose-defined character with no subject image, set `image` and `outlin
 
 | Flag | Description | Default |
 |------|-------------|---------|
-| `--character <key>` | Character key from `characters-reference.json` | required |
+| `--character <key>` | Catalog character key (mutually exclusive with `--location`) | required (or `--location`) |
+| `--location <key>` | Canonical location key (mutually exclusive with `--character`) | required (or `--character`) |
+| `--view <view>` | Location camera view: `establishing`, `reverse`, or `side` | `establishing` |
 | `-r, --revise` | Revise existing sketches using the source image and existing sketch refs | `false` |
 | `--notes <text>` | Revision instructions; required with `--revise` | none |
 | `--concurrency <n>` | Number of sketch views to generate in parallel | `10` |
@@ -442,7 +444,7 @@ Migration is entirely project-defined: register every catalog character using it
 
 ### Image Models
 
-`--image-model` accepts any model id in the project's central image registry (`src/cli/commands/setup-and-utilities/models/image-config.json`), the same source of truth used by the `image` step. Comic resolves the id to its provider at runtime and routes generation through the shared image dispatch, so every centrally-registered provider (Gemini, OpenAI, Grok, BFL, Recraft, Replicate, Lumalabs) is available and pricing comes from the registry.
+`--image-model` accepts any model id in the project's central image registry (`src/cli/commands/setup-and-utilities/models/image-config.json`), the same source of truth used by the `image` step. Comic resolves the id to its provider at runtime and routes generation through the shared image dispatch, so every centrally-registered provider (Gemini, OpenAI, Grok, BFL, Recraft, Replicate, Lumalabs, fal) is available and pricing comes from the registry.
 
 The default is `gpt-image-2`. Inspect `image-config.json` for the full list of available image models. Common choices:
 

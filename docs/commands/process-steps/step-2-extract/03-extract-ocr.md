@@ -24,6 +24,7 @@ Documents and images route through local OCR, hosted OCR, or native text extract
   - [Gemini OCR](#gemini-ocr)
   - [DeepInfra OCR](#deepinfra-ocr)
 - [OCR Notes](#ocr-notes)
+- [Incomplete Runs and Blocked Providers](#incomplete-runs-and-blocked-providers)
 
 See the [`extract` overview](./01-extract.md) for input routing across STT, OCR, article HTML, and X/Twitter inputs. Remote article URLs and local HTML are documented separately in [URL and X extraction](./04-extract-url.md).
 

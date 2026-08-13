@@ -132,7 +132,7 @@ Single runs and batches use the same unversioned, non-union shape. `command` and
 }
 ```
 
-Commands are `metadata`, `download`, `extract`, `write`, `tts`, `image`, `video`, and `music`. Scope is `single` or `batch`. Item status is `full`, `incomplete`, `failed`, or `skipped`; provider status is `running`, `succeeded`, `missing`, `failed`, or `skipped`.
+Commands are `metadata`, `download`, `extract`, `write`, `tts`, `image`, `video`, `music`, and `comic`. Scope is `single` or `batch`. Item status is `full`, `incomplete`, `failed`, or `skipped`; provider status is `running`, `succeeded`, `missing`, `failed`, or `skipped`.
 
 Batch items use the same item shape. A route parent adds a child link without changing the manifest format:
 
@@ -200,7 +200,7 @@ input/characters/
 
 output/<timestamp>_<scene-slug>/
   metadata/
-    structured-script.json           # schemaVersion 3; characterKeys/speakerKey
+    structured-script.json           # schemaVersion 4; characterKeys/speakerKey
     draft-prompt.md
     scene.json                       # schemaVersion 4; authoritative panel.characterKeys
     scene.invalid.json               # only when validation preserves invalid model output
@@ -238,7 +238,7 @@ Process command and runtime option families:
 ```
 ProcessCommand =
   "metadata" | "download" | "extract" | "write" |
-  "tts" | "image" | "music" | "video"
+  "tts" | "image" | "music" | "video" | "comic"
 
 Flag/config resolution context:
   merged/configured/explicit flags
@@ -249,7 +249,7 @@ ProcessingOptions:
   only the composed media/document write pipeline
 
 Domain option slices:
-  STT, OCR, URL, LLM, TTS, image, video, music, batch, and pricing
+  STT, OCR, URL, LLM, TTS, image, video, music, comic, batch, and pricing
   each consumer requests only its domain plus named shared controls
 ```
 
@@ -284,5 +284,6 @@ Important metadata fields by step:
 | Step 5 image | image provider/model, file names/sizes, image count/dimensions, size/quality/format, request mode, revised prompt, returned model, moderation/grounding, provider cost. |
 | Step 6 video | video provider/model, file name/size/duration, request mode, resolution/aspect ratio, input/reference media, provider IDs/URLs/progress/moderation/storage, provider cost. |
 | Step 7 music | music provider/model, file name/size/duration, lyrics source, generated lyrics/title/style fields, audio technical metadata, provider IDs/traces, provider cost. |
+| Step 8 comic | script slug, stage progress (structure, image, audio), character catalog, scene run identity, structured script, dialogue plan, snapshot, and selected audio runs. |
 
 Item metadata commonly includes cost, timing, errors, and route-specific evidence such as `resolvedStep2` and `web`. Completion and provider progress live only in the canonical item `status` and `providers` fields; requested, missing, and blocked lists are derived views rather than duplicated persisted state.

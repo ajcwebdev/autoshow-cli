@@ -16,6 +16,7 @@ Generate a video from a text prompt or input image with one or more hosted video
   - [LTX](#ltx)
   - [Replicate](#replicate)
   - [Luma Labs](#luma-labs)
+  - [fal.ai](#falai)
 - [Output](#output)
 - [Notes](#notes)
 
@@ -40,6 +41,7 @@ RUNWAYML_API_SECRET=...
 LTXV_API_KEY=...
 REPLICATE_API_TOKEN=...
 LUMA_AGENTS_API_KEY=...
+FAL_API_KEY=...
 ```
 
 ## Shared Video Options
@@ -57,7 +59,7 @@ The standalone `video` command drops the `video-` prefix these options carry eve
 | `--mode <mode>` | `text`, `image-to-video`, `reference-to-video`, `interpolate`, `extend`, or `edit`; default `text` |
 | `--input-image <path-or-url>` | Input image for `image-to-video`; first frame for `interpolate` |
 | `--last-frame <path-or-url>` | Last-frame image for `interpolate` |
-| `--reference-image <path-or-url>` | Reference image for `reference-to-video`; repeat up to 3 times (Replicate Seedance accepts up to 9) |
+| `--reference-image <path-or-url>` | Reference image for `reference-to-video`; repeat up to 3 times (Replicate Seedance/Happy Horse accepts up to 9; fal.ai MiniMax H3 accepts up to 9; fal.ai PixVerse C1 accepts up to 7) |
 | `--input-video <path-or-url>` | Input MP4 for `extend` or `edit` |
 | `--grok-video-storage-filename <name>` | xAI/Grok storage filename |
 | `--grok-video-storage-expires-after <seconds>` | xAI/Grok storage expiration, max 30 days |
@@ -74,11 +76,11 @@ Media-input modes are explicit. Passing media flags without `--mode` is rejected
 | Mode | Providers | Required inputs | Notes |
 |------|-----------|-----------------|-------|
 | `text` | All video providers | none | Default mode |
-| `image-to-video` | Gemini, GLM, MiniMax, Grok, LTX, Replicate Happy Horse/Seedance, Luma Labs | `--input-image` | Animates the input image |
-| `reference-to-video` | Gemini standard/Fast, GLM Vidu 2 reference, MiniMax S2V, Grok, Replicate Seedance | `--reference-image` | Up to 3 references; MiniMax S2V accepts one; Replicate Seedance accepts up to 9 |
-| `interpolate` | Gemini, GLM, LTX 2.3, Replicate Seedance | `--input-image`, `--last-frame` | First/last-frame transition |
+| `image-to-video` | Gemini, GLM, MiniMax, Grok, LTX, Replicate Happy Horse/Seedance/Kling/PixVerse, Luma Labs, fal.ai | `--input-image` | Animates the input image |
+| `reference-to-video` | Gemini standard/Fast, GLM Vidu 2 reference, MiniMax S2V, Grok, Replicate Happy Horse/Seedance/Kling Omni, fal.ai | `--reference-image` | Up to 3 references; MiniMax S2V accepts one; Replicate Seedance/Happy Horse accepts up to 9; fal.ai H3 accepts up to 12 combined references |
+| `interpolate` | Gemini, GLM, LTX 2.3, Replicate Seedance/Kling/PixVerse, fal.ai | `--input-image`, `--last-frame` | First/last-frame transition |
 | `extend` | Gemini standard/Fast, Grok, LTX Pro, Replicate Seedance | `--input-video` | Gemini extension requests force `720p`; LTX uses end extension |
-| `edit` | Grok, Replicate Seedance | `--input-video` | Grok rejects duration, aspect, and resolution overrides |
+| `edit` | Grok, Replicate Seedance/Kling Omni/Aleph 2 | `--input-video` | Grok rejects duration, aspect, and resolution overrides |
 
 Create reusable image inputs:
 

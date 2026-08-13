@@ -4,7 +4,7 @@
 
 - **Decision Status:** Accepted
 - **Date Created:** 2026-07-14
-- **Date Updated:** 2026-07-23
+- **Date Updated:** 2026-08-13
 - **Verification Status:** Passed
 
 ## Context
@@ -161,3 +161,4 @@ The refresh metadata tests cover first refresh, unchanged second refresh, token-
 - `test/test-cases/validation/content-output/metadata-links-lyrics-contracts/links-input-modes.test.ts`
 - `test/test-cases/validation/content-output/metadata-links-lyrics-contracts/links-fetching-retry.test.ts`
 - `test/test-cases/validation/content-output/metadata-links-lyrics-contracts/provider-selector-groups/`
+- `test/test-cases/validation/content-output/metadata-links-lyrics-contracts/selector-validation.test.ts`

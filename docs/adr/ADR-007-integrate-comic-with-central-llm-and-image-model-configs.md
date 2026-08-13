@@ -39,9 +39,9 @@ Comic resolves LLM and image model IDs against `getModelRegistry()` and routes g
 
 ### 2. A first-class native command tree
 
-`CliCommandDefinition` supports one level of `subcommands`. `comicCommand` registers `draft-scenes`, `generate-images`, and `reference-sketch` directly. The native parser resolves the child once, creates the final child context, and the dispatcher configures global state and invokes exactly that handler. Parent and child help both use `renderCommandHelp`; `help comic <subcommand>` and `comic <subcommand> --help` resolve the same definition.
+`CliCommandDefinition` supports one level of `subcommands`. `comicCommand` registers subcommands (`draft-scenes`, `generate-images`, `generate-audio`, `reference-sketch`, and `reference-voice`) directly. The native parser resolves the child once, creates the final child context, and the dispatcher configures global state and invokes exactly that handler. Parent and child help both use `renderCommandHelp`; `help comic <subcommand>` and `comic <subcommand> --help` resolve the same definition.
 
-Subcommand definitions use their real required parameters and native excess-positional rejection. Comic no longer uses `allowUnknownFlags`, `allowExcessParameters`, or `passThroughHelpAfterFirstPositional`; the three child definitions no longer opt into excess parameters. The second dispatcher, parse-time required-to-optional mutation, global-argument stripping pass, bespoke help routing, unknown-flag scan, positional cardinality checks, and repeated-scalar checks are removed.
+Subcommand definitions use their real required parameters and native excess-positional rejection. Comic no longer uses `allowUnknownFlags`, `allowExcessParameters`, or `passThroughHelpAfterFirstPositional`; the child definitions no longer opt into excess parameters. The second dispatcher, parse-time required-to-optional mutation, global-argument stripping pass, bespoke help routing, unknown-flag scan, positional cardinality checks, and repeated-scalar checks are removed.
 
 The public grammar intentionally becomes the native grammar:
 
@@ -105,7 +105,7 @@ Negative outcomes:
 
 ## Implementation Note
 
-The shared model migration and the native CLI migration are implemented. `comicCommand.subcommands` owns the three child definitions; the native parser performs one bounded child resolution; `define-comic-command.ts` is now a declaration rather than a second shell; `cli-args.ts` contains semantic coercion only; the reusable invocation boundary and ordered raw metadata support links; provider selectors are real hidden flags; and the obsolete global argument stripper is gone.
+The shared model migration and the native CLI migration are implemented. `comicCommand.subcommands` owns the child definitions (`draft-scenes`, `generate-images`, `generate-audio`, `reference-sketch`, and `reference-voice`); the native parser performs one bounded child resolution; `define-comic-command.ts` is now a declaration rather than a second shell; `cli-args.ts` contains semantic coercion only; the reusable invocation boundary and ordered raw metadata support links; provider selectors are real hidden flags; and the obsolete global argument stripper is gone.
 
 The final CLI diagnostic residual was completed on 2026-08-13. `getUnknownFlagSpellings` derives display-safe spellings from unknown `CliFlagOccurrence` records and is used by both `dispatchNativeCli` and `parseCommandInvocation`. `NativeUnknownFlagError.flagSpellings` makes the presentation contract explicit, while `flagNames` remains a compatibility alias.
 

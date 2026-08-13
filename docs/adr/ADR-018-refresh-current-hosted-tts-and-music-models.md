@@ -4,14 +4,14 @@
 
 - **Decision Status:** Accepted
 - **Date Created:** 2026-08-06
-- **Date Updated:** 2026-08-11
+- **Date Updated:** 2026-08-13
 - **Verification Status:** Passed for both original phases, including paid music benchmarks; the Phase 0 provider-catalog follow-up passed local no-network verification
 
 ## Context
 
 AutoShow's hosted TTS and music registries are public CLI, pricing, resume, and benchmark surfaces. Selector constants and types determine accepted provider flags; registry metadata determines prices, timing estimates, limits, and capabilities; defaults and `--all-tts`, `--all-music`, and `--all-providers` determine execution targets; provider adapters determine whether each advertised model can actually run with its supported controls and modes.
 
-The active registries at decision time contained 23 selectors: 19 TTS and 4 music. A 2026-08-06 evidence refresh found legacy, superseded, or moving selectors and 11 current selector introductions worth exposing. The original selected end state contained 29 selectors: 24 TTS and 5 music. The dated Phase 0 catalog follow-up below adds 83 documented Deepgram Aura-2 voice-model selectors and one Groq Saudi-Arabic selector, so the current end state contains 113 selectors: 108 hosted TTS and 5 music.
+The active registries at decision time contained 23 selectors: 19 TTS and 4 music. A 2026-08-06 evidence refresh found legacy, superseded, or moving selectors and 11 current selector introductions worth exposing. The original selected end state contained 29 selectors: 24 TTS and 5 music. The dated Phase 0 catalog follow-up below adds 83 documented Deepgram Aura-2 voice-model selectors and one Groq Saudi-Arabic selector, so the current end state contains 114 selectors: 109 hosted TTS and 5 music.
 
 The evidence refresh made no synthesis or generation request. All 117 global TTS links and all 12 global music links succeeded. The music refresh also completed for all provider-scoped selections: six ElevenLabs links, three Gemini links, and three MiniMax links, with no failures. Generated evidence plus `.refresh.json` metadata remain under the gitignored `project/links/` directory.
 
@@ -25,7 +25,7 @@ Image and video model decisions from the same evidence refresh are recorded sepa
 
 | Option | Pros | Cons | Quantitative Notes |
 |---|---|---|---|
-| **Refresh in separate TTS and music phases** | Keeps each registry, its provider adapters, tests, documentation, and verification together | Requires two implementation and verification passes | Original refresh: 2 phases; 11 selector introductions; 5 removals; 23 to 29 active selectors. Phase 0 catalog follow-up: 84 additive hosted-TTS selectors; 29 to 113 total selectors. |
+| **Refresh in separate TTS and music phases** | Keeps each registry, its provider adapters, tests, documentation, and verification together | Requires two implementation and verification passes | Original refresh: 2 phases; 11 selector introductions; 5 removals; 23 to 29 active selectors. Phase 0 catalog follow-up: 84 additive hosted-TTS selectors; 29 to 114 total selectors. |
 | Implement every change in one pass | Minimizes coordination overhead | Couples voice rules, music formats, pricing, and unrelated failure causes | 9 provider decisions across TTS and music |
 | Update selector validators and registries only | Produces a smaller diff | Can advertise models with incorrect voices, controls, pricing, output formats, or response handling | Smaller implementation with inadequate runtime guarantees |
 | Add every documented hosted identifier | Maximizes apparent coverage | Mixes moving, deprecated, specialized, and ordinary voice identifiers into model selection | Unbounded and architecture-changing |
@@ -37,7 +37,7 @@ Refresh current hosted TTS and music models in two media-specific phases. Every 
 
 ### Phase 1: TTS — Complete
 
-Complete every original TTS correction and addition as one phase, finishing that phase with 24 active hosted TTS selectors before the later catalog follow-up.
+Complete every original TTS correction and addition as one phase, finishing that phase with 25 active hosted TTS selectors before the later catalog follow-up.
 
 | Provider | Decision | Required implementation |
 |---|---|---|
@@ -74,17 +74,17 @@ Do not add `music-3.0-free`, `music-2.6-free`, or `music-cover-free`. The free M
 
 ## Implementation Note
 
-Phase 1 removed the four retired TTS selectors from active selection and added nine canonical replacement or additive selectors for an initial 24 active hosted TTS selectors. The 2026-08-11 Phase 0 provider-catalog follow-up then added 84 selectors for the current total of 108 hosted TTS selectors.
+Phase 1 removed the four retired TTS selectors from active selection and added nine canonical replacement or additive selectors for an initial 25 active hosted TTS selectors. The 2026-08-11 Phase 0 provider-catalog follow-up then added 84 selectors for the current total of 109 hosted TTS selectors.
 
 Phase 2 adds ElevenLabs `music_v2`, replaces MiniMax `music-2.6` with `music-3.0`, and retains both Gemini Lyria 3 preview selectors, moving the total music surface from four to five active selectors. The adapters, model-specific ElevenLabs output metadata, current pricing, active and historical identity handling, defaults and expansion, help, docs, price registry, resume selection, and local contracts are updated.
 
-> Follow-up (2026-08-07): phase 2's "preserve `music-2.6` only in historical benchmark and result readers" clause was not actually implemented — the model was dropped from the active registry with no historical reader behind it, so `getMusicModelMeta('minimax', 'music-2.6')` returned `undefined` and all four committed `docs/benchmarks/music/2026-05-21_*` runs repriced to $0 rather than failing. Closed by adding `RETIRED_MUSIC_MODEL_RATES` in `src/cli/commands/pricing-orchestration/compute-actual-costs.ts`, carrying the registry values the model held at retirement (15¢ per track, +1¢ when lyrics were generated), pinned by `image-video-music-pricing.test.ts`. A recorded `providerCostCents` still takes precedence. This is the same shape [ADR-019](ADR-019-refresh-current-hosted-image-and-video-models.md) used for Replicate `alibaba/happyhorse-1.0`; retiring a priced model now means moving its rate to a historical table, not deleting it.
+> Follow-up (2026-08-07): phase 2's "preserve `music-2.6` only in historical benchmark and result readers" clause was not actually implemented — the model was dropped from the active registry with no historical reader behind it, so `getMusicModelMeta('minimax', 'music-2.6')` returned `undefined` and all four committed `docs/benchmarks/music/2026-05-21_*` runs repriced to $0 rather than failing. Closed by adding `RETIRED_MUSIC_MODEL_RATES` in `src/cli/commands/pricing-orchestration/compute-actual-costs.ts`, carrying the registry values the model held at retirement (15¢ per track, +1¢ when lyrics were generated), pinned by `test/test-cases/validation/reports-pricing/price-mode-contracts/image-video-music-pricing.test.ts`. A recorded `providerCostCents` still takes precedence. This is the same shape [ADR-019](ADR-019-refresh-current-hosted-image-and-video-models.md) used for Replicate `alibaba/happyhorse-1.0`; retiring a priced model now means moving its rate to a historical table, not deleting it.
 
 The approved first benchmark pass exposed an additive-resume artifact collision after all eight provider calls reported success: a single resumed music target used `generated-music.mp3`, so the later MiniMax pass overwrote the four ElevenLabs Music v2 files and left both new manifest entries pointing to the same artifact. Music resume now always promotes additive outputs to provider-and-model-specific filenames before merging metadata, with a local regression contract. The four MiniMax Music 3.0 artifacts and manifest entries were repaired and validated with ffprobe. After separate approval, all four duration-matched ElevenLabs Music v2 reruns completed successfully and were preserved under provider-and-model-specific filenames alongside the MiniMax artifacts. Their manifests record the expected 48 kHz, 192 kbps `mp3_48000_192` output format, exact requested durations of 30, 60, 120, and 180 seconds, and matching file sizes; ffprobe reported playable durations of 30.024, 60.024, 120.024, and 180.024 seconds.
 
 ## API / Type Impact
 
-- Hosted TTS accepted-model unions remove `sonic-3`, `sonic-3.5`, `gpt-4o-mini-tts`, and `simba-english`; the original phase added their canonical replacements plus six additive selectors, and the Phase 0 catalog follow-up adds 83 Aura-2 selectors and one Groq Arabic selector for 108 active hosted selectors.
+- Hosted TTS accepted-model unions remove `sonic-3`, `sonic-3.5`, `gpt-4o-mini-tts`, and `simba-english`; the original phase added their canonical replacements plus six additive selectors, and the Phase 0 catalog follow-up adds 83 Aura-2 selectors and one Groq Arabic selector for 109 active hosted selectors.
 - Stock-voice registries now validate 26 xAI voices, 30 Gemini voices, model-disjoint six-voice English and Arabic Groq catalogs, and OpenAI's model-specific built-in subsets. OpenAI custom IDs serialize through the documented typed `{ id }` request branch and remain explicitly eligibility-gated by the provider account.
 - Hosted music accepted-model unions add ElevenLabs `music_v2`, replace MiniMax `music-2.6` with `music-3.0`, retain both Gemini Lyria 3 selectors, and finish with 5 active selectors.
 - Bare-provider defaults and `--all-*` expansion change only where a removed selector currently participates. Deepgram's special one-default expansion remains unchanged.
@@ -114,7 +114,7 @@ Positive outcomes:
 Negative outcomes:
 
 - Explicit configurations using removed selector names must migrate.
-- The active TTS and music selector surface grows from 23 at the original decision to 113 after the catalog follow-up, increasing help, documentation, and all-provider maintenance. Deepgram's existing one-default `--all-tts` policy prevents its 91 voices from multiplying ordinary all-provider execution.
+- The active TTS and music selector surface grows from 23 at the original decision to 114 after the catalog follow-up, increasing help, documentation, and all-provider maintenance. Deepgram's existing one-default `--all-tts` policy prevents its 91 voices from multiplying ordinary all-provider execution.
 - ElevenLabs Music v2 requires more than registry edits.
 - Pricing and timing metadata for new models may initially rely on published rates and explicitly provisional same-family timing estimates until paid calibration is separately approved.
 
@@ -142,7 +142,7 @@ git diff --check
 
 Phase 1 completion verification passed on 2026-08-06: `bun run check`; 179 CLI help, usage, and option-resolution contracts; 48 TTS provider, dialogue, and batch-output contracts; 41 configuration, pricing, and resume contracts; and `git diff --check`. The provider matrix initially exposed a nondeterministic Mistral multi-speaker request-order assertion; the contract now compares the concurrent requests without assuming dispatch order, while the existing artifact assertions continue proving dialogue-order assembly.
 
-The Phase 0 provider-catalog follow-up passed local no-network verification on 2026-08-11. Focused contracts prove the exact 26/91/30 stock catalogs, the two model-disjoint Groq voice sets, the 108-selector inventory, invalid cross-model voice rejection, OpenAI classic-model voice restrictions, typed custom-voice request serialization, and the final Groq Arabic request body. No provider API or hosted synthesis command was run.
+The Phase 0 provider-catalog follow-up passed local no-network verification on 2026-08-11. Focused contracts prove the exact 26/91/30 stock catalogs, the two model-disjoint Groq voice sets, the 109-selector inventory, invalid cross-model voice rejection, OpenAI classic-model voice restrictions, typed custom-voice request serialization, and the final Groq Arabic request body. No provider API or hosted synthesis command was run.
 
 Phase 2 implementation verification must include the mocked music provider contracts, music pricing contracts, CLI help and usage contracts, option-resolution expansion and default contracts, resume identity, and historical MiniMax 2.6 normalization. It must assert ElevenLabs' model-specific output formats, active MiniMax 3.0 selection, inactive MiniMax 2.6 rejection, and an exact five-selector `--all-music` expansion without making a hosted generation request.
 

@@ -4,7 +4,7 @@
 
 - **Decision Status:** Accepted
 - **Date Created:** 2026-07-12
-- **Date Updated:** 2026-07-23
+- **Date Updated:** 2026-08-13
 - **Verification Status:** Passed
 
 ## Context
@@ -53,7 +53,7 @@ It does not apply to:
 
 - PDF chapter artifact names are owned by `src/cli/commands/process-steps/step-2-extract/step-2-ocr/pdf/ocr-chapters/ocr-chapter-artifacts.ts`.
 - EPUB chapter artifact names are owned by `src/cli/commands/process-steps/step-2-extract/step-2-ocr/ebook/epub/export.ts`.
-- The shared writer in `src/cli/commands/process-steps/step-2-extract/step-2-ocr/process-ocr.ts` only persists each `TextArtifactFile.relativePath`.
+- The shared writer in `src/cli/commands/process-steps/step-2-extract/step-2-ocr/ocr-artifacts.ts` (re-exported by `src/cli/commands/process-steps/step-2-extract/step-2-ocr/process-ocr.ts`) only persists each `TextArtifactFile.relativePath`.
 - No other direct `chapters/` producers were found.
 
 Robustness improvements:
@@ -99,8 +99,8 @@ Negative outcomes:
 | Action | Owner | Current State |
 |---|---|---|
 | Add a shared chapter artifact filename helper used by EPUB and PDF builders | OCR maintainers | Implemented in `src/cli/commands/process-steps/step-2-extract/step-2-ocr/chapter-artifact-filenames.ts` |
-| Preserve existing slug cleanup and fallback behavior in each producer | OCR maintainers | Implemented in `ebook/epub/export.ts` and `pdf/ocr-chapters/ocr-chapter-artifacts.ts` |
-| Preserve dynamic ordinal width and split `-part-NN` suffixes | OCR maintainers | Implemented in `chapter-artifact-filenames.ts` |
+| Preserve existing slug cleanup and fallback behavior in each producer | OCR maintainers | Implemented in `src/cli/commands/process-steps/step-2-extract/step-2-ocr/ebook/epub/export.ts` and `src/cli/commands/process-steps/step-2-extract/step-2-ocr/pdf/ocr-chapters/ocr-chapter-artifacts.ts` |
+| Preserve dynamic ordinal width and split `-part-NN` suffixes | OCR maintainers | Implemented in `src/cli/commands/process-steps/step-2-extract/step-2-ocr/chapter-artifact-filenames.ts` |
 | Update docs that describe chapter artifacts | OCR maintainers | Implemented in `docs/commands/process-steps/step-2-extract/03-extract-ocr.md` |
 | Add local/no-cost tests for PDF, EPUB, 100+ widths, split sorting, and slug collision behavior | OCR maintainers | Implemented in `test/test-cases/validation/extract-ocr/` |
 

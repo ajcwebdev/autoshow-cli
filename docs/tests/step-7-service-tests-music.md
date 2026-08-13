@@ -21,6 +21,7 @@ bun t test/test-cases/e2e/service/step-7-music-gen-e2e/
 
 - Model-level files under `test/test-cases/e2e/service/step-7-music-gen-e2e/` use `defineMusicServiceTest` for invalid model rejection and real provider generation when the required API key is configured.
 - Step 7 also covers provider-selection validation and a multi-provider run that emits per-provider filenames plus array metadata. `provider-flag-validation.test.ts` is validation-only coverage and is not a mapped price command.
+- `test/test-cases/validation/providers/music-provider-contracts.test.ts` covers mocked REST contracts for MiniMax (`music-3.0` model acceptance, previous model rejection, instrumental flag, auto-lyrics metadata, prompt capping, and lyrics length validation), Gemini (inline audio decoding and text part preservation), and ElevenLabs (model-specific output formats `mp3_44100_128` / `mp3_48000_192` and response header recording). `test/test-cases/validation/music/lyrics-video-render-contracts.test.ts` covers lyric-video ASS subtitle generation, image background filters, and ffmpeg command-line argument construction without live service calls.
 - Pipeline files add write-pipeline coverage for `write` with ElevenLabs music enabled and `write` with MiniMax music plus a lyrics file.
 - Focused `--price` coverage — per-model estimates via `defineMusicServicePriceTests`, multi-provider `--price` output, and `write --price` with MiniMax music — lives in `test/test-cases/price-flag/music-price.test.ts`.
 

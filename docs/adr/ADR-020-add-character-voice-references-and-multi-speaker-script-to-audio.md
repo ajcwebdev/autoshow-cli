@@ -4,7 +4,7 @@
 
 - **Decision Status:** Accepted
 - **Date Created:** 2026-08-10
-- **Date Updated:** 2026-08-11
+- **Date Updated:** 2026-08-13
 - **Verification Status:** Phases 0-4 passed local no-network verification; Phase 3 and Phase 4 provider contracts are covered by `tts-advanced-provider-phase-3.test.ts` and `tts-advanced-provider-phase-4.test.ts`
 
 ## Context

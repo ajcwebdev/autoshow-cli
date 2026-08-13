@@ -52,7 +52,7 @@ bun t test/test-cases/e2e/local/step-7-music-lyrics-video-e2e/music-lyrics-video
 - Test discovery comes from `test/test-cases/**/*.test.ts`.
 - Selection is path-based only.
 - Normal test mode passes `--max-concurrency=10 --parallel=10` to `bun test` by default. Pass explicit `--max-concurrency=<n>` or `--parallel=<n>` values to override either knob for a run.
-- Price and budget preflight commands run with the same default runner concurrency of 10.
+- Price and budget preflight commands run with the default price concurrency of 25.
 - `--price` uses the same normal `test/test-cases/...` path filters as `bun t`: append it to the command you would otherwise run to price-check the mapped commands without running the live tests. The same flag is used by regular AutoShow commands. `--budget <whole-number-hundredths-of-a-cent>` remains a live-test skip mechanism for the selected normal test paths. For example, `--budget 100` allows tests estimated at up to 1 cent.
 - Each run writes artifacts under `./project/test-output/YYYY-MM-DD_HH-MM-SS_test-run/`, including `runner.log`, `commands.log`, `metrics.ndjson`, `metadata/`, and `report.json`. Normal test mode also writes `junit.xml`, `e2e-report.json`, and `model-calibration.json` with read-only model calibration recommendations.
 - By default, `bun t` cleans test outputs after every run and leaves `./project/test-output/latest.log` with the run summary, failures, runner log, and command log. Normal test mode also sets `AUTOSHOW_TEST_PRESERVE_ARTIFACTS=0`, which deletes per-test output directories as tests finish.

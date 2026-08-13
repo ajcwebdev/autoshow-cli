@@ -34,8 +34,8 @@ Article-style HTML inputs route through article extraction rather than OCR provi
 
 | Input family | Default path | Other available paths |
 |--------------|--------------|-----------------------|
-| Remote article URL | `html+defuddle` | `--url-provider firecrawl`, `--url-provider glm-reader`, `--url-provider spider`, `--url-provider supadata`, `--url-provider zyte`, route-aware `--provider <backend>`, or `--all-providers` |
-| Local `.html` / `.htm` | `html+defuddle` | `--all-providers` runs `defuddle` and marks hosted backends skipped |
+| Remote article URL | `html+defuddle` | `--url-provider firecrawl`, `--url-provider glm-reader`, `--url-provider spider`, `--url-provider supadata`, `--url-provider zyte`, route-aware `--provider <backend>`, `--all-providers`, or `--all-local` |
+| Local `.html` / `.htm` | `html+defuddle` | `--all-local` or `--all-providers` (runs `defuddle` and marks hosted backends skipped) |
 
 OCR engine flags do not apply to article extraction. In single-backend mode, the default remote `defuddle` path preserves the existing fallback to `firecrawl` when local extraction fails. In `--all-providers` mode, each backend is run and scored independently, so `defuddle` does not silently fall back to `firecrawl`.
 
@@ -53,7 +53,7 @@ ZYTE_API_KEY=...
 
 `FIRECRAWL_API_KEY`, `SPIDER_API_KEY`, `SUPADATA_API_KEY`, and `ZYTE_API_KEY` are required for the hosted APIs. `GLM_API_KEY` is required for GLM Reader. Each backend resolves to its fixed default endpoint; choose a backend with `--url-provider <backend>` (or run them all with `--all-providers`).
 
-Do not combine `--url-provider` with `--all-providers`; `--all-providers` selects the full canonical backend set.
+Do not combine `--url-provider` with `--all-providers` or `--all-local`; backend group shortcuts select backend sets.
 
 ## Shared URL Options
 
@@ -61,7 +61,8 @@ Do not combine `--url-provider` with `--all-providers`; `--all-providers` select
 |------|-------------|
 | `--url-provider <backend>` | Article backend for remote article URLs: `defuddle`, `firecrawl`, `glm-reader`, `spider`, `supadata`, or `zyte` |
 | `--provider <backend>` | Route-aware shorthand for a URL backend on article inputs |
-| `--all-providers` | For `extract`, run every current URL article backend: `defuddle`, `firecrawl`, `glm-reader`, `spider`, `supadata`, and `zyte` |
+| `--all-providers` | For `extract`, run all URL article backends: `defuddle`, `firecrawl`, `glm-reader`, `spider`, `supadata`, and `zyte` |
+| `--all-local` | Run local URL article backend (`defuddle`) |
 | `--provider-concurrency <n>` | Hosted URL backends to run concurrently per item; default `10` |
 | `--url-request-timeout-ms <ms>` | Per-provider URL request timeout; default `60000` |
 | `--url-request-attempts <n>` | Total provider request attempts, including the first try; default `3` |
@@ -97,7 +98,7 @@ Rules:
 - `--all-providers` conflicts with `--url-provider`.
 - `write --all-providers url` runs URL extraction first, keeps per-backend artifacts under `providers/<backend>/`, then runs the LLM over the selected extracted article text.
 - Remote `--all-providers` runs do not use the single-backend Defuddle-to-Firecrawl fallback path.
-- Local `.html` / `.htm --all-providers` runs `defuddle` only and records hosted backends as skipped.
+- Local `.html` / `.htm` inputs skip hosted backends in all-provider mode; use `--all-local` (or combine with `--all-providers`) to run `defuddle`.
 - URL request retries repeat hosted provider requests after timeout, network, `408`, `429`, and `5xx` failures. Increasing `--url-request-attempts` can increase hosted provider usage, quota consumption, or cost.
 
 ## Article Services
@@ -140,6 +141,7 @@ bun autoshow extract https://ajcwebdev.com --url-provider firecrawl
 | Selector | `--url-provider glm-reader` or `--provider glm-reader` |
 | Inputs | Remote article URLs |
 | Required env | `GLM_API_KEY` |
+| Endpoint | `POST /reader` |
 
 ```bash
 bun autoshow extract https://ajcwebdev.com --provider glm-reader

@@ -53,6 +53,7 @@ apply global runtime settings
         +--> --verbose / --quiet / --json / --log-level / --log-format -> logger
         +--> --output-root                -> base output directory
         +--> --output-dir                 -> pinned run directory for this invocation
+        +--> --characters-root            -> comic character reference images directory
         +--> --bin-dir                    -> external tool binary lookup
         +--> --color / --no-color         -> ANSI color handling
         +--> --cookies / --cookies-from-browser -> yt-dlp auth
@@ -74,6 +75,7 @@ Global flags:
 | `--config-path` | Use a config file other than `config/autoshow.json`. |
 | `--output-root` | Base output directory under which per-step subdirectories are created. |
 | `--output-dir` | Pin the run directory for this invocation instead of a timestamped `output/<timestamp>_<slug>` directory. On a batch run it becomes the batch root and per-item directories keep their slug names inside it. Rejected by `config`, `setup`, `links`, and `resume`, which do not create run directories. |
+| `--characters-root` | Directory of comic character reference images and `characters-reference.json`. |
 | `--bin-dir` | Directory of external tool binaries checked before the managed install and PATH. |
 | `--allow-over-budget` | Continue after cost preflight exceeds the configured budget. |
 | `--verbose` | Enable debug logging. |
@@ -86,7 +88,7 @@ Global flags:
 | `--cookies-from-browser` | Import browser cookies through yt-dlp. |
 | `--model-path` | Use a local GGUF file for llama.cpp. |
 
-Comic's public `draft-scenes`, `generate-images`, and `reference-sketch` commands are first-class children of `comicCommand`; dispatch, global flags, parameter cardinality, and both help forms use the native command tree. Links registers every provider selector as a real hidden flag, then assigns the native parser's ordered positional metadata to provider scopes without reparsing raw argv.
+Comic's public `draft-scenes`, `generate-images`, `generate-audio`, `reference-sketch`, and `reference-voice` commands are first-class children of `comicCommand`; dispatch, global flags, parameter cardinality, and both help forms use the native command tree. Links registers every provider selector as a real hidden flag, then assigns the native parser's ordered positional metadata to provider scopes without reparsing raw argv.
 
 ## Command Surface
 
@@ -107,10 +109,11 @@ Processing and generation:
   extract   Step 1 + Step 2 extraction
   write     Step 1 + Step 2 + Step 3, optionally Steps 4-7
   tts       standalone TTS for .md/.txt files or directories
+  voice     standalone voice registration and lifecycle management
   image     standalone image generation
   video     standalone video generation
   music     standalone music generation or local lyric-video rendering
-  comic     nested draft-scenes, generate-images, and reference-sketch workflows
+  comic     nested draft-scenes, generate-images, generate-audio, reference-sketch, and reference-voice workflows
 ```
 
 Process commands enter the shared target layer except for special standalone generation modes. `extract --transcript-video` is handled before normal target processing and renders a captioned video from an existing extract run or from explicit `--audio` plus `--transcript-result`/`--transcript-text`.
@@ -168,4 +171,6 @@ Command-to-flag mapping:
 | `write` | Step selectors for STT/OCR/URL/LLM/TTS/image/video/music, prompt/text-input flags, rendered text flags, batch flags, generation flags. |
 | `resume` | target-aware provider selectors for missing or failed providers. |
 | `tts`/`image`/`video`/`music` | standalone generation flags and provider selectors. |
+| `voice` | standalone voice registration, audition, approval, consent, discovery, and deletion flags. |
+| `comic` | comic drafting, panel image generation, audio rendering, and reference flags. |
 | `config` | persisted defaults for supported selectors and options; runtime-only flags are ignored. |

@@ -49,6 +49,7 @@ bun autoshow metadata <input>
 --batch-all          Batch: process all items
 --batch-order        Batch: item order newest|oldest (default newest)
 --batch-concurrency  Batch: number of items to process concurrently (default 10)
+--price              Show aggregated cost estimate for all active pipeline steps and exit
 ```
 
 ## Output
@@ -90,7 +91,7 @@ channelURL: 'https://www.youtube.com/channel/...'
 When `--save` is provided, metadata artifacts are written to a timestamped output directory:
 
 ```text
-output/YYYY-MM-DD_HH-MM-SS_title/
+output/YYYY-MM-DD_HH-MM-SS-mmm_title/
   manifest.json
 ```
 
@@ -99,7 +100,7 @@ The saved file uses the same unversioned canonical shape as every other pipeline
 With `--save --markdown`, the same directory also includes:
 
 ```text
-output/YYYY-MM-DD_HH-MM-SS_title/
+output/YYYY-MM-DD_HH-MM-SS-mmm_title/
   manifest.json
   metadata.md
 ```
@@ -187,6 +188,7 @@ CLI commands are split between runtime processing steps and setup/utilities:
 
 ```text
 src/cli/commands/
+  pricing-orchestration/
   process-steps/
     step-0-metadata/
     step-1-download/

@@ -4,12 +4,12 @@
 
 - **Decision Status:** Accepted
 - **Date Created:** 2026-08-03
-- **Date Updated:** 2026-08-07
+- **Date Updated:** 2026-08-13
 - **Verification Status:** Passed
 
 ## Context
 
-AutoShow's hosted speech-to-text registry is a public CLI and benchmark surface. Accepted model arrays drive provider flags, bare-provider defaults, `--all-stt` expansion, resume identities, artifact directories, pricing, benchmark discovery, help, and service tests. The config fragments under `stt-config/` supply the associated billing rules, file and duration limits, and timing estimates.
+AutoShow's hosted speech-to-text registry is a public CLI and benchmark surface. Accepted model arrays drive provider flags, bare-provider defaults, `--all-stt` expansion, resume identities, artifact directories, pricing, benchmark discovery, help, and service tests. The config fragments under `src/cli/commands/setup-and-utilities/models/stt-config/` supply the associated billing rules, file and duration limits, and timing estimates.
 
 A 2026-08-03 curated-link refresh found stale selectors and current batch models across seven existing providers. The refresh made no transcription request. The evidence is summarized in `project/links/stt-model-gap-report-2026-08-03.md`.
 
@@ -280,13 +280,13 @@ All 40 current provider results were compacted and promoted into the five per-ru
 - Related ADR: [ADR-011](ADR-011-refresh-current-hosted-llm-and-ocr-models.md)
 - Related ADR: [ADR-012](ADR-012-add-price-preflight-to-resume.md)
 - Related ADR: [ADR-013](ADR-013-add-refresh-metadata-to-links.md)
-- `project/links/stt-model-gap-report-2026-08-03.md`
-- `project/links/assembly-stt-links.md`
-- `project/links/deepgram-stt-links.md`
-- `project/links/gemini-stt-links.md`
-- `project/links/gladia-stt-links.md`
-- `project/links/soniox-stt-links.md`
-- `project/links/speechmatics-stt-links.md`
+- `src/cli/commands/setup-and-utilities/links/model-links/assembly.json`
+- `src/cli/commands/setup-and-utilities/links/model-links/deepgram.json`
+- `src/cli/commands/setup-and-utilities/links/model-links/gemini.json`
+- `src/cli/commands/setup-and-utilities/links/model-links/gladia.json`
+- `src/cli/commands/setup-and-utilities/links/model-links/soniox.json`
+- `src/cli/commands/setup-and-utilities/links/model-links/speechmatics.json`
+- `src/cli/commands/setup-and-utilities/links/model-links/together.json`
 - `src/cli/commands/setup-and-utilities/models/stt-models.ts`
 - `src/cli/commands/setup-and-utilities/models/stt-config/stt-assemblyai.json`
 - `src/cli/commands/process-steps/step-2-extract/step-2-stt/stt-services/assemblyai/run-assemblyai-stt.ts`

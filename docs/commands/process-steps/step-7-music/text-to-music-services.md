@@ -37,7 +37,7 @@ bun autoshow music --batch
 | Hosted generation | `<prompt-or-text-file>` with `--provider` | Generates music with hosted ElevenLabs, MiniMax, or Gemini APIs and writes MP3 outputs |
 | Lyric-video rendering | `--audio <file>` or `--batch` | Uses local Whisper captions and ffmpeg rendering to write MP4/VTT/SRT outputs |
 
-Do not mix hosted generation flags with lyric-video flags. `--price` is hosted-generation only.
+Do not mix hosted generation flags with lyric-video flags.
 
 ## Environment
 
@@ -238,4 +238,3 @@ Lyric-video `manifest.json` uses the same canonical shape with `command: "music"
 ## Notes
 
 - Do not mix hosted generation flags with lyric-video flags.
-- `--price` is hosted-generation only.

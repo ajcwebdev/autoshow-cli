@@ -174,14 +174,14 @@ MiniMax TTS uses existing/preset voices. Text is split into 2000-character chunk
 | Option | Value |
 |--------|-------|
 | Selector | `--provider groq[=<model>]` |
-| Models | `canopylabs/orpheus-v1-english` |
-| Voice | `--tts-voice <id>`; voices `autumn`, `diana`, `hannah`, `austin`, `daniel`, `troy` |
+| Models | `canopylabs/orpheus-v1-english`, `canopylabs/orpheus-arabic-saudi` |
+| Voice | `--tts-voice <id>`; English voices `autumn`, `diana`, `hannah`, `austin`, `daniel`, `troy` (default `troy`); Saudi Arabic voices `abdullah`, `fahad`, `sultan`, `lulwa`, `noura`, `aisha` (default `abdullah`) |
 
 ```bash
 bun autoshow tts input/examples/tts/1-tts.md --provider groq=canopylabs/orpheus-v1-english --tts-voice troy
 ```
 
-Groq voices are validated against the selected model. Groq Orpheus English defaults to `troy`. Text is split into 200-character chunks.
+Groq voices are validated against the selected model. Groq Orpheus English defaults to `troy` and Groq Orpheus Saudi Arabic defaults to `abdullah`. Text is split into 200-character chunks.
 
 ### Grok
 
@@ -208,7 +208,7 @@ Grok TTS text is split into 2000-character chunks.
 | Models | `voxtral-mini-tts-2603` |
 | Voice source | exactly one of an existing `--tts-voice <id>` or an authorized one-off `--tts-ref-audio <path>` |
 | Saved reference | create separately with `voice save-reference`, then synthesize with its registered provider ID |
-| Dialogue mode | `--tts-dialogue-format screenplay|labeled` plus repeatable `--tts-speaker SPEAKER=path` |
+| Dialogue mode | `--tts-dialogue-format screenplay\|labeled` plus repeatable `--tts-speaker SPEAKER=path` |
 
 ```bash
 bun autoshow tts input/examples/tts/1-tts.md --provider mistral=voxtral-mini-tts-2603 --tts-voice voice_abc123
@@ -298,7 +298,7 @@ Speechify synthesis accepts existing built-in or previously approved custom voic
 | Option | Value |
 |--------|-------|
 | Selector | `--provider hume[=<model>]` |
-| Models | `octave-2` |
+| Models | `octave-1`, `octave-2` |
 | Voice | `--tts-voice <name-or-id>`, default `Male English Actor` |
 | Voice provider | `--hume-tts-voice-provider HUME_AI|CUSTOM_VOICE`, default `HUME_AI` for named voices |
 | API settings | `HUME_API_KEY` |
@@ -338,12 +338,14 @@ Cartesia TTS uses `POST /tts/bytes`, sends the pinned `2026-03-01` `Cartesia-Ver
 
 - ElevenLabs API pricing is 10 cents / 1K characters for `eleven_v3` and `eleven_multilingual_v2`, and 5 cents / 1K characters for `eleven_flash_v2_5`. The two added models use an explicitly provisional 35885 ms / 1K characters timing estimate. Voice creation is priced separately by management and is never folded into synthesis estimates.
 - MiniMax synthesis estimates are 6 cents / 1K characters for `speech-2.8-turbo` and 10 cents / 1K characters for `speech-2.8-hd`.
-- Groq English Orpheus estimates use $22 / 1M characters, stored as a single character rate to avoid double-counting input text.
+- Groq English Orpheus estimates use $22 / 1M characters, and Saudi Arabic Orpheus estimates use $40 / 1M characters, stored as single character rates to avoid double-counting input text.
+- Grok TTS estimates use $15 per 1M characters (1.5 cents / 1K characters).
 - Mistral `voxtral-mini-tts-2603` is priced at $0 input and $16 per 1M output characters, equivalent to 1.6 cents per 1K characters. AutoShow uses a 53926 ms / 1K characters timing heuristic.
 - OpenAI `gpt-4o-mini-tts-2025-12-15` estimates use 60 cents / 1M input characters plus 1200 cents / 1M output characters, equivalent to 1.26 cents per 1K characters in AutoShow's character estimator. `tts-1` and `tts-1-hd` bill per character at $15 and $30 per 1M characters, equivalent to 1.5 and 3 cents per 1K characters.
-- Deepgram's three added Aura 2 voices use 3 cents / 1K characters and an explicitly provisional 39639 ms / 1K characters timing estimate.
+- Gemini `gemini-3.1-flash-tts-preview` estimates use $1 / 1M input characters plus $20 / 1M output characters.
+- Deepgram's Aura 2 voices use 3 cents / 1K characters and an explicitly provisional 39639 ms / 1K characters timing estimate.
 - Speechify Simba estimates use 1 cent / 1K characters for `simba-3.2` and `simba-3.0`, with a 4500 ms / 1K characters timing heuristic. Voice creation is a separate management mutation and is not included in synthesis timing or cost.
-- Hume `octave-2` estimates use the conservative public overage rate of 15 cents / 1K characters.
+- Hume `octave-1` and `octave-2` estimates use the conservative public overage rate of 15 cents / 1K characters.
 - Cartesia Sonic estimates use 3.7375 cents / 1K characters for `sonic-3.5-2026-05-04`, with a 3000 ms / 1K characters timing heuristic.
 
 ## Output

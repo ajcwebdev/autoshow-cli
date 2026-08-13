@@ -4,13 +4,10 @@
 
 - **Decision Status:** Accepted
 - **Date Created:** 2026-06-13
-- **Date Updated:** 2026-07-23
+- **Date Updated:** 2026-08-07
 - **Verification Status:** Passed
 
-<!-- This record synthesizes two error-handling decisions. Both are Accepted and
-     implemented (the production `src/` throw-vocabulary sweep completed 2026-06-13;
-     the test-suite consolidation landed earlier). The two halves are independent and
-     each carries its own state tag. -->
+<!-- This record synthesizes two error-handling decisions. Both are Accepted and implemented (the production `src/` throw-vocabulary sweep completed 2026-06-13; the test-suite consolidation landed earlier). The two halves are independent and each carries its own state tag. -->
 
 ## Context
 
@@ -150,7 +147,7 @@ Both halves are **implemented**; the actions below record the completed work.
 | Register `unhandledRejection` and `uncaughtException` handlers | Test maintainers | Implemented in `test-runner.ts` |
 
 **Verification (for the implementing pass):**
-1. `bun run typecheck` and lint clean — no dangling `new Error` in the swept clusters, no broken imports from the deleted local guards.
+1. `bun run check` and lint clean — no dangling `new Error` in the swept clusters, no broken imports from the deleted local guards.
 2. `grep -rn "LEGACY_ERROR_HINTS" src` returns nothing; `grep -rn "name === 'CLIUsageError'" src` returns only the single fallback inside `isCLIUsageError`; `grep -rn "new Error(" src/cli/commands/process-steps | wc -l` drops toward zero.
 3. `rg -n 'isGeminiTransientUnavailable|isMinimaxTransientUnavailable' test/` → only the registry + importers; `rg -n 'expect\(result\.exitCode\)\.toBe\(0\)' test/test-utils/` → no matches; `rg -n 'unhandledRejection|uncaughtException' test/test-runner.ts` → both present.
 4. Benchmark (text/TTS), comic command, and manifest-schema paths pass; a usage error still exits 2 while an operational failure exits 1 with its hint rendered; transient-skip still produces `test.skip` (not failures) when env vars are absent.

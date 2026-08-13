@@ -19,7 +19,7 @@ Two aggravating properties compounded it. The whole payload was buffered in memo
 
 **The run also left ~3.3 GB of recoverable waste** — `runtime/build` held 1.7 GB of source and object trees that no code ever removed, and `runtime/models/whisper/` retained the `.pt` PyTorch checkpoints (1.6 GB) that were only inputs to the CoreML conversion — with no disk accounting in the summary and no disk or bandwidth guidance in the docs for what is a ~12 GB install.
 
-Why now: the audit produced a reproducible, first-principles explanation for a user-visible failure mode (`docs/report/setup-command-audit.md`), and the download path is a surface governed by [ADR-004](ADR-004-local-lite-toolchain-provisioning.md) with retry semantics governed by [ADR-006](ADR-006-unify-error-handling-vocabulary.md), so the change belongs in the record rather than in a commit message.
+Why now: the audit produced a reproducible, first-principles explanation for a user-visible failure mode (`docs/reports/setup-command-audit.md`), and the download path is a surface governed by [ADR-004](ADR-004-local-lite-toolchain-provisioning.md) with retry semantics governed by [ADR-006](ADR-006-unify-error-handling-vocabulary.md), so the change belongs in the record rather than in a commit message.
 
 ## Options Considered
 
@@ -329,7 +329,7 @@ The production CPU gate and its test hook were removed after measurement. The tr
 
 ## References
 
-- Audit that produced this decision: `docs/report/setup-command-audit.md`
+- Audit that produced this decision: `docs/reports/setup-command-audit.md`
 - Related ADR: [ADR-004](ADR-004-local-lite-toolchain-provisioning.md) — managed toolchain provisioning and the resolver precedence this preserves
 - Related ADR: [ADR-006](ADR-006-unify-error-handling-vocabulary.md) — `withRetry`/`classifyFetchRetry` semantics the new timeout messages depend on
 - `src/cli/commands/setup-and-utilities/setup/setup-download/download.ts`

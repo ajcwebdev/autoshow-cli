@@ -23,6 +23,7 @@ Current CLI help in this repo reports `bun autoshow v0.1.0`; this document uses 
   - [links](#links)
   - [resume](#resume)
   - [benchmark](#benchmark)
+  - [voice](#voice)
   - [help and version](#help-and-version)
 - [Shared Runtime Behavior](#shared-runtime-behavior)
 - [Manifests And Output Layout](#manifests-and-output-layout)
@@ -35,10 +36,10 @@ AutoShow is a Bun-native, pipeline-oriented CLI with one command-first entrypoin
 bun autoshow <command> [input] [flags]
 ```
 
-AutoShow currently exposes 14 named commands, plus built-in `help` and `version`. The named commands are split into two groups:
+AutoShow currently exposes 15 named commands, plus built-in `help` and `version`. The named commands are split into two groups:
 
 - `process-steps`: the ordered pipeline commands, Step 0 through Step 8.
-- `setup-and-utilities`: setup, configuration, provider-doc fetching, resumability, benchmarking, and CLI discovery.
+- `setup-and-utilities`: setup, configuration, provider-doc fetching, resumability, voice management, benchmarking, and CLI discovery.
 
 Use the [command overview](./commands.md) for the full command map and selection guide.
 
@@ -54,8 +55,8 @@ Process-step commands are ordered by pipeline step number. Each section below su
 
 - Primary inputs/providers:
   - media files or URLs such as `.mp3`, `.mp4`, `.wav`, and `.webm`, plus YouTube, Twitch, and TikTok URLs
-  - documents such as `.pdf`, `.epub`, `.mobi`, `.azw3`, `.docx`, `.pptx`, `.xlsx`, `.rtf`, `.csv`
-  - images such as `.png`, `.jpg`, `.jpeg`, `.tif`, `.tiff`, `.webp`, `.bmp`, and `.gif`
+  - documents such as `.pdf`, `.epub`, `.acsm`, `.mobi`, `.azw3`, `.docx`, `.pptx`, `.xlsx`, `.rtf`, `.csv`
+  - images such as `.png`, `.jpg`, `.jpeg`, `.tif`, `.tiff`, `.webp`, `.bmp`, `.gif`, and `.cbz`
   - local `.html` / `.htm`, URL-list `.md` / `.txt`, X Space/post URLs, raw Space IDs, directories, RSS/podcast feeds, and YouTube channels
 - Key outputs:
   - terminal JSON metadata by default, or Markdown frontmatter YAML with `--markdown`
@@ -75,8 +76,8 @@ bun autoshow metadata input/examples/document/1-document.pdf
 
 - Primary inputs/providers:
   - media files or URLs such as `.mp3`, `.mp4`, `.wav`, and `.webm`, plus YouTube, Twitch, TikTok, RSS/podcast, and channel sources
-  - documents such as `.pdf`, `.epub`, `.mobi`, `.azw3`, `.docx`, `.pptx`, `.xlsx`, `.rtf`, `.csv`
-  - images such as `.png`, `.jpg`, `.jpeg`, `.tif`, `.tiff`, `.webp`, `.bmp`, and `.gif`
+  - documents such as `.pdf`, `.epub`, `.acsm`, `.mobi`, `.azw3`, `.docx`, `.pptx`, `.xlsx`, `.rtf`, `.csv`
+  - images such as `.png`, `.jpg`, `.jpeg`, `.tif`, `.tiff`, `.webp`, `.bmp`, `.gif`, and `.cbz`
   - local `.html` / `.htm`, remote HTML/article URLs, URL-list `.md` / `.txt`, X Space/post URLs, raw Space IDs, and directories
 - Key outputs:
   - media runs under `output/YYYY-MM-DD_HH-MM-SS-mmm_title/` with `<audio>.mp3|.m4a|.ogg|.flac` plus `manifest.json`
@@ -97,8 +98,8 @@ bun autoshow download input/examples/document/1-document.pdf
 
 - Primary inputs/providers:
   - media files or URLs such as `.mp3`, `.mp4`, `.wav`, and `.webm` through local or hosted STT, captions, or X Space routes
-  - documents such as `.pdf`, `.epub`, `.mobi`, `.azw3`, `.docx`, `.pptx`, `.xlsx`, `.rtf`, `.csv` through OCR or native extraction
-  - images such as `.png`, `.jpg`, `.jpeg`, `.tif`, `.tiff`, `.webp`, `.bmp`, and `.gif` through OCR
+  - documents such as `.pdf`, `.epub`, `.acsm`, `.mobi`, `.azw3`, `.docx`, `.pptx`, `.xlsx`, `.rtf`, `.csv` through OCR or native extraction
+  - images such as `.png`, `.jpg`, `.jpeg`, `.tif`, `.tiff`, `.webp`, `.bmp`, `.gif`, and `.cbz` through OCR
   - local `.html` / `.htm`, remote HTML/article URLs, URL-list `.md` / `.txt`, X Space/post URLs, raw Space IDs, and directories
 - Key outputs:
   - media STT runs under `output/YYYY-MM-DD_HH-MM-SS_title/` with `transcription.txt`, a raw domain `result.json`, and `manifest.json`; multi-provider results use `providers/<service>-<model>/`
@@ -119,7 +120,7 @@ bun autoshow extract input/examples/document/1-document.pdf --format json
 [`write`](./commands/process-steps/step-3-write/write-text.md) runs the full extraction plus prompt-rendering and JSON LLM-output pipeline.
 
 - Primary inputs/providers:
-  - routed media, document, image, article, and batch inputs accepted by `extract`, including `.mp3`, `.mp4`, `.wav`, `.webm`, `.pdf`, `.epub`, `.docx`, `.png`, `.jpg`, `.html`, `.md`, and `.txt`
+  - routed media, document, image, article, and batch inputs accepted by `extract`, including `.mp3`, `.mp4`, `.wav`, `.webm`, `.pdf`, `.epub`, `.acsm`, `.docx`, `.png`, `.jpg`, `.html`, `.md`, and `.txt`
   - raw local `.md` / `.txt` files and raw text directories when `--text-input` or the project text convention is used
   - project lyric draft inputs under `./output/<name>/text/` with `prompt.md` (or `--prompt-file`) and optional `tracks.md`
   - prompt families for summaries, chapters, marketing, social copy, creative writing, and song lyrics
@@ -368,6 +369,24 @@ Example:
 
 ```bash
 bun autoshow benchmark input/examples/audio/1-audio.mp3 --stt-services whisper
+```
+
+### voice
+
+[`voice`](./commands/process-steps/step-4-tts/voice-management.md) manages durable provider voice registrations separately from speech synthesis.
+
+- Primary inputs/providers:
+  - authored character voice briefs in `input/characters/character-voices.json`
+  - provider catalog discovery, voice design, instant/professional cloning reference audio, and consent records
+  - supported voice providers: ElevenLabs, Hume, MiniMax, Cartesia, Speechify, Mistral, and OpenAI
+- Key outputs:
+  - durable voice registrations and current selections under `input/characters/`
+  - protected voice audition audio, candidate metadata, and consent records in the protected store
+
+Example:
+
+```bash
+bun autoshow voice import hero --provider openai --model gpt-4o-mini-tts-2025-12-15 --voice-id cedar --provenance-ref project:casting
 ```
 
 ### help and version
