@@ -2,12 +2,13 @@ import { join } from 'node:path'
 import { runCapture } from '~/cli/commands/setup-and-utilities/setup/run-complete-setup'
 import { InfraError } from '~/utils/error-handler'
 
-export const QPDF_SOURCE_RECIPE_STAMP = 'qpdf-12.3.2-static-native-libjpeg-turbo-3.2.0-v2\n'
+export const QPDF_SOURCE_RECIPE_STAMP = 'qpdf-12.3.2-static-native-libjpeg-turbo-3.2.0-v3\n'
 
 export const LIBJPEG_TURBO_SOURCE_BUILD_FLAGS = [
   '-DCMAKE_BUILD_TYPE=Release',
   '-DENABLE_SHARED=OFF',
   '-DENABLE_STATIC=ON',
+  '-DWITH_JPEG8=ON',
   '-DWITH_TURBOJPEG=OFF',
   '-DWITH_TOOLS=OFF',
   '-DWITH_TESTS=OFF'

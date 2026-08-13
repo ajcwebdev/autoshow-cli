@@ -532,6 +532,7 @@ describe('managed macOS qpdf setup', () => {
 
     expect(libjpegArgs).toContain('-DENABLE_SHARED=OFF')
     expect(libjpegArgs).toContain('-DENABLE_STATIC=ON')
+    expect(libjpegArgs).toContain('-DWITH_JPEG8=ON')
     expect(libjpegArgs).toContain('-DWITH_TURBOJPEG=OFF')
     expect(libjpegArgs).toContain('-DCMAKE_OSX_DEPLOYMENT_TARGET=15.0')
     expect(qpdfArgs).toContain('-DBUILD_SHARED_LIBS=OFF')
