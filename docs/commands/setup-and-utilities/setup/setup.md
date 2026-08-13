@@ -51,6 +51,7 @@ Notes:
 - At most three downloads transfer at once. Setup starts eight tasks in parallel, and letting all of them pull at once divides the connection rather than finishing anything sooner.
 - Every 30 seconds, any step still running and not already printing its own progress is listed on a single `Still running:` line, so a long source build is distinguishable from a hang without burying the rest of the output.
 - The Setup Step Timings table reports **concurrent wall clock**. Tasks run in parallel and contend, so a step's figure there can be far above what the same step costs alone via `--step`.
+- Every full setup writes a schema-versioned phase artifact under `runtime/setup-performance/`. It records relative build-phase timestamps, compile overlap, task timings, pinned versions, and non-sensitive host facts; use verbose logging to print the detailed phase table.
 - `LLAMA_CACHE`, `HF_HOME`, and `HUGGINGFACE_HUB_CACHE` relocate the respective model caches.
 
 ## Doctor

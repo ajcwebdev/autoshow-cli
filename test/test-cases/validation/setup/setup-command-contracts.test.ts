@@ -33,10 +33,10 @@ import {
   WRITE_STT_PROVIDER_TARGETS,
   STANDALONE_VIDEO_PROVIDER_TARGETS
 } from '~/cli/flags/service-selector-normalization/provider-targets'
-import { collectReclaimableWhisperCoremlArtifacts, downloadKittenTtsModel, runConcurrentSetupTasks, runInherit, shouldReportReclaimedBuildTrees } from '~/cli/commands/setup-and-utilities/setup/run-complete-setup'
+import { collectReclaimableWhisperCoremlArtifacts, downloadKittenTtsModel, getForceRedownloadPaths, runConcurrentSetupTasks, runInherit, shouldReportReclaimedBuildTrees } from '~/cli/commands/setup-and-utilities/setup/run-complete-setup'
 import { formatSetupElapsed, formatSetupHeartbeatLine } from '~/cli/commands/setup-and-utilities/setup/setup-heartbeat'
 import { setCompactSetupMode } from '~/utils/setup-output-mode'
-import { resolveRuntimeToolInfo, ytDlpManagedBinaryPath } from '~/utils/runtime-paths'
+import { qpdfBuildDir, qpdfManagedBinaryPath, qpdfToolDir, resolveRuntimeToolInfo, ytDlpManagedBinaryPath } from '~/utils/runtime-paths'
 import type { AutoshowConfig, DoctorCheck, DoctorProbes, RunResult } from '~/types'
 import {
   REVERB_ASR_REQUIRED_FILES,
@@ -207,6 +207,19 @@ describe('setup command contracts', () => {
     expect(source).toContain('installManagedCalibreMacos')
     expect(source).toContain('installManagedTesseractMacos')
     expect(source).toContain('installManagedQpdfMacos')
+  })
+
+  test('cold all and calibre resets explicitly clear every managed qpdf artifact', async () => {
+    const expected = [qpdfManagedBinaryPath, qpdfBuildDir, qpdfToolDir]
+    const [allPaths, calibrePaths] = await Promise.all([
+      getForceRedownloadPaths('all'),
+      getForceRedownloadPaths('calibre')
+    ])
+
+    for (const path of expected) {
+      expect(allPaths).toContain(path)
+      expect(calibrePaths).toContain(path)
+    }
   })
 
   test('full setup covers doctor-managed local OCR runtimes and Whisper models without CoreML conversion', async () => {

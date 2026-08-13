@@ -4,7 +4,7 @@
 
 - **Decision Status:** Accepted
 - **Date Created:** 2026-06-12
-- **Date Updated:** 2026-07-24
+- **Date Updated:** 2026-08-13
 - **Verification Status:** Passed
 - **Supersession:** Consolidates the separate Docker distribution record, "Docker Image Trade Study for CLI Distribution", merged here on 2026-07-24.
 
@@ -152,6 +152,26 @@ Negative outcomes:
 - Heavy local engines and model weights remain out of scope for the first end-user image. They would materially change build time, image size, and update policy.
 - A run-to-completion CLI image still should not expose ports, define an HTTP `HEALTHCHECK`, or add web-app build arguments. Those sibling-image conventions do not apply to this CLI.
 
+## Prebuilt Follow-up Escalated from ADR-015
+
+- **Recommendation Status:** Recommended for a separate implementation decision; not implemented
+- **Trigger Evidence:** MuPDF and qpdf compile/link medians total 87.673s, 50.0% of a 175.181s cold setup median on the measured arm64 macOS host
+- **Rejected Scheduling Alternative:** A capacity-one gate across active compile/link leaves produced a 169.809s cold median, only 3.1% faster than the ungated baseline and below the predeclared 10% threshold
+
+[ADR-015](ADR-015-make-setup-downloads-resumable-and-setup-reporting-truthful.md) has completed the measurement gate that previously deferred prebuilt work. It retains source builds because rescheduling compilation did not remove enough critical-path time, but the evidence now justifies evaluating project-produced, pinned MuPDF and qpdf prebuilts for supported macOS architectures. This is an escalation into this ADR's provisioning scope, not authorization to add an unreviewed release-download path.
+
+The next material proposal must define all of the following before implementation:
+
+1. Producer CI that builds each artifact from the dependency versions and source references already pinned by setup.
+2. Source/version provenance and reproducible build metadata attached to every arm64 and x64 artifact.
+3. SHA-256 pins or stronger signatures verified by the existing managed-download layer before promotion.
+4. Hosting ownership, release naming, retention guarantees, and an update/rollback cadence.
+5. Platform and architecture coverage, including an explicit source-build fallback whenever no verified prebuilt matches.
+6. Doctor checks that validate the installed binary's version, architecture, launchability, and managed provenance.
+7. License, signing, notarization, quarantine, and redistribution review for each produced artifact.
+
+MuPDF and qpdf are the first scope because their measured compile/link phases alone cross the escalation threshold. FFmpeg remains a possible later candidate—the same phase recorder measured a 64.214s compile median and 51.503s configure median—but it must pass the same provenance and distribution review rather than being bundled into the first proposal without evidence. Source builds remain the accepted fallback until prebuilt production, coverage, and verification are proven.
+
 ## Follow-up Actions
 
 | Action | Owner | Current State |
@@ -161,6 +181,7 @@ Negative outcomes:
 | Define the exact supported `setup --doctor` expectations for the selected image, especially if Calibre is omitted | Setup/runtime maintainers | Done in `docs/docker.md` |
 | Add Docker user docs covering build/run, bind mounts for `input/`, `output/`, optional `runtime/`, `--env-file .env`, and any `--user`/volume ownership notes | Docs | Done in `docs/docker.md` |
 | Decide later whether to publish to a registry and add CI | Maintainers | Deferred |
+| Decide whether to produce pinned MuPDF and qpdf prebuilts for supported macOS architectures | Setup/runtime maintainers | Recommended — ADR-015 measurement gate passed; define producer CI, provenance, integrity, hosting, coverage, fallback, and doctor verification before implementation |
 
 ## Test Plan
 
@@ -176,6 +197,7 @@ Negative outcomes:
 ## References
 
 - Related ADR: [ADR-005](ADR-005-reduce-environment-variable-surface-area.md)
+- Performance escalation and measured source-build evidence: [ADR-015](ADR-015-make-setup-downloads-resumable-and-setup-reporting-truthful.md)
 - Runtime tool resolution: `src/utils/runtime-paths.ts`
 - Current macOS FFmpeg and yt-dlp setup: `src/cli/commands/setup-and-utilities/setup/setup-download/dl-audio/audio.ts`
 - Current macOS MuPDF setup: `src/cli/commands/setup-and-utilities/setup/setup-download/dl-document/document.ts`
