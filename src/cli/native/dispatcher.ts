@@ -12,6 +12,7 @@ import { configureModelPath } from '~/cli/commands/process-steps/step-3-write/wr
 import { parseNativeCli } from './native-parser'
 import { renderCommandHelp, renderRootHelp } from './help-renderer'
 import { NativeUnknownFlagError } from './native-errors'
+import { getUnknownFlagSpellings } from './unknown-flag-spellings'
 import type { CliCommandContext, CliCommandDefinition, CliRootDefinition } from '~/types'
 
 // Commands that only read, resume, or configure existing directories. Accepting --output-dir there
@@ -50,9 +51,9 @@ export const dispatchNativeCli = async (
     return
   }
 
-  const unknownFlags = Object.keys(parsed.rawParsed.unknown)
-  if (!command.allowUnknownFlags && unknownFlags.length > 0) {
-    throw new NativeUnknownFlagError(unknownFlags)
+  const unknownFlagSpellings = getUnknownFlagSpellings(parsed.rawParsed)
+  if (!command.allowUnknownFlags && unknownFlagSpellings.length > 0) {
+    throw new NativeUnknownFlagError(unknownFlagSpellings)
   }
 
   const logLevelFlag = typeof parsed.flags['log-level'] === 'string'

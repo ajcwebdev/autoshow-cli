@@ -95,17 +95,17 @@ test('removed setup command is not registered', async () => {
 test('image command rejects removed imagen-count flag', async () => {
   await expectUsageExit(
     ['image', 'a sunset', '--provider', 'gemini=gemini-3.1-flash-lite-image', '--imagen-count', '2', '--price'],
-    'Unexpected flag: imagenCount'
+    'Unexpected flag: --imagen-count'
   )
 })
 
 test('extract rejects removed STT cache flags', async () => {
-  await expectUsageExit(['extract', STABLE_EXAMPLE_AUDIO_URL, '--refresh-cache'], 'Unexpected flag: refreshCache')
-  await expectUsageExit(['extract', STABLE_EXAMPLE_AUDIO_URL, '--no-cache'], 'Unexpected flag: noCache')
+  await expectUsageExit(['extract', STABLE_EXAMPLE_AUDIO_URL, '--refresh-cache'], 'Unexpected flag: --refresh-cache')
+  await expectUsageExit(['extract', STABLE_EXAMPLE_AUDIO_URL, '--no-cache'], 'Unexpected flag: --no-cache')
 })
 
 test('global cache-dir flag is removed', async () => {
-  await expectUsageExit(['extract', STABLE_EXAMPLE_AUDIO_URL, '--cache-dir=/tmp/autoshow-cache'], 'Unexpected flag: cacheDir')
+  await expectUsageExit(['extract', STABLE_EXAMPLE_AUDIO_URL, '--cache-dir=/tmp/autoshow-cache'], 'Unexpected flag: --cache-dir')
 })
 
 test('benchmark --tts rejects missing TTS run directory', async () => {
@@ -267,7 +267,7 @@ test('benchmark rejects unknown STT services before audio preparation', async ()
 })
 
 test('unknown flag exits 2', async () => {
-  await expectUsageExit(['write', STABLE_EXAMPLE_AUDIO_URL, '--structured'], 'Unexpected flag: structured')
+  await expectUsageExit(['write', STABLE_EXAMPLE_AUDIO_URL, '--structured'], 'Unexpected flag: --structured')
 })
 
 test('video command rejects missing first-class input', async () => {
@@ -275,12 +275,12 @@ test('video command rejects missing first-class input', async () => {
 })
 
 test('hosted-only generation commands reject local-only controls', async () => {
-  await expectUsageExit(['image', 'prompt', '--all-local'], 'Unexpected flag: allLocal')
-  await expectUsageExit(['video', 'prompt', '--all-local'], 'Unexpected flag: allLocal')
-  await expectUsageExit(['music', 'prompt', '--all-local'], 'Unexpected flag: allLocal')
-  await expectUsageExit(['image', 'prompt', '--local-concurrency', '1'], 'Unexpected flag: localConcurrency')
-  await expectUsageExit(['video', 'prompt', '--local-concurrency', '1'], 'Unexpected flag: localConcurrency')
-  await expectUsageExit(['music', 'prompt', '--local-concurrency', '1'], 'Unexpected flag: localConcurrency')
+  await expectUsageExit(['image', 'prompt', '--all-local'], 'Unexpected flag: --all-local')
+  await expectUsageExit(['video', 'prompt', '--all-local'], 'Unexpected flag: --all-local')
+  await expectUsageExit(['music', 'prompt', '--all-local'], 'Unexpected flag: --all-local')
+  await expectUsageExit(['image', 'prompt', '--local-concurrency', '1'], 'Unexpected flag: --local-concurrency')
+  await expectUsageExit(['video', 'prompt', '--local-concurrency', '1'], 'Unexpected flag: --local-concurrency')
+  await expectUsageExit(['music', 'prompt', '--local-concurrency', '1'], 'Unexpected flag: --local-concurrency')
 })
 
 test('video positional image rejects ambiguous explicit media input', async () => {
@@ -320,13 +320,13 @@ test('legacy step-2 command names are not public commands', async () => {
 })
 
 test('extract rejects LLM-only provider flags as unknown flags', async () => {
-  await expectUsageExit(['extract', STABLE_EXAMPLE_AUDIO_URL, '--llama'], 'Unexpected flag: llama')
+  await expectUsageExit(['extract', STABLE_EXAMPLE_AUDIO_URL, '--llama'], 'Unexpected flag: --llama')
 })
 
 test('extract rejects unsupported URL article option flags', async () => {
   await expectUsageExit(
     ['extract', 'https://example.com/article', '--url-include-selector', 'article', '--price'],
-    'Unexpected flag: urlIncludeSelector'
+    'Unexpected flag: --url-include-selector'
   )
 })
 
@@ -340,30 +340,30 @@ test('extract rejects invalid URL article backend names', async () => {
 test('write rejects removed all URL article backend flag', async () => {
   await expectUsageExit(
     ['write', STABLE_EXAMPLE_AUDIO_URL, '--all-url', '--price'],
-    'Unexpected flag: allUrl'
+    'Unexpected flag: --all-url'
   )
 })
 
 test('public commands reject removed provider selector aliases', async () => {
   await expectUsageExit(
     ['write', STABLE_EXAMPLE_AUDIO_URL, '--openai', 'gpt-5.5', '--price'],
-    'Unexpected flag: openai'
+    'Unexpected flag: --openai'
   )
   await expectUsageExit(
     ['extract', 'https://example.com/article', '--url-backend', 'firecrawl', '--price'],
-    'Unexpected flag: urlBackend'
+    'Unexpected flag: --url-backend'
   )
   await expectUsageExit(
     ['image', 'a sunset', '--openai', 'gpt-image-2', '--price'],
-    'Unexpected flag: openai'
+    'Unexpected flag: --openai'
   )
   await expectUsageExit(
     ['video', 'a sunset timelapse', '--gemini-video', 'veo-3.1-fast-generate-preview', '--price'],
-    'Unexpected flag: geminiVideo'
+    'Unexpected flag: --gemini-video'
   )
   await expectUsageExit(
     ['music', 'ambient piano', '--elevenlabs', 'music_v1', '--price'],
-    'Unexpected flag: elevenlabs'
+    'Unexpected flag: --elevenlabs'
   )
 })
 
@@ -453,18 +453,18 @@ test('extract rejects removed DeepInfra PaddleOCR model', async () => {
 test('extract rejects old suffixed provider selector flags', async () => {
   await expectUsageExit(
     ['extract', 'input/examples/document/1-document.pdf', '--glm-ocr', 'glm-ocr', '--price'],
-    'Unexpected flag: glmOcr'
+    'Unexpected flag: --glm-ocr'
   )
   await expectUsageExit(
     ['extract', STABLE_EXAMPLE_AUDIO_URL, '--glm-stt', 'some-model', '--price'],
-    'Unexpected flag: glmStt'
+    'Unexpected flag: --glm-stt'
   )
 })
 
 test('tts rejects removed MiniMax clone flags as unknown flags', async () => {
   await expectUsageExit(
     ['tts', 'input/examples/tts/1-tts.md', '--provider', 'minimax=speech-2.8-turbo', '--minimax-tts-ref-audio', 'input/examples/audio/anthony-voice.mp3', '--price'],
-    'Unexpected flag: minimaxTtsRefAudio'
+    'Unexpected flag: --minimax-tts-ref-audio'
   )
 })
 
@@ -605,22 +605,22 @@ test('music rejects mixed hosted generation and lyric-video modes', async () => 
 test('standalone generation rejects removed output directory alias', async () => {
   await expectUsageExit(
     ['image', 'a sunset', '--provider', 'openai=gpt-image-2', '--out', 'output/image-b', '--price'],
-    'Unexpected flag: out'
+    'Unexpected flag: --out'
   )
 })
 
 test('standalone generation rejects removed pipeline-prefixed option aliases', async () => {
   await expectUsageExit(
     ['image', 'a sunset', '--provider', 'openai=gpt-image-2', '--image-size', '1024x1024', '--price'],
-    'Unexpected flag: imageSize'
+    'Unexpected flag: --image-size'
   )
   await expectUsageExit(
     ['video', 'a sunset timelapse', '--provider', 'gemini=veo-3.1-fast-generate-preview', '--video-mode', 'text', '--price'],
-    'Unexpected flag: videoMode'
+    'Unexpected flag: --video-mode'
   )
   await expectUsageExit(
     ['music', 'ambient piano', '--provider', 'elevenlabs=music_v1', '--music-duration', '20', '--price'],
-    'Unexpected flag: musicDuration'
+    'Unexpected flag: --music-duration'
   )
 })
 
@@ -648,27 +648,27 @@ test('video command rejections name the spellings the video command registers', 
 test('resume rejects provider-named option flags', async () => {
   await expectUsageExit(
     ['resume', 'output/nonexistent', '--elevenlabs-tts-stability', '0.4'],
-    'Unexpected flag: elevenlabsTtsStability'
+    'Unexpected flag: --elevenlabs-tts-stability'
   )
   await expectUsageExit(
     ['resume', 'output/nonexistent', '--minimax-tts-emotion', 'happy'],
-    'Unexpected flag: minimaxTtsEmotion'
+    'Unexpected flag: --minimax-tts-emotion'
   )
   await expectUsageExit(
     ['resume', 'output/nonexistent', '--replicate-video-seed', '1'],
-    'Unexpected flag: replicateVideoSeed'
+    'Unexpected flag: --replicate-video-seed'
   )
   await expectUsageExit(
     ['resume', 'output/nonexistent', '--grok-video-storage-filename', 'clip.mp4'],
-    'Unexpected flag: grokVideoStorageFilename'
+    'Unexpected flag: --grok-video-storage-filename'
   )
   await expectUsageExit(
     ['resume', 'output/nonexistent', '--stt-happyscribe-organization-id', 'org_123'],
-    'Unexpected flag: sttHappyscribeOrganizationId'
+    'Unexpected flag: --stt-happyscribe-organization-id'
   )
   await expectUsageExit(
     ['resume', 'output/nonexistent', '--stt-reverb-verbatimicity', '0.5'],
-    'Unexpected flag: sttReverbVerbatimicity'
+    'Unexpected flag: --stt-reverb-verbatimicity'
   )
 })
 
@@ -683,7 +683,7 @@ test('comic generate-images rejects invalid page selection flags', async () => {
   )
   await expectUsageExit(
     ['comic', 'generate-images', 'input/scripts/02-script/01-co-work-smarter.md','--panel-limit', 'nope', '--price'],
-    'Unexpected flag: panelLimit'
+    'Unexpected flag: --panel-limit'
   )
 })
 
@@ -701,7 +701,7 @@ test('comic generate-images rejects invalid and duplicate image models', async (
 test('comic generate-images rejects removed --panel flag as unknown argument', async () => {
   await expectUsageExit(
     ['comic', 'generate-images', 'input/scripts/02-script/01-co-work-smarter.md','--panel', '1', '--price'],
-    'Unexpected flag: panel'
+    'Unexpected flag: --panel'
   )
 })
 
@@ -829,7 +829,7 @@ test('comic generate-images rejects invalid grid options', async () => {
 test('comic draft-scenes rejects removed --episode flag as unknown argument', async () => {
   await expectUsageExit(
     ['comic', 'draft-scenes', '--episode', 'ep02', '--price'],
-    'Unexpected flag: episode'
+    'Unexpected flag: --episode'
   )
 })
 

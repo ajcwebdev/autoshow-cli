@@ -141,12 +141,12 @@ describe('option resolution contracts', () => {
     })
 
   test('comic generate-images rejects removed option spellings as unknown arguments', () => {
-      expect(() => parseGenerateImagesArgs(['script.md', '--llm-model', 'gpt-5.5'])).toThrow('Unexpected flag: llmModel')
-      expect(() => parseGenerateImagesArgs(['script.md', '--panel-limit', '3'])).toThrow('Unexpected flag: panelLimit')
-      expect(() => parseGenerateImagesArgs(['script.md', '--panel', '2'])).toThrow('Unexpected flag: panel')
-      expect(() => parseGenerateImagesArgs(['script.md', '--chunk', '2'])).toThrow('Unexpected flag: chunk')
-      expect(() => parseGenerateImagesArgs(['script.md', '--sketch-group-size', '8'])).toThrow('Unexpected flag: sketchGroupSize')
-      expect(() => parseGenerateImagesArgs(['script.md', '--sketch-panels', '1-4'])).toThrow('Unexpected flag: sketchPanels')
+      expect(() => parseGenerateImagesArgs(['script.md', '--llm-model', 'gpt-5.5'])).toThrow('Unexpected flag: --llm-model')
+      expect(() => parseGenerateImagesArgs(['script.md', '--panel-limit', '3'])).toThrow('Unexpected flag: --panel-limit')
+      expect(() => parseGenerateImagesArgs(['script.md', '--panel', '2'])).toThrow('Unexpected flag: --panel')
+      expect(() => parseGenerateImagesArgs(['script.md', '--chunk', '2'])).toThrow('Unexpected flag: --chunk')
+      expect(() => parseGenerateImagesArgs(['script.md', '--sketch-group-size', '8'])).toThrow('Unexpected flag: --sketch-group-size')
+      expect(() => parseGenerateImagesArgs(['script.md', '--sketch-panels', '1-4'])).toThrow('Unexpected flag: --sketch-panels')
     })
 
   test('comic generate-images variation args reject duplicates and unknown values', () => {

@@ -6,6 +6,7 @@ NativeMissingFlagValueError,
 NativeNoSuchCommandError,
 NativeUnknownFlagError
 } from './native-errors'
+import { getUnknownFlagSpellings } from './unknown-flag-spellings'
 
 const createCommandMap = (
   commands: readonly CliCommandDefinition[]
@@ -402,9 +403,9 @@ export const parseCommandInvocation = (
     throw new NativeNoSuchCommandError(command.name)
   }
   const parsed = parseCommandArgv(argv.slice(commandIndex), command, globalFlags)
-  const unknownFlags = Object.keys(parsed.rawParsed.unknown)
-  if (!command.allowUnknownFlags && unknownFlags.length > 0) {
-    throw new NativeUnknownFlagError(unknownFlags)
+  const unknownFlagSpellings = getUnknownFlagSpellings(parsed.rawParsed)
+  if (!command.allowUnknownFlags && unknownFlagSpellings.length > 0) {
+    throw new NativeUnknownFlagError(unknownFlagSpellings)
   }
   return parsed
 }

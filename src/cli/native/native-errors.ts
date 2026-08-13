@@ -30,16 +30,18 @@ export class NativeInvalidParametersError extends NativeCliUsageError {
 
 export class NativeUnknownFlagError extends NativeCliUsageError {
   readonly flagNames: string[]
+  readonly flagSpellings: string[]
 
-  constructor(flagNames: string[]) {
+  constructor(flagSpellings: string[]) {
     super(
       'unknown-flag',
-      flagNames.length === 1
-        ? `Unexpected flag: ${flagNames[0]}`
-        : `Unexpected flags: ${flagNames.join(', ')}`
+      flagSpellings.length === 1
+        ? `Unexpected flag: ${flagSpellings[0]}`
+        : `Unexpected flags: ${flagSpellings.join(', ')}`
     )
     this.name = 'NativeUnknownFlagError'
-    this.flagNames = flagNames
+    this.flagNames = flagSpellings
+    this.flagSpellings = flagSpellings
   }
 }
 

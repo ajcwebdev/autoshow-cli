@@ -4,7 +4,7 @@
 
 - **Decision Status:** Accepted
 - **Date Created:** 2026-07-13
-- **Date Updated:** 2026-07-25
+- **Date Updated:** 2026-08-13
 - **Verification Status:** Passed
 
 ## Context
@@ -47,7 +47,7 @@ It does not apply to:
 - The shared price/preflight option slice becomes meaningful for resume dispatch.
 - Price-mode resume exits after reporting estimates and before invoking provider runners.
 - Unsupported or insufficiently resumable manifests should produce usage errors rather than silently estimating the wrong work.
-- `resume` declares no flag named after a provider. Provider-named option flags exit at argv-parse time with `Unexpected flag: <name>`, the same path that already rejects removed pipeline-prefixed aliases on `image`, `video`, and `music`.
+- `resume` declares no flag named after a provider. Provider-named option flags exit at argv-parse time with `Unexpected flag: <typed spelling including leading dashes>`, the same path that already rejects removed pipeline-prefixed aliases on `image`, `video`, and `music`.
 - Resume composes command-specific STT, OCR, URL, LLM, TTS, image, video, or music options plus named shared price and concurrency controls. Provider-named knobs remain outside resume's CLI surface; when a domain cannot reconstruct a tuning value from the canonical provider entry, its option slice resolves that value from `autoshow.config` or the provider default after config merging.
 
 ## Rationale
@@ -114,7 +114,7 @@ Negative outcomes:
   - `resumeFlags` contains every provider-neutral option name exported by the shared and per-step flag modules.
   - `resumeFlags` contains none of the removed provider-named flags.
   - No `resumeFlags` key starts with any provider name derivable from `EXTRACT_PUBLIC_SELECTOR_FLAGS`, `WRITE_LLM_PROVIDER_TARGETS`, or the four `STANDALONE_*_PROVIDER_TARGETS` registries.
-  - `resume` exits `2` with `Unexpected flag: <camelCaseName>` for a representative removed flag from each group.
+  - `resume` exits `2` with the user-typed dashed spelling in `Unexpected flag: <typed spelling including leading dashes>` for a representative removed flag from each group.
 
 Do not run paid provider, smoke, or e2e tests that can call third-party APIs.
 
