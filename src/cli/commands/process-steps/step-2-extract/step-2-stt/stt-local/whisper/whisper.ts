@@ -1,4 +1,5 @@
 import { copyFile, mkdir, readdir, rm } from 'node:fs/promises'
+import { cpus } from 'node:os'
 import { dirname } from 'node:path'
 import { pathExists, runCapture, runInherit, detectPlatform, whisperBinaryPath, whisperBuildDir, whisperLibDir, whisperModelsDir } from '~/cli/commands/setup-and-utilities/setup/run-complete-setup'
 import * as l from '~/utils/app-logger/app-logger'
@@ -9,6 +10,7 @@ import { downloadGithubArchive } from '~/cli/commands/setup-and-utilities/setup/
 import { readDependencyTag } from '~/cli/commands/setup-and-utilities/setup/dependency-metadata'
 import { getWhisperModelIntegrity, resolveWhisperModelMinBytes } from './whisper-model-integrity'
 import { InternalError } from '~/utils/error-handler'
+import { recordSetupPerformancePhase } from '~/cli/commands/setup-and-utilities/setup/setup-performance'
 
 const whisperBaseUrl = 'https://huggingface.co/ggerganov/whisper.cpp/resolve/main'
 const fileExists = async (path: string): Promise<boolean> => {
@@ -74,48 +76,59 @@ export const setupWhisper = async (): Promise<void> => {
   await mkdir(repoDir, { recursive: true })
   await cleanupPath(repoDir)
 
-  await withRetry(
-    { retryClass: 'setup_download', operationName: 'whisper-source' },
-    async () => {
-      await downloadGithubArchive({
-        owner: 'ggerganov',
-        repo: 'whisper.cpp',
-        ref: tag,
-        destination: repoDir,
-        stripComponents: 1,
-        flowId: 'whisper-source'
-      })
-    }
-  )
+  await recordSetupPerformancePhase('whisper.cpp', 'archive-preparation', async () => {
+    await withRetry(
+      { retryClass: 'setup_download', operationName: 'whisper-source' },
+      async () => {
+        await downloadGithubArchive({
+          owner: 'ggerganov',
+          repo: 'whisper.cpp',
+          ref: tag,
+          destination: repoDir,
+          stripComponents: 1,
+          flowId: 'whisper-source'
+        })
+      }
+    )
+  }, { sourceCached: false })
 
   const platform = detectPlatform()
-  if (platform === 'darwin') {
-    await runInherit('cmake', ['-B', 'build', '-DGGML_METAL=ON', '-DBUILD_SHARED_LIBS=OFF', '-DCMAKE_BUILD_TYPE=Release'], { cwd: repoDir })
-  } else {
-    await runInherit('cmake', ['-B', 'build', '-DBUILD_SHARED_LIBS=OFF', '-DCMAKE_BUILD_TYPE=Release'], { cwd: repoDir })
-  }
+  await recordSetupPerformancePhase('whisper.cpp', 'configure-generate', async () => {
+    if (platform === 'darwin') {
+      await runInherit('cmake', ['-B', 'build', '-DGGML_METAL=ON', '-DBUILD_SHARED_LIBS=OFF', '-DCMAKE_BUILD_TYPE=Release'], { cwd: repoDir })
+    } else {
+      await runInherit('cmake', ['-B', 'build', '-DBUILD_SHARED_LIBS=OFF', '-DCMAKE_BUILD_TYPE=Release'], { cwd: repoDir })
+    }
+  })
 
-  await runInherit('cmake', ['--build', 'build', '-j', '--config', 'Release'], { cwd: repoDir })
+  const parallelJobs = Math.max(1, cpus().length)
+  await recordSetupPerformancePhase('whisper.cpp', 'compile-link', async () => {
+    await runInherit('cmake', ['--build', 'build', '-j', '--config', 'Release'], { cwd: repoDir })
+  }, { parallelJobs })
 
-  await mkdir(dirname(whisperBinaryPath), { recursive: true })
-  await mkdir(whisperLibDir, { recursive: true })
+  await recordSetupPerformancePhase('whisper.cpp', 'install-promote', async () => {
+    await mkdir(dirname(whisperBinaryPath), { recursive: true })
+    await mkdir(whisperLibDir, { recursive: true })
 
-  const binCandidateA = `${repoDir}/build/bin/whisper-cli`
-  const binCandidateB = `${repoDir}/build/whisper-cli`
-  const sourceBinary = await fileExists(binCandidateA) ? binCandidateA : binCandidateB
+    const binCandidateA = `${repoDir}/build/bin/whisper-cli`
+    const binCandidateB = `${repoDir}/build/whisper-cli`
+    const sourceBinary = await fileExists(binCandidateA) ? binCandidateA : binCandidateB
 
-  await copyFile(sourceBinary, whisperBinaryPath)
-  await makeExecutable(whisperBinaryPath)
+    await copyFile(sourceBinary, whisperBinaryPath)
+    await makeExecutable(whisperBinaryPath)
 
-  if (platform === 'darwin') {
-    await maybeCopyWhisperDylibs(`${repoDir}/build/src`)
-  }
+    if (platform === 'darwin') {
+      await maybeCopyWhisperDylibs(`${repoDir}/build/src`)
+    }
+  })
 
-  await verifyWhisperBinary()
+  await recordSetupPerformancePhase('whisper.cpp', 'health-check', verifyWhisperBinary)
 
   // The checked-out source and object tree are inputs to the binary we just
   // copied into runtime/bin; keeping them only costs disk.
-  await cleanupPath(repoDir)
+  await recordSetupPerformancePhase('whisper.cpp', 'cleanup', async () => {
+    await cleanupPath(repoDir)
+  })
 
   l.write('success', 'Whisper.cpp installed')
 }
