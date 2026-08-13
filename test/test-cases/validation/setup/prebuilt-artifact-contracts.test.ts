@@ -1,6 +1,6 @@
 import { describe, expect, test } from 'bun:test'
 import { cp, mkdir } from 'node:fs/promises'
-import { join } from 'node:path'
+import { dirname, join } from 'node:path'
 import {
   managedArtifactBuildFlags,
   managedArtifactManifestPath,
@@ -20,6 +20,7 @@ import {
   resolveManagedPrebuiltEligibility,
   validateManagedPrebuiltArchiveEntries
 } from '~/cli/commands/setup-and-utilities/setup/setup-download/prebuilt-artifact'
+import { managedToolchainDistributionLicense } from '~/cli/commands/setup-and-utilities/setup/setup-download/managed-toolchain-distribution-policy'
 import type {
   ManagedArtifactToolId,
   ManagedPrebuiltCandidate,
@@ -65,7 +66,11 @@ const createFixture = async (tool: ManagedArtifactToolId = 'qpdf'): Promise<Preb
   await mkdir(join(packageDir, 'bin'), { recursive: true })
   await mkdir(join(packageDir, 'licenses'), { recursive: true })
   await Bun.write(join(packageDir, binaryPath), `${tool} ${VERSION_BY_TOOL[tool]} signed fixture\n`)
-  await Bun.write(join(packageDir, 'licenses/NOTICE.txt'), `${tool} fixture notice\n`)
+  const license = managedToolchainDistributionLicense(tool)
+  for (const noticePath of license.noticePaths) {
+    await mkdir(dirname(join(packageDir, noticePath)), { recursive: true })
+    await Bun.write(join(packageDir, noticePath), `${tool} ${noticePath} fixture\n`)
+  }
   const payload: ManagedPrebuiltPayloadManifest = {
     schemaVersion: 1,
     tool,
@@ -89,12 +94,7 @@ const createFixture = async (tool: ManagedArtifactToolId = 'qpdf'): Promise<Preb
     },
     payload: [{ path: binaryPath, sha256: await sha256File(join(packageDir, binaryPath)), kind: 'executable' }],
     trust: { signingIdentity: SIGNING_IDENTITY, teamId: TEAM_ID },
-    license: {
-      primaryLicense: tool === 'qpdf' ? 'Apache-2.0' : 'AGPL-3.0-or-later',
-      noticePaths: ['licenses/NOTICE.txt'],
-      correspondingSourceAssets: [`${tool}-${VERSION_BY_TOOL[tool]}-source.tar.gz`],
-      reviewReference: 'fixture-review-1'
-    }
+    license
   }
   const payloadPath = join(packageDir, MANAGED_PREBUILT_PAYLOAD_MANIFEST_NAME)
   const writePayloadBytes = async (): Promise<string> => {
@@ -120,7 +120,7 @@ const createFixture = async (tool: ManagedArtifactToolId = 'qpdf'): Promise<Preb
     notarization: { submissionId: 'fixture-notary-submission', status: 'Accepted' },
     sbom: { name: `${tool}-${payload.version}-${payload.revision}.spdx.json`, sha256: '1'.repeat(64) },
     provenance: { repository: 'ajcwebdev/autoshow-cli', subjectDigest: sha256Bytes(archiveBytes) },
-    licenseReviewReference: payload.license.reviewReference
+    licenseReviewReferences: payload.license.reviewReferences
   }
   const candidate = {} as ManagedPrebuiltCandidate
   const refreshCandidateRelease = (): void => {
@@ -230,6 +230,13 @@ describe('dormant prebuilt schemas and eligible installation', () => {
     const released = await createFixture()
     released.writeRelease(release => { (release as unknown as Record<string, unknown>)['unreviewed'] = true })
     await expect(installFixture(released)).rejects.toThrow('closed-schema validation')
+  })
+
+  test('rejects release and payload review identifiers outside the approved Phase 5 policy', async () => {
+    const fixture = await createFixture()
+    await fixture.writePayload(payload => { payload.license.reviewReferences = ['ADR-004-P5-QPDF-CHANGED'] })
+    fixture.writeRelease(release => { release.licenseReviewReferences = ['ADR-004-P5-QPDF-CHANGED'] })
+    await expect(installFixture(fixture)).rejects.toThrow('license reviews do not match the approved Phase 5 policy')
   })
 
   test('keeps prebuilts dormant without explicitly injected candidate metadata', async () => {

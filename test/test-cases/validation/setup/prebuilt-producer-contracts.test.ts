@@ -1,6 +1,11 @@
 import { describe, expect, test } from 'bun:test'
 import { mkdir } from 'node:fs/promises'
-import { join } from 'node:path'
+import { dirname, join } from 'node:path'
+import {
+  managedToolchainDistributionLicense,
+  managedToolchainDistributionNoticePlan,
+  validateManagedToolchainDistributionLicense
+} from '~/cli/commands/setup-and-utilities/setup/setup-download/managed-toolchain-distribution-policy'
 import {
   exerciseManagedUnsignedSourceFallback,
   findManagedUnsignedArtifactLeaks,
@@ -45,10 +50,15 @@ const createSourceDirectories = async (root: string): Promise<Record<'mupdf' | '
     'libjpeg-turbo': join(root, 'libjpeg-turbo-source')
   }
   await Promise.all(Object.values(sources).map(async path => { await mkdir(path, { recursive: true }) }))
-  await Bun.write(join(sources.mupdf, 'COPYING'), 'MuPDF AGPL fixture\n')
-  await Bun.write(join(sources.qpdf, 'LICENSE.txt'), 'qpdf Apache fixture\n')
-  await Bun.write(join(sources.qpdf, 'NOTICE.md'), 'qpdf notice fixture\n')
-  await Bun.write(join(sources['libjpeg-turbo'], 'LICENSE.md'), 'libjpeg-turbo license fixture\n')
+  for (const tool of ['mupdf', 'qpdf'] as const) {
+    for (const entry of managedToolchainDistributionNoticePlan(tool)) {
+      for (const sourcePath of entry.sourcePaths) {
+        const path = join(sources[entry.source], sourcePath)
+        await mkdir(dirname(path), { recursive: true })
+        await Bun.write(path, `${entry.source} ${sourcePath} fixture\n`)
+      }
+    }
+  }
   return sources
 }
 
@@ -70,14 +80,14 @@ const createBundle = async (
   return { root, outputDir, bundle }
 }
 
-describe('Phase 4 unsigned artifact schemas and packaging', () => {
+describe('Phase 5 approved unsigned artifact schemas and packaging', () => {
   test('uses conspicuous non-release names for both tools and architectures', () => {
     expect(managedUnsignedVerificationArchiveName('mupdf', 'arm64')).toBe('autoshow-unsigned-verification-mupdf-1.27.2-r1-darwin-arm64.zip')
     expect(managedUnsignedVerificationArchiveName('qpdf', 'x64')).toBe('autoshow-unsigned-verification-qpdf-12.3.2-r1-darwin-x64.zip')
     expect(managedUnsignedVerificationArchiveName('qpdf', 'x64')).not.toBe('autoshow-qpdf-12.3.2-r1-darwin-x64.zip')
   })
 
-  test('packages exact pins, preliminary notices, a closed non-promotable manifest, and SPDX 2.3 JSON', async () => {
+  test('packages exact pins, approved notices, a closed non-promotable manifest, and SPDX 2.3 JSON', async () => {
     const fixture = await createBundle()
     const verification = parseManagedUnsignedVerificationManifest(JSON.parse(await Bun.file(fixture.bundle.manifestPath).text()) as unknown)
     expect(verification).toMatchObject({
@@ -91,11 +101,15 @@ describe('Phase 4 unsigned artifact schemas and packaging', () => {
     })
     const sbom = JSON.parse(await Bun.file(fixture.bundle.sbomPath).text()) as Record<string, unknown>
     expect(sbom['spdxVersion']).toBe('SPDX-2.3')
-    expect((sbom['packages'] as Array<{ name: string }>).map(entry => entry.name)).toEqual(['qpdf', 'libjpeg-turbo'])
+    expect((sbom['packages'] as Array<{ name: string, licenseDeclared: string }>).map(entry => ({ name: entry.name, license: entry.licenseDeclared }))).toEqual([
+      { name: 'qpdf', license: 'Apache-2.0' },
+      { name: 'libjpeg-turbo', license: 'IJG AND BSD-3-Clause' }
+    ])
     expect(managedUnsignedVerificationNoticePaths('qpdf')).toEqual([
       'licenses/qpdf-LICENSE.txt',
       'licenses/qpdf-NOTICE.md',
-      'licenses/libjpeg-turbo-LICENSE.md'
+      'licenses/libjpeg-turbo-LICENSE.md',
+      'licenses/DISTRIBUTION-NOTICE.txt'
     ])
   })
 
@@ -113,8 +127,42 @@ describe('Phase 4 unsigned artifact schemas and packaging', () => {
     expect(await process.exited).toBe(0)
     const payload = JSON.parse(await Bun.file(join(extractionDir, 'mupdf', MANAGED_UNSIGNED_PAYLOAD_MANIFEST_NAME)).text()) as Record<string, unknown>
     expect(parseManagedUnsignedVerificationPayloadManifest(payload).trust).toEqual({ developerIdSigned: false, notarized: false })
-    expect(payload['license']).toMatchObject({ reviewStatus: 'pending-phase-5' })
+    expect(payload['license']).toMatchObject({
+      reviewStatus: 'approved',
+      reviewReferences: ['ADR-004-P5-MUPDF-1.27.2-r1'],
+      repositoryReviewer: 'github:ajcwebdev/repository-owner',
+      complianceReviewer: 'github:ajcwebdev/project-compliance-owner',
+      writtenOfferRequired: false
+    })
     expect(await Bun.file(join(extractionDir, 'mupdf', '.autoshow-payload-manifest.json')).exists()).toBe(false)
+  })
+
+  test('rejects missing or changed Phase 5 review identities', async () => {
+    const approved = managedToolchainDistributionLicense('qpdf')
+    expect(validateManagedToolchainDistributionLicense('qpdf', approved)).toBeUndefined()
+    expect(validateManagedToolchainDistributionLicense('qpdf', {
+      ...approved,
+      reviewReferences: ['ADR-004-P5-QPDF-CHANGED']
+    })).toContain('does not match the approved')
+    const missing = { ...approved } as unknown as Record<string, unknown>
+    delete missing['reviewReferences']
+    expect(() => parseManagedUnsignedVerificationPayloadManifest({
+      schemaVersion: 1,
+      artifactKind: 'unsigned-verification',
+      promotable: false,
+      tool: 'qpdf',
+      version: '12.3.2',
+      revision: 'r1',
+      platform: 'darwin',
+      architecture: 'arm64',
+      macosDeploymentTarget: '15.0',
+      sources: [],
+      buildFlags: [],
+      producer,
+      payload: [],
+      trust: { developerIdSigned: false, notarized: false },
+      license: missing
+    })).toThrow('invalid unsigned verification payload manifest')
   })
 })
 
@@ -163,6 +211,20 @@ describe('Phase 4 staged consumer and source fallback', () => {
       fixturePdfPath: join(PROJECT_ROOT, 'test/fixtures/setup/managed-toolchain-smoke.pdf')
     })).rejects.toThrow('archive SHA-256 mismatch')
     expect(await Bun.file(join(destinationDir, 'prior.txt')).text()).toBe('healthy prior install\n')
+  })
+
+  test('fails closed when the outer verification review identifiers drift', async () => {
+    const fixture = await createBundle()
+    const verification = JSON.parse(await Bun.file(fixture.bundle.manifestPath).text()) as Record<string, unknown>
+    verification['licenseReviewReferences'] = ['ADR-004-P5-QPDF-CHANGED']
+    await Bun.write(fixture.bundle.manifestPath, `${JSON.stringify(verification, null, 2)}\n`)
+    await expect(installManagedUnsignedVerificationArtifact({
+      tool: 'qpdf',
+      architecture: 'arm64',
+      artifactsDir: fixture.outputDir,
+      destinationDir: join(fixture.root, 'installed'),
+      fixturePdfPath: join(PROJECT_ROOT, 'test/fixtures/setup/managed-toolchain-smoke.pdf')
+    })).rejects.toThrow('license reviews do not match')
   })
 
   test('proves absent candidates select the independent source callback with a visible warning', async () => {
