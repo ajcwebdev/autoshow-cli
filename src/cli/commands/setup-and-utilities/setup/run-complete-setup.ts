@@ -56,6 +56,8 @@ import {
   mupdfToolDir,
   mutoolManagedBinaryPath,
   qpdfBuildDir,
+  qpdfManagedBinaryPath,
+  qpdfToolDir,
   tesseractBuildDir,
   tesseractManagedBinaryPath,
   tessdataDir,
@@ -64,6 +66,7 @@ import {
 import { listPinnedDependencies } from './dependency-metadata'
 import { getHostedProviderEnvKeysForConfigPrefix, HOSTED_PROVIDER_ENV_CHECKS, logHostedProviderConfiguration } from './hosted-provider-config'
 import { installManagedUv, managedUvxPath, resolveUvCommand } from './setup-download/managed-uv'
+import { beginSetupPerformanceRun, finishSetupPerformanceRun } from './setup-performance'
 
 const RUNTIME = RUNTIME_DIR
 
@@ -522,6 +525,29 @@ const logSetupStepTimings = (): void => {
   })
 }
 
+const logDetailedSetupPerformance = (
+  result: Awaited<ReturnType<typeof finishSetupPerformanceRun>>
+): void => {
+  if (!result || !shouldUseVerboseHumanOutput()) return
+  const rows = result.artifact.phases.map((phase) => ({
+    component: phase.component,
+    phase: phase.phase,
+    durationMs: phase.durationMs,
+    startedOffsetMs: phase.startedOffsetMs,
+    status: phase.ok ? 'ok' : 'failed'
+  }))
+  l.write('debug', 'Setup Build Phase Timings', {
+    category: 'command',
+    humanTable: createHumanTable(rows, ['component', 'phase', 'durationMs', 'startedOffsetMs', 'status']),
+    metadata: {
+      artifactPath: result.artifactPath,
+      topology: result.artifact.topology,
+      compileOverlaps: result.artifact.compileOverlaps,
+      phases: result.artifact.phases
+    }
+  })
+}
+
 const logSetupSummary = async (
   startedAtMs: number,
   providerSummary: HostedProviderConfigurationSummary
@@ -598,62 +624,84 @@ const logSetupSummary = async (
 
 const runFullSetup = async (): Promise<boolean> => {
   const startedAtMs = Date.now()
-  l.write('info', 'Starting complete AutoShow setup')
-  await logPinnedVersions()
-  await ensureRuntimeDirs()
-
-  const providerSummary = logSetupProviderConfiguration('Hosted Provider Configuration')
-
-  await withCompactSetup(async () => {
-    await runConcurrentSetupTasks([
-      { label: 'media tools', run: setupYtDependencies },
-      { label: 'Defuddle', run: setupDefuddleCli },
-      {
-        label: 'Whisper',
-        run: async () => {
-          await setupWhisper()
-          await downloadWhisperModel(defaultWhisperModel)
-          await downloadWhisperModel(defaultMusicWhisperModel)
-        }
-      },
-      {
-        label: 'llama',
-        run: async () => {
-          await runLlamaSetup()
-          if (await checkLlamaInstalled()) {
-            await ensureLlamaModelDownloaded(defaultLlamaModel)
-          } else { l.warn('llama.cpp not available, skipping model download') }
-        }
-      },
-      { label: 'Reverb', run: setupReverb },
-      {
-        label: 'document tools',
-        // The Setup Summary carries an "ACSM authorization" row, so a full setup
-        // does not also warn: someone who never fulfills an .acsm would otherwise
-        // see the same warning forever, which is how a real to-do becomes noise.
-        run: async () => { await setupCalibreDocumentTools({ printAuthorizeHint: false }) }
-      },
-      { label: 'OCR', run: setupTesseractOcr },
-      {
-        label: 'TTS',
-        run: async () => {
-          await setupKittenTts()
-          await downloadKittenTtsModel(DEFAULT_KITTEN_TTS_MODEL)
-        }
-      }
-    ])
+  setupStepTimings.length = 0
+  const dependencyVersions = Object.fromEntries(
+    (await listPinnedDependencies()).map(({ name, version }) => [name, version])
+  )
+  beginSetupPerformanceRun({
+    topology: 'ungated-source-builds-v1',
+    dependencyVersions
   })
+  let healthy = false
 
-  await validateBinary('whisper-cli', whisperBinaryPath, ['--help'])
-  await validateBinary('llama-server', llamaBinaryPath, ['--version'])
+  try {
+    l.write('info', 'Starting complete AutoShow setup')
+    await logPinnedVersions()
+    await ensureRuntimeDirs()
 
-  await pruneBuildTrees()
-  await logReclaimableWhisperCoremlArtifacts()
-  logSetupStepTimings()
-  const healthy = await logSetupSummary(startedAtMs, providerSummary)
+    const providerSummary = logSetupProviderConfiguration('Hosted Provider Configuration')
 
-  l.write('info', 'You can now run: bun autoshow "https://www.youtube.com/watch?v=u1-WHqATSQU"')
-  return healthy
+    await withCompactSetup(async () => {
+      await runConcurrentSetupTasks([
+        { label: 'media tools', run: setupYtDependencies },
+        { label: 'Defuddle', run: setupDefuddleCli },
+        {
+          label: 'Whisper',
+          run: async () => {
+            await setupWhisper()
+            await downloadWhisperModel(defaultWhisperModel)
+            await downloadWhisperModel(defaultMusicWhisperModel)
+          }
+        },
+        {
+          label: 'llama',
+          run: async () => {
+            await runLlamaSetup()
+            if (await checkLlamaInstalled()) {
+              await ensureLlamaModelDownloaded(defaultLlamaModel)
+            } else { l.warn('llama.cpp not available, skipping model download') }
+          }
+        },
+        { label: 'Reverb', run: setupReverb },
+        {
+          label: 'document tools',
+          // The Setup Summary carries an "ACSM authorization" row, so a full setup
+          // does not also warn: someone who never fulfills an .acsm would otherwise
+          // see the same warning forever, which is how a real to-do becomes noise.
+          run: async () => { await setupCalibreDocumentTools({ printAuthorizeHint: false }) }
+        },
+        { label: 'OCR', run: setupTesseractOcr },
+        {
+          label: 'TTS',
+          run: async () => {
+            await setupKittenTts()
+            await downloadKittenTtsModel(DEFAULT_KITTEN_TTS_MODEL)
+          }
+        }
+      ])
+    })
+
+    await validateBinary('whisper-cli', whisperBinaryPath, ['--help'])
+    await validateBinary('llama-server', llamaBinaryPath, ['--version'])
+
+    await pruneBuildTrees()
+    await logReclaimableWhisperCoremlArtifacts()
+    logSetupStepTimings()
+    healthy = await logSetupSummary(startedAtMs, providerSummary)
+
+    l.write('info', 'You can now run: bun autoshow "https://www.youtube.com/watch?v=u1-WHqATSQU"')
+    return healthy
+  } finally {
+    try {
+      const performanceResult = await finishSetupPerformanceRun({
+        healthy,
+        stepTimings: getSetupStepTimings()
+      })
+      logDetailedSetupPerformance(performanceResult)
+    } catch (error) {
+      l.warn(`Could not write setup performance artifact: ${error instanceof Error ? error.message : String(error)}`)
+    }
+  }
 }
 
 export const runCompleteSetup = async (): Promise<boolean> => await runFullSetup()
@@ -750,7 +798,7 @@ const logBenchmarkResults = (stepLabel: string, durations: number[]): void => {
   })
 }
 
-const getForceRedownloadPaths = async (step: SetupStepId): Promise<readonly string[]> => {
+export const getForceRedownloadPaths = async (step: SetupStepId): Promise<readonly string[]> => {
   const whisperModelPath = `${whisperModelsDir}/ggml-${defaultWhisperModel}.bin`
   const lyricsWhisperModelPath = `${whisperModelsDir}/ggml-${defaultMusicWhisperModel}.bin`
   // The weights live in llama.cpp's own cache outside runtime/, so clearing
@@ -799,11 +847,13 @@ const getForceRedownloadPaths = async (step: SetupStepId): Promise<readonly stri
       tesseractManagedBinaryPath,
       tesseractBuildDir,
       tessdataDir,
+      qpdfManagedBinaryPath,
       qpdfBuildDir,
+      qpdfToolDir,
       RUNTIME_TOOLS_DIR
     ]
     case 'yt-dlp': return [ytDlpManagedBinaryPath, ffmpegManagedBinaryPath, ffprobeManagedBinaryPath, ffmpegBuildDir, ffmpegToolDir, lameBuildDir, lameToolDir]
-    case 'calibre': return [mutoolManagedBinaryPath, mupdfBuildDir, mupdfToolDir, ebookConvertManagedBinaryPath, calibreToolDir, acsmFulfillManagedBinaryPath, acsmCalibrePluginToolDir]
+    case 'calibre': return [mutoolManagedBinaryPath, mupdfBuildDir, mupdfToolDir, qpdfManagedBinaryPath, qpdfBuildDir, qpdfToolDir, ebookConvertManagedBinaryPath, calibreToolDir, acsmFulfillManagedBinaryPath, acsmCalibrePluginToolDir]
     case 'acsm': return [acsmFulfillManagedBinaryPath, acsmCalibrePluginToolDir]
     case 'acsm-authorize': return []
     case 'tts': return [kittenTtsUvEnvDir, ...kittenModelPaths]

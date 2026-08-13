@@ -5,6 +5,7 @@ import { readDependencyUrlAndSha256 } from '~/cli/commands/setup-and-utilities/s
 import { pathExists, runCapture, runInherit } from '~/cli/commands/setup-and-utilities/setup/run-complete-setup'
 import { downloadFile } from '~/cli/commands/setup-and-utilities/setup/setup-download/download'
 import { installDmgApp } from '~/cli/commands/setup-and-utilities/setup/setup-download/dmg'
+import { recordSetupPerformancePhase } from '~/cli/commands/setup-and-utilities/setup/setup-performance'
 import type { DownloadFlowId } from '~/types'
 import { InfraError } from '~/utils/error-handler'
 import { makeExecutable } from '~/utils/filesystem'
@@ -42,7 +43,7 @@ import {
   ytDlpManagedBinaryPath
 } from '~/utils/runtime-paths'
 
-const parallelJobs = (): string => String(Math.max(1, Math.min(cpus().length, 8)))
+export const resolveSetupSourceBuildParallelJobs = (): number => Math.max(1, Math.min(cpus().length, 8))
 const leptonicaCmakeConfigDir = join(leptonicaToolDir, 'lib/cmake/leptonica')
 const leptonicaCmakeConfigPath = join(leptonicaCmakeConfigDir, 'LeptonicaConfig.cmake')
 const leptonicaManagedBuildStampPath = join(leptonicaToolDir, '.autoshow-managed-build')
@@ -124,18 +125,21 @@ const downloadSource = async (
   const { url, sha256 } = await readDependencyUrlAndSha256(name)
   // A build that fails after extraction used to re-download the tarball on every
   // retry, because recreateDir wiped the already-verified source tree first.
-  if (await hasExtractedSource(buildDir, sha256)) return
+  const sourceCached = await hasExtractedSource(buildDir, sha256)
+  await recordSetupPerformancePhase(name, 'archive-preparation', async () => {
+    if (sourceCached) return
 
-  await recreateDir(buildDir)
-  await downloadFile({
-    url,
-    sha256,
-    destination: buildDir,
-    flowId,
-    mode,
-    stripComponents: 1
-  })
-  await Bun.write(sourceStampPath(buildDir), `${sha256}\n`)
+    await recreateDir(buildDir)
+    await downloadFile({
+      url,
+      sha256,
+      destination: buildDir,
+      flowId,
+      mode,
+      stripComponents: 1
+    })
+    await Bun.write(sourceStampPath(buildDir), `${sha256}\n`)
+  }, { sourceCached })
 }
 
 // Source and object trees are inputs to the installed artifacts under
@@ -163,17 +167,26 @@ export const installManagedLameMacos = async (): Promise<void> => {
   if (await pathExists(lameStaticLibPath)) return
   await downloadSource('lame', lameBuildDir, 'lame-source', 'tar-gz')
   await recreateDir(lameToolDir)
-  await runInherit('./configure', [
-    `--prefix=${lameToolDir}`,
-    '--disable-shared',
-    '--enable-static',
-    '--disable-frontend',
-    '--disable-gtktest',
-    '--disable-debug'
-  ], { cwd: lameBuildDir })
-  await runInherit('make', ['-j', parallelJobs()], { cwd: lameBuildDir })
-  await runInherit('make', ['install'], { cwd: lameBuildDir })
-  await discardBuildTree(lameBuildDir)
+  await recordSetupPerformancePhase('lame', 'configure-generate', async () => {
+    await runInherit('./configure', [
+      `--prefix=${lameToolDir}`,
+      '--disable-shared',
+      '--enable-static',
+      '--disable-frontend',
+      '--disable-gtktest',
+      '--disable-debug'
+    ], { cwd: lameBuildDir })
+  })
+  const jobs = resolveSetupSourceBuildParallelJobs()
+  await recordSetupPerformancePhase('lame', 'compile-link', async () => {
+    await runInherit('make', ['-j', String(jobs)], { cwd: lameBuildDir })
+  }, { parallelJobs: jobs })
+  await recordSetupPerformancePhase('lame', 'install-promote', async () => {
+    await runInherit('make', ['install'], { cwd: lameBuildDir })
+  })
+  await recordSetupPerformancePhase('lame', 'cleanup', async () => {
+    await discardBuildTree(lameBuildDir)
+  })
 }
 
 const ffmpegManagedBuildStampPath = join(ffmpegToolDir, '.autoshow-managed-build')
@@ -190,42 +203,68 @@ export const installManagedFfmpegMacos = async (): Promise<void> => {
   await installManagedLameMacos()
   await downloadSource('ffmpeg', ffmpegBuildDir, 'ffmpeg-source', 'tar-xz')
   await recreateDir(ffmpegToolDir)
-  await runInherit('./configure', [
-    `--prefix=${ffmpegToolDir}`,
-    '--disable-doc',
-    '--disable-debug',
-    '--enable-libmp3lame',
-    `--extra-cflags=-I${join(lameToolDir, 'include')}`,
-    `--extra-ldflags=-L${join(lameToolDir, 'lib')}`
-  ], { cwd: ffmpegBuildDir })
-  await runInherit('make', ['-j', parallelJobs()], { cwd: ffmpegBuildDir })
-  await runInherit('make', ['install'], { cwd: ffmpegBuildDir })
-  const encoders = await runCapture(ffmpegInstalledBinaryPath, ['-hide_banner', '-encoders'], { allowFailure: true })
-  if (encoders.exitCode !== 0 || !encoders.stdout.includes('libmp3lame')) {
-    throw InfraError('Managed ffmpeg build is missing the libmp3lame encoder', { stage: 'setup:macos-tools' })
-  }
-  await Bun.write(ffmpegManagedBuildStampPath, ffmpegManagedBuildStamp)
-  await createSymlinkShim(ffmpegInstalledBinaryPath, ffmpegManagedBinaryPath)
-  await createSymlinkShim(ffprobeInstalledBinaryPath, ffprobeManagedBinaryPath)
-  await discardBuildTree(ffmpegBuildDir)
+  await recordSetupPerformancePhase('ffmpeg', 'configure-generate', async () => {
+    await runInherit('./configure', [
+      `--prefix=${ffmpegToolDir}`,
+      '--disable-doc',
+      '--disable-debug',
+      '--enable-libmp3lame',
+      `--extra-cflags=-I${join(lameToolDir, 'include')}`,
+      `--extra-ldflags=-L${join(lameToolDir, 'lib')}`
+    ], { cwd: ffmpegBuildDir })
+  })
+  const jobs = resolveSetupSourceBuildParallelJobs()
+  await recordSetupPerformancePhase('ffmpeg', 'compile-link', async () => {
+    await runInherit('make', ['-j', String(jobs)], { cwd: ffmpegBuildDir })
+  }, { parallelJobs: jobs })
+  await recordSetupPerformancePhase('ffmpeg', 'install-promote', async () => {
+    await runInherit('make', ['install'], { cwd: ffmpegBuildDir })
+    await createSymlinkShim(ffmpegInstalledBinaryPath, ffmpegManagedBinaryPath)
+    await createSymlinkShim(ffprobeInstalledBinaryPath, ffprobeManagedBinaryPath)
+  })
+  await recordSetupPerformancePhase('ffmpeg', 'health-check', async () => {
+    const encoders = await runCapture(ffmpegInstalledBinaryPath, ['-hide_banner', '-encoders'], { allowFailure: true })
+    if (encoders.exitCode !== 0 || !encoders.stdout.includes('libmp3lame')) {
+      throw InfraError('Managed ffmpeg build is missing the libmp3lame encoder', { stage: 'setup:macos-tools' })
+    }
+    await Bun.write(ffmpegManagedBuildStampPath, ffmpegManagedBuildStamp)
+  })
+  await recordSetupPerformancePhase('ffmpeg', 'cleanup', async () => {
+    await discardBuildTree(ffmpegBuildDir)
+  })
 }
 
 export const installManagedMupdfMacos = async (): Promise<void> => {
   if (await pathExists(mutoolManagedBinaryPath)) return
   await downloadSource('mupdf', mupdfBuildDir, 'mupdf-source', 'tar-gz')
-  await recreateDir(join(mupdfToolDir, 'bin'))
-  await runInherit('make', [
-    '-j', parallelJobs(),
-    'build=release',
-    'HAVE_X11=no',
-    'HAVE_GLUT=no',
-    'HAVE_OBJCOPY=no'
-  ], { cwd: mupdfBuildDir })
-  const builtMutool = join(mupdfBuildDir, 'build/release/mutool')
-  await cp(builtMutool, mutoolInstalledBinaryPath)
-  await makeExecutable(mutoolInstalledBinaryPath)
-  await createSymlinkShim(mutoolInstalledBinaryPath, mutoolManagedBinaryPath)
-  await discardBuildTree(mupdfBuildDir)
+  await recordSetupPerformancePhase('mupdf', 'configure-generate', async () => {
+    await recreateDir(join(mupdfToolDir, 'bin'))
+  })
+  const jobs = resolveSetupSourceBuildParallelJobs()
+  await recordSetupPerformancePhase('mupdf', 'compile-link', async () => {
+    await runInherit('make', [
+      '-j', String(jobs),
+      'build=release',
+      'HAVE_X11=no',
+      'HAVE_GLUT=no',
+      'HAVE_OBJCOPY=no'
+    ], { cwd: mupdfBuildDir })
+  }, { parallelJobs: jobs })
+  await recordSetupPerformancePhase('mupdf', 'install-promote', async () => {
+    const builtMutool = join(mupdfBuildDir, 'build/release/mutool')
+    await cp(builtMutool, mutoolInstalledBinaryPath)
+    await makeExecutable(mutoolInstalledBinaryPath)
+    await createSymlinkShim(mutoolInstalledBinaryPath, mutoolManagedBinaryPath)
+  })
+  await recordSetupPerformancePhase('mupdf', 'health-check', async () => {
+    const version = await runCapture(mutoolManagedBinaryPath, ['-v'], { allowFailure: true })
+    if (version.exitCode !== 0 && version.exitCode !== 1) {
+      throw InfraError(`Managed mutool failed with exit ${version.exitCode}`, { stage: 'setup:macos-tools' })
+    }
+  })
+  await recordSetupPerformancePhase('mupdf', 'cleanup', async () => {
+    await discardBuildTree(mupdfBuildDir)
+  })
 }
 
 export const installManagedCalibreMacos = async (): Promise<void> => {
@@ -285,42 +324,60 @@ export const installManagedTesseractMacos = async (): Promise<void> => {
     await downloadSource('leptonica', leptonicaBuildDir, 'leptonica-source', 'tar-gz')
     await recreateDir(leptonicaToolDir)
     const leptonicaCmakeBuildDir = join(leptonicaBuildDir, 'build')
-    await runInherit('cmake', [
-      '-S', leptonicaBuildDir,
-      '-B', leptonicaCmakeBuildDir,
-      `-DCMAKE_INSTALL_PREFIX=${leptonicaToolDir}`,
-      '-DENABLE_WEBP=OFF',
-      '-DENABLE_OPENJPEG=OFF',
-      '-DBUILD_PROG=OFF',
-      '-DSW_BUILD=OFF'
-    ], { env: managedPathEnv() })
-    await runInherit('cmake', ['--build', leptonicaCmakeBuildDir, '--parallel', parallelJobs()], { env: managedPathEnv() })
-    await runInherit('cmake', ['--install', leptonicaCmakeBuildDir], { env: managedPathEnv() })
-    await Bun.write(leptonicaManagedBuildStampPath, 'leptonica-cmake-v1\n')
-    await discardBuildTree(leptonicaBuildDir)
+    await recordSetupPerformancePhase('leptonica', 'configure-generate', async () => {
+      await runInherit('cmake', [
+        '-S', leptonicaBuildDir,
+        '-B', leptonicaCmakeBuildDir,
+        `-DCMAKE_INSTALL_PREFIX=${leptonicaToolDir}`,
+        '-DENABLE_WEBP=OFF',
+        '-DENABLE_OPENJPEG=OFF',
+        '-DBUILD_PROG=OFF',
+        '-DSW_BUILD=OFF'
+      ], { env: managedPathEnv() })
+    })
+    const jobs = resolveSetupSourceBuildParallelJobs()
+    await recordSetupPerformancePhase('leptonica', 'compile-link', async () => {
+      await runInherit('cmake', ['--build', leptonicaCmakeBuildDir, '--parallel', String(jobs)], { env: managedPathEnv() })
+    }, { parallelJobs: jobs })
+    await recordSetupPerformancePhase('leptonica', 'install-promote', async () => {
+      await runInherit('cmake', ['--install', leptonicaCmakeBuildDir], { env: managedPathEnv() })
+      await Bun.write(leptonicaManagedBuildStampPath, 'leptonica-cmake-v1\n')
+    })
+    await recordSetupPerformancePhase('leptonica', 'cleanup', async () => {
+      await discardBuildTree(leptonicaBuildDir)
+    })
   }
 
   if (!await pathExists(tesseractInstalledBinaryPath)) {
     await downloadSource('tesseract', tesseractBuildDir, 'tesseract-source', 'tar-gz')
     await recreateDir(tesseractToolDir)
     const tesseractCmakeBuildDir = join(tesseractBuildDir, 'build')
-    await runInherit('cmake', [
-      '-S', tesseractBuildDir,
-      '-B', tesseractCmakeBuildDir,
-      `-DCMAKE_INSTALL_PREFIX=${tesseractToolDir}`,
-      `-DLeptonica_DIR=${leptonicaCmakeConfigDir}`,
-      '-DBUILD_TESTS=OFF',
-      '-DBUILD_TRAINING_TOOLS=OFF',
-      '-DOPENMP_BUILD=OFF',
-      '-DGRAPHICS_DISABLED=ON'
-    ], { env: managedPathEnv([join(leptonicaToolDir, 'bin')]) })
-    await runInherit('cmake', ['--build', tesseractCmakeBuildDir, '--parallel', parallelJobs()], {
-      env: managedPathEnv([join(leptonicaToolDir, 'bin')])
+    await recordSetupPerformancePhase('tesseract', 'configure-generate', async () => {
+      await runInherit('cmake', [
+        '-S', tesseractBuildDir,
+        '-B', tesseractCmakeBuildDir,
+        `-DCMAKE_INSTALL_PREFIX=${tesseractToolDir}`,
+        `-DLeptonica_DIR=${leptonicaCmakeConfigDir}`,
+        '-DBUILD_TESTS=OFF',
+        '-DBUILD_TRAINING_TOOLS=OFF',
+        '-DOPENMP_BUILD=OFF',
+        '-DGRAPHICS_DISABLED=ON'
+      ], { env: managedPathEnv([join(leptonicaToolDir, 'bin')]) })
     })
-    await runInherit('cmake', ['--install', tesseractCmakeBuildDir], {
-      env: managedPathEnv([join(leptonicaToolDir, 'bin')])
+    const jobs = resolveSetupSourceBuildParallelJobs()
+    await recordSetupPerformancePhase('tesseract', 'compile-link', async () => {
+      await runInherit('cmake', ['--build', tesseractCmakeBuildDir, '--parallel', String(jobs)], {
+        env: managedPathEnv([join(leptonicaToolDir, 'bin')])
+      })
+    }, { parallelJobs: jobs })
+    await recordSetupPerformancePhase('tesseract', 'install-promote', async () => {
+      await runInherit('cmake', ['--install', tesseractCmakeBuildDir], {
+        env: managedPathEnv([join(leptonicaToolDir, 'bin')])
+      })
     })
-    await discardBuildTree(tesseractBuildDir)
+    await recordSetupPerformancePhase('tesseract', 'cleanup', async () => {
+      await discardBuildTree(tesseractBuildDir)
+    })
   }
 
   await installManagedTessdataEng()
@@ -336,24 +393,36 @@ export const installManagedQpdfMacos = async (): Promise<void> => {
     await downloadSource('qpdf', qpdfBuildDir, 'qpdf-source', 'tar-gz')
     await recreateDir(qpdfToolDir)
     const cmakeBuildDir = join(qpdfBuildDir, 'build')
-    await runInherit('cmake', [
-      '-S', qpdfBuildDir,
-      '-B', cmakeBuildDir,
-      `-DCMAKE_INSTALL_PREFIX=${qpdfToolDir}`,
-      '-DBUILD_TESTING=OFF'
-    ], { env: managedPathEnv() })
-    await runInherit('cmake', ['--build', cmakeBuildDir, '--parallel', parallelJobs()], { env: managedPathEnv() })
-    await runInherit('cmake', ['--install', cmakeBuildDir], { env: managedPathEnv() })
+    await recordSetupPerformancePhase('qpdf', 'configure-generate', async () => {
+      await runInherit('cmake', [
+        '-S', qpdfBuildDir,
+        '-B', cmakeBuildDir,
+        `-DCMAKE_INSTALL_PREFIX=${qpdfToolDir}`,
+        '-DBUILD_TESTING=OFF'
+      ], { env: managedPathEnv() })
+    })
+    const jobs = resolveSetupSourceBuildParallelJobs()
+    await recordSetupPerformancePhase('qpdf', 'compile-link', async () => {
+      await runInherit('cmake', ['--build', cmakeBuildDir, '--parallel', String(jobs)], { env: managedPathEnv() })
+    }, { parallelJobs: jobs })
+    await recordSetupPerformancePhase('qpdf', 'install-promote', async () => {
+      await runInherit('cmake', ['--install', cmakeBuildDir], { env: managedPathEnv() })
+    })
   }
 
-  await rm(qpdfManagedBinaryPath, { recursive: true, force: true })
-  await writeExecutableScript(qpdfManagedBinaryPath, buildManagedQpdfWrapperScript())
-  const version = await runCapture(qpdfManagedBinaryPath, ['--version'], { allowFailure: true })
-  if (version.exitCode !== 0) {
-    const failure = version.stderr || version.stdout || `Managed qpdf wrapper failed with exit ${version.exitCode}`
-    await cleanupFailedManagedQpdfInstall()
-    throw InfraError(failure, { stage: 'setup:macos-tools' })
-  }
-
-  await discardBuildTree(qpdfBuildDir)
+  await recordSetupPerformancePhase('qpdf', 'install-promote', async () => {
+    await rm(qpdfManagedBinaryPath, { recursive: true, force: true })
+    await writeExecutableScript(qpdfManagedBinaryPath, buildManagedQpdfWrapperScript())
+  }, { wrapper: true })
+  await recordSetupPerformancePhase('qpdf', 'health-check', async () => {
+    const version = await runCapture(qpdfManagedBinaryPath, ['--version'], { allowFailure: true })
+    if (version.exitCode !== 0) {
+      const failure = version.stderr || version.stdout || `Managed qpdf wrapper failed with exit ${version.exitCode}`
+      await cleanupFailedManagedQpdfInstall()
+      throw InfraError(failure, { stage: 'setup:macos-tools' })
+    }
+  })
+  await recordSetupPerformancePhase('qpdf', 'cleanup', async () => {
+    await discardBuildTree(qpdfBuildDir)
+  })
 }

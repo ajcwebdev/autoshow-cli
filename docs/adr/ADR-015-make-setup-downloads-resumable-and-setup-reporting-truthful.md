@@ -4,7 +4,7 @@
 
 - **Decision Status:** Accepted
 - **Date Created:** 2026-07-24
-- **Date Updated:** 2026-08-12
+- **Date Updated:** 2026-08-13
 - **Verification Status:** Passed
 
 ## Context
@@ -265,90 +265,52 @@ steady-state warm figure was captured in this pass.
 - Third-pass contracts in `native-setup-download-contracts.test.ts`: three concurrent downloads against a capacity of 2 leave exactly one queued; a failed transfer releases its slot rather than leaking it; a second download's transfer begins while the first is still verifying its checksum, proving the slot is released before the hash.
 - Third-pass contracts in `setup-command-contracts.test.ts`: the heartbeat renders every quiet task on one line, stays silent when all tasks logged recently, and omits only the task that logged recently; `formatSetupElapsed` reports minutes past 60s; `shouldReportReclaimedBuildTrees(8192)` is false; and the calibre document chain asserts serial ordering with no concurrent group.
 - Observed end to end (third pass): cold install 330s, warm re-run 14.2s (cold-cache, not steady state), `runtime/` 9.0 GiB, exit 0 on both. The heartbeat emitted 11 aggregate lines over 5m 30s against ~40 per-task lines before, and no Reclaimed Build Trees table appeared on either run — correct, since each installer now drops its own tree and `runtime/build` was empty. Full numbers in the third-pass note. (An earlier revision of this section claimed no end-to-end run had ever been performed, which contradicted the observed figures above; those runs belong to the first and second passes.)
+- Fourth-pass verification: `bun run check` passes; `bun t --price` checks 165 mapped commands with 0 failures and makes no provider calls; `bun test test/test-cases/validation/setup/` passes 82 tests; and `bun autoshow setup --doctor` exits 0 with every managed runtime and model healthy except the expected optional ACSM authorization action.
+- Fourth-pass contracts: the performance artifact test covers schema version, structured phases, actual compile overlap, environment facts, local-file persistence, and exclusion of home paths and URLs; the reset regression test requires both `all` and `calibre` force paths to name the qpdf wrapper, build tree, and tool tree.
+- Observed end to end (fourth pass): three accepted ungated cold runs have a 175.2s median; the selected warm sequence is 11.2s post-install cold-cache followed by a 1.639s steady-state median; three capacity-one CPU-gate cold runs have a 169.8s median and therefore miss the 10% acceptance threshold. Every measured setup run reported healthy local tools and models and exited 0.
 
-## Remaining Work Recommendation: Measure CPU Phases Before Changing Build Topology
+## Implementation Note — fourth pass (2026-08-13)
 
-This subordinate mini-ADR defines how to finish the setup performance investigation without reopening the completed resumability, reporting, or network-admission decisions.
+This pass completes the setup-performance recommendation with structured phase attribution, comparable cold and warm baselines, and a controlled CPU-admission experiment. The result keeps the existing ungated source-build topology: a capacity-one CPU-heavy gate improved the cold median by only 3.1%, below the predeclared 10% acceptance threshold, so the experimental gate was removed. Compilation remains the dominant removable cost, which triggers the prebuilt-distribution follow-up now recorded in [ADR-004](ADR-004-local-lite-toolchain-provisioning.md).
 
-- **Recommendation Status:** Recommended, pending measurement and implementation
-- **Primary Question:** Whether qpdf/mupdf compilation, their effective parallel width, or overlap with Whisper CoreML conversion is responsible for the cold-install critical path
-- **Decision Gate:** Do not parallelize source builds or adopt prebuilt binaries from the existing single-run evidence
+- **Recommendation Status:** Completed
+- **Selected Topology:** Existing serial mupdf→qpdf document chain with compile/link work ungated across independent setup tasks
+- **Rejected Candidate:** One shared capacity-one gate around active compile/link leaves
+- **Distribution Gate:** Escalated to ADR-004; no prebuilt download path was added here
 
-| Current State | Recommended Next Step | Target Transition |
-|---|---|---|
-| Resumable downloads, truthful reporting, and transfer admission are implemented. Source-build phases dominate the measured cold path, but phase attribution and a comparable steady-state warm baseline are missing. | Instrument build phases, establish three-run cold and warm baselines, benchmark a shared CPU-heavy gate, and escalate prebuilts to ADR-004 only if compilation remains dominant. | Keep this ADR accepted with an evidence-backed build topology and clearly labeled performance baselines. |
+### Instrumentation and reset integrity
 
-### Context and gap analysis
+`setup-performance.ts` records phases against a monotonic clock with a fixed vocabulary: archive preparation, configure/generate, compile/link, install/promote, health check, and cleanup. Every full setup writes one schema-versioned JSON artifact under `runtime/setup-performance/`; it contains relative timestamps, phase duration and status, task timings, actual pairwise compile overlap, operating-system release, architecture, logical CPU count, effective parallel width, Bun version, dependency versions, and source-cache state. It contains no credentials, download URLs, home-directory paths, or machine identifiers. Detailed rows are emitted only with verbose human logging, while the normal Setup Step Timings table stays concise.
 
-The third pass established that the network admission budget repaired the opening download burst but did not shorten the total run. The 330-second cold measurement attributes 252 seconds to the serial mupdf and qpdf source builds, and those builds now overlap top-level Whisper CoreML conversion. Both source builds use up to `min(logical CPU count, 8)` parallel jobs. Their aggregate task durations show that CPU work is the likely constraint, but the current timing table cannot separate download/extract, configure, compile, link, install, wrapper creation, and health validation. One cold run on a different day is not enough to distinguish contention from ordinary thermal, filesystem-cache, compiler-cache, or network variance.
+MuPDF and qpdf phase spans reconcile with the sum of their recorded phases within 0.30ms in every accepted baseline sample. The same instrumentation covers the active lame, ffmpeg, leptonica, Tesseract, and Whisper compile leaves when those managed source builds run. Whisper CoreML conversion could not be measured because it had been retired from the setup path before this pass; the experiment therefore gated the current Whisper compile/link leaf instead of preserving a benchmark around obsolete work.
 
-The existing serial mupdf-to-qpdf order is not itself proof that the builds should overlap. They are already competing indirectly with CoreML conversion because setup task concurrency is organized by feature rather than resource. Running mupdf and qpdf concurrently could put two eight-worker builds beside the conversion and increase elapsed time for all three. Conversely, lowering each build's `-j` width or globally serializing CPU-heavy phases could reduce contention but leave cores idle during configure, download, install, or single-threaded link phases.
+The first attempted matrix exposed a reset-integrity defect and was excluded: `--force-redownload all` did not explicitly name the qpdf wrapper and install tree, so the old managed qpdf survived the overlapping removal set and those runs did not exercise its source build. The `all` and `calibre` reset sets now explicitly include the qpdf wrapper, build tree, and tool tree. The accepted matrix begins only after that correction and contains a qpdf compile/link phase in every cold sample.
 
-The warm result is also ambiguous by design. A first rerun immediately after writing roughly 9 GiB measures cold executable and filesystem-cache behavior; a steady-state warm run measures idempotent guards and already resident binaries. Both are useful, but they answer different questions and must be labeled separately. A single `14.2s` number should not replace the earlier `1.8s` steady-state observation without a comparable measurement sequence.
+### Controlled matrix
 
-Prebuilt binaries are potentially the largest improvement because they remove compilation rather than reschedule it, but they add architecture coverage, provenance, checksum, signing, hosting, retention, and release-CI obligations owned by ADR-004. They should be evaluated only after local phase timings show how much time compilation actually contributes and whether a resource-scheduling change can recover it without adding a distribution system.
+All samples ran on the same arm64 macOS host on AC power with Darwin 25.5.0, Bun 1.3.14, 11 logical CPUs, pinned dependency versions, an eight-job cap for managed source builds, and Whisper reporting an effective width of 11. Cold samples used the existing named `--force-redownload all` reset targets; warm samples ran the same full setup and health checks without force. Times below come from the JSON artifact's monotonic total, not parsed log text.
 
-### Recommendation
+| Topology and cache state | Runs | Median | Decision use |
+|---|---:|---:|---|
+| Ungated cold baseline | 165.2s, 175.2s, 188.7s | **175.2s** | Selected cold baseline |
+| Ungated post-install cold-cache rerun | 11.2s | 11.2s | Labeled separately; executable and filesystem cache warm-up |
+| Ungated steady-state warm | 1.639s, 1.644s, 1.596s | **1.639s** | Selected warm baseline |
+| Capacity-one CPU gate, cold | 170.4s, 169.8s, 169.0s | **169.8s** | 3.1% improvement; reject because it misses 10% |
+| Capacity-one CPU gate, post-install cold-cache rerun | 12.9s | 12.9s | Candidate diagnostic only |
+| Capacity-one CPU gate, steady-state warm | 1.684s, 1.854s, 1.838s | 1.838s | Candidate diagnostic only; no compile work is admitted on warm runs |
 
-Add local structured phase timing around the mupdf and qpdf installers before changing concurrency. Record download/extract, configure/generate, compile/link, install/promote, and health-check durations using the monotonic clock already used for setup timings. Record non-sensitive environment facts needed to compare runs: operating system version, architecture, logical CPU count, selected parallel width, tool versions, whether each source/archive was cached, and whether CoreML conversion overlapped the phase. Keep the normal concise setup table; emit detailed phase rows only in verbose logs or a local setup-performance artifact.
+### Phase attribution and topology decision
 
-Use a small controlled matrix with at least three comparable cold samples per candidate on the same machine. The baseline is the current topology. The first recommended experiment is not concurrent mupdf/qpdf; it is a shared CPU-heavy admission gate spanning mupdf compile, qpdf compile, and Whisper CoreML conversion while downloads, extraction, configure steps, and unrelated health checks remain free to overlap. Start with one heavy phase admitted at a time, then test a weighted variant only if phase data shows meaningful idle capacity. Keep the existing per-build `-j` cap for the first comparison so only one variable changes.
+| Component, baseline median | Archive | Configure | Compile/link | Install/promote | Health | Cleanup | Recorded total |
+|---|---:|---:|---:|---:|---:|---:|---:|
+| MuPDF | 5.227s | <0.001s | **45.645s** | <0.001s | 0.689s | 0.487s | 52.038s |
+| qpdf | 1.088s | 4.175s | **42.027s** | 0.206s | 0.651s | 0.300s | 49.276s |
 
-Adopt a scheduling change only when the median cold wall time improves by at least 10%, no individual tool's median regresses by more than 20% without a compensating total improvement, all health checks pass, and results are consistent in at least two of three runs. If serialization merely shifts time or the two compile/link phases still consume more than half of median cold setup, escalate a prebuilt-binary proposal to ADR-004. Do not silently add release downloads inside this ADR.
+The two compile/link medians total 87.673s, or 50.0% of the 175.181s cold median before counting Whisper and ffmpeg compilation. Baseline compile overlap was real rather than inferred: Whisper and MuPDF overlapped for a median 36.261s, while qpdf and ffmpeg overlapped for 10.388s. The capacity-one candidate reduced MuPDF compile/link to 33.627s and qpdf to 34.837s, but qpdf waited 9.749s for admission and Whisper waited 32.613s; pairwise compile overlap fell to zero. The shorter isolated compiles therefore shifted time into queues instead of removing enough critical-path work.
 
-Capture warm behavior as a sequence after the final cold run: label the first no-force rerun `post-install cold-cache`, then run at least three additional no-force invocations and record their median as `steady-state warm`. Warm verification must perform the same health checks as a normal setup; skipping probes to improve the number is not acceptable.
+The candidate was faster than the baseline median in all three samples, but a 3.1% median improvement is not the accepted 10%, and the experiment did not justify a second weighted candidate: each admitted build already used eight of 11 logical CPUs, while Whisper could use all 11, so the serial candidate was not leaving meaningful CPU capacity idle during the measured compile leaves. Directly overlapping mupdf and qpdf at full width would move in the opposite direction and remains rejected without new hardware-specific evidence.
 
-Retain the transfer-level network admission budget. Moving admission to `runConcurrentSetupTasks` would also serialize CPU-only work and task initialization and has no supporting evidence because the third pass showed the network was not the critical path. Reconsider that boundary only if phase logs show transfer queue time or network-active time again determines total setup duration.
-
-### Alternatives considered
-
-| Option | Advantages | Disadvantages | Recommendation |
-|---|---|---|---|
-| **Instrument phases, benchmark a shared CPU-heavy gate, then escalate to prebuilts only if compilation remains dominant** | Changes one variable at a time, addresses the observed cross-task contention, preserves download overlap, and creates evidence for ADR-004 | Requires several local cold runs and temporary measurement code | Recommended |
-| Run mupdf and qpdf concurrently at their current `-j` width | Could shorten the serial document-tools chain on an otherwise idle machine | Likely oversubscribes the same cores already used by CoreML and can repeat the failed task-level concurrency experiment | Reject until a bounded experiment demonstrates spare capacity |
-| Lower every build to a fixed small `-j` value | Reduces peak contention and is simple | Penalizes machines with more cores and may lengthen an uncontended build | Reject as a global default; test only through a measured weighted gate |
-| Immediately ship prebuilt mupdf/qpdf artifacts | Removes most source-build time | Expands ADR-004 distribution, supply-chain, architecture, CI, and retention scope before the avoidable portion of build time is known | Defer behind the measurement gate |
-| Move the download semaphore to whole setup tasks | Reduces total concurrent tasks | Conflates network and CPU admission and contradicts the third-pass evidence | Reject unless network contention reappears |
-| Keep the current topology and record no new baseline | No implementation work | Leaves the 252-second critical path unexplained and makes future concurrency changes guesswork | Reject |
-
-### Implementation plan
-
-#### Phase 1: Instrumentation
-
-1. Add a small setup phase recorder with monotonic start/end timing and a fixed phase vocabulary. Do not parse human log text to recover measurements.
-2. Instrument mupdf and qpdf archive preparation, configure/generate, build, install, promotion, cleanup, and health checks in `macos-managed-tools.ts`.
-3. Mark the start/end of Whisper CoreML conversion and record overlap as timestamps rather than inferring it from task-level duration.
-4. Emit one versioned local JSON performance artifact plus concise verbose tables. Exclude credentials, home-directory paths, download URLs with query parameters, and machine-unique identifiers.
-
-#### Phase 2: Baseline and warm measurements
-
-1. Capture at least three cold baseline runs on one supported macOS architecture with the same power/thermal conditions and pinned dependencies. Reset only the named managed-tool build/install targets through existing setup force paths; do not delete the repository or broad `runtime/` tree.
-2. Record median total duration and per-phase medians, the spread across runs, effective `-j` width, and overlap with CoreML.
-3. After the last cold run, capture the first no-force rerun separately and the median of at least three subsequent no-force reruns as the steady-state warm baseline.
-
-#### Phase 3: CPU admission experiment
-
-1. Add a setup-local CPU-heavy resource gate whose first candidate capacity admits one compile/conversion phase at a time. Keep transfers under the existing independent network gate.
-2. Gate only the measured CPU-heavy phase, not archive download/extraction, configure, install, cleanup, or health checks unless measurements show those phases are also CPU-bound.
-3. Repeat the same three-run cold matrix and warm sequence. If the serialized candidate underutilizes the host, test one weighted candidate in which admitted weights never exceed the chosen CPU budget.
-4. Keep the candidate only if it crosses the acceptance thresholds; otherwise remove the experiment and retain the measurements as evidence.
-
-#### Phase 4: Build-versus-distribution decision
-
-1. If local scheduling meets the thresholds, make it the managed-source default and update setup docs and contract tests.
-2. If compilation remains more than half of cold setup or no scheduling candidate improves median total time by 10%, open a material ADR-004 update for pinned prebuilt mupdf/qpdf artifacts by supported architecture.
-3. A prebuilt proposal must define producer CI, source/version provenance, checksums or signatures, hosting/retention, fallback source builds, platform coverage, update cadence, and doctor verification before implementation.
-4. Keep source builds as the fallback until prebuilt coverage and verification are proven.
-
-### Acceptance and verification criteria
-
-- Phase totals reconcile with each tool's task duration within documented recorder overhead.
-- The artifact distinguishes configure, build/link, install, and health time and records actual overlap with CoreML.
-- Performance decisions use medians from at least three comparable cold samples, not the fastest single run.
-- The selected topology improves median cold wall time by at least 10%, preserves truthful setup exit status, and passes all managed-tool health checks.
-- The first post-install rerun and steady-state warm median are recorded and labeled separately.
-- The network admission boundary remains transfer-scoped unless new queue-time evidence demonstrates that network contention is again gating the run.
-- Verification uses `bun run check`, `bun t --price`, targeted setup contracts, and local setup/doctor runs. These operations do not call paid providers, but cold setup measurements may download pinned open-source artifacts and should be run deliberately because they consume time, bandwidth, and disk I/O.
+The production CPU gate and its test hook were removed after measurement. The transfer-level network admission budget remains unchanged because it governs a different resource and the phase artifacts did not show transfer queue time deciding the cold critical path. Source builds remain the fallback topology. Because compilation still contributes at least half the median through MuPDF and qpdf alone, ADR-004 now owns the next decision: whether project-produced, pinned, checksum-verified prebuilts can remove that work without weakening provenance or platform coverage.
 
 ## Follow-up Actions
 
@@ -359,11 +321,11 @@ Retain the transfer-level network admission budget. Moving admission to `runConc
 | Aggregate the per-task heartbeat into one line and suppress tasks that logged recently | maintainer | Done — one ticker, one line, activity-suppressed via an `AsyncLocalStorage` task context |
 | Suppress the Reclaimed Build Trees table below a meaningful threshold | maintainer | Done — 10 MiB threshold; the 8192 B was `du -sk` charging an empty dir for its inode |
 | Measure a cold install against the 307.4s baseline with the admission budget in place | maintainer | Done — 330s; per-task regressions recovered, total unchanged, see third-pass note |
-| Instrument and profile where qpdf's 140s and mupdf's 112s go across archive, configure, compile/link, install, and health phases, including effective parallel width and CoreML overlap | maintainer | Pending — Remaining Work Phases 1-2; prerequisite for topology changes |
-| Benchmark a shared CPU-heavy admission gate before considering direct mupdf/qpdf overlap | maintainer | Pending — Remaining Work Phase 3; retain only if the three-run median crosses the acceptance threshold |
-| Reconsider prebuilt ffmpeg/mupdf/tesseract/qpdf binaries with the measured critical path identified | maintainer | Deferred — ADR-004-scoped; trigger Remaining Work Phase 4 only if compilation remains dominant after CPU admission is measured |
-| Capture and separately label the post-install cold-cache rerun and a three-run steady-state warm median | maintainer | Pending — Remaining Work Phase 2 |
-| Keep admission transfer-scoped; evaluate moving it up to `runConcurrentSetupTasks` only if new measurements show network queue time gates the run | maintainer | Deferred — current evidence says network admission is not the constraint |
+| Instrument and profile qpdf and MuPDF across archive, configure, compile/link, install, health, and cleanup phases | maintainer | Done — schema-versioned local artifacts; phase spans reconcile within 0.30ms |
+| Benchmark a shared CPU-heavy admission gate before considering direct mupdf/qpdf overlap | maintainer | Done and rejected — 169.8s versus 175.2s cold median is only 3.1%; candidate removed |
+| Reconsider pinned prebuilt MuPDF/qpdf binaries with the measured critical path identified | maintainer | Escalated — ADR-004 now owns the distribution proposal because the two compile medians alone are 50.0% of cold setup |
+| Capture and separately label the post-install cold-cache rerun and a three-run steady-state warm median | maintainer | Done — 11.2s post-install and 1.639s steady-state warm median for the selected topology |
+| Keep admission transfer-scoped; evaluate moving it up to `runConcurrentSetupTasks` only if new measurements show network queue time gates the run | maintainer | Done — phase evidence retains the transfer boundary; no task-level gate added |
 
 ## References
 
@@ -373,6 +335,7 @@ Retain the transfer-level network admission budget. Moving admission to `runConc
 - `src/cli/commands/setup-and-utilities/setup/setup-download/download.ts`
 - `src/cli/commands/setup-and-utilities/setup/setup-download/download-admission.ts`
 - `src/cli/commands/setup-and-utilities/setup/setup-heartbeat.ts`
+- `src/cli/commands/setup-and-utilities/setup/setup-performance.ts`
 - `src/utils/resource-gate.ts`
 - `src/cli/commands/setup-and-utilities/setup/run-complete-setup.ts`
 - `src/cli/commands/setup-and-utilities/setup/run-doctor.ts`
