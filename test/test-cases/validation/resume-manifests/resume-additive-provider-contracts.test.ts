@@ -11,7 +11,7 @@ import {
   resolveAdditiveResumeProviderSelection
 } from '~/cli/commands/setup-and-utilities/resume/resume-provider-selection'
 import { getSelectedUrlTargets, resolveUrlArticleResumePlan } from '~/cli/commands/setup-and-utilities/resume/extract/url-resume'
-import { hasResumableOcrTargetWork } from '~/cli/commands/setup-and-utilities/resume/extract/ocr-resume'
+import { hasResumableOcrTargetWork, priceOcrTarget } from '~/cli/commands/setup-and-utilities/resume/extract/ocr-resume'
 import { hasResumableSttTargetWork, priceSttTarget } from '~/cli/commands/setup-and-utilities/resume/extract/stt-resume'
 import { finalizeMusicResumeArtifacts } from '~/cli/commands/setup-and-utilities/resume/generation/music-resume'
 import { buildProviderStates as buildSttProviderStates, readExistingSttRun } from '~/cli/commands/process-steps/step-2-extract/step-2-stt/stt-batch/stt-run-state'
@@ -426,6 +426,47 @@ describe('additive resume provider selection', () => {
         incompleteTarget,
         { youtubeCaptions: false } as ResolvedOptions
       )).rejects.toThrow('Start a new target with an active assemblyai model.')
+    })
+  })
+
+  test('OCR resume blocks an unfinished retired target until its replacement is selected explicitly', async () => {
+    await withTempDir('autoshow-ocr-retired-model-resume-', async (dir) => {
+      const retired: OcrTarget = { service: 'gemini', model: 'gemini-3.1-flash-lite' }
+      const replacement: OcrTarget = { service: 'gemini', model: 'gemini-3.5-flash-lite' }
+      await writeSingleManifestFixture(dir, 'extract', {
+        source: { filePath: join(process.cwd(), 'input/examples/document/1-document.pdf') },
+        completionStatus: 'incomplete',
+        requestedProviders: [retired],
+        missingProviders: [retired],
+        providerStates: [{ ...retired, status: 'missing', artifactDir: 'providers/gemini-gemini-3.1-flash-lite', attempts: 0 }]
+      }, { extractRoute: 'document' })
+
+      const resumeTarget: ResumeTarget = {
+        kind: 'extract',
+        extractRoute: 'document',
+        scope: 'single',
+        dir,
+        manifestPath: join(dir, PIPELINE_MANIFEST_FILE)
+      }
+      const opts = buildOptsFromFlags(false, {})
+
+      await expect(priceOcrTarget(resumeTarget, opts)).rejects.toThrow(
+        'Stored OCR target gemini/gemini-3.1-flash-lite is incomplete, but that model is no longer in the active registry.'
+      )
+      await expect(priceOcrTarget(resumeTarget, opts)).rejects.toThrow(
+        'Re-run with --provider gemini=gemini-3.5-flash-lite to add the replacement as a distinct target.'
+      )
+
+      const estimate = await priceOcrTarget(resumeTarget, opts, [replacement])
+      expect(estimate.steps).toHaveLength(1)
+      expect(estimate.steps[0]).toMatchObject({
+        provider: 'gemini',
+        model: 'gemini-3.5-flash-lite'
+      })
+
+      const record = await readCanonicalRecord(dir)
+      expect(record['requestedProviders']).toEqual([retired])
+      expect(record['missingProviders']).toEqual([retired])
     })
   })
 

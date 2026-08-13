@@ -477,8 +477,8 @@ describe('resume all-shortcut additive selection', () => {
     })
   })
 
-  test('write resume preserves the explicit deprecated Gemini model identity', async () => {
-    await withTempDir('autoshow-write-resume-gemini-transition-', async (dir) => {
+  test('write resume keeps a completed retired Gemini model readable without rewriting its identity', async () => {
+    await withTempDir('autoshow-write-resume-retired-gemini-', async (dir) => {
       await writeSingleManifestFixture(dir, 'write', {
         step3: {
           llmService: 'gemini',
@@ -495,9 +495,9 @@ describe('resume all-shortcut additive selection', () => {
 
       const normalized = normalizeResumeSelectorFlagsForTarget(
         target('write', dir),
-        { provider: ['gemini=gemini-3.1-flash-lite'] },
-        new Set(['provider']),
-        ['resume', dir, '--provider', 'gemini=gemini-3.1-flash-lite']
+        {},
+        new Set(),
+        ['resume', dir]
       )
       const opts = buildOpts(normalized.flags, normalized.explicitFlags, normalized.flagOccurrences)
 

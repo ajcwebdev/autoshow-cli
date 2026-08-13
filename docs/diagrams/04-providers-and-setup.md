@@ -49,7 +49,7 @@ Current LLM models:
 |----------|--------|
 | `openai` | `gpt-5.6-sol`, `gpt-5.6-terra`, `gpt-5.6-luna`, `gpt-5.5`, `gpt-5.4-mini`, `gpt-5.4-nano` |
 | `groq` | `openai/gpt-oss-20b`, `openai/gpt-oss-120b` |
-| `gemini` | `gemini-3.1-pro-preview`, `gemini-3.1-flash-lite`, `gemini-3.6-flash`, `gemini-3.5-flash`, `gemini-3.5-flash-lite` |
+| `gemini` | `gemini-3.1-pro-preview`, `gemini-3.6-flash`, `gemini-3.5-flash`, `gemini-3.5-flash-lite` |
 | `anthropic` | `claude-fable-5`, `claude-opus-4-8`, `claude-sonnet-5`, `claude-sonnet-4-6`, `claude-haiku-4-5`, `claude-opus-5` |
 | `minimax` | `MiniMax-M3` |
 | `grok` | `grok-4.3`, `grok-4.5` |
@@ -60,7 +60,7 @@ Current LLM models:
 | `llama` | `ggml-org/gemma-3-270m-it-GGUF`, `ggml-org/Qwen3-0.6B-GGUF`, or another Hugging Face repo/model configured for llama.cpp |
 | `llamafile` | `Qwen3.5-0.8B-Q8_0`, `Qwen3.5-2B-Q8_0`, `Qwen3.5-4B-Q5_K_S` (prebuilt single-file llamafiles; downloaded on demand) |
 
-Gemini lifecycle state is static per repository revision: `gemini-3.5-flash-lite` is the bare and all-provider Flash-Lite target, while deprecated `gemini-3.1-flash-lite` remains explicitly selectable until its announced 2027-05-07 shutdown and is omitted from automatic expansion.
+Gemini lifecycle state is static per repository revision: `gemini-3.5-flash-lite` is the bare and all-provider Flash-Lite target, while retired `gemini-3.1-flash-lite` is absent from active selectors and retained only in historical pricing and manifest handling.
 
 ## Selector Conventions
 

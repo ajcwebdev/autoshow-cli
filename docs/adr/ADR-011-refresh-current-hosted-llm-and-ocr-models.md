@@ -7,7 +7,7 @@
 - **Date Updated:** 2026-08-13
 - **Verification Status:** Passed
 
-The 2026-07-24 Google Gemini, Moonshot Kimi, and Claude Opus 5 additions are implemented and verified against `bun run check` and the targeted local contract suites. The previously blocked hosted OCR `--price` subprocess contracts were rerun successfully on 2026-08-03 after `runtime/` was provisioned. An approved one-page Kimi K3 write probe also confirmed the request shape and provider usage reporting. On 2026-08-12, ADR-017 added typed reasoning capabilities and request mappings across the hosted LLM and OCR registries, and the current official GPT-5.6 Terra and Luna token rates were synchronized across write, OCR, documentation, and pricing contracts. On 2026-08-13, typed static lifecycle eligibility moved bare and all-provider Gemini write/OCR selection to `gemini-3.5-flash-lite` while retaining explicit `gemini-3.1-flash-lite` through its transition window. Provisional Gemini, Claude, and Kimi heuristics remain deferred pending separately approved calibration.
+The 2026-07-24 Google Gemini, Moonshot Kimi, and Claude Opus 5 additions are implemented and verified against `bun run check` and the targeted local contract suites. The previously blocked hosted OCR `--price` subprocess contracts were rerun successfully on 2026-08-03 after `runtime/` was provisioned. An approved one-page Kimi K3 write probe also confirmed the request shape and provider usage reporting. On 2026-08-12, ADR-017 added typed reasoning capabilities and request mappings across the hosted LLM and OCR registries, and the current official GPT-5.6 Terra and Luna token rates were synchronized across write, OCR, documentation, and pricing contracts. On 2026-08-13, typed static lifecycle eligibility first moved bare and all-provider Gemini write/OCR selection to `gemini-3.5-flash-lite`; a later project-side retirement on the same date removed `gemini-3.1-flash-lite` from active selectors and config while retaining historical pricing and manifest identity. Google's official deprecation table still listed 2027-05-07 as the earliest shutdown date at that recheck, so this record does not claim that the provider had already disabled the model. Provisional Gemini, Claude, and Kimi heuristics remain deferred pending separately approved calibration.
 
 ## Context
 
@@ -82,7 +82,7 @@ For Google:
 - Add `gemini-3.6-flash` and `gemini-3.5-flash-lite` to OCR, where `gemini-3.5-flash` is already registered.
 - Do not register `gemini-3-flash-preview` or any `*-latest` alias.
 - Use flat published Standard rates with no context tiers, because Google publishes none for these models: `$1.50 / $7.50` for Gemini 3.6 Flash, `$1.50 / $9.00` for Gemini 3.5 Flash, and `$0.30 / $2.50` for Gemini 3.5 Flash-Lite per 1M input/output tokens.
-- Retain `gemini-3.1-flash-lite` as an explicit transition-period selector, but mark it deprecated and ineligible for bare and all-provider selection; use `gemini-3.5-flash-lite` as the deterministic Gemini write and OCR default.
+- Use `gemini-3.5-flash-lite` as the deterministic Gemini write and OCR default. The initial 2026-08-13 transition retained `gemini-3.1-flash-lite` as explicit-only; the completed follow-up later that day retired it from active validation and config at the project boundary while preserving historical rates and concrete stored identity.
 
 For Moonshot:
 
@@ -102,19 +102,19 @@ The existing OpenAI-compatible Grok client and request shape remain unchanged be
 - `--llm gemini=<model>` accepts `gemini-3.6-flash`, `gemini-3.5-flash`, and `gemini-3.5-flash-lite`; `--provider gemini=<model>` additionally accepts `gemini-3.6-flash` and `gemini-3.5-flash-lite`.
 - `--llm kimi=kimi-k3` and `--provider kimi=kimi-k3` are valid.
 - `SUPPORTED_GROK_MODELS`, `SUPPORTED_GEMINI_MODELS`, `SUPPORTED_ANTHROPIC_MODELS`, `SUPPORTED_KIMI_MODELS`, and their OCR counterparts and derived model unions include the new IDs.
-- `--all-llm` includes `grok-4.3` followed by `grok-4.5`; Gemini all-provider write and OCR expansions exclude deprecated `gemini-3.1-flash-lite` while explicit selection remains valid.
+- `--all-llm` includes `grok-4.3` followed by `grok-4.5`; Gemini all-provider write and OCR expansions and direct validators exclude retired `gemini-3.1-flash-lite`. Direct attempts name `gemini-3.5-flash-lite` without silently substituting it.
 - Hosted LLM and OCR registry model types now include optional static lifecycle metadata. Existing entries without metadata resolve as active and eligible, so other providers, environment variables, and provider-client APIs remain unchanged.
 
 ## Rationale
 
 - Concrete IDs keep all-provider runs and pricing output reproducible and prevent alias duplication.
 - Additive registration avoids breaking historical configurations and benchmark evidence.
-- Appending rather than reordering preserves the relative expansion order of eligible selectors; the lifecycle filter intentionally removes only the deprecated Gemini 3.1 Flash-Lite target from automatic expansion.
-- Keeping Grok 4.3, Claude Haiku 4.5, and Kimi K2.6 as their providers' cheapest defaults preserves established behavior where no lifecycle transition applies. Gemini cheapest-model resolution now compares only default-eligible entries, so the deprecated but lower-priced Gemini 3.1 Flash-Lite cannot displace its supported successor.
+- Appending rather than reordering preserves the relative expansion order of eligible selectors; the initial lifecycle filter removed only the deprecated Gemini 3.1 Flash-Lite target from automatic expansion, and its completed retirement now removes it from active validation entirely.
+- Keeping Grok 4.3, Claude Haiku 4.5, and Kimi K2.6 as their providers' cheapest defaults preserves established behavior where no lifecycle transition applies. Gemini cheapest-model resolution now sees only active registry entries, so the retired lower-priced Gemini 3.1 Flash-Lite cannot displace its supported successor.
 - The shared Grok, Gemini, and Anthropic clients already have the required text, vision, and structured-output behavior, so a registry change is sufficient for those providers.
 - Explicit pricing bands let the common token-cost helper select rates from estimated or observed input counts for both preflight and actual costs, and flat rates are used where the provider publishes no tiers.
 - Excluding Claude Mythos 5 keeps the selector surface generally available.
-- Registering `gemini-3.5-flash-lite` supplied the announced replacement before `gemini-3.1-flash-lite`'s 2027-05-07 shutdown; the 2026-08-13 static lifecycle snapshot now moves automatic selection without making behavior depend on the wall clock.
+- Registering `gemini-3.5-flash-lite` supplied the announced replacement before `gemini-3.1-flash-lite`'s 2027-05-07 earliest shutdown date; the 2026-08-13 static transition first moved automatic selection and then retired the old active selector without making behavior depend on the wall clock.
 - Omitting the `thinking` field for Kimi K3 is the minimum change that makes the model callable, and it leaves the request shape clean for a future cross-provider thinking-configuration flag rather than encoding a per-model policy that the flag would immediately supersede.
 - OCR-only calibration evidence should not be used to invent text/write timing data.
 
@@ -129,12 +129,13 @@ Positive outcomes:
 - Estimated and actual Grok 4.5 costs use the same published 200K boundary.
 - Cached-rate provenance is recorded accurately even though estimates use uncached rates.
 - Existing non-Gemini defaults and all provider-client integrations remain stable; Gemini's bare default now has a supported successor before shutdown.
-- Deprecated Gemini 3.1 Flash-Lite remains available for explicit reruns without being added automatically to paid all-provider runs.
+- Retired Gemini 3.1 Flash-Lite cannot trigger a new provider request, while completed historical manifests and cost reports retain its original identity and token rates.
 
 Negative outcomes:
 
 - All-provider write and OCR runs contain more paid targets.
 - Gemini 3.5 Flash-Lite has higher published input and output rates than the deprecated model it replaces as the bare default.
+- The project retired Gemini 3.1 Flash-Lite before Google's still-announced 2027-05-07 earliest shutdown date, so explicit configurations must migrate earlier than provider availability alone required.
 - Model lists and help documentation are longer.
 - Claude Fable 5 has 30-day retention and is not ZDR-compatible.
 - Grok 4.5 OCR page-level cost and latency estimates remain heuristic pending approved calibration.
@@ -148,7 +149,7 @@ Negative outcomes:
 |---|---|
 | Current GA model coverage across five providers | Larger paid all-provider expansions |
 | Reproducible concrete selectors | No moving provider aliases |
-| Deterministic lifecycle-aware defaults and retained explicit selectors | A supported but deprecated lower-priced model is excluded from automatic selection |
+| Deterministic lifecycle-aware defaults, explicit successor guidance, and preserved historical identity | A still-provider-available but deprecated lower-priced selector is retired at the project boundary |
 | Published context-tier costs where they exist | Cached rates are provenance only; normal estimates remain uncached |
 | Shared existing provider clients | Model-specific write timing awaits calibration |
 | Kimi K3 callable with a one-line client change | A model-ID branch in two Kimi clients until the thinking-configuration surface lands |
@@ -176,10 +177,10 @@ Negative outcomes:
 
 - Kimi K3's `pricingNotes` records that always-on thinking at the default `max` reasoning effort makes the reused Kimi K2.6 output-token and latency heuristics optimistic.
 - Selector, expansion, comic registry, CLI help, local price-only, provenance, and estimated/actual pricing contracts cover the public behavior.
-- `llm-config.json` and `ocr-config/ocr-gemini.json` carry matching `deprecated` lifecycle snapshots for `gemini-3.1-flash-lite`: shutdown date `2027-05-07`, replacement `gemini-3.5-flash-lite`, both automatic eligibility fields false, official deprecation URL, and check date `2026-08-13`.
+- `gemini-3.1-flash-lite` is absent from both active model lists and both current registry config surfaces. `RETIRED_MODEL_RATES` preserves its `$0.25 / $1.50` per-1M input/output token rates for write and OCR history, and `RETIRED_MODEL_REPLACEMENTS` maps both identities to `gemini-3.5-flash-lite` for direct-selector and resume guidance.
 - Lifecycle schema checks require valid ISO dates, dated source evidence for deprecated entries, same-service concrete replacements, and no moving `*-latest` aliases. Entries without lifecycle metadata default to active and eligible.
-- Cheapest-model resolution filters `defaultEligible`; all-provider expansion filters `allExpansionEligible`; direct validators do not consult either field. No selector path consults the current date.
-- The 2026-08-13 official refresh reconfirmed that Gemini 3.5 Flash-Lite is stable, accepts text/image/video/audio/PDF input, supports structured output, has no announced shutdown, and retains Standard rates of `$0.30 / 1M input` and `$2.50 / 1M output`; Google's deprecation table still names it as the replacement for Gemini 3.1 Flash-Lite at that model's earliest 2027-05-07 shutdown.
+- Cheapest-model resolution still filters `defaultEligible`, and all-provider expansion still filters `allExpansionEligible`, so the generic lifecycle mechanism remains available for future transitions even though Gemini 3.1 Flash-Lite no longer needs an active-registry exception. No selector path consults the current date.
+- The 2026-08-13 official refresh and retirement recheck reconfirmed that Gemini 3.5 Flash-Lite is stable, accepts text/image/video/audio/PDF input, supports structured output, has no announced shutdown, and retains Standard rates of `$0.30 / 1M input` and `$2.50 / 1M output`; Google's deprecation table still named it as the replacement for Gemini 3.1 Flash-Lite at that model's future 2027-05-07 earliest shutdown date and did not show the old model as shut down.
 - Mocked local Gemini contracts exercise the successor's structured write request with `MINIMAL` thinking, image and PDF OCR requests with structured output, thought-token usage parsing, and provider-usage cost projection. No paid calibration was run, so its reused heuristics remain provisional.
 - After the repository `runtime/` tree was provisioned, `bun test test/test-cases/validation/cli/cli-usage-errors.test.ts` passed all 64 contracts and `bun test test/test-cases/validation/reports-pricing/price-mode-contracts/cli-price-mode.test.ts` passed all 31 contracts. These local `--price` subprocess runs included current Kimi, Grok, OpenAI, and Anthropic OCR selectors plus hosted OCR PDF page detection and made no provider calls.
 - The explicitly approved `bun autoshow write input/examples/document/1-document.pdf --llm kimi=kimi-k3 --prompt shortSummary` probe completed successfully on 2026-08-03. Kimi reported 661 input tokens and 159 output tokens, producing an actual provider-usage cost of `0.437¢` against the `0.540¢` estimate and confirming that the K3 request succeeds without the rejected K2.x `thinking` field.
@@ -189,24 +190,24 @@ The structural legacy program's W10.1 MiniMax gate was answered from published d
 
 > Follow-up (2026-08-07): `mistral-ocr-latest` was removed from `SUPPORTED_MISTRAL_OCR_MODELS` and from `ocr-config/ocr-mistral.json`. The alias predated this ADR and was the one selector left contradicting its "do not register any `*-latest` alias" clause: its registry row duplicated `mistral-ocr-4-0` byte-for-byte, so `--all-ocr` paid for the same model twice and price reports listed one model under two names. `--provider mistral=mistral-ocr-latest` now returns the standard invalid-model error naming `mistral-ocr-2512` and `mistral-ocr-4-0`, pinned by `provider-expansion-concurrency.test.ts`. The cheapest Mistral OCR default, `mistral-ocr-2512`, is unchanged.
 
-## Implemented Follow-up: Stage the Gemini Default Migration Explicitly
+## Implemented Follow-up: Stage and Complete the Gemini Retirement
 
-This subordinate mini-ADR records how AutoShow replaced the `gemini-3.1-flash-lite` bare write and OCR defaults before the provider's announced 2027-05-07 shutdown while preserving reproducible explicit selectors.
+This subordinate mini-ADR records how AutoShow first replaced the `gemini-3.1-flash-lite` bare write and OCR defaults and then retired the old active selector while preserving historical pricing and stored identity.
 
-- **Recommendation Status:** Implemented 2026-08-13
+- **Recommendation Status:** Completed 2026-08-13
 - **Recommended Successor:** `gemini-3.5-flash-lite`, the concrete replacement already registered for write and OCR and identified by Google in the evidence recorded above
-- **Migration Deadline:** Completed 2026-08-13, before the 2027-02-06 deadline; official availability, pricing, capabilities, replacement identity, and shutdown evidence were rechecked the same day
+- **Provider Status at Retirement:** Google's official page still listed 2027-05-07 as the earliest shutdown date and did not mark the old model shut down, so AutoShow's removal is explicitly a project-side early retirement
 - **Paid Calibration:** Helpful but not a prerequisite; any live run still requires immediate explicit approval naming the exact command and expected cost or quota risk
 
 | Current State | Recommended Next Step | Target Transition |
 |---|---|---|
-| The hosted LLM/OCR refresh and pre-shutdown default migration are implemented. Gemini 3.5 Flash-Lite is the deterministic bare write/OCR default and automatic expansion target; deprecated Gemini 3.1 Flash-Lite remains explicitly selectable. | On or immediately after the announced 2027-05-07 shutdown, recheck official status and retire the explicit transition selector without rewriting historical identity; calibrate only with separate paid approval. | Keep this ADR accepted with supported deterministic defaults, reproducible lifecycle state, dated evidence, and an explicit post-shutdown retirement path. |
+| The hosted LLM/OCR refresh, pre-shutdown default migration, and project-side retirement are implemented. Gemini 3.5 Flash-Lite is the deterministic bare/write OCR target; Gemini 3.1 Flash-Lite exists only in historical rate and identity handling. | No implementation work remains. Recheck provider documentation during routine model refreshes and calibrate only with separate paid approval. | Keep this ADR accepted with deterministic defaults, dated evidence, explicit retirement errors, and preserved historical identity. |
 
 ### Context and gap analysis
 
 The registry deliberately kept `gemini-3.1-flash-lite` as the cheapest default when the newer Gemini models were added. That choice preserved bare-selector behavior and a lower estimated cost while the older model remained supported. It cannot remain a permanent rule because cheapest-model selection is computed from active registry prices, and the retiring model is still cheaper than `gemini-3.5-flash-lite`. Merely reordering `SUPPORTED_GEMINI_MODELS` will not move the default, and waiting until the shutdown date leaves configs, documentation, tests, and user expectations no transition period.
 
-Removing `gemini-3.1-flash-lite` from every supported list 90 days early would force the bare default to move, but it would also reject explicit historical configurations while the provider still serves them. Hardcoding a one-off Gemini default would preserve the old explicit selector but undermine the repository's central cheapest-selection policy and create a provider exception that future retirements would repeat. A date-driven runtime switch would make identical installed code resolve a bare selector differently depending on the wall clock, which is hostile to reproducible manifests, tests, and offline price preflight.
+Removing `gemini-3.1-flash-lite` from every supported list before the provider shutdown would force the bare default to move, but it would also reject explicit historical configurations while the provider still serves them. Hardcoding a one-off Gemini default would preserve the old explicit selector but undermine the repository's central cheapest-selection policy and create a provider exception that future retirements would repeat. A date-driven runtime switch would make identical installed code resolve a bare selector differently depending on the wall clock, which is hostile to reproducible manifests, tests, and offline price preflight.
 
 The registry needed a static distinction between an explicitly selectable model and a model eligible for automatic/default selection. The implemented distinction also governs `--all-llm` and `--all-ocr`: a model in a retirement window may remain available for an explicit rerun but is not added automatically to a paid expansion. Lifecycle metadata avoids inferring policy from array position, price, or model-name suffixes.
 
@@ -216,18 +217,18 @@ The successor did not need to be rediscovered. `gemini-3.5-flash-lite` was alrea
 
 The implemented hosted LLM/OCR model contract carries typed, static lifecycle/selection metadata: `status` (`active` or `deprecated`), optional `shutdownDate`, optional `replacementModel`, `defaultEligible`, `allExpansionEligible`, and dated lifecycle evidence. Entries without metadata resolve as active and eligible. Selection never depends directly on the current date; a repository change advances lifecycle state after maintainers recheck official evidence, so a given commit always resolves the same selectors.
 
-On 2026-08-13, AutoShow marked `gemini-3.1-flash-lite` deprecated and ineligible for default and all-provider expansion on both write and OCR while keeping its explicit validators and pricing metadata active. `resolveCheapestModelForFlag('gemini')` and `resolveCheapestModelForFlag('gemini-ocr')` select `gemini-3.5-flash-lite` from the eligible set. The retiring model remains available for explicit selection and historical resume until provider shutdown or earlier official unavailability. Documentation and model descriptions show the shutdown date and replacement without emitting warnings during unrelated commands.
+On 2026-08-13, AutoShow first marked `gemini-3.1-flash-lite` deprecated and ineligible for default and all-provider expansion on both write and OCR. The completed retirement then removed it from `SUPPORTED_GEMINI_MODELS`, `SUPPORTED_GEMINI_OCR_MODELS`, `llm-config.json`, and `ocr-config/ocr-gemini.json`. `resolveCheapestModelForFlag('gemini')` and `resolveCheapestModelForFlag('gemini-ocr')` remain pinned by active pricing to `gemini-3.5-flash-lite`.
 
-After shutdown, remove `gemini-3.1-flash-lite` from active supported selectors and active registry configuration in a dated model-refresh change. Retain its historical pricing and manifest normalization evidence wherever rerun/report readers require it; do not add a compatibility alias or silently rewrite an explicitly stored historical target to the successor. Resume should report that the target is retired and require explicit selection of the replacement rather than dispatching a different model under the old identity.
+Direct old-selector requests now return a retirement-specific usage error naming `gemini-3.5-flash-lite` and stating that AutoShow will not silently substitute a different model identity. Historical cost readers retain the old token rates. Completed write manifests remain readable without rewriting `llmModel`. Unfinished OCR manifests refuse to dispatch the retired target; selecting `gemini-3.5-flash-lite` explicitly adds it as a distinct requested target and leaves the stored old identity unchanged.
 
-If a paid calibration is approved during the transition, use the same fixed, non-sensitive corpus for old and new models and record request settings, reasoning effort, document modes, page bands, actual prompt/candidate/thought tokens, latency, and provider cost. Do not use a single quality or timing run to override published token rates.
+If a paid successor calibration is approved later, use the same fixed, non-sensitive corpus and record request settings, reasoning effort, document modes, page bands, actual prompt/candidate/thought tokens, latency, and provider cost. Do not use a single quality or timing run to override published token rates.
 
 ### Alternatives considered
 
 | Option | Advantages | Disadvantages | Recommendation |
 |---|---|---|---|
-| **Static lifecycle eligibility with `gemini-3.5-flash-lite` as the scheduled successor** | Preserves explicit historical selectors, keeps commits reproducible, excludes deprecated models from automatic paid expansion, and generalizes to future retirements | Adds typed registry metadata and selection/filtering contracts | Recommended |
-| Remove `gemini-3.1-flash-lite` from all active surfaces at the migration date | Smallest selection change and naturally exposes the next cheapest model | Breaks explicit configs before provider shutdown and shortens the migration window | Reject for the pre-shutdown phase; use after shutdown |
+| **Stage the default, then retire the old selector at the project boundary** | Keeps the successor deterministic, preserves historical rates and identity, prevents new requests to the old model, and retains the generic lifecycle mechanism for future transitions | Breaks explicit configs before provider shutdown and requires replacement-aware errors and resume handling | Selected and completed 2026-08-13 |
+| Keep static lifecycle eligibility until provider shutdown | Preserves explicit historical selectors, keeps commits reproducible, excludes deprecated models from automatic paid expansion, and generalizes to future retirements | Leaves new explicit requests available to a model the project has chosen to retire | Used for Phase 3, then superseded by Phase 4 |
 | Hardcode Gemini's bare default to `gemini-3.5-flash-lite` | Easy and leaves the old selector active | Creates a provider-specific exception to computed defaults and does not solve `--all` expansion | Reject |
 | Switch automatically based on `Date.now()` and the shutdown date | No release needed at the threshold | Makes behavior time-dependent, complicates offline tests, and can change resume/default identity without a code change | Reject |
 | Migrate immediately in August 2026 | Maximizes runway and removes deadline risk | Raises bare-selector cost months before necessary | Selected on 2026-08-13 after the static transition policy and official evidence refresh were completed together |
@@ -245,30 +246,30 @@ If a paid calibration is approved during the transition, use the same fixed, non
 
 #### Phase 2: Pre-migration evidence refresh — completed 2026-08-13
 
-1. Google's official model, latest-model, pricing, and deprecation pages reconfirmed successor stability, text/image/video/audio/PDF input, structured output, the `$0.30 / $2.50` Standard token rates, no successor shutdown date, and the old model's 2027-05-07 shutdown with `gemini-3.5-flash-lite` as replacement.
+1. Google's official model, latest-model, pricing, and deprecation pages reconfirmed successor stability, text/image/video/audio/PDF input, structured output, the `$0.30 / $2.50` Standard token rates, no successor shutdown date, and the old model's 2027-05-07 earliest shutdown date with `gemini-3.5-flash-lite` as replacement.
 2. Local mocked contracts now exercise `gemini-3.5-flash-lite` write and OCR request paths, including reasoning configuration, structured output, PDF/image input, usage parsing, and actual-cost projection.
 3. No paid calibration was approved or run. The reused write timing and OCR token/timing heuristics remain clearly provisional.
 
-#### Phase 3: Default migration — completed 2026-08-13
+#### Phase 3: Default migration — completed, then superseded by Phase 4 on 2026-08-13
 
-1. Both registry surfaces mark `gemini-3.1-flash-lite` deprecated with shutdown date `2027-05-07`, replacement `gemini-3.5-flash-lite`, and both automatic eligibility fields false.
-2. Contracts assert bare Gemini write and OCR resolve to `gemini-3.5-flash-lite`, explicit `gemini-3.1-flash-lite` remains accepted during the transition, and `--all-llm` and `--all-ocr` exclude the deprecated model unless it is also named explicitly.
-3. Registry descriptions, command documentation, examples, model listings, pricing contracts, and resume guidance now describe the new default and explicit-only transition selector.
-4. This ADR and its README index row record the actual 2026-08-13 migration state and the remaining post-shutdown step.
+1. Both registry surfaces initially marked `gemini-3.1-flash-lite` deprecated with shutdown date `2027-05-07`, replacement `gemini-3.5-flash-lite`, and both automatic eligibility fields false.
+2. Transitional contracts asserted that bare Gemini write and OCR resolved to `gemini-3.5-flash-lite`, explicit `gemini-3.1-flash-lite` remained accepted, and `--all-llm` and `--all-ocr` excluded the deprecated model unless it was also named explicitly.
+3. Registry descriptions, command documentation, examples, model listings, pricing contracts, and resume guidance described the new default and explicit-only transition selector.
+4. Phase 4 removed that transitional exception and replaced these contracts with active-selector rejection and historical-identity preservation.
 
-#### Phase 4: Post-shutdown retirement — scheduled for 2027-05-07 or later
+#### Phase 4: Project-side retirement — completed 2026-08-13
 
-1. Recheck provider status on or immediately after shutdown without making a paid request.
-2. Remove the retired selector from active write/OCR model lists and current registry config, leaving historical rate/manifest readers intact where needed.
-3. Make explicit old-selector and resume errors name `gemini-3.5-flash-lite` as the replacement, but never silently substitute it for stored provider identity.
-4. Remove lifecycle exceptions that no longer serve an active explicit selector while keeping the generic lifecycle mechanism for other models.
+1. Rechecked Google's official deprecation page without a provider request. It still listed 2027-05-07 as the earliest shutdown date and did not mark the model shut down, so the implementation records an AutoShow-side early retirement rather than a provider shutdown.
+2. Removed the retired selector from active write/OCR model lists and current registry config while retaining historical write/OCR token rates.
+3. Added replacement-aware direct-selector errors and unfinished OCR resume protection. Replacement selection is explicit and additive; stored provider identity is never rewritten.
+4. Removed the Gemini-specific active lifecycle rows while keeping the generic lifecycle mechanism and schema contracts for future transitions.
 
 ### Acceptance and verification criteria
 
 - Bare Gemini write and OCR resolve deterministically to `gemini-3.5-flash-lite` in every environment.
-- Explicit `gemini-3.1-flash-lite` remains accepted during the transition while bare and all-provider expansion exclude it; an explicit old selector combined with `--all-*` remains honored.
+- Explicit `gemini-3.1-flash-lite` is rejected on write and OCR with `gemini-3.5-flash-lite` guidance, and it is absent from all-provider expansion and help.
 - The current date is never consulted during selector resolution, price preflight, or resume.
-- Write and OCR registries carry matching lifecycle state and replacement identity.
+- Write and OCR active registries both omit the retired model; historical rates and replacement metadata carry matching identity.
 - Price estimates use the successor's published rates and clearly label provisional heuristics until calibrated.
 - Historical manifests retain their concrete original selector and are never rewritten silently.
 - Verification uses `bun run check`, `bun t --price`, targeted selector expansion, cheapest-model, registry provenance, Gemini request, OCR pricing, CLI help, CLI usage-error, and resume contracts. No paid provider or quota-limited command is part of default verification.
@@ -279,8 +280,6 @@ If a paid calibration is approved during the transition, use the same fixed, non
 |---|---|---|
 | Calibrate Grok 4.5 OCR page timing and token heuristics from a paid run | OCR maintainers | Deferred until the exact paid provider run is separately approved |
 | Calibrate Gemini 3.6/3.5, Claude Opus 5, and Kimi K3 write and OCR heuristics from a paid run | Model registry maintainers | Deferred until the exact paid provider run is separately approved |
-| On or immediately after Gemini 3.1 Flash-Lite's announced 2027-05-07 shutdown, recheck official status and complete Phase 4 retirement without rewriting historical model identity | Model registry maintainers | Scheduled — the pre-shutdown lifecycle/default migration completed 2026-08-13 |
-| At the next hosted LLM refresh, verify from MiniMax's published Chat Completions and model documentation whether every active MiniMax LLM selector supports OpenAI-compatible `response_format: { type: 'json_schema' }` | LLM maintainers | Closed 2026-08-10 — the current OpenAI-compatible request schema and SDK guide do not document `response_format` or `json_schema` for active `MiniMax-M3`; the deprecated native endpoint limits that feature to inactive `MiniMax-Text-01`. Keep the schema-guided compatibility path and re-evaluate only when MiniMax publishes a native contract for every active selector. |
 
 ## Verification
 
@@ -289,12 +288,13 @@ If a paid calibration is approved during the transition, use the same fixed, non
 - `bun test test/test-cases/validation/cli/option-resolution-contracts/`
 - `bun test test/test-cases/validation/cli/cli-help-contracts.test.ts`
 - `bun test test/test-cases/validation/cli/cli-usage-errors.test.ts`
-- Targeted `resume-provider-surface-contracts.test.ts` coverage proving a completed explicit `gemini-3.1-flash-lite` manifest keeps its original model identity
+- Targeted resume contracts proving a completed `gemini-3.1-flash-lite` write manifest stays readable with its original identity and an unfinished OCR target cannot dispatch unless `gemini-3.5-flash-lite` is explicitly added as a distinct target
 - Targeted local token-pricing, OCR-pricing, LLM-observed-cost, registry-provenance, and CLI price-mode contracts
 - Local `--price` preflight for each new selector, which resolves registry pricing without calling a provider
-- Bare-selector checks confirming Gemini write/OCR resolve to `gemini-3.5-flash-lite`, explicit `gemini-3.1-flash-lite` remains valid, automatic expansion excludes it, and unrelated providers retain their computed defaults
+- Bare-selector checks confirming Gemini write/OCR resolve to `gemini-3.5-flash-lite`, retired `gemini-3.1-flash-lite` is rejected with successor guidance, automatic expansion excludes it, and unrelated providers retain their computed defaults
 - Repository search for removed and renumbered ADR references
 - On 2026-08-13, `bun run check` passed, `bun t --price` checked all 165 mapped commands with zero failures, the focused lifecycle/pricing/mocked-Gemini contracts passed 51 tests, the explicit deprecated-model resume identity contract passed, and the targeted CLI help, usage-error, and option-resolution smoke pass completed 234 tests with zero failures.
+- For the completed Phase 4 retirement on 2026-08-13, `bun run check` and `git diff --check` passed; `bun t --price` checked all 165 mapped commands with zero failures; 42 focused selector, lifecycle-schema, pricing, and historical-rate contracts passed; 54 OCR pricing, timing, request, scheduler, and provider-pool contracts passed; both retirement-specific resume contracts passed; and the CLI help/usage suite passed all 97 tests. No provider request was made.
 
 Do not run paid-provider, e2e, or full-suite tests for this lifecycle change. Smoke coverage must remain targeted, local, and no-cost. Any future calibration still requires separate immediate approval naming the exact command and expected cost or quota risk.
 
@@ -304,8 +304,10 @@ Do not run paid-provider, e2e, or full-suite tests for this lifecycle change. Sm
 - `src/cli/commands/setup-and-utilities/models/ocr-models.ts`
 - `src/cli/commands/setup-and-utilities/models/llm-config.json`
 - `src/cli/commands/setup-and-utilities/models/cheapest-models.ts`
+- `src/cli/commands/setup-and-utilities/models/model-validation.ts`
 - `src/cli/commands/setup-and-utilities/models/model-loader/model-lifecycle.ts`
 - `src/cli/commands/setup-and-utilities/models/model-loader/model-loader-schemas.ts`
+- `src/cli/commands/setup-and-utilities/models/model-loader/retired-model-rates.ts`
 - `src/cli/options/option-resolution/model-flag-selection.ts`
 - `src/cli/commands/setup-and-utilities/models/ocr-config/ocr-mistral.json`
 - `src/cli/commands/setup-and-utilities/models/ocr-config/ocr-grok.json`
@@ -319,6 +321,7 @@ Do not run paid-provider, e2e, or full-suite tests for this lifecycle change. Sm
 - `src/cli/commands/process-steps/step-2-extract/step-2-ocr/ocr-services/grok-ocr/run-grok-ocr.ts`
 - `src/cli/commands/process-steps/step-2-extract/step-2-ocr/ocr-services/gemini-ocr/run-gemini-ocr.ts`
 - `src/cli/commands/process-steps/step-2-extract/step-2-ocr/ocr-services/kimi-ocr/run-kimi-ocr.ts`
+- `src/cli/commands/setup-and-utilities/resume/extract/ocr-resume.ts`
 - Related ADR: [ADR-007](ADR-007-integrate-comic-with-central-llm-and-image-model-configs.md)
 - Related ADR: [ADR-012](ADR-012-add-price-preflight-to-resume.md)
 - Related ADR: [ADR-017](ADR-017-normalize-cross-provider-reasoning-configuration.md)

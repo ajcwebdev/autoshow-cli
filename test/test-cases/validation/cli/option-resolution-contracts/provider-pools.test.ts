@@ -10,7 +10,7 @@ describe('option resolution contracts', () => {
         { service: 'mistral', model: 'mistral-ocr-2512' },
         { service: 'openai', model: 'gpt-5.4-nano' },
         { service: 'anthropic', model: 'claude-haiku-4-5' },
-        { service: 'gemini', model: 'gemini-3.1-flash-lite' }
+        { service: 'gemini', model: 'gemini-3.5-flash-lite' }
       ]
       const active = { local: 0, hosted: 0, total: 0 }
       const max = { local: 0, hosted: 0, total: 0 }

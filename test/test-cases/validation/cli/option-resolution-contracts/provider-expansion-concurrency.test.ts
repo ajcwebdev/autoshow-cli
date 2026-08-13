@@ -82,8 +82,8 @@ describe('option resolution contracts', () => {
       expect(validateGeminiOcrModel('gemini-3.5-flash')).toBe('gemini-3.5-flash')
       expect(validateGeminiOcrModel('gemini-3.6-flash')).toBe('gemini-3.6-flash')
       expect(validateGeminiOcrModel('gemini-3.5-flash-lite')).toBe('gemini-3.5-flash-lite')
-      expect(validateGeminiOcrModel('gemini-3.1-flash-lite')).toBe('gemini-3.1-flash-lite')
-      expect(validateGeminiModel('gemini-3.1-flash-lite')).toBe('gemini-3.1-flash-lite')
+      expect(() => validateGeminiOcrModel('gemini-3.1-flash-lite')).toThrow('Model "gemini-3.1-flash-lite" is retired for --provider/--ocr gemini[=model]. Use "gemini-3.5-flash-lite" instead.')
+      expect(() => validateGeminiModel('gemini-3.1-flash-lite')).toThrow('Model "gemini-3.1-flash-lite" is retired for --llm gemini[=model]. Use "gemini-3.5-flash-lite" instead.')
       expect(validateGrokOcrModel('grok-4.20-0309-non-reasoning')).toBe('grok-4.20-0309-non-reasoning')
       expect(validateGrokOcrModel('grok-4.5')).toBe('grok-4.5')
       expect(validateOpenAIOcrModel('gpt-5.6-sol')).toBe('gpt-5.6-sol')
@@ -435,10 +435,6 @@ describe('option resolution contracts', () => {
 
   test('--all-llm expands OpenAI, Anthropic, Grok, GLM, Kimi, Together, and Cerebras to their supported models', () => {
       const opts = buildOptsFromFlags(false, { 'all-llm': true })
-      const explicitDeprecated = buildOptsFromFlags(false, {
-        'all-llm': true,
-        gemini: 'gemini-3.1-flash-lite'
-      })
       const localOpts = buildOptsFromFlags(false, { 'all-local-llm': true })
 
       expect(opts.llamaModels).toBeUndefined()
@@ -449,13 +445,6 @@ describe('option resolution contracts', () => {
       expect(opts.geminiModels).toEqual(['gemini-3.1-pro-preview', 'gemini-3.6-flash', 'gemini-3.5-flash', 'gemini-3.5-flash-lite'])
       expect(opts.geminiModels).not.toContain('gemini-3.1-flash-lite')
       expect(opts.geminiModels).not.toContain('gemini-3-flash-preview')
-      expect(explicitDeprecated.geminiModels).toEqual([
-        'gemini-3.1-pro-preview',
-        'gemini-3.6-flash',
-        'gemini-3.5-flash',
-        'gemini-3.5-flash-lite',
-        'gemini-3.1-flash-lite'
-      ])
       expect(opts.grokModels).toEqual(['grok-4.3', 'grok-4.5'])
       expect(opts.glmModels).toEqual(['glm-5.1'])
       expect(opts.kimiModels).toEqual(['kimi-k2.6', 'kimi-k3'])
@@ -492,10 +481,6 @@ describe('option resolution contracts', () => {
       const expansions = getStep2AllShortcutModelExpansions()
       const sttOpts = buildOptsFromFlags(false, { 'all-stt': true })
       const ocrOpts = buildOptsFromFlags(false, { 'all-ocr': true })
-      const explicitDeprecatedOcr = buildOptsFromFlags(false, {
-        'all-ocr': true,
-        'gemini-ocr': 'gemini-3.1-flash-lite'
-      })
       const localSttOpts = buildOptsFromFlags(false, { 'all-local-stt': true })
       const localOcrOpts = buildOptsFromFlags(false, { 'all-local-ocr': true })
 
@@ -524,13 +509,6 @@ describe('option resolution contracts', () => {
       expect(ocrOpts.anthropicOcrModels).not.toContain('claude-mythos-5')
       expect(ocrOpts.geminiOcrModels).toEqual(['gemini-3.1-pro-preview', 'gemini-3.5-flash', 'gemini-3.6-flash', 'gemini-3.5-flash-lite'])
       expect(ocrOpts.geminiOcrModels).not.toContain('gemini-3.1-flash-lite')
-      expect(explicitDeprecatedOcr.geminiOcrModels).toEqual([
-        'gemini-3.1-pro-preview',
-        'gemini-3.5-flash',
-        'gemini-3.6-flash',
-        'gemini-3.5-flash-lite',
-        'gemini-3.1-flash-lite'
-      ])
       expect(ocrOpts.deepinfraOcrModels).toEqual(['Qwen/Qwen3-VL-235B-A22B-Instruct', 'Qwen/Qwen3-VL-30B-A3B-Instruct'])
       expect(collectSttTargets(sttOpts).map((target) => target.service)).toContain('deepgram')
       expect(collectSttTargets(sttOpts).map((target) => target.service)).toContain('grok')

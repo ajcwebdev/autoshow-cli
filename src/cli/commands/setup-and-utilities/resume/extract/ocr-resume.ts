@@ -17,6 +17,38 @@ import { hasResumableProviderTargetWork, priceProviderResumeTarget, providerResu
 import { buildExtractEstimates } from '~/cli/commands/process-steps/step-2-extract/extract-pricing/build-extract-estimates'
 import { resolveReasoningPolicy, type NormalizedReasoningEffort } from '~/cli/commands/setup-and-utilities/models/reasoning-resolver'
 import { writeOcrBatchDiagnostics } from '~/cli/commands/process-steps/step-2-extract/step-2-ocr/ocr-batch-diagnostics'
+import { getStep2ActiveModelsForService } from '~/cli/commands/process-steps/step-2-extract/step-2-shared/provider-registry'
+import { getRetiredModelReplacement } from '~/cli/commands/setup-and-utilities/models/model-loader'
+
+const filterRunnableStoredOcrTargets = (
+  targets: readonly OcrTarget[],
+  selectedTargets: readonly OcrTarget[] | undefined
+): OcrTarget[] => {
+  const runnable: OcrTarget[] = []
+  for (const target of targets) {
+    const activeModels = getStep2ActiveModelsForService('ocr', target.service)
+    if (!activeModels || activeModels.includes(target.model)) {
+      runnable.push(target)
+      continue
+    }
+
+    const replacement = getRetiredModelReplacement('extract', target.service, target.model)
+    const selectedReplacement = replacement !== undefined && selectedTargets?.some((selected) =>
+      selected.service === target.service && selected.model === replacement
+    ) === true
+    if (selectedReplacement) {
+      continue
+    }
+
+    const nextStep = replacement !== undefined
+      ? `Re-run with --provider ${target.service}=${replacement} to add the replacement as a distinct target.`
+      : `Re-run with an explicit active ${target.service} model to add a distinct target.`
+    throw CLIUsageError(
+      `Stored OCR target ${target.service}/${target.model} is incomplete, but that model is no longer in the active registry. AutoShow will not substitute a different model because that would change the stored target identity. ${nextStep}`
+    )
+  }
+  return runnable
+}
 
 const assertSelectedOcrReasoningCompatibility = (
   record: Record<string, unknown>,
@@ -101,9 +133,12 @@ const parseResumeRecord = async (
   assertSelectedOcrReasoningCompatibility(record, selectedTargets, requestedReasoningEffort)
 
   const source = toStoredSource(record)
-  const storedMissingTargets = buildMissingTargetsFromEntry(record, storedRequestedTargets, {
-    includeBlocked: selectedTargets !== undefined
-  })
+  const storedMissingTargets = filterRunnableStoredOcrTargets(
+    buildMissingTargetsFromEntry(record, storedRequestedTargets, {
+      includeBlocked: selectedTargets !== undefined
+    }),
+    selectedTargets
+  )
   const resolvedTargets = resolveAdditiveResumeProviderSelection({
     storedProviders: storedRequestedTargets,
     runnableStoredProviders: storedMissingTargets,

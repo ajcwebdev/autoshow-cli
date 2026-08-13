@@ -218,34 +218,6 @@
           "supportedEfforts": ["low", "medium", "high"]
         }
       },
-      "gemini-3.1-flash-lite": {
-        "description": "Gemini 3.1 Flash-Lite — deprecated for automatic selection; explicitly selectable until its announced shutdown",
-        "pricingSourceUrl": "https://ai.google.dev/gemini-api/docs/pricing",
-        "pricingCheckedAt": "2026-08-13",
-        "pricingCurrency": "USD",
-        "pricingTier": "Gemini API paid Standard",
-        "pricingNotes": "Gemini 3.1 Flash-Lite Standard pricing is $0.25/1M text/image/video input tokens, $0.50/1M audio input tokens, and $1.50/1M output tokens. AutoShow uses text input pricing for step-3 LLM estimates. Free tier, batch/flex/priority prices, context caching, taxes, and provider credits are ignored.",
-        "inputCostPer1MCents": 25,
-        "outputCostPer1MCents": 150,
-        "estimation": {
-          "costMultiplier": 0.8395,
-          "msPer1KTokens": 2537
-        },
-        "reasoning": {
-          "support": "optional",
-          "supportedEfforts": ["minimal", "low", "medium", "high"]
-        },
-        "lifecycle": {
-          "status": "deprecated",
-          "shutdownDate": "2027-05-07",
-          "replacementModel": "gemini-3.5-flash-lite",
-          "defaultEligible": false,
-          "allExpansionEligible": false,
-          "sourceUrl": "https://ai.google.dev/gemini-api/docs/deprecations",
-          "checkedAt": "2026-08-13",
-          "notes": "Google lists 2027-05-07 as the earliest shutdown date and gemini-3.5-flash-lite as the recommended replacement. AutoShow keeps this concrete selector available only when explicitly requested during the transition."
-        }
-      },
       "gemini-3.6-flash": {
         "description": "Gemini 3.6 Flash — current balanced Gemini model",
         "pricingSourceUrl": "https://ai.google.dev/gemini-api/docs/pricing",
@@ -288,7 +260,7 @@
         "pricingCheckedAt": "2026-08-13",
         "pricingCurrency": "USD",
         "pricingTier": "Gemini API paid Standard",
-        "pricingNotes": "Google lists Gemini 3.5 Flash-Lite Standard pricing at $0.30/1M input tokens and $2.50/1M output tokens with no published context tiers. Google documents this model as the recommended replacement for gemini-3.1-flash-lite ahead of that model's 2027-05-07 shutdown. AutoShow uses uncached paid Standard pricing. Free tier, batch/flex/priority prices, context caching, taxes, and provider credits are ignored.",
+        "pricingNotes": "Google lists Gemini 3.5 Flash-Lite Standard pricing at $0.30/1M input tokens and $2.50/1M output tokens with no published context tiers. On AutoShow's 2026-08-13 project-side retirement check, Google still listed this model as the recommended replacement for gemini-3.1-flash-lite and 2027-05-07 as the old model's earliest shutdown date. AutoShow uses uncached paid Standard pricing. Free tier, batch/flex/priority prices, context caching, taxes, and provider credits are ignored.",
         "inputCostPer1MCents": 30,
         "outputCostPer1MCents": 250,
         "estimation": {

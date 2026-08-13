@@ -438,7 +438,7 @@ describe('hosted OCR scheduler contracts', () => {
           })
         ),
         ...Array.from({ length: 3 }, (_, index) =>
-          scheduler.run(admission('gemini', 'gemini-3.1-flash-lite', 'lite'), async () => {
+          scheduler.run(admission('gemini', 'gemini-3.5-flash-lite', 'lite'), async () => {
             starts.push(`lite-${index}`)
             await gate.promise
             return index
@@ -636,7 +636,7 @@ describe('hosted OCR scheduler contracts', () => {
           await initialGate.promise
           return 'a1'
         }),
-        scheduler.run(admission('gemini', 'gemini-3.1-flash-lite', 'b'), async () => {
+        scheduler.run(admission('gemini', 'gemini-3.5-flash-lite', 'b'), async () => {
           starts.push('b1')
           await initialGate.promise
           return 'b1'
@@ -650,7 +650,7 @@ describe('hosted OCR scheduler contracts', () => {
           await followGate.promise
           return 'a2'
         }),
-        scheduler.run(admission('gemini', 'gemini-3.1-flash-lite', 'b'), async () => {
+        scheduler.run(admission('gemini', 'gemini-3.5-flash-lite', 'b'), async () => {
           starts.push('b2')
           await followGate.promise
           return 'b2'
@@ -814,7 +814,7 @@ describe('hosted OCR scheduler contracts', () => {
           }, {
             targetKey: 'gemini:lite',
             service: 'gemini',
-            model: 'gemini-3.1-flash-lite',
+            model: 'gemini-3.5-flash-lite',
             status: 'succeeded',
             submittedPages: 228,
             completedPages: 228,
@@ -890,7 +890,7 @@ describe('hosted OCR scheduler contracts', () => {
         }
         const byModel = new Map(store.profiles.map((profile) => [profile['model'], profile]))
         expect(byModel.get('gemini-3.5-flash')?.['completionStatus']).toBe('full')
-        expect(byModel.get('gemini-3.1-flash-lite')?.['completionStatus']).toBe('full')
+        expect(byModel.get('gemini-3.5-flash-lite')?.['completionStatus']).toBe('full')
         expect(byModel.get('mistral-small-ocr')?.['completionStatus']).toBe('full')
         expect(byModel.get('kimi-latest')?.['completionStatus']).toBe('incomplete')
       } finally {

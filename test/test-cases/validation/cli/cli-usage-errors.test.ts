@@ -443,6 +443,17 @@ test('extract rejects removed Kimi Code OCR models', async () => {
   }
 })
 
+test('write and extract reject retired Gemini 3.1 Flash-Lite with successor guidance', async () => {
+  await expectUsageExit(
+    ['write', 'input/examples/document/1-document.pdf', '--llm', 'gemini=gemini-3.1-flash-lite', '--price'],
+    'Model "gemini-3.1-flash-lite" is retired for --llm gemini[=model]. Use "gemini-3.5-flash-lite" instead. AutoShow will not silently substitute a different model identity.'
+  )
+  await expectUsageExit(
+    ['extract', 'input/examples/document/1-document.pdf', '--provider', 'gemini=gemini-3.1-flash-lite', '--price'],
+    'Model "gemini-3.1-flash-lite" is retired for --provider/--ocr gemini[=model]. Use "gemini-3.5-flash-lite" instead. AutoShow will not silently substitute a different model identity.'
+  )
+})
+
 test('extract rejects removed DeepInfra PaddleOCR model', async () => {
   await expectUsageExit(
     ['extract', 'input/examples/document/1-document.pdf', '--provider', 'deepinfra=PaddlePaddle/PaddleOCR-VL-0.9B', '--price'],

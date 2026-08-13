@@ -1,4 +1,5 @@
-import { createModelValidator } from '~/cli/commands/setup-and-utilities/models/model-validation'
+import { createModelValidator, throwRetiredModelSelection } from '~/cli/commands/setup-and-utilities/models/model-validation'
+import { getRetiredModelReplacement } from '~/cli/commands/setup-and-utilities/models/model-loader/retired-model-rates'
 
 export const SUPPORTED_MISTRAL_OCR_MODELS = [
   'mistral-ocr-2512',
@@ -52,12 +53,18 @@ export const validateAnthropicOcrModel = createModelValidator(SUPPORTED_ANTHROPI
 export const SUPPORTED_GEMINI_OCR_MODELS = [
   'gemini-3.1-pro-preview',
   'gemini-3.5-flash',
-  'gemini-3.1-flash-lite',
   'gemini-3.6-flash',
   'gemini-3.5-flash-lite'
 ] as const satisfies readonly string[]
 
-export const validateGeminiOcrModel = createModelValidator(SUPPORTED_GEMINI_OCR_MODELS, 'gemini-ocr')
+const validateActiveGeminiOcrModel = createModelValidator(SUPPORTED_GEMINI_OCR_MODELS, 'gemini-ocr')
+export const validateGeminiOcrModel = (model: string): typeof SUPPORTED_GEMINI_OCR_MODELS[number] => {
+  const replacement = getRetiredModelReplacement('extract', 'gemini', model)
+  if (replacement !== undefined) {
+    return throwRetiredModelSelection(model, 'gemini-ocr', replacement)
+  }
+  return validateActiveGeminiOcrModel(model)
+}
 
 export const DEFAULT_DEEPINFRA_OCR_MODEL = 'Qwen/Qwen3-VL-30B-A3B-Instruct'
 

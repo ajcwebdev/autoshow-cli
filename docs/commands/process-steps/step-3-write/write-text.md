@@ -190,17 +190,16 @@ Passing `--llm anthropic` keeps the cheaper `claude-haiku-4-5` default. Claude O
 | Option | Value |
 |--------|-------|
 | Selector | `--llm gemini[=<model>]` |
-| Models | `gemini-3.1-pro-preview`, `gemini-3.1-flash-lite`, `gemini-3.6-flash`, `gemini-3.5-flash`, `gemini-3.5-flash-lite` |
+| Models | `gemini-3.1-pro-preview`, `gemini-3.6-flash`, `gemini-3.5-flash`, `gemini-3.5-flash-lite` |
 | Bare default | `gemini-3.5-flash-lite` |
-| Deprecated transition selector | `gemini-3.1-flash-lite` remains explicit-only until its announced 2027-05-07 shutdown and is excluded from `--all-providers llm` |
+| Retired selector | `gemini-3.1-flash-lite` is rejected with guidance to use `gemini-3.5-flash-lite`; historical pricing and manifest identity remain readable |
 
 ```bash
 bun autoshow write https://ajc.pics/autoshow/examples/1-audio.mp3 --llm gemini=gemini-3.5-flash-lite
-bun autoshow write https://ajc.pics/autoshow/examples/1-audio.mp3 --llm gemini=gemini-3.1-flash-lite # explicit transition-period rerun only
 bun autoshow write https://ajc.pics/autoshow/examples/1-audio.mp3 --llm gemini=gemini-3.6-flash
 ```
 
-Passing `--llm gemini` resolves to `gemini-3.5-flash-lite`. The static lifecycle snapshot marks `gemini-3.1-flash-lite` deprecated and ineligible for bare or `--all-providers llm` selection while its direct selector remains valid through the transition; no wall-clock check changes behavior. The current Gemini models use flat Standard rates with no context tiers: Gemini 3.6 Flash at `$1.50 / 1M input` and `$7.50 / 1M output`, Gemini 3.5 Flash at `$1.50 / 1M input` and `$9.00 / 1M output`, and Gemini 3.5 Flash-Lite at `$0.30 / 1M input` and `$2.50 / 1M output`. Google documents `gemini-3.5-flash-lite` as the replacement for `gemini-3.1-flash-lite` ahead of that model's 2027-05-07 shutdown. Moving alias selectors such as `gemini-flash-latest` and the `gemini-3-flash-preview` duplicate of `gemini-3.5-flash` are intentionally not registered. Gemini 3.5 Flash-Lite's write timing heuristic remains provisional pending a separately approved paid calibration.
+Passing `--llm gemini` resolves to `gemini-3.5-flash-lite`. The retired `gemini-3.1-flash-lite` selector is absent from active validation and `--all-providers llm`; direct selection names `gemini-3.5-flash-lite` as the replacement without silently rewriting the requested identity, while historical pricing and completed manifests remain readable. The current Gemini models use flat Standard rates with no context tiers: Gemini 3.6 Flash at `$1.50 / 1M input` and `$7.50 / 1M output`, Gemini 3.5 Flash at `$1.50 / 1M input` and `$9.00 / 1M output`, and Gemini 3.5 Flash-Lite at `$0.30 / 1M input` and `$2.50 / 1M output`. Google still listed 2027-05-07 as the earliest shutdown date and `gemini-3.5-flash-lite` as the replacement when AutoShow retired the old selector on 2026-08-13. Moving alias selectors such as `gemini-flash-latest` and the `gemini-3-flash-preview` duplicate of `gemini-3.5-flash` are intentionally not registered. Gemini 3.5 Flash-Lite's write timing heuristic remains provisional pending a separately approved paid calibration.
 
 ### Groq
 

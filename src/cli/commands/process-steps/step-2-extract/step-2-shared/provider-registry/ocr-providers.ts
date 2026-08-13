@@ -67,7 +67,7 @@ export const STEP2_OCR_PROVIDER_REGISTRY = [
   ocrModelProvider('gemini', 'geminiOcr', {
     supportedModels: SUPPORTED_GEMINI_OCR_MODELS,
     validateModel: validateGeminiOcrModel,
-    description: buildModelDescription('Gemini OCR model (gemini-3.1-flash-lite is explicit-only until its 2027-05-07 shutdown; replacement gemini-3.5-flash-lite)', SUPPORTED_GEMINI_OCR_MODELS)
+    description: buildModelDescription('Gemini OCR model', SUPPORTED_GEMINI_OCR_MODELS)
   }),
   ocrModelProvider('deepinfra', 'deepinfraOcr', {
     supportedModels: SUPPORTED_DEEPINFRA_OCR_MODELS,

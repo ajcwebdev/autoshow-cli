@@ -16,8 +16,8 @@ export const ocrRegistry: PriceSelectionEntry[] = [
     command('extract-openai-gpt-5.4-nano', 'extract-openai-gpt-5.4-nano', ['src/cli/create-cli.ts', 'extract', 'input/examples/document/1-document.pdf', '--provider', 'openai=gpt-5.4-nano', '--price']),
     command('extract-openai-gpt-5.4-mini', 'extract-openai-gpt-5.4-mini', ['src/cli/create-cli.ts', 'extract', 'input/examples/document/1-document.pdf', '--provider', 'openai=gpt-5.4-mini', '--price']),
   ]),
-  ...exact('test/test-cases/e2e/service/step-2-ocr-e2e/ocr-services/gemini-3.1-flash-lite.test.ts', [
-    command('extract-gemini-gemini-3.1-flash-lite', 'extract-gemini-gemini-3.1-flash-lite', ['src/cli/create-cli.ts', 'extract', 'input/examples/document/1-document.pdf', '--provider', 'gemini=gemini-3.1-flash-lite', '--price']),
+  ...exact('test/test-cases/e2e/service/step-2-ocr-e2e/ocr-services/gemini-3.5-flash-lite.test.ts', [
+    command('extract-gemini-gemini-3.5-flash-lite', 'extract-gemini-gemini-3.5-flash-lite', ['src/cli/create-cli.ts', 'extract', 'input/examples/document/1-document.pdf', '--provider', 'gemini=gemini-3.5-flash-lite', '--price']),
     command('extract-gemini-gemini-3.5-flash', 'extract-gemini-gemini-3.5-flash', ['src/cli/create-cli.ts', 'extract', 'input/examples/document/1-document.pdf', '--provider', 'gemini=gemini-3.5-flash', '--price']),
   ]),
   ...exact('test/test-cases/e2e/service/step-2-ocr-e2e/ocr-services/deepinfra-qwen3-vl-30b-a3b-instruct.test.ts', [

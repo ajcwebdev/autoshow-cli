@@ -30,7 +30,7 @@ const HOSTED_OCR_PROVIDER_CASES = [
   { provider: 'openai', flagName: 'openai-ocr', modelsKey: 'openaiOcrModels', model: 'gpt-5.4-nano' },
   { provider: 'grok', flagName: 'grok-ocr', modelsKey: 'grokOcrModels', model: 'grok-4.3' },
   { provider: 'anthropic', flagName: 'anthropic-ocr', modelsKey: 'anthropicOcrModels', model: 'claude-haiku-4-5' },
-  { provider: 'gemini', flagName: 'gemini-ocr', modelsKey: 'geminiOcrModels', model: 'gemini-3.1-flash-lite' },
+  { provider: 'gemini', flagName: 'gemini-ocr', modelsKey: 'geminiOcrModels', model: 'gemini-3.5-flash-lite' },
   { provider: 'deepinfra', flagName: 'deepinfra-ocr', modelsKey: 'deepinfraOcrModels', model: 'Qwen/Qwen3-VL-30B-A3B-Instruct' }
 ] as const
 
@@ -747,7 +747,7 @@ describe('price mode contracts', () => {
         { provider: 'openai' as const, model: 'gpt-5.4-nano', pageCount: 1, estimateType: 'heuristic' as const },
         { provider: 'gemini' as const, model: 'gemini-3.1-pro-preview', pageCount: 1, estimateType: 'heuristic' as const },
         { provider: 'gemini' as const, model: 'gemini-3.5-flash', pageCount: 1, estimateType: 'heuristic' as const },
-        { provider: 'gemini' as const, model: 'gemini-3.1-flash-lite', pageCount: 1, estimateType: 'heuristic' as const },
+        { provider: 'gemini' as const, model: 'gemini-3.5-flash-lite', pageCount: 1, estimateType: 'heuristic' as const },
         { provider: 'deepinfra' as const, model: 'Qwen/Qwen3-VL-235B-A22B-Instruct', pageCount: 1, estimateType: 'heuristic' as const }
       ]) {
         const usage = estimateOcrTokenUsage(target.provider, target.model, target.pageCount)

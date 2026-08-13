@@ -178,24 +178,53 @@ describe('price mode contracts', () => {
 
   test('hosted LLM and OCR lifecycle schemas enforce static retirement evidence and concrete replacements', () => {
       const invalidReplacement = structuredClone(getModelRegistry())
-      const invalidReplacementLifecycle = invalidReplacement.llm['gemini']?.models['gemini-3.1-flash-lite']?.lifecycle
-      if (!invalidReplacementLifecycle) throw new Error('Missing Gemini LLM lifecycle fixture')
-      invalidReplacementLifecycle.replacementModel = 'gemini-flash-latest'
+      const invalidReplacementModel = invalidReplacement.llm['gemini']?.models['gemini-3.6-flash']
+      if (!invalidReplacementModel) throw new Error('Missing Gemini LLM lifecycle fixture')
+      invalidReplacementModel.lifecycle = {
+        status: 'deprecated',
+        shutdownDate: '2027-05-07',
+        replacementModel: 'gemini-flash-latest',
+        defaultEligible: false,
+        allExpansionEligible: false,
+        sourceUrl: 'https://ai.google.dev/gemini-api/docs/deprecations',
+        checkedAt: '2026-08-13',
+        notes: 'Synthetic invalid replacement fixture.'
+      }
 
       const missingEvidence = structuredClone(getModelRegistry())
-      const missingEvidenceLifecycle = missingEvidence.extract['gemini']?.models['gemini-3.1-flash-lite']?.lifecycle
-      if (!missingEvidenceLifecycle) throw new Error('Missing Gemini OCR lifecycle fixture')
-      delete missingEvidenceLifecycle.sourceUrl
+      const missingEvidenceModel = missingEvidence.extract['gemini']?.models['gemini-3.6-flash']
+      if (!missingEvidenceModel) throw new Error('Missing Gemini OCR lifecycle fixture')
+      missingEvidenceModel.lifecycle = {
+        status: 'deprecated',
+        replacementModel: 'gemini-3.5-flash-lite',
+        defaultEligible: false,
+        allExpansionEligible: false,
+        checkedAt: '2026-08-13',
+        notes: 'Synthetic missing source fixture.'
+      }
 
       const invalidDate = structuredClone(getModelRegistry())
-      const invalidDateLifecycle = invalidDate.llm['gemini']?.models['gemini-3.1-flash-lite']?.lifecycle
-      if (!invalidDateLifecycle) throw new Error('Missing Gemini LLM lifecycle date fixture')
-      invalidDateLifecycle.shutdownDate = '2027-02-31'
+      const invalidDateModel = invalidDate.llm['gemini']?.models['gemini-3.6-flash']
+      if (!invalidDateModel) throw new Error('Missing Gemini LLM lifecycle date fixture')
+      invalidDateModel.lifecycle = {
+        status: 'deprecated',
+        shutdownDate: '2027-02-31',
+        replacementModel: 'gemini-3.5-flash-lite',
+        defaultEligible: false,
+        allExpansionEligible: false,
+        sourceUrl: 'https://ai.google.dev/gemini-api/docs/deprecations',
+        checkedAt: '2026-08-13',
+        notes: 'Synthetic invalid date fixture.'
+      }
 
       const invalidActiveEligibility = structuredClone(getModelRegistry())
-      const invalidActiveLifecycle = invalidActiveEligibility.extract['gemini']?.models['gemini-3.1-flash-lite']?.lifecycle
-      if (!invalidActiveLifecycle) throw new Error('Missing Gemini OCR active lifecycle fixture')
-      invalidActiveLifecycle.status = 'active'
+      const invalidActiveModel = invalidActiveEligibility.extract['gemini']?.models['gemini-3.6-flash']
+      if (!invalidActiveModel) throw new Error('Missing Gemini OCR active lifecycle fixture')
+      invalidActiveModel.lifecycle = {
+        status: 'active',
+        defaultEligible: false,
+        allExpansionEligible: true
+      }
 
       expect(safeParse(ModelRegistrySchema, invalidReplacement).success).toBe(false)
       expect(safeParse(ModelRegistrySchema, missingEvidence).success).toBe(false)

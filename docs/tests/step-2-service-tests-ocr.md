@@ -19,7 +19,7 @@ bun t test/test-cases/e2e/service/step-2-ocr-e2e/ocr-services/
 
 ## Current Coverage
 
-- Model-level files under `test/test-cases/e2e/service/step-2-ocr-e2e/ocr-services/` cover PDF and image extraction with `--provider mistral=mistral-ocr-2512`, `--provider glm=glm-ocr`, `--provider kimi=kimi-k2.6`, `--provider openai=gpt-5.4-nano`, `--provider gemini=gemini-3.1-flash-lite`, and `--provider deepinfra=Qwen/Qwen3-VL-30B-A3B-Instruct`.
+- Model-level files under `test/test-cases/e2e/service/step-2-ocr-e2e/ocr-services/` cover PDF and image extraction with `--provider mistral=mistral-ocr-2512`, `--provider glm=glm-ocr`, `--provider kimi=kimi-k2.6`, `--provider openai=gpt-5.4-nano`, `--provider gemini=gemini-3.5-flash-lite`, and `--provider deepinfra=Qwen/Qwen3-VL-30B-A3B-Instruct`.
 - Dedicated image-only OCR files cover `--provider openai=gpt-5.5`, `--provider grok=grok-4.3`, `--provider gemini=gemini-3.1-pro-preview`, and `--provider anthropic=claude-opus-4-8` / `--provider anthropic=claude-sonnet-5`. These are live provider tests and should not be run without explicit paid-provider approval.
 - Kimi OCR tests are gated on `KIMI_API_KEY` and assert `ocrService: "kimi"`, the requested `ocrModel`, and recorded `promptTokens` / `completionTokens` when the provider returns usage.
 - DeepInfra OCR tests are gated on `DEEPINFRA_API_KEY` and assert `ocrService: "deepinfra"`, the requested `ocrModel`, and recorded `promptTokens` / `completionTokens` when the provider returns usage.
