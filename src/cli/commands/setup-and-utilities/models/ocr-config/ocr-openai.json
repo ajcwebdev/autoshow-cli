@@ -98,7 +98,7 @@
         "estimation": {
           "promptTokensPerPage": 2986,
           "completionTokensPerPage": 1903,
-          "costMultiplier": 0.2892,
+          "costMultiplier": 1,
           "msPerPage": 5887
         },
         "tokenPricingBands": [
@@ -138,7 +138,7 @@
           "notes": "project/links/openai-general-ocr-text-links.md documents OpenAI file-input limits of 50 MB per file and 50 MB total across all files in a request. Image-input docs document PNG, JPEG, WEBP, and non-animated GIF support with request-level payload limits."
         },
         "estimation": {
-          "costMultiplier": 0.2692,
+          "costMultiplier": 1,
           "msPerPage": 7209,
           "promptTokensPerPage": 2986,
           "completionTokensPerPage": 1844
@@ -163,7 +163,7 @@
           "notes": "project/links/openai-general-ocr-text-links.md documents OpenAI file-input limits of 50 MB per file and 50 MB total across all files in a request. Image-input docs document PNG, JPEG, WEBP, and non-animated GIF support with request-level payload limits."
         },
         "estimation": {
-          "costMultiplier": 0.2692,
+          "costMultiplier": 1,
           "msPerPage": 7209,
           "promptTokensPerPage": 2986,
           "completionTokensPerPage": 1844

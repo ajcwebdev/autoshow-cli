@@ -9,7 +9,7 @@ import { runLtxVideoGen } from '~/cli/commands/process-steps/step-6-video/video-
 import { runReplicateVideoGen } from '~/cli/commands/process-steps/step-6-video/video-services/replicate-video/run-replicate-video-gen'
 import { runLumalabsVideoGen } from '~/cli/commands/process-steps/step-6-video/video-services/video-lumalabs/run-lumalabs-video-gen'
 import { GLM_DEFAULT_BASE_URL, MINIMAX_DEFAULT_BASE_URL, XAI_DEFAULT_BASE_URL } from '~/utils/base-urls'
-import { computeActualCosts } from '~/utils/pricing/compute-actual-costs'
+import { computeActualCosts } from '~/cli/commands/pricing-orchestration/compute-actual-costs'
 import {
   bytesResponse,
   installMockFetch,

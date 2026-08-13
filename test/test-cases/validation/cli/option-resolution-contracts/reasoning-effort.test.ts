@@ -16,8 +16,8 @@ import {
   resolveReasoningPolicy
 } from '~/cli/commands/setup-and-utilities/models/reasoning-resolver'
 import { buildOptsFromFlags } from '~/cli/options/option-resolution/build-options-from-flags'
-import { buildLlmEstimates } from '~/utils/pricing/aggregate-pricing/llm-estimates'
-import { buildExtractEstimates } from '~/utils/pricing/aggregate-pricing/extract-estimates'
+import { buildLlmEstimates } from '~/cli/commands/pricing-orchestration/aggregate-pricing/llm-estimates'
+import { buildExtractEstimates } from '~/cli/commands/process-steps/step-2-extract/extract-pricing/build-extract-estimates'
 
 const structuredSchema: ResolvedStructuredSchema = {
   schemaName: 'content',

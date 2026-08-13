@@ -6,8 +6,8 @@ import {
 import { estimateImageCosts } from '~/cli/commands/process-steps/step-5-image/image-utils/image-pricing'
 import { estimateMusicCosts } from '~/cli/commands/process-steps/step-7-music/music-utils/music-pricing'
 import { resolveExtractionProviderModel } from '~/cli/commands/process-steps/step-2-extract/step-2-ocr/ocr-costs'
-import { computeActualCosts } from '~/utils/pricing/compute-actual-costs'
-import { computeActualProcessingTimes } from '~/utils/pricing/compute-processing-time'
+import { computeActualCosts } from '~/cli/commands/pricing-orchestration/compute-actual-costs'
+import { computeActualProcessingTimes } from '~/cli/commands/pricing-orchestration/compute-processing-time'
 import type { ExtractionMetadata, Step5Metadata, Step6VideoMetadata, Step7MusicMetadata } from '~/types'
 
 const buildVideoMetadata = (overrides: Partial<Step6VideoMetadata>): Step6VideoMetadata => ({

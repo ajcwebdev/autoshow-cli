@@ -2,19 +2,19 @@ import { mkdtemp, rm, writeFile } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { describe, expect, test } from 'bun:test'
-import { estimateOcrTokenUsage } from '~/cli/commands/process-steps/step-2-extract/step-2-ocr/ocr-utils/extract-pricing'
+import { estimateOcrTokenUsage } from '~/cli/commands/process-steps/step-2-extract/extract-pricing/ocr-estimates'
 import {
   persistHostedOcrTokenUsageProfiles,
   readHostedOcrTokenUsageProfiles
 } from '~/cli/commands/process-steps/step-2-extract/step-2-ocr/ocr-utils/hosted-ocr-token-profiles'
 import { buildOcrCostDiagnostics, resolveExtractEstimatedCosts, resolveExtractObservedEstimateCosts } from '~/cli/commands/process-steps/step-2-extract/step-2-ocr/ocr-costs'
-import { getExtractEstimation } from '~/cli/commands/setup-and-utilities/models/model-loader'
+import { getExtractEstimation, getModelRegistry } from '~/cli/commands/setup-and-utilities/models/model-loader'
 import { formatRatesSummary } from '~/cli/commands/process-steps/write-manifest-log/manifest-log-formatting'
 import { DEFAULT_OCR_CONCURRENCY } from '~/utils/concurrency-defaults'
-import { buildAggregatedPriceEstimate } from '~/utils/pricing/aggregate-pricing'
-import { computeActualCosts } from '~/utils/pricing/compute-actual-costs'
-import { computeEstimatedCosts } from '~/utils/pricing/compute-estimated-costs'
-import { computeActualProcessingTimes, computeEstimatedProcessingTimes } from '~/utils/pricing/compute-processing-time'
+import { buildAggregatedPriceEstimate } from '~/cli/commands/pricing-orchestration/aggregate-pricing'
+import { computeActualCosts } from '~/cli/commands/pricing-orchestration/compute-actual-costs'
+import { computeEstimatedCosts } from '~/cli/commands/pricing-orchestration/compute-estimated-costs'
+import { computeActualProcessingTimes, computeEstimatedProcessingTimes } from '~/cli/commands/pricing-orchestration/compute-processing-time'
 import type { CommandPricingOptions, ExtractionMetadata } from '~/types'
 import { findPricingNoteKeys } from './shared'
 
@@ -66,6 +66,16 @@ const buildHostedOcrPricingOptions = (
 }
 
 describe('price mode contracts', () => {
+  test('every token-priced OCR registry entry uses multiplier 1', () => {
+    const registry = getModelRegistry().extract
+    for (const [provider, service] of Object.entries(registry)) {
+      for (const [model, metadata] of Object.entries(service.models)) {
+        if (metadata.costPerMInputTokensCents === undefined || metadata.costPerMOutputTokensCents === undefined) continue
+        expect(getExtractEstimation(provider, model).costMultiplier).toBe(1)
+      }
+    }
+  })
+
   test('hosted OCR aggregate pricing uses detected PDF page count for every provider', async () => {
       const estimate = await buildAggregatedPriceEstimate('extract', MULTI_PAGE_PDF, buildHostedOcrPricingOptions())
 
@@ -798,6 +808,7 @@ describe('price mode contracts', () => {
         expect(Object.keys(profile ?? {}).sort()).toEqual([
           'completionTokenEstimateDelta',
           'completionTokensPerPage',
+          'effectiveReasoningEffort',
           'estimatedCompletionTokens',
           'estimatedPromptTokens',
           'firstSeenAt',

@@ -140,26 +140,34 @@ export const ReasoningCapabilitiesSchema = v.pipe(
   )
 )
 
-const ExtractModelSchema = v.strictObject({
-  description: v.string(),
-  ...PricingProvenanceFields,
-  costPer1kPagesCents: v.optional(v.number(), undefined),
-  costPerMInputTokensCents: v.optional(v.number(), undefined),
-  costPerMCachedInputTokensCents: v.optional(v.number(), undefined),
-  costPerMOutputTokensCents: v.optional(v.number(), undefined),
-  tokenPricingBands: v.optional(v.array(TokenPricingBandSchema), undefined),
-  higherContextPricing: v.optional(HigherContextPricingSchema, undefined),
-  limits: v.optional(ExtractLimitsSchema, undefined),
-  estimation: v.optional(v.object({
-    costMultiplier: v.optional(v.number(), undefined),
-    msPerPage: v.optional(v.number(), undefined),
-    singlePagePdfFallbackMsPerPage: v.optional(v.number(), undefined),
-    promptTokensPerPage: v.optional(v.number(), undefined),
-    completionTokensPerPage: v.optional(v.number(), undefined)
-  }), undefined),
-  reasoning: v.optional(ReasoningCapabilitiesSchema, undefined),
-  lifecycle: v.optional(ModelLifecycleSchema, undefined)
-})
+const ExtractModelSchema = v.pipe(
+  v.strictObject({
+    description: v.string(),
+    ...PricingProvenanceFields,
+    costPer1kPagesCents: v.optional(v.number(), undefined),
+    costPerMInputTokensCents: v.optional(v.number(), undefined),
+    costPerMCachedInputTokensCents: v.optional(v.number(), undefined),
+    costPerMOutputTokensCents: v.optional(v.number(), undefined),
+    tokenPricingBands: v.optional(v.array(TokenPricingBandSchema), undefined),
+    higherContextPricing: v.optional(HigherContextPricingSchema, undefined),
+    limits: v.optional(ExtractLimitsSchema, undefined),
+    estimation: v.optional(v.object({
+      costMultiplier: v.optional(v.number(), undefined),
+      msPerPage: v.optional(v.number(), undefined),
+      singlePagePdfFallbackMsPerPage: v.optional(v.number(), undefined),
+      promptTokensPerPage: v.optional(v.number(), undefined),
+      completionTokensPerPage: v.optional(v.number(), undefined)
+    }), undefined),
+    reasoning: v.optional(ReasoningCapabilitiesSchema, undefined),
+    lifecycle: v.optional(ModelLifecycleSchema, undefined)
+  }),
+  v.check(
+    (model) => model.costPerMInputTokensCents === undefined
+      || model.costPerMOutputTokensCents === undefined
+      || (model.estimation?.costMultiplier ?? 1) === 1,
+    'Token-priced OCR models must use costMultiplier 1; calibrate prompt and completion token shapes instead.'
+  )
+)
 
 const ExtractServiceSchema = v.pipe(
   v.object({

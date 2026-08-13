@@ -4,7 +4,7 @@ import { readManifest, writeManifest } from '~/cli/commands/process-steps/pipeli
 import { logResumeItem, logResumeSummary } from './resume-logging'
 import { getResumeProviderKey, resolveAdditiveResumeProviderSelection, uniqueResumeProviders } from './resume-provider-selection'
 import { CLIUsageError, InfraError } from '~/utils/error-handler'
-import { aggregateExplicitPriceEstimate } from '~/utils/pricing/aggregate-pricing'
+import { aggregateExplicitPriceEstimate } from '~/cli/commands/pricing-orchestration/aggregate-pricing'
 import type { AdditiveResumeProviderSelection, AggregatedPriceEstimate, GenerationModelFieldTable, GenerationResumeConfig, GenerationResumeProviderIdentity, PipelineManifest, PipelineManifestItem, ProviderIdentity, ResumeDisplayOptions, ResumeHandler, ResumeResult, ResumeTarget, ResumeTargetKind } from '~/types'
 
 export const buildUpdatedGenerationCostTiming = (

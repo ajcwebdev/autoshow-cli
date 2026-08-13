@@ -11,7 +11,7 @@ import {
   RETIRED_MODEL_RATES
 } from '~/cli/commands/setup-and-utilities/models/model-loader'
 import type { ModelCategory } from '~/cli/commands/setup-and-utilities/models/model-loader'
-import { resolveTranscriptionModel } from '~/utils/pricing/run-step-walk'
+import { resolveTranscriptionModel } from '~/cli/commands/pricing-orchestration/run-step-walk'
 import type { Step2Metadata } from '~/types'
 
 type ModelIdentitySpec = {

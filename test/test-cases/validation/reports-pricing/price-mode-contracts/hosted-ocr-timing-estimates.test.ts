@@ -4,7 +4,7 @@ import { join } from 'node:path'
 import { describe, expect, test } from 'bun:test'
 import { getExtractEstimation } from '~/cli/commands/setup-and-utilities/models/model-loader'
 import { resolveHostedOcrEstimateCap } from '~/cli/commands/process-steps/step-2-extract/step-2-ocr/ocr-utils/hosted-ocr-scheduler'
-import { computeEstimatedProcessingTimes } from '~/utils/pricing/compute-processing-time'
+import { computeEstimatedProcessingTimes } from '~/cli/commands/pricing-orchestration/compute-processing-time'
 
 const missingProfilePath = (): string =>
   join(tmpdir(), `autoshow-missing-ocr-profile-${process.pid}-${Date.now()}-${Math.random()}.json`)

@@ -213,6 +213,8 @@ describe('OpenAI REST OCR contracts', () => {
         outputDir: dir,
         ocrPreparationCache: undefined
       })
+      expect(result.promptTokens).toBe(4232)
+      expect(result.completionTokens).toBe(2068)
       await runKimiOcr(imagePath, metadata, 'kimi-k2.6', {
         dpi: 300,
         password: undefined,

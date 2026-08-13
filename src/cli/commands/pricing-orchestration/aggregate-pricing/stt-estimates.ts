@@ -7,8 +7,8 @@ import {
 } from '~/cli/commands/process-steps/step-2-extract/step-2-stt/stt-services/happyscribe/happyscribe-pricing'
 import { resolveYoutubeCaptionEstimateTargets } from '~/cli/commands/process-steps/step-2-extract/step-2-stt/youtube-captions'
 import { getSttCost } from '~/cli/commands/setup-and-utilities/models/model-loader'
-import { computeBilledSttCost } from '~/utils/pricing/stt-billing'
-import { estimateSupadataCost } from '~/utils/pricing/supadata-pricing'
+import { computeBilledSttCost } from '~/cli/commands/pricing-orchestration/stt-billing'
+import { estimateSupadataCost } from '~/cli/commands/pricing-orchestration/supadata-pricing'
 import { estimateScrapeCreatorsCost } from '~/utils/pricing/scrapecreators-pricing'
 
 const EXACT_COST_MULTIPLIER = 1

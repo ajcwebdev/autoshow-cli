@@ -1,7 +1,7 @@
 import { describe, expect, test } from 'bun:test'
 import type { ComputeActualCostsInput, ComputeActualProcessingTimesInput } from '~/types'
-import { computeActualCosts } from '~/utils/pricing/compute-actual-costs'
-import { computeActualProcessingTimes } from '~/utils/pricing/compute-processing-time'
+import { computeActualCosts } from '~/cli/commands/pricing-orchestration/compute-actual-costs'
+import { computeActualProcessingTimes } from '~/cli/commands/pricing-orchestration/compute-processing-time'
 
 const fixture = {
   audioDurationSeconds: 12,

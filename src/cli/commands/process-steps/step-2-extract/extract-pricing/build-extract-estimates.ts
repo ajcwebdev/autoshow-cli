@@ -1,8 +1,8 @@
 import type { ExtractStepEstimate, HostedOcrEstimateHandler, HostedOcrPricingService, OcrCostEstimate, ResolvedStep2Execution } from '~/types'
-import { GEMINI_OCR_PRICE_NOTE, GLM_OCR_PRICE_NOTE, estimateAnthropicOcrCost, estimateDeepinfraOcrCost, estimateGeminiOcrCost, estimateGlmOcrCost, estimateGrokOcrCost, estimateKimiOcrCost, estimateMistralOcrCost, estimateOpenAIOcrCost, resolveExtractInputPageCountForPricing } from '~/cli/commands/process-steps/step-2-extract/step-2-ocr/ocr-utils/extract-pricing'
+import { GEMINI_OCR_PRICE_NOTE, GLM_OCR_PRICE_NOTE, estimateAnthropicOcrCost, estimateDeepinfraOcrCost, estimateGeminiOcrCost, estimateGlmOcrCost, estimateGrokOcrCost, estimateKimiOcrCost, estimateMistralOcrCost, estimateOpenAIOcrCost, resolveExtractInputPageCountForPricing } from '~/cli/commands/process-steps/step-2-extract/extract-pricing/ocr-estimates'
 import { getExtractEstimation } from '~/cli/commands/setup-and-utilities/models/model-loader'
 import { resolveReasoningPolicy, type MappedReasoningPolicy, type NormalizedReasoningEffort } from '~/cli/commands/setup-and-utilities/models/reasoning-resolver'
-import { applyCostMultiplier } from '~/utils/pricing/cost-helpers'
+import { applyCostMultiplier } from '~/cli/commands/pricing-orchestration/cost-helpers'
 const LOCAL_OCR_NOTES = {
   tesseract: 'Local Tesseract OCR runs on local CPU and is not billed by AutoShow.'
 } as const
@@ -107,6 +107,7 @@ const buildHostedExtractEstimate = (
     ...(typeof estimate.tokenProfileSampleCount === 'number' ? { tokenProfileSampleCount: estimate.tokenProfileSampleCount } : {}),
     ...(typeof estimate.tokenProfilePromptTokensPerPage === 'number' ? { tokenProfilePromptTokensPerPage: estimate.tokenProfilePromptTokensPerPage } : {}),
     ...(typeof estimate.tokenProfileCompletionTokensPerPage === 'number' ? { tokenProfileCompletionTokensPerPage: estimate.tokenProfileCompletionTokensPerPage } : {}),
+    ...(typeof estimate.tokenProfileEffectiveReasoningEffort === 'string' ? { tokenProfileEffectiveReasoningEffort: estimate.tokenProfileEffectiveReasoningEffort } : {}),
     totalCost: applyCostMultiplier(estimate.totalCost, estimation.costMultiplier),
     costMultiplier: estimation.costMultiplier,
     ...(estimateType ? { estimateType } : {}),
@@ -144,7 +145,8 @@ export const buildExtractEstimates = async (
     if (isHostedOcrService(provider.service)) {
       const handler = HOSTED_OCR_HANDLERS[provider.service]
       const estimate = await handler.estimate(provider.model, resolvedTarget, {
-        hostedOcrTokenProfilePath: opts.hostedOcrTokenProfilePath
+        hostedOcrTokenProfilePath: opts.hostedOcrTokenProfilePath,
+        effectiveReasoningEffort: reasoningPolicy.effective
       })
       estimates.push(buildHostedExtractEstimate(estimate, handler, reasoningPolicy))
       continue

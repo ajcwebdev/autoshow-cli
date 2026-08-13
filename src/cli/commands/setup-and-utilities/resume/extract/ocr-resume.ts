@@ -14,8 +14,9 @@ import { PIPELINE_MANIFEST_FILE, readSinglePipelineItemRecord } from '~/cli/comm
 import type { AggregatedPriceEstimate, OcrExtractionOptions, OcrResumePassContext, OcrTarget, PipelineItemRecord, PreparedDocument, ProviderCompletionStatus, ProviderResumePassResult, ResolvedStep2Execution, ResumeDisplayOptions, ResumeOcrEntry, ResumeResult, ResumeTarget, Step1SourceRef, WebArticleMetadata } from '~/types'
 import { resolveAdditiveResumeProviderSelection } from '../resume-provider-selection'
 import { hasResumableProviderTargetWork, priceProviderResumeTarget, providerResumeSourceInput, resolveProviderResumeOutputDir, runProviderResumePass, selectedProviderTargetsComplete, selectedProvidersCompleteResult, toProviderResumeResult, toProviderResumeSource, withProviderResumeOutputDir } from '../provider-batch-resume'
-import { buildExtractEstimates } from '~/utils/pricing/aggregate-pricing/extract-estimates'
+import { buildExtractEstimates } from '~/cli/commands/process-steps/step-2-extract/extract-pricing/build-extract-estimates'
 import { resolveReasoningPolicy, type NormalizedReasoningEffort } from '~/cli/commands/setup-and-utilities/models/reasoning-resolver'
+import { writeOcrBatchDiagnostics } from '~/cli/commands/process-steps/step-2-extract/step-2-ocr/ocr-batch-diagnostics'
 
 const assertSelectedOcrReasoningCompatibility = (
   record: Record<string, unknown>,
@@ -326,6 +327,10 @@ const runResumeOcrTarget = async (
     1,
     displayOptions
   )
+
+  if (target.scope === 'batch') {
+    await writeOcrBatchDiagnostics(target.dir)
+  }
 
   if (resumableStatus.resumableIncomplete > 0 || resumableStatus.resumableFailed > 0) {
     throw InfraError(`OCR resume still has ${resumableStatus.resumableIncomplete} incomplete and ${resumableStatus.resumableFailed} failed item(s) with resumable providers`, { stage: 'resume:ocr', exitCode: 2 })

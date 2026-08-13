@@ -6,8 +6,8 @@ import { getDocumentInfo } from '~/cli/commands/process-steps/step-1-download/do
 import { getExtractEstimation, getExtractPricing } from '~/cli/commands/setup-and-utilities/models/model-loader'
 import { validateAnthropicOcrModel, validateDeepinfraOcrModel, validateGeminiOcrModel, validateGlmOcrModel, validateGrokOcrModel, validateKimiOcrModel, validateMistralOcrModel, validateOpenAIOcrModel } from '~/cli/commands/setup-and-utilities/models/setup-model-options'
 import type { EstimateOcrTokenUsageOptions, HostedOcrEstimateOptions, HostedOcrTokenUsageEstimate, TokenEstimateMetadata, TokenOcrCostEstimate, TokenPricedOcrProvider } from '~/types'
-import { resolveHostedOcrTokenUsageEstimate } from './hosted-ocr-token-profiles'
-import { computeTokenCost } from '~/utils/pricing/token-pricing'
+import { resolveHostedOcrTokenUsageEstimate } from '../step-2-ocr/ocr-utils/hosted-ocr-token-profiles'
+import { computeOcrTokenCost } from '~/utils/pricing/ocr-token-pricing'
 import { CLIUsageError, InfraError } from '~/utils/error-handler'
 
 const IMAGE_EXTENSIONS = ['.png', '.jpg', '.jpeg', '.tif', '.tiff', '.webp', '.gif', '.bmp'] as const
@@ -25,35 +25,6 @@ export const KIMI_OCR_PRICE_NOTE = 'Model-specific heuristic token estimate base
 
 export const FIRECRAWL_PRICE_NOTE = 'Estimated at Firecrawl Standard plan rate ($83 / 100K credits; /scrape uses 1 credit per page).'
 
-const computeOcrTokenCost = (
-  pricing: ReturnType<typeof getExtractPricing>,
-  fallbackInputCostPer1MCents: number,
-  fallbackOutputCostPer1MCents: number,
-  promptTokens: number,
-  completionTokens: number
-): {
-  inputCostPer1MCents: number
-  outputCostPer1MCents: number
-  totalCost: number
-  pricingBand?: string | undefined
-  pricingNote?: string | undefined
-} => {
-  const tokenCost = computeTokenCost({
-    inputCostPer1MCents: pricing.inputCostPer1MCents ?? fallbackInputCostPer1MCents,
-    outputCostPer1MCents: pricing.outputCostPer1MCents ?? fallbackOutputCostPer1MCents,
-    ...(pricing.tokenPricingBands !== undefined ? { tokenPricingBands: pricing.tokenPricingBands } : {}),
-    ...(pricing.higherContextPricing !== undefined ? { higherContextPricing: pricing.higherContextPricing } : {})
-  }, promptTokens, completionTokens)
-
-  return {
-    inputCostPer1MCents: tokenCost.inputCostPer1MCents,
-    outputCostPer1MCents: tokenCost.outputCostPer1MCents,
-    totalCost: tokenCost.totalCost,
-    ...(typeof tokenCost.pricingBand === 'string' ? { pricingBand: tokenCost.pricingBand } : {}),
-    ...(typeof tokenCost.pricingNote === 'string' ? { pricingNote: tokenCost.pricingNote } : {})
-  }
-}
-
 export const estimateOcrTokenUsage = (
   provider: TokenPricedOcrProvider,
   model: string,
@@ -70,6 +41,7 @@ export const estimateOcrTokenUsage = (
     pageCount,
     ocrMode: options.ocrMode,
     profilePath: options.profilePath,
+    effectiveReasoningEffort: options.effectiveReasoningEffort,
     registryPromptTokensPerPage: promptTokensPerPage,
     registryCompletionTokensPerPage: completionTokensPerPage
   })
@@ -109,7 +81,8 @@ const tokenEstimateMetadata = (
   tokenEstimateConfidence: usage.tokenEstimateConfidence,
   ...(typeof usage.tokenProfileSampleCount === 'number' ? { tokenProfileSampleCount: usage.tokenProfileSampleCount } : {}),
   ...(typeof usage.tokenProfilePromptTokensPerPage === 'number' ? { tokenProfilePromptTokensPerPage: usage.tokenProfilePromptTokensPerPage } : {}),
-  ...(typeof usage.tokenProfileCompletionTokensPerPage === 'number' ? { tokenProfileCompletionTokensPerPage: usage.tokenProfileCompletionTokensPerPage } : {})
+  ...(typeof usage.tokenProfileCompletionTokensPerPage === 'number' ? { tokenProfileCompletionTokensPerPage: usage.tokenProfileCompletionTokensPerPage } : {}),
+  ...(typeof usage.tokenProfileEffectiveReasoningEffort === 'string' ? { tokenProfileEffectiveReasoningEffort: usage.tokenProfileEffectiveReasoningEffort } : {})
 })
 
 const downloadToTemp = async (url: string): Promise<string> => {
@@ -201,7 +174,11 @@ const estimateTokenPricedOcrCost = async <TProvider extends TokenPricedOcrProvid
   const pricing = getExtractPricing(provider, model)
   const pageCount = await resolveExtractInputPageCountForPricing(input)
   const ocrMode = resolveOcrModeForPricingInput(input)
-  const tokenUsage = estimateOcrTokenUsage(provider, model, pageCount, { ocrMode, profilePath: options.hostedOcrTokenProfilePath })
+  const tokenUsage = estimateOcrTokenUsage(provider, model, pageCount, {
+    ocrMode,
+    profilePath: options.hostedOcrTokenProfilePath,
+    effectiveReasoningEffort: options.effectiveReasoningEffort
+  })
   const { promptTokens, completionTokens } = tokenUsage
   const cost = computeOcrTokenCost(pricing, fallbackInputCostPer1MCents, fallbackOutputCostPer1MCents, promptTokens, completionTokens)
 

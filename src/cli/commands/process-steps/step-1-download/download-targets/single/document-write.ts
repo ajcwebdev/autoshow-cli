@@ -4,7 +4,7 @@ import { createManifest, createPipelineItemFromRecord, writeManifest } from '~/c
 import { isLikelyUrl } from '~/cli/commands/process-steps/step-0-metadata/metadata-targets/metadata-input-classifier'
 import { downloadDocument } from '~/cli/commands/process-steps/step-1-download/document/dl-document'
 import { buildOcrCostDiagnostics, collectEstimatedExtractTargets, resolveDocumentWriteEstimatedCosts, resolveDocumentWriteObservedEstimateCosts } from '~/cli/commands/process-steps/step-2-extract/step-2-ocr/ocr-costs'
-import { buildDocumentPrompt } from '~/cli/commands/process-steps/step-2-extract/step-2-ocr/ocr-utils/doc-prompt-utils'
+import { buildDocumentPrompt } from '~/cli/commands/process-steps/step-1-download/download-targets/single/document-write-prompt'
 import { processOcr } from '~/cli/commands/process-steps/step-2-extract/step-2-ocr/process-ocr'
 import { runLLM } from '~/cli/commands/process-steps/step-3-write/run-llm'
 import { writeShowNoteArtifacts } from '~/cli/commands/process-steps/step-3-write/show-note-artifacts'
@@ -14,10 +14,10 @@ import type { AggregatedPriceEstimate, BatchChildRunContext, DocumentExtractionO
 import * as l from '~/utils/app-logger/app-logger'
 import { InternalError } from '~/utils/error-handler'
 import { logLocationsTable } from '~/utils/app-logger/human-table/human-table'
-import { buildAggregatedPriceEstimate } from '~/utils/pricing/aggregate-pricing'
-import { buildAggregateTiming } from '~/utils/pricing/aggregate-pricing/timing'
-import { computeActualCosts } from '~/utils/pricing/compute-actual-costs'
-import { computeActualProcessingTimes, computeEstimatedProcessingTimes } from '~/utils/pricing/compute-processing-time'
+import { buildAggregatedPriceEstimate } from '~/cli/commands/pricing-orchestration/aggregate-pricing'
+import { buildAggregateTiming } from '~/cli/commands/pricing-orchestration/aggregate-pricing/timing'
+import { computeActualCosts } from '~/cli/commands/pricing-orchestration/compute-actual-costs'
+import { computeActualProcessingTimes, computeEstimatedProcessingTimes } from '~/cli/commands/pricing-orchestration/compute-processing-time'
 import { buildLLMModelOptions, resolveLLMDefaults } from '~/cli/options/option-resolution/model-option-llm-defaults'
 
 const hasConfiguredLlmProvider = (opts: ResolvedLLMModelOptions): boolean =>

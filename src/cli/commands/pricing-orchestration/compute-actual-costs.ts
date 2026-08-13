@@ -20,9 +20,9 @@ import {
 import {
   computeScrapeCreatorsActualCost,
   getScrapeCreatorsCreditRateCents
-} from './scrapecreators-pricing'
+} from '~/utils/pricing/scrapecreators-pricing'
 import { resolveExtractionProviderModel } from '~/utils/extraction-provider-model'
-import { computeTokenCost } from './token-pricing'
+import { computeTokenCost } from '~/utils/pricing/token-pricing'
 import {
   isTokenPricedOcrProvider,
   resolveActualExtractCostEntry,

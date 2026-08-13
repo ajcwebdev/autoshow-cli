@@ -11,6 +11,7 @@ import { logLocationsTable } from '~/utils/app-logger/human-table/human-table'
 import { getPipelineItemErrors, toBatchCommand } from './pipeline-item-record-state'
 import { buildBatchPartialFailureTable, logBatchCompletionTable } from './download-batch-summary'
 import { executeBatchItem } from './execute-batch-item'
+import { writeOcrBatchDiagnostics } from '~/cli/commands/process-steps/step-2-extract/step-2-ocr/ocr-batch-diagnostics'
 
 const runWithSemaphore = async <T>(
   max: number,
@@ -213,6 +214,9 @@ const finalizeBatch = async ({
   await writeManifest(batchDir, createManifest(toBatchCommand(command), 'batch', acc.finalItemRecords.map((record) =>
     createPipelineItemFromRecord(batchDir, record, extractRoute ? { extractRoute } : {})
   ), batchSource))
+  if (command === 'write' || (command === 'extract' && extractRoute === 'document')) {
+    await writeOcrBatchDiagnostics(batchDir)
+  }
 
   const failureExitCode = acc.failureExit()
   return {

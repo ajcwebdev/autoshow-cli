@@ -2,7 +2,8 @@ import {
   getTtsCost,
   getTtsPricing
 } from '~/cli/commands/setup-and-utilities/models/model-loader'
-import { computeBilledSttCost } from '~/utils/pricing/stt-billing'
+import { computeBilledSttCost } from './stt-billing'
+export { applyCostMultiplier } from '~/utils/pricing/cost-multiplier'
 
 export const parseDurationToSeconds = (duration: string): number => {
   if (!duration || duration === 'Unknown') return 0
@@ -40,8 +41,6 @@ export const computeTtsCost = (
     costPer1kCharactersCents
   }
 }
-
-export const applyCostMultiplier = (cost: number, multiplier: number): number => cost * multiplier
 
 export const computeSttCost = (service: string, model: string, durationSeconds: number): number =>
   computeBilledSttCost(service, model, durationSeconds).cost

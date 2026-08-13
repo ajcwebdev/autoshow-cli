@@ -1,4 +1,4 @@
-import type { ActualPipelineInputsBase, CostEstimateBase, HtmlArticleBackend, ImageProvider, MusicProvider, OcrModelOverrideOptions, ProviderIdentityBase, ProviderModelBase, Step1Metadata, Step2Metadata, Step3Metadata, Step4Metadata, Step5Metadata, Step6VideoMetadata, Step7MusicMetadata, SttRuntimeOptions, TimingStepEntry, VideoProvider } from '~/types'
+import type { ActualPipelineInputsBase, CostEstimateBase, HostedOcrTokenReasoningPolicy, HtmlArticleBackend, ImageProvider, MusicProvider, OcrModelOverrideOptions, ProviderIdentityBase, ProviderModelBase, Step1Metadata, Step2Metadata, Step3Metadata, Step4Metadata, Step5Metadata, Step6VideoMetadata, Step7MusicMetadata, SttRuntimeOptions, TimingStepEntry, VideoProvider } from '~/types'
 import type { CostSource } from './pricing-vocabularies'
 import type { NormalizedReasoningEffort } from '~/cli/commands/setup-and-utilities/models/reasoning-resolver'
 
@@ -9,6 +9,7 @@ export type TokenProfileEstimateFields = {
   tokenProfileSampleCount?: number
   tokenProfilePromptTokensPerPage?: number
   tokenProfileCompletionTokensPerPage?: number
+  tokenProfileEffectiveReasoningEffort?: HostedOcrTokenReasoningPolicy
 }
 
 export type ReasoningEstimateFields = {
@@ -149,6 +150,7 @@ export type ComputeEstimatedCostsInput = SttModelOverrides & OcrModelOverrideOpt
     singlePagePdfFallbackPages?: number
     promptTokens?: number
     completionTokens?: number
+    effectiveReasoningEffort?: NormalizedReasoningEffort
     ocrMode?: string
     quotedCostCents?: number
     estimateType?: 'heuristic' | 'exact'

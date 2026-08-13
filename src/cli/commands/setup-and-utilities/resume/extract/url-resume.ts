@@ -25,8 +25,8 @@ toUrlArticleTarget,
 uniqueUrlTargets
 } from '~/cli/commands/process-steps/step-2-extract/step-2-url/url-targets'
 import { logExtractManifestConsoleSummary } from '~/cli/commands/process-steps/write-manifest-log/write-manifest-log'
-import { aggregateExplicitPriceEstimate } from '~/utils/pricing/aggregate-pricing'
-import { buildArticleEstimates } from '~/utils/pricing/aggregate-pricing/article-estimates'
+import { aggregateExplicitPriceEstimate } from '~/cli/commands/pricing-orchestration/aggregate-pricing'
+import { buildArticleEstimates } from '~/cli/commands/process-steps/step-2-extract/extract-pricing/build-article-estimates'
 import type { AggregatedPriceEstimate, HtmlArticleBackend, ProviderCompletionStatus, ResolvedStep2Execution, ResumeDisplayOptions, ResumeResult, ResumeTarget, Step2ProviderSelectionFilter, StepEstimate, UrlArticleResumePlan, UrlArticleResumeResult, UrlArticleTarget, UrlExtractionOptions, UrlProviderRunOutcome, WebArticleMetadata } from '~/types'
 import * as l from '~/utils/app-logger/app-logger'
 import { InfraError, ValidationError } from '~/utils/error-handler'

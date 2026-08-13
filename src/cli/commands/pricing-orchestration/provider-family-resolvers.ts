@@ -1,9 +1,9 @@
 import { getExtractEstimation, getExtractPricing } from '~/cli/commands/setup-and-utilities/models/model-loader'
-import { estimateOcrTokenUsage } from '~/cli/commands/process-steps/step-2-extract/step-2-ocr/ocr-utils/extract-pricing'
+import { estimateOcrTokenUsage } from '~/cli/commands/process-steps/step-2-extract/extract-pricing/ocr-estimates'
 import { isTokenPricedOcrProvider } from '~/types'
 import type { CostSource, EstimatedStepEntry, ExtractionMetadata, StepCostEntry, TokenPricedOcrProvider } from '~/types'
 import { applyCostMultiplier } from './cost-helpers'
-import { computeTokenCost } from './token-pricing'
+import { computeTokenCost } from '~/utils/pricing/token-pricing'
 
 const PAGE_PRICED_EXTRACT_PROVIDERS = new Set([
   'defuddle',
@@ -131,6 +131,7 @@ export const resolveEstimatedExtractCostEntry = (
     pageCount?: number | undefined
     promptTokens?: number | undefined
     completionTokens?: number | undefined
+    effectiveReasoningEffort?: import('~/cli/commands/setup-and-utilities/models/reasoning-resolver').NormalizedReasoningEffort | undefined
     ocrMode?: string | undefined
     tokenEstimateSource?: 'exact' | 'profile' | 'blended-profile' | 'registry' | undefined
     tokenEstimateConfidence?: 'none' | 'sparse' | 'healthy' | undefined
@@ -186,7 +187,8 @@ export const resolveEstimatedExtractCostEntry = (
     ? undefined
     : estimateOcrTokenUsage(target.provider, target.model, pageCount, {
         ocrMode: target.ocrMode,
-        profilePath: input.hostedOcrTokenProfilePath
+        profilePath: input.hostedOcrTokenProfilePath,
+        effectiveReasoningEffort: target.effectiveReasoningEffort
       })
   const promptTokens = hasExactPromptTokens ? target.promptTokens as number : heuristicTokens?.promptTokens ?? 0
   const completionTokens = hasExactCompletionTokens ? target.completionTokens as number : heuristicTokens?.completionTokens ?? 0

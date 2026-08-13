@@ -1,8 +1,8 @@
-import { estimateFirecrawlScrapeCost } from '~/cli/commands/process-steps/step-2-extract/step-2-ocr/ocr-utils/extract-pricing'
+import { estimateFirecrawlScrapeCost } from '~/cli/commands/process-steps/step-2-extract/extract-pricing/ocr-estimates'
 import { hasConfiguredOcrProviderSelection, HTML_ARTICLE_OCR_FLAGS_IGNORED_WARNING } from '~/cli/commands/process-steps/step-2-extract/step-2-shared/inactive-flag-warnings'
 import { getExtractEstimation, getExtractPricing } from '~/cli/commands/setup-and-utilities/models/model-loader'
 import type { ArticleEstimateResult, ExtractStepEstimate, HtmlArticleBackend, OcrSelectionState, ResolvedStep2Execution, UrlSelectionOptions } from '~/types'
-import { applyCostMultiplier } from '~/utils/pricing/cost-helpers'
+import { applyCostMultiplier } from '~/cli/commands/pricing-orchestration/cost-helpers'
 
 export const buildArticleEstimates = (
   resolvedStep2: Extract<ResolvedStep2Execution, { route: 'article' }>,

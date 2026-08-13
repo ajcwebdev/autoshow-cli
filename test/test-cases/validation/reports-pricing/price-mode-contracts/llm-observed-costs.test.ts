@@ -2,10 +2,10 @@ import { describe, expect, test } from 'bun:test'
 import { buildStep3Metadata, runWithLLMInstrumentation } from '~/cli/commands/process-steps/step-3-write/write-utils/llm-instrumentation'
 import { getLlmEstimation } from '~/cli/commands/setup-and-utilities/models/model-loader'
 import type { CommandPricingOptions } from '~/types'
-import { buildAggregatedPriceEstimate } from '~/utils/pricing/aggregate-pricing'
-import { computeActualCosts } from '~/utils/pricing/compute-actual-costs'
-import { preflightToEstimated } from '~/utils/pricing/compute-costs'
-import { computeEstimatedCosts } from '~/utils/pricing/compute-estimated-costs'
+import { buildAggregatedPriceEstimate } from '~/cli/commands/pricing-orchestration/aggregate-pricing'
+import { computeActualCosts } from '~/cli/commands/pricing-orchestration/compute-actual-costs'
+import { preflightToEstimated } from '~/cli/commands/pricing-orchestration/compute-costs'
+import { computeEstimatedCosts } from '~/cli/commands/pricing-orchestration/compute-estimated-costs'
 
 describe('price mode contracts', () => {
   test('text write estimated costs stay price-aligned while observed LLM counts stay uncalibrated', async () => {

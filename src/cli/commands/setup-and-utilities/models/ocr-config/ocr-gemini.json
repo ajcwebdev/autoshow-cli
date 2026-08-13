@@ -87,7 +87,7 @@
           "notes": "project/links/gemini-general-ocr-text-links.md documents inline PDF input up to 50 MB, inline non-PDF payloads up to 100 MB, Files API uploads up to 2 GB per file, and document understanding up to 1000 PDF pages."
         },
         "estimation": {
-          "costMultiplier": 0.4492,
+          "costMultiplier": 1,
           "msPerPage": 2921,
           "promptTokensPerPage": 1157,
           "completionTokensPerPage": 1626

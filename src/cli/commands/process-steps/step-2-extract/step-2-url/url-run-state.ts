@@ -23,8 +23,8 @@ import {
 } from './url-targets'
 import { fallbackTitleFromSource, formatErrorMessage, isRemoteSource } from './url-utils'
 import { DocumentMetadataSchema, ExtractionMetadataSchema, ExtractionResultSchema } from '~/types'
-import { computeActualCosts } from '~/utils/pricing/compute-actual-costs'
-import { computeActualProcessingTimes, computeEstimatedProcessingTimes } from '~/utils/pricing/compute-processing-time'
+import { computeActualCosts } from '~/cli/commands/pricing-orchestration/compute-actual-costs'
+import { computeActualProcessingTimes, computeEstimatedProcessingTimes } from '~/cli/commands/pricing-orchestration/compute-processing-time'
 import type { AggregatedPriceEstimate, BatchChildRunContext, DocumentMetadata, ExtractionMetadata, ExtractionOptions, ExtractionResult, HtmlArticleBackend, UrlArticleBackendPlan, UrlArticleRunResult, UrlExtractionOptions, UrlProviderFailure, UrlProviderRunOutcome, UrlProviderState, UrlProviderSuccess, UrlRequestOptions, WebArticleMetadata } from '~/types'
 import {
   parseStoredProviderArray,

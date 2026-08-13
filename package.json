@@ -6,6 +6,7 @@
   "license": "MIT",
   "scripts": {
     "repo": "bun src/tools/repomix.ts",
+    "audit:ocr-tokens": "bun scripts/audit-ocr-token-shapes.ts",
     "check": "bun src/tools/unique-source-name-check.ts && bunx tsc --noEmit",
     "t": "bun test/test-runner.ts",
     "autoshow": "bun src/cli/create-cli.ts",

@@ -1,5 +1,5 @@
 import type { TokenCostResult, TokenPricingBand, TokenPricingConfig } from '~/types'
-import { applyCostMultiplier } from '~/utils/pricing/cost-helpers'
+import { applyCostMultiplier } from './cost-multiplier'
 
 const normalizeTokens = (tokens: number): number =>
   Number.isFinite(tokens) ? Math.max(0, tokens) : 0

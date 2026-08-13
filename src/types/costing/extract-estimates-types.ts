@@ -1,4 +1,4 @@
-import type { ExtractStepEstimate, TokenPricedOcrProvider } from '~/types'
+import type { ExtractStepEstimate, HostedOcrTokenReasoningPolicy, TokenPricedOcrProvider } from '~/types'
 
 export type HostedOcrPricingService = TokenPricedOcrProvider | 'mistral'
 
@@ -20,12 +20,14 @@ export type OcrCostEstimate = {
   tokenProfileSampleCount?: number | undefined
   tokenProfilePromptTokensPerPage?: number | undefined
   tokenProfileCompletionTokensPerPage?: number | undefined
+  tokenProfileEffectiveReasoningEffort?: HostedOcrTokenReasoningPolicy | undefined
   estimateType?: ExtractStepEstimate['estimateType'] | undefined
   note?: string | undefined
 }
 
 export type HostedOcrEstimateOptions = {
   hostedOcrTokenProfilePath?: string | undefined
+  effectiveReasoningEffort?: HostedOcrTokenReasoningPolicy | undefined
 }
 
 export type HostedOcrEstimateHandler = {

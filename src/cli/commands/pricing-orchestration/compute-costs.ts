@@ -1,6 +1,6 @@
 import type { AggregatedPriceEstimate, ComputeEstimatedCostsInput, EstimatedCostBreakdown } from '~/types'
 import { computeEstimatedCosts } from './compute-estimated-costs'
-import { stepEstimateToEstimated } from './step-estimate-fields'
+import { stepEstimateToEstimated } from '~/utils/pricing/step-estimate-fields'
 
 export const preflightToEstimated = (estimate: AggregatedPriceEstimate): EstimatedCostBreakdown => ({
   totalCost: estimate.totalEstimatedCost,

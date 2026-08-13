@@ -7,7 +7,7 @@ import {
   getMusicEstimation,
   getVideoEstimation
 } from '~/cli/commands/setup-and-utilities/models/model-loader'
-import { applyCostMultiplier } from '~/utils/pricing/cost-helpers'
+import { applyCostMultiplier } from '~/cli/commands/pricing-orchestration/cost-helpers'
 import { tryResolveLocalVideoDurationSeconds } from '~/cli/commands/process-steps/step-6-video/video-utils/video-media-inputs'
 import { collectSelections, hasAnySelection } from '~/utils/pricing/model-selection'
 import { pick } from '~/utils/cli-utils'

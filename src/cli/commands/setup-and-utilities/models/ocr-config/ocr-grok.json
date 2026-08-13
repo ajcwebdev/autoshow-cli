@@ -20,7 +20,7 @@
         "estimation": {
           "promptTokensPerPage": 4000,
           "completionTokensPerPage": 1000,
-          "costMultiplier": 0.7329,
+          "costMultiplier": 1,
           "msPerPage": 18000
         },
         "higherContextPricing": {

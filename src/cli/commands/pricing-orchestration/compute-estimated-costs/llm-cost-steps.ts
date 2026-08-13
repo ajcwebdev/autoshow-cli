@@ -1,6 +1,6 @@
 import { getLlmCost, getLlmEstimation } from '~/cli/commands/setup-and-utilities/models/model-loader'
 import type { ComputeEstimatedCostsInput, CostStepsResult, EstimatedStepEntry, Step3Metadata } from '~/types'
-import { computeTokenCost } from '../token-pricing'
+import { computeTokenCost } from '~/utils/pricing/token-pricing'
 import { resolveCostMultiplier } from './cost-steps-shared'
 
 export const buildLlmCostSteps = (input: ComputeEstimatedCostsInput): CostStepsResult => {

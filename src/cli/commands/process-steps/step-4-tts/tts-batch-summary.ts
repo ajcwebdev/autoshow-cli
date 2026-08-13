@@ -1,4 +1,4 @@
-import { computeActualCosts } from '~/utils/pricing/compute-actual-costs'
+import { computeActualCosts } from '~/cli/commands/pricing-orchestration/compute-actual-costs'
 import { getTtsEstimation } from '~/cli/commands/setup-and-utilities/models/model-loader'
 import { splitTextIntoChunks } from './tts-utils/audio-utils'
 import { resolveTtsChunkCharacterLimit } from './tts-utils/tts-chunking'

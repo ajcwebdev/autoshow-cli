@@ -1,7 +1,7 @@
 import type { ComputeEstimatedCostsInput, CostStepsResult, EstimatedStepEntry } from '~/types'
 import { computeSttCost } from '../cost-helpers'
 import { estimateSupadataCost } from '../supadata-pricing'
-import { estimateScrapeCreatorsCost } from '../scrapecreators-pricing'
+import { estimateScrapeCreatorsCost } from '~/utils/pricing/scrapecreators-pricing'
 import { EXACT_COST_MULTIPLIER } from './cost-steps-shared'
 
 const STT_FIELD_MAP = [

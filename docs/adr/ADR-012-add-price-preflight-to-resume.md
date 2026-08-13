@@ -129,5 +129,5 @@ Do not run paid provider, smoke, or e2e tests that can call third-party APIs.
 - `src/cli/commands/setup-and-utilities/resume/resume-dispatch.ts`
 - `src/cli/commands/setup-and-utilities/resume/extract/ocr-resume.ts`
 - `src/cli/commands/setup-and-utilities/config/config-merge.ts`
-- `src/utils/pricing/aggregate-pricing.ts`
+- `src/cli/commands/pricing-orchestration/aggregate-pricing.ts`
 - `test/test-cases/validation/resume-manifests/resume-provider-surface-contracts.test.ts`
