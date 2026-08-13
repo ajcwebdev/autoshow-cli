@@ -1,11 +1,11 @@
-# ADR-020: Add Character Voice References and Multi-Speaker Script-to-Audio
+# ADR-014: Add Character Voice References and Multi-Speaker Script-to-Audio
 
 ## Status
 
 - **Decision Status:** Accepted
 - **Date Created:** 2026-08-10
 - **Date Updated:** 2026-08-13
-- **Verification Status:** Phases 0-4 passed local no-network verification; Phase 3 and Phase 4 provider contracts are covered by `tts-advanced-provider-phase-3.test.ts` and `tts-advanced-provider-phase-4.test.ts`
+- **Verification Status:** Passed
 
 ## Context
 
@@ -17,7 +17,7 @@ The repository audit in `docs/reports/comic-character-tts-options-report.md` fou
 
 The report identified additional pre-Phase 0 correctness defects and incomplete contracts: Gemini did not enforce its exactly-two-speaker native limit and could split raw speaker-formatted text at unsafe boundaries; hosted turn setup fanned out through an unbounded `Promise.all`; multi-target and native completion could advertise dialogue paths that were never promoted while batch execution silently discarded dialogue artifacts during workspace cleanup; the generic screenplay parser stripped delivery and silently dropped some content; one unqualified speaker map was reused across incompatible provider namespaces; remote clone/reference setup was not provisioned once per character; Speechify resolved consent, locale, and gender data that its request did not fully serialize; provider catalogs and OpenAI custom-voice/model contracts had drifted; manifests and benchmarks could not distinguish multiple voices using one provider/model; and all audio was silently collapsed to mono 16 kHz PCM without a comic mastering contract.
 
-Phase 0 was implemented on 2026-08-11. The generic TTS path now carries immutable explicit per-turn invocations through all 12 adapters; validates actual A/B/A request serialization; uses strict Gemini native planning for exactly two speakers and turn-safe batching; bounds, orders, cancels, and cleans dialogue work; rejects synthesis-time creation defaults before provider setup; protects authorized unnamed Mistral references behind opaque checksum-validated assets; retains strategy-appropriate render artifacts; and persists operation-scoped target identities with strict `ttsAudio` projections and append-only render history. ADR-018 now records the refreshed provider catalogs.
+Phase 0 was implemented on 2026-08-11. The generic TTS path now carries immutable explicit per-turn invocations through all 12 adapters; validates actual A/B/A request serialization; uses strict Gemini native planning for exactly two speakers and turn-safe batching; bounds, orders, cancels, and cleans dialogue work; rejects synthesis-time creation defaults before provider setup; protects authorized unnamed Mistral references behind opaque checksum-validated assets; retains strategy-appropriate render artifacts; and persists operation-scoped target identities with strict `ttsAudio` projections and append-only render history. ADR-013 now records the refreshed provider catalogs.
 
 Phase 1 was implemented on 2026-08-11. The protected store now retains content-addressed purpose and retention policies for references, candidate previews, auditions, consent, and reconciliation evidence; validates owner-only roots and disposable workspaces; and keeps protected and ordinary output roots disjoint. Shared strict schemas cover voice briefs, candidates/materialization, consent, append-preserved registrations, a current approval index, canonical auditions, lifecycle state, and crash-safe provisioning journals. The shared `voice` surface and comic-native `comic reference-voice` alias import existing resources, protect consent, plan or execute Mistral saved-reference creation, audition, approve, reconcile, retire, revoke, explicitly delete eligible project-owned resources, and inspect state. Mistral creation is confined to management, and management price paths make no provider calls or artifact writes.
 
@@ -34,8 +34,8 @@ This decision is constrained by five existing architectural rules:
 - ADR-002 reserves one unversioned canonical `manifest.json` for every run root, makes its item/provider state the only persistence authority, and rejects compatibility readers for retired pipeline formats.
 - ADR-007 requires comic to adapt domain semantics to shared provider infrastructure instead of maintaining a comic-local model or dispatch stack.
 - ADR-008 makes hosted TTS provider lanes and bounded work scheduling the shared concurrency boundary; multi-speaker turn work must join that model instead of adding another unbounded lane.
-- ADR-012 requires `resume --price` to remain a no-provider, non-mutating dry run; this ADR applies the same rule to TTS price planning and separately defines static validation versus execution readiness.
-- ADR-018 treats a TTS model selector as a complete runtime promise and deliberately leaves voice identity and specialized reference/dialogue capabilities to a separate decision such as this one.
+- ADR-002 requires `resume --price` to remain a no-provider, non-mutating dry run; this ADR applies the same rule to TTS price planning and separately defines static validation versus execution readiness.
+- ADR-010 treats a TTS model selector as a complete runtime promise and deliberately leaves voice identity and specialized reference/dialogue capabilities to a separate decision such as this one.
 
 Why now: multi-character script-to-audio is the next workflow requirement, with comic as its first structured-script consumer, but extending the existing speaker-map path would preserve false metadata, unsafe resource creation, provider lock-in, and silent voice reuse. The dispatch and artifact contracts must be corrected before new voice-design, clone, or native-dialogue features make that surface larger.
 
@@ -1573,7 +1573,7 @@ Fallback is determined during preflight. Native may fall back to segmented only 
 
 Gemini's native dialogue strategy is valid for exactly two distinct speakers. Strict `native` with any other count fails locally with zero synthesis calls. In `auto`, exactly two speakers may select native while one or three-or-more may select the already validated and priced explicit-turn segmented route; ordinary non-dialogue single-voice Gemini synthesis remains valid. A requested comic audio stage with zero speakable turns completes as `execution: { kind: 'local', state: 'succeeded' }`, `status: 'full'`, `targetKeys: []`, and artifact references to the verified structured script and empty dialogue plan; it has no voice snapshot, provider state, branch/readiness/render/result/audio-run, selected/published output, or synthesis request. Generic `tts` instead rejects a normalized zero-turn input before target collection because its item contract requires at least one provider success. No strategy chunks raw speaker-labeled prose: all boundaries come from resolved turns.
 
-Capability discovery does not bypass the central model registry governed by ADR-018. Voice metadata that does not change a selector belongs here, but adding Deepgram voice-model selectors, retiring or replacing an OpenAI model, or registering a Groq language model requires a material ADR-018 update or a later model-refresh ADR. A discovered provider identity that is not valid for a registered model/transport may be shown as unavailable but cannot render.
+Capability discovery does not bypass the central model registry governed by ADR-010. Voice metadata that does not change a selector belongs here, but adding Deepgram voice-model selectors, retiring or replacing an OpenAI model, or registering a Groq language model must follow ADR-010 and receive a dated ADR-013 or later refresh-ledger entry when material. A discovered provider identity that is not valid for a registered model/transport may be shown as unavailable but cannot render.
 
 ### Segmented rendering and concurrency
 
@@ -1890,7 +1890,7 @@ The benchmark/evaluation key includes `renderIdentity`, registration or snapshot
 
 ### Mandatory defect closure
 
-The following ledger is part of the decision, not optional cleanup. ADR-020 cannot move to Accepted · Passed while any item remains reproducible.
+The following ledger is part of the decision, not optional cleanup. ADR-014 cannot move to Accepted · Passed while any item remains reproducible.
 
 | ID | Defect | Required closure | Acceptance signal |
 |---|---|---|---|
@@ -1906,7 +1906,7 @@ The following ledger is part of the decision, not optional cleanup. ADR-020 cann
 | `MV-10` | Multi-target/native completion can report nonexistent dialogue paths; batch silently discards dialogue support artifacts | Promote the strategy-appropriate per-item/per-target artifact set before workspace cleanup and derive completion from canonical checksum-verified state | Segmented fixtures retain real normalized/segment/plan/result/final files, native fixtures retain native/plan/result/timing/final files without fabricated segments, and batch retains the same sets |
 | `MV-11` | Speechify consent/locale/gender options are accepted but not all demonstrably sent or locally classified | Revalidate the live contract, serialize provider fields exactly, and label local-only provenance | Every accepted field affects the mocked request or a documented protected local record |
 | `MV-12` | Mistral voice-name overrides are silently removed and references are repeatedly prepared | Create saved voices only in reference phase, reject inline naming, cache reference preparation | No ignored name; each unique reference prepares once; pre-created IDs work per character |
-| `MV-13` | OpenAI custom voices use a different object/consent contract and current model status has drifted; xAI/Deepgram/Gemini catalogs are stale or truncated | Revalidate models and catalogs, use typed custom sources, record source/check date, and route selector changes through ADR-018's central registry | Voices in a dated cited fixture pass locally; stale models receive migration guidance; custom objects are not strings; unregistered discovered model identities cannot render |
+| `MV-13` | OpenAI custom voices use a different object/consent contract and current model status has drifted; xAI/Deepgram/Gemini catalogs are stale or truncated | Revalidate models and catalogs, use typed custom sources, route selector changes through ADR-010's central registry, and record material refreshes in ADR-013 or a later ledger | Voices in a dated cited fixture pass locally; stale models receive migration guidance; custom objects are not strings; unregistered discovered model identities cannot render |
 | `MV-14` | Silent mono 16 kHz normalization and missing mix controls destroy or obscure quality | Preserve native sources, add explicit render/mix profile, and record conversions | Audio probes and cache tests match selected mastering settings; remix does not resynthesize |
 | `MV-15` | Cache, resume, and benchmark keys collide for several voices on one provider/model | Separate adapter `targetKey` from voice-aware `renderIdentity` and include registration/snapshot-entry and optional character in benchmark rows | A cast or settings change cannot reuse a prior render, and two characters on one model remain separate scored rows |
 | `MV-16` | Missing all-target preflight allows deterministic errors after another provider could begin paid work | Statically validate every target, voice, registration, source, consent, native limit, and output plan before optional read-only readiness checks | One deterministic invalid target causes zero provider calls; readiness calls are read-only, happen only after static success, and never overlap synthesis |
@@ -1982,7 +1982,7 @@ Every phase's `--price` path performs the same deterministic planning in memory,
 
 ### Acceptance gates
 
-ADR-020 may move to Accepted only when all of the following are true:
+ADR-014 may move to Accepted only when all of the following are true:
 
 1. Every `MV-*` item is closed by code, local contracts, and matching user documentation.
 2. All 12 providers accept an explicit per-invocation voice or reject the specific voice source locally; no provider target obtains turn identity solely from captured collection options.
@@ -1999,7 +1999,7 @@ ADR-020 may move to Accepted only when all of the following are true:
 13. Static/config validation and all price modes cause zero provider calls and zero remote/local artifact mutation; price output is stdout only. Optional execution readiness is separately named, read-only, completes for every target, and begins only after deterministic local validation succeeds and before any final plan or synthesis; a blocked target is a typed zero-attempt branch-plan failure, every ready peer is a typed zero-attempt dependency-readiness failure, and no target receives a final `ProviderRenderPlan`, render identity/history entry, post-readiness snapshot claim, or synthetic `ProviderRenderResult`.
 14. ElevenLabs and Hume pass one shared advanced-provider conformance suite plus their provider-specific discovery, creation/import, take, native, timing, lifecycle, access, fallback, and continuation contracts. ElevenLabs proves bounded many-slot/one-take native generation and conditional per-voice PVC/v3 readiness; Hume proves one-slot/many-take generation and crash-safe selected-take suffix continuation. Gemini strict exactly-two-speaker native, auto segmented, single-voice, and turn-safe boundary contracts pass, and generic Mistral request-time reference plus comic-approved saved/reference-registration behavior remain regression guards.
 15. Existing canonical pre-ADR single-voice states remain readable only through the defined derived target and read-only `legacy:` sentinel, which cannot authorize cache reuse, resume synthesis, or a provider request. Unsupported domain schemas and retired `run.json`, audio-manifest, checkpoint-manifest, pricing/report/resume formats fail with rebuild guidance; no compatibility scanner or upgrader returns.
-16. Phases 0 through 3 have independently recorded local verification evidence, and the ADR-008/ADR-018 inventories are updated wherever implementation materially changes their owned scheduling or model contracts.
+16. Phases 0 through 3 have independently recorded local verification evidence, and ADR-008's scheduler inventory, ADR-010's model contract, and ADR-013's dated ledger are updated wherever implementation materially changes their owned concerns.
 
 ## Rationale
 
@@ -2076,7 +2076,7 @@ Negative outcomes:
 | Phase 0: repair single/batch canonical persistence cardinality, reject empty-provider success, retain the strategy-appropriate artifact set, and add the parameterized A/B/A/status/negative-control contracts | TTS and manifest maintainers | Done on 2026-08-11 |
 | Phase 0: add deterministic all-target validation, minimal protected ingestion for unnamed Mistral request references, and rejection of explicit/configured/inherited creation defaults before target collection in render/resume/price paths | CLI and config maintainers | Done on 2026-08-11 |
 | Phase 0: add the bounded dialogue selector, cancellation, ordered results, provider-lane telemetry, local resource gating, and safe workspace cleanup; update ADR-008's current-state inventory | Scheduling maintainers | Done on 2026-08-11 |
-| Phase 0: repair Speechify request serialization/local-only classification and refresh or locally reject stale xAI, Deepgram, Gemini, OpenAI, and Groq contracts through ADR-018 wherever selectors change | TTS provider maintainers | Done on 2026-08-11 |
+| Phase 0: repair Speechify request serialization/local-only classification and refresh or locally reject stale xAI, Deepgram, Gemini, OpenAI, and Groq contracts under ADR-010, recording material selector changes in ADR-013 | TTS provider maintainers | Done on 2026-08-11 |
 | Phase 1: extend the protected asset store with audition/consent/preview/reconciliation policy, add crash-safe provisioning journals/locks, pending/verification/approval/reconciliation/retention/deletion state, consent/provenance policy, and shared `voice` management | Voice lifecycle maintainers | Done on 2026-08-11 |
 | Phase 1: add versioned `character-voices.json`, append-preserving registrations/current index, standard audition/take metadata with opaque asset references, and atomic local approval | Comic maintainers | Done on 2026-08-11 |
 | Phase 1: retain Phase 0's strict synthesis/config separation, add management-only creation resolution, and provide the complete managed migration path without a retired persistence reader | CLI and config maintainers | Done on 2026-08-11 |
@@ -2206,12 +2206,12 @@ Do not run `bun run t`, `bun test/test-runner.ts`, a hosted TTS command, a provi
 
 ## References
 
-- Related ADR: [ADR-002](ADR-002-url-article-extraction-and-target-discovery.md) — the one unversioned canonical run manifest and clean-break persistence policy
+- Related ADR: [ADR-002](ADR-002-pipeline-state-resume-and-dry-run-planning.md) — the one unversioned canonical run manifest, clean-break persistence policy, and side-effect-free price planning
 - Related ADR: [ADR-003](ADR-003-type-surface-cleanup-and-architecture-mirroring.md) — type-domain ownership and the `~/types` barrel
 - Related ADR: [ADR-007](ADR-007-integrate-comic-with-central-llm-and-image-model-configs.md) — shared provider infrastructure and native comic command ownership
 - Related ADR: [ADR-008](ADR-008-decompose-work-into-chunks-and-concurrency-lanes.md) — hosted TTS provider lanes and the bounded multi-speaker turn selector inventory
-- Related ADR: [ADR-012](ADR-012-add-price-preflight-to-resume.md) — side-effect-free price planning
-- Related ADR: [ADR-018](ADR-018-refresh-current-hosted-tts-and-music-models.md) — current TTS model contracts and the boundary between models and voice capabilities
+- Related ADR: [ADR-010](ADR-010-hosted-model-registry-lifecycle-and-capability-policy.md) — current TTS model contracts and the boundary between models and voice capabilities
+- Related ADR: [ADR-013](ADR-013-2026-hosted-model-refresh-ledger.md) — dated TTS catalog and transport history
 - Source report: [Comic Character Voice and Multi-Character TTS Options](../reports/comic-character-tts-options-report.md)
 - `src/types/tts-workflow/tts-types.ts`
 - `src/types/tts-workflow/dialogue-normalizer-types.ts`

@@ -54,7 +54,7 @@ Scoping this record:
 | Option | Pros | Cons | Quantitative Notes |
 |---|---|---|---|
 | **Reframe this record as one current-state inventory of every decomposition mechanism and concurrency lane** | One place to see how the layers nest and multiply; makes the OCR/STT/TTS divergences visible instead of scattered across three records; discharges the README's own Rank 2 recommendation; surfaces the two overstated implementation claims | Larger record; must be revised whenever a new lane or flag is added; mixes a historical trade study with a current-state survey | Covers 7 splitting mechanisms, 9 concurrency controls, 4 schedulers across 8 commands |
-| Leave this record TTS-only and open a new ADR-016 for the shared provider-lane contract | Keeps each record small and single-purpose; matches the README's literal Rank 2 wording | A contract record with no inventory behind it would re-derive the same research; leaves `--batch-concurrency`, `--split`, and `--ocr-concurrency` undocumented as a system | Would add a 16th record while leaving the documentation gap open |
+| Leave this record TTS-only and open a separate ADR for the shared provider-lane contract | Keeps each record small and single-purpose | A contract record with no inventory behind it would re-derive the same research; leaves `--batch-concurrency`, `--split`, and `--ocr-concurrency` undocumented as a system | Would add another record while leaving the documentation gap open |
 | Document each mechanism in its own command page only | No ADR churn; keeps docs close to the flags | This is the current state, and it is exactly why the nesting is undocumented; command pages cannot describe cross-command interactions | 9 command pages already document these flags individually |
 
 ## Decision
@@ -302,8 +302,8 @@ Verification on 2026-08-12 passed `bun run check`, `git diff --check`, all 165 m
 
 ## References
 
-- Related ADR: [ADR-009](ADR-009-unify-ocr-extraction-architecture-and-reliability-guardrails.md) — the hosted OCR lane, page cap, and throughput profiles described in the inventory above
-- Related ADR: [ADR-012](ADR-012-add-price-preflight-to-resume.md) — price preflight consumes the same concurrency values when simulating pool wall time
+- Related ADR: [ADR-009](ADR-009-extract-execution-and-artifact-contracts.md) — the hosted OCR lane, page cap, and throughput profiles described in the inventory above
+- Related ADR: [ADR-002](ADR-002-pipeline-state-resume-and-dry-run-planning.md) — price preflight consumes the same concurrency values when simulating pool wall time
 - Concurrency defaults: `src/utils/concurrency-defaults.ts`
 - Flag definitions: `src/cli/flags/shared-flags.ts`, `src/cli/flags/tts-flags.ts`
 - Flag resolution: `src/cli/options/option-resolution/concurrency.ts`

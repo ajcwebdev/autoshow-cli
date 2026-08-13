@@ -1,4 +1,4 @@
-# ADR-014: Build Self-Contained Combined Reports with Quality-Cost Terciles
+# ADR-012: Govern Benchmark Evidence and Generated-Report Architecture
 
 ## Status
 
@@ -6,8 +6,11 @@
 - **Date Created:** 2026-07-16
 - **Date Updated:** 2026-08-13
 - **Verification Status:** Passed
+- **Supersession:** Retains the complete self-contained combined-report and quality-cost-tercile decision and absorbs the paid-approval gates, calibration evidence, provider-refresh benchmark chronology, artifact repair/compaction rules, and report-regeneration evidence formerly distributed across the hosted LLM/OCR, STT, TTS/music, and image/video refresh records. Durable registry/lifecycle/capability policy belongs to ADR-010; dated model changes belong to ADR-013.
 
 ## Context
+
+Hosted-model refreshes need an evidence lifecycle distinct from model policy and provider chronology. Primary documentation establishes identity, availability, capabilities, pricing, and limits. Local contracts establish selector, request, response, resume, pricing, and artifact behavior without credentials. `--price` establishes a no-provider execution plan and estimate. A live benchmark or calibration then requires immediate command-specific approval, and its output is trustworthy only after identity, completeness, duration/page/source, usage, artifact, and report checks pass.
 
 The consensus skill builds combined cross-run benchmark reports for STT, OCR, and URL with `bun scripts/run.ts <stt|ocr|url> build-combined-report <root_dir>`. Each builder emits a machine-readable JSON contract and a Markdown report under `docs/benchmarks/stt/`, `docs/benchmarks/ocr/`, or `docs/benchmarks/url/`.
 
@@ -18,6 +21,15 @@ The 2026-07-18 revision changes the tier contract as well as documenting the exp
 Why now: STT, OCR, and URL combined reports now share an expanded ranking contract, so their generated JSON, Markdown, and offline HTML need one deterministic presentation and tiering structure before further benchmark runs are added.
 
 ## Options Considered
+
+### Evidence governance
+
+| Option | Pros | Cons | Quantitative Notes |
+|---|---|---|---|
+| **One benchmark-evidence authority with command-specific paid approval and generated-report ownership** | Keeps source evidence, local proof, price preflight, paid execution, artifact validation, compaction, and regeneration in one auditable lifecycle | Requires modality refreshes to link here rather than embedding their own benchmark process | Covers write/OCR, STT, TTS, music, image, video, and the STT/OCR/URL combined reports |
+| Keep benchmark evidence inside each refresh ADR | Keeps chronology beside model changes | Repeats approval and regeneration rules and makes cross-modality evidence hard to compare | Previously split across 4 refresh records plus this report record |
+| Treat a successful provider response as sufficient evidence | Minimizes validation work | Can retain collisions, duplicated remote jobs, wrong identity, incomplete outputs, or stale derived reports | The 2026 STT and music runs each exposed exactly such post-response failures |
+| Skip live evidence entirely | Avoids cost and quota risk | Leaves some compatibility, timing, usage, and artifact claims unverified | Appropriate when local contracts are sufficient, not a universal rule |
 
 ### Report presentation
 
@@ -38,6 +50,21 @@ Why now: STT, OCR, and URL combined reports now share an expanded ranking contra
 | Terciles from another composite, such as balanced or `costSpeed` | Retains deterministic, near-equal groups while emphasizing another objective | Does not express the intended joint emphasis on quality and cost; selecting another objective merely moves the policy choice | 8 available weighted rankings |
 
 ## Decision
+
+### Benchmark evidence lifecycle and paid approval
+
+Every provider/model refresh follows this evidence order:
+
+1. Refresh dated primary-source documentation through explicit curated selections. Preserve source URLs, refresh metadata, content hashes, token counts, and failed-fetch behavior under ADR-011. Do not infer a current model from a moving alias or secondary catalog when primary request/pricing/capability documentation is available.
+2. Update the complete local contract under ADR-010 and ADR-013. Run static checks plus targeted no-network selector, ordering, pricing, provenance, request-builder, response-parser, resume, historical-normalization, CLI help, usage, and option-resolution tests.
+3. Run the exact no-cost `--price` or `resume --price` command for the intended targets. Price mode must invoke no provider and mutate no manifest or raw artifact under ADR-002.
+4. If live evidence is materially necessary, obtain immediate explicit approval naming the exact provider command and the reported cost or quota risk. Approval for implementation, another provider, an earlier phase, a failed attempt, or a preflight never authorizes the paid command. A correction or rerun requires fresh approval.
+5. Validate returned identity, provider/model state, source coverage, page/duration counts, attempt/retry data, usage and actual cost, output integrity, and artifact uniqueness. A provider-reported success is not trustworthy when checkpoints, paths, checksums, or normalized outputs prove collision or reuse.
+6. Compact only after trustworthy provider results exist. Preserve canonical result envelopes and historical identity, remove regenerable checkpoints/splits/derived files only after validation, rebuild per-run reports from the compacted artifacts, then regenerate combined JSON/Markdown/HTML and repository summaries from those same reports.
+
+Published provider billing remains authoritative over an estimate. Recorded provider cost takes precedence over reconstructed historical rates. Benchmark estimates and actuals must name retries, reruns, billing variance, quota effects, and any excluded or invalid outputs.
+
+Paid calibration is not a prerequisite for a compatibility or lifecycle transition when primary documentation and local mocked contracts prove request support. Provisional same-family heuristics remain labeled until qualified evidence exists. One quality/timing sample never changes published rates, and OCR calibration does not automatically become write calibration.
 
 ### Original decision: self-contained combined-report dashboards
 
@@ -101,6 +128,53 @@ The architecture is implemented in:
 
 The focused combined-report contract test checks the exact eight-set registry, weighted ordering and tie-breaks, tercile sizes, JSON fields, schema versions, and rank/composite parity in the committed Markdown and HTML artifacts.
 
+### 2026 hosted-model evidence ledger
+
+The six-to-three reorganization preserves the following completed evidence from the 2026 refreshes. ADR-013 owns which selectors changed; this section owns what was measured, approved, repaired, compacted, and regenerated.
+
+#### Write and OCR
+
+- A 2026-07-13 OCR resume across 14 historical benchmark directories provided 39 pages of GPT-5.6 and Claude Fable 5 evidence. Selected-provider actual cost was about `$4.76` versus an earlier estimate of about `$2.81`; copied OpenAI multipliers near `0.27–0.29` were the main error. The resulting GPT-5.6 OCR shapes are Sol 1,625 input/940 output tokens and 9,497 ms/page; Terra 1,625/743 and 5,349 ms/page; Luna 1,625/858 and 3,919 ms/page, all with multiplier `1`. Claude Fable 5 uses 2,024/869, 11,827 ms/page, multiplier `1`.
+- One separately approved `kimi-k3` short-summary write probe completed on 2026-08-03 without the rejected K2.x `thinking` field. Kimi reported 661 input and 159 output tokens; actual usage cost was `0.437¢` against a `0.540¢` estimate. This proved request/usage compatibility, not general timing or OCR calibration.
+- No paid Gemini 3.6/3.5, Claude Opus 5, Grok 4.5, or Kimi K3 calibration was authorized. Their same-family timing/token heuristics remain provisional. The local Kimi/Gemini token audit and promotion gate remain governed by ADR-009.
+- Gemini 3.1 Flash-Lite retirement verification used primary deprecation/replacement evidence, mocked write/OCR compatibility, selector/default/expansion/resume contracts, historical-rate checks, and price preflight. No provider request was needed to move the deterministic default or retire the active selector.
+
+#### STT
+
+The five committed benchmark sources represented approximately 4.49 provider-audio hours per one-model pass. The seven-phase refresh planned at most 40 outputs and approximately 35.93 provider-audio hours before retries.
+
+| Phase | Preflight and paid boundary | Outcome |
+|---|---|---|
+| AssemblyAI Universal-3.5 Pro + Universal-2 | Approximately `$1.80` for 10 targets; per-directory totals `0.662¢`, `6.667¢`, `26.923¢`, `45.382¢`, and `100.000¢` | All 10 outputs completed under explicit approval |
+| Deepgram Nova-3 audit | Five empty estimates; suite total `free (0.000¢)` | No missing work, provider call, or regeneration required |
+| Gemini 3.6 Flash | `77.60¢` for 5 targets | All 5 outputs completed; the 40-minute source recovered after transient 503 responses |
+| Gladia Solaria 1 + 3 | `$5.48` for 10 targets | Eight initial outputs were trustworthy; the split 150-minute source reused one remote checkpoint across segments for both models, so two marked-success results were invalid and required a separately approved clean rerun after checkpoint isolation |
+| Soniox Async v5 | `44.91¢` for 5 targets | All 5 outputs completed |
+| Speechmatics Melia 1 | `57.93¢` for 5 targets | First create attempts failed before job creation because Melia requires `language: "multi"`; the corrected retry required new approval and completed all 5 outputs |
+| Together Parakeet | `40.42¢` for 5 targets | All 5 completed; the 150-minute source recovered through adaptive splitting after a 103 MB multipart request failed, establishing a conservative 20 MiB operational split cap |
+
+The first approved `$3.63` corrected rerun stopped locally before dispatch because resume reconstructed compacted successes only from removed `transcription.txt` files. Resume was corrected to prefer structured `result.json` with the legacy file as fallback. A renewed explicit approval completed the seven remaining targets: five corrected Melia outputs plus clean five-segment Solaria 1 and 3 outputs. Each Gladia segment had a distinct remote job, and each model's normalized segment hashes were distinct.
+
+The final five manifests contain 40 trustworthy current outputs with no failed requested provider. Compaction promoted exactly 40 `providers/*/result.json` files and removed 42 derived transcript, checkpoint, and split-audio files totaling 217,251,567 bytes. The five per-run `reference-comparison-report.{json,md}` pairs, `combined-comparison-report.{json,md,html}`, and `docs/benchmarks/summary.md` were regenerated from the compacted artifacts. The combined report contains 26 historical/current provider identities across five runs, retains grouped rankings only, and has no cross-group leaderboard.
+
+#### TTS and music
+
+- The TTS selector and provider-catalog refresh used local/no-network evidence only. All 117 global TTS links succeeded; focused contracts proved the 26 xAI, 91 Deepgram Aura-2, and 30 Gemini voice catalogs, disjoint Groq English/Arabic voices, 109 active hosted TTS selectors, OpenAI model-specific voice rules, typed custom-voice serialization, and final Arabic request construction. No hosted synthesis call was made.
+- The music refresh preflight estimated duration-matched ElevenLabs Music v2 additions at `15.00¢`, `30.00¢`, `7.50¢`, and `45.00¢` for 60, 120, 30, and 180 seconds, totaling `97.50¢`. Four MiniMax Music 3.0 additions with generated lyrics were `16.00¢` each, totaling `64.00¢`.
+- The first approved eight-request pass completed provider work but exposed an additive-resume collision: a shared `generated-music.mp3` let later MiniMax outputs overwrite four ElevenLabs files while both entries pointed at the same path. Resume now promotes additive outputs to provider/model-specific names before metadata merge. The four MiniMax artifacts were repaired and validated with `ffprobe`.
+- A separately approved `97.50¢` ElevenLabs rerun completed without retries in 11.685, 19.982, 8.300, and 22.055 seconds. The preserved Music v2 files record 48 kHz, 192 kbps `mp3_48000_192` output and requested durations 30/60/120/180 seconds; playable durations were 30.024/60.024/120.024/180.024 seconds. Estimated cumulative provider work across the original pass and rerun was `$2.59` before billing adjustments.
+
+#### Image and video
+
+- All 35 global video links succeeded. The image refresh fetched 36 of 39 global links and recovered all three Reve failures through the permitted provider-scoped retry. Evidence and `.refresh.json` metadata remained under gitignored `project/links/`.
+- Image/fal.ai implementation verification used mocked queue submission, polling, cancellation/result download, metadata, selection, links, price, and resume contracts for five image and two video selectors. No fal.ai generation ran.
+- Existing-provider video verification passed 68 targeted request, selection, option-resolution, pricing, provenance, and budget-registry contracts with no hosted generation.
+- The Veo REST response-shape audit passed 14 focused Gemini contracts plus CLI help/usage/option-resolution. Reintroducing SDK-normalized `videoBytes`/`mimeType` aliases made provenance fail; retaining raw REST `encodedVideo`/`encoding` restored the published boundary.
+
+#### Shared no-cost verification
+
+The consolidation baseline is `bun run check` plus `bun t --price`. On 2026-08-13 the price runner checked all 165 mapped commands with zero failures and a suite estimate of `1420.395¢`; price mode made no provider call. Targeted registry, reasoning, pricing, resume, report, and provider-adapter contracts supplement that baseline without running the paid suite.
+
 ## Rationale
 
 - Mechanical generation is the only way to keep the visual report current with the JSON and Markdown artifacts after every benchmark update.
@@ -142,17 +216,23 @@ Negative outcomes:
 | Generate JSON, Markdown, and self-contained HTML from the same category view models | Report maintainers | Implemented in the shared renderer and category builders |
 | Validate schema versions, tie-breaks, tier sizes, and rank/composite parity across committed artifacts | Test maintainers | Implemented in `combined-report-weighted-ranking-contracts.test.ts` |
 | Regenerate combined reports from committed local benchmark artifacts when source runs change | Benchmark maintainers | Ongoing |
+| Preserve exact paid approval, invalid-output exclusion, repair, compaction, and regeneration evidence for every benchmark refresh | Benchmark maintainers | Ongoing |
+| Keep live calibration optional unless a compatibility claim cannot be proved from primary documentation and local contracts | Model and benchmark maintainers | Ongoing guardrail |
 
-## Verification
+## Test Plan
 
 1. Run `bun test test/test-cases/validation/reports-pricing/combined-report-weighted-ranking-contracts.test.ts`.
-2. Confirm every ADR-014 repository reference resolves to this file and the ADR index remains contiguous from ADR-001.
+2. Confirm every ADR-012 repository reference resolves to this file and the ADR index remains contiguous from ADR-001.
 3. Run `git diff --check` and `bun run check`.
 4. Regenerate combined reports only from committed local artifacts; do not run the full test suite or invoke provider APIs as part of this verification.
 
 ## References
 
-- Related ADR: [ADR-012](ADR-012-add-price-preflight-to-resume.md) (benchmark-driven pricing surfaces)
+- Related ADR: [ADR-002](ADR-002-pipeline-state-resume-and-dry-run-planning.md) — side-effect-free price and resume planning
+- Related ADR: [ADR-009](ADR-009-extract-execution-and-artifact-contracts.md) — OCR evidence qualification and diagnostics
+- Related ADR: [ADR-010](ADR-010-hosted-model-registry-lifecycle-and-capability-policy.md) — durable model and calibration policy
+- Related ADR: [ADR-011](ADR-011-add-refresh-metadata-to-links.md) — primary-source refresh metadata
+- Related ADR: [ADR-013](ADR-013-2026-hosted-model-refresh-ledger.md) — dated model changes associated with this evidence
 - `.codex/skills/consensus/scripts/shared/combined_report_lib.ts`
 - `.codex/skills/consensus/scripts/shared/combined_report_html.ts`
 - `.codex/skills/consensus/scripts/stt/build_combined_report.ts`

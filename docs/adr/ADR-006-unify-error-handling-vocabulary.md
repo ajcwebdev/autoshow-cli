@@ -1,13 +1,14 @@
-# ADR-006: Unify the Error-Handling Vocabulary Across `src/` and `test/`
+# ADR-006: Unify the Error-Handling and Diagnostic Vocabulary Across `src/` and `test/`
 
 ## Status
 
 - **Decision Status:** Accepted
 - **Date Created:** 2026-06-13
-- **Date Updated:** 2026-08-07
+- **Date Updated:** 2026-08-13
 - **Verification Status:** Passed
+- **Supersession:** Absorbs the timestamp and concise diagnostic-rendering decisions from the retired record "Optimize Price Preflight Performance, Test Concurrency, and Token-Efficient Logging"; its production metadata-cache and price-verification decisions are owned by ADR-001 and ADR-002 respectively.
 
-<!-- This record synthesizes two error-handling decisions. Both are Accepted and implemented (the production `src/` throw-vocabulary sweep completed 2026-06-13; the test-suite consolidation landed earlier). The two halves are independent and each carries its own state tag. -->
+<!-- This record synthesizes production error vocabulary, test failure handling, and human/test-runner diagnostic rendering. All three areas are Accepted and implemented. -->
 
 ## Context
 
@@ -31,7 +32,9 @@ Issues #3/#4/#5 are all compensations for the root cause #1; closing the gap mak
 4. Retry-once-on-transient hard-coded to Gemini + MiniMax inside the LLM factory; no other factory gets it.
 5. No global `unhandledRejection`/`uncaughtException` handlers anywhere in `test/`.
 
-Why now: this follows the recent line of ADRs that record a plan before the work (see [ADR-003](ADR-003-type-surface-cleanup-and-architecture-mirroring.md), and the env-var series in [ADR-005](ADR-005-reduce-environment-variable-surface-area.md)). Both halves are now **Accepted and implemented**; the Follow-up tables record the completed work.
+**Human and test-runner diagnostics.** A later price-preflight investigation found that human log lines carried both a zero-based stopwatch prefix such as `[00:00:00.002]` and a local wall-clock prefix such as `[20:57:19]`. The test runner could then add another prefix to already-timestamped logger output. Related values were also spread over multiple lines, multiplying prefixes and making a 165-command preflight exceed 338 log lines. This is a rendering-vocabulary concern: application and runner diagnostics should agree on one timestamp and should keep one logical result on one line.
+
+Why now: this follows the recent line of ADRs that record a plan before the work (see [ADR-003](ADR-003-type-surface-cleanup-and-architecture-mirroring.md), and the env-var series in [ADR-005](ADR-005-reduce-environment-variable-surface-area.md)). All three areas are now **Accepted and implemented**; the implementation tables record the completed work.
 
 ## Options Considered
 
@@ -44,6 +47,8 @@ Why now: this follows the recent line of ADRs that record a plan before the work
 | **`test`: shared predicate registry; keep the two classifiers** | Eliminates duplication; one source of truth for transient predicates; both classifiers keep distinct return types | One new module + import churn across three files | Chosen; 1 new module and 3 importers |
 | `test`: fully merge into one classifier returning `{ pressureKind, reason }` | Single entry point | Couples concurrency back-off to provider reason strings; larger blast radius | Collapses 2 classifiers into 1 |
 | `test`: status quo (fix only the redundant `expect`s) | Minimal change | Leaves the duplication/scattered predicates and the Gemini double-definition | Removes 2 assertions only |
+| **Diagnostics: one local wall-clock timestamp and one line per logical result** | Consistent chronology, half as many price-preflight lines, and no duplicate prefix | Gives up the zero-relative stopwatch embedded in each output line | 338+ to 172 price-preflight lines |
+| Diagnostics: retain stopwatch plus wall-clock prefixes | Preserves both elapsed and local time inline | Cluttered dual prefixes repeat on every line and runner wrapping can add a third | Rejected |
 
 ## Decision
 
@@ -71,6 +76,12 @@ Each migrated throw attaches a `stage` and, where remediation exists, structured
 3. **Remove the two unreachable assertions** (`expect(result.exitCode).toBe(0)` in `service-test-kit.ts` and `define-llm-write-test.ts`) — the preceding `if (exitCode !== 0) { … throw }` makes them assert nothing; the throw is the real signal and the artifact assertions stay.
 4. **Add a global runner-level safety net** — register `unhandledRejection` / `uncaughtException` handlers in `test-runner.ts` that log via `l.error` and set exit code 1, alongside the existing `try/catch`.
 
+### C. Human and test-runner diagnostics — use one timestamp and one line per result *(Accepted — implemented 2026-08-13)*
+
+1. **Use one local wall-clock timestamp.** The human application sink and the test runner format timestamps as `[HH:MM:SS.MMM]`. The prior zero-based stopwatch prefix is removed from rendered output; elapsed duration remains available in explicit summaries where it carries meaning.
+2. **Suppress duplicate runner prefixes.** The test runner's console wrapper strips ANSI styling for detection and leaves lines beginning with either `[HH:MM:SS.MMM]` or `[HH:MM:SS]` unchanged. Untimestamped console output receives the canonical millisecond wall-clock prefix.
+3. **Render one logical diagnostic per line.** Closely related labels and values, including price-command cost results and single-variant budget decisions, stay on a concise single line without dropping information. ADR-002 owns the exact price-result shapes and benchmark evidence.
+
 ### Keep (with rationale)
 
 `src/`:
@@ -93,21 +104,26 @@ Each migrated throw attaches a `stage` and, where remediation exists, structured
 This applies to:
 
 - Production error construction and rendering under `src/`, plus shared test failure predicates and runner-level failure handling under `test/`.
+- Human application logging and test-runner console rendering.
 - No provider-specific failure semantics, provider response contracts, or assertion behavior in leaf tests.
 
 ## Rationale
 
 The `src/` core was built but never adopted in the pipeline, and the three workarounds (magic-string detection, substring hints, plain-`Error` `pollUntil`) are symptoms of that single gap; fixing it **deletes** them — `instanceof` replaces a string convention, structured `hints` at throw sites replace a substring scan, and a unified `AppError` makes `pollUntil` consistent for free. The sweep introduces no new machinery, reusing the existing kinds, exit-code mapping, `extractErrorHints`, `extractErrorMetadata`, and `serializeDiagnosticError` — the same "adopt the structure that already exists" move as the type-system work in ADR-003. On the test side, duplication of *detection logic* is the real risk: a provider's error wording changing forces N scattered matchers to be updated. Consolidating the **predicates** (genuinely the same job) while preserving the two **classifiers** (different questions) removes the drift hazard without over-coupling the runner to test-utils semantics; the redundant `expect`s and missing global handlers are small, unambiguous correctness fixes that ride along.
 
+The timestamp and line-shape rules extend that same vocabulary to successful and progress diagnostics. A single local timestamp gives application and test output one chronology, duplicate-prefix detection lets logger output pass safely through the runner, and one-line results preserve all fields while reducing scanning and token overhead.
+
 ## Consequences
 
 Positive outcomes:
 - `src/`: one error vocabulary — every operational failure carries `kind`/`stage`/`hints`/`metadata` and surfaces them through `cliErrorHandler` and `serializeDiagnosticError`, so JSON diagnostics and user-facing hints become structured everywhere, not only on the ~323 throws that already opt in. `LEGACY_ERROR_HINTS` and the five duplicated guards are **deleted**, not centralized; usage detection becomes type-safe; `pollUntil` and `withRetry` produce the same shape.
 - `test/`: one place to update when a provider's transient wording changes; new factories get transient-retry and availability-skipping by importing the registry; dead assertions removed; escaped async rejections produce structured `l.error` output and a deterministic exit code instead of a silent crash.
+- Diagnostics: application and runner output share one millisecond wall-clock prefix; already-prefixed lines are not timestamped twice; price preflight renders 172 rather than 338+ lines while preserving the logged data.
 
 Negative outcomes:
 - `src/`: a very large mechanical refactor (~994 throw sites) — a missed/mis-typed site is a typecheck failure (CI), not a silent behavior change; per-throw `kind` judgement is mitigated because all non-usage kinds map to exit 1; the `instanceof` switch must retain the `name` fallback so no usage error downgrades mid-migration.
 - `test/`: import churn across `service-test-kit.ts`, `define-llm-write-test.ts`, and `adaptive-concurrency.ts` (a careless move could drop a predicate from a classifier chain); reconciling the two Gemini definitions needs judgment so neither surface misfires.
+- Diagnostics: each line no longer carries an implicit zero-relative stopwatch; callers that need elapsed time must report it explicitly.
 
 ## Trade-offs
 
@@ -118,10 +134,11 @@ Negative outcomes:
 | `src`: `LEGACY_ERROR_HINTS` retired; remediation at the throw site; `pollUntil` consistent | Hint wording moves into throw sites + a small helper; two `retries.ts` call sites change error type |
 | `test`: single source of truth for transient detection; reusable retry for all factories | One extra module + import hop; a shared helper signature general enough for every service |
 | `test`: deterministic global failure reporting | Two more process-level listeners in the runner |
+| One `[HH:MM:SS.MMM]` prefix and concise single-line results | No per-line stopwatch prefix; compact renderers must keep every material field |
 
 ## Implementation Note
 
-Both halves are **implemented**; the actions below record the completed work.
+All three areas are **implemented**; the actions below record the completed work.
 
 `src/`:
 
@@ -146,11 +163,22 @@ Both halves are **implemented**; the actions below record the completed work.
 | Delete two unreachable exit-code assertions | Test maintainers | Implemented in the affected test utilities |
 | Register `unhandledRejection` and `uncaughtException` handlers | Test maintainers | Implemented in `test-runner.ts` |
 
+`diagnostics`:
+
+| Action | Owner | Current State |
+|---|---|---|
+| Render human application timestamps as local `[HH:MM:SS.MMM]` | App logger maintainers | Implemented in `src/utils/app-logger/sinks/human-sink.ts` |
+| Make `formatTimedOutputPrefix` return the same wall-clock shape | Test maintainers | Implemented in `test/test-runner/utils.ts` |
+| Add ANSI-aware duplicate timestamp suppression | Test maintainers | Implemented in `test/test-runner/runner.ts` |
+| Consolidate price-command and single-variant budget output into one line per logical result | Test maintainers | Implemented in `test/test-runner/runner.ts` |
+
 **Verification (for the implementing pass):**
 1. `bun run check` and lint clean — no dangling `new Error` in the swept clusters, no broken imports from the deleted local guards.
 2. `grep -rn "LEGACY_ERROR_HINTS" src` returns nothing; `grep -rn "name === 'CLIUsageError'" src` returns only the single fallback inside `isCLIUsageError`; `grep -rn "new Error(" src/cli/commands/process-steps | wc -l` drops toward zero.
 3. `rg -n 'isGeminiTransientUnavailable|isMinimaxTransientUnavailable' test/` → only the registry + importers; `rg -n 'expect\(result\.exitCode\)\.toBe\(0\)' test/test-utils/` → no matches; `rg -n 'unhandledRejection|uncaughtException' test/test-runner.ts` → both present.
 4. Benchmark (text/TTS), comic command, and manifest-schema paths pass; a usage error still exits 2 while an operational failure exits 1 with its hint rendered; transient-skip still produces `test.skip` (not failures) when env vars are absent.
+
+**Verification (for the diagnostic-rendering pass):** `bun run check` passed, and the complete no-cost price suite passed all 165 pricing specs with one `[HH:MM:SS.MMM]` prefix per line and 172 preflight lines. ADR-002 retains the duration matrix and price-specific verification details.
 
 ## References
 
@@ -161,6 +189,10 @@ Both halves are **implemented**; the actions below record the completed work.
 - `test/test-utils/service-test-kit.ts`, `test/test-utils/define-llm-write-test.ts`, `test/test-runner/adaptive-concurrency.ts`, `test/test-runner.ts`, `test/test-runner/parsers.ts`
 - Precedent for adopting existing structure rather than adding machinery: [ADR-003](ADR-003-type-surface-cleanup-and-architecture-mirroring.md)
 - Prior change touching `adaptive-concurrency.ts`, and base-URL/error context: [ADR-005](ADR-005-reduce-environment-variable-surface-area.md)
+- Human timestamp renderer: `src/utils/app-logger/sinks/human-sink.ts`
+- Test timestamp formatter and console wrapper: `test/test-runner/utils.ts`, `test/test-runner/runner.ts`
+- Discovery-cache companion: [ADR-001](ADR-001-source-ingestion-and-normalization.md)
+- Price-planning and no-cost-verification companion: [ADR-002](ADR-002-pipeline-state-resume-and-dry-run-planning.md)
 
 ## History
 

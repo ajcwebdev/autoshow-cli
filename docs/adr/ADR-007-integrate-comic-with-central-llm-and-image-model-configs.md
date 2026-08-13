@@ -173,7 +173,7 @@ The raw token cannot be echoed blindly. For an unknown inline assignment such as
 
 - [ADR-003](ADR-003-type-surface-cleanup-and-architecture-mirroring.md) — shared type and ownership boundaries
 - [ADR-005](ADR-005-reduce-environment-variable-surface-area.md) — removal of parallel override/client plumbing
-- [ADR-013](ADR-013-add-refresh-metadata-to-links.md) — links selection modes and refresh artifacts
+- [ADR-011](ADR-011-add-refresh-metadata-to-links.md) — links selection modes and refresh artifacts
 - `docs/reports/legacy-report.md` Part II — W3.0, W3.1/SL-5, and W3.2/SL-6
 - `src/cli/native/native-parser.ts`, `dispatcher.ts`, and `help-renderer.ts`
 - `src/cli/commands/process-steps/step-8-comic/define-comic-command.ts`

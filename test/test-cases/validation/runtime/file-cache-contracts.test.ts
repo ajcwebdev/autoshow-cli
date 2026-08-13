@@ -7,7 +7,7 @@ import { parseStoredHostedOcrPageCache } from '~/cli/commands/process-steps/step
 import { HOSTED_OCR_PDF_PAGE_FALLBACK_MODE, HOSTED_OCR_PDF_PAGE_FALLBACK_VERSION } from '~/cli/commands/process-steps/step-2-extract/step-2-ocr/ocr-utils/pdf-chunk-fallback-shared'
 import { fileFingerprintsMatch, getFileFingerprint, readJsonCacheMap, writeJsonCacheEntry } from '~/utils/file-fingerprint-cache'
 
-describe('ADR-021 file cache contracts', () => {
+describe('file cache contracts', () => {
   it('invalidates a batch-list entry when same-size content changes with a restored mtime', async () => {
     const root = await mkdtemp(join(tmpdir(), 'autoshow-batch-cache-contract-'))
     const listPath = join(root, 'inputs.txt')

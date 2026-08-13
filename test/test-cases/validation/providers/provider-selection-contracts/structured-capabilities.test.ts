@@ -13,9 +13,10 @@ describe('structured output provider capability contracts', () => {
     expect(shouldApplyStrictMode('cerebras', true)).toBe(true)
   })
 
-  test('local llama.cpp servers use native non-strict structured output', () => {
+  test('local llama.cpp uses native output while llamafile uses schema-guided prompting', () => {
+    expect(resolveStructuredStrategy('llama.cpp')).toBe('native')
+    expect(resolveStructuredStrategy('llamafile')).toBe('schema-guided')
     for (const service of ['llama.cpp', 'llamafile'] as const) {
-      expect(resolveStructuredStrategy(service)).toBe('native')
       expect(shouldApplyStrictMode(service, true)).toBe(false)
       expect(resolveValidationRetryBudget(service)).toBe(2)
     }

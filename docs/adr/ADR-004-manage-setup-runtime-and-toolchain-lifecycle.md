@@ -1,4 +1,4 @@
-# ADR-004: Provision the Local-Lite Toolchain Through Managed Runtimes and a Container Image
+# ADR-004: Manage the Setup Runtime and Toolchain Lifecycle
 
 ## Status
 
@@ -6,7 +6,7 @@
 - **Date Created:** 2026-06-12
 - **Date Updated:** 2026-08-13
 - **Verification Status:** Passed
-- **Supersession:** Consolidates the separate Docker distribution record, "Docker Image Trade Study for CLI Distribution", merged here on 2026-07-24.
+- **Supersession:** Consolidates the separate Docker distribution record, "Docker Image Trade Study for CLI Distribution", merged on 2026-07-24; the complete setup reliability, reporting, and performance record formerly titled "Make Setup Downloads Resumable and Setup Reporting Truthful"; the complete standalone "ADR-004 Phase 5 macOS Toolchain Distribution Review"; and the ACSM plugin, managed Python, wrapper, resolver, authorization-helper, doctor, and setup/help mechanics formerly recorded in ADR-001. ADR-001 retains book-like ingestion, fulfillment, authorization, conversion, and extraction policy.
 
 ## Context
 
@@ -33,11 +33,17 @@ Locally observed arm64 base image sizes, before any AutoShow packages are added:
 
 These are local base-image observations only. They are not final built image sizes, because the final image size depends on the selected package set, package manager cache cleanup, `node_modules`, and any copied project files.
 
-Prebuilt distribution evidence. [ADR-015](ADR-015-make-setup-downloads-resumable-and-setup-reporting-truthful.md) measured a 175.181s ungated cold median on arm64 macOS. MuPDF and qpdf compile/link medians total 87.673s, or 50.0% of that run, while serializing CPU-heavy build leaves improved the median by only 3.1% and missed the predeclared 10% threshold. The exact upstream MuPDF 1.27.2 release exposes source archives only, and the exact qpdf 12.3.2 release exposes source, Linux, and Windows assets but no macOS binaries, so an upstream-prebuilt option does not exist for either pinned tool. The public AutoShow repository had no Actions workflows and no releases when this decision was evaluated.
+Setup reliability evidence. An audited full setup took 426.4 seconds and reported success despite two 60-second Whisper download timeouts and incomplete readiness checks. The flat `AbortSignal.timeout(60_000)` stayed armed through body streaming, imposing a roughly 200 Mbps floor on the 1.5 GB `ggml-large-v3-turbo.bin`; retries deleted the destination and restarted from byte zero; whole bodies were buffered in memory; the largest models lacked SHA-256 pins; and eight concurrent setup tasks divided available bandwidth. Reporting could still end with unconditional success and exit 0 after a warning summary. Doctor probed the ACSM wrapper's early-returning `--version` path rather than activation readiness, omitted qpdf and CoreML encoders, and trusted a 236-byte llama marker instead of the cached GGUF. The run also left roughly 3.3 GB of removable build trees and CoreML source checkpoints and gave users no truthful disk or bandwidth accounting.
+
+Setup performance evidence. Four implementation passes replaced those defects, measured failed concurrency assumptions, and established comparable baselines. The accepted arm64 macOS topology has a 175.181-second ungated cold median, an 11.2-second post-install cold-cache rerun, and a 1.639-second steady-state warm median. MuPDF and qpdf compile/link medians total 87.673 seconds, or 50.0% of the cold run. A capacity-one CPU-heavy gate produced a 169.8-second median, only 3.1% faster, and missed the predeclared 10% acceptance threshold, so the production gate and test hook were removed. These figures are setup-lifecycle evidence and now live with the source/prebuilt decision they informed.
+
+ACSM provisioning evidence. ADR-001 selects local, user-authorized Calibre ACSM Input plugin fulfillment behind a `calibre-acsm-fulfill <input.acsm> <output-dir>` interface and prohibits raw ACSM extraction, online conversion, secret persistence, and automated DRM removal. Setup must supply that interface without taking ownership of the user's authorization rights or sensitive activation data. The selected implementation uses the pinned GPLv3 upstream plugin's standalone scripts, a managed Python environment, generated fulfillment and authorization wrappers, explicit resolver precedence, and an offline doctor check that distinguishes installed tooling from missing authorization.
+
+Prebuilt distribution evidence. The setup performance record measured the 175.181-second ungated cold median above. MuPDF and qpdf compile/link medians total 87.673 seconds, or 50.0% of that run, while serializing CPU-heavy build leaves improved the median by only 3.1% and missed the predeclared 10% threshold. The exact upstream MuPDF 1.27.2 release exposes source archives only, and the exact qpdf 12.3.2 release exposes source, Linux, and Windows assets but no macOS binaries, so an upstream-prebuilt option does not exist for either pinned tool. The public AutoShow repository had no Actions workflows and no releases when this decision was evaluated.
 
 A local arm64 audit also found that the current qpdf source build is not a distributable fallback as built on the measured host: its `libqpdf` has absolute dynamic references to Homebrew `libjpeg` and OpenSSL. A no-cost proof build corrected that by pinning libjpeg-turbo 3.2.0 (`sha256:6f30092cef9fb839779646608f4ee14ae3cbac989c47fa05e841b0841f09878e`), statically linking qpdf and libjpeg, selecting qpdf's native crypto provider, and setting a macOS 15.0 deployment target. The resulting 3.8 MB arm64 `qpdf` linked only `/usr/lib/libz.1.dylib`, `/usr/lib/libc++.1.dylib`, and `/usr/lib/libSystem.B.dylib`; version, PDF validation, AES-256 encryption, and linearization checks passed. The existing 40 MB arm64 `mutool` likewise links only `/usr/lib/libSystem.B.dylib`. Unsigned proof ZIPs were 1.2 MB for qpdf and 29 MB for MuPDF, small enough that release storage is not a limiting force. This proves the portable qpdf recipe on one architecture; it does not substitute for the accepted two-architecture CI, signing, notarization, or clean-host verification gates below.
 
-Why now: the original mixed Homebrew/runtime model and missing container distribution were already resolved, but ADR-015 has now completed the measurement gate for the remaining dominant macOS setup cost. The project therefore needs to choose and constrain build versus distribution before any release URL enters setup metadata.
+Why now: host and container provisioning, acquisition integrity, setup health/reporting, performance topology, and ACSM runtime supply are one lifecycle. Keeping them in separate records obscured the owner of downloads, provenance, staging, promotion, cleanup, doctor truth, and setup-only plugin mechanics. This consolidation gives setup one authority while leaving source-format and fulfillment policy in ADR-001.
 
 ## Options Considered
 
@@ -71,6 +77,23 @@ For this decision, "full local-lite" in an image means `ffmpeg` and `ffprobe`, `
 | Use Homebrew bottles or another third-party binary feed | Existing multi-architecture packaging infrastructure | Reintroduces a mutable package-manager dependency, weakens exact project pinning, and reverses the accepted no-Homebrew boundary | At least 2 external package recipes plus transitive bottle availability |
 | Produce thin, pinned, signed and notarized AutoShow prebuilts with a source fallback | Would remove the measured compile path on eligible hosts | Requires an ongoing producer CI, Apple credential, signing, notarization, release, retention, and incident-response program | Investigated through the first five prebuilt phases, then withdrawn before any artifact was signed, published, configured, or activated |
 
+### Setup Transfer, Health, and Reporting
+
+| Option | Pros | Cons | Quantitative Notes |
+|---|---|---|---|
+| **Stall-based timeouts with per-flow total budgets, streaming to resumable `.part` files, and checksum pins** | Transfer size stops deciding success; retries resume; memory stays bounded; large models receive integrity checks | Adds sidecar and resume-validity logic; hashing requires a completed-file read | Removes the roughly 200 Mbps floor; retries transfer only remaining bytes |
+| Raise the flat timeout | Minimal change | Retains an arbitrary bandwidth floor, byte-zero restarts, and whole-body buffering | Roughly 20 minutes would be needed for 1.5 GB at 10 Mbps and would also delay genuine stalls |
+| Shell out to `curl -C -` | Provides resume and progress | Reintroduces an external tool dependency and splits acquisition behavior | Rejected |
+| Keep optimistic reporting and document caveats | No implementation risk | Cannot correct a false exit code or a doctor probe that bypasses actual prerequisites | Rejected |
+
+### ACSM Fulfillment Provisioning
+
+| Option | Pros | Cons | Quantitative Notes |
+|---|---|---|---|
+| **Setup-managed pinned Calibre ACSM Input plugin and standalone-script runtime** | Supplies ADR-001's selected interface through the existing Calibre dependency; pins provenance; supports Adobe ID, anonymous authorization, ADE activation import, activation backups, `fulfill.py`, and a user-facing authorization helper | Maintains a sensitive local activation environment and GPLv3 external-download boundary; fulfillment may contact Adobe or distributor servers | Selected; no plugin source is vendored or modified in AutoShow |
+| Require users to install and locate the plugin scripts manually | Removes setup code | Weakens one-command setup and doctor truth; creates inconsistent resolver behavior | Rejected as the default; explicit overrides remain supported |
+| Provision `libgourou` as a second managed ACSM stack | More CLI-native and headless | Duplicates the Calibre-centered toolchain and makes setup manage ADEPT activation directly | Rejected unless the ingestion decision changes |
+
 ## Decision
 
 AutoShow provisions the local-lite toolchain from project-owned sources in every environment: managed `runtime/` artifacts on a macOS host, `apt` on a Linux host, and baked-in `apt` packages in the distribution image. Nothing resolves through a global package manager AutoShow does not control, and nothing resolves implicitly through `PATH` on macOS.
@@ -83,6 +106,10 @@ Host provisioning. macOS setup must not invoke Homebrew for AutoShow-installed l
 
 This requires no CLI command-shape change. Existing setup entry points, including `bun autoshow setup`, `bun autoshow setup --step yt-dlp`, `bun autoshow setup --step calibre`, and `bun autoshow setup --doctor`, keep their current public shape while their macOS dependency source changes underneath.
 
+Setup acquisition, reporting, and health. Every `downloadFile` transfer aborts on inactivity rather than total elapsed transfer time, streams to a resumable `<destination>.part` guarded by URL-matched metadata, and verifies checksum or minimum-size evidence before atomic completion. Shared transfer admission is bounded at the byte-moving leaves rather than around whole setup tasks. Setup reports per-step wall-clock timing, aggregate progress, disk state, provider-key counts, and ACSM authorization separately; the final message and process exit follow the summary health verdict. Doctor remains offline and checks the real artifacts and prerequisites that execution uses. Successful installers reclaim disposable build trees and conversion inputs while retaining intentional caches.
+
+ACSM setup mechanics. `bun autoshow setup --step calibre` installs the document tools and ACSM fulfillment support; `bun autoshow setup --step acsm` installs only a pinned Calibre ACSM Input plugin ZIP under `runtime/tools/acsm-calibre-plugin`, its managed Python environment, `calibre-acsm-fulfill`, and `calibre-acsm-authorize`. Resolution is explicit `--bin-dir` first, the setup-managed `runtime/bin` wrapper second, then `PATH`. The generated fulfillment wrapper must satisfy ADR-001's exact one-EPUB-or-PDF output contract. `setup --doctor` separately reports wrapper health and authorization-file readiness, and setup/help text keeps Calibre conversion, fulfillment scripts, and user-controlled authorization distinct. Activation files, Adobe IDs, account data, keys, and backup ZIPs remain local sensitive state and never enter manifests, run artifacts, performance artifacts, or logs. AutoShow downloads the pinned upstream GPLv3 plugin instead of vendoring or modifying its code; any future vendoring, modification, or redistribution requires an explicit license review.
+
 macOS MuPDF/qpdf delivery. AutoShow builds both tools from exact project-pinned source on the host and does not publish, select, or download AutoShow-built macOS executable archives. The qpdf recipe statically links the pinned libjpeg-turbo input, uses qpdf's native crypto provider, and rejects non-system dynamic-library paths. Both tools install through isolated staging, record source provenance and payload hashes, pass health checks, and atomically replace the managed runtime directory while preserving the prior healthy install on failure.
 
 MuPDF retains its current release build flags. qpdf is a static CLI build with qpdf's native crypto provider and a pinned static libjpeg-turbo input; neither result may contain a non-system absolute dynamic-library path. The source install records a target compatible with the host that compiles it. The existing `runtime/bin` resolver shims remain the public managed paths, and explicit `--bin-dir` tools retain precedence without being required to carry AutoShow provenance.
@@ -92,10 +119,13 @@ Container provisioning. The distribution image adopts the Debian slim full local
 This applies to:
 
 - AutoShow-installed, runtime-managed dependencies on macOS.
+- All setup downloads, transfer admission, integrity checks, retry/resume behavior, health guards, performance artifacts, progress, summaries, cleanup, and doctor reporting.
+- Setup-managed ACSM plugin acquisition, managed Python and generated wrappers, resolver precedence, authorization helper/readiness reporting, and setup/help mechanics; ADR-001 remains authoritative for lawful user authorization, the fulfillment command contract, source classification, conversion metadata, and extraction behavior.
 - Hermetic, pinned MuPDF and qpdf source builds on supported macOS hosts, with no project-published executable archive path.
 - The Debian slim, full local-lite CLI image and its bundled system tools.
 - No user-managed tools, host build prerequisites, Linux host package management, or other platform setup behavior; no project-hosted prebuilt scope is active.
 - No registry publishing, Docker CI, heavyweight local engines, model weights, Defuddle, or provider credentials in the image.
+- No implicit hosted-provider key validation during setup; validating credentials would call provider APIs and remains an explicit opt-in workflow.
 
 ## Implementation Note
 
@@ -104,6 +134,44 @@ Host. Implemented on 2026-06-12. macOS setup resolves AutoShow-owned local tools
 Container. Debian installs Tesseract language data under `/usr/share/tesseract-ocr/5/tessdata`, while AutoShow's local OCR code passes a project-local `TESSDATA_PREFIX` under `runtime/tools/tessdata`. The Docker image therefore creates `/app/runtime/tools/tessdata` as a symlink to the Debian data directory and adds a small `/usr/local/bin/tesseract` wrapper that falls back to the Debian data directory when a bind-mounted `runtime/` hides the symlink.
 
 Prebuilt decision. Withdrawn on 2026-08-13 after Phases 1 through 5 established the technical, portability, provenance, and redistribution boundaries. The project owner declined the permanent Apple credential, signing, notarization, protected-rehearsal, and release-operations burden required to distribute trusted macOS executables. Both toolchain Actions workflows, the signed producer implementation, signed release commands, protected-producer contracts, and the empty `macos-toolchain-release` environment were removed. No artifact was signed, notarized, drafted, published, configured, or activated, and Phases 7 through 9 were canceled. The retained source recipe, source provenance, staged atomic promotion, health checks, and offline doctor behavior are the final production design.
+
+Setup reliability pass 1. Implemented on 2026-07-24. `DownloadProfile` gained `stallTimeoutMs` and `totalTimeoutMs`: `bun-fetch-default` has a 15-minute total budget and `bun-fetch-large-asset` has 60 minutes, both with a 60-second inactivity window; Whisper, Reverb, whisperfile, llamafile, and Calibre DMG flows use the large profile. A watchdog rearms on every chunk and retains “timed out” wording so `classifyFetchRetry` continues treating stalls as retryable. Bodies stream to `<destination>.part`; `PartialDownloadMetadata` binds the partial to its source URL; `206` appends, `200` after a Range request restarts cleanly, and `416`, checksum failure, or minimum-size failure discards invalid bytes while a stall preserves resumable bytes. Archive modes extract directly from the completed file instead of double-writing a second temporary copy.
+
+The Whisper retry path no longer deletes the destination before each attempt. `tiny` and `large-v3-turbo` are checksum-pinned with exact sizes, while unpinned models require at least 10 MB instead of 1000 bytes. Linux `yt-dlp` uses a pinned release URL and published SHA-256 rather than `releases/latest`; the three Reverb repositories use pinned commit SHAs; llama setup reads the canonical dependency tag; and the Pinned Versions report derives from dependency metadata.
+
+Setup reporting now records concurrent per-task wall-clock durations, reports disk use and ACSM authorization separately, describes hosted-provider readiness as `N/N present`, and returns the same health verdict used for the final message and process exit. Doctor added qpdf, the then-active CoreML encoders, real llama GGUF, Kitten cache, and ACSM activation-file checks. Setup reuses llama and Kitten caches only when their actual assets exist, follows Kitten snapshot symlinks and rejects dangling links, runs `mutool`/`tesseract`/`ebook-convert` health probes rather than existence tests, removes successful build trees and converted CoreML `.pt` inputs, and prunes `runtime/build`. At this pass, `runtime/bin/whisper-coreml-env` remained an intentional 654 MB conversion cache; the later CoreML retirement below supersedes that keep decision. These changes reclaimed roughly 3.3 GB from the audited install and made the remaining footprint visible.
+
+ACSM setup implementation. `setupAcsmFulfillment` has an idempotent top-level health guard, downloads the pinned upstream plugin ZIP, extracts its standalone scripts under `runtime/tools/acsm-calibre-plugin`, creates the managed Python environment and generated `calibre-acsm-fulfill` / `calibre-acsm-authorize` wrappers, and emits authorization guidance only when readiness reporting calls for it. The wrapper's `--version` path proves executable identity but does not prove authorization; doctor therefore inspects the activation prerequisite separately. `--force-redownload` covers the managed plugin, environment, and wrappers without deleting user authorization state. Setup summaries and doctor expose the authorization action without copying activation/account/key paths into output. `bun autoshow setup --step acsm-authorize` remains the explicit user action when authorization is missing.
+
+Setup reliability pass 2. Two observed post-fix runs, 307.4 seconds cold and 15.6 seconds warm, showed that per-step timing alone left 4m10s of apparent silence. Setup added a 30-second progress heartbeat and promoted llama download progress to human-visible output. `runSettledSetupTasks` separated nested failure aggregation from top-level timing. Kitten TTS adopted a true HuggingFace-cache guard, and `resolveHostedProviderChecks` began failing on unknown environment-variable names rather than silently dropping them.
+
+The pass experimentally overlapped the `large-v3-turbo` download with `tiny` CoreML conversion and ran the Calibre/ACSM chain beside MuPDF→qpdf. The Whisper overlap was sound at 58 seconds versus 101 seconds serial and remained while CoreML conversion existed. The document-tools split was a measured regression: the cold run rose from 307.4 to 326.4 seconds; TTS rose 62→210 seconds, Reverb 85→171 seconds, OCR 98→144 seconds, and the same roughly 200 MB Calibre DMG took 170 rather than 74 seconds when moved into the opening burst. The split was reverted because concurrent tasks share network and CPU resources. Timing labels now explicitly say concurrent wall clock, disk accounting uses `du -sk` with a JavaScript fallback and binary units, and unconditional ACSM warnings were removed in favor of the summary and doctor. After cache guards, a steady-state warm rerun reached 1.8 seconds; the immediate post-install cold-cache rerun remained about 14 seconds because recently written binaries had to page from disk.
+
+Setup reliability pass 3. The document chain is serial again: `setupDocumentTools` → `setupCalibreTools` → `setupAcsmFulfillment`; its independent health guards and the Whisper overlap remain. A FIFO counting semaphore in `setup-download/download-admission.ts` bounds actual transfers at `DEFAULT_SETUP_DOWNLOAD_CONCURRENCY = 3` in `fetchToPartFile` and HuggingFace's `downloadOneFile`. Slots cover network transfer only, not checksum, extraction, repo-tree listing, or whole task boundaries, so local work can overlap and a 1.5 GB hash cannot block a queued download.
+
+One heartbeat ticker now aggregates quiet tasks as a single line such as `Still running: media tools 4m 10s · OCR 1m 30s`; `AsyncLocalStorage` activity attribution suppresses only tasks that produced recent output, and elapsed formatting uses minutes beyond 60 seconds. Reclaimed Build Trees reporting has a 10 MiB threshold because `du -sk` charges an empty APFS directory 8 KiB while the file-walk fallback reports zero; cleanup remains unconditional.
+
+The third-pass cold run was 330 seconds versus 307.4 and 326.4 seconds in the earlier single samples. It recovered the per-task regressions—TTS 210→69 seconds, Reverb 171→95 seconds, OCR 144→101 seconds, and Calibre back to 74 seconds—but did not shorten the critical path. Document tools took 5m29s through serial MuPDF 112s → qpdf 140s → Calibre 74s → ACSM 2s, and the transfer budget did not gate Calibre. The remaining contention was CPU overlap between source builds and CoreML conversion. The 23-second cross-day total difference is not treated as a standalone regression. The immediate warm rerun was a 14.2-second cold-cache sample and no steady-state sample was claimed for this pass.
+
+Setup reliability pass 4. `setup-performance.ts` records schema-versioned monotonic phases for archive preparation, configure/generate, compile/link, install/promote, health check, and cleanup under `runtime/setup-performance/`. Artifacts include relative timing, phase status, task timings, actual pairwise compile overlap, OS release, architecture, logical CPU count, effective parallel width, Bun and dependency versions, and source-cache state. They exclude credentials, URLs, home paths, and machine identifiers. Normal output keeps a concise Setup Step Timings table; verbose output may show detailed phases. Whisper CoreML conversion had already been retired before this pass, so the experiment measured the current Whisper compile/link leaf rather than preserving a benchmark around obsolete conversion work. Current setup no longer provisions or records CoreML conversion scripts, models, or environments and reports legacy CoreML artifacts as reclaimable.
+
+The first attempted controlled matrix was discarded after exposing a reset-integrity defect: `--force-redownload all` did not explicitly name the qpdf wrapper, build tree, and tool tree, so qpdf survived and did not rebuild. Both the `all` and `calibre` reset sets now name those targets, and every accepted cold sample contains a qpdf compile/link phase. All accepted samples ran on the same arm64 macOS host on AC power with Darwin 25.5.0, Bun 1.3.14, 11 logical CPUs, pinned dependency versions, an eight-job managed-source cap, and Whisper width 11.
+
+| Topology and cache state | Runs | Median | Decision use |
+|---|---:|---:|---|
+| Ungated cold baseline | 165.2s, 175.2s, 188.7s | **175.2s** | Selected cold baseline |
+| Ungated post-install cold-cache rerun | 11.2s | 11.2s | Labeled separately |
+| Ungated steady-state warm | 1.639s, 1.644s, 1.596s | **1.639s** | Selected warm baseline |
+| Capacity-one CPU gate, cold | 170.4s, 169.8s, 169.0s | **169.8s** | 3.1% improvement; rejected below 10% threshold |
+| Capacity-one CPU gate, post-install cold-cache rerun | 12.9s | 12.9s | Candidate diagnostic only |
+| Capacity-one CPU gate, steady-state warm | 1.684s, 1.854s, 1.838s | 1.838s | Candidate diagnostic only |
+
+| Component, baseline median | Archive | Configure | Compile/link | Install/promote | Health | Cleanup | Recorded total |
+|---|---:|---:|---:|---:|---:|---:|---:|
+| MuPDF | 5.227s | <0.001s | **45.645s** | <0.001s | 0.689s | 0.487s | 52.038s |
+| qpdf | 1.088s | 4.175s | **42.027s** | 0.206s | 0.651s | 0.300s | 49.276s |
+
+The phase sums reconcile within 0.30 ms. MuPDF and qpdf compile/link total 87.673 seconds, 50.0% of the 175.181-second cold median. Baseline Whisper/MuPDF overlap was 36.261 seconds and qpdf/ffmpeg overlap was 10.388 seconds. The capacity-one candidate reduced isolated MuPDF and qpdf compile/link to 33.627 and 34.837 seconds but shifted 9.749 seconds into qpdf admission and 32.613 seconds into Whisper admission, eliminating overlap without enough critical-path gain. Because the 3.1% median improvement missed the 10% gate and each source build already used eight of 11 logical CPUs, the candidate and its test hook were removed. The transfer admission budget remains because it governs a different resource. The measured compile share triggered the macOS prebuilt investigation recorded later in this ADR; that investigation stopped safely with source builds as the final topology.
 
 Phase 1. Completed on 2026-08-13. Dependency metadata now pins libjpeg-turbo 3.2.0 to its exact release URL and SHA-256 alongside qpdf 12.3.2. The shared source recipe builds only static libjpeg, configures qpdf with shared libraries and implicit crypto disabled, requires and selects qpdf's native crypto provider, supplies only the pinned libjpeg include/library/package paths, builds the static qpdf CLI target, and rejects every dynamic-library reference outside Apple system paths or packaged loader/rpath paths before accepting the install. A recipe stamp makes normal setup replace the prior launchable-but-unhermetic qpdf tree once and reuse the portable result thereafter; the download flows, checksum validation, retry budgets, cached-source behavior, phase reporting, and source-only production selection remain in place.
 
@@ -133,17 +201,95 @@ Formal Phase 4 completion evidence is ordinary pull-request run [31686430140](ht
 
 After that one-time Phase 4 completion evidence was retained, the expensive unsigned arm64/x64 producer and source-fallback matrix was first changed to `workflow_dispatch` only and then deleted when Phase 6 closed the prebuilt track. No toolchain workflow now runs on staging, pull requests, pushes, or manual dispatch. Ordinary changes use the focused local contracts, `bun run check`, and `bun t --price`.
 
-Phase 5. Completed on 2026-08-13. The project-owner distribution review [ADR-004 Phase 5 macOS Toolchain Distribution Review](ADR-004-phase-5-distribution-review.md) records separate exact approvals `ADR-004-P5-MUPDF-1.27.2-r1`, `ADR-004-P5-QPDF-12.3.2-r1`, and `ADR-004-P5-LIBJPEG-TURBO-3.2.0-r1`, with `github:ajcwebdev` acting in the designated repository-owner and project-compliance-owner roles. The review approves only the pinned source archives and SHA-256 values, the existing hermetic linkage recipes, release revision `r1`, exact same-release source assets, immutable AutoShow tag-source URLs, approved SPDX input packages/licenses, mandatory user notice, and closed package inventories. MuPDF is approved as an AGPL-3.0-or-later standalone subprocess distributed in an aggregate with AutoShow; its binary release must provide equivalent no-charge network access to the exact complete MuPDF source archive and AutoShow producer source from the same release page under AGPL section 6(d), so this plan uses no written offer.
+Phase 5. Completed on 2026-08-13. The project-owner [Phase 5 distribution approval record](#phase-5-distribution-approval-record) records separate exact approvals `ADR-004-P5-MUPDF-1.27.2-r1`, `ADR-004-P5-QPDF-12.3.2-r1`, and `ADR-004-P5-LIBJPEG-TURBO-3.2.0-r1`, with `github:ajcwebdev` acting in the designated repository-owner and project-compliance-owner roles. The review approves only the pinned source archives and SHA-256 values, the existing hermetic linkage recipes, release revision `r1`, exact same-release source assets, immutable AutoShow tag-source URLs, approved SPDX input packages/licenses, mandatory user notice, and closed package inventories. MuPDF is approved as an AGPL-3.0-or-later standalone subprocess distributed in an aggregate with AutoShow; its binary release must provide equivalent no-charge network access to the exact complete MuPDF source archive and AutoShow producer source from the same release page under AGPL section 6(d), so this plan uses no written offer.
 
 The Phase 5 source audit found that `mutool` embeds the pinned MuPDF archive's codecs, font/shaping libraries, fonts, Adobe CMaps, and 48 TeX hyphenation-pattern resources. The approved package therefore replaces the Phase 4 preliminary single-file MuPDF notice with verbatim `COPYING` and `README` files, a deterministic consolidated notice assembled from every applicable pinned third-party/resource license input, and a generated distribution/source-access notice. qpdf retains its exact Apache license and notice, adds the exact libjpeg-turbo roll-up license, and carries the same generated source/review notice. The closed policy fixes four notice paths per tool and six total ZIP files per architecture. SPDX generation records exact producer input URLs, versions, digests, and declared licenses (`AGPL-3.0-or-later`, `Apache-2.0`, and `IJG AND BSD-3-Clause`), and clean verification reconstructs the entire expected SPDX document instead of checking package names alone.
 
 Both unsigned and dormant final-release schemas now require `reviewStatus: approved`, the exact ordered approval references, review date, distinct reviewer-role identities, AutoShow tag-source archive, `writtenOfferRequired: false`, and the mandatory user-notice path. Outer verification/release manifests repeat the exact approval references. Missing, changed, reordered, or extra review IDs, notice paths, source assets, SBOM fields, or review facts fail as trust errors; all unsigned artifacts remain `promotable: false`, unsigned, unnotarized, conspicuously named, and structurally invalid as production artifacts. Production metadata and setup still contain no candidate, URL, checksum, flag, or environment override.
 
+### Phase 5 Distribution Approval Record
+
+#### Approval Status
+
+- **Review Status:** Approved for the exact `r1` distribution described below
+- **Review Date:** 2026-08-13
+- **Repository Reviewer:** `github:ajcwebdev/repository-owner`
+- **Project Compliance Reviewer:** `github:ajcwebdev/project-compliance-owner`
+- **Scope:** MuPDF 1.27.2, qpdf 12.3.2, and the statically linked libjpeg-turbo 3.2.0 input used by the accepted macOS arm64/x64 producer
+
+The same repository owner holds both designated roles in this sole-maintainer project. This is the project's recorded open-source distribution approval, not a representation that outside counsel supplied a legal opinion. It approves only the exact versions, source digests, build recipes, notices, package inventories, release revision, source-access plan, and reviewer identities below. Any change requires a new review reference before signing or publication.
+
+#### Approval References
+
+| Component | Approval Reference | Result |
+|---|---|---|
+| MuPDF 1.27.2 | `ADR-004-P5-MUPDF-1.27.2-r1` | Approved for separate-executable AGPL-3.0-or-later conveyance under the same-release source-access and notice conditions in this record |
+| qpdf 12.3.2 | `ADR-004-P5-QPDF-12.3.2-r1` | Approved for Apache-2.0 binary redistribution with the exact upstream license and notice |
+| libjpeg-turbo 3.2.0 | `ADR-004-P5-LIBJPEG-TURBO-3.2.0-r1` | Approved for static inclusion in qpdf under the IJG and Modified BSD terms with the exact upstream roll-up license |
+
+#### Approved Source and Build Boundary
+
+| Input | Exact Source Asset | SHA-256 | Approved Role |
+|---|---|---|---|
+| MuPDF 1.27.2 | `mupdf-1.27.2-source.tar.gz` | `553867b135303dc4c25ab67c5f234d8e900a0e36e66e8484d99adc05fe1e8737` | Complete upstream MuPDF source, bundled third-party code, fonts, CMaps, hyphenation data, build files, and license material for the standalone `mutool` executable |
+| qpdf 12.3.2 | `qpdf-12.3.2.tar.gz` | `6cba2f9f2cd887d905faeb99e0e51a307b217920d1bbf3e9cfbb2e8178a2deda` | Complete upstream qpdf source for the standalone `qpdf` executable |
+| libjpeg-turbo 3.2.0 | `libjpeg-turbo-3.2.0.tar.gz` | `6f30092cef9fb839779646608f4ee14ae3cbac989c47fa05e841b0841f09878e` | Complete upstream source for the static JPEG library linked into qpdf |
+
+The approved build boundary is exactly the shared recipe already recorded by ADR-004: MuPDF is built with the repository's pinned release flags and no host crypto dependency; qpdf uses native crypto and only the pinned static libjpeg-turbo input; both outputs are thin executables with system-only dynamic linkage. AutoShow invokes each executable as a separately installed subprocess and does not link either program into the MIT-licensed AutoShow process. The MuPDF executable and AutoShow therefore ship as separate works in an aggregate; this approval does not relicense AutoShow or permit combining MuPDF code into AutoShow.
+
+#### Approved License and Notice Inventory
+
+The machine-readable source of truth is `managed-toolchain-distribution-policy.ts`. Each executable package contains its binary, the closed embedded manifest, and only the approved notice paths below. The manifest and clean verifier reject any missing, additional, reordered, or renamed path, and the archive/package hashes bind the exact notice bytes.
+
+The MuPDF package contains:
+
+- `licenses/mupdf-COPYING`, copied verbatim from the pinned source archive.
+- `licenses/mupdf-README`, copied verbatim from the pinned source archive to preserve the copyright, AGPL-3.0-or-later election, and warranty notice.
+- `licenses/mupdf-THIRD-PARTY-NOTICES.txt`, deterministically assembled from the pinned source archive with a source-path heading before every verbatim notice. Its approved inputs cover Brotli, Extract, FreeType and the FreeType/BDF/PCF terms, Gumbo, HarfBuzz, jbig2dec, Little CMS, IJG libjpeg, MuJS, OpenJPEG, zlib, Adobe CMaps, Droid/Source Han/Noto/Charis SIL/URW fonts, and all 48 embedded TeX hyphenation-pattern notices.
+- `licenses/DISTRIBUTION-NOTICE.txt`, generated from the closed policy and naming the exact corresponding-source asset, AutoShow producer-source archive, approval identity, no-warranty statement, and AGPL section 6(d) network-source method.
+
+The qpdf package contains:
+
+- `licenses/qpdf-LICENSE.txt`, copied verbatim from qpdf 12.3.2.
+- `licenses/qpdf-NOTICE.md`, copied verbatim from qpdf 12.3.2 and retaining its embedded-code attributions.
+- `licenses/libjpeg-turbo-LICENSE.md`, copied verbatim from libjpeg-turbo 3.2.0 and retaining the IJG attribution requirement, IJG notice, and Modified BSD terms.
+- `licenses/DISTRIBUTION-NOTICE.txt`, generated from the closed policy and naming the exact source assets, AutoShow producer-source archive, approval identities, and no-warranty statement.
+
+No separate written offer is used. MuPDF object code will be offered by network download alongside equivalent no-charge access to `mupdf-1.27.2-source.tar.gz` and the exact AutoShow tag archive on the same immutable release page, following the network-conveyance method in AGPL section 6(d). The distribution notice is mandatory in both tool packages. qpdf and libjpeg-turbo do not require corresponding-source conveyance under their approved permissive terms, but their exact source archives remain mandatory release assets for provenance and rebuildability.
+
+#### Approved Source References and Release Assets
+
+The exact AutoShow producer source references are:
+
+- MuPDF: `https://github.com/ajcwebdev/autoshow-cli/archive/refs/tags/toolchain-mupdf-1.27.2-r1.tar.gz`
+- qpdf/libjpeg-turbo: `https://github.com/ajcwebdev/autoshow-cli/archive/refs/tags/toolchain-qpdf-12.3.2-r1.tar.gz`
+
+The MuPDF release must include both architecture ZIPs, both release manifests, both SPDX SBOMs, `SHA256SUMS`, attestations, the exact MuPDF source asset, and the tag source archive. The qpdf release must include the equivalent binary/manifest/SBOM/checksum/attestation set, the exact qpdf and libjpeg-turbo source assets, and the tag source archive. Source directions must appear next to the downloadable binary assets and releases/tags must remain immutable while a supported AutoShow revision references them.
+
+#### Approved SBOM and Package Inventories
+
+The SPDX 2.3 package inventory records exact independently downloaded producer inputs rather than inventing separate download identities for components already contained in the checksum-pinned MuPDF source archive:
+
+| Tool Package | SPDX Source Packages | Declared Licenses |
+|---|---|---|
+| MuPDF | `mupdf` 1.27.2 at its exact URL and SHA-256 | `AGPL-3.0-or-later` |
+| qpdf | `qpdf` 12.3.2 and `libjpeg-turbo` 3.2.0 at their exact URLs and SHA-256 values | `Apache-2.0`; `IJG AND BSD-3-Clause` |
+
+The SBOM also records the exact executable path and SHA-256. The clean verifier reconstructs the complete expected SPDX document from the closed payload manifest and rejects any field or inventory drift. MuPDF's bundled component and resource obligations are captured by the exact complete source asset and the consolidated notice inputs above; they may not be removed merely because the top-level SPDX input inventory has one package.
+
+Each unsigned or final executable ZIP has one top-level tool directory and exactly six regular files: the executable, its embedded payload manifest, and the four tool-specific approved notice files. No headers, static libraries, build trees, alternate executables, or unreviewed documentation may enter the archive. The outer verification/release manifest must repeat the exact component approval references, and both the outer and embedded references must match the closed repository policy.
+
+#### Sign-off and Change Control
+
+`github:ajcwebdev/repository-owner` approves the repository, packaging, retention, source-availability, and release-boundary obligations recorded here. `github:ajcwebdev/project-compliance-owner` approves the exact MuPDF, qpdf, and libjpeg-turbo redistribution and notice plans recorded here. MuPDF publication remains conditioned on satisfying this record byte-for-byte; the approval is void for any other version, source digest, recipe, linked dependency, package path, SPDX inventory, source reference, release revision, or reviewer identity.
+
+Phase 5 does not authorize signing, notarization, release creation, publication, or production metadata activation. Phase 6 remains the first phase allowed to introduce protected signing and draft-publication controls.
+
 Phase 6 closure. Ready pull request [#8](https://github.com/ajcwebdev/autoshow-cli/pull/8) briefly placed a manual protected workflow on `main` at merge commit `a3429b7d6612ee7da55ecac713c9a3cf42fcb7a6`, but no credential was provisioned and no protected job or release was run. The project then chose the Phase 5 safe-stop boundary: remove the publication machinery and make source-only operation final. Repository release immutability remains enabled as a harmless general protection, while the empty release environment and both toolchain workflows are gone. The local contracts assert that neither workflow can silently return. This closes the ADR without weakening signing requirements for distributed executables: AutoShow simply does not distribute them.
 
 > Correction (2026-08-07): two things this ADR describes as shipped no longer exist, both retired by later decisions rather than by this one being reversed.
 >
-> - **OCRmyPDF is gone.** [ADR-009](ADR-009-unify-ocr-extraction-architecture-and-reliability-guardrails.md) chose Tesseract as the only local OCR engine, on the recorded finding that Tesseract was the fastest and highest-mean local engine while avoiding OCRmyPDF's dependency and maintenance cost. Every mention of OCRmyPDF above — in the local-lite tool set, the Homebrew paths this ADR removed, the managed macOS set, the packaging risks, and the `ocr-local/ocrmypdf/ocrmypdf.ts` reference below — is history. Managed Ghostscript went with it; `qpdf` is still managed.
+> - **OCRmyPDF is gone.** [ADR-009](ADR-009-extract-execution-and-artifact-contracts.md) chose Tesseract as the only local OCR engine, on the recorded finding that Tesseract was the fastest and highest-mean local engine while avoiding OCRmyPDF's dependency and maintenance cost. Every mention of OCRmyPDF above — in the local-lite tool set, the Homebrew paths this ADR removed, the managed macOS set, the packaging risks, and the `ocr-local/ocrmypdf/ocrmypdf.ts` reference below — is history. Managed Ghostscript went with it; `qpdf` is still managed.
 > - **`AUTOSHOW_BIN_DIR` is no longer a resolver input.** The precedence in `resolveRuntimeToolInfo` is unchanged in shape — explicit override, then managed artifact under `runtime/`, then `PATH` for tools AutoShow does not own — but its first tier is now fed by the global `--bin-dir` flag only. [ADR-005](ADR-005-reduce-environment-variable-surface-area.md) introduced `AUTOSHOW_BIN_DIR` in its pass 3 as the consolidation of six per-tool `AUTOSHOW_*_BIN` vars; production stopped reading it when the flag replaced it. The name survives in `test/test-utils/test-helpers.ts` as a harness convention only, and is translated into `--bin-dir` before the child process sees it. Read "`--bin-dir`/`AUTOSHOW_BIN_DIR`" above as "`--bin-dir`".
 
 ## Rationale
@@ -170,6 +316,14 @@ MuPDF/qpdf source-only conclusion:
 - A static, native-crypto qpdf recipe removes accidental Homebrew and OpenSSL runtime dependencies and passed a local functional proof. Reusing that recipe for producer CI and local fallback prevents the two paths from drifting into different products.
 - Unsigned AutoShow-built executables are not an acceptable substitute. Keeping source builds avoids weakening the trust contract while preserving exact pins, provenance, atomic promotion, and offline health verification.
 
+Setup acquisition, reporting, and ACSM provisioning:
+
+- A stall timeout is correct for both small and multi-gigabyte assets; a flat total-transfer deadline always embeds a bandwidth assumption. Resumable disk streaming makes retries useful and bounds memory, while hashing the completed file composes cleanly with resumed transfers.
+- Admission belongs at the shared byte-moving resource, not at whole task boundaries. Network and CPU experiments are retained because they show why the accepted three-transfer budget and ungated compile topology are different decisions.
+- The exit status must follow the same verdict as the human summary, and doctor must inspect the artifact or prerequisite that execution actually uses rather than an easy version or marker proxy.
+- The Calibre plugin is already selected by the ingestion policy and emits exactly the EPUB/PDF forms the pipeline accepts. Provisioning its pinned external scripts and managed interpreter beside Calibre keeps setup coherent without making extraction own installer paths or sensitive activation state.
+- The historical decision to retain `runtime/bin/whisper-coreml-env` avoided repeated multi-minute Torch installation while CoreML conversion existed; its later retirement makes that environment reclaimable rather than persistent. Optional `config/deps.json` remains a supported typed metadata override. HuggingFace retains its separate 120-second per-file budget/classifier while sharing the global transfer-admission gate.
+
 ## Consequences
 
 Positive outcomes:
@@ -185,6 +339,11 @@ Positive outcomes:
 - The locally observed base sizes are framed as base-image inputs to the decision, not as promises about final build size.
 - Managed manifests make the installed source tool's target, version, and integrity inspectable offline.
 - The qpdf fallback stops depending on absolute Homebrew library paths.
+- Large downloads survive slow links and interruptions without whole-body buffering or byte-zero retries, and pinned model integrity fails closed.
+- Setup summaries, process exits, and offline doctor checks agree on readiness; qpdf, current local model assets, and ACSM authorization are checked at their real use boundaries, while retired CoreML artifacts are identified for reclamation rather than provisioned.
+- Warm setup reuses healthy llama assets without stopping a llama server the user may already be running.
+- Disposable build/conversion inputs are reclaimed, intentional caches remain, and performance artifacts make cold, post-install, and steady-state behavior auditable.
+- The selected ACSM plugin runtime is one setup command away while lawful authorization and sensitive activation state remain explicitly user-controlled.
 
 Negative outcomes:
 
@@ -198,6 +357,9 @@ Negative outcomes:
 - Heavyweight local engines, model weights, Defuddle, provider credentials, registry publishing, and Docker CI remain out of scope.
 - Host bind-mounted `output/` and `runtime/` directories may need writable ownership or a `--user "$(id -u):$(id -g)"` run option on Linux hosts.
 - The Phase 3–5 prebuilt research remains historical evidence and local contract coverage, but no production candidate, URL, checksum pin, or release lifecycle is maintained.
+- Resumable downloads maintain `.part` and `.part.json` state; completed-file checksum verification adds one full read, roughly 1–2 seconds for a 1.5 GB model on the measured NVMe host.
+- Setup now exits non-zero for partial installs that older automation may have accepted, and upstream same-name model republishing becomes a visible checksum failure.
+- The setup authority maintains the pinned GPLv3 ACSM plugin, managed Python environment, wrappers, resolver, and readiness checks; fulfillment can still depend on Adobe/distributor availability and user authorization.
 
 ## Trade-offs
 
@@ -214,12 +376,19 @@ Negative outcomes:
 | Hermetic static qpdf runtime with native crypto | Add and maintain a pinned libjpeg-turbo source input for qpdf builds |
 | Offline installed-file provenance and integrity checks | Pay a small doctor/setup hashing cost and maintain a versioned manifest schema |
 | Do not distribute executables without the full Apple trust chain | Give up project-hosted macOS prebuilts unless a future ADR accepts their operational cost |
+| Transfer-size-independent, resumable, checksum-verified downloads | Maintain partial-file metadata, stall/total profiles, and a completed-file hash pass |
+| Truthful summary, exit code, doctor, progress, and disk reporting | Existing partial installs become explicit failures and setup owns more health probes |
+| Bounded transfer concurrency with measured ungated compile topology | Preserve two resource-specific scheduling rules and their evidence |
+| One setup-managed ACSM runtime behind ADR-001's stable interface | Maintain external plugin provenance and keep sensitive authorization state out of project artifacts |
 
 ## Keep (with rationale)
 
 - The host `bun autoshow setup` path remains the supported route for macOS and for heavy local engines such as whisper.cpp, llama.cpp, Reverb, and Kitten TTS. The Docker image is additive, not a replacement for host setup — this is the seam that keeps both halves of this record coherent.
 - Heavy local engines and model weights remain out of scope for the first end-user image. They would materially change build time, image size, and update policy.
 - A run-to-completion CLI image still should not expose ports, define an HTTP `HEALTHCHECK`, or add web-app build arguments. Those sibling-image conventions do not apply to this CLI.
+- Retired Whisper CoreML environments and model artifacts are reclaimable and are no longer provisioned or recorded; the earlier 654 MB cache-retention decision applied only while conversion remained active.
+- `config/deps.json` remains an optional supported override merged over defaults rather than dead configuration.
+- HuggingFace downloads keep their own 120-second per-file budget and classifier but participate in shared transfer admission.
 
 ## Retired macOS Prebuilt Distribution Contract (Historical)
 
@@ -275,7 +444,7 @@ An immutable tool release is retained indefinitely while any supported AutoShow 
 
 ### License, signing, notarization, and quarantine gates
 
-MuPDF is AGPL-3.0-or-later or commercially licensed. Phase 5 approved the exact `r1` subprocess/distribution boundary, corresponding-source asset, bundled-code/resource notice inventory, AutoShow release-tag source archive, AGPL section 6(d) same-release network-source method, mandatory user notice, and no-written-offer decision in [the recorded distribution review](ADR-004-phase-5-distribution-review.md). Publication must match that policy exactly. If a future change no longer fits the approved aggregate or source-conveyance boundary, AutoShow must obtain an appropriate commercial license or keep the affected MuPDF prebuilt source-only and return to this ADR; CI may not sign or publish on an assumption of compliance.
+MuPDF is AGPL-3.0-or-later or commercially licensed. Phase 5 approved the exact `r1` subprocess/distribution boundary, corresponding-source asset, bundled-code/resource notice inventory, AutoShow release-tag source archive, AGPL section 6(d) same-release network-source method, mandatory user notice, and no-written-offer decision in [the recorded distribution review](#phase-5-distribution-approval-record). Publication must match that policy exactly. If a future change no longer fits the approved aggregate or source-conveyance boundary, AutoShow must obtain an appropriate commercial license or keep the affected MuPDF prebuilt source-only and return to this ADR; CI may not sign or publish on an assumption of compliance.
 
 qpdf is Apache-2.0 licensed. Its archive includes qpdf's `LICENSE.txt` and `NOTICE.md`; because the accepted static build embeds libjpeg-turbo, it also includes libjpeg-turbo's license and source reference. The SPDX SBOM and third-party notice inventory are reviewed for each source-version or dependency change. Neither tool is promoted when the license inventory differs from the reviewed manifest.
 
@@ -298,7 +467,7 @@ Prebuilt URLs may enter default dependency metadata only when all of these gates
 3. MuPDF and qpdf/libjpeg-turbo redistribution reviews approve the exact release contents.
 4. Developer ID signing, notarization, quarantine/Gatekeeper, and protected-secret tests pass on both architectures.
 5. Installer tests cover prebuilt success, per-tool availability fallback, unsupported OS/architecture fallback, atomic rollback, and hard failure for every trust mismatch; doctor covers both distribution types and overrides without network access.
-6. On the same arm64 host and reset procedure used by ADR-015, three prebuilt cold runs improve the 175.181s median by at least the same predeclared 10% threshold, every run is healthy, no MuPDF/qpdf compile phase occurs, and the three-run steady-state warm median regresses by no more than 10% from 1.639s. The x64 path must pass clean cold/warm functional runs even though ADR-015 did not record an x64 timing baseline.
+6. On the same arm64 host and reset procedure used by the setup performance matrix above, three prebuilt cold runs improve the 175.181s median by at least the same predeclared 10% threshold, every run is healthy, no MuPDF/qpdf compile phase occurs, and the three-run steady-state warm median regresses by no more than 10% from 1.639s. The x64 path must pass clean cold/warm functional runs even though the setup performance record has no x64 timing baseline.
 
 The project retired this contract before running the six promotion gates. Source builds are the final active path. Any future prebuilt work, including FFmpeg, requires a new decision rather than resuming this sequence.
 
@@ -364,10 +533,15 @@ The original prebuilt investigation was divided into nine ordered phases with an
 
 This phase is not part of the retired prebuilt sequence and does not block the completed host/container decision. When maintainers have registry demand and final image-size/usage evidence, make one separate decision that either keeps local image builds as the supported boundary or accepts a named registry, retention policy, multi-architecture producer, provenance/signing contract, and CI verification. Do not add registry publishing as incidental work in a macOS toolchain change.
 
-## Follow-up Actions
+## Implementation Ledger
 
 | Action | Owner | Current State |
 |---|---|---|
+| Replace flat transfer deadlines and whole-body buffering with stall-aware resumable streaming and integrity checks | Setup/runtime maintainers | Complete — URL-bound partials, Range response handling, per-flow total budgets, checksums, size floors, and retry classification are implemented |
+| Make setup summary, final message, exit status, disk accounting, and offline doctor checks truthful | Setup/runtime maintainers | Complete — real readiness probes, structured timings, health verdict, cleanup, and user actions are implemented |
+| Bound setup transfers at the network leaves and aggregate quiet-task progress | Setup/runtime maintainers | Complete — capacity-three FIFO admission, one activity-aware heartbeat, and minute formatting are implemented |
+| Measure cache guards, failed document-chain concurrency, the transfer budget, and a controlled CPU admission candidate | Setup/runtime maintainers | Complete — the document split was reverted, the transfer gate retained, the 3.1% CPU candidate rejected, and the selected cold/warm baselines recorded |
+| Provision the pinned external ACSM plugin, managed Python environment, fulfillment/authorization wrappers, resolver, health guard, doctor check, and setup/help surface | Setup/runtime maintainers | Complete — `--step acsm` and the Calibre chain supply ADR-001's interface without persisting activation secrets |
 | Phase 1 — Make the qpdf source fallback hermetic without adding any prebuilt surface | Setup/runtime maintainers | Complete — exact pins, static libjpeg/native-crypto recipe, linkage rejection, source install, functional checks, and shared verification passed on arm64 macOS on 2026-08-13 |
 | Phase 2 — Add source-install provenance, atomic promotion, health-guard repair, and offline source doctor checks | Setup/runtime maintainers | Complete — closed version 1 source manifests, exact provenance and payload validation, staged atomic promotion with rollback, provenance-aware setup guards, truthful offline doctor labels, focused failure coverage, and real arm64 source installs passed on 2026-08-13 |
 | Phase 3 — Add the dormant typed prebuilt consumer, eligibility/fallback classifier, trust checks, and offline prebuilt doctor coverage with fixture-only candidate injection | Setup/runtime maintainers | Complete — typed closed manifests and candidate metadata, per-tool eligibility, visible availability fallback, fail-closed trust classification, safe staged ZIP consumption, actual architecture and signature checks, atomic rollback, and offline source/prebuilt/override doctor coverage passed 112 focused tests on 2026-08-13; production remains source-only with no configured candidate or URL |
@@ -375,10 +549,20 @@ This phase is not part of the retired prebuilt sequence and does not block the c
 | Phase 5 — Record exact MuPDF and qpdf/libjpeg-turbo redistribution, source, SBOM, and notice approvals | Repository owner and compliance reviewers | Complete — exact component approval references, source/linkage boundary, same-release source access, AutoShow tag-source URLs, SPDX input licenses, expanded MuPDF bundled-code/resource notices, exact six-file package inventories, no-written-offer decision, mandatory user notice, and reviewer-role identities are recorded and fail closed on drift; production remains source-only on 2026-08-13 |
 | Phase 6 — Close the prebuilt track without an Apple release program | Repository owner and release engineering | Complete — removed both toolchain workflows, signed/notarized producer and draft commands, protected contracts, and the empty release environment; no release or production candidate exists and source builds remain final |
 | Phases 7–9 — Publish, benchmark, and activate project-hosted macOS prebuilts | Release and setup maintainers | Withdrawn — canceled with the prebuilt track; any future proposal requires a new ADR |
-| Independent deferred phase — Decide whether the container image needs registry publication and, if accepted, define its own producer and distribution contract | Maintainers | Deferred — independent of and non-blocking for the completed host/container decision |
+
+## Follow-up Actions
+
+| Action | Owner | Current State |
+|---|---|---|
+| Decide whether the container image needs registry publication and, if accepted, define its producer, retention, provenance, signing, and CI contract | Maintainers | Deliberately deferred — independent of and non-blocking for the completed host/container decision |
 
 ## Test Plan
 
+- Setup acquisition contracts cover resumable Range requests, foreign-URL partial rejection, clean restart on `200`, discard on `416`, checksum and short-file failure, preservation on stalls, per-flow budgets, archive handling, and slot release before checksum verification.
+- Setup orchestration contracts cover the capacity-three transfer gate, failed-transfer slot release, one-line activity-aware heartbeat, minute formatting, the serial document/ACSM chain, the 10 MiB reclaimed-tree threshold, Kitten symlink-aware cache checks, real llama GGUF readiness, qpdf and ACSM doctor checks, legacy CoreML reclamation, final health exit behavior, and force-reset coverage for qpdf.
+- ACSM setup contracts cover the `acsm` step, inclusion from the Calibre chain, pinned plugin/runtime/wrapper generation, resolver precedence, idempotent readiness, separate authorization reporting, and omission/redaction of activation paths and account/key material. Fulfillment and conversion behavior remain covered under ADR-001.
+- The setup performance artifact contract covers its closed schema, monotonic structured phases, phase reconciliation, actual compile overlap, environment facts, local-only persistence, and exclusion of home paths, URLs, and credentials.
+- Historical full setup observations retained from the reliability passes are 307.4 seconds for the first corrected cold run, 326.4 seconds for the rejected document-chain split, and 330 seconds after transfer admission restored per-task behavior. The accepted controlled matrix supersedes those single-run comparisons with a 175.2-second cold median, 11.2-second post-install cold-cache rerun, and 1.639-second steady-state warm median; the rejected capacity-one CPU gate measured 169.8 seconds.
 - Decision evidence completed on 2026-08-13: inspected the exact MuPDF 1.27.2 and qpdf 12.3.2 upstream release assets; verified their pinned source archives; audited local Mach-O architecture, deployment target, signatures, sizes, and dynamic libraries; and confirmed the repository is public with zero releases and zero Actions workflows.
 - qpdf portability proof completed on 2026-08-13 in a temporary directory: verified libjpeg-turbo 3.2.0 by SHA-256, built arm64 qpdf 12.3.2 static with native crypto and macOS 15.0 minimum, confirmed system-only dynamic dependencies, and passed version, PDF validation, AES-256 encryption, and linearization commands. No repository runtime artifact was replaced.
 - Phase 1 implementation verification completed on 2026-08-13: the metadata and source-recipe contract tests passed; a normal source-only setup replaced the old dynamic qpdf install; the resulting thin arm64 qpdf 12.3.2 recorded a host-compatible macOS 26.0 deployment target and only the three allowed `/usr/lib` dependencies; PDF validation, AES-256 encrypt/check/decrypt, linearization, and linearization validation passed; and a normal rerun reused the result without rebuilding.
@@ -402,8 +586,17 @@ This phase is not part of the retired prebuilt sequence and does not block the c
 ## References
 
 - Related ADR: [ADR-005](ADR-005-reduce-environment-variable-surface-area.md)
-- Performance escalation and measured source-build evidence: [ADR-015](ADR-015-make-setup-downloads-resumable-and-setup-reporting-truthful.md)
+- Error, retry, and diagnostic vocabulary: [ADR-006](ADR-006-unify-error-handling-vocabulary.md)
+- Ingestion and ACSM fulfillment-policy boundary: [ADR-001](ADR-001-source-ingestion-and-normalization.md)
+- Setup audit that produced the acquisition/reporting decision: `docs/reports/setup-command-audit.md`
+- ACSM support trade study: `docs/reports/acsm-support-report.md`
+- Calibre plugin notes: `docs/reports/calibre-acsm-plugin-docs.md`
 - Runtime tool resolution: `src/utils/runtime-paths.ts`
+- Setup download and transfer admission: `src/cli/commands/setup-and-utilities/setup/setup-download/download.ts`, `src/cli/commands/setup-and-utilities/setup/setup-download/download-admission.ts`
+- Setup progress, performance, summary, and doctor: `src/cli/commands/setup-and-utilities/setup/setup-heartbeat.ts`, `src/cli/commands/setup-and-utilities/setup/setup-performance.ts`, `src/cli/commands/setup-and-utilities/setup/run-complete-setup.ts`, `src/cli/commands/setup-and-utilities/setup/run-doctor.ts`
+- ACSM plugin provisioning and wrappers: `src/cli/commands/setup-and-utilities/setup/setup-download/dl-document/acsm.ts`
+- Shared setup/generation resource gate: `src/utils/resource-gate.ts`
+- Whisper model integrity and llama cache readiness: `src/cli/commands/process-steps/step-2-extract/step-2-stt/stt-local/whisper/whisper-model-integrity.ts`, `src/cli/commands/process-steps/step-3-write/write-local/llama/llama-model-cache.ts`
 - Current macOS FFmpeg and yt-dlp setup: `src/cli/commands/setup-and-utilities/setup/setup-download/dl-audio/audio.ts`
 - Current macOS MuPDF setup: `src/cli/commands/setup-and-utilities/setup/setup-download/dl-document/document.ts`
 - Current macOS Calibre setup: `src/cli/commands/setup-and-utilities/setup/setup-download/dl-document/calibre.ts`
@@ -419,7 +612,7 @@ This phase is not part of the retired prebuilt sequence and does not block the c
 - Reusable exact-pin producer and source-fallback commands: `src/tools/macos-toolchain-producer.ts`
 - Phase 4 producer contracts: `test/test-cases/validation/setup/prebuilt-producer-contracts.test.ts`
 - Closed Phase 5 distribution policy and exact notice/source/SBOM/reviewer inventories: `src/cli/commands/setup-and-utilities/setup/setup-download/managed-toolchain-distribution-policy.ts`
-- Phase 5 redistribution approval record: [ADR-004 Phase 5 macOS Toolchain Distribution Review](ADR-004-phase-5-distribution-review.md)
+- Phase 5 redistribution approval record: [Phase 5 Distribution Approval Record](#phase-5-distribution-approval-record)
 - Shared approved notice writer and SPDX generator used by local unsigned research packages: `src/cli/commands/setup-and-utilities/setup/setup-download/managed-toolchain-package.ts`
 - Repository-owned producer PDF fixture: `test/fixtures/setup/managed-toolchain-smoke.pdf`
 - Docker user documentation: `docs/docker.md`

@@ -70,6 +70,12 @@ const runCommand = defineCliCommand({
       type: [String] as [StringConstructor],
       default: [] as string[]
     },
+    prompt: {
+      description: 'Adjacent prompt names',
+      type: [String] as [StringConstructor],
+      default: [] as string[],
+      consumeAdjacentValues: true
+    },
     'long-name': {
       description: 'Dashed flag',
       type: String
@@ -200,6 +206,41 @@ describe('native CLI parser contracts', () => {
     expect(parsed.flags['name']).toBe('before')
     expect(parsed.rawParsed.doubleDash).toEqual(['--name', 'after', '--unknown-after-separator'])
     expect(parsed.rawParsed.unknown).toEqual({})
+  })
+
+  test('consumes adjacent values only for opted-in repeatable flags', () => {
+    const parsed = parseNativeCli([
+      'run',
+      'input.txt',
+      '--prompt',
+      'shortSummary',
+      'longSummary',
+      '--prompt=chapterTitles',
+      '--prompt',
+      'keyPoints'
+    ], commands, globalFlags)
+
+    expect(parsed.parameters.input).toBe('input.txt')
+    expect(parsed.flags['prompt']).toEqual(['shortSummary', 'longSummary', 'chapterTitles', 'keyPoints'])
+    expect(parsed.rawParsed.flagOccurrences.filter((occurrence) => occurrence.name === 'prompt')).toEqual([
+      { name: 'prompt', raw: '--prompt', value: 'shortSummary', known: true },
+      { name: 'prompt', raw: '--prompt=chapterTitles', value: 'chapterTitles', known: true },
+      { name: 'prompt', raw: '--prompt', value: 'keyPoints', known: true }
+    ])
+  })
+
+  test('requires the positional input before a whitespace-form multi-value flag', () => {
+    expect(() => parseNativeCli([
+      'run',
+      '--prompt',
+      'shortSummary',
+      'longSummary',
+      'input.txt'
+    ], commands, globalFlags)).toThrow('Missing required parameter: input')
+
+    const equalsForm = parseNativeCli(['run', '--prompt=shortSummary', 'input.txt'], commands, globalFlags)
+    expect(equalsForm.parameters.input).toBe('input.txt')
+    expect(equalsForm.flags['prompt']).toEqual(['shortSummary'])
   })
 
   test('tracks unknown flags and missing string values', () => {

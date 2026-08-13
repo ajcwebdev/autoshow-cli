@@ -66,7 +66,7 @@ The music setup step checks hosted music API readiness and local lyric-video pre
 
 ## Shared Music Options
 
-The standalone `music` command drops the `music-` prefix these options carry everywhere else: `--duration` here is `--music-duration` on `write`, `config`, and `resume`. One resume flag set serves image, video, music, and OCR, where the short names would collide, so [ADR-012](../../../adr/ADR-012-add-price-preflight-to-resume.md) keeps the prefixes on those surfaces.
+The standalone `music` command drops the `music-` prefix these options carry everywhere else: `--duration` here is `--music-duration` on `write`, `config`, and `resume`. One resume flag set serves image, video, music, and OCR, where the short names would collide, so [ADR-002](../../../adr/ADR-002-pipeline-state-resume-and-dry-run-planning.md) keeps the prefixes on those surfaces.
 
 Hosted generation flags:
 

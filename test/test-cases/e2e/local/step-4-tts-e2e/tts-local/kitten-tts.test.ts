@@ -4,31 +4,51 @@ import {
   fileExists,
   findLatestDirectory,
   cleanupTestOutput,
-  isRecord,
-  toRecordArray,
   STABLE_TTS_MD_PATH,
   STABLE_TTS_MD_TITLE,
 } from '../../../../../test-utils/test-helpers'
 import { budgetedTest, E2E_TEST_TIMEOUT_MS } from '../../../../../test-utils/budget'
-import { readCanonicalRecord } from '../../../../../test-utils/manifest-helpers'
-import { requireConfiguredEnvVar } from '../../../../../test-utils/service-test-kit'
+import { readCanonicalManifest, readCanonicalRecord } from '../../../../../test-utils/manifest-helpers'
+import { isKittenTtsSetupReady } from '~/cli/commands/process-steps/step-4-tts/tts-local/kitten/kitten-tts-targets'
+import { hasCachedKittenTtsModel } from '~/cli/commands/process-steps/step-4-tts/tts-local/kitten/kitten-tts-model-cache'
+import { SUPPORTED_KITTEN_TTS_MODELS } from '~/cli/commands/setup-and-utilities/models/setup-model-options'
+import type { CanonicalAudioProviderProjection } from '~/types'
+
+const kittenModelCases = [
+  { model: 'kitten-tts-micro', speaker: 'Bella', budgetKey: 'tts-kitten-micro' },
+  { model: 'kitten-tts-mini', speaker: 'Luna', budgetKey: 'tts-kitten-mini' },
+  { model: 'kitten-tts-nano', speaker: 'Rosie', budgetKey: 'tts-kitten-nano' },
+  { model: 'kitten-tts-nano-0.8-int8', speaker: 'Hugo', budgetKey: 'tts-kitten-nano-0.8-int8' },
+] as const
+
+const ensureKittenTtsTestSetup = async (): Promise<void> => {
+  const runtimeReady = await isKittenTtsSetupReady()
+  const modelReadiness = await Promise.all(SUPPORTED_KITTEN_TTS_MODELS.map(async (model) =>
+    await hasCachedKittenTtsModel(model)
+  ))
+  if (runtimeReady && modelReadiness.every(Boolean)) return
+
+  const setup = await runCommand(
+    ['src/cli/create-cli.ts', 'setup', '--step', 'tts'],
+    { testName: 'prepare Kitten TTS local E2E prerequisites' }
+  )
+  expect(setup.exitCode).toBe(0)
+  expect(await isKittenTtsSetupReady()).toBe(true)
+  expect(await Promise.all(SUPPORTED_KITTEN_TTS_MODELS.map(async (model) =>
+    await hasCachedKittenTtsModel(model)
+  ))).toEqual(SUPPORTED_KITTEN_TTS_MODELS.map(() => true))
+}
 
 describe('kitten-tts', () => {
   describe('tts command', () => {
     beforeAll(async () => {
+      await ensureKittenTtsTestSetup()
       await cleanupTestOutput(STABLE_TTS_MD_TITLE)
-    })
+    }, E2E_TEST_TIMEOUT_MS)
 
     afterAll(async () => {
       await cleanupTestOutput(STABLE_TTS_MD_TITLE)
     })
-
-    const kittenModelCases = [
-      { model: 'kitten-tts-micro', speaker: 'Bella', budgetKey: 'tts-kitten-micro' },
-      { model: 'kitten-tts-mini', speaker: 'Luna', budgetKey: 'tts-kitten-mini' },
-      { model: 'kitten-tts-nano', speaker: 'Rosie', budgetKey: 'tts-kitten-nano' },
-      { model: 'kitten-tts-nano-0.8-int8', speaker: 'Hugo', budgetKey: 'tts-kitten-nano-0.8-int8' },
-    ] as const
 
     for (const kittenModelCase of kittenModelCases) {
       budgetedTest(kittenModelCase.budgetKey, `${kittenModelCase.model} with --kitten-voice ${kittenModelCase.speaker} generates speech.wav`, async () => {
@@ -72,54 +92,7 @@ describe('kitten-tts', () => {
       }, E2E_TEST_TIMEOUT_MS)
     }
 
-    budgetedTest(['tts-kitten-mini', 'tts-openai-gpt-4o-mini-tts-2025-12-15'], 'multi-provider run succeeds when one local and one API target are both available', async () => {
-      await requireConfiguredEnvVar('OPENAI_API_KEY', 'OPENAI_API_KEY is required for multi-provider TTS success coverage')
-
-      await cleanupTestOutput(STABLE_TTS_MD_TITLE)
-
-      const result = await runCommand([
-        'src/cli/create-cli.ts',
-        'tts',
-        STABLE_TTS_MD_PATH,
-        '--provider',
-        'kitten=kitten-tts-mini',
-        '--tts-voice',
-        'kitten=Luna',
-        '--provider',
-        'openai=gpt-4o-mini-tts-2025-12-15'
-      ])
-
-      expect(result.exitCode).toBe(0)
-
-      const outputDir = result.outputDir ?? await findLatestDirectory(STABLE_TTS_MD_TITLE, result.outputRoot)
-      expect(outputDir).not.toBeNull()
-
-      if (outputDir) {
-        expect(await fileExists(`${outputDir}/speech-kitten-kitten-tts-mini.wav`)).toBe(true)
-        expect(await fileExists(`${outputDir}/speech-openai-gpt-4o-mini-tts-2025-12-15.wav`)).toBe(true)
-
-        const metadata = await readCanonicalRecord(outputDir)
-        const ttsEntries = toRecordArray(metadata['tts'])
-        expect(ttsEntries).toHaveLength(2)
-        expect(ttsEntries[0]?.['ttsService']).toBe('kitten')
-        expect(ttsEntries[0]?.['ttsModel']).toBe('kitten-tts-mini')
-        expect(ttsEntries[0]?.['audioFileName']).toBe('speech-kitten-kitten-tts-mini.wav')
-        expect(ttsEntries[1]?.['ttsService']).toBe('openai')
-        expect(ttsEntries[1]?.['ttsModel']).toBe('gpt-4o-mini-tts-2025-12-15')
-        expect(ttsEntries[1]?.['audioFileName']).toBe('speech-openai-gpt-4o-mini-tts-2025-12-15.wav')
-
-        const cost = isRecord(metadata['cost']) ? metadata['cost'] : null
-        const actualCost = cost && isRecord(cost['actual']) ? cost['actual'] : null
-        const timing = isRecord(metadata['timing']) ? metadata['timing'] : null
-        const actualTiming = timing && isRecord(timing['actual']) ? timing['actual'] : null
-        const actualCostSteps = actualCost ? toRecordArray(actualCost['steps']) : []
-        const actualTimingSteps = actualTiming ? toRecordArray(actualTiming['steps']) : []
-        expect(actualCostSteps.filter((step) => step['step'] === 'tts')).toHaveLength(2)
-        expect(actualTimingSteps.filter((step) => step['step'] === 'tts')).toHaveLength(2)
-      }
-    }, E2E_TEST_TIMEOUT_MS)
-
-    budgetedTest('tts-kitten-mini', 'multi-provider run stays successful when one selected target fails', async () => {
+    budgetedTest('tts-kitten-mini', 'missing hosted credentials block the ready Kitten peer before dispatch', async () => {
       await cleanupTestOutput(STABLE_TTS_MD_TITLE)
 
       const result = await runCommand(
@@ -139,24 +112,47 @@ describe('kitten-tts', () => {
         }
       )
 
-      expect(result.exitCode).toBe(0)
+      expect(result.exitCode).not.toBe(0)
+      expect(result.stderr + result.stdout).toContain('TTS execution readiness failed before synthesis')
+      expect(result.stderr + result.stdout).toContain('OPENAI_API_KEY environment variable is required')
 
       const outputDir = result.outputDir ?? await findLatestDirectory(STABLE_TTS_MD_TITLE, result.outputRoot)
       expect(outputDir).not.toBeNull()
 
       if (outputDir) {
-        expect(await fileExists(`${outputDir}/speech-kitten-kitten-tts-mini.wav`)).toBe(true)
+        expect(await fileExists(`${outputDir}/speech.wav`)).toBe(false)
+        expect(await fileExists(`${outputDir}/speech-kitten-kitten-tts-mini.wav`)).toBe(false)
         expect(await fileExists(`${outputDir}/speech-openai-gpt-4o-mini-tts-2025-12-15.wav`)).toBe(false)
 
-        const metadata = await readCanonicalRecord(outputDir)
-        const ttsEntries = toRecordArray(metadata['tts'])
-        expect(ttsEntries).toHaveLength(1)
-        expect(ttsEntries[0]?.['ttsService']).toBe('kitten')
-        expect(ttsEntries[0]?.['audioFileName']).toBe('speech-kitten-kitten-tts-mini.wav')
+        const manifest = await readCanonicalManifest(outputDir)
+        const kitten = manifest.items[0]?.providers.find((provider) => provider.service === 'kitten')
+        const openai = manifest.items[0]?.providers.find((provider) => provider.service === 'openai')
+        const kittenProjection = kitten?.result?.['ttsAudio'] as CanonicalAudioProviderProjection | undefined
+        const openaiProjection = openai?.result?.['ttsAudio'] as CanonicalAudioProviderProjection | undefined
+        expect(kitten).toMatchObject({ status: 'failed', attempts: 0 })
+        expect(openai).toMatchObject({ status: 'failed', attempts: 0 })
+        expect(kittenProjection?.readinessAttempts[0]).toMatchObject({
+          status: 'ready',
+          admissionDisposition: 'peer-blocked',
+          error: {
+            code: 'peer-readiness-failed',
+            blockedReason: 'dependency-readiness-failed'
+          }
+        })
+        expect(openaiProjection?.readinessAttempts[0]).toMatchObject({
+          status: 'blocked',
+          admissionDisposition: 'self-blocked',
+          error: {
+            code: 'provider-credential-not-configured',
+            blockedReason: 'provider-credential-not-configured'
+          }
+        })
       }
     }, E2E_TEST_TIMEOUT_MS)
 
-    test('multi-provider run fails when every selected target fails', async () => {
+    test('missing credentials block every hosted target before dispatch', async () => {
+      await cleanupTestOutput(STABLE_TTS_MD_TITLE)
+
       const result = await runCommand(
         [
           'src/cli/create-cli.ts',
@@ -176,7 +172,32 @@ describe('kitten-tts', () => {
       )
 
       expect(result.exitCode).not.toBe(0)
-      expect(result.stderr + result.stdout).toContain('No TTS outputs were generated')
+      expect(result.stderr + result.stdout).toContain('TTS execution readiness failed before synthesis')
+      expect(result.stderr + result.stdout).toContain('OPENAI_API_KEY environment variable is required')
+      expect(result.stderr + result.stdout).toContain('GEMINI_API_KEY environment variable is required')
+
+      const outputDir = result.outputDir ?? await findLatestDirectory(STABLE_TTS_MD_TITLE, result.outputRoot)
+      expect(outputDir).not.toBeNull()
+      if (outputDir) {
+        expect(await fileExists(`${outputDir}/speech.wav`)).toBe(false)
+        expect(await fileExists(`${outputDir}/speech-openai-gpt-4o-mini-tts-2025-12-15.wav`)).toBe(false)
+        expect(await fileExists(`${outputDir}/speech-gemini-gemini-3.1-flash-tts-preview.wav`)).toBe(false)
+
+        const manifest = await readCanonicalManifest(outputDir)
+        expect(manifest.items[0]?.providers).toHaveLength(2)
+        for (const provider of manifest.items[0]?.providers ?? []) {
+          const projection = provider.result?.['ttsAudio'] as CanonicalAudioProviderProjection | undefined
+          expect(provider).toMatchObject({ status: 'failed', attempts: 0 })
+          expect(projection?.readinessAttempts[0]).toMatchObject({
+            status: 'blocked',
+            admissionDisposition: 'self-blocked',
+            error: {
+              code: 'provider-credential-not-configured',
+              blockedReason: 'provider-credential-not-configured'
+            }
+          })
+        }
+      }
     })
   })
 

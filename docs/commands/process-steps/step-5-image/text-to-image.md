@@ -54,7 +54,7 @@ bun autoshow image <prompt> [flags]
 
 ## Shared Image Options
 
-The standalone `image` command drops the `image-` prefix these options carry everywhere else: `--size` here is `--image-size` on `write`, `config`, and `resume`. One resume flag set serves image, video, music, and OCR, where the short names would collide, so [ADR-012](../../../adr/ADR-012-add-price-preflight-to-resume.md) keeps the prefixes on those surfaces. Rejections from this command are reported in this command's spellings.
+The standalone `image` command drops the `image-` prefix these options carry everywhere else: `--size` here is `--image-size` on `write`, `config`, and `resume`. One resume flag set serves image, video, music, and OCR, where the short names would collide, so [ADR-002](../../../adr/ADR-002-pipeline-state-resume-and-dry-run-planning.md) keeps the prefixes on those surfaces. Rejections from this command are reported in this command's spellings.
 
 | Flag | Description |
 |------|-------------|

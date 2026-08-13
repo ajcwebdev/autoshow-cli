@@ -122,7 +122,7 @@ Negative outcomes:
 
 > Correction (2026-08-07): two of these verification steps are no longer runnable as written, because the mechanisms they exercise were retired after this ADR landed. They are kept unedited as the record of what was checked at the time.
 >
-> - **PaddleOCR no longer exists.** [ADR-009](ADR-009-unify-ocr-extraction-architecture-and-reliability-guardrails.md) made Tesseract the only local OCR engine and dropped both PaddleOCR and OCRmyPDF. Step 4's "PaddleOCR runs a non-default max-side via argv" has nothing to run, and the pass-2 rationale's TS→Python argv contract no longer has a Python side. The *decision* — argv over env for subprocess tuning — is unaffected.
+> - **PaddleOCR no longer exists.** [ADR-009](ADR-009-extract-execution-and-artifact-contracts.md) made Tesseract the only local OCR engine and dropped both PaddleOCR and OCRmyPDF. Step 4's "PaddleOCR runs a non-default max-side via argv" has nothing to run, and the pass-2 rationale's TS→Python argv contract no longer has a Python side. The *decision* — argv over env for subprocess tuning — is unaffected.
 > - **`AUTOSHOW_BIN_DIR` is no longer read by production.** Pass 3 consolidated six per-tool `AUTOSHOW_*_BIN` overrides into it; the global `--bin-dir` flag later replaced the env var entirely, so `resolveRuntimeToolInfo`'s override tier is flag-fed. Steps 3 and 4 hold if you read `AUTOSHOW_BIN_DIR` as `--bin-dir`. The name survives only in `test/test-utils/test-helpers.ts`, which translates it into `--bin-dir` for the child process — so the grep sweep in step 2 still returns zero production matches.
 
 ## References

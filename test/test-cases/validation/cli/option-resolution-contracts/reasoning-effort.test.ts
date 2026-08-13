@@ -32,7 +32,7 @@ const structuredSchema: ResolvedStructuredSchema = {
   }
 }
 
-describe('ADR-017 Reasoning Effort Resolution Contracts', () => {
+describe('ADR-010 Reasoning Effort Resolution Contracts', () => {
   describe('parseReasoningEffort', () => {
     it('returns undefined for undefined input', () => {
       expect(parseReasoningEffort(undefined)).toBeUndefined()

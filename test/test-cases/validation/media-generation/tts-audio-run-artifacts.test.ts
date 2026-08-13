@@ -41,12 +41,12 @@ describe('TTS Phase 0 audio-run artifacts', () => {
   })
 
   test('file source identity stores the canonical project locator and hashes exact bytes', async () => {
-    const inputPath = join(process.cwd(), 'docs/adr/ADR-020-add-character-voice-references-and-multi-speaker-script-to-audio.md')
+    const inputPath = join(process.cwd(), 'docs/adr/ADR-014-add-character-voice-references-and-multi-speaker-script-to-audio.md')
     const bytes = await readFile(inputPath)
     const identity = await createFileTtsSourceIdentity(inputPath, bytes)
     expect(identity.sourceLocator).toEqual({
       kind: 'file',
-      canonicalPath: 'docs/adr/ADR-020-add-character-voice-references-and-multi-speaker-script-to-audio.md'
+      canonicalPath: 'docs/adr/ADR-014-add-character-voice-references-and-multi-speaker-script-to-audio.md'
     })
     expect(identity.contentSha256).toBe(sha256Bytes(bytes))
 

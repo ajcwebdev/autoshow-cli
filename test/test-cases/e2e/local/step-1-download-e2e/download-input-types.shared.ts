@@ -1,6 +1,6 @@
 import { test, expect, beforeAll, afterAll } from 'bun:test'
 import { readdir, rm } from 'node:fs/promises'
-import { basename, dirname, join } from 'node:path'
+import { basename, dirname, join, resolve } from 'node:path'
 import { runCommand, fileExists, findLatestDirectory, cleanupTestOutput, OUTPUT_DIR } from '../../../../test-utils/test-helpers'
 import { readCanonicalItemRecords, readCanonicalSource, readCanonicalRecord } from '../../../../test-utils/manifest-helpers'
 import { PIPELINE_MANIFEST_FILE } from '~/cli/commands/process-steps/pipeline-manifest'
@@ -246,7 +246,7 @@ export const defineBatchCaseTest = (tc: DownloadE2eBatchCase): void => {
     }
     expect(normalizedInfoEntry).toMatchObject({
       ...rawMetadata,
-      outputDir: normalizeOutputDir(firstItemDir)
+      outputDir: normalizeOutputDir(resolve(firstItemDir))
     })
     const metadata = parseMetadata(await readCanonicalRecord(firstItemDir))
     expect(metadata.step1).toBeDefined()

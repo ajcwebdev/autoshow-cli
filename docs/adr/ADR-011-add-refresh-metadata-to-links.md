@@ -1,4 +1,4 @@
-# ADR-013: Add Refresh Metadata to Links
+# ADR-011: Add Refresh Metadata to Links
 
 ## Status
 

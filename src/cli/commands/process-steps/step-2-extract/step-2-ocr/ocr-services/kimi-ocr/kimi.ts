@@ -9,7 +9,7 @@ export const resolveKimiBaseUrl = (): string =>
 
 // Kimi K3 runs with always-on thinking, rejects the `thinking` field, and accepts named effort
 // through `reasoning_effort`. The K2.x line exposes only the binary `thinking` switch.
-// See docs/adr/ADR-011-refresh-current-hosted-llm-and-ocr-models.md.
+// See docs/adr/ADR-010-hosted-model-registry-lifecycle-and-capability-policy.md.
 export const acceptsKimiThinkingField = (model: string): boolean =>
   !/^kimi-k3(?:[.-]|$)/i.test(model)
 

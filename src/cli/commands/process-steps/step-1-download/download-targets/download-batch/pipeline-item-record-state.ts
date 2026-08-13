@@ -1,3 +1,4 @@
+import { resolve } from 'node:path'
 import { derivePipelineItemRecord, readManifest } from '~/cli/commands/process-steps/pipeline-manifest'
 import { InternalError } from '~/utils/error-handler'
 import { isRecord } from '~/utils/rest-client'
@@ -59,8 +60,8 @@ export const attachOutputDir = (
   outputDir: string
 ): PipelineItemRecord =>
   itemRecord
-    ? { ...itemRecord, outputDir }
-    : { outputDir }
+    ? { ...itemRecord, outputDir: resolve(outputDir) }
+    : { outputDir: resolve(outputDir) }
 
 export const getPipelineItemStatus = (
   record: PipelineItemRecord | null

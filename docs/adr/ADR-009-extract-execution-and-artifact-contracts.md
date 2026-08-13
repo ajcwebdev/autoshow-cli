@@ -1,4 +1,4 @@
-# ADR-009: Unify OCR Extraction Architecture and Reliability Guardrails
+# ADR-009: Define Extract Execution and Artifact Contracts
 
 ## Status
 
@@ -6,10 +6,17 @@
 - **Date Created:** 2026-07-11
 - **Date Updated:** 2026-08-13
 - **Verification Status:** Passed
+- **Supersession:** Retains the complete OCR architecture and reliability record, directly absorbs "Use Ordinal-First Chapter Artifact Filenames", and takes URL adapter, routing, response, normalization, and artifact ownership from the former mixed URL/discovery/persistence record. Source identity and normalization belong to ADR-001; pipeline work plans, canonical state, resume, and price dry runs belong to ADR-002.
 
 ## Context
 
+Step 2 owns domain execution after ADR-001 has classified and normalized a source and ADR-002 has supplied the work plan. Shared registries provide provider identity, but URL, OCR, and STT retain domain-specific adapters, retry and response policy, orchestration, and artifacts. Canonical provider progress belongs in ADR-002's manifest; raw responses and derived artifacts belong to the executing domain and cannot become resume authority.
+
+URL execution historically mixed identity, discovery, persistence, and runtime rules. This record narrows that concern: `article` is an explicit extract route with domain-owned adapters, retries, response handling, content normalization, and artifact writes under `step-2-url`; `x-space` is a separate explicit route with its own non-resumable behavior. Neither route is inferred from the other, the input family, or provider metadata.
+
 OCR extraction evolved through five implemented decisions: local-engine consolidation, input-type-oriented source layout, retry-aware hosted failures, adaptive hosted concurrency, and calibrated large-document throughput. Keeping those decisions as separate trade studies obscured the current architecture and repeated contracts that must remain consistent across failure handling, scheduling, estimates, usage reporting, and resume.
+
+OCR also had inconsistent public chapter paths. Native EPUB export started with logical order, such as `chapters/01-title.txt`, while PDF chapter detection started with the source page, such as `chapters/011-title.txt`. A shared artifact contract must sort by reading order while retaining the source locator and split-part behavior.
 
 Decision history: June 14 established Tesseract as the sole local engine and grouped input-specific code by ebook, image, PDF, and office/native source; July 11–12 established hosted reliability, scheduling, and calibration guardrails; July 16 confirmed that genuinely shared utilities should remain in `ocr-utils/`; July 23 consolidated those implemented decisions into this current-state record; August 13 completed explicit token-shape evidence, batch diagnostics, and source-ownership follow-up.
 
@@ -21,7 +28,24 @@ Decision history: June 14 established Tesseract as the sole local engine and gro
 | Keep five implemented OCR ADRs plus a separate follow-up record | Preserves every original trade study in the live sequence | Repeats overlapping contracts and splits current cost/diagnostic ownership from the architecture it governs | Retains at least 6 records for one subsystem |
 | Split local architecture from hosted reliability and pricing | Produces narrower records | Leaves cross-cutting orchestration, shared utilities, metadata, resume, and derived-report contracts duplicated | Requires at least 3 current-state records |
 
+### Chapter artifact naming
+
+| Option | Pros | Cons | Quantitative Notes |
+|---|---|---|---|
+| **Unified ordinal-first plus source-locator naming: `NN-PPP-title` / `NN-III-title`** | Sorts every chapter producer by logical order; preserves source traceability; provides one documented contract | Changes public artifact paths and requires docs/tests updates | Applies to the 2 current direct `chapters/` producers: native EPUB and PDF chapter detection |
+| PDF-only ordinal-first change while EPUB remains `NN-title` | Minimizes EPUB churn | Leaves two shapes and omits EPUB source location | Changes 1 producer |
+| Placeholder EPUB locator `NN-000-title` | Gives both formats the same token count | Uses a synthetic value users must ignore | Adds a false locator to every EPUB chapter |
+| Keep source-page-first PDF names | Avoids path churn | Preserves inconsistent first-token meaning and sorting | No implementation work |
+
 ## Decision
+
+### Extract domain ownership
+
+The shared Step 2 registries own provider identity, hosted/local grouping, configuration paths, shortcuts, provider specs, and resume-selectable target identity. Each extraction domain owns its execution adapters, retry and cleanup behavior, provider response handling, normalized domain output, and artifact writing.
+
+URL execution remains under `step-2-url`. `article` is a first-class route and is never inferred from `x-space`, input family, or provider metadata. X Spaces retain their separate route and explicit not-resumable behavior. URL adapters normalize article content and write domain artifacts, while provider progress and resume eligibility are recorded only in ADR-002's canonical manifest.
+
+### OCR architecture and reliability
 
 Use Tesseract as the only local OCR engine. Organize source-specific OCR code under ebook, image, PDF, and office/native input-type areas. Keep orchestration, hosted provider clients, and genuinely shared utilities—including the shared `ocr-utils/` directory—outside those input-specific areas.
 
@@ -37,6 +61,14 @@ Derive actionable OCR batch diagnostics from the final canonical manifest and ch
 
 Keep provider-neutral pricing primitives under `src/utils/pricing/`, command-wide pricing orchestration under `src/cli/commands/pricing-orchestration/`, extraction-specific estimate orchestration under `src/cli/commands/process-steps/step-2-extract/extract-pricing/`, and the Step 1 document-write prompt helper beside its sole consumer.
 
+### Chapter artifact filenames
+
+Every direct chapter producer writes `chapters/<ordinal>-<source-locator>-<slug>.txt`. PDF uses `pdfStartPage` as the source locator. EPUB uses the first original source/spine section index when available and otherwise the logical section index.
+
+Ordinal and split-part fields use dynamic width: two digits below 100 generated files and three digits at 100 or more. Source locators are padded to at least three digits and never truncated. Split files append `-part-NN` to the same base. Exact generated-path collisions receive deterministic disambiguation through the shared filename helper.
+
+The contract applies to native EPUB/ebook chapter files, PDF chapter-detection files, and split parts produced by `--length <n>`. It does not apply to legacy `chunks/`, routes that do not directly create chapter files, or already-generated output directories. Reruns recreate artifacts under the current names.
+
 ## Rationale
 
 - Tesseract was the fastest and highest-mean local engine in the recorded local comparison while avoiding OCRmyPDF and PaddleOCR dependency and maintenance costs.
@@ -47,26 +79,32 @@ Keep provider-neutral pricing primitives under `src/utils/pricing/`, command-wid
 - Explicit token components preserve pricing-tier semantics and prevent profile-derived usage from being multiplied a second time.
 - A derived batch report exposes repeated blockers and cost gaps without duplicating mutable child provider state.
 - Source placement follows dependency ownership: pure calculations remain reusable, while command and document orchestration remain above them.
+- Explicit URL routes preserve domain-specific runtime behavior without duplicating provider identity or canonical state.
+- Logical ordinal first makes EPUB and PDF chapter paths sort by reading order, while a real source locator preserves debugging traceability.
 
 ## Consequences
 
 Positive outcomes:
 
-- Local OCR has one setup, routing, and execution path.
+- URL article execution has one explicit domain owner, and X Spaces cannot be conflated with it during execution or resume.
+- Local OCR has one routing and execution path supplied by the toolchain that ADR-004 provisions.
 - Maintainers can find input-specific code by source type while shared concerns retain a shared home.
 - Hosted OCR preserves useful partial results, produces actionable resume guidance, and avoids known deterministic retry loops.
 - Large clean runs can use available throughput, while pressured lanes fall back conservatively.
 - Estimates and summaries explain wall time, gating targets, retry pressure, actual partial usage, and token-shape drift.
 - Actionable OCR batches emit one deterministic, sanitized blocker/cost diagnostic rollup; clean batches remain quiet.
 - Pricing dependencies point from command orchestration to pure utilities rather than from generic utilities into command implementations.
+- EPUB and PDF chapters share one public path shape that sorts by reading order and retains source position.
 
 Negative outcomes:
 
+- URL, OCR, and STT deliberately retain different execution structures even though identity and pipeline state are shared.
 - There is no non-Tesseract local fallback for difficult inputs.
 - Provider failure classifiers and profile schemas require ongoing maintenance as hosted APIs change.
 - Adaptive scheduling, fallback audit data, migration-tolerant profile readers, audit rules, and derived diagnostics add implementation and test surface.
 - Clean profiles can become stale as provider routing, limits, models, account tiers, or reasoning defaults change.
 - Historical token profiles without an effective reasoning policy remain usable as low-confidence estimates but cannot qualify registry promotion.
+- Scripts expecting older EPUB `NN-title` or PDF `PPP-title` chapter paths must be updated; existing outputs are not migrated.
 
 ## Trade-offs
 
@@ -112,6 +150,8 @@ Final write/document OCR batches and resumed OCR batches derive `ocr-batch-diagn
 
 The Step 1 prompt helper moved to `src/cli/commands/process-steps/step-1-download/download-targets/single/document-write-prompt.ts`. Pure token-cost, profile-selection, and projection logic moved to `src/utils/pricing/ocr-token-pricing.ts`; OCR page/model/profile orchestration moved to `src/cli/commands/process-steps/step-2-extract/extract-pricing/`; and command-aware aggregate, preflight, actual-cost, timing, and provider pricing orchestration moved from `src/utils/pricing/` to `src/cli/commands/pricing-orchestration/`. No retired-path compatibility re-export remains.
 
+Chapter filename construction is centralized in `chapter-artifact-filenames.ts` and used by the EPUB and PDF builders. Each producer preserves its existing slug cleanup and fallback behavior; the shared helper owns dynamic ordinal widths, source-locator padding, split suffixes, and collision handling. The shared OCR artifact writer only persists each supplied `TextArtifactFile.relativePath` and is not another naming authority. No other direct `chapters/` producer was found.
+
 ## API / Type Impact
 
 The follow-up preserves the extraction CLI surface and adds internal/profile/report contracts:
@@ -126,6 +166,8 @@ The follow-up preserves the extraction CLI surface and adds internal/profile/rep
 - Hosted OCR token profiles are stored as version 2 records keyed by effective reasoning policy; version 1 records migrate in memory as `unspecified` and cannot independently qualify a registry promotion.
 - `ocr-batch-diagnostics.json` is a versioned, regenerable projection of the final canonical batch manifest, not provider or resume authority.
 - `bun run audit:ocr-tokens -- --run-dir <path>` audits explicitly named local run directories; `--profile <path>` and `--all-token-providers` extend its explicit input scope, and the command never searches the home directory implicitly.
+- No new CLI flag or metadata schema is introduced by chapter naming; the public path shape is `NN-PPP-title` for PDF and `NN-III-title` for EPUB, with dynamic widths and split suffixes.
+- URL provider identity remains registry-owned, while URL response, normalized article, and artifact types remain under `step-2-url`.
 
 ## Completed Follow-up: Make Token Shape Explicit, Derive Batch Diagnostics, and Correct Ownership
 
@@ -164,6 +206,7 @@ The follow-up preserves the extraction CLI surface and adds internal/profile/rep
 | Action | Owner | Current State |
 |---|---|---|
 | Maintain provider error classifiers and billed-component normalizers as hosted response formats drift | OCR maintainers | Ongoing |
+| Keep every direct chapter producer on the shared ordinal/source-locator helper | Extract maintainers | Ongoing guardrail |
 
 ## Test Plan
 
@@ -171,14 +214,18 @@ The follow-up preserves the extraction CLI surface and adds internal/profile/rep
 - Use mocked/local tests for failure classification, redaction, provider-wide cancellation, fallback audit state, `blockedProviders`, and automatic versus explicit resume.
 - Test scheduler fairness, shared provider/API-key lanes, adaptive `auto` caps, clean-lane acceleration, retry-pressure backoff, explicit hard caps, and the global ceiling of `48`.
 - Test timing, gating-target, `partialStep2`, `partial_provider_usage`, throughput-profile, token-profile, audit-gate, and batch-diagnostic behavior, including rejection of identifying data and unhealthy samples.
+- Test URL registry ordering and selection separately from explicit article-vs-X-Space runtime routing.
+- Test PDF and EPUB chapter names, 100+ dynamic widths, split sorting, source locators, and collision behavior with local fixtures.
 - Run `bun run check`, `bun t --price`, focused mocked Kimi/Gemini provider contracts, focused OCR pricing/profile/audit/report contracts, CLI help/usage contracts, repository import/path checks, and `git diff --check`. Do not run hosted OCR providers or the full provider suite.
 - Verification on 2026-08-13 passed `bun run check`; `bun t --price` checked 165 mapped commands with 0 failures; and 282 targeted local/mock tests passed with 5,615 assertions across CLI help/usage/option-resolution, Kimi/Gemini provider, OCR pricing/profile/audit/report, and ownership contracts. Local ADR link and overview-status checks also passed. No hosted provider call ran.
 
 ## References
 
-- Related ADR: [ADR-001](ADR-001-book-like-document-ingestion.md) — ebook normalization and ACSM fulfillment into OCR-supported inputs
+- Related ADR: [ADR-001](ADR-001-source-ingestion-and-normalization.md) — source identity, normalization, ebook conversion, and ACSM fulfillment into extractable inputs
+- Related ADR: [ADR-002](ADR-002-pipeline-state-resume-and-dry-run-planning.md) — command-neutral work plans, canonical state, resume, and price dry runs
 - Related ADR: [ADR-003](ADR-003-type-surface-cleanup-and-architecture-mirroring.md) — architecture-oriented source layout
-- Related ADR: [ADR-012](ADR-012-add-price-preflight-to-resume.md) — resume price preflight over existing OCR metadata
+- Related ADR: [ADR-004](ADR-004-manage-setup-runtime-and-toolchain-lifecycle.md) — exclusive authority for toolchain setup and local OCR provisioning
+- URL runtime: `src/cli/commands/process-steps/step-2-extract/step-2-url/`
 - OCR stage: `src/cli/commands/process-steps/step-2-extract/step-2-ocr/`
 - OCR estimate orchestration: `src/cli/commands/process-steps/step-2-extract/extract-pricing/`
 - Command pricing orchestration: `src/cli/commands/pricing-orchestration/`
@@ -188,3 +235,7 @@ The follow-up preserves the extraction CLI surface and adds internal/profile/rep
 - Resume command: `src/cli/commands/setup-and-utilities/resume/`
 - OCR command documentation: `docs/commands/process-steps/step-2-extract/03-extract-ocr.md`
 - Resume command documentation: `docs/commands/setup-and-utilities/resume/resume.md`
+- Shared chapter filename helper: `src/cli/commands/process-steps/step-2-extract/step-2-ocr/chapter-artifact-filenames.ts`
+- EPUB chapter producer: `src/cli/commands/process-steps/step-2-extract/step-2-ocr/ebook/epub/export.ts`
+- PDF chapter producer: `src/cli/commands/process-steps/step-2-extract/step-2-ocr/pdf/ocr-chapters/ocr-chapter-artifacts.ts`
+- Chapter artifact contracts: `test/test-cases/validation/extract-ocr/chapter-artifact-filenames.test.ts`

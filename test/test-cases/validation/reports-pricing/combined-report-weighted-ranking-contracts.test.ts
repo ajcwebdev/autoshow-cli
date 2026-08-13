@@ -226,7 +226,7 @@ describe('combined-report weighted ranking contracts', () => {
     // names cannot trip it. All three builders emit `JSON.stringify(report, null, 2)`, so
     // every real key carries the colon.
     for (const legacyField of [
-      // Tombstones. Fields of the retired placement-surface schema (ADR-014: the current
+      // Tombstones. Fields of the retired placement-surface schema (ADR-012: the current
       // versions "do not expose the former placement-surface counts, thresholds, or
       // placement lists"). No builder can produce these any more, so they guard a revert.
       'surfaceCount',

@@ -337,7 +337,7 @@ describe('price mode contracts', () => {
       ])
     })
 
-  // ADR-018 replaced MiniMax music-2.6 with music-3.0 and required the retired
+  // ADR-013 replaced MiniMax music-2.6 with music-3.0 and required the retired
   // model to keep repricing in historical readers. It has no registry row, so
   // without the retired-rate table `getMusicModelMeta` returns undefined and the
   // four committed `docs/benchmarks/music/2026-05-21_*` runs silently reprice to

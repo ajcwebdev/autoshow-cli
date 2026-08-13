@@ -46,7 +46,7 @@ FAL_API_KEY=...
 
 ## Shared Video Options
 
-The standalone `video` command drops the `video-` prefix these options carry everywhere else: `--size` here is `--video-size` on `write`, `config`, and `resume`. One resume flag set serves image, video, music, and OCR, where the short names would collide, so [ADR-012](../../../adr/ADR-012-add-price-preflight-to-resume.md) keeps the prefixes on those surfaces.
+The standalone `video` command drops the `video-` prefix these options carry everywhere else: `--size` here is `--video-size` on `write`, `config`, and `resume`. One resume flag set serves image, video, music, and OCR, where the short names would collide, so [ADR-002](../../../adr/ADR-002-pipeline-state-resume-and-dry-run-planning.md) keeps the prefixes on those surfaces.
 
 | Flag | Description |
 |------|-------------|

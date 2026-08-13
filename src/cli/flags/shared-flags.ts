@@ -74,7 +74,8 @@ export const promptFlag = {
   prompt: {
     description: 'Named prompt(s) discovered under src/prompts/entries/ (default: "default")',
     type: [String] as [StringConstructor],
-    default: [] as string[]
+    default: [] as string[],
+    consumeAdjacentValues: true
   },
   'prompt-md': boolFlag('Save a second prompt file (prompt-md.md) with markdown examples alongside the JSON prompt')
 } as const satisfies CliFlagsDefinition

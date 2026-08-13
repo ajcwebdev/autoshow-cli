@@ -4,7 +4,7 @@ import { logLocationsTable } from '~/utils/app-logger/human-table/human-table'
 import { ensureDirectory } from '~/utils/cli-utils'
 import { resolveRunDirectory } from '~/cli/commands/process-steps/run-dir'
 import { isExtractCommand } from '~/cli/commands/process-steps/process-command-kinds'
-import { createManifest, createManifestItem, PIPELINE_MANIFEST_FILE, readManifest, resolveManifestRelativePath, toManifestRelativePath, writeManifest } from '~/cli/commands/process-steps/pipeline-manifest'
+import { createManifest, createManifestItem, PIPELINE_MANIFEST_FILE, readManifest, resolveManifestRelativePath, toManifestRelativePath, updateManifest, writeManifest } from '~/cli/commands/process-steps/pipeline-manifest'
 import { getOutputRoot } from '~/cli/commands/process-steps/output-root'
 import { runSttBatch, throwIfSttBatchIncomplete } from '~/cli/commands/process-steps/step-2-extract/step-2-stt/batch'
 import type { BatchExecutionPlan, BatchProcessResult, BatchRuntimeOptions, BatchSource, ExtractChildBatchPlan, ExtractCommandOptions, ExtractRoute, PipelineItemRecord, PipelineManifest, PipelineManifestItem, ProcessCommand, SingleTargetCommandOptions } from '~/types'
@@ -263,10 +263,10 @@ const executeExtractBatchPlan = async (
     })
   }
 
-  await writeManifest(batchDir, {
-    ...initialManifest,
+  await updateManifest(batchDir, (manifest) => ({
+    ...manifest,
     items: finalItems
-  })
+  }))
 
   if (sttResult) {
     throwIfSttBatchIncomplete(sttResult)
