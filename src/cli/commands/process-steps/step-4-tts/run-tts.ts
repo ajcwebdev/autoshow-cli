@@ -12,7 +12,7 @@ import type { TtsExecutionReadinessObservation } from './tts-targets'
 import { assertDialogueFormatIsUsable, isMultiSpeakerRequested } from './dialogue-normalizer'
 import { runMultiSpeakerTts } from './run-multi-speaker-tts'
 import { CLIUsageError, InternalError } from '~/utils/error-handler'
-import { createHostedTtsChunkScheduler } from './tts-utils/hosted-tts-chunk-scheduler'
+import { bindHostedTtsChunkScheduler, createHostedTtsChunkScheduler } from './tts-utils/hosted-tts-chunk-scheduler'
 import type { CurrentTtsObservedTurn, CurrentTtsRenderArtifacts } from './script-to-audio/current-render-artifacts'
 import { createCurrentTtsRenderAttempt, planCurrentTtsRenderIdentity, prepareCurrentTtsCompletedRecovery, resolveCurrentTtsPriorAdmittedAttemptCount, validateCurrentTtsRenderAttemptInputs } from './script-to-audio/current-render-attempt'
 import { createCurrentTtsBlockedReadinessState } from './script-to-audio/current-readiness-attempt'
@@ -287,6 +287,17 @@ export const runTtsTargets = async (
       ? undefined
       : options.generationResourceGate,
     runTarget: async (target, workspaceDir) => {
+      const targetIndex = targets.indexOf(target)
+      const sourceInputIndex = sourceContext?.sourceIdentity?.sourceLocator.kind === 'batch-item'
+        ? sourceContext.sourceIdentity.sourceLocator.itemIndex
+        : 0
+      const schedulerJob = {
+        jobId: `tts-input-${sourceInputIndex}-target-${targetIndex}`,
+        label: `input-${sourceInputIndex + 1}-target-${targetIndex + 1}`,
+        inputIndex: sourceInputIndex,
+        targetIndex,
+        originalOrder: sourceInputIndex * targets.length + targetIndex
+      }
       const defaultFileName = getTtsArtifactFileName(target, targets.length === 1)
       const reportedOutput = sourceContext?.resolveReportedOutput?.(target, defaultFileName)
         ?? { path: `${outputDir}/${defaultFileName}`, fileName: defaultFileName }
@@ -319,7 +330,20 @@ export const runTtsTargets = async (
       const attempt = attempts.get(target)
       if (!attempt) throw InternalError(`Missing prepared TTS render attempt for ${target.service}/${target.model}.`, { stage: 'tts:run' })
       try {
-        const executionOptions = selectBoundedExecutionOptions(options, attempt.executionSelection)
+        const boundedOptions = selectBoundedExecutionOptions(options, attempt.executionSelection)
+        const executionOptions: TtsOptions = boundedOptions.hostedTtsChunkScheduler
+          ? {
+              ...boundedOptions,
+              hostedTtsChunkJobContext: schedulerJob,
+              hostedTtsChunkScheduler: bindHostedTtsChunkScheduler(
+                boundedOptions.hostedTtsChunkScheduler,
+                {
+                  job: schedulerJob,
+                  scopeLabel: boundedOptions.hostedTtsLaneScopeLabel
+                }
+              )
+            }
+          : boundedOptions
         const { audioPath, metadata: rawMetadata } = await target.run(text, workspaceDir, executionOptions, undefined, attempt.requestEvidence)
         const { _ttsObservedTurns: _ignoredTurns, _ttsRenderStrategy: _ignoredStrategy, ...metadata } = rawMetadata as WorkingTtsMetadata
         if (attempt.executionSelection) {

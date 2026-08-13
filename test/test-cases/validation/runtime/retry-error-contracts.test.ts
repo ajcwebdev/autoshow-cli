@@ -173,26 +173,28 @@ describe('retry error contracts', () => {
     const scheduler = createHostedTtsChunkScheduler(4)
     let attempts = 0
 
-    const result = await withHostedTtsRetry(
-      {
-        operationName: 'hosted-tts-rate-limit-feedback',
-        policy: {
-          ...FAST_RETRY_POLICY,
-          maxAttempts: 2
+    const [result] = await scheduler.runChunks('grok', ['chunk'], async (_chunk, _index, admission) =>
+      await withHostedTtsRetry(
+        {
+          operationName: 'hosted-tts-rate-limit-feedback',
+          policy: {
+            ...FAST_RETRY_POLICY,
+            maxAttempts: 2
+          },
+          admission,
+          chunkScheduler: scheduler
         },
-        ttsProvider: 'grok',
-        chunkScheduler: scheduler
-      },
-      async () => {
-        attempts += 1
-        if (attempts === 1) {
-          throw Object.assign(new Error('rate limited'), {
-            status: 429,
-            headers: new Headers({ 'retry-after': '0' })
-          })
+        async () => {
+          attempts += 1
+          if (attempts === 1) {
+            throw Object.assign(new Error('rate limited'), {
+              status: 429,
+              headers: new Headers({ 'retry-after': '0' })
+            })
+          }
+          return 'ok'
         }
-        return 'ok'
-      }
+      )
     )
 
     expect(result).toBe('ok')

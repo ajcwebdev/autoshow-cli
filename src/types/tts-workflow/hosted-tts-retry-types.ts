@@ -1,4 +1,4 @@
-import type { HostedTtsChunkScheduler, RetryClassifier, RetryPolicy, TtsProvider } from '~/types'
+import type { HostedTtsChunkAdmissionToken, HostedTtsChunkScheduler, RetryClassifier, RetryPolicy } from '~/types'
 
 export type HostedTtsRetryOptions = {
   operationName: string
@@ -6,7 +6,7 @@ export type HostedTtsRetryOptions = {
   policy?: Partial<RetryPolicy> | undefined
   timeoutMs?: number | undefined
   classifier?: RetryClassifier | undefined
-  ttsProvider?: TtsProvider | undefined
+  admission?: HostedTtsChunkAdmissionToken | undefined
   chunkScheduler?: HostedTtsChunkScheduler | undefined
 }
 

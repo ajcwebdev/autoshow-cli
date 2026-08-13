@@ -31,14 +31,14 @@ const notifyHostedTtsSchedulerRetry = (
   error: unknown,
   decision: RetryDecision
 ): void => {
-  if (!options.chunkScheduler || !options.ttsProvider) {
+  if (!options.chunkScheduler || !options.admission) {
     return
   }
 
-  options.chunkScheduler.notifyRetry(options.ttsProvider)
+  options.chunkScheduler.notifyRetry(options.admission)
 
   if (error && typeof error === 'object' && 'status' in error && error.status === 429) {
-    options.chunkScheduler.notifyRateLimit(options.ttsProvider, {
+    options.chunkScheduler.notifyRateLimit(options.admission, {
       retryAfterMs: parseRetryAfterMs(getErrorHeaders(error)),
       delayMs: decision.delayMs
     })

@@ -4,7 +4,7 @@
 
 - **Decision Status:** Accepted
 - **Date Created:** 2026-06-17
-- **Date Updated:** 2026-08-09
+- **Date Updated:** 2026-08-12
 - **Verification Status:** Passed
 
 ## Context
@@ -107,11 +107,60 @@ Negative outcomes:
 
 The shared model migration and the native CLI migration are implemented. `comicCommand.subcommands` owns the three child definitions; the native parser performs one bounded child resolution; `define-comic-command.ts` is now a declaration rather than a second shell; `cli-args.ts` contains semantic coercion only; the reusable invocation boundary and ordered raw metadata support links; provider selectors are real hidden flags; and the obsolete global argument stripper is gone.
 
+## Remaining Work Recommendation: Preserve User-Typed Unknown-Flag Spellings
+
+This is a subordinate mini-ADR for the one implementation residual left by the native CLI migration. Its recommendation is accepted as the preferred implementation direction, but the work remains pending and does not change this record's Accepted · Passed status for the completed migration.
+
+| Current State | Recommended Next Step | Target Transition |
+|---|---|---|
+| Shared comic model infrastructure and the native CLI migration are implemented. Unknown-flag rejection still formats normalized internal keys even though raw occurrences retain the user's spelling. | Derive sanitized display spellings from unknown raw occurrences and use one helper at both native rejection boundaries, with focused usage-error contracts. | Keep this ADR accepted and passed while completing its final documented CLI diagnostic residual. |
+
+### Context and gap analysis
+
+The parser currently records an unknown long flag twice. `rawParsed.unknown` stores a camelized lookup key such as `allLocal`, while the matching `CliFlagOccurrence` stores `known: false` and the exact raw token such as `--all-local`. Both the normal dispatcher and `parseCommandInvocation` construct `NativeUnknownFlagError` from `Object.keys(rawParsed.unknown)`, so the error discards information the parser already preserved. The result is an internal normalized name in messages such as `Unexpected flag: allLocal`, even though the user typed `--all-local`.
+
+Changing the parser to keep raw tokens as keys in `rawParsed.unknown` would repair the message but would mix presentation with lookup state, alter a reusable parse contract, and make inline values part of an object key. Extending `CliRawParsed` with another array would duplicate `flagOccurrences`, whose `raw` and `known` fields already provide the required source of truth. Reconstructing dashed names from camelCase would still lose short-flag spelling, capitalization, repeated separators, and the exact token the user supplied.
+
+The raw token must not be echoed blindly. For an unknown inline assignment such as `--api-tokn=secret`, the diagnostic needs `--api-tokn`, not the value after `=`. Unknown occurrences can repeat or normalize to the same camelized key, so the presentation helper should preserve first-seen order while deduplicating identical displayed spellings. Known flags, tokens after `--`, and flags accepted by an `allowUnknownFlags` command must remain unaffected.
+
+### Recommendation
+
+Derive unknown-flag display spellings from `rawParsed.flagOccurrences.filter(occurrence => !occurrence.known)` at the rejection boundary. Add one shared helper used by both `dispatchNativeCli` and `parseCommandInvocation`; for a long inline assignment it returns the portion before the first `=`, for other long and short flags it returns the raw token unchanged, and it deduplicates exact displayed spellings in encounter order. Retain `rawParsed.unknown` as the normalized lookup record for compatibility and use its keys only as a defensive fallback when a synthetic parse result contains no unknown occurrences.
+
+`NativeUnknownFlagError` should receive presentation-ready spellings including their leading dashes. Its message remains `Unexpected flag:` or `Unexpected flags:` so exit code, error code, and outer error handling do not change. If callers or tests inspect `flagNames`, either preserve that property for compatibility while adding a clearer `flagSpellings` alias or update the internal type and all local callers in the same change; the user-visible behavior is the architectural contract.
+
+### Alternatives considered
+
+| Option | Advantages | Disadvantages | Recommendation |
+|---|---|---|---|
+| **Derive sanitized spellings from unknown `CliFlagOccurrence` records at rejection time** | Uses source data already retained; preserves long, short, and unusual dashed spellings; avoids a parse-schema change; can suppress inline values | Requires a small shared helper and two rejection-site updates | Recommended |
+| Store raw flag strings as keys in `rawParsed.unknown` | Makes the existing `Object.keys` call print closer to input | Changes lookup semantics, risks embedding inline values in keys, and duplicates occurrence data | Reject |
+| Add `unknownFlagSpellings` to `CliRawParsed` | Makes display intent explicit | Adds a third representation of the same token and creates synchronization risk | Reject |
+| Re-dash camelCase keys when formatting the error | Small localized change | Cannot faithfully reconstruct the typed spelling or short flags and perpetuates presentation from normalized state | Reject |
+| Leave normalized names in diagnostics | No implementation work | Exposes parser internals and gives users a flag spelling they cannot paste back into the CLI | Reject |
+
+### Implementation plan
+
+1. Add a pure native-CLI helper that accepts `CliRawParsed`, selects occurrences with `known: false`, removes only an inline `=<value>` suffix, and returns unique spellings in original order. Include the normalized unknown keys as a fallback for synthetic inputs that lack occurrences.
+2. Use the helper in both `src/cli/native/dispatcher.ts` and `parseCommandInvocation` so production dispatch and reusable command parsing cannot diverge.
+3. Update `NativeUnknownFlagError` naming only as far as needed to make its input contract clear, preserving `code: 'unknown-flag'`, exit code 2, singular/plural grammar, and compatibility for any internal property consumers.
+4. Change CLI expectations from normalized names to typed spellings, including `--all-local` and `--local-concurrency`, and add focused parser tests for a misspelled long flag, an unknown short flag, duplicate occurrences, and an inline assignment whose value must not appear in the error.
+5. Confirm that `links` and any other command with `allowUnknownFlags` still receive their parsed occurrence metadata without an early error, and that tokens after `--` remain positional passthrough rather than unknown flags.
+
+### Acceptance and verification criteria
+
+- `bun autoshow write <input> --structured` reports `Unexpected flag: --structured` and exits 2.
+- `--all-local` is displayed exactly as typed rather than as `allLocal`.
+- An unknown `--name=value` diagnostic displays `--name` and never echoes `value`.
+- Multiple distinct unknown spellings retain encounter order, while identical repeats do not make the message noisy.
+- `rawParsed.unknown`, known-flag normalization, inline known flags, short aliases, links selection, and `--` passthrough retain their existing contracts.
+- Verification uses `bun run check`, `bun t --price`, `bun test test/test-cases/validation/cli/native-cli-parser-contracts.test.ts`, and `bun test test/test-cases/validation/cli/cli-usage-errors.test.ts`; it makes no provider call.
+
 ## Follow-up Actions
 
 | Action | Owner | Current State |
 |---|---|---|
-| Improve native unknown-flag diagnostics so they print the typed dashed spelling instead of internal camelCase | CLI maintainers | Deferred to the documented structural-program residual |
+| Improve native unknown-flag diagnostics so they print the sanitized typed dashed spelling instead of internal camelCase | CLI maintainers | Pending — implement the occurrence-derived rejection helper and contracts specified above |
 
 ## Test Plan
 

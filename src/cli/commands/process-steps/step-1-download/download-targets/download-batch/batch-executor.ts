@@ -11,6 +11,7 @@ import type { BatchExecutionPlan, BatchProcessResult, BatchRuntimeOptions, Batch
 import { processSingleTarget } from '../single/single-target-runner'
 import { processBatch } from './process-download-batch'
 import { CLIUsageError } from '~/utils/error-handler'
+import { createHostedOcrScheduler } from '~/cli/commands/process-steps/step-2-extract/step-2-ocr/ocr-utils/hosted-ocr-scheduler'
 
 type BatchCommandOptions = SingleTargetCommandOptions & Pick<BatchRuntimeOptions, 'batchConcurrency'>
 
@@ -114,8 +115,16 @@ const runExtractDocumentChildBatch = async (
   opts: ExtractCommandOptions,
   batchPlan: ExtractChildBatchPlan,
   source?: BatchSource
-): Promise<BatchProcessResult> =>
-  await processBatch(
+): Promise<BatchProcessResult> => {
+  const hostedOcrScheduler = batchPlan.route === 'document'
+    ? createHostedOcrScheduler({
+        mode: opts.ocrConcurrencyMode ?? (typeof opts.ocrConcurrency === 'number' ? 'fixed' : 'auto'),
+        fixedCap: opts.ocrConcurrency,
+        pageCount: 0,
+        lifetime: 'run'
+      })
+    : undefined
+  const result = await processBatch(
     batchPlan.items,
     batchPlan.route,
     'extract',
@@ -124,6 +133,7 @@ const runExtractDocumentChildBatch = async (
       await processSingleTarget(commandName, item, childBatchDir, batchOpts, undefined, {
         batchChildContext: {
           batchDir: childBatchDir,
+          ...(hostedOcrScheduler ? { hostedOcrScheduler } : {}),
           ...(batchItem ? { batchItem } : {})
         }
       }, batchItem),
@@ -137,6 +147,8 @@ const runExtractDocumentChildBatch = async (
       extractRoute: batchPlan.route
     }
   )
+  return result
+}
 
 const runExtractXSpaceChildBatch = async (
   batchDir: string,
@@ -296,7 +308,19 @@ export const executeBatchPlan = async (
     return
   }
 
-  const { ok, fail, failureExitCode } = await processBatch(
+  const hostedOcrScheduler = command === 'write'
+    ? createHostedOcrScheduler({
+        mode: 'ocrConcurrencyMode' in opts && opts.ocrConcurrencyMode
+          ? opts.ocrConcurrencyMode
+          : 'ocrConcurrency' in opts && typeof opts.ocrConcurrency === 'number'
+            ? 'fixed'
+            : 'auto',
+        fixedCap: 'ocrConcurrency' in opts && typeof opts.ocrConcurrency === 'number' ? opts.ocrConcurrency : undefined,
+        pageCount: 0,
+        lifetime: 'run'
+      })
+    : undefined
+  const batchResult = await processBatch(
     batchPlan.items,
     batchPlan.label,
     command,
@@ -305,6 +329,7 @@ export const executeBatchPlan = async (
       await processSingleTarget(commandName, item, batchDir, batchOpts, undefined, {
         batchChildContext: {
           batchDir,
+          ...(hostedOcrScheduler ? { hostedOcrScheduler } : {}),
           ...(batchItem ? { batchItem } : {})
         }
       }, batchItem),
@@ -317,6 +342,7 @@ export const executeBatchPlan = async (
       concurrency: opts.batchConcurrency
     }
   )
+  const { ok, fail, failureExitCode } = batchResult
 
   if (ok === 0 && fail > 0) {
     const error = new Error(`Batch processing failed for ${fail} item(s)`)

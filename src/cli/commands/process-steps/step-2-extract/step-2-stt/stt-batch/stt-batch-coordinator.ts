@@ -2,6 +2,7 @@ import type { AvailabilityWaiter, ProviderFailureSummary, ProviderState, SttBatc
 import { DEFAULT_CLI_CONCURRENCY } from '~/utils/concurrency-defaults'
 import { formatSttTargetLabel, getSttTargetKey } from '../stt-targets'
 import { getSttBatchProviderProfile } from './stt-batch-policy'
+import { createProviderLaneIdentity } from '~/cli/commands/process-steps/provider-lane-contract'
 
 
 
@@ -385,6 +386,7 @@ export class SttBatchCoordinator {
           const profile = this.#getProfile(target)
 
           return {
+            lane: createProviderLaneIdentity(target.service, target.model),
             service: target.service,
             model: target.model,
             kind: profile.kind,

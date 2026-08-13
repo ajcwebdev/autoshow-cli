@@ -4,7 +4,7 @@
 
 - **Decision Status:** Accepted
 - **Date Created:** 2026-07-10
-- **Date Updated:** 2026-08-11
+- **Date Updated:** 2026-08-12
 - **Verification Status:** Passed
 - **Supersession:** Reframed from the narrower record "Schedule Hosted TTS as a Provider Work Queue" to the broader topic it now serves. The hosted TTS work-queue decision, its trade study, and its scheduling model are preserved below as one documented lane among several.
 
@@ -138,30 +138,30 @@ Layer 2, provider targets. `runProviderTargetScheduler` splits targets into a ho
 
 Layer 3, provider lanes and bounded inner work. Four provider schedulers implement the pressure layer, while multi-speaker TTS adds a bounded per-dialogue selector before individual turn invocations. They diverge in three ways worth knowing:
 
-- **Lane scope.** Hosted OCR keys lanes by `service:scopeLabel`, defaulting to `env-api-key`, so multiple models of one provider share a rate-limit budget and dispatch round-robin. Hosted TTS keys lanes by provider only, with every lane initialized to the same cap and no API-key scoping.
-- **Sharing across batch items.** `SttBatchCoordinator` is created once per batch and shared across all items when there is more than one item and more than one target, so slot accounting is global; it even sizes async poll slots from `--batch-concurrency` directly. `HostedOcrSchedulerImpl` is created per document, so `--batch-concurrency` and `--ocr-concurrency` multiply. `HostedTtsBatchCoordinatorImpl` is run-scoped for directory batches, registered with deferred start behind a one-second registration barrier.
+- **Lane scope.** Hosted OCR and TTS key lanes by the shared `service:scopeLabel` identity. OCR defaults to `env-api-key`; TTS defaults to `configured-account`; explicit stable non-secret labels isolate configured account scopes without recording credentials or credential hashes. STT preserves its provider/model slot policy by adapting the model as its scope label.
+- **Sharing across batch items.** `SttBatchCoordinator` is created once per batch and shared across all items when there is more than one item and more than one target, so slot accounting is global; it even sizes async poll slots from `--batch-concurrency` directly. Hosted OCR now creates one run-scoped coordinator for document extraction and write batches, then gives each document a scoped queue adapter, so outer batch concurrency cannot multiply the provider/API-key cap. Standalone OCR retains a document-scoped coordinator. `HostedTtsBatchCoordinatorImpl` is run-scoped for directory batches, registered with deferred start behind a one-second registration barrier.
 - **Adaptation.** Hosted OCR ramps `+2` per half-cap clean window while fast-ramping and `+1` afterward, halves on 429/503/timeout, and can raise its ceiling to 48 from a matched healthy throughput profile. Hosted TTS ramps `+1` once the success streak reaches the current limit and halves on 429 with a two-second default pause. STT uses fixed per-provider slot profiles with a warm-up gate rather than continuous adaptation, degrading a provider after two consecutive retryable failures and backfilling it in a later resume pass.
 
 `--ocr-concurrency` carries a mode contract the other flags do not have. It has no CLI default, so an unset value is distinguishable from an explicit one: unset means `auto` and lets the scheduler size its own cap from page count, while any explicit value means `fixed` and becomes a hard cap. Local OCR ignores the adaptive path entirely and runs two independent pools, one for rendering sized at `min(cpuCount, 4)` and one for OCR itself.
 
 `--split` is likewise not a simple on/off. Splitting also happens automatically when a file exceeds a provider's attachment cap, duration cap, or request budget, so an unsplit-looking command can still produce segments. The 30-minute default is shrunk per provider by the duration cap, the request budget, and a bytes-per-second estimate against 95% of the attachment cap. When a provider still rejects a segment, up to four adaptive passes halve the segment length down to a 60-second floor.
 
-Multi-speaker TTS uses `runDialogueWorkSelector` as a bounded preparation and invocation layer. Hosted targets use the normalized `--tts-chunk-concurrency` value and Kitten uses `--local-concurrency`. The selector assigns one safe `.work-*` directory per source turn, preserves source order when work completes out of order, shares one `AbortSignal` across active invocations, and removes all temporary workspaces before returning or rethrowing. Hosted provider request pressure remains controlled by the run-scoped chunk coordinator beneath this selector; the selector bounds materialized turn work and does not replace provider-wide AIMD or retry behavior.
+Segmented multi-speaker TTS uses `runDialogueWorkSelector` as a bounded preparation and invocation layer. Hosted targets use the normalized `--tts-chunk-concurrency` value and Kitten uses `--local-concurrency`. The selector assigns one safe `.work-*` directory per source turn, preserves source order when work completes out of order, shares one `AbortSignal` across active invocations, and removes all temporary workspaces before returning or rethrowing. Segmented hosted calls continue into the run-scoped chunk coordinator beneath this selector. Native ElevenLabs and Hume dialogue rendering bypasses the per-turn selector as one provider-target invocation, uses provider-specific sequential batch/continuation loops, and does not emit unattributed feedback into the chunk coordinator.
 
 Two reassembly details are easy to miss. Timestamp offsetting for split STT happens inside each provider adapter rather than at merge time. Speaker labels are not reconciled across segments: each segment diarizes independently and the capability flag is simply ORed, so speaker identities are per-segment.
 
 ## Hosted TTS Scheduling Model
 
-The run-scoped hosted TTS coordinator owns one provider lane per provider. Each lane has two layers:
+The run-scoped hosted TTS coordinator owns one lane per provider and non-secret scope label. Each lane has two layers:
 
 1. **Pressure controller.** Tracks `maxLimit`, `currentLimit`, active requests, 429 feedback, `Retry-After`, retry delay, success streaks, and provider pause windows.
 2. **Work selector.** Tracks files and their remaining chunks. When the pressure controller has capacity, the work selector picks the next eligible file and starts one chunk for it.
 
-The work selector is a two-pass selection. The first pass considers only jobs with no chunk currently in flight; the second pass considers any job with remaining chunks. Within each pass, jobs sort by fewest remaining chunks, then fewest active, then fewest started, then least recently selected, then original order. Original batch order remains the final output order, chunk output remains ordered inside each file, and a failed chunk cancels only its owning file unless the batch failure policy stops the whole run.
+The work selector recalculates a dynamic per-job window on every dispatch as `ceil(currentLimit / runnableJobs)`, optionally bounded by the internal `maxActiveChunksPerJob` test/provider override. A job at its window is ineligible while another runnable job remains below its window. Below the starvation threshold, jobs retain the fewest-remaining, fewest-active, fewest-started preference. Every denied dispatch adds integer debt, and a job whose debt reaches the runnable-job threshold wins before the ordinary comparator. A monotonic dispatch sequence breaks ties, so fairness does not depend on wall-clock timing. Original batch order remains the final output order, chunk output remains ordered inside each file, and a failed chunk cancels only its owning file unless the batch failure policy stops the whole run.
 
 This intentionally avoids letting a single `runTtsChunks` call pre-enqueue up to `--tts-chunk-concurrency` waiters. Provider slots are assigned from a central queue at the moment they become available.
 
-Two properties this model was intended to have are not implemented as described. The first pass's preference for idle jobs is an implicit per-file window of one, not the configurable bounded window originally specified — once every job holds at least one in-flight chunk, a single job can take all remaining slots up to `currentLimit`. And because the primary sort key is fewest remaining chunks, selection is shortest-job-first with no aging credit; `lastSelectedAtMs` is only a fourth-level tiebreak and does not protect long files from that bias. Both are tracked in Follow-up Actions.
+When a chunk starts, the coordinator creates an immutable admission token containing the lane identity, internal job identity, public run-local job context, and exact chunk index. Retry and rate-limit feedback must present that token. A coordinator-owned weak association resolves it to the exact job, provider totals aggregate those job events, and no most-recent-active heuristic remains.
 
 Text chunking itself is character-count based. Every provider uses a 2000-character limit except Groq at 200. The splitter prefers the last newline before the limit, falls back to the last space, and hard-cuts otherwise; it has no sentence-boundary or abbreviation awareness.
 
@@ -174,6 +174,7 @@ Text chunking itself is character-count based. Every provider uses a 2000-charac
 - `--ocr-concurrency` carries a two-state mode contract on `ocrConcurrencyMode`: absent means `auto` and the hosted scheduler sizes its own cap; present means `fixed` and the value is a hard cap. The flag intentionally declares no CLI default so the two states stay distinguishable after config merging.
 - Multi-speaker turn callbacks receive an immutable explicit invocation and one shared cancellation signal; provider adapters must consume that invocation rather than capture a selection-time voice.
 - Scheduler telemetry appears in run metadata: provider max/current limits, started and completed chunks, retry counts, 429 counts, queue wait, active time, pause time, and chunk latency percentiles.
+- `provider-lane-contract.ts` and `provider-lane-contract-types.ts` define scheduler-neutral lane identity, admissions, completions, pressure feedback, cancellation, and telemetry vocabulary. TTS, OCR, and STT consume the contract through policy-specific adapters rather than one universal scheduling algorithm.
 
 ## Consequences
 
@@ -185,6 +186,8 @@ Positive outcomes:
 - Wall-time estimates can be based on total queued chunks, provider throughput, and adaptive capacity rather than per-file assumptions.
 - The nesting and multiplication of concurrency layers is documented in one place, so tuning a run no longer requires reading four command pages and inferring the interactions.
 - The divergences between the four schedulers are explicit, which is the prerequisite for deciding whether to unify them.
+- Exact admission attribution makes provider retry and 429 totals reconcilable to individual TTS jobs and chunks.
+- Run-scoped OCR lanes make `--ocr-concurrency` a run-level provider/API-key bound for document extraction and write batches instead of a per-document multiplier.
 
 Negative outcomes:
 
@@ -221,28 +224,60 @@ Negative outcomes:
 | Replace unbounded multi-speaker turn fan-out with a bounded, ordered, cancellable selector that owns safe turn workspaces | TTS maintainers | Done in `step-4-tts/dialogue-work-selector.ts` and `run-multi-speaker-tts.ts` |
 | Add deterministic selector tests for caps, reverse completion, queued cancellation, invocation signals, and cleanup | TTS maintainers | Done in `tts-dialogue-work-selector.test.ts` |
 
+## Completed Scheduler Alignment
+
+This subordinate implementation completed the previously recommended five-phase scheduler sequence.
+
+- **Completion Status:** Implemented and locally verified on 2026-08-12
+- **Scope:** Hosted TTS per-file fairness, starvation prevention, exact retry attribution, non-secret lane identity, run-scoped OCR admission, and the shared provider-lane contract
+- **Compatibility:** No new CLI flag; TTS, OCR, and STT retain their policy-specific work selection and failure behavior
+
+| Previous State | Completed Transition | Current State |
+|---|---|---|
+| TTS used an unbounded overflow pass, wall-clock selection tiebreaks, and provider-only retry feedback; TTS lanes were provider-only; OCR built a scheduler per document; shared semantics were prose only. | Implemented dynamic fair-share, dispatch debt, immutable admission tokens, scoped lane identity, run-scoped OCR document adapters, and scheduler-neutral contract types in the prescribed order. | The accepted ADR, scheduler behavior, estimator, telemetry, tests, and concurrency inventory now agree. |
+
+### Implementation
+
+| Phase | Completed Behavior | Evidence |
+|---|---|---|
+| 1. Fair-share window | Every TTS selection recomputes `ceil(currentLimit / runnableJobs)`, clamps it to at least one, honors the internal `maxActiveChunksPerJob` override, and leaves already-active chunks alone if a lower AIMD limit or new job shrinks the share. The batch estimator simulates the same selector. | `hosted-tts-chunk-scheduler.ts`, `tts-batch-summary.ts`, dynamic-window scheduler contracts |
+| 2. Deterministic aging | Runnable eligible jobs accrue integer dispatch debt whenever another job wins. Debt at the runnable-job threshold takes precedence over shortest-remaining selection, and monotonic dispatch sequence replaces wall-clock fairness. | Replenished-short-job starvation contract and deterministic start-order assertions |
+| 3. Exact attribution | Each selected chunk receives a frozen admission token and frozen public context. `withHostedTtsRetry`, `notifyRetry`, and `notifyRateLimit` carry that token; a coordinator-owned weak association resolves the exact job. Batch target and dialogue adapters supply stable run-local input, target, turn, and segment context. | Exact two-job retry/429 reconciliation contract; provider totals equal summed job totals |
+| 4. Lane scope and OCR lifetime | The shared lane key is `service:scopeLabel`; credential-like labels and 64-hex hashes are rejected. TTS state is keyed by lane, with independent pressure for different scopes. Extract and write document batches create one OCR coordinator and per-document queue adapters; standalone OCR remains document-scoped. | Same-provider/different-scope TTS contract; two-document OCR cap contract; `batch-executor.ts` run boundary |
+| 5. Shared contract | Scheduler-neutral types define lane identity, admission/completion, pressure feedback, cancellation, and telemetry vocabulary. TTS consumes identity, admissions, and pressure feedback; OCR consumes identity and pressure feedback; STT projects its unchanged provider/model policy through the same identity. Concrete schedulers remain separate. | `provider-lane-contract.ts`, `provider-lane-contract-types.ts`, TTS/OCR/STT adapters and identity contracts |
+
+### Alternatives retained from the recommendation
+
+| Option | Resolution |
+|---|---|
+| Least-active or round-robin only | Rejected because it provides no explicit window and does not solve attribution or scope. |
+| Fixed per-file cap | Retained only as an internal override; rejected as the default because it can strand provider capacity. |
+| Wall-clock aging | Rejected in favor of dispatch debt because elapsed-time tests do not measure denied scheduling opportunities. |
+| One universal scheduler | Rejected. The shared extraction is a contract and vocabulary; TTS, OCR, and STT keep different fairness, polling, backfill, and failure policies. |
+| Provider-only TTS and per-document OCR indefinitely | Rejected and replaced by non-secret scoped TTS lanes and run-scoped batch OCR admission. |
+
 ## Follow-up Actions
+
+No follow-up actions remain for this scheduler-alignment step.
 
 | Action | Owner | Current State |
 |---|---|---|
-| Implement a configurable bounded per-file in-flight window; today `#selectJob` only prefers jobs with no chunk in flight, and once every job is active a single job can take all remaining slots | TTS maintainers | Pending |
-| Add aging credit so long files are not starved by shortest-job-first selection; `lastSelectedAtMs` is currently only a fourth-level tiebreak | TTS maintainers | Pending |
-| Populate per-job context fields when registering chunk jobs so telemetry attributes chunks, retries, and 429s to input files instead of falling back to a most-recently-selected heuristic | TTS maintainers | Pending |
-| Decide whether hosted TTS lanes should be API-key-scoped like hosted OCR lanes, which key on `service:scopeLabel` | TTS maintainers | Deferred |
-| Decide whether the hosted OCR scheduler should be run-scoped rather than per-document, so `--batch-concurrency` and `--ocr-concurrency` stop multiplying | OCR maintainers | Deferred |
-| Extract one provider-lane contract shared by the TTS, OCR, and STT schedulers, per the consolidation analysis in `docs/adr/README.md` | Scheduling maintainers | Deferred |
 
 ## Test Plan
 
 - Unit-test the work selector with fake chunk tasks:
+  - Three same-lane jobs under a cap of six initially receive two chunks each.
   - A 1-chunk or 3-chunk file completes before large files that arrived at the same time.
-  - A long file continues to make progress under sustained short-file arrivals.
+  - A long file continues to make deterministic progress under sustained replenished short-file work.
   - Provider active count never exceeds `--tts-chunk-concurrency`.
-  - Different providers use independent pressure lanes.
+  - Different providers and different non-secret scopes of one provider use independent pressure lanes.
 - Unit-test pressure feedback:
   - 429 feedback halves active provider capacity down to 1.
   - `Retry-After` pauses new starts without canceling active chunks.
   - Successful chunks gradually raise capacity back toward the configured maximum.
+  - Immutable admission tokens attribute retries and 429s to the exact job and reconcile job totals with lane totals.
+- Unit-test run-scoped OCR admission with two document adapters and prove their combined active page count never exceeds the shared provider cap while their document telemetry remains separate.
+- Contract-test shared lane identities with stable human-readable scopes and reject credentials or credential hashes as scope labels.
 - Contract-test hosted providers only with mocked network calls:
   - Grok concurrent file jobs share one coordinator.
   - OpenAI or Groq chunked jobs preserve chunk order and final concatenation.
@@ -257,9 +292,13 @@ Negative outcomes:
   - Batch summaries include scheduler telemetry.
 - Verification commands:
   - `bun run check`
+  - `bun t --price`
   - `git diff --check`
   - Targeted local/no-cost tests under `test/test-cases/validation/providers/tts-provider-contracts/`
+  - Targeted hosted OCR scheduler and runtime retry/target-scheduler contracts
   - Targeted CLI help and option-resolution tests
+
+Verification on 2026-08-12 passed `bun run check`, `git diff --check`, all 165 mapped `bun t --price` commands, 83 focused TTS provider/retry/target-scheduler/OCR contracts, 34 TTS pricing/timing/batch-output contracts, 25 CLI help contracts, 2 relevant concurrency option contracts, 7 bounded dialogue-selector contracts, and 10 hosted dialogue contracts. No paid or quota-limited provider command ran.
 
 ## References
 
@@ -271,11 +310,13 @@ Negative outcomes:
 - Generic batch executor: `src/cli/commands/process-steps/step-1-download/download-targets/download-batch/process-download-batch.ts`
 - Generic target scheduler: `src/cli/commands/process-steps/provider-target-scheduler.ts`
 - Cross-step resource gate: `src/utils/resource-gate.ts`, `src/cli/commands/process-steps/step-3-write/generation-resource-gate.ts`
+- Shared provider-lane contract: `src/cli/commands/process-steps/provider-lane-contract.ts`, `src/types/generation-core/provider-lane-contract-types.ts`
 - Hosted TTS coordinator: `src/cli/commands/process-steps/step-4-tts/tts-utils/hosted-tts-chunk-scheduler.ts`
 - Hosted TTS retry feedback: `src/cli/commands/process-steps/step-4-tts/tts-utils/hosted-tts-retry.ts`
 - TTS chunking limits: `src/cli/commands/process-steps/step-4-tts/tts-utils/tts-chunking.ts`, `tts-utils/audio-utils.ts`
 - TTS batch entry point: `src/cli/commands/process-steps/step-4-tts/run-tts.ts`, `step-4-tts/define-tts-command.ts`
 - Hosted OCR scheduler: `src/cli/commands/process-steps/step-2-extract/step-2-ocr/ocr-utils/hosted-ocr-scheduler.ts`
+- Run-scoped OCR batch boundary: `src/cli/commands/process-steps/step-1-download/download-targets/download-batch/batch-executor.ts`
 - OCR page processing: `src/cli/commands/process-steps/step-2-extract/step-2-ocr/ocr-utils/page-processor.ts`, `ocr-utils/pdf-chunk-fallback.ts`
 - STT batch coordinator: `src/cli/commands/process-steps/step-2-extract/step-2-stt/stt-batch/stt-batch.ts`, `stt-batch/stt-batch-coordinator.ts`, `stt-batch/stt-batch-policy.ts`
 - STT splitting: `src/cli/commands/process-steps/step-2-extract/step-2-stt/stt-split-policy.ts`, `stt-utils/audio-splitter.ts`, `run-stt/split-execution.ts`

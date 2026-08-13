@@ -17,6 +17,7 @@ import type {
   OcrConcurrencyMode,
   QueuedHostedOcrJob
 } from '~/types'
+import { createProviderLaneIdentity } from '~/cli/commands/process-steps/provider-lane-contract'
 import {
   findHostedOcrThroughputProfile,
   resolveHostedOcrPageCountBand
@@ -85,10 +86,15 @@ export const resolveHostedOcrEstimateCap = (
 export const resolveHostedOcrLaneKey = (
   service: HostedOcrService,
   scopeLabel = HOSTED_OCR_DEFAULT_SCOPE_LABEL
-): string => `${service}:${scopeLabel}`
+): string => createProviderLaneIdentity(service, scopeLabel, HOSTED_OCR_DEFAULT_SCOPE_LABEL).laneKey
 
 const resolveTargetKey = (admission: HostedOcrSchedulerAdmission): string =>
   admission.targetKey ?? `${admission.service}:${admission.model}`
+
+const resolveQueueKey = (admission: HostedOcrSchedulerAdmission, targetKey: string): string =>
+  admission.documentKey
+    ? `${admission.documentKey}:${targetKey}`
+    : targetKey
 
 const normalizeAdmissionPageCount = (admission: HostedOcrSchedulerAdmission): number =>
   normalizePositiveInteger(admission.pageCount, 1)
@@ -189,14 +195,19 @@ const resolveSchedulerStatus = (
 
 class HostedOcrSchedulerImpl implements HostedOcrScheduler {
   private readonly mode: OcrConcurrencyMode
-  private readonly documentPages: number
+  private readonly lifetime: 'document' | 'run'
+  private documentPages: number
+  private documentCount: number
+  private nextDocumentId = 1
   private readonly fixedCap: number | undefined
   private readonly profilePath: string | undefined
   private readonly lanes = new Map<string, HostedOcrSchedulerLaneState>()
 
   constructor(options: HostedOcrSchedulerOptions) {
     this.mode = options.mode
-    this.documentPages = normalizePositiveInteger(options.pageCount, 1)
+    this.lifetime = options.lifetime ?? 'document'
+    this.documentPages = options.pageCount > 0 ? normalizePositiveInteger(options.pageCount, 1) : 0
+    this.documentCount = this.documentPages > 0 ? 1 : 0
     this.fixedCap = options.mode === 'fixed'
       ? normalizePositiveInteger(options.fixedCap, HOSTED_OCR_AUTO_INITIAL_CAP)
       : undefined
@@ -208,14 +219,17 @@ class HostedOcrSchedulerImpl implements HostedOcrScheduler {
     task: (controls: HostedOcrSchedulerRunControls) => Promise<T>
   ): Promise<T> => {
     const targetKey = resolveTargetKey(admission)
+    const queueKey = resolveQueueKey(admission, targetKey)
     const lane = this.getLane(admission, targetKey)
     const pageCount = normalizeAdmissionPageCount(admission)
     const target = this.getTarget(lane, admission, targetKey)
+    const documentTarget = this.getDocumentTarget(lane, admission, targetKey)
     target.submittedPages += pageCount
+    if (documentTarget) documentTarget.submittedPages += pageCount
     lane.submittedPages += pageCount
 
     return await new Promise<T>((resolve, reject) => {
-      const queue = lane.queues.get(targetKey) ?? []
+      const queue = lane.queues.get(queueKey) ?? []
       queue.push({
         admission: {
           ...admission,
@@ -223,14 +237,15 @@ class HostedOcrSchedulerImpl implements HostedOcrScheduler {
           model: admission.model
         },
         targetKey,
+        ...(admission.documentKey ? { documentKey: admission.documentKey } : {}),
         pageCount,
         task,
         resolve: resolve as (value: unknown) => void,
         reject
       })
-      lane.queues.set(targetKey, queue)
-      if (!lane.targetOrder.includes(targetKey)) {
-        lane.targetOrder.push(targetKey)
+      lane.queues.set(queueKey, queue)
+      if (!lane.targetOrder.includes(queueKey)) {
+        lane.targetOrder.push(queueKey)
       }
       this.pumpLane(lane)
     })
@@ -261,9 +276,11 @@ class HostedOcrSchedulerImpl implements HostedOcrScheduler {
 
     return {
       version: 1,
+      lifetime: this.lifetime,
       mode: this.mode,
       ...(this.fixedCap !== undefined ? { fixedCap: this.fixedCap } : {}),
       documentPages: this.documentPages,
+      documentCount: this.documentCount,
       lanes,
       ...(likelyGatingTarget
         ? {
@@ -291,11 +308,12 @@ class HostedOcrSchedulerImpl implements HostedOcrScheduler {
   }
 
   getMaxConcurrency = (admission: HostedOcrSchedulerAdmission): number => {
+    const laneIdentity = this.resolveLaneIdentity(admission)
     if (this.mode === 'fixed') {
       return this.fixedCap ?? HOSTED_OCR_AUTO_INITIAL_CAP
     }
-    const scopeLabel = admission.scopeLabel ?? HOSTED_OCR_DEFAULT_SCOPE_LABEL
-    const laneKey = admission.laneKey ?? resolveHostedOcrLaneKey(admission.service, scopeLabel)
+    const scopeLabel = laneIdentity.scopeLabel
+    const laneKey = laneIdentity.laneKey
     const existingLane = this.lanes.get(laneKey)
     if (existingLane) {
       if (existingLane.service === 'kimi' && existingLane.retryPressureCount > 0) {
@@ -316,9 +334,59 @@ class HostedOcrSchedulerImpl implements HostedOcrScheduler {
     this.recordLaneRetryPressure(this.getLane(admission, targetKey), pressure, { admission, targetKey })
   }
 
+  createDocumentScope = (pageCount: number): HostedOcrScheduler => {
+    const documentKey = `document-${this.nextDocumentId}`
+    this.nextDocumentId += 1
+    const documentPageCount = normalizePositiveInteger(pageCount, 1)
+    this.documentPages += documentPageCount
+    this.documentCount += 1
+    const bindAdmission = (admission: HostedOcrSchedulerAdmission): HostedOcrSchedulerAdmission => ({
+      ...admission,
+      documentKey,
+      documentPageCount
+    })
+    return {
+      run: async (admission, task) => await this.run(bindAdmission(admission), task),
+      snapshot: () => this.snapshotDocument(documentKey, documentPageCount),
+      getMaxConcurrency: (admission) => this.getMaxConcurrency(bindAdmission(admission)),
+      recordRetryPressure: (admission, pressure) => this.recordRetryPressure(bindAdmission(admission), pressure),
+      createDocumentScope: this.createDocumentScope,
+      getLifetime: this.getLifetime
+    }
+  }
+
+  getLifetime = (): 'document' | 'run' => this.lifetime
+
+  private resolveLaneIdentity(admission: HostedOcrSchedulerAdmission) {
+    if (admission.lane) {
+      if (admission.lane.service !== admission.service) {
+        throw new Error(`Hosted OCR lane service ${admission.lane.service} does not match admission service ${admission.service}.`)
+      }
+      const identity = createProviderLaneIdentity(
+        admission.service,
+        admission.lane.scopeLabel,
+        HOSTED_OCR_DEFAULT_SCOPE_LABEL
+      )
+      if (admission.lane.laneKey !== identity.laneKey) {
+        throw new Error('Hosted OCR lane key does not match its service and scope label.')
+      }
+      return identity
+    }
+    const identity = createProviderLaneIdentity(
+      admission.service,
+      admission.scopeLabel,
+      HOSTED_OCR_DEFAULT_SCOPE_LABEL
+    )
+    if (admission.laneKey && admission.laneKey !== identity.laneKey) {
+      throw new Error('Hosted OCR lane key does not match its service and scope label.')
+    }
+    return identity
+  }
+
   private getLane(admission: HostedOcrSchedulerAdmission, targetKey: string): HostedOcrSchedulerLaneState {
-    const scopeLabel = admission.scopeLabel ?? HOSTED_OCR_DEFAULT_SCOPE_LABEL
-    const laneKey = admission.laneKey ?? resolveHostedOcrLaneKey(admission.service, scopeLabel)
+    const laneIdentity = this.resolveLaneIdentity(admission)
+    const scopeLabel = laneIdentity.scopeLabel
+    const laneKey = laneIdentity.laneKey
     const existing = this.lanes.get(laneKey)
     if (existing) {
       this.refreshLaneProfileCap(existing, admission, targetKey)
@@ -333,6 +401,7 @@ class HostedOcrSchedulerImpl implements HostedOcrScheduler {
         ? resolveHostedOcrEstimateCap(this.documentPages, 'auto')
         : HOSTED_OCR_AUTO_INITIAL_CAP
     const lane: HostedOcrSchedulerLaneState = {
+      lane: laneIdentity,
       laneKey,
       service: admission.service,
       scopeLabel,
@@ -359,7 +428,8 @@ class HostedOcrSchedulerImpl implements HostedOcrScheduler {
       targetOrder: [],
       roundRobinCursor: 0,
       queues: new Map(),
-      targets: new Map()
+      targets: new Map(),
+      documentTargets: new Map()
     }
     this.lanes.set(laneKey, lane)
     return lane
@@ -420,11 +490,13 @@ class HostedOcrSchedulerImpl implements HostedOcrScheduler {
       }
     }
 
-    const baseMaxCap = resolveHostedOcrAutoMaxCap(this.documentPages)
+    const runPages = Math.max(1, this.documentPages)
+    const profilePages = normalizePositiveInteger(admission.documentPageCount, runPages)
+    const baseMaxCap = resolveHostedOcrAutoMaxCap(runPages)
     const profileEstimate = findHostedOcrThroughputProfile({
       provider: admission.service,
       model: admission.model,
-      pageCount: this.documentPages,
+      pageCount: profilePages,
       ocrConcurrencyMode: 'auto',
       scopeClass: scopeLabel,
       laneTargetCount,
@@ -434,7 +506,7 @@ class HostedOcrSchedulerImpl implements HostedOcrScheduler {
     const exactProfileMatch = profile
       && profile.model === admission.model
       && profile.scopeClass === scopeLabel
-      && profile.pageCountBand === resolveHostedOcrPageCountBand(this.documentPages)
+      && profile.pageCountBand === resolveHostedOcrPageCountBand(profilePages)
       && (profile.laneTargetCount === undefined || profile.laneTargetCount === laneTargetCount)
     const profileRaisedMaxCap = exactProfileMatch && typeof profile.raisedMaxCap === 'number'
       ? clamp(baseMaxCap, HOSTED_OCR_PROFILE_MAX_CAP_CEILING, profile.raisedMaxCap)
@@ -512,6 +584,31 @@ class HostedOcrSchedulerImpl implements HostedOcrScheduler {
     return target
   }
 
+  private getDocumentTarget(
+    lane: HostedOcrSchedulerLaneState,
+    admission: HostedOcrSchedulerAdmission,
+    targetKey: string
+  ): HostedOcrSchedulerTargetStats | undefined {
+    if (!admission.documentKey) return undefined
+    let targets = lane.documentTargets.get(admission.documentKey)
+    if (!targets) {
+      targets = new Map()
+      lane.documentTargets.set(admission.documentKey, targets)
+    }
+    const existing = targets.get(targetKey)
+    if (existing) return existing
+    const target: HostedOcrSchedulerTargetStats = {
+      targetKey,
+      service: admission.service,
+      model: admission.model,
+      submittedPages: 0,
+      completedPages: 0,
+      failedPages: 0
+    }
+    targets.set(targetKey, target)
+    return target
+  }
+
   private pickNextJob(lane: HostedOcrSchedulerLaneState): QueuedHostedOcrJob | undefined {
     if (lane.targetOrder.length === 0) {
       return undefined
@@ -525,8 +622,16 @@ class HostedOcrSchedulerImpl implements HostedOcrScheduler {
       }
       const queue = lane.queues.get(targetKey)
       const job = queue?.shift()
-      if (job !== undefined) {
-        lane.roundRobinCursor = (index + 1) % lane.targetOrder.length
+      if (job !== undefined && queue !== undefined) {
+        if (queue.length === 0) {
+          lane.queues.delete(targetKey)
+          lane.targetOrder.splice(index, 1)
+          lane.roundRobinCursor = lane.targetOrder.length === 0
+            ? 0
+            : index % lane.targetOrder.length
+        } else {
+          lane.roundRobinCursor = (index + 1) % lane.targetOrder.length
+        }
         return job
       }
     }
@@ -562,9 +667,13 @@ class HostedOcrSchedulerImpl implements HostedOcrScheduler {
 
   private startJob(lane: HostedOcrSchedulerLaneState, job: QueuedHostedOcrJob): void {
     const target = this.getTarget(lane, job.admission, job.targetKey)
+    const documentTarget = job.documentKey
+      ? lane.documentTargets.get(job.documentKey)?.get(job.targetKey)
+      : undefined
     const now = Date.now()
     lane.startedAtMs ??= now
     target.startedAtMs ??= now
+    if (documentTarget) documentTarget.startedAtMs ??= now
     lane.active += 1
     lane.activePeak = Math.max(lane.activePeak, lane.active)
 
@@ -588,10 +697,10 @@ class HostedOcrSchedulerImpl implements HostedOcrScheduler {
             this.applyRetryPressurePause(lane, pressure)
           }
         })
-        this.recordSuccess(lane, target, job.pageCount)
+        this.recordSuccess(lane, target, documentTarget, job.pageCount)
         job.resolve(result)
       } catch (error) {
-        this.recordFailure(lane, target, job, error, retryPressureRecordedForJob)
+        this.recordFailure(lane, target, documentTarget, job, error, retryPressureRecordedForJob)
         job.reject(error)
       } finally {
         lane.active -= 1
@@ -600,10 +709,14 @@ class HostedOcrSchedulerImpl implements HostedOcrScheduler {
     })()
   }
 
-  private recordSuccess(lane: HostedOcrSchedulerLaneState, target: HostedOcrSchedulerTargetStats, pageCount: number): void {
+  private recordSuccess(lane: HostedOcrSchedulerLaneState, target: HostedOcrSchedulerTargetStats, documentTarget: HostedOcrSchedulerTargetStats | undefined, pageCount: number): void {
     const now = Date.now()
     target.completedPages += pageCount
     target.finishedAtMs = now
+    if (documentTarget) {
+      documentTarget.completedPages += pageCount
+      documentTarget.finishedAtMs = now
+    }
     lane.completedPages += pageCount
     lane.finishedAtMs = now
     lane.cleanSuccessPages += pageCount
@@ -622,6 +735,7 @@ class HostedOcrSchedulerImpl implements HostedOcrScheduler {
   private recordFailure(
     lane: HostedOcrSchedulerLaneState,
     target: HostedOcrSchedulerTargetStats,
+    documentTarget: HostedOcrSchedulerTargetStats | undefined,
     job: QueuedHostedOcrJob,
     error: unknown,
     retryPressureRecordedForJob: boolean
@@ -629,6 +743,10 @@ class HostedOcrSchedulerImpl implements HostedOcrScheduler {
     const now = Date.now()
     target.failedPages += job.pageCount
     target.finishedAtMs = now
+    if (documentTarget) {
+      documentTarget.failedPages += job.pageCount
+      documentTarget.finishedAtMs = now
+    }
     lane.failedPages += job.pageCount
     lane.finishedAtMs = now
     if (shouldBackoffForError(error) && !retryPressureRecordedForJob) {
@@ -698,7 +816,7 @@ class HostedOcrSchedulerImpl implements HostedOcrScheduler {
     if (lane.service !== 'kimi' || lane.mode !== 'auto' || lane.capSource !== 'profile') {
       return
     }
-    const unprofiledCap = resolveHostedOcrAutoMaxCap(this.documentPages)
+    const unprofiledCap = resolveHostedOcrAutoMaxCap(Math.max(1, this.documentPages))
     if (lane.maxCap <= unprofiledCap) {
       return
     }
@@ -714,6 +832,7 @@ class HostedOcrSchedulerImpl implements HostedOcrScheduler {
     const durationMs = observedDurationMs(lane.startedAtMs, lane.finishedAtMs)
     const projectedMs = projectedObservedDurationMs(lane.submittedPages, lane.completedPages, durationMs)
     return {
+      lane: lane.lane,
       laneKey: lane.laneKey,
       service: lane.service,
       scopeLabel: lane.scopeLabel,
@@ -741,9 +860,97 @@ class HostedOcrSchedulerImpl implements HostedOcrScheduler {
     }
   }
 
+  private snapshotDocument(documentKey: string, documentPages: number): HostedOcrSchedulerTelemetry {
+    const { likelyGatingTarget: _runGatingTarget, ...root } = this.snapshot()
+    const lanes = [...this.lanes.values()].flatMap((lane) => {
+      const documentTargets = lane.documentTargets.get(documentKey)
+      if (!documentTargets || documentTargets.size === 0) return []
+      const totalCompletedPages = [...documentTargets.values()].reduce(
+        (sum, candidate) => sum + candidate.completedPages,
+        0
+      )
+      const targets = [...documentTargets.values()].map((target) =>
+        this.snapshotTargetFromTotal(target, totalCompletedPages)
+      )
+      const submittedPages = targets.reduce((sum, target) => sum + target.submittedPages, 0)
+      const completedPages = targets.reduce((sum, target) => sum + target.completedPages, 0)
+      const failedPages = targets.reduce((sum, target) => sum + target.failedPages, 0)
+      const starts = [...documentTargets.values()].flatMap((target) => target.startedAtMs === undefined ? [] : [target.startedAtMs])
+      const finishes = [...documentTargets.values()].flatMap((target) => target.finishedAtMs === undefined ? [] : [target.finishedAtMs])
+      const startedAtMs = starts.length > 0 ? Math.min(...starts) : undefined
+      const finishedAtMs = finishes.length > 0 ? Math.max(...finishes) : undefined
+      const durationMs = observedDurationMs(startedAtMs, finishedAtMs)
+      const projectedMs = projectedObservedDurationMs(submittedPages, completedPages, durationMs)
+      return [{
+        ...this.snapshotLane(lane),
+        status: resolveSchedulerStatus(submittedPages, completedPages, failedPages),
+        submittedPages,
+        completedPages,
+        failedPages,
+        pagesPerMinute: pagesPerMinute(completedPages, startedAtMs, finishedAtMs),
+        observedDurationMs: durationMs,
+        projectedObservedDurationMs: projectedMs,
+        targets
+      }]
+    })
+    const likelyGatingTarget = lanes
+      .flatMap((lane) => lane.targets.map((target) => ({ lane, target })))
+      .filter((entry) =>
+        entry.target.submittedPages > 0
+        && (
+          typeof entry.target.projectedObservedDurationMs === 'number'
+          || typeof entry.target.observedDurationMs === 'number'
+          || typeof entry.target.pagesPerMinute === 'number'
+        )
+      )
+      .sort((left, right) => {
+        const leftProjected = left.target.projectedObservedDurationMs ?? left.target.observedDurationMs ?? 0
+        const rightProjected = right.target.projectedObservedDurationMs ?? right.target.observedDurationMs ?? 0
+        if (rightProjected !== leftProjected) return rightProjected - leftProjected
+        const leftThroughput = left.target.pagesPerMinute ?? Number.POSITIVE_INFINITY
+        const rightThroughput = right.target.pagesPerMinute ?? Number.POSITIVE_INFINITY
+        return leftThroughput - rightThroughput
+      })[0]
+    return {
+      ...root,
+      documentPages,
+      documentCount: 1,
+      lanes,
+      ...(likelyGatingTarget
+        ? {
+            likelyGatingTarget: {
+              laneKey: likelyGatingTarget.lane.laneKey,
+              targetKey: likelyGatingTarget.target.targetKey,
+              service: likelyGatingTarget.target.service,
+              model: likelyGatingTarget.target.model,
+              status: likelyGatingTarget.target.status,
+              submittedPages: likelyGatingTarget.target.submittedPages,
+              completedPages: likelyGatingTarget.target.completedPages,
+              failedPages: likelyGatingTarget.target.failedPages,
+              share: likelyGatingTarget.target.share,
+              pagesPerMinute: likelyGatingTarget.target.pagesPerMinute,
+              ...(typeof likelyGatingTarget.target.observedDurationMs === 'number'
+                ? { observedDurationMs: likelyGatingTarget.target.observedDurationMs }
+                : {}),
+              ...(typeof likelyGatingTarget.target.projectedObservedDurationMs === 'number'
+                ? { projectedObservedDurationMs: likelyGatingTarget.target.projectedObservedDurationMs }
+                : {})
+            }
+          }
+        : {})
+    }
+  }
+
   private snapshotTarget(
     lane: HostedOcrSchedulerLaneState,
     target: HostedOcrSchedulerTargetStats
+  ): HostedOcrSchedulerTargetTelemetry {
+    return this.snapshotTargetFromTotal(target, lane.completedPages)
+  }
+
+  private snapshotTargetFromTotal(
+    target: HostedOcrSchedulerTargetStats,
+    totalCompletedPages: number
   ): HostedOcrSchedulerTargetTelemetry {
     const durationMs = observedDurationMs(target.startedAtMs, target.finishedAtMs)
     const projectedMs = projectedObservedDurationMs(target.submittedPages, target.completedPages, durationMs)
@@ -755,7 +962,7 @@ class HostedOcrSchedulerImpl implements HostedOcrScheduler {
       submittedPages: target.submittedPages,
       completedPages: target.completedPages,
       failedPages: target.failedPages,
-      share: lane.completedPages > 0 ? roundMetric(target.completedPages / lane.completedPages) : 0,
+      share: totalCompletedPages > 0 ? roundMetric(target.completedPages / totalCompletedPages) : 0,
       pagesPerMinute: pagesPerMinute(target.completedPages, target.startedAtMs, target.finishedAtMs),
       ...(typeof durationMs === 'number' ? { observedDurationMs: durationMs } : {}),
       ...(typeof projectedMs === 'number' ? { projectedObservedDurationMs: projectedMs } : {})

@@ -239,7 +239,7 @@ export const runElevenLabsNativeDialogue = async (
         ...(typeof options.controls?.seed === 'number' ? { seed: options.controls.seed } : {}),
         ...(options.controls?.textNormalization ? { textNormalization: options.controls.textNormalization } : {})
       }
-      const payload = await withHostedTtsRetry({ operationName: `elevenlabs-dialogue-${chunkIndex}`, abortSignal: options.abortSignal, ttsProvider: 'elevenlabs', chunkScheduler: options.chunkScheduler }, async (signal, attempt) => await dispatchTtsProviderRequest(options.requestEvidence, {
+      const payload = await withHostedTtsRetry({ operationName: `elevenlabs-dialogue-${chunkIndex}`, abortSignal: options.abortSignal }, async (signal, attempt) => await dispatchTtsProviderRequest(options.requestEvidence, {
         chunkIndex,
         endpointKind: 'text-to-dialogue-with-timestamps',
         serializerVersion: 'elevenlabs.dialogue.phase-3-v1',

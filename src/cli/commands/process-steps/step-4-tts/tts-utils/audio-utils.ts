@@ -1,5 +1,5 @@
 import { resolve } from 'node:path'
-import type { RunTtsChunksOptions } from '~/types'
+import type { HostedTtsChunkAdmissionToken, RunTtsChunksOptions } from '~/types'
 import { exec } from '~/utils/cli-utils'
 import { getFfmpegBinary } from '~/utils/runtime-paths'
 import { InfraError } from '~/utils/error-handler'
@@ -40,13 +40,14 @@ export const normalizeTtsChunkConcurrency = (concurrency: number | undefined): n
 export const runTtsChunks = async <T>(
   chunks: readonly string[],
   concurrency: number | undefined,
-  runChunk: (chunk: string, index: number) => Promise<T>,
+  runChunk: (chunk: string, index: number, admission?: HostedTtsChunkAdmissionToken | undefined) => Promise<T>,
   options: RunTtsChunksOptions = {}
 ): Promise<T[]> => {
   if (options.provider) {
     const scheduler = options.scheduler ?? createHostedTtsChunkScheduler(concurrency)
     return await scheduler.runChunks(options.provider, chunks, runChunk, {
       job: options.job,
+      scopeLabel: options.scopeLabel,
       abortSignal: options.abortSignal
     })
   }

@@ -6,7 +6,7 @@ import {
 import { chmod } from 'node:fs/promises'
 import { join } from 'node:path'
 import { concatAndConvertToWav, runTtsChunks } from '~/cli/commands/process-steps/step-4-tts/tts-utils/audio-utils'
-import { createHostedTtsBatchCoordinator, createHostedTtsChunkScheduler } from '~/cli/commands/process-steps/step-4-tts/tts-utils/hosted-tts-chunk-scheduler'
+import { bindHostedTtsChunkScheduler, createHostedTtsBatchCoordinator, createHostedTtsChunkScheduler } from '~/cli/commands/process-steps/step-4-tts/tts-utils/hosted-tts-chunk-scheduler'
 import { configureBinDir, getConfiguredBinDir } from '~/utils/runtime-paths'
 import { setupTtsContractLifecycle, waitForCondition } from './shared'
 
@@ -168,6 +168,142 @@ describe('TTS provider service contracts', () => {
       if (waitError) throw waitError
     })
 
+  test('hosted TTS batch coordinator enforces the dynamic fair-share window across runnable jobs', async () => {
+      const scheduler = createHostedTtsBatchCoordinator(6)
+      const started: string[] = []
+      const releases: Array<() => void> = []
+      let releaseImmediately = false
+      const runChunk = async (chunk: string): Promise<string> => {
+        started.push(chunk)
+        if (!releaseImmediately) await new Promise<void>((resolve) => releases.push(resolve))
+        return chunk
+      }
+      const runs = ['A', 'B', 'C'].map((prefix, originalOrder) =>
+        runTtsChunks(Array.from({ length: 5 }, (_, index) => `${prefix}${index + 1}`), 6, runChunk, {
+          provider: 'grok',
+          scheduler,
+          job: { originalOrder, jobId: `job-${prefix}` }
+        })
+      )
+
+      try {
+        expect(await scheduler.waitForRegisteredJobs(3, 100)).toBe(true)
+        scheduler.start()
+        await waitForCondition(() => started.length === 6, 'dynamic fair-share scheduler did not fill the provider lane')
+        expect(Object.fromEntries(['A', 'B', 'C'].map(prefix => [prefix, started.filter(chunk => chunk.startsWith(prefix)).length]))).toEqual({ A: 2, B: 2, C: 2 })
+      } finally {
+        releaseImmediately = true
+        for (const release of releases.splice(0)) release()
+      }
+
+      await Promise.all(runs)
+    })
+
+  test('hosted TTS dispatch aging serves a long job under replenished one-chunk arrivals', async () => {
+      const scheduler = createHostedTtsBatchCoordinator(1)
+      const started: string[] = []
+      let releaseLong: (() => void) | undefined
+      let secondShort: Promise<string[]> | undefined
+      let releaseImmediately = false
+      const long = runTtsChunks(['L1', 'L2', 'L3'], 1, async (chunk) => {
+        started.push(chunk)
+        if (!releaseImmediately) await new Promise<void>((resolve) => { releaseLong = resolve })
+        return chunk
+      }, { provider: 'grok', scheduler, job: { originalOrder: 0, jobId: 'long' } })
+      const firstShort = runTtsChunks(['S1'], 1, async (chunk) => {
+        started.push(chunk)
+        secondShort = runTtsChunks(['S2'], 1, async (nextChunk) => {
+          started.push(nextChunk)
+          return nextChunk
+        }, { provider: 'grok', scheduler, job: { originalOrder: 2, jobId: 'short-2' } })
+        return chunk
+      }, { provider: 'grok', scheduler, job: { originalOrder: 1, jobId: 'short-1' } })
+
+      expect(await scheduler.waitForRegisteredJobs(2, 100)).toBe(true)
+      scheduler.start()
+      await waitForCondition(() => started.length >= 2, 'dispatch aging did not start the waiting long job')
+      expect(started.slice(0, 2)).toEqual(['S1', 'L1'])
+      releaseImmediately = true
+      releaseLong?.()
+      await Promise.all([long, firstShort, secondShort as Promise<string[]>])
+    })
+
+  test('hosted TTS admission tokens attribute retries and rate limits to the exact chunk job', async () => {
+      const scheduler = createHostedTtsBatchCoordinator(2)
+      const first = scheduler.runChunks('grok', ['A'], async (chunk, _index, admission) => {
+        expect(Object.isFrozen(admission)).toBe(true)
+        expect(Object.isFrozen(admission.context)).toBe(true)
+        scheduler.notifyRetry(admission)
+        scheduler.notifyRetry(admission)
+        scheduler.notifyRetry({ ...admission })
+        scheduler.notifyRateLimit(admission, { retryAfterMs: 0 })
+        return chunk
+      }, { job: { jobId: 'job-a', inputIndex: 0, targetIndex: 0 } })
+      const second = scheduler.runChunks('grok', ['B'], async (chunk, _index, admission) => {
+        scheduler.notifyRetry(admission)
+        return chunk
+      }, { job: { jobId: 'job-b', inputIndex: 1, targetIndex: 0 } })
+
+      expect(await scheduler.waitForRegisteredJobs(2, 100)).toBe(true)
+      scheduler.start()
+      await Promise.all([first, second])
+      const telemetry = scheduler.getTelemetry()
+      expect(telemetry.providers[0]).toMatchObject({ retryCount: 3, rateLimitCount: 1 })
+      expect(telemetry.jobs.find(job => job.jobId === 'job-a')).toMatchObject({ retryCount: 2, rateLimitCount: 1 })
+      expect(telemetry.jobs.find(job => job.jobId === 'job-b')).toMatchObject({ retryCount: 1, rateLimitCount: 0 })
+      expect(telemetry.providers[0]?.retryCount).toBe(telemetry.jobs.reduce((sum, job) => sum + job.retryCount, 0))
+      expect(telemetry.providers[0]?.rateLimitCount).toBe(telemetry.jobs.reduce((sum, job) => sum + job.rateLimitCount, 0))
+    })
+
+  test('hosted TTS scheduler bindings preserve input, target, turn, and segment identity', async () => {
+      const scheduler = createHostedTtsChunkScheduler(1)
+      const targetScheduler = bindHostedTtsChunkScheduler(scheduler, {
+        job: { jobId: 'input-2-target-3', inputIndex: 2, targetIndex: 3, originalOrder: 23 }
+      })
+      const segmentScheduler = bindHostedTtsChunkScheduler(targetScheduler, {
+        job: { jobId: 'input-2-target-3-turn-4-segment-5', turnIndex: 4, segmentIndex: 5, originalOrder: 23.004005 }
+      })
+
+      await segmentScheduler.runChunks('grok', ['chunk'], async (chunk) => chunk)
+      expect(scheduler.getTelemetry().jobs[0]).toMatchObject({
+        jobId: 'input-2-target-3-turn-4-segment-5',
+        inputIndex: 2,
+        targetIndex: 3,
+        turnIndex: 4,
+        segmentIndex: 5,
+        originalOrder: 23.004005
+      })
+    })
+
+  test('hosted TTS scope labels isolate pressure lanes for the same provider', async () => {
+      const scheduler = createHostedTtsChunkScheduler(2)
+      const releases: Array<() => void> = []
+      let releaseImmediately = false
+      let active = 0
+      let maxActive = 0
+      const runChunk = async (chunk: string): Promise<string> => {
+        active += 1
+        maxActive = Math.max(maxActive, active)
+        if (!releaseImmediately) await new Promise<void>((resolve) => releases.push(resolve))
+        active -= 1
+        return chunk
+      }
+      const first = runTtsChunks(['A1', 'A2'], 2, runChunk, { provider: 'grok', scheduler, scopeLabel: 'account-a' })
+      const second = runTtsChunks(['B1', 'B2'], 2, runChunk, { provider: 'grok', scheduler, scopeLabel: 'account-b' })
+
+      try {
+        await waitForCondition(() => releases.length === 4, 'scoped hosted TTS lanes did not admit independently')
+        expect(maxActive).toBe(4)
+        expect(scheduler.getProviderSnapshot('grok', 'account-a')).toMatchObject({ active: 2, laneKey: 'grok:account-a' })
+        expect(scheduler.getProviderSnapshot('grok', 'account-b')).toMatchObject({ active: 2, laneKey: 'grok:account-b' })
+      } finally {
+        releaseImmediately = true
+        for (const release of releases.splice(0)) release()
+      }
+      await Promise.all([first, second])
+      expect(scheduler.getTelemetry().providers.map(provider => provider.laneKey)).toEqual(['grok:account-a', 'grok:account-b'])
+    })
+
   test('hosted TTS chunk scheduler uses independent caps for different providers', async () => {
       const scheduler = createHostedTtsChunkScheduler(2)
       const releases: Array<() => void> = []
@@ -212,11 +348,12 @@ describe('TTS provider service contracts', () => {
       let releaseImmediately = false
       let rateLimited = false
 
-      const runPromise = runTtsChunks(['a', 'b', 'c', 'd', 'e'], 4, async (chunk) => {
+      const runPromise = runTtsChunks(['a', 'b', 'c', 'd', 'e'], 4, async (chunk, _index, admission) => {
         starts.push(chunk)
         if (!rateLimited) {
           rateLimited = true
-          scheduler.notifyRateLimit('grok', { retryAfterMs: 30 })
+          if (!admission) throw new Error('Missing hosted TTS admission token')
+          scheduler.notifyRateLimit(admission, { retryAfterMs: 30 })
         }
         if (!releaseImmediately) {
           await new Promise<void>((resolve) => releases.push(resolve))
@@ -246,8 +383,13 @@ describe('TTS provider service contracts', () => {
 
   test('hosted TTS chunk scheduler gradually ramps successful providers back to the configured max', async () => {
       const scheduler = createHostedTtsChunkScheduler(4)
-
-      scheduler.notifyRateLimit('grok', { retryAfterMs: 0 })
+      let admission
+      await scheduler.runChunks('grok', ['seed'], async (chunk, _index, token) => {
+        admission = token
+        return chunk
+      })
+      if (!admission) throw new Error('Missing hosted TTS admission token')
+      scheduler.notifyRateLimit(admission, { retryAfterMs: 0 })
       expect(scheduler.getProviderSnapshot('grok').currentLimit).toBe(2)
 
       await scheduler.runChunks('grok', ['a', 'b'], async (chunk) => chunk)
@@ -266,7 +408,13 @@ describe('TTS provider service contracts', () => {
       const cancellation = new Error('cancel queued hosted TTS job')
       let starts = 0
 
-      scheduler.notifyRateLimit('grok', { retryAfterMs: 10_000 })
+      let admission
+      await scheduler.runChunks('grok', ['seed'], async (chunk, _index, token) => {
+        admission = token
+        return chunk
+      })
+      if (!admission) throw new Error('Missing hosted TTS admission token')
+      scheduler.notifyRateLimit(admission, { retryAfterMs: 10_000 })
       const runPromise = runTtsChunks(['a', 'b'], 1, async (chunk) => {
         starts += 1
         return chunk

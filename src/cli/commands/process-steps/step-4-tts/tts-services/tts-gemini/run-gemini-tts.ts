@@ -103,7 +103,7 @@ export const runGeminiTts = async (
   const rawPaths: string[] = []
 
   try {
-    const chunkPathGroups = await runTtsChunks(chunks, options.chunkConcurrency, async (chunk, index) => {
+    const chunkPathGroups = await runTtsChunks(chunks, options.chunkConcurrency, async (chunk, index, admission) => {
       const chunkIndex = index + 1
       const speakerVoiceConfigs = registry ? buildGeminiSpeakerVoiceConfigs(registry) : undefined
       const generationConfig = {
@@ -120,7 +120,7 @@ export const runGeminiTts = async (
           operationName: `gemini-tts-chunk-${chunkIndex}`,
           abortSignal: options.abortSignal,
           classifier: classifyGeminiTtsRetry,
-          ttsProvider: 'gemini',
+          admission,
           chunkScheduler: options.chunkScheduler
         },
         async (signal, requestAttempt) => await dispatchTtsProviderRequest(options.requestEvidence, {

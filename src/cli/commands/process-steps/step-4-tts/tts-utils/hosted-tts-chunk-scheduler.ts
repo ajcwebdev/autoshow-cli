@@ -1,5 +1,6 @@
 import type {
   HostedTtsBatchCoordinator,
+  HostedTtsChunkAdmissionToken,
   HostedTtsChunkJob,
   HostedTtsChunkRateLimitFeedback,
   HostedTtsChunkScheduler,
@@ -15,8 +16,10 @@ import type {
   TtsProvider
 } from '~/types'
 import { DEFAULT_TTS_CHUNK_CONCURRENCY } from '~/utils/concurrency-defaults'
+import { createProviderLaneIdentity, DEFAULT_PROVIDER_LANE_SCOPE_LABEL } from '~/cli/commands/process-steps/provider-lane-contract'
 
 const DEFAULT_RATE_LIMIT_PAUSE_MS = 2_000
+export const HOSTED_TTS_DEFAULT_SCOPE_LABEL = DEFAULT_PROVIDER_LANE_SCOPE_LABEL
 
 export const normalizeHostedTtsChunkConcurrency = (concurrency: number | undefined): number => {
   if (typeof concurrency !== 'number' || !Number.isFinite(concurrency)) {
@@ -80,16 +83,18 @@ const compareJobPriority = (
   if (left.startedChunks !== right.startedChunks) {
     return left.startedChunks - right.startedChunks
   }
-  if (left.lastSelectedAtMs !== right.lastSelectedAtMs) {
-    return left.lastSelectedAtMs - right.lastSelectedAtMs
+  if (left.lastDispatchSequence !== right.lastDispatchSequence) {
+    return left.lastDispatchSequence - right.lastDispatchSequence
   }
   return (left.originalOrder ?? left.internalId) - (right.originalOrder ?? right.internalId)
 }
 
 export class HostedTtsBatchCoordinatorImpl implements HostedTtsBatchCoordinator {
   readonly #maxLimit: number
+  readonly #maxActiveChunksPerJob: number | undefined
   readonly #defaultRateLimitPauseMs: number
-  readonly #states = new Map<TtsProvider, HostedTtsProviderChunkState>()
+  readonly #states = new Map<string, HostedTtsProviderChunkState>()
+  readonly #admissionJobs = new WeakMap<HostedTtsChunkAdmissionToken, HostedTtsChunkJob>()
   readonly #registrationWaiters: Array<() => void> = []
   #autoStart: boolean
   #started: boolean
@@ -101,16 +106,21 @@ export class HostedTtsBatchCoordinatorImpl implements HostedTtsBatchCoordinator 
       ? { maxConcurrency: options, autoStart: true }
       : options
     this.#maxLimit = normalizeHostedTtsChunkConcurrency(normalizedOptions?.maxConcurrency)
+    this.#maxActiveChunksPerJob = typeof normalizedOptions?.maxActiveChunksPerJob === 'number'
+      ? Math.max(1, Math.trunc(normalizedOptions.maxActiveChunksPerJob))
+      : undefined
     this.#defaultRateLimitPauseMs = Math.max(0, Math.trunc(normalizedOptions?.defaultRateLimitPauseMs ?? DEFAULT_RATE_LIMIT_PAUSE_MS))
     this.#autoStart = normalizedOptions?.autoStart !== false
     this.#started = this.#autoStart
   }
 
-  #getState(provider: TtsProvider): HostedTtsProviderChunkState {
-    const existing = this.#states.get(provider)
+  #getState(provider: TtsProvider, scopeLabel?: string | undefined): HostedTtsProviderChunkState {
+    const lane = createProviderLaneIdentity(provider, scopeLabel, HOSTED_TTS_DEFAULT_SCOPE_LABEL)
+    const existing = this.#states.get(lane.laneKey)
     if (existing) return existing
 
     const state: HostedTtsProviderChunkState = {
+      lane,
       provider,
       maxLimit: this.#maxLimit,
       currentLimit: this.#maxLimit,
@@ -119,6 +129,7 @@ export class HostedTtsBatchCoordinatorImpl implements HostedTtsBatchCoordinator 
       allJobs: [],
       pauseUntilMs: 0,
       successStreak: 0,
+      dispatchSequence: 0,
       stats: {
         startedChunks: 0,
         completedChunks: 0,
@@ -132,7 +143,7 @@ export class HostedTtsBatchCoordinatorImpl implements HostedTtsBatchCoordinator 
         limitChanges: []
       }
     }
-    this.#states.set(provider, state)
+    this.#states.set(lane.laneKey, state)
     return state
   }
 
@@ -178,16 +189,47 @@ export class HostedTtsBatchCoordinatorImpl implements HostedTtsBatchCoordinator 
   }
 
   #selectJob(state: HostedTtsProviderChunkState): HostedTtsChunkJob | undefined {
-    const baseEligible = state.jobs
-      .filter((job) => hasRemainingChunks(job) && job.active === 0)
-      .sort(compareJobPriority)
-    if (baseEligible.length > 0) {
-      return baseEligible[0]
+    const runnable = state.jobs.filter(hasRemainingChunks)
+    if (runnable.length === 0) {
+      return undefined
     }
 
-    return state.jobs
-      .filter(hasRemainingChunks)
-      .sort(compareJobPriority)[0]
+    const dynamicWindow = Math.max(1, Math.ceil(state.currentLimit / runnable.length))
+    const effectiveWindow = this.#maxActiveChunksPerJob === undefined
+      ? dynamicWindow
+      : Math.min(dynamicWindow, this.#maxActiveChunksPerJob)
+    const eligible = runnable.filter((job) => job.active < effectiveWindow)
+    if (eligible.length === 0) {
+      return undefined
+    }
+
+    const starvationThreshold = Math.max(1, runnable.length - 1)
+    const aged = eligible
+      .filter((job) => job.dispatchDebt >= starvationThreshold)
+      .sort((left, right) => {
+        if (left.dispatchDebt !== right.dispatchDebt) {
+          return right.dispatchDebt - left.dispatchDebt
+        }
+        if (left.lastDispatchSequence !== right.lastDispatchSequence) {
+          return left.lastDispatchSequence - right.lastDispatchSequence
+        }
+        return (left.originalOrder ?? left.internalId) - (right.originalOrder ?? right.internalId)
+      })
+    const selected = aged[0] ?? eligible.slice().sort(compareJobPriority)[0]
+    if (!selected) {
+      return undefined
+    }
+
+    state.dispatchSequence += 1
+    for (const job of eligible) {
+      if (job === selected) {
+        job.dispatchDebt = 0
+        job.lastDispatchSequence = state.dispatchSequence
+      } else {
+        job.dispatchDebt += 1
+      }
+    }
+    return selected
   }
 
   #recordLimitChange(
@@ -201,21 +243,14 @@ export class HostedTtsBatchCoordinatorImpl implements HostedTtsBatchCoordinator 
     state.stats.limitChanges.push({
       atMs: Date.now(),
       provider: state.provider,
+      laneKey: state.lane.laneKey,
       previousLimit,
       nextLimit: state.currentLimit,
       reason
     })
   }
 
-  #getAttributableJob(state: HostedTtsProviderChunkState): HostedTtsChunkJob | undefined {
-    const activeJobs = state.allJobs
-      .filter((job) => job.active > 0 && !job.settled)
-      .sort((left, right) => right.lastSelectedAtMs - left.lastSelectedAtMs)
-    return activeJobs[0]
-  }
-
-  #recordSuccess(provider: TtsProvider): void {
-    const state = this.#getState(provider)
+  #recordSuccess(state: HostedTtsProviderChunkState): void {
     if (state.currentLimit >= state.maxLimit) {
       state.successStreak = 0
       return
@@ -263,21 +298,39 @@ export class HostedTtsBatchCoordinatorImpl implements HostedTtsBatchCoordinator 
     job.nextChunkIndex += 1
     job.startedChunks += 1
     job.active += 1
-    job.lastSelectedAtMs = Date.now()
+    const selectedAtMs = Date.now()
 
     state.active += 1
     state.stats.startedChunks += 1
     state.stats.maxActive = Math.max(state.stats.maxActive, state.active)
 
-    const waitMs = Math.max(0, job.lastSelectedAtMs - job.registeredAtMs)
+    const waitMs = Math.max(0, selectedAtMs - job.registeredAtMs)
     job.queueWaitSamplesMs.push(waitMs)
     state.stats.queueWaitSamplesMs.push(waitMs)
     const activeStartedAtMs = Date.now()
+    const publicContext = Object.freeze({
+      ...(job.jobId ? { jobId: job.jobId } : {}),
+      ...(job.label ? { label: job.label } : {}),
+      ...(typeof job.inputIndex === 'number' ? { inputIndex: job.inputIndex } : {}),
+      ...(typeof job.targetIndex === 'number' ? { targetIndex: job.targetIndex } : {}),
+      ...(typeof job.turnIndex === 'number' ? { turnIndex: job.turnIndex } : {}),
+      ...(typeof job.segmentIndex === 'number' ? { segmentIndex: job.segmentIndex } : {}),
+      ...(typeof job.originalOrder === 'number' ? { originalOrder: job.originalOrder } : {})
+    })
+    const admission: HostedTtsChunkAdmissionToken = Object.freeze({
+      lane: state.lane,
+      workId: job.jobId ?? `${state.lane.laneKey}-${job.internalId}`,
+      unitIndex: chunkIndex,
+      chunkIndex,
+      internalJobId: job.internalId,
+      context: publicContext
+    })
+    this.#admissionJobs.set(admission, job)
 
     void (async () => {
       let succeeded = false
       try {
-        job.results[chunkIndex] = await job.runChunk(job.chunks[chunkIndex] as string, chunkIndex)
+        job.results[chunkIndex] = await job.runChunk(job.chunks[chunkIndex] as string, chunkIndex, admission)
         succeeded = true
         job.completedChunks += 1
         state.stats.completedChunks += 1
@@ -294,7 +347,7 @@ export class HostedTtsBatchCoordinatorImpl implements HostedTtsBatchCoordinator 
         state.active = Math.max(0, state.active - 1)
 
         if (succeeded && !job.failed) {
-          this.#recordSuccess(job.provider)
+          this.#recordSuccess(state)
         }
         this.#settleFailedJobIfInactive(state, job)
         this.#settleJobIfComplete(state, job)
@@ -330,7 +383,7 @@ export class HostedTtsBatchCoordinatorImpl implements HostedTtsBatchCoordinator 
   async runChunks<T>(
     provider: TtsProvider,
     chunks: readonly string[],
-    runChunk: (chunk: string, index: number) => Promise<T>,
+    runChunk: (chunk: string, index: number, admission: HostedTtsChunkAdmissionToken) => Promise<T>,
     options: HostedTtsRunChunksOptions = {}
   ): Promise<T[]> {
     options.abortSignal?.throwIfAborted()
@@ -338,13 +391,14 @@ export class HostedTtsBatchCoordinatorImpl implements HostedTtsBatchCoordinator 
       return []
     }
 
-    const state = this.#getState(provider)
+    const state = this.#getState(provider, options.scopeLabel)
     const internalId = this.#nextJobId
     this.#nextJobId += 1
     const jobContext = options.job ?? {}
     const job: HostedTtsChunkJob<T> = {
       ...jobContext,
       internalId,
+      lane: state.lane,
       jobId: jobContext.jobId ?? `${provider}-${internalId}`,
       provider,
       originalOrder: jobContext.originalOrder ?? internalId,
@@ -361,7 +415,8 @@ export class HostedTtsBatchCoordinatorImpl implements HostedTtsBatchCoordinator 
       rateLimitCount: 0,
       queueWaitSamplesMs: [],
       activeLatencySamplesMs: [],
-      lastSelectedAtMs: 0,
+      dispatchDebt: 0,
+      lastDispatchSequence: 0,
       failed: false,
       settled: false,
       abortSignal: options.abortSignal,
@@ -397,28 +452,28 @@ export class HostedTtsBatchCoordinatorImpl implements HostedTtsBatchCoordinator 
     return await promise
   }
 
-  notifyRetry(provider: TtsProvider): void {
-    const state = this.#getState(provider)
+  notifyRetry(admission: HostedTtsChunkAdmissionToken): void {
+    const job = this.#admissionJobs.get(admission)
+    if (!job) return
+    const state = this.#states.get(job.lane.laneKey)
+    if (!state) return
     state.stats.retryCount += 1
-    const job = this.#getAttributableJob(state)
-    if (job) {
-      job.retryCount += 1
-    }
+    job.retryCount += 1
   }
 
   notifyRateLimit(
-    provider: TtsProvider,
+    admission: HostedTtsChunkAdmissionToken,
     feedback: HostedTtsChunkRateLimitFeedback = {}
   ): void {
-    const state = this.#getState(provider)
+    const job = this.#admissionJobs.get(admission)
+    if (!job) return
+    const state = this.#states.get(job.lane.laneKey)
+    if (!state) return
     const previousLimit = state.currentLimit
     state.currentLimit = Math.max(1, Math.floor(state.currentLimit / 2))
     state.successStreak = 0
     state.stats.rateLimitCount += 1
-    const job = this.#getAttributableJob(state)
-    if (job) {
-      job.rateLimitCount += 1
-    }
+    job.rateLimitCount += 1
     this.#recordLimitChange(state, previousLimit, 'rate-limit')
 
     const pauseMs = feedback.retryAfterMs !== undefined
@@ -434,10 +489,13 @@ export class HostedTtsBatchCoordinatorImpl implements HostedTtsBatchCoordinator 
     this.#drain(state)
   }
 
-  getProviderSnapshot(provider: TtsProvider): HostedTtsChunkSchedulerSnapshot {
-    const state = this.#getState(provider)
+  getProviderSnapshot(provider: TtsProvider, scopeLabel?: string | undefined): HostedTtsChunkSchedulerSnapshot {
+    const state = this.#getState(provider, scopeLabel)
     return {
       provider,
+      lane: state.lane,
+      scopeLabel: state.lane.scopeLabel,
+      laneKey: state.lane.laneKey,
       maxLimit: state.maxLimit,
       currentLimit: state.currentLimit,
       active: state.active,
@@ -459,6 +517,9 @@ export class HostedTtsBatchCoordinatorImpl implements HostedTtsBatchCoordinator 
     for (const state of this.#states.values()) {
       providers.push({
         provider: state.provider,
+        lane: state.lane,
+        scopeLabel: state.lane.scopeLabel,
+        laneKey: state.lane.laneKey,
         maxLimit: state.maxLimit,
         currentLimit: state.currentLimit,
         startedChunks: state.stats.startedChunks,
@@ -479,7 +540,7 @@ export class HostedTtsBatchCoordinatorImpl implements HostedTtsBatchCoordinator 
     }
 
     return {
-      providers: providers.sort((a, b) => a.provider.localeCompare(b.provider)),
+      providers: providers.sort((a, b) => (a.laneKey ?? a.provider).localeCompare(b.laneKey ?? b.provider)),
       jobs: jobs.sort((a, b) => (a.originalOrder ?? 0) - (b.originalOrder ?? 0))
     }
   }
@@ -487,6 +548,8 @@ export class HostedTtsBatchCoordinatorImpl implements HostedTtsBatchCoordinator 
   #summarizeJob(job: HostedTtsChunkJob): HostedTtsSchedulerJobSummary {
     return {
       provider: job.provider,
+      scopeLabel: job.lane.scopeLabel,
+      laneKey: job.lane.laneKey,
       chunkCount: job.chunks.length,
       startedChunks: job.startedChunks,
       completedChunks: job.completedChunks,
@@ -499,6 +562,7 @@ export class HostedTtsBatchCoordinatorImpl implements HostedTtsBatchCoordinator 
       ...(job.label ? { label: job.label } : {}),
       ...(typeof job.inputIndex === 'number' ? { inputIndex: job.inputIndex } : {}),
       ...(typeof job.targetIndex === 'number' ? { targetIndex: job.targetIndex } : {}),
+      ...(typeof job.turnIndex === 'number' ? { turnIndex: job.turnIndex } : {}),
       ...(typeof job.segmentIndex === 'number' ? { segmentIndex: job.segmentIndex } : {}),
       ...(typeof job.originalOrder === 'number' ? { originalOrder: job.originalOrder } : {})
     }
@@ -571,3 +635,29 @@ export const createHostedTtsBatchCoordinator = (
       ? { maxConcurrency: optionsOrConcurrency, autoStart: false }
       : { ...optionsOrConcurrency, autoStart: optionsOrConcurrency?.autoStart ?? false }
   )
+
+export const bindHostedTtsChunkScheduler = (
+  scheduler: HostedTtsChunkScheduler,
+  binding: Pick<HostedTtsRunChunksOptions, 'job' | 'scopeLabel'>
+): HostedTtsChunkScheduler => ({
+  runChunks: async (provider, chunks, runChunk, options = {}) => await scheduler.runChunks(
+    provider,
+    chunks,
+    runChunk,
+    {
+      ...options,
+      job: {
+        ...binding.job,
+        ...options.job
+      },
+      scopeLabel: options.scopeLabel ?? binding.scopeLabel
+    }
+  ),
+  notifyRateLimit: (admission, feedback) => scheduler.notifyRateLimit(admission, feedback),
+  notifyRetry: (admission) => scheduler.notifyRetry(admission),
+  getProviderSnapshot: (provider, scopeLabel) => scheduler.getProviderSnapshot(
+    provider,
+    scopeLabel ?? binding.scopeLabel
+  ),
+  getTelemetry: () => scheduler.getTelemetry()
+})

@@ -184,14 +184,14 @@ export const runMistralTts = async (
     const chunkPaths: string[] = []
 
     try {
-      const orderedChunkPaths = await runTtsChunks(chunks, options.chunkConcurrency, async (chunk, index) => {
+      const orderedChunkPaths = await runTtsChunks(chunks, options.chunkConcurrency, async (chunk, index, admission) => {
         const chunkIndex = index + 1
         const chunkPath = `${outputDir}/speech-mistral-chunk-${String(chunkIndex).padStart(3, '0')}.${responseFormat}`
         const response = await withHostedTtsRetry(
           {
             operationName: `mistral-tts-chunk-${chunkIndex}`,
             abortSignal: options.abortSignal,
-            ttsProvider: 'mistral',
+            admission,
             chunkScheduler: options.chunkScheduler
           },
           async (signal, requestAttempt) => {

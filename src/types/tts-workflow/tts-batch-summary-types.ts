@@ -20,7 +20,8 @@ export type HostedEstimateJob = {
   active: number
   started: number
   completed: number
-  lastSelectedAt: number
+  dispatchDebt: number
+  lastDispatchSequence: number
   originalOrder: number
 }
 

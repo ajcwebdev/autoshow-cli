@@ -169,7 +169,7 @@ export const runHumeNativeUtterances = async (
         ...(continuationGenerationId ? { context: { generation_id: continuationGenerationId } } : {})
       }
       const requestControls = { version: '2', format: { type: 'mp3' }, numGenerations: takeCount, includeTimestampTypes: ['word', 'phoneme'] }
-      const payload = await withHostedTtsRetry({ operationName: `hume-native-${chunkIndex}`, abortSignal: options.abortSignal, ttsProvider: 'hume', chunkScheduler: options.chunkScheduler }, async (signal, attempt) => await dispatchTtsProviderRequest(options.requestEvidence, {
+      const payload = await withHostedTtsRetry({ operationName: `hume-native-${chunkIndex}`, abortSignal: options.abortSignal }, async (signal, attempt) => await dispatchTtsProviderRequest(options.requestEvidence, {
         chunkIndex,
         endpointKind: 'native-utterance-synthesis',
         serializerVersion: 'hume.native-utterances.phase-3-v1',

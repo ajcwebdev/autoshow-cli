@@ -1,4 +1,4 @@
-import type { ProviderCompletionStatus } from '~/types'
+import type { ProviderCompletionStatus, ProviderLaneIdentity, ProviderLanePressureFeedback } from '~/types'
 
 export type HostedOcrProfileStore<TVersion extends number, TProfile> = {
   version: TVersion
@@ -15,12 +15,7 @@ export type PersistHostedOcrProfilesOptions = {
   now?: Date | undefined
 }
 
-export type HostedOcrSchedulerRetryPressure = {
-  reason: string
-  delayMs?: number | undefined
-  status?: number | undefined
-  retryAfterMs?: number | undefined
-}
+export type HostedOcrSchedulerRetryPressure = ProviderLanePressureFeedback
 
 export type HostedOcrSchedulerRetryPressureHandler = (pressure: HostedOcrSchedulerRetryPressure) => void
 
@@ -53,6 +48,9 @@ export type HostedOcrSchedulerAdmission = {
   pageCount?: number | undefined
   laneKey?: string | undefined
   scopeLabel?: string | undefined
+  lane?: ProviderLaneIdentity<HostedOcrService> | undefined
+  documentKey?: string | undefined
+  documentPageCount?: number | undefined
 }
 
 export type HostedOcrSchedulerRunControls = {
@@ -74,6 +72,7 @@ export type HostedOcrSchedulerTargetTelemetry = {
 }
 
 export type HostedOcrSchedulerLaneTelemetry = {
+  lane?: ProviderLaneIdentity<HostedOcrService> | undefined
   laneKey: string
   service: HostedOcrService
   scopeLabel: string
@@ -117,9 +116,11 @@ export type HostedOcrSchedulerGatingTarget = {
 
 export type HostedOcrSchedulerTelemetry = {
   version: 1
+  lifetime?: 'document' | 'run' | undefined
   mode: OcrConcurrencyMode
   fixedCap?: number | undefined
   documentPages: number
+  documentCount?: number | undefined
   lanes: HostedOcrSchedulerLaneTelemetry[]
   likelyGatingTarget?: HostedOcrSchedulerGatingTarget | undefined
 }
@@ -135,11 +136,14 @@ export type HostedOcrScheduler = {
     admission: HostedOcrSchedulerAdmission,
     pressure: HostedOcrSchedulerRetryPressure
   ) => void
+  createDocumentScope: (pageCount: number) => HostedOcrScheduler
+  getLifetime: () => 'document' | 'run'
 }
 
 export type HostedOcrSchedulerOptions = {
   mode: OcrConcurrencyMode
   pageCount: number
+  lifetime?: 'document' | 'run' | undefined
   fixedCap?: number | undefined
   profilePath?: string | undefined
 }
@@ -147,6 +151,7 @@ export type HostedOcrSchedulerOptions = {
 export type QueuedHostedOcrJob<T = unknown> = {
   admission: Required<Pick<HostedOcrSchedulerAdmission, 'service' | 'model'>> & HostedOcrSchedulerAdmission
   targetKey: string
+  documentKey?: string | undefined
   pageCount: number
   task: (controls: HostedOcrSchedulerRunControls) => Promise<T>
   resolve: (value: T) => void
@@ -165,6 +170,7 @@ export type HostedOcrSchedulerTargetStats = {
 }
 
 export type HostedOcrSchedulerLaneState = {
+  lane: ProviderLaneIdentity<HostedOcrService>
   laneKey: string
   service: HostedOcrService
   scopeLabel: string
@@ -194,5 +200,6 @@ export type HostedOcrSchedulerLaneState = {
   roundRobinCursor: number
   queues: Map<string, QueuedHostedOcrJob[]>
   targets: Map<string, HostedOcrSchedulerTargetStats>
+  documentTargets: Map<string, Map<string, HostedOcrSchedulerTargetStats>>
   pumpTimer?: ReturnType<typeof setTimeout> | undefined
 }

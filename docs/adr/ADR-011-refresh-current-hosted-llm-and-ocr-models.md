@@ -182,13 +182,97 @@ The structural legacy program's W10.1 MiniMax gate was answered from published d
 
 > Follow-up (2026-08-07): `mistral-ocr-latest` was removed from `SUPPORTED_MISTRAL_OCR_MODELS` and from `ocr-config/ocr-mistral.json`. The alias predated this ADR and was the one selector left contradicting its "do not register any `*-latest` alias" clause: its registry row duplicated `mistral-ocr-4-0` byte-for-byte, so `--all-ocr` paid for the same model twice and price reports listed one model under two names. `--provider mistral=mistral-ocr-latest` now returns the standard invalid-model error naming `mistral-ocr-2512` and `mistral-ocr-4-0`, pinned by `provider-expansion-concurrency.test.ts`. The cheapest Mistral OCR default, `mistral-ocr-2512`, is unchanged.
 
+## Remaining Work Recommendation: Stage the Gemini Default Migration Explicitly
+
+This subordinate mini-ADR resolves how to replace the `gemini-3.1-flash-lite` bare write and OCR defaults before the provider's announced 2027-05-07 shutdown while preserving reproducible explicit selectors.
+
+- **Recommendation Status:** Recommended, pending implementation
+- **Recommended Successor:** `gemini-3.5-flash-lite`, the concrete replacement already registered for write and OCR and identified by Google in the evidence recorded above
+- **Migration Deadline:** Land the default change no later than 2027-02-06, 90 days before shutdown; recheck official availability, pricing, and shutdown dates immediately before implementation
+- **Paid Calibration:** Helpful but not a prerequisite; any live run still requires immediate explicit approval naming the exact command and expected cost or quota risk
+
+| Current State | Recommended Next Step | Target Transition |
+|---|---|---|
+| The hosted LLM/OCR refresh is implemented. The retiring Gemini 3.1 Flash-Lite remains the computed cheapest write/OCR default, while its registered replacement has provisional heuristics. | Add static lifecycle eligibility and migrate bare and all-provider selection to Gemini 3.5 Flash-Lite by 2027-02-06, retaining explicit old-model selection until shutdown; calibrate only with separate paid approval. | Keep this ADR accepted with supported deterministic defaults, reproducible lifecycle state, and dated evidence. |
+
+### Context and gap analysis
+
+The registry deliberately kept `gemini-3.1-flash-lite` as the cheapest default when the newer Gemini models were added. That choice preserved bare-selector behavior and a lower estimated cost while the older model remained supported. It cannot remain a permanent rule because cheapest-model selection is computed from active registry prices, and the retiring model is still cheaper than `gemini-3.5-flash-lite`. Merely reordering `SUPPORTED_GEMINI_MODELS` will not move the default, and waiting until the shutdown date leaves configs, documentation, tests, and user expectations no transition period.
+
+Removing `gemini-3.1-flash-lite` from every supported list 90 days early would force the bare default to move, but it would also reject explicit historical configurations while the provider still serves them. Hardcoding a one-off Gemini default would preserve the old explicit selector but undermine the repository's central cheapest-selection policy and create a provider exception that future retirements would repeat. A date-driven runtime switch would make identical installed code resolve a bare selector differently depending on the wall clock, which is hostile to reproducible manifests, tests, and offline price preflight.
+
+The registry needs a static distinction between an explicitly selectable model and a model eligible for automatic/default selection. The same distinction should govern `--all-llm` and `--all-ocr`: a model in a retirement window may remain available for an explicit rerun but should not be added automatically to a paid expansion. Lifecycle metadata is preferable to inferring policy from array position, price, or model-name suffixes.
+
+The successor does not need to be rediscovered. `gemini-3.5-flash-lite` is already present on both surfaces, uses the same Gemini request clients and structured-output path, supports the relevant input modalities, and is documented in this ADR as Google's replacement. Its provisional timing and token heuristics affect estimate accuracy, not request compatibility. The migration should therefore not be blocked on a paid benchmark. Calibration can improve `--price` confidence later, but an expiring default must have a deterministic supported successor even when no paid run is approved.
+
+### Recommendation
+
+Add typed, static lifecycle/selection metadata to hosted model registry entries. The minimum contract should represent `status` (`active` or `deprecated`), optional `shutdownDate`, optional `replacementModel`, `defaultEligible`, and `allExpansionEligible`. Do not make selection depend directly on the current date. A repository change advances lifecycle state after maintainers recheck official evidence, so a given commit always resolves the same selectors.
+
+At least 90 days before shutdown, mark `gemini-3.1-flash-lite` deprecated and ineligible for default and all-provider expansion on both write and OCR while keeping its explicit validators and pricing metadata active. `resolveCheapestModelForFlag('gemini')` and `resolveCheapestModelForFlag('gemini-ocr')` will then select `gemini-3.5-flash-lite` from the eligible set. Preserve the retiring model for explicit selection and historical resume until the provider shutdown or until official evidence shows it is unavailable earlier. Documentation and model listings should show the shutdown date and replacement without emitting a warning during unrelated commands.
+
+After shutdown, remove `gemini-3.1-flash-lite` from active supported selectors and active registry configuration in a dated model-refresh change. Retain its historical pricing and manifest normalization evidence wherever rerun/report readers require it; do not add a compatibility alias or silently rewrite an explicitly stored historical target to the successor. Resume should report that the target is retired and require explicit selection of the replacement rather than dispatching a different model under the old identity.
+
+If a paid calibration is approved before the migration, use the same fixed, non-sensitive corpus for old and new models and record request settings, reasoning effort, document modes, page bands, actual prompt/candidate/thought tokens, latency, and provider cost. Do not use a single quality or timing run to override published token rates, and do not delay the lifecycle change if approval never arrives.
+
+### Alternatives considered
+
+| Option | Advantages | Disadvantages | Recommendation |
+|---|---|---|---|
+| **Static lifecycle eligibility with `gemini-3.5-flash-lite` as the scheduled successor** | Preserves explicit historical selectors, keeps commits reproducible, excludes deprecated models from automatic paid expansion, and generalizes to future retirements | Adds typed registry metadata and selection/filtering contracts | Recommended |
+| Remove `gemini-3.1-flash-lite` from all active surfaces at the migration date | Smallest selection change and naturally exposes the next cheapest model | Breaks explicit configs before provider shutdown and shortens the migration window | Reject for the pre-shutdown phase; use after shutdown |
+| Hardcode Gemini's bare default to `gemini-3.5-flash-lite` | Easy and leaves the old selector active | Creates a provider-specific exception to computed defaults and does not solve `--all` expansion | Reject |
+| Switch automatically based on `Date.now()` and the shutdown date | No release needed at the threshold | Makes behavior time-dependent, complicates offline tests, and can change resume/default identity without a code change | Reject |
+| Migrate immediately in August 2026 | Maximizes runway and removes deadline risk | Raises bare-selector cost months before necessary and changes established behavior without a transition policy | Not preferred; allowed only if a broader model refresh intentionally chooses the earlier date |
+| Wait until 2027-05-07 | Preserves the cheapest default for the maximum time | Provides no operational buffer and risks a broken bare selector if the provider retires early or the release slips | Reject |
+| Require paid calibration before changing the default | Produces better timing and cost heuristics | Allows unavailable approval to block a mandatory compatibility migration | Reject as a gate; retain calibration as optional evidence |
+
+### Implementation plan
+
+#### Phase 1: Lifecycle contract
+
+1. Extend the hosted LLM and OCR model metadata schemas and loaders with optional lifecycle and selection fields, defaulting existing entries to active and eligible so other providers do not change.
+2. Validate that `replacementModel` names another concrete selector in the same provider/modality registry, that deprecated entries name a dated evidence source in their pricing/lifecycle notes, and that no moving alias is introduced.
+3. Update cheapest-model resolution to filter `defaultEligible === false` before comparing cost. Fail clearly if a provider has no eligible model instead of falling back to a deprecated entry.
+4. Update all-provider expansion to filter `allExpansionEligible === false` while keeping direct validator acceptance independent until removal.
+
+#### Phase 2: Pre-migration evidence refresh
+
+1. Immediately before the migration change, recheck the official model and pricing documentation for successor availability, structured-output support, shutdown date, and Standard pricing.
+2. Confirm local mocked Gemini write and OCR request contracts for `gemini-3.5-flash-lite`, including reasoning configuration, structured output, PDF/image input, usage parsing, and actual-cost projection.
+3. If and only if a maintainer separately approves exact paid commands, run a bounded calibration matrix and record the result. Otherwise retain clearly labeled provisional heuristics.
+
+#### Phase 3: Default migration by 2027-02-06
+
+1. Mark `gemini-3.1-flash-lite` deprecated with shutdown date `2027-05-07`, replacement `gemini-3.5-flash-lite`, and both automatic eligibility fields false in write and OCR.
+2. Assert bare Gemini write and OCR selectors resolve to `gemini-3.5-flash-lite`; assert explicit `gemini-3.1-flash-lite` remains accepted during the transition; assert `--all-llm` and `--all-ocr` exclude the deprecated model.
+3. Update CLI model output, command documentation, examples that imply the old bare target, registry provenance, price contracts, and resume guidance.
+4. Record the actual migration date and verification evidence in this ADR and update the README next-step row.
+
+#### Phase 4: Post-shutdown retirement
+
+1. Recheck provider status on or immediately after shutdown without making a paid request.
+2. Remove the retired selector from active write/OCR model lists and current registry config, leaving historical rate/manifest readers intact where needed.
+3. Make explicit old-selector and resume errors name `gemini-3.5-flash-lite` as the replacement, but never silently substitute it for stored provider identity.
+4. Remove lifecycle exceptions that no longer serve an active explicit selector while keeping the generic lifecycle mechanism for other models.
+
+### Acceptance and verification criteria
+
+- Before the migration patch, current behavior stays unchanged; after it, bare Gemini write and OCR resolve deterministically to `gemini-3.5-flash-lite` in every environment.
+- During the transition, explicit `gemini-3.1-flash-lite` remains accepted while bare and all-provider expansion exclude it.
+- The current date is never consulted during selector resolution, price preflight, or resume.
+- Write and OCR registries carry matching lifecycle state and replacement identity.
+- Price estimates use the successor's published rates and clearly label provisional heuristics until calibrated.
+- Historical manifests retain their concrete original selector and are never rewritten silently.
+- Verification uses `bun run check`, `bun t --price`, targeted selector expansion, cheapest-model, registry provenance, Gemini request, OCR pricing, CLI help, CLI usage-error, and resume contracts. No paid provider or quota-limited command is part of default verification.
+
 ## Follow-up Actions
 
 | Action | Owner | Current State |
 |---|---|---|
 | Calibrate Grok 4.5 OCR page timing and token heuristics from a paid run | OCR maintainers | Deferred until the exact paid provider run is separately approved |
 | Calibrate Gemini 3.6/3.5, Claude Opus 5, and Kimi K3 write and OCR heuristics from a paid run | Model registry maintainers | Deferred until the exact paid provider run is separately approved |
-| Re-evaluate the cheapest Gemini write and OCR default before `gemini-3.1-flash-lite` shuts down on 2027-05-07 | Model registry maintainers | Pending |
+| Implement typed static lifecycle eligibility and migrate bare Gemini write/OCR plus all-provider expansion to `gemini-3.5-flash-lite` no later than 2027-02-06, while retaining explicit `gemini-3.1-flash-lite` until shutdown | Model registry maintainers | Pending — follow the four-phase Remaining Work recommendation above |
 | At the next hosted LLM refresh, verify from MiniMax's published Chat Completions and model documentation whether every active MiniMax LLM selector supports OpenAI-compatible `response_format: { type: 'json_schema' }` | LLM maintainers | Closed 2026-08-10 — the current OpenAI-compatible request schema and SDK guide do not document `response_format` or `json_schema` for active `MiniMax-M3`; the deprecated native endpoint limits that feature to inactive `MiniMax-Text-01`. Keep the schema-guided compatibility path and re-evaluate only when MiniMax publishes a native contract for every active selector. |
 
 ## Verification

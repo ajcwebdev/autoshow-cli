@@ -90,7 +90,7 @@ export const runMinimaxTts = async (
   const chunkPaths: string[] = []
 
   try {
-    const orderedChunkPaths = await runTtsChunks(chunks, options.chunkConcurrency, async (chunk, index) => {
+    const orderedChunkPaths = await runTtsChunks(chunks, options.chunkConcurrency, async (chunk, index, admission) => {
       const chunkIndex = index + 1
       l.debug(`Submitting MiniMax TTS chunk ${chunkIndex}/${chunks.length}`)
       const voiceSetting = {
@@ -129,7 +129,7 @@ export const runMinimaxTts = async (
             {
               operationName: `minimax-tts-create-chunk-${chunkIndex}`,
               abortSignal: options.abortSignal,
-              ttsProvider: 'minimax',
+              admission,
               chunkScheduler: options.chunkScheduler
             },
             async (signal, requestAttempt) => await dispatchTtsProviderRequest(options.requestEvidence, {
@@ -175,7 +175,7 @@ export const runMinimaxTts = async (
                 {
                   operationName: `minimax-tts-query-chunk-${chunkIndex}`,
                   abortSignal: options.abortSignal,
-                  ttsProvider: 'minimax',
+                  admission,
                   chunkScheduler: options.chunkScheduler
                 },
                 request

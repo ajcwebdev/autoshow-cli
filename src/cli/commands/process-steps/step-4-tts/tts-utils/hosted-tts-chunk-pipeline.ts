@@ -11,14 +11,14 @@ export const runHostedTtsChunkPipeline = async (
   const chunkPaths: string[] = []
 
   try {
-    const orderedChunkPaths = await runTtsChunks(chunks, options.chunkConcurrency, async (chunk, index) => {
+    const orderedChunkPaths = await runTtsChunks(chunks, options.chunkConcurrency, async (chunk, index, admission) => {
       const chunkIndex = index + 1
       const chunkPath = `${outputDir}/speech-${provider}-chunk-${String(chunkIndex).padStart(3, '0')}.${options.chunkExtension}`
       const audioBytes = await withHostedTtsRetry(
         {
           operationName: `${provider}-tts-chunk-${chunkIndex}`,
           abortSignal: options.abortSignal,
-          ttsProvider: provider,
+          admission,
           chunkScheduler
         },
         async (signal, requestAttempt) => await options.fetchChunkAudio({
@@ -39,7 +39,13 @@ export const runHostedTtsChunkPipeline = async (
       await options.requestEvidence?.complete({ chunkIndex })
       chunkPaths.push(chunkPath)
       return chunkPath
-    }, { provider, scheduler: chunkScheduler, abortSignal: options.abortSignal })
+    }, {
+      provider,
+      scheduler: chunkScheduler,
+      job: options.chunkJob,
+      scopeLabel: options.laneScopeLabel,
+      abortSignal: options.abortSignal
+    })
 
     const audioPath = await concatAndConvertToWav(orderedChunkPaths, outputDir, providerLabel, options.abortSignal)
     const result = finalizeTtsRun({

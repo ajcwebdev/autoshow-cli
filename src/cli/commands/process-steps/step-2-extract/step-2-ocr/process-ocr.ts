@@ -34,11 +34,14 @@ export const processOcr = async (
       await downloadDocument(filePath, opts.outputDir, opts.password, sourceRef)
     )
   const ocrPreparationCache = createOcrPreparationCache()
-  const hostedOcrScheduler = rawOpts.hostedOcrScheduler ?? createHostedOcrScheduler({
+  const rootHostedOcrScheduler = rawOpts.hostedOcrScheduler ?? createHostedOcrScheduler({
     mode: opts.ocrConcurrencyMode,
     fixedCap: opts.ocrConcurrency,
     pageCount: prepared.step1Metadata.pageCount
   })
+  const hostedOcrScheduler = rootHostedOcrScheduler.getLifetime() === 'run'
+    ? rootHostedOcrScheduler.createDocumentScope(prepared.step1Metadata.pageCount)
+    : rootHostedOcrScheduler
   const optsWithPreparationCache: ExtractionOptions = {
     ...opts,
     ocrPreparationCache,

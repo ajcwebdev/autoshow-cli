@@ -5,7 +5,7 @@ import { DEFAULT_CLI_CONCURRENCY } from '~/utils/concurrency-defaults'
 import { runDialogueWorkSelector } from './dialogue-work-selector'
 import { concatAndConvertToWav } from './tts-utils/audio-utils'
 import { finalizeTtsRun } from './tts-utils/finalize-tts-run'
-import { normalizeHostedTtsChunkConcurrency } from './tts-utils/hosted-tts-chunk-scheduler'
+import { bindHostedTtsChunkScheduler, normalizeHostedTtsChunkConcurrency } from './tts-utils/hosted-tts-chunk-scheduler'
 import { TTS_CHUNK_CHARACTER_LIMITS } from './tts-utils/tts-chunking'
 import { resolveGeminiDialogueStrategyForText } from './tts-services/tts-gemini/gemini-tts-config'
 import type { CurrentTtsObservedTurn } from './script-to-audio/current-render-artifacts'
@@ -181,7 +181,25 @@ export const runMultiSpeakerTts = async (
           : undefined
         try {
           signal.throwIfAborted()
-          const result = await target.run(providerText, providerSegmentWorkspace, options, invocation, invocationEvidence)
+          const baseJob = options.hostedTtsChunkJobContext
+          const segmentJob = {
+            ...baseJob,
+            jobId: `${baseJob?.jobId ?? `tts-${target.service}`}-turn-${i}-segment-${providerSegmentIndex}`,
+            turnIndex: i,
+            segmentIndex: providerSegmentIndex,
+            originalOrder: (baseJob?.originalOrder ?? 0) + i / 1_000 + providerSegmentIndex / 1_000_000
+          }
+          const segmentOptions: TtsOptions = options.hostedTtsChunkScheduler
+            ? {
+                ...options,
+                hostedTtsChunkJobContext: segmentJob,
+                hostedTtsChunkScheduler: bindHostedTtsChunkScheduler(
+                  options.hostedTtsChunkScheduler,
+                  { job: segmentJob, scopeLabel: options.hostedTtsLaneScopeLabel }
+                )
+              }
+            : options
+          const result = await target.run(providerText, providerSegmentWorkspace, segmentOptions, invocation, invocationEvidence)
           providerSegmentPaths.push(result.audioPath)
           observedSpeaker = result.metadata.speaker?.trim() ?? observedSpeaker
         } finally {

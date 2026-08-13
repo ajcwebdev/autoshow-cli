@@ -730,7 +730,7 @@ const logHostedTtsSchedulerSummary = (
     category: 'general',
     humanTable: createHumanTable(
       telemetry.providers.map((provider) => ({
-        provider: provider.provider,
+        provider: provider.laneKey ?? provider.provider,
         chunks: `${provider.completedChunks}/${provider.startedChunks}`,
         limit: `${provider.currentLimit}/${provider.maxLimit}`,
         retries: provider.retryCount,
