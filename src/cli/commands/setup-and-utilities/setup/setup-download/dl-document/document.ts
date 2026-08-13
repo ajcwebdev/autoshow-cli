@@ -1,20 +1,25 @@
 import { runInherit, detectPlatform } from '~/cli/commands/setup-and-utilities/setup/run-complete-setup'
 import * as l from '~/utils/app-logger/app-logger'
-import { installManagedMupdfMacos, installManagedQpdfMacos } from '../macos-managed-tools'
+import { hasHealthyManagedSourceInstall, installManagedMupdfMacos, installManagedQpdfMacos } from '../macos-managed-tools'
 import { isRuntimeToolHealthy } from '../tool-health'
 import { isCompactSetupMode } from '~/utils/setup-output-mode'
 import { InternalError } from '~/utils/error-handler'
 import { refreshQpdfHealthCache, resolveHealthyQpdfToolInfo } from '~/cli/commands/process-steps/step-1-download/document/qpdf-health'
+import { resolveRuntimeToolInfo } from '~/utils/runtime-paths'
 
 const shouldPrintCompletion = (): boolean => !isCompactSetupMode()
 
 const installMutool = async (): Promise<void> => {
-  if (await isRuntimeToolHealthy('mutool', ['-v'], [0, 1])) {
+  const existing = resolveRuntimeToolInfo('mutool')
+  const platform = detectPlatform()
+  if (
+    await isRuntimeToolHealthy('mutool', ['-v'], [0, 1]) &&
+    (platform !== 'darwin' || existing?.source !== 'managed' || await hasHealthyManagedSourceInstall('mupdf'))
+  ) {
     return
   }
 
   l.write('info', 'Installing MuPDF tools')
-  const platform = detectPlatform()
 
   if (platform === 'darwin') {
     await installManagedMupdfMacos()
@@ -34,12 +39,15 @@ const installMutool = async (): Promise<void> => {
 
 const installQpdf = async (): Promise<void> => {
   const existing = await resolveHealthyQpdfToolInfo()
-  if (existing.healthy) {
+  const platform = detectPlatform()
+  if (
+    existing.healthy &&
+    (platform !== 'darwin' || existing.info?.source !== 'managed' || await hasHealthyManagedSourceInstall('qpdf'))
+  ) {
     return
   }
 
   l.write('info', 'Installing qpdf')
-  const platform = detectPlatform()
 
   if (platform === 'darwin') {
     await installManagedQpdfMacos()

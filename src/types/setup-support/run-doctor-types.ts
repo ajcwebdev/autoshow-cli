@@ -1,4 +1,4 @@
-import type { AutoshowConfig, CheckResult, LlamaSetupModelMetadata, ResolvedYtDlpBinary, RunResult } from '~/types'
+import type { AutoshowConfig, CheckResult, LlamaSetupModelMetadata, ManagedArtifactToolId, ManagedArtifactValidation, ResolvedYtDlpBinary, RunResult } from '~/types'
 export type DoctorStatus = 'OK' | 'MISSING' | 'WARN' | 'INFO'
 
 export type DoctorSeverity = 'warn' | 'info'
@@ -33,6 +33,7 @@ export type DoctorProbes = {
   readLlamaSetupModelMetadata: () => Promise<LlamaSetupModelMetadata>
   listLlamaCacheEntries: (model: string) => Promise<string[]>
   hasCachedKittenTtsModel: (model: string) => Promise<boolean>
+  validateManagedArtifact: (tool: ManagedArtifactToolId) => Promise<ManagedArtifactValidation>
 }
 
 export type DoctorReport = {

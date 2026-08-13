@@ -73,6 +73,11 @@ const DEFAULT_DEPENDENCY_METADATA: DependencyMetadata = {
     url: 'https://raw.githubusercontent.com/tesseract-ocr/tessdata/ced78752cc61322fb554c280d13360b35b8684e4/eng.traineddata',
     sha256: 'daa0c97d651c19fba3b25e81317cd697e9908c8208090c94c3905381c23fc047'
   },
+  'libjpeg-turbo': {
+    version: '3.2.0',
+    url: 'https://github.com/libjpeg-turbo/libjpeg-turbo/releases/download/3.2.0/libjpeg-turbo-3.2.0.tar.gz',
+    sha256: '6f30092cef9fb839779646608f4ee14ae3cbac989c47fa05e841b0841f09878e'
+  },
   qpdf: {
     version: '12.3.2',
     url: 'https://github.com/qpdf/qpdf/releases/download/v12.3.2/qpdf-12.3.2.tar.gz',
