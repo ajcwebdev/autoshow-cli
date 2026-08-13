@@ -82,7 +82,7 @@ describe('managed source artifact manifest', () => {
       tool: 'mupdf',
       version: '1.27.2',
       sources: [{ name: 'mupdf', version: '1.27.2' }],
-      buildFlags: ['build=release', 'HAVE_X11=no', 'HAVE_GLUT=no', 'HAVE_OBJCOPY=no'],
+      buildFlags: ['build=release', 'HAVE_X11=no', 'HAVE_GLUT=no', 'HAVE_OBJCOPY=no', 'HAVE_LIBCRYPTO=no'],
       payload: [{ path: 'bin/mutool' }]
     })
     expect(await validateManagedSourceArtifact('mupdf', {
