@@ -7,6 +7,9 @@
   "scripts": {
     "repo": "bun src/tools/repomix.ts",
     "audit:ocr-tokens": "bun scripts/audit-ocr-token-shapes.ts",
+    "toolchain:produce-unsigned": "bun src/tools/macos-toolchain-producer.ts produce",
+    "toolchain:verify-unsigned": "bun src/tools/macos-toolchain-producer.ts verify",
+    "toolchain:verify-source-fallback": "bun src/tools/macos-toolchain-producer.ts verify-source-fallback",
     "check": "bun src/tools/unique-source-name-check.ts && bunx tsc --noEmit",
     "t": "bun test/test-runner.ts",
     "autoshow": "bun src/cli/create-cli.ts",

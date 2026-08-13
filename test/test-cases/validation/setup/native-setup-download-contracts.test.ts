@@ -12,6 +12,13 @@ import { buildGithubArchiveUrl, buildGithubCommitArchiveUrl } from '~/cli/comman
 import { resolveUvAssetName, resolveUvCommandFromCandidates, resolveUvDownloadUrl } from '~/cli/commands/setup-and-utilities/setup/setup-download/managed-uv'
 import { downloadHuggingFaceSnapshot } from '~/cli/commands/setup-and-utilities/setup/setup-download/huggingface'
 import { buildManagedQpdfWrapperScript } from '~/cli/commands/setup-and-utilities/setup/setup-download/macos-managed-tools'
+import {
+  buildLibjpegTurboCmakeArguments,
+  buildQpdfCmakeArguments,
+  buildQpdfSourceEnvironment,
+  findForbiddenMacosDynamicLibraryReferences,
+  resolveQpdfSourceBuildLayout
+} from '~/cli/commands/setup-and-utilities/setup/setup-download/qpdf-source-build'
 import { hasCachedKittenTtsModel } from '~/cli/commands/process-steps/step-4-tts/tts-local/kitten/kitten-tts-model-cache'
 import {
   hasSetupManagedLlamaModel,
@@ -504,17 +511,15 @@ describe('managed macOS Tesseract setup', () => {
 })
 
 describe('managed macOS qpdf setup', () => {
-  test('generated wrapper exports qpdf lib dir and executes qpdf --version', async () => {
+  test('generated wrapper executes the static qpdf binary without a dynamic-library override', async () => {
     const dir = await makeTempDir()
     const installedQpdf = join(dir, 'tools/qpdf/bin/qpdf')
-    const libDir = join(dir, 'tools/qpdf/lib')
     const managedQpdf = join(dir, 'bin/qpdf')
     await mkdir(join(dir, 'tools/qpdf/bin'), { recursive: true })
-    await mkdir(libDir, { recursive: true })
     await mkdir(join(dir, 'bin'), { recursive: true })
     await Bun.write(installedQpdf, '#!/bin/sh\nprintf "qpdf version 12.0.0\\n"\n')
     await chmod(installedQpdf, 0o755)
-    const wrapperScript = buildManagedQpdfWrapperScript(installedQpdf, libDir)
+    const wrapperScript = buildManagedQpdfWrapperScript(installedQpdf)
     await Bun.write(managedQpdf, wrapperScript)
     await chmod(managedQpdf, 0o755)
 
@@ -530,24 +535,57 @@ describe('managed macOS qpdf setup', () => {
 
     expect(exitCode).toBe(0)
     expect(stderr).toBe('')
-    expect(wrapperScript).toContain(`export DYLD_LIBRARY_PATH="${libDir}:`)
+    expect(wrapperScript).not.toContain('DYLD_LIBRARY_PATH')
     expect(wrapperScript).toContain(`exec "${installedQpdf}" "$@"`)
     expect(stdout).toContain('qpdf version 12.0.0')
   })
 
-  test('failed wrapper validation removes stale qpdf wrapper and install tree before throwing', async () => {
+  test('uses one static libjpeg and native-crypto qpdf source recipe', () => {
+    const layout = resolveQpdfSourceBuildLayout('/tmp/qpdf-build')
+    const libjpegArgs = buildLibjpegTurboCmakeArguments(layout, '15.0')
+    const qpdfArgs = buildQpdfCmakeArguments(layout, '/tmp/qpdf-tool', '15.0')
+    const env = buildQpdfSourceEnvironment(layout)
+
+    expect(libjpegArgs).toContain('-DENABLE_SHARED=OFF')
+    expect(libjpegArgs).toContain('-DENABLE_STATIC=ON')
+    expect(libjpegArgs).toContain('-DWITH_TURBOJPEG=OFF')
+    expect(libjpegArgs).toContain('-DCMAKE_OSX_DEPLOYMENT_TARGET=15.0')
+    expect(qpdfArgs).toContain('-DBUILD_SHARED_LIBS=OFF')
+    expect(qpdfArgs).toContain('-DBUILD_STATIC_LIBS=ON')
+    expect(qpdfArgs).toContain('-DUSE_IMPLICIT_CRYPTO=OFF')
+    expect(qpdfArgs).toContain('-DREQUIRE_CRYPTO_NATIVE=ON')
+    expect(qpdfArgs).toContain('-DDEFAULT_CRYPTO=native')
+    expect(qpdfArgs).toContain(`-DCMAKE_LIBRARY_PATH=${layout.libjpegTurboInstallDir}/lib`)
+    expect(qpdfArgs).toContain(`-DCMAKE_INCLUDE_PATH=${layout.libjpegTurboInstallDir}/include`)
+    expect(env['PKG_CONFIG_PATH']).toBe(`${layout.libjpegTurboInstallDir}/lib/pkgconfig`)
+    expect(env['PKG_CONFIG_LIBDIR']).toBe(env['PKG_CONFIG_PATH'])
+  })
+
+  test('rejects non-system absolute qpdf dynamic-library references', () => {
+    const output = `/tmp/qpdf:
+\t/usr/lib/libz.1.dylib (compatibility version 1.0.0, current version 1.2.12)
+\t/System/Library/Frameworks/CoreFoundation.framework/Versions/A/CoreFoundation (compatibility version 150.0.0, current version 3500.0.0)
+\t@loader_path/libpackaged.dylib (compatibility version 1.0.0, current version 1.0.0)
+\t/opt/homebrew/opt/jpeg-turbo/lib/libjpeg.8.dylib (compatibility version 8.0.0, current version 8.3.2)
+\t/usr/local/lib/libcrypto.3.dylib (compatibility version 3.0.0, current version 3.0.0)
+`
+
+    expect(findForbiddenMacosDynamicLibraryReferences(output)).toEqual([
+      '/opt/homebrew/opt/jpeg-turbo/lib/libjpeg.8.dylib',
+      '/usr/local/lib/libcrypto.3.dylib'
+    ])
+  })
+
+  test('qpdf uses staged atomic promotion instead of deleting the working install before validation', async () => {
     const source = await Bun.file('src/cli/commands/setup-and-utilities/setup/setup-download/macos-managed-tools.ts').text()
     const start = source.indexOf('export const installManagedQpdfMacos')
     const installSource = source.slice(start)
-    const cleanupIndex = installSource.indexOf('await cleanupFailedManagedQpdfInstall()')
-    const throwIndex = installSource.indexOf('throw InfraError(failure')
 
-    expect(source).toContain('const cleanupFailedManagedQpdfInstall')
-    expect(source).toContain('await rm(qpdfManagedBinaryPath, { recursive: true, force: true })')
-    expect(source).toContain('await rm(qpdfToolDir, { recursive: true, force: true })')
-    expect(cleanupIndex).toBeGreaterThanOrEqual(0)
-    expect(throwIndex).toBeGreaterThanOrEqual(0)
-    expect(cleanupIndex).toBeLessThan(throwIndex)
+    expect(installSource).toContain('createManagedToolStagingDirectory(qpdfToolDir)')
+    expect(installSource).toContain('promoteManagedToolDirectory({')
+    expect(installSource).toContain("writeManagedSourceArtifactManifest({ tool: 'qpdf'")
+    expect(source).not.toContain('cleanupFailedManagedQpdfInstall')
+    expect(installSource).not.toContain('await recreateDir(qpdfToolDir)')
   })
 
   test('document setup validates qpdf health before trusting an existing runtime binary', async () => {
@@ -563,6 +601,7 @@ describe('managed macOS qpdf setup', () => {
       .map(match => match.index ?? -1)
 
     expect(source).toContain("import { refreshQpdfHealthCache, resolveHealthyQpdfToolInfo }")
+    expect(installSource).toContain("await hasHealthyManagedSourceInstall('qpdf')")
     expect(healthIndex).toBeGreaterThanOrEqual(0)
     expect(installIndex).toBeGreaterThanOrEqual(0)
     expect(darwinInstallIndex).toBeGreaterThanOrEqual(0)

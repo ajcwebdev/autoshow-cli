@@ -36,7 +36,7 @@ import {
 import { collectReclaimableWhisperCoremlArtifacts, downloadKittenTtsModel, getForceRedownloadPaths, runConcurrentSetupTasks, runInherit, shouldReportReclaimedBuildTrees } from '~/cli/commands/setup-and-utilities/setup/run-complete-setup'
 import { formatSetupElapsed, formatSetupHeartbeatLine } from '~/cli/commands/setup-and-utilities/setup/setup-heartbeat'
 import { setCompactSetupMode } from '~/utils/setup-output-mode'
-import { qpdfBuildDir, qpdfManagedBinaryPath, qpdfToolDir, resolveRuntimeToolInfo, ytDlpManagedBinaryPath } from '~/utils/runtime-paths'
+import { configureBinDir, getConfiguredBinDir, qpdfBuildDir, qpdfManagedBinaryPath, qpdfToolDir, resolveRuntimeToolInfo, ytDlpManagedBinaryPath } from '~/utils/runtime-paths'
 import type { AutoshowConfig, DoctorCheck, DoctorProbes, RunResult } from '~/types'
 import {
   REVERB_ASR_REQUIRED_FILES,
@@ -92,6 +92,8 @@ const makeDoctorProbes = (overrides: Partial<DoctorProbes> = {}): Partial<Doctor
     if (command.includes('ffmpeg') && args.includes('-filters')) {
       return okRun(' ... ass              V->V       Render ASS subtitles\n')
     }
+    if (command.includes('mutool')) return okRun('mutool version 1.27.2\n')
+    if (command.includes('qpdf')) return okRun('qpdf version 12.3.2\n')
     return okRun('ok')
   },
   resolveYtDlpBinaryInfo: () => ({ path: '/runtime/bin/yt-dlp', source: 'managed' }),
@@ -116,6 +118,13 @@ const makeDoctorProbes = (overrides: Partial<DoctorProbes> = {}): Partial<Doctor
     }
   }),
   listLlamaCacheEntries: async () => ['/cache/llama.cpp/ggml-org_gemma-3-270m-it-GGUF_Q8_0.gguf'],
+  validateManagedArtifact: async (tool) => ({
+    healthy: true,
+    distribution: 'source',
+    version: tool === 'mupdf' ? '1.27.2' : '12.3.2',
+    platform: 'darwin',
+    architecture: 'arm64'
+  }),
   ...overrides
 })
 
@@ -220,6 +229,16 @@ describe('setup command contracts', () => {
       expect(allPaths).toContain(path)
       expect(calibrePaths).toContain(path)
     }
+  })
+
+  test('pins the static qpdf libjpeg-turbo source dependency', async () => {
+    const metadata = await readDependencyMetadata()
+
+    expect(metadata['libjpeg-turbo']).toEqual({
+      version: '3.2.0',
+      url: 'https://github.com/libjpeg-turbo/libjpeg-turbo/releases/download/3.2.0/libjpeg-turbo-3.2.0.tar.gz',
+      sha256: '6f30092cef9fb839779646608f4ee14ae3cbac989c47fa05e841b0841f09878e'
+    })
   })
 
   test('full setup covers doctor-managed local OCR runtimes and Whisper models without CoreML conversion', async () => {
@@ -825,6 +844,96 @@ describe('setup command contracts', () => {
     expect(report.nextSteps).toContain('bun autoshow setup --step calibre')
     expect(report.nextSteps).toContain('bun autoshow setup --step acsm')
     expect(report.nextSteps).toContain('bun autoshow setup')
+  })
+
+  test('doctor truthfully labels healthy managed MuPDF and qpdf source installs', async () => {
+    const report = await collectDoctorReport(makeDoctorProbes())
+
+    expect(findDoctorCheck(report, 'mutool').detail).toContain('managed source 1.27.2 darwin/arm64')
+    expect(findDoctorCheck(report, 'qpdf').detail).toContain('managed source 12.3.2 darwin/arm64')
+  })
+
+  test('doctor truthfully labels verified managed prebuilts without network access', async () => {
+    const report = await collectDoctorReport(makeDoctorProbes({
+      validateManagedArtifact: async tool => ({
+        healthy: true,
+        distribution: 'prebuilt',
+        version: tool === 'mupdf' ? '1.27.2' : '12.3.2',
+        revision: 'r1',
+        platform: 'darwin',
+        architecture: 'arm64'
+      })
+    }))
+
+    expect(findDoctorCheck(report, 'mutool').detail).toContain('managed prebuilt 1.27.2-r1 darwin/arm64')
+    expect(findDoctorCheck(report, 'qpdf').detail).toContain('managed prebuilt 12.3.2-r1 darwin/arm64')
+  })
+
+  test('doctor reports corrupt managed provenance as unhealthy before launch', async () => {
+    let qpdfLaunches = 0
+    const report = await collectDoctorReport(makeDoctorProbes({
+      validateManagedArtifact: async (tool) => tool === 'qpdf'
+        ? { healthy: false, reason: 'payload hash mismatch for bin/qpdf' }
+        : {
+            healthy: true,
+            distribution: 'source',
+            version: '1.27.2',
+            platform: 'darwin',
+            architecture: 'arm64'
+          },
+      run: async (command, args) => {
+        if (command.includes('qpdf')) qpdfLaunches += 1
+        if (command.includes('tesseract') && args.includes('--list-langs')) return okRun('eng\n')
+        if (command.includes('ffmpeg') && args.includes('-filters')) return okRun(' ... ass\n')
+        if (command.includes('mutool')) return okRun('mutool version 1.27.2\n')
+        return okRun('ok')
+      }
+    }))
+
+    expect(findDoctorCheck(report, 'qpdf')).toMatchObject({
+      status: 'WARN',
+      nextStep: 'bun autoshow setup --step calibre'
+    })
+    expect(findDoctorCheck(report, 'qpdf').detail).toContain('payload hash mismatch')
+    expect(qpdfLaunches).toBe(0)
+  })
+
+  test('doctor rejects a managed shim that launches the wrong version', async () => {
+    const report = await collectDoctorReport(makeDoctorProbes({
+      run: async (command, args) => {
+        if (command.includes('tesseract') && args.includes('--list-langs')) return okRun('eng\n')
+        if (command.includes('ffmpeg') && args.includes('-filters')) return okRun(' ... ass\n')
+        if (command.includes('mutool')) return okRun('mutool version 1.27.2\n')
+        if (command.includes('qpdf')) return okRun('qpdf version 11.0.0\n')
+        return okRun('ok')
+      }
+    }))
+
+    expect(findDoctorCheck(report, 'qpdf')).toMatchObject({
+      status: 'WARN',
+      nextStep: 'bun autoshow setup --step calibre'
+    })
+    expect(findDoctorCheck(report, 'qpdf').detail).toContain('did not report expected version 12.3.2')
+  })
+
+  test('doctor keeps --bin-dir precedence without claiming managed provenance', async () => {
+    const previousBinDir = getConfiguredBinDir()
+    configureBinDir('/tmp/autoshow-doctor-override')
+    let provenanceChecks = 0
+    try {
+      const report = await collectDoctorReport(makeDoctorProbes({
+        validateManagedArtifact: async () => {
+          provenanceChecks += 1
+          return { healthy: false, reason: 'must not inspect a bypassed managed tree' }
+        }
+      }))
+
+      expect(findDoctorCheck(report, 'mutool').detail).toContain('/tmp/autoshow-doctor-override/mutool (override)')
+      expect(findDoctorCheck(report, 'qpdf').detail).toContain('/tmp/autoshow-doctor-override/qpdf (override)')
+      expect(provenanceChecks).toBe(0)
+    } finally {
+      configureBinDir(previousBinDir ?? '')
+    }
   })
 
   test('doctor reports missing managed Tesseract config files', async () => {

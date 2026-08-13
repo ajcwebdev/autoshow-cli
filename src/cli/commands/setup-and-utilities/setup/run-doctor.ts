@@ -9,7 +9,7 @@ import { listLlamaCacheEntries, resolveLlamaCacheDir } from '~/cli/commands/proc
 import { hasCachedKittenTtsModel, resolveHuggingFaceCacheDir } from '~/cli/commands/process-steps/step-4-tts/tts-local/kitten/kitten-tts-model-cache'
 import { DEFAULT_KITTEN_TTS_MODEL } from '~/cli/commands/setup-and-utilities/models/tts-models'
 import { loadConfig, resolveConfigPath } from '~/cli/commands/setup-and-utilities/config/config-loader'
-import type { AutoshowConfig, CheckResult, DoctorCheck, DoctorProbes, DoctorReport, DoctorSection, DoctorSeverity, DoctorStatus, RunResult } from '~/types'
+import type { AutoshowConfig, CheckResult, DoctorCheck, DoctorProbes, DoctorReport, DoctorSection, DoctorSeverity, DoctorStatus, ManagedArtifactToolId, RunResult } from '~/types'
 import { loadEnvFile } from '~/utils/cli-utils'
 import * as l from '~/utils/app-logger/app-logger'
 import { createHumanTable } from '~/utils/app-logger/human-table/human-table'
@@ -33,6 +33,7 @@ import {
 } from '~/utils/runtime-paths'
 import type { RuntimeToolId } from '~/types'
 import { ACSM_ACCOUNT_REQUIRED_FILES, ACSM_FULFILL_COMMAND } from '~/cli/commands/process-steps/step-1-download/document/acsm-fulfillment'
+import { validateManagedArtifact } from './setup-download/managed-artifact'
 
 const hasPath = async (path: string): Promise<boolean> => {
   try {
@@ -82,6 +83,7 @@ const createDoctorProbes = (overrides: Partial<DoctorProbes> = {}): DoctorProbes
   readLlamaSetupModelMetadata,
   listLlamaCacheEntries,
   hasCachedKittenTtsModel,
+  validateManagedArtifact,
   ...overrides
 })
 
@@ -147,7 +149,7 @@ const checkRuntimeToolVersion = async (
   label: string,
   id: RuntimeToolId,
   args: string[],
-  options: { nextStep: string, okExitCodes?: number[] }
+  options: { nextStep: string, okExitCodes?: number[], managedArtifactTool?: ManagedArtifactToolId }
 ): Promise<DoctorCheck> => {
   const resolved = await resolveDoctorRuntimeTool(probes, id)
   if (!resolved) {
@@ -157,14 +159,34 @@ const checkRuntimeToolVersion = async (
     })
   }
 
+  let sourceDetail: string = resolved.source
+  let expectedManagedVersion: string | undefined
+  if (resolved.source === 'managed' && options.managedArtifactTool) {
+    const validation = await probes.validateManagedArtifact(options.managedArtifactTool)
+    if (!validation.healthy) {
+      return check('WARN', label, `${resolved.path} (managed) has unhealthy provenance: ${validation.reason}`, {
+        nextStep: options.nextStep
+      })
+    }
+    sourceDetail = validation.distribution === 'source'
+      ? `managed source ${validation.version} ${validation.platform}/${validation.architecture}`
+      : `managed prebuilt ${validation.version}-${validation.revision} ${validation.platform}/${validation.architecture}`
+    expectedManagedVersion = validation.version
+  }
+
   const result = await probes.run(resolved.path, args)
   const okExitCodes = options.okExitCodes ?? [0]
   if (okExitCodes.includes(result.exitCode)) {
     const detail = result.stdout.trim() || result.stderr.trim() || resolved.path
-    return check('OK', label, `${resolved.path} (${resolved.source})${detail ? `: ${detail}` : ''}`)
+    if (expectedManagedVersion && !`${result.stdout}\n${result.stderr}`.includes(expectedManagedVersion)) {
+      return check('WARN', label, `${resolved.path} (${sourceDetail}) did not report expected version ${expectedManagedVersion}`, {
+        nextStep: options.nextStep
+      })
+    }
+    return check('OK', label, `${resolved.path} (${sourceDetail})${detail ? `: ${detail}` : ''}`)
   }
 
-  return check('WARN', label, `${resolved.path} (${resolved.source}) failed ${args.join(' ')}: ${formatRunIssue(result)}`, {
+  return check('WARN', label, `${resolved.path} (${sourceDetail}) failed ${args.join(' ')}: ${formatRunIssue(result)}`, {
     nextStep: options.nextStep
   })
 }
@@ -383,7 +405,8 @@ const collectManagedRuntimeChecks = async (probes: DoctorProbes): Promise<Doctor
     }),
     await checkRuntimeToolVersion(probes, 'mutool', 'mutool', ['-v'], {
       nextStep: 'bun autoshow setup --step calibre',
-      okExitCodes: [0, 1]
+      okExitCodes: [0, 1],
+      managedArtifactTool: 'mupdf'
     }),
     await checkRuntimeToolVersion(probes, 'ebook-convert', 'ebook-convert', ['--version'], {
       nextStep: 'bun autoshow setup --step calibre'
@@ -396,7 +419,8 @@ const collectManagedRuntimeChecks = async (probes: DoctorProbes): Promise<Doctor
     }),
     await checkTesseractEnglishData(probes),
     await checkRuntimeToolVersion(probes, 'qpdf', 'qpdf', ['--version'], {
-      nextStep: 'bun autoshow setup --step calibre'
+      nextStep: 'bun autoshow setup --step calibre',
+      managedArtifactTool: 'qpdf'
     }),
     await checkAcsmAuthorization(probes),
     fromLegacyCheck(await probes.readDefuddleCliReadiness(), { nextStep: 'bun autoshow setup --step defuddle' }),
