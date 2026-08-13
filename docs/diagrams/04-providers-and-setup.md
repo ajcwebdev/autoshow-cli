@@ -60,6 +60,8 @@ Current LLM models:
 | `llama` | `ggml-org/gemma-3-270m-it-GGUF`, `ggml-org/Qwen3-0.6B-GGUF`, or another Hugging Face repo/model configured for llama.cpp |
 | `llamafile` | `Qwen3.5-0.8B-Q8_0`, `Qwen3.5-2B-Q8_0`, `Qwen3.5-4B-Q5_K_S` (prebuilt single-file llamafiles; downloaded on demand) |
 
+Gemini lifecycle state is static per repository revision: `gemini-3.5-flash-lite` is the bare and all-provider Flash-Lite target, while deprecated `gemini-3.1-flash-lite` remains explicitly selectable until its announced 2027-05-07 shutdown and is omitted from automatic expansion.
+
 ## Selector Conventions
 
 Provider selectors use `provider[=model]`. Repeating a selector creates a multi-provider run.

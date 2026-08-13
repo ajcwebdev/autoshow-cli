@@ -1,6 +1,6 @@
 import { describe, expect, test } from 'bun:test'
 import { estimateLlmCostFromRegistry } from '~/cli/commands/process-steps/step-8-comic/comic-utils/structured-script-utils/llm-cost'
-import { getExtractPricing, getLlmCost, getModelRegistry } from '~/cli/commands/setup-and-utilities/models/model-loader'
+import { getExtractPricing, getLlmCost, getModelRegistry, resolveModelLifecycle } from '~/cli/commands/setup-and-utilities/models/model-loader'
 import { resolveCheapestModelForFlag } from '~/cli/commands/setup-and-utilities/models/cheapest-models'
 import { computeActualCosts } from '~/utils/pricing/compute-actual-costs'
 import { computeEstimatedCosts } from '~/utils/pricing/compute-estimated-costs'
@@ -508,6 +508,21 @@ describe('price mode contracts', () => {
         outputCostPer1MCents: 1500
       })
 
+      const geminiActual = computeActualCosts({
+        step3: buildStep3CostMetadata({
+          llmService: 'gemini',
+          llmModel: 'gemini-3.5-flash-lite',
+          inputTokenCount: 1_000_000,
+          outputTokenCount: 1_000_000
+        })
+      })
+      expect(geminiActual.steps[0]).toMatchObject({
+        provider: 'gemini',
+        model: 'gemini-3.5-flash-lite',
+        cost: 280,
+        costSource: 'provider_usage'
+      })
+
       for (const [service, model] of [
         ['gemini', 'gemini-3.6-flash'],
         ['gemini', 'gemini-3.5-flash'],
@@ -548,11 +563,39 @@ describe('price mode contracts', () => {
       })
     })
 
-  test('current model additions do not displace any cheapest-model default', () => {
-      expect(resolveCheapestModelForFlag('gemini')).toBe('gemini-3.1-flash-lite')
+  test('deprecated lifecycle metadata moves automatic Gemini selection without disabling explicit pricing', () => {
+      const registry = getModelRegistry()
+      const llmLifecycle = resolveModelLifecycle(registry.llm['gemini']?.models['gemini-3.1-flash-lite'])
+      const ocrLifecycle = resolveModelLifecycle(registry.extract['gemini']?.models['gemini-3.1-flash-lite'])
+
+      expect(llmLifecycle).toEqual({
+        status: 'deprecated',
+        shutdownDate: '2027-05-07',
+        replacementModel: 'gemini-3.5-flash-lite',
+        defaultEligible: false,
+        allExpansionEligible: false,
+        sourceUrl: 'https://ai.google.dev/gemini-api/docs/deprecations',
+        checkedAt: '2026-08-13',
+        notes: expect.stringContaining('2027-05-07')
+      })
+      expect(ocrLifecycle).toEqual(llmLifecycle)
+      expect(resolveModelLifecycle(registry.llm['gemini']?.models['gemini-3.5-flash-lite'])).toMatchObject({
+        status: 'active',
+        defaultEligible: true,
+        allExpansionEligible: true
+      })
+      expect(getLlmCost('gemini', 'gemini-3.1-flash-lite')).toMatchObject({
+        inputCostPer1MCents: 25,
+        outputCostPer1MCents: 150
+      })
+      expect(getExtractPricing('gemini', 'gemini-3.1-flash-lite')).toMatchObject({
+        inputCostPer1MCents: 25,
+        outputCostPer1MCents: 150
+      })
+      expect(resolveCheapestModelForFlag('gemini')).toBe('gemini-3.5-flash-lite')
       expect(resolveCheapestModelForFlag('anthropic')).toBe('claude-haiku-4-5')
       expect(resolveCheapestModelForFlag('kimi')).toBe('kimi-k2.6')
-      expect(resolveCheapestModelForFlag('gemini-ocr')).toBe('gemini-3.1-flash-lite')
+      expect(resolveCheapestModelForFlag('gemini-ocr')).toBe('gemini-3.5-flash-lite')
       expect(resolveCheapestModelForFlag('anthropic-ocr')).toBe('claude-haiku-4-5')
       expect(resolveCheapestModelForFlag('kimi-ocr')).toBe('kimi-k2.6')
     })

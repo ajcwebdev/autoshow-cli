@@ -175,4 +175,31 @@ describe('price mode contracts', () => {
 
       expect([...acceptedModelFields, ...acceptedTokenBandFields]).toEqual([])
     })
+
+  test('hosted LLM and OCR lifecycle schemas enforce static retirement evidence and concrete replacements', () => {
+      const invalidReplacement = structuredClone(getModelRegistry())
+      const invalidReplacementLifecycle = invalidReplacement.llm['gemini']?.models['gemini-3.1-flash-lite']?.lifecycle
+      if (!invalidReplacementLifecycle) throw new Error('Missing Gemini LLM lifecycle fixture')
+      invalidReplacementLifecycle.replacementModel = 'gemini-flash-latest'
+
+      const missingEvidence = structuredClone(getModelRegistry())
+      const missingEvidenceLifecycle = missingEvidence.extract['gemini']?.models['gemini-3.1-flash-lite']?.lifecycle
+      if (!missingEvidenceLifecycle) throw new Error('Missing Gemini OCR lifecycle fixture')
+      delete missingEvidenceLifecycle.sourceUrl
+
+      const invalidDate = structuredClone(getModelRegistry())
+      const invalidDateLifecycle = invalidDate.llm['gemini']?.models['gemini-3.1-flash-lite']?.lifecycle
+      if (!invalidDateLifecycle) throw new Error('Missing Gemini LLM lifecycle date fixture')
+      invalidDateLifecycle.shutdownDate = '2027-02-31'
+
+      const invalidActiveEligibility = structuredClone(getModelRegistry())
+      const invalidActiveLifecycle = invalidActiveEligibility.extract['gemini']?.models['gemini-3.1-flash-lite']?.lifecycle
+      if (!invalidActiveLifecycle) throw new Error('Missing Gemini OCR active lifecycle fixture')
+      invalidActiveLifecycle.status = 'active'
+
+      expect(safeParse(ModelRegistrySchema, invalidReplacement).success).toBe(false)
+      expect(safeParse(ModelRegistrySchema, missingEvidence).success).toBe(false)
+      expect(safeParse(ModelRegistrySchema, invalidDate).success).toBe(false)
+      expect(safeParse(ModelRegistrySchema, invalidActiveEligibility).success).toBe(false)
+    })
 })

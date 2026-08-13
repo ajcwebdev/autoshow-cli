@@ -346,16 +346,18 @@ Claude Fable 5 OCR price mode uses the post-run calibrated page heuristic from t
 |--------|-------|
 | Selector | `--provider gemini[=<model>]` |
 | Models | `gemini-3.1-pro-preview`, `gemini-3.5-flash`, `gemini-3.1-flash-lite`, `gemini-3.6-flash`, `gemini-3.5-flash-lite` |
+| Bare default | `gemini-3.5-flash-lite` |
+| Deprecated transition selector | `gemini-3.1-flash-lite` remains explicit-only until its announced 2027-05-07 shutdown and is excluded from `--all-providers` |
 | Direct input support | PDF plus `PNG`, `JPG`, `WEBP`, and `BMP` |
 
 ```bash
-bun autoshow extract input/examples/document/1-document.pdf --provider gemini=gemini-3.1-flash-lite
+bun autoshow extract input/examples/document/1-document.pdf --provider gemini=gemini-3.5-flash-lite
+bun autoshow extract input/examples/document/1-document.pdf --provider gemini=gemini-3.1-flash-lite # explicit transition-period rerun only
 bun autoshow extract input/examples/document/1-document.pdf --provider gemini=gemini-3.5-flash
 bun autoshow extract input/examples/document/1-document.pdf --provider gemini=gemini-3.6-flash
-bun autoshow extract input/examples/document/1-document.pdf --provider gemini=gemini-3.5-flash-lite
 ```
 
-Gemini OCR normalizes `GIF` inputs to `PNG` locally before upload. `TIF/TIFF` inputs are normalized to `PNG` when ImageMagick is available; otherwise they are rejected with a usage error. It currently enforces the bundled docs caps from `project/links/gemini-general-ocr-text-links.md`: inline PDFs up to 50 MB, inline non-PDF inputs up to 100 MB, Files API uploads up to 2 GB per file, and PDFs up to 1000 pages. Passing `--provider gemini` keeps the cheapest Gemini OCR default, `gemini-3.1-flash-lite`. Gemini 3.6 Flash (`$1.50 / 1M input`, `$7.50 / 1M output`) and Gemini 3.5 Flash-Lite (`$0.30 / 1M input`, `$2.50 / 1M output`) use flat Standard rates with no published context tiers, and both reuse Gemini 3.1 Flash-Lite's page heuristic of 1,157 input and 1,626 output tokens at 2,921 ms/page until calibrated. Google documents `gemini-3.5-flash-lite` as the replacement for `gemini-3.1-flash-lite` ahead of that model's 2027-05-07 shutdown; despite the name it is the more expensive of the two on both published rates, so the default is unchanged.
+Gemini OCR normalizes `GIF` inputs to `PNG` locally before upload. `TIF/TIFF` inputs are normalized to `PNG` when ImageMagick is available; otherwise they are rejected with a usage error. It currently enforces the bundled docs caps from `project/links/gemini-general-ocr-text-links.md`: inline PDFs up to 50 MB, inline non-PDF inputs up to 100 MB, Files API uploads up to 2 GB per file, and PDFs up to 1000 pages. Passing `--provider gemini` resolves to `gemini-3.5-flash-lite`. The static lifecycle snapshot marks `gemini-3.1-flash-lite` deprecated and ineligible for bare or `--all-providers` selection while its direct selector remains valid through the transition; no wall-clock check changes behavior. Gemini 3.6 Flash (`$1.50 / 1M input`, `$7.50 / 1M output`) and Gemini 3.5 Flash-Lite (`$0.30 / 1M input`, `$2.50 / 1M output`) use flat Standard rates with no published context tiers, and both reuse Gemini 3.1 Flash-Lite's page heuristic of 1,157 input and 1,626 output tokens at 2,921 ms/page until calibrated. Google documents `gemini-3.5-flash-lite` as the replacement for `gemini-3.1-flash-lite` ahead of that model's 2027-05-07 shutdown.
 
 ### DeepInfra OCR
 

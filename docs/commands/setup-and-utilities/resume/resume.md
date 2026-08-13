@@ -59,8 +59,8 @@ bun autoshow resume ./output/2026-04-22_12-00-00-000_item
 # Resume a batch directory or extract parent batch in place
 bun autoshow resume ./output/2026-04-22_12-00-00-000_batch
 
-# Resume multiple explicit output directories sequentially
-bun autoshow resume ./output/run-a ./output/run-b ./output/run-c --provider gemini=gemini-3.1-flash-lite
+# Resume multiple explicit output directories sequentially with the current Gemini Flash-Lite target
+bun autoshow resume ./output/run-a ./output/run-b ./output/run-c --provider gemini=gemini-3.5-flash-lite
 
 # Estimate missing or additive providers without changing output directories
 bun autoshow resume ./output/run-a ./output/run-b --provider deepinfra --price
@@ -101,6 +101,8 @@ bun autoshow resume ./output/2026-04-22_12-00-00-000_run --provider gemini=lyria
 # Add every supported provider for the resolved target
 bun autoshow resume ./output/2026-04-22_12-00-00-000_run --all-providers
 ```
+
+Gemini 3.1 Flash-Lite remains available as an explicit write or OCR resume target during its transition window, so a historical target can retain its concrete identity. It is excluded from bare and all-provider selection, and resume never rewrites it silently to Gemini 3.5 Flash-Lite. After the announced 2027-05-07 shutdown, a separate dated refresh will retire the active selector and require the replacement explicitly.
 
 ## Shared Flags
 

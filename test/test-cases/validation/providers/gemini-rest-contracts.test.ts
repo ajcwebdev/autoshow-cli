@@ -126,10 +126,11 @@ describe('Gemini REST contracts', () => {
       })
     })
 
-    const result = await runGeminiModel('Write a title.', 'gemini-3.1-flash-lite', {
+    const result = await runGeminiModel('Write a title.', 'gemini-3.5-flash-lite', {
       strategy: 'schema-guided',
       schemaName: 'Title',
       strict: true,
+      requestedReasoningEffort: 'minimal',
       schema: {
         type: 'object',
         additionalProperties: false,
@@ -139,7 +140,7 @@ describe('Gemini REST contracts', () => {
     })
 
     expect(result.result).toBe('{"title":"Done"}')
-    expect(calls[0]?.url).toBe('https://generativelanguage.googleapis.com/v1beta/models/gemini-3.1-flash-lite:generateContent')
+    expect(calls[0]?.url).toBe('https://generativelanguage.googleapis.com/v1beta/models/gemini-3.5-flash-lite:generateContent')
     expect(calls[0]?.bodyJson?.['generationConfig']).toEqual({
       responseMimeType: 'application/json',
       responseJsonSchema: {
@@ -147,7 +148,8 @@ describe('Gemini REST contracts', () => {
         additionalProperties: false,
         required: ['title'],
         properties: { title: { type: 'string' } }
-      }
+      },
+      thinkingConfig: { thinkingLevel: 'MINIMAL' }
     })
     expect(requestSignal).toBeInstanceOf(AbortSignal)
   })
@@ -213,14 +215,14 @@ describe('Gemini REST contracts', () => {
         format: 'png',
         fileSize: 3
       }
-      const result = await runGeminiOcr(imagePath, metadata, 'gemini-3.5-flash')
+      const result = await runGeminiOcr(imagePath, metadata, 'gemini-3.5-flash-lite')
 
       expect(result.pages).toEqual([{ pageNumber: 1, method: 'ocr', text: 'OCR text' }])
       expect(result.promptTokens).toBe(12)
       expect(result.completionTokens).toBe(12)
       expect(result.providerUsage).toEqual([{
         provider: 'gemini',
-        model: 'gemini-3.5-flash',
+        model: 'gemini-3.5-flash-lite',
         attempt: 1,
         usageRole: 'success',
         purpose: 'ocr-page',
@@ -229,7 +231,7 @@ describe('Gemini REST contracts', () => {
         usageMetadata: { promptTokenCount: 12, candidatesTokenCount: 5, thoughtsTokenCount: 7 }
       }])
       expect(calls).toHaveLength(1)
-      expect(calls[0]?.url).toBe('https://generativelanguage.googleapis.com/v1beta/models/gemini-3.5-flash:generateContent')
+      expect(calls[0]?.url).toBe('https://generativelanguage.googleapis.com/v1beta/models/gemini-3.5-flash-lite:generateContent')
       const parts = (((calls[0]?.bodyJson?.['contents'] as unknown[])[0] as Record<string, unknown>)['parts'] as Array<Record<string, unknown>>)
       expect(parts[0]).toMatchObject({ text: expect.stringContaining('Perform OCR') })
       expect(parts[1]).toMatchObject({
@@ -274,8 +276,11 @@ describe('Gemini REST contracts', () => {
         pageCount: 3,
         format: 'pdf',
         fileSize: 4
-      }, 'gemini-2.5-flash')
+      }, 'gemini-3.5-flash-lite')
 
+      expect(calls[0]?.url).toBe('https://generativelanguage.googleapis.com/v1beta/models/gemini-3.5-flash-lite:generateContent')
+      const parts = (((calls[0]?.bodyJson?.['contents'] as unknown[])[0] as Record<string, unknown>)['parts'] as Array<Record<string, unknown>>)
+      expect(parts[1]).toMatchObject({ inlineData: { mimeType: 'application/pdf' } })
       expect(calls[0]?.bodyJson?.['generationConfig']).toMatchObject({
         responseMimeType: 'application/json',
         maxOutputTokens: 65536

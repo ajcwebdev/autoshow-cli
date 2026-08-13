@@ -72,9 +72,9 @@
         }
       },
       "gemini-3.1-flash-lite": {
-        "description": "Gemini 3.1 Flash-Lite OCR",
+        "description": "Gemini 3.1 Flash-Lite OCR — deprecated for automatic selection; explicitly selectable until its announced shutdown",
         "pricingSourceUrl": "https://ai.google.dev/gemini-api/docs/pricing",
-        "pricingCheckedAt": "2026-05-31",
+        "pricingCheckedAt": "2026-08-13",
         "pricingCurrency": "USD",
         "pricingTier": "Gemini API paid Standard",
         "pricingNotes": "Gemini 3.1 Flash-Lite Standard pricing is $0.25/1M text/image/video input tokens and $1.50/1M output tokens. OCR estimates multiply observed token usage by these published rates; free tier, batch/flex prices, taxes, and provider credits are ignored.",
@@ -95,6 +95,16 @@
         "reasoning": {
           "support": "optional",
           "supportedEfforts": ["minimal", "low", "medium", "high"]
+        },
+        "lifecycle": {
+          "status": "deprecated",
+          "shutdownDate": "2027-05-07",
+          "replacementModel": "gemini-3.5-flash-lite",
+          "defaultEligible": false,
+          "allExpansionEligible": false,
+          "sourceUrl": "https://ai.google.dev/gemini-api/docs/deprecations",
+          "checkedAt": "2026-08-13",
+          "notes": "Google lists 2027-05-07 as the earliest shutdown date and gemini-3.5-flash-lite as the recommended replacement. AutoShow keeps this concrete selector available only when explicitly requested during the transition."
         }
       },
       "gemini-3.6-flash": {
@@ -126,7 +136,7 @@
       "gemini-3.5-flash-lite": {
         "description": "Gemini 3.5 Flash-Lite OCR",
         "pricingSourceUrl": "https://ai.google.dev/gemini-api/docs/pricing",
-        "pricingCheckedAt": "2026-07-24",
+        "pricingCheckedAt": "2026-08-13",
         "pricingCurrency": "USD",
         "pricingTier": "Gemini API paid Standard",
         "pricingNotes": "Gemini 3.5 Flash-Lite Standard pricing is $0.30/1M input tokens and $2.50/1M output tokens with no published context tiers. Google documents this model as the recommended replacement for gemini-3.1-flash-lite ahead of that model's 2027-05-07 shutdown. OCR estimates multiply observed token usage by these published rates. The page heuristics are reused from Gemini 3.1 Flash-Lite and are provisional until a separately approved paid calibration is available; free tier, batch/flex prices, context caching, taxes, and provider credits are ignored.",

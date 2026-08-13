@@ -477,6 +477,45 @@ describe('resume all-shortcut additive selection', () => {
     })
   })
 
+  test('write resume preserves the explicit deprecated Gemini model identity', async () => {
+    await withTempDir('autoshow-write-resume-gemini-transition-', async (dir) => {
+      await writeSingleManifestFixture(dir, 'write', {
+        step3: {
+          llmService: 'gemini',
+          llmModel: 'gemini-3.1-flash-lite',
+          processingTime: 1,
+          inputTokenCount: 1,
+          outputTokenCount: 1,
+          outputFileName: 'text-gemini-3.1-flash-lite.json',
+          outputFormat: 'json',
+          structuredMode: 'native',
+          structuredPresetNames: ['shortSummary']
+        } satisfies Step3Metadata
+      })
+
+      const normalized = normalizeResumeSelectorFlagsForTarget(
+        target('write', dir),
+        { provider: ['gemini=gemini-3.1-flash-lite'] },
+        new Set(['provider']),
+        ['resume', dir, '--provider', 'gemini=gemini-3.1-flash-lite']
+      )
+      const opts = buildOpts(normalized.flags, normalized.explicitFlags, normalized.flagOccurrences)
+
+      await expect(writeResumeHandler.resume(target('write', dir), opts, normalized.explicitFlags)).resolves.toEqual({
+        full: 1,
+        incomplete: 0,
+        failed: 0
+      })
+
+      const manifest = await readManifest(dir)
+      expect(manifest?.items[0]?.metadata['step3']).toMatchObject({
+        llmService: 'gemini',
+        llmModel: 'gemini-3.1-flash-lite'
+      })
+      expect(await Bun.file(join(dir, 'prompt.md')).exists()).toBe(false)
+    })
+  })
+
   test('write resume records successful partial LLM results and exits incomplete for failed targets', async () => {
     const env = snapshotEnv([
       'TOGETHER_API_KEY',

@@ -293,7 +293,7 @@ fal.ai uses `FAL_API_KEY` and mode-specific queued endpoints. MiniMax H3 accepts
 bun autoshow video "a rainy neon city street, slow camera pan" --provider gemini=veo-3.1-fast-generate-preview --provider gemini=veo-3.1-generate-preview --provider gemini=veo-3.1-lite-generate-preview
 
 # Write pipeline
-bun autoshow write https://ajc.pics/autoshow/examples/1-audio.mp3 --llm gemini=gemini-3.1-flash-lite --video gemini=veo-3.1-fast-generate-preview
+bun autoshow write https://ajc.pics/autoshow/examples/1-audio.mp3 --llm gemini=gemini-3.5-flash-lite --video gemini=veo-3.1-fast-generate-preview
 bun autoshow write https://ajc.pics/autoshow/examples/1-audio.mp3 --video gemini=veo-3.1-fast-generate-preview --video minimax=MiniMax-Hailuo-2.3 --video glm=cogvideox-3 --video ltx=ltx-2-3-fast --price
 ```
 

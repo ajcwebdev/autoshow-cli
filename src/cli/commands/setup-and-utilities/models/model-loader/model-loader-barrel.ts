@@ -1,6 +1,8 @@
 export { getExtractEstimation, getExtractLimits, getExtractPricing } from './extract'
 export { getImageCost, getImageEstimation } from './image'
 export { getLlmCost, getLlmEstimation } from './llm-accessors'
+export { filterModelNamesByLifecycle, resolveModelLifecycle } from './model-lifecycle'
+export type { ResolvedModelLifecycle } from './model-lifecycle'
 export { MODEL_CONFIG_FRAGMENT_PREFIXES, MODEL_CONFIG_PATHS } from './paths'
 export { getModelRegistry } from './registry'
 export { ModelRegistrySchema } from './model-loader-schemas'

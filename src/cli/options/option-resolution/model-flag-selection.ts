@@ -1,4 +1,5 @@
 import { resolveCheapestModelForFlag } from '~/cli/commands/setup-and-utilities/models/cheapest-models'
+import { filterModelNamesByLifecycle, getModelRegistry } from '~/cli/commands/setup-and-utilities/models/model-loader'
 import {
   SUPPORTED_OPENAI_MODELS,
   SUPPORTED_GROQ_MODELS,
@@ -108,6 +109,18 @@ const ALL_SHORTCUT_MODEL_EXPANSIONS: Partial<Record<RepeatableModelFlag, { short
   'fal-video': { shortcut: 'all-video', supported: SUPPORTED_FAL_VIDEO_MODELS },
 }
 
+const filterAllExpansionModels = (
+  flagName: RepeatableModelFlag,
+  supported: readonly string[]
+): string[] => {
+  const registry = getModelRegistry()
+  if (flagName.endsWith('-ocr')) {
+    const service = flagName.slice(0, -'-ocr'.length)
+    return filterModelNamesByLifecycle(supported, registry.extract[service]?.models, 'allExpansionEligible')
+  }
+  return filterModelNamesByLifecycle(supported, registry.llm[flagName]?.models, 'allExpansionEligible')
+}
+
 export const collectRepeatableModelFlagOccurrences = (
   flagOccurrences: readonly CliFlagOccurrence[]
 ): Partial<Record<RepeatableModelFlag, FlagOccurrenceValue[]>> => {
@@ -202,7 +215,7 @@ export const expandAllShortcutModels = (
     return explicitSelections
   }
 
-  const mergedSelections = [...expansion.supported]
+  const mergedSelections = filterAllExpansionModels(flagName, expansion.supported)
   for (const value of explicitSelections ?? []) {
     appendUnique(mergedSelections, value)
   }

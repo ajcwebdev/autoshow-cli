@@ -18,6 +18,7 @@ import { flagOccurrencesFromValues } from '../../../../test-utils/flag-occurrenc
 import {
   validateCerebrasModel,
   validateAnthropicOcrModel,
+  validateGeminiModel,
   validateGeminiOcrModel,
   validateGrokModel,
   validateGrokOcrModel,
@@ -81,6 +82,8 @@ describe('option resolution contracts', () => {
       expect(validateGeminiOcrModel('gemini-3.5-flash')).toBe('gemini-3.5-flash')
       expect(validateGeminiOcrModel('gemini-3.6-flash')).toBe('gemini-3.6-flash')
       expect(validateGeminiOcrModel('gemini-3.5-flash-lite')).toBe('gemini-3.5-flash-lite')
+      expect(validateGeminiOcrModel('gemini-3.1-flash-lite')).toBe('gemini-3.1-flash-lite')
+      expect(validateGeminiModel('gemini-3.1-flash-lite')).toBe('gemini-3.1-flash-lite')
       expect(validateGrokOcrModel('grok-4.20-0309-non-reasoning')).toBe('grok-4.20-0309-non-reasoning')
       expect(validateGrokOcrModel('grok-4.5')).toBe('grok-4.5')
       expect(validateOpenAIOcrModel('gpt-5.6-sol')).toBe('gpt-5.6-sol')
@@ -320,6 +323,7 @@ describe('option resolution contracts', () => {
 
   test('bare provider flags resolve to their default models', () => {
       const openaiDefault = resolveCheapestModelForFlag('openai')
+      const geminiDefault = resolveCheapestModelForFlag('gemini')
       const grokDefault = resolveCheapestModelForFlag('grok')
       const glmDefault = resolveCheapestModelForFlag('glm')
       const kimiDefault = resolveCheapestModelForFlag('kimi')
@@ -334,6 +338,7 @@ describe('option resolution contracts', () => {
       const togetherSttDefault = resolveCheapestModelForFlag('together-stt')
       const scrapeCreatorsDefault = resolveCheapestModelForFlag('scrapecreators-stt')
       const openaiOcrDefault = resolveCheapestModelForFlag('openai-ocr')
+      const geminiOcrDefault = resolveCheapestModelForFlag('gemini-ocr')
       const grokOcrDefault = resolveCheapestModelForFlag('grok-ocr')
       const deepinfraOcrDefault = resolveCheapestModelForFlag('deepinfra-ocr')
       const kimiOcrDefault = resolveCheapestModelForFlag('kimi-ocr')
@@ -346,6 +351,7 @@ describe('option resolution contracts', () => {
       const cartesiaTtsDefault = resolveCheapestModelForFlag('cartesia-tts')
       const opts = buildOptsFromFlags(false, {
         openai: true,
+        gemini: true,
         grok: true,
         glm: true,
         kimi: true,
@@ -359,6 +365,7 @@ describe('option resolution contracts', () => {
         'speechmatics-stt': true,
         'scrapecreators-stt': true,
         'openai-ocr': true,
+        'gemini-ocr': true,
         'grok-ocr': true,
         'deepinfra-ocr': true,
         'kimi-ocr': true,
@@ -372,6 +379,7 @@ describe('option resolution contracts', () => {
       })
 
       expect(openaiDefault).toBeDefined()
+      expect(geminiDefault).toBe('gemini-3.5-flash-lite')
       expect(grokDefault).toBe('grok-4.3')
       expect(glmDefault).toBeDefined()
       expect(kimiDefault).toBe('kimi-k2.6')
@@ -385,7 +393,8 @@ describe('option resolution contracts', () => {
       expect(speechmaticsDefault).toBe('melia-1')
       expect(togetherSttDefault).toBe('nvidia/parakeet-tdt-0.6b-v3')
       expect(scrapeCreatorsDefault).toBe('youtube-transcript')
-      expect(openaiOcrDefault).toBe('gpt-5.4-nano')
+      expect(openaiOcrDefault).toBe('gpt-5.6-luna')
+      expect(geminiOcrDefault).toBe('gemini-3.5-flash-lite')
       expect(grokOcrDefault).toBe('grok-4.3')
       expect(deepinfraOcrDefault).toBe('Qwen/Qwen3-VL-30B-A3B-Instruct')
       expect(kimiOcrDefault).toBe('kimi-k2.6')
@@ -394,9 +403,10 @@ describe('option resolution contracts', () => {
       expect(groqTtsDefault).toBe('canopylabs/orpheus-v1-english')
       expect(openaiTtsDefault).toBe('gpt-4o-mini-tts-2025-12-15')
       expect(deepgramTtsDefault).toBe('aura-2-thalia-en')
-      expect(humeTtsDefault).toBe('octave-2')
+      expect(humeTtsDefault).toBe('octave-1')
       expect(cartesiaTtsDefault).toBe('sonic-3.5-2026-05-04')
       expect(opts.openaiModel).toBe(openaiDefault)
+      expect(geminiDefault).toBe(opts.geminiModel)
       expect(grokDefault).toBe(opts.grokModel)
       expect(glmDefault).toBe(opts.glmModel)
       expect(kimiDefault).toBe(opts.kimiModel)
@@ -410,6 +420,7 @@ describe('option resolution contracts', () => {
       expect(opts.speechmaticsSttModel).toBe(speechmaticsDefault)
       expect(opts.scrapecreatorsSttModel).toBe(scrapeCreatorsDefault)
       expect(opts.openaiOcrModel).toBe(openaiOcrDefault)
+      expect(opts.geminiOcrModel).toBe(geminiOcrDefault)
       expect(opts.grokOcrModel).toBe(grokOcrDefault)
       expect(opts.deepinfraOcrModel).toBe(deepinfraOcrDefault)
       expect(opts.kimiOcrModel).toBe(kimiOcrDefault)
@@ -424,6 +435,10 @@ describe('option resolution contracts', () => {
 
   test('--all-llm expands OpenAI, Anthropic, Grok, GLM, Kimi, Together, and Cerebras to their supported models', () => {
       const opts = buildOptsFromFlags(false, { 'all-llm': true })
+      const explicitDeprecated = buildOptsFromFlags(false, {
+        'all-llm': true,
+        gemini: 'gemini-3.1-flash-lite'
+      })
       const localOpts = buildOptsFromFlags(false, { 'all-local-llm': true })
 
       expect(opts.llamaModels).toBeUndefined()
@@ -431,8 +446,16 @@ describe('option resolution contracts', () => {
       expect(opts.openaiModels).not.toContain('gpt-5.6')
       expect(opts.anthropicModels).toEqual(['claude-fable-5', 'claude-opus-4-8', 'claude-sonnet-5', 'claude-sonnet-4-6', 'claude-haiku-4-5', 'claude-opus-5'])
       expect(opts.anthropicModels).not.toContain('claude-mythos-5')
-      expect(opts.geminiModels).toEqual(['gemini-3.1-pro-preview', 'gemini-3.1-flash-lite', 'gemini-3.6-flash', 'gemini-3.5-flash', 'gemini-3.5-flash-lite'])
+      expect(opts.geminiModels).toEqual(['gemini-3.1-pro-preview', 'gemini-3.6-flash', 'gemini-3.5-flash', 'gemini-3.5-flash-lite'])
+      expect(opts.geminiModels).not.toContain('gemini-3.1-flash-lite')
       expect(opts.geminiModels).not.toContain('gemini-3-flash-preview')
+      expect(explicitDeprecated.geminiModels).toEqual([
+        'gemini-3.1-pro-preview',
+        'gemini-3.6-flash',
+        'gemini-3.5-flash',
+        'gemini-3.5-flash-lite',
+        'gemini-3.1-flash-lite'
+      ])
       expect(opts.grokModels).toEqual(['grok-4.3', 'grok-4.5'])
       expect(opts.glmModels).toEqual(['glm-5.1'])
       expect(opts.kimiModels).toEqual(['kimi-k2.6', 'kimi-k3'])
@@ -469,6 +492,10 @@ describe('option resolution contracts', () => {
       const expansions = getStep2AllShortcutModelExpansions()
       const sttOpts = buildOptsFromFlags(false, { 'all-stt': true })
       const ocrOpts = buildOptsFromFlags(false, { 'all-ocr': true })
+      const explicitDeprecatedOcr = buildOptsFromFlags(false, {
+        'all-ocr': true,
+        'gemini-ocr': 'gemini-3.1-flash-lite'
+      })
       const localSttOpts = buildOptsFromFlags(false, { 'all-local-stt': true })
       const localOcrOpts = buildOptsFromFlags(false, { 'all-local-ocr': true })
 
@@ -495,7 +522,15 @@ describe('option resolution contracts', () => {
       expect(ocrOpts.kimiOcrModels).toEqual(['kimi-k2.6', 'kimi-k3'])
       expect(ocrOpts.anthropicOcrModels).toEqual(['claude-fable-5', 'claude-opus-4-8', 'claude-sonnet-5', 'claude-haiku-4-5', 'claude-opus-5'])
       expect(ocrOpts.anthropicOcrModels).not.toContain('claude-mythos-5')
-      expect(ocrOpts.geminiOcrModels).toEqual(['gemini-3.1-pro-preview', 'gemini-3.5-flash', 'gemini-3.1-flash-lite', 'gemini-3.6-flash', 'gemini-3.5-flash-lite'])
+      expect(ocrOpts.geminiOcrModels).toEqual(['gemini-3.1-pro-preview', 'gemini-3.5-flash', 'gemini-3.6-flash', 'gemini-3.5-flash-lite'])
+      expect(ocrOpts.geminiOcrModels).not.toContain('gemini-3.1-flash-lite')
+      expect(explicitDeprecatedOcr.geminiOcrModels).toEqual([
+        'gemini-3.1-pro-preview',
+        'gemini-3.5-flash',
+        'gemini-3.6-flash',
+        'gemini-3.5-flash-lite',
+        'gemini-3.1-flash-lite'
+      ])
       expect(ocrOpts.deepinfraOcrModels).toEqual(['Qwen/Qwen3-VL-235B-A22B-Instruct', 'Qwen/Qwen3-VL-30B-A3B-Instruct'])
       expect(collectSttTargets(sttOpts).map((target) => target.service)).toContain('deepgram')
       expect(collectSttTargets(sttOpts).map((target) => target.service)).toContain('grok')
@@ -522,6 +557,7 @@ describe('option resolution contracts', () => {
       expect(ocrTargets.map((target) => `${target.service}:${target.model}`)).toContain('anthropic:claude-opus-5')
       expect(ocrTargets.map((target) => `${target.service}:${target.model}`)).toContain('gemini:gemini-3.6-flash')
       expect(ocrTargets.map((target) => `${target.service}:${target.model}`)).toContain('gemini:gemini-3.5-flash-lite')
+      expect(ocrTargets.map((target) => `${target.service}:${target.model}`)).not.toContain('gemini:gemini-3.1-flash-lite')
       expect(ocrTargets.map((target) => `${target.service}:${target.model}`)).toContain('kimi:kimi-k3')
       expect(ocrTargets.map((target) => `${target.service}:${target.model}`)).not.toContain('anthropic:claude-sonnet-4-6')
       expect(ocrTargets.map((target) => `${target.service}:${target.model}`)).not.toContain('anthropic:claude-mythos-5')

@@ -27,7 +27,7 @@ const INVALID_GROQ_TTS_MODEL = 'canopylabs/orpheus-legacy'
 const INVALID_GROQ_TTS_VOICE = 'not-a-groq-voice'
 
 describe('option resolution contracts', () => {
-  test('hosted TTS exposes exactly 108 active selectors and rejects all retired IDs', () => {
+  test('hosted TTS exposes exactly 109 active selectors and rejects all retired IDs', () => {
     const hostedSelectors = [
       ...SUPPORTED_ELEVENLABS_TTS_MODELS,
       ...SUPPORTED_MINIMAX_TTS_MODELS,
@@ -41,12 +41,14 @@ describe('option resolution contracts', () => {
       ...SUPPORTED_HUME_TTS_MODELS,
       ...SUPPORTED_CARTESIA_TTS_MODELS
     ]
-    expect(hostedSelectors).toHaveLength(108)
+    expect(hostedSelectors).toHaveLength(109)
     expect(hostedSelectors).toEqual(expect.arrayContaining([
       'sonic-3.5-2026-05-04',
       'gpt-4o-mini-tts-2025-12-15',
       'simba-3.2',
       'simba-3.0',
+      'octave-1',
+      'octave-2',
       'aura-2-helena-en',
       'aura-2-arcas-en',
       'aura-2-aries-en',
@@ -200,7 +202,7 @@ describe('option resolution contracts', () => {
       expect(() => buildOptsFromFlags(false, { 'minimax-tts-pitch': '1.5' })).toThrow('Invalid --minimax-tts-pitch value "1.5"')
       expect(() => buildOptsFromFlags(false, { 'minimax-tts-emotion': 'bored' })).toThrow('Invalid --minimax-tts-emotion "bored"')
       expect(() => buildOptsFromFlags(false, { 'speechify-tts-audio-format': 'flac' })).toThrow('Invalid --speechify-tts-audio-format "flac"')
-      expect(() => buildOptsFromFlags(false, { 'hume-tts': 'octave-1' })).toThrow('Invalid model "octave-1" for --provider/--tts hume[=model]')
+      expect(() => buildOptsFromFlags(false, { 'hume-tts': 'octave-legacy' })).toThrow('Invalid model "octave-legacy" for --provider/--tts hume[=model]')
       expect(() => buildOptsFromFlags(false, { 'hume-tts-voice-provider': 'PRIVATE' })).toThrow('Invalid --hume-tts-voice-provider "PRIVATE"')
       expect(() => buildOptsFromFlags(false, { 'cartesia-tts': 'sonic-2' })).toThrow('Invalid model "sonic-2" for --provider/--tts cartesia[=model]')
       expect(() => buildOptsFromFlags(false, { 'deepgram-tts-sample-rate': '1.5' })).toThrow('Invalid --deepgram-tts-sample-rate value "1.5"')

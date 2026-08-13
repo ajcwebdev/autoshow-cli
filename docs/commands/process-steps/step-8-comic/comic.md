@@ -474,9 +474,9 @@ The default is `gpt-5.6-sol`. Inspect `llm-config.json` for the full list of ava
 | `gpt-5.4-mini` | OpenAI | Faster and cheaper, slightly lower quality. |
 | `gpt-5.4-nano` | OpenAI | Fastest and cheapest. |
 | `gemini-3.1-pro-preview` | Google | Gemini pro-tier text model. |
-| `gemini-3.1-flash-lite` | Google | Gemini lightweight text model. |
+| `gemini-3.1-flash-lite` | Google | Deprecated for automatic selection; remains explicitly selectable until its announced 2027-05-07 shutdown. Use `gemini-3.5-flash-lite` for new work. |
 | `gemini-3.6-flash` | Google | Current balanced Gemini text model. |
-| `gemini-3.5-flash-lite` | Google | Current high-throughput low-cost Gemini text model. |
+| `gemini-3.5-flash-lite` | Google | Current high-throughput low-cost Gemini text model and the registered replacement for Gemini 3.1 Flash-Lite. |
 | `claude-opus-5` | Anthropic | Current Claude Opus-tier text model; thinking is on by default. |
 | `kimi-k3` | Moonshot | Flagship Kimi text model with a 1M context window; thinking is always on. |
 | `grok-4.3` | xAI | Grok structured JSON text model. |
