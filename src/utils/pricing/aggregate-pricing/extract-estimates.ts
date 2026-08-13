@@ -1,6 +1,7 @@
 import type { ExtractStepEstimate, HostedOcrEstimateHandler, HostedOcrPricingService, OcrCostEstimate, ResolvedStep2Execution } from '~/types'
 import { GEMINI_OCR_PRICE_NOTE, GLM_OCR_PRICE_NOTE, estimateAnthropicOcrCost, estimateDeepinfraOcrCost, estimateGeminiOcrCost, estimateGlmOcrCost, estimateGrokOcrCost, estimateKimiOcrCost, estimateMistralOcrCost, estimateOpenAIOcrCost, resolveExtractInputPageCountForPricing } from '~/cli/commands/process-steps/step-2-extract/step-2-ocr/ocr-utils/extract-pricing'
 import { getExtractEstimation } from '~/cli/commands/setup-and-utilities/models/model-loader'
+import { resolveReasoningPolicy, type MappedReasoningPolicy, type NormalizedReasoningEffort } from '~/cli/commands/setup-and-utilities/models/reasoning-resolver'
 import { applyCostMultiplier } from '~/utils/pricing/cost-helpers'
 const LOCAL_OCR_NOTES = {
   tesseract: 'Local Tesseract OCR runs on local CPU and is not billed by AutoShow.'
@@ -52,11 +53,14 @@ const isHostedOcrService = (service: string): service is HostedOcrPricingService
 const buildLocalExtractEstimate = async (
   provider: LocalOcrService,
   model: string,
-  input: string
+  input: string,
+  reasoningPolicy: MappedReasoningPolicy
 ): Promise<ExtractStepEstimate> => ({
   step: 'extract',
   provider,
   model,
+  ...(reasoningPolicy.requested !== undefined ? { requestedReasoningEffort: reasoningPolicy.requested } : {}),
+  effectiveReasoningEffort: reasoningPolicy.effective,
   totalCost: 0,
   costMultiplier: 1,
   pageCount: await resolveExtractInputPageCountForPricing(input),
@@ -76,7 +80,8 @@ const resolveHostedNote = (
 
 const buildHostedExtractEstimate = (
   estimate: OcrCostEstimate,
-  handler: HostedOcrEstimateHandler
+  handler: HostedOcrEstimateHandler,
+  reasoningPolicy: MappedReasoningPolicy
 ): ExtractStepEstimate => {
   const estimation = getExtractEstimation(estimate.provider, estimate.model)
   const note = resolveHostedNote(handler, estimate)
@@ -86,6 +91,8 @@ const buildHostedExtractEstimate = (
     step: 'extract',
     provider: estimate.provider,
     model: estimate.model,
+    ...(reasoningPolicy.requested !== undefined ? { requestedReasoningEffort: reasoningPolicy.requested } : {}),
+    effectiveReasoningEffort: reasoningPolicy.effective,
     ...(typeof estimate.costPer1kPagesCents === 'number' ? { costPer1kPagesCents: estimate.costPer1kPagesCents } : {}),
     ...(typeof estimate.inputCostPer1MCents === 'number' ? { inputCostPer1MCents: estimate.inputCostPer1MCents } : {}),
     ...(typeof estimate.outputCostPer1MCents === 'number' ? { outputCostPer1MCents: estimate.outputCostPer1MCents } : {}),
@@ -110,13 +117,27 @@ const buildHostedExtractEstimate = (
 export const buildExtractEstimates = async (
   resolvedTarget: string,
   resolvedStep2: Extract<ResolvedStep2Execution, { route: 'ocr' }>,
-  opts: { hostedOcrTokenProfilePath?: string | undefined }
+  opts: {
+    hostedOcrTokenProfilePath?: string | undefined
+    reasoningEffort?: NormalizedReasoningEffort | undefined
+  }
 ): Promise<ExtractStepEstimate[]> => {
   const estimates: ExtractStepEstimate[] = []
+  const plannedProviders = resolvedStep2.providers.map((provider) => ({
+    provider,
+    reasoningPolicy: resolveReasoningPolicy({
+      step: 'extract',
+      service: provider.service,
+      model: provider.model,
+      requestedReasoningEffort: isLocalOcrService(provider.service)
+        ? undefined
+        : opts.reasoningEffort
+    })
+  }))
 
-  for (const provider of resolvedStep2.providers) {
+  for (const { provider, reasoningPolicy } of plannedProviders) {
     if (isLocalOcrService(provider.service)) {
-      estimates.push(await buildLocalExtractEstimate(provider.service, provider.model, resolvedTarget))
+      estimates.push(await buildLocalExtractEstimate(provider.service, provider.model, resolvedTarget, reasoningPolicy))
       continue
     }
 
@@ -125,7 +146,7 @@ export const buildExtractEstimates = async (
       const estimate = await handler.estimate(provider.model, resolvedTarget, {
         hostedOcrTokenProfilePath: opts.hostedOcrTokenProfilePath
       })
-      estimates.push(buildHostedExtractEstimate(estimate, handler))
+      estimates.push(buildHostedExtractEstimate(estimate, handler, reasoningPolicy))
       continue
     }
   }

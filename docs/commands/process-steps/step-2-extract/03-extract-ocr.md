@@ -293,8 +293,8 @@ GPT-5.6 OCR price mode uses post-run calibrated page heuristics from the 2026-07
 | OpenAI OCR model | Price-mode page heuristic | Initial speed estimate |
 |------------------|---------------------------|------------------------|
 | `gpt-5.6-sol` | 1,625 input + 940 output tokens, about $0.0363/page or $36.33/1K pages | 9,497 ms/page |
-| `gpt-5.6-terra` | 1,625 input + 743 output tokens, about $0.0152/page or $15.21/1K pages | 5,349 ms/page |
-| `gpt-5.6-luna` | 1,625 input + 858 output tokens, about $0.0068/page or $6.77/1K pages | 3,919 ms/page |
+| `gpt-5.6-terra` | 1,625 input + 743 output tokens, about $0.0122/page or $12.17/1K pages | 5,349 ms/page |
+| `gpt-5.6-luna` | 1,625 input + 858 output tokens, about $0.0014/page or $1.35/1K pages | 3,919 ms/page |
 
 ### Grok OCR
 

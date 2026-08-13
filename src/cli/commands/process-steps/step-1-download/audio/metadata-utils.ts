@@ -7,34 +7,31 @@ import { MEDIA_EXTENSIONS } from '~/cli/commands/process-steps/step-0-metadata/f
 import { buildYtDlpFailureMessage, buildYtDlpMetadataArgs } from '~/cli/commands/process-steps/shared/shared-yt-dlp-options'
 import { getYtDlpBinary } from '~/cli/commands/process-steps/shared/shared-yt-dlp-binary'
 import type { Step1SourceRef, VideoMetadata, YtDlpVideoInfo } from '~/types'
+import { fileFingerprintsMatch, getFileFingerprint, readJsonCacheMap, writeJsonCacheEntry, type FileFingerprint } from '~/utils/file-fingerprint-cache'
 
-import { existsSync, readFileSync, writeFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
-import { join } from 'node:path'
+import { join, resolve } from 'node:path'
 
 const VIDEO_INFO_CACHE_FILE = join(tmpdir(), 'autoshow-yt-video-info-cache.json')
+const VIDEO_INFO_CACHE_LOCK = 'yt-video-info-cache'
 
-const readVideoInfoCache = (): Record<string, YtDlpVideoInfo> => {
+const writeVideoInfoCache = async (url: string, data: YtDlpVideoInfo): Promise<void> => {
   try {
-    if (existsSync(VIDEO_INFO_CACHE_FILE)) {
-      return JSON.parse(readFileSync(VIDEO_INFO_CACHE_FILE, 'utf-8'))
-    }
-  } catch {
-  }
-  return {}
-}
-
-const writeVideoInfoCache = (url: string, data: YtDlpVideoInfo): void => {
-  try {
-    const cache = readVideoInfoCache()
-    cache[url] = data
-    writeFileSync(VIDEO_INFO_CACHE_FILE, JSON.stringify(cache, null, 2), 'utf-8')
+    await writeJsonCacheEntry({
+      cachePath: VIDEO_INFO_CACHE_FILE,
+      lockName: VIDEO_INFO_CACHE_LOCK,
+      key: url,
+      value: data
+    })
   } catch {
   }
 }
 
 export const getVideoInfo = async (url: string): Promise<YtDlpVideoInfo | null> => {
-  const cached = readVideoInfoCache()[url]
+  const cached = validateDataSafe(
+    YtDlpVideoInfoSchema,
+    (await readJsonCacheMap<YtDlpVideoInfo>(VIDEO_INFO_CACHE_FILE))[url]
+  )
   if (cached) {
     return cached
   }
@@ -53,8 +50,8 @@ export const getVideoInfo = async (url: string): Promise<YtDlpVideoInfo | null> 
     const validated = validateDataSafe(YtDlpVideoInfoSchema, parsed)
 
     const videoInfoData = validated ?? (parsed as YtDlpVideoInfo)
-    if (videoInfoData) {
-      writeVideoInfoCache(url, videoInfoData)
+    if (validated) {
+      await writeVideoInfoCache(url, validated)
     }
 
     return videoInfoData
@@ -220,39 +217,58 @@ export const createUniqueDirectoryName = (title: string): string => {
 }
 
 const LOCAL_FILE_METADATA_CACHE_FILE = join(tmpdir(), 'autoshow-local-file-metadata-cache.json')
+const LOCAL_FILE_METADATA_CACHE_LOCK = 'local-file-metadata-cache'
 
-const readLocalFileMetadataCache = (): Record<string, VideoMetadata> => {
-  try {
-    if (existsSync(LOCAL_FILE_METADATA_CACHE_FILE)) {
-      return JSON.parse(readFileSync(LOCAL_FILE_METADATA_CACHE_FILE, 'utf-8'))
-    }
-  } catch {
-  }
-  return {}
+type LocalFileMetadataCacheEntry = {
+  data: VideoMetadata
+  fingerprint: FileFingerprint
 }
 
-const writeLocalFileMetadataCache = (filePath: string, data: VideoMetadata): void => {
+const getCachedLocalFileMetadata = async (filePath: string): Promise<VideoMetadata | undefined> => {
+  const cache = await readJsonCacheMap<LocalFileMetadataCacheEntry>(LOCAL_FILE_METADATA_CACHE_FILE)
+  const entry = cache[resolve(filePath)]
+  if (!entry || !entry.data || !entry.fingerprint) {
+    return undefined
+  }
+  const validated = validateDataSafe(VideoMetadataSchema, entry.data)
+  return validated && fileFingerprintsMatch(await getFileFingerprint(filePath), entry.fingerprint)
+    ? validated
+    : undefined
+}
+
+const writeLocalFileMetadataCache = async (
+  filePath: string,
+  data: VideoMetadata,
+  fingerprint: FileFingerprint
+): Promise<void> => {
   try {
-    const cache = readLocalFileMetadataCache()
-    cache[filePath] = data
-    writeFileSync(LOCAL_FILE_METADATA_CACHE_FILE, JSON.stringify(cache, null, 2), 'utf-8')
+    await writeJsonCacheEntry({
+      cachePath: LOCAL_FILE_METADATA_CACHE_FILE,
+      lockName: LOCAL_FILE_METADATA_CACHE_LOCK,
+      key: resolve(filePath),
+      value: { data, fingerprint }
+    })
   } catch {
   }
 }
 
 export const extractLocalFileMetadata = async (filePath: string): Promise<VideoMetadata> => {
-  const cached = readLocalFileMetadataCache()[filePath]
+  const cached = await getCachedLocalFileMetadata(filePath)
   if (cached) {
     return cached
   }
 
   try {
+    const fingerprintBeforeProbe = await getFileFingerprint(filePath)
     const ffprobe = await exec(getFfprobeBinary(), [
       '-v', 'error',
       '-show_entries', 'format=duration',
       '-of', 'default=noprint_wrappers=1:nokey=1',
       filePath
     ])
+    if (ffprobe.exitCode !== 0) {
+      throw new Error('ffprobe failed')
+    }
     const seconds = parseFloat((ffprobe.stdout || '').trim() || '0')
     const duration = seconds > 0 ? formatDuration(seconds) : 'Unknown'
     const base = filePath.split('/').pop() || 'local-media'
@@ -268,7 +284,10 @@ export const extractLocalFileMetadata = async (filePath: string): Promise<VideoM
       channelURL: undefined
     }
     const validated = validateData(VideoMetadataSchema, metadata, 'local file metadata')
-    writeLocalFileMetadataCache(filePath, validated)
+    const fingerprintAfterProbe = await getFileFingerprint(filePath)
+    if (fingerprintAfterProbe && fileFingerprintsMatch(fingerprintBeforeProbe, fingerprintAfterProbe)) {
+      await writeLocalFileMetadataCache(filePath, validated, fingerprintAfterProbe)
+    }
     return validated
   } catch {
     const base = filePath.split('/').pop() || 'local-media'
@@ -282,7 +301,6 @@ export const extractLocalFileMetadata = async (filePath: string): Promise<VideoM
       thumbnail: undefined,
       channelURL: undefined
     }, 'local file metadata fallback')
-    writeLocalFileMetadataCache(filePath, fallback)
     return fallback
   }
 }

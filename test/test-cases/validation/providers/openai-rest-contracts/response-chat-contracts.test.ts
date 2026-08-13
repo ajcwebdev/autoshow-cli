@@ -108,6 +108,37 @@ describe('OpenAI REST response and chat contracts', () => {
     })
   })
 
+  test('OpenAI write maps normalized effort to the nested Responses reasoning object', async () => {
+    process.env['OPENAI_API_KEY'] = 'openai-key'
+    const calls = installFetch(() => jsonResponse({
+      model: 'gpt-5.5',
+      output_text: '{"summary":"done"}',
+      usage: { input_tokens: 7, output_tokens: 3, total_tokens: 10 }
+    }))
+
+    const result = await runOpenAIModel('Summarize this.', 'gpt-5.5', {
+      ...structuredOpts,
+      requestedReasoningEffort: 'high'
+    })
+
+    expect(calls[0]?.bodyJson?.['reasoning']).toEqual({ effort: 'high' })
+    expect(calls[0]?.bodyJson).not.toHaveProperty('reasoning_effort')
+    expect(result.metadata).toMatchObject({
+      requestedReasoningEffort: 'high',
+      effectiveReasoningEffort: 'high'
+    })
+
+    const disabled = await runOpenAIModel('Summarize this.', 'gpt-5.5', {
+      ...structuredOpts,
+      requestedReasoningEffort: 'disabled'
+    })
+    expect(calls[1]?.bodyJson?.['reasoning']).toEqual({ effort: 'none' })
+    expect(disabled.metadata).toMatchObject({
+      requestedReasoningEffort: 'disabled',
+      effectiveReasoningEffort: 'disabled'
+    })
+  })
+
   test('OpenAI-compatible chat retries without response_format after structured fallback error', async () => {
     const requestSignals: Array<AbortSignal | null | undefined> = []
     const calls = installFetch((call, _input, init) => {

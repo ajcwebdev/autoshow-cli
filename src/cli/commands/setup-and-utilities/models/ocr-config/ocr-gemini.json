@@ -39,7 +39,11 @@
             "cachedInputCostPer1MCents": 40,
             "outputCostPer1MCents": 1800
           }
-        ]
+        ],
+        "reasoning": {
+          "support": "optional",
+          "supportedEfforts": ["low", "medium", "high"]
+        }
       },
       "gemini-3.5-flash": {
         "description": "Gemini 3.5 Flash OCR",
@@ -61,6 +65,10 @@
           "singlePagePdfFallbackMsPerPage": 16700,
           "promptTokensPerPage": 1171,
           "completionTokensPerPage": 617
+        },
+        "reasoning": {
+          "support": "optional",
+          "supportedEfforts": ["minimal", "low", "medium", "high"]
         }
       },
       "gemini-3.1-flash-lite": {
@@ -83,6 +91,10 @@
           "msPerPage": 2921,
           "promptTokensPerPage": 1157,
           "completionTokensPerPage": 1626
+        },
+        "reasoning": {
+          "support": "optional",
+          "supportedEfforts": ["minimal", "low", "medium", "high"]
         }
       },
       "gemini-3.6-flash": {
@@ -105,6 +117,10 @@
           "msPerPage": 2921,
           "promptTokensPerPage": 1157,
           "completionTokensPerPage": 1626
+        },
+        "reasoning": {
+          "support": "optional",
+          "supportedEfforts": ["minimal", "low", "medium", "high"]
         }
       },
       "gemini-3.5-flash-lite": {
@@ -127,6 +143,10 @@
           "msPerPage": 2921,
           "promptTokensPerPage": 1157,
           "completionTokensPerPage": 1626
+        },
+        "reasoning": {
+          "support": "optional",
+          "supportedEfforts": ["minimal", "low", "medium", "high"]
         }
       }
     }

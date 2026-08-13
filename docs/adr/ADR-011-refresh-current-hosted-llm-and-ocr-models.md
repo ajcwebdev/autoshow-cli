@@ -4,10 +4,10 @@
 
 - **Decision Status:** Accepted
 - **Date Created:** 2026-07-13
-- **Date Updated:** 2026-08-10
+- **Date Updated:** 2026-08-12
 - **Verification Status:** Passed
 
-The 2026-07-24 Google Gemini, Moonshot Kimi, and Claude Opus 5 additions are implemented and verified against `bun run check` and the targeted local contract suites. The previously blocked hosted OCR `--price` subprocess contracts were rerun successfully on 2026-08-03 after `runtime/` was provisioned. An approved one-page Kimi K3 write probe also confirmed the request shape and provider usage reporting. Provisional Gemini, Claude, and Kimi heuristics remain deferred pending separately approved calibration.
+The 2026-07-24 Google Gemini, Moonshot Kimi, and Claude Opus 5 additions are implemented and verified against `bun run check` and the targeted local contract suites. The previously blocked hosted OCR `--price` subprocess contracts were rerun successfully on 2026-08-03 after `runtime/` was provisioned. An approved one-page Kimi K3 write probe also confirmed the request shape and provider usage reporting. On 2026-08-12, ADR-017 added typed reasoning capabilities and request mappings across the hosted LLM and OCR registries, and the current official GPT-5.6 Terra and Luna token rates were synchronized across write, OCR, documentation, and pricing contracts. Provisional Gemini, Claude, and Kimi heuristics remain deferred pending separately approved calibration.
 
 ## Context
 
@@ -157,6 +157,7 @@ Negative outcomes:
 - LLM and OCR pricing metadata live in `llm-config.json` and the provider-specific OCR configuration files.
 - OpenAI OCR's structured-output allowlist includes the concrete GPT-5.6 tier IDs.
 - GPT-5.6 OCR calibrated heuristics are: Sol 1,625 input/940 output tokens and 9,497 ms per page; Terra 1,625/743 and 5,349 ms; Luna 1,625/858 and 3,919 ms. Each uses multiplier 1.
+- On 2026-08-12, the duplicated GPT-5.6 Terra write/OCR rates were refreshed to $2/1M input and $12/1M output tokens, and Luna to $0.20/1M input and $1.20/1M output tokens, from the current official model pages. Token and latency heuristics were not recalibrated.
 - Claude Fable 5 OCR uses 2,024 input/869 output tokens, 11,827 ms per page, and multiplier 1.
 - Grok 4.5 LLM uses `$2/$0.30/$6` through 200K input tokens and `$4/$0.60/$12` above 200K, with the Grok 4.3 write timing heuristic.
 - Grok 4.5 OCR uses the same bands and retains its existing 4,000 input/1,000 output tokens, 18,000 ms per page, multiplier 1 heuristic.
@@ -175,7 +176,7 @@ Negative outcomes:
 - Selector, expansion, comic registry, CLI help, local price-only, provenance, and estimated/actual pricing contracts cover the public behavior.
 - After the repository `runtime/` tree was provisioned, `bun test test/test-cases/validation/cli/cli-usage-errors.test.ts` passed all 64 contracts and `bun test test/test-cases/validation/reports-pricing/price-mode-contracts/cli-price-mode.test.ts` passed all 31 contracts. These local `--price` subprocess runs included current Kimi, Grok, OpenAI, and Anthropic OCR selectors plus hosted OCR PDF page detection and made no provider calls.
 - The explicitly approved `bun autoshow write input/examples/document/1-document.pdf --llm kimi=kimi-k3 --prompt shortSummary` probe completed successfully on 2026-08-03. Kimi reported 661 input tokens and 159 output tokens, producing an actual provider-usage cost of `0.437¢` against the `0.540¢` estimate and confirming that the K3 request succeeds without the rejected K2.x `thinking` field.
-- The cross-provider thinking and reasoning-effort configuration decision is recorded separately in [ADR-017](ADR-017-normalize-cross-provider-reasoning-configuration.md); its implementation and calibration remain outside this accepted model-refresh decision.
+- The cross-provider thinking and reasoning-effort configuration decision is implemented separately in [ADR-017](ADR-017-normalize-cross-provider-reasoning-configuration.md). Its capability and request-mapping integration is complete; paid calibration remains outside this accepted model-refresh decision.
 
 The structural legacy program's W10.1 MiniMax gate was answered from published documentation on 2026-08-10 without a provider request. MiniMax's current [OpenAI-compatible Chat Completions API](https://platform.minimax.io/docs/api-reference/text-chat-openai) enumerates AutoShow's active `MiniMax-M3` selector, but its documented request body exposes messages, service tier, thinking controls, streaming, token limits, sampling controls, and tools without `response_format` or `json_schema`; the current [OpenAI SDK guide](https://platform.minimax.io/docs/api-reference/text-openai-api) likewise documents `MiniMax-M3` without either structured-output parameter. The deprecated [native text-generation endpoint](https://platform.minimax.io/docs/api-reference/text-post) documents `response_format: { type: 'json_schema' }` only for `MiniMax-Text-01`, which is not an active AutoShow selector. The gate is therefore negative: `MiniMax-M3` has no published native `json_schema` contract, so `compat-fallback.ts` and MiniMax's schema-guided strategy remain live.
 
@@ -226,6 +227,8 @@ Do not run paid provider, smoke, e2e, or full-suite tests for this ADR. The Kimi
 - Related ADR: [ADR-017](ADR-017-normalize-cross-provider-reasoning-configuration.md)
 - [OpenAI latest model guide](https://developers.openai.com/api/docs/guides/latest-model.md)
 - [OpenAI API pricing](https://developers.openai.com/api/docs/pricing)
+- [OpenAI GPT-5.6 Terra model and pricing](https://developers.openai.com/api/docs/models/gpt-5.6-terra)
+- [OpenAI GPT-5.6 Luna model and pricing](https://developers.openai.com/api/docs/models/gpt-5.6-luna)
 - [Anthropic models overview](https://platform.claude.com/docs/en/about-claude/models/overview)
 - [Anthropic pricing](https://platform.claude.com/docs/en/about-claude/pricing)
 - [What's new in Claude Opus 5](https://platform.claude.com/docs/en/about-claude/models/whats-new-opus-5)

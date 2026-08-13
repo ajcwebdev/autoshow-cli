@@ -26,6 +26,9 @@
         "higherContextPricing": {
           "thresholdInputTokens": 200000,
           "note": "xAI public pricing lists a 1M-context Grok 4.3 table but does not provide separate numeric higher-context rates. This estimate uses standard listed rates and may understate cost if a higher-context tier is applied."
+        },
+        "reasoning": {
+          "support": "unsupported"
         }
       },
       "grok-4.20-0309-non-reasoning": {
@@ -47,6 +50,9 @@
           "completionTokensPerPage": 332,
           "costMultiplier": 1,
           "msPerPage": 18000
+        },
+        "reasoning": {
+          "support": "unsupported"
         }
       },
       "grok-4.5": {
@@ -84,6 +90,10 @@
           "completionTokensPerPage": 1000,
           "costMultiplier": 1,
           "msPerPage": 18000
+        },
+        "reasoning": {
+          "support": "required",
+          "supportedEfforts": ["low", "medium", "high"]
         }
       }
     }

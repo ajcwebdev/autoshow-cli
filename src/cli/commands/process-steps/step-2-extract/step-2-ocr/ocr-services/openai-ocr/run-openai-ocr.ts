@@ -4,6 +4,8 @@ import type { DocumentMetadata, HostedOcrSchedulerRetryPressureHandler, OpenAIOc
 import { createOpenAIResponse, extractOpenAIResponseText } from '~/utils/openai/openai-client'
 import { buildHostedOcrJsonPrompt, createHostedOcrResponseParser, HOSTED_OCR_PAGES_JSON_SCHEMA } from '../../ocr-utils/hosted-ocr-json'
 import { InfraError, InternalError } from '~/utils/error-handler'
+import { applyOpenAIResponsesReasoning } from '~/cli/commands/setup-and-utilities/models/reasoning-request-mappers'
+import { resolveReasoningPolicy } from '~/cli/commands/setup-and-utilities/models/reasoning-resolver'
 
 const OPENAI_NATIVE_STRUCTURED_MODELS = new Set([
   'gpt-5.6-sol',
@@ -138,14 +140,26 @@ export const runOpenAIOcr = async (
   filePath: string,
   step1Metadata: DocumentMetadata,
   model: string,
-  options: { baseUrl?: string | undefined, onRetryable?: HostedOcrSchedulerRetryPressureHandler | undefined } = {}
+  options: {
+    baseUrl?: string | undefined
+    onRetryable?: HostedOcrSchedulerRetryPressureHandler | undefined
+    reasoningEffort?: import('~/cli/commands/setup-and-utilities/models/reasoning-resolver').NormalizedReasoningEffort | undefined
+  } = {}
 ): Promise<{
   pages: PageResult[]
   extractionMethod: 'openai-ocr'
   totalPages: number
   promptTokens?: number
   completionTokens?: number
+  requestedReasoningEffort?: import('~/cli/commands/setup-and-utilities/models/reasoning-resolver').NormalizedReasoningEffort | undefined
+  effectiveReasoningEffort?: import('~/cli/commands/setup-and-utilities/models/reasoning-resolver').NormalizedReasoningEffort | undefined
 }> => {
+  const policy = resolveReasoningPolicy({
+    step: 'extract',
+    service: 'openai',
+    model,
+    requestedReasoningEffort: options.reasoningEffort
+  })
   const expectedPageCount = Math.max(1, step1Metadata.pageCount)
   const { baseUrl, onRetryable } = options
   const config = getOpenAIClientConfig(baseUrl)
@@ -154,6 +168,7 @@ export const runOpenAIOcr = async (
 
   for (let attempt = 0; attempt < OCR_SCHEMA_RETRY_ATTEMPTS; attempt++) {
     const requestBody = await createRequestBody(filePath, step1Metadata, model, expectedPageCount)
+    applyOpenAIResponsesReasoning(requestBody, policy.effective)
     const response = await withOcrCreateRetry(
       'openai-ocr',
       async (signal) => await createOpenAIResponse(config, requestBody, {
@@ -175,7 +190,9 @@ export const runOpenAIOcr = async (
             extractionMethod: 'openai-ocr',
             totalPages: 1,
             ...(typeof response.usage?.input_tokens === 'number' ? { promptTokens: response.usage.input_tokens } : {}),
-            ...(typeof response.usage?.output_tokens === 'number' ? { completionTokens: response.usage.output_tokens } : {})
+            ...(typeof response.usage?.output_tokens === 'number' ? { completionTokens: response.usage.output_tokens } : {}),
+            ...(policy.requested !== undefined ? { requestedReasoningEffort: policy.requested } : {}),
+            effectiveReasoningEffort: policy.effective
           }
         }
         throw InfraError('OpenAI OCR returned no text output.', { stage: 'ocr:openai' })
@@ -190,7 +207,9 @@ export const runOpenAIOcr = async (
         extractionMethod: 'openai-ocr',
         totalPages: pages.length,
         ...(typeof response.usage?.input_tokens === 'number' ? { promptTokens: response.usage.input_tokens } : {}),
-        ...(typeof response.usage?.output_tokens === 'number' ? { completionTokens: response.usage.output_tokens } : {})
+        ...(typeof response.usage?.output_tokens === 'number' ? { completionTokens: response.usage.output_tokens } : {}),
+        ...(policy.requested !== undefined ? { requestedReasoningEffort: policy.requested } : {}),
+        effectiveReasoningEffort: policy.effective
       }
     } catch (error) {
       lastError = error instanceof Error ? error : new Error(String(error))

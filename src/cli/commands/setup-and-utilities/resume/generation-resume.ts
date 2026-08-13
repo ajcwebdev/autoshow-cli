@@ -208,7 +208,7 @@ async function prepareGenerationResume<TTarget extends ProviderIdentity, TMetada
     return undefined
   }
 
-  const resumeValidationError = config.validateManifestForResume?.(item, existingEntries)
+  const resumeValidationError = config.validateManifestForResume?.(item, existingEntries, opts)
   if (resumeValidationError) {
     if (throwOnInvalid) {
       throw CLIUsageError(resumeValidationError)

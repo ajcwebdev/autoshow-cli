@@ -15,6 +15,48 @@ import type { AggregatedPriceEstimate, OcrExtractionOptions, OcrResumePassContex
 import { resolveAdditiveResumeProviderSelection } from '../resume-provider-selection'
 import { hasResumableProviderTargetWork, priceProviderResumeTarget, providerResumeSourceInput, resolveProviderResumeOutputDir, runProviderResumePass, selectedProviderTargetsComplete, selectedProvidersCompleteResult, toProviderResumeResult, toProviderResumeSource, withProviderResumeOutputDir } from '../provider-batch-resume'
 import { buildExtractEstimates } from '~/utils/pricing/aggregate-pricing/extract-estimates'
+import { resolveReasoningPolicy, type NormalizedReasoningEffort } from '~/cli/commands/setup-and-utilities/models/reasoning-resolver'
+
+const assertSelectedOcrReasoningCompatibility = (
+  record: Record<string, unknown>,
+  selectedTargets: OcrTarget[] | undefined,
+  requestedReasoningEffort: NormalizedReasoningEffort | undefined
+): void => {
+  if (selectedTargets === undefined || requestedReasoningEffort === undefined) {
+    return
+  }
+
+  const providerStates = Array.isArray(record['providerStates'])
+    ? record['providerStates'].filter(isRecord)
+    : []
+  for (const target of selectedTargets) {
+    if (target.service === 'tesseract') {
+      continue
+    }
+    const state = providerStates.find((candidate) =>
+      candidate['service'] === target.service
+      && candidate['model'] === target.model
+      && candidate['status'] === 'succeeded'
+    )
+    if (!state) {
+      continue
+    }
+
+    const policy = resolveReasoningPolicy({
+      step: 'extract',
+      service: target.service,
+      model: target.model,
+      requestedReasoningEffort
+    })
+    const metadata = isRecord(state['metadata']) ? state['metadata'] : undefined
+    const storedEffective = metadata?.['effectiveReasoningEffort']
+    if (storedEffective !== policy.effective) {
+      throw CLIUsageError(
+        `OCR resume reasoning policy mismatch for ${target.service}/${target.model}: manifest effective effort is ${typeof storedEffective === 'string' ? storedEffective : 'unrecorded'}, but the current request resolves to ${policy.effective}.`
+      )
+    }
+  }
+}
 
 const toStoredSource = (record: PipelineItemRecord): Step1SourceRef => {
   const source = isRecord(record['source']) ? record['source'] : undefined
@@ -38,7 +80,8 @@ const toStoredSource = (record: PipelineItemRecord): Step1SourceRef => {
 
 const parseResumeRecord = async (
   record: unknown,
-  selectedTargets: OcrTarget[] | undefined
+  selectedTargets: OcrTarget[] | undefined,
+  requestedReasoningEffort?: NormalizedReasoningEffort | undefined
 ): Promise<ResumeOcrEntry | undefined> => {
   if (!isRecord(record)) {
     return undefined
@@ -53,6 +96,8 @@ const parseResumeRecord = async (
   if (storedRequestedTargets.length === 0 && (!selectedTargets || selectedTargets.length === 0)) {
     return undefined
   }
+
+  assertSelectedOcrReasoningCompatibility(record, selectedTargets, requestedReasoningEffort)
 
   const source = toStoredSource(record)
   const storedMissingTargets = buildMissingTargetsFromEntry(record, storedRequestedTargets, {
@@ -155,7 +200,8 @@ const buildResumeExtractionOpts = (
     pdfChapterMode: opts.pdfChapterMode,
     configPath: opts.configPath,
     ...(opts.useEpubBun ? { useEpubBun: true } : {}),
-    ...(step2SelectionOrigins ? { step2SelectionOrigins } : {})
+    ...(step2SelectionOrigins ? { step2SelectionOrigins } : {}),
+    ...(opts.reasoningEffort ? { reasoningEffort: opts.reasoningEffort } : {})
   }
 }
 
@@ -185,7 +231,7 @@ const runResumeOcrTarget = async (
     {
       stepLabel: 'OCR',
       readItemRecord,
-      parseRecord: async (record) => await parseResumeRecord(record, selectedTargets),
+      parseRecord: async (record) => await parseResumeRecord(record, selectedTargets, opts.reasoningEffort),
       getProviderLabels: (targets) => targets.map((runTarget) => `${runTarget.service}/${runTarget.model}`),
       normalizeAlreadyFullRecord: markItemRecordFull,
       classifyNoMatchingRecord: (record) =>
@@ -239,7 +285,8 @@ const runResumeOcrTarget = async (
         const record = await readItemRecord(entry.outputDir)
         const remainingResumableEntry = await parseResumeRecord(
           withProviderResumeOutputDir(record, entry.outputDir),
-          selectedTargets
+          selectedTargets,
+          opts.reasoningEffort
         )
         const hasRemainingResumableWork = (remainingResumableEntry?.missingTargets.length ?? 0) > 0
         const completionStatus = getOcrCompletionStatus(record)
@@ -315,7 +362,7 @@ export const priceOcrTarget = async (
   return await priceProviderResumeTarget<OcrTarget, ResumeOcrEntry, OcrExtractionOptions>(target, opts, {
     stepLabel: 'OCR',
     readItemRecord,
-    parseRecord: (record) => parseResumeRecord(record, selectedTargets),
+    parseRecord: (record) => parseResumeRecord(record, selectedTargets, opts.reasoningEffort),
     getAggregateTimingOptions: (options) => ({
       ocrConcurrency: options.ocrConcurrency,
       ocrConcurrencyMode: options.ocrConcurrencyMode,
@@ -326,7 +373,10 @@ export const priceOcrTarget = async (
       buildExtractEstimates(
         providerResumeSourceInput(entry.source, 'OCR'),
         buildResolvedOcrStep(entry.missingTargets),
-        { hostedOcrTokenProfilePath: estimateOpts.hostedOcrTokenProfilePath }
+        {
+          hostedOcrTokenProfilePath: estimateOpts.hostedOcrTokenProfilePath,
+          reasoningEffort: estimateOpts.reasoningEffort
+        }
       )
   })
 }

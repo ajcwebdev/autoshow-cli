@@ -17,12 +17,31 @@ const ensureMiniMaxBaseRespSuccess = (
 
 const MINIMAX_TEXT_BASE_URL = `${MINIMAX_DEFAULT_BASE_URL}/v1`
 
+import { resolveReasoningPolicy } from '~/cli/commands/setup-and-utilities/models/reasoning-resolver'
+
 export const runMinimaxModel = async (
   prompt: string,
   model: string,
   structuredOpts?: StructuredRequestOptions
 ): Promise<{ result: string, metadata: Step3Metadata }> => {
-  return await executeLlmRequest(prompt, model, structuredOpts, {
+  const policy = resolveReasoningPolicy({
+    step: 'llm',
+    service: 'minimax',
+    model,
+    requestedReasoningEffort: structuredOpts?.requestedReasoningEffort
+  })
+  const updatedOpts: StructuredRequestOptions | undefined = structuredOpts
+    ? { ...structuredOpts, requestedReasoningEffort: policy.requested, effectiveReasoningEffort: policy.effective }
+    : {
+        schemaName: '',
+        schema: {},
+        strict: false,
+        strategy: 'native',
+        requestedReasoningEffort: policy.requested,
+        effectiveReasoningEffort: policy.effective
+      }
+
+  return await executeLlmRequest(prompt, model, updatedOpts, {
     service: 'minimax',
     providerLabel: 'MiniMax',
     operationName: 'minimax-llm',

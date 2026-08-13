@@ -99,6 +99,8 @@ export const buildOcrOutput = (
   if (input.conversionChain) step2MetadataPayload['conversionChain'] = input.conversionChain
   if (input.outputFidelity) step2MetadataPayload['outputFidelity'] = input.outputFidelity
   if (input.outputFidelity) step2MetadataPayload['outputFormat'] = input.opts.outputFormat
+  if (input.requestedReasoningEffort !== undefined) step2MetadataPayload['requestedReasoningEffort'] = input.requestedReasoningEffort
+  if (input.effectiveReasoningEffort !== undefined) step2MetadataPayload['effectiveReasoningEffort'] = input.effectiveReasoningEffort
 
   const step2Metadata = validateData(ExtractionMetadataSchema, step2MetadataPayload, 'extraction metadata')
 

@@ -11,4 +11,7 @@ export type HostedDirectImageFormatSet = {
 
 export type HostedDirectImageInputStrategy = 'direct' | 'bun-png' | 'imagemagick-png' | 'unsupported'
 
-export type HostedOcrIdentity = Pick<HostedOcrRun, 'extractionMethod' | 'ocrService' | 'ocrModel'>
+export type HostedOcrIdentity = Pick<
+  HostedOcrRun,
+  'extractionMethod' | 'ocrService' | 'ocrModel' | 'requestedReasoningEffort' | 'effectiveReasoningEffort'
+>

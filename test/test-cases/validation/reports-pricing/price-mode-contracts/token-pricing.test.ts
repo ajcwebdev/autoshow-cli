@@ -82,6 +82,29 @@ describe('price mode contracts', () => {
       })
     })
 
+  test('OpenAI GPT-5.6 Terra and Luna registries share current write and OCR rates', () => {
+      expect(getLlmCost('openai', 'gpt-5.6-terra')).toMatchObject({
+        inputCostPer1MCents: 200,
+        outputCostPer1MCents: 1200
+      })
+      expect(getExtractPricing('openai', 'gpt-5.6-terra')).toMatchObject({
+        inputCostPer1MCents: 200,
+        cachedInputCostPer1MCents: 20,
+        outputCostPer1MCents: 1200
+      })
+      expect(getLlmCost('openai', 'gpt-5.6-luna')).toMatchObject({
+        inputCostPer1MCents: 20,
+        outputCostPer1MCents: 120
+      })
+      expect(getExtractPricing('openai', 'gpt-5.6-luna')).toMatchObject({
+        inputCostPer1MCents: 20,
+        cachedInputCostPer1MCents: 2,
+        outputCostPer1MCents: 120
+      })
+      expect(getModelRegistry().llm['openai']?.models['gpt-5.6-terra']?.cachedInputCostPer1MCents).toBe(20)
+      expect(getModelRegistry().llm['openai']?.models['gpt-5.6-luna']?.cachedInputCostPer1MCents).toBe(2)
+    })
+
   test('shared token pricing helper applies Gemini Pro 200K bands', () => {
       const rates = getLlmCost('gemini', 'gemini-3.1-pro-preview')
       if (!rates) {

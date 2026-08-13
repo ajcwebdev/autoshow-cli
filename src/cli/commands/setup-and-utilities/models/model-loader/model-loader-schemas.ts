@@ -65,6 +65,23 @@ export const ExtractLimitsSchema = v.object({
   notes: v.optional(v.string(), undefined)
 })
 
+export const ReasoningCapabilitiesSchema = v.pipe(
+  v.strictObject({
+    support: v.picklist(['unsupported', 'optional', 'required']),
+    allowDisabled: v.optional(v.boolean(), undefined),
+    supportedEfforts: v.optional(v.array(v.picklist(['minimal', 'low', 'medium', 'high', 'max'])), undefined)
+  }),
+  v.check(
+    (capabilities) => capabilities.support !== 'unsupported'
+      || (capabilities.allowDisabled === undefined && capabilities.supportedEfforts === undefined),
+    'Unsupported reasoning capabilities cannot declare disable or named-effort controls.'
+  ),
+  v.check(
+    (capabilities) => capabilities.support !== 'required' || capabilities.allowDisabled !== true,
+    'Required reasoning capabilities cannot allow reasoning to be disabled.'
+  )
+)
+
 const ExtractModelSchema = v.strictObject({
   description: v.string(),
   ...PricingProvenanceFields,
@@ -81,7 +98,8 @@ const ExtractModelSchema = v.strictObject({
     singlePagePdfFallbackMsPerPage: v.optional(v.number(), undefined),
     promptTokensPerPage: v.optional(v.number(), undefined),
     completionTokensPerPage: v.optional(v.number(), undefined)
-  }), undefined)
+  }), undefined),
+  reasoning: v.optional(ReasoningCapabilitiesSchema, undefined)
 })
 
 const ExtractServiceSchema = v.object({
@@ -101,7 +119,8 @@ const LlmModelSchema = v.strictObject({
   estimation: v.optional(v.object({
     costMultiplier: v.optional(v.number(), undefined),
     msPer1KTokens: v.optional(v.number(), undefined)
-  }), undefined)
+  }), undefined),
+  reasoning: v.optional(ReasoningCapabilitiesSchema, undefined)
 })
 
 const LlmServiceSchema = v.object({

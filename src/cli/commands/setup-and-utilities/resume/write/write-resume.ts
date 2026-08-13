@@ -15,6 +15,7 @@ import { toArray } from '~/utils/text-utils'
 import { CLIUsageError } from '~/utils/error-handler'
 import { getLlmCost, getLlmEstimation } from '~/cli/commands/setup-and-utilities/models/model-loader'
 import { computeTokenCost } from '~/utils/pricing/token-pricing'
+import { isNormalizedReasoningEffort, resolveReasoningPolicy } from '~/cli/commands/setup-and-utilities/models/reasoning-resolver'
 import type { ExtractEstimateTarget, ExtractionMetadata, GenerationResumeConfig, LLMOptions, LLMTarget, LlmStepEstimate, ResumeTarget, Step1Metadata, Step2Metadata, Step3Metadata, StructuredValidationContext, WriteRuntimeOptions } from '~/types'
 
 const WRITE_LLM_PROVIDER_FLAGS = [
@@ -78,6 +79,8 @@ const isStep3Metadata = (value: unknown): value is Step3Metadata =>
   && Array.isArray(value['structuredPresetNames'])
   && value['structuredPresetNames'].every((entry) => typeof entry === 'string')
   && (value['validationFailed'] === undefined || typeof value['validationFailed'] === 'boolean')
+  && (value['requestedReasoningEffort'] === undefined || isNormalizedReasoningEffort(value['requestedReasoningEffort']))
+  && (value['effectiveReasoningEffort'] === undefined || isNormalizedReasoningEffort(value['effectiveReasoningEffort']))
 
 const getExistingStep3Entries = (
   metadata: Record<string, unknown>
@@ -417,13 +420,23 @@ const llmRegistryService = (
 
 const buildWriteResumeLlmEstimates = (
   targets: LLMTarget[],
-  existingEntries: Step3Metadata[]
+  existingEntries: Step3Metadata[],
+  opts: WriteRuntimeOptions
 ): LlmStepEstimate[] => {
   const estimatedInputTokens = averageTokenCount(existingEntries, 'inputTokenCount')
   const estimatedOutputTokens = averageTokenCount(existingEntries, 'outputTokenCount')
 
   return targets.map((target) => {
     const registryService = llmRegistryService(target.service)
+    const requestedReasoningEffort = target.service === 'llama.cpp' || target.service === 'llamafile'
+      ? undefined
+      : opts.reasoningEffort
+    const reasoningPolicy = resolveReasoningPolicy({
+      step: 'llm',
+      service: registryService,
+      model: target.model,
+      requestedReasoningEffort
+    })
     const pricing = getLlmCost(registryService, target.model) ?? {
       inputCostPer1MCents: 0,
       outputCostPer1MCents: 0
@@ -444,6 +457,8 @@ const buildWriteResumeLlmEstimates = (
       outputCostPer1MCents: cost.outputCostPer1MCents,
       estimatedInputTokens,
       estimatedOutputTokens,
+      ...(reasoningPolicy.requested !== undefined ? { requestedReasoningEffort: reasoningPolicy.requested } : {}),
+      effectiveReasoningEffort: reasoningPolicy.effective,
       totalCost: cost.totalCost,
       costMultiplier: estimation.costMultiplier,
       ...(typeof cost.pricingBand === 'string' ? { pricingBand: cost.pricingBand } : {}),
@@ -461,6 +476,36 @@ export const writeResumeConfig = {
   parseManifestEntries: (metadata: Record<string, unknown>) => {
     const entries = getExistingStep3Entries(metadata)
     return entries.length > 0 ? entries : undefined
+  },
+  validateManifestForResume: (item, entries, opts) => {
+    if (opts.reasoningEffort === undefined) {
+      return undefined
+    }
+
+    const selectedKeys = new Set(
+      collectWriteTargets(opts, item.outputDir ?? '')
+        .map(targetKey)
+    )
+    for (const entry of entries) {
+      if (!selectedKeys.has(metadataKey(entry))) {
+        continue
+      }
+      if (entry.llmService === 'llama.cpp' || entry.llmService === 'llamafile') {
+        continue
+      }
+      const policy = resolveReasoningPolicy({
+        step: 'llm',
+        service: llmRegistryService(entry.llmService),
+        model: entry.llmModel,
+        requestedReasoningEffort: opts.reasoningEffort
+      })
+      if (entry.effectiveReasoningEffort !== policy.effective) {
+        const stored = entry.effectiveReasoningEffort ?? 'unrecorded'
+        return `Write resume reasoning policy mismatch for ${entry.llmService}/${entry.llmModel}: manifest effective effort is ${stored}, but the current request resolves to ${policy.effective}.`
+      }
+    }
+
+    return undefined
   },
   resolveInput: async (target: ResumeTarget) => {
     const prompt = await readTextFileIfPresent(join(target.dir, 'prompt.md'))
@@ -503,6 +548,7 @@ export const writeResumeConfig = {
       structuredValidationContext,
       llmProviderConcurrency: opts.llmProviderConcurrency,
       llmLocalConcurrency: opts.llmLocalConcurrency,
+      reasoningEffort: opts.reasoningEffort,
       fileNameForTarget: (llmTarget) => buildWriteResumeOutputFileName({
         target: llmTarget,
         selectedTargets: targets,
@@ -530,10 +576,10 @@ export const writeResumeConfig = {
     return results.map((result) => result.metadata)
   },
   buildEstimates: (
-    _opts: WriteRuntimeOptions,
+    opts: WriteRuntimeOptions,
     _input: string,
     context: { targets: LLMTarget[], existingEntries: Step3Metadata[] }
-  ) => buildWriteResumeLlmEstimates(context.targets, context.existingEntries),
+  ) => buildWriteResumeLlmEstimates(context.targets, context.existingEntries, opts),
   rebuildRunMetadata: (
     metadata: Step3Metadata[],
     currentManifestMetadata: Record<string, unknown>

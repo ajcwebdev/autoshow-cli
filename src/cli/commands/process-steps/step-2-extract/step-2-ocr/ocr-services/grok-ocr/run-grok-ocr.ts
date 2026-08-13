@@ -22,6 +22,7 @@ const buildOcrPrompt = (): string => [
 
 export const runGrokOcr = createChatImageOcrRunner({
   extractionMethod: 'grok-ocr',
+  service: 'grok',
   providerLabel: 'Grok OCR',
   maxImageBytes: GROK_OCR_IMAGE_BYTES,
   imageLimitLabel: '20 MiB',
@@ -29,9 +30,12 @@ export const runGrokOcr = createChatImageOcrRunner({
   prompt: buildOcrPrompt(),
   errorMessagePrefix: 'Grok OCR request failed',
   getConfig: getGrokOcrClientConfig,
-  buildBody: ({ model, messages }) => ({
+  buildBody: ({ model, messages, reasoningPolicy }) => ({
     model,
     max_completion_tokens: GROK_OCR_MAX_COMPLETION_TOKENS,
+    ...(reasoningPolicy.effective === 'low' || reasoningPolicy.effective === 'medium' || reasoningPolicy.effective === 'high'
+      ? { reasoning_effort: reasoningPolicy.effective }
+      : {}),
     messages
   })
 })

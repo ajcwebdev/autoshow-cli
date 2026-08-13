@@ -23,6 +23,7 @@ const buildOcrPrompt = (): string => [
 
 export const runDeepinfraOcr = createChatImageOcrRunner({
   extractionMethod: 'deepinfra-ocr',
+  service: 'deepinfra',
   providerLabel: 'DeepInfra OCR',
   maxImageBytes: DEEPINFRA_OCR_IMAGE_BYTES,
   imageLimitLabel: '20 MB',

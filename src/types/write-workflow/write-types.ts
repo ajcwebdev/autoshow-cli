@@ -8,6 +8,7 @@ export type LLMOptions = Pick<ProcessingOptions,
   | LLMModelOptionKey
   | 'llmProviderConcurrency'
   | 'llmLocalConcurrency'
+  | 'reasoningEffort'
 > & {
   promptBuilder?: ((instruction: string) => string) | undefined
   structuredContext?: {
@@ -50,6 +51,8 @@ export type StructuredRequestOptions = {
   schema: JsonObject
   strict: boolean
   strategy: StructuredStrategy
+  requestedReasoningEffort?: import('~/cli/commands/setup-and-utilities/models/reasoning-resolver').NormalizedReasoningEffort | undefined
+  effectiveReasoningEffort?: import('~/cli/commands/setup-and-utilities/models/reasoning-resolver').NormalizedReasoningEffort | undefined
 }
 
 export type StructuredValidationContext = {

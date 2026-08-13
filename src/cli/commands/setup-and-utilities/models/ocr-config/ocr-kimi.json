@@ -22,6 +22,11 @@
           "msPerPage": 16355,
           "promptTokensPerPage": 4265,
           "completionTokensPerPage": 516
+        },
+        "reasoning": {
+          "support": "optional",
+          "allowDisabled": true,
+          "supportedEfforts": []
         }
       },
       "kimi-k3": {
@@ -43,6 +48,11 @@
           "msPerPage": 16355,
           "promptTokensPerPage": 4265,
           "completionTokensPerPage": 516
+        },
+        "reasoning": {
+          "support": "required",
+          "allowDisabled": false,
+          "supportedEfforts": ["low", "medium", "high", "max"]
         }
       }
     }

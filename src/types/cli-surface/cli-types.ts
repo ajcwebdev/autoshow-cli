@@ -21,6 +21,7 @@ export type SharedPipelineOptions = {
 export type LlmRuntimeOptions = ResolvedLLMModelOptions & {
   llmProviderConcurrency: number
   llmLocalConcurrency: number
+  reasoningEffort?: import('~/cli/commands/setup-and-utilities/models/reasoning-resolver').NormalizedReasoningEffort | undefined
 }
 
 export type GenerationSchedulingOptions = {
@@ -75,6 +76,7 @@ export type ProcessPlanningOptions = SttSelectionOptions
 export type CommandPricingOptions = ProcessPlanningOptions
   & SttRuntimeOptions
   & OcrRuntimeOptions
+  & { hostedOcrTokenProfilePath?: string | undefined }
   & TtsRuntimeOptions
   & ImageRuntimeOptions
   & VideoRuntimeOptions

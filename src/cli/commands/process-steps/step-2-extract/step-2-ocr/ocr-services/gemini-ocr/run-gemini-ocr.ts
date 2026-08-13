@@ -9,6 +9,7 @@ import { getCachedCloudStagingObject } from '~/cli/commands/process-steps/step-2
 import { buildHostedOcrJsonPrompt, createHostedOcrResponseParser, HOSTED_OCR_PAGES_JSON_SCHEMA } from '../../ocr-utils/hosted-ocr-json'
 import { geminiDeleteFile, geminiFileDataPart, geminiGenerateContent, geminiGetFile, geminiUploadFile, geminiUserContent, getGeminiFileState } from '~/utils/gemini/gemini-rest'
 import { sanitizeLogText } from '~/utils/app-logger/redaction'
+import { resolveReasoningPolicy } from '~/cli/commands/setup-and-utilities/models/reasoning-resolver'
 import {
   GEMINI_FILE_UPLOAD_BYTES,
   GEMINI_INLINE_NON_PDF_BYTES,
@@ -84,9 +85,6 @@ const getGeminiCompletionTokens = (usage: GeminiGenerateContentUsageMetadata | u
     ? (usage?.candidatesTokenCount ?? 0) + (usage?.thoughtsTokenCount ?? 0)
     : undefined
 
-const shouldUseLowGeminiThinking = (model: string): boolean =>
-  /^gemini-3(?:[.-]|$)/i.test(model)
-
 const buildGeminiOcrMaxOutputTokens = (expectedPageCount: number): number => {
   const pages = Number.isFinite(expectedPageCount)
     ? Math.max(1, Math.floor(expectedPageCount))
@@ -97,24 +95,31 @@ const buildGeminiOcrMaxOutputTokens = (expectedPageCount: number): number => {
   )
 }
 
+const buildGeminiThinkingLevel = (effective: string): string | undefined => {
+  switch (effective) {
+    case 'low': return 'LOW'
+    case 'medium': return 'MEDIUM'
+    case 'high': return 'HIGH'
+    case 'minimal': return 'MINIMAL'
+    default: return undefined
+  }
+}
+
 const buildGeminiOcrGenerationConfig = (
-  model: string,
   expectedPageCount: number,
-  format: DocumentMetadata['format']
-): Record<string, unknown> => ({
-  responseMimeType: 'application/json',
-  responseJsonSchema: HOSTED_OCR_PAGES_JSON_SCHEMA,
-  maxOutputTokens: expectedPageCount === 1 && format !== 'pdf'
-    ? GEMINI_OCR_SINGLE_PAGE_IMAGE_MAX_OUTPUT_TOKENS
-    : buildGeminiOcrMaxOutputTokens(expectedPageCount),
-  ...(shouldUseLowGeminiThinking(model)
-    ? {
-        thinkingConfig: {
-          thinkingLevel: 'LOW'
-        }
-      }
-    : {})
-})
+  format: DocumentMetadata['format'],
+  effectiveReasoningEffort: string
+): Record<string, unknown> => {
+  const thinkingLevel = buildGeminiThinkingLevel(effectiveReasoningEffort)
+  return {
+    responseMimeType: 'application/json',
+    responseJsonSchema: HOSTED_OCR_PAGES_JSON_SCHEMA,
+    maxOutputTokens: expectedPageCount === 1 && format !== 'pdf'
+      ? GEMINI_OCR_SINGLE_PAGE_IMAGE_MAX_OUTPUT_TOKENS
+      : buildGeminiOcrMaxOutputTokens(expectedPageCount),
+    ...(thinkingLevel ? { thinkingConfig: { thinkingLevel } } : {})
+  }
+}
 
 const buildGeminiOcrUsageEntry = (
   usage: GeminiGenerateContentUsageMetadata | undefined,
@@ -243,6 +248,7 @@ export const runGeminiOcr = async (
     ocrPreparationCache?: import('~/types').OcrPreparationCache | undefined
     onRetryable?: HostedOcrSchedulerRetryPressureHandler | undefined
     documentPageNumber?: number | undefined
+    reasoningEffort?: import('~/cli/commands/setup-and-utilities/models/reasoning-resolver').NormalizedReasoningEffort | undefined
   } = {}
 ): Promise<{
   pages: PageResult[]
@@ -251,7 +257,15 @@ export const runGeminiOcr = async (
   promptTokens?: number
   completionTokens?: number
   providerUsage?: HostedOcrRun['providerUsage']
+  requestedReasoningEffort?: import('~/cli/commands/setup-and-utilities/models/reasoning-resolver').NormalizedReasoningEffort | undefined
+  effectiveReasoningEffort?: import('~/cli/commands/setup-and-utilities/models/reasoning-resolver').NormalizedReasoningEffort | undefined
 }> => {
+  const policy = resolveReasoningPolicy({
+    step: 'extract',
+    service: 'gemini',
+    model,
+    requestedReasoningEffort: opts.reasoningEffort
+  })
   const apiKey = requireApiKey('GEMINI_API_KEY', 'ocr:gemini', 'Gemini OCR')
 
   const expectedPageCount = Math.max(1, step1Metadata.pageCount)
@@ -326,7 +340,7 @@ export const runGeminiOcr = async (
           return await geminiGenerateContent(apiKey, {
             model,
             contents,
-            generationConfig: buildGeminiOcrGenerationConfig(model, expectedPageCount, step1Metadata.format),
+            generationConfig: buildGeminiOcrGenerationConfig(expectedPageCount, step1Metadata.format, policy.effective),
             ...(signal ? { abortSignal: signal } : {})
           })
         } finally {
@@ -365,7 +379,9 @@ export const runGeminiOcr = async (
             ...(typeof completionTokens === 'number' ? { completionTokens } : {}),
             ...([...retryUsage, ...(successUsage ? [successUsage] : [])].length > 0
               ? { providerUsage: [...retryUsage, ...(successUsage ? [successUsage] : [])] }
-              : {})
+              : {}),
+            ...(policy.requested !== undefined ? { requestedReasoningEffort: policy.requested } : {}),
+            effectiveReasoningEffort: policy.effective
           }
         }
         throw ValidationError('Gemini OCR returned no text output.', { stage: 'ocr:gemini' })
@@ -382,7 +398,9 @@ export const runGeminiOcr = async (
         ...(typeof completionTokens === 'number' ? { completionTokens } : {}),
         ...([...retryUsage, ...(successUsage ? [successUsage] : [])].length > 0
           ? { providerUsage: [...retryUsage, ...(successUsage ? [successUsage] : [])] }
-          : {})
+          : {}),
+        ...(policy.requested !== undefined ? { requestedReasoningEffort: policy.requested } : {}),
+        effectiveReasoningEffort: policy.effective
       }
     } catch (error) {
       const failureReason = sanitizeGeminiSchemaFailureReason(error)

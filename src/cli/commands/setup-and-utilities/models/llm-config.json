@@ -16,36 +16,51 @@
         "estimation": {
           "costMultiplier": 0.7927,
           "msPer1KTokens": 4125
+        },
+        "reasoning": {
+          "support": "optional",
+          "allowDisabled": true,
+          "supportedEfforts": ["low", "medium", "high", "max"]
         }
       },
       "gpt-5.6-terra": {
         "description": "GPT-5.6 Terra — balanced GPT-5.6 tier",
-        "pricingSourceUrl": "https://developers.openai.com/api/docs/pricing",
-        "pricingCheckedAt": "2026-07-13",
+        "pricingSourceUrl": "https://developers.openai.com/api/docs/models/gpt-5.6-terra",
+        "pricingCheckedAt": "2026-08-12",
         "pricingCurrency": "USD",
         "pricingTier": "OpenAI API standard token pricing",
-        "pricingNotes": "OpenAI lists GPT-5.6 Terra Standard pricing at $2.50/1M input tokens, $0.25/1M cached input tokens, $3.125/1M cache write tokens, and $15/1M output tokens. AutoShow uses uncached standard input/output rates for estimates. Batch, flex, priority, regional uplifts, cached-input discounts, cache-write charges, enterprise pricing, taxes, and provider credits are ignored.",
-        "inputCostPer1MCents": 250,
-        "cachedInputCostPer1MCents": 25,
-        "outputCostPer1MCents": 1500,
+        "pricingNotes": "OpenAI lists GPT-5.6 Terra Standard pricing at $2/1M input tokens, $0.20/1M cached input tokens, $2.50/1M cache write tokens, and $12/1M output tokens. AutoShow uses uncached standard input/output rates for estimates. Batch, flex, priority, regional uplifts, cached-input discounts, cache-write charges, enterprise pricing, taxes, and provider credits are ignored.",
+        "inputCostPer1MCents": 200,
+        "cachedInputCostPer1MCents": 20,
+        "outputCostPer1MCents": 1200,
         "estimation": {
           "costMultiplier": 0.7927,
           "msPer1KTokens": 2580
+        },
+        "reasoning": {
+          "support": "optional",
+          "allowDisabled": true,
+          "supportedEfforts": ["low", "medium", "high", "max"]
         }
       },
       "gpt-5.6-luna": {
         "description": "GPT-5.6 Luna — efficient GPT-5.6 tier",
-        "pricingSourceUrl": "https://developers.openai.com/api/docs/pricing",
-        "pricingCheckedAt": "2026-07-13",
+        "pricingSourceUrl": "https://developers.openai.com/api/docs/models/gpt-5.6-luna",
+        "pricingCheckedAt": "2026-08-12",
         "pricingCurrency": "USD",
         "pricingTier": "OpenAI API standard token pricing",
-        "pricingNotes": "OpenAI lists GPT-5.6 Luna Standard pricing at $1/1M input tokens, $0.10/1M cached input tokens, $1.25/1M cache write tokens, and $6/1M output tokens. AutoShow uses uncached standard input/output rates for estimates. Batch, flex, priority, regional uplifts, cached-input discounts, cache-write charges, enterprise pricing, taxes, and provider credits are ignored.",
-        "inputCostPer1MCents": 100,
-        "cachedInputCostPer1MCents": 10,
-        "outputCostPer1MCents": 600,
+        "pricingNotes": "OpenAI lists GPT-5.6 Luna Standard pricing at $0.20/1M input tokens, $0.02/1M cached input tokens, $0.25/1M cache write tokens, and $1.20/1M output tokens. AutoShow uses uncached standard input/output rates for estimates. Batch, flex, priority, regional uplifts, cached-input discounts, cache-write charges, enterprise pricing, taxes, and provider credits are ignored.",
+        "inputCostPer1MCents": 20,
+        "cachedInputCostPer1MCents": 2,
+        "outputCostPer1MCents": 120,
         "estimation": {
           "costMultiplier": 0.7927,
           "msPer1KTokens": 3484
+        },
+        "reasoning": {
+          "support": "optional",
+          "allowDisabled": true,
+          "supportedEfforts": ["low", "medium", "high", "max"]
         }
       },
       "gpt-5.5": {
@@ -76,6 +91,11 @@
         "estimation": {
           "costMultiplier": 0.7927,
           "msPer1KTokens": 4125
+        },
+        "reasoning": {
+          "support": "optional",
+          "allowDisabled": true,
+          "supportedEfforts": ["low", "medium", "high"]
         }
       },
       "gpt-5.4-mini": {
@@ -90,6 +110,11 @@
         "estimation": {
           "costMultiplier": 0.7927,
           "msPer1KTokens": 2580
+        },
+        "reasoning": {
+          "support": "optional",
+          "allowDisabled": true,
+          "supportedEfforts": ["low", "medium", "high"]
         }
       },
       "gpt-5.4-nano": {
@@ -104,6 +129,11 @@
         "estimation": {
           "costMultiplier": 0.7927,
           "msPer1KTokens": 3484
+        },
+        "reasoning": {
+          "support": "optional",
+          "allowDisabled": true,
+          "supportedEfforts": ["low", "medium", "high"]
         }
       }
     }
@@ -124,6 +154,10 @@
         "estimation": {
           "costMultiplier": 0.7815,
           "msPer1KTokens": 557
+        },
+        "reasoning": {
+          "support": "optional",
+          "supportedEfforts": ["low", "medium", "high"]
         }
       },
       "openai/gpt-oss-120b": {
@@ -138,6 +172,10 @@
         "estimation": {
           "costMultiplier": 0.848,
           "msPer1KTokens": 688
+        },
+        "reasoning": {
+          "support": "optional",
+          "supportedEfforts": ["low", "medium", "high"]
         }
       }
     }
@@ -174,6 +212,10 @@
         "estimation": {
           "costMultiplier": 0.8434,
           "msPer1KTokens": 15341
+        },
+        "reasoning": {
+          "support": "optional",
+          "supportedEfforts": ["low", "medium", "high"]
         }
       },
       "gemini-3.1-flash-lite": {
@@ -188,6 +230,10 @@
         "estimation": {
           "costMultiplier": 0.8395,
           "msPer1KTokens": 2537
+        },
+        "reasoning": {
+          "support": "optional",
+          "supportedEfforts": ["minimal", "low", "medium", "high"]
         }
       },
       "gemini-3.6-flash": {
@@ -202,6 +248,10 @@
         "estimation": {
           "costMultiplier": 0.8395,
           "msPer1KTokens": 2537
+        },
+        "reasoning": {
+          "support": "optional",
+          "supportedEfforts": ["minimal", "low", "medium", "high"]
         }
       },
       "gemini-3.5-flash": {
@@ -216,6 +266,10 @@
         "estimation": {
           "costMultiplier": 0.8395,
           "msPer1KTokens": 2537
+        },
+        "reasoning": {
+          "support": "optional",
+          "supportedEfforts": ["minimal", "low", "medium", "high"]
         }
       },
       "gemini-3.5-flash-lite": {
@@ -230,6 +284,10 @@
         "estimation": {
           "costMultiplier": 0.8395,
           "msPer1KTokens": 2537
+        },
+        "reasoning": {
+          "support": "optional",
+          "supportedEfforts": ["minimal", "low", "medium", "high"]
         }
       }
     }
@@ -250,6 +308,11 @@
         "estimation": {
           "costMultiplier": 1,
           "msPer1KTokens": 4524
+        },
+        "reasoning": {
+          "support": "required",
+          "allowDisabled": false,
+          "supportedEfforts": ["low", "medium", "high", "max"]
         }
       },
       "claude-opus-4-8": {
@@ -264,6 +327,11 @@
         "estimation": {
           "costMultiplier": 1,
           "msPer1KTokens": 4524
+        },
+        "reasoning": {
+          "support": "optional",
+          "allowDisabled": true,
+          "supportedEfforts": ["low", "medium", "high", "max"]
         }
       },
       "claude-sonnet-5": {
@@ -278,6 +346,11 @@
         "estimation": {
           "costMultiplier": 0.8487,
           "msPer1KTokens": 5119
+        },
+        "reasoning": {
+          "support": "optional",
+          "allowDisabled": true,
+          "supportedEfforts": ["low", "medium", "high", "max"]
         }
       },
       "claude-sonnet-4-6": {
@@ -292,6 +365,11 @@
         "estimation": {
           "costMultiplier": 0.8487,
           "msPer1KTokens": 5119
+        },
+        "reasoning": {
+          "support": "optional",
+          "allowDisabled": true,
+          "supportedEfforts": ["low", "medium", "high", "max"]
         }
       },
       "claude-haiku-4-5": {
@@ -306,6 +384,9 @@
         "estimation": {
           "costMultiplier": 0.8487,
           "msPer1KTokens": 3340
+        },
+        "reasoning": {
+          "support": "unsupported"
         }
       },
       "claude-opus-5": {
@@ -320,6 +401,11 @@
         "estimation": {
           "costMultiplier": 1,
           "msPer1KTokens": 4524
+        },
+        "reasoning": {
+          "support": "optional",
+          "allowDisabled": true,
+          "supportedEfforts": ["low", "medium", "high", "max"]
         }
       }
     }
@@ -356,6 +442,9 @@
         "estimation": {
           "costMultiplier": 1,
           "msPer1KTokens": 18000
+        },
+        "reasoning": {
+          "support": "unsupported"
         }
       }
     }
@@ -380,6 +469,9 @@
         "estimation": {
           "msPer1KTokens": 11318,
           "costMultiplier": 1
+        },
+        "reasoning": {
+          "support": "unsupported"
         }
       },
       "grok-4.5": {
@@ -411,6 +503,10 @@
         "estimation": {
           "msPer1KTokens": 11318,
           "costMultiplier": 1
+        },
+        "reasoning": {
+          "support": "required",
+          "supportedEfforts": ["low", "medium", "high"]
         }
       }
     }
@@ -431,6 +527,11 @@
         "estimation": {
           "costMultiplier": 1,
           "msPer1KTokens": 14146
+        },
+        "reasoning": {
+          "support": "optional",
+          "allowDisabled": true,
+          "supportedEfforts": []
         }
       }
     }
@@ -451,6 +552,11 @@
         "estimation": {
           "costMultiplier": 1,
           "msPer1KTokens": 11215
+        },
+        "reasoning": {
+          "support": "optional",
+          "allowDisabled": true,
+          "supportedEfforts": []
         }
       },
       "kimi-k3": {
@@ -466,6 +572,11 @@
         "estimation": {
           "costMultiplier": 1,
           "msPer1KTokens": 11215
+        },
+        "reasoning": {
+          "support": "required",
+          "allowDisabled": false,
+          "supportedEfforts": ["low", "medium", "high", "max"]
         }
       }
     }
@@ -487,6 +598,11 @@
         "estimation": {
           "costMultiplier": 1,
           "msPer1KTokens": 18000
+        },
+        "reasoning": {
+          "support": "optional",
+          "allowDisabled": true,
+          "supportedEfforts": []
         }
       },
       "glm-5.1": {
@@ -502,6 +618,11 @@
         "estimation": {
           "costMultiplier": 1,
           "msPer1KTokens": 18000
+        },
+        "reasoning": {
+          "support": "optional",
+          "allowDisabled": true,
+          "supportedEfforts": []
         }
       }
     }
@@ -522,6 +643,9 @@
         "estimation": {
           "costMultiplier": 1,
           "msPer1KTokens": 18000
+        },
+        "reasoning": {
+          "support": "unsupported"
         }
       },
       "zai-glm-4.7": {
@@ -536,6 +660,9 @@
         "estimation": {
           "costMultiplier": 1,
           "msPer1KTokens": 18000
+        },
+        "reasoning": {
+          "support": "unsupported"
         }
       }
     }
@@ -550,6 +677,9 @@
         "outputCostPer1MCents": 0,
         "estimation": {
           "msPer1KTokens": 2857
+        },
+        "reasoning": {
+          "support": "unsupported"
         }
       },
       "ggml-org/Qwen3-0.6B-GGUF": {
@@ -558,6 +688,9 @@
         "outputCostPer1MCents": 0,
         "estimation": {
           "msPer1KTokens": 1540
+        },
+        "reasoning": {
+          "support": "unsupported"
         }
       }
     }
@@ -572,6 +705,9 @@
         "outputCostPer1MCents": 0,
         "estimation": {
           "msPer1KTokens": 2000
+        },
+        "reasoning": {
+          "support": "unsupported"
         }
       },
       "Qwen3.5-2B-Q8_0": {
@@ -580,6 +716,9 @@
         "outputCostPer1MCents": 0,
         "estimation": {
           "msPer1KTokens": 3500
+        },
+        "reasoning": {
+          "support": "unsupported"
         }
       },
       "Qwen3.5-4B-Q5_K_S": {
@@ -588,6 +727,9 @@
         "outputCostPer1MCents": 0,
         "estimation": {
           "msPer1KTokens": 5000
+        },
+        "reasoning": {
+          "support": "unsupported"
         }
       }
     }

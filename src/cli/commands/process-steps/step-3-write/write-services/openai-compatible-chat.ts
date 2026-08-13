@@ -44,7 +44,7 @@ export const runOpenAICompatibleChatModel = async ({
         }
       }
 
-      if (!structuredOpts) {
+      if (!structuredOpts || Object.keys(structuredOpts.schema).length === 0) {
         return await executeRequest(requestBody)
       }
 

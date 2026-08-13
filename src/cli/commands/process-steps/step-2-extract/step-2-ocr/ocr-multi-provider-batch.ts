@@ -29,6 +29,7 @@ import { persistHostedOcrTokenUsageProfiles } from './ocr-utils/hosted-ocr-token
 import { persistHostedOcrThroughputProfiles } from './ocr-utils/hosted-ocr-throughput-profiles'
 import { runOcr } from './run-ocr'
 import { ProviderBatchCompletionError } from '../step-2-shared/provider-batch-state'
+import { resolveReasoningPolicy } from '~/cli/commands/setup-and-utilities/models/reasoning-resolver'
 
 export class OcrBatchCompletionError extends ProviderBatchCompletionError {
   constructor(outputDir: string, completionStatus: ProviderCompletionStatus, message: string) {
@@ -282,6 +283,17 @@ const finalizeOcrProviderBatch = async (params: {
 
 export const runOcrMultiProviderBatch = async (ctx: OcrBatchRunContext): Promise<ProcessDocumentOutput> => {
   const { outputDir, requestedTargets, targetsToRun, opts, step1Metadata, web, documentSource, effectiveOpts, preparedMarkdown } = ctx
+  for (const target of targetsToRun) {
+    if (target.service === 'tesseract') {
+      continue
+    }
+    resolveReasoningPolicy({
+      step: 'extract',
+      service: target.service,
+      model: target.model,
+      requestedReasoningEffort: effectiveOpts.reasoningEffort
+    })
+  }
   const primaryTarget = resolvePrimaryOcrTarget(requestedTargets, opts.primaryOcr)
   const resolvedStep2 = resolveRecordedOcrStep2(
     step1Metadata.format,

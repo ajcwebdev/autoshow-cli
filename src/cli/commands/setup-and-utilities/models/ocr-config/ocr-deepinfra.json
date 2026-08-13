@@ -21,6 +21,9 @@
           "msPerPage": 20000,
           "promptTokensPerPage": 4081,
           "completionTokensPerPage": 526
+        },
+        "reasoning": {
+          "support": "unsupported"
         }
       },
       "Qwen/Qwen3-VL-30B-A3B-Instruct": {
@@ -41,6 +44,9 @@
           "msPerPage": 12618,
           "promptTokensPerPage": 7981,
           "completionTokensPerPage": 471.5
+        },
+        "reasoning": {
+          "support": "unsupported"
         }
       }
     }

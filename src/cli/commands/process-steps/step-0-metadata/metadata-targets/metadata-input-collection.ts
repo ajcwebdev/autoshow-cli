@@ -1,10 +1,11 @@
 import { readdir } from 'node:fs/promises'
-import { basename, dirname, extname, resolve } from 'node:path'
+import { tmpdir } from 'node:os'
+import { basename, dirname, extname, join, resolve } from 'node:path'
 import type { MetadataTopLevelTargetInfo } from '~/types'
 import { fileExists } from '~/utils/cli-utils'
 import * as l from '~/utils/app-logger/app-logger'
+import { fileFingerprintsMatch, getFileFingerprint, readJsonCacheMap, writeJsonCacheEntry, type FileFingerprint } from '~/utils/file-fingerprint-cache'
 import { hasSupportedExtension, isLikelyUrl, isRawXSpaceId } from './metadata-input-classifier'
-
 
 const URL_LIST_EXTENSIONS = ['.md', '.txt']
 
@@ -42,33 +43,43 @@ const parseListEntry = (line: string): string => {
   return raw.replace(/^`|`$/g, '').trim()
 }
 
-import { existsSync, readFileSync, writeFileSync } from 'node:fs'
-import { tmpdir } from 'node:os'
-import { join } from 'node:path'
-
 const BATCH_LIST_CACHE_FILE = join(tmpdir(), 'autoshow-batch-list-cache.json')
+const BATCH_LIST_CACHE_LOCK = 'batch-list-cache'
 
-const readBatchListCache = (): Record<string, string[]> => {
-  try {
-    if (existsSync(BATCH_LIST_CACHE_FILE)) {
-      return JSON.parse(readFileSync(BATCH_LIST_CACHE_FILE, 'utf-8'))
-    }
-  } catch {
-  }
-  return {}
+type BatchListCacheEntry = {
+  items: string[]
+  fingerprint: FileFingerprint
 }
 
-const writeBatchListCache = (filePath: string, items: string[]): void => {
+const getCachedBatchListItems = async (filePath: string): Promise<string[] | undefined> => {
+  const cache = await readJsonCacheMap<BatchListCacheEntry>(BATCH_LIST_CACHE_FILE)
+  const entry = cache[resolve(filePath)]
+  if (!entry || !Array.isArray(entry.items) || !entry.fingerprint) {
+    return undefined
+  }
+  return fileFingerprintsMatch(await getFileFingerprint(filePath), entry.fingerprint)
+    ? entry.items
+    : undefined
+}
+
+const writeBatchListCache = async (
+  filePath: string,
+  items: string[],
+  fingerprint: FileFingerprint
+): Promise<void> => {
   try {
-    const cache = readBatchListCache()
-    cache[filePath] = items
-    writeFileSync(BATCH_LIST_CACHE_FILE, JSON.stringify(cache, null, 2), 'utf-8')
+    await writeJsonCacheEntry({
+      cachePath: BATCH_LIST_CACHE_FILE,
+      lockName: BATCH_LIST_CACHE_LOCK,
+      key: resolve(filePath),
+      value: { items, fingerprint }
+    })
   } catch {
   }
 }
 
 export const readInputList = async (filePath: string): Promise<string[]> => {
-  const cached = readBatchListCache()[filePath]
+  const cached = await getCachedBatchListItems(filePath)
   if (cached) {
     return cached
   }
@@ -80,6 +91,7 @@ export const readInputList = async (filePath: string): Promise<string[]> => {
       return []
     }
 
+    const fingerprintBeforeRead = await getFileFingerprint(filePath)
     const baseDir = dirname(filePath)
     const text = await Bun.file(filePath).text()
     const lines = text
@@ -127,7 +139,10 @@ export const readInputList = async (filePath: string): Promise<string[]> => {
     }
 
     l.write('info', `Loaded ${valid.length} inputs from ${filePath}`)
-    writeBatchListCache(filePath, valid)
+    const fingerprintAfterRead = await getFileFingerprint(filePath)
+    if (fingerprintAfterRead && fileFingerprintsMatch(fingerprintBeforeRead, fingerprintAfterRead)) {
+      await writeBatchListCache(filePath, valid, fingerprintAfterRead)
+    }
     return valid
   } catch {
     l.error(`Failed to read input list at ${filePath}`)

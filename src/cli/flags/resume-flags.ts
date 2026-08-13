@@ -7,6 +7,7 @@ import {
   ocrTuningFlags,
   priceFlag,
   promptFlag,
+  reasoningEffortFlag,
   sharedConcurrencyFlags,
   transcriptionFlags
 } from './shared-flags'
@@ -58,7 +59,7 @@ export const resumeFlags = {
   ...withHelpGroup(priceFlag, 'pricing'),
   ...withHelpGroup(pickFlags(batchFlags, ['batch-concurrency']), 'batch-processing'),
   ...withHelpGroup(pickFlags(transcriptionFlags, resumeTranscriptionOptionNames), 'transcription'),
-  ...withHelpGroup({ ...ocrInputFlags, ...ocrTuningFlags }, 'ocr-document'),
+  ...withHelpGroup({ ...ocrInputFlags, ...ocrTuningFlags, ...reasoningEffortFlag }, 'ocr-document'),
   ...withHelpGroup(allArticleFlags, 'article-extraction'),
   ...withHelpGroup(epubInspectFlags, 'epub-inspect'),
   ...withHelpGroup(promptFlag, 'writing'),

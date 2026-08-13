@@ -23,6 +23,9 @@
           "msPerPage": 4127,
           "promptTokensPerPage": 2403,
           "completionTokensPerPage": 434.5
+        },
+        "reasoning": {
+          "support": "unsupported"
         }
       }
     }

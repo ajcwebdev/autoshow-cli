@@ -100,5 +100,7 @@ export const buildStep3Metadata = (
   outputFileName: '',
   outputFormat: 'json',
   structuredMode: structuredOpts?.strategy ?? 'schema-guided',
-  structuredPresetNames: []
+  structuredPresetNames: [],
+  ...(structuredOpts?.requestedReasoningEffort !== undefined ? { requestedReasoningEffort: structuredOpts.requestedReasoningEffort } : {}),
+  ...(structuredOpts?.effectiveReasoningEffort !== undefined ? { effectiveReasoningEffort: structuredOpts.effectiveReasoningEffort } : {})
 })

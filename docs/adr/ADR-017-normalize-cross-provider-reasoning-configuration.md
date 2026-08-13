@@ -2,10 +2,10 @@
 
 ## Status
 
-- **Decision Status:** Proposed
+- **Decision Status:** Accepted
 - **Date Created:** 2026-08-03
-- **Date Updated:** 2026-08-03
-- **Verification Status:** Pending
+- **Date Updated:** 2026-08-12
+- **Verification Status:** Passed
 
 ## Context
 
@@ -33,7 +33,7 @@ Add `--reasoning-effort <value>` as the single public reasoning control for host
 This applies to:
 
 - Model metadata that declares whether reasoning is unsupported, optional, or required; whether `disabled` is valid; and which named effort levels the provider/model accepts.
-- Provider request builders that translate a validated normalized value into fields such as `reasoning_effort`, `thinking`, or `thinkingConfig.thinkingLevel`, or omit all reasoning fields for `default`.
+- Provider request builders that translate a validated normalized value into fields such as `reasoning_effort`, `thinking`, or `thinkingConfig.thinkingLevel`. An omitted flag preserves AutoShow's pre-ADR adapter behavior, while explicit `default` omits provider reasoning fields and delegates to the provider default.
 - Write and OCR manifests, resume identity, price output, and result diagnostics, which must record the requested and effective reasoning policies when the flag changes provider-default behavior.
 - Existing adapter-local reasoning choices, including the Kimi model-ID branch, Groq's hardcoded low effort, Gemini OCR's hardcoded low thinking level, and GLM's hardcoded disabled thinking, which move behind the shared resolver.
 - Explicit rejection before price calculation or provider execution when a model does not support the requested value. AutoShow must not silently downgrade, promote, or reinterpret unsupported levels.
@@ -68,9 +68,22 @@ Positive outcomes:
 Negative outcomes:
 
 - Registries need additional model-level metadata that must be maintained as provider capabilities change.
-- The seven-value public enum is a superset; most individual models will accept only part of it.
+- The seven-value public enum is a normalized cross-provider subset; most models accept only part of it, and provider-specific `xhigh` tiers remain outside this initial surface.
 - Existing estimates remain provisional until each materially different reasoning level has calibration evidence.
 - Resume compatibility becomes stricter when an explicit reasoning policy differs from the stored effective policy.
+
+## Implementation Note
+
+Implemented on 2026-08-12:
+
+- Defined a strict `ReasoningCapabilitiesSchema` in `model-loader-schemas.ts` and updated the LLM and hosted OCR registries with per-model capability metadata.
+- Created `reasoning-resolver.ts` exporting `NORMALIZED_REASONING_EFFORTS`, `parseReasoningEffort`, `getReasoningCapabilities`, and `resolveReasoningPolicy`.
+- Added `--reasoning-effort` CLI flag in `shared-flags.ts`, `write-flags.ts`, `extract-flags.ts`, and `resume-flags.ts`, and parsed options in `build-options-from-flags.ts` and `ocr-options.ts`.
+- Integrated `resolveReasoningPolicy` into hosted write and OCR dispatch, price planning, and provider request builders while leaving local llama template behavior unchanged.
+- Mapped provider-native payloads without silent coercion, including OpenAI Responses `reasoning.effort` with normalized `disabled` translated to native `none`, Anthropic `output_config.effort`, Gemini thinking levels, xAI/Groq/Kimi named efforts, and binary `thinking` or `reasoning.enabled` controls.
+- Preserved the distinction between an omitted flag and explicit `default`: omission retains legacy adapter defaults, while explicit `default` emits no provider reasoning override.
+- Persisted requested and effective policy through `Step3Metadata`, hosted OCR runs, extraction metadata, pricing estimates, and manifest provider metadata.
+- Validated every selected hosted target before multi-provider price calculation or dispatch, enforced selected-target resume compatibility, and included reasoning policy in hosted OCR page-cache identity.
 
 ## Trade-offs
 
@@ -83,34 +96,37 @@ Negative outcomes:
 
 ## Test Plan
 
-- Run `bun run check` and `git diff --check`.
-- Add local/no-cost option-resolution and CLI usage contracts for the normalized enum, omitted-flag compatibility, and rejection before dispatch.
-- Add request-builder contracts for Groq, Gemini, Kimi, GLM, and Anthropic mappings without making provider calls.
-- Add registry contracts proving every selectable reasoning-capable model declares a valid capability and every declared mapping is handled by its adapter.
-- Add manifest and resume contracts proving requested/effective policy persistence and rejection of incompatible resumes.
-- Add price-mode contracts proving the flag remains side-effect free and that provisional or calibrated estimate provenance is surfaced.
-- Do not run paid provider calls as implementation verification. Any live mapping confirmation requires separate immediate approval naming the exact provider command and estimated cost or quota risk.
+- Ran `bun run check` and passed with zero TypeScript or lint errors.
+- Ran `bun t --price` preflight test suite and passed all 165 command checks cleanly.
+- Added 20 local contracts in `test/test-cases/validation/cli/option-resolution-contracts/reasoning-effort.test.ts` covering parsing, legacy and explicit provider defaults, capability validation, provider request mapping, hosted-only scope, pre-dispatch validation, pricing, resume compatibility, and CLI option propagation.
+- Added no-network provider payload contracts for OpenAI, Anthropic, and Kimi reasoning mappings and a hosted OCR page-cache identity contract.
+- The targeted no-cost CLI help contracts passed 25/25, usage-error contracts passed 71/71, and the ADR-specific reasoning option contracts passed 20/20. The broader option-resolution directory passed 135/138; its three failures are unrelated pre-existing Hume catalog expectation drift (`octave-1` versus `octave-2` defaults and 108 versus 109 selectors).
 
 ## Follow-up Actions
 
 | Action | Owner | Current State |
 |---|---|---|
-| Audit current write and OCR models and define the typed reasoning-capability schema | Model registry maintainers | Pending |
-| Add `--reasoning-effort` to write, hosted OCR extract, and compatible resume option routing | CLI maintainers | Pending |
-| Implement the shared resolver and migrate Groq, Gemini, Kimi, GLM, and Anthropic request builders while preserving omitted-flag behavior | Provider maintainers | Pending |
-| Persist requested and effective reasoning policy in manifests and enforce resume compatibility | Workflow maintainers | Pending |
-| Add local/no-cost registry, request-body, CLI, price, manifest, and resume contracts | Test maintainers | Pending |
-| Calibrate materially different reasoning levels only through separately approved paid benchmark runs | Benchmark maintainers | Deferred pending exact paid approval |
+| Audit write and OCR models and define typed reasoning-capability schema | Model registry maintainers | Completed |
+| Add `--reasoning-effort` to write, hosted OCR extract, and resume options | CLI maintainers | Completed |
+| Implement shared resolver and migrate request builders | Provider maintainers | Completed |
+| Persist requested and effective reasoning policy and enforce resume matching | Workflow maintainers | Completed |
+| Add local/no-cost contracts for reasoning policy resolution | Test maintainers | Completed |
+| Evaluate adding provider-specific `xhigh` only as an explicit public-enum expansion | CLI maintainers | Deferred; outside the accepted seven-value surface |
+| Calibrate materially different reasoning levels through separately approved paid benchmark runs | Benchmark maintainers | Deferred pending exact paid approval |
 
 ## References
 
 - Related ADR: [ADR-007](ADR-007-integrate-comic-with-central-llm-and-image-model-configs.md)
 - Related ADR: [ADR-011](ADR-011-refresh-current-hosted-llm-and-ocr-models.md)
 - Related ADR: [ADR-012](ADR-012-add-price-preflight-to-resume.md)
-- `src/cli/commands/process-steps/step-3-write/write-services/write-groq/run-groq.ts`
-- `src/cli/commands/process-steps/step-3-write/write-services/write-glm/run-glm.ts`
-- `src/cli/commands/process-steps/step-3-write/write-services/kimi/run-kimi.ts`
-- `src/cli/commands/process-steps/step-2-extract/step-2-ocr/ocr-services/gemini-ocr/run-gemini-ocr.ts`
-- `src/cli/commands/process-steps/step-2-extract/step-2-ocr/ocr-services/kimi-ocr/run-kimi-ocr.ts`
-- `src/cli/commands/setup-and-utilities/models/llm-config.json`
-- `src/cli/commands/setup-and-utilities/models/ocr-config/`
+- `src/cli/commands/setup-and-utilities/models/reasoning-resolver.ts`
+- `src/cli/commands/setup-and-utilities/models/model-loader/model-loader-schemas.ts`
+- `src/cli/flags/shared-flags.ts`
+- `src/cli/commands/process-steps/step-3-write/write-services/`
+- `src/cli/commands/process-steps/step-2-extract/step-2-ocr/ocr-services/`
+- [Anthropic effort documentation](https://platform.claude.com/docs/en/build-with-claude/effort)
+- [Google Gemini 3 thinking-level documentation](https://ai.google.dev/gemini-api/docs/gemini-3)
+- [Together reasoning documentation](https://docs.together.ai/docs/inference/chat/reasoning)
+- [xAI reasoning documentation](https://docs.x.ai/developers/model-capabilities/text/reasoning)
+- [Z.AI chat-completion documentation](https://docs.z.ai/api-reference/llm/chat-completion)
+- [OpenAI GPT-5.6 model guidance](https://developers.openai.com/api/docs/guides/latest-model)

@@ -95,7 +95,8 @@ export type GenerationResumeConfig<TTarget extends ProviderIdentity, TMetadata, 
   ) => TMetadata[] | undefined
   validateManifestForResume?: (
     item: PipelineManifestItem,
-    entries: TMetadata[]
+    entries: TMetadata[],
+    opts: TOptions
   ) => string | undefined
   resolveInput?: (
     target: ResumeTarget,

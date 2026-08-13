@@ -1,5 +1,6 @@
 import type { ActualPipelineInputsBase, CostEstimateBase, HtmlArticleBackend, ImageProvider, MusicProvider, OcrModelOverrideOptions, ProviderIdentityBase, ProviderModelBase, Step1Metadata, Step2Metadata, Step3Metadata, Step4Metadata, Step5Metadata, Step6VideoMetadata, Step7MusicMetadata, SttRuntimeOptions, TimingStepEntry, VideoProvider } from '~/types'
 import type { CostSource } from './pricing-vocabularies'
+import type { NormalizedReasoningEffort } from '~/cli/commands/setup-and-utilities/models/reasoning-resolver'
 
 // The token-profile provenance fields carried by every extract estimate/cost surface.
 export type TokenProfileEstimateFields = {
@@ -8,6 +9,11 @@ export type TokenProfileEstimateFields = {
   tokenProfileSampleCount?: number
   tokenProfilePromptTokensPerPage?: number
   tokenProfileCompletionTokensPerPage?: number
+}
+
+export type ReasoningEstimateFields = {
+  requestedReasoningEffort?: NormalizedReasoningEffort
+  effectiveReasoningEffort?: NormalizedReasoningEffort
 }
 
 type SttModelOverrides = Partial<Pick<SttRuntimeOptions,
@@ -23,7 +29,7 @@ export type SttStepEstimate = CostEstimateBase & {
   estimateType?: 'heuristic' | 'exact'
 }
 
-export type LlmStepEstimate = ProviderModelBase & {
+export type LlmStepEstimate = ProviderModelBase & ReasoningEstimateFields & {
   step: 'llm'
   inputCostPer1MCents: number
   outputCostPer1MCents: number
@@ -69,7 +75,7 @@ export type MusicStepEstimate = ProviderModelBase<MusicProvider> & {
   note?: string
 }
 
-export type ExtractStepEstimate = ProviderModelBase<'tesseract' | 'mistral' | 'glm' | 'kimi' | 'openai' | 'grok' | 'anthropic' | 'gemini' | 'deepinfra' | HtmlArticleBackend> & TokenProfileEstimateFields & {
+export type ExtractStepEstimate = ProviderModelBase<'tesseract' | 'mistral' | 'glm' | 'kimi' | 'openai' | 'grok' | 'anthropic' | 'gemini' | 'deepinfra' | HtmlArticleBackend> & TokenProfileEstimateFields & ReasoningEstimateFields & {
   step: 'extract'
   costPer1kPagesCents?: number
   inputCostPer1MCents?: number
@@ -277,7 +283,7 @@ export type CostBreakdown<TStep> = {
 
 export type ActualCostBreakdown = CostBreakdown<StepCostEntry>
 
-export type EstimatedStepEntry = TokenProfileEstimateFields & {
+export type EstimatedStepEntry = TokenProfileEstimateFields & ReasoningEstimateFields & {
   step: 'stt' | 'extract' | 'llm' | 'tts' | 'image' | 'video' | 'music'
   provider: string
   model: string

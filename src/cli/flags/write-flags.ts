@@ -11,7 +11,8 @@ import {
   // Shared separately because write should still expose batch and EPUB inspect flags without resume-only surface area.
   batchFlags,
   promptFlag,
-  priceFlag
+  priceFlag,
+  reasoningEffortFlag
 } from './shared-flags'
 import { epubInspectFlags } from './ocr-flags'
 import { imageGenFlags } from './image-flags'
@@ -66,6 +67,7 @@ const writePipelineFlags = {
 export const writeFlags = {
   ...withHelpGroup(priceFlag, 'pricing'),
   ...withHelpGroup(writePipelineFlags, 'pipeline'),
+  ...withHelpGroup(reasoningEffortFlag, 'pipeline'),
   ...withHelpGroup(batchFlags, 'batch-download'),
   ...withHelpGroup(transcriptionFlags, 'extraction'),
   ...withHelpGroup(ocrInputFlags, 'extraction'),

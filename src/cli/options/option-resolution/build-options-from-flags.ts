@@ -5,6 +5,7 @@ import {
   readBooleanFlag,
   readOptionalStringFlag
 } from './flag-readers'
+import { parseReasoningEffort } from '~/cli/commands/setup-and-utilities/models/reasoning-resolver'
 import { collectRepeatableModelFlagOccurrences, readAllShortcutFlags, resolveStep2SelectionOrigins } from './model-flag-selection'
 import { readRuntimeModelOptions } from './download-model-options'
 import { readInjectedConfigFlags } from './build-options-config-flags'
@@ -167,5 +168,6 @@ export const buildOptsFromFlags = (
     }),
     markdown: readBooleanFlag(mergedFlags, 'markdown'),
     save: readBooleanFlag(mergedFlags, 'save'),
+    reasoningEffort: parseReasoningEffort(readOptionalStringFlag(mergedFlags, 'reasoning-effort'))
   }
 }

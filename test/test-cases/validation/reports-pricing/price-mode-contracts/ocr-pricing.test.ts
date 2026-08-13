@@ -651,7 +651,7 @@ describe('price mode contracts', () => {
           completionTokensPerPage: 743,
           costMultiplier: 1,
           msPerPage: 5349,
-          expectedOnePageCost: 1.52075
+          expectedOnePageCost: 1.2166
         },
         {
           provider: 'openai' as const,
@@ -660,7 +660,7 @@ describe('price mode contracts', () => {
           completionTokensPerPage: 858,
           costMultiplier: 1,
           msPerPage: 3919,
-          expectedOnePageCost: 0.6773
+          expectedOnePageCost: 0.13546
         },
         {
           provider: 'anthropic' as const,

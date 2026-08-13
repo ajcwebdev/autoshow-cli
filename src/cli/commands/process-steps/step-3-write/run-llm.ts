@@ -25,8 +25,12 @@ import { readPromptFile } from './text-input-utils'
 import { runLlmProviderTargetPools } from './llm-provider-pool'
 import { DEFAULT_CLI_CONCURRENCY } from '~/utils/concurrency-defaults'
 import { buildStructuredValidationFailureEnvelope, isStructuredValidationFailureEnvelope } from './structured-output/validation-failure'
+import { resolveReasoningPolicy } from '~/cli/commands/setup-and-utilities/models/reasoning-resolver'
 const sanitizeModelName = (model: string): string =>
   model.replace(/[/\\:*?"<>|]/g, '-')
+
+const isLocalLlmService = (service: LLMTarget['service']): boolean =>
+  service === 'llama.cpp' || service === 'llamafile'
 
 const countTargetModels = (targets: LLMTarget[]): Map<string, number> => {
   const counts = new Map<string, number>()
@@ -74,6 +78,18 @@ export const collectLlmTargets = (options: LLMOptions): LLMTarget[] => {
 export const runLlmTargetsForStructuredPrompt = async (
   options: RunLlmTargetsForStructuredPromptOptions
 ): Promise<StructuredRunResult[]> => {
+  for (const target of options.targets) {
+    if (isLocalLlmService(target.service)) {
+      continue
+    }
+    resolveReasoningPolicy({
+      step: 'llm',
+      service: target.service === 'llama.cpp' ? 'llama' : target.service,
+      model: target.model,
+      requestedReasoningEffort: options.reasoningEffort
+    })
+  }
+
   const single = options.targets.length === 1
   const modelCounts = countTargetModels(options.targets)
 
@@ -85,6 +101,9 @@ export const runLlmTargetsForStructuredPrompt = async (
     local: options.llmLocalConcurrency ?? DEFAULT_CLI_CONCURRENCY
   }, async (index, target) => {
     try {
+      const targetReasoningEffort = isLocalLlmService(target.service)
+        ? undefined
+        : options.reasoningEffort
       const structuredMode = resolveStructuredStrategy(target.service)
       const validationRetryBudget = resolveValidationRetryBudget(target.service)
 
@@ -98,7 +117,8 @@ export const runLlmTargetsForStructuredPrompt = async (
           target.model,
           options.structuredSchema,
           validationRetryBudget,
-          options.structuredValidationContext
+          options.structuredValidationContext,
+          targetReasoningEffort
         )
         parsedJson = compatResponse.parsedJson
         metadata = compatResponse.metadata
@@ -107,7 +127,8 @@ export const runLlmTargetsForStructuredPrompt = async (
           schemaName: options.structuredSchema.schemaName,
           schema: options.structuredSchema.jsonSchema,
           strict: shouldApplyStrictMode(target.service, true),
-          strategy: 'native'
+          strategy: 'native',
+          requestedReasoningEffort: targetReasoningEffort
         }
 
         let response = await target.run(options.prompt, target.model, structuredOpts)
@@ -283,6 +304,7 @@ export const runLLM = async (
     structuredSchema,
     structuredValidationContext,
     llmProviderConcurrency: options.llmProviderConcurrency,
-    llmLocalConcurrency: options.llmLocalConcurrency
+    llmLocalConcurrency: options.llmLocalConcurrency,
+    reasoningEffort: options.reasoningEffort
   })
 }

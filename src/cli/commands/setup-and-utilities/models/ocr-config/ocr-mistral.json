@@ -17,6 +17,9 @@
         "estimation": {
           "costMultiplier": 1,
           "msPerPage": 2957
+        },
+        "reasoning": {
+          "support": "unsupported"
         }
       },
       "mistral-ocr-4-0": {
@@ -33,6 +36,9 @@
         "estimation": {
           "costMultiplier": 1,
           "msPerPage": 2957
+        },
+        "reasoning": {
+          "support": "unsupported"
         }
       }
     }

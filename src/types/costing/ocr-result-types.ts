@@ -23,4 +23,6 @@ export type OcrResultBuilderInput = {
   chapterExportSummary: Record<string, unknown> | undefined
   pdfChapterDetectionSummary: Record<string, unknown> | undefined
   artifactFiles: EpubArtifactFile[] | undefined
+  requestedReasoningEffort?: import('~/cli/commands/setup-and-utilities/models/reasoning-resolver').NormalizedReasoningEffort | undefined
+  effectiveReasoningEffort?: import('~/cli/commands/setup-and-utilities/models/reasoning-resolver').NormalizedReasoningEffort | undefined
 }

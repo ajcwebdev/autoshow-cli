@@ -71,9 +71,7 @@ This applies to:
 - `src/cli/commands/process-steps/step-0-metadata/metadata-sources/metadata-youtube-collection-target.ts` collection caching.
 - `src/cli/commands/process-steps/step-0-metadata/metadata-targets/metadata-input-collection.ts` batch list caching.
 
-It does not apply to:
-
-- Production execution runs (`bun autoshow extract ...` without `--price`).
+The worker-pool and test-registry changes apply only to price verification. The shared metadata caches are also used by production metadata resolution and therefore require production-safe invalidation and concurrent-write behavior.
 
 ## Consequences
 
@@ -82,7 +80,7 @@ Positive outcomes:
 - Developer feedback loop for `bun t --price` drops from 39.11s to 6.51s (saving 32.60 seconds per run).
 - Sub-process calls for YouTube metadata, collection items, local file `ffprobe` probes, and batch list files are cached to disk.
 - Log output is clean, token-efficient, and easy to scan with single local `[HH:MM:SS.MMM]` timestamps and 50% fewer log lines.
-- All 165 pricing specs pass cleanly with 100% cost estimation accuracy.
+- All 165 pricing specs pass their expected-cost contracts cleanly.
 
 Negative outcomes:
 
@@ -111,10 +109,13 @@ Negative outcomes:
 | Update `formatTimedOutputPrefix` to format local wall-clock time `[HH:MM:SS.MMM]` | Test maintainers | `test/test-runner/utils.ts` | Implemented |
 | Add ANSI-aware duplicate timestamp prefix suppression in `installTimestampedConsole` | Test maintainers | `test/test-runner/runner.ts` | Implemented |
 | Consolidate price command and single-variant budget preflight output into single lines | Test maintainers | `test/test-runner/runner.ts` | Implemented |
+| Add stable file fingerprints and invalidation checks to local file metadata and batch list caches | CLI maintainers | `src/cli/commands/process-steps/step-1-download/audio/metadata-utils.ts`, `src/cli/commands/process-steps/step-0-metadata/metadata-targets/metadata-input-collection.ts` | Implemented |
+| Serialize shared JSON cache updates with process locks and atomic replacement | CLI maintainers | `src/utils/file-fingerprint-cache.ts` | Implemented |
+| Validate cached payload shapes and cache only results whose source fingerprint remains stable during parsing or probing | CLI maintainers | `src/utils/file-fingerprint-cache.ts`, metadata cache consumers | Implemented |
 | Verify Phase 1, Phase 2, and Phase 3 optimization matrix (165/165 passing specs) | Test maintainers | `test/test-runner/runner.ts` | Verified |
 
 ## Test Plan & Verification Results
 
 - Default type & source check: `bun run check` -> **Passed**
 - Price suite benchmark run (`bun t --price` / `bun test/test-runner.ts --price`) -> **165 passed, 0 failed** in 6.51s with clean `[HH:MM:SS.MMM]` timestamps and 172-line token-efficient output.
-- Targeted CLI contracts: `bun test test/test-cases/validation/cli/cli-help-contracts.test.ts test/test-cases/validation/cli/cli-usage-errors.test.ts test/test-cases/validation/cli/option-resolution-contracts/` -> **23 pass, 0 fail**.
+- Added local cache contracts for same-size rewrites with restored mtimes and concurrent shared-cache updates; both pass without provider calls.

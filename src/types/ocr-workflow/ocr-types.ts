@@ -150,6 +150,8 @@ export type HostedOcrRun = {
   providerUsage?: Array<Record<string, unknown>>
   pdfChunkPreparation?: PdfChunkPreparationSummary
   hostedOcrScheduler?: HostedOcrSchedulerTelemetry
+  requestedReasoningEffort?: import('~/cli/commands/setup-and-utilities/models/reasoning-resolver').NormalizedReasoningEffort | undefined
+  effectiveReasoningEffort?: import('~/cli/commands/setup-and-utilities/models/reasoning-resolver').NormalizedReasoningEffort | undefined
 }
 
 export type OcrTarget = {
