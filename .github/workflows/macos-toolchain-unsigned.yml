@@ -1,30 +1,13 @@
 name: macOS Toolchain Unsigned Verification
 
 on:
-  pull_request:
-    paths:
-      - '.github/workflows/macos-toolchain-unsigned.yml'
-      - 'package.json'
-      - 'bun.lock'
-      - 'src/cli/commands/setup-and-utilities/setup/dependency-metadata.ts'
-      - 'src/cli/commands/setup-and-utilities/setup/setup-download/managed-artifact.ts'
-      - 'src/cli/commands/setup-and-utilities/setup/setup-download/managed-toolchain-distribution-policy.ts'
-      - 'src/cli/commands/setup-and-utilities/setup/setup-download/managed-toolchain-package.ts'
-      - 'src/cli/commands/setup-and-utilities/setup/setup-download/mupdf-source-build.ts'
-      - 'src/cli/commands/setup-and-utilities/setup/setup-download/prebuilt-artifact.ts'
-      - 'src/cli/commands/setup-and-utilities/setup/setup-download/qpdf-source-build.ts'
-      - 'src/cli/commands/setup-and-utilities/setup/setup-download/unsigned-prebuilt-artifact.ts'
-      - 'src/tools/macos-toolchain-producer.ts'
-      - 'src/types/setup-support/managed-artifact-types.ts'
-      - 'test/fixtures/setup/managed-toolchain-smoke.pdf'
-      - 'test/test-cases/validation/setup/prebuilt-producer-contracts.test.ts'
   workflow_dispatch:
 
 permissions:
   contents: read
 
 concurrency:
-  group: macos-toolchain-unsigned-${{ github.event.pull_request.number || github.ref }}
+  group: macos-toolchain-unsigned-${{ github.ref }}
   cancel-in-progress: true
 
 jobs:
