@@ -62,7 +62,7 @@ const HELP_COMMAND_GROUP_BY_NAME: Readonly<Record<string, HelpCommandGroupKey>> 
   benchmark: 'setup'
 }
 
-const COMMAND_DEFINITIONS = [
+export const COMMAND_DEFINITIONS = [
   configCommand,
   setupCommand,
   linksCommand,
@@ -120,16 +120,22 @@ const applyUniversalHelpDescriptionColors = (): void => {
   helpDescriptionColorsApplied = true
 }
 
-const main = async (): Promise<void> => {
+export const runCliInProcess = async (argv: string[]): Promise<void> => {
   applyUniversalHelpDescriptionColors()
-  const argv = Bun.argv.slice(2)
   await dispatchNativeCli(argv, createNativeRootDefinition(), COMMAND_DEFINITIONS)
 }
 
-installProcessFailureHandlers()
+const main = async (): Promise<void> => {
+  const argv = Bun.argv.slice(2)
+  await runCliInProcess(argv)
+}
 
-try {
-  await main()
-} catch (error) {
-  cliErrorHandler(error)
+if (import.meta.main) {
+  installProcessFailureHandlers()
+
+  try {
+    await main()
+  } catch (error) {
+    cliErrorHandler(error)
+  }
 }

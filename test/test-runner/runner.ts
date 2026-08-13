@@ -10,7 +10,7 @@ import type {
   RunnerStreamLabel,
   TestRunArtifacts
 } from '~/types'
-import { DEFAULT_TEST_RUNNER_CONCURRENCY, isE2EOnlyTestSelection, parseRunnerArgs, withDefaultTestConcurrency } from './args'
+import { isE2EOnlyTestSelection, parseRunnerArgs, withDefaultTestConcurrency } from './args'
 import {
   appendRunnerLog,
   appendCommandLog,
@@ -43,7 +43,7 @@ import { createKeyValueTable } from '~/utils/app-logger/human-table/human-table'
 const budgetHundredthCentsToCents = (budgetHundredthCents: number): number => budgetHundredthCents / 100
 const formatBudgetHundredthCents = (budgetHundredthCents: number): string => formatCost(budgetHundredthCentsToCents(budgetHundredthCents))
 
-const PRICE_CONCURRENCY = DEFAULT_TEST_RUNNER_CONCURRENCY
+const PRICE_CONCURRENCY = 25
 
 const runWithConcurrency = async <T, R>(
   items: T[],
@@ -76,10 +76,8 @@ const originalConsole = {
 }
 
 let timestampConsoleInstalled = false
-let timestampConsoleStartedAtMs = 0
 
-const installTimestampedConsole = (startedAtMs: number): void => {
-  timestampConsoleStartedAtMs = startedAtMs
+const installTimestampedConsole = (_startedAtMs?: number): void => {
   if (timestampConsoleInstalled) {
     return
   }
@@ -89,12 +87,16 @@ const installTimestampedConsole = (startedAtMs: number): void => {
   for (const method of ['log', 'warn', 'error'] as const) {
     const original = originalConsole[method]
     console[method] = ((...args: unknown[]) => {
-      const prefix = formatTimedOutputPrefix(Date.now(), timestampConsoleStartedAtMs)
+      const prefix = formatTimedOutputPrefix(Date.now())
       if (args.length === 0) {
         original(prefix)
         return
       }
       if (typeof args[0] === 'string') {
+        if (/^(?:\x1b\[[0-9;]*m|\s)*\[\d{2}:\d{2}:\d{2}(\.\d{3})?\]/.test(args[0])) {
+          original(...args)
+          return
+        }
         original(`${prefix} ${args[0]}`, ...args.slice(1))
         return
       }
@@ -208,7 +210,7 @@ const forwardSpawnOutput = async (
       return
     }
 
-    const prefix = formatTimedOutputPrefix(Date.now(), artifacts.startedAtMs)
+    const prefix = formatTimedOutputPrefix(Date.now())
     writer.write(`${prefix} ${line}`)
     await appendRunnerLog(artifacts, `${prefix} [${label}] ${line}`)
   }
@@ -339,11 +341,10 @@ const runPriceSuite = async (
   const observations: PriceCommandObservation[] = []
   for (const [index, { entry, executed, observation }] of executedResults.entries()) {
     observations.push(observation)
-    l.write('info', `[${index + 1}/${executionCommands.length}] ${entry.name}`)
     if (observation.failureMessage !== null) {
-      logPriceCommandFailure(executed, `  FAIL exit=${executed.exitCode}`)
+      logPriceCommandFailure(executed, `[${index + 1}/${executionCommands.length}] ${entry.name} — FAIL exit=${executed.exitCode}`)
     } else {
-      l.write('info', `  cost: ${formatCost(observation.costCents as number)}`)
+      l.write('info', `[${index + 1}/${executionCommands.length}] ${entry.name} — cost: ${formatCost(observation.costCents as number)}`)
     }
   }
 
@@ -433,8 +434,6 @@ const runBudgetPreflight = async (
   const observations: PriceCommandObservation[] = []
 
   for (const [index, group] of groupedCommands.entries()) {
-    l.write('info', `[${index + 1}/${groupedCommands.length}] ${group.key}`)
-
     const variants = groupResults.get(index) ?? []
     variants.sort((a, b) => a.variantIndex - b.variantIndex)
 
@@ -448,12 +447,6 @@ const runBudgetPreflight = async (
           executed,
           `  variant ${variantIndex + 1}/${group.variants.length}: FAIL exit=${executed.exitCode} (could not resolve numeric estimate)`
         )
-        continue
-      }
-
-      const variantCost = observation.costCents as number
-      if (group.variants.length > 1) {
-        l.write('info', `  variant ${variantIndex + 1}/${group.variants.length}: ${formatCost(variantCost)}`)
       }
     }
 
@@ -462,10 +455,19 @@ const runBudgetPreflight = async (
       continue
     }
 
-    if (groupEvaluation.variantCount > 1) {
+    const decisionText = groupEvaluation.overBudget ? 'SKIP (over budget)' : 'RUN'
+    if (group.variants.length === 1) {
+      l.write('info', `[${index + 1}/${groupedCommands.length}] ${group.key} — decision: ${decisionText} (cost: ${formatCost(groupEvaluation.selectedCostCents)})`)
+    } else {
+      l.write('info', `[${index + 1}/${groupedCommands.length}] ${group.key} (${group.variants.length} variants)`)
+      for (const { observation, variantIndex } of variants) {
+        if (observation.failureMessage === null) {
+          l.write('info', `  variant ${variantIndex + 1}/${group.variants.length}: ${formatCost(observation.costCents as number)}`)
+        }
+      }
       l.write('info', `  selected cost (max variant): ${formatCost(groupEvaluation.selectedCostCents)}`)
+      l.write('info', `  decision: ${decisionText}`)
     }
-    l.write('info', `  decision: ${groupEvaluation.overBudget ? 'SKIP (over budget)' : 'RUN'}`)
   }
 
   const evaluation = evaluatePriceObservations(suiteName, observations, budgetHundredthCents)

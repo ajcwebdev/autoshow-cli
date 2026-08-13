@@ -42,7 +42,37 @@ const parseListEntry = (line: string): string => {
   return raw.replace(/^`|`$/g, '').trim()
 }
 
+import { existsSync, readFileSync, writeFileSync } from 'node:fs'
+import { tmpdir } from 'node:os'
+import { join } from 'node:path'
+
+const BATCH_LIST_CACHE_FILE = join(tmpdir(), 'autoshow-batch-list-cache.json')
+
+const readBatchListCache = (): Record<string, string[]> => {
+  try {
+    if (existsSync(BATCH_LIST_CACHE_FILE)) {
+      return JSON.parse(readFileSync(BATCH_LIST_CACHE_FILE, 'utf-8'))
+    }
+  } catch {
+  }
+  return {}
+}
+
+const writeBatchListCache = (filePath: string, items: string[]): void => {
+  try {
+    const cache = readBatchListCache()
+    cache[filePath] = items
+    writeFileSync(BATCH_LIST_CACHE_FILE, JSON.stringify(cache, null, 2), 'utf-8')
+  } catch {
+  }
+}
+
 export const readInputList = async (filePath: string): Promise<string[]> => {
+  const cached = readBatchListCache()[filePath]
+  if (cached) {
+    return cached
+  }
+
   try {
     const exists = await fileExists(filePath)
     if (!exists) {
@@ -97,6 +127,7 @@ export const readInputList = async (filePath: string): Promise<string[]> => {
     }
 
     l.write('info', `Loaded ${valid.length} inputs from ${filePath}`)
+    writeBatchListCache(filePath, valid)
     return valid
   } catch {
     l.error(`Failed to read input list at ${filePath}`)

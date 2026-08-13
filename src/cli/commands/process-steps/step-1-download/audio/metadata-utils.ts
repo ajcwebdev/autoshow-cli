@@ -8,7 +8,37 @@ import { buildYtDlpFailureMessage, buildYtDlpMetadataArgs } from '~/cli/commands
 import { getYtDlpBinary } from '~/cli/commands/process-steps/shared/shared-yt-dlp-binary'
 import type { Step1SourceRef, VideoMetadata, YtDlpVideoInfo } from '~/types'
 
+import { existsSync, readFileSync, writeFileSync } from 'node:fs'
+import { tmpdir } from 'node:os'
+import { join } from 'node:path'
+
+const VIDEO_INFO_CACHE_FILE = join(tmpdir(), 'autoshow-yt-video-info-cache.json')
+
+const readVideoInfoCache = (): Record<string, YtDlpVideoInfo> => {
+  try {
+    if (existsSync(VIDEO_INFO_CACHE_FILE)) {
+      return JSON.parse(readFileSync(VIDEO_INFO_CACHE_FILE, 'utf-8'))
+    }
+  } catch {
+  }
+  return {}
+}
+
+const writeVideoInfoCache = (url: string, data: YtDlpVideoInfo): void => {
+  try {
+    const cache = readVideoInfoCache()
+    cache[url] = data
+    writeFileSync(VIDEO_INFO_CACHE_FILE, JSON.stringify(cache, null, 2), 'utf-8')
+  } catch {
+  }
+}
+
 export const getVideoInfo = async (url: string): Promise<YtDlpVideoInfo | null> => {
+  const cached = readVideoInfoCache()[url]
+  if (cached) {
+    return cached
+  }
+
   try {
     const args = await buildYtDlpMetadataArgs(url)
 
@@ -22,12 +52,12 @@ export const getVideoInfo = async (url: string): Promise<YtDlpVideoInfo | null> 
     const parsed = JSON.parse(result.stdout)
     const validated = validateDataSafe(YtDlpVideoInfoSchema, parsed)
 
-    if (!validated) {
-      l.debug(`Video info validation failed, using raw data`)
-      return parsed as YtDlpVideoInfo
+    const videoInfoData = validated ?? (parsed as YtDlpVideoInfo)
+    if (videoInfoData) {
+      writeVideoInfoCache(url, videoInfoData)
     }
 
-    return validated
+    return videoInfoData
 
   } catch (error) {
     l.error(`Failed to get video info`, error)
@@ -189,7 +219,33 @@ export const createUniqueDirectoryName = (title: string): string => {
   return `${dateTimeId}_${sanitizeTitleSlug(title)}`
 }
 
+const LOCAL_FILE_METADATA_CACHE_FILE = join(tmpdir(), 'autoshow-local-file-metadata-cache.json')
+
+const readLocalFileMetadataCache = (): Record<string, VideoMetadata> => {
+  try {
+    if (existsSync(LOCAL_FILE_METADATA_CACHE_FILE)) {
+      return JSON.parse(readFileSync(LOCAL_FILE_METADATA_CACHE_FILE, 'utf-8'))
+    }
+  } catch {
+  }
+  return {}
+}
+
+const writeLocalFileMetadataCache = (filePath: string, data: VideoMetadata): void => {
+  try {
+    const cache = readLocalFileMetadataCache()
+    cache[filePath] = data
+    writeFileSync(LOCAL_FILE_METADATA_CACHE_FILE, JSON.stringify(cache, null, 2), 'utf-8')
+  } catch {
+  }
+}
+
 export const extractLocalFileMetadata = async (filePath: string): Promise<VideoMetadata> => {
+  const cached = readLocalFileMetadataCache()[filePath]
+  if (cached) {
+    return cached
+  }
+
   try {
     const ffprobe = await exec(getFfprobeBinary(), [
       '-v', 'error',
@@ -212,10 +268,11 @@ export const extractLocalFileMetadata = async (filePath: string): Promise<VideoM
       channelURL: undefined
     }
     const validated = validateData(VideoMetadataSchema, metadata, 'local file metadata')
+    writeLocalFileMetadataCache(filePath, validated)
     return validated
   } catch {
     const base = filePath.split('/').pop() || 'local-media'
-    return validateData(VideoMetadataSchema, {
+    const fallback = validateData(VideoMetadataSchema, {
       title: base.replace(/\.[^/.]+$/, ''),
       duration: 'Unknown',
       channel: 'Local',
@@ -225,6 +282,8 @@ export const extractLocalFileMetadata = async (filePath: string): Promise<VideoM
       thumbnail: undefined,
       channelURL: undefined
     }, 'local file metadata fallback')
+    writeLocalFileMetadataCache(filePath, fallback)
+    return fallback
   }
 }
 

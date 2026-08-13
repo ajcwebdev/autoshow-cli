@@ -1,6 +1,6 @@
 # Agent Verification Rules
 
-- Use `bun run check` for the default verification pass.
+- Use `bun run check` and `bun t --price` for the default verification pass.
 - For smoke coverage, run only targeted local/no-cost tests that do not call third-party APIs, such as:
   - `bun test test/test-cases/validation/cli/cli-help-contracts.test.ts`
   - `bun test test/test-cases/validation/cli/cli-usage-errors.test.ts`
