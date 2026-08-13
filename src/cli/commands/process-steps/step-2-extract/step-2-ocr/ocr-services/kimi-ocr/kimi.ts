@@ -7,10 +7,9 @@ export const KIMI_OCR_LIMIT_SOURCE = 'project/links/kimi-general-ocr-text-links.
 export const resolveKimiBaseUrl = (): string =>
   KIMI_DEFAULT_BASE_URL.trim().replace(/\/+$/, '')
 
-// Kimi K3 runs with always-on thinking that cannot be turned off, and rejects the `thinking`
-// request field outright. The K2.x line still needs it to opt out of thinking. Neither path
-// sends `reasoning_effort`; the provider default applies until a general thinking-configuration
-// flag exists. See docs/adr/ADR-011-refresh-current-hosted-llm-and-ocr-models.md.
+// Kimi K3 runs with always-on thinking, rejects the `thinking` field, and accepts named effort
+// through `reasoning_effort`. The K2.x line exposes only the binary `thinking` switch.
+// See docs/adr/ADR-010-hosted-model-registry-lifecycle-and-capability-policy.md.
 export const acceptsKimiThinkingField = (model: string): boolean =>
   !/^kimi-k3(?:[.-]|$)/i.test(model)
 

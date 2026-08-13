@@ -8,7 +8,6 @@ When `--budget` is present, its value remains a per-test-key threshold rather th
 
 These commands are documented for humans. Service, e2e, and full-runner commands may call paid or quota-limited providers and must not be used as agent verification without explicit approval for that exact run. Agents should use `bun run check` plus the targeted no-cost smoke tests listed in [Local Tests](local-tests.md).
 
-
 ## Outline
 
 - [Service Quick Start](#service-quick-start)

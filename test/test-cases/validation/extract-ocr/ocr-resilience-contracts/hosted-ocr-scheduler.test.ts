@@ -70,6 +70,11 @@ describe('hosted OCR scheduler contracts', () => {
       expect(resolveHostedOcrEstimateCap(1024, 'fixed', 7)).toBe(7)
       expect(resolveHostedOcrEstimateCap(1024, 'fixed', 0)).toBe(1)
       expect(resolveHostedOcrLaneKey('gemini')).toBe('gemini:env-api-key')
+      const scheduler = createHostedOcrScheduler({ mode: 'fixed', fixedCap: 2, pageCount: 1 })
+      expect(() => scheduler.getMaxConcurrency({
+        ...admission('gemini', 'gemini-3.5-flash'),
+        laneKey: 'gemini:mismatched-scope'
+      })).toThrow('does not match its service and scope label')
     })
 
   test('large auto lanes start at the large-document estimate cap', async () => {
@@ -433,7 +438,7 @@ describe('hosted OCR scheduler contracts', () => {
           })
         ),
         ...Array.from({ length: 3 }, (_, index) =>
-          scheduler.run(admission('gemini', 'gemini-3.1-flash-lite', 'lite'), async () => {
+          scheduler.run(admission('gemini', 'gemini-3.5-flash-lite', 'lite'), async () => {
             starts.push(`lite-${index}`)
             await gate.promise
             return index
@@ -462,6 +467,54 @@ describe('hosted OCR scheduler contracts', () => {
       expect(lane?.targets.map((target) => target.share).sort()).toEqual([0.5, 0.5])
       expect(lane?.targets.every((target) => target.status === 'succeeded')).toBe(true)
       expect(lane?.pagesPerMinute).toEqual(expect.any(Number))
+    })
+
+  test('run-scoped document adapters share one hard provider cap across documents', async () => {
+      const scheduler = createHostedOcrScheduler({ mode: 'fixed', fixedCap: 2, pageCount: 0, lifetime: 'run' })
+      const firstDocument = scheduler.createDocumentScope(4)
+      const secondDocument = scheduler.createDocumentScope(6)
+      const gate = defer()
+      let active = 0
+      let maxActive = 0
+      const runPage = async (value: string): Promise<string> => {
+        active += 1
+        maxActive = Math.max(maxActive, active)
+        await gate.promise
+        active -= 1
+        return value
+      }
+      const runs = [
+        ...Array.from({ length: 4 }, (_, index) => firstDocument.run(admission('gemini', 'gemini-3.5-flash'), async () => await runPage(`a-${index}`))),
+        ...Array.from({ length: 6 }, (_, index) => secondDocument.run(admission('gemini', 'gemini-3.5-flash'), async () => await runPage(`b-${index}`)))
+      ]
+
+      try {
+        await waitFor(() => active === 2)
+        expect(maxActive).toBe(2)
+        expect(scheduler.snapshot()).toMatchObject({
+          lifetime: 'run',
+          documentCount: 2,
+          documentPages: 10,
+          lanes: [{ activePeak: 2, currentCap: 2, maxCap: 2 }]
+        })
+      } finally {
+        gate.resolve()
+      }
+      await Promise.all(runs)
+      expect(maxActive).toBe(2)
+      expect(scheduler.snapshot().lanes[0]?.targets.map(target => target.targetKey)).toEqual(['gemini:gemini-3.5-flash'])
+      expect(firstDocument.snapshot()).toMatchObject({
+        lifetime: 'run',
+        documentCount: 1,
+        documentPages: 4,
+        lanes: [{ submittedPages: 4, completedPages: 4, targets: [{ completedPages: 4, share: 1 }] }]
+      })
+      expect(secondDocument.snapshot()).toMatchObject({
+        lifetime: 'run',
+        documentCount: 1,
+        documentPages: 6,
+        lanes: [{ submittedPages: 6, completedPages: 6, targets: [{ completedPages: 6, share: 1 }] }]
+      })
     })
 
   test('different hosted providers run independent lanes', async () => {
@@ -583,7 +636,7 @@ describe('hosted OCR scheduler contracts', () => {
           await initialGate.promise
           return 'a1'
         }),
-        scheduler.run(admission('gemini', 'gemini-3.1-flash-lite', 'b'), async () => {
+        scheduler.run(admission('gemini', 'gemini-3.5-flash-lite', 'b'), async () => {
           starts.push('b1')
           await initialGate.promise
           return 'b1'
@@ -597,7 +650,7 @@ describe('hosted OCR scheduler contracts', () => {
           await followGate.promise
           return 'a2'
         }),
-        scheduler.run(admission('gemini', 'gemini-3.1-flash-lite', 'b'), async () => {
+        scheduler.run(admission('gemini', 'gemini-3.5-flash-lite', 'b'), async () => {
           starts.push('b2')
           await followGate.promise
           return 'b2'
@@ -761,7 +814,7 @@ describe('hosted OCR scheduler contracts', () => {
           }, {
             targetKey: 'gemini:lite',
             service: 'gemini',
-            model: 'gemini-3.1-flash-lite',
+            model: 'gemini-3.5-flash-lite',
             status: 'succeeded',
             submittedPages: 228,
             completedPages: 228,
@@ -837,7 +890,7 @@ describe('hosted OCR scheduler contracts', () => {
         }
         const byModel = new Map(store.profiles.map((profile) => [profile['model'], profile]))
         expect(byModel.get('gemini-3.5-flash')?.['completionStatus']).toBe('full')
-        expect(byModel.get('gemini-3.1-flash-lite')?.['completionStatus']).toBe('full')
+        expect(byModel.get('gemini-3.5-flash-lite')?.['completionStatus']).toBe('full')
         expect(byModel.get('mistral-small-ocr')?.['completionStatus']).toBe('full')
         expect(byModel.get('kimi-latest')?.['completionStatus']).toBe('incomplete')
       } finally {

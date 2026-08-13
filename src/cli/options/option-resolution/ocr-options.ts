@@ -13,6 +13,7 @@ import { hasExplicitOrConfiguredFlag } from './build-options-config-flags'
 import { resolveLocalConcurrency, resolveProviderConcurrency } from './concurrency'
 import { DEFAULT_OCR_CONCURRENCY } from '~/utils/concurrency-defaults'
 import { pick } from '~/utils/cli-utils'
+import { parseReasoningEffort } from '~/cli/commands/setup-and-utilities/models/reasoning-resolver'
 
 const OCR_MODEL_KEYS = [
   'mistralOcrModels', 'mistralOcrModel', 'glmOcrModels', 'glmOcrModel',
@@ -71,5 +72,6 @@ export const buildOcrOptions = (ctx: ResolvedFlagContext): OcrRuntimeOptions => 
     chapterChunkLimitChars: epubLengthThousands === undefined ? undefined : epubLengthThousands * 1000,
     pdfChapterMode,
     useEpubBun: readBooleanFlag(mergedFlags, 'epub-bun'),
+    reasoningEffort: parseReasoningEffort(readOptionalStringFlag(mergedFlags, 'reasoning-effort'))
   }
 }

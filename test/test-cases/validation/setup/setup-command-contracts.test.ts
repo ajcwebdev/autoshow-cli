@@ -773,14 +773,18 @@ describe('setup command contracts', () => {
 
   test('Kitten TTS model setup fails when the model load command fails', async () => {
     const dir = await mkdtemp(join(tmpdir(), 'autoshow-kitten-model-'))
+    const previousHfHome = process.env['HF_HOME']
     try {
+      process.env['HF_HOME'] = join(dir, 'empty-cache')
       const fakePython = join(dir, 'python')
-      await writeFile(fakePython, '#!/bin/sh\necho kitten-load-stdout\necho kitten-load-stderr >&2\nexit 9\n')
+      await writeFile(fakePython, '#!/bin/sh\necho kitten-load-stdout\necho "$@" >&2\nexit 9\n')
       await chmod(fakePython, 0o755)
 
-      await expect(downloadKittenTtsModel('kitten-tts-test', { pythonPath: fakePython }))
-        .rejects.toThrow(/Kitten TTS model download failed.*kitten-load-stderr/s)
+      await expect(downloadKittenTtsModel('kitten-tts-mini', { pythonPath: fakePython }))
+        .rejects.toThrow(/Kitten TTS model download failed.*KittenML\/kitten-tts-mini-0\.8/s)
     } finally {
+      if (previousHfHome === undefined) delete process.env['HF_HOME']
+      else process.env['HF_HOME'] = previousHfHome
       await rm(dir, { recursive: true, force: true })
     }
   })

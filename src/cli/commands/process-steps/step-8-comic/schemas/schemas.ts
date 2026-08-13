@@ -58,6 +58,13 @@ const StructuredScriptMentionSchema = v.strictObject({
 const StructuredScriptLocationSchema = v.strictObject({
   key: v.string(), raw: v.string(), type: v.optional(v.string()), place: v.optional(v.string()),
 })
+const StructuredScriptSourceSpanSchema = v.strictObject({
+  kind: v.picklist(['spoken-text', 'delivery', 'stage-direction', 'timing', 'voice-effect', 'simultaneous-speech', 'scene-boundary']),
+  start: v.number(),
+  end: v.number(),
+  indexUnit: v.literal('unicode-scalar-value'),
+  text: v.string(),
+})
 const StructuredScriptBeatSchema = v.strictObject({
   index: v.number(),
   type: v.picklist(STRUCTURED_SCRIPT_BEAT_TYPES),
@@ -67,6 +74,8 @@ const StructuredScriptBeatSchema = v.strictObject({
   speakerKey: v.optional(CharacterKeySchema),
   speakerLabel: v.optional(v.string()),
   delivery: v.optional(v.string()),
+  sourceSpans: v.array(StructuredScriptSourceSpanSchema),
+  speakerKeys: v.optional(v.array(CharacterKeySchema)),
   location: StructuredScriptLocationSchema,
 })
 const StructuredScriptSourceSegmentSchema = v.strictObject({
@@ -78,6 +87,8 @@ const StructuredScriptSourceSegmentSchema = v.strictObject({
   speakerKey: v.optional(CharacterKeySchema),
   speakerLabel: v.optional(v.string()),
   delivery: v.optional(v.string()),
+  sourceSpans: v.array(StructuredScriptSourceSpanSchema),
+  speakerKeys: v.optional(v.array(CharacterKeySchema)),
   location: StructuredScriptLocationSchema,
 })
 
@@ -132,9 +143,12 @@ export const PromptsConfigSchema = v.object({
   'Image Prompt Variations': ImagePromptVariationsSchema,
 })
 export const StructuredScriptDataSchema = v.strictObject({
-  schemaVersion: v.literal(3),
+  schemaVersion: v.literal(4),
   scriptSlug: v.string(),
   sourceFile: v.string(),
+  sourceIdentity: v.strictObject({
+    schemaVersion: v.literal(1), canonicalPath: v.string(), scriptSlug: v.string(), contentSha256: v.string(), identityHash: v.string(),
+  }),
   document: v.strictObject({
     heading: v.string(), label: v.optional(v.string()), title: v.string(), metadata: v.array(StructuredScriptMetadataEntrySchema),
   }),
@@ -158,7 +172,7 @@ export const PanelBundleDataSchema = v.strictObject({
   location: v.string(),
   panels: v.array(PanelBundlePanelSchema),
 })
-export const STRUCTURED_SCRIPT_JSON_SCHEMA_NAME = 'structured_script_data_v3'
+export const STRUCTURED_SCRIPT_JSON_SCHEMA_NAME = 'structured_script_data_v4'
 const nullable = (schema: Record<string, unknown>) => ({ anyOf: [schema, { type: 'null' as const }] })
 const characterArray = (keys: readonly string[]) => ({
   type: 'array' as const, items: { type: 'string' as const, enum: [...keys] },
@@ -177,7 +191,8 @@ export const buildStructuredScriptJsonSchema = (characterKeys: readonly string[]
   schema: {
     type: 'object' as const,
     properties: {
-      schemaVersion: { type: 'integer', enum: [3] }, scriptSlug: { type: 'string' }, sourceFile: { type: 'string' },
+      schemaVersion: { type: 'integer', enum: [4] }, scriptSlug: { type: 'string' }, sourceFile: { type: 'string' },
+      sourceIdentity: { type: 'object', properties: { schemaVersion: { type: 'integer', enum: [1] }, canonicalPath: { type: 'string' }, scriptSlug: { type: 'string' }, contentSha256: { type: 'string' }, identityHash: { type: 'string' } }, required: ['schemaVersion', 'canonicalPath', 'scriptSlug', 'contentSha256', 'identityHash'], additionalProperties: false },
       document: { type: 'object', properties: {
         heading: { type: 'string' }, label: nullable({ type: 'string' }), title: { type: 'string' },
         metadata: { type: 'array', items: { type: 'object', properties: { label: { type: 'string' }, value: nullable({ type: 'string' }), raw: { type: 'string' } }, required: ['label', 'value', 'raw'], additionalProperties: false } },
@@ -191,15 +206,17 @@ export const buildStructuredScriptJsonSchema = (characterKeys: readonly string[]
         index: { type: 'integer' }, type: { type: 'string', enum: [...STRUCTURED_SCRIPT_BEAT_TYPES] }, text: { type: 'string' },
         characterKeys: characterArray(characterKeys),
         rawMentions: { type: 'array', items: { type: 'object', properties: { raw: { type: 'string' }, characterKeys: characterArray(characterKeys) }, required: ['raw', 'characterKeys'], additionalProperties: false } },
-        speakerKey: nullable({ type: 'string', enum: [...characterKeys] }), speakerLabel: nullable({ type: 'string' }), delivery: nullable({ type: 'string' }),
+        speakerKey: nullable({ type: 'string', enum: [...characterKeys] }), speakerLabel: nullable({ type: 'string' }), delivery: nullable({ type: 'string' }), speakerKeys: nullable(characterArray(characterKeys)),
+        sourceSpans: { type: 'array', items: { type: 'object', properties: { kind: { type: 'string', enum: ['spoken-text', 'delivery', 'stage-direction', 'timing', 'voice-effect', 'simultaneous-speech', 'scene-boundary'] }, start: { type: 'integer' }, end: { type: 'integer' }, indexUnit: { type: 'string', enum: ['unicode-scalar-value'] }, text: { type: 'string' } }, required: ['kind', 'start', 'end', 'indexUnit', 'text'], additionalProperties: false } },
         location: { type: 'object', properties: { key: { type: 'string' }, raw: { type: 'string' }, type: nullable({ type: 'string' }), place: nullable({ type: 'string' }) }, required: ['key', 'raw', 'type', 'place'], additionalProperties: false },
-      }, required: ['index', 'type', 'text', 'characterKeys', 'rawMentions', 'speakerKey', 'speakerLabel', 'delivery', 'location'], additionalProperties: false } },
+      }, required: ['index', 'type', 'text', 'characterKeys', 'rawMentions', 'speakerKey', 'speakerLabel', 'delivery', 'sourceSpans', 'speakerKeys', 'location'], additionalProperties: false } },
       sourceSegments: { type: 'array', items: { type: 'object', properties: {
-        id: { type: 'string' }, type: { type: 'string', enum: [...STRUCTURED_SCRIPT_BEAT_TYPES] }, text: { type: 'string' }, rawMarkdown: nullable({ type: 'string' }), beatIndex: nullable({ type: 'integer' }), speakerKey: nullable({ type: 'string', enum: [...characterKeys] }), speakerLabel: nullable({ type: 'string' }), delivery: nullable({ type: 'string' }),
+        id: { type: 'string' }, type: { type: 'string', enum: [...STRUCTURED_SCRIPT_BEAT_TYPES] }, text: { type: 'string' }, rawMarkdown: nullable({ type: 'string' }), beatIndex: nullable({ type: 'integer' }), speakerKey: nullable({ type: 'string', enum: [...characterKeys] }), speakerLabel: nullable({ type: 'string' }), delivery: nullable({ type: 'string' }), speakerKeys: nullable(characterArray(characterKeys)),
+        sourceSpans: { type: 'array', items: { type: 'object', properties: { kind: { type: 'string', enum: ['spoken-text', 'delivery', 'stage-direction', 'timing', 'voice-effect', 'simultaneous-speech', 'scene-boundary'] }, start: { type: 'integer' }, end: { type: 'integer' }, indexUnit: { type: 'string', enum: ['unicode-scalar-value'] }, text: { type: 'string' } }, required: ['kind', 'start', 'end', 'indexUnit', 'text'], additionalProperties: false } },
         location: { type: 'object', properties: { key: { type: 'string' }, raw: { type: 'string' }, type: nullable({ type: 'string' }), place: nullable({ type: 'string' }) }, required: ['key', 'raw', 'type', 'place'], additionalProperties: false },
-      }, required: ['id', 'type', 'text', 'rawMarkdown', 'beatIndex', 'speakerKey', 'speakerLabel', 'delivery', 'location'], additionalProperties: false } },
+      }, required: ['id', 'type', 'text', 'rawMarkdown', 'beatIndex', 'speakerKey', 'speakerLabel', 'delivery', 'sourceSpans', 'speakerKeys', 'location'], additionalProperties: false } },
     },
-    required: ['schemaVersion', 'scriptSlug', 'sourceFile', 'document', 'scene', 'characterKeys', 'beats', 'sourceSegments'], additionalProperties: false,
+    required: ['schemaVersion', 'scriptSlug', 'sourceFile', 'sourceIdentity', 'document', 'scene', 'characterKeys', 'beats', 'sourceSegments'], additionalProperties: false,
   },
 })
 

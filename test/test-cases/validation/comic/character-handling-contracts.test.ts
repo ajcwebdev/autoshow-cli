@@ -280,9 +280,9 @@ describe('comic character handling flat-reference contracts', () => {
   })
 
   test('reference-sketch character parsing rejects --image and enforces one model', () => {
-    expect(() => parseReferenceSketchArgs(['--character', 'hero', '--image', 'hero.webp'])).toThrow(/Unexpected flag: image/)
+    expect(() => parseReferenceSketchArgs(['--character', 'hero', '--image', 'hero.webp'])).toThrow(/Unexpected flag: --image/)
     expect(() => parseReferenceSketchArgs(['--character', 'hero', '--image-model', 'gpt-image-2,grok-imagine-image'])).toThrow(/exactly one/)
-    expect(() => parseReferenceSketchArgs(['--character', 'hero', '--force'])).toThrow(/Unexpected flag: force|Unknown argument/)
+    expect(() => parseReferenceSketchArgs(['--character', 'hero', '--force'])).toThrow(/Unexpected flag: --force|Unknown argument/)
     expect(parseReferenceSketchArgs(['--character', 'hero', '--revise', '--notes', 'Fix eyes']).character).toBe('hero')
   })
 

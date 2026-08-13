@@ -1,6 +1,6 @@
 # Docker
 
-AutoShow ships a Debian slim local-lite Docker image recipe for users who want the CLI and common local tools without host setup.
+AutoShow ships a Debian slim local-lite Docker image recipe for users who want the CLI and common local tools without host setup. Pre-built multi-architecture images (`linux/amd64`, `linux/arm64`) are published to GitHub Container Registry (GHCR) on release tags.
 
 The image uses `oven/bun:1.3.14-slim` and installs:
 
@@ -13,7 +13,15 @@ The image uses `oven/bun:1.3.14-slim` and installs:
 
 It does not include heavyweight local STT/LLM/TTS engines, model weights, Defuddle, or provider credentials.
 
-## Build
+## Pull or Build
+
+To pull the published image from GHCR:
+
+```bash
+docker pull ghcr.io/ajcwebdev/autoshow-cli:latest
+```
+
+To build locally from source:
 
 ```bash
 docker build -t autoshow-cli:local .

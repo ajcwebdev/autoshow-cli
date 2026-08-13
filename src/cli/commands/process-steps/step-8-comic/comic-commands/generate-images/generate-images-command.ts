@@ -1,8 +1,8 @@
 import { existsSync } from 'node:fs'
 import * as v from 'valibot'
 import { mkdir, readdir } from 'node:fs/promises'
-import { join } from 'node:path'
-import type { FinalPanelImageStageOptions, GenerateComicPagesOptions, GenerateImagesCommandOptions, GenerateImagesTarget, GenerateImagesWorkflowDependencies, GeneratePanelImagesOptions, ImageGenerationQuality, ImageGenerationSize, ImageRunStats } from '~/types'
+import { extname, join, relative } from 'node:path'
+import type { ComicSourceIdentity, FinalPanelImageStageOptions, GenerateComicPagesOptions, GenerateImagesCommandOptions, GenerateImagesTarget, GenerateImagesWorkflowDependencies, GeneratePanelImagesOptions, ImageGenerationQuality, ImageGenerationSize, ImageRunStats, PipelineProviderState } from '~/types'
 import { DEFAULT_IMAGE_MODEL, validateImageSizeForModels } from '../../comic-utils/image-size'
 import { InfraError } from '~/utils/error-handler'
 import { ScenePromptDataSchema } from '../../schemas/schemas'
@@ -18,6 +18,11 @@ import { generateComicGridPages } from './generate-comic-grid-pages'
 import { generateComicPages } from './generate-comic-pages'
 import { generatePanelImages } from './generate-panel-images'
 import { getImagePromptVariationLabel } from './prompt-variations'
+import { readManifest } from '../../../pipeline-manifest'
+import { findRegistryServiceForModel } from '~/cli/commands/setup-and-utilities/models/model-loader/registry'
+import { canonicalTargetKey, sha256Bytes } from '../../../step-4-tts/script-to-audio/contract-identity'
+import { updateComicImageManifest } from '../../comic-utils/comic-manifest'
+import { resolveCompatibleComicSceneRun } from '../../comic-utils/compatible-scene-run'
 
 const DEFAULT_IMAGE_SIZE: ImageGenerationSize = COMIC_GRID_PANEL_SIZE
 const DEFAULT_IMAGE_QUALITY: ImageGenerationQuality = 'high'
@@ -63,6 +68,20 @@ const mergeImageStats = (target: ImageRunStats, source: ImageRunStats | void): v
   target.totalOutputUnattributedTokens += source.totalOutputUnattributedTokens
   target.totalCost += source.totalCost
   target.totalDurationMs += source.totalDurationMs
+}
+
+const collectImageArtifactRefs = async (sceneRunDir: string): Promise<Array<{ path: string, sha256: string }>> => {
+  const paths: string[] = []
+  const visit = async (directory: string): Promise<void> => {
+    for (const entry of await readdir(directory, { withFileTypes: true }).catch(() => [])) {
+      const path = join(directory, entry.name)
+      if (entry.isDirectory()) await visit(path)
+      else if (entry.isFile() && ['.png', '.webp', '.jpg', '.jpeg'].includes(extname(entry.name).toLowerCase())) paths.push(path)
+    }
+  }
+  await Promise.all(['panels', 'pages', 'sketches'].map(async directory => await visit(join(sceneRunDir, directory))))
+  paths.sort()
+  return await Promise.all(paths.map(async path => ({ path: relative(sceneRunDir, path).split('\\').join('/'), sha256: sha256Bytes(new Uint8Array(await Bun.file(path).arrayBuffer())) })))
 }
 
 const formatPanelSelection = (panels: GenerateImagesCommandOptions['panels']): string => {
@@ -176,6 +195,10 @@ export const generateImagesCommand = async (
   beginSceneRun(sceneSlug, resumeLatest && latestRunDir
     ? { outputDir: latestRunDir }
     : {})
+  const sceneRunDir = getSceneOutputDirectory(sceneSlug)
+  let canonicalManifest = await readManifest(sceneRunDir)
+  if (!canonicalManifest && Object.keys(dependencies).length === 0) throw InfraError('Comic image generation requires a canonical comic manifest from structured-script v4. Re-run comic draft-scenes for a clean scene run.', { stage: 'comic:generate-images' })
+  if (Object.keys(dependencies).length === 0) canonicalManifest = (await resolveCompatibleComicSceneRun({ scriptPath: options.scriptPath, outputDir: sceneRunDir })).manifest
 
   const target = getGenerateImagesTarget(options.target)
   const runSketches = dependencies.runSketches ?? generateSketchesCommand
@@ -247,37 +270,76 @@ export const generateImagesCommand = async (
     options.force ? 'force=true' : undefined,
   ])
 
-  if (target === 'sketches' || target === 'both') {
-    const sketchPanels = panelSelectionToSketchRange(options.panels)
-    const sketchStats = await runSketches({
-      sceneSlug,
-      imageModels: models,
-      size,
-      quality,
-      runId,
-      concurrency,
-      ...(options.force !== undefined ? { force: options.force } : {}),
-      ...(sketchPanels !== undefined ? { sketchPanels } : {}),
-      panelsPerImage: sketchPanelsPerImage,
+  if (canonicalManifest && (canonicalManifest.command !== 'comic' || !canonicalManifest.source)) throw InfraError('Comic image generation found a canonical manifest for another workflow.', { stage: 'comic:generate-images' })
+  const imageProviderState = (status: PipelineProviderState['status'], error?: unknown): PipelineProviderState[] => models.map((model) => {
+    const service = findRegistryServiceForModel('image', model)
+    if (!service) throw InfraError(`Comic image model ${model} is missing its central provider identity.`, { stage: 'comic:generate-images' })
+    const transport = 'hosted-api'
+    return {
+      service,
+      model,
+      local: false,
+      operation: 'comic-image',
+      targetKey: canonicalTargetKey('comic-image', service, model, transport),
+      transport,
+      artifactDir: '.',
+      status,
+      attempts: status === 'running' || status === 'succeeded' || status === 'failed' ? 1 : 0,
+      options: { target, size, quality, panelsPerImage: finalPanelsPerImage },
+      metadata: { imagesGenerated: totals.imagesGenerated, imagesSkipped: totals.imagesSkipped, runId },
+      ...(status === 'succeeded' ? { result: {} } : {}),
+      ...(status === 'failed' ? { error: { message: error instanceof Error ? error.message : String(error ?? 'Comic image generation failed.') } } : {}),
+    }
+  })
+  const updateImageManifest = async (status: PipelineProviderState['status'], error?: unknown): Promise<void> => {
+    if (!canonicalManifest) return
+    await updateComicImageManifest({
+      sceneRunDir,
+      sourceIdentity: canonicalManifest.source as ComicSourceIdentity,
+      providers: imageProviderState(status, error),
+      artifactRefs: status === 'succeeded' ? await collectImageArtifactRefs(sceneRunDir) : [],
     })
-    mergeImageStats(totals, sketchStats)
   }
 
-  if (target === 'images' || target === 'both') {
-    const imageStats = await runImages({
-      ...options,
-      imageModels: models,
-      size,
-      quality,
-      panelsPerImage: finalPanelsPerImage,
-      qa: options.qa ?? true,
-      ...(options.qaModel ? { qaModel: options.qaModel } : {}),
-      maxRepairs: options.maxRepairs ?? 2,
-      runId,
-      concurrency,
-    })
-    mergeImageStats(totals, imageStats)
+  await updateImageManifest('running')
+
+  try {
+    if (target === 'sketches' || target === 'both') {
+      const sketchPanels = panelSelectionToSketchRange(options.panels)
+      const sketchStats = await runSketches({
+        sceneSlug,
+        imageModels: models,
+        size,
+        quality,
+        runId,
+        concurrency,
+        ...(options.force !== undefined ? { force: options.force } : {}),
+        ...(sketchPanels !== undefined ? { sketchPanels } : {}),
+        panelsPerImage: sketchPanelsPerImage,
+      })
+      mergeImageStats(totals, sketchStats)
+    }
+
+    if (target === 'images' || target === 'both') {
+      const imageStats = await runImages({
+        ...options,
+        imageModels: models,
+        size,
+        quality,
+        panelsPerImage: finalPanelsPerImage,
+        qa: options.qa ?? true,
+        ...(options.qaModel ? { qaModel: options.qaModel } : {}),
+        maxRepairs: options.maxRepairs ?? 2,
+        runId,
+        concurrency,
+      })
+      mergeImageStats(totals, imageStats)
+    }
+  } catch (error) {
+    await updateImageManifest('failed', error)
+    throw error
   }
+  await updateImageManifest('succeeded')
 
   comicLog.summary([
     `generated=${totals.imagesGenerated}`,
@@ -287,5 +349,5 @@ export const generateImagesCommand = async (
     `api=${formatDuration(totals.totalDurationMs)}`,
     `duration=${formatDuration(Date.now() - startedAt)}`,
   ])
-  comicLog.outputDirectory(getSceneOutputDirectory(sceneSlug))
+  comicLog.outputDirectory(sceneRunDir)
 }

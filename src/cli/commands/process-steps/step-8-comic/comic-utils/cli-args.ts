@@ -40,6 +40,7 @@ export const DEFAULT_QA_MODEL = 'gpt-5.6-sol'
 export const REFERENCE_SKETCH_COMMAND = 'reference-sketch'
 export const DRAFT_SCENES_COMMAND = 'draft-scenes'
 export const GENERATE_IMAGES_COMMAND = 'generate-images'
+export const GENERATE_AUDIO_COMMAND = 'generate-audio'
 
 const DRAFT_SCENES_ONLY_VALUES = ['structure', 'prompt', 'scene', 'panel-prompts'] as const
 const GENERATE_IMAGES_TARGET_VALUES = ['images', 'sketches', 'both'] as const

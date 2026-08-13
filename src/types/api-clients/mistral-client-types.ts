@@ -9,7 +9,8 @@ export type MistralFetchOptions = Omit<RestFetchOptionsBase<RestClientConfigBase
 }
 
 export type MistralJsonRequestOptions = Omit<MistralFetchOptions, 'body' | 'headers' | 'method'> & {
-  body: unknown
+  body?: unknown
+  method?: 'GET' | 'POST' | 'PATCH' | 'DELETE' | undefined
 }
 
 export type MistralMultipartRequestOptions = Omit<MistralFetchOptions, 'body' | 'headers' | 'method'> & {

@@ -1,8 +1,8 @@
 #!/usr/bin/env bun
 
-import { existsSync } from "node:fs";
-import { join } from "node:path";
-import { loadCanonicalRunRecord } from "../shared/pipeline_manifest";
+import { existsSync, readFileSync } from "node:fs";
+import { isAbsolute, join, relative, resolve } from "node:path";
+import { isRecord, loadCanonicalRunRecord, readCanonicalManifest } from "../shared/pipeline_manifest";
 
 // ---------------------------------------------------------------------------
 // Types
@@ -82,11 +82,72 @@ export interface ProviderEvidence {
 // ---------------------------------------------------------------------------
 
 export function loadTtsManifestRecord(runDir: string): TtsManifestRecord {
-  const metadata = loadCanonicalRunRecord(runDir, "tts").metadata;
-  if (!Array.isArray(metadata.tts) || metadata.tts.length === 0) {
+  const manifest = readCanonicalManifest(runDir);
+  const metadata = manifest.command === "tts"
+    ? loadCanonicalRunRecord(runDir, "tts").metadata
+    : loadComicTtsEvaluationMetadata(runDir, manifest);
+  if (!Array.isArray(metadata["tts"]) || metadata["tts"].length === 0) {
     throw new Error("Canonical TTS manifest item metadata.tts is missing or empty");
   }
   return { metadata: metadata as TtsManifestRecord["metadata"] };
+}
+
+function containedArtifactPath(runDir: string, ...parts: string[]): string | null {
+  const root = resolve(runDir);
+  const candidate = resolve(root, ...parts);
+  const rel = relative(root, candidate);
+  return rel === "" || (!rel.startsWith("..") && !isAbsolute(rel)) ? candidate : null;
+}
+
+function usdCostCents(value: unknown): number | null {
+  if (!Array.isArray(value)) return null;
+  const amounts = value.filter(isRecord);
+  const usd = amounts.filter((amount) => amount["currency"] === "USD" && typeof amount["amount"] === "number" && Number.isFinite(amount["amount"]));
+  return usd.length === 0 ? null : usd.reduce((sum, amount) => sum + Number(amount["amount"]), 0) * 100;
+}
+
+function comicProviderCostCents(runDir: string, provider: Record<string, unknown>): number | null {
+  const projection = isRecord(provider["result"]) && isRecord(provider["result"]["comicAudio"])
+    ? provider["result"]["comicAudio"]
+    : isRecord(provider["metadata"]) && isRecord(provider["metadata"]["comicAudio"])
+      ? provider["metadata"]["comicAudio"]
+      : null;
+  if (!projection || !isRecord(projection["selectedSuccess"]) || !Array.isArray(projection["renderHistory"])) return null;
+  const selected = projection["selectedSuccess"];
+  const render = projection["renderHistory"].filter(isRecord).find((candidate) => candidate["renderIdentity"] === selected["renderIdentity"]);
+  if (!render || !Array.isArray(render["events"])) return null;
+  const event = render["events"].filter(isRecord).find((candidate) => candidate["sequence"] === selected["eventSequence"]);
+  if (!event || typeof event["providerRenderResultRef"] !== "string" || typeof provider["artifactDir"] !== "string") return null;
+  const resultPath = containedArtifactPath(runDir, provider["artifactDir"], event["providerRenderResultRef"]);
+  if (!resultPath || !existsSync(resultPath)) return null;
+  const result = JSON.parse(readFileSync(resultPath, "utf8")) as unknown;
+  if (!isRecord(result) || !isRecord(result["cost"]) || !isRecord(result["cost"]["currentComposition"])) return null;
+  const current = result["cost"]["currentComposition"];
+  const observed = usdCostCents(current["observed"]);
+  if (observed !== null) return observed;
+  return isRecord(current["planned"]) ? usdCostCents(current["planned"]["amounts"]) : null;
+}
+
+function loadComicTtsEvaluationMetadata(runDir: string, manifest: ReturnType<typeof readCanonicalManifest>): Record<string, unknown> {
+  if (manifest.command !== "comic" || manifest.scope !== "single" || manifest.items.length !== 1) {
+    throw new Error(`Expected one tts or comic item in ${join(runDir, "manifest.json")}; found ${manifest.command}/${manifest.scope} with ${manifest.items.length} item(s)`);
+  }
+  const item = manifest.items[0]!;
+  const entries = item.metadata["tts"];
+  if (!Array.isArray(entries) || entries.length === 0 || entries.some((entry) => !isRecord(entry))) {
+    throw new Error("Canonical comic manifest is missing completed metadata.tts evaluation entries");
+  }
+  const costs = item.providers.filter((provider) => provider.status === "succeeded").flatMap((provider) => {
+    const cost = comicProviderCostCents(runDir, provider as unknown as Record<string, unknown>);
+    return cost === null || typeof provider.model !== "string"
+      ? []
+      : [{ provider: provider.service, model: provider.model, cost }];
+  });
+  const metadata = item.metadata as Record<string, unknown>;
+  return {
+    ...metadata,
+    ...(costs.length > 0 ? { cost: { actual: { steps: costs } } } : {}),
+  };
 }
 
 export function makeProviderKey(service: string, model: string): string {
@@ -227,9 +288,9 @@ export function levenshteinDistance(left: string[], right: string[]): number {
   for (let leftIndex = 0; leftIndex < left.length; leftIndex += 1) {
     const current = [leftIndex + 1];
     for (let rightIndex = 0; rightIndex < right.length; rightIndex += 1) {
-      const insertion = current[rightIndex] + 1;
-      const deletion = previous[rightIndex + 1] + 1;
-      const substitution = previous[rightIndex] + Number(left[leftIndex] !== right[rightIndex]);
+      const insertion = current[rightIndex]! + 1;
+      const deletion = previous[rightIndex + 1]! + 1;
+      const substitution = previous[rightIndex]! + Number(left[leftIndex] !== right[rightIndex]);
       current.push(Math.min(insertion, deletion, substitution));
     }
     previous = current;

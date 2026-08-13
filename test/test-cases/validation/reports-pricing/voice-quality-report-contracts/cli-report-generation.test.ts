@@ -1,6 +1,6 @@
 import { describe, expect, test } from 'bun:test'
 import { installVoiceQualityReportHooks, join, makeTempRoot, mkdir, runCommand, writeFile, writeJson, writeSyntheticWav } from './shared'
-import { writeSingleManifestFixture } from '../../../../test-utils/manifest-helpers'
+import { writeLegacyTtsManifestFixture } from '../../../../test-utils/manifest-helpers'
 
 installVoiceQualityReportHooks()
 
@@ -41,7 +41,7 @@ describe('voice quality CLI report generation contracts', () => {
       }
     ]
 
-    await writeSingleManifestFixture(runDir, 'tts', {
+    await writeLegacyTtsManifestFixture(runDir, {
         input: inputText,
         tts: ttsEntries,
         timing: {
@@ -155,16 +155,16 @@ describe('voice quality CLI report generation contracts', () => {
     expect(report.cloud.count).toBe(2)
     expect(report.weights.naturalnessScore.utmosv2Mos).toBe(0.45)
     expect(report.weights.speechQualityScore.roundtripSttIntelligibility).toBe(0.25)
-    expect(report.providers[0]?.providerKey).toBe('openai/gpt-4o-mini-tts')
+    expect(report.providers[0]?.providerKey).toBe('legacy:openai/gpt-4o-mini-tts')
     expect(report.providers[0]?.componentScores.naturalness.utmosv2Mos.mos).toBe(4.8)
     expect(report.providers[0]?.componentScores.naturalness.paidAudioJudgeRubric.score).toBe(93)
     expect(report.providers[0]?.componentScores.speechQuality.roundtripSttIntelligibility.score).toBe(100)
     expect(report.providers[0]?.missingMetrics).toEqual([])
-    expect(report.providers[2]?.providerKey).toBe('elevenlabs/eleven_v3')
+    expect(report.providers[2]?.providerKey).toBe('legacy:elevenlabs/eleven_v3')
 
     const markdown = await Bun.file(join(runDir, 'voice-quality-report.md')).text()
     expect(markdown).toContain('# TTS Voice Quality Report')
     expect(markdown).toContain('Cost, provider processing speed, and provider latency are not included')
-    expect(markdown).toContain('`openai/gpt-4o-mini-tts`')
+    expect(markdown).toContain('`legacy:openai/gpt-4o-mini-tts`')
   })
 })

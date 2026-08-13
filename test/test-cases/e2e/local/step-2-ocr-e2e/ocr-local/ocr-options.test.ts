@@ -54,7 +54,7 @@ test('extract PDF with default options', async () => {
     providers: [{ service: 'tesseract', model: 'tesseract', origin: 'default' }]
   })
   expect(metadata.requestedProviders).toEqual([{ service: 'tesseract', model: 'tesseract' }])
-  expect(metadata.providerStates).toEqual([
+  expect(metadata.providerStates).toMatchObject([
     {
       service: 'tesseract',
       model: 'tesseract',
@@ -102,7 +102,9 @@ test('extract EPUB with default options writes cleaned text and chapter metadata
     route: 'native-document',
     sourceKind: 'epub'
   })
-  expect(metadata.requestedProviders).toBeUndefined()
+  expect(metadata.requestedProviders).toEqual([])
+  expect(metadata.providerStates).toEqual([])
+  expect(metadata.missingProviders).toEqual([])
 })
 
 test('extract image with explicit --tesseract matches the default local OCR path', async () => {
@@ -142,7 +144,7 @@ test('extract image with explicit --tesseract matches the default local OCR path
     providers: [{ service: 'tesseract', model: 'tesseract', origin: 'explicit' }]
   })
   expect(explicitMetadata.requestedProviders).toEqual([{ service: 'tesseract', model: 'tesseract' }])
-  expect(explicitMetadata.providerStates).toEqual([
+  expect(explicitMetadata.providerStates).toMatchObject([
     {
       service: 'tesseract',
       model: 'tesseract',

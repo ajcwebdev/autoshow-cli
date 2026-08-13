@@ -2,6 +2,7 @@ import type { DocumentMetadata, ExtractionOptions, HostedOcrImageResult, HostedO
 import { createOpenAIChatCompletion, extractOpenAIChatCompletionText } from '~/utils/openai/openai-client'
 import { withOcrPageRequestRetry } from './ocr-retry'
 import { assertHostedOcrImageWithinLimits, buildHostedOcrImageResult, readHostedOcrImageDataUrl } from './hosted-ocr-utils'
+import { resolveReasoningPolicy, type MappedReasoningPolicy, type NormalizedReasoningEffort } from '~/cli/commands/setup-and-utilities/models/reasoning-resolver'
 
 type ChatImageOcrBodyInput = {
   model: string
@@ -12,10 +13,12 @@ type ChatImageOcrBodyInput = {
       | { type: 'image_url', image_url: { url: string } }
     >
   }>
+  reasoningPolicy: MappedReasoningPolicy
 }
 
 type ChatImageOcrProfile<TExtractionMethod extends string> = {
   extractionMethod: TExtractionMethod
+  service: string
   providerLabel: string
   maxImageBytes: number
   imageLimitLabel: string
@@ -30,6 +33,7 @@ type ChatImageOcrProfile<TExtractionMethod extends string> = {
 type ChatImageOcrOptions = Pick<ExtractionOptions, 'dpi' | 'password' | 'outputDir' | 'ocrPreparationCache' | 'ocrConcurrency' | 'ocrConcurrencyMode' | 'hostedOcrScheduler'> & {
   onRetryable?: HostedOcrSchedulerRetryPressureHandler | undefined
   documentPageNumber?: number | undefined
+  reasoningEffort?: NormalizedReasoningEffort | undefined
 }
 
 export const createChatImageOcrRunner = <TExtractionMethod extends string>(
@@ -46,6 +50,8 @@ export const createChatImageOcrRunner = <TExtractionMethod extends string>(
     totalPages: number
     promptTokens?: number
     completionTokens?: number
+    requestedReasoningEffort?: NormalizedReasoningEffort | undefined
+    effectiveReasoningEffort?: NormalizedReasoningEffort | undefined
   }> => {
   const runImage = async (
     config: OpenAIRestConfig,
@@ -54,7 +60,8 @@ export const createChatImageOcrRunner = <TExtractionMethod extends string>(
     model: string,
     pageNumber: number,
     pageLabel: string,
-    onRetryable?: HostedOcrSchedulerRetryPressureHandler | undefined
+    onRetryable?: HostedOcrSchedulerRetryPressureHandler | undefined,
+    reasoningPolicy?: MappedReasoningPolicy | undefined
   ): Promise<HostedOcrImageResult> => {
     await assertHostedOcrImageWithinLimits(imagePath, pageLabel, {
       providerLabel: profile.providerLabel,
@@ -78,7 +85,11 @@ export const createChatImageOcrRunner = <TExtractionMethod extends string>(
         }]
         const response = await createOpenAIChatCompletion(
           config,
-          profile.buildBody({ model, messages }),
+          profile.buildBody({
+            model,
+            messages,
+            reasoningPolicy: reasoningPolicy ?? { requested: undefined, effective: 'default' }
+          }),
           { signal, errorMessagePrefix: profile.errorMessagePrefix }
         )
         const rawText = extractOpenAIChatCompletionText(response) ?? ''
@@ -94,6 +105,12 @@ export const createChatImageOcrRunner = <TExtractionMethod extends string>(
   }
 
   return async (filePath, step1Metadata, model, opts, baseUrl) => {
+    const policy = resolveReasoningPolicy({
+      step: 'extract',
+      service: profile.service,
+      model,
+      requestedReasoningEffort: opts.reasoningEffort
+    })
     const config = profile.getConfig(baseUrl)
     const result = await runImage(
       config,
@@ -102,14 +119,17 @@ export const createChatImageOcrRunner = <TExtractionMethod extends string>(
       model,
       1,
       typeof opts.documentPageNumber === 'number' ? `page ${opts.documentPageNumber}` : 'input image',
-      opts.onRetryable
+      opts.onRetryable,
+      policy
     )
     return {
       pages: [result.page],
       extractionMethod: profile.extractionMethod,
       totalPages: 1,
       ...(typeof result.promptTokens === 'number' ? { promptTokens: result.promptTokens } : {}),
-      ...(typeof result.completionTokens === 'number' ? { completionTokens: result.completionTokens } : {})
+      ...(typeof result.completionTokens === 'number' ? { completionTokens: result.completionTokens } : {}),
+      ...(policy.requested !== undefined ? { requestedReasoningEffort: policy.requested } : {}),
+      effectiveReasoningEffort: policy.effective
     }
   }
 }

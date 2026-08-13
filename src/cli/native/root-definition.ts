@@ -11,7 +11,7 @@ export const HELP_COMMAND_GROUP_DEFINITIONS: [string, string][] = HELP_COMMAND_G
 
 export const createNativeRootDefinition = (): CliRootDefinition => ({
   scriptName: 'bun autoshow',
-  description: 'Extract and write content, generate speech, images, video, and music, and build comic workflows',
+  description: 'Extract and write content, manage voices, generate speech, images, video, and music, and build comic workflows',
   version: CLI_VERSION,
   globalFlags: GLOBAL_FLAG_DEFINITIONS,
   commandGroups: HELP_COMMAND_GROUP_DEFINITIONS,

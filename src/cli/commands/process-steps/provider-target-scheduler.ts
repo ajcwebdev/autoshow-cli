@@ -19,7 +19,7 @@ const runPool = async <TTarget, TResult>(
   entries: Array<ProviderTargetSchedulerEntry<TTarget>>,
   pool: TargetPoolKind,
   concurrency: number,
-  options: Pick<RunProviderTargetSchedulerOptions<TTarget, TResult>, 'runTarget' | 'resourceGate' | 'onLifecycle'>,
+  options: Pick<RunProviderTargetSchedulerOptions<TTarget, TResult>, 'runTarget' | 'resourceGate' | 'getResourceGate' | 'onLifecycle'>,
   results: Array<TResult | undefined>,
   failures: Array<ProviderTargetFailure<TTarget>>
 ): Promise<void> => {
@@ -40,7 +40,10 @@ const runPool = async <TTarget, TResult>(
       }
 
       const entry = orderedEntries[current] as ProviderTargetSchedulerEntry<TTarget>
-      const release = options.resourceGate ? await options.resourceGate.acquire() : undefined
+      const resourceGate = options.getResourceGate
+        ? options.getResourceGate(entry.target)
+        : options.resourceGate
+      const release = resourceGate ? await resourceGate.acquire() : undefined
       const startedAt = Date.now()
       options.onLifecycle?.({
         index: entry.index,

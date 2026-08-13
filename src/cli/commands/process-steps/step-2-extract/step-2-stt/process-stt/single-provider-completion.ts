@@ -1,8 +1,8 @@
 import type { ProviderCompletionStatus, SttSingleProviderCompletionContext, SttTarget } from '~/types'
 import * as l from '~/utils/app-logger/app-logger'
 import { runWithLogContext } from '~/utils/app-logger/app-logger'
-import { computeActualCosts } from '~/utils/pricing/compute-actual-costs'
-import { computeActualProcessingTimes, computeEstimatedProcessingTimes } from '~/utils/pricing/compute-processing-time'
+import { computeActualCosts } from '~/cli/commands/pricing-orchestration/compute-actual-costs'
+import { computeActualProcessingTimes, computeEstimatedProcessingTimes } from '~/cli/commands/pricing-orchestration/compute-processing-time'
 import { logManifestLocation } from '~/cli/commands/process-steps/write-manifest-log/write-manifest-log'
 import { readSingleManifestProviderState, writePipelineItemRecords } from '../../../pipeline-manifest'
 import { sttTarget } from '../run-stt'
@@ -12,6 +12,13 @@ import { buildSingleStepSummaries, filterEstimatedSttCosts, resolveSttEstimatedC
 import { buildPromptFile, buildProviderModelLabel } from '../stt-prompt'
 import { resolveRecordedSttStep2 } from './recorded-step2'
 
+export const mergeCompletedSttProviderMetadata = (
+  persistedMetadata: Record<string, unknown> | undefined,
+  completedMetadata: Record<string, unknown>
+): Record<string, unknown> => ({
+  ...(persistedMetadata ?? {}),
+  ...completedMetadata
+})
 
 export const completeSingleProviderStt = async ({
   outputDir,
@@ -35,7 +42,7 @@ export const completeSingleProviderStt = async ({
   const audioPath = prepared.executionArtifacts.sourceMediaPath
   const audioDurationSeconds = prepared.durationSeconds
   const requestedProvider = toRequestedProvider(target)
-  const manifestSelector = { rootDir: outputDir, artifactDir: outputDir, target }
+  const manifestSelector = { rootDir: outputDir, artifactDir: '.', target }
   await writePipelineItemRecords(outputDir, 'extract', 'single', [{
     step1: prepared.step1Metadata,
     resolvedStep2: resolveRecordedSttStep2(requestedTargets, options),
@@ -104,7 +111,7 @@ export const completeSingleProviderStt = async ({
   const persistedProvider = await readSingleManifestProviderState(outputDir, {
     service: target.service,
     model: target.model,
-    artifactDir: outputDir
+    artifactDir: '.'
   })
 
   const metadataJson = JSON.stringify({
@@ -121,9 +128,7 @@ export const completeSingleProviderStt = async ({
       status: 'succeeded',
       attempts: 1,
       result: transcription.result,
-      ...(persistedProvider && Object.keys(persistedProvider.metadata).length > 0
-        ? { metadata: persistedProvider.metadata }
-        : {})
+      metadata: mergeCompletedSttProviderMetadata(persistedProvider?.metadata, transcription.metadata)
     }],
     missingProviders: [],
     cost,

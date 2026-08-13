@@ -7,6 +7,8 @@ import {
 } from '~/cli/commands/setup-and-utilities/models/setup-model-options'
 import { ensureGroqTtsSetup } from './groq-tts'
 import { runGroqTts } from './run-groq-tts'
+import { resolveTtsTargetInvocationVoiceId } from '../../tts-targets/multi-speaker-capability'
+import { resolveTtsTargetInvocationControls } from '../../tts-targets/tts-invocation-controls'
 export const collectGroqTtsTargets = (
   selection: TtsTargetSelection
 ): TtsTarget[] => {
@@ -22,13 +24,18 @@ export const collectGroqTtsTargets = (
       service: 'groq',
       model,
       voice: targetVoice,
-      run: async (text, outputDir, opts) => {
+      run: async (text, outputDir, opts, invocation, requestEvidence) => {
+        const invocationVoiceId = resolveTtsTargetInvocationVoiceId('groq', invocation)
+        const controls = resolveTtsTargetInvocationControls('groq', invocation, {})
         await ensureGroqTtsSetup()
         return await runGroqTts(text, outputDir, {
           model,
-          voiceId,
+          voiceId: invocationVoiceId ?? voiceId,
+          speed: controls.speed,
           chunkConcurrency: opts.ttsChunkConcurrency,
-          chunkScheduler: opts.hostedTtsChunkScheduler
+          chunkScheduler: opts.hostedTtsChunkScheduler,
+          abortSignal: invocation?.signal,
+          requestEvidence
         })
       }
     })

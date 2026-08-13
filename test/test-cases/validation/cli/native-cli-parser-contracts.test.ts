@@ -2,7 +2,8 @@ import { describe, expect, test } from 'bun:test'
 import { NativeMissingFlagValueError, NativeUnknownFlagError } from '~/cli/native/native-errors'
 import { defineCliCommand } from '~/cli/native/native-types'
 import { dispatchNativeCli } from '~/cli/native/dispatcher'
-import { parseCommandArgv, parseNativeCli } from '~/cli/native/native-parser'
+import { parseCommandArgv, parseCommandInvocation, parseNativeCli } from '~/cli/native/native-parser'
+import { getUnknownFlagSpellings } from '~/cli/native/unknown-flag-spellings'
 import type {
   CliCommandDefinition,
   CliFlagsDefinition,
@@ -68,6 +69,12 @@ const runCommand = defineCliCommand({
       description: 'Repeatable model',
       type: [String] as [StringConstructor],
       default: [] as string[]
+    },
+    prompt: {
+      description: 'Adjacent prompt names',
+      type: [String] as [StringConstructor],
+      default: [] as string[],
+      consumeAdjacentValues: true
     },
     'long-name': {
       description: 'Dashed flag',
@@ -201,6 +208,41 @@ describe('native CLI parser contracts', () => {
     expect(parsed.rawParsed.unknown).toEqual({})
   })
 
+  test('consumes adjacent values only for opted-in repeatable flags', () => {
+    const parsed = parseNativeCli([
+      'run',
+      'input.txt',
+      '--prompt',
+      'shortSummary',
+      'longSummary',
+      '--prompt=chapterTitles',
+      '--prompt',
+      'keyPoints'
+    ], commands, globalFlags)
+
+    expect(parsed.parameters.input).toBe('input.txt')
+    expect(parsed.flags['prompt']).toEqual(['shortSummary', 'longSummary', 'chapterTitles', 'keyPoints'])
+    expect(parsed.rawParsed.flagOccurrences.filter((occurrence) => occurrence.name === 'prompt')).toEqual([
+      { name: 'prompt', raw: '--prompt', value: 'shortSummary', known: true },
+      { name: 'prompt', raw: '--prompt=chapterTitles', value: 'chapterTitles', known: true },
+      { name: 'prompt', raw: '--prompt', value: 'keyPoints', known: true }
+    ])
+  })
+
+  test('requires the positional input before a whitespace-form multi-value flag', () => {
+    expect(() => parseNativeCli([
+      'run',
+      '--prompt',
+      'shortSummary',
+      'longSummary',
+      'input.txt'
+    ], commands, globalFlags)).toThrow('Missing required parameter: input')
+
+    const equalsForm = parseNativeCli(['run', '--prompt=shortSummary', 'input.txt'], commands, globalFlags)
+    expect(equalsForm.parameters.input).toBe('input.txt')
+    expect(equalsForm.flags['prompt']).toEqual(['shortSummary'])
+  })
+
   test('tracks unknown flags and missing string values', () => {
     const parsed = parseNativeCli(['run', 'input.txt', '--unknown-flag'], commands, globalFlags)
     expect(parsed.rawParsed.unknown).toEqual({ unknownFlag: true })
@@ -210,6 +252,39 @@ describe('native CLI parser contracts', () => {
 
     expect(() => parseNativeCli(['run', 'input.txt', '--name'], commands, globalFlags))
       .toThrow(NativeMissingFlagValueError)
+  })
+
+  test('formats unknown flags from raw occurrences without exposing inline values or duplicates', async () => {
+    const argv = [
+      'run',
+      'input.txt',
+      '--misspelled-long=secret',
+      '-x',
+      '--misspelled-long=other-secret',
+      '--Mixed--spelling'
+    ]
+    const expectedMessage = 'Unexpected flags: --misspelled-long, -x, --Mixed--spelling'
+
+    expect(() => parseCommandInvocation(argv, runCommand, globalFlags)).toThrow(expectedMessage)
+    await expect(dispatchNativeCli(argv, root, commands)).rejects.toThrow(expectedMessage)
+
+    try {
+      parseCommandInvocation(argv, runCommand, globalFlags)
+      throw new Error('Expected parseCommandInvocation to reject unknown flags')
+    } catch (error) {
+      expect(error).toBeInstanceOf(NativeUnknownFlagError)
+      const unknownFlagError = error as NativeUnknownFlagError
+      expect(unknownFlagError.flagSpellings).toEqual(['--misspelled-long', '-x', '--Mixed--spelling'])
+      expect(unknownFlagError.flagNames).toBe(unknownFlagError.flagSpellings)
+      expect(unknownFlagError.message).not.toContain('secret')
+    }
+  })
+
+  test('falls back to normalized unknown keys for synthetic parse results without unknown occurrences', () => {
+    const parsed = parseCommandArgv(['run', 'input.txt', '--misspelled-long'], runCommand, globalFlags)
+    parsed.rawParsed.flagOccurrences = []
+
+    expect(getUnknownFlagSpellings(parsed.rawParsed)).toEqual(['--misspelledLong'])
   })
 
   test('parses a resolved command argv through the reusable command boundary', () => {
@@ -324,5 +399,11 @@ describe('native CLI parser contracts', () => {
 
     await expect(dispatchNativeCli(['links', '--openai', 'stt'], root, commands))
       .resolves.toBeUndefined()
+
+    const allowed = parseCommandInvocation(['links', '--openai', 'stt'], linksCommand, globalFlags)
+    expect(allowed.rawParsed.unknown).toEqual({ openai: true })
+    expect(allowed.rawParsed.flagOccurrences).toEqual([
+      { name: 'openai', raw: '--openai', value: true, known: false }
+    ])
   })
 })

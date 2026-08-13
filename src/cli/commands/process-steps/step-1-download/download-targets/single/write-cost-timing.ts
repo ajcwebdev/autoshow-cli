@@ -1,11 +1,11 @@
 import { buildEstimatedTtsTargets } from '~/cli/commands/process-steps/step-4-tts/tts-targets'
 import { getExpectedImageCount } from '~/cli/commands/process-steps/step-5-image/image-generation-targets'
 import type { ComputeWriteCostAndTimingContext } from '~/types'
-import { computeActualCosts } from '~/utils/pricing/compute-actual-costs'
-import { buildAggregatedPriceEstimate } from '~/utils/pricing/aggregate-pricing'
-import { preflightToEstimated } from '~/utils/pricing/compute-costs'
-import { computeEstimatedCosts } from '~/utils/pricing/compute-estimated-costs'
-import { computeActualProcessingTimes, computeEstimatedProcessingTimes } from '~/utils/pricing/compute-processing-time'
+import { computeActualCosts } from '~/cli/commands/pricing-orchestration/compute-actual-costs'
+import { buildAggregatedPriceEstimate } from '~/cli/commands/pricing-orchestration/aggregate-pricing'
+import { preflightToEstimated } from '~/cli/commands/pricing-orchestration/compute-costs'
+import { computeEstimatedCosts } from '~/cli/commands/pricing-orchestration/compute-estimated-costs'
+import { computeActualProcessingTimes, computeEstimatedProcessingTimes } from '~/cli/commands/pricing-orchestration/compute-processing-time'
 
 export const computeWriteCostAndTiming = async (ctx: ComputeWriteCostAndTimingContext) => {
   const {

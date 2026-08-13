@@ -27,10 +27,40 @@ const isYoutubeUrl = (s: string): boolean => {
   }
 }
 
+import { existsSync, readFileSync, writeFileSync } from 'node:fs'
+import { tmpdir } from 'node:os'
+import { join } from 'node:path'
+
+const COLLECTION_CACHE_FILE = join(tmpdir(), 'autoshow-yt-collection-cache.json')
+
+const readCollectionCache = (): Record<string, string[]> => {
+  try {
+    if (existsSync(COLLECTION_CACHE_FILE)) {
+      return JSON.parse(readFileSync(COLLECTION_CACHE_FILE, 'utf-8'))
+    }
+  } catch {
+  }
+  return {}
+}
+
+const writeCollectionCache = (url: string, items: string[]): void => {
+  try {
+    const cache = readCollectionCache()
+    cache[url] = items
+    writeFileSync(COLLECTION_CACHE_FILE, JSON.stringify(cache, null, 2), 'utf-8')
+  } catch {
+  }
+}
+
 const buildYoutubeCollectionListArgs = async (url: string): Promise<string[]> =>
   await buildYtDlpListArgs(url, { all: true, order: 'newest' })
 
 const getYoutubeCollectionItems = async (url: string): Promise<string[]> => {
+  const cached = readCollectionCache()[url]
+  if (cached) {
+    return cached
+  }
+
   try {
     const args = await buildYoutubeCollectionListArgs(url)
     const res = await exec(getYtDlpBinary(), args)
@@ -53,6 +83,7 @@ const getYoutubeCollectionItems = async (url: string): Promise<string[]> => {
       }
     }).filter((u: string) => u.length > 0)
     const uniq = Array.from(new Set(items))
+    writeCollectionCache(url, uniq)
     return uniq
   } catch {
     l.warn(`Failed to enumerate YouTube items`)

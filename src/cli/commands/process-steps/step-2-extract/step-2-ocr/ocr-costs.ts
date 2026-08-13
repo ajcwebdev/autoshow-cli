@@ -4,8 +4,8 @@ import { isTokenPricedOcrProvider } from '~/types'
 import type { ActualCostBreakdown, AggregatedPriceEstimate, CollectEstimatedExtractTargetsOptions, EstimatedCostBreakdown, EstimatedStepEntry, ExtractEstimateProvider, ExtractEstimateTarget, ExtractionMetadata, OcrModelFallbackOptions, PartialExtractionMetadata, Step3Metadata } from '~/types'
 import { resolveExtractionProviderModel } from '~/utils/extraction-provider-model'
 import { toArray } from '~/utils/text-utils'
-import { computeObservedEstimateCosts, computePriceAlignedEstimatedCosts, preflightToEstimated } from '~/utils/pricing/compute-costs'
-import { ANTHROPIC_OCR_PRICE_NOTE, DEEPINFRA_OCR_PRICE_NOTE, FIRECRAWL_PRICE_NOTE, GEMINI_OCR_PRICE_NOTE, GLM_OCR_PRICE_NOTE, GROK_OCR_PRICE_NOTE, KIMI_OCR_PRICE_NOTE, OPENAI_OCR_PRICE_NOTE } from './ocr-utils/extract-pricing'
+import { computeObservedEstimateCosts, computePriceAlignedEstimatedCosts, preflightToEstimated } from '~/cli/commands/pricing-orchestration/compute-costs'
+import { ANTHROPIC_OCR_PRICE_NOTE, DEEPINFRA_OCR_PRICE_NOTE, FIRECRAWL_PRICE_NOTE, GEMINI_OCR_PRICE_NOTE, GLM_OCR_PRICE_NOTE, GROK_OCR_PRICE_NOTE, KIMI_OCR_PRICE_NOTE, OPENAI_OCR_PRICE_NOTE } from '../extract-pricing/ocr-estimates'
 import { resolveHostedOcrModeFromExtractionMethod } from './ocr-utils/hosted-ocr-token-profiles'
 import { getUsageNumber } from './ocr-utils/hosted-ocr-utils'
 
@@ -46,12 +46,14 @@ const buildTokenTarget = (
   model: string,
   pageCount: number,
   ocrMode: string,
+  effectiveReasoningEffort?: ExtractionMetadata['effectiveReasoningEffort'],
   note?: string
 ): ExtractEstimateTarget => ({
   provider,
   model,
   pageCount,
   ocrMode,
+  ...(effectiveReasoningEffort !== undefined ? { effectiveReasoningEffort } : {}),
   estimateType: 'heuristic',
   ...(note ? { note } : {})
 })
@@ -74,6 +76,7 @@ const withObservedTokenUsage = (
     ...target,
     promptTokens: entry.promptTokens,
     completionTokens: entry.completionTokens,
+    ...(entry.effectiveReasoningEffort !== undefined ? { effectiveReasoningEffort: entry.effectiveReasoningEffort } : {}),
     tokenEstimateSource: 'exact',
     tokenEstimateConfidence: 'healthy',
     estimateType: 'exact'
@@ -161,37 +164,37 @@ export const collectEstimatedExtractTargets = (
     }
 
     if (provider === 'glm') {
-      targets.push(withPdfChunkTiming(entry, withObservedTokenUsage(buildTokenTarget('glm', model || opts.glmOcrModel || 'glm-ocr', pageCount, ocrMode, GLM_OCR_PRICE_NOTE), entry, opts.useObservedUsage)))
+      targets.push(withPdfChunkTiming(entry, withObservedTokenUsage(buildTokenTarget('glm', model || opts.glmOcrModel || 'glm-ocr', pageCount, ocrMode, entry.effectiveReasoningEffort, GLM_OCR_PRICE_NOTE), entry, opts.useObservedUsage)))
       continue
     }
 
     if (provider === 'kimi') {
-      targets.push(withPdfChunkTiming(entry, withObservedTokenUsage(buildTokenTarget('kimi', model || opts.kimiOcrModel || 'kimi-ocr', pageCount, ocrMode, KIMI_OCR_PRICE_NOTE), entry, opts.useObservedUsage)))
+      targets.push(withPdfChunkTiming(entry, withObservedTokenUsage(buildTokenTarget('kimi', model || opts.kimiOcrModel || 'kimi-ocr', pageCount, ocrMode, entry.effectiveReasoningEffort, KIMI_OCR_PRICE_NOTE), entry, opts.useObservedUsage)))
       continue
     }
 
     if (provider === 'openai') {
-      targets.push(withPdfChunkTiming(entry, withObservedTokenUsage(buildTokenTarget('openai', model || opts.openaiOcrModel || 'openai-ocr', pageCount, ocrMode, OPENAI_OCR_PRICE_NOTE), entry, opts.useObservedUsage)))
+      targets.push(withPdfChunkTiming(entry, withObservedTokenUsage(buildTokenTarget('openai', model || opts.openaiOcrModel || 'openai-ocr', pageCount, ocrMode, entry.effectiveReasoningEffort, OPENAI_OCR_PRICE_NOTE), entry, opts.useObservedUsage)))
       continue
     }
 
     if (provider === 'grok') {
-      targets.push(withPdfChunkTiming(entry, withObservedTokenUsage(buildTokenTarget('grok', model || opts.grokOcrModel || 'grok-4.3', pageCount, ocrMode, GROK_OCR_PRICE_NOTE), entry, opts.useObservedUsage)))
+      targets.push(withPdfChunkTiming(entry, withObservedTokenUsage(buildTokenTarget('grok', model || opts.grokOcrModel || 'grok-4.3', pageCount, ocrMode, entry.effectiveReasoningEffort, GROK_OCR_PRICE_NOTE), entry, opts.useObservedUsage)))
       continue
     }
 
     if (provider === 'anthropic') {
-      targets.push(withPdfChunkTiming(entry, withObservedTokenUsage(buildTokenTarget('anthropic', model || opts.anthropicOcrModel || 'anthropic-ocr', pageCount, ocrMode, ANTHROPIC_OCR_PRICE_NOTE), entry, opts.useObservedUsage)))
+      targets.push(withPdfChunkTiming(entry, withObservedTokenUsage(buildTokenTarget('anthropic', model || opts.anthropicOcrModel || 'anthropic-ocr', pageCount, ocrMode, entry.effectiveReasoningEffort, ANTHROPIC_OCR_PRICE_NOTE), entry, opts.useObservedUsage)))
       continue
     }
 
     if (provider === 'gemini') {
-      targets.push(withPdfChunkTiming(entry, withObservedTokenUsage(buildTokenTarget('gemini', model || opts.geminiOcrModel || 'gemini-ocr', pageCount, ocrMode, GEMINI_OCR_PRICE_NOTE), entry, opts.useObservedUsage)))
+      targets.push(withPdfChunkTiming(entry, withObservedTokenUsage(buildTokenTarget('gemini', model || opts.geminiOcrModel || 'gemini-ocr', pageCount, ocrMode, entry.effectiveReasoningEffort, GEMINI_OCR_PRICE_NOTE), entry, opts.useObservedUsage)))
       continue
     }
 
     if (provider === 'deepinfra') {
-      targets.push(withPdfChunkTiming(entry, withObservedTokenUsage(buildTokenTarget('deepinfra', model || opts.deepinfraOcrModel || 'deepinfra-ocr', pageCount, ocrMode, DEEPINFRA_OCR_PRICE_NOTE), entry, opts.useObservedUsage)))
+      targets.push(withPdfChunkTiming(entry, withObservedTokenUsage(buildTokenTarget('deepinfra', model || opts.deepinfraOcrModel || 'deepinfra-ocr', pageCount, ocrMode, entry.effectiveReasoningEffort, DEEPINFRA_OCR_PRICE_NOTE), entry, opts.useObservedUsage)))
       continue
     }
   }

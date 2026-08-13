@@ -83,5 +83,15 @@ export const createModelValidator = <T extends string>(
   }
 }
 
+export const throwRetiredModelSelection = (
+  model: string,
+  flag: string,
+  replacement: string
+): never => {
+  throw CLIUsageError(
+    `Model "${model}" is retired for ${formatModelSelector(flag)}. Use "${replacement}" instead. AutoShow will not silently substitute a different model identity.`
+  )
+}
+
 export const buildModelDescription = (label: string, models: readonly string[]): string =>
   `${label} (omit value for cheapest supported model): ${models.join('|')}`

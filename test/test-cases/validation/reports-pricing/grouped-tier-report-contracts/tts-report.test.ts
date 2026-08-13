@@ -6,7 +6,7 @@ import {
 import { writeFile } from 'node:fs/promises'
 import { join } from 'node:path'
 import type { RankingSurfaceName, TtsRankingEntry } from '~/types'
-import { writeSingleManifestFixture } from '../../../../test-utils/manifest-helpers'
+import { writeLegacyTtsManifestFixture } from '../../../../test-utils/manifest-helpers'
 import {
   deprecatedOverallTierKey,
   deprecatedTierSplitKey,
@@ -47,7 +47,7 @@ describe('grouped report contracts', () => {
         'cartesia/sonic-3': { humanSpeechScore: 94, medianWer: 0.08 }
       }
 
-      await writeSingleManifestFixture(runDir, 'tts', {
+      await writeLegacyTtsManifestFixture(runDir, {
           tts: ttsEntries,
           cost: {
             actual: {

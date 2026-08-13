@@ -6,8 +6,14 @@ import { URL_ARTICLE_BACKENDS } from '~/cli/commands/process-steps/step-2-extrac
 import { PDF_CHAPTER_MODES } from '~/cli/options/option-resolution/flag-readers'
 import { STANDALONE_IMAGE_PROVIDER_TARGETS, STANDALONE_MUSIC_PROVIDER_TARGETS, STANDALONE_TTS_PROVIDER_TARGETS, STANDALONE_VIDEO_PROVIDER_TARGETS, WRITE_LLM_PROVIDER_TARGETS, WRITE_OCR_PROVIDER_TARGETS, WRITE_STT_PROVIDER_TARGETS } from './service-selector-normalization/provider-targets'
 
+import { NORMALIZED_REASONING_EFFORTS } from '~/cli/commands/setup-and-utilities/models/reasoning-resolver'
+
 export const priceFlag = {
   price: boolFlag('Show aggregated cost estimate for all active pipeline steps and exit')
+} as const satisfies CliFlagsDefinition
+
+export const reasoningEffortFlag = {
+  'reasoning-effort': strFlag(`Reasoning effort policy: ${formatValueList(NORMALIZED_REASONING_EFFORTS)} (omit to preserve existing adapter behavior; default delegates to the provider)`)
 } as const satisfies CliFlagsDefinition
 
 export const booleanAllProvidersFlag = {
@@ -68,7 +74,8 @@ export const promptFlag = {
   prompt: {
     description: 'Named prompt(s) discovered under src/prompts/entries/ (default: "default")',
     type: [String] as [StringConstructor],
-    default: [] as string[]
+    default: [] as string[],
+    consumeAdjacentValues: true
   },
   'prompt-md': boolFlag('Save a second prompt file (prompt-md.md) with markdown examples alongside the JSON prompt')
 } as const satisfies CliFlagsDefinition

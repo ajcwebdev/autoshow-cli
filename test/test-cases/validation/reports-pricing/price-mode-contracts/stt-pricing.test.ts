@@ -1,9 +1,9 @@
 import { describe, expect, test } from 'bun:test'
 import { computeGeminiSttBillingFromUsage } from '~/cli/commands/process-steps/step-2-extract/step-2-stt/stt-services/gemini-stt/run-gemini-stt'
-import { computeActualCosts } from '~/utils/pricing/compute-actual-costs'
-import { computeEstimatedCosts } from '~/utils/pricing/compute-estimated-costs'
-import { computeSttCost } from '~/utils/pricing/cost-helpers'
-import { computeBilledSttCost } from '~/utils/pricing/stt-billing'
+import { computeActualCosts } from '~/cli/commands/pricing-orchestration/compute-actual-costs'
+import { computeEstimatedCosts } from '~/cli/commands/pricing-orchestration/compute-estimated-costs'
+import { computeSttCost } from '~/cli/commands/pricing-orchestration/cost-helpers'
+import { computeBilledSttCost } from '~/cli/commands/pricing-orchestration/stt-billing'
 import type { Step1Metadata } from '~/types'
 import { buildSttMetadata, findPricingNoteKeys } from './shared'
 

@@ -1,6 +1,6 @@
 import type { AggregatedPriceEstimate, ExtractionMetadata, ExtractionOptions, OcrMetadataOptions, ProcessDocumentOutput, ResolvedStep2Execution, Step1SourceRef } from '~/types'
-import { computeActualCosts } from '~/utils/pricing/compute-actual-costs'
-import { computeActualProcessingTimes, computeEstimatedProcessingTimes } from '~/utils/pricing/compute-processing-time'
+import { computeActualCosts } from '~/cli/commands/pricing-orchestration/compute-actual-costs'
+import { computeActualProcessingTimes, computeEstimatedProcessingTimes } from '~/cli/commands/pricing-orchestration/compute-processing-time'
 import { serializeOneOrMany } from '../../target-runner'
 import { resolveOcrStep2ExecutionFromFormat } from '../step-2-shared/resolved-step2'
 import { buildOcrCostDiagnostics, collectEstimatedExtractTargets, resolveExtractEstimatedCosts, resolveExtractObservedEstimateCosts } from './ocr-costs'

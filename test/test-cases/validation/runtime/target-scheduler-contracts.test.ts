@@ -4,6 +4,7 @@ import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { createGenerationResourceGate } from '~/cli/commands/process-steps/step-3-write/generation-resource-gate'
 import { runProviderTargetScheduler } from '~/cli/commands/process-steps/provider-target-scheduler'
+import { createProviderLaneIdentity } from '~/cli/commands/process-steps/provider-lane-contract'
 import { runImageTargets } from '~/cli/commands/process-steps/step-5-image/run-image-gen'
 import type { ImageTarget, SchedulerTestTarget, Step5Metadata } from '~/types'
 
@@ -20,6 +21,16 @@ const imageMetadata = (target: ImageTarget, fileName: string): Step5Metadata => 
 })
 
 describe('target scheduler contracts', () => {
+  test('provider lane identity accepts stable labels and rejects credential-like values', () => {
+    expect(createProviderLaneIdentity('openai', 'team-a')).toEqual({
+      service: 'openai',
+      scopeLabel: 'team-a',
+      laneKey: 'openai:team-a'
+    })
+    expect(() => createProviderLaneIdentity('openai', 'a'.repeat(64))).toThrow('not credentials or credential hashes')
+    expect(() => createProviderLaneIdentity('openai', 'sk-project-secret-value')).toThrow('not credentials or credential hashes')
+  })
+
   test('scheduler enforces hosted/local caps, preserves result slots, and collects partial failures', async () => {
     const targets: SchedulerTestTarget[] = [
       { service: 'local', model: 'a', pool: 'local', delayMs: 8 },

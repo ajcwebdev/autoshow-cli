@@ -181,6 +181,7 @@ export type SttBatchBlockedProviderReason = {
 
 
 export type SttBatchProviderStatsSnapshot = {
+  lane: import('~/types').ProviderLaneIdentity<SttTarget['service']>
   service: SttTarget['service']
   model: string
   kind: 'sync' | 'async'

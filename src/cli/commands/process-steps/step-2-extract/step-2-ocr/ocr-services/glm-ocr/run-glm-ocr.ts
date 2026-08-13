@@ -5,6 +5,7 @@ import { GlmOcrResponseSchema } from '~/types'
 import { withOcrCreateRetry } from '~/cli/commands/process-steps/step-2-extract/step-2-ocr/ocr-utils/ocr-retry'
 import { validateData } from '~/utils/validate/validation'
 import { ensureGlmApiKey, resolveGlmBaseUrl } from './glm'
+import { resolveReasoningPolicy } from '~/cli/commands/setup-and-utilities/models/reasoning-resolver'
 
 
 const cleanString = (value: unknown): string | undefined => {
@@ -43,7 +44,10 @@ export const runGlmOcr = async (
   filePath: string,
   step1Metadata: DocumentMetadata,
   model: string,
-  options: { onRetryable?: HostedOcrSchedulerRetryPressureHandler | undefined } = {}
+  options: {
+    onRetryable?: HostedOcrSchedulerRetryPressureHandler | undefined
+    reasoningEffort?: import('~/cli/commands/setup-and-utilities/models/reasoning-resolver').NormalizedReasoningEffort | undefined
+  } = {}
 ): Promise<{
   pages: PageResult[]
   extractionMethod: 'glm-ocr'
@@ -51,23 +55,32 @@ export const runGlmOcr = async (
   totalPages?: number
   promptTokens?: number
   completionTokens?: number
+  requestedReasoningEffort?: import('~/cli/commands/setup-and-utilities/models/reasoning-resolver').NormalizedReasoningEffort | undefined
+  effectiveReasoningEffort?: import('~/cli/commands/setup-and-utilities/models/reasoning-resolver').NormalizedReasoningEffort | undefined
 }> => {
+  const policy = resolveReasoningPolicy({
+    step: 'extract',
+    service: 'glm',
+    model,
+    requestedReasoningEffort: options.reasoningEffort
+  })
   const apiKey = ensureGlmApiKey('GLM OCR')
   const bytes = await Bun.file(filePath).arrayBuffer()
   const base64 = Buffer.from(bytes).toString('base64')
   const mimeType = getMimeType(filePath, step1Metadata.format)
 
   const payload = await withOcrCreateRetry('glm-ocr', async (signal) => {
+    const bodyObj: Record<string, unknown> = {
+      model,
+      file: `data:${mimeType};base64,${base64}`
+    }
     const response = await fetch(`${resolveGlmBaseUrl()}/layout_parsing`, {
       method: 'POST',
       headers: {
         Authorization: `Bearer ${apiKey}`,
         'Content-Type': 'application/json'
       },
-      body: JSON.stringify({
-        model,
-        file: `data:${mimeType};base64,${base64}`
-      }),
+      body: JSON.stringify(bodyObj),
       signal: signal ?? null
     })
 
@@ -111,6 +124,8 @@ export const runGlmOcr = async (
     markdown,
     ...(typeof validated.data_info?.num_pages === 'number' ? { totalPages: validated.data_info.num_pages } : {}),
     ...(typeof validated.usage?.prompt_tokens === 'number' ? { promptTokens: validated.usage.prompt_tokens } : {}),
-    ...(typeof validated.usage?.completion_tokens === 'number' ? { completionTokens: validated.usage.completion_tokens } : {})
+    ...(typeof validated.usage?.completion_tokens === 'number' ? { completionTokens: validated.usage.completion_tokens } : {}),
+    ...(policy.requested !== undefined ? { requestedReasoningEffort: policy.requested } : {}),
+    effectiveReasoningEffort: policy.effective
   }
 }

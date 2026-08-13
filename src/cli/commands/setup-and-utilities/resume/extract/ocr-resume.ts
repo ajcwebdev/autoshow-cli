@@ -14,7 +14,82 @@ import { PIPELINE_MANIFEST_FILE, readSinglePipelineItemRecord } from '~/cli/comm
 import type { AggregatedPriceEstimate, OcrExtractionOptions, OcrResumePassContext, OcrTarget, PipelineItemRecord, PreparedDocument, ProviderCompletionStatus, ProviderResumePassResult, ResolvedStep2Execution, ResumeDisplayOptions, ResumeOcrEntry, ResumeResult, ResumeTarget, Step1SourceRef, WebArticleMetadata } from '~/types'
 import { resolveAdditiveResumeProviderSelection } from '../resume-provider-selection'
 import { hasResumableProviderTargetWork, priceProviderResumeTarget, providerResumeSourceInput, resolveProviderResumeOutputDir, runProviderResumePass, selectedProviderTargetsComplete, selectedProvidersCompleteResult, toProviderResumeResult, toProviderResumeSource, withProviderResumeOutputDir } from '../provider-batch-resume'
-import { buildExtractEstimates } from '~/utils/pricing/aggregate-pricing/extract-estimates'
+import { buildExtractEstimates } from '~/cli/commands/process-steps/step-2-extract/extract-pricing/build-extract-estimates'
+import { resolveReasoningPolicy, type NormalizedReasoningEffort } from '~/cli/commands/setup-and-utilities/models/reasoning-resolver'
+import { writeOcrBatchDiagnostics } from '~/cli/commands/process-steps/step-2-extract/step-2-ocr/ocr-batch-diagnostics'
+import { getStep2ActiveModelsForService } from '~/cli/commands/process-steps/step-2-extract/step-2-shared/provider-registry'
+import { getRetiredModelReplacement } from '~/cli/commands/setup-and-utilities/models/model-loader'
+
+const filterRunnableStoredOcrTargets = (
+  targets: readonly OcrTarget[],
+  selectedTargets: readonly OcrTarget[] | undefined
+): OcrTarget[] => {
+  const runnable: OcrTarget[] = []
+  for (const target of targets) {
+    const activeModels = getStep2ActiveModelsForService('ocr', target.service)
+    if (!activeModels || activeModels.includes(target.model)) {
+      runnable.push(target)
+      continue
+    }
+
+    const replacement = getRetiredModelReplacement('extract', target.service, target.model)
+    const selectedReplacement = replacement !== undefined && selectedTargets?.some((selected) =>
+      selected.service === target.service && selected.model === replacement
+    ) === true
+    if (selectedReplacement) {
+      continue
+    }
+
+    const nextStep = replacement !== undefined
+      ? `Re-run with --provider ${target.service}=${replacement} to add the replacement as a distinct target.`
+      : `Re-run with an explicit active ${target.service} model to add a distinct target.`
+    throw CLIUsageError(
+      `Stored OCR target ${target.service}/${target.model} is incomplete, but that model is no longer in the active registry. AutoShow will not substitute a different model because that would change the stored target identity. ${nextStep}`
+    )
+  }
+  return runnable
+}
+
+const assertSelectedOcrReasoningCompatibility = (
+  record: Record<string, unknown>,
+  selectedTargets: OcrTarget[] | undefined,
+  requestedReasoningEffort: NormalizedReasoningEffort | undefined
+): void => {
+  if (selectedTargets === undefined || requestedReasoningEffort === undefined) {
+    return
+  }
+
+  const providerStates = Array.isArray(record['providerStates'])
+    ? record['providerStates'].filter(isRecord)
+    : []
+  for (const target of selectedTargets) {
+    if (target.service === 'tesseract') {
+      continue
+    }
+    const state = providerStates.find((candidate) =>
+      candidate['service'] === target.service
+      && candidate['model'] === target.model
+      && candidate['status'] === 'succeeded'
+    )
+    if (!state) {
+      continue
+    }
+
+    const policy = resolveReasoningPolicy({
+      step: 'extract',
+      service: target.service,
+      model: target.model,
+      requestedReasoningEffort
+    })
+    const metadata = isRecord(state['metadata']) ? state['metadata'] : undefined
+    const storedEffective = metadata?.['effectiveReasoningEffort']
+    if (storedEffective !== policy.effective) {
+      throw CLIUsageError(
+        `OCR resume reasoning policy mismatch for ${target.service}/${target.model}: manifest effective effort is ${typeof storedEffective === 'string' ? storedEffective : 'unrecorded'}, but the current request resolves to ${policy.effective}.`
+      )
+    }
+  }
+}
 
 const toStoredSource = (record: PipelineItemRecord): Step1SourceRef => {
   const source = isRecord(record['source']) ? record['source'] : undefined
@@ -38,7 +113,8 @@ const toStoredSource = (record: PipelineItemRecord): Step1SourceRef => {
 
 const parseResumeRecord = async (
   record: unknown,
-  selectedTargets: OcrTarget[] | undefined
+  selectedTargets: OcrTarget[] | undefined,
+  requestedReasoningEffort?: NormalizedReasoningEffort | undefined
 ): Promise<ResumeOcrEntry | undefined> => {
   if (!isRecord(record)) {
     return undefined
@@ -54,10 +130,15 @@ const parseResumeRecord = async (
     return undefined
   }
 
+  assertSelectedOcrReasoningCompatibility(record, selectedTargets, requestedReasoningEffort)
+
   const source = toStoredSource(record)
-  const storedMissingTargets = buildMissingTargetsFromEntry(record, storedRequestedTargets, {
-    includeBlocked: selectedTargets !== undefined
-  })
+  const storedMissingTargets = filterRunnableStoredOcrTargets(
+    buildMissingTargetsFromEntry(record, storedRequestedTargets, {
+      includeBlocked: selectedTargets !== undefined
+    }),
+    selectedTargets
+  )
   const resolvedTargets = resolveAdditiveResumeProviderSelection({
     storedProviders: storedRequestedTargets,
     runnableStoredProviders: storedMissingTargets,
@@ -155,7 +236,8 @@ const buildResumeExtractionOpts = (
     pdfChapterMode: opts.pdfChapterMode,
     configPath: opts.configPath,
     ...(opts.useEpubBun ? { useEpubBun: true } : {}),
-    ...(step2SelectionOrigins ? { step2SelectionOrigins } : {})
+    ...(step2SelectionOrigins ? { step2SelectionOrigins } : {}),
+    ...(opts.reasoningEffort ? { reasoningEffort: opts.reasoningEffort } : {})
   }
 }
 
@@ -185,7 +267,7 @@ const runResumeOcrTarget = async (
     {
       stepLabel: 'OCR',
       readItemRecord,
-      parseRecord: async (record) => await parseResumeRecord(record, selectedTargets),
+      parseRecord: async (record) => await parseResumeRecord(record, selectedTargets, opts.reasoningEffort),
       getProviderLabels: (targets) => targets.map((runTarget) => `${runTarget.service}/${runTarget.model}`),
       normalizeAlreadyFullRecord: markItemRecordFull,
       classifyNoMatchingRecord: (record) =>
@@ -239,7 +321,8 @@ const runResumeOcrTarget = async (
         const record = await readItemRecord(entry.outputDir)
         const remainingResumableEntry = await parseResumeRecord(
           withProviderResumeOutputDir(record, entry.outputDir),
-          selectedTargets
+          selectedTargets,
+          opts.reasoningEffort
         )
         const hasRemainingResumableWork = (remainingResumableEntry?.missingTargets.length ?? 0) > 0
         const completionStatus = getOcrCompletionStatus(record)
@@ -280,6 +363,10 @@ const runResumeOcrTarget = async (
     displayOptions
   )
 
+  if (target.scope === 'batch') {
+    await writeOcrBatchDiagnostics(target.dir)
+  }
+
   if (resumableStatus.resumableIncomplete > 0 || resumableStatus.resumableFailed > 0) {
     throw InfraError(`OCR resume still has ${resumableStatus.resumableIncomplete} incomplete and ${resumableStatus.resumableFailed} failed item(s) with resumable providers`, { stage: 'resume:ocr', exitCode: 2 })
   }
@@ -315,7 +402,7 @@ export const priceOcrTarget = async (
   return await priceProviderResumeTarget<OcrTarget, ResumeOcrEntry, OcrExtractionOptions>(target, opts, {
     stepLabel: 'OCR',
     readItemRecord,
-    parseRecord: (record) => parseResumeRecord(record, selectedTargets),
+    parseRecord: (record) => parseResumeRecord(record, selectedTargets, opts.reasoningEffort),
     getAggregateTimingOptions: (options) => ({
       ocrConcurrency: options.ocrConcurrency,
       ocrConcurrencyMode: options.ocrConcurrencyMode,
@@ -326,7 +413,10 @@ export const priceOcrTarget = async (
       buildExtractEstimates(
         providerResumeSourceInput(entry.source, 'OCR'),
         buildResolvedOcrStep(entry.missingTargets),
-        { hostedOcrTokenProfilePath: estimateOpts.hostedOcrTokenProfilePath }
+        {
+          hostedOcrTokenProfilePath: estimateOpts.hostedOcrTokenProfilePath,
+          reasoningEffort: estimateOpts.reasoningEffort
+        }
       )
   })
 }

@@ -5,10 +5,11 @@ import { homedir } from 'node:os'
 import { dirname, join } from 'node:path'
 import { getExtractEstimation } from '~/cli/commands/setup-and-utilities/models/model-loader'
 import { isTokenPricedOcrProvider } from '~/types'
-import type { ExtractionMetadata, HostedOcrTokenUsageEstimate, HostedOcrTokenUsageProfile, HostedOcrTokenUsageProfileStore, PartialExtractionMetadata, PersistHostedOcrProfilesOptions, TokenPricedOcrProvider } from '~/types'
+import type { ExtractionMetadata, HostedOcrTokenReasoningPolicy, HostedOcrTokenUsageEstimate, HostedOcrTokenUsageProfile, HostedOcrTokenUsageProfileStore, PartialExtractionMetadata, PersistHostedOcrProfilesOptions, TokenPricedOcrProvider } from '~/types'
 import { withProcessLock } from '~/utils/process-lock'
+import { projectHostedOcrTokenUsageEstimate, selectHostedOcrTokenUsageProfile } from '~/utils/pricing/ocr-token-pricing'
 
-const TOKEN_PROFILE_STORE_VERSION = 1
+const TOKEN_PROFILE_STORE_VERSION = 2
 const MAX_TOKEN_PROFILE_ENTRIES = 500
 const MAX_TOKEN_PROFILE_SAMPLES = 100
 const TOKEN_PROFILE_LOCK_NAME = 'ocr-token-usage-profiles-v1'
@@ -48,6 +49,22 @@ const roundMetric = (value: number): number => {
   return Object.is(rounded, -0) ? 0 : rounded
 }
 
+const REASONING_POLICIES = new Set<HostedOcrTokenReasoningPolicy>([
+  'default',
+  'disabled',
+  'minimal',
+  'low',
+  'medium',
+  'high',
+  'max',
+  'unspecified'
+])
+
+const parseReasoningPolicy = (value: unknown): HostedOcrTokenReasoningPolicy =>
+  typeof value === 'string' && REASONING_POLICIES.has(value as HostedOcrTokenReasoningPolicy)
+    ? value as HostedOcrTokenReasoningPolicy
+    : 'unspecified'
+
 
 const parseProfile = (value: unknown): HostedOcrTokenUsageProfile | undefined => {
   if (!isRecord(value)) {
@@ -79,6 +96,7 @@ const parseProfile = (value: unknown): HostedOcrTokenUsageProfile | undefined =>
     model: value['model'],
     ocrMode: value['ocrMode'],
     pageCountBand: value['pageCountBand'],
+    effectiveReasoningEffort: parseReasoningPolicy(value['effectiveReasoningEffort']),
     pageCount: Math.max(1, Math.floor(value['pageCount'])),
     observedPromptTokens: Math.max(0, Math.round(value['observedPromptTokens'])),
     observedCompletionTokens: Math.max(0, Math.round(value['observedCompletionTokens'])),
@@ -104,7 +122,7 @@ const parseProfile = (value: unknown): HostedOcrTokenUsageProfile | undefined =>
 }
 
 const parseStore = (value: unknown): HostedOcrTokenUsageProfileStore => {
-  if (!isRecord(value) || value['version'] !== TOKEN_PROFILE_STORE_VERSION || !Array.isArray(value['profiles'])) {
+  if (!isRecord(value) || (value['version'] !== 1 && value['version'] !== TOKEN_PROFILE_STORE_VERSION) || !Array.isArray(value['profiles'])) {
     return { version: TOKEN_PROFILE_STORE_VERSION, profiles: [] }
   }
   return {
@@ -137,12 +155,13 @@ export const readHostedOcrTokenUsageProfilesSync = (
 }
 
 const profileKey = (
-  profile: Pick<HostedOcrTokenUsageProfile, 'provider' | 'model' | 'ocrMode' | 'pageCountBand'>
+  profile: Pick<HostedOcrTokenUsageProfile, 'provider' | 'model' | 'ocrMode' | 'pageCountBand' | 'effectiveReasoningEffort'>
 ): string => [
   profile.provider,
   profile.model,
   profile.ocrMode,
-  profile.pageCountBand
+  profile.pageCountBand,
+  profile.effectiveReasoningEffort
 ].join('\u0000')
 
 const weightedAverage = (oldValue: number, oldSamples: number, newValue: number): number =>
@@ -212,6 +231,7 @@ const buildProfileSample = (
     model: metadata.ocrModel,
     ocrMode: resolveHostedOcrModeFromExtractionMethod(metadata.extractionMethod, metadata.inputFamily),
     pageCountBand: resolveHostedOcrTokenPageCountBand(pageCount),
+    effectiveReasoningEffort: metadata.effectiveReasoningEffort ?? 'unspecified',
     pageCount,
     observedPromptTokens: promptTokens,
     observedCompletionTokens: completionTokens,
@@ -259,24 +279,6 @@ export const persistHostedOcrTokenUsageProfiles = async (
   })
 }
 
-const scoreProfile = (
-  profile: HostedOcrTokenUsageProfile,
-  input: {
-    provider: TokenPricedOcrProvider
-    model: string
-    ocrMode: string
-    pageCountBand: string
-  }
-): number => {
-  if (profile.provider !== input.provider || profile.model !== input.model) {
-    return -1
-  }
-  let score = 0
-  if (profile.ocrMode === input.ocrMode) score += 4
-  if (profile.pageCountBand === input.pageCountBand) score += 2
-  return score
-}
-
 export const findHostedOcrTokenUsageProfile = (
   input: {
     provider: TokenPricedOcrProvider
@@ -284,26 +286,21 @@ export const findHostedOcrTokenUsageProfile = (
     pageCount: number
     ocrMode?: string | undefined
     profilePath?: string | undefined
+    effectiveReasoningEffort?: HostedOcrTokenReasoningPolicy | undefined
   }
 ): HostedOcrTokenUsageProfile | undefined => {
   const ocrMode = input.ocrMode ?? 'unknown'
   const pageCountBand = resolveHostedOcrTokenPageCountBand(input.pageCount)
-  return readHostedOcrTokenUsageProfilesSync(input.profilePath).profiles
-    .map((profile) => ({
-      profile,
-      score: scoreProfile(profile, {
-        provider: input.provider,
-        model: input.model,
-        ocrMode,
-        pageCountBand
-      })
-    }))
-    .filter((entry) => entry.score >= 0)
-    .sort((left, right) =>
-      right.score - left.score
-      || right.profile.sampleCount - left.profile.sampleCount
-      || Date.parse(right.profile.lastSeenAt) - Date.parse(left.profile.lastSeenAt)
-    )[0]?.profile
+  return selectHostedOcrTokenUsageProfile(
+    readHostedOcrTokenUsageProfilesSync(input.profilePath).profiles,
+    {
+      provider: input.provider,
+      model: input.model,
+      ocrMode,
+      pageCountBand,
+      effectiveReasoningEffort: input.effectiveReasoningEffort ?? 'unspecified'
+    }
+  )
 }
 
 export const resolveHostedOcrTokenUsageEstimate = (
@@ -313,55 +310,30 @@ export const resolveHostedOcrTokenUsageEstimate = (
     pageCount: number
     ocrMode?: string | undefined
     profilePath?: string | undefined
+    effectiveReasoningEffort?: HostedOcrTokenReasoningPolicy | undefined
     registryPromptTokensPerPage: number
     registryCompletionTokensPerPage: number
   }
 ): HostedOcrTokenUsageEstimate => {
   const pageCount = Math.max(0, Math.floor(input.pageCount))
-  const registryPromptTokens = Math.max(0, Math.round(pageCount * input.registryPromptTokensPerPage))
-  const registryCompletionTokens = Math.max(0, Math.round(pageCount * input.registryCompletionTokensPerPage))
   const ocrMode = input.ocrMode ?? 'unknown'
   const pageCountBand = resolveHostedOcrTokenPageCountBand(pageCount)
+  const effectiveReasoningEffort = input.effectiveReasoningEffort ?? 'unspecified'
   const profile = findHostedOcrTokenUsageProfile({
     provider: input.provider,
     model: input.model,
     pageCount,
     ocrMode,
-    profilePath: input.profilePath
+    profilePath: input.profilePath,
+    effectiveReasoningEffort
   })
-
-  if (!profile) {
-    return {
-      promptTokens: registryPromptTokens,
-      completionTokens: registryCompletionTokens,
-      tokenEstimateSource: 'registry',
-      tokenEstimateConfidence: 'none'
-    }
-  }
-
-  const exactMatch = profile.ocrMode === ocrMode && profile.pageCountBand === pageCountBand
-  if (exactMatch && profile.sourceConfidence === 'healthy') {
-    return {
-      promptTokens: Math.max(0, Math.round(pageCount * profile.promptTokensPerPage)),
-      completionTokens: Math.max(0, Math.round(pageCount * profile.completionTokensPerPage)),
-      tokenEstimateSource: 'profile',
-      tokenEstimateConfidence: profile.sourceConfidence,
-      tokenProfileSampleCount: profile.sampleCount,
-      tokenProfilePromptTokensPerPage: profile.promptTokensPerPage,
-      tokenProfileCompletionTokensPerPage: profile.completionTokensPerPage
-    }
-  }
-
-  const sampleWeight = Math.max(1, Math.min(2, profile.sampleCount))
-  const promptTokensPerPage = ((profile.promptTokensPerPage * sampleWeight) + (input.registryPromptTokensPerPage * 2)) / (sampleWeight + 2)
-  const completionTokensPerPage = ((profile.completionTokensPerPage * sampleWeight) + (input.registryCompletionTokensPerPage * 2)) / (sampleWeight + 2)
-  return {
-    promptTokens: Math.max(0, Math.round(pageCount * promptTokensPerPage)),
-    completionTokens: Math.max(0, Math.round(pageCount * completionTokensPerPage)),
-    tokenEstimateSource: 'blended-profile',
-    tokenEstimateConfidence: profile.sourceConfidence,
-    tokenProfileSampleCount: profile.sampleCount,
-    tokenProfilePromptTokensPerPage: profile.promptTokensPerPage,
-    tokenProfileCompletionTokensPerPage: profile.completionTokensPerPage
-  }
+  return projectHostedOcrTokenUsageEstimate({
+    pageCount,
+    ocrMode,
+    pageCountBand,
+    effectiveReasoningEffort,
+    registryPromptTokensPerPage: input.registryPromptTokensPerPage,
+    registryCompletionTokensPerPage: input.registryCompletionTokensPerPage,
+    profile
+  })
 }

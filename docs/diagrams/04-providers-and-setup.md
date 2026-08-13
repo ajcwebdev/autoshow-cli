@@ -49,7 +49,7 @@ Current LLM models:
 |----------|--------|
 | `openai` | `gpt-5.6-sol`, `gpt-5.6-terra`, `gpt-5.6-luna`, `gpt-5.5`, `gpt-5.4-mini`, `gpt-5.4-nano` |
 | `groq` | `openai/gpt-oss-20b`, `openai/gpt-oss-120b` |
-| `gemini` | `gemini-3.1-pro-preview`, `gemini-3.1-flash-lite`, `gemini-3.6-flash`, `gemini-3.5-flash`, `gemini-3.5-flash-lite` |
+| `gemini` | `gemini-3.1-pro-preview`, `gemini-3.6-flash`, `gemini-3.5-flash`, `gemini-3.5-flash-lite` |
 | `anthropic` | `claude-fable-5`, `claude-opus-4-8`, `claude-sonnet-5`, `claude-sonnet-4-6`, `claude-haiku-4-5`, `claude-opus-5` |
 | `minimax` | `MiniMax-M3` |
 | `grok` | `grok-4.3`, `grok-4.5` |
@@ -59,6 +59,8 @@ Current LLM models:
 | `cerebras` | `gpt-oss-120b`, `zai-glm-4.7` |
 | `llama` | `ggml-org/gemma-3-270m-it-GGUF`, `ggml-org/Qwen3-0.6B-GGUF`, or another Hugging Face repo/model configured for llama.cpp |
 | `llamafile` | `Qwen3.5-0.8B-Q8_0`, `Qwen3.5-2B-Q8_0`, `Qwen3.5-4B-Q5_K_S` (prebuilt single-file llamafiles; downloaded on demand) |
+
+Gemini lifecycle state is static per repository revision: `gemini-3.5-flash-lite` is the bare and all-provider Flash-Lite target, while retired `gemini-3.1-flash-lite` is absent from active selectors and retained only in historical pricing and manifest handling.
 
 ## Selector Conventions
 
@@ -142,6 +144,7 @@ These checks come from `HOSTED_PROVIDER_ENV_CHECKS`:
 | `LTXV_API_KEY` | LTX video |
 | `MISTRAL_API_KEY` | Mistral STT/OCR/TTS |
 | `BFL_API_KEY` | BFL image |
+| `FAL_API_KEY` | fal.ai image/video |
 | `RECRAFT_API_TOKEN` | Recraft image |
 | `REPLICATE_API_TOKEN` | Replicate image/video |
 | `LUMA_AGENTS_API_KEY` | Luma Labs image/video |
@@ -186,7 +189,7 @@ These checks come from `HOSTED_PROVIDER_ENV_CHECKS`:
 | `write` | Route-specific extract dependencies plus llama.cpp or llamafile for local LLM. | Selected hosted LLM key. |
 | `write --text-input` | local `.md`/`.txt` files; llama.cpp or llamafile if using local LLM. | Selected hosted LLM/generation keys. |
 | `tts --provider kitten` | Kitten TTS Python env and models. | Hosted TTS key for hosted providers. |
-| `image` | none for hosted-only providers. | `GEMINI_API_KEY`, `OPENAI_API_KEY`, `XAI_API_KEY`, `BFL_API_KEY`, `RECRAFT_API_TOKEN`, `REPLICATE_API_TOKEN`, or `LUMA_AGENTS_API_KEY`. |
-| `video` | local input media/image validation where used. | `GEMINI_API_KEY`, `MINIMAX_API_KEY`, `GLM_API_KEY`, `XAI_API_KEY`, `RUNWAYML_API_SECRET`, `LTXV_API_KEY`, `REPLICATE_API_TOKEN`, or `LUMA_AGENTS_API_KEY`. |
+| `image` | none for hosted-only providers. | `GEMINI_API_KEY`, `OPENAI_API_KEY`, `XAI_API_KEY`, `BFL_API_KEY`, `FAL_API_KEY`, `RECRAFT_API_TOKEN`, `REPLICATE_API_TOKEN`, or `LUMA_AGENTS_API_KEY`. |
+| `video` | local input media/image validation where used. | `GEMINI_API_KEY`, `MINIMAX_API_KEY`, `GLM_API_KEY`, `XAI_API_KEY`, `RUNWAYML_API_SECRET`, `LTXV_API_KEY`, `FAL_API_KEY`, `REPLICATE_API_TOKEN`, or `LUMA_AGENTS_API_KEY`. |
 | `music` hosted | none for hosted-only generation. | `ELEVENLABS_API_KEY`, `MINIMAX_API_KEY`, or `GEMINI_API_KEY`. |
 | `music --audio`/`--batch` | ffmpeg, ffprobe, subtitle render helpers, `whisper-cli`, local Whisper `large-v3-turbo`. | No hosted music key required for local lyric-video rendering. |

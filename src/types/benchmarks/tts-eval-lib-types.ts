@@ -1,4 +1,4 @@
-import type { TtsMetadataBase } from '~/types'
+import type { Step4Metadata } from '~/types'
 
 export interface AudioProperties {
   durationSeconds: number;
@@ -8,7 +8,11 @@ export interface AudioProperties {
   codec: string | null;
 }
 
-export interface TtsEntryMetadata extends TtsMetadataBase {}
+export interface TtsEntryMetadata extends Step4Metadata {
+  registrationId?: string | undefined
+  snapshotEntryId?: string | undefined
+  characterIdentity?: string | undefined
+}
 
 interface RunStepCostEntry {
   step?: string;

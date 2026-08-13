@@ -10,6 +10,10 @@ type RetiredModelRates = {
   readonly [Category in ModelCategory]: Readonly<Record<string, RetiredModelRate<Category>>>
 }
 
+type RetiredModelReplacements = {
+  readonly [Category in ModelCategory]: Readonly<Record<string, string>>
+}
+
 export const modelRateKey = (service: string, model: string): string => `${service}:${model}`
 
 // Historical pricing only. These models remain absent from active validation,
@@ -21,9 +25,11 @@ export const RETIRED_MODEL_RATES: RetiredModelRates = {
   extract: {
     'anthropic:claude-opus-4-7': { costPerMInputTokensCents: 0, costPerMOutputTokensCents: 0 },
     'anthropic:claude-sonnet-4-6': { costPerMInputTokensCents: 300, costPerMOutputTokensCents: 1500 },
+    'gemini:gemini-3.1-flash-lite': { costPerMInputTokensCents: 25, costPerMOutputTokensCents: 150 },
     'gemini:gemini-3.1-flash-lite-preview': { costPerMInputTokensCents: 25, costPerMOutputTokensCents: 150 }
   },
   llm: {
+    'gemini:gemini-3.1-flash-lite': { inputCostPer1MCents: 25, outputCostPer1MCents: 150 },
     'gemini:gemini-3.1-flash-lite-preview': { inputCostPer1MCents: 25, outputCostPer1MCents: 150 }
   },
   tts: {
@@ -47,6 +53,20 @@ export const RETIRED_MODEL_RATES: RetiredModelRates = {
   }
 }
 
+export const RETIRED_MODEL_REPLACEMENTS: RetiredModelReplacements = {
+  stt: {},
+  extract: {
+    'gemini:gemini-3.1-flash-lite': 'gemini-3.5-flash-lite'
+  },
+  llm: {
+    'gemini:gemini-3.1-flash-lite': 'gemini-3.5-flash-lite'
+  },
+  tts: {},
+  image: {},
+  music: {},
+  video: {}
+}
+
 export const getRetiredModelRate = <Category extends ModelCategory>(
   category: Category,
   service: string,
@@ -59,3 +79,9 @@ export const hasRetiredModelRate = (
   service: string,
   model: string
 ): boolean => getRetiredModelRate(category, service, model) !== undefined
+
+export const getRetiredModelReplacement = (
+  category: ModelCategory,
+  service: string,
+  model: string
+): string | undefined => RETIRED_MODEL_REPLACEMENTS[category][modelRateKey(service, model)]

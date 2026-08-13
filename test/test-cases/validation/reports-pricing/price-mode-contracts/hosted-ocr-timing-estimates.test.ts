@@ -4,7 +4,7 @@ import { join } from 'node:path'
 import { describe, expect, test } from 'bun:test'
 import { getExtractEstimation } from '~/cli/commands/setup-and-utilities/models/model-loader'
 import { resolveHostedOcrEstimateCap } from '~/cli/commands/process-steps/step-2-extract/step-2-ocr/ocr-utils/hosted-ocr-scheduler'
-import { computeEstimatedProcessingTimes } from '~/utils/pricing/compute-processing-time'
+import { computeEstimatedProcessingTimes } from '~/cli/commands/pricing-orchestration/compute-processing-time'
 
 const missingProfilePath = (): string =>
   join(tmpdir(), `autoshow-missing-ocr-profile-${process.pid}-${Date.now()}-${Math.random()}.json`)
@@ -51,7 +51,7 @@ describe('hosted OCR timing estimate contracts', () => {
       const sameProviderTiming = computeEstimatedProcessingTimes({
         extractTargets: [
           { provider: 'gemini', model: 'gemini-3.5-flash', pageCount: 20 },
-          { provider: 'gemini', model: 'gemini-3.1-flash-lite', pageCount: 20 }
+          { provider: 'gemini', model: 'gemini-3.5-flash-lite', pageCount: 20 }
         ],
         ocrConcurrency: 1,
         ocrConcurrencyMode: 'fixed',
@@ -192,7 +192,7 @@ describe('hosted OCR timing estimate contracts', () => {
             },
             {
               provider: 'gemini',
-              model: 'gemini-3.1-flash-lite',
+              model: 'gemini-3.5-flash-lite',
               scopeClass: 'env-api-key',
               pageCountBand: '11-50',
               ocrConcurrencyMode: 'auto',
@@ -213,10 +213,10 @@ describe('hosted OCR timing estimate contracts', () => {
           hostedOcrProfilePath: profilePath
         })
         const sparseTiming = computeEstimatedProcessingTimes({
-          extractTargets: [{ provider: 'gemini', model: 'gemini-3.1-flash-lite', pageCount }],
+          extractTargets: [{ provider: 'gemini', model: 'gemini-3.5-flash-lite', pageCount }],
           hostedOcrProfilePath: profilePath
         })
-        const registryMs = Math.round(Math.ceil(pageCount / resolveHostedOcrEstimateCap(pageCount, 'auto')) * getExtractEstimation('gemini', 'gemini-3.1-flash-lite').msPerPage)
+        const registryMs = Math.round(Math.ceil(pageCount / resolveHostedOcrEstimateCap(pageCount, 'auto')) * getExtractEstimation('gemini', 'gemini-3.5-flash-lite').msPerPage)
 
         expect(healthyTiming.estimateConfidence).toBe('profile')
         expect(healthyTiming.steps[0]).toMatchObject({

@@ -39,7 +39,7 @@ export const ExtractionOptionsSchema = v.object({
   ocrProviderConcurrency: v.optional(v.number(), DEFAULT_OCR_CONCURRENCY),
   ocrLocalConcurrency: v.optional(v.number(), DEFAULT_OCR_CONCURRENCY),
   keepOcrPageInputs: v.optional(v.boolean(), undefined),
-    useTesseract: v.optional(v.boolean(), undefined),
+  useTesseract: v.optional(v.boolean(), undefined),
   mistralOcrModel: v.optional(v.string(), undefined),
   mistralOcrModels: v.optional(v.array(v.string()), undefined),
   glmOcrModel: v.optional(v.string(), undefined),
@@ -70,7 +70,8 @@ export const ExtractionOptionsSchema = v.object({
   ), undefined),
   preparedMarkdown: v.optional(v.string(), undefined),
   htmlArticleProcessingTimeMs: v.optional(v.number(), undefined),
-  htmlArticleBackend: v.optional(v.picklist(['defuddle', 'firecrawl', 'glm-reader', 'spider', 'supadata', 'zyte']), undefined)
+  htmlArticleBackend: v.optional(v.picklist(['defuddle', 'firecrawl', 'glm-reader', 'spider', 'supadata', 'zyte']), undefined),
+  reasoningEffort: v.optional(v.picklist(['default', 'disabled', 'minimal', 'low', 'medium', 'high', 'max']), undefined)
 })
 
 const PageResultSchema = v.object({
@@ -152,7 +153,9 @@ export const ExtractionMetadataSchema = v.object({
   providerCostSource: v.optional(CostSourceSchema, undefined),
   pdfChunkPreparation: v.optional(v.record(v.string(), v.unknown()), undefined),
   ocrProviderUsage: v.optional(v.array(v.record(v.string(), v.unknown())), undefined),
-  hostedOcrScheduler: v.optional(v.record(v.string(), v.unknown()), undefined)
+  hostedOcrScheduler: v.optional(v.record(v.string(), v.unknown()), undefined),
+  requestedReasoningEffort: v.optional(v.picklist(['default', 'disabled', 'minimal', 'low', 'medium', 'high', 'max']), undefined),
+  effectiveReasoningEffort: v.optional(v.picklist(['default', 'disabled', 'minimal', 'low', 'medium', 'high', 'max']), undefined)
 })
 
 export const DocumentMetadataSchema = v.object({

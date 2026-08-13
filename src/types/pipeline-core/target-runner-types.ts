@@ -15,8 +15,10 @@ export type RunTargetsOptionsBase<TTarget extends ProviderIdentity> = {
   noProviderMessage: string
   concurrency?: TargetSchedulerConcurrency | undefined
   resourceGate?: ResourceGate | undefined
+  getResourceGate?: ((target: TTarget) => ResourceGate | undefined) | undefined
   getTargetPool?: ((target: TTarget) => TargetPoolKind) | undefined
   getTargetPriority?: ((target: TTarget, index: number) => number | undefined) | undefined
+  useWorkspaceForSingleTarget?: boolean | undefined
 }
 
 export type RunSingleFileTargetsOptions<TTarget extends ProviderIdentity, TMetadata> = RunTargetsOptionsBase<TTarget> & {
@@ -30,6 +32,7 @@ export type RunTargetsOptions<TTarget extends ProviderIdentity, TResult> = RunTa
   getWorkspaceDir: (outputDir: string, target: TTarget) => string
   runTarget: (target: TTarget, workspaceDir: string) => Promise<TResult>
   finalizeTarget: (target: TTarget, result: TResult, singleTarget: boolean) => Promise<TResult>
+  onTargetFailure?: ((target: TTarget, error: unknown, workspaceDir: string) => Promise<void>) | undefined
 }
 
 export type SingleFileArtifactNameOptions = {

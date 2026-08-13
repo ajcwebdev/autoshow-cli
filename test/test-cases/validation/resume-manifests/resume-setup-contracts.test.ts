@@ -6,7 +6,11 @@ import { runCommand } from '../../../test-utils/test-helpers'
 import { PIPELINE_MANIFEST_FILE, readSinglePipelineItemRecord, writePipelineItemRecords } from '~/cli/commands/process-steps/pipeline-manifest'
 import { writeSingleManifestFixture } from '../../../test-utils/manifest-helpers'
 import { dispatchResume } from '~/cli/commands/setup-and-utilities/resume/resume-dispatch'
-import type { Step3Metadata } from '~/types'
+import type { PipelineProviderState, Step3Metadata, TtsTarget } from '~/types'
+import { canonicalTargetKey } from '~/utils/canonical-target-key'
+import { createFileTtsSourceIdentity, createSingleTurnTtsDialoguePlan } from '~/cli/commands/process-steps/step-4-tts/script-to-audio/generic-dialogue-plan'
+import { bindTtsDialoguePlanArtifact, materializeTtsDialoguePlanArtifact } from '~/cli/commands/process-steps/step-4-tts/script-to-audio/item-dialogue-plan-artifact'
+import { runTtsForTargets } from '~/cli/commands/process-steps/step-4-tts/run-tts'
 
 const tempDirs: string[] = []
 
@@ -16,60 +20,126 @@ const makeTempRoot = async (prefix: string): Promise<string> => {
   return root
 }
 
+const policySkippedTtsState = (target: TtsTarget, artifactRoot = 'providers'): PipelineProviderState => {
+  const targetKey = target.targetKey as string
+  const actor = { namespace: 'local-user' as const, actorId: 'fixture' }
+  const at = new Date(0).toISOString()
+  const evidence = {
+    schemaVersion: 1 as const,
+    skipId: `skip-${targetKey}`,
+    targetKey,
+    reasonCode: 'user-requested' as const,
+    reason: 'fixture skip',
+    actor,
+    at
+  }
+  const projection = {
+    activeWork: { kind: 'policy-skip' as const, evidence },
+    branchHistory: [],
+    readinessAttempts: [],
+    renderHistory: [],
+    pointerEvents: [{ sequence: 1, action: 'activate-policy-skip' as const, skipId: evidence.skipId, actor, at }]
+  }
+  return {
+    service: target.service,
+    model: target.model,
+    local: target.service === 'kitten',
+    operation: 'tts-synthesis',
+    targetKey,
+    transport: target.transport as string,
+    artifactDir: `${artifactRoot}/${targetKey}`,
+    status: 'skipped',
+    attempts: 0,
+    options: {},
+    metadata: { ttsAudio: projection },
+    result: { ttsAudio: projection }
+  }
+}
+
 const writeCompleteTtsRun = async (dir: string): Promise<void> => {
   await mkdir(dir, { recursive: true })
+  const sourcePath = join(dir, 'source.txt')
+  await Bun.write(sourcePath, 'Hello.')
+  const target: TtsTarget = {
+    service: 'kitten',
+    model: 'kitten-tts-nano',
+    operation: 'tts-synthesis',
+    transport: 'local-process',
+    targetKey: canonicalTargetKey('tts-synthesis', 'kitten', 'kitten-tts-nano', 'local-process'),
+    run: async () => { throw new Error('not called in completed resume fixture') }
+  }
   await writeSingleManifestFixture(dir, 'tts', {
-    input: 'Hello.',
-    completionStatus: 'full',
-    requestedProviders: [{ service: 'kitten', model: 'kitten-tts-nano' }],
-    providerStates: [{
-      service: 'kitten',
-      model: 'kitten-tts-nano',
-      artifactDir: '.',
-      status: 'succeeded',
-      attempts: 1
+    input: sourcePath,
+    completionStatus: 'skipped',
+    requestedProviders: [{
+      service: target.service,
+      model: target.model,
+      operation: target.operation,
+      targetKey: target.targetKey,
+      transport: target.transport
     }],
-    tts: [{
-      ttsService: 'kitten',
-      ttsModel: 'kitten-tts-nano',
-      processingTime: 1,
-      audioFileName: 'speech.wav',
-      audioFileSize: 1,
-      chunkCount: 1
-    }]
+    providerStates: [policySkippedTtsState(target)],
+    tts: []
   })
 }
 
 const writeIncompleteTtsRun = async (dir: string): Promise<void> => {
   await mkdir(dir, { recursive: true })
+  const input = 'Hello from resume price mode.'
+  const sourcePath = join(dir, 'source.txt')
+  await Bun.write(sourcePath, input)
+  const sourceIdentity = await createFileTtsSourceIdentity(sourcePath, input)
+  if (sourceIdentity.sourceLocator.kind !== 'file') throw new Error('Expected a file-backed resume price source identity.')
+  const dialoguePlan = createSingleTurnTtsDialoguePlan(sourceIdentity, input)
+  const openaiTarget: TtsTarget = {
+    service: 'openai',
+    model: 'gpt-4o-mini-tts-2025-12-15',
+    operation: 'tts-synthesis',
+    transport: 'hosted-api',
+    targetKey: canonicalTargetKey('tts-synthesis', 'openai', 'gpt-4o-mini-tts-2025-12-15', 'hosted-api'),
+    voice: 'alloy',
+    run: async () => { throw new Error('fixture failure before provider dispatch') }
+  }
+  let failedState: PipelineProviderState | undefined
+  await runTtsForTargets(input, dir, {}, [openaiTarget], {
+    sourceIdentity,
+    dialoguePlan,
+    onProviderState: async (state) => { failedState = state }
+  }).catch(() => undefined)
+  if (!failedState || failedState.status !== 'failed') throw new Error('Failed to materialize canonical resume price fixture state.')
+  failedState = bindTtsDialoguePlanArtifact(
+    failedState,
+    await materializeTtsDialoguePlanArtifact(dir, dialoguePlan)
+  )
+  const kittenTarget: TtsTarget = {
+    service: 'kitten',
+    model: 'kitten-tts-nano',
+    operation: 'tts-synthesis',
+    transport: 'local-process',
+    targetKey: canonicalTargetKey('tts-synthesis', 'kitten', 'kitten-tts-nano', 'local-process'),
+    run: async () => { throw new Error('not called in resume price fixture') }
+  }
   await writeSingleManifestFixture(dir, 'tts', {
-    input: 'Hello from resume price mode.',
-    completionStatus: 'incomplete',
+    input: sourceIdentity.sourceLocator.canonicalPath,
+    completionStatus: 'failed',
     requestedProviders: [
-      { service: 'kitten', model: 'kitten-tts-nano' },
-      { service: 'openai', model: 'gpt-4o-mini-tts-2025-12-15' }
+      {
+        service: kittenTarget.service,
+        model: kittenTarget.model,
+        operation: kittenTarget.operation,
+        targetKey: kittenTarget.targetKey,
+        transport: kittenTarget.transport
+      },
+      {
+        service: openaiTarget.service,
+        model: openaiTarget.model,
+        operation: openaiTarget.operation,
+        targetKey: openaiTarget.targetKey,
+        transport: openaiTarget.transport
+      }
     ],
-    providerStates: [{
-      service: 'kitten',
-      model: 'kitten-tts-nano',
-      artifactDir: '.',
-      status: 'succeeded',
-      attempts: 1
-    }, {
-      service: 'openai',
-      model: 'gpt-4o-mini-tts-2025-12-15',
-      artifactDir: '.',
-      status: 'missing',
-      attempts: 0
-    }],
-    tts: [{
-      ttsService: 'kitten',
-      ttsModel: 'kitten-tts-nano',
-      processingTime: 1,
-      audioFileName: 'speech.wav',
-      audioFileSize: 1,
-      chunkCount: 1
-    }]
+    providerStates: [policySkippedTtsState(kittenTarget), failedState],
+    tts: []
   })
 }
 

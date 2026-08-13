@@ -57,7 +57,7 @@ const CAPABILITIES: Record<LLMService, ProviderStructuredCapability> = {
     validationRetryBudget: 2
   },
   'llamafile': {
-    nativeStructuredOutput: true,
+    nativeStructuredOutput: false,
     strictMode: false,
     validationRetryBudget: 2
   }

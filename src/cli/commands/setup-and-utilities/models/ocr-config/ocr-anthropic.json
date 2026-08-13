@@ -21,6 +21,11 @@
           "completionTokensPerPage": 869,
           "costMultiplier": 1,
           "msPerPage": 11827
+        },
+        "reasoning": {
+          "support": "required",
+          "allowDisabled": false,
+          "supportedEfforts": ["low", "medium", "high", "max"]
         }
       },
       "claude-opus-4-8": {
@@ -41,6 +46,11 @@
           "msPerPage": 7914,
           "promptTokensPerPage": 1657.5,
           "completionTokensPerPage": 474.5
+        },
+        "reasoning": {
+          "support": "optional",
+          "allowDisabled": true,
+          "supportedEfforts": ["low", "medium", "high", "max"]
         }
       },
       "claude-sonnet-5": {
@@ -61,6 +71,11 @@
           "msPerPage": 8679,
           "promptTokensPerPage": 1657.5,
           "completionTokensPerPage": 474.5
+        },
+        "reasoning": {
+          "support": "optional",
+          "allowDisabled": true,
+          "supportedEfforts": ["low", "medium", "high", "max"]
         }
       },
       "claude-haiku-4-5": {
@@ -81,6 +96,9 @@
           "msPerPage": 8679,
           "promptTokensPerPage": 1657.5,
           "completionTokensPerPage": 474.5
+        },
+        "reasoning": {
+          "support": "unsupported"
         }
       },
       "claude-opus-5": {
@@ -101,6 +119,11 @@
           "msPerPage": 7914,
           "promptTokensPerPage": 1657.5,
           "completionTokensPerPage": 474.5
+        },
+        "reasoning": {
+          "support": "optional",
+          "allowDisabled": true,
+          "supportedEfforts": ["low", "medium", "high", "max"]
         }
       }
     }

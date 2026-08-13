@@ -15,6 +15,7 @@ export type LinksSelection = {
   serviceSelections: Map<string, string[]>
   globalSections: string[]
   refresh: boolean
+  refreshOnly?: boolean
   inputFilePath?: string
   directUrl?: string
 }
@@ -59,6 +60,7 @@ export type LinksRefreshMetadata = {
   }
   outputPath: string
   sidecarPath: string
+  markdownWritten?: boolean
   refreshedAt: string
   tokenizer: ReferenceTokenizerMetadata
   totals: {

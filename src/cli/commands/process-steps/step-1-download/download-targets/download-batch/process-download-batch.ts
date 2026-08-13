@@ -1,5 +1,5 @@
 import { basename, join } from 'node:path'
-import { createManifest, createPipelineItemFromRecord, PIPELINE_MANIFEST_FILE, writeManifest } from '~/cli/commands/process-steps/pipeline-manifest'
+import { createManifest, createPipelineItemFromRecord, PIPELINE_MANIFEST_FILE, updateManifest, writeManifest } from '~/cli/commands/process-steps/pipeline-manifest'
 import { resolveRunDirectory } from '~/cli/commands/process-steps/run-dir'
 import { getOutputRoot } from '~/cli/commands/process-steps/output-root'
 import { buildPipelineItemRecord } from '~/cli/commands/process-steps/step-0-metadata/metadata-batch/pipeline-item-record-builder'
@@ -11,6 +11,7 @@ import { logLocationsTable } from '~/utils/app-logger/human-table/human-table'
 import { getPipelineItemErrors, toBatchCommand } from './pipeline-item-record-state'
 import { buildBatchPartialFailureTable, logBatchCompletionTable } from './download-batch-summary'
 import { executeBatchItem } from './execute-batch-item'
+import { writeOcrBatchDiagnostics } from '~/cli/commands/process-steps/step-2-extract/step-2-ocr/ocr-batch-diagnostics'
 
 const runWithSemaphore = async <T>(
   max: number,
@@ -182,14 +183,12 @@ const createBatchTallyAccumulator = (
 const finalizeBatch = async ({
   command,
   batchDir,
-  batchSource,
   extractRoute,
   sttLike,
   acc
 }: {
   command: ProcessCommand
   batchDir: string
-  batchSource: BatchSummarySource | undefined
   extractRoute: BatchRunOptions['extractRoute']
   sttLike: boolean
   acc: BatchTallyAccumulator
@@ -210,9 +209,16 @@ const finalizeBatch = async ({
   }
 
   logBatchCompletionTable(ok, partial, incomplete, fail, sttLike)
-  await writeManifest(batchDir, createManifest(toBatchCommand(command), 'batch', acc.finalItemRecords.map((record) =>
+  const completedItems = acc.finalItemRecords.map((record) =>
     createPipelineItemFromRecord(batchDir, record, extractRoute ? { extractRoute } : {})
-  ), batchSource))
+  )
+  await updateManifest(batchDir, (manifest) => ({
+    ...manifest,
+    items: completedItems
+  }))
+  if (command === 'write' || (command === 'extract' && extractRoute === 'document')) {
+    await writeOcrBatchDiagnostics(batchDir)
+  }
 
   const failureExitCode = acc.failureExit()
   return {
@@ -239,7 +245,7 @@ export const processBatch = async <TOptions extends object>(
   if (prepared.done) {
     return prepared.result
   }
-  const { batchDir, batchDirName, batchSource, itemRecords } = prepared
+  const { batchDir, batchDirName, itemRecords } = prepared
 
   const concurrency = Math.max(1, runOpts.concurrency ?? DEFAULT_CLI_CONCURRENCY)
   const resultEntryIndexes = runOpts.resultEntryIndexes ?? items.map((_, index) => index)
@@ -279,5 +285,5 @@ export const processBatch = async <TOptions extends object>(
     }
   }
 
-  return finalizeBatch({ command, batchDir, batchSource, extractRoute: runOpts.extractRoute, sttLike, acc })
+  return finalizeBatch({ command, batchDir, extractRoute: runOpts.extractRoute, sttLike, acc })
 }

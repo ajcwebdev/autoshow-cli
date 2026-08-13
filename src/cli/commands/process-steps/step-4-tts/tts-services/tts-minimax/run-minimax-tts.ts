@@ -11,6 +11,7 @@ import { MEDIA_GENERATION_TIMEOUT_MS } from '~/utils/timeouts'
 import { requireApiKey } from '~/utils/validate/env-utils'
 import { InfraError, ValidationError } from '~/utils/error-handler'
 import { MinimaxCreateResponseSchema, MinimaxQueryResponseSchema, isMinimaxTaskFailure, isMinimaxTaskSuccess, minimaxFetchJson, minimaxJsonRequestInit, readMinimaxTaskStatus, resolveMinimaxFileId } from '~/utils/minimax-client/minimax-client'
+import { dispatchTtsProviderRequest } from '../../script-to-audio/tts-request-evidence'
 
 const MINIMAX_DEFAULT_VOICE_ID = 'English_expressive_narrator'
 const POLL_INTERVAL_MS = 3_000
@@ -32,14 +33,16 @@ const downloadChunkAudio = async (
   baseURL: string,
   apiKey: string,
   fileId: string,
-  chunkPath: string
+  chunkPath: string,
+  signal?: AbortSignal | undefined
 ): Promise<void> => {
   const response = await fetch(`${baseURL}/v1/files/retrieve_content?file_id=${encodeURIComponent(fileId)}`, {
     method: 'GET',
     headers: {
       Authorization: `Bearer ${apiKey}`,
       'Content-Type': 'application/json'
-    }
+    },
+    ...(signal ? { signal } : {})
   })
 
   if (!response.ok) {
@@ -87,7 +90,7 @@ export const runMinimaxTts = async (
   const chunkPaths: string[] = []
 
   try {
-    const orderedChunkPaths = await runTtsChunks(chunks, options.chunkConcurrency, async (chunk, index) => {
+    const orderedChunkPaths = await runTtsChunks(chunks, options.chunkConcurrency, async (chunk, index, admission) => {
       const chunkIndex = index + 1
       l.debug(`Submitting MiniMax TTS chunk ${chunkIndex}/${chunks.length}`)
       const voiceSetting = {
@@ -125,10 +128,26 @@ export const runMinimaxTts = async (
           execute: async request => await withHostedTtsRetry(
             {
               operationName: `minimax-tts-create-chunk-${chunkIndex}`,
-              ttsProvider: 'minimax',
+              abortSignal: options.abortSignal,
+              admission,
               chunkScheduler: options.chunkScheduler
             },
-            request
+            async (signal, requestAttempt) => await dispatchTtsProviderRequest(options.requestEvidence, {
+              chunkIndex,
+              endpointKind: 'async-speech-synthesis-create',
+              serializerVersion: 'minimax.tts.phase-0-v1',
+              serializedRequest: { path: '/v1/t2a_async_v2', body: requestBody },
+              providerText: chunk,
+              voiceField: 'voice_setting.voice_id',
+              voices: [{ kind: 'provider-id', value: voiceId }],
+              requestControls: {
+                ...(options.languageBoost ? { languageBoost: options.languageBoost } : {}),
+                voiceSetting,
+                audioSetting: requestBody.audio_setting,
+                ...(pronunciationRules && pronunciationRules.length > 0 ? { pronunciationRules } : {})
+              },
+              continuation: { kind: 'none' }
+            }, requestAttempt, async () => await request(signal))
           )
         }
       )
@@ -139,7 +158,9 @@ export const runMinimaxTts = async (
         operationName: `minimax-tts-chunk-${chunkIndex}`,
         intervalMs: POLL_INTERVAL_MS,
         deadlineMs: POLL_TIMEOUT_MS,
+        abortSignal: options.abortSignal,
         pollFn: async () => {
+          options.abortSignal?.throwIfAborted()
           return await minimaxFetchJson(
             `${baseURL}/v1/query/t2a_async_query_v2?task_id=${encodeURIComponent(taskId)}`,
             {
@@ -153,7 +174,8 @@ export const runMinimaxTts = async (
               execute: async request => await withHostedTtsRetry(
                 {
                   operationName: `minimax-tts-query-chunk-${chunkIndex}`,
-                  ttsProvider: 'minimax',
+                  abortSignal: options.abortSignal,
+                  admission,
                   chunkScheduler: options.chunkScheduler
                 },
                 request
@@ -177,12 +199,15 @@ export const runMinimaxTts = async (
       }
 
       const chunkPath = `${outputDir}/speech-minimax-chunk-${chunkIndex}.mp3`
-      await downloadChunkAudio(baseURL, apiKey, fileId, chunkPath)
+      options.abortSignal?.throwIfAborted()
+      await downloadChunkAudio(baseURL, apiKey, fileId, chunkPath, options.abortSignal)
+      await options.requestEvidence?.recordOutput({ chunkIndex, path: chunkPath })
+      await options.requestEvidence?.complete({ chunkIndex })
       chunkPaths.push(chunkPath)
       return chunkPath
-    }, { provider: 'minimax', scheduler: options.chunkScheduler })
+    }, { provider: 'minimax', scheduler: options.chunkScheduler, abortSignal: options.abortSignal })
 
-    const audioPath = await concatAndConvertToWav(orderedChunkPaths, outputDir, 'MiniMax')
+    const audioPath = await concatAndConvertToWav(orderedChunkPaths, outputDir, 'MiniMax', options.abortSignal)
     const result = finalizeTtsRun({
       service: 'minimax',
       model: options.model,

@@ -24,7 +24,7 @@ bun t test/test-cases/e2e/service/step-4-tts-e2e/tts-services/
 - ElevenLabs Instant Voice Cloning has mocked validation coverage for IVC creation, shared clone reuse across selected ElevenLabs models, verification-required failures, metadata, API error handling, and setup estimates.
 - OpenAI TTS supports preset-voice synthesis only (`--tts-voice`, `--tts-instructions`, `--tts-speed`); custom voice creation/cloning was removed.
 - `test/test-cases/validation/providers/tts-provider-contracts/` covers OpenAI instructions/speed, Grok language/text-normalization and custom voice IDs, Groq English default voice selection, MiniMax synthesis controls, Hume Octave file requests and voice payloads, Cartesia byte synthesis requests, and provider-specific mocked request metadata.
-- Mistral live coverage is gated by `MISTRAL_API_KEY`; both the saved-voice test (`--tts-ref-audio` + `--tts-voice-name`, creating a saved voice) and the reference-audio synthesis test use the committed `input/examples/audio/anthony-voice.mp3` fixture.
+- Mistral live coverage is gated by `MISTRAL_API_KEY`; reference-audio synthesis uses the committed `input/examples/audio/anthony-voice.mp3` fixture, while named saved-voice creation (`--tts-ref-audio` + `--tts-voice-name`) is tested for rejection during synthesis.
 - MiniMax live coverage is gated by `MINIMAX_API_KEY` and uses hosted/preset voice IDs.
 - Speechify live coverage is gated by `SPEECHIFY_API_KEY`; the test passes `--tts-voice` and asserts the default `george` speaker.
 - Hume and Cartesia have provider-contract, option/config/help, side-effect-free price coverage, and model-level service e2e files gated by their provider keys.

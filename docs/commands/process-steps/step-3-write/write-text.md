@@ -87,7 +87,8 @@ Project lyric draft mode is enabled only when the input is `./output/<name>/text
 |------|-------------|
 | `--stt`, `--ocr`, `--llm`, `--tts`, `--image`, `--video`, `--music` | Select a pipeline step provider as `provider[=model]`; repeat to run multiple providers/models |
 | `--all-providers <step>` | Enable every hosted/API-backed provider for one write step: `stt`, `ocr`, `url`, `llm`, `tts`, `image`, `video`, or `music` |
-| `--all-local <step>` | Enable every local engine/backend for one write step: `stt`, `ocr`, `url`, `llm`, `tts`, `image`, `video`, or `music` |
+| `--all-local <step>` | Enable every local engine/backend for one write step: `stt`, `ocr`, `url`, `llm`, or `tts` |
+| `--reasoning-effort <policy>` | Set reasoning effort / thinking policy: `default`, `disabled`, `minimal`, `low`, `medium`, `high`, or `max` |
 | `--batch-limit <n>` | Limit batch size; default `5` |
 | `--batch-all` | Process every batch item |
 | `--batch-order <newest\|oldest>` | Choose batch item order; default `newest` |
@@ -111,7 +112,7 @@ bun autoshow write ./output/demo/text --prompt rockSong
 bun autoshow write ./output/demo/text --price
 ```
 
-Write price preflight uses the model registry's input/output token rates and local token-count heuristics for the selected prompt/source text. The human `Cost Estimate` table stays to `step`, `provider`, `model`, and `cost`; use `--json` to inspect the structured token estimates and rates.
+Write price preflight uses the model registry's input/output token rates and local token-count heuristics for the selected prompt/source text. The human `Cost Estimate` table is limited to `step`, `provider`, `model`, and `cost`; use `--json` to inspect the structured token estimates and rates.
 
 ## Write Services
 
@@ -136,8 +137,9 @@ bun autoshow write input/examples/document/1-epub.epub --epub-bun --llm llama --
 
 | Option | Value |
 |--------|-------|
-| Selector | `--llm llamafile=<model>` |
+| Selector | `--llm llamafile[=<model>]` |
 | Models | `Qwen3.5-0.8B-Q8_0`, `Qwen3.5-2B-Q8_0`, `Qwen3.5-4B-Q5_K_S` |
+| Default | Passing `--llm llamafile` uses `Qwen3.5-0.8B-Q8_0` |
 | Runtime | Local single-file llamafile server on port `8081`; free, no API key |
 
 ```bash
@@ -146,7 +148,7 @@ bun autoshow write https://ajc.pics/autoshow/examples/1-audio.mp3 --llm llamafil
 bun autoshow write https://ajc.pics/autoshow/examples/1-audio.mp3 --llm llamafile=Qwen3.5-4B-Q5_K_S
 ```
 
-Llamafile is a self-contained alternative to the `llama.cpp` build: each model is a prebuilt single-file bundle (binary plus embedded weights), so it runs with no compiler toolchain. AutoShow starts the llamafile server on port `8081` so it can coexist with the `llama.cpp` server on `8080`. Unlike `--llm llama`, only the bundled aliases above are accepted — free-form Hugging Face repo IDs are rejected because each alias must resolve to a known download URL — and the llamafile selector has no cheapest default, so always pass an explicit model. Like `llama.cpp`, llamafile has no native structured output and uses AutoShow's internal schema-guided fallback path. `Qwen3.5-0.8B-Q8_0` is the smallest bundle (~1.6 GB).
+Llamafile is a self-contained alternative to the `llama.cpp` build: each model is a prebuilt single-file bundle (binary plus embedded weights), so it runs with no compiler toolchain. AutoShow starts the llamafile server on port `8081` so it can coexist with the `llama.cpp` server on `8080`. Unlike `--llm llama`, only the bundled aliases above are accepted — free-form Hugging Face repo IDs are rejected because each alias must resolve to a known download URL. Passing `--llm llamafile` resolves to `Qwen3.5-0.8B-Q8_0` (~1.6 GB), the smallest bundle. Like `llama.cpp`, llamafile has no native structured output and uses AutoShow's internal schema-guided fallback path.
 
 ### OpenAI
 
@@ -154,6 +156,7 @@ Llamafile is a self-contained alternative to the `llama.cpp` build: each model i
 |--------|-------|
 | Selector | `--llm openai[=<model>]` |
 | Models | `gpt-5.6-sol`, `gpt-5.6-terra`, `gpt-5.6-luna`, `gpt-5.5`, `gpt-5.4-mini`, `gpt-5.4-nano` |
+| Default | Passing `--llm openai` uses `gpt-5.6-luna` |
 
 ```bash
 bun autoshow write https://ajc.pics/autoshow/examples/1-audio.mp3 --llm openai=gpt-5.6-sol
@@ -164,7 +167,7 @@ bun autoshow write https://ajc.pics/autoshow/examples/1-audio.mp3 --llm openai=g
 bun autoshow write ./output/demo/text/01-track-one.md --llm openai=gpt-5.5 --prompt folkSong
 ```
 
-Passing `--llm openai` keeps the existing cheapest-model default. The concrete GPT-5.6 tier IDs above are available when selected explicitly or through `--all-providers llm`; the `gpt-5.6` alias is not registered separately.
+Passing `--llm openai` keeps the existing cheapest-model default (`gpt-5.6-luna`). The concrete GPT-5.6 tier IDs above are available when selected explicitly or through `--all-providers llm`; the `gpt-5.6` alias is not registered separately.
 
 ### Anthropic
 
@@ -172,6 +175,7 @@ Passing `--llm openai` keeps the existing cheapest-model default. The concrete G
 |--------|-------|
 | Selector | `--llm anthropic[=<model>]` |
 | Models | `claude-fable-5`, `claude-opus-4-8`, `claude-sonnet-5`, `claude-sonnet-4-6`, `claude-haiku-4-5`, `claude-opus-5` |
+| Default | Passing `--llm anthropic` uses `claude-haiku-4-5` |
 
 ```bash
 bun autoshow write https://ajc.pics/autoshow/examples/1-audio.mp3 --llm anthropic=claude-fable-5
@@ -186,15 +190,16 @@ Passing `--llm anthropic` keeps the cheaper `claude-haiku-4-5` default. Claude O
 | Option | Value |
 |--------|-------|
 | Selector | `--llm gemini[=<model>]` |
-| Models | `gemini-3.1-pro-preview`, `gemini-3.1-flash-lite`, `gemini-3.6-flash`, `gemini-3.5-flash`, `gemini-3.5-flash-lite` |
+| Models | `gemini-3.1-pro-preview`, `gemini-3.6-flash`, `gemini-3.5-flash`, `gemini-3.5-flash-lite` |
+| Bare default | `gemini-3.5-flash-lite` |
+| Retired selector | `gemini-3.1-flash-lite` is rejected with guidance to use `gemini-3.5-flash-lite`; historical pricing and manifest identity remain readable |
 
 ```bash
-bun autoshow write https://ajc.pics/autoshow/examples/1-audio.mp3 --llm gemini=gemini-3.1-flash-lite
-bun autoshow write https://ajc.pics/autoshow/examples/1-audio.mp3 --llm gemini=gemini-3.6-flash
 bun autoshow write https://ajc.pics/autoshow/examples/1-audio.mp3 --llm gemini=gemini-3.5-flash-lite
+bun autoshow write https://ajc.pics/autoshow/examples/1-audio.mp3 --llm gemini=gemini-3.6-flash
 ```
 
-Passing `--llm gemini` keeps the cheaper `gemini-3.1-flash-lite` default. The current Gemini models use flat Standard rates with no published context tiers: Gemini 3.6 Flash at `$1.50 / 1M input` and `$7.50 / 1M output`, Gemini 3.5 Flash at `$1.50 / 1M input` and `$9.00 / 1M output`, and Gemini 3.5 Flash-Lite at `$0.30 / 1M input` and `$2.50 / 1M output`. Google documents `gemini-3.5-flash-lite` as the replacement for `gemini-3.1-flash-lite` ahead of that model's 2027-05-07 shutdown. Moving alias selectors such as `gemini-flash-latest` and the `gemini-3-flash-preview` duplicate of `gemini-3.5-flash` are intentionally not registered.
+Passing `--llm gemini` resolves to `gemini-3.5-flash-lite`. The retired `gemini-3.1-flash-lite` selector is absent from active validation and `--all-providers llm`; direct selection names `gemini-3.5-flash-lite` as the replacement without silently rewriting the requested identity, while historical pricing and completed manifests remain readable. The current Gemini models use flat Standard rates with no context tiers: Gemini 3.6 Flash at `$1.50 / 1M input` and `$7.50 / 1M output`, Gemini 3.5 Flash at `$1.50 / 1M input` and `$9.00 / 1M output`, and Gemini 3.5 Flash-Lite at `$0.30 / 1M input` and `$2.50 / 1M output`. Google still listed 2027-05-07 as the earliest shutdown date and `gemini-3.5-flash-lite` as the replacement when AutoShow retired the old selector on 2026-08-13. Moving alias selectors such as `gemini-flash-latest` and the `gemini-3-flash-preview` duplicate of `gemini-3.5-flash` are intentionally not registered. Gemini 3.5 Flash-Lite's write timing heuristic remains provisional pending a separately approved paid calibration.
 
 ### Groq
 
@@ -202,6 +207,7 @@ Passing `--llm gemini` keeps the cheaper `gemini-3.1-flash-lite` default. The cu
 |--------|-------|
 | Selector | `--llm groq[=<model>]` |
 | Models | `openai/gpt-oss-20b`, `openai/gpt-oss-120b` |
+| Default | Passing `--llm groq` uses `openai/gpt-oss-20b` |
 
 ```bash
 bun autoshow write https://ajc.pics/autoshow/examples/1-audio.mp3 --llm groq=openai/gpt-oss-20b
@@ -213,6 +219,7 @@ bun autoshow write https://ajc.pics/autoshow/examples/1-audio.mp3 --llm groq=ope
 |--------|-------|
 | Selector | `--llm minimax[=<model>]` |
 | Models | `MiniMax-M3` |
+| Default | Passing `--llm minimax` uses `MiniMax-M3` |
 | API | Native MiniMax text API at `/v1/chat/completions` |
 
 ```bash
@@ -227,6 +234,7 @@ bun autoshow write https://ajc.pics/autoshow/examples/1-audio.mp3 --llm minimax=
 |--------|-------|
 | Selector | `--llm grok[=<model>]` |
 | Models | `grok-4.3`, `grok-4.5` |
+| Default | Passing `--llm grok` uses `grok-4.3` |
 
 ```bash
 bun autoshow write https://ajc.pics/autoshow/examples/1-audio.mp3 --llm grok=grok-4.3
@@ -241,6 +249,7 @@ Passing `--llm grok` still resolves to the cheaper `grok-4.3` default. `--all-pr
 |--------|-------|
 | Selector | `--llm glm[=<model>]` |
 | Models | `glm-5.1` |
+| Default | Passing `--llm glm` uses `glm-5.1` |
 | Structured output | Uses Z.AI's OpenAI-compatible chat API with JSON mode and disables GLM thinking for predictable write latency |
 
 ```bash
@@ -255,7 +264,8 @@ GLM 5.1 estimates are based on the Z.AI pricing docs: input `$1.40 / 1M tokens`,
 |--------|-------|
 | Selector | `--llm kimi[=<model>]` |
 | Models | `kimi-k2.6`, `kimi-k3` |
-| Structured output | Uses Kimi's OpenAI-compatible chat API with JSON mode. Disables K2.x thinking for predictable write latency; K3 thinking is always on and cannot be disabled |
+| Default | Passing `--llm kimi` uses `kimi-k2.6` |
+| Structured output | Uses Kimi's OpenAI-compatible chat API with JSON mode. Disables K2.x thinking for predictable write latency; K3 thinking is always on by default and can be configured with `--reasoning-effort` |
 
 ```bash
 bun autoshow write https://ajc.pics/autoshow/examples/1-audio.mp3 --llm kimi=kimi-k2.6
@@ -264,7 +274,7 @@ bun autoshow write https://ajc.pics/autoshow/examples/1-audio.mp3 --llm kimi=kim
 
 Kimi K2.6 estimates are based on Moonshot AI's public pricing: input `$0.95 / 1M tokens`, output `$4.00 / 1M tokens`, cached input `$0.16 / 1M tokens`, and 256K context. AutoShow uses cache-miss input/output pricing for `--price` and a speed estimate of `11215 ms / 1K tokens`, measured from AutoShow's write benchmark runs.
 
-Passing `--llm kimi` keeps the cheaper `kimi-k2.6` default. Kimi K3 uses flat pay-as-you-go pricing with no context tiers: input `$3.00 / 1M tokens`, output `$15.00 / 1M tokens`, cache-hit input `$0.30 / 1M tokens`, and a 1M-token context window. K3 runs with always-on thinking at the provider default `reasoning_effort` of `max`, so AutoShow omits the `thinking` request field for K3 and its reused K2.6 output-token and latency heuristics are optimistic until calibrated. AutoShow does not send `reasoning_effort` today; a general thinking-configuration flag is planned separately.
+Passing `--llm kimi` keeps the cheaper `kimi-k2.6` default. Kimi K3 uses flat pay-as-you-go pricing with no context tiers: input `$3.00 / 1M tokens`, output `$15.00 / 1M tokens`, cache-hit input `$0.30 / 1M tokens`, and a 1M-token context window. K3 runs with always-on thinking by default at `reasoning_effort` `max`, and its reused K2.6 output-token and latency heuristics are optimistic until calibrated. AutoShow supports configuring reasoning effort via `--reasoning-effort`.
 
 ### Together
 

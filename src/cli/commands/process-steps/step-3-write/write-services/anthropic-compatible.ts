@@ -2,6 +2,7 @@ import { executeLlmRequest } from '~/cli/commands/process-steps/step-3-write/wri
 import type { AnthropicRestConfig, RunAnthropicCompatibleModelOptions, Step3Metadata } from '~/types'
 import { createAnthropicMessage } from '~/utils/anthropic/anthropic-client'
 import { classifyFetchRetry } from '~/utils/retries'
+import { applyAnthropicReasoning } from '~/cli/commands/setup-and-utilities/models/reasoning-request-mappers'
 
 const extractAnthropicText = (content: Array<{ type: string, text?: string | undefined }>): string =>
   content
@@ -33,8 +34,13 @@ export const runAnthropicCompatibleModel = async ({
         messages: [{ role: 'user', content: prompt }]
       }
 
-      if (supportsStructuredOutput && structuredOpts) {
+      if (structuredOpts?.effectiveReasoningEffort) {
+        applyAnthropicReasoning(requestBody, structuredOpts.effectiveReasoningEffort)
+      }
+
+      if (supportsStructuredOutput && structuredOpts && Object.keys(structuredOpts.schema ?? {}).length > 0) {
         requestBody['output_config'] = {
+          ...(requestBody['output_config'] as Record<string, unknown> | undefined),
           format: {
             type: 'json_schema',
             schema: structuredOpts.schema

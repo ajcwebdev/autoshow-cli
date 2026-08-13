@@ -1,12 +1,15 @@
-import { describe, expect } from "bun:test"
+import { afterAll, beforeAll, describe, expect } from "bun:test"
 import {
   runCommand,
   fileExists,
   findLatestDirectory,
   isRecord,
   toRecordArray,
+  cleanupTestOutput,
   STABLE_EXAMPLE_AUDIO_URL,
   STABLE_EXAMPLE_AUDIO_TITLE,
+  STABLE_TTS_MD_PATH,
+  STABLE_TTS_MD_TITLE,
 } from "../../../../../test-utils/test-helpers"
 import { budgetedTest, E2E_TEST_TIMEOUT_MS } from "../../../../../test-utils/budget"
 import { readCanonicalRecord } from "../../../../../test-utils/manifest-helpers"
@@ -14,6 +17,62 @@ import { requireConfiguredEnvVar } from "../../../../../test-utils/service-test-
 import { PIPELINE_MANIFEST_FILE } from '~/cli/commands/process-steps/pipeline-manifest'
 
 describe("kitten-tts pipeline", () => {
+  beforeAll(async () => {
+    await cleanupTestOutput(STABLE_TTS_MD_TITLE)
+  })
+
+  afterAll(async () => {
+    await cleanupTestOutput(STABLE_TTS_MD_TITLE)
+  })
+
+  describe('tts command', () => {
+    budgetedTest(['tts-kitten-mini', 'tts-openai-gpt-4o-mini-tts-2025-12-15'], 'multi-provider run succeeds when one local and one API target are both available', async () => {
+      await requireConfiguredEnvVar('OPENAI_API_KEY', 'OPENAI_API_KEY is required for multi-provider TTS success coverage')
+      await cleanupTestOutput(STABLE_TTS_MD_TITLE)
+
+      const result = await runCommand([
+        'src/cli/create-cli.ts',
+        'tts',
+        STABLE_TTS_MD_PATH,
+        '--provider',
+        'kitten=kitten-tts-mini',
+        '--tts-voice',
+        'kitten=Luna',
+        '--provider',
+        'openai=gpt-4o-mini-tts-2025-12-15'
+      ])
+
+      expect(result.exitCode).toBe(0)
+
+      const outputDir = result.outputDir ?? await findLatestDirectory(STABLE_TTS_MD_TITLE, result.outputRoot)
+      expect(outputDir).not.toBeNull()
+
+      if (outputDir) {
+        expect(await fileExists(`${outputDir}/speech-kitten-kitten-tts-mini.wav`)).toBe(true)
+        expect(await fileExists(`${outputDir}/speech-openai-gpt-4o-mini-tts-2025-12-15.wav`)).toBe(true)
+
+        const metadata = await readCanonicalRecord(outputDir)
+        const ttsEntries = toRecordArray(metadata['tts'])
+        expect(ttsEntries).toHaveLength(2)
+        expect(ttsEntries[0]?.['ttsService']).toBe('kitten')
+        expect(ttsEntries[0]?.['ttsModel']).toBe('kitten-tts-mini')
+        expect(ttsEntries[0]?.['audioFileName']).toBe('speech-kitten-kitten-tts-mini.wav')
+        expect(ttsEntries[1]?.['ttsService']).toBe('openai')
+        expect(ttsEntries[1]?.['ttsModel']).toBe('gpt-4o-mini-tts-2025-12-15')
+        expect(ttsEntries[1]?.['audioFileName']).toBe('speech-openai-gpt-4o-mini-tts-2025-12-15.wav')
+
+        const cost = isRecord(metadata['cost']) ? metadata['cost'] : null
+        const actualCost = cost && isRecord(cost['actual']) ? cost['actual'] : null
+        const timing = isRecord(metadata['timing']) ? metadata['timing'] : null
+        const actualTiming = timing && isRecord(timing['actual']) ? timing['actual'] : null
+        const actualCostSteps = actualCost ? toRecordArray(actualCost['steps']) : []
+        const actualTimingSteps = actualTiming ? toRecordArray(actualTiming['steps']) : []
+        expect(actualCostSteps.filter((step) => step['step'] === 'tts')).toHaveLength(2)
+        expect(actualTimingSteps.filter((step) => step['step'] === 'tts')).toHaveLength(2)
+      }
+    }, E2E_TEST_TIMEOUT_MS)
+  })
+
   describe("write with tts", () => {
     budgetedTest(['write-groq-openai/gpt-oss-20b', 'tts-kitten-mini'], "kitten-tts-mini runs full pipeline with --prompt shortSummary and generates speech.wav", async () => {
       const model = "kitten-tts-mini"

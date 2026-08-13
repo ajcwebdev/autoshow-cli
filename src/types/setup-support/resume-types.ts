@@ -1,4 +1,4 @@
-import type { AggregateExplicitEstimateOptions, AggregatedPriceEstimate, BatchProcessResult, ExtractRoute, PipelineItemRecord, ProcessCommand, ProviderCompletionStatus, ProviderIdentity, StepEstimate } from '~/types'
+import type { AggregateExplicitEstimateOptions, AggregatedPriceEstimate, BatchProcessResult, ExtractRoute, PipelineItemRecord, PipelineManifestItem, PipelineProviderState, ProcessCommand, ProviderCompletionStatus, ProviderIdentity, StepEstimate } from '~/types'
 
 export type ResumeItemSummary = {
   item: string
@@ -58,10 +58,29 @@ export type ExtractRouteResumeHandler<TOptions extends object> = Pick<ResumeHand
 
 export type GenerationModelFieldTable = Record<string, readonly [modelsField: string, modelField: string]>
 
-export type GenerationResumeRunContext<TTarget extends ProviderIdentity, TMetadata> = {
+export type GenerationResumeRunContext<TTarget extends ProviderIdentity, TMetadata, TOptions extends object = object> = {
+  outputDir: string
+  runtimeOptions: TOptions
   targets: TTarget[]
   existingEntries: TMetadata[]
   currentManifestMetadata: Record<string, unknown>
+  currentProviderStates: PipelineProviderState[]
+}
+
+export type GenerationResumeProviderIdentity = ProviderIdentity & {
+  operation?: string | undefined
+  targetKey?: string | undefined
+  transport?: string | undefined
+}
+
+export type GenerationResumeProviderStateContext<TTarget extends ProviderIdentity, TMetadata> = {
+  currentProviders: PipelineProviderState[]
+  requestedProviders: GenerationResumeProviderIdentity[]
+  targetsToRun: TTarget[]
+  existingEntries: TMetadata[]
+  newEntries: TMetadata[]
+  mergedEntries: TMetadata[]
+  completedProviderKeys: ReadonlySet<string>
 }
 
 export type GenerationResumeConfig<TTarget extends ProviderIdentity, TMetadata, TOptions extends object> = {
@@ -74,6 +93,11 @@ export type GenerationResumeConfig<TTarget extends ProviderIdentity, TMetadata, 
   parseManifestEntries?: (
     metadata: Record<string, unknown>
   ) => TMetadata[] | undefined
+  validateManifestForResume?: (
+    item: PipelineManifestItem,
+    entries: TMetadata[],
+    opts: TOptions
+  ) => string | undefined
   resolveInput?: (
     target: ResumeTarget,
     currentManifestMetadata: Record<string, unknown>
@@ -85,22 +109,35 @@ export type GenerationResumeConfig<TTarget extends ProviderIdentity, TMetadata, 
     failure: 'failed' | 'incomplete',
     providers: ProviderIdentity[]
   ) => string
+  getProviderKey?: (
+    provider: GenerationResumeProviderIdentity
+  ) => string
+  getInitialCompletedProviderKeys?: (
+    item: PipelineManifestItem,
+    entries: TMetadata[]
+  ) => Iterable<string>
   getSuccessKey: (entry: TMetadata) => string
   collectTargets: (
     opts: TOptions,
     target: ResumeTarget
   ) => TTarget[]
+  resolveStoredTargets?: (
+    providers: GenerationResumeProviderIdentity[],
+    opts: TOptions,
+    target: ResumeTarget,
+    item: PipelineManifestItem
+  ) => TTarget[] | Promise<TTarget[]>
   runMissingTargets: (
     targets: TTarget[],
     input: string,
     outputDir: string,
     opts: TOptions,
-    context: GenerationResumeRunContext<TTarget, TMetadata>
+    context: GenerationResumeRunContext<TTarget, TMetadata, TOptions>
   ) => Promise<TMetadata[]>
   buildEstimates: (
     opts: TOptions,
     input: string,
-    context: GenerationResumeRunContext<TTarget, TMetadata>
+    context: GenerationResumeRunContext<TTarget, TMetadata, TOptions>
   ) => StepEstimate[] | Promise<StepEstimate[]>
   priceAggregateOptions?: (
     input: string
@@ -110,6 +147,9 @@ export type GenerationResumeConfig<TTarget extends ProviderIdentity, TMetadata, 
     currentManifestMetadata: Record<string, unknown>,
     input: string
   ) => Record<string, unknown>
+  reconcileProviderStates?: (
+    context: GenerationResumeProviderStateContext<TTarget, TMetadata>
+  ) => PipelineProviderState[]
 }
 
 export type ProviderResumeEntry<TTarget extends ProviderIdentity, TSource = unknown> = {

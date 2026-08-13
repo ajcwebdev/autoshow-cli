@@ -4,7 +4,7 @@ import { buildVoiceQualityReport } from '~/cli/commands/setup-and-utilities/benc
 import { runCommand } from '../../../../test-utils/test-helpers'
 import { writeSyntheticWav } from '../../../../test-utils/media-fixtures'
 import { installMockFetch, setupContractSuiteLifecycle } from '../../../../test-utils/rest-contract-helpers'
-import { writeSingleManifestFixture } from '../../../../test-utils/manifest-helpers'
+import { writeLegacyTtsManifestFixture } from '../../../../test-utils/manifest-helpers'
 
 const envKeys = ['OPENAI_API_KEY', 'ASSEMBLYAI_API_KEY'] as const
 let tempDirs: ReturnType<typeof setupContractSuiteLifecycle> | undefined
@@ -31,7 +31,7 @@ export const makeSingleProviderTtsRun = async (): Promise<{
   const runDir = await makeTempRoot('autoshow-voice-quality-strict-')
   const inputText = 'Hello world. This sample checks strict paid scoring behavior for text to speech benchmarks.'
   await writeFile(join(runDir, 'input.txt'), inputText + '\n')
-  await writeSingleManifestFixture(runDir, 'tts', {
+  await writeLegacyTtsManifestFixture(runDir, {
       input: inputText,
       tts: [
         {

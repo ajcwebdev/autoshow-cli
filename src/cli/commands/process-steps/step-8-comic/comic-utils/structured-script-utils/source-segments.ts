@@ -96,6 +96,8 @@ export const buildSourceSegmentsFromBeats = (
       ...(beat.speakerKey ? { speakerKey: beat.speakerKey } : {}),
       ...(beat.speakerLabel ? { speakerLabel: beat.speakerLabel } : {}),
       ...(beat.delivery ? { delivery: beat.delivery } : {}),
+      ...(beat.speakerKeys ? { speakerKeys: beat.speakerKeys } : {}),
+      sourceSpans: beat.sourceSpans,
       location: beat.location,
     }))
   })

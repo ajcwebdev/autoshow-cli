@@ -1,4 +1,5 @@
-import { createModelValidator, formatModelSelector } from '~/cli/commands/setup-and-utilities/models/model-validation'
+import { createModelValidator, formatModelSelector, throwRetiredModelSelection } from '~/cli/commands/setup-and-utilities/models/model-validation'
+import { getRetiredModelReplacement } from '~/cli/commands/setup-and-utilities/models/model-loader/retired-model-rates'
 import type { GroqModel } from '~/types'
 import { CLIUsageError } from '~/utils/error-handler'
 
@@ -18,7 +19,6 @@ export const SUPPORTED_GROQ_MODELS = [
 
 export const SUPPORTED_GEMINI_MODELS = [
   'gemini-3.1-pro-preview',
-  'gemini-3.1-flash-lite',
   'gemini-3.6-flash',
   'gemini-3.5-flash',
   'gemini-3.5-flash-lite',
@@ -84,7 +84,14 @@ export const validateOpenAIModel = (model: string): string => _validateOpenAI(mo
 const _validateGroqRaw = createModelValidator<GroqModel>(SUPPORTED_GROQ_MODELS, 'groq')
 export const validateGroqModel = (model: string): GroqModel => _validateGroqRaw(model)
 
-export const validateGeminiModel = createModelValidator(SUPPORTED_GEMINI_MODELS, 'gemini')
+const validateActiveGeminiModel = createModelValidator(SUPPORTED_GEMINI_MODELS, 'gemini')
+export const validateGeminiModel = (model: string): typeof SUPPORTED_GEMINI_MODELS[number] => {
+  const replacement = getRetiredModelReplacement('llm', 'gemini', model)
+  if (replacement !== undefined) {
+    return throwRetiredModelSelection(model, 'gemini', replacement)
+  }
+  return validateActiveGeminiModel(model)
+}
 export const validateAnthropicModel = createModelValidator(SUPPORTED_ANTHROPIC_MODELS, 'anthropic')
 export const validateMinimaxModel = createModelValidator(SUPPORTED_MINIMAX_MODELS, 'minimax')
 export const validateGrokModel = createModelValidator(SUPPORTED_GROK_MODELS, 'grok')

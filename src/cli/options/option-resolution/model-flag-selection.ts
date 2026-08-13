@@ -1,4 +1,5 @@
 import { resolveCheapestModelForFlag } from '~/cli/commands/setup-and-utilities/models/cheapest-models'
+import { filterModelNamesByLifecycle, getModelRegistry } from '~/cli/commands/setup-and-utilities/models/model-loader'
 import {
   SUPPORTED_OPENAI_MODELS,
   SUPPORTED_GROQ_MODELS,
@@ -16,7 +17,6 @@ import {
   SUPPORTED_MINIMAX_TTS_MODELS,
   SUPPORTED_GROQ_TTS_MODELS,
   SUPPORTED_GROK_TTS_MODELS,
-  SUPPORTED_MISTRAL_TTS_MODELS,
   SUPPORTED_OPENAI_TTS_MODELS,
   SUPPORTED_GEMINI_TTS_MODELS,
   SUPPORTED_SPEECHIFY_TTS_MODELS,
@@ -81,7 +81,6 @@ const ALL_SHORTCUT_MODEL_EXPANSIONS: Partial<Record<RepeatableModelFlag, { short
   'minimax-tts': { shortcut: 'all-tts', supported: SUPPORTED_MINIMAX_TTS_MODELS },
   'groq-tts': { shortcut: 'all-tts', supported: SUPPORTED_GROQ_TTS_MODELS },
   'grok-tts': { shortcut: 'all-tts', supported: SUPPORTED_GROK_TTS_MODELS },
-  'mistral-tts': { shortcut: 'all-tts', supported: SUPPORTED_MISTRAL_TTS_MODELS },
   'openai-tts': { shortcut: 'all-tts', supported: SUPPORTED_OPENAI_TTS_MODELS },
   'gemini-tts': { shortcut: 'all-tts', supported: SUPPORTED_GEMINI_TTS_MODELS },
   'deepgram-tts': { shortcut: 'all-tts', supported: [DEEPGRAM_DEFAULT_VOICE] },
@@ -108,6 +107,18 @@ const ALL_SHORTCUT_MODEL_EXPANSIONS: Partial<Record<RepeatableModelFlag, { short
   'replicate-video': { shortcut: 'all-video', supported: SUPPORTED_REPLICATE_VIDEO_MODELS },
   'lumalabs-video': { shortcut: 'all-video', supported: SUPPORTED_LUMALABS_VIDEO_MODELS },
   'fal-video': { shortcut: 'all-video', supported: SUPPORTED_FAL_VIDEO_MODELS },
+}
+
+const filterAllExpansionModels = (
+  flagName: RepeatableModelFlag,
+  supported: readonly string[]
+): string[] => {
+  const registry = getModelRegistry()
+  if (flagName.endsWith('-ocr')) {
+    const service = flagName.slice(0, -'-ocr'.length)
+    return filterModelNamesByLifecycle(supported, registry.extract[service]?.models, 'allExpansionEligible')
+  }
+  return filterModelNamesByLifecycle(supported, registry.llm[flagName]?.models, 'allExpansionEligible')
 }
 
 export const collectRepeatableModelFlagOccurrences = (
@@ -204,7 +215,7 @@ export const expandAllShortcutModels = (
     return explicitSelections
   }
 
-  const mergedSelections = [...expansion.supported]
+  const mergedSelections = filterAllExpansionModels(flagName, expansion.supported)
   for (const value of explicitSelections ?? []) {
     appendUnique(mergedSelections, value)
   }

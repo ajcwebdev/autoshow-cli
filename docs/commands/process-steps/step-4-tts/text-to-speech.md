@@ -7,6 +7,7 @@ Generate speech audio from a local `.md` or `.txt` file with local or hosted TTS
 - [Setup](#setup)
   - [Environment](#environment)
 - [Usage](#usage)
+- [Voice Management](voice-management.md)
 - [Shared TTS Options](#shared-tts-options)
 - [TTS Services](#tts-services)
   - [Kitten TTS](#kitten-tts)
@@ -78,10 +79,8 @@ bun autoshow tts <input> [flags]
 | `--tts-voice <provider=value\|value>` | Generic TTS voice selector |
 | `--tts-speed <provider=value\|value>` | Generic TTS speed |
 | `--tts-language <provider=value\|value>` | Generic TTS language |
-| `--tts-ref-audio <provider=path\|path>` | Generic reference audio path |
-| `--tts-voice-name <provider=value\|value>` | Generic created/saved voice label |
-| `--tts-consent-name <provider=value\|value>` | Generic consent recording name |
-| `--tts-consent-email <provider=value\|value>` | Generic consent email |
+| `--tts-ref-audio <provider=path\|path>` | Explicit one-off Mistral reference input; it crosses protected ingestion and never creates a saved voice |
+| `--tts-voice-name`, `--tts-consent-name`, `--tts-consent-email` | Retired synthesis-time creation inputs; rejected with guidance to the `voice` management command |
 | `--tts-text-normalization <provider=value\|value>` | Generic text normalization |
 | `--tts-instructions <provider=value\|value>` | Generic voice/style instructions |
 | `--tts-output-format <provider=value\|value>` | Generic output format |
@@ -92,6 +91,21 @@ bun autoshow tts <input> [flags]
 | `--output-dir <dir>` | Global flag: pin an exact run directory instead of a timestamped output directory |
 
 You can combine multiple TTS targets in one run. Each successful target writes its own output file. `--provider` is repeatable, including repeated selectors from the same provider. Shared voice flags apply to every selected model for that provider.
+
+### Dialogue and Voice-Management Capabilities
+
+| Provider | Multi-speaker render | Catalog/design/clone management |
+|---|---|---|
+| Gemini | Native only for exactly two speakers when the plan is representable; otherwise segmented | Existing voice names only |
+| ElevenLabs | Native `eleven_v3` Text-to-Dialogue when eligible; otherwise segmented | Account/shared catalogs, design, remix, instant clone, Professional Voice Clone state, inspect/delete |
+| Hume | Native Octave 2 utterances when eligible; otherwise segmented | Stock/custom catalogs, Octave 1 design, gated external clone, inspect/delete |
+| Mistral | Segmented | Existing/saved voices and protected one-off references; saved-reference lifecycle |
+| MiniMax | Segmented; the documented API is single-voice per request | System/account catalog, temporary design, instant clone, inspect/delete |
+| Cartesia | Segmented; contexts are not native speaker dialogue | Public/account catalog, instant clone, gated Pro clone, inspect/delete; no text-prompt design |
+| Speechify | Segmented; the documented API is single-voice per request | Shared/personal catalog, personal clone, inspect/delete; no text-prompt design |
+| Kitten, Groq, Grok, OpenAI, Deepgram | Segmented | Existing/local voice selectors only |
+
+Voice management is separate from synthesis. A catalog, design, or clone capability does not authorize `tts` or `comic generate-audio` to create a remote resource.
 
 AutoShow splits TTS text into 2000-character chunks for every provider except Groq Orpheus, which uses 200-character chunks. Hosted chunked providers synthesize chunks through a provider-wide `--tts-chunk-concurrency` gate shared across the current run, including directory batches. When `--tts-chunk-concurrency` is not set explicitly or by config, Grok-only hosted TTS uses `50`; other hosted TTS selections use `30`. Kitten chunks locally and synthesizes those chunks sequentially.
 
@@ -128,16 +142,15 @@ Kitten strips markdown, splits local text into 2000-character chunks, and synthe
 | Selector | `--provider elevenlabs[=<model>]` |
 | Models | `eleven_v3`, `eleven_multilingual_v2`, `eleven_flash_v2_5` |
 | Existing voice | `--tts-voice <id>`, default `hpp4J3VqNfWAUOO0d1Us` |
-| Instant Voice Cloning | `--tts-ref-audio <path>`, `--tts-voice-name <name>`, `--elevenlabs-tts-clone-remove-background-noise` |
 | Output and synthesis controls | `--tts-output-format <format>`, `--tts-language <code>`, `--elevenlabs-tts-stability <0..1>`, `--elevenlabs-tts-similarity-boost <0..1>`, `--elevenlabs-tts-style <0..1>`, `--elevenlabs-tts-use-speaker-boost`, `--tts-speed <0.7..1.2>`, `--elevenlabs-tts-seed <n>`, `--tts-text-normalization auto\|on\|off`, repeatable `--elevenlabs-tts-pronunciation-dictionary-locator <id[:version]>`, `--elevenlabs-tts-optimize-streaming-latency <0..4>` |
 
 ```bash
 bun autoshow tts input/examples/tts/1-tts.md --provider elevenlabs=eleven_v3 --tts-voice hpp4J3VqNfWAUOO0d1Us
-bun autoshow tts input/examples/tts/1-tts.md --provider elevenlabs=eleven_v3 --tts-ref-audio input/examples/audio/anthony-voice.mp3 --tts-voice-name AutoShowAnthony
-bun autoshow tts input/examples/tts/1-tts.md --provider elevenlabs=eleven_v3 --tts-ref-audio input/examples/audio/anthony-voice.mp3 --price
 ```
 
-ElevenLabs TTS uses existing voices by default. Text uses the registered model limit: 5,000 characters for `eleven_v3`, 10,000 for `eleven_multilingual_v2`, and 40,000 for `eleven_flash_v2_5`; each chunk uses the same voice and synthesis controls. Add `--tts-ref-audio` to create one persistent ElevenLabs Instant Voice Clone before synthesis and reuse the returned `voice_id` for every selected ElevenLabs model in that run. `--tts-voice-name` labels the created voice and defaults to `AutoShow_<timestamp>`. Do not combine clone mode with `--tts-voice`; if ElevenLabs returns `requires_verification`, AutoShow stops with the created `voice_id` so you can verify it in ElevenLabs and rerun with `--tts-voice <id>`.
+ElevenLabs synthesis uses existing voices only; voice creation remains under the separate `voice` management command. Single-voice text uses the registered model limit: 5,000 characters for `eleven_v3`, 10,000 for `eleven_multilingual_v2`, and 40,000 for `eleven_flash_v2_5`; each chunk uses the same voice and synthesis controls. Multi-speaker `eleven_v3` uses the timestamped Text-to-Dialogue endpoint when delivery, overlap, effects, and per-turn controls can be represented exactly. Native requests partition only at turn boundaries, conservatively cap prepared text at 2,000 characters, and cap each request at ten distinct voices. Authored delivery is reduced to a bounded allowlist of documented Eleven v3 audio tags; arbitrary stage-direction prose is never placed inside brackets because the model can speak an unrecognized tag aloud. Mapped tags receive an explicit Unicode-scalar source map, unsupported prose remains canonical evidence without entering provider text, and returned alignment is normalized into take and final-audio timing. Other ElevenLabs models and ineligible v3 plans use the shared segmented path.
+
+Use `voice discover` for account/shared catalogs, `voice design` for bounded protected design or eligibility-proved remix candidates, and `voice materialize` for the selected candidate. Synthesis-time clone inputs remain rejected before target collection. Instant-clone creation is implemented by the protected advanced adapter; Professional Voice Clone is represented truthfully as verification-required rather than silently retried or treated as ready. Legacy default-voice expiry on December 31, 2026 is retained in readiness metadata.
 
 ### MiniMax
 
@@ -154,21 +167,21 @@ bun autoshow tts input/examples/tts/1-tts.md --provider minimax=speech-2.8-hd --
 bun autoshow tts input/examples/tts/1-tts.md --provider minimax=speech-2.8-turbo --tts-voice English_expressive_narrator --price
 ```
 
-MiniMax TTS uses existing/preset voices. Text is split into 2000-character chunks. Use `--tts-voice` to override the voice ID for the selected MiniMax model.
+MiniMax TTS uses existing/preset voices. Text is split into 2000-character chunks. Use `--tts-voice` to override the voice ID for the selected MiniMax model. `voice discover` reads system or account generated/cloned voices, while `voice design` creates exactly one protected temporary preview candidate for later `voice materialize`. The advanced clone facet accepts one verified mp3/m4a/wav sample from 10 seconds through 5 minutes and no larger than 20 MiB, then records the seven-day pre-activation lifetime. MiniMax does not expose native multi-speaker dialogue, so dialogue uses the segmented renderer.
 
 ### Groq
 
 | Option | Value |
 |--------|-------|
 | Selector | `--provider groq[=<model>]` |
-| Models | `canopylabs/orpheus-v1-english` |
-| Voice | `--tts-voice <id>`; voices `autumn`, `diana`, `hannah`, `austin`, `daniel`, `troy` |
+| Models | `canopylabs/orpheus-v1-english`, `canopylabs/orpheus-arabic-saudi` |
+| Voice | `--tts-voice <id>`; English voices `autumn`, `diana`, `hannah`, `austin`, `daniel`, `troy` (default `troy`); Saudi Arabic voices `abdullah`, `fahad`, `sultan`, `lulwa`, `noura`, `aisha` (default `abdullah`) |
 
 ```bash
 bun autoshow tts input/examples/tts/1-tts.md --provider groq=canopylabs/orpheus-v1-english --tts-voice troy
 ```
 
-Groq voices are validated against the selected model. Groq Orpheus English defaults to `troy`. Text is split into 200-character chunks.
+Groq voices are validated against the selected model. Groq Orpheus English defaults to `troy` and Groq Orpheus Saudi Arabic defaults to `abdullah`. Text is split into 200-character chunks.
 
 ### Grok
 
@@ -193,13 +206,13 @@ Grok TTS text is split into 2000-character chunks.
 |--------|-------|
 | Selector | `--provider mistral[=<model>]` |
 | Models | `voxtral-mini-tts-2603` |
-| Voice source | exactly one of `--tts-voice <id>` or `--tts-ref-audio <path>` |
-| Saved voice name | `--tts-voice-name <name>` when creating a saved voice from reference audio |
-| Dialogue mode | `--tts-dialogue-format screenplay|labeled` plus repeatable `--tts-speaker SPEAKER=path` |
+| Voice source | exactly one of an existing `--tts-voice <id>` or an authorized one-off `--tts-ref-audio <path>` |
+| Saved reference | create separately with `voice save-reference`, then synthesize with its registered provider ID |
+| Dialogue mode | `--tts-dialogue-format screenplay\|labeled` plus repeatable `--tts-speaker SPEAKER=path` |
 
 ```bash
 bun autoshow tts input/examples/tts/1-tts.md --provider mistral=voxtral-mini-tts-2603 --tts-voice voice_abc123
-bun autoshow tts input/examples/tts/1-tts.md --provider mistral=voxtral-mini-tts-2603 --tts-ref-audio input/examples/audio/anthony-voice.mp3 --tts-voice-name AutoShowAnthony
+bun autoshow voice save-reference hero --model voxtral-mini-tts-2603 --voice-name AutoShowAnthony --reference-audio input/examples/audio/anthony-voice.mp3 --authorization-ref release:hero --consent-ref protected-consent:v1:STORE:ASSET:SHA256 --provenance-ref project:casting --price
 bun autoshow tts input/chat-and-duco.txt \
   --provider mistral=voxtral-mini-tts-2603 \
   --tts-dialogue-format screenplay \
@@ -207,9 +220,9 @@ bun autoshow tts input/chat-and-duco.txt \
   --tts-speaker CHAT=https://ajc.pics/autoshow/examples/1-audio.mp3
 ```
 
-Mistral Voxtral TTS requires one voice source when generating audio: a saved/custom voice ID or a reference audio file, provided as a local path or HTTP(S) URL. Add `--tts-voice-name` with `--tts-ref-audio` when the run should create/name a saved voice instead of using one-off reference audio. `--price` can estimate Mistral TTS with only `--provider mistral=voxtral-mini-tts-2603` because no synthesis request is made. Reference audio is base64-encoded for the request and is not written into run metadata; metadata records the speaker as `ref_audio:<basename>`.
+Mistral Voxtral TTS requires one voice source when generating audio: an existing saved/custom voice ID or an authorized one-off local reference file. Named saved-voice creation occurs only under `voice save-reference`, with protected reference bytes, explicit consent/provenance, a durable provisioning journal, and reconciliation state. `--price` performs no provider call and writes no local artifact. The one-off synthesis path converts the raw CLI file into an opaque protected reference before target collection; raw paths and bytes do not enter runtime or run artifacts.
 
-Dialogue mode works with every TTS provider, not just Mistral. `--tts-speaker` mappings are what select it: one or more mappings turn the run into multi-speaker TTS, and that mode then requires `--tts-dialogue-format`. A format on its own selects nothing, so typing `--tts-dialogue-format` with no `--tts-speaker` is rejected up front, while a `ttsDialogueFormat` inherited from config defaults is ignored with a warning and the run continues as single-speaker. `--tts-speaker` takes both mapping kinds: `SPEAKER=VOICE` maps a speaker to a provider voice ID for any provider, while `SPEAKER=path` maps a speaker to reference audio and is supported only by Mistral, ElevenLabs, and Speechify. A value is read as reference audio when it contains a path separator or ends in a known audio extension (`.mp3`, `.wav`, `.m4a`, `.ogg`, `.opus`, `.flac`, and similar); anything else is read as a voice ID. Per-speaker mappings replace `--tts-voice` and `--tts-ref-audio` for the run, so the `tts` command rejects an explicit `--tts-voice` alongside `--tts-speaker` or `--tts-dialogue-format` rather than silently discarding it; a voice stored in config defaults is still exempt. Gemini synthesizes dialogue natively in a single request; every other provider synthesizes one segment per turn and concatenates them. `screenplay` mode extracts configured speaker dialogue, strips leading parentheticals, and omits scene/action directions. `labeled` mode expects `SPEAKER: text` lines. Segment-and-concat runs write `dialogue-normalized.txt`, one WAV per turn under `segments/`, the final `speech.wav`, and `manifest.json`; price estimates use the spoken dialogue character count.
+Dialogue mode works with every TTS provider, not just Mistral. `--tts-speaker` mappings are what select it: one or more mappings turn the run into multi-speaker TTS, and that mode then requires `--tts-dialogue-format`. A format on its own selects nothing, so typing `--tts-dialogue-format` with no `--tts-speaker` is rejected up front, while a `ttsDialogueFormat` inherited from config defaults is ignored with a warning and the run continues as single-speaker. `--tts-speaker SPEAKER=VOICE` maps a speaker to an existing provider voice ID for any provider. `SPEAKER=path` is accepted only for one explicitly selected Mistral target and crosses exact per-speaker protected ingestion before target collection; ElevenLabs, Speechify, and every other provider require existing IDs here. A value is read as reference audio when it contains a path separator or ends in a known audio extension (`.mp3`, `.wav`, `.m4a`, `.ogg`, `.opus`, `.flac`, and similar); anything else is read as a voice ID. Per-speaker mappings replace `--tts-voice` and `--tts-ref-audio` for the run, so the `tts` command rejects an explicit `--tts-voice` alongside `--tts-speaker` or `--tts-dialogue-format` rather than silently discarding it; a voice stored in config defaults is still exempt. Gemini, ElevenLabs `eleven_v3`, and Hume `octave-2` select their eligible native dialogue/utterance serializers; all other plans synthesize one segment per turn and concatenate them. `screenplay` mode extracts configured speaker dialogue, strips leading parentheticals, and omits scene/action directions. `labeled` mode expects `SPEAKER: text` lines. Segment-and-concat runs write `dialogue-normalized.txt`, one WAV per turn under `segments/`, the final `speech.wav`, and `manifest.json`; price estimates use the spoken dialogue character count.
 
 ### OpenAI
 
@@ -244,7 +257,7 @@ bun autoshow tts input/examples/tts/tts-dialogue.txt \
   --tts-speaker Guest=Puck
 ```
 
-Gemini multispeaker mode is enabled by the generic dialogue flags, the same ones every other provider uses; Gemini is the one provider that synthesizes the whole dialogue natively in a single request instead of concatenating per-turn segments. `--tts-voice` is rejected once speaker mappings are present, since those mappings supply every voice. The input text must include explicit speaker labels such as `Host:` and `Guest:` that match the configured speaker names. Inline Gemini-style delivery tags like `[whispers]` or `[excitedly]` stay in the source text and are passed through unchanged.
+Gemini multispeaker mode is enabled by the generic dialogue flags, the same ones every other provider uses. It uses its native exactly-two-speaker serializer when eligible instead of concatenating per-turn segments. `--tts-voice` is rejected once speaker mappings are present, since those mappings supply every voice. The input text must include explicit speaker labels such as `Host:` and `Guest:` that match the configured speaker names. Inline Gemini-style delivery tags like `[whispers]` or `[excitedly]` stay in the source text and are passed through unchanged.
 
 ### Deepgram
 
@@ -268,28 +281,24 @@ bun autoshow tts input/examples/tts/1-tts.md --provider deepgram=aura-2-thalia-e
 | Models | `simba-3.2`, `simba-3.0` |
 | Voice | `--tts-voice <id>`, default `geffen_32` |
 | Audio/language controls | `--tts-output-format mp3\|ogg\|aac\|wav\|pcm`, `--tts-language <tag>` |
-| Custom voice creation | `--tts-ref-audio <path>`, `--tts-voice-name <name>`, `--tts-consent-name <name>`, `--tts-consent-email <email>`, `--speechify-tts-voice-locale <tag>`, `--speechify-tts-voice-gender <gender>` |
 
 ```bash
 bun autoshow tts input/examples/tts/1-tts.md --provider speechify=simba-3.2 --tts-voice geffen_32 --tts-language en-US --tts-output-format mp3
 bun autoshow tts input/examples/tts/1-tts.md --provider speechify=simba-3.0 --tts-language fr-FR
-bun autoshow tts input/examples/tts/1-tts.md --provider speechify=simba-3.0 --tts-ref-audio input/voices/my-10-to-30-second-sample.mp3 --tts-consent-name "Anthony Example" --tts-consent-email anthony@example.com --tts-voice-name AutoShowAnthony --speechify-tts-voice-locale en-US --speechify-tts-voice-gender notSpecified --price
 bun autoshow tts input/examples/tts/1-tts.md --provider speechify=simba-3.2 --tts-voice speechify_custom_voice_123
 bun autoshow config --tts speechify=simba-3.2 --tts-voice speechify_custom_voice_123
 ```
 
 Speechify TTS sends text chunks to `POST /v1/audio/speech` and requests the selected output format, MP3 by default, before AutoShow converts the final result to `speech.wav`. Simba 3.2 is English-only and accepts the curated built-ins `beatrice_32`, `dominic_32`, `edmund_32`, `geffen_32`, `harper_32`, `hugh_32`, `imogen_32`, and `wyatt_32`; an unknown explicit ID is permitted because it may be a clone that Speechify manually approved. Simba 3.0 supports `en`/`en-*`, `de-DE`, `es-ES`, `es-MX`, `fr-FR`, `it-IT`, and `pt-BR` and accepts the full voice catalog.
 
-To create a Speechify custom voice as part of `tts`, select `simba-3.0` and add `--tts-ref-audio` plus consent flags. AutoShow calls Speechify `POST /v1/voices` once, reuses the returned `id` for the Simba 3.0 target, and records `speaker: ref_audio:<basename>`, `clonedVoiceId`, and `cloneCostCents: 0` in metadata. Immediate clone creation is rejected with Simba 3.2 because that model requires prior manual Speechify approval; pass an already approved clone ID with `--tts-voice` instead. Do not combine custom voice creation with `--tts-voice`.
-
-The reference sample must be non-empty audio with a supported extension (`mp3`/`mpeg`, `wav`, `m4a`/`mp4`, `ogg`, `flac`, `aac`, or `webm`), provided as a local path or HTTP(S) URL, and at most 5 MiB. When `ffprobe` can detect duration, AutoShow requires 10-30 seconds to match Speechify's cloning guidance. `--speechify-tts-voice-locale` defaults to `en-US`; `--speechify-tts-voice-gender` defaults to `notSpecified` and accepts `male`, `female`, or `notSpecified`.
+Speechify synthesis accepts existing built-in or previously approved custom voice IDs. Reference-audio, voice-name, and consent-contact creation inputs are rejected from synthesis and configuration. `voice discover` reads shared or personal voices. The protected clone facet requires exactly one verified 10–30 second sample no larger than 5 MiB, a full-name/email consent payload, locale, gender, and an idempotency key; none of that PII enters the registration metadata. Speechify exposes no text-prompt design or native multi-speaker dialogue API, so existing IDs are rendered through the segmented path.
 
 ### Hume
 
 | Option | Value |
 |--------|-------|
 | Selector | `--provider hume[=<model>]` |
-| Models | `octave-2` |
+| Models | `octave-1`, `octave-2` |
 | Voice | `--tts-voice <name-or-id>`, default `Male English Actor` |
 | Voice provider | `--hume-tts-voice-provider HUME_AI|CUSTOM_VOICE`, default `HUME_AI` for named voices |
 | API settings | `HUME_API_KEY` |
@@ -301,7 +310,11 @@ bun autoshow tts input/examples/tts/1-tts.md --provider hume=octave-2 --tts-voic
 bun autoshow config --tts hume=octave-2 --tts-voice "Studio Voice" --hume-tts-voice-provider CUSTOM_VOICE
 ```
 
-Hume TTS uses Octave 2 through `POST /v0/tts/file`, sends `version: "2"`, requests MP3 chunks, and converts the final output to `speech.wav`. Text is split into 2000-character chunks. UUID-like voice values are sent as voice IDs unless a provider is explicit; named voices are sent with the selected provider.
+Single-voice Hume TTS uses Octave 2 through `POST /v0/tts/file`, sends `version: "2"`, requests MP3 chunks, and converts the final output to `speech.wav`. UUID-like voice values are sent as voice IDs unless a provider is explicit; named voices are sent with the selected provider.
+
+Eligible multi-speaker Hume plans use ordered Octave 2 utterances through `POST /v0/tts`, with each voice ID, speed, and trailing silence retained on its own utterance. A request can return one to five independent takes; continuation uses only the deliberately selected prior generation ID and rejects a different Octave version. Word and phoneme timestamps are normalized to source turn IDs. Octave 1-only acting descriptions are never combined with Octave 2-only timing: required acting direction forces a truthful alternative plan instead of being dropped.
+
+Use `voice discover` to inspect Hume stock or custom voices. Voice Design creates Octave 1 candidates and `voice materialize` saves the selected generation for Octave 1/2 synthesis. The documented clone workflow is subscription-gated in the Hume platform, so the clone adapter returns `external-action-required` and the resulting stable custom ID must be imported. Hume deletion requires a fresh unique mutable-name-to-stable-ID proof.
 
 ### Cartesia
 
@@ -319,28 +332,31 @@ bun autoshow tts input/examples/tts/1-tts.md --provider cartesia=sonic-3.5-2026-
 bun autoshow config --tts cartesia=sonic-3.5-2026-05-04 --tts-voice f786b574-daa5-4673-aa0c-cbe3e8534c02
 ```
 
-Cartesia TTS uses `POST /tts/bytes`, sends the `Cartesia-Version` header, requests 24000 Hz `pcm_s16le` WAV bytes, and converts the final output to `speech.wav`. Text is split into 2000-character chunks. Voice selection currently uses Cartesia voice IDs; cloning, localization, pronunciation dictionaries, speed, volume, and emotion controls are not exposed in this pass.
+Cartesia TTS uses `POST /tts/bytes`, sends the pinned `2026-03-01` `Cartesia-Version` header, requests 24000 Hz `pcm_s16le` WAV bytes, and converts the final output to `speech.wav`. Text is split into 2000-character chunks. `voice discover` pages through public or account voices, the protected instant-clone facet posts one sample with its required language, and Pro Voice Clone remains a truthful gated dashboard action followed by stable-ID import. Cartesia exposes no text-prompt design or native speaker-dialogue API. Localization, pronunciation dictionaries, speed, volume, and emotion are documented provider features but remain outside the current synthesis option surface.
 
 ## Pricing Notes
 
-- ElevenLabs API pricing is 10 cents / 1K characters for `eleven_v3` and `eleven_multilingual_v2`, and 5 cents / 1K characters for `eleven_flash_v2_5`. The two added models use an explicitly provisional 35885 ms / 1K characters timing estimate. IVC setup adds a one-time 0 cent setup estimate and a 10000 ms setup timing estimate.
+- ElevenLabs API pricing is 10 cents / 1K characters for `eleven_v3` and `eleven_multilingual_v2`, and 5 cents / 1K characters for `eleven_flash_v2_5`. The two added models use an explicitly provisional 35885 ms / 1K characters timing estimate. Voice creation is priced separately by management and is never folded into synthesis estimates.
 - MiniMax synthesis estimates are 6 cents / 1K characters for `speech-2.8-turbo` and 10 cents / 1K characters for `speech-2.8-hd`.
-- Groq English Orpheus estimates use $22 / 1M characters, stored as a single character rate to avoid double-counting input text.
+- Groq English Orpheus estimates use $22 / 1M characters, and Saudi Arabic Orpheus estimates use $40 / 1M characters, stored as single character rates to avoid double-counting input text.
+- Grok TTS estimates use $15 per 1M characters (1.5 cents / 1K characters).
 - Mistral `voxtral-mini-tts-2603` is priced at $0 input and $16 per 1M output characters, equivalent to 1.6 cents per 1K characters. AutoShow uses a 53926 ms / 1K characters timing heuristic.
 - OpenAI `gpt-4o-mini-tts-2025-12-15` estimates use 60 cents / 1M input characters plus 1200 cents / 1M output characters, equivalent to 1.26 cents per 1K characters in AutoShow's character estimator. `tts-1` and `tts-1-hd` bill per character at $15 and $30 per 1M characters, equivalent to 1.5 and 3 cents per 1K characters.
-- Deepgram's three added Aura 2 voices use 3 cents / 1K characters and an explicitly provisional 39639 ms / 1K characters timing estimate.
-- Speechify Simba estimates use 1 cent / 1K characters for `simba-3.2` and `simba-3.0`, with a 4500 ms / 1K characters timing heuristic. Simba 3.0 custom voice creation adds a one-time 0 cent setup estimate and a 10000 ms setup timing estimate.
-- Hume `octave-2` estimates use the conservative public overage rate of 15 cents / 1K characters.
+- Gemini `gemini-3.1-flash-tts-preview` estimates use $1 / 1M input characters plus $20 / 1M output characters.
+- Deepgram's Aura 2 voices use 3 cents / 1K characters and an explicitly provisional 39639 ms / 1K characters timing estimate.
+- Speechify Simba estimates use 1 cent / 1K characters for `simba-3.2` and `simba-3.0`, with a 4500 ms / 1K characters timing heuristic. Voice creation is a separate management mutation and is not included in synthesis timing or cost.
+- Hume `octave-1` and `octave-2` estimates use the conservative public overage rate of 15 cents / 1K characters.
 - Cartesia Sonic estimates use 3.7375 cents / 1K characters for `sonic-3.5-2026-05-04`, with a 3000 ms / 1K characters timing heuristic.
 
 ## Output
 
 - If exactly one TTS target succeeds, the run writes `speech.wav` plus `manifest.json`.
 - If multiple TTS targets succeed, the run writes `speech-<service>-<sanitized-model>.wav` for each successful target plus `manifest.json`.
-- Dialogue runs also write `dialogue-normalized.txt` and per-turn WAVs under `segments/`, except for providers that synthesize dialogue natively (Gemini).
-- ElevenLabs IVC runs record `speaker: "ref_audio:<basename>"`, `clonedVoiceId`, and `cloneCostCents: 0` in the Step 4 metadata.
+- Dialogue runs also write `dialogue-normalized.txt`. Segmented plans retain per-turn WAVs under `segments/`; eligible Gemini, ElevenLabs, and Hume native plans retain native batch/take timing instead of fabricating segment files.
+- Existing managed custom voices record their stable selected resource ID as `speaker`; synthesis never records clone contact data or sample paths.
 - Hume runs record the selected voice name or ID as `speaker`.
 - Cartesia runs record the selected voice ID as `speaker`.
 - `manifest.json` uses the canonical single-run shape. Its sole item's metadata includes `tts`, `cost`, and `timing`; `tts` is always an array, even when only one target succeeds.
+- Current TTS entries include the operation-scoped `targetKey`, `transport`, and voice/settings/output-aware `renderIdentity` plus result/audio-run identities. Voice-quality benchmarks use those fields and optional registration, snapshot-entry, and character identities, so two voices on the same provider/model remain separate rows. Pre-ADR entries retain an explicit `legacy:service/model` fallback and cannot authorize cache reuse.
 - Reference-audio runs store only `speaker: "ref_audio:<basename>"` in item/provider metadata; the full path and reference transcript are not written to `manifest.json`.
 - `--output-dir` controls the run directory; generated file names remain provider-dependent and deterministic inside that directory.

@@ -43,6 +43,7 @@ bun autoshow links <global-section>... --<provider> [section...] [--<provider> [
 - Duplicate URLs are removed before fetching, so overlapping selections only fetch once
 - Raw markdown/text docs are appended as-is; HTML docs pages are converted to markdown locally before they are appended
 - `--refresh` also writes a JSON sidecar with per-link freshness, token-count, and content-change metadata
+- `--refresh-only` updates the JSON sidecar metadata without overwriting an existing Markdown bundle file
 
 Direct URL mode uses `project/links/<normalized-host-and-path>-links.md`; for example, `bun autoshow links https://blog.railway.com/p/railway-for-agents` writes `project/links/blog-railway-com-p-railway-for-agents-links.md`.
 
@@ -99,8 +100,8 @@ Accepted provider selectors are the lowercase names below.
 | `--deepinfra` | `general`, `models`, `ocr`, `stt` |
 | `--drive` | `general` |
 | `--elevenlabs` | `models`, `music`, `tts` |
-| `--firecrawl` | `general`, `url` |
 | `--fal` | `general`, `image`, `video` |
+| `--firecrawl` | `general`, `url` |
 | `--gemini` | `general`, `image`, `models`, `music`, `ocr`, `stt`, `text`, `tts`, `video` |
 | `--gladia` | `general`, `stt` |
 | `--glm` | `general`, `models`, `ocr`, `text`, `url` |

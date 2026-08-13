@@ -2,6 +2,24 @@
   "openai": {
     "description": "OpenAI cloud text-to-speech",
     "type": "api",
+    "catalogSourceUrl": "https://developers.openai.com/api/reference/resources/audio/subresources/speech/methods/create",
+    "catalogCheckedAt": "2026-08-11",
+    "catalogNotes": "The speech request schema enumerates 13 built-in voices plus a typed custom voice object { id }; custom voices are limited to eligible customers. tts-1 and tts-1-hd support the documented nine-voice subset.",
+    "voices": [
+      "alloy",
+      "ash",
+      "ballad",
+      "coral",
+      "echo",
+      "fable",
+      "nova",
+      "onyx",
+      "sage",
+      "shimmer",
+      "verse",
+      "marin",
+      "cedar"
+    ],
     "models": {
       "gpt-4o-mini-tts-2025-12-15": {
         "description": "GPT-4o Mini TTS dated 2025-12-15 — compact speech synthesis model",

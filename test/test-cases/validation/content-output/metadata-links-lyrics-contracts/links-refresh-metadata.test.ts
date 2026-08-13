@@ -383,3 +383,29 @@ test('links refresh uses deduped curated links for overlapping selections', asyn
   expect(elevenlabsMetadataCount).toBe(1)
   expect(metadata.totals.linkCount).toBe(fetchedUrls.length)
 })
+
+test('links --refresh-only updates metadata sidecar without overwriting existing Markdown bundle', async () => {
+  const outputPath = linksTestOutputPath('refresh-only-test')
+  const sidecarPath = getLinksRefreshMetadataPath(outputPath)
+  const initialContent = 'custom initial content'
+  await Bun.write(outputPath, initialContent)
+
+  const fetchImpl: FetchFn = async () => markdownResponse('remote updated content')
+
+  const result = await runLinksWithArgv([
+    'bun',
+    'src/cli/create-cli.ts',
+    'links',
+    '--refresh-only',
+    DIRECT_REFRESH_URL
+  ], { outputPath, fetchImpl })
+
+  expect(result.refreshMetadataPath).toBe(sidecarPath)
+  expect(await Bun.file(outputPath).text()).toBe(initialContent)
+  const metadata = await readRefreshMetadata(sidecarPath)
+  expect(metadata.markdownWritten).toBe(false)
+  expect(metadata.totals.linkCount).toBe(1)
+
+  await rm(outputPath, { force: true })
+  await rm(sidecarPath, { force: true })
+})

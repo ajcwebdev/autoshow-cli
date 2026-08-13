@@ -51,17 +51,18 @@ describe('write subcommand with llama', () => {
 
       const metadata = await readCanonicalRecord(outputDir) as {
         completionStatus?: string
-        requestedProviders?: Array<{ service?: string; model?: string }>
-        providerStates?: Array<{ service?: string; model?: string; status?: string; artifactDir?: string }>
+        requestedProviders?: Array<{ service?: string; model?: string; local?: boolean }>
+        providerStates?: Array<{ service?: string; model?: string; local?: boolean; status?: string; artifactDir?: string }>
         missingProviders?: Array<unknown>
         step3?: { llmModel?: string; llmService?: string }
       }
       expect(metadata.completionStatus).toBe('full')
-      expect(metadata.requestedProviders).toEqual([{ service: 'whisper', model: 'tiny' }])
+      expect(metadata.requestedProviders).toEqual([{ service: 'whisper', model: 'tiny', local: true }])
       expect(metadata.providerStates).toEqual([
         expect.objectContaining({
           service: 'whisper',
           model: 'tiny',
+          local: true,
           status: 'succeeded',
           artifactDir: '.'
         })

@@ -101,8 +101,9 @@ export const isTransitionText = (text: string): boolean => {
 const TIMING_DIRECTION_MODIFIERS = 'a|an|another|one|two|long|short|brief|slight|small|awkward|uncomfortable|heavy|dead|stunned|very'
 const TIMING_DIRECTION_NOUNS = 'beat|beats|pause|pauses|silence|moment|moments'
 const TIMING_DIRECTION_BODY = `(?:(?:${TIMING_DIRECTION_MODIFIERS})\\s+)*(?:${TIMING_DIRECTION_NOUNS})`
-const INLINE_TIMING_DIRECTION_PATTERN = new RegExp(`\\s*\\(\\s*${TIMING_DIRECTION_BODY}\\s*[.…]?\\s*\\)`, 'gi')
+const INLINE_TIMING_DIRECTION_PATTERN = new RegExp(`\\s*\\(\\s*${TIMING_DIRECTION_BODY}(?:\\s*,\\s*[^)]*)?\\s*[.…]?\\s*\\)`, 'gi')
 const TIMING_ONLY_DIRECTION_PATTERN = new RegExp(`^${TIMING_DIRECTION_BODY}\\s*[.…]?$`, 'i')
+const INLINE_TIMING_WITH_DELIVERY_PATTERN = new RegExp(`\\(\\s*${TIMING_DIRECTION_BODY}\\s*,\\s*([^)]*)\\)`, 'gi')
 
 export const isTimingOnlyDirection = (text: string): boolean => {
   return TIMING_ONLY_DIRECTION_PATTERN.test(text.trim())
@@ -115,6 +116,10 @@ export const stripInlineStageDirections = (text: string): string => {
     .replace(/\s+([,.;:!?…])/g, '$1')
     .trim()
 }
+
+export const extractInlineTimingDelivery = (text: string): string[] => [...text.matchAll(INLINE_TIMING_WITH_DELIVERY_PATTERN)]
+  .map(match => match[1]?.trim() ?? '')
+  .filter(Boolean)
 
 const EMPHASIS_WRAPPER_PATTERN = /^(\*\*\*|\*\*|\*|___|__|_)([\s\S]+?)\1$/
 

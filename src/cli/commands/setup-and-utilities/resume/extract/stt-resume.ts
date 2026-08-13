@@ -20,7 +20,7 @@ import { PIPELINE_MANIFEST_FILE, readSinglePipelineItemRecord } from '~/cli/comm
 import { YOUTUBE_CAPTIONS_SERVICE } from '~/cli/commands/process-steps/step-2-extract/step-2-stt/youtube-captions'
 import { resolveAdditiveResumeProviderSelection } from '../resume-provider-selection'
 import { hasResumableProviderTargetWork, priceProviderResumeTarget, providerResumeSourceInput, resolveProviderResumeOutputDir, runProviderResumePass, selectedProviderTargetsComplete, selectedProvidersCompleteResult, toProviderResumeResult, toProviderResumeSource } from '../provider-batch-resume'
-import { buildSttEstimatesForTargets } from '~/utils/pricing/aggregate-pricing/stt-estimates'
+import { buildSttEstimatesForTargets } from '~/cli/commands/pricing-orchestration/aggregate-pricing/stt-estimates'
 
 
 const assertStoredMissingSttTargetsAreActive = (

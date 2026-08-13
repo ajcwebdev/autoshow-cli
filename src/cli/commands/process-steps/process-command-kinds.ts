@@ -26,6 +26,9 @@ const PROCESS_COMMAND_CAPABILITIES: Record<ProcessCommand, ProcessCommandCapabil
   },
   video: {
     supportsBatchSourceExpansion: false
+  },
+  comic: {
+    supportsBatchSourceExpansion: false
   }
 }
 

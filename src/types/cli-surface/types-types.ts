@@ -12,6 +12,7 @@ export type CliFlagDefinition = {
   default?: unknown
   short?: string
   negatable?: boolean
+  consumeAdjacentValues?: boolean
   help?: Record<string, unknown> & {
     hidden?: boolean
   }

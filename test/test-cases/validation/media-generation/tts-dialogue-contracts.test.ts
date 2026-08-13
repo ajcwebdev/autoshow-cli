@@ -33,23 +33,20 @@ describe('TTS dialogue contracts', () => {
   test('multi-speaker validates provider selection and speaker mappings', () => {
     expect(() => collectTtsTargets(buildOptsFromFlags(false, {
       'tts-dialogue-format': 'screenplay',
-      'tts-speaker': ['DUCO=input/examples/audio/anthony-voice.mp3']
+      'tts-speaker': ['DUCO=voice_duco']
     }))).toThrow('requires at least one TTS provider')
 
     expect(() => collectTtsTargets(buildOptsFromFlags(false, {
       'mistral-tts': 'voxtral-mini-tts-2603',
-      'tts-speaker': ['DUCO=input/examples/audio/anthony-voice.mp3']
+      'tts-speaker': ['DUCO=voice_duco']
     }))).toThrow('Dialogue TTS requires --tts-dialogue-format screenplay|labeled.')
 
-    // Multi-provider multi-speaker is now allowed
-    const targets = collectTtsTargets(buildOptsFromFlags(false, {
+    expect(() => collectTtsTargets(buildOptsFromFlags(false, {
       'mistral-tts': 'voxtral-mini-tts-2603',
       'openai-tts': 'gpt-4o-mini-tts-2025-12-15',
       'tts-dialogue-format': 'labeled',
       'tts-speaker': ['DUCO=alloy', 'CHAT=onyx']
-    }))
-    expect(targets.length).toBe(2)
-    expect(targets.every((t) => t.multiSpeakerStrategy !== undefined)).toBe(true)
+    }))).toThrow('requires exactly one TTS provider')
   })
 
   // Speaker mappings are the mode switch. A stored `ttsDialogueFormat` used to force dialogue mode
@@ -57,6 +54,7 @@ describe('TTS dialogue contracts', () => {
   test('a dialogue format without speakers is inert unless it was typed explicitly', () => {
     const opts = buildOptsFromFlags(false, {
       'mistral-tts': 'voxtral-mini-tts-2603',
+      'mistral-tts-voice': 'voice-existing',
       'tts-dialogue-format': 'screenplay'
     })
 
@@ -73,7 +71,7 @@ describe('TTS dialogue contracts', () => {
     const dialogueOpts = buildOptsFromFlags(false, {
       'mistral-tts': 'voxtral-mini-tts-2603',
       'tts-dialogue-format': 'screenplay',
-      'tts-speaker': ['DUCO=input/examples/audio/anthony-voice.mp3']
+      'tts-speaker': ['DUCO=voice_duco']
     })
     expect(isMultiSpeakerRequested(dialogueOpts)).toBe(true)
     expect(() => assertDialogueFormatIsUsable(dialogueOpts, new Set(['tts-dialogue-format']))).not.toThrow()
@@ -121,6 +119,7 @@ describe('TTS dialogue contracts', () => {
 
   test('hosted segment-and-concat preserves dialogue turn order under concurrent segment scheduling', async () => {
     const dir = await tempDirs.make()
+    const observedVoicesByInput = new Map<string, string>()
     const audioByMarker = new Map([
       ['A', createSyntheticWavBytes({ durationSeconds: 0.25, amplitude: 0.2, frequencyHz: 440 })],
       ['B', createSyntheticWavBytes({ durationSeconds: 0.25, amplitude: 0.5, frequencyHz: 440 })],
@@ -129,7 +128,9 @@ describe('TTS dialogue contracts', () => {
 
     process.env['OPENAI_API_KEY'] = 'openai-key'
     installMockFetch((call) => {
-      const marker = String(call.bodyJson?.['input'] ?? '').charAt(0)
+      const input = String(call.bodyJson?.['input'] ?? '')
+      observedVoicesByInput.set(input, String(call.bodyJson?.['voice'] ?? ''))
+      const marker = input.charAt(0)
       return new Response(audioByMarker.get(marker) ?? audioByMarker.get('A'), {
         status: 200,
         headers: { 'content-type': 'audio/wav' }
@@ -147,6 +148,11 @@ describe('TTS dialogue contracts', () => {
     }))
 
     expect(result.metadata[0]?.chunkCount).toBe(3)
+    expect(observedVoicesByInput).toEqual(new Map([
+      ['Alpha turn.', 'alloy'],
+      ['Bravo turn.', 'onyx'],
+      ['Charlie turn.', 'alloy']
+    ]))
     const samples = await readWavSamples(result.audioPaths[0] as string)
     const rmsValues = [0, 1, 2].map((index) => segmentRms(samples, index, 3))
     expect(rmsValues[0] as number).toBeLessThan(rmsValues[1] as number)
@@ -170,11 +176,11 @@ describe('TTS dialogue contracts', () => {
     expect(targets[0]?.voice).toBe('Host=Kore, Guest=Puck')
   })
 
-  test('ref-audio speakers rejected for providers that do not support ref audio', () => {
+  test('raw ref-audio speakers cannot enter generic runtime options', () => {
     expect(() => collectTtsTargets(buildOptsFromFlags(false, {
       'groq-tts': 'canopylabs/orpheus-v1-english',
       'tts-dialogue-format': 'labeled',
       'tts-speaker': ['DUCO=input/examples/audio/anthony-voice.mp3', 'CHAT=input/examples/audio/voice.mp3']
-    }))).toThrow('does not support reference audio')
+    }))).toThrow('--tts-speaker SPEAKER=path mappings cannot enter generic TTS runtime options')
   })
 })

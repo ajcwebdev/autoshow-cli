@@ -3,42 +3,32 @@ import {
   validateKittenTtsModel,
   validateKittenTtsSpeaker
 } from '~/cli/commands/setup-and-utilities/models/setup-model-options'
-import { pathExists, kittenTtsUvEnvDir } from '~/cli/commands/setup-and-utilities/setup/run-complete-setup'
-import { ensureKittenTtsSetup } from './kitten-tts'
 import { runKittenTts } from './run-kitten-tts'
-import * as l from '~/utils/app-logger/app-logger'
-
-const KITTEN_PYTHON_VERSION = '3.12'
+import { resolveTtsTargetInvocationVoiceId } from '../../tts-targets/multi-speaker-capability'
+import { resolveTtsTargetInvocationControls } from '../../tts-targets/tts-invocation-controls'
+import { TTS_CHUNK_CHARACTER_LIMITS } from '../../tts-utils/tts-chunking'
+import { hasCachedKittenTtsModel } from './kitten-tts-model-cache'
+import { InfraError } from '~/utils/error-handler'
+import { isKittenTtsEnvironmentReady, type KittenTtsEnvironmentReadinessProbes } from './kitten-tts'
 
 const DEFAULT_KITTEN_TTS_SPEAKER = 'Jasper'
 
-const checkKittenTtsSetup = async (): Promise<boolean> => {
-  if (!await pathExists(kittenTtsUvEnvDir)) {
-    return false
-  }
-  if (!await pathExists(`${kittenTtsUvEnvDir}/bin/python`)) {
-    return false
-  }
-  const required = [
-    `${kittenTtsUvEnvDir}/lib/python${KITTEN_PYTHON_VERSION}/site-packages/kittentts`,
-    `${kittenTtsUvEnvDir}/lib/python${KITTEN_PYTHON_VERSION}/site-packages/soundfile.py`
-  ]
-  for (const path of required) {
-    if (!await pathExists(path)) {
-      return false
-    }
-  }
-  return true
-}
+export const isKittenTtsSetupReady = async (
+  probes?: KittenTtsEnvironmentReadinessProbes | undefined
+): Promise<boolean> => await isKittenTtsEnvironmentReady(probes)
 
-const ensureKittenSetup = async (): Promise<void> => {
-  l.write('info', 'Checking Kitten TTS setup')
-  const isSetup = await checkKittenTtsSetup()
-  if (!isSetup) {
-    l.write('info', 'Kitten TTS not set up; running setup')
-    await ensureKittenTtsSetup()
-  } else {
-    l.write('success', 'Kitten TTS setup verified')
+export const assertKittenTtsExecutionReady = async (model: KittenTtsModel): Promise<void> => {
+  if (!await isKittenTtsSetupReady()) {
+    throw InfraError('Kitten TTS is not set up. Run `bun autoshow setup --step tts` before synthesis.', {
+      stage: 'tts:kitten',
+      hints: ['Run `bun autoshow setup --step tts` to install the local Kitten TTS runtime.']
+    })
+  }
+  if (!await hasCachedKittenTtsModel(model)) {
+    throw InfraError(`Kitten TTS model ${model} is not cached. Run \`bun autoshow setup --step tts\` before synthesis.`, {
+      stage: 'tts:kitten',
+      hints: [`Run \`bun autoshow setup --step tts\` to cache ${model} before the admitted render.`]
+    })
   }
 }
 
@@ -56,9 +46,24 @@ export const collectKittenTtsTargets = (
       service: 'kitten',
       model,
       voice: speaker,
-      run: async (text, outputDir) => {
-        await ensureKittenSetup()
-        return await runKittenTts(text, outputDir, { model, speaker })
+      run: async (text, outputDir, _opts, invocation, requestEvidence) => {
+        invocation?.signal?.throwIfAborted()
+        const invocationSpeaker = resolveTtsTargetInvocationVoiceId('kitten', invocation)
+        const controls = resolveTtsTargetInvocationControls('kitten', invocation, {
+          maxChunkChars: TTS_CHUNK_CHARACTER_LIMITS.kitten,
+        })
+        const runtimeSpeaker = invocationSpeaker
+          ? validateKittenTtsSpeaker(invocationSpeaker)
+          : speaker
+        await assertKittenTtsExecutionReady(model)
+        invocation?.signal?.throwIfAborted()
+        return await runKittenTts(text, outputDir, {
+          model,
+          speaker: runtimeSpeaker,
+          maxChunkChars: controls.maxChunkChars,
+          abortSignal: invocation?.signal,
+          requestEvidence
+        })
       }
     })
   }

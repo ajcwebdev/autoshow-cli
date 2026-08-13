@@ -1,8 +1,9 @@
 import { describe, expect, test } from 'bun:test'
 import { createHostedTtsChunkScheduler } from '~/cli/commands/process-steps/step-4-tts/tts-utils/hosted-tts-chunk-scheduler'
 import { withHostedTtsRetry } from '~/cli/commands/process-steps/step-4-tts/tts-utils/hosted-tts-retry'
-import { AppError } from '~/utils/error-handler'
-import { classifyFetchRetry, withRetry } from '~/utils/retries'
+import { AppError, CLIUsageError } from '~/utils/error-handler'
+import { exec } from '~/utils/cli-utils'
+import { classifyFetchRetry, pollUntil, withRetry } from '~/utils/retries'
 
 const FAST_RETRY_POLICY = {
   baseDelayMs: 0,
@@ -152,30 +153,48 @@ describe('retry error contracts', () => {
     expect(attempts).toBe(1)
   })
 
+  test('withHostedTtsRetry does not retry deterministic local contract errors', async () => {
+    let attempts = 0
+    const contractError = CLIUsageError('serializer evidence does not match the immutable plan')
+    await expect(withHostedTtsRetry(
+      {
+        operationName: 'hosted-tts-local-contract-error',
+        policy: { ...FAST_RETRY_POLICY, maxAttempts: 4 }
+      },
+      async () => {
+        attempts += 1
+        throw contractError
+      }
+    )).rejects.toBe(contractError)
+    expect(attempts).toBe(1)
+  })
+
   test('withHostedTtsRetry notifies hosted TTS chunk scheduler on 429 retries', async () => {
     const scheduler = createHostedTtsChunkScheduler(4)
     let attempts = 0
 
-    const result = await withHostedTtsRetry(
-      {
-        operationName: 'hosted-tts-rate-limit-feedback',
-        policy: {
-          ...FAST_RETRY_POLICY,
-          maxAttempts: 2
+    const [result] = await scheduler.runChunks('grok', ['chunk'], async (_chunk, _index, admission) =>
+      await withHostedTtsRetry(
+        {
+          operationName: 'hosted-tts-rate-limit-feedback',
+          policy: {
+            ...FAST_RETRY_POLICY,
+            maxAttempts: 2
+          },
+          admission,
+          chunkScheduler: scheduler
         },
-        ttsProvider: 'grok',
-        chunkScheduler: scheduler
-      },
-      async () => {
-        attempts += 1
-        if (attempts === 1) {
-          throw Object.assign(new Error('rate limited'), {
-            status: 429,
-            headers: new Headers({ 'retry-after': '0' })
-          })
+        async () => {
+          attempts += 1
+          if (attempts === 1) {
+            throw Object.assign(new Error('rate limited'), {
+              status: 429,
+              headers: new Headers({ 'retry-after': '0' })
+            })
+          }
+          return 'ok'
         }
-        return 'ok'
-      }
+      )
     )
 
     expect(result).toBe('ok')
@@ -347,4 +366,75 @@ describe('retry error contracts', () => {
       (error) => classifyFetchRetry(error, 'runtime_http_read')
     )).rejects.toBe(original)
   })
+
+  test('withHostedTtsRetry aborts a Retry-After backoff promptly', async () => {
+    const controller = new AbortController()
+    const cancellation = new Error('cancel hosted TTS retry backoff')
+    let attempts = 0
+    const startedAt = Date.now()
+    const run = withHostedTtsRetry(
+      {
+        operationName: 'hosted-tts-abort-backoff',
+        abortSignal: controller.signal,
+        policy: {
+          ...FAST_RETRY_POLICY,
+          maxAttempts: 2
+        }
+      },
+      async () => {
+        attempts += 1
+        throw Object.assign(new Error('rate limited'), {
+          status: 429,
+          headers: new Headers({ 'retry-after': '10' })
+        })
+      }
+    )
+    setTimeout(() => controller.abort(cancellation), 20)
+    await expect(run).rejects.toBe(cancellation)
+
+    expect(attempts).toBe(1)
+    expect(Date.now() - startedAt).toBeLessThan(2_000)
+  }, 5_000)
+
+  test('pollUntil aborts its interval wait without issuing another poll', async () => {
+    const controller = new AbortController()
+    const cancellation = new Error('cancel provider status polling')
+    let polls = 0
+    const run = pollUntil({
+      operationName: 'abortable-provider-status-poll',
+      intervalMs: 10_000,
+      deadlineMs: 20_000,
+      abortSignal: controller.signal,
+      pollFn: async () => {
+        polls += 1
+        return { done: false }
+      },
+      isDone: result => result.done
+    })
+
+    while (polls === 0) await Bun.sleep(1)
+    const startedAt = Date.now()
+    controller.abort(cancellation)
+
+    await expect(run).rejects.toBe(cancellation)
+    expect(polls).toBe(1)
+    expect(Date.now() - startedAt).toBeLessThan(2_000)
+  }, 5_000)
+
+  test('exec terminates a subprocess promptly when its signal is aborted', async () => {
+    const controller = new AbortController()
+    const cancellation = new Error('cancel local subprocess')
+    const startedAt = Date.now()
+    const run = exec(process.execPath, ['-e', 'setTimeout(() => {}, 10_000)'], {
+      signal: controller.signal,
+      retry: {
+        operationName: 'abortable subprocess',
+        maxAttempts: 3
+      }
+    })
+    setTimeout(() => controller.abort(cancellation), 20)
+    await expect(run).rejects.toBe(cancellation)
+
+    expect(Date.now() - startedAt).toBeLessThan(2_000)
+  }, 5_000)
 })

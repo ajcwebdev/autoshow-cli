@@ -51,7 +51,8 @@ export const resolveOcrExtractionOptions = (
     ...(rawOpts.step2SelectionOrigins ? { step2SelectionOrigins: rawOpts.step2SelectionOrigins } : {}),
     ...(preparedDocument?.preparedMarkdown ? { preparedMarkdown: preparedDocument.preparedMarkdown } : {}),
     ...(typeof preparedDocument?.htmlArticleProcessingTimeMs === 'number' ? { htmlArticleProcessingTimeMs: preparedDocument.htmlArticleProcessingTimeMs } : {}),
-    ...(preparedDocument?.htmlArticleBackend ? { htmlArticleBackend: preparedDocument.htmlArticleBackend } : {})
+    ...(preparedDocument?.htmlArticleBackend ? { htmlArticleBackend: preparedDocument.htmlArticleBackend } : {}),
+    ...(rawOpts.reasoningEffort ? { reasoningEffort: rawOpts.reasoningEffort } : {})
   }, 'document extraction options'),
   ocrConcurrencyMode
 })

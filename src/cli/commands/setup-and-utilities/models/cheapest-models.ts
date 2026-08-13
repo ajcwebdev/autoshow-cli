@@ -1,5 +1,6 @@
 import { estimateVideoCost } from '~/cli/commands/process-steps/step-6-video/video-utils/video-pricing'
 import { getModelRegistry } from './model-loader'
+import { filterModelNamesByLifecycle } from './model-loader/model-lifecycle'
 import { InternalError } from '~/utils/error-handler'
 import type { CheapestVideoSelection } from '~/types'
 import { DEFAULT_DEEPINFRA_OCR_MODEL } from './ocr-models'
@@ -105,7 +106,18 @@ const selectCheapestExtractModel = (service: 'mistral' | 'glm' | 'kimi' | 'opena
     throw InternalError(`Missing extract service config: ${service}`, { stage: 'models:cheapest' })
   }
 
-  return selectCheapestRegistryModel(serviceConfig.models, (model) => {
+  const defaultEligibleModels = filterModelNamesByLifecycle(
+    Object.keys(serviceConfig.models),
+    serviceConfig.models,
+    'defaultEligible'
+  )
+  if (defaultEligibleModels.length === 0) {
+    throw InternalError(`No default-eligible extract models available for ${service}`, { stage: 'models:cheapest' })
+  }
+
+  return pickCheapestModel(defaultEligibleModels, (modelName) => {
+    const model = serviceConfig.models[modelName]
+    if (!model) return Number.POSITIVE_INFINITY
     if (typeof model.costPer1kPagesCents === 'number') {
       return model.costPer1kPagesCents / 1000
     }
@@ -125,9 +137,21 @@ const selectCheapestLlmModel = (service: string): string => {
     throw InternalError(`Missing LLM service config: ${service}`, { stage: 'models:cheapest' })
   }
 
-  return selectCheapestRegistryModel(serviceConfig.models, (model) =>
-    model.inputCostPer1MCents + model.outputCostPer1MCents
+  const defaultEligibleModels = filterModelNamesByLifecycle(
+    Object.keys(serviceConfig.models),
+    serviceConfig.models,
+    'defaultEligible'
   )
+  if (defaultEligibleModels.length === 0) {
+    throw InternalError(`No default-eligible LLM models available for ${service}`, { stage: 'models:cheapest' })
+  }
+
+  return pickCheapestModel(defaultEligibleModels, (modelName) => {
+    const model = serviceConfig.models[modelName]
+    return model
+      ? model.inputCostPer1MCents + model.outputCostPer1MCents
+      : Number.POSITIVE_INFINITY
+  })
 }
 
 const selectCheapestTtsModel = (service: string): string => {

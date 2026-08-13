@@ -43,7 +43,7 @@ export const requestLocalCompletion = async (
       temperature: 0.7,
       max_tokens: 4096,
       chat_template_kwargs: { enable_thinking: false },
-      ...(structuredOpts?.strategy === 'native'
+      ...(structuredOpts?.strategy === 'native' && Object.keys(structuredOpts.schema).length > 0
         ? {
             response_format: {
               type: 'json_schema',

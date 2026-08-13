@@ -115,20 +115,11 @@ export const formatTimestampForDir = (date: Date): string => {
   return `${year}-${month}-${day}_${hours}-${minutes}-${seconds}`
 }
 
-const formatElapsedForOutput = (elapsedMs: number): string => {
-  const safeElapsedMs = Math.max(0, Math.round(elapsedMs))
-  const hours = Math.floor(safeElapsedMs / 3_600_000)
-  const minutes = Math.floor((safeElapsedMs % 3_600_000) / 60_000)
-  const seconds = Math.floor((safeElapsedMs % 60_000) / 1000)
-  const milliseconds = safeElapsedMs % 1000
-
-  return [
-    String(hours).padStart(2, '0'),
-    String(minutes).padStart(2, '0'),
-    String(seconds).padStart(2, '0')
-  ].join(':') + `.${String(milliseconds).padStart(3, '0')}`
-}
-
-export const formatTimedOutputPrefix = (atMs: number, startedAtMs: number): string => {
-  return `[${formatElapsedForOutput(atMs - startedAtMs)}]`
+export const formatTimedOutputPrefix = (atMs: number = Date.now()): string => {
+  const date = new Date(atMs)
+  const hours = String(date.getHours()).padStart(2, '0')
+  const minutes = String(date.getMinutes()).padStart(2, '0')
+  const seconds = String(date.getSeconds()).padStart(2, '0')
+  const milliseconds = String(date.getMilliseconds()).padStart(3, '0')
+  return `[${hours}:${minutes}:${seconds}.${milliseconds}]`
 }

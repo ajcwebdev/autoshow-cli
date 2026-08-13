@@ -6,6 +6,7 @@ NativeMissingFlagValueError,
 NativeNoSuchCommandError,
 NativeUnknownFlagError
 } from './native-errors'
+import { getUnknownFlagSpellings } from './unknown-flag-spellings'
 
 const createCommandMap = (
   commands: readonly CliCommandDefinition[]
@@ -156,6 +157,26 @@ const getNextFlagValue = (
   return { value: next, consumedNext: true }
 }
 
+const getAdjacentFlagValues = (
+  argv: string[],
+  index: number,
+  definition: CliFlagDefinition
+): string[] => {
+  if (!isRepeatableStringFlag(definition) || definition.consumeAdjacentValues !== true) {
+    return []
+  }
+
+  const values: string[] = []
+  for (let valueIndex = index + 1; valueIndex < argv.length; valueIndex++) {
+    const value = argv[valueIndex]
+    if (typeof value !== 'string' || value === '--' || value.startsWith('-')) {
+      break
+    }
+    values.push(value)
+  }
+  return values
+}
+
 const parseLongFlag = (
   argv: string[],
   index: number,
@@ -197,6 +218,15 @@ const parseLongFlag = (
     return index
   }
 
+  const adjacentValues = getAdjacentFlagValues(argv, index, definition)
+  if (adjacentValues.length > 0) {
+    for (const value of adjacentValues) {
+      setFlagValue(flags, name, definition, value)
+    }
+    recordFlagOccurrence(flagOccurrences, name, arg, adjacentValues[0] as string, definition)
+    return index + adjacentValues.length
+  }
+
   const { value, consumedNext } = getNextFlagValue(argv, index, name, definition)
   setFlagValue(flags, name, definition, value)
   recordFlagOccurrence(flagOccurrences, name, arg, value, definition)
@@ -230,6 +260,14 @@ const parseShortFlag = (
   }
 
   explicitFlags.add(name)
+  const adjacentValues = getAdjacentFlagValues(argv, index, definition)
+  if (adjacentValues.length > 0) {
+    for (const value of adjacentValues) {
+      setFlagValue(flags, name, definition, value)
+    }
+    recordFlagOccurrence(flagOccurrences, name, arg, adjacentValues[0] as string, definition)
+    return index + adjacentValues.length
+  }
   const { value, consumedNext } = getNextFlagValue(argv, index, name, definition)
   setFlagValue(flags, name, definition, value)
   recordFlagOccurrence(flagOccurrences, name, arg, value, definition)
@@ -402,9 +440,9 @@ export const parseCommandInvocation = (
     throw new NativeNoSuchCommandError(command.name)
   }
   const parsed = parseCommandArgv(argv.slice(commandIndex), command, globalFlags)
-  const unknownFlags = Object.keys(parsed.rawParsed.unknown)
-  if (!command.allowUnknownFlags && unknownFlags.length > 0) {
-    throw new NativeUnknownFlagError(unknownFlags)
+  const unknownFlagSpellings = getUnknownFlagSpellings(parsed.rawParsed)
+  if (!command.allowUnknownFlags && unknownFlagSpellings.length > 0) {
+    throw new NativeUnknownFlagError(unknownFlagSpellings)
   }
   return parsed
 }
@@ -424,12 +462,22 @@ const findSubcommandIndex = (
       const rawName = arg.slice(2).split('=', 1)[0] as string
       const name = rawName.startsWith('no-') ? rawName.slice(3) : rawName
       const definition = definitions[name]
-      if (definition && !isBooleanFlag(definition) && !arg.includes('=')) index++
+      if (definition && !isBooleanFlag(definition) && !arg.includes('=')) {
+        index++
+        if (definition.consumeAdjacentValues === true) {
+          while (index + 1 < argv.length && argv[index + 1] !== '--' && !argv[index + 1]?.startsWith('-')) index++
+        }
+      }
       continue
     }
     if (arg.startsWith('-') && arg.length > 1) {
       const definition = definitions[shortFlags.get(arg.slice(1)) ?? '']
-      if (definition && !isBooleanFlag(definition)) index++
+      if (definition && !isBooleanFlag(definition)) {
+        index++
+        if (definition.consumeAdjacentValues === true) {
+          while (index + 1 < argv.length && argv[index + 1] !== '--' && !argv[index + 1]?.startsWith('-')) index++
+        }
+      }
       continue
     }
     return index

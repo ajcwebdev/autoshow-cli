@@ -1,5 +1,5 @@
 import * as v from 'valibot'
-import type { HostedTtsChunkScheduler, SpeechifyTtsCustomVoiceOptions, SpeechifyTtsModel, Step4Metadata } from '~/types'
+import type { HostedTtsChunkScheduler, SpeechifyTtsModel, Step4Metadata, TtsRequestEvidenceScope } from '~/types'
 import { logTtsConfig } from '~/cli/commands/process-steps/step-4-tts/tts-utils/log-tts-config'
 import { splitTextIntoChunks } from '~/cli/commands/process-steps/step-4-tts/tts-utils/audio-utils'
 import { TTS_CHUNK_CHARACTER_LIMITS } from '~/cli/commands/process-steps/step-4-tts/tts-utils/tts-chunking'
@@ -10,7 +10,7 @@ import { SPEECHIFY_DEFAULT_BASE_URL } from '~/utils/base-urls'
 import { validateDataSafe } from '~/utils/validate/validation'
 import { ValidationError } from '~/utils/error-handler'
 import { httpResponseError } from '~/utils/rest-client'
-import { ensureSpeechifyTtsCustomVoice } from './speechify-custom-voices'
+import { dispatchTtsProviderRequest } from '../../script-to-audio/tts-request-evidence'
 
 const SpeechifySpeechResponseSchema = v.object({
   audio_data: v.string()
@@ -36,11 +36,12 @@ export const runSpeechifyTts = async (
   options: {
     model: SpeechifyTtsModel
     voiceId?: string | undefined
-    customVoice?: SpeechifyTtsCustomVoiceOptions | undefined
     audioFormat?: string | undefined
     language?: string | undefined
+    abortSignal?: AbortSignal | undefined
     chunkConcurrency?: number | undefined
     chunkScheduler?: HostedTtsChunkScheduler | undefined
+    requestEvidence?: TtsRequestEvidenceScope | undefined
   }
 ): Promise<{ audioPath: string, metadata: Step4Metadata }> => {
   const apiKey = requireApiKey('SPEECHIFY_API_KEY', 'tts:speechify', 'Speechify TTS')
@@ -53,20 +54,16 @@ export const runSpeechifyTts = async (
   }
 
   const startTime = Date.now()
-  const customVoiceResult = options.customVoice
-    ? await ensureSpeechifyTtsCustomVoice(baseURL, apiKey, options.customVoice)
-    : undefined
-  const voice = validateSpeechifyTtsVoiceForModel(options.model, customVoiceResult?.voiceId || options.voiceId?.trim() || SPEECHIFY_DEFAULT_TTS_VOICE)
+  const voice = validateSpeechifyTtsVoiceForModel(options.model, options.voiceId?.trim() || SPEECHIFY_DEFAULT_TTS_VOICE)
   const audioFormat = options.audioFormat?.trim() || 'mp3'
   const language = validateSpeechifyTtsLanguageForModel(options.model, options.language)
-  const speaker = customVoiceResult ? `ref_audio:${customVoiceResult.sourceAudio.basename}` : voice
+  const speaker = voice
 
   logTtsConfig('Speechify', [
     { label: 'model', value: options.model },
-    { label: customVoiceResult ? 'reference audio' : 'voice', value: customVoiceResult ? customVoiceResult.sourceAudio.basename : voice },
+    { label: 'voice', value: voice },
     { label: 'audio format', value: audioFormat },
     { label: 'language', value: language },
-    ...(customVoiceResult ? [{ label: 'created voice_id', value: customVoiceResult.voiceId }] : []),
     { label: 'chunk count', value: chunks.length }
   ])
 
@@ -79,24 +76,40 @@ export const runSpeechifyTts = async (
     outputDir,
     chunkExtension: audioFormat,
     startTime,
+    abortSignal: options.abortSignal,
     chunkConcurrency: options.chunkConcurrency,
     chunkScheduler: options.chunkScheduler,
-    ...(customVoiceResult ? { extraMetadata: { clonedVoiceId: customVoiceResult.voiceId, cloneCostCents: 0 } } : {}),
-    fetchChunkAudio: async ({ chunk, signal }) => {
-      const response = await fetch(`${baseURL}/v1/audio/speech`, {
+    requestEvidence: options.requestEvidence,
+    fetchChunkAudio: async ({ chunk, chunkIndex, signal, requestAttempt, retryReasonCode }) => {
+      const requestBody = {
+        input: chunk,
+        voice_id: voice,
+        audio_format: audioFormat,
+        model: options.model,
+        ...(language ? { language } : {})
+      }
+      return await dispatchTtsProviderRequest(options.requestEvidence, {
+        chunkIndex,
+        endpointKind: 'speech-synthesis',
+        serializerVersion: 'speechify.tts.phase-0-v1',
+        serializedRequest: { path: '/v1/audio/speech', body: requestBody },
+        providerText: chunk,
+        voiceField: 'voice_id',
+        voices: [{ kind: 'provider-id', value: voice }],
+        requestControls: {
+          audioFormat,
+          ...(language ? { language } : {})
+        },
+        continuation: { kind: 'none' }
+      }, { attempt: requestAttempt, ...(retryReasonCode ? { retryReasonCode } : {}) }, async ({ accepted }) => {
+        const response = await fetch(`${baseURL}/v1/audio/speech`, {
         method: 'POST',
         headers: {
           Authorization: `Bearer ${apiKey}`,
           'Content-Type': 'application/json',
           Accept: 'application/json'
         },
-        body: JSON.stringify({
-          input: chunk,
-          voice_id: voice,
-          audio_format: audioFormat,
-          model: options.model,
-          ...(language ? { language } : {})
-        }),
+        body: JSON.stringify(requestBody),
         ...(signal ? { signal } : {})
       })
 
@@ -104,12 +117,14 @@ export const runSpeechifyTts = async (
         const errText = await readSpeechifyError(response)
         throw httpResponseError(`Speechify TTS failed (${response.status}): ${errText}`, response)
       }
+      await accepted({ fields: { httpStatus: response.status } })
 
       const payload = validateDataSafe(SpeechifySpeechResponseSchema, await response.json())
       if (!payload) {
         throw ValidationError('Speechify TTS returned an invalid response: missing audio_data', { stage: 'tts:speechify' })
       }
       return decodeSpeechifyAudioData(payload.audio_data)
+      })
     }
   })
 }

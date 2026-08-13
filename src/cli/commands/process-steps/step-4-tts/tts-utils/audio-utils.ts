@@ -1,8 +1,9 @@
 import { resolve } from 'node:path'
-import type { RunTtsChunksOptions } from '~/types'
+import type { HostedTtsChunkAdmissionToken, RunTtsChunksOptions } from '~/types'
 import { exec } from '~/utils/cli-utils'
 import { getFfmpegBinary } from '~/utils/runtime-paths'
 import { InfraError } from '~/utils/error-handler'
+import type { TtsMasteringProfile } from '~/types'
 import { createHostedTtsChunkScheduler, normalizeHostedTtsChunkConcurrency } from './hosted-tts-chunk-scheduler'
 
 export const splitTextIntoChunks = (text: string, maxChars: number): string[] => {
@@ -39,12 +40,16 @@ export const normalizeTtsChunkConcurrency = (concurrency: number | undefined): n
 export const runTtsChunks = async <T>(
   chunks: readonly string[],
   concurrency: number | undefined,
-  runChunk: (chunk: string, index: number) => Promise<T>,
+  runChunk: (chunk: string, index: number, admission?: HostedTtsChunkAdmissionToken | undefined) => Promise<T>,
   options: RunTtsChunksOptions = {}
 ): Promise<T[]> => {
   if (options.provider) {
     const scheduler = options.scheduler ?? createHostedTtsChunkScheduler(concurrency)
-    return await scheduler.runChunks(options.provider, chunks, runChunk, { job: options.job })
+    return await scheduler.runChunks(options.provider, chunks, runChunk, {
+      job: options.job,
+      scopeLabel: options.scopeLabel,
+      abortSignal: options.abortSignal
+    })
   }
 
   const normalizedConcurrency = normalizeTtsChunkConcurrency(concurrency)
@@ -83,19 +88,25 @@ export const runTtsChunks = async <T>(
 export const concatAndConvertToWav = async (
   chunkPaths: string[],
   outputDir: string,
-  providerLabel: string
+  providerLabel: string,
+  abortSignal?: AbortSignal | undefined,
+  profile?: TtsMasteringProfile | undefined
 ): Promise<string> => {
+  abortSignal?.throwIfAborted()
   const wavPath = `${outputDir}/speech.wav`
+  const sampleRate = profile?.sampleRate ?? 16000
+  const channels = profile?.channels ?? 1
+  const codec = profile?.codec ?? 'pcm_s16le'
 
   if (chunkPaths.length === 1) {
     const ffmpeg = await exec(getFfmpegBinary(), [
       '-i', chunkPaths[0] as string,
-      '-ar', '16000',
-      '-ac', '1',
-      '-c:a', 'pcm_s16le',
+      '-ar', String(sampleRate),
+      '-ac', String(channels),
+      '-c:a', codec,
       '-y',
       wavPath
-    ])
+    ], { signal: abortSignal })
     if (ffmpeg.exitCode !== 0) {
       throw InfraError(`Failed to convert ${providerLabel} audio to WAV: ${ffmpeg.stderr.trim()}`, { stage: 'tts:audio-utils' })
     }
@@ -113,12 +124,12 @@ export const concatAndConvertToWav = async (
       '-f', 'concat',
       '-safe', '0',
       '-i', concatListPath,
-      '-ar', '16000',
-      '-ac', '1',
-      '-c:a', 'pcm_s16le',
+      '-ar', String(sampleRate),
+      '-ac', String(channels),
+      '-c:a', codec,
       '-y',
       wavPath
-    ])
+    ], { signal: abortSignal })
 
     if (ffmpeg.exitCode !== 0) {
       throw InfraError(`Failed to concatenate ${providerLabel} audio chunks: ${ffmpeg.stderr.trim()}`, { stage: 'tts:audio-utils' })
@@ -130,12 +141,85 @@ export const concatAndConvertToWav = async (
   }
 }
 
+export const mixAudioToWav = async (
+  inputPaths: readonly string[],
+  outputPath: string,
+  providerLabel: string,
+  profile: TtsMasteringProfile,
+  abortSignal?: AbortSignal | undefined
+): Promise<string> => {
+  if (inputPaths.length < 2) throw InfraError(`${providerLabel} overlap mixing requires at least two audio inputs.`, { stage: 'tts:audio-utils' })
+  abortSignal?.throwIfAborted()
+  const inputs = inputPaths.flatMap(path => ['-i', path])
+  const inputLabels = inputPaths.map((_, index) => `[${index}:a]`).join('')
+  const filter = `${inputLabels}amix=inputs=${inputPaths.length}:duration=longest:normalize=1,alimiter=limit=0.95[aout]`
+  const ffmpeg = await exec(getFfmpegBinary(), [
+    ...inputs,
+    '-filter_complex', filter,
+    '-map', '[aout]',
+    '-ar', String(profile.sampleRate),
+    '-ac', String(profile.channels),
+    '-c:a', profile.codec,
+    '-y',
+    outputPath,
+  ], { signal: abortSignal })
+  if (ffmpeg.exitCode !== 0) throw InfraError(`Failed to mix ${providerLabel} overlap audio: ${ffmpeg.stderr.trim()}`, { stage: 'tts:audio-utils' })
+  return outputPath
+}
+
+export const filterAudioToWav = async (
+  inputPath: string,
+  outputPath: string,
+  providerLabel: string,
+  audioFilter: string,
+  profile: TtsMasteringProfile,
+  abortSignal?: AbortSignal | undefined
+): Promise<string> => {
+  abortSignal?.throwIfAborted()
+  const ffmpeg = await exec(getFfmpegBinary(), [
+    '-i', inputPath,
+    '-af', audioFilter,
+    '-ar', String(profile.sampleRate),
+    '-ac', String(profile.channels),
+    '-c:a', profile.codec,
+    '-y',
+    outputPath,
+  ], { signal: abortSignal })
+  if (ffmpeg.exitCode !== 0) throw InfraError(`Failed to apply ${providerLabel} voice effect: ${ffmpeg.stderr.trim()}`, { stage: 'tts:audio-utils' })
+  return outputPath
+}
+
+export const createSilenceWav = async (
+  outputPath: string,
+  durationMs: number,
+  profile: TtsMasteringProfile,
+  abortSignal?: AbortSignal | undefined
+): Promise<string> => {
+  if (!Number.isSafeInteger(durationMs) || durationMs <= 0) throw InfraError('Silence duration must be a positive integer number of milliseconds.', { stage: 'tts:audio-utils' })
+  abortSignal?.throwIfAborted()
+  const channelLayout = profile.channels === 1 ? 'mono' : 'stereo'
+  const ffmpeg = await exec(getFfmpegBinary(), [
+    '-f', 'lavfi',
+    '-i', `anullsrc=r=${profile.sampleRate}:cl=${channelLayout}`,
+    '-t', (durationMs / 1000).toFixed(3),
+    '-ar', String(profile.sampleRate),
+    '-ac', String(profile.channels),
+    '-c:a', profile.codec,
+    '-y',
+    outputPath,
+  ], { signal: abortSignal })
+  if (ffmpeg.exitCode !== 0) throw InfraError(`Failed to create deterministic silence: ${ffmpeg.stderr.trim()}`, { stage: 'tts:audio-utils' })
+  return outputPath
+}
+
 export const convertAudioToWav = async (
   inputPath: string,
   outputPath: string,
   providerLabel: string,
-  purposeLabel = 'audio'
+  purposeLabel = 'audio',
+  abortSignal?: AbortSignal | undefined
 ): Promise<string> => {
+  abortSignal?.throwIfAborted()
   const ffmpeg = await exec(getFfmpegBinary(), [
     '-i', inputPath,
     '-vn',
@@ -145,7 +229,7 @@ export const convertAudioToWav = async (
     '-c:a', 'pcm_s16le',
     '-y',
     outputPath
-  ])
+  ], { signal: abortSignal })
 
   if (ffmpeg.exitCode !== 0) {
     throw InfraError(`Failed to convert ${providerLabel} ${purposeLabel} to WAV: ${ffmpeg.stderr.trim()}`, { stage: 'tts:audio-utils' })

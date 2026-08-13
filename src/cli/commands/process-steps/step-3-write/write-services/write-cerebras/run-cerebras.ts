@@ -4,6 +4,7 @@ import { CEREBRAS_DEFAULT_BASE_URL } from '~/utils/base-urls'
 import { CLIUsageError } from '~/utils/error-handler'
 import { requireApiKey } from '~/utils/validate/env-utils'
 import { runOpenAICompatibleChatModel } from '../openai-compatible-chat'
+import { resolveReasoningPolicy } from '~/cli/commands/setup-and-utilities/models/reasoning-resolver'
 
 export const CEREBRAS_MODEL_BY_SELECTOR = {
   'gpt-oss-120b': 'gpt-oss-120b',
@@ -64,10 +65,27 @@ export const runCerebrasModel = async (
   model: string,
   structuredOpts?: StructuredRequestOptions
 ): Promise<{ result: string, metadata: Step3Metadata }> => {
+  const policy = resolveReasoningPolicy({
+    step: 'llm',
+    service: 'cerebras',
+    model,
+    requestedReasoningEffort: structuredOpts?.requestedReasoningEffort
+  })
+  const updatedOpts: StructuredRequestOptions | undefined = structuredOpts
+    ? { ...structuredOpts, requestedReasoningEffort: policy.requested, effectiveReasoningEffort: policy.effective }
+    : {
+        schemaName: '',
+        schema: {},
+        strict: false,
+        strategy: 'native',
+        requestedReasoningEffort: policy.requested,
+        effectiveReasoningEffort: policy.effective
+      }
+
   return await runOpenAICompatibleChatModel({
     prompt,
     model,
-    structuredOpts,
+    structuredOpts: updatedOpts,
     config: () => ({
       apiKey: ensureCerebrasApiKey(),
       baseURL: CEREBRAS_DEFAULT_BASE_URL,

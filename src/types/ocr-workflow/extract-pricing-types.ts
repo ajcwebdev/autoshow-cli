@@ -1,10 +1,11 @@
-import type { HostedOcrTokenUsageEstimate, TokenPricedOcrProvider } from '~/types'
+import type { HostedOcrTokenReasoningPolicy, HostedOcrTokenUsageEstimate, TokenPricedOcrProvider } from '~/types'
 
 export type TokenEstimateMetadata = Omit<HostedOcrTokenUsageEstimate, 'promptTokens' | 'completionTokens'>
 
 export type EstimateOcrTokenUsageOptions = {
   ocrMode?: string | undefined
   profilePath?: string | undefined
+  effectiveReasoningEffort?: HostedOcrTokenReasoningPolicy | undefined
 }
 
 export type TokenOcrCostEstimate<TProvider extends TokenPricedOcrProvider> = {

@@ -22,18 +22,23 @@
           "completionTokensPerPage": 940,
           "costMultiplier": 1,
           "msPerPage": 9497
+        },
+        "reasoning": {
+          "support": "optional",
+          "allowDisabled": true,
+          "supportedEfforts": ["low", "medium", "high", "max"]
         }
       },
       "gpt-5.6-terra": {
         "description": "GPT-5.6 Terra OCR",
-        "pricingSourceUrl": "https://developers.openai.com/api/docs/pricing",
-        "pricingCheckedAt": "2026-07-13",
+        "pricingSourceUrl": "https://developers.openai.com/api/docs/models/gpt-5.6-terra",
+        "pricingCheckedAt": "2026-08-12",
         "pricingCurrency": "USD",
         "pricingTier": "OpenAI API standard token pricing",
-        "pricingNotes": "OpenAI lists GPT-5.6 Terra Standard pricing at $2.50/1M input tokens, $0.25/1M cached input tokens, $3.125/1M cache write tokens, and $15/1M output tokens. OCR estimates multiply observed or heuristic token usage by uncached standard input/output rates. Batch, flex, priority, regional uplifts, cached-input discounts, cache-write charges, enterprise pricing, taxes, and provider credits are ignored.",
-        "costPerMInputTokensCents": 250,
-        "costPerMCachedInputTokensCents": 25,
-        "costPerMOutputTokensCents": 1500,
+        "pricingNotes": "OpenAI lists GPT-5.6 Terra Standard pricing at $2/1M input tokens, $0.20/1M cached input tokens, $2.50/1M cache write tokens, and $12/1M output tokens. OCR estimates multiply observed or heuristic token usage by uncached standard input/output rates. Batch, flex, priority, regional uplifts, cached-input discounts, cache-write charges, enterprise pricing, taxes, and provider credits are ignored.",
+        "costPerMInputTokensCents": 200,
+        "costPerMCachedInputTokensCents": 20,
+        "costPerMOutputTokensCents": 1200,
         "limits": {
           "pdfBytes": 52428800,
           "notes": "project/links/openai-general-ocr-text-links.md documents OpenAI file-input limits of 50 MB per file and 50 MB total across all files in a request. Image-input docs document PNG, JPEG, WEBP, and non-animated GIF support with request-level payload limits."
@@ -43,18 +48,23 @@
           "completionTokensPerPage": 743,
           "costMultiplier": 1,
           "msPerPage": 5349
+        },
+        "reasoning": {
+          "support": "optional",
+          "allowDisabled": true,
+          "supportedEfforts": ["low", "medium", "high", "max"]
         }
       },
       "gpt-5.6-luna": {
         "description": "GPT-5.6 Luna OCR",
-        "pricingSourceUrl": "https://developers.openai.com/api/docs/pricing",
-        "pricingCheckedAt": "2026-07-13",
+        "pricingSourceUrl": "https://developers.openai.com/api/docs/models/gpt-5.6-luna",
+        "pricingCheckedAt": "2026-08-12",
         "pricingCurrency": "USD",
         "pricingTier": "OpenAI API standard token pricing",
-        "pricingNotes": "OpenAI lists GPT-5.6 Luna Standard pricing at $1/1M input tokens, $0.10/1M cached input tokens, $1.25/1M cache write tokens, and $6/1M output tokens. OCR estimates multiply observed or heuristic token usage by uncached standard input/output rates. Batch, flex, priority, regional uplifts, cached-input discounts, cache-write charges, enterprise pricing, taxes, and provider credits are ignored.",
-        "costPerMInputTokensCents": 100,
-        "costPerMCachedInputTokensCents": 10,
-        "costPerMOutputTokensCents": 600,
+        "pricingNotes": "OpenAI lists GPT-5.6 Luna Standard pricing at $0.20/1M input tokens, $0.02/1M cached input tokens, $0.25/1M cache write tokens, and $1.20/1M output tokens. OCR estimates multiply observed or heuristic token usage by uncached standard input/output rates. Batch, flex, priority, regional uplifts, cached-input discounts, cache-write charges, enterprise pricing, taxes, and provider credits are ignored.",
+        "costPerMInputTokensCents": 20,
+        "costPerMCachedInputTokensCents": 2,
+        "costPerMOutputTokensCents": 120,
         "limits": {
           "pdfBytes": 52428800,
           "notes": "project/links/openai-general-ocr-text-links.md documents OpenAI file-input limits of 50 MB per file and 50 MB total across all files in a request. Image-input docs document PNG, JPEG, WEBP, and non-animated GIF support with request-level payload limits."
@@ -64,6 +74,11 @@
           "completionTokensPerPage": 858,
           "costMultiplier": 1,
           "msPerPage": 3919
+        },
+        "reasoning": {
+          "support": "optional",
+          "allowDisabled": true,
+          "supportedEfforts": ["low", "medium", "high", "max"]
         }
       },
       "gpt-5.5": {
@@ -83,7 +98,7 @@
         "estimation": {
           "promptTokensPerPage": 2986,
           "completionTokensPerPage": 1903,
-          "costMultiplier": 0.2892,
+          "costMultiplier": 1,
           "msPerPage": 5887
         },
         "tokenPricingBands": [
@@ -101,7 +116,12 @@
             "cachedInputCostPer1MCents": 100,
             "outputCostPer1MCents": 4500
           }
-        ]
+        ],
+        "reasoning": {
+          "support": "optional",
+          "allowDisabled": true,
+          "supportedEfforts": ["low", "medium", "high"]
+        }
       },
       "gpt-5.4-mini": {
         "description": "GPT-5.4 mini OCR",
@@ -118,10 +138,15 @@
           "notes": "project/links/openai-general-ocr-text-links.md documents OpenAI file-input limits of 50 MB per file and 50 MB total across all files in a request. Image-input docs document PNG, JPEG, WEBP, and non-animated GIF support with request-level payload limits."
         },
         "estimation": {
-          "costMultiplier": 0.2692,
+          "costMultiplier": 1,
           "msPerPage": 7209,
           "promptTokensPerPage": 2986,
           "completionTokensPerPage": 1844
+        },
+        "reasoning": {
+          "support": "optional",
+          "allowDisabled": true,
+          "supportedEfforts": ["low", "medium", "high"]
         }
       },
       "gpt-5.4-nano": {
@@ -138,10 +163,15 @@
           "notes": "project/links/openai-general-ocr-text-links.md documents OpenAI file-input limits of 50 MB per file and 50 MB total across all files in a request. Image-input docs document PNG, JPEG, WEBP, and non-animated GIF support with request-level payload limits."
         },
         "estimation": {
-          "costMultiplier": 0.2692,
+          "costMultiplier": 1,
           "msPerPage": 7209,
           "promptTokensPerPage": 2986,
           "completionTokensPerPage": 1844
+        },
+        "reasoning": {
+          "support": "optional",
+          "allowDisabled": true,
+          "supportedEfforts": ["low", "medium", "high"]
         }
       }
     }

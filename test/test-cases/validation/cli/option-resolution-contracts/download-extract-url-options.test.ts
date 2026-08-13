@@ -40,7 +40,6 @@ describe('option resolution contracts', () => {
         'grok-tts-voice': 'EVE',
         'mistral-tts': 'voxtral-mini-tts-2603',
         'mistral-tts-voice': 'voice_abc123',
-        'mistral-tts-voice-name': 'Saved Voice Name',
         'deepgram-tts': 'aura-2-apollo-en',
         'deepgram-tts-encoding': 'linear16',
         'deepgram-tts-container': 'wav',
@@ -101,7 +100,6 @@ describe('option resolution contracts', () => {
       expect(opts.grokTtsVoice).toBe('eve')
       expect(opts.mistralTtsModel).toBe('voxtral-mini-tts-2603')
       expect(opts.mistralTtsVoice).toBe('voice_abc123')
-      expect(opts.mistralTtsVoiceName).toBe('Saved Voice Name')
       expect(opts.deepgramTtsModel).toBe('aura-2-apollo-en')
       expect(opts.deepgramTtsEncoding).toBe('linear16')
       expect(opts.deepgramTtsContainer).toBe('wav')

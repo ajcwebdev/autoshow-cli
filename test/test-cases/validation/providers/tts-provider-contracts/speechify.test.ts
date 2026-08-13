@@ -6,6 +6,7 @@ import {
 import { writeFile } from 'node:fs/promises'
 import { join } from 'node:path'
 import { runSpeechifyTts } from '~/cli/commands/process-steps/step-4-tts/tts-services/speechify/run-speechify-tts'
+import { ensureSpeechifyTtsCustomVoice } from '~/cli/commands/process-steps/step-4-tts/tts-services/speechify/speechify-custom-voices'
 import { createMockWavBase64, createSyntheticWavBytes } from '../../../../test-utils/media-fixtures'
 import {
   LOCAL_AUDIO_PATH,
@@ -172,7 +173,7 @@ describe('TTS provider service contracts', () => {
     ])
   }, 10_000)
 
-  test('Speechify custom voice creation posts multipart consent and uses the returned voice ID for synthesis', async () => {
+  test('the separate Speechify management helper posts consent and synthesis consumes only the returned voice ID', async () => {
       const dir = await makeTempDir('autoshow-speechify-custom-voice-')
       const samplePath = join(dir, 'speechify-sample.mp3')
       await Bun.$`ffmpeg -v error -y -i ${LOCAL_AUDIO_PATH} -t 12 -c copy ${samplePath}`.quiet()
@@ -191,9 +192,10 @@ describe('TTS provider service contracts', () => {
         throw new Error(`Unexpected Speechify mock fetch: ${call.url}`)
       })
 
-      const result = await runSpeechifyTts('Speechify custom voice synthesis.', dir, {
-        model: 'simba-3.0',
-        customVoice: {
+      const customVoice = await ensureSpeechifyTtsCustomVoice(
+        'https://api.speechify.ai',
+        'speechify-key',
+        {
           refAudioPath: samplePath,
           voiceName: 'AutoShow Anthony',
           consentName: 'Anthony Example',
@@ -201,15 +203,17 @@ describe('TTS provider service contracts', () => {
           locale: 'en-US',
           gender: 'notSpecified'
         }
+      )
+      const result = await runSpeechifyTts('Speechify custom voice synthesis.', dir, {
+        model: 'simba-3.0',
+        voiceId: customVoice.voiceId
       })
 
       expect(await Bun.file(result.audioPath).exists()).toBe(true)
       expect(result.metadata).toMatchObject({
         ttsService: 'speechify',
         ttsModel: 'simba-3.0',
-        speaker: 'ref_audio:speechify-sample.mp3',
-        clonedVoiceId: 'speechify_custom_voice_123',
-        cloneCostCents: 0,
+        speaker: 'speechify_custom_voice_123',
         chunkCount: 1
       })
       expect(calls).toHaveLength(2)
@@ -219,7 +223,9 @@ describe('TTS provider service contracts', () => {
       })
       expect(calls[0]?.headers.get('authorization')).toBe('Bearer speechify-key')
       expect(calls[0]?.form?.get('name')).toBe('AutoShow Anthony')
-      expect(calls[0]?.form?.get('consent')).toBe('true')
+      expect(calls[0]?.form?.get('locale')).toBe('en-US')
+      expect(calls[0]?.form?.get('gender')).toBe('not_specified')
+      expect(calls[0]?.form?.get('consent')).toBe(JSON.stringify({ fullName: 'Anthony Example', email: 'anthony@example.com' }))
       const sample = calls[0]?.form?.get('sample')
       expect(sample).toMatchObject({ name: 'speechify-sample.mp3', type: 'audio/mpeg' })
       expect(calls[1]).toMatchObject({
@@ -243,14 +249,15 @@ describe('TTS provider service contracts', () => {
 
       const calls = installMockFetch(() => Response.json({ id: 'unexpected' }))
 
-      await expect(runSpeechifyTts('Invalid custom voice.', dir, {
-        model: 'simba-3.0',
-        customVoice: {
+      await expect(ensureSpeechifyTtsCustomVoice(
+        'https://api.speechify.ai',
+        'speechify-key',
+        {
           refAudioPath: emptyAudio,
           consentName: 'Anthony Example',
           consentEmail: 'anthony@example.com'
         }
-      })).rejects.toThrow('reference audio is empty')
+      )).rejects.toThrow('reference audio is empty')
       expect(calls).toHaveLength(0)
     })
 })

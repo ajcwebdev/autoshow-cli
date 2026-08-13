@@ -24,6 +24,7 @@ Documents and images route through local OCR, hosted OCR, or native text extract
   - [Gemini OCR](#gemini-ocr)
   - [DeepInfra OCR](#deepinfra-ocr)
 - [OCR Notes](#ocr-notes)
+- [Incomplete Runs and Blocked Providers](#incomplete-runs-and-blocked-providers)
 
 See the [`extract` overview](./01-extract.md) for input routing across STT, OCR, article HTML, and X/Twitter inputs. Remote article URLs and local HTML are documented separately in [URL and X extraction](./04-extract-url.md).
 
@@ -293,8 +294,8 @@ GPT-5.6 OCR price mode uses post-run calibrated page heuristics from the 2026-07
 | OpenAI OCR model | Price-mode page heuristic | Initial speed estimate |
 |------------------|---------------------------|------------------------|
 | `gpt-5.6-sol` | 1,625 input + 940 output tokens, about $0.0363/page or $36.33/1K pages | 9,497 ms/page |
-| `gpt-5.6-terra` | 1,625 input + 743 output tokens, about $0.0152/page or $15.21/1K pages | 5,349 ms/page |
-| `gpt-5.6-luna` | 1,625 input + 858 output tokens, about $0.0068/page or $6.77/1K pages | 3,919 ms/page |
+| `gpt-5.6-terra` | 1,625 input + 743 output tokens, about $0.0122/page or $12.17/1K pages | 5,349 ms/page |
+| `gpt-5.6-luna` | 1,625 input + 858 output tokens, about $0.0014/page or $1.35/1K pages | 3,919 ms/page |
 
 ### Grok OCR
 
@@ -345,17 +346,18 @@ Claude Fable 5 OCR price mode uses the post-run calibrated page heuristic from t
 | Option | Value |
 |--------|-------|
 | Selector | `--provider gemini[=<model>]` |
-| Models | `gemini-3.1-pro-preview`, `gemini-3.5-flash`, `gemini-3.1-flash-lite`, `gemini-3.6-flash`, `gemini-3.5-flash-lite` |
+| Models | `gemini-3.1-pro-preview`, `gemini-3.5-flash`, `gemini-3.6-flash`, `gemini-3.5-flash-lite` |
+| Bare default | `gemini-3.5-flash-lite` |
+| Retired selector | `gemini-3.1-flash-lite` is rejected with guidance to use `gemini-3.5-flash-lite`; historical pricing and manifest identity remain readable |
 | Direct input support | PDF plus `PNG`, `JPG`, `WEBP`, and `BMP` |
 
 ```bash
-bun autoshow extract input/examples/document/1-document.pdf --provider gemini=gemini-3.1-flash-lite
+bun autoshow extract input/examples/document/1-document.pdf --provider gemini=gemini-3.5-flash-lite
 bun autoshow extract input/examples/document/1-document.pdf --provider gemini=gemini-3.5-flash
 bun autoshow extract input/examples/document/1-document.pdf --provider gemini=gemini-3.6-flash
-bun autoshow extract input/examples/document/1-document.pdf --provider gemini=gemini-3.5-flash-lite
 ```
 
-Gemini OCR normalizes `GIF` inputs to `PNG` locally before upload. `TIF/TIFF` inputs are normalized to `PNG` when ImageMagick is available; otherwise they are rejected with a usage error. It currently enforces the bundled docs caps from `project/links/gemini-general-ocr-text-links.md`: inline PDFs up to 50 MB, inline non-PDF inputs up to 100 MB, Files API uploads up to 2 GB per file, and PDFs up to 1000 pages. Passing `--provider gemini` keeps the cheapest Gemini OCR default, `gemini-3.1-flash-lite`. Gemini 3.6 Flash (`$1.50 / 1M input`, `$7.50 / 1M output`) and Gemini 3.5 Flash-Lite (`$0.30 / 1M input`, `$2.50 / 1M output`) use flat Standard rates with no published context tiers, and both reuse Gemini 3.1 Flash-Lite's page heuristic of 1,157 input and 1,626 output tokens at 2,921 ms/page until calibrated. Google documents `gemini-3.5-flash-lite` as the replacement for `gemini-3.1-flash-lite` ahead of that model's 2027-05-07 shutdown; despite the name it is the more expensive of the two on both published rates, so the default is unchanged.
+Gemini OCR normalizes `GIF` inputs to `PNG` locally before upload. `TIF/TIFF` inputs are normalized to `PNG` when ImageMagick is available; otherwise they are rejected with a usage error. It currently enforces the bundled docs caps from `project/links/gemini-general-ocr-text-links.md`: inline PDFs up to 50 MB, inline non-PDF inputs up to 100 MB, Files API uploads up to 2 GB per file, and PDFs up to 1000 pages. Passing `--provider gemini` resolves to `gemini-3.5-flash-lite`. The retired `gemini-3.1-flash-lite` selector is absent from active validation and `--all-providers`; direct selection names `gemini-3.5-flash-lite` as the replacement, and an unfinished historical resume requires that replacement to be added explicitly as a distinct target. Gemini 3.6 Flash (`$1.50 / 1M input`, `$7.50 / 1M output`) and Gemini 3.5 Flash-Lite (`$0.30 / 1M input`, `$2.50 / 1M output`) use flat Standard rates with no published context tiers, and both reuse Gemini 3.1 Flash-Lite's page heuristic of 1,157 input and 1,626 output tokens at 2,921 ms/page until calibrated. Google still listed 2027-05-07 as the earliest shutdown date and `gemini-3.5-flash-lite` as the replacement when AutoShow retired the old selector on 2026-08-13.
 
 ### DeepInfra OCR
 

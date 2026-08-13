@@ -18,7 +18,7 @@ test('rejects invalid mistral model', async () => {
   expect(`${result.stdout}\n${result.stderr}`).toContain('Invalid model "invalid-model" for --provider/--tts mistral[=model]')
 })
 
-test('mistral execution defaults to reference audio and fails on missing API key', async () => {
+test('mistral execution rejects a missing voice source before provider setup', async () => {
   const result = await runCommand([
     'src/cli/create-cli.ts',
     'tts',
@@ -33,7 +33,6 @@ test('mistral execution defaults to reference audio and fails on missing API key
 
   expect(result.exitCode).not.toBe(0)
   const output = `${result.stdout}\n${result.stderr}`
-  expect(output).not.toContain('Mistral TTS requires a saved voice ID or reference audio')
-  expect(output).toContain('MISTRAL_API_KEY')
+  expect(output).toContain('requires an existing voice ID or an explicitly authorized unnamed request reference')
+  expect(output).not.toContain('MISTRAL_API_KEY')
 })
-

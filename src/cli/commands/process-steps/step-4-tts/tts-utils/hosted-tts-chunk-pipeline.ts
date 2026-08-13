@@ -11,16 +11,23 @@ export const runHostedTtsChunkPipeline = async (
   const chunkPaths: string[] = []
 
   try {
-    const orderedChunkPaths = await runTtsChunks(chunks, options.chunkConcurrency, async (chunk, index) => {
+    const orderedChunkPaths = await runTtsChunks(chunks, options.chunkConcurrency, async (chunk, index, admission) => {
       const chunkIndex = index + 1
       const chunkPath = `${outputDir}/speech-${provider}-chunk-${String(chunkIndex).padStart(3, '0')}.${options.chunkExtension}`
       const audioBytes = await withHostedTtsRetry(
         {
           operationName: `${provider}-tts-chunk-${chunkIndex}`,
-          ttsProvider: provider,
+          abortSignal: options.abortSignal,
+          admission,
           chunkScheduler
         },
-        async (signal) => await options.fetchChunkAudio({ chunk, chunkIndex, signal })
+        async (signal, requestAttempt) => await options.fetchChunkAudio({
+          chunk,
+          chunkIndex,
+          signal,
+          requestAttempt: requestAttempt.attempt,
+          ...(requestAttempt.retryReasonCode ? { retryReasonCode: requestAttempt.retryReasonCode } : {})
+        })
       )
 
       if (audioBytes.byteLength === 0) {
@@ -28,11 +35,19 @@ export const runHostedTtsChunkPipeline = async (
       }
 
       await Bun.write(chunkPath, audioBytes)
+      await options.requestEvidence?.recordOutput({ chunkIndex, path: chunkPath })
+      await options.requestEvidence?.complete({ chunkIndex })
       chunkPaths.push(chunkPath)
       return chunkPath
-    }, { provider, scheduler: chunkScheduler })
+    }, {
+      provider,
+      scheduler: chunkScheduler,
+      job: options.chunkJob,
+      scopeLabel: options.laneScopeLabel,
+      abortSignal: options.abortSignal
+    })
 
-    const audioPath = await concatAndConvertToWav(orderedChunkPaths, outputDir, providerLabel)
+    const audioPath = await concatAndConvertToWav(orderedChunkPaths, outputDir, providerLabel, options.abortSignal)
     const result = finalizeTtsRun({
       service: provider,
       model: options.model,

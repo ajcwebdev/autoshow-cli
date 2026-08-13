@@ -6,6 +6,7 @@ import {
   ocrInputFlags,
   ocrTuningFlags,
   priceFlag,
+  reasoningEffortFlag,
   sharedConcurrencyFlags,
   transcriptionFlags
 } from './shared-flags'
@@ -33,6 +34,7 @@ export const extractStep2CommandFlags = {
   ...withHelpGroup(extractProviderSelectionFlags, 'provider-selection'),
   ...withHelpGroup(transcriptionFlags, 'transcription'),
   ...withHelpGroup(extractDocumentFlags, 'ocr-document'),
+  ...withHelpGroup(reasoningEffortFlag, 'ocr-document'),
   ...withHelpGroup(allArticleFlags, 'article-extraction'),
   ...withHelpGroup(batchFlags, 'batch-processing'),
   ...withHelpGroup(epubInspectFlags, 'epub-inspect'),

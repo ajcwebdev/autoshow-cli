@@ -1,4 +1,5 @@
 import type { CompatStructuredResponse, LLMTarget, ResolvedStructuredSchema, StructuredRequestOptions, StructuredValidationContext } from '~/types'
+import type { NormalizedReasoningEffort } from '~/cli/commands/setup-and-utilities/models/reasoning-resolver'
 import * as l from '~/utils/app-logger/app-logger'
 import { InfraError } from '~/utils/error-handler'
 import { buildStructuredInstructionSuffix } from './schema-resolver'
@@ -22,14 +23,16 @@ export const runCompatFallback = async (
   model: string,
   schema: ResolvedStructuredSchema,
   retryBudget: number,
-  validationContext?: StructuredValidationContext
+  validationContext?: StructuredValidationContext,
+  requestedReasoningEffort?: NormalizedReasoningEffort
 ): Promise<CompatStructuredResponse> => {
   const compatPrompt = buildCompatPrompt(prompt, schema)
   const requestOptions: StructuredRequestOptions = {
     schemaName: schema.schemaName,
     schema: schema.jsonSchema,
     strict: false,
-    strategy: 'schema-guided'
+    strategy: 'schema-guided',
+    requestedReasoningEffort
   }
 
   const maxAttempts = retryBudget + 1

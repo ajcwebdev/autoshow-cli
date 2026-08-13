@@ -88,7 +88,7 @@ const scanRoots = [
   resolve(repositoryRoot, 'docs/diagrams.md'),
   resolve(repositoryRoot, 'docs/tests'),
   resolve(repositoryRoot, 'docs/release-v0.1.md'),
-  resolve(repositoryRoot, 'docs/adr/ADR-002-url-article-extraction-and-target-discovery.md'),
+  resolve(repositoryRoot, 'docs/adr/ADR-002-pipeline-state-resume-and-dry-run-planning.md'),
   resolve(repositoryRoot, '.codex/skills/consensus'),
   resolve(repositoryRoot, 'README.md')
 ]

@@ -98,25 +98,14 @@ const priceCases: Array<{ label: string; args: string[]; expected: string | stri
     expected: 'speech'
   },
   {
-    label: 'Speechify custom voice TTS',
-    args: ['tts', STABLE_TTS_MD_PATH, '--provider', 'speechify=simba-3.0', '--tts-ref-audio', 'input/voices/my-voice-sample.mp3', '--tts-consent-name', 'Anthony Example', '--tts-consent-email', 'anthony@example.com', '--price'],
-    expected: 'speech'
-  },
-  {
     label: 'Mistral TTS',
-    args: ['tts', STABLE_TTS_MD_PATH, '--provider', 'mistral=voxtral-mini-tts-2603', '--price'],
+    args: ['tts', STABLE_TTS_MD_PATH, '--provider', 'mistral=voxtral-mini-tts-2603', '--tts-voice', 'voice_abc123', '--price'],
     expected: 'speech'
   },
   {
     label: 'Mistral dialogue TTS',
-    args: ['tts', 'input/examples/tts/tts-dialogue.txt', '--provider', 'mistral=voxtral-mini-tts-2603', '--tts-dialogue-format', 'labeled', '--tts-speaker', 'Host=input/examples/audio/anthony-voice.mp3', '--tts-speaker', 'Guest=https://ajc.pics/autoshow/examples/1-audio.mp3', '--price'],
-    expected: 'dialogue-normalized.txt'
-  },
-  {
-    label: 'ElevenLabs IVC TTS',
-    args: ['tts', STABLE_TTS_MD_PATH, '--provider', 'elevenlabs=eleven_v3', '--tts-ref-audio', 'input/examples/audio/anthony-voice.mp3', '--price'],
-    expected: 'speech',
-    env: { ELEVENLABS_API_KEY: '', ELEVENLABS_BASE_URL: '' }
+    args: ['tts', 'input/examples/tts/tts-dialogue.txt', '--provider', 'mistral=voxtral-mini-tts-2603', '--tts-dialogue-format', 'labeled', '--tts-speaker', 'Host=input/examples/audio/anthony-voice.mp3', '--tts-speaker', 'Guest=input/examples/audio/0-audio-short.mp3', '--price'],
+    expected: ['speech', '418 characters']
   },
   {
     label: 'image',
@@ -160,6 +149,29 @@ describe('price mode contracts', () => {
         }
       })
     }
+
+  for (const creationCase of [
+    {
+      label: 'Speechify custom voice TTS',
+      args: ['tts', STABLE_TTS_MD_PATH, '--provider', 'speechify=simba-3.0', '--tts-ref-audio', 'input/examples/audio/anthony-voice.mp3', '--tts-consent-name', 'Anthony Example', '--tts-consent-email', 'anthony@example.com', '--price'],
+      expected: 'cannot perform reference-audio cloning during TTS synthesis'
+    },
+    {
+      label: 'ElevenLabs IVC TTS',
+      args: ['tts', STABLE_TTS_MD_PATH, '--provider', 'elevenlabs=eleven_v3', '--tts-ref-audio', 'input/examples/audio/anthony-voice.mp3', '--price'],
+      expected: 'cannot perform reference-audio cloning during TTS synthesis'
+    }
+  ]) {
+    test(`${creationCase.label} is rejected before synthesis price planning`, async () => {
+      const result = await runCommand(['src/cli/create-cli.ts', ...creationCase.args])
+
+      expect(result.exitCode).toBe(2)
+      expect(result.outputDir).toBeNull()
+      const output = `${result.stdout}\n${result.stderr}`
+      expect(output).toContain(creationCase.expected)
+      expect(output).toContain('comic reference-voice')
+    })
+  }
 
   test('hosted OCR --price reports the detected PDF page count', async () => {
       const result = await runCommand([

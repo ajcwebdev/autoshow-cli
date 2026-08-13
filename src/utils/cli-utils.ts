@@ -79,22 +79,66 @@ const computeExecRetryDelay = (
   return Math.round(Math.min(jittered, maxDelayMs))
 }
 
+const sleepWithAbortSignal = async (
+  delayMs: number,
+  signal?: AbortSignal | undefined
+): Promise<void> => {
+  signal?.throwIfAborted()
+  if (!signal) {
+    await Bun.sleep(delayMs)
+    return
+  }
+
+  await new Promise<void>((resolve, reject) => {
+    const onAbort = (): void => {
+      clearTimeout(timer)
+      reject(signal.reason ?? new DOMException('The operation was aborted.', 'AbortError'))
+    }
+    const timer = setTimeout(() => {
+      signal.removeEventListener('abort', onAbort)
+      resolve()
+    }, delayMs)
+    signal.addEventListener('abort', onAbort, { once: true })
+  })
+}
+
 const execOnce = async (
   command: string,
   args: string[],
   opts?: ExecOptions
 ): Promise<ExecResult> => {
+  opts?.signal?.throwIfAborted()
   const env = opts?.env ? { ...process.env, ...opts.env } : undefined
   const proc = Bun.spawn([command, ...args], {
     stdout: 'pipe',
     stderr: 'pipe',
     ...(env ? { env: env as Record<string, string | undefined> } : {})
   })
-  const [stdout, stderr, exitCode] = await Promise.all([
-    readStreamText(proc.stdout, undefined, opts?.maxBufferBytes),
-    readStreamText(proc.stderr, opts?.onStderrLine, opts?.maxBufferBytes),
-    proc.exited
-  ])
+  const onAbort = (): void => {
+    try {
+      proc.kill()
+    } catch {
+      // The process may already have exited between the abort and this callback.
+    }
+  }
+  opts?.signal?.addEventListener('abort', onAbort, { once: true })
+  if (opts?.signal?.aborted) {
+    onAbort()
+  }
+
+  let stdout: Awaited<ReturnType<typeof readStreamText>>
+  let stderr: Awaited<ReturnType<typeof readStreamText>>
+  let exitCode: number
+  try {
+    [stdout, stderr, exitCode] = await Promise.all([
+      readStreamText(proc.stdout, undefined, opts?.maxBufferBytes),
+      readStreamText(proc.stderr, opts?.onStderrLine, opts?.maxBufferBytes),
+      proc.exited
+    ])
+  } finally {
+    opts?.signal?.removeEventListener('abort', onAbort)
+  }
+  opts?.signal?.throwIfAborted()
   return {
     stdout: stdout.text,
     stderr: stderr.text,
@@ -125,6 +169,7 @@ export const exec = async (
   let lastError: unknown
 
   for (let attempt = 1; attempt <= maxAttempts; attempt++) {
+    opts?.signal?.throwIfAborted()
     let result: ExecResult | undefined
     let failureReason: string | undefined
 
@@ -136,9 +181,12 @@ export const exec = async (
       lastResult = result
       failureReason = `exit code ${result.exitCode}`
     } catch (error) {
+      opts?.signal?.throwIfAborted()
       lastError = error
       failureReason = error instanceof Error ? error.message : String(error)
     }
+
+    opts?.signal?.throwIfAborted()
 
     if (attempt >= maxAttempts) {
       break
@@ -149,7 +197,7 @@ export const exec = async (
       category: 'pipeline',
       metadata: { command, attempt, maxAttempts, failureReason, delayMs }
     })
-    await Bun.sleep(delayMs)
+    await sleepWithAbortSignal(delayMs, opts?.signal)
   }
 
   if (lastResult) {

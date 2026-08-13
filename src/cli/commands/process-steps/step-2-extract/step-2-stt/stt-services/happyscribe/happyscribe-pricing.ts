@@ -1,4 +1,4 @@
-import { computeBilledSttCost } from '~/utils/pricing/stt-billing'
+import { computeBilledSttCost } from '~/cli/commands/pricing-orchestration/stt-billing'
 import { readEnv } from '~/utils/validate/env-utils'
 import {
   buildHappyScribeOrganizationResolutionError,

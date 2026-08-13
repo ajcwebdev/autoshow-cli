@@ -202,7 +202,10 @@ export const processOcrSingle = async (
     : undefined)
   const extraction = await processOcr(
     target,
-    buildExtractionCallOpts(target, baseDir, opts),
+    {
+      ...buildExtractionCallOpts(target, baseDir, opts),
+      ...(batchChildContext?.hostedOcrScheduler ? { hostedOcrScheduler: batchChildContext.hostedOcrScheduler } : {})
+    },
     sourceRef,
     resolvedPreparedDocument,
     preflightEstimate

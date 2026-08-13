@@ -13,12 +13,10 @@ import { createMockWavBase64, createSyntheticWavBytes } from '../../../../test-u
 import { installMockFetch } from '../../../../test-utils/rest-contract-helpers'
 import { LOCAL_AUDIO_PATH, LOCAL_SHORT_AUDIO_PATH, readWavSamples, segmentRms, setupTtsContractLifecycle, waitForCondition } from './shared'
 
-const SHORT_AUDIO_URL = 'https://ajc.pics/autoshow/examples/0-audio-short.mp3'
-
 const { makeTempDir } = setupTtsContractLifecycle()
 
 describe('TTS provider service contracts', () => {
-  test('Mistral converts non-mp3-wav reference audio to WAV before sending ref_audio', async () => {
+  test('Mistral converts a protected non-mp3-wav reference to WAV before sending ref_audio', async () => {
       const dir = await makeTempDir('autoshow-mistral-tts-ref-audio-')
       const sourcePath = join(dir, 'reference.m4a')
 
@@ -30,7 +28,11 @@ describe('TTS provider service contracts', () => {
 
       const result = await runMistralTts('Mistral reference synthesis.', dir, {
         model: 'voxtral-mini-tts-2603',
-        refAudioPath: sourcePath
+        refAudioPath: sourcePath,
+        protectedReference: {
+          assetId: 'sha256_fixture_reference',
+          sourceExtension: '.m4a'
+        }
       })
 
       expect(await Bun.file(result.audioPath).exists()).toBe(true)
@@ -55,87 +57,18 @@ describe('TTS provider service contracts', () => {
       expect(result.metadata).toMatchObject({
         ttsService: 'mistral',
         ttsModel: 'voxtral-mini-tts-2603',
-        speaker: 'ref_audio:reference.m4a',
+        speaker: 'ref_audio:sha256_fixture_reference',
         chunkCount: 1
       })
     }, 10_000)
 
-  test('Mistral creates a saved voice when reference audio is paired with a voice name', async () => {
-      const dir = await makeTempDir('autoshow-mistral-tts-saved-voice-')
-      const sourcePath = SHORT_AUDIO_URL
-      const mediaBytes = await Bun.file(LOCAL_SHORT_AUDIO_PATH).arrayBuffer()
-      process.env['MISTRAL_API_KEY'] = 'mistral-key'
-
-      const calls = installMockFetch((call) => {
-        if (call.url === SHORT_AUDIO_URL) {
-          return new Response(mediaBytes, { status: 200, headers: { 'content-type': 'audio/mpeg' } })
-        }
-
-        if (call.url.endsWith('/v1/audio/voices')) {
-          return Response.json({
-            id: 'mistral_saved_voice_123',
-            name: 'AutoShow Saved Voice',
-            retention_notice: 30,
-            created_at: '2026-01-01T00:00:00.000Z',
-            user_id: null
-          })
-        }
-        if (call.url.endsWith('/v1/audio/speech')) {
-          return Response.json({ audio_data: createMockWavBase64() })
-        }
-        throw new Error(`Unexpected Mistral saved voice mock fetch: ${call.method} ${call.url}`)
-      })
-
-      const result = await runMistralTts('Mistral saved voice synthesis.', dir, {
-        model: 'voxtral-mini-tts-2603',
-        refAudioPath: sourcePath,
-        voiceName: 'AutoShow Saved Voice'
-      })
-
-      expect(await Bun.file(result.audioPath).exists()).toBe(true)
-      expect(calls).toHaveLength(3)
-      const providerCalls = calls.filter((call) => call.url !== SHORT_AUDIO_URL)
-      expect(providerCalls).toHaveLength(2)
-      expect(providerCalls[0]).toMatchObject({
-        url: 'https://api.mistral.ai/v1/audio/voices',
-        method: 'POST',
-        bodyJson: {
-          name: 'AutoShow Saved Voice',
-          sample_filename: '0-audio-short.mp3',
-          retention_notice: 30
-        }
-      })
-      expect(providerCalls[0]?.headers.get('authorization')).toBe('Bearer mistral-key')
-      expect(typeof providerCalls[0]?.bodyJson?.['sample_audio']).toBe('string')
-      expect(String(providerCalls[0]?.bodyJson?.['sample_audio']).length).toBeGreaterThan(0)
-      expect(providerCalls[1]).toMatchObject({
-        url: 'https://api.mistral.ai/v1/audio/speech',
-        method: 'POST',
-        bodyJson: {
-          model: 'voxtral-mini-tts-2603',
-          input: 'Mistral saved voice synthesis.',
-          stream: false,
-          response_format: 'wav',
-          voice_id: 'mistral_saved_voice_123'
-        }
-      })
-      expect(providerCalls[1]?.headers.get('authorization')).toBe('Bearer mistral-key')
-      expect(result.metadata).toMatchObject({
-        ttsService: 'mistral',
-        ttsModel: 'voxtral-mini-tts-2603',
-        speaker: 'mistral_saved_voice_123',
-        clonedVoiceId: 'mistral_saved_voice_123',
-        cloneCostCents: 0
-      })
-    }, 10_000)
-
-  test('Mistral multi-speaker TTS sends each speaker reference audio', async () => {
+  test('Mistral multi-speaker reference paths fail locally before provider execution', async () => {
       const dir = await makeTempDir('autoshow-mistral-tts-dialogue-ref-audio-')
       process.env['MISTRAL_API_KEY'] = 'mistral-key'
 
       const calls = installMockFetch(() => Response.json({ audio_data: createMockWavBase64() }))
 
-      const result = await runTts([
+      await expect(runTts([
         'Host: Welcome to the reference audio test.',
         'Guest: Thanks. I should use the guest sample.'
       ].join('\n'), dir, {
@@ -145,41 +78,9 @@ describe('TTS provider service contracts', () => {
           `Host=${LOCAL_SHORT_AUDIO_PATH}`,
           `Guest=${LOCAL_AUDIO_PATH}`
         ]
-      } as TtsOptions)
+      } as TtsOptions)).rejects.toThrow('must cross protected ingestion as exact per-speaker opaque assets')
 
-      expect(calls).toHaveLength(2)
-      for (const call of calls) {
-        expect(call.headers.get('authorization')).toBe('Bearer mistral-key')
-        expect(call).toMatchObject({
-          url: 'https://api.mistral.ai/v1/audio/speech',
-          method: 'POST',
-          bodyJson: {
-            model: 'voxtral-mini-tts-2603',
-            stream: false,
-            response_format: 'wav'
-          }
-        })
-        expect(typeof call.bodyJson?.['ref_audio']).toBe('string')
-        expect(String(call.bodyJson?.['ref_audio']).length).toBeGreaterThan(0)
-        expect(call.bodyJson?.['voice_id']).toBeUndefined()
-      }
-      expect(calls.map((call) => call.bodyJson?.['input']).sort()).toEqual([
-        'Thanks. I should use the guest sample.',
-        'Welcome to the reference audio test.'
-      ])
-
-      expect(await Bun.file(join(dir, 'speech.wav')).exists()).toBe(true)
-      expect(await Bun.file(join(dir, 'dialogue-normalized.txt')).exists()).toBe(true)
-      expect(await Bun.file(join(dir, 'segments', 'segment-001-Host.wav')).exists()).toBe(true)
-      expect(await Bun.file(join(dir, 'segments', 'segment-002-Guest.wav')).exists()).toBe(true)
-      expect(await Bun.file(result.audioPaths[0] ?? '').exists()).toBe(true)
-      expect(result.metadata).toHaveLength(1)
-      expect(result.metadata[0]).toMatchObject({
-        ttsService: 'mistral',
-        ttsModel: 'voxtral-mini-tts-2603',
-        speaker: 'Host=ref_audio:0-audio-short.mp3, Guest=ref_audio:1-audio.mp3',
-        chunkCount: 2
-      })
+      expect(calls).toHaveLength(0)
     }, 10_000)
 
   test('ElevenLabs TTS sends output format, voice settings, seed, text normalization, and pronunciation dictionaries controls', async () => {
@@ -346,59 +247,4 @@ describe('TTS provider service contracts', () => {
       expect(result.metadata.chunkCount).toBe(3)
     }, 10_000)
 
-  test('ElevenLabs IVC setup runs once before chunked synthesis', async () => {
-      const dir = await makeTempDir('autoshow-elevenlabs-tts-ivc-chunks-')
-      const audioBytes = await Bun.file(LOCAL_SHORT_AUDIO_PATH).arrayBuffer()
-      process.env['ELEVENLABS_API_KEY'] = 'elevenlabs-key'
-
-      const calls = installMockFetch((call) => {
-        if (call.url.endsWith('/v1/voices/add')) {
-          return Response.json({
-            voice_id: 'voice_cloned_once',
-            requires_verification: false
-          })
-        }
-        if (call.url.includes('/v1/text-to-speech/')) {
-          return new Response(audioBytes, { status: 200, headers: { 'content-type': 'audio/mpeg' } })
-        }
-        throw new Error(`Unexpected ElevenLabs IVC chunk mock fetch: ${call.method} ${call.url}`)
-      })
-
-      const result = await runElevenLabsTts(`${'A'.repeat(5000)} ${'B'.repeat(100)}`, dir, {
-        model: 'eleven_v3',
-        clone: {
-          refAudioPath: LOCAL_SHORT_AUDIO_PATH,
-          voiceName: 'AutoShow Chunk Clone',
-          removeBackgroundNoise: true
-        },
-        chunkConcurrency: 2
-      })
-
-      expect(await Bun.file(result.audioPath).exists()).toBe(true)
-      expect(calls.filter((call) => call.url.endsWith('/v1/voices/add'))).toHaveLength(1)
-      expect(calls.filter((call) => call.url.includes('/v1/text-to-speech/'))).toHaveLength(2)
-      const cloneCall = calls.find((call) => call.url.endsWith('/v1/voices/add'))
-      expect(cloneCall?.form?.get('name')).toBe('AutoShow Chunk Clone')
-      expect(cloneCall?.form?.get('files')).toBeInstanceOf(Blob)
-      expect(cloneCall?.form?.get('remove_background_noise')).toBe('true')
-      expect(calls.filter((call) => call.url.includes('/v1/text-to-speech/')).map((call) => ({
-        url: call.url,
-        textLength: String(call.bodyJson?.['text']).length
-      }))).toEqual([
-        {
-          url: 'https://api.elevenlabs.io/v1/text-to-speech/voice_cloned_once?output_format=mp3_44100_128',
-          textLength: 5000
-        },
-        {
-          url: 'https://api.elevenlabs.io/v1/text-to-speech/voice_cloned_once?output_format=mp3_44100_128',
-          textLength: 100
-        }
-      ])
-      expect(result.metadata).toMatchObject({
-        speaker: 'ref_audio:0-audio-short.mp3',
-        clonedVoiceId: 'voice_cloned_once',
-        cloneCostCents: 0,
-        chunkCount: 2
-      })
-    }, 10_000)
 })

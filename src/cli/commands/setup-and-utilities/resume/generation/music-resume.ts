@@ -4,9 +4,9 @@ import { buildUpdatedGenerationCostTiming } from '../generation-resume'
 import { collectMusicTargets, getMusicArtifactFileName } from '~/cli/commands/process-steps/step-7-music/music-targets'
 import { runMusicTargets } from '~/cli/commands/process-steps/step-7-music/run-music-gen'
 import { deriveGenerationResumeModelFields, deriveGenerationResumeProviderFlags, MUSIC_GENERATION_SELECTION } from '~/cli/flags/service-selector-normalization/provider-targets'
-import { computeActualCosts } from '~/utils/pricing/compute-actual-costs'
-import { computeActualProcessingTimes } from '~/utils/pricing/compute-processing-time'
-import { buildMusicEstimates } from '~/utils/pricing/aggregate-pricing/generation-estimates'
+import { computeActualCosts } from '~/cli/commands/pricing-orchestration/compute-actual-costs'
+import { computeActualProcessingTimes } from '~/cli/commands/pricing-orchestration/compute-processing-time'
+import { buildMusicEstimates } from '~/cli/commands/pricing-orchestration/aggregate-pricing/generation-estimates'
 import type { EstimateMusicCostOptions, GenerationResumeConfig, MusicGenOptions, MusicTarget, Step7MusicMetadata } from '~/types'
 
 export const finalizeMusicResumeArtifacts = async (

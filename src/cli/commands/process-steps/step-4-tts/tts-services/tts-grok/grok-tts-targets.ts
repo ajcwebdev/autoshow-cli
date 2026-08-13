@@ -5,6 +5,8 @@ import {
 } from '~/cli/commands/setup-and-utilities/models/setup-model-options'
 import { ensureGrokTtsSetup } from './grok-tts'
 import { runGrokTts } from './run-grok-tts'
+import { resolveTtsTargetInvocationVoiceId } from '../../tts-targets/multi-speaker-capability'
+import { resolveTtsTargetInvocationControls } from '../../tts-targets/tts-invocation-controls'
 export const collectGrokTtsTargets = (
   selection: TtsTargetSelection
 ): TtsTarget[] => {
@@ -17,15 +19,22 @@ export const collectGrokTtsTargets = (
       service: 'grok',
       model,
       ...(voiceId ? { voice: voiceId } : {}),
-      run: async (text, outputDir, opts) => {
+      run: async (text, outputDir, opts, invocation, requestEvidence) => {
+        const invocationVoiceId = resolveTtsTargetInvocationVoiceId('grok', invocation)
+        const controls = resolveTtsTargetInvocationControls('grok', invocation, {
+          language: selection.grokLanguage,
+          ...(selection.grokTextNormalization ? { textNormalization: true } : {}),
+        })
         await ensureGrokTtsSetup()
         return await runGrokTts(text, outputDir, {
           model,
-          voiceId,
-          language: selection.grokLanguage,
-          textNormalization: selection.grokTextNormalization,
+          voiceId: invocationVoiceId ?? voiceId,
+          language: controls.language,
+          textNormalization: controls.textNormalization,
           chunkConcurrency: opts.ttsChunkConcurrency,
-          chunkScheduler: opts.hostedTtsChunkScheduler
+          chunkScheduler: opts.hostedTtsChunkScheduler,
+          abortSignal: invocation?.signal,
+          requestEvidence
         })
       }
     })

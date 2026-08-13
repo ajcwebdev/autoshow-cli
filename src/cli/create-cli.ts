@@ -9,6 +9,7 @@ import { imageCommand } from '~/cli/commands/process-steps/step-5-image/define-i
 import { videoCommand } from '~/cli/commands/process-steps/step-6-video/define-video-command'
 import { musicCommand } from '~/cli/commands/process-steps/step-7-music/define-music-command'
 import { comicCommand } from '~/cli/commands/process-steps/step-8-comic/define-comic-command'
+import { voiceCommand } from '~/cli/commands/process-steps/step-4-tts/voice-management/define-voice-command'
 import { setupCommand } from '~/cli/commands/setup-and-utilities/setup/define-setup-command'
 import { installProcessFailureHandlers } from '~/cli/failure-handlers'
 import { extractErrorHints, isUsageError, normalizeExitCode, usageMessage } from '~/utils/error-handler'
@@ -53,6 +54,7 @@ const HELP_COMMAND_GROUP_BY_NAME: Readonly<Record<string, HelpCommandGroupKey>> 
   extract: 'processing',
   write: 'processing',
   tts: 'processing',
+  voice: 'processing',
   image: 'processing',
   video: 'processing',
   music: 'processing',
@@ -60,7 +62,7 @@ const HELP_COMMAND_GROUP_BY_NAME: Readonly<Record<string, HelpCommandGroupKey>> 
   benchmark: 'setup'
 }
 
-const COMMAND_DEFINITIONS = [
+export const COMMAND_DEFINITIONS = [
   configCommand,
   setupCommand,
   linksCommand,
@@ -70,6 +72,7 @@ const COMMAND_DEFINITIONS = [
   resumeCommand,
   writeCommand,
   ttsCommand,
+  voiceCommand,
   imageCommand,
   videoCommand,
   musicCommand,
@@ -117,16 +120,22 @@ const applyUniversalHelpDescriptionColors = (): void => {
   helpDescriptionColorsApplied = true
 }
 
-const main = async (): Promise<void> => {
+export const runCliInProcess = async (argv: string[]): Promise<void> => {
   applyUniversalHelpDescriptionColors()
-  const argv = Bun.argv.slice(2)
   await dispatchNativeCli(argv, createNativeRootDefinition(), COMMAND_DEFINITIONS)
 }
 
-installProcessFailureHandlers()
+const main = async (): Promise<void> => {
+  const argv = Bun.argv.slice(2)
+  await runCliInProcess(argv)
+}
 
-try {
-  await main()
-} catch (error) {
-  cliErrorHandler(error)
+if (import.meta.main) {
+  installProcessFailureHandlers()
+
+  try {
+    await main()
+  } catch (error) {
+    cliErrorHandler(error)
+  }
 }

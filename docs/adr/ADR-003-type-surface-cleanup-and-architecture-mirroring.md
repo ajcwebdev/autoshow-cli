@@ -4,11 +4,10 @@
 
 - **Decision Status:** Accepted
 - **Date Created:** 2026-06-12
-- **Date Updated:** 2026-07-23
+- **Date Updated:** 2026-08-13
 - **Verification Status:** Passed
 
-<!-- This record synthesizes three sequenced type-cleanup phases. All three are
-     Accepted and implemented. Each Decision sub-part carries its own state tag. -->
+<!-- This record synthesizes three sequenced type-cleanup phases. All three are Accepted and implemented. Each Decision sub-part carries its own state tag. -->
 
 ## Context
 
@@ -20,7 +19,7 @@ The `src/types` tree (149 files) had accumulated two kinds of drag: unnecessary 
 
 Method (phases 1 & 2): after a passing `bun run check` baseline, TypeScript language-service refactor trials simulated candidate removal/inlining/merging in memory without changing repository files. "Safe" means the simulated refactor produced no significant TypeScript errors; ordinary unused-import/declaration cleanup was not treated as a blocker because it is expected during the real edit pass.
 
-Why now: declaration-level cleanup (phases 1–2) is the prerequisite for the structural move (phase 3); doing the moves first would churn declarations that were about to be removed. The structural phase also aligns type ownership with the process-step ownership direction in [ADR-002](ADR-002-url-article-extraction-and-target-discovery.md).
+Why now: declaration-level cleanup (phases 1–2) is the prerequisite for the structural move (phase 3); doing the moves first would churn declarations that were about to be removed. The structural phase also aligns type ownership with the ingestion, pipeline-state, and extract boundaries in [ADR-001](ADR-001-source-ingestion-and-normalization.md), [ADR-002](ADR-002-pipeline-state-resume-and-dry-run-planning.md), and [ADR-009](ADR-009-extract-execution-and-artifact-contracts.md).
 
 ## Options Considered
 
@@ -87,7 +86,7 @@ The decision record has no runtime or compile-time impact. Phase 1 would remove/
 Positive outcomes:
 
 - Smaller exported `~/types` surface; local declarations live at their only use sites; fewer aliases requiring cross-file navigation; private one-reference aliases folded into parents.
-- Maintainers can infer a type file's home from the source subsystem it supports; `migrated/` stops being a permanent layer; future cleanup happens by subsystem; reviews follow domain boundaries; ownership aligns with ADR-002.
+- Maintainers can infer a type file's home from the source subsystem it supports; `migrated/` stops being a permanent layer; future cleanup happens by subsystem; reviews follow the source, pipeline-state, and extract boundaries in ADR-001, ADR-002, and ADR-009.
 - Each phase batches and verifies with `bun run check`.
 
 Negative outcomes:
@@ -122,7 +121,9 @@ Negative outcomes:
 
 ## References
 
-- Related ownership boundary: [ADR-002](ADR-002-url-article-extraction-and-target-discovery.md)
+- Related source ownership boundary: [ADR-001](ADR-001-source-ingestion-and-normalization.md)
+- Related pipeline-state ownership boundary: [ADR-002](ADR-002-pipeline-state-resume-and-dry-run-planning.md)
+- Related extract ownership boundary: [ADR-009](ADR-009-extract-execution-and-artifact-contracts.md)
 - Types tree under review: `src/types/`
 - Public type barrel: `src/types/index.ts`
 - Verification rule: `bun run check`

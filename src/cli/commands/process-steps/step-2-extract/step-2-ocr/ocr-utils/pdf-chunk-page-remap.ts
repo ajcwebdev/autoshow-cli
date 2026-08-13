@@ -93,6 +93,8 @@ export const stitchHostedOcrChunkRuns = (
     extractionMethod: firstRun.extractionMethod,
     ocrService: firstRun.ocrService,
     ocrModel: firstRun.ocrModel,
+    ...(firstRun.requestedReasoningEffort !== undefined ? { requestedReasoningEffort: firstRun.requestedReasoningEffort } : {}),
+    ...(firstRun.effectiveReasoningEffort !== undefined ? { effectiveReasoningEffort: firstRun.effectiveReasoningEffort } : {}),
     totalPages,
     ...(canonicalText.length > 0 ? { canonicalText } : {}),
     ...(hasPromptTokens ? { promptTokens } : {}),

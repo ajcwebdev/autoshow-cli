@@ -42,7 +42,7 @@ import {
   SUPPORTED_RUNWAY_VIDEO_MODELS
 } from '~/cli/commands/setup-and-utilities/models/video-models'
 import type { ImageProvider, MusicProvider, VideoProvider } from '~/types'
-import { computeEstimatedCosts } from '~/utils/pricing/compute-estimated-costs'
+import { computeEstimatedCosts } from '~/cli/commands/pricing-orchestration/compute-estimated-costs'
 import { optionsForService } from '~/utils/pricing/model-selection'
 
 const IMAGE_MODELS = {

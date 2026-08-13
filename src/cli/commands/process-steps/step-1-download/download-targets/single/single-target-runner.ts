@@ -5,7 +5,7 @@ import { detectDocumentFormat } from '~/cli/commands/process-steps/step-0-metada
 import { runTextWrite } from '~/cli/commands/process-steps/step-3-write/run-text-write'
 import { isTextInputPath } from '~/cli/commands/process-steps/step-3-write/text-input-utils'
 import { fileExists } from '~/utils/cli-utils'
-import { CLIUsageError } from '~/utils/error-handler'
+import { CLIUsageError, ValidationError } from '~/utils/error-handler'
 import type { AggregatedPriceEstimate, BatchChildRunContext, BatchItem, BatchItemProcessResult, DownloadCommandOptions, ExtractCommandOptions, MetadataCommandOptions, ProcessCommand, SingleTargetCommandOptions, SttBatchCoordinator, WriteRuntimeOptions } from '~/types'
 import { isExtractCommand } from '~/cli/commands/process-steps/process-command-kinds'
 import { classifyInputFamily, classifyUrlInput, isDocumentByExtension, isHtmlDocumentPath, isLikelyUrl } from '~/cli/commands/process-steps/step-0-metadata/metadata-targets/metadata-input-classifier'
@@ -26,7 +26,7 @@ function assertMetadataOptions (
   opts: SingleTargetCommandOptions
 ): asserts opts is MetadataCommandOptions {
   if (!('markdown' in opts) || !('save' in opts)) {
-    throw new Error('Metadata command options are incomplete')
+    throw ValidationError('Metadata command options are incomplete')
   }
 }
 
@@ -34,7 +34,7 @@ function assertDownloadOptions (
   opts: SingleTargetCommandOptions
 ): asserts opts is DownloadCommandOptions {
   if (!('keepOriginalMedia' in opts) || !('ytDlpPassthroughArgs' in opts)) {
-    throw new Error('Download command options are incomplete')
+    throw ValidationError('Download command options are incomplete')
   }
 }
 
@@ -42,7 +42,7 @@ function assertWriteOptions (
   opts: SingleTargetCommandOptions
 ): asserts opts is WriteRuntimeOptions {
   if (!('llmProviderConcurrency' in opts) || !('ttsProviderConcurrency' in opts)) {
-    throw new Error('Write command options are incomplete')
+    throw ValidationError('Write command options are incomplete')
   }
 }
 
@@ -50,7 +50,7 @@ function assertExtractOrWriteOptions (
   opts: SingleTargetCommandOptions
 ): asserts opts is ExtractCommandOptions | WriteRuntimeOptions {
   if (!('whisperModel' in opts) || !('sttProviderConcurrency' in opts)) {
-    throw new Error('Extract/write command options are incomplete')
+    throw ValidationError('Extract/write command options are incomplete')
   }
 }
 

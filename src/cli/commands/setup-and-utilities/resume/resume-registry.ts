@@ -12,7 +12,7 @@ import { musicResumeConfig } from './generation/music-resume'
 import { buildGenerationResumeHandler } from './generation-resume'
 import { writeResumeConfig } from './write/write-resume'
 import { PIPELINE_MANIFEST_FILE, readManifest, resolveManifestRelativePath, toManifestRelativePath, writeManifest } from '~/cli/commands/process-steps/pipeline-manifest'
-import { aggregateExplicitPriceEstimate } from '~/utils/pricing/aggregate-pricing'
+import { aggregateExplicitPriceEstimate } from '~/cli/commands/pricing-orchestration/aggregate-pricing'
 import { CLIUsageError } from '~/utils/error-handler'
 
 const EXPLICIT_STEP2_SELECTION_FILTER = {

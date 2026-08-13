@@ -1,4 +1,4 @@
-import type { PipelineItemRecord, ResolvedLLMModelOptions, ResolvedStep2Provider } from '~/types'
+import type { HostedOcrScheduler, PipelineItemRecord, ResolvedLLMModelOptions, ResolvedStep2Provider } from '~/types'
 
 export type BatchItem = {
   id: string
@@ -16,6 +16,7 @@ export type BatchChildRunContext = {
   batchDir: string
   batchItem?: BatchItem
   outputDir?: string
+  hostedOcrScheduler?: HostedOcrScheduler | undefined
 }
 
 export type BatchSource = {

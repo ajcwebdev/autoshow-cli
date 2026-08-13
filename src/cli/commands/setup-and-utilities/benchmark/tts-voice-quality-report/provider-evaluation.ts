@@ -1,5 +1,5 @@
 import { join } from "node:path"
-import { isLocalService, makeProviderKey, probeAudio } from '../tts-eval-lib'
+import { isLocalService, makeProviderKey, makeTtsBenchmarkKey, probeAudio } from '../tts-eval-lib'
 import type { loadTtsManifestMetadata } from '../tts-eval-lib'
 import type { AudioProperties, ComponentScore, ContentType, HeuristicResult, MetricFixtures, PaidFailurePolicy, ProviderVoiceQualityEntry, VoiceQualityReportMode } from '~/types'
 import { readEnv } from '~/utils/validate/env-utils'
@@ -26,14 +26,15 @@ export async function evaluateProvider(options: {
   tempDir: string;
   contentType?: ContentType;
 }): Promise<Omit<ProviderVoiceQualityEntry, "rank">> {
-  const providerKey = makeProviderKey(options.entry.ttsService, options.entry.ttsModel);
+  const providerKey = makeTtsBenchmarkKey(options.entry);
+  const legacyProviderKey = makeProviderKey(options.entry.ttsService, options.entry.ttsModel);
   const warnings: string[] = [];
   const paidFailurePolicy: PaidFailurePolicy = {
     strict: strictPaidFailures(options.mode, options.allowPaid),
     providerKey,
     warnings,
   };
-  const fixture = fixtureForProvider(options.fixtures, providerKey, options.entry.audioFileName);
+  const fixture = fixtureForProvider(options.fixtures, providerKey, options.entry.audioFileName, legacyProviderKey);
   let originalAudioProperties: AudioProperties | null = null;
   let heuristics: HeuristicResult | null = null;
   let normalizedAudioPath: string | null = null;
@@ -170,6 +171,11 @@ export async function evaluateProvider(options: {
 
   return {
     providerKey,
+    targetKey: options.entry.targetKey ?? null,
+    renderIdentity: options.entry.renderIdentity ?? null,
+    registrationId: options.entry.registrationId ?? null,
+    snapshotEntryId: options.entry.snapshotEntryId ?? null,
+    characterIdentity: options.entry.characterIdentity ?? null,
     ttsService: options.entry.ttsService,
     ttsModel: options.entry.ttsModel,
     speaker: options.entry.speaker ?? null,

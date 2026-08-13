@@ -59,8 +59,8 @@ bun autoshow resume ./output/2026-04-22_12-00-00-000_item
 # Resume a batch directory or extract parent batch in place
 bun autoshow resume ./output/2026-04-22_12-00-00-000_batch
 
-# Resume multiple explicit output directories sequentially
-bun autoshow resume ./output/run-a ./output/run-b ./output/run-c --provider gemini=gemini-3.1-flash-lite
+# Resume multiple explicit output directories sequentially with the current Gemini Flash-Lite target
+bun autoshow resume ./output/run-a ./output/run-b ./output/run-c --provider gemini=gemini-3.5-flash-lite
 
 # Estimate missing or additive providers without changing output directories
 bun autoshow resume ./output/run-a ./output/run-b --provider deepinfra --price
@@ -102,6 +102,8 @@ bun autoshow resume ./output/2026-04-22_12-00-00-000_run --provider gemini=lyria
 bun autoshow resume ./output/2026-04-22_12-00-00-000_run --all-providers
 ```
 
+Gemini 3.1 Flash-Lite remains available as an explicit write or OCR resume target during its transition window, so a historical target can retain its concrete identity. It is excluded from bare and all-provider selection, and resume never rewrites it silently to Gemini 3.5 Flash-Lite. After the announced 2027-05-07 shutdown, a separate dated refresh will retire the active selector and require the replacement explicitly.
+
 ## Shared Flags
 
 | Flag | Description |
@@ -136,6 +138,7 @@ Write resumes reuse the stored `prompt.md` and run only selected LLM providers t
 | `--ocr-dpi <n>` | Render DPI for OCR pages |
 | `--ocr-concurrency <n>` | Page-level OCR concurrency cap; local OCR defaults to `10`, hosted OCR defaults to auto, and explicit values are hosted hard caps |
 | `--keep-ocr-page-inputs` | Keep intermediate single-page PDF inputs from hosted OCR fallback after success |
+| `--reasoning-effort <policy>` | Reasoning effort policy: `low`, `medium`, `high`, `minimal`, or `extended` (default delegates to the provider) |
 | `--chapters`, `--no-chapters` | Write or suppress EPUB/PDF chapter files when rebuilding extraction artifacts |
 | `--length <thousands>` | Hard export limit in thousands of characters for EPUB/PDF chunking |
 | `--pdf-chapter-mode <mode>` | PDF chapter detection mode: `local`, `auto`, or `llm` |
@@ -154,10 +157,8 @@ Resume accepts only provider-neutral TTS options. Provider-named tuning flags su
 | `--tts-voice <provider=value|value>` | Generic TTS voice selector |
 | `--tts-speed <provider=value|value>` | Generic TTS speed |
 | `--tts-language <provider=value|value>` | Generic TTS language |
-| `--tts-ref-audio <provider=path|path>` | Generic TTS reference audio path |
-| `--tts-voice-name <provider=value|value>` | Generic created/saved voice label |
-| `--tts-consent-name <provider=value|value>` | Generic consent recording name |
-| `--tts-consent-email <provider=value|value>` | Generic consent email |
+| `--tts-ref-audio <provider=path|path>` | Explicit authorized one-off reference input where the synthesis adapter supports it |
+| `--tts-voice-name`, `--tts-consent-name`, `--tts-consent-email` | Retired creation inputs; rejected with guidance to run voice management separately |
 | `--tts-text-normalization <provider=value|value>` | Generic text normalization |
 | `--tts-instructions <provider=value|value>` | Generic voice/style instructions |
 | `--tts-output-format <provider=value|value>` | Generic output format |
@@ -166,6 +167,8 @@ Resume accepts only provider-neutral TTS options. Provider-named tuning flags su
 | `--tts-speaker <SPEAKER=VOICE\|path>` | Multi-speaker TTS voice mapping; repeatable |
 
 Use `--tts-speaker SPEAKER=VOICE` for multi-speaker resumes instead of provider-specific speaker flags. To change provider tuning on a resumed run, set it under `defaults` in `autoshow.config` or rerun the original `tts` command.
+
+Resume never creates, imports, saves, verifies, approves, reconciles, or deletes provider voices. Complete those operations through `bun autoshow voice ...` before starting or resuming synthesis.
 
 ## Image, Video, And Music Options
 
@@ -182,5 +185,5 @@ Resume keeps the pipeline/config option names for media generation options, beca
 - `resume` updates the existing output directory in place.
 - `resume --price` leaves `manifest.json`, raw provider artifacts, and generated media/text files unchanged.
 - Write LLM resume is additive and writes service-qualified files when needed to avoid overwriting existing short-model outputs, such as `text-together-glm-5.1.json` beside an existing `text-glm-5.1.json`.
-- No `resume` flag is named after a provider. Provider-named option flags such as `--elevenlabs-tts-stability`, `--replicate-video-seed`, `--grok-video-storage-filename`, and `--stt-happyscribe-organization-id` exit with `Unexpected flag: <name>`. A provider entry's `options` object is the only persisted option slot; when a domain cannot reconstruct a tuning value from canonical state, its option slice resolves that value from `autoshow.config` or the provider default.
+- No `resume` flag is named after a provider. Provider-named option flags such as `--elevenlabs-tts-stability`, `--replicate-video-seed`, `--grok-video-storage-filename`, and `--stt-happyscribe-organization-id` exit with their exact typed spelling, for example `Unexpected flag: --elevenlabs-tts-stability`. A provider entry's `options` object is the only persisted option slot; when a domain cannot reconstruct a tuning value from canonical state, its option slice resolves that value from `autoshow.config` or the provider default.
 - `resume` exits with code `2` when items are still incomplete or failed after the backfill attempt.

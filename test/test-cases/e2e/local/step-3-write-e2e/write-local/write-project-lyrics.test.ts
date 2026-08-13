@@ -117,7 +117,10 @@ budgetedTest('write-project-lyrics-directory-default-llama', 'write project dire
   expect(result.exitCode).toBe(0)
 
   const parsedOutputDir = result.outputDir ? resolve(process.cwd(), result.outputDir) : null
-  const batchDir = parsedOutputDir && await fileExists(join(parsedOutputDir, PIPELINE_MANIFEST_FILE))
+  const parsedManifest = parsedOutputDir && await fileExists(join(parsedOutputDir, PIPELINE_MANIFEST_FILE))
+    ? await readCanonicalManifest(parsedOutputDir)
+    : null
+  const batchDir = parsedOutputDir && parsedManifest?.scope === 'batch'
     ? parsedOutputDir
     : await findLatestDirectory('text', result.outputRoot)
   expect(batchDir).not.toBeNull()

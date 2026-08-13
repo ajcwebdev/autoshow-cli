@@ -102,6 +102,7 @@ const sampleSourceSegments: StructuredScriptSourceSegment[] = [
     id: 'beat-0001',
     type: 'narration',
     text: 'The screen is black. A machine wakes up.',
+    sourceSpans: [],
     beatIndex: 1,
     location: testLocation,
   },
@@ -109,6 +110,7 @@ const sampleSourceSegments: StructuredScriptSourceSegment[] = [
     id: 'beat-0002',
     type: 'dialogue',
     text: 'C’mon man, wake up, your vacation doesn’t start until tomorrow.',
+    sourceSpans: [],
     beatIndex: 2,
     speakerKey: 'engineer',
     speakerLabel: 'ENGINEER',
@@ -345,18 +347,34 @@ describe('comic source coverage contracts', () => {
       '',
       '**COMMANDER**',
       'Something strong. (a long pause) Something hot.',
+      '',
+      '**PILOT**',
+      '(beat, checking)',
+      'Seven. Go now.',
+      '',
+      '**CAPTAIN**',
+      'Too much energy? (beat, quietly indignant) They were not supposed to melt.',
     ].join('\n'), 'input/test-timing-notation.md')
 
     const captainBeat = structured.beats.find(beat => beat.speakerKey === 'captain')
     const engineerBeat = structured.beats.find(beat => beat.speakerKey === 'engineer')
     const commanderBeat = structured.beats.find(beat => beat.speakerKey === 'commander')
+    const pilotBeat = structured.beats.find(beat => beat.speakerKey === 'pilot')
+    const captainBeats = structured.beats.filter(beat => beat.speakerKey === 'captain')
+    const inlineCaptainBeat = captainBeats.find(beat => beat.text.startsWith('Too much energy'))
 
     expect(captainBeat?.text).toBe('Respectfully, sir, that doesn’t matter. We have five cycles.')
     expect(commanderBeat?.text).toBe('Something strong. Something hot.')
     // "(pause)" is pacing, not an acting note, so it must not become a speech tone.
     expect(engineerBeat?.text).toBe('Hire a doctor?')
     expect(engineerBeat?.delivery).toBeUndefined()
+    expect(pilotBeat?.delivery).toBe('checking')
+    expect(inlineCaptainBeat?.text).toBe('Too much energy? They were not supposed to melt.')
+    expect(inlineCaptainBeat?.delivery).toBe('quietly indignant')
     expect(structured.sourceSegments.some(segment => segment.text.includes('beat'))).toBe(false)
+    const inlineSegment = structured.sourceSegments.find(segment => segment.text.startsWith('Too much energy'))
+    expect(inlineSegment?.sourceSpans.filter(span => span.kind === 'spoken-text')).toHaveLength(2)
+    expect(inlineSegment?.sourceSpans.filter(span => span.kind === 'timing')).toHaveLength(1)
   })
 
   test('structured parser classifies action prose as unlettered direction and captions as narration', () => {
@@ -401,6 +419,7 @@ describe('comic source coverage contracts', () => {
         id: 'beat-0033',
         type: 'dialogue',
         text: 'Also too expensive.',
+        sourceSpans: [],
         beatIndex: 33,
         speakerKey: 'captain',
         speakerLabel: 'CAPTAIN',
@@ -410,6 +429,7 @@ describe('comic source coverage contracts', () => {
         id: 'beat-0034',
         type: 'direction',
         text: 'Silence again. Everyone stares at the floor.',
+        sourceSpans: [],
         beatIndex: 34,
         location: testLocation,
       },
@@ -417,6 +437,7 @@ describe('comic source coverage contracts', () => {
         id: 'beat-0035',
         type: 'narration',
         text: 'Three cycles later.',
+        sourceSpans: [],
         beatIndex: 35,
         speakerLabel: 'CAPTION',
         location: testLocation,
@@ -539,9 +560,16 @@ describe('comic source coverage contracts', () => {
     }))
     configureCharactersRoot(charactersRoot)
     const structuredScript: StructuredScriptData = {
-      schemaVersion: 3,
+      schemaVersion: 4,
       scriptSlug: sceneSlug,
       sourceFile: 'input/test.md',
+      sourceIdentity: {
+        schemaVersion: 1,
+        canonicalPath: 'input/test.md',
+        scriptSlug: sceneSlug,
+        contentSha256: '0'.repeat(64),
+        identityHash: '1'.repeat(64),
+      },
       document: {
         heading: 'Episode Test',
         title: 'Episode Test',

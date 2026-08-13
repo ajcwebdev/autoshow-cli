@@ -46,6 +46,8 @@ const matchesCacheIdentity = (
     run.extractionMethod === identity.extractionMethod
     && run.ocrService === identity.ocrService
     && run.ocrModel === identity.ocrModel
+    && run.requestedReasoningEffort === identity.requestedReasoningEffort
+    && run.effectiveReasoningEffort === identity.effectiveReasoningEffort
   )
 
 export const parseStoredHostedOcrPageCache = (
@@ -157,7 +159,9 @@ export const writeFallbackState = async (
       ? {
           extractionMethod: options.cacheIdentity.extractionMethod,
           ocrService: options.cacheIdentity.ocrService,
-          ocrModel: options.cacheIdentity.ocrModel
+          ocrModel: options.cacheIdentity.ocrModel,
+          requestedReasoningEffort: options.cacheIdentity.requestedReasoningEffort,
+          effectiveReasoningEffort: options.cacheIdentity.effectiveReasoningEffort
         }
       : {}),
     ...(audit !== undefined
@@ -342,6 +346,8 @@ export const hasMatchingFallbackState = async (
     return (value['extractionMethod'] === undefined || value['extractionMethod'] === identity.extractionMethod)
       && (value['ocrService'] === undefined || value['ocrService'] === identity.ocrService)
       && (value['ocrModel'] === undefined || value['ocrModel'] === identity.ocrModel)
+      && value['requestedReasoningEffort'] === identity.requestedReasoningEffort
+      && value['effectiveReasoningEffort'] === identity.effectiveReasoningEffort
   } catch {
     return false
   }

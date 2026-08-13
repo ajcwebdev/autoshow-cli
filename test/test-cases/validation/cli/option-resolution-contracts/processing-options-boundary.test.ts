@@ -6,7 +6,7 @@ import { buildProcessingOptions } from '~/cli/commands/process-steps/step-1-down
 import { collectSttTargets } from '~/cli/commands/process-steps/step-2-extract/step-2-stt/stt-targets'
 import type { ProcessingOptions, ProcessingSource } from '~/types'
 import { DEFAULT_TTS_CHUNK_CONCURRENCY } from '~/utils/concurrency-defaults'
-import { buildAggregatedPriceEstimate } from '~/utils/pricing/aggregate-pricing'
+import { buildAggregatedPriceEstimate } from '~/cli/commands/pricing-orchestration/aggregate-pricing'
 import { flagOccurrencesFromValues } from '../../../../test-utils/flag-occurrences'
 import { withTempDir } from '../../../../test-utils/temp-dirs'
 

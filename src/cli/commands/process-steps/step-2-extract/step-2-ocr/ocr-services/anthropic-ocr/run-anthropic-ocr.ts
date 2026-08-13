@@ -11,6 +11,8 @@ import { OCR_SCHEMA_RETRY_ATTEMPTS, withOcrCreateRetry } from '~/cli/commands/pr
 import { OcrStructuredResponseError } from '~/cli/commands/process-steps/step-2-extract/step-2-ocr/ocr-structured-response-error'
 import { OCR_REQUEST_TIMEOUT_MS } from '~/utils/timeouts'
 import { InfraError, InternalError, ValidationError } from '~/utils/error-handler'
+import { applyAnthropicReasoning } from '~/cli/commands/setup-and-utilities/models/reasoning-request-mappers'
+import { resolveReasoningPolicy, type NormalizedReasoningEffort } from '~/cli/commands/setup-and-utilities/models/reasoning-resolver'
 import { buildHostedOcrJsonPrompt, HOSTED_OCR_PAGES_JSON_SCHEMA, HostedOcrEnvelopeSchema, normalizeHostedOcrPages } from '../../ocr-utils/hosted-ocr-json'
 import {
   createAnthropicMessage,
@@ -202,6 +204,7 @@ const runPdfChunk = async (
   options: {
     inputAlreadySinglePageChunk?: boolean | undefined
     onRetryable?: HostedOcrSchedulerRetryPressureHandler | undefined
+    effectiveReasoningEffort?: NormalizedReasoningEffort | undefined
   } = {}
 ): Promise<{ pages: PageResult[], promptTokens: number, completionTokens: number }> => {
   const pageLabel = `pages ${startPage}-${endPage}`
@@ -238,7 +241,7 @@ const runPdfChunk = async (
 
     uploadedFileId = uploaded.id
     const expectedPageCount = endPage - startPage + 1
-    const requestBody = {
+    const requestBody: Record<string, unknown> = {
       model,
       max_tokens: ANTHROPIC_OCR_MAX_TOKENS,
       messages: [{
@@ -258,7 +261,11 @@ const runPdfChunk = async (
           }
         ]
       }]
-    } satisfies Record<string, unknown>
+    }
+
+    if (options.effectiveReasoningEffort) {
+      applyAnthropicThinkingToBody(requestBody, options.effectiveReasoningEffort)
+    }
 
     const result = await runMessageWithSchemaRetry(
       requestBody,
@@ -294,34 +301,53 @@ const runPdfChunk = async (
   }
 }
 
+const applyAnthropicThinkingToBody = (requestBody: Record<string, unknown>, effective: NormalizedReasoningEffort): void =>
+  applyAnthropicReasoning(requestBody, effective)
+
 export const runAnthropicOcr = async (
   filePath: string,
   step1Metadata: DocumentMetadata,
   model: string,
-  options: { onRetryable?: HostedOcrSchedulerRetryPressureHandler | undefined } = {}
+  options: {
+    onRetryable?: HostedOcrSchedulerRetryPressureHandler | undefined
+    reasoningEffort?: import('~/cli/commands/setup-and-utilities/models/reasoning-resolver').NormalizedReasoningEffort | undefined
+  } = {}
 ): Promise<{
   pages: PageResult[]
   extractionMethod: 'anthropic-ocr'
   totalPages: number
   promptTokens?: number
   completionTokens?: number
+  requestedReasoningEffort?: import('~/cli/commands/setup-and-utilities/models/reasoning-resolver').NormalizedReasoningEffort | undefined
+  effectiveReasoningEffort?: import('~/cli/commands/setup-and-utilities/models/reasoning-resolver').NormalizedReasoningEffort | undefined
 }> => {
+  const policy = resolveReasoningPolicy({
+    step: 'extract',
+    service: 'anthropic',
+    model,
+    requestedReasoningEffort: options.reasoningEffort
+  })
+
   if (step1Metadata.format !== 'pdf') {
     const requestBody = await createImageRequestBody(filePath, step1Metadata, model)
+    applyAnthropicThinkingToBody(requestBody, policy.effective)
     const result = await runMessageWithSchemaRetry(requestBody, 1, 'page 1', 'anthropic-ocr', undefined, options.onRetryable)
     return {
       pages: result.pages,
       extractionMethod: 'anthropic-ocr',
       totalPages: 1,
       ...(typeof result.promptTokens === 'number' ? { promptTokens: result.promptTokens } : {}),
-      ...(typeof result.completionTokens === 'number' ? { completionTokens: result.completionTokens } : {})
+      ...(typeof result.completionTokens === 'number' ? { completionTokens: result.completionTokens } : {}),
+      ...(policy.requested !== undefined ? { requestedReasoningEffort: policy.requested } : {}),
+      effectiveReasoningEffort: policy.effective
     }
   }
 
   const totalPages = Math.max(1, step1Metadata.pageCount)
   const chunk = await runPdfChunk(filePath, model, 1, totalPages, {
     inputAlreadySinglePageChunk: totalPages === 1,
-    onRetryable: options.onRetryable
+    onRetryable: options.onRetryable,
+    effectiveReasoningEffort: policy.effective
   })
 
   return {
@@ -329,6 +355,8 @@ export const runAnthropicOcr = async (
     extractionMethod: 'anthropic-ocr',
     totalPages,
     ...(chunk.promptTokens > 0 ? { promptTokens: chunk.promptTokens } : {}),
-    ...(chunk.completionTokens > 0 ? { completionTokens: chunk.completionTokens } : {})
+    ...(chunk.completionTokens > 0 ? { completionTokens: chunk.completionTokens } : {}),
+    ...(policy.requested !== undefined ? { requestedReasoningEffort: policy.requested } : {}),
+    effectiveReasoningEffort: policy.effective
   }
 }

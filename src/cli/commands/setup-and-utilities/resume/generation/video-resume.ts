@@ -3,9 +3,9 @@ import { buildUpdatedGenerationCostTiming } from '../generation-resume'
 import { collectVideoTargets } from '~/cli/commands/process-steps/step-6-video/video-targets'
 import { runVideoTargets } from '~/cli/commands/process-steps/step-6-video/run-video-gen'
 import { deriveGenerationResumeModelFields, deriveGenerationResumeProviderFlags, VIDEO_GENERATION_SELECTION } from '~/cli/flags/service-selector-normalization/provider-targets'
-import { computeActualCosts } from '~/utils/pricing/compute-actual-costs'
-import { computeActualProcessingTimes } from '~/utils/pricing/compute-processing-time'
-import { buildVideoEstimates } from '~/utils/pricing/aggregate-pricing/generation-estimates'
+import { computeActualCosts } from '~/cli/commands/pricing-orchestration/compute-actual-costs'
+import { computeActualProcessingTimes } from '~/cli/commands/pricing-orchestration/compute-processing-time'
+import { buildVideoEstimates } from '~/cli/commands/pricing-orchestration/aggregate-pricing/generation-estimates'
 import type { GenerationResumeConfig, Step6VideoMetadata, VideoGenOptions, VideoTarget } from '~/types'
 
 export const videoResumeConfig = {

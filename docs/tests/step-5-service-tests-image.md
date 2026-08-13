@@ -20,7 +20,7 @@ bun t test/test-cases/e2e/service/step-5-image-gen-e2e/
 
 ## Provider Env Vars
 
-Live image generation tests run only when their provider key is configured: `OPENAI_API_KEY`, `GEMINI_API_KEY`, `XAI_API_KEY`, `BFL_API_KEY`, `RECRAFT_API_TOKEN`, `REPLICATE_API_TOKEN`, or `LUMA_AGENTS_API_KEY`.
+Live image generation tests run only when their provider key is configured: `OPENAI_API_KEY`, `GEMINI_API_KEY`, `XAI_API_KEY`, `BFL_API_KEY`, `RECRAFT_API_TOKEN`, `REPLICATE_API_TOKEN`, `LUMA_AGENTS_API_KEY`, or `FAL_API_KEY`.
 
 ## Current Coverage
 
@@ -43,7 +43,7 @@ bun t test/test-cases/e2e/service/step-5-image-gen-e2e/ --price
 bun t test/test-cases/e2e/service/step-5-image-gen-e2e/ --budget 2500
 ```
 
-Step 5 generation files for OpenAI, Gemini, Grok, BFL, Recraft, and Replicate resolve mapped price commands. Replicate's six live model cases use the same model-specific options during price preflight as they do during generation. Luma Labs generation files are not mapped in the price registry, and validation-only files such as `bfl-validation.test.ts`, `recraft-validation.test.ts`, and `lumalabs-validation.test.ts` do not resolve mapped price commands.
+Step 5 generation files for OpenAI, Gemini, Grok, BFL, Recraft, Replicate, and Luma Labs resolve mapped price commands. Validation-only files such as `bfl-validation.test.ts`, `recraft-validation.test.ts`, and `lumalabs-validation.test.ts` do not resolve mapped price commands.
 
 ## Related Docs
 

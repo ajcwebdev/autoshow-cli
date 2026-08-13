@@ -17,6 +17,7 @@ Generate images from a text prompt with the hosted image providers.
   - [Recraft](#recraft)
   - [Replicate](#replicate)
   - [Luma Labs](#luma-labs)
+  - [fal.ai](#falai)
 - [Output](#output)
 - [Notes](#notes)
 
@@ -40,6 +41,7 @@ BFL_API_KEY=...
 RECRAFT_API_TOKEN=...
 REPLICATE_API_TOKEN=...
 LUMA_AGENTS_API_KEY=...
+FAL_API_KEY=...
 ```
 
 ## Usage
@@ -52,7 +54,7 @@ bun autoshow image <prompt> [flags]
 
 ## Shared Image Options
 
-The standalone `image` command drops the `image-` prefix these options carry everywhere else: `--size` here is `--image-size` on `write`, `config`, and `resume`. One resume flag set serves image, video, music, and OCR, where the short names would collide, so [ADR-012](../../../adr/ADR-012-add-price-preflight-to-resume.md) keeps the prefixes on those surfaces. Rejections from this command are reported in this command's spellings.
+The standalone `image` command drops the `image-` prefix these options carry everywhere else: `--size` here is `--image-size` on `write`, `config`, and `resume`. One resume flag set serves image, video, music, and OCR, where the short names would collide, so [ADR-002](../../../adr/ADR-002-pipeline-state-resume-and-dry-run-planning.md) keeps the prefixes on those surfaces. Rejections from this command are reported in this command's spellings.
 
 | Flag | Description |
 |------|-------------|
@@ -61,14 +63,14 @@ The standalone `image` command drops the `image-` prefix these options carry eve
 | `--aspect-ratio <ratio>` | Provider-dependent aspect ratio control; Recraft sends this as its `size` value when `--size` is absent |
 | `--size <size>` | Provider-dependent size or resolution control; Recraft sends this as its `size` value |
 | `--quality <q>` | OpenAI quality: `low`, `medium`, `high`, or `auto` |
-| `--format <fmt>` | OpenAI/BFL output format: `png`, `jpeg`, or `webp`; Replicate `seedream-5-lite` accepts `png` or `jpeg` |
+| `--format <fmt>` | OpenAI/BFL/fal.ai output format: `png`, `jpeg`, or `webp`; Replicate Seedream 5/ERNIE and Luma Labs accept `png` or `jpeg` |
 | `--background <bg>` | OpenAI background mode: `transparent`, `opaque`, or `auto` |
-| `--count <n>` | Number of images in one request for OpenAI/Grok `1-10`, Recraft `1-6`, or Replicate Wan `1-4` |
-| `--input <path-or-url>` | Repeatable source/reference image for OpenAI, Grok, native Gemini, BFL, or Replicate edits/references |
+| `--count <n>` | Number of images in one request for OpenAI/Grok `1-10`, Recraft `1-6`, Replicate Wan/ERNIE `1-4`, or fal.ai `1-4` |
+| `--input <path-or-url>` | Repeatable source/reference image for OpenAI, Grok, native Gemini, BFL, Replicate, Luma Labs, or fal.ai edits/references |
 | `--mask <path>` | OpenAI mask image for inpainting/edit workflows |
 | `--compression <0-100>` | OpenAI JPEG/WebP output compression |
 | `--response-mode <image\|text-image>` | Native Gemini response mode |
-| `--search-grounding` | Enable native Gemini search grounding metadata |
+| `--search-grounding` | Enable native Gemini search grounding metadata (gemini-3.1-flash-image and gemini-3-pro-image) |
 | `--price` | Show the aggregated estimate and exit |
 | `--output-dir <dir>` | Global flag: pin an exact run directory instead of `output/<timestamp>_image-gen/` |
 
@@ -109,7 +111,7 @@ Each service example below that edits or references an image first generates the
 | Selector | `--provider gemini[=<model>]` |
 | Models | `gemini-3.1-flash-lite-image`, `gemini-3.1-flash-image`, `gemini-3-pro-image` |
 | Size | `gemini-3.1-flash-lite-image`: `1K`; other models: `1K\|2K\|4K` |
-| Aspect ratio | Standard models: `1:1`, `2:3`, `3:2`, `3:4`, `4:3`, `4:5`, `5:4`, `9:16`, `16:9`, or `21:9`; Flash also supports `1:4`, `4:1`, `1:8`, and `8:1` |
+| Aspect ratio | Standard models: `1:1`, `2:3`, `3:2`, `3:4`, `4:3`, `4:5`, `5:4`, `9:16`, `16:9`, or `21:9`; `gemini-3.1-flash-image` also supports `1:4`, `4:1`, `1:8`, and `8:1` |
 | Count | Native Gemini returns one image per request |
 | References | Repeatable `--input`; up to 14 images |
 
@@ -202,12 +204,12 @@ This command intentionally uses Recraft generation only. It does not expose Recr
 | Option | Value |
 |--------|-------|
 | Selector | `--provider replicate[=<model>]` |
-| Models | `bytedance/seedream-4.5`, `bytedance/seedream-5-lite`, `qwen/qwen-image-2-pro`, `qwen/qwen-image-2`, `wan-video/wan-2.7-image-pro`, `wan-video/wan-2.7-image` |
-| Size | Seedream and Wan models only; model-family-dependent values (see below) |
+| Models | `bytedance/seedream-4.5`, `bytedance/seedream-5-lite`, `bytedance/seedream-5-pro`, `ideogram-ai/ideogram-v4-turbo`, `ideogram-ai/ideogram-v4-balanced`, `ideogram-ai/ideogram-v4-quality`, `prunaai/ernie-image`, `prunaai/ernie-image-turbo`, `qwen/qwen-image-2-pro`, `qwen/qwen-image-2`, `wan-video/wan-2.7-image-pro`, `wan-video/wan-2.7-image` |
+| Size | Seedream, Ideogram, ERNIE, and Wan models; model-family-dependent values (see below) |
 | Aspect ratio | Seedream and Qwen models only; model-family-dependent values (see below) |
-| Count | `--count 1-4` with Wan models; other families return one image per request |
-| Format | `--format png\|jpeg` with `bytedance/seedream-5-lite` only |
-| References | Repeatable `--input`; up to fourteen images for Seedream, one for Qwen, or nine for Wan |
+| Count | `--count 1-4` with Wan and ERNIE models; other families return one image per request |
+| Format | `--format png\|jpeg` with Seedream 5 and ERNIE models |
+| References | Repeatable `--input`; up to fourteen images for Seedream 4.5/5-Lite, ten for Seedream 5-Pro, one for Qwen, or nine for Wan |
 
 ```bash
 bun autoshow image "a polished launch poster for a sci-fi audio drama" --provider replicate=wan-video/wan-2.7-image --size 2K --count 2
@@ -215,7 +217,7 @@ bun autoshow image "a clean studio product photo of a red enamel camping mug on 
 bun autoshow image "place the same mug on a rustic breakfast table" --provider replicate=bytedance/seedream-4.5 --input output/mug-base/generated-image.jpg --output-dir output/mug-replicate
 ```
 
-`--provider replicate` with no model resolves to `prunaai/ernie-image-turbo`, the lowest-cost Replicate image model under the pinned default-runtime estimate in the local pricing table. Option support varies by model family. Seedream accepts `--size` (`2K`, `4K`, or `WIDTHxHEIGHT` with each edge 1024 through 4096 pixels on `seedream-4.5`; `2K` or `3K` on `seedream-5-lite`; `1K` or `2K` on `seedream-5-pro`) and `--aspect-ratio` `1:1`, `4:3`, `3:4`, `16:9`, `9:16`, `3:2`, `2:3`, `21:9`, or `match_input_image`; Seedream 5 Lite and Pro also accept `--format png|jpeg`, and Pro accepts up to 10 `--input` references. Ideogram V4 Turbo, Balanced, and Quality are text-to-image only and accept optional `--size WIDTHxHEIGHT` dimensions from 256 through 2048 pixels when both edges are multiples of 16. ERNIE and ERNIE Turbo are pinned community deployments that accept `--size WIDTHxHEIGHT` with each edge from 64 through 2048 pixels, `--count 1-4`, and `--format png|jpeg`; they do not accept reference images. Qwen rejects `--size` and accepts `--aspect-ratio` `1:1`, `16:9`, `9:16`, `4:3`, `3:4`, `3:2`, `2:3`, `2:1`, or `1:2`. Wan rejects `--aspect-ratio` and accepts `--size` `1K`, `2K`, or `WIDTHxHEIGHT` with each edge 256 through 4096 pixels; `--size 4K` works only for `wan-2.7-image-pro` text-to-image requests without `--input`. Replicate rejects `--quality`, `--background`, `--mask`, `--compression`, `--response-mode`, and `--search-grounding`. Seedream 5 Pro estimates select its published 1K or 2K output price; ERNIE estimates use the pinned version's published example runtime on Replicate H100 hardware and therefore vary with actual runtime and resolution. Registry fallback estimates are recorded in canonical item metadata when provider billing is unavailable.
+`--provider replicate` with no model resolves to `prunaai/ernie-image-turbo`, the lowest-cost Replicate image model under the pinned default-runtime estimate in the local pricing table. Option support varies by model family. Seedream accepts `--size` (`2K`, `4K`, or `WIDTHxHEIGHT` with each edge 1024 through 4096 pixels on `seedream-4.5`; `2K` or `3K` on `seedream-5-lite`; `1K` or `2K` on `seedream-5-pro`) and `--aspect-ratio` `1:1`, `4:3`, `3:4`, `16:9`, `9:16`, `3:2`, `2:3`, `21:9`, or `match_input_image`; Seedream 5 Lite and Pro also accept `--format png|jpeg`, and Pro accepts up to 10 `--input` references. Ideogram V4 Turbo, Balanced, and Quality are text-to-image only and accept optional `--size WIDTHxHEIGHT` preset resolutions (such as `2048x2048`, `1440x2880`, `2880x1440`, `1664x2496`, `2496x1664`, `1792x2240`, `2240x1792`, `1440x2560`, `2560x1440`, `1600x2560`, `2560x1600`, `1728x2304`, `2304x1728`, `1296x3168`, `3168x1296`, `1152x2944`, `2944x1152`, `1248x3328`, `3328x1248`, `1280x3072`, or `3072x1280`). ERNIE and ERNIE Turbo are pinned community deployments that accept `--size WIDTHxHEIGHT` with each edge from 64 through 2048 pixels, `--count 1-4`, and `--format png|jpeg`; they do not accept reference images. Qwen rejects `--size` and accepts `--aspect-ratio` `1:1`, `16:9`, `9:16`, `4:3`, `3:4`, `3:2`, `2:3`, `2:1`, or `1:2`. Wan rejects `--aspect-ratio` and accepts `--size` `1K`, `2K`, or `WIDTHxHEIGHT` with each edge 256 through 4096 pixels; `--size 4K` works only for `wan-2.7-image-pro` text-to-image requests without `--input`. Replicate rejects `--quality`, `--background`, `--mask`, `--compression`, `--response-mode`, and `--search-grounding`. Seedream 5 Pro estimates select its published 1K or 2K output price; ERNIE estimates use the pinned version's published example runtime on Replicate H100 hardware and therefore vary with actual runtime and resolution. Registry fallback estimates are recorded in canonical item metadata when provider billing is unavailable.
 
 ### Luma Labs
 
@@ -243,7 +245,7 @@ Luma Labs runs against the Luma Agents API (`POST /v1/generations`, polled until
 | Models | `fal-ai/hidream-o1-image`, `microsoft/mai-image-2.5`, `microsoft/mai-image-2.5-pro`, `alibaba/qwen-image-3`, `reve/2.1` |
 | Count | `--count 1-4`; default `1` |
 | Format | `--format png\|jpeg\|webp`; default `png` |
-| References | HiDream accepts reference images; Qwen accepts up to three; Reve accepts one; MAI is text-to-image only |
+| References | HiDream accepts up to nine reference images; Qwen accepts up to three; Reve accepts one; MAI is text-to-image only |
 
 ```bash
 bun autoshow image "a technical cutaway illustration of a lunar greenhouse" --provider fal=fal-ai/hidream-o1-image --size 1024x1024
@@ -261,7 +263,7 @@ fal.ai uses `FAL_API_KEY` and the hosted queue API. HiDream and Qwen use `--size
 - Grok writes `generated-image.jpg`, plus numbered variants for `--count`.
 - BFL writes `generated-image.jpg`, `generated-image.png`, or `generated-image.webp`.
 - Recraft writes `generated-image.png`, plus numbered variants for `--count`.
-- Replicate writes `generated-image.jpg` for `seedream-4.5`, `generated-image.png` or `generated-image.jpg` for `seedream-5-lite`, and `generated-image.png` for Qwen and Wan models, plus numbered variants for Wan `--count`.
+- Replicate writes `generated-image.jpg` for `seedream-4.5`, `generated-image.png` or `generated-image.jpg` for Seedream 5 and ERNIE models, and `generated-image.png` for Qwen, Ideogram, and Wan models, plus numbered variants for Wan/ERNIE `--count`.
 - Luma Labs writes `generated-image.png` or `generated-image.jpg`.
 - fal.ai writes `generated-image.png`, `generated-image.jpg`, or `generated-image.webp`, plus numbered variants for `--count`.
 - Multi-provider runs rename outputs to include the provider and model, such as `generated-image-openai-gpt-image-2.png`; slashes in Replicate model names become dashes, such as `generated-image-replicate-wan-video-wan-2.7-image.png`.

@@ -4,11 +4,10 @@ import { join } from 'node:path'
 import { describe, expect, test } from 'bun:test'
 import { TTS_CHUNK_CHARACTER_LIMITS } from '~/cli/commands/process-steps/step-4-tts/tts-utils/tts-chunking'
 import { estimateTtsCosts } from '~/cli/commands/process-steps/step-4-tts/tts-utils/tts-pricing'
-import { SPEECHIFY_TTS_CUSTOM_VOICE_SETUP_MS } from '~/cli/commands/process-steps/step-4-tts/tts-services/speechify/speechify-custom-voices'
 import { getTtsEstimation, getTtsPricing } from '~/cli/commands/setup-and-utilities/models/model-loader'
-import { computeActualCosts } from '~/utils/pricing/compute-actual-costs'
-import { preflightToEstimated } from '~/utils/pricing/compute-costs'
-import { computeEstimatedProcessingTimes } from '~/utils/pricing/compute-processing-time'
+import { computeActualCosts } from '~/cli/commands/pricing-orchestration/compute-actual-costs'
+import { preflightToEstimated } from '~/cli/commands/pricing-orchestration/compute-costs'
+import { computeEstimatedProcessingTimes } from '~/cli/commands/pricing-orchestration/compute-processing-time'
 import { buildTtsBatchEstimateSummary, computeSuccessfulTtsBatchActualCost } from '~/cli/commands/process-steps/step-4-tts/tts-batch-summary'
 import { runCommand } from '../../../../test-utils/test-helpers'
 import type { AggregatedPriceEstimate, PreparedTtsInput, Step4Metadata, TtsTarget } from '~/types'
@@ -36,7 +35,8 @@ describe('price mode contracts', () => {
       const model = 'voxtral-mini-tts-2603'
       const opts = {
         mistralTtsModels: [model],
-        mistralTtsModel: model
+        mistralTtsModel: model,
+        mistralTtsVoice: 'voice-existing'
       } as Parameters<typeof estimateTtsCosts>[0]
 
       const cost = estimateTtsCosts(opts, 1000)[0]
@@ -258,21 +258,21 @@ describe('price mode contracts', () => {
           ttsCharacterCount: 4100,
           ttsTimingInputText: 'a'.repeat(4100),
           dialogueRequested: false
-        },
+        } as PreparedTtsInput,
         {
           inputPath: 'large-b.md',
           text: 'b'.repeat(4100),
           ttsCharacterCount: 4100,
           ttsTimingInputText: 'b'.repeat(4100),
           dialogueRequested: false
-        },
+        } as PreparedTtsInput,
         {
           inputPath: 'small.md',
           text: 's'.repeat(100),
           ttsCharacterCount: 100,
           ttsTimingInputText: 's'.repeat(100),
           dialogueRequested: false
-        }
+        } as PreparedTtsInput
       ]
       const targets: TtsTarget[] = [{
         service: 'openai',
@@ -307,7 +307,7 @@ describe('price mode contracts', () => {
       ttsCharacterCount: 6000,
       ttsTimingInputText: 'a'.repeat(6000),
       dialogueRequested: false
-    }]
+    } as PreparedTtsInput]
     const estimate: AggregatedPriceEstimate = { steps: [], totalEstimatedCost: 1, timing: { totalProcessingTimeMs: 1, steps: [] } }
     const targetFor = (model: string): TtsTarget => ({
       service: 'elevenlabs',
@@ -366,10 +366,7 @@ describe('price mode contracts', () => {
           speechifyTtsModels: ['simba-3.2']
         } as Parameters<typeof estimateTtsCosts>[0], 1000),
         ...estimateTtsCosts({
-          speechifyTtsModels: ['simba-3.0'],
-          speechifyTtsRefAudio: 'input/voices/my-voice-sample.mp3',
-          speechifyTtsConsentName: 'Anthony Example',
-          speechifyTtsConsentEmail: 'anthony@example.com'
+          speechifyTtsModels: ['simba-3.0']
         } as Parameters<typeof estimateTtsCosts>[0], 1000)
       ]
 
@@ -382,7 +379,7 @@ describe('price mode contracts', () => {
         totalCost: cost.totalCost
       }))).toEqual([
         { provider: 'speechify', model: 'simba-3.2', costPer1kCharactersCents: 1, setupCostCents: undefined, setupTimeMs: undefined, totalCost: 1 },
-        { provider: 'speechify', model: 'simba-3.0', costPer1kCharactersCents: 1, setupCostCents: 0, setupTimeMs: SPEECHIFY_TTS_CUSTOM_VOICE_SETUP_MS, totalCost: 1 }
+        { provider: 'speechify', model: 'simba-3.0', costPer1kCharactersCents: 1, setupCostCents: undefined, setupTimeMs: undefined, totalCost: 1 }
       ])
 
       const timing = computeEstimatedProcessingTimes({
@@ -401,7 +398,7 @@ describe('price mode contracts', () => {
       ])
     })
 
-  test('ElevenLabs TTS estimates use current API rates and IVC setup timing', () => {
+  test('ElevenLabs TTS estimates use current API rates and target setup timing', () => {
       const baseCosts = estimateTtsCosts({
         elevenlabsTtsModels: ['eleven_v3']
       } as Parameters<typeof estimateTtsCosts>[0], 1000)
@@ -412,26 +409,6 @@ describe('price mode contracts', () => {
         totalCost: cost.totalCost
       }))).toEqual([
         { model: 'eleven_v3', costPer1kCharactersCents: 10, totalCost: 10 }
-      ])
-
-      const cloneCosts = estimateTtsCosts({
-        elevenlabsTtsModels: ['eleven_v3'],
-        elevenlabsTtsRefAudio: 'input/examples/audio/anthony-voice.mp3'
-      } as Parameters<typeof estimateTtsCosts>[0], 1000)
-      expect(cloneCosts.map((cost) => ({
-        model: cost.model,
-        setupCostCents: cost.setupCostCents,
-        setupTimeMs: cost.setupTimeMs,
-        setupNote: cost.setupNote,
-        totalCost: cost.totalCost
-      }))).toEqual([
-        {
-          model: 'eleven_v3',
-          setupCostCents: 0,
-          setupTimeMs: 10_000,
-          setupNote: 'ElevenLabs instant voice clone setup',
-          totalCost: 10
-        }
       ])
 
       const timing = computeEstimatedProcessingTimes({

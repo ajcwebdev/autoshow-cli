@@ -50,7 +50,7 @@ describe('multi-location comic contracts', () => {
       '',
       'A long corridor.',
     ].join('\n'), 'input/move.md', { locationCatalog: catalog, characterCatalog: emptyCharacterCatalog })
-    expect(structured.schemaVersion).toBe(3)
+    expect(structured.schemaVersion).toBe(4)
     expect(structured.scene.location.key).toBe('quarters')
     expect(structured.beats.map(beat => beat.location.key)).toEqual(['quarters', 'hallway', 'hallway'])
     expect(structured.sourceSegments.map(segment => segment.location.key)).toEqual(['quarters', 'hallway', 'hallway'])
@@ -70,8 +70,8 @@ describe('multi-location comic contracts', () => {
   test('requires panel locationKey to match one source location and rejects transition-spanning panels', () => {
     const location = (key: string) => ({ key, raw: key })
     const segments: StructuredScriptSourceSegment[] = [
-      { id: 'beat-0001', type: 'direction', text: 'Room.', location: location('quarters') },
-      { id: 'beat-0002', type: 'transition', text: 'Hallway.', location: location('hallway') },
+      { id: 'beat-0001', type: 'direction', text: 'Room.', sourceSpans: [], location: location('quarters') },
+      { id: 'beat-0002', type: 'transition', text: 'Hallway.', sourceSpans: [], location: location('hallway') },
     ]
     const scene = (ids: string[], locationKey: string): ScenePromptData => ({
       schemaVersion: 4,
@@ -131,7 +131,7 @@ describe('multi-location comic contracts', () => {
           characterKeys: [],
           speech: [],
           sourceSegmentIds: [`beat-000${index + 1}`],
-          sourceSegments: [{ id: `beat-000${index + 1}`, type: 'direction', text: `Panel ${index + 1}.`, location: { key: snapshot.locationKey, raw: snapshot.locationKey } }],
+          sourceSegments: [{ id: `beat-000${index + 1}`, type: 'direction', text: `Panel ${index + 1}.`, sourceSpans: [], location: { key: snapshot.locationKey, raw: snapshot.locationKey } }],
           locationKey: snapshot.locationKey,
           locationSnapshotId: snapshot.snapshotId,
         }],

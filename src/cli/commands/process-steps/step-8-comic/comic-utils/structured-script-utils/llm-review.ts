@@ -80,6 +80,7 @@ const stripStructuredScriptNullableOptionals = (data: unknown): unknown => {
         deleteNullProperty(beat, 'speakerKey')
         deleteNullProperty(beat, 'speakerLabel')
         deleteNullProperty(beat, 'delivery')
+        deleteNullProperty(beat, 'speakerKeys')
         const location = beat['location']
         if (isRecord(location)) {
           deleteNullProperty(location, 'type')
@@ -98,6 +99,7 @@ const stripStructuredScriptNullableOptionals = (data: unknown): unknown => {
         deleteNullProperty(sourceSegment, 'speakerKey')
         deleteNullProperty(sourceSegment, 'speakerLabel')
         deleteNullProperty(sourceSegment, 'delivery')
+        deleteNullProperty(sourceSegment, 'speakerKeys')
         const location = sourceSegment['location']
         if (isRecord(location)) {
           deleteNullProperty(location, 'type')
@@ -172,6 +174,7 @@ export const reviewStructuredScriptWithLlm = async (
     {
       scriptSlug: provisional.scriptSlug,
       sourceFile: provisional.sourceFile,
+      sourceIdentity: provisional.sourceIdentity,
       sourceSegments: provisional.sourceSegments,
       beatLocations: provisional.beats.map(beat => beat.location),
       sceneLocation: provisional.scene.location,

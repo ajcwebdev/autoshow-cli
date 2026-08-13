@@ -10,7 +10,7 @@ const panelBundle = (panel: Partial<PanelBundleData['panels'][number]>): PanelBu
     number: 1, description: 'Authored staging 1.',
     shotPlan: 'Medium eye-level shot 1; hero is screen left, facing right; exclude all unlisted cast.',
     characterKeys: ['hero'], speech: [], sourceSegmentIds: ['beat-1'],
-    sourceSegments: [{ id: 'beat-1', type: 'direction', text: 'Authored staging 1.', beatIndex: 1, location: bridgeLocation }],
+    sourceSegments: [{ id: 'beat-1', type: 'direction', text: 'Authored staging 1.', sourceSpans: [], beatIndex: 1, location: bridgeLocation }],
     locationKey: 'bridge', locationSnapshotId: 'location-snapshot',
     ...panel,
   }],

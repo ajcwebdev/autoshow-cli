@@ -17,6 +17,37 @@ const makeTempRoot = async (prefix: string): Promise<string> => {
   return root
 }
 
+const writeLegacyTtsManifestFixture = async (
+  runDir: string,
+  metadata: Record<string, unknown>
+): Promise<void> => {
+  const at = new Date(0).toISOString()
+  await writeFile(join(runDir, 'manifest.json'), `${JSON.stringify({
+    command: 'tts',
+    scope: 'single',
+    createdAt: at,
+    updatedAt: at,
+    items: [{
+      status: 'full',
+      metadata,
+      providers: [{
+        service: 'kitten',
+        model: 'kitten-tts-nano',
+        local: true,
+        artifactDir: '.',
+        status: 'succeeded',
+        attempts: 1,
+        options: {},
+        metadata: {
+          audioFileName: 'speech.wav',
+          audioFileSize: 10,
+          processingTime: 100
+        }
+      }]
+    }]
+  }, null, 2)}\n`)
+}
+
 afterEach(async () => {
   await Promise.all(repoFixtureFiles.splice(0).map((path) => rm(path, { force: true })))
   await Promise.all(repoFixtureDirs.splice(0).map((dir) => rm(dir, { recursive: true, force: true })))
@@ -64,17 +95,17 @@ test('removed setup command is not registered', async () => {
 test('image command rejects removed imagen-count flag', async () => {
   await expectUsageExit(
     ['image', 'a sunset', '--provider', 'gemini=gemini-3.1-flash-lite-image', '--imagen-count', '2', '--price'],
-    'Unexpected flag: imagenCount'
+    'Unexpected flag: --imagen-count'
   )
 })
 
 test('extract rejects removed STT cache flags', async () => {
-  await expectUsageExit(['extract', STABLE_EXAMPLE_AUDIO_URL, '--refresh-cache'], 'Unexpected flag: refreshCache')
-  await expectUsageExit(['extract', STABLE_EXAMPLE_AUDIO_URL, '--no-cache'], 'Unexpected flag: noCache')
+  await expectUsageExit(['extract', STABLE_EXAMPLE_AUDIO_URL, '--refresh-cache'], 'Unexpected flag: --refresh-cache')
+  await expectUsageExit(['extract', STABLE_EXAMPLE_AUDIO_URL, '--no-cache'], 'Unexpected flag: --no-cache')
 })
 
 test('global cache-dir flag is removed', async () => {
-  await expectUsageExit(['extract', STABLE_EXAMPLE_AUDIO_URL, '--cache-dir=/tmp/autoshow-cache'], 'Unexpected flag: cacheDir')
+  await expectUsageExit(['extract', STABLE_EXAMPLE_AUDIO_URL, '--cache-dir=/tmp/autoshow-cache'], 'Unexpected flag: --cache-dir')
 })
 
 test('benchmark --tts rejects missing TTS run directory', async () => {
@@ -98,7 +129,7 @@ test('benchmark --tts rejects canonical manifests for another command', async ()
 
 test('benchmark --tts rejects missing source text without override', async () => {
   const runDir = await makeTempRoot('autoshow-tts-benchmark-text-')
-  await writeSingleManifestFixture(runDir, 'tts', {
+  await writeLegacyTtsManifestFixture(runDir, {
     tts: [{
       ttsService: 'kitten',
       ttsModel: 'kitten-tts-nano',
@@ -127,7 +158,7 @@ test('benchmark --image rejects missing image run directory', async () => {
 
 test('benchmark --image rejects canonical manifests for another command', async () => {
   const runDir = await makeTempRoot('autoshow-image-benchmark-kind-')
-  await writeSingleManifestFixture(runDir, 'tts', {})
+  await writeSingleManifestFixture(runDir, 'extract', {}, { extractRoute: 'media' })
 
   await expectUsageExit(
     ['benchmark', runDir, '--image'],
@@ -158,7 +189,7 @@ test('benchmark --text rejects missing write run directory', async () => {
 
 test('benchmark --text rejects canonical manifests for another command', async () => {
   const runDir = await makeTempRoot('autoshow-text-benchmark-kind-')
-  await writeSingleManifestFixture(runDir, 'tts', {})
+  await writeSingleManifestFixture(runDir, 'extract', {}, { extractRoute: 'media' })
 
   await expectUsageExit(
     ['benchmark', runDir, '--text'],
@@ -236,7 +267,7 @@ test('benchmark rejects unknown STT services before audio preparation', async ()
 })
 
 test('unknown flag exits 2', async () => {
-  await expectUsageExit(['write', STABLE_EXAMPLE_AUDIO_URL, '--structured'], 'Unexpected flag: structured')
+  await expectUsageExit(['write', STABLE_EXAMPLE_AUDIO_URL, '--structured'], 'Unexpected flag: --structured')
 })
 
 test('video command rejects missing first-class input', async () => {
@@ -244,12 +275,12 @@ test('video command rejects missing first-class input', async () => {
 })
 
 test('hosted-only generation commands reject local-only controls', async () => {
-  await expectUsageExit(['image', 'prompt', '--all-local'], 'Unexpected flag: allLocal')
-  await expectUsageExit(['video', 'prompt', '--all-local'], 'Unexpected flag: allLocal')
-  await expectUsageExit(['music', 'prompt', '--all-local'], 'Unexpected flag: allLocal')
-  await expectUsageExit(['image', 'prompt', '--local-concurrency', '1'], 'Unexpected flag: localConcurrency')
-  await expectUsageExit(['video', 'prompt', '--local-concurrency', '1'], 'Unexpected flag: localConcurrency')
-  await expectUsageExit(['music', 'prompt', '--local-concurrency', '1'], 'Unexpected flag: localConcurrency')
+  await expectUsageExit(['image', 'prompt', '--all-local'], 'Unexpected flag: --all-local')
+  await expectUsageExit(['video', 'prompt', '--all-local'], 'Unexpected flag: --all-local')
+  await expectUsageExit(['music', 'prompt', '--all-local'], 'Unexpected flag: --all-local')
+  await expectUsageExit(['image', 'prompt', '--local-concurrency', '1'], 'Unexpected flag: --local-concurrency')
+  await expectUsageExit(['video', 'prompt', '--local-concurrency', '1'], 'Unexpected flag: --local-concurrency')
+  await expectUsageExit(['music', 'prompt', '--local-concurrency', '1'], 'Unexpected flag: --local-concurrency')
 })
 
 test('video positional image rejects ambiguous explicit media input', async () => {
@@ -289,13 +320,13 @@ test('legacy step-2 command names are not public commands', async () => {
 })
 
 test('extract rejects LLM-only provider flags as unknown flags', async () => {
-  await expectUsageExit(['extract', STABLE_EXAMPLE_AUDIO_URL, '--llama'], 'Unexpected flag: llama')
+  await expectUsageExit(['extract', STABLE_EXAMPLE_AUDIO_URL, '--llama'], 'Unexpected flag: --llama')
 })
 
 test('extract rejects unsupported URL article option flags', async () => {
   await expectUsageExit(
     ['extract', 'https://example.com/article', '--url-include-selector', 'article', '--price'],
-    'Unexpected flag: urlIncludeSelector'
+    'Unexpected flag: --url-include-selector'
   )
 })
 
@@ -309,30 +340,30 @@ test('extract rejects invalid URL article backend names', async () => {
 test('write rejects removed all URL article backend flag', async () => {
   await expectUsageExit(
     ['write', STABLE_EXAMPLE_AUDIO_URL, '--all-url', '--price'],
-    'Unexpected flag: allUrl'
+    'Unexpected flag: --all-url'
   )
 })
 
 test('public commands reject removed provider selector aliases', async () => {
   await expectUsageExit(
     ['write', STABLE_EXAMPLE_AUDIO_URL, '--openai', 'gpt-5.5', '--price'],
-    'Unexpected flag: openai'
+    'Unexpected flag: --openai'
   )
   await expectUsageExit(
     ['extract', 'https://example.com/article', '--url-backend', 'firecrawl', '--price'],
-    'Unexpected flag: urlBackend'
+    'Unexpected flag: --url-backend'
   )
   await expectUsageExit(
     ['image', 'a sunset', '--openai', 'gpt-image-2', '--price'],
-    'Unexpected flag: openai'
+    'Unexpected flag: --openai'
   )
   await expectUsageExit(
     ['video', 'a sunset timelapse', '--gemini-video', 'veo-3.1-fast-generate-preview', '--price'],
-    'Unexpected flag: geminiVideo'
+    'Unexpected flag: --gemini-video'
   )
   await expectUsageExit(
     ['music', 'ambient piano', '--elevenlabs', 'music_v1', '--price'],
-    'Unexpected flag: elevenlabs'
+    'Unexpected flag: --elevenlabs'
   )
 })
 
@@ -412,6 +443,17 @@ test('extract rejects removed Kimi Code OCR models', async () => {
   }
 })
 
+test('write and extract reject retired Gemini 3.1 Flash-Lite with successor guidance', async () => {
+  await expectUsageExit(
+    ['write', 'input/examples/document/1-document.pdf', '--llm', 'gemini=gemini-3.1-flash-lite', '--price'],
+    'Model "gemini-3.1-flash-lite" is retired for --llm gemini[=model]. Use "gemini-3.5-flash-lite" instead. AutoShow will not silently substitute a different model identity.'
+  )
+  await expectUsageExit(
+    ['extract', 'input/examples/document/1-document.pdf', '--provider', 'gemini=gemini-3.1-flash-lite', '--price'],
+    'Model "gemini-3.1-flash-lite" is retired for --provider/--ocr gemini[=model]. Use "gemini-3.5-flash-lite" instead. AutoShow will not silently substitute a different model identity.'
+  )
+})
+
 test('extract rejects removed DeepInfra PaddleOCR model', async () => {
   await expectUsageExit(
     ['extract', 'input/examples/document/1-document.pdf', '--provider', 'deepinfra=PaddlePaddle/PaddleOCR-VL-0.9B', '--price'],
@@ -422,18 +464,18 @@ test('extract rejects removed DeepInfra PaddleOCR model', async () => {
 test('extract rejects old suffixed provider selector flags', async () => {
   await expectUsageExit(
     ['extract', 'input/examples/document/1-document.pdf', '--glm-ocr', 'glm-ocr', '--price'],
-    'Unexpected flag: glmOcr'
+    'Unexpected flag: --glm-ocr'
   )
   await expectUsageExit(
     ['extract', STABLE_EXAMPLE_AUDIO_URL, '--glm-stt', 'some-model', '--price'],
-    'Unexpected flag: glmStt'
+    'Unexpected flag: --glm-stt'
   )
 })
 
 test('tts rejects removed MiniMax clone flags as unknown flags', async () => {
   await expectUsageExit(
     ['tts', 'input/examples/tts/1-tts.md', '--provider', 'minimax=speech-2.8-turbo', '--minimax-tts-ref-audio', 'input/examples/audio/anthony-voice.mp3', '--price'],
-    'Unexpected flag: minimaxTtsRefAudio'
+    'Unexpected flag: --minimax-tts-ref-audio'
   )
 })
 
@@ -472,10 +514,17 @@ test('tts rejects --tts-voice combined with dialogue flags', async () => {
 })
 
 test('tts rejects reference audio and saved voice names combined with dialogue flags', async () => {
-  const expectedMessage = 'Voice identity options such as --tts-ref-audio and --tts-voice-name cannot be combined with --tts-speaker/--tts-dialogue-format; per-speaker voices come from --tts-speaker mappings.'
-  for (const [flag, value] of [
-    ['--tts-ref-audio', 'input/examples/audio/anthony-voice.mp3'],
-    ['--tts-voice-name', 'AutoShowVoice']
+  for (const [flag, value, expectedMessage] of [
+    [
+      '--tts-ref-audio',
+      'input/examples/audio/anthony-voice.mp3',
+      'Voice identity options such as --tts-ref-audio and --tts-voice-name cannot be combined with --tts-speaker/--tts-dialogue-format; per-speaker voices come from --tts-speaker mappings.'
+    ],
+    [
+      '--tts-voice-name',
+      'AutoShowVoice',
+      'Explicit synthesis option --mistral-tts-voice-name cannot perform named saved-reference creation during TTS synthesis.'
+    ]
   ] as const) {
     await expectUsageExit(
       ['tts', 'input/examples/tts/1-tts.md', '--provider', 'mistral=voxtral-mini-tts-2603', flag, value, '--tts-dialogue-format', 'labeled', '--tts-speaker', 'Host=Jasper', '--price'],
@@ -487,17 +536,17 @@ test('tts rejects reference audio and saved voice names combined with dialogue f
 test('write rejects explicit TTS voice identity combined with dialogue flags', async () => {
   await expectUsageExit(
     ['write', 'input/examples/tts/1-tts.md', '--tts', 'mistral=voxtral-mini-tts-2603', '--tts-ref-audio', 'input/examples/audio/anthony-voice.mp3', '--tts-dialogue-format', 'labeled', '--tts-speaker', 'Host=Jasper', '--price'],
-    'Voice identity options such as --tts-ref-audio and --tts-voice-name cannot be combined with --tts-speaker/--tts-dialogue-format; per-speaker voices come from --tts-speaker mappings.'
+    '--mistral-tts-ref-audio is an authorized edge input only for the standalone `tts` command.'
   )
 })
 
 test('resume rejects explicit TTS voice identity combined with dialogue flags', async () => {
   const runDir = await makeTempRoot('autoshow-resume-tts-dialogue-')
-  await writeSingleManifestFixture(runDir, 'tts', {})
+  await writeLegacyTtsManifestFixture(runDir, { tts: [] })
 
   await expectUsageExit(
     ['resume', runDir, '--provider', 'mistral=voxtral-mini-tts-2603', '--tts-voice-name', 'AutoShowVoice', '--tts-dialogue-format', 'labeled', '--tts-speaker', 'Host=Jasper', '--price'],
-    'Voice identity options such as --tts-ref-audio and --tts-voice-name cannot be combined with --tts-speaker/--tts-dialogue-format; per-speaker voices come from --tts-speaker mappings.'
+    'Explicit synthesis option --mistral-tts-voice-name cannot perform named saved-reference creation during TTS synthesis.'
   )
 })
 
@@ -567,22 +616,22 @@ test('music rejects mixed hosted generation and lyric-video modes', async () => 
 test('standalone generation rejects removed output directory alias', async () => {
   await expectUsageExit(
     ['image', 'a sunset', '--provider', 'openai=gpt-image-2', '--out', 'output/image-b', '--price'],
-    'Unexpected flag: out'
+    'Unexpected flag: --out'
   )
 })
 
 test('standalone generation rejects removed pipeline-prefixed option aliases', async () => {
   await expectUsageExit(
     ['image', 'a sunset', '--provider', 'openai=gpt-image-2', '--image-size', '1024x1024', '--price'],
-    'Unexpected flag: imageSize'
+    'Unexpected flag: --image-size'
   )
   await expectUsageExit(
     ['video', 'a sunset timelapse', '--provider', 'gemini=veo-3.1-fast-generate-preview', '--video-mode', 'text', '--price'],
-    'Unexpected flag: videoMode'
+    'Unexpected flag: --video-mode'
   )
   await expectUsageExit(
     ['music', 'ambient piano', '--provider', 'elevenlabs=music_v1', '--music-duration', '20', '--price'],
-    'Unexpected flag: musicDuration'
+    'Unexpected flag: --music-duration'
   )
 })
 
@@ -610,27 +659,27 @@ test('video command rejections name the spellings the video command registers', 
 test('resume rejects provider-named option flags', async () => {
   await expectUsageExit(
     ['resume', 'output/nonexistent', '--elevenlabs-tts-stability', '0.4'],
-    'Unexpected flag: elevenlabsTtsStability'
+    'Unexpected flag: --elevenlabs-tts-stability'
   )
   await expectUsageExit(
     ['resume', 'output/nonexistent', '--minimax-tts-emotion', 'happy'],
-    'Unexpected flag: minimaxTtsEmotion'
+    'Unexpected flag: --minimax-tts-emotion'
   )
   await expectUsageExit(
     ['resume', 'output/nonexistent', '--replicate-video-seed', '1'],
-    'Unexpected flag: replicateVideoSeed'
+    'Unexpected flag: --replicate-video-seed'
   )
   await expectUsageExit(
     ['resume', 'output/nonexistent', '--grok-video-storage-filename', 'clip.mp4'],
-    'Unexpected flag: grokVideoStorageFilename'
+    'Unexpected flag: --grok-video-storage-filename'
   )
   await expectUsageExit(
     ['resume', 'output/nonexistent', '--stt-happyscribe-organization-id', 'org_123'],
-    'Unexpected flag: sttHappyscribeOrganizationId'
+    'Unexpected flag: --stt-happyscribe-organization-id'
   )
   await expectUsageExit(
     ['resume', 'output/nonexistent', '--stt-reverb-verbatimicity', '0.5'],
-    'Unexpected flag: sttReverbVerbatimicity'
+    'Unexpected flag: --stt-reverb-verbatimicity'
   )
 })
 
@@ -645,7 +694,7 @@ test('comic generate-images rejects invalid page selection flags', async () => {
   )
   await expectUsageExit(
     ['comic', 'generate-images', 'input/scripts/02-script/01-co-work-smarter.md','--panel-limit', 'nope', '--price'],
-    'Unexpected flag: panelLimit'
+    'Unexpected flag: --panel-limit'
   )
 })
 
@@ -663,7 +712,7 @@ test('comic generate-images rejects invalid and duplicate image models', async (
 test('comic generate-images rejects removed --panel flag as unknown argument', async () => {
   await expectUsageExit(
     ['comic', 'generate-images', 'input/scripts/02-script/01-co-work-smarter.md','--panel', '1', '--price'],
-    'Unexpected flag: panel'
+    'Unexpected flag: --panel'
   )
 })
 
@@ -791,7 +840,7 @@ test('comic generate-images rejects invalid grid options', async () => {
 test('comic draft-scenes rejects removed --episode flag as unknown argument', async () => {
   await expectUsageExit(
     ['comic', 'draft-scenes', '--episode', 'ep02', '--price'],
-    'Unexpected flag: episode'
+    'Unexpected flag: --episode'
   )
 })
 

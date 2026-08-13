@@ -3,7 +3,6 @@ import { createChatImageOcrRunner } from '~/cli/commands/process-steps/step-2-ex
 import { OcrStructuredResponseError } from '~/cli/commands/process-steps/step-2-extract/step-2-ocr/ocr-structured-response-error'
 import {
   KIMI_OCR_IMAGE_BYTES,
-  acceptsKimiThinkingField,
   ensureKimiApiKey,
   resolveKimiBaseUrl
 } from './kimi'
@@ -46,6 +45,7 @@ const buildTruncatedResponseError = (
 
 export const runKimiOcr = createChatImageOcrRunner({
   extractionMethod: 'kimi-ocr',
+  service: 'kimi',
   providerLabel: 'Kimi OCR',
   maxImageBytes: KIMI_OCR_IMAGE_BYTES,
   imageLimitLabel: '100 MB',
@@ -56,11 +56,14 @@ export const runKimiOcr = createChatImageOcrRunner({
     apiKey: ensureKimiApiKey('Kimi OCR'),
     baseURL: resolveKimiBaseUrl()
   }),
-  buildBody: ({ model, messages }) => ({
+  buildBody: ({ model, messages, reasoningPolicy }) => ({
     model,
     stream: false,
     max_completion_tokens: KIMI_OCR_DEFAULT_MAX_COMPLETION_TOKENS,
-    ...(acceptsKimiThinkingField(model) ? { thinking: { type: 'disabled' } } : {}),
+    ...(reasoningPolicy.effective === 'disabled' ? { thinking: { type: 'disabled' } } : {}),
+    ...(model === 'kimi-k3' && reasoningPolicy.requested !== undefined && reasoningPolicy.requested !== 'default'
+      ? { reasoning_effort: reasoningPolicy.effective }
+      : {}),
     messages
   }),
   checkResponse: (response: OpenAIChatCompletionResponse, rawText: string, pageLabel: string) => {

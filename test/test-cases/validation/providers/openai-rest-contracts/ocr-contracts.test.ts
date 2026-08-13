@@ -191,7 +191,7 @@ describe('OpenAI REST OCR contracts', () => {
     })
   })
 
-  test('Kimi OCR sends disabled thinking and completion cap settings', async () => {
+  test('Kimi OCR preserves its legacy disabled default but delegates explicit default to the provider', async () => {
     process.env['KIMI_API_KEY'] = 'kimi-key'
     const calls = installFetch(() => jsonResponse({
       choices: [{ message: { content: 'Kimi OCR text' }, finish_reason: 'stop' }],
@@ -213,13 +213,61 @@ describe('OpenAI REST OCR contracts', () => {
         outputDir: dir,
         ocrPreparationCache: undefined
       })
+      expect(result.promptTokens).toBe(4232)
+      expect(result.completionTokens).toBe(2068)
+      await runKimiOcr(imagePath, metadata, 'kimi-k2.6', {
+        dpi: 300,
+        password: undefined,
+        outputDir: dir,
+        ocrPreparationCache: undefined,
+        reasoningEffort: 'default'
+      })
 
       expect(result.pages).toEqual([{ pageNumber: 1, method: 'ocr', text: 'Kimi OCR text' }])
-      expect(calls).toHaveLength(1)
+      expect(calls).toHaveLength(2)
       expect(calls[0]?.bodyJson?.['model']).toBe('kimi-k2.6')
       expect(calls[0]?.headers.get('authorization')).toBe('Bearer kimi-key')
       expect(calls[0]?.bodyJson?.['thinking']).toEqual({ type: 'disabled' })
       expect(calls[0]?.bodyJson?.['max_completion_tokens']).toBe(8192)
+      expect(calls[1]?.bodyJson).not.toHaveProperty('thinking')
+      expect(calls[1]?.bodyJson).not.toHaveProperty('reasoning_effort')
+    })
+  })
+
+  test('Kimi K3 preserves provider defaults unless named effort is explicit', async () => {
+    process.env['KIMI_API_KEY'] = 'kimi-key'
+    const calls = installFetch(() => jsonResponse({
+      choices: [{ message: { content: 'Kimi K3 OCR text' }, finish_reason: 'stop' }]
+    }))
+
+    await withTempDir(async (dir) => {
+      const imagePath = join(dir, 'page.png')
+      await writeFile(imagePath, new Uint8Array([1, 2, 3]))
+      const metadata: DocumentMetadata = {
+        slug: 'page',
+        pageCount: 1,
+        format: 'png',
+        fileSize: 3
+      }
+
+      await runKimiOcr(imagePath, metadata, 'kimi-k3', {
+        dpi: 300,
+        password: undefined,
+        outputDir: dir,
+        ocrPreparationCache: undefined
+      })
+      await runKimiOcr(imagePath, metadata, 'kimi-k3', {
+        dpi: 300,
+        password: undefined,
+        outputDir: dir,
+        ocrPreparationCache: undefined,
+        reasoningEffort: 'high'
+      })
+
+      expect(calls[0]?.bodyJson).not.toHaveProperty('thinking')
+      expect(calls[0]?.bodyJson).not.toHaveProperty('reasoning_effort')
+      expect(calls[1]?.bodyJson).not.toHaveProperty('thinking')
+      expect(calls[1]?.bodyJson?.['reasoning_effort']).toBe('high')
     })
   })
 

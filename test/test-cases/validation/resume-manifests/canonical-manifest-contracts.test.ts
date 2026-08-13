@@ -1,16 +1,24 @@
 import { describe, expect, test } from 'bun:test'
+import { mkdir } from 'node:fs/promises'
 import { join } from 'node:path'
 import {
   createManifest,
   createManifestItem,
   PIPELINE_MANIFEST_FILE,
   readManifest,
+  updateSingleManifestProviderState,
   updateManifest,
   writeManifest
 } from '~/cli/commands/process-steps/pipeline-manifest'
 import { PROCESS_COMMANDS } from '~/types'
-import type { PipelineManifest, PipelineProviderState } from '~/types'
+import type { CanonicalAudioProviderProjection, PipelineManifest, PipelineProviderState } from '~/types'
 import { withTempDir } from '../../../test-utils/temp-dirs'
+import { canonicalTargetKey } from '~/utils/canonical-target-key'
+import type { TtsTarget } from '~/types'
+import { runTtsForTargets } from '~/cli/commands/process-steps/step-4-tts/run-tts'
+import { createInlineTtsSourceIdentity, createSingleTurnTtsDialoguePlan } from '~/cli/commands/process-steps/step-4-tts/script-to-audio/generic-dialogue-plan'
+import { appendCurrentTtsProviderState } from '~/cli/commands/process-steps/step-4-tts/script-to-audio/current-render-artifacts'
+import { bindTtsDialoguePlanArtifact, materializeTtsDialoguePlanArtifact } from '~/cli/commands/process-steps/step-4-tts/script-to-audio/item-dialogue-plan-artifact'
 
 const provider = (
   rootDir: string,
@@ -26,23 +34,101 @@ const provider = (
   ...(status === 'failed' ? { error: { message: 'fixture failure', retryable: true } } : {})
 })
 
+const materializeFailedTtsProviderState = async (
+  rootDir: string,
+  target: TtsTarget,
+  sourceText = 'Fixture failure.'
+): Promise<PipelineProviderState> => {
+  let latest: PipelineProviderState | undefined
+  const runnable = {
+    ...target,
+    voice: target.voice ?? 'alloy',
+    run: async (): Promise<never> => { throw new Error('fixture failure before provider dispatch') }
+  }
+  const sourceIdentity = createInlineTtsSourceIdentity(sourceText)
+  const dialoguePlan = createSingleTurnTtsDialoguePlan(sourceIdentity, sourceText, new Date(0).toISOString())
+  await runTtsForTargets(sourceText, rootDir, {}, [runnable], {
+    sourceIdentity,
+    dialoguePlan,
+    onProviderState: async (state) => { latest = state }
+  }).catch(() => undefined)
+  if (!latest || latest.status !== 'failed') throw new Error('Fixture lifecycle did not produce a failed canonical TTS state.')
+  return bindTtsDialoguePlanArtifact(
+    latest,
+    await materializeTtsDialoguePlanArtifact(rootDir, dialoguePlan)
+  )
+}
+
+const policySkippedTtsProviderState = (
+  target: TtsTarget,
+  artifactRoot = 'providers'
+): PipelineProviderState => {
+  const targetKey = target.targetKey as string
+  const actor = { namespace: 'local-user' as const, actorId: 'fixture' }
+  const at = new Date(0).toISOString()
+  const evidence = {
+    schemaVersion: 1 as const,
+    skipId: `skip-${targetKey}`,
+    targetKey,
+    reasonCode: 'user-requested' as const,
+    reason: 'fixture skip',
+    actor,
+    at
+  }
+  const projection = {
+    activeWork: { kind: 'policy-skip' as const, evidence },
+    branchHistory: [],
+    readinessAttempts: [],
+    renderHistory: [],
+    pointerEvents: [{ sequence: 1, action: 'activate-policy-skip' as const, skipId: evidence.skipId, actor, at }]
+  }
+  return {
+    service: target.service,
+    model: target.model,
+    local: target.service === 'kitten',
+    operation: 'tts-synthesis',
+    targetKey,
+    transport: target.transport as string,
+    artifactDir: `${artifactRoot}/${targetKey}`,
+    status: 'skipped',
+    attempts: 0,
+    options: {},
+    metadata: { ttsAudio: projection },
+    result: { ttsAudio: projection }
+  }
+}
+
 describe('canonical pipeline manifest', () => {
-  test('every command and scope uses one unversioned top-level shape', async () => {
+  const ttsTarget = (model: string): TtsTarget => ({
+    service: 'openai',
+    model,
+    operation: 'tts-synthesis',
+    transport: 'hosted-api',
+    targetKey: canonicalTargetKey('tts-synthesis', 'openai', model, 'hosted-api'),
+    run: async () => { throw new Error('not called') }
+  })
+
+  test('every generic command and scope uses one unversioned top-level shape', async () => {
     await withTempDir('autoshow-canonical-manifest-', async (dir) => {
-      for (const command of PROCESS_COMMANDS) {
+      for (const command of PROCESS_COMMANDS.filter(candidate => candidate !== 'comic')) {
         for (const scope of ['single', 'batch'] as const) {
+          const caseDir = join(dir, `${command}-${scope}`)
+          await mkdir(caseDir)
           const itemCount = scope === 'single' ? 1 : 2
-          const manifest = createManifest(command, scope, Array.from({ length: itemCount }, (_, index) =>
-            createManifestItem(dir, {
+          const manifest = createManifest(command, scope, Array.from({ length: itemCount }, (_, index) => {
+            const target = ttsTarget(`fixture-${index}`)
+            return createManifestItem(caseDir, {
               input: `input-${index}`,
-              outputDir: join(dir, `item-${index}`),
-              status: 'full',
+              outputDir: join(caseDir, `item-${index}`),
+              status: command === 'tts' ? 'skipped' : 'full',
               metadata: { index },
-              providers: []
+              providers: command === 'tts'
+                ? [policySkippedTtsProviderState(target, `item-${index}/providers`)]
+                : []
             })
-          ))
-          await writeManifest(dir, manifest)
-          const stored = await readManifest(dir)
+          }))
+          await writeManifest(caseDir, manifest)
+          const stored = await readManifest(caseDir)
           expect(stored?.command).toBe(command)
           expect(stored?.scope).toBe(scope)
           expect(stored?.items).toHaveLength(itemCount)
@@ -51,6 +137,7 @@ describe('canonical pipeline manifest', () => {
           expect((stored as unknown as Record<string, unknown>)['kind']).toBeUndefined()
         }
       }
+      expect(PROCESS_COMMANDS).toContain('comic')
     })
   })
 
@@ -178,6 +265,275 @@ describe('canonical pipeline manifest', () => {
         metadata: {},
         providers: [{ ...provider(dir, 'missing'), artifactDir: '../../escape' }]
       })).toThrow('escapes its run root')
+    })
+  })
+
+  test('TTS item status is an exact reduction and empty or duplicate target states are rejected', async () => {
+    await withTempDir('autoshow-tts-manifest-reduction-', async (dir) => {
+      const target = ttsTarget('fixture-a')
+      const failedDir = join(dir, 'failed')
+      await mkdir(failedDir)
+      const failed = await materializeFailedTtsProviderState(failedDir, target)
+      const skipped = policySkippedTtsProviderState(target)
+
+      for (const [status, state] of [['failed', failed], ['skipped', skipped]] as const) {
+        const stateDir = status === 'failed' ? failedDir : join(dir, status)
+        if (status !== 'failed') await mkdir(stateDir)
+        await writeManifest(stateDir, createManifest('tts', 'single', [createManifestItem(stateDir, {
+          input: 'fixture.txt',
+          status,
+          metadata: {},
+          providers: [state]
+        })]))
+        expect((await readManifest(stateDir))?.items[0]?.status).toBe(status)
+      }
+
+      await expect(writeManifest(dir, createManifest('tts', 'single', [{
+        input: 'fixture.txt',
+        status: 'full',
+        metadata: {},
+        providers: []
+      }]))).rejects.toThrow('Invalid canonical manifest')
+      expect(() => createManifestItem(dir, {
+        input: 'fixture.txt',
+        status: 'skipped',
+        metadata: {},
+        providers: [skipped, skipped]
+      })).toThrow('invalid canonical manifest item')
+    })
+  })
+
+  test('TTS pointer histories are append-only during provider-state updates', async () => {
+    await withTempDir('autoshow-tts-manifest-history-', async (dir) => {
+      const target = ttsTarget('fixture-history')
+      const pending = policySkippedTtsProviderState(target)
+      await writeManifest(dir, createManifest('tts', 'single', [createManifestItem(dir, {
+        input: 'fixture.txt',
+        status: 'skipped',
+        metadata: {},
+        providers: [pending]
+      })]))
+      const projection = pending.result?.['ttsAudio'] as {
+        activeWork: { kind: 'policy-skip', evidence: { skipId: string, actor: { namespace: 'local-user', actorId: string }, at: string } }
+        branchHistory: []
+        readinessAttempts: []
+        renderHistory: []
+        pointerEvents: Array<Record<string, unknown>>
+      }
+      const appendedProjection = {
+        ...projection,
+        pointerEvents: [...projection.pointerEvents, {
+          sequence: 2,
+          action: 'activate-policy-skip',
+          skipId: projection.activeWork.evidence.skipId,
+          actor: projection.activeWork.evidence.actor,
+          at: projection.activeWork.evidence.at
+        }]
+      }
+      const appended = { ...pending, metadata: { ttsAudio: appendedProjection }, result: { ttsAudio: appendedProjection } }
+      await updateSingleManifestProviderState(dir, { service: target.service, targetKey: target.targetKey }, () => appended)
+      await expect(updateSingleManifestProviderState(dir, { service: target.service, targetKey: target.targetKey }, () => pending)).rejects.toThrow('append-only')
+      const replacement = createManifest('tts', 'single', [createManifestItem(dir, {
+        input: 'fixture.txt',
+        status: 'skipped',
+        metadata: {},
+        providers: [pending]
+      })])
+      replacement.createdAt = (await readManifest(dir))?.createdAt as string
+      await expect(writeManifest(dir, replacement)).rejects.toThrow('append-only')
+    })
+  })
+
+  test('same-render zero-request failed attempts append result and readiness evidence without replacing history', async () => {
+    await withTempDir('autoshow-tts-blocked-history-', async (dir) => {
+      const target = ttsTarget('fixture-blocked-history')
+      const first = await materializeFailedTtsProviderState(dir, target, 'Blocked append fixture.')
+      const firstProjection = first.result?.['ttsAudio'] as CanonicalAudioProviderProjection
+      const zeroAttemptFailure = firstProjection.renderHistory[0]?.events.at(-1)
+      expect(zeroAttemptFailure).toMatchObject({ status: 'failed', attempt: 0 })
+      expect(Object.keys(zeroAttemptFailure ?? {}).sort()).toEqual(['at', 'attempt', 'error', 'sequence', 'status'])
+      for (const tamper of [
+        (event: Record<string, unknown>) => { event['admissionJournalSnapshotId'] = 'forbidden-zero-attempt-journal' },
+        (event: Record<string, unknown>) => { delete event['error'] }
+      ]) {
+        const invalid = structuredClone(first)
+        const invalidProjection = invalid.result?.['ttsAudio'] as CanonicalAudioProviderProjection
+        tamper(invalidProjection.renderHistory[0]?.events.at(-1) as unknown as Record<string, unknown>)
+        invalid.metadata['ttsAudio'] = invalidProjection
+        expect(() => createManifestItem(dir, {
+          input: 'fixture.txt',
+          status: 'failed',
+          metadata: {},
+          providers: [invalid]
+        })).toThrow('invalid canonical manifest item')
+      }
+      await writeManifest(dir, createManifest('tts', 'single', [createManifestItem(dir, {
+        input: 'fixture.txt',
+        status: 'failed',
+        metadata: {},
+        providers: [first]
+      })]))
+
+      const second = await materializeFailedTtsProviderState(dir, target, 'Blocked append fixture.')
+      const appended = appendCurrentTtsProviderState(first, second)
+      const appendedProjection = appended.result?.['ttsAudio'] as CanonicalAudioProviderProjection
+      expect(appendedProjection.renderHistory[0]?.events.slice(0, firstProjection.renderHistory[0]?.events.length)).toEqual(firstProjection.renderHistory[0]?.events)
+      expect(appendedProjection.renderHistory[0]?.events.at(-1)?.status).toBe('failed')
+      expect(appendedProjection.readinessAttempts.slice(0, firstProjection.readinessAttempts.length)).toEqual(firstProjection.readinessAttempts)
+      expect(appendedProjection.readinessAttempts).toHaveLength(firstProjection.readinessAttempts.length + 1)
+      expect(appendedProjection.pointerEvents.slice(0, firstProjection.pointerEvents.length)).toEqual(firstProjection.pointerEvents)
+      await updateSingleManifestProviderState(dir, { service: target.service, targetKey: target.targetKey }, () => appended)
+      const stored = (await readManifest(dir))?.items[0]?.providers[0]
+      expect(stored?.status).toBe('failed')
+      expect(stored?.attempts).toBe(0)
+      await expect(updateSingleManifestProviderState(dir, { service: target.service, targetKey: target.targetKey }, () => first)).rejects.toThrow('append-only')
+    })
+  })
+
+  test('cumulative same-render provider updates append each pointer occurrence only once', async () => {
+    await withTempDir('autoshow-tts-cumulative-pointer-history-', async (dir) => {
+      const target = ttsTarget('fixture-cumulative-pointer-history')
+      const initial = await materializeFailedTtsProviderState(dir, target, 'Cumulative pointer fixture.')
+      const withAnotherFailure = (state: PipelineProviderState, offsetMs: number): PipelineProviderState => {
+        const next = structuredClone(state)
+        const projection = next.result?.['ttsAudio'] as CanonicalAudioProviderProjection
+        const render = projection.renderHistory[0]
+        const previous = render?.events.at(-1)
+        if (!render || !previous || previous.status !== 'failed') throw new Error('Expected one failed fixture render')
+        const eventSequence = previous.sequence + 1
+        const at = new Date(Date.parse(previous.at) + offsetMs).toISOString()
+        render.events.push({ ...previous, sequence: eventSequence, at })
+        projection.activeWork = { kind: 'render', renderIdentity: render.renderIdentity, eventSequence }
+        projection.pointerEvents.push({
+          sequence: projection.pointerEvents.length + 1,
+          action: 'activate-render',
+          renderIdentity: render.renderIdentity,
+          eventSequence,
+          actor: { namespace: 'local-user', actorId: 'fixture' },
+          at
+        })
+        next.metadata['ttsAudio'] = projection
+        next.result = { ttsAudio: projection }
+        return next
+      }
+
+      const firstIncoming = withAnotherFailure(initial, 1)
+      const afterFirst = appendCurrentTtsProviderState(initial, firstIncoming)
+      const initialPointers = (initial.result?.['ttsAudio'] as CanonicalAudioProviderProjection).pointerEvents.length
+      expect((afterFirst.result?.['ttsAudio'] as CanonicalAudioProviderProjection).pointerEvents).toHaveLength(initialPointers + 1)
+
+      const secondIncoming = withAnotherFailure(firstIncoming, 1)
+      const afterSecond = appendCurrentTtsProviderState(afterFirst, secondIncoming)
+      const pointers = (afterSecond.result?.['ttsAudio'] as CanonicalAudioProviderProjection).pointerEvents
+      expect(pointers).toHaveLength(initialPointers + 2)
+      expect(pointers.map((pointer) => pointer.sequence)).toEqual(pointers.map((_, index) => index + 1))
+    })
+  })
+
+  test('different-render zero-request failures retain both plans and remap readiness authorizations', async () => {
+    await withTempDir('autoshow-tts-different-render-history-', async (dir) => {
+      const target = ttsTarget('fixture-different-render-history')
+      const sourceText = 'Different render voice-binding fixture.'
+      const first = await materializeFailedTtsProviderState(dir, { ...target, voice: 'alloy' }, sourceText)
+      await writeManifest(dir, createManifest('tts', 'single', [createManifestItem(dir, {
+        input: 'fixture.txt',
+        status: 'failed',
+        metadata: {},
+        providers: [first]
+      })]))
+      const second = await materializeFailedTtsProviderState(dir, { ...target, voice: 'nova' }, sourceText)
+      const appended = appendCurrentTtsProviderState(first, second)
+      const projection = appended.result?.['ttsAudio'] as CanonicalAudioProviderProjection
+      expect(projection.renderHistory).toHaveLength(2)
+      expect(new Set(projection.renderHistory.map((render) => render.renderIdentity)).size).toBe(2)
+      const activeRender = projection.renderHistory[1]
+      if (!activeRender) throw new Error('Expected the appended render to retain its render plan')
+      expect(projection.activeWork).toEqual({ kind: 'render', renderIdentity: activeRender.renderIdentity, eventSequence: activeRender.events.at(-1)?.sequence as number })
+      expect(projection.pointerEvents.at(-1)).toMatchObject({
+        action: 'activate-render',
+        renderIdentity: activeRender.renderIdentity
+      })
+      await updateSingleManifestProviderState(dir, { service: target.service, targetKey: target.targetKey }, () => appended)
+      expect((await readManifest(dir))?.items[0]?.providers[0]?.status).toBe('failed')
+    })
+  })
+
+  test('batch TTS items cannot share one provider artifact directory', async () => {
+    await withTempDir('autoshow-tts-batch-artifact-identity-', async (dir) => {
+      const target = ttsTarget('fixture-batch')
+      const shared = policySkippedTtsProviderState(target)
+      const items = ['first', 'second'].map((input) => createManifestItem(dir, {
+        input: `${input}.txt`,
+        status: 'skipped',
+        metadata: {},
+        providers: [shared]
+      }))
+
+      await expect(writeManifest(dir, createManifest('tts', 'batch', items))).rejects.toThrow('Invalid canonical manifest')
+    })
+  })
+
+  test('a TTS item cannot satisfy cardinality with a non-synthesis operation', async () => {
+    await withTempDir('autoshow-tts-wrong-operation-', async (dir) => {
+      const operation = 'write'
+      const transport = 'hosted-api'
+      const targetKey = canonicalTargetKey(operation, 'openai', 'fixture-model', transport)
+      const wrongOperation: PipelineProviderState = {
+        service: 'openai',
+        model: 'fixture-model',
+        operation,
+        targetKey,
+        transport,
+        artifactDir: `providers/${targetKey}`,
+        status: 'succeeded',
+        attempts: 1,
+        options: {},
+        metadata: {}
+      }
+
+      await expect(writeManifest(dir, createManifest('tts', 'single', [createManifestItem(dir, {
+        input: 'fixture.txt',
+        status: 'full',
+        metadata: {},
+        providers: [wrongOperation]
+      })]))).rejects.toThrow('Invalid canonical manifest')
+    })
+  })
+
+  test('legacy TTS identity uses only canonical options and recorded output checksum pairs', async () => {
+    await withTempDir('autoshow-tts-legacy-identity-', async (dir) => {
+      const legacy: PipelineProviderState = {
+        service: 'openai',
+        model: 'legacy-model',
+        artifactDir: '.',
+        status: 'succeeded',
+        attempts: 1,
+        options: { language: 'en' },
+        metadata: { audioFileName: 'speech.wav', audioFileSize: 10, processingTime: 1 }
+      }
+      const legacyManifest = createManifest('tts', 'single', [createManifestItem(dir, {
+        input: 'legacy input',
+        status: 'full',
+        metadata: {},
+        providers: [legacy]
+      })])
+      await expect(writeManifest(dir, legacyManifest)).rejects.toThrow('Invalid canonical manifest')
+      await Bun.write(join(dir, PIPELINE_MANIFEST_FILE), `${JSON.stringify(legacyManifest, null, 2)}\n`)
+      const first = (await readManifest(dir))?.items[0]?.providers[0]
+      const firstIdentity = first?.legacyRenderIdentity
+      expect(firstIdentity).toMatch(/^legacy:[a-f0-9]{64}$/)
+      expect(JSON.stringify(first)).not.toContain('legacyRenderIdentity')
+
+      const manifestPath = join(dir, PIPELINE_MANIFEST_FILE)
+      const raw = await Bun.file(manifestPath).json() as { items: Array<{ providers: Array<{ metadata: Record<string, unknown> }> }> }
+      raw.items[0]!.providers[0]!.metadata['audioFileSize'] = 99
+      raw.items[0]!.providers[0]!.metadata['processingTime'] = 999
+      await Bun.write(manifestPath, `${JSON.stringify(raw, null, 2)}\n`)
+      expect((await readManifest(dir))?.items[0]?.providers[0]?.legacyRenderIdentity).toBe(firstIdentity)
+
+      raw.items[0]!.providers[0]!.metadata['audioFileName'] = 'another.wav'
+      await Bun.write(manifestPath, `${JSON.stringify(raw, null, 2)}\n`)
+      expect((await readManifest(dir))?.items[0]?.providers[0]?.legacyRenderIdentity).not.toBe(firstIdentity)
     })
   })
 })

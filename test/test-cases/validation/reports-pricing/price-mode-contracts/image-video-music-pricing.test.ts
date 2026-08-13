@@ -6,8 +6,8 @@ import {
 import { estimateImageCosts } from '~/cli/commands/process-steps/step-5-image/image-utils/image-pricing'
 import { estimateMusicCosts } from '~/cli/commands/process-steps/step-7-music/music-utils/music-pricing'
 import { resolveExtractionProviderModel } from '~/cli/commands/process-steps/step-2-extract/step-2-ocr/ocr-costs'
-import { computeActualCosts } from '~/utils/pricing/compute-actual-costs'
-import { computeActualProcessingTimes } from '~/utils/pricing/compute-processing-time'
+import { computeActualCosts } from '~/cli/commands/pricing-orchestration/compute-actual-costs'
+import { computeActualProcessingTimes } from '~/cli/commands/pricing-orchestration/compute-processing-time'
 import type { ExtractionMetadata, Step5Metadata, Step6VideoMetadata, Step7MusicMetadata } from '~/types'
 
 const buildVideoMetadata = (overrides: Partial<Step6VideoMetadata>): Step6VideoMetadata => ({
@@ -337,7 +337,7 @@ describe('price mode contracts', () => {
       ])
     })
 
-  // ADR-018 replaced MiniMax music-2.6 with music-3.0 and required the retired
+  // ADR-013 replaced MiniMax music-2.6 with music-3.0 and required the retired
   // model to keep repricing in historical readers. It has no registry row, so
   // without the retired-rate table `getMusicModelMeta` returns undefined and the
   // four committed `docs/benchmarks/music/2026-05-21_*` runs silently reprice to

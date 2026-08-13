@@ -272,20 +272,9 @@ describe('Phase 4 producer hardening contracts', () => {
     ])
   })
 
-  test('pins a manual-only unprivileged two-architecture workflow entirely by full commit SHA', async () => {
-    const workflow = await Bun.file(join(PROJECT_ROOT, '.github/workflows/macos-toolchain-unsigned.yml')).text()
-    expect(workflow).toContain('runner: macos-15\n            architecture: arm64')
-    expect(workflow).toContain('runner: macos-15-intel\n            architecture: x64')
-    expect(workflow).toContain('workflow_dispatch:')
-    expect(workflow).not.toMatch(/pull_request:|pull_request_target:|push:/)
-    expect(workflow).toContain('permissions:\n  contents: read')
-    expect(workflow).toContain('persist-credentials: false')
-    expect(workflow).toContain('artifact-digest')
-    expect(workflow).toContain('toolchain:verify-source-fallback')
-    const actionReferences = [...workflow.matchAll(/uses:\s+[^@\s]+@([^\s]+)/g)].map(match => match[1] ?? '')
-    expect(actionReferences.length).toBeGreaterThanOrEqual(6)
-    expect(actionReferences.every(reference => /^[a-f0-9]{40}$/.test(reference))).toBe(true)
-    expect(workflow).not.toMatch(/pull_request_target|secrets\.|notarytool|gh release|codesign\s+--sign|contents:\s*write/)
+  test('keeps retired toolchain producer workflows out of repository automation', async () => {
+    expect(await Bun.file(join(PROJECT_ROOT, '.github/workflows/macos-toolchain-unsigned.yml')).exists()).toBe(false)
+    expect(await Bun.file(join(PROJECT_ROOT, '.github/workflows/macos-toolchain-release.yml')).exists()).toBe(false)
   })
 
   test('does not configure an unsigned or release candidate in production metadata', async () => {

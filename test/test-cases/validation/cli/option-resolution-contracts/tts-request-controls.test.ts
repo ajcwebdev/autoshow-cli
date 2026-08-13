@@ -1,11 +1,11 @@
 import { describe, expect, test } from 'bun:test'
-import { basename } from 'node:path'
 import { buildOptsFromFlags } from '~/cli/options/option-resolution/build-options-from-flags'
 import { collectTtsTargets } from '~/cli/commands/process-steps/step-4-tts/tts-targets'
 import {
   getGroqDefaultTtsVoiceForModel,
   DEEPGRAM_DEFAULT_VOICE,
   GROK_DEFAULT_TTS_VOICE,
+  SUPPORTED_GROQ_ARABIC_TTS_VOICES,
   SUPPORTED_ELEVENLABS_TTS_MODELS,
   SUPPORTED_DEEPGRAM_TTS_MODELS,
   SUPPORTED_GEMINI_TTS_MODELS,
@@ -19,16 +19,15 @@ import {
   SUPPORTED_CARTESIA_TTS_MODELS,
   SUPPORTED_SPEECHIFY_TTS_MODELS
 } from '~/cli/commands/setup-and-utilities/models/setup-model-options'
-import { MISTRAL_DEFAULT_REF_AUDIO } from '~/cli/commands/setup-and-utilities/models/tts-models'
 import { formatModelSelector } from '~/cli/commands/setup-and-utilities/models/model-validation'
 import { assertNoVoiceIdentityWithDialogue } from '~/cli/flags/service-selector-normalization/generic-tts-option-selectors'
 
-const REMOVED_GROQ_TTS_MODEL = ['canopylabs/orpheus', 'arabic-saudi'].join('-')
+const INVALID_GROQ_TTS_MODEL = 'canopylabs/orpheus-legacy'
 
-const REMOVED_GROQ_TTS_VOICE = ['no', 'ura'].join('')
+const INVALID_GROQ_TTS_VOICE = 'not-a-groq-voice'
 
 describe('option resolution contracts', () => {
-  test('hosted TTS exposes exactly 24 active selectors and rejects all retired IDs', () => {
+  test('hosted TTS exposes exactly 109 active selectors and rejects all retired IDs', () => {
     const hostedSelectors = [
       ...SUPPORTED_ELEVENLABS_TTS_MODELS,
       ...SUPPORTED_MINIMAX_TTS_MODELS,
@@ -42,15 +41,19 @@ describe('option resolution contracts', () => {
       ...SUPPORTED_HUME_TTS_MODELS,
       ...SUPPORTED_CARTESIA_TTS_MODELS
     ]
-    expect(hostedSelectors).toHaveLength(24)
+    expect(hostedSelectors).toHaveLength(109)
     expect(hostedSelectors).toEqual(expect.arrayContaining([
       'sonic-3.5-2026-05-04',
       'gpt-4o-mini-tts-2025-12-15',
       'simba-3.2',
       'simba-3.0',
+      'octave-1',
+      'octave-2',
       'aura-2-helena-en',
       'aura-2-arcas-en',
       'aura-2-aries-en',
+      'aura-2-ama-ja',
+      'canopylabs/orpheus-arabic-saudi',
       'eleven_multilingual_v2',
       'eleven_flash_v2_5'
     ]))
@@ -70,15 +73,15 @@ describe('option resolution contracts', () => {
         'mistral-tts': 'voxtral-mini-tts-2603',
         'tts-dialogue-format': 'screenplay',
         'tts-speaker': [
-          'DUCO=input/examples/audio/anthony-voice.mp3',
-          'CHAT=https://ajc.pics/autoshow/examples/0-audio-short.mp3'
+          'DUCO=voice_duco',
+          'CHAT=voice_chat'
         ]
       })
 
       expect(opts.ttsDialogueFormat).toBe('screenplay')
       expect(opts.ttsSpeakers).toEqual([
-        'DUCO=input/examples/audio/anthony-voice.mp3',
-        'CHAT=https://ajc.pics/autoshow/examples/0-audio-short.mp3'
+        'DUCO=voice_duco',
+        'CHAT=voice_chat'
       ])
     })
 
@@ -199,7 +202,7 @@ describe('option resolution contracts', () => {
       expect(() => buildOptsFromFlags(false, { 'minimax-tts-pitch': '1.5' })).toThrow('Invalid --minimax-tts-pitch value "1.5"')
       expect(() => buildOptsFromFlags(false, { 'minimax-tts-emotion': 'bored' })).toThrow('Invalid --minimax-tts-emotion "bored"')
       expect(() => buildOptsFromFlags(false, { 'speechify-tts-audio-format': 'flac' })).toThrow('Invalid --speechify-tts-audio-format "flac"')
-      expect(() => buildOptsFromFlags(false, { 'hume-tts': 'octave-1' })).toThrow('Invalid model "octave-1" for --provider/--tts hume[=model]')
+      expect(() => buildOptsFromFlags(false, { 'hume-tts': 'octave-legacy' })).toThrow('Invalid model "octave-legacy" for --provider/--tts hume[=model]')
       expect(() => buildOptsFromFlags(false, { 'hume-tts-voice-provider': 'PRIVATE' })).toThrow('Invalid --hume-tts-voice-provider "PRIVATE"')
       expect(() => buildOptsFromFlags(false, { 'cartesia-tts': 'sonic-2' })).toThrow('Invalid model "sonic-2" for --provider/--tts cartesia[=model]')
       expect(() => buildOptsFromFlags(false, { 'deepgram-tts-sample-rate': '1.5' })).toThrow('Invalid --deepgram-tts-sample-rate value "1.5"')
@@ -267,7 +270,7 @@ describe('option resolution contracts', () => {
       'speechify-tts-ref-audio': 'sample.mp3',
       'speechify-tts-consent-name': 'Owner',
       'speechify-tts-consent-email': 'owner@example.com'
-    }))).toThrow('does not support immediate custom-voice creation')
+    }))).toThrow('cannot perform reference-audio cloning during TTS synthesis')
     expect(() => collectTtsTargets(buildOptsFromFlags(false, {
       'speechify-tts': 'simba-3.0',
       'speechify-tts-language': 'ja-JP'
@@ -329,11 +332,8 @@ describe('option resolution contracts', () => {
       expect(opts.grokTtsModels).toEqual([...SUPPORTED_GROK_TTS_MODELS])
       expect(grokTargets.map((target) => target.model)).toEqual([...SUPPORTED_GROK_TTS_MODELS])
       expect(grokTargets.map((target) => target.voice)).toEqual([undefined])
-      expect(opts.mistralTtsModels).toEqual([...SUPPORTED_MISTRAL_TTS_MODELS])
-      expect(mistralTargets.map((target) => target.model)).toEqual([...SUPPORTED_MISTRAL_TTS_MODELS])
-      expect(mistralTargets.map((target) => target.voice)).toEqual([
-        `ref_audio:${basename(MISTRAL_DEFAULT_REF_AUDIO)}`
-      ])
+      expect(opts.mistralTtsModels).toBeUndefined()
+      expect(mistralTargets).toEqual([])
       expect(opts.openaiTtsModels).toEqual([...SUPPORTED_OPENAI_TTS_MODELS])
       expect(targetModelsFor('openai')).toEqual([...SUPPORTED_OPENAI_TTS_MODELS])
       expect(opts.geminiTtsModels).toEqual([...SUPPORTED_GEMINI_TTS_MODELS])
@@ -364,18 +364,18 @@ describe('option resolution contracts', () => {
   test('--all-tts rejects special-input modes that need an explicit model', () => {
       expect(() => collectTtsTargets(buildOptsFromFlags(false, {
         'all-tts': true,
-        'groq-voice': REMOVED_GROQ_TTS_VOICE
-      }))).toThrow(`Invalid --tts-voice groq="${REMOVED_GROQ_TTS_VOICE}"`)
+        'groq-voice': INVALID_GROQ_TTS_VOICE
+      }))).toThrow(`Invalid --tts-voice groq="${INVALID_GROQ_TTS_VOICE}"`)
 
       expect(() => collectTtsTargets(buildOptsFromFlags(false, {
         'all-tts': true,
         'mistral-tts': 'voxtral-mini-tts-2603',
         'tts-dialogue-format': 'labeled',
         'tts-speaker': ['Host=input/examples/audio/anthony-voice.mp3']
-      }))).toThrow('does not support reference audio for multi-speaker TTS')
+      }))).toThrow('--tts-speaker SPEAKER=path mappings cannot enter generic TTS runtime options')
     })
 
-  test('Groq TTS exposes only English Orpheus model and voices', () => {
+  test('Groq TTS exposes disjoint English and Saudi-Arabic model voices', () => {
       const englishTargets = collectTtsTargets(buildOptsFromFlags(false, {
         'groq-tts': 'canopylabs/orpheus-v1-english'
       })).filter((target) => target.service === 'groq')
@@ -383,17 +383,30 @@ describe('option resolution contracts', () => {
         'groq-tts': 'canopylabs/orpheus-v1-english',
         'groq-voice': 'HANNAH'
       })).filter((target) => target.service === 'groq')
+      const arabicTargets = collectTtsTargets(buildOptsFromFlags(false, {
+        'groq-tts': 'canopylabs/orpheus-arabic-saudi',
+        'groq-voice': 'NOURA'
+      })).filter((target) => target.service === 'groq')
 
       expect(getGroqDefaultTtsVoiceForModel('canopylabs/orpheus-v1-english')).toBe('troy')
+      expect(getGroqDefaultTtsVoiceForModel('canopylabs/orpheus-arabic-saudi')).toBe('abdullah')
       expect(englishTargets.map((target) => target.voice)).toEqual(['troy'])
       expect(explicitEnglishTargets.map((target) => target.voice)).toEqual(['hannah'])
+      expect(arabicTargets.map((target) => target.voice)).toEqual(['noura'])
+      expect(SUPPORTED_GROQ_ARABIC_TTS_VOICES).toEqual([
+        'abdullah', 'fahad', 'sultan', 'lulwa', 'noura', 'aisha'
+      ])
       expect(() => collectTtsTargets(buildOptsFromFlags(false, {
-        'groq-tts': REMOVED_GROQ_TTS_MODEL
-      }))).toThrow(`Invalid model "${REMOVED_GROQ_TTS_MODEL}" for --provider/--tts groq[=model]`)
+        'groq-tts': INVALID_GROQ_TTS_MODEL
+      }))).toThrow(`Invalid model "${INVALID_GROQ_TTS_MODEL}" for --provider/--tts groq[=model]`)
       expect(() => collectTtsTargets(buildOptsFromFlags(false, {
         'groq-tts': 'canopylabs/orpheus-v1-english',
-        'groq-voice': REMOVED_GROQ_TTS_VOICE
-      }))).toThrow(`Invalid --tts-voice groq="${REMOVED_GROQ_TTS_VOICE}"`)
+        'groq-voice': 'noura'
+      }))).toThrow('Invalid --tts-voice groq="noura" for canopylabs/orpheus-v1-english')
+      expect(() => collectTtsTargets(buildOptsFromFlags(false, {
+        'groq-tts': 'canopylabs/orpheus-arabic-saudi',
+        'groq-voice': 'hannah'
+      }))).toThrow('Invalid --tts-voice groq="hannah" for canopylabs/orpheus-arabic-saudi')
     })
 
   test('grok tts voice validation normalizes case', () => {

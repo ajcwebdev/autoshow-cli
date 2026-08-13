@@ -1,9 +1,9 @@
 import { describe, expect, test } from 'bun:test'
 import { estimateLlmCostFromRegistry } from '~/cli/commands/process-steps/step-8-comic/comic-utils/structured-script-utils/llm-cost'
-import { getExtractPricing, getLlmCost, getModelRegistry } from '~/cli/commands/setup-and-utilities/models/model-loader'
+import { getExtractPricing, getLlmCost, getModelRegistry, getRetiredModelReplacement, resolveModelLifecycle } from '~/cli/commands/setup-and-utilities/models/model-loader'
 import { resolveCheapestModelForFlag } from '~/cli/commands/setup-and-utilities/models/cheapest-models'
-import { computeActualCosts } from '~/utils/pricing/compute-actual-costs'
-import { computeEstimatedCosts } from '~/utils/pricing/compute-estimated-costs'
+import { computeActualCosts } from '~/cli/commands/pricing-orchestration/compute-actual-costs'
+import { computeEstimatedCosts } from '~/cli/commands/pricing-orchestration/compute-estimated-costs'
 import { computeTokenCost } from '~/utils/pricing/token-pricing'
 import type { Step3Metadata } from '~/types'
 
@@ -80,6 +80,29 @@ describe('price mode contracts', () => {
         outputCostPer1MCents: 4500,
         totalCost: 345
       })
+    })
+
+  test('OpenAI GPT-5.6 Terra and Luna registries share current write and OCR rates', () => {
+      expect(getLlmCost('openai', 'gpt-5.6-terra')).toMatchObject({
+        inputCostPer1MCents: 200,
+        outputCostPer1MCents: 1200
+      })
+      expect(getExtractPricing('openai', 'gpt-5.6-terra')).toMatchObject({
+        inputCostPer1MCents: 200,
+        cachedInputCostPer1MCents: 20,
+        outputCostPer1MCents: 1200
+      })
+      expect(getLlmCost('openai', 'gpt-5.6-luna')).toMatchObject({
+        inputCostPer1MCents: 20,
+        outputCostPer1MCents: 120
+      })
+      expect(getExtractPricing('openai', 'gpt-5.6-luna')).toMatchObject({
+        inputCostPer1MCents: 20,
+        cachedInputCostPer1MCents: 2,
+        outputCostPer1MCents: 120
+      })
+      expect(getModelRegistry().llm['openai']?.models['gpt-5.6-terra']?.cachedInputCostPer1MCents).toBe(20)
+      expect(getModelRegistry().llm['openai']?.models['gpt-5.6-luna']?.cachedInputCostPer1MCents).toBe(2)
     })
 
   test('shared token pricing helper applies Gemini Pro 200K bands', () => {
@@ -485,6 +508,21 @@ describe('price mode contracts', () => {
         outputCostPer1MCents: 1500
       })
 
+      const geminiActual = computeActualCosts({
+        step3: buildStep3CostMetadata({
+          llmService: 'gemini',
+          llmModel: 'gemini-3.5-flash-lite',
+          inputTokenCount: 1_000_000,
+          outputTokenCount: 1_000_000
+        })
+      })
+      expect(geminiActual.steps[0]).toMatchObject({
+        provider: 'gemini',
+        model: 'gemini-3.5-flash-lite',
+        cost: 280,
+        costSource: 'provider_usage'
+      })
+
       for (const [service, model] of [
         ['gemini', 'gemini-3.6-flash'],
         ['gemini', 'gemini-3.5-flash'],
@@ -525,11 +563,29 @@ describe('price mode contracts', () => {
       })
     })
 
-  test('current model additions do not displace any cheapest-model default', () => {
-      expect(resolveCheapestModelForFlag('gemini')).toBe('gemini-3.1-flash-lite')
+  test('retired Gemini selector stays outside active registries while historical pricing and replacement guidance remain available', () => {
+      const registry = getModelRegistry()
+      expect(registry.llm['gemini']?.models['gemini-3.1-flash-lite']).toBeUndefined()
+      expect(registry.extract['gemini']?.models['gemini-3.1-flash-lite']).toBeUndefined()
+      expect(resolveModelLifecycle(registry.llm['gemini']?.models['gemini-3.5-flash-lite'])).toMatchObject({
+        status: 'active',
+        defaultEligible: true,
+        allExpansionEligible: true
+      })
+      expect(getLlmCost('gemini', 'gemini-3.1-flash-lite')).toMatchObject({
+        inputCostPer1MCents: 25,
+        outputCostPer1MCents: 150
+      })
+      expect(getExtractPricing('gemini', 'gemini-3.1-flash-lite')).toMatchObject({
+        inputCostPer1MCents: 25,
+        outputCostPer1MCents: 150
+      })
+      expect(getRetiredModelReplacement('llm', 'gemini', 'gemini-3.1-flash-lite')).toBe('gemini-3.5-flash-lite')
+      expect(getRetiredModelReplacement('extract', 'gemini', 'gemini-3.1-flash-lite')).toBe('gemini-3.5-flash-lite')
+      expect(resolveCheapestModelForFlag('gemini')).toBe('gemini-3.5-flash-lite')
       expect(resolveCheapestModelForFlag('anthropic')).toBe('claude-haiku-4-5')
       expect(resolveCheapestModelForFlag('kimi')).toBe('kimi-k2.6')
-      expect(resolveCheapestModelForFlag('gemini-ocr')).toBe('gemini-3.1-flash-lite')
+      expect(resolveCheapestModelForFlag('gemini-ocr')).toBe('gemini-3.5-flash-lite')
       expect(resolveCheapestModelForFlag('anthropic-ocr')).toBe('claude-haiku-4-5')
       expect(resolveCheapestModelForFlag('kimi-ocr')).toBe('kimi-k2.6')
     })

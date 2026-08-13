@@ -67,6 +67,32 @@ describe('Anthropic REST contracts', () => {
     expect(calls[0]?.headers.get('anthropic-beta')).toBeNull()
   })
 
+  test('Anthropic write merges normalized effort with structured output_config', async () => {
+    process.env['ANTHROPIC_API_KEY'] = 'anthropic-key'
+    const calls = installMockFetch(() => Response.json({
+      content: [{ type: 'text', text: '{"summary":"done"}' }],
+      usage: { input_tokens: 11, output_tokens: 3 }
+    }))
+
+    const result = await runAnthropicModel('Summarize this.', 'claude-sonnet-4-6', {
+      ...structuredOpts,
+      requestedReasoningEffort: 'medium'
+    })
+
+    expect(calls[0]?.bodyJson?.['output_config']).toEqual({
+      effort: 'medium',
+      format: {
+        type: 'json_schema',
+        schema: structuredOpts.schema
+      }
+    })
+    expect(calls[0]?.bodyJson).not.toHaveProperty('reasoning_effort')
+    expect(result.metadata).toMatchObject({
+      requestedReasoningEffort: 'medium',
+      effectiveReasoningEffort: 'medium'
+    })
+  })
+
   test('message responses expose Anthropic usage token fields', async () => {
     installMockFetch(() => Response.json({
         content: [{ type: 'text', text: 'ok' }],

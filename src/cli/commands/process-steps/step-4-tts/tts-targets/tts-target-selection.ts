@@ -8,31 +8,7 @@ const selectModels = (
 const trimmed = (value: string | undefined): string | undefined => value?.trim() || undefined
 
 export const createTtsTargetSelection = (options: TtsOptions): TtsTargetSelection => {
-  const elevenLabsCloneRefAudioPath = trimmed(options.elevenlabsTtsRefAudio)
-  const elevenLabsCloneVoiceName = trimmed(options.elevenlabsTtsVoiceName)
   const elevenLabsPronunciationDictionaryLocators = options.elevenlabsTtsPronunciationDictionaryLocators?.map((item) => item.trim()).filter(Boolean)
-  const speechifyCustomVoiceRefAudioPath = trimmed(options.speechifyTtsRefAudio)
-  const speechifyCustomVoiceName = trimmed(options.speechifyTtsVoiceName)
-  const speechifyCustomVoiceConsentName = trimmed(options.speechifyTtsConsentName)
-  const speechifyCustomVoiceConsentEmail = trimmed(options.speechifyTtsConsentEmail)
-  const speechifyCustomVoiceLocale = trimmed(options.speechifyTtsVoiceLocale)
-  const speechifyCustomVoiceGender = trimmed(options.speechifyTtsVoiceGender)
-  const hasElevenLabsCloneFlags = Boolean(
-    elevenLabsCloneRefAudioPath
-    || options.elevenlabsTtsCloneRemoveBackgroundNoise === true
-  )
-  const hasSpeechifyCustomVoiceFlags = Boolean(
-    speechifyCustomVoiceRefAudioPath
-    || speechifyCustomVoiceName
-    || speechifyCustomVoiceConsentName
-    || speechifyCustomVoiceConsentEmail
-    || speechifyCustomVoiceLocale
-    || speechifyCustomVoiceGender
-  )
-  const hasElevenLabsVoiceNameOnly = Boolean(
-    elevenLabsCloneVoiceName
-    && !hasElevenLabsCloneFlags
-  )
 
   const multiSpeaker = isMultiSpeakerRequested(options)
   const speakerVoiceRegistry = multiSpeaker
@@ -70,9 +46,6 @@ export const createTtsTargetSelection = (options: TtsOptions): TtsTargetSelectio
     deepgramBitRate: options.deepgramTtsBitRate,
     deepgramSampleRate: options.deepgramTtsSampleRate,
     deepgramSpeed: options.deepgramTtsSpeed,
-    elevenLabsCloneRefAudioPath,
-    elevenLabsCloneVoiceName,
-    elevenLabsCloneRemoveBackgroundNoise: options.elevenlabsTtsCloneRemoveBackgroundNoise === true,
     elevenLabsVoiceId: trimmed(options.elevenlabsVoiceId),
     elevenLabsOutputFormat: trimmed(options.elevenlabsTtsOutputFormat),
     elevenLabsLanguageCode: trimmed(options.elevenlabsTtsLanguageCode),
@@ -85,12 +58,6 @@ export const createTtsTargetSelection = (options: TtsOptions): TtsTargetSelectio
     elevenLabsTextNormalization: trimmed(options.elevenlabsTtsTextNormalization),
     elevenLabsPronunciationDictionaryLocators,
     elevenLabsOptimizeStreamingLatency: options.elevenlabsTtsOptimizeStreamingLatency,
-    speechifyCustomVoiceRefAudioPath,
-    speechifyCustomVoiceName,
-    speechifyCustomVoiceConsentName,
-    speechifyCustomVoiceConsentEmail,
-    speechifyCustomVoiceLocale,
-    speechifyCustomVoiceGender,
     speechifyVoiceId: trimmed(options.speechifyVoice),
     speechifyAudioFormat: trimmed(options.speechifyTtsAudioFormat),
     speechifyLanguage: trimmed(options.speechifyTtsLanguage),
@@ -103,13 +70,8 @@ export const createTtsTargetSelection = (options: TtsOptions): TtsTargetSelectio
     grokLanguage: trimmed(options.grokTtsLanguage),
     grokTextNormalization: options.grokTtsTextNormalization === true,
     mistralVoiceId: trimmed(options.mistralTtsVoice),
-    mistralRefAudioPath: trimmed(options.mistralTtsRefAudio),
-    mistralVoiceName: trimmed(options.mistralTtsVoiceName),
     geminiVoiceId: trimmed(options.geminiVoiceId),
     deepgramVoiceId: trimmed(options.deepgramVoiceId),
-    hasElevenLabsCloneFlags,
-    hasSpeechifyCustomVoiceFlags,
-    hasElevenLabsVoiceNameOnly,
     dialogueRequested: multiSpeaker
   }
 }

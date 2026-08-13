@@ -40,6 +40,7 @@ type ProcessingWriteOptions = {
   renderedOutDir: string | undefined
   trackList: string | undefined
   promptMd: boolean
+  reasoningEffort: import('~/cli/commands/setup-and-utilities/models/reasoning-resolver').NormalizedReasoningEffort | undefined
 }
 
 export type ProcessingOptions = ProcessingSource

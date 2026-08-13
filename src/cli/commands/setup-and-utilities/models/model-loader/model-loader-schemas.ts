@@ -18,6 +18,64 @@ const PricingProvenanceFields = {
   pricingNotes: v.optional(v.string(), undefined)
 }
 
+const isIsoDate = (value: string): boolean => {
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(value)) return false
+  const parsed = new Date(`${value}T00:00:00.000Z`)
+  return !Number.isNaN(parsed.getTime()) && parsed.toISOString().slice(0, 10) === value
+}
+
+const IsoDateSchema = v.pipe(
+  v.string(),
+  v.check(isIsoDate, 'Expected an ISO calendar date in YYYY-MM-DD form.')
+)
+
+export const ModelLifecycleSchema = v.pipe(
+  v.strictObject({
+    status: v.picklist(['active', 'deprecated']),
+    shutdownDate: v.optional(IsoDateSchema, undefined),
+    replacementModel: v.optional(v.pipe(v.string(), v.nonEmpty()), undefined),
+    defaultEligible: v.optional(v.boolean(), true),
+    allExpansionEligible: v.optional(v.boolean(), true),
+    sourceUrl: v.optional(v.pipe(v.string(), v.url()), undefined),
+    checkedAt: v.optional(IsoDateSchema, undefined),
+    notes: v.optional(v.pipe(v.string(), v.nonEmpty()), undefined)
+  }),
+  v.check(
+    (lifecycle) => lifecycle.status !== 'deprecated'
+      || (lifecycle.sourceUrl !== undefined && lifecycle.checkedAt !== undefined && lifecycle.notes !== undefined),
+    'Deprecated model lifecycle metadata requires a source URL, checked date, and notes.'
+  ),
+  v.check(
+    (lifecycle) => lifecycle.status === 'deprecated'
+      || (lifecycle.shutdownDate === undefined
+        && lifecycle.replacementModel === undefined
+        && lifecycle.defaultEligible
+        && lifecycle.allExpansionEligible),
+    'Active models cannot declare retirement data or opt out of automatic selection.'
+  )
+)
+
+type LifecycleRegistryService = {
+  models: Record<string, {
+    lifecycle?: {
+      replacementModel?: string | undefined
+    } | undefined
+  }>
+}
+
+const isMovingLatestAlias = (model: string): boolean =>
+  /(?:^|[-_/])latest(?:$|[-_/])/i.test(model)
+
+const hasValidLifecycleReferences = (service: LifecycleRegistryService): boolean =>
+  Object.entries(service.models).every(([model, metadata]) => {
+    const replacement = metadata.lifecycle?.replacementModel
+    return replacement === undefined
+      || (replacement !== model && service.models[replacement] !== undefined && !isMovingLatestAlias(replacement))
+  })
+
+const hasNoMovingLatestAliases = (service: LifecycleRegistryService): boolean =>
+  Object.keys(service.models).every((model) => !isMovingLatestAlias(model))
+
 const TokenPricingBandSchema = v.strictObject({
   label: v.optional(v.string(), undefined),
   minInputTokens: v.optional(v.pipe(v.number(), v.minValue(0)), undefined),
@@ -65,30 +123,67 @@ export const ExtractLimitsSchema = v.object({
   notes: v.optional(v.string(), undefined)
 })
 
-const ExtractModelSchema = v.strictObject({
-  description: v.string(),
-  ...PricingProvenanceFields,
-  costPer1kPagesCents: v.optional(v.number(), undefined),
-  costPerMInputTokensCents: v.optional(v.number(), undefined),
-  costPerMCachedInputTokensCents: v.optional(v.number(), undefined),
-  costPerMOutputTokensCents: v.optional(v.number(), undefined),
-  tokenPricingBands: v.optional(v.array(TokenPricingBandSchema), undefined),
-  higherContextPricing: v.optional(HigherContextPricingSchema, undefined),
-  limits: v.optional(ExtractLimitsSchema, undefined),
-  estimation: v.optional(v.object({
-    costMultiplier: v.optional(v.number(), undefined),
-    msPerPage: v.optional(v.number(), undefined),
-    singlePagePdfFallbackMsPerPage: v.optional(v.number(), undefined),
-    promptTokensPerPage: v.optional(v.number(), undefined),
-    completionTokensPerPage: v.optional(v.number(), undefined)
-  }), undefined)
-})
+export const ReasoningCapabilitiesSchema = v.pipe(
+  v.strictObject({
+    support: v.picklist(['unsupported', 'optional', 'required']),
+    allowDisabled: v.optional(v.boolean(), undefined),
+    supportedEfforts: v.optional(v.array(v.picklist(['minimal', 'low', 'medium', 'high', 'max'])), undefined)
+  }),
+  v.check(
+    (capabilities) => capabilities.support !== 'unsupported'
+      || (capabilities.allowDisabled === undefined && capabilities.supportedEfforts === undefined),
+    'Unsupported reasoning capabilities cannot declare disable or named-effort controls.'
+  ),
+  v.check(
+    (capabilities) => capabilities.support !== 'required' || capabilities.allowDisabled !== true,
+    'Required reasoning capabilities cannot allow reasoning to be disabled.'
+  )
+)
 
-const ExtractServiceSchema = v.object({
-  description: v.string(),
-  type: v.picklist(['local', 'api']),
-  models: v.record(v.string(), ExtractModelSchema)
-})
+const ExtractModelSchema = v.pipe(
+  v.strictObject({
+    description: v.string(),
+    ...PricingProvenanceFields,
+    costPer1kPagesCents: v.optional(v.number(), undefined),
+    costPerMInputTokensCents: v.optional(v.number(), undefined),
+    costPerMCachedInputTokensCents: v.optional(v.number(), undefined),
+    costPerMOutputTokensCents: v.optional(v.number(), undefined),
+    tokenPricingBands: v.optional(v.array(TokenPricingBandSchema), undefined),
+    higherContextPricing: v.optional(HigherContextPricingSchema, undefined),
+    limits: v.optional(ExtractLimitsSchema, undefined),
+    estimation: v.optional(v.object({
+      costMultiplier: v.optional(v.number(), undefined),
+      msPerPage: v.optional(v.number(), undefined),
+      singlePagePdfFallbackMsPerPage: v.optional(v.number(), undefined),
+      promptTokensPerPage: v.optional(v.number(), undefined),
+      completionTokensPerPage: v.optional(v.number(), undefined)
+    }), undefined),
+    reasoning: v.optional(ReasoningCapabilitiesSchema, undefined),
+    lifecycle: v.optional(ModelLifecycleSchema, undefined)
+  }),
+  v.check(
+    (model) => model.costPerMInputTokensCents === undefined
+      || model.costPerMOutputTokensCents === undefined
+      || (model.estimation?.costMultiplier ?? 1) === 1,
+    'Token-priced OCR models must use costMultiplier 1; calibrate prompt and completion token shapes instead.'
+  )
+)
+
+const ExtractServiceSchema = v.pipe(
+  v.object({
+    description: v.string(),
+    type: v.picklist(['local', 'api']),
+    models: v.record(v.string(), ExtractModelSchema)
+  }),
+  v.check(
+    (service) => hasValidLifecycleReferences(service),
+    'Model lifecycle replacements must name another concrete selector in the same extract service.'
+  ),
+  v.check(
+    (service) => hasNoMovingLatestAliases(service),
+    'Moving *-latest aliases are not valid extract model selectors.'
+  )
+)
 
 const LlmModelSchema = v.strictObject({
   description: v.string(),
@@ -101,14 +196,26 @@ const LlmModelSchema = v.strictObject({
   estimation: v.optional(v.object({
     costMultiplier: v.optional(v.number(), undefined),
     msPer1KTokens: v.optional(v.number(), undefined)
-  }), undefined)
+  }), undefined),
+  reasoning: v.optional(ReasoningCapabilitiesSchema, undefined),
+  lifecycle: v.optional(ModelLifecycleSchema, undefined)
 })
 
-const LlmServiceSchema = v.object({
-  description: v.string(),
-  type: v.picklist(['local', 'api']),
-  models: v.record(v.string(), LlmModelSchema)
-})
+const LlmServiceSchema = v.pipe(
+  v.object({
+    description: v.string(),
+    type: v.picklist(['local', 'api']),
+    models: v.record(v.string(), LlmModelSchema)
+  }),
+  v.check(
+    (service) => hasValidLifecycleReferences(service),
+    'Model lifecycle replacements must name another concrete selector in the same LLM service.'
+  ),
+  v.check(
+    (service) => hasNoMovingLatestAliases(service),
+    'Moving *-latest aliases are not valid LLM model selectors.'
+  )
+)
 
 const TtsModelSchema = v.strictObject({
   description: v.string(),
@@ -129,6 +236,9 @@ const TtsModelSchema = v.strictObject({
 const TtsServiceSchema = v.object({
   description: v.string(),
   type: v.picklist(['local', 'api']),
+  catalogSourceUrl: v.optional(v.string(), undefined),
+  catalogCheckedAt: v.optional(v.string(), undefined),
+  catalogNotes: v.optional(v.string(), undefined),
   voices: v.optional(v.array(v.string()), undefined),
   models: v.record(v.string(), TtsModelSchema)
 })

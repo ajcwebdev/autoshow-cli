@@ -19,16 +19,16 @@ import { checkLlamaInstalled, runLlamaSetup } from '~/cli/commands/process-steps
 import { ensureLlamaModelDownloaded } from '~/cli/commands/process-steps/step-3-write/write-local/llama/run-llama'
 import { resolveLlamaCacheClearPaths } from '~/cli/commands/process-steps/step-3-write/write-local/llama/llama-model-cache'
 import { llamaSetupModelsMetadataPath } from '~/cli/commands/process-steps/step-3-write/write-local/llama/llama-model-metadata'
-import { ensureKittenTtsSetup, setupKittenTts } from '~/cli/commands/process-steps/step-4-tts/tts-local/kitten/kitten-tts'
+import { ensureKittenTtsSetup, setupKittenTts } from '~/cli/commands/process-steps/step-4-tts/tts-local/kitten/kitten-tts-setup'
 import { hasCachedKittenTtsModel, resolveKittenTtsCacheClearPaths } from '~/cli/commands/process-steps/step-4-tts/tts-local/kitten/kitten-tts-model-cache'
-import { SUPPORTED_KITTEN_TTS_MODELS, SUPPORTED_LLAMA_MODELS } from '~/cli/commands/setup-and-utilities/models/setup-model-options'
+import { resolveKittenTtsModelId, SUPPORTED_KITTEN_TTS_MODELS, SUPPORTED_LLAMA_MODELS } from '~/cli/commands/setup-and-utilities/models/setup-model-options'
 import { DEFAULT_KITTEN_TTS_MODEL } from '~/cli/commands/setup-and-utilities/models/tts-models'
 import { setupYtDependencies } from '~/cli/commands/setup-and-utilities/setup/setup-download/dl-audio/audio'
 import { setupCalibreDocumentTools } from '~/cli/commands/setup-and-utilities/setup/setup-download/dl-document/calibre'
 import { isAcsmAuthorized, runAcsmAuthorization, setupAcsmFulfillment } from '~/cli/commands/setup-and-utilities/setup/setup-download/dl-document/acsm'
 import { logSetupToolStatus } from '~/cli/commands/setup-and-utilities/setup/setup-logging'
 import { formatSetupElapsed, runWithSetupHeartbeat } from '~/cli/commands/setup-and-utilities/setup/setup-heartbeat'
-import type { ConcurrentSetupTask, HostedProviderConfigurationSummary, RunOptions, RunResult, SetupPlatform, SetupStepId } from '~/types'
+import type { ConcurrentSetupTask, HostedProviderConfigurationSummary, KittenTtsModel, RunOptions, RunResult, SetupPlatform, SetupStepId } from '~/types'
 import * as l from '~/utils/app-logger/app-logger'
 import { l as globalLogger, isJsonResultActive } from '~/utils/app-logger/app-logger'
 import { createHumanTable, logKeyValueTable, logSingleRowTable } from '~/utils/app-logger/human-table/human-table'
@@ -354,7 +354,7 @@ const logSetupProviderConfiguration = (
   })
 
 export const downloadKittenTtsModel = async (
-  model: string,
+  model: KittenTtsModel,
   options: { pythonPath?: string } = {}
 ): Promise<void> => {
   const kittenPython = options.pythonPath ?? `${kittenTtsUvEnvDir}/bin/python`
@@ -367,10 +367,11 @@ export const downloadKittenTtsModel = async (
     return
   }
 
+  const hfModelId = resolveKittenTtsModelId(model)
   logSetupToolStatus(l, { tool: 'kitten-tts', status: 'downloading', detail: model })
   const result = await runCapture(
     kittenPython,
-    ['-c', `from kittentts import KittenTTS; KittenTTS("${model}")`],
+    ['-c', `from kittentts import KittenTTS; KittenTTS("${hfModelId}")`],
     { allowFailure: true }
   )
   if (result.exitCode !== 0) {

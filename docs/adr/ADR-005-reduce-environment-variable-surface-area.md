@@ -4,13 +4,10 @@
 
 - **Decision Status:** Accepted
 - **Date Created:** 2026-06-13
-- **Date Updated:** 2026-07-23
+- **Date Updated:** 2026-08-07
 - **Verification Status:** Passed
 
-<!-- This record synthesizes four sequential passes over the env-var surface. All
-     four are Accepted and implemented. Each Decision sub-part carries its own state
-     tag, and the Keep table reflects the FINAL state with notes on where an earlier
-     "keep" was later removed. -->
+<!-- This record synthesizes four sequential passes over the env-var surface. All four are Accepted and implemented. Each Decision sub-part carries its own state tag, and the Keep table reflects the FINAL state with notes on where an earlier "keep" was later removed. -->
 
 ## Context
 
@@ -50,8 +47,7 @@ Remove 17 vars. `AUTOSHOW_`-prefixed dead `.env.example` keys (7): `AUTOSHOW_LOG
 
 ### Pass 2 — change mechanisms; clean dead docs; two fixes *(Accepted)*
 
-Remove ~9 env reads by changing the mechanism, not deleting a dead key: `AUTOSHOW_PADDLE_OCR_MAX_SIDE`/`AUTOSHOW_PADDLE_OCR_MODEL_PROFILE` (env→subprocess argv; Python reads `sys.argv`), `HOME` *read* (env→`os.homedir()`; also fixes Windows), `AUTOSHOW_COMPACT_SETUP` (self-set env flag→in-process parameter), and the inbound *reads* of `PKG_CONFIG_PATH`/`LDFLAGS`/`CPPFLAGS`/`DYLD_LIBRARY_PATH` (drop the trailing `process.env[X] ?? ''`; build purely from managed dirs — these vars are still *written* into the build subprocess, only the inbound read is dropped). Delete 5 misleading doc entries: the `.env.example` yt-dlp block (`YTDLP_COOKIES`, `YTDLP_COOKIES_FROM_BROWSER`, `YTDLP_EXTRACTOR_ARGS` — flag-driven, never env-read) and the phantom `AUTOSHOW_URL_REQUEST_TIMEOUT_MS`/`AUTOSHOW_URL_REQUEST_ATTEMPTS` "env …" help text. **Fix, not remove (2):** rename `.env.example` `HF_TOKEN` → `HUGGINGFACE_TOKEN` (all code reads the latter, so the documented name silently disabled Reverb); route the benchmark roundtrip's `ASSEMBLYAI_BASE_URL`/`OPENAI_BASE_URL` reads through `base-urls.ts`
-+ the trust gate (closing a gate gap on an already-tested seam).
+Remove ~9 env reads by changing the mechanism, not deleting a dead key: `AUTOSHOW_PADDLE_OCR_MAX_SIDE`/`AUTOSHOW_PADDLE_OCR_MODEL_PROFILE` (env→subprocess argv; Python reads `sys.argv`), `HOME` *read* (env→`os.homedir()`; also fixes Windows), `AUTOSHOW_COMPACT_SETUP` (self-set env flag→in-process parameter), and the inbound *reads* of `PKG_CONFIG_PATH`/`LDFLAGS`/`CPPFLAGS`/`DYLD_LIBRARY_PATH` (drop the trailing `process.env[X] ?? ''`; build purely from managed dirs — these vars are still *written* into the build subprocess, only the inbound read is dropped). Delete 5 misleading doc entries: the `.env.example` yt-dlp block (`YTDLP_COOKIES`, `YTDLP_COOKIES_FROM_BROWSER`, `YTDLP_EXTRACTOR_ARGS` — flag-driven, never env-read) and the phantom `AUTOSHOW_URL_REQUEST_TIMEOUT_MS`/`AUTOSHOW_URL_REQUEST_ATTEMPTS` "env …" help text. **Fix, not remove (2):** rename `.env.example` `HF_TOKEN` → `HUGGINGFACE_TOKEN` (all code reads the latter, so the documented name silently disabled Reverb); route the benchmark roundtrip's `ASSEMBLYAI_BASE_URL`/`OPENAI_BASE_URL` reads through `base-urls.ts` + the trust gate (closing a gate gap on an already-tested seam).
 
 ### Pass 3 — remove test-only over-parameterization; consolidate binary overrides *(Accepted — implemented)*
 
@@ -59,8 +55,7 @@ Remove the adaptive-concurrency *tuning* knobs (10 reads: `AUTOSHOW_TEST_ADAPTIV
 
 ### Pass 4 — eliminate the base-URL override family and the trust gate *(Accepted — implemented)*
 
-Convert each `readEnv('X_BASE_URL') ?? X_DEFAULT_BASE_URL` read into a typed `baseUrl` **parameter** defaulting to the `base-urls.ts` constant (the constants stay as the new defaults). The resolved URL already threads from each provider's resolver into its fetch helper; only the *source* changes. Production never passes the param (so runtime proxy/self-host repointing — undocumented, no E2E coverage — is dropped); contract suites pass it directly, and since every injection is **in-process** (set env + `installMockFetch`
-+ call the provider function — no test spawns the CLI with a base-URL env), the typed param does the seam's whole job. 18 names removed across gated providers (`OPENAI_BASE_URL`, `ANTHROPIC_BASE_URL`, `MISTRAL_BASE_URL`, `XAI_BASE_URL`, `CEREBRAS_BASE_URL`, `TOGETHER_BASE_URL`) and ungated direct-fetch providers (`ZAI_BASE_URL`, `SUPADATA_BASE_URL`, `BFL_BASE_URL`, `REVE_BASE_URL`, `RECRAFT_BASE_URL`, `REPLICATE_BASE_URL`, `SCRAPECREATORS_BASE_URL`, `FIRECRAWL_API_URL`, `SPIDER_API_URL`, `ZYTE_API_URL`, `UNSTRUCTURED_API_URL`), plus the benchmark-only `ASSEMBLYAI_BASE_URL` (pass 2 had routed it through the gate; here it reverts to the plain default). With no runtime path able to produce a non-default host, the trust gate `assertProviderBaseUrlTrusted()` guards nothing reachable: **delete** `provider-url-policy.ts` in full, every call site (`openai-client.ts`, `anthropic-client.ts`, `mistral-client.ts`, `replicate-prediction.ts`'s `assertReplicateUrlTrusted`, `gemini-rest.ts`), and the override var `AUTOSHOW_ALLOW_UNTRUSTED_PROVIDER_BASE_URLS`. Migrate the in-process contract seams to the typed param (drop the base-URL keys from `snapshotEnv`/`restoreEnv` and the `…ALLOW_UNTRUSTED…` `beforeEach`; `installMockFetch` and the `call.url` routing assertions are unchanged).
+Convert each `readEnv('X_BASE_URL') ?? X_DEFAULT_BASE_URL` read into a typed `baseUrl` **parameter** defaulting to the `base-urls.ts` constant (the constants stay as the new defaults). The resolved URL already threads from each provider's resolver into its fetch helper; only the *source* changes. Production never passes the param (so runtime proxy/self-host repointing — undocumented, no E2E coverage — is dropped); contract suites pass it directly, and since every injection is **in-process** (set env + `installMockFetch` + call the provider function — no test spawns the CLI with a base-URL env), the typed param does the seam's whole job. 18 names removed across gated providers (`OPENAI_BASE_URL`, `ANTHROPIC_BASE_URL`, `MISTRAL_BASE_URL`, `XAI_BASE_URL`, `CEREBRAS_BASE_URL`, `TOGETHER_BASE_URL`) and ungated direct-fetch providers (`ZAI_BASE_URL`, `SUPADATA_BASE_URL`, `BFL_BASE_URL`, `REVE_BASE_URL`, `RECRAFT_BASE_URL`, `REPLICATE_BASE_URL`, `SCRAPECREATORS_BASE_URL`, `FIRECRAWL_API_URL`, `SPIDER_API_URL`, `ZYTE_API_URL`, `UNSTRUCTURED_API_URL`), plus the benchmark-only `ASSEMBLYAI_BASE_URL` (pass 2 had routed it through the gate; here it reverts to the plain default). With no runtime path able to produce a non-default host, the trust gate `assertProviderBaseUrlTrusted()` guards nothing reachable: **delete** `provider-url-policy.ts` in full, every call site (`openai-client.ts`, `anthropic-client.ts`, `mistral-client.ts`, `replicate-prediction.ts`'s `assertReplicateUrlTrusted`, `gemini-rest.ts`), and the override var `AUTOSHOW_ALLOW_UNTRUSTED_PROVIDER_BASE_URLS`. Migrate the in-process contract seams to the typed param (drop the base-URL keys from `snapshotEnv`/`restoreEnv` and the `…ALLOW_UNTRUSTED…` `beforeEach`; `installMockFetch` and the `call.url` routing assertions are unchanged).
 
 ### Keep (with rationale) — final state
 
@@ -127,7 +122,7 @@ Negative outcomes:
 
 > Correction (2026-08-07): two of these verification steps are no longer runnable as written, because the mechanisms they exercise were retired after this ADR landed. They are kept unedited as the record of what was checked at the time.
 >
-> - **PaddleOCR no longer exists.** [ADR-009](ADR-009-unify-ocr-extraction-architecture-and-reliability-guardrails.md) made Tesseract the only local OCR engine and dropped both PaddleOCR and OCRmyPDF. Step 4's "PaddleOCR runs a non-default max-side via argv" has nothing to run, and the pass-2 rationale's TS→Python argv contract no longer has a Python side. The *decision* — argv over env for subprocess tuning — is unaffected.
+> - **PaddleOCR no longer exists.** [ADR-009](ADR-009-extract-execution-and-artifact-contracts.md) made Tesseract the only local OCR engine and dropped both PaddleOCR and OCRmyPDF. Step 4's "PaddleOCR runs a non-default max-side via argv" has nothing to run, and the pass-2 rationale's TS→Python argv contract no longer has a Python side. The *decision* — argv over env for subprocess tuning — is unaffected.
 > - **`AUTOSHOW_BIN_DIR` is no longer read by production.** Pass 3 consolidated six per-tool `AUTOSHOW_*_BIN` overrides into it; the global `--bin-dir` flag later replaced the env var entirely, so `resolveRuntimeToolInfo`'s override tier is flag-fed. Steps 3 and 4 hold if you read `AUTOSHOW_BIN_DIR` as `--bin-dir`. The name survives only in `test/test-utils/test-helpers.ts`, which translates it into `--bin-dir` for the child process — so the grep sweep in step 2 still returns zero production matches.
 
 ## References

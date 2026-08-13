@@ -23,7 +23,7 @@ import { buildStep2TimingMetadata } from '~/cli/commands/process-steps/step-2-ex
 import { getSupadataBaseUrl, isSupadataSupportedSourceUrl } from './supadata'
 import { requireApiKey } from '~/utils/validate/env-utils'
 import { InfraError, InternalError } from '~/utils/error-handler'
-import { getSupadataCreditRateCents } from '~/utils/pricing/supadata-pricing'
+import { getSupadataCreditRateCents } from '~/cli/commands/pricing-orchestration/supadata-pricing'
 import {
   fetchSupadataTranscript,
   pollSupadataTranscriptJob

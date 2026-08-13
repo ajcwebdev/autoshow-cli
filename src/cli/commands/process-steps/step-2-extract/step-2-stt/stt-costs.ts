@@ -1,7 +1,7 @@
 import type { AggregatedPriceEstimate, Step2Metadata, StepTimingCost, SttTarget } from '~/types'
-import { computeActualCosts } from '~/utils/pricing/compute-actual-costs'
-import { computeEstimatedCosts } from '~/utils/pricing/compute-estimated-costs'
-import { computePriceAlignedEstimatedCosts, preflightToEstimated } from '~/utils/pricing/compute-costs'
+import { computeActualCosts } from '~/cli/commands/pricing-orchestration/compute-actual-costs'
+import { computeEstimatedCosts } from '~/cli/commands/pricing-orchestration/compute-estimated-costs'
+import { computePriceAlignedEstimatedCosts, preflightToEstimated } from '~/cli/commands/pricing-orchestration/compute-costs'
 import { getSttTargetKey } from './stt-targets'
 import { buildTimingProviderModelLabel } from './stt-prompt'
 

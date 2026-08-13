@@ -19,8 +19,8 @@ bun t test/test-cases/e2e/service/step-2-ocr-e2e/ocr-services/
 
 ## Current Coverage
 
-- Model-level files under `test/test-cases/e2e/service/step-2-ocr-e2e/ocr-services/` cover PDF and image extraction with `--provider mistral=mistral-ocr-2512`, `--provider glm=glm-ocr`, `--provider kimi=kimi-k2.6`, `--provider openai=gpt-5.4-nano`, `--provider gemini=gemini-3.1-flash-lite`, and DeepInfra `Qwen/Qwen3-VL-30B-A3B-Instruct`.
-- Dedicated image-only OCR files cover `--provider openai=gpt-5.5`, `--provider grok=grok-4.3`, `--provider gemini=gemini-3.1-pro-preview`, and Anthropic `claude-opus-4-8` / `claude-sonnet-5`. These are live provider tests and should not be run without explicit paid-provider approval.
+- Model-level files under `test/test-cases/e2e/service/step-2-ocr-e2e/ocr-services/` cover PDF and image extraction with `--provider mistral=mistral-ocr-2512`, `--provider glm=glm-ocr`, `--provider kimi=kimi-k2.6`, `--provider openai=gpt-5.4-nano`, `--provider gemini=gemini-3.5-flash-lite`, and `--provider deepinfra=Qwen/Qwen3-VL-30B-A3B-Instruct`.
+- Dedicated image-only OCR files cover `--provider openai=gpt-5.5`, `--provider grok=grok-4.3`, `--provider gemini=gemini-3.1-pro-preview`, and `--provider anthropic=claude-opus-4-8` / `--provider anthropic=claude-sonnet-5`. These are live provider tests and should not be run without explicit paid-provider approval.
 - Kimi OCR tests are gated on `KIMI_API_KEY` and assert `ocrService: "kimi"`, the requested `ocrModel`, and recorded `promptTokens` / `completionTokens` when the provider returns usage.
 - DeepInfra OCR tests are gated on `DEEPINFRA_API_KEY` and assert `ocrService: "deepinfra"`, the requested `ocrModel`, and recorded `promptTokens` / `completionTokens` when the provider returns usage.
 - `test/test-cases/e2e/service/step-2-ocr-e2e/ocr-services/ocr-firecrawl.test.ts` covers remote article extraction with `--url-provider firecrawl`, writes `extraction.txt`, and records `extractionMethod: "html+firecrawl"` in the canonical provider metadata.

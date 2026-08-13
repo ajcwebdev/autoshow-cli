@@ -3,9 +3,9 @@ import { buildUpdatedGenerationCostTiming } from '../generation-resume'
 import { collectImageTargets } from '~/cli/commands/process-steps/step-5-image/image-generation-targets'
 import { runImageTargets } from '~/cli/commands/process-steps/step-5-image/run-image-gen'
 import { deriveGenerationResumeModelFields, deriveGenerationResumeProviderFlags, IMAGE_GENERATION_SELECTION } from '~/cli/flags/service-selector-normalization/provider-targets'
-import { computeActualCosts } from '~/utils/pricing/compute-actual-costs'
-import { computeActualProcessingTimes } from '~/utils/pricing/compute-processing-time'
-import { buildImageEstimates } from '~/utils/pricing/aggregate-pricing/generation-estimates'
+import { computeActualCosts } from '~/cli/commands/pricing-orchestration/compute-actual-costs'
+import { computeActualProcessingTimes } from '~/cli/commands/pricing-orchestration/compute-processing-time'
+import { buildImageEstimates } from '~/cli/commands/pricing-orchestration/aggregate-pricing/generation-estimates'
 import type { EstimateImageCostOptions, GenerationResumeConfig, ImageGenOptions, ImageTarget, Step5Metadata } from '~/types'
 
 export const imageResumeConfig = {

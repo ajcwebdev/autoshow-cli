@@ -136,8 +136,16 @@ export const runOcr = async (
   let chapterExportSummary: Record<string, unknown> | undefined
   let pdfChapterDetectionSummary: Record<string, unknown> | undefined
   let artifactFiles: EpubArtifactFile[] | undefined
+  let requestedReasoningEffort: import('~/cli/commands/setup-and-utilities/models/reasoning-resolver').NormalizedReasoningEffort | undefined
+  let effectiveReasoningEffort: import('~/cli/commands/setup-and-utilities/models/reasoning-resolver').NormalizedReasoningEffort | undefined
 
   const mergeHostedProviderCost = (run: HostedOcrRun): void => {
+    if (run.requestedReasoningEffort !== undefined) {
+      requestedReasoningEffort = run.requestedReasoningEffort
+    }
+    if (run.effectiveReasoningEffort !== undefined) {
+      effectiveReasoningEffort = run.effectiveReasoningEffort
+    }
     if (run.pdfChunkPreparation !== undefined) {
       pdfChunkPreparation = run.pdfChunkPreparation
     }
@@ -479,6 +487,8 @@ export const runOcr = async (
     pdfChunkPreparation,
     chapterExportSummary,
     pdfChapterDetectionSummary,
-    artifactFiles
+    artifactFiles,
+    requestedReasoningEffort,
+    effectiveReasoningEffort
   })
 }

@@ -1,6 +1,7 @@
-import type { HostedTtsChunkJobContext, HostedTtsSchedulerLimitChange, TtsProvider } from '~/types'
+import type { HostedTtsChunkAdmissionToken, HostedTtsChunkJobContext, HostedTtsSchedulerLimitChange, ProviderLaneIdentity, TtsProvider } from '~/types'
 
 export type HostedTtsProviderChunkState = {
+  lane: ProviderLaneIdentity<TtsProvider>
   provider: TtsProvider
   maxLimit: number
   currentLimit: number
@@ -9,6 +10,7 @@ export type HostedTtsProviderChunkState = {
   allJobs: HostedTtsChunkJob[]
   pauseUntilMs: number
   successStreak: number
+  dispatchSequence: number
   wakeTimer?: ReturnType<typeof setTimeout> | undefined
   stats: HostedTtsProviderStats
 }
@@ -28,9 +30,10 @@ export type HostedTtsProviderStats = {
 
 export type HostedTtsChunkJob<T = any> = HostedTtsChunkJobContext & {
   internalId: number
+  lane: ProviderLaneIdentity<TtsProvider>
   provider: TtsProvider
   chunks: readonly string[]
-  runChunk: (chunk: string, index: number) => Promise<T>
+  runChunk: (chunk: string, index: number, admission: HostedTtsChunkAdmissionToken) => Promise<T>
   results: T[]
   resolve: (value: T[]) => void
   reject: (error: unknown) => void
@@ -44,13 +47,18 @@ export type HostedTtsChunkJob<T = any> = HostedTtsChunkJobContext & {
   rateLimitCount: number
   queueWaitSamplesMs: number[]
   activeLatencySamplesMs: number[]
-  lastSelectedAtMs: number
+  dispatchDebt: number
+  lastDispatchSequence: number
   failed: boolean
   settled: boolean
+  failureReason?: unknown
+  abortSignal?: AbortSignal | undefined
+  abortListener?: (() => void) | undefined
 }
 
 export type HostedTtsChunkSchedulerOptions = {
   maxConcurrency?: number | undefined
   defaultRateLimitPauseMs?: number | undefined
   autoStart?: boolean | undefined
+  maxActiveChunksPerJob?: number | undefined
 }

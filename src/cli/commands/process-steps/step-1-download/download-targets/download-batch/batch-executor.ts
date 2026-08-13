@@ -4,13 +4,14 @@ import { logLocationsTable } from '~/utils/app-logger/human-table/human-table'
 import { ensureDirectory } from '~/utils/cli-utils'
 import { resolveRunDirectory } from '~/cli/commands/process-steps/run-dir'
 import { isExtractCommand } from '~/cli/commands/process-steps/process-command-kinds'
-import { createManifest, createManifestItem, PIPELINE_MANIFEST_FILE, readManifest, resolveManifestRelativePath, toManifestRelativePath, writeManifest } from '~/cli/commands/process-steps/pipeline-manifest'
+import { createManifest, createManifestItem, PIPELINE_MANIFEST_FILE, readManifest, resolveManifestRelativePath, toManifestRelativePath, updateManifest, writeManifest } from '~/cli/commands/process-steps/pipeline-manifest'
 import { getOutputRoot } from '~/cli/commands/process-steps/output-root'
 import { runSttBatch, throwIfSttBatchIncomplete } from '~/cli/commands/process-steps/step-2-extract/step-2-stt/batch'
 import type { BatchExecutionPlan, BatchProcessResult, BatchRuntimeOptions, BatchSource, ExtractChildBatchPlan, ExtractCommandOptions, ExtractRoute, PipelineItemRecord, PipelineManifest, PipelineManifestItem, ProcessCommand, SingleTargetCommandOptions } from '~/types'
 import { processSingleTarget } from '../single/single-target-runner'
 import { processBatch } from './process-download-batch'
-import { CLIUsageError } from '~/utils/error-handler'
+import { CLIUsageError, InfraError, ValidationError } from '~/utils/error-handler'
+import { createHostedOcrScheduler } from '~/cli/commands/process-steps/step-2-extract/step-2-ocr/ocr-utils/hosted-ocr-scheduler'
 
 type BatchCommandOptions = SingleTargetCommandOptions & Pick<BatchRuntimeOptions, 'batchConcurrency'>
 
@@ -18,7 +19,7 @@ function assertExtractCommandOptions (
   opts: BatchCommandOptions
 ): asserts opts is ExtractCommandOptions {
   if (!('whisperModel' in opts) || !('step2SelectionOrigins' in opts)) {
-    throw new Error('Extract command options are incomplete')
+    throw ValidationError('Extract command options are incomplete')
   }
 }
 
@@ -114,8 +115,16 @@ const runExtractDocumentChildBatch = async (
   opts: ExtractCommandOptions,
   batchPlan: ExtractChildBatchPlan,
   source?: BatchSource
-): Promise<BatchProcessResult> =>
-  await processBatch(
+): Promise<BatchProcessResult> => {
+  const hostedOcrScheduler = batchPlan.route === 'document'
+    ? createHostedOcrScheduler({
+        mode: opts.ocrConcurrencyMode ?? (typeof opts.ocrConcurrency === 'number' ? 'fixed' : 'auto'),
+        fixedCap: opts.ocrConcurrency,
+        pageCount: 0,
+        lifetime: 'run'
+      })
+    : undefined
+  const result = await processBatch(
     batchPlan.items,
     batchPlan.route,
     'extract',
@@ -124,6 +133,7 @@ const runExtractDocumentChildBatch = async (
       await processSingleTarget(commandName, item, childBatchDir, batchOpts, undefined, {
         batchChildContext: {
           batchDir: childBatchDir,
+          ...(hostedOcrScheduler ? { hostedOcrScheduler } : {}),
           ...(batchItem ? { batchItem } : {})
         }
       }, batchItem),
@@ -137,6 +147,8 @@ const runExtractDocumentChildBatch = async (
       extractRoute: batchPlan.route
     }
   )
+  return result
+}
 
 const runExtractXSpaceChildBatch = async (
   batchDir: string,
@@ -251,17 +263,21 @@ const executeExtractBatchPlan = async (
     })
   }
 
-  await writeManifest(batchDir, {
-    ...initialManifest,
+  await updateManifest(batchDir, (manifest) => ({
+    ...manifest,
     items: finalItems
-  })
+  }))
+
+  if (sttResult) {
+    throwIfSttBatchIncomplete(sttResult)
+  }
 
   if (sttResult) {
     throwIfSttBatchIncomplete(sttResult)
   }
 
   if (ocrResult && ocrResult.ok === 0 && ocrResult.fail > 0) {
-    const error = new Error(`Batch processing failed for ${ocrResult.fail} item(s)`)
+    const error = InfraError(`Batch processing failed for ${ocrResult.fail} item(s)`, { stage: 'extract:ocr' })
     if (ocrResult.failureExitCode !== undefined) {
       ;(error as Error & { exitCode?: number }).exitCode = ocrResult.failureExitCode
     }
@@ -269,7 +285,7 @@ const executeExtractBatchPlan = async (
   }
 
   if (articleResult && articleResult.ok === 0 && articleResult.fail > 0) {
-    const error = new Error(`Article batch processing failed for ${articleResult.fail} item(s)`)
+    const error = InfraError(`Article batch processing failed for ${articleResult.fail} item(s)`, { stage: 'extract:url' })
     if (articleResult.failureExitCode !== undefined) {
       ;(error as Error & { exitCode?: number }).exitCode = articleResult.failureExitCode
     }
@@ -277,7 +293,7 @@ const executeExtractBatchPlan = async (
   }
 
   if (xSpaceResult && xSpaceResult.ok === 0 && xSpaceResult.fail > 0) {
-    const error = new Error(`X Space batch processing failed for ${xSpaceResult.fail} item(s)`)
+    const error = InfraError(`X Space batch processing failed for ${xSpaceResult.fail} item(s)`, { stage: 'extract:url' })
     if (xSpaceResult.failureExitCode !== undefined) {
       ;(error as Error & { exitCode?: number }).exitCode = xSpaceResult.failureExitCode
     }
@@ -296,7 +312,19 @@ export const executeBatchPlan = async (
     return
   }
 
-  const { ok, fail, failureExitCode } = await processBatch(
+  const hostedOcrScheduler = command === 'write'
+    ? createHostedOcrScheduler({
+        mode: 'ocrConcurrencyMode' in opts && opts.ocrConcurrencyMode
+          ? opts.ocrConcurrencyMode
+          : 'ocrConcurrency' in opts && typeof opts.ocrConcurrency === 'number'
+            ? 'fixed'
+            : 'auto',
+        fixedCap: 'ocrConcurrency' in opts && typeof opts.ocrConcurrency === 'number' ? opts.ocrConcurrency : undefined,
+        pageCount: 0,
+        lifetime: 'run'
+      })
+    : undefined
+  const batchResult = await processBatch(
     batchPlan.items,
     batchPlan.label,
     command,
@@ -305,6 +333,7 @@ export const executeBatchPlan = async (
       await processSingleTarget(commandName, item, batchDir, batchOpts, undefined, {
         batchChildContext: {
           batchDir,
+          ...(hostedOcrScheduler ? { hostedOcrScheduler } : {}),
           ...(batchItem ? { batchItem } : {})
         }
       }, batchItem),
@@ -317,9 +346,10 @@ export const executeBatchPlan = async (
       concurrency: opts.batchConcurrency
     }
   )
+  const { ok, fail, failureExitCode } = batchResult
 
   if (ok === 0 && fail > 0) {
-    const error = new Error(`Batch processing failed for ${fail} item(s)`)
+    const error = InfraError(`Batch processing failed for ${fail} item(s)`, { stage: 'pipeline' })
     if (failureExitCode !== undefined) {
       ;(error as Error & { exitCode?: number }).exitCode = failureExitCode
     }

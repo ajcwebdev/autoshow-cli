@@ -1,6 +1,7 @@
 import { stat } from 'node:fs/promises'
 import { basename, extname, join } from 'node:path'
 import { getExtractLimits } from '~/cli/commands/setup-and-utilities/models/model-loader'
+import { resolveReasoningPolicy } from '~/cli/commands/setup-and-utilities/models/reasoning-resolver'
 import type { DocumentMetadata, ExtractionOptions, HostedDirectImageFormatSet, HostedDirectImageInputStrategy, HostedExtractOcrEngine, HostedOcrIdentity, HostedOcrRun, HostedOcrSchedulerRetryPressureHandler, HostedOcrService, RunHostedOcrPdfChunkFallbackOptions } from '~/types'
 import { commandExists, exec } from '~/utils/cli-utils'
 import { CLIUsageError } from '~/utils/error-handler'
@@ -345,6 +346,17 @@ const runChunkableHostedPdfOcr = async (
   runProvider: (inputPath: string, inputMetadata: DocumentMetadata, onRetryable?: HostedOcrSchedulerRetryPressureHandler | undefined, pageNumber?: number | undefined) => Promise<HostedOcrRun>,
   fallbackOptions: Pick<RunHostedOcrPdfChunkFallbackOptions, 'createChunk' | 'chunkFormat' | 'chunkExtension' | 'forcePageMode'> = {}
 ): Promise<HostedOcrRun> => {
+  const reasoningPolicy = resolveReasoningPolicy({
+    step: 'extract',
+    service: identity.ocrService,
+    model: identity.ocrModel,
+    requestedReasoningEffort: opts.reasoningEffort
+  })
+  const reasoningIdentity: HostedOcrIdentity = {
+    ...identity,
+    ...(reasoningPolicy.requested !== undefined ? { requestedReasoningEffort: reasoningPolicy.requested } : {}),
+    effectiveReasoningEffort: reasoningPolicy.effective
+  }
   const runScheduledProvider = async (
     inputPath: string,
     inputMetadata: DocumentMetadata,
@@ -360,10 +372,14 @@ const runChunkableHostedPdfOcr = async (
         pageCount: Math.max(1, inputMetadata.pageCount),
         ...(typeof pageNumber === 'number' ? { pageNumber } : {})
       },
-      async (onRetryable) => withHostedUsageDetail(
-        await runProvider(inputPath, inputMetadata, onRetryable, pageNumber),
-        context
-      )
+      async (onRetryable) => {
+        const run = await runProvider(inputPath, inputMetadata, onRetryable, pageNumber)
+        return withHostedUsageDetail({
+          ...run,
+          ...(reasoningPolicy.requested !== undefined ? { requestedReasoningEffort: reasoningPolicy.requested } : {}),
+          effectiveReasoningEffort: reasoningPolicy.effective
+        }, context)
+      }
     )
 
   if (step1Metadata.format !== 'pdf') {
@@ -382,7 +398,7 @@ const runChunkableHostedPdfOcr = async (
     dpi: opts.dpi,
     password: opts.password,
     fallbackDir: opts.outputDir,
-    cacheIdentity: identity,
+    cacheIdentity: reasoningIdentity,
     pageConcurrency: opts.hostedOcrScheduler?.getMaxConcurrency({
       service: identity.ocrService,
       model: identity.ocrModel,
@@ -409,7 +425,9 @@ const runChunkableHostedPdfOcr = async (
       extractionMethod: identity.extractionMethod,
       ocrService: identity.ocrService,
       ocrModel: identity.ocrModel,
-      totalPages: Math.max(1, range.endPage - range.startPage + 1)
+      totalPages: Math.max(1, range.endPage - range.startPage + 1),
+      ...(reasoningPolicy.requested !== undefined ? { requestedReasoningEffort: reasoningPolicy.requested } : {}),
+      effectiveReasoningEffort: reasoningPolicy.effective
     })
   })
 }
@@ -457,6 +475,16 @@ export const runHostedOcr = async (
   step1Metadata: DocumentMetadata,
   opts: ExtractionOptions
 ): Promise<HostedOcrRun> => {
+  const selectedProvider = resolveHostedOcrSelection(opts)
+  if (selectedProvider) {
+    resolveReasoningPolicy({
+      step: 'extract',
+      service: selectedProvider.service,
+      model: selectedProvider.model,
+      requestedReasoningEffort: opts.reasoningEffort
+    })
+  }
+
   if (hasMistralOcr(opts)) {
     await ensureMistralOcrSetup()
     const ocrModel = opts.mistralOcrModel as string
@@ -485,7 +513,10 @@ export const runHostedOcr = async (
       ocrModel
     }, async (inputPath, inputMetadata, onRetryable) => {
       await assertHostedOcrWithinLimits(inputPath, inputMetadata, opts)
-      const run = await runGlmOcr(inputPath, inputMetadata, ocrModel, { onRetryable })
+      const run = await runGlmOcr(inputPath, inputMetadata, ocrModel, {
+        onRetryable,
+        reasoningEffort: opts.reasoningEffort
+      })
       return {
         pages: run.pages,
         extractionMethod: run.extractionMethod,
@@ -517,7 +548,8 @@ export const runHostedOcr = async (
         hostedOcrScheduler: opts.hostedOcrScheduler,
         ocrPreparationCache: opts.ocrPreparationCache,
         onRetryable,
-        documentPageNumber: pageNumber
+        documentPageNumber: pageNumber,
+        reasoningEffort: opts.reasoningEffort
       })
       return {
         pages: run.pages,
@@ -545,7 +577,10 @@ export const runHostedOcr = async (
       ocrModel
     }, async (inputPath, inputMetadata, onRetryable) => {
       await assertHostedOcrWithinLimits(inputPath, inputMetadata, opts)
-      const run = await runOpenAIOcr(inputPath, inputMetadata, ocrModel, { onRetryable })
+      const run = await runOpenAIOcr(inputPath, inputMetadata, ocrModel, {
+        onRetryable,
+        reasoningEffort: opts.reasoningEffort
+      })
       return {
         pages: run.pages,
         extractionMethod: run.extractionMethod,
@@ -576,7 +611,8 @@ export const runHostedOcr = async (
         hostedOcrScheduler: opts.hostedOcrScheduler,
         ocrPreparationCache: opts.ocrPreparationCache,
         onRetryable,
-        documentPageNumber: pageNumber
+        documentPageNumber: pageNumber,
+        reasoningEffort: opts.reasoningEffort
       })
       return {
         pages: run.pages,
@@ -604,7 +640,10 @@ export const runHostedOcr = async (
       ocrModel
     }, async (inputPath, inputMetadata, onRetryable) => {
       await assertHostedOcrWithinLimits(inputPath, inputMetadata, opts)
-      const run = await runAnthropicOcr(inputPath, inputMetadata, ocrModel, { onRetryable })
+      const run = await runAnthropicOcr(inputPath, inputMetadata, ocrModel, {
+        onRetryable,
+        reasoningEffort: opts.reasoningEffort
+      })
       return {
         pages: run.pages,
         extractionMethod: run.extractionMethod,
@@ -629,6 +668,7 @@ export const runHostedOcr = async (
       const run = await runGeminiOcr(inputPath, inputMetadata, ocrModel, {
         ocrPreparationCache: opts.ocrPreparationCache,
         onRetryable,
+        reasoningEffort: opts.reasoningEffort,
         ...(typeof pageNumber === 'number' ? { documentPageNumber: pageNumber } : {})
       })
       return {
@@ -666,7 +706,8 @@ export const runHostedOcr = async (
         hostedOcrScheduler: opts.hostedOcrScheduler,
         ocrPreparationCache: opts.ocrPreparationCache,
         onRetryable,
-        documentPageNumber: pageNumber
+        documentPageNumber: pageNumber,
+        reasoningEffort: opts.reasoningEffort
       })
       return {
         pages: run.pages,

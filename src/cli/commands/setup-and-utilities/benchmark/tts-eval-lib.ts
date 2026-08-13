@@ -25,6 +25,24 @@ export function makeProviderKey(service: string, model: string): string {
   return `${service}/${model}`;
 }
 
+/**
+ * Current manifests identify a benchmark row by execution target plus immutable voice/render
+ * context. Legacy manifests retain their historical provider/model key explicitly.
+ */
+export function makeTtsBenchmarkKey(entry: TtsEntryMetadata): string {
+  const legacyKey = makeProviderKey(entry.ttsService, entry.ttsModel);
+  const targetKey = entry.targetKey?.trim();
+  const identities = [
+    entry.renderIdentity?.trim() ? `render:${entry.renderIdentity.trim()}` : undefined,
+    entry.registrationId?.trim() ? `registration:${entry.registrationId.trim()}` : undefined,
+    entry.snapshotEntryId?.trim() ? `snapshot-entry:${entry.snapshotEntryId.trim()}` : undefined,
+    entry.characterIdentity?.trim() ? `character:${entry.characterIdentity.trim()}` : undefined,
+  ].filter((value): value is string => value !== undefined);
+  if (!targetKey && identities.length === 0) return `legacy:${legacyKey}`;
+  const base = targetKey || legacyKey;
+  return identities.length === 0 ? base : `${base}::${identities.join('::')}`;
+}
+
 // ---------------------------------------------------------------------------
 // Audio file discovery
 // ---------------------------------------------------------------------------
@@ -38,7 +56,11 @@ export function discoverAudioFiles(
   for (const entry of ttsEntries) {
     const audioPath = join(runDir, entry.audioFileName);
     if (existsSync(audioPath)) {
-      found.set(makeProviderKey(entry.ttsService, entry.ttsModel), audioPath);
+      const benchmarkKey = makeTtsBenchmarkKey(entry);
+      if (found.has(benchmarkKey)) {
+        throw ValidationError(`Duplicate TTS benchmark identity ${benchmarkKey}; voice-aware entries must have distinct target/render or binding identity.`, { stage: 'benchmark:tts-eval' });
+      }
+      found.set(benchmarkKey, audioPath);
     } else {
       missing.push(entry.audioFileName);
     }

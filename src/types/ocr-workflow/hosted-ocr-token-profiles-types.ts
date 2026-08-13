@@ -1,4 +1,7 @@
 import type { HostedOcrProfileStore, HostedOcrSchedulerProfileConfidence, TokenPricedOcrProvider } from '~/types'
+import type { NormalizedReasoningEffort } from '~/cli/commands/setup-and-utilities/models/reasoning-resolver'
+
+export type HostedOcrTokenReasoningPolicy = NormalizedReasoningEffort | 'unspecified'
 
 export type HostedOcrTokenEstimateSource = 'profile' | 'blended-profile' | 'registry'
 export type HostedOcrTokenDisqualificationReason = 'partial' | 'failed' | 'incomplete' | 'missing-usage'
@@ -11,6 +14,7 @@ export type HostedOcrTokenUsageEstimate = {
   tokenProfileSampleCount?: number | undefined
   tokenProfilePromptTokensPerPage?: number | undefined
   tokenProfileCompletionTokensPerPage?: number | undefined
+  tokenProfileEffectiveReasoningEffort?: HostedOcrTokenReasoningPolicy | undefined
 }
 
 export type HostedOcrTokenUsageProfile = {
@@ -18,6 +22,7 @@ export type HostedOcrTokenUsageProfile = {
   model: string
   ocrMode: string
   pageCountBand: string
+  effectiveReasoningEffort: HostedOcrTokenReasoningPolicy
   pageCount: number
   observedPromptTokens: number
   observedCompletionTokens: number
@@ -34,4 +39,4 @@ export type HostedOcrTokenUsageProfile = {
   disqualificationReason?: HostedOcrTokenDisqualificationReason | undefined
 }
 
-export type HostedOcrTokenUsageProfileStore = HostedOcrProfileStore<1, HostedOcrTokenUsageProfile>
+export type HostedOcrTokenUsageProfileStore = HostedOcrProfileStore<2, HostedOcrTokenUsageProfile>

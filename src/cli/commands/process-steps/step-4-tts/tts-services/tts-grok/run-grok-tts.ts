@@ -1,4 +1,4 @@
-import type { GrokTtsModel, HostedTtsChunkScheduler, Step4Metadata } from '~/types'
+import type { GrokTtsModel, HostedTtsChunkScheduler, Step4Metadata, TtsRequestEvidenceScope } from '~/types'
 import { logTtsConfig } from '~/cli/commands/process-steps/step-4-tts/tts-utils/log-tts-config'
 import { splitTextIntoChunks } from '~/cli/commands/process-steps/step-4-tts/tts-utils/audio-utils'
 import { TTS_CHUNK_CHARACTER_LIMITS } from '~/cli/commands/process-steps/step-4-tts/tts-utils/tts-chunking'
@@ -8,6 +8,7 @@ import { GROK_DEFAULT_TTS_VOICE, validateGrokTtsLanguage, validateGrokTtsVoice }
 import { requireApiKey } from '~/utils/validate/env-utils'
 import { XAI_DEFAULT_BASE_URL } from '~/utils/base-urls'
 import { ValidationError } from '~/utils/error-handler'
+import { dispatchTtsProviderRequest } from '../../script-to-audio/tts-request-evidence'
 
 export const runGrokTts = async (
   text: string,
@@ -17,8 +18,10 @@ export const runGrokTts = async (
     voiceId?: string | undefined
     language?: string | undefined
     textNormalization?: boolean | undefined
+    abortSignal?: AbortSignal | undefined
     chunkConcurrency?: number | undefined
     chunkScheduler?: HostedTtsChunkScheduler | undefined
+    requestEvidence?: TtsRequestEvidenceScope | undefined
   }
 ): Promise<{ audioPath: string, metadata: Step4Metadata }> => {
   const apiKey = requireApiKey('XAI_API_KEY', 'tts:grok', 'Grok TTS')
@@ -50,14 +53,12 @@ export const runGrokTts = async (
     outputDir,
     chunkExtension: 'wav',
     startTime: Date.now(),
+    abortSignal: options.abortSignal,
     chunkConcurrency: options.chunkConcurrency,
     chunkScheduler: options.chunkScheduler,
-    fetchChunkAudio: async ({ chunk, signal }) => await fetchTtsAudioBytes({
-      url: `${baseURL}/tts`,
-      apiKey,
-      providerLabel: 'Grok',
-      signal,
-      body: {
+    requestEvidence: options.requestEvidence,
+    fetchChunkAudio: async ({ chunk, chunkIndex, signal, requestAttempt, retryReasonCode }) => {
+      const body = {
         text: chunk,
         voice_id: voice,
         language,
@@ -67,6 +68,19 @@ export const runGrokTts = async (
           sample_rate: 24000
         }
       }
-    })
+      return await dispatchTtsProviderRequest(options.requestEvidence, {
+        chunkIndex,
+        endpointKind: 'speech-synthesis',
+        serializerVersion: 'grok.tts.phase-0-v1',
+        serializedRequest: { path: '/tts', body },
+        providerText: chunk,
+        voiceField: 'voice_id',
+        voices: [{ kind: 'provider-id', value: voice }],
+        requestControls: { language, textNormalization: options.textNormalization === true, outputFormat: body.output_format },
+        continuation: { kind: 'none' }
+      }, { attempt: requestAttempt, ...(retryReasonCode ? { retryReasonCode } : {}) }, async () => await fetchTtsAudioBytes({
+        url: `${baseURL}/tts`, apiKey, providerLabel: 'Grok', signal, body
+      }))
+    }
   })
 }

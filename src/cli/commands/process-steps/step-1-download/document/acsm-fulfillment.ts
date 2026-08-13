@@ -1,5 +1,5 @@
 import { existsSync } from 'node:fs'
-import { mkdtemp, readFile, readdir, rm } from 'node:fs/promises'
+import { mkdtemp, readFile, readdir, rm, stat } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
 import { extname, join, resolve } from 'node:path'
 import { getConfiguredBinDir, resolveRuntimeToolInfo } from '~/utils/runtime-paths'
@@ -158,8 +158,20 @@ const findFulfilledOutput = async (
   }
 
   const output = outputs[0]!
+  const filePath = join(outputDir, output.name)
+  const fileStat = await stat(filePath)
+  if (fileStat.size === 0) {
+    throw InfraError(
+      `ACSM fulfillment produced a 0-byte output file: ${output.name}.`,
+      {
+        stage: 'download:document',
+        hints: [`Check that ${ACSM_FULFILL_COMMAND} produces a non-empty EPUB or PDF document.`]
+      }
+    )
+  }
+
   return {
-    filePath: join(outputDir, output.name),
+    filePath,
     format: output.format
   }
 }

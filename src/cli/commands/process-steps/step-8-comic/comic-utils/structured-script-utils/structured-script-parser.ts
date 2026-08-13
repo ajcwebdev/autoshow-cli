@@ -1,18 +1,109 @@
-import { basename } from 'node:path'
+import { basename, resolve } from 'node:path'
 import * as v from 'valibot'
 import { StructuredScriptDataSchema } from '../../schemas/schemas'
-import type { CharacterCatalogService, CharacterKey, StructuredScriptBeat, StructuredScriptData } from '~/types'
+import type { CharacterCatalogService, CharacterKey, ComicSourceIdentity, StructuredScriptBeat, StructuredScriptData } from '~/types'
 import { loadCharacterCatalog, normalizeCharacterLookup } from '../character-reference-config'
 import { getCharactersFromMentions, isUncataloguedSpokenSpeakerLabel, uniqueCharacters } from './character-detection'
 import { buildSourceSegmentsFromBeats } from './source-segments'
-import { buildBeat, expandScriptBlocks, extractLeadingDelivery, extractLocationSlugline, extractSingleBoldLine, isCaptionSpeakerLabel, isPanelNoteBlock, isParentheticalBlock, isTimingOnlyDirection, isTransitionText, looksLikeLabeledActionFragment, normalizeBlockText, normalizeLineEndings, parseHeading, parseLocation, parseMetadataEntry, resolveFallbackSceneLocation, splitIntoBlocks, stripEmphasisWrapper, stripInlineStageDirections, trimPanelNote, trimParenthetical } from './markdown-blocks'
+import { buildBeat, expandScriptBlocks, extractInlineTimingDelivery, extractLeadingDelivery, extractLocationSlugline, extractSingleBoldLine, isCaptionSpeakerLabel, isPanelNoteBlock, isParentheticalBlock, isTimingOnlyDirection, isTransitionText, looksLikeLabeledActionFragment, normalizeBlockText, normalizeLineEndings, parseHeading, parseLocation, parseMetadataEntry, resolveFallbackSceneLocation, splitIntoBlocks, stripEmphasisWrapper, stripInlineStageDirections, trimPanelNote, trimParenthetical } from './markdown-blocks'
 import { ValidationError } from '~/utils/error-handler'
 import { readLocationReferenceCatalogSync, resolveLocationCatalogEntry, type LocationReferenceCatalog } from '../location-reference'
+import { hashCanonicalTtsValue, sha256Bytes } from '../../../step-4-tts/script-to-audio/contract-identity'
+import { toPosixPath, toProjectDisplayPath } from '~/utils/runtime-paths'
+
+type StructuredSourceSpan = StructuredScriptBeat['sourceSpans'][number]
+
+const scalarOffset = (value: string, utf16Offset: number): number => [...value.slice(0, utf16Offset)].length
+
+const sourceSpan = (
+  source: string,
+  kind: StructuredSourceSpan['kind'],
+  start: number,
+  end: number
+): StructuredSourceSpan => ({
+  kind,
+  start: scalarOffset(source, start),
+  end: scalarOffset(source, end),
+  indexUnit: 'unicode-scalar-value',
+  text: source.slice(start, end),
+})
+
+const spokenSourceSpans = (
+  source: string,
+  canonicalText: string,
+  start: number,
+  end: number
+): StructuredSourceSpan[] => {
+  const words = [...canonicalText.matchAll(/\S+/gu)].map(match => match[0])
+  if (words.length === 0) return []
+  const ranges: Array<{ start: number, end: number }> = []
+  let cursor = start
+  for (const word of words) {
+    const index = source.indexOf(word, cursor)
+    if (index < cursor || index + word.length > end) return []
+    const prior = ranges.at(-1)
+    if (prior && /^\s*$/u.test(source.slice(prior.end, index))) prior.end = index + word.length
+    else ranges.push({ start: index, end: index + word.length })
+    cursor = index + word.length
+  }
+  return ranges.map(range => sourceSpan(source, 'spoken-text', range.start, range.end))
+}
+
+const attachSourceSpans = (source: string, beats: StructuredScriptBeat[]): StructuredScriptBeat[] => {
+  let cursor = 0
+  return beats.map((beat) => {
+    const speakerAnchor = beat.speakerLabel ? `**${beat.speakerLabel}**` : undefined
+    const anchorIndex = speakerAnchor ? source.indexOf(speakerAnchor, cursor) : -1
+    const textSearchStart = anchorIndex >= 0 && speakerAnchor ? anchorIndex + speakerAnchor.length : Math.max(cursor, anchorIndex)
+    const textIndex = source.indexOf(beat.text, textSearchStart)
+    const blockStart = anchorIndex >= 0 ? anchorIndex : textIndex >= 0 ? textIndex : cursor
+    const boundarySearchStart = Math.max(blockStart + 1, textIndex >= 0 ? textIndex + beat.text.length : textSearchStart)
+    const boundaryMatch = /\r?\n\r?\n/u.exec(source.slice(boundarySearchStart))
+    const nextBoundary = boundaryMatch?.index === undefined ? -1 : boundarySearchStart + boundaryMatch.index
+    const blockEnd = nextBoundary >= 0 ? nextBoundary : source.length
+    const nextSpeakerBoundaryMatch = /\r?\n\r?\n\*\*[^*\r\n]+\*\*/u.exec(source.slice(textSearchStart))
+    const nextSpeakerBoundary = nextSpeakerBoundaryMatch?.index === undefined ? source.length : textSearchStart + nextSpeakerBoundaryMatch.index
+    const spanSearchEnd = textIndex < 0 && (beat.type === 'dialogue' || beat.type === 'narration') ? nextSpeakerBoundary : blockEnd
+    const block = source.slice(blockStart, spanSearchEnd)
+    const spans: StructuredSourceSpan[] = []
+
+    if (textIndex >= 0) spans.push(sourceSpan(source, beat.type === 'transition' ? 'scene-boundary' : 'spoken-text', textIndex, textIndex + beat.text.length))
+    else if (beat.type === 'dialogue' || beat.type === 'narration') spans.push(...spokenSourceSpans(source, beat.text, textSearchStart, spanSearchEnd))
+    if (beat.delivery) {
+      const deliveryIndex = block.indexOf(beat.delivery)
+      if (deliveryIndex >= 0) spans.push(sourceSpan(source, 'delivery', blockStart + deliveryIndex, blockStart + deliveryIndex + beat.delivery.length))
+    }
+    for (const match of block.matchAll(/\(\s*(?:(?:(?:a|an|another|one|two|long|short|brief|slight|small|awkward|uncomfortable|heavy|dead|stunned|very)\s+)*(?:beat|beats|pause|pauses|silence|moment|moments))(?:\s*,\s*[^)]*)?\s*\)/giu)) {
+      if (match.index === undefined) continue
+      spans.push(sourceSpan(source, 'timing', blockStart + match.index, blockStart + match.index + match[0].length))
+    }
+    if (beat.speakerLabel) {
+      for (const match of beat.speakerLabel.matchAll(/(?:\bV\.O\.|\bO\.S\.|\bOFFSCREEN\b|\bRADIO\b|\bINTERCOM\b|\bTELEPHONE\b|\bCOMPUTER\b)/giu)) {
+        if (match.index === undefined || anchorIndex < 0) continue
+        const labelOffset = speakerAnchor?.indexOf(beat.speakerLabel) ?? 0
+        const start = anchorIndex + labelOffset + match.index
+        spans.push(sourceSpan(source, 'voice-effect', start, start + match[0].length))
+      }
+    }
+    if ((beat.speakerKeys?.length ?? 0) > 1 && anchorIndex >= 0 && speakerAnchor) {
+      spans.push(sourceSpan(source, 'simultaneous-speech', anchorIndex, anchorIndex + speakerAnchor.length))
+    }
+    if (spans.length === 0 && blockStart < spanSearchEnd) spans.push(sourceSpan(source, 'stage-direction', blockStart, spanSearchEnd))
+    cursor = Math.max(cursor, blockEnd)
+    return { ...beat, sourceSpans: spans.sort((left, right) => left.start - right.start || left.end - right.end || left.kind.localeCompare(right.kind)) }
+  })
+}
+
+const fallbackSourceIdentity = (content: string, scriptPath: string): ComicSourceIdentity => {
+  const canonicalPath = toPosixPath(toProjectDisplayPath(resolve(scriptPath)))
+  const base = { schemaVersion: 1 as const, canonicalPath, scriptSlug: basename(scriptPath, '.md'), contentSha256: sha256Bytes(content) }
+  return { ...base, identityHash: hashCanonicalTtsValue(base) }
+}
 
 export const parseScriptMarkdownToStructuredData = (
   content: string,
   scriptPath: string,
-  options: { locationCatalog?: LocationReferenceCatalog; characterCatalog?: CharacterCatalogService } = {},
+  options: { locationCatalog?: LocationReferenceCatalog; characterCatalog?: CharacterCatalogService; sourceIdentity?: ComicSourceIdentity } = {},
 ): StructuredScriptData => {
   const scriptFile = basename(scriptPath)
   const normalized = normalizeLineEndings(content).trim()
@@ -99,8 +190,8 @@ export const parseScriptMarkdownToStructuredData = (
   }
 
   const nextBeatIndex = (): number => beats.length + 1
-  const appendBeat = (options: Omit<StructuredScriptBeat, 'index' | 'location'>): void => {
-    beats.push(buildBeat(nextBeatIndex(), { ...options, location: activeLocation }))
+  const appendBeat = (options: Omit<StructuredScriptBeat, 'index' | 'location' | 'sourceSpans'>): void => {
+    beats.push(buildBeat(nextBeatIndex(), { ...options, sourceSpans: [], location: activeLocation }))
   }
 
   const characterNameSet = new Set(characterCatalog.characterKeys)
@@ -209,6 +300,7 @@ export const parseScriptMarkdownToStructuredData = (
         characterKeys: characters,
         rawMentions: mentions,
         ...(activeSpeakerCharacters.length === 1 ? { speakerKey: activeSpeakerCharacters[0] } : {}),
+        ...(activeSpeakerCharacters.length > 1 ? { speakerKeys: activeSpeakerCharacters } : {}),
         ...(activeSpeakerLabel ? { speakerLabel: activeSpeakerLabel } : {}),
       })
       registerCharacters(characters)
@@ -278,9 +370,13 @@ export const parseScriptMarkdownToStructuredData = (
       const spokenText = stripInlineStageDirections(dialogue.text)
       const mentions = detectCharacterMentions(spokenText)
       const mentionedCharacters = getCharactersFromMentions(mentions)
-      const rawDelivery = pendingDelivery ?? dialogue.delivery
+      const deliveryParts = [pendingDelivery, dialogue.delivery, ...extractInlineTimingDelivery(dialogue.text)]
+        .flatMap(value => value?.split(',') ?? [])
+        .map(value => value.trim())
+        .filter(value => value && !isTimingOnlyDirection(value))
+        .filter((value, index, all) => all.indexOf(value) === index)
       // Timing notation is pacing, not an acting note, and must not reach speech tone.
-      const delivery = rawDelivery && !isTimingOnlyDirection(rawDelivery) ? rawDelivery : undefined
+      const delivery = deliveryParts.length > 0 ? deliveryParts.join(', ') : undefined
       const characters = uniqueCharacters([
         ...activeSpeakerCharacters,
         ...mentionedCharacters,
@@ -317,15 +413,18 @@ export const parseScriptMarkdownToStructuredData = (
     resetSpeakerTurn()
   }
 
-  const normalizedBeats = beats.map((beat, index) => ({
+  const normalizedBeats = attachSourceSpans(content, beats.map((beat, index) => ({
     ...beat,
     index: index + 1,
-  }))
+  })))
+
+  const sourceIdentity = options.sourceIdentity ?? fallbackSourceIdentity(content, scriptPath)
 
   return v.parse(StructuredScriptDataSchema, {
-    schemaVersion: 3,
+    schemaVersion: 4,
     scriptSlug: basename(scriptFile, '.md'),
-    sourceFile: scriptPath,
+    sourceFile: sourceIdentity.canonicalPath,
+    sourceIdentity,
     document: {
       heading: documentHeading.heading,
       ...(documentHeading.label ? { label: documentHeading.label } : {}),

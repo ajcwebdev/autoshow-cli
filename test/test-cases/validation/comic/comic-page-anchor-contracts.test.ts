@@ -30,7 +30,7 @@ const panelBundle = (panelNumber: number): PanelBundleData => ({
     number: panelNumber, description: `Authored staging ${panelNumber}.`,
     shotPlan: `Medium eye-level shot ${panelNumber}; hero is screen left, facing right; exclude all unlisted cast.`,
     characterKeys: ['hero'], speech: [], sourceSegmentIds: [`beat-${panelNumber}`],
-    sourceSegments: [{ id: `beat-${panelNumber}`, type: 'direction', text: `Authored staging ${panelNumber}.`, beatIndex: panelNumber, location: cargoBayLocation }],
+    sourceSegments: [{ id: `beat-${panelNumber}`, type: 'direction', text: `Authored staging ${panelNumber}.`, sourceSpans: [], beatIndex: panelNumber, location: cargoBayLocation }],
     locationKey: 'cargo-bay', locationSnapshotId: 'location-snapshot',
   }],
 })
@@ -94,7 +94,7 @@ const createMultiLocationFixture = async (sceneSlug: string): Promise<{ runDirec
         characterKeys: ['hero'],
         speech: [],
         sourceSegmentIds: [`beat-${panelNumber}`],
-        sourceSegments: [{ id: `beat-${panelNumber}`, type: 'direction', text: `Panel ${panelNumber}.`, beatIndex: panelNumber, location: locationData }],
+        sourceSegments: [{ id: `beat-${panelNumber}`, type: 'direction', text: `Panel ${panelNumber}.`, sourceSpans: [], beatIndex: panelNumber, location: locationData }],
         locationKey: location.key,
         locationSnapshotId: location.snapshotId,
       }],

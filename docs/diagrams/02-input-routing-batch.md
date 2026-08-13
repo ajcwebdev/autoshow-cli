@@ -96,7 +96,7 @@ Extract route mapping:
 |--------------|--------------|---------------|
 | `media` | STT | `media` |
 | `document` | OCR or native document extraction | `document` |
-| `html_article` | URL/article extraction | `document` |
+| `html_article` | URL/article extraction | `article` |
 | `x_space` | X Space metadata extraction | `x-space` |
 | `unsupported` | none | skipped in batch, usage error for single |
 

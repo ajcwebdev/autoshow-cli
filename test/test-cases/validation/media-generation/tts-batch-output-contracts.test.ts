@@ -1,9 +1,14 @@
 import { describe, expect, test } from 'bun:test'
 import {
   buildTtsBatchSource,
-  getTtsBatchAudioFileName
+  getTtsBatchAudioFileName,
+  moveTtsBatchAudioFiles
 } from '~/cli/commands/process-steps/step-4-tts/define-tts-command'
 import type { CompletedTtsBatchItem, HostedTtsSchedulerTelemetry, Step4Metadata } from '~/types'
+import { join } from 'node:path'
+import { withTempDir } from '../../../test-utils/temp-dirs'
+import { createSyntheticWavBytes } from '../../../test-utils/media-fixtures'
+import { mkdir } from 'node:fs/promises'
 
 const asRecord = (value: unknown): Record<string, unknown> => {
   if (typeof value === 'object' && value !== null && !Array.isArray(value)) {
@@ -103,6 +108,26 @@ const buildCompletedItem = (
 })
 
 describe('tts batch output contracts', () => {
+  test('batch audio promotion never moves or rebases stable provider artifacts', async () => {
+    await withTempDir('autoshow-tts-batch-promotion-', async (dir) => {
+      const workspaceDir = join(dir, 'workspace')
+      const batchDir = join(dir, 'batch')
+      const artifactDir = 'providers/target-key/renders/render-id/result-id'
+      await mkdir(join(workspaceDir, artifactDir, 'provider-render', 'audio-run'), { recursive: true })
+      await mkdir(batchDir)
+      await Bun.write(join(workspaceDir, 'speech.wav'), createSyntheticWavBytes({ durationSeconds: 0.1, amplitude: 0.2, frequencyHz: 440 }))
+      await Bun.write(join(workspaceDir, artifactDir, 'provider-render', 'render-plan.json'), '{}\n')
+      await Bun.write(join(workspaceDir, artifactDir, 'provider-render', 'audio-run', 'audio-run.json'), '{}\n')
+
+      const moved = await moveTtsBatchAudioFiles(workspaceDir, batchDir, 'item-one', [buildTtsMetadata({ artifactDir })], true)
+      expect(moved[0]?.audioFileName).toBe('item-one.wav')
+      expect(moved[0]?.artifactDir).toBe(artifactDir)
+      expect(await Bun.file(join(batchDir, 'item-one.wav')).exists()).toBe(true)
+      expect(await Bun.file(join(workspaceDir, artifactDir, 'provider-render', 'render-plan.json')).exists()).toBe(true)
+      expect(await Bun.file(join(workspaceDir, artifactDir, 'provider-render', 'audio-run', 'audio-run.json')).exists()).toBe(true)
+    })
+  })
+
   test('batch audio filenames use the former child directory stem', () => {
     expect(getTtsBatchAudioFileName(
       'guinea-00-preface',

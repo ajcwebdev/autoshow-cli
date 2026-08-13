@@ -1,3 +1,5 @@
+docs/templates
+docs/reports
 albums
 .DS_Store
 node_modules/

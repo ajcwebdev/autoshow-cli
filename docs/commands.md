@@ -9,7 +9,7 @@
 
 ## Quick Start
 
-AutoShow currently exposes 14 named commands, plus built-in `help` and `version`.
+AutoShow currently exposes 15 named commands, plus built-in `help` and `version`.
 
 ```bash
 # install/setup local runtimes and tools
@@ -134,6 +134,10 @@ bun autoshow tts input/examples/tts/1-tts.md --provider hume=octave-2 --tts-voic
 # text-to-speech with Cartesia Sonic
 bun autoshow tts input/examples/tts/1-tts.md --provider cartesia=sonic-3.5-2026-05-04 --tts-voice f786b574-daa5-4673-aa0c-cbe3e8534c02
 
+# voice catalog discovery and registration
+bun autoshow voice discover --provider elevenlabs --source account
+bun autoshow voice import hero --provider openai --model gpt-4o-mini-tts-2025-12-15 --voice-id cedar --provenance-ref project:casting
+
 # image generation, then edit/reference the generated image; run this block in order
 bun autoshow image "a clean studio product photo of a red enamel camping mug on white seamless" --provider openai=gpt-image-2 --size 1024x1024 --format png --output-dir output/mug-base
 bun autoshow image "make the mug matte black, keep the same camera angle, and place it on a walnut desk" --provider openai=gpt-image-2 --input output/mug-base/generated-image.png --format webp --compression 80 --output-dir output/mug-edit
@@ -171,8 +175,7 @@ bun autoshow video "a cinematic mountain sunrise with synchronized ambience" --p
 bun autoshow video "a timelapse storm over downtown chicago" --provider gemini=veo-3.1-lite-generate-preview --provider runway=gen4.5 --provider ltx=ltx-2-3-fast --provider lumalabs=ray-3.2
 
 # local lyric-video render from repo audio
-# bundled lyrics fixtures: input/examples/lyrics/01-example-song.mp3,
-# input/examples/lyrics/01-cover.jpeg, and input/examples/lyrics/01-example-song.txt
+# bundled lyrics fixtures: input/examples/lyrics/01-example-song.mp3, input/examples/lyrics/01-cover.jpeg, and input/examples/lyrics/01-example-song.txt
 bun autoshow music --audio input/examples/lyrics/01-example-song.mp3
 bun autoshow music --audio input/examples/lyrics/01-example-song.mp3 --captions output/<run-dir>/01-example-song.vtt
 bun autoshow music --input-dir input/examples/lyrics --batch --model small
@@ -202,6 +205,7 @@ bun autoshow benchmark docs/benchmarks/tts/<run> --tts --tts-mode local
 - `extract`: [extract](./commands/process-steps/step-2-extract/01-extract.md) — routes media to STT, documents/images to OCR, article HTML to URL extraction, and X/Twitter Space or post links to the X API.
 - `write`: [command](./commands/process-steps/step-3-write/write-text.md) | [setup](./commands/process-steps/step-3-write/write-text.md#setup)
 - `tts`: [command](./commands/process-steps/step-4-tts/text-to-speech.md) | [setup](./commands/process-steps/step-4-tts/text-to-speech.md#setup)
+- `voice`: [voice](./commands/process-steps/step-4-tts/voice-management.md) — manages durable provider voice registrations separately from speech synthesis.
 - `image`: [command](./commands/process-steps/step-5-image/text-to-image.md) | [setup](./commands/process-steps/step-5-image/text-to-image.md#setup)
 - `video`: [video](./commands/process-steps/step-6-video/text-to-video-services.md)
 - `music`: [music](./commands/process-steps/step-7-music/text-to-music-services.md)
@@ -218,16 +222,17 @@ bun autoshow benchmark docs/benchmarks/tts/<run> --tts --tts-mode local
 - Use `extract` when you only need step-2 extraction or transcription without LLM writing, to create an X Space report, or to render transcript videos from an extract run or explicit audio/transcript files.
 - Use `write` for full summary pipeline with optional TTS/image/video generation, and for lyric draft generation from `./output/<name>/text`.
 - Use standalone `tts`, `image`, `video`, and `music` commands for direct generation workflows. Standalone image generation supports `gemini`, `openai`, `grok`, `bfl`, `recraft`, `replicate`, `lumalabs`, and `fal`; Recraft is raster generation-only in this CLI surface.
+- Use `voice` to discover provider voice catalogs or manage durable voice registrations (import, design, audition, approve, or revoke voices) separately from speech synthesis.
 - Use `music --audio`, `music --captions`, or `music --batch` for local lyric-video rendering from repo audio under `input/`; hosted music generation uses a prompt or local text file plus `--provider`.
 - Use `comic` for staged or complete episode-script to comic workflows: scene drafting, character sketch references, panel prompt bundles, review sketches, final panel images, and grouped page images.
 - Use `resume` to backfill missing extract, write LLM, TTS, image, video, or music providers in an existing output directory, including `extract` parent batches.
 - Use `config --show`, `config --reset`, or selector flags such as `--llm`, `--stt`, `--image`, and `--max-cents` to inspect or persist reusable CLI defaults.
 - Use `links` to fetch the curated provider documentation registry, either all docs, a global section such as `stt`, a provider section such as `--recraft image`, or URLs listed in a local `.md` / `.txt` file.
-- Use `benchmark` for STT quality benchmarks, existing TTS run scoring, or existing image/video generation judging. For no-cost local checks, keep STT benchmarking on `--stt-services whisper --reference-stt whisper:<model>` and use `--tts --tts-mode local`; image/video judging and full TTS scoring can call hosted judge/STT services when credentials are configured.
+- Use `benchmark` for STT quality benchmarks, existing TTS run scoring, or existing image/video generation judging. Current TTS benchmark rows use target/render and optional registration/snapshot-entry/character identity so multiple voices on one provider/model remain distinct; pre-ADR rows use the explicit `legacy:` fallback. For no-cost local checks, keep STT benchmarking on `--stt-services whisper --reference-stt whisper:<model>` and use `--tts --tts-mode local`; image/video judging and full TTS scoring can call hosted judge/STT services when credentials are configured.
 
 ## Pricing Preflight
 
-Most hosted or mixed-provider runtime commands support `--price` to print estimated cost and exit. The human `Cost Estimate` table is intentionally compact and always uses `step`, `provider`, `model`, and `cost` columns, adding `input`, `setup`, and `estimatedTime` columns only when those values are available; the `--json` dry-run result keeps the structured pricing basis fields such as token counts, page counts, character counts, and registry rates. `music --audio` and `music --batch` are local lyric-video modes and reject `--price`:
+Most hosted or mixed-provider runtime commands support `--price` to print estimated cost and exit. The human Cost Estimate table is intentionally compact and always uses `step`, `provider`, `model`, and `cost` columns, adding `input`, `setup`, and `estimatedTime` columns only when those values are available; the `--json` dry-run result keeps the structured pricing basis fields such as token counts, page counts, character counts, and registry rates. `music --audio` and `music --batch` are local lyric-video modes and reject `--price`:
 
 ```bash
 bun autoshow extract https://ajc.pics/autoshow/examples/1-audio.mp3 --provider mistral=voxtral-mini-2602 --price
@@ -253,6 +258,8 @@ bun autoshow tts input/examples/tts/1-tts.md --provider hume=octave-2 --price
 bun autoshow tts input/examples/tts/1-tts.md --provider cartesia=sonic-3.5-2026-05-04 --price
 bun autoshow tts input/examples/tts/1-tts.md --provider openai=gpt-4o-mini-tts-2025-12-15 --price
 bun autoshow tts input/examples/tts/1-tts.md --provider openai=gpt-4o-mini-tts-2025-12-15 --tts-instructions "Warm documentary narration" --tts-speed 1.1 --price
+bun autoshow voice discover --provider cartesia --source provider-library --price
+bun autoshow voice design hero --provider hume --model octave-2 --creation-model octave-1 --description "Warm guide" --preview-text "Passing passage for previewing..." --price
 bun autoshow image "a sunset" --provider openai=gpt-image-2 --size 1024x1024 --quality low --price
 bun autoshow image "a sunset" --provider bfl=flux-2-klein-4b --price
 bun autoshow image "a premium product photo" --provider recraft=recraftv4_1 --size 1024x1024 --count 3 --price

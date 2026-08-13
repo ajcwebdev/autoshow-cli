@@ -1,6 +1,6 @@
 import { describe, expect, test } from 'bun:test'
 import type { AggregatedPriceEstimate } from '~/types'
-import { preflightToEstimated } from '~/utils/pricing/compute-costs'
+import { preflightToEstimated } from '~/cli/commands/pricing-orchestration/compute-costs'
 import { stepEstimateToReport } from '~/utils/pricing/step-estimate-fields'
 
 const recordedEstimate = {
