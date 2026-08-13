@@ -272,10 +272,12 @@ describe('Phase 4 producer hardening contracts', () => {
     ])
   })
 
-  test('pins an unprivileged two-architecture workflow entirely by full commit SHA', async () => {
+  test('pins a manual-only unprivileged two-architecture workflow entirely by full commit SHA', async () => {
     const workflow = await Bun.file(join(PROJECT_ROOT, '.github/workflows/macos-toolchain-unsigned.yml')).text()
     expect(workflow).toContain('runner: macos-15\n            architecture: arm64')
     expect(workflow).toContain('runner: macos-15-intel\n            architecture: x64')
+    expect(workflow).toContain('workflow_dispatch:')
+    expect(workflow).not.toMatch(/pull_request:|pull_request_target:|push:/)
     expect(workflow).toContain('permissions:\n  contents: read')
     expect(workflow).toContain('persist-credentials: false')
     expect(workflow).toContain('artifact-digest')
