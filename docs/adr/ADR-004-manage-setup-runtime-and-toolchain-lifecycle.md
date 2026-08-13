@@ -554,7 +554,7 @@ This phase is not part of the retired prebuilt sequence and does not block the c
 
 | Action | Owner | Current State |
 |---|---|---|
-| Decide whether the container image needs registry publication and, if accepted, define its producer, retention, provenance, signing, and CI contract | Maintainers | Deliberately deferred — independent of and non-blocking for the completed host/container decision |
+| Decide whether the container image needs registry publication and, if accepted, define its producer, retention, provenance, signing, and CI contract | Maintainers | Complete — implemented via `.github/workflows/docker-publish.yml` publishing multi-arch images (`linux/amd64`, `linux/arm64`) to GHCR on tag releases (`v*.*.*`) or manual `workflow_dispatch` with layer caching, OCI provenance attestations, and license notices |
 
 ## Test Plan
 

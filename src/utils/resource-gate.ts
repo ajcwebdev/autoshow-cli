@@ -10,6 +10,18 @@ export const normalizeResourceGateCapacity = (
     ? Math.floor(value)
     : fallback
 
+export const runWithGate = async <T>(
+  gate: ResourceGate,
+  fn: () => Promise<T>
+): Promise<T> => {
+  const release = await gate.acquire()
+  try {
+    return await fn()
+  } finally {
+    release()
+  }
+}
+
 /**
  * Counting semaphore with a FIFO waiter queue. `acquire` resolves immediately
  * when a slot is free, so a gate at capacity is the only case that defers.
@@ -26,7 +38,7 @@ export const createResourceGate = (options: ResourceGateOptions = {}): ResourceG
     waiters.shift()?.()
   }
 
-  return {
+  const gate: ResourceGate = {
     capacity,
     acquire: async (): Promise<() => void> => {
       if (active >= capacity) {
@@ -47,4 +59,7 @@ export const createResourceGate = (options: ResourceGateOptions = {}): ResourceG
       }
     }
   }
+
+  gate.runWithGate = async <T>(fn: () => Promise<T>): Promise<T> => await runWithGate(gate, fn)
+  return gate
 }

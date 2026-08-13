@@ -300,6 +300,8 @@ No follow-up actions remain for this scheduler-alignment step.
 
 Verification on 2026-08-12 passed `bun run check`, `git diff --check`, all 165 mapped `bun t --price` commands, 83 focused TTS provider/retry/target-scheduler/OCR contracts, 34 TTS pricing/timing/batch-output contracts, 25 CLI help contracts, 2 relevant concurrency option contracts, 7 bounded dialogue-selector contracts, and 10 hosted dialogue contracts. No paid or quota-limited provider command ran.
 
+Verification on 2026-08-13 added `runWithGate` exception-safe resource gate execution to `src/utils/resource-gate.ts`, guaranteeing auto-release of counting semaphores via `finally` blocks on async task failure or rejection. `bun run check` and `bun t --price` passed cleanly.
+
 ## References
 
 - Related ADR: [ADR-009](ADR-009-extract-execution-and-artifact-contracts.md) — the hosted OCR lane, page cap, and throughput profiles described in the inventory above

@@ -122,13 +122,13 @@ Negative outcomes:
 - Refresh can be slow for `bun autoshow links --refresh` because it fetches the full curated registry.
 - Token counts are reference estimates, not exact billable counts for every provider or model.
 - Future schema changes need compatibility rules so existing sidecars do not become unusable.
-- Open question for a future ADR or follow-up: whether to add `--refresh-only` to update metadata without rewriting the combined markdown.
+- Resolved: `--refresh-only` updates JSON sidecar metadata without overwriting an existing Markdown bundle file, recording `"markdownWritten": false` and warning if remote content hash drifts.
 
 ## Follow-up Actions
 
 | Action | Owner | Current State |
 |---|---|---|
-| Decide whether to add `--refresh-only` for metadata-only updates | Links maintainers | Deferred to a future ADR |
+| Decide whether to add `--refresh-only` for metadata-only updates | Links maintainers | Complete — implemented via `--refresh-only` flag on `links` command, preserving existing `.md` bundle files while refreshing `.refresh.json` sidecar metadata |
 
 ## Test Plan
 

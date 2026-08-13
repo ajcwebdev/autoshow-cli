@@ -112,9 +112,12 @@ export const getLinksRefreshMetadataPath = (outputPath: string | URL): string =>
     ? outputPath
     : decodeURIComponent(outputPath.pathname)
 
-  return /\.md$/i.test(resolvedOutputPath)
-    ? resolvedOutputPath.replace(/\.md$/i, '.refresh.json')
-    : `${resolvedOutputPath}.refresh.json`
+  const cleanPath = resolvedOutputPath.split('?')[0]?.split('#')[0] ?? resolvedOutputPath
+  const ext = extname(cleanPath)
+  if (/\.(?:md|markdown|txt)$/i.test(ext)) {
+    return `${cleanPath.slice(0, -ext.length)}.refresh.json`
+  }
+  return `${cleanPath}.refresh.json`
 }
 
 const serviceEntries = Object.entries(data)
@@ -141,6 +144,12 @@ const linksProviderFlags = Object.fromEntries(knownProviders.map((provider) => [
 const linksFlags = {
   refresh: {
     description: 'Write refresh metadata sidecar with per-link hashes and token counts',
+    type: Boolean,
+    default: false,
+    negatable: false
+  },
+  'refresh-only': {
+    description: 'Write refresh metadata sidecar without overwriting existing Markdown bundle',
     type: Boolean,
     default: false,
     negatable: false
@@ -173,7 +182,7 @@ export const parseLinksSelection = (parsed: LinksParsedCommand): LinksSelection 
   for (const token of orderedTokens) {
     if (token.kind === 'flag') {
       const { name, raw } = token.occurrence
-      if (name === 'refresh' || !serviceKeySet.has(name)) continue
+      if (name === 'refresh' || name === 'refresh-only' || !serviceKeySet.has(name)) continue
       const equalsIndex = raw.indexOf('=')
       if (equalsIndex !== -1) {
         const flagValue = raw.slice(equalsIndex + 1)
@@ -217,10 +226,14 @@ export const parseLinksSelection = (parsed: LinksParsedCommand): LinksSelection 
     throw CLIUsageError('links input file mode cannot be combined with provider or section selectors')
   }
 
+  const refreshOnly = parsed.flags['refresh-only'] === true
+  const refresh = parsed.flags['refresh'] === true || refreshOnly
+
   return {
     serviceSelections,
     globalSections,
-    refresh: parsed.flags['refresh'] === true,
+    refresh,
+    ...(refreshOnly ? { refreshOnly: true } : {}),
     ...(inputFilePath ? { inputFilePath } : {}),
     ...(directUrl ? { directUrl } : {})
   }
@@ -638,7 +651,6 @@ export const runLinks = async (
 
   const fetchedContents = fetchResults.map(result => result.content)
   const combinedContent = `${fetchedContents.join('\n\n')}\n`
-  await Bun.write(outputPath, combinedContent)
 
   const resolvedOutputPath = typeof outputPath === 'string'
     ? outputPath
@@ -646,10 +658,30 @@ export const runLinks = async (
   const lineCount = combinedContent.split('\n').length
   const refreshMetadataPath = getLinksRefreshMetadataPath(outputPath)
 
+  const isRefreshOnly = selection.refreshOnly === true
+  const outputFileExists = await Bun.file(outputPath).exists()
+  let markdownWritten = true
+
+  if (isRefreshOnly && outputFileExists) {
+    markdownWritten = false
+    const existingContent = await Bun.file(outputPath).text()
+    const existingHash = hashRefreshContent(normalizeMarkdownForRefresh(existingContent))
+    const freshHash = hashRefreshContent(normalizeMarkdownForRefresh(combinedContent))
+
+    if (existingHash !== freshHash) {
+      l.warn(
+        `Documentation content updated on remote server; run without --refresh-only to update Markdown bundle at ${resolvedOutputPath}.`
+      )
+    }
+  } else {
+    await Bun.write(outputPath, combinedContent)
+    l.write('success', `Wrote ${resolvedOutputPath} from ${links.length} URLs (${lineCount} lines)`)
+  }
+
   if (refresh) {
     const previousMetadata = await readPreviousLinksRefreshMetadata(refreshMetadataPath)
     const refreshedAt = new Date().toISOString()
-    const metadata = buildLinksRefreshMetadata(
+    const rawMetadata = buildLinksRefreshMetadata(
       selection,
       links,
       fetchResults,
@@ -658,6 +690,10 @@ export const runLinks = async (
       previousMetadata,
       refreshedAt
     )
+    const metadata: LinksRefreshMetadata = {
+      ...rawMetadata,
+      markdownWritten
+    }
     await Bun.write(refreshMetadataPath, `${JSON.stringify(metadata, null, 2)}\n`)
     l.write(
       'success',
@@ -669,8 +705,6 @@ export const runLinks = async (
       `${metadata.totals.tokenCount} ${REFERENCE_TOKENIZER_METADATA.name} tokens)`
     )
   }
-
-  l.write('success', `Wrote ${resolvedOutputPath} from ${links.length} URLs (${lineCount} lines)`)
 
   return {
     outputPath: resolvedOutputPath,

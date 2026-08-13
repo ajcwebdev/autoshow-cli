@@ -2,6 +2,7 @@ import * as l from '~/utils/app-logger/app-logger'
 import { validateData, validateDataSafe } from '~/utils/validate/validation'
 import { exec } from '~/utils/cli-utils'
 import { getFfprobeBinary } from '~/utils/runtime-paths'
+import { InfraError } from '~/utils/error-handler'
 import { YtDlpVideoInfoSchema, VideoMetadataSchema } from '~/types'
 import { MEDIA_EXTENSIONS } from '~/cli/commands/process-steps/step-0-metadata/formats/metadata-media-extensions'
 import { buildYtDlpFailureMessage, buildYtDlpMetadataArgs } from '~/cli/commands/process-steps/shared/shared-yt-dlp-options'
@@ -267,7 +268,7 @@ export const extractLocalFileMetadata = async (filePath: string): Promise<VideoM
       filePath
     ])
     if (ffprobe.exitCode !== 0) {
-      throw new Error('ffprobe failed')
+      throw InfraError('ffprobe failed', { stage: 'download:media' })
     }
     const seconds = parseFloat((ffprobe.stdout || '').trim() || '0')
     const duration = seconds > 0 ? formatDuration(seconds) : 'Unknown'

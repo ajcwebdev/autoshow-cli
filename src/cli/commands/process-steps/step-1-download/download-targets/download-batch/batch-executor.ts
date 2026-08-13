@@ -10,7 +10,7 @@ import { runSttBatch, throwIfSttBatchIncomplete } from '~/cli/commands/process-s
 import type { BatchExecutionPlan, BatchProcessResult, BatchRuntimeOptions, BatchSource, ExtractChildBatchPlan, ExtractCommandOptions, ExtractRoute, PipelineItemRecord, PipelineManifest, PipelineManifestItem, ProcessCommand, SingleTargetCommandOptions } from '~/types'
 import { processSingleTarget } from '../single/single-target-runner'
 import { processBatch } from './process-download-batch'
-import { CLIUsageError } from '~/utils/error-handler'
+import { CLIUsageError, InfraError, ValidationError } from '~/utils/error-handler'
 import { createHostedOcrScheduler } from '~/cli/commands/process-steps/step-2-extract/step-2-ocr/ocr-utils/hosted-ocr-scheduler'
 
 type BatchCommandOptions = SingleTargetCommandOptions & Pick<BatchRuntimeOptions, 'batchConcurrency'>
@@ -19,7 +19,7 @@ function assertExtractCommandOptions (
   opts: BatchCommandOptions
 ): asserts opts is ExtractCommandOptions {
   if (!('whisperModel' in opts) || !('step2SelectionOrigins' in opts)) {
-    throw new Error('Extract command options are incomplete')
+    throw ValidationError('Extract command options are incomplete')
   }
 }
 
@@ -272,8 +272,12 @@ const executeExtractBatchPlan = async (
     throwIfSttBatchIncomplete(sttResult)
   }
 
+  if (sttResult) {
+    throwIfSttBatchIncomplete(sttResult)
+  }
+
   if (ocrResult && ocrResult.ok === 0 && ocrResult.fail > 0) {
-    const error = new Error(`Batch processing failed for ${ocrResult.fail} item(s)`)
+    const error = InfraError(`Batch processing failed for ${ocrResult.fail} item(s)`, { stage: 'extract:ocr' })
     if (ocrResult.failureExitCode !== undefined) {
       ;(error as Error & { exitCode?: number }).exitCode = ocrResult.failureExitCode
     }
@@ -281,7 +285,7 @@ const executeExtractBatchPlan = async (
   }
 
   if (articleResult && articleResult.ok === 0 && articleResult.fail > 0) {
-    const error = new Error(`Article batch processing failed for ${articleResult.fail} item(s)`)
+    const error = InfraError(`Article batch processing failed for ${articleResult.fail} item(s)`, { stage: 'extract:url' })
     if (articleResult.failureExitCode !== undefined) {
       ;(error as Error & { exitCode?: number }).exitCode = articleResult.failureExitCode
     }
@@ -289,7 +293,7 @@ const executeExtractBatchPlan = async (
   }
 
   if (xSpaceResult && xSpaceResult.ok === 0 && xSpaceResult.fail > 0) {
-    const error = new Error(`X Space batch processing failed for ${xSpaceResult.fail} item(s)`)
+    const error = InfraError(`X Space batch processing failed for ${xSpaceResult.fail} item(s)`, { stage: 'extract:url' })
     if (xSpaceResult.failureExitCode !== undefined) {
       ;(error as Error & { exitCode?: number }).exitCode = xSpaceResult.failureExitCode
     }
@@ -345,7 +349,7 @@ export const executeBatchPlan = async (
   const { ok, fail, failureExitCode } = batchResult
 
   if (ok === 0 && fail > 0) {
-    const error = new Error(`Batch processing failed for ${fail} item(s)`)
+    const error = InfraError(`Batch processing failed for ${fail} item(s)`, { stage: 'pipeline' })
     if (failureExitCode !== undefined) {
       ;(error as Error & { exitCode?: number }).exitCode = failureExitCode
     }

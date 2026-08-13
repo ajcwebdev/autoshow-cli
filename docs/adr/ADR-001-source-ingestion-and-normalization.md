@@ -205,7 +205,7 @@ Local/no-cost contract tests cover:
 - `.acsm` local, URL path, content-disposition, and ACSM content-type classification.
 - Missing `calibre-acsm-fulfill` setup errors.
 - Fake wrapper fulfillment to EPUB and PDF with step 1 metadata.
-- Zero and multiple fulfilled output contract failures.
+- Zero, 0-byte, and multiple fulfilled output contract failures.
 - Step 2 `normalizedFrom` and `conversionChain` propagation after normalization and after mocked fulfillment.
 - `--price` dry-run behavior that does not invoke fulfillment and notes omitted ACSM OCR estimates.
 - Redaction/omission of fake activation/account/key paths from fulfillment failure messages.

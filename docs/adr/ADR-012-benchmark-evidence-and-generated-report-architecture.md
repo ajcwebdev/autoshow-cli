@@ -217,7 +217,7 @@ Negative outcomes:
 | Validate schema versions, tie-breaks, tier sizes, and rank/composite parity across committed artifacts | Test maintainers | Implemented in `combined-report-weighted-ranking-contracts.test.ts` |
 | Regenerate combined reports from committed local benchmark artifacts when source runs change | Benchmark maintainers | Ongoing |
 | Preserve exact paid approval, invalid-output exclusion, repair, compaction, and regeneration evidence for every benchmark refresh | Benchmark maintainers | Ongoing |
-| Keep live calibration optional unless a compatibility claim cannot be proved from primary documentation and local contracts | Model and benchmark maintainers | Ongoing guardrail |
+| Keep live calibration optional unless a compatibility claim cannot be proved from primary documentation and local contracts | Model and benchmark maintainers | Complete — protected by zero-cost plan helper (`audit:ocr-tokens --plan`) requiring explicit user approval before execution |
 
 ## Test Plan
 

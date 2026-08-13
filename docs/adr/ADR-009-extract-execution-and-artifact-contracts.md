@@ -207,6 +207,7 @@ The follow-up preserves the extraction CLI surface and adds internal/profile/rep
 |---|---|---|
 | Maintain provider error classifiers and billed-component normalizers as hosted response formats drift | OCR maintainers | Ongoing |
 | Keep every direct chapter producer on the shared ordinal/source-locator helper | Extract maintainers | Ongoing guardrail |
+| Provide offline token-shape calibration auditing and preflight plan reporting (`audit:ocr-tokens --plan`) | OCR & pricing maintainers | Complete — `scripts/audit-ocr-token-shapes.ts` supports `--plan` preflight cost estimates and offline run-directory evidence processing |
 
 ## Test Plan
 

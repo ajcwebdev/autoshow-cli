@@ -208,3 +208,7 @@ Decision item 2 above rewrote `isCLIUsageError` to `error instanceof AppUsageErr
 That assignment stays deliberately. After this change it is a diagnostics label rather than a control-flow key — `serializeError` writes it into every diagnostic payload — so renaming it to match the class would change on-disk diagnostics for no behavioral gain. The class-name/error-name divergence is intentional, not residue.
 
 Behavior change worth naming: an arbitrary `Error` carrying `name = 'CLIUsageError'` no longer exits 2 with `Usage error: <message>`; it exits 1. That is the "lose the opt-in-by-arbitrary-class trick" consequence this ADR already accepted, now applied to the name-based escape hatch as well. It is pinned by a negative assertion in `app-error-contracts.test.ts` so the arm cannot be silently reintroduced.
+
+**2026-08-13 — low-level plain `new Error` throws refactored.**
+
+Remaining plain `new Error(...)` calls in batch execution, single-target validation assertions, and ACSM fulfillment result checks were refactored to structured `AppError` factory calls (`InfraError`, `ValidationError`). All pipeline error throws now carry structured diagnostic `stage` metadata and remediation hints.
