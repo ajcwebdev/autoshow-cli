@@ -8,6 +8,8 @@ on:
       - 'bun.lock'
       - 'src/cli/commands/setup-and-utilities/setup/dependency-metadata.ts'
       - 'src/cli/commands/setup-and-utilities/setup/setup-download/managed-artifact.ts'
+      - 'src/cli/commands/setup-and-utilities/setup/setup-download/managed-toolchain-distribution-policy.ts'
+      - 'src/cli/commands/setup-and-utilities/setup/setup-download/managed-toolchain-package.ts'
       - 'src/cli/commands/setup-and-utilities/setup/setup-download/mupdf-source-build.ts'
       - 'src/cli/commands/setup-and-utilities/setup/setup-download/prebuilt-artifact.ts'
       - 'src/cli/commands/setup-and-utilities/setup/setup-download/qpdf-source-build.ts'

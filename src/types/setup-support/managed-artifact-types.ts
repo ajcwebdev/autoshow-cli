@@ -49,7 +49,14 @@ export type ManagedPrebuiltLicense = {
   primaryLicense: string
   noticePaths: string[]
   correspondingSourceAssets: string[]
-  reviewReference: string
+  autoshowSourceArchive: string
+  reviewStatus: 'approved'
+  reviewReferences: string[]
+  reviewedAt: string
+  repositoryReviewer: string
+  complianceReviewer: string
+  writtenOfferRequired: false
+  userNoticePath: string
 }
 
 export type ManagedPrebuiltPayloadManifest = {
@@ -98,7 +105,7 @@ export type ManagedPrebuiltReleaseManifest = {
     repository: 'ajcwebdev/autoshow-cli'
     subjectDigest: string
   }
-  licenseReviewReference: string
+  licenseReviewReferences: string[]
 }
 
 // Phase 3 candidates enter only through typed dependency injection. There is no
@@ -135,7 +142,7 @@ export type ManagedPrebuiltInstalledRelease = {
   sbomSha256: string
   provenanceSubjectDigest: string
   producerCommit: string
-  licenseReviewReference: string
+  licenseReviewReferences: string[]
 }
 
 export type ManagedPrebuiltArtifactManifest = {
@@ -187,12 +194,7 @@ export type ManagedPrebuiltEligibility =
 
 export type ManagedPrebuiltInstallResult = 'override' | 'prebuilt' | 'source'
 
-export type ManagedUnsignedVerificationLicense = {
-  primaryLicense: string
-  noticePaths: string[]
-  correspondingSourceAssets: string[]
-  reviewStatus: 'pending-phase-5'
-}
+export type ManagedUnsignedVerificationLicense = ManagedPrebuiltLicense
 
 export type ManagedUnsignedVerificationPayloadManifest = {
   schemaVersion: 1
@@ -236,6 +238,7 @@ export type ManagedUnsignedVerificationManifest = {
     sha256: string
     format: 'SPDX-2.3-json'
   }
+  licenseReviewReferences: string[]
 }
 
 export type ManagedUnsignedVerificationBundle = {

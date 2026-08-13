@@ -20,6 +20,10 @@ import {
   verifyManagedPrebuiltArchitecture,
   verifyManagedPrebuiltCodeSignature
 } from '~/cli/commands/setup-and-utilities/setup/setup-download/managed-artifact'
+import {
+  managedToolchainDistributionLicense,
+  validateManagedToolchainDistributionLicense
+} from '~/cli/commands/setup-and-utilities/setup/setup-download/managed-toolchain-distribution-policy'
 import type {
   ManagedArtifactPayloadFile,
   ManagedArtifactToolId,
@@ -99,6 +103,7 @@ const parseCandidateRelease = (candidate: ManagedPrebuiltCandidate): ManagedPreb
   if (release.tool !== candidate.tool || release.version !== candidate.version || release.revision !== candidate.revision || release.platform !== candidate.platform || release.architecture !== candidate.architecture || release.minimumMacosVersion !== candidate.minimumMacosVersion) throw managedPrebuiltTrustError('release manifest identity does not match candidate metadata')
   if (release.archive.name !== candidate.archiveName || release.archive.sha256 !== candidate.archiveSha256) throw managedPrebuiltTrustError('release manifest archive does not match candidate metadata')
   if (release.notarization.status !== 'Accepted') throw managedPrebuiltTrustError('release manifest notarization status is not Accepted')
+  if (JSON.stringify(release.licenseReviewReferences) !== JSON.stringify(managedToolchainDistributionLicense(candidate.tool).reviewReferences)) throw managedPrebuiltTrustError('release manifest license reviews do not match the approved Phase 5 policy')
   return release
 }
 
@@ -191,7 +196,9 @@ const validateExtractedPackage = async (
   if (payload.producer.commit !== release.producerCommit) throw managedPrebuiltTrustError('embedded producer commit does not match release metadata')
   if (payload.trust.signingIdentity !== candidate.expectedSigningIdentity) throw managedPrebuiltTrustError('embedded signing identity does not match candidate metadata')
   if (payload.trust.teamId !== candidate.expectedTeamId) throw managedPrebuiltTrustError('embedded Team ID does not match candidate metadata')
-  if (payload.license.reviewReference !== release.licenseReviewReference) throw managedPrebuiltTrustError('embedded license review does not match release metadata')
+  if (JSON.stringify(payload.license.reviewReferences) !== JSON.stringify(release.licenseReviewReferences)) throw managedPrebuiltTrustError('embedded license reviews do not match release metadata')
+  const licenseIssue = validateManagedToolchainDistributionLicense(candidate.tool, payload.license)
+  if (licenseIssue) throw managedPrebuiltTrustError(licenseIssue)
   const expectedBinary = managedArtifactBinaryRelativePath(candidate.tool)
   if (payload.payload.length !== 1 || payload.payload[0]?.path !== expectedBinary || payload.payload[0]?.kind !== 'executable') throw managedPrebuiltTrustError(`embedded payload must contain only executable ${expectedBinary}`)
   const expectedFiles = [MANAGED_PREBUILT_PAYLOAD_MANIFEST_NAME, ...payload.payload.map(file => file.path), ...payload.license.noticePaths]
@@ -240,7 +247,7 @@ const createInstalledManifest = (
     sbomSha256: release.sbom.sha256,
     provenanceSubjectDigest: release.provenance.subjectDigest,
     producerCommit: release.producerCommit,
-    licenseReviewReference: release.licenseReviewReference
+    licenseReviewReferences: release.licenseReviewReferences
   }
 })
 

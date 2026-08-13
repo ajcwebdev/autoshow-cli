@@ -4,6 +4,10 @@ import { basename, dirname, join } from 'node:path'
 import * as v from 'valibot'
 import { readDependencyUrlAndSha256, readDependencyVersion } from '~/cli/commands/setup-and-utilities/setup/dependency-metadata'
 import { runCapture } from '~/cli/commands/setup-and-utilities/setup/run-complete-setup'
+import {
+  managedToolchainDistributionLicense,
+  validateManagedToolchainDistributionLicense
+} from '~/cli/commands/setup-and-utilities/setup/setup-download/managed-toolchain-distribution-policy'
 import { LIBJPEG_TURBO_SOURCE_BUILD_FLAGS, QPDF_SOURCE_BUILD_FLAGS } from '~/cli/commands/setup-and-utilities/setup/setup-download/qpdf-source-build'
 import { MUPDF_SOURCE_BUILD_FLAGS } from '~/cli/commands/setup-and-utilities/setup/setup-download/mupdf-source-build'
 import type {
@@ -70,7 +74,14 @@ const PrebuiltLicenseSchema = v.strictObject({
   primaryLicense: NonEmptyStringSchema,
   noticePaths: v.array(SafeRelativePathSchema),
   correspondingSourceAssets: v.array(SafeFileNameSchema),
-  reviewReference: NonEmptyStringSchema
+  autoshowSourceArchive: NonEmptyStringSchema,
+  reviewStatus: v.literal('approved'),
+  reviewReferences: v.array(NonEmptyStringSchema),
+  reviewedAt: v.pipe(v.string(), v.regex(/^\d{4}-\d{2}-\d{2}$/)),
+  repositoryReviewer: NonEmptyStringSchema,
+  complianceReviewer: NonEmptyStringSchema,
+  writtenOfferRequired: v.literal(false),
+  userNoticePath: SafeRelativePathSchema
 })
 
 export const ManagedSourceArtifactManifestSchema = v.strictObject({
@@ -132,7 +143,7 @@ export const ManagedPrebuiltReleaseManifestSchema = v.strictObject({
     repository: v.literal('ajcwebdev/autoshow-cli'),
     subjectDigest: Sha256Schema
   }),
-  licenseReviewReference: NonEmptyStringSchema
+  licenseReviewReferences: v.array(NonEmptyStringSchema)
 })
 
 export const ManagedPrebuiltArtifactManifestSchema = v.strictObject({
@@ -164,7 +175,7 @@ export const ManagedPrebuiltArtifactManifestSchema = v.strictObject({
     sbomSha256: Sha256Schema,
     provenanceSubjectDigest: Sha256Schema,
     producerCommit: v.pipe(v.string(), v.regex(/^[a-f0-9]{40}$/)),
-    licenseReviewReference: NonEmptyStringSchema
+    licenseReviewReferences: v.array(NonEmptyStringSchema)
   })
 })
 
@@ -445,6 +456,7 @@ const validateCandidateRelease = (
   if (release.identity !== expectedReleaseIdentity(candidate)) return 'release manifest identity is not canonical'
   if (candidate.archiveName !== release.archive.name || candidate.archiveSha256 !== release.archive.sha256) return 'release manifest archive does not match candidate metadata'
   if (release.notarization.status !== 'Accepted') return 'release manifest notarization status is not Accepted'
+  if (!sameJson(release.licenseReviewReferences, managedToolchainDistributionLicense(candidate.tool).reviewReferences)) return 'release manifest license reviews do not match the approved Phase 5 policy'
   return undefined
 }
 
@@ -458,7 +470,9 @@ const validatePayloadManifestAgainstCandidate = async (
   if (payload.producer.commit !== release.producerCommit) return 'payload producer commit does not match the release manifest'
   if (payload.trust.signingIdentity !== candidate.expectedSigningIdentity) return 'payload signing identity does not match candidate metadata'
   if (payload.trust.teamId !== candidate.expectedTeamId) return 'payload Team ID does not match candidate metadata'
-  if (payload.license.reviewReference !== release.licenseReviewReference) return 'payload license review does not match the release manifest'
+  if (!sameJson(payload.license.reviewReferences, release.licenseReviewReferences)) return 'payload license reviews do not match the release manifest'
+  const licenseIssue = validateManagedToolchainDistributionLicense(tool, payload.license)
+  if (licenseIssue) return licenseIssue
   if (!sameJson(payload.sources, await readExpectedManagedArtifactSources(tool))) return 'payload source pins do not match dependency metadata'
   if (!sameJson(payload.buildFlags, managedArtifactBuildFlags(tool))) return 'payload build flags do not match the source recipe'
   const expectedBinary = managedArtifactBinaryRelativePath(tool)
@@ -522,7 +536,7 @@ export const validateManagedPrebuiltArtifact = async (
     sbomSha256: release.sbom.sha256,
     provenanceSubjectDigest: release.provenance.subjectDigest,
     producerCommit: release.producerCommit,
-    licenseReviewReference: release.licenseReviewReference
+    licenseReviewReferences: release.licenseReviewReferences
   } satisfies ManagedPrebuiltArtifactManifest['release']
   if (!sameJson(manifest.release, expectedRelease)) return validationFailure('installed release provenance does not match candidate metadata')
   let actualPaths: string[]

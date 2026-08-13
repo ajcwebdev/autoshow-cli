@@ -18,6 +18,14 @@ import {
   installManagedPrebuiltOrSource,
   managedPrebuiltTrustError
 } from '~/cli/commands/setup-and-utilities/setup/setup-download/prebuilt-artifact'
+import {
+  managedToolchainDistributionLicense,
+  validateManagedToolchainDistributionLicense
+} from '~/cli/commands/setup-and-utilities/setup/setup-download/managed-toolchain-distribution-policy'
+import {
+  createManagedToolchainSpdx,
+  writeManagedToolchainPackageNotices
+} from '~/cli/commands/setup-and-utilities/setup/setup-download/managed-toolchain-package'
 import { findForbiddenMacosDynamicLibraryReferences } from '~/cli/commands/setup-and-utilities/setup/setup-download/qpdf-source-build'
 import { promoteManagedToolDirectory } from '~/cli/commands/setup-and-utilities/setup/setup-download/managed-artifact'
 import type {
@@ -91,7 +99,14 @@ export const ManagedUnsignedVerificationPayloadManifestSchema = v.strictObject({
     primaryLicense: NonEmptyStringSchema,
     noticePaths: v.array(SafeRelativePathSchema),
     correspondingSourceAssets: v.array(SafeFileNameSchema),
-    reviewStatus: v.literal('pending-phase-5')
+    autoshowSourceArchive: NonEmptyStringSchema,
+    reviewStatus: v.literal('approved'),
+    reviewReferences: v.array(NonEmptyStringSchema),
+    reviewedAt: v.pipe(v.string(), v.regex(/^\d{4}-\d{2}-\d{2}$/)),
+    repositoryReviewer: NonEmptyStringSchema,
+    complianceReviewer: NonEmptyStringSchema,
+    writtenOfferRequired: v.literal(false),
+    userNoticePath: SafeRelativePathSchema
   })
 })
 
@@ -115,7 +130,8 @@ export const ManagedUnsignedVerificationManifestSchema = v.strictObject({
     name: SafeFileNameSchema,
     sha256: Sha256Schema,
     format: v.literal('SPDX-2.3-json')
-  })
+  }),
+  licenseReviewReferences: v.array(NonEmptyStringSchema)
 })
 
 const parseSchema = <T>(schema: v.BaseSchema<unknown, T, v.BaseIssue<unknown>>, value: unknown, label: string): T => {
@@ -152,85 +168,21 @@ export const managedUnsignedVerificationSbomName = (
   architecture: 'arm64' | 'x64'
 ): string => `${managedUnsignedVerificationBaseName(tool, architecture)}.spdx.json`
 
-type NoticePlanEntry = { source: 'mupdf' | 'qpdf' | 'libjpeg-turbo', sourcePath: string, packagePath: string }
-
-const NOTICE_PLAN: Record<ManagedArtifactToolId, readonly NoticePlanEntry[]> = {
-  mupdf: [
-    { source: 'mupdf', sourcePath: 'COPYING', packagePath: 'licenses/mupdf-COPYING' }
-  ],
-  qpdf: [
-    { source: 'qpdf', sourcePath: 'LICENSE.txt', packagePath: 'licenses/qpdf-LICENSE.txt' },
-    { source: 'qpdf', sourcePath: 'NOTICE.md', packagePath: 'licenses/qpdf-NOTICE.md' },
-    { source: 'libjpeg-turbo', sourcePath: 'LICENSE.md', packagePath: 'licenses/libjpeg-turbo-LICENSE.md' }
-  ]
-}
-
 export const managedUnsignedVerificationNoticePaths = (tool: ManagedArtifactToolId): string[] =>
-  NOTICE_PLAN[tool].map(entry => entry.packagePath)
-
-const correspondingSourceAssets = (tool: ManagedArtifactToolId): string[] => tool === 'mupdf'
-  ? ['mupdf-1.27.2-source.tar.gz']
-  : ['qpdf-12.3.2.tar.gz', 'libjpeg-turbo-3.2.0.tar.gz']
-
-const primaryLicense = (tool: ManagedArtifactToolId): string => tool === 'mupdf'
-  ? 'AGPL-3.0-or-later'
-  : 'Apache-2.0'
-
-type SpdxChecksum = { algorithm: 'SHA256', checksumValue: string }
-type SpdxPackage = {
-  SPDXID: string
-  name: string
-  versionInfo: string
-  downloadLocation: string
-  filesAnalyzed: false
-  checksums: SpdxChecksum[]
-  licenseConcluded: 'NOASSERTION'
-  licenseDeclared: string
-  copyrightText: 'NOASSERTION'
-}
+  managedToolchainDistributionLicense(tool).noticePaths
 
 export const createManagedUnsignedVerificationSpdx = (
   payload: ManagedUnsignedVerificationPayloadManifest,
   created = new Date().toISOString()
-): Record<string, unknown> => {
-  const describedId = `SPDXRef-Package-${payload.tool}`
-  const packages: SpdxPackage[] = payload.sources.map((source, index) => ({
-    SPDXID: index === 0 ? describedId : `SPDXRef-Package-${source.name.replace(/[^A-Za-z0-9.-]/g, '-')}`,
-    name: source.name,
-    versionInfo: source.version,
-    downloadLocation: source.url,
-    filesAnalyzed: false,
-    checksums: [{ algorithm: 'SHA256', checksumValue: source.sha256 }],
-    licenseConcluded: 'NOASSERTION',
-    licenseDeclared: source.name === payload.tool ? payload.license.primaryLicense : 'NOASSERTION',
-    copyrightText: 'NOASSERTION'
-  }))
-  return {
-    spdxVersion: 'SPDX-2.3',
-    dataLicense: 'CC0-1.0',
-    SPDXID: 'SPDXRef-DOCUMENT',
-    name: `${managedUnsignedVerificationBaseName(payload.tool, payload.architecture)}-sbom`,
-    documentNamespace: `https://github.com/ajcwebdev/autoshow-cli/spdx/${payload.producer.commit}/${payload.tool}/${payload.architecture}`,
-    creationInfo: {
-      created,
-      creators: ['Organization: AutoShow', 'Tool: autoshow-macos-toolchain-producer']
-    },
-    documentDescribes: [describedId],
-    packages,
-    files: payload.payload.map((file, index) => ({
-      SPDXID: `SPDXRef-File-${index + 1}`,
-      fileName: `./${file.path}`,
-      checksums: [{ algorithm: 'SHA256', checksumValue: file.sha256 }],
-      licenseConcluded: 'NOASSERTION',
-      copyrightText: 'NOASSERTION'
-    })),
-    relationships: payload.payload.map((_file, index) => ({
-      spdxElementId: describedId,
-      relationshipType: 'CONTAINS',
-      relatedSpdxElement: `SPDXRef-File-${index + 1}`
-    }))
-  }
-}
+): Record<string, unknown> => createManagedToolchainSpdx({
+  documentName: `${managedUnsignedVerificationBaseName(payload.tool, payload.architecture)}-sbom`,
+  tool: payload.tool,
+  architecture: payload.architecture,
+  producer: payload.producer,
+  sources: payload.sources,
+  payload: payload.payload,
+  created
+})
 
 const assertCommand = async (
   command: string,
@@ -284,12 +236,12 @@ export const packageManagedUnsignedVerificationArtifact = async (options: {
     await mkdir(dirname(join(packageDir, binaryRelativePath)), { recursive: true })
     await cp(options.binaryPath, join(packageDir, binaryRelativePath))
     await chmod(join(packageDir, binaryRelativePath), 0o755)
-    for (const notice of NOTICE_PLAN[options.tool]) {
-      const sourceDirectory = options.sourceDirectories[notice.source]
-      if (!sourceDirectory) throw new Error(`missing ${notice.source} source directory for package notices`)
-      await mkdir(dirname(join(packageDir, notice.packagePath)), { recursive: true })
-      await cp(join(sourceDirectory, notice.sourcePath), join(packageDir, notice.packagePath))
-    }
+    await writeManagedToolchainPackageNotices({
+      tool: options.tool,
+      packageDir,
+      sourceDirectories: options.sourceDirectories
+    })
+    const license = managedToolchainDistributionLicense(options.tool)
     const payload: ManagedUnsignedVerificationPayloadManifest = {
       schemaVersion: MANAGED_ARTIFACT_SCHEMA_VERSION,
       artifactKind: 'unsigned-verification',
@@ -305,12 +257,7 @@ export const packageManagedUnsignedVerificationArtifact = async (options: {
       producer: options.producer,
       payload: [{ path: binaryRelativePath, sha256: await sha256File(join(packageDir, binaryRelativePath)), kind: 'executable' }],
       trust: { developerIdSigned: false, notarized: false },
-      license: {
-        primaryLicense: primaryLicense(options.tool),
-        noticePaths: managedUnsignedVerificationNoticePaths(options.tool),
-        correspondingSourceAssets: correspondingSourceAssets(options.tool),
-        reviewStatus: 'pending-phase-5'
-      }
+      license
     }
     parseManagedUnsignedVerificationPayloadManifest(payload)
     const payloadBytes = `${JSON.stringify(payload, null, 2)}\n`
@@ -333,7 +280,8 @@ export const packageManagedUnsignedVerificationArtifact = async (options: {
       producerCommit: options.producer.commit,
       archive: { name: archiveName, sha256: archiveSha256 },
       payloadManifestSha256: sha256Bytes(payloadBytes),
-      sbom: { name: sbomName, sha256: sbomSha256, format: 'SPDX-2.3-json' }
+      sbom: { name: sbomName, sha256: sbomSha256, format: 'SPDX-2.3-json' },
+      licenseReviewReferences: payload.license.reviewReferences
     }
     parseManagedUnsignedVerificationManifest(verificationManifest)
     const manifestBytes = `${JSON.stringify(verificationManifest, null, 2)}\n`
@@ -457,11 +405,9 @@ const defaultUnsignedDependencies: ManagedUnsignedVerificationDependencies = {
 const validateSpdxDocument = (value: unknown, payload: ManagedUnsignedVerificationPayloadManifest): void => {
   if (!value || typeof value !== 'object') throw managedPrebuiltTrustError('SPDX SBOM is not an object')
   const sbom = value as Record<string, unknown>
-  if (sbom['spdxVersion'] !== 'SPDX-2.3' || sbom['dataLicense'] !== 'CC0-1.0') throw managedPrebuiltTrustError('SPDX SBOM header is invalid')
-  const packages = sbom['packages']
-  if (!Array.isArray(packages)) throw managedPrebuiltTrustError('SPDX SBOM package inventory is missing')
-  const packageNames = packages.map(entry => entry && typeof entry === 'object' ? (entry as Record<string, unknown>)['name'] : undefined)
-  if (!sameJson(packageNames, payload.sources.map(source => source.name))) throw managedPrebuiltTrustError('SPDX SBOM source inventory does not match the payload manifest')
+  const creationInfo = sbom['creationInfo']
+  const created = creationInfo && typeof creationInfo === 'object' ? (creationInfo as Record<string, unknown>)['created'] : undefined
+  if (typeof created !== 'string' || !sameJson(sbom, createManagedUnsignedVerificationSpdx(payload, created))) throw managedPrebuiltTrustError('SPDX SBOM inventory does not match the approved payload')
 }
 
 const readUnsignedPayload = async (
@@ -486,10 +432,13 @@ const validateUnsignedPackage = async (options: {
   const verification = options.verification
   if (payload.tool !== verification.tool || payload.version !== verification.version || payload.revision !== verification.revision || payload.platform !== verification.platform || payload.architecture !== verification.architecture || payload.macosDeploymentTarget !== verification.minimumMacosVersion) throw managedPrebuiltTrustError('unsigned payload identity does not match its verification manifest')
   if (payload.producer.commit !== verification.producerCommit) throw managedPrebuiltTrustError('unsigned producer commit mismatch')
+  if (!sameJson(payload.license.reviewReferences, verification.licenseReviewReferences)) throw managedPrebuiltTrustError('unsigned license reviews do not match the verification manifest')
   const expectedSources = await readExpectedManagedArtifactSources(payload.tool)
   if (!sameJson(payload.sources, expectedSources)) throw managedPrebuiltTrustError('unsigned payload source pins do not match dependency metadata')
   if (!sameJson(payload.buildFlags, managedArtifactBuildFlags(payload.tool))) throw managedPrebuiltTrustError('unsigned payload build flags do not match the shared source recipe')
-  if (payload.promotable !== false || payload.trust.developerIdSigned !== false || payload.trust.notarized !== false || payload.license.reviewStatus !== 'pending-phase-5') throw managedPrebuiltTrustError('unsigned payload is not explicitly non-promotable')
+  if (payload.promotable !== false || payload.trust.developerIdSigned !== false || payload.trust.notarized !== false) throw managedPrebuiltTrustError('unsigned payload is not explicitly non-promotable')
+  const licenseIssue = validateManagedToolchainDistributionLicense(payload.tool, payload.license)
+  if (licenseIssue) throw managedPrebuiltTrustError(licenseIssue)
   const binaryRelativePath = managedArtifactBinaryRelativePath(payload.tool)
   if (payload.payload.length !== 1 || payload.payload[0]?.path !== binaryRelativePath || payload.payload[0]?.kind !== 'executable') throw managedPrebuiltTrustError(`unsigned payload must contain only executable ${binaryRelativePath}`)
   const expectedPaths = [MANAGED_UNSIGNED_PAYLOAD_MANIFEST_NAME, binaryRelativePath, ...payload.license.noticePaths].sort()
