@@ -5,7 +5,7 @@
 - **Decision Status:** Accepted
 - **Date Created:** 2026-06-12
 - **Date Updated:** 2026-08-13
-- **Verification Status:** Pending
+- **Verification Status:** Passed
 - **Supersession:** Consolidates the separate Docker distribution record, "Docker Image Trade Study for CLI Distribution", merged here on 2026-07-24.
 
 ## Context
@@ -66,10 +66,10 @@ For this decision, "full local-lite" in an image means `ffmpeg` and `ffprobe`, `
 
 | Option | Pros | Cons | Quantitative Notes |
 |---|---|---|---|
-| Keep source builds as the only path | No binary-publishing, signing, hosting, or redistribution program | Retains the dominant measured cold cost and the current qpdf build's accidental Homebrew linkage unless separately repaired | MuPDF + qpdf compile/link medians: 87.673s, 50.0% of the 175.181s cold median |
+| **Keep hermetic source builds as the only path** | No binary-publishing, signing, hosting, credential, or release program; the installed result remains project-managed and reproducible | Retains the dominant measured cold cost | MuPDF + qpdf compile/link medians: 87.673s, 50.0% of the 175.181s cold median; chosen after repairing qpdf's accidental Homebrew linkage |
 | Use upstream macOS prebuilts | Upstream would own production, signing, and release lifecycle | Rejected because neither pinned upstream release publishes a macOS CLI asset | MuPDF 1.27.2: 2 source assets only; qpdf 12.3.2: 0 macOS assets |
 | Use Homebrew bottles or another third-party binary feed | Existing multi-architecture packaging infrastructure | Reintroduces a mutable package-manager dependency, weakens exact project pinning, and reverses the accepted no-Homebrew boundary | At least 2 external package recipes plus transitive bottle availability |
-| **Produce thin, pinned, signed and notarized AutoShow prebuilts with a source fallback** | Removes the measured compile path on eligible hosts; preserves exact version and checksum ownership; supports offline doctor provenance; keeps unsupported or unavailable cases functional | Adds producer CI, release, signing, notarization, license, retention, and incident-response obligations | 2 tools × 2 architectures = 4 executable archives; promotion requires at least 10% full cold-median improvement |
+| Produce thin, pinned, signed and notarized AutoShow prebuilts with a source fallback | Would remove the measured compile path on eligible hosts | Requires an ongoing producer CI, Apple credential, signing, notarization, release, retention, and incident-response program | Investigated through the first five prebuilt phases, then withdrawn before any artifact was signed, published, configured, or activated |
 
 ## Decision
 
@@ -83,18 +83,18 @@ Host provisioning. macOS setup must not invoke Homebrew for AutoShow-installed l
 
 This requires no CLI command-shape change. Existing setup entry points, including `bun autoshow setup`, `bun autoshow setup --step yt-dlp`, `bun autoshow setup --step calibre`, and `bun autoshow setup --doctor`, keep their current public shape while their macOS dependency source changes underneath.
 
-macOS MuPDF/qpdf delivery. AutoShow will produce separate thin `arm64` and `x64` MuPDF and qpdf archives and prefer an exact verified prebuilt on macOS 15 or later. Each tool remains independently eligible and independently falls back to a project-owned build from its existing pinned source when the host is older, the architecture is unsupported, metadata has no matching asset, or an otherwise valid release asset is unavailable after normal download retries. A checksum, embedded-manifest, version, architecture, code-signature, or file-integrity mismatch is a hard failure: setup deletes staging and reports the violated invariant instead of hiding a possible publishing or tampering incident behind a source build.
+macOS MuPDF/qpdf delivery. AutoShow builds both tools from exact project-pinned source on the host and does not publish, select, or download AutoShow-built macOS executable archives. The qpdf recipe statically links the pinned libjpeg-turbo input, uses qpdf's native crypto provider, and rejects non-system dynamic-library paths. Both tools install through isolated staging, record source provenance and payload hashes, pass health checks, and atomically replace the managed runtime directory while preserving the prior healthy install on failure.
 
-The source fallback and producer CI use the same tool feature and linkage recipe. MuPDF retains its current release build flags. qpdf becomes a static CLI build with qpdf's native crypto provider and a pinned static libjpeg-turbo input; neither result may contain a non-system absolute dynamic-library path. Producer artifacts fix the deployment target at macOS 15.0, while a source fallback records and uses a target compatible with the host that is compiling it. Archives are extracted to staging, verified, health-checked, and atomically promoted under `runtime/tools`; the existing `runtime/bin` resolver shims remain the public managed paths. Explicit `--bin-dir` tools retain precedence and are not required to carry AutoShow provenance.
+MuPDF retains its current release build flags. qpdf is a static CLI build with qpdf's native crypto provider and a pinned static libjpeg-turbo input; neither result may contain a non-system absolute dynamic-library path. The source install records a target compatible with the host that compiles it. The existing `runtime/bin` resolver shims remain the public managed paths, and explicit `--bin-dir` tools retain precedence without being required to carry AutoShow provenance.
 
 Container provisioning. The distribution image adopts the Debian slim full local-lite option using `ARG BUN_BASE_IMAGE=oven/bun:1.3.14-slim`. The implementation adds an in-repo multi-stage `Dockerfile`; a `.dockerignore` that excludes host runtime artifacts, inputs, outputs, credentials, tests, and docs from the build context; `docs/docker.md` with build/run, bind mount, env-file, runtime cache, and ownership guidance; and a README pointer to the Docker documentation. The image installs the full local-lite package set at build time with `apt` — `ffmpeg`, `tesseract-ocr`, `tesseract-ocr-eng`, `mupdf-tools`, `qpdf`, `calibre`, `python3`, `ca-certificates`, and `curl` — and downloads the `yt-dlp` zipapp from GitHub releases into `/usr/local/bin`. It runs as the non-root `bun` user supplied by the official Bun base image and uses a plain `ENTRYPOINT ["bun", "src/cli/create-cli.ts"]`.
 
 This applies to:
 
 - AutoShow-installed, runtime-managed dependencies on macOS.
-- Pinned MuPDF and qpdf prebuilts for macOS 15+ on `arm64` and `x64`, plus the source-build fallback for every ineligible or unavailable case.
+- Hermetic, pinned MuPDF and qpdf source builds on supported macOS hosts, with no project-published executable archive path.
 - The Debian slim, full local-lite CLI image and its bundled system tools.
-- No user-managed tools, host build prerequisites, Linux host package management, or other platform setup behavior; FFmpeg is not included in the first prebuilt scope.
+- No user-managed tools, host build prerequisites, Linux host package management, or other platform setup behavior; no project-hosted prebuilt scope is active.
 - No registry publishing, Docker CI, heavyweight local engines, model weights, Defuddle, or provider credentials in the image.
 
 ## Implementation Note
@@ -103,7 +103,7 @@ Host. Implemented on 2026-06-12. macOS setup resolves AutoShow-owned local tools
 
 Container. Debian installs Tesseract language data under `/usr/share/tesseract-ocr/5/tessdata`, while AutoShow's local OCR code passes a project-local `TESSDATA_PREFIX` under `runtime/tools/tessdata`. The Docker image therefore creates `/app/runtime/tools/tessdata` as a symlink to the Debian data directory and adds a small `/usr/local/bin/tesseract` wrapper that falls back to the Debian data directory when a bind-mounted `runtime/` hides the symlink.
 
-Prebuilt decision. Accepted on 2026-08-13; Phases 1 through 5 are complete, Phase 6 implementation is ready but its protected rehearsal is blocked on Apple credential provisioning, and Phases 7–9 remain pending. The repository now has a dormant fixture-injected prebuilt consumer, an unprivileged unsigned producer workflow, one retained passing ordinary pull-request run on both architectures, an exact project-owner redistribution approval, and a local protected-release implementation. GitHub release immutability is enabled and the reviewer-protected `macos-toolchain-release` environment is restricted to `main`, but the environment has no Developer ID/notarization secrets and no valid Developer ID identity is available in the local keychain. The project therefore still has no signed artifact, completed protected run, draft or public tool release, configured candidate, prebuilt URL, or prebuilt checksum pin. Source builds remain the only active macOS path until every promotion gate in this record passes.
+Prebuilt decision. Withdrawn on 2026-08-13 after Phases 1 through 5 established the technical, portability, provenance, and redistribution boundaries. The project owner declined the permanent Apple credential, signing, notarization, protected-rehearsal, and release-operations burden required to distribute trusted macOS executables. Both toolchain Actions workflows, the signed producer implementation, signed release commands, protected-producer contracts, and the empty `macos-toolchain-release` environment were removed. No artifact was signed, notarized, drafted, published, configured, or activated, and Phases 7 through 9 were canceled. The retained source recipe, source provenance, staged atomic promotion, health checks, and offline doctor behavior are the final production design.
 
 Phase 1. Completed on 2026-08-13. Dependency metadata now pins libjpeg-turbo 3.2.0 to its exact release URL and SHA-256 alongside qpdf 12.3.2. The shared source recipe builds only static libjpeg, configures qpdf with shared libraries and implicit crypto disabled, requires and selects qpdf's native crypto provider, supplies only the pinned libjpeg include/library/package paths, builds the static qpdf CLI target, and rejects every dynamic-library reference outside Apple system paths or packaged loader/rpath paths before accepting the install. A recipe stamp makes normal setup replace the prior launchable-but-unhermetic qpdf tree once and reuse the portable result thereafter; the download flows, checksum validation, retry budgets, cached-source behavior, phase reporting, and source-only production selection remain in place.
 
@@ -123,7 +123,7 @@ Candidate ZIPs download to a unique sibling work tree, are listed before extract
 
 Phase 3 verification used typed local fixtures only. The focused setup matrix passed 112 tests with 0 failures and covered eligible MuPDF/qpdf behavior, closed schemas, the intentionally absent production candidate, unsupported OS/architecture, absent metadata, exhausted availability, independent per-tool fallback, every specified checksum/manifest/payload/version/architecture/signature/Team-ID/notary trust failure, traversal, prior-install preservation, activation and staged-health rollback, source/prebuilt doctor labels, corrupt provenance, wrong launched version, and override precedence. The real arm64 production path remained source-only: offline doctor still reported `managed source 1.27.2 darwin/arm64` and `managed source 12.3.2 darwin/arm64`, and `bun autoshow setup --step calibre` completed in 0.25s without a prebuilt lookup or source compile.
 
-Phase 4. Completed on 2026-08-13. The `macOS Toolchain Unsigned Verification` workflow has a fixed `macos-15` arm64 and `macos-15-intel` x64 matrix, top-level `contents: read` permission, credential persistence disabled, full-commit-SHA pins for every action, no `pull_request_target`, secret, signing, notarization, attestation, publication, or release step, and separate build and clean-install jobs. Its producer downloads and hashes the exact existing MuPDF, qpdf, and libjpeg-turbo source pins, uses the shared build flags with `MACOSX_DEPLOYMENT_TARGET=15.0`, records the producer commit/run/runner/toolchain, runs available upstream checks and the repository PDF fixture, rejects a wrong thin architecture, deployment target, dynamic linkage, Developer ID identity, build path, or credential shape, and emits per-tool ZIPs, closed payload and verification manifests, SPDX 2.3 JSON, and `SHA256SUMS`.
+Phase 4. Completed on 2026-08-13. The now-removed `macOS Toolchain Unsigned Verification` workflow used a fixed `macos-15` arm64 and `macos-15-intel` x64 matrix, top-level `contents: read` permission, credential persistence disabled, full-commit-SHA pins for every action, no `pull_request_target`, secret, signing, notarization, attestation, publication, or release step, and separate build and clean-install jobs. Its producer downloaded and hashed the exact existing MuPDF, qpdf, and libjpeg-turbo source pins, used the shared build flags with `MACOSX_DEPLOYMENT_TARGET=15.0`, recorded the producer commit/run/runner/toolchain, ran available upstream checks and the repository PDF fixture, rejected a wrong thin architecture, deployment target, dynamic linkage, Developer ID identity, build path, or credential shape, and emitted per-tool ZIPs, closed payload and verification manifests, SPDX 2.3 JSON, and `SHA256SUMS`.
 
 The retained Phase 4 unsigned verification artifacts have a separate `artifactKind: unsigned-verification` schema with `promotable: false`, `developerIdSigned: false`, `notarized: false`, and `reviewStatus: pending-phase-5`. Their names begin `autoshow-unsigned-verification-`, they do not contain the production `.autoshow-payload-manifest.json`, and the clean verifier confirms the production managed-artifact validator rejects them. The clean job downloads the exact workflow artifact, verifies `SHA256SUMS`, applies the same archive entry and atomic promotion primitives as the dormant consumer, checks the complete file inventory and SPDX/source binding, reruns architecture/target/linkage/unsigned/leak and functional checks from the promoted path, and independently exercises absent-candidate source fallback on the same native architecture. Production metadata and setup still contain no prebuilt or unsigned candidate, URL, checksum, flag, or environment override.
 
@@ -131,7 +131,7 @@ Local Phase 4 evidence covers the available arm64 architecture only and therefor
 
 Formal Phase 4 completion evidence is ordinary pull-request run [31686430140](https://github.com/ajcwebdev/autoshow-cli/actions/runs/31686430140) at producer commit `465319b157c619f03bca00243c1654ef2f6f1e00`. Both fixed-runner producer jobs passed their upstream, fixture, architecture, deployment-target, closure, unsigned-state, leak, package, manifest, and SPDX checks; both native clean-install jobs then verified the retained bundles from promoted runtime paths and rebuilt both tools through the independent absent-candidate source fallback. The retained 14-day workflow artifacts are `macos-toolchain-unsigned-arm64` with digest `sha256:0ac06d7fccaa1931133a435a16db599045a4e37a716466bcbb2c73b004f386d7` and `macos-toolchain-unsigned-x64` with digest `sha256:0235bb08a67b8dd86a9597ead40ea0b1d01fec39498655d20adb3d6fd96117aa`. These artifacts remain explicitly non-promotable and production metadata remains source-only.
 
-After that one-time Phase 4 completion evidence was retained, the expensive unsigned arm64/x64 producer and source-fallback matrix was changed to `workflow_dispatch` only. It is not a staging, pull-request, or push check and must be run manually only when maintainers intentionally need to revalidate the producer boundary. Ordinary changes use the focused local contracts, `bun run check`, and `bun t --price`; the protected Phase 6 rehearsal is separately manual-only.
+After that one-time Phase 4 completion evidence was retained, the expensive unsigned arm64/x64 producer and source-fallback matrix was first changed to `workflow_dispatch` only and then deleted when Phase 6 closed the prebuilt track. No toolchain workflow now runs on staging, pull requests, pushes, or manual dispatch. Ordinary changes use the focused local contracts, `bun run check`, and `bun t --price`.
 
 Phase 5. Completed on 2026-08-13. The project-owner distribution review [ADR-004 Phase 5 macOS Toolchain Distribution Review](ADR-004-phase-5-distribution-review.md) records separate exact approvals `ADR-004-P5-MUPDF-1.27.2-r1`, `ADR-004-P5-QPDF-12.3.2-r1`, and `ADR-004-P5-LIBJPEG-TURBO-3.2.0-r1`, with `github:ajcwebdev` acting in the designated repository-owner and project-compliance-owner roles. The review approves only the pinned source archives and SHA-256 values, the existing hermetic linkage recipes, release revision `r1`, exact same-release source assets, immutable AutoShow tag-source URLs, approved SPDX input packages/licenses, mandatory user notice, and closed package inventories. MuPDF is approved as an AGPL-3.0-or-later standalone subprocess distributed in an aggregate with AutoShow; its binary release must provide equivalent no-charge network access to the exact complete MuPDF source archive and AutoShow producer source from the same release page under AGPL section 6(d), so this plan uses no written offer.
 
@@ -139,7 +139,7 @@ The Phase 5 source audit found that `mutool` embeds the pinned MuPDF archive's c
 
 Both unsigned and dormant final-release schemas now require `reviewStatus: approved`, the exact ordered approval references, review date, distinct reviewer-role identities, AutoShow tag-source archive, `writtenOfferRequired: false`, and the mandatory user-notice path. Outer verification/release manifests repeat the exact approval references. Missing, changed, reordered, or extra review IDs, notice paths, source assets, SBOM fields, or review facts fail as trust errors; all unsigned artifacts remain `promotable: false`, unsigned, unnotarized, conspicuously named, and structurally invalid as production artifacts. Production metadata and setup still contain no candidate, URL, checksum, flag, or environment override.
 
-Phase 6 implementation checkpoint. On 2026-08-13 GitHub release immutability was enabled for `ajcwebdev/autoshow-cli`, and the `macos-toolchain-release` environment was created with `github:ajcwebdev` as its required reviewer and an exact `main` deployment-branch policy. Ready pull request [#8](https://github.com/ajcwebdev/autoshow-cli/pull/8) merged the manual-only, full-SHA-pinned protected workflow to `main` at merge commit `a3429b7d6612ee7da55ecac713c9a3cf42fcb7a6`. It implements exact default-branch commit/version/revision refusal; isolated temporary-keychain import; hardened-runtime and secure-timestamp Developer ID signing; package-once notarization of the exact final ZIP without `--force`; Accepted-status and unchanged-byte enforcement; exact production-shaped payload/release manifests; SPDX and provenance attestations; quarantine-preserving staged installation; strict signature, Team-ID, Gatekeeper, fixture, and attestation verification; exact source/notice/checksum asset assembly; and draft-only MuPDF/qpdf release creation with no publish or production-metadata path. Local fixture contracts pass, but Phase 6 is not complete: the protected environment contains none of the seven required Apple secrets, the local keychain reports zero valid code-signing identities, and consequently no protected arm64/x64 rehearsal, accepted notarization record, attestation, Gatekeeper result, or complete draft asset set exists. The implementation does not weaken or activate the source-only production path.
+Phase 6 closure. Ready pull request [#8](https://github.com/ajcwebdev/autoshow-cli/pull/8) briefly placed a manual protected workflow on `main` at merge commit `a3429b7d6612ee7da55ecac713c9a3cf42fcb7a6`, but no credential was provisioned and no protected job or release was run. The project then chose the Phase 5 safe-stop boundary: remove the publication machinery and make source-only operation final. Repository release immutability remains enabled as a harmless general protection, while the empty release environment and both toolchain workflows are gone. The local contracts assert that neither workflow can silently return. This closes the ADR without weakening signing requirements for distributed executables: AutoShow simply does not distribute them.
 
 > Correction (2026-08-07): two things this ADR describes as shipped no longer exist, both retired by later decisions rather than by this one being reversed.
 >
@@ -163,13 +163,12 @@ Container provisioning:
 - The existing Linux `PATH` fallback means all three options can use system package locations without production code changes, provided every promised runtime tool is installed during image build.
 - Because ADR-005 removed Docker-specific setup skips, omitted tools are not a cosmetic issue. A container that leaves out Calibre must document that Calibre-dependent setup/doctor checks and ebook workflows are outside its supported scope.
 
-MuPDF/qpdf prebuilt distribution:
+MuPDF/qpdf source-only conclusion:
 
-- The removable compile/link work is half of the selected cold median, while a lower-complexity scheduling change recovered only 3.1%. Distribution is therefore the remaining option with evidence of material critical-path leverage.
-- Exact upstream macOS CLI artifacts do not exist for the pinned versions, so accepting prebuilts necessarily means owning production rather than repointing setup at an unowned binary feed.
-- Separate thin archives keep the tools independently updatable and avoid making every user download both architectures. Source fallback preserves the existing capability boundary for older macOS versions, unsupported architectures, and ordinary release availability failures.
+- The removable compile/link work is half of the selected cold median, but exact upstream macOS CLI artifacts do not exist for the pinned versions, so avoiding that time would require AutoShow to own binary production and release operations.
+- The owner does not want a standing Apple Developer credential, signing, notarization, or protected release workflow for these helper tools. That operational boundary outweighs the cold-install optimization.
 - A static, native-crypto qpdf recipe removes accidental Homebrew and OpenSSL runtime dependencies and passed a local functional proof. Reusing that recipe for producer CI and local fallback prevents the two paths from drifting into different products.
-- Signed and notarized immutable assets, repository-pinned SHA-256 values, embedded file hashes, and producer attestations cover different threats. None is treated as a substitute for the others.
+- Unsigned AutoShow-built executables are not an acceptable substitute. Keeping source builds avoids weakening the trust contract while preserving exact pins, provenance, atomic promotion, and offline health verification.
 
 ## Consequences
 
@@ -184,15 +183,13 @@ Positive outcomes:
 - Users can build and run the CLI without installing Bun or local-lite tools on the host.
 - The image reuses the existing Linux `PATH` fallback and needs no production code changes.
 - The locally observed base sizes are framed as base-image inputs to the decision, not as promises about final build size.
-- Eligible macOS users can avoid the two compile/link phases that account for 50.0% of the measured cold median.
-- Managed manifests make the installed tool's source/prebuilt origin, target, version, and integrity inspectable offline.
+- Managed manifests make the installed source tool's target, version, and integrity inspectable offline.
 - The qpdf fallback stops depending on absolute Homebrew library paths.
 
 Negative outcomes:
 
 - Setup maintainers must own more dependency-specific install and update logic.
-- Some tools may need separate arm64 and x64 artifact handling.
-- License, checksum, provenance, notarization, and quarantine behavior need explicit review per dependency.
+- MuPDF and qpdf retain their measured source-build cost on a cold host.
 - OCRmyPDF and Tesseract may require more careful runtime packaging than single static binaries.
 - Calibre was installed as a Homebrew cask, meaning a GUI app bundle rather than a CLI formula; replacing it required sourcing `ebook-convert` from the official Calibre app distribution, which is materially harder than swapping in a static binary.
 - Existing users with working Homebrew installs may see a one-time runtime download or build cost.
@@ -200,25 +197,23 @@ Negative outcomes:
 - The image uses Debian package versions rather than AutoShow's macOS SHA-pinned managed source builds.
 - Heavyweight local engines, model weights, Defuddle, provider credentials, registry publishing, and Docker CI remain out of scope.
 - Host bind-mounted `output/` and `runtime/` directories may need writable ownership or a `--user "$(id -u):$(id -g)"` run option on Linux hosts.
-- AutoShow becomes the publisher of four macOS executable archives and must maintain signing credentials, notarization automation, immutable releases, provenance, SBOMs, license material, rollback instructions, and security response.
-- MuPDF publication must continue to match the completed Phase 5 AGPL redistribution review byte-for-byte; any source, recipe, notice, package, source-access, SBOM, revision, or reviewer-identity drift invalidates approval and blocks signing or publication until a new review is recorded.
-- macOS 14 and older hosts keep the slower source path, and ordinary asset unavailability can still impose the source-build time.
+- The Phase 3–5 prebuilt research remains historical evidence and local contract coverage, but no production candidate, URL, checksum pin, or release lifecycle is maintained.
 
 ## Trade-offs
 
 | Gains | Sacrifices |
 |---|---|
 | Reproducible macOS setup with pinned versions, checksum validation, and provenance metadata | The project owns install and update logic for six tools previously maintained by Homebrew |
-| No mutation of global Homebrew state for AutoShow-owned tools | AutoShow must handle arm64/x64 artifacts, licenses, notarization, and quarantine behavior |
+| No mutation of global Homebrew state for AutoShow-owned tools | MuPDF and qpdf compile locally on a cold host |
 | Uniform resolver and doctor reporting across managed local dependencies | Calibre, OCRmyPDF, and Tesseract require more involved packaging |
 | Cacheable project-local artifacts across developer machines and CI | Existing users may incur a one-time managed-runtime download or build |
 | Debian slim provides complete local-lite packages through one `apt` path | The base is larger than Alpine and less faithful to the original small-image goal |
 | Calibre-backed ebook workflows match the documented local-lite capability | The image inherits Debian package versions instead of macOS-style pinned source builds |
 | Existing Linux `PATH` resolution works without production code changes | Host bind mounts may require explicit ownership handling |
-| Avoid 87.673s of measured MuPDF/qpdf compile/link work on eligible cold installs | Own four architecture-specific archives and their release lifecycle |
+| Avoid an Apple credential and binary release program | Retain 87.673s of measured MuPDF/qpdf compile/link work on eligible cold installs |
 | Hermetic static qpdf runtime with native crypto | Add and maintain a pinned libjpeg-turbo source input for qpdf builds |
 | Offline installed-file provenance and integrity checks | Pay a small doctor/setup hashing cost and maintain a versioned manifest schema |
-| Developer ID, notarization, checksums, and attestations provide layered trust | Provision protected Apple credentials and block releases when any trust layer is unavailable |
+| Do not distribute executables without the full Apple trust chain | Give up project-hosted macOS prebuilts unless a future ADR accepts their operational cost |
 
 ## Keep (with rationale)
 
@@ -226,17 +221,19 @@ Negative outcomes:
 - Heavy local engines and model weights remain out of scope for the first end-user image. They would materially change build time, image size, and update policy.
 - A run-to-completion CLI image still should not expose ports, define an HTTP `HEALTHCHECK`, or add web-app build arguments. Those sibling-image conventions do not apply to this CLI.
 
-## Accepted macOS Prebuilt Distribution Contract
+## Retired macOS Prebuilt Distribution Contract (Historical)
 
-- **Decision State:** Accepted for implementation; no release download is active yet
-- **Eligible Targets:** macOS 15.0 or later on `arm64` and `x64`
-- **Default After Promotion:** Exact verified prebuilt per tool, with independent source fallback
-- **First Scope:** MuPDF `mutool` 1.27.2 and qpdf 12.3.2 only
+- **Decision State:** Withdrawn before signing, publication, or production activation
+- **Active Delivery:** Exact pinned source builds only
+- **Historical Targets:** macOS 15.0 or later on `arm64` and `x64`
+- **Historical Scope:** MuPDF `mutool` 1.27.2 and qpdf 12.3.2 only
 - **Trigger Evidence:** 87.673s of compile/link work, 50.0% of the 175.181s selected cold median
+
+The following contract is retained only to explain the completed Phase 3–5 investigation and why unsigned distribution was not substituted when the protected path was withdrawn. It is not an active implementation plan. Any future project-hosted macOS prebuilt proposal requires a new ADR and may not infer approval, credentials, workflow authority, or release permission from this historical section.
 
 ### Producer CI and artifact closure
 
-Producer CI lives in the AutoShow repository and has an unprivileged verification path plus a protected publication path. Pull requests and ordinary pushes build unsigned artifacts with no signing or release secrets. Publication is a manual dispatch from the default branch through a reviewer-protected `macos-toolchain-release` environment; it checks out one exact commit, refuses source-version or release-revision inputs that do not match that commit's manifest, and grants only the minimum `contents`, `id-token`, and `attestations` permissions needed by the publishing job. Every referenced action is pinned to a reviewed full commit SHA.
+The explored producer design placed an unprivileged verification path and a protected publication path in the AutoShow repository. Its reviewed workflow revisions used full-commit-SHA action pins, kept signing and release secrets out of unprivileged work, and limited protected publication permissions. Both workflows and the protected environment were removed before publication, so this paragraph records the rejected design rather than current automation.
 
 The build matrix uses the fixed standard GitHub-hosted labels `macos-15` for `arm64` and `macos-15-intel` for `x64`, never a moving `-latest` label. Both set `MACOSX_DEPLOYMENT_TARGET=15.0`, record the runner image version, Xcode, SDK, AppleClang, CMake, make, and build flags, and produce thin Mach-O executables. A runner-label change, build-flag change, signing-identity change, packaging change, or source change requires a new release revision; an existing artifact is never overwritten.
 
@@ -303,11 +300,11 @@ Prebuilt URLs may enter default dependency metadata only when all of these gates
 5. Installer tests cover prebuilt success, per-tool availability fallback, unsupported OS/architecture fallback, atomic rollback, and hard failure for every trust mismatch; doctor covers both distribution types and overrides without network access.
 6. On the same arm64 host and reset procedure used by ADR-015, three prebuilt cold runs improve the 175.181s median by at least the same predeclared 10% threshold, every run is healthy, no MuPDF/qpdf compile phase occurs, and the three-run steady-state warm median regresses by no more than 10% from 1.639s. The x64 path must pass clean cold/warm functional runs even though ADR-015 did not record an x64 timing baseline.
 
-Until all six gates pass, source builds remain the active default and this ADR remains `Accepted · Pending`. FFmpeg remains a possible later candidate—the recorder measured a 64.214s compile median and 51.503s configure median—but it requires its own evidence and the same distribution review rather than entering this first scope by association.
+The project retired this contract before running the six promotion gates. Source builds are the final active path. Any future prebuilt work, including FFmpeg, requires a new decision rather than resuming this sequence.
 
 ## Implementation Plan
 
-The prebuilt work is divided into nine ordered phases. Each phase is one independently reviewable change with its own verification and safe-stop/recovery boundary. A phase may start only after the preceding phase's completion criterion is recorded in the Implementation Note and its Follow-up Actions row is marked complete. Every phase through Phase 8 must leave source builds as the production default, and no phase may depend on unfinished work from a later phase to keep setup or doctor correct. If a phase fails its completion criterion, stop at that boundary, leave the last completed state in place, and revise this ADR before changing the sequence or weakening a gate. Every phase runs `bun run check`, `bun t --price`, and `git diff --check` in addition to its phase-specific local/no-cost verification; no phase authorizes provider, hosted-generation, or other paid/quota-risk commands.
+The original prebuilt investigation was divided into nine ordered phases with an explicit safe-stop boundary after each phase. Phases 1 through 5 completed, the project stopped at that boundary, and Phases 6 through 9 are withdrawn. The source-build improvements from Phases 1 and 2 remain production behavior; later prebuilt work remains dormant research or historical evidence. Every implementation change runs `bun run check`, `bun t --price`, and `git diff --check` plus targeted local/no-cost verification; no phase authorizes provider, hosted-generation, or other paid/quota-risk commands.
 
 ### Phase 1: Make the qpdf source fallback hermetic
 
@@ -335,7 +332,7 @@ The prebuilt work is divided into nine ordered phases. Each phase is one indepen
 
 ### Phase 4: Produce unsigned verification artifacts on both architectures
 
-- **Status:** Complete on 2026-08-13; ordinary pull-request run [31686430140](https://github.com/ajcwebdev/autoshow-cli/actions/runs/31686430140) passed both producer and clean-install matrix architectures, with both retained workflow-artifact digests recorded in the Implementation Note and Test Plan. The expensive matrix is now manual-only and no longer runs for staging, pull requests, or pushes.
+- **Status:** Complete historical evidence on 2026-08-13; ordinary pull-request run [31686430140](https://github.com/ajcwebdev/autoshow-cli/actions/runs/31686430140) passed both producer and clean-install matrix architectures, with both retained workflow-artifact digests recorded in the Implementation Note and Test Plan. The workflow was subsequently removed and cannot run on staging, pull requests, pushes, or manual dispatch.
 - **Prerequisites:** Phase 3 complete.
 - **Deliverable:** Add reusable producer/package scripts and an unprivileged GitHub Actions matrix on fixed `macos-15` arm64 and `macos-15-intel` x64 runners. Build exact MuPDF/qpdf/libjpeg-turbo pins, run upstream and fixture checks, generate payload manifests and SPDX SBOMs, reject forbidden linkage/content, and clean-install each candidate through the Phase 3 consumer. Pin actions by full commit SHA and expose no signing, notarization, publication, or release secret. Unsigned outputs must be labeled non-promotable and must not use final release names in production metadata.
 - **Verification:** Require both matrix legs to prove versions, architectures, deployment targets, linkage closure, expected package contents, absence of build paths or credentials, MuPDF inspect/render, qpdf validate/encrypt/decrypt/linearize, clean candidate installation, and independent source fallback. Run the shared verification baseline locally.
@@ -349,38 +346,23 @@ The prebuilt work is divided into nine ordered phases. Each phase is one indepen
 - **Verification:** Compare each unsigned package inventory and SBOM to its approval, test that missing or changed review identifiers block promotion, and have the designated compliance/repository reviewers sign off on the recorded result.
 - **Complete when:** qpdf/libjpeg-turbo and MuPDF are explicitly approved for the exact planned distribution. If MuPDF is not approved, stop: either obtain a commercial license or revise this ADR to keep MuPDF source-only before any signing or publication work. This phase changes review evidence and package policy only, not setup behavior.
 
-### Phase 6: Add protected signing, notarization, and draft-publication controls
+### Phase 6: Close the prebuilt track without an Apple release program
 
-- **Status:** In progress on 2026-08-13. Repository release immutability, the reviewer-protected `macos-toolchain-release` environment, its `main`-only branch policy, the manual protected workflow on `main`, producer/consumer commands, and fixture contracts are complete. Apple Developer ID/notarization secrets and the required protected two-architecture rehearsal remain pending, so this phase has not met its completion criterion.
+- **Status:** Complete on 2026-08-13 by withdrawal at the Phase 5 safe-stop boundary.
 - **Prerequisites:** Phase 5 complete.
-- **Deliverable:** Enable repository release immutability; create the reviewer-protected `macos-toolchain-release` environment; provision the Developer ID Application/notarization secrets; and add a manual default-branch publication workflow with minimal permissions. It must sign with hardened runtime and secure timestamp, package once, notarize the exact final ZIP, require Accepted status, generate final release manifests and attestations, apply quarantine on a clean host, verify Gatekeeper, and assemble a complete draft release without publishing it.
-- **Verification:** Run one protected rehearsal for both tools and architectures; verify full-SHA action pins, permission boundaries, secret absence from unprivileged jobs and artifacts, expected Team ID, strict code signatures, accepted notarization records, final ZIP/SBOM attestations, quarantine-preserving installation, Gatekeeper launch, complete draft assets, and refusal of mismatched commit/version/revision inputs.
-- **Complete when:** A protected run produces a complete verified draft for both tool releases and no public release or production URL has been created. Disabling the protected workflow leaves all source and dormant-consumer behavior unchanged.
+- **Deliverable:** Remove both toolchain Actions workflows, the signed producer and draft-publication implementation, credential commands, signed-producer contracts, and the empty protected environment; retain source builds as the only production path and retain no release URL or production candidate metadata.
+- **Verification:** Require the focused local contracts to assert both workflows are absent, confirm no Apple secret names or signed-producer commands remain in repository runtime/test automation, confirm production dependency metadata has no candidate URL or digest, run the shared verification baseline, and verify the repository still has no tool releases.
+- **Complete when:** Repository automation cannot launch either toolchain matrix, no Apple credential or signing/notarization workflow is required, source setup and doctor remain healthy, and the ADR/index report the source-only decision as passed.
 
-### Phase 7: Publish the immutable tool releases without activating them
+### Phases 7–9: Withdrawn
 
-- **Prerequisites:** Phase 6 complete and its draft asset sets exactly match the names and contents accepted by this ADR.
-- **Deliverable:** Publish `toolchain-mupdf-1.27.2-r1` and `toolchain-qpdf-12.3.2-r1` with both architecture ZIPs, final release manifests, `SHA256SUMS`, SPDX SBOMs, attestations, notices, and corresponding source. Record the immutable URLs and digests in release evidence, but do not add them to production dependency metadata.
-- **Verification:** Independently download every published asset, recheck names and SHA-256 values, verify manifest/SBOM/attestation subjects, confirm tag and release immutability, confirm all source/license material is public, and rehearse the documented disable/rollback procedure without changing production metadata.
-- **Complete when:** Both immutable releases are publicly verifiable and retained under the accepted ownership policy, while every supported AutoShow checkout still selects source builds by default. If any byte must change, publish a new `rN`; never replace or reuse an existing tag.
-
-### Phase 8: Validate the exact release candidates and performance gates
-
-- **Prerequisites:** Phase 7 complete.
-- **Deliverable:** Build an acceptance packet against the exact published URLs and digests. A repository acceptance harness must pass a typed candidate metadata object directly to the setup orchestration; it must not add a production CLI flag, environment variable, hidden URL override, or default metadata entry. Use that harness for both-architecture integration coverage and the ADR-015 same-host performance matrix.
-- **Verification:** On arm64 and x64, cover exact prebuilt success, per-tool availability fallback, unsupported OS/architecture fallback, source fallback, atomic rollback, every trust hard failure, offline doctor for source/prebuilt/override, quarantine/Gatekeeper, and clean cold/warm functional runs. On the ADR-015 arm64 host, require three healthy cold runs with no MuPDF/qpdf compile phase and a median no greater than 157.663s, at least 10% below the 175.181s baseline, plus three steady-state warm runs with a median no greater than 1.803s, no more than 10% above the 1.639s baseline.
-- **Complete when:** All six promotion gates have traceable passing evidence for the exact immutable assets. If coverage or performance fails, stop before Phase 9, leave production source-only, and either issue a new release revision and repeat the affected phases or revise the decision. This phase records evidence only and does not activate a download.
-
-### Phase 9: Activate exact pins and close verification
-
-- **Prerequisites:** Phase 8 complete with every promotion gate passing.
-- **Deliverable:** Add the four exact immutable URLs, archive SHA-256 values, release-manifest identities, accepted notarization facts, and expected Team ID to production dependency metadata; enable per-tool prebuilt selection for eligible hosts; update user-facing setup/doctor documentation; record all phase evidence in the Implementation Note and Test Plan; and change this ADR plus the ADR index from `Accepted · Pending` to `Accepted · Passed`.
-- **Verification:** Run `bun run check`, `bun t --price`, `git diff --check`, the targeted local/no-cost setup contracts, exact-metadata success, availability fallback, trust-failure, atomic-preservation, source/prebuilt/override doctor cases, and a clean eligible-host setup using the production metadata. Confirm older/unsupported hosts still build from source and no unreviewed override surface exists.
-- **Complete when:** Eligible macOS 15+ arm64/x64 hosts prefer only the four accepted assets, every other supported case retains a truthful source fallback, all trust failures stop closed, the prior healthy install is preserved on failure, and the ADR/index status accurately reports `Accepted · Passed`. Reverting this activation commit returns production to source-only without deleting the immutable releases.
+- **Status:** Canceled on 2026-08-13.
+- **Reason:** These phases existed only to publish, benchmark, and activate the signed prebuilts retired in Phase 6. No release, production metadata, or runtime behavior exists to promote.
+- **Future boundary:** A future prebuilt proposal starts with a new ADR and must independently justify its operational owner, trust chain, performance threshold, and release lifecycle.
 
 ### Independent deferred phase: Decide container registry publication
 
-This phase is not part of the prebuilt sequence and does not block Phases 1–9. When maintainers have registry demand and final image-size/usage evidence, make one separate decision that either keeps local image builds as the supported boundary or accepts a named registry, retention policy, multi-architecture producer, provenance/signing contract, and CI verification. Do not add registry publishing as incidental work in a macOS prebuilt phase.
+This phase is not part of the retired prebuilt sequence and does not block the completed host/container decision. When maintainers have registry demand and final image-size/usage evidence, make one separate decision that either keeps local image builds as the supported boundary or accepts a named registry, retention policy, multi-architecture producer, provenance/signing contract, and CI verification. Do not add registry publishing as incidental work in a macOS toolchain change.
 
 ## Follow-up Actions
 
@@ -389,13 +371,11 @@ This phase is not part of the prebuilt sequence and does not block Phases 1–9.
 | Phase 1 — Make the qpdf source fallback hermetic without adding any prebuilt surface | Setup/runtime maintainers | Complete — exact pins, static libjpeg/native-crypto recipe, linkage rejection, source install, functional checks, and shared verification passed on arm64 macOS on 2026-08-13 |
 | Phase 2 — Add source-install provenance, atomic promotion, health-guard repair, and offline source doctor checks | Setup/runtime maintainers | Complete — closed version 1 source manifests, exact provenance and payload validation, staged atomic promotion with rollback, provenance-aware setup guards, truthful offline doctor labels, focused failure coverage, and real arm64 source installs passed on 2026-08-13 |
 | Phase 3 — Add the dormant typed prebuilt consumer, eligibility/fallback classifier, trust checks, and offline prebuilt doctor coverage with fixture-only candidate injection | Setup/runtime maintainers | Complete — typed closed manifests and candidate metadata, per-tool eligibility, visible availability fallback, fail-closed trust classification, safe staged ZIP consumption, actual architecture and signature checks, atomic rollback, and offline source/prebuilt/override doctor coverage passed 112 focused tests on 2026-08-13; production remains source-only with no configured candidate or URL |
-| Phase 4 — Add unprivileged unsigned arm64/x64 producer verification with exact builds, packaging, SBOMs, and clean-install coverage | Release engineering | Complete — 124 focused contracts and real local arm64 builds pass; ordinary pull-request run [31686430140](https://github.com/ajcwebdev/autoshow-cli/actions/runs/31686430140) passed both fixed-runner producers plus both clean-install/source-fallback jobs at commit `465319b157c619f03bca00243c1654ef2f6f1e00`; retained arm64/x64 workflow-artifact digests are recorded above; the expensive matrix is now manual-only and is not a staging or pull-request check |
+| Phase 4 — Add unprivileged unsigned arm64/x64 producer verification with exact builds, packaging, SBOMs, and clean-install coverage | Release engineering | Complete historical evidence — 124 focused contracts and real local arm64 builds pass; ordinary pull-request run [31686430140](https://github.com/ajcwebdev/autoshow-cli/actions/runs/31686430140) passed both fixed-runner producers plus both clean-install/source-fallback jobs at commit `465319b157c619f03bca00243c1654ef2f6f1e00`; both workflows were subsequently removed when the prebuilt track was withdrawn |
 | Phase 5 — Record exact MuPDF and qpdf/libjpeg-turbo redistribution, source, SBOM, and notice approvals | Repository owner and compliance reviewers | Complete — exact component approval references, source/linkage boundary, same-release source access, AutoShow tag-source URLs, SPDX input licenses, expanded MuPDF bundled-code/resource notices, exact six-file package inventories, no-written-offer decision, mandatory user notice, and reviewer-role identities are recorded and fail closed on drift; production remains source-only on 2026-08-13 |
-| Phase 6 — Enable immutability and add protected Developer ID signing, notarization, attestation, quarantine, and draft-publication controls | Repository owner and release engineering | In progress — release immutability is enabled; the required-reviewer `macos-toolchain-release` environment is restricted to `main`; and ready pull request [#8](https://github.com/ajcwebdev/autoshow-cli/pull/8) placed the manual full-SHA-pinned signing/notarization/attestation/quarantine/draft workflow on `main`; 7 focused signed-candidate contracts pass locally. Completion is blocked only on provisioning the seven Apple environment secrets and retaining one passing protected arm64/x64 rehearsal with both complete drafts and no publication |
-| Phase 7 — Publish both immutable tool releases and verify every asset without adding a production metadata pin | Release engineering | Pending — begins only after Phase 6 is recorded complete |
-| Phase 8 — Validate the exact published candidates across both architectures and run the accepted cold/warm performance matrix without production activation | Setup/runtime and performance maintainers | Pending — begins only after Phase 7 is recorded complete |
-| Phase 9 — Pin and activate the four accepted assets, update documentation/evidence, and promote the ADR only after every gate passes | Setup/runtime maintainers | Pending — begins only after Phase 8 is recorded complete |
-| Independent deferred phase — Decide whether the container image needs registry publication and, if accepted, define its own producer and distribution contract | Maintainers | Deferred — independent of and non-blocking for Phases 1–9 |
+| Phase 6 — Close the prebuilt track without an Apple release program | Repository owner and release engineering | Complete — removed both toolchain workflows, signed/notarized producer and draft commands, protected contracts, and the empty release environment; no release or production candidate exists and source builds remain final |
+| Phases 7–9 — Publish, benchmark, and activate project-hosted macOS prebuilts | Release and setup maintainers | Withdrawn — canceled with the prebuilt track; any future proposal requires a new ADR |
+| Independent deferred phase — Decide whether the container image needs registry publication and, if accepted, define its own producer and distribution contract | Maintainers | Deferred — independent of and non-blocking for the completed host/container decision |
 
 ## Test Plan
 
@@ -411,16 +391,13 @@ This phase is not part of the prebuilt sequence and does not block Phases 1–9.
 - Phase 4 formal verification completed on 2026-08-13 in ordinary pull-request run [31686430140](https://github.com/ajcwebdev/autoshow-cli/actions/runs/31686430140) at commit `465319b157c619f03bca00243c1654ef2f6f1e00`: the `macos-15` arm64 and `macos-15-intel` x64 producers passed, uploaded their non-promotable bundles, and were followed by passing native clean-install and independent source-fallback jobs. The retained workflow-artifact digests are `sha256:0ac06d7fccaa1931133a435a16db599045a4e37a716466bcbb2c73b004f386d7` for `macos-toolchain-unsigned-arm64` and `sha256:0235bb08a67b8dd86a9597ead40ea0b1d01fec39498655d20adb3d6fd96117aa` for `macos-toolchain-unsigned-x64`.
 - Phase 5 source and license verification completed on 2026-08-13: re-downloaded the exact MuPDF, qpdf, and libjpeg-turbo release archives; reproduced dependency-metadata SHA-256 values; inspected the exact MuPDF AGPL/readme, qpdf Apache/notice, and libjpeg-turbo IJG/Modified BSD terms; enumerated the MuPDF static build inputs plus embedded fonts, CMaps, and 48 hyphenation resources; and recorded the exact project-owner approvals, source-access method, notices, package inventory, SPDX declarations, and invalidation rules in the Phase 5 distribution review.
 - Phase 5 focused verification completed on 2026-08-13: 29 local/no-cost prebuilt producer/consumer contracts passed with 0 failures and covered exact approved notice paths, deterministic consolidated notices, exact SPDX reconstruction, approved source/license inventories, outer/embedded review-reference binding, missing/changed review-ID rejection, non-promotable unsigned state, staged installation, rollback, source fallback, workflow hardening, and the production source-only boundary. An additional offline packaging smoke used the exact audited source trees and produced the required six-file MuPDF and qpdf ZIP inventories.
-- Phase 6 local implementation verification completed on 2026-08-13: 36 local/no-cost prebuilt consumer, unsigned producer, and signed producer contracts passed with 0 failures, including 7 Phase 6 contracts for canonical immutable names, exact six-file production package shape, closed signed payload/release manifests, approved license binding, exact final-ZIP notarization binding, changed-ZIP and missing-submission rejection, strict default-branch commit/version/revision inputs, fixed runners, full-SHA action pins, minimal scoped permissions, protected secret separation, draft-only assembly, and the unchanged production source-only boundary. `bun run check` passed, both workflow YAML files parsed locally, and the Phase 6 path-scoped `git diff --check` passed.
-- Phase 6 external control verification completed on 2026-08-13: `GET /repos/ajcwebdev/autoshow-cli/immutable-releases` reports `enabled: true`; the `macos-toolchain-release` environment reports its required `github:ajcwebdev` reviewer and custom `main` branch policy; the environment secret list is empty; the local keychain reports zero valid code-signing identities; and the repository still reports zero releases. These facts establish the safe checkpoint and the remaining credential blocker, not Phase 6 completion.
-- The remaining Phase 6 verification is one protected default-branch rehearsal after provisioning `APPLE_SIGNING_CERTIFICATE_P12_BASE64`, `APPLE_SIGNING_CERTIFICATE_PASSWORD`, `APPLE_DEVELOPER_ID_APPLICATION`, `APPLE_TEAM_ID`, `APPLE_NOTARY_KEY_P8_BASE64`, `APPLE_NOTARY_KEY_ID`, and `APPLE_NOTARY_ISSUER_ID`. It must retain passing arm64/x64 signature, Accepted-notarization, provenance/SBOM attestation, quarantine/Gatekeeper, exact draft inventory, and input-refusal evidence before the phase can be marked complete. Phases 7–9 remain blocked until then.
+- Phase 6 source-only closure verification completed on 2026-08-13: both toolchain workflow files, the signed producer implementation, its five package commands, and its signed producer contracts were removed; the focused producer contract asserts neither workflow exists; repository search finds no Apple credential names in runtime or test automation; production dependency metadata still contains no prebuilt URL or checksum; the protected environment was deleted; and the repository reports zero releases.
 - Do not run provider, service, hosted-generation, or any paid/quota-risk command for this work.
 
 ## Assumptions
 
 - The original host and container decisions are accepted and implemented; macOS setup no longer invokes Homebrew for AutoShow-owned tools (verified: zero `brew` invocations remain in `src`).
-- The prebuilt distribution decision is accepted and its first five implementation phases are complete. Phase 4 has retained non-promotable arm64/x64 workflow artifacts and a passing ordinary pull-request run, Phase 5 has approved only the exact planned `r1` package/source/SBOM/notice inventories, and Phase 6 has reached a safe implementation checkpoint with repository immutability and protected-environment controls configured. No artifact has been signed, notarized, published, configured, or activated, so Phase 6 and the aggregate Verification Status remain `Pending` and no release URL may be inferred from this record.
-- Apple Developer Program access and a Developer ID Application identity can be provisioned before publication. If they cannot, the accepted release gate blocks prebuilts and source builds remain active.
+- The prebuilt distribution investigation stopped at the completed Phase 5 safe boundary. No artifact was signed, notarized, published, configured, or activated; Phases 6–9 impose no remaining work; and source builds are the accepted final path.
 
 ## References
 
@@ -440,14 +417,10 @@ This phase is not part of the prebuilt sequence and does not block Phases 1–9.
 - Dormant prebuilt fixture contracts: `test/test-cases/validation/setup/prebuilt-artifact-contracts.test.ts`
 - Unsigned verification artifact schemas, packaging, SPDX generation, validation, and staged clean-install path: `src/cli/commands/setup-and-utilities/setup/setup-download/unsigned-prebuilt-artifact.ts`
 - Reusable exact-pin producer and source-fallback commands: `src/tools/macos-toolchain-producer.ts`
-- Unprivileged fixed-runner verification matrix: `.github/workflows/macos-toolchain-unsigned.yml`
 - Phase 4 producer contracts: `test/test-cases/validation/setup/prebuilt-producer-contracts.test.ts`
 - Closed Phase 5 distribution policy and exact notice/source/SBOM/reviewer inventories: `src/cli/commands/setup-and-utilities/setup/setup-download/managed-toolchain-distribution-policy.ts`
 - Phase 5 redistribution approval record: [ADR-004 Phase 5 macOS Toolchain Distribution Review](ADR-004-phase-5-distribution-review.md)
-- Shared approved notice writer and SPDX generator used by unsigned and signed packages: `src/cli/commands/setup-and-utilities/setup/setup-download/managed-toolchain-package.ts`
-- Phase 6 signed packaging, strict input/signature/notarization controls, and immutable asset naming: `src/cli/commands/setup-and-utilities/setup/setup-download/signed-prebuilt-artifact.ts`
-- Manual protected signing, notarization, attestation, quarantine, Gatekeeper, and draft-only workflow: `.github/workflows/macos-toolchain-release.yml`
-- Phase 6 local protected-producer contracts: `test/test-cases/validation/setup/signed-prebuilt-producer-contracts.test.ts`
+- Shared approved notice writer and SPDX generator used by local unsigned research packages: `src/cli/commands/setup-and-utilities/setup/setup-download/managed-toolchain-package.ts`
 - Repository-owned producer PDF fixture: `test/fixtures/setup/managed-toolchain-smoke.pdf`
 - Docker user documentation: `docs/docker.md`
 - MuPDF 1.27.2 upstream release: [ArtifexSoftware/mupdf-downloads 1.27.2](https://github.com/ArtifexSoftware/mupdf-downloads/releases/tag/1.27.2)
