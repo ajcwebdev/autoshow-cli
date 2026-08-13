@@ -173,7 +173,7 @@ const estimateTokenPricedOcrCost = async <TProvider extends TokenPricedOcrProvid
   const model = validateModel(modelRaw)
   const pricing = getExtractPricing(provider, model)
   const pageCount = await resolveExtractInputPageCountForPricing(input)
-  const ocrMode = resolveOcrModeForPricingInput(input)
+  const ocrMode = options.ocrMode ?? resolveOcrModeForPricingInput(input)
   const tokenUsage = estimateOcrTokenUsage(provider, model, pageCount, {
     ocrMode,
     profilePath: options.hostedOcrTokenProfilePath,

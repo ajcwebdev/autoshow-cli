@@ -152,6 +152,11 @@ export type HostedOcrRun = {
   hostedOcrScheduler?: HostedOcrSchedulerTelemetry
   requestedReasoningEffort?: import('~/cli/commands/setup-and-utilities/models/reasoning-resolver').NormalizedReasoningEffort | undefined
   effectiveReasoningEffort?: import('~/cli/commands/setup-and-utilities/models/reasoning-resolver').NormalizedReasoningEffort | undefined
+  ocrProviderMode?: import('~/types').OcrProviderMode | undefined
+  inputSha256?: string | undefined
+  inputFormat?: string | undefined
+  inputPageNumber?: number | undefined
+  dpi?: number | undefined
 }
 
 export type OcrTarget = {

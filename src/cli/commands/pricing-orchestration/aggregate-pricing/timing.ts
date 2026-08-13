@@ -46,6 +46,7 @@ export const buildAggregateTiming = (
       provider: step.provider,
       model: step.model,
       pageCount: step.pageCount,
+      ...(step.ocrProviderMode ? { ocrProviderMode: step.ocrProviderMode } : {}),
       ...(typeof step.rasterizedPages === 'number' ? { rasterizedPages: step.rasterizedPages } : {}),
       ...(typeof step.singlePagePdfFallbackPages === 'number' ? { singlePagePdfFallbackPages: step.singlePagePdfFallbackPages } : {})
     }))

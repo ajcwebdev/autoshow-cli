@@ -8,6 +8,7 @@ Documents and images route through local OCR, hosted OCR, or native text extract
 - [OCR Environment](#ocr-environment)
 - [OCR Routing](#ocr-routing)
 - [Shared OCR Options](#shared-ocr-options)
+- [Multi-Provider Execution Modes](#multi-provider-execution-modes)
 - [ACSM Fulfillment](#acsm-fulfillment)
 - [EPUB Options](#epub-options)
   - [Inspect Modes](#inspect-modes)
@@ -90,7 +91,8 @@ Hosted OCR service tables list provider-native direct input formats. For hosted 
 | `--format <format>` | Output format: `text`, `json`, `tsv`, or `hocr` |
 | `--password <value>` | Password for encrypted PDFs |
 | `--all-providers` | Enable every supported OCR provider/model for this route |
-| `--primary-ocr <service[/model]>` | In multi-provider OCR, choose which requested provider writes top-level extraction artifacts |
+| `--ocr-provider-mode <mode>` | Multi-provider execution: `fanout` or `pool`; default `fanout` |
+| `--primary-ocr <service[/model]>` | In fan-out multi-provider OCR, choose which requested complete provider result writes top-level extraction artifacts; invalid in pool mode |
 | `--provider-concurrency <n>` | Hosted providers/models to run concurrently per item; default `10` |
 | `--local-concurrency <n>` | Local providers to run concurrently per item; default `10` |
 | `--ocr-concurrency <n>` | Page-level OCR concurrency cap. Local OCR defaults to `10`; hosted OCR defaults to `auto`. Explicit values are hosted hard caps. |
@@ -109,6 +111,9 @@ bun autoshow extract input/examples/document/1-document.pdf --format json
 
 # Fan out across every OCR provider in price mode
 bun autoshow extract input/examples/document/1-document.pdf --all-providers --price
+
+# Estimate one pooled composite extraction across three targets
+bun autoshow extract input/examples/document/1-document.pdf --provider grok=grok-4.5 --provider mistral=mistral-ocr-4-0 --provider kimi=kimi-k3 --ocr-provider-mode pool --ocr-concurrency 10 --price
 ```
 
 For token-priced hosted OCR providers, `--price` uses model-specific input/output token heuristics from recent benchmark usage. Actual runs write usage to the provider entry in `manifest.json` when available, and post-run cost diagnostics use those actual token counts.
@@ -116,6 +121,25 @@ For token-priced hosted OCR providers, `--price` uses model-specific input/outpu
 The human price table shows `step`, `provider`, `model`, and `cost`, plus `input` and `estimatedTime` columns when those values are available. Run with `--json` when you need the structured estimate fields behind the total, including page counts, prompt/completion tokens, input/output rates, and `estimateType`.
 
 For `.acsm` inputs, `--price` does not run fulfillment because that step can contact Adobe or distributor servers. The estimate prints an ACSM note and omits page-priced OCR costs until a fulfilled EPUB or PDF exists.
+
+## Multi-Provider Execution Modes
+
+`fanout` is the default and preserves the established behavior: every selected OCR target receives the full document and writes a complete independent result below `providers/<service>-<model>/`. No top-level extraction is written unless `--primary-ocr` selects one of those complete results.
+
+`pool` creates one composite extraction. Eligible targets draw pages dynamically from one shared queue, so faster targets can process a larger share and transient failures can hand a page to another target. Accepted pages are assembled in original page order and written as the top-level extraction. Provider directories contain isolated page attempts and usage evidence rather than complete independent documents, and `--primary-ocr` is rejected.
+
+```bash
+bun autoshow extract document.pdf \
+  --provider grok=grok-4.5 \
+  --provider mistral=mistral-ocr-4-0 \
+  --provider kimi=kimi-k3 \
+  --ocr-provider-mode pool \
+  --ocr-concurrency 10
+```
+
+`--provider-concurrency` still bounds active hosted targets and `--local-concurrency` bounds active local targets. Independent provider/account lanes can each reach the applicable OCR page cap, while targets that share one provider/account lane share that cap. An explicit `--ocr-concurrency 10` is a fixed ceiling per applicable lane; omitting the flag keeps adaptive hosted `auto` behavior.
+
+Pool mode is accepted only for PDFs, CBZ archives, and supported images that every selected target can normalize into compatible page units. Unsupported formats or target/input combinations fail with a usage error before provider dispatch. `--price` labels the per-target page allocation heuristic and charges the page set once; `resume --price` estimates only unfinished pages.
 
 ## ACSM Fulfillment
 

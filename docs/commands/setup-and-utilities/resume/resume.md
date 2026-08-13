@@ -135,6 +135,7 @@ Write resumes reuse the stored `prompt.md` and run only selected LLM providers t
 | `--ocr-language <codes>` | Tesseract language codes such as `eng` or `eng+fra` |
 | `--ocr-dpi <n>` | Render DPI for OCR pages |
 | `--ocr-concurrency <n>` | Page-level OCR concurrency cap; local OCR defaults to `10`, hosted OCR defaults to auto, and explicit values are hosted hard caps |
+| `--ocr-provider-mode <fanout|pool>` | Optional stored-mode assertion for OCR resume; omission preserves the mode in `manifest.json`, and a mismatch is rejected |
 | `--keep-ocr-page-inputs` | Keep intermediate single-page PDF inputs from hosted OCR fallback after success |
 | `--reasoning-effort <policy>` | Reasoning effort policy: `low`, `medium`, `high`, `minimal`, or `extended` (default delegates to the provider) |
 | `--chapters`, `--no-chapters` | Write or suppress EPUB/PDF chapter files when rebuilding extraction artifacts |

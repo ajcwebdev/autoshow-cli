@@ -180,6 +180,26 @@ describe('option resolution contracts', () => {
       expect(disabled).not.toContain('chapters/*.txt (EPUB native text runs, or PDF chapter autodetection)')
     })
 
+  test('pooled OCR expected files describe isolated page attempts instead of fanout results', async () => {
+      const opts = buildOptsFromFlags(false, {
+        'ocr-provider-mode': 'pool',
+        'openai-ocr': 'gpt-5.5',
+        'mistral-ocr': 'mistral-ocr-4-0',
+        format: 'text'
+      })
+
+      await expect(buildExpectedFilesList(
+        'extract',
+        opts,
+        'input/examples/document/3-document.pdf'
+      )).resolves.toEqual([
+        'extraction.txt',
+        'providers/<service>-<model>/attempts/page-<number>/attempt-<number>/result.json',
+        'providers/<service>-<model>/attempts/page-<number>/attempt-<number>/usage.json',
+        'manifest.json'
+      ])
+    })
+
   test('buildOptsFromFlags only accepts canonical flag keys', () => {
       const camelCaseFlags = buildOptsFromFlags(false, {
         mistralStt: 'voxtral-mini-2602',

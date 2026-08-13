@@ -90,6 +90,9 @@ export type ExtractStepEstimate = ProviderModelBase<'tesseract' | 'mistral' | 'g
   promptTokens?: number
   completionTokens?: number
   ocrMode?: string
+  ocrProviderMode?: 'fanout' | 'pool'
+  allocationHeuristic?: boolean
+  pageShare?: number
   totalCost: number
   costMultiplier?: number
   estimateType?: 'heuristic' | 'exact'
@@ -152,6 +155,7 @@ export type ComputeEstimatedCostsInput = SttModelOverrides & OcrModelOverrideOpt
     completionTokens?: number
     effectiveReasoningEffort?: NormalizedReasoningEffort
     ocrMode?: string
+    ocrProviderMode?: 'fanout' | 'pool'
     quotedCostCents?: number
     estimateType?: 'heuristic' | 'exact'
     note?: string
@@ -218,7 +222,7 @@ export type ComputeEstimatedProcessingTimesInput = OcrModelOverrideOptions & {
   transcriptionService?: Step2Metadata['transcriptionService'] | undefined
   transcriptionModel?: string | undefined
   audioDurationSeconds?: number | undefined
-  extractTargets?: Array<{ provider: 'tesseract' | 'mistral' | 'glm' | 'kimi' | 'openai' | 'grok' | 'anthropic' | 'gemini' | 'deepinfra' | HtmlArticleBackend, model: string, pageCount?: number, rasterizedPages?: number, singlePagePdfFallbackPages?: number }> | undefined
+  extractTargets?: Array<{ provider: 'tesseract' | 'mistral' | 'glm' | 'kimi' | 'openai' | 'grok' | 'anthropic' | 'gemini' | 'deepinfra' | HtmlArticleBackend, model: string, pageCount?: number, rasterizedPages?: number, singlePagePdfFallbackPages?: number, ocrProviderMode?: 'fanout' | 'pool' }> | undefined
   extractPageCount?: number | undefined
   ocrConcurrency?: number | undefined
   ocrConcurrencyMode?: 'auto' | 'fixed' | undefined

@@ -122,7 +122,8 @@ export async function buildAggregatedPriceEstimate (
   if (!textInputWrite && ((isExtractCommand(command) && extractRoute === 'document') || documentWrite) && resolvedStep2.route === 'ocr' && !isProcessingOptions(opts)) {
     for (const extract of await buildExtractEstimates(resolvedTarget, resolvedStep2, {
       hostedOcrTokenProfilePath: opts.hostedOcrTokenProfilePath,
-      reasoningEffort: opts.reasoningEffort
+      reasoningEffort: opts.reasoningEffort,
+      ocrProviderMode: opts.ocrProviderMode
     })) {
       addStep(extract)
     }

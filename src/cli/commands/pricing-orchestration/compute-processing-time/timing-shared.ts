@@ -201,7 +201,7 @@ export const applySharedProviderLaneScale = (
 ): number => roundMs(processingTimeMs * resolveSharedProviderLaneScale(currentLaneTargetCount, profiledLaneTargetCount))
 
 export const resolveHostedOcrTiming = (
-  target: { provider: string, model: string },
+  target: { provider: string, model: string, ocrProviderMode?: 'fanout' | 'pool' },
   pageCount: number,
   registryProcessingTimeMs: number,
   mode: 'auto' | 'fixed',
@@ -218,7 +218,7 @@ export const resolveHostedOcrTiming = (
   profileDisqualificationReason?: string | undefined
   profileLaneTargetCount?: number | undefined
 } => {
-  if (!isHostedOcrTimingProvider(target.provider)) {
+  if (!isHostedOcrTimingProvider(target.provider) || target.ocrProviderMode === 'pool') {
     return {
       processingTimeMs: registryProcessingTimeMs,
       estimateConfidence: 'registry'

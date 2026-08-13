@@ -125,6 +125,40 @@ export const collectEstimatedExtractTargets = (
   for (const entry of toArray(metadata)) {
     const pageCount = Math.max(1, entry.totalPages)
 
+    if (entry.ocrProviderMode === 'pool' && Array.isArray(entry.ocrPoolTargetUsage)) {
+      for (const usage of entry.ocrPoolTargetUsage.filter(isRecord)) {
+        const provider = typeof usage['provider'] === 'string' ? usage['provider'] : undefined
+        const model = typeof usage['model'] === 'string' ? usage['model'] : undefined
+        if (!provider || !model) continue
+        const attemptedPages = typeof usage['attemptedPages'] === 'number'
+          ? Math.max(0, Math.floor(usage['attemptedPages']))
+          : 0
+        const promptTokens = typeof usage['promptTokens'] === 'number' ? usage['promptTokens'] : undefined
+        const completionTokens = typeof usage['completionTokens'] === 'number' ? usage['completionTokens'] : undefined
+        const effectiveReasoningEffort = typeof usage['effectiveReasoningEffort'] === 'string'
+          ? usage['effectiveReasoningEffort'] as ExtractionMetadata['effectiveReasoningEffort']
+          : undefined
+        if (provider === 'tesseract') {
+          targets.push({ provider, model, pageCount: attemptedPages, ocrMode: 'pool', ocrProviderMode: 'pool', estimateType: 'exact' })
+        } else if (provider === 'mistral') {
+          targets.push({ provider, model, pageCount: attemptedPages, ocrMode: 'pool:pdf', ocrProviderMode: 'pool', estimateType: 'exact' })
+        } else if (isTokenPricedOcrProvider(provider)) {
+          targets.push({
+            provider,
+            model,
+            pageCount: attemptedPages,
+            ocrMode: 'pool',
+            ocrProviderMode: 'pool',
+            ...(promptTokens !== undefined ? { promptTokens } : {}),
+            ...(completionTokens !== undefined ? { completionTokens } : {}),
+            ...(effectiveReasoningEffort !== undefined ? { effectiveReasoningEffort } : {}),
+            estimateType: promptTokens !== undefined && completionTokens !== undefined ? 'exact' : 'heuristic'
+          })
+        }
+      }
+      continue
+    }
+
     if (
       entry.extractionMethod === 'html+defuddle'
       || entry.extractionMethod === 'html+firecrawl'

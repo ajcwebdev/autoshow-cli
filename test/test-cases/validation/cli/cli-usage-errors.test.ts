@@ -104,6 +104,25 @@ test('extract rejects removed STT cache flags', async () => {
   await expectUsageExit(['extract', STABLE_EXAMPLE_AUDIO_URL, '--no-cache'], 'Unexpected flag: --no-cache')
 })
 
+test('extract rejects invalid OCR provider modes before dispatch', async () => {
+  await expectUsageExit(
+    ['extract', 'input.pdf', '--ocr-provider-mode', 'round-robin'],
+    'Expected fanout or pool'
+  )
+})
+
+test('extract and write reject primary OCR selection in pool mode before dispatch', async () => {
+  const expected = '--primary-ocr cannot be used with --ocr-provider-mode pool'
+  await expectUsageExit(
+    ['extract', 'input.pdf', '--ocr-provider-mode', 'pool', '--primary-ocr', 'openai'],
+    expected
+  )
+  await expectUsageExit(
+    ['write', 'input.pdf', '--ocr-provider-mode', 'pool', '--primary-ocr', 'openai'],
+    expected
+  )
+})
+
 test('global cache-dir flag is removed', async () => {
   await expectUsageExit(['extract', STABLE_EXAMPLE_AUDIO_URL, '--cache-dir=/tmp/autoshow-cache'], 'Unexpected flag: --cache-dir')
 })

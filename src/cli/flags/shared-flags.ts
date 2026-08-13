@@ -16,6 +16,14 @@ export const reasoningEffortFlag = {
   'reasoning-effort': strFlag(`Reasoning effort policy: ${formatValueList(NORMALIZED_REASONING_EFFORTS)} (omit to preserve existing adapter behavior; default delegates to the provider)`)
 } as const satisfies CliFlagsDefinition
 
+export const ocrProviderModeFlag = {
+  'ocr-provider-mode': strFlag('Multi-provider OCR execution mode: fanout|pool (default: fanout)', 'fanout')
+} as const satisfies CliFlagsDefinition
+
+export const primaryOcrFlag = {
+  'primary-ocr': strFlag(`In multi-provider OCR, write top-level extraction artifacts from one requested provider: ${formatProviderList(WRITE_OCR_PROVIDER_TARGETS)} (as service or service/model)`)
+} as const satisfies CliFlagsDefinition
+
 export const booleanAllProvidersFlag = {
   'all-providers': boolFlag('Run every hosted/API-backed provider supported by this command and input route')
 } as const satisfies CliFlagsDefinition

@@ -48,6 +48,11 @@ const matchesCacheIdentity = (
     && run.ocrModel === identity.ocrModel
     && run.requestedReasoningEffort === identity.requestedReasoningEffort
     && run.effectiveReasoningEffort === identity.effectiveReasoningEffort
+    && run.ocrProviderMode === identity.ocrProviderMode
+    && run.inputSha256 === identity.inputSha256
+    && run.inputFormat === identity.inputFormat
+    && run.inputPageNumber === identity.inputPageNumber
+    && run.dpi === identity.dpi
   )
 
 export const parseStoredHostedOcrPageCache = (
@@ -161,7 +166,12 @@ export const writeFallbackState = async (
           ocrService: options.cacheIdentity.ocrService,
           ocrModel: options.cacheIdentity.ocrModel,
           requestedReasoningEffort: options.cacheIdentity.requestedReasoningEffort,
-          effectiveReasoningEffort: options.cacheIdentity.effectiveReasoningEffort
+          effectiveReasoningEffort: options.cacheIdentity.effectiveReasoningEffort,
+          ocrProviderMode: options.cacheIdentity.ocrProviderMode,
+          inputSha256: options.cacheIdentity.inputSha256,
+          inputFormat: options.cacheIdentity.inputFormat,
+          inputPageNumber: options.cacheIdentity.inputPageNumber,
+          dpi: options.cacheIdentity.dpi
         }
       : {}),
     ...(audit !== undefined

@@ -1,4 +1,4 @@
-import type { AggregatedPriceEstimate, DocumentMetadata, ExtractionMetadata, OcrRuntimeOptions, ProcessDocumentOutput, ProviderIdentityBase, ResolvedLLMModelOptions, SharedPipelineOptions, Step1SourceRef, Step3Metadata, WebArticleMetadata, WriteRuntimeOptions } from '~/types'
+import type { AggregatedPriceEstimate, DocumentMetadata, ExtractionMetadata, OcrPoolLedger, OcrProviderMode, OcrRuntimeOptions, ProcessDocumentOutput, ProviderIdentityBase, ResolvedLLMModelOptions, SharedPipelineOptions, Step1SourceRef, Step3Metadata, WebArticleMetadata, WriteRuntimeOptions } from '~/types'
 
 export type DocumentExtractionOptions = OcrRuntimeOptions
   & ResolvedLLMModelOptions
@@ -27,6 +27,8 @@ export type WriteDocumentOutputMetadataOptions = {
   providerStates?: Array<Record<string, unknown>> | undefined
   missingProviders?: ProviderIdentityBase[] | undefined
   blockedProviders?: ProviderIdentityBase[] | undefined
+  ocrProviderMode?: OcrProviderMode | undefined
+  ocrPool?: OcrPoolLedger | undefined
   web?: WebArticleMetadata | undefined
   errors?: Array<ProviderIdentityBase & { message: string, category?: string, failureKind?: string, retryable?: boolean, quota?: boolean, providerWide?: boolean, blockedReason?: string, errorFile?: string }> | undefined
   ocrConcurrency?: number | undefined

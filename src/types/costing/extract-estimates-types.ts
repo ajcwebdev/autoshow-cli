@@ -28,6 +28,7 @@ export type OcrCostEstimate = {
 export type HostedOcrEstimateOptions = {
   hostedOcrTokenProfilePath?: string | undefined
   effectiveReasoningEffort?: HostedOcrTokenReasoningPolicy | undefined
+  ocrMode?: string | undefined
 }
 
 export type HostedOcrEstimateHandler = {

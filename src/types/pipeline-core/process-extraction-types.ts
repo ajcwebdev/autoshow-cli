@@ -36,6 +36,9 @@ export const ExtractionOptionsSchema = v.object({
   renderConcurrency: v.optional(v.number(), undefined),
   ocrConcurrency: v.optional(v.number(), undefined),
   ocrConcurrencyMode: v.optional(v.picklist(['auto', 'fixed']), undefined),
+  ocrProviderMode: v.optional(v.picklist(['fanout', 'pool']), undefined),
+  ocrProviderModeExplicit: v.optional(v.boolean(), undefined),
+  ocrPoolDocumentPageNumber: v.optional(v.number(), undefined),
   ocrProviderConcurrency: v.optional(v.number(), DEFAULT_OCR_CONCURRENCY),
   ocrLocalConcurrency: v.optional(v.number(), DEFAULT_OCR_CONCURRENCY),
   keepOcrPageInputs: v.optional(v.boolean(), undefined),
@@ -113,7 +116,7 @@ const ChapterExportSummarySchema = v.object({
 
 export const ExtractionMetadataSchema = v.object({
   extractionMethod: v.picklist([
-    'docx', 'pptx', 'xlsx', 'odf', 'tesseract', 'mutool+tesseract', 'mistral-ocr', 'openai-ocr', 'grok-ocr', 'epub-bun',
+    'docx', 'pptx', 'xlsx', 'odf', 'tesseract', 'mutool+tesseract', 'mistral-ocr', 'openai-ocr', 'grok-ocr', 'ocr-pool', 'epub-bun',
     'epub-text',
     'pdf-text', 'pdf+tesseract', 'pdf+mistral-ocr', 'pdf+glm-ocr', 'pdf+kimi-ocr', 'pdf+openai-ocr', 'pdf+grok-ocr', 'pdf+anthropic-ocr', 'pdf+gemini-ocr', 'pdf+deepinfra-ocr',
     'office-native', 'rtf-native',
@@ -155,7 +158,9 @@ export const ExtractionMetadataSchema = v.object({
   ocrProviderUsage: v.optional(v.array(v.record(v.string(), v.unknown())), undefined),
   hostedOcrScheduler: v.optional(v.record(v.string(), v.unknown()), undefined),
   requestedReasoningEffort: v.optional(v.picklist(['default', 'disabled', 'minimal', 'low', 'medium', 'high', 'max']), undefined),
-  effectiveReasoningEffort: v.optional(v.picklist(['default', 'disabled', 'minimal', 'low', 'medium', 'high', 'max']), undefined)
+  effectiveReasoningEffort: v.optional(v.picklist(['default', 'disabled', 'minimal', 'low', 'medium', 'high', 'max']), undefined),
+  ocrProviderMode: v.optional(v.picklist(['fanout', 'pool']), undefined),
+  ocrPoolTargetUsage: v.optional(v.array(v.record(v.string(), v.unknown())), undefined)
 })
 
 export const DocumentMetadataSchema = v.object({
@@ -202,6 +207,8 @@ export type ProcessDocumentOutput = {
   providerStates?: Array<Record<string, unknown>> | undefined
   missingProviders?: ProviderIdentityBase[] | undefined
   blockedProviders?: ProviderIdentityBase[] | undefined
+  ocrProviderMode?: import('~/types').OcrProviderMode | undefined
+  ocrPool?: import('~/types').OcrPoolLedger | undefined
   web?: WebArticleMetadata | undefined
   step2Errors?: Array<ProviderIdentityBase & {
     message: string

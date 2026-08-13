@@ -29,6 +29,7 @@ import {
   zeroCostSource
 } from './provider-family-resolvers'
 import { walkRunSteps } from './run-step-walk'
+import { isRecord } from '~/utils/rest-client'
 
 const normalizeDurationSeconds = (value: number): number =>
   Number.isFinite(value) ? Math.max(0, value) : 0
@@ -268,6 +269,42 @@ const addExtractionCostEntry = (
   metadata: ExtractionMetadata,
   partial = false
 ): void => {
+  if (metadata.ocrProviderMode === 'pool' && Array.isArray(metadata.ocrPoolTargetUsage)) {
+    for (const usage of metadata.ocrPoolTargetUsage.filter(isRecord)) {
+      const provider = typeof usage['provider'] === 'string' ? usage['provider'] : undefined
+      const model = typeof usage['model'] === 'string' ? usage['model'] : undefined
+      if (!provider || !model) continue
+      const attemptedPages = typeof usage['attemptedPages'] === 'number'
+        ? Math.max(0, Math.floor(usage['attemptedPages']))
+        : 0
+      const promptTokens = typeof usage['promptTokens'] === 'number' ? usage['promptTokens'] : undefined
+      const completionTokens = typeof usage['completionTokens'] === 'number' ? usage['completionTokens'] : undefined
+      const providerCostCents = typeof usage['providerCostCents'] === 'number' ? usage['providerCostCents'] : undefined
+      const synthetic: ExtractionMetadata = {
+        extractionMethod: provider === 'tesseract' ? 'mutool+tesseract' : `${provider}-ocr` as ExtractionMetadata['extractionMethod'],
+        totalPages: attemptedPages,
+        ocrPages: attemptedPages,
+        textPages: 0,
+        processingTime: metadata.processingTime,
+        dpi: metadata.dpi,
+        languages: metadata.languages,
+        tokenEstimate: 0,
+        ...(provider !== 'tesseract' ? { ocrService: provider, ocrModel: model } : {}),
+        ...(promptTokens !== undefined ? { promptTokens } : {}),
+        ...(completionTokens !== undefined ? { completionTokens } : {}),
+        ...(providerCostCents !== undefined ? { providerCostCents } : {}),
+        ...(usage['providerCostSource'] === 'provider_usage' || usage['providerCostSource'] === 'provider_quote' || usage['providerCostSource'] === 'registry_fallback'
+          ? { providerCostSource: usage['providerCostSource'] }
+          : {}),
+        ...(Array.isArray(usage['providerUsage']) ? { ocrProviderUsage: usage['providerUsage'].filter(isRecord) } : {})
+      }
+      const providerCostEntry = buildProviderCostExtractionEntry(synthetic, provider, model)
+      const resolvedEntry = providerCostEntry ?? resolveActualExtractCostEntry(synthetic, provider, model)
+      const costEntry = partial ? withPartialProviderUsageSource(resolvedEntry) : resolvedEntry
+      if (costEntry) steps.push(costEntry)
+    }
+    return
+  }
   const { provider, model } = resolveExtractionProviderModel(metadata)
   const providerCostEntry = buildProviderCostExtractionEntry(metadata, provider, model)
   const resolvedEntry = providerCostEntry ?? resolveActualExtractCostEntry(metadata, provider, model)

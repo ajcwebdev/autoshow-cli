@@ -1,7 +1,7 @@
 import { defineCliCommand } from '~/cli/native/native-types'
 import { writeFlags } from '~/cli/flags/write-flags'
 import { handleProcessTarget } from '~/cli/commands/process-steps/step-1-download/download-targets/handle-process-target'
-import { validateEpubInspectCommandFlags } from '~/cli/commands/process-steps/step-2-extract/step-2-ocr/command-validation'
+import { validateEpubInspectCommandFlags, validateOcrProviderModeCommandFlags } from '~/cli/commands/process-steps/step-2-extract/step-2-ocr/command-validation'
 
 const inputParameter = [{ key: '[input]', description: 'URL, local file, directory, or URL list (.md/.txt)' }] as const
 
@@ -26,5 +26,6 @@ export const writeCommand = defineCliCommand({
   }
 }, async (ctx) => {
   validateEpubInspectCommandFlags(ctx)
+  validateOcrProviderModeCommandFlags(ctx)
   await handleProcessTarget('write', ctx.parameters.input, ctx.flags, ctx.rawParsed)
 })

@@ -3,6 +3,7 @@ import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { describe, expect, test } from 'bun:test'
 import { estimateOcrTokenUsage } from '~/cli/commands/process-steps/step-2-extract/extract-pricing/ocr-estimates'
+import { allocatePooledOcrPages, buildExtractEstimates } from '~/cli/commands/process-steps/step-2-extract/extract-pricing/build-extract-estimates'
 import {
   persistHostedOcrTokenUsageProfiles,
   readHostedOcrTokenUsageProfiles
@@ -85,7 +86,71 @@ describe('price mode contracts', () => {
         expect(step).toBeDefined()
         expect(step && 'pageCount' in step ? step.pageCount : undefined).toBe(3)
       }
-    })
+  })
+
+  test('pooled OCR pricing allocates the document once across shared provider lanes', async () => {
+    const targets = [
+      { service: 'openai' as const, model: 'gpt-5.6-sol' },
+      { service: 'openai' as const, model: 'gpt-5.4-mini' },
+      { service: 'gemini' as const, model: 'gemini-3.6-flash' }
+    ]
+
+    expect(allocatePooledOcrPages(10, targets)).toEqual([3, 2, 5])
+    const pooled = await buildExtractEstimates(MULTI_PAGE_PDF, {
+      route: 'ocr',
+      sourceKind: 'pdf',
+      providers: targets
+    }, { ocrProviderMode: 'pool' })
+    const fanout = await buildExtractEstimates(MULTI_PAGE_PDF, {
+      route: 'ocr',
+      sourceKind: 'pdf',
+      providers: targets
+    }, { ocrProviderMode: 'fanout' })
+
+    expect(pooled.reduce((sum, step) => sum + (step.pageCount ?? 0), 0)).toBe(3)
+    expect(pooled.every((step) => step.ocrProviderMode === 'pool' && step.allocationHeuristic === true && step.estimateType === 'heuristic')).toBe(true)
+    expect(pooled.reduce((sum, step) => sum + step.totalCost, 0)).toBeLessThan(fanout.reduce((sum, step) => sum + step.totalCost, 0))
+    expect(pooled.every((step) => step.note?.includes('actual queue share') === true)).toBe(true)
+  })
+
+  test('pooled actual cost includes failed and ambiguous paid attempts by target', () => {
+    const metadata: ExtractionMetadata = {
+      extractionMethod: 'ocr-pool',
+      totalPages: 3,
+      ocrPages: 3,
+      textPages: 0,
+      processingTime: 100,
+      dpi: 300,
+      languages: 'eng',
+      tokenEstimate: 0,
+      ocrProviderMode: 'pool',
+      ocrPoolTargetUsage: [{
+        provider: 'openai',
+        model: 'gpt-5.6-sol',
+        attemptedPages: 3,
+        acceptedPages: 2,
+        failedOrAmbiguousAttempts: 1,
+        promptTokens: 3_000,
+        completionTokens: 300,
+        providerCostCents: 4,
+        providerCostSource: 'provider_usage'
+      }, {
+        provider: 'mistral',
+        model: 'mistral-ocr-4-0',
+        attemptedPages: 2,
+        acceptedPages: 1,
+        failedOrAmbiguousAttempts: 1,
+        providerCostCents: 2,
+        providerCostSource: 'provider_usage'
+      }]
+    }
+
+    const actual = computeActualCosts({ step2: metadata })
+    expect(actual.steps).toHaveLength(2)
+    expect(actual.steps.find((step) => step.provider === 'openai')).toMatchObject({ model: 'gpt-5.6-sol', cost: 4, inputValue: 3_300 })
+    expect(actual.steps.find((step) => step.provider === 'mistral')).toMatchObject({ model: 'mistral-ocr-4-0', cost: 2, inputValue: 2 })
+    expect(actual.totalCost).toBe(6)
+  })
 
   test('hosted OCR aggregate pricing rejects invalid PDFs instead of estimating one page', async () => {
       const tempDir = await mkdtemp(join(tmpdir(), 'autoshow-ocr-price-invalid-'))

@@ -6,7 +6,7 @@
 - **Date Created:** 2026-06-12
 - **Date Updated:** 2026-08-13
 - **Verification Status:** Passed
-- **Supersession:** Owns batch work planning, canonical pipeline persistence, and resume price preflight. Source identity, classification, normalization, and discovery caches are owned by [ADR-001](ADR-001-source-ingestion-and-normalization.md); URL execution and artifacts by [ADR-009](ADR-009-extract-execution-and-artifact-contracts.md); general diagnostic rendering by [ADR-006](ADR-006-unify-error-handling-vocabulary.md).
+- **Supersession:** Owns batch work planning, canonical pipeline persistence, pooled OCR page state, and resume price preflight. Source identity, classification, normalization, and discovery caches are owned by [ADR-001](ADR-001-source-ingestion-and-normalization.md); URL and OCR execution and artifacts by [ADR-009](ADR-009-extract-execution-and-artifact-contracts.md); pooled work selection by [ADR-016](ADR-016-distribute-ocr-pages-across-a-multi-provider-work-pool.md); general diagnostic rendering by [ADR-006](ADR-006-unify-error-handling-vocabulary.md).
 
 ## Context
 
@@ -17,6 +17,8 @@ Pipeline outputs are disposable execution state, not a durable interchange forma
 Resume can backfill missing provider outputs in existing extract, write, TTS, image, video, and music runs. It accepts the same provider-selection surface as execution — `--provider provider[=model]`, `--all-providers`, `--all-local` — so it can initiate paid or quota-limited calls, but `resume --price` failed with `Unexpected flag: price`, leaving no way to estimate additive work before a paid run.
 
 Why now: resume became a paid-provider entry point without a preflight, and the split persistence layout made both resume and price planning depend on inferring run state instead of reading it.
+
+Pooled multi-provider OCR adds page claims, accepted results, interrupted work, target and lane retirement, and attempt-level usage, but it does not change the persistence decision. That state must live in the same canonical item rather than in provider directories, raw responses, a scheduler checkpoint, or a parallel pool manifest. Resume and `resume --price` must read the stored mode and page ledger so accepted pages are never inferred from artifacts or charged again.
 
 ## Options Considered
 
@@ -67,9 +69,19 @@ Mixed-route batches use containment-checked child-directory links. Each linked c
 
 The canonical reader validates only the current shape, timestamps, statuses, and contained relative paths. It distinguishes a missing canonical file from malformed or invalid current data. It does not recognize, detect, reject by version, migrate, or probe for superseded formats. Corrupt current state fails before provider execution or rewrite. Existing output directories created under an earlier persistence layout must be rerun.
 
+### Canonical pooled OCR page ledger
+
+When an OCR item uses `ocrProviderMode: "pool"`, that same canonical item carries one `ocrPool` ledger. The ledger records the selected mode, required page count, ordered page states, current claims, accepted results, all attempts, provider/model/reasoning attribution, usage and cost evidence, target and lane status, and scheduler telemetry. An accepted page result is committed through the ordinary atomic manifest writer after verifying that its claim is still current and no accepted result exists. Provider directories, page inputs, response caches, raw responses, throughput profiles, and generated diagnostics are evidence or projections only.
+
+Claims stored as running when a process stops are recovered as interrupted unfinished work. Accepted page records remain immutable inputs to composite reassembly and are not rerun. The item is full only when every required page is accepted; exhausted pages make it incomplete even if every remaining target state is terminal. This page ledger is not a separately versioned format: changing its canonical shape follows this ADR's existing unversioned clean-break policy.
+
 ### Resume and dry-run planning
 
 `resume --price` is a provider-neutral, non-mutating dry-run cost preflight for exactly the missing, failed, or newly selected additive targets that the same resume command would attempt. It applies to extract STT, OCR, and URL article routes; write LLM resume; and standalone TTS, image, video, and music resume. It supports explicit provider selections and additive resume behavior.
+
+Pooled OCR resume preserves the mode stored in the manifest and continues only unfinished pages. Healthy stored targets remain eligible subject to their prior page attempts; explicitly selected additive targets are added only after current registry and capability validation. Explicitly selecting a previously retired target re-enables that target and its affected lane without invalidating accepted pages. A stored fan-out item cannot resume as pool, and a stored pool cannot resume as fan-out.
+
+For pooled OCR, `resume --price` estimates only unfinished pages with the same lane-sharing and concurrency assumptions used by execution. It does not rewrite claims, targets, completion state, artifacts, or the manifest. If no eligible target or lane remains, price mode does not invent different work.
 
 Price mode performs no provider call, writes no canonical manifest or raw provider artifact, and exits after estimates. Unsupported or insufficiently resumable manifests produce usage errors instead of estimating different work. Execution and price mode use the same target selection and option resolution.
 
@@ -85,6 +97,7 @@ Resume accepts only provider-neutral option slices. It declares no provider-name
 
 - One work plan and persistence shape remove duplicated route inference, codecs, completion aliases, and probing order.
 - A clean-break reader reflects that generated pipeline state is rebuildable rather than a long-lived interchange format.
+- Page-level pool state belongs in that same clean-break manifest because exactly-once acceptance and crash recovery cannot be reconstructed safely from attempt artifacts.
 - Explicit routes are required because safe one-item and mixed-route resume cannot rely on inference.
 - Resume can spend provider credits, so it must support the same no-cost preflight pattern as normal execution commands, and estimates must include only work that execution would attempt.
 - Full route coverage avoids a fragmented rule where `--price` works for OCR but fails elsewhere.
@@ -100,6 +113,7 @@ Positive outcomes:
 - Provider progress and completion cannot drift between root summaries, checkpoints, and result envelopes.
 - Path traversal and malformed current state fail locally before filesystem escape or provider work.
 - Users can price-check multi-directory and additive resume work before any paid provider call.
+- Pooled OCR resume preserves accepted pages, recovers interrupted claims, and prices only unfinished work without another checkpoint authority.
 - No-cost price verification runs in seconds instead of tens of seconds, with roughly half the log lines.
 
 Negative outcomes:
@@ -107,6 +121,7 @@ Negative outcomes:
 - Existing pre-cutover pipeline outputs are intentionally not resumable and must be regenerated.
 - Resume handlers maintain a dry-run planning path as well as execution.
 - Some estimates remain heuristic when canonical state lacks exact source size, duration, prompt, or page-count evidence, and values absent from canonical provider options fall back to configuration or provider defaults.
+- Pooled OCR increases canonical item size and write frequency because page claims and accepted results are checkpointed atomically.
 - The no-cost runner maintains a 25-worker bound and curated stable fixtures.
 
 ## Trade-offs
@@ -115,6 +130,7 @@ Negative outcomes:
 |---|---|
 | One canonical work/state authority | Pre-cutover output directories must be rebuilt |
 | Safe provider-neutral resume price planning | Every resumable domain maintains a shared planning path alongside execution |
+| Crash-safe pooled page acceptance | Larger canonical page and attempt ledgers |
 | Resume-aware additive estimates | Some manifest-dependent values require configuration/default fallbacks |
 | Fast, quiet no-cost price verification | The test runner maintains bounded worker scheduling and curated fixtures |
 
@@ -123,19 +139,22 @@ Negative outcomes:
 - The canonical pipeline manifest is the only run-state authority and has no format version.
 - `resume` accepts `--price` as a boolean provider-neutral flag.
 - The shared price/preflight option slice participates in resume dispatch, and price-mode resume exits before provider runners and state mutation.
+- Pooled OCR items carry `ocrProviderMode: "pool"` and one canonical `ocrPool` page ledger; no schema version or parallel pool manifest is introduced.
+- Resume exposes `--ocr-provider-mode` only to detect explicit stored-mode mismatches. Omitted mode preserves the manifest value.
+- Pooled resume target selection retains accepted pages, treats interrupted claims as unfinished, admits validated additive targets, and re-enables explicitly selected retired targets or lanes.
 - Resume composes command-specific STT, OCR, URL, LLM, TTS, image, video, or music options with shared price and concurrency controls; provider-named knobs remain outside its surface.
 - Bare `manifest.json` and any domain raw-result files have distinct ownership: domain artifacts may be referenced from canonical state but cannot replace it.
 
 ## Implementation Note
 
-| Action | Owner | Current State |
-|---|---|---|
-| Keep one current canonical manifest and containment-checked mixed-route child links | Pipeline maintainers | Implemented in `src/cli/commands/process-steps/pipeline-manifest.ts` |
-| Add `priceFlag` to provider-neutral `resumeFlags` built as `pickFlags` allow-lists | CLI maintainers | Implemented in `src/cli/flags/resume-flags.ts` |
-| Resolve the same targets for resume planning and execution, and exit price mode before provider execution or writes | CLI maintainers | Implemented in `src/cli/commands/setup-and-utilities/resume/` |
-| Estimate extract STT/OCR/URL, write LLM, TTS, image, video, and music resume without provider calls | Domain maintainers | Implemented |
-| Keep `--image-*`, `--video-*`, and `--music-*` prefixes on resume because short names collide across its domains | CLI maintainers | Implemented |
-| Use stable price fixtures, 25-worker bounded concurrency, and one-line result rendering | Test maintainers | Implemented in `test/test-runner/runner.ts` |
+- Implemented single current canonical manifest and containment-checked mixed-route child links in `src/cli/commands/process-steps/pipeline-manifest.ts`.
+- Implemented `priceFlag` in provider-neutral `resumeFlags` built as `pickFlags` allow-lists in `src/cli/flags/resume-flags.ts`.
+- Implemented target resolution for resume planning and execution in `src/cli/commands/setup-and-utilities/resume/`, exiting price mode before provider execution or state mutation.
+- Implemented persistence for pooled claims, accepted pages, attempts, target/lane failures, usage, and attribution in `src/cli/commands/process-steps/step-2-extract/step-2-ocr/ocr-pooled-batch.ts` and `src/cli/commands/process-steps/pipeline-manifest.ts`.
+- Implemented pool-mode and accepted-page preservation during resume in `src/cli/commands/setup-and-utilities/resume/extract/ocr-resume.ts`.
+- Implemented side-effect-free price estimation across STT, OCR, URL, LLM, TTS, image, video, and music resume handlers.
+- Retained `--image-*`, `--video-*`, and `--music-*` prefixes on resume to resolve cross-domain option collisions.
+- Implemented stable price fixtures, 25-worker bounded concurrency, and single-line result rendering in `test/test-runner/runner.ts`.
 
 ## Follow-up Actions
 
@@ -148,6 +167,7 @@ Negative outcomes:
 - Canonical contracts cover every process command, single and batch scope, one-item batches, mixed-route child links, all provider statuses, atomic progress updates, missing files, malformed JSON, invalid shapes, corrupt rewrites, and path containment.
 - A source guard ensures no superseded pipeline filename, format-version helper, old manifest type, route adapter, checkpoint, or derived summary artifact remains.
 - Resume price contracts prove estimates cover selected missing/additive targets, multi-directory totals are reported, manifests stay unchanged, and provider runners are not invoked.
+- Pooled OCR contracts prove atomic claim and accepted-page checkpoints, interrupted-claim recovery, accepted-page preservation, additive and explicitly re-enabled targets, stored-mode enforcement, unfinished-page pricing, and canonical-manifest authority.
 - Resume flag contracts prove every provider-neutral option is present, provider-named options are absent, and representative rejected flags preserve the user's typed dashed spelling.
 - Run `bun run check`, `bun t --price`, `bun test test/test-cases/validation/cli/cli-help-contracts.test.ts`, `bun test test/test-cases/validation/cli/cli-usage-errors.test.ts`, `bun test test/test-cases/validation/cli/option-resolution-contracts/`, `bun test test/test-cases/validation/reports-pricing/price-mode-contracts/`, and targeted manifest tests. Do not run paid provider, smoke, or e2e tests that can call third-party APIs.
 - Verification on 2026-08-13: `bun t --price` passed 165/165 pricing specs and reported 1420.395¢ without provider calls.
@@ -156,6 +176,7 @@ Negative outcomes:
 
 - Source ingestion, identity, normalization, and discovery caches: [ADR-001](ADR-001-source-ingestion-and-normalization.md)
 - Extract execution and artifacts: [ADR-009](ADR-009-extract-execution-and-artifact-contracts.md)
+- Pooled OCR scheduling decision: [ADR-016](ADR-016-distribute-ocr-pages-across-a-multi-provider-work-pool.md)
 - Diagnostic-rendering companion: [ADR-006](ADR-006-unify-error-handling-vocabulary.md)
 - Canonical persistence boundary: `src/cli/commands/process-steps/pipeline-manifest.ts`
 - Resume routing and dispatch: `src/cli/commands/setup-and-utilities/resume/`

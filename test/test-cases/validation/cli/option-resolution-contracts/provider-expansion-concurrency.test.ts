@@ -121,6 +121,26 @@ describe('option resolution contracts', () => {
       expect(clamped.ocrLocalConcurrency).toBe(1)
     })
 
+  test('OCR provider mode defaults to fanout and resolves explicit or configured pool mode', () => {
+      const defaults = buildOptsFromFlags(false, {})
+      const explicitPool = buildOptsFromFlags(false, {
+        'ocr-provider-mode': 'pool'
+      }, {}, new Set(['ocr-provider-mode']))
+      const configuredPool = buildOptsFromFlags(false, {
+        'ocr-provider-mode': 'pool',
+        __autoshowConfigInjectedFlags: ['ocr-provider-mode']
+      })
+
+      expect(defaults.ocrProviderMode).toBe('fanout')
+      expect(defaults.ocrProviderModeExplicit).toBe(false)
+      expect(buildExtractionCallOpts('input.pdf', '/tmp/autoshow-output', defaults).ocrProviderMode).toBe('fanout')
+      expect(explicitPool.ocrProviderMode).toBe('pool')
+      expect(explicitPool.ocrProviderModeExplicit).toBe(true)
+      expect(configuredPool.ocrProviderMode).toBe('pool')
+      expect(configuredPool.ocrProviderModeExplicit).toBe(true)
+      expect(() => buildOptsFromFlags(false, { 'ocr-provider-mode': 'round-robin' })).toThrow('Expected fanout or pool')
+    })
+
   test('OCR provider concurrency ignores parser-injected shared defaults', () => {
       const parserDefaults = buildOptsFromFlags(false, {
         'provider-concurrency': String(DEFAULT_CLI_CONCURRENCY),

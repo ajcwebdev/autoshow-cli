@@ -1,4 +1,6 @@
 import { stat } from 'node:fs/promises'
+import { createReadStream } from 'node:fs'
+import { createHash } from 'node:crypto'
 import { basename, extname, join } from 'node:path'
 import { getExtractLimits } from '~/cli/commands/setup-and-utilities/models/model-loader'
 import { resolveReasoningPolicy } from '~/cli/commands/setup-and-utilities/models/reasoning-resolver'
@@ -352,10 +354,22 @@ const runChunkableHostedPdfOcr = async (
     model: identity.ocrModel,
     requestedReasoningEffort: opts.reasoningEffort
   })
+  const inputSha256 = await new Promise<string>((resolve, reject) => {
+    const hash = createHash('sha256')
+    const stream = createReadStream(filePath)
+    stream.on('error', reject)
+    stream.on('data', (chunk) => hash.update(chunk))
+    stream.on('end', () => resolve(hash.digest('hex')))
+  })
   const reasoningIdentity: HostedOcrIdentity = {
     ...identity,
     ...(reasoningPolicy.requested !== undefined ? { requestedReasoningEffort: reasoningPolicy.requested } : {}),
-    effectiveReasoningEffort: reasoningPolicy.effective
+    effectiveReasoningEffort: reasoningPolicy.effective,
+    ocrProviderMode: opts.ocrProviderMode ?? 'fanout',
+    inputSha256,
+    inputFormat: step1Metadata.format,
+    ...(typeof opts.ocrPoolDocumentPageNumber === 'number' ? { inputPageNumber: opts.ocrPoolDocumentPageNumber } : {}),
+    dpi: opts.dpi
   }
   const runScheduledProvider = async (
     inputPath: string,
@@ -377,7 +391,12 @@ const runChunkableHostedPdfOcr = async (
         return withHostedUsageDetail({
           ...run,
           ...(reasoningPolicy.requested !== undefined ? { requestedReasoningEffort: reasoningPolicy.requested } : {}),
-          effectiveReasoningEffort: reasoningPolicy.effective
+          effectiveReasoningEffort: reasoningPolicy.effective,
+          ocrProviderMode: reasoningIdentity.ocrProviderMode,
+          inputSha256: reasoningIdentity.inputSha256,
+          inputFormat: reasoningIdentity.inputFormat,
+          ...(typeof reasoningIdentity.inputPageNumber === 'number' ? { inputPageNumber: reasoningIdentity.inputPageNumber } : {}),
+          dpi: reasoningIdentity.dpi
         }, context)
       }
     )
@@ -414,7 +433,7 @@ const runChunkableHostedPdfOcr = async (
       pageStart: range.startPage,
       pageEnd: range.endPage,
       pages: Math.max(1, chunkMetadata.pageCount)
-    }, range.startPage),
+    }, opts.ocrPoolDocumentPageNumber ?? range.startPage),
     ...fallbackOptions,
     buildMalformedPageRun: (rawText, range) => ({
       pages: [{
@@ -427,7 +446,12 @@ const runChunkableHostedPdfOcr = async (
       ocrModel: identity.ocrModel,
       totalPages: Math.max(1, range.endPage - range.startPage + 1),
       ...(reasoningPolicy.requested !== undefined ? { requestedReasoningEffort: reasoningPolicy.requested } : {}),
-      effectiveReasoningEffort: reasoningPolicy.effective
+      effectiveReasoningEffort: reasoningPolicy.effective,
+      ocrProviderMode: reasoningIdentity.ocrProviderMode,
+      inputSha256: reasoningIdentity.inputSha256,
+      inputFormat: reasoningIdentity.inputFormat,
+      ...(typeof reasoningIdentity.inputPageNumber === 'number' ? { inputPageNumber: reasoningIdentity.inputPageNumber } : {}),
+      dpi: reasoningIdentity.dpi
     })
   })
 }

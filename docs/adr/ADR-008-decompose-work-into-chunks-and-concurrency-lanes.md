@@ -11,7 +11,9 @@
 
 This project splits work into smaller units in at least ten distinct ways, and bounds how many of those units run at once with at least nine distinct controls. `--batch-concurrency` governs every batch-capable command. `--ocr-concurrency` drives a separate adaptive page scheduler with its own auto/fixed mode contract. `--split` produces STT time segments that are then bounded by `--stt-segment-concurrency`. `--provider-concurrency` and `--local-concurrency` sit between all of these as a shared middle layer. Each is documented in its own command page, but the relationships between them are documented nowhere.
 
-The relationships are the part that matters, because these controls **nest and multiply**. A run with `--batch-concurrency 10`, `--provider-concurrency 10`, and an OCR page cap of 32 can have far more requests in flight than any single number suggests, because each document builds its own hosted OCR scheduler.
+The relationships are the part that matters, because these controls **nest and multiply**. A run with `--batch-concurrency 10`, `--provider-concurrency 10`, and an OCR page cap of 32 can have far more requests in flight than any single number suggests. Run-scoped hosted OCR lanes prevent batch items from multiplying a provider/account cap, while pooled multi-provider OCR deliberately multiplies the page cap across independent provider/account lanes inside one document.
+
+Pooled OCR adds another work-selection layer: selected OCR targets do not each own a full-document job. They are admitted as hosted or local targets, then draw individual pages from one shared document queue while their provider/account lanes enforce pressure limits. This makes claim lifecycle, lane sharing, requeue policy, and original-order assembly part of the concurrency architecture rather than only an OCR artifact concern.
 
 The same nesting produced the failure this record was originally opened for. On 2026-07-10, `bun autoshow tts "input/text" --provider grok` over 16 inputs — 721 chunks, batch concurrency 10, hosted TTS chunk concurrency 30 — took 14m 45s against a 4m 57s estimate, and small files finished very late: a 3-chunk file took 14m 12s, a 5-chunk file 13m 58s. The cause was head-of-line blocking. Each active file could enqueue many chunk workers into the shared provider gate, so the provider-wide cap was safe but the queue was dominated by early, large files. `--batch-concurrency 10` also meant later files were not admitted until earlier whole-file jobs completed, even when those later files were tiny.
 
@@ -24,6 +26,7 @@ Why now: those cross-cutting relationships are the prerequisite for any shared p
 | Option | Pros | Cons | Quantitative Notes |
 |---|---|---|---|
 | **Promote hosted TTS to a batch-level provider work queue with fair chunk scheduling and separate adaptive provider pressure control** | Keeps provider-wide safety; avoids large-file queue domination; admits all batch work early; improves wall-time estimates from the same scheduler model; gives users actionable scheduler summaries | Larger change than the current gate; requires a TTS-specific batch execution path or coordinator; more scheduler state to test | Addresses 721-chunk / 16-file run; targets the 3x estimate miss and late completion of 1-6 chunk files |
+| **Use one dynamically claimed page queue for pooled multi-provider OCR while retaining target and provider/account lane admission** | Lets faster targets accept more pages; shares caps across same-account models; permits handoff after failure; preserves source order | Requires claim state, per-page attempt bounds, retirement policy, and page-level telemetry | Independent lanes multiply their caps; same-lane targets share one cap |
 | Keep the current provider-wide gate and only tune AIMD/backoff defaults | Smallest change; preserves current architecture | Does not fix head-of-line blocking; estimates still model the wrong execution shape; lower caps may make wall time worse | Can reduce provider errors but not queue unfairness |
 | Raise default `--tts-chunk-concurrency` globally or for all provider-specific hosted TTS | May improve best-case speed on accounts that tolerate more load | Risks returning to provider pressure failures; provider/API-key limits vary; hides the scheduling bug by spending more concurrency | The slow run already used 30 in-flight provider chunks; Grok-only TTS later received a narrower implicit default of 50 |
 | Lower `--batch-concurrency` for TTS batches | Reduces early queue domination by large files | Leaves provider capacity underused; makes the user tune two interacting flags manually; can slow large books further | `--batch-concurrency 1` would remove cross-file head-of-line blocking but sacrifice batch parallelism |
@@ -71,6 +74,7 @@ Every mechanism that turns one unit of work into many.
 | STT segment execution | one segment request | `--stt-segment-concurrency` | `10`; local and `mistral` clamp to `1` | `src/cli/commands/process-steps/step-2-extract/step-2-stt/run-stt/split-execution.ts` |
 | Hosted TTS text chunking | text chunk | `--tts-chunk-concurrency` | `30`; `50` for Grok-only hosted TTS | `src/cli/commands/process-steps/step-4-tts/tts-utils/tts-chunking.ts`, `src/cli/commands/process-steps/step-4-tts/tts-utils/hosted-tts-chunk-scheduler.ts` |
 | OCR page processing | one page | `--ocr-concurrency` | local `10`; hosted `auto` | `src/cli/commands/process-steps/step-2-extract/step-2-ocr/ocr-utils/page-processor.ts`, `src/cli/commands/process-steps/step-2-extract/step-2-ocr/ocr-utils/hosted-ocr-scheduler.ts` |
+| Pooled multi-provider OCR | one dynamically claimed document page | `--ocr-provider-mode pool`, `--provider-concurrency`, `--local-concurrency`, `--ocr-concurrency` | mode `fanout`; target caps `10` / `10`; hosted page cap `auto` | `src/cli/commands/process-steps/step-2-extract/step-2-ocr/ocr-provider-pool.ts`, `src/cli/commands/process-steps/step-2-extract/step-2-ocr/ocr-pooled-batch.ts` |
 | PDF page-chunk fallback | single-page PDF or rendered PNG | inherits the OCR page cap | forced per-page above 20 pages | `src/cli/commands/process-steps/step-2-extract/step-2-ocr/ocr-utils/pdf-chunk-fallback.ts` |
 | Chapter/export splitting | chapter file | `--chapters`, `--length`, `--pdf-chapter-mode` | `--pdf-chapter-mode local` | `src/cli/commands/process-steps/step-2-extract/step-2-ocr/chapter-export-defaults.ts`, `src/cli/commands/process-steps/step-2-extract/step-2-ocr/chapter-artifact-filenames.ts` |
 | Comic panel grouping | N panels per generated image | `--panels-per-image`, comic `--concurrency` | `10` | `src/cli/commands/process-steps/step-8-comic/comic-commands/generate-images/comic-page-utils.ts` |
@@ -86,6 +90,7 @@ Ordering and failure semantics differ per mechanism, and the differences are loa
 | Hosted TTS chunks | concatenated in chunk order per file | a failed chunk cancels only its owning file |
 | Multi-speaker TTS turns | written back by source index before concatenation, regardless of completion order | first failure aborts the shared dialogue signal, prevents queued turns from starting, drains active turns, removes every `.work-*` directory, and rethrows the first failure |
 | OCR pages | written into a pre-sized results array, so order is by page index | first error stops scheduling; in-flight work drains; remaining pages marked `canceled` in the audit |
+| Pooled OCR pages | accepted pages are assembled by original page number regardless of target or completion order | page failures requeue or hand off; target blockers retire one target; account blockers retire a lane; only pages with no remaining eligible target become exhausted |
 
 Deliberately absent: there is no video scene or shot splitting (one clip per target), no music generation segmentation (one request per target), and no transcript or context-window chunking in `step-3-write`, which sends whole prompts.
 
@@ -97,6 +102,10 @@ The controls nest from outermost to innermost:
 --batch-concurrency            items in flight              processBatch / runWithSemaphore
   └─ --provider-concurrency    hosted targets per item      runProviderTargetScheduler (hosted pool)
      --local-concurrency       local targets per item       runProviderTargetScheduler (local pool)
+       └─ pooled OCR shared page queue   one claim per page  runOcrPagePool
+          ├─ independent OCR lane A      up to lane cap      adaptive/fixed hosted scheduler
+          ├─ independent OCR lane B      up to lane cap      adaptive/fixed hosted scheduler
+          └─ same-account models         share one lane cap  service:scopeLabel identity
        └─ generation resource gate  cross-step 4/5/6/7 cap  createResourceGate (FIFO semaphore)
           ├─ dialogue turn selector    hosted/local turn cap  runDialogueWorkSelector
           ├─ --tts-chunk-concurrency   AIMD per TTS provider, run-global   HostedTtsBatchCoordinatorImpl
@@ -117,6 +126,18 @@ Layer 3, provider lanes and bounded inner work. Four provider schedulers impleme
 - **Adaptation.** Hosted OCR ramps `+2` per half-cap clean window while fast-ramping and `+1` afterward, halves on 429/503/timeout, and can raise its ceiling to 48 from a matched healthy throughput profile. Hosted TTS ramps `+1` once the success streak reaches the current limit and halves on 429 with a two-second default pause. STT uses fixed per-provider slot profiles with a warm-up gate rather than continuous adaptation, degrading a provider after two consecutive retryable failures and backfilling it in a later resume pass.
 
 `--ocr-concurrency` carries a mode contract the other flags do not have. It has no CLI default, so an unset value is distinguishable from an explicit one: unset means `auto` and lets the scheduler size its own cap from page count, while any explicit value means `fixed` and becomes a hard cap. Local OCR ignores the adaptive path entirely and runs two independent pools, one for rendering sized at `min(cpuCount, 4)` and one for OCR itself.
+
+In fan-out mode, each selected OCR target still receives the full document. In pool mode, `--provider-concurrency` and `--local-concurrency` admit target workers, not page claims. Each admitted target can fill its applicable lane up to `--ocr-concurrency`; independent lanes therefore multiply total active page requests, while models sharing the same `service:scopeLabel` lane divide that one cap. For example, three independent hosted lanes at a fixed cap of 10 may reach 30 remote page requests, but two models sharing one account lane still contribute at most 10 combined.
+
+### Pooled Multi-Provider OCR Scheduling Model
+
+The pooled OCR selector owns one ordered page ledger and one pending queue per document. A page can have only one current claim. Eligible workers select pending pages dynamically, with admission fairness based on active target work; completion speed therefore changes page share without changing output order. Page preparation is cached by page number so a handoff reuses the provider-neutral input where safe.
+
+A claim is checkpointed before provider work and names its target, lane, attempt number, unique claim ID, and isolated artifact directory. A completion becomes accepted only when the claim ID still matches and the page has no accepted result. Stale or duplicate completions are recorded in telemetry but cannot overwrite canonical output. Accepted pages are assembled by page number, not completion order or provider directory order.
+
+Transient page failures release the claim. A target that already failed a page is skipped for that page while another eligible target exists. Target-specific blockers retire one target; provider/account blockers retire every target sharing the lane. Active work drains, accepted pages remain, and unfinished work becomes eligible for healthy lanes. Ordinary execution gives each target at most one terminal attempt per page; explicit resume re-enablement authorizes a repaired target or lane to try again. Interrupted claims are unfinished rather than terminal attempts.
+
+Pool telemetry records queue depth and peak, claims, accepted pages, requeues, handoffs, exhausted pages, duplicate commits prevented, ambiguous attempts, recovered interrupted claims, retired targets and lanes, lane caps, retry pressure, pause time, per-target active peaks, throughput, page share, and likely gating target. Pricing uses the same independent-lane and shared-lane assumptions, while actual allocation remains throughput- and failure-dependent.
 
 `--split` is likewise not a simple on/off. Splitting also happens automatically when a file exceeds a provider's attachment cap, duration cap, or request budget, so an unsplit-looking command can still produce segments. The 30-minute default is shrunk per provider by the duration cap, the request budget, and a bytes-per-second estimate against 95% of the attachment cap. When a provider still rejects a segment, up to four adaptive passes halve the segment length down to a 60-second floor.
 
@@ -146,6 +167,8 @@ Text chunking itself is character-count based. Every provider uses a 2000-charac
 - `--tts-chunk-concurrency` is the provider-wide hosted maximum for the current run, not a per-file value.
 - `--batch-concurrency` means file lifecycle and local-work concurrency for hosted TTS batches, not remote provider request concurrency.
 - `--ocr-concurrency` carries a two-state mode contract on `ocrConcurrencyMode`: absent means `auto` and the hosted scheduler sizes its own cap; present means `fixed` and the value is a hard cap. The flag intentionally declares no CLI default so the two states stay distinguishable after config merging.
+- `--ocr-provider-mode` selects full-document `fanout` or shared-page `pool`; `fanout` remains the default. Pool target admission uses the existing provider/local caps, and page admission uses the existing lane identity and OCR cap.
+- Pool scheduler types expose page claims and attempts, target and lane states, accepted-page attribution, and deterministic telemetry. They do not define a second persistence format; ADR-002 owns their canonical projection.
 - Multi-speaker turn callbacks receive an immutable explicit invocation and one shared cancellation signal; provider adapters must consume that invocation rather than capture a selection-time voice.
 - Scheduler telemetry appears in run metadata: provider max/current limits, started and completed chunks, retry counts, 429 counts, queue wait, active time, pause time, and chunk latency percentiles.
 - `provider-lane-contract.ts` and `provider-lane-contract-types.ts` define scheduler-neutral lane identity, admissions, completions, pressure feedback, cancellation, and telemetry vocabulary. TTS, OCR, and STT consume the contract through policy-specific adapters rather than one universal scheduling algorithm.
@@ -162,6 +185,8 @@ Positive outcomes:
 - The divergences between the four schedulers are explicit, which is the prerequisite for deciding whether to unify them.
 - Exact admission attribution makes provider retry and 429 totals reconcilable to individual TTS jobs and chunks.
 - Run-scoped OCR lanes make `--ocr-concurrency` a run-level provider/API-key bound for document extraction and write batches instead of a per-document multiplier.
+- Pooled OCR can combine the useful capacity of independent lanes while proving that same-account models do not multiply their cap.
+- Dynamic page claims let faster targets make progress without static range ownership, and reverse completion still produces source-ordered output.
 
 Negative outcomes:
 
@@ -170,6 +195,7 @@ Negative outcomes:
 - Tests need deterministic scheduling hooks to avoid timing-sensitive assertions.
 - Defaults stay conservative because provider limits vary by account and can change without notice.
 - The inventory has to be revised whenever a lane, flag, or splitting mechanism is added, and it will drift if that does not happen.
+- Page-pool fairness, claim recovery, target retirement, and lane retirement add scheduler states that require deterministic tests.
 
 ## Trade-offs
 
@@ -180,12 +206,14 @@ Negative outcomes:
 | Estimates tied to actual queue mechanics | Need to persist or sample provider throughput data |
 | Actionable post-run diagnostics | More run metadata and summary surface area |
 | Preserves user-facing flags | Internals must reinterpret `--batch-concurrency` for hosted TTS remote work |
+| Dynamic multi-provider OCR throughput | Page-level claim, attempt, and retirement bookkeeping |
 
 ## Implementation Note
 
 - Wall-time estimates in `src/cli/commands/process-steps/step-4-tts/tts-batch-summary.ts` simulate the same work selector, using total chunks, provider cap, adaptive effective capacity, and observed or provider-profile chunk latency. `src/cli/commands/process-steps/step-4-tts/define-tts-command.ts` emits the scheduler summary at the end of batch runs.
 - Multi-speaker turn fan-out runs through the bounded, ordered, cancellable selector in `src/cli/commands/process-steps/step-4-tts/dialogue-work-selector.ts` and `src/cli/commands/process-steps/step-4-tts/run-multi-speaker-tts.ts`, which owns safe turn workspaces.
 - Extract and write document batches create one OCR coordinator with per-document queue adapters at the run boundary in `src/cli/commands/process-steps/step-1-download/download-targets/download-batch/batch-executor.ts`; standalone OCR remains document-scoped.
+- `src/cli/commands/process-steps/step-2-extract/step-2-ocr/ocr-provider-pool.ts` layers the pooled page selector over target admission and provider/account lane identity. `ocr-pooled-batch.ts` supplies isolated attempts and atomic canonical checkpoints without making provider artifacts authoritative.
 - TTS, OCR, and STT consume the scheduler-neutral vocabulary in `src/cli/commands/process-steps/provider-lane-contract.ts` and `src/types/generation-core/provider-lane-contract-types.ts` through policy-specific adapters, retaining their own work selection and failure behavior.
 
 ## Test Plan
@@ -208,7 +236,8 @@ bun test test/test-cases/validation/cli/option-resolution-contracts/
   - `Retry-After` pauses new starts without canceling active chunks.
   - Successful chunks gradually raise capacity back toward the configured maximum.
   - Immutable admission tokens attribute retries and 429s to the exact job and reconcile job totals with lane totals.
-- Unit-test run-scoped OCR admission with two document adapters and prove their combined active page count never exceeds the shared provider cap while their document telemetry remains separate.eir document telemetry remains separate.
+- Unit-test run-scoped OCR admission with two document adapters and prove their combined active page count never exceeds the shared provider cap while their document telemetry remains separate.
+- Unit-test pooled OCR claims, independent-lane multiplication, same-lane sharing, hosted/local target admission, fixed and adaptive caps, reverse completion, handoffs, target/lane retirement, exhaustion, and duplicate-commit prevention.
 - Contract-test shared lane identities with stable human-readable scopes and reject credentials or credential hashes as scope labels.
 - Contract-test hosted providers only with mocked network calls:
   - Grok concurrent file jobs share one coordinator.
@@ -236,6 +265,8 @@ The full set passed on 2026-08-13, covering the scheduler, estimator, telemetry,
 
 - Related ADR: [ADR-009](ADR-009-extract-execution-and-artifact-contracts.md) — the hosted OCR lane, page cap, and throughput profiles described in the inventory above
 - Related ADR: [ADR-002](ADR-002-pipeline-state-resume-and-dry-run-planning.md) — price preflight consumes the same concurrency values when simulating pool wall time
+- Related ADR: [ADR-010](ADR-010-hosted-model-registry-lifecycle-and-capability-policy.md) — provider/model identity, lane eligibility, reasoning, and capability policy
+- Related ADR: [ADR-016](ADR-016-distribute-ocr-pages-across-a-multi-provider-work-pool.md) — the decision to expose fan-out and dynamically claimed pooled OCR modes
 - Concurrency defaults: `src/utils/concurrency-defaults.ts`
 - Flag definitions: `src/cli/flags/shared-flags.ts`, `src/cli/flags/tts-flags.ts`
 - Flag resolution: `src/cli/options/option-resolution/concurrency.ts`
@@ -250,6 +281,7 @@ The full set passed on 2026-08-13, covering the scheduler, estimator, telemetry,
 - Hosted OCR scheduler: `src/cli/commands/process-steps/step-2-extract/step-2-ocr/ocr-utils/hosted-ocr-scheduler.ts`
 - Run-scoped OCR batch boundary: `src/cli/commands/process-steps/step-1-download/download-targets/download-batch/batch-executor.ts`
 - OCR page processing: `src/cli/commands/process-steps/step-2-extract/step-2-ocr/ocr-utils/page-processor.ts`, `src/cli/commands/process-steps/step-2-extract/step-2-ocr/ocr-utils/pdf-chunk-fallback.ts`
+- Pooled OCR page selector: `src/cli/commands/process-steps/step-2-extract/step-2-ocr/ocr-provider-pool.ts`
 - STT batch coordinator: `src/cli/commands/process-steps/step-2-extract/step-2-stt/stt-batch/stt-batch.ts`, `src/cli/commands/process-steps/step-2-extract/step-2-stt/stt-batch/stt-batch-coordinator.ts`, `src/cli/commands/process-steps/step-2-extract/step-2-stt/stt-batch/stt-batch-policy.ts`
 - STT splitting: `src/cli/commands/process-steps/step-2-extract/step-2-stt/stt-split-policy.ts`, `src/cli/commands/process-steps/step-2-extract/step-2-stt/stt-utils/audio-splitter.ts`, `src/cli/commands/process-steps/step-2-extract/step-2-stt/run-stt/split-execution.ts`
 - Retry policies: `src/utils/retries.ts`

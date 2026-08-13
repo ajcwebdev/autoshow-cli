@@ -2,7 +2,9 @@ import { omitFlags, withHelpGroup } from './flag-utils'
 import {
   transcriptionFlags,
   ocrInputFlags,
+  ocrProviderModeFlag,
   ocrTuningFlags,
+  primaryOcrFlag,
   allArticleFlags,
   sharedConcurrencyFlags,
   stepProviderSelectorFlags,
@@ -72,6 +74,7 @@ export const writeFlags = {
   ...withHelpGroup(transcriptionFlags, 'extraction'),
   ...withHelpGroup(ocrInputFlags, 'extraction'),
   ...withHelpGroup(ocrTuningFlags, 'extraction'),
+  ...withHelpGroup({ ...ocrProviderModeFlag, ...primaryOcrFlag }, 'extraction'),
   ...withHelpGroup(allArticleFlags, 'extraction'),
   ...withHelpGroup(epubInspectFlags, 'extraction'),
   ...withHelpGroup(promptFlag, 'writing'),

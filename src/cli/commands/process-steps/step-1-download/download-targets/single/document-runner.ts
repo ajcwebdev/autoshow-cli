@@ -52,12 +52,16 @@ export const logIncompleteOcrRunSummary = (
     | 'missingProviders'
     | 'blockedProviders'
     | 'providerStates'
+    | 'ocrProviderMode'
+    | 'ocrPool'
     | 'outputDir'
   >,
   requestedMultipleProviders: boolean
 ): void => {
   const requestedCount = extraction.requestedProviders?.length ?? 0
-  const succeededCount = countOcrSuccesses(extraction.step2Metadata)
+  const succeededCount = extraction.ocrProviderMode === 'pool'
+    ? extraction.ocrPool?.targets.filter((target) => target.acceptedPages > 0).length ?? 0
+    : countOcrSuccesses(extraction.step2Metadata)
   const failedCount = extraction.step2Errors?.length ?? 0
   const missingCount = extraction.missingProviders?.length ?? 0
   const blockedCount = extraction.blockedProviders?.length ?? 0
@@ -131,7 +135,7 @@ export const logIncompleteOcrRunSummary = (
     })
   }
 
-  if (requestedMultipleProviders && Array.isArray(extraction.providerStates)) {
+  if (requestedMultipleProviders && extraction.ocrProviderMode !== 'pool' && Array.isArray(extraction.providerStates)) {
     const outputRows = extraction.providerStates
       .filter((state) => state['status'] === 'succeeded')
       .map((state) => ({
@@ -231,16 +235,18 @@ export const processOcrSingle = async (
   await appendChapterExportArtifacts(artifactFiles, extraction.step2Metadata, extraction.outputDir)
 
   const requestedCount = extraction.requestedProviders?.length ?? 0
-  const succeededCount = Array.isArray(extraction.step2Metadata) ? extraction.step2Metadata.length : 1
+  const succeededCount = extraction.ocrProviderMode === 'pool'
+    ? extraction.ocrPool?.targets.filter((target) => target.acceptedPages > 0).length ?? 0
+    : Array.isArray(extraction.step2Metadata) ? extraction.step2Metadata.length : 1
   const failedCount = extraction.step2Errors?.length ?? 0
   const requestedMultipleProviders = requestedCount > 1
 
-  if (requestedMultipleProviders && !opts.primaryOcr) {
+  if (requestedMultipleProviders && extraction.ocrProviderMode !== 'pool' && !opts.primaryOcr) {
     delete artifactFiles['result']
     delete artifactFiles['extraction']
   }
 
-  if (requestedMultipleProviders && Array.isArray(extraction.providerStates)) {
+  if (requestedMultipleProviders && extraction.ocrProviderMode !== 'pool' && Array.isArray(extraction.providerStates)) {
     for (const state of extraction.providerStates) {
       const artifactDir = typeof state['artifactDir'] === 'string' ? state['artifactDir'] : undefined
       const service = typeof state['service'] === 'string' ? state['service'] : undefined

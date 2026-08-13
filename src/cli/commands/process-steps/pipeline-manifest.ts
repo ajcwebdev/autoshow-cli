@@ -3098,7 +3098,7 @@ export const createPipelineItemFromRecord = (
     delete metadata[key]
   }
   const providers = createProviderStatesFromRecord(rootDir, record)
-  if (providers.length > 0) {
+  if (providers.length > 0 && record['ocrProviderMode'] !== 'pool') {
     delete metadata['step2']
   }
 
