@@ -99,7 +99,8 @@ const DIALOGUE_OPTIONS: TtsOptions = {
 
 const createDialogueFixtureTarget = (
   calls: number[],
-  model = 'fixture-dialogue-recovery-model'
+  model = 'fixture-dialogue-recovery-model',
+  acceptedErrorSourceIndex?: number | undefined
 ): TtsTarget => {
   const operation = 'tts-synthesis' as const
   const transport = 'hosted-api'
@@ -128,6 +129,7 @@ const createDialogueFixtureTarget = (
         continuation: { kind: 'none' }
       }, { attempt: 1 }, async ({ accepted }) => {
         await accepted({ providerRequestId: `dialogue-${sourceIndex}` })
+        if (sourceIndex === acceptedErrorSourceIndex) throw new Error(`fixture failed after accepting source ${sourceIndex}`)
         await Bun.write(audioPath, bytes)
       })
       if (!requestEvidence) await Bun.write(audioPath, bytes)
@@ -580,6 +582,50 @@ describe('TTS completed-render recovery', () => {
         onProviderState: async () => {}
       })
       expect(noOpCalls).toEqual([])
+    })
+  })
+
+  test('preserves compatible ambiguous admissions across a render identity change', async () => {
+    await withTempDir('autoshow-tts-cross-render-ambiguity-', async (dir) => {
+      const text = 'Host: Keep this retained voice.\nGuest: Preserve this ambiguous request.\nNarrator: Change only this unstarted voice.'
+      const sourceIdentity = createInlineTtsSourceIdentity(text)
+      const initialOptions: TtsOptions = { ...DIALOGUE_OPTIONS, ttsSpeakers: ['Host=alloy', 'Guest=echo', 'Narrator=nova'] }
+      const dialoguePlan = createGenericTtsDialoguePlan(sourceIdentity, text, initialOptions, new Date(0).toISOString())
+      const firstCalls: number[] = []
+      const retainedStates: PipelineProviderState[] = []
+      await expect(runTtsForTargets(text, dir, initialOptions, [createDialogueFixtureTarget(firstCalls, 'fixture-dialogue-recovery-model', 1)], {
+        sourceIdentity,
+        dialoguePlan,
+        beforeDispatch: async () => {},
+        onProviderState: async (state) => { retainedStates.push(state) }
+      })).rejects.toThrow(/Recovery checkpoint: 1\/3 generation slots retained; 2 unresolved\. 1 unresolved slot has ambiguous provider admission/)
+      const retained = retainedStates.at(-1)
+      if (!retained) throw new Error('Missing retained cross-render ambiguity state')
+      expect(firstCalls).toEqual([0, 1])
+
+      const changedVoiceOptions: TtsOptions = { ...initialOptions, ttsSpeakers: ['Host=alloy', 'Guest=echo', 'Narrator=onyx'] }
+      const price = await planCurrentTtsResumePrice({
+        rootDir: dir,
+        state: retained,
+        target: createDialogueFixtureTarget([]),
+        sourceText: text,
+        ttsOptions: changedVoiceOptions,
+        sourceIdentity,
+        dialoguePlan
+      })
+      expect(price).toMatchObject({ recoveryKind: 'partial-slots', recoveredSlotCount: 1, unresolvedSlotCount: 2, plannedSlotCount: 2 })
+      expect(price.reconciliationBlockers).toEqual([expect.objectContaining({ state: 'provider-accepted', attempt: 1, requestOrdinal: 2 })])
+
+      const blockedCalls: number[] = []
+      await expect(runTtsForTargets(text, dir, changedVoiceOptions, [createDialogueFixtureTarget(blockedCalls)], {
+        sourceIdentity,
+        dialoguePlan,
+        retainedProviderStates: [retained],
+        recoveryRootDir: dir,
+        beforeDispatch: async () => {},
+        onProviderState: async () => {}
+      })).rejects.toThrow(/Stored compatible TTS generation slot .* has provider-accepted provider work/)
+      expect(blockedCalls).toEqual([])
     })
   })
 

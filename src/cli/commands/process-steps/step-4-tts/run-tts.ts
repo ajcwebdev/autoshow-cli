@@ -285,7 +285,7 @@ export const runTtsTargets = async (
         comicContext: sourceContext?.comicContext
       })
       if (compatibleRecovery) {
-        recoveredSlots = compatibleRecovery.recoveredSlots
+        if (compatibleRecovery.kind === 'partial-slots') recoveredSlots = compatibleRecovery.recoveredSlots
         retainedCumulativePlannedCost = compatibleRecovery.retainedCumulativePlannedCost
       }
     }

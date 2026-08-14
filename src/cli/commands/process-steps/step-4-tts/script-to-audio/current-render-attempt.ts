@@ -2437,15 +2437,24 @@ export const prepareCurrentTtsCompatibleSlotRecovery = async (options: PureCurre
   artifactRoot?: string | undefined
   state: PipelineProviderState
   materialize?: boolean | undefined
-}): Promise<CurrentTtsPartialRecovery | undefined> => {
+  reconciliationMode?: 'enforce' | 'report' | undefined
+}): Promise<CurrentTtsPartialRecovery | CurrentTtsSafeRedispatch | undefined> => {
   const pure = buildPureCurrentTtsRenderPlan(options)
   if (pure.planned.strategy !== 'segmented' || options.state.targetKey !== pure.targetKey) return undefined
+  if (options.materialize !== false && options.reconciliationMode !== 'report' && options.ttsOptions.ttsAllowAmbiguousRedispatch !== true) {
+    const report = await prepareCurrentTtsCompatibleSlotRecovery({ ...options, materialize: false, reconciliationMode: 'report' })
+    const blocker = report?.reconciliationBlockers[0]
+    if (blocker) {
+      throw CLIUsageError(`Stored compatible TTS generation slot ${blocker.generationSlotId} has ${blocker.state} provider work in attempt ${blocker.attempt}, request ${blocker.requestOrdinal}; automatic redispatch is blocked pending reconciliation. Pass --tts-allow-ambiguous-redispatch to safely reconcile the pending slot, reuse all completed segment audio, and resume synthesis without deleting output directories or losing work.`)
+    }
+  }
   const projection = readAudioProjection(options.state)
   if (!projection) return undefined
   const providerRoot = resolve(options.rootDir, options.state.artifactDir)
   const currentRenderRoot = resolve(providerRoot, 'renders', pure.renderIdentity)
   const currentSlots = new Map(pure.planned.slots.map((slot) => [slot.generationSlotId, slot] as const))
   const recovered = new Map<string, CurrentTtsRecoveredGenerationSlot>()
+  const blockerCandidates = new Map<string, CurrentTtsReconciliationBlocker>()
 
   for (const retainedRender of [...projection.renderHistory].reverse()) {
     if (retainedRender.renderIdentity === pure.renderIdentity) continue
@@ -2467,6 +2476,112 @@ export const prepareCurrentTtsCompatibleSlotRecovery = async (options: PureCurre
       || retainedPlan.transport !== currentPlan.transport
       || canonicalTtsJson(retainedPlan.requestedOutput) !== canonicalTtsJson(currentPlan.requestedOutput)
     ) continue
+
+    const retainedSlotIds = retainedPlan.batches.flatMap((batch) => batch.generationSlots.map((slot) => slot.generationSlotId))
+    const compatibleSlotIds = new Set(retainedSlotIds.filter((generationSlotId) => {
+      if (!currentSlots.has(generationSlotId)) return false
+      const oldCompatibilityHash = compatibleSegmentedSlotHash(retainedPlan, generationSlotId)
+      return oldCompatibilityHash !== undefined && oldCompatibilityHash === compatibleSegmentedSlotHash(currentPlan, generationSlotId)
+    }))
+    if (compatibleSlotIds.size === 0) continue
+
+    type CompatibleJournalEvidence = Readonly<{
+      value: RenderAdmissionJournalSnapshot
+      path: string
+      sha256: string
+      attemptRoot: string
+    }>
+    const knownJournalSnapshots = new Set<string>()
+    const directEvidenceByAttemptRoot = new Map<string, CompatibleJournalEvidence[]>()
+    for (const event of retainedRender.events) {
+      if (!event.admissionJournalRef && !event.admissionJournalSha256 && !event.admissionJournalSnapshotId) continue
+      if (!event.admissionJournalRef || !event.admissionJournalSha256 || !event.admissionJournalSnapshotId) {
+        throw CLIUsageError('Stored compatible TTS admission journal reference is incomplete.')
+      }
+      if (knownJournalSnapshots.has(event.admissionJournalSnapshotId)) continue
+      const path = resolveRetainedPath(providerRoot, event.admissionJournalRef, 'Stored compatible TTS admission journal')
+      const value = await readVerifiedJson<RenderAdmissionJournalSnapshot>(options.rootDir, path, event.admissionJournalSha256, 'Stored compatible TTS admission journal')
+      validateRenderAdmissionJournalSnapshot(value)
+      if (
+        value.snapshotId !== event.admissionJournalSnapshotId
+        || value.renderIdentity !== retainedPlan.renderIdentity
+        || value.renderPlanId !== retainedPlan.renderPlanId
+        || value.requests.some((request) => !retainedSlotIds.includes(request.generationSlotId))
+      ) throw CLIUsageError('Stored compatible TTS admission journal does not bind its retained render and generation-slot set.')
+      const evidence = { value, path, sha256: event.admissionJournalSha256, attemptRoot: dirname(path) }
+      const entries = directEvidenceByAttemptRoot.get(evidence.attemptRoot) ?? []
+      entries.push(evidence)
+      directEvidenceByAttemptRoot.set(evidence.attemptRoot, entries)
+      knownJournalSnapshots.add(value.snapshotId)
+    }
+
+    const journalFrontiers = new Map<string, CompatibleJournalEvidence>()
+    for (const [attemptRoot, directAttemptEvidence] of directEvidenceByAttemptRoot) {
+      let attemptFrontier = directAttemptEvidence.at(-1) as CompatibleJournalEvidence
+      const orphanJournalCandidates: CompatibleJournalEvidence[] = []
+      for (const name of (await readdir(attemptRoot)).filter((entry) => /^admission-journal-\d+\.json$/.test(entry)).sort()) {
+        const path = resolve(attemptRoot, name)
+        const retained = await readContainedArtifactFile(options.rootDir, contained(options.rootDir, path))
+        let value: RenderAdmissionJournalSnapshot
+        try {
+          value = JSON.parse(retained.bytes.toString('utf8')) as RenderAdmissionJournalSnapshot
+          validateRenderAdmissionJournalSnapshot(value)
+        } catch {
+          throw CLIUsageError('Stored compatible TTS attempt contains an invalid orphan admission-journal artifact; reconciliation is required.')
+        }
+        if (knownJournalSnapshots.has(value.snapshotId)) continue
+        if (
+          value.journalId !== attemptFrontier.value.journalId
+          || value.renderIdentity !== retainedPlan.renderIdentity
+          || value.renderPlanId !== retainedPlan.renderPlanId
+          || value.invocationId !== attemptFrontier.value.invocationId
+          || value.attempt !== attemptFrontier.value.attempt
+        ) throw CLIUsageError('Stored compatible TTS attempt contains a cross-attempt orphan journal; reconciliation is required.')
+        orphanJournalCandidates.push({ value, path, sha256: retained.sha256, attemptRoot })
+      }
+      const attemptJournalBySnapshot = new Map<string, CompatibleJournalEvidence>(
+        directAttemptEvidence.map((entry) => [entry.value.snapshotId, entry])
+      )
+      for (const candidate of orphanJournalCandidates) attemptJournalBySnapshot.set(candidate.value.snapshotId, candidate)
+      let ancestor = attemptFrontier
+      while (ancestor.value.previousSnapshotId) {
+        const candidate = attemptJournalBySnapshot.get(ancestor.value.previousSnapshotId)
+        if (!candidate) break
+        validateRenderAdmissionJournalSnapshot(ancestor.value, candidate.value)
+        const orphanIndex = orphanJournalCandidates.indexOf(candidate)
+        if (orphanIndex >= 0) orphanJournalCandidates.splice(orphanIndex, 1)
+        ancestor = candidate
+      }
+      while (true) {
+        const children = orphanJournalCandidates.filter((candidate) => candidate.value.previousSnapshotId === attemptFrontier.value.snapshotId)
+        if (children.length === 0) break
+        if (children.length !== 1) throw CLIUsageError('Stored compatible TTS attempt contains a forked orphan journal chain; reconciliation is required.')
+        const child = children[0] as CompatibleJournalEvidence
+        validateRenderAdmissionJournalSnapshot(child.value, attemptFrontier.value)
+        attemptFrontier = child
+        knownJournalSnapshots.add(child.value.snapshotId)
+        orphanJournalCandidates.splice(orphanJournalCandidates.indexOf(child), 1)
+      }
+      if (orphanJournalCandidates.length > 0) {
+        throw CLIUsageError('Stored compatible TTS attempt contains an unchained orphan journal; reconciliation is required.')
+      }
+      journalFrontiers.set(attemptFrontier.value.journalId, attemptFrontier)
+    }
+    for (const evidence of journalFrontiers.values()) {
+      for (const request of evidence.value.requests) {
+        if (!compatibleSlotIds.has(request.generationSlotId)) continue
+        const state = request.transitions.at(-1)?.state
+        if (
+          state === undefined
+          || state === 'completed'
+          || state === 'prepared'
+          || state === 'provider-rejected'
+          || state === 'confirmed-not-admitted'
+        ) continue
+        const blocker = { generationSlotId: request.generationSlotId, state, attempt: evidence.value.attempt, invocationId: evidence.value.invocationId, requestOrdinal: request.requestOrdinal }
+        blockerCandidates.set(`${retainedPlan.renderIdentity}\0${evidence.value.journalId}\0${request.requestOrdinal}`, blocker)
+      }
+    }
 
     for (const event of [...retainedRender.events].reverse()) {
       for (const batch of event.batchProgress ?? []) {
@@ -2635,8 +2750,19 @@ export const prepareCurrentTtsCompatibleSlotRecovery = async (options: PureCurre
       }
     }
   }
-  if (recovered.size === 0) return undefined
-  return { kind: 'partial-slots', recoveredSlots: [...recovered.values()], retainedCumulativePlannedCost: { amounts: [] }, reconciliationBlockers: [] }
+  const reconciliationBlockers = [...blockerCandidates.values()]
+    .filter((blocker) => !recovered.has(blocker.generationSlotId))
+    .sort((left, right) => left.attempt - right.attempt || left.requestOrdinal - right.requestOrdinal)
+  const blocker = reconciliationBlockers[0]
+  if (blocker && options.reconciliationMode !== 'report' && options.ttsOptions.ttsAllowAmbiguousRedispatch !== true) {
+    throw CLIUsageError(`Stored compatible TTS generation slot ${blocker.generationSlotId} has ${blocker.state} provider work in attempt ${blocker.attempt}, request ${blocker.requestOrdinal}; automatic redispatch is blocked pending reconciliation. Pass --tts-allow-ambiguous-redispatch to safely reconcile the pending slot, reuse all completed segment audio, and resume synthesis without deleting output directories or losing work.`)
+  }
+  if (recovered.size === 0) {
+    return reconciliationBlockers.length === 0
+      ? undefined
+      : { kind: 'safe-redispatch', retainedCumulativePlannedCost: { amounts: [] }, reconciliationBlockers }
+  }
+  return { kind: 'partial-slots', recoveredSlots: [...recovered.values()], retainedCumulativePlannedCost: { amounts: [] }, reconciliationBlockers }
 }
 
 export type CurrentTtsResumePricePlan = Readonly<{
@@ -2667,7 +2793,7 @@ export const planCurrentTtsResumePrice = async (options: PureCurrentTtsRenderPla
     ? await prepareCurrentTtsCompletedRecovery({ rootDir, state, ...planOptions, reconciliationMode: 'report' })
     : undefined
   const compatibleRecovery = state && projection?.activeWork?.kind === 'render' && !retainedHasPlannedRender
-    ? await prepareCurrentTtsCompatibleSlotRecovery({ rootDir, outputDir: rootDir, state, ...planOptions, materialize: false })
+    ? await prepareCurrentTtsCompatibleSlotRecovery({ rootDir, outputDir: rootDir, state, ...planOptions, materialize: false, reconciliationMode: 'report' })
     : undefined
   const effectiveRecovery = recovery ?? compatibleRecovery
   const recoveredIds = new Set(effectiveRecovery?.kind === 'complete-render'
