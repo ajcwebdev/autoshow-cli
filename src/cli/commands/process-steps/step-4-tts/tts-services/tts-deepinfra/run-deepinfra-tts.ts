@@ -117,7 +117,8 @@ export const runDeepinfraTts = async (
         const json = await res.json() as { audio?: string, audio_b64?: string }
         const b64 = json.audio || json.audio_b64
         if (b64) {
-          return new Uint8Array(Buffer.from(b64, 'base64'))
+          const cleanB64 = b64.includes('base64,') ? (b64.split('base64,')[1] ?? b64) : b64
+          return new Uint8Array(Buffer.from(cleanB64, 'base64'))
         }
         return new Uint8Array(await res.arrayBuffer())
       })

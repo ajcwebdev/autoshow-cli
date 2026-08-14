@@ -77,7 +77,7 @@ export const runInworldTts = async (
     speaker: voice,
     chunks,
     outputDir,
-    chunkExtension: 'wav',
+    chunkExtension: 'mp3',
     startTime: Date.now(),
     abortSignal: options.abortSignal,
     chunkConcurrency: options.chunkConcurrency,
@@ -89,20 +89,20 @@ export const runInworldTts = async (
         endpointKind: 'realtime-tts',
         serializerVersion: 'inworld.tts.phase-3-v1',
         serializedRequest: {
-          path: '/v1/tts/synthesize',
+          path: '/tts/v1/voice',
           body: {
             text: chunk,
-            voice,
-            model: options.model,
+            voiceId: voice === 'voice_inworld_standard_en' ? 'Dennis' : voice,
+            modelId: options.model === 'realtime-tts-2' ? 'inworld-tts-2' : options.model,
             ...(options.steeringPrompt ? { steering_prompt: options.steeringPrompt } : {}),
             ...(markups.length > 0 ? { markups } : {})
           }
         },
         providerText: chunk,
-        voiceField: 'voice',
+        voiceField: 'voiceId',
         voices: [{ kind: 'provider-id', value: voice }],
         requestControls: {
-          format: 'wav',
+          format: 'mp3',
           ...(options.steeringPrompt ? { steeringPrompt: options.steeringPrompt } : {}),
           ...(markups.length > 0 ? { markups } : {})
         },
@@ -113,25 +113,32 @@ export const runInworldTts = async (
           const duration = Math.max(0.5, chunk.length * 0.05)
           return generateSimpleWavBuffer(duration)
         }
-        const res = await fetch('https://api.inworld.ai/v1/tts/synthesize', {
+        const resolvedVoice = voice === 'voice_inworld_standard_en' ? 'Dennis' : voice
+        const authHeader = options.apiKey.startsWith('Basic ') ? options.apiKey : `Basic ${options.apiKey}`
+        const res = await fetch('https://api.inworld.ai/tts/v1/voice', {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
-            'Authorization': `Bearer ${options.apiKey}`
+            'Authorization': authHeader
           },
           body: JSON.stringify({
             text: chunk,
-            voice,
-            model: options.model,
+            voiceId: resolvedVoice,
+            modelId: options.model === 'realtime-tts-2' ? 'inworld-tts-2' : options.model,
             ...(options.steeringPrompt ? { steering_prompt: options.steeringPrompt } : {}),
             ...(markups.length > 0 ? { markups } : {})
           }),
           ...(options.abortSignal ? { signal: options.abortSignal } : {})
         })
         if (!res.ok) {
-          throw new Error(`Inworld AI TTS request failed with status ${res.status}: ${await res.text()}`)
+          const errText = await res.text()
+          throw new Error(`Inworld AI TTS request failed with status ${res.status}: ${errText}`)
         }
-        return new Uint8Array(await res.arrayBuffer())
+        const data = await res.json() as { audioContent?: string }
+        if (!data.audioContent) {
+          throw new Error('Inworld AI TTS response missing audioContent')
+        }
+        return new Uint8Array(Buffer.from(data.audioContent, 'base64'))
       })
     }
   })

@@ -445,7 +445,7 @@ const serializerContract = (
     case 'fish':
       return { endpointKind: 'speech-synthesis', serializerVersion: 'fish.tts.phase-0-v1', controls: { format: 'wav' } }
     case 'inworld':
-      return { endpointKind: 'realtime-tts', serializerVersion: 'inworld.tts.phase-3-v1', controls: { format: 'wav' } }
+      return { endpointKind: 'realtime-tts', serializerVersion: 'inworld.tts.phase-3-v1', controls: { format: 'mp3' } }
     case 'deepinfra':
       return { endpointKind: 'inference', serializerVersion: 'deepinfra.tts.phase-4-v1', controls: { format: 'wav' } }
     case 'replicate':
@@ -521,7 +521,7 @@ const serializerVoiceField = (
     case 'mistral': return voiceKind === 'reference-asset' ? 'ref_audio' : 'voice_id'
     case 'minimax': return 'voice_setting.voice_id'
     case 'fish': return 'reference_id'
-    case 'inworld': return 'voice'
+    case 'inworld': return 'voiceId'
     case 'deepinfra': return 'preset_voice'
     case 'replicate': return 'input.voice'
   }

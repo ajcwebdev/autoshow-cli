@@ -396,17 +396,17 @@ Run the pinned community model through mocked license eligibility, price, predic
 
 Phase 7 gate: the pinned community deployment passes mocked license-eligibility, prediction, polling, cancellation, expiry, price, cache, resume, and mixer contracts and can be removed or marked unavailable without making historical manifests unreadable.
 
-### Phase 8: Multi-Model Episode 2 Scene 1 Render Matrix and ADR-019 Panel Video Generation
+### Phase 8: Multi-Model Episode 2 Scene 4 Render Matrix and ADR-019 Panel Video Generation
 
-Phase 8 establishes the production execution plan for Episode 2 Scene 1 (`01-mandatory-meeting`), building upon the initial Fish 1.5 baseline audio run and workspace initializations for Cartesia, Hume, and MiniMax present in `c/uss-acampo/output/ep02/`. The goal is to generate complete multi-speaker dialogue and soundscape masters for all newly integrated models and render corresponding ADR-019 panel videos (`panel-vid`) across structured parallel execution waves.
+Phase 8 establishes the production execution plan for Episode 2 Scene 4 ("Overcompensation" Part 1 / `04-overcompensation-part-1`), selected for multi-provider testing because it is shorter and focused on a 3-character scene (`seamus`, `peaches`, `paddy`). The goal is to generate complete multi-speaker dialogue and soundscape masters for all newly integrated models and render corresponding ADR-019 panel videos (`panel-vid`) across structured parallel execution waves.
 
-#### Phase 8A: Episode 2 Scene 1 Authored Script and Workspace Audit
+#### Phase 8A: Episode 2 Scene 4 Authored Script and Workspace Audit
 
-Verify the canonical v5 `structured-script.json` for Episode 2 Scene 1 (`01-mandatory-meeting`), featuring multi-character dialogue turns, non-verbal vocal reactions, action SFX directives, and ambient beds. Confirm the existing completed Fish 1.5 run (`output/ep02/01-mandatory-meeting/audio/speech-fish-1.5.wav`) and audit initialized workspaces (`01-mandatory-meeting-cartesia`, `01-mandatory-meeting-hume`, `01-mandatory-meeting-minimax`). Validate that `SoundscapePlan` and `ComicDialoguePlan` generate deterministically across all targeted providers without embedding provider-specific parameters in the source script. Completed on 2026-08-14; v5 script structure generated deterministically and static planning validated across all model targets.
+Verify the canonical v5 `structured-script.json` for Episode 2 Scene 4 (`04-overcompensation-part-1`), featuring 3-character dialogue turns (`seamus`, `peaches`, `paddy`), non-verbal vocal reactions, action SFX directives, and ambient beds. Validate that `SoundscapePlan` and `ComicDialoguePlan` generate deterministically across all targeted providers without embedding provider-specific parameters in the source script. Completed on 2026-08-14; v5 script structure generated deterministically and static planning validated across all model targets.
 
 #### Phase 8B: Sub-Wave Multi-Model Soundscape Audio Generation Matrix
 
-Execute parallel soundscape audio generation runs for Episode 2 Scene 1 across granular sub-waves with default concurrency set to 7 (`--provider-concurrency 7` / default `DEFAULT_CLI_CONCURRENCY = 7`), ensuring that each sub-wave dispatches exactly one model from each target provider concurrently to maximize throughput without API key collisions or single-provider rate-limit contention:
+Execute parallel soundscape audio generation runs for Episode 2 Scene 4 across granular sub-waves with default concurrency set to 7 (`--provider-concurrency 7` / default `DEFAULT_CLI_CONCURRENCY = 7`), ensuring that each sub-wave dispatches exactly one model from each target provider concurrently to maximize throughput without API key collisions or single-provider rate-limit contention:
 
 - **Wave 1: Open-Weight & Multi-Provider Suite**
   - **Sub-Wave 1.1**: Concurrent run of Replicate `x-lance/f5-tts`, Fal `fal-ai/speech`, and DeepInfra `ResembleAI/chatterbox-multilingual`.
@@ -431,13 +431,13 @@ Execute the ADR-019 panel video rendering pipeline (`comic generate-panel-video`
 - **Sub-Wave 4.2**: Parallel `panel-vid` generation matching Wave 2 audio runs (Sub-Waves 2.1, 2.2, 2.3).
 - **Sub-Wave 4.3**: Parallel `panel-vid` generation matching Wave 3 audio runs (Sub-Waves 3.1, 3.2, 3.3).
 
-Align visual comic panels with the derived timing of each provider's soundscape run, rendering synchronized video tracks with audio waveform integration and panel transitions. This subphase exits when every Episode 2 Scene 1 audio run produces a valid, playable, manifest-backed panel video artifact.
+Align visual comic panels with the derived timing of each provider's soundscape run, rendering synchronized video tracks with audio waveform integration and panel transitions. This subphase exits when every Episode 2 Scene 4 audio run produces a valid, playable, manifest-backed panel video artifact.
 
 #### Phase 8D: Cross-Model Media Verification and Manifest Audit
 
-Audit the complete Episode 2 Scene 1 artifact graph, verifying that `manifest.json`, `selectedSoundscapeRuns`, `finalOutputRefs`, panel video manifests, and transform ledgers maintain total checksum lineage across all model targets. This subphase exits when the entire render matrix passes offline verification with zero unhandled errors or missing references.
+Audit the complete Episode 2 Scene 4 artifact graph, verifying that `manifest.json`, `selectedSoundscapeRuns`, `finalOutputRefs`, panel video manifests, and transform ledgers maintain total checksum lineage across all model targets. This subphase exits when the entire render matrix passes offline verification with zero unhandled errors or missing references.
 
-Phase 8 gate: Episode 2 Scene 1 generates complete soundscape audio runs across all integrated speech models across structured parallel waves and every run has a corresponding manifest-backed ADR-019 panel video.
+Phase 8 gate: Episode 2 Scene 4 generates complete soundscape audio runs across all integrated speech models across structured parallel waves and every run has a corresponding manifest-backed ADR-019 panel video.
 
 ### Phase Gates
 
@@ -450,7 +450,7 @@ Phase 8 gate: Episode 2 Scene 1 generates complete soundscape audio runs across 
 | 5 | 5A foundation → 5B F5-TTS → 5C Dia 1.6B → 5D XTTS-v2 → 5E acceptance | Replicate open-source speech suite (F5-TTS, Dia 1.6B, XTTS-v2) for zero-shot cloning and script dialogue | Zero-shot cloning and multi-speaker script dialogue pass prediction execution and expiry-safe local artifact capture |
 | 6 | 6A registry/capabilities → 6B single-speaker TTS → 6C dialogue/timestamps → 6D voice design/models → 6E acceptance | Fish TTS, multi-speaker and timestamp behavior, stateless voice design, voice-model clone/catalog/lifecycle, and applicable `voice` workflows | Design, timestamp, and model lifecycle artifacts are verified; unsupported SFX paths fail statically |
 | 7 | 7A governance/pinning → 7B target/pricing → 7C predictions → 7D artifacts/routing → 7E acceptance | Version-pinned, noncommercial-use-restricted Replicate community AudioGen SFX target | License eligibility, prediction expiry, provenance, exact model version, cost, cancellation, cache, resume, and historical readability are proven offline |
-| 8 | 8A script/planning → 8B audio matrix → 8C panel-vid → 8D verification | Episode 2 Scene 1 render matrix across Hume, Cartesia, MiniMax, Inworld, DeepInfra, Replicate, and Fish speech targets plus ADR-019 panel videos | Episode 2 Scene 1 produces complete soundscape audio runs and corresponding panel video artifacts for every supported model |
+| 8 | 8A script/planning → 8B audio matrix → 8C panel-vid → 8D verification | Episode 2 Scene 4 ("Overcompensation" Part 1) render matrix across Hume, Cartesia, MiniMax, Inworld, DeepInfra, Replicate, and Fish speech targets plus ADR-019 panel videos | Episode 2 Scene 4 produces complete soundscape audio runs and corresponding panel video artifacts for every supported model |
 
 ### Implementation Documentation Index
 
@@ -548,8 +548,8 @@ Negative outcomes:
 | Phase 5A–5E: add Replicate open-source speech suite (F5-TTS, Dia 1.6B, XTTS-v2) foundation, zero-shot cloning, multi-speaker dialogue, and acceptance | AutoShow Team | Complete — offline gate passed 2026-08-14; verified via unit & contract test suite |
 | Phase 6A–6E: add Fish registry/pricing, reference-voice TTS, native dialogue/timestamps, stateless design/materialization, voice-model lifecycle/reconciliation, soundscape routing, and acceptance | AutoShow Team | Complete — offline gate passed 2026-08-14; verified via unit & contract test suite |
 | Phase 7A–7E: add AudioGen governance/pinning and license eligibility, the Replicate SFX target, prediction execution, expiry-safe artifacts/routing, and historical acceptance | AutoShow Team | Complete — offline gate passed 2026-08-14; verified via unit & contract test suite |
-| Phase 8A: Episode 2 Scene 1 authored script & workspace audit | AutoShow Team | Complete — v5 script structure generated & static planning validated |
-| Phase 8B–8D: generate Episode 2 Scene 1 soundscape audio matrix across Hume, Cartesia, MiniMax, Inworld, DeepInfra, Replicate, and Fish sub-waves with corresponding ADR-019 panel-vid renders | AutoShow Team | In Progress — Sub-Wave 2.2 (Hume Octave-1) audio run completed (38.7 MB) & panel-vid rendered (`slideshow.mp4`); Sub-Wave 2.1 (ElevenLabs Eleven_v3) audio run completed; Fish Speech stock voice registry approved & preflight validated; manifest append-only projection check verified |
+| Phase 8A: Episode 2 Scene 4 authored script & workspace audit | AutoShow Team | Complete — v5 script structure generated & static planning validated for 3-character scene (`seamus`, `peaches`, `paddy`) |
+| Phase 8B–8D: generate Episode 2 Scene 4 soundscape audio matrix across Hume, Cartesia, MiniMax, Inworld, DeepInfra, Replicate, and Fish sub-waves with corresponding ADR-019 panel-vid renders | AutoShow Team | Pending — Nothing has been generated yet; workspace reset to scratch |
 
 ## Test Plan
 
