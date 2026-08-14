@@ -80,12 +80,14 @@ structured-script.json
 
 | Owner | Responsibilities | Must not own |
 |---|---|---|
-| Comic workflow | `CharacterVoiceBrief`, canonical character/role resolution, reference approval, `ComicDialoguePlan`, scene voice snapshot, panel/source synchronization, effect intent, comic output paths | Provider HTTP clients, provider model registries, request retry policy, provider pricing |
+| Comic workflow | `CharacterVoiceBrief`, canonical character/role resolution, reference approval, `ComicDialoguePlan`, scene voice snapshot, source provenance required by downstream consumers, effect intent, comic output paths | Provider HTTP clients, provider model registries, request retry policy, provider pricing, presentation timing or video rendering |
 | Script-to-audio workflow | Provider voice references and registrations, capability facets, access state, explicit synthesis invocation, provider preflight, render planning, timing normalization, segmented/native execution, audio assembly, cache keys, synthesis metadata | Comic scene drafting, panel semantics, visual character schema |
 | Provider adapter | Exact catalog, design, clone, lifecycle, request, response, limit, timing, continuation, and access-state mappings for one provider/model | Cross-provider casting policy, comic source parsing, silent fallback |
 | Local artifact layer | Checksums, atomic promotion, versioned domain artifacts, caches, canonical-manifest references, mastering and effects | A second pipeline manifest, an independent resume authority, remote deletion as ordinary cleanup, secrets or raw consent PII in artifacts |
 
 Types remain grouped under the existing `tts-workflow` and `comic-workflow` domains behind the `~/types` barrel in accordance with ADR-003. Shared types may not import comic implementation modules; comic maps its `CharacterKey` and role keys into shared speaker/profile identifiers at the boundary.
+
+ADR-019 consumes the immutable `AudioRun`, final dialogue output, and original `FinalTimeline` as read-only synchronization evidence. It owns panel reconciliation, presentation timing, derived audio recomposition, and still-image MP4 rendering. A presentation run never changes voice identity, provider execution evidence, dialogue ranges on the original clock, or any ADR-014 artifact.
 
 ### Canonical Scene-Run and Domain Artifact Contract
 
@@ -308,7 +310,7 @@ Negative outcomes:
 
 - Shared TTS carries immutable explicit per-turn invocations through all 12 adapters, asserts actual A/B/A request serialization, plans strict Gemini exactly-two-speaker native rendering with turn-safe batching, bounds and cancels dialogue work through the shared scheduler, rejects explicit, configured, and inherited creation defaults before target collection, retains the strategy-appropriate render artifacts, and persists operation-scoped target identities with strict `ttsAudio` projections and append-only render history.
 - The protected store holds content-addressed purpose and retention policy for references, candidate previews, auditions, consent, and reconciliation evidence under owner-only roots kept realpath-disjoint from output roots. The shared `voice` surface and the `comic reference-voice` alias import, audition, approve, reconcile, retire, revoke, delete, and inspect registrations through crash-safe provisioning journals; all remote creation, including Mistral saved references, is confined to management.
-- Comic writes one canonical `command: 'comic'` scene manifest, structured-script v4 embeds source identity and Unicode source spans, and `comic generate-audio` selects only an exact compatible existing scene run, resolves every target and role through one immutable approved aggregate snapshot, and reuses the shared branch, readiness, admission, render, result, and audio-run machinery under the `comicAudio` namespace with explicit 16/24-bit mono/stereo WAV mastering.
+- Comic writes one canonical `command: 'comic'` scene manifest, structured-script v5 embeds source identity, Unicode source spans, and the ADR-018 soundscape envelope, and `comic generate-audio` selects only an exact compatible existing scene run, resolves every target and role through one immutable approved aggregate snapshot, and reuses the shared branch, readiness, admission, render, result, and audio-run machinery under the `comicAudio` namespace with explicit 16/24-bit mono/stereo WAV mastering.
 - ElevenLabs and Hume are implemented as the first-class advanced adapters against dated capability fixtures: catalog discovery, design and remix lineage, clone state, lifecycle, bounded turn-safe Text-to-Dialogue with prepared-text alignment, Octave model-constrained direction and timing, one-to-five native takes, and selected-generation continuation.
 - MiniMax, Cartesia, and Speechify expose catalog, design, clone, and lifecycle facets. Their fixtures mark Cartesia and Speechify text-prompt design and all three providers' native multi-speaker dialogue unsupported, so those providers keep the segmented baseline. No new provider was added because no remaining casting or privacy gap was demonstrated.
 - Benchmark identity uses the adapter target plus render and optional registration, snapshot-entry, and character identity, with the non-reusable `legacy:` fallback for pre-ADR single-voice state. ADR-013 records the refreshed provider catalogs, and ADR-008 records the dialogue selector.
@@ -364,6 +366,7 @@ Do not run hosted TTS commands, live voice creation, provider smoke tests, or e2
 - Related ADR: [ADR-008](ADR-008-decompose-work-into-chunks-and-concurrency-lanes.md) — hosted TTS provider lanes and bounded turn selector
 - Related ADR: [ADR-010](ADR-010-hosted-model-registry-lifecycle-and-capability-policy.md) — TTS model contracts and voice capability boundaries
 - Related ADR: [ADR-013](ADR-013-2026-hosted-model-refresh-ledger.md) — TTS catalog refresh history
+- Related ADR: [ADR-019](ADR-019-synchronize-comic-panels-with-manifest-backed-audio.md) — downstream panel synchronization and still-image presentation
 - Source report: [Comic Character Voice and Multi-Character TTS Options](../reports/comic-character-tts-options-report.md)
 - `src/types/tts-workflow/tts-types.ts`
 - `src/cli/commands/process-steps/step-4-tts/define-tts-command.ts`

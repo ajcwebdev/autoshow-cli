@@ -55,6 +55,7 @@ export const HELP_FLAG_GROUPS = [
   ['comic-qa', 'Image QA'],
   ['comic-stages', 'Scene Drafting'],
   ['comic-audio', 'Comic Audio'],
+  ['comic-presentation', 'Comic Presentation'],
   ['comic-run', 'Run Options'],
   ['pricing', 'Pricing'],
   ['lyric-video', 'Lyric Video']

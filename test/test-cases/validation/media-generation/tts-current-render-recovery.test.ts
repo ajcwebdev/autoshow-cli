@@ -5,7 +5,7 @@ import { runTtsForTargets } from '~/cli/commands/process-steps/step-4-tts/run-tt
 import { writeGenerationMetadata } from '~/cli/commands/process-steps/generation-command-utils'
 import { PIPELINE_MANIFEST_FILE, readManifest, writeManifest } from '~/cli/commands/process-steps/pipeline-manifest'
 import { appendCurrentTtsProviderState, buildCurrentTtsProviderState } from '~/cli/commands/process-steps/step-4-tts/script-to-audio/current-render-artifacts'
-import { planCurrentTtsResumePrice } from '~/cli/commands/process-steps/step-4-tts/script-to-audio/current-render-attempt'
+import { createCurrentTtsRenderAttempt, planCurrentTtsResumePrice } from '~/cli/commands/process-steps/step-4-tts/script-to-audio/current-render-attempt'
 import { createGenericTtsDialoguePlan, createInlineTtsSourceIdentity, createSingleTurnTtsDialoguePlan } from '~/cli/commands/process-steps/step-4-tts/script-to-audio/generic-dialogue-plan'
 import { bindTtsDialoguePlanArtifact, materializeTtsDialoguePlanArtifact } from '~/cli/commands/process-steps/step-4-tts/script-to-audio/item-dialogue-plan-artifact'
 import { canonicalTtsJson, hashCanonicalRecordWithout, hashCanonicalTtsValue, sha256Bytes } from '~/cli/commands/process-steps/step-4-tts/script-to-audio/contract-identity'
@@ -196,6 +196,102 @@ const latestJournalForState = async (
 }
 
 describe('TTS completed-render recovery', () => {
+  test('reconstructs a completed partial slot when termination interrupts batch-result promotion', async () => {
+    await withTempDir('autoshow-tts-interrupted-batch-promotion-', async (dir) => {
+      const text = 'Host: Recover retained audio.\nGuest: Generate only this unresolved turn.'
+      const sourceIdentity = createInlineTtsSourceIdentity(text)
+      const dialoguePlan = createGenericTtsDialoguePlan(sourceIdentity, text, DIALOGUE_OPTIONS, new Date(0).toISOString())
+      const target = createDialogueFixtureTarget([])
+      let retainedAtInterruption: PipelineProviderState | undefined
+      const attempt = await createCurrentTtsRenderAttempt({
+        outputDir: dir,
+        target,
+        sourceText: text,
+        ttsOptions: DIALOGUE_OPTIONS,
+        sourceIdentity,
+        dialoguePlan,
+        onProviderState: async (state) => {
+          const journal = await latestJournalForState(dir, state)
+          if (journal?.requests[0]?.transitions.at(-1)?.state === 'completed' && journal.recordedBatchResults.length === 0) {
+            retainedAtInterruption = state
+            throw new Error('fixture termination before batch-result promotion')
+          }
+        }
+      })
+      const firstTurnEvidence = attempt.requestEvidence.forInvocation?.({
+        sourceId: 'dialogue-turn-001',
+        sourceIndex: 0,
+        speaker: 'Host',
+        voice: { kind: 'id', value: 'alloy' },
+        controls: {}
+      })
+      if (!firstTurnEvidence) throw new Error('Missing invocation-scoped TTS evidence')
+      const audioPath = join(dir, 'interrupted-provider-response.wav')
+      const bytes = createSyntheticWavBytes({ durationSeconds: 0.15, amplitude: 0.2, frequencyHz: 330 })
+      await firstTurnEvidence.dispatch({
+        chunkIndex: 1,
+        endpointKind: 'speech-synthesis',
+        serializerVersion: 'openai.tts.phase-0-v1',
+        serializedRequest: { body: { input: 'Recover retained audio.', voice: 'alloy', response_format: 'wav' } },
+        providerText: 'Recover retained audio.',
+        voiceField: 'voice',
+        voices: [{ kind: 'provider-id', value: 'alloy' }],
+        requestControls: { responseFormat: 'wav' },
+        continuation: { kind: 'none' }
+      }, { attempt: 1 }, async ({ accepted }) => {
+        await accepted({ providerRequestId: 'interrupted-promotion-fixture' })
+        await Bun.write(audioPath, bytes)
+      })
+      await firstTurnEvidence.recordOutput({ chunkIndex: 1, path: audioPath })
+      await expect(firstTurnEvidence.complete({ chunkIndex: 1 })).rejects.toThrow('fixture termination before batch-result promotion')
+      if (!retainedAtInterruption) throw new Error('Missing interrupted completion state')
+      const interruptedJournal = await latestJournalForState(dir, retainedAtInterruption)
+      expect(interruptedJournal?.recordedBatchResults).toEqual([])
+
+      const price = await planCurrentTtsResumePrice({
+        rootDir: dir,
+        state: retainedAtInterruption,
+        target,
+        sourceText: text,
+        ttsOptions: DIALOGUE_OPTIONS,
+        sourceIdentity,
+        dialoguePlan
+      })
+      expect(price.recoveryKind).toBe('partial-slots')
+      expect(price.recoveredSlotCount).toBe(1)
+      expect(price.unresolvedSlotCount).toBe(1)
+      expect(price.plannedSlotCount).toBe(1)
+
+      const reportedOutput = join(dir, 'interrupted-promotion-recovered.wav')
+      const resumedCalls: number[] = []
+      const recovered = await runTtsForTargets(text, dir, DIALOGUE_OPTIONS, [createDialogueFixtureTarget(resumedCalls)], {
+        sourceIdentity,
+        dialoguePlan,
+        retainedProviderStates: [retainedAtInterruption],
+        recoveryRootDir: dir,
+        resolveReportedOutput: () => ({ path: reportedOutput, fileName: 'interrupted-promotion-recovered.wav' }),
+        beforeDispatch: async () => {},
+        onProviderState: async () => {}
+      })
+      expect(resumedCalls).toEqual([1])
+      expect(await Bun.file(reportedOutput).exists()).toBe(true)
+      expect(recovered.metadata[0]?.ttsAudio?.renderHistory[0]?.events.at(-1)?.status).toBe('succeeded')
+      const promotedResults = (await readdir(dir, { recursive: true })).filter((name) => name.endsWith('/provider-batch-result.json'))
+      expect(promotedResults).toHaveLength(2)
+      const priceAfterPromotion = await planCurrentTtsResumePrice({
+        rootDir: dir,
+        state: retainedAtInterruption,
+        target,
+        sourceText: text,
+        ttsOptions: DIALOGUE_OPTIONS,
+        sourceIdentity,
+        dialoguePlan
+      })
+      expect(priceAfterPromotion.recoveryKind).toBe('partial-slots')
+      expect(priceAfterPromotion.plannedSlotCount).toBe(1)
+    })
+  })
+
   test('assembles a promoted completed result locally without another provider call', async () => {
     await withTempDir('autoshow-tts-completed-recovery-', async (dir) => {
       const text = 'Recover this completed provider result.'
@@ -711,6 +807,7 @@ describe('TTS completed-render recovery', () => {
       const phaseThreeCalls: number[] = []
       const phaseThreeStates: PipelineProviderState[] = []
       const reportedOutput = join(dir, 'speech-transitive-recovered.wav')
+      await Bun.write(reportedOutput, 'unreferenced stale recovered output')
       const phaseThree = await runTtsForTargets(text, dir, DIALOGUE_OPTIONS, [createDialogueFixtureTarget(phaseThreeCalls, model)], {
         sourceIdentity,
         dialoguePlan,
@@ -729,6 +826,7 @@ describe('TTS completed-render recovery', () => {
       expect(phaseTwoCalls).toEqual([1])
       expect(phaseThreeCalls).toEqual([])
       expect(await Bun.file(reportedOutput).exists()).toBe(true)
+      expect(await Bun.file(reportedOutput).text()).not.toBe('unreferenced stale recovered output')
       const terminalState = phaseThreeStates.at(-1)
       const projection = terminalState?.result?.['ttsAudio'] as CanonicalAudioProviderProjection | undefined
       const render = projection?.renderHistory[0]

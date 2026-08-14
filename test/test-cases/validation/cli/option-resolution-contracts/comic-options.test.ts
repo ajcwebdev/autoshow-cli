@@ -33,10 +33,14 @@ import {
 } from '~/cli/commands/process-steps/step-8-comic/comic-utils/cli-args'
 import {
   draftScenesCommandDefinition,
+  generateAudioCommandDefinition,
   generateImagesCommandDefinition,
+  generateSlideshowCommandDefinition,
   referenceSketchCommandDefinition
 } from '~/cli/commands/process-steps/step-8-comic/comic-utils/subcommand-help'
 import {
+  comicGenerateAudioFlags,
+  comicGenerateSlideshowFlags,
   draftScenesFlags,
   generateImagesFlags,
   referenceSketchFlags
@@ -57,7 +61,7 @@ import type { PanelBundleData, PromptsConfig } from '~/types'
 
 const engineeringBayLocation = { key: 'engineering-bay', raw: 'INT. ENGINEERING BAY' }
 
-const parseSubcommandArgs = (args: string[], command: typeof draftScenesCommandDefinition | typeof generateImagesCommandDefinition | typeof referenceSketchCommandDefinition) =>
+const parseSubcommandArgs = (args: string[], command: typeof draftScenesCommandDefinition | typeof generateImagesCommandDefinition | typeof generateAudioCommandDefinition | typeof generateSlideshowCommandDefinition | typeof referenceSketchCommandDefinition) =>
   parseCommandInvocation([command.name, ...args], command, GLOBAL_FLAG_DEFINITIONS)
 
 const parseDraftScenesArgs = (args: string[]) =>
@@ -551,7 +555,15 @@ describe('comic native parser definitions', () => {
   test('uses the help flag tables directly as the parser definitions', () => {
     expect(draftScenesCommandDefinition.flags).toBe(draftScenesFlags)
     expect(generateImagesCommandDefinition.flags).toBe(generateImagesFlags)
+    expect(generateAudioCommandDefinition.flags).toBe(comicGenerateAudioFlags)
+    expect(generateSlideshowCommandDefinition.flags).toBe(comicGenerateSlideshowFlags)
     expect(referenceSketchCommandDefinition.flags).toBe(referenceSketchFlags)
+  })
+
+  test('parses comic slideshow target and local timing options from its native flag table', () => {
+    const parsed = parseSubcommandArgs(['script.md', '--audio-target=elevenlabs=eleven_v3', '--untimed-panel-ms', '2500', '--fps', '24', '--price'], generateSlideshowCommandDefinition)
+    expect(parsed.parameters['script-path']).toBe('script.md')
+    expect(parsed.flags).toMatchObject({ 'audio-target': 'elevenlabs=eleven_v3', 'untimed-panel-ms': '2500', fps: '24', price: true })
   })
 
   test('uses native inline assignment, separator, last-wins, and positional rules', () => {

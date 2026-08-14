@@ -97,6 +97,12 @@ const comicAudioSelectionFlags = pickFlags(ttsCommandFlags, [
   'tts-chunk-concurrency',
 ])
 
+const comicSoundscapeSelectionFlags = {
+  'sfx-provider': strFlag(colorizeHelpDescription('Dedicated sound-effect target as provider=model; Phase 1 supports elevenlabs=eleven_text_to_sound_v2 and has no hosted default')),
+  'sfx-concurrency': strFlag(colorizeHelpDescription('Bounded parallel sound-effect requests (default: 2)')),
+  'soundscape-timing-policy': strFlag(colorizeHelpDescription('Inline cue timing: strict|proportional; proportional records its estimate and error bound (default: strict)')),
+} as const satisfies CliFlagsDefinition
+
 const comicAudioContractFlags = {
   profile: strFlag(colorizeHelpDescription('Approved casting profile key (default: default)')),
   mode: strFlag(colorizeHelpDescription('Render strategy: auto|native|segmented (default: auto)')),
@@ -112,8 +118,24 @@ const comicAudioContractFlags = {
 
 export const comicGenerateAudioFlags = {
   ...withHelpGroup(comicAudioSelectionFlags, 'provider-selection'),
+  ...withHelpGroup(comicSoundscapeSelectionFlags, 'provider-selection'),
   ...withHelpGroup(comicAudioContractFlags, 'comic-audio'),
   ...withHelpGroup(comicPriceFlag, 'pricing'),
+} as const satisfies CliFlagsDefinition
+
+const comicPresentationFlags = {
+  'audio-target': strFlag(colorizeHelpDescription('Select one complete canonical audio run as provider=model; inferred only when selection is unambiguous')),
+  'untimed-panel-ms': strFlag(colorizeHelpDescription('Hold duration for a panel without dialogue or a discrete effect (default: 2000)')),
+  fps: strFlag(colorizeHelpDescription('Constant output frame rate from 1 through 120 (default: 30)')),
+} as const satisfies CliFlagsDefinition
+
+const comicPresentationPriceFlag = {
+  price: boolFlag(colorizeHelpDescription('Report the $0 local render cost without provider calls or writes')),
+} as const satisfies CliFlagsDefinition
+
+export const comicGenerateSlideshowFlags = {
+  ...withHelpGroup(comicPresentationFlags, 'comic-presentation'),
+  ...withHelpGroup(comicPresentationPriceFlag, 'pricing'),
 } as const satisfies CliFlagsDefinition
 
 const referenceSketchSheetFlags = {

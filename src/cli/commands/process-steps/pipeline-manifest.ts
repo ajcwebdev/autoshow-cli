@@ -2633,7 +2633,7 @@ const expectedTtsItemStatus = (providers: readonly PipelineProviderState[]): Pip
 const parseComicStageRecord = (
   value: unknown,
   providers: readonly PipelineProviderState[],
-  operation: 'comic-structure' | 'comic-image' | 'comic-audio'
+  operations: readonly string[]
 ): { requirement: 'not-requested' | 'required' | 'optional', status: PipelineManifestItem['status'] } | undefined => {
   if (!isRecord(value) || !hasOnlyKeys(value, ['requirement', 'status', 'execution', 'targetKeys', 'artifactRefs']) || !ITEM_STATUS_SET.has(value['status'] as string) || !Array.isArray(value['targetKeys']) || !Array.isArray(value['artifactRefs'])) return undefined
   if (value['artifactRefs'].some(ref => !isRecord(ref) || !hasOnlyKeys(ref, ['path', 'sha256']) || !isStrictArtifactRelativePath(ref['path']) || !isSha256(ref['sha256']))) return undefined
@@ -2651,7 +2651,7 @@ const parseComicStageRecord = (
     if (value['status'] !== expected || (state === 'skipped' && (typeof execution['policyReason'] !== 'string' || !execution['policyReason'].trim()))) return undefined
   } else if (execution['kind'] === 'provider-targets') {
     if (!hasOnlyKeys(execution, ['kind']) || value['targetKeys'].length === 0 || value['targetKeys'].some(key => typeof key !== 'string') || new Set(value['targetKeys'] as string[]).size !== value['targetKeys'].length) return undefined
-    const owned = (value['targetKeys'] as string[]).map(key => providers.filter(provider => provider.targetKey === key && provider.operation === operation))
+    const owned = (value['targetKeys'] as string[]).map(key => providers.filter(provider => provider.targetKey === key && provider.operation !== undefined && operations.includes(provider.operation)))
     if (owned.some(matches => matches.length !== 1)) return undefined
     const statuses = owned.map(matches => (matches[0] as PipelineProviderState).status)
     const successCount = statuses.filter(status => status === 'succeeded').length
@@ -2671,26 +2671,50 @@ const expectedComicItemStatus = (
   item: PipelineManifestItem
 ): PipelineManifestItem['status'] | undefined => {
   const metadata = item.metadata['comic']
-  if (!isRecord(metadata) || !hasOnlyKeys(metadata, ['schemaVersion', 'stages', 'audio']) || metadata['schemaVersion'] !== 1 || !isRecord(metadata['stages']) || !isRecord(metadata['audio']) || !hasOnlyKeys(metadata['stages'], ['structure', 'image', 'audio'])) return undefined
+  if (!isRecord(metadata) || !hasOnlyKeys(metadata, ['schemaVersion', 'stages', 'audio', 'presentation']) || metadata['schemaVersion'] !== 1 || !isRecord(metadata['stages']) || !isRecord(metadata['audio']) || !hasOnlyKeys(metadata['stages'], ['structure', 'image', 'audio', 'presentation'])) return undefined
+  const historicalPresentationStage = { requirement: 'not-requested', status: 'skipped', execution: { kind: 'none', reason: 'not-requested' }, targetKeys: [], artifactRefs: [] }
   const stages = [
-    parseComicStageRecord(metadata['stages']['structure'], item.providers, 'comic-structure'),
-    parseComicStageRecord(metadata['stages']['image'], item.providers, 'comic-image'),
-    parseComicStageRecord(metadata['stages']['audio'], item.providers, 'comic-audio'),
+    parseComicStageRecord(metadata['stages']['structure'], item.providers, ['comic-structure']),
+    parseComicStageRecord(metadata['stages']['image'], item.providers, ['comic-image']),
+    parseComicStageRecord(metadata['stages']['audio'], item.providers, ['comic-audio', 'sound-effect-generation']),
+    parseComicStageRecord(metadata['stages']['presentation'] ?? historicalPresentationStage, item.providers, []),
   ]
   if (stages.some(stage => stage === undefined)) return undefined
   const audio = metadata['audio']
-  if (!hasOnlyKeys(audio, ['sceneRunIdentity', 'structuredScript', 'dialoguePlanId', 'dialoguePlanRef', 'snapshotId', 'snapshotRef', 'selectedAudioRuns', 'publishedAudioRunId', 'mixPlanRef', 'finalTimelineRef', 'finalOutputRefs'])) return undefined
+  if (!hasOnlyKeys(audio, ['sceneRunIdentity', 'structuredScript', 'dialoguePlanId', 'dialoguePlanRef', 'snapshotId', 'snapshotRef', 'selectedAudioRuns', 'publishedAudioRunId', 'mixPlanRef', 'finalTimelineRef', 'finalOutputRefs', 'soundscapePlanId', 'soundscapePlanRef', 'soundEffectRenderPlanRef', 'soundEffectRenderResultRef', 'selectedSoundscapeRuns'])) return undefined
   if (audio['sceneRunIdentity'] !== undefined && !isSha256(audio['sceneRunIdentity'])) return undefined
   if (audio['dialoguePlanId'] !== undefined && !isSha256(audio['dialoguePlanId'])) return undefined
   if (audio['snapshotId'] !== undefined && !isSha256(audio['snapshotId'])) return undefined
+  if (audio['soundscapePlanId'] !== undefined && !isSha256(audio['soundscapePlanId'])) return undefined
   const structured = audio['structuredScript']
-  if (structured !== undefined && (!isRecord(structured) || !hasOnlyKeys(structured, ['path', 'artifactSchemaVersion', 'sha256']) || structured['path'] !== 'metadata/structured-script.json' || structured['artifactSchemaVersion'] !== 4 || !isSha256(structured['sha256']))) return undefined
-  for (const key of ['dialoguePlanRef', 'snapshotRef', 'mixPlanRef', 'finalTimelineRef'] as const) {
+  if (structured !== undefined && (!isRecord(structured) || !hasOnlyKeys(structured, ['path', 'artifactSchemaVersion', 'sha256']) || structured['path'] !== 'metadata/structured-script.json' || structured['artifactSchemaVersion'] !== 5 || !isSha256(structured['sha256']))) return undefined
+  for (const key of ['dialoguePlanRef', 'snapshotRef', 'mixPlanRef', 'finalTimelineRef', 'soundscapePlanRef', 'soundEffectRenderPlanRef', 'soundEffectRenderResultRef'] as const) {
     const ref = audio[key]
     if (ref !== undefined && (!isRecord(ref) || !hasOnlyKeys(ref, ['path', 'sha256']) || !isStrictArtifactRelativePath(ref['path']) || !isSha256(ref['sha256']))) return undefined
   }
   if (audio['finalOutputRefs'] !== undefined && (!Array.isArray(audio['finalOutputRefs']) || audio['finalOutputRefs'].some(ref => !isRecord(ref) || !hasOnlyKeys(ref, ['path', 'sha256']) || !isStrictArtifactRelativePath(ref['path']) || !isSha256(ref['sha256'])))) return undefined
   if (audio['selectedAudioRuns'] !== undefined && (!Array.isArray(audio['selectedAudioRuns']) || audio['selectedAudioRuns'].some(ref => !isRecord(ref) || !hasOnlyKeys(ref, ['targetKey', 'renderIdentity', 'audioRunId', 'audioRunRef', 'audioRunSha256']) || !Object.values(ref).every(value => typeof value === 'string') || !isSha256(ref['audioRunSha256'])))) return undefined
+  if (audio['selectedSoundscapeRuns'] !== undefined && (!Array.isArray(audio['selectedSoundscapeRuns']) || audio['selectedSoundscapeRuns'].some(ref => {
+    if (!isRecord(ref) || !hasOnlyKeys(ref, ['targetKey', 'dialogueAudioRunId', 'soundscapeAudioRunId', 'audioRunRef', 'audioRunSha256', 'masterRef'])) return true
+    if (typeof ref['targetKey'] !== 'string' || !isSha256(ref['dialogueAudioRunId']) || !isSha256(ref['soundscapeAudioRunId']) || !isStrictArtifactRelativePath(ref['audioRunRef']) || !isSha256(ref['audioRunSha256'])) return true
+    const masterRef = ref['masterRef']
+    return !isRecord(masterRef) || !hasOnlyKeys(masterRef, ['path', 'sha256']) || !isStrictArtifactRelativePath(masterRef['path']) || !isSha256(masterRef['sha256'])
+  }))) return undefined
+  const presentation = metadata['presentation'] ?? {}
+  if (!isRecord(presentation) || !hasOnlyKeys(presentation, ['selectedPresentationId', 'planRef', 'resolvedTimelineRef', 'runRef', 'finalOutputRefs'])) return undefined
+  if (presentation['selectedPresentationId'] !== undefined && !isSha256(presentation['selectedPresentationId'])) return undefined
+  for (const key of ['planRef', 'resolvedTimelineRef', 'runRef'] as const) {
+    const ref = presentation[key]
+    if (ref !== undefined && (!isRecord(ref) || !hasOnlyKeys(ref, ['path', 'sha256']) || !isStrictArtifactRelativePath(ref['path']) || !isSha256(ref['sha256']))) return undefined
+  }
+  if (presentation['finalOutputRefs'] !== undefined && (!Array.isArray(presentation['finalOutputRefs']) || presentation['finalOutputRefs'].some(ref => !isRecord(ref) || !hasOnlyKeys(ref, ['path', 'sha256']) || !isStrictArtifactRelativePath(ref['path']) || !isSha256(ref['sha256'])))) return undefined
+  const presentationStageValue = metadata['stages']['presentation'] ?? historicalPresentationStage
+  if (metadata['presentation'] !== undefined && Object.keys(presentation).length > 0) {
+    if (!isRecord(presentationStageValue) || presentationStageValue['status'] !== 'full' || !Array.isArray(presentationStageValue['artifactRefs'])) return undefined
+    const stageRefs = presentationStageValue['artifactRefs'] as unknown[]
+    const envelopeRefs = [presentation['planRef'], presentation['resolvedTimelineRef'], presentation['runRef'], ...(Array.isArray(presentation['finalOutputRefs']) ? presentation['finalOutputRefs'] : [])]
+    if (envelopeRefs.some(ref => !isRecord(ref) || !stageRefs.some(stageRef => isRecord(stageRef) && stageRef['path'] === ref['path'] && stageRef['sha256'] === ref['sha256']))) return undefined
+  }
   const required = stages.filter(stage => stage?.requirement === 'required') as Array<{ requirement: 'required', status: PipelineManifestItem['status'] }>
   if (required.length === 0) return undefined
   if (required.every(stage => stage.status === 'full' || stage.status === 'skipped') && required.some(stage => stage.status === 'full')) return 'full'
@@ -2770,9 +2794,11 @@ const parseManifest = (
     if (!expectedStatus || item.status !== expectedStatus) return undefined
     const targetOwners = new Map<string, number>()
     const comic = item.metadata['comic'] as unknown as CanonicalComicItemMetadata
+    comic.stages.presentation ??= { requirement: 'not-requested', status: 'skipped', execution: { kind: 'none', reason: 'not-requested' }, targetKeys: [], artifactRefs: [] }
+    comic.presentation ??= {}
     for (const stage of Object.values(comic.stages)) for (const targetKey of stage.targetKeys) targetOwners.set(targetKey, (targetOwners.get(targetKey) ?? 0) + 1)
     if ([...targetOwners.values()].some(count => count !== 1)) return undefined
-    if (item.providers.some(provider => provider.operation?.startsWith('comic-') && !targetOwners.has(provider.targetKey ?? ''))) return undefined
+    if (item.providers.some(provider => (provider.operation?.startsWith('comic-') || provider.operation === 'sound-effect-generation') && !targetOwners.has(provider.targetKey ?? ''))) return undefined
   }
 
   return {

@@ -1,6 +1,6 @@
 # comic
 
-Draft comic scene JSON with exhaustive shot plans, build reviewed v4 panel bundles, generate QA-approved panel/page images, manage approved character voices, and render multi-speaker scene audio.
+Draft comic scene JSON with exhaustive shot plans, build reviewed v4 panel bundles, generate QA-approved panel/page images, manage approved character voices, render multi-speaker scene audio, and synchronize canonical panels into a local still-image MP4.
 
 ## Outline
 
@@ -12,6 +12,7 @@ Draft comic scene JSON with exhaustive shot plans, build reviewed v4 panel bundl
 - [draft-scenes](#draft-scenes)
 - [generate-images](#generate-images)
 - [generate-audio](#generate-audio)
+- [generate-slideshow](#generate-slideshow)
 - [reference-sketch](#reference-sketch)
 - [Output](#output)
 - [Supported Models](#supported-models)
@@ -25,6 +26,7 @@ Draft comic scene JSON with exhaustive shot plans, build reviewed v4 panel bundl
 2. Generate the reusable character and canonical location references that panel prompts require.
 3. Build panel prompts, review sketches, final panel images, and grouped page images.
 4. Resolve approved provider-qualified voice registrations into an immutable scene snapshot and render canonical multi-speaker audio.
+5. Recompose one complete manifest-backed audio run against canonical panels and render a synchronized local slideshow.
 
 The public subcommands are:
 
@@ -32,6 +34,7 @@ The public subcommands are:
 bun autoshow comic draft-scenes
 bun autoshow comic generate-images
 bun autoshow comic generate-audio
+bun autoshow comic generate-slideshow
 bun autoshow comic reference-sketch
 bun autoshow comic reference-voice
 ```
@@ -50,7 +53,7 @@ XAI_API_KEY=...
 - `GEMINI_API_KEY` is required for Gemini text and image models.
 - `XAI_API_KEY` is required for Grok text and image models.
 - Text and image models resolve against the central registries, so any other centrally-registered provider you select (e.g. BFL, Recraft, Replicate, Lumalabs, fal for images) needs its own provider key set. See the [Supported Models](#supported-models) registries for the full list.
-- `--price` is side-effect-free and does not call image or LLM generation APIs. `comic generate-audio --price` performs static source, casting, strategy, and cost planning without provider calls or artifact writes.
+- `--price` is side-effect-free and does not call image or LLM generation APIs. `comic generate-audio --price` performs static source, casting, strategy, and cost planning without provider calls or artifact writes; `comic generate-slideshow --price` reports `$0.00` without writes.
 
 ### Character catalog v3
 
@@ -72,6 +75,7 @@ Canonical project-root paths:
 | Canonical scene manifest | `output/<timestamp>_<scene-slug>/manifest.json` |
 | Immutable dialogue plans and voice snapshots | `output/<timestamp>_<scene-slug>/metadata/dialogue-plans/`, `output/<timestamp>_<scene-slug>/assets/voice-references/` |
 | Provider render evidence and final audio | `output/<timestamp>_<scene-slug>/audio/providers/`, `output/<timestamp>_<scene-slug>/audio/final/` |
+| Immutable presentation evidence and selected slideshow | `output/<timestamp>_<scene-slug>/presentation/runs/`, `output/<timestamp>_<scene-slug>/presentation/final/` |
 | Character outline sheets and provenance | `input/characters/<source-stem>--outline-sheet.png`, `input/characters/character-sketches.json` |
 | Canonical location specs, per-view images, and provenance | `input/locations/locations-reference.json`, `input/locations/<key>--reference.png`, `input/locations/<key>--reference-{reverse,side}.png`, `input/locations/location-sketches.json` |
 
@@ -80,7 +84,8 @@ Canonical project-root paths:
 ```bash
 bun autoshow comic draft-scenes <script-path> [--only structure|prompt|scene|panel-prompts] [--price]
 bun autoshow comic generate-images <script-path> [--target images|sketches|both] [--panels <all|range|list>] [--panels-per-image <n>] [--no-qa] [--max-repairs <n>] [--force] [--price]
-bun autoshow comic generate-audio <script-path> [--provider <provider[=model]>] [--profile <key>] [--mode auto|native|segmented] [--role <label=role:key>] [--sample-rate <hz>] [--channels 1|2] [--codec pcm_s16le|pcm_s24le] [--price]
+bun autoshow comic generate-audio <script-path> [--provider <provider[=model]>] [--sfx-provider <provider=model>] [--soundscape-timing-policy strict|proportional] [--profile <key>] [--mode auto|native|segmented] [--role <label=role:key>] [--sample-rate <hz>] [--channels 1|2] [--codec pcm_s16le|pcm_s24le] [--price]
+bun autoshow comic generate-slideshow <script-path> [--audio-target <provider=model>] [--untimed-panel-ms <n>] [--fps <n>] [--price]
 bun autoshow comic reference-sketch (--character <key> | --location <key> [--view establishing|reverse|side]) [--revise --notes <text>] [--price]
 ```
 
@@ -104,7 +109,7 @@ bun autoshow comic generate-images input/scripts/01-script/01-opening.md --targe
 bun autoshow comic generate-images input/scripts/01-script/01-opening.md --target sketches --panels 1-4
 ```
 
-`draft-scenes` is required first because image and audio generation consume the exact canonical scene run and reviewed v4 artifacts. This writes final panel images under the scene's run directory, e.g. `output/<timestamp>_01-opening/panels/`; grouped page images land in `pages/` when `--panels-per-image` is above one or `--grid` is used. Image generation reads schema-version-4 panel bundles and the plural location snapshot index; audio generation reads structured-script v4 with an embedded exact source identity.
+`draft-scenes` is required first because image, audio, and presentation generation consume the exact canonical scene run and reviewed artifacts. This writes final panel images under the scene's run directory, e.g. `output/<timestamp>_01-opening/panels/`; grouped page images land in `pages/` when `--panels-per-image` is above one or `--grid` is used. Image generation reads schema-version-4 panel bundles and the plural location snapshot index; audio and presentation generation read structured-script v5 with an embedded exact source identity and authored soundscape intent.
 
 ### 1. Create structured script JSON
 
@@ -276,6 +281,9 @@ bun autoshow comic generate-images input/scripts/01-script/01-opening.md --targe
 | Flag | Description | Default |
 |------|-------------|---------|
 | `--provider <provider[=model]>` | Select a TTS provider/model; repeatable | `kitten` |
+| `--sfx-provider <provider=model>` | Select the dedicated authored sound-effect target; Phase 1 accepts `elevenlabs=eleven_text_to_sound_v2` | none |
+| `--sfx-concurrency <count>` | Bound parallel sound-effect requests independently from dialogue generation | `2` |
+| `--soundscape-timing-policy <policy>` | Resolve inline text offsets with exact evidence (`strict`) or recorded canonical-offset interpolation (`proportional`) | `strict` |
 | `--all-providers` / `--all-local` | Select every hosted or local TTS target | `false` |
 | `--profile <key>` | Select the approved registration profile for every subject/target | `default` |
 | `--mode <mode>` | `auto`, strict `native`, or `segmented` | `auto` |
@@ -304,7 +312,7 @@ bun autoshow comic generate-audio 01-01 --all-providers --price
 
 ### Behavior
 
-- With `--output-dir`, the command validates that exact existing directory and never falls back. Without it, the command scans matching timestamped scene directories newest-first and skips incompatible or corrupt candidates until it finds an exact source-path, source-byte, manifest, structured-script-v4, and checksum match.
+- With `--output-dir`, the command validates that exact existing directory and never falls back. Without it, the command scans matching timestamped scene directories newest-first and skips incompatible or corrupt candidates until it finds an exact source-path, source-byte, manifest, structured-script-v5, and checksum match.
 - Every speakable source segment becomes one provider-neutral dialogue node. Inline authored timing is retained as a turn cue rather than spoken text. The `loose-comedy` profile maps `beat`, `pause`/`moment`, and `long`/`heavy` cues to deterministic silences and adds a short deterministic interturn gap; all inserted pauses are recorded in the mix ledger and final timeline. Compound speech remains an explicit overlap unless `--role` deliberately casts the complete label to one logical subject. Uncatalogued speaking roles fail before readiness.
 - Casting is all-target and profile-qualified. Every speaking subject must have one current approved-ready registration for each selected provider/model/profile. A single aggregate immutable snapshot captures those registrations, protected reference identities, consent authorization, settings, revisions, and audition evidence. Once that aggregate snapshot exists, a corrective invocation may select an exact provider/model subset already contained in it; the command reuses the complete snapshot, preserves the other target histories and aggregate stage keys, and cannot introduce a new registration or recast.
 - The shared TTS subsystem owns provider readiness, immutable branch/final plans, generation slots, admission evidence, render results, audio runs, timing, mix/transform ledgers, final timelines, resume safety, and provider calls. Comic writes provider projections only under `comicAudio` and keeps image/structure stage state intact.
@@ -314,9 +322,46 @@ bun autoshow comic generate-audio 01-01 --all-providers --price
 - Gemini native dialogue is eligible only for exactly two distinct provider speakers. ElevenLabs `eleven_v3` uses bounded turn-safe Text-to-Dialogue requests with provider alignment and converts only recognized delivery cues into a bounded allowlist of documented model audio tags; it never brackets arbitrary stage-direction prose that the model could speak. Hume `octave-1` accepts authored delivery as the request description, while Hume `octave-2` uses ordered native utterances with supported per-turn speed/trailing-silence controls and provider timing but cannot express arbitrary acting direction. `--delivery-policy best-effort` records that Octave 2 limitation instead of rejecting the comparison target. MiniMax, Cartesia, and Speechify expose single-voice synthesis requests rather than native speaker dialogue, so `auto` selects segmented rendering for them and strict `--mode native` fails locally before a provider call. Mistral consumes only approved saved voices or approved protected request-reference registrations from the scene snapshot.
 - MiniMax, Cartesia, and Speechify approved voices participate through the same provider-qualified snapshot as every other target. Create or discover them through the shared `voice`/`comic reference-voice` management surface, complete canonical audition and explicit approval, and then render; `generate-audio` never invokes design or clone facets.
 - Authored overlap nodes and local-only voice-effect intent force segmented rendering so they are not silently dropped. Segmented assembly mixes overlap children on one timeline, applies the supported radio/intercom/telephone/computer filter profile, and records the effect/overlap transforms in the content-identified mix ledger and final timeline.
+- Authored `**SFX:**`, `**VOCAL SFX:**`, `**AMBIENCE:**`, `[[SFX: ...]]`, and `[[VOCAL SFX: ...]]` directives populate the provider-neutral soundscape plan. Directives are required unless prefixed with `OPTIONAL`; an optional `{duration: 2.5s, gain: -3dB, pan: -0.4}` envelope specifies exact synthesis duration and local mix controls. Duration is 0.5–30 seconds, gain uses decibels, and pan is -1 to 1. Provider selection, model, output format, and prompt influence do not belong in source Markdown.
+- Inline text-offset cues default to strict timing and fail before mastering when the selected dialogue run has no exact mapped provider timing. `--soundscape-timing-policy proportional` is an explicit recovery policy that linearly maps the canonical Unicode offset across the retained turn range and records its algorithm, input-evidence hash, and worst-case error bound in the immutable resolved timeline; the policy also changes soundscape plan and mix identity without changing sound-effect synthesis identity.
 - A scene with zero speakable turns completes locally with an empty dialogue plan and no snapshot, provider state, synthesis request, audio run, or output.
 - Final mastering is explicit and identity-bearing. Changing sample rate, channels, or codec changes the output-profile and render identities; it does not claim that upsampling restores provider source quality.
 - Each provider writes immutable work below `audio/providers/<safe-target-key>/`, while the selected mastered result is promoted to `audio/final/<target-key>.wav`. Provider projections persist the exact `targetKey`, `renderIdentity`, `resultIdentity`, and `audioRunId`; benchmark consumers use voice/render and optional snapshot-entry/character identity rather than collapsing rows by provider/model.
+
+## generate-slideshow
+
+`generate-slideshow` synchronizes direct canonical panel PNGs with one complete selected dialogue or soundscape run and renders the result entirely locally. It does not resume audio generation or call an image, video, TTS, or sound-effect provider.
+
+### Options
+
+| Flag | Description | Default |
+|------|-------------|---------|
+| `--audio-target <provider=model>` | Select an exact complete canonical audio target when automatic selection is ambiguous | inferred |
+| `--untimed-panel-ms <n>` | Hold duration for a panel with no dialogue or discrete effect | `2000` |
+| `--fps <n>` | Constant output frame rate from 1 through 120 | `30` |
+| `--price` | Report the local render cost and exit without writes | `false` |
+
+### Examples
+
+```bash
+bun autoshow comic generate-slideshow 01-01
+bun autoshow comic generate-slideshow 01-01 --audio-target elevenlabs=eleven_v3
+bun autoshow comic generate-slideshow 01-01 --untimed-panel-ms 2500 --fps 24
+bun autoshow comic generate-slideshow 01-01 --price
+```
+
+### Behavior
+
+- Automatic selection prefers exactly one complete selected soundscape run, then falls back to exactly one complete selected dialogue run. Multiple eligible runs require `--audio-target provider=model`. Raw audio without its checksum-bound `AudioRun` and timed `FinalTimeline` is unsupported.
+- Every reviewed panel must exist directly as `panels/panel-NN.png`. Missing files are reported together. Numeric aliases, non-consecutive reviewed panel numbers, different dimensions, and odd dimensions fail before rendering.
+- Dialogue ownership uses exact source-segment ID, speaker, and text evidence. Exact source-backed non-spoken parenthetical delivery or timing cues may be elided and are recorded in the binding. Historical panel bundles may use deterministic exact content-and-ordinal reconciliation. Fuzzy and provider-assisted matching are never used.
+- Inline sound effects follow their source dialogue panel; block effects follow the unique panel owning the nearest preceding authored action or panel-note segment. Equidistant split source fragments may collapse only when every fragment has the same panel owner. Missing or ambiguous panel ownership fails.
+- Dialogue and effects within one panel preserve their relative timing and overlap. Audio assigned to different panels is serialized by reviewed panel order. Untimed panels receive the configured hold, and every audio-bearing panel remains visible for its complete assigned audio window.
+- Ambience loops continuously across the presentation; a dialogue-only run uses digital silence as the continuous base. The presentation-specific WAV is derived from retained dialogue ranges and sound assets and never mutates the original dialogue or soundscape run.
+- FFmpeg renders same-size hard-cut stills as H.264/yuv420p video with AAC audio and fast-start metadata. It adds no motion, transition, crop, pad, or resize filter.
+- Immutable plans, resolved timelines, WAVs, MP4s, commands, transformations, and checksums live below `presentation/runs/<presentation-id>/`. Selected outputs publish atomically as `presentation/final/slideshow.wav` and `presentation/final/slideshow.mp4`. Identical complete reruns verify checksums and no-op; staged local WAV and MP4 work can resume after interruption.
+- The comic manifest records presentation as an optional local stage. Historical absence means `not-requested`.
+- `--price` reports `$0.00` and performs no writes.
 
 ## reference-sketch
 
@@ -394,6 +439,15 @@ output/<YYYY-MM-DD_HH-MM-SS-mmm>_01-opening/
       branches/<branch-plan-id>/
       renders/<render-identity>/
     final/<target-key>.wav
+  presentation/
+    runs/<presentation-id>/
+      comic-presentation-plan.json
+      resolved-panel-timeline.json
+      comic-presentation-run.json
+      presentation.wav
+      slideshow.mp4
+    final/slideshow.wav
+    final/slideshow.mp4
   panels/
   pages/
   sketches/

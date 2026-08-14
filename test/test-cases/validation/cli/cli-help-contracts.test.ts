@@ -46,7 +46,7 @@ const topLevelCommands = [
   'version', 'help', 'config', 'setup', 'links', 'resume', 'benchmark',
   'metadata', 'download', 'extract', 'write', 'tts', 'voice', 'image', 'video', 'music', 'comic'
 ] as const
-const comicSubcommands = ['draft-scenes', 'generate-images', 'reference-sketch', 'reference-voice'] as const
+const comicSubcommands = ['draft-scenes', 'generate-images', 'generate-audio', 'generate-slideshow', 'reference-sketch', 'reference-voice'] as const
 
 const getSection = (output: string, heading: string, nextHeading?: string): string => {
   const start = output.indexOf(heading)
@@ -736,6 +736,21 @@ test('comic draft-scenes help is scoped to the drafting stages', async () => {
   expect(flagsSection).not.toContain('--panels')
   expect(flagsSection).not.toContain('--target')
   expect(flagsSection).not.toContain('--character')
+})
+
+test('comic generate-slideshow help documents its local synchronization contract', async () => {
+  const result = await runCommand(['src/cli/create-cli.ts', 'comic', 'generate-slideshow', '--help'], { env: helpEnv })
+
+  expect(result.exitCode).toBe(0)
+  expect(result.stdout).toContain('$ bun autoshow comic generate-slideshow <script-path> [flags]')
+  const presentation = getFlagGroupSection(result.stdout, 'Comic Presentation')
+  expect(presentation).toContain('--audio-target')
+  expect(presentation).toContain('--untimed-panel-ms')
+  expect(presentation).toContain('--fps')
+  expect(getFlagGroupSection(result.stdout, 'Pricing')).toContain('--price')
+  expect(result.stdout).toContain('panels/panel-NN.png')
+  expect(result.stdout).toContain('hard cuts only')
+  expect(getCommandFlagsSection(result.stdout)).not.toContain('--provider')
 })
 
 test('comic reference-sketch help documents both reference kinds', async () => {

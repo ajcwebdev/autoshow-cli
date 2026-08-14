@@ -62,6 +62,7 @@ export const normalizeStructuredScriptData = (
     sourceSegments?: StructuredScriptSourceSegment[]
     beatLocations?: StructuredScriptBeat['location'][]
     sceneLocation?: StructuredScriptData['scene']['location']
+    sceneSoundscape?: StructuredScriptData['scene']['soundscape']
   }
 ): StructuredScriptData => {
   const beats = data.beats.map((beat, index) => {
@@ -96,7 +97,7 @@ export const normalizeStructuredScriptData = (
 
   return {
     ...data,
-    ...(options.sceneLocation ? { scene: { ...data.scene, location: options.sceneLocation } } : {}),
+    ...(options.sceneLocation || options.sceneSoundscape ? { scene: { ...data.scene, ...(options.sceneLocation ? { location: options.sceneLocation } : {}), ...(options.sceneSoundscape ? { soundscape: options.sceneSoundscape } : {}) } } : {}),
     scriptSlug: options.scriptSlug,
     sourceFile: options.sourceFile,
     ...(options.sourceIdentity ? { sourceIdentity: options.sourceIdentity } : {}),

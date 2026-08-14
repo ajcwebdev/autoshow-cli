@@ -107,6 +107,7 @@ describe('TTS Phase 0 audio-run artifacts', () => {
       const sourceText = 'A canonical fixture line.'
       const sourceIdentity = createInlineTtsSourceIdentity(sourceText)
       const dialoguePlan = createSingleTurnTtsDialoguePlan(sourceIdentity, sourceText)
+      await Bun.write(join(dir, 'speech.wav'), 'unreferenced stale reported output')
       const run = await runTtsForTargets(sourceText, dir, {}, [target], { sourceIdentity, dialoguePlan })
       const metadata = run.metadata[0]
       expect(metadata?.targetKey).toBe(targetKey)
@@ -114,6 +115,7 @@ describe('TTS Phase 0 audio-run artifacts', () => {
       expect(metadata?.ttsAudio?.activeWork?.kind).toBe('render')
       expect(metadata?.ttsAudio?.selectedSuccess?.resultIdentity).toBe(metadata?.resultIdentity)
       expect(await Bun.file(join(dir, 'speech.wav')).exists()).toBe(true)
+      expect(await Bun.file(join(dir, 'speech.wav')).text()).not.toBe('unreferenced stale reported output')
 
       const artifactDir = join(dir, metadata?.artifactDir as string)
       const render = metadata?.ttsAudio?.renderHistory[0]

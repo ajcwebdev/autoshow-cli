@@ -88,7 +88,7 @@ Global flags:
 | `--cookies-from-browser` | Import browser cookies through yt-dlp. |
 | `--model-path` | Use a local GGUF file for llama.cpp. |
 
-Comic's public `draft-scenes`, `generate-images`, `generate-audio`, `reference-sketch`, and `reference-voice` commands are first-class children of `comicCommand`; dispatch, global flags, parameter cardinality, and both help forms use the native command tree. Links registers every provider selector as a real hidden flag, then assigns the native parser's ordered positional metadata to provider scopes without reparsing raw argv.
+Comic's public `draft-scenes`, `generate-images`, `generate-audio`, `generate-slideshow`, `reference-sketch`, and `reference-voice` commands are first-class children of `comicCommand`; dispatch, global flags, parameter cardinality, and both help forms use the native command tree. Links registers every provider selector as a real hidden flag, then assigns the native parser's ordered positional metadata to provider scopes without reparsing raw argv.
 
 ## Command Surface
 
@@ -113,7 +113,7 @@ Processing and generation:
   image     standalone image generation
   video     standalone video generation
   music     standalone music generation or local lyric-video rendering
-  comic     nested draft-scenes, generate-images, generate-audio, reference-sketch, and reference-voice workflows
+  comic     nested draft-scenes, generate-images, generate-audio, generate-slideshow, reference-sketch, and reference-voice workflows
 ```
 
 Process commands enter the shared target layer except for special standalone generation modes. `extract --transcript-video` is handled before normal target processing and renders a captioned video from an existing extract run or from explicit `--audio` plus `--transcript-result`/`--transcript-text`.
@@ -172,5 +172,5 @@ Command-to-flag mapping:
 | `resume` | target-aware provider selectors for missing or failed providers. |
 | `tts`/`image`/`video`/`music` | standalone generation flags and provider selectors. |
 | `voice` | standalone voice registration, audition, approval, consent, discovery, and deletion flags. |
-| `comic` | comic drafting, panel image generation, audio rendering, and reference flags. |
+| `comic` | comic drafting, panel image generation, audio rendering, local slideshow presentation, and reference flags. |
 | `config` | persisted defaults for supported selectors and options; runtime-only flags are ignored. |

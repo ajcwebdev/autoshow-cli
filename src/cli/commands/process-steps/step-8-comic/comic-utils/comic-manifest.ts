@@ -52,11 +52,13 @@ export const writeInitialComicStructureManifest = async (input: {
       structure: structureStage,
       image: notRequestedComicStage(),
       audio: notRequestedComicStage(),
+      presentation: notRequestedComicStage(),
     },
     audio: {
       sceneRunIdentity,
       structuredScript: input.structuredScript,
     },
+    presentation: {},
   }
   const current = await readManifest(input.sceneRunDir)
   if (current) {
@@ -116,20 +118,21 @@ export const updateComicAudioManifest = async (input: {
   const item = manifest.items[0]
   if (!item || item.input !== input.sourceIdentity.canonicalPath) throw CLIUsageError('Canonical comic source changed during audio generation.')
   const prior = comicMetadata(item)
-  if (input.providers?.some(provider => provider.operation !== 'comic-audio')) throw CLIUsageError('Comic audio stage updates may replace only comic-audio provider states.')
+  const audioOperations = new Set(['comic-audio', 'sound-effect-generation'])
+  if (input.providers?.some(provider => !provider.operation || !audioOperations.has(provider.operation))) throw CLIUsageError('Comic audio stage updates may replace only comic-audio or sound-effect-generation provider states.')
   const providers = input.providers === undefined
     ? item.providers
     : (() => {
         const incomingByTarget = new Map(input.providers.map(provider => [provider.targetKey, provider] as const))
-        const priorAudio = item.providers.filter(provider => provider.operation === 'comic-audio')
+        const priorAudio = item.providers.filter(provider => provider.operation !== undefined && audioOperations.has(provider.operation))
         const mergedAudio = priorAudio.map(provider => {
           const incoming = incomingByTarget.get(provider.targetKey)
           if (!incoming) return provider
           incomingByTarget.delete(provider.targetKey)
-          return appendCurrentTtsProviderState(provider, incoming)
+          return provider.operation === 'comic-audio' ? appendCurrentTtsProviderState(provider, incoming) : incoming
         })
         return [
-          ...item.providers.filter(provider => provider.operation !== 'comic-audio'),
+          ...item.providers.filter(provider => !provider.operation || !audioOperations.has(provider.operation)),
           ...mergedAudio,
           ...incomingByTarget.values(),
         ]
@@ -153,6 +156,7 @@ export const updateComicAudioManifest = async (input: {
         schemaVersion: 1,
         stages: { ...prior.stages, audio: input.stage },
         audio: input.audio,
+        presentation: prior.presentation,
       },
     } as never,
   }
@@ -182,9 +186,10 @@ export const appendComicAudioProviderState = async (input: {
   const item = manifest.items[0]
   if (!item) throw CLIUsageError('Canonical comic scene item is missing.')
   const prior = comicMetadata(item)
+  if (input.state.operation !== 'comic-audio' && input.state.operation !== 'sound-effect-generation') throw CLIUsageError('Comic audio provider state has an unsupported operation owner.')
   const providers = item.providers.slice()
   const index = providers.findIndex(provider => provider.targetKey === input.state.targetKey)
-  if (index >= 0) providers[index] = appendCurrentTtsProviderState(providers[index] as PipelineProviderState, input.state)
+  if (index >= 0) providers[index] = input.state.operation === 'comic-audio' ? appendCurrentTtsProviderState(providers[index] as PipelineProviderState, input.state) : input.state
   else providers.push(input.state)
   const stage = {
     requirement: 'required' as const,
@@ -242,4 +247,34 @@ export const updateComicImageManifest = async (input: {
         ? 'failed' as const
         : 'incomplete' as const
   return { ...manifest, items: [{ ...item, status, providers, metadata: { ...item.metadata, comic: { ...prior, stages } } as never }] }
+})
+
+export const updateComicPresentationManifest = async (input: {
+  sceneRunDir: string
+  sourceIdentity: ComicSourceIdentity
+  stage: CanonicalComicItemMetadata['stages']['presentation']
+  presentation: CanonicalComicItemMetadata['presentation']
+}): Promise<PipelineManifest> => await updateManifest(input.sceneRunDir, (manifest) => {
+  if (manifest.command !== 'comic' || manifest.scope !== 'single' || manifest.items.length !== 1 || canonicalTtsJson(manifest.source) !== canonicalTtsJson(input.sourceIdentity)) throw CLIUsageError('Comic presentation can update only the exact compatible canonical scene manifest.')
+  const item = manifest.items[0]
+  if (!item || item.input !== input.sourceIdentity.canonicalPath) throw CLIUsageError('Canonical comic source changed during presentation rendering.')
+  const prior = comicMetadata(item)
+  if (input.stage.requirement !== 'optional' || input.stage.execution.kind !== 'local' || input.stage.targetKeys.length !== 0) throw CLIUsageError('Comic presentation is an optional local-only stage.')
+  const stages = { ...prior.stages, presentation: input.stage }
+  const required = Object.values(stages).filter(stage => stage.requirement === 'required')
+  const status = required.every(stage => stage.status === 'full' || stage.status === 'skipped') && required.some(stage => stage.status === 'full')
+    ? 'full' as const
+    : required.every(stage => stage.status === 'skipped')
+      ? 'skipped' as const
+      : required.every(stage => stage.status === 'failed' || stage.status === 'skipped') && required.some(stage => stage.status === 'failed')
+        ? 'failed' as const
+        : 'incomplete' as const
+  return {
+    ...manifest,
+    items: [{
+      ...item,
+      status,
+      metadata: { ...item.metadata, comic: { ...prior, stages, presentation: input.presentation } } as never,
+    }],
+  }
 })

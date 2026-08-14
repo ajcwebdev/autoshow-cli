@@ -1,6 +1,7 @@
 import {
   draftScenesFlags,
   comicGenerateAudioFlags,
+  comicGenerateSlideshowFlags,
   generateImagesFlags,
   referenceSketchFlags
 } from '~/cli/flags/comic-flags'
@@ -15,6 +16,7 @@ import {
   handleDraftScenes,
   handleGenerateAudio,
   handleGenerateImages,
+  handleGenerateSlideshow,
   handleReferenceSketch,
 } from './subcommand-handlers'
 import type { CliCommandDefinition } from '~/types'
@@ -31,6 +33,7 @@ export const DRAFT_SCENES_DESCRIPTION = 'Run script markdown to structured scrip
 export const GENERATE_IMAGES_DESCRIPTION = 'Run panel prompt bundles to review sketches and/or final panel images'
 export const REFERENCE_SKETCH_DESCRIPTION = 'Generate and register a character sheet or one canonical location view'
 export const GENERATE_AUDIO_DESCRIPTION = 'Render approved character voices from an existing compatible structured comic scene'
+export const GENERATE_SLIDESHOW_DESCRIPTION = 'Synchronize canonical still panels with one complete manifest-backed audio run using local FFmpeg'
 
 export const draftScenesCommandDefinition = defineCliCommand({
   name: `comic ${DRAFT_SCENES_COMMAND}`,
@@ -82,16 +85,38 @@ export const generateAudioCommandDefinition = defineCliCommand({
     examples: [
       [`bun autoshow comic ${GENERATE_AUDIO_COMMAND} 05-01 --provider gemini=gemini-2.5-pro-preview-tts`, 'Render with approved Gemini castings'],
       [`bun autoshow comic ${GENERATE_AUDIO_COMMAND} 05-01 --provider mistral=voxtral-mini-tts-2603 --mode segmented`, 'Render approved Mistral saved/reference voices'],
+      [`bun autoshow comic ${GENERATE_AUDIO_COMMAND} 05-01 --provider elevenlabs=eleven_v3 --sfx-provider elevenlabs=eleven_text_to_sound_v2`, 'Render dialogue plus authored sound effects and ambience'],
       [`bun autoshow comic ${GENERATE_AUDIO_COMMAND} 05-01 --all-providers --profile default --price`, 'Plan every selected target without calls or writes'],
     ],
     notes: [
       'The command consumes a compatible existing comic scene run and never creates a replacement run.',
       'Every speaking subject requires an approved current registration for every selected provider/model/profile.',
+      'Authored SFX, VOCAL SFX, or AMBIENCE requires an explicit --sfx-provider unless a compatible retained sound-effect render plan supplies the exact target.',
       'Price mode performs read-only planning, includes compatible retained render progress, and writes no canonical, domain, or protected artifacts.',
       ARTIFACT_NOTE,
     ],
   },
 }, handleGenerateAudio)
+
+export const generateSlideshowCommandDefinition = defineCliCommand({
+  name: 'comic generate-slideshow',
+  description: GENERATE_SLIDESHOW_DESCRIPTION,
+  parameters: [SCRIPT_PATH_PARAMETER],
+  flags: comicGenerateSlideshowFlags,
+  help: {
+    examples: [
+      ['bun autoshow comic generate-slideshow 05-01', 'Render one synchronized still-panel slideshow'],
+      ['bun autoshow comic generate-slideshow 05-01 --audio-target elevenlabs=eleven_v3 --untimed-panel-ms 2500', 'Select an exact audio target and custom untimed hold'],
+      ['bun autoshow comic generate-slideshow 05-01 --price', 'Report the zero-dollar local render cost without writes'],
+    ],
+    notes: [
+      'Every reviewed panel must exist as canonical panels/panel-NN.png with identical even dimensions.',
+      'Only complete canonical AudioRun timelines are supported; raw WAV files cannot synchronize panels.',
+      'Rendering is local and uses hard cuts only: no motion, transitions, rescaling, or provider calls.',
+      ARTIFACT_NOTE,
+    ],
+  },
+}, handleGenerateSlideshow)
 
 export const referenceSketchCommandDefinition = defineCliCommand({
   name: `comic ${REFERENCE_SKETCH_COMMAND}`,
@@ -118,6 +143,7 @@ export const COMIC_SUBCOMMAND_DEFINITIONS = [
   draftScenesCommandDefinition,
   generateImagesCommandDefinition,
   generateAudioCommandDefinition,
+  generateSlideshowCommandDefinition,
   referenceSketchCommandDefinition,
   referenceVoiceCommandDefinition,
 ] as const satisfies readonly CliCommandDefinition[]

@@ -717,6 +717,19 @@ test('comic generate-images rejects invalid page selection flags', async () => {
   )
 })
 
+test('comic generate-slideshow validates local timing and audio-selection flags before price reporting', async () => {
+  const script = 'input/scripts/02-script/01-co-work-smarter.md'
+  await expectUsageExit(['comic', 'generate-slideshow', script, '--fps', '0', '--price'], '--fps must be a positive safe integer')
+  await expectUsageExit(['comic', 'generate-slideshow', script, '--fps', '121', '--price'], '--fps must be a positive safe integer no greater than 120')
+  await expectUsageExit(['comic', 'generate-slideshow', script, '--untimed-panel-ms', '0', '--price'], '--untimed-panel-ms must be a positive safe integer')
+  await expectUsageExit(['comic', 'generate-slideshow', script, '--audio-target', 'elevenlabs', '--price'], '--audio-target must use <provider>=<model>')
+  await expectUsageExit(['comic', 'generate-slideshow', script, '--audio-target', 'a=b=c', '--price'], '--audio-target must use <provider>=<model>')
+
+  const result = await runCommand(['src/cli/create-cli.ts', 'comic', 'generate-slideshow', script, '--audio-target', 'local=fixture', '--fps', '24', '--untimed-panel-ms', '1500', '--price'], { env: { NO_COLOR: '1' } })
+  expect(result.exitCode).toBe(0)
+  expect(`${result.stdout}\n${result.stderr}`).toContain('$0.00')
+})
+
 test('comic generate-images rejects invalid and duplicate image models', async () => {
   await expectUsageExit(
     ['comic', 'generate-images', 'input/scripts/02-script/01-co-work-smarter.md','--image-model', 'not-a-model', '--price'],

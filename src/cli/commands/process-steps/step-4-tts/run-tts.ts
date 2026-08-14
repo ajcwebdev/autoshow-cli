@@ -329,6 +329,7 @@ export const runTtsTargets = async (
       }
       const attempt = attempts.get(target)
       if (!attempt) throw InternalError(`Missing prepared TTS render attempt for ${target.service}/${target.model}.`, { stage: 'tts:run' })
+      let providerRunCompleted = false
       try {
         const boundedOptions = selectBoundedExecutionOptions(options, attempt.executionSelection)
         const executionOptions: TtsOptions = boundedOptions.hostedTtsChunkScheduler
@@ -345,6 +346,7 @@ export const runTtsTargets = async (
             }
           : boundedOptions
         const { audioPath, metadata: rawMetadata } = await target.run(text, workspaceDir, executionOptions, undefined, attempt.requestEvidence)
+        providerRunCompleted = true
         const { _ttsObservedTurns: _ignoredTurns, _ttsRenderStrategy: _ignoredStrategy, ...metadata } = rawMetadata as WorkingTtsMetadata
         if (attempt.executionSelection) {
           const checkpoint = await attempt.finalizeCheckpoint()
@@ -386,7 +388,7 @@ export const runTtsTargets = async (
           _renderArtifacts: renderArtifacts
         } as WorkingTtsResult
       } catch (error) {
-        const failure = await attempt.finalizeFailure(error)
+        const failure = await attempt.finalizeFailure(error, providerRunCompleted ? 'assembly' : undefined)
         const sanitized = failure.error as SanitizedProviderError | undefined
         const safeError = new Error(sanitized?.message ?? 'TTS target failed without exposing provider response details.')
         if (sanitized?.code.startsWith('http_')) {

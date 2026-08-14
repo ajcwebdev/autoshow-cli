@@ -65,6 +65,47 @@ const StructuredScriptSourceSpanSchema = v.strictObject({
   indexUnit: v.literal('unicode-scalar-value'),
   text: v.string(),
 })
+const SoundscapeSourceSpanSchema = v.strictObject({
+  kind: v.literal('sound-effect'),
+  start: v.number(),
+  end: v.number(),
+  indexUnit: v.literal('unicode-scalar-value'),
+  text: v.string(),
+})
+const SoundscapeAnchorSchema = v.variant('kind', [
+  v.strictObject({ kind: v.literal('scene-clock'), positionMs: v.number() }),
+  v.strictObject({ kind: v.literal('source-segment-edge'), sourceSegmentId: v.string(), edge: v.picklist(['start', 'end']), offsetMs: v.number() }),
+  v.strictObject({ kind: v.literal('source-text-offset'), sourceSegmentId: v.string(), textOffset: v.number(), indexUnit: v.literal('unicode-scalar-value'), offsetMs: v.number() }),
+])
+const SoundscapeCueSchema = v.strictObject({
+  cueId: v.string(),
+  kind: v.picklist(['vocal-reaction', 'action-sfx']),
+  prompt: v.string(),
+  required: v.boolean(),
+  anchor: SoundscapeAnchorSchema,
+  sourceSpan: SoundscapeSourceSpanSchema,
+  durationSeconds: v.optional(v.number()),
+  gainDb: v.optional(v.number()),
+  pan: v.optional(v.number()),
+})
+const AmbientBedSchema = v.strictObject({
+  cueId: v.string(),
+  kind: v.literal('ambience'),
+  prompt: v.string(),
+  required: v.boolean(),
+  range: v.variant('kind', [
+    v.strictObject({ kind: v.literal('full-scene') }),
+    v.strictObject({ kind: v.literal('anchors'), start: SoundscapeAnchorSchema, end: SoundscapeAnchorSchema }),
+  ]),
+  sourceSpan: SoundscapeSourceSpanSchema,
+  durationSeconds: v.optional(v.number()),
+  gainDb: v.optional(v.number()),
+  pan: v.optional(v.number()),
+})
+const StructuredSoundscapeSchema = v.strictObject({
+  cues: v.array(SoundscapeCueSchema),
+  ambientBeds: v.array(AmbientBedSchema),
+})
 const StructuredScriptBeatSchema = v.strictObject({
   index: v.number(),
   type: v.picklist(STRUCTURED_SCRIPT_BEAT_TYPES),
@@ -143,7 +184,7 @@ export const PromptsConfigSchema = v.object({
   'Image Prompt Variations': ImagePromptVariationsSchema,
 })
 export const StructuredScriptDataSchema = v.strictObject({
-  schemaVersion: v.literal(4),
+  schemaVersion: v.literal(5),
   scriptSlug: v.string(),
   sourceFile: v.string(),
   sourceIdentity: v.strictObject({
@@ -153,7 +194,7 @@ export const StructuredScriptDataSchema = v.strictObject({
     heading: v.string(), label: v.optional(v.string()), title: v.string(), metadata: v.array(StructuredScriptMetadataEntrySchema),
   }),
   scene: v.strictObject({
-    heading: v.string(), section: v.optional(v.string()), title: v.string(), location: StructuredScriptLocationSchema,
+    heading: v.string(), section: v.optional(v.string()), title: v.string(), location: StructuredScriptLocationSchema, soundscape: StructuredSoundscapeSchema,
   }),
   characterKeys: v.array(CharacterKeySchema),
   beats: v.array(StructuredScriptBeatSchema),
@@ -172,7 +213,7 @@ export const PanelBundleDataSchema = v.strictObject({
   location: v.string(),
   panels: v.array(PanelBundlePanelSchema),
 })
-export const STRUCTURED_SCRIPT_JSON_SCHEMA_NAME = 'structured_script_data_v4'
+export const STRUCTURED_SCRIPT_JSON_SCHEMA_NAME = 'structured_script_data_v5'
 const nullable = (schema: Record<string, unknown>) => ({ anyOf: [schema, { type: 'null' as const }] })
 const characterArray = (keys: readonly string[]) => ({
   type: 'array' as const, items: { type: 'string' as const, enum: [...keys] },
@@ -185,13 +226,21 @@ const speakerJsonSchema = (keys: readonly string[]) => ({
   ],
 })
 
+const soundscapeAnchorJsonSchema = () => ({
+  anyOf: [
+    { type: 'object', properties: { kind: { type: 'string', enum: ['scene-clock'] }, positionMs: { type: 'integer', minimum: 0 } }, required: ['kind', 'positionMs'], additionalProperties: false },
+    { type: 'object', properties: { kind: { type: 'string', enum: ['source-segment-edge'] }, sourceSegmentId: { type: 'string' }, edge: { type: 'string', enum: ['start', 'end'] }, offsetMs: { type: 'integer' } }, required: ['kind', 'sourceSegmentId', 'edge', 'offsetMs'], additionalProperties: false },
+    { type: 'object', properties: { kind: { type: 'string', enum: ['source-text-offset'] }, sourceSegmentId: { type: 'string' }, textOffset: { type: 'integer', minimum: 0 }, indexUnit: { type: 'string', enum: ['unicode-scalar-value'] }, offsetMs: { type: 'integer' } }, required: ['kind', 'sourceSegmentId', 'textOffset', 'indexUnit', 'offsetMs'], additionalProperties: false },
+  ],
+})
+
 export const buildStructuredScriptJsonSchema = (characterKeys: readonly string[]) => ({
   name: STRUCTURED_SCRIPT_JSON_SCHEMA_NAME,
   strict: true,
   schema: {
     type: 'object' as const,
     properties: {
-      schemaVersion: { type: 'integer', enum: [4] }, scriptSlug: { type: 'string' }, sourceFile: { type: 'string' },
+      schemaVersion: { type: 'integer', enum: [5] }, scriptSlug: { type: 'string' }, sourceFile: { type: 'string' },
       sourceIdentity: { type: 'object', properties: { schemaVersion: { type: 'integer', enum: [1] }, canonicalPath: { type: 'string' }, scriptSlug: { type: 'string' }, contentSha256: { type: 'string' }, identityHash: { type: 'string' } }, required: ['schemaVersion', 'canonicalPath', 'scriptSlug', 'contentSha256', 'identityHash'], additionalProperties: false },
       document: { type: 'object', properties: {
         heading: { type: 'string' }, label: nullable({ type: 'string' }), title: { type: 'string' },
@@ -200,7 +249,24 @@ export const buildStructuredScriptJsonSchema = (characterKeys: readonly string[]
       scene: { type: 'object', properties: {
         heading: { type: 'string' }, section: nullable({ type: 'string' }), title: { type: 'string' },
         location: { type: 'object', properties: { key: { type: 'string' }, raw: { type: 'string' }, type: nullable({ type: 'string' }), place: nullable({ type: 'string' }) }, required: ['key', 'raw', 'type', 'place'], additionalProperties: false },
-      }, required: ['heading', 'section', 'title', 'location'], additionalProperties: false },
+        soundscape: { type: 'object', properties: {
+          cues: { type: 'array', items: { type: 'object', properties: {
+            cueId: { type: 'string' }, kind: { type: 'string', enum: ['vocal-reaction', 'action-sfx'] }, prompt: { type: 'string' }, required: { type: 'boolean' },
+            anchor: soundscapeAnchorJsonSchema(),
+            sourceSpan: { type: 'object', properties: { kind: { type: 'string', enum: ['sound-effect'] }, start: { type: 'integer', minimum: 0 }, end: { type: 'integer', minimum: 1 }, indexUnit: { type: 'string', enum: ['unicode-scalar-value'] }, text: { type: 'string' } }, required: ['kind', 'start', 'end', 'indexUnit', 'text'], additionalProperties: false },
+            durationSeconds: { type: 'number', minimum: 0.5, maximum: 30 }, gainDb: { type: 'number' }, pan: { type: 'number', minimum: -1, maximum: 1 },
+          }, required: ['cueId', 'kind', 'prompt', 'required', 'anchor', 'sourceSpan'], additionalProperties: false } },
+          ambientBeds: { type: 'array', items: { type: 'object', properties: {
+            cueId: { type: 'string' }, kind: { type: 'string', enum: ['ambience'] }, prompt: { type: 'string' }, required: { type: 'boolean' },
+            range: { anyOf: [
+              { type: 'object', properties: { kind: { type: 'string', enum: ['full-scene'] } }, required: ['kind'], additionalProperties: false },
+              { type: 'object', properties: { kind: { type: 'string', enum: ['anchors'] }, start: soundscapeAnchorJsonSchema(), end: soundscapeAnchorJsonSchema() }, required: ['kind', 'start', 'end'], additionalProperties: false },
+            ] },
+            sourceSpan: { type: 'object', properties: { kind: { type: 'string', enum: ['sound-effect'] }, start: { type: 'integer', minimum: 0 }, end: { type: 'integer', minimum: 1 }, indexUnit: { type: 'string', enum: ['unicode-scalar-value'] }, text: { type: 'string' } }, required: ['kind', 'start', 'end', 'indexUnit', 'text'], additionalProperties: false },
+            durationSeconds: { type: 'number', minimum: 0.5, maximum: 30 }, gainDb: { type: 'number' }, pan: { type: 'number', minimum: -1, maximum: 1 },
+          }, required: ['cueId', 'kind', 'prompt', 'required', 'range', 'sourceSpan'], additionalProperties: false } },
+        }, required: ['cues', 'ambientBeds'], additionalProperties: false },
+      }, required: ['heading', 'section', 'title', 'location', 'soundscape'], additionalProperties: false },
       characterKeys: characterArray(characterKeys),
       beats: { type: 'array', items: { type: 'object', properties: {
         index: { type: 'integer' }, type: { type: 'string', enum: [...STRUCTURED_SCRIPT_BEAT_TYPES] }, text: { type: 'string' },

@@ -6,6 +6,7 @@ import type {
   ComicAudioMode,
   ComicAudioDeliveryPolicy,
   ComicAudioPacingProfile,
+  ComicAudioSoundscapeTimingPolicy,
   ComicAudioRolePolicy,
   ComicTtsRenderContext,
   PipelineProviderState,
@@ -35,6 +36,8 @@ import { bindSnapshotRenderIdentities, buildVoiceReferenceManifest, loadVoiceRef
 import { assertProtectedStoreOutputDisjoint } from '../../../step-4-tts/voice-assets/protected-output-boundary'
 import { MANAGED_VOICE_STORE_ROOT } from '../../../step-4-tts/voice-management/managed-voice-store'
 import { createHostedTtsChunkScheduler } from '../../../step-4-tts/tts-utils/hosted-tts-chunk-scheduler'
+import { createSoundscapePlan, DEFAULT_COMIC_SOUNDSCAPE_MIX_PROFILE, writeSoundscapePlan } from '../../../step-4-tts/soundscape/soundscape-planner'
+import { assertComicSoundscapeExecutionReady, createLocalSilentDialogueRun, planComicSoundscapePrice, runComicSoundscape, soundscapeReportedOutputPath } from '../../comic-utils/comic-soundscape-workflow'
 
 const DEFAULT_PROFILE = 'default'
 const DEFAULT_SAMPLE_RATE = 48000
@@ -79,6 +82,12 @@ const parsePacingProfile = (value: unknown): ComicAudioPacingProfile => {
   const profile = value ?? 'none'
   if (profile !== 'none' && profile !== 'loose-comedy') throw CLIUsageError('--pacing-profile must be none or loose-comedy.')
   return profile
+}
+
+const parseSoundscapeTimingPolicy = (value: unknown): ComicAudioSoundscapeTimingPolicy => {
+  const policy = value ?? 'strict'
+  if (policy !== 'strict' && policy !== 'proportional') throw CLIUsageError('--soundscape-timing-policy must be strict or proportional.')
+  return policy
 }
 
 const flattenTurns = (plan: Awaited<ReturnType<typeof createComicDialoguePlan>>) =>
@@ -251,6 +260,7 @@ export const generateComicAudio = async (ctx: CliCommandContext, scriptPath: str
   const mode = parseMode(flags['mode'])
   const deliveryPolicy = parseDeliveryPolicy(flags['delivery-policy'])
   const pacingProfile = parsePacingProfile(flags['pacing-profile'])
+  const soundscapeTimingPolicy = parseSoundscapeTimingPolicy(flags['soundscape-timing-policy'])
   const rolePolicies = parseRolePolicies(repeatableStrings(flags['role']))
   const sampleRate = parseInteger(flags['sample-rate'], DEFAULT_SAMPLE_RATE, '--sample-rate')
   const channelsValue = parseInteger(flags['channels'], 2, '--channels')
@@ -262,6 +272,8 @@ export const generateComicAudio = async (ctx: CliCommandContext, scriptPath: str
   const price = flags['price'] === true
   const allowAmbiguousRedispatch = flags['allow-ambiguous-redispatch'] === true
   const maxGenerationSlots = parseOptionalPositiveInteger(flags['max-generation-slots'], '--max-generation-slots')
+  const sfxSelector = typeof flags['sfx-provider'] === 'string' && flags['sfx-provider'].trim() ? flags['sfx-provider'].trim() : undefined
+  const sfxConcurrency = parseInteger(flags['sfx-concurrency'], 2, '--sfx-concurrency')
   const providerNormalized = normalizeGenericProviderSelectorFlags(
     flags,
     ctx.rawParsed.explicitFlags,
@@ -292,24 +304,68 @@ export const generateComicAudio = async (ctx: CliCommandContext, scriptPath: str
     rolePolicies,
   })
   const turns = flattenTurns(dialoguePlan)
-  if (turns.length === 0) {
+  const structuredRef = dialoguePlan.structuredScript
+  const soundscapePlan = createSoundscapePlan({
+    structuredScript: compatible.structuredScript,
+    structuredScriptRef: structuredRef,
+    dialoguePlan,
+    sceneRunIdentity: dialoguePlan.sceneRunIdentity,
+    createdAt: compatible.manifest.createdAt,
+    mixProfile: { ...DEFAULT_COMIC_SOUNDSCAPE_MIX_PROFILE, sampleRate, channels, codec },
+    timingPolicy: soundscapeTimingPolicy,
+  })
+  const retainedSoundEffectPlanRef = compatible.comicMetadata.audio.soundEffectRenderPlanRef
+  const soundscapePrice = await planComicSoundscapePrice({ rootDir: compatible.sceneRunDir, plan: soundscapePlan, selector: sfxSelector, ...(retainedSoundEffectPlanRef ? { retainedPlanRef: retainedSoundEffectPlanRef } : {}) })
+  const soundEffectRenderPlan = soundscapePrice.renderPlan
+  if (turns.length === 0 && !soundEffectRenderPlan) {
     if (price) {
-      l.write('info', 'Comic audio price: 0 speakable turns; no provider work or artifact writes.')
+      l.write('info', `Comic audio price: 0 speakable turns; no provider work or artifact writes. ${soundscapePrice.summary}`)
       return
     }
     const dialogueRef = await writeComicDialoguePlan(compatible.sceneRunDir, dialoguePlan)
-    const structuredRef = dialoguePlan.structuredScript
+    const soundscapePlanRef = await writeSoundscapePlan(compatible.sceneRunDir, soundscapePlan)
     await updateComicAudioManifest({
       sceneRunDir: compatible.sceneRunDir,
       sourceIdentity: compatible.sourceIdentity,
       stage: {
         requirement: 'required', status: 'full', execution: { kind: 'local', state: 'succeeded' }, targetKeys: [],
-        artifactRefs: stageArtifactRefs({ structured: structuredRef, dialogue: dialogueRef }),
+        artifactRefs: stageArtifactRefs({ structured: structuredRef, dialogue: dialogueRef, extra: [soundscapePlanRef] }),
       },
-      audio: { sceneRunIdentity: dialoguePlan.sceneRunIdentity, structuredScript: structuredRef, dialoguePlanId: dialoguePlan.dialoguePlanId, dialoguePlanRef: dialogueRef },
+      audio: { sceneRunIdentity: dialoguePlan.sceneRunIdentity, structuredScript: structuredRef, dialoguePlanId: dialoguePlan.dialoguePlanId, dialoguePlanRef: dialogueRef, soundscapePlanId: soundscapePlan.soundscapePlanId, soundscapePlanRef },
       providers: [],
     })
     l.write('info', `Comic audio completed locally with no speakable turns: ${compatible.sceneRunDir}`)
+    return
+  }
+  if (turns.length === 0 && soundEffectRenderPlan) {
+    if (price) {
+      l.write('info', `Comic audio price: 0 speakable turns. ${soundscapePrice.summary}`)
+      return
+    }
+    await assertComicSoundscapeExecutionReady(compatible.sceneRunDir, soundEffectRenderPlan)
+    const dialogueRef = await writeComicDialoguePlan(compatible.sceneRunDir, dialoguePlan)
+    const soundscapePlanRef = await writeSoundscapePlan(compatible.sceneRunDir, soundscapePlan)
+    const silent = await createLocalSilentDialogueRun({ rootDir: compatible.sceneRunDir, plan: soundscapePlan })
+    await mkdir(join(compatible.sceneRunDir, 'audio', 'final'), { recursive: true })
+    const soundscape = await runComicSoundscape({ rootDir: compatible.sceneRunDir, plan: soundscapePlan, renderPlan: soundEffectRenderPlan, dialoguePlan, dialogueRuns: [silent.binding], concurrency: sfxConcurrency })
+    const run = soundscape.soundscapeRuns[0]
+    const nextArtifacts = stageArtifactRefs({ structured: structuredRef, dialogue: dialogueRef, extra: [soundscapePlanRef, ...silent.refs, soundscape.renderPlanRef, soundscape.renderResultRef, ...(run ? [run.ref, run.audioRun.transformLedger, run.audioRun.resolvedTimeline, ...run.audioRun.stems.map(stem => ({ path: stem.path, sha256: stem.sha256 })), { path: run.audioRun.master.path, sha256: run.audioRun.master.sha256 }] : [])] })
+    const artifacts = [...new Map([...compatible.comicMetadata.stages.audio.artifactRefs, ...nextArtifacts].map(ref => [ref.path, ref] as const)).values()]
+    await updateComicAudioManifest({
+      sceneRunDir: compatible.sceneRunDir,
+      sourceIdentity: compatible.sourceIdentity,
+      stage: { requirement: 'required', status: soundscape.providerState.status === 'succeeded' ? 'full' : 'failed', execution: { kind: 'provider-targets' }, targetKeys: [soundEffectRenderPlan.target.targetKey], artifactRefs: artifacts },
+      audio: {
+        ...compatible.comicMetadata.audio,
+        sceneRunIdentity: dialoguePlan.sceneRunIdentity, structuredScript: structuredRef, dialoguePlanId: dialoguePlan.dialoguePlanId, dialoguePlanRef: dialogueRef,
+        soundscapePlanId: soundscapePlan.soundscapePlanId, soundscapePlanRef, soundEffectRenderPlanRef: soundscape.renderPlanRef, soundEffectRenderResultRef: soundscape.renderResultRef,
+        selectedAudioRuns: [{ targetKey: silent.binding.targetKey, renderIdentity: silent.binding.renderIdentity, audioRunId: silent.binding.audioRunId, audioRunRef: silent.binding.audioRunRef, audioRunSha256: silent.binding.audioRunSha256 }],
+        ...(run ? { selectedSoundscapeRuns: [{ targetKey: silent.binding.targetKey, dialogueAudioRunId: silent.binding.audioRunId, soundscapeAudioRunId: run.audioRun.audioRunId, audioRunRef: run.ref.path, audioRunSha256: run.ref.sha256, masterRef: { path: run.audioRun.master.path, sha256: run.audioRun.master.sha256 } }], publishedAudioRunId: run.audioRun.audioRunId, finalOutputRefs: [{ path: silent.binding.reportedOutputPath, sha256: run.audioRun.master.sha256 }] } : {}),
+      },
+      providers: [soundscape.providerState],
+    })
+    if (soundscape.providerState.status !== 'succeeded') throw CLIUsageError('Comic soundscape failed one or more required cues; generated artifacts were retained but no master was published.')
+    l.write('info', `Comic soundscape complete without dialogue: ${compatible.sceneRunDir}`)
     return
   }
 
@@ -363,19 +419,24 @@ export const generateComicAudio = async (ctx: CliCommandContext, scriptPath: str
           : `, blocked: ${blockedSlotCount} unresolved ${blockedSlotCount === 1 ? 'slot requires' : 'slots require'} reconciliation`
       l.write('info', `${execution.target.service}/${execution.target.model}: ${estimate.readiness.strategy}, ${cost}${resumeDetail}${reconciliationDetail}`)
     }
+    l.write('info', soundscapePrice.summary)
     return
   }
 
+  if (soundEffectRenderPlan) await assertComicSoundscapeExecutionReady(compatible.sceneRunDir, soundEffectRenderPlan)
+
   const dialogueRef = await writeComicDialoguePlan(compatible.sceneRunDir, dialoguePlan)
+  const soundscapePlanRef = await writeSoundscapePlan(compatible.sceneRunDir, soundscapePlan)
   const snapshotRef = retainedSnapshot?.ref ?? await writeVoiceReferenceManifest(compatible.sceneRunDir, snapshot)
-  const structuredRef = dialoguePlan.structuredScript
-  const baseArtifacts = stageArtifactRefs({ structured: structuredRef, dialogue: dialogueRef, snapshot: snapshotRef })
+  const baseArtifacts = stageArtifactRefs({ structured: structuredRef, dialogue: dialogueRef, snapshot: snapshotRef, extra: [soundscapePlanRef] })
   const audioMetadata = {
     ...compatible.comicMetadata.audio,
     dialoguePlanId: dialoguePlan.dialoguePlanId,
     dialoguePlanRef: dialogueRef,
     snapshotId: snapshot.snapshotId,
     snapshotRef,
+    soundscapePlanId: soundscapePlan.soundscapePlanId,
+    soundscapePlanRef,
   }
   await updateComicAudioManifest({
     sceneRunDir: compatible.sceneRunDir,
@@ -387,7 +448,10 @@ export const generateComicAudio = async (ctx: CliCommandContext, scriptPath: str
 
   const readiness = await validateTtsTargetsForExecution(executions.map(execution => execution.target))
   const targetKeys = executions.map(execution => execution.target.targetKey as string)
-  const stageTargetKeys = [...new Set([...compatible.comicMetadata.stages.audio.targetKeys, ...targetKeys])]
+  const soundTargetKeys = soundEffectRenderPlan ? [soundEffectRenderPlan.target.targetKey] : []
+  const retainedSoundTargetKeys = soundTargetKeys.filter(targetKey => compatible.manifest.items[0]?.providers.some(provider => provider.targetKey === targetKey))
+  const dialogueStageTargetKeys = [...new Set([...compatible.comicMetadata.stages.audio.targetKeys.filter(targetKey => !soundTargetKeys.includes(targetKey) || retainedSoundTargetKeys.includes(targetKey)), ...targetKeys])]
+  const stageTargetKeys = [...new Set([...dialogueStageTargetKeys, ...soundTargetKeys])]
   const prepared = new Map<string, PipelineProviderState>()
   let releaseBarrier!: () => void
   let rejectBarrier!: (error: unknown) => void
@@ -404,7 +468,7 @@ export const generateComicAudio = async (ctx: CliCommandContext, scriptPath: str
         await updateComicAudioManifest({
           sceneRunDir: compatible.sceneRunDir,
           sourceIdentity: compatible.sourceIdentity,
-          stage: { requirement: 'required', status: providerStageStatus(stageTargetKeys, [...priorByTarget.values()]), execution: { kind: 'provider-targets' }, targetKeys: stageTargetKeys as [string, ...string[]], artifactRefs: baseArtifacts },
+          stage: { requirement: 'required', status: providerStageStatus(dialogueStageTargetKeys, [...priorByTarget.values()]), execution: { kind: 'provider-targets' }, targetKeys: dialogueStageTargetKeys as [string, ...string[]], artifactRefs: baseArtifacts },
           audio: audioMetadata,
           providers: ordered,
         })
@@ -431,7 +495,7 @@ export const generateComicAudio = async (ctx: CliCommandContext, scriptPath: str
           comicContext: execution.context,
           resolveReportedOutput: (target) => ({ path: join(compatible.sceneRunDir, 'audio', 'final', `${target.targetKey}.wav`), fileName: `audio/final/${target.targetKey}.wav` }),
           beforeDispatch,
-          onProviderState: async (state) => { await appendComicAudioProviderState({ sceneRunDir: compatible.sceneRunDir, sourceIdentity: compatible.sourceIdentity, targetKeys: stageTargetKeys, state }) },
+          onProviderState: async (state) => { await appendComicAudioProviderState({ sceneRunDir: compatible.sceneRunDir, sourceIdentity: compatible.sourceIdentity, targetKeys: dialogueStageTargetKeys, state }) },
         }
       )
     } catch (error) {
@@ -453,10 +517,50 @@ export const generateComicAudio = async (ctx: CliCommandContext, scriptPath: str
     if (!event?.audioRunRef || !event.audioRunSha256 || !entry.artifactDir) throw CLIUsageError('Completed comic target audio run is not checksum-bound.')
     return { targetKey: entry.targetKey, renderIdentity: entry.renderIdentity, audioRunId: entry.audioRunId, audioRunRef: `${entry.artifactDir}/${event.audioRunRef}`, audioRunSha256: event.audioRunSha256 }
   })
-  const finalOutputRefs = await Promise.all(completedMetadata.map(async entry => {
+  let finalOutputRefs = await Promise.all(completedMetadata.map(async entry => {
     const path = entry.audioFileName
     return { path, sha256: sha256Bytes(new Uint8Array(await Bun.file(join(compatible.sceneRunDir, path)).arrayBuffer())) }
   }))
+  let selectedSoundscapeRuns = compatible.comicMetadata.audio.selectedSoundscapeRuns ?? []
+  let soundscapeArtifactRefs: Array<{ path: string, sha256: string }> = []
+  let soundscapeMetadata: Pick<NonNullable<typeof compatible.comicMetadata.audio>, 'soundEffectRenderPlanRef' | 'soundEffectRenderResultRef'> = {}
+  let soundscapeRequiredFailure = false
+  if (soundEffectRenderPlan && completedMetadata.length > 0) {
+    const dialogueRuns = selectedAudioRuns.map((run) => {
+      const entry = completedMetadata.find(candidate => candidate.targetKey === run.targetKey)
+      if (!entry) throw CLIUsageError(`Selected dialogue AudioRun ${run.audioRunId} has no completed target metadata.`)
+      return { targetKey: run.targetKey, renderIdentity: run.renderIdentity, audioRunId: run.audioRunId, audioRunRef: run.audioRunRef, audioRunSha256: run.audioRunSha256, reportedOutputPath: soundscapeReportedOutputPath(run.targetKey) }
+    })
+    const soundscape = await runComicSoundscape({
+      rootDir: compatible.sceneRunDir,
+      plan: soundscapePlan,
+      renderPlan: soundEffectRenderPlan,
+      dialoguePlan,
+      dialogueRuns,
+      concurrency: sfxConcurrency,
+    })
+    await appendComicAudioProviderState({ sceneRunDir: compatible.sceneRunDir, sourceIdentity: compatible.sourceIdentity, targetKeys: stageTargetKeys, state: soundscape.providerState })
+    soundscapeMetadata = { soundEffectRenderPlanRef: soundscape.renderPlanRef, soundEffectRenderResultRef: soundscape.renderResultRef }
+    soundscapeArtifactRefs = [soundscape.planRef, soundscape.renderPlanRef, soundscape.renderResultRef, ...soundscape.soundscapeRuns.flatMap(run => [run.ref, run.audioRun.transformLedger, run.audioRun.resolvedTimeline, ...run.audioRun.stems.map(stem => ({ path: stem.path, sha256: stem.sha256 })), { path: run.audioRun.master.path, sha256: run.audioRun.master.sha256 }])]
+    soundscapeRequiredFailure = soundscape.providerState.status !== 'succeeded'
+    if (!soundscapeRequiredFailure) {
+      const runByTarget = new Map(selectedSoundscapeRuns.map(run => [run.targetKey, run] as const))
+      for (const run of soundscape.soundscapeRuns) runByTarget.set(run.binding.targetKey, {
+        targetKey: run.binding.targetKey,
+        dialogueAudioRunId: run.binding.audioRunId,
+        soundscapeAudioRunId: run.audioRun.audioRunId,
+        audioRunRef: run.ref.path,
+        audioRunSha256: run.ref.sha256,
+        masterRef: { path: run.audioRun.master.path, sha256: run.audioRun.master.sha256 },
+      })
+      selectedSoundscapeRuns = [...runByTarget.values()].sort((left, right) => left.targetKey.localeCompare(right.targetKey))
+      const masterByTarget = new Map(soundscape.soundscapeRuns.map(run => [run.binding.targetKey, { master: run.audioRun.master, path: run.binding.reportedOutputPath }] as const))
+      finalOutputRefs = completedMetadata.map((entry) => {
+        const soundscapeOutput = entry.targetKey ? masterByTarget.get(entry.targetKey) : undefined
+        return soundscapeOutput ? { path: soundscapeOutput.path, sha256: soundscapeOutput.master.sha256 } : { path: entry.audioFileName, sha256: finalOutputRefs.find(ref => ref.path === entry.audioFileName)?.sha256 ?? '' }
+      })
+    }
+  }
   const selectedRunByTarget = new Map((compatible.comicMetadata.audio.selectedAudioRuns ?? []).map(run => [run.targetKey, run] as const))
   for (const run of selectedAudioRuns) selectedRunByTarget.set(run.targetKey, run)
   const mergedSelectedAudioRuns = [...selectedRunByTarget.values()].sort((left, right) => left.targetKey.localeCompare(right.targetKey))
@@ -481,15 +585,16 @@ export const generateComicAudio = async (ctx: CliCommandContext, scriptPath: str
   const currentProviders = currentManifest?.items[0]?.providers ?? []
   const finalStageStatus = providerStageStatus(stageTargetKeys, currentProviders)
   const completeEvaluation = [...evaluationByTarget.values()].filter(entry => currentProviders.some(provider => provider.targetKey && stageTargetKeys.includes(provider.targetKey) && provider.service === entry.ttsService && provider.model === entry.ttsModel && provider.status === 'succeeded'))
-  const artifactRefByPath = new Map([...compatible.comicMetadata.stages.audio.artifactRefs, ...stageArtifactRefs({ structured: structuredRef, dialogue: dialogueRef, snapshot: snapshotRef, extra: [...mergedSelectedAudioRuns.map(run => ({ path: run.audioRunRef, sha256: run.audioRunSha256 })), ...mergedFinalOutputRefs] })].map(ref => [ref.path, ref] as const))
+  const artifactRefByPath = new Map([...compatible.comicMetadata.stages.audio.artifactRefs, ...stageArtifactRefs({ structured: structuredRef, dialogue: dialogueRef, snapshot: snapshotRef, extra: [...mergedSelectedAudioRuns.map(run => ({ path: run.audioRunRef, sha256: run.audioRunSha256 })), ...mergedFinalOutputRefs, ...soundscapeArtifactRefs] })].map(ref => [ref.path, ref] as const))
   await bindSnapshotRenderIdentities(compatible.sceneRunDir, snapshot.snapshotId, metadata.flatMap(entry => entry.renderIdentity ? [entry.renderIdentity] : []))
   await updateComicAudioManifest({
     sceneRunDir: compatible.sceneRunDir,
     sourceIdentity: compatible.sourceIdentity,
     stage: { requirement: 'required', status: finalStageStatus, execution: { kind: 'provider-targets' }, targetKeys: stageTargetKeys as [string, ...string[]], artifactRefs: [...artifactRefByPath.values()] },
-    audio: { ...audioMetadata, selectedAudioRuns: mergedSelectedAudioRuns, publishedAudioRunId: stageTargetKeys.length === 1 && mergedSelectedAudioRuns.length === 1 ? mergedSelectedAudioRuns[0]?.audioRunId : undefined, finalOutputRefs: mergedFinalOutputRefs },
+    audio: { ...audioMetadata, ...soundscapeMetadata, selectedAudioRuns: mergedSelectedAudioRuns, selectedSoundscapeRuns, publishedAudioRunId: stageTargetKeys.length === 1 && mergedSelectedAudioRuns.length === 1 ? mergedSelectedAudioRuns[0]?.audioRunId : undefined, finalOutputRefs: mergedFinalOutputRefs },
     ttsEvaluation: completeEvaluation,
   })
+  if (soundscapeRequiredFailure) throw CLIUsageError('Comic soundscape failed one or more required cues; verified dialogue and sound-effect artifacts were retained for resume, but no master was published.')
   if (checkpoints.length > 0) {
     for (const { entry, checkpoint } of checkpoints) {
       l.write('info', `${entry.ttsService}/${entry.ttsModel} generation checkpoint complete: ${checkpoint.completedGenerationSlotIds.length} retained, ${checkpoint.remainingGenerationSlotCount} remaining.`)

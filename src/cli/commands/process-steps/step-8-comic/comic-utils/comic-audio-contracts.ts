@@ -53,7 +53,7 @@ export const validateComicSourceIdentity = (value: ComicSourceIdentity): ComicSo
 
 export const createStructuredScriptArtifactRef = (bytes: string | Uint8Array): StructuredScriptArtifactRef => ({
   path: 'metadata/structured-script.json',
-  artifactSchemaVersion: 4,
+  artifactSchemaVersion: 5,
   sha256: sha256Bytes(bytes),
 })
 
@@ -61,9 +61,9 @@ export const validateStructuredScriptSourceSpans = (
   structuredScript: StructuredScriptData,
   exactSourceText: string
 ): StructuredScriptData => {
-  if (structuredScript.schemaVersion !== 4) throw CLIUsageError('Structured source-span validation requires schemaVersion 4.')
+  if (structuredScript.schemaVersion !== 5) throw CLIUsageError('Structured source-span validation requires schemaVersion 5.')
   const scalars = [...exactSourceText]
-  const validate = (spans: StructuredScriptData['sourceSegments'][number]['sourceSpans'], label: string): void => {
+  const validate = (spans: ReadonlyArray<{ start: number, end: number, text: string }>, label: string): void => {
     if (!spans || spans.length === 0) throw CLIUsageError(`${label} requires at least one exact source span.`)
     let priorStart = -1
     let priorEnd = -1
@@ -77,6 +77,9 @@ export const validateStructuredScriptSourceSpans = (
   }
   structuredScript.beats.forEach(beat => validate(beat.sourceSpans, `Structured beat ${beat.index}`))
   structuredScript.sourceSegments.forEach(segment => validate(segment.sourceSpans, `Structured source segment ${segment.id}`))
+  for (const cue of [...structuredScript.scene.soundscape.cues, ...structuredScript.scene.soundscape.ambientBeds]) {
+    validate([cue.sourceSpan], `Structured sound cue ${cue.cueId}`)
+  }
   return structuredScript
 }
 
@@ -85,8 +88,8 @@ export const computeSceneRunIdentity = (
   structuredScript: StructuredScriptArtifactRef
 ): string => {
   validateComicSourceIdentity(sourceIdentity)
-  if (structuredScript.path !== 'metadata/structured-script.json' || structuredScript.artifactSchemaVersion !== 4 || !SHA256.test(structuredScript.sha256)) {
-    throw CLIUsageError('Structured script artifact reference must bind strict schemaVersion 4 bytes.')
+  if (structuredScript.path !== 'metadata/structured-script.json' || structuredScript.artifactSchemaVersion !== 5 || !SHA256.test(structuredScript.sha256)) {
+    throw CLIUsageError('Structured script artifact reference must bind strict schemaVersion 5 bytes.')
   }
   return hashCanonicalTtsValue({ sourceIdentity, structuredScript })
 }

@@ -1,7 +1,7 @@
 import type { CliCommandContext, CliCommandDefinition, TtsProvider, TtsVoiceProvider, VoiceConsentAction, VoiceConsentRecord } from '~/types'
 import { join } from 'node:path'
 import { defineCliCommand } from '~/cli/native/native-types'
-import { boolFlag, strFlag } from '~/cli/flags/flag-utils'
+import { boolFlag, strFlag, strListFlag } from '~/cli/flags/flag-utils'
 import { getCharactersRoot } from '~/cli/commands/process-steps/characters-root'
 import { CLIUsageError } from '~/utils/error-handler'
 import { requireApiKey } from '~/utils/validate/env-utils'
@@ -29,7 +29,7 @@ import { createHumeAdvancedProvider, HUME_ADVANCED_CAPABILITY_FIXTURE } from '..
 import { createMiniMaxAdvancedProvider, MINIMAX_ADVANCED_CAPABILITY_FIXTURE } from '../tts-services/tts-minimax/minimax-advanced-provider'
 import { createCartesiaAdvancedProvider, CARTESIA_ADVANCED_CAPABILITY_FIXTURE } from '../tts-services/cartesia/cartesia-advanced-provider'
 import { createSpeechifyAdvancedProvider, SPEECHIFY_ADVANCED_CAPABILITY_FIXTURE } from '../tts-services/speechify/speechify-advanced-provider'
-import { createAdvancedVoiceCandidates, loadVoiceCandidate, materializeAdvancedVoiceCandidate } from './advanced-voice-management'
+import { createAdvancedVoiceCandidates, loadVoiceCandidate, materializeAdvancedVoiceCandidate, planAdvancedClone, provisionAdvancedVoiceClone } from './advanced-voice-management'
 import { getTtsPricing } from '~/cli/commands/setup-and-utilities/models/model-loader'
 
 const TTS_PROVIDERS = ['kitten', 'elevenlabs', 'minimax', 'groq', 'grok', 'mistral', 'openai', 'gemini', 'deepgram', 'speechify', 'hume', 'cartesia'] as const
@@ -54,8 +54,8 @@ const advancedCapabilityFixtureHash = (provider: AdvancedProviderName): string =
   return SPEECHIFY_ADVANCED_CAPABILITY_FIXTURE.capabilityFixtureHash
 }
 
-const advancedProvider = (provider: AdvancedProviderName): ManagedAdvancedProvider => {
-  if (provider === 'elevenlabs') return createElevenLabsAdvancedProvider({ apiKey: requireApiKey('ELEVENLABS_API_KEY', 'voice:elevenlabs', 'ElevenLabs voice management') })
+const advancedProvider = (provider: AdvancedProviderName, options: { elevenLabsApiKey?: string | undefined, resolveElevenLabsProtectedAsset?: Parameters<typeof createElevenLabsAdvancedProvider>[0]['resolveProtectedAsset'] | undefined } = {}): ManagedAdvancedProvider => {
+  if (provider === 'elevenlabs') return createElevenLabsAdvancedProvider({ apiKey: options.elevenLabsApiKey ?? requireApiKey('ELEVENLABS_API_KEY', 'voice:elevenlabs', 'ElevenLabs voice management'), ...(options.resolveElevenLabsProtectedAsset ? { resolveProtectedAsset: options.resolveElevenLabsProtectedAsset } : {}) })
   if (provider === 'hume') return createHumeAdvancedProvider({ apiKey: requireApiKey('HUME_API_KEY', 'voice:hume', 'Hume voice management') })
   if (provider === 'minimax') return createMiniMaxAdvancedProvider({ apiKey: requireApiKey('MINIMAX_API_KEY', 'voice:minimax', 'MiniMax voice management') })
   if (provider === 'cartesia') return createCartesiaAdvancedProvider({ apiKey: requireApiKey('CARTESIA_API_KEY', 'voice:cartesia', 'Cartesia voice management') })
@@ -127,6 +127,11 @@ const requireBrief = async (subjectKey: string, profileKey: string) => {
 
 const optionalConsent = async (reference: string | undefined): Promise<VoiceConsentRecord | undefined> =>
   reference ? await loadVoiceConsentRecord(managedVoiceAssetStore, reference) : undefined
+
+const repeatableFlag = (ctx: CliCommandContext, name: string): string[] => {
+  const value = ctx.flags[name]
+  return (Array.isArray(value) ? value : typeof value === 'string' ? [value] : []).filter((entry): entry is string => typeof entry === 'string' && entry.trim().length > 0).map(entry => entry.trim())
+}
 
 const handleConsent = async (ctx: CliCommandContext): Promise<void> => {
   const subjectKey = parameter(ctx, 'subjectKey')
@@ -312,6 +317,73 @@ const handleMaterialize = async (ctx: CliCommandContext): Promise<void> => {
     ...(candidate.sourceVoice ? { sourceVoice: candidate.sourceVoice, eligibilitySnapshotHash: candidate.eligibilitySnapshotHash } : {})
   })
   console.log(JSON.stringify({ candidateId: result.candidate.candidateId, registrationId: result.registration.registrationId, generationId: result.registration.generationId, state: result.registration.provisioning.state }, null, 2))
+}
+
+const cloneMediaType = (path: string): string => {
+  const extension = path.toLowerCase().split('.').pop()
+  if (extension === 'wav' || extension === 'wave') return 'audio/wav'
+  if (extension === 'mp3') return 'audio/mpeg'
+  if (extension === 'm4a' || extension === 'mp4') return 'audio/mp4'
+  if (extension === 'ogg') return 'audio/ogg'
+  if (extension === 'flac') return 'audio/flac'
+  if (extension === 'aac') return 'audio/aac'
+  if (extension === 'webm') return 'audio/webm'
+  throw CLIUsageError('ElevenLabs clone samples must be mp3, wav, m4a/mp4, ogg, flac, aac, or webm audio.')
+}
+
+const handleClone = async (ctx: CliCommandContext): Promise<void> => {
+  const subjectKey = parameter(ctx, 'subjectKey')
+  const provider = providerFlag(ctx)
+  if (provider !== 'elevenlabs') throw CLIUsageError('Phase 1 voice clone supports ElevenLabs; other providers return unsupported until their ADR phase is implemented.')
+  const providerModel = requiredFlag(ctx, 'model')
+  const profileKey = optionalFlag(ctx, 'profile') ?? PROFILE_DEFAULT
+  const cloneKind = optionalFlag(ctx, 'kind') ?? 'instant'
+  if (cloneKind !== 'instant' && cloneKind !== 'professional') throw CLIUsageError('--kind must be instant or professional.')
+  const samplePaths = repeatableFlag(ctx, 'sample')
+  if (cloneKind === 'instant' && samplePaths.length === 0) throw CLIUsageError('ElevenLabs instant voice clone requires at least one --sample.')
+  if (cloneKind === 'professional' && samplePaths.length > 0) throw CLIUsageError('ElevenLabs professional clone is a verification-gated external workflow; import the resulting stable voice ID after provider approval instead of uploading --sample here.')
+  const consentRecordRef = requiredFlag(ctx, 'consent-ref')
+  const consent = await loadVoiceConsentRecord(managedVoiceAssetStore, consentRecordRef)
+  if (consent.subjectKey !== subjectKey) throw CLIUsageError('Voice clone consent subject does not match the requested subject.')
+  assertVoiceConsentAllows(consent, 'upload')
+  assertVoiceConsentAllows(consent, 'new-synthesis')
+  const authorizationRef = cloneKind === 'instant' ? requiredFlag(ctx, 'authorization-ref') : optionalFlag(ctx, 'authorization-ref') ?? `professional-clone:${subjectKey}`
+  const planned = await Promise.all(samplePaths.map(sourcePath => managedVoiceAssetStore.plan({ sourcePath, authorizationRef, speakerKey: subjectKey })))
+  const request = {
+    cloneKind,
+    desiredName: requiredFlag(ctx, 'voice-name'),
+    localAttemptId: 'price-plan',
+    protectedSamples: planned.map(item => item.protectedAsset),
+    consentRecordRef,
+    provenanceRef: requiredFlag(ctx, 'provenance-ref'),
+    ...(optionalFlag(ctx, 'description') ? { description: optionalFlag(ctx, 'description') } : {}),
+  } as const
+  if (ctx.flags['price'] === true) {
+    const estimate = planAdvancedClone(request)
+    console.log(JSON.stringify({ operation: 'voice-clone', provider, providerModel, cloneKind, sampleCount: samplePaths.length, ...estimate, mutation: false, providerCalls: 0 }, null, 2))
+    return
+  }
+  const brief = await requireBrief(subjectKey, profileKey)
+  await assertProtectedStoreOutputDisjoint(getCharactersRoot(), MANAGED_VOICE_STORE_ROOT)
+  if (!managedVoiceAssetStore.ingestManaged) throw CLIUsageError('Managed protected store cannot retain clone samples.')
+  const createdAt = new Date().toISOString()
+  const protectedSamples = await Promise.all(samplePaths.map(async (sourcePath, index) => (await managedVoiceAssetStore.ingestManaged!({ sourcePath, authorizationRef, speakerKey: subjectKey }, {
+    schemaVersion: 1, purpose: 'reference-audio', authorizationRef, retention: { mode: 'retain-until-revoked', obligationRef: request.provenanceRef }, consentRecordRef, createdAt,
+  }, planned[index]?.protectedAsset)).protectedAsset))
+  const apiKey = cloneKind === 'instant' ? requireApiKey('ELEVENLABS_API_KEY', 'voice:elevenlabs', 'ElevenLabs instant voice clone') : 'external-professional-clone-no-provider-call'
+  const adapter = advancedProvider('elevenlabs', {
+    elevenLabsApiKey: apiKey,
+    resolveElevenLabsProtectedAsset: async (asset) => {
+      const path = await managedVoiceAssetStore.resolve(asset)
+      return { bytes: new Uint8Array(await Bun.file(path).arrayBuffer()), fileName: `clone-sample-${asset.assetId}.${path.split('.').pop() ?? 'audio'}`, mediaType: cloneMediaType(path) }
+    },
+  })
+  const { localAttemptId: _planningId, ...cloneRequest } = request
+  const result = await provisionAdvancedVoiceClone({
+    charactersRoot: getCharactersRoot(), journalRoot: join(MANAGED_VOICE_STORE_ROOT, 'journals'), provider: adapter, providerModel, subjectKey, profileKey, brief,
+    request: { ...cloneRequest, protectedSamples }, capabilityFixtureHash: ELEVENLABS_ADVANCED_CAPABILITY_FIXTURE.capabilityFixtureHash,
+  })
+  console.log(JSON.stringify({ registrationId: result.registration.registrationId, generationId: result.registration.generationId, state: result.registration.provisioning.state }, null, 2))
 }
 
 const handleRevokeConsent = async (ctx: CliCommandContext): Promise<void> => {
@@ -565,6 +637,18 @@ const materializeCommand = defineCliCommand({
   }
 }, handleMaterialize)
 
+const cloneCommand = defineCliCommand({
+  name: 'voice clone', description: 'Create a protected consent-gated provider voice clone or report the exact external workflow',
+  parameters: [{ key: '<subject-key>', description: 'Canonical character or role key' }],
+  flags: {
+    provider: commonRegistrationFlags.provider, model: commonRegistrationFlags.model, profile: commonRegistrationFlags.profile,
+    kind: strFlag('Clone workflow: instant|professional', 'instant'), 'voice-name': strFlag('Desired provider account voice name'),
+    sample: strListFlag('Authorized local clone sample; repeatable for instant cloning'), 'authorization-ref': strFlag('Opaque authorization record for the clone samples'),
+    description: strFlag('Optional provider-safe voice description'), 'consent-ref': commonRegistrationFlags['consent-ref'],
+    'provenance-ref': commonRegistrationFlags['provenance-ref'], price: commonRegistrationFlags.price,
+  },
+}, handleClone)
+
 const revokeConsentCommand = defineCliCommand({
   name: 'voice revoke-consent', description: 'Append a protected revocation marker that denies all use of a consent record',
   parameters: [{ key: '<consent-ref>', description: 'Protected consent-record locator' }],
@@ -664,10 +748,12 @@ export const voiceReferenceAliasFlags = {
   seed: strFlag('Optional non-negative deterministic seed'),
   'source-voice-id': strFlag('ElevenLabs remix source voice ID'),
   'eligibility-snapshot-hash': strFlag('Dated ElevenLabs remix eligibility proof SHA-256'),
-  'subject-key': strFlag('Canonical character or role key for candidate materialization')
+  'subject-key': strFlag('Canonical character or role key for candidate materialization'),
+  kind: strFlag('Clone workflow: instant|professional', 'instant'),
+  sample: strListFlag('Authorized local clone sample; repeatable')
 } as const
 
-export const VOICE_SUBCOMMAND_DEFINITIONS = [consentCommand, revokeConsentCommand, discoverCommand, importCommand, designCommand, materializeCommand, saveReferenceCommand, auditionCommand, approveCommand, inspectCommand, reconcileCommand, retireCommand, revokeCommand, deleteCommand, statusCommand] as const satisfies readonly CliCommandDefinition[]
+export const VOICE_SUBCOMMAND_DEFINITIONS = [consentCommand, revokeConsentCommand, discoverCommand, importCommand, designCommand, materializeCommand, cloneCommand, saveReferenceCommand, auditionCommand, approveCommand, inspectCommand, reconcileCommand, retireCommand, revokeCommand, deleteCommand, statusCommand] as const satisfies readonly CliCommandDefinition[]
 
 export const voiceCommand = defineCliCommand({
   name: 'voice', description: 'Manage durable provider voice registrations separately from speech synthesis',
@@ -680,6 +766,7 @@ export const voiceCommand = defineCliCommand({
       ['bun autoshow voice design hero --provider hume --model octave-2 --creation-model octave-1 --description "Warm, weathered guide" --preview-text "A representative passage of at least one hundred characters..." --price', 'Plan bounded design candidates without provider calls'],
       ['bun autoshow voice design hero --provider elevenlabs --model eleven_v3 --creation-model eleven_ttv_v3 --description "Warm, weathered guide" --preview-text "A representative passage of at least one hundred characters..." --price', 'Plan ElevenLabs Voice Design v3 without provider calls'],
       ['bun autoshow voice design hero --provider minimax --model speech-2.8-hd --creation-model voice-design --description "Warm, weathered guide" --preview-text "A short representative passage." --candidates 1 --price', 'Plan one temporary MiniMax design candidate without provider calls'],
+      ['bun autoshow voice clone hero --provider elevenlabs --model eleven_v3 --kind instant --voice-name "Hero" --sample ./hero.wav --authorization-ref project:casting --consent-ref protected-consent:v1:ID --provenance-ref project:casting --price', 'Plan an ElevenLabs clone without provider calls or writes'],
       ['bun autoshow voice audition vr_123 --generation-id SHA256 --representative-line "We leave at dawn." --price', 'Estimate a canonical audition without provider calls'],
       ['bun autoshow voice approve vr_123 --generation-id SHA256 --actor-id editor', 'Approve an audition locally']
     ],

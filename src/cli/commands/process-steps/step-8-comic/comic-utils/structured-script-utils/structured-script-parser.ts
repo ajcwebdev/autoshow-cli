@@ -10,6 +10,7 @@ import { ValidationError } from '~/utils/error-handler'
 import { readLocationReferenceCatalogSync, resolveLocationCatalogEntry, type LocationReferenceCatalog } from '../location-reference'
 import { hashCanonicalTtsValue, sha256Bytes } from '../../../step-4-tts/script-to-audio/contract-identity'
 import { toPosixPath, toProjectDisplayPath } from '~/utils/runtime-paths'
+import { buildStructuredSoundscape, parseSoundscapeBlockDirective, stripInlineSoundscapeDirectives } from './soundscape-directives'
 
 type StructuredSourceSpan = StructuredScriptBeat['sourceSpans'][number]
 
@@ -180,6 +181,7 @@ export const parseScriptMarkdownToStructuredData = (
   let pendingCaptionLabel: string | null = null
   let hasDialogueInCurrentTurn = false
   let continueDialogueAfterDirection = false
+  let pendingSoundDirectivePrompt = false
 
   const resetSpeakerTurn = (): void => {
     activeSpeakerLabel = null
@@ -207,6 +209,17 @@ export const parseScriptMarkdownToStructuredData = (
 
   for (const blockInfo of blocks) {
     const block = blockInfo.text
+    const soundDirective = parseSoundscapeBlockDirective(block)
+    if (soundDirective) {
+      pendingSoundDirectivePrompt = soundDirective.prompt === undefined
+      resetSpeakerTurn()
+      continue
+    }
+    if (pendingSoundDirectivePrompt) {
+      pendingSoundDirectivePrompt = false
+      resetSpeakerTurn()
+      continue
+    }
     const boldLine = extractSingleBoldLine(block)
     if (boldLine) {
       if (extractLocationSlugline(boldLine)) {
@@ -367,7 +380,7 @@ export const parseScriptMarkdownToStructuredData = (
 
     if (activeSpeakerLabel && (!hasDialogueInCurrentTurn || continueDialogueAfterDirection)) {
       const dialogue = extractLeadingDelivery(text)
-      const spokenText = stripInlineStageDirections(dialogue.text)
+      const spokenText = stripInlineSoundscapeDirectives(stripInlineStageDirections(dialogue.text))
       const mentions = detectCharacterMentions(spokenText)
       const mentionedCharacters = getCharactersFromMentions(mentions)
       const deliveryParts = [pendingDelivery, dialogue.delivery, ...extractInlineTimingDelivery(dialogue.text)]
@@ -398,14 +411,15 @@ export const parseScriptMarkdownToStructuredData = (
       continue
     }
 
-    const mentions = detectCharacterMentions(text)
+    const directionText = stripInlineSoundscapeDirectives(text)
+    const mentions = detectCharacterMentions(directionText)
     const mentionedCharacters = getCharactersFromMentions(mentions)
     // Authored action blocks are staging for the artist, never lettered text. Only
     // an explicit caption label above the block produces a lettered narration beat.
-    const type = isTransitionText(text) ? 'transition' : 'direction'
+    const type = isTransitionText(directionText) ? 'transition' : 'direction'
     appendBeat({
       type,
-      text,
+      text: directionText,
       characterKeys: mentionedCharacters,
       rawMentions: mentions,
     })
@@ -419,9 +433,11 @@ export const parseScriptMarkdownToStructuredData = (
   })))
 
   const sourceIdentity = options.sourceIdentity ?? fallbackSourceIdentity(content, scriptPath)
+  const sourceSegments = buildSourceSegmentsFromBeats(normalizedBeats)
+  const soundscape = buildStructuredSoundscape({ exactSource: content, expandedBlocks: blocks, sourceSegments, sourceIdentityHash: sourceIdentity.identityHash })
 
   return v.parse(StructuredScriptDataSchema, {
-    schemaVersion: 4,
+    schemaVersion: 5,
     scriptSlug: basename(scriptFile, '.md'),
     sourceFile: sourceIdentity.canonicalPath,
     sourceIdentity,
@@ -436,9 +452,10 @@ export const parseScriptMarkdownToStructuredData = (
       ...(sceneHeading.label ? { section: sceneHeading.label } : {}),
       title: sceneHeading.title,
       location: resolveLocation(locationRaw),
+      soundscape,
     },
     characterKeys: uniqueCharacters(allCharacters),
     beats: normalizedBeats,
-    sourceSegments: buildSourceSegmentsFromBeats(normalizedBeats),
+    sourceSegments,
   })
 }

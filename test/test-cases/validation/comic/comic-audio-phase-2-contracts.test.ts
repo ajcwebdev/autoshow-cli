@@ -1,4 +1,5 @@
 import { describe, expect, test } from 'bun:test'
+import { randomUUID } from 'node:crypto'
 import { mkdir, mkdtemp, readFile, readdir, symlink, writeFile } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
@@ -22,18 +23,18 @@ const HASH_A = 'a'.repeat(64)
 const HASH_B = 'b'.repeat(64)
 const CREATED_AT = '2026-08-11T00:00:00.000Z'
 
-setupContractSuiteLifecycle({ envKeys: ['OPENAI_API_KEY', 'HUME_API_KEY'], tempPrefix: 'autoshow-comic-audio-phase-2-' })
+setupContractSuiteLifecycle({ envKeys: ['OPENAI_API_KEY', 'HUME_API_KEY', 'ELEVENLABS_API_KEY'], tempPrefix: 'autoshow-comic-audio-phase-2-' })
 
 const buildStructured = (sourceIdentity: Awaited<ReturnType<typeof createComicSourceIdentity>>, exactSource?: string): StructuredScriptData => {
   const readyQuestionStart = exactSource ? [...exactSource.slice(0, exactSource.indexOf('Ready?'))].length : 0
   const readyAnswerStart = exactSource ? [...exactSource.slice(0, exactSource.lastIndexOf('Ready.'))].length : 7
   return {
-  schemaVersion: 4,
+  schemaVersion: 5,
   scriptSlug: sourceIdentity.scriptSlug,
   sourceFile: sourceIdentity.canonicalPath,
   sourceIdentity,
   document: { heading: 'Episode', title: 'Episode', metadata: [] },
-  scene: { heading: 'Scene', title: 'Scene', location: { key: 'bridge', raw: 'INT. BRIDGE' } },
+  scene: { heading: 'Scene', title: 'Scene', location: { key: 'bridge', raw: 'INT. BRIDGE' }, soundscape: { cues: [], ambientBeds: [] } },
   characterKeys: ['pilot', 'navigator'],
   beats: [],
   sourceSegments: [
@@ -278,12 +279,12 @@ describe('comic audio phase 2 contracts', () => {
     await writeFile(sourcePath, sourceText)
     const sourceIdentity = await createComicSourceIdentity(sourcePath, sourceText)
     const structured: StructuredScriptData = {
-      schemaVersion: 4,
+      schemaVersion: 5,
       scriptSlug: sourceIdentity.scriptSlug,
       sourceFile: sourceIdentity.canonicalPath,
       sourceIdentity,
       document: { heading: 'Episode', title: 'Episode', metadata: [] },
-      scene: { heading: 'Scene', title: 'Scene', location: { key: 'bridge', raw: 'INT. BRIDGE' } },
+      scene: { heading: 'Scene', title: 'Scene', location: { key: 'bridge', raw: 'INT. BRIDGE' }, soundscape: { cues: [], ambientBeds: [] } },
       characterKeys: [],
       beats: [],
       sourceSegments: [{
@@ -312,6 +313,46 @@ describe('comic audio phase 2 contracts', () => {
     expect(comic.stages.audio).toEqual(expect.objectContaining({ status: 'full', execution: { kind: 'local', state: 'succeeded' }, targetKeys: [] }))
     expect(comic.audio.dialoguePlanId).toHaveLength(64)
   })
+
+  test('soundscape-only command uses a canonical local silence clock without selecting TTS', async () => {
+    process.env['ELEVENLABS_API_KEY'] = 'elevenlabs-test-key'
+    const calls = installMockFetch(() => new Response(createMockWavBytes(), { status: 200, headers: { 'content-type': 'audio/wav' } }))
+    const root = await mkdtemp(join(tmpdir(), 'autoshow-comic-audio-soundscape-only-'))
+    const sourcePath = join(root, 'soundscape-only.md')
+    const sceneRunDir = join(root, 'run')
+    const prompt = `airlock closes ${randomUUID()}`
+    const sourceText = `A silent bridge.\n${prompt}\n`
+    await writeFile(sourcePath, sourceText)
+    const sourceIdentity = await createComicSourceIdentity(sourcePath, sourceText)
+    const promptStart = [...sourceText.slice(0, sourceText.indexOf(prompt))].length
+    const structured: StructuredScriptData = {
+      schemaVersion: 5, scriptSlug: sourceIdentity.scriptSlug, sourceFile: sourceIdentity.canonicalPath, sourceIdentity,
+      document: { heading: 'Episode', title: 'Episode', metadata: [] },
+      scene: { heading: 'Scene', title: 'Scene', location: { key: 'bridge', raw: 'INT. BRIDGE' }, soundscape: { cues: [{ cueId: hashCanonicalTtsValue({ prompt, promptStart }), kind: 'action-sfx', prompt, required: true, anchor: { kind: 'scene-clock', positionMs: 0 }, sourceSpan: { kind: 'sound-effect', start: promptStart, end: promptStart + [...prompt].length, indexUnit: 'unicode-scalar-value', text: prompt }, durationSeconds: 1 }], ambientBeds: [] } },
+      characterKeys: [], beats: [],
+      sourceSegments: [{ id: 'beat-0001', type: 'direction', text: 'A silent bridge.', sourceSpans: [{ kind: 'stage-direction', start: 0, end: 16, indexUnit: 'unicode-scalar-value', text: 'A silent bridge.' }], location: { key: 'bridge', raw: 'INT. BRIDGE' } }],
+    }
+    const structuredBytes = `${canonicalTtsJson(structured)}\n`
+    const structuredRef = createStructuredScriptArtifactRef(structuredBytes)
+    await mkdir(join(sceneRunDir, 'metadata'), { recursive: true })
+    await writeFile(join(sceneRunDir, structuredRef.path), structuredBytes)
+    await writeInitialComicStructureManifest({ sceneRunDir, createdAt: CREATED_AT, sourceIdentity, structuredScript: structuredRef })
+    const sfxValue = 'elevenlabs=eleven_text_to_sound_v2'
+    const context = {
+      argv: [], flags: { 'sfx-provider': sfxValue }, parameters: { input: '', outputDirs: [], prompt: '' }, store: {},
+      rawParsed: { doubleDash: [], explicitFlags: new Set(['sfx-provider']), flagOccurrences: [{ name: 'sfx-provider', raw: '--sfx-provider', value: sfxValue, known: true }], flagOccurrenceIndices: [0], unknown: {}, positionals: [] },
+    } as CliCommandContext
+    configurePinnedRunDir(sceneRunDir)
+    try { await generateComicAudio(context, sourcePath) } finally { resetPinnedRunDir() }
+    const manifest = await readManifest(sceneRunDir)
+    const comic = manifest?.items[0]?.metadata['comic'] as never as { stages: { audio: { status: string } }, audio: { selectedAudioRuns?: unknown[], selectedSoundscapeRuns?: Array<{ masterRef: { path: string } }> } }
+    expect(manifest?.items[0]?.providers.map(provider => provider.operation)).toEqual(['sound-effect-generation'])
+    expect(comic.stages.audio.status).toBe('full')
+    expect(comic.audio.selectedAudioRuns).toHaveLength(1)
+    expect(comic.audio.selectedSoundscapeRuns).toHaveLength(1)
+    expect(await Bun.file(join(sceneRunDir, comic.audio.selectedSoundscapeRuns?.[0]?.masterRef.path as string)).exists()).toBe(true)
+    expect(calls).toHaveLength(1)
+  }, 20_000)
 
   test('mocked segmented command crosses the shared barrier and publishes canonical comic audio', async () => {
     process.env['OPENAI_API_KEY'] = 'openai-test-key'
@@ -372,6 +413,54 @@ describe('comic audio phase 2 contracts', () => {
     expect(comic.audio.selectedAudioRuns).toHaveLength(1)
     expect(comic.audio.finalOutputRefs).toHaveLength(1)
     expect(await Bun.file(join(sceneRunDir, comic.audio.finalOutputRefs?.[0]?.path as string)).exists()).toBe(true)
+  }, 20_000)
+
+  test('mocked comic command publishes a canonical soundscape master after both provider barriers', async () => {
+    process.env['OPENAI_API_KEY'] = 'openai-test-key'
+    process.env['ELEVENLABS_API_KEY'] = 'elevenlabs-test-key'
+    const calls = installMockFetch(() => new Response(createMockWavBytes(), { status: 200, headers: { 'content-type': 'audio/wav', 'request-id': 'fixture-request' } }))
+    const root = await mkdtemp(join(tmpdir(), 'autoshow-comic-soundscape-command-'))
+    const sourcePath = join(root, 'scene.md')
+    const sceneRunDir = join(root, 'run')
+    const prompt = `hatch slams ${randomUUID()}`
+    const sourceText = `# Episode\n\n## Scene\n\n**PILOT**\nReady?\n\n**NAVIGATOR**\nReady.\n\n**SFX:**\n\n${prompt}\n`
+    await writeFile(sourcePath, sourceText)
+    const sourceIdentity = await createComicSourceIdentity(sourcePath, sourceText)
+    const structured = buildStructured(sourceIdentity, sourceText)
+    const effectStart = [...sourceText.slice(0, sourceText.indexOf(prompt))].length
+    structured.scene.soundscape.cues = [{
+      cueId: hashCanonicalTtsValue({ sourceIdentity: sourceIdentity.identityHash, effectStart, prompt }), kind: 'action-sfx', prompt, required: true,
+      anchor: { kind: 'scene-clock', positionMs: 0 }, sourceSpan: { kind: 'sound-effect', start: effectStart, end: effectStart + [...prompt].length, indexUnit: 'unicode-scalar-value', text: prompt }, durationSeconds: 1,
+    }]
+    const structuredBytes = `${canonicalTtsJson(structured)}\n`
+    const structuredRef = createStructuredScriptArtifactRef(structuredBytes)
+    await mkdir(join(sceneRunDir, 'metadata'), { recursive: true })
+    await writeFile(join(sceneRunDir, structuredRef.path), structuredBytes)
+    await writeInitialComicStructureManifest({ sceneRunDir, createdAt: CREATED_AT, sourceIdentity, structuredScript: structuredRef })
+    const sceneRunIdentity = computeSceneRunIdentity(sourceIdentity, structuredRef)
+    const dialoguePlan = createComicDialoguePlan({ structuredScript: structured, sourceIdentity, structuredScriptRef: structuredRef, sceneRunIdentity, createdAt: CREATED_AT })
+    const entries = [snapshotEntry('navigator', 'onyx', 'openai'), snapshotEntry('pilot', 'alloy', 'openai')]
+    const snapshotBase = { schemaVersion: 1 as const, sceneRunIdentity, dialoguePlanId: dialoguePlan.dialoguePlanId, catalogHash: HASH_A, briefSetHash: HASH_B, createdAt: CREATED_AT, entries }
+    await writeVoiceReferenceManifest(sceneRunDir, validateVoiceReferenceManifest({ ...snapshotBase, snapshotId: hashCanonicalTtsValue(snapshotBase) }))
+    const providerValue = 'openai=gpt-4o-mini-tts-2025-12-15'
+    const sfxValue = 'elevenlabs=eleven_text_to_sound_v2'
+    const context = {
+      argv: [], flags: { provider: [providerValue], mode: 'segmented', 'sfx-provider': sfxValue }, parameters: { input: '', outputDirs: [], prompt: '' }, store: {},
+      rawParsed: {
+        doubleDash: [], explicitFlags: new Set(['provider', 'mode', 'sfx-provider']),
+        flagOccurrences: [{ name: 'provider', raw: '--provider', value: providerValue, known: true }, { name: 'mode', raw: '--mode', value: 'segmented', known: true }, { name: 'sfx-provider', raw: '--sfx-provider', value: sfxValue, known: true }],
+        flagOccurrenceIndices: [0, 1, 2], unknown: {}, positionals: [],
+      },
+    } as CliCommandContext
+    configurePinnedRunDir(sceneRunDir)
+    try { await generateComicAudio(context, sourcePath) } finally { resetPinnedRunDir() }
+    const manifest = await readManifest(sceneRunDir)
+    const comic = manifest?.items[0]?.metadata['comic'] as never as { stages: { audio: { status: string, targetKeys: string[] } }, audio: { selectedSoundscapeRuns?: Array<{ masterRef: { path: string, sha256: string } }>, finalOutputRefs?: Array<{ path: string, sha256: string }> } }
+    expect(manifest?.items[0]?.providers.map(provider => provider.operation).sort()).toEqual(['comic-audio', 'sound-effect-generation'])
+    expect(comic.stages.audio).toMatchObject({ status: 'full', targetKeys: expect.arrayContaining([canonicalTargetKey('sound-effect-generation', 'elevenlabs', 'eleven_text_to_sound_v2', 'hosted-api')]) })
+    expect(comic.audio.selectedSoundscapeRuns).toHaveLength(1)
+    expect(comic.audio.finalOutputRefs?.some(ref => ref.sha256 === comic.audio.selectedSoundscapeRuns?.[0]?.masterRef.sha256)).toBe(true)
+    expect(calls.filter(call => call.url.includes('/v1/sound-generation'))).toHaveLength(1)
   }, 20_000)
 
   test('aggregate snapshots reject duplicate target/profile/subject authority', () => {

@@ -560,7 +560,7 @@ describe('comic source coverage contracts', () => {
     }))
     configureCharactersRoot(charactersRoot)
     const structuredScript: StructuredScriptData = {
-      schemaVersion: 4,
+      schemaVersion: 5,
       scriptSlug: sceneSlug,
       sourceFile: 'input/test.md',
       sourceIdentity: {
@@ -580,6 +580,7 @@ describe('comic source coverage contracts', () => {
         section: 'COLD OPEN',
         title: 'Coverage Test',
         location: { key: 'cargo-bay', raw: 'STARSHIP HORIZON' },
+        soundscape: { cues: [], ambientBeds: [] },
       },
       characterKeys: [],
       beats: [],

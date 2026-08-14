@@ -34,7 +34,7 @@ const inspectCandidate = async (
   if (!item || item.input !== sourceIdentity.canonicalPath || item.outputDir !== '.') throw CLIUsageError('candidate canonical item does not bind the source path and scene root')
   const comic = item.metadata['comic'] as unknown as CanonicalComicItemMetadata
   const structuredRef = comic.audio.structuredScript
-  if (!structuredRef || structuredRef.artifactSchemaVersion !== 4) throw CLIUsageError('candidate does not retain structured-script v4')
+  if (!structuredRef || structuredRef.artifactSchemaVersion !== 5) throw CLIUsageError('candidate does not retain structured-script v5')
   const structuredPath = join(sceneRunDir, structuredRef.path)
   const bytes = new Uint8Array(await readFile(structuredPath))
   if (sha256Bytes(bytes) !== structuredRef.sha256) throw CLIUsageError('candidate structured script checksum does not match canonical state')
@@ -63,7 +63,7 @@ export const resolveCompatibleComicSceneRun = async (input: {
       if (!info.isDirectory()) throw CLIUsageError(`Pinned comic output is not a directory: ${directory}`)
       return await inspectCandidate(directory, sourceIdentity, exactSourceText)
     } catch (error) {
-      throw CLIUsageError(`Pinned comic output is not compatible with the exact source and structured-script v4: ${error instanceof Error ? error.message : String(error)}`)
+      throw CLIUsageError(`Pinned comic output is not compatible with the exact source and structured-script v5: ${error instanceof Error ? error.message : String(error)}`)
     }
   }
 
@@ -83,7 +83,7 @@ export const resolveCompatibleComicSceneRun = async (input: {
     }
   }
   throw CLIUsageError(
-    `No compatible existing comic scene run was found for ${sourceIdentity.canonicalPath}. Run comic draft-scenes first; generate-audio never creates a fresh scene run.`,
+    `No compatible existing comic scene run was found for ${sourceIdentity.canonicalPath}. Run comic draft-scenes first; this downstream workflow never creates a fresh scene run.`,
     ...(rejected.length > 0 ? [`Skipped incompatible candidates: ${rejected.join('; ')}`] : [])
   )
 }

@@ -32,131 +32,120 @@ Short version:
 
 ## Common Workflows
 
+These examples cover the primary workflows. Where both local and hosted execution are supported, both are shown. See the [command docs](./docs/commands.md) for every provider and model, batch inputs, reference and editing modes, transcript video rendering, specialized source types, and advanced options.
+
+### Metadata and Download
+
 ```bash
-# Metadata only (no download)
+# Inspect metadata without downloading
 bun autoshow metadata "https://www.youtube.com/watch?v=u1-WHqATSQU"
 
-# Metadata as Markdown frontmatter YAML
-bun autoshow metadata "https://www.youtube.com/watch?v=u1-WHqATSQU" --markdown
-
-# Download only
+# Download a source without extracting it
 bun autoshow download "https://www.youtube.com/watch?v=u1-WHqATSQU"
+```
 
-# Extraction only (media routes to STT, documents to OCR, articles to URL extraction)
-bun autoshow extract "https://www.youtube.com/watch?v=u1-WHqATSQU"
+### Extract
 
-# Hosted Grok speech-to-text
-bun autoshow extract https://ajc.pics/autoshow/examples/1-audio.mp3 --provider grok=speech-to-text
+```bash
+# Extract an article URL locally with Defuddle
+bun autoshow extract https://example.com/article --url-provider defuddle
 
-# Render a synced speaker transcript video from a previous media extract run
-bun autoshow extract output/<extract-run-dir> --transcript-video
+# Extract an article URL with hosted Firecrawl
+bun autoshow extract https://example.com/article --url-provider firecrawl
 
-# Render a transcript video from explicit local artifacts
-bun autoshow extract --transcript-video --audio https://ajc.pics/autoshow/examples/1-audio.mp3 --transcript-result output/<extract-run-dir>/result.json
+# Extract a PDF locally with Tesseract
+bun autoshow extract input/examples/document/1-document.pdf --provider tesseract --format json
 
-# Compare every URL article backend for one remote article
-bun autoshow extract https://example.com/article --all-providers
+# Extract a PDF with hosted OpenAI OCR
+bun autoshow extract input/examples/document/1-document.pdf --provider openai=gpt-5.4-nano --format json
 
-# X Space metadata extraction (auto-detected, requires X_BEARER_TOKEN)
-bun autoshow extract "https://x.com/i/spaces/1DXxyRYNejbKM"
+# Extract native text and chapters from an EPUB locally
+bun autoshow extract input/examples/document/1-epub.epub
 
-# Document OCR / extraction
-bun autoshow extract input/examples/document/1-document.pdf --format json
+# Extract an EPUB with hosted OpenAI OCR
+bun autoshow extract input/examples/document/1-epub.epub --provider openai=gpt-5.4-nano
 
-# ACSM fulfillment, then normal EPUB/PDF extraction
-bun autoshow setup --step calibre
-bun autoshow setup --step acsm-authorize
-bun autoshow extract path/to/book.acsm
+# Transcribe locally without diarization using Whisperfile
+bun autoshow extract https://ajc.pics/autoshow/examples/1-audio.mp3 --provider whisperfile=tiny
 
-# Hosted Kimi OCR for a document
-bun autoshow extract input/examples/document/1-document.pdf --provider kimi=kimi-k2.6
+# Transcribe with hosted Groq without diarization
+bun autoshow extract https://ajc.pics/autoshow/examples/1-audio.mp3 --provider groq=whisper-large-v3
 
-# Hosted Grok OCR for a document
-bun autoshow extract input/examples/document/1-document.pdf --provider grok=grok-4.3
+# Transcribe locally with speaker diarization using Reverb
+bun autoshow extract https://ajc.pics/autoshow/examples/1-audio.mp3 --provider reverb
 
-# Full write pipeline: download/extract/transcribe + summary output
-bun autoshow write "https://www.youtube.com/watch?v=u1-WHqATSQU" --llm openai=gpt-5.5
+# Transcribe with hosted Deepgram speaker diarization
+bun autoshow extract https://ajc.pics/autoshow/examples/1-audio.mp3 --provider deepgram=nova-3
+```
 
-# Full write pipeline with xAI Grok 4.5 (bare --llm grok still defaults to Grok 4.3)
-bun autoshow write https://ajc.pics/autoshow/examples/1-audio.mp3 --llm grok=grok-4.5
+### Write
 
-# Full write pipeline with Z.AI GLM 5.1
-bun autoshow write https://ajc.pics/autoshow/examples/1-audio.mp3 --llm glm=glm-5.1
+```bash
+# Run the full extract-and-write pipeline locally with Llamafile
+bun autoshow write https://ajc.pics/autoshow/examples/1-audio.mp3 --llm llamafile=Qwen3.5-0.8B-Q8_0
 
-# Full write pipeline with Kimi K2.6
-bun autoshow write https://ajc.pics/autoshow/examples/1-audio.mp3 --llm kimi=kimi-k2.6
+# Run the full extract-and-write pipeline with hosted OpenAI
+bun autoshow write https://ajc.pics/autoshow/examples/1-audio.mp3 --llm openai=gpt-5.5
 
-# Full write pipeline with Together-hosted Kimi K2.6
-bun autoshow write https://ajc.pics/autoshow/examples/1-audio.mp3 --llm together=kimi-k2.6
+# Combine a short summary with key takeaways
+bun autoshow write https://ajc.pics/autoshow/examples/1-audio.mp3 --llm openai=gpt-5.5 --prompt shortSummary takeaways
 
-# Full write pipeline with Together-hosted GLM 5.1
-bun autoshow write https://ajc.pics/autoshow/examples/1-audio.mp3 --llm together=glm-5.1
+# Turn an article into a blog post
+bun autoshow write https://example.com/article --llm openai=gpt-5.5 --prompt blog
 
-# Full write pipeline with Cerebras public GPT OSS 120B
-bun autoshow write https://ajc.pics/autoshow/examples/1-audio.mp3 --llm cerebras=gpt-oss-120b
+# Draft a YouTube description from a video
+bun autoshow write "https://www.youtube.com/watch?v=u1-WHqATSQU" --llm openai=gpt-5.5 --prompt youtubeDescription
+```
 
-# Full write pipeline with Cerebras public Z.ai GLM 4.7
-bun autoshow write https://ajc.pics/autoshow/examples/1-audio.mp3 --llm cerebras=zai-glm-4.7
+### TTS and Music
 
-# Standalone text-to-speech from local text
+```bash
+# Generate speech locally with Kitten TTS
+bun autoshow tts input/examples/tts/1-tts.md --provider kitten=kitten-tts-mini
+
+# Generate speech with hosted OpenAI
 bun autoshow tts input/examples/tts/1-tts.md --provider openai=gpt-4o-mini-tts-2025-12-15
 
-# OpenAI text-to-speech with delivery instructions
-bun autoshow tts input/examples/tts/1-tts.md --provider openai=gpt-4o-mini-tts-2025-12-15 --tts-instructions "Warm, unhurried, conversational"
-
-# ElevenLabs Instant Voice Cloning
-bun autoshow tts input/examples/tts/1-tts.md --provider elevenlabs=eleven_v3 --tts-ref-audio input/examples/audio/anthony-voice.mp3
-
-# Hosted Grok text-to-speech
-bun autoshow tts input/examples/tts/1-tts.md --provider grok=grok-tts --tts-voice eve
-
-# Hosted Mistral Voxtral text-to-speech
-bun autoshow tts input/examples/tts/1-tts.md --provider mistral=voxtral-mini-tts-2603 --tts-ref-audio input/examples/audio/anthony-voice.mp3
-
-# MiniMax hosted text-to-speech
-bun autoshow tts input/examples/tts/1-tts.md --provider minimax=speech-2.8-turbo --tts-voice English_expressive_narrator
-
-# Hume Octave 2 text-to-speech
-bun autoshow tts input/examples/tts/1-tts.md --provider hume=octave-2 --tts-voice "Male English Actor"
-
-# Cartesia Sonic text-to-speech
-bun autoshow tts input/examples/tts/1-tts.md --provider cartesia=sonic-3.5-2026-05-04 --tts-voice f786b574-daa5-4673-aa0c-cbe3e8534c02
-
-# Prompt-driven generation, then edit/reference the generated image; run this block in order
-bun autoshow image "a clean studio product photo of a red enamel camping mug on white seamless" --provider openai=gpt-image-2 --size 1024x1024 --format png --output-dir output/mug-base
-bun autoshow image "make the mug matte black, keep the same camera angle, and place it on a walnut desk" --provider openai=gpt-image-2 --input output/mug-base/generated-image.png --format webp --compression 80 --output-dir output/mug-edit
-bun autoshow image "restyle this product image as a 1960s travel poster" --provider gemini=gemini-3.1-flash-lite-image --input output/mug-base/generated-image.png --output-dir output/mug-gemini
-bun autoshow image "a cinematic product photo of a red enamel camping mug" --provider bfl=flux-2-klein-4b --input output/mug-base/generated-image.png --size 1024x1024 --output-dir output/mug-bfl
-
-# Video from the generated image, then extend/edit the generated video; run this block after output/mug-base exists
-bun autoshow video "animate the red enamel mug on a slow turntable with glossy highlights" --provider gemini=veo-3.1-fast-generate-preview --mode image-to-video --input-image output/mug-base/generated-image.png --output-dir output/mug-video-base
-bun autoshow video "continue the turntable move as the mug rotates toward a warm kitchen window" --provider gemini=veo-3.1-fast-generate-preview --mode extend --input-video output/mug-video-base/generated-video.mp4 --output-dir output/mug-video-extend
-bun autoshow video "make the lighting moonlit blue while keeping the mug motion intact" --provider grok=grok-imagine-video --mode edit --input-video output/mug-video-base/generated-video.mp4 --output-dir output/mug-video-edit
-
-# Standalone video generation with multiple providers
-bun autoshow video "a timelapse storm over downtown chicago" --provider gemini=veo-3.1-lite-generate-preview --provider runway=gen4.5 --provider ltx=ltx-2-3-fast
-
-# Hosted music generation
-bun autoshow music "an ambient piano instrumental" --provider minimax=music-3.0
-bun autoshow music "bright 90s pop rock with a huge chorus" --provider gemini=lyria-3-clip-preview
-
-# Local lyric-video rendering from repo audio
+# Render a lyric video locally from existing audio
 bun autoshow music --audio input/examples/lyrics/01-example-song.mp3
 
-# Fetch curated OpenAI docs into project/links/openai-all-links.md
-bun autoshow links --openai
+# Generate instrumental music with hosted MiniMax
+bun autoshow music "an ambient piano instrumental" --provider minimax=music-3.0 --instrumental
+```
 
-# Fetch Better Auth docs into project/links/better-auth-all-links.md
-bun autoshow links --better-auth
+### Image and Video
 
-# Fetch curated Kimi docs into project/links/kimi-all-links.md
-bun autoshow links --kimi
+```bash
+# Generate an image with hosted OpenAI
+bun autoshow image "a clean studio product photo of a red enamel camping mug" --provider openai=gpt-image-2 --size 1024x1024 --output-dir output/mug-image
 
-# Fetch STT docs across providers into project/links/all-stt-links.md
-bun autoshow links stt
+# Animate the generated image with hosted Gemini
+bun autoshow video "animate the mug on a slow turntable" --provider gemini=veo-3.1-fast-generate-preview --mode image-to-video --input-image output/mug-image/generated-image.png --output-dir output/mug-video
 
-# Fetch docs listed in a local URL file into project/links/urls-links.md
-bun autoshow links urls.md
+# Generate a video with hosted Gemini
+bun autoshow video "a timelapse storm over downtown chicago" --provider gemini=veo-3.1-lite-generate-preview
+```
+
+### Comic and Voice
+
+```bash
+# Register an existing provider voice locally without making a provider call
+bun autoshow voice import hero --provider openai --model gpt-4o-mini-tts-2025-12-15 --voice-id cedar --origin provider-stock --provenance-ref project:casting
+
+# Discover voices from a hosted ElevenLabs account
+bun autoshow voice discover --provider elevenlabs --source account
+
+# Draft structured comic scenes locally with Llamafile
+bun autoshow comic draft-scenes input/scripts/01-script/01-opening.md --llm-model Qwen3.5-0.8B-Q8_0
+
+# Generate final comic panels with hosted OpenAI
+bun autoshow comic generate-images input/scripts/01-script/01-opening.md --target images --image-model gpt-image-2
+
+# Generate multi-speaker comic audio with hosted Gemini
+bun autoshow comic generate-audio 01-01 --provider gemini=gemini-3.1-flash-tts-preview --profile default
+
+# Synchronize canonical comic panels with a complete audio run using local FFmpeg
+bun autoshow comic generate-slideshow 01-01
 ```
 
 ## Command Map

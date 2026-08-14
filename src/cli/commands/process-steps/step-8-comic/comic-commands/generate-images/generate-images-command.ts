@@ -197,7 +197,7 @@ export const generateImagesCommand = async (
     : {})
   const sceneRunDir = getSceneOutputDirectory(sceneSlug)
   let canonicalManifest = await readManifest(sceneRunDir)
-  if (!canonicalManifest && Object.keys(dependencies).length === 0) throw InfraError('Comic image generation requires a canonical comic manifest from structured-script v4. Re-run comic draft-scenes for a clean scene run.', { stage: 'comic:generate-images' })
+  if (!canonicalManifest && Object.keys(dependencies).length === 0) throw InfraError('Comic image generation requires a canonical comic manifest from structured-script v5. Re-run comic draft-scenes for a clean scene run.', { stage: 'comic:generate-images' })
   if (Object.keys(dependencies).length === 0) canonicalManifest = (await resolveCompatibleComicSceneRun({ scriptPath: options.scriptPath, outputDir: sceneRunDir })).manifest
 
   const target = getGenerateImagesTarget(options.target)
