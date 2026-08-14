@@ -574,8 +574,9 @@ describe('safe artifact integration in the TTS lifecycle', () => {
       expect(retainedJson.map((artifact) => artifact.text).join('\n')).not.toContain(canary)
       const rejectionArtifact = retainedJson.find((artifact) => artifact.name.endsWith('-rejection.json'))
       if (!rejectionArtifact) throw new Error('Missing sanitized provider rejection evidence')
-      const rejection = JSON.parse(rejectionArtifact.text) as { fields?: { code?: string, retryable?: boolean } }
-      expect(rejection.fields).toEqual({ code: 'http_400', retryable: false })
+      const rejection = JSON.parse(rejectionArtifact.text) as { fields?: { code?: string, retryable?: boolean, status?: number, providerMessage?: string } }
+      expect(rejection.fields).toEqual(expect.objectContaining({ code: 'http_400', retryable: false, status: 400 }))
+      expect(rejection.fields?.providerMessage).toContain('[REDACTED_EMAIL]')
     })
   })
 

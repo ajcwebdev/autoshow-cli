@@ -146,13 +146,31 @@ export const listHumeVoiceIdsForReadiness = async (
   return availableIds
 }
 
+export const listInworldVoiceIdsForReadiness = async (
+  apiKey: string,
+  fetchImpl: typeof fetch = fetch
+): Promise<Set<string>> => {
+  const authorization = apiKey.startsWith('Basic ') ? apiKey : `Basic ${apiKey}`
+  const response = await fetchImpl('https://api.inworld.ai/voices/v1/voices?languages=EN_US', {
+    headers: { Authorization: authorization }
+  })
+  if (!response.ok) throw new Error(`HTTP ${response.status}`)
+  const payload = await response.json() as { voices?: unknown }
+  if (!Array.isArray(payload.voices)) throw new Error('Inworld voice catalog response omits voices.')
+  return new Set(payload.voices.flatMap(value =>
+    value && typeof value === 'object' && !Array.isArray(value) && typeof (value as { voiceId?: unknown }).voiceId === 'string'
+      ? [(value as { voiceId: string }).voiceId]
+      : []
+  ))
+}
+
 const checkAdvancedVoiceReadiness = async (
   target: TtsTarget,
   apiKey: string
 ): Promise<TtsExecutionReadinessObservation> => {
   const targetKey = target.targetKey as string
   const voiceIds = [...new Set(target.readinessVoiceIds ?? [])]
-  if (voiceIds.length === 0 || !['elevenlabs', 'hume', 'minimax', 'cartesia', 'speechify'].includes(target.service)) {
+  if (voiceIds.length === 0 || !['elevenlabs', 'hume', 'minimax', 'cartesia', 'speechify', 'inworld'].includes(target.service)) {
     return { targetKey, accountState: 'available', status: 'ready' }
   }
   try {
@@ -175,6 +193,12 @@ const checkAdvancedVoiceReadiness = async (
     if (target.service === 'hume') {
       const availableIds = await listHumeVoiceIdsForReadiness(apiKey)
       if (voiceIds.some(voiceId => !availableIds.has(voiceId))) return advancedVoiceBlockedObservation(targetKey, 'hume-voice-not-ready', 'One or more approved Hume voices are missing or inaccessible for the configured account.', false)
+      return { targetKey, accountState: 'available', status: 'ready' }
+    }
+    if (target.service === 'inworld') {
+      const availableIds = await listInworldVoiceIdsForReadiness(apiKey)
+      const missingVoiceIds = voiceIds.filter(voiceId => !availableIds.has(voiceId))
+      if (missingVoiceIds.length > 0) return advancedVoiceBlockedObservation(targetKey, 'inworld-voice-not-ready', `Approved Inworld voice ${missingVoiceIds.join(', ')} is missing or inaccessible for the configured account. Run \`bun autoshow voice discover --provider inworld --source provider-library\` and update the casting profile before synthesis.`, false)
       return { targetKey, accountState: 'available', status: 'ready' }
     }
     if (target.service === 'minimax') {
@@ -216,7 +240,7 @@ const checkAdvancedVoiceReadiness = async (
     if (results.some(ready => !ready)) return advancedVoiceBlockedObservation(targetKey, 'speechify-voice-not-ready', 'One or more approved Speechify voices are missing, inaccessible, or unavailable for the selected model.', false)
     return { targetKey, accountState: 'available', status: 'ready' }
   } catch {
-    const label = target.service === 'elevenlabs' ? 'ElevenLabs' : target.service === 'hume' ? 'Hume' : target.service === 'minimax' ? 'MiniMax' : target.service === 'cartesia' ? 'Cartesia' : 'Speechify'
+    const label = target.service === 'elevenlabs' ? 'ElevenLabs' : target.service === 'hume' ? 'Hume' : target.service === 'minimax' ? 'MiniMax' : target.service === 'cartesia' ? 'Cartesia' : target.service === 'inworld' ? 'Inworld' : 'Speechify'
     return advancedVoiceBlockedObservation(targetKey, `${target.service}-readiness-inspection-failed`, `${label} read-only voice readiness inspection failed before synthesis.`, true)
   }
 }

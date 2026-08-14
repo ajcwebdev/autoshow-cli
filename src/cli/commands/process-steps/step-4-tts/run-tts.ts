@@ -14,7 +14,7 @@ import { runMultiSpeakerTts } from './run-multi-speaker-tts'
 import { CLIUsageError, InfraError, InternalError } from '~/utils/error-handler'
 import { bindHostedTtsChunkScheduler, createHostedTtsChunkScheduler } from './tts-utils/hosted-tts-chunk-scheduler'
 import type { CurrentTtsObservedTurn, CurrentTtsRenderArtifacts } from './script-to-audio/current-render-artifacts'
-import { createCurrentTtsRenderAttempt, planCurrentTtsRenderIdentity, prepareCurrentTtsCompletedRecovery, resolveCurrentTtsPriorAdmittedAttemptCount, validateCurrentTtsRenderAttemptInputs } from './script-to-audio/current-render-attempt'
+import { createCurrentTtsRenderAttempt, planCurrentTtsRenderIdentity, prepareCurrentTtsCompatibleSlotRecovery, prepareCurrentTtsCompletedRecovery, resolveCurrentTtsPriorAdmittedAttemptCount, validateCurrentTtsRenderAttemptInputs } from './script-to-audio/current-render-attempt'
 import { createCurrentTtsBlockedReadinessState } from './script-to-audio/current-readiness-attempt'
 
 const getMetadataAudioPath = (outputDir: string, metadata: Step4Metadata): string =>
@@ -232,6 +232,24 @@ export const runTtsTargets = async (
         }
         if (recovery.kind === 'partial-slots') recoveredSlots = recovery.recoveredSlots
         retainedCumulativePlannedCost = recovery.retainedCumulativePlannedCost
+      }
+    }
+    if (retainedState && retainedProjection?.activeWork?.kind === 'render' && !retainedHasPlannedRender) {
+      const compatibleRecovery = await prepareCurrentTtsCompatibleSlotRecovery({
+        rootDir: sourceContext?.recoveryRootDir ?? sourceContext?.artifactOutputDir ?? outputDir,
+        outputDir: sourceContext?.artifactOutputDir ?? outputDir,
+        artifactRoot: sourceContext?.artifactRoot,
+        state: retainedState,
+        target,
+        sourceText: text,
+        ttsOptions: options,
+        sourceIdentity: sourceContext?.sourceIdentity,
+        dialoguePlan: sourceContext?.dialoguePlan,
+        comicContext: sourceContext?.comicContext
+      })
+      if (compatibleRecovery) {
+        recoveredSlots = compatibleRecovery.recoveredSlots
+        retainedCumulativePlannedCost = compatibleRecovery.retainedCumulativePlannedCost
       }
     }
     const priorAttemptCount = retainedState

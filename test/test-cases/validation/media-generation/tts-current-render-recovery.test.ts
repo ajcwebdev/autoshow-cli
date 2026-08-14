@@ -516,6 +516,41 @@ describe('TTS completed-render recovery', () => {
     })
   })
 
+  test('materializes unchanged completed slots across a voice-profile render change', async () => {
+    await withTempDir('autoshow-tts-cross-render-slot-recovery-', async (dir) => {
+      const text = 'Host: Keep this retained voice.\nGuest: Replace only this voice.'
+      const sourceIdentity = createInlineTtsSourceIdentity(text)
+      const dialoguePlan = createGenericTtsDialoguePlan(sourceIdentity, text, DIALOGUE_OPTIONS, new Date(0).toISOString())
+      const firstCalls: number[] = []
+      const first = await runTtsForTargets(text, dir, DIALOGUE_OPTIONS, [createDialogueFixtureTarget(firstCalls)], {
+        sourceIdentity,
+        dialoguePlan,
+        beforeDispatch: async () => {},
+        onProviderState: async () => {}
+      })
+      const retained = buildCurrentTtsProviderState(first.metadata[0]!)
+      const changedVoiceOptions: TtsOptions = { ...DIALOGUE_OPTIONS, ttsSpeakers: ['Host=alloy', 'Guest=onyx'] }
+      const resumedCalls: number[] = []
+      const reportedOutput = join(dir, 'speech-cross-render-recovered.wav')
+      const resumed = await runTtsForTargets(text, dir, changedVoiceOptions, [createDialogueFixtureTarget(resumedCalls)], {
+        sourceIdentity,
+        dialoguePlan,
+        retainedProviderStates: [retained],
+        recoveryRootDir: dir,
+        resolveReportedOutput: () => ({ path: reportedOutput, fileName: 'speech-cross-render-recovered.wav' }),
+        beforeDispatch: async () => {},
+        onProviderState: async () => {}
+      })
+
+      expect(firstCalls).toEqual([0, 1])
+      expect(resumedCalls).toEqual([1])
+      expect(await Bun.file(reportedOutput).exists()).toBe(true)
+      const terminal = resumed.metadata[0]?.ttsAudio?.renderHistory[0]?.events.at(-1)
+      expect(terminal?.status).toBe('succeeded')
+      expect(terminal?.batchProgress?.flatMap(batch => batch.generationSlots).map(slot => slot.source).sort()).toEqual(['cache-materialization', 'provider-dispatch'])
+    })
+  })
+
   test('checkpoints exactly one unresolved segmented slot without publishing a final audio run', async () => {
     await withTempDir('autoshow-tts-one-slot-checkpoint-', async (dir) => {
       const text = 'Host: First turn.\nGuest: Second turn.\nHost: Third turn.'

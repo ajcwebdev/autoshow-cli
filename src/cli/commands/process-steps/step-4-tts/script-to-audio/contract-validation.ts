@@ -959,7 +959,9 @@ export const validateProviderRenderResult = (
       outcome.status === 'succeeded'
       && (
         outcome.outputIds.length === 0
-        || (result.closedBy.kind === 'provider-attempt' && outcome.observedRequests.length === 0)
+        || (result.closedBy.kind === 'provider-attempt'
+          && outcome.observedRequests.length === 0
+          && outcome.generationSlotIds.some((slotId) => result.observedRequests.some((request) => request.generationSlotId === slotId)))
       )
     ) {
       throw CLIUsageError('Succeeded provider render turn requires output linkage and provider-attempt observation when dispatched.')

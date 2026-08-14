@@ -93,6 +93,8 @@ Provider admission classification is cause-aware and deliberately narrower than 
 
 Provider failures remain structured through target and comic aggregation. Wrappers preserve the original cause, status, headers, stage, retryability, request ID, and bounded redacted provider message; command boundaries do not convert an infrastructure failure into a usage error. Voice-provisioning journals record definite provider rejection as terminal `failed`, while uncertain post-dispatch failures remain `reconciliation-required`.
 
+Every concurrent TTS request also writes the same bounded diagnostic fields into its immutable rejection or ambiguity evidence before the target-level failure is finalized. A target may still report one primary failure to the command boundary, but retained request evidence preserves `code`, `status`, `stage`, error name, redacted provider message, request ID, retry delay, and retryability for each request that was already in flight. Provider text is passed through the shared secret, identifier, authorization, URL-credential, query-secret, and email redaction pipeline before it reaches logs or durable JSON.
+
 ### Keep (with rationale)
 
 `src/`:

@@ -6,6 +6,7 @@ import type {
   AccountCapabilityObservation,
   AnyCapabilityRecord,
   CanonicalAudioProviderProjection,
+  CanonicalBatchProgress,
   CanonicalDialogueTurn,
   ComicDialoguePlan,
   ComicTtsRenderContext,
@@ -78,6 +79,7 @@ import {
   validateGenericTtsSourceIdentity,
   validateAccountCapabilityObservation,
   validateCapabilityFacetSet,
+  validateCacheMaterializationPlan,
   validateProviderBatchResult,
   validateProviderRenderPlanIdentity,
   validateProviderRenderResult,
@@ -165,10 +167,10 @@ type CapabilityFixture = {
 }
 
 export type CurrentTtsRecoveredGenerationSlot = Readonly<{
-  value: Extract<ProviderBatchResult, { provenance: 'provider-dispatch' }>
+  value: ProviderBatchResult
   path: string
   sha256: string
-  attemptRoot: string
+  attemptRoot?: string | undefined
   outputPaths: readonly string[]
   requiresMaterialization?: boolean | undefined
 }>
@@ -1373,7 +1375,10 @@ const readAudioMetadataProjection = (state: PipelineProviderState): CanonicalAud
   return state.metadata[namespace] as CanonicalAudioProviderProjection | undefined
 }
 
-type LoadedRecoveryBatch = CurrentTtsRecoveredGenerationSlot
+type LoadedRecoveryBatch = CurrentTtsRecoveredGenerationSlot & Readonly<{
+  value: Extract<ProviderBatchResult, { provenance: 'provider-dispatch' }>
+  attemptRoot: string
+}>
 
 export type CurrentTtsCompletedRecovery = {
   kind: 'complete-render'
@@ -2293,6 +2298,258 @@ export const prepareCurrentTtsCompletedRecovery = async (options: PureCurrentTts
   }
 }
 
+const resolvedPlanTurn = (plan: ProviderRenderPlan, turnId: string) => {
+  for (const node of plan.nodes) {
+    if (node.kind === 'turn' && node.turn.turnId === turnId) return node.turn
+    if (node.kind === 'overlap') {
+      const turn = node.turns.find((entry) => entry.turnId === turnId)
+      if (turn) return turn
+    }
+  }
+  return undefined
+}
+
+const portableResolvedPlanTurn = (plan: ProviderRenderPlan, turnId: string) => {
+  const turn = resolvedPlanTurn(plan, turnId)
+  if (!turn) return undefined
+  const { voice, ...turnWithoutVoice } = turn
+  return {
+    ...turnWithoutVoice,
+    bindingIdentityHash: voice.kind === 'approved-snapshot' ? voice.entryHash : voice.identityHash,
+    providerVoice: voice.providerVoice,
+    providerModel: voice.providerModel,
+    ...(voice.kind === 'approved-snapshot' && voice.providerRevision ? { providerRevision: voice.providerRevision } : {}),
+    synthesisSettings: voice.synthesisSettings,
+    capabilityFixtureHash: voice.capabilityFixtureHash
+  }
+}
+
+const compatibleSegmentedSlotHash = (plan: ProviderRenderPlan, generationSlotId: string): string | undefined => {
+  if (plan.strategy !== 'segmented') return undefined
+  const batch = plan.batches.find((entry) => entry.generationSlots.some((slot) => slot.generationSlotId === generationSlotId))
+  const slot = batch?.generationSlots.find((entry) => entry.generationSlotId === generationSlotId)
+  const artifact = plan.strategyArtifacts?.generationSlots.find((entry) => entry.generationSlotId === generationSlotId)
+  if (!batch || !slot || !artifact) return undefined
+  const turns = batch.orderedTurnIds.map((turnId) => portableResolvedPlanTurn(plan, turnId))
+  if (turns.some((turn) => !turn)) return undefined
+  return hashCanonicalTtsValue({
+    schemaVersion: 1,
+    sourceIdentityHash: plan.sourceIdentityHash,
+    dialoguePlanId: plan.dialoguePlanId,
+    targetKey: plan.targetKey,
+    provider: plan.provider,
+    model: plan.model,
+    transport: plan.transport,
+    requestedOutput: plan.requestedOutput,
+    batchId: batch.batchId,
+    generationSlotId,
+    orderedTurnIds: batch.orderedTurnIds,
+    requestControls: batch.requestControls,
+    slotIndex: slot.slotIndex,
+    requestedTakeCount: slot.requestedTakeCount,
+    providerTextSha256: artifact.sha256,
+    turns
+  })
+}
+
+/**
+ * Promotes only byte-identical, slot-compatible output from a prior segmented render into the
+ * newly planned render as explicit cache materialization. A voice/profile change therefore does
+ * not repurchase unaffected turns, while changed voice bindings remain unresolved and dispatchable.
+ */
+export const prepareCurrentTtsCompatibleSlotRecovery = async (options: PureCurrentTtsRenderPlanOptions & {
+  rootDir: string
+  outputDir: string
+  artifactRoot?: string | undefined
+  state: PipelineProviderState
+}): Promise<CurrentTtsPartialRecovery | undefined> => {
+  const pure = buildPureCurrentTtsRenderPlan(options)
+  if (pure.planned.strategy !== 'segmented' || options.state.targetKey !== pure.targetKey) return undefined
+  const projection = readAudioProjection(options.state)
+  if (!projection) return undefined
+  const providerRoot = resolve(options.rootDir, options.state.artifactDir)
+  const currentRenderRoot = resolve(providerRoot, 'renders', pure.renderIdentity)
+  const currentSlots = new Map(pure.planned.slots.map((slot) => [slot.generationSlotId, slot] as const))
+  const recovered = new Map<string, CurrentTtsRecoveredGenerationSlot>()
+
+  for (const retainedRender of [...projection.renderHistory].reverse()) {
+    if (retainedRender.renderIdentity === pure.renderIdentity) continue
+    const retainedRenderRoot = resolveRetainedPath(providerRoot, retainedRender.renderDir, 'Stored TTS render directory')
+    const retainedPlanPath = resolveRetainedPath(providerRoot, retainedRender.renderPlanRef, 'Stored TTS render plan')
+    const retainedPlan = await readVerifiedJson<ProviderRenderPlan>(options.rootDir, retainedPlanPath, retainedRender.renderPlanSha256, 'Stored TTS render plan')
+    validateProviderRenderPlanIdentity(retainedPlan)
+    if (retainedPlan.renderIdentity !== retainedRender.renderIdentity || retainedPlan.renderPlanId !== retainedRender.renderPlanId) {
+      throw CLIUsageError('Stored TTS render plan identity does not match its canonical projection.')
+    }
+    const currentPlan = pure.renderPlan
+    if (
+      retainedPlan.strategy !== 'segmented'
+      || retainedPlan.targetKey !== currentPlan.targetKey
+      || retainedPlan.sourceIdentityHash !== currentPlan.sourceIdentityHash
+      || retainedPlan.dialoguePlanId !== currentPlan.dialoguePlanId
+      || retainedPlan.provider !== currentPlan.provider
+      || retainedPlan.model !== currentPlan.model
+      || retainedPlan.transport !== currentPlan.transport
+      || canonicalTtsJson(retainedPlan.requestedOutput) !== canonicalTtsJson(currentPlan.requestedOutput)
+    ) continue
+
+    for (const event of [...retainedRender.events].reverse()) {
+      for (const batch of event.batchProgress ?? []) {
+        for (const progress of batch.generationSlots) {
+          if (recovered.has(progress.generationSlotId) || progress.source !== 'provider-dispatch' || progress.batchResult?.status !== 'succeeded') continue
+          const currentSlot = currentSlots.get(progress.generationSlotId)
+          if (!currentSlot) continue
+          const oldCompatibilityHash = compatibleSegmentedSlotHash(retainedPlan, progress.generationSlotId)
+          const currentCompatibilityHash = compatibleSegmentedSlotHash(currentPlan, progress.generationSlotId)
+          if (!oldCompatibilityHash || oldCompatibilityHash !== currentCompatibilityHash) continue
+
+          const sourceResultPath = resolveRetainedPath(retainedRenderRoot, progress.batchResult.path, 'Stored provider batch result')
+          const sourceResult = await readVerifiedJson<ProviderBatchResult>(options.rootDir, sourceResultPath, progress.batchResult.sha256, 'Stored provider batch result')
+          validateProviderBatchResult(sourceResult)
+          if (
+            sourceResult.provenance !== 'provider-dispatch'
+            || sourceResult.status !== 'succeeded'
+            || sourceResult.renderIdentity !== retainedPlan.renderIdentity
+            || sourceResult.renderPlanId !== retainedPlan.renderPlanId
+            || sourceResult.batchId !== currentSlot.batchId
+            || sourceResult.generationSlotId !== currentSlot.generationSlotId
+            || sourceResult.outputs.length === 0
+          ) throw CLIUsageError('Stored compatible TTS output does not bind its canonical provider-dispatch result.')
+          const relativeResult = relative(retainedRenderRoot, sourceResultPath).split(sep)
+          const batchResultsIndex = relativeResult.lastIndexOf('batch-results')
+          if (batchResultsIndex < 1) throw CLIUsageError('Stored compatible TTS result is outside an immutable provider attempt.')
+          const sourceAttemptRoot = resolve(retainedRenderRoot, ...relativeResult.slice(0, batchResultsIndex))
+          const invocationPath = resolveRetainedPath(sourceAttemptRoot, sourceResult.batchInvocationPlan.artifactRef, 'Stored compatible invocation plan')
+          const invocationPlan = await readVerifiedJson<ProviderBatchInvocationPlan>(options.rootDir, invocationPath, sourceResult.batchInvocationPlan.sha256, 'Stored compatible invocation plan')
+          if (
+            invocationPlan.batchInvocationPlanId !== sourceResult.batchInvocationPlan.batchInvocationPlanId
+            || invocationPlan.renderIdentity !== retainedPlan.renderIdentity
+            || invocationPlan.generationSlotId !== currentSlot.generationSlotId
+          ) throw CLIUsageError('Stored compatible TTS invocation does not bind its source result.')
+          const admissionPath = resolveRetainedPath(sourceAttemptRoot, sourceResult.admissionBasis.artifactRef, 'Stored compatible admission journal')
+          const admission = await readVerifiedJson<RenderAdmissionJournalSnapshot>(options.rootDir, admissionPath, sourceResult.admissionBasis.sha256, 'Stored compatible admission journal')
+          validateRenderAdmissionJournalSnapshot(admission)
+          const sourceRequest = admission.requests.find((request) => request.generationSlotId === currentSlot.generationSlotId && request.transitions.at(-1)?.state === 'completed')
+          if (!sourceRequest || admission.snapshotId !== sourceResult.admissionBasis.snapshotId) throw CLIUsageError('Stored compatible TTS result lacks completed admission evidence.')
+
+          const sourcePlanSlot = pure.planned.slots.find((slot) => slot.generationSlotId === currentSlot.generationSlotId) as AttemptSlot
+          const serializerCompatible = sourceResult.observedRequests.every((request) =>
+            request.endpointKind === sourcePlanSlot.expectedEndpointKind
+            && request.serializerVersion === sourcePlanSlot.expectedSerializerVersion
+            && request.actualRequestControlsHash === sourcePlanSlot.expectedRequestControlsHash
+            && request.turns.every((observedTurn) => {
+              const turn = pure.planned.turns.find((entry) => entry.canonical.turnId === observedTurn.turnId) as AttemptTurn | undefined
+              return turn !== undefined
+                && observedTurn.providerTextHash === sha256Bytes(currentSlot.providerText)
+                && observedTurn.actualSerializedVoice.kind === turn.voice.kind
+                && observedTurn.actualSerializedVoice.valueHash === turn.voice.valueHash
+            })
+          )
+          if (!serializerCompatible) continue
+
+          const materializationRoot = resolve(currentRenderRoot, 'cache-materializations', currentSlot.generationSlotId)
+          const sourceBatchCopy = await writeJsonCreateOnly(options.outputDir, resolve(materializationRoot, 'source-batch-result.json'), sourceResult)
+          const cacheNamespace = `retained-render:${pure.targetKey}`
+          const cacheKey = currentCompatibilityHash
+          const sourceObject = (role: 'cache-entry' | 'provenance-attestation' | 'source-batch-result' | 'audio', objectId: string, sha256: string) => ({ cacheNamespace, cacheKey, objectId, role, sha256 })
+          const copiedOutputs: Array<{ source: ReturnType<typeof sourceObject>, path: string, relativePath: string, sha256: string }> = []
+          for (const [outputIndex, output] of sourceResult.outputs.entries()) {
+            const sourceOutputPath = resolveRetainedPath(dirname(sourceResultPath), output.artifactRef, 'Stored compatible provider audio')
+            const sourceOutput = await readContainedArtifactFile(options.rootDir, contained(options.rootDir, sourceOutputPath))
+            if (sourceOutput.sha256 !== output.sha256) throw CLIUsageError('Stored compatible provider audio checksum does not match its source result.')
+            const destination = resolve(materializationRoot, `audio-${String(outputIndex + 1).padStart(3, '0')}${extname(sourceOutputPath) || '.audio'}`)
+            await copyCreateOnly(options.outputDir, sourceOutputPath, destination)
+            copiedOutputs.push({ source: sourceObject('audio', output.outputId, output.sha256), path: destination, relativePath: relative(materializationRoot, destination), sha256: output.sha256 })
+          }
+          const continuationFingerprint = { schemaVersion: 1 as const, kind: 'none' as const, fingerprintHash: hashCanonicalTtsValue({ schemaVersion: 1, kind: 'none' }) }
+          const attestationBase = {
+            schemaVersion: 1 as const,
+            sourceCanonicalCommitment: { targetKey: retainedPlan.targetKey, renderPlanId: retainedPlan.renderPlanId, renderIdentity: retainedPlan.renderIdentity, eventSequence: event.sequence, eventRecordHash: hashCanonicalTtsValue(event), batchResultId: sourceResult.batchResultId, batchResultSha256: progress.batchResult.sha256 },
+            sourceInvocation: { batchInvocationPlanId: invocationPlan.batchInvocationPlanId, batchInvocationPlanSha256: sourceResult.batchInvocationPlan.sha256, batchId: sourceResult.batchId, generationSlotId: sourceResult.generationSlotId, requestFingerprint: invocationPlan.requestFingerprint, continuationFingerprint, continuationDag: { kind: 'none' as const } },
+            sourceAdmission: { journalId: admission.journalId, terminalSnapshotId: admission.snapshotId, terminalSnapshotSha256: sourceResult.admissionBasis.sha256, requestChainProjectionHash: hashCanonicalTtsValue(admission.requests.filter((request) => request.generationSlotId === currentSlot.generationSlotId)), completedRequestOrdinals: [sourceRequest.requestOrdinal] },
+            observedRequestHashes: sourceResult.observedRequests.map(request => hashCanonicalTtsValue(request)),
+            outputChecksums: sourceResult.outputs.map(output => output.sha256),
+            timingEvidenceChecksums: [],
+            capturedAt: event.at
+          }
+          const attestation = withIdentity(attestationBase, 'attestationId')
+          const attestationFile = await writeJsonCreateOnly(options.outputDir, resolve(materializationRoot, 'source-provenance-attestation.json'), attestation)
+          const sourceBatchObject = sourceObject('source-batch-result', sourceResult.batchResultId, sourceBatchCopy.sha256)
+          const attestationObject = sourceObject('provenance-attestation', attestation.attestationId, attestationFile.sha256)
+          const cacheEntry = {
+            schemaVersion: 1 as const,
+            keyAlgorithmVersion: 'segmented-slot-v1',
+            kind: 'segmented-turn' as const,
+            generationSlotKey: currentCompatibilityHash,
+            canonicalInputHash: hashCanonicalTtsValue(currentSlot.turnIds.map(turnId => portableResolvedPlanTurn(currentPlan, turnId))),
+            bindingIdentityHashes: currentSlot.turnIds.map(turnId => {
+              const voice = resolvedPlanTurn(currentPlan, turnId)?.voice
+              if (!voice) throw CLIUsageError(`Current TTS render plan omits compatible turn ${turnId}.`)
+              return voice.kind === 'approved-snapshot' ? voice.entryHash : voice.identityHash
+            }),
+            continuationFingerprint,
+            capabilityFixtureHash: retainedPlan.capabilityFixtureHash,
+            adapterSchemaVersion: SCHEMA_VERSION,
+            textPreparationVersion: PREPARATION_VERSION,
+            observedRequestHashes: attestation.observedRequestHashes,
+            provenanceAttestation: attestationObject,
+            sourceBatchResult: { batchResultId: sourceResult.batchResultId, object: sourceBatchObject },
+            objects: copiedOutputs.map(output => output.source),
+            outputChecksums: copiedOutputs.map(output => output.sha256),
+            createdAt: event.at
+          }
+          const cacheEntryFile = await writeJsonCreateOnly(options.outputDir, resolve(materializationRoot, 'cache-entry.json'), cacheEntry)
+          const cacheEntryObject = sourceObject('cache-entry', currentCompatibilityHash, cacheEntryFile.sha256)
+          const materializationPlanBase = { schemaVersion: 1 as const, renderPlanId: pure.renderPlanId, renderIdentity: pure.renderIdentity, batchId: currentSlot.batchId, generationSlotId: currentSlot.generationSlotId, resolvedContinuation: { kind: 'none' as const }, continuationFingerprint, portableSemanticInputHash: currentCompatibilityHash, currentExecutionInputHash: hashCanonicalTtsValue({ renderPlanId: pure.renderPlanId, generationSlotId: currentSlot.generationSlotId }), cacheEntry: cacheEntryObject }
+          const materializationPlan = withIdentity(materializationPlanBase, 'cacheMaterializationPlanId')
+          validateCacheMaterializationPlan(materializationPlan)
+          const materializationPlanFile = await writeJsonCreateOnly(options.outputDir, resolve(currentRenderRoot, 'cache-materialization-plans', `${currentSlot.generationSlotId}.json`), materializationPlan)
+          const outputs: ProviderBatchOutput[] = sourceResult.outputs.map((output, index) => ({ ...output, artifactRef: copiedOutputs[index]?.relativePath as string }))
+          const generatedBatch = sourceResult.generatedBatch ? {
+            ...sourceResult.generatedBatch,
+            takes: sourceResult.generatedBatch.takes.map(take => ({ ...take, audio: { ...take.audio, artifactRef: outputs.find(output => output.outputId === take.audio.outputId)?.artifactRef ?? take.audio.artifactRef } })),
+            batchCost: { planned: currentSlot.plannedCost, observed: [] },
+            source: 'cache-materialization' as const,
+            sourceBatchResultId: sourceResult.batchResultId,
+            observedRequestOrdinals: [] as []
+          } : undefined
+          const resultBase = {
+            schemaVersion: 1 as const,
+            renderPlanId: pure.renderPlanId,
+            renderIdentity: pure.renderIdentity,
+            batchId: currentSlot.batchId,
+            generationSlotId: currentSlot.generationSlotId,
+            status: 'succeeded' as const,
+            requestedTurnIds: currentSlot.turnIds,
+            outputs,
+            ...(generatedBatch ? { generatedBatch } : {}),
+            turnOutcomes: currentSlot.turnIds.map(turnId => ({ turnId, status: 'succeeded' as const, outputIds: outputs.map(output => output.outputId) })),
+            createdResources: [] as [],
+            cost: { planned: currentSlot.plannedCost, observed: [] },
+            provenance: 'cache-materialization' as const,
+            observedRequests: [] as [],
+            retryAttempts: [] as [],
+            cacheMaterialization: {
+              materializationPlan: { cacheMaterializationPlanId: materializationPlan.cacheMaterializationPlanId, artifactRef: relative(currentRenderRoot, materializationPlanFile.path), sha256: materializationPlanFile.sha256 },
+              sourceBatchResultId: sourceResult.batchResultId,
+              cacheEntry: { schemaVersion: 1 as const, source: cacheEntryObject, artifactRef: relative(materializationRoot, cacheEntryFile.path), sha256: cacheEntryFile.sha256 },
+              sourceBatchResult: { schemaVersion: 1 as const, source: sourceBatchObject, artifactRef: relative(materializationRoot, sourceBatchCopy.path), sha256: sourceBatchCopy.sha256 },
+              sourceProvenanceAttestation: { schemaVersion: 1 as const, source: attestationObject, artifactRef: relative(materializationRoot, attestationFile.path), sha256: attestationFile.sha256 },
+              materializedObjects: copiedOutputs.map(output => ({ source: output.source, artifactRef: output.relativePath, sha256: output.sha256 }))
+            }
+          }
+          const result = withIdentity(resultBase, 'batchResultId') as unknown as ProviderBatchResult
+          validateProviderBatchResult(result)
+          const resultFile = await writeJsonCreateOnly(options.outputDir, resolve(materializationRoot, 'provider-batch-result.json'), result)
+          recovered.set(currentSlot.generationSlotId, { value: result, path: resultFile.path, sha256: resultFile.sha256, outputPaths: copiedOutputs.map(output => output.path) })
+        }
+      }
+    }
+  }
+  if (recovered.size === 0) return undefined
+  return { kind: 'partial-slots', recoveredSlots: [...recovered.values()], retainedCumulativePlannedCost: { amounts: [] }, reconciliationBlockers: [] }
+}
+
 export type CurrentTtsResumePricePlan = Readonly<{
   readiness: PureCurrentTtsReadinessPlan
   plannedCost: PlannedCost
@@ -2567,21 +2824,33 @@ export const createCurrentTtsRenderAttempt = async (
     return recovered ? [{ value: recovered.value, path: recovered.path, sha256: recovered.sha256 }] : []
   })
   const promotedBatchFiles = new Map<string, WrittenJson<ProviderBatchResult>>()
-  const buildBatchProgress = (resultFiles: readonly WrittenJson<ProviderBatchResult>[]) => planned.batches.map((batch) => ({
+  const buildBatchProgress = (resultFiles: readonly WrittenJson<ProviderBatchResult>[]): CanonicalBatchProgress[] => planned.batches.map((batch) => ({
     batchId: batch.batchId,
-    generationSlots: batch.generationSlots.flatMap((slot) => {
+    generationSlots: batch.generationSlots.flatMap<CanonicalBatchProgress['generationSlots'][number]>((slot) => {
       const request = runtimeRequests.find((entry) => entry.slot.generationSlotId === slot.generationSlotId)
       const recovered = recoveredBySlot.get(slot.generationSlotId)
       const result = resultFiles.find((file) => file.value.generationSlotId === slot.generationSlotId)
       const invocationPlan = request
         ? { batchInvocationPlanId: request.invocationFile.value.batchInvocationPlanId, path: contained(renderRoot, request.invocationFile.path), sha256: request.invocationFile.sha256 }
-        : recovered
+        : recovered?.value.provenance === 'provider-dispatch' && recovered.attemptRoot
           ? {
               batchInvocationPlanId: recovered.value.batchInvocationPlan.batchInvocationPlanId,
               path: contained(renderRoot, resolveRetainedPath(recovered.attemptRoot, recovered.value.batchInvocationPlan.artifactRef, 'Recovered batch invocation plan')),
               sha256: recovered.value.batchInvocationPlan.sha256
             }
           : undefined
+      if (recovered?.value.provenance === 'cache-materialization' && result) {
+        return [{
+          generationSlotId: slot.generationSlotId,
+          source: 'cache-materialization' as const,
+          materializationPlan: {
+            cacheMaterializationPlanId: recovered.value.cacheMaterialization.materializationPlan.cacheMaterializationPlanId,
+            path: recovered.value.cacheMaterialization.materializationPlan.artifactRef,
+            sha256: recovered.value.cacheMaterialization.materializationPlan.sha256
+          },
+          batchResult: { batchResultId: result.value.batchResultId, path: contained(renderRoot, result.path), sha256: result.sha256, status: 'succeeded' as const }
+        }]
+      }
       return invocationPlan ? [{
         generationSlotId: slot.generationSlotId,
         source: 'provider-dispatch' as const,
@@ -2938,7 +3207,26 @@ export const createCurrentTtsRenderAttempt = async (
           const kind = rejected ? 'rejection' as const : 'ambiguity' as const
           const state = rejected ? 'provider-rejected' as const : 'ambiguous' as const
           const sanitized = sanitizeError(error, 'synthesis')
-          const evidence = withIdentity({ schemaVersion: 1 as const, journalId, invocationId, provider: options.target.service, requestOrdinal: runtime.request.requestOrdinal, requestFingerprint, evidenceKind: kind, observedAt: now(), fields: { code: sanitized.code, retryable: sanitized.retryable } }, 'evidenceHash')
+          const evidence = withIdentity({
+            schemaVersion: 1 as const,
+            journalId,
+            invocationId,
+            provider: options.target.service,
+            requestOrdinal: runtime.request.requestOrdinal,
+            requestFingerprint,
+            evidenceKind: kind,
+            observedAt: now(),
+            fields: {
+              code: sanitized.code,
+              retryable: sanitized.retryable,
+              ...(sanitized.status !== undefined ? { status: sanitized.status } : {}),
+              ...(sanitized.stage ? { stage: sanitized.stage } : {}),
+              ...(sanitized.errorName ? { errorName: sanitized.errorName } : {}),
+              ...(sanitized.providerMessage ? { providerMessage: sanitized.providerMessage } : {}),
+              ...(sanitized.requestId ? { requestId: sanitized.requestId } : {}),
+              ...(sanitized.retryAfterMs !== undefined ? { retryAfterMs: sanitized.retryAfterMs } : {})
+            }
+          }, 'evidenceHash')
           const file = await writeJson(options.outputDir, `${attemptRoot}/evidence/request-${String(runtime.request.requestOrdinal).padStart(4, '0')}-${kind}.json`, evidence)
           const transition = rejected
             ? { sequence: 0, state: 'provider-rejected' as const, at: evidence.observedAt, evidence: { journalId, invocationId, requestOrdinal: runtime.request.requestOrdinal, requestFingerprint, proofKind: 'rejection' as const, kind: 'sanitized-artifact' as const, path: contained(attemptRoot, file.path), sha256: file.sha256 } }

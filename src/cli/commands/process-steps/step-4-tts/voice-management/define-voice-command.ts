@@ -30,6 +30,7 @@ import { createMiniMaxAdvancedProvider, MINIMAX_ADVANCED_CAPABILITY_FIXTURE } fr
 import { createCartesiaAdvancedProvider, CARTESIA_ADVANCED_CAPABILITY_FIXTURE } from '../tts-services/cartesia/cartesia-advanced-provider'
 import { createFishAdvancedProvider, FISH_ADVANCED_CAPABILITY_FIXTURE } from '../tts-services/fish/fish-advanced-provider'
 import { createSpeechifyAdvancedProvider, SPEECHIFY_ADVANCED_CAPABILITY_FIXTURE } from '../tts-services/speechify/speechify-advanced-provider'
+import { createInworldAdvancedProvider, INWORLD_ADVANCED_CAPABILITY_FIXTURE } from '../tts-services/inworld/inworld-advanced-provider'
 import { createAdvancedVoiceCandidates, loadVoiceCandidate, materializeAdvancedVoiceCandidate, planAdvancedClone, provisionAdvancedVoiceClone } from './advanced-voice-management'
 import { getTtsPricing } from '~/cli/commands/setup-and-utilities/models/model-loader'
 
@@ -38,7 +39,7 @@ const CONSENT_ACTIONS: VoiceConsentAction[] = ['upload', 'new-synthesis', 'cache
 const VOICE_ORIGINS = ['provider-stock', 'designed', 'remixed', 'instant-clone', 'professional-clone', 'imported-custom', 'saved-reference'] as const
 const PROFILE_DEFAULT = 'default'
 
-const ADVANCED_PROVIDERS = ['elevenlabs', 'hume', 'minimax', 'cartesia', 'fish', 'speechify'] as const
+const ADVANCED_PROVIDERS = ['elevenlabs', 'hume', 'minimax', 'cartesia', 'fish', 'speechify', 'inworld'] as const
 const DESIGN_PROVIDERS = ['elevenlabs', 'hume', 'minimax', 'fish'] as const
 type AdvancedProviderName = typeof ADVANCED_PROVIDERS[number]
 type DesignProviderName = typeof DESIGN_PROVIDERS[number]
@@ -53,6 +54,7 @@ const advancedCapabilityFixtureHash = (provider: AdvancedProviderName): string =
   if (provider === 'minimax') return MINIMAX_ADVANCED_CAPABILITY_FIXTURE.capabilityFixtureHash
   if (provider === 'cartesia') return CARTESIA_ADVANCED_CAPABILITY_FIXTURE.capabilityFixtureHash
   if (provider === 'fish') return FISH_ADVANCED_CAPABILITY_FIXTURE.capabilityFixtureHash
+  if (provider === 'inworld') return INWORLD_ADVANCED_CAPABILITY_FIXTURE.capabilityFixtureHash
   return SPEECHIFY_ADVANCED_CAPABILITY_FIXTURE.capabilityFixtureHash
 }
 
@@ -66,6 +68,7 @@ const advancedProvider = (provider: AdvancedProviderName, options: {
   if (provider === 'minimax') return createMiniMaxAdvancedProvider({ apiKey: requireApiKey('MINIMAX_API_KEY', 'voice:minimax', 'MiniMax voice management') })
   if (provider === 'cartesia') return createCartesiaAdvancedProvider({ apiKey: requireApiKey('CARTESIA_API_KEY', 'voice:cartesia', 'Cartesia voice management') })
   if (provider === 'fish') return createFishAdvancedProvider({ apiKey: requireApiKey('FISH_API_KEY', 'voice:fish', 'Fish voice management'), ...(options.resolveFishProtectedAsset ? { resolveProtectedAsset: options.resolveFishProtectedAsset } : {}) })
+  if (provider === 'inworld') return createInworldAdvancedProvider({ apiKey: requireApiKey('INWORLD_API_KEY', 'voice:inworld', 'Inworld voice management') })
   return createSpeechifyAdvancedProvider({ apiKey: requireApiKey('SPEECHIFY_API_KEY', 'voice:speechify', 'Speechify voice management') })
 }
 
@@ -785,7 +788,7 @@ export const voiceCommand = defineCliCommand({
       ['bun autoshow voice audition vr_123 --generation-id SHA256 --representative-line "We leave at dawn." --price', 'Estimate a canonical audition without provider calls'],
       ['bun autoshow voice approve vr_123 --generation-id SHA256 --actor-id editor', 'Approve an audition locally']
     ],
-    notes: ['ElevenLabs, Hume, MiniMax, Cartesia, and Speechify expose dated advanced capability fixtures. Cartesia and Speechify do not expose text-prompt design, and MiniMax, Cartesia, and Speechify use segmented multi-speaker rendering.', 'Voice creation, audition, approval, reconciliation, and deletion are management actions; tts, write, resume, and synthesis price never create voices.']
+    notes: ['ElevenLabs, Hume, MiniMax, Cartesia, Fish, Speechify, and Inworld expose dated advanced capability fixtures. Inworld voice management is read-only catalog discovery; Cartesia and Speechify do not expose text-prompt design, and MiniMax, Cartesia, Speechify, and Inworld use segmented multi-speaker rendering.', 'Voice creation, audition, approval, reconciliation, and deletion are management actions; tts, write, resume, and synthesis price never create voices.']
   }
 }, async () => {})
 

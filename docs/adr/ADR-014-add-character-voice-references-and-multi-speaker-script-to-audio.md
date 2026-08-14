@@ -228,7 +228,7 @@ Hume Octave multi-batch rendering supports cross-request continuation by recordi
 
 Audio assembly produces explicit WAV masters according to the scene render profile (sample rate, channels, codec, loudness, pauses, crossfades, room tone).
 
-Caching uses content-addressed, versioned envelopes (`SynthesisCacheEntry`) backed by `CacheSourceProvenanceAttestation` records. Hits materialize local `CacheMaterializationPlan` artifacts with zero current spend or provider attempts. Resume reuses verified cache entries and local audio runs matching identical input hashes.
+Caching uses content-addressed, versioned envelopes (`SynthesisCacheEntry`) backed by `CacheSourceProvenanceAttestation` records. Hits materialize local `CacheMaterializationPlan` artifacts with zero current spend or provider attempts. Resume reuses verified cache entries and local audio runs matching identical input hashes. For segmented dialogue, a changed aggregate voice snapshot creates a new render identity but does not invalidate unrelated completed turns: recovery compares the source identity, dialogue plan, provider/model/transport, output format, generation-slot text checksum, request controls, resolved turn data, serializer endpoint/version, and serialized voice hash, then promotes only exact-compatible completed outputs as audited cache materializations. Changed voice bindings and any rejected, ambiguous, or incomplete slots remain unresolved.
 
 ### Truthful Metadata and Artifact Retention
 
@@ -250,6 +250,7 @@ Canonical provider projections (`ttsAudio` or `comicAudio`) replace flat speaker
 | Speechify | Segmented pre-provisioned ID | Consent/resource validation and model access gates |
 | Hume | Segmented explicit voice | Discovery, design, clone, audition, acting direction, native utterances, timestamps, continuation |
 | Cartesia | Segmented voice ID | 500+ catalog, clone tiers, localization, emotion, and timing |
+| Inworld | Segmented stock/custom voice ID | Read-only current Voice API catalog discovery and pre-synthesis voice-ID readiness; mutation and native-dialogue facets remain unimplemented |
 
 ### First-Class ElevenLabs Contract
 
@@ -318,9 +319,10 @@ Negative outcomes:
 - Benchmark identity uses the adapter target plus render and optional registration, snapshot-entry, and character identity, with the non-reusable `legacy:` fallback for pre-ADR single-voice state. ADR-013 records the refreshed provider catalogs, and ADR-008 records the dialogue selector.
 - Every price path, for both synthesis and voice management, makes no provider call and writes no artifact.
 - The 2026-08-14 provider reliability audit tightened the shared admission contract: definite non-timeout 4xx rejection is retry/replay-safe, while network errors, timeouts, 408/409, 5xx, and missing status are ambiguous. Provider task and prediction IDs are written as acceptance evidence before asynchronous polling continues, and target/comic aggregation preserves structured causes instead of relabeling provider failures as command usage errors.
-- Provider fixtures describe only code that exists. Inworld, DeepInfra, and Replicate retain their explicit-voice segmented synthesis baseline but expose no catalog, design, clone, lifecycle, or native-dialogue port until a real verified API adapter exists; hardcoded catalogs, synthetic preview WAVs, fabricated resource IDs, and no-op deletion are prohibited. Missing credentials or missing provider audio are failures and never produce silent placeholder audio.
+- Provider fixtures describe only code that exists. Inworld now exposes the documented read-only `GET /voices/v1/voices` catalog through `voice discover`, and execution readiness verifies every approved Inworld voice ID against that live account-visible catalog before paid synthesis begins. Inworld mutation and native-dialogue facets, plus DeepInfra and Replicate voice-management facets, remain unavailable until their real verified adapters exist; hardcoded catalogs, synthetic preview WAVs, fabricated resource IDs, and no-op deletion are prohibited. Missing credentials, unavailable approved voices, or missing provider audio are failures and never produce silent placeholder audio.
 - Fish stateless design candidates are materialized by resolving the selected protected preview and supplying those bytes to the model-creation API. Empty voice-model creation is rejected locally. Definite voice-management HTTP rejection is journaled as terminal failure; uncertain post-dispatch failure remains reconciliation-required.
 - Failed synthesis preserves its `.tts-tmp-*` workspace and every completed chunk or native-batch audio file. Cleanup runs only after finalization succeeds, so a later failure cannot erase paid segment evidence or force duplicate synthesis; recovery may promote recorded outputs on the next run.
+- A casting correction that changes the aggregate voice snapshot creates a new immutable render, promotes only slot-compatible retained output as cache materialization, and dispatches only changed or previously incomplete slots. It never relabels a prior provider dispatch as belonging to the new render.
 
 ## Test Plan
 
