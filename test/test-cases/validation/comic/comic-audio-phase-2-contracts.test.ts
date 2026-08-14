@@ -95,6 +95,22 @@ describe('comic audio phase 2 contracts', () => {
     expect(compatible.sourceIdentity.identityHash).toBe(directIdentity.identityHash)
     await writeFile(sourcePath, `${sourceBytes}\nchanged\n`)
     await expect(resolveCompatibleComicSceneRun({ scriptPath: sourcePath, outputDir: sceneRunDir })).rejects.toThrow(/Pinned comic output is not compatible/)
+    expect(await readFile(join(sceneRunDir, structuredRef.path), 'utf8')).toBe(structuredBytes)
+    expect((await readManifest(sceneRunDir))?.source).toEqual(directIdentity)
+  })
+
+  test('preserves incompatible nonempty pinned directory contents without partial initialization', async () => {
+    const root = await mkdtemp(join(tmpdir(), 'autoshow-comic-audio-pinned-initialize-'))
+    const sourcePath = join(root, 'scene.md')
+    const sourceBytes = '# Episode\n\n## Scene\n\n**PILOT**\nReady?\n\n**NAVIGATOR**\nReady.\n'
+    await writeFile(sourcePath, sourceBytes)
+    const occupied = join(root, 'occupied-run')
+    await mkdir(occupied)
+    await writeFile(join(occupied, 'keep.txt'), 'preserve me\n')
+    await expect(resolveCompatibleComicSceneRun({ scriptPath: sourcePath, outputDir: occupied })).rejects.toThrow(/candidate has no strict canonical comic manifest/)
+    expect(await readFile(join(occupied, 'keep.txt'), 'utf8')).toBe('preserve me\n')
+    expect(await Bun.file(join(occupied, 'metadata/structured-script.json')).exists()).toBe(false)
+    expect(await Bun.file(join(occupied, 'manifest.json')).exists()).toBe(false)
   })
 
   test('automatic source selection skips a newer incompatible candidate without creating a fallback run', async () => {

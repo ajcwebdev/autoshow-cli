@@ -202,7 +202,7 @@ const executeFfmpeg = async (command: FfmpegCommand, label: string): Promise<voi
   if (result.exitCode !== 0) throw InfraError(`Failed to render comic presentation ${label}: ${result.stderr.trim() || `ffmpeg exited ${result.exitCode}`}`, { stage: 'comic:generate-slideshow' })
 }
 
-const selectPresentationVideoEncoder = async (): Promise<ComicPresentationEncoderProfile['videoEncoder']> => {
+export const selectPresentationVideoEncoder = async (): Promise<ComicPresentationEncoderProfile['videoEncoder']> => {
   const result = await exec(getFfmpegBinary(), ['-hide_banner', '-encoders'])
   if (result.exitCode !== 0) throw InfraError(`Could not inspect FFmpeg H.264 encoders: ${result.stderr.trim() || `ffmpeg exited ${result.exitCode}`}`, { stage: 'comic:generate-slideshow' })
   const available = result.stdout

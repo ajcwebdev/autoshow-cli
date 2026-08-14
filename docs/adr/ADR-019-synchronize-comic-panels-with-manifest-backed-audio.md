@@ -4,7 +4,7 @@
 
 - **Decision Status:** Accepted
 - **Date Created:** 2026-08-13
-- **Date Updated:** 2026-08-13
+- **Date Updated:** 2026-08-14
 - **Verification Status:** Passed
 
 ## Context
@@ -14,6 +14,8 @@ Comic can produce reviewed still panels, canonical dialogue `AudioRun` artifacts
 The presentation workflow must remain derived and non-destructive. ADR-014 owns voice identity, dialogue synthesis, and the original dialogue timeline. ADR-018 owns authored sound intent, generated sound assets, semantic buses, the resolved soundscape timeline, and the original soundscape master. A presentation may consume those artifacts, but it must not change either source run, buy replacement audio, infer fuzzy source matches, crop or rescale approved art, or introduce generated motion.
 
 Local rendering also needs deterministic restart behavior. An FFmpeg interruption should not require provider work or discard a valid completed stage, while an identical completed rerun should verify immutable checksums and do nothing. Historical comic manifests predate a presentation stage and must remain readable without implying that presentation was requested.
+
+Provider-comparison audio runs may intentionally use separate output directories beside the reviewed visual scene. Requiring each comparison directory to duplicate `metadata/scene.json` and all canonical panel PNGs before audio starts creates a late failure mode: paid TTS can finish successfully and only then discover that the optional slideshow cannot read its visual inputs.
 
 Why now: canonical panel, dialogue, and soundscape artifacts are sufficiently provenance-rich to produce a synchronized local MP4 without another generative provider.
 
@@ -28,6 +30,10 @@ Why now: canonical panel, dialogue, and soundscape artifacts are sufficiently pr
 ## Decision
 
 Add `autoshow comic generate-slideshow <script-path>` as an optional local presentation stage. It consumes canonical `panels/panel-NN.png` files and exactly one complete manifest-selected dialogue or soundscape run, constructs a sequential panel clock, recomposes a presentation-specific WAV from retained source audio, and renders a same-size H.264/yuv420p MP4 with AAC audio and hard cuts only.
+
+The visual source is the current run when it contains a valid reviewed scene and complete panels. Otherwise the workflow checks the deterministic canonical sibling named for the exact sanitized script slug, validates full source-segment coverage against the current structured script, and requires exact dialogue reconciliation. It then copies the verified scene and panel bytes into a content-addressed immutable `presentation/inputs/<visual-bundle-id>/` bundle inside the audio run. Presentation plans never retain external or escaping paths, and sibling naming alone never establishes compatibility.
+
+`comic generate-audio --slideshow` performs visual resolution, source coverage, dialogue reconciliation, panel validation, and H.264 encoder readiness before TTS provider dispatch. If any prerequisite is unavailable, the command fails locally before provider spend. A completed audio run can invoke `comic generate-slideshow` directly to perform only the local import and FFmpeg work.
 
 This applies to:
 
@@ -53,7 +59,7 @@ This does not:
 
 ### Input and Reconciliation Contract
 
-Every reviewed panel must have one direct canonical `panels/panel-NN.png` file. The command reports every missing file in one error, rejects duplicate numeric aliases, requires consecutive reviewed panel numbers, and requires every image to have identical positive even dimensions. Those dimensions are the output dimensions; the encoder does not crop, pad, or rescale.
+Every reviewed panel must have one direct canonical `panels/panel-NN.png` file in its visual source. The command reports every missing file in one error, rejects duplicate numeric aliases, requires consecutive reviewed panel numbers, and requires every image to have identical positive even dimensions. Those dimensions are the output dimensions; the encoder does not crop, pad, or rescale. Imported sibling inputs preserve those exact bytes and dimensions under an immutable run-contained visual bundle.
 
 Audio selection considers only complete selected manifest bindings. Without `--audio-target`, exactly one selected soundscape run wins; otherwise exactly one selected dialogue run is used. Multiple selected soundscape runs or, when no soundscape is selected, multiple dialogue runs require `--audio-target <provider=model>`. An explicit target selects its soundscape first and its dialogue run otherwise. Missing run artifacts, stale checksums, invalid content identities, untimed dialogue timelines, incomplete required cue results, and raw audio without an `AudioRun` fail before rendering.
 
@@ -71,7 +77,7 @@ The renderer slices checksum-bound dialogue ranges from the original dialogue ou
 
 The video uses a constant configurable frame rate, defaulting to 30 fps, H.264 video, `yuv420p`, AAC at 192 kbps, fast-start metadata, and hard cuts. `libx264` uses its `stillimage` tune when available. A supported H.264 hardware encoder is selected and recorded when the managed FFmpeg build lacks `libx264`; the source remains a static same-size image sequence and no motion, transition, crop, pad, or scale filter is introduced.
 
-The content-addressed `presentationId` binds source identity, reviewed scene, structured script, dialogue plan, selected audio run and timeline, optional soundscape evidence, panel checksums and dimensions, reconciliation evidence, and timing/encoder options. Immutable plans, timelines, derived media, and run evidence live under `presentation/runs/<presentation-id>/`. A fixed staging directory permits local WAV and MP4 work to resume independently before link-based immutable publication. Selected outputs are atomically copied to `presentation/final/slideshow.wav` and `presentation/final/slideshow.mp4`. Identical complete reruns validate content identities and checksums, republish only when necessary, and otherwise no-op.
+The content-addressed `presentationId` binds source identity, reviewed scene, structured script, dialogue plan, selected audio run and timeline, optional soundscape evidence, panel checksums and dimensions, reconciliation evidence, and timing/encoder options. External canonical visuals are first copied into an immutable content-addressed input bundle, so all plan paths remain contained by the active run. Immutable plans, timelines, derived media, and run evidence live under `presentation/runs/<presentation-id>/`. A fixed staging directory permits local WAV and MP4 work to resume independently before link-based immutable publication. Selected outputs are atomically copied to `presentation/final/slideshow.wav` and `presentation/final/slideshow.mp4`. Identical complete reruns validate content identities and checksums, republish only when necessary, and otherwise no-op.
 
 `--price` validates local option syntax, reports `$0.00`, makes no provider call, and performs no writes.
 
@@ -92,6 +98,8 @@ The workflow is implemented in `src/cli/commands/process-steps/step-8-comic/comi
 Positive outcomes:
 
 - Approved still panels and canonical audio can produce a synchronized local MP4 for zero provider cost.
+- Provider-comparison audio directories can reuse one exact reviewed visual bundle without external paths or manual copying.
+- Combined audio-and-slideshow commands reject missing or incompatible visual inputs before paid synthesis begins.
 - Panel ownership, timing changes, encoder settings, commands, and output checksums are independently reviewable.
 - Source dialogue and soundscape runs remain immutable and reusable.
 - Interrupted local work resumes and identical completed work no-ops.
@@ -99,7 +107,7 @@ Positive outcomes:
 Negative outcomes:
 
 - The command rejects incomplete panel sets, differently sized images, untimed audio, and ambiguous legacy provenance instead of producing a best-effort video.
-- Direct canonical panel PNGs are required even when another image workflow retains model/run-qualified variants.
+- Direct canonical panel PNGs are required in the current run or its deterministic exact-script sibling even when another image workflow retains model/run-qualified variants.
 - Presentations retain another WAV and MP4 plus their evidence graph.
 - Managed FFmpeg installations without `libx264` use a recorded H.264 hardware encoder and cannot apply the encoder-specific `stillimage` tune.
 
@@ -128,7 +136,7 @@ bun test test/test-cases/validation/cli/option-resolution-contracts/
 git diff --check
 ```
 
-The local contracts cover exact and legacy reconciliation, ambiguity failures, inline and action-segment SFX ownership, intro/middle/outro holds, within-panel overlap, cross-panel serialization, ambience looping, digital silence, missing and duplicate panels, dimension drift, stale audio checksums, audio target selection, historical manifest migration, immutable publication, repeat rendering, and an actual tiny FFmpeg render. The FFmpeg fixture verifies duration within one frame, hard-cut image timing, source dimensions, H.264/yuv420p video, AAC audio, and distinct audio frequencies aligned to their owning panels. No provider-backed test or full paid suite is part of ADR verification.
+The local contracts cover exact and legacy reconciliation, ambiguity failures, inline and action-segment SFX ownership, intro/middle/outro holds, within-panel overlap, cross-panel serialization, ambience looping, digital silence, missing and duplicate panels, dimension drift, exact-source sibling visual import, stale audio checksums, audio target selection, historical manifest migration, immutable publication, repeat rendering, and an actual tiny FFmpeg render. The FFmpeg fixture verifies duration within one frame, hard-cut image timing, source dimensions, H.264/yuv420p video, AAC audio, and distinct audio frequencies aligned to their owning panels. No provider-backed test or full paid suite is part of ADR verification.
 
 ## References
 

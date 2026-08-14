@@ -8,7 +8,7 @@ import {
   reconcilePresentationSoundEffects,
   resolveComicPanelTimeline,
 } from '~/cli/commands/process-steps/step-8-comic/comic-utils/comic-presentation-plan'
-import { loadCanonicalPresentationPanels, loadPresentationAudio, selectPresentationAudioBinding } from '~/cli/commands/process-steps/step-8-comic/comic-utils/comic-presentation-inputs'
+import { loadCanonicalPresentationPanels, loadPresentationAudio, preparePresentationVisualInputs, resolvePresentationVisualInputs, selectPresentationAudioBinding } from '~/cli/commands/process-steps/step-8-comic/comic-utils/comic-presentation-inputs'
 import type { CompatibleComicSceneRun } from '~/cli/commands/process-steps/step-8-comic/comic-utils/compatible-scene-run'
 import { createLocalSilentDialogueRun } from '~/cli/commands/process-steps/step-8-comic/comic-utils/comic-soundscape-workflow'
 import { createStructuredScriptArtifactRef } from '~/cli/commands/process-steps/step-8-comic/comic-utils/comic-audio-contracts'
@@ -193,6 +193,39 @@ const compatibleAudioFixture = (audio: CanonicalComicItemMetadata['audio'], prov
     presentation: {},
   },
   manifest: { command: 'comic', scope: 'single', createdAt: '2026-08-13T00:00:00.000Z', updatedAt: '2026-08-13T00:00:00.000Z', source: {}, items: [{ input: 'input/script.md', outputDir: '.', status: 'full', metadata: {}, providers }] },
+})
+
+describe('comic presentation visual input import', () => {
+  test('imports an exact source-covered canonical sibling into an immutable run-contained bundle', async () => {
+    const root = await mkdtemp(join(tmpdir(), 'autoshow-presentation-visual-import-'))
+    try {
+      const sceneRunDir = join(root, 'script-inworld-v1')
+      const canonicalDir = join(root, 'script')
+      await mkdir(sceneRunDir, { recursive: true })
+      await mkdir(join(canonicalDir, 'metadata'), { recursive: true })
+      await mkdir(join(canonicalDir, 'panels'), { recursive: true })
+      await Bun.write(join(canonicalDir, 'metadata/scene.json'), `${JSON.stringify(scene([panel(1, ['action-1'])]), null, 2)}\n`)
+      await Bun.write(join(canonicalDir, 'panels/panel-01.png'), pngHeader(64, 64))
+      const compatible = compatibleAudioFixture({})
+      compatible.sceneRunDir = sceneRunDir
+      compatible.sourceIdentity = { ...compatible.sourceIdentity, scriptSlug: 'script' }
+      compatible.structuredScript = {
+        sourceSegments: [{ id: 'action-1', type: 'direction', text: 'A static bridge.', sourceSpans: [], location: { key: 'bridge', raw: 'INT. BRIDGE' } }]
+      } as unknown as StructuredScriptData
+
+      const resolved = await resolvePresentationVisualInputs(compatible)
+      expect(resolved.sourceDir).toBe(canonicalDir)
+      const prepared = await preparePresentationVisualInputs(compatible, resolved)
+      expect(prepared.imported).toBe(true)
+      expect(prepared.sceneRef.path).toMatch(/^presentation\/inputs\/[a-f0-9]{64}\/reviewed-scene\.json$/)
+      expect(prepared.panels[0]?.path).toMatch(/^presentation\/inputs\/[a-f0-9]{64}\/panels\/panel-01\.png$/)
+      expect(await Bun.file(join(sceneRunDir, prepared.sceneRef.path)).exists()).toBe(true)
+      expect(await Bun.file(join(sceneRunDir, prepared.panels[0]!.path)).exists()).toBe(true)
+      expect(await Bun.file(join(sceneRunDir, 'metadata/scene.json')).exists()).toBe(false)
+    } finally {
+      await rm(root, { recursive: true, force: true })
+    }
+  })
 })
 
 describe('comic presentation audio selection', () => {

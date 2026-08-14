@@ -67,7 +67,7 @@ Provider identity, artifact location, attempts, running/succeeded/missing/failed
 
 Mixed-route batches use containment-checked child-directory links. Each linked child directory owns its own canonical manifest. Resume validates parent route, child route, index, command, scope, and path containment before reading or rewriting child state.
 
-The canonical reader validates only the current shape, timestamps, statuses, and contained relative paths. It distinguishes a missing canonical file from malformed or invalid current data. It does not recognize, detect, reject by version, migrate, or probe for superseded formats. Corrupt current state fails before provider execution or rewrite. Existing output directories created under an earlier persistence layout must be rerun.
+The canonical reader validates only the current shape, timestamps, statuses, and contained relative paths. It distinguishes a missing canonical file from malformed or invalid current data. It does not recognize, detect, reject by version, migrate, or probe for superseded formats. Corrupt current state fails before provider execution or rewrite. A missing or empty explicitly pinned comic directory may initialize a new workspace; any nonempty pinned directory must pass exact source and structured-script compatibility and is never partially reinitialized after inspection failure. Existing output directories created under an earlier persistence layout must be rerun.
 
 ### Canonical pooled OCR page ledger
 
@@ -84,6 +84,8 @@ Pooled OCR resume preserves the mode stored in the manifest and continues only u
 For pooled OCR, `resume --price` estimates only unfinished pages with the same lane-sharing and concurrency assumptions used by execution. It does not rewrite claims, targets, completion state, artifacts, or the manifest. If no eligible target or lane remains, price mode does not invent different work.
 
 Price mode performs no provider call, writes no canonical manifest or raw provider artifact, and exits after estimates. Unsupported or insufficiently resumable manifests produce usage errors instead of estimating different work. Execution and price mode use the same target selection and option resolution.
+
+For TTS, an exact selected-success pointer to a checksum-verified successful terminal event and content-addressed `AudioRun` is authoritative completion for that render. Resume validates the selected provider result, AudioRun identity and dependencies, final output checksum, duration, format, and terminal output binding before reporting zero unresolved slots or republishing the retained output locally. This remains true when the successful render combined cache-materialized slots with newly dispatched slots; a later price or execution pass must not reinterpret cache-materialized slots as unresolved provider work.
 
 Resume accepts only provider-neutral option slices. It declares no provider-named flags. Such flags fail at argv parsing with `Unexpected flag: <typed spelling including leading dashes>`, matching the rejection path for removed pipeline-prefixed aliases. When canonical provider state cannot reconstruct a tuning value, both execution and price planning resolve it from merged `autoshow.config` or the provider default.
 
@@ -117,6 +119,7 @@ Positive outcomes:
 - Provider progress and completion cannot drift between root summaries, checkpoints, and result envelopes.
 - Path traversal and malformed current state fail locally before filesystem escape or provider work.
 - Users can price-check multi-directory and additive resume work before any paid provider call.
+- Completed mixed-source TTS renders remain zero-cost no-ops instead of proposing new calls for their cache-materialized slots.
 - Pooled OCR resume preserves accepted pages, recovers interrupted claims, and prices only unfinished work without another checkpoint authority.
 - No-cost price verification runs in seconds instead of tens of seconds, with roughly half the log lines.
 

@@ -14,10 +14,9 @@ import {
   validateResolvedPanelTimeline,
 } from '../../comic-utils/comic-presentation-plan'
 import {
-  loadCanonicalPresentationPanels,
   loadPresentationAudio,
   loadPresentationDialoguePlan,
-  readReviewedPresentationScene,
+  preparePresentationVisualInputs,
 } from '../../comic-utils/comic-presentation-inputs'
 import {
   publishComicPresentationFinal,
@@ -73,12 +72,12 @@ export const generateComicSlideshow = async (ctx: CliCommandContext, scriptPath:
   }
 
   const compatible = await resolveCompatibleComicSceneRun({ scriptPath })
-  const { scene, ref: sceneRef } = await readReviewedPresentationScene(compatible.sceneRunDir)
-  const [panels, dialogue, audio] = await Promise.all([
-    loadCanonicalPresentationPanels(compatible.sceneRunDir, scene),
+  const [visuals, dialogue, audio] = await Promise.all([
+    preparePresentationVisualInputs(compatible),
     loadPresentationDialoguePlan(compatible),
     loadPresentationAudio(compatible, audioTarget),
   ])
+  const { scene, sceneRef, panels } = visuals
   const dialogueBindings = reconcilePresentationDialogue({ scene, dialoguePlan: dialogue.plan })
   const soundBindings = reconcilePresentationSoundEffects({
     scene,

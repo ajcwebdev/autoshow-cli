@@ -1565,6 +1565,75 @@ export const prepareCurrentTtsCompletedRecovery = async (options: PureCurrentTts
   const providerRoot = resolve(options.rootDir, options.state.artifactDir)
   const renderRoot = resolveRetainedPath(providerRoot, retainedRender.renderDir, 'Stored TTS render directory')
   const plannedSlotIds = pure.planned.slots.map((slot) => slot.generationSlotId)
+  const selectedSuccess = resultProjection.selectedSuccess?.renderIdentity === pure.renderIdentity
+    ? resultProjection.selectedSuccess
+    : undefined
+  const prepareSelectedSuccess = async (): Promise<CurrentTtsCompletedRecovery | undefined> => {
+    if (!selectedSuccess) return undefined
+    const selectedEvent = retainedRender.events.find((event) => event.sequence === selectedSuccess.eventSequence)
+    if (
+      selectedEvent?.status !== 'succeeded'
+      || selectedEvent.audioRunId !== selectedSuccess.audioRunId
+      || selectedEvent.providerRenderResultIdentity !== selectedSuccess.resultIdentity
+      || !selectedEvent.audioRunRef
+      || !selectedEvent.audioRunSha256
+    ) throw CLIUsageError('Selected TTS success does not bind one complete terminal render event.')
+    const audioRunPath = resolveRetainedPath(providerRoot, selectedEvent.audioRunRef, 'Selected TTS AudioRun')
+    const audioRun = await readVerifiedJson<AudioRun>(options.rootDir, audioRunPath, selectedEvent.audioRunSha256, 'Selected TTS AudioRun')
+    const { audioRunId: _audioRunId, ...audioRunBase } = audioRun
+    if (
+      audioRun.audioRunId !== selectedSuccess.audioRunId
+      || audioRun.audioRunId !== hashCanonicalTtsValue(audioRunBase)
+      || audioRun.targetKey !== pure.targetKey
+      || audioRun.renderIdentity !== pure.renderIdentity
+      || audioRun.renderPlanId !== pure.renderPlanId
+      || audioRun.providerResult.resultIdentity !== selectedSuccess.resultIdentity
+    ) throw CLIUsageError('Selected TTS AudioRun does not bind the exact planned render and selected success.')
+    const providerResultPath = resolveRetainedPath(renderRoot, audioRun.providerResult.path, 'Selected TTS provider result')
+    const providerResult = await readVerifiedJson<ProviderRenderResult>(options.rootDir, providerResultPath, audioRun.providerResult.sha256, 'Selected TTS provider result')
+    validateProviderRenderResult(providerResult)
+    if (
+      providerResult.status !== 'succeeded'
+      || providerResult.resultIdentity !== selectedSuccess.resultIdentity
+      || providerResult.renderIdentity !== pure.renderIdentity
+      || providerResult.renderPlanId !== pure.renderPlanId
+    ) throw CLIUsageError('Selected TTS provider result is not a complete success for the exact planned render.')
+    const audioRunRoot = dirname(audioRunPath)
+    for (const ref of [audioRun.mixPlan, audioRun.transformLedger, audioRun.finalTimeline]) {
+      await readVerifiedJson(options.rootDir, resolveRetainedPath(audioRunRoot, ref.path, 'Selected TTS AudioRun dependency'), ref.sha256, 'Selected TTS AudioRun dependency')
+    }
+    const finalOutput = audioRun.finalOutputs[0]
+    if (!finalOutput || audioRun.finalOutputs.length !== 1) throw CLIUsageError('Selected TTS AudioRun must retain exactly one canonical final output.')
+    const finalOutputPath = resolveRetainedPath(audioRunRoot, finalOutput.path, 'Selected TTS final output')
+    const finalAudio = await readObservedAudio(options.rootDir, finalOutputPath)
+    if (
+      sha256Bytes(finalAudio.bytes) !== finalOutput.sha256
+      || finalAudio.durationMs !== finalOutput.durationMs
+      || canonicalTtsJson(finalAudio.format) !== canonicalTtsJson(finalOutput.format)
+    ) throw CLIUsageError('Selected TTS final output no longer matches its AudioRun checksum, duration, or format.')
+    const eventOutput = selectedEvent.outputRefs?.find((ref) => resolveRetainedPath(providerRoot, ref.path, 'Selected TTS event output') === finalOutputPath)
+    if (!eventOutput || eventOutput.sha256 !== finalOutput.sha256) throw CLIUsageError('Selected TTS terminal event does not checksum-bind its AudioRun final output.')
+    return {
+      kind: 'complete-render',
+      preparedState: options.state,
+      chunkCount: plannedSlotIds.length,
+      reconciliationBlockers: [],
+      finalize: async (_workspaceDir, reportedOutputPath) => {
+        await publishReportedOutput(options.rootDir, finalOutputPath, reportedOutputPath, resultProjection)
+        return {
+          artifactDir: options.state.artifactDir,
+          operation: pure.operation,
+          targetKey: pure.targetKey,
+          transport: pure.transport,
+          renderIdentity: pure.renderIdentity,
+          resultIdentity: selectedSuccess.resultIdentity,
+          audioRunId: selectedSuccess.audioRunId,
+          strategy: pure.planned.strategy,
+          projection: resultProjection,
+        }
+      }
+    }
+  }
   type RetainedJournalEvidence = {
     value: RenderAdmissionJournalSnapshot
     path: string
@@ -1658,6 +1727,9 @@ export const prepareCurrentTtsCompletedRecovery = async (options: PureCurrentTts
     journalEvidenceById.set(attemptFrontier.value.journalId, attemptFrontier)
     if (attemptRoot === terminalDirectJournal.attemptRoot) terminalJournalEvidence = attemptFrontier
   }
+
+  const selectedRecovery = await prepareSelectedSuccess()
+  if (selectedRecovery) return selectedRecovery
 
   type RetainedBatchCandidate = {
     batchId: string

@@ -558,6 +558,28 @@ describe('TTS completed-render recovery', () => {
       const terminal = resumed.metadata[0]?.ttsAudio?.renderHistory[0]?.events.at(-1)
       expect(terminal?.status).toBe('succeeded')
       expect(terminal?.batchProgress?.flatMap(batch => batch.generationSlots).map(slot => slot.source).sort()).toEqual(['cache-materialization', 'provider-dispatch'])
+      const completedState = buildCurrentTtsProviderState(resumed.metadata[0]!)
+      const completedPrice = await planCurrentTtsResumePrice({
+        rootDir: dir,
+        state: completedState,
+        target: createDialogueFixtureTarget([]),
+        sourceText: text,
+        ttsOptions: changedVoiceOptions,
+        sourceIdentity,
+        dialoguePlan
+      })
+      expect(completedPrice).toMatchObject({ recoveryKind: 'complete-render', recoveredSlotCount: 2, unresolvedSlotCount: 0, plannedSlotCount: 0, plannedCost: { amounts: [] } })
+      const noOpCalls: number[] = []
+      await runTtsForTargets(text, dir, changedVoiceOptions, [createDialogueFixtureTarget(noOpCalls)], {
+        sourceIdentity,
+        dialoguePlan,
+        retainedProviderStates: [completedState],
+        recoveryRootDir: dir,
+        resolveReportedOutput: () => ({ path: reportedOutput, fileName: 'speech-cross-render-recovered.wav' }),
+        beforeDispatch: async () => {},
+        onProviderState: async () => {}
+      })
+      expect(noOpCalls).toEqual([])
     })
   })
 

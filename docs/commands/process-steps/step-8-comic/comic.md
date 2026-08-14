@@ -358,7 +358,7 @@ bun autoshow comic generate-slideshow 01-01 --price
 ### Behavior
 
 - Automatic selection prefers exactly one complete selected soundscape run, then falls back to exactly one complete selected dialogue run. Multiple eligible runs require `--audio-target provider=model`. Raw audio without its checksum-bound `AudioRun` and timed `FinalTimeline` is unsupported.
-- Every reviewed panel must exist directly as `panels/panel-NN.png`. Missing files are reported together. Numeric aliases, non-consecutive reviewed panel numbers, different dimensions, and odd dimensions fail before rendering.
+- Every reviewed panel must exist directly as `panels/panel-NN.png` in the current run or the deterministic canonical sibling named for the exact script slug. Sibling visuals must pass full source coverage and exact dialogue reconciliation, then are copied into an immutable content-addressed `presentation/inputs/` bundle inside the audio run. Missing files are reported together. Numeric aliases, non-consecutive reviewed panel numbers, different dimensions, and odd dimensions fail before rendering.
 - Dialogue ownership uses exact source-segment ID, speaker, and text evidence. Exact source-backed non-spoken parenthetical delivery or timing cues may be elided and are recorded in the binding. Historical panel bundles may use deterministic exact content-and-ordinal reconciliation. Fuzzy and provider-assisted matching are never used.
 - Inline sound effects follow their source dialogue panel; block effects follow the unique panel owning the nearest preceding authored action or panel-note segment. Equidistant split source fragments may collapse only when every fragment has the same panel owner. Missing or ambiguous panel ownership fails.
 - Dialogue and effects within one panel preserve their relative timing and overlap. Audio assigned to different panels is serialized by reviewed panel order. Untimed panels receive the configured hold, and every audio-bearing panel remains visible for its complete assigned audio window.
@@ -366,6 +366,7 @@ bun autoshow comic generate-slideshow 01-01 --price
 - FFmpeg renders same-size hard-cut stills as H.264/yuv420p video with AAC audio and fast-start metadata. It adds no motion, transition, crop, pad, or resize filter.
 - Immutable plans, resolved timelines, WAVs, MP4s, commands, transformations, and checksums live below `presentation/runs/<presentation-id>/`. Selected outputs publish atomically as `presentation/final/slideshow.wav` and `presentation/final/slideshow.mp4`. Identical complete reruns verify checksums and no-op; staged local WAV and MP4 work can resume after interruption.
 - The comic manifest records presentation as an optional local stage. Historical absence means `not-requested`.
+- `comic generate-audio --slideshow` validates the reviewed scene, complete panel set, exact dialogue ownership, and a supported FFmpeg H.264 encoder before TTS dispatch, preventing paid audio from finishing before a deterministic presentation prerequisite failure.
 - `--price` reports `$0.00` and performs no writes.
 
 ## reference-sketch

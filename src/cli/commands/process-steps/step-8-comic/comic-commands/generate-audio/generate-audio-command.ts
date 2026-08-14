@@ -29,6 +29,9 @@ import { DEFAULT_CLI_CONCURRENCY } from '~/utils/concurrency-defaults'
 import { CLIUsageError, InfraError } from '~/utils/error-handler'
 import * as l from '~/utils/app-logger/app-logger'
 import { generateComicSlideshow } from '../generate-slideshow/generate-slideshow-command'
+import { preparePresentationVisualInputs, resolvePresentationVisualInputs } from '../../comic-utils/comic-presentation-inputs'
+import { reconcilePresentationDialogue } from '../../comic-utils/comic-presentation-plan'
+import { selectPresentationVideoEncoder } from '../../comic-utils/comic-presentation-renderer'
 import { createComicDialoguePlan, writeComicDialoguePlan } from '../../comic-utils/comic-dialogue-plan'
 import { resolveCompatibleComicSceneRun } from '../../comic-utils/compatible-scene-run'
 import { appendComicAudioProviderState, updateComicAudioManifest } from '../../comic-utils/comic-manifest'
@@ -305,6 +308,15 @@ export const generateComicAudio = async (ctx: CliCommandContext, scriptPath: str
     pacingProfile,
     rolePolicies,
   })
+  const presentationRequested = Boolean(flags['slideshow']) || Boolean(flags['panel-video'])
+  if (presentationRequested) {
+    const visualInputs = await resolvePresentationVisualInputs(compatible)
+    reconcilePresentationDialogue({ scene: visualInputs.scene, dialoguePlan })
+    if (!price) {
+      await preparePresentationVisualInputs(compatible, visualInputs)
+      await selectPresentationVideoEncoder()
+    }
+  }
   const turns = flattenTurns(dialoguePlan)
   const structuredRef = dialoguePlan.structuredScript
   const soundscapePlan = createSoundscapePlan({
@@ -638,7 +650,7 @@ export const generateComicAudio = async (ctx: CliCommandContext, scriptPath: str
     return
   }
   l.write('info', finalStageStatus === 'full' ? `Comic audio complete: ${compatible.sceneRunDir}` : `Comic audio target update complete; aggregate stage remains ${finalStageStatus}: ${compatible.sceneRunDir}`)
-  if (Boolean(flags['slideshow']) || Boolean(flags['panel-video'])) {
+  if (presentationRequested) {
     await generateComicSlideshow(ctx, scriptPath)
   }
 }

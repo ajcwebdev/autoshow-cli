@@ -1,6 +1,7 @@
 import { readdir, readFile } from 'node:fs/promises'
-import { basename, join, posix } from 'node:path'
+import { basename, dirname, join, posix, resolve } from 'node:path'
 import * as v from 'valibot'
+import { sanitizeTitleSlug } from '~/cli/commands/process-steps/step-1-download/audio/metadata-utils'
 import type {
   AudioRun,
   ComicPresentationAmbienceInput,
@@ -12,18 +13,28 @@ import type {
   SoundEffectRenderResult,
   SoundscapeAudioRun,
   SoundscapePlan,
+  StructuredScriptData,
 } from '~/types'
 import { CLIUsageError } from '~/utils/error-handler'
 import { canonicalTargetKey, hashCanonicalTtsValue, sha256Bytes } from '../../step-4-tts/script-to-audio/contract-identity'
-import { readContainedArtifactFile } from '../../step-4-tts/script-to-audio/safe-artifact-store'
+import { readContainedArtifactFile, writeImmutableArtifactFile } from '../../step-4-tts/script-to-audio/safe-artifact-store'
 import { inspectSoundscapeAudio } from '../../step-4-tts/soundscape/soundscape-audio'
 import { validateSoundscapePlan } from '../../step-4-tts/soundscape/soundscape-planner'
 import { ScenePromptDataSchema } from '../schemas/schemas'
 import { validateComicDialoguePlan } from './comic-audio-contracts'
 import type { PresentationSoundSource } from './comic-presentation-plan'
 import type { CompatibleComicSceneRun } from './compatible-scene-run'
+import { validateSceneSourceSegmentCoverage } from './source-coverage-utils'
 
 type ArtifactRef = { path: string, sha256: string }
+
+export type PresentationVisualInputs = {
+  scene: ScenePromptData
+  sceneRef: ArtifactRef
+  panels: ComicPresentationPanelInput[]
+  sourceDir: string
+  imported: boolean
+}
 
 export type LoadedPresentationAudio = {
   kind: 'dialogue' | 'soundscape'
@@ -206,7 +217,12 @@ export const loadPresentationAudio = async (compatible: CompatibleComicSceneRun,
 
 export const readReviewedPresentationScene = async (sceneRunDir: string): Promise<{ scene: ScenePromptData, ref: ArtifactRef }> => {
   const path = 'metadata/scene.json'
-  const bytes = new Uint8Array(await readFile(join(sceneRunDir, path)))
+  let bytes: Uint8Array
+  try { bytes = new Uint8Array(await readFile(join(sceneRunDir, path))) }
+  catch (error) {
+    if (error && typeof error === 'object' && 'code' in error && (error as { code?: unknown }).code === 'ENOENT') throw CLIUsageError(`Reviewed comic scene is missing: ${join(sceneRunDir, path)}`)
+    throw error
+  }
   let parsed: unknown
   try { parsed = JSON.parse(new TextDecoder().decode(bytes)) }
   catch { throw CLIUsageError('Reviewed comic scene is not valid JSON: metadata/scene.json') }
@@ -249,6 +265,77 @@ export const loadCanonicalPresentationPanels = async (sceneRunDir: string, scene
   if (mismatched.length > 0) throw CLIUsageError(`Canonical panel dimensions must be identical to ${basename(first.path)} (${first.width}x${first.height}); mismatches: ${mismatched.map(panel => `${basename(panel.path)}=${panel.width}x${panel.height}`).join(', ')}.`)
   if (first.width % 2 !== 0 || first.height % 2 !== 0) throw CLIUsageError(`Canonical panel dimensions ${first.width}x${first.height} cannot be encoded exactly as H.264 yuv420p; both dimensions must be even.`)
   return panels
+}
+
+const loadPresentationVisualSource = async (
+  sceneRunDir: string,
+  structuredScript: StructuredScriptData
+): Promise<Omit<PresentationVisualInputs, 'imported'>> => {
+  const { scene, ref: sceneRef } = await readReviewedPresentationScene(sceneRunDir)
+  validateSceneSourceSegmentCoverage(scene, structuredScript.sourceSegments)
+  const panels = await loadCanonicalPresentationPanels(sceneRunDir, scene)
+  return { scene, sceneRef, panels, sourceDir: sceneRunDir }
+}
+
+/**
+ * Resolves reviewed visual inputs without mutating either workspace. Provider-comparison audio
+ * directories may intentionally live beside the canonical reviewed scene directory, named with
+ * the exact script slug. Content coverage, dialogue reconciliation at the caller, and panel bytes
+ * remain the authority; the sibling directory name is only a deterministic candidate location.
+ */
+export const resolvePresentationVisualInputs = async (
+  compatible: CompatibleComicSceneRun
+): Promise<Omit<PresentationVisualInputs, 'imported'>> => {
+  const current = resolve(compatible.sceneRunDir)
+  const sibling = resolve(dirname(current), sanitizeTitleSlug(compatible.sourceIdentity.scriptSlug))
+  const candidates = current === sibling ? [current] : [current, sibling]
+  const rejected: string[] = []
+  for (const candidate of candidates) {
+    try { return await loadPresentationVisualSource(candidate, compatible.structuredScript) }
+    catch (error) { rejected.push(`${candidate}: ${error instanceof Error ? error.message : String(error)}`) }
+  }
+  throw CLIUsageError(
+    `Comic slideshow visual preflight failed before provider dispatch; no exact compatible reviewed scene and complete canonical panel set was found for ${compatible.sourceIdentity.canonicalPath}.`,
+    `Checked: ${rejected.join('; ')}`
+  )
+}
+
+/**
+ * Imports external reviewed visuals into an immutable presentation-owned bundle so every path in
+ * the presentation plan remains contained by, and portable with, the audio run directory.
+ */
+export const preparePresentationVisualInputs = async (
+  compatible: CompatibleComicSceneRun,
+  resolvedInputs?: Omit<PresentationVisualInputs, 'imported'>
+): Promise<PresentationVisualInputs> => {
+  const loaded = resolvedInputs ?? await resolvePresentationVisualInputs(compatible)
+  if (resolve(loaded.sourceDir) === resolve(compatible.sceneRunDir)) return { ...loaded, imported: false }
+  const bundleId = hashCanonicalTtsValue({
+    schemaVersion: 1,
+    reviewedSceneSha256: loaded.sceneRef.sha256,
+    panels: loaded.panels.map(panel => ({ panelNumber: panel.panelNumber, sha256: panel.sha256, width: panel.width, height: panel.height })),
+  })
+  const bundleRoot = `presentation/inputs/${bundleId}`
+  const sceneBytes = new Uint8Array(await readFile(join(loaded.sourceDir, loaded.sceneRef.path)))
+  const writtenScene = await writeImmutableArtifactFile(compatible.sceneRunDir, `${bundleRoot}/reviewed-scene.json`, sceneBytes)
+  if (writtenScene.sha256 !== loaded.sceneRef.sha256) throw CLIUsageError('Reviewed comic scene changed while its immutable presentation input bundle was being imported.')
+  const panels = await Promise.all(loaded.panels.map(async panel => {
+    const bytes = new Uint8Array(await readFile(join(loaded.sourceDir, panel.path)))
+    const written = await writeImmutableArtifactFile(
+      compatible.sceneRunDir,
+      `${bundleRoot}/panels/panel-${String(panel.panelNumber).padStart(2, '0')}.png`,
+      bytes
+    )
+    if (written.sha256 !== panel.sha256) throw CLIUsageError(`Canonical panel ${panel.panelNumber} changed while its immutable presentation input bundle was being imported.`)
+    return { ...panel, path: written.relativePath, sha256: written.sha256 }
+  }))
+  return {
+    scene: loaded.scene,
+    sceneRef: { path: writtenScene.relativePath, sha256: writtenScene.sha256 },
+    panels,
+    sourceDir: loaded.sourceDir,
+    imported: true,
+  }
 }
 
 export const loadPresentationDialoguePlan = async (compatible: CompatibleComicSceneRun) => {
