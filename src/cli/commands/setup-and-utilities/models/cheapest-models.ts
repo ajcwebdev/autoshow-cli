@@ -161,6 +161,9 @@ const selectCheapestTtsModel = (service: string): string => {
   }
 
   return selectCheapestRegistryModel(serviceConfig.models, (model) => {
+    if (typeof model.costPerRequestCents === 'number') {
+      return model.costPerRequestCents
+    }
     if (typeof model.costPer1kCharsCents === 'number') {
       return model.costPer1kCharsCents
     }

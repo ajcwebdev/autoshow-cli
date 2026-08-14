@@ -220,6 +220,7 @@ const LlmServiceSchema = v.pipe(
 const TtsModelSchema = v.strictObject({
   description: v.string(),
   ...PricingProvenanceFields,
+  costPerRequestCents: v.optional(v.number(), undefined),
   costPer1kCharsCents: v.optional(v.number(), undefined),
   inputCostPer1MCharsCents: v.optional(v.number(), undefined),
   outputCostPer1MCharsCents: v.optional(v.number(), undefined),

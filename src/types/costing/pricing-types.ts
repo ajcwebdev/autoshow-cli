@@ -44,6 +44,8 @@ export type LlmStepEstimate = ProviderModelBase & ReasoningEstimateFields & {
 
 export type TtsStepEstimate = ProviderModelBase & {
   step: 'tts'
+  costPerRequestCents?: number
+  requestCount?: number
   costPer1kCharactersCents?: number
   inputCostPer1MCharactersCents?: number
   outputCostPer1MCharactersCents?: number
@@ -313,6 +315,8 @@ export type EstimatedStepEntry = TokenProfileEstimateFields & ReasoningEstimateF
   pricingBand?: string
   pricingNote?: string
   estimateType?: 'heuristic' | 'exact'
+  costPerRequestCents?: number
+  requestCount?: number
   costPer1kCharactersCents?: number
   inputCostPer1MCharactersCents?: number
   outputCostPer1MCharactersCents?: number

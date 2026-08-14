@@ -94,6 +94,6 @@ export const ttsRegistry: PriceSelectionEntry[] = [
     command('tts-deepinfra-chatterbox-multilingual', 'tts-deepinfra-chatterbox-multilingual', ['src/cli/create-cli.ts', 'tts', 'input/examples/tts/1-tts.md', '--provider', 'deepinfra=ResembleAI/chatterbox-multilingual', '--price']),
   ]),
   ...exact('test/test-cases/validation/media-generation/replicate-tts-adapter-contracts.test.ts', [
-    command('tts-replicate-f5-tts', 'tts-replicate-f5-tts', ['src/cli/create-cli.ts', 'tts', 'input/examples/tts/1-tts.md', '--provider', 'replicate=x-lance/f5-tts', '--price']),
+    command('tts-replicate-kokoro-82m', 'tts-replicate-kokoro-82m', ['src/cli/create-cli.ts', 'tts', 'input/examples/tts/1-tts.md', '--provider', 'replicate=jaaari/kokoro-82m', '--price']),
   ]),
 ]

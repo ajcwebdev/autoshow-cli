@@ -104,7 +104,8 @@ You can combine multiple TTS targets in one run. `--provider` is repeatable. Sha
 | Cartesia | Segmented | Public/account catalog, instant clone, gated Pro clone, inspect/delete |
 | Speechify | Segmented | Shared/personal catalog, personal clone, inspect/delete |
 | Fish | Segmented | Public/account model catalog, protected design candidate materialization, inspect/delete |
-| Inworld, DeepInfra, Replicate | Segmented | Existing request-time voice selectors only; no voice-management ports |
+| Inworld, DeepInfra | Segmented | Existing request-time voice selectors only; no voice-management ports |
+| Replicate | Segmented | Version-pinned `jaaari/kokoro-82m` with validated stock voices and optional per-turn speed; no voice-management port |
 | Kitten, Groq, Grok, OpenAI, Deepgram | Segmented | Existing/local voice selectors only |
 
 Voice management is separate from synthesis. A catalog, design, or clone capability does not authorize `tts` or `comic generate-audio` to create a remote resource.

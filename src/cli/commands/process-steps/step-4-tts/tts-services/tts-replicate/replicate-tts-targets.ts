@@ -1,5 +1,5 @@
 import type { ReplicateTtsModel, TtsTarget, TtsTargetSelection } from '~/types'
-import { validateReplicateTtsModel, validateReplicateTtsVoice } from '~/cli/commands/setup-and-utilities/models/setup-model-options'
+import { REPLICATE_DEFAULT_TTS_VOICE, validateReplicateTtsModel, validateReplicateTtsVoice } from '~/cli/commands/setup-and-utilities/models/setup-model-options'
 import { runReplicateTts } from './run-replicate-tts'
 import { resolveTtsTargetInvocationVoiceId } from '../../tts-targets/multi-speaker-capability'
 import { resolveTtsTargetInvocationControls } from '../../tts-targets/tts-invocation-controls'
@@ -15,7 +15,7 @@ export const collectReplicateTtsTargets = (
     const target: TtsTarget = {
       service: 'replicate',
       model,
-      voice: voiceId ?? 'standard',
+      voice: voiceId ?? REPLICATE_DEFAULT_TTS_VOICE,
       run: async (text, outputDir, opts, invocation, requestEvidence) => {
         const invocationVoiceId = resolveTtsTargetInvocationVoiceId('replicate', invocation)
         const controls = resolveTtsTargetInvocationControls('replicate', invocation, {})
@@ -28,7 +28,7 @@ export const collectReplicateTtsTargets = (
           chunkConcurrency: opts.ttsChunkConcurrency,
           chunkScheduler: opts.hostedTtsChunkScheduler,
           requestEvidence,
-          promptInstructions: typeof (controls as { promptInstructions?: unknown }).promptInstructions === 'string' ? (controls as { promptInstructions?: string }).promptInstructions : undefined,
+          speed: typeof (controls as { speed?: unknown }).speed === 'number' ? (controls as { speed?: number }).speed : undefined,
         })
       }
     }

@@ -32,6 +32,8 @@ export const buildTtsCostSteps = (input: ComputeEstimatedCostsInput): CostStepsR
       cost: stepCost,
       costMultiplier,
       ...(typeof ttsTarget.setupCostCents === 'number' ? { setupCostCents: setupCost } : {}),
+      ...(ttsCost.costPerRequestCents !== undefined ? { costPerRequestCents: ttsCost.costPerRequestCents } : {}),
+      ...(ttsCost.requestCount !== undefined ? { requestCount: ttsCost.requestCount } : {}),
       ...(costPer1kCharsCents !== undefined ? { costPer1kCharactersCents: costPer1kCharsCents } : {}),
       ...(pricing.inputCostPer1MCharsCents !== undefined ? { inputCostPer1MCharactersCents: pricing.inputCostPer1MCharsCents } : {}),
       ...(pricing.outputCostPer1MCharsCents !== undefined ? { outputCostPer1MCharactersCents: pricing.outputCostPer1MCharsCents } : {})

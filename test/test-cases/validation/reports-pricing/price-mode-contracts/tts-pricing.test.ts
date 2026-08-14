@@ -72,6 +72,18 @@ describe('price mode contracts', () => {
       expect(cost?.totalCost).toBe(2.2)
     })
 
+  test('Replicate Kokoro estimates variable runtime pricing per prediction', () => {
+    const opts = {
+      replicateTtsModels: ['jaaari/kokoro-82m']
+    } as Parameters<typeof estimateTtsCosts>[0]
+    const oneRequest = estimateTtsCosts(opts, 1)[0]
+    const twoRequests = estimateTtsCosts(opts, 2001)[0]
+
+    expect(getTtsPricing('replicate', 'jaaari/kokoro-82m').costPerRequestCents).toBe(0.022)
+    expect(oneRequest).toMatchObject({ costPerRequestCents: 0.022, requestCount: 1, totalCost: 0.022 })
+    expect(twoRequests).toMatchObject({ costPerRequestCents: 0.022, requestCount: 2, totalCost: 0.044 })
+  })
+
   test('chunked TTS estimates use chunk concurrency for wall-clock time', () => {
       const model = 'grok-tts'
       const characterCount = 4_666

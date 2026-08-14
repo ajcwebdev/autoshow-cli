@@ -48,7 +48,7 @@ Capability declarations must now match exposed ports. A request-time model featu
 
 ## Decision
 
-Add a provider-neutral soundscape domain to the shared script-to-audio workflow and deliver it through the seven-phase implementation plan in this ADR. Phase 1 is the complete vertical slice and uses ElevenLabs for every new hosted capability. Phase 2 connects relevant capabilities already implemented for Cartesia, Hume, and MiniMax. Phase 3 adds first-party Inworld AI across TTS, instant/pro cloning, voice design, natural language steering, and audio markups. Phase 4 adds DeepInfra hosted speech models including ResembleAI Chatterbox, Xiaomi MiMo V2.5, and Qwen3-TTS. Phase 5 adds Replicate open-source speech models including F5-TTS, Dia 1.6B, and XTTS-v2. Phase 6 adds Fish Audio across synthesis, native dialogue/timestamps, stateless voice design, and voice-model lifecycle. Phase 7 adds Meta AudioGen through a version-pinned Replicate community deployment as a second dedicated SFX target.
+Add a provider-neutral soundscape domain to the shared script-to-audio workflow and deliver it through the seven-phase implementation plan in this ADR. Phase 1 is the complete vertical slice and uses ElevenLabs for every new hosted capability. Phase 2 connects relevant capabilities already implemented for Cartesia, Hume, and MiniMax. Phase 3 adds first-party Inworld AI across TTS, instant/pro cloning, voice design, natural language steering, and audio markups. Phase 4 adds DeepInfra hosted speech models including ResembleAI Chatterbox, Xiaomi MiMo V2.5, and Qwen3-TTS. Phase 5 adds version-pinned Replicate Kokoro stock-voice synthesis and defers reference-audio cloning or native-dialogue community models until their distinct protected-asset and serializer contracts are implemented. Phase 6 adds Fish Audio across synthesis, native dialogue/timestamps, stateless voice design, and voice-model lifecycle. Phase 7 adds Meta AudioGen through a version-pinned Replicate community deployment as a second dedicated SFX target.
 
 The phase order is normative. A later phase does not begin until the preceding phase meets its offline acceptance gate. Each provider is added only for capabilities supported by a dated fixture and current primary documentation; an unsupported operation must remain explicitly unsupported rather than being approximated through a different API.
 
@@ -315,31 +315,31 @@ Render v5 soundscape fixtures using DeepInfra Chatterbox, MiMo V2.5, and Qwen3-T
 
 Phase 4 gate: DeepInfra hosted Chatterbox, MiMo V2.5, and Qwen3-TTS models render multi-speaker dialogue, voice design, and zero-shot cloning through common plans and artifacts with verified pricing and offline resume.
 
-### Phase 5: Replicate Open-Source Speech Suite (F5-TTS, Dia 1.6B, XTTS-v2)
+### Phase 5: Replicate Version-Pinned Stock-Voice Speech
 
-Phase 5 integrates high-capability open-source speech and multi-speaker dialogue models deployed on Replicate: `x-lance/f5-tts` (non-autoregressive zero-shot cloning), `zsxkib/dia` (Dia 1.6B multi-speaker dialogue with non-verbals and cloning), and `lucataco/xtts-v2` (Coqui XTTS-v2 multilingual zero-shot cloning).
+Phase 5 integrates `jaaari/kokoro-82m` as the Replicate segmented stock-voice target. The prior registry entries for `x-lance/f5-tts`, `zsxkib/dia`, and `lucataco/xtts-v2` were removed on 2026-08-14 because the generic adapter falsely serialized them as `{ text, voice }`: F5-TTS instead requires reference audio and `gen_text`, and the other community models likewise require model-specific schemas. A public model page is not sufficient evidence that one generic TTS serializer supports it.
 
 #### Phase 5A: Registry, Capability, and Prediction Foundation
 
-Add Replicate speech suite provider identity, API prediction lifecycle schemas (`POST /v1/predictions`), model version pinning, capability fixtures, static pricing, static validation, and execution readiness. Declare zero-shot cloning for F5-TTS and XTTS-v2 and multi-speaker script dialogue for Dia 1.6B. This subphase exits when Replicate speech targets validate deterministically and no-call price planning calculates prediction unit costs correctly.
+Add Replicate provider identity, the API prediction lifecycle (`POST /v1/predictions`), immutable community-model version pinning, capability fixtures, static pricing, static validation, and execution readiness. Only model/serializer combinations with an exact offline request contract may appear in the supported registry. This subphase exits when Replicate speech targets validate deterministically, reject fabricated voices before dispatch, and no-call price planning carries the published typical per-prediction rate with explicit input-dependent variability.
 
-#### Phase 5B: F5-TTS Zero-Shot Cloning Adapter
+#### Phase 5B: Kokoro Stock-Voice Adapter
 
-Implement the Replicate adapter for `x-lance/f5-tts`. Support fast, natural non-autoregressive zero-shot voice cloning from short reference audio clips without third-party voice registry requirements. This subphase exits when F5-TTS zero-shot cloning passes prediction execution, cache, and resume contracts.
+Implement the Replicate adapter for `jaaari/kokoro-82m` with the pinned version, exact `{ text, voice, speed? }` input, bounded stock-voice validation, prediction acceptance evidence, immediate output capture, cache, and resume. This subphase exits when mocked execution proves the generic `/v1/predictions` request contains the pinned version and the exact Kokoro schema.
 
-#### Phase 5C: Dia 1.6B Multi-Speaker Dialogue Adapter
+#### Phase 5C: Model-Specific Clone and Dialogue Deferral
 
-Implement the Replicate adapter for `zsxkib/dia` (Nari Labs Dia 1.6B). Support multi-character script dialogue synthesis directly from transcripts, incorporating non-verbal vocal cues (laughter, throat clearing) and voice cloning within conversational turns. This subphase exits when Dia multi-speaker script dialogue renders into isolated speech and vocal-reaction stems.
+Keep F5-TTS, Dia, XTTS-v2, and other reference-audio or native-dialogue community models out of the selectable registry until each has an exact version, input/output serializer, protected reference-asset flow, consent boundary where applicable, cost model, and offline conformance test. This subphase exits only when a future model-specific adapter satisfies those contracts; selectors must not be added speculatively.
 
-#### Phase 5D: XTTS-v2 Multilingual Cloning Adapter
+#### Phase 5D: Voice and Control Validation
 
-Implement the Replicate adapter for `lucataco/xtts-v2` (Coqui XTTS-v2). Support multilingual zero-shot voice cloning across 17+ languages. This subphase exits when XTTS-v2 multilingual voice cloning passes offline prediction and audio artifact capture.
+Pin the documented Kokoro voice set locally, choose `af_bella` as the standalone default, validate every explicit or profile-resolved voice before request admission, and serialize only Kokoro's supported speed control. Prompt instructions, generic `standard` voice IDs, and unverified model-specific fields must fail or remain unavailable instead of being forwarded optimistically.
 
 #### Phase 5E: Soundscape Routing and Acceptance
 
-Download output audio immediately into checksummed local artifacts before Replicate's 1-hour remote prediction file expiry window. Render v5 soundscape fixtures combining F5-TTS, Dia 1.6B, and XTTS-v2 dialogue targets with ElevenLabs action SFX and ambient beds. This subphase exits when all Replicate open-source speech targets pass prediction polling, artifact capture, expiry safety, cache, and four-bus mastering contracts.
+Download output audio immediately into checksummed local artifacts before Replicate's remote prediction files expire. Render v5 soundscape fixtures using segmented Kokoro dialogue with separately selected action SFX and ambient beds. This subphase exits when Kokoro passes prediction polling, artifact capture, expiry safety, cache, resume, and four-bus mastering contracts.
 
-Phase 5 gate: Replicate-hosted F5-TTS, Dia 1.6B, and XTTS-v2 open-source models render zero-shot voice clones and multi-speaker dialogue through common plans and artifacts with expiry-safe local artifact capture.
+Phase 5 gate: the pinned Replicate Kokoro deployment renders validated stock voices through common segmented plans and artifacts with expiry-safe local capture; unsupported clone/dialogue models are rejected before provider dispatch.
 
 ### Phase 6: Fish Audio Across Synthesis and Voice Workflows
 
@@ -423,9 +423,9 @@ Verify the canonical v5 `structured-script.json` for Episode 2 Scene 4 (`04-over
 Execute parallel soundscape audio generation runs for Episode 2 Scene 4 across granular sub-waves with default concurrency set to 7 (`--provider-concurrency 7` / default `DEFAULT_CLI_CONCURRENCY = 7`), ensuring that each sub-wave dispatches exactly one model from each target provider concurrently to maximize throughput without API key collisions or single-provider rate-limit contention:
 
 - **Wave 1: Open-Weight & Multi-Provider Suite**
-  - **Sub-Wave 1.1**: Concurrent run of Replicate `x-lance/f5-tts`, Fal `fal-ai/speech`, and DeepInfra `ResembleAI/chatterbox-multilingual`.
-  - **Sub-Wave 1.2**: Concurrent run of Replicate `zsxkib/dia`, Fal `fal-ai/speech/clone`, and DeepInfra `XiaomiMiMo/MiMo-V2.5-tts`.
-  - **Sub-Wave 1.3**: Concurrent run of Replicate `lucataco/xtts-v2`, Fal `fal-ai/speech/design`, and DeepInfra `Qwen/Qwen3-TTS`.
+  - **Sub-Wave 1.1**: Concurrent run of Replicate `jaaari/kokoro-82m`, Fal `fal-ai/speech`, and DeepInfra `ResembleAI/chatterbox-multilingual`.
+  - **Sub-Wave 1.2**: Fal `fal-ai/speech/clone` and DeepInfra `XiaomiMiMo/MiMo-V2.5-tts`; the former speculative Replicate Dia target remains deferred.
+  - **Sub-Wave 1.3**: Fal `fal-ai/speech/design` and DeepInfra `Qwen/Qwen3-TTS`; the former speculative Replicate XTTS-v2 target remains deferred.
 - **Wave 2: Steerable Enterprise & Fine-Grained API Suite**
   - **Sub-Wave 2.1**: Concurrent run of Inworld AI `realtime-tts-2`, Fish Audio `s2-pro`, and ElevenLabs `eleven_v3`.
   - **Sub-Wave 2.2**: Concurrent run of Inworld AI `realtime-tts-1.5-max`, Fish Audio `fish-speech-1.5`, and Hume `octave-2`.
@@ -461,7 +461,7 @@ Phase 8 gate: Episode 2 Scene 4 generates complete soundscape audio runs across 
 | 2 | 2A vocal routing → 2B Hume → 2C Cartesia → 2D MiniMax → 2E acceptance | Cartesia, Hume, and MiniMax capabilities already exposed by their current TTS and voice adapters | Capability routing is deterministic; no provider is mislabeled as a general SFX target; shared voice clone behavior is protected and truthful |
 | 3 | 3A foundation → 3B TTS/timing → 3C cloning/design → 3D markups → 3E acceptance | First-party Inworld AI steerable TTS, instant/pro cloning, voice design, natural language steering, and audio markups | Steerable dialogue, voice cloning, and audio markups pass offline acceptance; viseme alignment supports lip-syncing |
 | 4 | 4A foundation → 4B Chatterbox → 4C MiMo V2.5 → 4D Qwen3-TTS → 4E acceptance | DeepInfra hosted speech suite (Chatterbox, MiMo V2.5, Qwen3-TTS) across dialogue, voice design, and zero-shot cloning | Multi-speaker dialogue, promotional voice design, and zero-shot cloning pass offline acceptance with verified pricing |
-| 5 | 5A foundation → 5B F5-TTS → 5C Dia 1.6B → 5D XTTS-v2 → 5E acceptance | Replicate open-source speech suite (F5-TTS, Dia 1.6B, XTTS-v2) for zero-shot cloning and script dialogue | Zero-shot cloning and multi-speaker script dialogue pass prediction execution and expiry-safe local artifact capture |
+| 5 | 5A foundation → 5B Kokoro → 5C clone/dialogue deferral → 5D voice/control validation → 5E acceptance | Version-pinned Replicate Kokoro stock-voice segmented speech | Exact schema, stock-voice validation, prediction execution, and expiry-safe local artifact capture pass offline |
 | 6 | 6A registry/capabilities → 6B single-speaker TTS → 6C dialogue/timestamps → 6D voice design/models → 6E acceptance | Fish TTS, multi-speaker and timestamp behavior, stateless voice design, voice-model clone/catalog/lifecycle, and applicable `voice` workflows | Design, timestamp, and model lifecycle artifacts are verified; unsupported SFX paths fail statically |
 | 7 | 7A governance/pinning → 7B target/pricing → 7C predictions → 7D artifacts/routing → 7E acceptance | Version-pinned, noncommercial-use-restricted Replicate community AudioGen SFX target | License eligibility, prediction expiry, provenance, exact model version, cost, cancellation, cache, resume, and historical readability are proven offline |
 | 8 | 8A script/planning → 8B audio matrix → 8C panel-vid → 8D verification | Episode 2 Scene 4 ("Overcompensation" Part 1) render matrix across Hume, Cartesia, MiniMax, Inworld, DeepInfra, Replicate, and Fish speech targets plus ADR-019 panel videos | Episode 2 Scene 4 produces complete soundscape audio runs and corresponding panel video artifacts for every supported model |
@@ -495,9 +495,9 @@ Use the maintained provider indexes when a deep link moves: [ElevenLabs develope
 | [4D](#phase-4d-qwen3-tts--voicedesign-zero-shot-adapters) | [DeepInfra Qwen3-TTS model](https://deepinfra.com/Qwen/Qwen3-TTS) and [DeepInfra Qwen3-TTS VoiceDesign model](https://deepinfra.com/Qwen/Qwen3-TTS-VoiceDesign). |
 | [4E](#phase-4e-soundscape-routing-and-acceptance) | DeepInfra references in 4A–4D and this ADR's [Test Plan](#test-plan). |
 | [5A](#phase-5a-registry-capability-and-prediction-foundation) | [Replicate Speech Generation Collection](https://replicate.com/collections/speech-generation) and [Replicate HTTP prediction API](https://replicate.com/docs/reference/http#create-a-prediction). |
-| [5B](#phase-5b-f5-tts-zero-shot-cloning-adapter) | [Replicate F5-TTS model](https://replicate.com/x-lance/f5-tts). |
-| [5C](#phase-5c-dia-16b-multi-speaker-dialogue-adapter) | [Replicate Dia dialogue model](https://replicate.com/zsxkib/dia). |
-| [5D](#phase-5d-xtts-v2-multilingual-cloning-adapter) | [Replicate XTTS-v2 model](https://replicate.com/lucataco/xtts-v2). |
+| [5B](#phase-5b-kokoro-stock-voice-adapter) | [Replicate Kokoro API](https://replicate.com/jaaari/kokoro-82m/api) and [schema](https://replicate.com/jaaari/kokoro-82m/api/schema). |
+| [5C](#phase-5c-model-specific-clone-and-dialogue-deferral) | [Replicate community model version requirements](https://replicate.com/docs/topics/models/community-models) and [F5-TTS schema](https://replicate.com/x-lance/f5-tts/api). |
+| [5D](#phase-5d-voice-and-control-validation) | [Replicate Kokoro voice documentation](https://replicate.com/jaaari/kokoro-82m/readme). |
 | [5E](#phase-5e-soundscape-routing-and-acceptance) | Replicate references in 5A–5D and this ADR's [Test Plan](#test-plan). |
 | [6A](#phase-6a-registry-capability-and-pricing-foundation) | [Fish API introduction](https://docs.fish.audio/api-reference/introduction), [canonical OpenAPI schema](https://api.fish.audio/openapi.json), [models overview](https://docs.fish.audio/developer-guide/models-pricing/models-overview), [pricing and rate limits](https://docs.fish.audio/developer-guide/models-pricing/pricing-and-rate-limits), and [model deprecations](https://docs.fish.audio/developer-guide/models-pricing/deprecations). |
 | [6B](#phase-6b-single-speaker-tts-and-reference-identity) | [Fish TTS API](https://docs.fish.audio/api-reference/endpoint/openapi-v1/text-to-speech), [text-to-speech guide](https://docs.fish.audio/developer-guide/core-features/text-to-speech), and [voice-cloning best practices](https://docs.fish.audio/developer-guide/best-practices/voice-cloning). |
@@ -559,7 +559,7 @@ Negative outcomes:
 | Phase 2A–2E: add capability routing, Hume, Cartesia, and MiniMax integration, shared voice-workflow extensions, and cross-provider acceptance | AutoShow Team | Complete — offline gate passed 2026-08-13; no live provider call used |
 | Phase 3A–3E: add First-Party Inworld AI foundation, steerable TTS, instant/pro cloning, voice design, natural language steering, audio markups, and acceptance | AutoShow Team | Reopened — reliable single-voice synthesis baseline implemented; unsupported management/native/timing facets removed pending real adapters and acceptance evidence |
 | Phase 4A–4E: add DeepInfra hosted speech suite (Chatterbox, MiMo V2.5, Qwen3-TTS) foundation, adapters, zero-shot cloning, and acceptance | AutoShow Team | Reopened — reliable single-voice inference baseline implemented; model-specific dialogue/design/clone and acceptance gates remain pending |
-| Phase 5A–5E: add Replicate open-source speech suite (F5-TTS, Dia 1.6B, XTTS-v2) foundation, zero-shot cloning, multi-speaker dialogue, and acceptance | AutoShow Team | Reopened — real prediction lifecycle and output capture implemented; model-specific cloning/dialogue/resume acceptance remains pending |
+| Phase 5A–5E: add version-pinned Replicate stock-voice speech and keep model-specific clone/dialogue selectors gated by exact contracts | AutoShow Team | Partial — Kokoro exact-version stock-voice execution and offline serializer coverage are implemented; reference-audio cloning and native dialogue remain deliberately deferred |
 | Phase 6A–6E: add Fish registry/pricing, reference-voice TTS, native dialogue/timestamps, stateless design/materialization, voice-model lifecycle/reconciliation, soundscape routing, and acceptance | AutoShow Team | Partial — single-voice TTS and protected-preview materialization are reliable; native dialogue/timing, clone command parity, and full acceptance remain pending |
 | Phase 7A–7E: add AudioGen governance/pinning and license eligibility, the Replicate SFX target, prediction execution, expiry-safe artifacts/routing, and historical acceptance | AutoShow Team | Partial — prediction execution reliability is corrected; the complete governance/cache/resume/historical gate must remain independently verified |
 | Phase 8A: Episode 2 Scene 4 authored script & workspace audit | AutoShow Team | Complete — v5 script structure generated & static planning validated for 3-character scene (`seamus`, `peaches`, `paddy`) |

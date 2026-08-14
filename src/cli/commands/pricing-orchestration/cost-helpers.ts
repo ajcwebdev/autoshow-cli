@@ -1,4 +1,5 @@
 import {
+  estimateTtsRequestCount,
   getTtsCost,
   getTtsPricing
 } from '~/cli/commands/setup-and-utilities/models/model-loader'
@@ -19,11 +20,21 @@ export const computeTtsCost = (
   characterCount: number
 ): {
   cost: number
+  costPerRequestCents?: number
+  requestCount?: number
   costPer1kCharactersCents?: number
   inputCostPer1MCharactersCents?: number
   outputCostPer1MCharactersCents?: number
 } => {
   const pricing = getTtsPricing(service, model)
+  if (pricing.costPerRequestCents !== undefined) {
+    const requestCount = estimateTtsRequestCount(service, model, characterCount)
+    return {
+      cost: requestCount * pricing.costPerRequestCents,
+      costPerRequestCents: pricing.costPerRequestCents,
+      requestCount
+    }
+  }
   if (
     pricing.inputCostPer1MCharsCents !== undefined
     && pricing.outputCostPer1MCharsCents !== undefined

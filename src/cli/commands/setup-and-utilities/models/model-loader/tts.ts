@@ -7,6 +7,7 @@ export const getTtsPricing = (
   service: string,
   model: string
 ): {
+  costPerRequestCents?: number
   costPer1kCharsCents?: number
   inputCostPer1MCharsCents?: number
   outputCostPer1MCharsCents?: number
@@ -15,6 +16,9 @@ export const getTtsPricing = (
     ?? getRetiredModelRate('tts', service, model)
   if (!ttsModel) return {}
   return {
+    ...(ttsModel.costPerRequestCents !== undefined
+      ? { costPerRequestCents: ttsModel.costPerRequestCents }
+      : {}),
     ...(ttsModel.costPer1kCharsCents !== undefined
       ? { costPer1kCharsCents: ttsModel.costPer1kCharsCents }
       : {}),
@@ -44,6 +48,13 @@ export const getTtsCost = (service: string, model: string): number => {
   if (pricing.costPer1kCharsCents !== undefined) return pricing.costPer1kCharsCents
   if (pricing.outputCostPer1MCharsCents !== undefined) return pricing.outputCostPer1MCharsCents / 1000
   return 0
+}
+
+export const estimateTtsRequestCount = (service: string, model: string, characterCount: number): number => {
+  const normalizedCharacters = Math.max(0, Math.floor(characterCount))
+  if (normalizedCharacters === 0) return 0
+  const maxInputCharacters = getTtsMaxInputCharacters(service, model)
+  return maxInputCharacters === undefined ? 1 : Math.ceil(normalizedCharacters / maxInputCharacters)
 }
 
 export const getKittenHfRepo = (model: string): string | undefined => {

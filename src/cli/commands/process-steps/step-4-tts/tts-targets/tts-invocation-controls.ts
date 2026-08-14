@@ -71,7 +71,7 @@ export type TtsInvocationControlsByProvider = {
   fish: Readonly<{ latency?: OptionalControl<string> }>
   inworld: Readonly<{ steeringPrompt?: OptionalControl<string> }>
   deepinfra: Readonly<{ promptInstructions?: OptionalControl<string> }>
-  replicate: Readonly<{ promptInstructions?: OptionalControl<string> }>
+  replicate: Readonly<{ speed?: OptionalControl<number> }>
 }
 
 export type TtsInvocationControlsFor<P extends TtsProvider> = TtsInvocationControlsByProvider[P]
@@ -182,7 +182,7 @@ const CONTROL_SPECS = {
     promptInstructions: { kind: 'string', normalize: trim },
   },
   replicate: {
-    promptInstructions: { kind: 'string', normalize: trim },
+    speed: { kind: 'number', min: 0.1, max: 5 },
   },
 } as const satisfies Record<TtsProvider, ProviderControlSpecs>
 

@@ -16,12 +16,14 @@ export type RunReplicateTtsOptions = Readonly<{
   model: ReplicateTtsModel
   apiKey: string
   voiceId?: string | undefined
-  promptInstructions?: string | undefined
+  speed?: number | undefined
   abortSignal?: AbortSignal | undefined
   chunkConcurrency?: number | undefined
   chunkScheduler?: HostedTtsChunkScheduler | undefined
   requestEvidence?: TtsRequestEvidenceScope | undefined
 }>
+
+export const REPLICATE_KOKORO_VERSION = 'f559560eb822dc509045f3921a1921234918b91739db4bf3daab2169b71c7a13'
 
 export const runReplicateTts = async (
   text: string,
@@ -32,6 +34,9 @@ export const runReplicateTts = async (
     throw ValidationError('Replicate API token is required', { stage: 'tts:replicate' })
   }
   const voice = validateReplicateTtsVoice(options.voiceId?.trim() || REPLICATE_DEFAULT_TTS_VOICE)
+  if (options.speed !== undefined && (!Number.isFinite(options.speed) || options.speed < 0.1 || options.speed > 5)) {
+    throw ValidationError('Replicate Kokoro TTS speed must be between 0.1 and 5', { stage: 'tts:replicate' })
+  }
   const chunks = splitTextIntoChunks(text, TTS_CHUNK_CHARACTER_LIMITS.replicate ?? 2000)
 
   if (chunks.length === 0) {
@@ -40,9 +45,10 @@ export const runReplicateTts = async (
 
   logTtsConfig('Replicate', [
     { label: 'model', value: options.model },
+    { label: 'model version', value: REPLICATE_KOKORO_VERSION.slice(0, 12) },
     { label: 'voice', value: voice },
     { label: 'chunk count', value: chunks.length },
-    ...(options.promptInstructions ? [{ label: 'instructions', value: options.promptInstructions }] : [])
+    ...(options.speed !== undefined ? [{ label: 'speed', value: options.speed }] : [])
   ])
 
   return await runHostedTtsChunkPipeline({
@@ -62,14 +68,15 @@ export const runReplicateTts = async (
       return await dispatchTtsProviderRequest(options.requestEvidence, {
         chunkIndex,
         endpointKind: 'predictions',
-        serializerVersion: 'replicate.tts.phase-5-v1',
+        serializerVersion: 'replicate.kokoro.v1',
         serializedRequest: {
-          path: `/v1/models/${options.model}/predictions`,
+          path: '/v1/predictions',
           body: {
+            version: `${options.model}:${REPLICATE_KOKORO_VERSION}`,
             input: {
               text: chunk,
               voice,
-              ...(options.promptInstructions ? { prompt: options.promptInstructions } : {})
+              ...(options.speed !== undefined ? { speed: options.speed } : {})
             }
           }
         },
@@ -78,7 +85,7 @@ export const runReplicateTts = async (
         voices: [{ kind: 'provider-id', value: voice }],
         requestControls: {
           format: 'wav',
-          ...(options.promptInstructions ? { promptInstructions: options.promptInstructions } : {})
+          ...(options.speed !== undefined ? { speed: options.speed } : {})
         },
         continuation: { kind: 'none' }
       }, { attempt: requestAttempt, ...(retryReasonCode ? { retryReasonCode } : {}) }, async ({ accepted }) => {
@@ -86,10 +93,11 @@ export const runReplicateTts = async (
           apiToken: options.apiKey,
           baseUrl: REPLICATE_DEFAULT_BASE_URL,
           model: options.model,
+          version: REPLICATE_KOKORO_VERSION,
           input: {
             text: chunk,
             voice,
-            ...(options.promptInstructions ? { prompt: options.promptInstructions } : {})
+            ...(options.speed !== undefined ? { speed: options.speed } : {})
           },
           operationName: `Replicate TTS chunk ${chunkIndex + 1}`,
           abortSignal: signal,

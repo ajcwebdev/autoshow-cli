@@ -454,7 +454,7 @@ const serializerContract = (
     case 'deepinfra':
       return { endpointKind: 'inference', serializerVersion: 'deepinfra.tts.phase-4-v1', controls: { format: 'wav' } }
     case 'replicate':
-      return { endpointKind: 'predictions', serializerVersion: 'replicate.tts.phase-5-v1', controls: { format: 'wav', ...(stringValue('promptInstructions') ? { promptInstructions: stringValue('promptInstructions') } : {}) } }
+      return { endpointKind: 'predictions', serializerVersion: 'replicate.kokoro.v1', controls: { format: 'wav', ...(numberValue('speed') !== undefined ? { speed: numberValue('speed') } : {}) } }
     case 'elevenlabs': {
       if (strategy === 'native-dialogue') return {
         endpointKind: 'text-to-dialogue-with-timestamps',
@@ -586,7 +586,9 @@ const sanitizeError = (error: unknown, phase: SanitizedProviderError['phase']): 
 
 const plannedCost = (target: TtsTarget, characters: number, includeSetup: boolean): PlannedCost => {
   const pricing = getTtsPricing(target.service, target.model)
-  const cents = pricing.inputCostPer1MCharsCents !== undefined && pricing.outputCostPer1MCharsCents !== undefined
+  const cents = pricing.costPerRequestCents !== undefined
+    ? pricing.costPerRequestCents
+    : pricing.inputCostPer1MCharsCents !== undefined && pricing.outputCostPer1MCharsCents !== undefined
     ? characters / 1e6 * (pricing.inputCostPer1MCharsCents + pricing.outputCostPer1MCharsCents)
     : characters / 1000 * (pricing.costPer1kCharsCents ?? 0)
   const totalCents = cents + (includeSetup ? target.setupCostCents ?? 0 : 0)
