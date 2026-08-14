@@ -348,7 +348,7 @@ export const runTtsTargets = async (
       : options.generationResourceGate,
     runTarget: async (target, workspaceDir) => {
       const targetIndex = targets.indexOf(target)
-      const sourceInputIndex = sourceContext?.sourceIdentity?.sourceLocator.kind === 'batch-item'
+      const sourceInputIndex = sourceContext?.sourceIdentity?.sourceLocator?.kind === 'batch-item'
         ? sourceContext.sourceIdentity.sourceLocator.itemIndex
         : 0
       const schedulerJob = {
@@ -391,6 +391,32 @@ export const runTtsTargets = async (
       if (!attempt) throw InternalError(`Missing prepared TTS render attempt for ${target.service}/${target.model}.`, { stage: 'tts:run' })
       let providerRunCompleted = false
       try {
+        if (!attempt.providerDispatchRequired) {
+          providerRunCompleted = true
+          const startedAt = Date.now()
+          const renderArtifacts = await attempt.finalizeSuccess('', reportedOutput.path)
+          return {
+            ttsService: target.service,
+            ttsModel: target.model,
+            speaker: target.voice ?? 'retained-voice-binding',
+            processingTime: Date.now() - startedAt,
+            audioFileName: reportedOutput.fileName,
+            audioFileSize: Bun.file(reportedOutput.path).size,
+            chunkCount: attempt.plannedChunkCount,
+            operation: renderArtifacts.operation,
+            targetKey: renderArtifacts.targetKey,
+            transport: renderArtifacts.transport,
+            artifactDir: renderArtifacts.artifactDir,
+            renderIdentity: renderArtifacts.renderIdentity,
+            resultIdentity: renderArtifacts.resultIdentity,
+            audioRunId: renderArtifacts.audioRunId,
+            renderStrategy: renderArtifacts.strategy,
+            ...(renderArtifacts.operation === 'comic-audio'
+              ? { comicAudio: renderArtifacts.projection }
+              : { ttsAudio: renderArtifacts.projection }),
+            _renderArtifacts: renderArtifacts
+          } as WorkingTtsResult
+        }
         const boundedOptions = selectBoundedExecutionOptions(options, attempt.executionSelection)
         const executionOptions: TtsOptions = boundedOptions.hostedTtsChunkScheduler
           ? {

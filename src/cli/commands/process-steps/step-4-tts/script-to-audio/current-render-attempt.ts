@@ -178,6 +178,8 @@ export type CurrentTtsRecoveredGenerationSlot = Readonly<{
 export type CurrentTtsRenderAttempt = {
   requestEvidence: TtsRequestEvidenceScope
   preparedState: PipelineProviderState
+  providerDispatchRequired: boolean
+  plannedChunkCount: number
   executionSelection?: readonly {
     generationSlotId: string
     turnId: string
@@ -2082,7 +2084,8 @@ export const prepareCurrentTtsCompletedRecovery = async (options: PureCurrentTts
     }
     const blocker = reconciliationBlockers.find((entry) => entry.generationSlotId === slotId)
     if (blocker && options.reconciliationMode !== 'report' && options.ttsOptions.ttsAllowAmbiguousRedispatch !== true) {
-      throw CLIUsageError(`Stored TTS generation slot ${slotId} has ${blocker.state} provider work in attempt ${blocker.attempt}, request ${blocker.requestOrdinal}; automatic redispatch is blocked pending reconciliation. Pass --tts-allow-ambiguous-redispatch to safely reconcile the pending slot, reuse all completed segment audio, and resume synthesis without deleting output directories or losing work.`)
+      const redispatchFlag = options.comicContext ? '--allow-ambiguous-redispatch' : '--tts-allow-ambiguous-redispatch'
+      throw CLIUsageError(`Stored TTS generation slot ${slotId} has ${blocker.state} provider work in attempt ${blocker.attempt}, request ${blocker.requestOrdinal}; automatic redispatch is blocked pending reconciliation. Pass ${redispatchFlag} to safely reconcile the pending slot, reuse all completed segment audio, and resume synthesis without deleting output directories or losing work.`)
     }
   }
   for (const batch of loadedBatches) {
@@ -2445,7 +2448,8 @@ export const prepareCurrentTtsCompatibleSlotRecovery = async (options: PureCurre
     const report = await prepareCurrentTtsCompatibleSlotRecovery({ ...options, materialize: false, reconciliationMode: 'report' })
     const blocker = report?.reconciliationBlockers[0]
     if (blocker) {
-      throw CLIUsageError(`Stored compatible TTS generation slot ${blocker.generationSlotId} has ${blocker.state} provider work in attempt ${blocker.attempt}, request ${blocker.requestOrdinal}; automatic redispatch is blocked pending reconciliation. Pass --tts-allow-ambiguous-redispatch to safely reconcile the pending slot, reuse all completed segment audio, and resume synthesis without deleting output directories or losing work.`)
+      const redispatchFlag = options.comicContext ? '--allow-ambiguous-redispatch' : '--tts-allow-ambiguous-redispatch'
+      throw CLIUsageError(`Stored compatible TTS generation slot ${blocker.generationSlotId} has ${blocker.state} provider work in attempt ${blocker.attempt}, request ${blocker.requestOrdinal}; automatic redispatch is blocked pending reconciliation. Pass ${redispatchFlag} to safely reconcile the pending slot, reuse all completed segment audio, and resume synthesis without deleting output directories or losing work.`)
     }
   }
   const projection = readAudioProjection(options.state)
@@ -2755,7 +2759,8 @@ export const prepareCurrentTtsCompatibleSlotRecovery = async (options: PureCurre
     .sort((left, right) => left.attempt - right.attempt || left.requestOrdinal - right.requestOrdinal)
   const blocker = reconciliationBlockers[0]
   if (blocker && options.reconciliationMode !== 'report' && options.ttsOptions.ttsAllowAmbiguousRedispatch !== true) {
-    throw CLIUsageError(`Stored compatible TTS generation slot ${blocker.generationSlotId} has ${blocker.state} provider work in attempt ${blocker.attempt}, request ${blocker.requestOrdinal}; automatic redispatch is blocked pending reconciliation. Pass --tts-allow-ambiguous-redispatch to safely reconcile the pending slot, reuse all completed segment audio, and resume synthesis without deleting output directories or losing work.`)
+    const redispatchFlag = options.comicContext ? '--allow-ambiguous-redispatch' : '--tts-allow-ambiguous-redispatch'
+    throw CLIUsageError(`Stored compatible TTS generation slot ${blocker.generationSlotId} has ${blocker.state} provider work in attempt ${blocker.attempt}, request ${blocker.requestOrdinal}; automatic redispatch is blocked pending reconciliation. Pass ${redispatchFlag} to safely reconcile the pending slot, reuse all completed segment audio, and resume synthesis without deleting output directories or losing work.`)
   }
   if (recovered.size === 0) {
     return reconciliationBlockers.length === 0
@@ -2866,9 +2871,7 @@ export const createCurrentTtsRenderAttempt = async (
     recoveredBySlot.set(recovered.value.generationSlotId, recovered)
   }
   const unresolvedSlots = planned.slots.filter((slot) => !recoveredBySlot.has(slot.generationSlotId))
-  if (unresolvedSlots.length === 0) {
-    throw CLIUsageError('A new TTS provider attempt requires at least one unresolved immutable generation slot.')
-  }
+  const localCompositionOnly = unresolvedSlots.length === 0
   const requestedSlotLimit = options.ttsOptions.ttsMaxGenerationSlots
   if (requestedSlotLimit !== undefined && (!Number.isSafeInteger(requestedSlotLimit) || requestedSlotLimit <= 0)) {
     throw CLIUsageError('TTS maximum generation slots must be a positive safe integer.')
@@ -3113,16 +3116,18 @@ export const createCurrentTtsRenderAttempt = async (
     }
   ): CanonicalAudioProviderProjection => {
     const at = now()
-    const activeJournal = requireJournalFile()
+    const activeJournal = localCompositionOnly ? undefined : requireJournalFile()
     events.push({
       sequence: events.length + 1,
       status,
       at,
-      attempt: attemptNumber,
-      readinessAuthorization,
-      admissionJournalSnapshotId: journal.snapshotId,
-      admissionJournalRef: contained(targetDir, activeJournal.path),
-      admissionJournalSha256: activeJournal.sha256,
+      attempt: localCompositionOnly ? priorAttemptCount : attemptNumber,
+      ...(localCompositionOnly ? {} : {
+        readinessAuthorization,
+        admissionJournalSnapshotId: journal.snapshotId,
+        admissionJournalRef: contained(targetDir, (activeJournal as WrittenJson<RenderAdmissionJournalSnapshot>).path),
+        admissionJournalSha256: (activeJournal as WrittenJson<RenderAdmissionJournalSnapshot>).sha256
+      }),
       ...(terminal.result ? { providerRenderResultIdentity: terminal.result.value.resultIdentity, providerRenderResultRef: contained(targetDir, terminal.result.path), providerRenderResultSha256: terminal.result.sha256 } : {}),
       ...(terminal.outputRefs ? { outputRefs: terminal.outputRefs } : {}),
       ...(terminal.reportedOutputRefs ? { reportedOutputRefs: terminal.reportedOutputRefs } : {}),
@@ -3500,6 +3505,58 @@ export const createCurrentTtsRenderAttempt = async (
     resultFile?: WrittenJson<ProviderRenderResult> | undefined
     batchResultFiles: Array<WrittenJson<ProviderBatchResult>>
   }
+  const closeLocalComposition = async (): Promise<ClosedProviderAttempt> => {
+    if (!localCompositionOnly || recoveredBatchFiles.length !== planned.slots.length) {
+      throw InternalError('Local TTS composition requires one verified recovered result for every generation slot.', { stage: 'tts:recovery' })
+    }
+    const batchResultFiles = [...recoveredBatchFiles]
+      .sort((left, right) => planned.slots.findIndex((slot) => slot.generationSlotId === left.value.generationSlotId) - planned.slots.findIndex((slot) => slot.generationSlotId === right.value.generationSlotId))
+    const batchRefs: ProviderBatchResultRef[] = batchResultFiles.map((file) => ({
+      batchId: file.value.batchId,
+      generationSlotId: file.value.generationSlotId,
+      batchResultId: file.value.batchResultId,
+      artifactRef: contained(renderRoot, file.path),
+      sha256: file.sha256
+    }))
+    const observedRequests = batchResultFiles.flatMap((file) => file.value.observedRequests)
+    const requestedTurnIds = planned.turns.map((turn) => turn.canonical.turnId)
+    const turnOutcomes = requestedTurnIds.map((turnId) => {
+      const results = batchResultFiles.map((file) => file.value).filter((result) => result.requestedTurnIds.includes(turnId))
+      const requests = results.flatMap((result) => result.observedRequests.filter((request) => request.turns.some((turn) => turn.turnId === turnId)))
+      return {
+        turnId,
+        status: 'succeeded' as const,
+        observedRequests: requests.map((request) => ({ invocationId: request.invocationId, requestOrdinal: request.requestOrdinal })),
+        batchIds: [...new Set(results.map((result) => result.batchId))],
+        generationSlotIds: results.map((result) => result.generationSlotId),
+        outputIds: results.flatMap((result) => result.outputs.map((output) => output.outputId))
+      }
+    })
+    const compositionId = hashCanonicalTtsValue({ renderPlanId, renderIdentity, batchResults: batchRefs })
+    const renderResult = withIdentity({
+      schemaVersion: 1 as const,
+      closedBy: { kind: 'local-composition' as const, compositionId },
+      renderPlanId,
+      renderIdentity,
+      status: 'succeeded' as const,
+      requestedTurnIds,
+      batchResults: batchRefs,
+      observedRequests,
+      outputs: batchResultFiles.flatMap((file) => file.value.outputs.map((output) => ({ ...output, batchResultId: file.value.batchResultId }))),
+      generatedBatches: batchResultFiles.flatMap((file) => file.value.generatedBatch ? [file.value.generatedBatch] : []),
+      turnOutcomes,
+      createdResources: batchResultFiles.flatMap((file) => file.value.createdResources),
+      retryAttempts: batchResultFiles.flatMap((file) => file.value.retryAttempts),
+      cost: {
+        currentComposition: { planned: plannedRenderCost, observed: [] },
+        closingAttempt: { planned: { amounts: [] }, observed: [] },
+        cumulativeRenderHistory: { planned: sumCosts(batchResultFiles.map((file) => file.value.cost.planned)), observed: [] }
+      }
+    }, 'resultIdentity') as ProviderRenderResult
+    validateProviderRenderResult(renderResult)
+    const resultFile = await writeJsonCreateOnly(options.outputDir, `${renderRoot}/compositions/${compositionId}/provider-render-result.json`, renderResult)
+    return { resultFile, batchResultFiles }
+  }
   let closedProviderAttempt: ClosedProviderAttempt | undefined
   const closeProviderAttempt = async (closingError?: SanitizedProviderError | undefined): Promise<ClosedProviderAttempt> => {
     if (closedProviderAttempt) return closedProviderAttempt
@@ -3606,16 +3663,18 @@ export const createCurrentTtsRenderAttempt = async (
 
   const finalizeSuccess = async (audioPath: string, reportedOutputPath: string): Promise<CurrentTtsRenderArtifacts> => {
     if (terminalState) throw CLIUsageError('TTS render attempt was already finalized.')
-    if (requestedSlotLimit !== undefined) throw CLIUsageError('A bounded TTS generation checkpoint cannot publish a complete audio run.')
+    if (requestedSlotLimit !== undefined && !localCompositionOnly) throw CLIUsageError('A bounded TTS generation checkpoint cannot publish a complete audio run.')
     if (
-      runtimeRequests.length === 0
+      (!localCompositionOnly && runtimeRequests.length === 0)
       || planned.slots.some((slot) => !recoveredBySlot.has(slot.generationSlotId) && !(outputsBySlot.get(slot.generationSlotId)?.length))
     ) throw CLIUsageError('TTS target returned success without serializer-observed or verified recovered output for every planned generation slot.')
-    const { resultFile, batchResultFiles } = await closeProviderAttempt()
+    const { resultFile, batchResultFiles } = localCompositionOnly
+      ? await closeLocalComposition()
+      : await closeProviderAttempt()
     if (!resultFile || resultFile.value.status !== 'succeeded') throw CLIUsageError('TTS provider attempt did not close as a complete success.')
     const audioRunRoot = `${renderRoot}/results/${resultFile.value.resultIdentity}/audio-run`
     const finalPath = `${audioRunRoot}/final.wav`
-    const masteringDir = `${attemptRoot}/mastering`
+    const masteringDir = localCompositionOnly ? `${dirname(resultFile.path)}/mastering` : `${attemptRoot}/mastering`
     await mkdir(masteringDir, { recursive: true })
     const masteringProfile = options.ttsOptions.ttsMasteringProfile
     let masteredPath: string
@@ -3628,6 +3687,9 @@ export const createCurrentTtsRenderAttempt = async (
         return [slot.generationSlotId, file.value.outputs.map(output => resolveRetainedPath(dirname(resolve(options.outputDir, file.path)), output.artifactRef, `Comic generation slot ${slot.generationSlotId} provider output`))] as const
       }))
       masteredPath = await assembleComicSegmentedAudio({ dialoguePlan: options.comicContext.dialoguePlan, turns: planned.turns.map(turn => turn.canonical), slots: planned.slots, outputPathsBySlot, masteringDir, providerLabel: options.target.service, profile: masteringProfile })
+    } else if (localCompositionOnly && planned.strategy === 'segmented') {
+      const recoveredOutputPaths = batchResultFiles.flatMap((file) => file.value.outputs.map((output) => resolveRetainedPath(dirname(resolve(options.outputDir, file.path)), output.artifactRef, `Recovered generation slot ${file.value.generationSlotId} provider output`)))
+      masteredPath = await concatAndConvertToWav(recoveredOutputPaths, masteringDir, `${options.target.service}-recovery-mastering`, undefined, masteringProfile)
     } else {
       masteredPath = await concatAndConvertToWav([audioPath], masteringDir, `${options.target.service}-mastering`, undefined, masteringProfile)
     }
@@ -3813,5 +3875,5 @@ export const createCurrentTtsRenderAttempt = async (
           providerSegmentIndex: slot.slotIndex
         }
       })
-  return { requestEvidence: scopeFor(), preparedState, executionSelection, finalizeSuccess, finalizeCheckpoint, finalizeFailure }
+  return { requestEvidence: scopeFor(), preparedState, providerDispatchRequired: !localCompositionOnly, plannedChunkCount: planned.slots.length, executionSelection, finalizeSuccess, finalizeCheckpoint, finalizeFailure }
 }

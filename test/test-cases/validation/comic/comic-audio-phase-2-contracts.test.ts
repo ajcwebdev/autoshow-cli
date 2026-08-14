@@ -3,9 +3,10 @@ import { randomUUID } from 'node:crypto'
 import { mkdir, mkdtemp, readFile, readdir, symlink, writeFile } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
-import type { CliCommandContext, PipelineProviderState, StructuredScriptData, TtsOptions, TtsTarget, VoiceReferenceManifest } from '~/types'
+import type { CliCommandContext, PipelineProviderState, ProviderRenderResult, StructuredScriptData, TtsOptions, TtsTarget, VoiceReferenceManifest } from '~/types'
 import { canonicalTargetKey, canonicalTtsJson, hashCanonicalTtsValue, sha256Bytes } from '~/cli/commands/process-steps/step-4-tts/script-to-audio/contract-identity'
-import { planCurrentTtsReadiness } from '~/cli/commands/process-steps/step-4-tts/script-to-audio/current-render-attempt'
+import { planCurrentTtsReadiness, planCurrentTtsResumePrice } from '~/cli/commands/process-steps/step-4-tts/script-to-audio/current-render-attempt'
+import { runTtsForTargets } from '~/cli/commands/process-steps/step-4-tts/run-tts'
 import { validateTtsTargetsForExecution } from '~/cli/commands/process-steps/step-4-tts/tts-targets'
 import { createApprovedVoiceSnapshotEntry, createComicSourceIdentity, createStructuredScriptArtifactRef, computeSceneRunIdentity, validateVoiceReferenceManifest } from '~/cli/commands/process-steps/step-8-comic/comic-utils/comic-audio-contracts'
 import { createComicDialoguePlan } from '~/cli/commands/process-steps/step-8-comic/comic-utils/comic-dialogue-plan'
@@ -255,6 +256,118 @@ describe('comic audio phase 2 contracts', () => {
     const segmented = planCurrentTtsReadiness({ target, sourceText: 'VOICE_001: Ready?\nVOICE_001: Ready.', ttsOptions: { ...options, ttsSpeakers: ['VOICE_001=Kore'], ttsCanonicalTurns: turns.map(turn => ({ turnId: turn.turnId, speaker: 'VOICE_001', text: turn.canonicalText })) }, comicContext: oneSpeakerContext })
     expect(segmented.strategy).toBe('segmented')
     expect(sha256Bytes(canonicalTtsJson(segmented.renderPlan))).toHaveLength(64)
+  })
+
+  test('finalizes a fully compatible snapshot-identity change without another provider call', async () => {
+    process.env['OPENAI_API_KEY'] = 'openai-test-key'
+    const root = await mkdtemp(join(tmpdir(), 'autoshow-comic-cross-snapshot-recovery-'))
+    const sourcePath = join(root, 'scene.md')
+    const sourceBytes = '# Episode\n\n## Scene\n\n**PILOT**\nReady?\n\n**NAVIGATOR**\nReady.\n'
+    await writeFile(sourcePath, sourceBytes)
+    const sourceIdentity = await createComicSourceIdentity(sourcePath, sourceBytes)
+    const structured = buildStructured(sourceIdentity, sourceBytes)
+    const structuredRef = createStructuredScriptArtifactRef(`${canonicalTtsJson(structured)}\n`)
+    const sceneRunIdentity = computeSceneRunIdentity(sourceIdentity, structuredRef)
+    const dialoguePlan = createComicDialoguePlan({ structuredScript: structured, sourceIdentity, structuredScriptRef: structuredRef, sceneRunIdentity, createdAt: CREATED_AT })
+    const entries = [snapshotEntry('navigator', 'echo', 'openai'), snapshotEntry('pilot', 'alloy', 'openai')]
+      .sort((left, right) => [left.provider, left.providerModel, left.profileKey, left.subjectKey, left.registrationId, left.generationId, left.entryId].join('\0').localeCompare([right.provider, right.providerModel, right.profileKey, right.subjectKey, right.registrationId, right.generationId, right.entryId].join('\0')))
+    const snapshotBase = { schemaVersion: 1 as const, sceneRunIdentity, dialoguePlanId: dialoguePlan.dialoguePlanId, catalogHash: HASH_A, briefSetHash: HASH_B, createdAt: CREATED_AT, entries }
+    const firstSnapshot = validateVoiceReferenceManifest({ ...snapshotBase, snapshotId: hashCanonicalTtsValue(snapshotBase) })
+    const secondSnapshotBase = { ...snapshotBase, catalogHash: 'c'.repeat(64) }
+    const secondSnapshot = validateVoiceReferenceManifest({ ...secondSnapshotBase, snapshotId: hashCanonicalTtsValue(secondSnapshotBase) })
+    const turns = dialoguePlan.nodes.flatMap(node => node.kind === 'turn' ? [node.turn] : node.turns)
+    const sourceText = turns.map((turn, index) => `VOICE_00${index + 1}: ${turn.canonicalText}`).join('\n')
+    const options: TtsOptions = {
+      ttsDialogueFormat: 'labeled',
+      ttsSpeakers: ['VOICE_001=alloy', 'VOICE_002=echo'],
+      ttsCanonicalTurns: turns.map((turn, index) => ({ turnId: turn.turnId, speaker: `VOICE_00${index + 1}`, text: turn.canonicalText })),
+      ttsMasteringProfile: { schemaVersion: 1, sampleRate: 48000, channels: 2, codec: 'pcm_s24le', container: 'wav' },
+      ttsChunkConcurrency: 1
+    }
+    const targetKey = canonicalTargetKey('comic-audio', 'openai', 'gpt-4o-mini-tts-2025-12-15', 'hosted-api')
+    const providerCalls: number[] = []
+    const target: TtsTarget = {
+      service: 'openai',
+      model: 'gpt-4o-mini-tts-2025-12-15',
+      operation: 'comic-audio',
+      transport: 'hosted-api',
+      targetKey,
+      multiSpeakerStrategy: 'segment-and-concat',
+      run: async (text, outputDir, _ttsOptions, invocation, requestEvidence) => {
+        const sourceIndex = invocation?.sourceIndex ?? -1
+        providerCalls.push(sourceIndex)
+        const voice = invocation?.voice.value ?? 'alloy'
+        const audioPath = join(outputDir, 'speech.wav')
+        const bytes = createSyntheticWavBytes({ durationSeconds: 0.1, amplitude: 0.2, frequencyHz: sourceIndex === 0 ? 280 : 420 })
+        await requestEvidence?.dispatch({
+          chunkIndex: 1,
+          endpointKind: 'speech-synthesis',
+          serializerVersion: 'openai.tts.phase-0-v1',
+          serializedRequest: { body: { input: text, voice, response_format: 'wav' } },
+          providerText: text,
+          voiceField: 'voice',
+          voices: [{ kind: 'provider-id', value: voice }],
+          requestControls: { responseFormat: 'wav' },
+          continuation: { kind: 'none' }
+        }, { attempt: 1 }, async ({ accepted }) => {
+          await accepted({ providerRequestId: `snapshot-recovery-${sourceIndex}` })
+          await Bun.write(audioPath, bytes)
+        })
+        if (!requestEvidence) await Bun.write(audioPath, bytes)
+        await requestEvidence?.recordOutput({ chunkIndex: 1, path: audioPath })
+        await requestEvidence?.complete({ chunkIndex: 1 })
+        return { audioPath, metadata: { ttsService: 'openai', ttsModel: 'gpt-4o-mini-tts-2025-12-15', speaker: voice, processingTime: 1, audioFileName: 'speech.wav', audioFileSize: bytes.byteLength, chunkCount: 1 } }
+      }
+    }
+    const contextFor = (voiceSnapshot: VoiceReferenceManifest) => ({
+      operation: 'comic-audio' as const,
+      sourceIdentity,
+      dialoguePlan,
+      voiceSnapshot,
+      snapshotEntryIdByTurnId: Object.fromEntries(turns.map(turn => [turn.turnId, entries.find(entry => entry.subjectKey === turn.subjectKey)!.entryId])),
+      providerSpeakerLabelByTurnId: Object.fromEntries(turns.map((turn, index) => [turn.turnId, `VOICE_00${index + 1}`])),
+      modePreference: 'segmented' as const,
+    })
+    const firstStates: PipelineProviderState[] = []
+    const firstOutput = join(root, 'first.wav')
+    await runTtsForTargets(sourceText, root, options, [target], {
+      comicContext: contextFor(firstSnapshot),
+      artifactOutputDir: root,
+      artifactRoot: 'audio/providers',
+      resolveReportedOutput: () => ({ path: firstOutput, fileName: 'first.wav' }),
+      beforeDispatch: async () => {},
+      onProviderState: async (state) => { firstStates.push(state) }
+    })
+    const retained = firstStates.at(-1)
+    if (!retained) throw new Error('Missing first snapshot provider state')
+    expect(providerCalls).toEqual([0, 1])
+
+    const price = await planCurrentTtsResumePrice({ rootDir: root, state: retained, target, sourceText, ttsOptions: options, comicContext: contextFor(secondSnapshot) })
+    expect(price).toMatchObject({ recoveryKind: 'partial-slots', recoveredSlotCount: 2, unresolvedSlotCount: 0, plannedSlotCount: 0, plannedCost: { amounts: [] } })
+
+    const secondStates: PipelineProviderState[] = []
+    const secondOutput = join(root, 'second.wav')
+    const second = await runTtsForTargets(sourceText, root, options, [target], {
+      comicContext: contextFor(secondSnapshot),
+      artifactOutputDir: root,
+      artifactRoot: 'audio/providers',
+      retainedProviderStates: [retained],
+      recoveryRootDir: root,
+      resolveReportedOutput: () => ({ path: secondOutput, fileName: 'second.wav' }),
+      beforeDispatch: async () => {},
+      onProviderState: async (state) => { secondStates.push(state) }
+    })
+    expect(providerCalls).toEqual([0, 1])
+    expect(await Bun.file(secondOutput).exists()).toBe(true)
+    expect(second.metadata[0]?.comicAudio?.selectedSuccess).toBeDefined()
+    const terminalState = secondStates.at(-1)
+    const projection = terminalState?.result?.['comicAudio'] as NonNullable<(typeof second.metadata)[number]['comicAudio']> | undefined
+    const active = projection?.activeWork
+    const render = active?.kind === 'render' ? projection?.renderHistory.find(candidate => candidate.renderIdentity === active.renderIdentity) : undefined
+    const event = active?.kind === 'render' ? render?.events.find(candidate => candidate.sequence === active.eventSequence) : undefined
+    if (!terminalState || !render || !event?.providerRenderResultRef) throw new Error('Missing locally composed terminal result')
+    const providerResult = await Bun.file(join(root, terminalState.artifactDir, event.providerRenderResultRef)).json() as ProviderRenderResult
+    expect(providerResult.closedBy.kind).toBe('local-composition')
   })
 
   test('shared read-only execution readiness accepts canonical comic-audio targets', async () => {
