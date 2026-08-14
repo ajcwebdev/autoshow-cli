@@ -20,6 +20,7 @@ export type VoiceCapabilityFeature =
   | 'word-timing'
   | 'phoneme-timing'
   | 'continuation'
+  | 'speech-to-speech'
 
 export type ProviderAccessRequirement =
   | { kind: 'plan', tier?: string | undefined }
@@ -88,6 +89,7 @@ export type CapabilityConstraintsByFeature = {
   'word-timing': TimingConstraints
   'phoneme-timing': TimingConstraints
   'continuation': { providerVersions: string[] }
+  'speech-to-speech': { speechBusesOnly: boolean }
 }
 
 export type CapabilityDocumentationEvidence = {

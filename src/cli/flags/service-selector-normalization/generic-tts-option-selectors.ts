@@ -23,6 +23,10 @@ const TTS_GENERIC_OPTION_TARGETS = {
       speechify: 'speechify-voice',
       hume: 'hume-tts-voice',
       cartesia: 'cartesia-tts-voice',
+      fish: 'fish-tts-voice',
+      inworld: 'inworld-voice',
+      deepinfra: 'deepinfra-voice',
+      replicate: 'replicate-voice',
       minimax: 'minimax-tts-voice',
       elevenlabs: 'elevenlabs-voice'
     }

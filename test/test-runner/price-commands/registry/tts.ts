@@ -87,4 +87,13 @@ export const ttsRegistry: PriceSelectionEntry[] = [
     command('tts-kitten-mini', 'tts-kitten-mini', ['src/cli/create-cli.ts', 'tts', 'input/examples/tts/1-tts.md', '--provider', 'kitten=kitten-tts-mini', '--price']),
     command('tts-openai-gpt-4o-mini-tts-2025-12-15', 'tts-openai-gpt-4o-mini-tts-2025-12-15', ['src/cli/create-cli.ts', 'tts', 'input/examples/tts/1-tts.md', '--provider', 'openai=gpt-4o-mini-tts-2025-12-15', '--price']),
   ]),
+  ...exact('test/test-cases/e2e/service/step-4-tts-e2e/tts-services/inworld-realtime-tts-2.test.ts', [
+    command('tts-inworld-realtime-tts-2', 'tts-inworld-realtime-tts-2', ['src/cli/create-cli.ts', 'tts', 'input/examples/tts/1-tts.md', '--provider', 'inworld=realtime-tts-2', '--price']),
+  ]),
+  ...exact('test/test-cases/e2e/service/step-4-tts-e2e/tts-services/deepinfra-chatterbox.test.ts', [
+    command('tts-deepinfra-chatterbox-multilingual', 'tts-deepinfra-chatterbox-multilingual', ['src/cli/create-cli.ts', 'tts', 'input/examples/tts/1-tts.md', '--provider', 'deepinfra=ResembleAI/chatterbox-multilingual', '--price']),
+  ]),
+  ...exact('test/test-cases/validation/media-generation/replicate-tts-adapter-contracts.test.ts', [
+    command('tts-replicate-f5-tts', 'tts-replicate-f5-tts', ['src/cli/create-cli.ts', 'tts', 'input/examples/tts/1-tts.md', '--provider', 'replicate=x-lance/f5-tts', '--price']),
+  ]),
 ]

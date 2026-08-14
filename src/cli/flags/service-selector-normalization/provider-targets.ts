@@ -10,7 +10,11 @@ export const STANDALONE_TTS_PROVIDER_TARGETS = {
   deepgram: 'deepgram-tts',
   speechify: 'speechify-tts',
   hume: 'hume-tts',
-  cartesia: 'cartesia-tts'
+  cartesia: 'cartesia-tts',
+  fish: 'fish-tts',
+  inworld: 'inworld-tts',
+  deepinfra: 'deepinfra-tts',
+  replicate: 'replicate-tts'
 } as const satisfies Record<string, string>
 
 export const STANDALONE_IMAGE_PROVIDER_TARGETS = {

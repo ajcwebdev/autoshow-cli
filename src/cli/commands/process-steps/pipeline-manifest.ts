@@ -2798,7 +2798,7 @@ const parseManifest = (
     comic.presentation ??= {}
     for (const stage of Object.values(comic.stages)) for (const targetKey of stage.targetKeys) targetOwners.set(targetKey, (targetOwners.get(targetKey) ?? 0) + 1)
     if ([...targetOwners.values()].some(count => count !== 1)) return undefined
-    if (item.providers.some(provider => (provider.operation?.startsWith('comic-') || provider.operation === 'sound-effect-generation') && !targetOwners.has(provider.targetKey ?? ''))) return undefined
+    if (item.providers.some(provider => provider.operation?.startsWith('comic-') && !targetOwners.has(provider.targetKey ?? ''))) return undefined
   }
 
   return {

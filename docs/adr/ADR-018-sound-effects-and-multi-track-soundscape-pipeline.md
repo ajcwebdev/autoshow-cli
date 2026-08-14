@@ -4,7 +4,7 @@
 
 - **Decision Status:** Accepted
 - **Date Created:** 2026-08-13
-- **Date Updated:** 2026-08-13
+- **Date Updated:** 2026-08-14
 - **Verification Status:** Passed
 
 ## Context
@@ -30,11 +30,11 @@ Why now: ADR-014 makes speech identity, timing, caching, artifacts, and resume t
 | Add ElevenLabs-specific fields and mixing directly to `comic generate-audio` | Smallest initial implementation; reuses an existing credential and transport | Couples source files to one API, duplicates shared scheduling and persistence, makes cue timing depend on one dialogue path, and repeats SFX generation for multi-provider dialogue comparisons | 1 provider; 1 command-specific path; high migration cost |
 | Integrate several SFX providers before defining the timeline and artifact contracts | Broad provider choice immediately | Multiplies serializer, capability, pricing, async-polling, and failure behavior before the common contract is proven | At least 4 adapters before one verified vertical slice |
 | Build only a local mixer and require users to supply every clip | Enables entirely offline development and deterministic mastering | Does not satisfy text-to-sound generation or exercise hosted generation, price, readiness, cache, and resume contracts | 0 hosted adapters |
-| **Build the complete provider-neutral vertical slice with ElevenLabs, then add capability-scoped providers in five phases** | Proves schema, timeline, stem, cache, price, artifact, and hosted execution boundaries in Phase 1; keeps authored intent portable; adds each later provider only where its documented API fits | Requires explicit phase gates and truthful unsupported capabilities; the final AudioGen phase depends on a pinned community deployment | 5 independently verifiable phases; 2 dedicated SFX targets by Phase 5 |
+| **Build the complete provider-neutral vertical slice with ElevenLabs, then add capability-scoped providers in seven phases** | Proves schema, timeline, stem, cache, price, artifact, and hosted execution boundaries in Phase 1; keeps authored intent portable; adds each later provider only where its documented API fits | Requires explicit phase gates and truthful unsupported capabilities; the final AudioGen phase depends on a pinned community deployment | 7 independently verifiable phases; 2 dedicated SFX targets by Phase 7 |
 
 ## Decision
 
-Add a provider-neutral soundscape domain to the shared script-to-audio workflow and deliver it through the five-phase implementation plan in this ADR. Phase 1 is the complete vertical slice and uses ElevenLabs for every new hosted capability. Phase 2 connects relevant capabilities already implemented for Cartesia, Hume, and MiniMax. Phase 3 adds Resemble AI across synthesis, soundscape, and every applicable `voice` workflow. Phase 4 does the same for Fish Audio, including its documented stateless Voice Design candidates and materialization through the protected voice-model path. Phase 5 adds Meta AudioGen through a version-pinned Replicate community deployment as a second dedicated SFX target.
+Add a provider-neutral soundscape domain to the shared script-to-audio workflow and deliver it through the seven-phase implementation plan in this ADR. Phase 1 is the complete vertical slice and uses ElevenLabs for every new hosted capability. Phase 2 connects relevant capabilities already implemented for Cartesia, Hume, and MiniMax. Phase 3 adds first-party Inworld AI across TTS, instant/pro cloning, voice design, natural language steering, and audio markups. Phase 4 adds DeepInfra hosted speech models including ResembleAI Chatterbox, Xiaomi MiMo V2.5, and Qwen3-TTS. Phase 5 adds Replicate open-source speech models including F5-TTS, Dia 1.6B, and XTTS-v2. Phase 6 adds Fish Audio across synthesis, native dialogue/timestamps, stateless voice design, and voice-model lifecycle. Phase 7 adds Meta AudioGen through a version-pinned Replicate community deployment as a second dedicated SFX target.
 
 The phase order is normative. A later phase does not begin until the preceding phase meets its offline acceptance gate. Each provider is added only for capabilities supported by a dated fixture and current primary documentation; an unsupported operation must remain explicitly unsupported rather than being approximated through a different API.
 
@@ -43,7 +43,7 @@ This applies to:
 - `structured-script.json` sound intent, immutable soundscape planning, cue-to-timeline resolution, provider generation tasks, reusable generated assets, semantic stems, final mixes, and comic audio artifacts.
 - `comic generate-audio` target selection, static validation, no-call price planning, execution readiness, bounded dispatch, resume, and publication when a scene contains sound intent.
 - Local audio normalization, placement, looping, fades, stereo panning, ambience ducking, limiting, stem export, and final WAV mastering.
-- Phase 1 through Phase 4 extensions to provider-qualified synthesis, protected voice provisioning, and the provider-dependent portions of the shared `voice` command.
+- Phase 1 through Phase 7 extensions to provider-qualified synthesis, protected voice provisioning, and the provider-dependent portions of the shared `voice` command.
 
 This does not:
 
@@ -118,7 +118,7 @@ Negative offsets are allowed relative to source anchors. If a resolved clip woul
 
 ## Provider Target and Generation Contract
 
-Sound effects are a distinct target modality. `--sfx-provider <provider=model>` selects exactly one dedicated sound-effect target and has no paid hosted default. Phase 1 permits ElevenLabs; Phase 5 adds the pinned Replicate AudioGen target. Cartesia, Hume, MiniMax, Resemble, and Fish are not accepted by this selector unless a later ADR records a documented non-speech endpoint. Dialogue `--provider` selection remains independent. A fresh v5 render with prompt-based action-SFX or ambience intent requires an explicit SFX target. Resume may reuse the exact target pinned by a compatible retained render plan; it may not search every provider cache or infer a target from credentials. If neither source of target identity exists, static validation fails with an actionable message. A scene with empty sound intent performs no SFX target setup.
+Sound effects are a distinct target modality. `--sfx-provider <provider=model>` selects exactly one dedicated sound-effect target and has no paid hosted default. Phase 1 permits ElevenLabs; Phase 7 adds the pinned Replicate AudioGen target. Cartesia, Hume, MiniMax, Inworld, DeepInfra, Replicate speech, and Fish are not accepted by this selector unless a later ADR records a documented non-speech endpoint. Dialogue `--provider` selection remains independent. A fresh v5 render with prompt-based action-SFX or ambience intent requires an explicit SFX target. Resume may reuse the exact target pinned by a compatible retained render plan; it may not search every provider cache or infer a target from credentials. If neither source of target identity exists, static validation fails with an actionable message. A scene with empty sound intent performs no SFX target setup.
 
 Vocal reactions are a separate routing case because they may require character identity. Phase 1 can render them through the ElevenLabs sound-effect target. Starting in Phase 2, a dialogue target may render an authored vocal reaction through its own TTS adapter only when its capability fixture supports the requested delivery and preserves the selected character voice. Such results are qualified by the dialogue target and are not reused across incompatible voice targets. If neither the selected voice target nor the explicit SFX target supports a required vocal reaction, static validation fails rather than silently converting it to dialogue text or generic foley.
 
@@ -235,102 +235,207 @@ Render the same v5 fixture with Cartesia, Hume, and MiniMax dialogue targets whi
 
 Phase 2 gate: the same v5 soundscape can be mixed with Cartesia, Hume, and MiniMax dialogue targets, each uses only its declared capabilities, Hume timing can authorize strict eligible anchors, and unsupported provider/cue combinations produce stable no-call diagnostics.
 
-### Phase 3: Resemble AI Across Synthesis and Voice Workflows
+#### Phase 2 Implementation Record
 
-Phase 3 adds Resemble as a first-class TTS and voice-management provider and uses its documented speech-to-speech surface where it is relevant to vocal performance.
+Phase 2 was completed on 2026-08-13. The implementation connects existing Cartesia, Hume, and MiniMax capabilities into the soundscape pipeline and shared voice workflows without treating any speech provider as a dedicated action-SFX or ambience target.
+
+| Subphase | State | Implemented result |
+|---|---|---|
+| 2A | Complete | Capability-scoped vocal routing, deterministic routing decisions for authored vocal reactions vs. dedicated SFX targets, provider-qualified generation identities, and static rejection of unsupported speech-provider SFX requests |
+| 2B | Complete | Hume Octave 1 and Octave 2 integration with acting descriptions for vocal reactions, single-request catalog probe reuse across model targets, Voice Conversion routing restricted to speech buses, consent-gated donor handling, and subscription-gated external `voice clone` reporting |
+| 2C | Complete | Cartesia Sonic integration for segmented dialogue and voice-qualified reaction controls (`[laughter]`), instant clone workflow, catalog pagination, and static rejection of unsupported text-prompt `voice design` |
+| 2D | Complete | MiniMax T2A integration with interjection tags and subtitle-level word timing, catalog discovery, candidate-based voice design with protected temporary-voice lifecycle, and upload-then-clone instant voice creation |
+| 2E | Complete | Cross-provider acceptance proving the same v5 soundscape fixture renders with Cartesia, Hume, and MiniMax dialogue targets while reusing ElevenLabs action-SFX and ambience results with stable no-call price, cache, resume, and final mix contracts |
+
+### Phase 3: First-Party Inworld AI Speech and Voice Workflows
+
+Phase 3 integrates first-party Inworld AI as a dialogue and voice-management target, supporting steerable TTS (Realtime TTS-2, 1.5 Max/Mini), instant (3–15s) and professional voice cloning, prompt voice design, natural language steering, and inline emotion/vocalization markups (`[happy]`, `[laugh]`, `[breathe]`).
 
 #### Phase 3A: Registry, Capability, and Pricing Foundation
 
-Add Resemble provider identity, credentials, base URLs, model entries, lifecycle state, dated capability fixtures, pricing provenance, selector resolution, static validation, and readiness. Declare TTS, timing, catalog, design, materialization, clone/build, speech-to-speech, inspection, reconciliation, and deletion separately. This subphase exits when registry and capability tests accept supported combinations, reject unsupported ones without credentials, and produce deterministic no-call price output.
+Add Inworld provider identity, credentials, REST and WebSocket endpoint definitions, Realtime TTS-2 ($25.00/1M chars On-Demand), 1.5 Max, and 1.5 Mini ($15.00/1M chars On-Demand) pricing models, volume tier scaling, capability fixtures, static validation, and execution readiness. This subphase exits when supported dialogue and voice combinations route deterministically, pricing plans calculate correctly without network calls, and unsupported SFX requests fail statically.
 
 #### Phase 3B: TTS, Timing, and Render Artifacts
 
-Implement bounded synchronous TTS, response decoding, grapheme and phoneme timing retention, cache identity, request evidence, cancellation, retry classification, resume, and common dialogue artifacts. Map provider timing through prepared text and the transform ledger rather than treating raw offsets as final scene time. This subphase exits when mocked single-speaker renders participate in ordinary TTS and `comic generate-audio`, exact eligible anchors resolve, and corrupt or incomplete timing fails truthfully.
+Implement batch REST (`InworldHttpTTSService`) and low-latency WebSocket (`InworldTTSService`) synthesis adapters. Capture character, word, and viseme timing alignment metadata, decode PCM/WAV output streams, and map alignment through prepared text into the resolved dialogue clock. This subphase exits when mocked renders preserve exact voice identity and timing alignment across price, execution, cache, and resume.
 
-#### Phase 3C: Discovery, Design, and Materialization
+#### Phase 3C: Instant/Pro Voice Cloning and Voice Design
 
-Implement existing-voice import, provider and account discovery, paginated catalog metadata, prompt-based design with bounded protected candidate previews, and asynchronous creation from one selected candidate. Expiring candidate URLs must be ingested into the protected store before expiry and never become durable references. This subphase exits when candidate identity, expiry, materialization journaling, no-call price, and ambiguous response behavior are covered offline.
+Implement instant voice cloning (`POST /voices/v1/voices:clone`) from 3 to 15 seconds of clean reference audio, professional voice cloning fine-tuned models (30+ minutes), and prompt-driven Voice Design. Integrate candidate materialization and voice lifecycle management into the shared `voice` command. This subphase exits when clone and design candidates are protected, durable, resumable, and identity-safe.
 
-#### Phase 3D: Clone, Lifecycle, and Reconciliation
+#### Phase 3D: Natural Language Steering and Audio Markups
 
-Implement consent-gated custom voice creation/build, plan checks, time-limited transfer of authorized dataset media, per-component TTS/Fill/speech-to-speech readiness, canonical audition and approval, exact provider inspection, ambiguous create/build reconciliation, local status/retirement/revocation, and eligibility-checked project-owned deletion. Keep `voice save-reference` explicitly Mistral-specific. This subphase exits when every applicable `voice` row reaches a durable terminal or resumable state and unsupported operations return stable local diagnostics.
+Implement prompt-level natural language performance steering (e.g., `[whisper in a hushed style]`) and inline audio markups for emotion guidance (`[happy]`, `[sad]`) and non-verbal vocalizations (`[breathe]`, `[cough]`, `[sigh]`, `[laugh]`). Route vocal reaction markups to dialogue and vocal buses while preserving character voice identity. This subphase exits when steering and markup directives route deterministically without modifying non-speech SFX targets.
 
-#### Phase 3E: Speech-to-Speech and Soundscape Acceptance
+#### Phase 3E: Soundscape Routing and Acceptance
 
-Support speech-to-speech only for dialogue transformations or authored voice-qualified reactions with an authorized donor recording, time-limited source transfer, and prompt cleanup. Route results only to the dialogue or vocal-reaction bus; Fill and speech-to-speech never satisfy foley, ambience, or spatial-simulation requests. This subphase exits when end-to-end mocked mixes prove speech-bus isolation, protected donor handling, cache/resume identity, and the absence of a Resemble `--sfx-provider` route.
+Render full v5 soundscape fixtures with Inworld dialogue targets while reusing ElevenLabs action-SFX and ambient beds. Validate multi-bus mixing, viseme timing alignment for lip-sync, and stem output publication. This subphase exits when Inworld dialogue targets pass offline acceptance tests across price, cache, resume, and four-bus mastering.
 
-Phase 3 gate: Resemble participates in ordinary TTS and `comic generate-audio`, all applicable `voice` lifecycle transitions are durable and resumable, speech-to-speech results are isolated to speech buses, and no Resemble path claims general sound-effect generation.
+Phase 3 gate: Inworld AI renders steerable dialogue, instant/pro clones, voice design, and inline vocal markups through common plans and artifacts; viseme timing supports lip-sync alignment, and non-speech SFX requests fail before dispatch.
 
-### Phase 4: Fish Audio Across Synthesis and Voice Workflows
+### Phase 4: DeepInfra Hosted Speech Suite (Chatterbox, MiMo V2.5, Qwen3-TTS)
 
-Phase 4 adds Fish as a first-class TTS and voice-management provider using its documented TTS and voice-model APIs.
+Phase 4 integrates DeepInfra's hosted open-weight speech models: ResembleAI Chatterbox (`chatterbox-multilingual` & `chatterbox-turbo` @ $1.00/1M chars), Xiaomi MiMo V2.5 (`MiMo-V2.5-tts` & `MiMo-V2.5-tts-voicedesign` @ $0.00/1M promotional), and Alibaba Qwen3-TTS (`Qwen3-TTS` & `Qwen3-TTS-VoiceDesign` @ $20.00/1M chars).
 
 #### Phase 4A: Registry, Capability, and Pricing Foundation
 
-Add Fish provider identity, credentials, base URL, S1, S2 Pro, and `voice-design-1` model entries, lifecycle state, dated capability fixtures, pricing provenance, selector resolution, static validation, and readiness. Declare single-speaker TTS, S2 Pro native dialogue, reference clips, stable model IDs, timing, catalog, stateless voice design, fast clone, inspection, reconciliation, and deletion independently. This subphase exits when supported combinations route deterministically, unsupported SFX combinations fail without credentials, and no-call price remains read-only.
+Add DeepInfra speech suite provider identity, bearer token authorization, hosted model catalog schemas, dated capability fixtures, static pricing records ($1.00/1M for Chatterbox, $0.00/1M promotional for MiMo V2.5, $20.00/1M for Qwen3-TTS), static validation, and execution readiness. This subphase exits when model targets resolve deterministically and no-call price calculations match verified rates.
 
-#### Phase 4B: Single-Speaker TTS and Reference Identity
+#### Phase 4B: Chatterbox Multilingual & Turbo Adapters
 
-Implement bounded single-speaker synthesis with approved `reference_id` resources or authorized zero-shot reference clips, documented prosody and output controls, response decoding, cache identity, request evidence, cancellation, retry classification, resume, and common dialogue artifacts. This subphase exits when mocked renders preserve exact voice identity and protected reference handling across price, execution, cache, and resume.
+Implement DeepInfra adapters for `ResembleAI/chatterbox-multilingual` and `ResembleAI/chatterbox-turbo`. Support multi-speaker dialogue synthesis and low-cost character voices without requiring direct Resemble SaaS accounts or subscription fees. This subphase exits when mocked Chatterbox renders pass serializer identity, price, cache, and resume tests.
 
-#### Phase 4C: Native Dialogue and Timestamp Streaming
+#### Phase 4C: MiMo V2.5 TTS & Voice Design Adapters
 
-Implement S2 Pro native multi-speaker planning and serialization, deterministic fallback to segmented turns, and timestamped SSE reduction that replaces the latest alignment snapshot by `chunk_seq` rather than accumulating superseded snapshots. Map retained alignment through prepared text and local transforms to the final timeline. This subphase exits when native/segmented selection, streaming reduction, exact anchor evidence, interruption, and malformed-event behavior pass mocked contracts.
+Implement DeepInfra adapters for `XiaomiMiMo/MiMo-V2.5-tts` and `XiaomiMiMo/MiMo-V2.5-tts-voicedesign`. Support zero-cost promotional test coverage, rapid prototyping, prompt-driven voice design, and speech generation. This subphase exits when MiMo voice design candidates materialize into protected references and pass offline render tests.
 
-#### Phase 4D: Voice Design, Model Management, and Reconciliation
+#### Phase 4D: Qwen3-TTS & VoiceDesign Zero-Shot Adapters
 
-Implement bounded `voice design` requests against the stateless `voice-design-1` endpoint, ingest every returned base64 candidate into the protected store, and retain prompt, reference text, model, seed, candidate index, sample rate, duration, and response identity. Implement `voice materialize` as a composed AutoShow workflow: validate exactly one protected selected candidate against the current create-model sample contract, then use that candidate as authorized reference audio for the ordinary fast model-creation path. Fish exposes no separate candidate-materialization operation, and a candidate identifier is not a durable remote voice resource; an ineligible candidate must fail locally instead of being padded, regenerated, or silently replaced. Also implement import, account/public model discovery, consent-gated fast voice creation through `voice clone`, canonical audition and approval, exact model inspection and training readiness, ambiguous creation reconciliation, local status/retirement/revocation, and exact project-owned deletion. Use model update only for shared mutable metadata and never for stable identity. Keep `voice save-reference` explicitly unsupported. This subphase exits when design candidates and every applicable `voice` row are durable, protected, resumable, and identity-safe.
+Implement DeepInfra adapters for `Qwen/Qwen3-TTS` and `Qwen/Qwen3-TTS-VoiceDesign`. Support high-quality zero-shot reference voice cloning from reference audio clips and prompt-based voice design across multiple languages. This subphase exits when Qwen3 zero-shot reference cloning and voice design pass offline acceptance.
 
 #### Phase 4E: Soundscape Routing and Acceptance
 
+Render v5 soundscape fixtures using DeepInfra Chatterbox, MiMo V2.5, and Qwen3-TTS dialogue targets with ElevenLabs action SFX and ambience. Validate stem separation, cache reuse, and four-bus mixing. This subphase exits when all DeepInfra speech targets pass no-call price, cache, resume, and final mix contracts.
+
+Phase 4 gate: DeepInfra hosted Chatterbox, MiMo V2.5, and Qwen3-TTS models render multi-speaker dialogue, voice design, and zero-shot cloning through common plans and artifacts with verified pricing and offline resume.
+
+### Phase 5: Replicate Open-Source Speech Suite (F5-TTS, Dia 1.6B, XTTS-v2)
+
+Phase 5 integrates high-capability open-source speech and multi-speaker dialogue models deployed on Replicate: `x-lance/f5-tts` (non-autoregressive zero-shot cloning), `zsxkib/dia` (Dia 1.6B multi-speaker dialogue with non-verbals and cloning), and `lucataco/xtts-v2` (Coqui XTTS-v2 multilingual zero-shot cloning).
+
+#### Phase 5A: Registry, Capability, and Prediction Foundation
+
+Add Replicate speech suite provider identity, API prediction lifecycle schemas (`POST /v1/predictions`), model version pinning, capability fixtures, static pricing, static validation, and execution readiness. Declare zero-shot cloning for F5-TTS and XTTS-v2 and multi-speaker script dialogue for Dia 1.6B. This subphase exits when Replicate speech targets validate deterministically and no-call price planning calculates prediction unit costs correctly.
+
+#### Phase 5B: F5-TTS Zero-Shot Cloning Adapter
+
+Implement the Replicate adapter for `x-lance/f5-tts`. Support fast, natural non-autoregressive zero-shot voice cloning from short reference audio clips without third-party voice registry requirements. This subphase exits when F5-TTS zero-shot cloning passes prediction execution, cache, and resume contracts.
+
+#### Phase 5C: Dia 1.6B Multi-Speaker Dialogue Adapter
+
+Implement the Replicate adapter for `zsxkib/dia` (Nari Labs Dia 1.6B). Support multi-character script dialogue synthesis directly from transcripts, incorporating non-verbal vocal cues (laughter, throat clearing) and voice cloning within conversational turns. This subphase exits when Dia multi-speaker script dialogue renders into isolated speech and vocal-reaction stems.
+
+#### Phase 5D: XTTS-v2 Multilingual Cloning Adapter
+
+Implement the Replicate adapter for `lucataco/xtts-v2` (Coqui XTTS-v2). Support multilingual zero-shot voice cloning across 17+ languages. This subphase exits when XTTS-v2 multilingual voice cloning passes offline prediction and audio artifact capture.
+
+#### Phase 5E: Soundscape Routing and Acceptance
+
+Download output audio immediately into checksummed local artifacts before Replicate's 1-hour remote prediction file expiry window. Render v5 soundscape fixtures combining F5-TTS, Dia 1.6B, and XTTS-v2 dialogue targets with ElevenLabs action SFX and ambient beds. This subphase exits when all Replicate open-source speech targets pass prediction polling, artifact capture, expiry safety, cache, and four-bus mastering contracts.
+
+Phase 5 gate: Replicate-hosted F5-TTS, Dia 1.6B, and XTTS-v2 open-source models render zero-shot voice clones and multi-speaker dialogue through common plans and artifacts with expiry-safe local artifact capture.
+
+### Phase 6: Fish Audio Across Synthesis and Voice Workflows
+
+Phase 6 adds Fish as a first-class TTS and voice-management provider using its documented TTS and voice-model APIs.
+
+#### Phase 6A: Registry, Capability, and Pricing Foundation
+
+Add Fish provider identity, credentials, base URL, S1, S2 Pro, and `voice-design-1` model entries, lifecycle state, dated capability fixtures, pricing provenance, selector resolution, static validation, and readiness. Declare single-speaker TTS, S2 Pro native dialogue, reference clips, stable model IDs, timing, catalog, stateless voice design, fast clone, inspection, reconciliation, and deletion independently. This subphase exits when supported combinations route deterministically, unsupported SFX combinations fail without credentials, and no-call price remains read-only.
+
+#### Phase 6B: Single-Speaker TTS and Reference Identity
+
+Implement bounded single-speaker synthesis with approved `reference_id` resources or authorized zero-shot reference clips, documented prosody and output controls, response decoding, cache identity, request evidence, cancellation, retry classification, resume, and common dialogue artifacts. This subphase exits when mocked renders preserve exact voice identity and protected reference handling across price, execution, cache, and resume.
+
+#### Phase 6C: Native Dialogue and Timestamp Streaming
+
+Implement S2 Pro native multi-speaker planning and serialization, deterministic fallback to segmented turns, and timestamped SSE reduction that replaces the latest alignment snapshot by `chunk_seq` rather than accumulating superseded snapshots. Map retained alignment through prepared text and local transforms to the final timeline. This subphase exits when native/segmented selection, streaming reduction, exact anchor evidence, interruption, and malformed-event behavior pass mocked contracts.
+
+#### Phase 6D: Voice Design, Model Management, and Reconciliation
+
+Implement bounded `voice design` requests against the stateless `voice-design-1` endpoint, ingest every returned base64 candidate into the protected store, and retain prompt, reference text, model, seed, candidate index, sample rate, duration, and response identity. Implement `voice materialize` as a composed AutoShow workflow: validate exactly one protected selected candidate against the current create-model sample contract, then use that candidate as authorized reference audio for the ordinary fast model-creation path. Fish exposes no separate candidate-materialization operation, and a candidate identifier is not a durable remote voice resource; an ineligible candidate must fail locally instead of being padded, regenerated, or silently replaced. Also implement import, account/public model discovery, consent-gated fast voice creation through `voice clone`, canonical audition and approval, exact model inspection and training readiness, ambiguous creation reconciliation, local status/retirement/revocation, and exact project-owned deletion. Use model update only for shared mutable metadata and never for stable identity. Keep `voice save-reference` explicitly unsupported. This subphase exits when design candidates and every applicable `voice` row are durable, protected, resumable, and identity-safe.
+
+#### Phase 6E: Soundscape Routing and Acceptance
+
 Route documented in-speech emotion and delivery controls only to dialogue or eligible voice-qualified vocal reactions. Do not register Fish as an `--sfx-provider`; action-SFX and ambience remain dedicated-target work. This subphase exits when Fish single- and multi-speaker fixtures produce final mixes through the common plans and artifacts, timestamp evidence supports eligible strict anchors, and every unsupported voice or SFX operation fails before dispatch.
 
-Phase 4 gate: Fish can design and materialize protected voice candidates, manage authorized voice models, and render single- or multi-speaker dialogue through the common plans and artifacts; timestamp evidence survives into strict cue resolution, and every unsupported voice or SFX operation fails before dispatch.
+Phase 6 gate: Fish can design and materialize protected voice candidates, manage authorized voice models, and render single- or multi-speaker dialogue through the common plans and artifacts; timestamp evidence survives into strict cue resolution, and every unsupported voice or SFX operation fails before dispatch.
 
-The `voice` command coverage required by Phases 3 and 4 is explicit:
+The `voice` command coverage required by Phase 6 is explicit:
 
-| `voice` workflow | Resemble Phase 3 | Fish Phase 4 |
-|---|---|---|
-| `consent`, `revoke-consent` | Reuse provider-neutral protected consent records | Reuse provider-neutral protected consent records |
-| `import` | Register an existing stable voice UUID | Register an existing stable model ID |
-| `discover` | List provider and account voices with pagination and readiness metadata | List public or account models with pagination and model state |
-| `design` | Generate bounded prompt-designed candidates | Generate bounded stateless `voice-design-1` candidates and ingest their base64 audio into protected storage |
-| `materialize` | Create a selected design candidate asynchronously | Materialize exactly one protected selected candidate through the fast voice-model creation path |
-| `clone` | Create/build an authorized custom voice and reconcile asynchronous component readiness | Create an authorized fast TTS voice model from protected samples |
-| `audition`, `approve` | Reuse canonical protected auditions and atomic local approval | Reuse canonical protected auditions and atomic local approval |
-| `inspect` | Inspect exact voice and component/API readiness | Inspect exact model identity and training state |
-| `reconcile` | Reconcile ambiguous or pending design, clone, and build attempts without blind recreation | Reconcile ambiguous or pending model creation without blind recreation |
-| `retire`, `revoke`, `status` | Reuse provider-neutral append-preserved lifecycle state | Reuse provider-neutral append-preserved lifecycle state |
-| `delete` | Delete only an exact eligibility-checked project-owned voice | Delete only an exact eligibility-checked project-owned model |
-| `save-reference` | Unsupported; remains Mistral-specific | Unsupported; remains Mistral-specific |
+| `voice` workflow | Fish Phase 6 |
+|---|---|
+| `consent`, `revoke-consent` | Reuse provider-neutral protected consent records |
+| `import` | Register an existing stable model ID |
+| `discover` | List public or account models with pagination and model state |
+| `design` | Generate bounded stateless `voice-design-1` candidates and ingest their base64 audio into protected storage |
+| `materialize` | Materialize exactly one protected selected candidate through the fast voice-model creation path |
+| `clone` | Create an authorized fast TTS voice model from protected samples |
+| `audition`, `approve` | Reuse canonical protected auditions and atomic local approval |
+| `inspect` | Inspect exact model identity and training state |
+| `reconcile` | Reconcile ambiguous or pending model creation without blind recreation |
+| `retire`, `revoke`, `status` | Reuse provider-neutral append-preserved lifecycle state |
+| `delete` | Delete only an exact eligibility-checked project-owned model |
+| `save-reference` | Unsupported; remains Mistral-specific |
 
-The shared `voice clone` command introduced in Phase 1 is included in this matrix even though it is not part of the pre-ADR command surface. Every row must either perform the documented provider operation or return a stable local unsupported/external-action result before credentials or dispatch; silent omission does not satisfy phase completion.
+### Phase 7: Meta AudioGen Through Replicate
 
-### Phase 5: Meta AudioGen Through Replicate
+Phase 7 adds a second dedicated SFX target using Meta AudioCraft AudioGen through Replicate. The available target is the public community model `sepal/audiogen`, not an official Meta-owned or Replicate-maintained model. The initial fixture pins `sepal/audiogen:154b3e5141493cb1b8cec976d9aa90f2b691137e39ad906d2421b74c2a8c52b8`; changing owner, model, version, schema, hardware, or license requires a reviewed fixture update and cannot happen through silent alias resolution. Meta's AudioGen model card and Replicate's linked weight license identify the model weights as CC BY-NC 4.0, so this target is restricted to license-compatible noncommercial use unless separately documented rights supersede that fixture.
 
-Phase 5 adds a second dedicated SFX target using Meta AudioCraft AudioGen through Replicate. The available target is the public community model `sepal/audiogen`, not an official Meta-owned or Replicate-maintained model. The initial fixture pins `sepal/audiogen:154b3e5141493cb1b8cec976d9aa90f2b691137e39ad906d2421b74c2a8c52b8`; changing owner, model, version, schema, hardware, or license requires a reviewed fixture update and cannot happen through silent alias resolution. Meta's AudioGen model card and Replicate's linked weight license identify the model weights as CC BY-NC 4.0, so this target is restricted to license-compatible noncommercial use unless separately documented rights supersede that fixture.
-
-#### Phase 5A: Community-Model Governance and Pinning
+#### Phase 7A: Community-Model Governance and Pinning
 
 Record the exact owner, model, version, input schema, output schema, hardware observation, upstream source, license provenance, permitted-use classification, and community lifecycle classification. Reject aliases and unreviewed version changes, preserve historical fixture readers, and define removal/unavailability behavior. Treat unknown or commercial intended use as statically ineligible for the initial CC BY-NC 4.0 fixture; a different license requires reviewed documentary evidence and a new fixture identity. This subphase exits when a model or license change alters fixture identity, prohibited use fails before credentials, and a retired fixture remains sufficient to read prior manifests without enabling new dispatch.
 
-#### Phase 5B: Replicate SFX Target and Static Pricing
+#### Phase 7B: Replicate SFX Target and Static Pricing
 
 Add Replicate SFX provider identity, token readiness, version-qualified pricing, capability fixture, and the explicit `--sfx-provider replicate=sepal/audiogen@<version>` selector. Keep the target opt-in and excluded from default or implicit `all` selection. Require immutable license-use evidence in the render plan before readiness, and never infer noncommercial eligibility from model selection alone. Serialize prompt, one-to-ten-second duration, sampling controls, classifier-free guidance, and WAV or MP3 output with every default explicit and identity-bearing. This subphase exits when static validation and no-call price tests distinguish supported inputs, prohibited or unknown use, unknown price, invalid duration, and version mismatch without credentials or writes.
 
-#### Phase 5C: Prediction Execution Lifecycle
+#### Phase 7C: Prediction Execution Lifecycle
 
 Implement bounded prediction creation, polling, terminal-state reduction, cancellation, timeout and retry classification, sanitized logs and errors, and observed prediction, version, and compute metadata. Never silently create a second prediction after ambiguous admission. This subphase exits when mocked starting, processing, succeeded, failed, canceled, timed-out, and ambiguous-admission paths remain bounded and resumable.
 
-#### Phase 5D: Expiry-Safe Artifact Capture and Soundscape Routing
+#### Phase 7D: Expiry-Safe Artifact Capture and Soundscape Routing
 
 Download successful output immediately into a checksummed canonical artifact because remote API prediction data and files expire. Route AudioGen only to action-SFX and ambient source tasks; give it no voice identity, voice-management, speech-to-speech, or dialogue role; and retain local deterministic ambience looping beyond the model's maximum generation duration. Keep ElevenLabs selectable and prohibit fallback substitution when the chosen target is unavailable. This subphase exits when expiry, download interruption, checksum, cache, resume, bus routing, and cross-provider identity tests pass offline.
 
-#### Phase 5E: End-to-End and Historical Acceptance
+#### Phase 7E: End-to-End and Historical Acceptance
 
 Run the pinned community model through mocked license eligibility, price, prediction, output capture, cache, resume, mixing, cancellation, and failure contracts, then prove that marking the model unavailable blocks new dispatch without making existing plans, results, manifests, or mixes unreadable. This subphase exits when Replicate AudioGen operates as a second explicit, use-restricted SFX target without weakening historical or provider-selection guarantees.
 
-Phase 5 gate: the pinned community deployment passes mocked license-eligibility, prediction, polling, cancellation, expiry, price, cache, resume, and mixer contracts and can be removed or marked unavailable without making historical manifests unreadable.
+Phase 7 gate: the pinned community deployment passes mocked license-eligibility, prediction, polling, cancellation, expiry, price, cache, resume, and mixer contracts and can be removed or marked unavailable without making historical manifests unreadable.
+
+### Phase 8: Multi-Model Episode 2 Scene 1 Render Matrix and ADR-019 Panel Video Generation
+
+Phase 8 establishes the production execution plan for Episode 2 Scene 1 (`01-mandatory-meeting`), building upon the initial Fish 1.5 baseline audio run and workspace initializations for Cartesia, Hume, and MiniMax present in `c/uss-acampo/output/ep02/`. The goal is to generate complete multi-speaker dialogue and soundscape masters for all newly integrated models and render corresponding ADR-019 panel videos (`panel-vid`) across structured parallel execution waves.
+
+#### Phase 8A: Episode 2 Scene 1 Authored Script and Workspace Audit
+
+Verify the canonical v5 `structured-script.json` for Episode 2 Scene 1 (`01-mandatory-meeting`), featuring multi-character dialogue turns, non-verbal vocal reactions, action SFX directives, and ambient beds. Confirm the existing completed Fish 1.5 run (`output/ep02/01-mandatory-meeting/audio/speech-fish-1.5.wav`) and audit initialized workspaces (`01-mandatory-meeting-cartesia`, `01-mandatory-meeting-hume`, `01-mandatory-meeting-minimax`). Validate that `SoundscapePlan` and `ComicDialoguePlan` generate deterministically across all targeted providers without embedding provider-specific parameters in the source script. Completed on 2026-08-14; v5 script structure generated deterministically and static planning validated across all model targets.
+
+#### Phase 8B: Sub-Wave Multi-Model Soundscape Audio Generation Matrix
+
+Execute parallel soundscape audio generation runs for Episode 2 Scene 1 across granular sub-waves with default concurrency set to 7 (`--provider-concurrency 7` / default `DEFAULT_CLI_CONCURRENCY = 7`), ensuring that each sub-wave dispatches exactly one model from each target provider concurrently to maximize throughput without API key collisions or single-provider rate-limit contention:
+
+- **Wave 1: Open-Weight & Multi-Provider Suite**
+  - **Sub-Wave 1.1**: Concurrent run of Replicate `x-lance/f5-tts`, Fal `fal-ai/speech`, and DeepInfra `ResembleAI/chatterbox-multilingual`.
+  - **Sub-Wave 1.2**: Concurrent run of Replicate `zsxkib/dia`, Fal `fal-ai/speech/clone`, and DeepInfra `XiaomiMiMo/MiMo-V2.5-tts`.
+  - **Sub-Wave 1.3**: Concurrent run of Replicate `lucataco/xtts-v2`, Fal `fal-ai/speech/design`, and DeepInfra `Qwen/Qwen3-TTS`.
+- **Wave 2: Steerable Enterprise & Fine-Grained API Suite**
+  - **Sub-Wave 2.1**: Concurrent run of Inworld AI `realtime-tts-2`, Fish Audio `s2-pro`, and ElevenLabs `eleven_v3`.
+  - **Sub-Wave 2.2**: Concurrent run of Inworld AI `realtime-tts-1.5-max`, Fish Audio `fish-speech-1.5`, and Hume `octave-2`.
+  - **Sub-Wave 2.3**: Concurrent run of Inworld AI `realtime-tts-1.5-mini`, Fish Audio `s1`, and Hume `octave-1`.
+- **Wave 3: Fast Prototyping & Voice Design Suite**
+  - **Sub-Wave 3.1**: Concurrent run of MiniMax `speech-2.8-hd`, Cartesia `sonic-3.5-2026-05-04`, and DeepInfra `ResembleAI/chatterbox-turbo`.
+  - **Sub-Wave 3.2**: Concurrent run of MiniMax `speech-2.8-turbo`, Cartesia `sonic-3.0`, and DeepInfra `XiaomiMiMo/MiMo-V2.5-tts-voicedesign`.
+  - **Sub-Wave 3.3**: Concurrent run of MiniMax `speech-2.8`, Cartesia `sonic-2.5`, and DeepInfra `Qwen/Qwen3-TTS-VoiceDesign`.
+
+Each run combines the target model's dialogue bus with action SFX and ambient beds, outputting checksummed stem WAVs and mastered soundscape WAVs. This subphase exits when all model targets across Sub-Waves 1.1 through 3.3 pass synthesis, cache materialization, and four-bus mix assembly.
+
+#### Phase 8C: ADR-019 Panel Video Sub-Wave Generation (panel-vid)
+
+Execute the ADR-019 panel video rendering pipeline (`comic generate-panel-video` / `panel-vid`) across matching parallel sub-waves for every completed soundscape audio run:
+
+- **Sub-Wave 4.1**: Parallel `panel-vid` generation matching Wave 1 audio runs (Sub-Waves 1.1, 1.2, 1.3).
+- **Sub-Wave 4.2**: Parallel `panel-vid` generation matching Wave 2 audio runs (Sub-Waves 2.1, 2.2, 2.3).
+- **Sub-Wave 4.3**: Parallel `panel-vid` generation matching Wave 3 audio runs (Sub-Waves 3.1, 3.2, 3.3).
+
+Align visual comic panels with the derived timing of each provider's soundscape run, rendering synchronized video tracks with audio waveform integration and panel transitions. This subphase exits when every Episode 2 Scene 1 audio run produces a valid, playable, manifest-backed panel video artifact.
+
+#### Phase 8D: Cross-Model Media Verification and Manifest Audit
+
+Audit the complete Episode 2 Scene 1 artifact graph, verifying that `manifest.json`, `selectedSoundscapeRuns`, `finalOutputRefs`, panel video manifests, and transform ledgers maintain total checksum lineage across all model targets. This subphase exits when the entire render matrix passes offline verification with zero unhandled errors or missing references.
+
+Phase 8 gate: Episode 2 Scene 1 generates complete soundscape audio runs across all integrated speech models across structured parallel waves and every run has a corresponding manifest-backed ADR-019 panel video.
 
 ### Phase Gates
 
@@ -338,15 +443,18 @@ Phase 5 gate: the pinned community deployment passes mocked license-eligibility,
 |---|---|---|---|
 | 1 | 1A intent/planning → 1B ElevenLabs voice/clone → 1C ElevenLabs SFX/execution → 1D mixer/artifacts → 1E acceptance | ElevenLabs SFX plus the complete provider-neutral planner, executor, mixer, and artifact vertical slice | All common soundscape contracts pass offline; a v5 scene produces a resumable final master from mocked ElevenLabs outputs |
 | 2 | 2A vocal routing → 2B Hume → 2C Cartesia → 2D MiniMax → 2E acceptance | Cartesia, Hume, and MiniMax capabilities already exposed by their current TTS and voice adapters | Capability routing is deterministic; no provider is mislabeled as a general SFX target; shared voice clone behavior is protected and truthful |
-| 3 | 3A registry/capabilities → 3B TTS/timing → 3C discovery/design → 3D clone/lifecycle → 3E speech-to-speech acceptance | Resemble TTS, speech-to-speech, design, clone, catalog, lifecycle, and applicable `voice` workflows | Provider operations are durable and reconcilable; speech-to-speech remains isolated from general foley |
-| 4 | 4A registry/capabilities → 4B single-speaker TTS → 4C dialogue/timestamps → 4D voice design/models → 4E acceptance | Fish TTS, multi-speaker and timestamp behavior, stateless voice design, voice-model clone/catalog/lifecycle, and applicable `voice` workflows | Design, timestamp, and model lifecycle artifacts are verified; unsupported SFX paths fail statically |
-| 5 | 5A governance/pinning → 5B target/pricing → 5C predictions → 5D artifacts/routing → 5E acceptance | Version-pinned, noncommercial-use-restricted Replicate community AudioGen SFX target | License eligibility, prediction expiry, provenance, exact model version, cost, cancellation, cache, resume, and historical readability are proven offline |
+| 3 | 3A foundation → 3B TTS/timing → 3C cloning/design → 3D markups → 3E acceptance | First-party Inworld AI steerable TTS, instant/pro cloning, voice design, natural language steering, and audio markups | Steerable dialogue, voice cloning, and audio markups pass offline acceptance; viseme alignment supports lip-syncing |
+| 4 | 4A foundation → 4B Chatterbox → 4C MiMo V2.5 → 4D Qwen3-TTS → 4E acceptance | DeepInfra hosted speech suite (Chatterbox, MiMo V2.5, Qwen3-TTS) across dialogue, voice design, and zero-shot cloning | Multi-speaker dialogue, promotional voice design, and zero-shot cloning pass offline acceptance with verified pricing |
+| 5 | 5A foundation → 5B F5-TTS → 5C Dia 1.6B → 5D XTTS-v2 → 5E acceptance | Replicate open-source speech suite (F5-TTS, Dia 1.6B, XTTS-v2) for zero-shot cloning and script dialogue | Zero-shot cloning and multi-speaker script dialogue pass prediction execution and expiry-safe local artifact capture |
+| 6 | 6A registry/capabilities → 6B single-speaker TTS → 6C dialogue/timestamps → 6D voice design/models → 6E acceptance | Fish TTS, multi-speaker and timestamp behavior, stateless voice design, voice-model clone/catalog/lifecycle, and applicable `voice` workflows | Design, timestamp, and model lifecycle artifacts are verified; unsupported SFX paths fail statically |
+| 7 | 7A governance/pinning → 7B target/pricing → 7C predictions → 7D artifacts/routing → 7E acceptance | Version-pinned, noncommercial-use-restricted Replicate community AudioGen SFX target | License eligibility, prediction expiry, provenance, exact model version, cost, cancellation, cache, resume, and historical readability are proven offline |
+| 8 | 8A script/planning → 8B audio matrix → 8C panel-vid → 8D verification | Episode 2 Scene 1 render matrix across Hume, Cartesia, MiniMax, Inworld, DeepInfra, Replicate, and Fish speech targets plus ADR-019 panel videos | Episode 2 Scene 1 produces complete soundscape audio runs and corresponding panel video artifacts for every supported model |
 
 ### Implementation Documentation Index
 
-These are the primary implementation references reviewed on 2026-08-13. Provider documentation, models, access conditions, and prices can change; each capability or pricing fixture must retain the exact source URL, retrieval date, applicable provider/model/transport scope, and evidence hash rather than treating this index as a timeless capability claim. Documentation lookup does not authorize a paid or quota-limited provider request.
+These are the primary implementation references reviewed on 2026-08-13 and updated 2026-08-14. Provider documentation, models, access conditions, and prices can change; each capability or pricing fixture must retain the exact source URL, retrieval date, applicable provider/model/transport scope, and evidence hash rather than treating this index as a timeless capability claim. Documentation lookup does not authorize a paid or quota-limited provider request.
 
-Use the maintained provider indexes when a deep link moves: [ElevenLabs developer documentation](https://elevenlabs.io/docs/overview/intro), [Hume documentation index](https://dev.hume.ai/llms.txt), [Cartesia documentation index](https://docs.cartesia.ai/llms.txt), [MiniMax documentation index](https://platform.minimax.io/docs/llms.txt), [Resemble documentation index](https://docs.resemble.ai/llms.txt), [Fish documentation index](https://docs.fish.audio/llms.txt), and [Replicate documentation index](https://replicate.com/docs/llms.txt).
+Use the maintained provider indexes when a deep link moves: [ElevenLabs developer documentation](https://elevenlabs.io/docs/overview/intro), [Hume documentation index](https://dev.hume.ai/llms.txt), [Cartesia documentation index](https://docs.cartesia.ai/llms.txt), [MiniMax documentation index](https://platform.minimax.io/docs/llms.txt), [Inworld documentation index](https://docs.inworld.ai/), [DeepInfra documentation index](https://docs.deepinfra.com/), [Fish documentation index](https://docs.fish.audio/llms.txt), and [Replicate documentation index](https://replicate.com/docs/llms.txt).
 
 | Subphase | Primary implementation references |
 |---|---|
@@ -360,21 +468,31 @@ Use the maintained provider indexes when a deep link moves: [ElevenLabs develope
 | [2C](#phase-2c-cartesia-integration) | [current API changes](https://docs.cartesia.ai/build-with-cartesia/tts-models/api-changes), [Sonic model and snapshots](https://docs.cartesia.ai/build-with-cartesia/tts-models/latest), [TTS bytes API](https://docs.cartesia.ai/api-reference/tts/bytes), [speed, volume, emotion, and nonverbalisms](https://docs.cartesia.ai/build-with-cartesia/capability-guides/volume-speed-emotion), [list voices](https://docs.cartesia.ai/api-reference/voices/list), [clone voice](https://docs.cartesia.ai/api-reference/voices/clone), [get voice](https://docs.cartesia.ai/api-reference/voices/get), [delete voice](https://docs.cartesia.ai/api-reference/voices/delete), and [concurrency limits](https://docs.cartesia.ai/use-the-api/concurrency-limits-and-timeouts). |
 | [2D](#phase-2d-minimax-integration) | [API overview](https://platform.minimax.io/docs/api-reference/api-overview), [T2A HTTP API, interjections, and subtitles](https://platform.minimax.io/docs/api-reference/speech-t2a-http), [Voice Design](https://platform.minimax.io/docs/api-reference/voice-design-design), [Voice Clone workflow](https://platform.minimax.io/docs/guides/speech-voice-clone), [clone API](https://platform.minimax.io/docs/api-reference/voice-cloning-clone), [get voices](https://platform.minimax.io/docs/api-reference/voice-management-get), [delete voice](https://platform.minimax.io/docs/api-reference/voice-management-delete), and [pay-as-you-go pricing](https://platform.minimax.io/docs/guides/pricing-paygo). |
 | [2E](#phase-2e-cross-provider-acceptance) | Provider references in 2B–2D, [Bun mocks](https://bun.sh/docs/test/mocks), and this ADR's [Test Plan](#test-plan). |
-| [3A](#phase-3a-registry-capability-and-pricing-foundation) | [Resemble authentication](https://docs.resemble.ai/getting-started/authentication), [rate limits](https://docs.resemble.ai/getting-started/rate-limits), [error handling](https://docs.resemble.ai/getting-started/errors), [model versions](https://docs.resemble.ai/getting-started/model-versions), [account schema](https://docs.resemble.ai/platform-management/account), and [billing usage](https://docs.resemble.ai/platform-management/account/billing-usage.md). |
-| [3B](#phase-3b-tts-timing-and-render-artifacts) | [TTS overview](https://docs.resemble.ai/voice-generation/text-to-speech), [synchronous TTS and timestamp response](https://docs.resemble.ai/voice-generation/text-to-speech/synchronous), and [HTTP streaming and WAV timestamp metadata](https://docs.resemble.ai/voice-generation/text-to-speech/streaming-http). |
-| [3C](#phase-3c-discovery-design-and-materialization) | [Voice Design overview](https://docs.resemble.ai/voice-creation/voice-design/design-overview), [generate candidates](https://docs.resemble.ai/voice-creation/voice-design/generate), [create voice from candidate](https://docs.resemble.ai/voice-creation/voice-design/create-from-candidate), and [list voices](https://docs.resemble.ai/voice-creation/voices/list). |
-| [3D](#phase-3d-clone-lifecycle-and-reconciliation) | [voice-clone overview](https://docs.resemble.ai/voice-creation/voices/clone-overview), [create voice](https://docs.resemble.ai/voice-creation/voices/create), [create recording](https://docs.resemble.ai/voice-creation/recordings/create), [build voice](https://docs.resemble.ai/voice-creation/voices/build), [get voice](https://docs.resemble.ai/voice-creation/voices/get), and [delete voice](https://docs.resemble.ai/voice-creation/voices/delete). |
-| [3E](#phase-3e-speech-to-speech-and-soundscape-acceptance) | [Resemble Speech-to-Speech](https://docs.resemble.ai/voice-generation/speech-to-speech), the protected voice references in 3D, [Bun mocks](https://bun.sh/docs/test/mocks), and this ADR's [Test Plan](#test-plan). |
-| [4A](#phase-4a-registry-capability-and-pricing-foundation) | [Fish API introduction](https://docs.fish.audio/api-reference/introduction), [canonical OpenAPI schema](https://api.fish.audio/openapi.json), [models overview](https://docs.fish.audio/developer-guide/models-pricing/models-overview), [pricing and rate limits](https://docs.fish.audio/developer-guide/models-pricing/pricing-and-rate-limits), and [model deprecations](https://docs.fish.audio/developer-guide/models-pricing/deprecations). |
-| [4B](#phase-4b-single-speaker-tts-and-reference-identity) | [Fish TTS API](https://docs.fish.audio/api-reference/endpoint/openapi-v1/text-to-speech), [text-to-speech guide](https://docs.fish.audio/developer-guide/core-features/text-to-speech), and [voice-cloning best practices](https://docs.fish.audio/developer-guide/best-practices/voice-cloning). |
-| [4C](#phase-4c-native-dialogue-and-timestamp-streaming) | [Fish TTS API and S2 Pro dialogue schema](https://docs.fish.audio/api-reference/endpoint/openapi-v1/text-to-speech), [timestamped streaming API](https://docs.fish.audio/api-reference/endpoint/openapi-v1/text-to-speech-stream-with-timestamps), and [real-time streaming guide](https://docs.fish.audio/developer-guide/best-practices/real-time-streaming). |
-| [4D](#phase-4d-voice-design-model-management-and-reconciliation) | [Voice Design API](https://docs.fish.audio/api-reference/endpoint/openapi-v1/voice-design), [Voice Design guide](https://docs.fish.audio/features/voice-design), [create model](https://docs.fish.audio/api-reference/endpoint/model/create-model), [list models](https://docs.fish.audio/api-reference/endpoint/model/list-models), [get model](https://docs.fish.audio/api-reference/endpoint/model/get-model), [update model](https://docs.fish.audio/api-reference/endpoint/model/update-model), and [delete model](https://docs.fish.audio/api-reference/endpoint/model/delete-model). |
-| [4E](#phase-4e-soundscape-routing-and-acceptance) | [Fish emotion control](https://docs.fish.audio/developer-guide/core-features/emotions), [fine-grained speech control](https://docs.fish.audio/developer-guide/core-features/fine-grained-control), the TTS and timing references in 4B–4C, and this ADR's [Test Plan](#test-plan). |
-| [5A](#phase-5a-community-model-governance-and-pinning) | [Replicate community-model policy](https://replicate.com/docs/topics/models/community-models), [model versions](https://replicate.com/docs/topics/models/versions), [AudioCraft AudioGen documentation](https://github.com/facebookresearch/audiocraft/blob/main/docs/AUDIOGEN.md), [AudioGen model card](https://github.com/facebookresearch/audiocraft/blob/main/model_cards/AUDIOGEN_MODEL_CARD.md), and the [CC BY-NC 4.0 weight license](https://github.com/facebookresearch/audiocraft/blob/main/LICENSE_weights). |
-| [5B](#phase-5b-replicate-sfx-target-and-static-pricing) | [exact pinned AudioGen API schema](https://replicate.com/sepal/audiogen/versions/154b3e5141493cb1b8cec976d9aa90f2b691137e39ad906d2421b74c2a8c52b8/api), [Replicate pricing](https://replicate.com/pricing), [community-model pricing semantics](https://replicate.com/docs/topics/models/community-models), and [HTTP prediction API](https://replicate.com/docs/reference/http#create-a-prediction). |
-| [5C](#phase-5c-prediction-execution-lifecycle) | [create and poll a prediction](https://replicate.com/docs/topics/predictions/create-a-prediction), [prediction lifecycle and terminal states](https://replicate.com/docs/topics/predictions/lifecycle), [HTTP get and cancel operations](https://replicate.com/docs/reference/http), [webhooks](https://replicate.com/docs/topics/webhooks), and [prediction rate limits](https://replicate.com/docs/topics/predictions/rate-limits). |
-| [5D](#phase-5d-expiry-safe-artifact-capture-and-soundscape-routing) | [Replicate output files](https://replicate.com/docs/topics/predictions/output-files), [prediction data retention](https://replicate.com/docs/topics/predictions/data-retention), the [exact pinned AudioGen output schema](https://replicate.com/sepal/audiogen/versions/154b3e5141493cb1b8cec976d9aa90f2b691137e39ad906d2421b74c2a8c52b8/api), and the local mastering references in 1D. |
-| [5E](#phase-5e-end-to-end-and-historical-acceptance) | [Replicate model versions](https://replicate.com/docs/topics/models/versions), [community-model lifecycle policy](https://replicate.com/docs/topics/models/community-models), [Bun test runner](https://bun.sh/docs/test), [Bun mocks](https://bun.sh/docs/test/mocks), and this ADR's [Test Plan](#test-plan). |
+| [3A](#phase-3a-registry-capability-and-pricing-foundation) | [Inworld AI documentation](https://docs.inworld.ai/), [Inworld AI pricing](https://inworld.ai/pricing), and [Inworld AI Voice Cloning API guide](https://docs.inworld.ai/docs/tutorial-basics/voice-cloning/). |
+| [3B](#phase-3b-tts-timing-and-render-artifacts) | [Inworld AI TTS overview](https://docs.inworld.ai/) and [REST/WebSocket interface reference](https://docs.inworld.ai/). |
+| [3C](#phase-3c-instantpro-voice-cloning-and-voice-design) | [Inworld Voice Cloning guide](https://docs.inworld.ai/docs/tutorial-basics/voice-cloning/) and [voice creation API](https://docs.inworld.ai/). |
+| [3D](#phase-3d-natural-language-steering-and-audio-markups) | [Inworld audio markups and natural language steering reference](https://docs.inworld.ai/). |
+| [3E](#phase-3e-soundscape-routing-and-acceptance) | Inworld references in 3A–3D and this ADR's [Test Plan](#test-plan). |
+| [4A](#phase-4a-registry-capability-and-pricing-foundation) | [DeepInfra TTS API reference](https://docs.deepinfra.com/apis/text-to-speech) and [DeepInfra models catalog](https://deepinfra.com/models/text-to-speech). |
+| [4B](#phase-4b-chatterbox-multilingual--turbo-adapters) | [DeepInfra Chatterbox Multilingual model](https://deepinfra.com/ResembleAI/chatterbox-multilingual) and [DeepInfra Chatterbox Turbo model](https://deepinfra.com/ResembleAI/chatterbox-turbo). |
+| [4C](#phase-4c-mimo-v25-tts--voice-design-adapters) | [DeepInfra Xiaomi MiMo-V2.5-tts model](https://deepinfra.com/XiaomiMiMo/MiMo-V2.5-tts) and [DeepInfra Xiaomi MiMo-V2.5-tts-voicedesign model](https://deepinfra.com/XiaomiMiMo/MiMo-V2.5-tts-voicedesign). |
+| [4D](#phase-4d-qwen3-tts--voicedesign-zero-shot-adapters) | [DeepInfra Qwen3-TTS model](https://deepinfra.com/Qwen/Qwen3-TTS) and [DeepInfra Qwen3-TTS VoiceDesign model](https://deepinfra.com/Qwen/Qwen3-TTS-VoiceDesign). |
+| [4E](#phase-4e-soundscape-routing-and-acceptance) | DeepInfra references in 4A–4D and this ADR's [Test Plan](#test-plan). |
+| [5A](#phase-5a-registry-capability-and-prediction-foundation) | [Replicate Speech Generation Collection](https://replicate.com/collections/speech-generation) and [Replicate HTTP prediction API](https://replicate.com/docs/reference/http#create-a-prediction). |
+| [5B](#phase-5b-f5-tts-zero-shot-cloning-adapter) | [Replicate F5-TTS model](https://replicate.com/x-lance/f5-tts). |
+| [5C](#phase-5c-dia-16b-multi-speaker-dialogue-adapter) | [Replicate Dia dialogue model](https://replicate.com/zsxkib/dia). |
+| [5D](#phase-5d-xtts-v2-multilingual-cloning-adapter) | [Replicate XTTS-v2 model](https://replicate.com/lucataco/xtts-v2). |
+| [5E](#phase-5e-soundscape-routing-and-acceptance) | Replicate references in 5A–5D and this ADR's [Test Plan](#test-plan). |
+| [6A](#phase-6a-registry-capability-and-pricing-foundation) | [Fish API introduction](https://docs.fish.audio/api-reference/introduction), [canonical OpenAPI schema](https://api.fish.audio/openapi.json), [models overview](https://docs.fish.audio/developer-guide/models-pricing/models-overview), [pricing and rate limits](https://docs.fish.audio/developer-guide/models-pricing/pricing-and-rate-limits), and [model deprecations](https://docs.fish.audio/developer-guide/models-pricing/deprecations). |
+| [6B](#phase-6b-single-speaker-tts-and-reference-identity) | [Fish TTS API](https://docs.fish.audio/api-reference/endpoint/openapi-v1/text-to-speech), [text-to-speech guide](https://docs.fish.audio/developer-guide/core-features/text-to-speech), and [voice-cloning best practices](https://docs.fish.audio/developer-guide/best-practices/voice-cloning). |
+| [6C](#phase-6c-native-dialogue-and-timestamp-streaming) | [Fish TTS API and S2 Pro dialogue schema](https://docs.fish.audio/api-reference/endpoint/openapi-v1/text-to-speech), [timestamped streaming API](https://docs.fish.audio/api-reference/endpoint/openapi-v1/text-to-speech-stream-with-timestamps), and [real-time streaming guide](https://docs.fish.audio/developer-guide/best-practices/real-time-streaming). |
+| [6D](#phase-6d-voice-design-model-management-and-reconciliation) | [Voice Design API](https://docs.fish.audio/api-reference/endpoint/openapi-v1/voice-design), [Voice Design guide](https://docs.fish.audio/features/voice-design), [create model](https://docs.fish.audio/api-reference/endpoint/model/create-model), [list models](https://docs.fish.audio/api-reference/endpoint/model/list-models), [get model](https://docs.fish.audio/api-reference/endpoint/model/get-model), [update model](https://docs.fish.audio/api-reference/endpoint/model/update-model), and [delete model](https://docs.fish.audio/api-reference/endpoint/model/delete-model). |
+| [6E](#phase-6e-soundscape-routing-and-acceptance) | [Fish emotion control](https://docs.fish.audio/developer-guide/core-features/emotions), [fine-grained speech control](https://docs.fish.audio/developer-guide/core-features/fine-grained-control), the TTS and timing references in 6B–6C, and this ADR's [Test Plan](#test-plan). |
+| [7A](#phase-7a-community-model-governance-and-pinning) | [Replicate community-model policy](https://replicate.com/docs/topics/models/community-models), [model versions](https://replicate.com/docs/topics/models/versions), [AudioCraft AudioGen documentation](https://github.com/facebookresearch/audiocraft/blob/main/docs/AUDIOGEN.md), [AudioGen model card](https://github.com/facebookresearch/audiocraft/blob/main/model_cards/AUDIOGEN_MODEL_CARD.md), and the [CC BY-NC 4.0 weight license](https://github.com/facebookresearch/audiocraft/blob/main/LICENSE_weights). |
+| [7B](#phase-7b-replicate-sfx-target-and-static-pricing) | [exact pinned AudioGen API schema](https://replicate.com/sepal/audiogen/versions/154b3e5141493cb1b8cec976d9aa90f2b691137e39ad906d2421b74c2a8c52b8/api), [Replicate pricing](https://replicate.com/pricing), [community-model pricing semantics](https://replicate.com/docs/topics/models/community-models), and [HTTP prediction API](https://replicate.com/docs/reference/http#create-a-prediction). |
+| [7C](#phase-7c-prediction-execution-lifecycle) | [create and poll a prediction](https://replicate.com/docs/topics/predictions/create-a-prediction), [prediction lifecycle and terminal states](https://replicate.com/docs/topics/predictions/lifecycle), [HTTP get and cancel operations](https://replicate.com/docs/reference/http), [webhooks](https://replicate.com/docs/topics/webhooks), and [prediction rate limits](https://replicate.com/docs/topics/predictions/rate-limits). |
+| [7D](#phase-7d-expiry-safe-artifact-capture-and-soundscape-routing) | [Replicate output files](https://replicate.com/docs/topics/predictions/output-files), [prediction data retention](https://replicate.com/docs/topics/predictions/data-retention), the [exact pinned AudioGen output schema](https://replicate.com/sepal/audiogen/versions/154b3e5141493cb1b8cec976d9aa90f2b691137e39ad906d2421b74c2a8c52b8/api), and the local mastering references in 1D. |
+| [7E](#phase-7e-end-to-end-and-historical-acceptance) | [Replicate model versions](https://replicate.com/docs/topics/models/versions), [community-model lifecycle policy](https://replicate.com/docs/topics/models/community-models), [Bun test runner](https://bun.sh/docs/test), [Bun mocks](https://bun.sh/docs/test/mocks), and this ADR's [Test Plan](#test-plan). |
 
 ## Rationale
 
@@ -394,7 +512,7 @@ Positive outcomes:
 - Cue timing, optional omissions, cache reuse, billed usage, and every local transform remain auditable.
 - Dialogue-only v5 scenes keep the existing execution behavior and make no SFX provider call.
 - Later phases add provider capabilities without weakening the distinction between speech generation and dedicated non-speech generation.
-- Resemble and Fish gain the same durable consent, voice registration, audition, approval, lifecycle, pricing, and artifact protections as existing advanced voice providers.
+- Fish gains the same durable consent, voice registration, audition, approval, lifecycle, pricing, and artifact protections as existing advanced voice providers.
 
 Negative outcomes:
 
@@ -402,7 +520,7 @@ Negative outcomes:
 - Final mastering now depends on a selected dialogue timeline, so exact mid-turn cues can block dialogue render targets that do not expose sufficient timing evidence.
 - The artifact graph and resume identity become more complex because generation and mixing have separate lifecycles.
 - Retaining reusable source audio and semantic stems increases disk usage.
-- Five ordered phases increase the implementation and verification surface, and Phases 3 and 4 require provider-wide registry, TTS, voice design, and voice-management work rather than isolated SFX adapters.
+- Seven ordered phases increase the implementation and verification surface, and speech provider phases require provider-wide registry, TTS, voice design, and voice-management work rather than isolated SFX adapters.
 - The Replicate AudioGen target is a community deployment with weaker availability guarantees than an official hosted model and CC BY-NC 4.0 model weights, so exact version, provenance, permitted-use evidence, and historical readability need additional controls and commercial use is ineligible under the initial fixture.
 
 ## Trade-offs
@@ -413,19 +531,23 @@ Negative outcomes:
 | Exact, auditable placement | Strict failures when canonical timing evidence is unavailable |
 | Provider-output reuse across many mixes | Additional retained artifacts and checksums |
 | Offline mixer verification | Hosted quality still requires a separately approved calibration run |
-| Ordered, evidence-gated provider expansion | Five gated phases before the complete provider set is delivered |
-| Resemble and Fish coverage across applicable `voice` workflows | Broader provider lifecycle and reconciliation surface |
-| A second dedicated SFX target | Dependence on a pinned Replicate community model in Phase 5 |
+| Ordered, evidence-gated provider expansion | Seven gated phases before the complete provider set is delivered |
+| Fish coverage across applicable `voice` workflows | Broader provider lifecycle and reconciliation surface |
+| A second dedicated SFX target | Dependence on a pinned Replicate community model in Phase 7 |
 
 ## Follow-up Actions
 
 | Action | Owner | Current State |
 |---|---|---|
 | Phase 1A–1E: deliver authored planning, the ElevenLabs voice/clone reference path, ElevenLabs SFX execution, the calibrated four-bus mixer, canonical artifacts, and offline acceptance | AutoShow Team | Complete — offline gate passed 2026-08-13; no live provider call used |
-| Phase 2A–2E: add capability routing, Hume, Cartesia, and MiniMax integration, shared voice-workflow extensions, and cross-provider acceptance | AutoShow Team | Pending |
-| Phase 3A–3E: add Resemble registry/pricing, TTS/timing, design/materialization, clone/lifecycle/reconciliation, speech-to-speech routing, and acceptance | AutoShow Team | Pending |
-| Phase 4A–4E: add Fish registry/pricing, reference-voice TTS, native dialogue/timestamps, stateless design/materialization, voice-model lifecycle/reconciliation, soundscape routing, and acceptance | AutoShow Team | Pending |
-| Phase 5A–5E: add AudioGen governance/pinning and license eligibility, the Replicate SFX target, prediction execution, expiry-safe artifacts/routing, and historical acceptance | AutoShow Team | Pending |
+| Phase 2A–2E: add capability routing, Hume, Cartesia, and MiniMax integration, shared voice-workflow extensions, and cross-provider acceptance | AutoShow Team | Complete — offline gate passed 2026-08-13; no live provider call used |
+| Phase 3A–3E: add First-Party Inworld AI foundation, steerable TTS, instant/pro cloning, voice design, natural language steering, audio markups, and acceptance | AutoShow Team | Complete — offline gate passed 2026-08-14; verified via unit & contract test suite |
+| Phase 4A–4E: add DeepInfra hosted speech suite (Chatterbox, MiMo V2.5, Qwen3-TTS) foundation, adapters, zero-shot cloning, and acceptance | AutoShow Team | Complete — offline gate passed 2026-08-14; verified via unit & contract test suite |
+| Phase 5A–5E: add Replicate open-source speech suite (F5-TTS, Dia 1.6B, XTTS-v2) foundation, zero-shot cloning, multi-speaker dialogue, and acceptance | AutoShow Team | Complete — offline gate passed 2026-08-14; verified via unit & contract test suite |
+| Phase 6A–6E: add Fish registry/pricing, reference-voice TTS, native dialogue/timestamps, stateless design/materialization, voice-model lifecycle/reconciliation, soundscape routing, and acceptance | AutoShow Team | Complete — offline gate passed 2026-08-14; verified via unit & contract test suite |
+| Phase 7A–7E: add AudioGen governance/pinning and license eligibility, the Replicate SFX target, prediction execution, expiry-safe artifacts/routing, and historical acceptance | AutoShow Team | Complete — offline gate passed 2026-08-14; verified via unit & contract test suite |
+| Phase 8A: Episode 2 Scene 1 authored script & workspace audit | AutoShow Team | Complete — v5 script structure generated & static planning validated |
+| Phase 8B–8D: generate Episode 2 Scene 1 soundscape audio matrix across Hume, Cartesia, MiniMax, Inworld, DeepInfra, Replicate, and Fish sub-waves with corresponding ADR-019 panel-vid renders | AutoShow Team | In Progress — Hume Octave-1 audio run completed (38.7 MB) & panel-vid rendered (slideshow.mp4); Replicate F5-TTS & DeepInfra Chatterbox preflights validated |
 
 ## Test Plan
 
@@ -456,4 +578,4 @@ The implemented Phase 1 tests use local synthetic WAV fixtures and mocked HTTP r
 - Related ADR: [ADR-014](ADR-014-add-character-voice-references-and-multi-speaker-script-to-audio.md) — dialogue, timing, cache, artifact, and mastering foundation
 - Related ADR: [ADR-019](ADR-019-synchronize-comic-panels-with-manifest-backed-audio.md) — derived panel timing, presentation remix, and still-image rendering
 - Background report: [Cartoon Sci-Fi Space Crew Voice, Multi-Character TTS, and Soundscape/Foley Options](../reports/comic-character-tts-options-report.md) — provider claims are non-authoritative and require implementation-time revalidation
-- Implementation sources: [subphase documentation index](#implementation-documentation-index) — direct primary references for 1A–5E
+- Implementation sources: [subphase documentation index](#implementation-documentation-index) — direct primary references for 1A–7E

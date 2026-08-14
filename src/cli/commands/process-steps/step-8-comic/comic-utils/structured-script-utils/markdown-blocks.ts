@@ -22,10 +22,18 @@ export const splitIntoBlocks = (body: string): string[] => {
 
 export const expandScriptBlocks = (blocks: string[]): ExpandedScriptBlock[] => {
   return blocks.flatMap(block => {
-    const lines = block
+    const rawLines = block
       .split('\n')
       .map(line => line.trim())
       .filter(line => line.length > 0)
+
+    const lines = rawLines.flatMap(line => {
+      const match = line.match(/^\*\*([^*:]+)\*\*\s+(.+)$/)
+      if (match && match[1] && match[2] && !match[1].endsWith(':')) {
+        return [`**${match[1].trim()}**`, match[2].trim()]
+      }
+      return [line]
+    })
 
     if (lines.length <= 1 || !extractSingleBoldLine(lines[0] ?? '')) {
       return [{ text: block }]

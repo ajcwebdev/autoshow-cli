@@ -1,0 +1,47 @@
+{
+  "replicate": {
+    "description": "Replicate hosted open-source text-to-speech, zero-shot cloning, and multi-speaker dialogue models",
+    "type": "api",
+    "models": {
+      "x-lance/f5-tts": {
+        "description": "State-of-the-art non-autoregressive zero-shot voice cloning model on Replicate",
+        "pricingSourceUrl": "https://replicate.com/x-lance/f5-tts",
+        "pricingCheckedAt": "2026-08-14",
+        "pricingCurrency": "USD",
+        "pricingTier": "Replicate prediction pricing",
+        "pricingNotes": "Replicate x-lance/f5-tts uses $0.05 / prediction rate.",
+        "costPer1kCharsCents": 0.5,
+        "estimation": {
+          "costMultiplier": 1,
+          "msPer1KChars": 2500
+        }
+      },
+      "zsxkib/dia": {
+        "description": "Dia 1.6B multi-speaker script dialogue model with non-verbals and voice cloning on Replicate",
+        "pricingSourceUrl": "https://replicate.com/zsxkib/dia",
+        "pricingCheckedAt": "2026-08-14",
+        "pricingCurrency": "USD",
+        "pricingTier": "Replicate prediction pricing",
+        "pricingNotes": "Replicate zsxkib/dia uses $0.05 / prediction rate.",
+        "costPer1kCharsCents": 0.5,
+        "estimation": {
+          "costMultiplier": 1,
+          "msPer1KChars": 2500
+        }
+      },
+      "lucataco/xtts-v2": {
+        "description": "Coqui XTTS-v2 multilingual zero-shot voice cloning model across 17+ languages on Replicate",
+        "pricingSourceUrl": "https://replicate.com/lucataco/xtts-v2",
+        "pricingCheckedAt": "2026-08-14",
+        "pricingCurrency": "USD",
+        "pricingTier": "Replicate prediction pricing",
+        "pricingNotes": "Replicate lucataco/xtts-v2 uses $0.05 / prediction rate.",
+        "costPer1kCharsCents": 0.5,
+        "estimation": {
+          "costMultiplier": 1,
+          "msPer1KChars": 2500
+        }
+      }
+    }
+  }
+}

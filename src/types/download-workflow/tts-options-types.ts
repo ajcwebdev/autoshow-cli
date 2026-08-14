@@ -68,6 +68,18 @@ export type TtsRuntimeOptions = {
   cartesiaTtsModel: string | undefined
   cartesiaTtsVoice: string | undefined
   cartesiaTtsLanguage: string | undefined
+  fishTtsModels: string[] | undefined
+  fishTtsModel: string | undefined
+  fishTtsVoice: string | undefined
+  inworldTtsModels: string[] | undefined
+  inworldTtsModel: string | undefined
+  inworldTtsVoice: string | undefined
+  deepinfraTtsModels: string[] | undefined
+  deepinfraTtsModel: string | undefined
+  deepinfraTtsVoice: string | undefined
+  replicateTtsModels: string[] | undefined
+  replicateTtsModel: string | undefined
+  replicateTtsVoice: string | undefined
 }
 
 export type TtsRuntimeOptionKey = keyof TtsRuntimeOptions

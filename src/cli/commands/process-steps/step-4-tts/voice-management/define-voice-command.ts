@@ -28,17 +28,21 @@ import { createElevenLabsAdvancedProvider, ELEVENLABS_ADVANCED_CAPABILITY_FIXTUR
 import { createHumeAdvancedProvider, HUME_ADVANCED_CAPABILITY_FIXTURE } from '../tts-services/hume/hume-advanced-provider'
 import { createMiniMaxAdvancedProvider, MINIMAX_ADVANCED_CAPABILITY_FIXTURE } from '../tts-services/tts-minimax/minimax-advanced-provider'
 import { createCartesiaAdvancedProvider, CARTESIA_ADVANCED_CAPABILITY_FIXTURE } from '../tts-services/cartesia/cartesia-advanced-provider'
+import { createFishAdvancedProvider, FISH_ADVANCED_CAPABILITY_FIXTURE } from '../tts-services/fish/fish-advanced-provider'
 import { createSpeechifyAdvancedProvider, SPEECHIFY_ADVANCED_CAPABILITY_FIXTURE } from '../tts-services/speechify/speechify-advanced-provider'
+import { createInworldAdvancedProvider, INWORLD_ADVANCED_CAPABILITY_FIXTURE } from '../tts-services/inworld/inworld-advanced-provider'
+import { createDeepinfraAdvancedProvider, DEEPINFRA_ADVANCED_CAPABILITY_FIXTURE } from '../tts-services/tts-deepinfra/deepinfra-advanced-provider'
+import { createReplicateAdvancedProvider, REPLICATE_ADVANCED_CAPABILITY_FIXTURE } from '../tts-services/tts-replicate/replicate-advanced-provider'
 import { createAdvancedVoiceCandidates, loadVoiceCandidate, materializeAdvancedVoiceCandidate, planAdvancedClone, provisionAdvancedVoiceClone } from './advanced-voice-management'
 import { getTtsPricing } from '~/cli/commands/setup-and-utilities/models/model-loader'
 
-const TTS_PROVIDERS = ['kitten', 'elevenlabs', 'minimax', 'groq', 'grok', 'mistral', 'openai', 'gemini', 'deepgram', 'speechify', 'hume', 'cartesia'] as const
+const TTS_PROVIDERS = ['kitten', 'elevenlabs', 'minimax', 'groq', 'grok', 'mistral', 'openai', 'gemini', 'deepgram', 'speechify', 'hume', 'cartesia', 'fish', 'inworld', 'deepinfra', 'replicate'] as const
 const CONSENT_ACTIONS: VoiceConsentAction[] = ['upload', 'new-synthesis', 'cache-reuse', 'resume', 'export', 'retention', 'deletion']
 const VOICE_ORIGINS = ['provider-stock', 'designed', 'remixed', 'instant-clone', 'professional-clone', 'imported-custom', 'saved-reference'] as const
 const PROFILE_DEFAULT = 'default'
 
-const ADVANCED_PROVIDERS = ['elevenlabs', 'hume', 'minimax', 'cartesia', 'speechify'] as const
-const DESIGN_PROVIDERS = ['elevenlabs', 'hume', 'minimax'] as const
+const ADVANCED_PROVIDERS = ['elevenlabs', 'hume', 'minimax', 'cartesia', 'fish', 'speechify', 'inworld', 'deepinfra', 'replicate'] as const
+const DESIGN_PROVIDERS = ['elevenlabs', 'hume', 'minimax', 'fish', 'inworld', 'deepinfra', 'replicate'] as const
 type AdvancedProviderName = typeof ADVANCED_PROVIDERS[number]
 type DesignProviderName = typeof DESIGN_PROVIDERS[number]
 type ManagedAdvancedProvider = Pick<TtsVoiceProvider, 'provider' | 'getDeclaredCapabilities' | 'catalog' | 'design' | 'clone' | 'lifecycle'> & { accountScopeHash: string }
@@ -51,6 +55,10 @@ const advancedCapabilityFixtureHash = (provider: AdvancedProviderName): string =
   if (provider === 'hume') return HUME_ADVANCED_CAPABILITY_FIXTURE.capabilityFixtureHash
   if (provider === 'minimax') return MINIMAX_ADVANCED_CAPABILITY_FIXTURE.capabilityFixtureHash
   if (provider === 'cartesia') return CARTESIA_ADVANCED_CAPABILITY_FIXTURE.capabilityFixtureHash
+  if (provider === 'fish') return FISH_ADVANCED_CAPABILITY_FIXTURE.capabilityFixtureHash
+  if (provider === 'inworld') return INWORLD_ADVANCED_CAPABILITY_FIXTURE.capabilityFixtureHash
+  if (provider === 'deepinfra') return DEEPINFRA_ADVANCED_CAPABILITY_FIXTURE.capabilityFixtureHash
+  if (provider === 'replicate') return REPLICATE_ADVANCED_CAPABILITY_FIXTURE.capabilityFixtureHash
   return SPEECHIFY_ADVANCED_CAPABILITY_FIXTURE.capabilityFixtureHash
 }
 
@@ -59,6 +67,10 @@ const advancedProvider = (provider: AdvancedProviderName, options: { elevenLabsA
   if (provider === 'hume') return createHumeAdvancedProvider({ apiKey: requireApiKey('HUME_API_KEY', 'voice:hume', 'Hume voice management') })
   if (provider === 'minimax') return createMiniMaxAdvancedProvider({ apiKey: requireApiKey('MINIMAX_API_KEY', 'voice:minimax', 'MiniMax voice management') })
   if (provider === 'cartesia') return createCartesiaAdvancedProvider({ apiKey: requireApiKey('CARTESIA_API_KEY', 'voice:cartesia', 'Cartesia voice management') })
+  if (provider === 'fish') return createFishAdvancedProvider({ apiKey: requireApiKey('FISH_API_KEY', 'voice:fish', 'Fish voice management') })
+  if (provider === 'inworld') return createInworldAdvancedProvider({ apiKey: requireApiKey('INWORLD_API_KEY', 'voice:inworld', 'Inworld voice management') })
+  if (provider === 'deepinfra') return createDeepinfraAdvancedProvider({ apiKey: requireApiKey('DEEPINFRA_API_KEY', 'voice:deepinfra', 'DeepInfra voice management') })
+  if (provider === 'replicate') return createReplicateAdvancedProvider({ apiKey: requireApiKey('REPLICATE_API_TOKEN', 'voice:replicate', 'Replicate voice management') })
   return createSpeechifyAdvancedProvider({ apiKey: requireApiKey('SPEECHIFY_API_KEY', 'voice:speechify', 'Speechify voice management') })
 }
 

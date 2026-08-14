@@ -16,6 +16,11 @@
 - Do not interpret a generic instruction like “do it”, “try it”, or “rerun it” as approval to spend provider credits. Ask for explicit approval naming the provider command and expected cost/risk instead.
 - If a paid-provider process is accidentally started, stop it promptly and report what was run.
 
+# Work Preservation & Slot Recovery Rules
+
+- Never delete output directories or temporary TTS working directories (`rm -rf output/...` or `.tts-tmp-...`) when a process is interrupted, fails, or requires configuration adjustments. Deleting output directories destroys cached audio segment files that were already synthesized and paid for, forcing duplicate provider API calls and double billing.
+- When a TTS run is blocked with `automatic redispatch is blocked pending reconciliation`, pass `--tts-allow-ambiguous-redispatch` (or `--allow-ambiguous-redispatch`). This flag safely reconciles the in-flight slot, reuses all completed segment audio files already saved on disk, and resumes synthesis without deleting output directories or losing work.
+
 # Git Command Rules
 
 - Never run git commands that modify repository state (e.g. `git add`, `git commit`, `git mv`, `git rm`, `git checkout`, `git reset`, `git push`, `git stash`). Use plain filesystem commands (`mv`, `rm`, `mkdir`) for file operations instead.

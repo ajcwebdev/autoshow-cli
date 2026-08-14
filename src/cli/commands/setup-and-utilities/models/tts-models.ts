@@ -8,7 +8,7 @@ import {
   getGrokTtsVoices,
   getOpenAITtsVoices
 } from '~/cli/commands/setup-and-utilities/models/model-loader'
-import type { CartesiaTtsModel, DeepgramTtsModel, ElevenlabsTtsModel, GeminiTtsModel, GrokTtsModel, GroqTtsModel, HumeTtsModel, KittenTtsModel, MinimaxTtsModel, MistralTtsModel, OpenAITtsModel, SpeechifyTtsModel } from '~/types'
+import type { CartesiaTtsModel, DeepgramTtsModel, DeepinfraTtsModel, ElevenlabsTtsModel, FishTtsModel, GeminiTtsModel, GrokTtsModel, GroqTtsModel, HumeTtsModel, InworldTtsModel, KittenTtsModel, MinimaxTtsModel, MistralTtsModel, OpenAITtsModel, ReplicateTtsModel, SpeechifyTtsModel } from '~/types'
 
 export const SUPPORTED_KITTEN_TTS_MODELS = [
   'kitten-tts-mini',
@@ -589,6 +589,82 @@ export const validateCartesiaTtsVoice = (voice: string): string => {
   const normalized = voice.trim()
   if (!normalized) {
     throw CLIUsageError('Invalid --cartesia-tts-voice value. Expected a non-empty Cartesia voice ID.')
+  }
+  return normalized
+}
+
+export const SUPPORTED_FISH_TTS_MODELS = [
+  'fish-speech-1.5',
+  's1',
+  's2-pro',
+  'voice-design-1'
+] as const satisfies readonly string[]
+
+export const FISH_DEFAULT_TTS_VOICE = '7f92f8afb8ec43bf81429cc1c9199cb1'
+
+export const validateFishTtsModel = createModelValidator<FishTtsModel>(SUPPORTED_FISH_TTS_MODELS, 'fish-tts')
+
+export const validateFishTtsVoice = (voice: string): string => {
+  const normalized = voice.trim()
+  if (!normalized) {
+    throw CLIUsageError('Invalid --fish-tts-voice value. Expected a non-empty Fish model/voice ID.')
+  }
+  return normalized
+}
+
+export const SUPPORTED_INWORLD_TTS_MODELS = [
+  'realtime-tts-2',
+  'realtime-tts-1.5-max',
+  'realtime-tts-1.5-mini'
+] as const satisfies readonly string[]
+
+export const INWORLD_DEFAULT_TTS_VOICE = 'voice_inworld_standard_en'
+
+export const validateInworldTtsModel = createModelValidator<InworldTtsModel>(SUPPORTED_INWORLD_TTS_MODELS, 'inworld-tts')
+
+export const validateInworldTtsVoice = (voice: string): string => {
+  const normalized = voice.trim()
+  if (!normalized) {
+    throw CLIUsageError('Invalid --inworld-voice value. Expected a non-empty Inworld voice ID.')
+  }
+  return normalized
+}
+
+export const SUPPORTED_DEEPINFRA_TTS_MODELS = [
+  'ResembleAI/chatterbox-multilingual',
+  'ResembleAI/chatterbox-turbo',
+  'XiaomiMiMo/MiMo-V2.5-tts',
+  'XiaomiMiMo/MiMo-V2.5-tts-voicedesign',
+  'Qwen/Qwen3-TTS',
+  'Qwen/Qwen3-TTS-VoiceDesign'
+] as const satisfies readonly string[]
+
+export const DEEPINFRA_DEFAULT_TTS_VOICE = 'standard'
+
+export const validateDeepinfraTtsModel = createModelValidator<DeepinfraTtsModel>(SUPPORTED_DEEPINFRA_TTS_MODELS, 'deepinfra-tts')
+
+export const validateDeepinfraTtsVoice = (voice: string): string => {
+  const normalized = voice.trim()
+  if (!normalized) {
+    throw CLIUsageError('Invalid --deepinfra-voice value. Expected a non-empty DeepInfra model/voice ID.')
+  }
+  return normalized
+}
+
+export const SUPPORTED_REPLICATE_TTS_MODELS = [
+  'x-lance/f5-tts',
+  'zsxkib/dia',
+  'lucataco/xtts-v2'
+] as const satisfies readonly string[]
+
+export const REPLICATE_DEFAULT_TTS_VOICE = 'standard'
+
+export const validateReplicateTtsModel = createModelValidator<ReplicateTtsModel>(SUPPORTED_REPLICATE_TTS_MODELS, 'replicate-tts')
+
+export const validateReplicateTtsVoice = (voice: string): string => {
+  const normalized = voice.trim()
+  if (!normalized) {
+    throw CLIUsageError('Invalid --replicate-voice value. Expected a non-empty Replicate model/voice ID.')
   }
   return normalized
 }

@@ -49,6 +49,10 @@ import {
   validateSpeechifyTtsModel,
   validateHumeTtsModel,
   validateCartesiaTtsModel,
+  validateFishTtsModel,
+  validateInworldTtsModel,
+  validateDeepinfraTtsModel,
+  validateReplicateTtsModel,
   validateElevenlabsMusicModel,
   validateMinimaxMusicModel,
   validateGeminiMusicModel,
@@ -189,6 +193,10 @@ export const readRuntimeModelOptions = (
   const speechifyTtsModels = readValidatedMany('speechify-tts', validateSpeechifyTtsModel)
   const humeTtsModels = readValidatedMany('hume-tts', validateHumeTtsModel)
   const cartesiaTtsModels = readValidatedMany('cartesia-tts', validateCartesiaTtsModel)
+  const fishTtsModels = readValidatedMany('fish-tts', validateFishTtsModel)
+  const inworldTtsModels = readValidatedMany('inworld-tts', validateInworldTtsModel)
+  const deepinfraTtsModels = readValidatedMany('deepinfra-tts', validateDeepinfraTtsModel)
+  const replicateTtsModels = readValidatedMany('replicate-tts', validateReplicateTtsModel)
   const hasExplicitTtsEngine = [
     kittenTtsModels,
     elevenlabsTtsModels,
@@ -202,6 +210,10 @@ export const readRuntimeModelOptions = (
     speechifyTtsModels,
     humeTtsModels,
     cartesiaTtsModels,
+    fishTtsModels,
+    inworldTtsModels,
+    deepinfraTtsModels,
+    replicateTtsModels,
   ].some((value) => value !== undefined && value.length > 0)
   const kittenTtsModelValues = defaults.defaultTtsEngine === 'kitten' && !hasExplicitTtsEngine
     ? [DEFAULT_KITTEN_TTS_MODEL]
@@ -327,6 +339,14 @@ export const readRuntimeModelOptions = (
     humeTtsModel: first(humeTtsModels),
     cartesiaTtsModels,
     cartesiaTtsModel: first(cartesiaTtsModels),
+    fishTtsModels,
+    fishTtsModel: first(fishTtsModels),
+    inworldTtsModels,
+    inworldTtsModel: first(inworldTtsModels),
+    deepinfraTtsModels,
+    deepinfraTtsModel: first(deepinfraTtsModels),
+    replicateTtsModels,
+    replicateTtsModel: first(replicateTtsModels),
     geminiImageModels,
     geminiImageModel: first(geminiImageModels),
     openaiImageModels,

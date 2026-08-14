@@ -1,0 +1,60 @@
+{
+  "fish": {
+    "description": "Fish Audio cloud text-to-speech and voice design",
+    "type": "api",
+    "models": {
+      "fish-speech-1.5": {
+        "description": "Fish Speech 1.5 zero-shot text-to-speech model",
+        "pricingSourceUrl": "https://docs.fish.audio/developer-guide/models-pricing/pricing-and-rate-limits",
+        "pricingCheckedAt": "2026-08-14",
+        "pricingCurrency": "USD",
+        "pricingTier": "Fish Audio API pay-as-you-go TTS pricing",
+        "pricingNotes": "Fish Audio estimates use the published character-based reference rate.",
+        "costPer1kCharsCents": 5,
+        "estimation": {
+          "costMultiplier": 1,
+          "msPer1KChars": 3000
+        }
+      },
+      "s1": {
+        "description": "Fish S1 text-to-speech model alias",
+        "pricingSourceUrl": "https://docs.fish.audio/developer-guide/models-pricing/pricing-and-rate-limits",
+        "pricingCheckedAt": "2026-08-14",
+        "pricingCurrency": "USD",
+        "pricingTier": "Fish Audio API pay-as-you-go TTS pricing",
+        "pricingNotes": "Fish Audio estimates use the published character-based reference rate.",
+        "costPer1kCharsCents": 5,
+        "estimation": {
+          "costMultiplier": 1,
+          "msPer1KChars": 3000
+        }
+      },
+      "s2-pro": {
+        "description": "Fish S2 Pro multi-speaker dialogue and timestamped streaming model",
+        "pricingSourceUrl": "https://docs.fish.audio/developer-guide/models-pricing/pricing-and-rate-limits",
+        "pricingCheckedAt": "2026-08-14",
+        "pricingCurrency": "USD",
+        "pricingTier": "Fish Audio API pay-as-you-go TTS pricing",
+        "pricingNotes": "Fish Audio S2 Pro estimates use the published character-based reference rate.",
+        "costPer1kCharsCents": 10,
+        "estimation": {
+          "costMultiplier": 1,
+          "msPer1KChars": 3000
+        }
+      },
+      "voice-design-1": {
+        "description": "Fish Voice Design 1 prompt-based voice creation model",
+        "pricingSourceUrl": "https://docs.fish.audio/developer-guide/models-pricing/pricing-and-rate-limits",
+        "pricingCheckedAt": "2026-08-14",
+        "pricingCurrency": "USD",
+        "pricingTier": "Fish Audio API Voice Design pricing",
+        "pricingNotes": "Fish Voice Design estimates use the published reference rate.",
+        "costPer1kCharsCents": 20,
+        "estimation": {
+          "costMultiplier": 1,
+          "msPer1KChars": 3000
+        }
+      }
+    }
+  }
+}

@@ -73,14 +73,18 @@ const defaultRequest = (apiKey: string): ElevenLabsSoundEffectHttpRequest => asy
 
 export const resolveSoundEffectTarget = (selector: string, options: { outputFormat?: string | undefined, promptInfluence?: number | undefined } = {}): SoundEffectTarget => {
   const match = /^([^=]+)=([^=]+)$/u.exec(selector.trim())
-  if (!match?.[1] || !match[2]) throw CLIUsageError('--sfx-provider must use provider=model syntax, for example elevenlabs=eleven_text_to_sound_v2.')
+  if (!match?.[1] || !match[2]) throw CLIUsageError('--sfx-provider must use provider=model syntax, for example elevenlabs=eleven_text_to_sound_v2 or replicate=sepal/audiogen.')
   const provider = match[1].toLowerCase()
   const model = match[2]
-  if (provider !== 'elevenlabs') throw CLIUsageError(`Unsupported Phase 1 sound-effect provider ${provider}; expected elevenlabs.`)
+  if (provider === 'replicate') {
+    const { resolveReplicateAudioGenTarget } = require('./replicate-audiogen-adapter')
+    return resolveReplicateAudioGenTarget(model, options)
+  }
+  if (provider !== 'elevenlabs') throw CLIUsageError(`Unsupported sound-effect provider ${provider}; expected elevenlabs or replicate.`)
   if (model !== ELEVENLABS_SFX_CAPABILITY_FIXTURE.model) throw CLIUsageError(`Unsupported ElevenLabs sound-effect model ${model}; expected ${ELEVENLABS_SFX_CAPABILITY_FIXTURE.model}.`)
   const outputFormat = options.outputFormat ?? 'mp3_44100_128'
   if (!ELEVENLABS_SFX_CAPABILITY_FIXTURE.constraints.outputFormats.includes(outputFormat)) throw CLIUsageError(`Unsupported ElevenLabs sound-effect output format ${outputFormat}.`)
-  const promptInfluence = options.promptInfluence ?? ELEVENLABS_SFX_CAPABILITY_FIXTURE.constraints.promptInfluence.default
+  const promptInfluence = options.promptInfluence ?? ELEVENLABS_SFX_CAPABILITY_FIXTURE.constraints.promptInfluence?.default ?? 0.3
   if (!Number.isFinite(promptInfluence) || promptInfluence < 0 || promptInfluence > 1) throw CLIUsageError('ElevenLabs sound-effect prompt influence must be between 0 and 1.')
   return {
     provider: 'elevenlabs', model, transport: 'hosted-api',
@@ -96,7 +100,7 @@ export const validateElevenLabsSoundEffectTask = (task: SoundEffectRenderTask, t
   const promptLength = [...task.prompt].length
   if (promptLength < 1 || promptLength > constraints.promptMaxScalars) throw CLIUsageError(`ElevenLabs sound-effect prompt must contain 1-${constraints.promptMaxScalars} Unicode scalar values.`)
   if (task.durationSeconds !== undefined && (task.durationSeconds < constraints.durationSeconds.min || task.durationSeconds > constraints.durationSeconds.max)) throw CLIUsageError(`ElevenLabs sound-effect duration must be ${constraints.durationSeconds.min}-${constraints.durationSeconds.max} seconds.`)
-  if (task.loop && !constraints.loopModels.includes(target.model)) throw CLIUsageError(`ElevenLabs sound-effect model ${target.model} does not support seamless loop generation.`)
+  if (task.loop && !constraints.loopModels?.includes(target.model)) throw CLIUsageError(`ElevenLabs sound-effect model ${target.model} does not support seamless loop generation.`)
 }
 
 export const serializeElevenLabsSoundEffectRequest = (task: SoundEffectRenderTask, target: SoundEffectTarget): {

@@ -109,22 +109,25 @@ export type ResolvedSoundscapeAnchorResolution = {
   errorBoundMs: number
 }
 
-export type SoundEffectProvider = 'elevenlabs'
+export type SoundEffectProvider = 'elevenlabs' | 'replicate'
 
 export type SoundEffectCapabilityFixture = {
   schemaVersion: 1
   provider: SoundEffectProvider
   model: string
+  pinnedVersion?: string | undefined
   transport: 'hosted-api'
-  endpoint: '/v1/sound-generation'
+  endpoint: string
   serializerVersion: string
+  licenseProvenance?: string | undefined
+  permittedUse?: 'noncommercial' | 'commercial' | undefined
   checkedAt: string
   sourceRefs: string[]
   constraints: {
     promptMaxScalars: number
-    durationSeconds: { min: number, max: number, optional: boolean }
-    promptInfluence: { min: number, max: number, default: number }
-    loopModels: string[]
+    durationSeconds: { min: number, max: number, default?: number | undefined, optional?: boolean | undefined }
+    promptInfluence?: { min: number, max: number, default: number } | undefined
+    loopModels?: string[] | undefined
     outputFormats: string[]
   }
   pricing: {
@@ -166,7 +169,7 @@ export type SoundEffectRequestEvidence = {
   requestEvidenceId: string
   requestIdentity: string
   requestOrdinal: number
-  endpoint: '/v1/sound-generation'
+  endpoint: string
   serializerVersion: string
   requestBodyHash: string
   queryHash: string

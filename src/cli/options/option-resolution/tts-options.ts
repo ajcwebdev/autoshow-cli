@@ -1,4 +1,4 @@
-import { validateCartesiaTtsVoice, validateDeepgramTtsVoice, validateElevenLabsTtsTextNormalization, validateGeminiTtsVoice, validateGrokTtsLanguage, validateGrokTtsVoice, validateGroqTtsVoice, validateHumeTtsVoice, validateHumeTtsVoiceProvider, validateKittenTtsModel, validateKittenTtsSpeaker, validateMinimaxTtsEmotion, validateMinimaxTtsLanguageBoost, validateSpeechifyTtsAudioFormat, validateSpeechifyTtsVoice } from '~/cli/commands/setup-and-utilities/models/setup-model-options'
+import { validateCartesiaTtsVoice, validateDeepgramTtsVoice, validateDeepinfraTtsVoice, validateElevenLabsTtsTextNormalization, validateFishTtsVoice, validateGeminiTtsVoice, validateGrokTtsLanguage, validateGrokTtsVoice, validateGroqTtsVoice, validateHumeTtsVoice, validateHumeTtsVoiceProvider, validateInworldTtsVoice, validateKittenTtsModel, validateKittenTtsSpeaker, validateMinimaxTtsEmotion, validateMinimaxTtsLanguageBoost, validateReplicateTtsVoice, validateSpeechifyTtsAudioFormat, validateSpeechifyTtsVoice } from '~/cli/commands/setup-and-utilities/models/setup-model-options'
 import type { CliFlagOccurrence, ResolvedModelOptions, TtsCliReferenceInput, TtsLegacyCreationDiagnosticOptions, TtsOptionResolutionAuthority, TtsRuntimeOptionKey, TtsRuntimeOptions } from '~/types'
 import { parseOptionalNumberFlag, parseTtsDialogueFormat, readBooleanFlag, readOptionalOccurrenceStringFlag, readOptionalStringFlag, readOptionalStringListFlag, readStringFlag } from './flag-readers'
 import { validateCliValue } from './download-model-options'
@@ -97,7 +97,9 @@ export const TTS_MODEL_KEYS = [
   'mistralTtsModels', 'mistralTtsModel', 'openaiTtsModels', 'openaiTtsModel',
   'geminiTtsModels', 'geminiTtsModel', 'deepgramTtsModels', 'deepgramTtsModel',
   'speechifyTtsModels', 'speechifyTtsModel', 'humeTtsModels', 'humeTtsModel',
-  'cartesiaTtsModels', 'cartesiaTtsModel',
+  'cartesiaTtsModels', 'cartesiaTtsModel', 'fishTtsModels', 'fishTtsModel',
+  'inworldTtsModels', 'inworldTtsModel', 'deepinfraTtsModels', 'deepinfraTtsModel',
+  'replicateTtsModels', 'replicateTtsModel'
 ] as const satisfies readonly TtsRuntimeOptionKey[]
 
 export const buildTtsOptions = (
@@ -202,6 +204,38 @@ export const buildTtsOptions = (
       return validateCliValue(validateCartesiaTtsVoice, value)
     })(),
     cartesiaTtsLanguage: readOptionalStringFlag(flags, 'cartesia-tts-language'),
+    fishTtsModels: modelOptions.fishTtsModels,
+    fishTtsModel: modelOptions.fishTtsModel,
+    fishTtsVoice: (() => {
+      const value = readOptionalStringFlag(flags, 'fish-tts-voice')
+      if (value === undefined) return undefined
+      if (modelOptions.fishTtsModels === undefined) return value
+      return validateCliValue(validateFishTtsVoice, value)
+    })(),
+    inworldTtsModels: modelOptions.inworldTtsModels,
+    inworldTtsModel: modelOptions.inworldTtsModel,
+    inworldTtsVoice: (() => {
+      const value = readOptionalStringFlag(flags, 'inworld-voice')
+      if (value === undefined) return undefined
+      if (modelOptions.inworldTtsModels === undefined) return value
+      return validateCliValue(validateInworldTtsVoice, value)
+    })(),
+    deepinfraTtsModels: modelOptions.deepinfraTtsModels,
+    deepinfraTtsModel: modelOptions.deepinfraTtsModel,
+    deepinfraTtsVoice: (() => {
+      const value = readOptionalStringFlag(flags, 'deepinfra-voice')
+      if (value === undefined) return undefined
+      if (modelOptions.deepinfraTtsModels === undefined) return value
+      return validateCliValue(validateDeepinfraTtsVoice, value)
+    })(),
+    replicateTtsModels: modelOptions.replicateTtsModels,
+    replicateTtsModel: modelOptions.replicateTtsModel,
+    replicateTtsVoice: (() => {
+      const value = readOptionalStringFlag(flags, 'replicate-voice')
+      if (value === undefined) return undefined
+      if (modelOptions.replicateTtsModels === undefined) return value
+      return validateCliValue(validateReplicateTtsVoice, value)
+    })(),
     groqVoiceId: (() => {
       const value = readOptionalStringFlag(flags, 'groq-voice')
       if (value === undefined) return undefined

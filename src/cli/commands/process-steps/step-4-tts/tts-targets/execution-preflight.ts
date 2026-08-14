@@ -18,7 +18,11 @@ const HOSTED_TTS_CREDENTIALS = {
   deepgram: { env: 'DEEPGRAM_API_KEY', label: 'Deepgram TTS' },
   speechify: { env: 'SPEECHIFY_API_KEY', label: 'Speechify TTS' },
   hume: { env: 'HUME_API_KEY', label: 'Hume TTS' },
-  cartesia: { env: 'CARTESIA_API_KEY', label: 'Cartesia TTS' }
+  cartesia: { env: 'CARTESIA_API_KEY', label: 'Cartesia TTS' },
+  fish: { env: 'FISH_API_KEY', label: 'Fish Audio TTS' },
+  inworld: { env: 'INWORLD_API_KEY', label: 'Inworld AI TTS' },
+  deepinfra: { env: 'DEEPINFRA_API_KEY', label: 'DeepInfra TTS' },
+  replicate: { env: 'REPLICATE_API_TOKEN', label: 'Replicate TTS' }
 } as const satisfies Record<Exclude<TtsProvider, 'kitten'>, { env: string, label: string }>
 
 export type TtsExecutionReadinessObservation = Readonly<{

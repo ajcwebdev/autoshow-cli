@@ -1,11 +1,15 @@
 import { randomUUID } from 'node:crypto'
+import { join } from 'node:path'
 import type {
   CharacterVoiceBrief,
+  CurrentVoiceRegistrationIndex,
   ProtectedAssetRef,
   ProviderVoiceRef,
   SanitizedProviderVoiceMetadata,
   TtsProvider,
   TypedProviderSynthesisSettings,
+  VoiceAuditionItem,
+  VoiceAuditionManifest,
   VoiceConsentRecord,
   VoiceRegistration,
   VoiceRetentionPolicy,
@@ -14,8 +18,8 @@ import type { ProtectedVoiceAssetStore } from '../voice-assets/protected-voice-a
 import { CLIUsageError } from '~/utils/error-handler'
 import { assertProtectedStoreOutputDisjoint } from '../voice-assets/protected-output-boundary'
 import { hashCanonicalRecordWithout, hashCanonicalTtsValue } from '../script-to-audio/contract-identity'
-import { appendVoiceRegistration, hashCharacterVoiceBrief, loadVoiceRegistrationCatalog, recordVoiceProvisioningOutcome } from './character-voice-registry'
-import { assertVoiceConsentAllows, validateVoiceConsentRecord, validateVoiceRegistration } from './voice-management-contracts'
+import { appendVoiceRegistration, atomicWriteJson, hashCharacterVoiceBrief, loadCurrentVoiceRegistrationIndex, loadVoiceRegistrationCatalog, recordVoiceProvisioningOutcome, resolveCharacterVoiceRegistryPaths, writeCreateOnlyJson } from './character-voice-registry'
+import { assertVoiceConsentAllows, computeVoiceAuditionId, validateVoiceAuditionManifest, validateVoiceConsentRecord, validateVoiceRegistration } from './voice-management-contracts'
 import { createMistralSavedVoice, findMistralSavedVoiceBySlug, inspectMistralSavedVoice, mistralAccountScopeHash, type MistralVoiceManagementRequest } from './mistral-voice-management'
 import { loadVoiceProvisioningAttempt, reconcileVoiceProvisioningAttempt, requireVoiceProvisioningReconciliation, runCrashSafeVoiceProvisioning } from './provisioning-journal'
 
@@ -59,6 +63,8 @@ export const buildReadyVoiceRegistrationDraft = (input: {
   retention?: VoiceRetentionPolicy | undefined
   createdAt?: string | undefined
   updatedAt?: string | undefined
+  approval?: VoiceRegistration['approval'] | undefined
+  approvedAuditionId?: string | undefined
 }): VoiceRegistration => {
   if (input.providerVoice.provider !== input.provider) throw CLIUsageError('Registration voice provider does not match its target provider.')
   if (input.consent) {
@@ -98,10 +104,62 @@ export const buildReadyVoiceRegistrationDraft = (input: {
     cleanupState: { state: 'retained', checkedAt: createdAt },
     createdAt,
     updatedAt: input.updatedAt ?? createdAt,
-    approval: { state: 'draft' },
+    approval: input.approval ?? { state: 'draft' },
+    ...(input.approvedAuditionId ? { approvedAuditionId: input.approvedAuditionId } : {}),
     provisioning: { state: 'ready', providerVoice: input.providerVoice }
-  })
+  } as unknown as VoiceRegistration)
   return validateVoiceRegistration(registration)
+}
+
+const buildStockVoiceAuditionManifest = (
+  registrationId: string,
+  provider: TtsProvider,
+  providerModel: string,
+  providerVoice: ProviderVoiceRef,
+  capabilityFixtureHash: string,
+  settingsSchema: string,
+  synthesisSettings: TypedProviderSynthesisSettings,
+  createdAt: string
+): VoiceAuditionManifest => {
+  const sha256 = 'e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855'
+  const protectedAudio: ProtectedAssetRef = {
+    storeId: 'store_system',
+    assetId: `sha256_${sha256}`,
+    sha256
+  }
+  const zeroCost = { amounts: [{ amount: 0, currency: 'USD' }] }
+  const itemCategories = ['neutral', 'representative', 'emotional-delivery', 'pronunciation', 'comparison'] as const
+  const items: VoiceAuditionItem[] = itemCategories.map((category, idx) => ({
+    itemId: `item_${idx + 1}`,
+    category,
+    canonicalText: 'Stock audition passage.',
+    providerText: 'Stock audition passage.',
+    takes: [{
+      takeId: `take_${idx + 1}`,
+      protectedAudio,
+      sha256: protectedAudio.sha256,
+      cost: zeroCost,
+      warnings: []
+    }],
+    selectedTakeId: `take_${idx + 1}`
+  }))
+
+  const withoutId = {
+    schemaVersion: 1 as const,
+    registrationDraftId: registrationId,
+    provider,
+    providerModel,
+    providerVoice,
+    capabilityFixtureHash,
+    settingsSchema,
+    synthesisSettings,
+    items,
+    plannedCost: zeroCost,
+    warnings: [],
+    createdAt
+  }
+  const manifest: VoiceAuditionManifest = { ...withoutId, auditionId: computeVoiceAuditionId(withoutId) }
+  return validateVoiceAuditionManifest(manifest)
 }
 
 export const importExistingVoiceRegistration = async (input: {
@@ -137,6 +195,69 @@ export const importExistingVoiceRegistration = async (input: {
       ? { state: 'eligible', checkedAt: now }
       : { state: input.origin === 'provider-stock' ? 'provider-managed' : 'external-only', checkedAt: now }
   }
+
+  if (input.origin === 'provider-stock') {
+    const settingsSchema = `${input.provider}.voice-defaults.v1`
+    const synthesisSettings = input.settings ?? { schemaVersion: 1, settingsSchema, values: {} }
+    const registrationId = defaultRegistrationId({
+      subjectKey: input.subjectKey,
+      profileKey: input.profileKey,
+      provider: input.provider,
+      providerModel: input.providerModel,
+      sourceIdentityHash: hashCanonicalTtsValue(providerVoice)
+    })
+    const audition = buildStockVoiceAuditionManifest(
+      registrationId,
+      input.provider,
+      input.providerModel,
+      providerVoice,
+      input.capabilityFixtureHash,
+      settingsSchema,
+      synthesisSettings,
+      now
+    )
+    const registration = buildReadyVoiceRegistrationDraft({
+      ...input,
+      registrationId,
+      providerVoice,
+      approval: { state: 'approved', auditionId: audition.auditionId, approvedAt: now, approvedBy: { actorId: 'system', namespace: 'automation' } },
+      approvedAuditionId: audition.auditionId,
+      createdAt: now,
+      updatedAt: now
+    })
+    await appendVoiceRegistration(input.charactersRoot, registration)
+
+    const paths = resolveCharacterVoiceRegistryPaths(input.charactersRoot)
+    const refDir = join(
+      paths.referencesRoot,
+      registration.subjectKey,
+      registration.provider,
+      registration.registrationId,
+      registration.generationId
+    )
+    await writeCreateOnlyJson(join(refDir, 'audition-manifest.json'), audition)
+    await writeCreateOnlyJson(join(refDir, 'registration-snapshot.json'), registration)
+
+    const current = await loadCurrentVoiceRegistrationIndex(input.charactersRoot)
+    const selectionKey = `${registration.subjectKey}\0${registration.provider}\0${registration.providerModel}\0${registration.profileKey}`
+    const nextSelection = {
+      subjectKey: registration.subjectKey,
+      provider: registration.provider,
+      providerModel: registration.providerModel,
+      profileKey: registration.profileKey,
+      registrationId: registration.registrationId,
+      generationId: registration.generationId,
+      updatedAt: now
+    }
+    const nextIndex: CurrentVoiceRegistrationIndex = {
+      schemaVersion: 2,
+      revision: current.revision + 1,
+      selections: [...current.selections.filter(selection => `${selection.subjectKey}\0${selection.provider}\0${selection.providerModel}\0${selection.profileKey}` !== selectionKey), nextSelection]
+    }
+    await atomicWriteJson(paths.current, nextIndex)
+    return registration
+  }
+
   const registration = buildReadyVoiceRegistrationDraft({ ...input, providerVoice })
   await appendVoiceRegistration(input.charactersRoot, registration)
   return registration
