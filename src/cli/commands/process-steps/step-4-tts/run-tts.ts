@@ -14,11 +14,48 @@ import { runMultiSpeakerTts } from './run-multi-speaker-tts'
 import { CLIUsageError, InfraError, InternalError } from '~/utils/error-handler'
 import { bindHostedTtsChunkScheduler, createHostedTtsChunkScheduler } from './tts-utils/hosted-tts-chunk-scheduler'
 import type { CurrentTtsObservedTurn, CurrentTtsRenderArtifacts } from './script-to-audio/current-render-artifacts'
-import { createCurrentTtsRenderAttempt, planCurrentTtsRenderIdentity, prepareCurrentTtsCompatibleSlotRecovery, prepareCurrentTtsCompletedRecovery, resolveCurrentTtsPriorAdmittedAttemptCount, validateCurrentTtsRenderAttemptInputs } from './script-to-audio/current-render-attempt'
+import { createCurrentTtsRenderAttempt, planCurrentTtsRenderIdentity, planCurrentTtsResumePrice, prepareCurrentTtsCompatibleSlotRecovery, prepareCurrentTtsCompletedRecovery, resolveCurrentTtsPriorAdmittedAttemptCount, validateCurrentTtsRenderAttemptInputs } from './script-to-audio/current-render-attempt'
 import { createCurrentTtsBlockedReadinessState } from './script-to-audio/current-readiness-attempt'
 
 const getMetadataAudioPath = (outputDir: string, metadata: Step4Metadata): string =>
   `${outputDir}/${metadata.audioFileName}`
+
+const describeFailedTtsRecovery = async (options: {
+  rootDir: string
+  state: PipelineProviderState
+  target: TtsTarget
+  sourceText: string
+  ttsOptions: TtsOptions
+  sourceContext?: TtsRunSourceContext | undefined
+}): Promise<string | undefined> => {
+  try {
+    const recovery = await planCurrentTtsResumePrice({
+      rootDir: options.rootDir,
+      state: options.state,
+      target: options.target,
+      sourceText: options.sourceText,
+      ttsOptions: options.ttsOptions,
+      sourceIdentity: options.sourceContext?.sourceIdentity,
+      dialoguePlan: options.sourceContext?.dialoguePlan,
+      comicContext: options.sourceContext?.comicContext
+    })
+    const totalSlotCount = recovery.recoveredSlotCount + recovery.unresolvedSlotCount
+    const blockedSlotCount = new Set(recovery.reconciliationBlockers.map((blocker) => blocker.generationSlotId)).size
+    if (recovery.recoveredSlotCount === 0 && blockedSlotCount === 0) return undefined
+
+    const checkpoint = `Recovery checkpoint: ${recovery.recoveredSlotCount}/${totalSlotCount} generation slots retained; ${recovery.unresolvedSlotCount} unresolved.`
+    if (blockedSlotCount === 0) {
+      return `${checkpoint} Rerun the same command to reuse retained audio and resume synthesis without deleting the output directory.`
+    }
+
+    const redispatchFlag = options.sourceContext?.comicContext
+      ? '--allow-ambiguous-redispatch'
+      : '--tts-allow-ambiguous-redispatch'
+    return `${checkpoint} ${blockedSlotCount} unresolved ${blockedSlotCount === 1 ? 'slot has' : 'slots have'} ambiguous provider admission. Rerun the same command with ${redispatchFlag} to reconcile those slots, reuse retained audio, and resume without deleting the output directory; authorized slots may be purchased again.`
+  } catch {
+    return undefined
+  }
+}
 
 type WorkingTtsMetadata = Step4Metadata & {
   _ttsObservedTurns?: CurrentTtsObservedTurn[] | undefined
@@ -413,13 +450,24 @@ export const runTtsTargets = async (
       } catch (error) {
         const failure = await attempt.finalizeFailure(error, providerRunCompleted ? 'assembly' : undefined)
         const sanitized = failure.error as SanitizedProviderError | undefined
-        const diagnosticMessage = sanitized
+        const providerDiagnostic = sanitized
           ? [
               sanitized.message,
               sanitized.providerMessage && sanitized.providerMessage !== sanitized.message ? sanitized.providerMessage : undefined,
               sanitized.requestId ? `request_id=${sanitized.requestId}` : undefined
             ].filter((value): value is string => value !== undefined).join(' ')
           : 'TTS target failed without exposing provider response details.'
+        const recoveryDiagnostic = await describeFailedTtsRecovery({
+          rootDir: sourceContext?.recoveryRootDir ?? sourceContext?.artifactOutputDir ?? outputDir,
+          state: failure,
+          target,
+          sourceText: text,
+          ttsOptions: options,
+          sourceContext
+        })
+        const diagnosticMessage = recoveryDiagnostic
+          ? `${providerDiagnostic} ${recoveryDiagnostic}`
+          : providerDiagnostic
         throw InfraError(diagnosticMessage, {
           stage: sanitized?.stage ?? `tts:${target.service}`,
           ...(sanitized?.status !== undefined ? { status: sanitized.status } : {}),

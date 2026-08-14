@@ -232,6 +232,8 @@ Caching uses content-addressed, versioned envelopes (`SynthesisCacheEntry`) back
 
 Once a mixed cache-materialized/provider-dispatched render publishes a successful terminal event and selected `AudioRun`, that selected success closes the whole render. Subsequent price and execution passes validate its complete evidence graph and report zero unresolved slots; they do not require each cache-materialized slot to masquerade as a new provider-dispatch result and never purchase those slots again.
 
+If synthesis instead terminates after any request dispatch, target finalization preserves successful outputs and all admission states before surfacing the provider error. The failure diagnostic immediately applies the same exact resume planner, reports reusable and unresolved generation-slot counts, and names the explicit reconciliation flag when ambiguous paid admissions block automatic continuation. It does not retry a 5xx, timeout, network failure, or other ambiguous paid create automatically; only the user-authorized resume may redispatch those exact unresolved slots, and it must warn that they may be purchased again.
+
 ### Truthful Metadata and Artifact Retention
 
 Canonical provider projections (`ttsAudio` or `comicAudio`) replace flat speaker summaries as authority. Detailed results record exact turn counts, batch counts, generation slots, request counts, cache materializations, take counts, output checksums, and provider cost allocations. Retired manifest formats are rejected.

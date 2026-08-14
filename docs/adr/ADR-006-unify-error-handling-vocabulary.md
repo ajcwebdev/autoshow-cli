@@ -95,6 +95,8 @@ Provider failures remain structured through target and comic aggregation. Wrappe
 
 Every concurrent TTS request also writes the same bounded diagnostic fields into its immutable rejection or ambiguity evidence before the target-level failure is finalized. A target may still report one primary failure to the command boundary, but retained request evidence preserves `code`, `status`, `stage`, error name, redacted provider message, request ID, retry delay, and retryability for each request that was already in flight. Provider text is passed through the shared secret, identifier, authorization, URL-credential, query-secret, and email redaction pipeline before it reaches logs or durable JSON.
 
+After that evidence is finalized, a failed TTS target derives one recovery checkpoint through the exact no-provider resume planner. When any completed slots are reusable or any admission remains ambiguous, the same structured infrastructure error appends the retained/total and unresolved counts, the number of reconciliation-blocked slots, the command-appropriate redispatch flag, and the warning that explicitly authorized slots may be purchased again. Recovery diagnostics are best-effort enrichment: integrity or planning errors are not logged separately and never replace the original provider failure.
+
 ### Keep (with rationale)
 
 `src/`:
@@ -151,7 +153,7 @@ Negative outcomes:
 
 ## Implementation Note
 
-The unified `AppError` taxonomy (`ProviderError`, `InfraError`, `InternalError`, `ValidationError`), centralized `isCLIUsageError`, `rethrowAsUsage` validator wrapping, structured retry handling in `pollUntil`, provider failure classification registry in `test/test-utils/provider-failure-classifiers.ts`, cause-aware paid-create admission handling, bounded provider diagnostics, structured target aggregation, normalized hosted-pressure recovery, and `[HH:MM:SS.MMM]` human log format are fully implemented and verified.
+The unified `AppError` taxonomy (`ProviderError`, `InfraError`, `InternalError`, `ValidationError`), centralized `isCLIUsageError`, `rethrowAsUsage` validator wrapping, structured retry handling in `pollUntil`, provider failure classification registry in `test/test-utils/provider-failure-classifiers.ts`, cause-aware paid-create admission handling, bounded provider diagnostics, TTS recovery-checkpoint diagnostics, structured target aggregation, normalized hosted-pressure recovery, and `[HH:MM:SS.MMM]` human log format are fully implemented and verified.
 
 ## Test Plan
 
