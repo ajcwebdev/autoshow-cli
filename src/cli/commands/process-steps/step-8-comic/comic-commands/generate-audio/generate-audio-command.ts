@@ -36,6 +36,7 @@ import { readManifest } from '../../../pipeline-manifest'
 import { bindSnapshotRenderIdentities, buildVoiceReferenceManifest, loadVoiceReferenceManifest, writeVoiceReferenceManifest } from '../../comic-utils/voice-reference-snapshot'
 import { assertProtectedStoreOutputDisjoint } from '../../../step-4-tts/voice-assets/protected-output-boundary'
 import { MANAGED_VOICE_STORE_ROOT } from '../../../step-4-tts/voice-management/managed-voice-store'
+import { resolveCharacterVoiceRegistryPaths } from '../../../step-4-tts/voice-management/character-voice-registry'
 import { createHostedTtsChunkScheduler } from '../../../step-4-tts/tts-utils/hosted-tts-chunk-scheduler'
 import { createSoundscapePlan, DEFAULT_COMIC_SOUNDSCAPE_MIX_PROFILE, writeSoundscapePlan } from '../../../step-4-tts/soundscape/soundscape-planner'
 import { assertComicSoundscapeExecutionReady, createLocalSilentDialogueRun, planComicSoundscapePrice, runComicSoundscape, soundscapeReportedOutputPath } from '../../comic-utils/comic-soundscape-workflow'
@@ -377,14 +378,38 @@ export const generateComicAudio = async (ctx: CliCommandContext, scriptPath: str
     return { ...target, operation: 'comic-audio' as const, transport, targetKey: canonicalTargetKey('comic-audio', target.service, target.model, transport) }
   })
   if (new Set(targets.map(target => target.targetKey)).size !== targets.length) throw CLIUsageError('Comic audio provider selection contains duplicate operation-scoped provider/model targets.')
-  const retainedSnapshot = await loadVoiceReferenceManifest({ sceneRunDir: compatible.sceneRunDir, sceneRunIdentity: dialoguePlan.sceneRunIdentity, dialoguePlanId: dialoguePlan.dialoguePlanId })
-  const snapshot = retainedSnapshot?.manifest ?? await buildVoiceReferenceManifest({
-      charactersRoot: getCharactersRoot(),
-      dialoguePlan,
-      targets: targets.map(target => ({ provider: target.service, model: target.model })),
-      profileKey,
-      createdAt: compatible.manifest.createdAt,
-    })
+  const selectedSnapshotId = typeof compatible.comicMetadata.audio.snapshotId === 'string'
+    ? compatible.comicMetadata.audio.snapshotId
+    : undefined
+  const selectedRetainedSnapshot = await loadVoiceReferenceManifest({
+    sceneRunDir: compatible.sceneRunDir,
+    sceneRunIdentity: dialoguePlan.sceneRunIdentity,
+    dialoguePlanId: dialoguePlan.dialoguePlanId,
+    ...(selectedSnapshotId ? { snapshotId: selectedSnapshotId } : {})
+  })
+  const charactersRoot = getCharactersRoot()
+  const registryPaths = resolveCharacterVoiceRegistryPaths(charactersRoot)
+  const registryPresence = await Promise.all([registryPaths.briefs, registryPaths.registrations, registryPaths.current].map(async path => await Bun.file(path).exists()))
+  if (registryPresence.some(Boolean) && !registryPresence.every(Boolean)) throw CLIUsageError('Character voice registry is incomplete; briefs, registrations, and current selections must be present together.')
+  const currentSnapshot = registryPresence.every(Boolean) || !selectedRetainedSnapshot
+    ? await buildVoiceReferenceManifest({
+        charactersRoot,
+        dialoguePlan,
+        targets: targets.map(target => ({ provider: target.service, model: target.model })),
+        profileKey,
+        createdAt: compatible.manifest.createdAt,
+      })
+    : undefined
+  const retainedSnapshot = currentSnapshot
+    ? await loadVoiceReferenceManifest({
+        sceneRunDir: compatible.sceneRunDir,
+        sceneRunIdentity: dialoguePlan.sceneRunIdentity,
+        dialoguePlanId: dialoguePlan.dialoguePlanId,
+        snapshotId: currentSnapshot.snapshotId
+      })
+    : selectedRetainedSnapshot
+  const snapshot = retainedSnapshot?.manifest ?? currentSnapshot
+  if (!snapshot) throw CLIUsageError('Comic audio requires a retained voice snapshot or a complete character voice registry.')
   const snapshotSubjects = [...new Set(turns.map(turn => turn.subjectKey))]
   assertVoiceSnapshotCoversSelectedTargets({ snapshot, targets, subjectKeys: snapshotSubjects, profileKey })
   baseOptions.hostedTtsChunkScheduler ??= createHostedTtsChunkScheduler({

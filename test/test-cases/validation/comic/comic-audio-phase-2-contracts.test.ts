@@ -15,7 +15,7 @@ import { readManifest } from '~/cli/commands/process-steps/pipeline-manifest'
 import { mixAudioToWav } from '~/cli/commands/process-steps/step-4-tts/tts-utils/audio-utils'
 import { assertVoiceSnapshotCoversSelectedTargets, generateComicAudio } from '~/cli/commands/process-steps/step-8-comic/comic-commands/generate-audio/generate-audio-command'
 import { configurePinnedRunDir, resetPinnedRunDir } from '~/cli/commands/process-steps/run-dir'
-import { writeVoiceReferenceManifest } from '~/cli/commands/process-steps/step-8-comic/comic-utils/voice-reference-snapshot'
+import { loadVoiceReferenceManifest, writeVoiceReferenceManifest } from '~/cli/commands/process-steps/step-8-comic/comic-utils/voice-reference-snapshot'
 import { createMockWavBytes, createSyntheticWavBytes } from '../../../test-utils/media-fixtures'
 import { installMockFetch, setupContractSuiteLifecycle } from '../../../test-utils/rest-contract-helpers'
 
@@ -493,6 +493,35 @@ describe('comic audio phase 2 contracts', () => {
       subjectKeys: ['pilot', 'navigator'],
       profileKey: 'default',
     })).toThrow(/immutable superset/)
+  })
+
+  test('append-only voice snapshot indexes retain and resolve recast revisions independently', async () => {
+    const sceneRunDir = await mkdtemp(join(tmpdir(), 'autoshow-comic-voice-recast-'))
+    const firstBase = {
+      schemaVersion: 1 as const,
+      sceneRunIdentity: HASH_A,
+      dialoguePlanId: HASH_B,
+      catalogHash: HASH_A,
+      briefSetHash: HASH_B,
+      createdAt: CREATED_AT,
+      entries: [snapshotEntry('paddy', 'Philip', 'openai')]
+    }
+    const secondBase = {
+      ...firstBase,
+      catalogHash: HASH_B,
+      entries: [snapshotEntry('paddy', 'Dennis', 'openai')]
+    }
+    const first = validateVoiceReferenceManifest({ ...firstBase, snapshotId: hashCanonicalTtsValue(firstBase) })
+    const second = validateVoiceReferenceManifest({ ...secondBase, snapshotId: hashCanonicalTtsValue(secondBase) })
+
+    await writeVoiceReferenceManifest(sceneRunDir, first)
+    await writeVoiceReferenceManifest(sceneRunDir, second)
+
+    const index = await Bun.file(join(sceneRunDir, 'assets/voice-reference-snapshots.json')).json() as { entries: Array<{ snapshotId: string }> }
+    expect(index.entries.map(entry => entry.snapshotId)).toEqual([first.snapshotId, second.snapshotId])
+    expect((await loadVoiceReferenceManifest({ sceneRunDir, sceneRunIdentity: HASH_A, dialoguePlanId: HASH_B, snapshotId: first.snapshotId }))?.manifest.entries[0]?.providerVoice).toMatchObject({ resourceId: 'Philip' })
+    expect((await loadVoiceReferenceManifest({ sceneRunDir, sceneRunIdentity: HASH_A, dialoguePlanId: HASH_B, snapshotId: second.snapshotId }))?.manifest.entries[0]?.providerVoice).toMatchObject({ resourceId: 'Dennis' })
+    await expect(loadVoiceReferenceManifest({ sceneRunDir, sceneRunIdentity: HASH_A, dialoguePlanId: HASH_B })).rejects.toThrow(/Multiple retained voice snapshots/)
   })
 
   test('canonical image and audio stage updates preserve each other and replace only their own provider targets', async () => {

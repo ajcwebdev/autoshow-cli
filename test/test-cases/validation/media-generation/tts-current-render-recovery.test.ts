@@ -530,6 +530,16 @@ describe('TTS completed-render recovery', () => {
       })
       const retained = buildCurrentTtsProviderState(first.metadata[0]!)
       const changedVoiceOptions: TtsOptions = { ...DIALOGUE_OPTIONS, ttsSpeakers: ['Host=alloy', 'Guest=onyx'] }
+      const price = await planCurrentTtsResumePrice({
+        rootDir: dir,
+        state: retained,
+        target: createDialogueFixtureTarget([]),
+        sourceText: text,
+        ttsOptions: changedVoiceOptions,
+        sourceIdentity,
+        dialoguePlan
+      })
+      expect(price).toMatchObject({ recoveryKind: 'partial-slots', recoveredSlotCount: 1, unresolvedSlotCount: 1, plannedSlotCount: 1 })
       const resumedCalls: number[] = []
       const reportedOutput = join(dir, 'speech-cross-render-recovered.wav')
       const resumed = await runTtsForTargets(text, dir, changedVoiceOptions, [createDialogueFixtureTarget(resumedCalls)], {

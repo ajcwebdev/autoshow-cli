@@ -2362,6 +2362,7 @@ export const prepareCurrentTtsCompatibleSlotRecovery = async (options: PureCurre
   outputDir: string
   artifactRoot?: string | undefined
   state: PipelineProviderState
+  materialize?: boolean | undefined
 }): Promise<CurrentTtsPartialRecovery | undefined> => {
   const pure = buildPureCurrentTtsRenderPlan(options)
   if (pure.planned.strategy !== 'segmented' || options.state.targetKey !== pure.targetKey) return undefined
@@ -2447,16 +2448,30 @@ export const prepareCurrentTtsCompatibleSlotRecovery = async (options: PureCurre
           )
           if (!serializerCompatible) continue
 
+          const verifiedOutputs = await Promise.all(sourceResult.outputs.map(async output => {
+            const sourceOutputPath = resolveRetainedPath(dirname(sourceResultPath), output.artifactRef, 'Stored compatible provider audio')
+            const sourceOutput = await readContainedArtifactFile(options.rootDir, contained(options.rootDir, sourceOutputPath))
+            if (sourceOutput.sha256 !== output.sha256) throw CLIUsageError('Stored compatible provider audio checksum does not match its source result.')
+            return { output, sourceOutputPath }
+          }))
+          if (options.materialize === false) {
+            recovered.set(currentSlot.generationSlotId, {
+              value: sourceResult,
+              path: sourceResultPath,
+              sha256: progress.batchResult.sha256,
+              attemptRoot: sourceAttemptRoot,
+              outputPaths: verifiedOutputs.map(output => output.sourceOutputPath)
+            })
+            continue
+          }
+
           const materializationRoot = resolve(currentRenderRoot, 'cache-materializations', currentSlot.generationSlotId)
           const sourceBatchCopy = await writeJsonCreateOnly(options.outputDir, resolve(materializationRoot, 'source-batch-result.json'), sourceResult)
           const cacheNamespace = `retained-render:${pure.targetKey}`
           const cacheKey = currentCompatibilityHash
           const sourceObject = (role: 'cache-entry' | 'provenance-attestation' | 'source-batch-result' | 'audio', objectId: string, sha256: string) => ({ cacheNamespace, cacheKey, objectId, role, sha256 })
           const copiedOutputs: Array<{ source: ReturnType<typeof sourceObject>, path: string, relativePath: string, sha256: string }> = []
-          for (const [outputIndex, output] of sourceResult.outputs.entries()) {
-            const sourceOutputPath = resolveRetainedPath(dirname(sourceResultPath), output.artifactRef, 'Stored compatible provider audio')
-            const sourceOutput = await readContainedArtifactFile(options.rootDir, contained(options.rootDir, sourceOutputPath))
-            if (sourceOutput.sha256 !== output.sha256) throw CLIUsageError('Stored compatible provider audio checksum does not match its source result.')
+          for (const [outputIndex, { output, sourceOutputPath }] of verifiedOutputs.entries()) {
             const destination = resolve(materializationRoot, `audio-${String(outputIndex + 1).padStart(3, '0')}${extname(sourceOutputPath) || '.audio'}`)
             await copyCreateOnly(options.outputDir, sourceOutputPath, destination)
             copiedOutputs.push({ source: sourceObject('audio', output.outputId, output.sha256), path: destination, relativePath: relative(materializationRoot, destination), sha256: output.sha256 })
@@ -2577,16 +2592,20 @@ export const planCurrentTtsResumePrice = async (options: PureCurrentTtsRenderPla
   const recovery = state && retainedHasPlannedRender
     ? await prepareCurrentTtsCompletedRecovery({ rootDir, state, ...planOptions, reconciliationMode: 'report' })
     : undefined
-  const recoveredIds = new Set(recovery?.kind === 'complete-render'
+  const compatibleRecovery = state && projection?.activeWork?.kind === 'render' && !retainedHasPlannedRender
+    ? await prepareCurrentTtsCompatibleSlotRecovery({ rootDir, outputDir: rootDir, state, ...planOptions, materialize: false })
+    : undefined
+  const effectiveRecovery = recovery ?? compatibleRecovery
+  const recoveredIds = new Set(effectiveRecovery?.kind === 'complete-render'
     ? slots.map((slot) => slot.generationSlotId)
-    : recovery?.kind === 'partial-slots'
-      ? recovery.recoveredSlots.map((slot) => slot.value.generationSlotId)
+    : effectiveRecovery?.kind === 'partial-slots'
+      ? effectiveRecovery.recoveredSlots.map((slot) => slot.value.generationSlotId)
       : [])
   const unresolvedSlots = slots.filter((slot) => !recoveredIds.has(slot.generationSlotId))
   const selectedSlots = requestedSlotLimit === undefined
     ? unresolvedSlots
     : unresolvedSlots.slice(0, requestedSlotLimit)
-  const plannedCost = recovery === undefined && requestedSlotLimit === undefined
+  const plannedCost = effectiveRecovery === undefined && requestedSlotLimit === undefined
     ? readiness.plannedCost
     : sumCosts(selectedSlots.map((slot) => slot.plannedCost))
   return {
@@ -2595,8 +2614,8 @@ export const planCurrentTtsResumePrice = async (options: PureCurrentTtsRenderPla
     plannedSlotCount: selectedSlots.length,
     unresolvedSlotCount: unresolvedSlots.length,
     recoveredSlotCount: slots.length - unresolvedSlots.length,
-    recoveryKind: recovery?.kind ?? 'none',
-    reconciliationBlockers: recovery?.reconciliationBlockers ?? []
+    recoveryKind: effectiveRecovery?.kind ?? 'none',
+    reconciliationBlockers: effectiveRecovery?.reconciliationBlockers ?? []
   }
 }
 

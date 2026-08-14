@@ -163,8 +163,8 @@ export const writeVoiceReferenceManifest = async (
     renderIdentities: [],
     createdAt: manifest.createdAt,
   }
-  const prior = index.entries.find(entry => entry.sceneRunIdentity === manifest.sceneRunIdentity && entry.dialoguePlanId === manifest.dialoguePlanId)
-  if (prior && (prior.snapshotId !== nextEntry.snapshotId || prior.createdAt !== nextEntry.createdAt)) throw CLIUsageError('Append-only voice snapshot index already binds this scene/dialogue to another snapshot.')
+  const prior = index.entries.find(entry => entry.snapshotId === manifest.snapshotId)
+  if (prior && (prior.sceneRunIdentity !== nextEntry.sceneRunIdentity || prior.dialoguePlanId !== nextEntry.dialoguePlanId || prior.createdAt !== nextEntry.createdAt)) throw CLIUsageError('Append-only voice snapshot index contains a conflicting snapshot identity.')
   if (!prior) await atomicWriteIndex(indexPath, validateVoiceReferenceSnapshotIndex({ schemaVersion: 1, entries: [...index.entries, nextEntry] }))
   return { path: relativePath, sha256: written.sha256 }
 })
@@ -173,11 +173,18 @@ export const loadVoiceReferenceManifest = async (input: {
   sceneRunDir: string
   sceneRunIdentity: string
   dialoguePlanId: string
+  snapshotId?: string | undefined
 }): Promise<{ manifest: VoiceReferenceManifest, ref: { path: string, sha256: string } } | undefined> => {
   const indexPath = join(input.sceneRunDir, 'assets/voice-reference-snapshots.json')
   if (!await Bun.file(indexPath).exists()) return undefined
   const index = validateVoiceReferenceSnapshotIndex(await Bun.file(indexPath).json() as VoiceReferenceSnapshotIndex)
-  const entry = index.entries.find(candidate => candidate.sceneRunIdentity === input.sceneRunIdentity && candidate.dialoguePlanId === input.dialoguePlanId)
+  const matchingEntries = index.entries.filter(candidate =>
+    candidate.sceneRunIdentity === input.sceneRunIdentity
+    && candidate.dialoguePlanId === input.dialoguePlanId
+    && (input.snapshotId === undefined || candidate.snapshotId === input.snapshotId)
+  )
+  if (input.snapshotId === undefined && matchingEntries.length > 1) throw CLIUsageError('Multiple retained voice snapshots exist for this scene/dialogue; select one exact snapshot identity.')
+  const entry = matchingEntries[0]
   if (!entry) return undefined
   const relativePath = `assets/voice-references/${entry.snapshotId}/voice-reference-snapshot.json`
   const bytes = new Uint8Array(await readFile(join(input.sceneRunDir, relativePath)))

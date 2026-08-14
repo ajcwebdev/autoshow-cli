@@ -189,8 +189,8 @@ export const validateVoiceReferenceSnapshotIndex = (index: VoiceReferenceSnapsho
     if (!SHA256.test(entry.sceneRunIdentity) || !SHA256.test(entry.dialoguePlanId) || !SHA256.test(entry.snapshotId) || !Array.isArray(entry.renderIdentities) || entry.renderIdentities.some(renderIdentity => !SHA256.test(renderIdentity))) throw CLIUsageError('Voice snapshot index contains an invalid content identity.')
     if (new Set(entry.renderIdentities).size !== entry.renderIdentities.length) throw CLIUsageError('Voice snapshot index contains duplicate render identities.')
     assertIsoDate(entry.createdAt, 'Voice snapshot index createdAt')
-    const key = `${entry.sceneRunIdentity}\0${entry.dialoguePlanId}`
-    if (keys.has(key)) throw CLIUsageError('Voice snapshot index contains duplicate scene/dialogue entries.')
+    const key = `${entry.sceneRunIdentity}\0${entry.dialoguePlanId}\0${entry.snapshotId}`
+    if (keys.has(key)) throw CLIUsageError('Voice snapshot index contains duplicate scene/dialogue/snapshot entries.')
     keys.add(key)
     for (const renderIdentity of entry.renderIdentities) {
       const prior = renderIds.get(renderIdentity)
