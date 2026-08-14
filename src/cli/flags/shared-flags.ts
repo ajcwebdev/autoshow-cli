@@ -52,7 +52,7 @@ export const writeAllLocalFlag = {
 
 export const sharedConcurrencyFlags = {
   'concurrency-mode': strFlag('Hosted concurrency startup policy: ramp|immediate (default ramp)', 'ramp'),
-  'provider-concurrency': strFlag(`Max hosted providers/models running in parallel for one item (default ${DEFAULT_CONCURRENCY_FLAG_VALUE})`, DEFAULT_CONCURRENCY_FLAG_VALUE),
+  'provider-concurrency': strFlag(`Max hosted provider/model targets running in parallel for one item; internal request or chunk fan-out uses its own limit (default ${DEFAULT_CONCURRENCY_FLAG_VALUE})`, DEFAULT_CONCURRENCY_FLAG_VALUE),
   'local-concurrency': strFlag(`Max local providers/models running in parallel for one item (default ${DEFAULT_CONCURRENCY_FLAG_VALUE})`, DEFAULT_CONCURRENCY_FLAG_VALUE)
 } as const satisfies CliFlagsDefinition
 

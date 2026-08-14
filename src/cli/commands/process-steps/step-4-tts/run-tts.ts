@@ -11,7 +11,7 @@ import {
 import type { TtsExecutionReadinessObservation } from './tts-targets'
 import { assertDialogueFormatIsUsable, isMultiSpeakerRequested } from './dialogue-normalizer'
 import { runMultiSpeakerTts } from './run-multi-speaker-tts'
-import { CLIUsageError, InternalError } from '~/utils/error-handler'
+import { CLIUsageError, InfraError, InternalError } from '~/utils/error-handler'
 import { bindHostedTtsChunkScheduler, createHostedTtsChunkScheduler } from './tts-utils/hosted-tts-chunk-scheduler'
 import type { CurrentTtsObservedTurn, CurrentTtsRenderArtifacts } from './script-to-audio/current-render-artifacts'
 import { createCurrentTtsRenderAttempt, planCurrentTtsRenderIdentity, prepareCurrentTtsCompletedRecovery, resolveCurrentTtsPriorAdmittedAttemptCount, validateCurrentTtsRenderAttemptInputs } from './script-to-audio/current-render-attempt'
@@ -286,6 +286,7 @@ export const runTtsTargets = async (
     getWorkspaceDir: (dir, target) =>
       `${dir}/.tts-tmp-${target.service}-${sanitizeModelName(target.model)}`,
     useWorkspaceForSingleTarget: true,
+    preserveWorkspaceOnFailure: true,
     resourceGate: options.generationResourceGate,
     getResourceGate: (target) => isMultiSpeakerRequested(options) && target.service === 'kitten'
       ? undefined
@@ -394,12 +395,20 @@ export const runTtsTargets = async (
       } catch (error) {
         const failure = await attempt.finalizeFailure(error, providerRunCompleted ? 'assembly' : undefined)
         const sanitized = failure.error as SanitizedProviderError | undefined
-        const safeError = new Error(sanitized?.message ?? 'TTS target failed without exposing provider response details.')
-        if (sanitized?.code.startsWith('http_')) {
-          const status = Number.parseInt(sanitized.code.slice('http_'.length), 10)
-          if (Number.isInteger(status)) Object.defineProperty(safeError, 'status', { value: status, configurable: true })
-        }
-        throw safeError
+        const diagnosticMessage = sanitized
+          ? [
+              sanitized.message,
+              sanitized.providerMessage && sanitized.providerMessage !== sanitized.message ? sanitized.providerMessage : undefined,
+              sanitized.requestId ? `request_id=${sanitized.requestId}` : undefined
+            ].filter((value): value is string => value !== undefined).join(' ')
+          : 'TTS target failed without exposing provider response details.'
+        throw InfraError(diagnosticMessage, {
+          stage: sanitized?.stage ?? `tts:${target.service}`,
+          ...(sanitized?.status !== undefined ? { status: sanitized.status } : {}),
+          ...(sanitized?.retryable !== undefined ? { retryable: sanitized.retryable } : {}),
+          cause: error instanceof Error ? error : new Error(String(error)),
+          metadata: sanitized ? { sanitizedProviderError: sanitized } : {}
+        })
       }
     },
     finalizeTarget: async (_target, result) => {

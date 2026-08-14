@@ -30,9 +30,6 @@ import { createMiniMaxAdvancedProvider, MINIMAX_ADVANCED_CAPABILITY_FIXTURE } fr
 import { createCartesiaAdvancedProvider, CARTESIA_ADVANCED_CAPABILITY_FIXTURE } from '../tts-services/cartesia/cartesia-advanced-provider'
 import { createFishAdvancedProvider, FISH_ADVANCED_CAPABILITY_FIXTURE } from '../tts-services/fish/fish-advanced-provider'
 import { createSpeechifyAdvancedProvider, SPEECHIFY_ADVANCED_CAPABILITY_FIXTURE } from '../tts-services/speechify/speechify-advanced-provider'
-import { createInworldAdvancedProvider, INWORLD_ADVANCED_CAPABILITY_FIXTURE } from '../tts-services/inworld/inworld-advanced-provider'
-import { createDeepinfraAdvancedProvider, DEEPINFRA_ADVANCED_CAPABILITY_FIXTURE } from '../tts-services/tts-deepinfra/deepinfra-advanced-provider'
-import { createReplicateAdvancedProvider, REPLICATE_ADVANCED_CAPABILITY_FIXTURE } from '../tts-services/tts-replicate/replicate-advanced-provider'
 import { createAdvancedVoiceCandidates, loadVoiceCandidate, materializeAdvancedVoiceCandidate, planAdvancedClone, provisionAdvancedVoiceClone } from './advanced-voice-management'
 import { getTtsPricing } from '~/cli/commands/setup-and-utilities/models/model-loader'
 
@@ -41,8 +38,8 @@ const CONSENT_ACTIONS: VoiceConsentAction[] = ['upload', 'new-synthesis', 'cache
 const VOICE_ORIGINS = ['provider-stock', 'designed', 'remixed', 'instant-clone', 'professional-clone', 'imported-custom', 'saved-reference'] as const
 const PROFILE_DEFAULT = 'default'
 
-const ADVANCED_PROVIDERS = ['elevenlabs', 'hume', 'minimax', 'cartesia', 'fish', 'speechify', 'inworld', 'deepinfra', 'replicate'] as const
-const DESIGN_PROVIDERS = ['elevenlabs', 'hume', 'minimax', 'fish', 'inworld', 'deepinfra', 'replicate'] as const
+const ADVANCED_PROVIDERS = ['elevenlabs', 'hume', 'minimax', 'cartesia', 'fish', 'speechify'] as const
+const DESIGN_PROVIDERS = ['elevenlabs', 'hume', 'minimax', 'fish'] as const
 type AdvancedProviderName = typeof ADVANCED_PROVIDERS[number]
 type DesignProviderName = typeof DESIGN_PROVIDERS[number]
 type ManagedAdvancedProvider = Pick<TtsVoiceProvider, 'provider' | 'getDeclaredCapabilities' | 'catalog' | 'design' | 'clone' | 'lifecycle'> & { accountScopeHash: string }
@@ -56,21 +53,19 @@ const advancedCapabilityFixtureHash = (provider: AdvancedProviderName): string =
   if (provider === 'minimax') return MINIMAX_ADVANCED_CAPABILITY_FIXTURE.capabilityFixtureHash
   if (provider === 'cartesia') return CARTESIA_ADVANCED_CAPABILITY_FIXTURE.capabilityFixtureHash
   if (provider === 'fish') return FISH_ADVANCED_CAPABILITY_FIXTURE.capabilityFixtureHash
-  if (provider === 'inworld') return INWORLD_ADVANCED_CAPABILITY_FIXTURE.capabilityFixtureHash
-  if (provider === 'deepinfra') return DEEPINFRA_ADVANCED_CAPABILITY_FIXTURE.capabilityFixtureHash
-  if (provider === 'replicate') return REPLICATE_ADVANCED_CAPABILITY_FIXTURE.capabilityFixtureHash
   return SPEECHIFY_ADVANCED_CAPABILITY_FIXTURE.capabilityFixtureHash
 }
 
-const advancedProvider = (provider: AdvancedProviderName, options: { elevenLabsApiKey?: string | undefined, resolveElevenLabsProtectedAsset?: Parameters<typeof createElevenLabsAdvancedProvider>[0]['resolveProtectedAsset'] | undefined } = {}): ManagedAdvancedProvider => {
+const advancedProvider = (provider: AdvancedProviderName, options: {
+  elevenLabsApiKey?: string | undefined
+  resolveElevenLabsProtectedAsset?: Parameters<typeof createElevenLabsAdvancedProvider>[0]['resolveProtectedAsset'] | undefined
+  resolveFishProtectedAsset?: Parameters<typeof createFishAdvancedProvider>[0]['resolveProtectedAsset'] | undefined
+} = {}): ManagedAdvancedProvider => {
   if (provider === 'elevenlabs') return createElevenLabsAdvancedProvider({ apiKey: options.elevenLabsApiKey ?? requireApiKey('ELEVENLABS_API_KEY', 'voice:elevenlabs', 'ElevenLabs voice management'), ...(options.resolveElevenLabsProtectedAsset ? { resolveProtectedAsset: options.resolveElevenLabsProtectedAsset } : {}) })
   if (provider === 'hume') return createHumeAdvancedProvider({ apiKey: requireApiKey('HUME_API_KEY', 'voice:hume', 'Hume voice management') })
   if (provider === 'minimax') return createMiniMaxAdvancedProvider({ apiKey: requireApiKey('MINIMAX_API_KEY', 'voice:minimax', 'MiniMax voice management') })
   if (provider === 'cartesia') return createCartesiaAdvancedProvider({ apiKey: requireApiKey('CARTESIA_API_KEY', 'voice:cartesia', 'Cartesia voice management') })
-  if (provider === 'fish') return createFishAdvancedProvider({ apiKey: requireApiKey('FISH_API_KEY', 'voice:fish', 'Fish voice management') })
-  if (provider === 'inworld') return createInworldAdvancedProvider({ apiKey: requireApiKey('INWORLD_API_KEY', 'voice:inworld', 'Inworld voice management') })
-  if (provider === 'deepinfra') return createDeepinfraAdvancedProvider({ apiKey: requireApiKey('DEEPINFRA_API_KEY', 'voice:deepinfra', 'DeepInfra voice management') })
-  if (provider === 'replicate') return createReplicateAdvancedProvider({ apiKey: requireApiKey('REPLICATE_API_TOKEN', 'voice:replicate', 'Replicate voice management') })
+  if (provider === 'fish') return createFishAdvancedProvider({ apiKey: requireApiKey('FISH_API_KEY', 'voice:fish', 'Fish voice management'), ...(options.resolveFishProtectedAsset ? { resolveProtectedAsset: options.resolveFishProtectedAsset } : {}) })
   return createSpeechifyAdvancedProvider({ apiKey: requireApiKey('SPEECHIFY_API_KEY', 'voice:speechify', 'Speechify voice management') })
 }
 
@@ -242,7 +237,7 @@ const handleDiscover = async (ctx: CliCommandContext): Promise<void> => {
 const handleDesign = async (ctx: CliCommandContext): Promise<void> => {
   const subjectKey = parameter(ctx, 'subjectKey')
   const provider = providerFlag(ctx)
-  if (!isDesignProvider(provider)) throw CLIUsageError(`Voice Design currently supports ${DESIGN_PROVIDERS.join(', ')}; Cartesia and Speechify do not expose text-prompt design APIs.`)
+  if (!isDesignProvider(provider)) throw CLIUsageError(`Voice Design currently supports ${DESIGN_PROVIDERS.join(', ')}; the selected provider has no implemented text-prompt design adapter.`)
   const providerModel = requiredFlag(ctx, 'model')
   const creationModel = requiredFlag(ctx, 'creation-model')
   const profileKey = optionalFlag(ctx, 'profile') ?? PROFILE_DEFAULT
@@ -267,10 +262,13 @@ const handleDesign = async (ctx: CliCommandContext): Promise<void> => {
     if (candidateCount > 5) throw CLIUsageError('Hume Voice Design supports one to five candidates per bounded request.')
     if (description.length > 1000) throw CLIUsageError('Hume Voice Design description must contain 1-1000 characters.')
     if (seed !== undefined) throw CLIUsageError('Hume Voice Design does not expose a deterministic seed.')
-  } else {
+  } else if (provider === 'minimax') {
     if (candidateCount !== 1) throw CLIUsageError('MiniMax Voice Design returns exactly one bounded preview per request.')
     if (previewText.length > 500) throw CLIUsageError('MiniMax Voice Design preview text must contain 1-500 characters.')
     if (seed !== undefined) throw CLIUsageError('MiniMax Voice Design does not expose a deterministic seed.')
+  } else {
+    if (candidateCount !== 1) throw CLIUsageError('Fish Audio Voice Design returns exactly one bounded preview per request.')
+    if (seed !== undefined) throw CLIUsageError('Fish Audio Voice Design does not expose a deterministic seed.')
   }
   await requireBrief(subjectKey, profileKey)
   if (ctx.flags['price'] === true) {
@@ -307,7 +305,7 @@ const handleMaterialize = async (ctx: CliCommandContext): Promise<void> => {
   const candidateId = parameter(ctx, 'candidateId')
   const candidate = await loadVoiceCandidate(getCharactersRoot(), candidateId)
   const provider = providerFlag(ctx)
-  if (provider !== candidate.provider || !isDesignProvider(provider)) throw CLIUsageError('Candidate materialization provider does not match an ElevenLabs, Hume, or MiniMax candidate.')
+  if (provider !== candidate.provider || !isDesignProvider(provider)) throw CLIUsageError(`Candidate materialization provider must match one of: ${DESIGN_PROVIDERS.join(', ')}.`)
   const subjectKey = requiredFlag(ctx, 'subject-key')
   const profileKey = optionalFlag(ctx, 'profile') ?? PROFILE_DEFAULT
   const brief = await requireBrief(subjectKey, profileKey)
@@ -320,7 +318,12 @@ const handleMaterialize = async (ctx: CliCommandContext): Promise<void> => {
     return
   }
   await assertProtectedStoreOutputDisjoint(getCharactersRoot(), MANAGED_VOICE_STORE_ROOT)
-  const adapter = advancedProvider(provider)
+  const adapter = advancedProvider(provider, provider === 'fish' ? {
+    resolveFishProtectedAsset: async (asset) => {
+      const path = await managedVoiceAssetStore.resolve(asset)
+      return { bytes: new Uint8Array(await Bun.file(path).arrayBuffer()), fileName: `design-preview-${asset.assetId}.${path.split('.').pop() ?? 'audio'}`, mediaType: cloneMediaType(path) }
+    }
+  } : {})
   const result = await materializeAdvancedVoiceCandidate({
     charactersRoot: getCharactersRoot(), journalRoot: join(MANAGED_VOICE_STORE_ROOT, 'journals'), protectedStore: managedVoiceAssetStore,
     provider: adapter, candidateId, desiredName, subjectKey, profileKey, brief,
@@ -340,7 +343,7 @@ const cloneMediaType = (path: string): string => {
   if (extension === 'flac') return 'audio/flac'
   if (extension === 'aac') return 'audio/aac'
   if (extension === 'webm') return 'audio/webm'
-  throw CLIUsageError('ElevenLabs clone samples must be mp3, wav, m4a/mp4, ogg, flac, aac, or webm audio.')
+  throw CLIUsageError('Voice audio samples must be mp3, wav, m4a/mp4, ogg, flac, aac, or webm audio.')
 }
 
 const handleClone = async (ctx: CliCommandContext): Promise<void> => {

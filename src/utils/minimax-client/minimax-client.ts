@@ -1,5 +1,6 @@
 import * as v from 'valibot'
 import { InfraError, ValidationError } from '~/utils/error-handler'
+import { extractRestErrorMessage, parseJsonOrText, readJsonResponse, readRestResponseText } from '~/utils/rest-client'
 import { validateData } from '~/utils/validate/validation'
 
 export const MinimaxBaseRespSchema = v.object({
@@ -90,8 +91,9 @@ export const minimaxFetchJson = async <TSchema extends v.BaseSchema<unknown, unk
       if (options.decorateError) {
         throw await options.decorateError(response)
       }
-      const body = await response.text()
-      throw InfraError(`${options.httpErrorMessage} (${response.status}): ${body || 'No response body'}`, {
+      const captured = await readRestResponseText(response)
+      const payload = captured.truncated ? captured.sanitizedPreview : parseJsonOrText(captured.text)
+      throw InfraError(`${options.httpErrorMessage} (${response.status}): ${extractRestErrorMessage(payload, captured.text, response.status)}`, {
         stage: options.stage,
         status: response.status,
         headers: response.headers
@@ -103,15 +105,9 @@ export const minimaxFetchJson = async <TSchema extends v.BaseSchema<unknown, unk
   const response = options.execute
     ? await options.execute(request)
     : await request()
-  const text = await response.text()
-  if (!text.trim()) {
+  const json = await readJsonResponse(response, options.responseContext)
+  if (typeof json === 'object' && json !== null && !Array.isArray(json) && Object.keys(json).length === 0) {
     throw ValidationError(`Empty response body for ${options.responseContext}`, { stage: options.stage })
-  }
-  let json: unknown
-  try {
-    json = JSON.parse(text) as unknown
-  } catch (error) {
-    throw ValidationError(`Invalid JSON for ${options.responseContext}: ${error instanceof Error ? error.message : String(error)}`, { stage: options.stage })
   }
   const parsed = validateData(
     options.schema,

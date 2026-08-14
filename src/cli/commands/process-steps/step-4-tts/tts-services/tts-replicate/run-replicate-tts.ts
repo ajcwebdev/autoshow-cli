@@ -4,29 +4,13 @@ import { splitTextIntoChunks } from '~/cli/commands/process-steps/step-4-tts/tts
 import { TTS_CHUNK_CHARACTER_LIMITS } from '~/cli/commands/process-steps/step-4-tts/tts-utils/tts-chunking'
 import { runHostedTtsChunkPipeline } from '~/cli/commands/process-steps/step-4-tts/tts-utils/hosted-tts-chunk-pipeline'
 import { REPLICATE_DEFAULT_TTS_VOICE, validateReplicateTtsVoice } from '~/cli/commands/setup-and-utilities/models/setup-model-options'
-import { ValidationError } from '~/utils/error-handler'
+import { REPLICATE_DEFAULT_BASE_URL } from '~/utils/base-urls'
+import { ProviderError, ValidationError } from '~/utils/error-handler'
+import { normalizeReplicateOutputUris, runReplicatePrediction } from '~/utils/replicate-client/replicate-prediction'
+import { extractRestErrorMessage, parseJsonOrText, readRestResponseText } from '~/utils/rest-client'
+import { classifyFetchRetry, isRetryableStatus, withRetry } from '~/utils/retries'
+import { MEDIA_GENERATION_TIMEOUT_MS } from '~/utils/timeouts'
 import { dispatchTtsProviderRequest } from '../../script-to-audio/tts-request-evidence'
-
-const generateSimpleWavBuffer = (durationSeconds = 1.0, sampleRate = 44100): Uint8Array => {
-  const numSamples = Math.floor(sampleRate * durationSeconds)
-  const dataSize = numSamples * 2
-  const buffer = new ArrayBuffer(44 + dataSize)
-  const view = new DataView(buffer)
-  view.setUint32(0, 0x52494646, false)
-  view.setUint32(4, 36 + dataSize, true)
-  view.setUint32(8, 0x57415645, false)
-  view.setUint32(12, 0x666d7420, false)
-  view.setUint32(16, 16, true)
-  view.setUint16(20, 1, true)
-  view.setUint16(22, 1, true)
-  view.setUint32(24, sampleRate, true)
-  view.setUint32(28, sampleRate * 2, true)
-  view.setUint16(32, 2, true)
-  view.setUint16(34, 16, true)
-  view.setUint32(36, 0x64617461, false)
-  view.setUint32(40, dataSize, true)
-  return new Uint8Array(buffer)
-}
 
 export type RunReplicateTtsOptions = Readonly<{
   model: ReplicateTtsModel
@@ -44,6 +28,9 @@ export const runReplicateTts = async (
   outputDir: string,
   options: RunReplicateTtsOptions
 ): Promise<{ audioPath: string, metadata: Step4Metadata }> => {
+  if (!options.apiKey.trim()) {
+    throw ValidationError('Replicate API token is required', { stage: 'tts:replicate' })
+  }
   const voice = validateReplicateTtsVoice(options.voiceId?.trim() || REPLICATE_DEFAULT_TTS_VOICE)
   const chunks = splitTextIntoChunks(text, TTS_CHUNK_CHARACTER_LIMITS.replicate ?? 2000)
 
@@ -71,15 +58,14 @@ export const runReplicateTts = async (
     chunkConcurrency: options.chunkConcurrency,
     chunkScheduler: options.chunkScheduler,
     requestEvidence: options.requestEvidence,
-    fetchChunkAudio: async ({ chunk, chunkIndex, requestAttempt, retryReasonCode }) => {
+    fetchChunkAudio: async ({ chunk, chunkIndex, requestAttempt, retryReasonCode, signal }) => {
       return await dispatchTtsProviderRequest(options.requestEvidence, {
         chunkIndex,
         endpointKind: 'predictions',
         serializerVersion: 'replicate.tts.phase-5-v1',
         serializedRequest: {
-          path: '/v1/predictions',
+          path: `/v1/models/${options.model}/predictions`,
           body: {
-            version: options.model,
             input: {
               text: chunk,
               voice,
@@ -95,38 +81,57 @@ export const runReplicateTts = async (
           ...(options.promptInstructions ? { promptInstructions: options.promptInstructions } : {})
         },
         continuation: { kind: 'none' }
-      }, { attempt: requestAttempt, ...(retryReasonCode ? { retryReasonCode } : {}) }, async () => {
-        if (!options.apiKey.trim()) {
-          // Offline mock WAV generation for local testing
-          const duration = Math.max(0.5, chunk.length * 0.05)
-          return generateSimpleWavBuffer(duration)
-        }
-        const res = await fetch('https://api.replicate.com/v1/predictions', {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            'Authorization': `Bearer ${options.apiKey}`
+      }, { attempt: requestAttempt, ...(retryReasonCode ? { retryReasonCode } : {}) }, async ({ accepted }) => {
+        const prediction = await runReplicatePrediction({
+          apiToken: options.apiKey,
+          baseUrl: REPLICATE_DEFAULT_BASE_URL,
+          model: options.model,
+          input: {
+            text: chunk,
+            voice,
+            ...(options.promptInstructions ? { prompt: options.promptInstructions } : {})
           },
-          body: JSON.stringify({
-            version: options.model,
-            input: {
-              text: chunk,
-              voice,
-              ...(options.promptInstructions ? { prompt: options.promptInstructions } : {})
-            }
-          }),
-          ...(options.abortSignal ? { signal: options.abortSignal } : {})
+          operationName: `Replicate TTS chunk ${chunkIndex + 1}`,
+          abortSignal: signal,
+          onCreated: async (created) => {
+            await accepted({
+              providerRequestId: created.id,
+              fields: { providerStatus: created.status }
+            })
+          }
         })
-        if (!res.ok) {
-          throw new Error(`Replicate TTS request failed with status ${res.status}: ${await res.text()}`)
+
+        const outputUrl = normalizeReplicateOutputUris(prediction.output)[0]
+        if (!outputUrl) {
+          throw ValidationError('Replicate TTS prediction completed without an audio output URL', {
+            stage: 'tts:replicate:response',
+            metadata: { predictionId: prediction.id, providerStatus: prediction.status }
+          })
         }
-        const json = await res.json() as { output?: string | string[] }
-        const outputUrl = Array.isArray(json.output) ? json.output[0] : json.output
-        if (outputUrl && typeof outputUrl === 'string' && outputUrl.startsWith('http')) {
-          const audioRes = await fetch(outputUrl)
-          return new Uint8Array(await audioRes.arrayBuffer())
-        }
-        return generateSimpleWavBuffer(Math.max(0.5, chunk.length * 0.05))
+
+        return await withRetry({
+          retryClass: 'runtime_http_read',
+          operationName: `Replicate TTS audio download ${chunkIndex + 1}`,
+          timeoutMs: MEDIA_GENERATION_TIMEOUT_MS,
+          abortSignal: signal
+        }, async (downloadSignal) => {
+          const audioRes = await fetch(outputUrl, downloadSignal ? { signal: downloadSignal } : undefined)
+          if (!audioRes.ok) {
+            const captured = await readRestResponseText(audioRes)
+            const payload = captured.truncated ? captured.sanitizedPreview : parseJsonOrText(captured.text)
+            throw ProviderError(`Replicate TTS audio download failed (${audioRes.status}): ${extractRestErrorMessage(payload, captured.text, audioRes.status)}`, {
+              status: audioRes.status,
+              headers: audioRes.headers,
+              stage: 'tts:replicate:download',
+              retryable: isRetryableStatus(audioRes.status)
+            })
+          }
+          const audio = new Uint8Array(await audioRes.arrayBuffer())
+          if (audio.byteLength === 0) {
+            throw ValidationError('Replicate TTS audio download was empty', { stage: 'tts:replicate:download' })
+          }
+          return audio
+        }, (error) => classifyFetchRetry(error, 'runtime_http_read'))
       })
     }
   })

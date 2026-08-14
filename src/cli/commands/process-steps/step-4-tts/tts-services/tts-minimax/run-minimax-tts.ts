@@ -10,6 +10,7 @@ import { pollUntil } from '~/utils/retries'
 import { MEDIA_GENERATION_TIMEOUT_MS } from '~/utils/timeouts'
 import { requireApiKey } from '~/utils/validate/env-utils'
 import { InfraError, ValidationError } from '~/utils/error-handler'
+import { extractRestErrorMessage, parseJsonOrText, readRestResponseText } from '~/utils/rest-client'
 import { MinimaxCreateResponseSchema, MinimaxQueryResponseSchema, isMinimaxTaskFailure, isMinimaxTaskSuccess, minimaxFetchJson, minimaxJsonRequestInit, readMinimaxTaskStatus, resolveMinimaxFileId } from '~/utils/minimax-client/minimax-client'
 import { dispatchTtsProviderRequest } from '../../script-to-audio/tts-request-evidence'
 
@@ -21,8 +22,9 @@ const createMinimaxHttpError = async (
   response: Response,
   message: string
 ): Promise<Error & { status: number, headers: Headers }> => {
-  const body = await response.text()
-  return InfraError(`${message} (${response.status}): ${body || 'No response body'}`, {
+  const captured = await readRestResponseText(response)
+  const payload = captured.truncated ? captured.sanitizedPreview : parseJsonOrText(captured.text)
+  return InfraError(`${message} (${response.status}): ${extractRestErrorMessage(payload, captured.text, response.status)}`, {
     stage: 'tts:minimax',
     status: response.status,
     headers: response.headers
@@ -46,8 +48,13 @@ const downloadChunkAudio = async (
   })
 
   if (!response.ok) {
-    const body = await response.text()
-    throw InfraError(`MiniMax TTS download failed (${response.status}): ${body || 'No response body'}`, { stage: 'tts:minimax', status: response.status })
+    const captured = await readRestResponseText(response)
+    const payload = captured.truncated ? captured.sanitizedPreview : parseJsonOrText(captured.text)
+    throw InfraError(`MiniMax TTS download failed (${response.status}): ${extractRestErrorMessage(payload, captured.text, response.status)}`, {
+      stage: 'tts:minimax',
+      status: response.status,
+      headers: response.headers
+    })
   }
 
   const bytes = new Uint8Array(await response.arrayBuffer())
@@ -88,6 +95,7 @@ export const runMinimaxTts = async (
   ])
 
   const chunkPaths: string[] = []
+  let completed = false
 
   try {
     const orderedChunkPaths = await runTtsChunks(chunks, options.chunkConcurrency, async (chunk, index, admission) => {
@@ -115,24 +123,14 @@ export const runMinimaxTts = async (
         ...(pronunciationRules && pronunciationRules.length > 0 ? { pronunciation_dict: { tone: pronunciationRules } } : {})
       }
 
-      const createTaskData = await minimaxFetchJson(
-        `${baseURL}/v1/t2a_async_v2`,
+      const createTaskData = await withHostedTtsRetry(
         {
-          init: minimaxJsonRequestInit(apiKey, 'POST', requestBody),
-          schema: MinimaxCreateResponseSchema,
-          responseContext: 'MiniMax TTS create task response',
-          baseRespContext: 'MiniMax TTS task creation',
-          stage: 'tts:minimax',
-          httpErrorMessage: 'MiniMax TTS task creation failed',
-          decorateError: async response => await createMinimaxHttpError(response, 'MiniMax TTS task creation failed'),
-          execute: async request => await withHostedTtsRetry(
-            {
-              operationName: `minimax-tts-create-chunk-${chunkIndex}`,
-              abortSignal: options.abortSignal,
-              admission,
-              chunkScheduler: options.chunkScheduler
-            },
-            async (signal, requestAttempt) => await dispatchTtsProviderRequest(options.requestEvidence, {
+          operationName: `minimax-tts-create-chunk-${chunkIndex}`,
+          abortSignal: options.abortSignal,
+          admission,
+          chunkScheduler: options.chunkScheduler
+        },
+        async (signal, requestAttempt) => await dispatchTtsProviderRequest(options.requestEvidence, {
               chunkIndex,
               endpointKind: 'async-speech-synthesis-create',
               serializerVersion: 'minimax.tts.phase-0-v1',
@@ -147,9 +145,25 @@ export const runMinimaxTts = async (
                 ...(pronunciationRules && pronunciationRules.length > 0 ? { pronunciationRules } : {})
               },
               continuation: { kind: 'none' }
-            }, requestAttempt, async () => await request(signal))
-          )
-        }
+            }, requestAttempt, async ({ accepted }) => {
+              const created = await minimaxFetchJson(
+                `${baseURL}/v1/t2a_async_v2`,
+                {
+                  init: minimaxJsonRequestInit(apiKey, 'POST', requestBody, signal),
+                  schema: MinimaxCreateResponseSchema,
+                  responseContext: 'MiniMax TTS create task response',
+                  baseRespContext: 'MiniMax TTS task creation',
+                  stage: 'tts:minimax',
+                  httpErrorMessage: 'MiniMax TTS task creation failed',
+                  decorateError: async response => await createMinimaxHttpError(response, 'MiniMax TTS task creation failed')
+                }
+              )
+              await accepted({
+                providerRequestId: String(created.task_id),
+                fields: { asyncTaskCreated: true }
+              })
+              return created
+            })
       )
 
       const taskId = String(createTaskData.task_id)
@@ -217,14 +231,18 @@ export const runMinimaxTts = async (
       startTime
     })
 
-    return {
+    const finalized = {
       audioPath: result.audioPath,
       metadata: result.metadata
     }
+    completed = true
+    return finalized
   } finally {
-    for (const chunkPath of chunkPaths) {
-      await Bun.$`rm -f ${chunkPath}`.quiet().nothrow()
+    if (completed) {
+      for (const chunkPath of chunkPaths) {
+        await Bun.$`rm -f ${chunkPath}`.quiet().nothrow()
+      }
+      await Bun.$`rm -f ${outputDir}/speech-minimax-chunks.txt`.quiet().nothrow()
     }
-    await Bun.$`rm -f ${outputDir}/speech-minimax-chunks.txt`.quiet().nothrow()
   }
 }

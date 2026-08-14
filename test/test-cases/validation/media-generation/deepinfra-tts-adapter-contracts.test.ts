@@ -14,20 +14,18 @@ describe('DeepInfra Phase 4 Contracts', () => {
     expect(targets[0]?.voice).toBe('standard')
   })
 
-  test('runs offline synthesis mock and generates valid WAV metadata', async () => {
-    const res = await runDeepinfraTts('Hello from DeepInfra Chatterbox test', 'test-out', {
+  test('rejects missing credentials instead of fabricating offline audio', async () => {
+    await expect(runDeepinfraTts('Hello from DeepInfra Chatterbox test', 'test-out', {
       model: 'ResembleAI/chatterbox-multilingual',
       apiKey: '',
-    })
-    expect(res.metadata.ttsService).toBe('deepinfra')
-    expect(res.metadata.ttsModel).toBe('ResembleAI/chatterbox-multilingual')
-    expect(res.metadata.audioFileName).toBeDefined()
+    })).rejects.toThrow('DeepInfra API key is required')
   })
 
-  test('advanced provider declares valid capability fixture and catalog entries', async () => {
+  test('advanced provider declares unsupported management facets without fake catalog entries', () => {
     expect(DEEPINFRA_ADVANCED_CAPABILITY_FIXTURE.records.length).toBeGreaterThan(0)
     const provider = createDeepinfraAdvancedProvider({ apiKey: 'test-key-deepinfra' })
-    const cat = await provider.catalog!.list({})
-    expect(cat.entries.length).toBeGreaterThanOrEqual(3)
+    expect(provider.catalog).toBeUndefined()
+    expect(provider.getDeclaredCapabilities().find(record => record.scope.feature === 'voice-catalog')).toMatchObject({ adapterSupport: 'unsupported', channel: 'unsupported' })
+    expect(provider.getDeclaredCapabilities().find(record => record.scope.feature === 'native-dialogue')).toMatchObject({ adapterSupport: 'unsupported', channel: 'unsupported' })
   })
 })

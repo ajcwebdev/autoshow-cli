@@ -20,21 +20,18 @@ describe('Inworld AI Phase 3 Contracts', () => {
     expect(markups).toEqual(['happy', 'laugh', 'breathe'])
   })
 
-  test('runs offline synthesis mock and generates valid WAV metadata', async () => {
-    const res = await runInworldTts('Hello from Inworld AI test [happy]', 'test-out', {
+  test('rejects missing credentials instead of fabricating offline audio', async () => {
+    await expect(runInworldTts('Hello from Inworld AI test [happy]', 'test-out', {
       model: 'realtime-tts-2',
       apiKey: '',
-    })
-    expect(res.metadata.ttsService).toBe('inworld')
-    expect(res.metadata.ttsModel).toBe('realtime-tts-2')
-    expect(res.metadata.audioFileName).toBeDefined()
+    })).rejects.toThrow('Inworld AI API key is required')
   })
 
-  test('advanced provider declares valid capability fixture and catalog entries', async () => {
+  test('advanced provider declares unsupported management facets without fake catalog entries', () => {
     expect(INWORLD_ADVANCED_CAPABILITY_FIXTURE.records.length).toBeGreaterThan(0)
     const provider = createInworldAdvancedProvider({ apiKey: 'test-key-inworld' })
-    const cat = await provider.catalog!.list({})
-    expect(cat.entries).toHaveLength(1)
-    expect(cat.entries[0]?.resourceId).toBe('voice_inworld_standard_en')
+    expect(provider.catalog).toBeUndefined()
+    expect(provider.getDeclaredCapabilities().find(record => record.scope.feature === 'voice-catalog')).toMatchObject({ adapterSupport: 'unsupported', channel: 'unsupported' })
+    expect(provider.getDeclaredCapabilities().find(record => record.scope.feature === 'native-dialogue')).toMatchObject({ adapterSupport: 'unsupported', channel: 'unsupported' })
   })
 })

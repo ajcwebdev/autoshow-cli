@@ -4,29 +4,10 @@ import { splitTextIntoChunks } from '~/cli/commands/process-steps/step-4-tts/tts
 import { TTS_CHUNK_CHARACTER_LIMITS } from '~/cli/commands/process-steps/step-4-tts/tts-utils/tts-chunking'
 import { runHostedTtsChunkPipeline } from '~/cli/commands/process-steps/step-4-tts/tts-utils/hosted-tts-chunk-pipeline'
 import { INWORLD_DEFAULT_TTS_VOICE, validateInworldTtsVoice } from '~/cli/commands/setup-and-utilities/models/setup-model-options'
-import { ValidationError } from '~/utils/error-handler'
+import { ProviderError, ValidationError } from '~/utils/error-handler'
+import { extractRestErrorMessage, isRecord, parseJsonOrText, readJsonResponse, readRestResponseText } from '~/utils/rest-client'
+import { isRetryableStatus } from '~/utils/retries'
 import { dispatchTtsProviderRequest } from '../../script-to-audio/tts-request-evidence'
-
-const generateSimpleWavBuffer = (durationSeconds = 1.0, sampleRate = 44100): Uint8Array => {
-  const numSamples = Math.floor(sampleRate * durationSeconds)
-  const dataSize = numSamples * 2
-  const buffer = new ArrayBuffer(44 + dataSize)
-  const view = new DataView(buffer)
-  view.setUint32(0, 0x52494646, false)
-  view.setUint32(4, 36 + dataSize, true)
-  view.setUint32(8, 0x57415645, false)
-  view.setUint32(12, 0x666d7420, false)
-  view.setUint32(16, 16, true)
-  view.setUint16(20, 1, true)
-  view.setUint16(22, 1, true)
-  view.setUint32(24, sampleRate, true)
-  view.setUint32(28, sampleRate * 2, true)
-  view.setUint16(32, 2, true)
-  view.setUint16(34, 16, true)
-  view.setUint32(36, 0x64617461, false)
-  view.setUint32(40, dataSize, true)
-  return new Uint8Array(buffer)
-}
 
 export type RunInworldTtsOptions = Readonly<{
   model: InworldTtsModel
@@ -54,6 +35,9 @@ export const runInworldTts = async (
   outputDir: string,
   options: RunInworldTtsOptions
 ): Promise<{ audioPath: string, metadata: Step4Metadata }> => {
+  if (!options.apiKey.trim()) {
+    throw ValidationError('Inworld AI API key is required', { stage: 'tts:inworld' })
+  }
   const voice = validateInworldTtsVoice(options.voiceId?.trim() || INWORLD_DEFAULT_TTS_VOICE)
   const { sanitizedText, markups } = parseInworldMarkups(text)
   const chunks = splitTextIntoChunks(sanitizedText, TTS_CHUNK_CHARACTER_LIMITS.inworld ?? 2000)
@@ -83,7 +67,7 @@ export const runInworldTts = async (
     chunkConcurrency: options.chunkConcurrency,
     chunkScheduler: options.chunkScheduler,
     requestEvidence: options.requestEvidence,
-    fetchChunkAudio: async ({ chunk, chunkIndex, requestAttempt, retryReasonCode }) => {
+    fetchChunkAudio: async ({ chunk, chunkIndex, requestAttempt, retryReasonCode, signal }) => {
       return await dispatchTtsProviderRequest(options.requestEvidence, {
         chunkIndex,
         endpointKind: 'realtime-tts',
@@ -107,12 +91,7 @@ export const runInworldTts = async (
           ...(markups.length > 0 ? { markups } : {})
         },
         continuation: { kind: 'none' }
-      }, { attempt: requestAttempt, ...(retryReasonCode ? { retryReasonCode } : {}) }, async () => {
-        if (!options.apiKey.trim()) {
-          // Offline mock WAV generation for local testing
-          const duration = Math.max(0.5, chunk.length * 0.05)
-          return generateSimpleWavBuffer(duration)
-        }
+      }, { attempt: requestAttempt, ...(retryReasonCode ? { retryReasonCode } : {}) }, async ({ accepted }) => {
         const resolvedVoice = voice === 'voice_inworld_standard_en' ? 'Dennis' : voice
         const authHeader = options.apiKey.startsWith('Basic ') ? options.apiKey : `Basic ${options.apiKey}`
         const res = await fetch('https://api.inworld.ai/tts/v1/voice', {
@@ -128,17 +107,32 @@ export const runInworldTts = async (
             ...(options.steeringPrompt ? { steering_prompt: options.steeringPrompt } : {}),
             ...(markups.length > 0 ? { markups } : {})
           }),
-          ...(options.abortSignal ? { signal: options.abortSignal } : {})
+          ...(signal ? { signal } : {})
         })
         if (!res.ok) {
-          const errText = await res.text()
-          throw new Error(`Inworld AI TTS request failed with status ${res.status}: ${errText}`)
+          const captured = await readRestResponseText(res)
+          const payload = captured.truncated ? captured.sanitizedPreview : parseJsonOrText(captured.text)
+          throw ProviderError(`Inworld AI TTS failed (${res.status}): ${extractRestErrorMessage(payload, captured.text, res.status)}`, {
+            status: res.status,
+            headers: res.headers,
+            stage: 'tts:inworld:create',
+            retryable: isRetryableStatus(res.status)
+          })
         }
-        const data = await res.json() as { audioContent?: string }
-        if (!data.audioContent) {
-          throw new Error('Inworld AI TTS response missing audioContent')
+        await accepted({
+          providerRequestId: res.headers.get('x-request-id') ?? undefined,
+          fields: { httpStatus: res.status }
+        })
+        const data = await readJsonResponse(res, 'Inworld AI TTS response')
+        const audioContent = isRecord(data) ? data['audioContent'] : undefined
+        if (typeof audioContent !== 'string' || audioContent.trim().length === 0) {
+          throw ValidationError('Inworld AI TTS response missing audioContent', { stage: 'tts:inworld:response' })
         }
-        return new Uint8Array(Buffer.from(data.audioContent, 'base64'))
+        const audio = new Uint8Array(Buffer.from(audioContent, 'base64'))
+        if (audio.byteLength === 0) {
+          throw ValidationError('Inworld AI TTS response contained empty audioContent', { stage: 'tts:inworld:response' })
+        }
+        return audio
       })
     }
   })

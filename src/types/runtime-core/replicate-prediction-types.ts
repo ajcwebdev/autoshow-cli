@@ -24,5 +24,7 @@ export type RunReplicatePredictionOptions = {
   version?: string | undefined
   input: Record<string, unknown>
   operationName: string
+  abortSignal?: AbortSignal | undefined
+  onCreated?: ((prediction: ReplicatePrediction) => void | Promise<void>) | undefined
   onStatus?: ((prediction: ReplicatePrediction) => void) | undefined
 }

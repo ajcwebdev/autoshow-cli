@@ -1,9 +1,10 @@
 import { describe, expect, test } from 'bun:test'
 import { createHostedTtsChunkScheduler } from '~/cli/commands/process-steps/step-4-tts/tts-utils/hosted-tts-chunk-scheduler'
 import { withHostedTtsRetry } from '~/cli/commands/process-steps/step-4-tts/tts-utils/hosted-tts-retry'
-import { AppError, CLIUsageError } from '~/utils/error-handler'
+import { classifyTtsProviderAdmissionError } from '~/cli/commands/process-steps/step-4-tts/script-to-audio/tts-request-evidence'
+import { AppError, CLIUsageError, ProviderError } from '~/utils/error-handler'
 import { exec } from '~/utils/cli-utils'
-import { classifyFetchRetry, pollUntil, withRetry } from '~/utils/retries'
+import { classifyFetchRetry, classifyPaidCreateRetry, pollUntil, withRetry } from '~/utils/retries'
 
 const FAST_RETRY_POLICY = {
   baseDelayMs: 0,
@@ -13,6 +14,31 @@ const FAST_RETRY_POLICY = {
 } as const
 
 describe('retry error contracts', () => {
+  test('TTS admission distinguishes definite client rejection from ambiguous outcomes through wrapped causes', () => {
+    const wrappedBadRequest = new AppError('target failed', {
+      kind: 'infrastructure',
+      cause: ProviderError('invalid voice', { status: 400, headers: new Headers({ 'x-request-id': 'req-400' }) })
+    })
+    const statuses = [408, 409, 500, 502, 503]
+
+    expect(classifyTtsProviderAdmissionError(wrappedBadRequest)).toBe('rejected')
+    for (const status of statuses) {
+      expect(classifyTtsProviderAdmissionError(ProviderError('uncertain create', { status }))).toBe('ambiguous')
+    }
+    expect(classifyTtsProviderAdmissionError(new TypeError('fetch failed'))).toBe('ambiguous')
+    expect(classifyTtsProviderAdmissionError(new DOMException('timed out', 'TimeoutError'))).toBe('ambiguous')
+  })
+
+  test('paid creates retry only explicit provider rejections that cannot have admitted work', () => {
+    expect(classifyPaidCreateRetry(ProviderError('rate limited', {
+      status: 429,
+      headers: new Headers({ 'retry-after': '2' })
+    }))).toEqual({ shouldRetry: true, delayMs: 2_000, reason: 'provider rejected paid create with retryable status 429' })
+    expect(classifyPaidCreateRetry(ProviderError('unavailable', { status: 503 }))).toMatchObject({ shouldRetry: false })
+    expect(classifyPaidCreateRetry(new TypeError('fetch failed'))).toMatchObject({ shouldRetry: false })
+    expect(classifyPaidCreateRetry(new DOMException('timed out', 'TimeoutError'))).toMatchObject({ shouldRetry: false })
+  })
+
   test('classifyFetchRetry treats Bun TimeoutError DOMExceptions as retryable', () => {
     const decision = classifyFetchRetry(
       new DOMException('The operation timed out.', 'TimeoutError'),
@@ -25,14 +51,24 @@ describe('retry error contracts', () => {
     })
   })
 
-  test('classifyFetchRetry keeps conservative abort refusal separate from retriable creates', () => {
+  test('classifyFetchRetry keeps every ambiguous conservative-create failure separate from retriable creates', () => {
     expect(classifyFetchRetry(
       new DOMException('The operation timed out.', 'TimeoutError'),
       'runtime_http_create_conservative'
     )).toMatchObject({
       shouldRetry: false,
-      reason: 'abort/timeout on conservative request'
+      reason: 'paid create outcome is ambiguous'
     })
+
+    expect(classifyFetchRetry(
+      new TypeError('fetch failed'),
+      'runtime_http_create_conservative'
+    )).toMatchObject({ shouldRetry: false })
+
+    expect(classifyFetchRetry(
+      ProviderError('provider unavailable', { status: 503 }),
+      'runtime_http_create_conservative'
+    )).toMatchObject({ shouldRetry: false })
 
     expect(classifyFetchRetry(
       new DOMException('The operation timed out.', 'TimeoutError'),
@@ -51,13 +87,13 @@ describe('retry error contracts', () => {
     })
   })
 
-  test('withHostedTtsRetry retries a timeout and propagates attempt signals', async () => {
+  test('withHostedTtsRetry does not redispatch an ambiguous timeout', async () => {
     let attempts = 0
     const signals: boolean[] = []
 
-    const result = await withHostedTtsRetry(
+    await expect(withHostedTtsRetry(
       {
-        operationName: 'hosted-tts-timeout-success',
+        operationName: 'hosted-tts-timeout-ambiguous',
         timeoutMs: 1_000,
         policy: {
           ...FAST_RETRY_POLICY,
@@ -67,23 +103,19 @@ describe('retry error contracts', () => {
       async (signal) => {
         attempts += 1
         signals.push(signal instanceof AbortSignal)
-        if (attempts === 1) {
-          throw new DOMException('The operation timed out.', 'TimeoutError')
-        }
-        return 'ok'
+        throw new DOMException('The operation timed out.', 'TimeoutError')
       }
-    )
+    )).rejects.toThrow('timed out')
 
-    expect(result).toBe('ok')
-    expect(attempts).toBe(2)
-    expect(signals).toEqual([true, true])
+    expect(attempts).toBe(1)
+    expect(signals).toEqual([true])
   })
 
-  test('withHostedTtsRetry exhausts repeated timeouts with retry metadata', async () => {
+  test('withHostedTtsRetry returns the first ambiguous timeout unchanged', async () => {
     let attempts = 0
+    const timeout = new DOMException('The operation timed out.', 'TimeoutError')
 
-    try {
-      await withHostedTtsRetry(
+    await expect(withHostedTtsRetry(
         {
           operationName: 'hosted-tts-timeout-exhaustion',
           policy: {
@@ -93,26 +125,19 @@ describe('retry error contracts', () => {
         },
         async () => {
           attempts += 1
-          throw new DOMException('The operation timed out.', 'TimeoutError')
+          throw timeout
         }
-      )
-      throw new Error('expected hosted TTS retry failure')
-    } catch (error) {
-      expect(error).toBeInstanceOf(AppError)
-      const appError = error as AppError
-      expect(appError.message).toContain('hosted-tts-timeout-exhaustion failed after 2/2 attempts (max attempts reached,')
-      expect(appError.metadata).toMatchObject({
-        attemptsMade: 2,
-        maxAttempts: 2,
-        stopReason: 'max attempts reached'
-      })
-      expect(attempts).toBe(2)
-    }
+      )).rejects.toBe(timeout)
+    expect(attempts).toBe(1)
   })
 
-  test('withHostedTtsRetry retries retryable HTTP statuses and honors non-retryable 400', async () => {
+  test('withHostedTtsRetry does not redispatch ambiguous 5xx and honors definite 400 rejection', async () => {
     let attempts = 0
-    const success = await withHostedTtsRetry(
+    const unavailable = ProviderError('provider busy', {
+      status: 503,
+      headers: new Headers({ 'retry-after': '0' })
+    })
+    await expect(withHostedTtsRetry(
       {
         operationName: 'hosted-tts-http-retry',
         policy: {
@@ -122,18 +147,11 @@ describe('retry error contracts', () => {
       },
       async () => {
         attempts += 1
-        if (attempts === 1) {
-          throw Object.assign(new Error('provider busy'), {
-            status: 503,
-            headers: new Headers({ 'retry-after': '0' })
-          })
-        }
-        return 'ok'
+        throw unavailable
       }
-    )
+    )).rejects.toBe(unavailable)
 
-    expect(success).toBe('ok')
-    expect(attempts).toBe(2)
+    expect(attempts).toBe(1)
 
     const badRequest = Object.assign(new Error('bad request'), { status: 400 })
     attempts = 0

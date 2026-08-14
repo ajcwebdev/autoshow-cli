@@ -19,6 +19,7 @@ export type RunTargetsOptionsBase<TTarget extends ProviderIdentity> = HostedConc
   getTargetPool?: ((target: TTarget) => TargetPoolKind) | undefined
   getTargetPriority?: ((target: TTarget, index: number) => number | undefined) | undefined
   useWorkspaceForSingleTarget?: boolean | undefined
+  preserveWorkspaceOnFailure?: boolean | undefined
   hostedWorkClass?: HostedConcurrencyWorkClass | undefined
 }
 

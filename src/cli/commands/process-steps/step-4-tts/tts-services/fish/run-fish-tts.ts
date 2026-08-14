@@ -54,7 +54,7 @@ export const runFishTts = async (
     chunkConcurrency: options.chunkConcurrency,
     chunkScheduler: options.chunkScheduler,
     requestEvidence: options.requestEvidence,
-    fetchChunkAudio: async ({ chunk, chunkIndex, requestAttempt, retryReasonCode }) => {
+    fetchChunkAudio: async ({ chunk, chunkIndex, requestAttempt, retryReasonCode, signal }) => {
       return await dispatchTtsProviderRequest(options.requestEvidence, {
         chunkIndex,
         endpointKind: 'speech-synthesis',
@@ -68,13 +68,21 @@ export const runFishTts = async (
           ...(options.latency ? { latency: options.latency } : {})
         },
         continuation: { kind: 'none' }
-      }, { attempt: requestAttempt, ...(retryReasonCode ? { retryReasonCode } : {}) }, async () => {
+      }, { attempt: requestAttempt, ...(retryReasonCode ? { retryReasonCode } : {}) }, async ({ accepted }) => {
         const { audioBuffer } = await client.synthesizeTts({
           text: chunk,
           reference_id: voice,
           model: options.model,
           format: 'wav',
           latency: options.latency,
+        }, {
+          signal,
+          onAccepted: async (response) => {
+            await accepted({
+              providerRequestId: response.headers.get('x-request-id') ?? undefined,
+              fields: { httpStatus: response.status }
+            })
+          }
         })
         return new Uint8Array(audioBuffer)
       })

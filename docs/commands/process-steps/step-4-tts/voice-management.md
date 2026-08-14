@@ -40,7 +40,7 @@ Register an existing provider voice without making a provider call:
 bun autoshow voice import hero --provider openai --model gpt-4o-mini-tts-2025-12-15 --voice-id cedar --origin provider-stock --provenance-ref project:casting
 ```
 
-ElevenLabs, Hume, MiniMax, Cartesia, and Speechify expose read-only catalog discovery through the same shared command. `--price` validates the operation and reports the dated capability fixture without reading the provider:
+ElevenLabs, Hume, MiniMax, Cartesia, Fish, and Speechify expose read-only catalog discovery through the same shared command. `--price` validates the operation and reports the dated capability fixture without reading the provider:
 
 ```bash
 bun autoshow voice discover --provider elevenlabs --source account
@@ -49,15 +49,17 @@ bun autoshow voice discover --provider hume --source provider-library
 bun autoshow voice discover --provider hume --source account --price
 bun autoshow voice discover --provider minimax --source account
 bun autoshow voice discover --provider cartesia --source provider-library --cursor OPAQUE_CURSOR
+bun autoshow voice discover --provider fish --source account --price
 bun autoshow voice discover --provider speechify --source account --price
 ```
 
-Advanced Voice Design is a two-step operation for ElevenLabs, Hume, and MiniMax. `design` creates a bounded set of protected, unapproved candidates; `materialize` creates exactly one selected provider resource through the crash-safe provisioning journal and appends a draft registration. Hume designs with Octave 1 even when the materialized voice will synthesize with Octave 2. ElevenLabs remix requires both the stable source ID and a dated eligibility snapshot hash before any provider call. MiniMax returns one candidate whose remote ID remains temporary until first successful synthesis and expires after seven days if it is not activated:
+Advanced Voice Design is a two-step operation for ElevenLabs, Hume, MiniMax, and Fish. `design` creates a bounded set of protected, unapproved candidates; `materialize` creates exactly one selected provider resource through the crash-safe provisioning journal and appends a draft registration. Hume designs with Octave 1 even when the materialized voice will synthesize with Octave 2. ElevenLabs remix requires both the stable source ID and a dated eligibility snapshot hash before any provider call. MiniMax returns one candidate whose remote ID remains temporary until first successful synthesis and expires after seven days if it is not activated. Fish design is stateless, so materialization resolves the selected protected preview and supplies those exact non-empty bytes to the model-creation endpoint; a candidate ID alone is never treated as a remote voice:
 
 ```bash
 bun autoshow voice design hero --provider hume --model octave-2 --creation-model octave-1 --description "Warm, weathered guide" --preview-text "A representative passage of at least one hundred characters that exercises the intended voice..." --candidates 3 --price
 bun autoshow voice design hero --provider elevenlabs --model eleven_v3 --creation-model eleven_ttv_v3 --description "Warm, weathered guide" --preview-text "A representative passage of at least one hundred characters that exercises the intended voice..." --price
 bun autoshow voice design hero --provider minimax --model speech-2.8-hd --creation-model voice-design --description "Warm, weathered guide" --preview-text "A short representative passage." --candidates 1 --price
+bun autoshow voice design hero --provider fish --model s2-pro --creation-model voice-design-1 --description "Warm, weathered guide" --preview-text "A short representative passage." --candidates 1 --price
 bun autoshow voice materialize CANDIDATE_ID --provider hume --subject-key hero --voice-name HeroGuide --provenance-ref project:casting --price
 ```
 
@@ -96,9 +98,9 @@ Approval appends a new content-identified registration generation and atomically
 
 `retire` and `revoke` are local append-preserving transitions that remove the exact approved generation from the current index. Revocation records a reason and moves protected assets to `deletion-required` when the registration policy requires it; it does not silently delete remote resources.
 
-`inspect` performs a read-only provider check for ready ElevenLabs, Hume, MiniMax, Cartesia, Speechify, and Mistral account resources unless `--price` is supplied. MiniMax designed and cloned voices remain pending until activation makes them visible in the account catalog. Expired, missing, pending, or verification-required resources never become synthesis-ready merely because a local registration exists.
+`inspect` performs a read-only provider check for ready ElevenLabs, Hume, MiniMax, Cartesia, Fish, Speechify, and Mistral account resources unless `--price` is supplied. MiniMax designed and cloned voices remain pending until activation makes them visible in the account catalog. Expired, missing, pending, or verification-required resources never become synthesis-ready merely because a local registration exists.
 
-`delete` is an explicit provider-mutating action for eligibility-checked, project-owned Mistral, ElevenLabs, Hume, MiniMax, Cartesia, and Speechify resources and requires `--confirm-voice-id` to equal the exact resource ID. A resource cannot be deleted while another current model-qualified registration shares its provider/resource identity. Hume's endpoint deletes by mutable name, so Hume additionally requires `--expected-name`; AutoShow immediately refreshes the custom catalog and proceeds only when that name resolves uniquely to the expected ID. MiniMax deletion selects the clone or generated-voice resource class from the registered origin. Cartesia and Speechify delete only project-owned account/personal resources. AutoShow first appends a local `deletion-pending` generation, then records a terminal deleted tombstone after the provider confirms deletion.
+`delete` is an explicit provider-mutating action for eligibility-checked, project-owned Mistral, ElevenLabs, Hume, MiniMax, Cartesia, Fish, and Speechify resources and requires `--confirm-voice-id` to equal the exact resource ID. A resource cannot be deleted while another current model-qualified registration shares its provider/resource identity. Hume's endpoint deletes by mutable name, so Hume additionally requires `--expected-name`; AutoShow immediately refreshes the custom catalog and proceeds only when that name resolves uniquely to the expected ID. MiniMax deletion selects the clone or generated-voice resource class from the registered origin. Cartesia, Fish, and Speechify delete only project-owned account/personal resources. AutoShow first appends a local `deletion-pending` generation, then records a terminal deleted tombstone after the provider confirms deletion.
 
 ## Advanced Provider Capabilities
 
@@ -108,9 +110,10 @@ Approval appends a new content-identified registration generation and atomically
 | Hume | Stock and custom account voices | Octave 1 design, compatible with Octave 1/2 synthesis | Subscription-gated dashboard action followed by stable-ID import | Octave 2 native utterances |
 | MiniMax | System, generated, and cloned voices | One temporary generated candidate | One protected mp3/m4a/wav sample, 10 seconds–5 minutes and no larger than 20 MiB, through upload and clone APIs | No; segmented rendering |
 | Cartesia | Public and account voices with cursor pagination | Not exposed | Instant API clone; Pro Voice Clone remains a gated dashboard action | No; segmented rendering |
+| Fish | Public and account voice models | Stateless protected preview followed by exact-sample model creation | Fast model creation is implemented internally; the generic `voice clone` command remains pending | No; segmented rendering |
 | Speechify | Shared and personal voices with cursor pagination | Not exposed | Personal voice clone with protected 10–30 second sample and consent payload | No; segmented rendering |
 
-Clone ports consume protected assets and explicit consent/provenance records and never place sample bytes or contact PII in ordinary artifacts. Synthesis commands cannot invoke them. Cartesia and Speechify text-prompt design, all three providers' native multi-speaker dialogue, MiniMax professional cloning, and Speechify professional cloning are explicitly unsupported rather than inferred from adjacent provider features.
+Clone ports consume protected assets and explicit consent/provenance records and never place sample bytes or contact PII in ordinary artifacts. Synthesis commands cannot invoke them. Cartesia and Speechify text-prompt design, MiniMax/Cartesia/Fish/Speechify native multi-speaker dialogue, MiniMax professional cloning, and Speechify professional cloning are explicitly unsupported rather than inferred from adjacent provider features. Inworld, DeepInfra, and Replicate expose synthesis selectors but no advanced voice-management ports; request-time model features are not represented as fabricated durable resources.
 
 ## Protected and Ordinary Artifacts
 

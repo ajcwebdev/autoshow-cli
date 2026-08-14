@@ -7,9 +7,11 @@ import type {
   VoiceProvisioningAttempt,
   VoiceProvisioningState,
 } from '~/types'
-import { CLIUsageError, ValidationError } from '~/utils/error-handler'
+import { CLIUsageError, ValidationError, extractErrorMetadata } from '~/utils/error-handler'
+import { sanitizeLogText } from '~/utils/app-logger/redaction'
 import { withProcessLock } from '~/utils/process-lock'
 import { canonicalTtsJson, hashCanonicalTtsValue } from '../script-to-audio/contract-identity'
+import { classifyTtsProviderAdmissionError } from '../script-to-audio/tts-request-evidence'
 import { validateVoiceProvisioningAttempt } from './voice-management-contracts'
 
 export type VoiceProvisioningProviderResponse = {
@@ -172,6 +174,31 @@ const markAmbiguous = async (
   return next
 }
 
+const markRejected = async (
+  path: string,
+  attempt: VoiceProvisioningAttempt,
+  error: unknown
+): Promise<VoiceProvisioningAttempt> => {
+  if (attempt.outcome) return attempt
+  const metadata = extractErrorMetadata(error)
+  const status = typeof metadata['status'] === 'number' ? metadata['status'] : undefined
+  const message = sanitizeLogText(error instanceof Error ? error.message : String(error)).slice(0, 600)
+  const evidenceHash = hashCanonicalTtsValue({ status: status ?? null, message })
+  let next = transition(attempt, 'response-received', evidenceHash)
+  await atomicWriteJson(path, next)
+  next = {
+    ...transition(next, 'terminal', evidenceHash),
+    outcome: {
+      state: 'failed',
+      code: status === undefined ? 'PROVIDER_REJECTED' : `HTTP_${status}`,
+      message
+    }
+  }
+  validateVoiceProvisioningAttempt(next)
+  await atomicWriteJson(path, next)
+  return next
+}
+
 const assertSameProvisioningIntent = (
   current: VoiceProvisioningAttempt,
   proposed: VoiceProvisioningAttempt
@@ -243,6 +270,7 @@ export const runCrashSafeVoiceProvisioning = async (
     if (existsSync(path)) {
       attempt = await loadAttemptPath(path)
       if (attempt.outcome?.state === 'ready') return attempt
+      if (attempt.outcome?.state === 'failed') return attempt
       assertSameProvisioningIntent(attempt, initial)
       if (attempt.transitions.length === 1 && attempt.transitions[0]?.phase === 'prepared' && attempt.outcome === undefined) {
         // The durable journal proves the provider mutation was never admitted, so resuming this exact
@@ -289,7 +317,11 @@ export const runCrashSafeVoiceProvisioning = async (
       return attempt
     } catch (error) {
       const current = await loadAttemptPath(path)
-      await markAmbiguous(path, current, error)
+      if (classifyTtsProviderAdmissionError(error) === 'rejected') {
+        await markRejected(path, current, error)
+      } else {
+        await markAmbiguous(path, current, error)
+      }
       throw error
     }
   })

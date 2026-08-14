@@ -73,7 +73,7 @@ bun autoshow tts <input> [flags]
 | `--provider provider[=model]` | TTS provider/model selector; repeat to run multiple targets |
 | `--all-providers` | Select the default all-provider TTS target set |
 | `--all-local` | Select every local TTS engine |
-| `--provider-concurrency <n>` | Hosted TTS providers/models to run concurrently per item; default `7` |
+| `--provider-concurrency <n>` | Hosted TTS provider/model targets to run concurrently per item; this does not limit chunks inside one target; default `7` |
 | `--local-concurrency <n>` | Local TTS providers to run concurrently per item; default `7` |
 | `--batch-concurrency <n>` | Batch text files to process concurrently; default `7` |
 | `--concurrency-mode <ramp\|immediate>` | Start each hosted provider/account lane at one request and add one slot every five seconds while demand is queued (`ramp`, default), or start at its configured cap (`immediate`) |
@@ -103,11 +103,15 @@ You can combine multiple TTS targets in one run. `--provider` is repeatable. Sha
 | MiniMax | Segmented | System/account catalog, temporary design, instant clone, inspect/delete |
 | Cartesia | Segmented | Public/account catalog, instant clone, gated Pro clone, inspect/delete |
 | Speechify | Segmented | Shared/personal catalog, personal clone, inspect/delete |
+| Fish | Segmented | Public/account model catalog, protected design candidate materialization, inspect/delete |
+| Inworld, DeepInfra, Replicate | Segmented | Existing request-time voice selectors only; no voice-management ports |
 | Kitten, Groq, Grok, OpenAI, Deepgram | Segmented | Existing/local voice selectors only |
 
 Voice management is separate from synthesis. A catalog, design, or clone capability does not authorize `tts` or `comic generate-audio` to create a remote resource.
 
-AutoShow splits TTS text into 2000-character chunks (200-character chunks for Groq Orpheus). Hosted providers synthesize through `--tts-chunk-concurrency` (default `30`, or `50` for Grok-only). In the default ramp mode, that value remains the hard ceiling while each provider/account lane starts at one request and adds one slot every five seconds under queued demand. Kitten synthesizes chunks sequentially and is unaffected by the hosted mode.
+When a hosted target fails after producing some chunks, AutoShow retains the target's `.tts-tmp-*` workspace and completed audio files. Do not delete that directory before resuming: the render journal uses retained output evidence to avoid purchasing completed segments again. Successful finalization removes the temporary chunk files normally.
+
+AutoShow splits TTS text into 2000-character chunks (200-character chunks for Groq Orpheus). `--provider-concurrency` limits how many provider/model targets run at once; it does not limit requests within one target. Hosted providers synthesize through the separate `--tts-chunk-concurrency` limit (default `30`, or `50` for Grok-only). In the default ramp mode, that value remains the hard ceiling while each provider/account lane starts at one request and adds one slot every five seconds under queued demand. To cap a single Inworld target at five simultaneous chunks, for example, pass `--tts-chunk-concurrency 5`; `--provider-concurrency 5` alone does not do that. Kitten synthesizes chunks sequentially and is unaffected by the hosted mode.
 
 ```bash
 bun autoshow tts input/examples/tts/1-tts.md \

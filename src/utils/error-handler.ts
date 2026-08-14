@@ -89,6 +89,11 @@ export const InfraError = (
   options: Omit<AppErrorOptions, 'kind'> = {}
 ): AppInfrastructureError => new AppInfrastructureError(message, options)
 
+export const ProviderError = (
+  message: string,
+  options: Omit<AppErrorOptions, 'kind'> = {}
+): AppProviderError => new AppProviderError(message, options)
+
 export const InternalError = (
   message: string,
   options: Omit<AppErrorOptions, 'kind'> = {}

@@ -4,29 +4,10 @@ import { splitTextIntoChunks } from '~/cli/commands/process-steps/step-4-tts/tts
 import { TTS_CHUNK_CHARACTER_LIMITS } from '~/cli/commands/process-steps/step-4-tts/tts-utils/tts-chunking'
 import { runHostedTtsChunkPipeline } from '~/cli/commands/process-steps/step-4-tts/tts-utils/hosted-tts-chunk-pipeline'
 import { DEEPINFRA_DEFAULT_TTS_VOICE, validateDeepinfraTtsVoice } from '~/cli/commands/setup-and-utilities/models/setup-model-options'
-import { ValidationError } from '~/utils/error-handler'
+import { ProviderError, ValidationError } from '~/utils/error-handler'
+import { extractRestErrorMessage, isRecord, parseJsonOrText, readJsonResponse, readRestResponseText } from '~/utils/rest-client'
+import { isRetryableStatus } from '~/utils/retries'
 import { dispatchTtsProviderRequest } from '../../script-to-audio/tts-request-evidence'
-
-const generateSimpleWavBuffer = (durationSeconds = 1.0, sampleRate = 44100): Uint8Array => {
-  const numSamples = Math.floor(sampleRate * durationSeconds)
-  const dataSize = numSamples * 2
-  const buffer = new ArrayBuffer(44 + dataSize)
-  const view = new DataView(buffer)
-  view.setUint32(0, 0x52494646, false)
-  view.setUint32(4, 36 + dataSize, true)
-  view.setUint32(8, 0x57415645, false)
-  view.setUint32(12, 0x666d7420, false)
-  view.setUint32(16, 16, true)
-  view.setUint16(20, 1, true)
-  view.setUint16(22, 1, true)
-  view.setUint32(24, sampleRate, true)
-  view.setUint32(28, sampleRate * 2, true)
-  view.setUint16(32, 2, true)
-  view.setUint16(34, 16, true)
-  view.setUint32(36, 0x64617461, false)
-  view.setUint32(40, dataSize, true)
-  return new Uint8Array(buffer)
-}
 
 export type RunDeepinfraTtsOptions = Readonly<{
   model: DeepinfraTtsModel
@@ -44,6 +25,9 @@ export const runDeepinfraTts = async (
   outputDir: string,
   options: RunDeepinfraTtsOptions
 ): Promise<{ audioPath: string, metadata: Step4Metadata }> => {
+  if (!options.apiKey.trim()) {
+    throw ValidationError('DeepInfra API key is required', { stage: 'tts:deepinfra' })
+  }
   const voice = validateDeepinfraTtsVoice(options.voiceId?.trim() || DEEPINFRA_DEFAULT_TTS_VOICE)
   const chunks = splitTextIntoChunks(text, TTS_CHUNK_CHARACTER_LIMITS.deepinfra ?? 2000)
 
@@ -71,7 +55,7 @@ export const runDeepinfraTts = async (
     chunkConcurrency: options.chunkConcurrency,
     chunkScheduler: options.chunkScheduler,
     requestEvidence: options.requestEvidence,
-    fetchChunkAudio: async ({ chunk, chunkIndex, requestAttempt, retryReasonCode }) => {
+    fetchChunkAudio: async ({ chunk, chunkIndex, requestAttempt, retryReasonCode, signal }) => {
       return await dispatchTtsProviderRequest(options.requestEvidence, {
         chunkIndex,
         endpointKind: 'inference',
@@ -92,12 +76,7 @@ export const runDeepinfraTts = async (
           ...(options.promptInstructions ? { promptInstructions: options.promptInstructions } : {})
         },
         continuation: { kind: 'none' }
-      }, { attempt: requestAttempt, ...(retryReasonCode ? { retryReasonCode } : {}) }, async () => {
-        if (!options.apiKey.trim()) {
-          // Offline mock WAV generation for local testing
-          const duration = Math.max(0.5, chunk.length * 0.05)
-          return generateSimpleWavBuffer(duration)
-        }
+      }, { attempt: requestAttempt, ...(retryReasonCode ? { retryReasonCode } : {}) }, async ({ accepted }) => {
         const res = await fetch(`https://api.deepinfra.com/v1/inference/${options.model}`, {
           method: 'POST',
           headers: {
@@ -109,18 +88,43 @@ export const runDeepinfraTts = async (
             preset_voice: voice,
             ...(options.promptInstructions ? { prompt: options.promptInstructions } : {})
           }),
-          ...(options.abortSignal ? { signal: options.abortSignal } : {})
+          ...(signal ? { signal } : {})
         })
         if (!res.ok) {
-          throw new Error(`DeepInfra TTS request failed with status ${res.status}: ${await res.text()}`)
+          const captured = await readRestResponseText(res)
+          const payload = captured.truncated ? captured.sanitizedPreview : parseJsonOrText(captured.text)
+          throw ProviderError(`DeepInfra TTS failed (${res.status}): ${extractRestErrorMessage(payload, captured.text, res.status)}`, {
+            status: res.status,
+            headers: res.headers,
+            stage: 'tts:deepinfra:create',
+            retryable: isRetryableStatus(res.status)
+          })
         }
-        const json = await res.json() as { audio?: string, audio_b64?: string }
-        const b64 = json.audio || json.audio_b64
-        if (b64) {
+        await accepted({
+          providerRequestId: res.headers.get('x-request-id') ?? undefined,
+          fields: { httpStatus: res.status }
+        })
+        const contentType = res.headers.get('content-type')?.toLowerCase() ?? ''
+        if (contentType.startsWith('audio/') || contentType.includes('application/octet-stream')) {
+          const audio = new Uint8Array(await res.arrayBuffer())
+          if (audio.byteLength === 0) {
+            throw ValidationError('DeepInfra TTS returned an empty audio response', { stage: 'tts:deepinfra:response' })
+          }
+          return audio
+        }
+        const json = await readJsonResponse(res, 'DeepInfra TTS response')
+        const b64 = isRecord(json)
+          ? (typeof json['audio'] === 'string' ? json['audio'] : json['audio_b64'])
+          : undefined
+        if (typeof b64 === 'string' && b64.trim().length > 0) {
           const cleanB64 = b64.includes('base64,') ? (b64.split('base64,')[1] ?? b64) : b64
-          return new Uint8Array(Buffer.from(cleanB64, 'base64'))
+          const audio = new Uint8Array(Buffer.from(cleanB64, 'base64'))
+          if (audio.byteLength === 0) {
+            throw ValidationError('DeepInfra TTS returned empty base64 audio', { stage: 'tts:deepinfra:response' })
+          }
+          return audio
         }
-        return new Uint8Array(await res.arrayBuffer())
+        throw ValidationError('DeepInfra TTS response did not contain audio', { stage: 'tts:deepinfra:response' })
       })
     }
   })

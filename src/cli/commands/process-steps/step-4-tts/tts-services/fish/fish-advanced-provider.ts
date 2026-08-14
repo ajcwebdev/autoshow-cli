@@ -33,7 +33,7 @@ const DOCS = {
 const evidence = (refs: readonly string[]) => buildCapabilityDocumentationEvidence(refs)
 const capabilityRecords = [
   { scope: { provider: 'fish', feature: 'turn-synthesis' as const }, maturity: 'stable' as const, channel: 'api' as const, adapterSupport: 'implemented' as const, requirements: [], constraints: { voiceKinds: ['provider-id' as const], supportedOutputFormats: ['raw', 'wav', 'mp3', 'opus', 'flac'] }, documentationEvidence: evidence([DOCS.synthesis]) },
-  { scope: { provider: 'fish', feature: 'native-dialogue' as const }, maturity: 'stable' as const, channel: 'api' as const, adapterSupport: 'implemented' as const, requirements: [], constraints: { voiceKinds: ['provider-id' as const], minSpeakers: 2, maxSpeakers: 8 }, documentationEvidence: evidence([DOCS.synthesis]) },
+  { scope: { provider: 'fish', feature: 'native-dialogue' as const }, maturity: 'not-applicable' as const, channel: 'unsupported' as const, adapterSupport: 'unsupported' as const, requirements: [], constraints: { voiceKinds: ['provider-id' as const], minSpeakers: 2, maxSpeakers: 2 }, reason: 'Fish synthesis requests select one reference_id and this adapter does not implement a native multi-speaker dialogue contract.', documentationEvidence: evidence([DOCS.synthesis]) },
   { scope: { provider: 'fish', feature: 'voice-catalog' as const }, maturity: 'stable' as const, channel: 'api' as const, adapterSupport: 'implemented' as const, requirements: [], constraints: { paginated: true, stableResourceIds: true }, documentationEvidence: evidence([DOCS.catalog, DOCS.inspect]) },
   { scope: { provider: 'fish', feature: 'voice-design' as const }, maturity: 'stable' as const, channel: 'api' as const, adapterSupport: 'implemented' as const, requirements: [], constraints: { requiresConsent: false, createsRemoteResource: false }, documentationEvidence: evidence([DOCS.voiceDesign]) },
   { scope: { provider: 'fish', feature: 'instant-clone' as const }, maturity: 'stable' as const, channel: 'api' as const, adapterSupport: 'implemented' as const, requirements: [], constraints: { requiresConsent: true, createsRemoteResource: true }, documentationEvidence: evidence([DOCS.clone]) },
@@ -113,10 +113,19 @@ export const createFishAdvancedProvider = (options: CreateFishAdvancedProviderOp
       }
     },
     materializeCandidate: async (materializeRequest) => {
-      const candidateId = materializeRequest.providerCandidateId
+      if (!materializeRequest.protectedPreview) {
+        throw CLIUsageError('Fish Audio candidate materialization requires its protected preview audio.')
+      }
+      if (!options.resolveProtectedAsset) {
+        throw CLIUsageError('Fish Audio candidate materialization requires a protected-asset resolver.')
+      }
+      const preview = await options.resolveProtectedAsset(materializeRequest.protectedPreview)
+      if (preview.bytes.byteLength === 0) {
+        throw CLIUsageError('Fish Audio candidate preview audio is empty.')
+      }
       const model = await client.createModel({
         title: materializeRequest.desiredName,
-        voices: [],
+        voices: [preview.bytes],
       })
       const providerVoice: ProviderVoiceRef = {
         kind: 'remote-resource',
@@ -128,8 +137,8 @@ export const createFishAdvancedProvider = (options: CreateFishAdvancedProviderOp
         ownership: 'project',
         deletion: { state: 'eligible', checkedAt: now() },
         derivedFrom: {
-          sourceRef: candidateId,
-          sourceIdentityHash: hashCanonicalTtsValue({ provider: 'fish', candidateId }),
+          sourceRef: materializeRequest.protectedPreview.assetId,
+          sourceIdentityHash: materializeRequest.protectedPreview.sha256,
           operation: 'designed-from',
           localAttemptId: materializeRequest.localAttemptId,
         },
@@ -139,7 +148,10 @@ export const createFishAdvancedProvider = (options: CreateFishAdvancedProviderOp
         provider: 'fish',
         state: 'ready',
         providerVoice,
-        sanitizedMetadata: { modelId: model._id },
+        sanitizedMetadata: {
+          modelId: model._id,
+          candidateIdentityHash: hashCanonicalTtsValue({ provider: 'fish', candidateId: materializeRequest.providerCandidateId })
+        },
         checkedAt: now(),
       }
     },

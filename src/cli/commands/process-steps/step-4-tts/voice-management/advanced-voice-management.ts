@@ -209,7 +209,14 @@ export const materializeAdvancedVoiceCandidate = async (input: {
     attempt: initial,
     mutate: async () => {
       if (!candidate.providerCandidateId) throw CLIUsageError('Advanced voice candidate omits its provider candidate ID.')
-      const result = await design.materializeCandidate({ providerCandidateId: candidate.providerCandidateId, desiredName: input.desiredName, localAttemptId: initial.attemptId, ...(input.sourceVoice ? { sourceVoice: input.sourceVoice } : {}), ...(input.eligibilitySnapshotHash ? { eligibilitySnapshotHash: input.eligibilitySnapshotHash } : {}) })
+      const result = await design.materializeCandidate({
+        providerCandidateId: candidate.providerCandidateId,
+        desiredName: input.desiredName,
+        localAttemptId: initial.attemptId,
+        ...(candidate.previewAssets[0] ? { protectedPreview: candidate.previewAssets[0] } : {}),
+        ...(input.sourceVoice ? { sourceVoice: input.sourceVoice } : {}),
+        ...(input.eligibilitySnapshotHash ? { eligibilitySnapshotHash: input.eligibilitySnapshotHash } : {})
+      })
       if (result.state !== 'ready' || !result.providerVoice) throw CLIUsageError(`${input.provider.provider} candidate materialization did not return a ready provider voice.`)
       return {
         state: { state: 'ready' as const, providerVoice: result.providerVoice },

@@ -220,6 +220,7 @@ export const runElevenLabsNativeDialogue = async (
   const batches = planElevenLabsNativeDialogueBatches(turns)
   const outputFormat = options.controls?.outputFormat?.trim() || 'mp3_44100_128'
   const paths: string[] = []
+  let completed = false
   const startedAt = Date.now()
   try {
     for (const [batchIndex, batch] of batches.entries()) {
@@ -268,8 +269,10 @@ export const runElevenLabsNativeDialogue = async (
       paths.push(path)
     }
     const audioPath = await concatAndConvertToWav(paths, outputDir, 'ElevenLabs-dialogue', options.abortSignal)
-    return finalizeTtsRun({ service: 'elevenlabs', model: options.model, speaker: [...new Set(turns.map(turn => turn.voiceId))].join(','), audioPath, chunkCount: batches.length, startTime: startedAt })
+    const finalized = finalizeTtsRun({ service: 'elevenlabs', model: options.model, speaker: [...new Set(turns.map(turn => turn.voiceId))].join(','), audioPath, chunkCount: batches.length, startTime: startedAt })
+    completed = true
+    return finalized
   } finally {
-    for (const path of paths) await Bun.$`rm -f ${path}`.quiet().nothrow()
+    if (completed) for (const path of paths) await Bun.$`rm -f ${path}`.quiet().nothrow()
   }
 }

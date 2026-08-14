@@ -47,7 +47,9 @@ import {
   validateSpeechifyTtsLanguageForModel,
   validateSpeechifyTtsModel,
 } from '~/cli/commands/setup-and-utilities/models/setup-model-options'
-import { CLIUsageError, InternalError } from '~/utils/error-handler'
+import { CLIUsageError, InternalError, extractErrorMetadata } from '~/utils/error-handler'
+import { sanitizeLogText } from '~/utils/app-logger/redaction'
+import { parseRetryAfterMs } from '~/utils/retries'
 import { getFfprobeBinary } from '~/utils/runtime-paths'
 import { concatAndConvertToWav, createSilenceWav, filterAudioToWav, mixAudioToWav, splitTextIntoChunks } from '../tts-utils/audio-utils'
 import { resolveTtsChunkCharacterLimit, TTS_CHUNK_CHARACTER_LIMITS } from '../tts-utils/tts-chunking'
@@ -88,6 +90,7 @@ import {
   reserveInvocationAttemptDirectory,
   writeImmutableArtifactFile,
 } from './safe-artifact-store'
+import { classifyTtsProviderAdmissionError } from './tts-request-evidence'
 
 const SCHEMA_VERSION = 'phase-0-v1'
 const PREPARATION_VERSION = 'generic-tts-v1'
@@ -538,7 +541,17 @@ const preparedText = (text: string) => ({
 })
 
 const sanitizeError = (error: unknown, phase: SanitizedProviderError['phase']): SanitizedProviderError => {
-  const status = typeof (error as { status?: unknown })?.status === 'number' ? (error as { status: number }).status : undefined
+  const metadata = extractErrorMetadata(error)
+  const status = typeof metadata['status'] === 'number' ? metadata['status'] : undefined
+  const stage = typeof metadata['stage'] === 'string' ? sanitizeLogText(metadata['stage']).slice(0, 160) : undefined
+  const errorName = error instanceof Error && error.name ? sanitizeLogText(error.name).slice(0, 120) : undefined
+  const providerMessage = error instanceof Error && error.message
+    ? sanitizeLogText(error.message).replace(/\s+/gu, ' ').trim().slice(0, 600)
+    : undefined
+  const headers = metadata['headers'] instanceof Headers ? metadata['headers'] : undefined
+  const requestId = headers?.get('x-request-id') ?? headers?.get('request-id') ?? headers?.get('cf-ray') ?? undefined
+  const retryAfterMs = parseRetryAfterMs(headers)
+  const explicitRetryable = typeof metadata['retryable'] === 'boolean' ? metadata['retryable'] : undefined
   const message = status !== undefined
     ? `TTS provider request failed with HTTP status ${status}.`
     : phase === 'static-validation'
@@ -554,7 +567,19 @@ const sanitizeError = (error: unknown, phase: SanitizedProviderError['phase']): 
               : phase === 'reconciliation'
                 ? 'TTS retained provider evidence reconciliation failed.'
                 : 'TTS provider synthesis failed.'
-  return { phase, code: status ? `http_${status}` : 'tts_target_failed', message, retryable: status === 408 || status === 429 || (status !== undefined && status >= 500) }
+  const retryable = explicitRetryable ?? (status === 408 || status === 425 || status === 429 || (status !== undefined && status >= 500))
+  return {
+    phase,
+    code: status ? `http_${status}` : typeof metadata['code'] === 'string' ? sanitizeLogText(metadata['code']).slice(0, 120) : 'tts_target_failed',
+    message,
+    retryable,
+    ...(status !== undefined ? { status } : {}),
+    ...(stage ? { stage } : {}),
+    ...(errorName ? { errorName } : {}),
+    ...(providerMessage ? { providerMessage } : {}),
+    ...(requestId ? { requestId: sanitizeLogText(requestId).slice(0, 200) } : {}),
+    ...(retryAfterMs !== undefined ? { retryAfterMs } : {})
+  }
 }
 
 const plannedCost = (target: TtsTarget, characters: number, includeSetup: boolean): PlannedCost => {
@@ -2909,7 +2934,7 @@ export const createCurrentTtsRenderAttempt = async (
             runtime.terminal = 'ambiguous'
             return
           }
-          rejected = !accepted && typeof (error as { status?: unknown })?.status === 'number'
+          rejected = !accepted && classifyTtsProviderAdmissionError(error) === 'rejected'
           const kind = rejected ? 'rejection' as const : 'ambiguity' as const
           const state = rejected ? 'provider-rejected' as const : 'ambiguous' as const
           const sanitized = sanitizeError(error, 'synthesis')

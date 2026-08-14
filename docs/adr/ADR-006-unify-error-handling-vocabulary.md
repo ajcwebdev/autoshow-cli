@@ -54,11 +54,12 @@ Why now: this follows the recent line of ADRs that record a plan before the work
 
 ### A. Production `src/` — adopt `AppError` as the single throw vocabulary *(Accepted — implemented 2026-06-13)*
 
-1. **Typed subclasses become the canonical throw API.** Add terse factory helpers beside the existing `CLIUsageError` factory — `InfraError`, `InternalError`, `ValidationError` — and sweep every plain `new Error(...)` to the right kind:
+1. **Typed subclasses become the canonical throw API.** Add terse factory helpers beside the existing `CLIUsageError` factory — `ProviderError`, `InfraError`, `InternalError`, `ValidationError` — and sweep every plain `new Error(...)` to the right kind:
 
    | Throw describes… | Becomes |
    |---|---|
-   | External/operational failure — subprocess exit, HTTP, download, file corruption, missing binary | `AppInfrastructureError` |
+   | External/operational failure — subprocess exit, download, file corruption, missing binary | `AppInfrastructureError` |
+   | Provider HTTP rejection with status/header evidence | `AppProviderError` |
    | "Should never happen" / config-invariant — no provider configured, unreachable branch | `AppInternalError` |
    | Bad/parse/schema data | `AppValidationError` (or `validateData`) |
    | Bad **user** input at a command boundary | `CLIUsageError` (unchanged) |
@@ -87,6 +88,10 @@ Each migrated throw attaches a `stage` and, where remediation exists, structured
 HTTP 429 and explicitly classified provider rate/concurrency responses report pressure against the immutable admission token for the exact request. Billing, authentication, quota exhaustion, validation, timeout, 5xx, and ambiguous create failures retain their prior failure and retry policies unless a provider explicitly marks the response as a rate limit. This keeps the semantic error classifier separate from the scheduler pressure controller while giving both a shared structured vocabulary.
 
 The hosted controller preserves `Retry-After`, otherwise applies the existing half-to-full jitter style to exponential bases of 2, 4, 8, 16, and then 30 seconds, and bounds recovery to five minutes from the request's first pressure response. If recovery is exhausted or the next required delay exceeds the remaining budget, the existing `retry_exhausted` shape retains status, headers, stage, retry metadata, exact work identity, work class, and lane identity. Known rate-limit rejection can retry the exact failed request; ambiguous paid create outcomes do not become safe to redispatch merely because hosted concurrency recovery exists.
+
+Provider admission classification is cause-aware and deliberately narrower than generic HTTP retry classification. Only a definite 4xx response other than 408 or 409 proves that a create was rejected before work admission. Network failures, timeouts, missing status, 408, 409, and every 5xx response are ambiguous. A paid create may retry only an explicit pre-admission pressure response such as 425 or 429; generic network and server failures must retain the original request identity for reconciliation. Successful asynchronous creates record the provider task or prediction ID before polling or response decoding continues.
+
+Provider failures remain structured through target and comic aggregation. Wrappers preserve the original cause, status, headers, stage, retryability, request ID, and bounded redacted provider message; command boundaries do not convert an infrastructure failure into a usage error. Voice-provisioning journals record definite provider rejection as terminal `failed`, while uncertain post-dispatch failures remain `reconciliation-required`.
 
 ### Keep (with rationale)
 
@@ -144,7 +149,7 @@ Negative outcomes:
 
 ## Implementation Note
 
-The unified `AppError` taxonomy (`InfraError`, `InternalError`, `ValidationError`), centralized `isCLIUsageError`, `rethrowAsUsage` validator wrapping, structured retry handling in `pollUntil`, provider failure classification registry in `test/test-utils/provider-failure-classifiers.ts`, normalized hosted-pressure recovery, and `[HH:MM:SS.MMM]` human log format are fully implemented and verified.
+The unified `AppError` taxonomy (`ProviderError`, `InfraError`, `InternalError`, `ValidationError`), centralized `isCLIUsageError`, `rethrowAsUsage` validator wrapping, structured retry handling in `pollUntil`, provider failure classification registry in `test/test-utils/provider-failure-classifiers.ts`, cause-aware paid-create admission handling, bounded provider diagnostics, structured target aggregation, normalized hosted-pressure recovery, and `[HH:MM:SS.MMM]` human log format are fully implemented and verified.
 
 ## Test Plan
 

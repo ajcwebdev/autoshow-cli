@@ -9,6 +9,7 @@ export const runHostedTtsChunkPipeline = async (
 ): Promise<{ audioPath: string, metadata: Step4Metadata }> => {
   const { chunkScheduler, chunks, outputDir, provider, providerLabel } = options
   const chunkPaths: string[] = []
+  let completed = false
 
   try {
     const orderedChunkPaths = await runTtsChunks(chunks, options.chunkConcurrency, async (chunk, index, admission) => {
@@ -57,16 +58,20 @@ export const runHostedTtsChunkPipeline = async (
       startTime: options.startTime
     })
 
-    return {
+    const finalized = {
       audioPath: result.audioPath,
       metadata: {
         ...result.metadata,
         ...options.extraMetadata
       }
     }
+    completed = true
+    return finalized
   } finally {
-    for (const chunkPath of chunkPaths) {
-      await Bun.$`rm -f ${chunkPath}`.quiet().nothrow()
+    if (completed) {
+      for (const chunkPath of chunkPaths) {
+        await Bun.$`rm -f ${chunkPath}`.quiet().nothrow()
+      }
     }
   }
 }

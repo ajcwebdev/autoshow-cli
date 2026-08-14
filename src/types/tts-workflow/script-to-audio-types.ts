@@ -379,6 +379,12 @@ export type SanitizedProviderError = {
   message: string
   retryable: boolean
   blockedReason?: string | undefined
+  status?: number | undefined
+  stage?: string | undefined
+  errorName?: string | undefined
+  providerMessage?: string | undefined
+  requestId?: string | undefined
+  retryAfterMs?: number | undefined
 }
 
 export type ProviderResolvedDialogueTurn = CanonicalDialogueTurn & {
@@ -769,6 +775,7 @@ export type ProviderVoiceMaterializationRequest = {
   providerCandidateId: string
   desiredName: string
   localAttemptId: string
+  protectedPreview?: ProtectedAssetRef | undefined
   sourceVoice?: ProviderVoiceRef | undefined
   eligibilitySnapshotHash?: string | undefined
 }

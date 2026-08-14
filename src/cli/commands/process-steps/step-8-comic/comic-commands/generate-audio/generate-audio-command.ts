@@ -26,7 +26,7 @@ import { runTtsForTargets, validateTtsRenderInputsForTargets } from '../../../st
 import { collectTtsTargets, validateTtsTargetsForExecution } from '../../../step-4-tts/tts-targets'
 import { createResourceGate } from '~/utils/resource-gate'
 import { DEFAULT_CLI_CONCURRENCY } from '~/utils/concurrency-defaults'
-import { CLIUsageError } from '~/utils/error-handler'
+import { CLIUsageError, InfraError } from '~/utils/error-handler'
 import * as l from '~/utils/app-logger/app-logger'
 import { generateComicSlideshow } from '../generate-slideshow/generate-slideshow-command'
 import { createComicDialoguePlan, writeComicDialoguePlan } from '../../comic-utils/comic-dialogue-plan'
@@ -509,7 +509,11 @@ export const generateComicAudio = async (ctx: CliCommandContext, scriptPath: str
     }
   }))
   const failures = settled.flatMap(result => result.status === 'rejected' ? [result.reason] : [])
-  if (failures.length > 0) throw CLIUsageError(`Comic audio failed for ${failures.length}/${executions.length} target(s): ${failures.map(error => error instanceof Error ? error.message : String(error)).join('; ')}`)
+  if (failures.length > 0) throw InfraError(`Comic audio failed for ${failures.length}/${executions.length} target(s): ${failures.map(error => error instanceof Error ? error.message : String(error)).join('; ')}`, {
+    stage: 'comic:generate-audio',
+    ...(failures[0] instanceof Error ? { cause: failures[0] } : {}),
+    metadata: { failureCount: failures.length, targetCount: executions.length }
+  })
 
   const metadata = settled.flatMap(result => result.status === 'fulfilled' ? result.value.metadata : [])
   const completedMetadata = metadata.filter((entry) => !entry.generationCheckpoint)

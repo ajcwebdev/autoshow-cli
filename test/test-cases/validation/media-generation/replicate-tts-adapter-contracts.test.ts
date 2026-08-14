@@ -14,21 +14,18 @@ describe('Replicate Phase 5 Speech Suite Contracts', () => {
     expect(targets[0]?.voice).toBe('standard')
   })
 
-  test('runs offline synthesis mock and generates valid WAV metadata', async () => {
-    const res = await runReplicateTts('Hello from Replicate open-source speech suite test', 'test-out', {
+  test('rejects missing credentials instead of fabricating offline audio', async () => {
+    await expect(runReplicateTts('Hello from Replicate open-source speech suite test', 'test-out', {
       model: 'x-lance/f5-tts',
       apiKey: '',
-    })
-    expect(res.metadata.ttsService).toBe('replicate')
-    expect(res.metadata.ttsModel).toBe('x-lance/f5-tts')
-    expect(res.metadata.audioFileName).toBeDefined()
+    })).rejects.toThrow('Replicate API token is required')
   })
 
-  test('advanced provider declares valid capability fixture and catalog entries', async () => {
+  test('advanced provider declares unsupported management facets without fake catalog entries', () => {
     expect(REPLICATE_ADVANCED_CAPABILITY_FIXTURE.records.length).toBeGreaterThan(0)
     const provider = createReplicateAdvancedProvider({ apiKey: 'test-key-replicate' })
-    const cat = await provider.catalog!.list({})
-    expect(cat.entries).toHaveLength(3)
-    expect(cat.entries[0]?.resourceId).toBe('x-lance/f5-tts')
+    expect(provider.catalog).toBeUndefined()
+    expect(provider.getDeclaredCapabilities().find(record => record.scope.feature === 'voice-catalog')).toMatchObject({ adapterSupport: 'unsupported', channel: 'unsupported' })
+    expect(provider.getDeclaredCapabilities().find(record => record.scope.feature === 'native-dialogue')).toMatchObject({ adapterSupport: 'unsupported', channel: 'unsupported' })
   })
 })

@@ -150,6 +150,7 @@ export const runHumeNativeUtterances = async (
   const startedAt = Date.now()
   const selectedPaths: string[] = []
   const allPaths: string[] = []
+  let completed = false
   let continuationGenerationId: string | undefined
   try {
     for (const [batchIndex, batch] of batches.entries()) {
@@ -204,8 +205,10 @@ export const runHumeNativeUtterances = async (
       continuationGenerationId = selectedGenerationId
     }
     const audioPath = await concatAndConvertToWav(selectedPaths, outputDir, 'Hume-native', options.abortSignal)
-    return finalizeTtsRun({ service: 'hume', model: options.model, speaker: [...new Set(turns.map(turn => turn.voiceId))].join(','), audioPath, chunkCount: batches.length, startTime: startedAt })
+    const finalized = finalizeTtsRun({ service: 'hume', model: options.model, speaker: [...new Set(turns.map(turn => turn.voiceId))].join(','), audioPath, chunkCount: batches.length, startTime: startedAt })
+    completed = true
+    return finalized
   } finally {
-    for (const path of allPaths) await Bun.$`rm -f ${path}`.quiet().nothrow()
+    if (completed) for (const path of allPaths) await Bun.$`rm -f ${path}`.quiet().nothrow()
   }
 }

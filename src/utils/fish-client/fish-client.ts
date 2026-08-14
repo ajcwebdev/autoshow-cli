@@ -1,4 +1,7 @@
-import { CLIUsageError } from '~/utils/error-handler'
+import { CLIUsageError, ProviderError, ValidationError } from '~/utils/error-handler'
+import { extractRestErrorMessage, parseJsonOrText, readJsonResponse, readRestResponseText } from '~/utils/rest-client'
+import { isRetryableStatus } from '~/utils/retries'
+import { MEDIA_GENERATION_TIMEOUT_MS } from '~/utils/timeouts'
 
 export const FISH_API_BASE_URL = 'https://api.fish.audio/v1'
 
@@ -49,6 +52,11 @@ export type FishClientOptions = Readonly<{
   fetchImpl?: typeof fetch | undefined
 }>
 
+type FishOperationOptions = Readonly<{
+  signal?: AbortSignal | undefined
+  onAccepted?: ((response: Response) => void | Promise<void>) | undefined
+}>
+
 export const createFishClient = (options: FishClientOptions) => {
   const apiKey = options.apiKey.trim()
   if (!apiKey) {
@@ -58,36 +66,48 @@ export const createFishClient = (options: FishClientOptions) => {
   const baseUrl = (options.baseUrl ?? FISH_API_BASE_URL).replace(/\/+$/, '')
   const customFetch = options.fetchImpl ?? fetch
 
+  const operationSignal = (signal?: AbortSignal | null): AbortSignal => {
+    const timeout = AbortSignal.timeout(MEDIA_GENERATION_TIMEOUT_MS)
+    return signal ? AbortSignal.any([signal, timeout]) : timeout
+  }
+
   const headers = (contentType = 'application/json'): Record<string, string> => ({
     Authorization: `Bearer ${apiKey}`,
     ...(contentType ? { 'Content-Type': contentType } : {}),
   })
 
-  const requestJson = async <T>(path: string, requestOptions: RequestInit = {}): Promise<T> => {
+  const throwResponseError = async (response: Response, operation: string): Promise<never> => {
+    const captured = await readRestResponseText(response)
+    const payload = captured.truncated ? captured.sanitizedPreview : parseJsonOrText(captured.text)
+    throw ProviderError(`Fish Audio ${operation} failed (${response.status}): ${extractRestErrorMessage(payload, captured.text, response.status)}`, {
+      status: response.status,
+      headers: response.headers,
+      stage: `fish:${operation}`,
+      retryable: isRetryableStatus(response.status)
+    })
+  }
+
+  const requestJson = async <T>(path: string, requestOptions: RequestInit = {}, operation = 'management request'): Promise<T> => {
     const url = `${baseUrl}${path.startsWith('/') ? path : `/${path}`}`
+    const requestHeaders = new Headers(requestOptions.headers)
+    for (const [key, value] of Object.entries(headers(typeof requestOptions.body === 'string' ? 'application/json' : undefined))) {
+      if (!requestHeaders.has(key)) requestHeaders.set(key, value)
+    }
     const response = await customFetch(url, {
       ...requestOptions,
-      headers: {
-        ...headers(typeof requestOptions.body === 'string' ? 'application/json' : undefined),
-        ...(requestOptions.headers as Record<string, string> ?? {}),
-      },
+      headers: requestHeaders,
+      signal: operationSignal(requestOptions.signal),
     })
 
     if (!response.ok) {
-      let bodyText = ''
-      try {
-        bodyText = await response.text()
-      } catch {
-        // ignore body read error
-      }
-      throw CLIUsageError(`Fish Audio API request failed [${response.status} ${response.statusText}]: ${bodyText || 'No error details provided.'}`)
+      await throwResponseError(response, operation)
     }
 
-    return response.json() as Promise<T>
+    return await readJsonResponse(response, `Fish Audio ${operation} response`) as T
   }
 
   return {
-    async synthesizeTts(req: FishTtsRequest): Promise<{ audioBuffer: ArrayBuffer, contentType: string }> {
+    async synthesizeTts(req: FishTtsRequest, operationOptions: FishOperationOptions = {}): Promise<{ audioBuffer: ArrayBuffer, contentType: string, status: number, headers: Headers }> {
       const url = `${baseUrl}/tts`
       const payload = {
         text: req.text,
@@ -102,24 +122,27 @@ export const createFishClient = (options: FishClientOptions) => {
         method: 'POST',
         headers: headers('application/json'),
         body: JSON.stringify(payload),
+        signal: operationSignal(operationOptions.signal),
       })
 
       if (!response.ok) {
-        let bodyText = ''
-        try { bodyText = await response.text() } catch {}
-        throw CLIUsageError(`Fish Audio TTS failed [${response.status} ${response.statusText}]: ${bodyText || 'Unknown error'}`)
+        await throwResponseError(response, 'TTS create')
       }
 
+      await operationOptions.onAccepted?.(response)
       const audioBuffer = await response.arrayBuffer()
+      if (audioBuffer.byteLength === 0) {
+        throw ValidationError('Fish Audio TTS returned an empty audio response.', { stage: 'fish:TTS response' })
+      }
       const contentType = response.headers.get('content-type') ?? 'audio/wav'
-      return { audioBuffer, contentType }
+      return { audioBuffer, contentType, status: response.status, headers: response.headers }
     },
 
     async voiceDesign(req: FishVoiceDesignRequest): Promise<FishVoiceDesignResponse> {
       return requestJson<FishVoiceDesignResponse>('/voice-design', {
         method: 'POST',
         body: JSON.stringify(req),
-      })
+      }, 'voice design')
     },
 
     async listModels(params: { page_size?: number, page_number?: number } = {}): Promise<{ items: FishModelRecord[], total: number }> {
@@ -129,7 +152,7 @@ export const createFishClient = (options: FishClientOptions) => {
       const queryString = query.toString() ? `?${query.toString()}` : ''
       const res = await requestJson<{ items?: FishModelRecord[], total?: number } | FishModelRecord[]>(`/model${queryString}`, {
         method: 'GET',
-      })
+      }, 'model catalog')
       if (Array.isArray(res)) {
         return { items: res, total: res.length }
       }
@@ -139,10 +162,16 @@ export const createFishClient = (options: FishClientOptions) => {
     async getModel(modelId: string): Promise<FishModelRecord> {
       return requestJson<FishModelRecord>(`/model/${encodeURIComponent(modelId)}`, {
         method: 'GET',
-      })
+      }, 'model inspection')
     },
 
     async createModel(req: FishCreateModelRequest): Promise<FishModelRecord> {
+      if (req.voices.length === 0) {
+        throw ValidationError('Fish Audio model creation requires at least one non-empty voice sample.', { stage: 'fish:model create' })
+      }
+      if (req.voices.some(voice => voice.byteLength === 0)) {
+        throw ValidationError('Fish Audio model creation does not accept empty voice samples.', { stage: 'fish:model create' })
+      }
       const formData = new FormData()
       formData.append('title', req.title)
       if (req.description) formData.append('description', req.description)
@@ -161,28 +190,27 @@ export const createFishClient = (options: FishClientOptions) => {
           Authorization: `Bearer ${apiKey}`,
         },
         body: formData,
+        signal: operationSignal(),
       })
 
       if (!response.ok) {
-        let bodyText = ''
-        try { bodyText = await response.text() } catch {}
-        throw CLIUsageError(`Fish Audio create model failed [${response.status} ${response.statusText}]: ${bodyText || 'Unknown error'}`)
+        await throwResponseError(response, 'model create')
       }
 
-      return response.json() as Promise<FishModelRecord>
+      return await readJsonResponse(response, 'Fish Audio model create response') as FishModelRecord
     },
 
     async updateModel(modelId: string, updates: { title?: string, description?: string }): Promise<FishModelRecord> {
       return requestJson<FishModelRecord>(`/model/${encodeURIComponent(modelId)}`, {
         method: 'PATCH',
         body: JSON.stringify(updates),
-      })
+      }, 'model update')
     },
 
     async deleteModel(modelId: string): Promise<{ success: boolean }> {
       return requestJson<{ success: boolean }>(`/model/${encodeURIComponent(modelId)}`, {
         method: 'DELETE',
-      })
+      }, 'model delete')
     }
   }
 }

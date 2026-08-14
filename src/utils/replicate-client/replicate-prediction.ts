@@ -2,7 +2,7 @@ import { REPLICATE_DEFAULT_BASE_URL } from '~/utils/base-urls'
 import { buildCaptureMetadata, redactPayloadPreview } from '~/utils/bounded-capture'
 import { AppProviderError, InfraError, ValidationError } from '~/utils/error-handler'
 import { createProviderRestClient, isRecord, joinRestUrl, parseJsonOrText, readRestResponseText } from '~/utils/rest-client'
-import { classifyFetchRetry, isRetryableStatus, pollUntil, withRetry } from '~/utils/retries'
+import { classifyFetchRetry, classifyPaidCreateRetry, isRetryableStatus, pollUntil, withRetry } from '~/utils/retries'
 import { MEDIA_GENERATION_TIMEOUT_MS } from '~/utils/timeouts'
 import type { BoundedCaptureResult, ReplicatePrediction, RetryClass, RunReplicatePredictionOptions } from '~/types'
 
@@ -201,10 +201,15 @@ export const runReplicatePrediction = async (
   }
 
   const created = await withRetry(
-    { retryClass: 'runtime_http_create_retriable', operationName: `${options.operationName}-create` },
+    {
+      retryClass: 'runtime_http_create_conservative',
+      operationName: `${options.operationName}-create`,
+      abortSignal: options.abortSignal
+    },
     createPrediction,
-    (error) => classifyFetchRetry(error, 'runtime_http_create_retriable')
+    classifyPaidCreateRetry
   )
+  await options.onCreated?.(created)
   options.onStatus?.(created)
 
   if (isTerminalSuccess(created)) {
@@ -226,7 +231,11 @@ export const runReplicatePrediction = async (
     deadlineMs: MEDIA_GENERATION_TIMEOUT_MS,
     pollFn: async () => {
       const prediction = await withRetry(
-        { retryClass: 'runtime_http_read', operationName: `${options.operationName}-poll` },
+        {
+          retryClass: 'runtime_http_read',
+          operationName: `${options.operationName}-poll`,
+          abortSignal: options.abortSignal
+        },
         async (signal) => {
           const payload = await fetchReplicateJson(
             pollUrl,
@@ -249,7 +258,8 @@ export const runReplicatePrediction = async (
     isFailed: (prediction) => {
       const reason = terminalFailureReason(prediction)
       return reason ? { failed: true, reason } : { failed: false }
-    }
+    },
+    abortSignal: options.abortSignal
   })
 }
 

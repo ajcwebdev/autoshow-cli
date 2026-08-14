@@ -5,7 +5,7 @@
 - **Decision Status:** Accepted
 - **Date Created:** 2026-08-13
 - **Date Updated:** 2026-08-14
-- **Verification Status:** Passed
+- **Verification Status:** Partial — the provider reliability audit reopened overstated Phase 3–6 gates; Phase 8 remains pending
 
 ## Context
 
@@ -22,6 +22,20 @@ Absolute `timestampMs` values are not stable source anchors because dialogue dur
 Hosted sound generation is paid or quota-limited work. `--price` must remain read-only and make no provider calls, ordinary execution must require an explicit sound-effect target when uncached generation is needed, and offline fixture audio must cover the complete planning and mixing engine without paid verification.
 
 Why now: ADR-014 makes speech identity, timing, caching, artifacts, and resume trustworthy enough to serve as the dialogue bus; the next architectural gap is a durable sound-intent and multi-track mixing layer that can add effects without weakening those guarantees.
+
+### Provider reliability correction (2026-08-14)
+
+The Phase 3–6 offline completion claims originally relied in part on adapter tests that accepted synthetic silent WAV output, hardcoded catalogs, synthetic candidate previews, fabricated remote IDs, and no-op lifecycle methods. Those fixtures did not prove the provider API contracts described by the phase gates. This correction removes those success paths and reclassifies the affected work without weakening historical artifact readers.
+
+| Provider phase | Verified implementation after correction | Still required before the original phase gate is complete |
+|---|---|---|
+| Inworld Phase 3 | Credentialed single-voice REST synthesis, steering/markup serialization, bounded errors, cancellation, and explicit admission evidence | Verified timing/WebSocket support, native dialogue, voice catalog, cloning, design, inspection, deletion, and end-to-end soundscape acceptance |
+| DeepInfra Phase 4 | Credentialed single-voice inference for registered models, binary/base64 response decoding, bounded errors, cancellation, and explicit admission evidence | Verified model-specific native dialogue, voice design, zero-shot protected references, lifecycle semantics, and end-to-end soundscape acceptance |
+| Replicate speech Phase 5 | Real model prediction create/poll lifecycle, prediction-ID evidence, checked output download, cancellation, and ambiguity-safe paid-create retry behavior | Model-specific input/version fixtures, native dialogue and protected reference flows, expiry/resume acceptance, and complete multi-model soundscape evidence |
+| Fish Phase 6 | Structured single-voice TTS, real catalog/design/model lifecycle calls, and protected-preview materialization with non-empty model samples | Native dialogue/timestamp streaming, CLI clone parity, full reconciliation coverage, and end-to-end soundscape acceptance |
+| Replicate AudioGen Phase 7 | Version-pinned real prediction create/poll, cancellation, checked non-empty download, and ambiguity-safe admission classification | The existing mocked governance, license, cache, resume, and historical-readability gates remain required and must not be inferred from a successful create/poll adapter alone |
+
+Capability declarations must now match exposed ports. A request-time model feature is not a durable voice-management API, and provider-adjacent documentation is not evidence that the adapter implements native dialogue, cloning, design, catalog, or deletion. No offline placeholder may satisfy a provider execution gate.
 
 ## Options Considered
 
@@ -543,11 +557,11 @@ Negative outcomes:
 |---|---|---|
 | Phase 1A–1E: deliver authored planning, the ElevenLabs voice/clone reference path, ElevenLabs SFX execution, the calibrated four-bus mixer, canonical artifacts, and offline acceptance | AutoShow Team | Complete — offline gate passed 2026-08-13; no live provider call used |
 | Phase 2A–2E: add capability routing, Hume, Cartesia, and MiniMax integration, shared voice-workflow extensions, and cross-provider acceptance | AutoShow Team | Complete — offline gate passed 2026-08-13; no live provider call used |
-| Phase 3A–3E: add First-Party Inworld AI foundation, steerable TTS, instant/pro cloning, voice design, natural language steering, audio markups, and acceptance | AutoShow Team | Complete — offline gate passed 2026-08-14; verified via unit & contract test suite |
-| Phase 4A–4E: add DeepInfra hosted speech suite (Chatterbox, MiMo V2.5, Qwen3-TTS) foundation, adapters, zero-shot cloning, and acceptance | AutoShow Team | Complete — offline gate passed 2026-08-14; verified via unit & contract test suite |
-| Phase 5A–5E: add Replicate open-source speech suite (F5-TTS, Dia 1.6B, XTTS-v2) foundation, zero-shot cloning, multi-speaker dialogue, and acceptance | AutoShow Team | Complete — offline gate passed 2026-08-14; verified via unit & contract test suite |
-| Phase 6A–6E: add Fish registry/pricing, reference-voice TTS, native dialogue/timestamps, stateless design/materialization, voice-model lifecycle/reconciliation, soundscape routing, and acceptance | AutoShow Team | Complete — offline gate passed 2026-08-14; verified via unit & contract test suite |
-| Phase 7A–7E: add AudioGen governance/pinning and license eligibility, the Replicate SFX target, prediction execution, expiry-safe artifacts/routing, and historical acceptance | AutoShow Team | Complete — offline gate passed 2026-08-14; verified via unit & contract test suite |
+| Phase 3A–3E: add First-Party Inworld AI foundation, steerable TTS, instant/pro cloning, voice design, natural language steering, audio markups, and acceptance | AutoShow Team | Reopened — reliable single-voice synthesis baseline implemented; unsupported management/native/timing facets removed pending real adapters and acceptance evidence |
+| Phase 4A–4E: add DeepInfra hosted speech suite (Chatterbox, MiMo V2.5, Qwen3-TTS) foundation, adapters, zero-shot cloning, and acceptance | AutoShow Team | Reopened — reliable single-voice inference baseline implemented; model-specific dialogue/design/clone and acceptance gates remain pending |
+| Phase 5A–5E: add Replicate open-source speech suite (F5-TTS, Dia 1.6B, XTTS-v2) foundation, zero-shot cloning, multi-speaker dialogue, and acceptance | AutoShow Team | Reopened — real prediction lifecycle and output capture implemented; model-specific cloning/dialogue/resume acceptance remains pending |
+| Phase 6A–6E: add Fish registry/pricing, reference-voice TTS, native dialogue/timestamps, stateless design/materialization, voice-model lifecycle/reconciliation, soundscape routing, and acceptance | AutoShow Team | Partial — single-voice TTS and protected-preview materialization are reliable; native dialogue/timing, clone command parity, and full acceptance remain pending |
+| Phase 7A–7E: add AudioGen governance/pinning and license eligibility, the Replicate SFX target, prediction execution, expiry-safe artifacts/routing, and historical acceptance | AutoShow Team | Partial — prediction execution reliability is corrected; the complete governance/cache/resume/historical gate must remain independently verified |
 | Phase 8A: Episode 2 Scene 4 authored script & workspace audit | AutoShow Team | Complete — v5 script structure generated & static planning validated for 3-character scene (`seamus`, `peaches`, `paddy`) |
 | Phase 8B–8D: generate Episode 2 Scene 4 soundscape audio matrix across Hume, Cartesia, MiniMax, Inworld, DeepInfra, Replicate, and Fish sub-waves with corresponding ADR-019 panel-vid renders | AutoShow Team | Pending — Nothing has been generated yet; workspace reset to scratch |
 

@@ -6,7 +6,10 @@ import type {
   ProviderAccessRequirement,
   TtsProvider,
 } from '~/types'
-import { CLIUsageError } from '~/utils/error-handler'
+import { CLIUsageError, ProviderError } from '~/utils/error-handler'
+import { extractRestErrorMessage, parseJsonOrText, readJsonResponse, readRestResponseText } from '~/utils/rest-client'
+import { classifyFetchRetry, isRetryableStatus, withRetry } from '~/utils/retries'
+import { MEDIA_GENERATION_TIMEOUT_MS } from '~/utils/timeouts'
 import { hashCanonicalTtsValue } from './contract-identity'
 import { validateAccountCapabilityObservation, validateCapabilityFacetSet } from './contract-validation'
 
@@ -37,22 +40,45 @@ export const createAdvancedProviderJsonRequest = (input: {
 }): Promise<T> => {
   const url = new URL(request.path, input.baseUrl.endsWith('/') ? input.baseUrl : `${input.baseUrl}/`)
   for (const [key, value] of Object.entries(request.query ?? {})) if (value !== undefined) url.searchParams.set(key, value)
-  const response = await fetch(url, {
-    method: request.method,
-    headers: {
-      [input.apiKeyHeader]: input.apiKey,
-      ...input.defaultHeaders,
-      ...request.headers,
-      ...(request.body === undefined || request.body instanceof FormData ? {} : { 'Content-Type': 'application/json' })
-    },
-    ...(request.body === undefined ? {} : { body: request.body instanceof FormData ? request.body : JSON.stringify(request.body) }),
-    ...(request.signal ? { signal: request.signal } : {})
-  })
-  if (!response.ok) {
-    throw CLIUsageError(`${input.providerLabel} management request failed with HTTP ${response.status}.`)
+
+  const execute = async (signal?: AbortSignal): Promise<T> => {
+    const response = await fetch(url, {
+      method: request.method,
+      headers: {
+        [input.apiKeyHeader]: input.apiKey,
+        ...input.defaultHeaders,
+        ...request.headers,
+        ...(request.body === undefined || request.body instanceof FormData ? {} : { 'Content-Type': 'application/json' })
+      },
+      ...(request.body === undefined ? {} : { body: request.body instanceof FormData ? request.body : JSON.stringify(request.body) }),
+      ...(signal ? { signal } : {})
+    })
+    if (!response.ok) {
+      const captured = await readRestResponseText(response)
+      const payload = captured.truncated ? captured.sanitizedPreview : parseJsonOrText(captured.text)
+      throw ProviderError(`${input.providerLabel} management request failed (${response.status}): ${extractRestErrorMessage(payload, captured.text, response.status)}`, {
+        status: response.status,
+        headers: response.headers,
+        stage: `${input.providerLabel}:voice-management`,
+        retryable: isRetryableStatus(response.status)
+      })
+    }
+    if (response.status === 204) return undefined as T
+    return await readJsonResponse(response, `${input.providerLabel} management response`) as T
   }
-  if (response.status === 204) return undefined as T
-  return await response.json() as T
+
+  if (request.method === 'GET') {
+    return await withRetry({
+      retryClass: 'runtime_http_read',
+      operationName: `${input.providerLabel} voice management read`,
+      timeoutMs: MEDIA_GENERATION_TIMEOUT_MS,
+      abortSignal: request.signal
+    }, execute, (error) => classifyFetchRetry(error, 'runtime_http_read'))
+  }
+
+  const timeout = AbortSignal.timeout(MEDIA_GENERATION_TIMEOUT_MS)
+  const signal = request.signal ? AbortSignal.any([request.signal, timeout]) : timeout
+  return await execute(signal)
 }
 
 export const buildCapabilityDocumentationEvidence = (

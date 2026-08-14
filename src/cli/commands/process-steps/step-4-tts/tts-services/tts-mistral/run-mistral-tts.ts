@@ -182,6 +182,7 @@ export const runMistralTts = async (
 
     const startTime = Date.now()
     const chunkPaths: string[] = []
+    let completed = false
 
     try {
       const orderedChunkPaths = await runTtsChunks(chunks, options.chunkConcurrency, async (chunk, index, admission) => {
@@ -248,13 +249,16 @@ export const runMistralTts = async (
         chunkCount: chunks.length,
         startTime
       })
+      completed = true
       return result
     } finally {
-      for (const chunkPath of chunkPaths) {
-        await Bun.$`rm -f ${chunkPath}`.quiet().nothrow()
-      }
-      if (referenceAudio?.convertedPath) {
-        await Bun.$`rm -f ${referenceAudio.convertedPath}`.quiet().nothrow()
+      if (completed) {
+        for (const chunkPath of chunkPaths) {
+          await Bun.$`rm -f ${chunkPath}`.quiet().nothrow()
+        }
+        if (referenceAudio?.convertedPath) {
+          await Bun.$`rm -f ${referenceAudio.convertedPath}`.quiet().nothrow()
+        }
       }
     }
 }

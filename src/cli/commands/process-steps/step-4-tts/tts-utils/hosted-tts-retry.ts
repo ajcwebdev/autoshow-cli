@@ -20,7 +20,7 @@ export const classifyHostedTtsRetry: RetryClassifier = (error) => {
       ? { shouldRetry: false, delayMs: 0, reason: `deterministic ${error.kind} error` }
       : hostedPressure
         ? { shouldRetry: true, delayMs: hostedPressure.retryAfterMs ?? hostedPressure.delayMs ?? 0, reason: hostedPressure.reason }
-        : classifyFetchRetry(error, 'runtime_http_create_retriable')
+        : classifyFetchRetry(error, 'runtime_http_create_conservative')
 }
 
 const getErrorHeaders = (error: unknown): Headers | undefined => {

@@ -1,5 +1,5 @@
 import type { SoundEffectCapabilityFixture, SoundEffectGenerationResponse, SoundEffectRenderTask, SoundEffectRequestEvidence, SoundEffectTarget } from '~/types'
-import { CLIUsageError } from '~/utils/error-handler'
+import { CLIUsageError, extractErrorMetadata } from '~/utils/error-handler'
 import { canonicalTtsJson, canonicalTargetKey, hashCanonicalTtsValue } from '../script-to-audio/contract-identity'
 import { REPLICATE_DEFAULT_BASE_URL } from '~/utils/base-urls'
 import { runReplicatePrediction, normalizeReplicateOutputUris } from '~/utils/replicate-client/replicate-prediction'
@@ -142,12 +142,19 @@ export const createReplicateAudioGenAdapter = (input: {
           version: REPLICATE_AUDIOGEN_PINNED_VERSION,
           input: serialized.body.input,
           operationName: 'replicate-audiogen-sfx',
+          abortSignal: cancellation,
         })
       } catch (err: unknown) {
+        const metadata = extractErrorMetadata(err)
+        const status = typeof metadata['status'] === 'number' ? metadata['status'] : undefined
+        const headers = metadata['headers'] instanceof Headers ? metadata['headers'] : undefined
+        const rejected = status !== undefined && status >= 400 && status < 500 && status !== 408 && status !== 409
         throw new SoundEffectProviderError(
           `Replicate AudioGen prediction failed: ${err instanceof Error ? err.message : String(err)}`,
-          false,
-          'rejected'
+          rejected && (status === 425 || status === 429),
+          rejected ? 'rejected' : 'ambiguous',
+          status,
+          headers
         )
       }
 
@@ -168,6 +175,9 @@ export const createReplicateAudioGenAdapter = (input: {
       }
 
       const bytes = new Uint8Array(await audioResponse.arrayBuffer())
+      if (bytes.byteLength === 0) {
+        throw new SoundEffectProviderError('Replicate AudioGen output download was empty.', false, 'ambiguous')
+      }
       const contentType = audioResponse.headers.get('content-type')?.split(';')[0]?.trim() || 'audio/wav'
       const providerRequestId = prediction.id
 
