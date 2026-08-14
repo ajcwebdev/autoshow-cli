@@ -13,9 +13,10 @@ import { updateComicAudioManifest, updateComicImageManifest, writeInitialComicSt
 import { resolveCompatibleComicSceneRun } from '~/cli/commands/process-steps/step-8-comic/comic-utils/compatible-scene-run'
 import { readManifest } from '~/cli/commands/process-steps/pipeline-manifest'
 import { mixAudioToWav } from '~/cli/commands/process-steps/step-4-tts/tts-utils/audio-utils'
-import { assertVoiceSnapshotCoversSelectedTargets, generateComicAudio } from '~/cli/commands/process-steps/step-8-comic/comic-commands/generate-audio/generate-audio-command'
+import { assertVoiceSnapshotCoversSelectedTargets, buildTargetExecution, generateComicAudio } from '~/cli/commands/process-steps/step-8-comic/comic-commands/generate-audio/generate-audio-command'
 import { configurePinnedRunDir, resetPinnedRunDir } from '~/cli/commands/process-steps/run-dir'
 import { loadVoiceReferenceManifest, writeVoiceReferenceManifest } from '~/cli/commands/process-steps/step-8-comic/comic-utils/voice-reference-snapshot'
+import { createResourceGate } from '~/utils/resource-gate'
 import { createMockWavBytes, createSyntheticWavBytes } from '../../../test-utils/media-fixtures'
 import { installMockFetch, setupContractSuiteLifecycle } from '../../../test-utils/rest-contract-helpers'
 
@@ -47,8 +48,8 @@ const buildStructured = (sourceIdentity: Awaited<ReturnType<typeof createComicSo
 const snapshotEntry = (
   subjectKey: string,
   resourceId: string,
-  provider: 'gemini' | 'openai' = 'gemini',
-  providerModel = provider === 'gemini' ? 'gemini-2.5-pro-preview-tts' : 'gpt-4o-mini-tts-2025-12-15'
+  provider: 'gemini' | 'inworld' | 'openai' = 'gemini',
+  providerModel = provider === 'gemini' ? 'gemini-2.5-pro-preview-tts' : provider === 'inworld' ? 'realtime-tts-2' : 'gpt-4o-mini-tts-2025-12-15'
 ) => createApprovedVoiceSnapshotEntry({
   registrationId: `registration-${subjectKey}`,
   generationId: hashCanonicalTtsValue({ subjectKey, generation: 1 }),
@@ -249,6 +250,25 @@ describe('comic audio phase 2 contracts', () => {
     const observations = await validateTtsTargetsForExecution([target])
     expect(observations).toHaveLength(1)
     expect(observations[0]?.targetKey).toBe(target.targetKey)
+  })
+
+  test('comic target execution carries every Inworld snapshot voice into readiness', async () => {
+    const root = await mkdtemp(join(tmpdir(), 'autoshow-inworld-readiness-'))
+    const sourcePath = join(root, 'scene.md')
+    await writeFile(sourcePath, 'Inworld readiness')
+    const sourceIdentity = await createComicSourceIdentity(sourcePath, 'Inworld readiness')
+    const structured = buildStructured(sourceIdentity)
+    const structuredRef = createStructuredScriptArtifactRef(`${canonicalTtsJson(structured)}\n`)
+    const dialoguePlan = createComicDialoguePlan({ structuredScript: structured, sourceIdentity, structuredScriptRef: structuredRef, sceneRunIdentity: computeSceneRunIdentity(sourceIdentity, structuredRef), createdAt: CREATED_AT })
+    const entries = [snapshotEntry('navigator', 'Alex', 'inworld'), snapshotEntry('pilot', 'Dennis', 'inworld')]
+      .sort((left, right) => [left.provider, left.providerModel, left.profileKey, left.subjectKey, left.registrationId, left.generationId, left.entryId].join('\0').localeCompare([right.provider, right.providerModel, right.profileKey, right.subjectKey, right.registrationId, right.generationId, right.entryId].join('\0')))
+    const snapshotBase = { schemaVersion: 1 as const, sceneRunIdentity: dialoguePlan.sceneRunIdentity, dialoguePlanId: dialoguePlan.dialoguePlanId, catalogHash: HASH_A, briefSetHash: HASH_B, createdAt: CREATED_AT, entries }
+    const snapshot = validateVoiceReferenceManifest({ ...snapshotBase, snapshotId: hashCanonicalTtsValue(snapshotBase) })
+    const target: TtsTarget = { service: 'inworld', model: 'realtime-tts-2', run: async () => { throw new Error('provider must not run during planning') } }
+
+    const execution = buildTargetExecution({ target, baseOptions: {}, snapshot, dialoguePlan, mode: 'segmented', deliveryPolicy: 'best-effort', sampleRate: 48000, channels: 2, codec: 'pcm_s24le', resourceGate: createResourceGate({ capacity: 1 }) })
+
+    expect([...(execution.target.readinessVoiceIds ?? [])].sort()).toEqual(['Alex', 'Dennis'])
   })
 
   test('shared read-only execution readiness reuses one Hume catalog probe across model targets', async () => {

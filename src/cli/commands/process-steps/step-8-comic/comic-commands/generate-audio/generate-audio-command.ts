@@ -121,7 +121,7 @@ const withoutInheritedVoiceSelection = (options: TtsOptions): TtsOptions => ({
   cartesiaTtsVoice: undefined,
 })
 
-const buildTargetExecution = (input: {
+export const buildTargetExecution = (input: {
   target: TtsTarget
   baseOptions: TtsOptions
   snapshot: Awaited<ReturnType<typeof buildVoiceReferenceManifest>>
@@ -200,7 +200,7 @@ const buildTargetExecution = (input: {
     ttsMasteringProfile: { schemaVersion: 1, sampleRate: input.sampleRate, channels: input.channels, codec: input.codec, container: 'wav' },
   }
   if (Object.keys(protectedSpeakerVoiceAssets).length > 0) target.protectedSpeakerVoiceAssets = protectedSpeakerVoiceAssets
-  if (target.service === 'elevenlabs' || target.service === 'hume') {
+  if (['elevenlabs', 'hume', 'minimax', 'cartesia', 'speechify', 'inworld'].includes(target.service)) {
     target.readinessVoiceIds = [...new Set(input.snapshot.entries.filter(entry => entry.provider === target.service && entry.providerModel === target.model && entry.providerVoice.kind === 'remote-resource').map(entry => (entry.providerVoice as Extract<typeof entry.providerVoice, { kind: 'remote-resource' }>).resourceId))]
   }
   const context: ComicTtsRenderContext = {
