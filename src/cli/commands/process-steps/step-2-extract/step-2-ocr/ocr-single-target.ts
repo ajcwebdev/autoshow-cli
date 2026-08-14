@@ -43,6 +43,7 @@ export const runOcrSingleTarget = async (ctx: OcrSingleRunContext): Promise<Proc
     preflightEstimate,
     ocrConcurrency: opts.ocrConcurrency,
     ocrConcurrencyMode: opts.ocrConcurrencyMode,
+    concurrencyMode: opts.concurrencyMode,
     ocrProviderConcurrency: opts.ocrProviderConcurrency,
     ocrLocalConcurrency: opts.ocrLocalConcurrency,
     hostedOcrScheduler: hostedOcrScheduler.snapshot()

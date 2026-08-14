@@ -1,7 +1,12 @@
 import type { Dirent } from 'node:fs'
-import type { PanelBundleData, GeneratedImageResponse, ImageGenerationModel, ImageGenerationQuality, ImageGenerationSize, LlmModel, StructuredScriptData } from '~/types'
+import type { HostedConcurrencyCoordinator, HostedConcurrencyMode, PanelBundleData, GeneratedImageResponse, ImageGenerationModel, ImageGenerationQuality, ImageGenerationSize, LlmModel, StructuredScriptData } from '~/types'
 
-export type ComicSceneCommandOptionsBase = {
+type ComicHostedConcurrencyOptions = {
+  concurrencyMode?: HostedConcurrencyMode | undefined
+  hostedConcurrencyCoordinator?: HostedConcurrencyCoordinator | undefined
+}
+
+export type ComicSceneCommandOptionsBase = ComicHostedConcurrencyOptions & {
   sceneSlug: string
 }
 
@@ -9,18 +14,18 @@ type ComicScriptSceneCommandOptionsBase = ComicSceneCommandOptionsBase & {
   scriptPath: string
 }
 
-export type ComicLlmCommandOptionsBase = {
+export type ComicLlmCommandOptionsBase = ComicHostedConcurrencyOptions & {
   llmModel?: LlmModel
 }
 
-type ComicImageCommandOptionsBase = {
+type ComicImageCommandOptionsBase = ComicHostedConcurrencyOptions & {
   imageModels?: ImageGenerationModel[]
   size?: ImageGenerationSize
   quality?: ImageGenerationQuality
   force?: boolean
 }
 
-type ComicImageRunOptionsBase = {
+type ComicImageRunOptionsBase = ComicHostedConcurrencyOptions & {
   models: ImageGenerationModel[]
   size: ImageGenerationSize
   quality: ImageGenerationQuality
@@ -127,7 +132,7 @@ export type GenerateComicPagesOptions = ComicImageRunOptionsBase & {
   maxRepairs?: number
 }
 
-export type GenerateComicGridPagesOptions = Pick<ComicImageRunOptionsBase, 'models' | 'force' | 'runId' | 'concurrency'> & {
+export type GenerateComicGridPagesOptions = Pick<ComicImageRunOptionsBase, 'models' | 'force' | 'runId' | 'concurrency' | 'concurrencyMode' | 'hostedConcurrencyCoordinator'> & {
   panels: ComicPanelSelection
   grid: ComicGridSpec
   variations?: ImagePromptVariation[]

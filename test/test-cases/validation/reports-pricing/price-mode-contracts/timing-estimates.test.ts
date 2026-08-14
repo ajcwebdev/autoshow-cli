@@ -8,6 +8,7 @@ import { computeActualProcessingTimes, computeEstimatedProcessingTimes } from '~
 import { buildAggregateTiming } from '~/cli/commands/pricing-orchestration/aggregate-pricing/timing'
 import type { ExtractionMetadata, StepEstimate } from '~/types'
 import { buildSttMetadata } from './shared'
+import { estimateHostedConcurrencyWallTimeMs } from '~/utils/hosted-concurrency-estimator'
 
 const missingHostedOcrProfilePath = (): string =>
   join(tmpdir(), `autoshow-missing-ocr-profile-${process.pid}-${Date.now()}-${Math.random()}.json`)
@@ -219,7 +220,7 @@ describe('price mode contracts', () => {
         provider: 'kimi',
         model,
         inputValue: pageCount,
-        processingTimeMs: Math.round(Math.ceil(pageCount / DEFAULT_OCR_CONCURRENCY) * msPerPage)
+        processingTimeMs: estimateHostedConcurrencyWallTimeMs(Array.from({ length: pageCount }, () => msPerPage), DEFAULT_OCR_CONCURRENCY)
       })
       expect(serialTiming.steps[0]).toMatchObject({
         provider: 'kimi',
@@ -276,7 +277,7 @@ describe('price mode contracts', () => {
         provider: 'kimi',
         model,
         inputValue: pageCount,
-        processingTimeMs: Math.round(3 * msPerPage),
+        processingTimeMs: estimateHostedConcurrencyWallTimeMs([msPerPage, msPerPage, msPerPage * 2, msPerPage * 2], 2),
         timingAdjustment: {
           kind: 'rasterized-single-page-pdf-fallback',
           rasterizedPages,
@@ -335,7 +336,7 @@ describe('price mode contracts', () => {
         provider: 'gemini',
         model,
         inputValue: pageCount,
-        processingTimeMs: 33400,
+        processingTimeMs: estimateHostedConcurrencyWallTimeMs(Array.from({ length: pageCount }, () => fallbackMsPerPage ?? 0), 2),
         timingAdjustment: {
           kind: 'single-page-pdf-fallback',
           singlePagePdfFallbackPages: pageCount,

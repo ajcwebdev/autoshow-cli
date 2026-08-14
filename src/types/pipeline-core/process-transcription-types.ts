@@ -81,6 +81,7 @@ export type Step2Metadata = {
   captionFormat?: 'vtt' | undefined
   timings?: Step2TimingMetadata | undefined
   runtime?: Step2RuntimeMetadata | undefined
+  hostedConcurrency?: import('~/types').HostedConcurrencyTelemetry | undefined
   billing?: {
     creditsUsed?: number | undefined
     creditRateCents?: number | undefined

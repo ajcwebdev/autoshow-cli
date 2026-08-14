@@ -57,7 +57,8 @@ The standalone `image` command uses `--size` instead of `--image-size` (which ca
 | Flag | Description |
 |------|-------------|
 | `--all-providers` | Select every supported image provider/model |
-| `--provider-concurrency <n>` | Hosted image providers/models to run concurrently per item; default `10` |
+| `--provider-concurrency <n>` | Hosted image providers/models to run concurrently per item; default `7` |
+| `--concurrency-mode <ramp\|immediate>` | Start each hosted provider/account lane at one request and add one slot every five seconds while demand is queued (`ramp`, default), or start at its configured cap (`immediate`) |
 | `--aspect-ratio <ratio>` | Provider-dependent aspect ratio control |
 | `--size <size>` | Provider-dependent size or resolution control |
 | `--quality <q>` | OpenAI quality: `low`, `medium`, `high`, or `auto` |

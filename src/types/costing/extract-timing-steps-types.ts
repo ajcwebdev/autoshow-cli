@@ -21,4 +21,5 @@ export type ExtractStepBuildParams = {
   singlePagePdfFallbackPages: number
   isPooledOcr: boolean
   isHostedOcr: boolean
+  concurrencyMode: import('~/types').HostedConcurrencyMode
 }

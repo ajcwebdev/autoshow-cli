@@ -55,6 +55,8 @@ XAI_API_KEY=...
 - Text and image models resolve against the central registries, so any other centrally-registered provider you select (e.g. BFL, Recraft, Replicate, Lumalabs, fal for images) needs its own provider key set. See the [Supported Models](#supported-models) registries for the full list.
 - `--price` is side-effect-free and does not call image or LLM generation APIs. `comic generate-audio --price` performs static source, casting, strategy, and cost planning without provider calls or artifact writes; `comic generate-slideshow --price` reports `$0.00` without writes.
 
+Hosted comic LLM, image, QA, dialogue, and sound-effect work defaults to `--concurrency-mode ramp`. Each provider/account lane starts one request immediately and adds one slot every five seconds while demand is queued, up to the applicable command cap; independent providers ramp independently. `--concurrency-mode immediate` begins at those caps. Price mode simulates a clean ramp with no rate-limit events.
+
 ### Character catalog v3
 
 Every comic command requires `input/characters/characters-reference.json`, or the equivalent file under `--characters-root`. There is no bundled fallback. The catalog uses `schemaVersion: 3`, an array of lowercase kebab-case keys, relative `image` and `outlineSheet` paths, per-character aliases, optional group aliases, and optional per-character `sceneTextRules`. A rule declares `kind` (`required` or `forbidden`), a validated regular-expression `pattern`, and a human-readable `description`. Scene drafting receives every catalog description and rule; deterministic scene validation rejects any visible-character panel whose description plus shot plan violates a rule. A character with one canonical reference image sets `image` and `outlineSheet` to the same relative path. A prose-defined new one-image character may also declare an existing root-relative `generationReference` and optional `generationInstructions`; the former supplies style-only context for its first generation, while the latter supplies custom rendering instructions. Keys—not display names, aliases, image stems, or filenames—are the only identity stored in artifacts.
@@ -177,7 +179,8 @@ bun autoshow comic generate-images input/scripts/01-script/01-opening.md --targe
 | Flag | Description | Default |
 |------|-------------|---------|
 | `--only <stage>` | Run only `structure`, `prompt`, `scene`, or `panel-prompts` | none (runs all stages) |
-| `--concurrency <n>` | Number of panels to build prompt bundles for in parallel during `panel-prompts` | `10` |
+| `--concurrency <n>` | Number of panels to build prompt bundles for in parallel during `panel-prompts` | `7` |
+| `--concurrency-mode <ramp\|immediate>` | Approach hosted LLM work from one request per provider/account lane (`ramp`) or start at the configured cap (`immediate`) | `ramp` |
 | `--price` | Estimate API-backed stages without making API calls | `false` |
 
 ### Advanced Options
@@ -219,7 +222,8 @@ bun autoshow comic draft-scenes input/scripts/01-script/01-opening.md --only pan
 |------|-------------|---------|
 | `--target <target>` | `images`, `sketches`, or `both` | `images` |
 | `--panels <all\|range\|list>` | Panels to process: `all`, a range like `1-8`, a list like `1,3,7`, or mixed like `1-4,9`; overlong contiguous ranges clamp to available panels | `all` |
-| `--concurrency <n>` | Number of image requests (across panels, pages, models, and variations) to run in parallel | `10` |
+| `--concurrency <n>` | Number of image requests (across panels, pages, models, and variations) to run in parallel | `7` |
+| `--concurrency-mode <ramp\|immediate>` | Approach hosted image and QA work from one request per provider/account lane (`ramp`) or start at the configured cap (`immediate`) | `ramp` |
 | `-f, --force` | Regenerate image outputs only; never rewrite reviewed scene or prompt artifacts | `false` |
 | `--qa` / `--no-qa` | Enable or disable strict final-image QA | enabled |
 | `--qa-model <model>` | Vision judge model | `gpt-5.6-sol` |
@@ -263,7 +267,7 @@ bun autoshow comic generate-images input/scripts/01-script/01-opening.md --targe
 - Required characters are sent as one canonical image per character ordered by first appearance, followed by every distinct immutable canonical location reference ordered by first panel appearance. Each location's immutable textual specification is included with its reference so generation preserves project-defined permanent architecture, fixed furniture, installed equipment, and recurring spatial relationships. Each individual panel receives only its assigned location. Grouped sketches and pages receive a prompt legend that maps every sub-panel to the correct location reference. No environment anchor or prior generated panel is created or referenced.
 - `--grid <columns>x<rows>` first generates individual final panel PNGs, then combines them locally into full-size white-backed page grids under `pages/`. For example, `--grid 2x3 --size 1536x1024` writes 3072x3072 page PNGs and leaves unused trailing cells blank on partial final pages.
 - `--variation` only applies to final images (`--target images` or `--target both`). When omitted, base final image paths are used. When provided, outputs are grouped under `pages/<run-id>/<variation>/<model>/` or `panels/<run-id>/<variation>/<model>/` within the scene run directory.
-- `--concurrency` runs that many independent image requests in parallel. Every panel uses its assigned immutable location snapshot, location specification, and its own shot plan; grouped requests carry the distinct location snapshots needed by their member panels. Continuity locks world-space set topology rather than the camera: shot plans are still expected to vary camera side, distance, elevation, depth, crop, character blocking, pose, expression, and eyeline where appropriate.
+- `--concurrency` remains the hard cap for independent image requests. In the default hosted ramp mode, each provider/account lane starts at one request and adds one slot every five seconds while demand is queued. Every panel uses its assigned immutable location snapshot, location specification, and its own shot plan; grouped requests carry the distinct location snapshots needed by their member panels. Continuity locks world-space set topology rather than the camera: shot plans are still expected to vary camera side, distance, elevation, depth, crop, character blocking, pose, expression, and eyeline where appropriate.
 - Review sketches and final images use the defaults shown above (`gpt-image-2`, `1536x1024`, `high`).
 - Multi-model runs write model-specific filenames.
 - Before the first provider request, every selected panel/page/sketch and model is checked against the central registry's reference-image support and maximum input count. Required character references are never truncated; optional continuity images may be trimmed deterministically.
@@ -283,6 +287,7 @@ bun autoshow comic generate-images input/scripts/01-script/01-opening.md --targe
 | `--provider <provider[=model]>` | Select a TTS provider/model; repeatable | `kitten` |
 | `--sfx-provider <provider=model>` | Select the dedicated authored sound-effect target; Phase 1 accepts `elevenlabs=eleven_text_to_sound_v2` | none |
 | `--sfx-concurrency <count>` | Bound parallel sound-effect requests independently from dialogue generation | `2` |
+| `--concurrency-mode <ramp\|immediate>` | Approach hosted dialogue and sound-effect caps from one request per provider/account lane (`ramp`) or start at the configured caps (`immediate`) | `ramp` |
 | `--soundscape-timing-policy <policy>` | Resolve inline text offsets with exact evidence (`strict`) or recorded canonical-offset interpolation (`proportional`) | `strict` |
 | `--all-providers` / `--all-local` | Select every hosted or local TTS target | `false` |
 | `--profile <key>` | Select the approved registration profile for every subject/target | `default` |
@@ -384,7 +389,8 @@ For a new prose-defined character with no subject image, set `image` and `outlin
 | `--view <view>` | Location camera view: `establishing`, `reverse`, or `side` | `establishing` |
 | `-r, --revise` | Revise existing sketches using the source image and existing sketch refs | `false` |
 | `--notes <text>` | Revision instructions; required with `--revise` | none |
-| `--concurrency <n>` | Number of sketch views to generate in parallel | `10` |
+| `--concurrency <n>` | Number of sketch views to generate in parallel | `7` |
+| `--concurrency-mode <ramp\|immediate>` | Approach hosted LLM, image, and QA work from one request per provider/account lane (`ramp`) or start at the configured cap (`immediate`) | `ramp` |
 | `--price` | Estimate image-generation costs without making API calls | `false` |
 
 #### Advanced Options

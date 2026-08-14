@@ -1,6 +1,6 @@
-import type { CostEstimateBase, ProviderTargetBase, ResourceGate, Step6VideoMetadata, VideoProvider, VideoRuntimeOptions } from '~/types'
+import type { CostEstimateBase, HostedConcurrencyRuntimeOptions, ProviderTargetBase, ResourceGate, Step6VideoMetadata, VideoProvider, VideoRuntimeOptions } from '~/types'
 
-export type VideoGenOptions = Partial<VideoRuntimeOptions> & {
+export type VideoGenOptions = Partial<VideoRuntimeOptions> & HostedConcurrencyRuntimeOptions & {
   generationResourceGate?: ResourceGate | undefined
 }
 

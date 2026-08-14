@@ -520,6 +520,7 @@ export const runOcrPooledBatch = async (ctx: OcrBatchRunContext & {
       preflightEstimate: ctx.preflightEstimate,
       ocrConcurrency: ctx.opts.ocrConcurrency,
       ocrConcurrencyMode: ctx.opts.ocrConcurrencyMode,
+      concurrencyMode: ctx.opts.concurrencyMode,
       ocrProviderConcurrency: ctx.opts.ocrProviderConcurrency,
       ocrLocalConcurrency: ctx.opts.ocrLocalConcurrency,
       hostedOcrScheduler: ctx.hostedOcrScheduler.snapshot()

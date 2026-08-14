@@ -1,7 +1,7 @@
 import { mkdir, rm } from 'node:fs/promises'
 import { randomUUID } from 'node:crypto'
 import { dirname, join } from 'node:path'
-import type { AudioRun, FinalTimeline, PipelineProviderState, SoundEffectRenderPlan, SoundscapeAudioRun, SoundscapePlan } from '~/types'
+import type { AudioRun, FinalTimeline, HostedConcurrencyCoordinator, PipelineProviderState, SoundEffectRenderPlan, SoundscapeAudioRun, SoundscapePlan } from '~/types'
 import { requireApiKey } from '~/utils/validate/env-utils'
 import { CLIUsageError } from '~/utils/error-handler'
 import { readContainedArtifactFile, writeImmutableArtifactFile } from '../../step-4-tts/script-to-audio/safe-artifact-store'
@@ -129,6 +129,7 @@ export const runComicSoundscape = async (input: {
   concurrency?: number | undefined
   cancellation?: AbortSignal | undefined
   adapter?: SoundEffectAdapter | undefined
+  hostedConcurrencyCoordinator?: HostedConcurrencyCoordinator | undefined
 }): Promise<{
   planRef: { path: string, sha256: string }
   renderPlanRef: { path: string, sha256: string }
@@ -152,7 +153,7 @@ export const runComicSoundscape = async (input: {
           ? createReplicateAudioGenAdapter({ apiToken: requireApiKey('REPLICATE_API_TOKEN', 'comic:soundscape', 'Replicate AudioGen sound-effect generation') })
           : createElevenLabsSoundEffectAdapter({ apiKey: requireApiKey('ELEVENLABS_API_KEY', 'comic:soundscape', 'ElevenLabs sound-effect generation') }))
       : { generate: async (): Promise<never> => { throw CLIUsageError('Verified sound-effect resume planning unexpectedly attempted provider dispatch.') } })
-    const executed = await executeSoundEffectRenderPlan({ rootDir: input.rootDir, plan: input.renderPlan, adapter: liveAdapter, concurrency: input.concurrency, cancellation: input.cancellation })
+    const executed = await executeSoundEffectRenderPlan({ rootDir: input.rootDir, plan: input.renderPlan, adapter: liveAdapter, concurrency: input.concurrency, cancellation: input.cancellation, hostedConcurrencyCoordinator: input.hostedConcurrencyCoordinator })
     renderResult = executed.result
     renderResultRef = executed.ref
   }
@@ -167,7 +168,13 @@ export const runComicSoundscape = async (input: {
     status: renderResult.status === 'succeeded' ? 'succeeded' : 'failed',
     attempts: 1,
     options: { outputFormat: input.renderPlan.target.outputFormat, promptInfluence: input.renderPlan.target.promptInfluence, boundedConcurrency: input.concurrency ?? 2 },
-    metadata: { soundscapePlanId: input.plan.soundscapePlanId, renderPlanId: input.renderPlan.renderPlanId, resultId: renderResult.resultId, taskCount: input.renderPlan.tasks.length },
+    metadata: {
+      soundscapePlanId: input.plan.soundscapePlanId,
+      renderPlanId: input.renderPlan.renderPlanId,
+      resultId: renderResult.resultId,
+      taskCount: input.renderPlan.tasks.length,
+      ...(input.hostedConcurrencyCoordinator ? { hostedConcurrency: input.hostedConcurrencyCoordinator.snapshot() } : {})
+    },
     ...(renderResult.status === 'succeeded' ? { result: { resultId: renderResult.resultId, renderResultRef: renderResultRef.path, renderResultSha256: renderResultRef.sha256 } } : { error: { code: renderResult.status === 'canceled' ? 'canceled' : 'required-cue-failed', message: 'One or more required sound cues did not produce a verified source.' } }),
   }
   if (renderResult.status !== 'succeeded') return { planRef, renderPlanRef, renderResultRef, soundscapeRuns: [], providerState }

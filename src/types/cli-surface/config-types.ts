@@ -6,6 +6,10 @@ const PricingConfigSchema = v.strictObject({
   maxCents: v.optional(v.pipe(v.number(), v.minValue(0)), undefined)
 })
 
+const ConcurrencyDefaultsSchema = v.strictObject({
+  mode: v.optional(v.picklist(['ramp', 'immediate']), undefined)
+})
+
 const ExtractSttDefaultsSchema = v.strictObject({
   whisper: ModelArraySchema,
   reverb: v.optional(v.boolean(), undefined),
@@ -226,6 +230,7 @@ const PostDefaultsSchema = v.strictObject({
 })
 
 const ConfigDefaultsSchema = v.strictObject({
+  concurrency: v.optional(ConcurrencyDefaultsSchema, undefined),
   llm: v.optional(LlmDefaultsSchema, undefined),
   post: v.optional(PostDefaultsSchema, undefined),
   extract: v.optional(ExtractDefaultsSchema, undefined),

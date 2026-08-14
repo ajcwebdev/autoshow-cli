@@ -54,6 +54,9 @@ export const runTargets = async <TTarget extends ProviderIdentity, TResult>(
     },
     resourceGate: opts.resourceGate,
     getResourceGate: opts.getResourceGate,
+    hostedConcurrencyCoordinator: opts.hostedConcurrencyCoordinator,
+    hostedWorkClass: opts.hostedWorkClass,
+    getHostedWorkId: (index, target) => `${stepLabel}:${outputDir}:${target.service}:${target.model}:${index}`,
     getPool: opts.getTargetPool ?? (() => 'hosted'),
     runTarget: async (_index, target) => {
       const usesWorkspace = !singleTarget || opts.useWorkspaceForSingleTarget === true

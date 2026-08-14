@@ -15,6 +15,7 @@ import { createSoundEffectRenderPlan } from '~/cli/commands/process-steps/step-4
 import { createSoundscapePlan } from '~/cli/commands/process-steps/step-4-tts/soundscape/soundscape-planner'
 import { sha256Bytes } from '~/cli/commands/process-steps/step-4-tts/script-to-audio/contract-identity'
 import { readManifest } from '~/cli/commands/process-steps/pipeline-manifest'
+import { createHostedConcurrencyCoordinator } from '~/cli/commands/process-steps/hosted-concurrency-coordinator'
 import { createSyntheticWavBytes } from '../../../test-utils/media-fixtures'
 
 const characters = {
@@ -50,10 +51,14 @@ describe('ADR-018 canonical soundscape artifact workflow', () => {
         calls++
         return { status: 200, headers: { 'content-type': 'audio/wav', 'request-id': `fixture-${calls}` }, body: createSyntheticWavBytes({ durationSeconds: 0.5, amplitude: 0.2, frequencyHz: 220 + calls * 110 }) }
       }, now: () => '2026-08-13T00:00:00.000Z' })
-      const first = await runComicSoundscape({ rootDir: root, plan: soundscapePlan, renderPlan, dialoguePlan, dialogueRuns: [firstDialogue.binding, secondDialogue.binding], adapter, concurrency: 2 })
+      const hostedConcurrencyCoordinator = createHostedConcurrencyCoordinator({ mode: 'immediate' })
+      const first = await runComicSoundscape({ rootDir: root, plan: soundscapePlan, renderPlan, dialoguePlan, dialogueRuns: [firstDialogue.binding, secondDialogue.binding], adapter, concurrency: 2, hostedConcurrencyCoordinator })
       expect(first.providerState.status).toBe('succeeded')
       expect(first.soundscapeRuns).toHaveLength(2)
       expect(calls).toBe(renderPlan.tasks.length)
+      const soundEffectLane = hostedConcurrencyCoordinator.snapshot().lanes[0]
+      expect(soundEffectLane?.classes.some(entry => entry.workClass === 'sound-effect')).toBe(true)
+      expect(soundEffectLane?.activePeak).toBeLessThanOrEqual(2)
       for (const run of first.soundscapeRuns) {
         const published = new Uint8Array(await Bun.file(join(root, run.binding.reportedOutputPath)).arrayBuffer())
         expect(sha256Bytes(published)).toBe(run.audioRun.master.sha256)
@@ -78,7 +83,7 @@ describe('ADR-018 canonical soundscape artifact workflow', () => {
       const comic = manifest?.items[0]?.metadata['comic'] as { audio?: { selectedSoundscapeRuns?: unknown[] } } | undefined
       expect(manifest?.items[0]?.status).toBe('full')
       expect(comic?.audio?.selectedSoundscapeRuns).toHaveLength(2)
-      const resumed = await runComicSoundscape({ rootDir: root, plan: soundscapePlan, renderPlan, dialoguePlan, dialogueRuns: [firstDialogue.binding, secondDialogue.binding], adapter, concurrency: 2 })
+      const resumed = await runComicSoundscape({ rootDir: root, plan: soundscapePlan, renderPlan, dialoguePlan, dialogueRuns: [firstDialogue.binding, secondDialogue.binding], adapter, concurrency: 2, hostedConcurrencyCoordinator })
       expect(resumed.soundscapeRuns.map(run => run.audioRun.audioRunId)).toEqual(first.soundscapeRuns.map(run => run.audioRun.audioRunId))
       expect(calls).toBe(renderPlan.tasks.length)
       const names = (await readdir(root, { recursive: true })).map(String)

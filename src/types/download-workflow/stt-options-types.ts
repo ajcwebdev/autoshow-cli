@@ -1,4 +1,5 @@
 import type { BatchRuntimeOptions } from './batch-options-types'
+import type { HostedConcurrencyRuntimeOptions } from '../cli-surface/cli-types'
 
 export type SttRuntimeOptions = {
   whisperModels: string[] | undefined
@@ -47,7 +48,7 @@ export type SttRuntimeOptions = {
   split: boolean
 }
 
-export type SttExtractionOptions = SttRuntimeOptions & Pick<BatchRuntimeOptions, 'batchConcurrency'> & {
+export type SttExtractionOptions = SttRuntimeOptions & HostedConcurrencyRuntimeOptions & Pick<BatchRuntimeOptions, 'batchConcurrency'> & {
   outputRootDir: string
   useReverb: boolean
   youtubeCaptions: boolean

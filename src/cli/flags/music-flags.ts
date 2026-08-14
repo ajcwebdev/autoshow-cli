@@ -26,7 +26,7 @@ const musicLyricVideoFlags = {
 const musicProviderSelectionFlags = {
   provider: strListFlag(`Music provider[=model]: ${formatProviderList(STANDALONE_MUSIC_PROVIDER_TARGETS)}; repeatable`),
   ...booleanAllProvidersFlag,
-  ...pickFlags(sharedConcurrencyFlags, ['provider-concurrency'])
+  ...pickFlags(sharedConcurrencyFlags, ['concurrency-mode', 'provider-concurrency'])
 } as const satisfies CliFlagsDefinition
 
 export const musicCommandOptionNames = {

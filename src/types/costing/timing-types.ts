@@ -5,6 +5,7 @@ export type TimedExtractProvider = NonNullable<ComputeEstimatedProcessingTimesIn
 
 
 export type AggregateTimingOptions = {
+  concurrencyMode?: ComputeEstimatedProcessingTimesInput['concurrencyMode'] | undefined
   ttsInputText?: string | undefined
   ttsChunkConcurrency?: number | undefined
   ocrConcurrency?: number | undefined

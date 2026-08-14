@@ -402,6 +402,7 @@ const synthesizePreparedTtsInputForTargets = async (
       ttsCharacterCount: prepared.ttsCharacterCount,
       ttsInputText: prepared.ttsTimingInputText,
       ttsChunkConcurrency: ttsOptions.ttsChunkConcurrency,
+      concurrencyMode: ttsOptions.concurrencyMode,
     }),
     actual: computeActualProcessingTimes({
       step4: metadata,
@@ -986,7 +987,11 @@ export const runTtsDirectoryBatch = async (
 
     const runPromises: Promise<void>[] = []
     const hostedCoordinator = hostedTargets.length > 0
-      ? createHostedTtsBatchCoordinator(ttsOptions.ttsChunkConcurrency)
+      ? createHostedTtsBatchCoordinator({
+          maxConcurrency: ttsOptions.ttsChunkConcurrency,
+          concurrencyMode: ttsOptions.concurrencyMode,
+          hostedConcurrencyCoordinator: ttsOptions.hostedConcurrencyCoordinator
+        })
       : undefined
     if (hostedCoordinator) {
       const hostedOptions: TtsOptions = {

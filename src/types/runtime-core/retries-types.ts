@@ -18,6 +18,7 @@ export type RetryContext = {
   policy?: Partial<RetryPolicy>
   timeoutMs?: number
   abortSignal?: AbortSignal | undefined
-  onRetryAttempt?: (error: unknown, decision: RetryDecision) => void
+  onRetryAttempt?: (error: unknown, decision: RetryDecision) => void | boolean | Promise<void | boolean>
+  retryHookCanExtendAttempts?: boolean | undefined
   rateLimitMaxAttempts?: number | undefined
 }

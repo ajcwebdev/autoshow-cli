@@ -347,7 +347,7 @@ export const generateComicAudio = async (ctx: CliCommandContext, scriptPath: str
     const soundscapePlanRef = await writeSoundscapePlan(compatible.sceneRunDir, soundscapePlan)
     const silent = await createLocalSilentDialogueRun({ rootDir: compatible.sceneRunDir, plan: soundscapePlan })
     await mkdir(join(compatible.sceneRunDir, 'audio', 'final'), { recursive: true })
-    const soundscape = await runComicSoundscape({ rootDir: compatible.sceneRunDir, plan: soundscapePlan, renderPlan: soundEffectRenderPlan, dialoguePlan, dialogueRuns: [silent.binding], concurrency: sfxConcurrency })
+    const soundscape = await runComicSoundscape({ rootDir: compatible.sceneRunDir, plan: soundscapePlan, renderPlan: soundEffectRenderPlan, dialoguePlan, dialogueRuns: [silent.binding], concurrency: sfxConcurrency, hostedConcurrencyCoordinator: baseOptions.hostedConcurrencyCoordinator })
     const run = soundscape.soundscapeRuns[0]
     const nextArtifacts = stageArtifactRefs({ structured: structuredRef, dialogue: dialogueRef, extra: [soundscapePlanRef, ...silent.refs, soundscape.renderPlanRef, soundscape.renderResultRef, ...(run ? [run.ref, run.audioRun.transformLedger, run.audioRun.resolvedTimeline, ...run.audioRun.stems.map(stem => ({ path: stem.path, sha256: stem.sha256 })), { path: run.audioRun.master.path, sha256: run.audioRun.master.sha256 }] : [])] })
     const artifacts = [...new Map([...compatible.comicMetadata.stages.audio.artifactRefs, ...nextArtifacts].map(ref => [ref.path, ref] as const)).values()]
@@ -386,7 +386,11 @@ export const generateComicAudio = async (ctx: CliCommandContext, scriptPath: str
     })
   const snapshotSubjects = [...new Set(turns.map(turn => turn.subjectKey))]
   assertVoiceSnapshotCoversSelectedTargets({ snapshot, targets, subjectKeys: snapshotSubjects, profileKey })
-  baseOptions.hostedTtsChunkScheduler ??= createHostedTtsChunkScheduler(baseOptions.ttsChunkConcurrency)
+  baseOptions.hostedTtsChunkScheduler ??= createHostedTtsChunkScheduler({
+    maxConcurrency: baseOptions.ttsChunkConcurrency,
+    concurrencyMode: baseOptions.concurrencyMode,
+    hostedConcurrencyCoordinator: baseOptions.hostedConcurrencyCoordinator
+  })
   const hostedResourceGate = createResourceGate({ capacity: baseOptions.ttsProviderConcurrency ?? DEFAULT_CLI_CONCURRENCY })
   const localResourceGate = createResourceGate({ capacity: baseOptions.ttsLocalConcurrency ?? DEFAULT_CLI_CONCURRENCY })
   const executions = targets.map(target => buildTargetExecution({ target, baseOptions, snapshot, dialoguePlan, mode, deliveryPolicy, sampleRate, channels, codec, resourceGate: target.service === 'kitten' ? localResourceGate : hostedResourceGate }))
@@ -538,6 +542,7 @@ export const generateComicAudio = async (ctx: CliCommandContext, scriptPath: str
       dialoguePlan,
       dialogueRuns,
       concurrency: sfxConcurrency,
+      hostedConcurrencyCoordinator: baseOptions.hostedConcurrencyCoordinator,
     })
     await appendComicAudioProviderState({ sceneRunDir: compatible.sceneRunDir, sourceIdentity: compatible.sourceIdentity, targetKeys: stageTargetKeys, state: soundscape.providerState })
     soundscapeMetadata = { soundEffectRenderPlanRef: soundscape.renderPlanRef, soundEffectRenderResultRef: soundscape.renderResultRef }

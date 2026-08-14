@@ -4,7 +4,7 @@
 
 - **Decision Status:** Accepted
 - **Date Created:** 2026-08-13
-- **Date Updated:** 2026-08-13
+- **Date Updated:** 2026-08-14
 - **Verification Status:** Passed
 
 ## Context
@@ -47,6 +47,8 @@ This applies to:
 The pool creates one page ledger in source order. A pending page can have at most one active claim. Target workers claim dynamically, so a faster target can accept a larger page share without a static range assignment. Page preparation is promise-cached per page for the run; a retry or handoff reuses the provider-neutral prepared page when safe.
 
 `--provider-concurrency` bounds admitted hosted targets and `--local-concurrency` bounds admitted local targets. Each admitted target may request page work up to its applicable OCR cap. Hosted targets with different provider/account lane identities can multiply concurrency; targets sharing a lane share that lane's cap. An explicit `--ocr-concurrency <n>` is a fixed hard lane ceiling, while omission retains adaptive `auto` sizing, pressure backoff, and qualified profile ceiling rules.
+
+The run-scoped hosted mode is orthogonal to pool allocation. In `ramp` mode, each provider/account lane begins with one hosted page request and adds one slot every five seconds while the pool has queued demand; in `immediate` mode, it begins at the resolved OCR ceiling. The pool selector still decides which target claims the next page, and the shared coordinator only decides when that exact remote request may start. Independent lanes ramp independently, targets on one lane share one ramp, local target claims remain immediate, and classified 429 recovery never invalidates accepted pages.
 
 Every claim creates a unique attempt with page, provider, concrete model, lane, requested and effective reasoning policy, start time, and isolated artifact directory. A successful attempt commits only if its claim is still current and the page has no accepted result. This compare-before-commit rule prevents duplicate canonical page results even when remote execution was ambiguous or a stale worker finishes late.
 
@@ -134,6 +136,8 @@ Pooled estimates and actual costs are implemented in the extraction and command 
 - Run `bun run check`, `bun t --price`, the targeted CLI contract suites, and local/mock OCR, pricing, manifest, resume, scheduler, cache, and artifact tests. Do not run paid or quota-limited provider commands.
 
 Verification passed on 2026-08-13 with the repository default no-cost pass and targeted pool scheduler, pricing, cache, manifest, resume, and CLI contracts.
+
+The hosted ramp extension was verified on 2026-08-14 with fake-clock coordinator coverage and focused local/mock pooled OCR contracts; no paid or quota-limited OCR command ran.
 
 ## References
 

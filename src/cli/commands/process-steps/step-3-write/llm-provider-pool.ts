@@ -1,5 +1,5 @@
 import { runProviderTargetScheduler } from '~/cli/commands/process-steps/provider-target-scheduler'
-import type { IndexedLlmTarget, LLMTarget, TargetSchedulerConcurrency } from '~/types'
+import type { HostedConcurrencyCoordinator, IndexedLlmTarget, LLMTarget, TargetSchedulerConcurrency } from '~/types'
 import { InfraError } from '~/utils/error-handler'
 
 export const isLocalLlmTarget = (
@@ -23,7 +23,9 @@ const isHostedLlmTarget = (
 export const runLlmProviderTargetPools = async (
   targets: LLMTarget[],
   concurrency: TargetSchedulerConcurrency,
-  worker: (index: number, target: LLMTarget) => Promise<void>
+  worker: (index: number, target: LLMTarget) => Promise<void>,
+  hostedConcurrencyCoordinator?: HostedConcurrencyCoordinator | undefined,
+  hostedWorkScope = 'llm-run'
 ): Promise<void> => {
   const indexedTargets: IndexedLlmTarget[] = targets.map((target, index) => ({ index, target }))
   const scheduled = await runProviderTargetScheduler<IndexedLlmTarget, void>({
@@ -32,6 +34,9 @@ export const runLlmProviderTargetPools = async (
       target: entry
     })),
     concurrency,
+    hostedConcurrencyCoordinator,
+    hostedWorkClass: 'llm',
+    getHostedWorkId: (index, entry) => `llm:${hostedWorkScope}:${entry.target.service}:${entry.target.model}:${index}`,
     getPool: (entry) => isLocalLlmTarget(entry.target) ? 'local' : 'hosted',
     runTarget: async (_index, entry) => {
       if (!isLocalLlmTarget(entry.target) && !isHostedLlmTarget(entry.target)) {

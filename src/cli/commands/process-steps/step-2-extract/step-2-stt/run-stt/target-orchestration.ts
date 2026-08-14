@@ -15,11 +15,41 @@ import { createMistralSttPassController } from '../stt-services/stt-mistral/mist
 import { logSttSplitDecision } from '../stt-logging'
 import { classifySttSplitLimitError } from './split-limits'
 import { runAdaptiveSplitTranscription } from './split-execution'
+import { DEFAULT_CLI_CONCURRENCY } from '~/utils/concurrency-defaults'
+import { runHostedConcurrencyRequest } from '~/cli/commands/process-steps/hosted-concurrency-coordinator'
 const persistTranscriptionStructuredArtifact = async (
   outputDir: string,
   result: TranscriptionResult
 ): Promise<void> => {
   await writeSttResultArtifact(outputDir, result)
+}
+
+const dispatchHostedStt = async (
+  target: SttTarget,
+  audioPath: string,
+  outputDir: string,
+  options: SttTargetOptions
+): Promise<{ result: TranscriptionResult, metadata: Step2Metadata }> => {
+  const run = async () => await dispatchStt(target, audioPath, outputDir, 0, options)
+  if (target.local || !options.hostedConcurrencyCoordinator) return await run()
+  const result = await runHostedConcurrencyRequest({
+    coordinator: options.hostedConcurrencyCoordinator,
+    admission: {
+      provider: target.service,
+      workClass: 'provider-target',
+      configuredLimit: options.sttProviderConcurrency ?? DEFAULT_CLI_CONCURRENCY,
+      workId: `${target.service}:${target.model}:${outputDir}`,
+      unitIndex: 0,
+      context: { model: target.model }
+    }
+  }, async () => await run())
+  return {
+    ...result,
+    metadata: {
+      ...result.metadata,
+      hostedConcurrency: options.hostedConcurrencyCoordinator.snapshot()
+    }
+  }
 }
 
 const logAutoSplitDecision = (
@@ -45,11 +75,11 @@ export const sttTarget = async (
   options: SttTargetOptions
 ): Promise<{ result: TranscriptionResult, metadata: Step2Metadata }> => {
   if (target.service === 'supadata' && !isSupadataSupportedSourceUrl(options.sourceUrl)) {
-    return await dispatchStt(target, audioPath, outputDir, 0, options)
+    return await dispatchHostedStt(target, audioPath, outputDir, options)
   }
 
   if (target.service === 'scrapecreators' && !isScrapeCreatorsSupportedSourceUrl(options.sourceUrl)) {
-    return await dispatchStt(target, audioPath, outputDir, 0, options)
+    return await dispatchHostedStt(target, audioPath, outputDir, options)
   }
 
   await ensureSttTargetSetup(target)
@@ -61,13 +91,13 @@ export const sttTarget = async (
     : options
 
   if (target.service === 'supadata') {
-    const transcription = await dispatchStt(target, audioPath, outputDir, 0, effectiveOptions)
+    const transcription = await dispatchHostedStt(target, audioPath, outputDir, effectiveOptions)
     await persistTranscriptionStructuredArtifact(outputDir, transcription.result)
     return transcription
   }
 
   if (target.service === 'scrapecreators') {
-    const transcription = await dispatchStt(target, audioPath, outputDir, 0, effectiveOptions)
+    const transcription = await dispatchHostedStt(target, audioPath, outputDir, effectiveOptions)
     await persistTranscriptionStructuredArtifact(outputDir, transcription.result)
     return transcription
   }
@@ -93,7 +123,7 @@ export const sttTarget = async (
   }
 
   try {
-    const transcription = await dispatchStt(target, audioPath, outputDir, 0, effectiveOptions)
+    const transcription = await dispatchHostedStt(target, audioPath, outputDir, effectiveOptions)
     await persistTranscriptionStructuredArtifact(outputDir, transcription.result)
     return transcription
   } catch (error) {

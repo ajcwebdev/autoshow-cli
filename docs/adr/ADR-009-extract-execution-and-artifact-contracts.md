@@ -4,7 +4,7 @@
 
 - **Decision Status:** Accepted
 - **Date Created:** 2026-07-11
-- **Date Updated:** 2026-08-13
+- **Date Updated:** 2026-08-14
 - **Verification Status:** Passed
 - **Supersession:** Absorbs OCR architecture, ordinal-first chapter filenames, and URL extraction contracts from former individual records. Source identity belongs to [ADR-001](ADR-001-source-ingestion-and-normalization.md); pipeline state and resume belong to [ADR-002](ADR-002-pipeline-state-resume-and-dry-run-planning.md).
 
@@ -51,7 +51,9 @@ Use Tesseract as the sole local OCR engine. Organize source-specific OCR code un
 
 Hosted failures carry retryability, blocker classification, redacted diagnostics, fallback-audit state, and run-level `blockedProviders`. Automatic resume skips deterministic provider blockers; explicit provider resume overrides that filter after user repair or explicit re-attempt.
 
-Schedule hosted page work through fair provider/API-key lanes. Extract and write document batches share one run-scoped coordinator with per-document queue adapters, preventing outer batch concurrency from multiplying remote admission; standalone extraction retains a document-scoped coordinator. `auto` concurrency adapts to run/document size and observed lane health, backing off under retry pressure and accelerating clean large-document lanes. Explicit concurrency values act as hard caps. Clean profiles may raise a lane above the generic maximum, up to the global ceiling of `48` or an explicit user cap.
+Schedule hosted page work through fair provider/account lanes. Extract and write document batches share one run-scoped coordinator with per-document queue adapters, preventing outer batch concurrency from multiplying remote admission; standalone extraction retains a command-scoped coordinator. OCR's existing `auto|fixed` contract resolves the maximum: `auto` uses document size and qualified clean profiles, while an explicit value is a hard cap. Clean profiles may resolve a lane above the generic maximum, up to the global ceiling of `48` or an explicit user cap. The shared `ramp|immediate` mode separately controls how hosted page work approaches that resolved maximum; it does not change cap selection.
+
+In default ramp mode, each provider/account lane starts one hosted page immediately and gains one slot every five seconds while demand is queued. Fan-out documents and pooled targets sharing a lane share that progress across the command, while independent lanes ramp separately. HTTP 429 or an explicitly classified concurrency response halves the current lane limit, drains active work without cancellation, and allows one exact-request recovery probe after backoff. The former OCR success-count startup ramp is retired in favor of this time-based shared policy. Tesseract, page rendering, input normalization, and other local preparation remain immediate.
 
 Persist privacy-preserving throughput, timing, partial-provider usage, and token profiles. Telemetry distinguishes healthy full target samples from failed, partial, or incomplete work so unhealthy samples cannot become trusted warm starts.
 
@@ -145,7 +147,7 @@ Negative outcomes:
 
 ## Implementation Note
 
-The architecture is implemented. Tesseract is the sole local engine; source-specific code is grouped by ebook, image, PDF, and office/native input; provider failures are classified and sanitized before durable reporting; automatic resume filters `blockedProviders`; and explicit provider resume can opt back in. Hosted work uses fair provider/API-key lanes, run-scoped batch admission, adaptive `auto` concurrency, retry-pressure backoff, clean-lane acceleration, explicit hard caps, and a profile-raised ceiling of `48`.
+The architecture is implemented. Tesseract is the sole local engine; source-specific code is grouped by ebook, image, PDF, and office/native input; provider failures are classified and sanitized before durable reporting; automatic resume filters `blockedProviders`; and explicit provider resume can opt back in. Hosted work uses fair provider/account lanes, run-scoped batch admission, adaptive `auto` or explicit fixed ceiling selection, shared five-second ramp or immediate startup, classified rate-limit recovery, and a profile-raised ceiling of `48`.
 
 Scheduler telemetry records lane activity, cap changes, pause/retry pressure, throughput, target shares, and likely gating targets. Timing metadata separates wall-clock/gating time from summed provider processing time. Full clean target samples may inform throughput profiles, while failed or incomplete targets remain ineligible as healthy samples. Partial failed-provider artifacts and usage remain reportable without being treated as successful extraction.
 
@@ -191,14 +193,14 @@ The extraction CLI surface is preserved; the internal, profile, and report contr
 
 - Verify local engine resolution exposes only Tesseract and input-type routing still reaches ebook, image, PDF, and office/native implementations.
 - Use mocked/local tests for failure classification, redaction, provider-wide cancellation, fallback audit state, `blockedProviders`, and automatic versus explicit resume.
-- Test scheduler fairness, shared provider/API-key lanes, adaptive `auto` caps, clean-lane acceleration, retry-pressure backoff, explicit hard caps, and global ceiling of `48`.
+- Test scheduler fairness, shared provider/account lanes, adaptive `auto` cap selection, fixed caps, clean-ramp timing, retry-pressure halving/recovery, independent-lane isolation, and the global ceiling of `48`.
 - Test pooled queue claims, one-active-claim and duplicate-commit prevention, hosted/local target admission, same-lane sharing, independent-lane multiplication, reverse completion, transient handoff, target and lane retirement, ambiguity, exhaustion, interrupted recovery, and composite completion.
 - Test page attribution, reasoning and cache identity, attempt artifact isolation and containment, ordered output, pooled estimates, failed-attempt actual usage, deterministic diagnostics, and byte-for-byte-compatible fan-out behavior.
 - Test timing, gating-target, `partialStep2`, `partial_provider_usage`, throughput-profile, token-profile, audit-gate, and batch-diagnostic behavior, including rejection of identifying data and unhealthy samples.
 - Test URL registry ordering and selection separately from explicit article-vs-X-Space runtime routing.
 - Test PDF and EPUB chapter names, 100+ dynamic widths, split sorting, source locators, and collision behavior with local fixtures.
 - Run `bun run check`, `bun t --price`, focused mocked Kimi/Gemini provider contracts, focused OCR pricing/profile/audit/report contracts, CLI help/usage contracts, repository import/path checks, and `git diff --check`. Do not run hosted OCR providers or full provider suite.
-- Verification passed on 2026-08-13, covering `bun run check`, 165 mapped `bun t --price` commands, and 282 targeted local/mock tests across CLI, provider, pricing, profile, audit, report, and ownership contracts.
+- Verification evidence for shared OCR admission is dated 2026-08-14 and covers the default no-cost checks plus focused local/mock scheduler, cap-selection, pricing, resume, and CLI contracts. No hosted OCR command is run.
 
 ## References
 
@@ -206,6 +208,7 @@ The extraction CLI surface is preserved; the internal, profile, and report contr
 - Related ADR: [ADR-002](ADR-002-pipeline-state-resume-and-dry-run-planning.md) — command-neutral work plans, canonical state, resume, and price dry runs
 - Related ADR: [ADR-003](ADR-003-type-surface-cleanup-and-architecture-mirroring.md) — architecture-oriented source layout
 - Related ADR: [ADR-004](ADR-004-manage-setup-runtime-and-toolchain-lifecycle.md) — exclusive authority for toolchain setup and local OCR provisioning
+- Related ADR: [ADR-008](ADR-008-decompose-work-into-chunks-and-concurrency-lanes.md) — shared hosted admission, pressure recovery, and clean-ramp price planning
 - Related ADR: [ADR-010](ADR-010-hosted-model-registry-lifecycle-and-capability-policy.md) — concrete model identity, lifecycle and capability validation, reasoning policy, and pricing provenance
 - Related ADR: [ADR-016](ADR-016-distribute-ocr-pages-across-a-multi-provider-work-pool.md) — the explicit fan-out versus pooled page-execution decision
 - Extract command documentation: [`docs/commands/process-steps/step-2-extract/01-extract.md`](../commands/process-steps/step-2-extract/01-extract.md)

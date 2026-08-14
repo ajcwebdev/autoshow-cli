@@ -57,7 +57,8 @@ Select a backend using `--url-provider <backend>` or run all backends with `--al
 | `--provider <backend>` | Route-aware shorthand for a URL backend on article inputs |
 | `--all-providers` | For `extract`, run all URL article backends: `defuddle`, `firecrawl`, `glm-reader`, `spider`, `supadata`, and `zyte` |
 | `--all-local` | Run local URL article backend (`defuddle`) |
-| `--provider-concurrency <n>` | Hosted URL backends to run concurrently per item; default `10` |
+| `--provider-concurrency <n>` | Hosted URL backends to run concurrently per item; default `7` |
+| `--concurrency-mode <ramp\|immediate>` | Start each hosted provider/account lane at one request and add one slot every five seconds while demand is queued (`ramp`, default), or start at its configured cap (`immediate`) |
 | `--url-request-timeout-ms <ms>` | Per-provider URL request timeout; default `60000` |
 | `--url-request-attempts <n>` | Total provider request attempts, including the first try; default `3` |
 | `--format <format>` | Output format: `text`, `json`, `tsv`, or `hocr` |
@@ -83,7 +84,7 @@ bun autoshow extract https://example.com/article --all-providers --url-request-t
 defuddle, firecrawl, glm-reader, spider, supadata, zyte
 ```
 
-`defuddle` runs locally in a single-slot lane; hosted backends run in a pool governed by `--provider-concurrency`.
+`defuddle` runs locally in a single-slot lane; hosted backends run in a pool governed by `--provider-concurrency` and the run-scoped hosted concurrency mode.
 
 Rules:
 - `--all-providers` conflicts with `--url-provider`.

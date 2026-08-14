@@ -1,13 +1,14 @@
 import { randomUUID } from 'node:crypto'
 import { mkdir, readFile, readdir, rm } from 'node:fs/promises'
 import { join } from 'node:path'
-import type { ObservedAudioFormat, SoundEffectGenerationResponse, SoundEffectRenderPlan, SoundEffectRenderResult, SoundEffectRenderResultEntry, SoundEffectRenderTask, SoundEffectTarget, SoundscapePlan } from '~/types'
+import type { HostedConcurrencyCoordinator, ObservedAudioFormat, SoundEffectGenerationResponse, SoundEffectRenderPlan, SoundEffectRenderResult, SoundEffectRenderResultEntry, SoundEffectRenderTask, SoundEffectTarget, SoundscapePlan } from '~/types'
 import { CLIUsageError } from '~/utils/error-handler'
 import { RUNTIME_DIR } from '~/utils/runtime-paths'
 import { canonicalTtsJson, hashCanonicalTtsValue } from '../script-to-audio/contract-identity'
 import { readContainedArtifactFile, writeImmutableArtifactFile } from '../script-to-audio/safe-artifact-store'
 import { SoundEffectProviderError, serializeElevenLabsSoundEffectRequest, validateElevenLabsSoundEffectTask } from './elevenlabs-sfx-adapter'
 import { inspectSoundscapeAudio } from './soundscape-audio'
+import { classifyHostedRateLimitPressure, runHostedConcurrencyRequest } from '../../hosted-concurrency-coordinator'
 
 const CACHE_ROOT = join(RUNTIME_DIR, 'synthesis-cache', 'v1')
 
@@ -271,6 +272,7 @@ export const executeSoundEffectRenderPlan = async (input: {
   concurrency?: number | undefined
   cancellation?: AbortSignal | undefined
   maxAttempts?: number | undefined
+  hostedConcurrencyCoordinator?: HostedConcurrencyCoordinator | undefined
 }): Promise<{ result: SoundEffectRenderResult, ref: { path: string, sha256: string } }> => {
   validatePlan(input.plan)
   const cancellation = input.cancellation ?? new AbortController().signal
@@ -298,19 +300,44 @@ export const executeSoundEffectRenderPlan = async (input: {
         let lastError: unknown
         let nextRequestOrdinal = retainedAdmission.nextOrdinal
         if (!response) {
-          for (let attempt = 1; attempt <= maxAttempts; attempt++) {
+          for (let attempt = 1; ; attempt++) {
             cancellation.throwIfAborted()
-            const ordinal = nextRequestOrdinal++
-            await writeAdmissionStarted(input.rootDir, input.plan, task, ordinal)
             try {
-              response = await input.adapter.generate(task, input.plan.target, ordinal, cancellation)
-              await writeAdmissionTerminal(input.rootDir, input.plan, task, ordinal, 'provider-succeeded', { response })
+              const dispatch = async (): Promise<SoundEffectGenerationResponse> => {
+                const ordinal = nextRequestOrdinal++
+                await writeAdmissionStarted(input.rootDir, input.plan, task, ordinal)
+                try {
+                  const generated = await input.adapter.generate(task, input.plan.target, ordinal, cancellation)
+                  await writeAdmissionTerminal(input.rootDir, input.plan, task, ordinal, 'provider-succeeded', { response: generated })
+                  return generated
+                } catch (error) {
+                  const disposition = error instanceof SoundEffectProviderError ? error.admissionDisposition : 'ambiguous'
+                  await writeAdmissionTerminal(input.rootDir, input.plan, task, ordinal, disposition, { reason: sanitizeFailure(error) })
+                  throw error
+                }
+              }
+              response = input.hostedConcurrencyCoordinator
+                ? await runHostedConcurrencyRequest({
+                    coordinator: input.hostedConcurrencyCoordinator,
+                    admission: {
+                      provider: input.plan.target.provider,
+                      workClass: 'sound-effect',
+                      configuredLimit: concurrency,
+                      workId: input.plan.renderPlanId,
+                      unitIndex: index,
+                      context: { taskId: task.taskId },
+                      abortSignal: cancellation
+                    },
+                    classifyPressure: error => error instanceof SoundEffectProviderError && error.admissionDisposition === 'rejected'
+                      ? classifyHostedRateLimitPressure(error)
+                      : undefined
+                  }, async () => await dispatch())
+                : await dispatch()
               break
             } catch (error) {
               lastError = error
               const disposition = error instanceof SoundEffectProviderError ? error.admissionDisposition : 'ambiguous'
-              await writeAdmissionTerminal(input.rootDir, input.plan, task, ordinal, disposition, { reason: sanitizeFailure(error) })
-              if (!(error instanceof SoundEffectProviderError) || !error.retryable || disposition !== 'rejected' || attempt === maxAttempts) break
+              if (!(error instanceof SoundEffectProviderError) || !error.retryable || disposition !== 'rejected' || attempt >= maxAttempts) break
             }
           }
         }

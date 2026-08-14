@@ -1,5 +1,5 @@
 import { CLIUsageError } from '~/utils/error-handler'
-import type { BatchOrder, CliFlagOccurrence, HtmlArticleBackend } from '~/types'
+import type { BatchOrder, CliFlagOccurrence, HostedConcurrencyMode, HtmlArticleBackend } from '~/types'
 import { URL_ARTICLE_BACKENDS } from '~/cli/commands/process-steps/step-2-extract/step-2-shared/provider-registry'
 
 export const parseIntWithDefault = (value: string | undefined, fallback: number): number => {
@@ -165,6 +165,13 @@ export const parseTtsDialogueFormat = (value: string | undefined): 'screenplay' 
     return normalized
   }
   throw CLIUsageError(`Invalid --tts-dialogue-format value "${value}". Expected "screenplay" or "labeled".`)
+}
+
+export const parseHostedConcurrencyMode = (value: string | undefined): HostedConcurrencyMode => {
+  const normalized = value?.trim().toLowerCase()
+  if (!normalized || normalized === 'ramp') return 'ramp'
+  if (normalized === 'immediate') return 'immediate'
+  throw CLIUsageError(`Invalid --concurrency-mode value "${value}". Expected "ramp" or "immediate".`)
 }
 
 export const readOptionalOccurrenceStringFlag = (

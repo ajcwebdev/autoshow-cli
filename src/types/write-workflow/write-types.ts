@@ -10,6 +10,8 @@ export type LLMOptions = Pick<ProcessingOptions,
   | 'llmLocalConcurrency'
   | 'reasoningEffort'
 > & {
+  concurrencyMode?: import('~/types').HostedConcurrencyMode | undefined
+  hostedConcurrencyCoordinator?: import('~/types').HostedConcurrencyCoordinator | undefined
   promptBuilder?: ((instruction: string) => string) | undefined
   structuredContext?: {
     songLyricsTitle?: string | undefined

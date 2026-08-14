@@ -173,7 +173,7 @@ export const runLlmTargetsForStructuredPrompt = async (
       l.error(`Failed to run ${target.label} model ${target.model}: ${message}`)
       failedTargetsByIndex[index] = `${target.service}/${target.model}: ${message}`
     }
-  })
+  }, options.hostedConcurrencyCoordinator, options.outputDir)
 
   const results = resultsByTargetIndex.filter((result): result is PendingStructuredRunResult => result !== undefined)
   const failedTargets = failedTargetsByIndex.filter((failure): failure is string => failure !== undefined)
@@ -193,7 +193,10 @@ export const runLlmTargetsForStructuredPrompt = async (
   }
 
   return results.map((result) => ({
-    metadata: result.metadata,
+    metadata: {
+      ...result.metadata,
+      ...(options.hostedConcurrencyCoordinator ? { hostedConcurrency: options.hostedConcurrencyCoordinator.snapshot() } : {})
+    },
     renderedText: result.renderedText,
     parsedJson: result.parsedJson
   }))
@@ -305,6 +308,8 @@ export const runLLM = async (
     structuredValidationContext,
     llmProviderConcurrency: options.llmProviderConcurrency,
     llmLocalConcurrency: options.llmLocalConcurrency,
+    concurrencyMode: options.concurrencyMode,
+    hostedConcurrencyCoordinator: options.hostedConcurrencyCoordinator,
     reasoningEffort: options.reasoningEffort
   })
 }

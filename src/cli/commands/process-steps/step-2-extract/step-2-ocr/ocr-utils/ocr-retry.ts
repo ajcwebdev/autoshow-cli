@@ -7,8 +7,8 @@ export const OCR_SCHEMA_RETRY_ATTEMPTS = 3
 export const OCR_PAGE_REQUEST_ATTEMPTS = 2
 export const OCR_PAGE_RATE_LIMIT_REQUEST_ATTEMPTS = 6
 export const OCR_PAGE_REQUEST_TIMEOUT_MS = 5 * 60_000
-export const OCR_RATE_LIMIT_RETRY_DELAY_MIN_MS = 8_000
-export const OCR_RATE_LIMIT_RETRY_DELAY_MAX_MS = 15_000
+export const OCR_RATE_LIMIT_RETRY_DELAY_MIN_MS = 2_000
+export const OCR_RATE_LIMIT_RETRY_DELAY_MAX_MS = 30_000
 
 export const OCR_CREATE_RETRY_POLICY: Partial<RetryPolicy> = {
   maxAttempts: 4,
@@ -44,9 +44,6 @@ const isStructuredOcrResponseError = (error: unknown): boolean => {
   return false
 }
 
-const defaultOcrRateLimitRetryDelayMs = (): number =>
-  Math.round(OCR_RATE_LIMIT_RETRY_DELAY_MIN_MS + Math.random() * (OCR_RATE_LIMIT_RETRY_DELAY_MAX_MS - OCR_RATE_LIMIT_RETRY_DELAY_MIN_MS))
-
 const getStatusFromError = (error: unknown): number | undefined => {
   if (error && typeof error === 'object' && 'status' in error) {
     const status = (error as { status: unknown }).status
@@ -77,11 +74,7 @@ const withOcrRateLimitRetryDelay = (error: unknown, decision: RetryDecision): Re
     return { ...decision, delayMs: retryAfterMs }
   }
 
-  if (decision.delayMs >= OCR_RATE_LIMIT_RETRY_DELAY_MIN_MS) {
-    return decision
-  }
-
-  return { ...decision, delayMs: defaultOcrRateLimitRetryDelayMs() }
+  return { ...decision, delayMs: Math.max(decision.delayMs, OCR_RATE_LIMIT_RETRY_DELAY_MIN_MS) }
 }
 
 export const classifyOcrCreateRetry = (error: unknown): RetryDecision => {
@@ -113,19 +106,19 @@ const notifyRetryablePressure = (
   onRetryable: HostedOcrSchedulerRetryPressureHandler | undefined,
   error: unknown,
   decision: RetryDecision
-): void => {
+): void | boolean | Promise<void | boolean> => {
   if (!decision.shouldRetry) {
     return
   }
 
   const retryAfterMs = parseRetryAfterMs(getHeadersFromError(error))
   const status = getStatusFromError(error)
-  onRetryable?.({
+  return onRetryable?.({
     reason: decision.reason,
     ...(decision.delayMs > 0 ? { delayMs: decision.delayMs } : {}),
     ...(typeof status === 'number' ? { status } : {}),
     ...(typeof retryAfterMs === 'number' ? { retryAfterMs } : {})
-  })
+  }, error)
 }
 
 const withOcrRateLimitDelayClassifier = (
@@ -151,7 +144,8 @@ export const withOcrCreateRetry = async <T>(
       operationName,
       policy: OCR_CREATE_RETRY_POLICY,
       timeoutMs: OCR_REQUEST_TIMEOUT_MS,
-      onRetryAttempt: (error, decision) => notifyRetryablePressure(options.onRetryable, error, decision)
+      onRetryAttempt: (error, decision) => notifyRetryablePressure(options.onRetryable, error, decision),
+      retryHookCanExtendAttempts: options.onRetryable?.managesHostedRateLimitRecovery === true
     },
     operation,
     withOcrRateLimitDelayClassifier(options.classifier ?? classifyOcrCreateRetry)
@@ -173,6 +167,7 @@ export const withOcrPageRequestRetry = async <T>(
       },
       timeoutMs: options.timeoutMs ?? OCR_PAGE_REQUEST_TIMEOUT_MS,
       onRetryAttempt: (error, decision) => notifyRetryablePressure(options.onRetryable, error, decision),
+      retryHookCanExtendAttempts: options.onRetryable?.managesHostedRateLimitRecovery === true,
       ...(options.attempts === undefined
         ? { rateLimitMaxAttempts: OCR_PAGE_RATE_LIMIT_REQUEST_ATTEMPTS }
         : {})

@@ -4,7 +4,7 @@
 
 - **Decision Status:** Accepted
 - **Date Created:** 2026-06-12
-- **Date Updated:** 2026-08-13
+- **Date Updated:** 2026-08-14
 - **Verification Status:** Passed
 - **Supersession:** Owns batch work planning, canonical pipeline persistence, pooled OCR page state, and resume price preflight. Source identity, classification, normalization, and discovery caches are owned by [ADR-001](ADR-001-source-ingestion-and-normalization.md); URL and OCR execution and artifacts by [ADR-009](ADR-009-extract-execution-and-artifact-contracts.md); pooled work selection by [ADR-016](ADR-016-distribute-ocr-pages-across-a-multi-provider-work-pool.md); general diagnostic rendering by [ADR-006](ADR-006-unify-error-handling-vocabulary.md).
 
@@ -87,6 +87,10 @@ Price mode performs no provider call, writes no canonical manifest or raw provid
 
 Resume accepts only provider-neutral option slices. It declares no provider-named flags. Such flags fail at argv parsing with `Unexpected flag: <typed spelling including leading dashes>`, matching the rejection path for removed pipeline-prefixed aliases. When canonical provider state cannot reconstruct a tuning value, both execution and price planning resolve it from merged `autoshow.config` or the provider default.
 
+Hosted concurrency mode and live lane pressure are execution policy, not canonical content or cache identity. Resume retains accepted provider, page, segment, chunk, and generation results, then creates a fresh run-scoped coordinator using the current explicit `--concurrency-mode` or `defaults.concurrency.mode`; a new resume process therefore begins a fresh ramp. The manifest may retain additive hosted-concurrency telemetry as historical execution evidence, but it does not use that telemetry to resume a live limit or invalidate accepted work.
+
+Price mode remains side-effect-free and models a clean run with no rate-limit pressure. Its wall-time calculations use the same one-slot-at-time-zero and one-additional-slot-every-five-seconds schedule for each independent provider/account lane, bounded by the resolved work-class cap. Price planning does not persist timers, probes, or inferred provider capacity.
+
 ### No-cost verification contract
 
 - Price registries use fast, stable fixtures for cost-planning contracts instead of live YouTube watch/channel scraping. The selected fixtures are `https://ajc.pics/autoshow/examples/2-video.mp4`, `input/examples/batch/2-urls.md`, and `https://ajc.pics/autoshow/examples/0-audio-short.mp3`.
@@ -143,6 +147,7 @@ Negative outcomes:
 - Resume exposes `--ocr-provider-mode` only to detect explicit stored-mode mismatches. Omitted mode preserves the manifest value.
 - Pooled resume target selection retains accepted pages, treats interrupted claims as unfinished, admits validated additive targets, and re-enables explicitly selected retired targets or lanes.
 - Resume composes command-specific STT, OCR, URL, LLM, TTS, image, video, or music options with shared price and concurrency controls; provider-named knobs remain outside its surface.
+- Resume projects the current hosted concurrency mode into a new run-scoped coordinator without making that mode part of content, cache, or accepted-work identity.
 - Bare `manifest.json` and any domain raw-result files have distinct ownership: domain artifacts may be referenced from canonical state but cannot replace it.
 
 ## Implementation Note
@@ -170,7 +175,7 @@ Negative outcomes:
 - Pooled OCR contracts prove atomic claim and accepted-page checkpoints, interrupted-claim recovery, accepted-page preservation, additive and explicitly re-enabled targets, stored-mode enforcement, unfinished-page pricing, and canonical-manifest authority.
 - Resume flag contracts prove every provider-neutral option is present, provider-named options are absent, and representative rejected flags preserve the user's typed dashed spelling.
 - Run `bun run check`, `bun t --price`, `bun test test/test-cases/validation/cli/cli-help-contracts.test.ts`, `bun test test/test-cases/validation/cli/cli-usage-errors.test.ts`, `bun test test/test-cases/validation/cli/option-resolution-contracts/`, `bun test test/test-cases/validation/reports-pricing/price-mode-contracts/`, and targeted manifest tests. Do not run paid provider, smoke, or e2e tests that can call third-party APIs.
-- Verification on 2026-08-13: `bun t --price` passed 165/165 pricing specs and reported 1420.395¢ without provider calls.
+- Verification on 2026-08-14 includes the default no-cost checks, targeted resume/option contracts, and clean-ramp pricing coverage without provider calls.
 
 ## References
 
@@ -178,6 +183,7 @@ Negative outcomes:
 - Extract execution and artifacts: [ADR-009](ADR-009-extract-execution-and-artifact-contracts.md)
 - Pooled OCR scheduling decision: [ADR-016](ADR-016-distribute-ocr-pages-across-a-multi-provider-work-pool.md)
 - Diagnostic-rendering companion: [ADR-006](ADR-006-unify-error-handling-vocabulary.md)
+- Hosted scheduling and price-ramp companion: [ADR-008](ADR-008-decompose-work-into-chunks-and-concurrency-lanes.md)
 - Canonical persistence boundary: `src/cli/commands/process-steps/pipeline-manifest.ts`
 - Resume routing and dispatch: `src/cli/commands/setup-and-utilities/resume/`
 - Resume flags: `src/cli/flags/resume-flags.ts`

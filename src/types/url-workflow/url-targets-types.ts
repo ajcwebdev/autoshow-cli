@@ -1,6 +1,6 @@
-import type { HtmlArticleBackend, OcrRuntimeOptions, UrlSelectionOptions } from '~/types'
+import type { HostedConcurrencyRuntimeOptions, HtmlArticleBackend, OcrRuntimeOptions, UrlSelectionOptions } from '~/types'
 
-export type UrlExtractionOptions = OcrRuntimeOptions & UrlSelectionOptions & {
+export type UrlExtractionOptions = OcrRuntimeOptions & UrlSelectionOptions & HostedConcurrencyRuntimeOptions & {
   outputRootDir: string
   urlProviderConcurrency: number
   urlRequestTimeoutMs: number

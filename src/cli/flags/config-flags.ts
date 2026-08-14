@@ -30,6 +30,7 @@ const configTtsFlags = omitFlags(ttsCommandFlags, [
   'provider',
   'all-providers',
   'all-local',
+  'concurrency-mode',
   'provider-concurrency',
   'local-concurrency',
   'batch-concurrency',

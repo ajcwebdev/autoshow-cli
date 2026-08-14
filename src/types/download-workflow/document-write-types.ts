@@ -5,6 +5,7 @@ export type DocumentExtractionOptions = OcrRuntimeOptions
   & Pick<SharedPipelineOptions, 'outputRootDir' | 'configPath' | 'step2SelectionOrigins'>
 
 export type WriteDocumentOutputMetadataOptions = {
+  concurrencyMode?: import('~/types').HostedConcurrencyMode | undefined
   step1: DocumentMetadata
   step2: ExtractionMetadata | ExtractionMetadata[]
   step3: Step3Metadata | Step3Metadata[]

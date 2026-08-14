@@ -18,6 +18,7 @@ import {
 import { DEFAULT_CLI_CONCURRENCY } from '~/utils/concurrency-defaults'
 import { IMAGE_GENERATION_QUALITIES } from '~/types'
 import type { CliFlagsDefinition } from '~/types'
+import { sharedConcurrencyFlags } from './shared-flags'
 
 // These tables are both the native parser definitions and the comic help metadata.
 
@@ -26,7 +27,8 @@ const comicPriceFlag = {
 } as const satisfies CliFlagsDefinition
 
 const comicConcurrencyFlag = {
-  concurrency: strFlag(colorizeHelpDescription(`Number of image/prompt tasks to run in parallel (default: ${DEFAULT_CLI_CONCURRENCY})`))
+  concurrency: strFlag(colorizeHelpDescription(`Number of image/prompt tasks to run in parallel (default: ${DEFAULT_CLI_CONCURRENCY})`)),
+  'concurrency-mode': sharedConcurrencyFlags['concurrency-mode']
 } as const satisfies CliFlagsDefinition
 
 const comicImageFlags = {
@@ -95,6 +97,7 @@ const comicAudioSelectionFlags = pickFlags(ttsCommandFlags, [
   'provider-concurrency',
   'local-concurrency',
   'tts-chunk-concurrency',
+  'concurrency-mode',
 ])
 
 const comicSoundscapeSelectionFlags = {

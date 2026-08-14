@@ -2,6 +2,13 @@ import { describe, expect, test } from 'bun:test'
 import { buildConfigPatchFromFlags, mergeConfigIntoRawFlags } from '~/cli/commands/setup-and-utilities/config/config-merge'
 
 describe('config provider and concurrency default contracts', () => {
+  test('hosted concurrency mode persists globally and explicit flags override config', () => {
+    const patch = buildConfigPatchFromFlags({ 'concurrency-mode': 'immediate' }, new Set(['concurrency-mode']))
+    expect(patch).toEqual({ defaults: { concurrency: { mode: 'immediate' } } })
+    expect(mergeConfigIntoRawFlags({}, patch as Parameters<typeof mergeConfigIntoRawFlags>[1], new Set())).toMatchObject({ 'concurrency-mode': 'immediate' })
+    expect(mergeConfigIntoRawFlags({ 'concurrency-mode': 'ramp' }, patch as Parameters<typeof mergeConfigIntoRawFlags>[1], new Set(['concurrency-mode']))).toMatchObject({ 'concurrency-mode': 'ramp' })
+  })
+
   test('buildConfigPatchFromFlags maps explicit provider, OCR, batch, and pricing defaults', () => {
     expect(buildConfigPatchFromFlags({
       openai: 'gpt-5.4-mini',

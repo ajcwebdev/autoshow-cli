@@ -110,7 +110,11 @@ const resolveTtsExecutionReadiness = (
 
 const withRunScopedHostedTtsChunkScheduler = (options: TtsOptions): TtsOptions => {
   if (!options.hostedTtsChunkScheduler) {
-    options.hostedTtsChunkScheduler = createHostedTtsChunkScheduler(options.ttsChunkConcurrency)
+    options.hostedTtsChunkScheduler = createHostedTtsChunkScheduler({
+      maxConcurrency: options.ttsChunkConcurrency,
+      concurrencyMode: options.concurrencyMode,
+      hostedConcurrencyCoordinator: options.hostedConcurrencyCoordinator
+    })
   }
   return options
 }
@@ -440,14 +444,20 @@ export const runTtsForTargets = async (
       run: async (t: string, dir: string, _opts: TtsOptions, _invocation, requestEvidence) =>
         runMultiSpeakerTts(t, dir, target, _opts, requestEvidence)
     }))
-    const metadata = await runTtsTargets(wrappedTargets, text, outputDir, options, sourceContext)
+    const metadata = (await runTtsTargets(wrappedTargets, text, outputDir, options, sourceContext)).map((entry) => ({
+      ...entry,
+      ...(options.hostedConcurrencyCoordinator ? { hostedConcurrency: options.hostedConcurrencyCoordinator.snapshot() } : {})
+    }))
     return {
       audioPaths: metadata.filter((entry) => !entry.generationCheckpoint).map((entry) => getMetadataAudioPath(outputDir, entry)),
       metadata
     }
   }
 
-  const metadata = await runTtsTargets(targets, text, outputDir, options, sourceContext)
+  const metadata = (await runTtsTargets(targets, text, outputDir, options, sourceContext)).map((entry) => ({
+    ...entry,
+    ...(options.hostedConcurrencyCoordinator ? { hostedConcurrency: options.hostedConcurrencyCoordinator.snapshot() } : {})
+  }))
   return {
     audioPaths: metadata.filter((entry) => !entry.generationCheckpoint).map((entry) => getMetadataAudioPath(outputDir, entry)),
     metadata

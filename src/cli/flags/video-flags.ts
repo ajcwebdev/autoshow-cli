@@ -120,7 +120,7 @@ export const videoCommandOptionNames = {
 const videoProviderSelectionFlags = {
   provider: strListFlag(`Video provider[=model]: ${formatProviderList(STANDALONE_VIDEO_PROVIDER_TARGETS)}; repeatable`),
   ...booleanAllProvidersFlag,
-  ...pickFlags(sharedConcurrencyFlags, ['provider-concurrency'])
+  ...pickFlags(sharedConcurrencyFlags, ['concurrency-mode', 'provider-concurrency'])
 } as const satisfies CliFlagsDefinition
 
 export const videoGenerationOptionNames = [

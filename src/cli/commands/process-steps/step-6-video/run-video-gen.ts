@@ -11,7 +11,7 @@ export const runVideoTargets = async (
   targets: VideoTarget[],
   prompt: string | undefined,
   outputDir: string,
-  options?: Pick<VideoGenOptions, 'videoProviderConcurrency' | 'videoLocalConcurrency' | 'generationResourceGate'>,
+  options?: Pick<VideoGenOptions, 'videoProviderConcurrency' | 'videoLocalConcurrency' | 'generationResourceGate' | 'hostedConcurrencyCoordinator' | 'concurrencyMode'>,
 ): Promise<{ videoPaths: string[], metadata: Step6VideoMetadata[] }> => {
   const successes = await runSingleFileTargets<VideoTarget, Step6VideoMetadata>({
     targets,
@@ -23,6 +23,8 @@ export const runVideoTargets = async (
       local: options?.videoLocalConcurrency ?? DEFAULT_CLI_CONCURRENCY
     },
     resourceGate: options?.generationResourceGate,
+    hostedConcurrencyCoordinator: options?.hostedConcurrencyCoordinator,
+    hostedWorkClass: 'video',
     runTarget: async (target, workspaceDir) =>
       target.run(prompt, workspaceDir).then(({ videoPath, metadata }) => ({ filePath: videoPath, metadata })),
     workspacePrefix: '.video-tmp',
@@ -38,7 +40,10 @@ export const runVideoTargets = async (
 
   return {
     videoPaths: successes.map((entry) => entry.filePath),
-    metadata: successes.map((entry) => entry.metadata),
+    metadata: successes.map((entry) => ({
+      ...entry.metadata,
+      ...(options?.hostedConcurrencyCoordinator ? { hostedConcurrency: options.hostedConcurrencyCoordinator.snapshot() } : {})
+    })),
   }
 }
 

@@ -34,4 +34,5 @@ export type Step3Metadata = {
   validationFailed?: boolean | undefined
   requestedReasoningEffort?: import('~/cli/commands/setup-and-utilities/models/reasoning-resolver').NormalizedReasoningEffort | undefined
   effectiveReasoningEffort?: import('~/cli/commands/setup-and-utilities/models/reasoning-resolver').NormalizedReasoningEffort | undefined
+  hostedConcurrency?: import('~/types').HostedConcurrencyTelemetry | undefined
 }

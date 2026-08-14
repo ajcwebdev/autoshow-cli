@@ -51,15 +51,16 @@ export const writeAllLocalFlag = {
 } as const satisfies CliFlagsDefinition
 
 export const sharedConcurrencyFlags = {
-  'provider-concurrency': strFlag('Max hosted providers/models running in parallel for one item (default 10)', DEFAULT_CONCURRENCY_FLAG_VALUE),
-  'local-concurrency': strFlag('Max local providers/models running in parallel for one item (default 10)', DEFAULT_CONCURRENCY_FLAG_VALUE)
+  'concurrency-mode': strFlag('Hosted concurrency startup policy: ramp|immediate (default ramp)', 'ramp'),
+  'provider-concurrency': strFlag(`Max hosted providers/models running in parallel for one item (default ${DEFAULT_CONCURRENCY_FLAG_VALUE})`, DEFAULT_CONCURRENCY_FLAG_VALUE),
+  'local-concurrency': strFlag(`Max local providers/models running in parallel for one item (default ${DEFAULT_CONCURRENCY_FLAG_VALUE})`, DEFAULT_CONCURRENCY_FLAG_VALUE)
 } as const satisfies CliFlagsDefinition
 
 export const batchFlags = {
   'batch-limit': strFlag('Batch: number of items to process (default 5)', '5'),
   'batch-all': boolFlag('Batch: process all items'),
   'batch-order': strFlag('Batch: item order newest|oldest (default newest)', 'newest'),
-  'batch-concurrency': strFlag('Batch: number of items to process concurrently (default 10)', DEFAULT_CONCURRENCY_FLAG_VALUE)
+  'batch-concurrency': strFlag(`Batch: number of items to process concurrently (default ${DEFAULT_CONCURRENCY_FLAG_VALUE})`, DEFAULT_CONCURRENCY_FLAG_VALUE)
 } as const satisfies CliFlagsDefinition
 
 export const transcriptionFlags = {
@@ -70,8 +71,8 @@ export const transcriptionFlags = {
   'stt-scrapecreators-lang': strFlag('ScrapeCreators YouTube transcript language code (default en)', 'en'),
   'speaker-count': strFlag('Optional diarization speaker-count hint (positive integer); unsupported providers report one aggregated warning at runtime'),
   split: boolFlag('Split audio into 30-minute segments for transcription'),
-  'stt-segment-concurrency': strFlag('STT: max split segments in flight per provider (default 10; local clamps to 1)', DEFAULT_CONCURRENCY_FLAG_VALUE),
-  'stt-preflight-concurrency': strFlag('STT: max duration probes running in parallel during preflight (default 10)', DEFAULT_CONCURRENCY_FLAG_VALUE),
+  'stt-segment-concurrency': strFlag(`STT: max split segments in flight per provider (default ${DEFAULT_CONCURRENCY_FLAG_VALUE}; local clamps to 1)`, DEFAULT_CONCURRENCY_FLAG_VALUE),
+  'stt-preflight-concurrency': strFlag(`STT: max duration probes running in parallel during preflight (default ${DEFAULT_CONCURRENCY_FLAG_VALUE})`, DEFAULT_CONCURRENCY_FLAG_VALUE),
 } as const satisfies CliFlagsDefinition
 
 export const llmProviderFlags = {
@@ -108,7 +109,7 @@ export const articleFlags = {
 export const allArticleFlags = {
   ...articleFlags,
   'url-provider-concurrency': {
-    description: 'URL article extraction: max hosted URL providers running in parallel for one item (default 10)',
+    description: `URL article extraction: max hosted URL providers running in parallel for one item (default ${DEFAULT_CONCURRENCY_FLAG_VALUE})`,
     type: String,
     default: DEFAULT_CONCURRENCY_FLAG_VALUE,
     help: { hidden: true }

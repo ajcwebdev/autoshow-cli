@@ -74,7 +74,11 @@ export const generateSceneJson = async (
       schemaName: sceneJsonSchema.name,
       valibotSchema: ScenePromptDataSchema,
       jsonSchema: sceneJsonSchema.schema,
-    }, options.model)
+    }, options.model, {
+      hostedConcurrencyCoordinator: options.hostedConcurrencyCoordinator,
+      concurrency: options.concurrency,
+      workId: `comic-scene:${sceneSlug}`
+    })
     const requestDurationMs = Date.now() - requestStart
 
     const usage: ComicLlmResponseUsage = {

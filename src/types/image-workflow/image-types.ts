@@ -1,6 +1,6 @@
-import type { CostEstimateBase, ImageProvider, ImageRuntimeOptions, ProviderTargetBase, ResourceGate, Step5Metadata } from '~/types'
+import type { CostEstimateBase, HostedConcurrencyRuntimeOptions, ImageProvider, ImageRuntimeOptions, ProviderTargetBase, ResourceGate, Step5Metadata } from '~/types'
 
-export type ImageGenOptions = Partial<ImageRuntimeOptions> & {
+export type ImageGenOptions = Partial<ImageRuntimeOptions> & HostedConcurrencyRuntimeOptions & {
   generationResourceGate?: ResourceGate | undefined
 }
 

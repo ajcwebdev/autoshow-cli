@@ -73,9 +73,10 @@ bun autoshow tts <input> [flags]
 | `--provider provider[=model]` | TTS provider/model selector; repeat to run multiple targets |
 | `--all-providers` | Select the default all-provider TTS target set |
 | `--all-local` | Select every local TTS engine |
-| `--provider-concurrency <n>` | Hosted TTS providers/models to run concurrently per item; default `10` |
-| `--local-concurrency <n>` | Local TTS providers to run concurrently per item; default `10` |
-| `--batch-concurrency <n>` | Batch text files to process concurrently; default `10` |
+| `--provider-concurrency <n>` | Hosted TTS providers/models to run concurrently per item; default `7` |
+| `--local-concurrency <n>` | Local TTS providers to run concurrently per item; default `7` |
+| `--batch-concurrency <n>` | Batch text files to process concurrently; default `7` |
+| `--concurrency-mode <ramp\|immediate>` | Start each hosted provider/account lane at one request and add one slot every five seconds while demand is queued (`ramp`, default), or start at its configured cap (`immediate`) |
 | `--tts-voice <provider=value\|value>` | Generic TTS voice selector |
 | `--tts-speed <provider=value\|value>` | Generic TTS speed |
 | `--tts-language <provider=value\|value>` | Generic TTS language |
@@ -106,7 +107,7 @@ You can combine multiple TTS targets in one run. `--provider` is repeatable. Sha
 
 Voice management is separate from synthesis. A catalog, design, or clone capability does not authorize `tts` or `comic generate-audio` to create a remote resource.
 
-AutoShow splits TTS text into 2000-character chunks (200-character chunks for Groq Orpheus). Hosted providers synthesize through `--tts-chunk-concurrency` (default `30`, or `50` for Grok-only). Kitten synthesizes chunks sequentially.
+AutoShow splits TTS text into 2000-character chunks (200-character chunks for Groq Orpheus). Hosted providers synthesize through `--tts-chunk-concurrency` (default `30`, or `50` for Grok-only). In the default ramp mode, that value remains the hard ceiling while each provider/account lane starts at one request and adds one slot every five seconds under queued demand. Kitten synthesizes chunks sequentially and is unaffected by the hosted mode.
 
 ```bash
 bun autoshow tts input/examples/tts/1-tts.md \

@@ -1,4 +1,4 @@
-import type { ProviderCompletionStatus, ProviderLaneIdentity, ProviderLanePressureFeedback } from '~/types'
+import type { HostedConcurrencyCoordinator, HostedConcurrencyMode, HostedConcurrencyTelemetry, ProviderCompletionStatus, ProviderLaneIdentity, ProviderLanePressureFeedback } from '~/types'
 
 export type HostedOcrProfileStore<TVersion extends number, TProfile> = {
   version: TVersion
@@ -17,7 +17,12 @@ export type PersistHostedOcrProfilesOptions = {
 
 export type HostedOcrSchedulerRetryPressure = ProviderLanePressureFeedback
 
-export type HostedOcrSchedulerRetryPressureHandler = (pressure: HostedOcrSchedulerRetryPressure) => void
+export type HostedOcrSchedulerRetryPressureHandler = ((
+  pressure: HostedOcrSchedulerRetryPressure,
+  error?: unknown
+) => void | boolean | Promise<void | boolean>) & {
+  managesHostedRateLimitRecovery?: boolean | undefined
+}
 
 export type HostedOcrSchedulerStatus =
   | 'pending'
@@ -123,6 +128,7 @@ export type HostedOcrSchedulerTelemetry = {
   documentCount?: number | undefined
   lanes: HostedOcrSchedulerLaneTelemetry[]
   likelyGatingTarget?: HostedOcrSchedulerGatingTarget | undefined
+  hostedConcurrency?: HostedConcurrencyTelemetry | undefined
 }
 
 export type HostedOcrScheduler = {
@@ -146,6 +152,8 @@ export type HostedOcrSchedulerOptions = {
   lifetime?: 'document' | 'run' | undefined
   fixedCap?: number | undefined
   profilePath?: string | undefined
+  concurrencyMode?: HostedConcurrencyMode | undefined
+  hostedConcurrencyCoordinator?: HostedConcurrencyCoordinator | undefined
 }
 
 export type QueuedHostedOcrJob<T = unknown> = {

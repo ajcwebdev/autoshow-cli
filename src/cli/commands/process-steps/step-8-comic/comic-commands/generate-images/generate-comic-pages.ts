@@ -48,6 +48,7 @@ import {
 import { DEFAULT_QA_MODEL } from '../../comic-utils/cli-args'
 import { DEFAULT_IMAGE_MODEL } from '../../comic-utils/image-size'
 import { validateReferenceImageCount } from '../../comic-utils/reference-capabilities'
+import { resolveComicImageProvider, runComicHostedRequest } from '../../comic-utils/hosted-concurrency'
 
 type ComicPagePanelSource = ComicPanelSource & { normalizedPrompt: string }
 
@@ -104,6 +105,7 @@ export const generateComicPages = async (
   options: GenerateComicPagesOptions,
   dependencies: ComicImageGenerationDependencies = {}
 ) => {
+  let hostedRequestIndex = 0
   const requestImage = dependencies.requestImage ?? (async input => {
     return createImage(
       input.normalizedPrompt,
@@ -237,7 +239,7 @@ export const generateComicPages = async (
 
             let entry = qaEnabled && outputExists && !options.force ? await readReusablePageQaEntry(outputPath, judgeModel) : undefined
             if (qaEnabled && outputExists && !options.force && !entry) {
-              entry = await judgePage({ pageNumber: pageChunk.pageNumber, pagePath: outputPath, panelData: pagePromptData, identityCards: resolvedReferences.primaryCharacterRefs, locationSheets: resolvedReferences.secondaryRefs, designSheets: resolvedReferences.designReferences?.map(reference => reference.path), characterReferences: resolvedReferences.characterReferences, locationReferences: resolvedReferences.locationReferences, designReferences: resolvedReferences.designReferences, model: judgeModel })
+              entry = await runComicHostedRequest(options, 'openai', 'comic-qa', `${sceneSlug}:page-${pageChunk.pageNumber}:qa`, hostedRequestIndex++, async () => await judgePage({ pageNumber: pageChunk.pageNumber, pagePath: outputPath, panelData: pagePromptData, identityCards: resolvedReferences.primaryCharacterRefs, locationSheets: resolvedReferences.secondaryRefs, designSheets: resolvedReferences.designReferences?.map(reference => reference.path), characterReferences: resolvedReferences.characterReferences, locationReferences: resolvedReferences.locationReferences, designReferences: resolvedReferences.designReferences, model: judgeModel }))
               stats.totalInputTokens += entry.usage.inputTokens
               stats.totalOutputTokens += entry.usage.outputTokens
               stats.totalCost += entry.usage.costUsd
@@ -279,11 +281,11 @@ export const generateComicPages = async (
                   : ''
                 const requestStart = Date.now()
                 const attemptModel = attempt > 0 ? DEFAULT_IMAGE_MODEL : model
-                const imageResponse = await requestImage({
+                const imageResponse = await runComicHostedRequest(options, resolveComicImageProvider(attemptModel), 'comic-image', `${sceneSlug}:page-${pageChunk.pageNumber}:${model}`, hostedRequestIndex++, async () => await requestImage({
                   normalizedPrompt: [promptForVariation, repairInstructions, restartInstructions].filter(Boolean).join('\n\n'),
                   referenceImages: attempt > 0 && currentPath && !restartFromCanonicalReferences ? [currentPath, ...referenceImages] : referenceImages,
                   model: attemptModel, size: options.size, quality: options.quality,
-                })
+                }))
                 const requestDurationMs = Date.now() - requestStart
                 stats.totalDurationMs += requestDurationMs
                 await writeImage(attemptPath, imageResponse.result.imageBase64, imageResponse.result.mimeType)
@@ -292,7 +294,7 @@ export const generateComicPages = async (
                 stats.imagesGenerated++
                 if (!qaEnabled) { await copyFile(attemptPath, outputPath); break }
                 try {
-                  entry = await judgePage({ pageNumber: pageChunk.pageNumber, pagePath: attemptPath, panelData: pagePromptData, identityCards: resolvedReferences.primaryCharacterRefs, locationSheets: resolvedReferences.secondaryRefs, designSheets: resolvedReferences.designReferences?.map(reference => reference.path), characterReferences: resolvedReferences.characterReferences, locationReferences: resolvedReferences.locationReferences, designReferences: resolvedReferences.designReferences, model: judgeModel })
+                  entry = await runComicHostedRequest(options, 'openai', 'comic-qa', `${sceneSlug}:page-${pageChunk.pageNumber}:qa`, hostedRequestIndex++, async () => await judgePage({ pageNumber: pageChunk.pageNumber, pagePath: attemptPath, panelData: pagePromptData, identityCards: resolvedReferences.primaryCharacterRefs, locationSheets: resolvedReferences.secondaryRefs, designSheets: resolvedReferences.designReferences?.map(reference => reference.path), characterReferences: resolvedReferences.characterReferences, locationReferences: resolvedReferences.locationReferences, designReferences: resolvedReferences.designReferences, model: judgeModel }))
                   stats.totalInputTokens += entry.usage.inputTokens
                   stats.totalOutputTokens += entry.usage.outputTokens
                   stats.totalCost += entry.usage.costUsd

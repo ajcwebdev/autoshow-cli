@@ -154,7 +154,8 @@ const formatStructuredScriptReviewPrompt = (
 export const reviewStructuredScriptWithLlm = async (
   sourceMarkdown: string,
   provisional: StructuredScriptData,
-  model: LlmModel
+  model: LlmModel,
+  scheduling: Parameters<typeof runComicStructuredLlm>[3] = {}
 ): Promise<{ structuredScript: StructuredScriptData; response: StructuredScriptReviewResponse; durationMs: number }> => {
   const characterNames = getCharacterKeys()
   const prompt = formatStructuredScriptReviewPrompt(sourceMarkdown, provisional, characterNames)
@@ -163,7 +164,7 @@ export const reviewStructuredScriptWithLlm = async (
     schemaName: STRUCTURED_SCRIPT_JSON_SCHEMA_NAME,
     valibotSchema: StructuredScriptDataSchema,
     jsonSchema: buildStructuredScriptJsonSchema(characterNames).schema,
-  }, model)
+  }, model, scheduling)
   const durationMs = Date.now() - requestStart
 
   const parsed = stripStructuredScriptNullableOptionals(

@@ -1,6 +1,6 @@
-import type { ComicDialoguePlan, ComicSourceIdentity, ProtectedAssetRef, ProviderLaneAdmissionToken, ProviderLaneIdentity, ProviderLanePressureFeedback, ProviderTargetBase, ResourceGate, Step4Metadata, TtsProvider, TtsRuntimeOptions, VoiceReferenceManifest } from '~/types'
+import type { ComicDialoguePlan, ComicSourceIdentity, HostedConcurrencyRuntimeOptions, ProtectedAssetRef, ProviderLaneAdmissionToken, ProviderLaneIdentity, ProviderLanePressureFeedback, ProviderTargetBase, ResourceGate, Step4Metadata, TtsProvider, TtsRuntimeOptions, VoiceReferenceManifest } from '~/types'
 
-export type TtsOptions = Partial<TtsRuntimeOptions & {
+export type TtsOptions = HostedConcurrencyRuntimeOptions & Partial<TtsRuntimeOptions & {
   ttsProviderConcurrency: number
   ttsLocalConcurrency: number
   ttsChunkConcurrency: number
@@ -156,7 +156,7 @@ export type TtsRequestEvidenceScope = Readonly<{
   complete: (request: { chunkIndex: number }) => Promise<void>
 }>
 
-export type HostedTtsChunkRateLimitFeedback = Pick<ProviderLanePressureFeedback, 'retryAfterMs' | 'delayMs'>
+export type HostedTtsChunkRateLimitFeedback = Partial<ProviderLanePressureFeedback>
 
 export type HostedTtsChunkJobContext = {
   jobId?: string | undefined
@@ -199,7 +199,7 @@ export type HostedTtsSchedulerLimitChange = {
   laneKey: string
   previousLimit: number
   nextLimit: number
-  reason: 'rate-limit' | 'success-ramp'
+  reason: 'rate-limit' | 'success-ramp' | 'startup-ramp' | 'recovery-ramp' | 'registered-cap'
 }
 
 export type HostedTtsSchedulerProviderSummary = {
@@ -238,6 +238,7 @@ export type HostedTtsSchedulerJobSummary = HostedTtsChunkJobContext & {
 export type HostedTtsSchedulerTelemetry = {
   providers: HostedTtsSchedulerProviderSummary[]
   jobs: HostedTtsSchedulerJobSummary[]
+  hostedConcurrency?: import('~/types').HostedConcurrencyTelemetry | undefined
 }
 
 export type HostedTtsRunChunksOptions = {
@@ -253,8 +254,13 @@ export type HostedTtsChunkScheduler = {
     runChunk: (chunk: string, index: number, admission: HostedTtsChunkAdmissionToken) => Promise<T>,
     options?: HostedTtsRunChunksOptions | undefined
   ) => Promise<T[]>
-  notifyRateLimit: (admission: HostedTtsChunkAdmissionToken, feedback?: HostedTtsChunkRateLimitFeedback | undefined) => void
+  notifyRateLimit: (
+    admission: HostedTtsChunkAdmissionToken,
+    feedback?: HostedTtsChunkRateLimitFeedback | undefined,
+    error?: unknown
+  ) => Promise<boolean>
   notifyRetry: (admission: HostedTtsChunkAdmissionToken) => void
+  usesSharedHostedRateLimitRecovery: () => boolean
   getProviderSnapshot: (provider: TtsProvider, scopeLabel?: string | undefined) => HostedTtsChunkSchedulerSnapshot
   getTelemetry: () => HostedTtsSchedulerTelemetry
 }

@@ -90,6 +90,7 @@ const createOcrCheckpointWriter = (params: {
         preflightEstimate,
         ocrConcurrency: opts.ocrConcurrency,
         ocrConcurrencyMode: opts.ocrConcurrencyMode,
+        concurrencyMode: opts.concurrencyMode,
         ocrProviderConcurrency: opts.ocrProviderConcurrency,
         ocrLocalConcurrency: opts.ocrLocalConcurrency,
         hostedOcrScheduler: hostedOcrScheduler.snapshot()
@@ -252,6 +253,7 @@ const finalizeOcrProviderBatch = async (params: {
     preflightEstimate,
     ocrConcurrency: opts.ocrConcurrency,
     ocrConcurrencyMode: opts.ocrConcurrencyMode,
+    concurrencyMode: opts.concurrencyMode,
     ocrProviderConcurrency: opts.ocrProviderConcurrency,
     ocrLocalConcurrency: opts.ocrLocalConcurrency,
     hostedOcrScheduler: hostedOcrScheduler.snapshot()

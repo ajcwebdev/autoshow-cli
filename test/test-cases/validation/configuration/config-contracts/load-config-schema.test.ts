@@ -6,6 +6,9 @@ describe('config load schema contracts', () => {
   test('loadConfig accepts current array-shaped defaults', async () => {
     const fullConfig = {
       defaults: {
+        concurrency: {
+          mode: 'immediate'
+        },
         llm: {
           openai: ['gpt-5.4-mini'],
           grok: ['grok-4.3'],

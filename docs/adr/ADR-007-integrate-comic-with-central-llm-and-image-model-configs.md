@@ -4,7 +4,7 @@
 
 - **Decision Status:** Accepted
 - **Date Created:** 2026-06-17
-- **Date Updated:** 2026-08-13
+- **Date Updated:** 2026-08-14
 - **Verification Status:** Passed
 
 ## Context
@@ -65,6 +65,12 @@ This applies to:
 - Comic subcommand parsing and help, and links selection parsing.
 - It does not change comic workflow artifacts, prompts, schemas, generation behavior, links selection semantics, or provider execution.
 
+### 4. Comic adopts shared hosted admission
+
+Comic LLM generation, image generation, image QA, dialogue synthesis, and sound-effect execution use the same run-scoped hosted coordinator as the rest of the pipeline. `draft-scenes`, `generate-images`, `generate-audio`, and `reference-sketch` expose `--concurrency-mode ramp|immediate`; their existing `--concurrency`, provider, TTS-chunk, and SFX caps remain hard maxima. Provider plus non-secret account label defines the lane, so LLM, image, and QA work sharing an account share its live bound while independent providers start and ramp independently.
+
+Comic work selectors retain panel ordering, QA/repair sequencing, cancellation, artifact promotion, durable-admission, and ambiguous-redispatch rules. The coordinator controls only hosted admission and exact classified rate-limit pressure. Local prompt assembly, page composition, audio mixing, and slideshow rendering remain immediate. Comic price mode uses the clean five-second ramp model without credentials, writes, or provider calls.
+
 ## Rationale
 
 - The repository already had the right reusable boundaries: the model registry and target collectors own provider/model mechanics, while `CliCommandDefinition`, `parseCommandArgv`, the dispatcher, and the help renderer own command mechanics. Comic-local or links-local copies made common behavior conditional on which command a user entered.
@@ -105,6 +111,7 @@ Negative outcomes:
 - `NativeUnknownFlagError` gains `flagSpellings`; `flagNames` remains an alias, and `code: 'unknown-flag'` and exit code 2 are unchanged.
 - The `StripGlobalArgsOptions` export and `global-arg-stripper.ts` are deleted.
 - Comic model ID types are registry-validated strings rather than comic-local provider unions.
+- Parsed comic runtime options carry the shared hosted concurrency mode and one coordinator for LLM, image, QA, dialogue, and sound-effect work.
 - Unknown-flag diagnostics derive display spellings from unknown `CliFlagOccurrence` records rather than from normalized `rawParsed.unknown` keys. `getUnknownFlagSpellings` strips only a long inline `=<value>` suffix, deduplicates identical spellings in encounter order, and falls back to normalized keys for synthetic parse results with no unknown occurrences.
 
 ## Test Plan
@@ -120,11 +127,14 @@ bun test test/test-cases/validation/content-output/metadata-links-lyrics-contrac
 bun test test/test-cases/validation/comic/character-handling-contracts.test.ts
 ```
 
+Verification evidence for shared comic admission is dated 2026-08-14 and uses only local fixtures and mocked providers; no hosted generation command is run.
+
 ## References
 
 - [ADR-003](ADR-003-type-surface-cleanup-and-architecture-mirroring.md) — shared type and ownership boundaries
 - [ADR-005](ADR-005-reduce-environment-variable-surface-area.md) — removal of parallel override/client plumbing
 - [ADR-011](ADR-011-add-refresh-metadata-to-links.md) — links selection modes and refresh artifacts
+- [ADR-008](ADR-008-decompose-work-into-chunks-and-concurrency-lanes.md) — shared hosted admission, pressure recovery, and clean-ramp price planning
 - `src/cli/native/native-parser.ts`, `dispatcher.ts`, and `help-renderer.ts`
 - `src/cli/commands/process-steps/step-8-comic/define-comic-command.ts`
 - `src/cli/commands/setup-and-utilities/links/define-links-command.ts`

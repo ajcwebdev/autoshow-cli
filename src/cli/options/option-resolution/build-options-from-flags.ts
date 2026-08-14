@@ -2,6 +2,7 @@ import { getOutputRoot } from '~/cli/commands/process-steps/output-root'
 import { isStep2BooleanProviderSelected } from '~/cli/commands/process-steps/step-2-extract/step-2-shared/provider-registry'
 import type { BuildOptsDefaults, CliFlagOccurrence, ResolvedFlagContext, TtsOptionResolutionAuthority } from '~/types'
 import {
+  parseHostedConcurrencyMode,
   readBooleanFlag,
   readOptionalStringFlag
 } from './flag-readers'
@@ -19,6 +20,7 @@ import { buildImageOptions } from './image-options'
 import { buildMusicOptions } from './music-options'
 import { buildVideoOptions } from './video-options'
 import { buildBatchOptions } from './batch-options'
+import { createHostedConcurrencyCoordinator } from '~/cli/commands/process-steps/hosted-concurrency-coordinator'
 
 export { collectRepeatableModelFlagOccurrences, REPEATABLE_MODEL_FLAGS, normalizeModelFlagOccurrences } from './model-flag-selection'
 
@@ -100,7 +102,10 @@ export const buildOptsFromFlags = (
     modelOptions
   }
 
+  const concurrencyMode = parseHostedConcurrencyMode(readOptionalStringFlag(mergedFlags, 'concurrency-mode'))
   return {
+    concurrencyMode,
+    hostedConcurrencyCoordinator: createHostedConcurrencyCoordinator({ mode: concurrencyMode }),
     outputRootDir: getOutputRoot(),
     configPath: readOptionalStringFlag(mergedFlags, 'config-path'),
     useReverb,

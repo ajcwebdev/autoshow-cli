@@ -1,4 +1,4 @@
-import type { BatchRuntimeOptions, HostedTtsChunkScheduler, HtmlArticleBackend, ImageRuntimeOptions, MusicRuntimeOptions, OcrRuntimeOptions, OcrSelectionOptions, ResolvedLLMModelOptions, ResourceGate, SttRuntimeOptions, SttSelectionOptions, TtsRuntimeOptions, VideoRuntimeOptions } from '~/types'
+import type { BatchRuntimeOptions, HostedConcurrencyCoordinator, HostedConcurrencyMode, HostedTtsChunkScheduler, HtmlArticleBackend, ImageRuntimeOptions, MusicRuntimeOptions, OcrRuntimeOptions, OcrSelectionOptions, ResolvedLLMModelOptions, ResourceGate, SttRuntimeOptions, SttSelectionOptions, TtsRuntimeOptions, VideoRuntimeOptions } from '~/types'
 
 export const PROCESS_COMMANDS = ['metadata', 'download', 'extract', 'write', 'tts', 'image', 'video', 'music', 'comic'] as const
 
@@ -10,6 +10,8 @@ export type OutputFormat = typeof OUTPUT_FORMATS[number]
 export type Step2ProviderSelectionOrigin = 'default' | 'explicit' | 'all-shortcut'
 
 export type SharedPipelineOptions = {
+  concurrencyMode: HostedConcurrencyMode
+  hostedConcurrencyCoordinator?: HostedConcurrencyCoordinator | undefined
   outputRootDir: string
   configPath: string | undefined
   useReverb: boolean
@@ -18,13 +20,18 @@ export type SharedPipelineOptions = {
   step2SelectionOrigins: Partial<Record<string, Step2ProviderSelectionOrigin>>
 }
 
-export type LlmRuntimeOptions = ResolvedLLMModelOptions & {
+export type HostedConcurrencyRuntimeOptions = {
+  concurrencyMode?: HostedConcurrencyMode | undefined
+  hostedConcurrencyCoordinator?: HostedConcurrencyCoordinator | undefined
+}
+
+export type LlmRuntimeOptions = ResolvedLLMModelOptions & HostedConcurrencyRuntimeOptions & {
   llmProviderConcurrency: number
   llmLocalConcurrency: number
   reasoningEffort?: import('~/cli/commands/setup-and-utilities/models/reasoning-resolver').NormalizedReasoningEffort | undefined
 }
 
-export type GenerationSchedulingOptions = {
+export type GenerationSchedulingOptions = HostedConcurrencyRuntimeOptions & {
   ttsProviderConcurrency: number
   ttsLocalConcurrency: number
   ttsChunkConcurrency: number

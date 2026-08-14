@@ -1,6 +1,7 @@
-import type { TtsProvider } from '~/types'
+import type { HostedConcurrencyMode, TtsProvider } from '~/types'
 import { normalizeTtsChunkConcurrency, splitTextIntoChunks } from './audio-utils'
 import { getTtsMaxInputCharacters } from '~/cli/commands/setup-and-utilities/models/model-loader'
+import { estimateHostedConcurrencyWallTimeMs } from '~/utils/hosted-concurrency-estimator'
 
 export const TTS_CHUNK_CHARACTER_LIMITS = {
   kitten: 2000,
@@ -100,6 +101,7 @@ export const estimateTtsSynthesisProcessingTimeMs = (
     msPer1KChars: number
     setupTimeMs?: number | undefined
     chunkConcurrency?: number | undefined
+    concurrencyMode?: HostedConcurrencyMode | undefined
   }
 ): number => {
   const setupTimeMs = typeof input.setupTimeMs === 'number' && Number.isFinite(input.setupTimeMs)
@@ -121,8 +123,8 @@ export const estimateTtsSynthesisProcessingTimeMs = (
     (length / 1000) * input.msPer1KChars
   )
 
-  return setupTimeMs + estimateWorkerPoolWallTimeMs(
-    chunkDurationsMs,
-    input.chunkConcurrency
-  )
+  const concurrency = normalizeTtsChunkConcurrency(input.chunkConcurrency)
+  return setupTimeMs + (input.concurrencyMode
+    ? estimateHostedConcurrencyWallTimeMs(chunkDurationsMs, concurrency, input.concurrencyMode)
+    : estimateWorkerPoolWallTimeMs(chunkDurationsMs, concurrency))
 }

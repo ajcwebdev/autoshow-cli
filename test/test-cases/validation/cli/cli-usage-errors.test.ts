@@ -111,6 +111,21 @@ test('extract rejects invalid OCR provider modes before dispatch', async () => {
   )
 })
 
+test('hosted commands reject invalid concurrency modes before dispatch', async () => {
+  await expectUsageExit(
+    ['extract', 'input.pdf', '--concurrency-mode', 'fast'],
+    'Invalid --concurrency-mode value "fast". Expected "ramp" or "immediate".'
+  )
+  await expectUsageExit(
+    ['image', 'a sunset', '--concurrency-mode', 'adaptive', '--price'],
+    'Invalid --concurrency-mode value "adaptive". Expected "ramp" or "immediate".'
+  )
+  await expectUsageExit(
+    ['comic', 'draft-scenes', 'input/scripts/example.md', '--concurrency-mode', 'burst'],
+    'Invalid --concurrency-mode value "burst". Expected "ramp" or "immediate".'
+  )
+})
+
 test('extract and write reject primary OCR selection in pool mode before dispatch', async () => {
   const expected = '--primary-ocr cannot be used with --ocr-provider-mode pool'
   await expectUsageExit(

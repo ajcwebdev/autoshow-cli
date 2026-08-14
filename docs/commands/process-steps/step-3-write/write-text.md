@@ -92,9 +92,10 @@ Project lyric draft mode is enabled only when the input is `./output/<name>/text
 | `--batch-limit <n>` | Limit batch size; default `5` |
 | `--batch-all` | Process every batch item |
 | `--batch-order <newest\|oldest>` | Choose batch item order; default `newest` |
-| `--batch-concurrency <n>` | Batch items to process concurrently; default `10` |
-| `--provider-concurrency <n>` | Hosted providers/models to run concurrently per write item; default `10` |
-| `--local-concurrency <n>` | Local providers/models to run concurrently per write item; default `10` |
+| `--batch-concurrency <n>` | Batch items to process concurrently; default `7` |
+| `--provider-concurrency <n>` | Hosted providers/models to run concurrently per write item; default `7` |
+| `--local-concurrency <n>` | Local providers/models to run concurrently per write item; default `7` |
+| `--concurrency-mode <ramp\|immediate>` | Start each hosted provider/account lane at one request and add one slot every five seconds while demand is queued (`ramp`, default), or start at its configured cap (`immediate`) |
 | `--prompt <name...>` | Select prompt presets |
 | `--text-input` | Treat local `.md` / `.txt` files and directories as raw source text |
 | `--prompt-file <file>` | Prepend instructions from a local text file before named prompt presets |
@@ -397,6 +398,6 @@ Prompt names are assembled at runtime from JSON files discovered recursively und
 - Resume is exposed as the top-level `resume` command for extract, write, TTS, image, video, and music outputs, not as a `write` flag.
 - `write` also accepts post-generation flags for [`tts`](../step-4-tts/text-to-speech.md), [`image`](../step-5-image/text-to-image.md), [`video`](../step-6-video/text-to-video-services.md), and [`music`](../step-7-music/text-to-music-services.md). Those options are documented on their own command pages instead of being repeated here.
 - Post-generation steps still require exactly one step-3 LLM output. Repeating `--llm` for multiple models produces multiple step-3 outputs and therefore skips TTS, image, video, and music generation for that run.
-- `--batch-concurrency` controls how many batch items run at once. `--provider-concurrency` and `--local-concurrency` control provider fan-out inside each write item.
+- `--batch-concurrency` controls how many batch items run at once. `--provider-concurrency` and `--local-concurrency` control provider fan-out inside each write item. Hosted work from batch children and later generation stages shares the run-scoped provider/account ramp; local work remains immediate.
 - `write ./output/<name>/text` and files under that directory automatically enable project lyric draft mode. Shorthands such as `write demo` or `write ./output/demo` do not.
 - Project lyric draft mode requires `./output/<name>/prompt.md` unless `--prompt-file` is supplied. Explicit `--prompt-file`, `--track-list`, and `--rendered-out-dir` values override the project defaults.

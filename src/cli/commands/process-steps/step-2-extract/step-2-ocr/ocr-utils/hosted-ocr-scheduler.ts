@@ -14,10 +14,13 @@ import type {
   HostedOcrSchedulerTelemetry,
   HostedOcrSchedulerTargetTelemetry,
   HostedOcrService,
+  HostedConcurrencyAdmissionToken,
+  HostedConcurrencyCoordinator,
   OcrConcurrencyMode,
   QueuedHostedOcrJob
 } from '~/types'
 import { createProviderLaneIdentity } from '~/cli/commands/process-steps/provider-lane-contract'
+import { createHostedConcurrencyCoordinator, recoverHostedConcurrencyRequest } from '~/cli/commands/process-steps/hosted-concurrency-coordinator'
 import {
   findHostedOcrThroughputProfile,
   resolveHostedOcrPageCountBand
@@ -132,7 +135,14 @@ const isTimeoutLike = (error: unknown): boolean => {
 
 const shouldBackoffForError = (error: unknown): boolean => {
   const status = getErrorStatus(error)
-  return status === 429 || status === 503 || isTimeoutLike(error)
+  return status === 429
+}
+
+const isRateLimitPressure = (pressure: HostedOcrSchedulerRetryPressure): boolean => {
+  if (pressure.status === 429) return true
+  const reason = pressure.reason.toLowerCase()
+  return /rate[-\s]?limit|too many requests|provider concurrency/.test(reason)
+    && !/billing|insufficient (?:balance|credit)|quota exhaust|authentication|unauthorized/.test(reason)
 }
 
 const getCleanSampleCount = (value: unknown): number =>
@@ -202,6 +212,8 @@ class HostedOcrSchedulerImpl implements HostedOcrScheduler {
   private readonly fixedCap: number | undefined
   private readonly profilePath: string | undefined
   private readonly lanes = new Map<string, HostedOcrSchedulerLaneState>()
+  private readonly hostedConcurrencyCoordinator: HostedConcurrencyCoordinator
+  private readonly sharedHostedPolicy: boolean
 
   constructor(options: HostedOcrSchedulerOptions) {
     this.mode = options.mode
@@ -212,6 +224,9 @@ class HostedOcrSchedulerImpl implements HostedOcrScheduler {
       ? normalizePositiveInteger(options.fixedCap, HOSTED_OCR_AUTO_INITIAL_CAP)
       : undefined
     this.profilePath = options.profilePath
+    this.sharedHostedPolicy = options.concurrencyMode !== undefined || options.hostedConcurrencyCoordinator !== undefined
+    this.hostedConcurrencyCoordinator = options.hostedConcurrencyCoordinator
+      ?? createHostedConcurrencyCoordinator({ mode: options.concurrencyMode ?? 'immediate' })
   }
 
   run = async <T>(
@@ -282,6 +297,7 @@ class HostedOcrSchedulerImpl implements HostedOcrScheduler {
       documentPages: this.documentPages,
       documentCount: this.documentCount,
       lanes,
+      ...(this.sharedHostedPolicy ? { hostedConcurrency: this.hostedConcurrencyCoordinator.snapshot() } : {}),
       ...(likelyGatingTarget
         ? {
             likelyGatingTarget: {
@@ -395,11 +411,14 @@ class HostedOcrSchedulerImpl implements HostedOcrScheduler {
 
     const capResolution = this.resolveLaneCaps(admission, scopeLabel, 1)
     const maxCap = capResolution.maxCap
-    const initialCap = this.mode === 'fixed'
+    const resolvedInitialCap = this.mode === 'fixed'
       ? maxCap
       : this.documentPages >= HOSTED_OCR_LARGE_DOCUMENT_THRESHOLD
         ? resolveHostedOcrEstimateCap(this.documentPages, 'auto')
         : HOSTED_OCR_AUTO_INITIAL_CAP
+    const initialCap = this.sharedHostedPolicy && this.hostedConcurrencyCoordinator.mode === 'ramp'
+      ? 1
+      : resolvedInitialCap
     const lane: HostedOcrSchedulerLaneState = {
       lane: laneIdentity,
       laneKey,
@@ -407,8 +426,8 @@ class HostedOcrSchedulerImpl implements HostedOcrScheduler {
       scopeLabel,
       mode: this.mode,
       initialCap,
-      currentCap: initialCap,
-      maxCap: Math.max(initialCap, maxCap),
+      currentCap: this.sharedHostedPolicy ? Math.max(resolvedInitialCap, maxCap) : initialCap,
+      maxCap: Math.max(resolvedInitialCap, maxCap),
       capSource: capResolution.capSource,
       sourceConfidence: capResolution.sourceConfidence,
       ...(typeof capResolution.profileSampleCount === 'number' ? { profileSampleCount: capResolution.profileSampleCount } : {}),
@@ -679,27 +698,62 @@ class HostedOcrSchedulerImpl implements HostedOcrScheduler {
 
     void (async () => {
       let retryPressureRecordedForJob = false
+      let coreAdmission: HostedConcurrencyAdmissionToken | undefined
+      const coreAdmissionRequest = {
+        provider: lane.service,
+        accountLabel: lane.scopeLabel,
+        lane: lane.lane,
+        workClass: 'ocr-page' as const,
+        configuredLimit: lane.maxCap,
+        workId: job.admission.documentKey
+          ? `${job.admission.documentKey}:${job.targetKey}`
+          : job.targetKey,
+        unitIndex: job.admission.pageNumber ?? 0,
+        context: {
+          targetKey: job.targetKey,
+          ...(typeof job.admission.pageNumber === 'number' ? { pageNumber: job.admission.pageNumber } : {})
+        }
+      }
       try {
-        const result = await job.task({
-          onRetryable: (pressure) => {
+        if (this.sharedHostedPolicy) {
+          coreAdmission = await this.hostedConcurrencyCoordinator.acquire(coreAdmissionRequest)
+        }
+        const onRetryable: HostedOcrSchedulerRetryPressureHandler = Object.assign(
+          async (pressure: HostedOcrSchedulerRetryPressure, error?: unknown) => {
             if (!retryPressureRecordedForJob) {
               retryPressureRecordedForJob = true
               this.recordLaneRetryPressure(lane, pressure, {
                 admission: job.admission,
                 targetKey: job.targetKey
               })
-              return
+            } else {
+              this.recordLaneRetryEvent(lane, pressure, {
+                admission: job.admission,
+                targetKey: job.targetKey
+              })
             }
-            this.recordLaneRetryEvent(lane, pressure, {
-              admission: job.admission,
-              targetKey: job.targetKey
+            if (!isRateLimitPressure(pressure) || !this.sharedHostedPolicy) return
+            if (!coreAdmission) return
+            coreAdmission = await recoverHostedConcurrencyRequest({
+              coordinator: this.hostedConcurrencyCoordinator,
+              admission: coreAdmissionRequest,
+              token: coreAdmission,
+              error,
+              pressure
             })
-            this.applyRetryPressurePause(lane, pressure)
-          }
-        })
+            return true
+          },
+          { managesHostedRateLimitRecovery: this.sharedHostedPolicy }
+        )
+        const result = await job.task({ onRetryable })
+        if (coreAdmission) {
+          this.hostedConcurrencyCoordinator.release(coreAdmission, 'succeeded')
+          coreAdmission = undefined
+        }
         this.recordSuccess(lane, target, documentTarget, job.pageCount)
         job.resolve(result)
       } catch (error) {
+        if (coreAdmission) this.hostedConcurrencyCoordinator.release(coreAdmission, 'failed')
         this.recordFailure(lane, target, documentTarget, job, error, retryPressureRecordedForJob)
         job.reject(error)
       } finally {
@@ -720,6 +774,10 @@ class HostedOcrSchedulerImpl implements HostedOcrScheduler {
     lane.completedPages += pageCount
     lane.finishedAtMs = now
     lane.cleanSuccessPages += pageCount
+
+    if (this.sharedHostedPolicy) {
+      return
+    }
 
     while (lane.currentCap < lane.maxCap) {
       const fastRamp = lane.cleanFastRampEnabled && lane.retryPressureCount === 0
@@ -767,10 +825,10 @@ class HostedOcrSchedulerImpl implements HostedOcrScheduler {
     context?: { admission?: HostedOcrSchedulerAdmission | undefined, targetKey?: string | undefined } | undefined
   ): void {
     lane.retryPressureCount += 1
-    this.applyBackoff(lane)
+    if (!this.sharedHostedPolicy) this.applyBackoff(lane)
     this.constrainKimiProfileCapAfterPressure(lane)
     this.recordLaneRetryEvent(lane, pressure, context)
-    this.applyRetryPressurePause(lane, pressure)
+    if (!this.sharedHostedPolicy) this.applyRetryPressurePause(lane, pressure)
   }
 
   private recordLaneRetryEvent(
@@ -831,6 +889,9 @@ class HostedOcrSchedulerImpl implements HostedOcrScheduler {
     const targets = [...lane.targets.values()].map((target) => this.snapshotTarget(lane, target))
     const durationMs = observedDurationMs(lane.startedAtMs, lane.finishedAtMs)
     const projectedMs = projectedObservedDurationMs(lane.submittedPages, lane.completedPages, durationMs)
+    const hostedLane = this.sharedHostedPolicy
+      ? this.hostedConcurrencyCoordinator.snapshot().lanes.find((entry) => entry.lane.laneKey === lane.laneKey)
+      : undefined
     return {
       lane: lane.lane,
       laneKey: lane.laneKey,
@@ -839,17 +900,17 @@ class HostedOcrSchedulerImpl implements HostedOcrScheduler {
       status: resolveSchedulerStatus(lane.submittedPages, lane.completedPages, lane.failedPages, lane.active),
       mode: lane.mode,
       initialCap: lane.initialCap,
-      currentCap: lane.currentCap,
+      currentCap: hostedLane?.currentLimit ?? lane.currentCap,
       maxCap: lane.maxCap,
       capSource: lane.capSource,
       sourceConfidence: lane.sourceConfidence,
       ...(typeof lane.profileSampleCount === 'number' ? { profileSampleCount: lane.profileSampleCount } : {}),
       ...(typeof lane.profileRaisedMaxCap === 'number' ? { profileRaisedMaxCap: lane.profileRaisedMaxCap } : {}),
       ...(typeof lane.profileDisqualificationReason === 'string' ? { profileDisqualificationReason: lane.profileDisqualificationReason } : {}),
-      activePeak: lane.activePeak,
-      retryPressureCount: lane.retryPressureCount,
+      activePeak: hostedLane?.classes.find((entry) => entry.workClass === 'ocr-page')?.activePeak ?? lane.activePeak,
+      retryPressureCount: hostedLane?.pressureEvents.length ?? lane.retryPressureCount,
       ...(lane.retryEvents.length > 0 ? { retryEvents: lane.retryEvents.slice() } : {}),
-      pauseTimeMs: Math.round(lane.pauseTimeMs),
+      pauseTimeMs: hostedLane?.pauseDurationMs ?? Math.round(lane.pauseTimeMs),
       submittedPages: lane.submittedPages,
       completedPages: lane.completedPages,
       failedPages: lane.failedPages,

@@ -10,7 +10,7 @@ import { STANDALONE_IMAGE_PROVIDER_TARGETS, STANDALONE_MUSIC_PROVIDER_TARGETS, S
 import { logSuitePriceSummary } from '~/cli/commands/process-steps/step-1-download/download-targets/suite-price-logging'
 import { logResumeSuiteSummary } from './resume-logging'
 import * as l from '~/utils/app-logger/app-logger'
-import type { AggregatedPriceEstimate, CliFlagOccurrence, ExtractRoute, ExtractSelectorInputRoutes, PipelineManifest, ResumeDispatchOutcome, ResumeDisplayOptions, ResumeResult, ResumeSelectorNormalizationResult, ResumeTarget, ResumeTargetKind } from '~/types'
+import type { AggregatedPriceEstimate, CliFlagOccurrence, ExtractRoute, ExtractSelectorInputRoutes, HostedConcurrencyCoordinator, PipelineManifest, ResumeDispatchOutcome, ResumeDisplayOptions, ResumeResult, ResumeSelectorNormalizationResult, ResumeTarget, ResumeTargetKind } from '~/types'
 import { CLIUsageError, InfraError } from '~/utils/error-handler'
 import { getResumeHandler } from './resume-registry'
 
@@ -178,7 +178,8 @@ const dispatchSingleResume = async (
   outputDirInput: string,
   rawFlags: Record<string, unknown>,
   flagOccurrences: readonly CliFlagOccurrence[] = [],
-  displayOptions: ResumeDisplayOptions = {}
+  displayOptions: ResumeDisplayOptions = {},
+  sharedHostedConcurrency?: { current?: HostedConcurrencyCoordinator | undefined }
 ): Promise<ResumeDispatchOutcome> => {
   const target = await resolveExplicitResumeTarget(outputDirInput)
   const rawExplicitFlags = new Set(flagOccurrences.map((occurrence) => occurrence.name))
@@ -190,6 +191,10 @@ const dispatchSingleResume = async (
   const opts = {
     ...buildOptsFromFlags(false, mergedFlags, {}, normalized.explicitFlags, normalized.flagOccurrences),
     configPath: resolvedConfigPath
+  }
+  if (sharedHostedConcurrency) {
+    sharedHostedConcurrency.current ??= opts.hostedConcurrencyCoordinator
+    opts.hostedConcurrencyCoordinator = sharedHostedConcurrency.current
   }
 
   assertNoVoiceIdentityWithDialogue(opts, normalized.explicitFlags)
@@ -227,6 +232,7 @@ export const dispatchResume = async (
   const failures: Array<{ outputDir: string, message: string }> = []
   const estimates: AggregatedPriceEstimate[] = []
   const resumeResults: ResumeResult[] = []
+  const sharedHostedConcurrency: { current?: HostedConcurrencyCoordinator | undefined } = {}
 
   for (let index = 0; index < outputDirs.length; index++) {
     const outputDir = outputDirs[index] as string
@@ -235,7 +241,8 @@ export const dispatchResume = async (
         outputDir,
         rawFlags,
         flagOccurrences,
-        outputDirs.length > 1 ? { itemLabel: `${index + 1}/${outputDirs.length}` } : {}
+        outputDirs.length > 1 ? { itemLabel: `${index + 1}/${outputDirs.length}` } : {},
+        sharedHostedConcurrency
       )
       if (outcome.estimate) {
         estimates.push(outcome.estimate)

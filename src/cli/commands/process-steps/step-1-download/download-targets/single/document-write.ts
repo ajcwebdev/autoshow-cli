@@ -178,6 +178,7 @@ const writeDocumentOutputMetadata = async (
     errors,
     ocrConcurrency,
     ocrConcurrencyMode,
+    concurrencyMode,
     ocrProviderConcurrency,
     ocrLocalConcurrency
   } = params
@@ -238,6 +239,7 @@ const writeDocumentOutputMetadata = async (
       outputTokens: entry.outputTokenCount
     })),
     skipLLM: false,
+    concurrencyMode,
     ...(typeof ocrConcurrency === 'number' ? { ocrConcurrency } : {}),
     ...(ocrConcurrencyMode ? { ocrConcurrencyMode } : {}),
     ...(typeof ocrProviderConcurrency === 'number' ? { ocrProviderConcurrency } : {}),
@@ -254,6 +256,7 @@ const writeDocumentOutputMetadata = async (
     ? buildAggregateTiming(priceAlignedTimingSteps, undefined, {
         ...(typeof ocrConcurrency === 'number' ? { ocrConcurrency } : {}),
         ...(ocrConcurrencyMode ? { ocrConcurrencyMode } : {}),
+        concurrencyMode,
         ...(typeof ocrProviderConcurrency === 'number' ? { ocrProviderConcurrency } : {}),
         ...(typeof ocrLocalConcurrency === 'number' ? { ocrLocalConcurrency } : {})
       })
@@ -436,6 +439,7 @@ export const runExtractedDocumentWrite = async ({
     ...(extraction.step2Errors ? { errors: extraction.step2Errors } : {}),
     ocrConcurrency: opts.ocrConcurrency,
     ocrConcurrencyMode: opts.ocrConcurrencyMode,
+    concurrencyMode: opts.concurrencyMode,
     ocrProviderConcurrency: opts.ocrProviderConcurrency,
     ocrLocalConcurrency: opts.ocrLocalConcurrency
   })

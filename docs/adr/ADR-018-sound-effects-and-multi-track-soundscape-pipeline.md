@@ -128,6 +128,8 @@ Generation cache keys include the operation, provider, model, transport, seriali
 
 SFX work uses the shared provider target scheduler, generation resource gate, non-secret account lane identity, immutable admissions, retry feedback, cancellation, and bounded worker pattern. It does not reuse TTS text-chunk semantics, and it must not dispatch an unbounded `Promise.all` over cues. A provider-neutral action-SFX or ambience result may feed every selected dialogue target's mix. A voice-qualified vocal-reaction result may be reused only where provider, model, voice snapshot, prepared input, and every generation-affecting control match.
 
+Sound-effect dispatch also joins the run-scoped hosted coordinator used by comic dialogue. `--sfx-concurrency` remains the work-class ceiling; default ramp mode starts one request for each provider/account lane and adds one slot every five seconds while cues are queued, while immediate mode starts at the ceiling. Classified 429 pressure halves the lane's live aggregate limit and permits only one exact-request recovery probe after backoff. Durable admission evidence is written before provider dispatch, completed audio remains reusable, and the shared recovery path does not authorize replaying an ambiguous paid create. Dialogue and SFX classes keep their own caps while sharing the highest registered aggregate bound when they use the same provider/account lane.
+
 `--price` resolves the same soundscape and generation plans, accounts for verified cache/resume hits, reports per-target request and duration units, and marks unknown prices as unknown rather than zero. It performs no credential check, network call, directory creation, cache write, or manifest update. Execution readiness occurs only after static validation and before the first dispatch barrier.
 
 Every hosted adapter must separate static capability and pricing facts from execution readiness. Account quota, subscription tier, model availability, and endpoint access are execution observations, not facts inferred by `--price`. Provider response formats are observed and retained before local normalization; account-dependent output formats are never assumed from the general endpoint schema.
@@ -547,7 +549,7 @@ Negative outcomes:
 | Phase 6A–6E: add Fish registry/pricing, reference-voice TTS, native dialogue/timestamps, stateless design/materialization, voice-model lifecycle/reconciliation, soundscape routing, and acceptance | AutoShow Team | Complete — offline gate passed 2026-08-14; verified via unit & contract test suite |
 | Phase 7A–7E: add AudioGen governance/pinning and license eligibility, the Replicate SFX target, prediction execution, expiry-safe artifacts/routing, and historical acceptance | AutoShow Team | Complete — offline gate passed 2026-08-14; verified via unit & contract test suite |
 | Phase 8A: Episode 2 Scene 1 authored script & workspace audit | AutoShow Team | Complete — v5 script structure generated & static planning validated |
-| Phase 8B–8D: generate Episode 2 Scene 1 soundscape audio matrix across Hume, Cartesia, MiniMax, Inworld, DeepInfra, Replicate, and Fish sub-waves with corresponding ADR-019 panel-vid renders | AutoShow Team | In Progress — Hume Octave-1 audio run completed (38.7 MB) & panel-vid rendered (slideshow.mp4); Replicate F5-TTS & DeepInfra Chatterbox preflights validated |
+| Phase 8B–8D: generate Episode 2 Scene 1 soundscape audio matrix across Hume, Cartesia, MiniMax, Inworld, DeepInfra, Replicate, and Fish sub-waves with corresponding ADR-019 panel-vid renders | AutoShow Team | In Progress — Sub-Wave 2.2 (Hume Octave-1) audio run completed (38.7 MB) & panel-vid rendered (`slideshow.mp4`); Sub-Wave 2.1 (ElevenLabs Eleven_v3) audio run completed; Fish Speech stock voice registry approved & preflight validated; manifest append-only projection check verified |
 
 ## Test Plan
 
@@ -567,6 +569,8 @@ git diff --check
 ```
 
 The implemented Phase 1 tests use local synthetic WAV fixtures and mocked HTTP responses. They prove dialogue-only zero-dispatch behavior, soundscape-only execution without a TTS target, exact and unresolved anchors, pre-roll shifting, shared SFX reuse across dialogue targets, cache-key separation from mix identity, required and optional cue failures, price-mode no-call/no-write behavior, durable admission and ambiguous-redispatch blocking, resume, cancellation, output format, stem lineage, measured ducking, limiter bounds, deterministic selected artifacts, protected clone provisioning, and canonical manifest publication. Later phases add their provider-specific test files when implemented; they are not part of the Phase 1 command list above. Do not run live sound generation, hosted TTS, or any provider smoke/e2e path to verify this ADR.
+
+Shared hosted SFX admission and rate-pressure recovery were verified on 2026-08-14 with fake-clock coordinator contracts and mocked sound-effect adapters only; no live provider generation ran.
 
 ## References
 

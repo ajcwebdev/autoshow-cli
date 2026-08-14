@@ -61,6 +61,7 @@ bun as config --tts gemini=gemini-3.1-flash-tts-preview --tts-speaker Host=Kore 
 bun as config --image recraft=recraftv4_1 --image-size 1024x1024 --image-count 2
 bun as config --video ltx=ltx-2-3-fast --video-duration 8 --video-resolution 1080p
 bun as config --batch-limit 20 --batch-order oldest --batch-concurrency 2
+bun as config --concurrency-mode immediate
 bun as config --prompt shortSummary --prompt longChapters
 bun as config --chapters --length 50 --pdf-chapter-mode auto
 bun as config --max-cents 100
@@ -82,6 +83,9 @@ Representative JSON shape:
 ```json
 {
   "defaults": {
+    "concurrency": {
+      "mode": "ramp"
+    },
     "extract": {
       "stt": {
         "whisper": ["large-v3-turbo"],
@@ -249,6 +253,14 @@ Representative JSON shape:
 
 Model-selecting fields are arrays of models, not single strings.
 
+### defaults.concurrency
+
+| Field | Flag |
+|-------|------|
+| `mode` | `--concurrency-mode ramp\|immediate` |
+
+The default mode is `ramp`. It starts each hosted provider/account lane at one logical request and adds one slot every five seconds while queued demand exists. `immediate` starts at the applicable configured cap. Both modes retain rate-limit pressure recovery, and neither mode changes local provider, rendering, preparation, or preflight scheduling.
+
 ### defaults.extract.stt
 
 | Field | Flag |
@@ -344,6 +356,8 @@ Explicit CLI flags > config file defaults > native CLI defaults
 ```
 
 Only flags explicitly typed on the command line override config values. Native CLI defaults do not overwrite saved config defaults.
+
+For hosted concurrency, an explicit `--concurrency-mode` overrides `defaults.concurrency.mode`; otherwise the saved value overrides the native `ramp` default. `config --reset` removes the persisted value with the rest of the config.
 
 If you type any provider/model selector for a step family at runtime, configured provider selections for that family are replaced instead of merged. For example, passing `--llm openai=...` on `write` suppresses configured `defaults.llm.gemini` and `defaults.llm.groq` entries for that run.
 

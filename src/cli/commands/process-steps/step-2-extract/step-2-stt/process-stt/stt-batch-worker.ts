@@ -108,6 +108,8 @@ export const runSttProviderTargetAtIndex = async (
         split: options.split,
         reverbVerbatimicity: options.reverbVerbatimicity,
         sttSegmentConcurrency: options.sttSegmentConcurrency,
+        sttProviderConcurrency: options.sttProviderConcurrency,
+        hostedConcurrencyCoordinator: options.hostedConcurrencyCoordinator,
         audioDurationSeconds: prepared.durationSeconds,
         sourceUrl: prepared.step1Metadata.url,
         language: target.service === 'scrapecreators' ? options.scrapecreatorsLang : options.supadataLang,

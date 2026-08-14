@@ -66,6 +66,7 @@ export type ParsedGenerateBaseArgs = {
   qa?: boolean
   qaModel?: ParsedLlmModel
   maxRepairs?: number
+  concurrencyMode?: import('~/types').HostedConcurrencyMode
 }
 
 export type ParsedImageSize = NonNullable<GenerateImagesCommandOptions['size']>
@@ -83,6 +84,7 @@ export type ParsedDraftCommandArgs = {
   showHelp: boolean
   price?: boolean
   concurrency?: number
+  concurrencyMode?: import('~/types').HostedConcurrencyMode
 }
 
 export type PanelBundleData = v.InferOutput<typeof import('~/cli/commands/process-steps/step-8-comic/schemas/schemas').PanelBundleDataSchema>

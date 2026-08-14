@@ -70,7 +70,7 @@ export const imageCommandOptionNames = {
 const imageProviderSelectionFlags = {
   provider: strListFlag(`Image provider[=model]: ${formatProviderList(STANDALONE_IMAGE_PROVIDER_TARGETS)}; repeatable`),
   ...booleanAllProvidersFlag,
-  ...pickFlags(sharedConcurrencyFlags, ['provider-concurrency'])
+  ...pickFlags(sharedConcurrencyFlags, ['concurrency-mode', 'provider-concurrency'])
 } as const satisfies CliFlagsDefinition
 
 export const imageGenerationOptionNames = [

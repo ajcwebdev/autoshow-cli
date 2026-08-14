@@ -5,6 +5,7 @@ import { describe, expect, test } from 'bun:test'
 import { getExtractEstimation } from '~/cli/commands/setup-and-utilities/models/model-loader'
 import { resolveHostedOcrEstimateCap } from '~/cli/commands/process-steps/step-2-extract/step-2-ocr/ocr-utils/hosted-ocr-scheduler'
 import { computeEstimatedProcessingTimes } from '~/cli/commands/pricing-orchestration/compute-processing-time'
+import { estimateHostedConcurrencyWallTimeMs } from '~/utils/hosted-concurrency-estimator'
 
 const missingProfilePath = (): string =>
   join(tmpdir(), `autoshow-missing-ocr-profile-${process.pid}-${Date.now()}-${Math.random()}.json`)
@@ -216,7 +217,10 @@ describe('hosted OCR timing estimate contracts', () => {
           extractTargets: [{ provider: 'gemini', model: 'gemini-3.5-flash-lite', pageCount }],
           hostedOcrProfilePath: profilePath
         })
-        const registryMs = Math.round(Math.ceil(pageCount / resolveHostedOcrEstimateCap(pageCount, 'auto')) * getExtractEstimation('gemini', 'gemini-3.5-flash-lite').msPerPage)
+        const registryMs = estimateHostedConcurrencyWallTimeMs(
+          Array.from({ length: pageCount }, () => getExtractEstimation('gemini', 'gemini-3.5-flash-lite').msPerPage),
+          resolveHostedOcrEstimateCap(pageCount, 'auto')
+        )
 
         expect(healthyTiming.estimateConfidence).toBe('profile')
         expect(healthyTiming.steps[0]).toMatchObject({

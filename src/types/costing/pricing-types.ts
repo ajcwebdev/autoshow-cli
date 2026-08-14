@@ -218,6 +218,7 @@ export type ComputeEstimatedCostsInput = SttModelOverrides & OcrModelOverrideOpt
 }
 
 export type ComputeEstimatedProcessingTimesInput = OcrModelOverrideOptions & {
+  concurrencyMode?: import('~/types').HostedConcurrencyMode | undefined
   sttTargets?: SttPricingTarget[] | undefined
   transcriptionService?: Step2Metadata['transcriptionService'] | undefined
   transcriptionModel?: string | undefined

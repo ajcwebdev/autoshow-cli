@@ -382,6 +382,7 @@ export type OcrMetadataOptions = {
   primaryProvider?: { service: string, model: string } | undefined
   ocrConcurrency?: number | undefined
   ocrConcurrencyMode?: OcrConcurrencyMode | undefined
+  concurrencyMode?: import('~/types').HostedConcurrencyMode | undefined
   ocrProviderConcurrency?: number | undefined
   ocrLocalConcurrency?: number | undefined
   hostedOcrScheduler?: HostedOcrSchedulerTelemetry | undefined

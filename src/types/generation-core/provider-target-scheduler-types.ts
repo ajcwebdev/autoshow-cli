@@ -1,4 +1,4 @@
-import type { ResourceGate, TargetPoolKind, TargetSchedulerConcurrency } from '~/types'
+import type { HostedConcurrencyCoordinator, HostedConcurrencyWorkClass, ResourceGate, TargetPoolKind, TargetSchedulerConcurrency } from '~/types'
 export type ProviderTargetSchedulerEntry<TTarget> = {
   index: number
   target: TTarget
@@ -18,6 +18,12 @@ export type RunProviderTargetSchedulerOptions<TTarget, TResult> = {
   concurrency: TargetSchedulerConcurrency
   getPool: (target: TTarget) => TargetPoolKind
   runTarget: (index: number, target: TTarget) => Promise<TResult>
+  hostedConcurrencyCoordinator?: HostedConcurrencyCoordinator | undefined
+  hostedWorkClass?: HostedConcurrencyWorkClass | undefined
+  getHostedProvider?: ((target: TTarget) => string) | undefined
+  getHostedAccountLabel?: ((target: TTarget) => string | undefined) | undefined
+  getHostedWorkId?: ((index: number, target: TTarget) => string) | undefined
+  abortSignal?: AbortSignal | undefined
   resourceGate?: ResourceGate | undefined
   getResourceGate?: ((target: TTarget) => ResourceGate | undefined) | undefined
   onLifecycle?: ((event: {

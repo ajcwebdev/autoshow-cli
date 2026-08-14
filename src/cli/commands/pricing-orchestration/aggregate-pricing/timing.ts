@@ -107,6 +107,7 @@ export const buildAggregateTiming = (
     || videoTimingTargets.length > 0
     || musicTimingTargets.length > 0
     ? computeEstimatedProcessingTimes({
+        concurrencyMode: options.concurrencyMode,
         ...(sttTimingTargets.length > 0 && typeof sttTimingDurationSeconds === 'number'
           ? {
               sttTargets: sttTimingTargets,

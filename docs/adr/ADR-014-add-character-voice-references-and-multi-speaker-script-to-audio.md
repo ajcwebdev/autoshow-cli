@@ -4,7 +4,7 @@
 
 - **Decision Status:** Accepted
 - **Date Created:** 2026-08-10
-- **Date Updated:** 2026-08-13
+- **Date Updated:** 2026-08-14
 - **Verification Status:** Passed
 
 ## Context
@@ -216,6 +216,8 @@ Gemini native dialogue is constrained to exactly two distinct speakers; other sp
 
 Per-turn synthesis passes explicit voice locators and parameters to `TtsTarget.run()`. Every adapter guarantees A/B/A request serialization conformance (verifying distinct per-turn voices in actual network payloads). dialogue work runs under the shared provider target scheduler, respecting `--tts-chunk-concurrency`, `--provider-concurrency`, and `--local-concurrency` bounds without unbounded `Promise.all` fanout.
 
+Hosted dialogue and ordinary hosted TTS chunks use the shared run-scoped provider/account coordinator beneath their existing ordered and fair work selectors. Default `ramp` mode admits one request immediately and adds one slot every five seconds while demand is queued, up to the existing TTS chunk or turn cap; `immediate` begins at that cap. The former TTS success-count startup growth is retired. Classified rate-limit pressure halves the live shared lane limit, drains active synthesis without cancellation, and permits one exact-request recovery probe after backoff. Local Kitten work and local audio assembly remain immediate, and ambiguous paid synthesis admissions retain the explicit redispatch reconciliation policy.
+
 ### Native Dialogue, Timing, and Continuation
 
 Native dialogue adapters normalize provider-prepared text through `PreparedProviderText` mappings back to canonical Unicode scalar-value offsets. Provider timestamps are converted to integer milliseconds on the take clock and transformed via an audio transform ledger into the final timeline.
@@ -357,6 +359,8 @@ git diff --check
 ```
 
 Do not run hosted TTS commands, live voice creation, provider smoke tests, or e2e paths with cost or billing association.
+
+Verification evidence for shared hosted dialogue admission is dated 2026-08-14 and uses fake clocks, deterministic retry inputs, local WAV fixtures, and mocked provider adapters only.
 
 ## References
 

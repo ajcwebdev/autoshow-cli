@@ -7,13 +7,13 @@ import { isExtractCommand } from '~/cli/commands/process-steps/process-command-k
 import { createManifest, createManifestItem, PIPELINE_MANIFEST_FILE, readManifest, resolveManifestRelativePath, toManifestRelativePath, updateManifest, writeManifest } from '~/cli/commands/process-steps/pipeline-manifest'
 import { getOutputRoot } from '~/cli/commands/process-steps/output-root'
 import { runSttBatch, throwIfSttBatchIncomplete } from '~/cli/commands/process-steps/step-2-extract/step-2-stt/batch'
-import type { BatchExecutionPlan, BatchProcessResult, BatchRuntimeOptions, BatchSource, ExtractChildBatchPlan, ExtractCommandOptions, ExtractRoute, PipelineItemRecord, PipelineManifest, PipelineManifestItem, ProcessCommand, SingleTargetCommandOptions } from '~/types'
+import type { BatchExecutionPlan, BatchProcessResult, BatchRuntimeOptions, BatchSource, ExtractChildBatchPlan, ExtractCommandOptions, ExtractRoute, HostedConcurrencyRuntimeOptions, PipelineItemRecord, PipelineManifest, PipelineManifestItem, ProcessCommand, SingleTargetCommandOptions } from '~/types'
 import { processSingleTarget } from '../single/single-target-runner'
 import { processBatch } from './process-download-batch'
 import { CLIUsageError, InfraError, ValidationError } from '~/utils/error-handler'
 import { createHostedOcrScheduler } from '~/cli/commands/process-steps/step-2-extract/step-2-ocr/ocr-utils/hosted-ocr-scheduler'
 
-type BatchCommandOptions = SingleTargetCommandOptions & Pick<BatchRuntimeOptions, 'batchConcurrency'>
+type BatchCommandOptions = SingleTargetCommandOptions & Pick<BatchRuntimeOptions, 'batchConcurrency'> & HostedConcurrencyRuntimeOptions
 
 function assertExtractCommandOptions (
   opts: BatchCommandOptions
@@ -121,7 +121,9 @@ const runExtractDocumentChildBatch = async (
         mode: opts.ocrConcurrencyMode ?? (typeof opts.ocrConcurrency === 'number' ? 'fixed' : 'auto'),
         fixedCap: opts.ocrConcurrency,
         pageCount: 0,
-        lifetime: 'run'
+        lifetime: 'run',
+        concurrencyMode: opts.concurrencyMode,
+        hostedConcurrencyCoordinator: opts.hostedConcurrencyCoordinator
       })
     : undefined
   const result = await processBatch(
@@ -321,7 +323,9 @@ export const executeBatchPlan = async (
             : 'auto',
         fixedCap: 'ocrConcurrency' in opts && typeof opts.ocrConcurrency === 'number' ? opts.ocrConcurrency : undefined,
         pageCount: 0,
-        lifetime: 'run'
+        lifetime: 'run',
+        concurrencyMode: opts.concurrencyMode,
+        hostedConcurrencyCoordinator: opts.hostedConcurrencyCoordinator
       })
     : undefined
   const batchResult = await processBatch(

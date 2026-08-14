@@ -91,12 +91,15 @@ Whisperfile needs no setup step. The first `--provider whisperfile=<model>` run 
 | `--batch-limit <n>` | Limit batch size |
 | `--batch-all` | Process all batch items |
 | `--batch-order <newest\|oldest>` | Choose batch ordering |
-| `--batch-concurrency <n>` | Process batch items concurrently |
-| `--provider-concurrency <n>` | Max cloud providers running in parallel for one item |
-| `--local-concurrency <n>` | Max local providers running in parallel for one item |
-| `--stt-segment-concurrency <n>` | Max split segments in flight per provider |
-| `--stt-preflight-concurrency <n>` | Max duration probes running in parallel during preflight |
+| `--batch-concurrency <n>` | Process batch items concurrently; default `7` |
+| `--provider-concurrency <n>` | Max cloud providers running in parallel for one item; default `7` |
+| `--local-concurrency <n>` | Max local providers running in parallel for one item; default `7` |
+| `--stt-segment-concurrency <n>` | Max split segments in flight per provider; default `7` |
+| `--stt-preflight-concurrency <n>` | Max duration probes running in parallel during preflight; default `7` |
+| `--concurrency-mode <ramp\|immediate>` | Start each hosted provider/account lane at one request and add one slot every five seconds while demand is queued (`ramp`, default), or start at its configured cap (`immediate`) |
 | `--price` | Show the aggregated estimate and exit |
+
+The hosted ramp applies to provider requests and split STT segments. Local engines, audio splitting, duration probes, and other preflight work remain immediate.
 
 ```bash
 # Prefer YouTube captions, then fall back to STT

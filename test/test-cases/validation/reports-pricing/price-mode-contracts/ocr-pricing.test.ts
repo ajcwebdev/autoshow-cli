@@ -178,6 +178,7 @@ describe('price mode contracts', () => {
       const cost = computeEstimatedCosts({ extractTargets })
       const timing = computeEstimatedProcessingTimes({
         extractTargets: extractTargets.map(({ provider, model, pageCount }) => ({ provider, model, pageCount })),
+        concurrencyMode: 'immediate',
         hostedOcrProfilePath: missingHostedOcrProfilePath()
       })
 
@@ -240,6 +241,7 @@ describe('price mode contracts', () => {
       const cost = computeEstimatedCosts({ extractTargets })
       const timing = computeEstimatedProcessingTimes({
         extractTargets: extractTargets.map(({ provider, model, pageCount }) => ({ provider, model, pageCount })),
+        concurrencyMode: 'immediate',
         hostedOcrProfilePath: missingHostedOcrProfilePath()
       })
 
@@ -274,6 +276,7 @@ describe('price mode contracts', () => {
       })
       const timing = computeEstimatedProcessingTimes({
         extractTargets,
+        concurrencyMode: 'immediate',
         hostedOcrProfilePath: missingHostedOcrProfilePath()
       })
 

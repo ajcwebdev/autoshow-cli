@@ -30,6 +30,17 @@ import {
 } from '~/cli/commands/setup-and-utilities/models/setup-model-options'
 
 describe('option resolution contracts', () => {
+  test('hosted concurrency mode defaults to ramp and validates explicit values', () => {
+    const defaults = buildOptsFromFlags(false, {})
+    const immediate = buildOptsFromFlags(false, { 'concurrency-mode': 'immediate' })
+
+    expect(defaults.concurrencyMode).toBe('ramp')
+    expect(defaults.hostedConcurrencyCoordinator?.mode).toBe('ramp')
+    expect(immediate.concurrencyMode).toBe('immediate')
+    expect(immediate.hostedConcurrencyCoordinator?.mode).toBe('immediate')
+    expect(() => buildOptsFromFlags(false, { 'concurrency-mode': 'fast' })).toThrow('Expected "ramp" or "immediate"')
+  })
+
   test('MiniMax write model validator accepts M3 and rejects removed predecessor names', () => {
       const removedStandard = ['MiniMax-M2', '5'].join('.')
       const removedHighspeed = `${removedStandard}-highspeed`

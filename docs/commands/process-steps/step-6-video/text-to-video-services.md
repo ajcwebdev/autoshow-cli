@@ -49,7 +49,8 @@ The standalone `video` command drops the `video-` prefix these options carry els
 | Flag | Description |
 |------|-------------|
 | `--all-providers` | Run every supported video provider/model |
-| `--provider-concurrency <n>` | Hosted video providers/models to run concurrently per item; default `10` |
+| `--provider-concurrency <n>` | Hosted video providers/models to run concurrently per item; default `7` |
+| `--concurrency-mode <ramp\|immediate>` | Start each hosted provider/account lane at one request and add one slot every five seconds while demand is queued (`ramp`, default), or start at its configured cap (`immediate`) |
 | `--duration <seconds>` | Requested video duration |
 | `--size <size>` | Provider-dependent size control |
 | `--aspect-ratio <ratio>` | Provider-dependent aspect ratio |

@@ -104,15 +104,25 @@ describe('price mode contracts', () => {
   test('Groq Orpheus TTS keeps the 200-character chunk timing exemption', () => {
       const model = 'canopylabs/orpheus-v1-english'
       const characterCount = 450
+      const rate = getTtsEstimation('groq', model).msPer1KChars
       const timing = computeEstimatedProcessingTimes({
         ttsTargets: [{ service: 'groq', model }],
         ttsCharacterCount: characterCount,
         ttsInputText: 'a'.repeat(characterCount),
         ttsChunkConcurrency: 5
       })
+      const immediateTiming = computeEstimatedProcessingTimes({
+        ttsTargets: [{ service: 'groq', model }],
+        ttsCharacterCount: characterCount,
+        ttsInputText: 'a'.repeat(characterCount),
+        ttsChunkConcurrency: 5,
+        concurrencyMode: 'immediate'
+      })
 
       expect(timing.steps[0]?.processingTimeMs)
-        .toBe(Math.round((200 / 1000) * getTtsEstimation('groq', model).msPer1KChars))
+        .toBe(Math.round((400 / 1000) * rate))
+      expect(immediateTiming.steps[0]?.processingTimeMs)
+        .toBe(Math.round((200 / 1000) * rate))
     })
 
   test('ElevenLabs TTS estimates use model-aware chunk limits for wall-clock time', () => {

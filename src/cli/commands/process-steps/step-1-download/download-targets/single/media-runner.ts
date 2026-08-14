@@ -27,6 +27,8 @@ export const buildProcessingOptions = (
 ): ProcessingOptions => {
   return {
     ...source,
+    concurrencyMode: runtimeOptions.concurrencyMode,
+    hostedConcurrencyCoordinator: runtimeOptions.hostedConcurrencyCoordinator,
     configPath: runtimeOptions.configPath,
     step2SelectionOrigins: runtimeOptions.step2SelectionOrigins,
     ...pick(runtimeOptions, STT_MODEL_KEYS),

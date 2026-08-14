@@ -41,7 +41,10 @@ export const generateStructuredScript = async (
     let reviewModel: string | undefined
 
     if (options.llmModel) {
-      const review = await reviewStructuredScriptWithLlm(content, structuredScript, options.llmModel)
+      const review = await reviewStructuredScriptWithLlm(content, structuredScript, options.llmModel, {
+        hostedConcurrencyCoordinator: options.hostedConcurrencyCoordinator,
+        workId: `comic-structure:${sceneSlug}`
+      })
       const usage = review.response.usage
       reviewModel = review.response.model
       if (usage) {

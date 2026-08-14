@@ -17,6 +17,8 @@ bun autoshow extract [input] [flags]
 
 Batch inputs use the same shared controls as other processing commands. The default batch limit is `5`; use `--batch-all` to process every discovered item.
 
+Hosted extraction defaults to `--concurrency-mode ramp`: each provider/account lane starts one logical request immediately and adds one slot every five seconds while demand is queued, without exceeding the existing provider, segment, or OCR page cap. Use `--concurrency-mode immediate` to begin at those caps. Local engines, document rendering, batch preparation, and preflight probes remain immediate.
+
 For backfilling missing provider outputs from an existing run or batch, see [`resume`](../../setup-and-utilities/resume/resume.md).
 
 ## Input Routing

@@ -4,7 +4,7 @@
 
 - **Decision Status:** Accepted
 - **Date Created:** 2026-06-13
-- **Date Updated:** 2026-08-13
+- **Date Updated:** 2026-08-14
 - **Verification Status:** Passed
 - **Supersession:** Absorbs the timestamp and concise diagnostic-rendering decisions from the retired record "Optimize Price Preflight Performance, Test Concurrency, and Token-Efficient Logging"; its production metadata-cache and price-verification decisions are owned by ADR-001 and ADR-002 respectively.
 
@@ -82,6 +82,12 @@ Each migrated throw attaches a `stage` and, where remediation exists, structured
 2. **Suppress duplicate runner prefixes.** The test runner's console wrapper strips ANSI styling for detection and leaves lines beginning with either `[HH:MM:SS.MMM]` or `[HH:MM:SS]` unchanged. Untimestamped console output receives the canonical millisecond wall-clock prefix.
 3. **Render one logical diagnostic per line.** Closely related labels and values, including price-command cost results and single-variant budget decisions, stay on a concise single line without dropping information. ADR-002 owns the exact price-result shapes and benchmark evidence.
 
+### D. Normalize hosted rate-limit recovery at the admission boundary *(Accepted — implemented 2026-08-14)*
+
+HTTP 429 and explicitly classified provider rate/concurrency responses report pressure against the immutable admission token for the exact request. Billing, authentication, quota exhaustion, validation, timeout, 5xx, and ambiguous create failures retain their prior failure and retry policies unless a provider explicitly marks the response as a rate limit. This keeps the semantic error classifier separate from the scheduler pressure controller while giving both a shared structured vocabulary.
+
+The hosted controller preserves `Retry-After`, otherwise applies the existing half-to-full jitter style to exponential bases of 2, 4, 8, 16, and then 30 seconds, and bounds recovery to five minutes from the request's first pressure response. If recovery is exhausted or the next required delay exceeds the remaining budget, the existing `retry_exhausted` shape retains status, headers, stage, retry metadata, exact work identity, work class, and lane identity. Known rate-limit rejection can retry the exact failed request; ambiguous paid create outcomes do not become safe to redispatch merely because hosted concurrency recovery exists.
+
 ### Keep (with rationale)
 
 `src/`:
@@ -138,7 +144,7 @@ Negative outcomes:
 
 ## Implementation Note
 
-The unified `AppError` taxonomy (`InfraError`, `InternalError`, `ValidationError`), centralized `isCLIUsageError`, `rethrowAsUsage` validator wrapping, structured retry handling in `pollUntil`, provider failure classification registry in `test/test-utils/provider-failure-classifiers.ts`, and `[HH:MM:SS.MMM]` human log format are fully implemented and verified.
+The unified `AppError` taxonomy (`InfraError`, `InternalError`, `ValidationError`), centralized `isCLIUsageError`, `rethrowAsUsage` validator wrapping, structured retry handling in `pollUntil`, provider failure classification registry in `test/test-utils/provider-failure-classifiers.ts`, normalized hosted-pressure recovery, and `[HH:MM:SS.MMM]` human log format are fully implemented and verified.
 
 ## Test Plan
 
@@ -167,3 +173,4 @@ bun test test/test-cases/validation/cli/cli-usage-errors.test.ts
 - Test timestamp formatter and console wrapper: `test/test-runner/utils.ts`, `test/test-runner/runner.ts`
 - Discovery-cache companion: [ADR-001](ADR-001-source-ingestion-and-normalization.md)
 - Price-planning and no-cost-verification companion: [ADR-002](ADR-002-pipeline-state-resume-and-dry-run-planning.md)
+- Hosted admission, lane pressure, and recovery companion: [ADR-008](ADR-008-decompose-work-into-chunks-and-concurrency-lanes.md)

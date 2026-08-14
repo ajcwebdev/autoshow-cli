@@ -336,12 +336,6 @@ export const withRetry = async <T>(
           maxAttempts = Math.max(maxAttempts, Math.max(1, Math.floor(ctx.rateLimitMaxAttempts)))
         }
 
-        const isLastAttempt = attempt >= maxAttempts - 1
-        if (isLastAttempt) {
-          stopReason = 'max attempts reached'
-          break
-        }
-
         if (!decision.shouldRetry) {
           if (!retried) {
             throw error
@@ -350,7 +344,24 @@ export const withRetry = async <T>(
           break
         }
 
-        ctx.onRetryAttempt?.(error, decision)
+        const isLastAttempt = attempt >= maxAttempts - 1
+        if (isLastAttempt && ctx.retryHookCanExtendAttempts !== true) {
+          stopReason = 'max attempts reached'
+          break
+        }
+
+        const retryDelayHandled = await ctx.onRetryAttempt?.(error, decision) === true
+
+        if (retryDelayHandled) {
+          retried = true
+          maxAttempts = Math.max(maxAttempts, attempt + 2)
+          continue
+        }
+
+        if (isLastAttempt) {
+          stopReason = 'max attempts reached'
+          break
+        }
 
         if (decision.delayMs > 0) {
           retried = true

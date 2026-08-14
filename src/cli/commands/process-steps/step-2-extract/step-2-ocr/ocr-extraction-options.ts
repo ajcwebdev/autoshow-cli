@@ -57,5 +57,7 @@ export const resolveOcrExtractionOptions = (
     ...(preparedDocument?.htmlArticleBackend ? { htmlArticleBackend: preparedDocument.htmlArticleBackend } : {}),
     ...(rawOpts.reasoningEffort ? { reasoningEffort: rawOpts.reasoningEffort } : {})
   }, 'document extraction options'),
-  ocrConcurrencyMode
+  ocrConcurrencyMode,
+  ...(rawOpts.concurrencyMode ? { concurrencyMode: rawOpts.concurrencyMode } : {}),
+  ...(rawOpts.hostedConcurrencyCoordinator ? { hostedConcurrencyCoordinator: rawOpts.hostedConcurrencyCoordinator } : {})
 })

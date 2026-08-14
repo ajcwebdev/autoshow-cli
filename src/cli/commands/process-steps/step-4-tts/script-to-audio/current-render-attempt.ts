@@ -1994,6 +1994,7 @@ export const prepareCurrentTtsCompletedRecovery = async (options: PureCurrentTts
   const retainedCumulativePlannedCost = sumCosts(retainedAttemptCosts)
   for (const slotId of completedSlotIds) {
     if (loadedBatches.filter((batch) => batch.value.generationSlotId === slotId).length !== 1) {
+      if (options.ttsOptions.ttsAllowAmbiguousRedispatch === true) continue
       throw CLIUsageError(`Stored completed TTS generation slot ${slotId} has no exact promoted batch result.`)
     }
   }

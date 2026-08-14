@@ -19,7 +19,12 @@ const runSceneDraftStage = async (options: DraftScenesCommandOptions) => {
   const llmModel = options.llmModel ?? DEFAULT_LLM_MODEL
 
   try {
-    return await generateSceneJson(options.sceneSlug, { model: llmModel })
+    return await generateSceneJson(options.sceneSlug, {
+      model: llmModel,
+      concurrency: options.concurrency,
+      hostedConcurrencyCoordinator: options.hostedConcurrencyCoordinator,
+      concurrencyMode: options.concurrencyMode
+    })
   } catch {
     throw InfraError('Failed at scene JSON generation step', { stage: 'comic:draft-scenes' })
   }

@@ -250,6 +250,7 @@ export type SttTargetOptions = {
   split?: boolean | undefined
   reverbVerbatimicity?: number | undefined
   sttSegmentConcurrency?: number | undefined
+  sttProviderConcurrency?: number | undefined
   audioDurationSeconds?: number | undefined
   sourceUrl?: string | undefined
   language?: string | undefined
@@ -257,6 +258,7 @@ export type SttTargetOptions = {
   runMode?: 'initial' | 'backfill' | undefined
   asyncLifecycle?: AsyncSttLifecycleHooks | undefined
   mistralPassController?: MistralSttPassController | undefined
+  hostedConcurrencyCoordinator?: import('~/types').HostedConcurrencyCoordinator | undefined
 }
 
 export type IndexedTranscriptionChunk = {

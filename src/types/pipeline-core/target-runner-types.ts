@@ -1,4 +1,4 @@
-import type { ProviderIdentity, ResourceGate, SingleFileRunResult, TargetPoolKind, TargetSchedulerConcurrency } from '~/types'
+import type { HostedConcurrencyRuntimeOptions, HostedConcurrencyWorkClass, ProviderIdentity, ResourceGate, SingleFileRunResult, TargetPoolKind, TargetSchedulerConcurrency } from '~/types'
 
 export type BuildSingleArtifactMapOptions<T> = {
   singleKey: string
@@ -8,7 +8,7 @@ export type BuildSingleArtifactMapOptions<T> = {
   getFileName: (item: T) => string
 }
 
-export type RunTargetsOptionsBase<TTarget extends ProviderIdentity> = {
+export type RunTargetsOptionsBase<TTarget extends ProviderIdentity> = HostedConcurrencyRuntimeOptions & {
   targets: TTarget[]
   outputDir: string
   stepLabel: string
@@ -19,6 +19,7 @@ export type RunTargetsOptionsBase<TTarget extends ProviderIdentity> = {
   getTargetPool?: ((target: TTarget) => TargetPoolKind) | undefined
   getTargetPriority?: ((target: TTarget, index: number) => number | undefined) | undefined
   useWorkspaceForSingleTarget?: boolean | undefined
+  hostedWorkClass?: HostedConcurrencyWorkClass | undefined
 }
 
 export type RunSingleFileTargetsOptions<TTarget extends ProviderIdentity, TMetadata> = RunTargetsOptionsBase<TTarget> & {

@@ -127,6 +127,7 @@ export const mergeConfigIntoRawFlags = (
 }
 
 export const FLAG_TO_CONFIG_PATH: Record<string, string[]> = {
+  'concurrency-mode': ['defaults', 'concurrency', 'mode'],
   ...STEP2_PROVIDER_CONFIG_PATHS,
   'youtube-captions':  ['defaults', 'extract', 'stt', 'youtubeCaptions'],
   'stt-happyscribe-organization-id': ['defaults', 'extract', 'stt', 'happyscribeOrganizationId'],

@@ -112,8 +112,11 @@ bun autoshow resume ./output/2026-04-22_12-00-00-000_run --all-providers
 | `--batch-concurrency <n>` | Number of batch items to process concurrently |
 | `--provider-concurrency <n>` | Max hosted providers/models running in parallel for one item |
 | `--local-concurrency <n>` | Max local providers/models running in parallel for one item |
+| `--concurrency-mode <ramp\|immediate>` | Start each hosted provider/account lane at one request and add one slot every five seconds while demand is queued (`ramp`, default), or start at its configured cap (`immediate`) |
 | `--stt-segment-concurrency <n>` | Max split STT segments in flight per provider |
 | `--stt-preflight-concurrency <n>` | Max STT duration probes running in parallel during preflight |
+
+Resume preserves accepted artifacts and other canonical work state, but it creates a fresh run-scoped hosted coordinator. The new process therefore starts a fresh ramp using the current explicit or configured mode; concurrency policy is not part of cache or content identity.
 
 ## Write Options
 

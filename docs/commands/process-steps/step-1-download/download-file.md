@@ -57,7 +57,7 @@ Step-1 item metadata in `manifest.json` also includes `slug`, which is derived f
 --batch-limit        Batch: number of items to process (default 5)
 --batch-all          Batch: process all items
 --batch-order        Batch: item order newest|oldest (default newest)
---batch-concurrency  Batch: number of items to process concurrently (default 10)
+--batch-concurrency  Batch: number of items to process concurrently (default 7)
 --price              Show aggregated cost estimate for all active pipeline steps and exit
 ```
 

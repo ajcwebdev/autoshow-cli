@@ -18,6 +18,7 @@ const buildTimingOptions = (
   opts: AggregateTimingOptions,
   context: { ttsInputText?: string | undefined } = {}
 ) => ({
+  concurrencyMode: opts.concurrencyMode,
   ...(typeof context.ttsInputText === 'string' ? { ttsInputText: context.ttsInputText } : {}),
   ...(typeof opts.ttsChunkConcurrency === 'number' ? { ttsChunkConcurrency: opts.ttsChunkConcurrency } : {}),
   ...(typeof opts.ocrConcurrency === 'number' ? { ocrConcurrency: opts.ocrConcurrency } : {}),

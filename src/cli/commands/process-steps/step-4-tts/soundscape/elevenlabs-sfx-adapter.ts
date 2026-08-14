@@ -47,7 +47,13 @@ export type ElevenLabsSoundEffectHttpRequest = (input: {
 }) => Promise<{ status: number, headers?: Headers | Record<string, string> | undefined, body: Uint8Array }>
 
 export class SoundEffectProviderError extends Error {
-  constructor(message: string, readonly retryable: boolean, readonly admissionDisposition: 'rejected' | 'ambiguous', readonly status?: number | undefined) {
+  constructor(
+    message: string,
+    readonly retryable: boolean,
+    readonly admissionDisposition: 'rejected' | 'ambiguous',
+    readonly status?: number | undefined,
+    readonly headers?: Headers | Record<string, string> | undefined
+  ) {
     super(message)
     this.name = 'SoundEffectProviderError'
   }
@@ -138,7 +144,7 @@ export const createElevenLabsSoundEffectAdapter = (input: {
       if (response.status < 200 || response.status >= 300) {
         const rejected = response.status < 500 && response.status !== 408 && response.status !== 409
         const retryable = response.status === 429
-        throw new SoundEffectProviderError(`ElevenLabs sound generation failed with HTTP ${response.status}.`, retryable, rejected ? 'rejected' : 'ambiguous', response.status)
+        throw new SoundEffectProviderError(`ElevenLabs sound generation failed with HTTP ${response.status}.`, retryable, rejected ? 'rejected' : 'ambiguous', response.status, response.headers)
       }
       if (response.body.byteLength === 0) throw CLIUsageError('ElevenLabs sound generation returned empty audio.')
       const contentType = header(response.headers, 'content-type')?.split(';')[0]?.trim() || 'application/octet-stream'

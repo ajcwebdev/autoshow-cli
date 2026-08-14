@@ -41,7 +41,9 @@ export const processOcr = async (
   const rootHostedOcrScheduler = rawOpts.hostedOcrScheduler ?? createHostedOcrScheduler({
     mode: opts.ocrConcurrencyMode,
     fixedCap: opts.ocrConcurrency,
-    pageCount: prepared.step1Metadata.pageCount
+    pageCount: prepared.step1Metadata.pageCount,
+    concurrencyMode: rawOpts.concurrencyMode,
+    hostedConcurrencyCoordinator: rawOpts.hostedConcurrencyCoordinator
   })
   const hostedOcrScheduler = rootHostedOcrScheduler.getLifetime() === 'run'
     ? rootHostedOcrScheduler.createDocumentScope(prepared.step1Metadata.pageCount)

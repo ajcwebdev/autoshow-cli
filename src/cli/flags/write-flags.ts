@@ -54,6 +54,7 @@ const writeTtsOptionFlags = omitFlags(ttsCommandFlags, [
   'provider',
   'all-providers',
   'all-local',
+  'concurrency-mode',
   'provider-concurrency',
   'local-concurrency',
   'price'

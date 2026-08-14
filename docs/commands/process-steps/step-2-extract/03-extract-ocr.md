@@ -93,9 +93,10 @@ Hosted OCR service tables list provider-native direct input formats. For hosted 
 | `--all-providers` | Enable every supported OCR provider/model for this route |
 | `--ocr-provider-mode <mode>` | Multi-provider execution: `fanout` or `pool`; default `fanout` |
 | `--primary-ocr <service[/model]>` | In fan-out multi-provider OCR, choose which requested complete provider result writes top-level extraction artifacts; invalid in pool mode |
-| `--provider-concurrency <n>` | Hosted providers/models to run concurrently per item; default `10` |
-| `--local-concurrency <n>` | Local providers to run concurrently per item; default `10` |
+| `--provider-concurrency <n>` | Hosted providers/models to run concurrently per item; default `7` |
+| `--local-concurrency <n>` | Local providers to run concurrently per item; default `7` |
 | `--ocr-concurrency <n>` | Page-level OCR concurrency cap. Local OCR defaults to `10`; hosted OCR defaults to `auto`. Explicit values are hosted hard caps. |
+| `--concurrency-mode <ramp\|immediate>` | Approach each hosted provider/account page cap from one request at one added slot every five seconds (`ramp`, default), or start at the resolved cap (`immediate`) |
 | `--ocr-dpi <n>` | Render DPI for OCR pages |
 | `--chapters`, `--no-chapters` | EPUB native text runs and long PDF chapter autodetection: write chapter files under `chapters/`; use `--no-chapters` for a single extracted file |
 | `--length <n>` | Hard export limit in thousands of characters; splits oversized EPUB or PDF chapter files |
@@ -137,7 +138,7 @@ bun autoshow extract document.pdf \
   --ocr-concurrency 10
 ```
 
-`--provider-concurrency` still bounds active hosted targets and `--local-concurrency` bounds active local targets. Independent provider/account lanes can each reach the applicable OCR page cap, while targets that share one provider/account lane share that cap. An explicit `--ocr-concurrency 10` is a fixed ceiling per applicable lane; omitting the flag keeps adaptive hosted `auto` behavior.
+`--provider-concurrency` still bounds active hosted targets and `--local-concurrency` bounds active local targets. Independent provider/account lanes can each reach the applicable OCR page cap, while targets that share one provider/account lane share that cap. An explicit `--ocr-concurrency 10` is a fixed ceiling per applicable lane; omitting the flag keeps hosted `auto` cap selection. That `auto|fixed` choice determines the ceiling, while `--concurrency-mode` determines how hosted page work approaches it. Local OCR remains immediate.
 
 Pool mode is accepted only for PDFs, CBZ archives, and supported images that every selected target can normalize into compatible page units. Unsupported formats or target/input combinations fail with a usage error before provider dispatch. `--price` labels the per-target page allocation heuristic and charges the page set once; `resume --price` estimates only unfinished pages.
 
