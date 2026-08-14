@@ -1,4 +1,4 @@
-import type { HostedTtsChunkJobContext, HostedTtsChunkScheduler, Step4Metadata, TtsProvider, TtsRequestEvidenceScope } from '~/types'
+import type { HostedTtsChunkJobContext, HostedTtsChunkScheduler, RetryPolicy, Step4Metadata, TtsProvider, TtsRequestEvidenceScope } from '~/types'
 
 export type HostedTtsChunkFetchContext = {
   chunk: string
@@ -20,6 +20,9 @@ export type HostedTtsChunkPipelineOptions = {
   abortSignal?: AbortSignal | undefined
   chunkConcurrency?: number | undefined
   chunkScheduler?: HostedTtsChunkScheduler | undefined
+  retryPolicy?: Partial<RetryPolicy> | undefined
+  /** Explicit authorization to retry paid requests with ambiguous provider admission. */
+  allowAmbiguousRedispatch?: boolean | undefined
   chunkJob?: HostedTtsChunkJobContext | undefined
   laneScopeLabel?: string | undefined
   requestEvidence?: TtsRequestEvidenceScope | undefined

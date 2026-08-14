@@ -3,6 +3,7 @@ import { validateDeepinfraTtsModel, validateDeepinfraTtsVoice } from '~/cli/comm
 import { runDeepinfraTts } from './run-deepinfra-tts'
 import { resolveTtsTargetInvocationVoiceId } from '../../tts-targets/multi-speaker-capability'
 import { resolveTtsTargetInvocationControls } from '../../tts-targets/tts-invocation-controls'
+import { resolveDeepinfraTtsDefaultVoice } from './deepinfra-tts-request'
 
 export const collectDeepinfraTtsTargets = (
   selection: TtsTargetSelection
@@ -15,7 +16,8 @@ export const collectDeepinfraTtsTargets = (
     const target: TtsTarget = {
       service: 'deepinfra',
       model,
-      voice: voiceId ?? 'standard',
+      voice: voiceId ?? resolveDeepinfraTtsDefaultVoice(model),
+      allowFailedImplicitDefaultReplan: voiceId === undefined,
       run: async (text, outputDir, opts, invocation, requestEvidence) => {
         const invocationVoiceId = resolveTtsTargetInvocationVoiceId('deepinfra', invocation)
         const controls = resolveTtsTargetInvocationControls('deepinfra', invocation, {})
@@ -28,6 +30,7 @@ export const collectDeepinfraTtsTargets = (
           chunkConcurrency: opts.ttsChunkConcurrency,
           chunkScheduler: opts.hostedTtsChunkScheduler,
           requestEvidence,
+          allowAmbiguousRedispatch: opts.ttsAllowAmbiguousRedispatch,
           promptInstructions: typeof (controls as { promptInstructions?: unknown }).promptInstructions === 'string' ? (controls as { promptInstructions?: string }).promptInstructions : undefined,
         })
       }

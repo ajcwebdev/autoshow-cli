@@ -10,6 +10,8 @@
       "https://deepinfra.com/openai/whisper-large-v3-turbo/api",
       "https://deepinfra.com/openai/whisper-large-v3-turbo/api?example=openai-speech-http",
       "https://deepinfra.com/openai/whisper-large-v3-turbo/api?example=openai-speech-js",
+      "https://deepinfra.com/meta-llama/Llama-4-Scout-17B-16E-Instruct/api?example=openai-http",
+      "https://deepinfra.com/mistralai/Mistral-Small-3.2-24B-Instruct-2506/api?example=openai-http",
       "https://deepinfra.com/Qwen/Qwen3-VL-235B-A22B-Instruct/api?example=openai-http",
       "https://deepinfra.com/Qwen/Qwen3-VL-30B-A3B-Instruct/api?example=openai-http"
     ],

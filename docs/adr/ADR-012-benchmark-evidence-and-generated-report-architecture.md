@@ -4,7 +4,7 @@
 
 - **Decision Status:** Accepted
 - **Date Created:** 2026-07-16
-- **Date Updated:** 2026-08-13
+- **Date Updated:** 2026-08-14
 - **Verification Status:** Passed
 - **Supersession:** Owns the combined-report architecture, the quality-cost tier contract, paid-approval gates, calibration evidence, provider-refresh benchmark chronology, and artifact repair/compaction rules. Durable registry/lifecycle/capability policy belongs to [ADR-010](ADR-010-hosted-model-registry-lifecycle-and-capability-policy.md); dated model changes belong to [ADR-013](ADR-013-2026-hosted-model-refresh-ledger.md).
 
@@ -19,6 +19,8 @@ Presentation is constrained by how those artifacts are produced and read. Each g
 Tiering is constrained by the same regeneration requirement. Tier membership must be reproducible identically in the HTML, Markdown, and JSON forms from data the builders already compute, must give readers one stable ordering to follow, and must not imply a cross-group leaderboard.
 
 Why now: STT, OCR, and URL combined reports share an expanded ranking contract, so their generated JSON, Markdown, and offline HTML need one deterministic presentation and tiering structure before further benchmark runs are added.
+
+The August TTS provider expansion also needs a safe continuation of four retained June benchmark cohorts. Their manifests predate operation-scoped TTS render evidence and store narration inline, but their successful provider outputs are already-paid evidence. ADR-002 defines the narrow additive bridge; this record owns the exact no-cost preflight, paid-approval state, output validation, provider-schema corrections, and report regeneration for the corrected 13-model refresh cohort.
 
 ## Options Considered
 
@@ -180,7 +182,11 @@ ADR-013 owns which selectors changed; this section owns what was measured, appro
 
 #### TTS and music
 
-- TTS selector and provider catalog refresh verified 109 active hosted selectors using local no-network evidence without invoking synthesis calls.
+- TTS selector and provider catalog refresh verified 122 active hosted selectors using local no-network evidence. The corrected 13-selector addition is Fish `fish-speech-1.5`, `s1`, `s2-pro`, and `voice-design-1`; Inworld `realtime-tts-2` and `realtime-tts-2-flash`; DeepInfra `ResembleAI/chatterbox-multilingual`, `ResembleAI/chatterbox-turbo`, `XiaomiMiMo/MiMo-V2.5-tts`, `XiaomiMiMo/MiMo-V2.5-tts-voicedesign`, `Qwen/Qwen3-TTS`, and `Qwen/Qwen3-TTS-VoiceDesign`; and version-pinned Replicate `jaaari/kokoro-82m`.
+- The first exact additive `resume --price` preflight covered four retained runs: `docs/benchmarks/tts/2026-06-15_18-24-36-993_tts-hard` (1,613 characters, `80.9946¢`), `docs/benchmarks/tts/2026-06-15_18-28-56-715_tts-long` (453 characters, `22.7626¢`), `docs/benchmarks/tts/2026-06-15_18-51-16-094_0-tts-short` (17 characters, `0.8754¢`), and `docs/benchmarks/tts/2026-06-15_18-59-47-953_1-tts` (87 characters, `4.3894¢`). The aggregate estimate was `109.022¢` (`$1.09022`) for 56 additive outputs before ordinary retry, provider-price, or variable-runtime billing variance.
+- The approved first paid pass preserved every retained artifact and produced 34 successful outputs. All four Fish models, Inworld TTS-2, DeepInfra Chatterbox Turbo, and Replicate Kokoro succeeded on all four inputs; Chatterbox Multilingual and MiMo TTS also succeeded on the three shorter inputs. Provider rejections exposed two obsolete Inworld 1.5 IDs and four DeepInfra schema assumptions. The registry now replaces the obsolete selectors with current TTS-2 Flash, and the DeepInfra serializer uses exact per-model fields and input limits. No human-listening quality claim is inferred from successful synthesis.
+- A second write-free `resume --price` pass proved that all 34 successful outputs were zero-cost recoveries and priced exactly 18 remaining outputs: six for the hard run and four for each shorter run. The corrected resume-only estimate was `12.10¢` (`$0.1210`) plus ordinary retry variance. After exact approval, the follow-up produced 17 more successful outputs: current Inworld TTS-2 Flash, both MiMo models, and both Qwen models completed every previously missing input. DeepInfra Chatterbox Multilingual alone continued returning HTTP 500 for the 1,613-character hard input, including after explicit ambiguous-redispatch authorization; the user stopped further DeepInfra attempts. The retained checkpoint and cached artifacts were not deleted. The corrected cohort therefore closes at 51 of 52 current-model outputs, with 12 of 13 on the hard run and all 13 on each other run.
+- The four TTS JSON and Markdown provider-comparison reports were regenerated from the retained successful artifacts. They expose complete local/service price, speed, automated-quality, and human-quality ranking surfaces with aliases and unavailable reasons. The reports make no new human-listening claim; where no voice-quality evidence exists, the quality surfaces remain explicitly unavailable, while the separate overall composite uses the report builder's documented neutral accuracy fallback.
 - Music preflight and execution validated ElevenLabs Music v2 and MiniMax Music 3.0 additions. Resolved an additive-resume output collision by promoting outputs to provider/model-specific filenames before metadata merge.
 
 #### Image and video
@@ -208,7 +214,7 @@ ADR-013 owns which selectors changed; this section owns what was measured, appro
 
 1. Run `bun test test/test-cases/validation/reports-pricing/combined-report-weighted-ranking-contracts.test.ts`.
 2. Confirm every ADR-012 repository reference resolves to this file and the ADR index remains contiguous from ADR-001.
-3. Run `bun run check` and `git diff --check`.
+3. Run `bun run check`, `bun t --price`, and `git diff --check`.
 4. Regenerate combined reports only from committed local artifacts; do not run the full test suite or invoke provider APIs as part of this verification.
 
 ## References
@@ -218,6 +224,7 @@ ADR-013 owns which selectors changed; this section owns what was measured, appro
 - Related ADR: [ADR-010](ADR-010-hosted-model-registry-lifecycle-and-capability-policy.md) — durable model and calibration policy
 - Related ADR: [ADR-011](ADR-011-add-refresh-metadata-to-links.md) — primary-source refresh metadata
 - Related ADR: [ADR-013](ADR-013-2026-hosted-model-refresh-ledger.md) — dated model changes associated with this evidence
+- Related ADR: [ADR-018](ADR-018-sound-effects-and-multi-track-soundscape-pipeline.md) — provider-specific TTS implementation phases and remaining advanced-capability gates
 - `.codex/skills/consensus/scripts/shared/combined_report_lib.ts`
 - `.codex/skills/consensus/scripts/shared/combined_report_html.ts`
 - `.codex/skills/consensus/scripts/stt/build_combined_report.ts`
@@ -227,3 +234,4 @@ ADR-013 owns which selectors changed; this section owns what was measured, appro
 - `docs/benchmarks/stt/combined-comparison-report.{json,md,html}`
 - `docs/benchmarks/ocr/combined-comparison-report.{json,md,html}`
 - `docs/benchmarks/url/combined-comparison-report.{json,md,html}`
+- `docs/benchmarks/tts/2026-06-15_18-24-36-993_tts-hard/`, `docs/benchmarks/tts/2026-06-15_18-28-56-715_tts-long/`, `docs/benchmarks/tts/2026-06-15_18-51-16-094_0-tts-short/`, `docs/benchmarks/tts/2026-06-15_18-59-47-953_1-tts/`

@@ -19,6 +19,8 @@ export const runHostedTtsChunkPipeline = async (
         {
           operationName: `${provider}-tts-chunk-${chunkIndex}`,
           abortSignal: options.abortSignal,
+          policy: options.retryPolicy,
+          allowAmbiguousRedispatch: options.allowAmbiguousRedispatch,
           admission,
           chunkScheduler
         },

@@ -171,6 +171,32 @@ describe('retry error contracts', () => {
     expect(attempts).toBe(1)
   })
 
+  test('withHostedTtsRetry performs bounded ambiguous 5xx redispatch only when explicitly authorized', async () => {
+    let attempts = 0
+    const result = await withHostedTtsRetry(
+      {
+        operationName: 'hosted-tts-authorized-ambiguous-retry',
+        allowAmbiguousRedispatch: true,
+        policy: {
+          ...FAST_RETRY_POLICY,
+          maxAttempts: 5
+        }
+      },
+      async () => {
+        attempts += 1
+        if (attempts < 4) {
+          const error = ProviderError('provider inference failed', { status: 500, retryable: true })
+          Object.defineProperty(error, 'ttsAdmissionAmbiguous', { value: true, configurable: true })
+          throw error
+        }
+        return 'recovered'
+      }
+    )
+
+    expect(result).toBe('recovered')
+    expect(attempts).toBe(4)
+  })
+
   test('withHostedTtsRetry does not retry deterministic local contract errors', async () => {
     let attempts = 0
     const contractError = CLIUsageError('serializer evidence does not match the immutable plan')

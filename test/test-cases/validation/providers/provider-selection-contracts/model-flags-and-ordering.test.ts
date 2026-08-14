@@ -85,7 +85,9 @@ describe('provider selection contracts', () => {
       'grok-ocr',
       'anthropic-ocr',
       'gemini-ocr',
-      'deepinfra-ocr'
+      'deepinfra-ocr',
+      'replicate-ocr',
+      'fal-ocr'
     ])
   })
 

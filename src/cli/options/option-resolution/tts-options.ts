@@ -151,6 +151,7 @@ export const buildTtsOptions = (
 
   const options: TtsRuntimeOptions = {
     ...pick(modelOptions, TTS_MODEL_KEYS),
+    ttsAllowAmbiguousRedispatch: readBooleanFlag(flags, 'tts-allow-ambiguous-redispatch'),
     ttsSpeaker: (() => {
       const raw = readStringFlag(flags, 'kitten-voice', DEFAULT_KITTEN_TTS_SPEAKER)
       return kittenTtsModelValue !== undefined

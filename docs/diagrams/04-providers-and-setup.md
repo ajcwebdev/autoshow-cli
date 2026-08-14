@@ -144,7 +144,7 @@ These checks come from `HOSTED_PROVIDER_ENV_CHECKS`:
 | `LTXV_API_KEY` | LTX video |
 | `MISTRAL_API_KEY` | Mistral STT/OCR/TTS |
 | `BFL_API_KEY` | BFL image |
-| `FAL_API_KEY` | fal.ai image/video |
+| `FAL_API_KEY` | fal.ai OCR, image, and video |
 | `RECRAFT_API_TOKEN` | Recraft image |
 | `REPLICATE_API_TOKEN` | Replicate image/video |
 | `LUMA_AGENTS_API_KEY` | Luma Labs image/video |

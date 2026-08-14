@@ -12,25 +12,74 @@
     "repeatedTokenWindowSize": 8,
     "repeatedTokenWindowMinimum": 6,
     "repeatedTokenWindowShare": 0.35,
-    "highDisagreement": 0.18,
-    "pageDisagreementQ1": 0.095226,
-    "pageDisagreementQ3": 0.095226
+    "highDisagreement": 0.304962,
+    "pageDisagreementQ1": 0.304962,
+    "pageDisagreementQ3": 0.304962
   },
   "blankOutputPages": [],
   "repeatedTextPages": [],
   "majorLengthDriftPages": [],
-  "highDisagreementPages": [],
+  "highDisagreementPages": [
+    {
+      "pageNumber": 1,
+      "pageDisagreement": 0.304962,
+      "selectedProviderKey": "deepinfra/google/gemma-3-27b-it",
+      "selectedConfidence": 0.618957
+    }
+  ],
   "werCerDivergencePages": [
     {
       "pageNumber": 1,
       "providers": [
         {
-          "providerKey": "openai/gpt-5.4-mini",
-          "wer": 0.277356,
-          "cer": 0.043762
+          "providerKey": "replicate/datalab-to/ocr",
+          "wer": 0.360439,
+          "cer": 0.105925
+        },
+        {
+          "providerKey": "deepinfra/google/gemma-3-27b-it",
+          "wer": 0.271241,
+          "cer": 0.089395
+        },
+        {
+          "providerKey": "deepinfra/meta-llama/Llama-4-Scout-17B-16E-Instruct",
+          "wer": 0.281334,
+          "cer": 0.097685
+        },
+        {
+          "providerKey": "replicate/lucataco/deepseek-ocr",
+          "wer": 0.427152,
+          "cer": 0.200371
+        },
+        {
+          "providerKey": "fal/fal-ai/florence-2-large/ocr",
+          "wer": 0.651389,
+          "cer": 0.209026
+        },
+        {
+          "providerKey": "fal/fal-ai/got-ocr/v2",
+          "wer": 0.623786,
+          "cer": 0.203482
+        },
+        {
+          "providerKey": "replicate/datalab-to/marker",
+          "wer": 0.269594,
+          "cer": 0.090783
+        },
+        {
+          "providerKey": "deepinfra/mistralai/Mistral-Small-3.2-24B-Instruct-2506",
+          "wer": 0.280207,
+          "cer": 0.095772
         }
       ]
     }
   ],
-  "lowConfidencePages": []
+  "lowConfidencePages": [
+    {
+      "pageNumber": 1,
+      "selectedProviderKey": "deepinfra/google/gemma-3-27b-it",
+      "selectedConfidence": 0.618957,
+      "pageDisagreement": 0.304962
+    }
+  ]
 }

@@ -4,7 +4,7 @@
 
 - **Decision Status:** Accepted
 - **Date Created:** 2026-07-13
-- **Date Updated:** 2026-08-13
+- **Date Updated:** 2026-08-14
 - **Verification Status:** Passed
 - **Supersession:** Owns the durable registry, lifecycle, capability, and reasoning policy shared by the write, OCR, STT, TTS, music, image, and video registries. Dated provider/model refresh history belongs to [ADR-013](ADR-013-2026-hosted-model-refresh-ledger.md); paid-approval gates, calibration evidence, and generated-report contracts belong to [ADR-012](ADR-012-benchmark-evidence-and-generated-report-architecture.md).
 
@@ -13,6 +13,8 @@
 AutoShow's hosted-model registries are public CLI, configuration, pricing, resume, artifact, benchmark, and documentation surfaces. Accepted model arrays determine selector types and validation; registry metadata determines prices, timing estimates, limits, lifecycle eligibility, and capabilities; bare selectors and `--all-*` flags determine execution targets; provider adapters determine whether each advertised selector can actually run with its supported controls and modes; and historical readers determine whether old artifacts remain attributable and repricable.
 
 A model selector is therefore a complete runtime promise, not a validator string. Concrete identity, lifecycle, pricing, defaults, all-provider expansion, request construction, response parsing, help, resume behavior, historical identity, and local contracts must move together. Moving aliases, availability tiers, voice IDs, free billing variants, and transport-incompatible products are not equivalent model selectors.
+
+That promise also requires one inventory. Handwritten execution, public-selector, pricing, and resume lists can each compile while disagreeing; the 2026 TTS expansion exposed this when four newly registered providers were selectable for fresh synthesis but absent from standalone resume. Write had the same class of omission for local `llamafile`, and extract duplicated its route-aware STT/OCR provider map. Registry completeness therefore includes mechanical propagation from the canonical provider/model selection descriptor into every resume surface.
 
 Reasoning policy is part of that capability promise. Hosted LLM-backed write and OCR adapters previously hardcoded incompatible provider-local fields — per-provider effort levels, binary `thinking` toggles, always-on reasoning with no toggle at all — and those hidden choices affected tokens, latency, price, cache identity, manifests, and resume compatibility without one typed surface.
 
@@ -63,6 +65,10 @@ Every selector addition, replacement, or retirement updates together:
 - CLI help, examples, documentation links, price preflight, resume selection, and targeted local contracts; and
 - historical result identity, replacement guidance, and retired pricing when active support ends.
 
+Each command family has one typed canonical selection descriptor connecting provider keys to execution flags and repeatable model fields. Execution normalization, all-provider expansion, price planning, and resume derive their provider/model inventories from that descriptor or the same canonical target maps. No resume handler may maintain a parallel provider list or model-field table. Compile-time key equality makes a new provider incomplete until the descriptor contains its model fields; bidirectional local contracts reject both execution-only and resume-only targets. New models under an existing provider flow through the existing repeatable registry field automatically.
+
+Extract uses the same rule with route-qualified maps: its public provider selectors are derived from canonical STT and OCR targets, then resolved against the stored route. A provider shared by STT and OCR can expose both canonical mappings without permitting the wrong target kind for a given item.
+
 Invalid model/control combinations fail locally before price calculation, credential lookup, or provider dispatch. Registry presence never implies support that the adapter does not implement.
 
 Stable AutoShow family selectors may route internally to provider mode-specific endpoints when the model identity remains constant and the selected mode is explicit in validated inputs. This applies to queue-backed providers such as fal.ai; it does not permit one provider's historical identity to be reinterpreted as another provider's result.
@@ -108,6 +114,7 @@ Refresh chronology belongs to ADR-013; benchmark and report evidence to ADR-012;
 
 - Concrete fixed IDs keep manifests, prices, benchmarks, and all-provider execution reproducible.
 - One selector contract prevents validator, adapter, pricing, resume, and documentation drift.
+- Derived selection descriptors prevent a provider or model from becoming fresh-run-only merely because a resume inventory was not updated by hand.
 - Static lifecycle metadata provides deterministic migrations without provider-specific hardcoded defaults or date-driven behavior.
 - Preserving historical identities and rates protects evidence without continuing to advertise stale models.
 - One normalized reasoning concept keeps provider vocabulary out of the public CLI while typed capabilities preserve real differences.
@@ -118,6 +125,7 @@ Refresh chronology belongs to ADR-013; benchmark and report evidence to ADR-012;
 Positive outcomes:
 
 - Every hosted modality follows one identity, eligibility, retirement, pricing, validation, reasoning, resume, and historical-evidence contract.
+- Every supported provider/model can be selected additively through its matching resume command, including local models covered by the command family.
 - New models can declare capabilities without adding provider-specific public flags or scattered name checks.
 - Deprecated models can leave automatic paid expansion before full retirement without changing behavior by date.
 - Historical outputs remain attributable and repricable after active selectors are removed.
@@ -127,6 +135,7 @@ Negative outcomes:
 
 - Registry schemas and per-model capability tables require ongoing maintenance as provider products change.
 - Active selector surfaces, help, and local contract matrices grow as documented siblings and capability variants are added.
+- Typed command descriptors add an explicit integration step when a brand-new provider is introduced.
 - Historical and active identity handling remain separate code paths.
 - Provisional heuristics remain less precise until separately approved, qualified calibration evidence exists.
 - The normalized reasoning enum is intentionally not the union of every provider-specific level.
@@ -150,6 +159,8 @@ The policy is implemented across the model registries and loaders under `src/cli
 
 The generic lifecycle mechanism validates evidence dates and concrete same-service replacements, filters cheapest defaults and all-provider expansion, and keeps selection independent of the current date. A full deprecate-then-retire transition has run end to end under this contract: automatic eligibility was withdrawn first, active selection was retired later, current config was removed, historical rates and stored identity remained readable, and successor selection stayed explicit and additive. ADR-013 records which models moved through each step.
 
+`provider-targets.ts` now defines the canonical generation selection descriptors used by write, TTS, image, video, and music resume. `extract-selectors.ts` derives its route-aware public provider inventory from the canonical STT/OCR maps. Resume contract tests compare these descriptors to every handler in both directions, and the TTS descriptor covers all 16 current providers and their singular/repeatable model fields.
+
 ## API / Type Impact
 
 - All hosted model unions and registry schemas represent concrete active identities plus separate historical readers.
@@ -157,6 +168,7 @@ The generic lifecycle mechanism validates evidence dates and concrete same-servi
 - `write`, hosted OCR `extract`, and matching resume paths accept the seven-value `--reasoning-effort` surface only where selected models advertise support.
 - Provider options receive a normalized reasoning policy; provider request builders retain ownership of native field shapes.
 - Manifests distinguish omitted reasoning from explicit `default` and store requested/effective policy when material.
+- Generation selection descriptors bind each provider target to its model option fields; resume provider flags and model clearing/collection derive from those bindings.
 
 ## Follow-up Actions
 
@@ -173,8 +185,9 @@ The generic lifecycle mechanism validates evidence dates and concrete same-servi
 - Reasoning contracts cover parsing, omitted and explicit provider defaults, capability validation, provider request mapping, hosted-only scope, pre-dispatch validation, pricing, resume compatibility, manifest propagation, and hosted OCR cache identity.
 - Lifecycle contracts cover valid evidence dates, same-service concrete replacements, no moving aliases, deterministic defaults, all-expansion eligibility, successor guidance, historical identity, and no wall-clock selection.
 - Capability contracts prove active-selector acceptance, removed-selector rejection, exact all-provider expansion, complete pricing metadata, and local rejection of unsupported controls.
+- Selection inventory contracts prove every extract, write, TTS, image, video, and music execution target has matching resume routing and that repeatable model flags include every registered provider family.
 - Do not run `bun run t`, `bun test/test-runner.ts`, provider smoke tests, paid provider commands, or quota-risk E2E paths. Any live calibration or benchmark requires immediate explicit approval naming the exact command and expected cost or quota risk.
-- Last verified 2026-08-13: `bun run check`, `bun t --price` across 165 mapped commands, and the targeted reasoning, pricing, registry, resume, and provider-selection contracts all passed without a provider call.
+- Last verified 2026-08-14: `bun run check`, `bun t --price` across 175 mapped commands, and the targeted reasoning, pricing, registry, resume, and provider-selection contracts all passed without a provider call.
 
 ## References
 
@@ -186,11 +199,14 @@ The generic lifecycle mechanism validates evidence dates and concrete same-servi
 - Benchmark evidence and generated reports: [ADR-012](ADR-012-benchmark-evidence-and-generated-report-architecture.md)
 - Dated hosted-model refresh ledger: [ADR-013](ADR-013-2026-hosted-model-refresh-ledger.md)
 - Character voice and multi-speaker architecture: [ADR-014](ADR-014-add-character-voice-references-and-multi-speaker-script-to-audio.md)
+- Soundscape and added TTS provider implementation phases: [ADR-018](ADR-018-sound-effects-and-multi-track-soundscape-pipeline.md)
 - Write command documentation: `docs/commands/process-steps/step-3-write/write-text.md`
 - Model registries and configuration: `src/cli/commands/setup-and-utilities/models/`
 - Lifecycle resolver and schemas: `src/cli/commands/setup-and-utilities/models/model-loader/model-lifecycle.ts`, `src/cli/commands/setup-and-utilities/models/model-loader/model-loader-schemas.ts`
 - Retired rates: `src/cli/commands/setup-and-utilities/models/model-loader/retired-model-rates.ts`, `src/cli/commands/pricing-orchestration/compute-actual-costs.ts`
 - Reasoning resolver: `src/cli/commands/setup-and-utilities/models/reasoning-resolver.ts`
 - Model flag selection: `src/cli/options/option-resolution/model-flag-selection.ts`
+- Canonical selection descriptors and target maps: `src/cli/flags/service-selector-normalization/provider-targets.ts`, `src/cli/flags/service-selector-normalization/extract-selectors.ts`
+- Resume selection parity contracts: `test/test-cases/validation/resume-manifests/resume-provider-surface-contracts.test.ts`, `test/test-cases/validation/providers/provider-selection-contracts/selection-inventory-contracts.test.ts`
 - Provider adapters: `src/cli/commands/process-steps/step-2-extract/`, `src/cli/commands/process-steps/step-3-write/`, `src/cli/commands/process-steps/step-4-tts/`, `src/cli/commands/process-steps/step-5-image/`, `src/cli/commands/process-steps/step-6-video/`, `src/cli/commands/process-steps/step-7-music/`
 - Primary-source snapshots and refresh metadata: `project/links/`

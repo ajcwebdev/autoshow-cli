@@ -41,7 +41,7 @@ Step 2 execution is domain-owned above shared provider identity: extraction doma
 
 ### Extract domain ownership
 
-Shared Step 2 registries own provider identity, hosted/local grouping, configuration paths, shortcuts, provider specs, and target identity. Each extraction domain owns its execution adapters, retry and cleanup behavior, provider response handling, normalized output, and artifact writing.
+Shared Step 2 registries own provider identity, hosted/local grouping, configuration paths, shortcuts, provider specs, target identity, and the canonical STT/OCR provider-target maps. Public `extract --provider` normalization and route-aware resume selection derive from those maps; they do not maintain another list of provider spellings. Each extraction domain owns its execution adapters, retry and cleanup behavior, provider response handling, normalized output, and artifact writing.
 
 URL execution remains under `step-2-url`. `article` is a first-class route and is never inferred from `x-space`, input family, or provider metadata. X Spaces retain their separate route and explicit non-resumable behavior. URL adapters normalize article content and write domain artifacts, while provider progress and resume eligibility are recorded only in [ADR-002](ADR-002-pipeline-state-resume-and-dry-run-planning.md)'s canonical manifest.
 
@@ -102,6 +102,7 @@ This applies to:
 - A derived batch report exposes repeated blockers and cost gaps without duplicating mutable child provider state.
 - Source placement follows dependency ownership: pure calculations remain reusable, while command and document orchestration remain above them.
 - Explicit URL routes preserve domain-specific runtime behavior without duplicating provider identity or canonical state.
+- Deriving public and resume selectors from the canonical STT/OCR maps prevents a newly added extract provider from working only in fresh execution or only on one duplicated route table.
 - Logical ordinal first makes EPUB and PDF chapter paths sort by reading order, while a real source locator preserves debugging traceability.
 
 ## Consequences
@@ -149,6 +150,8 @@ Negative outcomes:
 
 The architecture is implemented. Tesseract is the sole local engine; source-specific code is grouped by ebook, image, PDF, and office/native input; provider failures are classified and sanitized before durable reporting; automatic resume filters `blockedProviders`; and explicit provider resume can opt back in. Hosted work uses fair provider/account lanes, run-scoped batch admission, adaptive `auto` or explicit fixed ceiling selection, shared five-second ramp or immediate startup, classified rate-limit recovery, and a profile-raised ceiling of `48`.
 
+`extract-selectors.ts` builds `EXTRACT_PUBLIC_SELECTOR_FLAGS` from `WRITE_STT_PROVIDER_TARGETS` and `WRITE_OCR_PROVIDER_TARGETS`. Route-aware resume therefore receives the same provider inventory as fresh extract selection, and local bidirectional contracts fail if either canonical map and the public/resume surface diverge.
+
 Scheduler telemetry records lane activity, cap changes, pause/retry pressure, throughput, target shares, and likely gating targets. Timing metadata separates wall-clock/gating time from summed provider processing time. Full clean target samples may inform throughput profiles, while failed or incomplete targets remain ineligible as healthy samples. Partial failed-provider artifacts and usage remain reportable without being treated as successful extraction.
 
 Pooled OCR orchestration is implemented in `ocr-pooled-batch.ts` over the shared selector in `ocr-provider-pool.ts`. Page inputs are prepared once per page where possible, every attempt uses a contained page/attempt directory, successful commits checkpoint the canonical ledger atomically, and final assembly writes one top-level artifact. Fan-out continues through `ocr-multi-provider-batch.ts` without changing its provider directories or primary-result rules.
@@ -180,6 +183,7 @@ The extraction CLI surface is preserved; the internal, profile, and report contr
 - `bun run audit:ocr-tokens -- --run-dir <path>` audits explicitly named local run directories; `--profile <path>` and `--all-token-providers` extend its explicit input scope, and the command never searches the home directory implicitly.
 - Chapter naming adds no CLI flag or metadata schema; the public path shape is `NN-PPP-title` for PDF and `NN-III-title` for EPUB, with dynamic widths and split suffixes.
 - URL provider identity remains registry-owned, while URL response, normalized article, and artifact types remain under `step-2-url`.
+- Extract public/resume provider normalization is a projection of the canonical STT/OCR target maps and remains route-qualified after normalization.
 
 ## Follow-up Actions
 
@@ -198,6 +202,7 @@ The extraction CLI surface is preserved; the internal, profile, and report contr
 - Test page attribution, reasoning and cache identity, attempt artifact isolation and containment, ordered output, pooled estimates, failed-attempt actual usage, deterministic diagnostics, and byte-for-byte-compatible fan-out behavior.
 - Test timing, gating-target, `partialStep2`, `partial_provider_usage`, throughput-profile, token-profile, audit-gate, and batch-diagnostic behavior, including rejection of identifying data and unhealthy samples.
 - Test URL registry ordering and selection separately from explicit article-vs-X-Space runtime routing.
+- Test bidirectional equality between the canonical STT/OCR target maps and route-aware public/resume provider selection.
 - Test PDF and EPUB chapter names, 100+ dynamic widths, split sorting, source locators, and collision behavior with local fixtures.
 - Run `bun run check`, `bun t --price`, focused mocked Kimi/Gemini provider contracts, focused OCR pricing/profile/audit/report contracts, CLI help/usage contracts, repository import/path checks, and `git diff --check`. Do not run hosted OCR providers or full provider suite.
 - Verification evidence for shared OCR admission is dated 2026-08-14 and covers the default no-cost checks plus focused local/mock scheduler, cap-selection, pricing, resume, and CLI contracts. No hosted OCR command is run.
@@ -223,6 +228,7 @@ The extraction CLI surface is preserved; the internal, profile, and report contr
 - OCR workflow types: `src/types/ocr-workflow/`
 - Token-shape audit entry point: `scripts/audit-ocr-token-shapes.ts`
 - Resume command: `src/cli/commands/setup-and-utilities/resume/`
+- Extract selector projection: `src/cli/flags/service-selector-normalization/extract-selectors.ts`, `src/cli/flags/service-selector-normalization/provider-targets.ts`
 - Shared chapter filename helper: `src/cli/commands/process-steps/step-2-extract/step-2-ocr/chapter-artifact-filenames.ts`
 - EPUB chapter producer: `src/cli/commands/process-steps/step-2-extract/step-2-ocr/ebook/epub/export.ts`
 - PDF chapter producer: `src/cli/commands/process-steps/step-2-extract/step-2-ocr/pdf/ocr-chapters/ocr-chapter-artifacts.ts`

@@ -1,13 +1,21 @@
 import type { DeepinfraTtsModel, HostedTtsChunkScheduler, Step4Metadata, TtsRequestEvidenceScope } from '~/types'
 import { logTtsConfig } from '~/cli/commands/process-steps/step-4-tts/tts-utils/log-tts-config'
 import { splitTextIntoChunks } from '~/cli/commands/process-steps/step-4-tts/tts-utils/audio-utils'
-import { TTS_CHUNK_CHARACTER_LIMITS } from '~/cli/commands/process-steps/step-4-tts/tts-utils/tts-chunking'
+import { resolveTtsChunkCharacterLimit } from '~/cli/commands/process-steps/step-4-tts/tts-utils/tts-chunking'
 import { runHostedTtsChunkPipeline } from '~/cli/commands/process-steps/step-4-tts/tts-utils/hosted-tts-chunk-pipeline'
-import { DEEPINFRA_DEFAULT_TTS_VOICE, validateDeepinfraTtsVoice } from '~/cli/commands/setup-and-utilities/models/setup-model-options'
+import { validateDeepinfraTtsVoice } from '~/cli/commands/setup-and-utilities/models/setup-model-options'
 import { ProviderError, ValidationError } from '~/utils/error-handler'
 import { extractRestErrorMessage, isRecord, parseJsonOrText, readJsonResponse, readRestResponseText } from '~/utils/rest-client'
 import { isRetryableStatus } from '~/utils/retries'
 import { dispatchTtsProviderRequest } from '../../script-to-audio/tts-request-evidence'
+import {
+  buildDeepinfraTtsRequestBody,
+  DEEPINFRA_TTS_SERIALIZER_VERSION,
+  prepareDeepinfraTtsText,
+  resolveDeepinfraTtsDefaultVoice,
+  resolveDeepinfraTtsRequestControls,
+  resolveDeepinfraTtsVoiceField,
+} from './deepinfra-tts-request'
 
 export type RunDeepinfraTtsOptions = Readonly<{
   model: DeepinfraTtsModel
@@ -18,7 +26,16 @@ export type RunDeepinfraTtsOptions = Readonly<{
   chunkConcurrency?: number | undefined
   chunkScheduler?: HostedTtsChunkScheduler | undefined
   requestEvidence?: TtsRequestEvidenceScope | undefined
+  allowAmbiguousRedispatch?: boolean | undefined
 }>
+
+export const DEEPINFRA_TTS_RETRY_POLICY = {
+  maxAttempts: 8,
+  baseDelayMs: 3_000,
+  maxDelayMs: 30_000,
+  jitter: true,
+  exponential: true
+} as const
 
 export const runDeepinfraTts = async (
   text: string,
@@ -28,8 +45,11 @@ export const runDeepinfraTts = async (
   if (!options.apiKey.trim()) {
     throw ValidationError('DeepInfra API key is required', { stage: 'tts:deepinfra' })
   }
-  const voice = validateDeepinfraTtsVoice(options.voiceId?.trim() || DEEPINFRA_DEFAULT_TTS_VOICE)
-  const chunks = splitTextIntoChunks(text, TTS_CHUNK_CHARACTER_LIMITS.deepinfra ?? 2000)
+  const voice = validateDeepinfraTtsVoice(options.voiceId?.trim() || resolveDeepinfraTtsDefaultVoice(options.model))
+  const providerText = prepareDeepinfraTtsText(options.model, text)
+  const chunks = splitTextIntoChunks(providerText, resolveTtsChunkCharacterLimit('deepinfra', options.model) ?? 2000)
+  const voiceField = resolveDeepinfraTtsVoiceField(options.model)
+  const requestControls = resolveDeepinfraTtsRequestControls(options.model, options.promptInstructions)
 
   if (chunks.length === 0) {
     throw ValidationError('DeepInfra TTS input text is empty', { stage: 'tts:deepinfra' })
@@ -54,27 +74,28 @@ export const runDeepinfraTts = async (
     abortSignal: options.abortSignal,
     chunkConcurrency: options.chunkConcurrency,
     chunkScheduler: options.chunkScheduler,
+    retryPolicy: DEEPINFRA_TTS_RETRY_POLICY,
+    allowAmbiguousRedispatch: options.allowAmbiguousRedispatch,
     requestEvidence: options.requestEvidence,
     fetchChunkAudio: async ({ chunk, chunkIndex, requestAttempt, retryReasonCode, signal }) => {
+      const body = buildDeepinfraTtsRequestBody({
+        model: options.model,
+        text: chunk,
+        voice,
+        promptInstructions: options.promptInstructions
+      })
       return await dispatchTtsProviderRequest(options.requestEvidence, {
         chunkIndex,
         endpointKind: 'inference',
-        serializerVersion: 'deepinfra.tts.phase-4-v1',
+        serializerVersion: DEEPINFRA_TTS_SERIALIZER_VERSION,
         serializedRequest: {
           path: `/v1/inference/${options.model}`,
-          body: {
-            text: chunk,
-            preset_voice: voice,
-            ...(options.promptInstructions ? { prompt: options.promptInstructions } : {})
-          }
+          body
         },
         providerText: chunk,
-        voiceField: 'preset_voice',
+        voiceField,
         voices: [{ kind: 'provider-id', value: voice }],
-        requestControls: {
-          format: 'wav',
-          ...(options.promptInstructions ? { promptInstructions: options.promptInstructions } : {})
-        },
+        requestControls,
         continuation: { kind: 'none' }
       }, { attempt: requestAttempt, ...(retryReasonCode ? { retryReasonCode } : {}) }, async ({ accepted }) => {
         const res = await fetch(`https://api.deepinfra.com/v1/inference/${options.model}`, {
@@ -83,11 +104,7 @@ export const runDeepinfraTts = async (
             'Content-Type': 'application/json',
             'Authorization': `Bearer ${options.apiKey}`
           },
-          body: JSON.stringify({
-            text: chunk,
-            preset_voice: voice,
-            ...(options.promptInstructions ? { prompt: options.promptInstructions } : {})
-          }),
+          body: JSON.stringify(body),
           ...(signal ? { signal } : {})
         })
         if (!res.ok) {

@@ -104,16 +104,18 @@ Approval appends a new content-identified registration generation and atomically
 
 ## Advanced Provider Capabilities
 
-| Provider | Catalog | Design | Clone facet | Native multi-speaker |
-|---|---|---|---|---|
-| ElevenLabs | Account and shared library | Design and eligibility-proved remix | Instant clone; Professional Voice Clone reports verification state | `eleven_v3` Text-to-Dialogue when the plan is exactly representable |
-| Hume | Stock and custom account voices | Octave 1 design, compatible with Octave 1/2 synthesis | Subscription-gated dashboard action followed by stable-ID import | Octave 2 native utterances |
-| MiniMax | System, generated, and cloned voices | One temporary generated candidate | One protected mp3/m4a/wav sample, 10 seconds–5 minutes and no larger than 20 MiB, through upload and clone APIs | No; segmented rendering |
-| Cartesia | Public and account voices with cursor pagination | Not exposed | Instant API clone; Pro Voice Clone remains a gated dashboard action | No; segmented rendering |
-| Fish | Public and account voice models | Stateless protected preview followed by exact-sample model creation | Fast model creation is implemented internally; the generic `voice clone` command remains pending | No; segmented rendering |
-| Speechify | Shared and personal voices with cursor pagination | Not exposed | Personal voice clone with protected 10–30 second sample and consent payload | No; segmented rendering |
+| Provider | Catalog | Design | Clone facet | Native multi-speaker | Emotion / Inflection |
+|---|---|---|---|---|---|
+| ElevenLabs | ✅ Account and shared library | ✅ Design and eligibility-proved remix | ✅ Instant clone; ⚠️ Professional Voice Clone reports verification state | ⚠️ `eleven_v3` Text-to-Dialogue when the plan is exactly representable | ✅ Style exaggeration, stability variability, and contextual prosody |
+| Hume | ✅ Stock and custom account voices | ✅ Octave 1 design, compatible with Octave 1/2 synthesis | ⚠️ Subscription-gated dashboard action followed by stable-ID import | ✅ Octave 2 native utterances | ✅ Natural language acting description and tone prompts |
+| MiniMax | ✅ System, generated, and cloned voices | ⚠️ One temporary generated candidate | ✅ One protected mp3/m4a/wav sample, 10 seconds–5 minutes and no larger than 20 MiB, through upload and clone APIs | ❌ No; segmented rendering | ✅ Explicit emotion selectors (happy, sad, angry, etc.), pitch, and volume |
+| Cartesia | ✅ Public and account voices with cursor pagination | ❌ Not exposed | ✅ Instant API clone; ⚠️ Pro Voice Clone remains a gated dashboard action | ❌ No; segmented rendering | ❌ Not exposed (speed and voice profile only) |
+| Fish | ✅ Public and account voice models | ✅ Stateless protected preview followed by exact-sample model creation | ⚠️ Fast model creation is implemented internally; the generic `voice clone` command remains pending | ❌ No; segmented rendering | ⚠️ In-text vocal reactions and emotion markup |
+| Speechify | ✅ Shared and personal voices with cursor pagination | ❌ Not exposed | ✅ Personal voice clone with protected 10–30 second sample and consent payload | ❌ No; segmented rendering | ❌ Not exposed |
+| Mistral | ⚠️ Project-owned saved reference voices (inspect/delete); no public catalog | ❌ Not exposed | ✅ Saved-reference voice creation from protected sample | ❌ No; segmented rendering | ❌ Not exposed |
+| Inworld | ✅ System and account voices with list-voices API | ❌ Not exposed | ❌ Not exposed | ❌ No; segmented rendering | ✅ Natural language steering prompts (emotion and attitude) |
 
-Clone ports consume protected assets and explicit consent/provenance records and never place sample bytes or contact PII in ordinary artifacts. Synthesis commands cannot invoke them. Cartesia and Speechify text-prompt design, MiniMax/Cartesia/Fish/Speechify native multi-speaker dialogue, MiniMax professional cloning, and Speechify professional cloning are explicitly unsupported rather than inferred from adjacent provider features. Inworld and DeepInfra expose synthesis selectors but no advanced voice-management ports. Replicate exposes only the pinned Kokoro stock-voice synthesis target; reference-audio clone models remain unavailable until they have protected-asset and consent-aware adapters. Request-time model features are not represented as fabricated durable resources.
+Clone ports consume protected assets and explicit consent/provenance records and never place sample bytes or contact PII in ordinary artifacts. Synthesis commands cannot invoke them. Cartesia and Speechify text-prompt design, MiniMax/Cartesia/Fish/Speechify native multi-speaker dialogue, MiniMax professional cloning, and Speechify professional cloning are explicitly unsupported rather than inferred from adjacent provider features. Inworld exposes read-only catalog discovery and synthesis selectors without remote mutation ports. DeepInfra exposes synthesis selectors but no advanced voice-management ports. Replicate exposes only the pinned Kokoro stock-voice synthesis target; reference-audio clone models remain unavailable until they have protected-asset and consent-aware adapters. Request-time model features are not represented as fabricated durable resources.
 
 ## Protected and Ordinary Artifacts
 

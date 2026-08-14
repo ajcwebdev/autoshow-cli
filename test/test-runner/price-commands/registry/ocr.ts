@@ -21,8 +21,19 @@ export const ocrRegistry: PriceSelectionEntry[] = [
     command('extract-gemini-gemini-3.5-flash', 'extract-gemini-gemini-3.5-flash', ['src/cli/create-cli.ts', 'extract', 'input/examples/document/1-document.pdf', '--provider', 'gemini=gemini-3.5-flash', '--price']),
   ]),
   ...exact('test/test-cases/e2e/service/step-2-ocr-e2e/ocr-services/deepinfra-qwen3-vl-30b-a3b-instruct.test.ts', [
+    command('extract-deepinfra-google-gemma-3-27b-it', 'extract-deepinfra-google-gemma-3-27b-it', ['src/cli/create-cli.ts', 'extract', 'input/examples/document/1-document.pdf', '--provider', 'deepinfra=google/gemma-3-27b-it', '--price']),
+    command('extract-deepinfra-meta-llama-llama-4-scout-17b-16e-instruct', 'extract-deepinfra-meta-llama-llama-4-scout-17b-16e-instruct', ['src/cli/create-cli.ts', 'extract', 'input/examples/document/1-document.pdf', '--provider', 'deepinfra=meta-llama/Llama-4-Scout-17B-16E-Instruct', '--price']),
+    command('extract-deepinfra-mistralai-mistral-small-3-2-24b-instruct-2506', 'extract-deepinfra-mistralai-mistral-small-3-2-24b-instruct-2506', ['src/cli/create-cli.ts', 'extract', 'input/examples/document/1-document.pdf', '--provider', 'deepinfra=mistralai/Mistral-Small-3.2-24B-Instruct-2506', '--price']),
     command('extract-deepinfra-qwen3-vl-235b-a22b-instruct', 'extract-deepinfra-qwen3-vl-235b-a22b-instruct', ['src/cli/create-cli.ts', 'extract', 'input/examples/document/1-document.pdf', '--provider', 'deepinfra=Qwen/Qwen3-VL-235B-A22B-Instruct', '--price']),
     command('extract-deepinfra-qwen3-vl-30b-a3b-instruct', 'extract-deepinfra-Qwen/Qwen3-VL-30B-A3B-Instruct', ['src/cli/create-cli.ts', 'extract', 'input/examples/document/1-document.pdf', '--provider', 'deepinfra=Qwen/Qwen3-VL-30B-A3B-Instruct', '--price']),
+  ]),
+  ...exact('test/test-cases/e2e/service/step-2-ocr-e2e/ocr-services/ocr-replicate.test.ts', [
+    command('extract-replicate-datalab-to-ocr', 'extract-replicate-datalab-to-ocr', ['src/cli/create-cli.ts', 'extract', 'input/examples/document/1-document.pdf', '--provider', 'replicate=datalab-to/ocr', '--price']),
+    command('extract-replicate-datalab-to-marker', 'extract-replicate-datalab-to-marker', ['src/cli/create-cli.ts', 'extract', 'input/examples/document/1-document.pdf', '--provider', 'replicate=datalab-to/marker', '--price']),
+    command('extract-replicate-lucataco-deepseek-ocr', 'extract-replicate-lucataco-deepseek-ocr', ['src/cli/create-cli.ts', 'extract', 'input/examples/document/1-document.pdf', '--provider', 'replicate=lucataco/deepseek-ocr', '--price']),
+  ]),
+  ...exact('test/test-cases/e2e/service/step-2-ocr-e2e/ocr-services/ocr-fal.test.ts', [
+    command('extract-fal-fal-ai-got-ocr-v2', 'extract-fal-fal-ai-got-ocr-v2', ['src/cli/create-cli.ts', 'extract', 'input/examples/document/1-document.pdf', '--provider', 'fal=fal-ai/got-ocr/v2', '--price']),
   ]),
   ...exact('test/test-cases/e2e/service/step-2-ocr-e2e/ocr-services/openai-gpt-5.5.test.ts', [
     command('extract-openai-gpt-5.5', 'extract-openai-gpt-5.5', ['src/cli/create-cli.ts', 'extract', 'https://ajc.pics/autoshow/benchmarks/ocr/1-document.png', '--provider', 'openai=gpt-5.5', '--price']),

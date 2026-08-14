@@ -2,8 +2,9 @@ import { buildUpdatedGenerationCostTiming, clearProviderModelFields, collectGene
 import { readManifest, updateManifest } from '~/cli/commands/process-steps/pipeline-manifest'
 import { collectTtsTargets } from '~/cli/commands/process-steps/step-4-tts/tts-targets'
 import { runTtsTargets } from '~/cli/commands/process-steps/step-4-tts/run-tts'
+import { deriveGenerationResumeModelFields, deriveGenerationResumeProviderFlags, TTS_GENERATION_SELECTION } from '~/cli/flags/service-selector-normalization/provider-targets'
 import { appendCurrentTtsProviderState } from '~/cli/commands/process-steps/step-4-tts/script-to-audio/current-render-artifacts'
-import { planCurrentTtsRenderIdentity, prepareCurrentTtsCompletedRecovery } from '~/cli/commands/process-steps/step-4-tts/script-to-audio/current-render-attempt'
+import { planCurrentTtsRenderIdentity, planCurrentTtsResumePrice, prepareCurrentTtsCompletedRecovery } from '~/cli/commands/process-steps/step-4-tts/script-to-audio/current-render-attempt'
 import { bindTtsDialoguePlanArtifact } from '~/cli/commands/process-steps/step-4-tts/script-to-audio/item-dialogue-plan-artifact'
 import { computeActualCosts } from '~/cli/commands/pricing-orchestration/compute-actual-costs'
 import { computeActualProcessingTimes } from '~/cli/commands/pricing-orchestration/compute-processing-time'
@@ -28,38 +29,17 @@ import {
 } from '~/cli/commands/process-steps/step-4-tts/voice-assets/mistral-protected-reference-binding'
 import { MISTRAL_CLI_REFERENCE_AUTHORIZATION } from '~/cli/commands/process-steps/step-4-tts/voice-assets/mistral-request-reference-policy'
 import { normalizeDialogueSpeakerKey } from '~/cli/commands/process-steps/step-4-tts/dialogue-normalizer'
+import { isMultiSpeakerRequested } from '~/cli/commands/process-steps/step-4-tts/dialogue-normalizer'
+import { createGenericTtsDialoguePlan, createInlineTtsSourceIdentity, createSingleTurnTtsDialoguePlan } from '~/cli/commands/process-steps/step-4-tts/script-to-audio/generic-dialogue-plan'
+import { buildTtsDialoguePlanArtifactRef, materializeTtsDialoguePlanArtifact } from '~/cli/commands/process-steps/step-4-tts/script-to-audio/item-dialogue-plan-artifact'
 
-const TTS_PROVIDER_FLAGS = [
+const TTS_PROVIDER_FLAGS = deriveGenerationResumeProviderFlags(
+  TTS_GENERATION_SELECTION,
   'all-tts',
-  'all-local-tts',
-  'kitten-tts',
-  'elevenlabs-tts',
-  'minimax-tts',
-  'groq-tts',
-  'grok-tts',
-  'mistral-tts',
-  'openai-tts',
-  'gemini-tts',
-  'deepgram-tts',
-  'speechify-tts',
-  'hume-tts',
-  'cartesia-tts'
-] as const
+  'all-local-tts'
+)
 
-const TTS_MODEL_FIELDS = {
-  kitten: ['kittenTtsModels', 'kittenTtsModel'],
-  elevenlabs: ['elevenlabsTtsModels', 'elevenlabsTtsModel'],
-  minimax: ['minimaxTtsModels', 'minimaxTtsModel'],
-  groq: ['groqTtsModels', 'groqTtsModel'],
-  grok: ['grokTtsModels', 'grokTtsModel'],
-  mistral: ['mistralTtsModels', 'mistralTtsModel'],
-  openai: ['openaiTtsModels', 'openaiTtsModel'],
-  gemini: ['geminiTtsModels', 'geminiTtsModel'],
-  deepgram: ['deepgramTtsModels', 'deepgramTtsModel'],
-  speechify: ['speechifyTtsModels', 'speechifyTtsModel'],
-  hume: ['humeTtsModels', 'humeTtsModel'],
-  cartesia: ['cartesiaTtsModels', 'cartesiaTtsModel']
-} as const
+const TTS_MODEL_FIELDS = deriveGenerationResumeModelFields(TTS_GENERATION_SELECTION)
 
 const defaultResumeProtectedStore = createProtectedVoiceAssetStore({
   storeId: MISTRAL_REQUEST_REFERENCE_STORE_ID,
@@ -195,11 +175,26 @@ const resolveStoredTtsResumeInput = async (
   if (!item || typeof item.input !== 'string' || item.input.trim().length === 0) {
     throw CLIUsageError('TTS resume is missing its canonical source path. Rebuild this output with the current tts command.')
   }
+  const isLegacyInlineInput = item.providers.some((provider) => provider.legacyRenderIdentity !== undefined)
+    && /\s/u.test(item.input)
+    && !item.input.startsWith('.')
+    && !item.input.startsWith('~')
+    && !item.input.includes('/')
+    && !item.input.includes('\\')
+  if (isLegacyInlineInput) return item.input
   const sourcePath = resolveUserPath(item.input)
-  const source = Bun.file(sourcePath)
-  if (!await source.exists()) {
+  let sourceExists = false
+  let source: ReturnType<typeof Bun.file>
+  try {
+    source = Bun.file(sourcePath)
+    sourceExists = await source.exists()
+  } catch {
+    sourceExists = false
+  }
+  if (!sourceExists) {
     throw CLIUsageError(`Stored TTS source file is missing: ${item.input}. Restore the exact source bytes or rebuild this output with the current tts command.`)
   }
+  source = Bun.file(sourcePath)
   const text = new TextDecoder().decode(new Uint8Array(await source.arrayBuffer()))
   if (!text.trim()) {
     throw CLIUsageError(`Stored TTS source file is empty: ${item.input}. Restore the exact source bytes or rebuild this output with the current tts command.`)
@@ -424,12 +419,40 @@ const resolveExactTtsResumeSourceContext = async (
   opts: TtsOptions,
   context: GenerationResumeRunContext<TtsTarget, Step4Metadata, TtsOptions>
 ) => {
-  const sourceContext = await resolveTtsResumeSourceContext(
-    context.outputDir,
-    input,
-    context.currentProviderStates,
-    new Set(targets.flatMap((target) => target.targetKey ? [target.targetKey] : []))
+  const canonicalProviderStates = context.currentProviderStates.filter((provider) =>
+    provider.operation === 'tts-synthesis'
+    && provider.legacyRenderIdentity === undefined
+    && provider.status !== 'skipped'
   )
+  const sourceContext = canonicalProviderStates.length > 0
+    ? await resolveTtsResumeSourceContext(
+        context.outputDir,
+        input,
+        context.currentProviderStates,
+        new Set(targets.flatMap((target) => target.targetKey ? [target.targetKey] : []))
+      )
+    : await (async () => {
+        const manifest = await readManifest(context.outputDir)
+        if (
+          !manifest
+          || manifest.command !== 'tts'
+          || manifest.scope !== 'single'
+          || context.currentProviderStates.length === 0
+          || context.currentProviderStates.some((provider) => provider.legacyRenderIdentity === undefined)
+        ) {
+          throw CLIUsageError('TTS resume has no retained active source/dialogue evidence and cannot authorize synthesis. Rebuild this output with the current tts command.')
+        }
+        const sourceIdentity = createInlineTtsSourceIdentity(input)
+        const dialoguePlan = isMultiSpeakerRequested(opts)
+          ? createGenericTtsDialoguePlan(sourceIdentity, input, opts, manifest.createdAt)
+          : createSingleTurnTtsDialoguePlan(sourceIdentity, input, manifest.createdAt)
+        return {
+          sourceIdentity,
+          dialoguePlan,
+          dialoguePlanArtifact: buildTtsDialoguePlanArtifactRef(dialoguePlan),
+          retainedPlanIdentities: new Map()
+        }
+      })()
   const currentByTargetKey = new Map(context.currentProviderStates.flatMap((provider) =>
     provider.targetKey ? [[provider.targetKey, provider] as const] : []
   ))
@@ -453,10 +476,26 @@ const resolveExactTtsResumeSourceContext = async (
     const matchesRetainedPlan = retained.kind === 'branch'
       ? planned.branchPlanId === retained.branchPlanId
       : planned.renderPlanId === retained.renderPlanId && planned.renderIdentity === retained.renderIdentity
-    if (!matchesRetainedPlan) {
+    if (!matchesRetainedPlan && (current.status !== 'failed' || target.allowFailedImplicitDefaultReplan !== true)) {
       throw CLIUsageError(
         `Current TTS voice, cast, synthesis controls, or output plan differs from the retained active branch or render for ${target.service}/${target.model}. Re-run the tts command to create an explicit new branch; resume will not silently rebind or repurchase it.`
       )
+    }
+    if (!matchesRetainedPlan) {
+      const replacement = await planCurrentTtsResumePrice({
+        rootDir: context.outputDir,
+        state: current,
+        target,
+        sourceText: input,
+        ttsOptions: opts,
+        sourceIdentity: sourceContext.sourceIdentity,
+        dialoguePlan: sourceContext.dialoguePlan
+      })
+      if (replacement.reconciliationBlockers.length > 0) {
+        throw CLIUsageError(
+          `Stored TTS target ${target.service}/${target.model} has ambiguous admitted work and cannot replace its failed implicit-default plan without explicit ambiguous-redispatch authorization.`
+        )
+      }
     }
   }
   return { sourceContext, currentByTargetKey }
@@ -531,6 +570,10 @@ export const ttsResumeConfig = {
     context: GenerationResumeRunContext<TtsTarget, Step4Metadata, TtsOptions>
   ) => {
     const { sourceContext, currentByTargetKey } = await resolveExactTtsResumeSourceContext(targets, input, opts, context)
+    if (!sourceContext.dialoguePlan) {
+      throw CLIUsageError('TTS resume source context is missing its canonical dialogue plan.')
+    }
+    const dialoguePlanArtifact = await materializeTtsDialoguePlanArtifact(outputDir, sourceContext.dialoguePlan)
     await assertProtectedRecoveryOnlyTargetsAreComplete(
       targets,
       input,
@@ -555,12 +598,12 @@ export const ttsResumeConfig = {
       resolveReportedOutput: createTtsResumeReportedOutputResolver(outputDir, context.currentProviderStates),
       beforeDispatch: async (states) => await commitTtsResumePreparedStates(
         outputDir,
-        states.map((state) => bindTtsDialoguePlanArtifact(state, sourceContext.dialoguePlanArtifact)),
+        states.map((state) => bindTtsDialoguePlanArtifact(state, dialoguePlanArtifact)),
         providerOrder
       ),
       onProviderState: async (state) => await commitTtsResumeProviderState(
         outputDir,
-        bindTtsDialoguePlanArtifact(state, sourceContext.dialoguePlanArtifact),
+        bindTtsDialoguePlanArtifact(state, dialoguePlanArtifact),
         providerOrder
       )
     })
@@ -589,6 +632,21 @@ export const ttsResumeConfig = {
         if (protectedRecoveryOnlyTargets.has(target)) {
           throw CLIUsageError('Price cannot authorize interrupted protected Mistral reference redispatch. Re-run standalone `tts` with the explicitly authorized reference to create a new branch.')
         }
+        billableTargets.add(`${target.service}\0${target.model}`)
+        continue
+      }
+      const retained = sourceContext.retainedPlanIdentities.get(target.targetKey)
+      const planned = planCurrentTtsRenderIdentity({
+        target,
+        sourceText: input,
+        ttsOptions: runtimeOptions,
+        sourceIdentity: sourceContext.sourceIdentity,
+        dialoguePlan: sourceContext.dialoguePlan
+      })
+      const retainedMatchesPlanned = retained?.kind === 'render'
+        && retained.renderPlanId === planned.renderPlanId
+        && retained.renderIdentity === planned.renderIdentity
+      if (!retainedMatchesPlanned && current.status === 'failed' && target.allowFailedImplicitDefaultReplan === true) {
         billableTargets.add(`${target.service}\0${target.model}`)
         continue
       }

@@ -7,7 +7,7 @@ import { resolveReasoningPolicy } from '~/cli/commands/setup-and-utilities/model
 import type { DocumentMetadata, ExtractionOptions, HostedDirectImageFormatSet, HostedDirectImageInputStrategy, HostedExtractOcrEngine, HostedOcrIdentity, HostedOcrRun, HostedOcrSchedulerRetryPressureHandler, HostedOcrService, RunHostedOcrPdfChunkFallbackOptions } from '~/types'
 import { commandExists, exec } from '~/utils/cli-utils'
 import { CLIUsageError } from '~/utils/error-handler'
-import { hasAnthropicOcr, hasDeepinfraOcr, hasGeminiOcr, hasGlmOcr, hasGrokOcr, hasKimiOcr, hasMistralOcr, hasOpenAIOcr } from './ocr-engine-selection'
+import { hasAnthropicOcr, hasDeepinfraOcr, hasFalOcr, hasGeminiOcr, hasGlmOcr, hasGrokOcr, hasKimiOcr, hasMistralOcr, hasOpenAIOcr, hasReplicateOcr } from './ocr-engine-selection'
 import { ANTHROPIC_OCR_LIMIT_SOURCE, ensureAnthropicOcrSetup } from './ocr-services/anthropic-ocr/anthropic-ocr'
 import { runAnthropicOcr } from './ocr-services/anthropic-ocr/run-anthropic-ocr'
 import { DEEPINFRA_OCR_LIMIT_SOURCE, ensureDeepinfraOcrSetup } from './ocr-services/deepinfra-ocr/deepinfra-ocr'
@@ -24,6 +24,10 @@ import { ensureMistralOcrSetup } from './ocr-services/mistral-ocr/mistral-ocr'
 import { runMistralOcr } from './ocr-services/mistral-ocr/run-mistral-ocr'
 import { ensureOpenAIOcrSetup } from './ocr-services/openai-ocr/openai-ocr'
 import { runOpenAIOcr } from './ocr-services/openai-ocr/run-openai-ocr'
+import { ensureReplicateOcrSetup } from './ocr-services/replicate-ocr/replicate-ocr'
+import { runReplicateOcr } from './ocr-services/replicate-ocr/run-replicate-ocr'
+import { FAL_OCR_LIMIT_SOURCE, ensureFalOcrSetup } from './ocr-services/fal-ocr/fal-ocr'
+import { runFalOcr } from './ocr-services/fal-ocr/run-fal-ocr'
 import { isBunImagePngNormalizableFormat, normalizeImageToPngWithBun } from './ocr-utils/bun-image-utils'
 import { runHostedOcrSchedulerAdmission } from './ocr-utils/hosted-ocr-scheduler'
 import { createRenderedPngPageChunk, runHostedOcrWithPdfChunkFallback } from './ocr-utils/pdf-chunk-fallback'
@@ -54,6 +58,10 @@ const formatHostedOcrLabel = (service: HostedOcrService): string => {
       return 'Gemini OCR'
     case 'deepinfra':
       return 'DeepInfra OCR'
+    case 'replicate':
+      return 'Replicate OCR'
+    case 'fal':
+      return 'fal.ai OCR'
   }
 }
 
@@ -75,6 +83,10 @@ const getHostedOcrLimitSource = (service: HostedOcrService): string => {
       return 'project/links/glm-all-links.md'
     case 'kimi':
       return KIMI_OCR_LIMIT_SOURCE
+    case 'replicate':
+      return 'https://replicate.com/datalab-to/marker/api/schema'
+    case 'fal':
+      return FAL_OCR_LIMIT_SOURCE
   }
 }
 
@@ -99,6 +111,12 @@ export const getHostedDirectImageSupportError = (engine: HostedExtractOcrEngine)
   }
   if (engine === 'deepinfra-ocr') {
     return 'The DeepInfra OCR provider sends PNG/JPG/WEBP images to DeepInfra directly; PDF pages are rendered to PNG. AutoShow normalizes GIF/BMP images locally with Bun.Image. Install ImageMagick so AutoShow can normalize TIF images automatically.'
+  }
+  if (engine === 'replicate-ocr') {
+    return 'The Replicate OCR provider sends PDF and PNG/JPG/WEBP images to Replicate directly. AutoShow normalizes GIF/BMP images locally with Bun.Image. Install ImageMagick so AutoShow can normalize TIF images automatically.'
+  }
+  if (engine === 'fal-ocr') {
+    return 'The fal.ai OCR provider sends PNG/JPG/WEBP images to GOT-OCR directly and renders PDF pages to PNG. AutoShow normalizes GIF/BMP images locally with Bun.Image. Install ImageMagick so AutoShow can normalize TIF images automatically.'
   }
   if (engine === 'grok-ocr') {
     return 'The Grok OCR provider sends PNG/JPG images to Grok directly; PDF pages are rendered to PNG. AutoShow normalizes WEBP/GIF/BMP images locally with Bun.Image. Install ImageMagick so AutoShow can normalize TIF images automatically.'
@@ -134,7 +152,9 @@ const HOSTED_DIRECT_IMAGE_FORMATS: Record<HostedExtractOcrEngine, HostedDirectIm
   'grok-ocr': hostedDirectImageFormats(['png', 'jpg']),
   'anthropic-ocr': hostedDirectImageFormats(['png', 'jpg', 'webp', 'gif']),
   'gemini-ocr': hostedDirectImageFormats(['png', 'jpg', 'webp', 'bmp']),
-  'deepinfra-ocr': hostedDirectImageFormats(['png', 'jpg', 'webp'])
+  'deepinfra-ocr': hostedDirectImageFormats(['png', 'jpg', 'webp']),
+  'replicate-ocr': hostedDirectImageFormats(['png', 'jpg', 'webp']),
+  'fal-ocr': hostedDirectImageFormats(['png', 'jpg', 'webp'])
 }
 
 const normalizeHostedImageFormat = (format: string): string =>
@@ -264,6 +284,14 @@ const resolveHostedOcrSelection = (
 
   if (hasDeepinfraOcr(opts)) {
     return { service: 'deepinfra', model: opts.deepinfraOcrModel as string }
+  }
+
+  if (hasReplicateOcr(opts)) {
+    return { service: 'replicate', model: opts.replicateOcrModel as string }
+  }
+
+  if (hasFalOcr(opts)) {
+    return { service: 'fal', model: opts.falOcrModel as string }
   }
 
   return undefined
@@ -741,6 +769,59 @@ export const runHostedOcr = async (
         totalPages: run.totalPages,
         ...(typeof run.promptTokens === 'number' ? { promptTokens: run.promptTokens } : {}),
         ...(typeof run.completionTokens === 'number' ? { completionTokens: run.completionTokens } : {})
+      }
+    }, {
+      forcePageMode: true,
+      createChunk: createRenderedPngPageChunk(opts.dpi, opts.ocrPreparationCache),
+      chunkFormat: 'png',
+      chunkExtension: 'png'
+    })
+  }
+
+  if (hasReplicateOcr(opts)) {
+    await ensureReplicateOcrSetup()
+    const ocrModel = opts.replicateOcrModel as string
+    return await runChunkableHostedPdfOcr(filePath, step1Metadata, opts, 'Replicate OCR', {
+      extractionMethod: 'replicate-ocr',
+      ocrService: 'replicate',
+      ocrModel
+    }, async (inputPath, inputMetadata) => {
+      await assertHostedOcrWithinLimits(inputPath, inputMetadata, opts)
+      const run = await runReplicateOcr(inputPath, inputMetadata, ocrModel)
+      return {
+        pages: run.pages,
+        extractionMethod: run.extractionMethod,
+        ocrService: 'replicate',
+        ocrModel,
+        ...(typeof run.totalPages === 'number' ? { totalPages: run.totalPages } : {})
+      }
+    }, {
+      ...(ocrModel === 'lucataco/deepseek-ocr'
+        ? {
+            forcePageMode: true,
+            createChunk: createRenderedPngPageChunk(opts.dpi, opts.ocrPreparationCache),
+            chunkFormat: 'png' as const,
+            chunkExtension: 'png'
+          }
+        : {})
+    })
+  }
+
+  if (hasFalOcr(opts)) {
+    await ensureFalOcrSetup()
+    const ocrModel = opts.falOcrModel as string
+    return await runChunkableHostedPdfOcr(filePath, step1Metadata, opts, 'fal.ai OCR', {
+      extractionMethod: 'fal-ocr',
+      ocrService: 'fal',
+      ocrModel
+    }, async (inputPath, inputMetadata) => {
+      await assertHostedOcrWithinLimits(inputPath, inputMetadata, opts)
+      const run = await runFalOcr(inputPath, ocrModel)
+      return {
+        pages: run.pages,
+        extractionMethod: run.extractionMethod,
+        ocrService: 'fal',
+        ocrModel
       }
     }, {
       forcePageMode: true,

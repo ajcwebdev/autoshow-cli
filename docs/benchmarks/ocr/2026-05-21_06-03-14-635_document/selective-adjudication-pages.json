@@ -9,51 +9,50 @@
         "page-outlier",
         "high-disagreement"
       ],
-      "replacedProviderKey": "anthropic/claude-sonnet-5",
-      "replacedConfidence": 0
+      "replacedProviderKey": "deepinfra/google/gemma-3-27b-it",
+      "replacedConfidence": 0.499497
     },
     {
       "pageNumber": 2,
       "reason": [
         "page-outlier"
       ],
-      "replacedProviderKey": "openai/gpt-5.4-mini",
-      "replacedConfidence": 0.804997
+      "replacedProviderKey": "deepinfra/google/gemma-3-27b-it",
+      "replacedConfidence": 0.904727
     },
     {
       "pageNumber": 3,
       "reason": [
-        "low-confidence-selected-provider",
         "page-outlier"
       ],
-      "replacedProviderKey": "anthropic/claude-haiku-4-5",
-      "replacedConfidence": 0
+      "replacedProviderKey": "deepinfra/google/gemma-3-27b-it",
+      "replacedConfidence": 0.784228
     },
     {
       "pageNumber": 4,
       "reason": [
         "page-outlier"
       ],
-      "replacedProviderKey": "openai/gpt-5.4-mini",
-      "replacedConfidence": 0.786103
+      "replacedProviderKey": "deepinfra/meta-llama/Llama-4-Scout-17B-16E-Instruct",
+      "replacedConfidence": 0.894754
     },
     {
       "pageNumber": 5,
       "reason": [
-        "low-confidence-selected-provider",
         "page-outlier"
       ],
-      "replacedProviderKey": "anthropic/claude-opus-4-8",
-      "replacedConfidence": 0.341275
+      "replacedProviderKey": "deepinfra/mistralai/Mistral-Small-3.2-24B-Instruct-2506",
+      "replacedConfidence": 0.812852
     },
     {
       "pageNumber": 6,
       "reason": [
         "low-confidence-selected-provider",
-        "page-outlier"
+        "page-outlier",
+        "high-disagreement"
       ],
-      "replacedProviderKey": "anthropic/claude-opus-4-8",
-      "replacedConfidence": 0.605918
+      "replacedProviderKey": "deepinfra/meta-llama/Llama-4-Scout-17B-16E-Instruct",
+      "replacedConfidence": 0
     },
     {
       "pageNumber": 7,
@@ -61,35 +60,32 @@
         "low-confidence-selected-provider",
         "page-outlier"
       ],
-      "replacedProviderKey": "openai/gpt-5.4-mini",
-      "replacedConfidence": 0.168098
+      "replacedProviderKey": "deepinfra/google/gemma-3-27b-it",
+      "replacedConfidence": 0.338288
     },
     {
       "pageNumber": 8,
       "reason": [
-        "low-confidence-selected-provider",
         "page-outlier"
       ],
-      "replacedProviderKey": "gemini/gemini-3.5-flash",
-      "replacedConfidence": 0.351987
+      "replacedProviderKey": "deepinfra/meta-llama/Llama-4-Scout-17B-16E-Instruct",
+      "replacedConfidence": 0.881825
     },
     {
       "pageNumber": 9,
       "reason": [
-        "low-confidence-selected-provider",
         "page-outlier"
       ],
-      "replacedProviderKey": "grok/grok-4.20-0309-non-reasoning",
-      "replacedConfidence": 0
+      "replacedProviderKey": "deepinfra/meta-llama/Llama-4-Scout-17B-16E-Instruct",
+      "replacedConfidence": 0.790553
     },
     {
       "pageNumber": 10,
       "reason": [
-        "low-confidence-selected-provider",
         "page-outlier"
       ],
-      "replacedProviderKey": "anthropic/claude-opus-4-8",
-      "replacedConfidence": 0.64103
+      "replacedProviderKey": "deepinfra/mistralai/Mistral-Small-3.2-24B-Instruct-2506",
+      "replacedConfidence": 0.860538
     }
   ]
 }

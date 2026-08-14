@@ -352,6 +352,83 @@
                 "promptTokens": 1157,
                 "completionTokens": 1626,
                 "estimateType": "heuristic"
+              },
+              {
+                "step": "extract",
+                "provider": "deepinfra",
+                "model": "google/gemma-3-27b-it",
+                "cost": 0.006624,
+                "costMultiplier": 1,
+                "inputCostPer1MCents": 8,
+                "outputCostPer1MCents": 16,
+                "pageCount": 1,
+                "ocrMode": "image",
+                "promptTokens": 326,
+                "completionTokens": 251,
+                "tokenEstimateSource": "profile",
+                "tokenEstimateConfidence": "healthy",
+                "tokenProfileSampleCount": 3,
+                "tokenProfilePromptTokensPerPage": 326,
+                "tokenProfileCompletionTokensPerPage": 251,
+                "estimateType": "heuristic"
+              },
+              {
+                "step": "extract",
+                "provider": "deepinfra",
+                "model": "meta-llama/Llama-4-Scout-17B-16E-Instruct",
+                "cost": 0.02316,
+                "costMultiplier": 1,
+                "inputCostPer1MCents": 10,
+                "outputCostPer1MCents": 30,
+                "pageCount": 1,
+                "ocrMode": "image",
+                "promptTokens": 1737,
+                "completionTokens": 193,
+                "tokenEstimateSource": "profile",
+                "tokenEstimateConfidence": "healthy",
+                "tokenProfileSampleCount": 2,
+                "tokenProfilePromptTokensPerPage": 1736.5,
+                "tokenProfileCompletionTokensPerPage": 193,
+                "estimateType": "heuristic"
+              },
+              {
+                "step": "extract",
+                "provider": "fal",
+                "model": "fal-ai/florence-2-large/ocr",
+                "cost": 0.755,
+                "costMultiplier": 1,
+                "costPer1kPagesCents": 755,
+                "pageCount": 1,
+                "estimateType": "exact"
+              },
+              {
+                "step": "extract",
+                "provider": "fal",
+                "model": "fal-ai/got-ocr/v2",
+                "cost": 5,
+                "costMultiplier": 1,
+                "costPer1kPagesCents": 5000,
+                "pageCount": 1,
+                "estimateType": "exact"
+              },
+              {
+                "step": "extract",
+                "provider": "deepinfra",
+                "model": "mistralai/Mistral-Small-3.2-24B-Instruct-2506",
+                "cost": 0.0143375,
+                "costMultiplier": 1,
+                "inputCostPer1MCents": 7.5,
+                "outputCostPer1MCents": 20,
+                "pageCount": 1,
+                "ocrMode": "image",
+                "promptTokens": 1381,
+                "completionTokens": 199,
+                "tokenEstimateSource": "profile",
+                "tokenEstimateConfidence": "healthy",
+                "tokenProfileSampleCount": 2,
+                "tokenProfilePromptTokensPerPage": 1380.5,
+                "tokenProfileCompletionTokensPerPage": 199,
+                "estimateType": "heuristic"
               }
             ]
           },
@@ -573,6 +650,84 @@
                 "inputValue": 1582,
                 "promptTokens": 1177,
                 "completionTokens": 405
+              },
+              {
+                "step": "extract",
+                "provider": "replicate",
+                "model": "datalab-to/ocr",
+                "cost": 0.2,
+                "costSource": "registry_fallback",
+                "inputMetric": "pages",
+                "inputValue": 1
+              },
+              {
+                "step": "extract",
+                "provider": "deepinfra",
+                "model": "google/gemma-3-27b-it",
+                "cost": 0.008400000000000001,
+                "costSource": "provider_usage",
+                "inputMetric": "tokens",
+                "inputValue": 688,
+                "promptTokens": 326,
+                "completionTokens": 362
+              },
+              {
+                "step": "extract",
+                "provider": "deepinfra",
+                "model": "meta-llama/Llama-4-Scout-17B-16E-Instruct",
+                "cost": 0.03436,
+                "costSource": "provider_usage",
+                "inputMetric": "tokens",
+                "inputValue": 2738,
+                "promptTokens": 2389,
+                "completionTokens": 349
+              },
+              {
+                "step": "extract",
+                "provider": "replicate",
+                "model": "lucataco/deepseek-ocr",
+                "cost": 0.33,
+                "costSource": "registry_fallback",
+                "inputMetric": "pages",
+                "inputValue": 1
+              },
+              {
+                "step": "extract",
+                "provider": "fal",
+                "model": "fal-ai/florence-2-large/ocr",
+                "cost": 0.755,
+                "costSource": "registry_fallback",
+                "inputMetric": "pages",
+                "inputValue": 1
+              },
+              {
+                "step": "extract",
+                "provider": "fal",
+                "model": "fal-ai/got-ocr/v2",
+                "cost": 5,
+                "costSource": "registry_fallback",
+                "inputMetric": "pages",
+                "inputValue": 1
+              },
+              {
+                "step": "extract",
+                "provider": "replicate",
+                "model": "datalab-to/marker",
+                "cost": 0.4,
+                "costSource": "registry_fallback",
+                "inputMetric": "pages",
+                "inputValue": 1
+              },
+              {
+                "step": "extract",
+                "provider": "deepinfra",
+                "model": "mistralai/Mistral-Small-3.2-24B-Instruct-2506",
+                "cost": 0.02036,
+                "costSource": "provider_usage",
+                "inputMetric": "tokens",
+                "inputValue": 2193,
+                "promptTokens": 1880,
+                "completionTokens": 313
               }
             ]
           },
@@ -1345,7 +1500,79 @@
               },
               "source": "token_usage"
             }
-          ]
+          ],
+          "observedEstimate": {
+            "steps": [
+              {
+                "step": "extract",
+                "provider": "deepinfra",
+                "model": "google/gemma-3-27b-it",
+                "cost": 0.008400000000000001,
+                "costMultiplier": 1,
+                "inputCostPer1MCents": 8,
+                "outputCostPer1MCents": 16,
+                "pageCount": 1,
+                "ocrMode": "image",
+                "promptTokens": 326,
+                "completionTokens": 362,
+                "tokenEstimateSource": "exact",
+                "tokenEstimateConfidence": "healthy",
+                "estimateType": "exact"
+              },
+              {
+                "step": "extract",
+                "provider": "deepinfra",
+                "model": "meta-llama/Llama-4-Scout-17B-16E-Instruct",
+                "cost": 0.03436,
+                "costMultiplier": 1,
+                "inputCostPer1MCents": 10,
+                "outputCostPer1MCents": 30,
+                "pageCount": 1,
+                "ocrMode": "image",
+                "promptTokens": 2389,
+                "completionTokens": 349,
+                "tokenEstimateSource": "exact",
+                "tokenEstimateConfidence": "healthy",
+                "estimateType": "exact"
+              },
+              {
+                "step": "extract",
+                "provider": "fal",
+                "model": "fal-ai/florence-2-large/ocr",
+                "cost": 0.755,
+                "costMultiplier": 1,
+                "costPer1kPagesCents": 755,
+                "pageCount": 1,
+                "estimateType": "exact"
+              },
+              {
+                "step": "extract",
+                "provider": "fal",
+                "model": "fal-ai/got-ocr/v2",
+                "cost": 5,
+                "costMultiplier": 1,
+                "costPer1kPagesCents": 5000,
+                "pageCount": 1,
+                "estimateType": "exact"
+              },
+              {
+                "step": "extract",
+                "provider": "deepinfra",
+                "model": "mistralai/Mistral-Small-3.2-24B-Instruct-2506",
+                "cost": 0.02036,
+                "costMultiplier": 1,
+                "inputCostPer1MCents": 7.5,
+                "outputCostPer1MCents": 20,
+                "pageCount": 1,
+                "ocrMode": "image",
+                "promptTokens": 1880,
+                "completionTokens": 313,
+                "tokenEstimateSource": "exact",
+                "tokenEstimateConfidence": "healthy",
+                "estimateType": "exact"
+              }
+            ]
+          }
         },
         "timing": {
           "estimated": {
@@ -1595,6 +1822,107 @@
                 "rateBasis": "page",
                 "msPerUnit": 2921,
                 "throughputValue": 20.541,
+                "throughputUnit": "pagesPerMinute",
+                "timingScope": "estimated"
+              },
+              {
+                "step": "extract",
+                "provider": "deepinfra",
+                "model": "google/gemma-3-27b-it",
+                "processingTimeMs": 12804,
+                "inputMetric": "pages",
+                "inputValue": 1,
+                "timingAdjustment": {
+                  "kind": "hosted-ocr-page-concurrency",
+                  "pageConcurrency": 10,
+                  "ocrConcurrencyMode": "auto",
+                  "estimateConfidence": "profile",
+                  "profileLaneTargetCount": 1,
+                  "profileSampleCount": 3,
+                  "profileThroughputPagesPerMinute": 4.686,
+                  "profileRaisedMaxCap": 12,
+                  "profileCapSource": "exact-clean-sample",
+                  "profileSourceConfidence": "healthy"
+                },
+                "rateBasis": "page",
+                "msPerUnit": 12804,
+                "throughputValue": 4.686,
+                "throughputUnit": "pagesPerMinute",
+                "timingScope": "estimated"
+              },
+              {
+                "step": "extract",
+                "provider": "deepinfra",
+                "model": "meta-llama/Llama-4-Scout-17B-16E-Instruct",
+                "processingTimeMs": 4293,
+                "inputMetric": "pages",
+                "inputValue": 1,
+                "timingAdjustment": {
+                  "kind": "hosted-ocr-page-concurrency",
+                  "pageConcurrency": 10,
+                  "ocrConcurrencyMode": "auto",
+                  "estimateConfidence": "profile",
+                  "profileLaneTargetCount": 1,
+                  "profileSampleCount": 2,
+                  "profileThroughputPagesPerMinute": 13.976,
+                  "profileRaisedMaxCap": 12,
+                  "profileCapSource": "exact-clean-sample",
+                  "profileSourceConfidence": "healthy"
+                },
+                "rateBasis": "page",
+                "msPerUnit": 4293,
+                "throughputValue": 13.976,
+                "throughputUnit": "pagesPerMinute",
+                "timingScope": "estimated"
+              },
+              {
+                "step": "extract",
+                "provider": "fal",
+                "model": "fal-ai/florence-2-large/ocr",
+                "processingTimeMs": 5000,
+                "inputMetric": "pages",
+                "inputValue": 1,
+                "rateBasis": "page",
+                "msPerUnit": 5000,
+                "throughputValue": 12,
+                "throughputUnit": "pagesPerMinute",
+                "timingScope": "estimated"
+              },
+              {
+                "step": "extract",
+                "provider": "fal",
+                "model": "fal-ai/got-ocr/v2",
+                "processingTimeMs": 5000,
+                "inputMetric": "pages",
+                "inputValue": 1,
+                "rateBasis": "page",
+                "msPerUnit": 5000,
+                "throughputValue": 12,
+                "throughputUnit": "pagesPerMinute",
+                "timingScope": "estimated"
+              },
+              {
+                "step": "extract",
+                "provider": "deepinfra",
+                "model": "mistralai/Mistral-Small-3.2-24B-Instruct-2506",
+                "processingTimeMs": 4792,
+                "inputMetric": "pages",
+                "inputValue": 1,
+                "timingAdjustment": {
+                  "kind": "hosted-ocr-page-concurrency",
+                  "pageConcurrency": 10,
+                  "ocrConcurrencyMode": "auto",
+                  "estimateConfidence": "profile",
+                  "profileLaneTargetCount": 1,
+                  "profileSampleCount": 2,
+                  "profileThroughputPagesPerMinute": 12.52,
+                  "profileRaisedMaxCap": 12,
+                  "profileCapSource": "exact-clean-sample",
+                  "profileSourceConfidence": "healthy"
+                },
+                "rateBasis": "page",
+                "msPerUnit": 4792,
+                "throughputValue": 12.521,
                 "throughputUnit": "pagesPerMinute",
                 "timingScope": "estimated"
               }
@@ -1860,6 +2188,110 @@
                 "rateBasis": "page",
                 "msPerUnit": 12716,
                 "throughputValue": 4.718,
+                "throughputUnit": "pagesPerMinute",
+                "timingScope": "wall"
+              },
+              {
+                "step": "extract",
+                "provider": "replicate",
+                "model": "datalab-to/ocr",
+                "processingTimeMs": 5716,
+                "inputMetric": "pages",
+                "inputValue": 1,
+                "rateBasis": "page",
+                "msPerUnit": 5716,
+                "throughputValue": 10.497,
+                "throughputUnit": "pagesPerMinute",
+                "timingScope": "wall"
+              },
+              {
+                "step": "extract",
+                "provider": "deepinfra",
+                "model": "google/gemma-3-27b-it",
+                "processingTimeMs": 24077,
+                "inputMetric": "pages",
+                "inputValue": 1,
+                "rateBasis": "page",
+                "msPerUnit": 24077,
+                "throughputValue": 2.492,
+                "throughputUnit": "pagesPerMinute",
+                "timingScope": "wall"
+              },
+              {
+                "step": "extract",
+                "provider": "deepinfra",
+                "model": "meta-llama/Llama-4-Scout-17B-16E-Instruct",
+                "processingTimeMs": 7723,
+                "inputMetric": "pages",
+                "inputValue": 1,
+                "rateBasis": "page",
+                "msPerUnit": 7723,
+                "throughputValue": 7.769,
+                "throughputUnit": "pagesPerMinute",
+                "timingScope": "wall"
+              },
+              {
+                "step": "extract",
+                "provider": "replicate",
+                "model": "lucataco/deepseek-ocr",
+                "processingTimeMs": 7411,
+                "inputMetric": "pages",
+                "inputValue": 1,
+                "rateBasis": "page",
+                "msPerUnit": 7411,
+                "throughputValue": 8.096,
+                "throughputUnit": "pagesPerMinute",
+                "timingScope": "wall"
+              },
+              {
+                "step": "extract",
+                "provider": "fal",
+                "model": "fal-ai/florence-2-large/ocr",
+                "processingTimeMs": 5262,
+                "inputMetric": "pages",
+                "inputValue": 1,
+                "rateBasis": "page",
+                "msPerUnit": 5262,
+                "throughputValue": 11.403,
+                "throughputUnit": "pagesPerMinute",
+                "timingScope": "wall"
+              },
+              {
+                "step": "extract",
+                "provider": "fal",
+                "model": "fal-ai/got-ocr/v2",
+                "processingTimeMs": 10315,
+                "inputMetric": "pages",
+                "inputValue": 1,
+                "rateBasis": "page",
+                "msPerUnit": 10315,
+                "throughputValue": 5.817,
+                "throughputUnit": "pagesPerMinute",
+                "timingScope": "wall"
+              },
+              {
+                "step": "extract",
+                "provider": "replicate",
+                "model": "datalab-to/marker",
+                "processingTimeMs": 5115,
+                "inputMetric": "pages",
+                "inputValue": 1,
+                "rateBasis": "page",
+                "msPerUnit": 5115,
+                "throughputValue": 11.73,
+                "throughputUnit": "pagesPerMinute",
+                "timingScope": "wall"
+              },
+              {
+                "step": "extract",
+                "provider": "deepinfra",
+                "model": "mistralai/Mistral-Small-3.2-24B-Instruct-2506",
+                "processingTimeMs": 6419,
+                "inputMetric": "pages",
+                "inputValue": 1,
+                "rateBasis": "page",
+                "msPerUnit": 6419,
+                "throughputValue": 9.347,
                 "throughputUnit": "pagesPerMinute",
                 "timingScope": "wall"
               }
@@ -2478,6 +2910,322 @@
                 "completionTokens": 405
               }
             ]
+          }
+        },
+        {
+          "service": "replicate",
+          "model": "datalab-to/ocr",
+          "artifactDir": "consolidated/replicate-datalab-to-ocr",
+          "status": "succeeded",
+          "attempts": 1,
+          "options": {},
+          "metadata": {
+            "extractionMethod": "image+replicate-ocr",
+            "totalPages": 1,
+            "ocrPages": 1,
+            "textPages": 0,
+            "processingTime": 5716,
+            "dpi": 300,
+            "languages": "eng",
+            "tokenEstimate": 216,
+            "ocrModel": "datalab-to/ocr",
+            "ocrService": "replicate",
+            "inputFamily": "image",
+            "effectiveReasoningEffort": "default"
+          },
+          "result": {
+            "text": "Page 0\nHISTOIRE\n214\ncerveau. Tous ces faits paroissent incon-\ntestables; on doit être surpris qu'ils aient\néchappés à la perspicacité des anciens; mais,\nsi quelque chose peut leur servir d'excuse,\nnous devons considérer qu'il s'est écoulé à\npeine un siècle, depuis que nous avons com-\nmencé à croire que les insectes et les mol-\nlusques méritoient quelque attention, et\nqu'avant ce tems on les regardoit comme des\nêtres immondes, vil produit de la pourri-\nture ou de la corruption, et peu faits pour\noccuper nos regards.\nSi nous en exceptons Dicquemare, qui a\npublié quelques faits sur les poulpes, leur\nhistoire nous est encore mal connue, et on\nne peut deviner par quelle fatalité un mol-\nlusque aussi remarquable a été si peu l'objet\ndes observations; car nous avons vu que,\ndepuis Aristote, on n'a presque point ajouté\nà ce que ce philosophe a écrit sur ces ani-\nmaux. En 1752, Bernard de Fischer publia\nun Mémoire (1) sur un poulpe qui venoit\nde la Grèce, et que nous ne pouvons mé-\nconnoître pour le poulpe commun. Ce mé-\n1 : 5 4 4\n- 1\nA CONTRACT CONTRACTOR SERVICES\n(1) J. Bern. de Fischer, de krakatiza, observ. 79,\npag. 335. Acta naturæ curiosorum, vol. IX, pl. 1x,\nfig. 1; et pl. x111, fig. 1.",
+            "pages": [
+              {
+                "pageNumber": 0,
+                "method": "ocr",
+                "text": "HISTOIRE\n214\ncerveau. Tous ces faits paroissent incon-\ntestables; on doit être surpris qu'ils aient\néchappés à la perspicacité des anciens; mais,\nsi quelque chose peut leur servir d'excuse,\nnous devons considérer qu'il s'est écoulé à\npeine un siècle, depuis que nous avons com-\nmencé à croire que les insectes et les mol-\nlusques méritoient quelque attention, et\nqu'avant ce tems on les regardoit comme des\nêtres immondes, vil produit de la pourri-\nture ou de la corruption, et peu faits pour\noccuper nos regards.\nSi nous en exceptons Dicquemare, qui a\npublié quelques faits sur les poulpes, leur\nhistoire nous est encore mal connue, et on\nne peut deviner par quelle fatalité un mol-\nlusque aussi remarquable a été si peu l'objet\ndes observations; car nous avons vu que,\ndepuis Aristote, on n'a presque point ajouté\nà ce que ce philosophe a écrit sur ces ani-\nmaux. En 1752, Bernard de Fischer publia\nun Mémoire (1) sur un poulpe qui venoit\nde la Grèce, et que nous ne pouvons mé-\nconnoître pour le poulpe commun. Ce mé-\n1 : 5 4 4\n- 1\nA CONTRACT CONTRACTOR SERVICES\n(1) J. Bern. de Fischer, de krakatiza, observ. 79,\npag. 335. Acta naturæ curiosorum, vol. IX, pl. 1x,\nfig. 1; et pl. x111, fig. 1.\n"
+              }
+            ],
+            "totalPages": 1,
+            "ocrPages": 1,
+            "textPages": 0
+          }
+        },
+        {
+          "service": "deepinfra",
+          "model": "google/gemma-3-27b-it",
+          "artifactDir": "consolidated/deepinfra-google-gemma-3-27b-it",
+          "status": "succeeded",
+          "attempts": 1,
+          "options": {},
+          "metadata": {
+            "extractionMethod": "image+deepinfra-ocr",
+            "totalPages": 1,
+            "ocrPages": 1,
+            "textPages": 0,
+            "processingTime": 24077,
+            "dpi": 300,
+            "languages": "eng",
+            "tokenEstimate": 209,
+            "ocrModel": "google/gemma-3-27b-it",
+            "ocrService": "deepinfra",
+            "promptTokens": 326,
+            "completionTokens": 362,
+            "inputFamily": "image",
+            "ocrProviderUsage": [
+              {
+                "unit": "document",
+                "pages": 1,
+                "provider": "deepinfra",
+                "model": "google/gemma-3-27b-it",
+                "promptTokens": 326,
+                "completionTokens": 362
+              }
+            ],
+            "effectiveReasoningEffort": "default"
+          },
+          "result": {
+            "text": "Page 1\n214\n\nHISTOIRE\n\ncerveau. Tous ces faits paroissent incon-\ntestables ; on doit être surpris qu’ils aient\néchappés à la perspicacité des anciens ; mais,\nsi quelque chose peut leur servir d’excuse,\nnous devons considérer qu’il s’est écoulé à\npeine un siècle, depuis que nous avons com-\nmencé à croire que les insectes et les mol-\nlusques méritoient quelque attention, et\nqu’avant ce tems on les regardoit comme des\nêtres immondes, vil produit de la pourri-\nture ou de la corruption, et peu faits pour\noccuper nos regards.\n\nSi nous en exceptions Dicquemare, qui a\npublié quelques faits sur les poulpes, leur\nhistoire nous est encore mal connue, et on\nne peut deviner par quelle fatalité un mol-\nlusque aussi remarquable a été si peu l’objet\ndes observations ; car nous avons vu que,\ndepuis Aristote, on n’a presque point ajouté\nà ce que ce philosophe a écrit sur ces ani-\nmaux. En 1752, Bernard de Fischer publia\nun Mémoire (1) sur un poulpe qui venoit\nde la Grèce, et que nous ne pouvons mé-\nconnoître pour le poulpe commun. Ce mé-\n\n(1) J. Bern. de Fischer, de krakatiza, observ. 79,\npag. 335. *Acta naturae curiosorum*, vol. IX, pl. IX,\nfig. 1 ; et pl. xıı, fig. I.",
+            "pages": [
+              {
+                "pageNumber": 1,
+                "method": "ocr",
+                "text": "214\n\nHISTOIRE\n\ncerveau. Tous ces faits paroissent incon-\ntestables ; on doit être surpris qu’ils aient\néchappés à la perspicacité des anciens ; mais,\nsi quelque chose peut leur servir d’excuse,\nnous devons considérer qu’il s’est écoulé à\npeine un siècle, depuis que nous avons com-\nmencé à croire que les insectes et les mol-\nlusques méritoient quelque attention, et\nqu’avant ce tems on les regardoit comme des\nêtres immondes, vil produit de la pourri-\nture ou de la corruption, et peu faits pour\noccuper nos regards.\n\nSi nous en exceptions Dicquemare, qui a\npublié quelques faits sur les poulpes, leur\nhistoire nous est encore mal connue, et on\nne peut deviner par quelle fatalité un mol-\nlusque aussi remarquable a été si peu l’objet\ndes observations ; car nous avons vu que,\ndepuis Aristote, on n’a presque point ajouté\nà ce que ce philosophe a écrit sur ces ani-\nmaux. En 1752, Bernard de Fischer publia\nun Mémoire (1) sur un poulpe qui venoit\nde la Grèce, et que nous ne pouvons mé-\nconnoître pour le poulpe commun. Ce mé-\n\n(1) J. Bern. de Fischer, de krakatiza, observ. 79,\npag. 335. *Acta naturae curiosorum*, vol. IX, pl. IX,\nfig. 1 ; et pl. xıı, fig. I."
+              }
+            ],
+            "totalPages": 1,
+            "ocrPages": 1,
+            "textPages": 0
+          }
+        },
+        {
+          "service": "deepinfra",
+          "model": "meta-llama/Llama-4-Scout-17B-16E-Instruct",
+          "artifactDir": "consolidated/deepinfra-meta-llama-Llama-4-Scout-17B-16E-Instruct",
+          "status": "succeeded",
+          "attempts": 1,
+          "options": {},
+          "metadata": {
+            "extractionMethod": "image+deepinfra-ocr",
+            "totalPages": 1,
+            "ocrPages": 1,
+            "textPages": 0,
+            "processingTime": 7723,
+            "dpi": 300,
+            "languages": "eng",
+            "tokenEstimate": 205,
+            "ocrModel": "meta-llama/Llama-4-Scout-17B-16E-Instruct",
+            "ocrService": "deepinfra",
+            "promptTokens": 2389,
+            "completionTokens": 349,
+            "inputFamily": "image",
+            "ocrProviderUsage": [
+              {
+                "unit": "document",
+                "pages": 1,
+                "provider": "deepinfra",
+                "model": "meta-llama/Llama-4-Scout-17B-16E-Instruct",
+                "promptTokens": 2389,
+                "completionTokens": 349
+              }
+            ],
+            "effectiveReasoningEffort": "default"
+          },
+          "result": {
+            "text": "Page 1\n214 HISTOIRE cerveau. Tous ces faits paroissent incon- \ntestables; on doit être surpris qu'ils aient \néchappés à la perspicacité des anciens; mais, \nsi quelque chose peut leur servir d'excuse, \nnous devons considérer qu'il s'est écoulé à \npeine un siècle, depuis que nous avons com- \nmencé à croire que les insectes et les mol- \nlusques méritoient quelque attention, et \nqu'avant ce temps on les regardoit comme des \nêtres immondes, vil produit de la pourri- \nture ou de la corruption, et peu faits pour \noccuper nos regards.\n\nSi nous en exceptons Dicquemare, qui a \npublié quelques faits sur les poulpes, leur \nhistoire nous est encore mal connue, et on \nne peut deviner par quelle fatalité un mol- \nlusque aussi remarquable a été si peu l'objet \ndes observations; car nous avons vu que, \ndepuis Aristote, on n'a presque point ajouté \nà ce que ce philosophe a écrit sur ces ani- \nmaux. En 1752, Bernard de Fischer publia \nun Mémoire (1) sur un poulpe qui vernoit \nde la Grèce, et que nous ne pouvons mé- \nconnoître pour le poulpe commun. Ce mé-\n\n(1) J. Bern. de Fischer, de kratatiza, observ. 79, \npag. 335. Acta naturce curiosorum, vol. IX, pl. ix, \nfig, 1; et pl. xIII, fig. 1.",
+            "pages": [
+              {
+                "pageNumber": 1,
+                "method": "ocr",
+                "text": "214 HISTOIRE cerveau. Tous ces faits paroissent incon- \ntestables; on doit être surpris qu'ils aient \néchappés à la perspicacité des anciens; mais, \nsi quelque chose peut leur servir d'excuse, \nnous devons considérer qu'il s'est écoulé à \npeine un siècle, depuis que nous avons com- \nmencé à croire que les insectes et les mol- \nlusques méritoient quelque attention, et \nqu'avant ce temps on les regardoit comme des \nêtres immondes, vil produit de la pourri- \nture ou de la corruption, et peu faits pour \noccuper nos regards.\n\nSi nous en exceptons Dicquemare, qui a \npublié quelques faits sur les poulpes, leur \nhistoire nous est encore mal connue, et on \nne peut deviner par quelle fatalité un mol- \nlusque aussi remarquable a été si peu l'objet \ndes observations; car nous avons vu que, \ndepuis Aristote, on n'a presque point ajouté \nà ce que ce philosophe a écrit sur ces ani- \nmaux. En 1752, Bernard de Fischer publia \nun Mémoire (1) sur un poulpe qui vernoit \nde la Grèce, et que nous ne pouvons mé- \nconnoître pour le poulpe commun. Ce mé-\n\n(1) J. Bern. de Fischer, de kratatiza, observ. 79, \npag. 335. Acta naturce curiosorum, vol. IX, pl. ix, \nfig, 1; et pl. xIII, fig. 1."
+              }
+            ],
+            "totalPages": 1,
+            "ocrPages": 1,
+            "textPages": 0
+          }
+        },
+        {
+          "service": "replicate",
+          "model": "lucataco/deepseek-ocr",
+          "artifactDir": "consolidated/replicate-lucataco-deepseek-ocr",
+          "status": "succeeded",
+          "attempts": 1,
+          "options": {},
+          "metadata": {
+            "extractionMethod": "image+replicate-ocr",
+            "totalPages": 1,
+            "ocrPages": 1,
+            "textPages": 0,
+            "processingTime": 7411,
+            "dpi": 300,
+            "languages": "eng",
+            "tokenEstimate": 184,
+            "ocrModel": "lucataco/deepseek-ocr",
+            "ocrService": "replicate",
+            "inputFamily": "image",
+            "effectiveReasoningEffort": "default"
+          },
+          "result": {
+            "text": "Page 0\n<|ref|>sub_title<|/ref|><|det|>[[295, 33, 699, 62]]<|/det|>\nHISTOIRE \n\n<|ref|>text<|/ref|><|det|>[[75, 70, 920, 432]]<|/det|>\ncerveau. Tous ces faits paroissent inconnestables; on doit être surpris qu'ils aient échappés à la perspicacité des anciens; mais, si quelque chose peut leur servir d'excuse, nous devons considérer qu'il s'est écoulé à peine un siècle, depuis que nous avons commencé à croire que les insectes et les mollusques méritoient quelque attention, et qu'avant ce tens on les regardoit comme des êtres immondes, vil produit de la pourriture ou de la corruption, et peu faits pour occuper nos regards. \n\n<|ref|>text<|/ref|><|det|>[[75, 433, 920, 792]]<|/det|>\nSi nous en exceptions Dicquemare, qui a publié quelques faits sur les poulpes, leur histoire nous est encore mal connue, et on ne peut deviner par quelle fatalité un mollusque aussi remarquable a été si peu l'objet des observations; car nous avons vu que, depuis Aristote, on n'a presque point ajouté à ce que ce philosophe a écrit sur ces animaux. En 1752, Bernard de Fischer publia un Mémoire (1) sur un poulpe qui venoit de la Grèce, et que nous ne pouvons méconnoître pour le poulpe commun. Ce mé-",
+            "pages": [
+              {
+                "pageNumber": 0,
+                "method": "ocr",
+                "text": "<|ref|>sub_title<|/ref|><|det|>[[295, 33, 699, 62]]<|/det|>\nHISTOIRE \n\n<|ref|>text<|/ref|><|det|>[[75, 70, 920, 432]]<|/det|>\ncerveau. Tous ces faits paroissent inconnestables; on doit être surpris qu'ils aient échappés à la perspicacité des anciens; mais, si quelque chose peut leur servir d'excuse, nous devons considérer qu'il s'est écoulé à peine un siècle, depuis que nous avons commencé à croire que les insectes et les mollusques méritoient quelque attention, et qu'avant ce tens on les regardoit comme des êtres immondes, vil produit de la pourriture ou de la corruption, et peu faits pour occuper nos regards. \n\n<|ref|>text<|/ref|><|det|>[[75, 433, 920, 792]]<|/det|>\nSi nous en exceptions Dicquemare, qui a publié quelques faits sur les poulpes, leur histoire nous est encore mal connue, et on ne peut deviner par quelle fatalité un mollusque aussi remarquable a été si peu l'objet des observations; car nous avons vu que, depuis Aristote, on n'a presque point ajouté à ce que ce philosophe a écrit sur ces animaux. En 1752, Bernard de Fischer publia un Mémoire (1) sur un poulpe qui venoit de la Grèce, et que nous ne pouvons méconnoître pour le poulpe commun. Ce mé-"
+              }
+            ],
+            "totalPages": 1,
+            "ocrPages": 1,
+            "textPages": 0
+          }
+        },
+        {
+          "service": "fal",
+          "model": "fal-ai/florence-2-large/ocr",
+          "artifactDir": "consolidated/fal-fal-ai-florence-2-large-ocr",
+          "status": "succeeded",
+          "attempts": 1,
+          "options": {},
+          "metadata": {
+            "extractionMethod": "image+fal-ocr",
+            "totalPages": 1,
+            "ocrPages": 1,
+            "textPages": 0,
+            "processingTime": 5262,
+            "dpi": 300,
+            "languages": "eng",
+            "tokenEstimate": 204,
+            "ocrModel": "fal-ai/florence-2-large/ocr",
+            "ocrService": "fal",
+            "inputFamily": "image",
+            "effectiveReasoningEffort": "default"
+          },
+          "result": {
+            "text": "Page 0\n214\nHISTOIRE\ncerveau. Tous ces fails paroissent incon-\ntestables ; on doit être surpris qu'ils aient\néchappés à la perspicacité des anciens; mais,\nsi quelque chose peut leur servir d'excuse,\nnous devons considerer qu'il s'est écoule à\npeine un siècle, depuis que nous avons com-\nmence à croire que les insects et les mol-\nlusques mérioient quelques attention , et\nqu'avant ce tems on les regardoit comme des\nêtres immondes, vil produit de la pourri-\nture ou de la corruption, et peu faits pour\nocuper nos regards.\nSi nous éxceptions Dicquemare, qui a\npublicité quélques faits sur les poulpes, leur\nhistoire nous est encore mal connue, et on\nne peut deviner par quelle fatalité un mol -\nlusque aussi remarquable à élé si peu Fobjet\ndes observations; car nous Avons vu que ,\ndepuis Aristote, on n'a presque point ajouté\nà ce que-ce-philosophe a écrit sur ces ami-\nmaux. En-1752, Bernard de Fischer publi-\nun Mémoire (1) sur un poulpe-qui venoit\nde la Grèce, et que ne pouvons mé-\nconnoître pour le poulpe commun. Ce me-\n(i) J. Bern. de Fischer, de krakatiza, observ. 79,\nrag. 355. Actu nature curiosorum, vol. IX, pl. IX ,\nfig. 1) et ph. XII, fig. 1.",
+            "pages": [
+              {
+                "pageNumber": 0,
+                "method": "ocr",
+                "text": "214\nHISTOIRE\ncerveau. Tous ces fails paroissent incon-\ntestables ; on doit être surpris qu'ils aient\néchappés à la perspicacité des anciens; mais,\nsi quelque chose peut leur servir d'excuse,\nnous devons considerer qu'il s'est écoule à\npeine un siècle, depuis que nous avons com-\nmence à croire que les insects et les mol-\nlusques mérioient quelques attention , et\nqu'avant ce tems on les regardoit comme des\nêtres immondes, vil produit de la pourri-\nture ou de la corruption, et peu faits pour\nocuper nos regards.\nSi nous éxceptions Dicquemare, qui a\npublicité quélques faits sur les poulpes, leur\nhistoire nous est encore mal connue, et on\nne peut deviner par quelle fatalité un mol -\nlusque aussi remarquable à élé si peu Fobjet\ndes observations; car nous Avons vu que ,\ndepuis Aristote, on n'a presque point ajouté\nà ce que-ce-philosophe a écrit sur ces ami-\nmaux. En-1752, Bernard de Fischer publi-\nun Mémoire (1) sur un poulpe-qui venoit\nde la Grèce, et que ne pouvons mé-\nconnoître pour le poulpe commun. Ce me-\n(i) J. Bern. de Fischer, de krakatiza, observ. 79,\nrag. 355. Actu nature curiosorum, vol. IX, pl. IX ,\nfig. 1) et ph. XII, fig. 1."
+              }
+            ],
+            "totalPages": 1,
+            "ocrPages": 1,
+            "textPages": 0
+          }
+        },
+        {
+          "service": "fal",
+          "model": "fal-ai/got-ocr/v2",
+          "artifactDir": "consolidated/fal-fal-ai-got-ocr-v2",
+          "status": "succeeded",
+          "attempts": 1,
+          "options": {},
+          "metadata": {
+            "extractionMethod": "image+fal-ocr",
+            "totalPages": 1,
+            "ocrPages": 1,
+            "textPages": 0,
+            "processingTime": 10315,
+            "dpi": 300,
+            "languages": "eng",
+            "tokenEstimate": 210,
+            "ocrModel": "fal-ai/got-ocr/v2",
+            "ocrService": "fal",
+            "inputFamily": "image",
+            "effectiveReasoningEffort": "default"
+          },
+          "result": {
+            "text": "Page 0\n214 H I S TO I R E\ncerveau. Tous ces faits paroissent ineon \\(\\downarrow\\)\ntestables; on doit être surpris qu'ils aient\néchappés à la perspicacité des anciens; mais,\nsi quelque chose peut leur servir d'excuse,\nnous devons considérer qu'il s'est écoulé à\npeine un siècle, depuis que nous avons commen\nmencé à croire que les insectes et les mol\nlusques méritoient quelque attention, et\nqu'avant ce teens on les regardoit comme des\nêtres immondes, vil produit de la pourri\nture ou de la corruption, et peu faits pour\noccuper nos regards.\nSi nous èn' exceptions Dicquemare, qui a\npublie quelques faits sur les poupes, leur\nhistoire nous est encore mal connue, et on\nne peut deviner par quelle fatalité un mol\nlusque aussi remarquable a élé si peu l'objet\ndes observations; car nous avons vu que,\ndepuis Aristote, on n'a presque point ajouté\nà ce que-ce philosophe a écrit sur ces anim\nmaux. En 1752, Bernard de Fischer publia\nun Mémoire (i) sur un poulpe quir veroit\nde la Grèce, et que nous ne pouvons mé\nconnoître pour le poulpe coimmun. Cemé-\n(I) J. Bern. de Fischer, de krakatiza, observ. 79,\nrag. 355. Actu naturae curionorum, vol. IX, pl. Ix,\nfig. I; et pl. x111, fig. I..",
+            "pages": [
+              {
+                "pageNumber": 0,
+                "method": "ocr",
+                "text": "214 H I S TO I R E\ncerveau. Tous ces faits paroissent ineon \\(\\downarrow\\)\ntestables; on doit être surpris qu'ils aient\néchappés à la perspicacité des anciens; mais,\nsi quelque chose peut leur servir d'excuse,\nnous devons considérer qu'il s'est écoulé à\npeine un siècle, depuis que nous avons commen\nmencé à croire que les insectes et les mol\nlusques méritoient quelque attention, et\nqu'avant ce teens on les regardoit comme des\nêtres immondes, vil produit de la pourri\nture ou de la corruption, et peu faits pour\noccuper nos regards.\nSi nous èn' exceptions Dicquemare, qui a\npublie quelques faits sur les poupes, leur\nhistoire nous est encore mal connue, et on\nne peut deviner par quelle fatalité un mol\nlusque aussi remarquable a élé si peu l'objet\ndes observations; car nous avons vu que,\ndepuis Aristote, on n'a presque point ajouté\nà ce que-ce philosophe a écrit sur ces anim\nmaux. En 1752, Bernard de Fischer publia\nun Mémoire (i) sur un poulpe quir veroit\nde la Grèce, et que nous ne pouvons mé\nconnoître pour le poulpe coimmun. Cemé-\n(I) J. Bern. de Fischer, de krakatiza, observ. 79,\nrag. 355. Actu naturae curionorum, vol. IX, pl. Ix,\nfig. I; et pl. x111, fig. I.."
+              }
+            ],
+            "totalPages": 1,
+            "ocrPages": 1,
+            "textPages": 0
+          }
+        },
+        {
+          "service": "replicate",
+          "model": "datalab-to/marker",
+          "artifactDir": "consolidated/replicate-datalab-to-marker",
+          "status": "succeeded",
+          "attempts": 1,
+          "options": {},
+          "metadata": {
+            "extractionMethod": "image+replicate-ocr",
+            "totalPages": 1,
+            "ocrPages": 1,
+            "textPages": 0,
+            "processingTime": 5115,
+            "dpi": 300,
+            "languages": "eng",
+            "tokenEstimate": 217,
+            "ocrModel": "datalab-to/marker",
+            "ocrService": "replicate",
+            "inputFamily": "image",
+            "effectiveReasoningEffort": "default"
+          },
+          "result": {
+            "text": "Page 0\ncerveau. Tous ces faits paroissent incontestables ; on doit être surpris qu'ils aient échappés à la perspicacité des anciens ; mais, si quelque chose peut leur servir d'excuse, nous devons considérer qu'il s'est écoulé à peine un siècle , depuis que nous avons commencé à croire que les insectes et les mol-lusques méritoient quelque attention , et qu'avant ce tems on les regardoit comme des êtres immondes , vil produit de la pourri-ture ou de la corruption, et peu faits pour occuper nos regards.\n\nSi nous en exceptons Dicquemare , qui a publié quelques faits sur les poulpes , leur histoire nous est encore mal connue, et on ne peut deviner par quelle fatalité un mol-lusque aussi remarquable a été si peu l'objet des observations ; car nous avons vu que , depuis Aristote , on n'a presque point ajouté à ce que ce philosophe a écrit sur ces ani-maux. En 1752 , Bernard de Fischer publia un Mémoire (1) sur un poulpe qui venoit de la Grèce , et que nous ne pouvons mé-connoître pour le poulpe commun. Ce mé-\n\n---\n\n(1) J. Bern. de Fischer , de krakatiza , observ. 79 , pag. 535. *Acta naturæ curiosorum* , vol. IX , pl. IX , fig. 1 ; et pl. XIII , fig. 1.",
+            "pages": [
+              {
+                "pageNumber": 0,
+                "method": "ocr",
+                "text": "\n\ncerveau. Tous ces faits paroissent incontestables ; on doit être surpris qu'ils aient échappés à la perspicacité des anciens ; mais, si quelque chose peut leur servir d'excuse, nous devons considérer qu'il s'est écoulé à peine un siècle , depuis que nous avons commencé à croire que les insectes et les mol-lusques méritoient quelque attention , et qu'avant ce tems on les regardoit comme des êtres immondes , vil produit de la pourri-ture ou de la corruption, et peu faits pour occuper nos regards.\n\nSi nous en exceptons Dicquemare , qui a publié quelques faits sur les poulpes , leur histoire nous est encore mal connue, et on ne peut deviner par quelle fatalité un mol-lusque aussi remarquable a été si peu l'objet des observations ; car nous avons vu que , depuis Aristote , on n'a presque point ajouté à ce que ce philosophe a écrit sur ces ani-maux. En 1752 , Bernard de Fischer publia un Mémoire (1) sur un poulpe qui venoit de la Grèce , et que nous ne pouvons mé-connoître pour le poulpe commun. Ce mé-\n\n---\n\n(1) J. Bern. de Fischer , de krakatiza , observ. 79 , pag. 535. *Acta naturæ curiosorum* , vol. IX , pl. IX , fig. 1 ; et pl. XIII , fig. 1."
+              }
+            ],
+            "totalPages": 1,
+            "ocrPages": 1,
+            "textPages": 0
+          }
+        },
+        {
+          "service": "deepinfra",
+          "model": "mistralai/Mistral-Small-3.2-24B-Instruct-2506",
+          "artifactDir": "consolidated/deepinfra-mistralai-Mistral-Small-3.2-24B-Instruct-2506",
+          "status": "succeeded",
+          "attempts": 1,
+          "options": {},
+          "metadata": {
+            "extractionMethod": "image+deepinfra-ocr",
+            "totalPages": 1,
+            "ocrPages": 1,
+            "textPages": 0,
+            "processingTime": 6419,
+            "dpi": 300,
+            "languages": "eng",
+            "tokenEstimate": 198,
+            "ocrModel": "mistralai/Mistral-Small-3.2-24B-Instruct-2506",
+            "ocrService": "deepinfra",
+            "promptTokens": 1880,
+            "completionTokens": 313,
+            "inputFamily": "image",
+            "ocrProviderUsage": [
+              {
+                "unit": "document",
+                "pages": 1,
+                "provider": "deepinfra",
+                "model": "mistralai/Mistral-Small-3.2-24B-Instruct-2506",
+                "promptTokens": 1880,
+                "completionTokens": 313
+              }
+            ],
+            "effectiveReasoningEffort": "default"
+          },
+          "result": {
+            "text": "Page 1\n214 HISTOIRE\n\ncerveau. Tous ces faits paroissent incontestables; on doit être surpris qu'ils aient échappés à la perspicacité des anciens; mais, si quelque chose peut leur servir d'excuse, nous devons considérer qu'il s'est écoulé à peine un siècle, depuis que nous avons commencé à croire que les insectes et les mollusques méritoient quelque attention, et qu'avant ce tems on les regardoit comme des êtres immondes, vil produit de la pourriture ou de la corruption, et peu faits pour occuper nos regards.\n\nSi nous en exceptons Dicquemare, qui a publié quelques faits sur les poulpes, leur histoire nous est encore mal connue, et on ne peut deviner par quelle fatalité un mollusque aussi remarquable a été si peu l'objet des observations; car nous avons vu que, depuis Aristote, on n'a presque point ajouté à ce que ce philosophe a écrit sur ces animaux. En 1752, Bernard de Fischer publia un Mémoire (1) sur un poulpe qui venoit de la Grèce, et que nous ne pouvons méconnoître pour le poulpe commun. Ce mé-\n\n(1) J. Bern. de Fischer, de krakatiza, observ. 79, pag. 335. Acta naturae curiosorum, vol. IX, pl. IX, fig. 1; et pl. XIII, fig. 1.",
+            "pages": [
+              {
+                "pageNumber": 1,
+                "method": "ocr",
+                "text": "214 HISTOIRE\n\ncerveau. Tous ces faits paroissent incontestables; on doit être surpris qu'ils aient échappés à la perspicacité des anciens; mais, si quelque chose peut leur servir d'excuse, nous devons considérer qu'il s'est écoulé à peine un siècle, depuis que nous avons commencé à croire que les insectes et les mollusques méritoient quelque attention, et qu'avant ce tems on les regardoit comme des êtres immondes, vil produit de la pourriture ou de la corruption, et peu faits pour occuper nos regards.\n\nSi nous en exceptons Dicquemare, qui a publié quelques faits sur les poulpes, leur histoire nous est encore mal connue, et on ne peut deviner par quelle fatalité un mollusque aussi remarquable a été si peu l'objet des observations; car nous avons vu que, depuis Aristote, on n'a presque point ajouté à ce que ce philosophe a écrit sur ces animaux. En 1752, Bernard de Fischer publia un Mémoire (1) sur un poulpe qui venoit de la Grèce, et que nous ne pouvons méconnoître pour le poulpe commun. Ce mé-\n\n(1) J. Bern. de Fischer, de krakatiza, observ. 79, pag. 335. Acta naturae curiosorum, vol. IX, pl. IX, fig. 1; et pl. XIII, fig. 1."
+              }
+            ],
+            "totalPages": 1,
+            "ocrPages": 1,
+            "textPages": 0
           }
         }
       ]

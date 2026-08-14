@@ -69,8 +69,26 @@ export const validateGeminiOcrModel = (model: string): typeof SUPPORTED_GEMINI_O
 export const DEFAULT_DEEPINFRA_OCR_MODEL = 'Qwen/Qwen3-VL-30B-A3B-Instruct'
 
 export const SUPPORTED_DEEPINFRA_OCR_MODELS = [
+  'google/gemma-3-27b-it',
+  'meta-llama/Llama-4-Scout-17B-16E-Instruct',
+  'mistralai/Mistral-Small-3.2-24B-Instruct-2506',
   'Qwen/Qwen3-VL-235B-A22B-Instruct',
   DEFAULT_DEEPINFRA_OCR_MODEL
 ] as const satisfies readonly string[]
 
 export const validateDeepinfraOcrModel = createModelValidator(SUPPORTED_DEEPINFRA_OCR_MODELS, 'deepinfra-ocr')
+
+export const SUPPORTED_REPLICATE_OCR_MODELS = [
+  'datalab-to/ocr',
+  'datalab-to/marker',
+  'lucataco/deepseek-ocr'
+] as const satisfies readonly string[]
+
+export const validateReplicateOcrModel = createModelValidator(SUPPORTED_REPLICATE_OCR_MODELS, 'replicate-ocr')
+
+export const SUPPORTED_FAL_OCR_MODELS = [
+  'fal-ai/got-ocr/v2',
+  'fal-ai/florence-2-large/ocr'
+] as const satisfies readonly string[]
+
+export const validateFalOcrModel = createModelValidator(SUPPORTED_FAL_OCR_MODELS, 'fal-ocr')

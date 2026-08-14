@@ -1,35 +1,23 @@
 import { readInjectedConfigFlags } from '~/cli/options/option-resolution/build-options-config-flags'
 import { URL_ARTICLE_BACKENDS } from '~/cli/commands/process-steps/step-2-extract/step-2-shared/provider-registry'
+import { WRITE_OCR_PROVIDER_TARGETS, WRITE_STT_PROVIDER_TARGETS } from './provider-targets'
 import type { CliFlagOccurrence, ExtractPublicSelectorTarget, ExtractSelectorInputRoutes, SelectorNormalizationResult } from '~/types'
 import { CLIUsageError } from '~/utils/error-handler'
 import { parseProviderSelectorValue } from './flag-helpers'
 import { applyFlagOccurrenceNormalization, replaceFlagOccurrence } from './occurrence-normalization'
 
-export const EXTRACT_PUBLIC_SELECTOR_FLAGS: Record<string, ExtractPublicSelectorTarget> = {
-  reverb: { stt: 'reverb-stt' },
-  deepinfra: { stt: 'deepinfra-stt', ocr: 'deepinfra-ocr' },
-  deepgram: { stt: 'deepgram-stt' },
-  soniox: { stt: 'soniox-stt' },
-  speechmatics: { stt: 'speechmatics-stt' },
-  rev: { stt: 'rev-stt' },
-  groq: { stt: 'groq-stt' },
-  grok: { stt: 'grok-stt', ocr: 'grok-ocr' },
-  mistral: { stt: 'mistral-stt', ocr: 'mistral-ocr' },
-  assemblyai: { stt: 'assemblyai-stt' },
-  gladia: { stt: 'gladia-stt' },
-  happyscribe: { stt: 'happyscribe-stt' },
-  supadata: { stt: 'supadata-stt' },
-  scrapecreators: { stt: 'scrapecreators-stt' },
-  openai: { ocr: 'openai-ocr' },
-  gemini: { stt: 'gemini-stt', ocr: 'gemini-ocr' },
-  glm: { ocr: 'glm-ocr' },
-  together: { stt: 'together-stt' },
-  whisper: { stt: 'whisper-stt' },
-  whisperfile: { stt: 'whisperfile-stt' },
-  tesseract: { ocr: 'tesseract-ocr' },
-  kimi: { ocr: 'kimi-ocr' },
-  anthropic: { ocr: 'anthropic-ocr' }
-} as const
+const buildExtractPublicSelectorFlags = (): Record<string, ExtractPublicSelectorTarget> => {
+  const targets: Record<string, ExtractPublicSelectorTarget> = {}
+  for (const [provider, flag] of Object.entries(WRITE_STT_PROVIDER_TARGETS)) {
+    targets[provider] = { ...targets[provider], stt: flag }
+  }
+  for (const [provider, flag] of Object.entries(WRITE_OCR_PROVIDER_TARGETS)) {
+    targets[provider] = { ...targets[provider], ocr: flag }
+  }
+  return targets
+}
+
+export const EXTRACT_PUBLIC_SELECTOR_FLAGS = buildExtractPublicSelectorFlags()
 
 const extractBooleanSelectorTargetFlags = new Set(['reverb-stt', 'tesseract-ocr'])
 

@@ -39,6 +39,8 @@ const EXPECTED_REPEATABLE_MODEL_FLAGS = [
   'anthropic-ocr',
   'gemini-ocr',
   'deepinfra-ocr',
+  'replicate-ocr',
+  'fal-ocr',
   'llama',
   'llamafile',
   'openai',
@@ -62,6 +64,10 @@ const EXPECTED_REPEATABLE_MODEL_FLAGS = [
   'speechify-tts',
   'hume-tts',
   'cartesia-tts',
+  'fish-tts',
+  'inworld-tts',
+  'deepinfra-tts',
+  'replicate-tts',
   'deepgram-tts',
   'gemini-image',
   'openai-image',
@@ -145,6 +151,10 @@ const OCR_SELECTION_PROBE = {
   geminiOcrModel: undefined,
   deepinfraOcrModels: undefined,
   deepinfraOcrModel: undefined,
+  replicateOcrModels: undefined,
+  replicateOcrModel: undefined,
+  falOcrModels: undefined,
+  falOcrModel: undefined,
   step2SelectionOrigins: {}
 } satisfies OcrSelectionOptions
 

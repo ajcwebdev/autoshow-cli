@@ -29,6 +29,10 @@ export type OcrRuntimeOptions = {
   geminiOcrModel: string | undefined
   deepinfraOcrModels: string[] | undefined
   deepinfraOcrModel: string | undefined
+  replicateOcrModels: string[] | undefined
+  replicateOcrModel: string | undefined
+  falOcrModels: string[] | undefined
+  falOcrModel: string | undefined
   primaryOcr: string | undefined
   chapterFiles: boolean | undefined
   chapterChunkLimitChars: number | undefined

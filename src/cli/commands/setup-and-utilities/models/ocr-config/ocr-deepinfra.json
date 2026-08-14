@@ -3,6 +3,75 @@
     "description": "DeepInfra OpenAI-compatible vision/OCR models",
     "type": "api",
     "models": {
+      "google/gemma-3-27b-it": {
+        "description": "Gemma 3 27B IT via DeepInfra",
+        "pricingSourceUrl": "https://deepinfra.com/google/gemma-3-27b-it",
+        "pricingCheckedAt": "2026-08-14",
+        "pricingCurrency": "USD",
+        "pricingTier": "DeepInfra public per-token model pricing",
+        "pricingNotes": "DeepInfra lists google/gemma-3-27b-it at $0.08/1M input tokens and $0.16/1M output tokens. OCR estimates use these public rates; discounts, enterprise pricing, taxes, and provider credits are ignored.",
+        "costPerMInputTokensCents": 8,
+        "costPerMOutputTokensCents": 16,
+        "limits": {
+          "imageBytes": 20971520,
+          "notes": "DeepInfra Vision & OCR docs document OpenAI vision API format, supported image uploads as JPG/PNG/WebP, 20 MB maximum image size, and no detail parameter support. AutoShow renders PDF and EPUB-derived PDF pages to PNG images before calling DeepInfra OCR."
+        },
+        "estimation": {
+          "costMultiplier": 1,
+          "msPerPage": 12618,
+          "promptTokensPerPage": 7981,
+          "completionTokensPerPage": 471.5
+        },
+        "reasoning": {
+          "support": "unsupported"
+        }
+      },
+      "meta-llama/Llama-4-Scout-17B-16E-Instruct": {
+        "description": "Llama 4 Scout 17B 16E Instruct via DeepInfra",
+        "pricingSourceUrl": "https://deepinfra.com/meta-llama/Llama-4-Scout-17B-16E-Instruct",
+        "pricingCheckedAt": "2026-08-14",
+        "pricingCurrency": "USD",
+        "pricingTier": "DeepInfra public per-token model pricing",
+        "pricingNotes": "DeepInfra lists meta-llama/Llama-4-Scout-17B-16E-Instruct at $0.10/1M input tokens and $0.30/1M output tokens. OCR estimates use these public rates; discounts, enterprise pricing, taxes, and provider credits are ignored.",
+        "costPerMInputTokensCents": 10,
+        "costPerMOutputTokensCents": 30,
+        "limits": {
+          "imageBytes": 20971520,
+          "notes": "DeepInfra Vision & OCR docs document OpenAI vision API format, supported image uploads as JPG/PNG/WebP, 20 MB maximum image size, and no detail parameter support. AutoShow renders PDF and EPUB-derived PDF pages to PNG images before calling DeepInfra OCR."
+        },
+        "estimation": {
+          "costMultiplier": 1,
+          "msPerPage": 12618,
+          "promptTokensPerPage": 7981,
+          "completionTokensPerPage": 471.5
+        },
+        "reasoning": {
+          "support": "unsupported"
+        }
+      },
+      "mistralai/Mistral-Small-3.2-24B-Instruct-2506": {
+        "description": "Mistral Small 3.2 24B Instruct via DeepInfra",
+        "pricingSourceUrl": "https://deepinfra.com/mistralai/Mistral-Small-3.2-24B-Instruct-2506",
+        "pricingCheckedAt": "2026-08-14",
+        "pricingCurrency": "USD",
+        "pricingTier": "DeepInfra public per-token model pricing",
+        "pricingNotes": "DeepInfra lists mistralai/Mistral-Small-3.2-24B-Instruct-2506 at $0.075/1M input tokens and $0.20/1M output tokens. OCR estimates use these public rates; discounts, enterprise pricing, taxes, and provider credits are ignored.",
+        "costPerMInputTokensCents": 7.5,
+        "costPerMOutputTokensCents": 20,
+        "limits": {
+          "imageBytes": 20971520,
+          "notes": "DeepInfra Vision & OCR docs document OpenAI vision API format, supported image uploads as JPG/PNG/WebP, 20 MB maximum image size, and no detail parameter support. AutoShow renders PDF and EPUB-derived PDF pages to PNG images before calling DeepInfra OCR."
+        },
+        "estimation": {
+          "costMultiplier": 1,
+          "msPerPage": 12618,
+          "promptTokensPerPage": 7981,
+          "completionTokensPerPage": 471.5
+        },
+        "reasoning": {
+          "support": "unsupported"
+        }
+      },
       "Qwen/Qwen3-VL-235B-A22B-Instruct": {
         "description": "Qwen3 VL 235B A22B Instruct via DeepInfra",
         "pricingSourceUrl": "https://deepinfra.com/Qwen/Qwen3-VL-235B-A22B-Instruct",

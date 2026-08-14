@@ -135,7 +135,10 @@ export const generateComicSlideshow = async (ctx: CliCommandContext, scriptPath:
   const runPath = `${runRoot}/comic-presentation-run.json`
   const completed = await loadCompleteRun({ sceneRunDir: compatible.sceneRunDir, runPath, presentationId: presentationPlan.presentationId, planRef, timelineRef })
     ?? await renderComicPresentation({ sceneRunDir: compatible.sceneRunDir, plan: presentationPlan, planRef, timeline, timelineRef })
-  const finalOutputRefs = await publishComicPresentationFinal(compatible.sceneRunDir, completed.run)
+  const finalOutputRefs = [
+    { path: 'presentation/final/slideshow.wav', sha256: completed.run.outputs.wav.sha256 },
+    { path: 'presentation/final/slideshow.mp4', sha256: completed.run.outputs.mp4.sha256 },
+  ]
   const artifactRefs = [
     planRef,
     timelineRef,
@@ -161,6 +164,7 @@ export const generateComicSlideshow = async (ctx: CliCommandContext, scriptPath:
       sourceIdentity: compatible.sourceIdentity,
       stage: { requirement: 'optional', status: 'full', execution: { kind: 'local', state: 'succeeded' }, targetKeys: [], artifactRefs },
       presentation,
+      publishFinal: async () => await publishComicPresentationFinal(compatible.sceneRunDir, completed.run),
     })
   }
   l.write('info', alreadyPublished

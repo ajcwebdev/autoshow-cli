@@ -18,6 +18,21 @@ const DIALOGUE_PLAN_DIRECTORY = 'metadata/tts-dialogue-plans'
 const artifactPathFor = (dialoguePlanId: string): string =>
   `${DIALOGUE_PLAN_DIRECTORY}/${dialoguePlanId}.json`
 
+export const buildTtsDialoguePlanArtifactRef = (
+  dialoguePlan: GenericTtsDialoguePlan
+): TtsDialoguePlanArtifactRef => {
+  const validatedPlan = validateGenericTtsDialoguePlan(dialoguePlan)
+  if (!DIALOGUE_PLAN_ID.test(validatedPlan.dialoguePlanId)) {
+    throw CLIUsageError('Canonical TTS dialogue plan has an invalid content identity.')
+  }
+  const bytes = Buffer.from(`${canonicalTtsJson(validatedPlan)}\n`)
+  return {
+    dialoguePlanId: validatedPlan.dialoguePlanId,
+    path: artifactPathFor(validatedPlan.dialoguePlanId),
+    sha256: sha256Bytes(bytes)
+  }
+}
+
 const isContained = (root: string, candidate: string): boolean => {
   const child = relative(root, candidate)
   return child !== '' && child !== '..' && !child.startsWith(`..${sep}`) && !isAbsolute(child)
@@ -28,15 +43,12 @@ export const materializeTtsDialoguePlanArtifact = async (
   dialoguePlan: GenericTtsDialoguePlan
 ): Promise<TtsDialoguePlanArtifactRef> => {
   const validatedPlan = validateGenericTtsDialoguePlan(dialoguePlan)
-  if (!DIALOGUE_PLAN_ID.test(validatedPlan.dialoguePlanId)) {
-    throw CLIUsageError('Canonical TTS dialogue plan has an invalid content identity.')
-  }
-  const relativePath = artifactPathFor(validatedPlan.dialoguePlanId)
+  const reference = buildTtsDialoguePlanArtifactRef(validatedPlan)
   const bytes = Buffer.from(`${canonicalTtsJson(validatedPlan)}\n`)
-  const written = await writeImmutableArtifactFile(rootDir, relativePath, bytes)
+  const written = await writeImmutableArtifactFile(rootDir, reference.path, bytes)
 
   return {
-    dialoguePlanId: validatedPlan.dialoguePlanId,
+    dialoguePlanId: reference.dialoguePlanId,
     path: written.relativePath,
     sha256: written.sha256
   }

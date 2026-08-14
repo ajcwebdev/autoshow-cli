@@ -12,19 +12,42 @@
     "repeatedTokenWindowSize": 8,
     "repeatedTokenWindowMinimum": 6,
     "repeatedTokenWindowShare": 0.35,
-    "highDisagreement": 0.29091,
-    "pageDisagreementQ1": 0.29091,
-    "pageDisagreementQ3": 0.29091
+    "highDisagreement": 1.351007,
+    "pageDisagreementQ1": 1.351007,
+    "pageDisagreementQ3": 1.351007
   },
   "blankOutputPages": [],
-  "repeatedTextPages": [],
-  "majorLengthDriftPages": [],
+  "repeatedTextPages": [
+    {
+      "pageNumber": 1,
+      "providers": [
+        "fal/fal-ai/got-ocr/v2"
+      ]
+    }
+  ],
+  "majorLengthDriftPages": [
+    {
+      "pageNumber": 1,
+      "providers": [
+        {
+          "providerKey": "replicate/lucataco/deepseek-ocr",
+          "lengthDrift": 1.418136,
+          "tokenCount": 480
+        },
+        {
+          "providerKey": "fal/fal-ai/got-ocr/v2",
+          "lengthDrift": 4.889169,
+          "tokenCount": 1169
+        }
+      ]
+    }
+  ],
   "highDisagreementPages": [
     {
       "pageNumber": 1,
-      "pageDisagreement": 0.29091,
-      "selectedProviderKey": "mistral/mistral-ocr-4-0",
-      "selectedConfidence": 0.574134
+      "pageDisagreement": 1.351007,
+      "selectedProviderKey": "replicate/datalab-to/marker",
+      "selectedConfidence": 0.139675
     }
   ],
   "werCerDivergencePages": [
@@ -32,34 +55,39 @@
       "pageNumber": 1,
       "providers": [
         {
-          "providerKey": "anthropic/claude-haiku-4-5",
-          "wer": 0.520965,
-          "cer": 0.207723
+          "providerKey": "replicate/datalab-to/ocr",
+          "wer": 0.69913,
+          "cer": 0.518175
         },
         {
-          "providerKey": "anthropic/claude-sonnet-5",
-          "wer": 0.308275,
-          "cer": 0.119372
+          "providerKey": "deepinfra/google/gemma-3-27b-it",
+          "wer": 0.760509,
+          "cer": 0.583439
         },
         {
-          "providerKey": "gemini/gemini-3.5-flash",
-          "wer": 0.312802,
-          "cer": 0.119176
+          "providerKey": "deepinfra/meta-llama/Llama-4-Scout-17B-16E-Instruct",
+          "wer": 0.625888,
+          "cer": 0.457146
         },
         {
-          "providerKey": "grok/grok-4.20-0309-non-reasoning",
-          "wer": 0.391562,
-          "cer": 0.138115
+          "providerKey": "fal/fal-ai/florence-2-large/ocr",
+          "wer": 0.680631,
+          "cer": 0.477172
         },
         {
-          "providerKey": "mistral/mistral-ocr-4-0",
-          "wer": 0.298286,
-          "cer": 0.124758
+          "providerKey": "fal/fal-ai/got-ocr/v2",
+          "wer": 5.520615,
+          "cer": 5.001287
         },
         {
-          "providerKey": "openai/gpt-5.4-mini",
-          "wer": 0.384506,
-          "cer": 0.161716
+          "providerKey": "replicate/datalab-to/marker",
+          "wer": 0.614459,
+          "cer": 0.440028
+        },
+        {
+          "providerKey": "deepinfra/mistralai/Mistral-Small-3.2-24B-Instruct-2506",
+          "wer": 0.692111,
+          "cer": 0.463928
         }
       ]
     }
@@ -67,9 +95,9 @@
   "lowConfidencePages": [
     {
       "pageNumber": 1,
-      "selectedProviderKey": "mistral/mistral-ocr-4-0",
-      "selectedConfidence": 0.574134,
-      "pageDisagreement": 0.29091
+      "selectedProviderKey": "replicate/datalab-to/marker",
+      "selectedConfidence": 0.139675,
+      "pageDisagreement": 1.351007
     }
   ]
 }

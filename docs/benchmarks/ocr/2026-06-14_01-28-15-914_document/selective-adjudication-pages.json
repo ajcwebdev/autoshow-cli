@@ -1,23 +1,16 @@
 {
   "schemaVersion": 1,
-  "pageCount": 2,
+  "pageCount": 1,
   "pages": [
-    {
-      "pageNumber": 0,
-      "reason": [
-        "low-confidence-selected-provider",
-        "page-outlier"
-      ],
-      "replacedProviderKey": "anthropic/claude-opus-4-8",
-      "replacedConfidence": 0.375
-    },
     {
       "pageNumber": 1,
       "reason": [
-        "page-outlier"
+        "low-confidence-selected-provider",
+        "page-outlier",
+        "high-disagreement"
       ],
-      "replacedProviderKey": "anthropic/claude-opus-4-8",
-      "replacedConfidence": 0.731158
+      "replacedProviderKey": "deepinfra/google/gemma-3-27b-it",
+      "replacedConfidence": 0.543574
     }
   ]
 }

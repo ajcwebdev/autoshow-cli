@@ -1,8 +1,8 @@
 {
   "schemaVersion": 1,
   "runDir": "/Users/ajc/c/autoshow-cli/docs/benchmarks/ocr/2026-05-21_05-47-00-856_document",
-  "generatedAt": "2026-07-01T20:05:17.120Z",
-  "pageAligned": false,
+  "generatedAt": "2026-08-14T17:47:17.085Z",
+  "pageAligned": true,
   "variants": [
     {
       "variantId": "status-quo-consensus",
@@ -14,28 +14,26 @@
     {
       "variantId": "page-level-hybrid",
       "source": "deterministic selected provider pages",
-      "charCount": 6924,
-      "wordCount": 1327,
-      "pageCount": 5,
+      "charCount": 6915,
+      "wordCount": 1323,
+      "pageCount": 4,
       "selectedPageSourceCounts": {
-        "anthropic/claude-haiku-4-5": 1,
-        "anthropic/claude-sonnet-5": 1,
-        "grok/grok-4.20-0309-non-reasoning": 1,
-        "mistral/mistral-ocr-4-0": 2
+        "deepinfra/meta-llama/Llama-4-Scout-17B-16E-Instruct": 3,
+        "deepinfra/mistralai/Mistral-Small-3.2-24B-Instruct-2506": 1
       },
-      "lowConfidencePageCount": 2,
-      "outlierPageCount": 5
+      "lowConfidencePageCount": 1,
+      "outlierPageCount": 4
     }
   ],
   "pairwiseDistances": [
     {
       "referenceVariantId": "status-quo-consensus",
       "candidateVariantId": "page-level-hybrid",
-      "wer": 0.596255,
-      "cer": 0.487271,
-      "wordDistance": 796,
+      "wer": 0.008989,
+      "cer": 0.008289,
+      "wordDistance": 12,
       "wordReferenceCount": 1335,
-      "charDistance": 3292,
+      "charDistance": 56,
       "charReferenceCount": 6756
     }
   ]

@@ -58,6 +58,9 @@ import { getSpeakerVoice, isMultiSpeakerRequested, normalizeDialogueFromOptions,
 import { resolveGeminiDialogueStrategyForText, splitGeminiNativeDialogueText } from '../tts-services/tts-gemini/gemini-tts-config'
 import { planElevenLabsNativeDialogueBatches, prepareElevenLabsDialogueText } from '../tts-services/tts-elevenlabs/elevenlabs-native-dialogue'
 import { planHumeNativeUtteranceBatches } from '../tts-services/hume/hume-native-utterances'
+import { prepareDeepinfraChatterboxText } from '../tts-services/tts-deepinfra/deepinfra-text-preparation'
+import { DEEPINFRA_TTS_SERIALIZER_VERSION, resolveDeepinfraTtsRequestControls, resolveDeepinfraTtsVoiceField } from '../tts-services/tts-deepinfra/deepinfra-tts-request'
+import { INWORLD_TTS_SERIALIZER_VERSION } from '../tts-services/inworld/inworld-tts-request'
 import { createTtsTargetSelection } from '../tts-targets/tts-target-selection'
 import {
   normalizeTtsTurnControls,
@@ -452,9 +455,9 @@ const serializerContract = (
     case 'fish':
       return { endpointKind: 'speech-synthesis', serializerVersion: 'fish.tts.phase-0-v1', controls: { format: 'wav' } }
     case 'inworld':
-      return { endpointKind: 'realtime-tts', serializerVersion: 'inworld.tts.phase-3-v1', controls: { format: 'mp3' } }
+      return { endpointKind: 'realtime-tts', serializerVersion: INWORLD_TTS_SERIALIZER_VERSION, controls: { format: 'mp3' } }
     case 'deepinfra':
-      return { endpointKind: 'inference', serializerVersion: 'deepinfra.tts.phase-4-v1', controls: { format: 'wav' } }
+      return { endpointKind: 'inference', serializerVersion: DEEPINFRA_TTS_SERIALIZER_VERSION, controls: resolveDeepinfraTtsRequestControls(target.model, stringValue('promptInstructions')) }
     case 'replicate':
       return { endpointKind: 'predictions', serializerVersion: 'replicate.kokoro.v1', controls: { format: 'wav', ...(numberValue('speed') !== undefined ? { speed: numberValue('speed') } : {}) } }
     case 'elevenlabs': {
@@ -529,7 +532,7 @@ const serializerVoiceField = (
     case 'minimax': return 'voice_setting.voice_id'
     case 'fish': return 'reference_id'
     case 'inworld': return 'voiceId'
-    case 'deepinfra': return 'preset_voice'
+    case 'deepinfra': return resolveDeepinfraTtsVoiceField(target.model)
     case 'replicate': return 'input.voice'
   }
 }
@@ -543,6 +546,16 @@ const preparedText = (text: string) => ({
   providerIndexUnit: 'unicode-scalar-value' as const,
   spans: [...text].length === 0 ? [] : [{ kind: 'mapped' as const, canonicalStart: 0, canonicalEnd: [...text].length, providerStart: 0, providerEnd: [...text].length }]
 })
+
+const prepareSegmentedTurnText = (
+  text: string,
+  target: TtsTarget,
+  delivery?: string | undefined
+) => target.service === 'elevenlabs' && target.model === 'eleven_v3'
+  ? prepareElevenLabsDialogueText(text, delivery)
+  : target.service === 'deepinfra' && target.model === 'ResembleAI/chatterbox-multilingual'
+    ? prepareDeepinfraChatterboxText(text)
+    : preparedText(text)
 
 const sanitizeError = (error: unknown, phase: SanitizedProviderError['phase']): SanitizedProviderError => {
   const metadata = extractErrorMetadata(error)
@@ -863,9 +876,7 @@ export const prepareComicSegmentedProviderTexts = (
   const limit = chunkLimit(target)
   for (const [timingSegmentIndex, segment] of splitCanonicalTextAtTimingCues(turn).entries()) {
     if (!segment) continue
-    const prepared = target.service === 'elevenlabs' && target.model === 'eleven_v3'
-      ? prepareElevenLabsDialogueText(segment, turn.delivery?.description).providerText
-      : segment
+    const prepared = prepareSegmentedTurnText(segment, target, turn.delivery?.description).providerText
     for (const chunk of splitTextIntoChunks(prepared, limit)) {
       providerTexts.push(chunk)
       timingSegmentIndexes.push(timingSegmentIndex)
@@ -1094,7 +1105,7 @@ const planInputs = (options: CreateCurrentTtsRenderAttemptOptions, capabilityFix
         : []
   const slotGroups: Array<{ turnIds: string[], providerTexts: string[] }> = native
     ? nativeGroups
-    : turns.map((turn) => ({ turnIds: [turn.canonical.turnId], providerTexts: splitTextIntoChunks(turn.canonical.canonicalText, limit) }))
+    : turns.map((turn) => ({ turnIds: [turn.canonical.turnId], providerTexts: splitTextIntoChunks(prepareSegmentedTurnText(turn.canonical.canonicalText, options.target, turn.canonical.delivery?.description).providerText, limit) }))
   if (geminiNative && nativeTurnCursor !== turns.length) throw CLIUsageError('Gemini native dialogue partition omitted normalized turns.')
   let includesSetup = true
   const slots: AttemptSlot[] = []
@@ -1165,9 +1176,7 @@ const buildPureCurrentTtsRenderPlan = (options: PureCurrentTtsRenderPlanOptions)
   const plannedRenderCost = sumCosts(planned.slots.map((slot) => slot.plannedCost))
   const resolvedTurnById = new Map(planned.turns.map((turn) => [turn.canonical.turnId, {
     ...turn.canonical,
-    providerText: options.comicContext && options.target.service === 'elevenlabs' && options.target.model === 'eleven_v3'
-      ? prepareElevenLabsDialogueText(turn.canonical.canonicalText, turn.canonical.delivery?.description)
-      : preparedText(turn.canonical.canonicalText),
+    providerText: prepareSegmentedTurnText(turn.canonical.canonicalText, options.target, turn.canonical.delivery?.description),
     voice: turn.binding,
     providerControls: turn.controls,
     ...(turn.canonical.delivery ? { providerDelivery: { schemaVersion: 1 as const, settingsSchema: 'generic-tts.delivery.v1', values: { description: turn.canonical.delivery.description, disposition: options.comicContext?.deliveryDispositionByTurnId?.[turn.canonical.turnId] ?? 'serialized' } } } : {})

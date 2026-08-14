@@ -9,7 +9,7 @@ import { isRecord } from '~/utils/rest-client'
 
 export const OCR_BATCH_DIAGNOSTICS_FILE = 'ocr-batch-diagnostics.json'
 const MATERIAL_ESTIMATE_ERROR_PERCENT = 20
-const OCR_PROVIDER_SERVICES = new Set(['tesseract', 'mistral', 'glm', 'kimi', 'openai', 'grok', 'anthropic', 'gemini', 'deepinfra'])
+const OCR_PROVIDER_SERVICES = new Set(['tesseract', 'mistral', 'glm', 'kimi', 'openai', 'grok', 'anthropic', 'gemini', 'deepinfra', 'replicate'])
 
 type TargetAccumulator = {
   provider: string

@@ -1,8 +1,8 @@
 {
   "schemaVersion": 1,
-  "runDir": "/Users/ajc/c/autoshow-cli/output/2026-06-14_01-22-40-317_document",
-  "generatedAt": "2026-06-14T06:35:11.124Z",
-  "pageAligned": false,
+  "runDir": "/Users/ajc/c/autoshow-cli/docs/benchmarks/ocr/2026-06-14_01-22-40-317_document",
+  "generatedAt": "2026-08-14T17:47:33.524Z",
+  "pageAligned": true,
   "variants": [
     {
       "variantId": "status-quo-consensus",
@@ -14,26 +14,25 @@
     {
       "variantId": "page-level-hybrid",
       "source": "deterministic selected provider pages",
-      "charCount": 776,
-      "wordCount": 125,
-      "pageCount": 2,
+      "charCount": 445,
+      "wordCount": 64,
+      "pageCount": 1,
       "selectedPageSourceCounts": {
-        "grok/grok-4.3": 1,
-        "mistral/mistral-ocr-2512": 1
+        "deepinfra/mistralai/Mistral-Small-3.2-24B-Instruct-2506": 1
       },
-      "lowConfidencePageCount": 2,
-      "outlierPageCount": 2
+      "lowConfidencePageCount": 1,
+      "outlierPageCount": 1
     }
   ],
   "pairwiseDistances": [
     {
       "referenceVariantId": "status-quo-consensus",
       "candidateVariantId": "page-level-hybrid",
-      "wer": 1.079365,
-      "cer": 1.020513,
-      "wordDistance": 68,
+      "wer": 0.015873,
+      "cer": 0.012821,
+      "wordDistance": 1,
       "wordReferenceCount": 63,
-      "charDistance": 398,
+      "charDistance": 5,
       "charReferenceCount": 390
     }
   ]

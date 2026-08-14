@@ -3,6 +3,7 @@ import { readdir } from 'node:fs/promises'
 import { join } from 'node:path'
 import { serializeOneOrMany } from '~/cli/commands/process-steps/target-runner'
 import { collectLlmTargets, runLlmTargetsForStructuredPrompt } from '~/cli/commands/process-steps/step-3-write/run-llm'
+import { deriveGenerationResumeProviderFlags, WRITE_LLM_GENERATION_SELECTION } from '~/cli/flags/service-selector-normalization/provider-targets'
 import { writeShowNoteArtifacts } from '~/cli/commands/process-steps/step-3-write/show-note-artifacts'
 import { writeRenderedTextArtifacts } from '~/cli/commands/process-steps/step-3-write/text-input-utils'
 import { resolveStructuredSchema } from '~/cli/commands/process-steps/step-3-write/structured-output/schema-resolver'
@@ -18,21 +19,11 @@ import { computeTokenCost } from '~/utils/pricing/token-pricing'
 import { isNormalizedReasoningEffort, resolveReasoningPolicy } from '~/cli/commands/setup-and-utilities/models/reasoning-resolver'
 import type { ExtractEstimateTarget, ExtractionMetadata, GenerationResumeConfig, LLMOptions, LLMTarget, LlmStepEstimate, ResumeTarget, Step1Metadata, Step2Metadata, Step3Metadata, StructuredValidationContext, WriteRuntimeOptions } from '~/types'
 
-const WRITE_LLM_PROVIDER_FLAGS = [
+const WRITE_LLM_PROVIDER_FLAGS = deriveGenerationResumeProviderFlags(
+  WRITE_LLM_GENERATION_SELECTION,
   'all-llm',
-  'all-local-llm',
-  'llama',
-  'openai',
-  'groq',
-  'gemini',
-  'anthropic',
-  'minimax',
-  'grok',
-  'glm',
-  'kimi',
-  'together',
-  'cerebras'
-] as const
+  'all-local-llm'
+)
 
 const LLM_SERVICES = new Set<Step3Metadata['llmService']>([
   'llama.cpp',

@@ -352,6 +352,83 @@
                 "promptTokens": 1157,
                 "completionTokens": 1626,
                 "estimateType": "heuristic"
+              },
+              {
+                "step": "extract",
+                "provider": "deepinfra",
+                "model": "google/gemma-3-27b-it",
+                "cost": 0.013087999999999999,
+                "costMultiplier": 1,
+                "inputCostPer1MCents": 8,
+                "outputCostPer1MCents": 16,
+                "pageCount": 1,
+                "ocrMode": "image",
+                "promptTokens": 326,
+                "completionTokens": 655,
+                "tokenEstimateSource": "profile",
+                "tokenEstimateConfidence": "healthy",
+                "tokenProfileSampleCount": 25,
+                "tokenProfilePromptTokensPerPage": 326,
+                "tokenProfileCompletionTokensPerPage": 655.4,
+                "estimateType": "heuristic"
+              },
+              {
+                "step": "extract",
+                "provider": "deepinfra",
+                "model": "meta-llama/Llama-4-Scout-17B-16E-Instruct",
+                "cost": 0.03696000000000001,
+                "costMultiplier": 1,
+                "inputCostPer1MCents": 10,
+                "outputCostPer1MCents": 30,
+                "pageCount": 1,
+                "ocrMode": "image",
+                "promptTokens": 1809,
+                "completionTokens": 629,
+                "tokenEstimateSource": "profile",
+                "tokenEstimateConfidence": "healthy",
+                "tokenProfileSampleCount": 8,
+                "tokenProfilePromptTokensPerPage": 1809,
+                "tokenProfileCompletionTokensPerPage": 628.625,
+                "estimateType": "heuristic"
+              },
+              {
+                "step": "extract",
+                "provider": "fal",
+                "model": "fal-ai/florence-2-large/ocr",
+                "cost": 0.755,
+                "costMultiplier": 1,
+                "costPer1kPagesCents": 755,
+                "pageCount": 1,
+                "estimateType": "exact"
+              },
+              {
+                "step": "extract",
+                "provider": "fal",
+                "model": "fal-ai/got-ocr/v2",
+                "cost": 5,
+                "costMultiplier": 1,
+                "costPer1kPagesCents": 5000,
+                "pageCount": 1,
+                "estimateType": "exact"
+              },
+              {
+                "step": "extract",
+                "provider": "deepinfra",
+                "model": "mistralai/Mistral-Small-3.2-24B-Instruct-2506",
+                "cost": 0.0270025,
+                "costMultiplier": 1,
+                "inputCostPer1MCents": 7.5,
+                "outputCostPer1MCents": 20,
+                "pageCount": 1,
+                "ocrMode": "image",
+                "promptTokens": 1323,
+                "completionTokens": 854,
+                "tokenEstimateSource": "profile",
+                "tokenEstimateConfidence": "healthy",
+                "tokenProfileSampleCount": 21,
+                "tokenProfilePromptTokensPerPage": 1322.714,
+                "tokenProfileCompletionTokensPerPage": 854.048,
+                "estimateType": "heuristic"
               }
             ]
           },
@@ -573,6 +650,84 @@
                 "inputValue": 1217,
                 "promptTokens": 1169,
                 "completionTokens": 48
+              },
+              {
+                "step": "extract",
+                "provider": "replicate",
+                "model": "datalab-to/ocr",
+                "cost": 0.2,
+                "costSource": "registry_fallback",
+                "inputMetric": "pages",
+                "inputValue": 1
+              },
+              {
+                "step": "extract",
+                "provider": "deepinfra",
+                "model": "google/gemma-3-27b-it",
+                "cost": 0.003088,
+                "costSource": "provider_usage",
+                "inputMetric": "tokens",
+                "inputValue": 356,
+                "promptTokens": 326,
+                "completionTokens": 30
+              },
+              {
+                "step": "extract",
+                "provider": "deepinfra",
+                "model": "meta-llama/Llama-4-Scout-17B-16E-Instruct",
+                "cost": 0.02032,
+                "costSource": "provider_usage",
+                "inputMetric": "tokens",
+                "inputValue": 1980,
+                "promptTokens": 1954,
+                "completionTokens": 26
+              },
+              {
+                "step": "extract",
+                "provider": "replicate",
+                "model": "lucataco/deepseek-ocr",
+                "cost": 0.33,
+                "costSource": "registry_fallback",
+                "inputMetric": "pages",
+                "inputValue": 1
+              },
+              {
+                "step": "extract",
+                "provider": "fal",
+                "model": "fal-ai/florence-2-large/ocr",
+                "cost": 0.755,
+                "costSource": "registry_fallback",
+                "inputMetric": "pages",
+                "inputValue": 1
+              },
+              {
+                "step": "extract",
+                "provider": "fal",
+                "model": "fal-ai/got-ocr/v2",
+                "cost": 5,
+                "costSource": "registry_fallback",
+                "inputMetric": "pages",
+                "inputValue": 1
+              },
+              {
+                "step": "extract",
+                "provider": "replicate",
+                "model": "datalab-to/marker",
+                "cost": 0.4,
+                "costSource": "registry_fallback",
+                "inputMetric": "pages",
+                "inputValue": 1
+              },
+              {
+                "step": "extract",
+                "provider": "deepinfra",
+                "model": "mistralai/Mistral-Small-3.2-24B-Instruct-2506",
+                "cost": 0.010772499999999999,
+                "costSource": "provider_usage",
+                "inputMetric": "tokens",
+                "inputValue": 1393,
+                "promptTokens": 1367,
+                "completionTokens": 26
               }
             ]
           },
@@ -1345,7 +1500,79 @@
               },
               "source": "token_usage"
             }
-          ]
+          ],
+          "observedEstimate": {
+            "steps": [
+              {
+                "step": "extract",
+                "provider": "deepinfra",
+                "model": "google/gemma-3-27b-it",
+                "cost": 0.003088,
+                "costMultiplier": 1,
+                "inputCostPer1MCents": 8,
+                "outputCostPer1MCents": 16,
+                "pageCount": 1,
+                "ocrMode": "image",
+                "promptTokens": 326,
+                "completionTokens": 30,
+                "tokenEstimateSource": "exact",
+                "tokenEstimateConfidence": "healthy",
+                "estimateType": "exact"
+              },
+              {
+                "step": "extract",
+                "provider": "deepinfra",
+                "model": "meta-llama/Llama-4-Scout-17B-16E-Instruct",
+                "cost": 0.02032,
+                "costMultiplier": 1,
+                "inputCostPer1MCents": 10,
+                "outputCostPer1MCents": 30,
+                "pageCount": 1,
+                "ocrMode": "image",
+                "promptTokens": 1954,
+                "completionTokens": 26,
+                "tokenEstimateSource": "exact",
+                "tokenEstimateConfidence": "healthy",
+                "estimateType": "exact"
+              },
+              {
+                "step": "extract",
+                "provider": "fal",
+                "model": "fal-ai/florence-2-large/ocr",
+                "cost": 0.755,
+                "costMultiplier": 1,
+                "costPer1kPagesCents": 755,
+                "pageCount": 1,
+                "estimateType": "exact"
+              },
+              {
+                "step": "extract",
+                "provider": "fal",
+                "model": "fal-ai/got-ocr/v2",
+                "cost": 5,
+                "costMultiplier": 1,
+                "costPer1kPagesCents": 5000,
+                "pageCount": 1,
+                "estimateType": "exact"
+              },
+              {
+                "step": "extract",
+                "provider": "deepinfra",
+                "model": "mistralai/Mistral-Small-3.2-24B-Instruct-2506",
+                "cost": 0.010772499999999999,
+                "costMultiplier": 1,
+                "inputCostPer1MCents": 7.5,
+                "outputCostPer1MCents": 20,
+                "pageCount": 1,
+                "ocrMode": "image",
+                "promptTokens": 1367,
+                "completionTokens": 26,
+                "tokenEstimateSource": "exact",
+                "tokenEstimateConfidence": "healthy",
+                "estimateType": "exact"
+              }
+            ]
+          }
         },
         "timing": {
           "estimated": {
@@ -1595,6 +1822,107 @@
                 "rateBasis": "page",
                 "msPerUnit": 2921,
                 "throughputValue": 20.541,
+                "throughputUnit": "pagesPerMinute",
+                "timingScope": "estimated"
+              },
+              {
+                "step": "extract",
+                "provider": "deepinfra",
+                "model": "google/gemma-3-27b-it",
+                "processingTimeMs": 21444,
+                "inputMetric": "pages",
+                "inputValue": 1,
+                "timingAdjustment": {
+                  "kind": "hosted-ocr-page-concurrency",
+                  "pageConcurrency": 10,
+                  "ocrConcurrencyMode": "auto",
+                  "estimateConfidence": "profile",
+                  "profileLaneTargetCount": 1,
+                  "profileSampleCount": 32,
+                  "profileThroughputPagesPerMinute": 2.798,
+                  "profileRaisedMaxCap": 12,
+                  "profileCapSource": "exact-clean-sample",
+                  "profileSourceConfidence": "healthy"
+                },
+                "rateBasis": "page",
+                "msPerUnit": 21444,
+                "throughputValue": 2.798,
+                "throughputUnit": "pagesPerMinute",
+                "timingScope": "estimated"
+              },
+              {
+                "step": "extract",
+                "provider": "deepinfra",
+                "model": "meta-llama/Llama-4-Scout-17B-16E-Instruct",
+                "processingTimeMs": 8876,
+                "inputMetric": "pages",
+                "inputValue": 1,
+                "timingAdjustment": {
+                  "kind": "hosted-ocr-page-concurrency",
+                  "pageConcurrency": 10,
+                  "ocrConcurrencyMode": "auto",
+                  "estimateConfidence": "profile",
+                  "profileLaneTargetCount": 1,
+                  "profileSampleCount": 9,
+                  "profileThroughputPagesPerMinute": 6.76,
+                  "profileRaisedMaxCap": 12,
+                  "profileCapSource": "exact-clean-sample",
+                  "profileSourceConfidence": "healthy"
+                },
+                "rateBasis": "page",
+                "msPerUnit": 8876,
+                "throughputValue": 6.76,
+                "throughputUnit": "pagesPerMinute",
+                "timingScope": "estimated"
+              },
+              {
+                "step": "extract",
+                "provider": "fal",
+                "model": "fal-ai/florence-2-large/ocr",
+                "processingTimeMs": 5000,
+                "inputMetric": "pages",
+                "inputValue": 1,
+                "rateBasis": "page",
+                "msPerUnit": 5000,
+                "throughputValue": 12,
+                "throughputUnit": "pagesPerMinute",
+                "timingScope": "estimated"
+              },
+              {
+                "step": "extract",
+                "provider": "fal",
+                "model": "fal-ai/got-ocr/v2",
+                "processingTimeMs": 5000,
+                "inputMetric": "pages",
+                "inputValue": 1,
+                "rateBasis": "page",
+                "msPerUnit": 5000,
+                "throughputValue": 12,
+                "throughputUnit": "pagesPerMinute",
+                "timingScope": "estimated"
+              },
+              {
+                "step": "extract",
+                "provider": "deepinfra",
+                "model": "mistralai/Mistral-Small-3.2-24B-Instruct-2506",
+                "processingTimeMs": 5806,
+                "inputMetric": "pages",
+                "inputValue": 1,
+                "timingAdjustment": {
+                  "kind": "hosted-ocr-page-concurrency",
+                  "pageConcurrency": 10,
+                  "ocrConcurrencyMode": "auto",
+                  "estimateConfidence": "profile",
+                  "profileLaneTargetCount": 1,
+                  "profileSampleCount": 25,
+                  "profileThroughputPagesPerMinute": 10.334,
+                  "profileRaisedMaxCap": 12,
+                  "profileCapSource": "exact-clean-sample",
+                  "profileSourceConfidence": "healthy"
+                },
+                "rateBasis": "page",
+                "msPerUnit": 5806,
+                "throughputValue": 10.334,
                 "throughputUnit": "pagesPerMinute",
                 "timingScope": "estimated"
               }
@@ -1860,6 +2188,110 @@
                 "rateBasis": "page",
                 "msPerUnit": 5338,
                 "throughputValue": 11.24,
+                "throughputUnit": "pagesPerMinute",
+                "timingScope": "wall"
+              },
+              {
+                "step": "extract",
+                "provider": "replicate",
+                "model": "datalab-to/ocr",
+                "processingTimeMs": 7021,
+                "inputMetric": "pages",
+                "inputValue": 1,
+                "rateBasis": "page",
+                "msPerUnit": 7021,
+                "throughputValue": 8.546,
+                "throughputUnit": "pagesPerMinute",
+                "timingScope": "wall"
+              },
+              {
+                "step": "extract",
+                "provider": "deepinfra",
+                "model": "google/gemma-3-27b-it",
+                "processingTimeMs": 1570,
+                "inputMetric": "pages",
+                "inputValue": 1,
+                "rateBasis": "page",
+                "msPerUnit": 1570,
+                "throughputValue": 38.217,
+                "throughputUnit": "pagesPerMinute",
+                "timingScope": "wall"
+              },
+              {
+                "step": "extract",
+                "provider": "deepinfra",
+                "model": "meta-llama/Llama-4-Scout-17B-16E-Instruct",
+                "processingTimeMs": 948,
+                "inputMetric": "pages",
+                "inputValue": 1,
+                "rateBasis": "page",
+                "msPerUnit": 948,
+                "throughputValue": 63.291,
+                "throughputUnit": "pagesPerMinute",
+                "timingScope": "wall"
+              },
+              {
+                "step": "extract",
+                "provider": "replicate",
+                "model": "lucataco/deepseek-ocr",
+                "processingTimeMs": 2866,
+                "inputMetric": "pages",
+                "inputValue": 1,
+                "rateBasis": "page",
+                "msPerUnit": 2866,
+                "throughputValue": 20.935,
+                "throughputUnit": "pagesPerMinute",
+                "timingScope": "wall"
+              },
+              {
+                "step": "extract",
+                "provider": "fal",
+                "model": "fal-ai/florence-2-large/ocr",
+                "processingTimeMs": 5283,
+                "inputMetric": "pages",
+                "inputValue": 1,
+                "rateBasis": "page",
+                "msPerUnit": 5283,
+                "throughputValue": 11.357,
+                "throughputUnit": "pagesPerMinute",
+                "timingScope": "wall"
+              },
+              {
+                "step": "extract",
+                "provider": "fal",
+                "model": "fal-ai/got-ocr/v2",
+                "processingTimeMs": 5339,
+                "inputMetric": "pages",
+                "inputValue": 1,
+                "rateBasis": "page",
+                "msPerUnit": 5339,
+                "throughputValue": 11.238,
+                "throughputUnit": "pagesPerMinute",
+                "timingScope": "wall"
+              },
+              {
+                "step": "extract",
+                "provider": "replicate",
+                "model": "datalab-to/marker",
+                "processingTimeMs": 5282,
+                "inputMetric": "pages",
+                "inputValue": 1,
+                "rateBasis": "page",
+                "msPerUnit": 5282,
+                "throughputValue": 11.359,
+                "throughputUnit": "pagesPerMinute",
+                "timingScope": "wall"
+              },
+              {
+                "step": "extract",
+                "provider": "deepinfra",
+                "model": "mistralai/Mistral-Small-3.2-24B-Instruct-2506",
+                "processingTimeMs": 876,
+                "inputMetric": "pages",
+                "inputValue": 1,
+                "rateBasis": "page",
+                "msPerUnit": 876,
+                "throughputValue": 68.493,
                 "throughputUnit": "pagesPerMinute",
                 "timingScope": "wall"
               }
@@ -2478,6 +2910,322 @@
                 "completionTokens": 48
               }
             ]
+          }
+        },
+        {
+          "service": "replicate",
+          "model": "datalab-to/ocr",
+          "artifactDir": "consolidated/replicate-datalab-to-ocr",
+          "status": "succeeded",
+          "attempts": 1,
+          "options": {},
+          "metadata": {
+            "extractionMethod": "image+replicate-ocr",
+            "totalPages": 1,
+            "ocrPages": 1,
+            "textPages": 0,
+            "processingTime": 7021,
+            "dpi": 300,
+            "languages": "eng",
+            "tokenEstimate": 22,
+            "ocrModel": "datalab-to/ocr",
+            "ocrService": "replicate",
+            "inputFamily": "image",
+            "effectiveReasoningEffort": "default"
+          },
+          "result": {
+            "text": "Page 0\nThis is a picture.\nThis is a picture.\nThis is a picture.\nThis is a picture.\nThis is a picture.",
+            "pages": [
+              {
+                "pageNumber": 0,
+                "method": "ocr",
+                "text": "This is a picture.\nThis is a picture.\nThis is a picture.\nThis is a picture.\nThis is a picture."
+              }
+            ],
+            "totalPages": 1,
+            "ocrPages": 1,
+            "textPages": 0
+          }
+        },
+        {
+          "service": "deepinfra",
+          "model": "google/gemma-3-27b-it",
+          "artifactDir": "consolidated/deepinfra-google-gemma-3-27b-it",
+          "status": "succeeded",
+          "attempts": 1,
+          "options": {},
+          "metadata": {
+            "extractionMethod": "image+deepinfra-ocr",
+            "totalPages": 1,
+            "ocrPages": 1,
+            "textPages": 0,
+            "processingTime": 1570,
+            "dpi": 300,
+            "languages": "eng",
+            "tokenEstimate": 22,
+            "ocrModel": "google/gemma-3-27b-it",
+            "ocrService": "deepinfra",
+            "promptTokens": 326,
+            "completionTokens": 30,
+            "inputFamily": "image",
+            "ocrProviderUsage": [
+              {
+                "unit": "document",
+                "pages": 1,
+                "provider": "deepinfra",
+                "model": "google/gemma-3-27b-it",
+                "promptTokens": 326,
+                "completionTokens": 30
+              }
+            ],
+            "effectiveReasoningEffort": "default"
+          },
+          "result": {
+            "text": "Page 1\nThis is a picture.\n\nThis is a picture.\n\nThis is a picture.\n\nThis is a picture.\n\nThis is a picture.",
+            "pages": [
+              {
+                "pageNumber": 1,
+                "method": "ocr",
+                "text": "This is a picture.\n\nThis is a picture.\n\nThis is a picture.\n\nThis is a picture.\n\nThis is a picture."
+              }
+            ],
+            "totalPages": 1,
+            "ocrPages": 1,
+            "textPages": 0
+          }
+        },
+        {
+          "service": "deepinfra",
+          "model": "meta-llama/Llama-4-Scout-17B-16E-Instruct",
+          "artifactDir": "consolidated/deepinfra-meta-llama-Llama-4-Scout-17B-16E-Instruct",
+          "status": "succeeded",
+          "attempts": 1,
+          "options": {},
+          "metadata": {
+            "extractionMethod": "image+deepinfra-ocr",
+            "totalPages": 1,
+            "ocrPages": 1,
+            "textPages": 0,
+            "processingTime": 948,
+            "dpi": 300,
+            "languages": "eng",
+            "tokenEstimate": 22,
+            "ocrModel": "meta-llama/Llama-4-Scout-17B-16E-Instruct",
+            "ocrService": "deepinfra",
+            "promptTokens": 1954,
+            "completionTokens": 26,
+            "inputFamily": "image",
+            "ocrProviderUsage": [
+              {
+                "unit": "document",
+                "pages": 1,
+                "provider": "deepinfra",
+                "model": "meta-llama/Llama-4-Scout-17B-16E-Instruct",
+                "promptTokens": 1954,
+                "completionTokens": 26
+              }
+            ],
+            "effectiveReasoningEffort": "default"
+          },
+          "result": {
+            "text": "Page 1\nThis is a picture.\nThis is a picture.\nThis is a picture.\nThis is a picture.\nThis is a picture.",
+            "pages": [
+              {
+                "pageNumber": 1,
+                "method": "ocr",
+                "text": "This is a picture.\nThis is a picture.\nThis is a picture.\nThis is a picture.\nThis is a picture."
+              }
+            ],
+            "totalPages": 1,
+            "ocrPages": 1,
+            "textPages": 0
+          }
+        },
+        {
+          "service": "replicate",
+          "model": "lucataco/deepseek-ocr",
+          "artifactDir": "consolidated/replicate-lucataco-deepseek-ocr",
+          "status": "succeeded",
+          "attempts": 1,
+          "options": {},
+          "metadata": {
+            "extractionMethod": "image+replicate-ocr",
+            "totalPages": 1,
+            "ocrPages": 1,
+            "textPages": 0,
+            "processingTime": 2866,
+            "dpi": 300,
+            "languages": "eng",
+            "tokenEstimate": 42,
+            "ocrModel": "lucataco/deepseek-ocr",
+            "ocrService": "replicate",
+            "inputFamily": "image",
+            "effectiveReasoningEffort": "default"
+          },
+          "result": {
+            "text": "Page 0\n<|ref|>text<|/ref|><|det|>[[90, 80, 898, 170]]<|/det|>\nThis is a picture. \n\n<|ref|>text<|/ref|><|det|>[[90, 255, 768, 330]]<|/det|>\nThis is a picture. \n\n<|ref|>text<|/ref|><|det|>[[90, 419, 633, 476]]<|/det|>\nThis is a picture. \n\n<|ref|>text<|/ref|><|det|>[[90, 565, 543, 612]]<|/det|>\nThis is a picture. \n\n<|ref|>text<|/ref|><|det|>[[90, 701, 454, 739]]<|/det|>\nThis is a picture.",
+            "pages": [
+              {
+                "pageNumber": 0,
+                "method": "ocr",
+                "text": "<|ref|>text<|/ref|><|det|>[[90, 80, 898, 170]]<|/det|>\nThis is a picture. \n\n<|ref|>text<|/ref|><|det|>[[90, 255, 768, 330]]<|/det|>\nThis is a picture. \n\n<|ref|>text<|/ref|><|det|>[[90, 419, 633, 476]]<|/det|>\nThis is a picture. \n\n<|ref|>text<|/ref|><|det|>[[90, 565, 543, 612]]<|/det|>\nThis is a picture. \n\n<|ref|>text<|/ref|><|det|>[[90, 701, 454, 739]]<|/det|>\nThis is a picture."
+              }
+            ],
+            "totalPages": 1,
+            "ocrPages": 1,
+            "textPages": 0
+          }
+        },
+        {
+          "service": "fal",
+          "model": "fal-ai/florence-2-large/ocr",
+          "artifactDir": "consolidated/fal-fal-ai-florence-2-large-ocr",
+          "status": "succeeded",
+          "attempts": 1,
+          "options": {},
+          "metadata": {
+            "extractionMethod": "image+fal-ocr",
+            "totalPages": 1,
+            "ocrPages": 1,
+            "textPages": 0,
+            "processingTime": 5283,
+            "dpi": 300,
+            "languages": "eng",
+            "tokenEstimate": 19,
+            "ocrModel": "fal-ai/florence-2-large/ocr",
+            "ocrService": "fal",
+            "inputFamily": "image",
+            "effectiveReasoningEffort": "default"
+          },
+          "result": {
+            "text": "Page 0\nThis is a picture.\nThis isa picture.<poly>\nThisis a picture ..\nThis Is a picture\nThis image.",
+            "pages": [
+              {
+                "pageNumber": 0,
+                "method": "ocr",
+                "text": "This is a picture.\nThis isa picture.<poly>\nThisis a picture ..\nThis Is a picture\nThis image."
+              }
+            ],
+            "totalPages": 1,
+            "ocrPages": 1,
+            "textPages": 0
+          }
+        },
+        {
+          "service": "fal",
+          "model": "fal-ai/got-ocr/v2",
+          "artifactDir": "consolidated/fal-fal-ai-got-ocr-v2",
+          "status": "succeeded",
+          "attempts": 1,
+          "options": {},
+          "metadata": {
+            "extractionMethod": "image+fal-ocr",
+            "totalPages": 1,
+            "ocrPages": 1,
+            "textPages": 0,
+            "processingTime": 5339,
+            "dpi": 300,
+            "languages": "eng",
+            "tokenEstimate": 24,
+            "ocrModel": "fal-ai/got-ocr/v2",
+            "ocrService": "fal",
+            "inputFamily": "image",
+            "effectiveReasoningEffort": "default"
+          },
+          "result": {
+            "text": "Page 0\n\\title{\nThis is a picture.\n}\nThis is a picture.\nThis is a picture.\nThis is a picture.\nThis is a picture.",
+            "pages": [
+              {
+                "pageNumber": 0,
+                "method": "ocr",
+                "text": "\\title{\nThis is a picture.\n}\nThis is a picture.\nThis is a picture.\nThis is a picture.\nThis is a picture."
+              }
+            ],
+            "totalPages": 1,
+            "ocrPages": 1,
+            "textPages": 0
+          }
+        },
+        {
+          "service": "replicate",
+          "model": "datalab-to/marker",
+          "artifactDir": "consolidated/replicate-datalab-to-marker",
+          "status": "succeeded",
+          "attempts": 1,
+          "options": {},
+          "metadata": {
+            "extractionMethod": "image+replicate-ocr",
+            "totalPages": 1,
+            "ocrPages": 1,
+            "textPages": 0,
+            "processingTime": 5282,
+            "dpi": 300,
+            "languages": "eng",
+            "tokenEstimate": 22,
+            "ocrModel": "datalab-to/marker",
+            "ocrService": "replicate",
+            "inputFamily": "image",
+            "effectiveReasoningEffort": "default"
+          },
+          "result": {
+            "text": "Page 0\nThis is a picture.\n\nThis is a picture.\n\nThis is a picture.\n\nThis is a picture.\n\nThis is a picture.",
+            "pages": [
+              {
+                "pageNumber": 0,
+                "method": "ocr",
+                "text": "\n\nThis is a picture.\n\nThis is a picture.\n\nThis is a picture.\n\nThis is a picture.\n\nThis is a picture."
+              }
+            ],
+            "totalPages": 1,
+            "ocrPages": 1,
+            "textPages": 0
+          }
+        },
+        {
+          "service": "deepinfra",
+          "model": "mistralai/Mistral-Small-3.2-24B-Instruct-2506",
+          "artifactDir": "consolidated/deepinfra-mistralai-Mistral-Small-3.2-24B-Instruct-2506",
+          "status": "succeeded",
+          "attempts": 1,
+          "options": {},
+          "metadata": {
+            "extractionMethod": "image+deepinfra-ocr",
+            "totalPages": 1,
+            "ocrPages": 1,
+            "textPages": 0,
+            "processingTime": 876,
+            "dpi": 300,
+            "languages": "eng",
+            "tokenEstimate": 22,
+            "ocrModel": "mistralai/Mistral-Small-3.2-24B-Instruct-2506",
+            "ocrService": "deepinfra",
+            "promptTokens": 1367,
+            "completionTokens": 26,
+            "inputFamily": "image",
+            "ocrProviderUsage": [
+              {
+                "unit": "document",
+                "pages": 1,
+                "provider": "deepinfra",
+                "model": "mistralai/Mistral-Small-3.2-24B-Instruct-2506",
+                "promptTokens": 1367,
+                "completionTokens": 26
+              }
+            ],
+            "effectiveReasoningEffort": "default"
+          },
+          "result": {
+            "text": "Page 1\nThis is a picture.\n\nThis is a picture.\n\nThis is a picture.\n\nThis is a picture.\n\nThis is a picture.",
+            "pages": [
+              {
+                "pageNumber": 1,
+                "method": "ocr",
+                "text": "This is a picture.\n\nThis is a picture.\n\nThis is a picture.\n\nThis is a picture.\n\nThis is a picture."
+              }
+            ],
+            "totalPages": 1,
+            "ocrPages": 1,
+            "textPages": 0
           }
         }
       ]

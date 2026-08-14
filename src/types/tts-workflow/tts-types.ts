@@ -280,6 +280,8 @@ export type TtsTarget = ProviderTargetBase<TtsProvider> & {
   protectedSpeakerVoiceAssets?: Readonly<Record<string, ProtectedAssetRef>> | undefined
   /** Stable IDs inspected read-only at the all-target execution-readiness barrier. */
   readinessVoiceIds?: readonly string[] | undefined
+  /** Allows resume to append a replacement plan after a definitive failed attempt when an implicit adapter default changed. */
+  allowFailedImplicitDefaultReplan?: boolean | undefined
   voice?: string
   multiSpeakerStrategy?: MultiSpeakerStrategy
   setupCostCents?: number | undefined

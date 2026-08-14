@@ -134,6 +134,18 @@ export const buildExtractionCallOpts = (target: string, baseDir: string, opts: D
   if (opts.deepinfraOcrModels) {
     extractionOpts.deepinfraOcrModels = opts.deepinfraOcrModels
   }
+  if (opts.replicateOcrModel) {
+    extractionOpts.replicateOcrModel = opts.replicateOcrModel
+  }
+  if (opts.replicateOcrModels) {
+    extractionOpts.replicateOcrModels = opts.replicateOcrModels
+  }
+  if (opts.falOcrModel) {
+    extractionOpts.falOcrModel = opts.falOcrModel
+  }
+  if (opts.falOcrModels) {
+    extractionOpts.falOcrModels = opts.falOcrModels
+  }
   if (typeof opts.chapterFiles === 'boolean') {
     extractionOpts.chapterFiles = opts.chapterFiles
   }

@@ -386,12 +386,14 @@ Gemini OCR normalizes `GIF` inputs to `PNG` locally before upload. `TIF/TIFF` in
 | Option | Value |
 |--------|-------|
 | Selector | `--provider deepinfra[=<model>]` |
-| Models | `Qwen/Qwen3-VL-235B-A22B-Instruct`, `Qwen/Qwen3-VL-30B-A3B-Instruct` |
+| Models | `google/gemma-3-27b-it`, `mistralai/Mistral-Small-3.2-24B-Instruct-2506`, `Qwen/Qwen3-VL-235B-A22B-Instruct`, `Qwen/Qwen3-VL-30B-A3B-Instruct` |
 | Direct input support | `PNG`, `JPG/JPEG`, and `WEBP`; rendered PDF/EPUB pages as `PNG` |
 
 ```bash
 bun autoshow extract input/examples/document/1-document.pdf --provider deepinfra=Qwen/Qwen3-VL-30B-A3B-Instruct
 bun autoshow extract input/examples/document/1-document.jpg --provider deepinfra=Qwen/Qwen3-VL-235B-A22B-Instruct
+bun autoshow extract input/examples/document/1-document.jpg --provider deepinfra=google/gemma-3-27b-it
+bun autoshow extract input/examples/document/1-document.jpg --provider deepinfra=mistralai/Mistral-Small-3.2-24B-Instruct-2506
 bun autoshow extract input/examples/document/1-document.pdf --provider deepinfra=Qwen/Qwen3-VL-235B-A22B-Instruct --price
 ```
 
@@ -401,11 +403,28 @@ DeepInfra OCR uses token pricing estimates and recorded usage when available.
 
 | DeepInfra OCR model | Input | Output | Price-mode page heuristic | Initial speed estimate |
 |---------------------|-------|--------|---------------------------|------------------------|
+| `google/gemma-3-27b-it` | $0.08 / 1M tokens | $0.16 / 1M tokens | 7,981 input + 472 output tokens, about $0.0007/page or $0.71/1K pages | 12,618 ms/page |
+| `mistralai/Mistral-Small-3.2-24B-Instruct-2506` | $0.075 / 1M tokens | $0.20 / 1M tokens | 7,981 input + 472 output tokens, about $0.0007/page or $0.69/1K pages | 12,618 ms/page |
 | `Qwen/Qwen3-VL-235B-A22B-Instruct` | $0.20 / 1M tokens | $0.88 / 1M tokens | 4,081 input + 526 output tokens, about $0.0013/page or $1.28/1K pages | 20,000 ms/page |
 | `Qwen/Qwen3-VL-30B-A3B-Instruct` | $0.15 / 1M tokens | $0.60 / 1M tokens | 7,981 input + 472 output tokens, about $0.0015/page or $1.48/1K pages | 12,618 ms/page |
 
 - DeepInfra OCR price mode uses model-specific token heuristics. Actual runs write `promptTokens` and `completionTokens` into the canonical provider metadata when DeepInfra returns usage.
 - Cached-token pricing is not used for OCR estimates because AutoShow sends direct or rendered page images and those image requests are not cache-stable.
+
+### fal.ai OCR
+
+| Option | Value |
+|--------|-------|
+| Selector | `--provider fal=fal-ai/got-ocr/v2` |
+| Model | `fal-ai/got-ocr/v2` |
+| Direct input support | `PNG`, `JPG/JPEG`, and `WEBP`; rendered PDF/EPUB pages as `PNG` |
+| Price | $0.05 per input image ($50 per 1,000 rendered pages) |
+
+```bash
+bun autoshow extract input/examples/document/1-document.pdf --provider fal=fal-ai/got-ocr/v2 --price
+```
+
+GOT-OCR 2.0 is a specialty option for formatted documents, tables, charts, mathematical or molecular formulas, geometric shapes, and sheet music. It runs each rendered page separately in formatted mode, so it preserves page ordering but is not an economy/default OCR target. AutoShow normalizes `GIF` and `BMP` inputs to `PNG`; `TIF/TIFF` requires ImageMagick for the same conversion.
 
 ## OCR Notes
 

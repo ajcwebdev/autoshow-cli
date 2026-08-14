@@ -153,7 +153,7 @@ These variables mirror `HOSTED_PROVIDER_ENV_CHECKS`.
 | Cerebras | `CEREBRAS_API_KEY` for write. |
 | Video-only | `RUNWAYML_API_SECRET`, `LTXV_API_KEY`. |
 | Luma Labs | `LUMA_AGENTS_API_KEY` for image/video. |
-| fal.ai | `FAL_API_KEY` for image/video. |
+| fal.ai | `FAL_API_KEY` for OCR, image, and video. |
 | Replicate | `REPLICATE_API_TOKEN` for image/video. |
 | Mistral | `MISTRAL_API_KEY` for STT/OCR/TTS. |
 | Image-only | `BFL_API_KEY`, `RECRAFT_API_TOKEN`. |

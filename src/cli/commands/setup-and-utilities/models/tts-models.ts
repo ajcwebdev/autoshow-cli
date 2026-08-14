@@ -614,8 +614,7 @@ export const validateFishTtsVoice = (voice: string): string => {
 
 export const SUPPORTED_INWORLD_TTS_MODELS = [
   'realtime-tts-2',
-  'realtime-tts-1.5-max',
-  'realtime-tts-1.5-mini'
+  'realtime-tts-2-flash'
 ] as const satisfies readonly string[]
 
 export const INWORLD_DEFAULT_TTS_VOICE = 'voice_inworld_standard_en'

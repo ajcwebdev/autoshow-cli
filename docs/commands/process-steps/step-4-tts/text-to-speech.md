@@ -85,6 +85,7 @@ bun autoshow tts <input> [flags]
 | `--tts-instructions <provider=value\|value>` | Generic voice/style instructions |
 | `--tts-output-format <provider=value\|value>` | Generic output format |
 | `--tts-chunk-concurrency <n>` | Hosted TTS chunk starts allowed in parallel per provider; default `30` (or `50` for Grok-only) |
+| `--tts-allow-ambiguous-redispatch` | Explicitly authorize bounded in-process retries and later repurchase when a paid request has ambiguous provider admission |
 | `--tts-dialogue-format <screenplay\|labeled>` | Dialogue input format for multi-speaker TTS; requires `--tts-speaker` |
 | `--tts-speaker SPEAKER=VOICE\|path` | Multi-speaker voice mapping; repeatable. Selects multi-speaker TTS |
 | `--price` | Show the aggregated estimate and exit |
@@ -112,7 +113,11 @@ Voice management is separate from synthesis. A catalog, design, or clone capabil
 
 When a hosted target fails after producing some chunks, AutoShow retains the target's `.tts-tmp-*` workspace and completed audio files. Do not delete that directory before resuming: the render journal uses retained output evidence to avoid purchasing completed segments again. Successful finalization removes the temporary chunk files normally.
 
-AutoShow splits TTS text into 2000-character chunks (200-character chunks for Groq Orpheus). `--provider-concurrency` limits how many provider/model targets run at once; it does not limit requests within one target. Hosted providers synthesize through the separate `--tts-chunk-concurrency` limit (default `30`, or `50` for Grok-only). In the default ramp mode, that value remains the hard ceiling while each provider/account lane starts at one request and adds one slot every five seconds under queued demand. To cap a single Inworld target at five simultaneous chunks, for example, pass `--tts-chunk-concurrency 5`; `--provider-concurrency 5` alone does not do that. Kitten synthesizes chunks sequentially and is unaffected by the hosted mode.
+Paid requests with ambiguous admission are not retried by default. `--tts-allow-ambiguous-redispatch` explicitly authorizes a provider's bounded in-process retry policy and subsequent checkpoint resume; it may purchase the same immutable generation slot more than once. DeepInfra uses up to eight attempts with exponential jittered backoff. Every attempt is recorded in the admission journal, completed slots remain reusable, and an exhausted run reports the exact retained/unresolved checkpoint for the next invocation.
+
+AutoShow generally splits TTS text into 2000-character chunks, with provider/model registry limits taking precedence: Groq Orpheus uses 200, DeepInfra MiMo uses 1000, DeepInfra Qwen uses 4000, and DeepInfra Chatterbox uses 5000. `--provider-concurrency` limits how many provider/model targets run at once; it does not limit requests within one target. Hosted providers synthesize through the separate `--tts-chunk-concurrency` limit (default `30`, or `50` for Grok-only). In the default ramp mode, that value remains the hard ceiling while each provider/account lane starts at one request and adds one slot every five seconds under queued demand. To cap a single Inworld target at five simultaneous chunks, for example, pass `--tts-chunk-concurrency 5`; `--provider-concurrency 5` alone does not do that. Kitten synthesizes chunks sequentially and is unaffected by the hosted mode.
+
+The current Inworld selectors are `realtime-tts-2` and `realtime-tts-2-flash`, serialized as provider IDs `inworld-tts-2` and `inworld-tts-2-flash`. DeepInfra request fields are model-specific: Chatterbox uses `text` with optional `voice_id`, MiMo uses `text` plus `voice`, and Qwen uses `input` plus `voice`. Voice-design models use a narration description as the implicit voice when `--tts-voice` is omitted.
 
 ```bash
 bun autoshow tts input/examples/tts/1-tts.md \
@@ -335,17 +340,30 @@ Cartesia TTS uses `POST /tts/bytes` requesting 24000 Hz PCM WAV bytes converted 
 
 ## Pricing Notes
 
-- **ElevenLabs**: `$0.10` / 1K chars (`eleven_v3`, `eleven_multilingual_v2`), `$0.05` / 1K chars (`eleven_flash_v2_5`).
-- **MiniMax**: `$0.06` / 1K chars (`speech-2.8-turbo`), `$0.10` / 1K chars (`speech-2.8-hd`).
-- **Groq**: `$22` / 1M chars (English Orpheus), `$40` / 1M chars (Saudi Arabic Orpheus).
-- **Grok**: `$15` / 1M chars (`$0.015` / 1K chars).
-- **Mistral**: `$16` / 1M output chars (`$0.016` / 1K chars).
-- **OpenAI**: `$0.60` / 1M input + `$12` / 1M output chars (`gpt-4o-mini-tts-2025-12-15`); `$15` / 1M chars (`tts-1`), `$30` / 1M chars (`tts-1-hd`).
-- **Gemini**: `$1` / 1M input + `$20` / 1M output chars (`gemini-3.1-flash-tts-preview`).
-- **Deepgram**: `$0.03` / 1K chars.
-- **Speechify**: `$0.01` / 1K chars (`simba-3.2`, `simba-3.0`).
-- **Hume**: `$0.15` / 1K chars (`octave-1`, `octave-2`).
-- **Cartesia**: `$0.037375` / 1K chars (`sonic-3.5-2026-05-04`).
+The registry contains 126 active TTS selectors: 122 hosted selectors and 4 local Kitten models. This table ranks every selector by the registry's nominal price. Character-priced entries show the equivalent rate per 1K characters; Replicate is separately marked because its published figure is a variable typical per-prediction cost rather than a character tariff. Provider credits, taxes, volume discounts, and retry variance are excluded.
+
+| Rank | Nominal price | Selectors | Count |
+|---:|---:|---|---:|
+| 1 | Free locally | `kitten/kitten-tts-mini`, `kitten/kitten-tts-micro`, `kitten/kitten-tts-nano`, `kitten/kitten-tts-nano-0.8-int8` | 4 |
+| 1 | Promotional `$0.00` / 1K chars | `deepinfra/XiaomiMiMo/MiMo-V2.5-tts`, `deepinfra/XiaomiMiMo/MiMo-V2.5-tts-voicedesign` | 2 |
+| 2 | About `$0.00022` / prediction | `replicate/jaaari/kokoro-82m` | 1 |
+| 3 | `$0.001` / 1K chars | `deepinfra/ResembleAI/chatterbox-multilingual`, `deepinfra/ResembleAI/chatterbox-turbo` | 2 |
+| 4 | `$0.01` / 1K chars | `speechify/simba-3.2`, `speechify/simba-3.0` | 2 |
+| 5 | `$0.0126` / 1K chars | `openai/gpt-4o-mini-tts-2025-12-15` (`$0.0006` input + `$0.012` output) | 1 |
+| 6 | `$0.015` / 1K chars | `grok/grok-tts`, `inworld/realtime-tts-2-flash`, `openai/tts-1` | 3 |
+| 7 | `$0.016` / 1K output chars | `mistral/voxtral-mini-tts-2603` | 1 |
+| 8 | `$0.02` / 1K chars | `deepinfra/Qwen/Qwen3-TTS`, `deepinfra/Qwen/Qwen3-TTS-VoiceDesign` | 2 |
+| 9 | `$0.021` / 1K chars | `gemini/gemini-3.1-flash-tts-preview` (`$0.001` input + `$0.02` output) | 1 |
+| 10 | `$0.022` / 1K chars | `groq/canopylabs/orpheus-v1-english` | 1 |
+| 11 | `$0.025` / 1K chars | `inworld/realtime-tts-2` | 1 |
+| 12 | `$0.03` / 1K chars | All 91 active `deepgram/aura-2-*` voice-model selectors listed by `bun autoshow tts --help`; `openai/tts-1-hd` | 92 |
+| 13 | `$0.037375` / 1K chars | `cartesia/sonic-3.5-2026-05-04` | 1 |
+| 14 | `$0.04` / 1K chars | `groq/canopylabs/orpheus-arabic-saudi` | 1 |
+| 15 | `$0.05` / 1K chars | `elevenlabs/eleven_flash_v2_5`, `fish/fish-speech-1.5`, `fish/s1` | 3 |
+| 16 | `$0.06` / 1K chars | `minimax/speech-2.8-turbo` | 1 |
+| 17 | `$0.10` / 1K chars | `elevenlabs/eleven_v3`, `elevenlabs/eleven_multilingual_v2`, `fish/s2-pro`, `minimax/speech-2.8-hd` | 4 |
+| 18 | `$0.15` / 1K chars | `hume/octave-1`, `hume/octave-2` | 2 |
+| 19 | `$0.20` / 1K chars | `fish/voice-design-1` | 1 |
 
 ## Output
 

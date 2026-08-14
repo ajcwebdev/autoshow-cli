@@ -9,7 +9,7 @@
 
 ## Context
 
-AutoShow can synthesize single-voice speech through 12 providers and already has a generic multi-speaker parser, speaker mappings, turn files, local concatenation, and a native Gemini branch. Comic has a better current starting point for dialogue: `structured-script.json` retains stable source-segment IDs, canonical character keys, original speaker labels, normalized spoken text, basic delivery notes, and scene locations, but v3 does not preserve every timing/stage/source-span detail required by this decision. Comic also has a useful reference-asset lifecycle for images: authored character metadata, a registered current reference with checksums and prior-generation identity, and uniquely named copied assets. Its current singleton snapshot index can be overwritten, however, so the append-only voice snapshot design in this decision intentionally strengthens rather than merely copies that precedent.
+AutoShow can synthesize single-voice speech through 16 providers and already has a generic multi-speaker parser, speaker mappings, turn files, local concatenation, and a native Gemini branch. Comic has a better current starting point for dialogue: `structured-script.json` retains stable source-segment IDs, canonical character keys, original speaker labels, normalized spoken text, basic delivery notes, and scene locations, but v3 does not preserve every timing/stage/source-span detail required by this decision. Comic also has a useful reference-asset lifecycle for images: authored character metadata, a registered current reference with checksums and prior-generation identity, and uniquely named copied assets. Its current singleton snapshot index can be overwritten, however, so the append-only voice snapshot design in this decision intentionally strengthens rather than merely copies that precedent.
 
 Those pieces do not yet form a trustworthy multi-character script-to-audio workflow. Comic exposes no command for creating, selecting, auditioning, approving, or snapshotting a character voice, and no command for turning a structured comic script into multi-character audio. The generic TTS speaker registry contains only a speaker string and a provider-agnostic voice string or path. It cannot express provider-specific castings, voice-design or clone state, access restrictions, consent, delivery controls, remote-resource lifecycle, or immutable voice identity.
 
@@ -33,7 +33,7 @@ Why now: multi-character script-to-audio is the next workflow requirement, with 
 
 | Option | Pros | Cons | Quantitative Notes |
 |---|---|---|---|
-| **Build shared voice-identity, provisioning, capability, dialogue-rendering, timing, and artifact primitives; make comic consume them; implement ElevenLabs and Hume as first-class adapters** | Repairs the current contract once; gives every provider a truthful segmented baseline; preserves provider-native strengths; supports immutable character references, local repair, comparison, and resume | Largest initial change; requires versioned artifacts, provider conformance tests, lifecycle state, and two render strategies | 12 existing providers; 10 captured-voice adapters to repair; 2 first-class advanced adapters; 2 new comic commands |
+| **Build shared voice-identity, provisioning, capability, dialogue-rendering, timing, and artifact primitives; make comic consume them; implement ElevenLabs and Hume as first-class adapters** | Repairs the current contract once; gives every provider a truthful segmented baseline; preserves provider-native strengths; supports immutable character references, local repair, comparison, and resume | Largest initial change; requires versioned artifacts, provider conformance tests, lifecycle state, and two render strategies | 12 providers at decision time; 16 after ADR-018 additions; 10 captured-voice adapters repaired; 2 first-class advanced adapters; 2 new comic commands |
 | Patch per-turn voice arguments and add comic flags directly to the existing `TtsOptions` bag | Smaller short-term change; can make basic speaker switching work | Leaves identity, consent, capabilities, provider-qualified casting, snapshots, resource lifecycle, and native dialogue unmodeled; generic options continue to mix selection and invocation | Fixes one defect but leaves the report's architectural gaps intact |
 | Build an ElevenLabs-only script-to-audio workflow | Fastest route to the broadest managed provider feature set | Locks script-to-audio artifacts and commands to one provider, bypasses shared TTS, and makes Hume/Mistral/Gemini or local fallback expensive to add later | 1 provider; no portable baseline |
 | Use only independent turn synthesis and local assembly | Works for nearly every provider; simplest cache and repair model | Discards native conversational context, timestamps, and continuation available from ElevenLabs, Hume, and Gemini | 12 potential segmented providers; 0 native capability use |
@@ -54,9 +54,9 @@ This applies to:
 - First-class ElevenLabs voice-library, Voice Design/remix, clone, Text-to-Dialogue, and timestamp paths.
 - First-class Hume voice-library, Voice Design, clone/import, acting-direction, multi-utterance, timestamp, and continuation paths.
 
-This does not:
+This decision itself does not:
 
-- Add Azure, Google Cloud TTS, Polly, Resemble, Qwen3-TTS, Chatterbox, or another new provider before the shared contracts are stable.
+- Add Azure, Google Cloud TTS, Polly, Resemble, Qwen3-TTS, Chatterbox, or another new provider before the shared contracts are stable. ADR-018 later adds bounded Inworld, DeepInfra, Replicate, and Fish integrations under separate evidence-gated phases.
 - Treat configured credentials as proof that an account has plan-, approval-, verification-, or region-gated voice capabilities.
 - Permit implicit remote voice creation during ordinary synthesis, configuration loading, resume, cleanup, or `--price`.
 - Permit cloning without recorded provenance and consent, or cross-provider cloning from a generated audition unless explicitly authorized.
@@ -232,11 +232,11 @@ Caching uses content-addressed, versioned envelopes (`SynthesisCacheEntry`) back
 
 Once a mixed cache-materialized/provider-dispatched render publishes a successful terminal event and selected `AudioRun`, that selected success closes the whole render. Subsequent price and execution passes validate its complete evidence graph and report zero unresolved slots; they do not require each cache-materialized slot to masquerade as a new provider-dispatch result and never purchase those slots again. If a changed render identity is fully satisfied by compatible materializations, execution skips the provider adapter entirely, assembles the current master from those verified outputs, and records a `local-composition` terminal result without an empty provider attempt or admission journal.
 
-If synthesis instead terminates after any request dispatch, target finalization preserves successful outputs and all admission states before surfacing the provider error. The failure diagnostic immediately applies the same exact resume planner, reports reusable and unresolved generation-slot counts, and names the explicit reconciliation flag when ambiguous paid admissions block automatic continuation. It does not retry a 5xx, timeout, network failure, or other ambiguous paid create automatically; only the user-authorized resume may redispatch those exact unresolved slots, and it must warn that they may be purchased again.
+If synthesis instead terminates after any request dispatch, target finalization preserves successful outputs and all admission states before surfacing the provider error. The failure diagnostic immediately applies the same exact resume planner, reports reusable and unresolved generation-slot counts, and names the explicit reconciliation flag when ambiguous paid admissions block automatic continuation. It does not retry a 5xx, timeout, network failure, or other ambiguous paid create by default. Only explicit `--tts-allow-ambiguous-redispatch` authorization on the active TTS or resume command may redispatch those exact unresolved slots, whether through a provider's bounded in-process retry policy or a later checkpoint resume, and it must warn that they may be purchased again.
 
 ### Truthful Metadata and Artifact Retention
 
-Canonical provider projections (`ttsAudio` or `comicAudio`) replace flat speaker summaries as authority. Detailed results record exact turn counts, batch counts, generation slots, request counts, cache materializations, take counts, output checksums, and provider cost allocations. Retired manifest formats are rejected.
+Canonical provider projections (`ttsAudio` or `comicAudio`) replace flat speaker summaries as authority. Detailed results record exact turn counts, batch counts, generation slots, request counts, cache materializations, take counts, output checksums, and provider cost allocations. Retired manifest formats are rejected as current render authority. ADR-002 permits only completed pre-cutover standalone TTS states to remain immutable historical siblings while newly selected providers append fully canonical render evidence; legacy state can never satisfy a current generation slot.
 
 ### Provider Support Profiles
 
@@ -255,6 +255,9 @@ Canonical provider projections (`ttsAudio` or `comicAudio`) replace flat speaker
 | Hume | Segmented explicit voice | Discovery, design, clone, audition, acting direction, native utterances, timestamps, continuation |
 | Cartesia | Segmented voice ID | 500+ catalog, clone tiers, localization, emotion, and timing |
 | Inworld | Segmented stock/custom voice ID | Read-only current Voice API catalog discovery and pre-synthesis voice-ID readiness; mutation and native-dialogue facets remain unimplemented |
+| DeepInfra | Segmented model-qualified synthesis | Reliable hosted single-voice inference; model-specific dialogue, design, clone, and protected-reference facets remain gated by ADR-018 |
+| Replicate | Segmented Kokoro stock voice | Version-pinned `jaaari/kokoro-82m` with exact stock-voice and speed serialization; speculative reference/dialogue models remain excluded |
+| Fish | Segmented approved-reference synthesis | Reliable single-voice TTS and real catalog/design/model lifecycle calls; native dialogue/timing and full reconciliation remain gated by ADR-018 |
 
 ### First-Class ElevenLabs Contract
 
@@ -280,7 +283,7 @@ Canonical provider projections (`ttsAudio` or `comicAudio`) replace flat speaker
 ## Consequences
 
 Positive outcomes:
-- All 12 TTS providers gain multi-speaker capability via an explicit-voice baseline.
+- All 16 TTS providers participate in the shared explicit-voice/capability boundary; providers without a verified native or voice-management facet fail locally rather than fabricating support.
 - ElevenLabs and Hume become first-class voice platforms supporting design, cloning, native dialogue, and continuation.
 - Comic achieves stable voice references, audition/approval workflows, local repair, and mastering contracts.
 - Remote voice creation, verification, approval, expiry, and deletion become explicit, observable lifecycle states.
@@ -322,6 +325,8 @@ Negative outcomes:
 - MiniMax, Cartesia, and Speechify expose catalog, design, clone, and lifecycle facets. Their fixtures mark Cartesia and Speechify text-prompt design and all three providers' native multi-speaker dialogue unsupported, so those providers keep the segmented baseline. No new provider was added because no remaining casting or privacy gap was demonstrated.
 - Benchmark identity uses the adapter target plus render and optional registration, snapshot-entry, and character identity, with the non-reusable `legacy:` fallback for pre-ADR single-voice state. ADR-013 records the refreshed provider catalogs, and ADR-008 records the dialogue selector.
 - Every price path, for both synthesis and voice management, makes no provider call and writes no artifact.
+- Standalone TTS selection and resume share one typed 16-provider descriptor. Provider and model additions therefore reach fresh execution, price, and additive resume together instead of relying on a second handwritten resume table.
+- Completed pre-cutover standalone TTS benchmark manifests with unambiguous inline narration can retain their immutable legacy providers while appending a new canonical target. Price reconstructs the dialogue plan in memory without writes; execution materializes the plan before dispatch; interrupted or mixed legacy state still fails closed.
 - The 2026-08-14 provider reliability audit tightened the shared admission contract: definite non-timeout 4xx rejection is retry/replay-safe, while network errors, timeouts, 408/409, 5xx, and missing status are ambiguous. Provider task and prediction IDs are written as acceptance evidence before asynchronous polling continues, and target/comic aggregation preserves structured causes instead of relabeling provider failures as command usage errors.
 - Provider fixtures describe only code that exists. Inworld now exposes the documented read-only `GET /voices/v1/voices` catalog through `voice discover`, and execution readiness verifies every approved Inworld voice ID against that live account-visible catalog before paid synthesis begins. Inworld mutation and native-dialogue facets, plus DeepInfra and Replicate voice-management facets, remain unavailable until their real verified adapters exist; hardcoded catalogs, synthetic preview WAVs, fabricated resource IDs, and no-op deletion are prohibited. Missing credentials, unavailable approved voices, or missing provider audio are failures and never produce silent placeholder audio.
 - Comic target construction forwards every selected remote voice ID into the shared readiness layer for ElevenLabs, Hume, MiniMax, Cartesia, Speechify, and Inworld. A provider catalog check is therefore part of the same pre-dispatch barrier as snapshot selection instead of an optional adapter path that comic execution can bypass.
@@ -341,6 +346,7 @@ bun test test/test-cases/validation/resume-manifests/canonical-manifest-contract
 bun test test/test-cases/validation/resume-manifests/no-legacy-persistence-contracts.test.ts
 bun test test/test-cases/validation/resume-manifests/resume-additive-provider-contracts.test.ts
 bun test test/test-cases/validation/resume-manifests/resume-provider-surface-contracts.test.ts
+bun test test/test-cases/validation/resume-manifests/tts-resume-canonical-contracts.test.ts
 bun test test/test-cases/validation/media-generation/tts-explicit-voice-dispatch.test.ts
 bun test test/test-cases/validation/media-generation/tts-current-render-recovery.test.ts
 bun test test/test-cases/validation/media-generation/tts-audio-run-artifacts.test.ts
@@ -383,6 +389,7 @@ Verification evidence for shared hosted dialogue admission is dated 2026-08-14 a
 - Related ADR: [ADR-008](ADR-008-decompose-work-into-chunks-and-concurrency-lanes.md) — hosted TTS provider lanes and bounded turn selector
 - Related ADR: [ADR-010](ADR-010-hosted-model-registry-lifecycle-and-capability-policy.md) — TTS model contracts and voice capability boundaries
 - Related ADR: [ADR-013](ADR-013-2026-hosted-model-refresh-ledger.md) — TTS catalog refresh history
+- Related ADR: [ADR-018](ADR-018-sound-effects-and-multi-track-soundscape-pipeline.md) — later Inworld, DeepInfra, Replicate, and Fish provider phases
 - Related ADR: [ADR-019](ADR-019-synchronize-comic-panels-with-manifest-backed-audio.md) — downstream panel synchronization and still-image presentation
 - Source report: [Comic Character Voice and Multi-Character TTS Options](../reports/comic-character-tts-options-report.md)
 - `src/types/tts-workflow/tts-types.ts`

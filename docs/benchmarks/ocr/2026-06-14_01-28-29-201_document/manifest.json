@@ -352,6 +352,83 @@
                 "promptTokens": 1157,
                 "completionTokens": 1626,
                 "estimateType": "heuristic"
+              },
+              {
+                "step": "extract",
+                "provider": "deepinfra",
+                "model": "google/gemma-3-27b-it",
+                "cost": 0.004384,
+                "costMultiplier": 1,
+                "inputCostPer1MCents": 8,
+                "outputCostPer1MCents": 16,
+                "pageCount": 1,
+                "ocrMode": "image",
+                "promptTokens": 326,
+                "completionTokens": 111,
+                "tokenEstimateSource": "profile",
+                "tokenEstimateConfidence": "healthy",
+                "tokenProfileSampleCount": 1,
+                "tokenProfilePromptTokensPerPage": 326,
+                "tokenProfileCompletionTokensPerPage": 111,
+                "estimateType": "heuristic"
+              },
+              {
+                "step": "extract",
+                "provider": "deepinfra",
+                "model": "meta-llama/Llama-4-Scout-17B-16E-Instruct",
+                "cost": 0.01402,
+                "costMultiplier": 1,
+                "inputCostPer1MCents": 10,
+                "outputCostPer1MCents": 30,
+                "pageCount": 1,
+                "ocrMode": "image",
+                "promptTokens": 1084,
+                "completionTokens": 106,
+                "tokenEstimateSource": "profile",
+                "tokenEstimateConfidence": "healthy",
+                "tokenProfileSampleCount": 1,
+                "tokenProfilePromptTokensPerPage": 1084,
+                "tokenProfileCompletionTokensPerPage": 106,
+                "estimateType": "heuristic"
+              },
+              {
+                "step": "extract",
+                "provider": "fal",
+                "model": "fal-ai/florence-2-large/ocr",
+                "cost": 0.755,
+                "costMultiplier": 1,
+                "costPer1kPagesCents": 755,
+                "pageCount": 1,
+                "estimateType": "exact"
+              },
+              {
+                "step": "extract",
+                "provider": "fal",
+                "model": "fal-ai/got-ocr/v2",
+                "cost": 5,
+                "costMultiplier": 1,
+                "costPer1kPagesCents": 5000,
+                "pageCount": 1,
+                "estimateType": "exact"
+              },
+              {
+                "step": "extract",
+                "provider": "deepinfra",
+                "model": "mistralai/Mistral-Small-3.2-24B-Instruct-2506",
+                "cost": 0.0094275,
+                "costMultiplier": 1,
+                "inputCostPer1MCents": 7.5,
+                "outputCostPer1MCents": 20,
+                "pageCount": 1,
+                "ocrMode": "image",
+                "promptTokens": 881,
+                "completionTokens": 141,
+                "tokenEstimateSource": "profile",
+                "tokenEstimateConfidence": "healthy",
+                "tokenProfileSampleCount": 1,
+                "tokenProfilePromptTokensPerPage": 881,
+                "tokenProfileCompletionTokensPerPage": 141,
+                "estimateType": "heuristic"
               }
             ]
           },
@@ -573,6 +650,84 @@
                 "inputValue": 1489,
                 "promptTokens": 1177,
                 "completionTokens": 312
+              },
+              {
+                "step": "extract",
+                "provider": "replicate",
+                "model": "datalab-to/ocr",
+                "cost": 0.2,
+                "costSource": "registry_fallback",
+                "inputMetric": "pages",
+                "inputValue": 1
+              },
+              {
+                "step": "extract",
+                "provider": "deepinfra",
+                "model": "google/gemma-3-27b-it",
+                "cost": 0.007152,
+                "costSource": "provider_usage",
+                "inputMetric": "tokens",
+                "inputValue": 610,
+                "promptTokens": 326,
+                "completionTokens": 284
+              },
+              {
+                "step": "extract",
+                "provider": "deepinfra",
+                "model": "meta-llama/Llama-4-Scout-17B-16E-Instruct",
+                "cost": 0.03229,
+                "costSource": "provider_usage",
+                "inputMetric": "tokens",
+                "inputValue": 2669,
+                "promptTokens": 2389,
+                "completionTokens": 280
+              },
+              {
+                "step": "extract",
+                "provider": "replicate",
+                "model": "lucataco/deepseek-ocr",
+                "cost": 0.33,
+                "costSource": "registry_fallback",
+                "inputMetric": "pages",
+                "inputValue": 1
+              },
+              {
+                "step": "extract",
+                "provider": "fal",
+                "model": "fal-ai/florence-2-large/ocr",
+                "cost": 0.755,
+                "costSource": "registry_fallback",
+                "inputMetric": "pages",
+                "inputValue": 1
+              },
+              {
+                "step": "extract",
+                "provider": "fal",
+                "model": "fal-ai/got-ocr/v2",
+                "cost": 5,
+                "costSource": "registry_fallback",
+                "inputMetric": "pages",
+                "inputValue": 1
+              },
+              {
+                "step": "extract",
+                "provider": "replicate",
+                "model": "datalab-to/marker",
+                "cost": 0.4,
+                "costSource": "registry_fallback",
+                "inputMetric": "pages",
+                "inputValue": 1
+              },
+              {
+                "step": "extract",
+                "provider": "deepinfra",
+                "model": "mistralai/Mistral-Small-3.2-24B-Instruct-2506",
+                "cost": 0.01924,
+                "costSource": "provider_usage",
+                "inputMetric": "tokens",
+                "inputValue": 2137,
+                "promptTokens": 1880,
+                "completionTokens": 257
               }
             ]
           },
@@ -1345,7 +1500,79 @@
               },
               "source": "token_usage"
             }
-          ]
+          ],
+          "observedEstimate": {
+            "steps": [
+              {
+                "step": "extract",
+                "provider": "deepinfra",
+                "model": "google/gemma-3-27b-it",
+                "cost": 0.007152,
+                "costMultiplier": 1,
+                "inputCostPer1MCents": 8,
+                "outputCostPer1MCents": 16,
+                "pageCount": 1,
+                "ocrMode": "image",
+                "promptTokens": 326,
+                "completionTokens": 284,
+                "tokenEstimateSource": "exact",
+                "tokenEstimateConfidence": "healthy",
+                "estimateType": "exact"
+              },
+              {
+                "step": "extract",
+                "provider": "deepinfra",
+                "model": "meta-llama/Llama-4-Scout-17B-16E-Instruct",
+                "cost": 0.03229,
+                "costMultiplier": 1,
+                "inputCostPer1MCents": 10,
+                "outputCostPer1MCents": 30,
+                "pageCount": 1,
+                "ocrMode": "image",
+                "promptTokens": 2389,
+                "completionTokens": 280,
+                "tokenEstimateSource": "exact",
+                "tokenEstimateConfidence": "healthy",
+                "estimateType": "exact"
+              },
+              {
+                "step": "extract",
+                "provider": "fal",
+                "model": "fal-ai/florence-2-large/ocr",
+                "cost": 0.755,
+                "costMultiplier": 1,
+                "costPer1kPagesCents": 755,
+                "pageCount": 1,
+                "estimateType": "exact"
+              },
+              {
+                "step": "extract",
+                "provider": "fal",
+                "model": "fal-ai/got-ocr/v2",
+                "cost": 5,
+                "costMultiplier": 1,
+                "costPer1kPagesCents": 5000,
+                "pageCount": 1,
+                "estimateType": "exact"
+              },
+              {
+                "step": "extract",
+                "provider": "deepinfra",
+                "model": "mistralai/Mistral-Small-3.2-24B-Instruct-2506",
+                "cost": 0.01924,
+                "costMultiplier": 1,
+                "inputCostPer1MCents": 7.5,
+                "outputCostPer1MCents": 20,
+                "pageCount": 1,
+                "ocrMode": "image",
+                "promptTokens": 1880,
+                "completionTokens": 257,
+                "tokenEstimateSource": "exact",
+                "tokenEstimateConfidence": "healthy",
+                "estimateType": "exact"
+              }
+            ]
+          }
         },
         "timing": {
           "estimated": {
@@ -1595,6 +1822,107 @@
                 "rateBasis": "page",
                 "msPerUnit": 2921,
                 "throughputValue": 20.541,
+                "throughputUnit": "pagesPerMinute",
+                "timingScope": "estimated"
+              },
+              {
+                "step": "extract",
+                "provider": "deepinfra",
+                "model": "google/gemma-3-27b-it",
+                "processingTimeMs": 6557,
+                "inputMetric": "pages",
+                "inputValue": 1,
+                "timingAdjustment": {
+                  "kind": "hosted-ocr-page-concurrency",
+                  "pageConcurrency": 10,
+                  "ocrConcurrencyMode": "auto",
+                  "estimateConfidence": "profile",
+                  "profileLaneTargetCount": 1,
+                  "profileSampleCount": 1,
+                  "profileThroughputPagesPerMinute": 9.151,
+                  "profileRaisedMaxCap": 12,
+                  "profileCapSource": "exact-clean-sample",
+                  "profileSourceConfidence": "healthy"
+                },
+                "rateBasis": "page",
+                "msPerUnit": 6557,
+                "throughputValue": 9.151,
+                "throughputUnit": "pagesPerMinute",
+                "timingScope": "estimated"
+              },
+              {
+                "step": "extract",
+                "provider": "deepinfra",
+                "model": "meta-llama/Llama-4-Scout-17B-16E-Instruct",
+                "processingTimeMs": 3133,
+                "inputMetric": "pages",
+                "inputValue": 1,
+                "timingAdjustment": {
+                  "kind": "hosted-ocr-page-concurrency",
+                  "pageConcurrency": 10,
+                  "ocrConcurrencyMode": "auto",
+                  "estimateConfidence": "profile",
+                  "profileLaneTargetCount": 1,
+                  "profileSampleCount": 1,
+                  "profileThroughputPagesPerMinute": 19.151,
+                  "profileRaisedMaxCap": 12,
+                  "profileCapSource": "exact-clean-sample",
+                  "profileSourceConfidence": "healthy"
+                },
+                "rateBasis": "page",
+                "msPerUnit": 3133,
+                "throughputValue": 19.151,
+                "throughputUnit": "pagesPerMinute",
+                "timingScope": "estimated"
+              },
+              {
+                "step": "extract",
+                "provider": "fal",
+                "model": "fal-ai/florence-2-large/ocr",
+                "processingTimeMs": 5000,
+                "inputMetric": "pages",
+                "inputValue": 1,
+                "rateBasis": "page",
+                "msPerUnit": 5000,
+                "throughputValue": 12,
+                "throughputUnit": "pagesPerMinute",
+                "timingScope": "estimated"
+              },
+              {
+                "step": "extract",
+                "provider": "fal",
+                "model": "fal-ai/got-ocr/v2",
+                "processingTimeMs": 5000,
+                "inputMetric": "pages",
+                "inputValue": 1,
+                "rateBasis": "page",
+                "msPerUnit": 5000,
+                "throughputValue": 12,
+                "throughputUnit": "pagesPerMinute",
+                "timingScope": "estimated"
+              },
+              {
+                "step": "extract",
+                "provider": "deepinfra",
+                "model": "mistralai/Mistral-Small-3.2-24B-Instruct-2506",
+                "processingTimeMs": 3038,
+                "inputMetric": "pages",
+                "inputValue": 1,
+                "timingAdjustment": {
+                  "kind": "hosted-ocr-page-concurrency",
+                  "pageConcurrency": 10,
+                  "ocrConcurrencyMode": "auto",
+                  "estimateConfidence": "profile",
+                  "profileLaneTargetCount": 1,
+                  "profileSampleCount": 1,
+                  "profileThroughputPagesPerMinute": 19.75,
+                  "profileRaisedMaxCap": 12,
+                  "profileCapSource": "exact-clean-sample",
+                  "profileSourceConfidence": "healthy"
+                },
+                "rateBasis": "page",
+                "msPerUnit": 3038,
+                "throughputValue": 19.75,
                 "throughputUnit": "pagesPerMinute",
                 "timingScope": "estimated"
               }
@@ -1860,6 +2188,110 @@
                 "rateBasis": "page",
                 "msPerUnit": 16519,
                 "throughputValue": 3.632,
+                "throughputUnit": "pagesPerMinute",
+                "timingScope": "wall"
+              },
+              {
+                "step": "extract",
+                "provider": "replicate",
+                "model": "datalab-to/ocr",
+                "processingTimeMs": 5131,
+                "inputMetric": "pages",
+                "inputValue": 1,
+                "rateBasis": "page",
+                "msPerUnit": 5131,
+                "throughputValue": 11.694,
+                "throughputUnit": "pagesPerMinute",
+                "timingScope": "wall"
+              },
+              {
+                "step": "extract",
+                "provider": "deepinfra",
+                "model": "google/gemma-3-27b-it",
+                "processingTimeMs": 21984,
+                "inputMetric": "pages",
+                "inputValue": 1,
+                "rateBasis": "page",
+                "msPerUnit": 21984,
+                "throughputValue": 2.729,
+                "throughputUnit": "pagesPerMinute",
+                "timingScope": "wall"
+              },
+              {
+                "step": "extract",
+                "provider": "deepinfra",
+                "model": "meta-llama/Llama-4-Scout-17B-16E-Instruct",
+                "processingTimeMs": 6822,
+                "inputMetric": "pages",
+                "inputValue": 1,
+                "rateBasis": "page",
+                "msPerUnit": 6822,
+                "throughputValue": 8.795,
+                "throughputUnit": "pagesPerMinute",
+                "timingScope": "wall"
+              },
+              {
+                "step": "extract",
+                "provider": "replicate",
+                "model": "lucataco/deepseek-ocr",
+                "processingTimeMs": 9256,
+                "inputMetric": "pages",
+                "inputValue": 1,
+                "rateBasis": "page",
+                "msPerUnit": 9256,
+                "throughputValue": 6.482,
+                "throughputUnit": "pagesPerMinute",
+                "timingScope": "wall"
+              },
+              {
+                "step": "extract",
+                "provider": "fal",
+                "model": "fal-ai/florence-2-large/ocr",
+                "processingTimeMs": 10349,
+                "inputMetric": "pages",
+                "inputValue": 1,
+                "rateBasis": "page",
+                "msPerUnit": 10349,
+                "throughputValue": 5.798,
+                "throughputUnit": "pagesPerMinute",
+                "timingScope": "wall"
+              },
+              {
+                "step": "extract",
+                "provider": "fal",
+                "model": "fal-ai/got-ocr/v2",
+                "processingTimeMs": 10377,
+                "inputMetric": "pages",
+                "inputValue": 1,
+                "rateBasis": "page",
+                "msPerUnit": 10377,
+                "throughputValue": 5.782,
+                "throughputUnit": "pagesPerMinute",
+                "timingScope": "wall"
+              },
+              {
+                "step": "extract",
+                "provider": "replicate",
+                "model": "datalab-to/marker",
+                "processingTimeMs": 8106,
+                "inputMetric": "pages",
+                "inputValue": 1,
+                "rateBasis": "page",
+                "msPerUnit": 8106,
+                "throughputValue": 7.402,
+                "throughputUnit": "pagesPerMinute",
+                "timingScope": "wall"
+              },
+              {
+                "step": "extract",
+                "provider": "deepinfra",
+                "model": "mistralai/Mistral-Small-3.2-24B-Instruct-2506",
+                "processingTimeMs": 11348,
+                "inputMetric": "pages",
+                "inputValue": 1,
+                "rateBasis": "page",
+                "msPerUnit": 11348,
+                "throughputValue": 5.287,
                 "throughputUnit": "pagesPerMinute",
                 "timingScope": "wall"
               }
@@ -2478,6 +2910,322 @@
                 "completionTokens": 312
               }
             ]
+          }
+        },
+        {
+          "service": "replicate",
+          "model": "datalab-to/ocr",
+          "artifactDir": "consolidated/replicate-datalab-to-ocr",
+          "status": "succeeded",
+          "attempts": 1,
+          "options": {},
+          "metadata": {
+            "extractionMethod": "image+replicate-ocr",
+            "totalPages": 1,
+            "ocrPages": 1,
+            "textPages": 0,
+            "processingTime": 5131,
+            "dpi": 300,
+            "languages": "eng",
+            "tokenEstimate": 129,
+            "ocrModel": "datalab-to/ocr",
+            "ocrService": "replicate",
+            "inputFamily": "image",
+            "effectiveReasoningEffort": "default"
+          },
+          "result": {
+            "text": "Page 0\nLECTOR I BENEVOLO\nS.\nOnstitutum mihi, decretum-\nque esse, quales cunque dis-\nfertationes meas academico\nmore habitas, in certos col-\nlectas fasciculos, publicae\nexponere luci, iam indica-\ntumia me, commemoratum que est, cum eas,\nquae historico - theologici argumenti sunt,\nprodire superiori anno iuberem. Et eius\nquidem consilii vt me nondum poenituit,\nita nunc eas, quae ad ius naturae & gen-\ntium spectant, vnico comprehensas volu-\nmine, sisto. De illarum vero nonnullis iti-\ndem quaedam monenda censui, quae qui-\ndem, ne lectorem fugiant, mea maximope-\nre refert.\nHistoriam iuris naturalis, quae primo\nloco comparet, iam ante aliquot annos\nPhilippi Reinhardi Vitriarii, clarissimi viri,\ninstitutionibus iuris naturae & gentium,\ncum hic recuderentur, comitem dederam,\ncum id a me maximopere efflagitaret, cuius\nsumptibus liber iste prodibat. Nunc au-\ntem",
+            "pages": [
+              {
+                "pageNumber": 0,
+                "method": "ocr",
+                "text": "LECTOR I BENEVOLO\nS.\nOnstitutum mihi, decretum-\nque esse, quales cunque dis-\nfertationes meas academico\nmore habitas, in certos col-\nlectas fasciculos, publicae\nexponere luci, iam indica-\ntumia me, commemoratum que est, cum eas,\nquae historico - theologici argumenti sunt,\nprodire superiori anno iuberem. Et eius\nquidem consilii vt me nondum poenituit,\nita nunc eas, quae ad ius naturae & gen-\ntium spectant, vnico comprehensas volu-\nmine, sisto. De illarum vero nonnullis iti-\ndem quaedam monenda censui, quae qui-\ndem, ne lectorem fugiant, mea maximope-\nre refert.\nHistoriam iuris naturalis, quae primo\nloco comparet, iam ante aliquot annos\nPhilippi Reinhardi Vitriarii, clarissimi viri,\ninstitutionibus iuris naturae & gentium,\ncum hic recuderentur, comitem dederam,\ncum id a me maximopere efflagitaret, cuius\nsumptibus liber iste prodibat. Nunc au-\ntem"
+              }
+            ],
+            "totalPages": 1,
+            "ocrPages": 1,
+            "textPages": 0
+          }
+        },
+        {
+          "service": "deepinfra",
+          "model": "google/gemma-3-27b-it",
+          "artifactDir": "consolidated/deepinfra-google-gemma-3-27b-it",
+          "status": "succeeded",
+          "attempts": 1,
+          "options": {},
+          "metadata": {
+            "extractionMethod": "image+deepinfra-ocr",
+            "totalPages": 1,
+            "ocrPages": 1,
+            "textPages": 0,
+            "processingTime": 21984,
+            "dpi": 300,
+            "languages": "eng",
+            "tokenEstimate": 118,
+            "ocrModel": "google/gemma-3-27b-it",
+            "ocrService": "deepinfra",
+            "promptTokens": 326,
+            "completionTokens": 284,
+            "inputFamily": "image",
+            "ocrProviderUsage": [
+              {
+                "unit": "document",
+                "pages": 1,
+                "provider": "deepinfra",
+                "model": "google/gemma-3-27b-it",
+                "promptTokens": 326,
+                "completionTokens": 284
+              }
+            ],
+            "effectiveReasoningEffort": "default"
+          },
+          "result": {
+            "text": "Page 1\nLECTORI BENEVOLO\nS.\n\nOnfititutum mihi, decretum-\nque effe, qualescunquę dif-\nfertationes meas academico\nmore habitas, in certos col-\nlectas fasciculos, publicae\nexponere luci, iam indica-\ntum me, commemoratunę eft, cum eas,\nquae hiftorico-theologici argumenti funt,\nprodire fuperiori anno iuberem. Et eius\nquidem confilii vt me nondum poenituit,\nita nunc eas, quae ad ius naturaę & gen-\ntium spectant, vnico comprehenfas volu-\nmine,fito. De illarum vero nonnullis iti-\ndem quaedam monenda cenfui, quae qui-\ndem, ne lectorem fugiant, mea maxime pe-\nre refert.\n\nHiftoriam iuris naturalis, quae primo\nPhilippi Reinhardi Vitrariii, clariffimi viri,\ninftitutionibus iuris naturaę & gentium,\ncum hic recuderentur, comitem dederam,\ncum id a me maximopere eftlagitaret, cuius\nfumpibus liber ifte prodibat. Nunc au-\ntem",
+            "pages": [
+              {
+                "pageNumber": 1,
+                "method": "ocr",
+                "text": "LECTORI BENEVOLO\nS.\n\nOnfititutum mihi, decretum-\nque effe, qualescunquę dif-\nfertationes meas academico\nmore habitas, in certos col-\nlectas fasciculos, publicae\nexponere luci, iam indica-\ntum me, commemoratunę eft, cum eas,\nquae hiftorico-theologici argumenti funt,\nprodire fuperiori anno iuberem. Et eius\nquidem confilii vt me nondum poenituit,\nita nunc eas, quae ad ius naturaę & gen-\ntium spectant, vnico comprehenfas volu-\nmine,fito. De illarum vero nonnullis iti-\ndem quaedam monenda cenfui, quae qui-\ndem, ne lectorem fugiant, mea maxime pe-\nre refert.\n\nHiftoriam iuris naturalis, quae primo\nPhilippi Reinhardi Vitrariii, clariffimi viri,\ninftitutionibus iuris naturaę & gentium,\ncum hic recuderentur, comitem dederam,\ncum id a me maximopere eftlagitaret, cuius\nfumpibus liber ifte prodibat. Nunc au-\ntem"
+              }
+            ],
+            "totalPages": 1,
+            "ocrPages": 1,
+            "textPages": 0
+          }
+        },
+        {
+          "service": "deepinfra",
+          "model": "meta-llama/Llama-4-Scout-17B-16E-Instruct",
+          "artifactDir": "consolidated/deepinfra-meta-llama-Llama-4-Scout-17B-16E-Instruct",
+          "status": "succeeded",
+          "attempts": 1,
+          "options": {},
+          "metadata": {
+            "extractionMethod": "image+deepinfra-ocr",
+            "totalPages": 1,
+            "ocrPages": 1,
+            "textPages": 0,
+            "processingTime": 6822,
+            "dpi": 300,
+            "languages": "eng",
+            "tokenEstimate": 125,
+            "ocrModel": "meta-llama/Llama-4-Scout-17B-16E-Instruct",
+            "ocrService": "deepinfra",
+            "promptTokens": 2389,
+            "completionTokens": 280,
+            "inputFamily": "image",
+            "ocrProviderUsage": [
+              {
+                "unit": "document",
+                "pages": 1,
+                "provider": "deepinfra",
+                "model": "meta-llama/Llama-4-Scout-17B-16E-Instruct",
+                "promptTokens": 2389,
+                "completionTokens": 280
+              }
+            ],
+            "effectiveReasoningEffort": "default"
+          },
+          "result": {
+            "text": "Page 1\nLECTOR I BENEVOE S.\n\nOnfitutum mihi, decretum-\nque effe, qualescunque dif-\nfertationes meas academico\nmore habitas, in certos col-\nlectas fasci culos, publicae\nexponere luci, iam indica-\ntumia me, commemoratumque eft, cum eas,\nquae hiftorico-theologici argumenti funt,\nprodire fuperiori anno iuberem. Et eius\nquidem confilii vt me nondum poenituit,\nita nunc eas, quae ad ius naturae & gen-\ntium fpectant, vnico comprehensas volu-\nmine, fifto. De illarum vero nonnullis iti-\ndem quaedam monenda cenfui, quae qui-\ndem, ne lectorem fugiant, mea maximope-\nre refert.\n\nHiftoriam iuris naturalis, quae primo\nloco comparet, iam ante aliquot annos\nPhilippi Reinhardi Vitriarii, clariffimi viri,\ninftitutionibus iuris naturae & gentium,\ncum hic recuderentur, comitem dederam,\ncum id a me maxopere efflagitaret, cuius\nfumptibus liber ifte prodibat. Nunc au-",
+            "pages": [
+              {
+                "pageNumber": 1,
+                "method": "ocr",
+                "text": "LECTOR I BENEVOE S.\n\nOnfitutum mihi, decretum-\nque effe, qualescunque dif-\nfertationes meas academico\nmore habitas, in certos col-\nlectas fasci culos, publicae\nexponere luci, iam indica-\ntumia me, commemoratumque eft, cum eas,\nquae hiftorico-theologici argumenti funt,\nprodire fuperiori anno iuberem. Et eius\nquidem confilii vt me nondum poenituit,\nita nunc eas, quae ad ius naturae & gen-\ntium fpectant, vnico comprehensas volu-\nmine, fifto. De illarum vero nonnullis iti-\ndem quaedam monenda cenfui, quae qui-\ndem, ne lectorem fugiant, mea maximope-\nre refert.\n\nHiftoriam iuris naturalis, quae primo\nloco comparet, iam ante aliquot annos\nPhilippi Reinhardi Vitriarii, clariffimi viri,\ninftitutionibus iuris naturae & gentium,\ncum hic recuderentur, comitem dederam,\ncum id a me maxopere efflagitaret, cuius\nfumptibus liber ifte prodibat. Nunc au-"
+              }
+            ],
+            "totalPages": 1,
+            "ocrPages": 1,
+            "textPages": 0
+          }
+        },
+        {
+          "service": "replicate",
+          "model": "lucataco/deepseek-ocr",
+          "artifactDir": "consolidated/replicate-lucataco-deepseek-ocr",
+          "status": "succeeded",
+          "attempts": 1,
+          "options": {},
+          "metadata": {
+            "extractionMethod": "image+replicate-ocr",
+            "totalPages": 1,
+            "ocrPages": 1,
+            "textPages": 0,
+            "processingTime": 9256,
+            "dpi": 300,
+            "languages": "eng",
+            "tokenEstimate": 150,
+            "ocrModel": "lucataco/deepseek-ocr",
+            "ocrService": "replicate",
+            "inputFamily": "image",
+            "effectiveReasoningEffort": "default"
+          },
+          "result": {
+            "text": "Page 0\n<|ref|>image<|/ref|><|det|>[[45, 60, 740, 163]]<|/det|>\n \n\n<|ref|>sub_title<|/ref|><|det|>[[99, 184, 650, 213]]<|/det|>\nLECTORI BENEVOLO \n\n<|ref|>text<|/ref|><|det|>[[363, 223, 404, 247]]<|/det|>\nS. \n\n<|ref|>image<|/ref|><|det|>[[24, 270, 260, 411]]<|/det|>\n \n\n<|ref|>text<|/ref|><|det|>[[24, 411, 735, 657]]<|/det|>\nOnfitutum mihi, decretum-\nque effe, qualescunque dif-\nfertationes meas academico\nmore habitas, in certos col-\nlectas faciculos, publicae\nexponere luci, iam indica-\ntum me, commemoratumque eft, cum eas,\nquae hiftorico - theologici argumenti fint,\nprodire fuperiori anno iuberem. Et eius\nquidem confilii vt me nondum poenituit,\nita nunc eas, quae ad ius naturae & gen-\ntium fpedant, vnico comprehendas volu-\nmine, fitto. De illarum vero nonnullis iti-\ndem quaedam monenda cenfui, quae qui-\ndem, ne lectorem fugiant, mea maximope-\nre refert. \n\n<|ref|>text<|/ref|><|det|>[[18, 657, 730, 840]]<|/det|>\nHiftoriam iuris naturalis, quae primo\nloco comparet, iam ante aliquot annos\nPhilippi Reinhardi Vitriarii, clarifimi viri,\ninftitutionibus iuris naturae & gentium,\ncum hic recuderentur, comitem dederam,\ncum id a me maximopere efflagitaret, cuius\nfumptibus liber ifte prodibat. Nunc au-\ntem",
+            "pages": [
+              {
+                "pageNumber": 0,
+                "method": "ocr",
+                "text": "<|ref|>image<|/ref|><|det|>[[45, 60, 740, 163]]<|/det|>\n \n\n<|ref|>sub_title<|/ref|><|det|>[[99, 184, 650, 213]]<|/det|>\nLECTORI BENEVOLO \n\n<|ref|>text<|/ref|><|det|>[[363, 223, 404, 247]]<|/det|>\nS. \n\n<|ref|>image<|/ref|><|det|>[[24, 270, 260, 411]]<|/det|>\n \n\n<|ref|>text<|/ref|><|det|>[[24, 411, 735, 657]]<|/det|>\nOnfitutum mihi, decretum-\nque effe, qualescunque dif-\nfertationes meas academico\nmore habitas, in certos col-\nlectas faciculos, publicae\nexponere luci, iam indica-\ntum me, commemoratumque eft, cum eas,\nquae hiftorico - theologici argumenti fint,\nprodire fuperiori anno iuberem. Et eius\nquidem confilii vt me nondum poenituit,\nita nunc eas, quae ad ius naturae & gen-\ntium fpedant, vnico comprehendas volu-\nmine, fitto. De illarum vero nonnullis iti-\ndem quaedam monenda cenfui, quae qui-\ndem, ne lectorem fugiant, mea maximope-\nre refert. \n\n<|ref|>text<|/ref|><|det|>[[18, 657, 730, 840]]<|/det|>\nHiftoriam iuris naturalis, quae primo\nloco comparet, iam ante aliquot annos\nPhilippi Reinhardi Vitriarii, clarifimi viri,\ninftitutionibus iuris naturae & gentium,\ncum hic recuderentur, comitem dederam,\ncum id a me maximopere efflagitaret, cuius\nfumptibus liber ifte prodibat. Nunc au-\ntem"
+              }
+            ],
+            "totalPages": 1,
+            "ocrPages": 1,
+            "textPages": 0
+          }
+        },
+        {
+          "service": "fal",
+          "model": "fal-ai/florence-2-large/ocr",
+          "artifactDir": "consolidated/fal-fal-ai-florence-2-large-ocr",
+          "status": "succeeded",
+          "attempts": 1,
+          "options": {},
+          "metadata": {
+            "extractionMethod": "image+fal-ocr",
+            "totalPages": 1,
+            "ocrPages": 1,
+            "textPages": 0,
+            "processingTime": 10349,
+            "dpi": 300,
+            "languages": "eng",
+            "tokenEstimate": 123,
+            "ocrModel": "fal-ai/florence-2-large/ocr",
+            "ocrService": "fal",
+            "inputFamily": "image",
+            "effectiveReasoningEffort": "default"
+          },
+          "result": {
+            "text": "Page 0\nLECTORI BENEVOLO\nS.\nOnfiftum mihi, decretum-\nque effe, qualescunque dif-\nfertations meas academico\nmore habitas, in cerotos col-\nlefas faciculos, publicae\nexponere luci, iam indica-\ntumia me,commemoratumque eft, cum eas,\nquae hifitorico - theologiologi argumenti fint,\nprodire fuperiori anno iuberem. Et eius\nquidem confilii ve mondum poenitut,\nita nunc eas, quae ad ius naturea & gen-\ntium fpectant, vnico comprehensifas volu-\nmine,fito. De illarum vero nonnullisiti-\ndem quaedam monenda centui, que qui-\nrem, ne lelectorem fugiant, mea maximope-\nre refert.\nHifitoriam juris naturalis, que primo\nloco comparet, i am ante aliquor annos\nPhilippi Reinhardi Vitriarii, clarifrimi viri,\ninfinititionibus juris naturee & gentium,\ncum hic recuderentur, comitem dederam,\n cum id a me maximopere efflagitaret, cuius\nfumpibus liber ifte prodibat. Nunc au-\nten",
+            "pages": [
+              {
+                "pageNumber": 0,
+                "method": "ocr",
+                "text": "LECTORI BENEVOLO\nS.\nOnfiftum mihi, decretum-\nque effe, qualescunque dif-\nfertations meas academico\nmore habitas, in cerotos col-\nlefas faciculos, publicae\nexponere luci, iam indica-\ntumia me,commemoratumque eft, cum eas,\nquae hifitorico - theologiologi argumenti fint,\nprodire fuperiori anno iuberem. Et eius\nquidem confilii ve mondum poenitut,\nita nunc eas, quae ad ius naturea & gen-\ntium fpectant, vnico comprehensifas volu-\nmine,fito. De illarum vero nonnullisiti-\ndem quaedam monenda centui, que qui-\nrem, ne lelectorem fugiant, mea maximope-\nre refert.\nHifitoriam juris naturalis, que primo\nloco comparet, i am ante aliquor annos\nPhilippi Reinhardi Vitriarii, clarifrimi viri,\ninfinititionibus juris naturee & gentium,\ncum hic recuderentur, comitem dederam,\n cum id a me maximopere efflagitaret, cuius\nfumpibus liber ifte prodibat. Nunc au-\nten"
+              }
+            ],
+            "totalPages": 1,
+            "ocrPages": 1,
+            "textPages": 0
+          }
+        },
+        {
+          "service": "fal",
+          "model": "fal-ai/got-ocr/v2",
+          "artifactDir": "consolidated/fal-fal-ai-got-ocr-v2",
+          "status": "succeeded",
+          "attempts": 1,
+          "options": {},
+          "metadata": {
+            "extractionMethod": "image+fal-ocr",
+            "totalPages": 1,
+            "ocrPages": 1,
+            "textPages": 0,
+            "processingTime": 10377,
+            "dpi": 300,
+            "languages": "eng",
+            "tokenEstimate": 113,
+            "ocrModel": "fal-ai/got-ocr/v2",
+            "ocrService": "fal",
+            "inputFamily": "image",
+            "effectiveReasoningEffort": "default"
+          },
+          "result": {
+            "text": "Page 0\n\\title{\nLECTOR I BENEVOL O\n}\n\\section*{S.}\nOnfitutum mihi, decretumque eflte, qualescunque differentationes meas academico more habitas, in certos collectas fafciculos, publicae exponere luci, iam indicatumia me,commemoratumque eft, cum eas, quaehiftorico - theologici argumenti fiint, prodire fuperiori anno iuberem. Eteius quidem confilii vt menondum poenituit, ita nunc eas, quae ad ius naturae \\& gentium fpeitant, vnico comprehenías volumine,fito. De illarum vero nonnullis itidem quaedam monenda cenfui, quae quidem, ne lectorem fugiant, mea maximopere refert.\nHiftoriam iuris naturalis, quae primo loco comparet, iam ante aliquot annos Philippi Reinhardi Vitrarii,clariflimi viri, infitutionibus iuris naturae \\& gentium, cum hic recuderentur, comitem dederam, cum id a memaximopere efflagitaret, cuius fumptibus liber ifte prodibat. Nunc au-",
+            "pages": [
+              {
+                "pageNumber": 0,
+                "method": "ocr",
+                "text": "\\title{\nLECTOR I BENEVOL O\n}\n\\section*{S.}\nOnfitutum mihi, decretumque eflte, qualescunque differentationes meas academico more habitas, in certos collectas fafciculos, publicae exponere luci, iam indicatumia me,commemoratumque eft, cum eas, quaehiftorico - theologici argumenti fiint, prodire fuperiori anno iuberem. Eteius quidem confilii vt menondum poenituit, ita nunc eas, quae ad ius naturae \\& gentium fpeitant, vnico comprehenías volumine,fito. De illarum vero nonnullis itidem quaedam monenda cenfui, quae quidem, ne lectorem fugiant, mea maximopere refert.\nHiftoriam iuris naturalis, quae primo loco comparet, iam ante aliquot annos Philippi Reinhardi Vitrarii,clariflimi viri, infitutionibus iuris naturae \\& gentium, cum hic recuderentur, comitem dederam, cum id a memaximopere efflagitaret, cuius fumptibus liber ifte prodibat. Nunc au-"
+              }
+            ],
+            "totalPages": 1,
+            "ocrPages": 1,
+            "textPages": 0
+          }
+        },
+        {
+          "service": "replicate",
+          "model": "datalab-to/marker",
+          "artifactDir": "consolidated/replicate-datalab-to-marker",
+          "status": "succeeded",
+          "attempts": 1,
+          "options": {},
+          "metadata": {
+            "extractionMethod": "image+replicate-ocr",
+            "totalPages": 1,
+            "ocrPages": 1,
+            "textPages": 0,
+            "processingTime": 8106,
+            "dpi": 300,
+            "languages": "eng",
+            "tokenEstimate": 216,
+            "ocrModel": "datalab-to/marker",
+            "ocrService": "replicate",
+            "inputFamily": "image",
+            "effectiveReasoningEffort": "default"
+          },
+          "result": {
+            "text": "Page 0\n![A decorative woodcut vignette featuring a central bowl or chalice filled with flowers, surrounded by elaborate, symmetrical scrollwork and foliage.](2dfa6ac3edfe874f68aa0cbccaa42322_img.jpg)\n\nA decorative woodcut vignette featuring a central bowl or chalice filled with flowers, surrounded by elaborate, symmetrical scrollwork and foliage.\n\n# LECTORI BENEVOLO\n\nS.\n\n![A large, ornate initial letter 'C' in a woodcut style, filled with intricate floral and foliate patterns, serving as a decorative element for the first word of the text.](64662465bba247703fdec49c8f3309f9_img.jpg)\n\nA large, ornate initial letter 'C' in a woodcut style, filled with intricate floral and foliate patterns, serving as a decorative element for the first word of the text.\n\nConstitutum mihi, decretumque esse, qualescunque dissertationes meas academico more habitas, in certos collectas fasciculos, publicae exponere luci, iam indicatum a me, commemoratumque est, cum eas, quae historico - theologici argumenti sunt, prodire superiori anno iuberem. Et eius quidem consilii ut me nondum poenituit, ita nunc eas, quae ad ius naturae & gentium spectant, vnico comprehensas volumine sisto. De illarum vero nonnullis itidem quaedam monenda censui, quae quidem, ne lectorem fugiant, mea maximopere refert.\n\nHistoriam iuris naturalis, quae primo loco comparet, iam ante aliquot annos **Philippi Reinhardi Vitriarii**, clarissimi viri, institutionibus iuris naturae & gentium, cum hic recuderentur, comitem dederam, cum id a me maximopere efflagitaret, cuius sumptibus liber iste prodibat. Nunc autem",
+            "pages": [
+              {
+                "pageNumber": 0,
+                "method": "ocr",
+                "text": "\n\n![A decorative woodcut vignette featuring a central bowl or chalice filled with flowers, surrounded by elaborate, symmetrical scrollwork and foliage.](2dfa6ac3edfe874f68aa0cbccaa42322_img.jpg)\n\nA decorative woodcut vignette featuring a central bowl or chalice filled with flowers, surrounded by elaborate, symmetrical scrollwork and foliage.\n\n# LECTORI BENEVOLO\n\nS.\n\n![A large, ornate initial letter 'C' in a woodcut style, filled with intricate floral and foliate patterns, serving as a decorative element for the first word of the text.](64662465bba247703fdec49c8f3309f9_img.jpg)\n\nA large, ornate initial letter 'C' in a woodcut style, filled with intricate floral and foliate patterns, serving as a decorative element for the first word of the text.\n\nConstitutum mihi, decretumque esse, qualescunque dissertationes meas academico more habitas, in certos collectas fasciculos, publicae exponere luci, iam indicatum a me, commemoratumque est, cum eas, quae historico - theologici argumenti sunt, prodire superiori anno iuberem. Et eius quidem consilii ut me nondum poenituit, ita nunc eas, quae ad ius naturae & gentium spectant, vnico comprehensas volumine sisto. De illarum vero nonnullis itidem quaedam monenda censui, quae quidem, ne lectorem fugiant, mea maximopere refert.\n\nHistoriam iuris naturalis, quae primo loco comparet, iam ante aliquot annos **Philippi Reinhardi Vitriarii**, clarissimi viri, institutionibus iuris naturae & gentium, cum hic recuderentur, comitem dederam, cum id a me maximopere efflagitaret, cuius sumptibus liber iste prodibat. Nunc autem"
+              }
+            ],
+            "totalPages": 1,
+            "ocrPages": 1,
+            "textPages": 0
+          }
+        },
+        {
+          "service": "deepinfra",
+          "model": "mistralai/Mistral-Small-3.2-24B-Instruct-2506",
+          "artifactDir": "consolidated/deepinfra-mistralai-Mistral-Small-3.2-24B-Instruct-2506",
+          "status": "succeeded",
+          "attempts": 1,
+          "options": {},
+          "metadata": {
+            "extractionMethod": "image+deepinfra-ocr",
+            "totalPages": 1,
+            "ocrPages": 1,
+            "textPages": 0,
+            "processingTime": 11348,
+            "dpi": 300,
+            "languages": "eng",
+            "tokenEstimate": 116,
+            "ocrModel": "mistralai/Mistral-Small-3.2-24B-Instruct-2506",
+            "ocrService": "deepinfra",
+            "promptTokens": 1880,
+            "completionTokens": 257,
+            "inputFamily": "image",
+            "ocrProviderUsage": [
+              {
+                "unit": "document",
+                "pages": 1,
+                "provider": "deepinfra",
+                "model": "mistralai/Mistral-Small-3.2-24B-Instruct-2506",
+                "promptTokens": 1880,
+                "completionTokens": 257
+              }
+            ],
+            "effectiveReasoningEffort": "default"
+          },
+          "result": {
+            "text": "Page 1\nLECTORI BENEVOLO\n\nS.\n\nOnftitutum mihi, decretumque effe, qualescunque differtationes meas academico more habitas, in certos collectas fafciculos, publicae exponere luci, iam indicatumia me, commemoratumque eft, cum eas, quae historico - theologici argumenti funt, prodire fuperiori anno iuberem. Et eius quidem confilii vt me nondum poenituit, ita nunc eas, quae ad ius naturae & gentium fpectant, vnico comprehendas volumine, fifto. De illarum vero nonnullis itidem quaedam monenda cenfui, quae quidem, ne lectorem fugiant, mea maximopere refert.\n\nHistoriam iuris naturalis, quae primo loco comparer, iam ante aliquot annos Philippi Reinhardi Vitriarii, clarifimi viri, institutionibus iuris naturae & gentium, cum hic recuderentur, comitem dederam, cum id a me maximopere efflagitaret, cuius fumptibus liber ifte prodibat. Nunc autem",
+            "pages": [
+              {
+                "pageNumber": 1,
+                "method": "ocr",
+                "text": "LECTORI BENEVOLO\n\nS.\n\nOnftitutum mihi, decretumque effe, qualescunque differtationes meas academico more habitas, in certos collectas fafciculos, publicae exponere luci, iam indicatumia me, commemoratumque eft, cum eas, quae historico - theologici argumenti funt, prodire fuperiori anno iuberem. Et eius quidem confilii vt me nondum poenituit, ita nunc eas, quae ad ius naturae & gentium fpectant, vnico comprehendas volumine, fifto. De illarum vero nonnullis itidem quaedam monenda cenfui, quae quidem, ne lectorem fugiant, mea maximopere refert.\n\nHistoriam iuris naturalis, quae primo loco comparer, iam ante aliquot annos Philippi Reinhardi Vitriarii, clarifimi viri, institutionibus iuris naturae & gentium, cum hic recuderentur, comitem dederam, cum id a me maximopere efflagitaret, cuius fumptibus liber ifte prodibat. Nunc autem"
+              }
+            ],
+            "totalPages": 1,
+            "ocrPages": 1,
+            "textPages": 0
           }
         }
       ]

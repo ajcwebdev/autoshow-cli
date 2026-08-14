@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
-  "runDir": "/Users/ajc/c/autoshow-cli/output/2026-06-14_01-28-15-914_document",
+  "runDir": "/Users/ajc/c/autoshow-cli/docs/benchmarks/ocr/2026-06-14_01-28-15-914_document",
   "thresholds": {
     "majorLengthDrift": 0.3,
     "highDisagreementFloor": 0.18,
@@ -12,96 +12,63 @@
     "repeatedTokenWindowSize": 8,
     "repeatedTokenWindowMinimum": 6,
     "repeatedTokenWindowShare": 0.35,
-    "highDisagreement": 0.18,
-    "pageDisagreementQ1": 0.058249,
-    "pageDisagreementQ3": 0.069483
+    "highDisagreement": 0.444484,
+    "pageDisagreementQ1": 0.444484,
+    "pageDisagreementQ3": 0.444484
   },
-  "blankOutputPages": [
-    {
-      "pageNumber": 0,
-      "providers": [
-        "anthropic/claude-opus-4-8",
-        "anthropic/claude-sonnet-4-6",
-        "deepinfra/Qwen/Qwen3-VL-235B-A22B-Instruct",
-        "deepinfra/Qwen/Qwen3-VL-30B-A3B-Instruct",
-        "gemini/gemini-3.1-flash-lite-preview",
-        "gemini/gemini-3.1-flash-lite",
-        "gemini/gemini-3.1-pro-preview",
-        "glm/glm-ocr",
-        "grok/grok-4.3",
-        "kimi/kimi-k2.6",
-        "ocrmypdf/ocrmypdf",
-        "openai/gpt-5.4-nano",
-        "openai/gpt-5.5",
-        "paddle-ocr/paddle-ocr",
-        "tesseract/tesseract"
-      ]
-    },
-    {
-      "pageNumber": 1,
-      "providers": [
-        "mistral/mistral-ocr-2512"
-      ]
-    }
-  ],
+  "blankOutputPages": [],
   "repeatedTextPages": [
     {
-      "pageNumber": 0,
-      "providers": [
-        "mistral/mistral-ocr-2512"
-      ]
-    },
-    {
       "pageNumber": 1,
       "providers": [
-        "anthropic/claude-opus-4-8",
-        "anthropic/claude-sonnet-4-6",
-        "deepinfra/Qwen/Qwen3-VL-235B-A22B-Instruct",
-        "deepinfra/Qwen/Qwen3-VL-30B-A3B-Instruct",
-        "gemini/gemini-3.1-flash-lite-preview",
-        "gemini/gemini-3.1-flash-lite",
-        "gemini/gemini-3.1-pro-preview",
-        "glm/glm-ocr",
-        "grok/grok-4.3",
-        "kimi/kimi-k2.6",
-        "ocrmypdf/ocrmypdf",
-        "openai/gpt-5.4-nano",
-        "openai/gpt-5.5",
-        "paddle-ocr/paddle-ocr",
-        "tesseract/tesseract"
+        "replicate/datalab-to/ocr",
+        "deepinfra/google/gemma-3-27b-it",
+        "deepinfra/meta-llama/Llama-4-Scout-17B-16E-Instruct",
+        "replicate/lucataco/deepseek-ocr",
+        "fal/fal-ai/got-ocr/v2",
+        "replicate/datalab-to/marker",
+        "deepinfra/mistralai/Mistral-Small-3.2-24B-Instruct-2506"
       ]
     }
   ],
   "majorLengthDriftPages": [
     {
-      "pageNumber": 0,
-      "providers": [
-        {
-          "providerKey": "mistral/mistral-ocr-2512",
-          "lengthDrift": 1,
-          "tokenCount": 20
-        }
-      ]
-    },
-    {
       "pageNumber": 1,
       "providers": [
         {
-          "providerKey": "mistral/mistral-ocr-2512",
-          "lengthDrift": 1,
-          "tokenCount": 0
+          "providerKey": "replicate/lucataco/deepseek-ocr",
+          "lengthDrift": 2.25,
+          "tokenCount": 65
         }
       ]
     }
   ],
-  "highDisagreementPages": [],
-  "werCerDivergencePages": [],
+  "highDisagreementPages": [
+    {
+      "pageNumber": 1,
+      "pageDisagreement": 0.444484,
+      "selectedProviderKey": "deepinfra/google/gemma-3-27b-it",
+      "selectedConfidence": 0.543574
+    }
+  ],
+  "werCerDivergencePages": [
+    {
+      "pageNumber": 1,
+      "providers": [
+        {
+          "providerKey": "replicate/lucataco/deepseek-ocr",
+          "wer": 2.35024,
+          "cer": 2.017402
+        }
+      ]
+    }
+  ],
   "lowConfidencePages": [
     {
-      "pageNumber": 0,
-      "selectedProviderKey": "anthropic/claude-opus-4-8",
-      "selectedConfidence": 0.375,
-      "pageDisagreement": 0.052632
+      "pageNumber": 1,
+      "selectedProviderKey": "deepinfra/google/gemma-3-27b-it",
+      "selectedConfidence": 0.543574,
+      "pageDisagreement": 0.444484
     }
   ]
 }

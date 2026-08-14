@@ -2,12 +2,12 @@
   "command": "tts",
   "scope": "single",
   "createdAt": "2026-06-15T18:24:36.993Z",
-  "updatedAt": "2026-06-15T18:24:36.993Z",
+  "updatedAt": "2026-08-14T17:25:08.940Z",
   "items": [
     {
       "input": "At 8:05 a.m. on March 4, 2026, Dr. Anaïs O’Connor-Smith arrived at St. John’s Avenue, Suite No. 4B, carrying three and a half pounds of bass and a worn résumé.\n\n“Did the lead engineer lead the review,” asked Xiǎomí Nguyen, “or was the lead pipe made of lead? Should I wind the clock before the wind rises, polish the Polish table, refuse the refuse, and record a record?”\n\nProfessor Jean-Luc Picard, Jr., Ph.D., looked up from his notes. “The meeting begins at noon, not midnight. The budget is $1,234,567.89, unless the London office meant £1,234,567.89. Call extension 42 by 5:30 p.m., Central time.”\n\nMaría-José entered with a tray and said, “¡Buenos días! Ça va? Grüß Gott.” She offered everyone croissants, jalapeño bagels, pho, gyros, açai bowls, bruschetta, and quinoa salad.\n\n“Do not overact this sentence,” Anaïs said calmly. “Do not underact this one!” Then she paused. “And please do not read every ellipsis… like… a tragic… farewell.”\n\nThe day’s exercises were simple: read “read,” “reed,” and “red”; explain whether “No. 6” means number six or no six; distinguish “US” from “us”; decide whether “invalid” means not valid or a person who is ill; and make “the dove dove into the bushes” sound natural.\n\nThen came the pronunciation list: Worcestershire, hyperbole, epitome, cache, niche, solder, colonel, segue, synecdoche, Saoirse Ronan, Chiwetel Ejiofor, Ioan Gruffudd, Ncuti Gatwa, Björk, and Sean Bean.\n\nAt 2:03 p.m., the chairman read the final line aloud: “A good narrator knows when to pause, when to emphasize, when to spell, when to pronounce, and when to admit that text alone is ambiguous.”\n",
       "outputDir": "docs/benchmarks/tts/2026-06-15_18-24-36-993_tts-hard",
-      "status": "full",
+      "status": "incomplete",
       "metadata": {
         "tts": [
           {
@@ -197,6 +197,114 @@
             "processingTime": 13137,
             "audioFileName": "speech-cartesia-sonic-3.5-2026-05-04.wav",
             "audioFileSize": 3653198,
+            "chunkCount": 1
+          },
+          {
+            "ttsService": "fish",
+            "ttsModel": "fish-speech-1.5",
+            "speaker": "7f92f8afb8ec43bf81429cc1c9199cb1",
+            "processingTime": 20408,
+            "audioFileName": "speech-fish-fish-speech-1.5-resume-6f18b41832ce1659af18fe1ad14bd72074a00f4ee1470fc3-attempt-1.wav",
+            "audioFileSize": 3822296,
+            "chunkCount": 1
+          },
+          {
+            "ttsService": "fish",
+            "ttsModel": "s1",
+            "speaker": "7f92f8afb8ec43bf81429cc1c9199cb1",
+            "processingTime": 32434,
+            "audioFileName": "speech-fish-s1-resume-1ce13a9f2a08e7ae993a5b39dc17c1966b4bef89af693f24-attempt-1.wav",
+            "audioFileSize": 3916582,
+            "chunkCount": 1
+          },
+          {
+            "ttsService": "fish",
+            "ttsModel": "s2-pro",
+            "speaker": "7f92f8afb8ec43bf81429cc1c9199cb1",
+            "processingTime": 26282,
+            "audioFileName": "speech-fish-s2-pro-resume-dc731971a5297f8a2973c4a326b4bf93f1e6ead006744d08-attempt-1.wav",
+            "audioFileSize": 3932710,
+            "chunkCount": 1
+          },
+          {
+            "ttsService": "fish",
+            "ttsModel": "voice-design-1",
+            "speaker": "7f92f8afb8ec43bf81429cc1c9199cb1",
+            "processingTime": 39454,
+            "audioFileName": "speech-fish-voice-design-1-resume-282c4bc4273e2f0862e22d73d4b5cc7cf748e5cac0125e36-attempt-1.wav",
+            "audioFileSize": 4322378,
+            "chunkCount": 1
+          },
+          {
+            "ttsService": "inworld",
+            "ttsModel": "realtime-tts-2",
+            "speaker": "voice_inworld_standard_en",
+            "processingTime": 28601,
+            "audioFileName": "speech-inworld-realtime-tts-2-resume-19f92450170b257eabaf8c369b53c8b8d5266dea1bd34925-attempt-1.wav",
+            "audioFileSize": 4019790,
+            "chunkCount": 1
+          },
+          {
+            "ttsService": "deepinfra",
+            "ttsModel": "ResembleAI/chatterbox-turbo",
+            "speaker": "standard",
+            "processingTime": 129516,
+            "audioFileName": "speech-deepinfra-ResembleAI-chatterbox-turbo-resume-04456231773427875c6ae870fb51763f1ee6998007b7e9fb-attempt-1.wav",
+            "audioFileSize": 4372878,
+            "chunkCount": 1
+          },
+          {
+            "ttsService": "replicate",
+            "ttsModel": "jaaari/kokoro-82m",
+            "speaker": "af_bella",
+            "processingTime": 9643,
+            "audioFileName": "speech-replicate-jaaari-kokoro-82m-resume-ea0f40a7394d71ab4d9239bf6324a9eb0c673da82a6ba1f3-attempt-1.wav",
+            "audioFileSize": 4020878,
+            "chunkCount": 1
+          },
+          {
+            "ttsService": "inworld",
+            "ttsModel": "realtime-tts-2-flash",
+            "speaker": "voice_inworld_standard_en",
+            "processingTime": 11500,
+            "audioFileName": "speech-inworld-realtime-tts-2-flash-resume-f4e9db69f6a12fef4a9e348e25f4cb399c359784c3b22308-attempt-1.wav",
+            "audioFileSize": 3432270,
+            "chunkCount": 1
+          },
+          {
+            "ttsService": "deepinfra",
+            "ttsModel": "XiaomiMiMo/MiMo-V2.5-tts",
+            "speaker": "mimo_default",
+            "processingTime": 39458,
+            "audioFileName": "speech-deepinfra-XiaomiMiMo-MiMo-V2.5-tts-resume-7ea13e600f6c865e59e4e9cf5f500aad1540bcee52f1af54-attempt-2.wav",
+            "audioFileSize": 5539918,
+            "chunkCount": 2
+          },
+          {
+            "ttsService": "deepinfra",
+            "ttsModel": "XiaomiMiMo/MiMo-V2.5-tts-voicedesign",
+            "speaker": "A warm, clear, expressive English narrator with natural pacing.",
+            "processingTime": 45277,
+            "audioFileName": "speech-deepinfra-XiaomiMiMo-MiMo-V2.5-tts-voicedesign-resume-3af14b1c940eb26ff9080a69dbccef3264aadd15194346f9-attempt-2.wav",
+            "audioFileSize": 3660878,
+            "chunkCount": 2
+          },
+          {
+            "ttsService": "deepinfra",
+            "ttsModel": "Qwen/Qwen3-TTS",
+            "speaker": "Vivian",
+            "processingTime": 67063,
+            "audioFileName": "speech-deepinfra-Qwen-Qwen3-TTS-resume-91c51cccdbc29f6ed0a890191451e86ab15f5ef03b59af9e-attempt-2.wav",
+            "audioFileSize": 3443278,
+            "chunkCount": 1
+          },
+          {
+            "ttsService": "deepinfra",
+            "ttsModel": "Qwen/Qwen3-TTS-VoiceDesign",
+            "speaker": "A warm, clear, expressive English narrator with natural pacing.",
+            "processingTime": 84225,
+            "audioFileName": "speech-deepinfra-Qwen-Qwen3-TTS-VoiceDesign-resume-0f8398b9ab76f90a621d8df27e06b13ea1319e70b3c6335d-attempt-2.wav",
+            "audioFileSize": 4323918,
             "chunkCount": 1
           }
         ],
@@ -462,7 +570,7 @@
             ]
           },
           "actual": {
-            "totalCost": 141.35122249999998,
+            "totalCost": 218.95852249999996,
             "steps": [
               {
                 "step": "tts",
@@ -649,6 +757,114 @@
                 "provider": "cartesia",
                 "model": "sonic-3.5-2026-05-04",
                 "cost": 6.0285874999999995,
+                "costSource": "computed_usage",
+                "inputMetric": "characters",
+                "inputValue": 1613
+              },
+              {
+                "step": "tts",
+                "provider": "fish",
+                "model": "fish-speech-1.5",
+                "cost": 8.065,
+                "costSource": "computed_usage",
+                "inputMetric": "characters",
+                "inputValue": 1613
+              },
+              {
+                "step": "tts",
+                "provider": "fish",
+                "model": "s1",
+                "cost": 8.065,
+                "costSource": "computed_usage",
+                "inputMetric": "characters",
+                "inputValue": 1613
+              },
+              {
+                "step": "tts",
+                "provider": "fish",
+                "model": "s2-pro",
+                "cost": 16.13,
+                "costSource": "computed_usage",
+                "inputMetric": "characters",
+                "inputValue": 1613
+              },
+              {
+                "step": "tts",
+                "provider": "fish",
+                "model": "voice-design-1",
+                "cost": 32.26,
+                "costSource": "computed_usage",
+                "inputMetric": "characters",
+                "inputValue": 1613
+              },
+              {
+                "step": "tts",
+                "provider": "inworld",
+                "model": "realtime-tts-2",
+                "cost": 4.0325,
+                "costSource": "computed_usage",
+                "inputMetric": "characters",
+                "inputValue": 1613
+              },
+              {
+                "step": "tts",
+                "provider": "deepinfra",
+                "model": "ResembleAI/chatterbox-turbo",
+                "cost": 0.1613,
+                "costSource": "computed_usage",
+                "inputMetric": "characters",
+                "inputValue": 1613
+              },
+              {
+                "step": "tts",
+                "provider": "replicate",
+                "model": "jaaari/kokoro-82m",
+                "cost": 0.022,
+                "costSource": "computed_usage",
+                "inputMetric": "characters",
+                "inputValue": 1613
+              },
+              {
+                "step": "tts",
+                "provider": "inworld",
+                "model": "realtime-tts-2-flash",
+                "cost": 2.4195,
+                "costSource": "computed_usage",
+                "inputMetric": "characters",
+                "inputValue": 1613
+              },
+              {
+                "step": "tts",
+                "provider": "deepinfra",
+                "model": "XiaomiMiMo/MiMo-V2.5-tts",
+                "cost": 0,
+                "costSource": "computed_usage",
+                "inputMetric": "characters",
+                "inputValue": 1613
+              },
+              {
+                "step": "tts",
+                "provider": "deepinfra",
+                "model": "XiaomiMiMo/MiMo-V2.5-tts-voicedesign",
+                "cost": 0,
+                "costSource": "computed_usage",
+                "inputMetric": "characters",
+                "inputValue": 1613
+              },
+              {
+                "step": "tts",
+                "provider": "deepinfra",
+                "model": "Qwen/Qwen3-TTS",
+                "cost": 3.226,
+                "costSource": "computed_usage",
+                "inputMetric": "characters",
+                "inputValue": 1613
+              },
+              {
+                "step": "tts",
+                "provider": "deepinfra",
+                "model": "Qwen/Qwen3-TTS-VoiceDesign",
+                "cost": 3.226,
                 "costSource": "computed_usage",
                 "inputMetric": "characters",
                 "inputValue": 1613
@@ -858,7 +1074,7 @@
             ]
           },
           "actual": {
-            "totalProcessingTimeMs": 1121699,
+            "totalProcessingTimeMs": 1655560,
             "steps": [
               {
                 "step": "tts",
@@ -1132,6 +1348,162 @@
                 "throughputValue": 122.783,
                 "throughputUnit": "charactersPerSecond",
                 "timingScope": "wall"
+              },
+              {
+                "step": "tts",
+                "provider": "fish",
+                "model": "fish-speech-1.5",
+                "processingTimeMs": 20408,
+                "inputMetric": "characters",
+                "inputValue": 1613,
+                "rateBasis": "1KCharacters",
+                "msPerUnit": 12652.201,
+                "throughputValue": 79.038,
+                "throughputUnit": "charactersPerSecond",
+                "timingScope": "wall"
+              },
+              {
+                "step": "tts",
+                "provider": "fish",
+                "model": "s1",
+                "processingTimeMs": 32434,
+                "inputMetric": "characters",
+                "inputValue": 1613,
+                "rateBasis": "1KCharacters",
+                "msPerUnit": 20107.874,
+                "throughputValue": 49.732,
+                "throughputUnit": "charactersPerSecond",
+                "timingScope": "wall"
+              },
+              {
+                "step": "tts",
+                "provider": "fish",
+                "model": "s2-pro",
+                "processingTimeMs": 26282,
+                "inputMetric": "characters",
+                "inputValue": 1613,
+                "rateBasis": "1KCharacters",
+                "msPerUnit": 16293.862,
+                "throughputValue": 61.373,
+                "throughputUnit": "charactersPerSecond",
+                "timingScope": "wall"
+              },
+              {
+                "step": "tts",
+                "provider": "fish",
+                "model": "voice-design-1",
+                "processingTimeMs": 39454,
+                "inputMetric": "characters",
+                "inputValue": 1613,
+                "rateBasis": "1KCharacters",
+                "msPerUnit": 24460.012,
+                "throughputValue": 40.883,
+                "throughputUnit": "charactersPerSecond",
+                "timingScope": "wall"
+              },
+              {
+                "step": "tts",
+                "provider": "inworld",
+                "model": "realtime-tts-2",
+                "processingTimeMs": 28601,
+                "inputMetric": "characters",
+                "inputValue": 1613,
+                "rateBasis": "1KCharacters",
+                "msPerUnit": 17731.556,
+                "throughputValue": 56.397,
+                "throughputUnit": "charactersPerSecond",
+                "timingScope": "wall"
+              },
+              {
+                "step": "tts",
+                "provider": "deepinfra",
+                "model": "ResembleAI/chatterbox-turbo",
+                "processingTimeMs": 129516,
+                "inputMetric": "characters",
+                "inputValue": 1613,
+                "rateBasis": "1KCharacters",
+                "msPerUnit": 80295.102,
+                "throughputValue": 12.454,
+                "throughputUnit": "charactersPerSecond",
+                "timingScope": "wall"
+              },
+              {
+                "step": "tts",
+                "provider": "replicate",
+                "model": "jaaari/kokoro-82m",
+                "processingTimeMs": 9643,
+                "inputMetric": "characters",
+                "inputValue": 1613,
+                "rateBasis": "1KCharacters",
+                "msPerUnit": 5978.301,
+                "throughputValue": 167.272,
+                "throughputUnit": "charactersPerSecond",
+                "timingScope": "wall"
+              },
+              {
+                "step": "tts",
+                "provider": "inworld",
+                "model": "realtime-tts-2-flash",
+                "processingTimeMs": 11500,
+                "inputMetric": "characters",
+                "inputValue": 1613,
+                "rateBasis": "1KCharacters",
+                "msPerUnit": 7129.572,
+                "throughputValue": 140.261,
+                "throughputUnit": "charactersPerSecond",
+                "timingScope": "wall"
+              },
+              {
+                "step": "tts",
+                "provider": "deepinfra",
+                "model": "XiaomiMiMo/MiMo-V2.5-tts",
+                "processingTimeMs": 39458,
+                "inputMetric": "characters",
+                "inputValue": 1613,
+                "rateBasis": "1KCharacters",
+                "msPerUnit": 24462.492,
+                "throughputValue": 40.879,
+                "throughputUnit": "charactersPerSecond",
+                "timingScope": "wall"
+              },
+              {
+                "step": "tts",
+                "provider": "deepinfra",
+                "model": "XiaomiMiMo/MiMo-V2.5-tts-voicedesign",
+                "processingTimeMs": 45277,
+                "inputMetric": "characters",
+                "inputValue": 1613,
+                "rateBasis": "1KCharacters",
+                "msPerUnit": 28070.056,
+                "throughputValue": 35.625,
+                "throughputUnit": "charactersPerSecond",
+                "timingScope": "wall"
+              },
+              {
+                "step": "tts",
+                "provider": "deepinfra",
+                "model": "Qwen/Qwen3-TTS",
+                "processingTimeMs": 67063,
+                "inputMetric": "characters",
+                "inputValue": 1613,
+                "rateBasis": "1KCharacters",
+                "msPerUnit": 41576.565,
+                "throughputValue": 24.052,
+                "throughputUnit": "charactersPerSecond",
+                "timingScope": "wall"
+              },
+              {
+                "step": "tts",
+                "provider": "deepinfra",
+                "model": "Qwen/Qwen3-TTS-VoiceDesign",
+                "processingTimeMs": 84225,
+                "inputMetric": "characters",
+                "inputValue": 1613,
+                "rateBasis": "1KCharacters",
+                "msPerUnit": 52216.367,
+                "throughputValue": 19.151,
+                "throughputUnit": "charactersPerSecond",
+                "timingScope": "wall"
               }
             ]
           }
@@ -1177,15 +1549,6 @@
         {
           "service": "grok",
           "model": "grok-tts",
-          "artifactDir": ".",
-          "status": "succeeded",
-          "attempts": 1,
-          "options": {},
-          "metadata": {}
-        },
-        {
-          "service": "mistral",
-          "model": "voxtral-mini-tts-2603",
           "artifactDir": ".",
           "status": "succeeded",
           "attempts": 1,
@@ -1274,6 +1637,15 @@
           "metadata": {}
         },
         {
+          "service": "mistral",
+          "model": "voxtral-mini-tts-2603",
+          "artifactDir": ".",
+          "status": "succeeded",
+          "attempts": 1,
+          "options": {},
+          "metadata": {}
+        },
+        {
           "service": "elevenlabs",
           "model": "eleven_multilingual_v2",
           "artifactDir": ".",
@@ -1321,6 +1693,114 @@
         {
           "service": "cartesia",
           "model": "sonic-3.5-2026-05-04",
+          "artifactDir": ".",
+          "status": "succeeded",
+          "attempts": 1,
+          "options": {},
+          "metadata": {}
+        },
+        {
+          "service": "fish",
+          "model": "fish-speech-1.5",
+          "artifactDir": ".",
+          "status": "succeeded",
+          "attempts": 1,
+          "options": {},
+          "metadata": {}
+        },
+        {
+          "service": "fish",
+          "model": "s1",
+          "artifactDir": ".",
+          "status": "succeeded",
+          "attempts": 1,
+          "options": {},
+          "metadata": {}
+        },
+        {
+          "service": "fish",
+          "model": "s2-pro",
+          "artifactDir": ".",
+          "status": "succeeded",
+          "attempts": 1,
+          "options": {},
+          "metadata": {}
+        },
+        {
+          "service": "fish",
+          "model": "voice-design-1",
+          "artifactDir": ".",
+          "status": "succeeded",
+          "attempts": 1,
+          "options": {},
+          "metadata": {}
+        },
+        {
+          "service": "inworld",
+          "model": "realtime-tts-2",
+          "artifactDir": ".",
+          "status": "succeeded",
+          "attempts": 1,
+          "options": {},
+          "metadata": {}
+        },
+        {
+          "service": "deepinfra",
+          "model": "ResembleAI/chatterbox-turbo",
+          "artifactDir": ".",
+          "status": "succeeded",
+          "attempts": 1,
+          "options": {},
+          "metadata": {}
+        },
+        {
+          "service": "replicate",
+          "model": "jaaari/kokoro-82m",
+          "artifactDir": ".",
+          "status": "succeeded",
+          "attempts": 1,
+          "options": {},
+          "metadata": {}
+        },
+        {
+          "service": "inworld",
+          "model": "realtime-tts-2-flash",
+          "artifactDir": ".",
+          "status": "succeeded",
+          "attempts": 1,
+          "options": {},
+          "metadata": {}
+        },
+        {
+          "service": "deepinfra",
+          "model": "XiaomiMiMo/MiMo-V2.5-tts",
+          "artifactDir": ".",
+          "status": "succeeded",
+          "attempts": 1,
+          "options": {},
+          "metadata": {}
+        },
+        {
+          "service": "deepinfra",
+          "model": "XiaomiMiMo/MiMo-V2.5-tts-voicedesign",
+          "artifactDir": ".",
+          "status": "succeeded",
+          "attempts": 1,
+          "options": {},
+          "metadata": {}
+        },
+        {
+          "service": "deepinfra",
+          "model": "Qwen/Qwen3-TTS",
+          "artifactDir": ".",
+          "status": "succeeded",
+          "attempts": 1,
+          "options": {},
+          "metadata": {}
+        },
+        {
+          "service": "deepinfra",
+          "model": "Qwen/Qwen3-TTS-VoiceDesign",
           "artifactDir": ".",
           "status": "succeeded",
           "attempts": 1,

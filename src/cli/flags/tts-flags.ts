@@ -35,6 +35,7 @@ export const ttsFlags = {
 } as const satisfies CliFlagsDefinition
 
 export const genericTtsOptionFlags = {
+  'tts-allow-ambiguous-redispatch': boolFlag('Explicitly authorize repurchasing a provider-admitted TTS slot that has no recoverable audio'),
   'tts-voice': strListFlag('Generic TTS voice selector. Use value with one selected provider, or provider=value with multiple providers.'),
   'tts-speed': strListFlag('Generic TTS speed. Use value with one selected provider, or provider=value with multiple providers.'),
   'tts-language': strListFlag('Generic TTS language. Use value with one selected provider, or provider=value with multiple providers.'),

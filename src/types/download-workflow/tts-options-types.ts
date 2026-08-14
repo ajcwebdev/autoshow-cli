@@ -1,4 +1,5 @@
 export type TtsRuntimeOptions = {
+  ttsAllowAmbiguousRedispatch: boolean
   ttsSpeaker: string
   kittenTtsModels: string[] | undefined
   kittenTtsModel: string | undefined

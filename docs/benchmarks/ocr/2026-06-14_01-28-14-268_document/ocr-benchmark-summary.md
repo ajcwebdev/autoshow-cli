@@ -3,7 +3,7 @@
 ## Summary
 
 - Run directory: `/Users/ajc/c/autoshow-cli/docs/benchmarks/ocr/2026-06-14_01-28-14-268_document`
-- Providers with page result files: 6
+- Providers with page result files: 8
 - Pages: 1
 - Paid provider reruns: not run by this skill artifact; existing provider outputs only.
 - Recommended target: selective adjudication using page-level hybrid selection plus flagged-page review.
@@ -12,7 +12,7 @@
 
 | Selected Provider | Pages |
 | --- | ---: |
-| `gemini/gemini-3.5-flash` | 1 |
+| `deepinfra/google/gemma-3-27b-it` | 1 |
 
 ## Outlier Signals
 
@@ -21,18 +21,18 @@
 | blankOutputPages | 0 |
 | repeatedTextPages | 0 |
 | majorLengthDriftPages | 0 |
-| highDisagreementPages | 0 |
+| highDisagreementPages | 1 |
 | werCerDivergencePages | 1 |
-| lowConfidencePages | 0 |
+| lowConfidencePages | 1 |
 
 ## Selective Adjudication
 
 - Candidate pages: 1
 - Low-confidence threshold: 0.72
-- High-disagreement threshold: 0.18
+- High-disagreement threshold: 0.304962
 
 ## Variant Distances
 
 | Reference | Candidate | WER | CER | Word Edits |
 | --- | --- | ---: | ---: | ---: |
-| `status-quo-consensus` | `page-level-hybrid` | 3.67% | 0.34% | 8 |
+| `status-quo-consensus` | `page-level-hybrid` | 5.05% | 0.59% | 11 |

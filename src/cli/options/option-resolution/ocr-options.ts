@@ -21,6 +21,7 @@ const OCR_MODEL_KEYS = [
   'kimiOcrModels', 'kimiOcrModel', 'openaiOcrModels', 'openaiOcrModel',
   'grokOcrModels', 'grokOcrModel', 'anthropicOcrModels', 'anthropicOcrModel',
   'geminiOcrModels', 'geminiOcrModel', 'deepinfraOcrModels', 'deepinfraOcrModel',
+  'replicateOcrModels', 'replicateOcrModel', 'falOcrModels', 'falOcrModel',
 ] as const satisfies readonly OcrRuntimeOptionKey[]
 
 export const buildOcrOptions = (ctx: ResolvedFlagContext): OcrRuntimeOptions => {

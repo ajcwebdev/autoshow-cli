@@ -231,6 +231,16 @@ export const collectEstimatedExtractTargets = (
       targets.push(withPdfChunkTiming(entry, withObservedTokenUsage(buildTokenTarget('deepinfra', model || opts.deepinfraOcrModel || 'deepinfra-ocr', pageCount, ocrMode, entry.effectiveReasoningEffort, DEEPINFRA_OCR_PRICE_NOTE), entry, opts.useObservedUsage)))
       continue
     }
+
+    if (provider === 'fal') {
+      const falModel = model || opts.falOcrModel || 'fal-ai/got-ocr/v2'
+      targets.push(withPdfChunkTiming(entry, {
+        provider: 'fal',
+        model: falModel,
+        pageCount,
+        estimateType: 'exact'
+      }))
+    }
   }
 
   return targets

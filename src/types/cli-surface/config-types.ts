@@ -201,6 +201,7 @@ const ExtractOcrDefaultsSchema = v.strictObject({
   anthropicOcr: ModelArraySchema,
   geminiOcr: ModelArraySchema,
   deepinfraOcr: ModelArraySchema,
+  replicateOcr: ModelArraySchema,
   chapters: v.optional(v.boolean(), undefined),
   length: v.optional(v.pipe(v.number(), v.integer(), v.minValue(1)), undefined),
   pdfChapterMode: v.optional(v.picklist(['local', 'auto', 'llm']), undefined)

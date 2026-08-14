@@ -1,0 +1,46 @@
+{
+  "fal": {
+    "description": "fal.ai specialty OCR",
+    "type": "api",
+    "models": {
+      "fal-ai/got-ocr/v2": {
+        "description": "GOT-OCR 2.0 specialty formatted-document OCR via fal.ai",
+        "pricingSourceUrl": "https://fal.ai/models/fal-ai/got-ocr/v2/api",
+        "pricingCheckedAt": "2026-08-14",
+        "pricingCurrency": "USD",
+        "pricingTier": "fal.ai per-input-image pricing",
+        "pricingNotes": "fal.ai lists GOT-OCR 2.0 at $0.05 per input image. AutoShow renders PDFs to one PNG per page and submits one image per request, so pricing is $50 per 1,000 pages; taxes, credits, and discounts are excluded.",
+        "costPer1kPagesCents": 5000,
+        "limits": {
+          "notes": "The endpoint accepts image URLs. AutoShow renders PDF pages to PNG and sends direct PNG/JPG/WEBP images as data URIs. It submits one image per request with do_format=true to preserve specialty formatted content."
+        },
+        "estimation": {
+          "costMultiplier": 1,
+          "msPerPage": 5000
+        },
+        "reasoning": {
+          "support": "unsupported"
+        }
+      },
+      "fal-ai/florence-2-large/ocr": {
+        "description": "Florence-2 Large general OCR via fal.ai",
+        "pricingSourceUrl": "https://fal.ai/models/fal-ai/florence-2-large/ocr/api",
+        "pricingCheckedAt": "2026-08-14",
+        "pricingCurrency": "USD",
+        "pricingTier": "fal.ai per-GPU-compute-second pricing",
+        "pricingNotes": "fal.ai charges $0.00125 per GPU compute second. AutoShow estimates $7.55 per 1,000 pages from the 2026-08-14 Florence OCR benchmark: 29 pages took 175.099 observed wall seconds, or 6.038 seconds per page on average. This is a benchmark-calibrated estimate, not an invoice amount: billed GPU seconds may vary by image and runtime.",
+        "costPer1kPagesCents": 755,
+        "limits": {
+          "notes": "The endpoint accepts one image_url. AutoShow renders PDF pages to PNG and sends direct PNG/JPG/WEBP images as data URIs, one image per request."
+        },
+        "estimation": {
+          "costMultiplier": 1,
+          "msPerPage": 5000
+        },
+        "reasoning": {
+          "support": "unsupported"
+        }
+      }
+    }
+  }
+}

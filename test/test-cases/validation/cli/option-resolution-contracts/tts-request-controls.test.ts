@@ -17,6 +17,10 @@ import {
   SUPPORTED_MISTRAL_TTS_MODELS,
   SUPPORTED_OPENAI_TTS_MODELS,
   SUPPORTED_CARTESIA_TTS_MODELS,
+  SUPPORTED_DEEPINFRA_TTS_MODELS,
+  SUPPORTED_FISH_TTS_MODELS,
+  SUPPORTED_INWORLD_TTS_MODELS,
+  SUPPORTED_REPLICATE_TTS_MODELS,
   SUPPORTED_SPEECHIFY_TTS_MODELS
 } from '~/cli/commands/setup-and-utilities/models/setup-model-options'
 import { formatModelSelector } from '~/cli/commands/setup-and-utilities/models/model-validation'
@@ -27,7 +31,7 @@ const INVALID_GROQ_TTS_MODEL = 'canopylabs/orpheus-legacy'
 const INVALID_GROQ_TTS_VOICE = 'not-a-groq-voice'
 
 describe('option resolution contracts', () => {
-  test('hosted TTS exposes exactly 109 active selectors and rejects all retired IDs', () => {
+  test('hosted TTS exposes exactly 122 active selectors and rejects all retired IDs', () => {
     const hostedSelectors = [
       ...SUPPORTED_ELEVENLABS_TTS_MODELS,
       ...SUPPORTED_MINIMAX_TTS_MODELS,
@@ -39,9 +43,13 @@ describe('option resolution contracts', () => {
       ...SUPPORTED_DEEPGRAM_TTS_MODELS,
       ...SUPPORTED_SPEECHIFY_TTS_MODELS,
       ...SUPPORTED_HUME_TTS_MODELS,
-      ...SUPPORTED_CARTESIA_TTS_MODELS
+      ...SUPPORTED_CARTESIA_TTS_MODELS,
+      ...SUPPORTED_FISH_TTS_MODELS,
+      ...SUPPORTED_INWORLD_TTS_MODELS,
+      ...SUPPORTED_DEEPINFRA_TTS_MODELS,
+      ...SUPPORTED_REPLICATE_TTS_MODELS
     ]
-    expect(hostedSelectors).toHaveLength(109)
+    expect(hostedSelectors).toHaveLength(122)
     expect(hostedSelectors).toEqual(expect.arrayContaining([
       'sonic-3.5-2026-05-04',
       'gpt-4o-mini-tts-2025-12-15',
@@ -55,7 +63,11 @@ describe('option resolution contracts', () => {
       'aura-2-ama-ja',
       'canopylabs/orpheus-arabic-saudi',
       'eleven_multilingual_v2',
-      'eleven_flash_v2_5'
+      'eleven_flash_v2_5',
+      's2-pro',
+      'realtime-tts-2-flash',
+      'Qwen/Qwen3-TTS-VoiceDesign',
+      'jaaari/kokoro-82m'
     ]))
     for (const [flag, model] of [
       ['cartesia-tts', 'sonic-3'],

@@ -7,6 +7,8 @@ import {
   SUPPORTED_ANTHROPIC_OCR_MODELS,
   SUPPORTED_GEMINI_OCR_MODELS,
   SUPPORTED_DEEPINFRA_OCR_MODELS,
+  SUPPORTED_REPLICATE_OCR_MODELS,
+  SUPPORTED_FAL_OCR_MODELS,
   validateMistralOcrModel,
   validateGlmOcrModel,
   validateKimiOcrModel,
@@ -14,7 +16,9 @@ import {
   validateGrokOcrModel,
   validateAnthropicOcrModel,
   validateGeminiOcrModel,
-  validateDeepinfraOcrModel
+  validateDeepinfraOcrModel,
+  validateReplicateOcrModel,
+  validateFalOcrModel
 } from '~/cli/commands/setup-and-utilities/models/setup-model-options'
 import { buildModelDescription } from '~/cli/commands/setup-and-utilities/models/model-validation'
 import type { Step2ProviderRegistryEntry } from '~/types'
@@ -73,5 +77,15 @@ export const STEP2_OCR_PROVIDER_REGISTRY = [
     supportedModels: SUPPORTED_DEEPINFRA_OCR_MODELS,
     validateModel: validateDeepinfraOcrModel,
     description: buildModelDescription('DeepInfra OCR model', SUPPORTED_DEEPINFRA_OCR_MODELS)
+  }),
+  ocrModelProvider('replicate', 'replicateOcr', {
+    supportedModels: SUPPORTED_REPLICATE_OCR_MODELS,
+    validateModel: validateReplicateOcrModel,
+    description: buildModelDescription('Replicate OCR model', SUPPORTED_REPLICATE_OCR_MODELS)
+  }),
+  ocrModelProvider('fal', 'falOcr', {
+    supportedModels: SUPPORTED_FAL_OCR_MODELS,
+    validateModel: validateFalOcrModel,
+    description: buildModelDescription('fal.ai OCR model', SUPPORTED_FAL_OCR_MODELS)
   })
 ] as const satisfies readonly Step2ProviderRegistryEntry[]

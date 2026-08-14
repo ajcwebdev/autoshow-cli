@@ -134,12 +134,12 @@ export type ZipXmlFormat = 'docx' | 'pptx' | 'xlsx' | 'odf'
 export type OcrFn = (imagePath: string) => Promise<{ text: string, confidence?: number }>
 export type OcrFnProvider = OcrFn | { getOcrFn: () => Promise<OcrFn> }
 
-export type HostedExtractOcrEngine = 'mistral-ocr' | 'glm-ocr' | 'kimi-ocr' | 'openai-ocr' | 'grok-ocr' | 'anthropic-ocr' | 'gemini-ocr' | 'deepinfra-ocr'
+export type HostedExtractOcrEngine = 'mistral-ocr' | 'glm-ocr' | 'kimi-ocr' | 'openai-ocr' | 'grok-ocr' | 'anthropic-ocr' | 'gemini-ocr' | 'deepinfra-ocr' | 'replicate-ocr' | 'fal-ocr'
 
 export type HostedOcrRun = {
   pages: PageResult[]
   extractionMethod: HostedExtractOcrEngine
-  ocrService: 'mistral' | 'glm' | 'kimi' | 'openai' | 'grok' | 'anthropic' | 'gemini' | 'deepinfra'
+  ocrService: 'mistral' | 'glm' | 'kimi' | 'openai' | 'grok' | 'anthropic' | 'gemini' | 'deepinfra' | 'replicate' | 'fal'
   ocrModel: string
   canonicalText?: string
   totalPages?: number
@@ -160,7 +160,7 @@ export type HostedOcrRun = {
 }
 
 export type OcrTarget = {
-  service: 'tesseract' | 'mistral' | 'glm' | 'kimi' | 'openai' | 'grok' | 'anthropic' | 'gemini' | 'deepinfra'
+  service: 'tesseract' | 'mistral' | 'glm' | 'kimi' | 'openai' | 'grok' | 'anthropic' | 'gemini' | 'deepinfra' | 'replicate' | 'fal'
   model: string
 }
 

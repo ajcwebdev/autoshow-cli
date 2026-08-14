@@ -690,7 +690,10 @@ export function loadOcrManifestRecord(runDir: string): OcrManifestRecord {
   const record = loadCanonicalRunRecord(runDir, "extract", "document");
   const metadata = record.metadata;
   const step2 = metadata.step2;
-  if (!Array.isArray(step2) || step2.length === 0) {
+  const hasInlineProviderResult = record.item.providers.some((provider) =>
+    provider.status === "succeeded" && provider.result !== undefined,
+  );
+  if ((!Array.isArray(step2) || step2.length === 0) && !hasInlineProviderResult) {
     throw new Error("Canonical OCR manifest item metadata.step2 is missing or empty");
   }
   return {
@@ -743,7 +746,31 @@ export function loadOcrProviderRuns(runDir: string): { providers: OcrProviderRun
 
   const providersDir = join(runDir, "providers");
   if (!existsSync(providersDir)) {
-    throw new Error(`No providers directory found at ${providersDir}`);
+    const providers = providerStates.flatMap((state) => {
+      if (state.status !== "succeeded" || !state.result || typeof state.model !== "string") {
+        return [];
+      }
+      const metadata = state.metadata as OcrProviderMetadata;
+      const result = state.result as OcrProviderResult;
+      const pages = normalizeProviderPages(result.pages);
+      const lookupKey = makeProviderLookupKey(state.service, state.model);
+      const extractionPath = join(runDir, "extraction.txt");
+      const pageText = pages.map((page) => page.text).join("\n\n").trim();
+      return [{
+        directoryName: basename(runDir),
+        provider: state.service,
+        model: state.model,
+        providerKey: makeProviderKey(state.service, state.model),
+        resultPath: join(runDir, "manifest.json"),
+        extractionPath: existsSync(extractionPath) ? extractionPath : null,
+        pages,
+        text: pageText || String(result.text ?? "").trim(),
+        tokenEstimate: metadata.tokenEstimate ?? null,
+        processingTimeMs: timingLookup.get(lookupKey) ?? (metadata.processingTime !== undefined ? Number(metadata.processingTime) : null),
+        actualCostCents: costLookup.get(lookupKey) ?? null,
+      } satisfies OcrProviderRun];
+    });
+    return { providers, warnings };
   }
 
   const resultPaths = readdirSync(providersDir, { withFileTypes: true })

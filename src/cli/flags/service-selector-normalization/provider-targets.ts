@@ -95,8 +95,30 @@ export const deriveGenerationResumeModelFields = <const TDescriptor extends Gene
 
 export const deriveGenerationResumeProviderFlags = <const TDescriptor extends GenerationSelectionDescriptor>(
   descriptor: TDescriptor,
-  allProvidersFlag: string
-): readonly string[] => [allProvidersFlag, ...Object.values(descriptor.providerTargets)]
+  ...shortcutFlags: readonly string[]
+): readonly string[] => [...shortcutFlags, ...Object.values(descriptor.providerTargets)]
+
+export const TTS_GENERATION_SELECTION = defineGenerationSelectionDescriptor(
+  STANDALONE_TTS_PROVIDER_TARGETS,
+  {
+    kitten: { modelsKey: 'kittenTtsModels', modelKey: 'kittenTtsModel' },
+    elevenlabs: { modelsKey: 'elevenlabsTtsModels', modelKey: 'elevenlabsTtsModel' },
+    minimax: { modelsKey: 'minimaxTtsModels', modelKey: 'minimaxTtsModel' },
+    groq: { modelsKey: 'groqTtsModels', modelKey: 'groqTtsModel' },
+    grok: { modelsKey: 'grokTtsModels', modelKey: 'grokTtsModel' },
+    mistral: { modelsKey: 'mistralTtsModels', modelKey: 'mistralTtsModel' },
+    openai: { modelsKey: 'openaiTtsModels', modelKey: 'openaiTtsModel' },
+    gemini: { modelsKey: 'geminiTtsModels', modelKey: 'geminiTtsModel' },
+    deepgram: { modelsKey: 'deepgramTtsModels', modelKey: 'deepgramTtsModel' },
+    speechify: { modelsKey: 'speechifyTtsModels', modelKey: 'speechifyTtsModel' },
+    hume: { modelsKey: 'humeTtsModels', modelKey: 'humeTtsModel' },
+    cartesia: { modelsKey: 'cartesiaTtsModels', modelKey: 'cartesiaTtsModel' },
+    fish: { modelsKey: 'fishTtsModels', modelKey: 'fishTtsModel' },
+    inworld: { modelsKey: 'inworldTtsModels', modelKey: 'inworldTtsModel' },
+    deepinfra: { modelsKey: 'deepinfraTtsModels', modelKey: 'deepinfraTtsModel' },
+    replicate: { modelsKey: 'replicateTtsModels', modelKey: 'replicateTtsModel' }
+  }
+)
 
 export const IMAGE_GENERATION_SELECTION = defineGenerationSelectionDescriptor(
   STANDALONE_IMAGE_PROVIDER_TARGETS,
@@ -166,7 +188,9 @@ export const WRITE_OCR_PROVIDER_TARGETS = {
   grok: 'grok-ocr',
   anthropic: 'anthropic-ocr',
   gemini: 'gemini-ocr',
-  deepinfra: 'deepinfra-ocr'
+  deepinfra: 'deepinfra-ocr',
+  replicate: 'replicate-ocr',
+  fal: 'fal-ocr'
 } as const satisfies Record<string, string>
 
 export const WRITE_LLM_PROVIDER_TARGETS = {
@@ -183,6 +207,24 @@ export const WRITE_LLM_PROVIDER_TARGETS = {
   together: 'together',
   cerebras: 'cerebras'
 } as const satisfies Record<string, string>
+
+export const WRITE_LLM_GENERATION_SELECTION = defineGenerationSelectionDescriptor(
+  WRITE_LLM_PROVIDER_TARGETS,
+  {
+    llama: { modelsKey: 'llamaModels', modelKey: 'llamaModel' },
+    llamafile: { modelsKey: 'llamafileModels', modelKey: 'llamafileModel' },
+    openai: { modelsKey: 'openaiModels', modelKey: 'openaiModel' },
+    groq: { modelsKey: 'groqModels', modelKey: 'groqModel' },
+    gemini: { modelsKey: 'geminiModels', modelKey: 'geminiModel' },
+    anthropic: { modelsKey: 'anthropicModels', modelKey: 'anthropicModel' },
+    minimax: { modelsKey: 'minimaxModels', modelKey: 'minimaxModel' },
+    grok: { modelsKey: 'grokModels', modelKey: 'grokModel' },
+    glm: { modelsKey: 'glmModels', modelKey: 'glmModel' },
+    kimi: { modelsKey: 'kimiModels', modelKey: 'kimiModel' },
+    together: { modelsKey: 'togetherModels', modelKey: 'togetherModel' },
+    cerebras: { modelsKey: 'cerebrasModels', modelKey: 'cerebrasModel' }
+  }
+)
 
 export const BOOLEAN_PROVIDER_TARGETS = new Set<string>([
   'reverb-stt',

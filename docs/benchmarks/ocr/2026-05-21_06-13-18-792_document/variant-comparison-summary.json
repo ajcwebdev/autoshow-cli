@@ -1,7 +1,7 @@
 {
   "schemaVersion": 1,
   "runDir": "/Users/ajc/c/autoshow-cli/docs/benchmarks/ocr/2026-05-21_06-13-18-792_document",
-  "generatedAt": "2026-07-01T20:08:02.141Z",
+  "generatedAt": "2026-08-14T17:47:33.136Z",
   "pageAligned": true,
   "variants": [
     {
@@ -14,17 +14,15 @@
     {
       "variantId": "page-level-hybrid",
       "source": "deterministic selected provider pages",
-      "charCount": 12308,
-      "wordCount": 1487,
+      "charCount": 12958,
+      "wordCount": 1634,
       "pageCount": 10,
       "selectedPageSourceCounts": {
-        "anthropic/claude-opus-4-8": 4,
-        "anthropic/claude-sonnet-5": 1,
-        "gemini/gemini-3.5-flash": 3,
-        "mistral/mistral-ocr-4-0": 1,
-        "openai/gpt-5.4-mini": 1
+        "deepinfra/google/gemma-3-27b-it": 4,
+        "deepinfra/meta-llama/Llama-4-Scout-17B-16E-Instruct": 4,
+        "deepinfra/mistralai/Mistral-Small-3.2-24B-Instruct-2506": 2
       },
-      "lowConfidencePageCount": 7,
+      "lowConfidencePageCount": 3,
       "outlierPageCount": 10
     }
   ],
@@ -32,11 +30,11 @@
     {
       "referenceVariantId": "status-quo-consensus",
       "candidateVariantId": "page-level-hybrid",
-      "wer": 0.164564,
-      "cer": 0.163808,
-      "wordDistance": 287,
+      "wer": 0.068234,
+      "cer": 0.075814,
+      "wordDistance": 119,
       "wordReferenceCount": 1744,
-      "charDistance": 1977,
+      "charDistance": 915,
       "charReferenceCount": 12069
     }
   ]

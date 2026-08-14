@@ -254,7 +254,8 @@ export const updateComicPresentationManifest = async (input: {
   sourceIdentity: ComicSourceIdentity
   stage: CanonicalComicItemMetadata['stages']['presentation']
   presentation: CanonicalComicItemMetadata['presentation']
-}): Promise<PipelineManifest> => await updateManifest(input.sceneRunDir, (manifest) => {
+  publishFinal?: (() => Promise<Array<{ path: string, sha256: string }>>) | undefined
+}): Promise<PipelineManifest> => await updateManifest(input.sceneRunDir, async (manifest) => {
   if (manifest.command !== 'comic' || manifest.scope !== 'single' || manifest.items.length !== 1 || canonicalTtsJson(manifest.source) !== canonicalTtsJson(input.sourceIdentity)) throw CLIUsageError('Comic presentation can update only the exact compatible canonical scene manifest.')
   const item = manifest.items[0]
   if (!item || item.input !== input.sourceIdentity.canonicalPath) throw CLIUsageError('Canonical comic source changed during presentation rendering.')
@@ -269,7 +270,7 @@ export const updateComicPresentationManifest = async (input: {
       : required.every(stage => stage.status === 'failed' || stage.status === 'skipped') && required.some(stage => stage.status === 'failed')
         ? 'failed' as const
         : 'incomplete' as const
-  return {
+  const next = {
     ...manifest,
     items: [{
       ...item,
@@ -277,4 +278,9 @@ export const updateComicPresentationManifest = async (input: {
       metadata: { ...item.metadata, comic: { ...prior, stages, presentation: input.presentation } } as never,
     }],
   }
+  if (input.publishFinal) {
+    const published = await input.publishFinal()
+    if (canonicalTtsJson(published) !== canonicalTtsJson(input.presentation.finalOutputRefs)) throw CLIUsageError('Published comic presentation outputs do not match the canonical presentation manifest update.')
+  }
+  return next
 })

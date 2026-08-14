@@ -56,7 +56,7 @@ export const mapInworldVoice = (value: unknown): ProviderVoiceCatalogEntry => {
     origin: providerStock ? 'provider-stock' : 'imported-custom',
     ...(string(voice['description']) ? { description: string(voice['description']) } : {}),
     labels: { ...labels, ...(tags.length > 0 ? { tags: tags.join(',') } : {}) },
-    modelIds: ['realtime-tts-2'],
+    modelIds: ['realtime-tts-2', 'realtime-tts-2-flash'],
     state: 'available',
     sanitizedMetadata: { source: source ?? 'UNKNOWN' }
   }

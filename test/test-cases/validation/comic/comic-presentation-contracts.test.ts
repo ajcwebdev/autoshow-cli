@@ -20,6 +20,7 @@ import { canonicalTtsJson } from '~/cli/commands/process-steps/step-4-tts/script
 import { writeImmutableArtifactFile } from '~/cli/commands/process-steps/step-4-tts/script-to-audio/safe-artifact-store'
 
 const HASH = 'a'.repeat(64)
+const NEXT_HASH = 'b'.repeat(64)
 
 const scene = (panels: ScenePromptData['panels']): ScenePromptData => ({ schemaVersion: 4, title: 'Scene', location: 'Bridge', panels })
 const panel = (number: number, sourceSegmentIds: string[], speech: ScenePromptData['panels'][number]['speech'] = []): ScenePromptData['panels'][number] => ({
@@ -319,6 +320,42 @@ describe('comic presentation manifest migration', () => {
       expect(updatedComic.stages.presentation).toMatchObject({ requirement: 'optional', status: 'full', execution: { kind: 'local', state: 'succeeded' } })
       expect(updatedComic.presentation.selectedPresentationId).toBe(HASH)
       expect(updated?.items[0]?.status).toBe('full')
+
+      const nextPlan = await writeImmutableArtifactFile(root, 'presentation/runs/next/plan.json', '{"next":"plan"}\n')
+      const nextTimeline = await writeImmutableArtifactFile(root, 'presentation/runs/next/timeline.json', '{"next":"timeline"}\n')
+      const nextRun = await writeImmutableArtifactFile(root, 'presentation/runs/next/run.json', '{"next":"run"}\n')
+      const nextWavBytes = new Uint8Array([7, 8, 9])
+      const nextMp4Bytes = new Uint8Array([10, 11, 12])
+      const nextWav = await writeImmutableArtifactFile(root, 'presentation/runs/next/presentation.wav', nextWavBytes)
+      const nextMp4 = await writeImmutableArtifactFile(root, 'presentation/runs/next/slideshow.mp4', nextMp4Bytes)
+      const nextFinalRefs = [
+        { path: 'presentation/final/slideshow.wav', sha256: nextWav.sha256 },
+        { path: 'presentation/final/slideshow.mp4', sha256: nextMp4.sha256 },
+      ]
+      const nextArtifactRefs = [nextPlan, nextTimeline, nextRun, nextWav, nextMp4].map(ref => ({ path: ref.relativePath, sha256: ref.sha256 })).concat(nextFinalRefs)
+      let publishSawValidPriorManifest = false
+      await updateComicPresentationManifest({
+        sceneRunDir: root,
+        sourceIdentity: structured.sourceIdentity,
+        stage: { requirement: 'optional', status: 'full', execution: { kind: 'local', state: 'succeeded' }, targetKeys: [], artifactRefs: nextArtifactRefs },
+        presentation: {
+          selectedPresentationId: NEXT_HASH,
+          planRef: { path: nextPlan.relativePath, sha256: nextPlan.sha256 },
+          resolvedTimelineRef: { path: nextTimeline.relativePath, sha256: nextTimeline.sha256 },
+          runRef: { path: nextRun.relativePath, sha256: nextRun.sha256 },
+          finalOutputRefs: nextFinalRefs,
+        },
+        publishFinal: async () => {
+          publishSawValidPriorManifest = (await readManifest(root))?.items[0]?.status === 'full'
+          await Bun.write(join(root, nextFinalRefs[0]!.path), nextWavBytes)
+          await Bun.write(join(root, nextFinalRefs[1]!.path), nextMp4Bytes)
+          return nextFinalRefs
+        },
+      })
+      expect(publishSawValidPriorManifest).toBe(true)
+      const replaced = await readManifest(root)
+      const replacedComic = replaced?.items[0]?.metadata['comic'] as unknown as CanonicalComicItemMetadata
+      expect(replacedComic.presentation.selectedPresentationId).toBe(NEXT_HASH)
     } finally {
       await rm(root, { recursive: true, force: true })
     }

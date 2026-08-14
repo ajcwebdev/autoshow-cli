@@ -186,6 +186,7 @@ export const handleProcessTarget = async (
     optionFlags = normalized.flags
     explicitFlags = normalized.explicitFlags
     optionOccurrences = normalized.flagOccurrences
+    selectorPlan = undefined
   }
 
   if (command === 'write') {

@@ -1,0 +1,4 @@
+interface:
+  display_name: "CLI Agent Readiness"
+  short_description: "Review and improve CLIs for agent use"
+  default_prompt: "Use $cli-agent-readiness to review this CLI for agent-facing failure modes and produce prioritized fixes with test assertions."

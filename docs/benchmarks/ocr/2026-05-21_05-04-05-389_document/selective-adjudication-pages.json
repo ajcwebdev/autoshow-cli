@@ -1,23 +1,15 @@
 {
   "schemaVersion": 1,
-  "pageCount": 2,
+  "pageCount": 1,
   "pages": [
-    {
-      "pageNumber": 0,
-      "reason": [
-        "low-confidence-selected-provider",
-        "page-outlier"
-      ],
-      "replacedProviderKey": "mistral/mistral-ocr-4-0",
-      "replacedConfidence": 0.45
-    },
     {
       "pageNumber": 1,
       "reason": [
         "low-confidence-selected-provider",
-        "page-outlier"
+        "page-outlier",
+        "high-disagreement"
       ],
-      "replacedProviderKey": "anthropic/claude-haiku-4-5",
+      "replacedProviderKey": "fal/fal-ai/got-ocr/v2",
       "replacedConfidence": 0
     }
   ]

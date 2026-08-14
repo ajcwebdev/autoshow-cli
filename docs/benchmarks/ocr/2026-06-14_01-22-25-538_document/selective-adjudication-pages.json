@@ -9,8 +9,8 @@
         "page-outlier",
         "high-disagreement"
       ],
-      "replacedProviderKey": "mistral/mistral-ocr-4-0",
-      "replacedConfidence": 0.574134
+      "replacedProviderKey": "replicate/datalab-to/marker",
+      "replacedConfidence": 0.139675
     }
   ]
 }

@@ -353,6 +353,94 @@ const localTtsResumeConfig = (
 })
 
 describe('canonical TTS resume', () => {
+  test('prices and appends a canonical model to an unambiguous legacy inline run', async () => {
+    await withTempDir('autoshow-tts-resume-legacy-inline-', async (dir) => {
+      const input = 'Legacy inline narration remains exact for additive resume.'
+      const legacyMetadata: Step4Metadata = {
+        ttsService: 'openai',
+        ttsModel: 'tts-1',
+        speaker: 'alloy',
+        processingTime: 1,
+        audioFileName: 'speech-openai-tts-1.wav',
+        audioFileSize: 1,
+        chunkCount: 1
+      }
+      const legacyProvider: PipelineProviderState = {
+        service: 'openai',
+        model: 'tts-1',
+        artifactDir: '.',
+        status: 'succeeded',
+        attempts: 1,
+        options: {},
+        metadata: {}
+      }
+      await Bun.write(join(dir, legacyMetadata.audioFileName), new Uint8Array([0]))
+      await Bun.write(join(dir, PIPELINE_MANIFEST_FILE), `${JSON.stringify({
+        command: 'tts',
+        scope: 'single',
+        createdAt: '2026-06-15T18:24:36.993Z',
+        updatedAt: '2026-06-15T18:24:36.993Z',
+        items: [{
+          input,
+          status: 'full',
+          metadata: { tts: [legacyMetadata] },
+          providers: [legacyProvider]
+        }]
+      }, null, 2)}\n`)
+      const beforeManifest = await Bun.file(join(dir, PIPELINE_MANIFEST_FILE)).text()
+      const beforeFiles = await readdir(dir)
+
+      const estimate = await priceGenerationTarget(
+        resumeTarget(dir),
+        ttsResumeConfig,
+        { deepinfraTtsModels: ['ResembleAI/chatterbox-multilingual'] } as TtsOptions,
+        new Set(['deepinfra-tts'])
+      )
+
+      expect(estimate.steps.map((step) => [step.provider, step.model])).toEqual([
+        ['deepinfra', 'ResembleAI/chatterbox-multilingual']
+      ])
+      expect(await Bun.file(join(dir, PIPELINE_MANIFEST_FILE)).text()).toBe(beforeManifest)
+      expect(await readdir(dir)).toEqual(beforeFiles)
+
+      const target = ttsTarget()
+      const runnable = successfulTarget(target)
+      const runtimeOptions = { openaiTtsModels: [target.model] } as TtsOptions
+      const priorKey = process.env['OPENAI_API_KEY']
+      process.env['OPENAI_API_KEY'] = 'configured-for-local-legacy-resume-fixture'
+      try {
+        await resumeGenerationTarget(
+          resumeTarget(dir),
+          {
+            ...ttsResumeConfig,
+            collectTargets: () => [runnable],
+            resolveStoredTargets: async () => [runnable]
+          },
+          runtimeOptions,
+          new Set(['openai-tts'])
+        )
+      } finally {
+        if (priorKey === undefined) delete process.env['OPENAI_API_KEY']
+        else process.env['OPENAI_API_KEY'] = priorKey
+      }
+
+      const updated = await readManifest(dir)
+      expect(updated?.items[0]?.providers).toHaveLength(2)
+      expect(updated?.items[0]?.providers[0]?.legacyRenderIdentity).toBeDefined()
+      expect(updated?.items[0]?.providers[1]?.targetKey).toBe(target.targetKey)
+
+      const mixedStateEstimate = await priceGenerationTarget(
+        resumeTarget(dir),
+        ttsResumeConfig,
+        { deepinfraTtsModels: ['ResembleAI/chatterbox-multilingual'] } as TtsOptions,
+        new Set(['deepinfra-tts'])
+      )
+      expect(mixedStateEstimate.steps.map((step) => [step.provider, step.model])).toEqual([
+        ['deepinfra', 'ResembleAI/chatterbox-multilingual']
+      ])
+    })
+  })
+
   test('reactivates one retained blocked branch and freezes its render only after fresh readiness', async () => {
     await withTempDir('autoshow-tts-resume-readiness-ready-', async (dir) => {
       const text = 'Retry this exact readiness-blocked branch.'
@@ -711,6 +799,36 @@ describe('canonical TTS resume', () => {
         new Set(['openai-tts'])
       )).rejects.toThrow('will not silently rebind or repurchase')
       expect(providerCalls).toBe(0)
+      expect(await Bun.file(join(dir, PIPELINE_MANIFEST_FILE)).text()).toBe(before)
+    })
+  })
+
+  test('price permits an immutable replacement branch for a failed implicit adapter default', async () => {
+    await withTempDir('autoshow-tts-resume-price-default-migration-', async (dir) => {
+      const text = 'Migrate only this failed implicit adapter default.'
+      const inputPath = join(dir, 'source.txt')
+      await Bun.write(inputPath, text)
+      const sourceIdentity = await createFileTtsSourceIdentity(inputPath, text)
+      const dialoguePlan = createSingleTurnTtsDialoguePlan(sourceIdentity, text)
+      const retainedTarget = { ...ttsTarget(), voice: 'old-provider-default' }
+      const failed = await materializeFailedProviderState({ rootDir: dir, target: retainedTarget, text, sourceIdentity, dialoguePlan })
+      await writeManifest(dir, createManifest('tts', 'single', [createManifestItem(dir, {
+        input: canonicalFileInput(sourceIdentity),
+        status: 'failed',
+        metadata: { tts: [] },
+        providers: [failed]
+      })]))
+      const before = await Bun.file(join(dir, PIPELINE_MANIFEST_FILE)).text()
+      const replacement = { ...successfulTarget({ ...ttsTarget(), voice: 'new-provider-default' }), allowFailedImplicitDefaultReplan: true }
+
+      const estimate = await priceGenerationTarget(
+        resumeTarget(dir),
+        { ...ttsResumeConfig, collectTargets: () => [replacement] },
+        {} as TtsOptions,
+        new Set(['openai-tts'])
+      )
+
+      expect(estimate.totalEstimatedCost).toBeGreaterThan(0)
       expect(await Bun.file(join(dir, PIPELINE_MANIFEST_FILE)).text()).toBe(before)
     })
   })

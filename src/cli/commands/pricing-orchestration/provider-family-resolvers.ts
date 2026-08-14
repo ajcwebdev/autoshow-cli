@@ -8,6 +8,8 @@ import { computeTokenCost } from '~/utils/pricing/token-pricing'
 const PAGE_PRICED_EXTRACT_PROVIDERS = new Set([
   'defuddle',
   'mistral',
+  'replicate',
+  'fal',
   'firecrawl',
   'glm-reader',
   'spider',

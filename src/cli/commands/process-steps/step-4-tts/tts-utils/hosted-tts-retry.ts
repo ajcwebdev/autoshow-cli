@@ -57,7 +57,13 @@ export const withHostedTtsRetry = async <T>(
   operation: (signal: AbortSignal | undefined, attempt: HostedTtsRetryAttemptContext) => Promise<T>
 ): Promise<T> => {
   options.abortSignal?.throwIfAborted()
-  const classifier = options.classifier ?? classifyHostedTtsRetry
+  const baseClassifier = options.classifier ?? classifyHostedTtsRetry
+  const classifier: RetryClassifier = (error) => {
+    const ambiguous = error instanceof Error && (error as Error & { ttsAdmissionAmbiguous?: boolean }).ttsAdmissionAmbiguous === true
+    return ambiguous && options.allowAmbiguousRedispatch === true
+      ? classifyFetchRetry(error, 'runtime_http_create_retriable')
+      : baseClassifier(error)
+  }
   let attempt = 0
   let retryReasonCode: string | undefined
   return await withRetry(

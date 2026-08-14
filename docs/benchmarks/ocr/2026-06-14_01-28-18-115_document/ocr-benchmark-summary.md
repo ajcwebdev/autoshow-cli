@@ -3,7 +3,7 @@
 ## Summary
 
 - Run directory: `/Users/ajc/c/autoshow-cli/docs/benchmarks/ocr/2026-06-14_01-28-18-115_document`
-- Providers with page result files: 6
+- Providers with page result files: 8
 - Pages: 1
 - Paid provider reruns: not run by this skill artifact; existing provider outputs only.
 - Recommended target: selective adjudication using page-level hybrid selection plus flagged-page review.
@@ -12,7 +12,7 @@
 
 | Selected Provider | Pages |
 | --- | ---: |
-| `anthropic/claude-sonnet-5` | 1 |
+| `deepinfra/google/gemma-3-27b-it` | 1 |
 
 ## Outlier Signals
 
@@ -35,4 +35,4 @@
 
 | Reference | Candidate | WER | CER | Word Edits |
 | --- | --- | ---: | ---: | ---: |
-| `status-quo-consensus` | `page-level-hybrid` | 0.47% | 0.09% | 1 |
+| `status-quo-consensus` | `page-level-hybrid` | 2.35% | 0.73% | 5 |

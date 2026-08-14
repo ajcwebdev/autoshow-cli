@@ -89,6 +89,7 @@ export const ttsRegistry: PriceSelectionEntry[] = [
   ]),
   ...exact('test/test-cases/e2e/service/step-4-tts-e2e/tts-services/inworld-realtime-tts-2.test.ts', [
     command('tts-inworld-realtime-tts-2', 'tts-inworld-realtime-tts-2', ['src/cli/create-cli.ts', 'tts', 'input/examples/tts/1-tts.md', '--provider', 'inworld=realtime-tts-2', '--price']),
+    command('tts-inworld-realtime-tts-2-flash', 'tts-inworld-realtime-tts-2-flash', ['src/cli/create-cli.ts', 'tts', 'input/examples/tts/1-tts.md', '--provider', 'inworld=realtime-tts-2-flash', '--price']),
   ]),
   ...exact('test/test-cases/e2e/service/step-4-tts-e2e/tts-services/deepinfra-chatterbox.test.ts', [
     command('tts-deepinfra-chatterbox-multilingual', 'tts-deepinfra-chatterbox-multilingual', ['src/cli/create-cli.ts', 'tts', 'input/examples/tts/1-tts.md', '--provider', 'deepinfra=ResembleAI/chatterbox-multilingual', '--price']),

@@ -3,8 +3,8 @@
 ## Summary
 
 - Run directory: `/Users/ajc/c/autoshow-cli/docs/benchmarks/ocr/2026-05-21_05-47-00-856_document`
-- Providers: 7
-- Pages: 5
+- Providers with page result files: 8
+- Pages: 4
 - Paid provider reruns: not run by this skill artifact; existing provider outputs only.
 - Recommended target: selective adjudication using page-level hybrid selection plus flagged-page review.
 
@@ -12,30 +12,28 @@
 
 | Selected Provider | Pages |
 | --- | ---: |
-| `mistral/mistral-ocr-4-0` | 2 |
-| `anthropic/claude-haiku-4-5` | 1 |
-| `anthropic/claude-sonnet-5` | 1 |
-| `grok/grok-4.20-0309-non-reasoning` | 1 |
+| `deepinfra/meta-llama/Llama-4-Scout-17B-16E-Instruct` | 3 |
+| `deepinfra/mistralai/Mistral-Small-3.2-24B-Instruct-2506` | 1 |
 
 ## Outlier Signals
 
 | Signal | Page Count |
 | --- | ---: |
-| blankOutputPages | 5 |
+| blankOutputPages | 3 |
 | repeatedTextPages | 0 |
-| majorLengthDriftPages | 5 |
-| highDisagreementPages | 0 |
-| werCerDivergencePages | 3 |
-| lowConfidencePages | 2 |
+| majorLengthDriftPages | 4 |
+| highDisagreementPages | 1 |
+| werCerDivergencePages | 0 |
+| lowConfidencePages | 1 |
 
 ## Selective Adjudication
 
-- Candidate pages: 5
+- Candidate pages: 4
 - Low-confidence threshold: 0.72
-- High-disagreement threshold: 1.606098
+- High-disagreement threshold: 0.629265
 
 ## Variant Distances
 
 | Reference | Candidate | WER | CER | Word Edits |
 | --- | --- | ---: | ---: | ---: |
-| `status-quo-consensus` | `page-level-hybrid` | 59.63% | 48.73% | 796 |
+| `status-quo-consensus` | `page-level-hybrid` | 0.90% | 0.83% | 12 |

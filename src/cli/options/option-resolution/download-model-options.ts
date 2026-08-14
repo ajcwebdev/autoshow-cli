@@ -34,6 +34,8 @@ import {
   validateAnthropicOcrModel,
   validateGeminiOcrModel,
   validateDeepinfraOcrModel,
+  validateReplicateOcrModel,
+  validateFalOcrModel,
   validateMistralOcrModel,
   validateOpenAIOcrModel,
   validateGrokOcrModel,
@@ -133,6 +135,8 @@ export const readRuntimeModelOptions = (
   const anthropicOcrModels = readValidatedMany('anthropic-ocr', validateAnthropicOcrModel)
   const geminiOcrModels = readValidatedMany('gemini-ocr', validateGeminiOcrModel)
   const deepinfraOcrModels = readValidatedMany('deepinfra-ocr', validateDeepinfraOcrModel)
+  const replicateOcrModels = readValidatedMany('replicate-ocr', validateReplicateOcrModel)
+  const falOcrModels = readValidatedMany('fal-ocr', validateFalOcrModel)
   const llamaModels = readValidatedMany('llama', validateLlamaModel)
   const llamafileModels = readValidatedMany('llamafile', validateLlamafileModel)
   const openaiModels = readValidatedMany('openai', validateOpenAIModel)
@@ -169,6 +173,8 @@ export const readRuntimeModelOptions = (
   const anthropicOcrModel = first(anthropicOcrModels)
   const geminiOcrModel = first(geminiOcrModels)
   const deepinfraOcrModel = first(deepinfraOcrModels)
+  const replicateOcrModel = first(replicateOcrModels)
+  const falOcrModel = first(falOcrModels)
   const llamaModel = first(llamaModels)
   const llamafileModel = first(llamafileModels)
   const openaiModel = first(openaiModels)
@@ -291,6 +297,10 @@ export const readRuntimeModelOptions = (
     geminiOcrModel,
     deepinfraOcrModels,
     deepinfraOcrModel,
+    replicateOcrModels,
+    replicateOcrModel,
+    falOcrModels,
+    falOcrModel,
     llamaModels,
     llamaModel,
     llamafileModels,

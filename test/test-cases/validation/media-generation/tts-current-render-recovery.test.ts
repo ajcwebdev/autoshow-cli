@@ -7,10 +7,12 @@ import { PIPELINE_MANIFEST_FILE, readManifest, writeManifest } from '~/cli/comma
 import { appendCurrentTtsProviderState, buildCurrentTtsProviderState } from '~/cli/commands/process-steps/step-4-tts/script-to-audio/current-render-artifacts'
 import { createCurrentTtsRenderAttempt, planCurrentTtsResumePrice } from '~/cli/commands/process-steps/step-4-tts/script-to-audio/current-render-attempt'
 import { createGenericTtsDialoguePlan, createInlineTtsSourceIdentity, createSingleTurnTtsDialoguePlan } from '~/cli/commands/process-steps/step-4-tts/script-to-audio/generic-dialogue-plan'
+import { withHostedTtsRetry } from '~/cli/commands/process-steps/step-4-tts/tts-utils/hosted-tts-retry'
 import { bindTtsDialoguePlanArtifact, materializeTtsDialoguePlanArtifact } from '~/cli/commands/process-steps/step-4-tts/script-to-audio/item-dialogue-plan-artifact'
 import { canonicalTtsJson, hashCanonicalRecordWithout, hashCanonicalTtsValue, sha256Bytes } from '~/cli/commands/process-steps/step-4-tts/script-to-audio/contract-identity'
 import type { CanonicalAudioProviderProjection, PipelineProviderState, ProviderRenderPlan, ProviderRenderResult, RenderAdmissionJournalSnapshot, TtsOptions, TtsTarget } from '~/types'
 import { canonicalTargetKey } from '~/utils/canonical-target-key'
+import { ProviderError } from '~/utils/error-handler'
 import { createSyntheticWavBytes } from '../../../test-utils/media-fixtures'
 import { withTempDir } from '../../../test-utils/temp-dirs'
 
@@ -50,6 +52,61 @@ const createFixtureTarget = (
       if (!requestEvidence) await Bun.write(audioPath, bytes)
       await requestEvidence?.recordOutput({ chunkIndex: 1, path: audioPath })
       await requestEvidence?.complete({ chunkIndex: 1 })
+      return {
+        audioPath,
+        metadata: {
+          ttsService: 'openai',
+          ttsModel: model,
+          speaker: 'alloy',
+          processingTime: 1,
+          audioFileName: 'speech.wav',
+          audioFileSize: bytes.byteLength,
+          chunkCount: 1
+        }
+      }
+    }
+  }
+}
+
+const createAuthorizedRetryFixtureTarget = (attempts: number[]): TtsTarget => {
+  const operation = 'tts-synthesis' as const
+  const transport = 'hosted-api'
+  const model = 'fixture-authorized-retry-model'
+  return {
+    service: 'openai',
+    model,
+    operation,
+    transport,
+    targetKey: canonicalTargetKey(operation, 'openai', model, transport),
+    voice: 'alloy',
+    run: async (text, outputDir, options, _invocation, requestEvidence) => {
+      if (!requestEvidence) throw new Error('Missing retry fixture request evidence')
+      const audioPath = join(outputDir, 'speech.wav')
+      const bytes = createSyntheticWavBytes({ durationSeconds: 0.15, amplitude: 0.2, frequencyHz: 330 })
+      await withHostedTtsRetry({
+        operationName: 'fixture-authorized-ambiguous-retry',
+        allowAmbiguousRedispatch: options.ttsAllowAmbiguousRedispatch,
+        policy: { maxAttempts: 4, baseDelayMs: 0, maxDelayMs: 0, jitter: false, exponential: false }
+      }, async (_signal, requestAttempt) => await requestEvidence.dispatch({
+        chunkIndex: 1,
+        endpointKind: 'speech-synthesis',
+        serializerVersion: 'openai.tts.phase-0-v1',
+        serializedRequest: { body: { input: text, voice: 'alloy', response_format: 'wav' } },
+        providerText: text,
+        voiceField: 'voice',
+        voices: [{ kind: 'provider-id', value: 'alloy' }],
+        requestControls: { responseFormat: 'wav' },
+        continuation: { kind: 'none' }
+      }, requestAttempt, async ({ accepted }) => {
+        attempts.push(requestAttempt.attempt)
+        await accepted({ providerRequestId: `authorized-retry-${requestAttempt.attempt}` })
+        if (requestAttempt.attempt < 3) {
+          throw ProviderError('fixture inference failed', { status: 500, retryable: true })
+        }
+        await Bun.write(audioPath, bytes)
+      }))
+      await requestEvidence.recordOutput({ chunkIndex: 1, path: audioPath })
+      await requestEvidence.complete({ chunkIndex: 1 })
       return {
         audioPath,
         metadata: {
@@ -198,6 +255,28 @@ const latestJournalForState = async (
 }
 
 describe('TTS completed-render recovery', () => {
+  test('journals authorized ambiguous retries against one slot and completes without a new process', async () => {
+    await withTempDir('autoshow-tts-authorized-retry-', async (dir) => {
+      const text = 'Recover within this run.'
+      const sourceIdentity = createInlineTtsSourceIdentity(text)
+      const dialoguePlan = createSingleTurnTtsDialoguePlan(sourceIdentity, text, new Date(0).toISOString())
+      const attempts: number[] = []
+
+      await runTtsForTargets(text, dir, { ttsAllowAmbiguousRedispatch: true }, [createAuthorizedRetryFixtureTarget(attempts)], { sourceIdentity, dialoguePlan })
+
+      expect(attempts).toEqual([1, 2, 3])
+      const resultPath = (await readdir(dir, { recursive: true })).find((name) => name.endsWith('/provider-batch-result.json'))
+      if (!resultPath) throw new Error('Missing authorized retry batch result')
+      const result = await Bun.file(join(dir, resultPath)).json()
+      expect(result.status).toBe('succeeded')
+      expect(result.observedRequests).toHaveLength(3)
+      expect(result.retryAttempts).toEqual([
+        expect.objectContaining({ requestOrdinal: 2, retryOfRequestOrdinal: 1, reasonCode: 'retryable status 500' }),
+        expect.objectContaining({ requestOrdinal: 3, retryOfRequestOrdinal: 2, reasonCode: 'retryable status 500' })
+      ])
+    })
+  })
+
   test('reconstructs a completed partial slot when termination interrupts batch-result promotion', async () => {
     await withTempDir('autoshow-tts-interrupted-batch-promotion-', async (dir) => {
       const text = 'Host: Recover retained audio.\nGuest: Generate only this unresolved turn.'

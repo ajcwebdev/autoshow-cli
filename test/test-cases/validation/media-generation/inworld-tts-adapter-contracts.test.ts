@@ -4,6 +4,7 @@ import { parseInworldMarkups, runInworldTts } from '~/cli/commands/process-steps
 import { createInworldAdvancedProvider, INWORLD_ADVANCED_CAPABILITY_FIXTURE } from '~/cli/commands/process-steps/step-4-tts/tts-services/inworld/inworld-advanced-provider'
 import { createTtsTargetSelection } from '~/cli/commands/process-steps/step-4-tts/tts-targets/tts-target-selection'
 import type { AdvancedProviderHttpRequest } from '~/cli/commands/process-steps/step-4-tts/script-to-audio/advanced-provider-contracts'
+import { buildInworldTtsRequestBody, INWORLD_TTS_SERIALIZER_VERSION, resolveInworldTtsApiModelId } from '~/cli/commands/process-steps/step-4-tts/tts-services/inworld/inworld-tts-request'
 
 describe('Inworld AI Phase 3 Contracts', () => {
   test('collects Inworld TTS targets with correct provider and model', () => {
@@ -19,6 +20,15 @@ describe('Inworld AI Phase 3 Contracts', () => {
     const { sanitizedText, markups } = parseInworldMarkups('Hello world [happy] [laugh] [breathe]')
     expect(sanitizedText).toBe('Hello world')
     expect(markups).toEqual(['happy', 'laugh', 'breathe'])
+  })
+
+  test('maps current public selectors to the provider API model IDs', () => {
+    expect(INWORLD_TTS_SERIALIZER_VERSION).toBe('inworld.tts.phase-3-v2')
+    expect(resolveInworldTtsApiModelId('realtime-tts-2')).toBe('inworld-tts-2')
+    expect(resolveInworldTtsApiModelId('realtime-tts-2-flash')).toBe('inworld-tts-2-flash')
+    expect(buildInworldTtsRequestBody({ model: 'realtime-tts-2-flash', text: 'Hello', voiceId: 'Dennis', markups: ['happy'] })).toEqual({ text: 'Hello', voiceId: 'Dennis', modelId: 'inworld-tts-2-flash', markups: ['happy'] })
+    const targets = collectInworldTtsTargets(createTtsTargetSelection({ inworldTtsModel: 'realtime-tts-2-flash' }))
+    expect(targets[0]?.model).toBe('realtime-tts-2-flash')
   })
 
   test('rejects missing credentials instead of fabricating offline audio', async () => {
@@ -43,8 +53,8 @@ describe('Inworld AI Phase 3 Contracts', () => {
     })
     const catalog = await provider.catalog?.list()
     expect(catalog?.entries).toEqual([
-      expect.objectContaining({ resourceId: 'Alex', source: 'provider-library', origin: 'provider-stock', state: 'available' }),
-      expect.objectContaining({ resourceId: 'workspace__guide', source: 'account', origin: 'imported-custom', state: 'available' })
+      expect.objectContaining({ resourceId: 'Alex', source: 'provider-library', origin: 'provider-stock', state: 'available', modelIds: ['realtime-tts-2', 'realtime-tts-2-flash'] }),
+      expect.objectContaining({ resourceId: 'workspace__guide', source: 'account', origin: 'imported-custom', state: 'available', modelIds: ['realtime-tts-2', 'realtime-tts-2-flash'] })
     ])
     expect(provider.getDeclaredCapabilities().find(record => record.scope.feature === 'voice-catalog')).toMatchObject({ adapterSupport: 'implemented', channel: 'api' })
     expect(provider.getDeclaredCapabilities().find(record => record.scope.feature === 'native-dialogue')).toMatchObject({ adapterSupport: 'unsupported', channel: 'unsupported' })

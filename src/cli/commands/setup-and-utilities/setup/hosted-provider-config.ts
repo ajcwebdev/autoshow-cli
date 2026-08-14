@@ -97,8 +97,8 @@ export const HOSTED_PROVIDER_ENV_CHECKS = [
   },
   {
     envVar: 'REPLICATE_API_TOKEN',
-    label: 'Replicate image/video',
-    configPaths: ['defaults.post.image.replicateImage', 'defaults.post.video.replicateVideo']
+    label: 'Replicate OCR/image/video',
+    configPaths: ['defaults.extract.ocr.replicateOcr', 'defaults.post.image.replicateImage', 'defaults.post.video.replicateVideo']
   },
   {
     envVar: 'ANTHROPIC_API_KEY',

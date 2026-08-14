@@ -1,8 +1,8 @@
 {
   "schemaVersion": 1,
-  "runDir": "/Users/ajc/c/autoshow-cli/output/2026-06-14_01-28-15-914_document",
-  "generatedAt": "2026-06-14T06:45:52.006Z",
-  "pageAligned": false,
+  "runDir": "/Users/ajc/c/autoshow-cli/docs/benchmarks/ocr/2026-06-14_01-28-15-914_document",
+  "generatedAt": "2026-08-14T17:47:34.779Z",
+  "pageAligned": true,
   "variants": [
     {
       "variantId": "status-quo-consensus",
@@ -16,10 +16,12 @@
       "source": "deterministic selected provider pages",
       "charCount": 98,
       "wordCount": 20,
-      "pageCount": 2,
-      "selectedPageSourceCounts": {},
+      "pageCount": 1,
+      "selectedPageSourceCounts": {
+        "deepinfra/google/gemma-3-27b-it": 1
+      },
       "lowConfidencePageCount": 1,
-      "outlierPageCount": 2
+      "outlierPageCount": 1
     }
   ],
   "pairwiseDistances": [

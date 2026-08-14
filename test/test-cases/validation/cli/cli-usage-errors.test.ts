@@ -491,7 +491,7 @@ test('write and extract reject retired Gemini 3.1 Flash-Lite with successor guid
 test('extract rejects removed DeepInfra PaddleOCR model', async () => {
   await expectUsageExit(
     ['extract', 'input/examples/document/1-document.pdf', '--provider', 'deepinfra=PaddlePaddle/PaddleOCR-VL-0.9B', '--price'],
-    'Invalid model "PaddlePaddle/PaddleOCR-VL-0.9B" for --provider/--ocr deepinfra[=model]. Allowed values: Qwen/Qwen3-VL-235B-A22B-Instruct, Qwen/Qwen3-VL-30B-A3B-Instruct'
+    'Invalid model "PaddlePaddle/PaddleOCR-VL-0.9B" for --provider/--ocr deepinfra[=model]. Allowed values: google/gemma-3-27b-it, meta-llama/Llama-4-Scout-17B-16E-Instruct, mistralai/Mistral-Small-3.2-24B-Instruct-2506, Qwen/Qwen3-VL-235B-A22B-Instruct, Qwen/Qwen3-VL-30B-A3B-Instruct'
   )
 })
 
