@@ -4,7 +4,7 @@
 
 - **Decision Status:** Accepted
 - **Date Created:** 2026-08-10
-- **Date Updated:** 2026-08-14
+- **Date Updated:** 2026-08-15
 - **Verification Status:** Passed
 
 ## Context
@@ -53,6 +53,18 @@ This applies to:
 - Existing providers' stock, saved, custom, designed, cloned, or request-time reference voice sources as their adapters truthfully support them.
 - First-class ElevenLabs voice-library, Voice Design/remix, clone, Text-to-Dialogue, and timestamp paths.
 - First-class Hume voice-library, Voice Design, clone/import, acting-direction, multi-utterance, timestamp, and continuation paths.
+
+`tts` synthesizes with one existing stock, designed, or cloned voice ID and remains compatible with every implemented TTS model. `voice` and `comic reference-voice` manage durable catalog, design, clone, inspect, and delete resources only for ElevenLabs `eleven_v3`, Inworld `realtime-tts-2`, Fish `s2.1-pro`, Cartesia `sonic-3.5-2026-05-04`, and Speechify `simba-3.2`. Hume, MiniMax, DeepInfra, Mistral, and every stock-only model stay synthesis-only. fal.ai Maya stays off the voice surface until it exposes a durable voice port.
+
+Each voice-managed model must expose a working expressiveness path. The methods are not unified:
+
+| Model | Expressiveness method | Compatible path |
+|---|---|---|
+| ElevenLabs `eleven_v3` | v3 audio tags plus style, stability, and similarity | Authored `[whispers]`/`[laughs]` stay in spoken text; dialogue `delivery` converts to the documented v3 tag allowlist; `--elevenlabs-tts-style`, `--elevenlabs-tts-stability`, and `--elevenlabs-tts-similarity-boost` serialize as `voice_settings` |
+| Inworld `realtime-tts-2` | Request-level instruction plus inline vocal tags | `--tts-instructions` serializes as `instruction`; `[happy]`, `[laugh]`, and `[breathe]` stay in `text` |
+| Fish `s2.1-pro` | In-text `[emotion]` and delivery markup | Dialogue `delivery` converts to the documented Fish tag allowlist; inline `[emotion]` stays in spoken text |
+| Cartesia `sonic-3.5-2026-05-04` | SSML-like performance tags plus `[laughter]` | `<speed>`, `<volume>`, `<emotion>`, `<break>`, `<spell>`, and `[laughter]` stay in the transcript |
+| Speechify `simba-3.2` | SSML `<speak>` with prosody, break, emphasis, sub, and `speechify:style` | Authored SSML stays in `input`; wrap SSML in `<speak>` |
 
 This decision itself does not:
 
@@ -243,7 +255,7 @@ Canonical provider projections (`ttsAudio` or `comicAudio`) replace flat speaker
 | Provider | Portable Baseline | Advanced Capabilities / Adapter Commitment |
 |---|---|---|
 | Kitten | Local segmented stock voices | No-cost local development baseline with explicit turn voice |
-| ElevenLabs | Segmented explicit voice | Library discovery, Voice Design, remix, clone state, audition, Text-to-Dialogue, timestamps |
+| ElevenLabs | Segmented explicit voice | Shared `voice` catalog, design, remix, clone, audition, Text-to-Dialogue, timestamps, and v3 audio-tag plus `voice_settings` expressiveness |
 | MiniMax | Segmented stock/custom voice | Catalog, design, clone, and activation capability descriptors |
 | Groq | Segmented stock voice | English Orpheus direction support |
 | xAI/Grok | Segmented stock/custom ID | 26-voice catalog and custom voice access gates |
@@ -251,13 +263,13 @@ Canonical provider projections (`ttsAudio` or `comicAudio`) replace flat speaker
 | OpenAI | Segmented stock voice | Active model validation and gated custom-voice facets |
 | Gemini | Native 2-speaker & segmented turns | 30-voice catalog, exactly-two-speaker native dialogue, single-speaker fallback |
 | Deepgram | Segmented Aura voice | ~90-voice catalog with demographic/language metadata |
-| Speechify | Segmented pre-provisioned ID | Consent/resource validation and model access gates |
+| Speechify | Segmented pre-provisioned ID | Shared `voice` catalog, instant clone, inspect, and delete; SSML `<speak>` expressiveness |
 | Hume | Segmented explicit voice | Discovery, design, clone, audition, acting direction, native utterances, timestamps, continuation |
-| Cartesia | Segmented voice ID | 500+ catalog, clone tiers, localization, emotion, and timing |
-| Inworld | Segmented stock/custom voice ID | Read-only current Voice API catalog discovery and pre-synthesis voice-ID readiness; mutation and native-dialogue facets remain unimplemented |
+| Cartesia | Segmented voice ID | Shared `voice` catalog, instant clone, inspect, and delete; in-text SSML-like expressiveness |
+| Inworld | Segmented stock/custom voice ID | Shared `voice` catalog, design, instant clone, inspect, and delete; `--tts-instructions` steering plus preserved inline vocal tags |
 | DeepInfra | Segmented model-qualified synthesis | Reliable hosted single-voice inference; model-specific dialogue, design, clone, and protected-reference facets remain gated by ADR-018 |
 | Replicate | Segmented Kokoro stock voice | Version-pinned `jaaari/kokoro-82m` with exact stock-voice and speed serialization; speculative reference/dialogue models remain excluded |
-| Fish | Segmented approved-reference synthesis | Reliable single-voice TTS and real catalog/design/model lifecycle calls; native dialogue/timing and full reconciliation remain gated by ADR-018 |
+| Fish | Segmented approved-reference synthesis | Shared `voice` catalog, design, instant clone, inspect, delete, and reconcile; native dialogue plus in-text `[emotion]` markup |
 
 ### First-Class ElevenLabs Contract
 

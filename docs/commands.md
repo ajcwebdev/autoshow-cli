@@ -191,7 +191,7 @@ bun autoshow tts input/examples/tts/1-tts.md --provider cartesia=sonic-3.5-2026-
 
 # voice catalog discovery and registration
 bun autoshow voice discover --provider elevenlabs --source account
-bun autoshow voice import hero --provider openai --model gpt-4o-mini-tts-2025-12-15 --voice-id cedar --provenance-ref project:casting
+bun autoshow voice import hero --provider elevenlabs --model eleven_v3 --voice-id hpp4J3VqNfWAUOO0d1Us --provenance-ref project:casting
 
 # image generation, then edit/reference the generated image; run this block in order
 bun autoshow image "a clean studio product photo of a red enamel camping mug on white seamless" --provider openai=gpt-image-2 --size 1024x1024 --format png --output-dir output/mug-base
@@ -339,7 +339,7 @@ bun autoshow tts input/examples/tts/1-tts.md --provider cartesia=sonic-3.5-2026-
 bun autoshow tts input/examples/tts/1-tts.md --provider openai=gpt-4o-mini-tts-2025-12-15 --price
 bun autoshow tts input/examples/tts/1-tts.md --provider openai=gpt-4o-mini-tts-2025-12-15 --tts-instructions "Warm documentary narration" --tts-speed 1.1 --price
 bun autoshow voice discover --provider cartesia --source provider-library --price
-bun autoshow voice design hero --provider hume --model octave-2 --creation-model octave-1 --description "Warm guide" --preview-text "Passing passage for previewing..." --price
+bun autoshow voice design hero --provider elevenlabs --model eleven_v3 --creation-model eleven_ttv_v3 --description "Warm guide" --preview-text "Passing passage for previewing a designed voice..." --price
 bun autoshow image "a sunset" --provider openai=gpt-image-2 --size 1024x1024 --quality low --price
 bun autoshow image "a sunset" --provider bfl=flux-2-klein-4b --price
 bun autoshow image "a premium product photo" --provider recraft=recraftv4_1 --size 1024x1024 --count 3 --price

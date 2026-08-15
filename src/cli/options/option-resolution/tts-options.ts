@@ -221,6 +221,7 @@ export const buildTtsOptions = (
       if (modelOptions.inworldTtsModels === undefined) return value
       return validateCliValue(validateInworldTtsVoice, value)
     })(),
+    inworldTtsInstructions: readOptionalOccurrenceStringFlag(flagOccurrences, 'inworld-tts-instructions') ?? readOptionalStringFlag(flags, 'inworld-tts-instructions'),
     deepinfraTtsModels: modelOptions.deepinfraTtsModels,
     deepinfraTtsModel: modelOptions.deepinfraTtsModel,
     deepinfraTtsVoice: (() => {

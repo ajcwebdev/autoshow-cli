@@ -18,7 +18,9 @@ export const collectInworldTtsTargets = (
       voice: voiceId ?? 'voice_inworld_standard_en',
       run: async (text, outputDir, opts, invocation, requestEvidence) => {
         const invocationVoiceId = resolveTtsTargetInvocationVoiceId('inworld', invocation)
-        const controls = resolveTtsTargetInvocationControls('inworld', invocation, {})
+        const controls = resolveTtsTargetInvocationControls('inworld', invocation, {
+          steeringPrompt: selection.inworldInstructions,
+        })
         const apiKey = process.env['INWORLD_API_KEY'] ?? ''
         return await runInworldTts(text, outputDir, {
           model,

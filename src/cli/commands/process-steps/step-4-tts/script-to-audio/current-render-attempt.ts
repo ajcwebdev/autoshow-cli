@@ -429,7 +429,9 @@ const resolveEffectiveInvocationControls = (
     case 'fish':
       return resolveTtsTargetInvocationControls('fish', invocation, {})
     case 'inworld':
-      return resolveTtsTargetInvocationControls('inworld', invocation, {})
+      return resolveTtsTargetInvocationControls('inworld', invocation, {
+        steeringPrompt: selection.inworldInstructions,
+      })
     case 'deepinfra':
       return resolveTtsTargetInvocationControls('deepinfra', invocation, {})
     case 'replicate':

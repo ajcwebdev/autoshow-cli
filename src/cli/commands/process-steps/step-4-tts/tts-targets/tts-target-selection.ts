@@ -72,6 +72,7 @@ export const createTtsTargetSelection = (options: TtsOptions): TtsTargetSelectio
     cartesiaLanguage: trimmed(options.cartesiaTtsLanguage),
     fishVoiceId: trimmed((options as { fishTtsVoice?: string }).fishTtsVoice),
     inworldVoiceId: trimmed(options.inworldTtsVoice),
+    inworldInstructions: trimmed(options.inworldTtsInstructions),
     deepinfraVoiceId: trimmed(options.deepinfraTtsVoice),
     replicateVoiceId: trimmed(options.replicateTtsVoice),
     falVoiceId: trimmed(options.falTtsVoice),

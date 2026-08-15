@@ -10,8 +10,7 @@ import { hashCanonicalRecordWithout, hashCanonicalTtsValue } from '../script-to-
 import { assertProtectedStoreOutputDisjoint } from '../voice-assets/protected-output-boundary'
 import { managedVoiceAssetStore, MANAGED_VOICE_STORE_ROOT } from './managed-voice-store'
 import { loadVoiceConsentRecord, revokeVoiceConsentRecord, storeVoiceConsentRecord } from './voice-consent-store'
-import { importExistingVoiceRegistration, inspectVoiceRegistrationReadiness, planMistralSavedReferenceRegistration, provisionMistralSavedReferenceRegistration, reconcileMistralSavedReferenceRegistration } from './voice-registration-management'
-import { deleteMistralSavedVoice, inspectMistralSavedVoiceIfPresent, mistralAccountScopeHash } from './mistral-voice-management'
+import { importExistingVoiceRegistration, inspectVoiceRegistrationReadiness } from './voice-registration-management'
 import { planCanonicalVoiceAudition, runCanonicalVoiceAudition } from './canonical-voice-audition'
 import {
   approveVoiceRegistration,
@@ -25,67 +24,71 @@ import {
 } from './character-voice-registry'
 import { assertVoiceConsentAllows, computeConsentRecordId, validateAuditActorRef, validateVoiceConsentRecord } from './voice-management-contracts'
 import { createElevenLabsAdvancedProvider, ELEVENLABS_ADVANCED_CAPABILITY_FIXTURE } from '../tts-services/tts-elevenlabs/elevenlabs-advanced-provider'
-import { createHumeAdvancedProvider, HUME_ADVANCED_CAPABILITY_FIXTURE } from '../tts-services/hume/hume-advanced-provider'
-import { createMiniMaxAdvancedProvider, MINIMAX_ADVANCED_CAPABILITY_FIXTURE } from '../tts-services/tts-minimax/minimax-advanced-provider'
 import { createCartesiaAdvancedProvider, CARTESIA_ADVANCED_CAPABILITY_FIXTURE } from '../tts-services/cartesia/cartesia-advanced-provider'
 import { createFishAdvancedProvider, FISH_ADVANCED_CAPABILITY_FIXTURE } from '../tts-services/fish/fish-advanced-provider'
 import { createSpeechifyAdvancedProvider, SPEECHIFY_ADVANCED_CAPABILITY_FIXTURE } from '../tts-services/speechify/speechify-advanced-provider'
 import { createInworldAdvancedProvider, INWORLD_ADVANCED_CAPABILITY_FIXTURE } from '../tts-services/inworld/inworld-advanced-provider'
-import { createDeepinfraAdvancedProvider, DEEPINFRA_ADVANCED_CAPABILITY_FIXTURE } from '../tts-services/tts-deepinfra/deepinfra-advanced-provider'
-import { isDeepinfraVoiceDesignModel } from '../tts-services/tts-deepinfra/deepinfra-tts-request'
 import { createAdvancedVoiceCandidates, loadVoiceCandidate, materializeAdvancedVoiceCandidate, planAdvancedClone, provisionAdvancedVoiceClone } from './advanced-voice-management'
 import { reconcileFishModelRegistration } from './fish-voice-reconciliation'
 import { FISH_VOICE_DESIGN_MODEL } from '../tts-services/fish/fish-tts-request'
 import { getTtsPricing } from '~/cli/commands/setup-and-utilities/models/model-loader'
+import { getAudioDuration } from '~/cli/commands/process-steps/step-2-extract/step-2-stt/stt-utils/audio-splitter'
 
-const TTS_PROVIDERS = ['kitten', 'elevenlabs', 'minimax', 'groq', 'grok', 'mistral', 'openai', 'gemini', 'deepgram', 'speechify', 'hume', 'cartesia', 'fish', 'inworld', 'deepinfra', 'replicate', 'fal'] as const
+const VOICE_PROVIDERS = ['elevenlabs', 'inworld', 'fish', 'cartesia', 'speechify'] as const
 const CONSENT_ACTIONS: VoiceConsentAction[] = ['upload', 'new-synthesis', 'cache-reuse', 'resume', 'export', 'retention', 'deletion']
 const VOICE_ORIGINS = ['provider-stock', 'designed', 'remixed', 'instant-clone', 'professional-clone', 'imported-custom', 'saved-reference'] as const
 const PROFILE_DEFAULT = 'default'
+const VOICE_SYNTHESIS_MODELS = {
+  elevenlabs: 'eleven_v3',
+  inworld: 'realtime-tts-2',
+  fish: 's2.1-pro',
+  cartesia: 'sonic-3.5-2026-05-04',
+  speechify: 'simba-3.2',
+} as const
+const SPEECHIFY_CLONE_GENDERS = ['male', 'female', 'not_specified'] as const
 
-const ADVANCED_PROVIDERS = ['elevenlabs', 'hume', 'minimax', 'cartesia', 'fish', 'speechify', 'inworld', 'deepinfra'] as const
-const DESIGN_PROVIDERS = ['elevenlabs', 'hume', 'minimax', 'fish', 'inworld', 'deepinfra'] as const
-const CLONE_PROVIDERS = ['elevenlabs', 'inworld', 'deepinfra', 'fish'] as const
-type AdvancedProviderName = typeof ADVANCED_PROVIDERS[number]
+const DESIGN_PROVIDERS = ['elevenlabs', 'fish', 'inworld'] as const
+const CLONE_PROVIDERS = ['elevenlabs', 'inworld', 'fish', 'cartesia', 'speechify'] as const
+type VoiceProviderName = typeof VOICE_PROVIDERS[number]
 type DesignProviderName = typeof DESIGN_PROVIDERS[number]
 type CloneProviderName = typeof CLONE_PROVIDERS[number]
 type ManagedAdvancedProvider = Pick<TtsVoiceProvider, 'provider' | 'getDeclaredCapabilities' | 'catalog' | 'design' | 'clone' | 'lifecycle'> & { accountScopeHash: string }
 
-const isAdvancedProvider = (provider: TtsProvider): provider is AdvancedProviderName => ADVANCED_PROVIDERS.includes(provider as AdvancedProviderName)
+const isVoiceProvider = (provider: TtsProvider): provider is VoiceProviderName => VOICE_PROVIDERS.includes(provider as VoiceProviderName)
 const isDesignProvider = (provider: TtsProvider): provider is DesignProviderName => DESIGN_PROVIDERS.includes(provider as DesignProviderName)
 const isCloneProvider = (provider: TtsProvider): provider is CloneProviderName => CLONE_PROVIDERS.includes(provider as CloneProviderName)
 
-const advancedCapabilityFixtureHash = (provider: AdvancedProviderName): string => {
+const advancedCapabilityFixtureHash = (provider: VoiceProviderName): string => {
   if (provider === 'elevenlabs') return ELEVENLABS_ADVANCED_CAPABILITY_FIXTURE.capabilityFixtureHash
-  if (provider === 'hume') return HUME_ADVANCED_CAPABILITY_FIXTURE.capabilityFixtureHash
-  if (provider === 'minimax') return MINIMAX_ADVANCED_CAPABILITY_FIXTURE.capabilityFixtureHash
   if (provider === 'cartesia') return CARTESIA_ADVANCED_CAPABILITY_FIXTURE.capabilityFixtureHash
   if (provider === 'fish') return FISH_ADVANCED_CAPABILITY_FIXTURE.capabilityFixtureHash
   if (provider === 'inworld') return INWORLD_ADVANCED_CAPABILITY_FIXTURE.capabilityFixtureHash
-  if (provider === 'deepinfra') return DEEPINFRA_ADVANCED_CAPABILITY_FIXTURE.capabilityFixtureHash
   return SPEECHIFY_ADVANCED_CAPABILITY_FIXTURE.capabilityFixtureHash
 }
 
-const advancedProvider = (provider: AdvancedProviderName, options: {
+const advancedProvider = (provider: VoiceProviderName, options: {
   elevenLabsApiKey?: string | undefined
   inworldApiKey?: string | undefined
   resolveElevenLabsProtectedAsset?: Parameters<typeof createElevenLabsAdvancedProvider>[0]['resolveProtectedAsset'] | undefined
   resolveFishProtectedAsset?: Parameters<typeof createFishAdvancedProvider>[0]['resolveProtectedAsset'] | undefined
   resolveInworldProtectedAsset?: Parameters<typeof createInworldAdvancedProvider>[0]['resolveProtectedAsset'] | undefined
-  resolveDeepinfraProtectedAsset?: Parameters<typeof createDeepinfraAdvancedProvider>[0]['resolveProtectedAsset'] | undefined
+  resolveCartesiaProtectedAsset?: Parameters<typeof createCartesiaAdvancedProvider>[0]['resolveProtectedAsset'] | undefined
+  resolveSpeechifyProtectedAsset?: Parameters<typeof createSpeechifyAdvancedProvider>[0]['resolveProtectedAsset'] | undefined
+  resolveSpeechifyProtectedConsent?: Parameters<typeof createSpeechifyAdvancedProvider>[0]['resolveProtectedConsent'] | undefined
 } = {}): ManagedAdvancedProvider => {
   if (provider === 'elevenlabs') return createElevenLabsAdvancedProvider({ apiKey: options.elevenLabsApiKey ?? requireApiKey('ELEVENLABS_API_KEY', 'voice:elevenlabs', 'ElevenLabs voice management'), ...(options.resolveElevenLabsProtectedAsset ? { resolveProtectedAsset: options.resolveElevenLabsProtectedAsset } : {}) })
-  if (provider === 'hume') return createHumeAdvancedProvider({ apiKey: requireApiKey('HUME_API_KEY', 'voice:hume', 'Hume voice management') })
-  if (provider === 'minimax') return createMiniMaxAdvancedProvider({ apiKey: requireApiKey('MINIMAX_API_KEY', 'voice:minimax', 'MiniMax voice management') })
-  if (provider === 'cartesia') return createCartesiaAdvancedProvider({ apiKey: requireApiKey('CARTESIA_API_KEY', 'voice:cartesia', 'Cartesia voice management') })
+  if (provider === 'cartesia') return createCartesiaAdvancedProvider({ apiKey: requireApiKey('CARTESIA_API_KEY', 'voice:cartesia', 'Cartesia voice management'), ...(options.resolveCartesiaProtectedAsset ? { resolveProtectedAsset: options.resolveCartesiaProtectedAsset } : {}) })
   if (provider === 'fish') return createFishAdvancedProvider({ apiKey: requireApiKey('FISH_API_KEY', 'voice:fish', 'Fish voice management'), ...(options.resolveFishProtectedAsset ? { resolveProtectedAsset: options.resolveFishProtectedAsset } : {}) })
   if (provider === 'inworld') return createInworldAdvancedProvider({ apiKey: options.inworldApiKey ?? requireApiKey('INWORLD_API_KEY', 'voice:inworld', 'Inworld voice management'), ...(options.resolveInworldProtectedAsset ? { resolveProtectedAsset: options.resolveInworldProtectedAsset } : {}) })
-  if (provider === 'deepinfra') return createDeepinfraAdvancedProvider({ apiKey: requireApiKey('DEEPINFRA_API_KEY', 'voice:deepinfra', 'DeepInfra voice management'), ...(options.resolveDeepinfraProtectedAsset ? { resolveProtectedAsset: options.resolveDeepinfraProtectedAsset } : {}) })
-  return createSpeechifyAdvancedProvider({ apiKey: requireApiKey('SPEECHIFY_API_KEY', 'voice:speechify', 'Speechify voice management') })
+  return createSpeechifyAdvancedProvider({
+    apiKey: requireApiKey('SPEECHIFY_API_KEY', 'voice:speechify', 'Speechify voice management'),
+    ...(options.resolveSpeechifyProtectedAsset ? { resolveProtectedAsset: options.resolveSpeechifyProtectedAsset } : {}),
+    ...(options.resolveSpeechifyProtectedConsent ? { resolveProtectedConsent: options.resolveSpeechifyProtectedConsent } : {}),
+  })
 }
 
 const commonRegistrationFlags = {
-  provider: strFlag(`Voice provider: ${TTS_PROVIDERS.join('|')}`),
+  provider: strFlag(`Voice provider: ${VOICE_PROVIDERS.join('|')}`),
   model: strFlag('Provider TTS model used by this registration'),
   profile: strFlag('Casting profile key', PROFILE_DEFAULT),
   'provenance-ref': strFlag('Opaque non-secret provenance record reference'),
@@ -112,10 +115,16 @@ const parameter = (ctx: CliCommandContext, name: string): string => {
   return value.trim()
 }
 
-const providerFlag = (ctx: CliCommandContext): TtsProvider => {
+const providerFlag = (ctx: CliCommandContext): VoiceProviderName => {
   const provider = requiredFlag(ctx, 'provider')
-  if (!TTS_PROVIDERS.includes(provider as TtsProvider)) throw CLIUsageError(`Unknown TTS voice provider ${provider}. Expected: ${TTS_PROVIDERS.join(', ')}.`)
-  return provider as TtsProvider
+  if (!isVoiceProvider(provider as TtsProvider)) throw CLIUsageError(`Unknown voice provider ${provider}. Expected: ${VOICE_PROVIDERS.join(', ')}.`)
+  return provider as VoiceProviderName
+}
+
+const requireVoiceModel = (provider: VoiceProviderName, model: string): string => {
+  const expected = VOICE_SYNTHESIS_MODELS[provider]
+  if (model !== expected) throw CLIUsageError(`Voice management for ${provider} requires --model ${expected}.`)
+  return model
 }
 
 const positiveIntegerFlag = (ctx: CliCommandContext, name: string, fallback: number): number => {
@@ -207,7 +216,7 @@ const handleConsent = async (ctx: CliCommandContext): Promise<void> => {
 const handleImport = async (ctx: CliCommandContext): Promise<void> => {
   const subjectKey = parameter(ctx, 'subjectKey')
   const provider = providerFlag(ctx)
-  const model = requiredFlag(ctx, 'model')
+  const model = requireVoiceModel(provider, requiredFlag(ctx, 'model'))
   const profileKey = optionalFlag(ctx, 'profile') ?? PROFILE_DEFAULT
   const originRaw = optionalFlag(ctx, 'origin') ?? 'provider-stock'
   if (!VOICE_ORIGINS.includes(originRaw as typeof VOICE_ORIGINS[number])) throw CLIUsageError(`--origin must be ${VOICE_ORIGINS.join('|')}.`)
@@ -234,12 +243,11 @@ const handleImport = async (ctx: CliCommandContext): Promise<void> => {
 
 const handleDiscover = async (ctx: CliCommandContext): Promise<void> => {
   const provider = providerFlag(ctx)
-  if (!isAdvancedProvider(provider)) throw CLIUsageError(`Voice discovery currently supports ${ADVANCED_PROVIDERS.join(', ')}.`)
   const sourceRaw = optionalFlag(ctx, 'source') ?? 'account'
   if (sourceRaw !== 'account' && sourceRaw !== 'provider-library' && sourceRaw !== 'shared-library') throw CLIUsageError('--source must be account, provider-library, or shared-library.')
   if (sourceRaw === 'shared-library' && provider !== 'elevenlabs') throw CLIUsageError(`${provider} does not expose an ElevenLabs-style shared-owner voice-library namespace.`)
   const cursor = optionalFlag(ctx, 'cursor')
-  if (cursor && (provider === 'minimax' || provider === 'deepinfra' || provider === 'inworld')) throw CLIUsageError(`${provider} voice discovery is not paginated and does not accept --cursor.`)
+  if (cursor && provider === 'inworld') throw CLIUsageError(`${provider} voice discovery is not paginated and does not accept --cursor.`)
   if (ctx.flags['price'] === true) {
     console.log(JSON.stringify({ operation: 'voice-discover', provider, mutation: false, providerCalls: 0, capabilityFixtureHash: advancedCapabilityFixtureHash(provider) }, null, 2))
     return
@@ -253,7 +261,7 @@ const handleDesign = async (ctx: CliCommandContext): Promise<void> => {
   const subjectKey = parameter(ctx, 'subjectKey')
   const provider = providerFlag(ctx)
   if (!isDesignProvider(provider)) throw CLIUsageError(`Voice Design currently supports ${DESIGN_PROVIDERS.join(', ')}; the selected provider has no implemented text-prompt design adapter.`)
-  const providerModel = requiredFlag(ctx, 'model')
+  const providerModel = requireVoiceModel(provider, requiredFlag(ctx, 'model'))
   const creationModel = requiredFlag(ctx, 'creation-model')
   const profileKey = optionalFlag(ctx, 'profile') ?? PROFILE_DEFAULT
   const description = requiredFlag(ctx, 'description')
@@ -272,25 +280,11 @@ const handleDesign = async (ctx: CliCommandContext): Promise<void> => {
     if (candidateCount > 3) throw CLIUsageError('ElevenLabs Voice Design supports one to three bounded previews per operation.')
     if (description.length < 20 || description.length > 1000) throw CLIUsageError('ElevenLabs Voice Design description must contain 20-1000 characters.')
     if (previewText.length < 100 || previewText.length > 1000) throw CLIUsageError('ElevenLabs Voice Design preview text must contain 100-1000 characters.')
-  } else if (provider === 'hume') {
-    if (creationModel !== 'octave-1') throw CLIUsageError('Hume Voice Design requires creation model octave-1 even when the saved voice will synthesize with Octave 2.')
-    if (candidateCount > 5) throw CLIUsageError('Hume Voice Design supports one to five candidates per bounded request.')
-    if (description.length > 1000) throw CLIUsageError('Hume Voice Design description must contain 1-1000 characters.')
-    if (seed !== undefined) throw CLIUsageError('Hume Voice Design does not expose a deterministic seed.')
-  } else if (provider === 'minimax') {
-    if (candidateCount !== 1) throw CLIUsageError('MiniMax Voice Design returns exactly one bounded preview per request.')
-    if (previewText.length > 500) throw CLIUsageError('MiniMax Voice Design preview text must contain 1-500 characters.')
-    if (seed !== undefined) throw CLIUsageError('MiniMax Voice Design does not expose a deterministic seed.')
   } else if (provider === 'fish') {
     if (creationModel !== FISH_VOICE_DESIGN_MODEL) throw CLIUsageError('Fish Audio Voice Design creation model must be voice-design-1.')
     if (candidateCount < 1 || candidateCount > 4) throw CLIUsageError('Fish Audio Voice Design supports one to four bounded previews per request.')
     if (description.length < 1 || description.length > 2000) throw CLIUsageError('Fish Audio Voice Design description must contain 1-2000 characters.')
     if (previewText.length > 150) throw CLIUsageError('Fish Audio Voice Design preview text must contain at most 150 characters.')
-  } else if (provider === 'deepinfra') {
-    if (!isDeepinfraVoiceDesignModel(creationModel)) throw CLIUsageError('DeepInfra Voice Design creation model must be XiaomiMiMo/MiMo-V2.5-tts-voicedesign or Qwen/Qwen3-TTS-VoiceDesign.')
-    if (candidateCount !== 1) throw CLIUsageError('DeepInfra Voice Design returns exactly one bounded preview per request.')
-    if (!previewText.trim()) throw CLIUsageError('DeepInfra Voice Design preview text cannot be blank.')
-    if (seed !== undefined) throw CLIUsageError('DeepInfra Voice Design does not expose a deterministic seed.')
   } else {
     if (candidateCount > 3) throw CLIUsageError('Inworld Voice Design supports one to three bounded previews per request.')
     if (description.length < 30 || description.length > 250) throw CLIUsageError('Inworld Voice Design description must contain 30-250 characters.')
@@ -299,12 +293,10 @@ const handleDesign = async (ctx: CliCommandContext): Promise<void> => {
   }
   await requireBrief(subjectKey, profileKey)
   if (ctx.flags['price'] === true) {
-    const pricingModel = provider === 'hume' ? creationModel : providerModel
-    const rate = getTtsPricing(provider, pricingModel).costPer1kCharsCents
-    if (rate === undefined) throw CLIUsageError(`Voice design pricing is unavailable for ${provider}/${pricingModel}; provider dispatch is blocked.`)
-    const billedGenerations = provider === 'hume' ? candidateCount : 1
-    const estimatedCostCents = ([...previewText].length / 1000) * rate * billedGenerations
-    console.log(JSON.stringify({ operation: sourceVoiceId ? 'voice-remix-candidates' : 'voice-design-candidates', provider, providerModel, creationModel, candidateCount, characterCount: [...previewText].length, billedGenerations, estimatedCostCents, pricing: 'registry-character-rate', mutation: false, providerCalls: 0 }, null, 2))
+    const rate = getTtsPricing(provider, providerModel).costPer1kCharsCents
+    if (rate === undefined) throw CLIUsageError(`Voice design pricing is unavailable for ${provider}/${providerModel}; provider dispatch is blocked.`)
+    const estimatedCostCents = ([...previewText].length / 1000) * rate
+    console.log(JSON.stringify({ operation: sourceVoiceId ? 'voice-remix-candidates' : 'voice-design-candidates', provider, providerModel, creationModel, candidateCount, characterCount: [...previewText].length, billedGenerations: 1, estimatedCostCents, pricing: 'registry-character-rate', mutation: false, providerCalls: 0 }, null, 2))
     return
   }
   await assertProtectedStoreOutputDisjoint(getCharactersRoot(), MANAGED_VOICE_STORE_ROOT)
@@ -351,7 +343,6 @@ const handleMaterialize = async (ctx: CliCommandContext): Promise<void> => {
   }
   const adapter = advancedProvider(provider, {
     ...(provider === 'fish' ? { resolveFishProtectedAsset: resolveManagedProtectedAsset } : {}),
-    ...(provider === 'deepinfra' ? { resolveDeepinfraProtectedAsset: resolveManagedProtectedAsset } : {}),
   })
   const result = await materializeAdvancedVoiceCandidate({
     charactersRoot: getCharactersRoot(), journalRoot: join(MANAGED_VOICE_STORE_ROOT, 'journals'), protectedStore: managedVoiceAssetStore,
@@ -379,14 +370,26 @@ const handleClone = async (ctx: CliCommandContext): Promise<void> => {
   const subjectKey = parameter(ctx, 'subjectKey')
   const provider = providerFlag(ctx)
   if (!isCloneProvider(provider)) throw CLIUsageError(`Voice clone currently supports ${CLONE_PROVIDERS.join(', ')}; other providers return unsupported until their adapter is implemented.`)
-  const providerModel = requiredFlag(ctx, 'model')
+  const providerModel = requireVoiceModel(provider, requiredFlag(ctx, 'model'))
   const profileKey = optionalFlag(ctx, 'profile') ?? PROFILE_DEFAULT
   const cloneKind = optionalFlag(ctx, 'kind') ?? 'instant'
   if (cloneKind !== 'instant' && cloneKind !== 'professional') throw CLIUsageError('--kind must be instant or professional.')
-  if (cloneKind === 'professional' && (provider === 'deepinfra' || provider === 'fish')) throw CLIUsageError(`${provider === 'fish' ? 'Fish Audio' : 'DeepInfra'} does not document a professional voice-clone workflow.`)
+  if (cloneKind === 'professional' && (provider === 'fish' || provider === 'speechify')) throw CLIUsageError(`${provider === 'fish' ? 'Fish Audio' : 'Speechify'} does not document a professional voice-clone workflow.`)
   const samplePaths = repeatableFlag(ctx, 'sample')
   if (cloneKind === 'instant' && samplePaths.length === 0) throw CLIUsageError(`${provider} instant voice clone requires at least one --sample.`)
+  if (cloneKind === 'instant' && (provider === 'cartesia' || provider === 'speechify') && samplePaths.length !== 1) throw CLIUsageError(`${provider} instant voice clone requires exactly one --sample.`)
   if (cloneKind === 'professional' && samplePaths.length > 0) throw CLIUsageError(`${provider} professional clone is a verification-gated external workflow; import the resulting stable voice ID after provider approval instead of uploading --sample here.`)
+  const speechifyConsentName = optionalFlag(ctx, 'consent-name')
+  const speechifyConsentEmail = optionalFlag(ctx, 'consent-email')
+  const speechifyLocale = optionalFlag(ctx, 'locale')
+  const speechifyGender = optionalFlag(ctx, 'gender')
+  if (provider === 'speechify' && cloneKind === 'instant') {
+    if (!speechifyConsentName || !speechifyConsentEmail) throw CLIUsageError('Speechify instant clone requires --consent-name and --consent-email.')
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(speechifyConsentEmail)) throw CLIUsageError('--consent-email must be a valid email address.')
+    if (speechifyGender && !SPEECHIFY_CLONE_GENDERS.includes(speechifyGender as typeof SPEECHIFY_CLONE_GENDERS[number])) throw CLIUsageError(`--gender must be ${SPEECHIFY_CLONE_GENDERS.join(', ')}.`)
+  } else if (speechifyConsentName || speechifyConsentEmail || speechifyLocale || speechifyGender) {
+    throw CLIUsageError('--consent-name, --consent-email, --locale, and --gender are Speechify instant-clone flags.')
+  }
   const consentRecordRef = requiredFlag(ctx, 'consent-ref')
   const consent = await loadVoiceConsentRecord(managedVoiceAssetStore, consentRecordRef)
   if (consent.subjectKey !== subjectKey) throw CLIUsageError('Voice clone consent subject does not match the requested subject.')
@@ -419,19 +422,36 @@ const handleClone = async (ctx: CliCommandContext): Promise<void> => {
       const path = await managedVoiceAssetStore.resolve(asset)
       return { bytes: new Uint8Array(await Bun.file(path).arrayBuffer()), fileName: `clone-sample-${asset.assetId}.${path.split('.').pop() ?? 'audio'}`, mediaType: cloneMediaType(path) }
   }
+  const resolveSpeechifyProtectedAsset = async (asset: typeof protectedSamples[number]) => {
+    const resolved = await resolveProtectedAsset(asset)
+    const path = await managedVoiceAssetStore.resolve(asset)
+    const durationSeconds = await getAudioDuration(path)
+    if (!Number.isFinite(durationSeconds) || durationSeconds <= 0) throw CLIUsageError('Speechify clone sample duration could not be verified before upload.')
+    return { ...resolved, durationMs: Math.round(durationSeconds * 1000) }
+  }
   const adapter = provider === 'elevenlabs'
     ? advancedProvider('elevenlabs', {
         elevenLabsApiKey: cloneKind === 'instant' ? requireApiKey('ELEVENLABS_API_KEY', 'voice:elevenlabs', 'ElevenLabs instant voice clone') : 'external-professional-clone-no-provider-call',
         resolveElevenLabsProtectedAsset: resolveProtectedAsset,
       })
-    : provider === 'deepinfra'
-      ? advancedProvider('deepinfra', { resolveDeepinfraProtectedAsset: resolveProtectedAsset })
-      : provider === 'fish'
-        ? advancedProvider('fish', { resolveFishProtectedAsset: resolveProtectedAsset })
-        : advancedProvider('inworld', {
-            inworldApiKey: cloneKind === 'instant' ? requireApiKey('INWORLD_API_KEY', 'voice:inworld', 'Inworld instant voice clone') : 'external-professional-clone-no-provider-call',
-            resolveInworldProtectedAsset: resolveProtectedAsset,
-          })
+    : provider === 'fish'
+      ? advancedProvider('fish', { resolveFishProtectedAsset: resolveProtectedAsset })
+      : provider === 'cartesia'
+        ? advancedProvider('cartesia', { resolveCartesiaProtectedAsset: resolveProtectedAsset })
+        : provider === 'speechify'
+          ? advancedProvider('speechify', {
+              resolveSpeechifyProtectedAsset,
+              resolveSpeechifyProtectedConsent: async () => ({
+                fullName: speechifyConsentName!,
+                email: speechifyConsentEmail!,
+                ...(speechifyLocale ? { locale: speechifyLocale } : {}),
+                ...(speechifyGender ? { gender: speechifyGender as typeof SPEECHIFY_CLONE_GENDERS[number] } : {}),
+              }),
+            })
+          : advancedProvider('inworld', {
+              inworldApiKey: cloneKind === 'instant' ? requireApiKey('INWORLD_API_KEY', 'voice:inworld', 'Inworld instant voice clone') : 'external-professional-clone-no-provider-call',
+              resolveInworldProtectedAsset: resolveProtectedAsset,
+            })
   const { localAttemptId: _planningId, ...cloneRequest } = request
   const result = await provisionAdvancedVoiceClone({
     charactersRoot: getCharactersRoot(), journalRoot: join(MANAGED_VOICE_STORE_ROOT, 'journals'), provider: adapter, providerModel, subjectKey, profileKey, brief,
@@ -455,29 +475,6 @@ const handleRevokeConsent = async (ctx: CliCommandContext): Promise<void> => {
   console.log(JSON.stringify({ consentRecordId: revocation.consentRecordId, revocationId: revocation.revocationId, state: 'revoked' }, null, 2))
 }
 
-const handleMistralSaveReference = async (ctx: CliCommandContext): Promise<void> => {
-  const subjectKey = parameter(ctx, 'subjectKey')
-  const profileKey = optionalFlag(ctx, 'profile') ?? PROFILE_DEFAULT
-  const model = requiredFlag(ctx, 'model')
-  const sourcePath = requiredFlag(ctx, 'reference-audio')
-  const authorizationRef = requiredFlag(ctx, 'authorization-ref')
-  const consentRef = requiredFlag(ctx, 'consent-ref')
-  const consent = await loadVoiceConsentRecord(managedVoiceAssetStore, consentRef)
-  const brief = await requireBrief(subjectKey, profileKey)
-  const plan = await planMistralSavedReferenceRegistration({ protectedStore: managedVoiceAssetStore, subjectKey, profileKey, providerModel: model, sourcePath, authorizationRef })
-  if (ctx.flags['price'] === true) {
-    console.log(JSON.stringify({ operation: 'mistral-save-reference', estimatedCostCents: plan.estimatedCostCents, mutation: false, registrationId: plan.registrationId, sourceSha256: plan.source.sha256 }, null, 2))
-    return
-  }
-  const registration = await provisionMistralSavedReferenceRegistration({
-    charactersRoot: getCharactersRoot(), protectedStore: managedVoiceAssetStore, subjectKey, profileKey, providerModel: model,
-    voiceName: requiredFlag(ctx, 'voice-name'), sourcePath, authorizationRef, brief,
-    provenanceRef: requiredFlag(ctx, 'provenance-ref'), consent, consentRecordRef: consentRef,
-    capabilityFixtureHash: capabilityFixtureHash(ctx, 'mistral', model), apiKey: requireApiKey('MISTRAL_API_KEY', 'voice:mistral', 'Mistral saved voice creation')
-  })
-  console.log(JSON.stringify({ registrationId: registration.registrationId, generationId: registration.generationId, state: registration.provisioning.state }, null, 2))
-}
-
 const findRegistration = async (registrationId: string, generationId: string) => {
   const catalog = await loadVoiceRegistrationCatalog(getCharactersRoot())
   const registration = catalog.registrations.find(entry => entry.registrationId === registrationId && entry.generationId === generationId)
@@ -489,6 +486,7 @@ const handleAudition = async (ctx: CliCommandContext): Promise<void> => {
   const registrationId = parameter(ctx, 'registrationId')
   const generationId = requiredFlag(ctx, 'generation-id')
   const registration = await findRegistration(registrationId, generationId)
+  if (!isVoiceProvider(registration.provider)) throw CLIUsageError(`Voice audition supports only ${VOICE_PROVIDERS.join(', ')} registrations.`)
   const brief = await requireBrief(registration.subjectKey, registration.profileKey)
   const consent = registration.consentRecordRef ? await optionalConsent(registration.consentRecordRef) : undefined
   if (registration.consentRecordRef) assertVoiceConsentAllows(consent, 'new-synthesis')
@@ -548,22 +546,17 @@ const handleInspect = async (ctx: CliCommandContext): Promise<void> => {
     const consent = await loadVoiceConsentRecord(managedVoiceAssetStore, registration.consentRecordRef)
     assertVoiceConsentAllows(consent, 'new-synthesis')
   }
+  if (!isVoiceProvider(registration.provider)) throw CLIUsageError(`Voice inspect supports only ${VOICE_PROVIDERS.join(', ')} registrations.`)
   const staticOnly = ctx.flags['price'] === true
-  if (!staticOnly && isAdvancedProvider(registration.provider) && registration.provisioning.state === 'ready') {
+  if (!staticOnly && registration.provisioning.state === 'ready') {
     const adapter = advancedProvider(registration.provider)
     const inspection = await adapter.lifecycle?.inspect(registration.provisioning.providerVoice)
     console.log(JSON.stringify({ registrationId, generationId, staticOnly: false, inspection, mutation: false }, null, 2))
     return
   }
-  const requiresMistralRead = !staticOnly
-    && registration.provider === 'mistral'
-    && registration.provisioning.state === 'ready'
-    && registration.provisioning.providerVoice.kind === 'remote-resource'
-    && registration.provisioning.providerVoice.namespace === 'account'
   const readiness = await inspectVoiceRegistrationReadiness({
     registration,
     staticOnly,
-    ...(requiresMistralRead ? { apiKey: requireApiKey('MISTRAL_API_KEY', 'voice:mistral', 'Mistral saved voice readiness inspection') } : {})
   })
   console.log(JSON.stringify({ ...readiness, mutation: false }, null, 2))
 }
@@ -572,24 +565,18 @@ const handleReconcile = async (ctx: CliCommandContext): Promise<void> => {
   const registrationId = parameter(ctx, 'registrationId')
   const generationId = requiredFlag(ctx, 'generation-id')
   const registration = await findRegistration(registrationId, generationId)
-  if (registration.provider !== 'mistral' && registration.provider !== 'fish') {
-    throw CLIUsageError('Voice reconcile currently supports mistral and fish; other providers return unsupported until their adapter is implemented.')
+  if (registration.provider !== 'fish') {
+    throw CLIUsageError('Voice reconcile currently supports fish; other providers return unsupported until their adapter is implemented.')
   }
   if (ctx.flags['price'] === true) {
     console.log(JSON.stringify({ operation: 'voice-reconcile', estimatedCostCents: 0, mutation: false, registrationId, generationId }, null, 2))
     return
   }
-  const reconciled = registration.provider === 'fish'
-    ? await reconcileFishModelRegistration({
-        charactersRoot: getCharactersRoot(),
-        registration,
-        apiKey: requireApiKey('FISH_API_KEY', 'voice:fish', 'Fish model reconciliation'),
-      })
-    : await reconcileMistralSavedReferenceRegistration({
-        charactersRoot: getCharactersRoot(),
-        registration,
-        apiKey: requireApiKey('MISTRAL_API_KEY', 'voice:mistral', 'Mistral saved voice reconciliation')
-      })
+  const reconciled = await reconcileFishModelRegistration({
+    charactersRoot: getCharactersRoot(),
+    registration,
+    apiKey: requireApiKey('FISH_API_KEY', 'voice:fish', 'Fish model reconciliation'),
+  })
   console.log(JSON.stringify({ registrationId, generationId: reconciled.generationId, state: reconciled.provisioning.state }, null, 2))
 }
 
@@ -608,39 +595,27 @@ const handleDelete = async (ctx: CliCommandContext): Promise<void> => {
   const registrationId = parameter(ctx, 'registrationId')
   const generationId = requiredFlag(ctx, 'generation-id')
   const registration = await findRegistration(registrationId, generationId)
-  if (!(registration.provider === 'mistral' || isAdvancedProvider(registration.provider)) || registration.provisioning.state !== 'ready' || registration.provisioning.providerVoice.kind !== 'remote-resource') {
-    throw CLIUsageError('Voice deletion supports only ready Mistral, ElevenLabs, Hume, MiniMax, Cartesia, Fish, Speechify, Inworld, or DeepInfra remote-resource registrations.')
+  if (!isVoiceProvider(registration.provider) || registration.provisioning.state !== 'ready' || registration.provisioning.providerVoice.kind !== 'remote-resource') {
+    throw CLIUsageError(`Voice deletion supports only ready ${VOICE_PROVIDERS.join(', ')} remote-resource registrations.`)
   }
   const providerVoice = registration.provisioning.providerVoice
   const confirmResourceId = requiredFlag(ctx, 'confirm-voice-id')
-  const expectedHumeName = registration.provider === 'hume' ? requiredFlag(ctx, 'expected-name') : undefined
   if (confirmResourceId !== providerVoice.resourceId) throw CLIUsageError('--confirm-voice-id must match the exact registered provider resource ID.')
   if (providerVoice.ownership !== 'project' || providerVoice.deletion.state !== 'eligible') throw CLIUsageError('Voice deletion is allowed only for an eligibility-checked project-owned resource.')
   if (ctx.flags['price'] === true) {
     console.log(JSON.stringify({ operation: 'voice-delete', estimatedCostCents: 0, mutation: false, registrationId, generationId, resourceId: providerVoice.resourceId }, null, 2))
     return
   }
-  const wasPending = registration.cleanupState.state === 'deletion-pending'
-  const pending = wasPending
+  const pending = registration.cleanupState.state === 'deletion-pending'
     ? registration
     : await beginVoiceRegistrationDeletion({ charactersRoot: getCharactersRoot(), registrationId, generationId })
-  if (pending.provisioning.state !== 'ready' || pending.provisioning.providerVoice.kind !== 'remote-resource') throw CLIUsageError('Pending deletion lost its exact provider voice identity.')
-  let deleted: { deletedAt: string }
-  if (pending.provider === 'mistral') {
-    const apiKey = requireApiKey('MISTRAL_API_KEY', 'voice:mistral', 'Mistral saved voice deletion')
-    if (pending.provisioning.providerVoice.accountScopeHash !== mistralAccountScopeHash(apiKey)) throw CLIUsageError('Mistral deletion credentials do not match the registered account scope.')
-    const alreadyMissing = wasPending && !await inspectMistralSavedVoiceIfPresent({ apiKey, voiceId: pending.provisioning.providerVoice.resourceId })
-    deleted = alreadyMissing ? { deletedAt: new Date().toISOString() } : await deleteMistralSavedVoice({ apiKey, providerVoice: pending.provisioning.providerVoice, confirmResourceId })
-  } else {
-    if (!isAdvancedProvider(pending.provider)) throw CLIUsageError(`${pending.provider} lifecycle adapter is unavailable.`)
-    const adapter = advancedProvider(pending.provider)
-    if (!adapter.lifecycle) throw CLIUsageError(`${pending.provider} lifecycle adapter is unavailable.`)
-    deleted = await adapter.lifecycle.delete({
-      providerVoice: pending.provisioning.providerVoice,
-      expectedResourceId: confirmResourceId,
-      ...(pending.provider === 'hume' ? { expectedName: expectedHumeName } : {})
-    })
-  }
+  if (pending.provisioning.state !== 'ready' || pending.provisioning.providerVoice.kind !== 'remote-resource' || !isVoiceProvider(pending.provider)) throw CLIUsageError('Pending deletion lost its exact provider voice identity.')
+  const adapter = advancedProvider(pending.provider)
+  if (!adapter.lifecycle) throw CLIUsageError(`${pending.provider} lifecycle adapter is unavailable.`)
+  const deleted = await adapter.lifecycle.delete({
+    providerVoice: pending.provisioning.providerVoice,
+    expectedResourceId: confirmResourceId,
+  })
   const terminal = await transitionVoiceRegistrationLifecycle({
     charactersRoot: getCharactersRoot(), registrationId, generationId: pending.generationId, action: 'delete', transitionedAt: deleted.deletedAt
   })
@@ -708,6 +683,8 @@ const cloneCommand = defineCliCommand({
     kind: strFlag('Clone workflow: instant|professional', 'instant'), 'voice-name': strFlag('Desired provider account voice name'),
     sample: strListFlag('Authorized local clone sample; repeatable for instant cloning'), 'authorization-ref': strFlag('Opaque authorization record for the clone samples'),
     description: strFlag('Optional provider-safe voice description'), 'consent-ref': commonRegistrationFlags['consent-ref'],
+    'consent-name': strFlag('Speechify clone consent full name'), 'consent-email': strFlag('Speechify clone consent email'),
+    locale: strFlag('Speechify clone locale'), gender: strFlag(`Speechify clone gender: ${SPEECHIFY_CLONE_GENDERS.join('|')}`),
     'provenance-ref': commonRegistrationFlags['provenance-ref'], price: commonRegistrationFlags.price,
   },
 }, handleClone)
@@ -721,18 +698,6 @@ const revokeConsentCommand = defineCliCommand({
     'actor-id': strFlag('Opaque audit actor ID')
   }
 }, handleRevokeConsent)
-
-const saveReferenceCommand = defineCliCommand({
-  name: 'voice save-reference', description: 'Create one crash-safe Mistral saved voice from authorized protected reference audio',
-  parameters: [{ key: '<subject-key>', description: 'Canonical character or role key' }],
-  flags: {
-    model: commonRegistrationFlags.model, profile: commonRegistrationFlags.profile,
-    'voice-name': strFlag('Mistral saved voice display name'), 'reference-audio': strFlag('Authorized local reference-audio path'),
-    'authorization-ref': strFlag('Opaque authorization record reference'), 'consent-ref': commonRegistrationFlags['consent-ref'],
-    'provenance-ref': commonRegistrationFlags['provenance-ref'], 'capability-fixture-hash': commonRegistrationFlags['capability-fixture-hash'],
-    price: commonRegistrationFlags.price
-  }
-}, handleMistralSaveReference)
 
 const auditionCommand = defineCliCommand({
   name: 'voice audition', description: 'Synthesize and protect the canonical pre-approval audition set',
@@ -752,7 +717,7 @@ const approveCommand = defineCliCommand({
 }, handleApprove)
 
 const reconcileCommand = defineCliCommand({
-  name: 'voice reconcile', description: 'Resolve an ambiguous Mistral or Fish provisioning attempt without repeating creation',
+  name: 'voice reconcile', description: 'Resolve an ambiguous Fish provisioning attempt without repeating creation',
   parameters: [{ key: '<registration-id>', description: 'Pending voice registration ID' }],
   flags: { 'generation-id': strFlag('Pending registration generation SHA-256'), price: commonRegistrationFlags.price }
 }, handleReconcile)
@@ -772,7 +737,7 @@ const revokeCommand = defineCliCommand({
 const deleteCommand = defineCliCommand({
   name: 'voice delete', description: 'Explicitly delete an eligible project-owned managed voice and tombstone its registration',
   parameters: [{ key: '<registration-id>', description: 'Voice registration ID' }],
-  flags: { 'generation-id': strFlag('Ready registration generation SHA-256'), 'confirm-voice-id': strFlag('Exact provider resource ID confirmation'), 'expected-name': strFlag('Fresh expected Hume custom-voice name'), price: commonRegistrationFlags.price }
+  flags: { 'generation-id': strFlag('Ready registration generation SHA-256'), 'confirm-voice-id': strFlag('Exact provider resource ID confirmation'), price: commonRegistrationFlags.price }
 }, handleDelete)
 
 const statusCommand = defineCliCommand({ name: 'voice status', description: 'Inspect append-preserved registrations and current selections' }, handleStatus)
@@ -788,8 +753,7 @@ export const voiceReferenceAliasFlags = {
   'voice-id': strFlag('Existing provider voice ID'),
   origin: strFlag(`Voice origin: ${VOICE_ORIGINS.join('|')}`, 'provider-stock'),
   'account-scope-hash': strFlag('SHA-256 account scope for account-namespaced voices'),
-  'voice-name': strFlag('Mistral saved voice display name'),
-  'reference-audio': strFlag('Authorized local reference-audio path'),
+  'voice-name': strFlag('Desired provider account voice name'),
   'authorization-ref': strFlag('Opaque authorization record reference'),
   allow: strFlag(`Comma-separated consent grants: ${CONSENT_ACTIONS.join(',')}`),
   evidence: strFlag('Optional consent evidence file kept only in the protected store'),
@@ -801,7 +765,10 @@ export const voiceReferenceAliasFlags = {
   'max-cents': strFlag('Maximum authorized provider spend in cents'),
   reason: strFlag('Required non-sensitive revocation reason'),
   'confirm-voice-id': strFlag('Exact provider resource ID confirmation'),
-  'expected-name': strFlag('Fresh expected Hume custom-voice name'),
+  'consent-name': strFlag('Speechify clone consent full name'),
+  'consent-email': strFlag('Speechify clone consent email'),
+  locale: strFlag('Speechify clone locale'),
+  gender: strFlag(`Speechify clone gender: ${SPEECHIFY_CLONE_GENDERS.join('|')}`),
   source: strFlag('Catalog source: account|provider-library|shared-library', 'account'),
   cursor: strFlag('Opaque provider pagination cursor'),
   'creation-model': strFlag('Provider model used only to create candidates'),
@@ -816,28 +783,27 @@ export const voiceReferenceAliasFlags = {
   sample: strListFlag('Authorized local clone sample; repeatable')
 } as const
 
-export const VOICE_SUBCOMMAND_DEFINITIONS = [consentCommand, revokeConsentCommand, discoverCommand, importCommand, designCommand, materializeCommand, cloneCommand, saveReferenceCommand, auditionCommand, approveCommand, inspectCommand, reconcileCommand, retireCommand, revokeCommand, deleteCommand, statusCommand] as const satisfies readonly CliCommandDefinition[]
+export const VOICE_SUBCOMMAND_DEFINITIONS = [consentCommand, revokeConsentCommand, discoverCommand, importCommand, designCommand, materializeCommand, cloneCommand, auditionCommand, approveCommand, inspectCommand, reconcileCommand, retireCommand, revokeCommand, deleteCommand, statusCommand] as const satisfies readonly CliCommandDefinition[]
 
 export const voiceCommand = defineCliCommand({
   name: 'voice', description: 'Manage durable provider voice registrations separately from speech synthesis',
   subcommands: VOICE_SUBCOMMAND_DEFINITIONS,
   help: {
     examples: [
-      ['bun autoshow voice import hero --provider openai --model gpt-4o-mini-tts-2025-12-15 --voice-id cedar --provenance-ref project:casting', 'Register an existing voice'],
-      ['bun autoshow voice discover --provider elevenlabs --source account', 'Inspect an advanced provider voice catalog'],
+      ['bun autoshow voice import hero --provider elevenlabs --model eleven_v3 --voice-id hpp4J3VqNfWAUOO0d1Us --provenance-ref project:casting', 'Register an existing ElevenLabs voice'],
+      ['bun autoshow voice discover --provider elevenlabs --source account', 'Inspect an ElevenLabs account catalog'],
       ['bun autoshow voice discover --provider cartesia --source provider-library --price', 'Validate Cartesia catalog discovery without provider calls'],
-      ['bun autoshow voice design hero --provider hume --model octave-2 --creation-model octave-1 --description "Warm, weathered guide" --preview-text "A representative passage of at least one hundred characters..." --price', 'Plan bounded design candidates without provider calls'],
       ['bun autoshow voice design hero --provider elevenlabs --model eleven_v3 --creation-model eleven_ttv_v3 --description "Warm, weathered guide" --preview-text "A representative passage of at least one hundred characters..." --price', 'Plan ElevenLabs Voice Design v3 without provider calls'],
-      ['bun autoshow voice design hero --provider minimax --model speech-2.8-hd --creation-model voice-design --description "Warm, weathered guide" --preview-text "A short representative passage." --candidates 1 --price', 'Plan one temporary MiniMax design candidate without provider calls'],
-      ['bun autoshow voice design hero --provider deepinfra --model Qwen/Qwen3-TTS --creation-model Qwen/Qwen3-TTS-VoiceDesign --description "Warm, weathered guide" --preview-text "A short representative passage." --candidates 1 --price', 'Plan one DeepInfra VoiceDesign preview without provider calls'],
+      ['bun autoshow voice design hero --provider inworld --model realtime-tts-2 --creation-model realtime-tts-2 --description "Warm, weathered guide with a grounded midrange" --preview-text "A representative passage." --price', 'Plan Inworld Voice Design without provider calls'],
       ['bun autoshow voice clone hero --provider elevenlabs --model eleven_v3 --kind instant --voice-name "Hero" --sample ./hero.wav --authorization-ref project:casting --consent-ref protected-consent:v1:ID --provenance-ref project:casting --price', 'Plan an ElevenLabs clone without provider calls or writes'],
-      ['bun autoshow voice clone hero --provider deepinfra --model Qwen/Qwen3-TTS --kind instant --voice-name "Hero" --sample ./hero.wav --authorization-ref project:casting --consent-ref protected-consent:v1:ID --provenance-ref project:casting --price', 'Plan a DeepInfra zero-shot voice create without provider calls'],
+      ['bun autoshow voice clone hero --provider cartesia --model sonic-3.5-2026-05-04 --kind instant --voice-name "Hero" --sample ./hero.wav --authorization-ref project:casting --consent-ref protected-consent:v1:ID --provenance-ref project:casting --price', 'Plan a Cartesia instant clone without provider calls'],
+      ['bun autoshow voice clone hero --provider speechify --model simba-3.2 --kind instant --voice-name "Hero" --sample ./hero.wav --consent-name "Authorized Speaker" --consent-email speaker@example.com --authorization-ref project:casting --consent-ref protected-consent:v1:ID --provenance-ref project:casting --price', 'Plan a Speechify personal clone without provider calls'],
       ['bun autoshow voice clone hero --provider fish --model s2.1-pro --kind instant --voice-name "Hero" --sample ./hero.wav --authorization-ref project:casting --consent-ref protected-consent:v1:ID --provenance-ref project:casting --price', 'Plan a Fish fast voice-model create without provider calls'],
       ['bun autoshow voice design hero --provider fish --model s2.1-pro --creation-model voice-design-1 --description "Warm, weathered guide" --preview-text "A short representative passage." --candidates 1 --price', 'Plan one Fish Voice Design preview without provider calls'],
       ['bun autoshow voice audition vr_123 --generation-id SHA256 --representative-line "We leave at dawn." --price', 'Estimate a canonical audition without provider calls'],
       ['bun autoshow voice approve vr_123 --generation-id SHA256 --actor-id editor', 'Approve an audition locally']
     ],
-    notes: ['ElevenLabs, Hume, MiniMax, Cartesia, Fish, Speechify, Inworld, and DeepInfra expose dated advanced capability fixtures. Cartesia and Speechify do not expose text-prompt design. DeepInfra Voice Design is a request-time VoiceDesign-model inference that materializes through POST /v1/voices/add. MiniMax, Cartesia, Speechify, Inworld, and DeepInfra use segmented multi-speaker rendering.', 'Voice creation, audition, approval, reconciliation, and deletion are management actions; tts, write, resume, and synthesis price never create voices.']
+    notes: ['Voice management supports only ElevenLabs eleven_v3, Inworld realtime-tts-2, Fish s2.1-pro, Cartesia sonic-3.5-2026-05-04, and Speechify simba-3.2. Every other TTS model stays synthesis-only through tts with an existing stock, designed, or cloned voice ID.', 'Cartesia and Speechify expose catalog, clone, inspect, and delete. Text-prompt design is ElevenLabs, Inworld, and Fish. tts, write, resume, and synthesis price never create voices.']
   }
 }, async () => {})
 

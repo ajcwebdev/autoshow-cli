@@ -75,6 +75,7 @@ export type TtsRuntimeOptions = {
   inworldTtsModels: string[] | undefined
   inworldTtsModel: string | undefined
   inworldTtsVoice: string | undefined
+  inworldTtsInstructions: string | undefined
   deepinfraTtsModels: string[] | undefined
   deepinfraTtsModel: string | undefined
   deepinfraTtsVoice: string | undefined

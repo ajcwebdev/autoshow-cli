@@ -23,7 +23,7 @@ import {
   SUPPORTED_SPEECHIFY_TTS_MODELS
 } from '~/cli/commands/setup-and-utilities/models/setup-model-options'
 import { formatModelSelector } from '~/cli/commands/setup-and-utilities/models/model-validation'
-import { assertNoVoiceIdentityWithDialogue } from '~/cli/flags/service-selector-normalization/generic-tts-option-selectors'
+import { assertNoVoiceIdentityWithDialogue, normalizeGenericTtsOptionFlags } from '~/cli/flags/service-selector-normalization/generic-tts-option-selectors'
 
 const INVALID_GROQ_TTS_MODEL = 'canopylabs/orpheus-legacy'
 
@@ -266,7 +266,30 @@ describe('option resolution contracts', () => {
         'cartesia-tts-language': 'en'
       }))).toThrow('Cartesia TTS request control flags require selecting cartesia TTS')
 
+      expect(() => collectTtsTargets(buildOptsFromFlags(false, {
+        'inworld-tts-instructions': 'Sound reassuring'
+      }))).toThrow('Inworld TTS request control flags require selecting inworld TTS')
+
     })
+
+  test('Inworld maps --tts-instructions onto request-level steering', () => {
+    const opts = buildOptsFromFlags(false, {
+      'inworld-tts': 'realtime-tts-2',
+      'inworld-tts-instructions': 'Sound reassuring'
+    })
+    expect(opts.inworldTtsInstructions).toBe('Sound reassuring')
+    expect(collectTtsTargets(opts).map(target => target.service)).toEqual(['inworld'])
+    expect(() => collectTtsTargets(buildOptsFromFlags(false, {
+      'kitten-tts': 'kitten-tts-nano',
+      'inworld-tts-instructions': 'Sound reassuring'
+    }))).toThrow('Inworld TTS request control flags require selecting inworld TTS')
+    const generic = normalizeGenericTtsOptionFlags(
+      { 'inworld-tts': 'realtime-tts-2', 'tts-instructions': 'Sound reassuring' },
+      new Set(['inworld-tts', 'tts-instructions']),
+      [{ name: 'tts-instructions', raw: '--tts-instructions', value: 'Sound reassuring', known: true }]
+    )
+    expect(generic.flags['inworld-tts-instructions']).toBe('Sound reassuring')
+  })
 
   test('OpenAI classic models are retired before pricing or dispatch', () => {
     expect(() => collectTtsTargets(buildOptsFromFlags(false, {

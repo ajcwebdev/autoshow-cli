@@ -57,6 +57,7 @@ export type TtsTargetSelection = {
   cartesiaLanguage: string | undefined
   fishVoiceId: string | undefined
   inworldVoiceId: string | undefined
+  inworldInstructions: string | undefined
   deepinfraVoiceId: string | undefined
   replicateVoiceId: string | undefined
   falVoiceId: string | undefined

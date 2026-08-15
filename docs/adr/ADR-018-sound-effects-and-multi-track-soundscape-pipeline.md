@@ -5,6 +5,7 @@
 - **Decision Status:** Accepted
 - **Date Created:** 2026-08-13
 - **Date Updated:** 2026-08-15
+- **Voice command scope:** See [TTS synthesis versus voice management](#tts-synthesis-versus-voice-management).
 - **Verification Status:** Passed — offline test plan last passed 2026-08-14 with no provider calls; Phase 8A–8D completed the same day for the seven registered Episode 2 Scene 4 targets
 
 ## Context
@@ -58,6 +59,20 @@ This applies to:
 - `comic generate-audio` target selection, static validation, no-call price planning, execution readiness, bounded dispatch, resume, and publication when a scene contains sound intent.
 - Local audio normalization, placement, looping, fades, stereo panning, ambience ducking, limiting, stem export, and final WAV mastering.
 - Phase 1 through Phase 7 extensions to provider-qualified synthesis, protected voice provisioning, and the provider-dependent portions of the shared `voice` command.
+
+### TTS synthesis versus voice management
+
+`tts` remains compatible with every implemented TTS model and uses exactly one existing stock, designed, or cloned voice. `voice` and `comic reference-voice` manage catalog, design, clone, inspect, and delete only for ElevenLabs `eleven_v3`, Inworld `realtime-tts-2`, Fish `s2.1-pro`, Cartesia `sonic-3.5-2026-05-04`, and Speechify `simba-3.2`. Hume, MiniMax, DeepInfra, Mistral, Replicate, fal.ai, and stock-only models stay synthesis-only. fal.ai Maya stays off the voice surface until it exposes a durable voice port.
+
+Each voice-managed model must keep a working expressiveness path. The methods differ and are not rewritten into one markup dialect:
+
+| Model | Expressiveness method | Compatible path |
+|---|---|---|
+| ElevenLabs `eleven_v3` | v3 audio tags plus style, stability, and similarity | Authored `[whispers]`/`[laughs]` stay in spoken text; dialogue `delivery` converts to the documented v3 tag allowlist; `--elevenlabs-tts-style`, `--elevenlabs-tts-stability`, and `--elevenlabs-tts-similarity-boost` serialize as `voice_settings` |
+| Inworld `realtime-tts-2` | Request-level instruction plus inline vocal tags | `--tts-instructions` serializes as `instruction`; `[happy]`, `[laugh]`, and `[breathe]` stay in `text` |
+| Fish `s2.1-pro` | In-text `[emotion]` and delivery markup | Dialogue `delivery` converts to the documented Fish tag allowlist; inline `[emotion]` stays in spoken text |
+| Cartesia `sonic-3.5-2026-05-04` | SSML-like performance tags plus `[laughter]` | `<speed>`, `<volume>`, `<emotion>`, `<break>`, `<spell>`, and `[laughter]` stay in the transcript |
+| Speechify `simba-3.2` | SSML `<speak>` with prosody, break, emphasis, sub, and `speechify:style` | Authored SSML stays in `input`; wrap SSML in `<speak>` |
 
 This does not:
 

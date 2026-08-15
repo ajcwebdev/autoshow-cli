@@ -130,7 +130,7 @@ bun autoshow video "a timelapse storm over downtown chicago" --provider gemini=v
 
 ```bash
 # Register an existing provider voice locally without making a provider call
-bun autoshow voice import hero --provider openai --model gpt-4o-mini-tts-2025-12-15 --voice-id cedar --origin provider-stock --provenance-ref project:casting
+bun autoshow voice import hero --provider elevenlabs --model eleven_v3 --voice-id hpp4J3VqNfWAUOO0d1Us --origin provider-stock --provenance-ref project:casting
 
 # Discover voices from a hosted ElevenLabs account
 bun autoshow voice discover --provider elevenlabs --source account

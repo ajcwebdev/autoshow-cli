@@ -220,12 +220,11 @@ Grok TTS text is split into 2000-character chunks.
 | Selector | `--provider mistral[=<model>]` |
 | Models | `voxtral-mini-tts-2603` |
 | Voice source | Existing `--tts-voice <id>` or authorized one-off `--tts-ref-audio <path>` |
-| Saved reference | Create separately with `voice save-reference` |
+| Saved reference | Not managed by `voice`; use an existing voice ID or authorized one-off `--tts-ref-audio` |
 | Dialogue mode | `--tts-dialogue-format screenplay\|labeled` plus repeatable `--tts-speaker SPEAKER=path` |
 
 ```bash
 bun autoshow tts input/examples/tts/1-tts.md --provider mistral=voxtral-mini-tts-2603 --tts-voice voice_abc123
-bun autoshow voice save-reference hero --model voxtral-mini-tts-2603 --voice-name AutoShowAnthony --reference-audio input/examples/audio/anthony-voice.mp3 --authorization-ref release:hero --consent-ref protected-consent:v1:STORE:ASSET:SHA256 --provenance-ref project:casting --price
 bun autoshow tts input/chat-and-duco.txt \
   --provider mistral=voxtral-mini-tts-2603 \
   --tts-dialogue-format screenplay \
@@ -233,7 +232,7 @@ bun autoshow tts input/chat-and-duco.txt \
   --tts-speaker CHAT=https://ajc.pics/autoshow/examples/1-audio.mp3
 ```
 
-Mistral Voxtral TTS requires an existing voice ID or an authorized one-off local reference file. Saved reference voices are created via `voice save-reference`.
+Mistral Voxtral TTS requires an existing voice ID or an authorized one-off local reference file. `voice` does not create or manage Mistral saved voices.
 
 Dialogue mode uses `--tts-speaker SPEAKER=VOICE|path` and `--tts-dialogue-format`. Gemini, ElevenLabs `eleven_v3`, and Hume `octave-2` use native dialogue serializers when eligible; all other targets synthesize per-turn segments and concatenate them into `speech.wav`.
 
@@ -320,7 +319,7 @@ bun autoshow tts input/examples/tts/1-tts.md --provider hume=octave-2 --tts-voic
 bun autoshow config --tts hume=octave-2 --tts-voice "Studio Voice" --hume-tts-voice-provider CUSTOM_VOICE
 ```
 
-Single-voice Hume TTS uses Octave 2 via `POST /v0/tts/file`. Multi-speaker plans use ordered Octave 2 utterances via `POST /v0/tts`. Use `voice discover` to inspect Hume stock/custom voices.
+Single-voice Hume TTS uses Octave 2 via `POST /v0/tts/file`. Multi-speaker plans use ordered Octave 2 utterances via `POST /v0/tts`. Hume is synthesis-only: pass an existing stock or custom voice ID with `--tts-voice`.
 
 ### Cartesia
 
@@ -391,7 +390,7 @@ bun autoshow tts input/examples/tts/1-tts.md --provider deepinfra=Qwen/Qwen3-TTS
 bun autoshow tts input/examples/tts/1-tts.md --provider deepinfra=Qwen/Qwen3-TTS-VoiceDesign
 ```
 
-DeepInfra request fields are model-specific: Chatterbox uses `text` with optional `voice_id`, MiMo uses `text` plus `voice`, and Qwen uses `input` plus `voice`. Registry chunk limits take precedence over the 2000-character default: MiMo uses 1000, Qwen uses 4000, and Chatterbox uses 5000. Paid requests with ambiguous admission are not retried unless `--tts-allow-ambiguous-redispatch` is set. Multi-speaker dialogue uses the segmented renderer. Use `voice discover`, `voice design`, and `voice materialize` for account catalog and VoiceDesign flows.
+DeepInfra request fields are model-specific: Chatterbox uses `text` with optional `voice_id`, MiMo uses `text` plus `voice`, and Qwen uses `input` plus `voice`. Registry chunk limits take precedence over the 2000-character default: MiMo uses 1000, Qwen uses 4000, and Chatterbox uses 5000. Paid requests with ambiguous admission are not retried unless `--tts-allow-ambiguous-redispatch` is set. Multi-speaker dialogue uses the segmented renderer. DeepInfra is synthesis-only: pass an existing account or VoiceDesign voice ID with `--tts-voice`.
 
 ### Replicate
 
@@ -472,7 +471,9 @@ bun autoshow voice <action> [identity] [flags]
 bun autoshow comic reference-voice <action> [identity] [flags]
 ```
 
-Available actions are `consent`, `revoke-consent`, `discover`, `import`, `design`, `materialize`, `save-reference`, `audition`, `approve`, `inspect`, `reconcile`, `retire`, `revoke`, `delete`, and `status`. Run `bun autoshow voice <action> --help` for the exact action flags.
+Available actions are `consent`, `revoke-consent`, `discover`, `import`, `design`, `materialize`, `clone`, `audition`, `approve`, `inspect`, `reconcile`, `retire`, `revoke`, `delete`, and `status`. Run `bun autoshow voice <action> --help` for the exact action flags.
+
+`voice` manages only these synthesis models: ElevenLabs `eleven_v3`, Inworld `realtime-tts-2`, Fish `s2.1-pro`, Cartesia `sonic-3.5-2026-05-04`, and Speechify `simba-3.2`. Every other implemented TTS model stays compatible with `tts` and uses a single existing stock, designed, or cloned voice ID. fal.ai Maya remains synthesis-only until it exposes a durable voice port.
 
 Voice management reads authored profiles from `input/characters/character-voices.json`. Profiles are independent of the visual character catalog. A minimal catalog is:
 
@@ -500,32 +501,27 @@ Voice management reads authored profiles from `input/characters/character-voices
 Register an existing provider voice without making a provider call:
 
 ```bash
-bun autoshow voice import hero --provider openai --model gpt-4o-mini-tts-2025-12-15 --voice-id cedar --origin provider-stock --provenance-ref project:casting
+bun autoshow voice import hero --provider elevenlabs --model eleven_v3 --voice-id hpp4J3VqNfWAUOO0d1Us --origin provider-stock --provenance-ref project:casting
 ```
 
-ElevenLabs, Hume, MiniMax, Cartesia, Fish, Speechify, Inworld, and DeepInfra expose read-only catalog discovery through the same shared command. `--price` validates the operation and reports the dated capability fixture without reading the provider:
+ElevenLabs, Inworld, Fish, Cartesia, and Speechify expose read-only catalog discovery through the same shared command. `--price` validates the operation and reports the dated capability fixture without reading the provider:
 
 ```bash
 bun autoshow voice discover --provider elevenlabs --source account
 bun autoshow voice discover --provider elevenlabs --source shared-library --cursor OPAQUE_CURSOR
-bun autoshow voice discover --provider hume --source provider-library
-bun autoshow voice discover --provider hume --source account --price
-bun autoshow voice discover --provider minimax --source account
 bun autoshow voice discover --provider cartesia --source provider-library --cursor OPAQUE_CURSOR
 bun autoshow voice discover --provider fish --source account --price
 bun autoshow voice discover --provider speechify --source account --price
-bun autoshow voice discover --provider deepinfra --source account --price
+bun autoshow voice discover --provider inworld --source account --price
 ```
 
-Advanced Voice Design is a two-step operation for ElevenLabs, Hume, MiniMax, Fish, Inworld, and DeepInfra. `design` creates a bounded set of protected, unapproved candidates; `materialize` creates exactly one selected provider resource through the crash-safe provisioning journal and appends a draft registration. Hume designs with Octave 1 even when the materialized voice will synthesize with Octave 2. ElevenLabs remix requires both the stable source ID and a dated eligibility snapshot hash before any provider call. MiniMax returns one candidate whose remote ID remains temporary until first successful synthesis and expires after seven days if it is not activated. Fish and DeepInfra design are request-time inference, so materialization resolves the selected protected preview and supplies those exact non-empty bytes to the documented create-voice endpoint; a candidate ID alone is never treated as a remote voice:
+Advanced Voice Design is a two-step operation for ElevenLabs, Fish, and Inworld. `design` creates a bounded set of protected, unapproved candidates; `materialize` creates exactly one selected provider resource through the crash-safe provisioning journal and appends a draft registration. ElevenLabs remix requires both the stable source ID and a dated eligibility snapshot hash before any provider call. Fish design is request-time inference, so materialization resolves the selected protected preview and supplies those exact non-empty bytes to the documented create-model endpoint; a candidate ID alone is never treated as a remote voice. Cartesia and Speechify do not expose text-prompt design:
 
 ```bash
-bun autoshow voice design hero --provider hume --model octave-2 --creation-model octave-1 --description "Warm, weathered guide" --preview-text "A representative passage of at least one hundred characters that exercises the intended voice..." --candidates 3 --price
 bun autoshow voice design hero --provider elevenlabs --model eleven_v3 --creation-model eleven_ttv_v3 --description "Warm, weathered guide" --preview-text "A representative passage of at least one hundred characters that exercises the intended voice..." --price
-bun autoshow voice design hero --provider minimax --model speech-2.8-hd --creation-model voice-design --description "Warm, weathered guide" --preview-text "A short representative passage." --candidates 1 --price
 bun autoshow voice design hero --provider fish --model s2.1-pro --creation-model voice-design-1 --description "Warm, weathered guide" --preview-text "A short representative passage." --candidates 1 --price
-bun autoshow voice design hero --provider deepinfra --model Qwen/Qwen3-TTS --creation-model Qwen/Qwen3-TTS-VoiceDesign --description "Warm, weathered guide" --preview-text "A short representative passage." --candidates 1 --price
-bun autoshow voice materialize CANDIDATE_ID --provider hume --subject-key hero --voice-name HeroGuide --provenance-ref project:casting --price
+bun autoshow voice design hero --provider inworld --model realtime-tts-2 --creation-model realtime-tts-2 --description "Warm, weathered guide with a grounded midrange" --preview-text "A representative passage." --price
+bun autoshow voice materialize CANDIDATE_ID --provider elevenlabs --subject-key hero --voice-name HeroGuide --provenance-ref project:casting --price
 ```
 
 Remove `--price` from `design` only when you intend to purchase provider previews. Candidate audio stays in the owner-only protected store. Remove `--price` from `materialize` only after selecting one candidate and intending to create its remote voice. A materialized registration must still pass the canonical audition and explicit local approval flow below before comic rendering can use it.
@@ -536,13 +532,15 @@ For a consent-bound reference, first store an explicit per-action consent record
 bun autoshow voice consent hero --provenance-ref release:hero-v1 --allow upload,new-synthesis,retention,deletion --actor-id casting_editor
 ```
 
-The command prints an opaque `protected-consent:v1:...` locator. Use that locator when planning or explicitly executing Mistral saved-reference provisioning:
+The command prints an opaque `protected-consent:v1:...` locator. Use that locator when planning or explicitly executing instant clone:
 
 ```bash
-bun autoshow voice save-reference hero --model voxtral-mini-tts-2603 --voice-name HeroReference --reference-audio input/voices/hero.wav --authorization-ref release:hero-v1 --consent-ref protected-consent:v1:STORE:ASSET:SHA256 --provenance-ref project:casting --price
+bun autoshow voice clone hero --provider elevenlabs --model eleven_v3 --kind instant --voice-name HeroClone --sample input/voices/hero.wav --authorization-ref release:hero-v1 --consent-ref protected-consent:v1:STORE:ASSET:SHA256 --provenance-ref project:casting --price
+bun autoshow voice clone hero --provider cartesia --model sonic-3.5-2026-05-04 --kind instant --voice-name HeroClone --sample input/voices/hero.wav --authorization-ref release:hero-v1 --consent-ref protected-consent:v1:STORE:ASSET:SHA256 --provenance-ref project:casting --price
+bun autoshow voice clone hero --provider speechify --model simba-3.2 --kind instant --voice-name HeroClone --sample input/voices/hero.wav --consent-name "Authorized Speaker" --consent-email speaker@example.com --authorization-ref release:hero-v1 --consent-ref protected-consent:v1:STORE:ASSET:SHA256 --provenance-ref project:casting --price
 ```
 
-Remove `--price` only when you intend to execute the provider mutation. A provisioning journal is written before dispatch, records issued provider resources before the terminal outcome, and never automatically repeats an ambiguous create. Use `voice reconcile` with the pending registration generation after an interrupted request.
+Remove `--price` only when you intend to execute the provider mutation. A provisioning journal is written before dispatch, records issued provider resources before the terminal outcome, and never automatically repeats an ambiguous create. Use `voice reconcile` with a pending Fish registration generation after an interrupted request.
 
 Consent records are immutable and content-addressed. Revoke one by appending a protected marker; the original locator then fails every consent gate:
 
@@ -563,9 +561,9 @@ Approval appends a new content-identified registration generation and atomically
 
 `retire` and `revoke` are local append-preserving transitions that remove the exact approved generation from the current index. Revocation records a reason and moves protected assets to `deletion-required` when the registration policy requires it; it does not silently delete remote resources.
 
-`inspect` performs a read-only provider check for ready ElevenLabs, Hume, MiniMax, Cartesia, Fish, Speechify, Inworld, DeepInfra, and Mistral account resources unless `--price` is supplied. MiniMax designed and cloned voices remain pending until activation makes them visible in the account catalog. Expired, missing, pending, or verification-required resources never become synthesis-ready merely because a local registration exists.
+`inspect` performs a read-only provider check for ready ElevenLabs, Inworld, Fish, Cartesia, and Speechify account resources unless `--price` is supplied. Expired, missing, pending, or verification-required resources never become synthesis-ready merely because a local registration exists.
 
-`delete` is an explicit provider-mutating action for eligibility-checked, project-owned Mistral, ElevenLabs, Hume, MiniMax, Cartesia, Fish, Speechify, Inworld, and DeepInfra resources and requires `--confirm-voice-id` to equal the exact resource ID. A resource cannot be deleted while another current model-qualified registration shares its provider/resource identity. Hume's endpoint deletes by mutable name, so Hume additionally requires `--expected-name`; AutoShow immediately refreshes the custom catalog and proceeds only when that name resolves uniquely to the expected ID. MiniMax deletion selects the clone or generated-voice resource class from the registered origin. Cartesia, Fish, and Speechify delete only project-owned account/personal resources. AutoShow first appends a local `deletion-pending` generation, then records a terminal deleted tombstone after the provider confirms deletion.
+`delete` is an explicit provider-mutating action for eligibility-checked, project-owned ElevenLabs, Inworld, Fish, Cartesia, and Speechify resources and requires `--confirm-voice-id` to equal the exact resource ID. A resource cannot be deleted while another current model-qualified registration shares its provider/resource identity. Cartesia, Fish, and Speechify delete only project-owned account/personal resources. AutoShow first appends a local `deletion-pending` generation, then records a terminal deleted tombstone after the provider confirms deletion.
 
 ### Protected and Ordinary Artifacts
 
@@ -584,7 +582,7 @@ Registration and audition generations are create-only and content-identified. Th
 
 ### Voice Price Safety
 
-Management `--price` modes perform local validation and estimate only. They make no provider calls and write neither protected nor ordinary artifacts. Voice Design reports a numeric preview estimate from the exact provider, creation model, character count, and candidate count; ElevenLabs charges its preview text once while Hume charges it for each requested candidate. Materialization reports zero estimated provider cost because the supported design flows include saving the selected resource. Ordinary `tts`, `write`, resume, configuration loading, and synthesis price paths cannot express provider resource creation.
+Management `--price` modes perform local validation and estimate only. They make no provider calls and write neither protected nor ordinary artifacts. Voice Design reports a numeric preview estimate from the exact provider, creation model, character count, and candidate count; ElevenLabs, Fish, and Inworld charge the preview text once. Materialization reports zero estimated provider cost because the supported design flows include saving the selected resource. Ordinary `tts`, `write`, resume, configuration loading, and synthesis price paths cannot express provider resource creation.
 
 Provider prices and eligibility can change. Treat the estimate as a preflight derived from AutoShow's dated pricing configuration and use the provider console when account-specific terms matter.
 
@@ -637,4 +635,4 @@ Delivery control is split into natural-language prompts, request-level specific 
 | fal.ai `fal-ai/bytedance/seed-speech/tts/v2` | ✅ 2026-03-15 | ✅ 41 | ❌ No; segmented rendering | ✅ `voice_instruction` delivery steering | ⚠️ Speed, volume, and pitch | ❌ Not exposed |
 | fal.ai `async/tts-pro/v1.0` | ✅ 2026-01-15 | ⚠️ Curated Async voice-library IDs | ❌ No; segmented rendering | ❌ Not exposed | ❌ Not exposed | ⚠️ In-text pause, emphasis, and timing markup |
 
-Clone ports consume protected assets and explicit consent/provenance records and never place sample bytes or contact PII in ordinary artifacts. Synthesis commands cannot invoke them. Dashboard-only, subscription-gated, and verification-gated clone or design flows are not exposed. Cartesia and Speechify text-prompt design and MiniMax/Cartesia/Speechify/Inworld/DeepInfra native multi-speaker dialogue are unsupported rather than inferred from adjacent provider features. Fish `s2.1-pro` native dialogue and timestamped streaming are implemented. Voice Design is the `voice-design-1` creation endpoint on that same model, not a second synthesis selector. Inworld exposes catalog discovery, prompt voice design, instant clone, inspect, and project-owned delete. DeepInfra exposes account catalog discovery, VoiceDesign inference, instant clone through create-voice, inspect, and project-owned delete. Replicate exposes only the pinned Kokoro stock-voice synthesis target; reference-audio clone models remain unavailable until they have protected-asset and consent-aware adapters. Request-time model features are not represented as fabricated durable resources.
+Clone ports consume protected assets and explicit consent/provenance records and never place sample bytes or contact PII in ordinary artifacts. Synthesis commands cannot invoke them. Dashboard-only, subscription-gated, and verification-gated clone or design flows are not exposed. Cartesia and Speechify text-prompt design and MiniMax/Cartesia/Speechify/Inworld/DeepInfra native multi-speaker dialogue are unsupported rather than inferred from adjacent provider features. Fish `s2.1-pro` native dialogue and timestamped streaming are implemented. Voice Design is the `voice-design-1` creation endpoint on that same model, not a second synthesis selector. `voice` exposes catalog, design, clone, inspect, and project-owned delete only for the five managed models above. Hume, MiniMax, DeepInfra, Mistral, and every stock-voice provider remain `tts`-only. fal.ai Maya stays synthesis-only until it exposes a durable voice port. Request-time model features are not represented as fabricated durable resources.

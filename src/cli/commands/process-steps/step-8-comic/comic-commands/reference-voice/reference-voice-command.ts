@@ -3,7 +3,7 @@ import { defineCliCommand } from '~/cli/native/native-types'
 import { CLIUsageError } from '~/utils/error-handler'
 import { VOICE_SUBCOMMAND_DEFINITIONS, voiceReferenceAliasFlags } from '../../../step-4-tts/voice-management/define-voice-command'
 
-const ACTIONS = ['consent', 'revoke-consent', 'discover', 'import', 'design', 'materialize', 'save-reference', 'audition', 'approve', 'inspect', 'reconcile', 'retire', 'revoke', 'delete', 'status'] as const
+const ACTIONS = ['consent', 'revoke-consent', 'discover', 'import', 'design', 'materialize', 'audition', 'approve', 'inspect', 'reconcile', 'retire', 'revoke', 'delete', 'status'] as const
 const REGISTRATION_ACTIONS = new Set(['audition', 'approve', 'inspect', 'reconcile', 'retire', 'revoke', 'delete'])
 
 const handleReferenceVoice = async (ctx: CliCommandContext): Promise<void> => {
@@ -46,7 +46,7 @@ export const referenceVoiceCommandDefinition = defineCliCommand({
   flags: voiceReferenceAliasFlags,
   help: {
     examples: [
-      ['bun autoshow comic reference-voice import hero --provider openai --model gpt-4o-mini-tts-2025-12-15 --voice-id cedar --provenance-ref project:casting', 'Register an existing character voice'],
+      ['bun autoshow comic reference-voice import hero --provider elevenlabs --model eleven_v3 --voice-id hpp4J3VqNfWAUOO0d1Us --provenance-ref project:casting', 'Register an existing character voice'],
       ['bun autoshow comic reference-voice audition vr_123 --generation-id SHA256 --representative-line "We leave at dawn." --price', 'Estimate the canonical audition'],
       ['bun autoshow comic reference-voice approve vr_123 --generation-id SHA256 --actor-id editor', 'Approve and promote the audition locally']
     ],

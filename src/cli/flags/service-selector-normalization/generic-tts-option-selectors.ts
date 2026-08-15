@@ -90,7 +90,8 @@ const TTS_GENERIC_OPTION_TARGETS = {
     voiceIdentity: false,
     targets: {
       openai: 'openai-tts-instructions',
-      fal: 'fal-tts-instructions'
+      fal: 'fal-tts-instructions',
+      inworld: 'inworld-tts-instructions'
     }
   },
   'tts-output-format': {

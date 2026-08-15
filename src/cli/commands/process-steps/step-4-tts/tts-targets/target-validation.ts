@@ -101,6 +101,9 @@ export const validateTtsTargetSelection = (
   if ((selection.openaiInstructions || typeof selection.openaiSpeed === 'number') && selection.openaiModels.length === 0) {
     throw CLIUsageError(requireProviderSelectionMessage('OpenAI TTS', 'openai', 'request control flags'))
   }
+  if (selection.inworldInstructions && selection.inworldModels.length === 0) {
+    throw CLIUsageError(requireProviderSelectionMessage('Inworld TTS', 'inworld', 'request control flags'))
+  }
   if (selection.openaiInstructions) {
     const incompatibleModels = selection.openaiModels.filter((model) => model !== 'gpt-4o-mini-tts-2025-12-15')
     if (incompatibleModels.length > 0) {

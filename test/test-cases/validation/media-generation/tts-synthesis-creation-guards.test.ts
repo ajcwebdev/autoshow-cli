@@ -30,8 +30,13 @@ describe('Phase 0 synthesis-side voice creation guards', () => {
 
       expect(thrown).toBeInstanceOf(AppUsageError)
       expect((thrown as Error).message).toContain(`Explicit synthesis option --${flag}`)
-      expect((thrown as AppUsageError).hints.join(' ')).toContain('`voice` command')
-      expect((thrown as AppUsageError).hints.join(' ')).toContain('`comic reference-voice`')
+      if (flag === 'mistral-tts-voice-name') {
+        expect((thrown as AppUsageError).hints.join(' ')).toContain('--tts-ref-audio')
+        expect((thrown as AppUsageError).hints.join(' ')).toContain('does not create Mistral saved voices')
+      } else {
+        expect((thrown as AppUsageError).hints.join(' ')).toContain('`voice` command')
+        expect((thrown as AppUsageError).hints.join(' ')).toContain('`comic reference-voice`')
+      }
     })
   }
 

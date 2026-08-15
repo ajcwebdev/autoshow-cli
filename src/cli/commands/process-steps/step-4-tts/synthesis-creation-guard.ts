@@ -113,7 +113,9 @@ const originLabel = (origin: TtsSynthesisCreationOptionOrigin): string => {
 }
 
 const migrationHint = (option: BlockedCreationOption): string =>
-  `Create or import the ${option.provider} voice explicitly with the shared \`voice\` command or \`comic reference-voice\`, then synthesize with its existing voice ID via ${option.existingVoiceFlag}.`
+  option.provider === 'Mistral'
+    ? `Use an existing Mistral voice ID via ${option.existingVoiceFlag}, or authorize a one-off --tts-ref-audio reference. The voice command does not create Mistral saved voices.`
+    : `Create or import the ${option.provider} voice explicitly with the shared \`voice\` command or \`comic reference-voice\`, then synthesize with its existing voice ID via ${option.existingVoiceFlag}.`
 
 export const validateTtsSynthesisCreationOptions = (
   options: object,

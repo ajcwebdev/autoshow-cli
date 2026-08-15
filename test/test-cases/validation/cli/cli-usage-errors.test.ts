@@ -897,3 +897,37 @@ test('comic draft-scenes rejects invalid concurrency values', async () => {
     'Invalid concurrency'
   )
 })
+
+test('voice rejects providers outside the managed five-model surface', async () => {
+  await expectUsageExit(
+    ['voice', 'import', 'hero', '--provider', 'openai', '--model', 'gpt-4o-mini-tts-2025-12-15', '--voice-id', 'cedar', '--provenance-ref', 'project:casting', '--price'],
+    'Unknown voice provider openai. Expected: elevenlabs, inworld, fish, cartesia, speechify.'
+  )
+  await expectUsageExit(
+    ['voice', 'discover', '--provider', 'hume', '--price'],
+    'Unknown voice provider hume. Expected: elevenlabs, inworld, fish, cartesia, speechify.'
+  )
+  await expectUsageExit(
+    ['voice', 'design', 'hero', '--provider', 'minimax', '--model', 'speech-2.8-hd', '--creation-model', 'voice-design', '--description', 'Warm, weathered guide', '--preview-text', 'A short representative passage.', '--price'],
+    'Unknown voice provider minimax. Expected: elevenlabs, inworld, fish, cartesia, speechify.'
+  )
+  await expectUsageExit(
+    ['voice', 'clone', 'hero', '--provider', 'deepinfra', '--model', 'Qwen/Qwen3-TTS', '--kind', 'instant', '--voice-name', 'Hero', '--sample', 'input/examples/audio/anthony-voice.mp3', '--authorization-ref', 'project:casting', '--consent-ref', 'protected-consent:v1:ID', '--provenance-ref', 'project:casting', '--price'],
+    'Unknown voice provider deepinfra. Expected: elevenlabs, inworld, fish, cartesia, speechify.'
+  )
+  await expectUsageExit(
+    ['voice', 'save-reference', 'hero', '--model', 'voxtral-mini-tts-2603', '--price'],
+    'Unknown command "voice save-reference"'
+  )
+})
+
+test('voice design rejects catalog-only providers and unknown synthesis models', async () => {
+  await expectUsageExit(
+    ['voice', 'design', 'hero', '--provider', 'cartesia', '--model', 'sonic-3.5-2026-05-04', '--creation-model', 'voice-design', '--description', 'Warm, weathered guide', '--preview-text', 'A short representative passage.', '--price'],
+    'Voice Design currently supports elevenlabs, fish, inworld; the selected provider has no implemented text-prompt design adapter.'
+  )
+  await expectUsageExit(
+    ['voice', 'import', 'hero', '--provider', 'elevenlabs', '--model', 'eleven_multilingual_v2', '--voice-id', 'hpp4J3VqNfWAUOO0d1Us', '--provenance-ref', 'project:casting', '--price'],
+    'Voice management for elevenlabs requires --model eleven_v3.'
+  )
+})
