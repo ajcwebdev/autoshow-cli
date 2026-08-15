@@ -19,10 +19,8 @@ export const buildLlmEstimates = async (
   const llmConfig = resolveLLMDefaults(opts)
   const rates = estimateLlmRates(llmConfig)
   const plannedRates = rates.map((rate) => {
-    const registryService = rate.provider === 'llama.cpp' ? 'llama' : rate.provider
-    const requestedReasoningEffort = registryService === 'llama' || registryService === 'llamafile'
-      ? undefined
-      : opts.reasoningEffort
+    const registryService = rate.provider
+    const requestedReasoningEffort = opts.reasoningEffort
     return {
       rate,
       registryService,

@@ -164,7 +164,6 @@ export type ComputeEstimatedCostsInput = SttModelOverrides & OcrModelOverrideOpt
   }> | undefined
   hostedOcrTokenProfilePath?: string | undefined
   extractPageCount?: number | undefined
-  useReverb?: boolean | undefined
   audioDurationSeconds?: number | undefined
   llmTargets?: LlmPricingTarget[] | undefined
   llmService?: string | undefined

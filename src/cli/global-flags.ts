@@ -44,6 +44,5 @@ export const GLOBAL_FLAG_DEFINITIONS = {
     description: colorizeHelpDescription('Force ANSI colors on, or use --no-color to disable (overrides FORCE_COLOR/NO_COLOR; default: auto-detect TTY)'),
     type: Boolean,
     negatable: true
-  },
-  'model-path': strFlag(colorizeHelpDescription('Path to a local GGUF model file for llama.cpp inference (overrides the default downloaded model)'))
+  }
 } as const satisfies CliFlagsDefinition

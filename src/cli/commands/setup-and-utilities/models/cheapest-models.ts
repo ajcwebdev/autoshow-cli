@@ -2,17 +2,14 @@ import { estimateVideoCost } from '~/cli/commands/process-steps/step-6-video/vid
 import { getModelRegistry } from './model-loader'
 import { filterModelNamesByLifecycle } from './model-loader/model-lifecycle'
 import { InternalError } from '~/utils/error-handler'
-import type { CheapestVideoSelection } from '~/types'
+import type { CheapestLlmSelection, CheapestTtsSelection, CheapestVideoSelection, Step3Metadata, TtsProvider } from '~/types'
+import { STANDALONE_TTS_PROVIDER_TARGETS, WRITE_LLM_PROVIDER_TARGETS } from '~/cli/flags/service-selector-normalization/provider-targets'
 import { DEFAULT_DEEPINFRA_OCR_MODEL } from './ocr-models'
-import { SUPPORTED_LLAMAFILE_MODELS } from './llm-models'
 
 const PERFORMANCE_TIE_BREAKERS = ['mini', 'nano', 'micro', 'flash', 'turbo', 'fast', 'small']
 
 const DEFAULT_LOCAL_MODEL_BY_FLAG = {
   whisper: 'tiny',
-  llama: 'ggml-org/gemma-3-270m-it-GGUF',
-  llamafile: SUPPORTED_LLAMAFILE_MODELS[0],
-  'kitten-tts': 'kitten-tts-nano-0.8-int8',
 } as const satisfies Record<string, string>
 
 const DEFAULT_HOSTED_TTS_MODEL_BY_FLAG = {
@@ -159,24 +156,31 @@ const selectCheapestLlmModel = (service: string): string => {
   })
 }
 
+const ttsModelCost = (model: {
+  costPerRequestCents?: number | undefined
+  costPer1kCharsCents?: number | undefined
+  inputCostPer1MCharsCents?: number | undefined
+  outputCostPer1MCharsCents?: number | undefined
+}): number => {
+  if (typeof model.costPerRequestCents === 'number') {
+    return model.costPerRequestCents
+  }
+  if (typeof model.costPer1kCharsCents === 'number') {
+    return model.costPer1kCharsCents
+  }
+  if (typeof model.inputCostPer1MCharsCents === 'number' && typeof model.outputCostPer1MCharsCents === 'number') {
+    return (model.inputCostPer1MCharsCents + model.outputCostPer1MCharsCents) / 1000
+  }
+  return Number.POSITIVE_INFINITY
+}
+
 const selectCheapestTtsModel = (service: string): string => {
   const serviceConfig = getModelRegistry().tts[service]
   if (!serviceConfig) {
     throw InternalError(`Missing TTS service config: ${service}`, { stage: 'models:cheapest' })
   }
 
-  return selectCheapestRegistryModel(serviceConfig.models, (model) => {
-    if (typeof model.costPerRequestCents === 'number') {
-      return model.costPerRequestCents
-    }
-    if (typeof model.costPer1kCharsCents === 'number') {
-      return model.costPer1kCharsCents
-    }
-    if (typeof model.inputCostPer1MCharsCents === 'number' && typeof model.outputCostPer1MCharsCents === 'number') {
-      return (model.inputCostPer1MCharsCents + model.outputCostPer1MCharsCents) / 1000
-    }
-    return Number.POSITIVE_INFINITY
-  })
+  return selectCheapestRegistryModel(serviceConfig.models, ttsModelCost)
 }
 
 const selectCheapestImageModel = (service: string): string => {
@@ -394,6 +398,93 @@ export const selectCheapestDefaultTextVideoSelection = (): CheapestVideoSelectio
 
   if (!best) {
     throw InternalError('No default text-to-video candidates available', { stage: 'models:cheapest' })
+  }
+
+  return best
+}
+
+export const selectCheapestDefaultHostedTtsSelection = (): CheapestTtsSelection => {
+  let best: CheapestTtsSelection | null = null
+
+  for (const provider of Object.keys(STANDALONE_TTS_PROVIDER_TARGETS) as TtsProvider[]) {
+    const serviceConfig = getModelRegistry().tts[provider]
+    if (!serviceConfig || serviceConfig.type === 'local') {
+      continue
+    }
+
+    for (const modelName of Object.keys(serviceConfig.models)) {
+      const model = serviceConfig.models[modelName]
+      if (!model) continue
+      const totalCost = ttsModelCost(model)
+      if (!Number.isFinite(totalCost)) continue
+
+      const candidate: CheapestTtsSelection = {
+        provider,
+        model: modelName,
+        totalCost
+      }
+
+      if (
+        !best
+        || candidate.totalCost < best.totalCost
+        || (candidate.totalCost === best.totalCost && runtimeRank(candidate.model) < runtimeRank(best.model))
+        || (candidate.totalCost === best.totalCost
+          && runtimeRank(candidate.model) === runtimeRank(best.model)
+          && `${candidate.provider}/${candidate.model}`.localeCompare(`${best.provider}/${best.model}`) < 0)
+      ) {
+        best = candidate
+      }
+    }
+  }
+
+  if (!best) {
+    throw InternalError('No default hosted TTS candidates available', { stage: 'models:cheapest' })
+  }
+
+  return best
+}
+
+export const selectCheapestDefaultLlmSelection = (): CheapestLlmSelection => {
+  let best: CheapestLlmSelection | null = null
+
+  for (const provider of Object.keys(WRITE_LLM_PROVIDER_TARGETS) as Step3Metadata['llmService'][]) {
+    const serviceConfig = getModelRegistry().llm[provider]
+    if (!serviceConfig || serviceConfig.type === 'local') {
+      continue
+    }
+
+    const defaultEligibleModels = filterModelNamesByLifecycle(
+      Object.keys(serviceConfig.models),
+      serviceConfig.models,
+      'defaultEligible'
+    )
+    for (const modelName of defaultEligibleModels) {
+      const model = serviceConfig.models[modelName]
+      if (!model) continue
+      const totalCost = model.inputCostPer1MCents + model.outputCostPer1MCents
+      if (!Number.isFinite(totalCost)) continue
+
+      const candidate: CheapestLlmSelection = {
+        provider,
+        model: modelName,
+        totalCost
+      }
+
+      if (
+        !best
+        || candidate.totalCost < best.totalCost
+        || (candidate.totalCost === best.totalCost && runtimeRank(candidate.model) < runtimeRank(best.model))
+        || (candidate.totalCost === best.totalCost
+          && runtimeRank(candidate.model) === runtimeRank(best.model)
+          && `${candidate.provider}/${candidate.model}`.localeCompare(`${best.provider}/${best.model}`) < 0)
+      ) {
+        best = candidate
+      }
+    }
+  }
+
+  if (!best) {
+    throw InternalError('No default hosted LLM candidates available', { stage: 'models:cheapest' })
   }
 
   return best

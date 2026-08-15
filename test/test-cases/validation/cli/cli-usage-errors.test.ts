@@ -31,9 +31,9 @@ const writeLegacyTtsManifestFixture = async (
       status: 'full',
       metadata,
       providers: [{
-        service: 'kitten',
-        model: 'kitten-tts-nano',
-        local: true,
+        service: 'openai',
+        model: 'gpt-4o-mini-tts-2025-12-15',
+        local: false,
         artifactDir: '.',
         status: 'succeeded',
         attempts: 1,
@@ -159,6 +159,7 @@ test('hosted-only generation commands reject local-only controls', async () => {
   await expectUsageExit(['image', 'prompt', '--all-local'], 'Unexpected flag: --all-local')
   await expectUsageExit(['video', 'prompt', '--all-local'], 'Unexpected flag: --all-local')
   await expectUsageExit(['music', 'prompt', '--all-local'], 'Unexpected flag: --all-local')
+  await expectUsageExit(['tts', 'prompt', '--all-local'], 'Unexpected flag: --all-local')
   await expectUsageExit(['image', 'prompt', '--local-concurrency', '1'], 'Unexpected flag: --local-concurrency')
   await expectUsageExit(['video', 'prompt', '--local-concurrency', '1'], 'Unexpected flag: --local-concurrency')
   await expectUsageExit(['music', 'prompt', '--local-concurrency', '1'], 'Unexpected flag: --local-concurrency')
@@ -558,10 +559,6 @@ test('resume rejects provider-named option flags', async () => {
     ['resume', 'output/nonexistent', '--stt-happyscribe-organization-id', 'org_123'],
     'Unexpected flag: --stt-happyscribe-organization-id'
   )
-  await expectUsageExit(
-    ['resume', 'output/nonexistent', '--stt-reverb-verbatimicity', '0.5'],
-    'Unexpected flag: --stt-reverb-verbatimicity'
-  )
 })
 
 test('comic generate-images rejects invalid page selection flags', async () => {
@@ -821,22 +818,18 @@ test('commands reject cookie flags outside config', async () => {
   )
 })
 
-test('commands reject --model-path outside write and resume', async () => {
+test('commands reject removed --model-path flag', async () => {
   await expectUsageExit(
-    ['config', '--model-path', './model.gguf'],
-    '--model-path is not supported by "config"'
+    ['write', STABLE_EXAMPLE_AUDIO_URL, '--model-path', './model.gguf'],
+    'Unexpected flag: --model-path'
+  )
+  await expectUsageExit(
+    ['resume', 'output/nonexistent', '--model-path', './model.gguf'],
+    'Unexpected flag: --model-path'
   )
   await expectUsageExit(
     ['config', '--model-path', './model.gguf'],
-    'Use bun autoshow write or bun autoshow resume.'
-  )
-  await expectUsageExit(
-    ['links', '--model-path', './model.gguf'],
-    '--model-path is not supported by "links"'
-  )
-  await expectUsageExit(
-    ['voice', 'status', '--model-path', './model.gguf'],
-    '--model-path is not supported by "voice status"'
+    'Unexpected flag: --model-path'
   )
 })
 

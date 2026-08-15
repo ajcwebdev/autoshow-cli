@@ -4,8 +4,7 @@ import {
   SUPPORTED_GROK_TTS_VOICES,
   SUPPORTED_GROQ_ENGLISH_TTS_VOICES,
   SUPPORTED_HUME_TTS_MODELS,
-  SUPPORTED_CARTESIA_TTS_MODELS,
-  SUPPORTED_KITTEN_TTS_VOICES
+  SUPPORTED_CARTESIA_TTS_MODELS
 } from '~/cli/commands/setup-and-utilities/models/setup-model-options'
 import { E2E_TEST_TIMEOUT_MS } from '../../test-utils/budget'
 import { runCommand, STABLE_EXAMPLE_AUDIO_URL, STABLE_TTS_MD_PATH } from '../../test-utils/test-helpers'
@@ -167,12 +166,6 @@ defineTTSServicePriceTests({
 })
 
 defineTTSVoicePriceTests({
-  provider: 'kitten',
-  model: 'kitten-tts-mini',
-  voices: SUPPORTED_KITTEN_TTS_VOICES,
-})
-
-defineTTSVoicePriceTests({
   provider: 'groq',
   model: 'canopylabs/orpheus-v1-english',
   voices: SUPPORTED_GROQ_ENGLISH_TTS_VOICES,
@@ -296,7 +289,7 @@ test('multi-provider --price prints both TTS targets and renamed output files', 
     'tts',
     STABLE_TTS_MD_PATH,
     '--provider',
-    'kitten=kitten-tts-mini',
+    'elevenlabs=eleven_v3',
     '--provider',
     'openai=gpt-4o-mini-tts-2025-12-15',
     '--price'
@@ -306,11 +299,11 @@ test('multi-provider --price prints both TTS targets and renamed output files', 
   expect(result.outputDir).toBeNull()
   const output = `${result.stdout}\n${result.stderr}`
   expect(output).toContain('Cost Estimate')
-  expect(output).toContain('kitten')
-  expect(output).toContain('kitten-tts-mini')
+  expect(output).toContain('elevenlabs')
+  expect(output).toContain('eleven_v3')
   expect(output).toContain('openai')
   expect(output).toContain('gpt-4o-mini-tts-2025-12-15')
-  expect(output).toContain('speech-kitten-kitten-tts-mini.wav')
+  expect(output).toContain('speech-elevenlabs-eleven_v3.wav')
   expect(output).toContain('speech-openai-gpt-4o-mini-tts-2025-12-15.wav')
 })
 
@@ -324,7 +317,7 @@ test('write --price omits TTS estimates when multiple LLM providers are selected
     '--llm',
     'groq=openai/gpt-oss-20b',
     '--tts',
-    'kitten=kitten-tts-mini',
+    'elevenlabs=eleven_v3',
     '--tts',
     'openai=gpt-4o-mini-tts-2025-12-15',
     '--price'
@@ -333,6 +326,6 @@ test('write --price omits TTS estimates when multiple LLM providers are selected
 
   expect(result.exitCode).toBe(0)
   expect(output).not.toContain('TTS estimate omitted')
-  expect(output).not.toContain('speech-kitten-kitten-tts-mini.wav')
+  expect(output).not.toContain('speech-elevenlabs-eleven_v3.wav')
   expect(output).not.toContain('speech-openai-gpt-4o-mini-tts-2025-12-15.wav')
 })

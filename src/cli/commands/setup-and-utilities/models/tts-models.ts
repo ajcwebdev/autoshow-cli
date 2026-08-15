@@ -1,43 +1,13 @@
 import { createModelValidator, formatAllowedValues, throwRetiredModelSelection } from '~/cli/commands/setup-and-utilities/models/model-validation'
 import { getRetiredModelReplacement } from '~/cli/commands/setup-and-utilities/models/model-loader/retired-model-rates'
-import { CLIUsageError, InternalError } from '~/utils/error-handler'
+import { CLIUsageError } from '~/utils/error-handler'
 import {
-  getKittenHfRepo,
-  getKittenVoices,
   getGeminiTtsVoices,
   getGroqTtsVoices,
   getGrokTtsVoices,
   getOpenAITtsVoices
 } from '~/cli/commands/setup-and-utilities/models/model-loader'
-import type { CartesiaTtsModel, DeepgramTtsModel, DeepinfraTtsModel, ElevenlabsTtsModel, FalTtsModel, FishTtsModel, GeminiTtsModel, GrokTtsModel, GroqTtsModel, HumeTtsModel, InworldTtsModel, KittenTtsModel, MinimaxTtsModel, MistralTtsModel, OpenAITtsModel, ReplicateTtsModel, SpeechifyTtsModel } from '~/types'
-
-export const SUPPORTED_KITTEN_TTS_MODELS = [
-  'kitten-tts-mini',
-  'kitten-tts-micro',
-  'kitten-tts-nano',
-  'kitten-tts-nano-0.8-int8'
-] as const satisfies readonly string[]
-
-export const DEFAULT_KITTEN_TTS_MODEL = 'kitten-tts-nano-0.8-int8'
-
-export const SUPPORTED_KITTEN_TTS_VOICES = getKittenVoices()
-
-export const validateKittenTtsModel = createModelValidator<KittenTtsModel>(SUPPORTED_KITTEN_TTS_MODELS, 'kitten-tts')
-
-export const validateKittenTtsSpeaker = (speaker: string): string => {
-  if (!SUPPORTED_KITTEN_TTS_VOICES.includes(speaker)) {
-    throw CLIUsageError(
-      `Invalid --kitten-voice "${speaker}" for Kitten TTS. Allowed values: ${formatAllowedValues(SUPPORTED_KITTEN_TTS_VOICES)}`
-    )
-  }
-  return speaker
-}
-
-export const resolveKittenTtsModelId = (model: KittenTtsModel): string => {
-  const repo = getKittenHfRepo(model)
-  if (!repo) throw InternalError(`No HF repo found for Kitten TTS model "${model}"`, { stage: 'tts:kitten' })
-  return repo
-}
+import type { CartesiaTtsModel, DeepgramTtsModel, DeepinfraTtsModel, ElevenlabsTtsModel, FalTtsModel, FishTtsModel, GeminiTtsModel, GrokTtsModel, GroqTtsModel, HumeTtsModel, InworldTtsModel, MinimaxTtsModel, MistralTtsModel, OpenAITtsModel, ReplicateTtsModel, SpeechifyTtsModel } from '~/types'
 
 export const SUPPORTED_ELEVENLABS_TTS_MODELS = [
   'eleven_v3'

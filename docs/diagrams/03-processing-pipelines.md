@@ -63,7 +63,7 @@ STT providers are run through local and hosted provider pools:
 
 | Pool | Providers |
 |------|-----------|
-| Local | `whisper`, `whisperfile`, `reverb`. |
+| Local | `whisper`, `whisperfile`. |
 | Hosted | `deepinfra`, `deepgram`, `soniox`, `speechmatics`, `rev`, `groq`, `grok`, `mistral`, `assemblyai`, `gladia`, `happyscribe`, `supadata`, `scrapecreators`, `gemini`, `together`. |
 
 Output layout:

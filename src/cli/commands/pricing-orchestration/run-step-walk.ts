@@ -1,4 +1,3 @@
-import { resolveReverbModelLabel } from '~/cli/commands/process-steps/step-2-extract/step-2-stt/stt-model-labels'
 import type {
   ActualPipelineInputsBase,
   ExtractionMetadata,
@@ -58,9 +57,6 @@ const classifyStep2 = (value: unknown): ClassifiedStep2 | undefined => {
 }
 
 export const resolveTranscriptionModel = (metadata: Step2Metadata): string => {
-  if (metadata.transcriptionService === 'reverb') {
-    return resolveReverbModelLabel(metadata.transcriptionModel)
-  }
   if (metadata.transcriptionService !== 'whisper') {
     return metadata.transcriptionModel
   }

@@ -54,7 +54,6 @@ describe('provider selection contracts', () => {
 
   test('STT provider canonical ordering is stable', () => {
     expect(getStep2ProviderSelectionFlagNames('stt')).toEqual([
-      'reverb-stt',
       'deepinfra-stt',
       'deepgram-stt',
       'soniox-stt',
@@ -261,7 +260,7 @@ describe('provider selection contracts', () => {
 
     const localOpts = buildOptsFromFlags(false, { 'all-local-stt': true })
     const localServices = collectSttTargets(localOpts).map((target) => target.service)
-    expect(localServices).toContain('reverb')
+    expect(localServices).not.toContain('reverb')
     expect(localServices).toContain('whisper')
     expect(localServices).not.toContain('deepgram')
     expect(localServices).not.toContain('mistral')

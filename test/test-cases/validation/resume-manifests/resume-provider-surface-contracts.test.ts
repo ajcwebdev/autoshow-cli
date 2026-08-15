@@ -98,7 +98,6 @@ const REMOVED_PROVIDER_NAMED_FLAGS = [
   'replicate-video-prompt-expansion',
   'grok-video-storage-filename',
   'grok-video-storage-expires-after',
-  'stt-reverb-verbatimicity',
   'stt-happyscribe-organization-id',
   'stt-supadata-lang',
   'stt-scrapecreators-lang',
@@ -155,13 +154,13 @@ describe('resume provider flag surface', () => {
         label: 'write',
         config: writeResumeConfig,
         descriptor: WRITE_LLM_GENERATION_SELECTION,
-        shortcuts: ['all-llm', 'all-local-llm']
+        shortcuts: ['all-llm']
       },
       {
         label: 'TTS',
         config: ttsResumeConfig,
         descriptor: TTS_GENERATION_SELECTION,
-        shortcuts: ['all-tts', 'all-local-tts']
+        shortcuts: ['all-tts']
       },
       {
         label: 'image',
@@ -326,14 +325,14 @@ describe('resume target-aware provider selectors', () => {
   test('normalizes --provider and generic TTS options for TTS resume targets', () => {
     const tts = normalizeResumeSelectorFlagsForTarget(
       target('tts'),
-      { provider: ['kitten=kitten-tts-nano'], 'tts-voice': ['Luna'] },
+      { provider: ['openai=gpt-4o-mini-tts-2025-12-15'], 'tts-voice': ['alloy'] },
       new Set(['provider', 'tts-voice']),
-      ['resume', 'out', '--provider', 'kitten=kitten-tts-nano', '--tts-voice', 'Luna']
+      ['resume', 'out', '--provider', 'openai=gpt-4o-mini-tts-2025-12-15', '--tts-voice', 'alloy']
     )
-    expect(tts.flags['kitten-tts']).toBe('kitten-tts-nano')
-    expect(tts.flags['kitten-voice']).toBe('Luna')
-    expect(tts.explicitFlags.has('kitten-tts')).toBe(true)
-    expect(tts.explicitFlags.has('kitten-voice')).toBe(true)
+    expect(tts.flags['openai-tts']).toBe('gpt-4o-mini-tts-2025-12-15')
+    expect(tts.flags['openai-voice']).toBe('alloy')
+    expect(tts.explicitFlags.has('openai-tts')).toBe(true)
+    expect(tts.explicitFlags.has('openai-voice')).toBe(true)
   })
 
   test('normalizes --provider for generation resume targets', () => {
@@ -429,19 +428,22 @@ describe('resume target-aware provider selectors', () => {
   })
 
   test('normalizes --all-local by resolved resume target kind and extract route', () => {
-    const tts = normalizeResumeSelectorFlagsForTarget(
+    expect(() => normalizeResumeSelectorFlagsForTarget(
       target('tts'),
       { 'all-local': true },
       new Set(['all-local']),
       ['resume', 'out', '--all-local']
-    )
-    expect(tts.flags['all-local-tts']).toBe(true)
-    expect(buildOpts(tts.flags, tts.explicitFlags, tts.flagOccurrences).kittenTtsModels).toBeDefined()
+    )).toThrow('--all-local is not supported')
 
-    // Image resume has no local providers, so --all-local is rejected rather than
-    // silently dropped (see native-global-args contracts).
     expect(() => normalizeResumeSelectorFlagsForTarget(
       target('image'),
+      { 'all-local': true },
+      new Set(['all-local']),
+      ['resume', 'out', '--all-local']
+    )).toThrow('--all-local is not supported')
+
+    expect(() => normalizeResumeSelectorFlagsForTarget(
+      target('write'),
       { 'all-local': true },
       new Set(['all-local']),
       ['resume', 'out', '--all-local']
@@ -674,10 +676,10 @@ describe('resume all-shortcut additive selection', () => {
         {
           kind: 'tts' as const,
           metadataKey: 'tts',
-          requestedProvider: { service: 'kitten', model: 'kitten-tts-mini' },
+          requestedProvider: { service: 'openai', model: 'gpt-4o-mini-tts-2025-12-15' },
           metadata: {
-            ttsService: 'kitten',
-            ttsModel: 'kitten-tts-mini',
+            ttsService: 'openai',
+            ttsModel: 'gpt-4o-mini-tts-2025-12-15',
             processingTime: 1,
             audioFileName: 'speech.wav',
             audioFileSize: 1,

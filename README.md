@@ -2,7 +2,7 @@
 
 Bun-native CLI for turning media, documents, and text prompts into metadata, downloads, transcripts, OCR extracts, summaries, and generated speech, images, video, or music.
 
-It supports both local and API-backed engines across STT, OCR, LLM, TTS, image, video, and music workflows. Defaults can be persisted in `config/autoshow.json`, and runnable commands perform cost preflight before execution.
+It supports local and API-backed engines across STT and OCR, plus hosted LLM, TTS, image, video, and music workflows. Defaults can be persisted in `config/autoshow.json`, and runnable commands perform cost preflight before execution.
 
 For command-specific details, use `bun autoshow help <command>` or browse the docs in [`docs/`](./docs/).
 
@@ -71,9 +71,6 @@ bun autoshow extract https://ajc.pics/autoshow/examples/1-audio.mp3 --provider w
 # Transcribe with hosted Groq without diarization
 bun autoshow extract https://ajc.pics/autoshow/examples/1-audio.mp3 --provider groq=whisper-large-v3
 
-# Transcribe locally with speaker diarization using Reverb
-bun autoshow extract https://ajc.pics/autoshow/examples/1-audio.mp3 --provider reverb
-
 # Transcribe with hosted Deepgram speaker diarization
 bun autoshow extract https://ajc.pics/autoshow/examples/1-audio.mp3 --provider deepgram=nova-3
 ```
@@ -81,8 +78,8 @@ bun autoshow extract https://ajc.pics/autoshow/examples/1-audio.mp3 --provider d
 ### Write
 
 ```bash
-# Run the full extract-and-write pipeline locally with Llamafile
-bun autoshow write https://ajc.pics/autoshow/examples/1-audio.mp3 --llm llamafile=Qwen3.5-0.8B-Q8_0
+# Run the full extract-and-write pipeline with the cheapest hosted LLM
+bun autoshow write https://ajc.pics/autoshow/examples/1-audio.mp3
 
 # Run the full extract-and-write pipeline with hosted OpenAI
 bun autoshow write https://ajc.pics/autoshow/examples/1-audio.mp3 --llm openai=gpt-5.5
@@ -100,9 +97,6 @@ bun autoshow write "https://www.youtube.com/watch?v=u1-WHqATSQU" --llm openai=gp
 ### TTS and Music
 
 ```bash
-# Generate speech locally with Kitten TTS
-bun autoshow tts input/examples/tts/1-tts.md --provider kitten=kitten-tts-mini
-
 # Generate speech with hosted OpenAI
 bun autoshow tts input/examples/tts/1-tts.md --provider openai=gpt-4o-mini-tts-2025-12-15
 
@@ -135,8 +129,8 @@ bun autoshow voice import hero --provider elevenlabs --model eleven_v3 --voice-i
 # Discover voices from a hosted ElevenLabs account
 bun autoshow voice discover --provider elevenlabs --source account
 
-# Draft structured comic scenes locally with Llamafile
-bun autoshow comic draft-scenes input/scripts/01-script/01-opening.md --llm-model Qwen3.5-0.8B-Q8_0
+# Draft structured comic scenes with hosted OpenAI
+bun autoshow comic draft-scenes input/scripts/01-script/01-opening.md
 
 # Generate final comic panels with hosted OpenAI
 bun autoshow comic generate-images input/scripts/01-script/01-opening.md --target images --image-model gpt-image-2
@@ -159,7 +153,7 @@ bun autoshow comic generate-slideshow 01-01
 High-value notes:
 
 - `write` is the central orchestration command. It can summarize transcripts or extracted documents, write JSON outputs, fan out across multiple LLM providers, and optionally continue into TTS, image, video, or music generation.
-- `setup --models` lets you pre-download local runtimes without running inference, for example `bun autoshow setup --models tiny` or `bun autoshow setup --models ggml-org/gemma-3-270m-it-GGUF`.
+- `setup --models` lets you pre-download local STT runtimes without running inference, for example `bun autoshow setup --models tiny` or `bun autoshow setup --models whisperfile:small`.
 - If YouTube starts blocking `yt-dlp`, follow [docs/cookies.md](./docs/cookies.md) to persist `--cookies-from-browser` or `--cookies` with `bun autoshow config`.
 
 ## Usage Basics

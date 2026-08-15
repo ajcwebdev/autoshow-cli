@@ -15,11 +15,7 @@ export type DownloadFlowId =
   | 'qpdf-prebuilt'
   | 'whisper-model'
   | 'whisperfile-binary'
-  | 'llama-tarball'
-  | 'llamafile-binary'
   | 'whisper-source'
-  | 'reverb-source'
-  | 'reverb-model'
 
 export type DownloadRequest = {
   url: string

@@ -33,8 +33,8 @@ const ALL_PROVIDERS_TARGET_BY_KIND = {
 } as const satisfies Record<Exclude<ResumeTargetKind, 'extract'>, string>
 
 const ALL_LOCAL_TARGET_BY_KIND = {
-  write: 'all-local-llm',
-  tts: 'all-local-tts',
+  write: undefined,
+  tts: undefined,
   image: undefined,
   video: undefined,
   music: undefined

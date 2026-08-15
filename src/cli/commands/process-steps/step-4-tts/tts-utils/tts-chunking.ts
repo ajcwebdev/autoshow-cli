@@ -4,7 +4,6 @@ import { getTtsMaxInputCharacters } from '~/cli/commands/setup-and-utilities/mod
 import { estimateHostedConcurrencyWallTimeMs } from '~/utils/hosted-concurrency-estimator'
 
 export const TTS_CHUNK_CHARACTER_LIMITS = {
-  kitten: 2000,
   elevenlabs: 2000,
   groq: 200,
   deepgram: 2000,
@@ -28,8 +27,6 @@ export const resolveTtsChunkCharacterLimit = (
   model: string | undefined
 ): number | undefined =>
   model ? getTtsMaxInputCharacters(provider, model) ?? TTS_CHUNK_CHARACTER_LIMITS[provider] : TTS_CHUNK_CHARACTER_LIMITS[provider]
-
-const SEQUENTIAL_TTS_CHUNK_PROVIDERS = new Set<TtsProvider>(['kitten'])
 
 const resolveSyntheticChunkLengths = (
   characterCount: number,
@@ -111,7 +108,7 @@ export const estimateTtsSynthesisProcessingTimeMs = (
   const normalizedCharacterCount = Math.max(0, Math.floor(input.characterCount))
   const chunkLimit = resolveTtsChunkCharacterLimit(input.provider, input.model)
 
-  if (chunkLimit === undefined || SEQUENTIAL_TTS_CHUNK_PROVIDERS.has(input.provider)) {
+  if (chunkLimit === undefined) {
     return setupTimeMs + (normalizedCharacterCount / 1000) * input.msPer1KChars
   }
 

@@ -144,7 +144,7 @@ const retainedBatchAndAudioPaths = async (
 const attemptsDirectoryFor = (outputDir: string, state: PipelineProviderState): string => {
   const render = projectionFor(state).renderHistory[0]
   if (!render) throw new Error('Missing prepared render fixture')
-  return join(outputDir, state.artifactDir, 'attempts')
+  return join(outputDir, state.artifactDir, render.renderDir, 'attempts')
 }
 
 const withOpenAiCredential = async <T>(operation: () => Promise<T>): Promise<T> => {

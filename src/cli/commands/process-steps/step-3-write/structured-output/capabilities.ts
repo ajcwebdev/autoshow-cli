@@ -50,16 +50,6 @@ const CAPABILITIES: Record<LLMService, ProviderStructuredCapability> = {
     nativeStructuredOutput: true,
     strictMode: true,
     validationRetryBudget: 1
-  },
-  'llama.cpp': {
-    nativeStructuredOutput: true,
-    strictMode: false,
-    validationRetryBudget: 2
-  },
-  'llamafile': {
-    nativeStructuredOutput: false,
-    strictMode: false,
-    validationRetryBudget: 2
   }
 }
 

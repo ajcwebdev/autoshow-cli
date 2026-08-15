@@ -69,7 +69,6 @@ export const resolveWriteTranscription = async (
     const singleTranscription = await runWithLogContext({ step: 'step-2-stt' }, async () =>
       await sttTarget(audioPath, outputDir, target, {
         split: processingOptions.split,
-        reverbVerbatimicity: processingOptions.reverbVerbatimicity,
         sttSegmentConcurrency: runtimeOptions?.sttSegmentConcurrency,
         audioDurationSeconds,
         sourceUrl: preparedMedia.step1Metadata.url,
@@ -101,7 +100,6 @@ export const resolveWriteTranscription = async (
         const providerTranscription = await runWithLogContext({ step: 'step-2-stt', provider: providerDirName }, async () =>
           await sttTarget(audioPath, providerDir, target, {
             split: processingOptions.split,
-            reverbVerbatimicity: processingOptions.reverbVerbatimicity,
             sttSegmentConcurrency: runtimeOptions?.sttSegmentConcurrency,
             audioDurationSeconds,
             sourceUrl: preparedMedia.step1Metadata.url,

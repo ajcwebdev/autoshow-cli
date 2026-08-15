@@ -55,8 +55,6 @@ test('stubbed LLM targets use capability retry budgets and persist one failure e
         target('openai', 'openai-zero', 'not json'),
         target('anthropic', 'anthropic-one', 'not json'),
         target('minimax', 'minimax-two', 'not json'),
-        target('llama.cpp', 'llama-native', 'not json'),
-        target('llamafile', 'llamafile-native', 'not json'),
         target('groq', 'groq-success', '{"content":"valid output"}')
       ],
       structuredSchema,
@@ -67,17 +65,13 @@ test('stubbed LLM targets use capability retry budgets and persist one failure e
       openai: 1,
       anthropic: 2,
       minimax: 3,
-      'llama.cpp': 3,
-      llamafile: 3,
       groq: 1
     })
     expect(requestOptions.get('openai')?.every((options) => options.strategy === 'native')).toBe(true)
     expect(requestOptions.get('anthropic')?.every((options) => options.strategy === 'native')).toBe(true)
     expect(requestOptions.get('minimax')?.every((options) => options.strategy === 'schema-guided')).toBe(true)
-    expect(requestOptions.get('llama.cpp')?.every((options) => options.strategy === 'native')).toBe(true)
-    expect(requestOptions.get('llamafile')?.every((options) => options.strategy === 'schema-guided')).toBe(true)
 
-    for (const result of results.slice(0, 5)) {
+    for (const result of results.slice(0, 3)) {
       expect(result.parsedJson).toEqual({
         _raw: 'not json',
         _validationError: 'Response was not valid JSON'

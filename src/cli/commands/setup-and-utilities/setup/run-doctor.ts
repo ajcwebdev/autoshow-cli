@@ -2,19 +2,14 @@ import { readdir, stat } from 'node:fs/promises'
 import { join } from 'node:path'
 import { resolveYtDlpBinaryInfo } from '~/cli/commands/process-steps/shared/shared-yt-dlp-binary'
 import { inspectYtDlpAuthState } from '~/cli/commands/process-steps/shared/shared-yt-dlp-options'
-import { formatReverbAsrAssetPaths, formatReverbDiarizationAssetPaths, getMissingReverbAsrFiles, getMissingReverbDiarizationFiles } from '~/cli/commands/process-steps/step-2-extract/step-2-stt/stt-local/reverb/reverb-assets'
 import { readDefuddleCliReadiness } from '~/cli/commands/process-steps/step-2-extract/step-2-url/url-local/defuddle/defuddle-cli'
-import { hasSetupManagedLlamaModel, llamaSetupModelsMetadataPath, readLlamaSetupModelMetadata } from '~/cli/commands/process-steps/step-3-write/write-local/llama/llama-model-metadata'
-import { listLlamaCacheEntries, resolveLlamaCacheDir } from '~/cli/commands/process-steps/step-3-write/write-local/llama/llama-model-cache'
-import { hasCachedKittenTtsModel, resolveHuggingFaceCacheDir } from '~/cli/commands/process-steps/step-4-tts/tts-local/kitten/kitten-tts-model-cache'
-import { DEFAULT_KITTEN_TTS_MODEL } from '~/cli/commands/setup-and-utilities/models/tts-models'
 import { loadConfig, resolveConfigPath } from '~/cli/commands/setup-and-utilities/config/config-loader'
 import type { AutoshowConfig, CheckResult, DoctorCheck, DoctorProbes, DoctorReport, DoctorSection, DoctorSeverity, DoctorStatus, ManagedArtifactToolId, RunResult } from '~/types'
 import { loadEnvFile } from '~/utils/cli-utils'
 import * as l from '~/utils/app-logger/app-logger'
 import { createHumanTable } from '~/utils/app-logger/human-table/human-table'
 import { getHostedProviderConfiguredPaths, HOSTED_PROVIDER_ENV_CHECKS } from './hosted-provider-config'
-import { defaultLlamaModel, defaultWhisperModel, kittenTtsUvEnvDir, llamaBinaryPath, reverbUvEnvDir, runCapture, whisperBinaryPath, whisperModelsDir } from './run-complete-setup'
+import { defaultWhisperModel, runCapture, whisperBinaryPath, whisperModelsDir } from './run-complete-setup'
 import { resolveUvCommand } from './setup-download/managed-uv'
 import {
   acsmCalibrePluginAccountDir,
@@ -79,10 +74,6 @@ const createDoctorProbes = (overrides: Partial<DoctorProbes> = {}): DoctorProbes
   resolveConfigPath,
   loadConfig,
   inspectYtDlpAuthState,
-  hasSetupManagedLlamaModel,
-  readLlamaSetupModelMetadata,
-  listLlamaCacheEntries,
-  hasCachedKittenTtsModel,
   validateManagedArtifact,
   ...overrides
 })
@@ -200,16 +191,6 @@ const checkUv = async (probes: DoctorProbes): Promise<DoctorCheck> => {
       nextStep: 'bun autoshow setup --step uv'
     })
 }
-
-const envIsSet = (probes: DoctorProbes, envVar: string): boolean => {
-  const value = probes.env[envVar]
-  return typeof value === 'string' && value.trim().length > 0
-}
-
-const reverbSetupNextStep = (probes: DoctorProbes): string =>
-  envIsSet(probes, 'HUGGINGFACE_TOKEN')
-    ? 'bun autoshow setup --step reverb'
-    : 'set HUGGINGFACE_TOKEN, then run bun autoshow setup --step reverb'
 
 const formatRunIssue = (result: RunResult): string => {
   const details = result.stderr.trim() || result.stdout.trim() || `exit code ${result.exitCode}`
@@ -368,29 +349,6 @@ const checkManagedBinary = async (
   })
 }
 
-const checkPythonImportRuntime = async (
-  probes: DoctorProbes,
-  label: string,
-  envDir: string,
-  importCode: string,
-  nextStep: string
-): Promise<DoctorCheck> => {
-  const python = `${envDir}/bin/python`
-  if (!await probes.pathExists(python)) {
-    return check('MISSING', label, `${python} not found`, {
-      severity: 'warn',
-      nextStep
-    })
-  }
-
-  const result = await probes.run(python, ['-c', importCode])
-  return result.exitCode === 0
-    ? check('OK', label, `${python} imports required packages`)
-    : check('WARN', label, `${python} import check failed: ${formatRunIssue(result)}`, {
-      nextStep
-    })
-}
-
 const collectManagedRuntimeChecks = async (probes: DoctorProbes): Promise<DoctorSection> => ({
   title: 'Managed local runtimes',
   checks: [
@@ -426,25 +384,7 @@ const collectManagedRuntimeChecks = async (probes: DoctorProbes): Promise<Doctor
     fromLegacyCheck(await probes.readDefuddleCliReadiness(), { nextStep: 'bun autoshow setup --step defuddle' }),
     await checkManagedBinary(probes, 'runtime/bin/whisper-cli', whisperBinaryPath, ['--help'], {
       nextStep: 'bun autoshow setup --step whisper-binary'
-    }),
-    await checkManagedBinary(probes, 'runtime/bin/llama-server', llamaBinaryPath, ['--version'], {
-      nextStep: 'bun autoshow setup --step llama-binary',
-      okExitCodes: [0, 1]
-    }),
-    await checkPythonImportRuntime(
-      probes,
-      'Reverb Python env',
-      reverbUvEnvDir,
-      'import wenet, pyannote, torch',
-      reverbSetupNextStep(probes)
-    ),
-    await checkPythonImportRuntime(
-      probes,
-      'Kitten TTS Python env',
-      kittenTtsUvEnvDir,
-      'from kittentts import KittenTTS; import soundfile',
-      'bun autoshow setup --step tts'
-    )
+    })
   ]
 })
 
@@ -471,72 +411,6 @@ const collectInstalledWhisperModelsCheck = async (probes: DoctorProbes): Promise
   )
 }
 
-const collectLlamaManagedModelsCheck = async (probes: DoctorProbes): Promise<DoctorCheck> => {
-  const metadata = await probes.readLlamaSetupModelMetadata()
-  const models = Object.keys(metadata.models).sort()
-  return check(
-    'INFO',
-    'llama setup-managed models',
-    models.length > 0 ? models.join(', ') : `none recorded in ${llamaSetupModelsMetadataPath}`
-  )
-}
-
-const checkReverbAssets = async (probes: DoctorProbes): Promise<DoctorCheck> => {
-  const missing = await getMissingReverbAsrFiles(probes.pathExists)
-
-  return missing.length === 0
-    ? check('OK', 'Reverb ASR files', formatReverbAsrAssetPaths())
-    : check('MISSING', 'Reverb ASR files', `missing ${missing.join(', ')}`, {
-      severity: 'warn',
-      nextStep: reverbSetupNextStep(probes)
-    })
-}
-
-const checkReverbDiarization = async (probes: DoctorProbes): Promise<DoctorCheck> => {
-  const missing = await getMissingReverbDiarizationFiles(probes.pathExists)
-
-  return missing.length === 0
-    ? check('OK', 'Reverb diarization cache', formatReverbDiarizationAssetPaths())
-    : check('MISSING', 'Reverb diarization cache', `missing ${missing.join(', ')}`, {
-      severity: 'warn',
-      nextStep: reverbSetupNextStep(probes)
-    })
-}
-
-// The marker records that setup ran, not that weights survived; the weights live
-// in llama.cpp's own cache where nothing in runtime/ can vouch for them.
-const checkLlamaModelReadiness = async (probes: DoctorProbes, model: string): Promise<DoctorCheck> => {
-  const hasMarker = await probes.hasSetupManagedLlamaModel(model)
-  const cachedWeights = await probes.listLlamaCacheEntries(model)
-  const gguf = cachedWeights.filter((path) => path.endsWith('.gguf'))
-
-  if (gguf.length > 0) {
-    return check('OK', `llama model ${model}`, gguf.join(', '))
-  }
-
-  return check(
-    'MISSING',
-    `llama model ${model}`,
-    hasMarker
-      ? `setup-managed marker in ${llamaSetupModelsMetadataPath} but no weights in ${resolveLlamaCacheDir()}`
-      : `no weights in ${resolveLlamaCacheDir()} and no marker in ${llamaSetupModelsMetadataPath}`,
-    {
-      severity: 'warn',
-      nextStep: `bun autoshow setup --models ${model}`
-    }
-  )
-}
-
-// Like the llama weights, these live in a shared cache outside runtime/, so
-// nothing under runtime/ can vouch for them.
-const checkKittenTtsModelReadiness = async (probes: DoctorProbes, model: string): Promise<DoctorCheck> =>
-  await probes.hasCachedKittenTtsModel(model)
-    ? check('OK', `Kitten TTS model ${model}`, `cached in ${resolveHuggingFaceCacheDir()}`)
-    : check('MISSING', `Kitten TTS model ${model}`, `not cached in ${resolveHuggingFaceCacheDir()}`, {
-      severity: 'warn',
-      nextStep: 'bun autoshow setup --step tts'
-    })
-
 const collectLocalModelAssetChecks = async (probes: DoctorProbes): Promise<DoctorSection> => ({
   title: 'Local model assets',
   checks: [
@@ -552,12 +426,7 @@ const collectLocalModelAssetChecks = async (probes: DoctorProbes): Promise<Docto
       `${whisperModelsDir}/ggml-large-v3-turbo.bin`,
       'bun autoshow setup'
     ),
-    await collectInstalledWhisperModelsCheck(probes),
-    await checkReverbAssets(probes),
-    await checkReverbDiarization(probes),
-    await checkLlamaModelReadiness(probes, defaultLlamaModel),
-    await collectLlamaManagedModelsCheck(probes),
-    await checkKittenTtsModelReadiness(probes, DEFAULT_KITTEN_TTS_MODEL)
+    await collectInstalledWhisperModelsCheck(probes)
   ]
 })
 

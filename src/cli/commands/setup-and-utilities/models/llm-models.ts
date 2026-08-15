@@ -1,7 +1,6 @@
-import { createModelValidator, formatModelSelector, throwRetiredModelSelection } from '~/cli/commands/setup-and-utilities/models/model-validation'
+import { createModelValidator, throwRetiredModelSelection } from '~/cli/commands/setup-and-utilities/models/model-validation'
 import { getRetiredModelReplacement } from '~/cli/commands/setup-and-utilities/models/model-loader/retired-model-rates'
 import type { GroqModel } from '~/types'
-import { CLIUsageError } from '~/utils/error-handler'
 
 export const SUPPORTED_OPENAI_MODELS = [
   'gpt-5.6-sol',
@@ -61,23 +60,6 @@ export const SUPPORTED_CEREBRAS_MODELS = [
   'zai-glm-4.7'
 ] as const satisfies readonly string[]
 
-export const SUPPORTED_LLAMA_MODELS = [
-  'ggml-org/gemma-3-270m-it-GGUF',
-  'ggml-org/Qwen3-0.6B-GGUF'
-] as const satisfies readonly string[]
-
-// Prebuilt single-file llamafiles from the mozilla-ai/llamafile_0.10 Hugging Face repo.
-// Each alias maps to a bundled `.llamafile` (binary + weights) download URL in
-// write-local/llamafile/llamafile-constants.ts. Restricted to known bundles since each
-// alias must resolve to a known download URL (no free-form repo ids).
-export const SUPPORTED_LLAMAFILE_MODELS = [
-  'Qwen3.5-0.8B-Q8_0',
-  'Qwen3.5-2B-Q8_0',
-  'Qwen3.5-4B-Q5_K_S'
-] as const satisfies readonly string[]
-
-const HUGGING_FACE_REPO_ID_PATTERN = /^[^/\s]+\/[^/\s]+$/
-
 const _validateOpenAI = createModelValidator(SUPPORTED_OPENAI_MODELS, 'openai')
 export const validateOpenAIModel = (model: string): string => _validateOpenAI(model)
 
@@ -99,18 +81,3 @@ export const validateGlmModel = createModelValidator(SUPPORTED_GLM_MODELS, 'glm'
 export const validateKimiModel = createModelValidator(SUPPORTED_KIMI_MODELS, 'kimi')
 export const validateTogetherModel = createModelValidator(SUPPORTED_TOGETHER_MODELS, 'together')
 export const validateCerebrasModel = createModelValidator(SUPPORTED_CEREBRAS_MODELS, 'cerebras')
-export const validateLlamaModel = (model: string): string => {
-  if (SUPPORTED_LLAMA_MODELS.includes(model as typeof SUPPORTED_LLAMA_MODELS[number])) {
-    return model
-  }
-
-  if (HUGGING_FACE_REPO_ID_PATTERN.test(model)) {
-    return model
-  }
-
-  throw CLIUsageError(
-    `Invalid model "${model}" for ${formatModelSelector('llama')}. Use a supported local model alias or a Hugging Face repo ID in namespace/repo_name form.`
-  )
-}
-
-export const validateLlamafileModel = createModelValidator(SUPPORTED_LLAMAFILE_MODELS, 'llamafile')

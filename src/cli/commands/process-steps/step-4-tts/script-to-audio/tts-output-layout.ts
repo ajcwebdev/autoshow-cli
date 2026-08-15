@@ -19,15 +19,25 @@ const joinMedia = (mediaRoot: string, ...parts: string[]): string => {
   return `${prefix}${parts.join('/')}`
 }
 
+const normalizeArtifactRoot = (artifactRoot: string | undefined): string => {
+  const normalized = (artifactRoot ?? 'providers').replace(/\/+$/, '')
+  if (!normalized || normalized.includes('\\') || normalized.split('/').some((part) => !part || part === '.' || part === '..')) {
+    throw CLIUsageError(`Invalid TTS provider artifact root: ${artifactRoot ?? 'providers'}`)
+  }
+  return normalized
+}
+
+export const resolveStableTtsArtifactDir = (
+  artifactRoot: string | undefined,
+  targetKey: string
+): string => `${normalizeArtifactRoot(artifactRoot)}/${targetKey}`
+
 export const resolveTtsOutputLayout = (
   artifactRoot: string,
   targetKey: string,
   renderIdentity: string
 ): TtsOutputLayout => {
-  const normalized = artifactRoot.replace(/\/+$/, '')
-  if (!normalized || normalized.includes('\\') || normalized.split('/').some((part) => !part || part === '.' || part === '..')) {
-    throw CLIUsageError(`Invalid TTS provider artifact root: ${artifactRoot}`)
-  }
+  const normalized = normalizeArtifactRoot(artifactRoot)
   const mediaRoot = normalized.replace(/\/?providers$/, '')
   const workDir = joinMedia(mediaRoot, 'work', targetKey, renderIdentity)
   const artifactDir = joinMedia(mediaRoot, targetKey)

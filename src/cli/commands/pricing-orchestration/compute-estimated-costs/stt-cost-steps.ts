@@ -24,21 +24,12 @@ const STT_FIELD_MAP = [
   { field: 'whisperfileModel' as const, provider: 'whisperfile' },
 ]
 
-/**
- * Resolve a single STT step entry, unifying the reverb/supadata/scrapecreators special
- * cases that were previously duplicated across the explicit-targets path and the
- * STT_FIELD_MAP fallback scan.
- */
 const computeSttTargetStep = (
   service: string,
   model: string,
   durationSeconds: number,
   input: Pick<ComputeEstimatedCostsInput, 'sourceUrl'>
 ): EstimatedStepEntry => {
-  if (service === 'reverb') {
-    return { step: 'stt', provider: 'reverb', model: 'reverb', cost: 0, costMultiplier: 1, durationSeconds }
-  }
-
   if (service === 'supadata') {
     const { totalCost } = estimateSupadataCost(model, durationSeconds, { sourceUrl: input.sourceUrl })
     return { step: 'stt', provider: service, model, cost: totalCost, costMultiplier: EXACT_COST_MULTIPLIER, durationSeconds }
@@ -69,8 +60,6 @@ export const buildSttCostSteps = (input: ComputeEstimatedCostsInput): CostStepsR
     for (const target of explicitSttTargets) {
       push(computeSttTargetStep(target.service, target.model, durationSeconds, input))
     }
-  } else if (input.useReverb) {
-    push({ step: 'stt', provider: 'reverb', model: 'reverb', cost: 0, costMultiplier: 1, durationSeconds })
   } else {
     for (const { field, provider } of STT_FIELD_MAP) {
       const model = input[field]

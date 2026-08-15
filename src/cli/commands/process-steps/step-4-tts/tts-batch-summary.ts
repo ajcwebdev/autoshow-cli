@@ -54,7 +54,7 @@ const getChunkLengths = (
   target: TtsTarget
 ): number[] => {
   const maxChars = resolveTtsChunkCharacterLimit(target.service, target.model)
-  if (target.service === 'kitten' || maxChars === undefined) {
+  if (maxChars === undefined) {
     return [prepared.ttsCharacterCount]
   }
   if (prepared.ttsTimingInputText.trim().length > 0) {
@@ -71,9 +71,6 @@ const createHostedEstimateJobs = (
   let originalOrder = 0
   for (const [inputIndex, prepared] of preparedInputs.entries()) {
     for (const [targetIndex, target] of targets.entries()) {
-      if (target.service === 'kitten') {
-        continue
-      }
       const estimation = getTtsEstimation(target.service, target.model)
       jobs.push({
         provider: target.service,

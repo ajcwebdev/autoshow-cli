@@ -112,7 +112,7 @@ Accepted provider selectors are the lowercase names below.
 | `--hume` | `general`, `tts` |
 | `--inworld` | `general`, `models`, `tts` |
 | `--kimi` | `general`, `models`, `ocr`, `text` |
-| `--llamafile` | `general`, `stt`, `text` |
+| `--whisperfile` | `stt` |
 | `--ltx` | `models`, `video` |
 | `--lumalabs` | `general`, `image`, `models`, `video` |
 | `--minimax` | `general`, `music`, `text`, `tts`, `video` |
@@ -214,8 +214,8 @@ bun autoshow links --openai general text
 # Fetch Spider URL scraping and crawling docs
 bun autoshow links --spider url
 
-# Fetch llamafile general, STT (whisperfile), and text docs
-bun autoshow links --llamafile general stt text
+# Fetch whisperfile STT docs
+bun autoshow links --whisperfile stt
 
 # Fetch LTX video API docs
 bun autoshow links --ltx video

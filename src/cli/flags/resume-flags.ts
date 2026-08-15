@@ -33,7 +33,7 @@ const resumeProviderSelectionFlags = {
     `STT: ${formatProviderList(extractProvidersFor('stt'))} (default: whisper=tiny)`,
     `OCR: ${formatProviderList(extractProvidersFor('ocr'))} (default: tesseract)`,
     `URL: ${URL_ARTICLE_BACKENDS.join('|')} (default: defuddle)`,
-    `LLM: ${formatProviderList(WRITE_LLM_PROVIDER_TARGETS)} (default: llama)`,
+    `LLM: ${formatProviderList(WRITE_LLM_PROVIDER_TARGETS)} (default: cheapest hosted)`,
     `TTS: ${formatProviderList(STANDALONE_TTS_PROVIDER_TARGETS)}`,
     `image: ${formatProviderList(STANDALONE_IMAGE_PROVIDER_TARGETS)}`,
     `video: ${formatProviderList(STANDALONE_VIDEO_PROVIDER_TARGETS)}`,

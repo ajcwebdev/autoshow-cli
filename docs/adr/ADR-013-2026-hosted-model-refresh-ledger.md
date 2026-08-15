@@ -120,7 +120,7 @@ Compacted STT resume prioritizes canonical `result.json` before falling back to 
 
 ### TTS refresh and catalog narrowing
 
-Standardized hosted TTS on 111 active selectors across 15 hosted providers (plus local Kitten TTS). Moving aliases and unsteerable models were replaced or retired with explicit refusal guidance.
+Standardized hosted TTS on 111 active selectors across 15 hosted providers. Moving aliases and unsteerable models were replaced or retired with explicit refusal guidance.
 
 | Provider | 2026 decision and active implementation |
 |---|---|

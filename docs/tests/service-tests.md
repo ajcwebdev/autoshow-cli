@@ -15,9 +15,6 @@ These commands are documented for humans. Service, e2e, and full-runner commands
 ## Service Quick Start
 
 ```bash
-# setup bootstrap coverage
-bun t test/test-cases/setup/tts-models/tts-setup.test.ts
-
 # network-backed download coverage
 bun t test/test-cases/e2e/local/step-1-download-e2e/download-input-types-direct-url.test.ts
 bun t test/test-cases/e2e/local/step-1-download-e2e/download-input-types-streaming.test.ts

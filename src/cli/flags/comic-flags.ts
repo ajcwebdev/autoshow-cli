@@ -93,7 +93,6 @@ export const generateImagesFlags = {
 const comicAudioSelectionFlags = pickFlags(ttsCommandFlags, [
   'provider',
   'all-providers',
-  'all-local',
   'provider-concurrency',
   'local-concurrency',
   'tts-chunk-concurrency',

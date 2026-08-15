@@ -72,7 +72,6 @@ const targetOptions = (registration: VoiceRegistration): TtsOptions => {
     : (() => { throw CLIUsageError('Canonical audition requires a ready voice registration.') })())
   const model = registration.providerModel
   switch (registration.provider) {
-    case 'kitten': return { kittenTtsModels: [model], ttsSpeaker: voice }
     case 'elevenlabs': return { elevenlabsTtsModels: [model], elevenlabsVoiceId: voice }
     case 'minimax': return { minimaxTtsModels: [model], minimaxTtsVoice: voice }
     case 'groq': return { groqTtsModels: [model], groqVoiceId: voice }

@@ -4,7 +4,7 @@ import {
   SUPPORTED_HUME_TTS_VOICE_PROVIDERS
 } from '~/cli/commands/setup-and-utilities/models/setup-model-options'
 import { SPEECHIFY_CUSTOM_VOICE_GENDERS } from '~/cli/commands/process-steps/step-4-tts/tts-services/speechify/speechify-custom-voices'
-import { batchFlags, booleanAllLocalFlag, booleanAllProvidersFlag, priceFlag, sharedConcurrencyFlags } from './shared-flags'
+import { batchFlags, booleanAllProvidersFlag, priceFlag, sharedConcurrencyFlags } from './shared-flags'
 import { boolFlag, formatProviderList, formatValueList, pickFlags, strFlag, strListFlag, withHelpGroup } from './flag-utils'
 import { STANDALONE_TTS_PROVIDER_TARGETS } from './service-selector-normalization/provider-targets'
 import { DEFAULT_TTS_CHUNK_CONCURRENCY_FLAG_VALUE } from '~/utils/concurrency-defaults'
@@ -49,9 +49,8 @@ export const genericTtsOptionFlags = {
 } as const satisfies CliFlagsDefinition
 
 const ttsProviderSelectionFlags = {
-  provider: strListFlag(`TTS provider[=model]: ${formatProviderList(STANDALONE_TTS_PROVIDER_TARGETS)}; repeatable (default: kitten)`),
+  provider: strListFlag(`TTS provider[=model]: ${formatProviderList(STANDALONE_TTS_PROVIDER_TARGETS)}; repeatable (default: cheapest hosted)`),
   ...booleanAllProvidersFlag,
-  ...booleanAllLocalFlag,
   ...sharedConcurrencyFlags
 } as const satisfies CliFlagsDefinition
 

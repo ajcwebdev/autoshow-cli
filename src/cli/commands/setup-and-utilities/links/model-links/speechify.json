@@ -1,13 +1,5 @@
 {
   "Speechify": {
-    "General": [
-      "https://docs.speechify.ai/build/guides/welcome.md",
-      "https://docs.speechify.ai/build/guides/get-started/authentication.md",
-      "https://docs.speechify.ai/build/guides/concepts/api-limits.md",
-      "https://docs.speechify.ai/build/api-reference/overview.md",
-      "https://docs.speechify.ai/build/api-reference/get-started/introduction.md",
-      "https://docs.speechify.ai/build/guides/get-started/quickstart.md"
-    ],
     "Models": [
       "https://docs.speechify.ai/build/guides/concepts/models.md"
     ],

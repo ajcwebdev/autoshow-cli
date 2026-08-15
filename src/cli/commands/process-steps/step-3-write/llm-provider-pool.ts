@@ -2,10 +2,6 @@ import { runProviderTargetScheduler } from '~/cli/commands/process-steps/provide
 import type { HostedConcurrencyCoordinator, IndexedLlmTarget, LLMTarget, TargetSchedulerConcurrency } from '~/types'
 import { InfraError } from '~/utils/error-handler'
 
-export const isLocalLlmTarget = (
-  target: Pick<LLMTarget, 'service'>
-): boolean => target.service === 'llama.cpp' || target.service === 'llamafile'
-
 const isHostedLlmTarget = (
   target: Pick<LLMTarget, 'service'>
 ): boolean =>
@@ -37,9 +33,9 @@ export const runLlmProviderTargetPools = async (
     hostedConcurrencyCoordinator,
     hostedWorkClass: 'llm',
     getHostedWorkId: (index, entry) => `llm:${hostedWorkScope}:${entry.target.service}:${entry.target.model}:${index}`,
-    getPool: (entry) => isLocalLlmTarget(entry.target) ? 'local' : 'hosted',
+    getPool: () => 'hosted',
     runTarget: async (_index, entry) => {
-      if (!isLocalLlmTarget(entry.target) && !isHostedLlmTarget(entry.target)) {
+      if (!isHostedLlmTarget(entry.target)) {
         return
       }
       await worker(entry.index, entry.target)

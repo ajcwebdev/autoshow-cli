@@ -55,11 +55,10 @@ apply global runtime settings
         +--> --output-dir                 -> pinned run directory for this invocation
         +--> --characters-root            -> comic/voice character reference directory
         +--> --bin-dir                    -> external tool binary lookup
-        +--> --color / --no-color         -> ANSI color handling
-        +--> config auth.cookies / auth.cookiesFromBrowser -> yt-dlp auth
-        +--> --model-path                 -> llama.cpp local model override
-        |
-        v
+         +--> --color / --no-color         -> ANSI color handling
+         +--> config auth.cookies / auth.cookiesFromBrowser -> yt-dlp auth
+         |
+         v
 run command handler under log context
         |
         v
@@ -84,7 +83,6 @@ Global flags:
 | `--log-level` | Minimum log level: `debug`, `info`, `success`, `warn`, or `error`. |
 | `--log-format` | Log output format: `human`, `json`, or `both`. |
 | `--color`, `--no-color` | Force ANSI colors on or off instead of auto-detecting the TTY. |
-| `--model-path` | Use a local GGUF file for llama.cpp. Accepted on `write` and `resume` only. |
 
 Comic's public `draft-scenes`, `generate-images`, `generate-audio`, `generate-slideshow`, `reference-sketch`, and `reference-voice` commands are first-class children of `comicCommand`; dispatch, global flags, parameter cardinality, and both help forms use the native command tree. Links registers every provider selector as a real hidden flag, then assigns the native parser's ordered positional metadata to provider scopes without reparsing raw argv.
 
@@ -120,10 +118,16 @@ Process commands enter the shared target layer except for special standalone gen
 Command groups share the same normalized selector model but expose it through different flags:
 
 ```
-extract/resume/standalone generation
+extract/resume
   --provider provider[=model]
   --all-providers
   --all-local
+  --provider-concurrency N
+  --local-concurrency N
+
+standalone generation
+  --provider provider[=model]
+  --all-providers
   --provider-concurrency N
   --local-concurrency N
 
@@ -135,8 +139,8 @@ write/config pipeline defaults
   --image provider[=model]
   --video provider[=model]
   --music provider[=model]
-  --all-providers stt|ocr|url|llm|tts|image|video|music
-  --all-local stt|ocr|url|llm|tts
+   --all-providers stt|ocr|url|llm|tts|image|video|music
+   --all-local stt|ocr|url
 ```
 
 Flag/config resolution is command-neutral, but processing is not built around an all-command option bag. STT, OCR, URL, LLM, TTS, image, video, music, batch, and pricing consumers accept their own option slices plus explicitly named shared controls. Only the full media/document write path composes the slices it actually runs.
@@ -149,11 +153,11 @@ Current selector families:
 
 | Step | Providers |
 |------|-----------|
-| STT | `whisper`, `whisperfile`, `reverb`, `deepinfra`, `deepgram`, `soniox`, `speechmatics`, `rev`, `groq`, `grok`, `mistral`, `assemblyai`, `gladia`, `happyscribe`, `supadata`, `scrapecreators`, `gemini`, `together`; `youtube-captions` is a special caption-backed service. |
+| STT | `whisper`, `whisperfile`, `deepinfra`, `deepgram`, `soniox`, `speechmatics`, `rev`, `groq`, `grok`, `mistral`, `assemblyai`, `gladia`, `happyscribe`, `supadata`, `scrapecreators`, `gemini`, `together`; `youtube-captions` is a special caption-backed service. |
 | OCR | `tesseract`, `mistral`, `glm`, `kimi`, `openai`, `grok`, `anthropic`, `gemini`, `deepinfra`, `replicate`, `fal`. |
 | URL article | `defuddle`, `firecrawl`, `glm-reader`, `spider`, `supadata`, `zyte`. |
-| LLM | `llama`, `llamafile`, `openai`, `groq`, `gemini`, `anthropic`, `minimax`, `grok`, `glm`, `kimi`, `together`, `cerebras`. |
-| TTS | `kitten`, `elevenlabs`, `minimax`, `groq`, `grok`, `mistral`, `openai`, `gemini`, `deepgram`, `speechify`, `hume`, `cartesia`, `fish`, `inworld`, `deepinfra`, `replicate`, `fal`. |
+| LLM | `openai`, `groq`, `gemini`, `anthropic`, `minimax`, `grok`, `glm`, `kimi`, `together`, `cerebras`. |
+| TTS | `elevenlabs`, `minimax`, `groq`, `grok`, `mistral`, `openai`, `gemini`, `deepgram`, `speechify`, `hume`, `cartesia`, `fish`, `inworld`, `deepinfra`, `replicate`, `fal`. |
 | Image | `gemini`, `openai`, `grok`, `bfl`, `recraft`, `replicate`, `lumalabs`, `fal`. |
 | Video | `gemini`, `minimax`, `glm`, `grok`, `runway`, `ltx`, `replicate`, `lumalabs`, `fal`. |
 | Music | `elevenlabs`, `minimax`, `gemini`. |

@@ -17,7 +17,6 @@ import { CLIUsageError } from '~/utils/error-handler'
 type OptionalControl<T> = T | null | undefined
 
 export type TtsInvocationControlsByProvider = {
-  kitten: Readonly<{ maxChunkChars?: OptionalControl<number> }>
   openai: Readonly<{
     instructions?: OptionalControl<string>
     speed?: OptionalControl<number>
@@ -111,9 +110,6 @@ const GEMINI_TTS_LANGUAGE_CODES = [
 const trim = (value: string): string => value.trim()
 
 const CONTROL_SPECS = {
-  kitten: {
-    maxChunkChars: { kind: 'number', min: 1, max: 1_000_000, integer: true },
-  },
   openai: {
     instructions: { kind: 'string', preserveWhitespace: true },
     speed: { kind: 'number', min: 0.25, max: 4 },

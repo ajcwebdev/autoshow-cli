@@ -1,8 +1,5 @@
 export type TtsRuntimeOptions = {
   ttsAllowAmbiguousRedispatch: boolean
-  ttsSpeaker: string
-  kittenTtsModels: string[] | undefined
-  kittenTtsModel: string | undefined
   groqTtsModels: string[] | undefined
   groqTtsModel: string | undefined
   groqVoiceId: string | undefined

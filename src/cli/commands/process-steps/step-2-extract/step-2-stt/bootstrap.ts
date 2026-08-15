@@ -14,7 +14,6 @@ const toBootstrapProviderId = (
       return `whisper:${target.model}`
     case 'whisperfile':
       return `whisperfile:${target.model}`
-    case 'reverb':
     case 'deepinfra':
     case 'deepgram':
     case 'soniox':

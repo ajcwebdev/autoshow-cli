@@ -1,0 +1,11 @@
+{
+  "Whisperfile": {
+    "STT": [
+      "https://docs.mozilla.ai/llamafile/whisperfile/index.md",
+      "https://docs.mozilla.ai/llamafile/whisperfile/getting-started.md",
+      "https://docs.mozilla.ai/llamafile/whisperfile/packaging.md",
+      "https://docs.mozilla.ai/llamafile/whisperfile/translate.md",
+      "https://docs.mozilla.ai/llamafile/whisperfile/server.md"
+    ]
+  }
+}

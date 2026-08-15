@@ -123,7 +123,7 @@ bun autoshow extract input/examples/document/1-document.pdf --format json
   - raw local `.md` / `.txt` files and raw text directories when `--text-input` or the project text convention is used
   - project lyric draft inputs under `./output/<name>/text/` with `prompt.md` (or `--prompt-file`) and optional `tracks.md`
   - prompt families for summaries, chapters, marketing, social copy, creative writing, and song lyrics
-  - hosted LLM providers and local llama.cpp or llamafile
+  - hosted LLM providers. Write has no local LLM; omitting `--llm` selects the cheapest hosted model.
 - Key outputs:
   - timestamped write run directory under `output/` with `prompt.md` and `manifest.json`
   - single-target JSON output as `text.json`; multi-target JSON output as `text-<model>.json`
@@ -144,7 +144,7 @@ bun autoshow write ./output/demo/text --prompt rockSong
 
 - Primary inputs/providers:
   - local Markdown or plaintext files: `.md` and `.txt`
-  - local Kitten TTS and hosted TTS providers
+  - hosted TTS providers
 - Key outputs:
   - single-target runs under `./output/<timestamp>_<label>/` with `speech.wav` and `manifest.json`
   - multi-target runs with `speech-<service>-<sanitized-model>.wav` files plus `manifest.json`
@@ -153,7 +153,7 @@ bun autoshow write ./output/demo/text --prompt rockSong
 Example:
 
 ```bash
-bun autoshow tts input/examples/tts/1-tts.md --provider kitten=kitten-tts-mini
+bun autoshow tts input/examples/tts/1-tts.md --provider openai=gpt-4o-mini-tts-2025-12-15
 ```
 
 ### Step 5: image
@@ -390,7 +390,7 @@ Shared runtime behavior applies across multiple process steps:
 - Per-step provider/local concurrency controls provider fan-out.
 - Flag and config resolution project into STT, OCR, URL, LLM, TTS, image, video, music, batch, and pricing option slices. Standalone generation, pricing, and resume consumers receive only their domain slice plus named shared controls; the full media/document write path uses its own composed `ProcessingOptions` boundary.
 
-Root help also exposes shared controls for config paths, verbosity, JSON output, cookies, and model paths.
+Root help also exposes shared controls for config paths, verbosity, JSON output, and cookies.
 
 See [Pricing Preflight](./commands.md#pricing-preflight) and the individual command docs for provider-specific pricing behavior.
 

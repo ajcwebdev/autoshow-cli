@@ -11,7 +11,6 @@ import { collectGeminiTtsTargets } from '../tts-services/tts-gemini/gemini-tts-t
 import { collectGrokTtsTargets } from '../tts-services/tts-grok/grok-tts-targets'
 import { collectGroqTtsTargets } from '../tts-services/tts-groq/groq-tts-targets'
 import { collectHumeTtsTargets } from '../tts-services/hume/hume-tts-targets'
-import { collectKittenTtsTargets } from '../tts-local/kitten/kitten-tts-targets'
 import { collectMinimaxTtsTargets } from '../tts-services/tts-minimax/minimax-tts-targets'
 import { collectMistralTtsTargets } from '../tts-services/tts-mistral/mistral-tts-targets'
 import { collectOpenAITtsTargets } from '../tts-services/tts-openai/openai-tts-targets'
@@ -25,8 +24,7 @@ import { canonicalTargetKey } from '~/utils/canonical-target-key'
 import { CLIUsageError } from '~/utils/error-handler'
 import { getMistralProtectedReference, getMistralProtectedSpeakerReferences } from '../voice-assets/mistral-protected-reference-binding'
 
-const getTtsTransport = (service: TtsTarget['service']): string =>
-  service === 'kitten' ? 'local-process' : 'hosted-api'
+const getTtsTransport = (): string => 'hosted-api'
 
 export const preflightTtsTargetSelection = (
   options: TtsOptions
@@ -50,7 +48,6 @@ export const collectTtsTargets = (options: TtsOptions): TtsTarget[] => {
   const mistralProtectedSpeakerReferences = getMistralProtectedSpeakerReferences(options)
 
   const collected: TtsTarget[] = [
-    ...collectKittenTtsTargets(options, selection),
     ...collectElevenLabsTtsTargets(selection),
     ...collectMinimaxTtsTargets(selection),
     ...collectGroqTtsTargets(selection),
@@ -71,7 +68,7 @@ export const collectTtsTargets = (options: TtsOptions): TtsTarget[] => {
 
   const targets = collected.map((target): TtsTarget => {
     const operation = 'tts-synthesis' as const
-    const transport = getTtsTransport(target.service)
+    const transport = getTtsTransport()
     return {
       ...target,
       operation,

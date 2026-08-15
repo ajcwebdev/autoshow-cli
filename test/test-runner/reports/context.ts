@@ -68,8 +68,6 @@ const KNOWN_SERVICE_HINTS: Array<{ pattern: RegExp, service: string }> = [
   { pattern: /\bkimi\b/i, service: 'kimi' },
   { pattern: /\brunway\b/i, service: 'runway' },
   { pattern: /\bwhisper\b/i, service: 'whisper' },
-  { pattern: /\bllama\b/i, service: 'llama.cpp' },
-  { pattern: /\bkitten\b/i, service: 'kitten' },
 ]
 
 const isRecord = (value: unknown): value is Record<string, unknown> => {

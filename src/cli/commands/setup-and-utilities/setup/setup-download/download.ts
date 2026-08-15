@@ -32,11 +32,7 @@ const TOTAL_TIMEOUT_MS_BY_FLOW: Record<DownloadFlowId, number> = {
   'qpdf-prebuilt': DEFAULT_TOTAL_TIMEOUT_MS,
   'whisper-model': LARGE_ASSET_TOTAL_TIMEOUT_MS,
   'whisperfile-binary': LARGE_ASSET_TOTAL_TIMEOUT_MS,
-  'llama-tarball': DEFAULT_TOTAL_TIMEOUT_MS,
-  'llamafile-binary': LARGE_ASSET_TOTAL_TIMEOUT_MS,
-  'whisper-source': DEFAULT_TOTAL_TIMEOUT_MS,
-  'reverb-source': DEFAULT_TOTAL_TIMEOUT_MS,
-  'reverb-model': LARGE_ASSET_TOTAL_TIMEOUT_MS
+  'whisper-source': DEFAULT_TOTAL_TIMEOUT_MS
 }
 
 type DownloadTimeouts = {

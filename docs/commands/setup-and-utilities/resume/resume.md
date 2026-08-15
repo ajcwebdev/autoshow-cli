@@ -31,7 +31,7 @@ Use the target-aware generic selector:
 |------|-------------|
 | `--provider provider[=model]` | Add one provider/model for the resolved command or extract route |
 | `--all-providers` | Add every supported provider/model for the resolved command or extract route |
-| `--all-local` | Add every local engine/backend for the resolved command or extract route; supported for `extract`, write LLM, and TTS targets, and rejected for image, video, and music targets |
+| `--all-local` | Add every local engine/backend for the resolved extract route; supported for `extract` targets and rejected for write LLM, TTS, image, video, and music targets |
 
 `--provider` is repeatable. For `extract` resumes, the target route decides whether a provider name maps to STT, OCR, or URL article extraction.
 
@@ -41,11 +41,11 @@ Examples of provider names:
 
 | Target | Provider names |
 |--------|----------------|
-| STT extract | `whisper`, `whisperfile`, `reverb`, `deepinfra`, `deepgram`, `soniox`, `speechmatics`, `rev`, `groq`, `grok`, `mistral`, `assemblyai`, `gladia`, `happyscribe`, `supadata`, `scrapecreators`, `gemini`, `together` |
+| STT extract | `whisper`, `whisperfile`, `deepinfra`, `deepgram`, `soniox`, `speechmatics`, `rev`, `groq`, `grok`, `mistral`, `assemblyai`, `gladia`, `happyscribe`, `supadata`, `scrapecreators`, `gemini`, `together` |
 | OCR extract | `tesseract`, `mistral`, `glm`, `kimi`, `openai`, `grok`, `anthropic`, `gemini`, `deepinfra` |
 | URL extract | `defuddle`, `firecrawl`, `glm-reader`, `spider`, `supadata`, `zyte` |
-| Write LLM | `llama`, `llamafile`, `openai`, `groq`, `gemini`, `anthropic`, `minimax`, `grok`, `glm`, `kimi`, `together`, `cerebras` |
-| TTS | `kitten`, `elevenlabs`, `minimax`, `groq`, `grok`, `mistral`, `openai`, `gemini`, `deepgram`, `speechify`, `hume`, `cartesia` |
+| Write LLM | `openai`, `groq`, `gemini`, `anthropic`, `minimax`, `grok`, `glm`, `kimi`, `together`, `cerebras` |
+| TTS | `elevenlabs`, `minimax`, `groq`, `grok`, `mistral`, `openai`, `gemini`, `deepgram`, `speechify`, `hume`, `cartesia` |
 | Image | `gemini`, `openai`, `grok`, `bfl`, `recraft`, `replicate`, `lumalabs`, `fal` |
 | Video | `gemini`, `minimax`, `glm`, `grok`, `runway`, `ltx`, `replicate`, `lumalabs`, `fal` |
 | Music | `elevenlabs`, `minimax`, `gemini` |

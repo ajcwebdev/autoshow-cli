@@ -33,7 +33,6 @@ type ProcessingWriteOptions = {
   concurrencyMode: import('~/types').HostedConcurrencyMode
   hostedConcurrencyCoordinator?: import('~/types').HostedConcurrencyCoordinator | undefined
   configPath: string | undefined
-  useReverb: boolean
   youtubeCaptions: boolean
   skipLLM: boolean
   prompts: string[]

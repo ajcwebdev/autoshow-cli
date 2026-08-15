@@ -35,7 +35,7 @@ const VOICE_ORIGINS = new Set([
   'provider-stock', 'community-library', 'designed', 'remixed', 'instant-clone', 'professional-clone',
   'imported-custom', 'saved-reference', 'request-reference-audio', 'local-model-voice'
 ])
-const TTS_PROVIDERS = new Set(['kitten', 'elevenlabs', 'minimax', 'groq', 'grok', 'mistral', 'openai', 'gemini', 'deepgram', 'speechify', 'hume', 'cartesia', 'fish', 'inworld', 'deepinfra', 'replicate', 'fal'])
+const TTS_PROVIDERS = new Set(['elevenlabs', 'minimax', 'groq', 'grok', 'mistral', 'openai', 'gemini', 'deepgram', 'speechify', 'hume', 'cartesia', 'fish', 'inworld', 'deepinfra', 'replicate', 'fal'])
 
 export type CharacterVoiceRegistryPaths = {
   charactersRoot: string

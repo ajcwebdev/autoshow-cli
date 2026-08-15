@@ -27,7 +27,7 @@ Install local runtimes and prerequisite tools. Focused setup utilities also cove
 bun autoshow setup
 ```
 
-Use full setup on a clean machine when you want local download, OCR, STT, write, or TTS workflows to work without manually installing their prerequisites first.
+Use full setup on a clean machine when you want local download, OCR, STT, or write workflows to work without manually installing their prerequisites first.
 
 ## Disk and Network Requirements
 
@@ -37,10 +37,8 @@ Setup writes to four places, not just the repo:
 
 | Location | Holds | Approx. size |
 | --- | --- | --- |
-| `runtime/` | Managed binaries, Python envs, and local models | ~7 GiB |
+| `runtime/` | Managed binaries, Python envs, and local STT models | ~7 GiB |
 | `~/.cache/uv` (macOS and Linux) | uv's shared Python package cache | ~2.5 GB |
-| `~/Library/Caches/llama.cpp` (macOS), `~/.cache/llama.cpp` (Linux) | llama.cpp `-hf` model weights | a few hundred MB per model |
-| `~/.cache/huggingface/hub` | Reverb and Kitten TTS model weights | ~1 GB |
 
 Notes:
 
@@ -52,7 +50,6 @@ Notes:
 - Every 30 seconds, any step still running and not already printing its own progress is listed on a single `Still running:` line, so a long source build is distinguishable from a hang without burying the rest of the output.
 - The Setup Step Timings table reports **concurrent wall clock**. Tasks run in parallel and contend, so a step's figure there can be far above what the same step costs alone via `--step`.
 - Every full setup writes a schema-versioned phase artifact under `runtime/setup-performance/`. It records relative build-phase timestamps, compile overlap, task timings, pinned versions, and non-sensitive host facts; use verbose logging to print the detailed phase table.
-- `LLAMA_CACHE`, `HF_HOME`, and `HUGGINGFACE_HUB_CACHE` relocate the respective model caches.
 
 ## Doctor
 
@@ -82,7 +79,7 @@ The same precedence rules apply everywhere in the CLI:
 The `setup` command currently supports:
 
 ```text
-uv | yt-dlp | defuddle | whisper-binary | whisper-model | whisperfile | llama-binary | llamafile | reverb | calibre | acsm | acsm-authorize | all | transcription | write | tts | image | video | music
+uv | yt-dlp | defuddle | whisper-binary | whisper-model | whisperfile | calibre | acsm | acsm-authorize | all | transcription | write | tts | image | video | music
 ```
 
 Isolated steps assume their prerequisites are already present. On a clean machine, prefer `bun autoshow setup`.
@@ -115,19 +112,13 @@ bun autoshow setup --step whisper-model
 # Step 2 extract: download the default whisperfile model (tiny)
 bun autoshow setup --step whisperfile
 
-# Step 2 extract: download large-v3-turbo + Reverb assets
+# Step 2 extract: download large-v3-turbo
 bun autoshow setup --step transcription
 
-# Step 3 write: download the default llamafile bundle (Qwen3.5-0.8B-Q8_0)
-bun autoshow setup --step llamafile
-
-# Step 3 write: install llama.cpp and download all supported local write models
+# Step 3 write: check hosted LLM API-key readiness
 bun autoshow setup --step write
 
-# Step 3 write: remove existing artifacts before re-downloading
-bun autoshow setup --step write --force-redownload
-
-# Step 4 TTS: install Kitten TTS, download local TTS models, and check hosted TTS readiness
+# Step 4 TTS: check hosted TTS API-key readiness
 bun autoshow setup --step tts
 
 # Step 5 image: check hosted provider API-key readiness
@@ -143,15 +134,12 @@ bun autoshow setup --step music
 ## Model Downloads
 
 ```bash
-# Download a Whisper or llama.cpp model without running inference
+# Download a Whisper or whisperfile model without running inference
 bun autoshow setup --models base
-bun autoshow setup --models ggml-org/gemma-3-270m-it-GGUF
-
-# Download specific whisperfile / llamafile bundles using prefixed selectors.
-# The whisperfile:/llamafile: prefixes disambiguate model names that overlap with Whisper (tiny, small, medium); optional whisper:/llama: prefixes are also accepted.
 bun autoshow setup --models whisperfile:small
-bun autoshow setup --models llamafile:Qwen3.5-2B-Q8_0
-bun autoshow setup --models whisperfile:large-v3 --models llamafile:Qwen3.5-4B-Q5_K_S
+
+# The whisperfile: prefix disambiguates model names that overlap with Whisper (tiny, small, medium); an optional whisper: prefix is also accepted.
+bun autoshow setup --models whisperfile:large-v3
 ```
 
-Supported whisperfile models: `tiny`, `tiny.en`, `small`, `small.en`, `medium`, `medium.en`, `large-v2`, `large-v3`. Supported llamafile bundles: `Qwen3.5-0.8B-Q8_0`, `Qwen3.5-2B-Q8_0`, `Qwen3.5-4B-Q5_K_S`.
+Supported whisperfile models: `tiny`, `tiny.en`, `small`, `small.en`, `medium`, `medium.en`, `large-v2`, `large-v3`.

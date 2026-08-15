@@ -1,5 +1,4 @@
 import { getOutputRoot } from '~/cli/commands/process-steps/output-root'
-import { isStep2BooleanProviderSelected } from '~/cli/commands/process-steps/step-2-extract/step-2-shared/provider-registry'
 import type { BuildOptsDefaults, CliFlagOccurrence, ResolvedFlagContext, TtsOptionResolutionAuthority } from '~/types'
 import {
   parseHostedConcurrencyMode,
@@ -56,10 +55,6 @@ export const buildOptsFromFlags = (
 
   const modelOptions = readRuntimeModelOptions(mergedFlags, rawModelOccurrences, allShortcutFlags, defaults)
   const {
-    llamaModels,
-    llamaModel,
-    llamafileModels,
-    llamafileModel,
     openaiModels,
     openaiModel,
     groqModels,
@@ -88,7 +83,6 @@ export const buildOptsFromFlags = (
     configuredFlags,
     flagOccurrences
   })
-  const useReverb = isStep2BooleanProviderSelected('reverb-stt', mergedFlags, allShortcutFlags)
   const step2SelectionOrigins = resolveStep2SelectionOrigins(mergedFlags, explicitFlags, rawModelOccurrences, allShortcutFlags, configuredFlags)
   const whisperExplicit = step2SelectionOrigins['whisper-stt'] === 'explicit' || step2SelectionOrigins['whisper-stt'] === 'all-shortcut'
 
@@ -108,14 +102,9 @@ export const buildOptsFromFlags = (
     hostedConcurrencyCoordinator: createHostedConcurrencyCoordinator({ mode: concurrencyMode }),
     outputRootDir: getOutputRoot(),
     configPath: readOptionalStringFlag(mergedFlags, 'config-path'),
-    useReverb,
     youtubeCaptions: readBooleanFlag(mergedFlags, 'youtube-captions'),
     whisperExplicit,
     step2SelectionOrigins,
-    llamaModels,
-    llamaModel,
-    llamafileModels,
-    llamafileModel,
     openaiModels,
     openaiModel,
     groqModels,

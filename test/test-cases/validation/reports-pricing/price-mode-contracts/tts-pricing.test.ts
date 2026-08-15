@@ -151,28 +151,6 @@ describe('price mode contracts', () => {
         .toBe(Math.round((characterCount / 1000) * getTtsEstimation('elevenlabs', model).msPer1KChars))
     })
 
-  test('Kitten TTS chunking remains sequential in timing estimates', () => {
-      const model = 'kitten-tts-nano-0.8-int8'
-      const characterCount = 4_666
-      const text = 'a'.repeat(characterCount)
-      const rate = getTtsEstimation('kitten', model).msPer1KChars
-      const parallelTiming = computeEstimatedProcessingTimes({
-        ttsTargets: [{ service: 'kitten', model }],
-        ttsCharacterCount: characterCount,
-        ttsInputText: text,
-        ttsChunkConcurrency: 5
-      })
-      const serialTiming = computeEstimatedProcessingTimes({
-        ttsTargets: [{ service: 'kitten', model }],
-        ttsCharacterCount: characterCount,
-        ttsInputText: text,
-        ttsChunkConcurrency: 1
-      })
-
-      expect(parallelTiming.steps[0]?.processingTimeMs).toBe(Math.round((characterCount / 1000) * rate))
-      expect(serialTiming.steps[0]?.processingTimeMs).toBe(parallelTiming.steps[0]?.processingTimeMs)
-    })
-
   test('chunked TTS setup time is added once before parallel synthesis', () => {
       const model = 'gpt-4o-mini-tts-2025-12-15'
       const setupTimeMs = 10_000

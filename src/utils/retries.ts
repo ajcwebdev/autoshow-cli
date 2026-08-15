@@ -459,38 +459,6 @@ export const withRetry = async <T>(
   })
 }
 
-/**
- * Run a local model-server request (llama.cpp, llamafile, ...) with
- * retry-on-any-error semantics. Each attempt re-runs `attempt`; when an attempt
- * throws, `recover` is invoked (e.g. to stop a wedged server) so the next
- * attempt starts from a clean slate. No classifier is passed, so withRetry
- * retries regardless of the error type — the only thing that matters is that a
- * failure happened.
- */
-export const runLocalModelWithRetry = async <T>(opts: {
-  operationName: string
-  timeoutMs?: number
-  attempt: (signal: AbortSignal | undefined) => Promise<T>
-  recover?: () => Promise<void>
-}): Promise<T> =>
-  withRetry(
-    {
-      retryClass: 'runtime_local_inference',
-      operationName: opts.operationName,
-      ...(typeof opts.timeoutMs === 'number' ? { timeoutMs: opts.timeoutMs } : {})
-    },
-    async (signal) => {
-      try {
-        return await opts.attempt(signal)
-      } catch (error) {
-        if (opts.recover) {
-          await opts.recover().catch(() => {})
-        }
-        throw error
-      }
-    }
-  )
-
 export const pollUntil = async <T>(opts: PollOptions<T>): Promise<T> => {
   const deadline = Date.now() + opts.deadlineMs
   const { operationName, pollFn, isDone, isFailed, intervalMs, abortSignal } = opts

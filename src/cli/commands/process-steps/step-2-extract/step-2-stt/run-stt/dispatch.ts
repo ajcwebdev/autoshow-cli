@@ -1,7 +1,6 @@
 import type { Step2Metadata, SttTarget, SttTargetOptions, TranscriptionResult, WhisperProgressWindow } from '~/types'
 import { assertNever } from '~/utils/validate/assert-never'
 import { InternalError } from '~/utils/error-handler'
-import { runReverbTranscribe } from '../stt-local/reverb/run-reverb'
 import { runWhisperTranscribe } from '../stt-local/whisper/run-whisper'
 import { runWhisperfileTranscribe } from '../stt-local/whisperfile/run-whisperfile'
 import { runAssemblyAiTranscribe } from '../stt-services/assemblyai/run-assemblyai-stt'
@@ -30,15 +29,6 @@ export const dispatchStt = async (
   totalSegments?: number,
   whisperProgress?: WhisperProgressWindow | undefined
 ): Promise<{ result: TranscriptionResult, metadata: Step2Metadata }> => {
-  if (target.service === 'reverb') {
-    return await runReverbTranscribe(audioPath, outputDir, {
-      segmentOffsetMinutes,
-      segmentNumber,
-      totalSegments,
-      reverbVerbatimicity: options.reverbVerbatimicity
-    })
-  }
-
   if (target.service === 'deepgram') {
     return await runDeepgramTranscribe(audioPath, outputDir, {
       model: target.model,

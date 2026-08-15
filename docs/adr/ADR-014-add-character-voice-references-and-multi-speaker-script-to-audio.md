@@ -139,7 +139,7 @@ Gemini native dialogue is constrained to exactly two distinct speakers; other sp
 
 Per-turn synthesis passes explicit voice locators and parameters to `TtsTarget.run()`. Every adapter guarantees A/B/A request serialization conformance (verifying distinct per-turn voices in actual network payloads). Dialogue work runs under the shared provider target scheduler, respecting `--tts-chunk-concurrency`, `--provider-concurrency`, and `--local-concurrency` bounds without unbounded `Promise.all` fanout.
 
-Hosted dialogue and ordinary hosted TTS chunks use the shared run-scoped provider/account coordinator beneath their existing ordered and fair work selectors. Default `ramp` mode admits one request immediately and adds one slot every five seconds while demand is queued, up to the existing TTS chunk or turn cap; `immediate` begins at that cap. Classified rate-limit pressure halves the live shared lane limit, drains active synthesis without cancellation, and permits one exact-request recovery probe after backoff. Local Kitten work and local audio assembly remain immediate. Definite non-timeout 4xx rejection is retry/replay-safe; network errors, timeouts, 408/409, 5xx, and missing status are ambiguous. Ambiguous paid synthesis admissions require `--tts-allow-ambiguous-redispatch` and must warn that they may be purchased again.
+Hosted dialogue and ordinary hosted TTS chunks use the shared run-scoped provider/account coordinator beneath their existing ordered and fair work selectors. Default `ramp` mode admits one request immediately and adds one slot every five seconds while demand is queued, up to the existing TTS chunk or turn cap; `immediate` begins at that cap. Classified rate-limit pressure halves the live shared lane limit, drains active synthesis without cancellation, and permits one exact-request recovery probe after backoff. Local audio assembly remains immediate. Definite non-timeout 4xx rejection is retry/replay-safe; network errors, timeouts, 408/409, 5xx, and missing status are ambiguous. Ambiguous paid synthesis admissions require `--tts-allow-ambiguous-redispatch` and must warn that they may be purchased again.
 
 ### Native Dialogue, Timing, and Continuation
 
@@ -177,7 +177,6 @@ When a target publishes selected success:
 
 | Provider | Portable Baseline | Advanced Capabilities / Adapter Commitment |
 |---|---|---|
-| Kitten | Local segmented stock voices | No-cost local development baseline with explicit turn voice |
 | ElevenLabs | Segmented explicit voice | Shared `voice` catalog, design, remix, clone, audition, Text-to-Dialogue, timestamps, and v3 audio-tag plus `voice_settings` expressiveness |
 | MiniMax | Segmented stock/custom voice | Synthesis-only; stock and custom voice support with explicit emotion selectors, volume, pitch, and interjection tags |
 | Groq | Segmented stock voice | English Orpheus direction support |

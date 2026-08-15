@@ -35,7 +35,7 @@ export const booleanAllLocalFlag = {
 export const stepProviderSelectorFlags = {
   stt: strListFlag(`Write pipeline STT provider[=model]: ${formatProviderList(WRITE_STT_PROVIDER_TARGETS)} (default: whisper=tiny)`),
   ocr: strListFlag(`Write pipeline OCR provider[=model]: ${formatProviderList(WRITE_OCR_PROVIDER_TARGETS)} (default: tesseract)`),
-  llm: strListFlag(`Write pipeline LLM provider[=model]: ${formatProviderList(WRITE_LLM_PROVIDER_TARGETS)} (default: llama)`),
+  llm: strListFlag(`Write pipeline LLM provider[=model]: ${formatProviderList(WRITE_LLM_PROVIDER_TARGETS)} (default: cheapest hosted)`),
   tts: strListFlag(`Write pipeline TTS provider[=model]: ${formatProviderList(STANDALONE_TTS_PROVIDER_TARGETS)}`),
   image: strListFlag(`Write pipeline image provider[=model]: ${formatProviderList(STANDALONE_IMAGE_PROVIDER_TARGETS)}`),
   video: strListFlag(`Write pipeline video provider[=model]: ${formatProviderList(STANDALONE_VIDEO_PROVIDER_TARGETS)}`),
@@ -47,7 +47,7 @@ export const writeAllProvidersFlag = {
 } as const satisfies CliFlagsDefinition
 
 export const writeAllLocalFlag = {
-  'all-local': strListFlag('Write pipeline local engine/backend selector, repeatable for stt|ocr|url|llm|tts')
+  'all-local': strListFlag('Write pipeline local engine/backend selector, repeatable for stt|ocr|url')
 } as const satisfies CliFlagsDefinition
 
 export const sharedConcurrencyFlags = {
@@ -65,7 +65,6 @@ export const batchFlags = {
 
 export const transcriptionFlags = {
   'youtube-captions': boolFlag('Prefer English YouTube captions before STT when available; falls back to the normal STT provider path'),
-  'stt-reverb-verbatimicity': strFlag('Reverb output style 0-1', '0.5'),
   'stt-happyscribe-organization-id': strFlag('Happy Scribe organization/workspace ID; required when the API key can access multiple organizations'),
   'stt-supadata-lang': strFlag('Supadata preferred transcript language (ISO 639-1); used with auto mode when a native transcript is available'),
   'stt-scrapecreators-lang': strFlag('ScrapeCreators YouTube transcript language code', 'en'),

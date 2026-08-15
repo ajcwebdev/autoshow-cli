@@ -56,9 +56,7 @@ const SERVICE_FILE_SUFFIX: Record<Step3Metadata['llmService'], string> = {
   glm: 'glm',
   kimi: 'kimi',
   together: 'together',
-  cerebras: 'cerebras',
-  'llama.cpp': 'llama',
-  llamafile: 'llamafile'
+  cerebras: 'cerebras'
 }
 
 const sanitizeModelName = (model: string): string =>
@@ -81,13 +79,11 @@ const SERVICE_DISPLAY_LABEL: Record<Step3Metadata['llmService'], string> = {
   glm: 'GLM',
   kimi: 'Kimi',
   together: 'Together',
-  cerebras: 'Cerebras',
-  'llama.cpp': 'llama.cpp',
-  llamafile: 'Llamafile'
+  cerebras: 'Cerebras'
 }
 
 const toRegistryLlmService = (service: Step3Metadata['llmService']): string =>
-  service === 'llama.cpp' ? 'llama' : service
+  service
 
 const toTitleCase = (value: string): string =>
   value.replace(/\b[a-z]/g, char => char.toUpperCase())

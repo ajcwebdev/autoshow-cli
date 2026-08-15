@@ -16,7 +16,6 @@ export const createTtsTargetSelection = (options: TtsOptions): TtsTargetSelectio
     : undefined
 
   return {
-    kittenModels: selectModels(options.kittenTtsModels, options.kittenTtsModel),
     elevenlabsModels: selectModels(options.elevenlabsTtsModels, options.elevenlabsTtsModel),
     minimaxModels: selectModels(options.minimaxTtsModels, options.minimaxTtsModel),
     groqModels: selectModels(options.groqTtsModels, options.groqTtsModel),

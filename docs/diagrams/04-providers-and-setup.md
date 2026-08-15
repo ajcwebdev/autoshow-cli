@@ -20,25 +20,24 @@ collectLlmTargets(--llm and defaults)
   |
   v
 runLlmProviderTargetPools()
-  |
-  +------------------------------+------------------------------+
-  | hosted pool                  | local pool                   |
-  | concurrency: llmProvider...  | concurrency: llmLocal...     |
-  | default 10                   | default 10                   |
-  +------------------------------+------------------------------+
-  | openai                       | llama.cpp                    |
-  | groq                         | llamafile                    |
-  | gemini                       |                              |
-  | anthropic                    |                              |
-  | minimax                      |                              |
-  | grok                         |                              |
-  | glm                          |                              |
-  | kimi                         |                              |
-  | together                     |                              |
-  | cerebras                     |                              |
-  +------------------------------+------------------------------+
-          |
-          v
+   |
+   v
+   hosted pool
+   concurrency: llmProvider...
+   default 10
+   |
+   +--> openai
+   +--> groq
+   +--> gemini
+   +--> anthropic
+   +--> minimax
+   +--> grok
+   +--> glm
+   +--> kimi
+   +--> together
+   +--> cerebras
+   |
+   v
 text.json or text-<model>.json
 Step3Metadata in items[].metadata
 ```
@@ -57,8 +56,6 @@ Current LLM models:
 | `kimi` | `kimi-k2.6`, `kimi-k3` |
 | `together` | `kimi-k2.6`, `glm-5.1` |
 | `cerebras` | `gpt-oss-120b`, `zai-glm-4.7` |
-| `llama` | `ggml-org/gemma-3-270m-it-GGUF`, `ggml-org/Qwen3-0.6B-GGUF`, or another Hugging Face repo/model configured for llama.cpp |
-| `llamafile` | `Qwen3.5-0.8B-Q8_0`, `Qwen3.5-2B-Q8_0`, `Qwen3.5-4B-Q5_K_S` (prebuilt single-file llamafiles; downloaded on demand) |
 
 ## Selector Conventions
 
@@ -66,17 +63,19 @@ Provider selectors use `provider[=model]`. Repeating a selector creates a multi-
 
 | Surface | Selector flags |
 |---|---|
-| `extract`, `resume`, standalone `tts`/`image`/`video`/`music` | `--provider`, `--all-providers`, `--all-local`, `--provider-concurrency`, `--local-concurrency` |
-| `write`, `config` | `--stt`, `--ocr`, `--llm`, `--tts`, `--image`, `--video`, `--music`, plus `--all-providers <step>` and `--all-local <step>` |
+| `extract`, `resume` | `--provider`, `--all-providers`, `--all-local`, `--provider-concurrency`, `--local-concurrency` |
+| standalone `tts`/`image`/`video`/`music` | `--provider`, `--all-providers`, `--provider-concurrency`, `--local-concurrency` |
+| `write`, `config` | `--stt`, `--ocr`, `--llm`, `--tts`, `--image`, `--video`, `--music`, plus `--all-providers <step>` and `--all-local stt|ocr|url` |
 
 Current hosted/local provider families:
 
 | Step | Providers |
 |---|---|
-| STT | Local: `whisper`, `whisperfile`, `reverb`. Hosted: `deepinfra`, `deepgram`, `soniox`, `speechmatics`, `rev`, `groq`, `grok`, `mistral`, `assemblyai`, `gladia`, `happyscribe`, `supadata`, `scrapecreators`, `gemini`, `together`. |
+| STT | Local: `whisper`, `whisperfile`. Hosted: `deepinfra`, `deepgram`, `soniox`, `speechmatics`, `rev`, `groq`, `grok`, `mistral`, `assemblyai`, `gladia`, `happyscribe`, `supadata`, `scrapecreators`, `gemini`, `together`. |
 | OCR | Local/native: `tesseract` plus native document extractors. Hosted: `mistral`, `glm`, `kimi`, `openai`, `grok`, `anthropic`, `gemini`, `deepinfra`, `fal`, `replicate`. |
 | URL | Local: `defuddle`. Hosted: `firecrawl`, `glm-reader`, `spider`, `supadata`, `zyte`. |
-| TTS | Local: `kitten`. Hosted: `elevenlabs`, `minimax`, `groq`, `grok`, `mistral`, `openai`, `gemini`, `deepgram`, `speechify`, `hume`, `cartesia`, `fish`, `inworld`, `deepinfra`, `replicate`, `fal`. |
+| LLM | Hosted: `openai`, `groq`, `gemini`, `anthropic`, `minimax`, `grok`, `glm`, `kimi`, `together`, `cerebras`. Write has no local LLM. |
+| TTS | Hosted: `elevenlabs`, `minimax`, `groq`, `grok`, `mistral`, `openai`, `gemini`, `deepgram`, `speechify`, `hume`, `cartesia`, `fish`, `inworld`, `deepinfra`, `replicate`, `fal`. |
 | Image | `gemini`, `openai`, `grok`, `bfl`, `recraft`, `replicate`, `lumalabs`, `fal`. |
 | Video | `gemini`, `minimax`, `glm`, `grok`, `runway`, `ltx`, `replicate`, `lumalabs`, `fal`. |
 | Music | `elevenlabs`, `minimax`, `gemini`. |
@@ -96,17 +95,14 @@ concurrent setup tasks
   |
   +--> setupYtDependencies()      ffmpeg, ffprobe, yt-dlp
   +--> setupDefuddleCli()         HTML/article extraction helper
-  +--> setupWhisper()             whisper.cpp binary
-  +--> downloadWhisperModel()     tiny and large-v3-turbo models
-  +--> runLlamaSetup()            llama.cpp server binary
-  +--> ensureLlamaModelDownloaded(default)
-  +--> setupReverb()              Reverb ASR Python env and assets
-  +--> setupCalibreDocumentTools()
-  +--> setupTesseractOcr()
-  +--> setupKittenTts() + default Kitten model
-  |
-  v
-validate whisper-cli --help and llama-server --version
+   +--> setupWhisper()             whisper.cpp binary
+   +--> downloadWhisperModel()     tiny and large-v3-turbo models
+   +--> setupWhisperfile()         default whisperfile model
+   +--> setupCalibreDocumentTools()
+   +--> setupTesseractOcr()
+   |
+   v
+   validate whisper-cli --help
   |
   v
 log setup summary (local tools, local models, hosted providers)
@@ -116,11 +112,10 @@ Step-specific setup commands reuse those pieces:
 
 | Setup step | Work performed |
 |---|---|
-| transcription | Whisper/Reverb readiness, `large-v3-turbo` model, hosted STT env checks. |
+| transcription | Whisper readiness, `large-v3-turbo` model, hosted STT env checks. |
 | whisperfile | Download the default whisperfile model (`tiny`) into `runtime/bin/whisperfile/`. |
-| write | llama.cpp setup, supported llama model downloads, hosted LLM env checks. |
-| llamafile | Download the default llamafile bundle (`Qwen3.5-0.8B-Q8_0`) into `runtime/bin/llamafile/`. |
-| tts | Kitten TTS setup, all Kitten models, hosted TTS env checks. |
+| write | Hosted LLM env checks. |
+| tts | Hosted TTS env checks. |
 | image | Hosted image env checks. |
 | video | Hosted video env checks. |
 | music | Hosted music env checks plus ffmpeg/ffprobe, Whisper `large-v3-turbo`. |
@@ -170,7 +165,6 @@ These checks come from `HOSTED_PROVIDER_ENV_CHECKS`:
 | `SPIDER_API_KEY` | Spider URL |
 | `ZYTE_API_KEY` | Zyte URL |
 | `X_BEARER_TOKEN` | X Spaces metadata and download lookup |
-| `HUGGINGFACE_TOKEN` | Hugging Face Reverb assets |
 
 ## Setup Dependencies
 
@@ -180,14 +174,14 @@ These checks come from `HOSTED_PROVIDER_ENV_CHECKS`:
 | `metadata` X Space | none beyond normal runtime. | `X_BEARER_TOKEN`. |
 | `download` media | ffmpeg/ffprobe, yt-dlp. | Same auth/cookies support. |
 | `download` X Space | ffmpeg/ffprobe, yt-dlp. | `X_BEARER_TOKEN` for post URL lookup; same auth/cookies support for playback when needed. |
-| `extract` media | ffmpeg/ffprobe, yt-dlp, `whisper-cli` for `whisper`, prebuilt whisperfile for `whisperfile`, Reverb env for `reverb`. | Selected hosted STT key. |
+| `extract` media | ffmpeg/ffprobe, yt-dlp, `whisper-cli` for `whisper`, prebuilt whisperfile for `whisperfile`. | Selected hosted STT key. |
 | `extract` document OCR | MuPDF/Tesseract as selected; Calibre/native extractors for conversion/native routes. | Selected hosted OCR key. |
 | `extract` article | Defuddle for local/default article extraction. | Firecrawl, GLM, Spider, Supadata, or Zyte keys for hosted URL backends. |
 | `extract` X Space | none beyond normal runtime. | `X_BEARER_TOKEN`. |
 | `extract --transcript-video` | ffmpeg render stack and source audio/result files. | No provider call when using existing results/text. |
-| `write` | Route-specific extract dependencies plus llama.cpp or llamafile for local LLM. | Selected hosted LLM key. |
-| `write --text-input` | local `.md`/`.txt` files; llama.cpp or llamafile if using local LLM. | Selected hosted LLM/generation keys. |
-| `tts --provider kitten` | Kitten TTS Python env and models. | Hosted TTS key for hosted providers. |
+| `write` | Route-specific extract dependencies. Write has no local LLM. | Selected hosted LLM key. |
+| `write --text-input` | local `.md`/`.txt` files. | Selected hosted LLM/generation keys. |
+| `tts` | none for hosted-only providers. | Selected hosted TTS key. |
 | `image` | none for hosted-only providers. | `GEMINI_API_KEY`, `OPENAI_API_KEY`, `XAI_API_KEY`, `BFL_API_KEY`, `FAL_API_KEY`, `RECRAFT_API_TOKEN`, `REPLICATE_API_TOKEN`, or `LUMA_AGENTS_API_KEY`. |
 | `video` | local input media/image validation where used. | `GEMINI_API_KEY`, `MINIMAX_API_KEY`, `GLM_API_KEY`, `XAI_API_KEY`, `RUNWAYML_API_SECRET`, `LTXV_API_KEY`, `FAL_API_KEY`, `REPLICATE_API_TOKEN`, or `LUMA_AGENTS_API_KEY`. |
 | `music` hosted | none for hosted-only generation. | `ELEVENLABS_API_KEY`, `MINIMAX_API_KEY`, or `GEMINI_API_KEY`. |

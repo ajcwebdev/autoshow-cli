@@ -43,7 +43,7 @@ const policySkippedTtsState = (target: TtsTarget, artifactRoot = 'providers'): P
   return {
     service: target.service,
     model: target.model,
-    local: target.service === 'kitten',
+    local: false,
     operation: 'tts-synthesis',
     targetKey,
     transport: target.transport as string,
@@ -61,11 +61,11 @@ const writeCompleteTtsRun = async (dir: string): Promise<void> => {
   const sourcePath = join(dir, 'source.txt')
   await Bun.write(sourcePath, 'Hello.')
   const target: TtsTarget = {
-    service: 'kitten',
-    model: 'kitten-tts-nano',
+    service: 'openai',
+    model: 'gpt-4o-mini-tts-2025-12-15',
     operation: 'tts-synthesis',
-    transport: 'local-process',
-    targetKey: canonicalTargetKey('tts-synthesis', 'kitten', 'kitten-tts-nano', 'local-process'),
+    transport: 'hosted-api',
+    targetKey: canonicalTargetKey('tts-synthesis', 'openai', 'gpt-4o-mini-tts-2025-12-15', 'hosted-api'),
     run: async () => { throw new Error('not called in completed resume fixture') }
   }
   await writeSingleManifestFixture(dir, 'tts', {
@@ -111,12 +111,12 @@ const writeIncompleteTtsRun = async (dir: string): Promise<void> => {
     failedState,
     await materializeTtsDialoguePlanArtifact(dir, dialoguePlan)
   )
-  const kittenTarget: TtsTarget = {
-    service: 'kitten',
-    model: 'kitten-tts-nano',
+  const groqTarget: TtsTarget = {
+    service: 'groq',
+    model: 'canopylabs/orpheus-v1-english',
     operation: 'tts-synthesis',
-    transport: 'local-process',
-    targetKey: canonicalTargetKey('tts-synthesis', 'kitten', 'kitten-tts-nano', 'local-process'),
+    transport: 'hosted-api',
+    targetKey: canonicalTargetKey('tts-synthesis', 'groq', 'canopylabs/orpheus-v1-english', 'hosted-api'),
     run: async () => { throw new Error('not called in resume price fixture') }
   }
   await writeSingleManifestFixture(dir, 'tts', {
@@ -124,11 +124,11 @@ const writeIncompleteTtsRun = async (dir: string): Promise<void> => {
     completionStatus: 'failed',
     requestedProviders: [
       {
-        service: kittenTarget.service,
-        model: kittenTarget.model,
-        operation: kittenTarget.operation,
-        targetKey: kittenTarget.targetKey,
-        transport: kittenTarget.transport
+        service: groqTarget.service,
+        model: groqTarget.model,
+        operation: groqTarget.operation,
+        targetKey: groqTarget.targetKey,
+        transport: groqTarget.transport
       },
       {
         service: openaiTarget.service,
@@ -138,7 +138,7 @@ const writeIncompleteTtsRun = async (dir: string): Promise<void> => {
         transport: openaiTarget.transport
       }
     ],
-    providerStates: [policySkippedTtsState(kittenTarget), failedState],
+    providerStates: [policySkippedTtsState(groqTarget), failedState],
     tts: []
   })
 }

@@ -2,7 +2,6 @@ import type { CliFlagsDefinition } from '~/types'
 import { CLIUsageError } from '~/utils/error-handler'
 import { commandCreatesRunDirectory } from './run-directory-support'
 
-const MODEL_PATH_COMMANDS = new Set(['write', 'resume'])
 const CHARACTERS_ROOT_COMMANDS = new Set(['voice', 'comic'])
 const COOKIE_FLAGS = new Set(['cookies', 'cookies-from-browser'])
 
@@ -16,7 +15,6 @@ export const cookieFlagNameFromSpelling = (spelling: string): string | undefined
 
 export const commandAcceptsGlobalFlag = (commandName: string, flagName: string): boolean => {
   if (flagName === 'output-dir') return commandCreatesRunDirectory(commandName)
-  if (flagName === 'model-path') return commandNameOrFamilyIs(commandName, MODEL_PATH_COMMANDS)
   if (flagName === 'characters-root') return commandNameOrFamilyIs(commandName, CHARACTERS_ROOT_COMMANDS)
   return true
 }
@@ -31,12 +29,6 @@ export const unsupportedGlobalFlagError = (commandName: string, flagName: string
     return CLIUsageError(
       `--output-dir is not supported by "${commandName}" because it does not create a run directory.`,
       'Use --output-root to change the base output directory.'
-    )
-  }
-  if (flagName === 'model-path') {
-    return CLIUsageError(
-      `--model-path is not supported by "${commandName}".`,
-      'Use bun autoshow write or bun autoshow resume.'
     )
   }
   if (flagName === 'characters-root') {

@@ -1,5 +1,4 @@
 export const STANDALONE_TTS_PROVIDER_TARGETS = {
-  kitten: 'kitten-tts',
   elevenlabs: 'elevenlabs-tts',
   minimax: 'minimax-tts',
   groq: 'groq-tts',
@@ -102,7 +101,6 @@ export const deriveGenerationResumeProviderFlags = <const TDescriptor extends Ge
 export const TTS_GENERATION_SELECTION = defineGenerationSelectionDescriptor(
   STANDALONE_TTS_PROVIDER_TARGETS,
   {
-    kitten: { modelsKey: 'kittenTtsModels', modelKey: 'kittenTtsModel' },
     elevenlabs: { modelsKey: 'elevenlabsTtsModels', modelKey: 'elevenlabsTtsModel' },
     minimax: { modelsKey: 'minimaxTtsModels', modelKey: 'minimaxTtsModel' },
     groq: { modelsKey: 'groqTtsModels', modelKey: 'groqTtsModel' },
@@ -161,7 +159,6 @@ export const MUSIC_GENERATION_SELECTION = defineGenerationSelectionDescriptor(
 )
 
 export const WRITE_STT_PROVIDER_TARGETS = {
-  reverb: 'reverb-stt',
   deepinfra: 'deepinfra-stt',
   deepgram: 'deepgram-stt',
   soniox: 'soniox-stt',
@@ -196,8 +193,6 @@ export const WRITE_OCR_PROVIDER_TARGETS = {
 } as const satisfies Record<string, string>
 
 export const WRITE_LLM_PROVIDER_TARGETS = {
-  llama: 'llama',
-  llamafile: 'llamafile',
   openai: 'openai',
   groq: 'groq',
   gemini: 'gemini',
@@ -213,8 +208,6 @@ export const WRITE_LLM_PROVIDER_TARGETS = {
 export const WRITE_LLM_GENERATION_SELECTION = defineGenerationSelectionDescriptor(
   WRITE_LLM_PROVIDER_TARGETS,
   {
-    llama: { modelsKey: 'llamaModels', modelKey: 'llamaModel' },
-    llamafile: { modelsKey: 'llamafileModels', modelKey: 'llamafileModel' },
     openai: { modelsKey: 'openaiModels', modelKey: 'openaiModel' },
     groq: { modelsKey: 'groqModels', modelKey: 'groqModel' },
     gemini: { modelsKey: 'geminiModels', modelKey: 'geminiModel' },
@@ -229,6 +222,5 @@ export const WRITE_LLM_GENERATION_SELECTION = defineGenerationSelectionDescripto
 )
 
 export const BOOLEAN_PROVIDER_TARGETS = new Set<string>([
-  'reverb-stt',
   'tesseract-ocr'
 ])

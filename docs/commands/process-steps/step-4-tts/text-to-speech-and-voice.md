@@ -1,6 +1,6 @@
 # tts and voice
 
-Generate speech audio from a local `.md` or `.txt` file with local or hosted TTS providers, and manage durable provider voice references separately from speech synthesis. The comic-native `comic reference-voice` command delegates to the same voice implementation and protected store.
+Generate speech audio from a local `.md` or `.txt` file with hosted TTS providers, and manage durable provider voice references separately from speech synthesis. The comic-native `comic reference-voice` command delegates to the same voice implementation and protected store.
 
 ## Outline
 
@@ -9,7 +9,6 @@ Generate speech audio from a local `.md` or `.txt` file with local or hosted TTS
 - [Usage](#usage)
 - [Shared TTS Options](#shared-tts-options)
 - [TTS Services](#tts-services)
-  - [Kitten TTS](#kitten-tts)
   - [ElevenLabs](#elevenlabs)
   - [MiniMax](#minimax)
   - [Groq](#groq)
@@ -46,14 +45,9 @@ Generate speech audio from a local `.md` or `.txt` file with local or hosted TTS
 # full setup
 bun autoshow setup
 
-# install Kitten TTS, download local models, and check hosted TTS readiness
+# check hosted TTS API-key readiness
 bun autoshow setup --step tts
 ```
-
-Local TTS runtime pieces:
-
-- Kitten TTS venv under `runtime/bin/kitten-tts/`
-- Downloaded model cache created by Kitten TTS
 
 ### Environment
 
@@ -84,7 +78,7 @@ FAL_API_KEY=...
 bun autoshow tts <input> [flags]
 ```
 
-`<input>` must be a local `.md` or `.txt` file. If no engine flag is provided, `tts` defaults to Kitten TTS with `kitten-tts-nano-0.8-int8`.
+`<input>` must be a local `.md` or `.txt` file. If no engine flag is provided, `tts` defaults to the cheapest hosted TTS provider.
 
 ## Shared TTS Options
 
@@ -92,7 +86,6 @@ bun autoshow tts <input> [flags]
 |------|-------------|
 | `--provider provider[=model]` | TTS provider/model selector; repeat to run multiple targets |
 | `--all-providers` | Select the default all-provider TTS target set |
-| `--all-local` | Select every local TTS engine |
 | `--provider-concurrency <n>` | Hosted TTS provider/model targets to run concurrently per item; this does not limit chunks inside one target; default `7` |
 | `--local-concurrency <n>` | Local TTS providers to run concurrently per item; default `7` |
 | `--batch-concurrency <n>` | Batch text files to process concurrently; default `7` |
@@ -119,11 +112,10 @@ When a hosted target fails after producing some chunks, AutoShow retains the tar
 
 Paid requests with ambiguous admission are not retried by default. `--tts-allow-ambiguous-redispatch` explicitly authorizes a provider's bounded in-process retry policy and subsequent checkpoint resume; it may purchase the same immutable generation slot more than once. DeepInfra uses up to eight attempts with exponential jittered backoff. Every attempt is recorded in the admission journal, completed slots remain reusable, and an exhausted run reports the exact retained/unresolved checkpoint for the next invocation.
 
-AutoShow generally splits TTS text into 2000-character chunks, with provider/model registry limits taking precedence: Groq Orpheus uses 200, DeepInfra MiMo uses 1000, DeepInfra Qwen uses 4000, and DeepInfra Chatterbox uses 5000. `--provider-concurrency` limits how many provider/model targets run at once; it does not limit requests within one target. Hosted providers synthesize through the separate `--tts-chunk-concurrency` limit (default `30`, or `50` for Grok-only). In the default ramp mode, that value remains the hard ceiling while each provider/account lane starts at one request and adds one slot every five seconds under queued demand. To cap a single Inworld target at five simultaneous chunks, for example, pass `--tts-chunk-concurrency 5`; `--provider-concurrency 5` alone does not do that. Kitten synthesizes chunks sequentially and is unaffected by the hosted mode.
+AutoShow generally splits TTS text into 2000-character chunks, with provider/model registry limits taking precedence: Groq Orpheus uses 200, DeepInfra MiMo uses 1000, DeepInfra Qwen uses 4000, and DeepInfra Chatterbox uses 5000. `--provider-concurrency` limits how many provider/model targets run at once; it does not limit requests within one target. Hosted providers synthesize through the separate `--tts-chunk-concurrency` limit (default `30`, or `50` for Grok-only). In the default ramp mode, that value remains the hard ceiling while each provider/account lane starts at one request and adds one slot every five seconds under queued demand. To cap a single Inworld target at five simultaneous chunks, for example, pass `--tts-chunk-concurrency 5`; `--provider-concurrency 5` alone does not do that.
 
 ```bash
 bun autoshow tts input/examples/tts/1-tts.md \
-  --provider kitten=kitten-tts-mini \
   --provider openai=gpt-4o-mini-tts-2025-12-15 \
   --tts-voice alloy
 
@@ -131,21 +123,6 @@ bun autoshow tts input/examples/tts/1-tts.md --provider elevenlabs=eleven_v3
 ```
 
 ## TTS Services
-
-### Kitten TTS
-
-| Option | Value |
-|--------|-------|
-| Selector | `--provider kitten[=<model>]` |
-| Models | `kitten-tts-mini`, `kitten-tts-micro`, `kitten-tts-nano`, `kitten-tts-nano-0.8-int8` |
-| Voice | `--tts-voice <name>`, default `Jasper` |
-
-```bash
-bun autoshow tts input/examples/tts/1-tts.md
-bun autoshow tts input/examples/tts/1-tts.md --provider kitten=kitten-tts-mini --tts-voice Luna
-```
-
-Kitten strips markdown, splits local text into 2000-character chunks, and synthesizes chunks sequentially in the local Python runtime.
 
 ### ElevenLabs
 
@@ -427,11 +404,10 @@ fal.ai TTS submits to the queue API and converts output to `speech.wav`. Text is
 
 ## Pricing Notes
 
-The registry contains 115 active TTS selectors: 111 hosted selectors and 4 local Kitten models. This table ranks every selector by the registry's nominal price. Character-priced entries show the equivalent rate per 1K characters; Replicate is separately marked because its published figure is a variable typical per-prediction cost rather than a character tariff. Provider credits, taxes, volume discounts, and retry variance are excluded.
+The registry contains 111 active hosted TTS selectors. This table ranks every selector by the registry's nominal price. Character-priced entries show the equivalent rate per 1K characters; Replicate is separately marked because its published figure is a variable typical per-prediction cost rather than a character tariff. Provider credits, taxes, volume discounts, and retry variance are excluded.
 
 | Rank | Nominal price | Selectors | Count |
 |---:|---:|---|---:|
-| 1 | Free locally | `kitten/kitten-tts-mini`, `kitten/kitten-tts-micro`, `kitten/kitten-tts-nano`, `kitten/kitten-tts-nano-0.8-int8` | 4 |
 | 1 | Promotional `$0.00` / 1K chars | `deepinfra/XiaomiMiMo/MiMo-V2.5-tts`, `deepinfra/XiaomiMiMo/MiMo-V2.5-tts-voicedesign` | 2 |
 | 2 | About `$0.00022` / prediction | `replicate/jaaari/kokoro-82m` | 1 |
 | 3 | `$0.001` / 1K chars | `deepinfra/ResembleAI/chatterbox-turbo` | 1 |
@@ -622,7 +598,6 @@ Delivery control is split into natural-language prompts, request-level specific 
 
 | Provider | Released | Stock voices | Native multi-speaker | Natural-language prompts | Specific selectors | SSML and emotion control |
 |---|---|---|---|---|---|---|
-| Kitten | ✅ 2026-02-19 | ✅ 8 | ❌ No; segmented rendering | ❌ Not exposed | ❌ Not exposed | ❌ Not exposed |
 | Groq | ❌ 2025-03-17 | ✅ 6 English | ❌ No; segmented rendering | ❌ Not exposed | ❌ Not exposed | ⚠️ English Orpheus accepts in-text bracketed vocal directions such as `[cheerful]` |
 | Grok | ✅ 2026-05-15 | ✅ 26 | ❌ No; segmented rendering | ❌ Not exposed | ❌ Not exposed | ❌ Not exposed |
 | OpenAI | ⚠️ 2025-12-15 | ✅ 13 | ❌ No; segmented rendering | ✅ `--tts-instructions` | ❌ Not exposed | ❌ Not exposed |

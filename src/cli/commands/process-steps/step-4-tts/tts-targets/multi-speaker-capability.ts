@@ -13,7 +13,6 @@ const MULTI_SPEAKER_CAPABILITY: Partial<Record<TtsProvider, MultiSpeakerStrategy
   speechify: 'segment-and-concat',
   hume: 'segment-and-concat',
   cartesia: 'segment-and-concat',
-  kitten: 'segment-and-concat',
   fish: 'segment-and-concat',
   inworld: 'segment-and-concat',
   deepinfra: 'segment-and-concat',

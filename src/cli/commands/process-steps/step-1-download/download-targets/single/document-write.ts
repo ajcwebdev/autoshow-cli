@@ -22,7 +22,6 @@ import { buildLLMModelOptions, resolveLLMDefaults } from '~/cli/options/option-r
 
 const hasConfiguredLlmProvider = (opts: ResolvedLLMModelOptions): boolean =>
   [
-    ...(opts.llamaModels ?? (opts.llamaModel ? [opts.llamaModel] : [])),
     ...(opts.openaiModels ?? (opts.openaiModel ? [opts.openaiModel] : [])),
     ...(opts.groqModels ?? (opts.groqModel ? [opts.groqModel] : [])),
     ...(opts.geminiModels ?? (opts.geminiModel ? [opts.geminiModel] : [])),
@@ -399,8 +398,8 @@ export const runExtractedDocumentWrite = async ({
   const step3Serialized: Step3Metadata | Step3Metadata[] = step3Results.length === 1 ? step3Results[0]! : step3Results
   const llmInputTokenCount = step3Results.reduce((sum, item) => sum + item.inputTokenCount, 0)
   const llmOutputTokenCount = step3Results.reduce((sum, item) => sum + item.outputTokenCount, 0)
-  const llmService = step3Results[0]?.llmService ?? 'llama.cpp'
-  const llmModel = step3Results[0]?.llmModel ?? (llmConfig.llamaModel ?? 'unknown')
+  const llmService = step3Results[0]?.llmService ?? llmConfig.llmService ?? 'unknown'
+  const llmModel = step3Results[0]?.llmModel ?? (llmConfig.llmModel ?? 'unknown')
 
   const artifactFiles: Record<string, string> = {
     ...(extraArtifactFiles ?? {}),

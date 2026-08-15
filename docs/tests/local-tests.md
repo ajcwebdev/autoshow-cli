@@ -1,6 +1,6 @@
 # Local Tests
 
-Shared `bun t` runner behavior plus the local/runtime-heavy test paths for Whisper, Whisperfile, Reverb, local llama.cpp, llamafile, and Kitten TTS.
+Shared `bun t` runner behavior plus the local/runtime-heavy test paths for Whisper and Whisperfile.
 
 For API-backed and networked coverage, see [Service Tests](service-tests.md).
 
@@ -28,20 +28,13 @@ The `bun t` commands below document the full project runner for humans. Do not u
 
 ```bash
 # run all local tests
-bun t test/test-cases/e2e/local/step-1-download-e2e/download-input-types-local-file.test.ts test/test-cases/e2e/local/step-2-ocr-e2e/ocr-local/ test/test-cases/e2e/local/step-2-stt-e2e/stt-local/ test/test-cases/e2e/local/step-3-write-e2e/write-local/ test/test-cases/e2e/local/step-4-tts-e2e/tts-local/ test/test-cases/e2e/local/step-7-music-lyrics-video-e2e/music-lyrics-video.test.ts
+bun t test/test-cases/e2e/local/step-1-download-e2e/download-input-types-local-file.test.ts test/test-cases/e2e/local/step-2-ocr-e2e/ocr-local/ test/test-cases/e2e/local/step-2-stt-e2e/stt-local/ test/test-cases/e2e/local/step-7-music-lyrics-video-e2e/music-lyrics-video.test.ts
 ```
 
 ```bash
 # local STT coverage
 bun t test/test-cases/e2e/local/step-2-stt-e2e/stt-local/whisper/
 bun t test/test-cases/e2e/local/step-2-stt-e2e/stt-local/whisperfile/
-bun t test/test-cases/e2e/local/step-2-stt-e2e/stt-local/reverb/reverb.test.ts
-
-# local write and TTS coverage
-bun t test/test-cases/e2e/local/step-3-write-e2e/write-local/write-subcommand-local.test.ts
-bun t test/test-cases/e2e/local/step-3-write-e2e/write-local/write-subcommand-llamafile.test.ts
-bun t test/test-cases/e2e/local/step-3-write-e2e/write-local/write-project-lyrics.test.ts
-bun t test/test-cases/e2e/local/step-4-tts-e2e/tts-local/kitten-tts.test.ts
 
 # local lyric-video coverage
 bun t test/test-cases/e2e/local/step-7-music-lyrics-video-e2e/music-lyrics-video.test.ts
@@ -63,7 +56,7 @@ bun t test/test-cases/e2e/local/step-7-music-lyrics-video-e2e/music-lyrics-video
 bun t --no-cleanup
 
 # default cleanup still leaves a failure/debug summary
-bun t test/test-cases/e2e/local/step-4-tts-e2e/tts-local/kitten-tts.test.ts
+bun t test/test-cases/e2e/local/step-2-stt-e2e/stt-local/whisper/
 cat project/test-output/latest.log
 ```
 
@@ -75,10 +68,6 @@ cat project/test-output/latest.log
 | OCR options | `test/test-cases/e2e/local/step-2-ocr-e2e/ocr-local/ocr-options.test.ts` | Core local OCR validation and routing coverage |
 | Whisper | `test/test-cases/e2e/local/step-2-stt-e2e/stt-local/whisper/` | Includes default, per-model (`tiny`/`base`), split, and `large-v3-turbo` coverage |
 | Whisperfile | `test/test-cases/e2e/local/step-2-stt-e2e/stt-local/whisperfile/` | Local Mozilla whisperfile STT (downloads a prebuilt `tiny` whisperfile on first run) |
-| Reverb | `test/test-cases/e2e/local/step-2-stt-e2e/stt-local/reverb/reverb.test.ts` | Heavier local STT coverage |
-| Llama write | `test/test-cases/e2e/local/step-3-write-e2e/write-local/write-subcommand-local.test.ts`, `test/test-cases/e2e/local/step-3-write-e2e/write-local/write-project-lyrics.test.ts` | Local llama.cpp audio and project-text flows |
-| Llamafile write | `test/test-cases/e2e/local/step-3-write-e2e/write-local/write-subcommand-llamafile.test.ts` | Local llamafile write (downloads the smallest `Qwen3.5-0.8B-Q8_0` bundle on first run) |
-| Local TTS | `test/test-cases/e2e/local/step-4-tts-e2e/tts-local/kitten-tts.test.ts` | Standalone Kitten TTS coverage |
 | Music lyric-video | `test/test-cases/e2e/local/step-7-music-lyrics-video-e2e/music-lyrics-video.test.ts` | Local FFmpeg/Whisper lyric-video rendering |
 
 ## Price Preflight
@@ -87,12 +76,6 @@ Local price and budget commands use path filters:
 
 ```bash
 bun t test/test-cases/e2e/local/step-2-stt-e2e/stt-local/whisper/ --price
-bun t test/test-cases/e2e/local/step-2-stt-e2e/stt-local/reverb/ --price
-bun t test/test-cases/e2e/local/step-3-write-e2e/write-local/write-subcommand-local.test.ts --price
-bun t test/test-cases/e2e/local/step-3-write-e2e/write-local/write-project-lyrics.test.ts --price
-bun t test/test-cases/e2e/local/step-3-write-e2e/write-local/write-subcommand-local.test.ts --budget 500
-bun t test/test-cases/e2e/local/step-4-tts-e2e/tts-local/kitten-tts.test.ts --price
-bun t test/test-cases/e2e/local/step-4-tts-e2e/tts-local/kitten-tts.test.ts --budget 500
 bun t test/test-cases/e2e/local/step-7-music-lyrics-video-e2e/music-lyrics-video.test.ts --price
 bun t test/test-cases/e2e/local/step-7-music-lyrics-video-e2e/music-lyrics-video.test.ts --budget 500
 ```

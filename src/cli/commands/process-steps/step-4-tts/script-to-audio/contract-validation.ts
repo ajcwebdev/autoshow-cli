@@ -502,7 +502,7 @@ export const projectCanonicalAudioProviderStatus = (
   projection: CanonicalAudioProviderProjection
 ): { status: 'missing' | 'running' | 'succeeded' | 'failed' | 'skipped', attempts: number } => {
   if (projection.archive && projection.selectedSuccess && !projection.activeWork) {
-    return { status: 'succeeded', attempts: projection.renderHistory[0]?.events.at(-1)?.attempt ?? 0 }
+    return { status: 'succeeded', attempts: 0 }
   }
   const active = projection.activeWork
   if (!active) throw CLIUsageError('New audio provider projection requires activeWork.')

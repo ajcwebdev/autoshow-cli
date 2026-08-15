@@ -20,8 +20,6 @@ const SERVICE_TO_LLM_OPTION_FIELD: Record<string, keyof LLMOptions> = {
   kimi: 'kimiModels',
   together: 'togetherModels',
   cerebras: 'cerebrasModels',
-  'llama.cpp': 'llamaModels',
-  llamafile: 'llamafileModels',
 }
 
 // Resolves a single central LLM model id to one shared dispatch target. Validation

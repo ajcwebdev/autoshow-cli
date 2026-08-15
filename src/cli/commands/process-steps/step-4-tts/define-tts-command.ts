@@ -28,7 +28,7 @@ import { preflightToEstimated } from '~/cli/commands/pricing-orchestration/compu
 import { computeEstimatedCosts } from '~/cli/commands/pricing-orchestration/compute-estimated-costs'
 import { computeActualProcessingTimes, computeEstimatedProcessingTimes } from '~/cli/commands/pricing-orchestration/compute-processing-time'
 import { evaluatePreflightEstimate } from '~/cli/commands/pricing-orchestration/preflight'
-import { createResourceGate } from '~/utils/resource-gate'
+import { selectCheapestDefaultHostedTtsSelection } from '~/cli/commands/setup-and-utilities/models/cheapest-models'
 import { assertDialogueFormatIsUsable, isMultiSpeakerRequested, normalizeDialogueFromOptions } from './dialogue-normalizer'
 import { runTtsForTargets, validateTtsRenderInputsForTargets } from './run-tts'
 import type { TtsRunSourceContext } from './run-tts'
@@ -134,7 +134,7 @@ const reduceTtsProviderStates = (
 const requestedTtsProviders = (targets: readonly TtsTarget[]) => targets.map((target) => ({
   service: target.service,
   model: target.model,
-  local: target.service === 'kitten',
+  local: false,
   operation: target.operation,
   targetKey: target.targetKey,
   transport: target.transport
@@ -974,8 +974,6 @@ export const runTtsDirectoryBatch = async (
   let fail = 0
   const successfulItems: SuccessfulTtsBatchItem[] = []
   const completedItems: CompletedTtsBatchItem[] = []
-  const hostedTargets = targets.filter((target) => target.service !== 'kitten')
-  const localTargets = targets.filter((target) => target.service === 'kitten')
   let schedulerTelemetry: HostedTtsSchedulerTelemetry | undefined
 
   const batchStartedAt = Date.now()
@@ -986,7 +984,7 @@ export const runTtsDirectoryBatch = async (
     }
 
     const runPromises: Promise<void>[] = []
-    const hostedCoordinator = hostedTargets.length > 0
+    const hostedCoordinator = targets.length > 0
       ? createHostedTtsBatchCoordinator({
           maxConcurrency: ttsOptions.ttsChunkConcurrency,
           concurrencyMode: ttsOptions.concurrencyMode,
@@ -997,7 +995,7 @@ export const runTtsDirectoryBatch = async (
       const hostedOptions: TtsOptions = {
         ...ttsOptions,
         hostedTtsChunkScheduler: hostedCoordinator,
-        ttsProviderConcurrency: Math.max(hostedTargets.length, ttsOptions.ttsProviderConcurrency ?? 1)
+        ttsProviderConcurrency: Math.max(targets.length, ttsOptions.ttsProviderConcurrency ?? 1)
       }
       for (const plan of plans) {
         runPromises.push(
@@ -1007,7 +1005,7 @@ export const runTtsDirectoryBatch = async (
             accumulators[plan.index] as TtsBatchItemAccumulator,
             batchDir,
             hostedOptions,
-            hostedTargets,
+            targets,
             targets,
             executionReadiness,
             estimateReport.estimates[plan.index] ?? await buildTtsEstimateForInput(plan.prepared, ttsOptions),
@@ -1018,32 +1016,8 @@ export const runTtsDirectoryBatch = async (
       }
     }
 
-    if (localTargets.length > 0) {
-      const localOptions: TtsOptions = {
-        ...ttsOptions,
-        generationResourceGate: createResourceGate({ capacity: concurrency })
-      }
-      for (const plan of plans) {
-        runPromises.push(
-          runWithLogContext({ batchId: basename(batchDir), itemIndex: plan.index + 1, itemCount: preparedInputs.length }, async () =>
-            await runTtsBatchPlanForTargets(
-              plan,
-              accumulators[plan.index] as TtsBatchItemAccumulator,
-              batchDir,
-              localOptions,
-              localTargets,
-              targets,
-              executionReadiness,
-              estimateReport.estimates[plan.index] ?? await buildTtsEstimateForInput(plan.prepared, ttsOptions),
-              lifecycleCoordinator
-            )
-          )
-        )
-      }
-    }
-
     if (hostedCoordinator) {
-      const expectedHostedJobs = countExpectedHostedChunkJobs(plans, hostedTargets)
+      const expectedHostedJobs = countExpectedHostedChunkJobs(plans, targets)
       const registeredAllJobs = expectedHostedJobs === 0
         ? true
         : await hostedCoordinator.waitForRegisteredJobs(expectedHostedJobs, 1_000)
@@ -1175,12 +1149,11 @@ export const runTtsDirectoryBatch = async (
 
 export const ttsCommand = defineCliCommand({
   name: 'tts',
-  description: 'Generate speech audio from a text file or directory of text files (default provider: Kitten TTS)',
+  description: 'Generate speech audio from a text file or directory of text files (default provider: cheapest hosted TTS)',
   parameters: [{ key: '<input>', description: 'Path to a .md/.txt file or a directory containing text files' }],
   flags: ttsCommandFlags,
   help: {
     examples: [
-      ['bun autoshow tts input/examples/tts/1-tts.md --provider kitten=kitten-tts-nano-0.8-int8', 'Generate speech with local Kitten TTS'],
       ['bun autoshow tts input/examples/tts/1-tts.md --provider elevenlabs=eleven_v3', 'Generate speech with ElevenLabs'],
       ['bun autoshow tts input/examples/tts/1-tts.md --provider elevenlabs=eleven_v3 --tts-voice YOUR_EXISTING_VOICE_ID', 'Use an existing ElevenLabs voice'],
       ['bun autoshow tts input/examples/tts/1-tts.md --provider minimax=speech-2.8-turbo --tts-voice English_expressive_narrator', 'Use a MiniMax voice ID'],
@@ -1199,13 +1172,22 @@ export const ttsCommand = defineCliCommand({
     ctx.rawParsed.flagOccurrences,
     'provider',
     STANDALONE_TTS_PROVIDER_TARGETS,
-    { allProvidersTarget: 'all-tts', allLocalTarget: 'all-local-tts' }
+    { allProvidersTarget: 'all-tts' }
   )
+  if (
+    providerNormalized.flags['all-tts'] !== true
+    && !Object.values(STANDALONE_TTS_PROVIDER_TARGETS).some((flag) => {
+      const value = providerNormalized.flags[flag]
+      return Array.isArray(value) ? value.length > 0 : value !== undefined && value !== false
+    })
+  ) {
+    const cheapest = selectCheapestDefaultHostedTtsSelection()
+    providerNormalized.flags[`${cheapest.provider}-tts`] = cheapest.model
+  }
   const ttsNormalized = normalizeGenericTtsOptionFlags(
     providerNormalized.flags,
     providerNormalized.explicitFlags,
-    providerNormalized.flagOccurrences,
-    'kitten'
+    providerNormalized.flagOccurrences
   )
   const speakerReferenceInputs = resolveStandaloneMistralTtsSpeakerReferenceInputs(
     ttsNormalized.flags,
@@ -1234,7 +1216,7 @@ export const ttsCommand = defineCliCommand({
   const unresolvedTtsOptions: StandaloneTtsCommandOptions = buildOptsFromFlags(
     true,
     sanitizedFlags,
-    { defaultTtsEngine: 'kitten' },
+    {},
     ttsNormalized.explicitFlags,
     {
       flagOccurrences: ttsNormalized.flagOccurrences,

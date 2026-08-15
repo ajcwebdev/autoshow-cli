@@ -174,17 +174,11 @@ A single reader validates this structure, timestamps, enumerated values, status 
 runtime/
   bin/
     whisper-cli
-    llama-server
     whisperfile/                 # prebuilt Mozilla whisperfiles (downloaded on demand)
-    llamafile/                   # prebuilt single-file llamafiles (downloaded on demand)
-    reverb/
-    kitten-tts/
   build/
     whisper.cpp/
   models/
     whisper/
-    llama/
-    reverb/
 ```
 
 Process locks use an internal default location under `~/.cache/autoshow-cli/process-locks`.
@@ -257,7 +251,7 @@ Provider unions:
 
 | Type | Values |
 |------|--------|
-| `TtsProvider` | `kitten`, `elevenlabs`, `minimax`, `groq`, `grok`, `mistral`, `openai`, `gemini`, `deepgram`, `speechify`, `hume`, `cartesia`, `fish`, `inworld`, `deepinfra`, `replicate`, `fal` |
+| `TtsProvider` | `elevenlabs`, `minimax`, `groq`, `grok`, `mistral`, `openai`, `gemini`, `deepgram`, `speechify`, `hume`, `cartesia`, `fish`, `inworld`, `deepinfra`, `replicate`, `fal` |
 | `ImageProvider` | `gemini`, `openai`, `grok`, `bfl`, `recraft`, `replicate`, `lumalabs`, `fal` |
 | `VideoProvider` | `gemini`, `minimax`, `glm`, `grok`, `runway`, `ltx`, `replicate`, `lumalabs`, `fal` |
 | `MusicProvider` | `elevenlabs`, `minimax`, `gemini` |

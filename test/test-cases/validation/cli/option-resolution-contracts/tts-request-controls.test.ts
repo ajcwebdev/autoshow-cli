@@ -11,7 +11,6 @@ import {
   SUPPORTED_GROK_TTS_MODELS,
   SUPPORTED_GROQ_TTS_MODELS,
   SUPPORTED_HUME_TTS_MODELS,
-  SUPPORTED_KITTEN_TTS_MODELS,
   SUPPORTED_MINIMAX_TTS_MODELS,
   SUPPORTED_MISTRAL_TTS_MODELS,
   SUPPORTED_OPENAI_TTS_MODELS,
@@ -112,7 +111,6 @@ describe('option resolution contracts', () => {
     const dialogue = { ttsSpeakers: ['HOST=Jasper'] }
 
     for (const target of [
-      'kitten-voice',
       'groq-voice',
       'grok-tts-voice',
       'mistral-tts-voice',
@@ -142,7 +140,7 @@ describe('option resolution contracts', () => {
     }
 
     expect(() => assertNoVoiceIdentityWithDialogue(dialogue, new Set(['tts-speaker']))).not.toThrow()
-    expect(() => assertNoVoiceIdentityWithDialogue({ ttsSpeakers: undefined }, new Set(['kitten-voice']))).not.toThrow()
+    expect(() => assertNoVoiceIdentityWithDialogue({ ttsSpeakers: undefined }, new Set(['openai-voice']))).not.toThrow()
   })
 
   test('buildOptsFromFlags maps and validates provider-specific TTS request controls', () => {
@@ -277,7 +275,7 @@ describe('option resolution contracts', () => {
     expect(opts.inworldTtsInstructions).toBe('Sound reassuring')
     expect(collectTtsTargets(opts).map(target => target.service)).toEqual(['inworld'])
     expect(() => collectTtsTargets(buildOptsFromFlags(false, {
-      'kitten-tts': 'kitten-tts-nano',
+      'openai-tts': 'gpt-4o-mini-tts-2025-12-15',
       'inworld-tts-instructions': 'Sound reassuring'
     }))).toThrow('Inworld TTS request control flags require selecting inworld TTS')
     const generic = normalizeGenericTtsOptionFlags(
@@ -363,9 +361,6 @@ describe('option resolution contracts', () => {
       const cartesiaTargets = collectTtsTargets(opts).filter((target) => target.service === 'cartesia')
 
       expect(services).not.toContain('runway')
-      expect(services).not.toContain('kitten')
-      expect(opts.kittenTtsModels).toBeUndefined()
-      expect(targetModelsFor('kitten')).toEqual([])
       expect(opts.elevenlabsTtsModels).toEqual([...SUPPORTED_ELEVENLABS_TTS_MODELS])
       expect(targetModelsFor('elevenlabs')).toEqual([...SUPPORTED_ELEVENLABS_TTS_MODELS])
       expect(opts.minimaxTtsModels).toEqual([...SUPPORTED_MINIMAX_TTS_MODELS])
@@ -389,19 +384,6 @@ describe('option resolution contracts', () => {
       expect(humeTargets.map((target) => target.model)).toEqual([...SUPPORTED_HUME_TTS_MODELS])
       expect(opts.cartesiaTtsModels).toEqual([...SUPPORTED_CARTESIA_TTS_MODELS])
       expect(cartesiaTargets.map((target) => target.model)).toEqual([...SUPPORTED_CARTESIA_TTS_MODELS])
-    })
-
-  test('--all-local-tts expands local Kitten TTS models only', () => {
-      const opts = buildOptsFromFlags(false, { 'all-local-tts': true })
-      const targets = collectTtsTargets(opts)
-
-      expect(opts.kittenTtsModels).toEqual([...SUPPORTED_KITTEN_TTS_MODELS])
-      expect(targets.map((target) => target.service)).toEqual(
-        SUPPORTED_KITTEN_TTS_MODELS.map(() => 'kitten')
-      )
-      expect(targets.map((target) => target.model)).toEqual([...SUPPORTED_KITTEN_TTS_MODELS])
-      expect(opts.elevenlabsTtsModels).toBeUndefined()
-      expect(opts.openaiTtsModels).toBeUndefined()
     })
 
   test('--all-tts rejects special-input modes that need an explicit model', () => {

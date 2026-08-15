@@ -19,7 +19,7 @@ const buildExtractPublicSelectorFlags = (): Record<string, ExtractPublicSelector
 
 export const EXTRACT_PUBLIC_SELECTOR_FLAGS = buildExtractPublicSelectorFlags()
 
-const extractBooleanSelectorTargetFlags = new Set(['reverb-stt', 'tesseract-ocr'])
+const extractBooleanSelectorTargetFlags = new Set(['tesseract-ocr'])
 
 const extractUrlProviderNames = new Set<string>(URL_ARTICLE_BACKENDS)
 

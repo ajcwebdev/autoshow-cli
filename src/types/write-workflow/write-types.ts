@@ -19,28 +19,6 @@ export type LLMOptions = Pick<ProcessingOptions,
 }
 
 
-export type LlamaServerTarget =
-  | {
-    mode: 'repo'
-    requestedModel: string
-    expectedRepo: string
-    startupArgs: string[]
-  }
-  | {
-    mode: 'path'
-    requestedModel: string
-    expectedPath: string
-    startupArgs: string[]
-  }
-
-export type LlamaServerIdentity = {
-  source: 'props' | 'models'
-  modelId: string | null
-  aliases: string[]
-  modelPath: string | null
-}
-
-
 export type DownloadInfo = {
   sourceUrl: string
   destinationPath: string

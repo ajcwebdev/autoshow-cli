@@ -105,7 +105,7 @@ describe('model validation selector contracts', () => {
       'Invalid model "bogus" for --provider/--stt whisper[=model]. This selector uses local whisper.cpp models.'
     )
     expect(() => validateWhisperfileModel('bogus')).toThrow(
-      'Invalid model "bogus" for --provider/--stt whisperfile[=model]. This selector uses local whisperfile (llamafile) models.'
+      'Invalid model "bogus" for --provider/--stt whisperfile[=model]. This selector uses local whisperfile models.'
     )
     expect(describeModelSelector('whisperfile')).toContain('--stt')
   })

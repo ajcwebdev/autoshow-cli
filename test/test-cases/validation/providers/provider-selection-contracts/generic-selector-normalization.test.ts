@@ -2,7 +2,6 @@ import { describe, expect, test } from 'bun:test'
 import { buildOptsFromFlags } from '~/cli/options/option-resolution/build-options-from-flags'
 import { collectExplicitOcrTargets } from '~/cli/commands/process-steps/step-2-extract/step-2-ocr/ocr-targets'
 import { collectSttTargets } from '~/cli/commands/process-steps/step-2-extract/step-2-stt/stt-targets'
-import { collectTtsTargets } from '~/cli/commands/process-steps/step-4-tts/tts-targets'
 import { collectImageTargets } from '~/cli/commands/process-steps/step-5-image/image-generation-targets'
 import { collectVideoTargets } from '~/cli/commands/process-steps/step-6-video/video-targets'
 import { collectMusicTargets } from '~/cli/commands/process-steps/step-7-music/music-targets'
@@ -80,12 +79,11 @@ describe('provider selection contracts', () => {
     const musicNormalized = normalizeGenericProviderSelectorFlags({
       provider: ['minimax=music-3.0', 'gemini=lyria-3-clip-preview']
     }, new Set(['provider']), 'provider', STANDALONE_MUSIC_PROVIDER_TARGETS, { allProvidersTarget: 'all-music' })
-    const ttsAllLocalNormalized = normalizeGenericProviderSelectorFlags({
+    expect(() => normalizeGenericProviderSelectorFlags({
       'all-local': true
     }, new Set(['all-local']), 'provider', STANDALONE_TTS_PROVIDER_TARGETS, {
-      allProvidersTarget: 'all-tts',
-      allLocalTarget: 'all-local-tts'
-    })
+      allProvidersTarget: 'all-tts'
+    })).toThrow('--all-local is not supported')
     expect(() => normalizeGenericProviderSelectorFlags({
       'all-local': true
     }, new Set(['all-local']), 'provider', STANDALONE_IMAGE_PROVIDER_TARGETS, {
@@ -96,11 +94,9 @@ describe('provider selection contracts', () => {
     const imageOpts = buildOptsFromFlags(false, imageNormalized.flags, {}, imageNormalized.explicitFlags)
     const videoOpts = buildOptsFromFlags(false, videoNormalized.flags, {}, videoNormalized.explicitFlags)
     const musicOpts = buildOptsFromFlags(false, musicNormalized.flags, {}, musicNormalized.explicitFlags)
-    const ttsAllLocalOpts = buildOptsFromFlags(false, ttsAllLocalNormalized.flags, {}, ttsAllLocalNormalized.explicitFlags)
 
     expect(ttsOpts.openaiTtsModels).toEqual(['gpt-4o-mini-tts-2025-12-15'])
     expect(ttsOpts.elevenlabsTtsModels).toEqual(['eleven_v3'])
-    expect([...new Set(collectTtsTargets(ttsAllLocalOpts).map((target) => target.service))]).toEqual(['kitten'])
     expect(collectImageTargets(imageOpts).map((target) => `${target.service}:${target.model}`)).toEqual([
       'openai:gpt-image-2',
       'grok:grok-imagine-image',
@@ -159,16 +155,16 @@ describe('provider selection contracts', () => {
 
   test('write step-scoped --all-local normalizes local provider groups and rejects bare usage', () => {
     const normalized = normalizeWriteStepSelectorFlags({
-      'all-local': ['stt', 'ocr', 'url', 'llm', 'tts']
+      'all-local': ['stt', 'ocr', 'url']
     }, new Set(['all-local']))
 
     expect(normalized.flags).toMatchObject({
       'all-local-stt': true,
       'all-local-ocr': true,
-      'all-local-url': true,
-      'all-local-llm': true,
-      'all-local-tts': true
+      'all-local-url': true
     })
+    expect(normalized.flags['all-local-llm']).toBeUndefined()
+    expect(normalized.flags['all-local-tts']).toBeUndefined()
     expect(normalized.flags['all-local-image']).toBeUndefined()
     expect(normalized.flags['all-local-video']).toBeUndefined()
     expect(normalized.flags['all-local-music']).toBeUndefined()
@@ -176,8 +172,16 @@ describe('provider selection contracts', () => {
     expect(normalized.explicitFlags.has('all-local')).toBe(false)
 
     expect(() => normalizeWriteStepSelectorFlags({
+      'all-local': ['llm']
+    }, new Set(['all-local']))).toThrow('--all-local does not support step "llm"')
+
+    expect(() => normalizeWriteStepSelectorFlags({
       'all-local': ['image']
     }, new Set(['all-local']))).toThrow('--all-local does not support step "image"')
+
+    expect(() => normalizeWriteStepSelectorFlags({
+      'all-local': ['tts']
+    }, new Set(['all-local']))).toThrow('--all-local does not support step "tts"')
 
     expect(() => normalizeWriteStepSelectorFlags({
       'all-local': true
@@ -207,14 +211,22 @@ describe('provider selection contracts', () => {
       'Article extract supports one --provider URL backend at a time'
     )
 
-    const writeAll = normalizeWriteStepSelectorFlags({
+    expect(() => normalizeWriteStepSelectorFlags({
       'all-providers': ['stt', 'llm'],
       'all-local': ['tts']
+    }, new Set(['all-providers', 'all-local']))).toThrow('--all-local does not support step "tts"')
+    expect(() => normalizeWriteStepSelectorFlags({
+      'all-providers': ['stt', 'llm'],
+      'all-local': ['llm']
+    }, new Set(['all-providers', 'all-local']))).toThrow('--all-local does not support step "llm"')
+    const writeAll = normalizeWriteStepSelectorFlags({
+      'all-providers': ['stt', 'llm'],
+      'all-local': ['stt']
     }, new Set(['all-providers', 'all-local']))
     expect(writeAll.flagOccurrences.map((occurrence) => occurrence.name)).toEqual([
       'all-stt',
       'all-llm',
-      'all-local-tts'
+      'all-local-stt'
     ])
   })
 

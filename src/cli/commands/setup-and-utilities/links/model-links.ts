@@ -21,7 +21,7 @@ import happyscribeLinks from './model-links/happyscribe.json'
 import humeLinks from './model-links/hume.json'
 import inworldLinks from './model-links/inworld.json'
 import kimiLinks from './model-links/kimi.json'
-import llamafileLinks from './model-links/llamafile.json'
+import whisperfileLinks from './model-links/whisperfile.json'
 import ltxLinks from './model-links/ltx.json'
 import lumalabsLinks from './model-links/lumalabs.json'
 import minimaxLinks from './model-links/minimax.json'
@@ -56,7 +56,7 @@ const providerLinks = [
   grokLinks,
   xLinks,
   kimiLinks,
-  llamafileLinks,
+  whisperfileLinks,
   ltxLinks,
   lumalabsLinks,
   mistralLinks,

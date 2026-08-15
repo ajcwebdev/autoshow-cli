@@ -21,10 +21,6 @@ const isRecord = (value: unknown): value is Record<string, unknown> => {
   return typeof value === 'object' && value !== null && !Array.isArray(value)
 }
 
-const normalizeLlmService = (service: string): string => {
-  return service === 'llama.cpp' ? 'llama' : service
-}
-
 const buildStepKey = (step: Pick<CalibrationStepShape, 'kind' | 'service' | 'model'>): string => {
   return `${step.kind}::${step.service}::${step.model}`
 }
@@ -72,7 +68,7 @@ const normalizeStepShape = (
 
   return {
     kind: normalizedKind,
-    service: normalizedKind === 'llm' ? normalizeLlmService(service) : service,
+    service,
     model,
   }
 }

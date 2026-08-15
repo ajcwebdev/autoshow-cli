@@ -2301,10 +2301,17 @@ const verifyProviderProjectionArtifacts = async (
         const actualSha = createHash('sha256').update(bytes).digest('hex')
         if (actualSha !== reference.sha256) return false
         if (reference.kind === 'admission-journal' && reference.path.endsWith('.jsonl')) {
-          checked.set(referenceKey, { sha256: reference.sha256 })
-          continue
-        }
-        if ((reference.kind !== 'audio' && reference.kind !== 'strategy-text') || reference.expectedJsonFields) {
+          const lastLine = bytes.toString('utf8').split('\n').filter((line) => line.length > 0).at(-1)
+          if (!lastLine) return false
+          try {
+            const parsed = JSON.parse(lastLine) as unknown
+            const snapshot = isRecord(parsed) && isRecord(parsed['snapshot']) ? parsed['snapshot'] : parsed
+            if (!isRecord(snapshot)) return false
+            json = snapshot
+          } catch {
+            return false
+          }
+        } else if ((reference.kind !== 'audio' && reference.kind !== 'strategy-text') || reference.expectedJsonFields) {
           try {
             const parsed = JSON.parse(bytes.toString('utf8')) as unknown
             if (!isRecord(parsed)) return false

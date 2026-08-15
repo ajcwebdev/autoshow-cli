@@ -14,7 +14,7 @@ AutoShow requires a "local-lite" tool set — FFmpeg and `ffprobe`, `yt-dlp`, Mu
 
 Several issues motivated unifying this lifecycle:
 
-1. **Host provisioning drift.** macOS setup previously used Homebrew for several tools while other dependencies lived under `runtime/`. Homebrew installs mutated global system state, varied by machine configuration, and drifted from the managed runtime pattern used for tools like `uv`, `whisper-cli`, `llama-server`, and local models. Linux hosts continue to use `apt`.
+1. **Host provisioning drift.** macOS setup previously used Homebrew for several tools while other dependencies lived under `runtime/`. Homebrew installs mutated global system state, varied by machine configuration, and drifted from the managed runtime pattern used for tools like `uv`, `whisper-cli`, whisperfile, and local models. Linux hosts continue to use `apt`.
 2. **Download reliability and integrity.** Setup downloads relied on rigid total-transfer timeouts that aborted large assets (such as multi-gigabyte models) on normal bandwidth. Retries restarted from byte zero while buffering entire bodies in memory, downloads lacked checksum verification, and unthrottled concurrent downloads saturated available bandwidth.
 3. **Truthful reporting and diagnostics.** Setup reporting could exit with code 0 despite failed steps, while `setup --doctor` inspected superficial version flags rather than verifying actual binary execution readiness.
 4. **Hermetic toolchain delivery.** Upstream MuPDF and qpdf releases do not publish prebuilt macOS CLI binaries. Default source builds risked linking against host Homebrew or OpenSSL libraries instead of hermetic, portable system linkage.
@@ -86,7 +86,7 @@ This does not apply to:
 
 ## Rationale
 
-- **Host provisioning:** Treating local dependencies as managed runtime assets under `runtime/` aligns macOS with existing patterns used for `uv`, `whisper-cli`, `llama-server`, Defuddle, and model assets. It guarantees reproducible versions and avoids mutating host system state.
+- **Host provisioning:** Treating local dependencies as managed runtime assets under `runtime/` aligns macOS with existing patterns used for `uv`, `whisper-cli`, whisperfile, Defuddle, and model assets. It guarantees reproducible versions and avoids mutating host system state.
 - **Source builds:** Compiling MuPDF and qpdf from pinned source preserves exact versions and hermetic static linkage without requiring Apple Developer signing credentials, notarization pipelines, or binary distribution infrastructure.
 - **Acquisition and reporting:** Stall-based timeouts and chunked resumable streaming decouple download reliability from bandwidth constraints or file sizes. Bounding transfer concurrency prevents network contention, and truthful exit codes ensure automated workflows fail closed on incomplete installations.
 - **ACSM fulfillment:** Provisioning the Calibre ACSM plugin and standalone wrapper scripts ensures automated document extraction while strictly isolating sensitive Adobe activation data.

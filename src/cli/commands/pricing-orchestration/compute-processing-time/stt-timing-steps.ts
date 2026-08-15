@@ -7,9 +7,6 @@ export const buildSttTimingSteps = (input: ComputeEstimatedProcessingTimesInput)
 
   if (input.sttTargets && input.sttTargets.length > 0 && typeof input.audioDurationSeconds === 'number') {
     for (const target of input.sttTargets) {
-      if (target.service === 'reverb') {
-        continue
-      }
       const estimation = getSttEstimation(target.service, target.model)
       steps.push(withNormalizedTiming({
         step: 'stt',
@@ -23,7 +20,6 @@ export const buildSttTimingSteps = (input: ComputeEstimatedProcessingTimesInput)
   } else if (
     input.transcriptionService
     && input.transcriptionModel
-    && input.transcriptionService !== 'reverb'
     && typeof input.audioDurationSeconds === 'number'
   ) {
     const estimation = getSttEstimation(input.transcriptionService, input.transcriptionModel)

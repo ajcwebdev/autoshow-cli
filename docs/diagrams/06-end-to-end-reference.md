@@ -14,7 +14,7 @@ A current trace of a write command from native CLI dispatch through output artif
 Example command:
 
 ```bash
-bun autoshow write "https://youtube.com/watch?v=abc123" --stt whisper=small --llm llama --rendered-text --prompt-md
+bun autoshow write "https://youtube.com/watch?v=abc123" --stt whisper=small --rendered-text --prompt-md
 ```
 
 ```
@@ -27,7 +27,7 @@ src/cli/create-cli.ts
        |
        +--> parseNativeCli()
        +--> apply global flags:
-            logger, yt-dlp cookies, llama model path
+             logger, yt-dlp cookies
        +--> command handler: write
        |
        v
@@ -75,7 +75,7 @@ processSingleTarget()
             |    buildPrompt()
             |    write prompt.md
             |    write prompt-md.md because --prompt-md is set
-            |    runLLM() through the local llama.cpp pool
+             |    runLLM() through the hosted LLM pool
             |    write text.json
             |
             +--> rendered/show-note artifacts:
@@ -167,15 +167,13 @@ These variables mirror `HOSTED_PROVIDER_ENV_CHECKS`.
 | STT/URL | `SUPADATA_API_KEY`. |
 | TTS-only | `SPEECHIFY_API_KEY`, `HUME_API_KEY`, `CARTESIA_API_KEY`, `FISH_API_KEY`, `INWORLD_API_KEY`. |
 | URL/X | `FIRECRAWL_API_KEY`, `SPIDER_API_KEY`, `ZYTE_API_KEY`, `X_BEARER_TOKEN`. |
-| Hosted asset downloads | `HUGGINGFACE_TOKEN` for Reverb assets. |
 
 ## Provider Defaults and Runtime Environment
 
-Runtime configuration is flag- and config-driven. The CLI reads only provider API keys, `HUGGINGFACE_TOKEN`, and standard `NO_COLOR` / `FORCE_COLOR` environment variables at runtime.
+Runtime configuration is flag- and config-driven. The CLI reads only provider API keys and standard `NO_COLOR` / `FORCE_COLOR` environment variables at runtime.
 
 | Area | Mechanism |
 |------|-----------|
-| Local model selection | `--model-path` flag (`configureModelPath`); `HUGGINGFACE_TOKEN` env for gated asset downloads. |
 | TTS voices / reference audio / API versions | Per-run flags (`--tts-voice`, `--tts-ref-audio`, `--hume-tts-voice-provider`, …); defaults are defined in [`tts-models.ts`](../../src/cli/commands/setup-and-utilities/models/tts-models.ts). Cartesia `Cartesia-Version` and Hume `version` headers are fixed protocol constants. |
 | Output / external binaries | `--output-root`, `--bin-dir` flags. |
 | URL backend | `--url-provider` flag. |

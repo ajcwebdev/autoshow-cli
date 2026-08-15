@@ -21,12 +21,10 @@ import type { ExtractEstimateTarget, ExtractionMetadata, GenerationResumeConfig,
 
 const WRITE_LLM_PROVIDER_FLAGS = deriveGenerationResumeProviderFlags(
   WRITE_LLM_GENERATION_SELECTION,
-  'all-llm',
-  'all-local-llm'
+  'all-llm'
 )
 
 const LLM_SERVICES = new Set<Step3Metadata['llmService']>([
-  'llama.cpp',
   'openai',
   'groq',
   'gemini',
@@ -407,7 +405,7 @@ const averageTokenCount = (
 const llmRegistryService = (
   service: LLMTarget['service']
 ): string =>
-  service === 'llama.cpp' ? 'llama' : service
+  service
 
 const buildWriteResumeLlmEstimates = (
   targets: LLMTarget[],
@@ -419,9 +417,7 @@ const buildWriteResumeLlmEstimates = (
 
   return targets.map((target) => {
     const registryService = llmRegistryService(target.service)
-    const requestedReasoningEffort = target.service === 'llama.cpp' || target.service === 'llamafile'
-      ? undefined
-      : opts.reasoningEffort
+    const requestedReasoningEffort = opts.reasoningEffort
     const reasoningPolicy = resolveReasoningPolicy({
       step: 'llm',
       service: registryService,
@@ -479,9 +475,6 @@ export const writeResumeConfig = {
     )
     for (const entry of entries) {
       if (!selectedKeys.has(metadataKey(entry))) {
-        continue
-      }
-      if (entry.llmService === 'llama.cpp' || entry.llmService === 'llamafile') {
         continue
       }
       const policy = resolveReasoningPolicy({

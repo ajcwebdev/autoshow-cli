@@ -23,7 +23,7 @@ const AUDITION_REQUIRED_CATEGORIES = ['neutral', 'representative', 'pronunciatio
 const AUDIT_ACTOR_NAMESPACES = new Set(['local-user', 'project-role', 'automation'])
 const CONSENT_ACTIONS = new Set(['upload', 'new-synthesis', 'cache-reuse', 'resume', 'export', 'retention', 'deletion'])
 const PROVISIONING_OPERATIONS = new Set(['design', 'remix', 'clone', 'import', 'save-reference'])
-const TTS_PROVIDERS = new Set(['kitten', 'elevenlabs', 'minimax', 'groq', 'grok', 'mistral', 'openai', 'gemini', 'deepgram', 'speechify', 'hume', 'cartesia', 'fish', 'inworld', 'deepinfra', 'replicate', 'fal'])
+const TTS_PROVIDERS = new Set(['elevenlabs', 'minimax', 'groq', 'grok', 'mistral', 'openai', 'gemini', 'deepgram', 'speechify', 'hume', 'cartesia', 'fish', 'inworld', 'deepinfra', 'replicate', 'fal'])
 
 const assertAllowedKeys: (value: unknown, allowed: readonly string[], label: string) => asserts value is Record<string, unknown> = (value, allowed, label) => {
   if (typeof value !== 'object' || value === null || Array.isArray(value)) throw CLIUsageError(`${label} must be an object.`)

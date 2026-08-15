@@ -57,14 +57,6 @@ export const estimateTtsRequestCount = (service: string, model: string, characte
   return maxInputCharacters === undefined ? 1 : Math.ceil(normalizedCharacters / maxInputCharacters)
 }
 
-export const getKittenHfRepo = (model: string): string | undefined => {
-  return getModelRegistry().tts['kitten']?.models[model]?.hfRepo
-}
-
-export const getKittenVoices = (): readonly string[] => {
-  return getModelRegistry().tts['kitten']?.voices ?? []
-}
-
 export const getGroqTtsVoices = (): readonly string[] => {
   return getModelRegistry().tts['groq']?.voices ?? []
 }

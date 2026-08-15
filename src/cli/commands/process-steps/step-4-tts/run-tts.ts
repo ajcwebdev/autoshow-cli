@@ -344,15 +344,12 @@ export const runTtsTargets = async (
       provider: options.ttsProviderConcurrency ?? DEFAULT_CLI_CONCURRENCY,
       local: options.ttsLocalConcurrency ?? DEFAULT_CLI_CONCURRENCY
     },
-    getTargetPool: (target) => target.service === 'kitten' ? 'local' : 'hosted',
+    getTargetPool: () => 'hosted',
     getWorkspaceDir: (dir, target) =>
       `${dir}/.tts-tmp-${target.service}-${sanitizeModelName(target.model)}`,
     useWorkspaceForSingleTarget: true,
     preserveWorkspaceOnFailure: true,
     resourceGate: options.generationResourceGate,
-    getResourceGate: (target) => isMultiSpeakerRequested(options) && target.service === 'kitten'
-      ? undefined
-      : options.generationResourceGate,
     runTarget: async (target, workspaceDir) => {
       const targetIndex = targets.indexOf(target)
       const sourceInputIndex = sourceContext?.sourceIdentity?.sourceLocator?.kind === 'batch-item'

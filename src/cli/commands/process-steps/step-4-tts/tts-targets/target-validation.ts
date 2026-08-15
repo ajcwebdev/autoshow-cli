@@ -29,7 +29,6 @@ export const validateTtsTargetSelection = (
     }
 
     const allProviderModels = [
-      { provider: 'kitten' as const, models: selection.kittenModels },
       { provider: 'elevenlabs' as const, models: selection.elevenlabsModels },
       { provider: 'minimax' as const, models: selection.minimaxModels },
       { provider: 'groq' as const, models: selection.groqModels },

@@ -338,7 +338,7 @@ export const computeActualCosts = (input: ComputeActualCostsInput): ActualCostBr
       extract: metadata => addExtractionCostEntry(steps, metadata),
       partialExtract: metadata => addExtractionCostEntry(steps, metadata, true),
       llm: (metadata) => {
-        const registryService = metadata.llmService === 'llama.cpp' ? 'llama' : metadata.llmService
+        const registryService = metadata.llmService
         const rates = getLlmCost(registryService, metadata.llmModel)
         const tokenCost = computeTokenCost(
           rates ?? { inputCostPer1MCents: 0, outputCostPer1MCents: 0 },

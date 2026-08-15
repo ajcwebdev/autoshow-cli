@@ -106,7 +106,7 @@ export const buildCurrentTtsProviderState = (
   return {
     service: metadata.ttsService,
     model: metadata.ttsModel,
-    local: metadata.ttsService === 'kitten',
+    local: false,
     operation: metadata.operation,
     targetKey: metadata.targetKey,
     transport: metadata.transport,

@@ -25,6 +25,7 @@ import { canonicalTargetKey, sha256Bytes } from '../../../step-4-tts/script-to-a
 import { planCurrentTtsResumePrice, prepareComicSegmentedProviderTexts } from '../../../step-4-tts/script-to-audio/current-render-attempt'
 import { runTtsForTargets, validateTtsRenderInputsForTargets } from '../../../step-4-tts/run-tts'
 import { collectTtsTargets, validateTtsTargetsForExecution } from '../../../step-4-tts/tts-targets'
+import { selectCheapestDefaultHostedTtsSelection } from '~/cli/commands/setup-and-utilities/models/cheapest-models'
 import { createResourceGate } from '~/utils/resource-gate'
 import { DEFAULT_CLI_CONCURRENCY } from '~/utils/concurrency-defaults'
 import { CLIUsageError, InfraError } from '~/utils/error-handler'
@@ -103,14 +104,13 @@ const flattenTurns = (plan: Awaited<ReturnType<typeof createComicDialoguePlan>>)
 const voiceLocator = (entry: ApprovedVoiceSnapshotEntry): { value: string, protectedAsset?: ProtectedAssetRef | undefined } => {
   const voice = entry.providerVoice
   if (voice.kind === 'remote-resource') return { value: voice.resourceId }
-  if (voice.kind === 'local-model-voice') return { value: voice.voiceLocator }
   if (voice.kind === 'reference-asset') return { value: `ref_audio:${voice.protectedAsset.assetId}`, protectedAsset: voice.protectedAsset }
+  if (voice.kind !== 'shared-library-resource') throw CLIUsageError('Comic audio requires a materialized saved, stock, or reference voice.')
   throw CLIUsageError(`Shared-library voice ${voice.sharedVoiceId} must be imported and approved as an account resource before comic synthesis.`)
 }
 
 const withoutInheritedVoiceSelection = (options: TtsOptions): TtsOptions => ({
   ...options,
-  ttsSpeaker: '',
   ttsDialogueFormat: undefined,
   ttsSpeakers: undefined,
   groqVoiceId: undefined,
@@ -144,7 +144,7 @@ export const buildTargetExecution = (input: {
   resourceGate: ReturnType<typeof createResourceGate>
 }): { target: TtsTarget, options: TtsOptions, sourceText: string, context: ComicTtsRenderContext } => {
   const operation = 'comic-audio' as const
-  const transport = input.target.transport ?? (input.target.service === 'kitten' ? 'local-process' : 'hosted-api')
+  const transport = input.target.transport ?? 'hosted-api'
   const target: TtsTarget = {
     ...input.target,
     operation,
@@ -287,12 +287,22 @@ export const generateComicAudio = async (ctx: CliCommandContext, scriptPath: str
     ctx.rawParsed.flagOccurrences,
     'provider',
     STANDALONE_TTS_PROVIDER_TARGETS,
-    { allProvidersTarget: 'all-tts', allLocalTarget: 'all-local-tts' }
+    { allProvidersTarget: 'all-tts' }
   )
+  if (
+    providerNormalized.flags['all-tts'] !== true
+    && !Object.values(STANDALONE_TTS_PROVIDER_TARGETS).some((flag) => {
+      const value = providerNormalized.flags[flag]
+      return Array.isArray(value) ? value.length > 0 : value !== undefined && value !== false
+    })
+  ) {
+    const cheapest = selectCheapestDefaultHostedTtsSelection()
+    providerNormalized.flags[`${cheapest.provider}-tts`] = cheapest.model
+  }
   const baseOptions = withoutInheritedVoiceSelection(buildOptsFromFlags(
     true,
     providerNormalized.flags,
-    { defaultTtsEngine: 'kitten' },
+    {},
     providerNormalized.explicitFlags,
     { flagOccurrences: providerNormalized.flagOccurrences }
   ) as TtsOptions)
@@ -388,7 +398,7 @@ export const generateComicAudio = async (ctx: CliCommandContext, scriptPath: str
   const collectedTargets = collectTtsTargets(baseOptions)
   if (collectedTargets.length === 0) throw CLIUsageError('Comic audio requires at least one selected TTS provider target.')
   const targets = collectedTargets.map((target) => {
-    const transport = target.transport ?? (target.service === 'kitten' ? 'local-process' : 'hosted-api')
+    const transport = target.transport ?? 'hosted-api'
     return { ...target, operation: 'comic-audio' as const, transport, targetKey: canonicalTargetKey('comic-audio', target.service, target.model, transport) }
   })
   if (new Set(targets.map(target => target.targetKey)).size !== targets.length) throw CLIUsageError('Comic audio provider selection contains duplicate operation-scoped provider/model targets.')
@@ -432,8 +442,7 @@ export const generateComicAudio = async (ctx: CliCommandContext, scriptPath: str
     hostedConcurrencyCoordinator: baseOptions.hostedConcurrencyCoordinator
   })
   const hostedResourceGate = createResourceGate({ capacity: baseOptions.ttsProviderConcurrency ?? DEFAULT_CLI_CONCURRENCY })
-  const localResourceGate = createResourceGate({ capacity: baseOptions.ttsLocalConcurrency ?? DEFAULT_CLI_CONCURRENCY })
-  const executions = targets.map(target => buildTargetExecution({ target, baseOptions, snapshot, dialoguePlan, mode, deliveryPolicy, sampleRate, channels, codec, resourceGate: target.service === 'kitten' ? localResourceGate : hostedResourceGate }))
+  const executions = targets.map(target => buildTargetExecution({ target, baseOptions, snapshot, dialoguePlan, mode, deliveryPolicy, sampleRate, channels, codec, resourceGate: hostedResourceGate }))
   for (const execution of executions) validateTtsRenderInputsForTargets([execution.target], execution.sourceText, execution.options, { comicContext: execution.context })
 
   if (price) {

@@ -104,11 +104,11 @@ afterEach(async () => {
 describe('adaptive provider group parser', () => {
   test('remote provider mirrors exactly cover target registries minus named local engines', () => {
     const expectedLocalProviders = {
-      stt: ['reverb', 'whisper', 'whisperfile'],
+      stt: ['whisper', 'whisperfile'],
       ocr: ['tesseract'],
       url: ['defuddle'],
-      llm: ['llama', 'llamafile'],
-      tts: ['kitten'],
+      llm: [],
+      tts: [],
       image: [],
       video: [],
       music: [],
@@ -148,11 +148,8 @@ describe('adaptive provider group parser', () => {
       'video',
       'music',
       'all-providers',
-      'llama',
       'whisper',
-      'reverb',
       'deepinfra',
-      'kitten-tts',
     ]
     const targetRegistries = {
       stt: WRITE_STT_PROVIDER_TARGETS,
@@ -242,9 +239,7 @@ describe('adaptive provider group parser', () => {
       'tts',
       'input/examples/tts/1-tts.md',
       '--provider',
-      'openai=gpt-4o-mini-tts-2025-12-15',
-      '--provider',
-      'kitten=kitten-tts-mini'
+      'openai=gpt-4o-mini-tts-2025-12-15'
     ])).toEqual(['tts/openai'])
 
     expect(extractAdaptiveProviderGroups([
@@ -289,12 +284,10 @@ describe('adaptive provider group parser', () => {
   test('local-only providers do not create adaptive groups', () => {
     expect(extractAdaptiveProviderGroups([
       'src/cli/create-cli.ts',
-      'write',
-      'input/examples/text/source.txt',
-      '--llm',
-      'llama=ggml-org/gemma-3-270m-it-GGUF',
-      '--tts',
-      'kitten=kitten-tts-mini'
+      'extract',
+      'input/examples/audio/1-audio.mp3',
+      '--stt',
+      'whisper=tiny'
     ])).toEqual([])
   })
 })

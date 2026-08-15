@@ -11,7 +11,6 @@ Media inputs are downloaded and transcribed with local or hosted speech-to-text 
 - [STT Services](#stt-services)
   - [Whisper.cpp](#whispercpp)
   - [Whisperfile](#whisperfile)
-  - [Reverb](#reverb)
   - [AssemblyAI](#assemblyai)
   - [Deepgram](#deepgram)
   - [DeepInfra](#deepinfra)
@@ -48,11 +47,8 @@ bun autoshow setup --step whisper-binary
 # download the default whisper model only
 bun autoshow setup --step whisper-model
 
-# download large-v3-turbo plus Reverb assets
+# download large-v3-turbo
 bun autoshow setup --step transcription
-
-# install the Reverb environment and models
-bun autoshow setup --step reverb
 ```
 
 Whisperfile needs no setup step. The first `--provider whisperfile=<model>` run downloads the matching prebuilt `whisper-<model>.llamafile` from `huggingface.co/Mozilla/whisperfile` into `runtime/bin/whisperfile/` and reuses it afterward. To pre-download it instead, run `bun autoshow setup --step whisperfile` (default `tiny`) or `bun autoshow setup --models whisperfile:<model>` for a specific model.
@@ -159,19 +155,6 @@ bun autoshow extract https://ajc.pics/autoshow/examples/1-audio.mp3 --provider w
 ```
 
 Prebuilt binaries with embedded weights and native word timings. Downloads automatically to `runtime/bin/whisperfile/` on first use. Requires an explicit model selector. Included by `--all-local`.
-
-### Reverb
-
-| Option | Value |
-|--------|-------|
-| Selector | `--provider reverb` |
-| Style | `--stt-reverb-verbatimicity <0-1>`, default `0.5` |
-| Diarization | Enabled by default |
-| Runtime | Local diarized transcription (free) |
-
-```bash
-bun autoshow extract https://ajc.pics/autoshow/examples/1-audio.mp3 --provider reverb --stt-reverb-verbatimicity 0.5
-```
 
 ### AssemblyAI
 
@@ -383,7 +366,7 @@ Uses Together's batch transcription endpoint. Bare `--provider together` default
 - **ScrapeCreators**: Freelance reference rate of `$47 / 25,000 credits` (`0.188 cents/request`), charging per retrieval request regardless of duration.
 - **Duration-priced hosted providers** (Deepgram, Groq, DeepInfra, Together, Rev, Gladia, Soniox, Speechmatics, Mistral): Estimated based on media duration and published provider per-minute rates.
 - **Token-priced providers** (Gemini STT, Grok STT): Estimated from media duration and token rates.
-- Local engines (Whisper.cpp, Whisperfile, Reverb) are free.
+- Local engines (Whisper.cpp, Whisperfile) are free.
 
 ## STT Notes
 

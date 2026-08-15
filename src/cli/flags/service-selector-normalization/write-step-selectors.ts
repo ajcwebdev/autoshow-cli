@@ -28,13 +28,11 @@ const writeAllProvidersTargets = {
 const writeAllLocalTargets = {
   stt: 'all-local-stt',
   ocr: 'all-local-ocr',
-  url: 'all-local-url',
-  llm: 'all-local-llm',
-  tts: 'all-local-tts'
+  url: 'all-local-url'
 } as const satisfies Partial<Record<keyof typeof writeAllProvidersTargets, string>>
 
 const writeAllSelectorSteps = 'stt, ocr, url, llm, tts, image, video, or music'
-const writeAllLocalSelectorSteps = 'stt, ocr, url, llm, or tts'
+const writeAllLocalSelectorSteps = 'stt, ocr, or url'
 
 export const normalizeWriteStepSelectorFlags = (
   flags: Record<string, unknown>,

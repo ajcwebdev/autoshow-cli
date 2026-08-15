@@ -31,7 +31,6 @@ import {
   SUPPORTED_GROK_TTS_MODELS,
   SUPPORTED_GROQ_TTS_MODELS,
   SUPPORTED_HUME_TTS_MODELS,
-  SUPPORTED_KITTEN_TTS_MODELS,
   SUPPORTED_MINIMAX_TTS_MODELS,
   SUPPORTED_MISTRAL_TTS_MODELS,
   SUPPORTED_OPENAI_TTS_MODELS,
@@ -70,7 +69,6 @@ export type FetchFn = (input: string | URL | Request, init?: RequestInit) => Pro
 
 
 export type GroqModel = typeof SUPPORTED_GROQ_MODELS[number]
-export type KittenTtsModel = typeof SUPPORTED_KITTEN_TTS_MODELS[number]
 export type ElevenlabsTtsModel = typeof SUPPORTED_ELEVENLABS_TTS_MODELS[number]
 export type MinimaxTtsModel = typeof SUPPORTED_MINIMAX_TTS_MODELS[number]
 export type GroqTtsModel = typeof SUPPORTED_GROQ_TTS_MODELS[number]
@@ -124,6 +122,18 @@ export type CheapestVideoSelection = {
   totalCost: number
 }
 
+export type CheapestTtsSelection = {
+  provider: import('~/types').TtsProvider
+  model: string
+  totalCost: number
+}
+
+export type CheapestLlmSelection = {
+  provider: import('~/types').Step3Metadata['llmService']
+  model: string
+  totalCost: number
+}
+
 export type CheckResult = {
   label: string
   ok: boolean
@@ -140,8 +150,7 @@ export type SetupToolStatus = {
 // executeStepOnce, and the exhaustiveness check there fails if one is missing.
 export const SETUP_STEP_IDS = [
   'uv', 'yt-dlp', 'defuddle', 'whisper-binary', 'whisper-model', 'whisperfile',
-  'llama-binary', 'llamafile',
-  'reverb', 'calibre', 'acsm', 'acsm-authorize', 'all',
+  'calibre', 'acsm', 'acsm-authorize', 'all',
   'transcription', 'write', 'tts', 'image', 'video', 'music'
 ] as const
 

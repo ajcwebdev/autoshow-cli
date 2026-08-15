@@ -17,7 +17,6 @@ const ConcurrencyDefaultsSchema = v.strictObject({
 
 const ExtractSttDefaultsSchema = v.strictObject({
   whisper: ModelArraySchema,
-  reverb: v.optional(v.boolean(), undefined),
   youtubeCaptions: v.optional(v.boolean(), undefined),
   deepinfraStt: ModelArraySchema,
   groqStt: ModelArraySchema,
@@ -40,7 +39,6 @@ const ExtractSttDefaultsSchema = v.strictObject({
   speechmaticsStt: ModelArraySchema,
   speakerCount: v.optional(v.pipe(v.number(), v.integer(), v.minValue(1)), undefined),
   split: v.optional(v.boolean(), undefined),
-  reverbVerbatimicity: v.optional(v.pipe(v.number(), v.minValue(0), v.maxValue(1)), undefined),
   providerConcurrency: v.optional(v.pipe(v.number(), v.integer(), v.minValue(1)), undefined),
   localConcurrency: v.optional(v.pipe(v.number(), v.integer(), v.minValue(1)), undefined),
   segmentConcurrency: v.optional(v.pipe(v.number(), v.integer(), v.minValue(1)), undefined),
@@ -48,8 +46,6 @@ const ExtractSttDefaultsSchema = v.strictObject({
 })
 
 const LlmDefaultsSchema = v.strictObject({
-  llama: ModelArraySchema,
-  llamafile: ModelArraySchema,
   openai: ModelArraySchema,
   groq: ModelArraySchema,
   gemini: ModelArraySchema,
@@ -65,7 +61,6 @@ const LlmDefaultsSchema = v.strictObject({
 })
 
 const TtsDefaultsSchema = v.strictObject({
-  kittenTts: ModelArraySchema,
   elevenlabsTts: ModelArraySchema,
   minimaxTts: ModelArraySchema,
   groqTts: ModelArraySchema,
@@ -89,7 +84,6 @@ const TtsDefaultsSchema = v.strictObject({
   speechifyVoice: v.optional(v.string(), undefined),
   speechifyTtsAudioFormat: v.optional(v.picklist(['mp3', 'ogg', 'aac', 'wav', 'pcm']), undefined),
   speechifyTtsLanguage: v.optional(v.string(), undefined),
-  ttsSpeaker: v.optional(v.string(), undefined),
   groqVoice: v.optional(v.string(), undefined),
   grokTtsVoice: v.optional(v.string(), undefined),
   grokTtsLanguage: v.optional(v.string(), undefined),

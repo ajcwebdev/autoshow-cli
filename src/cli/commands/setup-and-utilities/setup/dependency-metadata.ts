@@ -23,9 +23,7 @@ const depsJsonPath = join(PROJECT_ROOT, 'config/deps.json')
 
 const DEFAULT_DEPENDENCY_METADATA: DependencyMetadata = {
   'whisper.cpp': { tag: 'v1.7.4' },
-  'llama.cpp': { tag: 'b8087' },
   uv: { version: '0.11.14' },
-  reverb: { ref: '8cd4099828d68e464a9536ccb6a380ddad07c982' },
   'yt-dlp': {
     version: '2026.06.09',
     url: 'https://github.com/yt-dlp/yt-dlp/releases/download/2026.06.09/yt-dlp_macos',
@@ -105,11 +103,6 @@ export const readDependencyTag = async (name: string): Promise<string | undefine
 export const readDependencyVersion = async (name: string): Promise<string | undefined> => {
   const metadata = await readDependencyMetadata()
   return metadata[name]?.version
-}
-
-export const readDependencyRef = async (name: string): Promise<string | undefined> => {
-  const metadata = await readDependencyMetadata()
-  return metadata[name]?.ref
 }
 
 export const readDependencyUrlAndSha256 = async (

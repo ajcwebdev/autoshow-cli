@@ -2,7 +2,6 @@ import { basename } from 'node:path'
 import { formatCost, formatDuration, formatEstimatedCost, formatEstimatedCostWithExactCents } from '~/utils/app-logger/formatters'
 import { createDetailTable, createHumanTable, createLocationsTable, toHumanTableCell } from '~/utils/app-logger/human-table/human-table'
 import { emitResult } from '~/utils/app-logger/result-emitter'
-import { resolveReverbModelLabel } from '~/cli/commands/process-steps/step-2-extract/step-2-stt/stt-model-labels'
 import { stepEstimateToReport } from '~/utils/pricing/step-estimate-fields'
 import type { AggregatedPriceEstimate, CompleteOptions, HumanCompletionTables, HumanLogTableRow, Logger, Reporter, ReporterMetricValue, StepEstimate, StepSummaryEntry, StepTimingCost, TimingStepEntry } from '~/types'
 
@@ -12,9 +11,7 @@ const formatSttProvider = (provider: string): string => {
 
 const formatEstimateIdentity = (estimate: StepEstimate): Pick<StepEstimate, 'provider' | 'model'> => ({
   provider: estimate.step === 'stt' ? formatSttProvider(estimate.provider) : estimate.provider,
-  model: estimate.step === 'stt' && estimate.provider === 'reverb'
-    ? resolveReverbModelLabel(estimate.model)
-    : estimate.model
+  model: estimate.model
 })
 
 const mapTimingEstimate = (timing: TimingStepEntry): Record<string, string | number> => ({

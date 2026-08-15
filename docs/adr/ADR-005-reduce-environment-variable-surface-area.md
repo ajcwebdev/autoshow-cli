@@ -111,7 +111,7 @@ bun test test/test-cases/validation/cli/option-resolution-contracts/
 - Type check and lint report no dangling references to removed variables, deleted helpers, or `provider-url-policy.ts`.
 - Grep sweeps verify zero production references to removed environment variable names, deleted tuning knobs, base-URL overrides, or trust-gate functions.
 - Contract suites pass against remaining seams (logging, process locking, binary overrides, adaptive concurrency, provider mocks).
-- CLI sanity verification: `--json` flag toggles JSON logs, tool resolution works via `--bin-dir` or `PATH`, `HUGGINGFACE_TOKEN` activates Reverb, and providers target `base-urls.ts` defaults.
+- CLI sanity verification: `--json` flag toggles JSON logs, tool resolution works via `--bin-dir` or `PATH`, and providers target `base-urls.ts` defaults.
 
 ## References
 

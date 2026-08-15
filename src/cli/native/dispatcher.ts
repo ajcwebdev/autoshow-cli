@@ -7,7 +7,6 @@ import { configureCharactersRoot } from '~/cli/commands/process-steps/characters
 import { applyConfiguredYtDlpAuth } from '~/cli/commands/setup-and-utilities/config/config-auth'
 import { configureBinDir } from '~/utils/runtime-paths'
 import { configureColor } from '~/utils/terminal-colors'
-import { configureModelPath } from '~/cli/commands/process-steps/step-3-write/write-local/llama/llama-config'
 import { parseNativeCli } from './native-parser'
 import { renderCommandHelp, renderRootHelp } from './help-renderer'
 import { NativeUnknownFlagError } from './native-errors'
@@ -102,11 +101,9 @@ export const dispatchNativeCli = async (
   if (colorFlag === true) configureColor('force')
   else if (colorFlag === false) configureColor('disable')
 
-  const modelPath = typeof parsed.flags['model-path'] === 'string' ? parsed.flags['model-path'] : undefined
   const configPathOverride = typeof parsed.flags['config-path'] === 'string' ? parsed.flags['config-path'] : undefined
 
   await applyConfiguredYtDlpAuth(configPathOverride)
-  if (modelPath) configureModelPath(modelPath)
 
   const store: Record<string, unknown> = { startedAtMs: Date.now() }
   const ctx: CliCommandContext = {

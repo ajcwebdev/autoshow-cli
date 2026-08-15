@@ -250,11 +250,6 @@ export const HOSTED_PROVIDER_ENV_CHECKS = [
     envVar: 'X_BEARER_TOKEN',
     label: 'X Spaces metadata and download lookup',
     configPaths: []
-  },
-  {
-    envVar: 'HUGGINGFACE_TOKEN',
-    label: 'Hugging Face Reverb assets',
-    configPaths: ['defaults.extract.stt.reverb']
   }
 ] as const satisfies readonly HostedProviderEnvCheck[]
 

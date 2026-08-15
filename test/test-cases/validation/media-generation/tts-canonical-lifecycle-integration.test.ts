@@ -15,36 +15,36 @@ const options = (): Parameters<typeof runSingleTtsInput>[1] => ({
   allowOverBudget: false
 })
 
-const kittenTarget = (
+const openaiTarget = (
   model: string,
   behavior: 'success' | 'failure',
   beforeProvider: () => Promise<void>
 ): TtsTarget => {
-  const voice = 'expr-voice-2-f'
+  const voice = 'alloy'
   const bytes = createSyntheticWavBytes({ durationSeconds: 0.1, amplitude: 0.2, frequencyHz: 440 })
   return {
-    service: 'kitten',
+    service: 'openai',
     model,
     operation: 'tts-synthesis',
-    transport: 'local-process',
-    targetKey: canonicalTargetKey('tts-synthesis', 'kitten', model, 'local-process'),
+    transport: 'hosted-api',
+    targetKey: canonicalTargetKey('tts-synthesis', 'openai', model, 'hosted-api'),
     voice,
     run: async (text, outputDir, _opts, _invocation, requestEvidence) => {
       await beforeProvider()
-      if (behavior === 'failure') throw new Error(`local ${model} fixture failure before provider dispatch`)
+      if (behavior === 'failure') throw new Error(`hosted ${model} fixture failure before provider dispatch`)
       const audioPath = join(outputDir, 'speech.wav')
       await requestEvidence?.dispatch({
         chunkIndex: 1,
-        endpointKind: 'local-runner',
-        serializerVersion: 'kitten.tts.phase-0-v1',
-        serializedRequest: { text, voice },
+        endpointKind: 'speech-synthesis',
+        serializerVersion: 'openai.tts.phase-0-v1',
+        serializedRequest: { body: { input: text, voice, response_format: 'wav' } },
         providerText: text,
         voiceField: 'voice',
-        voices: [{ kind: 'local-model-voice', value: voice }],
-        requestControls: { maxChunkChars: 2000 },
+        voices: [{ kind: 'provider-id', value: voice }],
+        requestControls: { responseFormat: 'wav' },
         continuation: { kind: 'none' }
       }, { attempt: 1 }, async ({ accepted }) => {
-        await accepted({ fields: { local: true } })
+        await accepted({ providerRequestId: 'openai-lifecycle-fixture' })
         await Bun.write(audioPath, bytes)
       })
       if (!requestEvidence) await Bun.write(audioPath, bytes)
@@ -53,7 +53,7 @@ const kittenTarget = (
       return {
         audioPath,
         metadata: {
-          ttsService: 'kitten',
+          ttsService: 'openai',
           ttsModel: model,
           speaker: voice,
           processingTime: 1,
@@ -94,8 +94,8 @@ describe('canonical standalone TTS lifecycle persistence', () => {
       configurePinnedRunDir(outputDir)
       const beforeProvider = async () => await expectCompletePreparedCardinality(outputDir, 1, 2)
       const targets = [
-        kittenTarget('kitten-tts-mini', 'success', beforeProvider),
-        kittenTarget('kitten-tts-nano', 'failure', beforeProvider)
+        openaiTarget('gpt-4o-mini-tts-2025-12-15', 'success', beforeProvider),
+        openaiTarget('gpt-4o-mini-tts', 'failure', beforeProvider)
       ]
 
       await runSingleTtsInput(inputPath, options(), targets, undefined)
@@ -121,7 +121,7 @@ describe('canonical standalone TTS lifecycle persistence', () => {
       const outputDir = join(dir, 'run')
       await Bun.write(inputPath, 'Retain the real failure projection.')
       configurePinnedRunDir(outputDir)
-      const target = kittenTarget('kitten-tts-nano', 'failure', async () =>
+      const target = openaiTarget('gpt-4o-mini-tts-2025-12-15', 'failure', async () =>
         await expectCompletePreparedCardinality(outputDir, 1, 1)
       )
 
@@ -146,8 +146,8 @@ describe('canonical standalone TTS lifecycle persistence', () => {
       configurePinnedRunDir(outputDir)
       const beforeProvider = async () => await expectCompletePreparedCardinality(outputDir, 2, 2)
       const targets = [
-        kittenTarget('kitten-tts-mini', 'success', beforeProvider),
-        kittenTarget('kitten-tts-nano', 'failure', beforeProvider)
+        openaiTarget('gpt-4o-mini-tts-2025-12-15', 'success', beforeProvider),
+        openaiTarget('gpt-4o-mini-tts', 'failure', beforeProvider)
       ]
 
       await runTtsDirectoryBatch(inputDir, options(), targets, undefined)
@@ -169,7 +169,7 @@ describe('canonical standalone TTS lifecycle persistence', () => {
       await Bun.write(join(inputDir, 'first.txt'), 'First failed batch fixture.')
       await Bun.write(join(inputDir, 'second.txt'), 'Second failed batch fixture.')
       configurePinnedRunDir(outputDir)
-      const target = kittenTarget('kitten-tts-nano', 'failure', async () =>
+      const target = openaiTarget('gpt-4o-mini-tts-2025-12-15', 'failure', async () =>
         await expectCompletePreparedCardinality(outputDir, 2, 1)
       )
 

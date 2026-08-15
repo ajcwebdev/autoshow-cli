@@ -2,9 +2,7 @@ import type { CliFlagDefinition, HtmlArticleBackend, OcrRuntimeOptions, Provider
 import type { STEP2_OCR_PROVIDER_REGISTRY } from '~/cli/commands/process-steps/step-2-extract/step-2-shared/provider-registry/ocr-providers'
 import type { STEP2_STT_PROVIDER_REGISTRY } from '~/cli/commands/process-steps/step-2-extract/step-2-shared/provider-registry/stt-providers'
 
-export type Step2ProviderOptionSurface = SttRuntimeOptions & OcrRuntimeOptions & {
-  useReverb: boolean
-}
+export type Step2ProviderOptionSurface = SttRuntimeOptions & OcrRuntimeOptions
 
 type RegistrySelectionOptionKey<Entry> = Entry extends {
   selection: infer Selection
@@ -62,7 +60,7 @@ export type ResolvedStep2Provider = ProviderIdentityBase & {
 
 export type Step2ShortcutFlag = 'all-stt' | 'all-local-stt' | 'all-ocr' | 'all-local-ocr' | 'all-url' | 'all-local-url'
 export type Step2Command = 'stt' | 'ocr' | 'url'
-export type Step2BooleanSelectionKey = 'useReverb' | 'useTesseract'
+export type Step2BooleanSelectionKey = 'useTesseract'
 
 export type Step2ProviderSelectionFilter = {
   includeOrigins?: readonly Step2ProviderSelectionOrigin[] | undefined

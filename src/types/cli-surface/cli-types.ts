@@ -14,7 +14,6 @@ export type SharedPipelineOptions = {
   hostedConcurrencyCoordinator?: HostedConcurrencyCoordinator | undefined
   outputRootDir: string
   configPath: string | undefined
-  useReverb: boolean
   youtubeCaptions: boolean
   whisperExplicit: boolean
   step2SelectionOrigins: Partial<Record<string, Step2ProviderSelectionOrigin>>

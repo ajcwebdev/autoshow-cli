@@ -498,34 +498,6 @@
             ]
           },
           {
-            "llmService": "llama.cpp",
-            "llmModel": "ggml-org/gemma-3-270m-it-GGUF",
-            "processingTime": 239,
-            "inputTokenCount": 360,
-            "outputTokenCount": 34,
-            "tokenCountSource": "local_count",
-            "outputFileName": "text-ggml-org-gemma-3-270m-it-GGUF.json",
-            "outputFormat": "json",
-            "structuredMode": "schema-guided",
-            "structuredPresetNames": [
-              "shortSummary"
-            ]
-          },
-          {
-            "llmService": "llama.cpp",
-            "llmModel": "ggml-org/Qwen3-0.6B-GGUF",
-            "processingTime": 325,
-            "inputTokenCount": 360,
-            "outputTokenCount": 28,
-            "tokenCountSource": "local_count",
-            "outputFileName": "text-ggml-org-Qwen3-0.6B-GGUF.json",
-            "outputFormat": "json",
-            "structuredMode": "schema-guided",
-            "structuredPresetNames": [
-              "shortSummary"
-            ]
-          },
-          {
             "llmService": "together",
             "llmModel": "kimi-k2.6",
             "providerReturnedModel": "moonshotai/Kimi-K2.6",
@@ -830,28 +802,6 @@
               },
               {
                 "step": "llm",
-                "provider": "llama.cpp",
-                "model": "ggml-org/gemma-3-270m-it-GGUF",
-                "cost": 0,
-                "costMultiplier": 1,
-                "inputCostPer1MCents": 0,
-                "outputCostPer1MCents": 0,
-                "estimatedInputTokens": 360,
-                "estimatedOutputTokens": 34
-              },
-              {
-                "step": "llm",
-                "provider": "llama.cpp",
-                "model": "ggml-org/Qwen3-0.6B-GGUF",
-                "cost": 0,
-                "costMultiplier": 1,
-                "inputCostPer1MCents": 0,
-                "outputCostPer1MCents": 0,
-                "estimatedInputTokens": 360,
-                "estimatedOutputTokens": 28
-              },
-              {
-                "step": "llm",
                 "provider": "together",
                 "model": "kimi-k2.6",
                 "cost": 0.06939,
@@ -1075,28 +1025,6 @@
                 "inputValue": 465,
                 "promptTokens": 431,
                 "completionTokens": 34
-              },
-              {
-                "step": "llm",
-                "provider": "llama.cpp",
-                "model": "ggml-org/gemma-3-270m-it-GGUF",
-                "cost": 0,
-                "costSource": "local_zero",
-                "inputMetric": "tokens",
-                "inputValue": 394,
-                "promptTokens": 360,
-                "completionTokens": 34
-              },
-              {
-                "step": "llm",
-                "provider": "llama.cpp",
-                "model": "ggml-org/Qwen3-0.6B-GGUF",
-                "cost": 0,
-                "costSource": "local_zero",
-                "inputMetric": "tokens",
-                "inputValue": 388,
-                "promptTokens": 360,
-                "completionTokens": 28
               },
               {
                 "step": "llm",
@@ -1354,32 +1282,6 @@
                 "rateBasis": "1KTokens",
                 "msPerUnit": 11215.054,
                 "throughputValue": 89.166,
-                "throughputUnit": "tokensPerSecond",
-                "timingScope": "estimated"
-              },
-              {
-                "step": "llm",
-                "provider": "llama.cpp",
-                "model": "ggml-org/gemma-3-270m-it-GGUF",
-                "processingTimeMs": 1126,
-                "inputMetric": "tokens",
-                "inputValue": 394,
-                "rateBasis": "1KTokens",
-                "msPerUnit": 2857.868,
-                "throughputValue": 349.911,
-                "throughputUnit": "tokensPerSecond",
-                "timingScope": "estimated"
-              },
-              {
-                "step": "llm",
-                "provider": "llama.cpp",
-                "model": "ggml-org/Qwen3-0.6B-GGUF",
-                "processingTimeMs": 598,
-                "inputMetric": "tokens",
-                "inputValue": 388,
-                "rateBasis": "1KTokens",
-                "msPerUnit": 1541.237,
-                "throughputValue": 648.829,
                 "throughputUnit": "tokensPerSecond",
                 "timingScope": "estimated"
               },
@@ -1645,32 +1547,6 @@
                 "rateBasis": "1KTokens",
                 "msPerUnit": 4509.677,
                 "throughputValue": 221.745,
-                "throughputUnit": "tokensPerSecond",
-                "timingScope": "wall"
-              },
-              {
-                "step": "llm",
-                "provider": "llama.cpp",
-                "model": "ggml-org/gemma-3-270m-it-GGUF",
-                "processingTimeMs": 239,
-                "inputMetric": "tokens",
-                "inputValue": 394,
-                "rateBasis": "1KTokens",
-                "msPerUnit": 606.599,
-                "throughputValue": 1648.536,
-                "throughputUnit": "tokensPerSecond",
-                "timingScope": "wall"
-              },
-              {
-                "step": "llm",
-                "provider": "llama.cpp",
-                "model": "ggml-org/Qwen3-0.6B-GGUF",
-                "processingTimeMs": 325,
-                "inputMetric": "tokens",
-                "inputValue": 388,
-                "rateBasis": "1KTokens",
-                "msPerUnit": 837.629,
-                "throughputValue": 1193.846,
                 "throughputUnit": "tokensPerSecond",
                 "timingScope": "wall"
               },

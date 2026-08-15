@@ -281,13 +281,13 @@ bun autoshow comic generate-images input/scripts/01-script/01-opening.md --targe
 
 | Flag | Description | Default |
 |------|-------------|---------|
-| `--provider <provider[=model]>` | Select a TTS provider/model; repeatable | `kitten` |
+| `--provider <provider[=model]>` | Select a TTS provider/model; repeatable | cheapest hosted |
 | `--sfx-provider <provider=model>` | Select the dedicated authored sound-effect target; accepts `elevenlabs=eleven_text_to_sound_v2`, `replicate=sepal/audiogen@<pinned-version>`, or `stability=stable-audio-3` | none |
 | `--sfx-license-use <classification>` | Declare intended use for license-restricted SFX targets: `noncommercial`, `commercial`, or `unknown`; required for AudioGen and never inferred from model selection | none |
 | `--sfx-concurrency <count>` | Bound parallel sound-effect requests independently from dialogue generation | `2` |
 | `--concurrency-mode <ramp\|immediate>` | Approach hosted dialogue and sound-effect caps from one request per provider/account lane (`ramp`) or start at the configured caps (`immediate`) | `ramp` |
 | `--soundscape-timing-policy <policy>` | Resolve inline text offsets with exact evidence (`strict`) or recorded canonical-offset interpolation (`proportional`) | `strict` |
-| `--all-providers` / `--all-local` | Select every hosted or local TTS target | `false` |
+| `--all-providers` | Select every hosted TTS target | `false` |
 | `--profile <key>` | Select the approved registration profile for every subject/target | `default` |
 | `--mode <mode>` | `auto`, strict `native`, or `segmented` | `auto` |
 | `--delivery-policy <policy>` | `strict` rejects unsupported authored delivery; `best-effort` records unsupported intent and continues | `strict` |
@@ -508,7 +508,7 @@ Pass multiple models with `--image-model` to generate each panel with every mode
 
 ### Text Models (LLM)
 
-`--llm-model` accepts any model ID from the central LLM registry (`src/cli/commands/setup-and-utilities/models/llm-config.json`). Comic routes generation through shared LLM dispatch across registered providers (OpenAI, Groq, Google Gemini, Anthropic, MiniMax, xAI Grok, Z.AI GLM, Moonshot Kimi, Together, Cerebras, llama.cpp, Llamafile).
+`--llm-model` accepts any model ID from the central LLM registry (`src/cli/commands/setup-and-utilities/models/llm-config.json`). Comic routes generation through shared LLM dispatch across registered hosted providers (OpenAI, Groq, Google Gemini, Anthropic, MiniMax, xAI Grok, Z.AI GLM, Moonshot Kimi, Together, Cerebras).
 
 The default is `gpt-5.6-sol`. Common choices:
 

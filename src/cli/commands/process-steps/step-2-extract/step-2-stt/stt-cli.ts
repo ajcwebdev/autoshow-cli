@@ -3,7 +3,6 @@ import { collectStep2ProviderSpecs } from '../step-2-shared/provider-registry'
 
 
 const STT_ENGINE_CAPABILITIES = {
-  reverb: { diarizationByDefault: true, supportsSpeakerCountHint: false },
   deepinfra: { diarizationByDefault: false, supportsSpeakerCountHint: false },
   deepgram: { diarizationByDefault: true, supportsSpeakerCountHint: false },
   soniox: { diarizationByDefault: true, supportsSpeakerCountHint: false },

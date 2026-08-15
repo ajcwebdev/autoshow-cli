@@ -65,8 +65,7 @@ const buildLlmOptions = (
   ...(service === 'grok' ? { grokModel: model } : {}),
   ...(service === 'glm' ? { glmModel: model } : {}),
   ...(service === 'together' ? { togetherModel: model } : {}),
-  ...(service === 'cerebras' ? { cerebrasModel: model } : {}),
-  ...(service === 'llama.cpp' ? { llamaModel: model } : {})
+  ...(service === 'cerebras' ? { cerebrasModel: model } : {})
 })
 
 export const resolveLlmCandidates = async (input: {

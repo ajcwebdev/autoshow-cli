@@ -1,6 +1,6 @@
 # write
 
-Run the full download plus transcription or extraction pipeline, then generate structured step-3 output with a local or hosted LLM.
+Run the full download plus transcription or extraction pipeline, then generate structured step-3 output with a hosted LLM. The default is the cheapest hosted model.
 
 ## Outline
 
@@ -9,8 +9,6 @@ Run the full download plus transcription or extraction pipeline, then generate s
 - [Usage](#usage)
 - [Shared Write Options](#shared-write-options)
 - [Write Services](#write-services)
-  - [Local llama.cpp](#local-llamacpp)
-  - [Local llamafile](#local-llamafile)
   - [OpenAI](#openai)
   - [Anthropic](#anthropic)
   - [Gemini](#gemini)
@@ -37,20 +35,15 @@ Run the full download plus transcription or extraction pipeline, then generate s
 # full setup
 bun autoshow setup
 
-# install llama.cpp and download the setup-managed local write models
+# check hosted write API-key readiness
 bun autoshow setup --step write
 ```
 
-Local write runtime pieces:
-
-- `runtime/bin/llama-server`
-- local models under `runtime/models/llama/`
-
-Llamafile needs no setup step. The first `--llm llamafile=<model>` run downloads the matching single-file `.llamafile` (binary plus weights) into `runtime/bin/llamafile/` and reuses it afterward. To pre-download it instead, run `bun autoshow setup --step llamafile` (default `Qwen3.5-0.8B-Q8_0`) or `bun autoshow setup --models llamafile:<model>` for a specific bundle.
+Write has no local LLM. Step 3 always uses a hosted provider. Omitting `--llm` selects the cheapest hosted model.
 
 ### Environment
 
-Only hosted LLM providers need API keys:
+Hosted LLM providers need API keys:
 
 ```bash
 OPENAI_API_KEY=...
@@ -84,7 +77,7 @@ Project lyric draft mode is enabled when the input is `./output/<name>/text` or 
 |------|-------------|
 | `--stt`, `--ocr`, `--llm`, `--tts`, `--image`, `--video`, `--music` | Select a pipeline step provider as `provider[=model]`; repeat to run multiple providers/models |
 | `--all-providers <step>` | Enable every hosted/API-backed provider for one write step: `stt`, `ocr`, `url`, `llm`, `tts`, `image`, `video`, or `music` |
-| `--all-local <step>` | Enable every local engine/backend for one write step: `stt`, `ocr`, `url`, `llm`, or `tts` |
+| `--all-local <step>` | Enable every local engine/backend for one write step: `stt`, `ocr`, or `url` |
 | `--reasoning-effort <policy>` | Set reasoning effort / thinking policy: `default`, `disabled`, `minimal`, `low`, `medium`, `high`, or `max` |
 | `--batch-limit <n>` | Limit batch size; default `5` |
 | `--batch-all` | Process every batch item |
@@ -114,39 +107,7 @@ Write price preflight uses the model registry's input/output token rates and loc
 
 ## Write Services
 
-Step selectors accept `provider[=model]`. Omitting the model resolves to the cheapest supported model for that provider unless the provider section below documents a different default. Model-selecting flags are repeatable, including repeated selectors from the same provider.
-
-### Local llama.cpp
-
-| Option | Value |
-|--------|-------|
-| Selector | `--llm llama[=<model>]` |
-| Models | setup-managed `ggml-org/gemma-3-270m-it-GGUF`, `ggml-org/Qwen3-0.6B-GGUF`; or any Hugging Face repo ID in `namespace/repo_name` form |
-| Default | Passing `--llm llama` uses `ggml-org/gemma-3-270m-it-GGUF` |
-
-```bash
-bun autoshow write https://ajc.pics/autoshow/examples/1-audio.mp3 --llm llama
-bun autoshow write https://ajc.pics/autoshow/examples/1-audio.mp3 --llm llama=ggml-org/Qwen3-0.6B-GGUF
-bun autoshow write input/examples/document/1-document.pdf --llm llama=ggml-org/gemma-3-270m-it-GGUF
-bun autoshow write input/examples/document/1-epub.epub --epub-bun --llm llama --format json
-```
-
-### Local llamafile
-
-| Option | Value |
-|--------|-------|
-| Selector | `--llm llamafile[=<model>]` |
-| Models | `Qwen3.5-0.8B-Q8_0`, `Qwen3.5-2B-Q8_0`, `Qwen3.5-4B-Q5_K_S` |
-| Default | Passing `--llm llamafile` uses `Qwen3.5-0.8B-Q8_0` |
-| Runtime | Local single-file llamafile server on port `8081`; free, no API key |
-
-```bash
-bun autoshow write https://ajc.pics/autoshow/examples/1-audio.mp3 --llm llamafile=Qwen3.5-0.8B-Q8_0
-bun autoshow write https://ajc.pics/autoshow/examples/1-audio.mp3 --llm llamafile=Qwen3.5-2B-Q8_0
-bun autoshow write https://ajc.pics/autoshow/examples/1-audio.mp3 --llm llamafile=Qwen3.5-4B-Q5_K_S
-```
-
-Llamafile is a self-contained alternative to the `llama.cpp` build: each model is a prebuilt single-file bundle (binary plus embedded weights) running without a compiler toolchain. AutoShow starts the llamafile server on port `8081`. Only the bundled aliases above are accepted.
+Step selectors accept `provider[=model]`. Omitting `--llm` uses the cheapest hosted model. Omitting the model on a provider selector resolves to the cheapest supported model for that provider unless the provider section below documents a different default. Model-selecting flags are repeatable, including repeated selectors from the same provider.
 
 ### OpenAI
 

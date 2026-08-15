@@ -102,7 +102,7 @@ export const writeLegacyTtsManifestFixture = async (
       providers: entries.map((entry) => ({
         service: entry['ttsService'],
         model: entry['ttsModel'],
-        local: entry['ttsService'] === 'kitten',
+        local: false,
         artifactDir: '.',
         status: 'succeeded',
         attempts: 1,

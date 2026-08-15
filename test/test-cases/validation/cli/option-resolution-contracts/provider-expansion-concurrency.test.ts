@@ -297,13 +297,12 @@ describe('option resolution contracts', () => {
         provider: 'grok',
         'tts-chunk-concurrency': String(DEFAULT_TTS_CHUNK_CONCURRENCY)
       }, new Set(['provider']), flagOccurrencesFromValues({ provider: 'grok' }), 'provider', STANDALONE_TTS_PROVIDER_TARGETS, {
-        allProvidersTarget: 'all-tts',
-        allLocalTarget: 'all-local-tts'
+        allProvidersTarget: 'all-tts'
       })
       const genericProviderGrok = buildOptsFromFlags(
         false,
         normalizedGrokProvider.flags,
-        { defaultTtsEngine: 'kitten' },
+        {},
         normalizedGrokProvider.explicitFlags
       )
       const explicitThirty = buildOptsFromFlags(false, {
@@ -454,9 +453,7 @@ describe('option resolution contracts', () => {
 
   test('--all-llm expands OpenAI, Anthropic, Grok, GLM, Kimi, Together, and Cerebras to their supported models', () => {
       const opts = buildOptsFromFlags(false, { 'all-llm': true })
-      const localOpts = buildOptsFromFlags(false, { 'all-local-llm': true })
 
-      expect(opts.llamaModels).toBeUndefined()
       expect(opts.openaiModels).toEqual(['gpt-5.6-sol', 'gpt-5.6-terra', 'gpt-5.6-luna', 'gpt-5.5', 'gpt-5.4-mini', 'gpt-5.4-nano'])
       expect(opts.openaiModels).not.toContain('gpt-5.6')
       expect(opts.anthropicModels).toEqual(['claude-fable-5', 'claude-opus-4-8', 'claude-sonnet-5', 'claude-sonnet-4-6', 'claude-haiku-4-5', 'claude-opus-5'])
@@ -469,8 +466,6 @@ describe('option resolution contracts', () => {
       expect(opts.kimiModels).toEqual(['kimi-k2.6', 'kimi-k3'])
       expect(opts.togetherModels).toEqual(['kimi-k2.6', 'glm-5.1'])
       expect(opts.cerebrasModels).toEqual(['gpt-oss-120b', 'zai-glm-4.7'])
-      expect(localOpts.llamaModels).toBeDefined()
-      expect(localOpts.openaiModels).toBeUndefined()
     })
 
   test('--all shortcuts use aggressive hosted concurrency only when concurrency is not explicit', () => {
@@ -561,7 +556,7 @@ describe('option resolution contracts', () => {
       expect(ocrTargets.map((target) => `${target.service}:${target.model}`)).not.toContain('anthropic:claude-sonnet-4-6')
       expect(ocrTargets.map((target) => `${target.service}:${target.model}`)).not.toContain('anthropic:claude-mythos-5')
       expect(ocrTargets.map((target) => `${target.service}:${target.model}`)).not.toContain('deepinfra:PaddlePaddle/PaddleOCR-VL-0.9B')
-      expect(collectSttTargets(localSttOpts).map((target) => target.service)).toContain('reverb')
+      expect(collectSttTargets(localSttOpts).map((target) => target.service)).not.toContain('reverb')
       expect(collectSttTargets(localSttOpts).map((target) => target.service)).toContain('whisper')
       expect(collectExplicitOcrTargets(localOcrOpts).map((target) => target.service)).toEqual([
         'tesseract'

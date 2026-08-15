@@ -3,7 +3,7 @@ import { mkdtemp, rm } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { exec } from '~/utils/cli-utils'
-import { classifyFetchRetry, runLocalModelWithRetry, withRetry } from '~/utils/retries'
+import { classifyFetchRetry, withRetry } from '~/utils/retries'
 
 describe('general retry-on-any-error contracts', () => {
   test('classifyFetchRetry retries unrecognized error types', () => {
@@ -77,22 +77,4 @@ describe('general retry-on-any-error contracts', () => {
     expect(result.exitCode).toBe(7)
   })
 
-  test('runLocalModelWithRetry retries any error and recovers between attempts', async () => {
-    let attempts = 0
-    let recovered = 0
-    const result = await runLocalModelWithRetry({
-      operationName: 'local-model-test',
-      recover: async () => { recovered += 1 },
-      attempt: async () => {
-        attempts += 1
-        if (attempts < 2) {
-          throw new Error('local model crashed')
-        }
-        return 'completed'
-      }
-    })
-    expect(result).toBe('completed')
-    expect(attempts).toBe(2)
-    expect(recovered).toBe(1)
-  })
 })

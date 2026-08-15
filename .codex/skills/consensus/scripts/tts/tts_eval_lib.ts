@@ -311,7 +311,7 @@ export function roundtripWer(originalText: string, transcribedText: string): num
 // Provider classification
 // ---------------------------------------------------------------------------
 
-const LOCAL_SERVICES = new Set(["kitten"]);
+const LOCAL_SERVICES = new Set<string>();
 
 export function isLocalService(ttsService: string): boolean {
   return LOCAL_SERVICES.has(ttsService);

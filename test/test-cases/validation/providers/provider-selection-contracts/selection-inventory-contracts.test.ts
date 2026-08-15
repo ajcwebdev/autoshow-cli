@@ -41,8 +41,6 @@ const EXPECTED_REPEATABLE_MODEL_FLAGS = [
   'deepinfra-ocr',
   'replicate-ocr',
   'fal-ocr',
-  'llama',
-  'llamafile',
   'openai',
   'groq',
   'gemini',
@@ -53,7 +51,6 @@ const EXPECTED_REPEATABLE_MODEL_FLAGS = [
   'kimi',
   'together',
   'cerebras',
-  'kitten-tts',
   'elevenlabs-tts',
   'minimax-tts',
   'groq-tts',
@@ -93,7 +90,6 @@ const EXPECTED_REPEATABLE_MODEL_FLAGS = [
 ] as const
 
 const STT_SELECTION_PROBE = {
-  useReverb: false,
   deepinfraSttModels: undefined,
   deepinfraSttModel: undefined,
   deepgramSttModels: undefined,

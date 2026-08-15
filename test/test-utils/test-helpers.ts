@@ -15,9 +15,6 @@ import { parseConfiguredEnvValueFromDotEnv } from './env-file'
 import { readOutputMetadataSummary } from './output-metadata-summary'
 import { E2E_TEST_TIMEOUT_MS } from './timeouts'
 import { configureOutputRoot } from '~/cli/commands/process-steps/output-root'
-import { LLAMA_PROCESS_LOCK_NAME, stopDefaultLlamaServer } from '~/cli/commands/process-steps/step-3-write/write-local/llama/run-llama'
-import { LLAMAFILE_PROCESS_LOCK_NAME, stopLlamafileServer as stopLlamafileServerInternal } from '~/cli/commands/process-steps/step-3-write/write-local/llamafile/run-llamafile'
-import { withProcessLock } from '~/utils/process-lock'
 import { stripAnsi } from '~/utils/terminal-colors'
 import type {
   AdaptiveCommandAttemptRecord,
@@ -172,7 +169,6 @@ const copyManifestToArtifacts = async (outputDir: string | null, outputRoot: str
 
 const SUBPROCESS_TIMEOUT = E2E_TEST_TIMEOUT_MS
 const TEST_CONFIG_PATH = resolve(import.meta.dir, 'fixtures/empty-autoshow-config.json')
-const TEST_CACHE_DIR = resolve(process.cwd(), TEST_OUTPUT_ROOT, '.test-cache')
 const PROCESSING_COMMANDS = new Set([
   'metadata',
   'download',
@@ -193,9 +189,6 @@ const BASE_CHILD_ENV = Object.entries(process.env).reduce<Record<string, string>
   }
   return env
 }, {})
-
-const getTestProcessLockRoot = (): string =>
-  process.env['AUTOSHOW_PROCESS_LOCK_DIR'] ?? join(TEST_CACHE_DIR, 'process-locks')
 
 const shouldUseEmptyTestConfig = (args: string[]): boolean => {
   if (args[0] !== 'src/cli/create-cli.ts') {
@@ -688,30 +681,6 @@ export const readConfiguredEnvVarSync = (key: string): string | undefined => {
   }
 
   return undefined
-}
-
-export const stopLlamaServer = async (): Promise<void> => {
-  const lockRoot = getTestProcessLockRoot()
-  await withProcessLock(
-    LLAMA_PROCESS_LOCK_NAME,
-    async () => {
-      await stopDefaultLlamaServer({ lockRoot })
-      await Bun.sleep(300)
-    },
-    { lockRoot }
-  )
-}
-
-export const stopLlamafileServer = async (): Promise<void> => {
-  const lockRoot = getTestProcessLockRoot()
-  await withProcessLock(
-    LLAMAFILE_PROCESS_LOCK_NAME,
-    async () => {
-      await stopLlamafileServerInternal({ lockRoot })
-      await Bun.sleep(300)
-    },
-    { lockRoot }
-  )
 }
 
 export const isRecord = (value: unknown): value is Record<string, unknown> => {

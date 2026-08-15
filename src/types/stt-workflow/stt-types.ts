@@ -248,7 +248,6 @@ export type AsyncSttLifecycleHooks = {
 
 export type SttTargetOptions = {
   split?: boolean | undefined
-  reverbVerbatimicity?: number | undefined
   sttSegmentConcurrency?: number | undefined
   sttProviderConcurrency?: number | undefined
   audioDurationSeconds?: number | undefined

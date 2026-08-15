@@ -73,9 +73,6 @@ const collectModelIdentities = (
 const normalizeHistoricalIdentity = (
   identity: HistoricalIdentity
 ): HistoricalIdentity => {
-  if (identity.category === 'llm' && identity.service === 'llama.cpp') {
-    return { ...identity, service: 'llama' }
-  }
   if (identity.category === 'stt' && identity.service === 'whisper') {
     const model = resolveTranscriptionModel({
       transcriptionService: identity.service,
@@ -107,6 +104,7 @@ describe('historical model rate contracts', () => {
 
     const unresolved = identities
       .map(normalizeHistoricalIdentity)
+      .filter(identity => !(identity.category === 'llm' && (identity.service === 'llama.cpp' || identity.service === 'llama' || identity.service === 'llamafile')))
       .filter(identity => !isActiveModel(identity))
       .filter(identity => !hasRetiredModelRate(identity.category, identity.service, identity.model))
       .map(identity => `${identity.category} ${identity.service}:${identity.model} (${identity.file})`)

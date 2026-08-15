@@ -1,7 +1,6 @@
 import type { SpeakerVoiceRegistry } from '~/types'
 
 export type TtsTargetSelection = {
-  kittenModels: string[]
   elevenlabsModels: string[]
   minimaxModels: string[]
   groqModels: string[]

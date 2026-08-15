@@ -73,7 +73,7 @@ describe('registry-derived config key contracts', () => {
       if (!schemaKeys.has(key)) continue
       // Model providers persist arrays; boolean providers and the fixed URL
       // provider persist a scalar, so probe with a shape each accepts.
-      const probe = key === 'provider' ? 'defuddle' : key === 'reverb' || key === 'tesseract' ? true : ['probe-model']
+      const probe = key === 'provider' ? 'defuddle' : key === 'tesseract' ? true : ['probe-model']
       setNested(value, entry.configPath, probe)
     }
 

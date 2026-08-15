@@ -16,10 +16,10 @@ Live surfaces: root, `config`, `setup`, `links`, `resume`, `metadata`, `download
 
 | Surface | Current globals | Notes |
 |---|---|---|
-| Root | Remaining `GLOBAL_FLAG_DEFINITIONS` | Still lists `--model-path`, `--characters-root`, and `--allow-over-budget`. Cookie flags are gone. |
+| Root | Remaining `GLOBAL_FLAG_DEFINITIONS` | Still lists `--characters-root` and `--allow-over-budget`. `--model-path` is gone. Cookie flags are gone. |
 | Config | No `--output-dir`, `--model-path`, or `--characters-root` | `--price` gone. Cookie flags live under Auth. `--allow-over-budget` still advertised. ElevenLabs streaming-latency default is gone. |
 | Setup, links | No `--output-dir`, `--model-path`, or `--characters-root` | `--repeat` gone from setup. `--allow-over-budget` still advertised. |
-| Resume, write | `--model-path` advertised; no `--characters-root` | Cookie flags gone. `--keep-ocr-page-inputs` gone. |
+| Resume, write | No `--model-path` or `--characters-root` | Cookie flags gone. `--keep-ocr-page-inputs` gone. `--model-path` is no longer a current flag. |
 | Metadata, download, extract, tts, image, video, music | No `--model-path` or `--characters-root` | Cookie flags gone from metadata/download/extract. `--keep-ocr-page-inputs` gone from extract/write/resume. |
 | Voice, comic, and comic children | `--characters-root` advertised; no `--model-path` | `--output-dir` hidden on `voice` and `comic reference-voice`. Comic generate-audio no longer exposes WAV mastering flags. `--allow-over-budget` still advertised, including on `voice`. |
 | Benchmark | Removed | `benchmark --help` is an unknown command. |
@@ -36,7 +36,7 @@ Phase 4 derived `comic reference-voice` actions from `VOICE_SUBCOMMAND_DEFINITIO
 
 Phase 5 moved `COMMAND_DEFINITIONS` and `HELP_COMMAND_GROUP_BY_NAME` to `src/cli/command-definitions.ts` so help tests walk the live tree, compare advertised flags to registered non-hidden keys, and pin persisted video input destinations. Verification: `bun run check`, `bun t --price`, and the CLI help/usage-error/flag-group contracts.
 
-Phase 6.1–6.4 generalized applicability. `commandAcceptsGlobalFlag` and `globalFlagsForCommand` in `src/cli/native/global-flag-support.ts` now drive both help filtering and dispatcher rejection. `--model-path` is allowed only on `write` and `resume`. `--characters-root` is allowed only on `voice` and `comic`, including subcommands. `--cookies` and `--cookies-from-browser` left the global surface and persist on `config` as `auth.cookies` / `auth.cookiesFromBrowser`; the dispatcher applies them through `applyConfiguredYtDlpAuth`. Explicit use of a narrow global or cookie flag on an unsupported command exits 2 with a hint.
+Phase 6.1–6.4 generalized applicability. `commandAcceptsGlobalFlag` and `globalFlagsForCommand` in `src/cli/native/global-flag-support.ts` now drive both help filtering and dispatcher rejection. `--model-path` is gone. `--characters-root` is allowed only on `voice` and `comic`, including subcommands. `--cookies` and `--cookies-from-browser` left the global surface and persist on `config` as `auth.cookies` / `auth.cookiesFromBrowser`; the dispatcher applies them through `applyConfiguredYtDlpAuth`. Explicit use of a narrow global or cookie flag on an unsupported command exits 2 with a hint.
 
 Phase 7 removed leftover and bakeable flags. `setup --repeat` and its timing helpers are gone. `--elevenlabs-tts-optimize-streaming-latency` is gone from flags, config, and the ElevenLabs request path. `--keep-ocr-page-inputs` is gone from the public CLI; success still cleans up page PDFs, and resilience tests can still pass internal `keepPageInputs`. Comic generate-audio bakes 48 kHz stereo 24-bit PCM WAV instead of exposing `--sample-rate`, `--channels`, and `--codec`. `--prompt-md` stays: the extra markdown few-shot file is useful when pasting a prompt into a chat window.
 
@@ -58,7 +58,7 @@ Remove the metadata `default: false` from `--help`, `--version`, `--verbose`, `-
 
 ### 6.7 Remaining tests and verification
 
-Already covered by 6.1–6.4: advertised globals come from `globalFlagsForCommand`; `--model-path` is limited to `write`/`resume`; `--characters-root` is limited to `voice`/`comic`; cookie flags live on `config` only.
+Already covered by 6.1–6.4: advertised globals come from `globalFlagsForCommand`; `--model-path` is gone; `--characters-root` is limited to `voice`/`comic`; cookie flags live on `config` only.
 
 Still needed:
 
@@ -128,7 +128,7 @@ Do not invent generic flags or collapse provider-specific controls. Removals are
 - Large flag surfaces use group headers; equivalent option families share the same label.
 - No help line is whitespace-only; example descriptions stay within the column cap.
 - Command help advertises only globals that command can honor; root help still lists the remaining global set.
-- Narrow globals (`--model-path`, `--characters-root`, and `--allow-over-budget`) are hidden and rejected where they are no-ops.
+- Narrow globals (`--characters-root` and `--allow-over-budget`) are hidden and rejected where they are no-ops. `--model-path` is gone.
 - Cookie auth is configured only through `bun autoshow config`.
 - `--output-root` remains a true global.
 - Leftover and bakeable flags stay gone: `setup --repeat`, `--elevenlabs-tts-optimize-streaming-latency`, `--keep-ocr-page-inputs`, and comic `--sample-rate` / `--channels` / `--codec`.

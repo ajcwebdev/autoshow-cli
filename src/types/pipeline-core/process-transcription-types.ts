@@ -72,7 +72,7 @@ export type Step2RuntimeMetadata = {
 }
 
 export type Step2Metadata = {
-  transcriptionService: 'whisper' | 'whisperfile' | 'reverb' | 'deepgram' | 'deepinfra' | 'soniox' | 'speechmatics' | 'rev' | 'groq' | 'grok' | 'mistral' | 'assemblyai' | 'gladia' | 'happyscribe' | 'supadata' | 'scrapecreators' | 'gemini-stt' | 'together' | 'youtube-captions'
+  transcriptionService: 'whisper' | 'whisperfile' | 'deepgram' | 'deepinfra' | 'soniox' | 'speechmatics' | 'rev' | 'groq' | 'grok' | 'mistral' | 'assemblyai' | 'gladia' | 'happyscribe' | 'supadata' | 'scrapecreators' | 'gemini-stt' | 'together' | 'youtube-captions'
   transcriptionModel: string
   processingTime: number
   tokenCount: number

@@ -294,7 +294,7 @@ test('tts help exposes hosted TTS provider flags', async () => {
   expect(getFlagGroupSection(result.stdout, 'Pricing')).toContain('--price')
   expect(result.stdout).toContain('--provider')
   expect(result.stdout).toContain('--all-providers')
-  expect(result.stdout).toContain('--all-local')
+  expect(result.stdout).not.toContain('--all-local')
   expect(result.stdout).toContain('--provider-concurrency')
   expect(result.stdout).toContain('--local-concurrency')
   expect(result.stdout).toContain('--tts-voice')
@@ -569,12 +569,15 @@ test('provider help lists are derived from the supported selector registries', a
   expect(extract.stdout).toContain('whisperfile')
   expect(extract.stdout).toContain(urlBackends)
   expect(write.stdout).toContain(llmProviders)
+  expect(write.stdout).toContain('(default: cheapest hosted)')
   expect(write.stdout).toMatch(/--stt[^\n]*whisperfile/)
   expect(config.stdout).toContain(llmProviders)
+  expect(config.stdout).toContain('(default: cheapest hosted)')
   expect(config.stdout).toMatch(/--stt[^\n]*whisperfile/)
   expect(resume.stdout).toContain(`URL: ${urlBackends}`)
   expect(resume.stdout).toContain(`video: ${videoProviders}`)
-  expect(tts.stdout).toContain('repeatable (default: kitten)')
+  expect(resume.stdout).toContain('(default: cheapest hosted)')
+  expect(tts.stdout).toContain('repeatable (default: cheapest hosted)')
 })
 
 test('Luma, ratio, and music duration descriptions match supported behavior', async () => {
@@ -700,7 +703,6 @@ test('resume help exposes unified multi-target provider selector', async () => {
   expect(result.stdout).toContain('music:')
   expect(result.stdout).toContain('whisper')
   expect(result.stdout).toContain('tesseract')
-  expect(result.stdout).toContain('kitten')
   expect(result.stdout).toContain('bfl')
   expect(result.stdout).toContain('recraft')
   expect(result.stdout).toContain('replicate')
@@ -925,18 +927,12 @@ test('command help hides --output-dir when the command cannot create a run direc
   expect(root.stdout).not.toMatch(/^\s+benchmark\b/m)
 }, HELP_TREE_TIMEOUT_MS)
 
-test('commandAcceptsGlobalFlag keeps universal flags and restricts model-path and characters-root', () => {
+test('commandAcceptsGlobalFlag keeps universal flags and restricts characters-root', () => {
   expect(commandAcceptsGlobalFlag('config', 'output-root')).toBe(true)
   expect(commandAcceptsGlobalFlag('config', 'verbose')).toBe(true)
   expect(commandAcceptsGlobalFlag('config', 'bin-dir')).toBe(true)
   expect(commandAcceptsGlobalFlag('config', 'output-dir')).toBe(false)
   expect(commandAcceptsGlobalFlag('write', 'output-dir')).toBe(true)
-  expect(commandAcceptsGlobalFlag('write', 'model-path')).toBe(true)
-  expect(commandAcceptsGlobalFlag('resume', 'model-path')).toBe(true)
-  expect(commandAcceptsGlobalFlag('tts', 'model-path')).toBe(false)
-  expect(commandAcceptsGlobalFlag('config', 'model-path')).toBe(false)
-  expect(commandAcceptsGlobalFlag('comic draft-scenes', 'model-path')).toBe(false)
-  expect(commandAcceptsGlobalFlag('voice clone', 'model-path')).toBe(false)
   expect(commandAcceptsGlobalFlag('voice', 'characters-root')).toBe(true)
   expect(commandAcceptsGlobalFlag('comic', 'characters-root')).toBe(true)
   expect(commandAcceptsGlobalFlag('voice clone', 'characters-root')).toBe(true)
@@ -945,23 +941,15 @@ test('commandAcceptsGlobalFlag keeps universal flags and restricts model-path an
   expect(commandAcceptsGlobalFlag('config', 'characters-root')).toBe(false)
 })
 
-test('command help hides --model-path outside write and resume', async () => {
-  for (const command of ['write', 'resume']) {
+test('command help does not advertise --model-path', async () => {
+  for (const command of ['write', 'resume', 'tts', 'config', 'extract', 'voice', 'comic']) {
     const result = await loadHelp(helpArgv(command))
     expect(result.exitCode).toBe(0)
-    const globalFlagsSection = result.stdout.slice(result.stdout.indexOf('\nGlobal Flags\n'))
-    expect(globalFlagsSection).toContain('--model-path')
-  }
-
-  for (const command of ['tts', 'config', 'extract', 'voice', 'comic']) {
-    const result = await loadHelp(helpArgv(command))
-    expect(result.exitCode).toBe(0)
-    const globalFlagsSection = result.stdout.slice(result.stdout.indexOf('\nGlobal Flags\n'))
-    expect(globalFlagsSection).not.toContain('--model-path')
+    expect(result.stdout).not.toContain('--model-path')
   }
 
   const root = await loadHelp(['--help'])
-  expect(root.stdout).toContain('--model-path')
+  expect(root.stdout).not.toContain('--model-path')
 }, HELP_TREE_TIMEOUT_MS)
 
 test('command help hides --characters-root outside voice and comic', async () => {

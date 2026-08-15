@@ -46,12 +46,10 @@ bun autoshow config --llm openai=gpt-5.4-mini
 bun autoshow config --llm glm=glm-5.1
 bun autoshow config --llm kimi=kimi-k2.6
 bun autoshow config --stt whisper=large-v3-turbo
-bun autoshow config --stt reverb --stt-reverb-verbatimicity 0.5
 bun autoshow config --stt happyscribe=auto --stt-happyscribe-organization-id org_123
 bun autoshow config --stt supadata=auto --stt-supadata-lang en
 bun autoshow config --ocr tesseract
 bun autoshow config --ocr mistral=mistral-ocr-2512 --ocr-language eng --ocr-dpi 300
-bun autoshow config --tts kitten=kitten-tts-mini --tts-voice Jasper
 bun autoshow config --tts elevenlabs=eleven_v3 --elevenlabs-voice voice_123
 bun autoshow config --tts minimax=speech-2.8-hd --minimax-tts-language-boost English --tts-speed 1.15
 bun autoshow config --tts grok=grok-tts --tts-language auto --tts-text-normalization true
@@ -93,7 +91,6 @@ Representative JSON shape:
     "extract": {
       "stt": {
         "whisper": ["large-v3-turbo"],
-        "reverb": true,
         "youtubeCaptions": true,
         "deepinfraStt": ["openai/whisper-large-v3-turbo"],
         "groqStt": ["whisper-large-v3-turbo"],
@@ -114,7 +111,6 @@ Representative JSON shape:
         "scrapecreatorsLang": "en",
         "speakerCount": 2,
         "split": true,
-        "reverbVerbatimicity": 0.5,
         "providerConcurrency": 2,
         "localConcurrency": 1,
         "segmentConcurrency": 2,
@@ -141,7 +137,6 @@ Representative JSON shape:
       }
     },
     "llm": {
-      "llama": ["ggml-org/gemma-3-270m-it-GGUF"],
       "openai": ["gpt-5.5", "gpt-5.4-mini"],
       "groq": ["openai/gpt-oss-20b"],
       "gemini": ["gemini-3.5-flash-lite"],
@@ -157,8 +152,6 @@ Representative JSON shape:
     },
     "post": {
       "tts": {
-        "kittenTts": ["kitten-tts-mini"],
-        "ttsSpeaker": "Jasper",
         "elevenlabsTts": ["eleven_v3"],
         "minimaxTts": ["speech-2.8-turbo"],
         "minimaxTtsLanguageBoost": "English",
@@ -281,10 +274,9 @@ The default mode is `ramp`. It starts each hosted provider/account lane at one l
 | Field | Flag |
 |-------|------|
 | `whisper` and hosted STT model fields | `--stt provider[=model]` |
-| `reverb` | `--stt reverb` |
 | `youtubeCaptions` | `--youtube-captions` |
 | `happyscribeOrganizationId`, `supadataLang`, `scrapecreatorsLang` | `--stt-happyscribe-organization-id`, `--stt-supadata-lang`, `--stt-scrapecreators-lang` |
-| `speakerCount`, `split`, `reverbVerbatimicity` | `--speaker-count`, `--split`, `--stt-reverb-verbatimicity` |
+| `speakerCount`, `split` | `--speaker-count`, `--split` |
 | `providerConcurrency`, `localConcurrency` | `--provider-concurrency`, `--local-concurrency` |
 | `segmentConcurrency`, `preflightConcurrency` | `--stt-segment-concurrency`, `--stt-preflight-concurrency` |
 
@@ -309,14 +301,14 @@ The default mode is `ramp`. It starts each hosted provider/account lane at one l
 
 | Field | Flag |
 |-------|------|
-| `llama`, `llamafile`, `openai`, `groq`, `gemini`, `anthropic`, `minimax`, `grok`, `glm`, `kimi`, `together`, `cerebras` | `--llm provider[=model]` |
+| `openai`, `groq`, `gemini`, `anthropic`, `minimax`, `grok`, `glm`, `kimi`, `together`, `cerebras` | `--llm provider[=model]` |
 | `providerConcurrency`, `localConcurrency` | `--provider-concurrency`, `--local-concurrency` |
 
 ### defaults.post.tts
 
 | Field | Flag |
 |-------|------|
-| `kittenTts`, `elevenlabsTts`, `minimaxTts`, `groqTts`, `grokTts`, `mistralTts`, `openaiTts`, `geminiTts`, `deepgramTts`, `speechifyTts`, `humeTts`, `cartesiaTts`, `fishTts`, `inworldTts`, `deepinfraTts`, `replicateTts`, `falTts` | `--tts provider[=model]` |
+| `elevenlabsTts`, `minimaxTts`, `groqTts`, `grokTts`, `mistralTts`, `openaiTts`, `geminiTts`, `deepgramTts`, `speechifyTts`, `humeTts`, `cartesiaTts`, `fishTts`, `inworldTts`, `deepinfraTts`, `replicateTts`, `falTts` | `--tts provider[=model]` |
 | `ttsSpeaker`, `groqVoice`, `grokTtsVoice`, `grokTtsLanguage`, `grokTtsTextNormalization`, `mistralTtsVoice` | generic `--tts-*` voice flags or matching provider-specific controls |
 | `ttsDialogueFormat`, `ttsSpeakers` | `--tts-dialogue-format`, `--tts-speaker` |
 | `openaiVoice`, `openaiTtsInstructions`, `openaiTtsSpeed` | generic `--tts-*` flags |
@@ -411,11 +403,10 @@ When the estimate exceeds the limit, the command fails before execution. Use `--
 ```bash
 bun autoshow config \
   --stt whisper=tiny \
-  --llm llama=ggml-org/gemma-3-270m-it-GGUF \
-  --tts kitten=kitten-tts-mini
+  --ocr tesseract
 ```
 
-Image, video, and hosted music generation have no local provider defaults.
+Write has no local LLM. TTS, image, video, and hosted music generation have no local provider defaults.
 
 ### Low-cost hosted defaults
 

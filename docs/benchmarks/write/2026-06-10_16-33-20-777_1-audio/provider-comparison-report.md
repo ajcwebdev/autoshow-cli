@@ -3,47 +3,16 @@
 ## Summary
 
 - Run directory: `/Users/ajc/c/as/autoshow-cli/docs/benchmarks/write/2026-06-10_16-33-20-777_1-audio`
-- Total providers: 17 (2 local, 15 service)
+- Total providers: 15 (0 local, 15 service)
 - Text mode scores existing `write` outputs only and does not call providers.
-- Local and service providers are intentionally not ranked against each other.
+- Write has no local LLM group.
 
 ## Method
 
-- Price rankings use zero monetary cost for local LLMs and reported actual or estimated service cost from `manifest.json`.
+- Price rankings use reported actual or estimated service cost from `manifest.json`.
 - Speed rankings prefer `msPerUnit` normalized timing when present, then fall back to wall-clock processing time.
 - Token counts, output file presence, schema mode, speed, and cost are evidence only.
 - Text quality is not inferred from length, speed, cost, output existence, schema validity, or subjective judgment.
-
-## Local Providers
-
-### Price
-
-| Rank | Provider | Evidence |
-| ---: | --- | --- |
-| 1 | `llama.cpp/ggml-org/gemma-3-270m-it-GGUF` | $0.00 local monetary cost |
-| 2 | `llama.cpp/ggml-org/Qwen3-0.6B-GGUF` | $0.00 local monetary cost |
-
-### Speed
-
-| Rank | Provider | Evidence |
-| ---: | --- | --- |
-| 1 | `llama.cpp/ggml-org/gemma-3-270m-it-GGUF` | 606.599 ms/1K tokens |
-| 2 | `llama.cpp/ggml-org/Qwen3-0.6B-GGUF` | 837.629 ms/1K tokens |
-
-### Automated Quality
-
-Unavailable: No explicit text quality scores were available. Text benchmark quality is not inferred from length, speed, cost, schema validity, output existence, or subjective judgment.
-
-### Human Quality
-
-Unavailable: No explicit humanQualityScore was available. Text benchmark human quality is not inferred from length, speed, cost, schema validity, output existence, or subjective judgment.
-
-### Provider Detail
-
-| Provider | Tokens | Speed | Monetary Cost | Output | Quality Evidence |
-| --- | ---: | ---: | ---: | --- | --- |
-| `llama.cpp/ggml-org/gemma-3-270m-it-GGUF` | 360 in / 34 out | 606.599 ms/1K tokens | $0.00 | text-ggml-org-gemma-3-270m-it-GGUF.json | n/a |
-| `llama.cpp/ggml-org/Qwen3-0.6B-GGUF` | 360 in / 28 out | 837.629 ms/1K tokens | $0.00 | text-ggml-org-Qwen3-0.6B-GGUF.json | n/a |
 
 ## Service Providers
 
@@ -118,6 +87,6 @@ Unavailable: No explicit humanQualityScore was available. Text benchmark human q
 ## Notes
 
 - Text mode scores existing write outputs only and does not call LLM providers.
-- Price rankings use local zero monetary cost and reported actual or estimated service costs from manifest.json.
+- Price rankings use reported actual or estimated service costs from manifest.json.
 - Speed rankings prefer normalized msPerUnit timing when present, falling back to wall-clock processing time.
 - Automated and human quality rankings require explicit quality fields and are otherwise unavailable.

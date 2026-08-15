@@ -72,9 +72,6 @@ export const getAdapterDefaultReasoningEffort = (
   model: string
 ): NormalizedReasoningEffort => {
   if (step === 'llm') {
-    if (service === 'llama' || service === 'llama.cpp' || service === 'llamafile') {
-      return 'disabled'
-    }
     if (service === 'groq' && model.startsWith('openai/gpt-oss-')) {
       return 'low'
     }

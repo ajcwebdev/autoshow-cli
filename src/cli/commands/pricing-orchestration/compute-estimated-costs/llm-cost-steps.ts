@@ -23,7 +23,7 @@ export const buildLlmCostSteps = (input: ComputeEstimatedCostsInput): CostStepsR
       : []
 
   for (const llmTarget of llmTargets) {
-    const registryService = llmTarget.service === 'llama.cpp' ? 'llama' : llmTarget.service
+    const registryService = llmTarget.service
     const rates = getLlmCost(registryService, llmTarget.model)
     if (!rates) {
       continue

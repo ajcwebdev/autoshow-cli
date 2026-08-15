@@ -13,8 +13,8 @@ const fixture = {
     tokenCount: 120,
     billing: { totalCost: 1, source: 'provider_quote' }
   }, {
-    transcriptionService: 'reverb',
-    transcriptionModel: '/models/reverb_asr_v1.pt | device=mps',
+    transcriptionService: 'whisperfile',
+    transcriptionModel: 'tiny',
     processingTime: 2400,
     tokenCount: 240,
     billing: { totalCost: 2, source: 'provider_quote' }
@@ -41,8 +41,8 @@ const fixture = {
     failure: { message: 'page failed' }
   },
   step3: {
-    llmService: 'llama.cpp',
-    llmModel: 'local-model',
+    llmService: 'openai',
+    llmModel: 'gpt-5.4-nano',
     processingTime: 4000,
     inputTokenCount: 40,
     outputTokenCount: 20,
@@ -52,8 +52,8 @@ const fixture = {
     structuredPresetNames: []
   },
   step4: {
-    ttsService: 'kitten',
-    ttsModel: 'local-model',
+    ttsService: 'openai',
+    ttsModel: 'gpt-4o-mini-tts-2025-12-15',
     processingTime: 5000,
     audioFileName: 'speech.wav',
     audioFileSize: 500,
@@ -97,8 +97,8 @@ const fixture = {
 
 describe('actual run-step walker contracts', () => {
   test('cost and timing preserve their serialized valid-run projections', () => {
-    expect(JSON.stringify(computeActualCosts(fixture))).toBe('{"totalCost":27,"steps":[{"step":"extract","provider":"openai","model":"gpt-5.4-nano","cost":3,"costSource":"partial_provider_usage","inputMetric":"tokens","inputValue":45,"promptTokens":30,"completionTokens":15},{"step":"stt","provider":"whisper","model":"large-v3","cost":1,"costSource":"provider_quote","inputMetric":"durationSeconds","inputValue":12},{"step":"stt","provider":"reverb","model":"reverb_asr_v1","cost":2,"costSource":"provider_quote","inputMetric":"durationSeconds","inputValue":12},{"step":"llm","provider":"llama.cpp","model":"local-model","cost":0,"costSource":"local_zero","inputMetric":"tokens","inputValue":60,"promptTokens":40,"completionTokens":20},{"step":"tts","provider":"kitten","model":"local-model","cost":0,"costSource":"local_zero","inputMetric":"characters","inputValue":1000},{"step":"image","provider":"openai","model":"gpt-image-2","cost":6,"costSource":"provider_quote","inputMetric":"images","inputValue":1},{"step":"video","provider":"gemini","model":"veo-test","cost":7,"costSource":"provider_quote","inputMetric":"durationSeconds","inputValue":7},{"step":"music","provider":"gemini","model":"lyria-test","cost":8,"costSource":"provider_quote","inputMetric":"durationMs","inputValue":8000}]}')
-    expect(JSON.stringify(computeActualProcessingTimes(fixture))).toBe('{"totalProcessingTimeMs":36600,"steps":[{"step":"stt","provider":"whisper","model":"large-v3","processingTimeMs":1200,"inputMetric":"durationSeconds","inputValue":12,"rateBasis":"durationSecond","msPerUnit":100,"throughputValue":10,"throughputUnit":"x","timingScope":"wall"},{"step":"stt","provider":"reverb","model":"reverb_asr_v1","processingTimeMs":2400,"inputMetric":"durationSeconds","inputValue":12,"rateBasis":"durationSecond","msPerUnit":200,"throughputValue":5,"throughputUnit":"x","timingScope":"wall"},{"step":"extract","provider":"openai","model":"gpt-5.4-nano","processingTimeMs":3000,"inputMetric":"pages","inputValue":2,"timingNote":"Partial failed provider; timing covers cached page artifacts through failure.","rateBasis":"page","msPerUnit":1500,"throughputValue":40,"throughputUnit":"pagesPerMinute","timingScope":"wall"},{"step":"llm","provider":"llama.cpp","model":"local-model","processingTimeMs":4000,"inputMetric":"tokens","inputValue":60,"rateBasis":"1KTokens","msPerUnit":66666.667,"throughputValue":15,"throughputUnit":"tokensPerSecond","timingScope":"wall"},{"step":"tts","provider":"kitten","model":"local-model","processingTimeMs":5000,"inputMetric":"characters","inputValue":1000,"rateBasis":"1KCharacters","msPerUnit":5000,"throughputValue":200,"throughputUnit":"charactersPerSecond","timingScope":"wall"},{"step":"image","provider":"openai","model":"gpt-image-2","processingTimeMs":6000,"inputMetric":"images","inputValue":1,"rateBasis":"image","msPerUnit":6000,"throughputValue":10,"throughputUnit":"imagesPerMinute","timingScope":"wall"},{"step":"video","provider":"gemini","model":"veo-test","processingTimeMs":7000,"inputMetric":"durationSeconds","inputValue":7,"rateBasis":"durationSecond","msPerUnit":1000,"throughputValue":1,"throughputUnit":"x","timingScope":"wall"},{"step":"music","provider":"gemini","model":"lyria-test","processingTimeMs":8000,"inputMetric":"durationSeconds","inputValue":8,"rateBasis":"durationSecond","msPerUnit":1000,"throughputValue":1,"throughputUnit":"x","timingScope":"wall"}]}')
+    expect(JSON.stringify(computeActualCosts(fixture))).toBe('{"totalCost":28.2633,"steps":[{"step":"extract","provider":"openai","model":"gpt-5.4-nano","cost":3,"costSource":"partial_provider_usage","inputMetric":"tokens","inputValue":45,"promptTokens":30,"completionTokens":15},{"step":"stt","provider":"whisper","model":"large-v3","cost":1,"costSource":"provider_quote","inputMetric":"durationSeconds","inputValue":12},{"step":"stt","provider":"whisperfile","model":"tiny","cost":2,"costSource":"provider_quote","inputMetric":"durationSeconds","inputValue":12},{"step":"llm","provider":"openai","model":"gpt-5.4-nano","cost":0.0033,"costSource":"computed_usage","inputMetric":"tokens","inputValue":60,"promptTokens":40,"completionTokens":20},{"step":"tts","provider":"openai","model":"gpt-4o-mini-tts-2025-12-15","cost":1.26,"costSource":"computed_usage","inputMetric":"characters","inputValue":1000},{"step":"image","provider":"openai","model":"gpt-image-2","cost":6,"costSource":"provider_quote","inputMetric":"images","inputValue":1},{"step":"video","provider":"gemini","model":"veo-test","cost":7,"costSource":"provider_quote","inputMetric":"durationSeconds","inputValue":7},{"step":"music","provider":"gemini","model":"lyria-test","cost":8,"costSource":"provider_quote","inputMetric":"durationMs","inputValue":8000}]}')
+    expect(JSON.stringify(computeActualProcessingTimes(fixture))).toBe('{"totalProcessingTimeMs":36600,"steps":[{"step":"stt","provider":"whisper","model":"large-v3","processingTimeMs":1200,"inputMetric":"durationSeconds","inputValue":12,"rateBasis":"durationSecond","msPerUnit":100,"throughputValue":10,"throughputUnit":"x","timingScope":"wall"},{"step":"stt","provider":"whisperfile","model":"tiny","processingTimeMs":2400,"inputMetric":"durationSeconds","inputValue":12,"rateBasis":"durationSecond","msPerUnit":200,"throughputValue":5,"throughputUnit":"x","timingScope":"wall"},{"step":"extract","provider":"openai","model":"gpt-5.4-nano","processingTimeMs":3000,"inputMetric":"pages","inputValue":2,"timingNote":"Partial failed provider; timing covers cached page artifacts through failure.","rateBasis":"page","msPerUnit":1500,"throughputValue":40,"throughputUnit":"pagesPerMinute","timingScope":"wall"},{"step":"llm","provider":"openai","model":"gpt-5.4-nano","processingTimeMs":4000,"inputMetric":"tokens","inputValue":60,"rateBasis":"1KTokens","msPerUnit":66666.667,"throughputValue":15,"throughputUnit":"tokensPerSecond","timingScope":"wall"},{"step":"tts","provider":"openai","model":"gpt-4o-mini-tts-2025-12-15","processingTimeMs":5000,"inputMetric":"characters","inputValue":1000,"rateBasis":"1KCharacters","msPerUnit":5000,"throughputValue":200,"throughputUnit":"charactersPerSecond","timingScope":"wall"},{"step":"image","provider":"openai","model":"gpt-image-2","processingTimeMs":6000,"inputMetric":"images","inputValue":1,"rateBasis":"image","msPerUnit":6000,"throughputValue":10,"throughputUnit":"imagesPerMinute","timingScope":"wall"},{"step":"video","provider":"gemini","model":"veo-test","processingTimeMs":7000,"inputMetric":"durationSeconds","inputValue":7,"rateBasis":"durationSecond","msPerUnit":1000,"throughputValue":1,"throughputUnit":"x","timingScope":"wall"},{"step":"music","provider":"gemini","model":"lyria-test","processingTimeMs":8000,"inputMetric":"durationSeconds","inputValue":8,"rateBasis":"durationSecond","msPerUnit":1000,"throughputValue":1,"throughputUnit":"x","timingScope":"wall"}]}')
   })
 
   test('malformed and ambiguous step2 objects are skipped consistently', () => {

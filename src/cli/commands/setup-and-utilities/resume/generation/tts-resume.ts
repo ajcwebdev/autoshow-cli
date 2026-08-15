@@ -35,8 +35,7 @@ import { buildTtsDialoguePlanArtifactRef, materializeTtsDialoguePlanArtifact } f
 
 const TTS_PROVIDER_FLAGS = deriveGenerationResumeProviderFlags(
   TTS_GENERATION_SELECTION,
-  'all-tts',
-  'all-local-tts'
+  'all-tts'
 )
 
 const TTS_MODEL_FIELDS = deriveGenerationResumeModelFields(TTS_GENERATION_SELECTION)

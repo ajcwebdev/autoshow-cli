@@ -26,7 +26,7 @@ Why now: establishing a shared provider-lane concurrency architecture requires e
 | Raise default `--tts-chunk-concurrency` globally | Improves best-case throughput on high-tier provider accounts | Increases risk of 429 rate-limit exhaustion; masks underlying scheduling starvation by spending more concurrency | The failing run already used 30 in-flight provider chunks |
 | Lower `--batch-concurrency` for multi-chunk batches | Reduces early queue domination by large files | Underutilizes available provider capacity; forces manual multi-flag tuning; slows large jobs | Setting `--batch-concurrency 1` eliminates cross-file head-of-line blocking but eliminates batch parallelism |
 | Process files shortest-first at the batch layer only | Simple heuristic; prioritizes short files | Active large files can still monopolize chunk slots once started; risks starving long files under continuous short input | Requires precomputed chunk counts without solving provider-level rate-limit coordination |
-| Serialize chunk execution per file while keeping multiple files active | Improves cross-file fairness; simple to reason about | Sacrifices intra-file chunk parallelism for long documents; degrades wall-time for large inputs | Sequential chunking is retained only for local Kitten TTS |
+| Serialize chunk execution per file while keeping multiple files active | Improves cross-file fairness; simple to reason about | Sacrifices intra-file chunk parallelism for long documents; degrades wall-time for large inputs | Sequential chunking is not used for hosted TTS |
 | One universal monolithic scheduler for TTS, OCR, and STT | Single scheduler implementation to maintain | The domains require incompatible fairness, polling, chunking, and failure semantics | Domain-specific selectors share a common lane vocabulary and admission coordinator instead |
 
 ## Decision
@@ -42,7 +42,6 @@ This applies to:
 
 It explicitly does not cover:
 
-- Local Kitten TTS chunk execution, which remains local and sequential.
 - Provider billing or pricing calculations beyond feeding accurate queue models into wall-time estimates.
 - Provider registry definitions (ADR-010) or error classification taxonomies (ADR-006).
 - Paid-provider live verification. Verification relies on deterministic local tests and mocked network calls.
@@ -135,7 +134,7 @@ In `--ocr-provider-mode pool` (ADR-016), OCR targets do not process whole docume
 #### STT and Multi-Speaker Dialogue Selectors
 
 - **STT Splitting and Offsetting:** `--split` defaults to 30-minute segments, dynamically reduced based on provider attachment/duration budgets. If rejected, adaptive halving passes reduce segment length down to a 60-second floor. Timestamp offsetting occurs inside provider adapters; diarization speaker identities remain per-segment.
-- **Multi-Speaker Dialogue Turns:** `runDialogueWorkSelector` manages turn execution with bounded concurrency (`--tts-chunk-concurrency` for hosted, `--local-concurrency` for Kitten). It assigns isolated `.work-*` workspaces per turn, preserves source ordering upon completion, and aborts and cleans workspaces immediately on error.
+- **Multi-Speaker Dialogue Turns:** `runDialogueWorkSelector` manages turn execution with bounded concurrency (`--tts-chunk-concurrency` for hosted). It assigns isolated `.work-*` workspaces per turn, preserves source ordering upon completion, and aborts and cleans workspaces immediately on error.
 
 ## Rationale
 

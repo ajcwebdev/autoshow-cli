@@ -21,9 +21,9 @@ bun autoshow setup --doctor
 # install/setup local runtimes and tools
 bun autoshow setup
 
-# pre-download local models without running inference
+# pre-download local STT models without running inference
 bun autoshow setup --models tiny
-bun autoshow setup --models ggml-org/gemma-3-270m-it-GGUF
+bun autoshow setup --models whisperfile:small
 
 # metadata only (no download or save)
 bun autoshow metadata "https://www.youtube.com/watch?v=u1-WHqATSQU"
@@ -115,11 +115,11 @@ bun autoshow extract input/examples/document
 # full pipeline from hosted video media
 bun autoshow write "https://www.youtube.com/watch?v=u1-WHqATSQU" --llm openai=gpt-5.5
 
-# full pipeline (download/transcribe + LLM write)
-bun autoshow write https://ajc.pics/autoshow/examples/1-audio.mp3 --llm openai=gpt-5.5
+# full pipeline (download/transcribe + cheapest hosted LLM write)
+bun autoshow write https://ajc.pics/autoshow/examples/1-audio.mp3
 
-# full pipeline with local llamafile
-bun autoshow write https://ajc.pics/autoshow/examples/1-audio.mp3 --llm llamafile=Qwen3.5-0.8B-Q8_0
+# full pipeline with hosted OpenAI
+bun autoshow write https://ajc.pics/autoshow/examples/1-audio.mp3 --llm openai=gpt-5.5
 
 # full pipeline with xAI Grok 4.5 (bare --llm grok still defaults to Grok 4.3)
 bun autoshow write https://ajc.pics/autoshow/examples/1-audio.mp3 --llm grok=grok-4.5
@@ -161,9 +161,6 @@ bun autoshow tts input/examples/tts/1-tts.md --provider openai=gpt-4o-mini-tts-2
 
 # OpenAI text-to-speech with delivery instructions
 bun autoshow tts input/examples/tts/1-tts.md --provider openai=gpt-4o-mini-tts-2025-12-15 --tts-instructions "Warm, unhurried, conversational"
-
-# text-to-speech from local markdown/txt
-bun autoshow tts input/examples/tts/1-tts.md --provider kitten=kitten-tts-mini
 
 # text-to-speech with Gemini
 bun autoshow tts input/examples/tts/1-tts.md --provider gemini=gemini-3.1-flash-tts-preview
