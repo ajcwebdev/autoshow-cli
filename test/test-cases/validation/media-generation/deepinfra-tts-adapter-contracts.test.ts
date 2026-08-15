@@ -18,18 +18,18 @@ const tempDirs = setupContractSuiteLifecycle({ envKeys: ['DEEPINFRA_API_KEY'], t
 
 describe('DeepInfra Phase 4 Contracts', () => {
   test('collects DeepInfra TTS targets with correct provider and model', () => {
-    const selection = createTtsTargetSelection({ deepinfraTtsModel: 'ResembleAI/chatterbox-multilingual', deepinfraTtsVoice: 'standard' })
+    const selection = createTtsTargetSelection({ deepinfraTtsModel: 'ResembleAI/chatterbox-turbo', deepinfraTtsVoice: 'standard' })
     const targets = collectDeepinfraTtsTargets(selection)
     expect(targets).toHaveLength(1)
     expect(targets[0]?.service).toBe('deepinfra')
-    expect(targets[0]?.model).toBe('ResembleAI/chatterbox-multilingual')
+    expect(targets[0]?.model).toBe('ResembleAI/chatterbox-turbo')
     expect(targets[0]?.voice).toBe('standard')
     expect(DEEPINFRA_TTS_RETRY_POLICY).toMatchObject({ maxAttempts: 8, baseDelayMs: 3_000, maxDelayMs: 30_000, jitter: true, exponential: true })
   })
 
   test('rejects missing credentials instead of fabricating offline audio', async () => {
     await expect(runDeepinfraTts('Hello from DeepInfra Chatterbox test', 'test-out', {
-      model: 'ResembleAI/chatterbox-multilingual',
+      model: 'ResembleAI/chatterbox-turbo',
       apiKey: '',
     })).rejects.toThrow('DeepInfra API key is required')
   })
@@ -41,7 +41,7 @@ describe('DeepInfra Phase 4 Contracts', () => {
     expect(validatePreparedProviderText(prepared)).toBe(prepared)
     expect(prepareDeepinfraChatterboxText('Power.').preparationVersion).toBe('generic-tts-v1')
 
-    const [target] = collectDeepinfraTtsTargets(createTtsTargetSelection({ deepinfraTtsModel: 'ResembleAI/chatterbox-multilingual' }))
+    const [target] = collectDeepinfraTtsTargets(createTtsTargetSelection({ deepinfraTtsModel: 'ResembleAI/chatterbox-turbo' }))
     expect(prepareComicSegmentedProviderTexts({
       turnId: 'dialogue-turn-009',
       sourceSegmentId: 'dialogue-turn-009',
@@ -53,8 +53,8 @@ describe('DeepInfra Phase 4 Contracts', () => {
 
   test('serializes each hosted model with its current DeepInfra request schema', () => {
     expect(DEEPINFRA_TTS_SERIALIZER_VERSION).toBe('deepinfra.tts.phase-4-v2')
-    expect(prepareDeepinfraTtsText('ResembleAI/chatterbox-multilingual', 'Wait... now.')).toBe('Wait, now.')
-    expect(buildDeepinfraTtsRequestBody({ model: 'ResembleAI/chatterbox-multilingual', text: 'Hello', voice: 'provider-default' })).toEqual({ text: 'Hello', response_format: 'wav' })
+    expect(prepareDeepinfraTtsText('ResembleAI/chatterbox-turbo', 'Wait... now.')).toBe('Wait, now.')
+    expect(buildDeepinfraTtsRequestBody({ model: 'ResembleAI/chatterbox-turbo', text: 'Hello', voice: 'provider-default' })).toEqual({ text: 'Hello', response_format: 'wav' })
     expect(buildDeepinfraTtsRequestBody({ model: 'ResembleAI/chatterbox-turbo', text: 'Hello', voice: 'custom-voice' })).toEqual({ text: 'Hello', response_format: 'wav', voice_id: 'custom-voice' })
     expect(buildDeepinfraTtsRequestBody({ model: 'XiaomiMiMo/MiMo-V2.5-tts', text: 'Hello', voice: 'mimo_default', promptInstructions: 'Bright delivery' })).toEqual({ text: 'Hello', voice: 'mimo_default', output_format: 'wav', stream: false, instruct: 'Bright delivery' })
     expect(buildDeepinfraTtsRequestBody({ model: 'XiaomiMiMo/MiMo-V2.5-tts-voicedesign', text: 'Hello', voice: 'Warm narrator' })).toEqual({ text: 'Hello', voice: 'Warm narrator', output_format: 'wav', stream: false })
@@ -68,7 +68,7 @@ describe('DeepInfra Phase 4 Contracts', () => {
   })
 
   test('uses the provider-advertised per-model input limits for planning and dispatch', () => {
-    expect(resolveTtsChunkCharacterLimit('deepinfra', 'ResembleAI/chatterbox-multilingual')).toBe(5000)
+    expect(resolveTtsChunkCharacterLimit('deepinfra', 'ResembleAI/chatterbox-turbo')).toBe(5000)
     expect(resolveTtsChunkCharacterLimit('deepinfra', 'XiaomiMiMo/MiMo-V2.5-tts')).toBe(1000)
     expect(resolveTtsChunkCharacterLimit('deepinfra', 'Qwen/Qwen3-TTS')).toBe(4000)
   })
@@ -77,13 +77,13 @@ describe('DeepInfra Phase 4 Contracts', () => {
     const root = await tempDirs.make()
     const wav = createMockWavBytes({ samples: 2400 })
     const calls = installMockFetch(call => {
-      if (!call.url.endsWith('/v1/inference/ResembleAI/chatterbox-multilingual')) throw new Error(`Unexpected network call: ${call.method} ${call.url}`)
+      if (!call.url.endsWith('/v1/inference/ResembleAI/chatterbox-turbo')) throw new Error(`Unexpected network call: ${call.method} ${call.url}`)
       expect(call.bodyJson).toEqual({ text: 'Ready?', response_format: 'wav' })
       return new Response(wav, { status: 200, headers: { 'content-type': 'audio/wav', 'x-request-id': 'deepinfra-fixture' } })
     })
     const admissions: Array<Record<string, unknown>> = []
     const result = await runDeepinfraTts('Ready?', root, {
-      model: 'ResembleAI/chatterbox-multilingual',
+      model: 'ResembleAI/chatterbox-turbo',
       apiKey: 'fixture-key',
       requestEvidence: {
         dispatch: async (_observation, _attempt, operation) => await operation({
@@ -101,7 +101,7 @@ describe('DeepInfra Phase 4 Contracts', () => {
   test('classifies HTTP 500 as retryable instead of fabricating audio', async () => {
     installMockFetch(() => new Response(JSON.stringify({ error: 'upstream failed' }), { status: 500, headers: { 'content-type': 'application/json' } }))
     try {
-      await runDeepinfraTts('Ready?', await tempDirs.make(), { model: 'ResembleAI/chatterbox-multilingual', apiKey: 'fixture-key' })
+      await runDeepinfraTts('Ready?', await tempDirs.make(), { model: 'ResembleAI/chatterbox-turbo', apiKey: 'fixture-key' })
       throw new Error('expected DeepInfra 500 to fail')
     } catch (error) {
       expect(error).toMatchObject({ retryable: true })
@@ -123,7 +123,7 @@ describe('DeepInfra Phase 4 Contracts', () => {
     })
     const catalog = await provider.catalog!.list({ source: 'account' })
     expect(catalog.entries).toEqual([
-      expect.objectContaining({ resourceId: 'abcd1234abcd1234abcd', name: 'Guide', source: 'account', origin: 'imported-custom', modelIds: ['ResembleAI/chatterbox-multilingual', 'ResembleAI/chatterbox-turbo', 'Qwen/Qwen3-TTS'] })
+      expect.objectContaining({ resourceId: 'abcd1234abcd1234abcd', name: 'Guide', source: 'account', origin: 'imported-custom', modelIds: ['ResembleAI/chatterbox-turbo', 'Qwen/Qwen3-TTS'] })
     ])
     expect((await provider.catalog!.list({ source: 'provider-library' })).entries).toEqual([])
     await expect(provider.catalog!.list({ cursor: 'next' })).rejects.toThrow('not paginated')

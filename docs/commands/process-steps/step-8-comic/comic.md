@@ -310,7 +310,7 @@ bun autoshow comic generate-audio 01-01 --provider gemini=gemini-3.1-flash-tts-p
 bun autoshow comic generate-audio 01-01 --provider mistral=voxtral-mini-tts-2603 --mode segmented
 bun autoshow comic generate-audio 01-01 --provider minimax=speech-2.8-hd --mode segmented
 bun autoshow comic generate-audio 01-01 --provider cartesia=sonic-3.5-2026-05-04 --mode auto
-bun autoshow comic generate-audio 01-01 --provider speechify=simba-3.0 --mode auto
+bun autoshow comic generate-audio 01-01 --provider speechify=simba-3.2 --mode auto
 bun autoshow comic generate-audio 07-04 --provider hume=octave-1 --provider hume=octave-2 --provider elevenlabs=eleven_v3 --profile ep07-comparison --mode segmented --delivery-policy best-effort --pacing-profile loose-comedy
 bun autoshow comic generate-audio 01-01 --provider gemini --role "SHIP COMPUTER=role:computer"
 bun autoshow comic generate-audio 01-01 --all-providers --price

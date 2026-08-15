@@ -153,7 +153,7 @@ describe('price mode contracts', () => {
   for (const creationCase of [
     {
       label: 'Speechify custom voice TTS',
-      args: ['tts', STABLE_TTS_MD_PATH, '--provider', 'speechify=simba-3.0', '--tts-ref-audio', 'input/examples/audio/anthony-voice.mp3', '--tts-consent-name', 'Anthony Example', '--tts-consent-email', 'anthony@example.com', '--price'],
+      args: ['tts', STABLE_TTS_MD_PATH, '--provider', 'speechify=simba-3.2', '--tts-ref-audio', 'input/examples/audio/anthony-voice.mp3', '--tts-consent-name', 'Anthony Example', '--tts-consent-email', 'anthony@example.com', '--price'],
       expected: 'cannot perform reference-audio cloning during TTS synthesis'
     },
     {

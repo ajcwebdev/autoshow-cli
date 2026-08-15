@@ -15,19 +15,6 @@
           "costMultiplier": 1,
           "msPer1KChars": 2500
         }
-      },
-      "realtime-tts-2-flash": {
-        "description": "Inworld TTS 2 Flash low-latency expressive speech model",
-        "pricingSourceUrl": "https://inworld.ai/pricing",
-        "pricingCheckedAt": "2026-08-14",
-        "pricingCurrency": "USD",
-        "pricingTier": "Inworld AI On-Demand TTS pricing",
-        "pricingNotes": "Inworld TTS 2 Flash uses $15.00 / 1M characters on-demand rate.",
-        "costPer1kCharsCents": 1.5,
-        "estimation": {
-          "costMultiplier": 1,
-          "msPer1KChars": 2500
-        }
       }
     }
   }

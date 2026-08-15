@@ -3,20 +3,6 @@
     "description": "DeepInfra hosted open-weight text-to-speech and voice design",
     "type": "api",
     "models": {
-      "ResembleAI/chatterbox-multilingual": {
-        "description": "ResembleAI Chatterbox Multilingual dialogue TTS model hosted on DeepInfra",
-        "pricingSourceUrl": "https://deepinfra.com/ResembleAI/chatterbox-multilingual",
-        "pricingCheckedAt": "2026-08-14",
-        "pricingCurrency": "USD",
-        "pricingTier": "DeepInfra TTS pricing",
-        "pricingNotes": "ResembleAI Chatterbox Multilingual uses $1.00 / 1M characters hosted rate.",
-        "costPer1kCharsCents": 0.1,
-        "limits": { "maxInputCharacters": 5000 },
-        "estimation": {
-          "costMultiplier": 1,
-          "msPer1KChars": 2500
-        }
-      },
       "ResembleAI/chatterbox-turbo": {
         "description": "ResembleAI Chatterbox Turbo low-latency dialogue TTS model hosted on DeepInfra",
         "pricingSourceUrl": "https://deepinfra.com/ResembleAI/chatterbox-turbo",

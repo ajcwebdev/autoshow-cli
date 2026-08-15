@@ -23,11 +23,11 @@ export const FISH_TTS_SERIALIZER_VERSION = 'fish.tts.phase-0-v1'
 export const FISH_TIMESTAMP_SERIALIZER_VERSION = 'fish.tts.timestamp.phase-6-v1'
 export const FISH_NATIVE_DIALOGUE_SERIALIZER_VERSION = 'fish.dialogue.phase-6-v1'
 export const FISH_NATIVE_DIALOGUE_MAX_CHARACTERS = 4000
-export const FISH_S2_PRO_MODEL = 's2-pro'
+export const FISH_S21_PRO_MODEL = 's2.1-pro'
 export const FISH_VOICE_DESIGN_MODEL = 'voice-design-1'
 
-export const isFishNativeDialogueModel = (model: string | undefined): boolean => model === FISH_S2_PRO_MODEL
-export const isFishTimestampModel = (model: string | undefined): boolean => model === FISH_S2_PRO_MODEL
+export const isFishNativeDialogueModel = (model: string | undefined): boolean => model === FISH_S21_PRO_MODEL
+export const isFishTimestampModel = (model: string | undefined): boolean => model === FISH_S21_PRO_MODEL
 
 export type FishNativeDialogueTurn = {
   turnId: string
@@ -66,20 +66,20 @@ const FISH_S2_DELIVERY_TAGS = [
 
 const speakerTag = (index: number): string => `<|speaker:${index}|>`
 
-const deliveryMarker = (delivery: string | undefined, model: FishTtsModel | string | undefined): string => {
+const deliveryMarker = (delivery: string | undefined): string => {
   if (!delivery) return ''
   const tag = FISH_S2_DELIVERY_TAGS.find(candidate => candidate.pattern.test(delivery.normalize('NFKC')))?.tag
   if (!tag) return ''
-  return model === 's1' || model === 'fish-speech-1.5' ? `(${tag})` : `[${tag}]`
+  return `[${tag}]`
 }
 
 export const prepareFishDialogueText = (
   canonicalText: string,
   delivery?: string | undefined,
-  model: FishTtsModel | string = FISH_S2_PRO_MODEL
+  _model: FishTtsModel | string = FISH_S21_PRO_MODEL
 ): PreparedProviderText => {
   const canonicalLength = [...canonicalText].length
-  const marker = deliveryMarker(delivery, model)
+  const marker = deliveryMarker(delivery)
   const prefix = marker ? `${marker} ` : ''
   const prefixLength = [...prefix].length
   return {
@@ -108,7 +108,7 @@ export const planFishNativeDialogueBatches = (
   const speakerIndex = new Map(speakerOrder.map((voiceId, index) => [voiceId, index]))
   const prepared: FishPreparedDialogueTurn[] = turns.map(turn => ({
     ...turn,
-    preparedText: prepareFishDialogueText(turn.canonicalText, turn.delivery, FISH_S2_PRO_MODEL),
+    preparedText: prepareFishDialogueText(turn.canonicalText, turn.delivery, FISH_S21_PRO_MODEL),
     speakerIndex: speakerIndex.get(turn.voiceId) ?? 0,
   }))
   const batches: FishNativeDialogueBatch[] = []

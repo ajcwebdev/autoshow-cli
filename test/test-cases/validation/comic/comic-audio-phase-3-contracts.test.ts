@@ -9,7 +9,7 @@ import { createComicSourceIdentity, createStructuredScriptArtifactRef, computeSc
 import { createComicDialoguePlan } from '~/cli/commands/process-steps/step-8-comic/comic-utils/comic-dialogue-plan'
 import { createFishAdvancedProvider, FISH_ADVANCED_CAPABILITY_FIXTURE } from '~/cli/commands/process-steps/step-4-tts/tts-services/fish/fish-advanced-provider'
 import { runFishTts } from '~/cli/commands/process-steps/step-4-tts/tts-services/fish/run-fish-tts'
-import { createMockWavBytes } from '../../../test-utils/media-fixtures'
+import { createMockWavBase64, createMockWavBytes } from '../../../test-utils/media-fixtures'
 import { installMockFetch, setupContractSuiteLifecycle } from '../../../test-utils/rest-contract-helpers'
 
 const HASH_A = 'a'.repeat(64)
@@ -36,7 +36,7 @@ const createDummyRun = (): TtsTarget['run'] => async () => ({
   audioPath: 'dummy.wav',
   metadata: {
     ttsService: 'fish',
-    ttsModel: 'fish-speech-1.5',
+    ttsModel: 's2.1-pro',
     speaker: 'dummy',
     processingTime: 100,
     audioFileName: 'speech.wav',
@@ -48,15 +48,15 @@ const createDummyRun = (): TtsTarget['run'] => async () => ({
 describe('ADR-018 Phase 3 Fish Audio Contracts', () => {
   test('Fish Audio capability fixture declares single-speaker TTS, S2 Pro native dialogue, and voice design', () => {
     expect(FISH_ADVANCED_CAPABILITY_FIXTURE.records.some((c) => c.scope.feature === 'turn-synthesis' && c.adapterSupport === 'implemented')).toBeTrue()
-    expect(FISH_ADVANCED_CAPABILITY_FIXTURE.records.some((c) => c.scope.feature === 'native-dialogue' && 'model' in c.scope && c.scope.model === 's2-pro' && c.adapterSupport === 'implemented')).toBeTrue()
-    expect(FISH_ADVANCED_CAPABILITY_FIXTURE.records.some((c) => c.scope.feature === 'word-timing' && 'model' in c.scope && c.scope.model === 's2-pro' && c.adapterSupport === 'implemented')).toBeTrue()
+    expect(FISH_ADVANCED_CAPABILITY_FIXTURE.records.some((c) => c.scope.feature === 'native-dialogue' && 'model' in c.scope && c.scope.model === 's2.1-pro' && c.adapterSupport === 'implemented')).toBeTrue()
+    expect(FISH_ADVANCED_CAPABILITY_FIXTURE.records.some((c) => c.scope.feature === 'word-timing' && 'model' in c.scope && c.scope.model === 's2.1-pro' && c.adapterSupport === 'implemented')).toBeTrue()
     expect(FISH_ADVANCED_CAPABILITY_FIXTURE.records.some((c) => c.scope.feature === 'voice-design')).toBeTrue()
     expect(FISH_ADVANCED_CAPABILITY_FIXTURE.records.some((c) => c.scope.feature === 'instant-clone')).toBeTrue()
   })
 
   test('Fish Audio target resolution and preflight check with missing key', async () => {
-    const targetKey = canonicalTargetKey('tts-synthesis', 'fish', 'fish-speech-1.5', 'http')
-    const targets: readonly TtsTarget[] = [{ service: 'fish', model: 'fish-speech-1.5', voice: '7f92f8afb8ec43bf81429cc1c9199cb1', operation: 'tts-synthesis', transport: 'http', targetKey, run: createDummyRun() }]
+    const targetKey = canonicalTargetKey('tts-synthesis', 'fish', 's2.1-pro', 'http')
+    const targets: readonly TtsTarget[] = [{ service: 'fish', model: 's2.1-pro', voice: '7f92f8afb8ec43bf81429cc1c9199cb1', operation: 'tts-synthesis', transport: 'http', targetKey, run: createDummyRun() }]
     const preflight = await validateTtsTargetsForExecution(targets)
     expect(preflight[0]?.status).toBe('blocked')
   })
@@ -65,8 +65,8 @@ describe('ADR-018 Phase 3 Fish Audio Contracts', () => {
     const originalKey = process.env['FISH_API_KEY']
     process.env['FISH_API_KEY'] = 'test-fish-key'
     try {
-      const targetKey = canonicalTargetKey('tts-synthesis', 'fish', 'fish-speech-1.5', 'http')
-      const targets: readonly TtsTarget[] = [{ service: 'fish', model: 'fish-speech-1.5', voice: '7f92f8afb8ec43bf81429cc1c9199cb1', operation: 'tts-synthesis', transport: 'http', targetKey, run: createDummyRun() }]
+      const targetKey = canonicalTargetKey('tts-synthesis', 'fish', 's2.1-pro', 'http')
+      const targets: readonly TtsTarget[] = [{ service: 'fish', model: 's2.1-pro', voice: '7f92f8afb8ec43bf81429cc1c9199cb1', operation: 'tts-synthesis', transport: 'http', targetKey, run: createDummyRun() }]
       const preflight = await validateTtsTargetsForExecution(targets)
       expect(preflight[0]?.status).toBe('ready')
     } finally {
@@ -123,11 +123,15 @@ describe('ADR-018 Phase 3 Fish Audio Contracts', () => {
   })
 
   test('Fish Audio TTS runner synthesizes speech WAV', async () => {
-    const mockWav = createMockWavBytes()
-
     installMockFetch((call) => {
       if (call.url.includes('/v1/tts')) {
-        return new Response(mockWav, { status: 200, headers: { 'Content-Type': 'audio/wav' } })
+        return new Response(`data: ${JSON.stringify({
+          audio_base64: createMockWavBase64(),
+          content: 'Ready for departure.',
+          chunk_seq: 0,
+          chunk_audio_offset_sec: 0,
+          alignment: { audio_duration: 0.05, segments: [{ text: 'Ready for departure.', start: 0, end: 0.05 }] },
+        })}\n\n`, { status: 200, headers: { 'content-type': 'text/event-stream' } })
       }
       return new Response('Not found', { status: 404 })
     })
@@ -135,7 +139,7 @@ describe('ADR-018 Phase 3 Fish Audio Contracts', () => {
     const tempDir = await mkdtemp(join(tmpdir(), 'autoshow-fish-tts-'))
 
     const result = await runFishTts('Ready for departure.', tempDir, {
-      model: 'fish-speech-1.5',
+      model: 's2.1-pro',
       voiceId: '7f92f8afb8ec43bf81429cc1c9199cb1',
       apiKey: 'test-fish-key',
     })

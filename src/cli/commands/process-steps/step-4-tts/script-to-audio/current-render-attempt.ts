@@ -471,12 +471,11 @@ const serializerContract = (
     case 'deepgram':
       return { endpointKind: 'speech-synthesis', serializerVersion: 'deepgram.tts.phase-0-v1', controls: { ...(stringValue('encoding') ? { encoding: stringValue('encoding') } : {}), ...(stringValue('container') ? { container: stringValue('container') } : {}), ...(numberValue('bitRate') !== undefined ? { bitRate: numberValue('bitRate') } : {}), ...(numberValue('sampleRate') !== undefined ? { sampleRate: numberValue('sampleRate') } : {}), ...(numberValue('speed') !== undefined ? { speed: numberValue('speed') } : {}) } }
     case 'fish':
-      if (strategy === 'native-dialogue') return { endpointKind: 'text-to-speech-stream-with-timestamps', serializerVersion: FISH_NATIVE_DIALOGUE_SERIALIZER_VERSION, controls: { format: 'wav', model: 's2-pro' } }
+      if (strategy === 'native-dialogue') return { endpointKind: 'text-to-speech-stream-with-timestamps', serializerVersion: FISH_NATIVE_DIALOGUE_SERIALIZER_VERSION, controls: { format: 'wav', model: 's2.1-pro' } }
       if (isFishTimestampModel(target.model)) return { endpointKind: 'text-to-speech-stream-with-timestamps', serializerVersion: FISH_TIMESTAMP_SERIALIZER_VERSION, controls: { format: 'wav', model: target.model } }
       return { endpointKind: 'speech-synthesis', serializerVersion: FISH_TTS_SERIALIZER_VERSION, controls: { format: 'wav' } }
     case 'inworld': {
       const steeringPrompt = stringValue('steeringPrompt')
-      if (target.model === 'realtime-tts-2-flash' && steeringPrompt) throw CLIUsageError('Inworld steering is not supported by realtime-tts-2-flash.')
       return { endpointKind: 'realtime-tts', serializerVersion: INWORLD_TTS_SERIALIZER_VERSION, controls: { format: 'wav', timestampType: 'WORD', audioConfig: { audioEncoding: 'WAV', sampleRateHertz: 48000 }, ...(steeringPrompt ? { steeringPrompt } : {}) } }
     }
     case 'deepinfra':
@@ -581,7 +580,7 @@ const prepareSegmentedTurnText = (
   ? prepareElevenLabsDialogueText(text, delivery)
   : target.service === 'fish'
     ? prepareFishDialogueText(text, delivery, target.model)
-    : target.service === 'deepinfra' && target.model === 'ResembleAI/chatterbox-multilingual'
+    : target.service === 'deepinfra' && target.model === 'ResembleAI/chatterbox-turbo'
       ? prepareDeepinfraChatterboxText(text)
       : preparedText(text)
 

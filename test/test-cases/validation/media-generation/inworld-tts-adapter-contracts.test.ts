@@ -25,10 +25,9 @@ describe('Inworld AI Phase 3 Contracts', () => {
   test('maps current public selectors to the provider API model IDs', () => {
     expect(INWORLD_TTS_SERIALIZER_VERSION).toBe('inworld.tts.phase-3-v3')
     expect(resolveInworldTtsApiModelId('realtime-tts-2')).toBe('inworld-tts-2')
-    expect(resolveInworldTtsApiModelId('realtime-tts-2-flash')).toBe('inworld-tts-2-flash')
-    expect(buildInworldTtsRequestBody({ model: 'realtime-tts-2-flash', text: 'Hello [laugh]', voiceId: 'Dennis' })).toEqual({ text: 'Hello [laugh]', voiceId: 'Dennis', modelId: 'inworld-tts-2-flash', timestampType: 'WORD', audioConfig: { audioEncoding: 'WAV', sampleRateHertz: 48000 } })
-    const targets = collectInworldTtsTargets(createTtsTargetSelection({ inworldTtsModel: 'realtime-tts-2-flash' }))
-    expect(targets[0]?.model).toBe('realtime-tts-2-flash')
+    expect(buildInworldTtsRequestBody({ model: 'realtime-tts-2', text: 'Hello [laugh]', voiceId: 'Dennis' })).toEqual({ text: 'Hello [laugh]', voiceId: 'Dennis', modelId: 'inworld-tts-2', timestampType: 'WORD', audioConfig: { audioEncoding: 'WAV', sampleRateHertz: 48000 } })
+    const targets = collectInworldTtsTargets(createTtsTargetSelection({ inworldTtsModel: 'realtime-tts-2' }))
+    expect(targets[0]?.model).toBe('realtime-tts-2')
   })
 
   test('rejects missing credentials instead of fabricating offline audio', async () => {
@@ -54,8 +53,8 @@ describe('Inworld AI Phase 3 Contracts', () => {
     })
     const catalog = await provider.catalog?.list()
     expect(catalog?.entries).toEqual([
-      expect.objectContaining({ resourceId: 'Alex', source: 'provider-library', origin: 'provider-stock', state: 'available', modelIds: ['realtime-tts-2', 'realtime-tts-2-flash'] }),
-      expect.objectContaining({ resourceId: 'workspace__guide', source: 'account', origin: 'imported-custom', state: 'available', modelIds: ['realtime-tts-2', 'realtime-tts-2-flash'] }),
+      expect.objectContaining({ resourceId: 'Alex', source: 'provider-library', origin: 'provider-stock', state: 'available', modelIds: ['realtime-tts-2'] }),
+      expect.objectContaining({ resourceId: 'workspace__guide', source: 'account', origin: 'imported-custom', state: 'available', modelIds: ['realtime-tts-2'] }),
       expect.objectContaining({ resourceId: 'workspace__professional', source: 'account', origin: 'professional-clone', state: 'available' })
     ])
     for (const feature of ['voice-catalog', 'voice-design', 'instant-clone', 'voice-delete', 'word-timing', 'phoneme-timing']) {

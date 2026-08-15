@@ -4,7 +4,7 @@
 
 - **Decision Status:** Accepted
 - **Date Created:** 2026-08-03
-- **Date Updated:** 2026-08-14
+- **Date Updated:** 2026-08-15
 - **Verification Status:** Passed
 - **Supersession:** Consolidates the former per-modality 2026 refresh records into one dated ledger. Durable registry, lifecycle, and capability policy belongs to [ADR-010](ADR-010-hosted-model-registry-lifecycle-and-capability-policy.md); paid approvals, calibration results, artifact repair evidence, and generated-report contracts belong to [ADR-012](ADR-012-benchmark-evidence-and-generated-report-architecture.md).
 
@@ -150,6 +150,31 @@ The TTS refresh removed four retired or moving selectors, added canonical or add
 Stock-voice changes that did not alter a model selector remain in this ledger because they explain current capability tables and request validation. Voice resource lifecycle, casting, cloning, and multi-speaker architecture belong to ADR-014.
 
 All 13 current added selectors participate in the canonical TTS selection descriptor, repeatable `--provider provider=model` normalization, `--all-tts` policy, price planning, and additive resume. Resume no longer carries a handwritten 12-provider inventory: new-provider completeness is compile-time checked against its model fields, and local contracts prove selection/resume parity across all 16 current TTS providers. ADR-002 owns the narrow completed-legacy-TTS bridge and failed implicit-default replacement branch used by retained June benchmark runs; ADR-012 records the paid cohort and its exact price and execution evidence.
+
+### 2026-08-15 TTS catalog narrowing (implemented)
+
+The live hosted TTS catalog moved from 122 to 111 selectors: twelve refused IDs were retired and Fish `s2.1-pro` was added as the only Fish synthesis model. Direct selection of a refused ID fails with replacement guidance and no silent substitution. Historical June 2026 benchmark manifests keep their original identities and reprice through `RETIRED_MODEL_RATES`. Command docs list only the live catalog.
+
+`s2.1-pro` is priced at Fish's published `$15 / M UTF-8 bytes`, recorded as `1.5` cents per 1K characters for English ASCII estimates. Bare `--provider fish` now defaults to `s2.1-pro`. Native dialogue, timestamp streaming, and `[bracket]` delivery markup are scoped to `s2.1-pro`. `voice-design-1` is the Voice Design API used by `s2.1-pro` via `--creation-model voice-design-1`, not a synthesis selector. `s2.1-pro-free` was not registered because it is a billing twin, not a distinct generation contract.
+
+#### Refused / do not reimplement
+
+These selectors are retired on purpose. Do not add them back because a provider catalog, sibling-tier, or language-coverage sweep still lists them.
+
+| Refused selector | Replacement | Why not come back |
+|---|---|---|
+| `fish/fish-speech-1.5` | `s2.1-pro` | Superseded Fish generation; official API no longer lists this AutoShow-local alias |
+| `fish/s1` | `s2.1-pro` | Previous-generation parenthesis-tag model |
+| `fish/s2-pro` | `s2.1-pro` | Previous S2 generation; `s2.1-pro` is Fish's production default with the same native-dialogue and timestamp contract |
+| `fish/voice-design-1` | `s2.1-pro` | Not a synthesis selector; it is the Voice Design creation endpoint of `s2.1-pro` |
+| `elevenlabs/eleven_multilingual_v2` | `eleven_v3` | Keep only the current native-dialogue flagship |
+| `elevenlabs/eleven_flash_v2_5` | `eleven_v3` | Latency sibling of a refused generation |
+| `inworld/realtime-tts-2-flash` | `realtime-tts-2` | Latency sibling that rejected `--tts-instructions` |
+| `speechify/simba-3.0` | `simba-3.2` | Keep only the current Speechify default |
+| `deepinfra/ResembleAI/chatterbox-multilingual` | `ResembleAI/chatterbox-turbo` | Keep turbo; live hard-input HTTP 500s |
+| `openai/tts-1` | `gpt-4o-mini-tts-2025-12-15` | Reverses the earlier retain-classic-OpenAI row; classic models reject instructions |
+| `openai/tts-1-hd` | `gpt-4o-mini-tts-2025-12-15` | Same classic-OpenAI refusal |
+| `groq/canopylabs/orpheus-arabic-saudi` | `canopylabs/orpheus-v1-english` | Narrow language, 200-character WAV-only, no vocal directions |
 
 ### Music refresh
 

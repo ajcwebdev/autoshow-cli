@@ -5,7 +5,7 @@ import { collectTtsTargets } from '~/cli/commands/process-steps/step-4-tts/tts-t
 describe('Speechify custom voice option contracts', () => {
   test('Speechify custom voice creation is rejected during synthesis option resolution', () => {
       expect(() => buildOptsFromFlags(false, {
-        'speechify-tts': 'simba-3.0',
+        'speechify-tts': 'simba-3.2',
         'speechify-tts-ref-audio': 'input/voices/my-voice-sample.mp3',
         'speechify-tts-voice-name': 'AutoShow Anthony',
         'speechify-tts-consent-name': 'Anthony Example',

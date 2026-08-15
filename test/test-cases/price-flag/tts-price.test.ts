@@ -2,7 +2,6 @@ import { expect, test } from 'bun:test'
 import {
   SUPPORTED_DEEPGRAM_TTS_MODELS,
   SUPPORTED_GROK_TTS_VOICES,
-  SUPPORTED_GROQ_ARABIC_TTS_VOICES,
   SUPPORTED_GROQ_ENGLISH_TTS_VOICES,
   SUPPORTED_HUME_TTS_MODELS,
   SUPPORTED_CARTESIA_TTS_MODELS,
@@ -132,7 +131,7 @@ defineTTSServicePriceTests({
 })
 
 defineTTSServicePriceTests({
-  models: ['canopylabs/orpheus-v1-english', 'canopylabs/orpheus-arabic-saudi'],
+  models: ['canopylabs/orpheus-v1-english'],
   provider: 'groq',
   ttsService: 'groq',
 })
@@ -177,12 +176,6 @@ defineTTSVoicePriceTests({
   provider: 'groq',
   model: 'canopylabs/orpheus-v1-english',
   voices: SUPPORTED_GROQ_ENGLISH_TTS_VOICES,
-})
-
-defineTTSVoicePriceTests({
-  provider: 'groq',
-  model: 'canopylabs/orpheus-arabic-saudi',
-  voices: SUPPORTED_GROQ_ARABIC_TTS_VOICES,
 })
 
 defineTTSVoicePriceTests({

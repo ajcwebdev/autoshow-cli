@@ -5,7 +5,6 @@ export const INWORLD_TTS_SERIALIZER_VERSION = 'inworld.tts.phase-3-v3'
 export const resolveInworldTtsApiModelId = (model: InworldTtsModel): string => {
   switch (model) {
     case 'realtime-tts-2': return 'inworld-tts-2'
-    case 'realtime-tts-2-flash': return 'inworld-tts-2-flash'
   }
 }
 
@@ -13,22 +12,18 @@ type InworldTtsRequestInput = Readonly<{
   text: string
   voiceId: string
   markups?: readonly string[] | undefined
-} & (
-  | { model: 'realtime-tts-2', steeringPrompt?: string | undefined }
-  | { model: 'realtime-tts-2-flash', steeringPrompt?: never }
-)>
+  model: 'realtime-tts-2'
+  steeringPrompt?: string | undefined
+}>
 
 export const buildInworldTtsRequestBody = (input: InworldTtsRequestInput): Readonly<Record<string, unknown>> => {
-  if (input.model === 'realtime-tts-2-flash' && 'steeringPrompt' in input && input.steeringPrompt) {
-    throw new Error('Inworld steering is not supported by realtime-tts-2-flash.')
-  }
   return {
     text: input.text,
     voiceId: input.voiceId,
     modelId: resolveInworldTtsApiModelId(input.model),
     timestampType: 'WORD',
     audioConfig: { audioEncoding: 'WAV', sampleRateHertz: 48000 },
-    ...(input.model === 'realtime-tts-2' && input.steeringPrompt?.trim() ? { instruction: input.steeringPrompt.trim() } : {})
+    ...(input.steeringPrompt?.trim() ? { instruction: input.steeringPrompt.trim() } : {})
   }
 }
 

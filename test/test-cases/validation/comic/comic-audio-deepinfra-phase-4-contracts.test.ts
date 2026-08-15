@@ -22,7 +22,6 @@ const CREATED_AT = '2026-08-14T00:00:00.000Z'
 const HASH_A = 'a'.repeat(64)
 const HASH_B = 'b'.repeat(64)
 const DEEPINFRA_MODELS = [
-  'ResembleAI/chatterbox-multilingual',
   'ResembleAI/chatterbox-turbo',
   'XiaomiMiMo/MiMo-V2.5-tts',
   'XiaomiMiMo/MiMo-V2.5-tts-voicedesign',
@@ -52,7 +51,7 @@ const voiceEntry = (subjectKey: string, resourceId: string, providerModel: typeo
   registrationApprovedAt: CREATED_AT,
 })
 
-const fixture = async (root: string, providerModel: typeof DEEPINFRA_MODELS[number] = 'ResembleAI/chatterbox-multilingual') => {
+const fixture = async (root: string, providerModel: typeof DEEPINFRA_MODELS[number] = 'ResembleAI/chatterbox-turbo') => {
   const source = '# Episode\n\n## Bridge\n\n**PILOT**\nReady?\n\n**NAVIGATOR**\nReady.\n\n**SFX:**\nHatch slams.\n\n**AMBIENCE:**\nEngine hum.\n'
   const sourcePath = join(root, 'scene.md')
   await Bun.write(sourcePath, source)
@@ -100,7 +99,7 @@ describe('ADR-018 Phase 4E DeepInfra soundscape acceptance', () => {
     let chatterboxSoundscapePlan = undefined as Awaited<ReturnType<typeof fixture>>['soundscapePlan'] | undefined
     for (const model of DEEPINFRA_MODELS) {
       const { dialoguePlan, soundscapePlan, snapshot } = await fixture(root, model)
-      if (model === 'ResembleAI/chatterbox-multilingual') {
+      if (model === 'ResembleAI/chatterbox-turbo') {
         chatterboxSnapshot = snapshot
         chatterboxDialoguePlan = dialoguePlan
         chatterboxSoundscapePlan = soundscapePlan
@@ -116,7 +115,7 @@ describe('ADR-018 Phase 4E DeepInfra soundscape acceptance', () => {
 
     process.env['DEEPINFRA_API_KEY'] = 'deepinfra-fixture-key'
     const execution = buildTargetExecution({
-      target: { service: 'deepinfra', model: 'ResembleAI/chatterbox-multilingual', run: async () => { throw new Error('provider must not run during readiness') } },
+      target: { service: 'deepinfra', model: 'ResembleAI/chatterbox-turbo', run: async () => { throw new Error('provider must not run during readiness') } },
       baseOptions: {}, snapshot: chatterboxSnapshot!, dialoguePlan: chatterboxDialoguePlan!, mode: 'segmented', deliveryPolicy: 'best-effort', sampleRate: 48000, channels: 2, codec: 'pcm_s24le', resourceGate: createResourceGate({ capacity: 1 })
     })
     const calls = installMockFetch(() => { throw new Error('DeepInfra readiness must not call the provider') })
@@ -133,16 +132,16 @@ describe('ADR-018 Phase 4E DeepInfra soundscape acceptance', () => {
     const root = await tempDirs.make()
     const { dialoguePlan, soundscapePlan } = await fixture(root)
     const calls = installMockFetch(call => {
-      if (!call.url.endsWith('/v1/inference/ResembleAI/chatterbox-multilingual')) throw new Error(`Unexpected network call: ${call.method} ${call.url}`)
+      if (!call.url.endsWith('/v1/inference/ResembleAI/chatterbox-turbo')) throw new Error(`Unexpected network call: ${call.method} ${call.url}`)
       return new Response(createMockWavBytes({ samples: 2400 }), { headers: { 'content-type': 'audio/wav', 'x-request-id': 'deepinfra-fixture' } })
     })
-    const result = await runDeepinfraTts('Ready?', join(root, 'deepinfra'), { model: 'ResembleAI/chatterbox-multilingual', apiKey: 'fixture-key', voiceId: 'Ryan' })
+    const result = await runDeepinfraTts('Ready?', join(root, 'deepinfra'), { model: 'ResembleAI/chatterbox-turbo', apiKey: 'fixture-key', voiceId: 'Ryan' })
     expect(await Bun.file(result.audioPath).exists()).toBe(true)
     expect(calls).toHaveLength(1)
     expect(calls[0]?.bodyJson).toMatchObject({ text: 'Ready?', response_format: 'wav', voice_id: 'Ryan' })
 
     await mkdir(join(root, 'audio', 'final'), { recursive: true })
-    const dialogue = await createLocalSilentDialogueRun({ rootDir: root, plan: soundscapePlan, target: { service: 'deepinfra', model: 'ResembleAI/chatterbox-multilingual', transport: 'hosted-api' } })
+    const dialogue = await createLocalSilentDialogueRun({ rootDir: root, plan: soundscapePlan, target: { service: 'deepinfra', model: 'ResembleAI/chatterbox-turbo', transport: 'hosted-api' } })
     const renderPlan = createSoundEffectRenderPlan({ plan: soundscapePlan, target: resolveSoundEffectTarget('elevenlabs=eleven_text_to_sound_v2', { outputFormat: 'wav_48000' }) })
     let sfxCalls = 0
     const adapter = createElevenLabsSoundEffectAdapter({ apiKey: 'fixture', request: async () => {
@@ -152,7 +151,7 @@ describe('ADR-018 Phase 4E DeepInfra soundscape acceptance', () => {
     const mixed = await runComicSoundscape({ rootDir: root, plan: soundscapePlan, renderPlan, dialoguePlan, dialogueRuns: [dialogue.binding], adapter, concurrency: 2, hostedConcurrencyCoordinator: createHostedConcurrencyCoordinator({ mode: 'immediate' }) })
     const soundscapeRun = mixed.soundscapeRuns[0]
     expect([0, 2]).toContain(sfxCalls)
-    expect(soundscapeRun?.binding.targetKey).toBe(canonicalTargetKey('comic-audio', 'deepinfra', 'ResembleAI/chatterbox-multilingual', 'hosted-api'))
+    expect(soundscapeRun?.binding.targetKey).toBe(canonicalTargetKey('comic-audio', 'deepinfra', 'ResembleAI/chatterbox-turbo', 'hosted-api'))
     expect(soundscapeRun?.audioRun.stems.map(stem => stem.bus)).toEqual(['dialogue', 'action-sfx', 'ambience'])
     expect(await Bun.file(join(root, soundscapeRun?.audioRun.resolvedTimeline.path as string)).exists()).toBe(true)
     expect(await Bun.file(join(root, soundscapeRun?.audioRun.master.path as string)).exists()).toBe(true)

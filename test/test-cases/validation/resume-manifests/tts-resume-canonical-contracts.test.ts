@@ -393,12 +393,12 @@ describe('canonical TTS resume', () => {
       const estimate = await priceGenerationTarget(
         resumeTarget(dir),
         ttsResumeConfig,
-        { deepinfraTtsModels: ['ResembleAI/chatterbox-multilingual'] } as TtsOptions,
+        { deepinfraTtsModels: ['ResembleAI/chatterbox-turbo'] } as TtsOptions,
         new Set(['deepinfra-tts'])
       )
 
       expect(estimate.steps.map((step) => [step.provider, step.model])).toEqual([
-        ['deepinfra', 'ResembleAI/chatterbox-multilingual']
+        ['deepinfra', 'ResembleAI/chatterbox-turbo']
       ])
       expect(await Bun.file(join(dir, PIPELINE_MANIFEST_FILE)).text()).toBe(beforeManifest)
       expect(await readdir(dir)).toEqual(beforeFiles)
@@ -432,11 +432,11 @@ describe('canonical TTS resume', () => {
       const mixedStateEstimate = await priceGenerationTarget(
         resumeTarget(dir),
         ttsResumeConfig,
-        { deepinfraTtsModels: ['ResembleAI/chatterbox-multilingual'] } as TtsOptions,
+        { deepinfraTtsModels: ['ResembleAI/chatterbox-turbo'] } as TtsOptions,
         new Set(['deepinfra-tts'])
       )
       expect(mixedStateEstimate.steps.map((step) => [step.provider, step.model])).toEqual([
-        ['deepinfra', 'ResembleAI/chatterbox-multilingual']
+        ['deepinfra', 'ResembleAI/chatterbox-turbo']
       ])
     })
   })

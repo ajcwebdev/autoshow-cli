@@ -4,7 +4,7 @@
 
 - **Decision Status:** Accepted
 - **Date Created:** 2026-08-13
-- **Date Updated:** 2026-08-14
+- **Date Updated:** 2026-08-15
 - **Verification Status:** Passed — offline test plan last passed 2026-08-14 with no provider calls; Phase 8A–8D completed the same day for the seven registered Episode 2 Scene 4 targets
 
 ## Context
@@ -32,7 +32,7 @@ The Phase 3–6 offline completion claims originally relied in part on adapter t
 | Inworld Phase 3 | Credentialed single-voice REST synthesis with WORD timestamps and visemes, injectable WebSocket create/send/flush reducer, request-level TTS-2 steering plus preserved inline tags, catalog/design/publish/instant-clone/inspect/delete ports, shared `voice` command coverage, and mocked v5 soundscape acceptance | Native multi-speaker dialogue remains unavailable because Inworld has no documented native-dialogue request; Professional Voice Clone remains a Portal beta workflow reported as external-action-required |
 | DeepInfra Phase 4 | Credentialed model-specific single-voice inference for registered models, binary/base64 response decoding, bounded errors, cancellation, explicit admission evidence, account catalog/create/inspect/delete ports, request-time MiMo/Qwen VoiceDesign candidates that materialize through `POST /v1/voices/add`, consent-gated instant clone, mocked v5 soundscape acceptance, and 23 of 24 corrected baseline benchmark outputs | Native multi-speaker dialogue remains unavailable because each inference request carries one voice or `voice_id`; professional clone remains unsupported; Chatterbox Multilingual hard-input HTTP 500 is a retained live reliability observation, not an offline gate |
 | Replicate speech Phase 5 | Version-pinned Kokoro stock-voice prediction create/poll, prediction-ID evidence, checked non-empty download, cancellation, ambiguity-safe paid-create blocking, dated input/version fixture, 46-voice validation with default `af_bella`, speed-only controls, deferred clone/dialogue selectors, and mocked v5 soundscape acceptance | Native dialogue and protected reference-audio cloning remain deferred until a future model-specific serializer exists; F5-TTS, Dia, and XTTS-v2 stay unregistered |
-| Fish Phase 6 | Structured single-voice TTS, S2 Pro native dialogue with timestamped SSE `chunk_seq` reduction, catalog/design/model lifecycle calls, CLI clone parity, Fish reconcile without blind recreation, and mocked v5 soundscape acceptance | Professional clone remains unsupported because Fish documents only fast model creation; `voice-design-1` remains a design model rather than a dialogue target |
+| Fish Phase 6 | Structured single-voice TTS, `s2.1-pro` native dialogue with timestamped SSE `chunk_seq` reduction, catalog/design/model lifecycle calls, CLI clone parity, Fish reconcile without blind recreation, and mocked v5 soundscape acceptance | Professional clone remains unsupported because Fish documents only fast model creation; `voice-design-1` is the Voice Design creation endpoint of `s2.1-pro`, not a synthesis selector |
 | Replicate AudioGen Phase 7 | Version-pinned real prediction create/poll, cancellation, checked non-empty download, ambiguity-safe admission classification, mocked governance/license/cache/resume, and historical-readability gates | Native dialogue, voice identity, and vocal-reaction routing remain unsupported; commercial and unknown intended use stay statically ineligible under the CC BY-NC 4.0 fixture |
 
 Capability declarations must now match exposed ports. A request-time model feature is not a durable voice-management API, and provider-adjacent documentation is not evidence that the adapter implements native dialogue, cloning, design, catalog, or deletion. No offline placeholder may satisfy a provider execution gate.
@@ -303,7 +303,7 @@ Phase 3 offline adapters were completed on 2026-08-14. No live or quota-limited 
 
 ### Phase 4: DeepInfra Hosted Speech Suite (Chatterbox, MiMo V2.5, Qwen3-TTS)
 
-Phase 4 integrates DeepInfra's hosted open-weight speech models: ResembleAI Chatterbox (`chatterbox-multilingual` & `chatterbox-turbo` @ $1.00/1M chars), Xiaomi MiMo V2.5 (`MiMo-V2.5-tts` & `MiMo-V2.5-tts-voicedesign` @ $0.00/1M promotional), and Alibaba Qwen3-TTS (`Qwen3-TTS` & `Qwen3-TTS-VoiceDesign` @ $20.00/1M chars).
+Phase 4 integrates DeepInfra's hosted open-weight speech models: ResembleAI Chatterbox Turbo (`chatterbox-turbo` @ $1.00/1M chars), Xiaomi MiMo V2.5 (`MiMo-V2.5-tts` & `MiMo-V2.5-tts-voicedesign` @ $0.00/1M promotional), and Alibaba Qwen3-TTS (`Qwen3-TTS` & `Qwen3-TTS-VoiceDesign` @ $20.00/1M chars). The later 2026-08-15 catalog refused `ResembleAI/chatterbox-multilingual`; do not restore it.
 
 #### Phase 4A: Registry, Capability, and Pricing Foundation
 
@@ -311,7 +311,7 @@ Add DeepInfra speech suite provider identity, bearer token authorization, hosted
 
 #### Phase 4B: Chatterbox Multilingual & Turbo Adapters
 
-Implement DeepInfra adapters for `ResembleAI/chatterbox-multilingual` and `ResembleAI/chatterbox-turbo`. Support multi-speaker dialogue synthesis and low-cost character voices without requiring direct Resemble SaaS accounts or subscription fees. This subphase exits when mocked Chatterbox renders pass serializer identity, price, cache, and resume tests.
+Implement DeepInfra adapters for `ResembleAI/chatterbox-turbo`. Support low-cost character voices without requiring direct Resemble SaaS accounts or subscription fees. This subphase exits when mocked Chatterbox renders pass serializer identity, price, cache, and resume tests. `ResembleAI/chatterbox-multilingual` was later refused and must not be re-added.
 
 #### Phase 4C: MiMo V2.5 TTS & Voice Design Adapters
 
@@ -383,7 +383,7 @@ Phase 6 adds Fish as a first-class TTS and voice-management provider using its d
 
 #### Phase 6A: Registry, Capability, and Pricing Foundation
 
-Add Fish provider identity, credentials, base URL, S1, S2 Pro, and `voice-design-1` model entries, lifecycle state, dated capability fixtures, pricing provenance, selector resolution, static validation, and readiness. Declare single-speaker TTS, S2 Pro native dialogue, reference clips, stable model IDs, timing, catalog, stateless voice design, fast clone, inspection, reconciliation, and deletion independently. This subphase exits when supported combinations route deterministically, unsupported SFX combinations fail without credentials, and no-call price remains read-only.
+Add Fish provider identity, credentials, base URL, and the `s2.1-pro` synthesis selector, lifecycle state, dated capability fixtures, pricing provenance, selector resolution, static validation, and readiness. Declare single-speaker TTS, `s2.1-pro` native dialogue, reference clips, stable model IDs, timing, catalog, stateless voice design through the `voice-design-1` creation endpoint, fast clone, inspection, reconciliation, and deletion independently. This subphase exits when supported combinations route deterministically, unsupported SFX combinations fail without credentials, and no-call price remains read-only. The later 2026-08-15 catalog refused `fish-speech-1.5`, `s1`, `s2-pro`, and `voice-design-1` as a synthesis selector; do not restore them.
 
 #### Phase 6B: Single-Speaker TTS and Reference Identity
 
@@ -422,7 +422,7 @@ The `voice` command coverage required by Phase 6 is explicit:
 
 #### Phase 6 Implementation Record
 
-Phase 6 offline adapters were completed on 2026-08-14. No live or quota-limited Fish request was used for acceptance. Professional Voice Clone remains unsupported because Fish documents only fast `POST /model` creation. `voice-design-1` is a stateless design model and is not a native-dialogue target.
+Phase 6 offline adapters were completed on 2026-08-14. No live or quota-limited Fish request was used for acceptance. Professional Voice Clone remains unsupported because Fish documents only fast `POST /model` creation. `voice-design-1` is the Voice Design creation endpoint of `s2.1-pro` and is not a synthesis selector.
 
 | Subphase | State | Implemented result |
 |---|---|---|
@@ -643,7 +643,7 @@ Negative outcomes:
 | Phase 3A–3E: add First-Party Inworld AI foundation, steerable TTS, instant/pro cloning, voice design, natural language steering, audio markups, and acceptance | AutoShow Team | Complete — offline REST timing, WebSocket protocol adapter, design/clone/lifecycle ports, and mocked soundscape acceptance passed 2026-08-14; native dialogue remains unsupported and professional clone remains Portal-only; no live provider call used |
 | Phase 4A–4E: add DeepInfra hosted speech suite (Chatterbox, MiMo V2.5, Qwen3-TTS) foundation, adapters, zero-shot cloning, and acceptance | AutoShow Team | Complete — offline serializer, catalog/design/clone/lifecycle ports, and mocked soundscape acceptance passed 2026-08-14; native dialogue remains unsupported and professional clone remains unavailable; no live provider call used |
 | Phase 5A–5E: add version-pinned Replicate stock-voice speech and keep model-specific clone/dialogue selectors gated by exact contracts | AutoShow Team | Complete — offline Kokoro pin, stock-voice validation, prediction poll/download, deferred clone/dialogue rejection, and mocked soundscape acceptance passed 2026-08-14; native dialogue and reference-audio cloning remain unsupported; no live provider call used |
-| Phase 6A–6E: add Fish registry/pricing, reference-voice TTS, native dialogue/timestamps, stateless design/materialization, voice-model lifecycle/reconciliation, soundscape routing, and acceptance | AutoShow Team | Complete — offline S2 Pro native dialogue, timestamp SSE reduction, CLI clone parity, Fish reconcile, and mocked soundscape acceptance passed 2026-08-14; professional clone remains unavailable; no live provider call used |
+| Phase 6A–6E: add Fish registry/pricing, reference-voice TTS, native dialogue/timestamps, stateless design/materialization, voice-model lifecycle/reconciliation, soundscape routing, and acceptance | AutoShow Team | Complete — offline `s2.1-pro` native dialogue, timestamp SSE reduction, CLI clone parity, Fish reconcile, and mocked soundscape acceptance; professional clone remains unavailable; no live provider call used |
 | Phase 7A–7E: add AudioGen governance/pinning and license eligibility, the Replicate SFX target, prediction execution, expiry-safe artifacts/routing, and historical acceptance | AutoShow Team | Complete — offline governance, license eligibility, prediction create/poll/cancel/download, cache, resume, mixer, and historical-readability gates passed 2026-08-14; commercial use remains ineligible; no live provider call used |
 | Phase 8A: Episode 2 Scene 4 authored script & workspace audit | AutoShow Team | Complete — 2026-08-14 local `draft-scenes --only structure` without `--llm-model` wrote v5 `output/2026-08-14_16-33-37-322_04-overcompensation-part-1`; deterministic dialogue/soundscape plans and no-call multi-provider price planning passed; no provider call used |
 | Phase 8B: Episode 2 Scene 4 registered soundscape audio matrix | AutoShow Team | Complete for the seven approved `ep07-comparison` targets — Cartesia, ElevenLabs, Fish, Hume, Inworld, MiniMax, and Replicate Kokoro masters plus shared ElevenLabs SFX; DeepInfra skipped after HTTP 500s; Fal/unregistered models not dispatched |

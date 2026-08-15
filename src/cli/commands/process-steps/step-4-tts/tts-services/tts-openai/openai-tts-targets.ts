@@ -4,7 +4,6 @@ import { ensureOpenAITtsSetup } from './openai-tts'
 import { runOpenAITts } from './run-openai-tts'
 import { resolveTtsTargetInvocationVoiceId } from '../../tts-targets/multi-speaker-capability'
 import { resolveTtsTargetInvocationControls } from '../../tts-targets/tts-invocation-controls'
-import { CLIUsageError } from '~/utils/error-handler'
 
 export const collectOpenAITtsTargets = (
   selection: TtsTargetSelection
@@ -27,9 +26,6 @@ export const collectOpenAITtsTargets = (
           instructions: selection.openaiInstructions,
           speed: selection.openaiSpeed,
         })
-        if (controls.instructions && model !== 'gpt-4o-mini-tts-2025-12-15') {
-          throw CLIUsageError(`OpenAI per-turn TTS instructions are not supported by ${model}.`)
-        }
         await ensureOpenAITtsSetup()
         return await runOpenAITts(text, outputDir, {
           model,

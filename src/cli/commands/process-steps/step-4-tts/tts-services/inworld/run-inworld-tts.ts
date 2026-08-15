@@ -34,9 +34,6 @@ export const runInworldTts = async (
   if (!options.apiKey.trim()) {
     throw ValidationError('Inworld AI API key is required', { stage: 'tts:inworld' })
   }
-  if (options.model === 'realtime-tts-2-flash' && options.steeringPrompt?.trim()) {
-    throw ValidationError('Inworld steering is not supported by realtime-tts-2-flash', { stage: 'tts:inworld' })
-  }
   const voice = validateInworldTtsVoice(options.voiceId?.trim() || INWORLD_DEFAULT_TTS_VOICE)
   const { sanitizedText, markups } = parseInworldMarkups(text)
   const chunks = splitTextIntoChunks(sanitizedText, TTS_CHUNK_CHARACTER_LIMITS.inworld ?? 2000)

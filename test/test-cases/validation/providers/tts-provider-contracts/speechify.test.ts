@@ -157,7 +157,7 @@ describe('TTS provider service contracts', () => {
       expect(result.metadata.chunkCount).toBe(2)
     }, 10_000)
 
-  test('Speechify sends both current model IDs with compatible voices and languages', async () => {
+  test('Speechify sends the current model ID with a compatible English voice', async () => {
     const dir = await makeTempDir('autoshow-speechify-current-models-')
     process.env['SPEECHIFY_API_KEY'] = 'speechify-key'
     const calls = installMockFetch(() => {
@@ -165,11 +165,9 @@ describe('TTS provider service contracts', () => {
     })
 
     await runSpeechifyTts('Simba 3.2.', dir, { model: 'simba-3.2', voiceId: 'geffen_32', language: 'en-US' })
-    await runSpeechifyTts('Simba 3.0.', dir, { model: 'simba-3.0', voiceId: 'george', language: 'fr-FR' })
 
     expect(calls.map((call) => ({ model: call.bodyJson?.['model'], voice: call.bodyJson?.['voice_id'], language: call.bodyJson?.['language'] }))).toEqual([
-      { model: 'simba-3.2', voice: 'geffen_32', language: 'en-US' },
-      { model: 'simba-3.0', voice: 'george', language: 'fr-FR' }
+      { model: 'simba-3.2', voice: 'geffen_32', language: 'en-US' }
     ])
   }, 10_000)
 
@@ -205,14 +203,14 @@ describe('TTS provider service contracts', () => {
         }
       )
       const result = await runSpeechifyTts('Speechify custom voice synthesis.', dir, {
-        model: 'simba-3.0',
+        model: 'simba-3.2',
         voiceId: customVoice.voiceId
       })
 
       expect(await Bun.file(result.audioPath).exists()).toBe(true)
       expect(result.metadata).toMatchObject({
         ttsService: 'speechify',
-        ttsModel: 'simba-3.0',
+        ttsModel: 'simba-3.2',
         speaker: 'speechify_custom_voice_123',
         chunkCount: 1
       })
@@ -234,7 +232,7 @@ describe('TTS provider service contracts', () => {
         bodyJson: {
           voice_id: 'speechify_custom_voice_123',
           audio_format: 'mp3',
-          model: 'simba-3.0',
+          model: 'simba-3.2',
           input: 'Speechify custom voice synthesis.'
         }
       })

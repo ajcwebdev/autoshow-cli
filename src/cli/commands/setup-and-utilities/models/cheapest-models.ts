@@ -21,7 +21,8 @@ const DEFAULT_HOSTED_TTS_MODEL_BY_FLAG = {
   'openai-tts': 'gpt-4o-mini-tts-2025-12-15',
   'deepgram-tts': 'aura-2-thalia-en',
   'speechify-tts': 'simba-3.2',
-  'cartesia-tts': 'sonic-3.5-2026-05-04'
+  'cartesia-tts': 'sonic-3.5-2026-05-04',
+  'fish-tts': 's2.1-pro'
 } as const satisfies Record<string, string>
 
 const DEFAULT_OCR_INPUT_TOKENS_PER_PAGE = 4000

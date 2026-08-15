@@ -245,7 +245,7 @@ Canonical provider projections (`ttsAudio` or `comicAudio`) replace flat speaker
 | Kitten | Local segmented stock voices | No-cost local development baseline with explicit turn voice |
 | ElevenLabs | Segmented explicit voice | Library discovery, Voice Design, remix, clone state, audition, Text-to-Dialogue, timestamps |
 | MiniMax | Segmented stock/custom voice | Catalog, design, clone, and activation capability descriptors |
-| Groq | Segmented stock voice | Saudi-Arabic model and English direction support |
+| Groq | Segmented stock voice | English Orpheus direction support |
 | xAI/Grok | Segmented stock/custom ID | 26-voice catalog and custom voice access gates |
 | Mistral | Segmented saved/reference voice | Reference audio caching and lifecycle management |
 | OpenAI | Segmented stock voice | Active model validation and gated custom-voice facets |

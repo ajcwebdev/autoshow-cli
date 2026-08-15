@@ -142,7 +142,7 @@ describe('TTS provider service contracts', () => {
       expect(result.metadata.chunkCount).toBe(1)
     }, 10_000)
 
-  test('ElevenLabs sends new model IDs and resolves model-specific character limits', async () => {
+  test('ElevenLabs sends the current model ID and resolves its character limit', async () => {
     const dir = await makeTempDir('autoshow-elevenlabs-new-models-')
     const audioBytes = await Bun.file(LOCAL_SHORT_AUDIO_PATH).arrayBuffer()
     process.env['ELEVENLABS_API_KEY'] = 'elevenlabs-key'
@@ -150,14 +150,10 @@ describe('TTS provider service contracts', () => {
       return new Response(audioBytes, { status: 200, headers: { 'content-type': 'audio/mpeg' } })
     })
 
-    for (const model of ['eleven_multilingual_v2', 'eleven_flash_v2_5'] as const) {
-      await runElevenLabsTts('New ElevenLabs model.', dir, { model, voiceId: 'voice_existing123' })
-    }
+    await runElevenLabsTts('New ElevenLabs model.', dir, { model: 'eleven_v3', voiceId: 'voice_existing123' })
 
-    expect(calls.map((call) => call.bodyJson?.['model_id'])).toEqual(['eleven_multilingual_v2', 'eleven_flash_v2_5'])
+    expect(calls.map((call) => call.bodyJson?.['model_id'])).toEqual(['eleven_v3'])
     expect(resolveTtsChunkCharacterLimit('elevenlabs', 'eleven_v3')).toBe(5000)
-    expect(resolveTtsChunkCharacterLimit('elevenlabs', 'eleven_multilingual_v2')).toBe(10000)
-    expect(resolveTtsChunkCharacterLimit('elevenlabs', 'eleven_flash_v2_5')).toBe(40000)
   }, 10_000)
 
   test('ElevenLabs TTS splits long text into multiple API calls', async () => {

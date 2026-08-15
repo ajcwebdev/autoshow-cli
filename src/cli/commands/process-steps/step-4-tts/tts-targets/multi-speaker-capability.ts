@@ -29,7 +29,7 @@ export const getMultiSpeakerStrategy = (
 ): MultiSpeakerStrategy | undefined => {
   if (provider === 'elevenlabs' && model === 'eleven_v3') return 'native'
   if (provider === 'hume' && model === 'octave-2') return 'native'
-  if (provider === 'fish' && model === 's2-pro') return 'native'
+  if (provider === 'fish' && model === 's2.1-pro') return 'native'
   return MULTI_SPEAKER_CAPABILITY[provider]
 }
 

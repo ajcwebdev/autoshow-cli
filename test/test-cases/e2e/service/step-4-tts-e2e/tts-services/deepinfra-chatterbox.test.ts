@@ -4,9 +4,9 @@ import { createTtsTargetSelection } from '~/cli/commands/process-steps/step-4-tt
 
 describe('DeepInfra Chatterbox Price Test', () => {
   test('collects DeepInfra target', () => {
-    const selection = createTtsTargetSelection({ deepinfraTtsModel: 'ResembleAI/chatterbox-multilingual' })
+    const selection = createTtsTargetSelection({ deepinfraTtsModel: 'ResembleAI/chatterbox-turbo' })
     const targets = collectDeepinfraTtsTargets(selection)
     expect(targets).toHaveLength(1)
-    expect(targets[0]?.model).toBe('ResembleAI/chatterbox-multilingual')
+    expect(targets[0]?.model).toBe('ResembleAI/chatterbox-turbo')
   })
 })

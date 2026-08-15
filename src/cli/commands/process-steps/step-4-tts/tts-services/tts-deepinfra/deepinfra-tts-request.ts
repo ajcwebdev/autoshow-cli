@@ -13,7 +13,6 @@ export const DEEPINFRA_VOICE_DESIGN_MODELS = [
 ] as const satisfies readonly DeepinfraTtsModel[]
 
 export const DEEPINFRA_VOICE_CLONE_MODELS = [
-  'ResembleAI/chatterbox-multilingual',
   'ResembleAI/chatterbox-turbo',
   'Qwen/Qwen3-TTS',
 ] as const satisfies readonly DeepinfraTtsModel[]
@@ -23,7 +22,6 @@ export const isDeepinfraVoiceDesignModel = (model: string): model is typeof DEEP
 
 export const resolveDeepinfraTtsDefaultVoice = (model: DeepinfraTtsModel): string => {
   switch (model) {
-    case 'ResembleAI/chatterbox-multilingual':
     case 'ResembleAI/chatterbox-turbo':
       return 'provider-default'
     case 'XiaomiMiMo/MiMo-V2.5-tts':
@@ -37,12 +35,12 @@ export const resolveDeepinfraTtsDefaultVoice = (model: DeepinfraTtsModel): strin
 }
 
 export const resolveDeepinfraTtsVoiceField = (model: string): string =>
-  model === 'ResembleAI/chatterbox-multilingual' || model === 'ResembleAI/chatterbox-turbo'
+  model === 'ResembleAI/chatterbox-turbo'
     ? 'voice_id'
     : 'voice'
 
 export const prepareDeepinfraTtsText = (model: DeepinfraTtsModel, text: string): string =>
-  model === 'ResembleAI/chatterbox-multilingual'
+  model === 'ResembleAI/chatterbox-turbo'
     ? prepareDeepinfraChatterboxText(text).providerText
     : text
 
@@ -63,7 +61,6 @@ export const buildDeepinfraTtsRequestBody = (input: Readonly<{
 }>): Readonly<Record<string, unknown>> => {
   const { model, text, voice, promptInstructions } = input
   switch (model) {
-    case 'ResembleAI/chatterbox-multilingual':
     case 'ResembleAI/chatterbox-turbo':
       return {
         text,

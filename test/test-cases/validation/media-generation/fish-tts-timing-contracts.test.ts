@@ -74,12 +74,12 @@ describe('Fish timestamp stream reduction', () => {
     expect(batches).toHaveLength(1)
     expect(batches[0]?.providerText).toBe('<|speaker:0|>[whispering] Ready?<|speaker:1|>Ready.')
     expect(batches[0]?.referenceIds).toEqual(['voice-a', 'voice-b'])
-    expect(prepareFishDialogueText('Ready?', 'happy', 's1').providerText).toBe('(happy) Ready?')
+    expect(prepareFishDialogueText('Ready?', 'happy', 's2.1-pro').providerText).toBe('[happy] Ready?')
   })
 })
 
 describe('Fish timestamped synthesis contracts', () => {
-  test('serializes s2-pro timestamp streaming and binds alignment to the planned turn', async () => {
+  test('serializes s2.1-pro timestamp streaming and binds alignment to the planned turn', async () => {
     const root = await mkdtemp(join(tmpdir(), 'autoshow-fish-timing-'))
     roots.push(root)
     const priorFetch = globalThis.fetch
@@ -104,7 +104,7 @@ describe('Fish timestamped synthesis contracts', () => {
       alignment: { audio_duration: 0.05, segments: [{ text: 'Ready?', start: 0, end: 0.05 }] },
     }), { status: 200, headers: { 'content-type': 'text/event-stream', 'x-request-id': 'fish-ts-1' } })) as unknown as typeof fetch
     try {
-      await runFishTts('Ready?', root, { model: 's2-pro', apiKey: 'local-test-key', voiceId: '7f92f8afb8ec43bf81429cc1c9199cb1', requestEvidence: evidence })
+      await runFishTts('Ready?', root, { model: 's2.1-pro', apiKey: 'local-test-key', voiceId: '7f92f8afb8ec43bf81429cc1c9199cb1', requestEvidence: evidence })
     } finally {
       globalThis.fetch = priorFetch
     }
@@ -121,9 +121,9 @@ describe('Fish timestamped synthesis contracts', () => {
 
   test('native dialogue records complete timing and rejects non-s2 models', async () => {
     await expect(runFishNativeDialogue([{ turnId: 't1', subjectKey: 'pilot', speaker: 'PILOT', canonicalText: 'Hi', voiceId: 'v1' }], 'unused', {
-      model: 's1',
+      model: 'voice-design-1',
       apiKey: 'local-test-key',
-    })).rejects.toThrow('requires model s2-pro')
+    })).rejects.toThrow('requires model s2.1-pro')
 
     const root = await mkdtemp(join(tmpdir(), 'autoshow-fish-native-'))
     roots.push(root)
@@ -153,7 +153,7 @@ describe('Fish timestamped synthesis contracts', () => {
       await runFishNativeDialogue([
         { turnId: 't1', subjectKey: 'pilot', speaker: 'PILOT', canonicalText: 'Hi', voiceId: 'voice-a' },
         { turnId: 't2', subjectKey: 'navigator', speaker: 'NAVIGATOR', canonicalText: 'there', voiceId: 'voice-b' },
-      ], root, { model: 's2-pro', apiKey: 'local-test-key', requestEvidence: evidence })
+       ], root, { model: 's2.1-pro', apiKey: 'local-test-key', requestEvidence: evidence })
     } finally {
       globalThis.fetch = priorFetch
     }
@@ -176,7 +176,7 @@ describe('Fish timestamped synthesis contracts', () => {
     }) as unknown as typeof fetch
     try {
       await expect(runFishTts('Ready?', root, {
-        model: 's2-pro',
+        model: 's2.1-pro',
         apiKey: 'local-test-key',
         abortSignal: controller.signal,
       })).rejects.toThrow()

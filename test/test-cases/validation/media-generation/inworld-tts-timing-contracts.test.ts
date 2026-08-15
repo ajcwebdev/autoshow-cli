@@ -53,14 +53,6 @@ describe('Inworld REST timing contracts', () => {
     ])
   })
 
-  test('rejects Flash steering before transport', async () => {
-    await expect(runInworldTts('Hello', 'unused', {
-      model: 'realtime-tts-2-flash',
-      apiKey: 'local-test-key',
-      steeringPrompt: 'Whisper'
-    })).rejects.toThrow('steering is not supported')
-  })
-
   test('passes mocked response alignment through output evidence with the planned identity', async () => {
     const root = await mkdtemp(join(tmpdir(), 'autoshow-inworld-timing-'))
     roots.push(root)

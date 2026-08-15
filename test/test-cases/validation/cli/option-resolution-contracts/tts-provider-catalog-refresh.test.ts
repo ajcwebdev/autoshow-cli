@@ -7,7 +7,6 @@ import {
   SUPPORTED_DEEPGRAM_TTS_MODELS,
   SUPPORTED_GEMINI_TTS_VOICES,
   SUPPORTED_GROK_TTS_VOICES,
-  SUPPORTED_GROQ_ARABIC_TTS_VOICES,
   SUPPORTED_GROQ_ENGLISH_TTS_VOICES,
   SUPPORTED_GROQ_TTS_MODELS,
   SUPPORTED_OPENAI_TTS_MODELS,
@@ -66,22 +65,17 @@ describe('official TTS provider catalog refresh', () => {
     expect(() => validateDeepgramTtsModel('flux-general-en')).toThrow('Invalid model')
   })
 
-  test('Groq registry exposes separate English and Saudi-Arabic selectors and voices', () => {
+  test('Groq registry exposes only English Orpheus', () => {
     const service = getModelRegistry().tts['groq']
 
     expect(service?.catalogSourceUrl).toBe('https://console.groq.com/docs/text-to-speech/orpheus')
-    expect(service?.catalogCheckedAt).toBe(CHECKED_AT)
+    expect(service?.catalogCheckedAt).toBe('2026-08-15')
     expect(SUPPORTED_GROQ_TTS_MODELS).toEqual([
-      'canopylabs/orpheus-v1-english',
-      'canopylabs/orpheus-arabic-saudi'
+      'canopylabs/orpheus-v1-english'
     ])
     expect(getGroqTtsVoicesForModel('canopylabs/orpheus-v1-english')).toEqual(SUPPORTED_GROQ_ENGLISH_TTS_VOICES)
-    expect(getGroqTtsVoicesForModel('canopylabs/orpheus-arabic-saudi')).toEqual(SUPPORTED_GROQ_ARABIC_TTS_VOICES)
     expect(getGroqDefaultTtsVoiceForModel('canopylabs/orpheus-v1-english')).toBe('troy')
-    expect(getGroqDefaultTtsVoiceForModel('canopylabs/orpheus-arabic-saudi')).toBe('abdullah')
-    expect(validateGroqTtsVoiceForModel('canopylabs/orpheus-arabic-saudi', 'NOURA')).toBe('noura')
     expect(() => validateGroqTtsVoiceForModel('canopylabs/orpheus-v1-english', 'noura')).toThrow('for canopylabs/orpheus-v1-english')
-    expect(() => validateGroqTtsVoiceForModel('canopylabs/orpheus-arabic-saudi', 'hannah')).toThrow('for canopylabs/orpheus-arabic-saudi')
   })
 
   test('OpenAI retains fixed request-schema models and types eligible custom voices as objects', () => {
@@ -90,9 +84,7 @@ describe('official TTS provider catalog refresh', () => {
     expect(service?.catalogSourceUrl).toBe('https://developers.openai.com/api/reference/resources/audio/subresources/speech/methods/create')
     expect(service?.catalogCheckedAt).toBe(CHECKED_AT)
     expect(SUPPORTED_OPENAI_TTS_MODELS).toEqual([
-      'gpt-4o-mini-tts-2025-12-15',
-      'tts-1',
-      'tts-1-hd'
+      'gpt-4o-mini-tts-2025-12-15'
     ])
     expect(SUPPORTED_OPENAI_TTS_VOICES).toHaveLength(13)
     expect(resolveOpenAITtsVoiceForModel('gpt-4o-mini-tts-2025-12-15', 'MARIN')).toEqual({
@@ -105,7 +97,6 @@ describe('official TTS provider catalog refresh', () => {
       voiceId: 'voice_123abc',
       requestVoice: { id: 'voice_123abc' }
     })
-    expect(() => resolveOpenAITtsVoiceForModel('tts-1', 'marin')).toThrow('for tts-1')
     expect(() => resolveOpenAITtsVoiceForModel('gpt-4o-mini-tts-2025-12-15', 'made-up')).toThrow('eligible custom voice ID')
   })
 })

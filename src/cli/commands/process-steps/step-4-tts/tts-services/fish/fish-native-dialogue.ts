@@ -1,4 +1,4 @@
-import type { FishTtsModel, HostedTtsChunkScheduler, Step4Metadata, TtsRequestEvidenceScope } from '~/types'
+import type { HostedTtsChunkScheduler, Step4Metadata, TtsRequestEvidenceScope } from '~/types'
 import { CLIUsageError } from '~/utils/error-handler'
 import { createFishClient } from '~/utils/fish-client/fish-client'
 import { concatAndConvertToWav } from '../../tts-utils/audio-utils'
@@ -7,7 +7,7 @@ import { withHostedTtsRetry } from '../../tts-utils/hosted-tts-retry'
 import { dispatchTtsProviderRequest } from '../../script-to-audio/tts-request-evidence'
 import {
   FISH_NATIVE_DIALOGUE_SERIALIZER_VERSION,
-  FISH_S2_PRO_MODEL,
+  FISH_S21_PRO_MODEL,
   isFishNativeDialogueModel,
   normalizeFishNativeDialogueTiming,
   planFishNativeDialogueBatches,
@@ -18,7 +18,7 @@ export const runFishNativeDialogue = async (
   turns: readonly FishNativeDialogueTurn[],
   outputDir: string,
   options: {
-    model: FishTtsModel
+    model: string
     apiKey: string
     latency?: 'normal' | 'balanced' | 'low' | undefined
     abortSignal?: AbortSignal | undefined
@@ -26,7 +26,7 @@ export const runFishNativeDialogue = async (
     requestEvidence?: TtsRequestEvidenceScope | undefined
   }
 ): Promise<{ audioPath: string, metadata: Step4Metadata }> => {
-  if (!isFishNativeDialogueModel(options.model)) throw CLIUsageError('Fish native dialogue requires model s2-pro.')
+  if (!isFishNativeDialogueModel(options.model)) throw CLIUsageError('Fish native dialogue requires model s2.1-pro.')
   if (turns.length === 0) throw CLIUsageError('Fish native dialogue requires at least one turn.')
   const batches = planFishNativeDialogueBatches(turns)
   const client = createFishClient({ apiKey: options.apiKey })
@@ -51,12 +51,12 @@ export const runFishNativeDialogue = async (
         providerText: batch.providerText,
         voiceField: 'reference_id[]',
         voices: batch.turns.map(turn => ({ kind: 'provider-id', value: turn.voiceId, speaker: turn.speaker })),
-        requestControls: { format: 'wav', model: FISH_S2_PRO_MODEL, ...(options.latency ? { latency: options.latency } : {}) },
+        requestControls: { format: 'wav', model: FISH_S21_PRO_MODEL, ...(options.latency ? { latency: options.latency } : {}) },
         continuation: { kind: 'none' },
       }, attempt, async ({ accepted }) => {
         return await client.synthesizeTtsWithTimestamps({
           ...requestBody,
-          model: FISH_S2_PRO_MODEL,
+          model: FISH_S21_PRO_MODEL,
         }, {
           signal,
           onAccepted: async (response) => {

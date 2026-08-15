@@ -35,7 +35,19 @@ export const RETIRED_MODEL_RATES: RetiredModelRates = {
   tts: {
     'cartesia:sonic-3': { costPer1kCharsCents: 3.7375 },
     'cartesia:sonic-3.5': { costPer1kCharsCents: 3.7375 },
+    'deepinfra:ResembleAI/chatterbox-multilingual': { costPer1kCharsCents: 0.1 },
+    'elevenlabs:eleven_flash_v2_5': { costPer1kCharsCents: 5 },
+    'elevenlabs:eleven_multilingual_v2': { costPer1kCharsCents: 10 },
+    'fish:fish-speech-1.5': { costPer1kCharsCents: 5 },
+    'fish:s1': { costPer1kCharsCents: 5 },
+    'fish:s2-pro': { costPer1kCharsCents: 10 },
+    'fish:voice-design-1': { costPer1kCharsCents: 20 },
+    'groq:canopylabs/orpheus-arabic-saudi': { costPer1kCharsCents: 4 },
+    'inworld:realtime-tts-2-flash': { costPer1kCharsCents: 1.5 },
     'openai:gpt-4o-mini-tts': { inputCostPer1MCharsCents: 60, outputCostPer1MCharsCents: 1200 },
+    'openai:tts-1': { inputCostPer1MCharsCents: 0, outputCostPer1MCharsCents: 1500 },
+    'openai:tts-1-hd': { inputCostPer1MCharsCents: 0, outputCostPer1MCharsCents: 3000 },
+    'speechify:simba-3.0': { costPer1kCharsCents: 1 },
     'speechify:simba-english': { costPer1kCharsCents: 1 }
   },
   image: {
@@ -61,7 +73,20 @@ export const RETIRED_MODEL_REPLACEMENTS: RetiredModelReplacements = {
   llm: {
     'gemini:gemini-3.1-flash-lite': 'gemini-3.5-flash-lite'
   },
-  tts: {},
+  tts: {
+    'deepinfra:ResembleAI/chatterbox-multilingual': 'ResembleAI/chatterbox-turbo',
+    'elevenlabs:eleven_flash_v2_5': 'eleven_v3',
+    'elevenlabs:eleven_multilingual_v2': 'eleven_v3',
+    'fish:fish-speech-1.5': 's2.1-pro',
+    'fish:s1': 's2.1-pro',
+    'fish:s2-pro': 's2.1-pro',
+    'fish:voice-design-1': 's2.1-pro',
+    'groq:canopylabs/orpheus-arabic-saudi': 'canopylabs/orpheus-v1-english',
+    'inworld:realtime-tts-2-flash': 'realtime-tts-2',
+    'openai:tts-1': 'gpt-4o-mini-tts-2025-12-15',
+    'openai:tts-1-hd': 'gpt-4o-mini-tts-2025-12-15',
+    'speechify:simba-3.0': 'simba-3.2'
+  },
   image: {},
   music: {},
   video: {}

@@ -24,7 +24,7 @@ const HASH_A = 'a'.repeat(64)
 const HASH_B = 'b'.repeat(64)
 const tempDirs = setupContractSuiteLifecycle({ envKeys: ['FISH_API_KEY', 'ELEVENLABS_API_KEY'], tempPrefix: 'autoshow-fish-soundscape-' })
 
-const voiceEntry = (subjectKey: string, resourceId: string, model = 's2-pro') => createApprovedVoiceSnapshotEntry({
+const voiceEntry = (subjectKey: string, resourceId: string, model = 's2.1-pro') => createApprovedVoiceSnapshotEntry({
   registrationId: `registration-${subjectKey}`,
   generationId: hashCanonicalTtsValue({ subjectKey, generation: 1 }),
   subjectKey,
@@ -32,8 +32,8 @@ const voiceEntry = (subjectKey: string, resourceId: string, model = 's2-pro') =>
   provider: 'fish',
   providerVoice: { kind: 'remote-resource', provider: 'fish', resourceId, namespace: 'provider', origin: 'provider-stock', ownership: 'provider', deletion: { state: 'provider-managed', checkedAt: CREATED_AT } },
   providerModel: model,
-  settingsSchema: model === 's2-pro' ? FISH_NATIVE_DIALOGUE_SERIALIZER_VERSION : 'fish.tts.phase-0-v1',
-  synthesisSettings: { schemaVersion: 1, settingsSchema: model === 's2-pro' ? FISH_NATIVE_DIALOGUE_SERIALIZER_VERSION : 'fish.tts.phase-0-v1', values: {} },
+  settingsSchema: model === 's2.1-pro' ? FISH_NATIVE_DIALOGUE_SERIALIZER_VERSION : 'fish.tts.phase-0-v1',
+  synthesisSettings: { schemaVersion: 1, settingsSchema: model === 's2.1-pro' ? FISH_NATIVE_DIALOGUE_SERIALIZER_VERSION : 'fish.tts.phase-0-v1', values: {} },
   sanitizedProviderMetadata: {},
   briefHash: HASH_A,
   auditionManifestHash: HASH_B,
@@ -45,7 +45,7 @@ const voiceEntry = (subjectKey: string, resourceId: string, model = 's2-pro') =>
   registrationApprovedAt: CREATED_AT,
 })
 
-const fixture = async (root: string, model = 's2-pro') => {
+const fixture = async (root: string, model = 's2.1-pro') => {
   const source = '# Episode\n\n## Bridge\n\n**PILOT**\nReady?\n\n**NAVIGATOR**\nReady.\n\n**SFX:**\nHatch slams.\n\n**AMBIENCE:**\nEngine hum.\n'
   const sourcePath = join(root, 'scene.md')
   await Bun.write(sourcePath, source)
@@ -89,9 +89,9 @@ describe('ADR-018 Phase 6E Fish soundscape acceptance', () => {
   test('keeps Fish S2 Pro native dialogue separate from ElevenLabs action and ambience routing', async () => {
     const root = await tempDirs.make()
     const { dialoguePlan, soundscapePlan, snapshot } = await fixture(root)
-    const target: TtsTarget = { service: 'fish', model: 's2-pro', multiSpeakerStrategy: 'native', run: async () => { throw new Error('provider must not run during planning') } }
+    const target: TtsTarget = { service: 'fish', model: 's2.1-pro', multiSpeakerStrategy: 'native', run: async () => { throw new Error('provider must not run during planning') } }
     const nativeExecution = buildTargetExecution({ target, baseOptions: {}, snapshot, dialoguePlan, mode: 'auto', deliveryPolicy: 'best-effort', sampleRate: 48000, channels: 2, codec: 'pcm_s24le', resourceGate: createResourceGate({ capacity: 1 }) })
-    expect(nativeExecution.target).toMatchObject({ service: 'fish', model: 's2-pro', operation: 'comic-audio', multiSpeakerStrategy: 'native' })
+    expect(nativeExecution.target).toMatchObject({ service: 'fish', model: 's2.1-pro', operation: 'comic-audio', multiSpeakerStrategy: 'native' })
     const nativePlan = planCurrentTtsReadiness({ target: nativeExecution.target, sourceText: nativeExecution.sourceText, ttsOptions: nativeExecution.options, comicContext: nativeExecution.context })
     expect(nativePlan.strategy).toBe('native-dialogue')
     expect(nativePlan.plannedCost).toBeDefined()
@@ -101,7 +101,7 @@ describe('ADR-018 Phase 6E Fish soundscape acceptance', () => {
     const segmentedPlan = planCurrentTtsReadiness({ target: segmentedExecution.target, sourceText: segmentedExecution.sourceText, ttsOptions: segmentedExecution.options, comicContext: segmentedExecution.context })
     expect(segmentedPlan.strategy).toBe('segmented')
 
-    expect(() => resolveSoundEffectTarget('fish=s2-pro')).toThrow(/Unsupported sound-effect provider fish/)
+    expect(() => resolveSoundEffectTarget('fish=s2.1-pro')).toThrow(/Unsupported sound-effect provider fish/)
     process.env['FISH_API_KEY'] = 'fish-fixture-key'
     const calls = installMockFetch(() => { throw new Error('Fish readiness must not call the provider') })
     const readiness = await validateTtsTargetsForExecution([nativeExecution.target])
@@ -111,16 +111,6 @@ describe('ADR-018 Phase 6E Fish soundscape acceptance', () => {
     const renderPlan = createSoundEffectRenderPlan({ plan: soundscapePlan, target: resolveSoundEffectTarget('elevenlabs=eleven_text_to_sound_v2', { outputFormat: 'wav_48000' }) })
     expect(renderPlan.target).toMatchObject({ provider: 'elevenlabs', model: 'eleven_text_to_sound_v2', targetKey: canonicalTargetKey('sound-effect-generation', 'elevenlabs', 'eleven_text_to_sound_v2', 'hosted-api') })
     expect(renderPlan.tasks.map(task => ({ kind: task.kind, loop: task.loop }))).toEqual([{ kind: 'action-sfx', loop: false }, { kind: 'ambience', loop: true }])
-  })
-
-  test('falls back to segmented planning for non-S2 Fish models', async () => {
-    const root = await tempDirs.make()
-    const { dialoguePlan, snapshot } = await fixture(root, 's1')
-    const target: TtsTarget = { service: 'fish', model: 's1', multiSpeakerStrategy: 'segment-and-concat', run: async () => { throw new Error('provider must not run during planning') } }
-    const execution = buildTargetExecution({ target, baseOptions: {}, snapshot, dialoguePlan, mode: 'auto', deliveryPolicy: 'best-effort', sampleRate: 48000, channels: 2, codec: 'pcm_s24le', resourceGate: createResourceGate({ capacity: 1 }) })
-    expect(execution.target.multiSpeakerStrategy).toBe('segment-and-concat')
-    const readinessPlan = planCurrentTtsReadiness({ target: execution.target, sourceText: execution.sourceText, ttsOptions: execution.options, comicContext: execution.context })
-    expect(readinessPlan.strategy).toBe('segmented')
   })
 
   test('publishes a local four-bus mix from mocked Fish dialogue and ElevenLabs SFX', async () => {
@@ -138,14 +128,14 @@ describe('ADR-018 Phase 6E Fish soundscape acceptance', () => {
       }
       throw new Error(`Unexpected network call: ${call.method} ${call.url}`)
     })
-    const result = await runFishTts('Ready?', join(root, 'fish'), { model: 's2-pro', apiKey: 'fixture-key', voiceId: 'pilot-voice' })
+    const result = await runFishTts('Ready?', join(root, 'fish'), { model: 's2.1-pro', apiKey: 'fixture-key', voiceId: 'pilot-voice' })
     expect(await Bun.file(result.audioPath).exists()).toBe(true)
     expect(calls).toHaveLength(1)
     expect(calls[0]?.url).toBe('https://api.fish.audio/v1/tts/stream/with-timestamp')
     expect(calls[0]?.bodyJson).toMatchObject({ text: 'Ready?', reference_id: 'pilot-voice', format: 'wav' })
 
     await mkdir(join(root, 'audio', 'final'), { recursive: true })
-    const dialogue = await createLocalSilentDialogueRun({ rootDir: root, plan: soundscapePlan, target: { service: 'fish', model: 's2-pro', transport: 'hosted-api' } })
+    const dialogue = await createLocalSilentDialogueRun({ rootDir: root, plan: soundscapePlan, target: { service: 'fish', model: 's2.1-pro', transport: 'hosted-api' } })
     const renderPlan = createSoundEffectRenderPlan({ plan: soundscapePlan, target: resolveSoundEffectTarget('elevenlabs=eleven_text_to_sound_v2', { outputFormat: 'wav_48000' }) })
     let sfxCalls = 0
     const adapter = createElevenLabsSoundEffectAdapter({ apiKey: 'fixture', request: async () => {
@@ -155,7 +145,7 @@ describe('ADR-018 Phase 6E Fish soundscape acceptance', () => {
     const mixed = await runComicSoundscape({ rootDir: root, plan: soundscapePlan, renderPlan, dialoguePlan, dialogueRuns: [dialogue.binding], adapter, concurrency: 2, hostedConcurrencyCoordinator: createHostedConcurrencyCoordinator({ mode: 'immediate' }) })
     const soundscapeRun = mixed.soundscapeRuns[0]
     expect([0, 2]).toContain(sfxCalls)
-    expect(soundscapeRun?.binding.targetKey).toBe(canonicalTargetKey('comic-audio', 'fish', 's2-pro', 'hosted-api'))
+    expect(soundscapeRun?.binding.targetKey).toBe(canonicalTargetKey('comic-audio', 'fish', 's2.1-pro', 'hosted-api'))
     expect(soundscapeRun?.audioRun.stems.map(stem => stem.bus)).toEqual(['dialogue', 'action-sfx', 'ambience'])
     expect(await Bun.file(join(root, soundscapeRun?.audioRun.resolvedTimeline.path as string)).exists()).toBe(true)
     expect(await Bun.file(join(root, soundscapeRun?.audioRun.master.path as string)).exists()).toBe(true)

@@ -339,7 +339,6 @@ describe('price mode contracts', () => {
     const rate = getTtsEstimation('elevenlabs', 'eleven_v3').msPer1KChars
 
     expect(buildTtsBatchEstimateSummary([estimate], 1, 2, { preparedInputs, targets: [targetFor('eleven_v3')] }).estimatedWallTimeMs).toBe(Math.round(5 * rate))
-    expect(buildTtsBatchEstimateSummary([estimate], 1, 2, { preparedInputs, targets: [targetFor('eleven_flash_v2_5')] }).estimatedWallTimeMs).toBe(Math.round(6 * rate))
   })
 
   test('TTS preflight estimates preserve setup-fee and estimate-type metadata', () => {
@@ -383,14 +382,9 @@ describe('price mode contracts', () => {
     })
 
   test('Speechify TTS estimates use registry pricing and timing defaults', () => {
-      const costs = [
-        ...estimateTtsCosts({
-          speechifyTtsModels: ['simba-3.2']
-        } as Parameters<typeof estimateTtsCosts>[0], 1000),
-        ...estimateTtsCosts({
-          speechifyTtsModels: ['simba-3.0']
-        } as Parameters<typeof estimateTtsCosts>[0], 1000)
-      ]
+      const costs = estimateTtsCosts({
+        speechifyTtsModels: ['simba-3.2']
+      } as Parameters<typeof estimateTtsCosts>[0], 1000)
 
       expect(costs.map((cost) => ({
         provider: cost.provider,
@@ -400,8 +394,7 @@ describe('price mode contracts', () => {
         setupTimeMs: cost.setupTimeMs,
         totalCost: cost.totalCost
       }))).toEqual([
-        { provider: 'speechify', model: 'simba-3.2', costPer1kCharactersCents: 1, setupCostCents: undefined, setupTimeMs: undefined, totalCost: 1 },
-        { provider: 'speechify', model: 'simba-3.0', costPer1kCharactersCents: 1, setupCostCents: undefined, setupTimeMs: undefined, totalCost: 1 }
+        { provider: 'speechify', model: 'simba-3.2', costPer1kCharactersCents: 1, setupCostCents: undefined, setupTimeMs: undefined, totalCost: 1 }
       ])
 
       const timing = computeEstimatedProcessingTimes({
@@ -459,9 +452,7 @@ describe('price mode contracts', () => {
       expect(getTtsPricing('deepgram', model).costPer1kCharsCents).toBe(3)
       expect(getTtsEstimation('deepgram', model).msPer1KChars).toBe(39_639)
     }
-    expect(getTtsPricing('elevenlabs', 'eleven_multilingual_v2').costPer1kCharsCents).toBe(10)
-    expect(getTtsPricing('elevenlabs', 'eleven_flash_v2_5').costPer1kCharsCents).toBe(5)
-    expect(getTtsEstimation('elevenlabs', 'eleven_multilingual_v2').msPer1KChars).toBe(35_885)
-    expect(getTtsEstimation('elevenlabs', 'eleven_flash_v2_5').msPer1KChars).toBe(35_885)
+    expect(getTtsPricing('elevenlabs', 'eleven_v3').costPer1kCharsCents).toBe(10)
+    expect(getTtsEstimation('elevenlabs', 'eleven_v3').msPer1KChars).toBe(35_885)
   })
 })
